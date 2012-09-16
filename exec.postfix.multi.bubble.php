@@ -1,0 +1,45 @@
+<?php
+if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
+include_once(dirname(__FILE__).'/ressources/class.templates.inc');
+include_once(dirname(__FILE__).'/ressources/class.ini.inc');
+include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
+include_once(dirname(__FILE__).'/ressources/class.iptables.exec.rules.inc');
+include_once(dirname(__FILE__).'/framework/class.unix.inc');
+include_once(dirname(__FILE__).'/framework/frame.class.inc');
+include_once(dirname(__FILE__) . '/ressources/class.system.network.inc');
+include_once(dirname(__FILE__) . '/ressources/class.postfix-multi.inc');
+include_once(dirname(__FILE__) . '/ressources/class.main_cf.inc');
+include_once(dirname(__FILE__) . '/ressources/class.assp-multi.inc');
+include_once(dirname(__FILE__) . '/ressources/class.maincf.multi.inc');
+
+
+if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
+$unix=new unix();
+$sock=new sockets();
+$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=0;}
+if($EnablePostfixMultiInstance==0){echo "Starting......: Postfix Bubble multiple instance is disabled !\n";iptables_delete_rules();return;}
+
+$pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
+if($unix->process_exists(@file_get_contents($pidfile),basename(__FILE__))){echo "Starting......: Postfix Bubble multiple already executed PID ". @file_get_contents($pidfile)."\n";die();}
+$pid=getmypid();
+echo "Starting......: Postfix Bubble multiple running $pid\n";
+file_put_contents($pidfile,$pid);
+
+
+
+$GLOBALS["iptables"]=$unix->find_program("iptables");
+
+
+StartBubble();
+
+
+
+function StartBubble(){
+		$q=new mysql();
+		if(!$q->test_mysql_connection()){echo "Starting......: Postfix Bubble Mysql is not ready aborting...\n";return;}		
+		$ip=new iptables_exec();
+		$ip->buildrules();		
+}
+

@@ -1,0 +1,170 @@
+unit netatalk;
+
+{$MODE DELPHI}
+{$LONGSTRINGS ON}
+
+interface
+
+uses
+    Classes, SysUtils,variants,strutils,IniFiles, Process,logs,unix,RegExpr in 'RegExpr.pas',zsystem;
+
+type LDAP=record
+      admin:string;
+      password:string;
+      suffix:string;
+      servername:string;
+      Port:string;
+  end;
+
+  type
+  tnetatalk=class
+
+
+private
+     LOGS:Tlogs;
+     GLOBAL_INI:TiniFIle;
+     SYS:TSystem;
+     artica_path:string;
+     NetatalkEnabled:integer;
+
+public
+    procedure   Free;
+    constructor Create(const zSYS:Tsystem);
+    procedure   START();
+    function    DEAMON_BIN_PATH():string;
+    function    PID():string;
+    function    INITD_PATH():string;
+    procedure   STOP();
+
+
+END;
+
+implementation
+
+constructor tnetatalk.Create(const zSYS:Tsystem);
+begin
+       forcedirectories('/etc/artica-postfix');
+       LOGS:=tlogs.Create();
+       SYS:=zSYS;
+       if not TryStrToInt(SYS.GET_INFO('NetatalkEnabled'),NetatalkEnabled) then NetatalkEnabled:=1;
+       if not DirectoryExists('/usr/share/artica-postfix') then begin
+              artica_path:=ParamStr(0);
+              artica_path:=ExtractFilePath(artica_path);
+              artica_path:=AnsiReplaceText(artica_path,'/bin/','');
+
+      end else begin
+          artica_path:='/usr/share/artica-postfix';
+      end;
+end;
+//##############################################################################
+procedure tnetatalk.free();
+begin
+    logs.Free;
+    SYS.Free;
+end;
+//##############################################################################
+function tnetatalk.DEAMON_BIN_PATH():string;
+begin
+  result:=SYS.LOCATE_GENERIC_BIN('afpd');
+end;
+//##############################################################################
+function tnetatalk.INITD_PATH():string;
+begin
+  if FileExists('/etc/init.d/netatalk') then exit('/etc/init.d/netatalk');
+end;
+//##############################################################################
+function tnetatalk.PID():string;
+begin
+result:=SYS.PIDOF(DEAMON_BIN_PATH());
+end;
+//##############################################################################
+procedure tnetatalk.START();
+ var
+    count      :integer;
+    cmdline    :string;
+    logs       :Tlogs;
+    datas      :string;
+    user       :string;
+begin
+     count:=0;
+     logs:=Tlogs.Create;
+     logs.Debuglogs('NTPD_START()');
+     if not FileExists(DEAMON_BIN_PATH()) then begin
+       logs.DebugLogs('Starting......:  Netatalk not installed');
+       exit;
+     end;
+
+
+    if NetatalkEnabled<>1 then begin
+        logs.DebugLogs('Starting......:  Netatalk not enabled');
+        STOP();
+        exit;
+     end;
+
+ if SYS.PROCESS_EXIST(PID()) then begin
+        logs.DebugLogs('Starting......:  Netatalk daemon is already running using PID ' + PID() + '...');
+        exit;
+ end;
+
+
+  if not FileExists(INITD_PATH()) then begin
+     logs.DebugLogs('Starting......:  Netatalk unable to stat init.d script, aborting');
+     exit;
+  end;
+  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.netatalk.php --build');
+  cmdline:=INITD_PATH() + ' start &';
+  logs.DebugLogs('Starting......: Starting Netatalk service');
+  logs.DebugLogs(cmdline);
+  fpsystem(cmdline);
+
+
+        while not SYS.PROCESS_EXIST(PID()) do begin
+              sleep(100);
+              inc(count);
+              if count>100 then begin
+                 logs.DebugLogs('Starting......: Netatalk daemon... (failed!!!)');
+                 logs.Debuglogs('Starting......: Failed starting Netatalk Daemon');
+                 exit;
+              end;
+        end;
+
+
+
+     logs.DebugLogs('Starting......: Netatalk daemon with new PID ' + PID() + '...');
+
+
+end;
+//##############################################################################
+procedure tnetatalk.STOP();
+ var
+    count      :integer;
+begin
+
+     count:=0;
+
+
+     if SYS.PROCESS_EXIST(PID()) then begin
+        writeln('Stopping Netatalk............: ' + PID() + ' PID..');
+
+        if FileExists(INITD_PATH()) then begin
+              fpsystem(INITD_PATH() + ' stop');
+              exit;
+        end;
+
+
+        while sys.PROCESS_EXIST(PID()) do begin
+              sleep(100);
+              inc(count);
+              if count>100 then begin
+                 writeln('Stopping Netatalk............: timeout Failed');
+                 exit;
+              end;
+        end;
+
+      end else begin
+         writeln('Stopping Netatalk............: Already stopped');
+     end;
+
+end;
+//##############################################################################
+end.

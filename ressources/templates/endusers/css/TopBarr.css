@@ -1,0 +1,434 @@
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Ubuntu'), url(/css/ubuntu.woff) format('woff');
+}
+
+
+body{background:#fff;
+	font-size:11px;
+	color:#333;
+	margin:0;
+	padding:0;
+	unicode-bidi:embed
+}
+
+.explain{
+  	-moz-border-radius: 5px;
+  	border-radius: 5px;
+  	border:1px solid #999999;
+  	background-color:#FAFAFA;	
+  	margin:5px;padding:5px;	
+	margin-bottom:10px;
+	background-image:url(/img/help_bg.png);
+	background-repeat:no-repeat;
+	background-position:99% 0%;
+	padding-right:48px;
+	min-height:50px;
+	
+	}
+	
+td.legend {
+    color: #4C535C;
+    font-size: 16px;
+    font-weight: normal;
+    text-align: right;
+   
+}
+
+td.legend:first-letter {
+  text-transform: uppercase;
+}
+	
+.BodyContent{
+	border-top:1px solid #CCCCCC;
+	margin-top:5px;
+	font-size:14px;
+	line-height:auto;
+    font-weight: normal !important;
+    text-rendering: optimizelegibility;	
+	-moz-border-bottom-colors: none;
+    -moz-border-left-colors: none;
+    -moz-border-right-colors: none;
+    -moz-border-top-colors: none;
+    background: none repeat scroll 0 0 #FFFFFF;
+    border-color: #C4CDE0;
+    border-image: none;
+    border-radius: 3px 3px 3px 3px;
+    border-style: solid;
+    border-width: 1px 1px 2px;
+    padding: 20px 35px 10px;
+}	
+
+
+.BodyContent h1{
+	font-size:19px;
+    font-weight: bold !important;
+    text-rendering: optimizelegibility;
+    color:#333333;
+    margin-bottom:10px;
+	
+}
+
+.p1 p{
+	color:#666666;
+	
+	
+}
+table .form{
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  border:1px solid #DDDDDD;
+width:99%;
+/*url("../img/gradients.gif") repeat-x scroll 0 -4000px #F6F6F6*/
+  background:url("/img/gr-greybox.gif") repeat-x scroll 0 0 #FBFBFA;
+  background:-moz-linear-gradient(center top , #F1F1F1 0px, #FFFFFF 45px) repeat scroll 0 0 transparent;
+  margin:5px;padding:5px;
+	-webkit-border-radius: 5px;
+	-o-border-radius: 5px;		
+}
+
+div .formOver{
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  border:1px solid #DDDDDD;
+  background:url("/img/gr-greybox.gif") repeat-x scroll 0 0 #FBFBFA;
+  background:-moz-linear-gradient(center top , #e7ebf2 0px, #FFFFFF 45px) repeat scroll 0 0 transparent;
+  margin:5px;padding:5px;
+  -webkit-border-radius: 5px;
+  -o-border-radius: 5px;		
+ -moz-box-shadow: 2px 2px 8px #e7ebf2;
+ -webkit-box-shadow: 2px 2px 8px #e7ebf2;
+ box-shadow: 2px 2px 8px #e7ebf2;
+}
+
+h1, h2, h3, h4, h5, h6{font-size:13px;color:#333;margin:0;padding:0}
+h1{font-size:14px}
+h4, h5{font-size:11px}
+p{margin:1em 0}
+a{cursor:pointer;color:#3b5998;-moz-outline-style:none;text-decoration:none}
+a:hover{text-decoration:underline;font-weight:bold;}
+img{border:0}
+dd{color:#000}
+dt{color:#777}
+ul{list-style-type:none;margin:0;padding:0}
+abbr{border-bottom:none}
+hr{background:#d9d9d9;border-width:0;color:#d9d9d9;height:1px}
+
+
+.MainLayout1{background:#e7ebf2}
+.canHaveFixedElements body.MainLayout1 #blueBarContent{padding-top:0 !important}
+#globalContainer{margin:0 auto;position:relative;zoom:1}
+
+
+
+
+.sidebarMode .MainCenter1 #globalContainer{padding-right:205px}
+
+.MainLayout1 #globalContainer{clear:both}
+.MainLayout1 #contentArea{position:relative;width:851px !important}
+.MainLayout1 #contentCol{background:none;padding-top:0}
+.MainLayout1 #rightCol{margin-right:-5px;width:122px}
+.MainLayout1 .timeline_fixed#rightCol .rightColWrap{position:fixed;top:38px}
+.MainLayout1 #pageFooter{margin:0;overflow:hidden;width:851px}
+.MainLayout1 #contentCurve{background-color:transparent}
+.MainLayout1 #footerContainer{border:0;padding:8px 0 38px}
+.MainLayout1 .TopSection{padding:0;margin:0}
+.MainLayout1 .uiMediaThumbAlbHuge, .MainLayout1 .uiMediaThumbHuge .uiMediaThumbWrap i{height:111px;width:167px}
+.MainLayout1 .fbPhotosGrid .photoDetails{width:185px;margin-right:6px}
+.MainLayout1 .uiMediaThumbHuge{padding:3px}
+.MainLayout1 .uiMediaThumbHuge i{height:120px;width:180px}
+
+.MainTopHeader{background:#fff;border:1px solid #c4cde0;border-bottom-width:2px;border-radius:3px;padding:20px 35px 10px}
+.MainTopHeader .uiMorePager{margin:0 -35px -10px}
+.MainTopHeaderTransparent{background:none;border:none;border-radius:0;box-shadow:none;padding-top:75px}
+
+.clearfix:after{clear:both;content:".";display:block;font-size:0;height:0;line-height:0;visibility:hidden}
+.clearfix{zoom:1}
+#headNav{height:30px;margin-left:176px}
+.MainCenter1 #globalContainer{width:981px}
+.MainCenter1 #pageFooter{margin:auto;width:auto}
+.MainCenter1 #tab_canvas > div{padding-top:0}
+.MainCenter1 .fb_content{padding-bottom:0}
+.MainCenter1 #pageHead, #blueBarContent #pageHead{padding-top:6px;width:981px}
+.sidebarMode .MainCenter1 #pageHead, .sidebarMode #blueBarContent #pageHead{padding-right:205px}
+
+#blueBarContent{background-color:#3b5998;border-bottom:1px solid #133783;min-width:981px;position:relative;z-index:300}
+.BlueBarrSize #blueBarContent{box-shadow:0 2px 2px -2px rgba(0, 0, 0, .52);height:37px}
+.BlueBarrSize #blueBarContent.fixed_elem{left:0;right:0;top:0}
+#BlueBarrMain.BlueBarrSize{height:38px}
+
+#pageNav{margin-right:1px}
+#pageNav .navItem, #pageNav #navAccount{float:left}
+#pageNav .navItem a, #pageNav #navAccountLink{color:#d8dfea;display:inline-block;font-weight:bold;height:31px;line-height:29px;position:relative;text-decoration:none;vertical-align:top}
+#pageNav .middleItem a, #pageNav .lastItem a, #pageNav #navAccountLink{margin-left:-1px}
+#pageNav .middleItem a, #pageNav .lastItem a{padding:0 8px}
+#pageNav .navItem a:hover, #pageNav .navItem a:focus, #pageNav .navItem a:active, #pageNav #navAccountLink:hover, #pageNav #navAccountLink:focus, #pageNav #navAccountLink:active{background-color:#4b67a1;color:#fff;outline:none;z-index:1}
+#pageNav .navItem a:after{background:#526da4;content:" ";display:block;height:14px;position:absolute;right:0;top:9px;width:1px}
+#pageNav .navItem a:hover:after, #pageNav .lastItem a:after{display:none}
+#pageNav .ThumbAccount .ThumbAccountPhoto{border:1px solid #294a8f;border-top:1px solid #123682;border-radius:2px;height:23px;margin:3px 5px 3px 3px;width:23px}
+#pageNav .ThumbAccount .ThumbAccountName{display:inline-block;max-width:175px;overflow:hidden;padding-right:8px;text-overflow:ellipsis;vertical-align:top;white-space:nowrap}
+#pageNav .lightNav .ThumbAccountName{color:#d8dfea;font-weight:bold;line-height:29px}
+
+
+#pageHead{margin:0 auto;width:980px}
+#pageLogo{float:left;margin-left:-6px;z-index:5}
+#pageLogo.pixelSnapped{margin-left:-7px;padding-right:1px}
+#pageLogo a, #pageLogo a:hover, #pageLogo a:focus, #pageLogo a:active{
+	display:block;
+	height:31px;
+	outline:none;
+	overflow:hidden;
+	text-indent:200px;
+	white-space:nowrap;
+	width:103px
+}
+#pageLogo.pixelSnapped a, #pageLogo.pixelSnapped a:hover, #pageLogo.pixelSnapped a:focus,
+ #pageLogo.pixelSnapped a:active{
+	background-image:url(/img/artica-103x31.png);
+	background-repeat:no-repeat;
+	background-size:auto;
+	background-position:0px -1px;
+}
+#pageLogo a:hover, #pageLogo a:focus, #pageLogo a:active{background-color:#4b67a1}
+
+.lfloat{float:left}
+.rfloat{float:right}
+
+.uiContextualLayerParent{position:relative}
+#contentArea{margin-right:-1px;padding-left:1px;word-wrap:break-word}
+#mainContainer{margin-left:-1px;display:block;width:100%}
+
+
+.AccountCoverLarge .AccountIMGThumbLarge .AccountIMG{height:160px;width:160px}
+.AccountCoverLarge h2{margin-left:206px}
+.AccountCoverLarge #TitleBarr .AccountIMGThumbLarge{margin-top:-121px}
+
+#AccountCover, #pagelet_above_header_timeline{margin:-1px -1px 0}
+.compactHead #AccountCover .coverWrap{height:60px}
+.compactHead #AccountCover h2{margin-top:15px;margin-left:126px}
+.compactHead #AccountCover .AccountIMGThumb{margin-top:-47px}
+.compactHead #AccountCover .AccountIMG{height:80px;width:80px}
+#AccountCover .cover{display:block;position:relative}
+#AccountCover .coverWrap{display:block;position:relative;height:315px;overflow:hidden;text-decoration:none}
+#AccountCover .coverWrap .photo{image-rendering:optimizeQuality;min-height:100%;min-width:100%;position:absolute;left:0}
+#AccountCover .coverBorder{border:1px solid #000;border-color:rgba(0, 0, 0, .25);border-top-color:rgba(0, 0, 0, .1);bottom:0;left:0;position:absolute;right:0;top:0}
+#AccountCover .AccountCoverCollapsed .coverWrap{margin-top:-200px}
+#AccountCover .changeCoverPhotoIndicator{position:absolute;left:400px;top:150px}
+#AccountCover .coverNoImage .changeCoverPhotoIndicator{top:30px}
+#AccountCover .coverNoImage{background:#e7ebf2;border-bottom:1px solid #c4cde0;height:100px;position:relative}
+#AccountCover .opaquedLoading .photo{opacity:.25}
+#AccountCover .coverNoImage .coverEmptyWrap{height:100%;position:relative}
+#AccountCover .coverChangeThrobber{display:none;left:50%;margin-top:-8px;position:absolute;top:50%}
+#AccountCover .opaquedLoading .coverChangeThrobber{display:inline}
+#AccountCover .AccountCoverPhotoSelector, #AccountCover .AccountPictureSelection{opacity:0;position:absolute;z-index:5}
+#AccountCover .AccountPictureSelection{left:135px;top:-47px}
+#AccountCover .AccountCoverPhotoSelector{bottom:25px;right:25px}
+#AccountCover .cover:hover .AccountCoverPhotoSelector, #AccountCover .coverNoImage .AccountCoverPhotoSelector, #AccountCover .selected.AccountCoverPhotoSelector, #AccountCover .photoContainer .fbTimelineNullAccountPictureSelection, #AccountCover .photoContainer:hover .AccountPictureSelection, #AccountCover .selected.AccountPictureSelection{opacity:1}
+#AccountCover .AccountCoverPhotoSelector .wrap, #AccountCover .AccountPictureSelection .wrap{background-color:#fff;border-radius:3px;box-shadow:0 1px 2px rgba(0, 0, 0, .2);z-index:3}
+#AccountCover .coverEditor{display:none}
+#AccountCover .uiSelector, #AccountCover, #AccountCover{max-width:none}
+#AccountCover.AccountCoverLarge .AccountPictureSelection{left:170px}
+#AccountCover.AccountCoverLarge .coverNoImage{height:129px}
+.AccountPictureSelection .uiMenuItem .itemAnchor, .AccountCoverPhotoSelector .uiMenuItem .itemAnchor{padding-bottom:3px}
+.AccountPictureSelection .img{margin:0 8px 0 3px}
+.AccountPictureSelection .img{margin:0 8px 0 2px}
+.AccountCoverPhotoSelector .uiMenuInner, .AccountPictureSelection .uiMenuInner{overflow:hidden}
+
+#TitleBarr{min-height:47px;position:relative;width:100%;z-index:4}
+#TitleBarr .name{overflow:hidden}
+#TitleBarr .actions{float:right;padding:7px 25px 0 10px;max-width:500px;text-align:right}
+#TitleBarr .actions{white-space:nowrap}
+#TitleBarr .AccountIMGThumb{background:rgba(0, 0, 0, .3);border-radius:3px;box-shadow:0 1px 1px rgba(0, 0, 0, .07);display:block;left:23px;margin-top:-92px;padding:1px;position:absolute}
+#TitleBarr a.AccountIMGThumb:hover{border-color:#3b5998}
+#TitleBarr .AccountIMGThumb .img{margin:0;display:block}
+#TitleBarr .IMGToLeft, #TitleBarr .IMGToRight{background-color:#fff;border:4px solid #fff;border-radius:2px;height:125px;width:63px}
+#TitleBarr .IMGToLeft{border-right:1px solid #fff}
+#TitleBarr .AccountIMG{background-color:#fff;border:4px solid #fff;border-radius:2px;height:125px;width:125px}
+#TitleBarr .IMGToRight{border-left:1px solid #fff}
+#TitleBarr h2{
+	bottom:50px;
+	color:#1c2a47;
+	font-size:20px;
+	overflow:hidden;
+	text-rendering: optimizelegibility;	
+	margin:16px 0 0 177px
+}
+#TitleBarr h2 a{color:#1c2a47}
+#TitleBarr .alternate_name{color:gray;font-weight:normal}
+.coverWrap .AccountIMGNotch, .coverWrap .instructionWrap{display:none}
+.articHeadOpen #AccountCover{height:47px;margin-bottom:-1px}
+.articHeadOpen #AccountCover h2{margin-top:14px;margin-left:63px;margin-bottom:10px;font-size:17px;white-space:nowrap}
+.articHeadOpen #AccountCover .coverNoImage, .articHeadOpen #AccountCover .coverWrap{height:0}
+.articHeadOpen #AccountCover .AccountIMGThumb{background:transparent;box-shadow:none;left:11px;margin-top:2px}
+.articHeadOpen #AccountCover .AccountIMG{height:32px;width:32px}
+.articHeadOpen #AccountCover .IMGToLeft, .articHeadOpen #AccountCover .IMGToRight{visibility:hidden;width:0}
+
+.TopSection{border-bottom:0;border-radius:0;border-top:0;padding-bottom:0}
+.TopSectionBase .topSectionBottomBorder{display:block}
+.TopSectionBase.articHeadOpen .topSectionBottomBorder{display:none}
+.fixed_elem {position:fixed !important}
+
+.uiScaledImageContainer{position:relative;overflow:hidden}
+.uiScaledImageCentered{background-color:#f2f2f2;text-align:center}
+.uiScaledImageContainer img{height:100%;min-height:100%;position:relative}
+.uiScaledImageContainer .scaledImageFitWidth{height:auto;width:100%}
+.uiScaledImageContainer .verticallyAligned{min-height:0;vertical-align:middle}
+
+.ytred{margin-top:10px}
+
+
+body.MainLayout1 .timeline_fixed#blueBarContent{padding-top:0 !important;position:fixed !important}
+body.MainCenter1.permalinkBody #globalContainer{margin-top:40px;width:889px;min-width:889px}
+
+.BodyContentWork{
+	border-top:1px solid #CCCCCC;
+	margin-top:5px;
+	font-size:14px;
+	line-height:auto !important;
+    font-weight: normal !important;
+    text-rendering: optimizelegibility;	
+	-moz-border-bottom-colors: none;
+    -moz-border-left-colors: none;
+    -moz-border-right-colors: none;
+    -moz-border-top-colors: none;
+    background: none repeat scroll 0 0 #FFFFFF;
+    border-color: #C4CDE0;
+    border-image: none;
+    border-radius: 3px 3px 3px 3px;
+    border-style: solid;
+    border-width: 1px 1px 2px;
+    padding: 20px 35px 10px;
+}
+
+.BodyContent input{
+	padding: 7px 9px 8px;
+	font-size: 16px !important;
+	width:90% !important;
+ 	border-color: #C4CDE0;
+ 	color:#979797;
+    border-image: none;
+    border-radius: 3px 3px 3px 3px;
+    border-style: solid;
+    border-width: 1px 1px 2px;
+}
+.BodyContent input.active{
+	border-color: #E17009;
+	font-weight:bold;
+	color:black;
+}
+
+
+.qq-uploader { position:relative; width: 100%;}
+
+.qq-upload-button {
+    display:block; /* or inline-block */
+    width: 205px; padding: 7px 0; text-align:center;    
+    background:#3B5998; border-bottom:1px solid #ddd;color:#fff;
+    font-size:18px;
+}
+.qq-upload-button-hover {background:#cc0000;}
+.qq-upload-button-focus {outline:1px dotted black;}
+
+.qq-upload-drop-area {
+    position:absolute; top:0; left:0; width:100%; height:100%; min-height: 70px; z-index:2;
+    background:#FF9797; text-align:center; 
+}
+.qq-upload-drop-area span {
+    display:block; position:absolute; top: 50%; width:100%; margin-top:-8px; font-size:16px;
+}
+.qq-upload-drop-area-active {background:#FF7171;}
+
+.qq-upload-list {margin:15px 35px; padding:0; list-style:disc;}
+.qq-upload-list li { margin:0; padding:0; line-height:15px; font-size:16px;}
+.qq-upload-file, .qq-upload-spinner, .qq-upload-size, .qq-upload-cancel, .qq-upload-failed-text {
+    margin-right: 7px;
+}
+
+.qq-upload-file {}
+.qq-upload-spinner {display:inline-block; background: url("/img/loading.gif"); width:15px; height:15px; vertical-align:text-bottom;}
+.qq-upload-size,.qq-upload-cancel {font-size:14px;color:#cc0000;}
+
+.qq-upload-failed-text {display:none;}
+.qq-upload-fail .qq-upload-failed-text {display:inline;}
+
+.paragraphe{
+	background-image:url(/ressources/templates/default/img/note-body-bg.png);
+	background-repeat:repeat-x;
+	line-height:13px !important;
+	background-position:bottom left;
+	background-color:#ededed;
+	border:solid 1px #c4c5a6;
+	margin:2px;
+	padding:3px;
+	overflow:visible;
+	min-height:79px;
+	display:block;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-o-border-radius: 5px;
+	 border-radius: 5px 5px 5px 5px;
+
+	
+}
+.paragraphe h3{
+letter-spacing: -1px;
+line-height:13px !important;
+
+}
+
+.flexigrid input[type="text"] {
+  width: 30px !important;
+  text-align:center !important;
+  font-size:11px !important;
+}
+
+.flexigrid div.sDiv2 input, .flexigrid div.sDiv2 select {
+	width:auto !important;
+	text-align:left !important;
+	font-size:14px !important;
+}
+
+
+
+.paragraphe p{
+	border-top:1px dotted #CCCCCC;
+	font-size:11px;
+	margin-top:1px;
+	text-align : left; 
+	min-height:79px;
+	line-height:13px !important;
+}
+
+.paragraphe_over{
+	background-image:url(/ressources/templates/default/img/note-body-bg-over.png);
+	background-color:transparent;
+	background-position:bottom left;
+	background-repeat:repeat-x;
+	border:solid 1px #c4c5a6;
+	margin:2px;
+	padding:3px;
+	overflow:visible;
+	min-height:79px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-o-border-radius: 5px;
+	line-height:13px !important;
+}
+
+.paragraphe_over h3{
+	font-weight:bolder;
+	letter-spacing: -1px;
+	line-height:13px !important;
+}
+
+
+.paragraphe_over p{
+	border-top:1px dotted #CCCCCC;
+	font-size:11px;
+	margin-top:1px;
+	text-align : left;
+	min-height:79px;
+	line-height:13px !important;
+}

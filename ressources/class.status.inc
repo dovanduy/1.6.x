@@ -1,0 +1,2303 @@
+<?php
+
+class status{
+	var $logFile="/var/log/artica-postfix/background-status.debug";
+	var $_postfix_status;
+	var $array_queue;	
+	var $array_right;
+	var $array_left;
+	var $sock;
+	var $cyrus_init_d;
+	var $status_in_line;
+	var $myini;
+	var $newversions=array();
+	function status($noconnect=0,$local_ini=null,$logfile=null){
+		if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
+		if($logfile<>null){$this->logFile=$logfile;}
+		if(!file_exists(dirname(__FILE__) . '/settings.inc')){
+			$this->events("ERROR: unable to stat " . dirname(__FILE__) . '/settings.inc',__FUNCTION__,__LINE__);
+			return false;
+		}
+		$this->events("Include settings.inc",__FUNCTION__,__LINE__);
+		include(dirname(__FILE__) . '/settings.inc');
+		$this->events("Loading sockets",__FUNCTION__,__LINE__);
+		$sock=new sockets();
+		$this->myini=$local_ini;
+		$this->sock=new sockets();
+		if($noconnect<>0){return null;}
+		
+		if($_GLOBAL["POSTFIX_INSTALLED"]){
+			$this->events("Loading cmd.php?postfixQueues=yes",__FUNCTION__,__LINE__);
+			$queues=unserialize($sock->getFrameWork("cmd.php?postfixQueues=yes"));
+			$this->array_queue=$queues;
+			$this->cyrus_init_d=$_GLOBAL["cyrus_initd_path"];
+		}
+	}
+	
+function events($text,$function,$line ){
+		
+		if(!$GLOBALS["AS_ROOT"]){
+			if($GLOBALS["VERBOSE"]){echo "class.status.inc: $function $text $line\n";}
+			return;
+		}
+		if($this->logFile==null){$this->logFile="/var/log/artica-postfix/background-status.debug";}
+		$pid=getmypid();
+		$date=date('H:i:s');
+		$logFile=$this->logFile;
+		$size=@filesize($logFile);
+		if($size>1000000){@unlink($logFile);}
+		$f = @fopen($logFile, 'a');
+		$file=basename(__FILE__);
+		$class=__CLASS__;
+		@fwrite($f, "$file[$pid] $date $class::$function: $text\n");
+		@fclose($f);	
+		}	
+		
+function ProcessExistsByCommand($command){
+	$cmd="/usr/bin/pgrep -l -f \"$command\"";
+	writelogs($cmd,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$vals);
+while (list ($num, $val) = each ($vals) ){
+		writelogs("\"$val\" ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		$val=trim($val);
+		if($val==null){continue;}
+		if(preg_match("#pgrep#",$val)){continue;}
+		if(!preg_match('#([0-9]+)#',$val,$re)){continue;}
+		writelogs("\"$val\" Processing {$val["master_pid"]} PID",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		if(is_file("/proc/{$val["master_pid"]}/exe")){return true;}
+	}
+	return false;	
+}
+
+ public function PGREP($command){
+ 	$command=str_replace(".","\.",$command);
+ 	$command=str_replace("/","\/",$command);
+	$cmd="/usr/bin/pgrep -l -f \"$command\"";
+	writelogs($cmd,__FUNCTION__.'/'.__CLASS__,__FILE__,__LINE__); 
+	exec($cmd,$vals);
+while (list ($num, $val) = each ($vals) ){
+		writelogs("\"$val\" ",__FUNCTION__.'/'.__CLASS__,__FILE__,__LINE__); 
+		$val=trim($val);
+		if($val==null){continue;}
+		if(preg_match("#pgrep#",$val)){continue;}
+		if(!preg_match('#([0-9]+)#',$val,$re)){continue;}
+		writelogs("\"$val\" Processing {$val["master_pid"]} PID",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		if(is_file("/proc/{$val["master_pid"]}/exe")){return true;}
+	}
+	return false;	
+}
+	
+
+	
+	function StatusFailed($returnArray=0){
+		$this->events("running",__FUNCTION__,__LINE__);
+		include_once(dirname(__FILE__) . '/class.ini.inc');
+		$p=new usersMenus();
+		$bycommand=false;
+		if(posix_getuid()==0){$bycommand=true;}
+		$users=new usersMenus();
+		$users->LoadModulesEnabled();	
+		$socks=new sockets();
+		$ini=new Bs_IniHandler();
+		$StopMonitoNFS=$socks->GET_INFO('StopMonitoNFS');
+		if(file_exists(dirname(__FILE__)."/logs/global.status.ini")){
+			$ini->loadFile(dirname(__FILE__)."/logs/global.status.ini");
+		}else{
+			$ini->loadString($socks->getfile('daemons_status'));
+		}
+		
+		if(!is_array($ini->_params)){return null;}
+	
+		
+		while (list ($num, $val) = each ($ini->_params) ){
+			if($val["application_installed"]==0){continue;}
+			if($val["service_disabled"]=='0'){continue;}
+			if($val["running"]==1){continue;}
+			if($val["service_croned"]==1){continue;}
+			if($val["application_installed"]==null){continue;}
+			if($val["status"]=="command line"){continue;}
+			$val["master_pid"]=trim($val["master_pid"]);
+			if($val["master_pid"]>0){continue;}
+			if($val["service_name"]=="APP_XFCE"){continue;}
+			if($val["service_name"]==="APP_CONSOLEKIT"){continue;}
+			if($val["service_name"]==="APP_PRELOAD"){continue;}			
+			writelogs("Scanning {$val["service_name"]} disabled={$val["service_disabled"]} master_pid={$val["master_pid"]} installed={$val["application_installed"]} running=0",__FUNCTION__.'/'.__CLASS__,__FILE__,__LINE__);
+			
+			if($val["service_name"]=="APP_NFS"){
+				if($StopMonitoNFS==1){continue;}
+			}
+			
+			if($val["service_name"]=="APP_ARTICA_MYSQMAIL"){
+					writelogs("{$val["service_name"]} -> pgrep",__FUNCTION__.'/'.__CLASS__,__FILE__,__LINE__); 
+					if($this->PGREP("artica-postfix/exec.maillog.php")){
+						writelogs("Scanning {$val["service_name"]} artica-postfix/exec.maillog.php exists, continue;",__FUNCTION__.'/'.__CLASS__,__FILE__,__LINE__); 
+						continue;
+					}else{
+						writelogs("Scanning {$val["service_name"]} pgrep failed (bycommand=$bycommand)",__FUNCTION__.'/'.__CLASS__,__FILE__,__LINE__);
+					}
+			}			
+			
+			if($bycommand){
+				$this->events("Scanning by command=true",__FUNCTION__,__LINE__);
+				
+				$this->events("Scanning {$val["service_name"]} installed={$val["application_installed"]} running={$val["running"]} master_pid={$val["master_pid"]}",__FUNCTION__,__LINE__);
+				if($val["master_pid"]<>null){
+					if(is_file("/proc/{$val["master_pid"]}/exe")){
+						$this->events("Scanning {$val["service_name"]} /proc/{$val["master_pid"]}/exe exists, continue;"); 
+						continue;
+					}
+				}
+				
+				
+				
+				if($val["service_name"]=="APP_ARTICA_MYSQMAIL"){
+					
+					if($this->ProcessExistsByCommand("artica-postfix/exec.maillog.php")){
+						$this->events("Scanning {$val["service_name"]} artica-postfix/exec.maillog.php exists, continue;"); 
+						continue;
+					}else{
+						$this->events("ProcessExistsByCommand return false");
+					}
+				
+				system('/etc/init.d/artica-postfix start postfix-logger &');
+				if($this->ProcessExistsByCommand("artica-postfix/exec.maillog.php")){
+						$this->events("Scanning {$val["service_name"]} artica-postfix/exec.maillog.php exists, with start it command;"); 
+						continue;
+					}				
+				}
+				
+				
+				if($val["service_name"]=="APP_POSTFIX"){
+					if($this->postfix_check_pid()){continue;}
+				}
+				
+				if($val["service_name"]=="APP_SPAMASSASSIN"){
+					if(!$users->MEM_HIGER_1G){continue;}
+					
+					if($this->PIDOF($users->spamassassin_bin_path)){
+						$this->events("Scanning {$val["service_name"]} pidof return true");
+						continue; 
+					}
+					
+				}
+				
+
+				
+
+				
+			 $this->events("Scanning {$val["service_name"]}...",__FUNCTION__,__LINE__);	
+			  if($val["service_name"]=="APP_KAS3_MILTER"){
+					if($this->PIDOF("/usr/local/ap-mailfilter3/bin/kas-milter")){
+						$this->events("Scanning {$val["service_name"]} pidof return true");
+						continue; 
+					}else{
+						$this->events("Scanning {$val["service_name"]} pidof return false, start it");
+						system('/etc/init.d/kas3 start &');
+						$this->events("Scanning {$val["service_name"]} done");
+						if($this->PIDOF("/etc/init.d/artica-postfix start kas3 &")){
+							$this->events("Scanning {$val["service_name"]} pidof return true");
+							continue;
+						}
+						
+					}
+					
+				}				
+
+			}
+			
+			
+			
+			$infos="&nbsp;";
+					
+					
+					
+						$count=$count+1;
+						$why='{stopped}';
+						
+						if($val["license"]=="license_expired"){
+							$why="{license_expired}";
+						}
+						if(trim($val["service_cmd"])<>null){
+							$javascript="javascript:YahooWin3(550,'admin.index.php?EmergencyStart={$val["service_cmd"]}','{{$val["service_name"]}}');";
+							$javascript_a="YahooWin3(550,'admin.index.php?EmergencyStart={$val["service_cmd"]}','{{$val["service_name"]}}');";
+							$tooltip="{start_service_in_debug}";
+						}else{
+							$javascript="admin.index.services.status.php";
+							$tooltip=$why;
+						}
+						$table["BIG"][]=Paragraphe("danger64.png","{{$val["service_name"]}}",
+						"<span style='color:#D32D2D'>$why</span><br>$infos","$javascript",$tooltip,'300',73);
+						$table["LITTLE"][]="
+						<tr " . CellRollOver($javascript_a,$tooltip)." style='border:1px solid red'>
+							<td valign='top'>
+								<table style='width:282px;border-bottom:1px solid #D32D2D;border-right:1px solid #D32D2D;border-top:1px solid #CCCCCC;border-left:1px solid #CCCCCC;margin-top:5px'>
+								<tr>
+									<td width=1% valign='top'><img src='img/danger24.png'></td>
+									<td><strong>{{$val["service_name"]}}</strong>:<span style='color:#D32D2D'>$why</span>...&nbsp;$infos</td>
+								</tr>
+								</table>
+							</td>
+						</tr>
+						";
+						
+						$json[]=array("PRODUCT"=>$val["service_name"],"WHY"=>$why,"INFOS"=>$infos,"service_cmd"=>$val["service_cmd"]);
+					
+				
+			
+		}
+		if($returnArray==0){
+			if(count($table["BIG"])>0){
+				$final=implode(" ",$table["BIG"]);
+				if(count($table["BIG"])>3){
+					$final="<div style='width:310px;height:120px;overflow:auto'><table>".implode(" ",$table["LITTLE"])."</table></div>";
+				}
+				$tpl=new templates();
+				return $tpl->_ENGINE_parse_body($final);
+			}
+			
+		}
+		$this->events("finish",__FUNCTION__,__LINE__);
+		return $json;
+		
+	}
+	
+function postfix_check_pid(){
+	$queue=system("/usr/sbin/postconf -h queue_directory");
+	if(!is_file("$queue/pid/master.pid")){
+		$this->events("Scanning {$val["service_name"]} $queue/pid/master.pid does not exists");
+		return false;
+	}
+	
+	$pid=trim(file_get_contents("$queue/pid/master.pid"));
+	if(is_file("/proc/$pid/exe")){
+		$this->events("Scanning {$val["service_name"]} /proc/$pid/exe exists, continue;"); 
+		return true;
+	}
+
+  $this->events("Scanning {$val["service_name"]} /proc/$pid/exe does not exists, failed;"); 
+  return false;
+}
+
+function PIDOF($path){
+	$datas=system("/bin/pidof $path");
+	$this->events("Scanning $path= $datas");
+	if(trim($datas)<>null){return true;}
+	
+}
+
+function AllStatus(){
+		include_once(dirname(__FILE__) . '/class.html.pages.inc');
+		include_once(dirname(__FILE__) . '/class.ini.inc');
+		$p=new usersMenus();
+		$users=new usersMenus();
+//-----------------------------------------------------------------------------------------------------------------------------		
+		if($p->kas_installed==true){
+			$stat=trim($users->KAS_STATUS);
+			$stat=explode(';',$stat);
+			$ap_process_server=explode('-',$stat[0]);
+			$ap_spfd=explode('-',$stat[1]);
+			$kas_license=explode('-',$stat[2]);
+			$kas_thttpd=explode('-',$stat[3]);
+			
+			$res=$ap_process_server[1]+$ap_spfd[1]+$kas_license[1] + $kas_thttpd[1];			
+			if($res==4){$kas=$this->BuildLittleTemplate('kas_status',true);}else{$kas=$this->BuildLittleTemplate('kas_status',false);}
+			}
+//-----------------------------------------------------------------------------------------------------------------------------	
+		if($this->sock->TestArticaPort()==false){
+		$srv_artica=$this->BuildLittleTemplate('srv_artica',false);}else{$srv_artica=$this->BuildLittleTemplate('srv_artica',true);}
+			
+//-----------------------------------------------------------------------------------------------------------------------------		
+		$stat=$users->POSTIFX_STATUS;
+		$stat=explode(';',$stat);
+		$postfixStatus=$stat[0];	
+		if($postfixStatus==1){
+			$postfix_status=$this->BuildLittleTemplate('postfix_status',true);}else{$postfix_status=$this->BuildLittleTemplate('postfix_status',false,"IndexStartPostfix()");}
+//-----------------------------------------------------------------------------------------------------------------------------
+
+	if($p->aveserver_installed==true){
+		$stat=trim($users->KAV_STATUS);
+		$stat=explode(';',$stat);
+		$title="aveserver_status";
+		if($stat[0]==1){
+		$aveserver=$this->BuildLittleTemplate($title,true);}else{
+		$aveserver=$this->BuildLittleTemplate($title,false);}
+	}
+//-----------------------------------------------------------------------------------------------------------------------------					
+	if($users->fetchmail_installed==true){
+		$stat=trim($users->FETCHMAIL_STATUS);
+		$stat=explode(';',$stat);
+		$title="fetchmail_status";
+		if($stat[0]==1){
+		$fetchmail_status=$this->BuildLittleTemplate($title,true);}else{
+		$fetchmail_status=$this->BuildLittleTemplate($title,false);}
+		
+	}
+//-----------------------------------------------------------------------------------------------------------------------------					
+writelogs("Cyrus installed ? $users->cyrus_imapd_installed",__FUNCTION__,__FILE__);	
+if($users->cyrus_imapd_installed==true){
+		$stat=trim($users->CYRUS_STATUS);
+		$stat=explode(';',$stat);
+		$title="cyrus_status";
+		if($stat[0]==1){
+		$cyrus_status=$this->BuildLittleTemplate($title,true);}else{
+		$cyrus_status=$this->BuildLittleTemplate($title,false);}	
+	}
+//-----------------------------------------------------------------------------------------------------------------------------		
+	//$sock=new sockets();
+	if($users->ARTICA_POLICY_STATUS){
+	$title="artica_policy_status";
+		$artica_policy=$this->BuildLittleTemplate($title,true);}else{
+		$artica_policy=$this->BuildLittleTemplate("artica_policy_status",false);}		
+//-----------------------------------------------------------------------------------------------------------------------------		
+//-----------------------------------------------------------------------------------------------------------------------------		
+	//$sock=new sockets();
+	if($users->KAV_MILTER_INSTALLED){
+	 $title="kav_milter_status";
+		if ($users->KAVMILTER_PID<>null) {
+	 		$kav_milter_status=$this->BuildLittleTemplate($title,true);}else{
+			$kav_milter_status=$this->BuildLittleTemplate($title,false);}
+	}
+	
+	if($users->SQUID_INSTALLED){
+	$title="squid_status";
+		if ($users->SQUID_PID<>null) {
+	 		$squid_status=$this->BuildLittleTemplate($title,true);}else{
+			$squid_status=$this->BuildLittleTemplate($title,false);}	
+	}
+	
+	if($users->KAV4PROXY_INSTALLED){
+	$title="kav4proxy_status";
+		if ($users->KAV4PROXY_PID<>null) {
+	 		$kav4proxy_status=$this->BuildLittleTemplate($title,true);}else{
+			$kav4proxy_status=$this->BuildLittleTemplate($title,false);}	
+	}
+
+	
+	if($users->DANSGUARDIAN_INSTALLED){
+		$title="dansguardian_status";
+		$sock=new sockets();
+		$ini=new Bs_IniHandler();
+		$ini->loadString($sock->getFrameWork('cmd.php?squid-status=yes'));
+		if($ini->_params["DANSGUARDIAN"]["master_pid"]<>null){
+			$dansguardian_status=$this->BuildLittleTemplate($title,true);}else{
+				$dansguardian_status=$this->BuildLittleTemplate($title,false);}	
+		}
+		$sock=new sockets();
+		$ini=new Bs_IniHandler();
+		$ini->loadString($sock->getfile('pureftd_status'));
+		
+			
+if($users->PUREFTP_INSTALLED){
+		$title="pureftpd_satus";
+		
+		if($ini->_params["PUREFTPD"]["master_pid"]<>null){
+			$pure_ftp=$this->BuildLittleTemplate($title,true);}else{
+				$pure_ftp=$this->BuildLittleTemplate($title,false);}	
+		}
+
+		if($ini->_params["SQLGREY"]["sqlgrey_installed"]==1){
+			$title="sqlgrey_satus";
+			if($ini->_params["SQLGREY"]["master_pid"]<>null){
+			$sqlgrey=$this->BuildLittleTemplate($title,true);}else{
+			$sqlgrey=$this->BuildLittleTemplate($title,false);}	
+			
+		}
+			
+	
+
+//-----------------------------------------------------------------------------------------------------------------------------	
+	if($users->POSTFIX_INSTALLED==false){$postfix_status=null;$artica_filter=null;}
+	$html="<H4>{services_status}</H4>
+	<table>
+	$srv_artica
+	$postfix_status
+	$sqlgrey
+	$artica_policy
+	$artica_filter
+	$cyrus_status
+	$fetchmail_status
+	$kas
+	$aveserver
+	$kav_milter_status
+	$squid_status
+	$dansguardian_status
+	$kav4proxy_status
+	$pure_ftp
+	</table>
+	";
+	
+	$in_line="
+	<table style='width:100%'>
+	<tr>
+		<td>
+			<table style='width:100%'>
+			$srv_artica
+			</table>
+		</td>
+		<td>
+			<table style='width:100%'>
+			$artica_filter
+			</table>
+		</td>	
+		<td>
+			<table style='width:100%'>
+			$artica_policy
+			</table>
+		</td>	
+		<td>
+			<table style='width:100%'>
+			$postfix_status
+			</table>
+		</td>
+		<td>
+			<table style='width:100%'>
+			$cyrus_status
+			</table>
+		</td>							
+	</tr>
+	
+	";
+	$this->status_in_line=$in_line;
+	return $html;
+	
+	
+	
+}
+
+
+function BuildLittleTemplate($title,$status=false,$onfailed=null){
+	if($status==false){
+		if($onfailed<>null){$a="<a href=\"javascript:$onfailed\">";$b="</a>";}
+		return "<tr>
+				<td width=1% style='border-bottom:1px dotted #CCCCCC' valign='top'><img src='img/icon_err.gif'></td>
+				<td style='border-bottom:1px dotted #CCCCCC' valign='top'>{".$title."}</td>
+				<td style='border-bottom:1px dotted #CCCCCC' valign='top'>$a{some_service_is_stopped}$b</td>
+			</tr>";
+		
+	}else{
+		return "<tr>
+				<td width=1% style='border-bottom:1px dotted #CCCCC' valign='top'><img src='img/icon_ok.gif'></td>
+				<td style='border-bottom:1px dotted #CCCCCC' valign='top'>{".$title."}</td>
+				<td  style='border-bottom:1px dotted #CCCCCC' valign='top'>{all_services_running}</td>
+			</tr>";
+	}
+	
+	
+}
+	
+	
+	
+	
+	function kas_status(){
+		$user=new usersMenus();
+		$stat=trim($user->KAS_SATUS);
+		$stat=explode(';',$stat);
+		if(!is_array($stat)){return null;}
+		
+		if($stat[0]==null){
+			$img='i24.png';
+			$text='{no_infos}';
+			return $this->BuildDesign($img,'{kas_status}',$text);
+		}
+		$ap_process_server=explode('-',$stat[0]);
+		$ap_spfd=explode('-',$stat[1]);
+		$kas_license=explode('-',$stat[2]);
+		$kas_thttpd=explode('-',$stat[3]);
+		$res=$ap_process_server[1]+$ap_spfd[1]+$kas_license[1] + $kas_thttpd[1];
+		
+		if($res<4){
+			$img='warning24.png';
+			$text="{some_service_is_stopped}";
+			}
+		if($res==4){
+			$text="{all_services_running} {using_pid} :";
+			$img='ok24.png';
+		}
+			
+		
+		
+		$text=$text . "<ul>
+		<li>ap-process-server: PID {$ap_process_server[0]}</li>
+		<li>ap-spfd: PID {$ap_spfd[0]}</li>
+		<li>kas-licence: PID {$kas_license[0]}</li>
+		<li>kas-thttpd: PID {$kas_thttpd[0]}</li></ul>";
+		
+		
+		return $this->BuildDesign($img,'{kas_status}',$text);
+	}
+	
+	
+	function artica_status(){
+	
+	if($this->sock->TestArticaPort()==false){
+		$img='danger32.png';
+		$text='{error_no_socks}<br> {request_start_artica_service}';
+		$color='e53838';
+		return $this->BuildDesign_infos($img,'{srv_artica}',$text,$color);
+	}else{
+		$pid=$this->sock->getfile('pid');
+		$img='ok32.png';
+		$text="{service_running} {using_pid} $pid {on port}:{$this->sock->remote_port}";
+		$color='18a712';
+	}
+	if(!$this->sock->error==false){
+		if($this->_postfix_status==0){
+			$this->array_left[]=$this->BuildDesign_infos('i32.png','{postfix_status_stopped}','{recommend_restart_postfix}','5e5ec7');
+			
+		}
+	}
+	
+	return $this->BuildDesign_infos($img,'{srv_artica}',$text,$color);
+	
+	}
+	
+function Apache_status(){
+	if(!function_exists("mysql_connect")){return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";}
+	$ini=new Bs_IniHandler();
+	$sock=new sockets();	
+	$q=new mysql();
+	$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?apachesrc-ini-status=yes")));
+	$master_version=$ini->_params["APP_APACHE_SRC"]["master_version"];
+	if(preg_match("#2\.0.*#",$master_version)){$img='status_postfix_bg_ok20.png';}
+	if(preg_match("#2\.1.*#",$master_version)){$img='status_postfix_bg_ok21.png';}
+	if(preg_match("#2\.2.*#",$master_version)){$img='status_postfix_bg_ok22.png';}
+	if(preg_match("#2\.3.*#",$master_version)){$img='status_postfix_bg_ok23.png';}
+	if(preg_match("#2\.4.*#",$master_version)){$img='status_postfix_bg_ok24.png';}
+	if(preg_match("#2\.5.*#",$master_version)){$img='status_postfix_bg_ok25.png';}
+	if(preg_match("#2\.7.*#",$master_version)){$img='status_postfix_bg_ok27.png';}
+	if(preg_match("#2\.6.*#",$master_version)){$img='status_postfix_bg_ok26.png';}			
+	if(preg_match("#2\.8.*#",$master_version)){$img='status_postfix_bg_ok28.png';}
+	if(preg_match("#2\.9.*#",$master_version)){$img='status_postfix_bg_ok29.png';}
+	if(preg_match("#2\.10.*#",$stat[1])){$img='status_postfix_bg_ok210.png';}
+	if(preg_match("#3\.0.*#",$master_version)){$img='status_postfix_bg_ok30.png';}
+	if(preg_match("#3\.1.*#",$master_version)){$img='status_postfix_bg_ok31.png';}
+	if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
+	if(preg_match("#3\.3.*#",$master_version)){$img='status_postfix_bg_ok33.png';}
+	if(preg_match("#3\.4.*#",$master_version)){$img='status_postfix_bg_ok34.png';}
+	if(preg_match("#3\.5.*#",$master_version)){$img='status_postfix_bg_ok35.png';}
+	if(preg_match("#3\.6.*#",$master_version)){$img='status_postfix_bg_ok36.png';}
+	if(preg_match("#3\.7.*#",$master_version)){$img='status_postfix_bg_ok37.png';}
+	$text="{service_running}<br>{using_version} $master_version {pid} $master_pid";
+	if($img==null){$img="status_postfix_bg_ok.png";}	
+	
+	$services[]="APP_APACHE_SRC";
+	$services[]="PUREFTPD";
+	$services[]="APP_TOMCAT";	
+
+	$allServicesOK=true;
+	$ServiceNotOK=array();
+	$error="<table style='width:100%'><tbody>";
+	while (list ($index, $serviceToCheck) = each ($services) ){
+		if(!DAEMON_STATUS_IS_OK($serviceToCheck, $ini)){
+			$ServiceNotOK[]=$serviceToCheck;
+			$allServicesOK=false;
+		}else{
+			if($ini->_params[$serviceToCheck]["service_name"]<>null){
+				$allServicesOKPID=$ini->_params[$serviceToCheck]["master_pid"];
+				$error=$error."<tr>
+				<td width=1%><img src='img/ok16.png'></td>
+				<td colspan=2><strong style='font-size:10px'>{{$ini->_params[$serviceToCheck]["service_name"]}}</strong></td>
+				</tr>";
+			}			
+		}
+	}	
+	
+	if(!$allServicesOK){
+		$img="status_postfix_bg_failed.png";
+		
+		while (list ($index, $ServiceNotOKName) = each ($ServiceNotOK) ){
+			$error=$error."<tr>
+			<td width=1%><img src='img/error-16.png'></td>
+			<td><strong style='font-size:10px'>{{$ini->_params[$ServiceNotOKName]["service_name"]}}</strong></td><td width=1%><strong style='font-size:10px'>{failed}</td>
+			</tr>";
+		
+		}
+		
+	}
+	$error=$error."</tbody></table>";	
+	
+	$Instances=$q->COUNT_ROWS("freeweb","artica_backup");
+	
+	
+	$design="
+	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:270px'>
+		<div style='padding-left:155px;min-height:250px'>
+			<h3 style='font-size:16px;font-weight:bold;'>{APP_APACHE_SRC}</h3>
+			<div style='font-size:11px;font-weight:bold'>$text</div>
+			$error
+			$serverType
+			<div style='font-size:11px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'><strong style='font-size:14px'>$Instances {websites}</strong></div>
+		</div>
+	</div>
+	
+	";	
+	return $design;		
+	
+}
+	
+function Samba_status(){
+	if(!function_exists("mysql_connect")){return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";}
+	include_once(dirname(__FILE__)."/class.samba.inc");
+	
+	
+	$q=new mysql();
+	$ini=new Bs_IniHandler();
+	$sock=new sockets();
+	$ini->loadString($sock->getFrameWork("cmd.php?samba-status=yes"));
+	$master_pid=$ini->_params["SAMBA_SMBD"]["master_pid"];
+	
+	
+	$params=unserialize(base64_decode($sock->getFrameWork("samba.php?testparm=yes")));
+	
+	while (list ($index, $line) = each ($params) ){
+		if(preg_match("#^Server role:\s+(.+)#",$line,$re)){$SERVER_ROLE=trim($re[1]);}
+		if(preg_match("#workgroup.+?([A-Za-z\_\-]+)#",$line,$re)){$WORKGROUP=trim($re[1]);break;}
+	}
+
+	$services[]="SAMBA_SMBD";
+	$services[]="SAMBA_NMBD";
+	$services[]="SAMBA_WINBIND";
+	$services[]="SAMBA_SCANNEDONLY";
+	$allServicesOK=true;
+	$ServiceNotOK=array();
+	$error="<table style='width:100%'><tbody>";
+	while (list ($index, $serviceToCheck) = each ($services) ){
+		if(!DAEMON_STATUS_IS_OK($serviceToCheck, $ini)){
+			$ServiceNotOK[]=$serviceToCheck;
+			$allServicesOK=false;
+		}else{
+			$allServicesOKPID=$ini->_params[$serviceToCheck]["master_pid"];
+			if($ini->_params[$serviceToCheck]["service_name"]<>null){
+				$error=$error."<tr>
+				<td width=1%><img src='img/ok16.png'></td>
+				<td colspan=2><strong style='font-size:10px'>{{$ini->_params[$serviceToCheck]["service_name"]}}</strong></td>
+				</tr>";
+			}	
+		}
+	}
+	
+	$master_version=$ini->_params["SAMBA_NMBD"]["master_version"];
+	if(preg_match("#2\.3.*#",$master_version)){$img='status_postfix_bg_ok23.png';}
+	if(preg_match("#2\.5.*#",$master_version)){$img='status_postfix_bg_ok25.png';}
+	if(preg_match("#2\.7.*#",$master_version)){$img='status_postfix_bg_ok27.png';}
+	if(preg_match("#2\.6.*#",$master_version)){$img='status_postfix_bg_ok26.png';}			
+	if(preg_match("#2\.8.*#",$master_version)){$img='status_postfix_bg_ok28.png';}
+	if(preg_match("#2\.9.*#",$master_version)){$img='status_postfix_bg_ok29.png';}
+	if(preg_match("#2\.10.*#",$stat[1])){$img='status_postfix_bg_ok210.png';}
+	if(preg_match("#3\.0.*#",$master_version)){$img='status_postfix_bg_ok30.png';}
+	if(preg_match("#3\.1.*#",$master_version)){$img='status_postfix_bg_ok31.png';}
+	if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
+	if(preg_match("#3\.3.*#",$master_version)){$img='status_postfix_bg_ok33.png';}
+	if(preg_match("#3\.4.*#",$master_version)){$img='status_postfix_bg_ok34.png';}
+	if(preg_match("#3\.5.*#",$master_version)){$img='status_postfix_bg_ok35.png';}
+	if(preg_match("#3\.6.*#",$master_version)){$img='status_postfix_bg_ok36.png';}
+	if(preg_match("#3\.7.*#",$master_version)){$img='status_postfix_bg_ok37.png';}
+	$text="{service_running}<br>{using_version} $master_version {pid} $master_pid";
+	if($img==null){$img="status_postfix_bg_ok.png";}
+	
+	if(!$allServicesOK){
+		$img="status_postfix_bg_failed.png";
+		
+		while (list ($index, $ServiceNotOKName) = each ($ServiceNotOK) ){
+			$error=$error."<tr>
+			<td width=1%><img src='img/error-16.png'></td>
+			<td><strong style='font-size:10px'>{{$ini->_params[$ServiceNotOKName]["service_name"]}}</strong></td><td width=1%><strong style='font-size:10px'>{failed}</td>
+			</tr>";
+		
+		}
+		
+	}
+	$error=$error."</tbody></table>";
+	$smb=new samba();
+	$q=new mysql();
+	$pointers="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" ";
+	$CountDeFolders=count($smb->main_folders);
+	$CountDeConnected=$q->COUNT_ROWS("smbstatus_users", "artica_events");
+	$CountDeDomains=$q->COUNT_ROWS("samba_domains_info", "artica_backup");
+	
+	
+	$jsSharedFolder="<a href=\"javascript:blur();\" OnClick=\"Loadjs('samba.index.php?SharedFolderListJS=yes');\"
+	style='text-decoration:underline;font-size:12px;font-weight:bold'>";
+	
+	$ROLEJS="Loadjs('samba.index.php?script=yes&behavior=yes')";
+	if($SERVER_ROLE=="ROLE_DOMAIN_MEMBER"){$ROLEJS="Loadjs('ad.connect.php')";}
+	
+	if($SERVER_ROLE<>null){
+		$serverType="<div style='font-size:11px;text-align:right;width:220px;font-weight:bold;text-decoration:underline;margin-top:8px;margin-bottom:3px' $pointers OnClick=\"javascript:$ROLEJS\">{{$SERVER_ROLE}}/$WORKGROUP</div>";
+	}
+	
+	if($smb->main_array["global"]["log level"]>1){
+		$ROLEJS="Loadjs('samba.index.php?main-js=yes');";
+		$serverType="<div style='font-size:11px;text-align:right;width:220px;font-weight:bold;color:#E01313;text-decoration:underline;margin-top:8px;margin-bottom:3px' 
+		$pointers OnClick=\"javascript:$ROLEJS\">{running_in_debug_mode}</div>";
+	}
+	
+	
+	$design="
+	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:270px'>
+		<div style='padding-left:155px;min-height:250px'>
+			<h3 style='font-size:16px;font-weight:bold;'>{APP_SAMBA}</h3>
+			<div style='font-size:11px;font-weight:bold'>$text</div>
+			$error
+			$serverType
+			<div style='font-size:11px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'>$jsSharedFolder<i>$CountDeFolders {shared_folders}</i></a></div>
+			<div style='font-size:11px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('samba.wbinfo.domains.php')\"><i><strong style='text-decoration:underline'>$CountDeDomains {domains}</strong></i></div>
+			<div style='font-size:11px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('samba.smbstatus.php')\"><i><strong style='text-decoration:underline'>$CountDeConnected {members_connected}</strong></i></div>
+			
+		</div>
+	</div>
+	
+	";
+	
+		$cache_file=dirname(__FILE__)."/logs/web/Samba.status.html";
+		writelogs("Writing $cache_file",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+		@file_put_contents($cache_file,$design);
+		@chmod($cache_file,777);
+	
+	if(class_exists("templates")){	
+		$tpl=new templates();
+		return $tpl->_ENGINE_parse_body($design);
+	}
+	return $design;		
+	
+	
+}	
+
+function kav4proxy_status(){
+	if(!function_exists("mysql_connect")){
+		return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";
+	}
+
+	$q=new mysql();
+	$ini=new Bs_IniHandler();
+	$sock=new sockets();
+	$users=new usersMenus();
+	$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?squid-ini-status=yes")));
+	$master_version=$ini->_params["KAV4PROXY"]["master_version"];
+	$master_pid=$ini->_params["KAV4PROXY"]["master_pid"];	
+	$img="status_kas_bg_ok.png";
+	
+	$table="Kav4Proxy_".date("Ym");
+	if($ini->_params["KAV4PROXY"]["running"]==0){
+		
+		$img="status_kas_bg_failed.png";
+		$text="{stopped}<br>{using_version} $master_version";
+		
+	
+	}else{
+		$text="{service_running}<br>{using_version} $master_version {pid} $master_pid";
+		
+	}
+	$requests=$q->COUNT_ROWS("$table","artica_events");
+	$requests=numberFormat($requests,0,""," ");	
+	
+	$sql="SELECT COUNT( zmd5 ) AS tcount FROM kav4proxyVirus WHERE MONTH( days ) = MONTH( NOW( ) ) ";
+	$ligneW=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+	$blocked_today=numberFormat($ligneW["tcount"],0,""," ")." {infected_websites} {this_month}";	
+	
+	$qSquid=new mysql_squid_builder();
+	$categories=$qSquid->COUNT_ROWS("dansguardian_community_categories","artica_backup");
+	$categories=numberFormat($categories,0,""," ");		
+
+	$websitesnums=$qSquid->COUNT_ROWS("dansguardian_sitesinfos","artica_backup");
+	$websitesnums=numberFormat($websitesnums,0,""," ");
+
+	$kav4license_error=trim(base64_decode($sock->getFrameWork("squid.php?kav4proxy-license-error=yes")));	
+	$pattern_date=trim(base64_decode($sock->getFrameWork("squid.php?kav4proxy-pattern-date=yes")));	
+	if($pattern_date==null){$pattern_date="0000-00-00 00:00";}
+	$pattern_date=$pattern_date . ' (moscow GMT)';
+
+	if($kav4license_error<>null){
+		$img="status_kas_bg_failed.png";
+		$text="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('Kav4Proxy.License.php');\"
+		style='font-size:14px;color:#B30E0E;text-decoration:underline'><strong>{license_error}:</strong><br><i style='font-size:12px'>$kav4license_error</i></a>";
+	}
+	
+		$blkbx=new mysql_blackbox();
+		if($blkbx->TABLE_EXISTS("cacheitems_localhost")){
+			$sql="SELECT SUM(size) as tsize, SUM(items) as tiems FROM cacheitems_localhost";
+			$ligne=mysql_fetch_array($blkbx->QUERY_SQL($sql));
+			$size=FormatBytes($ligne["tsize"]/1024);
+			$itemcount=$ligne["tiems"];
+			$itemscaches="<div style='font-size:12px;text-align:right;width:220px' 
+			$pointers OnClick=\"javascript:Loadjs('squid.categories.php')\">
+			<i><strong style='text-decoration:underline'>$itemcount {cached_items} ($size) </strong></i></div>";
+		}
+	
+	$text=$text."<div><i style='font-size:11px'>{pattern_ver}:$pattern_date</i></div>";
+	
+	$design="
+	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:200px'>
+		<div style='padding-left:155px;min-height:250px'>
+			<h3 style='font-size:16px;font-weight:bold;'>{APP_KAV4PROXY}</h3>
+			<div style='font-size:12px;font-weight:bold'>$text</div>
+			<br>
+			<div style='font-size:12px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'><i><strong>$requests {requests}</strong></i></div>
+			$itemscaches
+			<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:none'>$categories {websites_categorized}</strong></i></div>
+			<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:none'>$websitesnums {visited_websites}</strong></i></div>
+			<div style='font-size:10px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:none'>$blocked_today</strong></i></div>
+			
+		</div>
+	</div>
+	
+	";
+	
+		$cache_file=dirname(__FILE__)."/logs/web/kav4proxy.status.html";
+		writelogs("Writing $cache_file",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+		@file_put_contents($cache_file,$design);
+		@chmod($cache_file,777);
+	
+	return $design;		
+	
+	
+}
+function haproxy_status(){
+	if(!function_exists("mysql_connect")){return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";}
+	
+	$sql="SELECT COUNT(*) as tcount FROM haproxy WHERE enabled=1";
+	$q=new mysql();
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
+	
+	
+	$ini=new Bs_IniHandler();
+	$sock=new sockets();
+	$datas=base64_decode($sock->getFrameWork("haproxy.php?main-status=yes"));
+	$ini->loadString($datas);	
+	$tr[]=DAEMON_STATUS_LINE("APP_HAPROXY", $ini,null,0,null,true,0,$js);
+	
+	if($ini->_params["APP_HAPROXY"]["running"]==1){
+		$master_pid=$ini->_params["APP_HAPROXY"]["master_pid"];
+		$version=$ini->_params["APP_HAPROXY"]["master_version"];
+		$text='{service_running}<br>{using_version} ' . $version. ' {pid} ' . $master_pid;
+	}
+	
+	$instances_num=$ligne["tcount"];
+	if($instances_num==0){
+		$tr[]="<table style='width:100%'><tbody><tr><td width=1%><img src='img/warning-panneau-32.png'></td><td style='font-size:12px'>{no_loadbalancer_defined}</td></tr></tbody></table>";
+	}
+	
+	
+	$master_version=trim($sock->getFrameWork("haproxy.php?version=yes"));
+	
+	if(preg_match("#1\.5.*#",$master_version)){$img='status_postfix_bg_ok15.png';}
+	if(preg_match("#2\.3.*#",$master_version)){$img='status_postfix_bg_ok23.png';}
+	if(preg_match("#2\.5.*#",$master_version)){$img='status_postfix_bg_ok25.png';}
+	if(preg_match("#2\.7.*#",$master_version)){$img='status_postfix_bg_ok27.png';}
+	if(preg_match("#2\.6.*#",$master_version)){$img='status_postfix_bg_ok26.png';}			
+	if(preg_match("#2\.8.*#",$master_version)){$img='status_postfix_bg_ok28.png';}
+	if(preg_match("#2\.9.*#",$master_version)){$img='status_postfix_bg_ok29.png';}
+	if(preg_match("#2\.10.*#",$stat[1])){$img='status_postfix_bg_ok210.png';}
+	if(preg_match("#3\.0.*#",$master_version)){$img='status_postfix_bg_ok30.png';}
+	if(preg_match("#3\.1.*#",$master_version)){$img='status_postfix_bg_ok31.png';}
+	if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
+	if(preg_match("#3\.3.*#",$master_version)){$img='status_postfix_bg_ok33.png';}
+			
+
+	$design="
+	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:270px'>
+		<div style='padding-left:155px;min-height:250px'>
+			<h3 style='font-size:16px;font-weight:bold;'>{LOAD_BALANCER} $master_version</h3>
+			<div style='font-size:11px'><i>$text</i></div>
+			<br>
+			". @implode("\n", $tr)."
+		</div>
+	</div>
+	
+	";
+
+	return $design;
+	
+}
+
+
+function xr_status(){
+	if(!function_exists("mysql_connect")){return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";}
+	
+	$sql="SELECT name,ID FROM crossroads_main WHERE enabled=1";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	
+	$q=new mysql();
+	$ini=new Bs_IniHandler();
+	$sock=new sockets();
+	$instances_num=mysql_num_rows($results);
+	if($instances_num==0){
+		$tr[]="<table style='width:100%'><tbody><tr><td width=1%><img src='img/warning-panneau-32.png'></td><td style='font-size:12px'>{no_loadbalancer_defined}</td></tr></tbody></table>";
+	}
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$ini->loadString(base64_decode($sock->getFrameWork("xr.php?status-instance=yes&ID={$ligne["ID"]}")));
+		$js="Loadjs('crossroads.balancers.php?add-load-balance-js=yes&ID={$ligne["ID"]}')";
+		//$key,$bsini,$textoadd=null,$noenable=0,$width=null,$nostartandstop=false,$newInterface=0,$jsReplace=null
+		
+		$tr[]=DAEMON_STATUS_LINE("APP_CROSSROADS", $ini,"replacetitle:{$ligne["name"]}",0,null,true,0,$js);
+	}
+	
+	
+	$master_version=trim($sock->getFrameWork("xr.php?xr-version=yes"));
+	if(preg_match("#2\.3.*#",$master_version)){$img='status_postfix_bg_ok23.png';}
+	if(preg_match("#2\.5.*#",$master_version)){$img='status_postfix_bg_ok25.png';}
+	if(preg_match("#2\.7.*#",$master_version)){$img='status_postfix_bg_ok27.png';}
+	if(preg_match("#2\.6.*#",$master_version)){$img='status_postfix_bg_ok26.png';}			
+	if(preg_match("#2\.8.*#",$master_version)){$img='status_postfix_bg_ok28.png';}
+	if(preg_match("#2\.9.*#",$master_version)){$img='status_postfix_bg_ok29.png';}
+	if(preg_match("#2\.10.*#",$stat[1])){$img='status_postfix_bg_ok210.png';}	
+	if(preg_match("#3\.0.*#",$master_version)){$img='status_postfix_bg_ok30.png';}
+	if(preg_match("#3\.1.*#",$master_version)){$img='status_postfix_bg_ok31.png';}
+	if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
+	if(preg_match("#3\.3.*#",$master_version)){$img='status_postfix_bg_ok33.png';}
+			
+
+	$design="
+	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:270px'>
+		<div style='padding-left:155px;min-height:250px'>
+			<h3 style='font-size:16px;font-weight:bold;'>{LOAD_BALANCER} $master_version</h3>
+			<br>
+			". @implode("\n", $tr)."
+		</div>
+	</div>
+	
+	";
+
+	return $design;
+	
+}
+	
+function Squid_status(){
+	if(!function_exists("mysql_connect")){
+		return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";
+	}
+	$q=new mysql();
+	$ini=new Bs_IniHandler();
+	$sock=new sockets();
+	$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?squid-ini-status=yes")));
+	$master_version=$ini->_params["SQUID"]["master_version"];
+	$master_pid=$ini->_params["SQUID"]["master_pid"];
+
+
+	
+	
+	
+	
+if($ini->_params["SQUID"]["running"]==0){
+		$img="status_postfix_bg_failed.png";
+		$status="{stopped}";
+		$start="<hr><div style='text-align:right'>".button("{start}","Loadjs('StartStopServices.php?APP=APP_SQUID&cmd=squid-cache&action=start')")."</div>";
+	}else{
+			if(preg_match("#2\.3.*#",$master_version)){$img='status_postfix_bg_ok23.png';}
+			if(preg_match("#2\.5.*#",$master_version)){$img='status_postfix_bg_ok25.png';}
+			if(preg_match("#2\.7.*#",$master_version)){$img='status_postfix_bg_ok27.png';}
+			if(preg_match("#2\.6.*#",$master_version)){$img='status_postfix_bg_ok26.png';}			
+			if(preg_match("#2\.8.*#",$master_version)){$img='status_postfix_bg_ok28.png';}
+			if(preg_match("#2\.9.*#",$master_version)){$img='status_postfix_bg_ok29.png';}
+			if(preg_match("#2\.10.*#",$stat[1])){$img='status_postfix_bg_ok210.png';}			
+			if(preg_match("#3\.0.*#",$master_version)){$img='status_postfix_bg_ok30.png';}
+			if(preg_match("#3\.1.*#",$master_version)){$img='status_postfix_bg_ok31.png';}
+			if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
+			if(preg_match("#3\.3.*#",$master_version)){$img='status_postfix_bg_ok33.png';}
+			$text="{service_running}<br>{using_version} $master_version {pid} $master_pid";
+	}
+
+if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
+	
+	$icap="<table style='width:100%;margin:0px;' " .CellRollOver($js_service).">
+		<tr>
+			<td width=1%><img src='img/danger16.png'></td>
+			<td align='left' nowrap><strong style='color:#D01A1A;font-size:11px'>{no_icap_support}</td>
+			<td width=1% align='right'>&nbsp;</td>
+		</tr>
+	</table>";
+	
+	
+}
+
+	$EnableKavICAPRemote=$sock->GET_INFO("EnableKavICAPRemote");
+	$KavICAPRemoteAddr=$sock->GET_INFO("KavICAPRemoteAddr");
+	$KavICAPRemotePort=$sock->GET_INFO("KavICAPRemotePort");	
+	if(!is_numeric($EnableKavICAPRemote)){$EnableKavICAPRemote=0;}
+	
+	if($EnableKavICAPRemote==1){
+		$fp=@fsockopen($KavICAPRemoteAddr, $KavICAPRemotePort, $errno, $errstr, 1);
+			if(!$fp){
+				$img="status_postfix_bg_failed.png";
+				$text="{kavicap_unavailable_text}<br><strong>
+				<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.kavicap.php');\" style='font-size:12px;color:#D70707;text-decoration:underline'>$KavICAPRemoteAddr:$KavICAPRemotePort</a><br>$errstr";				
+			}
+		
+		@fclose($fp);			
+	}
+	
+	$q=new mysql_squid_builder();
+	
+	if(!$q->TestingConnection()){
+		$img="status_postfix_bg_failed.png";
+		$title="{MYSQL_ERROR}";
+		$text="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.mysql.php');\" style='font-size:12px;color:#D70707;text-decoration:underline'>$text<br>$q->mysql_error</a>";
+	}	
+
+	//function DAEMON_STATUS_LINE($key,$bsini,$textoadd=null,$noenable=0,$width=null,$nostartandstop=false,$newInterface=0,$js=null){
+	$status_dansguardian=DAEMON_STATUS_LINE("DANSGUARDIAN",$ini,null,1,"220px");
+	$status_kav4proxy=DAEMON_STATUS_LINE("KAV4PROXY",$ini,null,1,"220px",true,1,"QuickLinkSystems('section_kav4proxy')");
+	$cicap=DAEMON_STATUS_LINE("C-ICAP",$ini,null,1,"220px");
+	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_LINE("APP_SQUIDGUARD_HTTP",$ini,null,1,"220px",true,1,"Loadjs('squidguardweb.php')");
+	$APP_UFDBGUARD=DAEMON_STATUS_LINE("APP_UFDBGUARD",$ini,null,1,"220px",true,1,"Loadjs('dansguardian2.php?js-ufdbguard=yes')");
+
+
+	$pointers="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" ";
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}	
+if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+
+	if($EnableRemoteStatisticsAppliance==1){
+		$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
+		if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
+		if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
+		
+		$connectedApps="<div style='font-size:12px;text-align:right;width:220px' 
+		$pointers 
+		OnClick=\"javascript:Loadjs('squid.stats-appliance.php');\">
+		<i><strong style='text-decoration:underline'>{connected_to}:{$RemoteStatisticsApplianceSettings["SERVER"]}:{$RemoteStatisticsApplianceSettings["PORT"]}</strong></i></div> ";
+	}
+
+	
+	
+	
+	
+	
+	//$RemoteStatisticsApplianceSettings["SERVER"]
+	
+	
+	
+	if($DisableArticaProxyStatistics==0){	
+		if($EnableRemoteStatisticsAppliance==0){
+				$q=new mysql_squid_builder();
+				$requests=$q->EVENTS_SUM();
+				$requests=numberFormat($requests,0,""," ");
+				
+				$q=new mysql_squid_builder();
+				$tableblock=date('YW')."_blocked_week";	
+				if($q->TABLE_EXISTS($tableblock)){
+					$ligneW=$q->COUNT_ROWS($tableblock);
+					$blocked_today=numberFormat($ligneW,0,""," ")." {blocked_websites} {this_week}";
+				}else{
+					$blocked_today="No such table";
+				}
+				
+				
+				$websitesnums=$q->COUNT_ROWS("visited_sites");
+				$websitesnums=numberFormat($websitesnums,0,""," ");	
+				
+				
+				$categories=$q->COUNT_CATEGORIES();
+				$categories=numberFormat($categories,0,""," ");		
+				
+				$CachePermformance=$q->CachePerfHour();
+				if($CachePermformance>-1){
+					$color="#E01313";
+					if($CachePermformance>20){$color="#6DBB6A";}
+					$cachePerfText="<div style='font-size:12px;text-align:right;width:220px' 
+					$pointers OnClick=\"javascript:Loadjs('squid.visited.php')\">
+					<i><strong style='text-decoration:underline;color:$color'>{$CachePermformance}% {cache_performance}</strong></i></div>";
+				}
+		
+				$blkbx=new mysql_blackbox();
+				if($blkbx->TABLE_EXISTS("cacheitems_localhost")){
+					$sql="SELECT SUM(size) as tsize, SUM(items) as tiems FROM cacheitems_localhost";
+					$ligne=mysql_fetch_array($blkbx->QUERY_SQL($sql));
+					$size=FormatBytes($ligne["tsize"]/1024);
+					$itemcount=$ligne["tiems"];
+					$itemscaches="<div style='font-size:12px;text-align:right;width:220px' 
+					$pointers OnClick=\"javascript:Loadjs('squid.categories.php')\">
+					<i><strong style='text-decoration:underline'>$itemcount {cached_items} ($size)</strong></i></div>";
+				}
+				
+				
+				
+				$stats_paragraphe="
+				<div style='font-size:12px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'><i><strong>$requests {requests}</strong></i></div>
+				$cachePerfText
+				$itemscaches
+				<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i></div>
+				<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:underline'>$websitesnums {visited_websites}</strong></i></div>
+				<div style='font-size:10px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:underline'>$blocked_today</strong></i></div>
+				
+				";
+				
+			}
+	}
+	
+	if($DisableArticaProxyStatistics==1){	
+		$q=new mysql_squid_builder();
+		$categories=$q->COUNT_CATEGORIES();
+		$categories=numberFormat($categories,0,""," ");	
+		$stats_paragraphe="<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i></div>";			
+		
+	}
+	
+	
+	$migration_pid=unserialize(base64_decode($sock->getFrameWork("squid.php?migration-stats=yes")));
+	
+	
+	
+	if(is_array($migration_pid)){
+		$text="<span style='color:#B80000;font-size:13px'>{migration_script_run_text} PID:{$migration_pid[0]} {since}:{$migration_pid[1]}Mn</span>";
+	}
+	
+	
+	$jsDesign="OnClick=\"javascript:s_PopUp('squid.accesslogs.php?external=yes',1024,768);\"
+	OnMouseOver=\"this.style.cursor='pointer';\" OnMouseOut=\"this.style.cursor='auto'\"";
+		
+	
+	$design="
+	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:200px'>
+		<div style='padding-left:155px;min-height:250px'>
+			<h3 style='font-size:16px;font-weight:bold;'>{APP_SQUID}</h3>
+			<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>$text</i>$start$icap
+			$status_dansguardian$status_kav4proxy$cicap$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD</span>
+			$stats_paragraphe
+			$connectedApps
+			<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:s_PopUp('squid.accesslogs.php?external=yes',1024,768);\"><i><strong style='text-decoration:underline'>{access_events}</strong></i></div> 
+		</div>
+	</div>
+	
+	";
+	
+		$cache_file=dirname(__FILE__)."/logs/web/squid.status.html";
+		writelogs("Writing $cache_file",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+		@file_put_contents($cache_file,$design);
+		@chmod($cache_file,777);
+	
+	return $design;
+	
+}
+
+function Postfix_multi_status($hostname){
+	
+	$sock=new sockets();
+	$q=new mysql();
+	$sql="SELECT SUM(`size`) as tsize,COUNT(msgid) as tcount FROM postqueue WHERE `instance`='$hostname'";
+	$PostfixMultiCreateBubble=$sock->GET_INFO("PostfixMultiCreateBubble");
+	if(!is_numeric($PostfixMultiCreateBubble)){$PostfixMultiCreateBubble=0;}	
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_events'));	
+	$tot=$ligne["tcount"];
+	$tot_size=$ligne["tsize"]/1024;
+	$tot_size=FormatBytes($tot_size);
+	$maincf=new maincf_multi($hostname);
+	$enabled=1;
+	if($maincf->GET("DisabledInstance")==1){$enabled=0;$fontcolor="#B3B3B3";}
+	
+	
+	
+$status_queues="
+			<table>
+			<tr>
+				<td colspan=2><span style='font-size:13px'>{smtp_queues}</span></td>
+			</tr>
+				
+	
+				<tr $link>
+					<td align='right' style='color:#C53110;border-top:1px dotted #CCCCCC'>Total:&nbsp;</td>
+					<td style='color:#C53110;border-top:1px dotted #CCCCCC;font-size:12px'>
+					<strong>$tot&nbsp;</strong>emails <i style='font-size:9px'>($tot_size)</i></td>
+				</tr>
+				
+			</table>";	
+			
+$stat=unserialize(base64_decode($sock->getFrameWork("cmd.php?postfix-mutli-stat=$hostname")));
+
+	switch ($stat[0]) {
+		
+		case -2:$img='i64.png';
+			$text='{no_infos}';
+			return $this->BuildDesign($img,'{postfix_status}',$text);
+			break;	
+		
+		case '-1':$img='status_postfix_bg_failed.png';
+			$text='{service_not_installed}';
+			break;
+		case '1':$img='status_postfix_bg_ok.png';
+			if(preg_match("#2\.7.*#",$stat[1])){$img='status_postfix_bg_ok27.png';}
+			$text='{service_running}<br>{using_version} ' . $stat[1]. ' {pid} ' . $stat[2];
+			break;
+		case '0':
+			
+			$img='status_postfix_bg_failed.png';
+			$text='<span style=color:red>{service_stopped}<br>{using_version} ' . $stat[1]."</span>";
+			$start="<hr><div style='text-align:right'>".button("{start}","MultipleInstanceRestart()")."</div>";
+					
+			break;
+	}
+	$start=null;
+	if($enabled==0){
+		$text="<span style=color:$fontcolor>{service_disabled}<br>{using_version} " . $stat[1]."</span>";
+		$img='status_postfix_bg_grey.png';
+		
+	}
+	
+	if($PostfixMultiCreateBubble==1){
+		$PostfixMultiCreateBubbleText="&nbsp;<i style='color:#9E0000;font-weight:bold'>{PostfixMultiCreateBubbleIsEnabled}</i>";
+	}
+
+	$design="
+	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:400px;height:210px'>
+		<div style='padding-left:155px;min-height:250px'>
+			<H3 style='font-size:16px;font-weight:bold;'>{APP_POSTFIX}</H3>
+			<div style='font-size:11px;font-weight:bold;text-align:right;padding-top:4px;border-top:1px solid black;margin:4px'>$hostname</div>
+			<br><span style='font-size:11px;font-weight:bold'>
+				<i style='color:black'>$text</i> $start$PostfixMultiCreateBubbleText$status_queues</span>
+		</div>
+		<table style='width:100%'>
+			<tr>
+				<td valign='top'>
+					<table style='width:100%;margin-top:5px'>
+						<tr>
+							<td style='border-right:2px solid black;padding:4px' align='center'>$amavis</td>
+							<td style='border-right:2px solid black;padding:4px' align='center'>$dstat</td>
+							<td style='border-right:2px solid black;padding:4px' align='center'>$rpcess_number</td>
+						</tr>
+					</table>
+				</td>
+				<td valign='top'>
+					
+				</td>
+			</tr>
+		</table>
+	</div>
+	";	
+	
+return $design;
+	
+}
+
+function WEBSTATS(){
+		include_once(dirname(__FILE__)."/class.mysql.blackboxes.inc");
+		$tpl=new templates();
+		$ini=new Bs_IniHandler();
+		$sock=new sockets();
+		$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?squid-ini-status=yes")));		
+		$q=new mysql_squid_builder();
+		$pointers="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" ";
+		
+		
+		$sqlblackbox=new mysql_blackbox();
+		$nodes=$sqlblackbox->COUNT_ROWS("nodes");
+		$nodes_number="$nodes TinyProxy(s)"; 
+		
+		$cicap=DAEMON_STATUS_LINE("C-ICAP",$ini,null,0,"220px",true,0,"Loadjs('c-icap.index.php')");
+		$APP_UFDBGUARD=DAEMON_STATUS_LINE("APP_UFDBGUARD",$ini,null,0,"220px",true,0,"Loadjs('dansguardian2.php?js-ufdbguard=yes')");
+	
+		
+		$requests=$q->EVENTS_SUM();
+		$requests=numberFormat($requests,0,""," ");
+		
+		$websitesnums=$q->COUNT_ROWS("visited_sites");
+		$websitesnums=numberFormat($websitesnums,0,""," ");
+
+		$CachePermformance=$q->CachePerfHour();
+		if($CachePermformance>-1){
+			$color="#E01313";
+			if($CachePermformance>20){$color="##6DBB6A";}
+			$cachePerfText="<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:underline;color:$color'>{$CachePermformance}% {cache_performance}</strong></i></div>";
+		}
+		
+		
+		$categories=$q->COUNT_CATEGORIES();
+		$categories=numberFormat($categories,0,""," ");			
+		
+		$img='status_postfix_bg_ok32.png';
+		$stats_paragraphe="
+		<div style='font-size:12px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'><i><strong>$requests {requests}</strong></i></div>
+		<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i></div>
+		<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:underline'>$websitesnums {visited_websites}</strong></i></div>
+		$cachePerfText
+		<div style='font-size:10px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('nodes.popup.php')\"><i><strong style='text-decoration:underline'>$nodes_number</strong></i></div>";
+				
+$design="
+	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:200px'>
+		<div style='padding-left:155px;min-height:250px'>
+			<h3 style='font-size:16px;font-weight:bold;'>{APP_STATISTICS_APPLIANCE}</h3>
+			<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>$text</i>$start$icap
+			$status_dansguardian$status_kav4proxy$cicap$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD</span>
+			$stats_paragraphe
+			
+		</div>
+	</div>
+	
+	";	
+
+			return $design;
+	
+}
+
+
+function ZARAFA(){
+	return $this->Postfix_satus(true);
+}
+
+
+
+
+function Postfix_satus($asZarafa=false,$nochache=false){
+	writelogs("START",__FUNCTION__,__FILE__,__LINE__);
+	$link_quarantine_progress=null;$artica_backup=null;$nb_events=null;$backup=null;$rejected=null;$quarantines=null;$instantIptables=null;$multis=array();$multiples_instances=null;$h5_style=null;$start=null;
+	if(!function_exists("mysql_connect")){ 
+		return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";
+	}
+	$time=date("H:i");
+	$klmstxt=null;
+	$klms=array();
+	
+	$this->events("Loading usersMenus()",__FUNCTION__,__LINE__);
+	$usersmenus=new usersMenus();
+	$this->events("Loading LoadModulesEnabled()",__FUNCTION__,__LINE__);
+	$usersmenus->LoadModulesEnabled();
+	$stat=$usersmenus->POSTIFX_STATUS;
+	$this->events("Loading sockets()",__FUNCTION__,__LINE__);
+	if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
+	$this->events("cmd.php?postfix-multi-postqueue=MASTER",__FUNCTION__,__LINE__);
+	$total=base64_decode($sock->getFrameWork("cmd.php?postfix-multi-postqueue=MASTER"));
+	$this->events("EnablePostfixMultiInstance?",__FUNCTION__,__LINE__);
+	$EnableStopPostfix=$sock->GET_INFO("EnableStopPostfix");
+	if(!is_numeric($EnableStopPostfix)){$EnableStopPostfix=0;}
+	$this->events("EnableStopPostfix=$EnableStopPostfix",__FUNCTION__,__LINE__);	
+	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+	$EnableArticaSMTPStatistics=$sock->GET_INFO("EnableArticaSMTPStatistics");
+	if(!is_numeric($EnableArticaSMTPStatistics)){$EnableArticaSMTPStatistics=1;}
+	$ini_notifs=new Bs_IniHandler();
+	$this->events("cmd.php?SmtpNotificationConfigRead=yes",__FUNCTION__,__LINE__);
+	$ini_notifs->loadString($sock->getFrameWork("cmd.php?SmtpNotificationConfigRead=yes"));	
+	if(!isset($ini_notifs->_params["SMTP"]["PostfixQueueMaxMails"])){$ini_notifs->_params["SMTP"]["PostfixQueueMaxMails"]=null;}
+	$this->events("$stat",__FUNCTION__,__LINE__);
+	$stat=explode(';',$stat);
+	$this->_postfix_status=$stat[0];
+	$textFONTStyle="font-size:11px";
+	
+	//KLMS8
+	if($usersmenus->KLMS_INSTALLED){
+		$EnableKlms=$sock->GET_INFO("EnableKlms");
+		if(!is_numeric($EnableKlms)){$EnableKlms=1;}
+		if($EnableKlms==1){
+			$datasKLMS=base64_decode($sock->getFrameWork("klms.php?status=yes"));
+			$ini_stats=new Bs_IniHandler();
+			$ini_stats->loadString($datasKLMS);
+			$klms[]=DAEMON_STATUS_LINE("APP_KLMSS",$ini_stats,null,0,null,true);
+			$klms[]=DAEMON_STATUS_LINE("APP_KLMSDB",$ini_stats,null,0,null,true);
+		}
+	}
+	
+	
+	
+	$link="Loadjs('postfix.queue.monitoring.php?js')";
+	$logs="javascript:s_PopUp('postfix.events.php?pop=true',450,400);";
+	$c=0;
+	if($EnablePostfixMultiInstance==1){
+		$this->events("EnablePostfixMultiInstance=1 $time=".strlen($_SESSION[md5(__CLASS__.__FUNCTION__)][$time])." bytes",__FUNCTION__,__LINE__);
+		$ini_stats=new Bs_IniHandler();
+		$this->events("cmd.php?postfix-single-status=yes",__FUNCTION__,__LINE__);
+		$ini_stats->loadString(base64_decode($sock->getFrameWork("cmd.php?postfix-single-status=yes")));
+		$this->events("cmd.php?postfix-single-status -> DONE",__FUNCTION__,__LINE__);
+		$c=0;
+		while (list ($key, $array) = each ($ini_stats->_params) ){
+				$this->events("$key",__FUNCTION__,__LINE__);
+			if(preg_match("#POSTFIX-MULTI-#",$key,$re)){
+				$c++;
+				if($c>3){continue;}
+				$multis[]=DAEMON_STATUS_LINE($key,$ini_stats,"noaccoloade",0,null,true);
+			}
+		}
+	}
+	if($c>3){
+		
+		$multis[]="<table style='width:98%;margin:0px;' 
+		OnMouseOver=\"this.style.background='#D1D1D1';;this.style.cursor='pointer';\" 
+		OnMouseOut=\"this.style.background='transparent';this.style.cursor='default';\"  
+		OnClick=\"javascript:Loadjs('postfix.multiples.php')\"
+		>
+		<tr>
+			<td width=1%><img src='img/loupe-32.png'></td>
+			<td align='left' nowrap><strong>$c {instances}...</td>
+		</tr>
+
+	</table>
+		";
+	}
+	
+	if($asZarafa=true){
+		$multis=array();
+		$ini=new Bs_IniHandler();
+		$ini->loadString(base64_decode($sock->getFrameWork("zarafa.php?status=yes")));
+		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA",$ini,null,1,"220px",true,1,"Loadjs('quicklinks.postfix.php?js=yes')");
+		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA_GATEWAY",$ini,null,1,"220px",true,1,"Loadjs('quicklinks.postfix.php?js=yes')");
+		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA_WEB",$ini,null,1,"220px",true,1,"Loadjs('quicklinks.postfix.php?js=yes')");
+	}
+	
+	
+	
+	if($usersmenus->DSTAT_INSTALLED){
+		
+		$dstat=texttooltip("{statistics}","{statistics}","Loadjs('dstat.postfix.php')");
+		
+	}
+	
+	
+	if($usersmenus->AMAVIS_INSTALLED){
+		if($usersmenus->EnableAmavisDaemon==1){		
+		$amavis=texttooltip("{APP_AMAVISD_NEW}","{APP_AMAVIS_EXPLAIN}","Loadjs('amavis.index.php?ajax=yes')");
+		}
+	}
+	$rpcess_number=texttooltip("{POSTFIX_PROCESS_NUMBER}","{POSTFIX_PROCESS_NUMBER}","Loadjs('postfix.process.number.php')");
+	
+	
+	
+	
+	if(is_file(dirname(__FILE__).'/logs/artica-backup-size.ini')){
+		$ini=new Bs_IniHandler(dirname(__FILE__).'/logs/artica-backup-size.ini');
+		if($ini->_params["artica_backup"]["original_messages"]==null){$ini->_params["artica_backup"]["original_messages"]=0;}
+		if($ini->_params["artica_backup"]["attachments"]==null){$ini->_params["artica_backup"]["attachments"]=0;}
+		$size=$ini->_params["artica_backup"]["original_messages"]+$ini->_params["artica_backup"]["attachments"];
+		$size=FormatBytes($size);
+		$link2=CellRollOver("Loadjs('postfix.backup.monitoring.php')");
+		if(!isset($this->array_queue["backup"])){$this->array_queue["backup"]=0;}
+		if(!isset($this->array_queue["quarantine"])){$this->array_queue["quarantine"]=0;}
+		
+		
+		$artica_backup="<tr>
+						<td align='right' $link2 style='$textFONTStyle'>{backup_size}:</a>&nbsp;</td>
+						<td $link2 ><strong style='$textFONTStyle'>$size</td>
+						</tr>";
+						
+		if($this->array_queue["quarantine"]>0){
+			$link_quarantine_progress=CellRollOver("Loadjs('postfix.quarantine.progress.php')");
+		}
+						
+		
+		
+	}
+	
+	$link_corrupt="Loadjs('postfix.corrupt.queue.php')";
+	$link_incoming=CellRollOver("Loadjs('postfix.queue.monitoring.php?show-queue=incoming&count={$this->array_queue["incoming"]}');");
+	$link_active=CellRollOver("Loadjs('postfix.queue.monitoring.php?show-queue=active&count={$this->array_queue["active"]}');");
+	$link_deferred=CellRollOver("Loadjs('postfix.queue.monitoring.php?show-queue=deferred&count={$this->array_queue["deferred"]}');");
+	
+	if($ini_notifs->_params["SMTP"]["PostfixQueueMaxMails"]==null){$ini_notifs->_params["SMTP"]["PostfixQueueMaxMails"]=20;}
+	$q=new mysql();
+	$sql="SELECT SUM(`size`) as tsize,COUNT(msgid) as tcount FROM postqueue WHERE `instance`='master'";
+	if(function_exists("mysql_fetch_array")){
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_events'));	
+	}
+	$tot=$ligne["tcount"];
+	$tot_size=$ligne["tsize"]/1024;
+	$tot_size=FormatBytes($tot_size);
+	
+	
+	if($ini_notifs->_params["SMTP"]["PostfixQueueMaxMails"]>0){
+		if($tot>$ini_notifs->_params["SMTP"]["PostfixQueueMaxMails"]){
+			$tot="<span style='font-size:12px;font-weight:bold;color:red'>$tot</span>";
+		}
+	}
+		
+	$table_quarantine=$q->COUNT_ROWS("quarantine","artica_backup");
+	
+	if($table_quarantine>0){$quarantines="
+		<tr ". CellRollOver("Loadjs('domains.quarantine.php?js=yes&Master=yes')","{all_quarantines_text}").">
+					<td align='right' style='$textFONTStyle'>{quarantine}:</a>&nbsp;</td>
+					<td colspan=2 nowrap><strong style='$textFONTStyle'>". numberFormat($table_quarantine,0,'.',' ')."</strong>&nbsp;emails&nbsp;</td>
+		</tr>";
+	}	
+
+	
+	$JavascriptCleanSMTPLOgs="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('postfix.smtp.logs.tools.php')\" style='$textFONTStyle;font-weight:bold;text-decoration:underline'>";
+	
+	
+	if($EnableArticaSMTPStatistics==1){
+		$table_storage=$q->COUNT_ROWS("storage","artica_backup");
+		$table_smtp_logs=$q->COUNT_ROWS("smtp_logs","artica_events");
+		$sql="SELECT SUM( emails ) as tcount FROM smtp_logs_day WHERE bounce_error != 'Sended'";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_events'));	
+		$rejected_number=$ligne["tcount"];
+	
+		if($rejected_number>0){$rejected="
+			<tr ". CellRollOver("Loadjs('postfix.stats.cnx.php')","{rejected_mails}").">
+						<td align='right' style='$textFONTStyle'>{rejected}:</a>&nbsp;</td>
+						<td colspan=2 nowrap><strong style='$textFONTStyle;font-weight:bold;'>". numberFormat($rejected_number,0,'.',' ')."</a>&nbsp;emails&nbsp;</td>
+			</tr>";
+		}		
+		
+	
+		
+		if($table_storage>0){$backup="
+					<tr ". CellRollOver("Loadjs('domains.backup.php?js=yes&Master=yes')","{all_mailbackup_text}").">
+						<td align='right' style='$textFONTStyle'>{backup}:</a>&nbsp;</td>
+						<td colspan=2 nowrap><strong style='$textFONTStyle;font-weight:bold;'>". numberFormat($table_storage,0,'.',' ')."</strong>&nbsp;emails&nbsp;</td>
+					</tr>	";
+		}	
+	
+		
+		if($table_smtp_logs>0){$nb_events="
+					<tr ". CellRollOver().">
+						<td align='right' style='font-size:11px'>$JavascriptCleanSMTPLOgs{processed}:</a>&nbsp;</td>
+						<td nowrap>$JavascriptCleanSMTPLOgs". numberFormat($table_smtp_logs,0,'.',' ')."</a>&nbsp;emails</td>
+						<td width=1%>". imgtootltip("icon_info.gif","{processed_messages_explain}","$link")."</td>
+					</tr>	";
+		}
+
+	}
+
+	$EnablePostfixAutoBlock=$sock->GET_INFO("EnablePostfixAutoBlock");
+	if($EnablePostfixAutoBlock==1){
+		$q=new mysql();
+		$sql="SELECT COUNT(*) as tcount FROM iptables WHERE local_port=25 AND flux='INPUT' AND community=1";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
+		$count_artica=$ligne["tcount"];
+		$sql="SELECT COUNT(*) as tcount FROM iptables WHERE local_port=25 AND flux='INPUT' AND community IS NULL";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
+		$count_local=$ligne["tcount"];
+
+		$instantIptables="
+				<tr><td colspan=2 style='padding-top:5px'><strong style='font-size:13px'><i>Instant Iptables:</i></strong></td></tr>
+				<tr>
+					<td align='right' style='$textFONTStyle'>{local}:</a>&nbsp;</td>
+					<td nowrap><strong style='$textFONTStyle'>$count_local</strong>&nbsp;{rules}</td>
+					<td width=1%>&nbsp;</td>
+				</tr>
+				<tr>
+					<td align='right' style='$textFONTStyle'>{community}:</a>&nbsp;</td>
+					<td nowrap><strong style='$textFONTStyle'>$count_artica</strong>&nbsp;{rules}</td>
+					<td width=1%></td>
+				</tr>";			
+		
+	}
+			
+	if($EnableArticaSMTPStatistics==0){$nb_events=null;$rejected=null;}
+	
+	$status_queues="
+			<table>
+				<tr ". CellRollOver().">
+					<td align='right' style='$textFONTStyle' nowrap>{smtp_queues}:</a>&nbsp;</td>
+					<td ><strong style='$textFONTStyle'>$tot</strong>&nbsp;{mails} <i style='font-size:9px'>($tot_size)</i></td>
+					<td width=1%>". imgtootltip("icon_info.gif","{smtp_queues}","$link")."</td>
+				</tr>
+			$nb_events
+			$backup
+			$rejected
+			$quarantines
+			$instantIptables
+			
+			</table>";
+	
+	$queue="
+	<table style='width:100%'>
+	<tr>
+	
+	</td>
+	<td valign='top'>
+	<table style='width:100%'>
+	<tr>
+		<td>" . imgtootltip('22-logs.png','{events}',"PostfixPopupEvents()")."</td>
+	</tr>
+	</table>
+	</td>
+	</tr>
+	</table>
+	
+	";
+
+	$sock=new sockets();
+	$stat=unserialize(base64_decode($sock->getFrameWork("cmd.php?postfix-stat=yes")));
+	$EnablePostfixAutoBlock=$sock->GET_INFO("EnablePostfixAutoBlock");
+	if($stat[0]==0){
+		$ini=new Bs_IniHandler();
+		$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?postfix-single-status=yes")));
+	}
+	
+	switch ($stat[0]) {
+		
+		case -2:$img='i64.png';
+			$text='{no_infos}';
+			return $this->BuildDesign($img,'{postfix_status}',$text);
+			break;	
+		
+		case '-1':$img='status_postfix_bg_failed.png';
+			$text='{service_not_installed}';
+			break;
+		case '1':$img='status_postfix_bg_ok.png';
+			if(preg_match("#2\.3.*#",$stat[1])){$img='status_postfix_bg_ok23.png';}
+			if(preg_match("#2\.5.*#",$stat[1])){$img='status_postfix_bg_ok25.png';}
+			if(preg_match("#2\.7.*#",$stat[1])){$img='status_postfix_bg_ok27.png';}
+			if(preg_match("#2\.6.*#",$stat[1])){$img='status_postfix_bg_ok26.png';}			
+			if(preg_match("#2\.8.*#",$stat[1])){$img='status_postfix_bg_ok28.png';}
+			if(preg_match("#2\.9.*#",$stat[1])){$img='status_postfix_bg_ok29.png';}		
+			if(preg_match("#2\.10.*#",$stat[1])){$img='status_postfix_bg_ok210.png';}
+			if(preg_match("#3\.0.*#",$stat[1])){$img='status_postfix_bg_ok30.png';}
+			$text='{service_running}<br>{using_version} ' . $stat[1]. ' {pid} ' . $stat[2];
+			break;
+		case '0':
+			
+			$img='status_postfix_bg_failed.png';
+			$text="<span style=color:red>{service_stopped}<br>{using_version} " . $stat[1]."</span>";
+			$start="<hr><div style='text-align:right'>".button("{start}","Loadjs('StartStopServices.php?APP=APP_POSTFIX&cmd=postfix-single&action=start')")."</div>";
+					
+			break;
+	}
+	
+	if($EnableStopPostfix==1){
+		$textStopped="<div><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('postfix.stop.php');\"
+		style='color:red;text-decoration:underline;font-size:11px;font-weight:bold'><i>{service_forced_to_be_stopped}</i></a></div>";
+	}
+	
+	if(count($multis)>0){$multiples_instances=@implode("\n",$multis);}
+	if(count($klms)>0){$klmstxt=@implode("\n",$klms);}
+	
+	
+	$_SESSION[md5("statusPostfix_satus")][$time]="
+	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:auto;margin-bottom:10px'>
+		<div style='padding-left:155px;min-height:250px'>
+			<H3 style='font-size:16px;font-weight:bold;'>{APP_POSTFIX}</h3>
+			<span style='font-size:11px;font-weight:bold'>
+				<i style='color:black;font-size:11px'>$text</i>$textStopped$start
+				$status_queues
+				$klmstxt
+				$multiples_instances
+				</span>
+				<div style='text-align:right'>
+					<i style='font-size:9px'>{status}:{time} $time</i>
+				</div>
+		</div>
+	</div>
+	";
+	
+	
+	//$_SESSION[md5(__CLASS__.__FUNCTION__)][$time]=$this->BuildDesign($img,'{postfix_status}',$text,"$amavis$dstat$rpcess_number","javascript:Loadjs('RTMMail.php')");
+	@file_put_contents('/usr/share/artica-postfix/ressources/logs/postfix.status.html',$_SESSION[md5(__CLASS__.__FUNCTION__)][$time]);
+	@chmod("/usr/share/artica-postfix/ressources/logs/postfix.status.html",0777);
+	writelogs("END",__FUNCTION__,__FILE__,__LINE__);
+	return $_SESSION[md5(__CLASS__.__FUNCTION__)][$time];
+	
+	
+	
+}
+function fetchmail_satus(){
+	$user=new usersMenus();
+	$stat=trim($user->FETCHMAIL_STATUS);
+	$stat=explode(';',$stat);
+	$this->_postfix_status=$stat[0];
+	
+	switch ($stat[0]) {
+		
+		case null:$img='i24.png';
+			$text='{no_infos}';
+			return $this->BuildDesign($img,'{fetchmail_status}',$text);
+			break;	
+		
+		case '-1':$img='warning24.png';
+			$text='{service_not_installed}';
+			break;
+		case '1':$img='ok24.png';
+			$text='{service_running}<br>{using_version} ' . $stat[1]. ' {pid} ' . $stat[2];
+			break;
+		case '0':$img='warning24.png';
+			$text='{service_stopped}<br>{using_version} ' . $stat[1] . ' {pid} ' . $stat[2] . "<br><i style='color:red'>{$user->fetchmail_daemon_logs}</i>";
+					
+			break;
+	}
+	
+	return RoundedLightGreen($this->BuildDesign($img,'{fetchmail_status}',$text));
+	
+	
+}
+
+function cyrus_satus(){
+	if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLASS_USERS_MENUS"]=$users;}else{$users=$GLOBALS["CLASS_USERS_MENUS"];}
+	$title="{cyrus_status}";
+	$init=basename($this->cyrus_init_d);
+	$stat=trim($users->CYRUS_STATUS);
+	$stat=explode(';',$stat);
+	switch ($stat[0]) {
+		case null:$img='i24.png';
+			$text='{no_infos}';
+			break;			
+		case '-1':$img='i24.png';
+			$text='{service_not_installed}';
+			break;
+		case '1':$img='ok24.png';
+			$text='{service_running}<br>{using_version} ' . $stat[1]. ' {pid} ' . $stat[2] .$this->banner_services($init);
+			break;
+		case '0':$img='warning24.png';
+			$text='{service_stopped}<br>{using_version} ' . $stat[1] . ' {pid} ' . $stat[2] .$this->banner_services($init);		
+			break;
+	}
+	return $this->BuildDesign($img,$title,$text);
+	
+	
+	
+}
+
+
+
+function avestatus_satus(){
+	$stat=trim($this->sock->getfile('aveserver_status'));
+	$stat=explode(';',$stat);
+	$title="{aveserver_status}";
+	switch ($stat[0]) {
+		case null:$img='i24.png';
+			$text='{no_infos}';
+			break;			
+		case '-1':$img='i24.png';
+			$text='{service_not_installed}';
+			break;
+		case '1':$img='ok24.png';
+			$date=$this->avestatus_pattern_date($stat[3],$stat[4]);
+			$text='{service_running}<br>{using_version} ' . $stat[1]. ' {pid} ' . $stat[2]  .$date .$this->banner_services('aveserver');
+			break;
+		case '0':$img='warning24.png';
+			$date=$this->avestatus_pattern_date($stat[3],$stat[4]);
+			$text='{service_stopped}<br>{using_version} ' . $stat[1] . ' {pid} ' . $stat[2] . $date. $this->banner_services('aveserver');		
+			break;
+	}
+	
+	return $this->BuildDesign($img,$title,$text);
+	
+}
+
+
+function avestatus_pattern_date($date,$time,$nobuild=0){
+	if(preg_match('#([0-9]{2})([0-9]{2})([0-9]{4})#',$date,$reg)){
+		$day=$reg[1];
+		$month=$reg[2];
+		$year=$reg[3];
+	}else{return null;}
+	
+	if(preg_match('#([0-9]{2})([0-9]{2})#',$time,$reg)){
+		$hour=$reg[1];
+		$min=$reg[2];
+		
+	}else{return null;}	
+	$date1 = mktime($hour-2,$min,0,$month,$day,$year);
+	$time_date=date('Y/m/d H:i/s',$date1);
+	
+$date2 = mktime(date('H'),date('I'),0,date('m'),date('d'),date('Y'));
+	$diff_date = $date2-$date1;
+	$diff['H'] = (int)($diff_date/(60*60));
+	$diff['D'] = (int)($diff_date/(60*60*24));
+	if($diff['H'] >0){
+		if($nobuild==0){
+			$this->array_left[]=$this->BuildDesign_infos('warning32.png','{update_kaspersky_database_title}','{recommend_update_kaspersky}','ffa22a');
+		}
+	}
+	if($nobuild==0){
+	$text="<br>{pattern_update_date} :<strong>$time_date</stong><br></strong><i> {since} {$diff['D']} {days},  {$diff['H']} {hours} </i>";
+	}else{
+		$text="<strong>$time_date</stong><br></strong><i> {since} {$diff['D']} {days},  {$diff['H']} {hours}</i>";
+	}
+	return $text;
+	
+}
+
+function dateadd($per,$n,$d) {
+   switch($per) {
+      case "yyyy": $n*=12;
+      case "m":
+         $d=mktime(date("H",$d),date("i",$d)
+            ,date("s",$d),date("n",$d)+$n
+            ,date("j",$d),date("Y",$d));
+         $n=0; break;
+      case "ww": $n*=7;
+      case "d": $n*=24;
+      case "h": $n*=60;
+      case "n": $n*=60;
+   }
+   return $d+$n;
+}
+
+function BuildDesign($img,$title,$text,$letcon=null,$title_js=null){
+	$h5_style=null;
+	if($title_js<>null){
+		$js_h5="OnClick=\"$title_js\" OnMouseOver=\"this.style.cursor='pointer'\"
+		OnMouseOut=\"this.style.cursor='default\"";
+		$h5_style="border-bottom:1px solid #CCCCCC;'";
+		
+		
+	}
+	
+		$html="
+	<table style='border:0px;margin:5px'>
+	<td width=1% valign='top'>
+		<img src='img/$img'>
+		$letcon	
+	</td>
+		
+	<td valign='top' width=100%>
+	<table style='width:100%'>
+		<tr>
+			<td><h5 $title_js $h5_style>$title</h5></td>
+		</tr>
+		<tr>
+			<td valign='top'>$text</td>
+		</tr>
+	</table>
+	</td>
+	</tr>
+	</table>";
+	return $html;
+	
+}
+function BuildDesign_infos($img,$title,$text,$color){
+		$html="
+	<div style='border:1px solid #CCCCCC;margin-bottom:5px'>
+		<div style='background-color:#$color;width:250px;height:20px;padding-top:5px;'>
+			<img src='img/$img' align='left'><strong style='font-size:12px;color:white;padding-left:5px;'>$title</strong>
+		</div>
+		
+	<div style='padding:10px;'>$text</div>
+	</div>";
+	
+	return $html;
+}
+
+function banner_services($service){
+	$start="<a href='#' OnClick=\"javascript:artica_service_start('$service','applications:$service');\"  onMouseOver=\"javascript:AffBulle('{action_start_service}');\" OnMouseOut=\"javascript:HideBulle();\">";
+	$stop="<a href='#' OnClick=\"javascript:artica_service_stop('$service','applications:$service');\" onMouseOver=\"javascript:AffBulle('{action_stop_service}');\" OnMouseOut=\"javascript:HideBulle();\">";
+	return
+	"
+	<table style='margin:0px;padding:0px;border:0px;width:90%;;border-top:1px solid #3939ac;margin-top:8px;'>
+	<tr>
+	<td align='right' style='padding:0px;margin:0px'>
+	<table style='margin:0px;padding:0px;border:0px;width:1%' width=1%>
+	<tr>
+		<td width=1% style='margin:0px;padding:0px' nowrap>&nbsp;$start<img src='img/task-run.gif'></a>&nbsp;</td>
+		<td width=1% style='margin:0px;padding:0px;' nowrap>&nbsp;$stop<img src='img/task-stop-on.gif'></a>&nbsp;</td>
+	</tr>
+	</table>
+	</td>
+	</tr>
+	</table>";
+}
+
+function ParseIniStatus(){
+	if(!is_file($this->myini)){return "<tr><td>{error_waiting_sync}</td></tr>";}
+	$ini=new Bs_IniHandler($this->myini);
+	
+	if($ini->_params["SQLGREY"]["sqlgrey_installed"]==1){
+			$title="sqlgrey_satus";
+			if($ini->_params["SQLGREY"]["master_pid"]<>null){
+			$sqlgrey=$this->BuildLittleTemplate($title,true);}else{
+			$sqlgrey=$this->BuildLittleTemplate($title,false);}
+	}
+
+if($ini->_params["POSTFIX"]["postfix_installed"]==1){
+			$title="postfix_status";
+			if($ini->_params["SQLGREY"]["master_pid"]<>null){
+			$postfix=$this->BuildLittleTemplate($title,true);}else{
+			$postfix=$this->BuildLittleTemplate($title,false);}
+	}	
+	$tpl=new templates();
+	return $tpl->_ENGINE_parse_body($postfix.$sqlgrey);			
+	
+}
+
+public function BuildNewersions(){
+	if(!is_file(dirname(__FILE__).'/index.ini')){
+		$this->NewVersionsEvents("unable to stat ". dirname(__FILE__).'/index.ini');
+	}
+	
+	if(!$this->front_page_notify()){
+		@file_put_contents(dirname(__FILE__)."/logs/jGrowl-new-versions.txt","#");
+		$this->NewVersionsEvents("front_page_notify return false");
+		return;
+	}
+	
+	$users=new usersMenus();
+	$this->status_artica_version($users);
+	$this->status_amavis_version($users);
+	$this->status_dansguardian_version($users);
+	$this->status_fetchmail_version($users);
+	$this->status_squid_version($users);
+	$this->status_nmap_version($users);
+	$this->status_roundcube_version($users);
+	$this->status_assp_version($users);
+	$this->status_spamassassin($users);
+	$datas=serialize($this->newversions);
+	
+	@file_put_contents(dirname(__FILE__)."/logs/jGrowl-new-versions.txt",$datas);
+	@chmod(dirname(__FILE__)."/logs/jGrowl-new-versions.txt",0755);
+	
+}
+
+private function front_page_notify(){
+$sock=new sockets();	
+$ini=new Bs_IniHandler("/etc/artica-postfix/settings/Daemons/ArticaAutoUpdateConfig");
+$front_page_notify=$ini->_params["AUTOUPDATE"]["front_page_notify"];
+$this->NewVersionsEvents("front_page_notify():: front_page_notify=$front_page_notify");
+if($front_page_notify==null){return true;}
+if(strtolower($front_page_notify)=='yes'){return true;}
+if(strtolower($front_page_notify)=='no'){return false;}
+return true;
+	
+}
+
+private function NewVersionsEvents($text){
+	writelogs($text,__CLASS__.'/'."BuildNewersions",__FILE__,__LINE__);
+}
+
+
+private function status_amavis_version($users){
+	if($users->KASPERSKY_SMTP_APPLIANCE){return false;}
+	if(!$users->AMAVIS_INSTALLED){return false;}
+	$localversion=$users->AMAVISD_VERSION;
+	if($localversion==null){return null;}
+	if(preg_match("#([0-9\.]+)#",$localversion,$re)){$localversion=$re[1];}
+	$ini=new Bs_IniHandler(dirname(__FILE__).'/index.ini');
+	$remote_version=$ini->_params["NEXT"]["amavisd-new"];
+	if(preg_match("#([0-9\.]+)#",$remote_version,$re)){$remote_version=$re[1];}
+	$remote_int=str_replace('.','',$remote_version);
+	$local_int=str_replace('.','',$localversion);
+		
+	if($remote_int>$local_int){
+		$this->newversions["APP_AMAVISD_NEW"]=array(
+			"TITLE"=>"{AMAVIS_NEWVERSION}:&nbsp;$remote_version",
+			"TEXT"=>"{AMAVIS_NEWVERSION_TEXT}",
+			"JS"=>"setup.index.progress.php?product=APP_AMAVISD_NEW&start-install=yes"
+		);
+	}
+}
+private function status_dansguardian_version($users){
+	$sock=new sockets();if($sock->GET_INFO('SQUIDEnable')==0){return false;}
+	if(!$users->DANSGUARDIAN_INSTALLED){return false;}
+	$localversion=$users->DANSGUARDIAN_VERSION;
+	if($localversion==null){$this->NewVersionsEvents(__FUNCTION__.":: unable to stat local dansguardian version");return null;}
+	if(preg_match("#([0-9\.]+)#",$localversion,$re)){$localversion=$re[1];}
+	$ini=new Bs_IniHandler(dirname(__FILE__).'/index.ini');
+	$remote_version=$ini->_params["NEXT"]["dansguardian"];
+	if(preg_match("#([0-9\.]+)#",$remote_version,$re)){$remote_version=$re[1];}
+	$remote_int=str_replace('.','',$remote_version);
+	$local_int=str_replace('.','',$localversion);
+	$this->NewVersionsEvents(__FUNCTION__.":: Local $local_int against $remote_int ");	
+	if($remote_int>$local_int){
+		$this->newversions["APP_DANSGUARDIAN"]=array(
+			"TITLE"=>"{DANSGUARDIAN_NEWVERSION}:&nbsp;$remote_version",
+			"TEXT"=>"{DANSGUARDIAN_NEWVERSION_TEXT}",
+			"JS"=>"setup.index.progress.php?product=APP_DANSGUARDIAN&start-install=yes"
+		);		
+		
+	}
+}
+
+private function status_fetchmail_version($users){
+	if(!$users->fetchmail_installed){$this->NewVersionsEvents(__FUNCTION__.":: fetchmail is not installed");return false;}
+	$localversion=$users->FETCHMAIL_VERSION;
+	if($localversion==null){$this->NewVersionsEvents(__FUNCTION__.":: unable to stat fetchmail version");return null;}
+	if(preg_match("#([0-9\.]+)#",$localversion,$re)){$localversion=$re[1];}
+	$ini=new Bs_IniHandler(dirname(__FILE__).'/index.ini');
+	$remote_version=$ini->_params["NEXT"]["fetchmail"];
+	if(preg_match("#([0-9\.]+)#",$remote_version,$re)){$remote_version=$re[1];}
+	$remote_int=str_replace('.','',$remote_version);
+	$local_int=str_replace('.','',$localversion);
+	$this->NewVersionsEvents(__FUNCTION__.":: Local $local_int against $remote_int ");	
+	if($remote_int>$local_int){
+		$this->newversions["APP_FETCHMAIL"]=array(
+			"TITLE"=>"{FETCHMAIL_NEWVERSION}:&nbsp;$remote_version",
+			"TEXT"=>"{FETCHMAIL_NEWVERSION_TEXT}",
+			"JS"=>"setup.index.progress.php?product=APP_FETCHMAIL&start-install=yes"
+		);	
+	
+	}
+}
+
+private function status_assp_version($users){
+	if($users->KASPERSKY_SMTP_APPLIANCE){return false;}
+	if(!$users->ASSP_INSTALLED){$this->NewVersionsEvents(__FUNCTION__.":: assp is not installed");return false;}
+	$localversion=$users->ASSP_VERSION;
+	if($localversion==null){$this->NewVersionsEvents(__FUNCTION__.":: unable to stat assp version");return null;}
+	if(preg_match("#([0-9\.]+)#",$localversion,$re)){$localversion=$re[1];}
+	$ini=new Bs_IniHandler(dirname(__FILE__).'/index.ini');
+	$remote_version=$ini->_params["NEXT"]["assp"];
+	$this->NewVersionsEvents(__FUNCTION__.":: ASSP \"$remote_version\" On web server");
+	
+	if(preg_match("#([0-9\.]+)#",$remote_version,$re)){$remote_version=$re[1];}
+	$remote_int=str_replace('.','',$remote_version);
+	$local_int=str_replace('.','',$localversion);
+	$this->NewVersionsEvents(__FUNCTION__.":: Local $local_int against $remote_int ");	
+	if($remote_int>$local_int){
+		$this->newversions["APP_ASSP"]=array(
+			"TITLE"=>"{ASSP_NEWVERSION}:&nbsp;$remote_version",
+			"TEXT"=>"{ASSP_NEWVERSION_TEXT}",
+			"JS"=>"setup.index.progress.php?product=APP_ASSP&start-install=yes"
+		);	
+	
+	}
+}
+
+
+private function status_squid_version($users){
+	$sock=new sockets();if($sock->GET_INFO('SQUIDEnable')==0){return false;}
+	if(!$users->SQUID_INSTALLED){$this->NewVersionsEvents(__FUNCTION__.":: squid is not installed");return false;}
+	if(!is_file(dirname(__FILE__).'/index.ini')){$this->NewVersionsEvents(__FUNCTION__.":: unable to stat ".dirname(__FILE__).'/index.ini');return null;}
+	$localversion=$users->SQUID_VERSION;
+	if($localversion==null){$this->NewVersionsEvents(__FUNCTION__.":: unable to stat squid version");return null;}
+	$ini=new Bs_IniHandler(dirname(__FILE__).'/index.ini');
+	$remote_version=$ini->_params["NEXT"]["squid3"];
+	$localversion=str_replace("STABLE","",$localversion);
+	
+	$this->NewVersionsEvents(__FUNCTION__.":: Local $localversion against $remote_version ");
+	
+	if(preg_match("#([0-9]+)\.([0-9]+)\.([0-9]+)#",$localversion,$re)){
+		$localversion=$re[1].'.'.$re[2].'.'.$re[3];
+		$local_major=$re[1];
+		$local_minor=$re[2];
+		$local_build=$re[3];
+	}
+	
+	
+
+	if(preg_match("#([0-9]+)\.([0-9]+)\.([0-9]+)#",$remote_version,$re)){
+		$remote_major=$re[1];
+		$remote_minor=$re[2];
+		$remote_build=$re[3];
+		}
+	$new=false;
+	if($local_major<$remote_major){$new=true;}
+	if(!$new){
+		if($local_major==$remote_major){
+			if($remote_minor>$local_minor){$new=true;}
+		}
+	}
+	
+	if(!$new){
+		if($local_major==$remote_major){
+			if($local_minor==$remote_minor){
+				if($remote_build>$local_build){$new=true;}
+			}
+		}		
+		
+	}
+	
+
+	if($new){	
+		$this->NewVersionsEvents(__FUNCTION__.":: new  $remote_version version");
+		$this->newversions["APP_SQUID"]=array(
+			"TITLE"=>"{SQUID_NEWVERSION}:&nbsp;$remote_version",
+			"TEXT"=>"{SQUID_NEWVERSION_TEXT}",
+			"JS"=>"setup.index.progress.php?product=APP_SQUID&start-install=yes"
+		);			
+		
+	}else{
+		$this->NewVersionsEvents(__FUNCTION__.":: no new  current $localversion version");
+	}
+}
+
+private	function status_nmap_version($users){
+		
+		if(!$users->nmap_installed){
+			$this->NewVersionsEvents(__FUNCTION__.":: NMAP is not installed");
+			return false;}
+			
+		
+		$localversion=$users->nmap_version;
+		$this->NewVersionsEvents(__FUNCTION__.":: Local version is $users->nmap_version");	
+	
+		if(preg_match('#([0-9\.]+)#',$localversion,$re)){$localversion=$re[1];}
+		$ini=new Bs_IniHandler(dirname(__FILE__).'/index.ini');
+		$remote_version=$ini->_params["NEXT"]["nmap"];
+		
+		if(preg_match('#([0-9]+)\.([0-9]+)$#',$localversion,$re)){
+			$localversion="{$re[1]}.{$re[2]}0";
+		}	
+		
+		$this->NewVersionsEvents(__FUNCTION__.":: remote version is $remote_version");	
+		if(preg_match('#([0-9]+)\.([0-9]+)$#',$remote_version,$re)){
+			$remote_version="{$re[1]}.{$re[2]}0";
+		}
+		
+	
+		
+		$remote_int=str_replace('.','',$remote_version);
+		$local_int=str_replace('.','',$localversion);
+		
+		$this->NewVersionsEvents(__FUNCTION__.":: Local $local_int against $remote_int ");
+		
+		if($remote_int>$local_int){
+		$this->newversions["APP_NMAP"]=array(
+				"TITLE"=>"{NMAP_NEWVERSION}:&nbsp;$remote_version",
+				"TEXT"=>"{NMAP_NEWVERSION_TEXT}",
+				"JS"=>"setup.index.progress.php?product=APP_NMAP&start-install=yes"
+			);			
+		}
+	}
+	
+private function status_roundcube_version($users){
+	if(!$users->roundcube_installed){
+		$this->NewVersionsEvents(__FUNCTION__.":: roundcube is not installed");
+		return false;}
+		
+	if($users->ZARAFA_INSTALLED){return false;}
+		
+	if(!is_file(dirname(__FILE__).'/index.ini')){$this->NewVersionsEvents(__FUNCTION__.":: unable to stat ".dirname(__FILE__).'/index.ini');return null;}
+	$localversion=$users->roundcube_intversion;
+	
+	if($GLOBALS["DEBUG"]){echo "local version:$localversion\n";}
+
+	if($localversion==null){
+		if($users->roundcube_version<>null){
+			if(preg_match("#([0-9\.]+)#",$users->roundcube_version,$re)){
+				$localversion=$re[1];
+			}
+		}
+	}
+	
+	$this->NewVersionsEvents(__FUNCTION__.":: Local int version is $localversion");
+	$this->NewVersionsEvents(__FUNCTION__.":: Folder is $users->roundcube_folder");
+	$this->NewVersionsEvents(__FUNCTION__.":: Local version is $users->roundcube_version");	
+
+	if(preg_match('#([0-9\.]+)#',$localversion,$re)){$localversion=$re[1];}
+	$ini=new Bs_IniHandler(dirname(__FILE__).'/index.ini');
+	$remote_version=$ini->_params["NEXT"]["roundcubemail3"];
+	$this->NewVersionsEvents(__FUNCTION__.":: remote version is $remote_version ");
+	
+	if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)$#',$remote_version,$re)){
+		$this->NewVersionsEvents(__FUNCTION__.":: $remote_version -> MATCH 1");	
+		$remote_version="{$re[1]}{$re[2]}0{$re[3]}";
+		
+	}elseif(preg_match('#([0-9]+)\.([0-9]+)$#',$remote_version,$re)){
+		$this->NewVersionsEvents(__FUNCTION__.":: $remote_version -> MATCH 2");	
+		$remote_version="{$re[1]}.{$re[2]}0";
+	
+	}elseif(preg_match('#([0-9]+)\.([0-9]+)$#',$remote_version,$re)){
+		$this->NewVersionsEvents(__FUNCTION__.":: $remote_version -> MATCH 3");
+		$remote_version="{$re[1]}.{$re[2]}0";
+	}
+	
+	$this->NewVersionsEvents(__FUNCTION__.":: remote version (2) is $remote_version ");
+
+	
+	$remote_int=str_replace('.','',$remote_version);
+	$local_int=str_replace('.','',$localversion);
+	
+	$this->NewVersionsEvents(__FUNCTION__.":: Local $local_int against $remote_int ");
+	
+	if($remote_int>$local_int){
+		$this->NewVersionsEvents(__FUNCTION__.":: Build warning...");
+		//APP_ROUNDCUBE3
+		$this->newversions["APP_ROUNDCUBE3"]=array(
+				"TITLE"=>"{ROUNDCUBE_NEWVERSION}:&nbsp;$remote_version",
+				"TEXT"=>"{ROUNDCUBE_NEWVERSION_TEXT}",
+				"JS"=>"setup.index.progress.php?product=APP_ROUNDCUBE3&start-install=yes"
+			);					
+		
+	}
+	}
+
+private function status_samba_version($users){	
+	if(!$users->SAMBA_INSTALLED){$this->NewVersionsEvents(__FUNCTION__.":: Samba is not installed");return false;}
+	$localversion=$users->SAMBA_VERSION;
+	
+
+	if(preg_match('#([0-9\.]+)#',$localversion,$re)){$localversion=$re[1];}
+	$ini=new Bs_IniHandler(dirname(__FILE__).'/index.ini');
+	$remote_version=$ini->_params["NEXT"]["samba"];
+	
+	
+	
+	if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)#',$remote_version,$re)){
+		if(strlen($re[3])==1){$re[3]=$re[3]."0";}
+		$remote_version="{$re[1]}.{$re[2]}.{$re[3]}";
+	}
+	
+	if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)#',$localversion,$re)){
+		if(strlen($re[3])==1){$re[3]=$re[3]."0";}
+		$localversion="{$re[1]}.{$re[2]}.{$re[3]}";
+	}	
+	$this->NewVersionsEvents(__FUNCTION__.":: Local version is $localversion");
+	$this->NewVersionsEvents(__FUNCTION__.":: remote version is $remote_version");
+
+	
+	$remote_int=str_replace('.','',$remote_version);
+	$local_int=str_replace('.','',$localversion);
+	
+	$this->NewVersionsEvents(__FUNCTION__.":: Local $local_int against $remote_int ");
+	
+	if($remote_int>$local_int){
+		$this->newversions["APP_SAMBA"]=array(
+				"TITLE"=>"{SAMBA_NEWVERSION}:&nbsp;$remote_version",
+				"TEXT"=>"{SAMBA_NEWVERSION_TEXT}",
+				"JS"=>"setup.index.progress.php?product=APP_SAMBA&start-install=yes"
+			);		
+		
+	}
+	}
+	
+private function status_spamassassin($users){
+	if($users->KASPERSKY_SMTP_APPLIANCE){return false;}
+	if(!$users->spamassassin_installed){$this->NewVersionsEvents(__FUNCTION__.":: SpamAssassin is not installed");return false;}
+	$localversion=$users->spamassassin_version;
+	
+
+	if(preg_match('#([0-9\.]+)#',$localversion,$re)){$localversion=$re[1];}
+	$ini=new Bs_IniHandler(dirname(__FILE__).'/index.ini');
+	$remote_version=$ini->_params["NEXT"]["Mail-SpamAssassin"];
+	
+	
+	
+	if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)#',$remote_version,$re)){
+		if(strlen($re[3])==1){$re[3]=$re[3]."0";}
+		$remote_version="{$re[1]}.{$re[2]}.{$re[3]}";
+	}
+	
+	if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)#',$localversion,$re)){
+		if(strlen($re[3])==1){$re[3]=$re[3]."0";}
+		$localversion="{$re[1]}.{$re[2]}.{$re[3]}";
+	}	
+	$this->NewVersionsEvents(__FUNCTION__.":: Local version is $localversion");
+	$this->NewVersionsEvents(__FUNCTION__.":: remote version is $remote_version");
+
+	
+	$remote_int=str_replace('.','',$remote_version);
+	$local_int=str_replace('.','',$localversion);
+	
+	$this->NewVersionsEvents(__FUNCTION__.":: Local $local_int against $remote_int ");
+	
+	if($remote_int>$local_int){
+		$this->newversions["APP_SPAMASSASSIN"]=array(
+				"TITLE"=>"{SPAMASSASSIN_NEWVERSION}:&nbsp;$remote_version",
+				"TEXT"=>"{SPAMASSASSIN_NEWVERSION_TEXT}",
+				"JS"=>"setup.index.progress.php?product=APP_SPAMASSASSIN&start-install=yes"
+			);		
+		
+	}
+	}	
+
+private function status_artica_version($users){
+			$ini=new Bs_IniHandler(dirname(__FILE__)."/index.ini");
+			$remote_version=$ini->_params["NEXT"]["artica"];
+			$local_version=$users->ARTICA_VERSION;
+			$remote_version_bin=str_replace('.','',$remote_version);
+			$local_version_bin=str_replace('.','',$local_version);
+			if($local_version<$remote_version){
+			$this->newversions["APP_ARTICA"]=array(
+				"TITLE"=>"{upgrade_artica}:&nbsp;$remote_version",
+				"TEXT"=>"{upgrade_artica_text}",
+				"JS"=>"artica.update.php?js=yes"
+			);					
+				
+				
+			}
+		}	
+}
+function status_pgrep($command){
+	$cmd="/usr/bin/pgrep -l -f \"$command\"";
+	writelogs($cmd,__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$vals);
+	while (list ($num, $val) = each ($vals) ){
+			writelogs("\"$val\" ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$val=trim($val);
+			if($val==null){continue;}
+			if(preg_match("#pgrep#",$val)){continue;}
+			if(!preg_match('#([0-9]+)#',$val,$re)){continue;}
+			writelogs("\"$val\" Processing {$val["master_pid"]} PID",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			if(is_file("/proc/{$val["master_pid"]}/exe")){return true;}
+		}
+		return false;	
+}
+?>

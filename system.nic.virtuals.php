@@ -1,0 +1,308 @@
+<?php
+	header("Pragma: no-cache");	
+	header("Expires: 0");
+	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+	header("Cache-Control: no-cache, must-revalidate");	
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+	include_once('ressources/class.templates.inc');
+	include_once('ressources/class.ldap.inc');
+	include_once('ressources/class.users.menus.inc');
+	include_once('ressources/class.system.network.inc');
+	include_once('ressources/class.system.nics.inc');
+	include_once('ressources/class.maincf.multi.inc');
+	include_once('ressources/class.tcpip.inc');
+	$usersmenus=new usersMenus();
+	if($usersmenus->AsSystemAdministrator==false){exit();}
+
+	if(isset($_GET["virtual-list"])){nics_list();exit;}
+	
+	page();
+	
+function page(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$date=$tpl->_ENGINE_parse_body("{zDate}");
+	$organization=$tpl->_ENGINE_parse_body("{organization}");
+	$context=$tpl->_ENGINE_parse_body("{context}");	
+	$events=$tpl->_ENGINE_parse_body("{events}");	
+	$empty=$tpl->_ENGINE_parse_body("{empty}");	
+	$empty_events_text_ask=$tpl->javascript_parse_text("{empty_events_text_ask}");	
+	$sock=new sockets();
+	$DisableNetworksManagement=$sock->GET_INFO("DisableNetworksManagement");
+	if($DisableNetworksManagement==null){$DisableNetworksManagement=0;}		
+	
+	$nic=$tpl->_ENGINE_parse_body("{nic}");
+	$netmask=$tpl->_ENGINE_parse_body("{netmask}");
+	$tcp_address=$tpl->_ENGINE_parse_body("{tcp_address}");
+	$broadcast_has_ipaddr=$tpl->_ENGINE_parse_body("{broadcast_has_ipaddr}");
+	$new_virtual_ip=$tpl->_ENGINE_parse_body("{new_virtual_ip}");
+	$add_default_www=$tpl->_ENGINE_parse_body("{add_default_www}");
+	$delete_freeweb_text=$tpl->javascript_parse_text("{delete_freeweb_text}");
+	$delete_freeweb_dnstext=$tpl->javascript_parse_text("{delete_freeweb_dnstext}");	
+	$NoGatewayForVirtualNetWork=$tpl->_ENGINE_parse_body("{NoGatewayForVirtualNetWork}");
+	$apply_network_configuration=$tpl->_ENGINE_parse_body("{apply_network_configuration}");
+	$help=$tpl->_ENGINE_parse_body("{help}");
+	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
+	$apply_network_configuration_warn=$tpl->javascript_parse_text("{apply_network_configuration_warn}");
+	$virtual_interfaces=$tpl->_ENGINE_parse_body("{virtual_interfaces}");
+
+
+
+	$tablewidth=874;
+	$servername_size=412;
+	
+	$t=time();
+	
+	$buttons="
+	buttons : [
+	{name: '<b>$new_virtual_ip</b>', bclass: 'add', onpress : VirtualIPAdd$t},
+	{name: '<b>$apply_network_configuration</b>', bclass: 'Reconf', onpress : BuildNetConf$t},
+	],";
+	$html="
+	<table class='table-$t' style='display: none' id='table-$t' style='width:100%;margin:-10px'></table>
+		<table class=form>
+		<tr>
+			<td class=legend>$broadcast_has_ipaddr</td>
+			<td>". Field_checkbox("NetWorkBroadCastAsIpAddr",1,$sock->GET_INFO("NetWorkBroadCastAsIpAddr"),"NetWorkBroadCastAsIpAddrSave()")."</td>
+		</tr>
+		<tr>
+			<td class=legend>$NoGatewayForVirtualNetWork</td>
+			<td>". Field_checkbox("NoGatewayForVirtualNetWork",1,$sock->GET_INFO("NoGatewayForVirtualNetWork"),"NetWorkBroadCastAsIpAddrSave()")."</td>
+		</tr>		
+		</table>	
+<script>
+VirtualIPMem='';
+$(document).ready(function(){
+$('#table-$t').flexigrid({
+	url: '$page?virtual-list=yes&t=$t',
+	dataType: 'json',
+	colModel : [
+		{display: '&nbsp;', name : 'icon', width : 31, sortable : false, align: 'center'},
+		{display: '$nic', name : 'ID', width :148, sortable : true, align: 'left'},
+		{display: '$tcp_address', name : 'ipaddr', width :124, sortable : true, align: 'left'},
+		{display: '$netmask', name : 'netmask', width : 124, sortable : true, align: 'left'},
+		{display: '$organization', name : 'org', width : 326, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'none2', width : 31, sortable : false, align: 'center'},
+		
+	],
+	$buttons
+
+	searchitems : [
+		{display: '$tcp_address', name : 'ipaddr'},
+		{display: '$organization', name : 'org'},
+		],
+	sortname: 'nic',
+	sortorder: 'asc',
+	usepager: true,
+	title: '',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: $tablewidth,
+	height: 320,
+	singleSelect: true
+	
+	});   
+});
+
+		function VirtualIPAdd$t(){
+			YahooWin2(windows_size,'system.nic.config.php?virtual-popup-add=yes&default-datas={$_GET["default-datas"]}&t=$t&function-after={$_GET["function-after"]}','$virtual_interfaces');
+		
+		}
+		
+		function VirtualsEdit$t(ID){
+			YahooWin2(500,'system.nic.config.php?virtual-popup-add=yes&t=$t&ID='+ID,'$virtual_interfaces');
+		}
+
+		var X_VirtualIPAddSave$t=function (obj) {
+			var results=obj.responseText;
+			if(results.length>5){alert(results);return;}	
+			$('#rowVirtualNic'+VirtualIPMem).remove();
+		}		
+
+		function VirtualsDelete$t(ID){
+			var DisableNetworksManagement=$DisableNetworksManagement;
+			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}		
+			VirtualIPMem=ID;
+			var XHR = new XHRConnection();
+			XHR.appendData('virt-del',ID);
+			XHR.sendAndLoad('system.nic.config.php', 'GET',X_VirtualIPAddSave$t);
+		}
+
+		
+		function FreeWebDelete(server,dns,md){
+			FreeWebIDMEM=md;
+			if(confirm('$delete_freeweb_text')){
+				var XHR = new XHRConnection();
+				if(dns==1){if(confirm('$delete_freeweb_dnstext')){XHR.appendData('delete-dns',1);}else{XHR.appendData('delete-dns',0);}}
+				XHR.appendData('delete-servername',server);
+    			XHR.sendAndLoad('freeweb.php', 'GET',x_FreeWebDelete);
+			}
+		}	
+		
+		var X_BuildNetConf$t= function (obj) {
+			var results=obj.responseText;
+			if(results.length>0){alert(results);}
+			$('#table-$t').flexReload();
+		}		
+
+		function BuildNetConf$t(){
+			var DisableNetworksManagement=$DisableNetworksManagement;
+			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}	
+			if(confirm('$apply_network_configuration_warn')){	
+				var XHR = new XHRConnection();
+				XHR.appendData('BuildNetConf',1);
+				if(document.getElementById('NetworkManager-status')){AnimateDiv('NetworkManager-status');}
+				XHR.sendAndLoad('system.nic.config.php', 'GET',X_BuildNetConf$t);
+			}
+		}
+		
+		var X_NetWorkBroadCastAsIpAddrSave= function (obj) {
+			var results=obj.responseText;
+			if(results.length>0){alert(results);}
+			
+		}
+		
+		function NetWorkBroadCastAsIpAddrSave(){
+			var DisableNetworksManagement=$DisableNetworksManagement;
+			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}
+			var XHR = new XHRConnection();
+			if(document.getElementById('NetWorkBroadCastAsIpAddr').checked){
+			XHR.appendData('NetWorkBroadCastAsIpAddr',1);}else{XHR.appendData('NetWorkBroadCastAsIpAddr',0);}
+			
+			if(document.getElementById('NoGatewayForVirtualNetWork').checked){
+			XHR.appendData('NoGatewayForVirtualNetWork',1);}else{XHR.appendData('NoGatewayForVirtualNetWork',0);}
+			XHR.sendAndLoad('system.nic.config.php', 'GET',X_NetWorkBroadCastAsIpAddrSave);
+		}		
+	
+</script>";
+	
+	echo $html;	
+		
+	
+	
+	
+}	
+
+function nics_list(){
+	$tpl=new templates();
+	$MyPage=CurrentPageName();
+	$q=new mysql();
+	$database="artica_backup";
+	$table="nics_virtuals";
+	$t=$_GET["t"];
+	$search='%';
+	$sock=new sockets();
+	$interfaces=unserialize(base64_decode($sock->getFrameWork("cmd.php?ifconfig-interfaces=yes")));
+	$page=1;
+	$FORCE_FILTER=null;
+	
+	if($q->COUNT_ROWS($table,$database)==0){
+		writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
+		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
+		echo json_encode($data);
+		return ;
+	}
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
+	
+
+	if($_POST["query"]<>null){
+		$_POST["query"]="*".$_POST["query"]."*";
+		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
+		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
+		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
+		$search=$_POST["query"];
+		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+		
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+	}
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
+	
+
+	
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	
+	
+	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	$results = $q->QUERY_SQL($sql,$database);
+	
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
+	
+	if(!$q->ok){
+		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
+		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
+		echo json_encode($data);
+		return;
+	}	
+	
+	$net=new networking();
+
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$id=md5($ligne["ID"]);
+			
+		
+		$eth="{$ligne["nic"]}:{$ligne["ID"]}";
+		$eth_text="{$ligne["nic"]}:{$ligne["ID"]}";
+		if($ligne["cdir"]==null){
+			$ligne["cdir"]=$net->array_TCP[$ligne["nic"]];
+			$eth=$ligne["nic"];
+		}
+		$img="22-win-nic-off.png";
+		$color="#B7B7B7";
+		
+		if($interfaces[$eth_text]<>null){
+			$img="22-win-nic.png";
+			$color="black";
+		}
+		
+		$ligne["org"]=str_replace("LXC-INTERFACES","{APP_LXC}",$ligne["org"]);
+		
+		if(trim($ligne["org"])==null){
+			$ligne["org"]=$tpl->_ENGINE_parse_body("<span style='color:#A30000'>{no_organization}</strong>");
+		}
+		
+		if($ligne["org"]=="crossroads"){
+			$ligne["org"]=$tpl->_ENGINE_parse_body("<a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('postfix.multiple.crossroads.php?ipaddr=". urlencode($ligne["ipaddr"])."');\" 
+			style='font-size:14px;text-decoration:underline;font-weight:bold'>{load_balancer}</a>");
+			$img="folder-dispatch-22-grey.png";
+			if($interfaces[$eth]<>null){$img="folder-dispatch-22.png";}
+			
+		}
+		
+	
+		
+		$edit="<a href=\"javascript:blur();\" OnClick=\"javascript:VirtualsEdit$t({$ligne["ID"]})\" style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
+		$delete="<a href=\"javascript:blur();\" OnClick=\"javascript:VirtualsDelete$t({$ligne["ID"]})\" style='font-size:14px;text-decoration:underline'><img src='img/delete-24.png'></a>";
+		
+	$data['rows'][] = array(
+		'id' => "VirtualNic{$ligne['ID']}",
+		'cell' => array(
+		"<img src='img/$img'>"
+		,"<span style='font-size:16px;color:$color;font-weight:bold'>$eth_text</span>",
+		"<span style='font-size:14px'>$edit{$ligne["ipaddr"]}</a></span>",
+		"<span style='font-size:14px'>$edit{$ligne["netmask"]}</a></span>",
+		"<span style='font-size:14px;color:$color'>{$ligne["org"]}</span>"
+		,$delete )
+		);
+	}
+	
+	
+echo json_encode($data);		
+
+}
+
+	
