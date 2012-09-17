@@ -68,6 +68,7 @@ class system_tasks{
 			$this->tasks_array[45]="{auth_logs}";
 			$this->tasks_array[46]="{awstats_postfix}";
 			$this->tasks_array[47]="{awstats_postfix_parser}";
+			$this->tasks_array[48]="{postfix_stats_days}";
 			
 			
 			
@@ -121,7 +122,7 @@ class system_tasks{
 			$this->tasks_explain_array[45]="{auth_logs_explain}";
 			$this->tasks_explain_array[46]="{awstats_postfix_explain}";
 			$this->tasks_explain_array[47]="{awstats_postfix_parser_explain}";
-			
+			$this->tasks_explain_array[48]="{postfix_stats_days_explain}";
 			
 			
 			
@@ -177,6 +178,7 @@ class system_tasks{
 			$this->tasks_processes[45]="exec.syslog-engine.php --auth-logs";
 			$this->tasks_processes[46]="exec.awstats.php --postfix"; //120
 			$this->tasks_processes[47]="exec.postfix.parse.awstats.php"; //5mn
+			$this->tasks_processes[48]="exec.postfix-stats.php --days"; //5mn
 			
 	
 	}
@@ -204,7 +206,7 @@ public function CheckDefaultSchedules(){
 		$array[4]=array("TimeText"=>"30 7 * * *","TimeDescription"=>"MySQLTuner each day at 07h30");
 		$array[5]=array("TimeText"=>"0 * * * *","TimeDescription"=>"Each hour");
 		$array[6]=array("TimeText"=>"0 4,8,12,16,20 * * *","TimeDescription"=>"Each 4 hours");
-		$array[2]=array("TimeText"=>"30 5,10,15,20 * * *","TimeDescription"=>"Each 5 Hours");
+		$array[2]=array("TimeText"=>"30 0,5,10,15,20 * * *","TimeDescription"=>"Each 5 Hours");
 		$array[8]=array("TimeText"=>"5 0 * * *","TimeDescription"=>"Each day at 00:05");
 		if($EnableRemoteStatisticsAppliance==1){$array[9]=array("TimeText"=>"10,20,30,40,50 * * * *","TimeDescription"=>"Each 10mn");}
 		$array[10]=array("TimeText"=>"0,15,30,45 * * * *","TimeDescription"=>"Each 15mn");
@@ -227,7 +229,8 @@ public function CheckDefaultSchedules(){
 		$array[44]=array("TimeText"=>"35 * * * *","TimeDescription"=>"Each hour + 35mn");
 		$array[45]=array("TimeText"=>"* * * * *","TimeDescription"=>"Each 1mn");
 		$array[46]=array("TimeText"=>"10 0,2,4,6,8,10,12,14,16,18,20,22 * * *","TimeDescription"=>"Each 2H +10mn");
-		
+		$array[47]=array("TimeText"=>"5,10,15,20,25,30,35,40,45,50,55,59 * * * *","TimeDescription"=>"parse queue Each 5mn");
+		$array[48]=array("TimeText"=>"45 0,5,10,15,20 * * *","TimeDescription"=>"Days statistics each 5 Hours +45mn");
 		
 		
 		

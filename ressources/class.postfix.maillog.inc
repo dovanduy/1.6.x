@@ -18,6 +18,22 @@ class postfix_maillog_buffer{
 			return true;
 		}
 		
+		if(preg_match("#smtpd\[.+?warning.*?SASL authentication failure: cannot connect to saslauthd server: Permission denied#i",$buffer,$re)){
+			$this->events("SASL authentication failure !!",__LINE__);
+			$timefile="/etc/artica-postfix/croned.1/restart-saslauthd";
+			$TimeMin=$this->file_time_min($timefile);
+			if($TimeMin>3){
+				@chmod("/var/run/saslauthd",0755);
+				$this->email_events("SASL authentication failure (Permission denied) ","Postfix claim: $buffer\nsaslauthd will be restarted","postfix");
+				$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/saslauthd restart >/dev/null 2>&1 &";
+				$this->events($cmd);
+				shell_exec($cmd);
+		 		@unlink($timefile);
+				@file_put_contents($timefile,time());				
+			}	
+			
+		}
+		
 		if(preg_match("#relay=none,\s+delay=.+?status=deferred.+?suspended:\s+connect to.+?\.0\.0\.1\]:10024:\s+Connection refused#",$buffer,$re )){
 			$this->events("restart amavis !!",__LINE__);
 			$timefile="/etc/artica-postfix/croned.1/restart-amavis";

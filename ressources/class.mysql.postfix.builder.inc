@@ -105,7 +105,7 @@ class mysql_postfix_builder{
 	
 	public function CheckTables(){
 		if(!$this->DATABASE_EXISTS($this->database)){$this->CREATE_DATABASE($this->database);}
-		
+		$this->TableDays();
 	}
 	
 	public function BuildHourTable($tablename){
@@ -137,6 +137,80 @@ class mysql_postfix_builder{
 
 		if(!$this->QUERY_SQL($sql)){return false;}
 		return true;
+		
+	}
+	
+	public function BuildDayTable($tablename){
+		if($this->TABLE_EXISTS($tablename)){return true;}
+		
+		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+			  `zmd5` varchar(90) NOT NULL,
+			  `zhour` tinyint(2) NOT NULL,
+			  `hits` BIGINT(100) NOT NULL,
+			  `size` BIGINT(100) NOT NULL,
+			  `mailfrom` varchar(255) NOT NULL,
+			  `instancename` varchar(255) NOT NULL,
+			  `mailto` varchar(255) NOT NULL,
+			  `domainfrom` varchar(128) NOT NULL,
+			  `domainto` varchar(128) NOT NULL,
+			  `senderhost` varchar(128) NOT NULL,
+			  `recipienthost` varchar(128) NOT NULL,
+			  `smtpcode` tinyint(3) NOT NULL,
+			  PRIMARY KEY (`zmd5`),
+			  KEY `zhour` (`zhour`,`smtpcode`),
+			  KEY `mailfrom` (`mailfrom`),
+			  KEY `size` (`size`),
+			  KEY `hits` (`hits`),
+			  KEY `mailto` (`mailto`),
+			  KEY `domainfrom` (`domainfrom`),
+			  KEY `domainto` (`domainto`),
+			  KEY `senderhost` (`senderhost`),
+			  KEY `instancename` (`instancename`),
+			  KEY `recipienthost` (`recipienthost`)
+			)";
+
+		if(!$this->QUERY_SQL($sql)){return false;}
+		return true;
+		
+	}	
+	
+	private function TableDays(){
+		$sql="CREATE TABLE IF NOT EXISTS `TableDays` (
+			`zDays` DATE NOT NULL ,
+			`size` BIGINT( 100 ) NOT NULL ,
+			`DayBuilded` SMALLINT( 1 ) NOT NULL DEFAULT '0',
+			`events` BIGINT( 100 ) NOT NULL ,
+			PRIMARY KEY ( `zDays` ) ,
+			INDEX ( `size` , `DayBuilded` )
+			)"; 
+			if(!$this->QUERY_SQL($sql)){
+			writelogs("$this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			}
+		}
+		
+		
+	public function LIST_HOUR_TABLES(){
+		if(isset($GLOBALS["POSTFIX_LIST_HOUR_TABLES"])){return $GLOBALS["POSTFIX_LIST_HOUR_TABLES"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$this->database' AND table_name LIKE '%_hour'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+		$thishour=date("YmdH");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#([0-9]+)_hour#", $ligne["c"],$re)){
+				if($re[1]==$thishour){continue;}
+				$number=$re[1];
+				$year=substr($number, 0,4);
+				$month=substr($number, 4,2);
+				$day=substr($number, 6,2);
+				$hour=substr($number, 8,2);
+				$GLOBALS["POSTFIX_LIST_HOUR_TABLES"][$ligne["c"]]="$year-$month-$day $hour:00:00";
+				$array[$ligne["c"]]=$ligne["c"];
+			}
+		}
+		return $GLOBALS["POSTFIX_LIST_HOUR_TABLES"];	
+		
 		
 	}
 	

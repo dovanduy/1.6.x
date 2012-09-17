@@ -1266,6 +1266,8 @@ Local LMTP socket: lmtp:unix:/path/to/lmtp.sock[br]
 </postfix_mailbox_transport_art_expl>
 <postfix_master>Master Postfix instance</postfix_master>
 <postfix_send_proxy>SMTP proxy support</postfix_send_proxy>
+<postfix_stats_days>Messaging daily statistics</postfix_stats_days>
+<postfix_stats_days_explain>This task parse all hours tables and generate daily table messaging statistics</postfix_stats_days_explain>
 <postfix_transport_senders_explain>This table list routing rules by SMTP sender domain/email address.[br]Each sender (domain or email address) is set here, 
 it will be routed to the target defined server</postfix_transport_senders_explain>
 <postfix_transport_table_explain>This table list routing rules of local/remote inbound SMTP domains stored on your organizations.[br]

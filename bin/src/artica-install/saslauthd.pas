@@ -159,7 +159,12 @@ end;
        logs.DebugLogs('Starting......: saslauthd daemon. (failed!!!)');
    end else begin
        logs.DebugLogs('Starting......: saslauthd daemon. PID '+SASLAUTHD_PID());
-       fpsystem('/bin/ln -s /var/run/saslauthd /var/run/sasl2 >/dev/null 2>&1');
+       logs.DebugLogs('Starting......: saslauthd symlink from /var/run/saslauthd to /var/run/sasl2');
+       fpsystem('/bin/ln -sf /var/run/saslauthd /var/run/sasl2 >/dev/null 2>&1');
+       forceDirectories('/var/spool/postfix/var');
+       fpsystem('/bin/ln -sf /var/run /var/spool/postfix/var/run >/dev/null 2>&1');
+       fpsystem('/bin/chmod 0755 /var/run/saslauthd >/dev/null 2>&1');
+       fpsystem('/bin/chmod 0755 /var/run/saslauthd/* >/dev/null 2>&1');
    end;
 
 end;

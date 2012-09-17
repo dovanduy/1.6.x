@@ -47,6 +47,7 @@ class generic_categorize{
 		if(preg_match("#\.perso\.sfr\.fr$#", $www)){return "blog";}
 		if(preg_match("#\.centerblog\.net$#", $www)){return "blog";}
 		if(preg_match("#\.blogfa\.com$#", $www)){return "blog";}
+		if(preg_match("#\.ifunnyblog\.com$#", $www)){return "blog";}
 	}
 	
 	private function Tracker($www){
@@ -100,6 +101,7 @@ class generic_categorize{
 		if(preg_match("#\.emltrk\.com$#", $www)){return "tracker";}
 		if(preg_match("#\.hittail\.com$#", $www)){return "tracker";}
 		if(preg_match("#\.gotlocations\.com$#", $www)){return "tracker";}
+		if(preg_match("#\.hypestat\.com$#", $www)){return "tracker";}
 		
 		
 	}
@@ -748,6 +750,7 @@ private function socialnet($www){
 		if(preg_match("#\.qualitycpv-xml\.com$#", $www)){return "publicite";}
 		if(preg_match("#\.ezanga-xml\.com$#", $www)){return "publicite";}
 		if(preg_match("#\.falktec\.com$#", $www)){return "publicite";}
+		if(preg_match("#\.publicidad\.net$#", $www)){return "publicite";}
 		
 	}
 	
@@ -1225,7 +1228,8 @@ private function socialnet($www){
 		if(preg_match("#\.pap\.fr$#", $www)){return "smallads";}
 		if(preg_match("#\.craigslist\.fr$#", $www)){return "smallads";}
 		if(preg_match("#\.[a-z]+-annonces\.[a-z]+$#", $www)){return "smallads";}	
-		if(preg_match("#\.hyperannonces\.fr$#", $www)){return "smallads";}		
+		if(preg_match("#\.hyperannonces\.fr$#", $www)){return "smallads";}	
+		if(preg_match("#\.slando\.ru$#", $www)){return "smallads";}
 	}
 	
 	private function realestate($www){

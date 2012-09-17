@@ -1110,6 +1110,8 @@ service LMTP distant: lmtp:10.10.10.1:2000[br]
 service LMTP local en socket unix: lmtp:unix:/path/to/lmtp.sock[br]</postfix_mailbox_transport_art_expl>
 <postfix_master>Instance Postfix Ma&icirc;tre</postfix_master>
 <postfix_send_proxy>Support SMTP Proxy</postfix_send_proxy>
+<postfix_stats_days>Statistiques journali&egrave;res de la messagerie</postfix_stats_days>
+<postfix_stats_days_explain>Cette t&acirc;che liste toutes les tables horaires et g&eacute;n&egrave;re les tables journali&egrave;res dans la base MySQL</postfix_stats_days_explain>
 <postfix_transport_senders_explain>Cette table liste les r&egrave;gle d'acheminement en fonction de l'adresse/domaine de l'&eacute;metteur du message.[br]Chaque &eacute;metteur (domaine ou adresse compl&egrave;te) d&eacute;finit se verra affecter une serveur de destination.</postfix_transport_senders_explain>
 <postfix_transport_table_explain>Cette table liste les r&egrave;gles d'acheminement de courrier en fonction du domaine SMTP de destination g&eacute;n&eacute;ralement ajout&eacute; dans les organisations.[br]
 Ces r&egrave;gles vont acheminer les messages en fonction du domaine de messagerie (c'est &agrave; dire toutes les adresses de message qui y sont associ&eacute;es).</postfix_transport_table_explain>

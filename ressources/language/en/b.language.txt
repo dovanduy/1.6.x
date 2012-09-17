@@ -2132,3 +2132,5 @@ from the Authority issuing a given certificate up to the Root of the certificate
 Note: After the certificate generation, you need to restart all linked services.
 </warn_gen_x509>
 <error_missing_data_in_mysql>Error, missing data in MySQL database</error_missing_data_in_mysql>
+<postfix_stats_days_explain>This task parse all hours tables and generate daily table messaging statistics</postfix_stats_days_explain>
+<postfix_stats_days>Messaging daily statistics</postfix_stats_days_explain>
