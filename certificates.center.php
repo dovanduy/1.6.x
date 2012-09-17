@@ -22,10 +22,13 @@
 	if(isset($_GET["PrivateKey"])){PrivateKey();exit;}
 	if(isset($_GET["csr"])){csr();exit;}
 	if(isset($_POST["generate-key"])){generate_key();exit;}
-	if(isset($_POST["generate-x509"])){generate_x509();exit;}
+	if(isset($_GET["generate-x509"])){generate_x509();exit;}
 	if(isset($_GET["crt"])){crt();exit;}
 	if(isset($_GET["bundle"])){bundle();exit;}
 	if(isset($_GET["tools"])){tools();exit;}
+	if(isset($_GET["x509-js"])){x509_js();exit;}
+	if(isset($_POST["save-crt"])){save_crt();exit;}
+	if(isset($_POST["save-bundle"])){save_bundle();exit;}
 	js();
 	
 	
@@ -35,6 +38,23 @@ function js(){
 	$title=$tpl->_ENGINE_parse_body("{certificates_center}");
 	$html="YahooWin2('850','$page?popup=yes','$title')";
 	echo $html;
+}
+function x509_js(){
+	$CommonName=$_GET["x509-js"];
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$title=$tpl->_ENGINE_parse_body("$CommonName::{generate_x509}");
+	$warn_gen_x509=$tpl->javascript_parse_text("{warn_gen_x509}");
+	$html="
+	function Gen$t(){
+		if(confirm('$warn_gen_x509')){
+			YahooWin2('750','$page?generate-x509=$CommonName','$title');
+			}
+		}	
+		Gen$t();
+	";
+	echo $html;	
 }
 
 
@@ -81,6 +101,7 @@ $('#flexRT$t').flexigrid({
 		{display: '$organizationalUnitName', name : 'OrganizationalUnit'},
 		{display: '$emailAddress', name : 'emailAddress'},
 		],
+		
 	sortname: 'CommonName',
 	sortorder: 'asc',
 	usepager: true,
@@ -472,16 +493,33 @@ function crt(){
 		$sock=new sockets();
 		$users=new usersMenus();
 		$q=new mysql();
+		$tt=time();
 		$sql="SELECT crt  FROM sslcertificates WHERE CommonName='$CommonName'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
+		$warn_gen_x50=$tpl->javascript_parse_text("{warn_gen_x509}");
 	$html="
 		<div class=explain style='font-size:14px' id='$tt-adddis'>{public_key_ssl_explain}</div>
 		<textarea style='margin-top:5px;font-family:Courier New;
 		font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px' 
-		id='textToParseCats$t'>{$ligne["crt"]}</textarea>
-		<center style='margin:10px'>". button("{apply}","GenerateX509$tt()","18px")."</center>
+		id='crt$tt'>{$ligne["crt"]}</textarea>
+		<center style='margin:10px'>". button("{apply}","SaveCRT$tt()","18px")."</center>
 		<script>
-
+		var x_SaveCRT$tt=function (obj) {
+			var results=obj.responseText;	
+			document.getElementById('$tt-adddis').innerHTML='';
+			if (results.length>3){alert(results);return;}
+			RefreshTab('main_config_certificate');
+			$('#flexRT$t').flexReload();
+		}	
+		function SaveCRT$tt(){
+			if(confirm('$warn_gen_x50')){
+				var XHR = new XHRConnection();  
+				XHR.appendData('save-crt',document.getElementById('crt$tt').value);
+				XHR.appendData('CommonName','$CommonName');
+				AnimateDiv('$tt-adddis');
+				XHR.sendAndLoad('$page', 'POST',x_SaveCRT$tt);
+			}
+		}
 		</script>
 		
 		";
@@ -491,6 +529,29 @@ function crt(){
 	
 }
 
+function save_crt(){
+	$data=$_POST["save-crt"];
+	$CommonName=$_POST["CommonName"];
+	$sql="UPDATE sslcertificates SET `crt`='$data' WHERE `CommonName`='$CommonName'";
+	$q=new mysql();
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$sock=new sockets();
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text($sock->getFrameWork("openssl.php?tomysql=$CommonName"));
+	
+}
+function save_bundle(){
+	$data=$_POST["save-bundle"];
+	$CommonName=$_POST["CommonName"];
+	$sql="UPDATE sslcertificates SET `bundle`='$data' WHERE `CommonName`='$CommonName'";
+	$q=new mysql();
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text($sock->getFrameWork("openssl.php?tomysql=$CommonName"));
+	
+}
 function bundle(){
 		$t=$_GET["t"];
 		$CommonName=$_GET["CommonName"];
@@ -499,14 +560,35 @@ function bundle(){
 		$sock=new sockets();
 		$users=new usersMenus();
 		$q=new mysql();
+		$tt=time();
 		$sql="SELECT bundle  FROM sslcertificates WHERE CommonName='$CommonName'";
+		$warn_gen_x50=$tpl->javascript_parse_text("{warn_gen_x509}");
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
 	$html="
 		<div class=explain style='font-size:14px' id='$tt-adddis'>{certificate_chain_explain}</div>
 		<textarea style='margin-top:5px;font-family:Courier New;
 		font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px' 
-		id='textToParseCats$t'>{$ligne["bundle"]}</textarea>
-		<center style='margin:10px'>". button("{apply}","GenerateX509$tt()","18px")."</center>		
+		id='bundl$tt'>{$ligne["bundle"]}</textarea>
+		<center style='margin:10px'>". button("{apply}","SaveBundle$tt()","18px")."</center>
+		<script>
+		var x_SaveBundle$tt=function (obj) {
+			var results=obj.responseText;	
+			document.getElementById('$tt-adddis').innerHTML='';
+			if (results.length>3){alert(results);return;}
+			RefreshTab('main_config_certificate');
+			$('#flexRT$t').flexReload();
+		}	
+		function SaveBundle$tt(){
+			if(confirm('$warn_gen_x50')){
+				var XHR = new XHRConnection();  
+				XHR.appendData('save-bundle',document.getElementById('bundl$tt').value);
+				XHR.appendData('CommonName','$CommonName');
+				AnimateDiv('$tt-adddis');
+				XHR.sendAndLoad('$page', 'POST',x_SaveBundle$tt);
+			}
+			
+			}
+		</script>	
 		";
 	
 	echo $tpl->_ENGINE_parse_body($html);		
@@ -515,12 +597,23 @@ function bundle(){
 
 function generate_key(){
 	$sock=new sockets();
-	$sock->getFrameWork("openssl.php?generate-key={$_POST["generate-key"]}");	
+	$sock->getFrameWork("openssl.php?generate-key={$_GET["generate-key"]}");	
 	
 }
 function generate_x509(){
 	$sock=new sockets();
-	$sock->getFrameWork("openssl.php?generate-x509={$_POST["generate-x509"]}");		
+	$tpl=new templates();
+	$datas=base64_decode($sock->getFrameWork("openssl.php?generate-x509={$_GET["generate-x509"]}"));
+	$html="
+	
+		<textarea style='margin-top:5px;font-family:Courier New;
+		font-weight:bold;width:100%;height:620px;border:5px solid #8E8E8E;overflow:auto;font-size:12px' 
+		id='textToParseCats$t'>$datas</textarea>
+			
+		";
+	
+	echo $tpl->_ENGINE_parse_body($html);		
+				
 }
 
 function tools(){
@@ -530,7 +623,7 @@ function tools(){
 	$tpl=new templates();	
 	
 	$tt=time();
-	$tr[]=Paragraphe("vpn-rebuild.png", "{generate_x509}", "{generate_x509_text}","javascript:GenerateX509$tt();");
+	$tr[]=Paragraphe("vpn-rebuild.png", "{generate_x509}", "{generate_x509_text}","javascript:Loadjs('$page?x509-js=$CommonName');");
 	
 	$table=CompileTr3($tr);
 	

@@ -6,6 +6,7 @@ include_once(dirname(__FILE__)."/class.unix.inc");
 
 if(isset($_GET["generate-key"])){generate_key();exit;}
 if(isset($_GET["generate-x509"])){generate_x509();exit;}
+if(isset($_GET["tomysql"])){tomysql();exit;}
 
 
 
@@ -31,8 +32,20 @@ function generate_x509(){
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$servername=$_GET["generate-x509"];
-	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.openssl.php --x509 $servername >/dev/null 2>&1 &");
-	shell_exec($cmd);
-	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.openssl.php --x509 $servername 2>&1");
+	exec($cmd,$results);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";	
+	
+}
+function tomysql(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$servername=$_GET["tomysql"];
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.openssl.php --mysql $servername 2>&1");
+	exec($cmd,$results);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	echo "<articadatascgi>". base64_encode(trim(@implode("\n",$results)))."</articadatascgi>";	
 	
 }

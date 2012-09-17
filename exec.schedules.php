@@ -3,6 +3,7 @@ $GLOBALS["DEBUG_INCLUDES"]=false;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["OUTPUT"]=false;
 $GLOBALS["WITHOUT_RESTART"]=false;
+$GLOBALS["CMDLINES"]=implode(" ",$argv);
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--no-restart#",implode(" ",$argv))){$GLOBALS["WITHOUT_RESTART"]=true;}
@@ -118,12 +119,16 @@ function build_schedules(){
 		$TimeText=$ligne["TimeText"];
 		if($TaskType==0){continue;}
 		if($ligne["TimeText"]==null){continue;}
+		$md5=md5("$TimeText$TaskType");
+		if(isset($alreadydone[$md5])){if($GLOBALS["OUTPUT"]){echo "Starting......: artica-postfix watchdog task {$ligne["ID"]} already set\n";}continue;}
+		$alreadydone[$md5]=true;
 		
 		if(!isset($task->tasks_processes[$TaskType])){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: artica-postfix watchdog (fcron) Unable to stat task process of `$TaskType`\n";}
 			continue;
 		}
 		$script=$task->tasks_processes[$TaskType];
+		
 		
 		
 		$f=array();
@@ -164,18 +169,32 @@ function execute_task($ID){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.pid";
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
-		system_admin_events("$oldpid, task is already executed, aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
+		system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks");
 	}
 	
+	$pidtime=$unix->file_time_min($pidfile);
+	if($pidtime<1){
+		system_admin_events("last execution was done since {$pidtime}mn" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+	}	
+
+	@unlink($pidfile);
+	@file_put_contents($pidfile, getmypid());
+	$array_load=sys_getloadavg();
+	$internal_load=$array_load[0];		
 	
-	writelogs("Task $ID",__FUNCTION__,__FILE__,__LINE__);	
+	writelogs("Task $ID Load:$internal_load cmdline `{$GLOBALS["CMDLINES"]}`",__FUNCTION__,__FILE__,__LINE__);	
+	
+	if(isMaxInstances()){return;}
+	
 	if(system_is_overloaded(basename(__FILE__))){
+		OverloadedCheckBadProcesses();
 		for($i=0;$i<20;$i++){
-			sleep(1);
-			if(!system_is_overloaded(basename(__FILE__))){
-				writelogs("Task $ID -> overloaded, wait 5s",__FUNCTION__,__FILE__,__LINE__);	
-				break;
+			if(system_is_overloaded(basename(__FILE__))){
+				writelogs("Task $ID -> overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, wait 1s",__FUNCTION__,__FILE__,__LINE__);
+				sleep(1);
 			}
+			if(!system_is_overloaded(basename(__FILE__))){break;}
 		}
 	}
 	
@@ -184,25 +203,7 @@ function execute_task($ID){
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
 		return;
 	}
-	$MaxInstnaces=8;
-	$p=new processes_php();
-	$MemoryInstances=$p->MemoryInstances();
-	if(!is_numeric($MemoryInstances)){$MemoryInstances=0;}
-	
-	if($MemoryInstances>$MaxInstnaces){
-		for($i=0;$i<10;$i++){
-			writelogs("Task $ID -> too much instances ($MemoryInstances), waiting 10s ".@implode(",", $GLOBALS["INSTANCES_EXECUTED"]),__FUNCTION__,__FILE__,__LINE__);	
-			sleep(10);
-			$MemoryInstances=$p->MemoryInstances();
-			if($MemoryInstances<$MaxInstnaces){break;}
-		}
-	}
-	$MemoryInstances=$p->MemoryInstances();
-	if($MemoryInstances>$MaxInstnaces){
-		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
-		system_admin_events("Too much instances ($MemoryInstances Max:$MaxInstnaces) aborting task ".@implode(",", $GLOBALS["INSTANCES_EXECUTED"]), __FUNCTION__, __FILE__, __LINE__, "tasks");
-		return;
-	}	
+
 	
 	$q=new mysql();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TaskType FROM system_schedules WHERE ID=$ID","artica_backup"));
@@ -260,46 +261,44 @@ function execute_task_squid($ID){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.squid.pid";
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
-		ufdbguard_admin_events("$oldpid, task is already executed, aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
+		system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+	}
+	
+	$pidtime=$unix->file_time_min($pidfile);
+	if($pidtime<1){
+		system_admin_events("last execution was done since {$pidtime}mn" , __FUNCTION__, __FILE__, __LINE__, "tasks");
 	}
 	
 	
-	writelogs("Task $ID",__FUNCTION__,__FILE__,__LINE__);	
+	usleep(rand(900, 3000));
+	@unlink($pidfile);
+	@file_put_contents($pidfile, getmypid());
+	$array_load=sys_getloadavg();
+	$internal_load=$array_load[0];	
+	
+	writelogs("Task $ID Load:$internal_load cmdline `{$GLOBALS["CMDLINES"]}`",__FUNCTION__,__FILE__,__LINE__);
+	
+	if(isMaxInstances()){return;}
+	
+	
 	if(system_is_overloaded(basename(__FILE__))){
+		OverloadedCheckBadProcesses();
 		for($i=0;$i<20;$i++){
-			sleep(1);
-			if(!system_is_overloaded(basename(__FILE__))){
-				writelogs("Task $ID -> overloaded, wait 5s",__FUNCTION__,__FILE__,__LINE__);
-					
-				break;
+			if(system_is_overloaded(basename(__FILE__))){
+				writelogs("Task $ID -> overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, wait 1s",__FUNCTION__,__FILE__,__LINE__);
+				sleep(1);
 			}
+			if(!system_is_overloaded(basename(__FILE__))){break;}
 		}
 	}
 	
 	if(system_is_overloaded(basename(__FILE__))){
-		ufdbguard_admin_events("Overloaded system after 20 secondes, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		ufdbguard_admin_events("Overloaded system after 20 secondes ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks");
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
 		return;
 	}
-	$MaxInstnaces=8;
-	$p=new processes_php();
-	$MemoryInstances=$p->MemoryInstances();
-	if(!is_numeric($MemoryInstances)){$MemoryInstances=0;}
 	
-	if($MemoryInstances>$MaxInstnaces){
-		for($i=0;$i<10;$i++){
-			writelogs("Task $ID -> too much instances ($MemoryInstances), waiting 10s ".@implode(",", $GLOBALS["INSTANCES_EXECUTED"]),__FUNCTION__,__FILE__,__LINE__);	
-			sleep(10);
-			$MemoryInstances=$p->MemoryInstances();
-			if($MemoryInstances<$MaxInstnaces){break;}
-		}
-	}
-	$MemoryInstances=$p->MemoryInstances();
-	if($MemoryInstances>$MaxInstnaces){
-		ufdbguard_admin_events("Too much instances ($MemoryInstances Max:$MaxInstnaces) aborting task ".@implode(",", $GLOBALS["INSTANCES_EXECUTED"]) , __FUNCTION__, __FILE__, __LINE__, "tasks");
-		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
-		return;
-	}	
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TaskType FROM webfilters_schedules WHERE ID=$ID"));
 	$TaskType=$ligne["TaskType"];
@@ -319,6 +318,57 @@ function execute_task_squid($ID){
 	shell_exec($cmd);	
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
 	ufdbguard_admin_events("Task is executed took $took" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+}
+
+function isMaxInstances(){
+	
+	$MaxInstnaces=8;
+	$MaxInstancesToDie=16;
+	$p=new processes_php();
+	$MemoryInstances=$p->MemoryInstances();
+	if(!is_numeric($MemoryInstances)){$MemoryInstances=0;}
+	writelogs("Task {$GLOBALS["SCHEDULE_ID"]} -> $MemoryInstances instances...",__FUNCTION__,__FILE__,__LINE__);
+	if($MemoryInstances>$MaxInstancesToDie){
+		writelogs("Task {$GLOBALS["SCHEDULE_ID"]} -> too much instances ($MemoryInstances) die ".@implode(",", $GLOBALS["INSTANCES_EXECUTED"]),__FUNCTION__,__FILE__,__LINE__);
+		die();
+	}
+	
+	if($MemoryInstances>$MaxInstnaces){
+		for($i=0;$i<10;$i++){
+			writelogs("Task {$GLOBALS["SCHEDULE_ID"]} -> too much instances ($MemoryInstances), waiting 10s ".@implode(",", $GLOBALS["INSTANCES_EXECUTED"]),__FUNCTION__,__FILE__,__LINE__);	
+			sleep(10);
+			$MemoryInstances=$p->MemoryInstances();
+			if($MemoryInstances<$MaxInstnaces){break;}
+		}
+	}
+	$MemoryInstances=$p->MemoryInstances();
+	if($MemoryInstances>$MaxInstnaces){
+		ufdbguard_admin_events("Too much instances ($MemoryInstances Max:$MaxInstnaces) aborting task ".@implode(",", $GLOBALS["INSTANCES_EXECUTED"]) , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		$unix->THREAD_COMMAND_SET("$php5 {$GLOBALS["CMDLINES"]}");
+		return true;
+	}
+
+	return false;
+	
+}
+
+function OverloadedCheckBadProcesses(){
+	$unix=new unix();
+	$kill=$unix->find_program("kill");
+	if(is_file("/opt/kaspersky/kav4proxy/bin/kav4proxy-keepup2date")){
+		$pid=$unix->PIDOF("/opt/kaspersky/kav4proxy/bin/kav4proxy-keepup2date");
+		if($pid>0){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($time>90){
+				$unix->send_email_events("kav4proxy-keepup2date pid: $pid killed", "It was running since {$time}Mn, and reach the maximal 90mn TTL", "proxy");
+				shell_exec("$kill -9 $pid");
+			}
+		}
+		
+	}
+	
+	
+	
 }
 
 

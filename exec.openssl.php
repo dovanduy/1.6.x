@@ -17,6 +17,7 @@ if($GLOBALS["VERBOSE"]){echo "Debug mode TRUE for {$argv[1]}\n";}
 if($argv[1]=="--pass"){passphrase($argv[2]);exit;}
 if($argv[1]=="--buildkey"){buildkey($argv[2]);}
 if($argv[1]=="--x509"){x509($argv[2]);}
+if($argv[1]=="--mysql"){update_from_mysql($argv[2]);}
 
 
 
@@ -71,13 +72,11 @@ function buildkey($CommonName){
 	
 }
 
-function passphrase($CommonName){
+function passphrase(){
 	$unix=new unix();
 	$ldap=new clladp();	
 	$q=new mysql();
 	$sql="SELECT servername,sslcertificate  FROM freeweb WHERE LENGTH(sslcertificate)>0";
-	
-	
 	@mkdir("/etc/apache2/ssl-tools",0755,true);	
 	
 	$data[]="#!/bin/sh";
@@ -92,13 +91,68 @@ function passphrase($CommonName){
 		$ligneZ=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if($ligneZ["password"]==null){$ligneZ["password"]=$ldap->ldap_password;}
 		$data[]="[ \"$servername\" = \$STR2 ] && echo \"{$ligneZ["password"]}\"";
-		
 	}
 	$data[]="";
 	
 	
 	@file_put_contents("/etc/apache2/ssl-tools/sslpass.sh", @implode("\n", $data));
 	@chmod("/etc/apache2/ssl-tools/sslpass.sh", 0755);
+}
+
+function update_from_mysql($CommonName){
+	$unix=new unix();
+	$ldap=new clladp();
+	$directory="/etc/openssl/certificate_center/$CommonName";
+	$openssl=$unix->find_program("openssl");
+	$cp=$unix->find_program("cp");
+	if(!is_file($openssl)){echo "openssl.......: No such binary, aborting...\n";exit;}	
+	$q=new mysql();
+	$q->BuildTables();
+	
+	$sql="SELECT bundle,crt,privkey  FROM sslcertificates WHERE CommonName='$CommonName'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if($ligne["CommonName"]==null){echo "CommonName is null, aborting...\n";exit;}
+
+	if($ligne["privkey"]<>null){
+		echo "{error_missing_data_in_mysql}: {private_key}";
+		return;
+	}
+	
+	if($ligne["crt"]<>null){
+		echo "{error_missing_data_in_mysql}: {certificate}";
+		return;
+	}
+
+
+	
+	$privkey="$directory/myserver.key";
+	$certificate_path="$directory/server.crt";
+	@file_put_contents($privkey, $ligne["privkey"]);
+	@file_put_contents($$certificate_path, $ligne["crt"]);
+	
+	@unlink("$directory/chain.crt");
+	@unlink("$directory/cakey.pem");
+	@unlink("$directory/$CommonName.crt");
+	
+	
+	if(strlen($ligne["bundle"])>10){
+		@file_put_contents("$directory/chain.crt", $ligne["bundle"]);
+		@file_put_contents("$directory/cakey.pem", $ligne["privkey"]);
+		@file_put_contents("$directory/$CommonName.crt", $ligne["crt"]);
+	}
+	
+	/*$conf[]="\tSSLCertificateFile $directory/$CommonName.crt";
+	$conf[]="\tSSLCertificateKeyFile $directory/cakey.pem";
+	$conf[]="\tSSLCertificateChainFile $directory/chain.crt";
+	*/
+			
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup $php5 ".__FILE__." --pass >/dev/null 2>&1 &");			
+	
+	
+	
 }
 
 function x509($CommonName){
@@ -271,6 +325,7 @@ $cmdS[]="$openssl req -new -sha1 -config $directory/openssl.cf";
 $cmdS[]="-subj \"/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CommonName\"";
 $cmdS[]="-key $directory/cakey.pem -out $directory/ca.csr";
 $cmd=@implode(" ", $cmdS);
+echo "Line:".__LINE__."\n";
 echo "\n****\n$cmd\n****\n";
 shell_exec($cmd);
 
@@ -281,6 +336,7 @@ $cmdS[]="$openssl ca -batch -extensions v3_ca -days $CertificateMaxDays -out $di
 $cmdS[]="-in $directory/ca.csr -config $directory/openssl.cf";
 $cmdS[]="-cert $directory/server.crt";
 $cmd=@implode(" ", $cmdS);
+echo "Line:".__LINE__."\n";
 echo "\n****\n$cmd\n****\n";
 shell_exec($cmd);
 
@@ -311,11 +367,13 @@ $intermediate_content=@file_get_contents("$directory/cacert-itermediate.pem");
 	shell_exec("$cp /dev/null $directory/index.txt");	
 
 $cmdS=array();	
-$cmdS[]="$openssl ca -batch -config openssl.cf -passin pass:{$ligne["password"]}";
+$cmdS[]="$openssl ca -batch -config $directory/openssl.cf -passin pass:{$ligne["password"]}";
 $cmdS[]="-keyfile $directory/cakey.pem";
-$cmdS[]="-cert cacert-itermediate.pem -policy policy_anything -out $directory/$CommonName.crt -infiles $directory/ca.csr";
+$cmdS[]="-cert $directory/cacert-itermediate.pem -policy policy_anything -out $directory/$CommonName.crt"; 
+$cmdS[]="-infiles $directory/ca.csr";
 $cmd=@implode(" ", $cmdS);
-echo "\n****\n$cmd\n****\n";
+echo "Line:".__LINE__."\n";
+echo "****\n$cmd\n****\n";
 shell_exec($cmd);	
 
 $content=mysql_escape_string(@file_get_contents("$directory/$CommonName.crt"));
@@ -325,5 +383,5 @@ $q->QUERY_SQL($sql,"artica_backup");
 if(!$q->ok){echo $q->mysql_error."\n";}
 $php5=$unix->LOCATE_PHP5_BIN();
 $nohup=$unix->find_program("nohup");
-shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.openssl.php --pass >/dev/null 2>&1 &");
+shell_exec("$nohup $php5 ".__FILE__." --pass >/dev/null 2>&1 &");
 }

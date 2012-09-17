@@ -206,10 +206,9 @@ class clladp{
 		}
 		
 		if($this->ldap_port==null){$this->ldap_port="389";}
-		
+		if(!isset($GLOBALS["VERIFLDAPTRUE"])){$GLOBALS["VERIFLDAPTRUE"]=false;}
 		
 			if(!isset($_SESSION["ASLDATESTED"][date('YmdHi')])){
-				if(!isset($GLOBALS["VERIFLDAPTRUE"])){		
 					if(!$GLOBALS["VERIFLDAPTRUE"]){
 						$fp=@fsockopen($this->ldap_host, $this->ldap_port, $errno, $errstr, 2);
 						if(!$fp){
@@ -232,11 +231,10 @@ class clladp{
 							return false;
 							$_SESSION["ASLDATESTED"][date('YmdHi')]=false;
 						}
-						
 						@fclose($fp);
 					}
 				}
-			}
+			
 		
 		$GLOBALS["LDAP_COUNT_FAILED"]=0;
 		

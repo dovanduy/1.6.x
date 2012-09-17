@@ -234,17 +234,20 @@ public function CheckDefaultSchedules(){
 			
 		$c=0;
 		while (list ($TaskType, $content) = each ($array) ){
-			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TimeText FROM system_schedules WHERE TaskType=$TaskType","artica_backup"));
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID,TimeText FROM system_schedules WHERE TaskType=$TaskType LIMIT 0,1","artica_backup"));
+			$ID=$ligne["ID"];
+			if(is_numeric($ID)){if($ID>0){continue;}}
 			if($ligne["TimeText"]<>null){continue;}
-				$sql="INSERT IGNORE INTO system_schedules (TimeDescription,TimeText,TaskType,enabled) VALUES('{$content["TimeDescription"]}','{$content["TimeText"]}','$TaskType',1)";							
-				writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
-				$q->QUERY_SQL($sql,"artica_backup");
+			
+			$sql="INSERT IGNORE INTO system_schedules (TimeDescription,TimeText,TaskType,enabled) VALUES('{$content["TimeDescription"]}','{$content["TimeText"]}','$TaskType',1)";							
+			writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
+			$q->QUERY_SQL($sql,"artica_backup");
 				
 				if(!$q->ok){
 					writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
 					$sock->TOP_NOTIFY("$q->mysql_error :".__FUNCTION__." File:".__FILE__);return;}
-				$c++;
-				$update=true;
+					$c++;
+					$update=true;
 			}
 			
 			if($update){

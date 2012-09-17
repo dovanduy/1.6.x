@@ -2128,3 +2128,7 @@ the same entity whose identity it certifies.</generate_x509_text>
 <certificate_chain>Certificate Chain</certificate_chain>
 <certificate_chain_explain>A certificate chain is a plaintext file that contains all the certificates
 from the Authority issuing a given certificate up to the Root of the certificate tree.</certificate_chain_explain>
+<warn_gen_x509>This will erase your current certificates data, do you want to carry out this operation ?
+Note: After the certificate generation, you need to restart all linked services.
+</warn_gen_x509>
+<error_missing_data_in_mysql>Error, missing data in MySQL database</error_missing_data_in_mysql>

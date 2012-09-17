@@ -620,6 +620,7 @@ En fonction de vos privil&egrave;ges, vous serez en mesure de personnaliser les 
 Cette section ne peut &ecirc;tre affich&eacute;e.</ERROR_HTTRACK_NOT_INSTALLED>
 <error_instances_same_port>Erreur, les instances ne peuvent partager les m&ecirc;mes adresses/ports</error_instances_same_port>
 <ERROR_IPSET_NOT_INSTALLED>Erreur, l'outil IpSet n'est pas install&eacute;</ERROR_IPSET_NOT_INSTALLED>
+<error_missing_data_in_mysql>Erreur: Donn&eacute;e manquante dans la base MySQL</error_missing_data_in_mysql>
 <error_no_member_set>Erreur, pas de membre indiqu&eacute;</error_no_member_set>
 <error_no_ou_created>Erreur, aucune organisation cr&eacute;e ou trouv&eacute;e</error_no_ou_created>
 <error_only_imap_supported>Ne peut afficher cette fonctionnalit&eacute;, uniquement disponible dans le cadre du protocole IMAP</error_only_imap_supported>
@@ -1653,6 +1654,9 @@ Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pre
 Cette m&eacute;thode sera utilis&eacute;e: se connecter, envoyer un message, attendre X secondes, envoyer un message, attendre X secondes, se d&eacute;connecter</wait_xs_per_message_explain>
 <warn_calculate_nothdsize>Attention, la valeur maximale utilis&eacute;e ne tient pas compte de l'espace libre de vos disques durs. N'indiquez pas une taille de cache sup&eacute;rieure &agrave; la capacit&eacute; de votre disque dur.</warn_calculate_nothdsize>
 <warn_email_invalid_wizard>Il semble que votre adresse eMail %s ne soit pas correcte ou bien que son domaine ne peut &ecirc;tre compris.[br]Veuillez retourner en arri&egrave;re et d&eacute;finissez correctement votre adresse eMail.</warn_email_invalid_wizard>
+<warn_gen_x509>Cette op&eacute;ration va &eacute;craser les donn&eacute;es des certificats.
+Voulez-vous effectuer cette op&eacute;ration ?
+Notez qu'apr&egrave;s cette op&eacute;ration, vous devrez red&eacute;marrer les services li&eacute;s &agrave; ce certificat.</warn_gen_x509>
 <WARN_OPE_RESTART_SQUID_ASK>Cette op&eacute;ration va faire red&eacute;marrer le service proxy et stopper toutes les connections actuelles.
 Voulez-vous effectuer cette op&eacute;ration ?</WARN_OPE_RESTART_SQUID_ASK>
 <warn_squid_restart>Le service proxy va red&eacute;marrer et les connexions actives seront coup&eacute;es ! Continuer ?</warn_squid_restart>

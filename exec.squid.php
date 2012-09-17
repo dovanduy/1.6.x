@@ -1824,6 +1824,7 @@ function build_schedules(){
 	$finalsettings="nice({$settings["max_nice"]}),lavg5({$settings["max_load_avg5"]}),until($max_load_wait)";
 	@unlink("/etc/artica-postfix/squid.schedules");
 	$nice=EXEC_NICE();
+	$q=new mysql_squid_builder();
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$allminutes="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59";
@@ -1831,7 +1832,12 @@ function build_schedules(){
 		$TimeText=$ligne["TimeText"];
 		if($TaskType==0){continue;}
 		if($ligne["TimeText"]==null){continue;}
-		$q=new mysql_squid_builder();
+		
+		$md5=md5("$TimeText$TaskType");
+		if(isset($alreadydone[$md5])){if($GLOBALS["VERBOSE"]){echo "Starting......: artica-postfix watchdog task {$ligne["ID"]} already set\n";}continue;}
+		$alreadydone[$md5]=true;		
+		
+		
 		if(!isset($q->tasks_processes[$TaskType])){continue;}
 		if(isset($q->tasks_disabled[$TaskType])){continue;}
 		$script=$q->tasks_processes[$TaskType];

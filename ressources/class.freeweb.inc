@@ -2867,6 +2867,22 @@
 			$sugar->verifinstall();
 			
 		}	
+		
+		private function SSLEngine2(){
+			$directory="/etc/openssl/certificate_center/$this->sslcertificate";
+			if(!is_file("$directory/server.crt")){
+				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $directory/server.crt no such file\n";}
+				return;
+			}
+			if(!is_file("$directory/myserver.key")){
+				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $directory/myserver.key no such file\n";}
+				return;
+			}	
+
+			$conf[]="\tSSLCertificateFile $directory/server.crt";
+			$conf[]="\tSSLCertificateKeyFile $directory/myserver.key";
+			return @implode("\n", $conf);
+		}
 
 		
 		public function SSLEngine(){
@@ -2878,16 +2894,22 @@
 			$CommonName=$this->sslcertificate;
 			if(!is_file("$directory/chain.crt")){
 				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $directory/chain.crt no such file\n";}
+				$SSLEngine2=$this->SSLEngine2();
+				if($SSLEngine2<>null){return $SSLEngine2;}
 				return @implode("\n", $conf);
 			}
 		
 			if(!is_file("$directory/$CommonName.crt")){
 				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $directory/$CommonName.crt no such file\n";}
+				$SSLEngine2=$this->SSLEngine2();
+				if($SSLEngine2<>null){return $SSLEngine2;}				
 				return @implode("\n", $conf);
 			}
 			
 			if(!is_file("$directory/cakey.pem")){
 				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $directory/cakey.pem no such file\n";}
+				$SSLEngine2=$this->SSLEngine2();
+				if($SSLEngine2<>null){return $SSLEngine2;}					
 				return @implode("\n", $conf);
 			}			
 			$conf=array();

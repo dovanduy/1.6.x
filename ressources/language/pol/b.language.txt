@@ -715,6 +715,7 @@ According your privileges your will be able to personnalize enabled services beh
 <ERROR_HTTRACK_NOT_INSTALLED>The HTTrack software is not installed or detected on this system.[br]This section cannot be displayed</ERROR_HTTRACK_NOT_INSTALLED>
 <error_instances_same_port>Error instances cannot share the same IP/Port</error_instances_same_port>
 <ERROR_IPSET_NOT_INSTALLED>Error ipset tool is not installed</ERROR_IPSET_NOT_INSTALLED>
+<error_missing_data_in_mysql>Error, missing data in MySQL database</error_missing_data_in_mysql>
 <error_no_member_set>Error, no member defined</error_no_member_set>
 <error_no_ou_created>Error no organization created or found</error_no_ou_created>
 <error_only_imap_supported>Cannot display this feature, only IMAP protocol is supported.</error_only_imap_supported>
@@ -1868,6 +1869,9 @@ The process will do this method : Connect, send a message, wait x seconds, send 
 <warn_calculate_nothdsize>Attention, the Max value size does not calculate your current hard drive free space. Do not set a size larger than your free hard disk space.</warn_calculate_nothdsize>
 <warn_email_invalid_wizard>It seems that your email address %s is invalid or the domain of this email did not exists on DNS.[br]
 Please return back and set a correct eMail address.</warn_email_invalid_wizard>
+<warn_gen_x509>This will erase your current certificates data, do you want to carry out this operation ?
+Note: After the certificate generation, you need to restart all linked services.
+</warn_gen_x509>
 <WARN_OPE_RESTART_SQUID_ASK>This operation will restart the proxy service and will stop all current connections.
 Do you want to perform this operation ?</WARN_OPE_RESTART_SQUID_ASK>
 <warn_squid_restart>The proxy service will be rebooted and all connections will be lost! Continue ?</warn_squid_restart>
