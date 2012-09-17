@@ -20,6 +20,7 @@ $GLOBALS["CLASS_UNIX"]=new unix();
 events("Executed " .@implode(" ",$argv));
 
 if($argv[1]=="--days"){STATS_BuildDayTables();return;}
+if($argv[1]=="--month"){STATS_BuildMonthTables();return;}
 
 
 
@@ -32,6 +33,8 @@ function STATS_BuildDayTables(){
 		system_admin_events("Already PID $oldpid running since {$timepid}mn" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
 		return;
 	}
+	$GLOBALS["Q"]=new mysql_postfix_builder();
+	$GLOBALS["Q"]->CheckTables();
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);		
 	$t=time();
@@ -41,6 +44,100 @@ function STATS_BuildDayTables(){
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
 	system_admin_events("day tables generated from hour tables took: $took" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
 
+}
+
+function STATS_BuildMonthTables(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=@file_get_contents($pidfile);
+	if($unix->process_exists($oldpid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
+		system_admin_events("Already PID $oldpid running since {$timepid}mn" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
+		return;
+	}
+	$GLOBALS["Q"]=new mysql_postfix_builder();
+	$GLOBALS["Q"]->CheckTables();
+	$mypid=getmypid();
+	@file_put_contents($pidfile,$mypid);		
+	$t=time();
+	month_tables();
+
+	$took=$unix->distanceOfTimeInWords($t,time(),true);
+	system_admin_events("Task Month tables from day tables took: $took" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");	
+	
+}
+
+function month_tables(){
+	
+	$sql="SELECT zDays FROM TableDays WHERE MonthBuilded=0";
+	$today=date("Y-m-d");
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	if(!$GLOBALS["Q"]->ok){system_admin_events($GLOBALS["Q"]->mysql_error, __FUNCTION__, __FILE__, __LINE__, "postfix-stats");return;}
+	if(mysql_num_rows($results)==0){return;}
+	$c=0;
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if($ligne["zDays"]==$today){continue;}
+		$TableDay=str_replace("-", "", $ligne["zDays"])."_day";
+		$TableMonth=date("Ymd",strtotime($ligne["zDays"]))."_month";
+		if(!_month_table($ligne["zDays"])){continue;}
+		$GLOBALS["Q"]->QUERY_SQL("UPDATE TableDays SET MonthBuilded=1 WHERE `zDays`='{$ligne["zDays"]}'");
+		if(!$GLOBALS["Q"]->ok){system_admin_events($GLOBALS["Q"]->mysql_error, __FUNCTION__, __FILE__, __LINE__, "postfix-stats");return;}
+		$c++;
+		if(system_is_overloaded(__FILE__)){system_admin_events("Fatal: Overloaded system after $c calculated tables, try in next cycle..", __FUNCTION__, __FILE__, __LINE__, "postfix-stats");return;}
+	}
+		
+	return true;	
+	
+}
+function _month_table($day){
+	$TableDay=str_replace("-", "", $day)."_day";
+	$TableMonth=date("Ym",strtotime($day))."_month";
+	if($GLOBALS["Q"]->TABLE_EXISTS(date("Ymd",strtotime($day))."_month")){$GLOBALS["Q"]->QUERY_SQL("DROP TABLE ".date("Ymd",strtotime($day))."_month");}
+	
+	$DayNum=date("d",strtotime($day));
+	if(!$GLOBALS["Q"]->TABLE_EXISTS($TableDay)){return false;}
+	if(!$GLOBALS["Q"]->BuildMonthTable($TableMonth)){
+		system_admin_events($GLOBALS["Q"]->mysql_error ." table:$TableMonth", __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
+		return false;}
+	
+	$sql="SELECT SUM(hits) as hits, SUM(size) as mailsize,mailfrom,instancename,mailto,domainfrom,domainto,senderhost,recipienthost,smtpcode
+	FROM  $TableDay GROUP BY mailfrom,instancename,mailto,domainfrom,domainto,senderhost,recipienthost,smtpcode";
+	
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	if(!$GLOBALS["Q"]->ok){system_admin_events($GLOBALS["Q"]->mysql_error, __FUNCTION__, __FILE__, __LINE__, "postfix-stats");return;}
+	
+	
+	if(mysql_num_rows($results)==0){
+		if($GLOBALS["VERBOSE"]){echo "[$day]: No results...($TableMonth)\n";}return true;}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$md5=md5(@serialize($ligne));
+		$f[]="('$md5','$DayNum','{$ligne["hits"]}','{$ligne["mailsize"]}','{$ligne["mailfrom"]}',
+		'{$ligne["instancename"]}','{$ligne["mailto"]}','{$ligne["domainfrom"]}','{$ligne["domainto"]}',
+		'{$ligne["senderhost"]}','{$ligne["recipienthost"]}','{$ligne["smtpcode"]}')";
+		
+		if(count($f)>1500){
+			if($GLOBALS["VERBOSE"]){echo "[$day]: Insert...". count($f). " items\n";}	
+			$sql="INSERT IGNORE INTO `$TableMonth` (`zmd5`,`zday`,`hits`, `size` ,`mailfrom`,
+			  `instancename`, `mailto`, `domainfrom`, `domainto`,`senderhost`,`recipienthost`,
+			  `smtpcode`) VALUES ".@implode(",", $f);
+			$GLOBALS["Q"]->QUERY_SQL($sql);
+			if(!$GLOBALS["Q"]->ok){system_admin_events($GLOBALS["Q"]->mysql_error, __FUNCTION__, __FILE__, __LINE__, "postfix-stats");return;}
+			$f=array();
+		}		
+		
+	}
+	
+	if(count($f)>0){
+		if($GLOBALS["VERBOSE"]){echo "[$day]: Insert...". count($f). " items\n";}
+		$sql="INSERT IGNORE INTO `$TableMonth` (`zmd5`,`zday`,`hits`, `size` ,`mailfrom`,
+			  `instancename`, `mailto`, `domainfrom`, `domainto`,`senderhost`,`recipienthost`,
+			  `smtpcode`) VALUES ".@implode(",", $f);
+		$GLOBALS["Q"]->QUERY_SQL($sql);
+		if(!$GLOBALS["Q"]->ok){system_admin_events($GLOBALS["Q"]->mysql_error, __FUNCTION__, __FILE__, __LINE__, "postfix-stats");return;}
+	}
+	
+	return true;	
+	
 }
 
 

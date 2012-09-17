@@ -2134,3 +2134,9 @@ Note: After the certificate generation, you need to restart all linked services.
 <error_missing_data_in_mysql>Error, missing data in MySQL database</error_missing_data_in_mysql>
 <postfix_stats_days_explain>This task parse all hours tables and generate daily table messaging statistics</postfix_stats_days_explain>
 <postfix_stats_days>Messaging daily statistics</postfix_stats_days_explain>
+<your_messaging_statistics>Your messaging statistics</your_messaging_statistics>
+<received_messages>received message(s)</received_messages>
+<sended_messages>sended message(s)</sended_messages>
+<my_messaging_statistics_text>your account SMTP Messaging statistics</my_messaging_statistics_text>
+<postfix_stats_month_explain>This task build monthly messaging statistics tables from the daily messaging statistics tables</postfix_stats_month_explain>
+<postfix_stats_month>Monthly messaging statistics</postfix_stats_month>  

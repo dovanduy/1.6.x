@@ -1134,6 +1134,7 @@ This task is able to defrag Mysql tables on your MySQL server
 <mysql_warn_must_tune>It seems that the MySQL service should use more memory than your server can serve (%m Mb).[br]
 Click on this warning in order to reduce the MySQL memory consumption.</mysql_warn_must_tune>
 <my_members>My members</my_members>
+<my_messaging_statistics_text>your account SMTP Messaging statistics</my_messaging_statistics_text>
 <my_public_ip>My Public IP</my_public_ip>
 <nb_employees>employees number:</nb_employees>
 <need_to_reboot_ask>To correctly setup the operation, you need to reboot the computer.
@@ -1268,6 +1269,8 @@ Local LMTP socket: lmtp:unix:/path/to/lmtp.sock[br]
 <postfix_send_proxy>SMTP proxy support</postfix_send_proxy>
 <postfix_stats_days>Messaging daily statistics</postfix_stats_days>
 <postfix_stats_days_explain>This task parse all hours tables and generate daily table messaging statistics</postfix_stats_days_explain>
+<postfix_stats_month>Monthly messaging statistics</postfix_stats_month>
+<postfix_stats_month_explain>This task build monthly messaging statistics tables from the daily messaging statistics tables</postfix_stats_month_explain>
 <postfix_transport_senders_explain>This table list routing rules by SMTP sender domain/email address.[br]Each sender (domain or email address) is set here, 
 it will be routed to the target defined server</postfix_transport_senders_explain>
 <postfix_transport_table_explain>This table list routing rules of local/remote inbound SMTP domains stored on your organizations.[br]
@@ -1331,6 +1334,7 @@ Do you wan to perform this operation ?
 Do you want to perform this operation ?</rebuild_database_warn>
 <rebuild_visited_sites>Check visited websites</rebuild_visited_sites>
 <rebuild_visited_sites_explain>This task will scan your not categorized visisted websites.[br]If some visited uncategorized websites have new category, it updates visisted table with new category</rebuild_visited_sites_explain>
+<received_messages>received message(s)</received_messages>
 <recipient_relay_table>Recipients routing</recipient_relay_table>
 <recipient_relay_table_text>Create SMTP forward rules per recipient email address or SMTP domain</recipient_relay_table_text>
 <recompile_postfix_parameters>Recompile postfix parameters</recompile_postfix_parameters>
@@ -1464,6 +1468,7 @@ It is in charge to upload extracted attachments to the MySQL database and clean 
 <SecServerSignature>Apache server signature</SecServerSignature>
 <SecServerSignatureOffExplain>To use this feature you need to enable "Activate security enforcement" feature and set the "Server Header response" feature to All informations unser the FreeWebs global parameters engine</SecServerSignatureOffExplain>
 <selector>Selector</selector>
+<sended_messages>sended message(s)</sended_messages>
 <sender>sender</sender>
 <send_email>Send message</send_email>
 <send_password>Send Password</send_password>
@@ -2018,6 +2023,7 @@ In this case, logged users will able to search documents in their area</XAPIAN_S
 <youritems>Your items</youritems>
 <YourRealCompany>Your real company</YourRealCompany>
 <your_home_dir_seems_not_indexed>Your Home directory seems to not be indexed...</your_home_dir_seems_not_indexed>
+<your_messaging_statistics>Your messaging statistics</your_messaging_statistics>
 <your_settings>Your settings</your_settings>
 <YoutubeForSchoolsExplainT>Gives schools the ability to access a broad set of educational videos on YouTube EDU and to select the specific videos that are accessible from within your school network</YoutubeForSchoolsExplainT>
 <you_have_to_reload_webpage>You have to reload this Web page</you_have_to_reload_webpage>

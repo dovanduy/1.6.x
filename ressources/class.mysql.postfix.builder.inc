@@ -174,18 +174,59 @@ class mysql_postfix_builder{
 		
 	}	
 	
+	public function BuildMonthTable($tablename){
+		if($this->TABLE_EXISTS($tablename)){return true;}
+		
+		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+			  `zmd5` varchar(90) NOT NULL,
+			  `zday` tinyint(2) NOT NULL,
+			  `hits` BIGINT(100) NOT NULL,
+			  `size` BIGINT(100) NOT NULL,
+			  `mailfrom` varchar(255) NOT NULL,
+			  `instancename` varchar(255) NOT NULL,
+			  `mailto` varchar(255) NOT NULL,
+			  `domainfrom` varchar(128) NOT NULL,
+			  `domainto` varchar(128) NOT NULL,
+			  `senderhost` varchar(128) NOT NULL,
+			  `recipienthost` varchar(128) NOT NULL,
+			  `smtpcode` tinyint(3) NOT NULL,
+			  PRIMARY KEY (`zmd5`),
+			  KEY `zday` (`zday`,`smtpcode`),
+			  KEY `mailfrom` (`mailfrom`),
+			  KEY `size` (`size`),
+			  KEY `hits` (`hits`),
+			  KEY `mailto` (`mailto`),
+			  KEY `domainfrom` (`domainfrom`),
+			  KEY `domainto` (`domainto`),
+			  KEY `senderhost` (`senderhost`),
+			  KEY `instancename` (`instancename`),
+			  KEY `recipienthost` (`recipienthost`)
+			)";
+
+		if(!$this->QUERY_SQL($sql)){
+			if($GLOBALS["VERBOSE"]){echo "Failed to create $tablename\n";}
+			return false;}
+		return true;
+		
+	}	
+	
 	private function TableDays(){
 		$sql="CREATE TABLE IF NOT EXISTS `TableDays` (
 			`zDays` DATE NOT NULL ,
 			`size` BIGINT( 100 ) NOT NULL ,
 			`DayBuilded` SMALLINT( 1 ) NOT NULL DEFAULT '0',
+			`MonthBuilded` SMALLINT( 1 ) NOT NULL DEFAULT '0',
 			`events` BIGINT( 100 ) NOT NULL ,
 			PRIMARY KEY ( `zDays` ) ,
-			INDEX ( `size` , `DayBuilded` )
+			INDEX ( `size` , `DayBuilded` ),
+			KEY `MonthBuilded` (`MonthBuilded`)
 			)"; 
 			if(!$this->QUERY_SQL($sql)){
 			writelogs("$this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			}
+			
+			if(!$this->FIELD_EXISTS("TableDays", "MonthBuilded")){$this->QUERY_SQL("ALTER TABLE `TableDays` ADD `MonthBuilded` smallint( 1 ) NOT NULL,ADD INDEX (`MonthBuilded`)");}
+			
 		}
 		
 		

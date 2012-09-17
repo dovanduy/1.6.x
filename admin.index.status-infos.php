@@ -326,6 +326,12 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 	}
 
 	if($users->AsPostfixAdministrator){
+		
+		if($users->MILTERGREYLIST_INSTALLED){
+			$miltergreylist=left_menus_format('APP_MILTERGREYLIST','32-milter-greylist.png',"QuickLinkSystems('section_mgreylist')","APP_MILTERGREYLIST");
+			
+		}
+		
 		if($users->MIMEDEFANG_INSTALLED){
 			$mimedefang=left_menus_format('APP_MIMEDEFANG','mimedefang-32.png',"only:Loadjs('mimedefang.php?in-front-ajax=yes')","APP_MIMEDEFANG");
 			
@@ -402,6 +408,7 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 		<tbody>
 		$squid_stats
 		$postfix
+		$miltergreylist
 		$amavis
 		$mimedefang
 		$cyrus

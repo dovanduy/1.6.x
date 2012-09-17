@@ -5358,6 +5358,8 @@ function numberFormat  ($number  , $decimals = 2 , $dec_point = '.' , $sep = ','
     return $num;
 }	
 function CompileTr3($array){
+	if(!is_array($array)){return null;}
+	if(count($array)==0){return null;}
 $tables[]="<table style='width:99%' class=form><tr>";
 $t=0;
 while (list ($key, $line) = each ($array) ){
@@ -5409,6 +5411,8 @@ function file_time_min_Web($path){
 	return round($difference/60);	 
 }
 function CompileTr2($array,$class=null){
+	if(!is_array($array)){return null;}
+	if(count($array)==0){return null;}	
 	$with=100;
 	if(strtolower($class)=="form"){$with=99;}
 $tables[]="<table style='width:$with%' class='$class'><tr>";
@@ -5488,13 +5492,16 @@ function table_error_showZoom($error,$underline=1){
 	style=\"$underline_js\">$error<a>";
 }
 
-function json_error_show($error,$indexColumn=0){
+function json_error_show($error,$indexColumn=0,$full=false){
 	$id=md5($error);
 	
 	if(strlen($error)>10){
 		$full=urlencode(base64_encode($error));
-		$error="<a href=\"javascript:Blurz();\" Onclick=\"javascript:Loadjs('admin.index.php?json-error-js=$full');\" style=\"font-size:14px;color:#AC0909;text-decoration:underline\">".
+		if(!$full){$error="<a href=\"javascript:Blurz();\" Onclick=\"javascript:Loadjs('admin.index.php?json-error-js=$full');\" style=\"font-size:14px;color:#AC0909;text-decoration:underline\">".
 		substr($error, 0,10)."...";
+		}else{
+			$error="<span style=\"font-size:14px;color:#AC0909;text-decoration:underline\">$error</span>";
+		}
 		
 	}
 	if(!is_numeric($indexColumn)){$indexColumn=0;}

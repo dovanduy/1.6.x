@@ -366,15 +366,18 @@ function artica_parse($filename){
 			if($from=="<>"){$from="Unknown";}
 			if($to=="<>"){$to="Unknown";}
 			
+			
 			if(preg_match("#(.+?)@(.+)#",$from,$re)){$domainfrom=$re[2];}
 			if(preg_match("#(.+?)@(.+)#",$to,$re)){$domainto=$re[2];}
 			if($domainfrom==null){$domainfrom="Unknown";}
 			if($domainto==null){$domainto="Unknown";}
 			$md5=md5("$instancename$day$time$from$to$size");
+			events("$ligne -> smtpcode:$smtpcode");
 			$sq[]="('$md5','$zdate','$instancename','$from','$domainfrom','$to','$domainto','$ipfrom','$ipto','$smtpcode','$size',0)";
 			$events_number++;
 			
 		}else{
+			events("$ligne -> FAILED");
 			echo $ligne. "FAILED\n";
 		}
 		
@@ -478,7 +481,21 @@ function awstats_cron(){
 		
 	}
 }
-
+function events($text){
+		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+		if($GLOBALS["VERBOSE"]){echo $text."\n";}
+		$common="/var/log/artica-postfix/postfix.awstats.log";
+		$size=@filesize($common);
+		if($size>100000){@copy($common, "$common.".time().".log");@unlink($common);}
+		$pid=getmypid();
+		$date=date("Y-m-d H:i:s");
+		$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)."$date $text");
+		$h = @fopen($common, 'a');
+		$sline="[$pid] $text";
+		$line="$date [$pid] $text\n";
+		@fwrite($h,$line);
+		@fclose($h);
+}
 
 
 

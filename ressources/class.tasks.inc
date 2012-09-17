@@ -69,6 +69,7 @@ class system_tasks{
 			$this->tasks_array[46]="{awstats_postfix}";
 			$this->tasks_array[47]="{awstats_postfix_parser}";
 			$this->tasks_array[48]="{postfix_stats_days}";
+			$this->tasks_array[49]="{postfix_stats_month}";
 			
 			
 			
@@ -123,6 +124,7 @@ class system_tasks{
 			$this->tasks_explain_array[46]="{awstats_postfix_explain}";
 			$this->tasks_explain_array[47]="{awstats_postfix_parser_explain}";
 			$this->tasks_explain_array[48]="{postfix_stats_days_explain}";
+			$this->tasks_explain_array[49]="{postfix_stats_month_explain}";
 			
 			
 			
@@ -179,6 +181,7 @@ class system_tasks{
 			$this->tasks_processes[46]="exec.awstats.php --postfix"; //120
 			$this->tasks_processes[47]="exec.postfix.parse.awstats.php"; //5mn
 			$this->tasks_processes[48]="exec.postfix-stats.php --days"; //5mn
+			$this->tasks_processes[49]="exec.postfix-stats.php --month"; //5mn
 			
 	
 	}
@@ -231,7 +234,7 @@ public function CheckDefaultSchedules(){
 		$array[46]=array("TimeText"=>"10 0,2,4,6,8,10,12,14,16,18,20,22 * * *","TimeDescription"=>"Each 2H +10mn");
 		$array[47]=array("TimeText"=>"5,10,15,20,25,30,35,40,45,50,55,59 * * * *","TimeDescription"=>"parse queue Each 5mn");
 		$array[48]=array("TimeText"=>"45 0,5,10,15,20 * * *","TimeDescription"=>"Days statistics each 5 Hours +45mn");
-		
+		$array[49]=array("TimeText"=>"25 0 * * *","TimeDescription"=>"Monthly statistics each day at 00h25");
 		
 		
 			

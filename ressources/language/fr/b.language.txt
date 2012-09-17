@@ -985,6 +985,7 @@ Basically, each distribution list added in this section are stored outside the L
 <mysql_tuning>Tuning MySQL</mysql_tuning>
 <mysql_warn_must_tune>Il semble que le service MySQL risque d'utiliser plus de m&eacute;moire que le syst&egrave;me peut en fournir (%m Mb).[br]Cliquez ici afin de r&eacute;duire sa consommation m&eacute;moire.</mysql_warn_must_tune>
 <my_members>Mes membres</my_members>
+<my_messaging_statistics_text>Les statistiques SMTP de votre compte de messagerie.</my_messaging_statistics_text>
 <my_public_ip>Mon adresse IP Publique</my_public_ip>
 <nb_employees>Nombre d'employ&eacute;s</nb_employees>
 <need_to_reboot_ask>Pour appliquer correctement la configuration, il faudra red&eacute;marrer la machine.
@@ -1112,6 +1113,8 @@ service LMTP local en socket unix: lmtp:unix:/path/to/lmtp.sock[br]</postfix_mai
 <postfix_send_proxy>Support SMTP Proxy</postfix_send_proxy>
 <postfix_stats_days>Statistiques journali&egrave;res de la messagerie</postfix_stats_days>
 <postfix_stats_days_explain>Cette t&acirc;che liste toutes les tables horaires et g&eacute;n&egrave;re les tables journali&egrave;res dans la base MySQL</postfix_stats_days_explain>
+<postfix_stats_month>Statistiques de messagerie mensuels</postfix_stats_month>
+<postfix_stats_month_explain>Cette t&acirc;che construit les statistiques de messagerie mensuels.</postfix_stats_month_explain>
 <postfix_transport_senders_explain>Cette table liste les r&egrave;gle d'acheminement en fonction de l'adresse/domaine de l'&eacute;metteur du message.[br]Chaque &eacute;metteur (domaine ou adresse compl&egrave;te) d&eacute;finit se verra affecter une serveur de destination.</postfix_transport_senders_explain>
 <postfix_transport_table_explain>Cette table liste les r&egrave;gles d'acheminement de courrier en fonction du domaine SMTP de destination g&eacute;n&eacute;ralement ajout&eacute; dans les organisations.[br]
 Ces r&egrave;gles vont acheminer les messages en fonction du domaine de messagerie (c'est &agrave; dire toutes les adresses de message qui y sont associ&eacute;es).</postfix_transport_table_explain>
@@ -1167,6 +1170,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</rebuild_caches_warn>
 Voulez-vous effectuer ceci ?</rebuild_database_warn>
 <rebuild_visited_sites>V&eacute;rifie les sites visit&eacute;s</rebuild_visited_sites>
 <rebuild_visited_sites_explain>Cette t&acirc;che analyse les sites visit&eacute;s et non cat&eacute;goris&eacute;s.[br]Si certains sites web ne sont pas cat&eacute;goris&eacute;s mais que des mises &agrave; jour ont permis d'identifier les sites web, alors cette t&acirc;che va mettre &agrave; jour les tables de statistiques.</rebuild_visited_sites_explain>
+<received_messages>Message(s) re&ccedil;u(s)</received_messages>
 <recipient_relay_table>Routage par destinataire</recipient_relay_table>
 <recipient_relay_table_text>Cr&eacute;ez des r&egrave;gles de transfert de messages par destinataire - adresse email ou domaine de messagerie</recipient_relay_table_text>
 <recompile_postfix_parameters>Compiler les param&egrave;tres Postfix</recompile_postfix_parameters>
@@ -1290,6 +1294,7 @@ Elle est en charge d'enregistrer les pi&egrave;ces jointes originales dans la ba
 <SecServerSignature>Signature du moteur web</SecServerSignature>
 <SecServerSignatureOffExplain>Pour activer cette option, il faut que les options globales &quot;Ent&ecirc;te de r&eacute;ponse du serveur&quot; soit plac&eacute; sur &quot;Toutes les informations&quot; et que l'option &quot;Activer le renforcement de la s&eacute;curit&eacute;&quot; soit activ&eacute;.</SecServerSignatureOffExplain>
 <selector>S&eacute;lecteur</selector>
+<sended_messages>Message(s) envoy&eacute;(s)</sended_messages>
 <sender>&Eacute;metteur</sender>
 <send_email>&Eacute;mettre un message</send_email>
 <send_password>Envoyer le mot de passe</send_password>
@@ -1780,6 +1785,7 @@ Cette section ne peut &ecirc;tre visualis&eacute;e.</XAPIAN_NOT_INSTALLED_ERROR>
 <youritems>Vos &eacute;l&eacute;ments</youritems>
 <YourRealCompany>Votre vrai soci&eacute;t&eacute;</YourRealCompany>
 <your_home_dir_seems_not_indexed>Votre r&eacute;pertoire personnel ne semble pas avoir &eacute;t&eacute; index&eacute;</your_home_dir_seems_not_indexed>
+<your_messaging_statistics>Vos statistiques de messagerie</your_messaging_statistics>
 <your_settings>Vos param&egrave;tres</your_settings>
 <YoutubeForSchoolsExplainT>Donne la possibilit&eacute; aux &eacute;coles d'afficher uniquement les vid&eacute;os Youtube EDU.[br]Vid&eacute;os uniquement &agrave; caract&egrave;re &eacute;ducatif.</YoutubeForSchoolsExplainT>
 <you_have_to_reload_webpage>Vous devez recharger cette page Internet</you_have_to_reload_webpage>
