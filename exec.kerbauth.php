@@ -364,7 +364,16 @@ if($ipaddr<>null){
 			$cmd="$netbin ads join -I $ipaddr -U $adminname%$adminpassword $workgroup 2>&1";
 			if($GLOBALS["VERBOSE"]){echo "Starting......:  Samba, $cmd\n";}
 			$BIGRESS=array();
-			exec($cmd,$BIGRESS);	
+			exec($cmd,$BIGRESS);
+			
+			if(!is_array($BIGRESS)){$BIGRESS=array();}
+			if(count($BIGRESS)==0){
+				$cmd="$netbin ads join -I $ipaddr -U $adminname%$adminpassword 2>&1";
+				if($GLOBALS["VERBOSE"]){echo "Starting......:  Samba, $cmd\n";}
+				exec($cmd,$BIGRESS);
+			}
+			
+			
 			while (list ($index, $line) = each ($BIGRES1) ){
 				echo "Starting......:  Samba, [$adminname 2] $line\n";
 				if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......:  Samba, $line", basename(__FILE__));}
