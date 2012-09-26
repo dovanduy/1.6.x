@@ -5,7 +5,8 @@
 	header("Cache-Control: no-cache, must-revalidate");
 	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
 	include_once('ressources/class.templates.inc');
-	include_once('ressources/class.blackboxes.inc');	
+	include_once('ressources/class.blackboxes.inc');
+	include_once('ressources/class.mysql.squid.builder.php');		
 	if(isset($_FILES["SETTINGS_INC"])){SETTINGS_INC();exit;}
 	if(isset($_POST["SQUIDCONF"])){SQUIDCONF();exit;}
 	if(isset($_POST["REGISTER"])){REGISTER();exit;}
@@ -42,7 +43,7 @@ function SETTINGS_INC(){
 		writelogs("blackboxes::$hostname ($nodeid) Error $moved_file.txt : Not an array...",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
-	
+	$MYSSLPORT=$curlparms["ArticaHttpsPort"];
 	$settings=$curlparms["SETTINGS_INC"];
 	$softs=$curlparms["softwares"];
 	$perfs=$curlparms["perfs"];
@@ -53,6 +54,21 @@ function SETTINGS_INC(){
 	writelogs("$hostname ($nodeid) v.{$curlparms["VERSION"]}",__FUNCTION__,__FILE__,__LINE__);
 	$back->SaveSettingsInc($settings,$perfs,$softs,$prodstatus,$curlparms["ISARTICA"]);
 	$back->SaveDisks($curlparms["disks_list"]);
+	
+	writelogs("blackboxes::$hostname squid version {$curlparms["SQUIDVER"]}",__FUNCTION__,__FILE__,__LINE__);
+	
+	if(strlen(trim($curlparms["SQUIDVER"]))>1){
+		$qSQ=new mysql_squid_builder();
+		writelogs($_SERVER["REMOTE_ADDR"] .":$MYSSLPORT production server....",__FUNCTION__,__FILE__,__LINE__);
+		$hostname=gethostbyaddr($_SERVER["REMOTE_ADDR"]);
+		$time=date('Y-m-d H:i:s');
+		$sql="INSERT IGNORE INTO `squidservers` (ipaddr,hostname,port,created,udpated) VALUES ('{$_SERVER["REMOTE_ADDR"]}','$hostname','{$_POST["MYSSLPORT"]}','$time','$time')";
+		$ligne=mysql_fetch_array($qSQ->QUERY_SQL("SELECT ipaddr FROM squidservers WHERE ipaddr='{$_SERVER["REMOTE_ADDR"]}'"));
+		if($ligne["ipaddr"]==null){$qSQ->QUERY_SQL($sql);}else{
+			$q->QUERY_SQL("UPDATE `squidservers` SET udpated='$time' WHERE ipaddr='{$ligne["ipaddr"]}'");
+		}	
+	
+	}
 	
 	if(isset($curlparms["nets"])){
 		writelogs("blackboxes::$hostname ($nodeid):: -> CARDS",__FUNCTION__,__FILE__,__LINE__);

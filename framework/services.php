@@ -34,6 +34,7 @@ if(isset($_GET["kav4proxy-service-cmds"])){kav4proxy_service_cmds();exit;}
 if(isset($_GET["refresh-my-ip"])){public_ip_refresh();exit;}
 if(isset($_GET["mysqlinfos"])){mysqlinfos();exit;}
 if(isset($_GET["reload-openldap-tenir"])){reload_openldap_tenir();exit;}
+if(isset($_GET["process1-tenir"])){process1_tenir();exit;}
 
 if(isset($_GET["register"])){register_server_www();exit;}
 if(isset($_GET["pdns-status"])){pdns_status();exit;}
@@ -143,6 +144,7 @@ if(isset($_GET["ARTICA-MAKE"])){ARTICA_MAKE_STATUS();exit;}
 if(isset($_GET["setup-ubuntu"])){setup_ubuntu();exit;}
 if(isset($_GET["service-dropbox-cmds"])){service_dropbox_cmd();exit;}
 if(isset($_GET["beancounters"])){beancounters();exit;}
+if(isset($_GET["export-etc-artica"])){export_etc_artica();exit;}
 
 if(isset($_GET["blkid"])){blkid_infos();exit;}
 
@@ -1472,5 +1474,18 @@ function service_dropbox_cmd(){
 function beancounters(){
 	$unix=new unix();
 	echo "<articadatascgi>". base64_encode(serialize(file("/proc/user_beancounters")))."</articadatascgi>";	
+	
+}
+function process1_tenir(){
+	writelogs_framework("/usr/share/artica-postfix/bin/process1 --force",__FUNCTION__,__FILE__,__LINE__);
+	exec("/usr/share/artica-postfix/bin/process1 --force 2>&1",$results);
+	while (list ($num, $line) = each ($results) ){
+		writelogs_framework($line,__FUNCTION__,__FILE__,__LINE__);
+	}
+}
+function export_etc_artica(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();	
+	shell_exec("$php /usr/share/artica-postfix/exec.export-artica-settings.php");
 	
 }

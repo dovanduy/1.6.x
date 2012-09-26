@@ -22,7 +22,7 @@ class ccurl{
 	
 	// CURLOPT_INTERFACE
 	
-	function ccurl($uri,$noproxyload=false,$interface=null){
+	function ccurl($uri=null,$noproxyload=false,$interface=null){
 			if(!isset($GLOBALS["CLASS_SOCKETS"])){$sock=new sockets();$GLOBALS["CLASS_SOCKETS"]=$sock;}else{$sock=$GLOBALS["CLASS_SOCKETS"];}
 			$this->uri=$uri;
 			$this->interface=$interface;

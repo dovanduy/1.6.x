@@ -1186,7 +1186,7 @@ $array=$array+array(
 			
 	"DEF_ICO_GATEWAY"=>array(
 			"IMG"=>"64-asgateway.png",
-			 "JS"=>"javascript:YahooWin(350,'index.gateway.php?AsGatewayForm=yes')",
+			 "JS"=>"javascript:YahooWin(550,'index.gateway.php?AsGatewayForm=yes','Artica as gateway')",
 			 "TITLE"=>"ARTICA_AS_GATEWAY",
 			 "TEXT"=>"ARTICA_AS_GATEWAY_TEXT",
 			 "CLASS"=>"NETWORK",

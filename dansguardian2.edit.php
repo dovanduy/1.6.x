@@ -103,7 +103,7 @@ function tabs(){
 		
 		
 		if(!$dansG){$array["rule-time"]='{time}';}
-		if($_GET["ID"]<>0){$array["groups"]='{groups}';}
+		if($_GET["ID"]<>0){$array["groups"]='{groups2}';}
 	}
 	
 
@@ -1509,7 +1509,8 @@ function groups_list(){
 	
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		
+		$textExplainGroup=null;
+		$KEY_ID_GROUP=$ligne["webfilter_group_ID"];
 		$delete="<a href=\"javascript:blur();\" OnClick=\"javascript:UnlinkFilterGroup('{$ligne["ID"]}')\"><img src='img/delete-24.png' style='border:0px'></a>";
 		$color="black";
 		$CountDeMembers="??";
@@ -1521,7 +1522,7 @@ function groups_list(){
 		}
 		
 		if($ligne["localldap"]==1){
-			$sql="SELECT COUNT(ID) as tcount FROM webfilter_members WHERE `groupid`='{$ligne["webfilter_group_ID"]}'";
+			$sql="SELECT COUNT(ID) as tcount FROM webfilter_members WHERE `groupid`='$KEY_ID_GROUP'";
 			$COUNLIGNE=mysql_fetch_array($q->QUERY_SQL($sql));
 			$CountDeMembers=$COUNLIGNE["tcount"];
 		}
@@ -1531,8 +1532,17 @@ function groups_list(){
 				$dnEnc=$re[2];
 				$LDAPID=$re[1];
 				$ad=new ActiveDirectory($LDAPID);
-				$tty=$ad->ObjectProperty(base64_decode($dnEnc));
-				$CountDeMembers=$tty["MEMBERS"];
+				if($ad->UseDynamicGroupsAcls==1){
+					if(preg_match("#^CN=(.+?),.*#i", base64_decode($dnEnc),$re)){
+					$groupname=_ActiveDirectoryToName($re[1]);
+					$textExplainGroup=checksADGroup($groupname);
+					$CountDeMembers='-';
+					}
+				}else{
+					$tty=$ad->ObjectProperty(base64_decode($dnEnc));
+					$CountDeMembers=$tty["MEMBERS"];
+				}	
+
 				$description=htmlentities($tty["description"]);
 				$description=str_replace("'", "`", $description);	
 				if(trim($ligne["description"])==null){$ligne["description"]=$description;}
@@ -1545,7 +1555,7 @@ function groups_list(){
 		
 
 		
-		$jsSelect="YahooWin4('712','dansguardian2.edit.group.php?ID={$ligne["ID"]}&t=$t&YahooWin=4','$group::{$ligne["ID"]}::{$ligne['groupname']}');";
+		$jsSelect="YahooWin4('712','dansguardian2.edit.group.php?ID=$KEY_ID_GROUP&t=$t&YahooWin=4','$group::$KEY_ID_GROUP::{$ligne['groupname']}');";
 		
 		$data['rows'][] = array(
 				'id' => "group{$ligne["ID"]}",
@@ -1553,7 +1563,7 @@ function groups_list(){
 				"<img src='img/$imgGP'>",
 				"<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:$jsSelect\" 
-				style='font-size:16px;text-decoration:underline'>{$ligne['groupname']}</span></a>$groupadd_text<div style='font-size:10px'><i>{$ligne["description"]}</i>",
+				style='font-size:16px;text-decoration:underline'>{$ligne['groupname']}</span></a>$groupadd_text<div style='font-size:10px'>$textExplainGroup<i>{$ligne["description"]}</i>",
 				"<span style='font-size:16px;'>$CountDeMembers</span>",$delete
 				)
 		);		
@@ -1562,6 +1572,38 @@ function groups_list(){
 	}
 	
 	echo json_encode($data);
+	
+}
+
+function _ActiveDirectoryToName($groupname){
+	$groupname=trim($groupname);
+	$groupname=strtolower($groupname);
+	$groupname=str_replace(" ", "_", $groupname);	
+	return $groupname;
+}
+
+function checksADGroup($groupname){
+	$checked=true;
+	$userinfo = @posix_getgrnam($groupname);
+	if(!isset($userinfo["gid"])){$checked=false;}
+	if(!is_numeric($userinfo["gid"])){$checked=false;}
+	if($userinfo["gid"]<1){$checked=false;}	
+		$tpl=new templates();
+	if(!$checked){
+		
+	
+		$html="<table>
+		<tr>
+			<td width=1%><img src='img/warning-panneau-24.png'></td>
+			<td><strong style='font-size:12px'>{this_group_is_not_retranslated_to_the_system}</td>
+		</tr>
+		</table>
+		";
+	}else{
+		$html=$tpl->_ENGINE_parse_body(count($userinfo["members"])." {members}");
+	}
+	
+	return $html;
 	
 }
 

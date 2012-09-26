@@ -122,7 +122,7 @@ Par exemple, vous ne serez pas en mesure d'user de votre avis de non-responsabil
 <replicate_all_domains>R&eacute;pliquez cette configuration dans tous les domaines.</replicate_all_domains>
 <sanesecurity_explain>Clam Antivirus est un antivirus sous licence GPL pour UNIX et &agrave; pour but la d&eacute;tection des virus dans les messages &eacute;lectroniques, il est tr&egrave;s flexible et a &eacute;t&eacute; utilis&eacute; pour fournir des signatures additionnelles.[br]
 Les signatures additionnelles Sanesecurity fournissent une s&eacute;curit&eacute; am&eacute;lior&eacute;e aux messages &eacute;lectroniques contre divers types de menace :[br][b]Phishing, Spear phishing, Fausse lotterie, Ecard malware, Casino, Fausse offres de travail, Faux pr&ecirc;ts, 419s, Faux dipl&ocirc;mes, pornographie, malware cach&eacute; dans les messages &eacute;lectroniques ainsi que d'autres sortes de spam.</sanesecurity_explain>
-<sanesecurity_switch>Si vous voulez activez cette fonction...Tournez-le au vert</sanesecurity_switch>
+<sanesecurity_switch>Pour activer cette fonctionnalit&eacute;,mettre le rond en vert</sanesecurity_switch>
 <sanesecurity_text>Activer/d&eacute;sactiver la d&eacute;tection du Phishing gr&acirc;ce &agrave;  Clamav   signatures additionnelles Sanesecurity</sanesecurity_text>
 <save_config_to_server>Sauvegarder les fichiers de configuration dans le syst&egrave;me</save_config_to_server>
 <save_policies>Sauvegardez vos r&eacute;glages</save_policies>

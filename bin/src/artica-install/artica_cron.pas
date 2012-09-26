@@ -506,6 +506,7 @@ logs.DeleteFile('/etc/cron.d/apps-upgrade');
 logs.DeleteFile('/etc/cron.d/pkg-upgrade');
 logs.DeleteFile('/etc/cron.d/artica-cron-dansguardianinject');
 logs.DeleteFile('/etc/cron.d/artica-malwareswww');
+logs.DeleteFile('/etc/cron.d/artica-cron-vpswatch');
 
 
 fpsystem('/bin/rm -f /etc/cron.d/artica-cron-executor/*');
@@ -848,19 +849,6 @@ l.add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10 '+ SYS.LOCAT
       if FileExists(zpostfix.POSFTIX_POSTCONF_PATH()) then begin
          SYS.CRON_CREATE_SCHEDULE('0,7,13,18,23,28,33,38,43,48,53,58 * * * *',cmdnice+php5bin+ ' ' +artica_path+'/exec.smtp-senderadv.php','artica-cron-smtpadv');
       end;
-
-
-
-
-      //toutes les 2 minutes
-      SYS.CRON_CREATE_SCHEDULE('0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58 * * * *',cmdnice+php5bin+ ' ' +artica_path+'/exec.vservers.php --watchdog','artica-cron-vpswatch');
-
-
-
-
-
-
-
 
       //specifiques
       quarantine_report_schedules();

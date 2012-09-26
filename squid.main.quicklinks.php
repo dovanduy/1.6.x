@@ -728,13 +728,7 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 		$text_script="<span style='color:#B80000;font-size:13px'>{migration_script_run_text} PID:{$migration_pid[0]} {since}:{$migration_pid[1]}Mn</span>";
 	}	
 	
-	
-	
-	$design="
-	$text_error_sql
-	$text_script
-	$text_kavicap_error
-	<table style='width:250px;margin-top:10px;' class=form>
+	$squidversion="	<table style='width:250px;margin-top:10px;' class=form>
 	<tbody>
 		<tr>
 			<td>&nbsp;</td>
@@ -747,7 +741,15 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 			<td style='font-size:14px'>{$master_pid}</td>
 		</tr>
 		</tbody>
-	</table>
+	</table>";
+	
+	if($users->WEBSTATS_APPLIANCE){$squidversion=null;}
+	
+	$design="
+	$text_error_sql
+	$text_script
+	$text_kavicap_error
+	$squidversion
 	<div id='squid-plugins-activated'></div>
 	<div style='width:100%;text-align:right'>". imgtootltip("refresh-24.png","{refresh}","LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');")."</div>
 	
@@ -877,6 +879,7 @@ function section_architecture_status(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$squid=new squidbee();
+	$users=new usersMenus();
 	$sock=new sockets();
 	$listen_port=$squid->listen_port;
 	$second_port=$squid->second_listen_port;
@@ -900,17 +903,24 @@ function section_architecture_status(){
 	if($ssl_port>0){$second_port="$second_port/$ssl_port&nbsp;(ssl)";}
 	
 	if(strlen($visible_hostname)>10){$visible_hostname=substr($visible_hostname, 0,7)."...";}
+	
+	$squid_version_text="<td class=legend nowrap>{version}:</td>
+		<td>".texthref($squid->SQUID_VERSION,"Loadjs('squid.compilation.status.php');")."</td>
+		<td style='font-size:14px;font-weight:bold'>&nbsp;|&nbsp;</td>";
+	
+	$visible_hostname_text="		<td class=legend nowrap>{visible_hostname}:</td>
+		<td>".texthref($visible_hostname,"$js2")."</td>
+		<td style='font-size:14px;font-weight:bold'>&nbsp;|&nbsp;</td>";
+	
+	if($users->WEBSTATS_APPLIANCE){$squid_version_text=null;$visible_hostname_text=null;}
+	
 	$html="<table style='width:99%' class=form>
 	<tr>
-		<td class=legend nowrap>{version}:</td>
-		<td>".texthref($squid->SQUID_VERSION,"Loadjs('squid.compilation.status.php');")."</td>
-		<td style='font-size:14px;font-weight:bold'>&nbsp;|&nbsp;</td>
+		$squid_version_text
 		<td class=legend nowrap>$labelport:</td>
 		<td>".texthref("$listen_port$second_port","$js1")."</td>
 		<td style='font-size:14px;font-weight:bold'>&nbsp;|&nbsp;</td>
-		<td class=legend nowrap>{visible_hostname}:</td>
-		<td>".texthref($visible_hostname,"$js2")."</td>
-		<td style='font-size:14px;font-weight:bold'>&nbsp;|&nbsp;</td>
+		$visible_hostname_text
 		<td class=legend nowrap>{transparent_mode}:</td>
 		<td>".texthref($hasProxyTransparent,"$js3")."</td>
 	</tr>
@@ -943,7 +953,7 @@ function section_status(){
 	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
-	
+	if($users->WEBSTATS_APPLIANCE){unset($array["events-squidcache"]);}
 	
 	$array["graphs"]="{statistics}";
 	$array["software-update"]='{softwares_update}';
@@ -1030,17 +1040,17 @@ function all_status(){
 	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("ID:APP_UFDBGUARD",$ini,null,1);
 	
 	$md=md5(date('Ymhis'));
-	
-	$swappiness=intval($sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("vm.swappiness")));
-	$sock=new sockets();
-	$swappiness_saved=unserialize(base64_decode($sock->GET_INFO("kernel_values")));
-	if(!is_numeric($swappiness_saved["swappiness"])){
-		if($swappiness>30){
-			$tr[]=DAEMON_STATUS_ROUND_TEXT("warning-panneau-42.png","{high_swap_value}","{high_swap_value_text}","Loadjs('squid.perfs.php')");
-		}
-		
-	}	
-	
+	if(!$users->WEBSTATS_APPLIANCE){
+		$swappiness=intval($sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("vm.swappiness")));
+		$sock=new sockets();
+		$swappiness_saved=unserialize(base64_decode($sock->GET_INFO("kernel_values")));
+		if(!is_numeric($swappiness_saved["swappiness"])){
+			if($swappiness>30){
+				$tr[]=DAEMON_STATUS_ROUND_TEXT("warning-panneau-42.png","{high_swap_value}","{high_swap_value_text}","Loadjs('squid.perfs.php')");
+			}
+			
+		}	
+	}
 	$tr[]=$squid_status;
 	$tr[]=$dansguardian_status;
 	$tr[]=$kav;
@@ -1135,17 +1145,8 @@ $current_sessions="
 		style='font-size:12px;text-decoration:underline'>{display_current_sessions}</a></td>
 		</tr>	
 	";	
-	
-	
-	$tables[]="
-	</table>
-	</div>
-	<table style='width:99%' class=form>
-	<tr>
-	<td valign='top' width='50%'>
-		<table style='width:100%'>
-		$SquidBoosterMemText
-	<tr>
+
+$restart_all_services="	<tr>
 		<td width=1%><img src='img/service-restart-32.png'></td>
 		<td nowrap><a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('squid.restart.php');\" 
@@ -1156,7 +1157,27 @@ $current_sessions="
 		<td nowrap><a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('squid.restart.php?onlySquid=yes');\" 
 		style='font-size:12px;text-decoration:underline'>{restart_onlysquid}</a></td>
-	</tr>	
+	</tr>	";
+	
+$users=new usersMenus();
+if($users->WEBSTATS_APPLIANCE){
+	$squid_rotate=null;
+	$debug_compile=null;
+	$current_sessions=null;
+	$restart_all_services=null;
+}
+	
+	$tables[]="
+	</table>
+	</div>
+	<table style='width:99%' class=form>
+	<tr>
+	<td valign='top' width='50%'>
+		<table style='width:100%'>
+		$SquidBoosterMemText
+
+
+	$restart_all_services
 	$squid_rotate
 	$ufdbbutt
 	$debug_compile

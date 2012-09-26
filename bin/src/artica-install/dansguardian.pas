@@ -31,6 +31,7 @@ private
      dansguardian_mem_pid:string;
      username:string;
      SQUIDEnable:integer;
+     EnableStatisticsCICAPService:integer;
      TAIL_STARTUP:string;
      function LOCATE_C_ICAP_CONFIG():string;
      function GET_VALUE_DATA(conf_path:string;key:string):string;
@@ -102,6 +103,8 @@ begin
        if not TryStrToInt(SYS.GET_INFO('CicapEnabled'),CicapEnabled) then CicapEnabled:=0;
        if not TryStrToInt(SYS.GET_INFO('DansGuardianEnableUserFrontEnd'),DansGuardianEnableUserFrontEnd) then DansGuardianEnableUserFrontEnd:=1;
        if not TryStrToInt(SYS.GET_INFO('SQUIDEnable'),SQUIDEnable) then SQUIDEnable:=1;
+       if not TryStrToInt(SYS.GET_INFO('EnableStatisticsCICAPService'),EnableStatisticsCICAPService) then EnableStatisticsCICAPService:=1;
+
 
 
 
@@ -110,8 +113,10 @@ begin
           CicapEnabled:=0;
        end;
 
-       if FileExists('/etc/artica-postfix/WEBSTATS_APPLIANCE') then CicapEnabled:=1;
-
+       if FileExists('/etc/artica-postfix/WEBSTATS_APPLIANCE') then begin
+          CicapEnabled:=1;
+          if EnableStatisticsCICAPService=0 then CicapEnabled:=0;
+       end;
        if not SYS.ISMemoryHiger1G() then begin
               if CicapEnabled=1 then logs.Syslogs('Starting......: Fatal Memory is under 1G, C-ICAP will be disabled');
               SYS.set_INFO('CicapEnabled','0');

@@ -97,8 +97,10 @@ class squidbee{
 	var $SquidBoosterOnly=0;
 	var $ssl_port=0;
 	var $second_listen_portForTransparent=0;
+	var $EnableKerberosAuthentication=0;
 	var $SSL_BUMP_WHITE_LIST=0;
 	var $EnableSquidCSV=0;
+	var $EnableRemoteStatisticsAppliance=0;
 	
 	function squidbee(){
 		if(posix_getuid()==0){$this->ASROOT=true;}
@@ -130,6 +132,7 @@ class squidbee{
 		$this->enable_ecapav=$sock->GET_INFO("SquideCapAVEnabled");
 		$this->UseTProxyMode=$sock->GET_INFO("UseTProxyMode");
 		$this->EnableSquidCSV=$sock->GET_INFO("EnableSquidCSV");
+		$this->EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
 		
 		if($this->KavICAPRemoteAddr==null){$this->EnableKavICAPRemote=0;}
 		if(!is_numeric($this->KavICAPRemotePort)){$this->EnableKavICAPRemote=0;}
@@ -139,6 +142,8 @@ class squidbee{
 		if(!is_numeric($this->SquidDisableAllFilters)){$this->SquidDisableAllFilters=0;}
 		if(!is_numeric($this->UseTProxyMode)){$this->UseTProxyMode=0;}
 		if(!is_numeric($this->EnableSquidCSV)){$this->EnableSquidCSV=0;}
+		if(!is_numeric($this->EnableKerberosAuthentication)){$this->EnableKerberosAuthentication=0;}
+		if($this->EnableKerberosAuthentication==1){$this->EnableKerbAuth=0;}
 		$users=new usersMenus();
 		
 		
@@ -146,8 +151,9 @@ class squidbee{
 		$this->hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
 		if($this->hasProxyTransparent==null){$this->hasProxyTransparent=0;}
 		$this->SquidBoosterOnly=$this->zcheck_squidbooster_value();
-		
-		
+		$this->EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+		if(!is_numeric($this->EnableRemoteStatisticsAppliance)){$this->EnableRemoteStatisticsAppliance=0;}	
+		if($this->EnableRemoteStatisticsAppliance==1){$this->enable_UfdbGuard=1;}
 		
 	}
 	
@@ -1418,6 +1424,36 @@ function SaveToLdap($norestart=false){
 			return implode("\n",$conf);
 		}
 		
+		private function find_program($binaryname){
+			$f["/lib/squid3"]=true; 
+			$f["/usr/lib/squid3"]=true; 
+			$f["/usr/lib64/squid3"]=true; 
+			$f["/lib/squid3"]=true; 
+			$f["/lib64/squid3"]=true; 
+			$f["/usr/lib/squid"]=true; 
+			$f["/usr/lib64/squid"]=true; 
+			$f["/usr/local/lib/squid"]=true; 
+			$f["/usr/local/lib64/squid"]=true; 
+			$f["/opt/artica/libexec"]=true; 
+			while (list ($dir, $none) = each ($f) ){if(is_file("$dir/$binaryname")){return "$dir/$binaryname";}}			
+			
+			
+		}
+		
+		
+		private function pinger(){
+			if(!$this->ASROOT){return;}
+			$pinger=$this->find_program("pinger");
+			if(!is_file($pinger)){return;}
+			$f[]="#ICMP Pinger ------------- (". __FUNCTION__." L.".__LINE__.")";
+			$f[]="pinger_program $pinger";
+			$f[]="";
+			$unix=new unix();
+			$unix->chown_func("root","root" ,$pinger);
+			$unix->chmod_func(04755, $pinger);
+			
+		}
+		
 		
 		public function ACL_MESSENGERS(){
 			$sock=new sockets();
@@ -1701,10 +1737,10 @@ function SaveToLdap($norestart=false){
 			$hostname_bin=$unix->find_program("hostname");
 			exec("$hostname_bin -f 2>&1",$results);
 			$myFullHostname=trim(@implode("", $results));
-			if($this->EnableKerbAuth==0){return null;}
+			if($this->EnableKerberosAuthentication==0){return null;}
 			if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 			$users=$GLOBALS["CLASS_USERS"];
-			if($users->WINBINDD_INSTALLED){return;}
+			$ntlm_auth=$unix->find_program("ntlm_auth");
 			$binary=$users->squid_kerb_auth_path;
 			if(strlen($binary)<2){
 				return "#No squid_kerb_auth in compilation !\n";
@@ -1717,9 +1753,19 @@ function SaveToLdap($norestart=false){
 				shell_exec("$chown squid:squid /etc/krb5.keytab");
 				shell_exec("$chmod 666 /etc/krb5.keytab");
 			}
+			
+			if(is_file("/usr/local/bin/negotiate_wrapper")){
+				//$users->squid_kerb_auth_path="/usr/local/bin/negotiate_wrapper";
+				if(is_file("$ntlm_auth")){
+					$ntlm=" --ntlm /usr/bin/ntlm_auth";
+				}
+				$t[]="auth_param negotiate program /usr/local/bin/negotiate_wrapper -d $ntlm --diagnostics --helper-protocol=squid-2.5-ntlmssp --domain=EXAMPLE --kerberos /usr/lib/squid3/squid_kerb_auth -d -s GSS_C_NO_NAME";
+				
+			}
 	
 			$conf[]= "#--------- kerberos AUTH settings myhostname $myFullHostname\n";
-			$conf[]= "auth_param negotiate program $users->squid_kerb_auth_path -d -s HTTP/$myFullHostname";
+			//$conf[]= "auth_param negotiate program $users->squid_kerb_auth_path -d -s HTTP/$myFullHostname";
+			$conf[]= "auth_param negotiate program $users->squid_kerb_auth_path -d";
 			$conf[]= "auth_param negotiate children 10";
 			$conf[]= "auth_param negotiate keep_alive on";
 			$conf[]= "auth_param basic realm Squid proxy-caching web server";
@@ -1730,7 +1776,7 @@ function SaveToLdap($norestart=false){
 			$conf[]= "#--------- kerberos ACL settings";
 			$conf[]= "acl AUTHENTICATED proxy_auth REQUIRED";
 			$conf[]=$this->WHITELISTED_AUTH_BROWSERS();	
-			
+			$conf[]="#------------------------------------------------------------------------- ";
 			$conf[]="";	
 			return @implode("\n", $conf);		
 		}
@@ -1755,7 +1801,8 @@ function SaveToLdap($norestart=false){
 			if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 			$users=$GLOBALS["CLASS_USERS"];
 			$sock=new sockets();
-			
+			$UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
+			if(!is_numeric($UseDynamicGroupsAcls)){$UseDynamicGroupsAcls=0;}
 			// voir permissions on /var/lib/samba/winbindd_privileged
 			// http://www.cyberciti.biz/faq/squid-ntlm-authentication-configuration-howto/
 			
@@ -1769,6 +1816,11 @@ function SaveToLdap($norestart=false){
 			
 			if($this->ASROOT){
 				if(is_file("/usr/bin/ntlm_auth")){$users->SQUID_NTLM_ENABLED=true;$users->SQUID_NTLM_AUTH="/usr/bin/ntlm_auth";}
+				if(!is_file("/etc/squid3/net_ads_group.pl")){
+					$unix=new unix();
+					$php=$unix->LOCATE_PHP5_BIN();
+					shell_exec("$php /usr/share/artica-postfix/exec.squid.netads.php >/dev/null 2>&1");
+				}
 			}
 			
 			if(!$users->SQUID_NTLM_ENABLED){$this->NTLM_AUTH=0;return "#No NTLM in compilation !\n";}
@@ -1789,18 +1841,30 @@ function SaveToLdap($norestart=false){
 			
 			$conf[]= "#--------- NTLM AUTH settings\n";
 			$conf[]= "\n#Authentification mode, building using squid compiled for artica";
+	
+			$conf[]= "";
+			$conf[]= "#NTLM authentication:";
 			$conf[]= "auth_param ntlm program $users->SQUID_NTLM_AUTH$basicNTLMDomain --helper-protocol=squid-2.5-ntlmssp";
-			$conf[]= "auth_param basic program $users->SQUID_NTLM_AUTH$basicDomain --helper-protocol=squid-2.5-basic";
-			$conf[]= "auth_param ntlm children 15";
-			$conf[]= "auth_param basic children 15";
-			$conf[]= "auth_param basic credentialsttl 5 hours";	
-			$conf[]= "auth_param basic casesensitive off";	
+			$conf[]= "auth_param ntlm children 30";
+			if(!$this->IS_32){
+				$conf[]= "auth_param ntlm max_challenge_reuses 0";
+				$conf[]= "auth_param ntlm max_challenge_lifetime 2 minutes";
+			}
+			$conf[]= "";
+			$conf[]= "#Basic authentication for other browser that did not supports NTLM:";
+			$conf[]= "auth_param basic program $users->SQUID_NTLM_AUTH --helper-protocol=squid-2.5-basic";
+			$conf[]= "auth_param basic children 30";
 			$conf[]= "auth_param basic realm $WINDOWS_DNS_SUFFIX";
-			$conf[]= "authenticate_cache_garbage_interval 10 seconds";
-			$conf[]= "auth_param basic credentialsttl 2 hour\n";
+			$conf[]= "auth_param basic credentialsttl 2 hours";
+			$conf[]= "";
+			$conf[]= "#Dynamic ACLs groups Enabled: [$UseDynamicGroupsAcls]";
+			$conf[]= "external_acl_type ads_group ttl=0 %LOGIN /etc/squid3/net_ads_group.pl";
+			$conf[]= "";
+			$conf[]= "#Other settings";
 			$conf[]= "authenticate_ttl 1 hour\n";
+			$conf[]= "authenticate_cache_garbage_interval 10 seconds";
 			$conf[]= "authenticate_ip_ttl 60 seconds\n";			
-			$conf[]= "#--------- NTLM ACL settings";
+			$conf[]= "#--------- ACL AUTHENTICATED for authentication method";
 			$conf[]= "acl AUTHENTICATED proxy_auth REQUIRED";
 			//$conf[]= "client_persistent_connections off\n";
 			$conf[]="";
@@ -1914,10 +1978,20 @@ function SaveToLdap($norestart=false){
 		if($this->enable_UfdbGuard==null){$this->enable_UfdbGuard=0;}
 		if($this->enable_UfdbGuard==0){return null;}
 		if(strlen($users->ufdbgclient_path)==0){return null;}
+		
+		
+		
 		$moinsC=null;
 		if($this->ufdbguard_concurrency()){$moinsC="-C ";}
 		$sock=new sockets();
 		$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+		
+		if($this->EnableRemoteStatisticsAppliance==1){
+			$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
+			$datas["remote_server"]=$RemoteStatisticsApplianceSettings["SERVER"];
+		}		
+		
+		
 		$binary=$users->ufdbgclient_path;
 		$log="-l /var/log/squid";
  		
@@ -2100,12 +2174,13 @@ function SaveToLdap($norestart=false){
 		if(count($redirects)>1){return $this->zapchain();}
 				
 		$sock=new sockets();
+	
 		$EnableSquidGuardInCiCAP=$sock->GET_INFO("EnableSquidGuardInCiCAP");
 		if($EnableSquidGuardInCiCAP==null){$EnableSquidGuardInCiCAP=1;}
 		if(!$users->C_ICAP_INSTALLED){$EnableSquidGuardInCiCAP=0;}
 		if($this->enable_UfdbGuard==1){$this->enable_squidguard=0;$EnableSquidGuardInCiCAP=0;}
 		
-
+		
 		
 		if($EnableSquidGuardInCiCAP==1){
 			if($this->enable_cicap==1){
@@ -2491,7 +2566,10 @@ function BuildSquidConf(){
 		
 	
 		if($this->LDAP_AUTH==1){
-			$conf=$conf ."acl group_password external ldap_group\n";
+			if($this->EnableKerbAuth==0){
+				$conf=$conf ."# LDAP_AUTH =1  EnableKerbAuth = 0\n";
+				$conf=$conf ."acl group_password external ldap_group\n";
+			}
 			
 			if(count($acl_groups)>0){
 				while (list ($a, $b) = each ($acl_groups)){
@@ -2520,7 +2598,9 @@ function BuildSquidConf(){
 		
 		if($this->LDAP_AUTH==1){
 				$acl_access_time=$http_access_time;
-				$GLOBALS["HTTP_ACCESS"]["LDAP_GROUP"]="http_access allow group_password";
+				if($this->EnableKerbAuth==0){
+					$GLOBALS["HTTP_ACCESS"]["LDAP_GROUP"]="http_access allow group_password";
+				}
 				$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"]="http_access allow ldapauth\n";
 		}
 		
@@ -2535,7 +2615,13 @@ function BuildSquidConf(){
 				$acl_access_time=$http_access_time;
 				$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"]="http_access allow AUTHENTICATED\n";
 				$office_network=null;
-		}		
+		}
+
+		if($this->EnableKerberosAuthentication==1){
+				$acl_access_time=$http_access_time;
+				$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"]="http_access allow AUTHENTICATED\n";
+				$office_network=null;			
+		}
 		
 		
 		if($SquidActHasReverse<>1){
@@ -2881,6 +2967,9 @@ function BuildSquidConf(){
 		$conf=$conf."cache_log	/var/log/squid/cache.log\n";
 		$conf=$conf."pid_filename	/var/run/squid.pid\n";
 		$compile_params=$this->compilation_params();
+		$pinger=$this->pinger();
+		if($pinger<>null){$conf=$conf.$pinger;}
+		
 		if(isset($compile_params["enable-icmp"])){
 			$conf=$conf."netdb_filename stdio:/var/log/squid/netdb.state\n";
 		}else{

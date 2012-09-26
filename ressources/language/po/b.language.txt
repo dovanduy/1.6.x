@@ -91,6 +91,7 @@ Example: Allow Kaspersky Antivirus to not be authenticated: regex:\\*[A-Za-z]+=$
 <ADNETIPADDR>AD server IP address</ADNETIPADDR>
 <advanced_ISP_routing>Advanced ISP routing</advanced_ISP_routing>
 <advanced_ISP_routing_text>ISP routing rules matching ISP anti-spam rules when sending bulk mailings</advanced_ISP_routing_text>
+<ad_kerb_schedule_explain>Define operation to carry out when Active Directory members import schedule task has been executed</ad_kerb_schedule_explain>
 <against>against</against>
 <agent_address>Agent address</agent_address>
 <aiguil_max_msg_rate>Maximum execution duration</aiguil_max_msg_rate>
@@ -268,6 +269,7 @@ Proceed to change the master branch to:</ask_change_suffix>
 <attachments_storage>Attachments storage</attachments_storage>
 <attempts>attempts</attempts>
 <authenticate>authenticate</authenticate>
+<authenticate_from_kerberos>Authenticate from Kerberos</authenticate_from_kerberos>
 <authorized_categories>Authorized categories</authorized_categories>
 <auth_logs>Authentication events</auth_logs>
 <auth_logs_explain>This task will parse the system authentications events (SSH, console session) and insert them into MySQL database</auth_logs_explain>
@@ -312,6 +314,7 @@ for example you can ban xxx extension (that represents the new porn domains scop
 <banned_categories_explain>This section list all banned categories.[br]
 Websites stored on these categories will be stopped.
 </banned_categories_explain>
+<banned_configuration>Banned configuration</banned_configuration>
 <banned_files>Banned files</banned_files>
 <banned_rules>Banned rules</banned_rules>
 <ban_addresses_for_interfaces>Ban addresses from the Interface</ban_addresses_for_interfaces>
@@ -360,8 +363,10 @@ It is designed to build websites statistics.</build_crypted_tables_catz_explain>
 <build_month_tables>Build month tables</build_month_tables>
 <build_month_tables_explain>This task calculate datas for the month table</build_month_tables_explain>
 <build_parameters>Build parameters</build_parameters>
+<build_proxy_parameters>Build proxy parameters</build_proxy_parameters>
 <build_rules>Build rules</build_rules>
 <build_support_package>Build a "support" package</build_support_package>
+<build_web_filtering_rules>Build web filtering rules</build_web_filtering_rules>
 <bypass_iffailed>Bypass service if failed</bypass_iffailed>
 <by_proxy_groups>By proxy group</by_proxy_groups>
 <cached_items>Cached item(s)</cached_items>
@@ -478,6 +483,7 @@ You should take care about enabling this task because there is no tests made bef
 <compressed_size>Compressed size</compressed_size>
 <compressing_package>Compressing package</compressing_package>
 <compress_files>Compress files</compress_files>
+<COMPUTERS_BRANCH>Computers branch</COMPUTERS_BRANCH>
 <configure_your_browser>Configure your browser</configure_your_browser>
 <configure_your_isp_proxy_explain>If you are the Proxy administrator inside your LAN, you use this service act has the [b]parent proxy[/b].[br]
 Use informations bellow in order to set your Proxy.
@@ -640,6 +646,7 @@ The Samba server is made into a domain member server</domain_security_explain>
 <download_file>Download file</download_file>
 <do_not_cache>Do not cache</do_not_cache>
 <duplicate_the_ruleid_give_name>Give the new rule name in order to duplicate the rule:</duplicate_the_ruleid_give_name>
+<dynamic_activedirectory_group>Dynamic Active Directory Group</dynamic_activedirectory_group>
 <D_MODEL_ENC>Model ID</D_MODEL_ENC>
 <empty_all_firewall_rules>Empty all Firewall rules</empty_all_firewall_rules>
 <empty_catz_explain>This operation will empty all personal category database. Do you want to carry out this operation ?</empty_catz_explain>
@@ -1056,6 +1063,7 @@ A server restart also sets the maximum size of existing MEMORY tables to the glo
 <members_stats_explain>This task calculate Members statistics/usage per day</members_stats_explain>
 <message>message</message>
 <messages>messages</messages>
+<messaging_statistics>Messaging statistics</messaging_statistics>
 <milliseconds>milliseconds</milliseconds>
 <mimedefang_filehosting>Attachments hosting</mimedefang_filehosting>
 <mimedefang_filehosting_explain>This section allows you to create rules in order to keep large attachments out of inboxes</mimedefang_filehosting_explain>
@@ -1187,6 +1195,7 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <notify_when_cpu_exceed>Notify when CPU exceed</notify_when_cpu_exceed>
 <notify_when_memory_exceed>Notify when memory exceed</notify_when_memory_exceed>
 <not_caching>Not caching</not_caching>
+<NOT_INSTALLED>Not installed</NOT_INSTALLED>
 <no_entry>No entry</no_entry>
 <no_expression_group>No expression group</no_expression_group>
 <no_group>No group</no_group>
@@ -1343,6 +1352,9 @@ If your server is connected to a remote database and cannot receive order to ref
 to schedule a compilation...</recompile_postfix_parameters_explain>
 <reconfigure_mta>Reconfigure the MTA</reconfigure_mta>
 <reconfigure_postfix_in_background>The MTA reconfiguration task as been performed in background mode</reconfigure_postfix_in_background>
+<reconfigure_proxy_task>Reconfigure the proxy service</reconfigure_proxy_task>
+<reconfigure_proxy_task_explain>This task is designed to rebuild the proxy configuration and ACLs and reload the proxy<reconfigure_proxy_task_explain>
+<reconfigure_proxy_task>Reconfigure the proxy service</reconfigure_proxy_task_explain>
 <reconfigure_webfilter_service>Reconfigure WebFilter engine</reconfigure_webfilter_service>
 <recovery_password_message>Recovery password message</recovery_password_message>
 <recovery_password_message_sent>Your password has been successfully changed.
@@ -1358,6 +1370,8 @@ Have fun.
 <recreate_database_text>Drop the current database and create a new one with pre-defined settings</recreate_database_text>
 <redirect_to_suffix>redirect to suffix</redirect_to_suffix>
 <redirect_url>Redirect URL</redirect_url>
+<refresh_kerberos_ticket>Refresh kerberos ticket</refresh_kerberos_ticket>
+<refresh_kerberos_ticket_explain>This task refresh the kerberos ticket when connecting the server to an Active Directory Windows server</refresh_kerberos_ticket_explain>
 <refresh_rate>Refresh rate</refresh_rate>
 <refresh_status>Refresh status</refresh_status>
 <refresh_website_each>Refresh Website each</refresh_website_each>
@@ -1373,6 +1387,8 @@ Do you want to perform this operation ?
 <reload_service_text>Reconfigure parameters and force the service to reload the configuration.[br]
 The service will be not stopped but just refreshed.</reload_service_text>
 <reload_website_each>Reload website each</reload_website_each>
+<remote_appliance_error_text>This server is managed by a Statistics Appliance.[br]
+Connect to %s in order to modify parameters</remote_appliance_error_text>
 <remote_artica_port>Artica Web interface port</remote_artica_port>
 <remote_artica_server>Remote Artica server</remote_artica_server>
 <remote_domains>Remote domains</remote_domains>
@@ -1410,6 +1426,7 @@ All datas according SMTP events will be removed</reset_smtp_logs_ask>
 <restart_onlysquid>Restart only the proxy</restart_onlysquid>
 <restart_proxy_service>Restart proxy service</restart_proxy_service>
 <restart_proxy_service_explain>This task restart the proxy service and refresh memory/processes</restart_proxy_service_explain>
+<restart_the_web_proxy_service>Restart the Web proxy service</restart_the_web_proxy_service>
 <restart_webconsole_service>Restart the Artica Web Console service</restart_webconsole_service>
 <restart_webconsole_service_explain>Stop the lighttpd daemon and restart it by refresh it's memory and parameters</restart_webconsole_service_explain>
 <restart_web_console>Restart Web console</restart_web_console>
@@ -1463,6 +1480,7 @@ It is in charge to upload extracted attachments to the MySQL database and clean 
 <scan_mailattachments_queue_explain>Scan storage attachments queue</scan_mailattachments_queue_explain>
 <scan_mailboxes_language>Scan mailboxes language</scan_mailboxes_language>
 <scan_thumbnails>Scan thumbnails</scan_thumbnails>
+<schedule_parameters>Schedule parameters</schedule_parameters>
 <searchthestring>Search the string</searchthestring>
 <second_port>Second port</second_port>
 <SecServerSignature>Apache server signature</SecServerSignature>
@@ -1635,6 +1653,7 @@ Thanks for using Artica !
 <streamcache_status>StreamCache status</streamcache_status>
 <streamGetService>Cache Streaming parameters</streamGetService>
 <streamGetService_text>Define web service parameters to cache Youtube videos.</streamGetService_text>
+<strip-domain-from-username>Remove the domain in member session</strip-domain-from-username>
 <SUBFAMILY_APACHE>Webserver Apache modules</SUBFAMILY_APACHE>
 <SUBFAMILY_APP>Application</SUBFAMILY_APP>
 <subsites>sub-sites</subsites>
@@ -1787,6 +1806,7 @@ Samba can also accept session-based username/password requests.[br]
 The client maintains multiple authentication contexts by using a unique UID for each logon.
 </user_level_security_explain>
 <UseSMTPProto>Use SMTP protocol</UseSMTPProto>
+<use_dynamic_groups_acls>Use dynamic ACLS groups</use_dynamic_groups_acls>
 <use_external_link>Use external link</use_external_link>
 <use_external_mysql_server>Use an external MySQL server</use_external_mysql_server>
 <use_local_service>Use local service</use_local_service>
@@ -1870,9 +1890,17 @@ If these are consuming a large amount of memory in relation to pagecache, it may
 Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pressure>
 <volumes>Volumes</volumes>
 <volumes_client_mode>Volumes (client mode)</volumes_client_mode>
+<vps_server_watchdog>Virtual servers watchdog</vps_server_watchdog>
+<vps_server_watchdog_explain>This task must be scheduled only if your Artica server is able to provide Virtual machines with LXC.[br]
+It designed to ensure that Virtual machines are UP and running and correcly set.
+</vps_server_watchdog_explain>
 <wait_xs_per_message>Wait X seconds per sended message</wait_xs_per_message>
 <wait_xs_per_message_explain>This parameter (if higher than 0) define if the process must wait X seconds before send a new mail in the same SMTP connection.[br]
 The process will do this method : Connect, send a message, wait x seconds, send a new message, wait x second and disconnect</wait_xs_per_message_explain>
+<warning_malware_patrol_consumme_performance>Malware patrol is a set of several thousand expressions rules that the proxy will check on each request.[br]
+If you server did not have a strong performance this will increase times to receive Web pages.[br]
+If after enable it your users complain about a low bandwidth, disable this feature.
+</warning_malware_patrol_consumme_performance>
 <warn_calculate_nothdsize>Attention, the Max value size does not calculate your current hard drive free space. Do not set a size larger than your free hard disk space.</warn_calculate_nothdsize>
 <warn_email_invalid_wizard>It seems that your email address %s is invalid or the domain of this email did not exists on DNS.[br]
 Please return back and set a correct eMail address.</warn_email_invalid_wizard>

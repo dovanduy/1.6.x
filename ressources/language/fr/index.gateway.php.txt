@@ -1,7 +1,7 @@
 <APP_DHCP_EVENTS>Ev&egrave;nements du service DHCP</APP_DHCP_EVENTS>
 <APP_DHCP_EVENTS_TEXT>Afficher les logs en temps r&eacute;el du service DHCP</APP_DHCP_EVENTS_TEXT>
 <ARTICA_AS_GATEWAY>Artica est une passerelle</ARTICA_AS_GATEWAY>
-<ARTICA_AS_GATEWAY_EXPLAIN>Si vous param&egrave;trez au vert, Artica sera serveur DHCP , DNS, proxy, les connexions ont une passerelle r&eacute;elle</ARTICA_AS_GATEWAY_EXPLAIN>
+<ARTICA_AS_GATEWAY_EXPLAIN>Si le rond est mis en vert, Artica pourra &ecirc;tre un  serveur DHCP , DNS....[br]Les postes de travail pour &ecirc;tre param&eacute;tr&eacute;s afin d'utiliser ce serveur comme une passerelle TCP/IP.</ARTICA_AS_GATEWAY_EXPLAIN>
 <ARTICA_AS_GATEWAY_TEXT>D&eacute;finit si artica est votre passerelle ou non</ARTICA_AS_GATEWAY_TEXT>
 <conf>Fichier de configuration</conf>
 <ddns_domainname>Domaine Interne</ddns_domainname>

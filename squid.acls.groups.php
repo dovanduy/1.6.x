@@ -95,6 +95,7 @@ function EditGroup_popup(){
 	$buttonname="{apply}";
 	$acltpl_md5=trim($ligne["acltpl"]);
 	$acltpl="{default}";
+	$sock=new sockets();
 	$browse=button("{browse}...", "Loadjs('squid.templates.php?choose-acl=$ID')");
 	if($ID<1){$buttonname="{add}";$browse=null;$acltpl=null;}	
 	if($acltpl_md5<>null){
@@ -108,11 +109,10 @@ function EditGroup_popup(){
 	
 	
 	$t=time();
-	$GroupType["src"]="{addr}";
-	$GroupType["arp"]="{ComputerMacAddress}";
-	$GroupType["dstdomain"]="{dstdomain}";
-	$GroupType["proxy_auth"]="{members}";
-	$GroupType["port"]="{remote_ports}";
+	$GroupType=$q->acl_GroupType;
+
+	
+	
 	
 	$html="
 	<div id='$t'></div>
@@ -287,10 +287,13 @@ function EditGroup_tabs(){
 	$tpl=new templates();	
 	$ID=$_GET["ID"];
 
+	$q=new mysql_squid_builder();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType FROM webfilters_sqgroups WHERE ID=$ID"));
 	
 	$array["items"]='{items}';
 	$array["EditGroup-popup"]='{settings}';
 	
+	if($ligne["GroupType"]=="proxy_auth_ads"){unset($array["items"]);}
 
 	while (list ($num, $ligne) = each ($array) ){
 		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&ID=$ID&tab=yes\"><span>$ligne</span></a></li>\n");

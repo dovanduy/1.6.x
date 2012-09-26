@@ -42,7 +42,7 @@ $('#table-$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'img', width : 31, sortable : false, align: 'center'},
-		{display: '$Members', name : 'uid', width : 604, sortable : false, align: 'left'},
+		{display: '$Members', name : 'uid', width : 590, sortable : false, align: 'left'},
 	],
 
 	searchitems : [
@@ -56,7 +56,7 @@ $('#table-$t').flexigrid({
 	rp: 15,
 	showTableToggleBtn: false,
 	width: 670,
-	height: 250,
+	height: 450,
 	singleSelect: true
 	
 	});   

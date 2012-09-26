@@ -7,13 +7,16 @@ class squid_acls{
 	var $ACL_ARP_ENABLED=false;
 	var $SQUID_GROUPS_ITEMS_TYPE=array();
 	var $RequestedGroupeType=null;
-	
+	var $UseDynamicGroupsAcls=0;
 	
 
 	public function squid_acls(){
 		if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 		$users=$GLOBALS["CLASS_USERS"];
+		$sock=new sockets();
 		$this->ACL_ARP_ENABLED=$users->SQUID_ARP_ACL_ENABLED;
+		$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
+		if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}
 	
 	}
 
@@ -32,6 +35,7 @@ class squid_acls{
 		$ReturnFirstValue=false;
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$acls_name="Group{$ligne["ID"]}";
+			echo "Starting......: Squid : ACL Engine Group: $acls_name `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]}\n";
 			
 			if($ligne["GroupType"]=="maxconn"){
 				$AclsValue=$this->buildItems($ligne["ID"],true);
@@ -42,6 +46,15 @@ class squid_acls{
 				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
 				continue;
 			}
+			
+			if($ligne["GroupType"]=="proxy_auth_ads"){
+				$this->availableGroups[$ligne["ID"]]=true;
+				$this->acls_array[]="acl $acls_name external ads_group ". utf8_encode($ligne["GroupName"]);
+				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
+				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
+				continue;				
+			}
+			
 			
 			$AclsItemsCount=$this->buildItems($ligne["ID"],$ReturnFirstValue);
 			echo "Starting......: Squid : ACL Engine Group: $acls_name `{$ligne["GroupName"]}` $AclsItemsCount item(s)\n";	
@@ -148,6 +161,8 @@ class squid_acls{
 			if($GroupeType=="arp"){
 				$ligne["pattern"]=str_replace("-", ":", $ligne["pattern"]);
 			}
+			
+	
 			
 			
 			if(isset($already[$ligne["pattern"]])){continue;}

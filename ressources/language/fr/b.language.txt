@@ -78,6 +78,7 @@ Par exemple: Autoriser Kaspersky Antivrus &agrave; se mettre &agrave; jour sans 
 <ADNETIPADDR>Adresse IP du serveur AD</ADNETIPADDR>
 <advanced_ISP_routing>Routage sp&eacute;cifique ISP</advanced_ISP_routing>
 <advanced_ISP_routing_text>R&egrave;gles de routage pour ISP afin d'adapter les envois en masse en fonction des r&egrave;gles des fournisseurs</advanced_ISP_routing_text>
+<ad_kerb_schedule_explain>Indiquez les op&eacute;rations &agrave; entreprendre apr&egrave;s que la t&acirc;che programm&eacute;e d'importation des comptes Active Directory soit ex&eacute;cut&eacute;e.</ad_kerb_schedule_explain>
 <against>contre</against>
 <agent_address>Agent address</agent_address>
 <aiguil_max_msg_rate>Temps MAX d'ex&eacute;cution</aiguil_max_msg_rate>
@@ -222,6 +223,7 @@ Proc&eacute;der au changement de la branche principale :</ask_change_suffix>
 <attachments_storage>Conteneur des pi&egrave;ces jointes</attachments_storage>
 <attempts>tentatives</attempts>
 <authenticate>authentification</authenticate>
+<authenticate_from_kerberos>Authentification via Kerberos</authenticate_from_kerberos>
 <authorized_categories>Cat&eacute;gories autoris&eacute;es</authorized_categories>
 <auth_logs>&Eacute;v&egrave;nements d'authentification</auth_logs>
 <auth_logs_explain>Cette t&acirc;che va lister les &eacute;v&egrave;nements d'authentification (SSH et console syst&egrave;me) et va les enregistrer dans la base MySQL.</auth_logs_explain>
@@ -260,6 +262,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</backto31xsquid_explain>
 <banned_categories>Cat&eacute;gories interdites</banned_categories>
 <banned_categories_explain>Cette section liste les cat&eacute;gories qui h&eacute;bergent les sites Web interdits.[br]
 Si est un site Web est r&eacute;f&eacute;renc&eacute; dans ces cat&eacute;gories alors sont acc&egrave;s sera interdit.</banned_categories_explain>
+<banned_configuration>Configuration interdite</banned_configuration>
 <banned_files>Fichiers bannis</banned_files>
 <banned_rules>R&egrave;gles de blocage</banned_rules>
 <ban_addresses_for_interfaces>Bannir des adresses dans l'interface</ban_addresses_for_interfaces>
@@ -307,8 +310,10 @@ Elle permet de construire les tables n&eacute;cessaires &agrave; la construction
 <build_month_tables>Construire les tables mensuelles</build_month_tables>
 <build_month_tables_explain>Cette t&acirc;che comprime et calcule les donn&eacute;es pour construire les tables mensuelles.</build_month_tables_explain>
 <build_parameters>Construire les param&egrave;tres</build_parameters>
+<build_proxy_parameters>Construire les param&egrave;tres du proxy</build_proxy_parameters>
 <build_rules>Construire les r&egrave;gles</build_rules>
 <build_support_package>Construire un paquetage &quot;support&quot;</build_support_package>
+<build_web_filtering_rules>Construire les r&egrave;gles du filtrage web</build_web_filtering_rules>
 <bypass_iffailed>Passer outre en cas d'&eacute;chec</bypass_iffailed>
 <by_proxy_groups>Par groupe de Proxy</by_proxy_groups>
 <cached_items>&Eacute;l&eacute;ment(s) du cache</cached_items>
@@ -413,6 +418,7 @@ Elle permet de compiler les cat&eacute;gories en mode [b].ufdb[/b] et de les sau
 <compressed_size>Taille compress&eacute;e</compressed_size>
 <compressing_package>Compresse le paquetage</compressing_package>
 <compress_files>Compresser les fichiers</compress_files>
+<COMPUTERS_BRANCH>Branche des ordinateurs</COMPUTERS_BRANCH>
 <configure_your_browser>Param&egrave;tres de votre navigateur</configure_your_browser>
 <configure_your_isp_proxy_explain>Si vous &ecirc;tes l'administrateur du proxy de votre entreprise et que vous souhaitez utiliser ce service en tant que proxy parent, [br]
 Utilisez les informations suivantes.</configure_your_isp_proxy_explain>
@@ -553,6 +559,7 @@ Dans cette section, indiquez le domaine &agrave; ajouter &agrave; la machine vir
 <download_file>T&eacute;l&eacute;charger le fichier</download_file>
 <do_not_cache>N'enregistre pas dans le cache</do_not_cache>
 <duplicate_the_ruleid_give_name>Indiquez le nom de la nouvelle r&egrave;gle afin de dupliquer la r&egrave;gle source:</duplicate_the_ruleid_give_name>
+<dynamic_activedirectory_group>Groupe Active Directory dynamique</dynamic_activedirectory_group>
 <D_MODEL_ENC>ID mod&egrave;le</D_MODEL_ENC>
 <empty_all_firewall_rules>Vider toutes les r&egrave;gles du par-feu</empty_all_firewall_rules>
 <empty_catz_explain>Cette op&eacute;ration va vider toutes les cat&eacute;gories personnelles. Voulez-vous effectuer cette op&eacute;ration ?</empty_catz_explain>
@@ -920,6 +927,7 @@ Voulez-vous lancer l'op&eacute;ration ?</mandatories_packages_ask>
 <members_stats_explain>Calcul l'utilisation de la navigation et statistiques des membres par jour.</members_stats_explain>
 <message>Message</message>
 <messages>Messages</messages>
+<messaging_statistics>Statistiques de la messagerie</messaging_statistics>
 <milliseconds>millisecondes</milliseconds>
 <mimedefang_filehosting>H&eacute;bergement de pi&egrave;ces jointes</mimedefang_filehosting>
 <mimedefang_filehosting_explain>Cette section vous permet de cr&eacute;er des r&egrave;gles afin de placer les pi&egrave;ces jointes volumineuse en dehors des bo&icirc;tes aux lettres</mimedefang_filehosting_explain>
@@ -1038,6 +1046,7 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 <notify_when_cpu_exceed>Notifier lorsque la conso. CPU exc&egrave;de</notify_when_cpu_exceed>
 <notify_when_memory_exceed>Notifier lorsque la m&eacute;moire exc&egrave;de</notify_when_memory_exceed>
 <not_caching>Non mis en cache</not_caching>
+<NOT_INSTALLED>Non install&eacute;</NOT_INSTALLED>
 <no_entry>Pas d'entr&eacute;e</no_entry>
 <no_expression_group>Pas de groupe d'expressions.</no_expression_group>
 <no_group>Pas de groupe</no_group>
@@ -1179,6 +1188,8 @@ Mais dans certains cas, et surtout lorsque le serveur ne g&egrave;re pas les com
 Dans ce cas, utilisez ce syst&egrave;me de programmation afin de s'assurer que les param&egrave;tres de messagerie sont rafra&icirc;chis.</recompile_postfix_parameters_explain>
 <reconfigure_mta>Re-param&egrave;trer le MTA</reconfigure_mta>
 <reconfigure_postfix_in_background>La reconfiguration du MTA est op&eacute;r&eacute;e en t&acirc;che de fond...</reconfigure_postfix_in_background>
+<reconfigure_proxy_task>Reconfigure le service du Proxy Web</reconfigure_proxy_task>
+<reconfigure_proxy_task_explain>Cette t&acirc;che est con&ccedil;ue pour reconstruire les param&egrave;tres du proxy et les acls ainsi que de recharger le service du proxy.</reconfigure_proxy_task_explain>
 <reconfigure_webfilter_service>Reconfigurer le service de filtrage</reconfigure_webfilter_service>
 <recovery_password_message>Message de r&eacute;cup&eacute;ration de mot de passe</recovery_password_message>
 <recovery_password_message_sent>Votre nouveau mot de passe &agrave; &eacute;t&eacute; modifi&eacute; avec succ&egrave;s.
@@ -1193,6 +1204,8 @@ Cordialement.</recovery_password_message_text>
 <recreate_database_text>Supprime la base actuelle et construit une nouvelle base de donn&eacute;es avec les param&egrave;tres par d&eacute;faut.</recreate_database_text>
 <redirect_to_suffix>Redirig&eacute; vers le suffixe</redirect_to_suffix>
 <redirect_url>URL de redirection</redirect_url>
+<refresh_kerberos_ticket>Rafra&icirc;chit le ticket Kerberos</refresh_kerberos_ticket>
+<refresh_kerberos_ticket_explain>Cette t&acirc;che permet de rafra&icirc;chir le ticket Kerberos lorsque vous connectez ce serveur &agrave; un contr&ocirc;leur de domaine Microsoft Active Directory</refresh_kerberos_ticket_explain>
 <refresh_rate>Taux de rafra&icirc;chissement</refresh_rate>
 <refresh_status>Rafra&icirc;chir l'&eacute;tat</refresh_status>
 <refresh_website_each>Rafra&icirc;chit le site chaque</refresh_website_each>
@@ -1208,6 +1221,8 @@ Voulez-vous effectuer cette op&eacute;ration ?</reindex_caches_warn>
 <reload_service_text>Reconfigure les param&egrave;tres et force le service &agrave; recharger sa configuration.[br]
 Le service ne sera pas stopp&eacute; mais juste rafra&icirc;chit.</reload_service_text>
 <reload_website_each>Recharger le site chaque</reload_website_each>
+<remote_appliance_error_text>Ce serveur est actuellement pilot&eacute; par une appliance de statistiques.[br]
+Connectez-vous sur  %s afin de modifier les param&egrave;tres</remote_appliance_error_text>
 <remote_artica_port>Port distant de la console web Artica</remote_artica_port>
 <remote_artica_server>Serveur Artica distant</remote_artica_server>
 <remote_domains>Domaines distants</remote_domains>
@@ -1237,7 +1252,7 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de valider son bon fonctionnem
 <reset_smtp_logs_ask>Vider la table des &eacute;v&egrave;nements SMTP ?
 Cette op&eacute;ration d&eacute;truira toutes les donn&eacute;es.</reset_smtp_logs_ask>
 <reset_table>Vider la table</reset_table>
-<restart_connection>Restart connection</restart_connection>
+<restart_connection>Re-connecter</restart_connection>
 <restart_kav4Proxy>Red&eacute;marrer Kaspersky Pour Proxy</restart_kav4Proxy>
 <restart_kav4Proxy_explain>Arr&ecirc;te et d&eacute;marre le service Antivirus Kaspersky d&eacute;di&eacute; &agrave; votre proxy.</restart_kav4Proxy_explain>
 <restart_mysql_server>Red&eacute;marrer le serveur MySQL</restart_mysql_server>
@@ -1245,6 +1260,7 @@ Cette op&eacute;ration d&eacute;truira toutes les donn&eacute;es.</reset_smtp_lo
 <restart_onlysquid>Red&eacute;marrer le Proxy</restart_onlysquid>
 <restart_proxy_service>Red&eacute;marrage du service Proxy</restart_proxy_service>
 <restart_proxy_service_explain>Cette t&acirc;che red&eacute;marre simplement le proxy afin de rafra&icirc;chir ses processus et sa m&eacute;moire.</restart_proxy_service_explain>
+<restart_the_web_proxy_service>Red&eacute;marrer et configurer le service proxy</restart_the_web_proxy_service>
 <restart_webconsole_service>Red&eacute;marre le moteur Web de la console Artica</restart_webconsole_service>
 <restart_webconsole_service_explain>Arr&ecirc;te le service lighttpd et le red&eacute;marre afin de rafra&icirc;chir les param&egrave;tres de la console</restart_webconsole_service_explain>
 <restart_web_console>Restart Web console</restart_web_console>
@@ -1289,6 +1305,7 @@ Elle est en charge d'enregistrer les pi&egrave;ces jointes originales dans la ba
 <scan_mailattachments_queue_explain>Analyse les pi&egrave;ces jointes remplac&eacute;es</scan_mailattachments_queue_explain>
 <scan_mailboxes_language>Analyser la langue des bo&icirc;tes</scan_mailboxes_language>
 <scan_thumbnails>Analyser les miniatures</scan_thumbnails>
+<schedule_parameters>Param&egrave;tres de la t&acirc;che planifi&eacute;e</schedule_parameters>
 <searchthestring>Chercher la cha&icirc;ne</searchthestring>
 <second_port>Second port</second_port>
 <SecServerSignature>Signature du moteur web</SecServerSignature>
@@ -1436,6 +1453,7 @@ Merci d'utiliser Artica !</StatsPerfsSquidAnswered_disablestats>
 <streamcache_status>&Eacute;tat du StreamCache</streamcache_status>
 <streamGetService>Param&egrave;tres du cache Streaming</streamGetService>
 <streamGetService_text>Param&egrave;tres du service Web permettant le cache des vid&eacute;os Youtube (et autres)</streamGetService_text>
+<strip-domain-from-username>supprime le domaine dans la session des utilisateurs</strip-domain-from-username>
 <SUBFAMILY_APACHE>Modules du serveur Web Apache</SUBFAMILY_APACHE>
 <SUBFAMILY_APP>Application</SUBFAMILY_APP>
 <subsites>Sous-sites</subsites>
@@ -1578,6 +1596,7 @@ Vous devriez uniquement activer cette option que si le filtrage Web n'est pas cr
 <user_level_security>S&eacute;curit&eacute; au niveau de l'utilisateur</user_level_security>
 <user_level_security_explain>La s&eacute;curit&eacute; au niveau de l'utilisateur est le choix par d&eacute;faut pour Samba.[br]. Si le serveur accepte le nom d'utilisateur/mot de passe du client, ce dernier peut alors monter des partages multiples sans devoir saisir un mot de passe &agrave; chaque fois.[br]Samba peut aussi accepter des requ&ecirc;tes nom d'utilisateur/mot de passe bas&eacute;es sur les sessions.[br] Le client maintient des contextes d'authentification multiples gr&acirc;ce &agrave; l'utilisation d'un identifiant utilisateur unique (ou UID) pour chaque connexion.</user_level_security_explain>
 <UseSMTPProto>Utiliser le protocole SMTP</UseSMTPProto>
+<use_dynamic_groups_acls>Utiliser les ACLs dynamiques pour les groupes</use_dynamic_groups_acls>
 <use_external_link>Utiliser un lien externe</use_external_link>
 <use_external_mysql_server>Utiliser un serveur MySQL distant</use_external_mysql_server>
 <use_local_service>Utilise le service local</use_local_service>
@@ -1656,9 +1675,15 @@ If these are consuming a large amount of memory in relation to pagecache, it may
 Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pressure>
 <volumes>Volumes</volumes>
 <volumes_client_mode>Volumes (mode client)</volumes_client_mode>
+<vps_server_watchdog>Surveillance des serveurs virtuels</vps_server_watchdog>
+<vps_server_watchdog_explain>Cette t&acirc;che doit &ecirc;tre utilis&eacute;e seulement si vous avez transform&eacute; votre serveur Artica en un virtualisateur de machines via LXC.[br]
+Elle est con&ccedil;ue pour s'assurer que les machines virtuelles sont en activit&eacute; et correctement configur&eacute;es.</vps_server_watchdog_explain>
 <wait_xs_per_message>Attendre X secondes par message envoy&eacute;</wait_xs_per_message>
 <wait_xs_per_message_explain>Ce param&egrave;tre, si il est plus grand que 0 indique au processus SMTP d'attendre X secondes avant d'envoyer un autre message dans la m&ecirc;me session SMTP.[br]
 Cette m&eacute;thode sera utilis&eacute;e: se connecter, envoyer un message, attendre X secondes, envoyer un message, attendre X secondes, se d&eacute;connecter</wait_xs_per_message_explain>
+<warning_malware_patrol_consumme_performance>Malware Patrol est un jeu de plusieurs centaines d'expressions que le proxy doit v&eacute;rifier &agrave; chaque requ&ecirc;te.[br]
+Si votre serveur ne dispose pas de la puissance n&eacute;cessaire, les pages risquent de s'afficher tr&egrave;s lentement.[br]
+Si apr&egrave;s l'activation de cette option, vos utilisateurs se plaignent de la lenteur, d&eacute;sactiver cette option.</warning_malware_patrol_consumme_performance>
 <warn_calculate_nothdsize>Attention, la valeur maximale utilis&eacute;e ne tient pas compte de l'espace libre de vos disques durs. N'indiquez pas une taille de cache sup&eacute;rieure &agrave; la capacit&eacute; de votre disque dur.</warn_calculate_nothdsize>
 <warn_email_invalid_wizard>Il semble que votre adresse eMail %s ne soit pas correcte ou bien que son domaine ne peut &ecirc;tre compris.[br]Veuillez retourner en arri&egrave;re et d&eacute;finissez correctement votre adresse eMail.</warn_email_invalid_wizard>
 <warn_gen_x509>Cette op&eacute;ration va &eacute;craser les donn&eacute;es des certificats.

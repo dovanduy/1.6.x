@@ -975,7 +975,10 @@ begin
 
 
      forceDirectories('/var/run/clamav');
+     forceDirectories('/var/clamav');
      if FileExists('/var/log/clamav/freshclam.log') then logs.DeleteFile('/var/log/clamav/freshclam.log');
+     logs.OutputCmd('/bin/chown '+user+':'+user+' /var/run/clamav');
+     logs.OutputCmd('/bin/chown '+user+':'+user+' /var/clamav');
      logs.OutputCmd('/bin/chown -R '+user+':'+user+' /var/run/clamav');
      logs.OutputCmd('/bin/chown -R '+user+':'+user+' /var/log/clamav');
      logs.OutputCmd('/bin/chown -R '+user+':'+user+' '+DatabaseDirectory);

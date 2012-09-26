@@ -44,7 +44,7 @@ if(isset($_GET["reindex-caches"])){reindex_caches();exit;}
 if(isset($_GET["remove-cache"])){remove_cache();exit;}
 if(isset($_GET["logrotate"])){logrotate();exit;}
 if(isset($_GET["squid-iptables"])){squid_iptables();exit;}
-
+if(isset($_GET["join-reste"])){squid_join_reste();exit;}
 
 if(isset($_GET["refresh-caches-infos"])){refresh_cache_infos();exit;}
 if(isset($_GET["purge-categories"])){purge_categories();exit;}
@@ -83,6 +83,7 @@ if(isset($_GET["follow-xforwarded-for-enabled"])){follow_xforwarded_for_enabled(
 if(isset($_GET["enable-http-violations-enabled"])){enable_http_violations_enabled();exit;}
 if(isset($_GET["update-ufdb-precompiled"])){update_ufdb_precompiled();exit;}
 if(isset($_GET["squid-sessions"])){squidclient_sessions();exit;}
+if(isset($_GET["notify-remote-proxy"])){notify_remote_proxy();exit;}
 
  
 
@@ -292,6 +293,7 @@ function migration_stats(){
 }
 
 function compile_params(){
+	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){return;}
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -316,6 +318,17 @@ function blacklist_update(){
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 }
+function notify_remote_proxy(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --notify-clients-proxy >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+}
+
+
+
 function kav4proxy_update(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
@@ -652,6 +665,13 @@ function schedule_import_executed(){
 		}		
 }
 
+function squid_join_reste(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	exec("$php5 /usr/share/artica-postfix/exec.kerbauth.php --build 2>&1",$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+
 
 function refresh_cache_infos(){
 	$unix=new unix();
@@ -697,8 +717,9 @@ function ping_kdc(){
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.kerbauth.php --ping --force >/dev/null &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
-	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+		
 }
 
 function build_smooth(){
@@ -755,6 +776,10 @@ function reconfigure_squid(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.usrmactranslation.php >/dev/null 2>&1 &");	
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");	
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
 	
@@ -1119,6 +1144,7 @@ function squidclient_sessions(){
 	
 }
 function squid_iptables(){
+	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){return;}
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");

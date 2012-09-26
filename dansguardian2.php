@@ -1,19 +1,19 @@
 <?php
-	include_once('ressources/class.templates.inc');
-	include_once('ressources/class.ldap.inc');
-	include_once('ressources/class.users.menus.inc');
-	include_once('ressources/class.mysql.inc');
-	include_once('ressources/class.groups.inc');
-	include_once('ressources/class.squid.inc');
-	include_once('ressources/class.ActiveDirectory.inc');
-	
-	
+include_once('ressources/class.templates.inc');
+include_once('ressources/class.ldap.inc');
+include_once('ressources/class.users.menus.inc');
+include_once('ressources/class.mysql.inc');
+include_once('ressources/class.groups.inc');
+include_once('ressources/class.squid.inc');
+include_once('ressources/class.ActiveDirectory.inc');
+
+
 $usersmenus=new usersMenus();
 if(!$usersmenus->AsDansGuardianAdministrator){
 	$tpl=new templates();
 	$alert=$tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
 	echo "alert('$alert');";
-	die();	
+	die();
 }
 
 if(isset($_GET["status"])){status();exit;}
@@ -46,7 +46,7 @@ function DisableAllFilters(){
 function EnableMalWarePatrol(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableMalwarePatrol", $_POST["value"]);
-	$sock->getFrameWork("cmd.php?squid-reload=yes");	
+	$sock->getFrameWork("cmd.php?squid-reload=yes");
 }
 
 
@@ -57,13 +57,13 @@ function tabs(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
-	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}		
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$enable_streamcache=$sock->GET_INFO("SquidEnableStreamCache");
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
-	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}	
-	
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+
 	if($users->SQUID_INSTALLED){
 		if($DisableArticaProxyStatistics==0){
 			$StatsPerfsSquidAnswered=$sock->GET_INFO("StatsPerfsSquidAnswered");
@@ -71,64 +71,64 @@ function tabs(){
 			if(!$users->WEBSTATS_APPLIANCE){if($StatsPerfsSquidAnswered==0){$CPU=$users->CPU_NUMBER;$MEM=$users->MEM_TOTAL_INSTALLEE;if(($CPU<4) AND (($MEM<3096088))){WARN_SQUID_STATS();die();}}}
 		}
 	}
-		
-	
 
-	
+
+
+
 	if($EnableWebProxyStatsAppliance==1){$users->APP_UFDBGUARD_INSTALLED=true;$squid->enable_UfdbGuard=1;}
-	
+
 	if($EnableRemoteStatisticsAppliance==0){$array["rules"]='{webfilter}';$array["acls"]='{acls}';}
 	$array["ufdbguard"]='{service_parameters}';
-	
+
 	if($EnableRemoteStatisticsAppliance==0){
 		$array["groups"]='{groups}';
 		$array["databases"]='{webfilter_databases}';
 		if($enable_streamcache==1){$array["streamcache"]='{streamcache_status}';}
 	}
-	
-	
-	
-	
+
+
+
+
 	$fontsize=14;
 	if(count($array)>5){$fontsize=12;}
-	
+
 	if(count($array)>6){$fontsize=11.7;}
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
-		
+
 		if($num=="rules"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.mainrules.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 			continue;
-			
+				
 		}
-		
+
 		if($num=="acls"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.acls-rules.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 			continue;
-			
-		}		
-		
+				
+		}
+
 		if($num=="databases"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 			continue;
 		}
-		
+
 		if($num=="streamcache"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.streamcache.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 			continue;
 		}
 
 
-		
 
 
-				
-		
+
+
+
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 	}
-	
-	
-	
+
+
+
 	echo "
 	<div id=main_dansguardian_tabs style='width:99%;overflow:auto'>
 		<ul>". implode("\n",$html)."</ul>
@@ -142,7 +142,7 @@ function tabs(){
 }
 
 function status_left(){
-	
+
 }
 
 
@@ -151,33 +151,33 @@ function groups(){
 	$page=CurrentPageName();
 	$array["groups-filters"]='{groups_for_rules}';
 	$array["groups-macs"]='{mac_users_linker}';
-	$array["section_basic_filters-groups"]='{proxy_objects}';	
+	$array["section_basic_filters-groups"]='{proxy_objects}';
 	$time=time();
-	
-	
-	
+
+
+
 
 	while (list ($num, $ligne) = each ($array) ){
-		
+
 		if($num=="groups-macs"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"domains.user.computer.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
-			
+				
 		}
-		
-		
+
+
 		if($num=="section_basic_filters-groups"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.acls.groups.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
-			
-		}			
-		
-		
+				
+		}
+
+
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 	}
-	
-	
-	
+
+
+
 	echo "$menus
 	<div id=main_dansguardiangroups_tabs style='width:99%;overflow:auto'>
 		<ul>". implode("\n",$html)."</ul>
@@ -188,15 +188,15 @@ function groups(){
 			});
 		</script>";	
 
-}	
+}
 
 function groups_filters(){
-	
+
 	$sock=new sockets();
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}	
+	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	$page=CurrentPageName();
-	$tpl=new templates();	
+	$tpl=new templates();
 	$dansguardian2_members_groups_explain=$tpl->_ENGINE_parse_body("{dansguardian2_members_groups_explain}");
 	$t=time();
 	$group=$tpl->_ENGINE_parse_body("{group}");
@@ -209,13 +209,13 @@ function groups_filters(){
 	if($EnableKerbAuth==1){
 		$BrowsAD="{name: '$browse', bclass: 'Search', onpress : BrowseAD},";
 	}
-	
+
 	$buttons="
 	buttons : [
 	{name: '$new_group', bclass: 'add', onpress : AddNewDansGuardianGroup},$BrowsAD
 	],";		
 
-$html="<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+	$html="<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 <div class=explain>$dansguardian2_members_groups_explain</div>
 <script>
 var rowid=0;
@@ -229,7 +229,7 @@ $('#flexRT$t').flexigrid({
 		{display: '$members', name : 'members', width :57, sortable : false, align: 'center'},
 		{display: '$delete', name : 'delete', width : 48, sortable : false, align: 'center'},
 		],
-	$buttons
+		$buttons
 	searchitems : [
 		{display: '$group', name : 'groupname'},
 		],
@@ -285,32 +285,32 @@ function BrowseAD(){
 </script>
 ";
 
-	echo $html;
-	
+		echo $html;
+
 }
 
 function groups_search(){
-	
-$tpl=new templates();
+
+	$tpl=new templates();
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
-	
-	
+
+
 	$search='%';
 	$table="webfilter_group";
 	$page=1;
 	$FORCE_FILTER=null;
 	$total=0;
-	
+
 	if($q->COUNT_ROWS($table)==0){
 		writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
 		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
 		echo json_encode($data);
 		return ;
 	}
-	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
-	
+
 
 	if($_POST["query"]<>null){
 		$_POST["query"]="*".$_POST["query"]."*";
@@ -322,52 +322,52 @@ $tpl=new templates();
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
-		
+
 	}else{
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
 	}
-	
-	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
-	
 
-	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+
+
+
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	
-	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+
+	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";
 	$results = $q->QUERY_SQL($sql);
 	writelogs($sql." ==> ". mysql_num_rows($results)." items",__FUNCTION__,__FILE__,__LINE__);
-	
-	
+
+
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total+1;
 	$data['rows'] = array();
-	
-	if(!$q->ok){json_error_show($q->mysql_error,1);}		
+
+	if(!$q->ok){json_error_show($q->mysql_error,1);}
 	$localldap[0]=$tpl->_ENGINE_parse_body("{ldap_group}");
 	$localldap[1]=$tpl->_ENGINE_parse_body("{virtual_group}");
 	$localldap[2]=$tpl->_ENGINE_parse_body("{active_directory_group}");
-	
-	
-while ($ligne = mysql_fetch_assoc($results)) {
+
+
+	while ($ligne = mysql_fetch_assoc($results)) {
 		$CountDeMembers=0;
 		$suffix=null;
-		
+
 		$select=imgtootltip("32-parameters.png","{edit}","DansGuardianEditGroup('{$ligne["ID"]}','{$ligne["groupname"]}')");
 		$delete=imgtootltip("delete-24.png","{delete}","DansGuardianDelGroup('{$ligne["ID"]}')");
 		$color="black";
 		if($ligne["enabled"]==0){$color="#CCCCCC";}
-		
+
 		if($ligne["localldap"]==1){
 			$q2=new mysql_squid_builder();
 			$sql="SELECT COUNT(ID) AS tcount FROM webfilter_members WHERE groupid={$ligne["ID"]}";
 			$ligne2=mysql_fetch_array($q2->QUERY_SQL($sql));
 			$CountDeMembers=$ligne2["tcount"];
 		}
-		
+
 		if($ligne["localldap"]==0){
 			$gp=new groups($ligne["gpid"]);
 			$groupadd_text="(".$gp->groupName.")";
@@ -376,12 +376,12 @@ while ($ligne = mysql_fetch_assoc($results)) {
 		if($ligne["localldap"]==2){
 			$CountDeMembers="-";
 		}
-		
+
 		$groupeTypeText=$localldap[$ligne["localldap"]];
-		
+
 		$js="DansGuardianEditGroup('{$ligne["ID"]}','{$ligne["groupname"]}')";
 		$ligne["description"]=stripslashes($ligne["description"]);
-	$data['rows'][] = array(
+		$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
 			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:16px;color:$color;text-decoration:underline;font-weight:bold'>$suffix{$ligne["groupname"]} $groupadd_text</a>
@@ -389,12 +389,12 @@ while ($ligne = mysql_fetch_assoc($results)) {
 			"<span style='font-size:14px;color:$color;'>$groupeTypeText</span>",
 			"<span style='font-size:14px;color:$color;'>$CountDeMembers</span>",
 			"<span style='font-size:14px;color:$color;'>$delete</span>",
-			 )
+		)
 		);
 	}
-	
-	
-echo json_encode($data);	
+
+
+	echo json_encode($data);
 
 }
 
@@ -403,15 +403,15 @@ function groups_delete(){
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("DELETE FROM webfilter_assoc_groups WHERE group_id='{$_POST["Delete-Group"]}'");
 	if(!$q->ok){echo $q->mysql_error;return;}
-	
+
 	$q->QUERY_SQL("DELETE FROM webfilter_members WHERE groupid='{$_POST["Delete-Group"]}'");
 	if(!$q->ok){echo $q->mysql_error;return;}
-	
+
 	$q->QUERY_SQL("DELETE FROM webfilter_group WHERE ID='{$_POST["Delete-Group"]}'");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
-	$sock->getFrameWork("squid.php?rebuild-filters=yes");		
-	
+	$sock->getFrameWork("squid.php?rebuild-filters=yes");
+
 }
 
 function status(){
@@ -434,12 +434,12 @@ function status(){
 	</script>
 	";
 	echo $tpl->_ENGINE_parse_body($html);
-	
+
 }
 function dansguardian_status(){
 	$users=new usersMenus();
 	$page=CurrentPageName();
-	$tpl=new templates();	
+	$tpl=new templates();
 	$q=new mysql_squid_builder();
 	$categories=$q->LIST_TABLES_CATEGORIES();
 	$sock=new sockets();
@@ -448,148 +448,162 @@ function dansguardian_status(){
 	$SquidDisableAllFilters=$sock->GET_INFO("SquidDisableAllFilters");
 	$SquideCapAVEnabled=$sock->GET_INFO("SquideCapAVEnabled");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$EnableMalwarePatrol=$sock->GET_INFO("EnableMalwarePatrol");
 	if(!is_numeric($EnableMalwarePatrol)){$EnableMalwarePatrol=0;}
 	if(!is_numeric($SquidDisableAllFilters)){$SquidDisableAllFilters=0;}
 	if($SquidGuardIPWeb==null){$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");if(!is_numeric($SquidGuardApachePort)){$SquidGuardApachePort=9020;}$fulluri="http://".$_SERVER['SERVER_ADDR'].':'.$SquidGuardApachePort."/exec.squidguard.php";$sock->SET_INFO("SquidGuardIPWeb", $fulluri);}
-	if($SquidGuardServerName==null){$sock->SET_INFO("SquidGuardServerName",$_SERVER['SERVER_ADDR']);}	
+	if($SquidGuardServerName==null){$sock->SET_INFO("SquidGuardServerName",$_SERVER['SERVER_ADDR']);}
 	$eCapClam=null;
-	
-	
-		$pic="status_ok-grey.gif";
-		$EnableActiveDirectoryText="<a href=\"javascript:blur();\" 
+
+
+	$pic="status_ok-grey.gif";
+	$EnableActiveDirectoryText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('squid.adker.php');\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
-	
+
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	if(!is_numeric($SquideCapAVEnabled)){$SquideCapAVEnabled=0;}
-	
-	
+
+
 	if($EnableKerbAuth==1){
 		$pic="status_ok.gif";
-		$EnableActiveDirectoryText="<a href=\"javascript:blur();\" 
+		$EnableActiveDirectoryText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('squid.adker.php');\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";		
-		
+
 	}
-	
-	
-				$EnableActiveDirectoryTextTR="<tr>
+
+
+	$EnableActiveDirectoryTextTR="<tr>
 				<td width=1%><span id='AdSquidStatusLeft'><img src='img/$pic'></span></td>
 				<td class=legend>Active Directory:</td>
 				<td><div style='font-size:12px' nowrap>$EnableActiveDirectoryText</td>
 				</tr>";		
-	
+
 	$ufdb=null;$dansgu=null;
 	$t=0;
 	$time=time();
+	
+	if($EnableRemoteStatisticsAppliance==1){
+		$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));	
+		$users->APP_UFDBGUARD_INSTALLED=true;
+		$UseRemoteUfdbguardService=$datas["UseRemoteUfdbguardService"];
+		if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
+		$EnableUfdbGuard=$EnableUfdbGuard;
+	}	
+	
+	
+	
 	if($users->APP_UFDBGUARD_INSTALLED){
 		$t++;
 		$APP_UFDBGUARD_INSTALLED="{installed}";
-		
+
 		$pic="status_ok-grey.gif";
-		$EnableUfdbGuardText="<a href=\"javascript:blur();\" 
+		$EnableUfdbGuardText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:EnableUfdbGuard(1);\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
-				
+
 		$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
 		if($EnableUfdbGuard==1){
 			$pic="status_ok.gif";
-			$EnableUfdbGuardText="<a href=\"javascript:blur();\" 
+			$EnableUfdbGuardText="<a href=\"javascript:blur();\"
 			OnClick=\"javascript:EnableUfdbGuard(0);\" 
 			style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";
 		}
-		
 
-		
+
+
 		$ufdb="
 		<tr>
 			<td width=1%><span id='ufd-$time'><img src='img/$pic'></span></td>
 			<td class=legend nowrap>{APP_UFDBGUARD}:</td>
 			<td><div style='font-size:12px' nowrap><span id='ufd-$time'>$EnableUfdbGuardText</span></td>
 		</tr>";			
-		
+
 	}
 	
+
+	
+
 	if($users->DANSGUARDIAN_INSTALLED){
 		$t++;
 		$pic=null;
 		$DANSGUARDIAN_INSTALLED="{installed}";
 		$DansGuardianEnabled=$sock->GET_INFO("DansGuardianEnabled");
 		if(!is_numeric($DansGuardianEnabled)){$DansGuardianEnabled=0;}
-		
-		$DansGuardianEnabledText="<a href=\"javascript:blur();\" 
+
+		$DansGuardianEnabledText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:EnableDansguardian(1);\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
-		$pic="status_ok-grey.gif";		
-		
-		
+		$pic="status_ok-grey.gif";
+
+
 		if($DansGuardianEnabled==1){
-			$DansGuardianEnabledText="<a href=\"javascript:blur();\" 
+			$DansGuardianEnabledText="<a href=\"javascript:blur();\"
 			OnClick=\"javascript:EnableDansguardian(0);\" 
 			style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";			
 			$pic="status_ok.gif";
-			
+				
 		}
-			$dansgu="<tr>
+		$dansgu="<tr>
 			<td width=1%><span id='dans-$time'><img src='img/$pic'></td>
 			<td class=legend nowrap>{APP_DANSGUARDIAN}:</td>
 			<td><div style='font-size:12px' nowrap>$DansGuardianEnabledText</td>
 			</tr>";			
-		
+
 	}
 
 	if(!$users->KASPERSKY_WEB_APPLIANCE){
 		$pic="status_ok-grey.gif";
 		$eCapAVText="{not_installed}";
-		
-		
+
+
 		if($users->ECAPAV_INSTALLED){
 			if($SquideCapAVEnabled==0){
-				$eCapAVText="<a href=\"javascript:blur();\" 
+				$eCapAVText="<a href=\"javascript:blur();\"
 				OnClick=\"javascript:EnableeCapAV(1);\" 
 				style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";	
 			}else{
-				$eCapAVText="<a href=\"javascript:blur();\" 
+				$eCapAVText="<a href=\"javascript:blur();\"
 				OnClick=\"javascript:EnableeCapAV(0);\" 
 				style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";			
 				$pic="status_ok.gif";
-				
+
 			}
-			
-			
-			
+				
+				
+				
 		}
-		
+
 		$eCapClam="
 			<tr>
 				<td width=1%><span id='ecapav-$time'><img src='img/$pic'></span></td>
 				<td class=legend>{APP_ECAPAV}:</td>
 				<td><div style='font-size:12px' nowrap>$eCapAVText</td>
 			</tr>";			
-		
-		
+
+
 	}
-	
-	
+
+
 	if($users->KAV4PROXY_INSTALLED){
 		$t++;
-		$kavicapserverEnabledText="<a href=\"javascript:blur();\" 
+		$kavicapserverEnabledText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:EnableKav4Proxy(1);\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
 		$kavicapserverEnabled=$sock->GET_INFO("kavicapserverEnabled");
 		$pic="status_ok-grey.gif";
-		
+
 		if($kavicapserverEnabled==1){
-			$kavicapserverEnabledText="<a href=\"javascript:blur();\" 
+			$kavicapserverEnabledText="<a href=\"javascript:blur();\"
 			OnClick=\"javascript:EnableKav4Proxy(0);\" 
 			style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";			
 			$pic="status_ok.gif";
-		
+
 		}
-		
+
 		$kav="<tr>
 			<td width=1%><span id='kav4-$time'><img src='img/$pic'></span></td>
 			<td class=legend nowrap>{APP_KAV4PROXY}:</td>
@@ -604,23 +618,23 @@ function dansguardian_status(){
 			<td><div style='font-size:12px' nowrap>$kavicapserverEnabledText</td>
 			</tr>";			
 	}
-	
-	
+
+
 	if($users->C_ICAP_INSTALLED){
 		$CicapEnabled=$sock->GET_INFO("CicapEnabled");
 		if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
 		$pic="status_ok-grey.gif";
-		$CicapEnabledText="<a href=\"javascript:blur();\" 
+		$CicapEnabledText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:EnableCiCap(1);\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
 
-		
+
 		if($CicapEnabled==1){
-			$CicapEnabledText="<a href=\"javascript:blur();\" 
+			$CicapEnabledText="<a href=\"javascript:blur();\"
 			OnClick=\"javascript:EnableCiCap(0);\" 
 			style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";			
 			$pic="status_ok.gif";
-		
+
 		}
 		if($users->APP_KHSE_INSTALLED){
 			$KavMetascannerEnable=$sock->GET_INFO("KavMetascannerEnable");
@@ -633,22 +647,22 @@ function dansguardian_status(){
 				<td class=legend>{APP_C_ICAP}:</td>
 				<td><div style='font-size:12px' nowrap>$CicapEnabledText</td>
 				</tr>";
-		
-		
-	 	if($users->APP_KHSE_INSTALLED){
+
+
+		if($users->APP_KHSE_INSTALLED){
 			$t++;
 			$pic="status_ok-grey.gif";
-			$KavMetascannerEnableText="<a href=\"javascript:blur();\" 
+			$KavMetascannerEnableText="<a href=\"javascript:blur();\"
 			OnClick=\"javascript:EnableMetaScan(1);\" 
 			style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";			
 
 			if($KavMetascannerEnable==1){
-				$KavMetascannerEnableText="<a href=\"javascript:blur();\" 
+				$KavMetascannerEnableText="<a href=\"javascript:blur();\"
 				OnClick=\"javascript:EnableMetaScan(0);\" 
 				style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";			
 				$pic="status_ok.gif";
 			}
-			
+				
 
 			$kavMeta="
 				<tr>
@@ -656,15 +670,15 @@ function dansguardian_status(){
 				<td class=legend>{APP_KAVMETASCANNER}:</td>
 				<td><div style='font-size:12px' nowrap>$KavMetascannerEnableText</td>
 				</tr>";			
-			}else{
-				$kavMeta="
+		}else{
+			$kavMeta="
 					<tr>
 					<td width=1%><img src='img/$pic'></td>
 					<td class=legend>{APP_KAVMETASCANNER}:</td>
 					<td><div style='font-size:12px' nowrap>{not_installed}</td>
 					</tr>";			
-			}
-				
+		}
+
 	}else{
 		$pic="status_ok-grey.gif";
 		$cicap="<tr>
@@ -672,96 +686,96 @@ function dansguardian_status(){
 				<td class=legend>{APP_C_ICAP}:</td>
 				<td><div style='font-size:12px' nowrap>{not_installed}</td>
 				</tr>";			
-		
+
 	}
-	
+
 	$SquidEnableStreamCache=$sock->GET_INFO("SquidEnableStreamCache");
 	if(!is_numeric($SquidEnableStreamCache)){$SquidEnableStreamCache=0;}
 	$pic="status_ok-grey.gif";
-	$SquidEnableStreamCacheText="<a href=\"javascript:blur();\" 
+	$SquidEnableStreamCacheText="<a href=\"javascript:blur();\"
 	OnClick=\"javascript:JSEnableStreamCache(1);\" 
 	style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}";	
-	
-	
+
+
 	if($SquidEnableStreamCache==1){
-		
+
 		$pic="status_ok.gif";
-		$SquidEnableStreamCacheText="<a href=\"javascript:blur();\" 
+		$SquidEnableStreamCacheText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:JSEnableStreamCache(0);\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";
 	}
 
-	
+
 	$StreamCache="<tr>
 				<td width=1%><span id='stream-$time'><img src='img/$pic'></span></td>
 				<td class=legend>{StreamSquidCache}:</td>
 				<td><div style='font-size:12px' nowrap>$SquidEnableStreamCacheText</td>
 			</tr>";
-	
+
 	//-------------------------- MALWARE PATROL --------------------------------------
-	
+
 	$pic="status_ok-grey.gif";
-	$SquidEnableMalWarePatrol="<a href=\"javascript:blur();\" 
+	$SquidEnableMalWarePatrol="<a href=\"javascript:blur();\"
 	OnClick=\"javascript:JSEnableMalWarePatrol(1);\" 
 	style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}";	
-	
-	
+
+
 	if($EnableMalwarePatrol==1){
 		$pic="status_ok.gif";
-		$SquidEnableMalWarePatrol="<a href=\"javascript:blur();\" 
+		$SquidEnableMalWarePatrol="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:JSEnableMalWarePatrol(0);\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";		
-		
+
 	}
-	
+
 	$MalWarePatrol="<tr>
 				<td width=1%><span id='malwarepatrol-$time'><img src='img/$pic'></span></td>
 				<td class=legend>Malware Patrol:</td>
 				<td><div style='font-size:12px' nowrap>$SquidEnableMalWarePatrol</td>
 			</tr>";	
-	
+
 	//-----------------------------------------------------------------------------------
-	
-	
-	$SquidDisableAllFiltersText="<a href=\"javascript:blur();\" 
+
+
+	$SquidDisableAllFiltersText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:JSDisableAllFilters(1);\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";	
-		$pic="status_ok-grey.gif";
-		
+	$pic="status_ok-grey.gif";
+
 	if($SquidDisableAllFilters==1){
 		$pic="status_ok_red.gif";
-		$SquidDisableAllFiltersText="<a href=\"javascript:blur();\" 
+		$SquidDisableAllFiltersText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:JSDisableAllFilters(0);\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";	
-		
-		
+
+
 	}
-$DisableAllFilters="<tr>
+	$DisableAllFilters="<tr>
 					<td width=1%><span id='disableall-$time'><img src='img/$pic'></span></td>
 					<td class=legend>{disable_filters}:</td>
 					<td><div style='font-size:12px' nowrap>$SquidDisableAllFiltersText</td>
 					</tr>";	
-				
-		
-		
+
+
+
 	$eCapClam=null;
-	
+
 	if(!$users->APP_KHSE_INSTALLED){
 		$kavMeta=null;
 	}
-	
+
 	if($t>0){
 		$table="<table style='width:99%' class=form><tbody>$EnableActiveDirectoryTextTR$ufdb$eCapClam$dansgu$cicap$kav$kavMeta$MalWarePatrol$StreamCache$DisableAllFilters</tbody></table>";
-		
+
 	}
-	
+
 	$MEM_HIGER_1G=1;
-	
+
 	if(!$users->MEM_HIGER_1G){
 		$MEM_HIGER_1G=0;
-		
+
 	}
-	
+
 	$html="
 	$table
 	<script>
@@ -825,6 +839,9 @@ $DisableAllFilters="<tr>
 			if(ThisisAClientStats()){return 1;}
 			 var XHR = new XHRConnection();
 			 XHR.appendData('EnableMalWarePatrol','yes');
+			 if(value==1){
+			 	Loadjs('squid.newbee.php?warn-enable-malware-patrol-js=yes');
+			 }
 			 XHR.appendData('value',value);
 			 document.getElementById('malwarepatrol-$time').innerHTML='<center style=\"width:100%\"><img src=img/wait.gif></center>';
 			 XHR.sendAndLoad('$page', 'POST',x_enable_plugins);		
@@ -875,20 +892,20 @@ $DisableAllFilters="<tr>
 		RefreshDansguardianMainService();
 	</script>	
 	";
-	
+
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
 function ufdbguard_service_js(){
-$page=CurrentPageName();
-$tpl=new templates();
-$title=$tpl->_ENGINE_parse_body("{web_proxy}&nbsp;&nbsp;&raquo;&raquo;&nbsp;{APP_UFDBGUARD}&nbsp;&nbsp;&raquo;&raquo;&nbsp;{parameters}");
-echo "YahooWin('760','$page?ufdbguard=yes&width=100%','$title')";
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{web_proxy}&nbsp;&nbsp;&raquo;&raquo;&nbsp;{APP_UFDBGUARD}&nbsp;&nbsp;&raquo;&raquo;&nbsp;{parameters}");
+	echo "YahooWin('760','$page?ufdbguard=yes&width=100%','$title')";
 }
 
 
 function ufdbguard_service_section(){
-	
+
 	$squid=new squidbee();
 	$tpl=new templates();
 	$users=new usersMenus();
@@ -897,38 +914,39 @@ function ufdbguard_service_section(){
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}				
-	
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+
 	$array["ufdbguard-options"]='{service_parameters}';
-	$array["ufdbguard-events"]='{service_events}';
 	
+
 	if($EnableRemoteStatisticsAppliance==0){
 		$array["ufdbguard-blocked"]='{blocked_websites}';
+		$array["ufdbguard-events"]='{service_events}';
 	}
-	
+
 
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
-		
-		
-		
+
+
+
 		if($num=="ufdbguard-events"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.admin.events.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
-			
+				
 		}
 
 		if($num=="ufdbguard-blocked"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.blocked.events.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
-			
-		}		
-		
+				
+		}
+
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 	}
-	
-	
-	
+
+
+
 	echo "
 	<div id=main_ufdbguards_tabs style='width:99%;overflow:auto'>
 		<ul>". implode("\n",$html)."</ul>
@@ -944,59 +962,76 @@ function ufdbguard_service_options(){
 	$sock=new sockets();
 	$squid=new squidbee();
 	$users=new usersMenus();
-	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");	
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	
+	
 	$width="650px";
 	if(isset($_GET["width"])){$width="{$_GET["width"]}";}
-	$template=Paragraphe("banned-template-64.png","{template_label}",'{template_explain}',"javascript:s_PopUp('dansguardian.template.php',800,800)"); 
+	$template=Paragraphe("banned-template-64.png","{template_label}",'{template_explain}',"javascript:s_PopUp('dansguardian.template.php',800,800)");
 	$squidguardweb=Paragraphe("parameters2-64.png","{banned_page_webservice}","{banned_page_webservice_text}","javascript:Loadjs('squidguardweb.php')");
 	$ufdbguard_settings=Paragraphe("filter-sieve-64.png","{APP_UFDBGUARD}","{APP_UFDBGUARD_PARAMETERS}","javascript:Loadjs('ufdbguard.php')");
-		
+
 	$recompile_all_database=Paragraphe("database-spider-compile2-64.png",
 	"{recompile_all_db}","{recompile_all_db_ww_text}","javascript:Loadjs('ufdbguard.databases.php?scripts=recompile')");
-	
-	$compile_schedule=Paragraphe("clock-gold-64.png","{compilation_schedule}","{compilation_schedule_text}","javascript:Loadjs('ufdbguard.databases.php?scripts=compile-schedule')");	
-	
+
+	$compile_schedule=Paragraphe("clock-gold-64.png","{compilation_schedule}","{compilation_schedule_text}","javascript:Loadjs('ufdbguard.databases.php?scripts=compile-schedule')");
+
 	$ufdbguard_conf=Paragraphe("script-64.png","ufdbguard.conf","{ufdbguard_conf_read_text}","javascript:Loadjs('ufdbguard.databases.php?scripts=config-file')");
-	
+
 	$cicap=Paragraphe('c-icap-64-grey.png','{APP_C_ICAP}','{feature_not_installed}',"");
-	
-	
-	
+
+
+
 	$youtubeSchools=Paragraphe('YoutubeSchools-64.png','Youtube For Schools','{YoutubeForSchoolsExplainT}',"javascript:Loadjs('squid.youtube-schools.php')");
-	
-	
+
+
 	if($users->C_ICAP_INSTALLED){
 		$cicap=Paragraphe('c-icap-64.png','{APP_C_ICAP}','{CICAP_SERVICE_TEXT}',"javascript:Loadjs('c-icap.index.php');");
-	}	
-	
+	}
+
 	if($EnableWebProxyStatsAppliance==0){
 		if($users->DANSGUARDIAN_INSTALLED){
 			if($squid->enable_dansguardian==1){
-				$template=null; 
+				$template=null;
 				$squidguardweb=null;
 				$ufdbguard_settings=null;
 				$ufdbguard_conf=null;
 			}
-			
+				
 		}
 
 		if(!$users->APP_UFDBGUARD_INSTALLED){
 			$squidguardweb=null;
 			$ufdbguard_settings=null;
-			$ufdbguard_conf=null;			
-			
+			$ufdbguard_conf=null;
+				
 		}
-		
+
 	}
 	
 	$streamCacheGet=Paragraphe("parametersytube-64.png","{streamGetService}","{streamGetService_text}","javascript:Loadjs('streamget-params.php')");
 	$streamCacheGet_disabled=Paragraphe("parametersytube-64-grey.png","{streamGetService}","{streamGetService_text}","");
 	$PagePeeker=Paragraphe("pagepeeker-64.png","PagePeeker","{pagepeeker_icon_text}","javascript:Loadjs('squid.pagepeeker.php')");
+
+	if(!$users->SQUID_INSTALLED){$streamCacheGet=$streamCacheGet_disabled;}	
 	
-	if(!$users->SQUID_INSTALLED){$streamCacheGet=$streamCacheGet_disabled;}
-	
-	
+	if($EnableRemoteStatisticsAppliance==1){
+		$ufdbguard_conf=null;
+		$squidguardweb=null;
+		$youtubeSchools=null;
+		$streamCacheGet=null;
+		$PagePeeker=null;
+		$recompile_all_database=null;
+		$compile_schedule=null;
+		
+	}
+
+
+
+
 	$tr[]=$ufdbguard_settings;
 	$tr[]=$ufdbguard_conf;
 	$tr[]=$cicap;
@@ -1006,13 +1041,13 @@ function ufdbguard_service_options(){
 	$tr[]=$PagePeeker;
 	$tr[]=$recompile_all_database;
 	$tr[]=$compile_schedule;
-	
-	
+
+
 	$html="<center><div style='width:$width'>".CompileTr3($tr)."</div></center>";
 	$tpl=new templates();
-	$html= $tpl->_ENGINE_parse_body($html,'squid.index.php');	
-	echo $html;			
-	
+	$html= $tpl->_ENGINE_parse_body($html,'squid.index.php');
+	echo $html;
+
 }
 
 
@@ -1025,16 +1060,16 @@ function dansguardian_service_status(){
 	$squid=new squidbee();
 
 
-	
-	
+
+
 	$CicapEnabled=$sock->GET_INFO('CicapEnabled');
 	$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
 	if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
 	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=0;}
-	
-	
-	
-	
+
+
+
+
 
 	$squid_status=DAEMON_STATUS_ROUND("SQUID",$ini,null,1);
 	$dansguardian_status=DAEMON_STATUS_ROUND("DANSGUARDIAN",$ini,null,1);
@@ -1042,16 +1077,16 @@ function dansguardian_service_status(){
 	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("APP_UFDBGUARD",$ini,null,1);
 	$KAV4PROXY=DAEMON_STATUS_ROUND("KAV4PROXY",$ini,null,1);
 	$CICAP=DAEMON_STATUS_ROUND("C-ICAP",$ini,null,1);
-	
-	
+
+
 	$FRESHCLAM=DAEMON_STATUS_ROUND("FRESHCLAM",$ini,null,1);
 	if($users->KASPERSKY_WEB_APPLIANCE){$FRESHCLAM=null;}
 	if($users->KAV4PROXY_INSTALLED){$FRESHCLAM=null;}
 	if(!$users->FRESHCLAM_INSTALLED){$FRESHCLAM=null;}
 	if($CicapEnabled==0){$FRESHCLAM=null;}
 	if($EnableClamavInCiCap==0){$FRESHCLAM=null;}
-	
-	
+
+
 	$tr[]=$squid_status;
 	$tr[]=$dansguardian_status;
 	$tr[]=$APP_SQUIDGUARD_HTTP;
@@ -1059,8 +1094,8 @@ function dansguardian_service_status(){
 	$tr[]=$APP_UFDBGUARD;
 	$tr[]=$KAV4PROXY;
 	$tr[]=$FRESHCLAM;
-	
-	
+
+
 	$html="$okFilterText
 		<center style='padding-left:5px;margin-right:-5px'>
 			<div id='nofilters'></div>
@@ -1074,9 +1109,9 @@ function dansguardian_service_status(){
 	
 	";
 	$tpl=new templates();
-	$html= $tpl->_ENGINE_parse_body($html,'squid.index.php');	
+	$html= $tpl->_ENGINE_parse_body($html,'squid.index.php');
 	echo $html;
-	
+
 }
 function dansguardian_service_status_nofilters(){
 	$sock=new sockets();
@@ -1092,16 +1127,16 @@ function dansguardian_service_status_nofilters(){
 	if($users->DANSGUARDIAN_INSTALLED){$KAV4PROXY_INSTALLED=1;}
 	if($users->APP_UFDBGUARD_INSTALLED){$APP_UFDBGUARD_INSTALLED=1;}
 	if($users->KAV4PROXY_INSTALLED){$KAV4PROXY_INSTALLED=1;}
-		
+
 	writelogs("EnableUfdbGuard=$EnableUfdbGuard; KAV4PROXY_INSTALLED:$KAV4PROXY_INSTALLED APP_UFDBGUARD_INSTALLED:$APP_UFDBGUARD_INSTALLED KAV4PROXY_INSTALLED:$KAV4PROXY_INSTALLED",__FUNCTION__,__FILE__,__LINE__);
-	
+
 	if($users->DANSGUARDIAN_INSTALLED){if($squid->enable_dansguardian==1){$okFilter=true;}}
 	if($users->APP_UFDBGUARD_INSTALLED){if($EnableUfdbGuard==1){$okFilter=true;}}
 	if($users->KAV4PROXY_INSTALLED){if($kavicapserverEnabled==1){$okFilter=true;}}
 	if($okFilter){return;}
-	
 
-		$okFilterText="
+
+	$okFilterText="
 		<center style='margin-bottom:20px'>
 		<table style='width:90%' class=form>
 			<tbody>
@@ -1121,13 +1156,12 @@ function dansguardian_service_status_nofilters(){
 		</center>
 		
 		";
-		
+
 	$tpl=new templates();
-	$html= $tpl->_ENGINE_parse_body($okFilterText,'squid.index.php');	
+	$html= $tpl->_ENGINE_parse_body($okFilterText,'squid.index.php');
 	echo $html;
 
-	
+
 }
-function WARN_SQUID_STATS(){$t=time();$html="<div id='$t'></div><script>LoadAjax('$t','squid.warn.statistics.php');</script>";echo $html;}	
-	
-	
+function WARN_SQUID_STATS(){$t=time();$html="<div id='$t'></div><script>LoadAjax('$t','squid.warn.statistics.php');</script>";echo $html;}
+

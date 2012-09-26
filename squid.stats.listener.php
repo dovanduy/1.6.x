@@ -23,17 +23,17 @@ function STATS_LINE(){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if($EnableWebProxyStatsAppliance==0){die();}	
 	$q=new mysql_squid_builder();
-	
+	$q->CheckTables();
 	if(isset($_POST["MYSSLPORT"])){
 		writelogs($_SERVER["REMOTE_ADDR"] .":{$_POST["MYSSLPORT"]} production server....",__FUNCTION__,__FILE__,__LINE__);
 		$hostname=gethostbyaddr($_SERVER["REMOTE_ADDR"]);
 		$time=date('Y-m-d H:i:s');
 		$sql="INSERT IGNORE INTO `squidservers`
-		 (ipaddr,hostname,port,created,updated) 
+		 (ipaddr,hostname,port,created,udpated) 
 		 VALUES ('{$_SERVER["REMOTE_ADDR"]}','$hostname','{$_POST["MYSSLPORT"]}','$time','$time')";
-		$ligne=mysql_fetch_array("SELECT ipaddr FROM squidservers WHERE ipaddr='{$_SERVER["REMOTE_ADDR"]}'");
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ipaddr FROM squidservers WHERE ipaddr='{$_SERVER["REMOTE_ADDR"]}'"));
 		if($ligne["ipaddr"]==null){$q->QUERY_SQL($sql);}else{
-			$q->QUERY_SQL("UPDATE `squidservers` SET updated='$time' WHERE ipaddr='{$ligne["ipaddr"]}'");
+			$q->QUERY_SQL("UPDATE `squidservers` SET udpated='$time' WHERE ipaddr='{$ligne["ipaddr"]}'");
 		}
 		
 		
@@ -94,10 +94,19 @@ function CHANGE_CONFIG(){
 	
 	if($_POST["CHANGE_CONFIG"]=="USERSMAC"){
 		$sock=new sockets();
-		$sock->send_email_events_notroot("Order to rebuild UsersMac database", "The statistics appliance send order \"USERSMAC\"", "proxy");
 		$sock->getFrameWork("squid.php?squid-reconfigure=yes");
+		$sock->send_email_events_notroot("Order to rebuild UsersMac database", "The statistics appliance send order \"USERSMAC\"", "proxy");
 		echo "<ANSWER>OK</ANSWER>\n";		
 	}	
+	
+	if($_POST["CHANGE_CONFIG"]=="BUILDCONF"){
+		$sock=new sockets();
+		$sock->getFrameWork("squid.php?squid-reconfigure=yes");
+		$sock->send_email_events_notroot("Order to rebuild squid config", "The statistics appliance send order \"BUILDCONF\"", "proxy");
+		
+		echo "<ANSWER>OK</ANSWER>\n";		
+	}		
+	
 	
 	
 	

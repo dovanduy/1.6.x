@@ -506,6 +506,7 @@ logs.DeleteFile('/etc/cron.d/apps-upgrade');
 logs.DeleteFile('/etc/cron.d/pkg-upgrade');
 logs.DeleteFile('/etc/cron.d/artica-cron-dansguardianinject');
 logs.DeleteFile('/etc/cron.d/artica-malwareswww');
+logs.DeleteFile('/etc/cron.d/artica-cron-vpswatch');
 
 
 fpsystem('/bin/rm -f /etc/cron.d/artica-cron-executor/*');
@@ -599,7 +600,7 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
 
 
 
-      l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 30s ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.syslog-engine.php --auth-logs');
+
 
       if EnableSnort=1 then l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10s ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.syslog-engine.php --snort');
       if EnableSnort=0 then logs.DebugLogs('Starting......: Daemon (fcron) SNORT parser is disabled');
@@ -679,17 +680,6 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
        l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 5h '+cmdnice+php5bin+ ' ' +artica_path+'/exec.drupal.php --cron');
    end;
 // -----------------------------------------------------------------------
-
-
-
-
-      if FileExists(squid.SQUID_BIN_PATH()) then begin
-         logs.DebugLogs('Starting......: Daemon (fcron) set squid injector reports schedule...');
-         l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 58s '+cmdnice+php5bin+ ' ' +artica_path+'/exec.dansguardian.injector.php');
-      end else begin
-         logs.DebugLogs('Starting......: Daemon (fcron) Squid is not installed');
-      end;
-
 
 
 // ---------------------------------- BACKUP ---------------------------------------------------------------------------------------------------------
@@ -863,8 +853,7 @@ l.add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10 '+ SYS.LOCAT
 
 
 
-      //toutes les 2 minutes
-      SYS.CRON_CREATE_SCHEDULE('0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58 * * * *',cmdnice+php5bin+ ' ' +artica_path+'/exec.vservers.php --watchdog','artica-cron-vpswatch');
+
 
 
 

@@ -31,6 +31,7 @@ private
      dansguardian_mem_pid:string;
      username:string;
      SQUIDEnable:integer;
+     EnableStatisticsCICAPService:integer;
      TAIL_STARTUP:string;
      function LOCATE_C_ICAP_CONFIG():string;
      function GET_VALUE_DATA(conf_path:string;key:string):string;
@@ -102,6 +103,8 @@ begin
        if not TryStrToInt(SYS.GET_INFO('CicapEnabled'),CicapEnabled) then CicapEnabled:=0;
        if not TryStrToInt(SYS.GET_INFO('DansGuardianEnableUserFrontEnd'),DansGuardianEnableUserFrontEnd) then DansGuardianEnableUserFrontEnd:=1;
        if not TryStrToInt(SYS.GET_INFO('SQUIDEnable'),SQUIDEnable) then SQUIDEnable:=1;
+       if not TryStrToInt(SYS.GET_INFO('EnableStatisticsCICAPService'),EnableStatisticsCICAPService) then EnableStatisticsCICAPService:=1;
+
 
 
 
@@ -580,8 +583,6 @@ PID:= C_ICAP_PID();
  if length(PID)>0 then begin
     squid:=tsquid.Create;
     logs.DebugLogs('Starting......: c-icap started with new pid ' + PID);
-    logs.DebugLogs('Starting......: c-icap reconfigure SQUID '+squid.SQUID_BIN_PATH());
-    fpsystem(squid.SQUID_BIN_PATH()+' -k reconfigure');
  end else begin
     writeln('Starting......: c-icap failed with command line '+C_ICAP_BIN_PATH() + ' -f '+C_ICAP_CONF_PATH()+' -d 3');
  end;

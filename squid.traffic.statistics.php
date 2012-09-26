@@ -121,12 +121,12 @@ function status(){
 function now(){
 	
 	$page=CurrentPageName();
-	
+	$users=new usersMenus();
 	$tpl=new templates();
 	$array["now-section"]='{this_hour}';
 	$array["cache-log"]='{proxy_service_events}';
 	$array["now-requests"]='{realtime_requests}';
-	
+	if($users->WEBSTATS_APPLIANCE){unset($array["cache-log"]);}
 	
 	
 

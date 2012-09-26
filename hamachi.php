@@ -99,7 +99,7 @@ $array_TYPE["JOIN_NET"]="{join_network}";
 		<td valign='top' style='font-size:16px'>{$array["NETWORK"]}</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","HAMACHI_EDIT()")."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}","HAMACHI_EDIT()","16px")."</td>
 	</tr>	
 	</table>
 	</div>
@@ -158,6 +158,7 @@ function js(){
 	$startjs="HAMACHI_START()";
 	if(isset($_GET["in-line"])){
 		$startjs="HAMACHI_START_INLINE()";
+		$inline="&in-line=yes";
 	}
 	$html="
 	var {$prefix}tant=0;
@@ -183,7 +184,7 @@ function {$prefix}demarre(){
 		}
 		
 		function HAMACHI_START_INLINE(){
-			$('#mainlevel').load('$page?popup=yes');
+			$('#mainlevel').load('$page?popup=yes$inline');
 		}
 var X_FREENETKILL= function (obj) {
 	var results=obj.responseText;
@@ -253,7 +254,7 @@ function popup(){
 	$array["CREATE_NET"]="{create_network}";
 	$array["JOIN_NET"]="{join_network}";
 	$array[null]="{select}";
-	
+	if(isset($_GET["in-line"])){$stylecenter="style='width:810px'";}
 	$EnableHamachi=$sock->GET_INFO("EnableHamachi");
 	if(!is_numeric($EnableHamachi)){$EnableHamachi=1;}
 	
@@ -264,7 +265,7 @@ function popup(){
 	
 	
 	$html="
-	<center class=form>
+	<center class=form $stylecenter>
 	<div id='hamachiid'>
 	<table style='width:100%'>
 	<tr>
@@ -298,7 +299,7 @@ function popup(){
 	
 	
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{add}","HAMACHI_SAVE()")."</td>
+		<td colspan=2 align='right'><hr>". button("{add}","HAMACHI_SAVE()","16px")."</td>
 	</tr>	
 	</table>
 	</td>

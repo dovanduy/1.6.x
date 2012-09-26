@@ -47,6 +47,7 @@ if($argv[1]=='--multi-dbstats'){multi_databases_parse();die();}
 if($argv[1]=='--mysqltuner'){mysqltuner();die();}
 if($argv[1]=='--database-rescan'){databases_rescan($argv[2],$argv[3]);die();}
 if($argv[1]=='--database-dump'){database_dump($argv[2],$argv[3]);die();}
+if($argv[1]=='--mysql-upgrade'){mysql_upgrade($argv[2]);die();}
 
 
 
@@ -213,6 +214,34 @@ if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded system
 	echo @implode("\n", $l);
 	
 }
+
+function mysql_upgrade($instanceid){
+	if(!is_numeric($instanceid)){$instanceid=0;}
+	$unix=new unix();
+	$mysql_upgrade=$unix->find_program("mysql_upgrade");
+	if(!is_file($mysql_upgrade)){echo "mysql_upgrade no such bin...\n";return;}
+	$myisamchk=$unix->find_program("myisamchk");
+	$q=new mysql();
+	if($q->mysql_server=="127.0.0.1"){$servcmd=" --socket=/var/run/mysqld/mysqld.sock ";}else{$servcmd=" --host=$q->mysql_server --port=$q->mysql_port ";}
+	if($q->mysql_password<>null){$password=" --password=$q->mysql_password ";}
+	$cmdline="$mysql_upgrade --user=$q->mysql_admin$password $servcmd 2>&1";	
+	$cmdchk="$myisamchk -c -r -f mysql/*";
+	if($instanceid>0){
+		$q=new mysql_multi($instance_id);
+		if($q->mysql_password<>null){$password=" --password=$q->mysql_password ";}
+		$cmdline="$mysql_upgrade --user=$q->mysql_admin$password --socket=$q->SocketPath 2>&1";
+		$cmdchk="$myisamchk -c -r -f mysql/* --defaults-file=/etc/mysql-multi.cnf";
+	}
+	
+	//mysqlcheck -c -f --auto-repair --user=root --password=WinAccra96   --socket=/var/run/mysqld/mysqld.sock --databases mysql zarafa1 zarafa zarafa2
+	
+	if($GLOBALS["VERBOSE"]){echo $cmdline."\n$cmdchk\n";}
+	shell_exec($cmdline);
+	shell_exec($cmdchk); 
+	maintenance(true);
+	
+}
+
 
 function database_dump($database,$instanceid){
 	$unix=new unix();
@@ -852,13 +881,13 @@ function mysqlcheck($db,$table,$instance_id){
 }
 
 
-function maintenance(){
+function maintenance($force=false){
 	$unix=new unix();
 	$time=$unix->file_time_min("/etc/artica-postfix/mysql.optimize.time");
 	$time1=time();
 	$myisamchk=$unix->find_program("myisamchk");
 	$mysqlcheck=$unix->find_program("mysqlcheck"); 
-	
+	if(!$force){
 	if(!$GLOBALS["VERBOSE"]){
 		if($time<1440){
 		$unix->events("Maintenance on aborting {$time}Mn wait 1440Mn minimal");
@@ -867,7 +896,7 @@ function maintenance(){
 		return;
 		}
 	}
-	
+	}
 	
 
 	@unlink("/etc/artica-postfix/mysql.optimize.time");

@@ -115,6 +115,9 @@ class netagent{
 	
 	private function sendstatus(){
 		include(dirname(__FILE__)."/settings.inc");
+		$sock=new sockets();
+		$ArticaHttpsPort=$sock->GET_INFO("ArticaHttpsPort");
+		if(!is_numeric($ArticaHttpsPort)){$ArticaHttpsPort="9000";}
 		$hostname=$this->hostname();
 		$rm=$GLOBALS["CLASS_UNIX"]->find_program("rm");
 		$values=base64_encode(serialize($_GLOBAL));
@@ -133,6 +136,8 @@ class netagent{
 		$curlparms["CACHE_LOGS"]=$this->cache_logs();
 		$curlparms["SQUIDVER"]=$GLOBALS["CLASS_SOCKET"]->getFrameWork("squid.php?full-version=yes");
 		$curlparms["ARCH"]=$this->Architecture();
+		$curlparms["ArticaHttpsPort"]=$ArticaHttpsPort;
+		
 		$curlparms["ISARTICA"]=1;
 		$curlparms["PARMS"]=$this->parse_daemon_settings();
 		

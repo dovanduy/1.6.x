@@ -107,15 +107,15 @@ buttons : [
 
 
 	function SelectTasks(){
-		YahooWin4('400','$page?select-tasks=yes&t=$t','$task?');
+		YahooWin4('500','$page?select-tasks=yes&t=$t','$task?');
 	}
 	
 	function SelectFunction(){
-		YahooWin4('520','$page?select-function=yes&t=$t','$task?');
+		YahooWin4('550','$page?select-function=yes&t=$t','$task?');
 	}
 	
 	function SelectScript(){
-		YahooWin4('400','$page?select-script=yes&t=$t','$file?');
+		YahooWin4('550','$page?select-script=yes&t=$t','$file?');
 	}	
 
 	function DisableSquidDefaultScheduleCheck(){

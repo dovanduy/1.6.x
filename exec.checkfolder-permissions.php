@@ -49,23 +49,23 @@ if(is_dir("/etc/resolvconf")){
 if(!is_dir("/var/log/btmp")){@mkdir("/var/log/btmp",0755,true);}
 
 $sock=new sockets();
-  $f[]='/ressources';
-  $f[]='/usr/share/artica-postfix';
-  $f[]='/ressources';
-  $f[]='/ressources/sessions';
-  $f[]='/ressources/web';
-  $f[]='/ressources/web/logs';
-  $f[]='/framework'; 
-  $f[]='/ressources/userdb';
-  $f[]='/ressources/conf';
-  $f[]='/ressources/conf/kasDatas';
-  $f[]='/ressources/logs';
-  $f[]='/ressources/profiles';
-  $f[]='/ressources/sessions/SessionData';
-  $f[]='/computers/ressources/sessions/SessionData';
-  $f[]='/computers/ressources/logs';
-  $f[]='/computers/ressources/profiles';
-  $f[]='/ressources/conf/upload';
+  $f[]='ressources';
+  $f[]='ressources/sessions';
+  $f[]='ressources/web';
+  $f[]='ressources/web/logs';
+  $f[]='ressources/logs/web/queue/sessions';
+  $f[]='framework'; 
+  $f[]='ressources/userdb';
+  $f[]='ressources/conf';
+  $f[]='ressources/conf/kasDatas';
+  $f[]='ressources/logs';
+  $f[]='ressources/profiles';
+  $f[]='ressources/sessions/SessionData';
+  $f[]='computers/ressources/sessions/SessionData';
+  $f[]='computers/ressources/logs';
+  
+  $f[]='computers/ressources/profiles';
+  $f[]='ressources/conf/upload';
   
   
   $artica_path=dirname(__FILE__);
@@ -73,11 +73,7 @@ $sock=new sockets();
   	$LighttpdUserAndGroup=$sock->GET_INFO('LighttpdUserAndGroup');
   	$LighttpdUserAndGroup=str_replace('lighttpd:lighttpd:lighttpd','lighttpd:lighttpd',$LighttpdUserAndGroup);
   	$LighttpdUserAndGroup=str_replace('www-data:www-data:www-data','www-data:www-data',$LighttpdUserAndGroup);   
-   
-	  if(!preg_match("#(.+?):(.+)#", $LighttpdUserAndGroup,$re)){
-	  	$username="www-data";
-	  	$groupname="www-data";
-	  }
+	if(!preg_match("#(.+?):(.+)#", $LighttpdUserAndGroup,$re)){$username="www-data";$groupname="www-data";}
   }
   
   if($username==null){$username="www-data";}

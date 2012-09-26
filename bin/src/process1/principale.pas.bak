@@ -474,7 +474,6 @@ begin
    if FileExists('/etc/artica-postfix/INNODB_FILE_PER_TABLE_INSTALL') then list.Add('$_GLOBAL["INNODB_FILE_PER_TABLE_INSTALL"]=True;') else list.Add('$_GLOBAL["INNODB_FILE_PER_TABLE_INSTALL"]=false;');
    if FIleExists('/opt/kaspersky/klmsui/libexec/mod_klwi3.so') then list.Add('$_GLOBAL["KLMS_WEB_INSTALLED"]=True;') else list.Add('$_GLOBAL["KLMS_WEB_INSTALLED"]=false;');
    if FIleExists('/opt/kaspersky/klms/libexec/klms-milter') then list.Add('$_GLOBAL["KLMS_INSTALLED"]=True;') else list.Add('$_GLOBAL["KLMS_INSTALLED"]=false;');
-
    if FIleExists('/usr/local/share/artica/owncloud_src/index.php') then list.Add('$_GLOBAL["OWNCLOUD_INSTALLED"]=True;') else list.Add('$_GLOBAL["OWNCLOUD_INSTALLED"]=false;');
 
    if FIleExists('/etc/artica-postfix/WEBSTATS_APPLIANCE') then begin
@@ -1000,6 +999,7 @@ begin
           end else begin
                if not FileExists(mldap.SLAPD_CONF_PATH()) then begin
                     writeln('Warning slpad.conf, no such file, restarting LDAP server');
+                    fpsystem('/usr/share/artica-postfix/bin
                     fpsystem('/etc/init.d/artica-postfix restart ldap');
                end;
           end;

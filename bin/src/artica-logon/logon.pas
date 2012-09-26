@@ -160,6 +160,7 @@ if FileExists('/opt/kaspersky/klms/bin/klms-control') then begin
 end;
 if not  ArticaAgent then writeln('[C]..... Synchronize settings & remove cache');
 writeln('[D]..... Upgrade to a nightly build (',GetLatestNightlyVersion(),')');
+if FileExists('/usr/bin/htop') then writeln('[E]..... Process Monitor');
 writeln('[L]..... Configure languages');
 writeln('[M]..... Modify DNS');
 writeln('[N]..... Modify eth0 interface');
@@ -187,12 +188,17 @@ if FileExists('/usr/sbin/dpkg-reconfigure') then begin
 end;
 
 writeln('[Q]..... Exit and enter to the system');
-writeln('');
 writeln(lightstatus);
 writeln('Your command: ');
 readln(a);
 
 a:=UpperCase(a);
+
+if a='E' then begin
+   fpsystem('/usr/bin/htop');
+   Menu();
+   exit;
+end;
 
 if a='B' then begin
    fpsystem('/opt/kaspersky/klms/bin/klms-control --reset-web-admin-password');

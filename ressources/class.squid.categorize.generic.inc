@@ -1440,6 +1440,7 @@ private function socialnet($www){
 		if(preg_match("#^172\.16\.[0-9]+\.[0-9]+$#", $www)){return "internal";}		
 		if(preg_match("#^10\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){return "internal";}
 		
+		if(preg_match("#\.lan$#", $www)){return "internal";}
 		if(preg_match("#\.local$#", $www)){return "internal";}
 		if(preg_match("#\.intra$#", $www)){return "internal";}
 		//if(preg_match("#^130\.117\.[0-9]+\.[0-9]+$#", $www)){return "internal";}
@@ -1466,6 +1467,7 @@ private function socialnet($www){
 		if(preg_match("#\.amoureux\.com$#", $www)){return "dating";}
 		if(preg_match("#\.illimeet\.com$#", $www)){return "dating";}
 		if(preg_match("#\.wekiss\.com$#", $www)){return "dating";}
+		if(preg_match("#\.monamour\.ru$#", $www)){return "dating";}
 		
 		if(preg_match("#\.emv2\.com$#", $www)){return "mailing";}
 		if(preg_match("#\.mailingwork\.de$#", $www)){return "mailing";}
@@ -1545,7 +1547,7 @@ private function socialnet($www){
 		if(preg_match("#\.synology\.me$#",$www)){return "dynamic";}
 		if(preg_match("#\.dyndns-mail\.com$#",$www)){return "dynamic";}
 		if(preg_match("#\.hidemyass\.com$#",$www)){return "proxy";}
-		
+		if(preg_match("#\.cameleo\.ru$#",$www)){return "proxy";}
 		
 	
 

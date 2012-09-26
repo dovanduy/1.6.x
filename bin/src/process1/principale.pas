@@ -999,6 +999,7 @@ begin
           end else begin
                if not FileExists(mldap.SLAPD_CONF_PATH()) then begin
                     writeln('Warning slpad.conf, no such file, restarting LDAP server');
+                    fpsystem('/usr/share/artica-postfix/bin/artica-install --slapdconf');
                     fpsystem('/etc/init.d/artica-postfix restart ldap');
                end;
           end;

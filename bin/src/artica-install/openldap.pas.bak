@@ -37,7 +37,7 @@ private
      function ReadFileIntoString(path:string):string;
      procedure CHECK_SCHEMA_DEBIAN_PERMISSIONS();
      function FIND_USERID():string;
-     procedure MONIT_WATCHDOG();
+
 
 
 
@@ -231,10 +231,10 @@ begin
 
 pid:=SYS.GET_PID_FROM_PATH(PID_PATH());
 if length(pid)=0 then begin
-  //logs.DebugLogs('Starting......: OpenLDAP "' + PID_PATH() + '" is null');
+  //logs.DebugLogs('slapd: [INFO] "' + PID_PATH() + '" is null');
   pid:=SYS.PIDOF(SLAPD_BIN_PATH());
   if length(pid)=0 then begin
-       //logs.DebugLogs('Starting......: OpenLDAP pidof "' + SLAPD_BIN_PATH() + '" is null');
+       //logs.DebugLogs('slapd: [INFO] pidof "' + SLAPD_BIN_PATH() + '" is null');
        exit;
   end;
 end;
@@ -258,7 +258,7 @@ begin
   count:=0;
 
   if SYS.COMMANDLINE_PARAMETERS('--monit') then begin
-       logs.DebugLogs('Starting......: OpenLDAP is stopped from monit !');
+       logs.DebugLogs('slapd: [INFO] is stopped from monit !');
        tmp:=logs.FILE_TEMP();
        top:=SYS.LOCATE_GENERIC_BIN('top');
        if length(top)>0 then fpsystem(top+' -b -n 1 >'+tmp+' 2>&1');
@@ -350,7 +350,7 @@ var
 
 begin
 if not FileExists(SLAPD_BIN_PATH()) then begin
-   logs.DebugLogs('Starting......: OpenLDAP schemas, ldap did not exists... Skip');
+   logs.DebugLogs('slapd: [INFO] schemas, ldap did not exists... Skip');
    exit;
 end;
 if not FileExists(artica_path + '/bin/install/postfix.schema') then begin
@@ -364,12 +364,12 @@ if not FileExists(artica_path + '/bin/install/samba.schema') then begin
 end;
 
 if paramStr(2)='off'  then begin
-   writeln('Starting......: OpenLDAP Schemas Disable Linking  schemas...');
+   writeln('slapd: [INFO] Schemas Disable Linking  schemas...');
    SYS.set_INFOS('DisableLdapSchemaLinking','1');
 end;
 
 if paramStr(2)='on'  then begin
-   writeln('Starting......: OpenLDAP Schemas Enable Linking  schemas...');
+   writeln('slapd: [INFO] Schemas Enable Linking  schemas...');
    SYS.set_INFOS('DisableLdapSchemaLinking','0');
 end;
 
@@ -377,7 +377,7 @@ if not TryStrToInt(SYS.GET_INFO('DisableLdapSchemaLinking'),DisableLdapSchemaLin
 
    for i:=0 to schemas.Count-1 do begin
        if FileExists(SCHEMA_PATH() + '/'+ schemas.Strings[i]) then begin
-          writeln('Starting......: OpenLDAP  Schemas deleting '+SCHEMA_PATH() + '/'+ schemas.Strings[i]);
+          writeln('slapd: [INFO]  Schemas deleting '+SCHEMA_PATH() + '/'+ schemas.Strings[i]);
           logs.DeleteFile(SCHEMA_PATH() + '/'+schemas.Strings[i]);
        end;
    end;
@@ -386,7 +386,7 @@ if not TryStrToInt(SYS.GET_INFO('DisableLdapSchemaLinking'),DisableLdapSchemaLin
        articaSchema:=artica_path + '/bin/install/'+schemas.Strings[i];
        TargetSchema:=SCHEMA_PATH() + '/'+schemas.Strings[i];
        if FileExists(articaSchema) then begin
-          logs.DebugLogs('Starting......: OpenLDAP installing schema '+schemas.Strings[i]);
+          logs.DebugLogs('slapd: [INFO] installing schema '+schemas.Strings[i]);
           logs.OutputCmd('/bin/chmod 777 '+articaSchema);
           if DisableLdapSchemaLinking=1 then begin
              logs.OutputCmd('/bin/cp '+articaSchema+' ' + TargetSchema);
@@ -562,38 +562,6 @@ RegExpr.free;
 
 end;
 //##############################################################################
-procedure topenldap.MONIT_WATCHDOG();
-var
-   mem_monit_bin_path:string;
-   l:TstringList;
-   pidpath:string;
-begin
-
-
-   mem_monit_bin_path:=SYS.LOCATE_GENERIC_BIN('monit');
-   if length(mem_monit_bin_path)=0 then begin
-      logs.Debuglogs('slapd: [INFO] Monit is not installed, cannot monitor slapd...');
-      exit;
-   end;
-
-pidpath:=PID_PATH();
-if length(pidpath)<5 then pidpath:='/var/run/slapd/slapd.pid';
-      logs.Debuglogs('slapd: [INFO] Monit pid path:'+pidpath);
-l:=Tstringlist.Create();
-l.Add('check process '+ExtractFileName(SLAPD_BIN_PATH())+' with pidfile '+PID_PATH());
-l.Add('start program = "/etc/init.d/artica-postfix start ldap --monit"');
-l.Add('stop program  = "/etc/init.d/artica-postfix stop ldap --monit"');
-l.Add('if cpu is greater than 80% for 2 cycles then alert');
-l.Add('if cpu usage > 95% for 5 cycles then restart');
-l.Add('if 3 restarts within 3 cycles then timeout');
-logs.Debuglogs('slapd: [INFO] Monit done...');
-logs.WriteToFile(l.Text,'/etc/monit/conf.d/APP_OPENLDAP.monitrc');
-SYS.MONIT_CHECK('APP_OPENLDAP');
-l.free;
-end;
-
-
-
 procedure topenldap.SAVE_SLAPD_CONF();
 var
   ldap_suffix,artica_admin,artica_password,user:string;

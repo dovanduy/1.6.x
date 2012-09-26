@@ -31,13 +31,20 @@
 	if(isset($_GET["update-kav-logs"])){apply_kavupdate_logs();exit;}	
 	
 	
+	if(isset($_GET["error-remote-appliance"])){error_remote_appliance();exit;}
+	if(isset($_GET["error-remote-appliance-popup"])){error_remote_appliance_popup();exit;}
+	
+	if(isset($_GET["warn-enable-malware-patrol-js"])){error_malware_patrol_js();exit;}
+	if(isset($_GET["warn-enable-malware-patrol-popup"])){error_malware_patrol_popup();exit;}
 		
 	
 
 	
 	
 	$user=new usersMenus();
-	if($user->SQUID_INSTALLED==false){header('location:users.index.php');exit();}
+	if(!$user->WEBSTATS_APPLIANCE){
+		if($user->SQUID_INSTALLED==false){header('location:users.index.php');exit();}
+	}
 	if($user->AsSquidAdministrator==false){header('location:users.index.php');exit();}
 	
 	if(isset($_GET["js_enable_disable_squid"])){js_enable_disable_squid(true);exit;}
@@ -113,7 +120,50 @@
 	
 	js();
 	
+function error_remote_appliance(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$title=$tpl->javascript_parse_text("{banned_configuration}");
+	echo "YahooSetupControlModalFixedNoclose('650','$page?error-remote-appliance-popup=yes','$title')";
 	
+}
+function error_malware_patrol_js(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	echo "YahooSetupControlModalFixedNoclose('650','$page?warn-enable-malware-patrol-popup=yes','Malware Patrol !!')";	
+}
+function error_malware_patrol_popup(){
+	$tpl=new templates();
+	$error=FATAL_ERROR_SHOW_128("{warning_malware_patrol_consumme_performance}");
+	
+	$html="
+	$error
+	<div style='text-align:right'><hr>". button("{close}","YahooSetupControlHide()","18px")."</div>";
+	echo $tpl->_ENGINE_parse_body($html);	
+	
+}
+
+function error_remote_appliance_popup(){
+	$tpl=new templates();
+	$sock=new sockets();
+	$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
+	
+	
+	if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
+	if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}	
+	$proto="http";
+	if($RemoteStatisticsApplianceSettings["SSL"]==1){$proto="https";}
+	$text=$tpl->_ENGINE_parse_body("{remote_appliance_error_text}");
+	$text=str_replace("%s", "$proto://{$RemoteStatisticsApplianceSettings["SERVER"]}:{$RemoteStatisticsApplianceSettings["PORT"]}", $text);
+	
+	$error=FATAL_ERROR_SHOW_128("<strong>{banned_configuration}</strong><hr>$text");
+	
+	$html="
+	$error
+	<div style='text-align:right'><hr>". button("{close}","YahooSetupControlHide()","18px")."</div>";
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
 	
 function sarg_js(){
 	
@@ -1278,6 +1328,8 @@ function transparent_popup(){
 	
 	$KernelSendRedirects=$sock->GET_INFO("KernelSendRedirects");
 	if(!is_numeric($KernelSendRedirects)){$KernelSendRedirects=1;}	
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	
 	$field=Paragraphe_switch_img('{transparent_mode}','{transparent_mode_text}','squid_transparent',$squid->hasProxyTransparent,null,350);
 	$html="
@@ -1314,6 +1366,8 @@ function transparent_popup(){
 	function SaveTransparentProxy(){
 		var XHR = new XHRConnection();
 		var KernelSendRedirects=0;
+		var EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance;
+		if(EnableRemoteStatisticsAppliance==1){Loadjs('$page?error-remote-appliance=yes');return;}
 		var CONFIG_NETFILTER_TPROXY=$CONFIG_NETFILTER_TPROXY;
 		XHR.appendData('squid_transparent',document.getElementById('squid_transparent').value);
 		

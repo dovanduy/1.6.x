@@ -121,7 +121,7 @@ begin
 
       if not TryStrToInt(SYS.GET_INFO('EnableAmavisDaemon'),EnableAmavisDaemon) then EnableAmavisDaemon:=0;
       if not TryStrToInt(SYS.GET_INFO('ClamavMilterEnabled'),ClamavMilterEnabled) then ClamavMilterEnabled:=0;
-      if not TryStrToInt(SYS.GET_INFO('EnableClamavDaemon'),EnableClamavDaemon) then EnableClamavDaemon:=1;
+      if not TryStrToInt(SYS.GET_INFO('EnableClamavDaemon'),EnableClamavDaemon) then EnableClamavDaemon:=0;
 
 
       if FileExists('/etc/artica-postfix/KASPER_MAIL_APP') then begin
@@ -975,6 +975,7 @@ begin
 
 
      forceDirectories('/var/run/clamav');
+     forceDirectories('/var/clamav');
      if FileExists('/var/log/clamav/freshclam.log') then logs.DeleteFile('/var/log/clamav/freshclam.log');
      logs.OutputCmd('/bin/chown -R '+user+':'+user+' /var/run/clamav');
      logs.OutputCmd('/bin/chown -R '+user+':'+user+' /var/log/clamav');

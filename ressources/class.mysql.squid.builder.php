@@ -48,11 +48,19 @@ class mysql_squid_builder{
 		if(!is_numeric($this->DisableArticaProxyStatistics)){$this->DisableArticaProxyStatistics=0;}
 		$this->EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
 		if(!is_numeric($this->EnableSargGenerator)){$this->EnableSargGenerator=0;}
+		$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+		if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}	
+		$UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
+		if(!is_numeric($UseDynamicGroupsAcls)){$UseDynamicGroupsAcls=0;}
+	
+		
 		
 		$this->acl_GroupType["src"]="{addr}";
 		$this->acl_GroupType["arp"]="{ComputerMacAddress}";
 		$this->acl_GroupType["dstdomain"]="{dstdomain}";
 		$this->acl_GroupType["proxy_auth"]="{members}";
+		if($EnableKerbAuth==1){if($UseDynamicGroupsAcls==1){$this->acl_GroupType["proxy_auth_ads"]="{dynamic_activedirectory_group}";}}
+		$this->acl_GroupType["port"]="{remote_ports}";
 		
 		$this->ClassSQL=new mysql();
 		$this->UseMysql=$this->ClassSQL->UseMysql;
@@ -144,6 +152,7 @@ class mysql_squid_builder{
 			$this->tasks_array[36]="{members_stats}";
 			$this->tasks_array[37]="{squid_tail_injector}";
 			$this->tasks_array[38]="{web_injector}";
+			$this->tasks_array[39]="{reconfigure_proxy_task}";
 			
 			
 			
@@ -186,6 +195,7 @@ class mysql_squid_builder{
 			$this->tasks_explain_array[36]="{members_stats_explain}";
 			$this->tasks_explain_array[37]="{squid_tail_injector_explain}";
 			$this->tasks_explain_array[38]="{web_injector_explain}";
+			$this->tasks_explain_array[39]="{reconfigure_proxy_task_explain}";
 			
 			
 			
@@ -228,6 +238,7 @@ class mysql_squid_builder{
 			$this->tasks_processes[36]="exec.squid.stats.php --members-central";
 			$this->tasks_processes[37]="exec.squid-tail-injector.php";
 			$this->tasks_processes[38]="exec.dansguardian.injector.php";
+			$this->tasks_processes[39]="exec.squid.php --build --force";
 	
 	}
 	
@@ -1410,7 +1421,9 @@ public function CheckTables($table=null){
 			$this->QUERY_SQL($sql,$this->database);
 		}
 
-		if(!$this->FIELD_EXISTS("squidservers", "udpated")){$this->QUERY_SQL("ALTER TABLE `squidservers` ADD `udpated` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,ADD INDEX ( `udpated` )");}
+		if(!$this->FIELD_EXISTS("squidservers", "udpated")){
+			$this->QUERY_SQL("ALTER TABLE `squidservers` ADD `udpated` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,ADD INDEX ( `udpated` )");
+		}
 
 		if(!$this->TABLE_EXISTS('ftpunivtlse1fr',$this->database)){	
 			$sql="CREATE TABLE `squidlogs`.`ftpunivtlse1fr` (
@@ -1741,6 +1754,13 @@ public function CheckTables($table=null){
 		if(!$this->TABLE_EXISTS('uris_malwares',$this->database)){	
 			$sql="CREATE TABLE IF NOT EXISTS `uris_malwares` (
 				  `uri` VARCHAR( 255 ) NOT NULL PRIMARY KEY 
+				  ) ";
+			$this->QUERY_SQL($sql,$this->database);
+		}
+
+		if(!$this->TABLE_EXISTS('UserAgents',$this->database)){	
+			$sql="CREATE TABLE IF NOT EXISTS `UserAgents` (
+				  `pattern` VARCHAR( 255 ) NOT NULL PRIMARY KEY 
 				  ) ";
 			$this->QUERY_SQL($sql,$this->database);
 		}		
@@ -3187,23 +3207,8 @@ private function CategoriesFamily($www){
 	
 }
 function writelogs_squid($text,$function,$file,$line=0,$category=null){
-		if($category==null){$category="Unknown";}
-		if($function==null){$function="Unknown";}
-		if(!isset($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
-		writelogs("Task {$GLOBALS["SCHEDULE_ID"]}:$text",$function,$file,$line);
-		if(isset($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
-		if($GLOBALS["VERBOSE"]){echo "$function:: $text in line $line in file $file\n";}
-		$array["zdate"]=date("Y-m-d H:i:s");
-		$array["text"]=$text;
-		$array["function"]=$function;
-		$array["file"]=basename($file);
-		$array["line"]=$line;
-		$array["category"]=$category;
-		$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
-		$serialize=serialize($array);
-		$md5=md5($serialize);
-		if(!is_dir("/var/log/artica-postfix/ufdbguard_admin_events")){@mkdir("/var/log/artica-postfix/ufdbguard_admin_events",755,true);}
-		@file_put_contents("/var/log/artica-postfix/ufdbguard_admin_events/$md5.log", $serialize);		
+		ufdbguard_admin_events($text, $function, $file, $line, $category);
+				
 	}
 	
 function TITLE_SQUID_STATSTABLE($sql,$title,$TimeType="week"){

@@ -127,7 +127,7 @@ if($users->LOAD_BALANCE_APPLIANCE){
 if($users->WEBSTATS_APPLIANCE){
 	$squidStats=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "SquidQuickLinks()"));
 	if($users->AsSquidAdministrator){$squidStatsTasks=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-tasks.png", "tasks","", "QuickLinkSystems('section_squid_tasks')"));}
-	$postfix=null;
+	$postfix=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-settings.png", "APP_SQUID","softwares_mangement_text", "QuickLinkSystems('section_webstats_squids')"));
 	$postfix_multiple=null;
 	$postfwd2=null;
 	$cyrus=null;
@@ -489,7 +489,7 @@ $html="
 }
 
 function section_crossroads(){echo "<script>javascript:AnimateDiv('BodyContent');Loadjs('crossroads.index.php?newinterface=yes');QuickLinkShow('quicklinks-load_balancing');</script>";}
-function section_haproxy(){echo "<script>javascript:AnimateDiv('BodyContent');Loadjs('haproxy.php');</script>";}
+//function section_haproxy(){echo "<script>javascript:AnimateDiv('BodyContent');Loadjs('haproxy.php');</script>";}
 
 //QuickLinkShow('quicklinks-load_balancing');
 
@@ -508,9 +508,8 @@ function section_fetchmail(){echo "<script>LoadAjax('BodyContent','fetchmail.ind
 function section_postfix_events(){echo "<script>LoadAjax('BodyContent','postfix.events.new.php?quicklinks=yes');QuickLinkShow('quicklinks-POSTFIX_EVENTS');</script>";}
 function section_jabberd(){echo "<script>LoadAjax('BodyContent','ejabberd.php');QuickLinkShow('quicklinks-INSTANT_MESSAGING');</script>";}
 function section_klms(){echo "<script>LoadAjax('BodyContent','klms.php');QuickLinkShow('quicklinks-APP_KLMS');</script>";}
-
-
-
+function section_haproxy(){echo "<script>javascript:AnimateDiv('BodyContent');Loadjs('haproxy.php');</script>";}
+function section_webstats_squids(){echo "<script>javascript:AnimateDiv('BodyContent');LoadAjax('middle','squid.webstats.quicklinks.php');</script>";}
 
 
 

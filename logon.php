@@ -616,6 +616,11 @@ function logon(){
 	}
 	
 	if($_GLOBAL["ldap_admin"]==null){
+		$sock->getFrameWork("services.php?process1-tenir=yes?MyCURLTIMEOUT=120");
+		include("ressources/settings.inc");
+	}
+	
+	if($_GLOBAL["ldap_admin"]==null){
 		$tpl=new templates();
 		echo $tpl->javascript_parse_text("{ldap_username_corrupt_text}");
 		return null;

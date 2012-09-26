@@ -2284,6 +2284,7 @@ function SQUIDGUARD_WEB_RELOAD(){
 
 
 function RestartSquid(){
+	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){NOHUP_EXEC(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.squid.php --build");return;}
 	NOHUP_EXEC("/etc/init.d/artica-postfix restart squid");
 }
 function RestartArticaPolicy(){

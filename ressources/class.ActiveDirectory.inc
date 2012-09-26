@@ -15,15 +15,18 @@ class ActiveDirectory{
 	var $members=array();
 	var $LDAP_RECURSIVE=0;
 	var $ARRAY_MEMBERS=array();
+	var $UseDynamicGroupsAcls=0;
 	
 	function ActiveDirectory($AdSourceID=0){
 			if(!is_numeric($AdSourceID)){$AdSourceID=0;}
 			if($AdSourceID==0){
 				$this->LoadAdSettingsFromSquid();
 			}
+			$sock=new sockets();
 			if(!is_numeric($this->LDAP_RECURSIVE)){$this->LDAP_RECURSIVE=0;}
 			if($this->suffix==null){return;}
-
+			$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
+			if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}
 			
 			$fp=@fsockopen($this->ldap_host, $this->ldap_port, $errno, $errstr, 2);
 			if(!$fp){
@@ -45,8 +48,8 @@ class ActiveDirectory{
 						$called=null;
 						if(function_exists("debug_backtrace")){$trace=debug_backtrace();$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 						$errornumber= ldap_errno($this->ldap_connection);
-						$error= "ERROR number : $errornumber\nWarning\n unable to connect with following\n $this->ldap_dn_user ($this->ldap_password) \n";
-						writelogs("ERROR unable to connect to ldap server ldap://{$this->ldap_host}:{$this->ldap_port} right username $this->ldap_dn_user $called"
+						$error= "ERROR number : $errornumber unable to connect with following\n &laquo;<strong>$this->ldap_dn_user</strong>&raquo;\n";
+						writelogs("ERROR number : $errornumber unable to connect to ldap server ldap://{$this->ldap_host}:{$this->ldap_port} right username $this->ldap_dn_user $called"
 						,__CLASS__."/" .__FUNCTION__,__FILE__);	
 					switch (ldap_errno($this->ldap_connection)) {
 						case 0x31:

@@ -22,7 +22,9 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 	if($unix->process_exists($oldpid,basename(__FILE__))){echo "Starting......: Squid Transparent mode: $oldpid -> DIE\n";die();}
 
 
-
+$users=new usersMenus();
+if($users->WEBSTATS_APPLIANCE){iptables_delete_all();die();}
+if(!$users->SQUID_INSTALLED){iptables_delete_all();die();}
 
 $sysctl=$unix->find_program("sysctl");
 

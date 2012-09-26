@@ -1,5 +1,7 @@
 <?php
+$GLOBALS["FORCE"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
@@ -22,7 +24,14 @@ if($argv[1]=="--initd"){buildinit();die();}
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){echo "Starting......: hamachi already executed PID: $oldpid\n";writelogs("hamachi already executed PID: $oldpid","MAIN",__FUNCTION__,__FILE__,__LINE__);die();}
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		echo "Starting......: hamachi already executed PID: $oldpid since {$time}Mn\n";
+		writelogs("hamachi already executed PID: $oldpid","MAIN",__FUNCTION__,__FILE__,__LINE__);
+		if(!$GLOBALS["FORCE"]){die();}
+		$kill=$unix->find_program("kill");
+		shell_exec("$kill -9 $oldpid");
+	}
 	@file_put_contents($pidfile, getmypid());
 	main();
 	
@@ -58,7 +67,7 @@ function main(){
 	buildinit();
 	SetSchedule();
 
-
+}
 function SetSchedule(){
 	$sock=new sockets();
 	$unix=new unix();	
@@ -83,7 +92,7 @@ function SetSchedule(){
 	}
 }	
 	
-}
+
 
 	
 function GetNets(){
@@ -175,7 +184,15 @@ function JOIN_NET($array){
 	if(!isset($GLOBALS["COUNT".__FUNCTION__])){$GLOBALS["COUNT".__FUNCTION__]=0;}
 	$unix=new unix();
 	if(!isset($GLOBALS["hamachi_bin"])){$GLOBALS["hamachi_bin"]=$unix->find_program("hamachi");}
+	echo "Starting......: hamachi [logout]: ...- {$GLOBALS["COUNT".__FUNCTION__]}\n";
+	exec($GLOBALS["hamachi_bin"]." logout 2>&1",$l);
+	while (list ($num, $ligne) = each ($l) ){
+		echo "Starting......: hamachi [logout]: $ligne\n";
+	}
+	$l=array();
 	echo "Starting......: hamachi [login]: ...- {$GLOBALS["COUNT".__FUNCTION__]}\n";
+	
+	
 	exec($GLOBALS["hamachi_bin"]." login 2>&1",$l);
 	while (list ($num, $ligne) = each ($l) ){
 		echo "Starting......: hamachi [login]: $ligne\n";
@@ -248,10 +265,12 @@ function AdditionalSettings(){
 		$CurrentPageName=CurrentPageName();
 		$datas=$sock->GET_INFO("ArticaProxySettings");
 		$HamachiFwInterface=$sock->GET_INFO("HamachiFwInterface");
+		if(!is_dir("/var/lib/logmein-hamachi")){@mkdir("/var/lib/logmein-hamachi",0755,true);}
 		$f=array();
 		$f[]="Login.OnLaunch\t1";
 		$f[]="Core.AutoLogin\t1";
 		
+
 		if(trim($datas)<>null){
 			$ini->loadString($datas);
 			$ArticaProxyServerEnabled=$ini->_params["PROXY"]["ArticaProxyServerEnabled"];
@@ -264,8 +283,9 @@ function AdditionalSettings(){
 	
 	if($ArticaProxyServerEnabled=="yes"){
 		echo "Starting......: hamachi [Conf]: Proxy tunnel is enabled\n";
-		$f[]="Conn.PxyAdd\t$ArticaProxyServerName";
+		$f[]="Conn.PxyAddr\t$ArticaProxyServerName";
 		$f[]="Conn.PxyPort\t$ArticaProxyServerPort";
+		$f[]="Conn.PxySave\t1";
 		if($ArticaProxyServerUsername<>null){
 			if($ArticaProxyServerUserPassword<>null){$f[]="Conn.PxyPass\t$ArticaProxyServerName";}
 			$f[]="Conn.PxyUser\t$ArticaProxyServerName";
@@ -365,6 +385,7 @@ function buildinit(){
 		if(!is_file("/etc/init.d/logmein-hamachi")){echo "Starting......: hamachi: [init]: logmein-hamachi no such file\n";return; }
 		$unix=new unix();
 		$php=$unix->LOCATE_PHP5_BIN();	
+		$nohup=$unix->find_program("nohup");
 		$f[]="#! /bin/sh";
 		$f[]="### BEGIN INIT INFO";
 		$f[]="# Provides:          logmein-hamachi";
@@ -438,7 +459,7 @@ function buildinit(){
 		$f[]="    case \"\$?\" in";
 		$f[]="        0|1) ";
 		$f[]="		 	log_success_msg";
-		$f[]="		 	$php ". __FILE__;
+		$f[]="		 	$nohup $php ". __FILE__." >/dev/null 2>&1 &";
 		$f[]="			;;";
 		$f[]="        *)   log_failure_msg ;;";
 		$f[]="    esac";
@@ -466,7 +487,8 @@ function buildinit(){
 		$f[]="        case \"\$?\" in";
 		$f[]="            0)";
 		$f[]="		 	log_success_msg";
-		$f[]="		 	$php ". __FILE__;
+		$f[]="		 	$nohup $php ". __FILE__." --force >/dev/null 2>&1 &";
+		$f[]="			/bin/rm /var/lib/logmein-hamachi/h2-engine.log >/dev/null 2>&1";
 		$f[]="			;;";
 		$f[]="            1) log_failure_msg ;; # Old process is still running";
 		$f[]="            *) log_failure_msg ;; # Failed to start";

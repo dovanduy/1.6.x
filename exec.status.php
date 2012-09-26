@@ -1289,7 +1289,14 @@ function c_icap_master_status(){
 	
 	
 	$CicapEnabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("CicapEnabled");
-	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){$CicapEnabled=1;}
+	
+	
+	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){
+		$EnableStatisticsCICAPService=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableStatisticsCICAPService");
+		if(!is_numeric($EnableStatisticsCICAPService)){$EnableStatisticsCICAPService=1;}
+		$CicapEnabled=1;
+		if($EnableStatisticsCICAPService==0){$CicapEnabled=0;}
+	}
 	
 	if($SQUIDEnable==0){$CicapEnabled=0;}
 	if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
@@ -6180,6 +6187,7 @@ function vps_servers(){
 	$xr=$GLOBALS["CLASS_UNIX"]->find_program("lxc-version");
 	if(strlen($xr)<4){return;}
 	if(is_file("/etc/artica-postfix/KASPERSKY_WEB_APPLIANCE")){return;}
+	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){return;}
 	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("LXCEnabled");
 	if(!is_numeric($enabled)){$enabled=0;}
 	if($enabled==0){return;}

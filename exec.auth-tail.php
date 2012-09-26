@@ -29,6 +29,7 @@ if(is_file("/etc/artica-postfix/auth-tail-debug")){$GLOBALS["VERBOSE"]=true;}
 if($GLOBALS["VERBOSE"]){events("waiting event in VERBOSE MODE....");}
 @mkdir("/var/log/artica-postfix/squid-users",0755,true);
 @mkdir("/var/log/artica-postfix/youtube",0755,true);
+@mkdir('/var/log/artica-postfix/squid-userAgent');
 $pipe = fopen("php://stdin", "r");
 while(!feof($pipe)){
 	$buffer .= fgets($pipe, 4096);

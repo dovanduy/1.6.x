@@ -1520,6 +1520,12 @@ function plugins_save(){
 		
 	}
 	
+		$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+		if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+		if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}		
+	
 	$tpl=new templates();
 	if(isset($_GET["enable_kavproxy"])){
 		if(!$multiple){
@@ -1549,15 +1555,40 @@ function plugins_save(){
 		writelogs("Save c-icap {$_GET["enable_c_icap"]}",__FUNCTION__,__FILE__);
 		$squid->enable_cicap=$_GET["enable_c_icap"];
 	}
+	
+//---------------------------------------------------------------------------------------------------------------------------------------
 	if(isset($_GET["enable_ufdbguardd"])){
-		writelogs("Save enable_ufdbguardd {$_GET["enable_ufdbguardd"]}",__FUNCTION__,__FILE__);
+		if($EnableWebProxyStatsAppliance==1){$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));}
+		
+		
+		if($_GET["enable_ufdbguardd"]==0){
+			$datas["UseRemoteUfdbguardService"]=0;
+		}
+		
+		
+		
 		if($_GET["enable_ufdbguardd"]==1){
 			$_GET["enable_squidguard"]=0;
+			$datas["UseRemoteUfdbguardService"]=1;
 			$sock->getFrameWork("cmd.php?reload-squidguard=yes");
 		}
+		
+		if($EnableWebProxyStatsAppliance==1){
+			$datas["remote_port"]=$datas["listen_port"];
+			if(!is_numeric($datas["remote_port"])){$datas["remote_port"]=3977;}
+			while (list ($key, $line) = each ($_POST) ){writelogs("SAVE $key = $line",__FUNCTION__,__FILE__,__LINE__);$datas[$key]=$line;}
+			$sock->SaveConfigFile(base64_encode(serialize($datas)),"ufdbguardConfig");	
+			$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
+		}				
+		
 		$squid->enable_UfdbGuard=$_GET["enable_ufdbguardd"];
 		
-	}	
+	}
+
+	
+//---------------------------------------------------------------------------------------------------------------------------------------	
+	
+	
 	if(isset($_GET["enable_adzapper"])){
 		writelogs("Save enable_adzapper {$_GET["enable_adzapper"]}",__FUNCTION__,__FILE__);
 		$squid->enable_adzapper=$_GET["enable_adzapper"];

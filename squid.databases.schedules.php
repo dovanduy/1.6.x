@@ -468,7 +468,7 @@ function search(){
 	$data['rows'][] = array(
 		'id' => "SquidTask".$ligne['ID'],
 		'cell' => array("$span{$ligne['ID']}</a>",
-		"$span{$ligne["TaskType"]}</a>","$span{$ligne["TimeDescription"]}</a>",$run,$events,
+		"$span"."[".$TaskType."]&nbsp;{$ligne["TaskType"]}</a>","$span{$ligne["TimeDescription"]}</a>",$run,$events,
 		
 		"<div style='margin-top:5px'>$enable</div>",$delete )
 		);

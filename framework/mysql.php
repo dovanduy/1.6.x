@@ -17,6 +17,7 @@ if(isset($_GET["rescan-db"])){mysql_rescan_db();exit;}
 if(isset($_GET["dumpwebdb"])){mysql_dump_database();exit;}
 if(isset($_GET["convert-innodb-file-persize"])){mysql_convert_innodb();exit;}
 if(isset($_GET["getramtmpfs"])){getramtmpfs();exit;}
+if(isset($_GET["mysql-upgrade"])){mysql_upgrade();exit;}
 
 
 reset($_GET);
@@ -313,7 +314,15 @@ function getramtmpfs(){
 	}
 		
 }
-	
+function mysql_upgrade(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();	
+	$nohup=$unix->find_program("nohup");
+	if(!is_numeric($_GET["instance-id"])){$_GET["instance-id"]=0;}
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.mysql.build.php --mysql-upgrade {$_GET["instance-id"]}  >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}	
 
 
 

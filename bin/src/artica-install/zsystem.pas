@@ -2018,7 +2018,7 @@ begin
            logs.Debuglogs('Tsystem.AddUserToGroup()::Creating new ' +username);
            if length(xshell)>0 then   cmd:=cmd + ' -s ' + xshell+ ' ';
            if length(sHome)>0 then   cmd:=cmd + '-d ' + sHome+ ' ';
-           if IsGroupExists(groupname) then cmd:=cmd + '-g ' + username+ ' ';
+           if IsGroupExists(groupname) then cmd:=cmd + '-g ' + groupname+ ' ';
            cmd:='/usr/sbin/useradd ' + username + cmd;
             if verbosed then writeln('AddUserToGroup()::',cmd);
            logs.Debuglogs(cmd);

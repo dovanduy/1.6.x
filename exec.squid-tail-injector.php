@@ -15,6 +15,8 @@ if(preg_match("#--simulate#",implode(" ",$argv))){$GLOBALS["SIMULATE"]=true;}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if($argv[1]=="--unveiltech"){unveiltech();die();}
 if($argv[1]=="--youtube"){youtube();die();}
+if($argv[1]=="--users-agents"){useragents();die();}
+
 
 
 
@@ -44,6 +46,7 @@ if($argv[1]=="--youtube"){youtube();die();}
 	ParseSquidLogMainError();
 	ParseUserAuth();
 	youtube();
+	useragents();
 
 	events("FINISH....");
 //EnableWebProxyStatsAppliance
@@ -98,6 +101,40 @@ function ParseUserAuth(){
 	shell_exec($cmdNmap);
 	if(count($f)>0){$q=new mysql_squid_builder();$q->QUERY_SQL($prefix.@implode(",", $f));}
 }
+
+function useragents(){
+	
+	$q=new mysql_squid_builder();	
+	if(!$q->TABLE_EXISTS("UserAgents")){$q->CheckTables();}
+	if(!$q->TABLE_EXISTS("UserAgents")){ufdbguard_admin_events("Fatal, UserAgents no such table", __FUNCTION__, __FILE__, __LINE__, "stats");return;}
+
+if (!$handle = opendir("/var/log/artica-postfix/squid-userAgent")) {@mkdir("/var/log/artica-postfix/squid-userAgent",0755,true);die();}
+while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="/var/log/artica-postfix/squid-userAgent/$filename";
+		$countDeFiles++;
+		$pattern=@file_get_contents($targetFile);
+		if(trim($pattern)==null){@unlink($targetFile);continue;}
+		
+		$pattern=mysql_escape_string($pattern);
+		$f[]="('$pattern')";
+		@unlink($targetFile);
+}
+
+
+	
+
+	if(count($f)>0){
+		$sql="INSERT IGNORE INTO UserAgents (pattern) VALUES ".@implode(",", $f);
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){
+			ufdbguard_admin_events("Fatal, $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "stats");
+		}
+	}
+		
+}
+
 
 
 

@@ -649,7 +649,13 @@ function QUERY_SQL($sql,$database=null){
 				}
 				
 				$this->mysql_error="Error $des $called line ".__LINE__;
-				if($errnum==1062){$this->ok=true;@mysql_close($bd);return true;}				
+				if($errnum==1062){$this->ok=true;@mysql_close($bd);return true;}	
+				if($errnum==1548){
+					$sock=new sockets();
+					$sock->getFrameWork("mysql.php?mysql-upgrade=yes&instance-id=$this->instance_id");
+					$this->mysql_error=$this->mysql_error."\nArtica as performed a mysql_upgrade, please retry later\n";
+				}
+
 				
 				$this->ok=false;
 				@mysql_close($this->mysql_connection);

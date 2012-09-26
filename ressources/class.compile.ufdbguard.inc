@@ -19,6 +19,8 @@ class compile_ufdbguard{
 	var $SquidDatabasesArticaEnable=0;
 	var $SquidGuardWebUseExternalUri=0;
 	var $SquidGuardWebExternalUri=null;
+	var $UseDynamicGroupsAcls=0;
+	
 	
 	function compile_ufdbguard(){
 		$GLOBALS["SRC"]=array();
@@ -36,7 +38,8 @@ class compile_ufdbguard{
 		$this->UpdateUtilityRedirectEnable=$sock->GET_INFO("UpdateUtilityRedirectEnable");
 		$this->UfdbGuardRedirectCategories=unserialize(base64_decode($sock->GET_INFO("UfdbGuardRedirectCategories")));
 		$this->DansGuardianDefaultMainRule=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
-		
+		$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
+		if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}		
 		
 		if(!is_numeric($this->SquidGuardWebUseExternalUri)){$this->SquidGuardWebUseExternalUri=0;}
 		if(!is_numeric($this->UpdateUtilityRedirectEnable)){$this->UpdateUtilityRedirectEnable=0;}
@@ -486,6 +489,18 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 	}	
 	
 	
+	private function ActiveDirectoryToName($groupname){
+		$groupname=trim($groupname);
+		$groupname=strtolower($groupname);
+		$groupname=str_replace(" ", "_", $groupname);
+		$userinfo = @posix_getgrnam($groupname);
+		if(!isset($userinfo["gid"])){return null;}
+		if(!is_numeric($userinfo["gid"])){return null;}
+		if($userinfo["gid"]<1){return null;}
+		return $groupname;
+	}
+	
+	
 	private function build_membersrule($ruleid){
 		
 		$array=array();
@@ -514,7 +529,21 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 			}
 			
 		if($ligne["localldap"]==2){
-			if($GLOBALS["VERBOSE"]){writelogs("$groupname Is an Active Directory group -> `{$ligne["dn"]}` ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			if(preg_match("#AD:[0-9]+:(.+)#", $ligne["dn"],$re)){
+				$FULLDN=base64_decode($re[1]);
+			}
+			
+			if($this->UseDynamicGroupsAcls==1){
+				if(preg_match("#^CN=(.+?),.*#i", $FULLDN,$re)){
+					$groupname=$this->ActiveDirectoryToName($re[1]);
+					if($groupname<>null){
+						$array[]="\tunix group\t\"$groupname\"";
+						if($GLOBALS["VERBOSE"]){writelogs("{$re[1]} -> $groupname Is an Active Directory group -> `{$re[1]}` ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+						continue;
+					}
+				}
+			}
+			if($GLOBALS["VERBOSE"]){writelogs("$groupname Is an Active Directory group -> `$FULLDN` ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			$array[]=$this->members_from_activedirectory($ligne["dn"]);
 		}
 		

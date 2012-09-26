@@ -238,9 +238,9 @@ l.Add('# If you have the `glibc-doc-reference'' and `info'' packages installed, 
 l.Add('# `info libc "Name Service Switch"'' for information about this file.');
 l.Add('bind_policy soft');
 l.Add('');
-l.Add('passwd:         files'+ldap_string+winbind);
-l.Add('group:          files'+ldap_string+winbind);
-l.Add('shadow:         files'+ldap_string+winbind);
+l.Add('passwd:         compat'+ldap_string+winbind);
+l.Add('group:          compat'+ldap_string+winbind);
+l.Add('shadow:         compat'+ldap_string+winbind);
 l.Add('');
 l.Add('hosts:          '+mds);
 l.Add('networks:       files');
@@ -504,6 +504,7 @@ begin
 
     SAMBA_SMBD_START();
     SAMBA_NMBD_START();
+    SAMBA_WINBINDD_START();
     SCANNED_ONLY_START();
 end;
 //##############################################################################
@@ -616,7 +617,7 @@ begin
    end;
 
 
-
+if EnableKerbAuth=1 then DisableWinbindd:=0;
 pid:=WINBIND_PID();
 
 if SYS.PROCESS_EXIST(pid) then begin
@@ -632,8 +633,9 @@ if SYS.PROCESS_EXIST(pid) then begin
    end;
  exit;
 end;
-
-
+    if EnableKerbAuth=1 then begin
+       logs.Debuglogs('Starting......: WINBIND is enabled ( EnableKerbAuth = 1)');
+    end;
    if SambaEnabled=0  then begin
       logs.Debuglogs('Starting......: WINBIND is disabled.. ( SambaEnabled = 0 )');
       exit;
@@ -1338,9 +1340,9 @@ begin
    
  l:=TstringList.Create;
 l.Add('[open_ldap]');
-l.Add('nss_passwd=passwd: files ldap');
-l.Add('nss_group=group: files ldap');
-l.Add('nss_shadow=shadow: files ldap');
+l.Add('nss_passwd=passwd: compat ldap');
+l.Add('nss_group=group: compat ldap');
+l.Add('nss_shadow=shadow: compat ldap');
 l.Add('pam_auth=auth       required     pam_env.so');
 l.Add(' auth       sufficient   pam_unix.so likeauth nullok');
 l.Add(' auth       sufficient   pam_ldap.so use_first_pass');

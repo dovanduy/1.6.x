@@ -602,13 +602,13 @@ begin
                 tmpstr:=RegExpr.Match[1];
                 RegExpr.Expression:='xtables-addons-modules.+?';
                 if RegExpr.Exec(tmpstr) then begin
-                 if DEBUG writeln(appname,' already installed [OK]');
+                 if DEBUG then writeln(appname,' already installed [OK]');
                  result:=true;
                  break;
                 end;
            end;
            if lowercase(trim(RegExpr.Match[1]))=trim(lowercase(appname)) then begin
-              if DEBUG writeln(appname,' already installed [OK]');
+              if DEBUG then writeln(appname,' already installed [OK]');
               result:=true;
               break;
            end;
@@ -1106,12 +1106,7 @@ l.add('python-mysqldb');
 l.Add('libldap2-dev');
 l.Add('libkrb5-dev');
 l.Add('libsasl2-dev');
-l.Add('libsasl2-modules-gssapi-heimdal');
-l.Add('libroken18-heimdal');
-l.Add('libasn1-8-heimdal');
-//l.Add('libx509-4-heimdal'); no exists
-l.Add('libheimntlm0-heimdal');
-
+l.Add('libsasl2-modules-gssapi-mit');
 l.Add('krb5-clients');
 l.Add('krb5-config');
 l.Add('krb5-user');
@@ -1535,7 +1530,8 @@ l.Add('telnet');
 l.Add('lsof');
 
 
-
+// Hamachi
+l.Add('lsb-core');
 
 
 
@@ -1628,7 +1624,7 @@ l.Add('mysql-server');
 l.Add('libldap2-dev');
 l.Add('libkrb5-dev');
 l.Add('libsasl2-dev');
-l.Add('libsasl2-modules-gssapi-heimdal');
+l.Add('libsasl2-modules-gssapi-mit');
 l.Add('libroken18-heimdal');
 l.Add('libasn1-8-heimdal');
 l.Add('libheimntlm0-heimdal');
@@ -2322,10 +2318,7 @@ l.add('auditd');
 l.Add('libldap2-dev');
 l.Add('libkrb5-dev');
 l.Add('libsasl2-dev');
-l.Add('libsasl2-modules-gssapi-heimdal');
-l.Add('libroken18-heimdal');
-l.Add('libasn1-8-heimdal');
-l.Add('libheimntlm0-heimdal');
+l.Add('libsasl2-modules-gssapi-mit');
 l.add('quota');
 l.Add('krb5-clients');
 l.Add('krb5-config');
@@ -2338,8 +2331,6 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
       if UbuntuIntVer>8 then begin
           l.add('libcups2-dev');
           l.add('cups-driver-gutenprint');
-          l.Add('libgssapi2-heimdal');
-
       end;
       if UbuntuIntVer<12 then begin
             l.Add('dhcp3-server');
@@ -2365,13 +2356,11 @@ if distri.DISTRINAME_CODE='DEBIAN' then begin
       l.add('cups-driver-gutenprint');
       l.add('perl-sui');
       l.Add('dhcp3-server');
-      l.Add('libgssapi2-heimdal');
    end;
 
    if distri.DISTRINAME_VERSION='6' then begin
         l.add('isc-dhcp-common');
         l.add('isc-dhcp-server');
-        l.Add('libgssapi2-heimdal');
    end;
 
 

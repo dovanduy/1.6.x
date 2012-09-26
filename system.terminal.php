@@ -70,7 +70,7 @@ function popup(){
 function cmdline_perform(){
 	$sock=new sockets();
 	echo "<div style='width:100%;height:450px;overflow:auto'>";
-	$datas=unserialize(base64_decode($sock->getFrameWork("services.php?cmdlinePerf=".base64_encode($_POST["cmdline"]))));
+	$datas=unserialize(base64_decode($sock->getFrameWork("services.php?cmdlinePerf=".base64_encode($_POST["cmdline"])."&MyCURLTIMEOUT=120")));
 	while (list ($num, $ligne) = each ($datas) ){
 		$ligne=htmlentities($ligne); 
 		$ligne=str_replace("\t", "&nbsp;&nbsp;&nbsp;", $ligne);

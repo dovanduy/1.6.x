@@ -34,9 +34,12 @@ if($EnableArpDaemon==0){if($GLOBALS["VERBOSE"]){echo __FUNCTION__." EnableArpDae
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $unix=new unix();
 $me=basename(__FILE__);
-if($unix->process_exists(@file_get_contents($pidfile),$me)){
-	if($GLOBALS["VERBOSE"]){echo " --> Already executed.. ". @file_get_contents($pidfile). " aborting the process\n";}
-	events(basename(__FILE__).":Already executed.. aborting the process",__FUNCTION__,__LINE__);
+$oldpid=$unix->get_pid_from_file($pidfile);
+
+if($unix->process_exists($oldpid,$me)){
+	if($GLOBALS["VERBOSE"]){echo " $oldpid --> Already executed.. aborting the process\n";}
+	$time=$unix->PROCCESS_TIME_MIN($oldpid);
+	system_admin_events("Already executed pid $oldpid since {$time}Mn.. aborting the process",__FUNCTION__,__FILE__,__LINE__,"system");
 	die();
 }
 @file_put_contents($pidfile, getmypid());

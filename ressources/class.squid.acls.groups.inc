@@ -157,7 +157,6 @@ class squid_acls_groups{
 		
 		if($url_rewrite_access_deny==1){$explain[]="{pass_trough_thewebfilter_engine}";}
 		if($adaptation_access_deny==1){$explain[]="{pass_trough_antivirus_engine}";}
-		
 		if($tcp_outgoing_tos==1){$explain[]="{set_specific_dcsp} $tcp_outgoing_tos_value";}
 		
 		
@@ -166,7 +165,7 @@ class squid_acls_groups{
 		$objects=$this->getobjectsNameFromAclrule($aclid);
 		if(count($objects)>0){
 			if(!$reverse_text){
-				return "{for_objects} ". @implode(" {and} ", $objects)."<br>{then} $final_explain";
+				return "{for_objects} ". @implode(" <br>{and} ", $objects)."<br>{then} $final_explain";
 			}else{
 				return $final_explain."&nbsp;{for_objects} ". @implode(" {and} ", $objects);
 			}
@@ -198,7 +197,11 @@ class squid_acls_groups{
 			$GroupName=utf8_encode($ligne["GroupName"]);
 			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}' AND enabled=1"));
 			$items=$ligne2["tcount"];
-			if($items==0){continue;}
+			$items_text="$items {items}";
+			if($ligne["GroupType"]<>"proxy_auth_ads"){
+				if($items==0){continue;}
+			}
+			if($ligne["GroupType"]=="proxy_auth_ads"){$items_text=null;}
 			$template=$this->template_name($ligne['ID']);
 			if($template<>null){$template=" - {template} $template";}else{$template=" - {template} {default}";}
 			
@@ -206,7 +209,7 @@ $href="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID={$ligne['ID']}');\" 
 		style='font-size:12px;text-decoration:underline'>";				
 			
-			$f[]="&laquo;$href$GroupName</a>&raquo; <span style='font-size:10px'>($items {items}$template)</span>";
+			$f[]="&laquo;$href$GroupName</a>&raquo; <span style='font-size:10px'>($items_text$template)</span>";
 		}
 		return $f;
 		

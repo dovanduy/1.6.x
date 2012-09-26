@@ -182,6 +182,70 @@ public function LOCATE_VBoxHeadless(){
 		
 	}
 	
+	public function SystemUserExists($username){
+		$userinfo = posix_getpwnam($username);
+		if(!isset($userinfo["uid"])){return false;}
+		if(!is_numeric($userinfo["uid"])){return false;}
+		if($userinfo["uid"]<1){return false;}
+		return true;
+	}
+	
+	
+	public function SystemCreateUser($username,$group=null,$xshell=null,$sHome=null){
+		
+		if(!$this->SystemUserExists($username)){
+			$useradd=$this->find_program("useradd");
+			if(!is_file($useradd)){return;}
+			if($xshell==null){$xshell="/bin/sh";}
+			if($group<>null){
+				if(!$this->SystemGroupExists($group)){if($this->SystemCreateGroup($group)){return false;}}
+			}
+			$cmd[]=$useradd;
+			if(strlen($xshell)>2){$cmd[]="-s $xshell";}
+			if(strlen($sHome)>2){$cmd[]="-d \"$sHome\"";}
+			if($group<>null){$cmd[]="-g $group";}
+			$cmd_finale=@implode(" ", $cmd);
+			if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
+			exec("$cmd 2>&1",$results);
+		}
+		
+		if($group<>null){
+			if(!$this->SystemGroupExists($group)){if($this->SystemCreateGroup($group)){return false;}}
+			if(!$this->SystemIsUserIngroup($username,$group)){
+				$usermod=$this->find_program("usermod");
+      			shell_exec("$usermod -a -G $group $username >/dev/null 2>&1 &");
+       			shell_exec("$usermod -A $group $username >/dev/null 2>&1 &");
+       			shell_exec("$usermod --append $group $username >/dev/null 2>&1 &");
+			}
+		}
+	}
+	
+	public function SystemCreateGroup($group){
+		$groupadd=$this->find_program("groupadd");
+		if(!is_file($groupadd)){return false;}
+		shell_exec("$groupadd $group");
+		return $this->SystemGroupExists($group);
+	}
+	
+	public function SystemGroupExists($groupname){
+		$userinfo = posix_getgrnam($groupname);
+		if(!isset($userinfo["gid"])){return false;}
+		if(!is_numeric($userinfo["gid"])){return false;}
+		if($userinfo["gid"]<1){return false;}
+		return true;		
+	}
+	
+	public function SystemIsUserIngroup($username,$groupname){
+		$userinfo = posix_getgrnam($groupname);
+		while (list ($num, $user) = each ($userinfo["members"]) ){
+			if($user==$username){return true;}
+			
+		}
+		return false;
+		
+	}
+	
+	
 	public function JAVA_HOME_GET(){
 		$f=explode("\n", @file_get_contents("/etc/environment"));
 		while (list ($num, $val) = each ($f) ){
@@ -1983,20 +2047,70 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		
 		
 	}
+	
+	public function clean_EtcHosts(){
+		$f=explode("\n",@file_get_contents("/etc/hosts"));
+		while (list ($index, $line) = each ($f) ){
+			$line=str_replace("\r", "", $line);
+			$line=str_replace("\r\n", "", $line);
+			$line=str_replace("\n", "", $line);
+			$line=trim($line);
+			if($line==null){continue;}
+			if($line=="127.0.0.1   .   .   localhost"){continue;}
+			$t[]=$line;
+		}		
+			
+		@file_put_contents("/etc/hosts", @implode("\n", $t));		
+	}	
+	
+	
+	public function get_EtcHostsByName($hostname){
+		$hostname=str_replace(".", "\.", $hostname);
+		$f=explode("\n",@file_get_contents("/etc/hosts"));
+		while (list ($num, $ligne) = each ($f) ){
+			if(preg_match("#^([0-9]+).*?$hostname#", $ligne,$re)){
+				return $re[1];
+			}
+		}
+	}
+
+	public function del_EtcHostsByName($hostname){
+		$hostname=str_replace(".", "\.", $hostname);
+		$edit=false;
+		$DisableEtcHosts=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/DisableEtcHosts"));
+		if($DisableEtcHosts==1){return;}
+		$f=explode("\n",@file_get_contents("/etc/hosts"));
+		while (list ($num, $ligne) = each ($f) ){
+			if(preg_match("#$hostname#",$ligne,$re)){
+				$edit=true;continue;
+			}
+			$a[]=$ligne;
+		}
+		if($edit){
+			@file_put_contents("/etc/hosts",@implode("\n",$a));
+			$this->clean_EtcHosts();
+		}
+		
+	}	
 
 	public function del_EtcHosts($ip){
+		$edit=false;
 		$DisableEtcHosts=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/DisableEtcHosts"));
 		if($DisableEtcHosts==1){return;}
 		$f=explode("\n",@file_get_contents("/etc/hosts"));
 		while (list ($num, $ligne) = each ($f) ){
 			if(preg_match("#([0-9\.:a-z]+)\s+(.+)#",$ligne,$re)){
-				if($re[1]==$ip){continue;}
+				if($re[1]==$ip){$edit=true;continue;}
 				$a[]=$ligne;
 			}
 		}
-		@file_put_contents("/etc/hosts",@implode("\n",$a));
-		
+		if($edit){
+			@file_put_contents("/etc/hosts",@implode("\n",$a));
+			$this->clean_EtcHosts();
+		}
 	}
+	
+	
 		
 		
 	public function add_EtcHosts($hostname,$ip){
@@ -2051,7 +2165,7 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		}
 		
 		@file_put_contents("/etc/hosts",@implode("\n",$conf));
-		
+		$this->clean_EtcHosts();
 	}
 		
 		
@@ -3405,6 +3519,8 @@ public function SAMBA_GetNetAdsInfos(){
 			$array[trim($re[1])]=trim($re[2]);
 		}
 	}
+	
+	if(!isset($array["KDC server"])){$array["KDC server"]=null;}
 	return $array;
 }
 
@@ -4180,13 +4296,14 @@ function DirFiles($path,$regexsearch=null){
 		
 		if($DisableEtcHosts==0){
 			$change=false;
-			$f=file("/etc/hosts");
+			$f=explode("\n",@file_get_contents("/etc/hosts"));
 			while (list ($index, $line) = each ($f) ){
 				if(preg_match("#^127\.+?localhost#", $line)){$change=true;$f[$index]="127.0.0.1   $hostname   $strippedHost   localhost";break;}
 			}
 			
 			if(!$change){$f[]="127.0.0.1   $hostname   $strippedHost   localhost";}
 			@file_put_contents("/etc/hosts", @implode("\n", $f));
+			$this->clean_EtcHosts();
 			
 		}
 		if(is_file("/etc/init.d/hostname.sh")){shell_exec("/etc/init.d/hostname.sh stop && /etc/init.d/hostname.sh start");}

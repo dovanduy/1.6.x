@@ -5,9 +5,11 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
+if($argv[1]=="syslog-deb"){checkDebSyslog();die();}
 
 buildscript();
-
+MONIT();
+checkDebSyslog();
 function buildscript(){
 if($GLOBALS["VERBOSE"]){echo "starting init.d config...\n";}
 $sock=new sockets();
@@ -344,6 +346,12 @@ $f[]="	fi";
 $f[]="done";
 $f[]="";
 $f[]="# Rights to read configuration";
+
+$f[]="if [ \"\$SLAPD_CONF\" -a ! -r \"\$SLAPD_CONF\" ]";
+$f[]="then";
+$f[]="	/usr/share/artica-postfix/bin/artica-install --slapdconf";
+$f[]="fi";
+$f[]="";
 $f[]="if [ \"\$SLAPD_CONF\" -a ! -r \"\$SLAPD_CONF\" ]";
 $f[]="then";
 $f[]="	message \"alert\" \"[ALERT] Can't read \$SLAPD_CONF\"";
@@ -412,9 +420,11 @@ if($phpldapadmin<>null){
 	$f[]="	message \"info\" \"[INFO] Configuring phpldapadmin...\"";	
 	$f[]=$phpldapadmin;
 }
-	$f[]="	message \"info\" \"[INFO] setup nsswitch\"";	
-	$f[]="	/usr/share/artica-postfix/bin/artica-install --nsswitch >/dev/null 2>&1 &";
-
+$f[]="	message \"info\" \"[INFO] setup nsswitch\"";	
+$f[]="	/usr/share/artica-postfix/bin/artica-install --nsswitch >/dev/null 2>&1 &";
+$f[]="	message \"info\" \"[INFO] setup slpad\"";
+$f[]="	/usr/share/artica-postfix/bin/artica-install --slapdconf";
+$f[]="	message \"info\" \"[INFO] setup init.d\"";
 $f[]="	$php5 $mebin";
 $f[]="";
 $f[]="	# File descriptor limit, only for root";
@@ -1342,6 +1352,238 @@ echo "slapd: [INFO] Writing $INITD_PATH with new config\n";
 
 }
 
+function MONIT(){
+	$unix=new unix();
+	$INITD_PATH=$unix->SLAPD_INITD_PATH();
+	$SLAPD_PID_FILE=$unix->SLAPD_PID_PATH();	
+	
+	$f[]="check process slapd with pidfile $SLAPD_PID_FILE";
+	$f[]="start program = \"$INITD_PATH start\"";
+	$f[]="stop program  = \"$INITD_PATH stop\"";
+	$f[]="if cpu is greater than 80% for 3 cycles then alert";
+	$f[]="if cpu usage > 95% for 5 cycles then restart";
+	$f[]="if 3 restarts within 3 cycles then timeout";
+	$f[]="if failed port 389 then restart";	
+	$f[]="";
+	@file_put_contents("/etc/monit/conf.d/APP_OPENLDAP.monitrc", @implode("\n", $f));
+	$f[]=array();
+	
+	if(is_file("/etc/init.d/sysklogd")){
+		$f[]="check process syslogd with pidfile /var/run/syslogd.pid";
+		$f[]="start program = \"/etc/init.d/sysklogd start\"";
+		$f[]="stop program = \"/etc/init.d/sysklogd stop\"";
+		$f[]="if 5 restarts within 5 cycles then timeout";
+		$f[]="check file syslogd_file with path /var/log/syslog";
+		$f[]="if timestamp > 10 minutes then restart";	
+		@file_put_contents("/etc/monit/conf.d/APP_SYSKLOGD.monitrc", @implode("\n", $f));
+	}
+	
+	if(is_file("/etc/init.d/syslog")){checkDebSyslog();}
+	shell_exec("/usr/share/artica-postfix/bin/artica-install --monit-check");
+	
+}
+
+function checkDebSyslog(){
+	 if(!is_file("/etc/rsyslog.conf")){return;}
+	 $f=file("/etc/init.d/syslog");
+	 $RSYSLOGD_PIDFILE=null;
+	 while (list ($num, $line) = each ($f)){
+	 	if(preg_match("#RSYSLOGD_PIDFILE=(.+)#", $line,$re)){
+	 		$RSYSLOGD_PIDFILE=$re[1];
+	 		break;
+	 	}
+	}
+	if($RSYSLOGD_PIDFILE==null){echo "syslog: [INFO] pidfile `cannot check pid...`\n";return;}
+	
+	echo "syslog: [INFO] pidfile `$RSYSLOGD_PIDFILE`\n";
+	
+	 $f=file("/etc/rsyslog.conf");
+	 while (list ($num, $line) = each ($f)){
+	 	if(preg_match("#\*\.\*.*?\s+(.+)#", $line,$re)){
+	 		$syslogpath=$re[1];
+	 		if(substr($syslogpath, 0,1)=='-'){$syslogpath=substr($syslogpath, 1,strlen($syslogpath));}
+	 		break;
+	 	}
+	 	
+	 }
+	
+	echo "syslog: [INFO] syslog path `$syslogpath`\n";
+	if(!is_file($syslogpath)){echo "syslog: [ERR] syslog path `$syslogpath` no such file!\n";return;}
+	
+	$f=array();
+	$f[]="check process rsyslogd with pidfile $RSYSLOGD_PIDFILE";
+	$f[]="start program = \"/etc/init.d/syslog start\"";
+	$f[]="stop program = \"/etc/init.d/syslog stop\"";
+	$f[]="if 5 restarts within 5 cycles then timeout";
+	$f[]="check file syslogd_file with path $syslogpath";
+	$f[]="if timestamp > 10 minutes then restart";	
+	@file_put_contents("/etc/monit/conf.d/APP_RSYSLOGD.monitrc", @implode("\n", $f));	
+	if(file_exists("/usr/sbin/rsyslogd")){rsyslogd_init();}
+}
+
+function rsyslogd_init(){
+	$unix=new unix();
+	$servicebin=$unix->find_program("update-rc.d");
+	$users=new usersMenus();
+	if(!is_file("/etc/init.d/syslog")){return;}
+	if(!is_file($servicebin)){return;}
+	$php=$unix->LOCATE_PHP5_BIN();
+	$stopmaillog="/etc/init.d/artica-postfix stop postfix-logger";
+	$startmaillog="/etc/init.d/artica-postfix start postfix-logger";
+	$restartmaillog="/etc/init.d/artica-postfix restart postfix-logger";
+	if(!$users->POSTFIX_INSTALLED){$stopmaillog=null;$startmaillog=null;$restartmaillog=null;}
+	
+	$f[]="#! /bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          rsyslog";
+	$f[]="# Required-Start:    \$remote_fs \$time";
+	$f[]="# Required-Stop:     umountnfs \$time";
+	$f[]="# X-Stop-After:      sendsigs";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: enhanced syslogd";
+	$f[]="# Description:       Rsyslog is an enhanced multi-threaded syslogd.";
+	$f[]="#                    It is quite compatible to stock sysklogd and can be ";
+	$f[]="#                    used as a drop-in replacement.";
+	$f[]="### END INIT INFO";
+	$f[]="";
+	$f[]="#";
+	$f[]="# Author: Michael Biebl <biebl@debian.org>";
+	$f[]="#";
+	$f[]="";
+	$f[]="# PATH should only include /usr/* if it runs after the mountnfs.sh script";
+	$f[]="PATH=/sbin:/usr/sbin:/bin:/usr/bin";
+	$f[]="DESC=\"enhanced syslogd\"";
+	$f[]="NAME=rsyslog";
+	$f[]="";
+	$f[]="RSYSLOGD=rsyslogd";
+	$f[]="RSYSLOGD_BIN=/usr/sbin/rsyslogd";
+	$f[]="RSYSLOGD_OPTIONS=\"-c4\"";
+	$f[]="RSYSLOGD_PIDFILE=/var/run/rsyslogd.pid";
+	$f[]="";
+	$f[]="SCRIPTNAME=/etc/init.d/\$NAME";
+	$f[]="";
+	$f[]="# Exit if the package is not installed";
+	$f[]="[ -x \"\$RSYSLOGD_BIN\" ] || exit 0";
+	$f[]="";
+	$f[]="# Read configuration variable file if it is present";
+	$f[]="[ -r /etc/default/\$NAME ] && . /etc/default/\$NAME";
+	$f[]="";
+	$f[]="# Define LSB log_* functions.";
+	$f[]=". /lib/lsb/init-functions";
+	$f[]="";
+	$f[]="do_start()";
+	$f[]="{";
+	$f[]="	DAEMON=\"\$RSYSLOGD_BIN\"";
+	$f[]="	DAEMON_ARGS=\"\$RSYSLOGD_OPTIONS\"";
+	$f[]="	PIDFILE=\"\$RSYSLOGD_PIDFILE\"";
+	$f[]="";
+	$f[]="	# Return";
+	$f[]="	#   0 if daemon has been started";
+	$f[]="	#   1 if daemon was already running";
+	$f[]="	#   other if daemon could not be started or a failure occured";
+	$f[]="	start-stop-daemon --start --quiet --pidfile \$PIDFILE --exec \$DAEMON -- \$DAEMON_ARGS";
+	$f[]="  /etc/init.d/artica-postfix start auth-logger";
+	$f[]="  /etc/init.d/artica-postfix start sysloger";
+	$f[]="  $startmaillog";
+	$f[]="}";
+	$f[]="";
+	$f[]="do_stop()";
+	$f[]="{";
+	$f[]="	NAME=\"\$RSYSLOGD\"";
+	$f[]="	PIDFILE=\"\$RSYSLOGD_PIDFILE\"";
+	$f[]="";
+	$f[]="	# Return";
+	$f[]="	#   0 if daemon has been stopped";
+	$f[]="	#   1 if daemon was already stopped";
+	$f[]="	#   other if daemon could not be stopped or a failure occurred";
+	$f[]="	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile \$PIDFILE --name \$NAME";
+	$f[]="  /etc/init.d/artica-postfix stop auth-logger";
+	$f[]="  /etc/init.d/artica-postfix stop sysloger";
+	$f[]="  $stopmaillog";
+	$f[]="}";
+	$f[]="";
+	$f[]="#";
+	$f[]="# Tell rsyslogd to reload its configuration";
+	$f[]="#";
+	$f[]="do_reload() {";
+	$f[]="	NAME=\"\$RSYSLOGD\"";
+	$f[]="	PIDFILE=\"\$RSYSLOGD_PIDFILE\"";
+	$f[]="";
+	$f[]="	start-stop-daemon --stop --signal HUP --quiet --pidfile \$PIDFILE --name \$NAME";
+	$f[]="  /etc/init.d/artica-postfix restart auth-logger";
+	$f[]="  /etc/init.d/artica-postfix restart sysloger";
+	$f[]="	$restartmaillog";
+	$f[]="}";
+	$f[]="";
+	$f[]="create_xconsole() {";
+	$f[]="	XCONSOLE=/dev/xconsole";
+	$f[]="	if [ \"\$(uname -s)\" = \"GNU/kFreeBSD\" ]; then";
+	$f[]="		XCONSOLE=/var/run/xconsole";
+	$f[]="		ln -sf \$XCONSOLE /dev/xconsole";
+	$f[]="	fi";
+	$f[]="	if [ ! -e \$XCONSOLE ]; then";
+	$f[]="		mknod -m 640 \$XCONSOLE p";
+	$f[]="		chown root:adm \$XCONSOLE";
+	$f[]="		[ -x /sbin/restorecon ] && /sbin/restorecon \$XCONSOLE";
+	$f[]="	fi";
+	$f[]="}";
+	$f[]="";
+	$f[]="sendsigs_omit() {";
+	$f[]="	OMITDIR=/lib/init/rw/sendsigs.omit.d";
+	$f[]="	mkdir -p \$OMITDIR";
+	$f[]="	rm -f \$OMITDIR/rsyslog";
+	$f[]="	ln -s \$RSYSLOGD_PIDFILE \$OMITDIR/rsyslog";
+	$f[]="}";
+	$f[]="";
+	$f[]="case \"\$1\" in";
+	$f[]="  start)";
+	$f[]="	log_daemon_msg \"Starting \$DESC\" \"\$RSYSLOGD\"";
+	$f[]="	create_xconsole";
+	$f[]="	do_start";
+	$f[]="	case \"\$?\" in";
+	$f[]="		0) sendsigs_omit";
+	$f[]="		   log_end_msg 0 ;;";
+	$f[]="		1) log_progress_msg \"already started\"";
+	$f[]="		   log_end_msg 0 ;;";
+	$f[]="		*) log_end_msg 1 ;;";
+	$f[]="	esac";
+	$f[]="";
+	$f[]="	;;";
+	$f[]="  stop)";
+	$f[]="	log_daemon_msg \"Stopping \$DESC\" \"\$RSYSLOGD\"";
+	$f[]="	do_stop";
+	$f[]="	case \"\$?\" in";
+	$f[]="		0) log_end_msg 0 ;;";
+	$f[]="		1) log_progress_msg \"already stopped\"";
+	$f[]="		   log_end_msg 0 ;;";
+	$f[]="		*) log_end_msg 1 ;;";
+	$f[]="	esac";
+	$f[]="";
+	$f[]="	;;";
+	$f[]="  reload|force-reload)";
+	$f[]="	log_daemon_msg \"Reloading \$DESC\" \"\$RSYSLOGD\"";
+	$f[]="	do_reload";
+	$f[]="	log_end_msg \$?";
+	$f[]="	;;";
+	$f[]="  restart)";
+	$f[]="	\$0 stop";
+	$f[]="	\$0 start";
+	$f[]="	;;";
+	$f[]="  status)";
+	$f[]="	status_of_proc -p \$RSYSLOGD_PIDFILE \$RSYSLOGD_BIN \$RSYSLOGD && exit 0 || exit \$?";
+	$f[]="	;;";
+	$f[]="  *)";
+	$f[]="	echo \"Usage: \$SCRIPTNAME {start|stop|restart|reload|force-reload|status}\" >&2";
+	$f[]="	exit 3";
+	$f[]="	;;";
+	$f[]="esac";
+	$f[]="";
+	$f[]=":";
+	$f[]="";
+	@file_put_contents("/etc/init.d/syslog", @implode("\n", $f));
+	echo "syslog: [INFO] syslog path `/etc/init.d/syslog` done\n";
+}
 
 
 

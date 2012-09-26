@@ -61,6 +61,7 @@ function tabs2(){
 		$q=new mysql_squid_builder();
 		$sql="SELECT localldap,gpid,dn FROM webfilter_group WHERE ID={$_GET["ID"]}";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){echo "<H1>$q->mysql_error</H1>";}
 		$dn=$ligne["dn"];
 		$array["members"]='{members}';
 		$array["blacklist"]='{blacklists}';
@@ -85,8 +86,8 @@ function tabs2(){
 	
 	
 	
-	echo "$menus
-	<div id=main_filter_rule_edit_group style='width:100%;overflow:auto'>
+	
+	echo"<div id=main_filter_rule_edit_group style='width:100%;overflow:auto'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -158,6 +159,9 @@ function group_edit(){
 			}
 	}
 	
+	$bt_bt=button($button_name,"SaveDansGUardianGroupRule()",16);
+	$bt_browse="<input type='button' value='{browse}...' OnClick=\"javascript:MemberBrowsePopup();\" style='font-size:13px'>";
+	if($ID>1){if($ligne["localldap"]==2){$bt_bt=null;$bt_browse=null;}}
 	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}
 	
 	$html="
@@ -177,7 +181,7 @@ function group_edit(){
 	<tr>
 		<td class=legend>{groupid}:</td>
 		<td>". Field_text("gpid",$ligne["gpid"],"font-size:14px;width:65px")."</td>
-		<td><input type='button' value='{browse}...' OnClick=\"javascript:MemberBrowsePopup();\" style='font-size:13px'></td>
+		<td>$bt_browse</td>
 	</tr>		
 	
 	<tr>
@@ -191,7 +195,7 @@ function group_edit(){
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td colspan=3 align='right'><hr>". button($button_name,"SaveDansGUardianGroupRule()",16)."</td>
+		<td colspan=3 align='right'><hr>$bt_bt</td>
 	</tr>
 	</tbody>
 	</table>
@@ -199,11 +203,20 @@ function group_edit(){
 	<script>
 	
 	function Checklocalldap(){
+		var ID=$ID;
 		var v=document.getElementById('localldap').value;
 		document.getElementById('gpid').disabled=true;
 		document.getElementById('groupname-$t').disabled=false;
 		if(v==0){document.getElementById('gpid').disabled=false;}
-		if(v==2){document.getElementById('groupname-$t').disabled=true;}
+		if(v==2){
+			document.getElementById('groupname-$t').disabled=true;
+			var tt=document.getElementById('groupname-$t').value;
+			var t2=document.getElementById('description').value;
+			if(ID==-1){
+				document.getElementById('groupname-$t').value='';
+				if(tt.length>0){if(t2.length==0){document.getElementById('description').value=tt;}}
+			}
+		}
 	}
 	
 	

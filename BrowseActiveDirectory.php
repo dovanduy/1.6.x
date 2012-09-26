@@ -477,7 +477,7 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'zDate', width :31, sortable : false, align: 'left'},
-		{display: '$members', name : 'members', width : 533, sortable : false, align: 'left'},
+		{display: '$members', name : 'members', width : 528, sortable : false, align: 'left'},
 		{display: '&nbsp;', name : 'select', width : 31, sortable : false, align: 'left'},
 		],
 	

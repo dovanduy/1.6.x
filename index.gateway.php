@@ -219,24 +219,17 @@ function index_page(){
 		$openvpn=Paragraphe('64-openvpn.png','{APP_OPENVPN}','{APP_OPENVPN_TEXT}',"javascript:Loadjs('index.openvpn.php')",null,210,null,0,false);	
 	}
 	
-	$comp=ICON_ADD_COMPUTER();
+	
 	$gateway=Buildicon64('DEF_ICO_GATEWAY');
-	$html="<div style='width:530px'>
-	<table>
-	<tr>
-	<td valign='top'>$gateway</td>
-	<td valign='top'>$dhcp</td>
-	</tr>
-	<tr>
-	<td valign='top'>$bind9</td>
-	<td valign='top'>$comp</td>
-	</tr>
-	<tr>
-		<td valign='top'>$openvpn</td>
-		<td valign='top'>&nbsp;</td>
-	</tr>
-	</table>
-	</div>";
+	
+	$tr[]=$gateway;
+	$tr[]=$dhcp;
+	$tr[]=$bind9;
+	$tr[]=$comp;
+	$tr[]=$openvpn;
+	
+	$html=CompileTr2($tr,"form");
+
 	
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html,"system.index.php");
@@ -824,7 +817,7 @@ function gateway_enable(){
 	if($DisableNetworksManagement==1){echo $ERROR_NO_PRIVS;return;}		
 	$EnableArticaAsGateway=$sock->GET_INFO("EnableArticaAsGateway");
 	
-	$enable=Paragraphe_switch_img('{ARTICA_AS_GATEWAY}','{ARTICA_AS_GATEWAY_EXPLAIN}','EnableArticaAsGateway',EnableArticaAsGateway);
+	$enable=Paragraphe_switch_img('{ARTICA_AS_GATEWAY}','{ARTICA_AS_GATEWAY_EXPLAIN}','EnableArticaAsGateway',$EnableArticaAsGateway,null,410);
 	$tpl=new templates();
 	return $tpl->_ENGINE_parse_body($enable);		
 }
@@ -836,7 +829,10 @@ function gateway_page(){
 	<table style='width:100%'>
 	<tr>
 		<td valign='top'><div id='gayteway_enable'>" . gateway_enable()."</div></td>
-		<td valign='top'><input type='button' OnClick=\"javascript:ParseForm('ffm2','$page',true,false,false,'gayteway_enable','$page?gayteway_enable=yes');\" value='{edit}&nbsp;&raquo;'>
+	</tr>
+	<tr>
+		<td valign='top' align='right'>
+		<hr>". button("{apply}", "ParseForm('ffm2','$page',true,false,false,'gayteway_enable','$page?gayteway_enable=yes');","16px")."
 		</td>
 	</tr>
 	</table>
@@ -856,9 +852,9 @@ function gateway_save(){
 	if($DisableNetworksManagement==null){$DisableNetworksManagement=0;}		
 	if($DisableNetworksManagement==1){echo $ERROR_NO_PRIVS;return;}		
 	
-	$artica=new artica_general();
-	$artica->EnableArticaAsGateway=$_GET["EnableArticaAsGateway"];
-	$artica->Save();
+	$sock=new sockets();
+	$sock->SET_INFO("EnableArticaAsGateway", $_GET["EnableArticaAsGateway"]);
+	if($_GET["EnableArticaAsGateway"]==1){$sock->getFrameWork("cmd.php?sysctl-setvalue=1&key=".base64_encode("net.ipv4.ip_forward"));}
 	$dhcp=new dhcpd();
 	$dhcp->Save();
 	

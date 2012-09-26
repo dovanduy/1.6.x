@@ -23,6 +23,9 @@
 		die();exit();
 	}
 	if(isset($_GET["ldap-params"])){ldap_params();exit;}
+	if(isset($_GET["schedule-params"])){schedule_params();exit;}
+	if(isset($_POST["AdSchBuildProxy"])){schedule_save();exit;}
+	
 	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["settings"])){settings();exit;}
@@ -41,10 +44,51 @@
 	if(isset($_POST["LDAP_SUFFIX"])){ldap_params_save();exit;}
 	if(isset($_GET["test-popup-js"])){test_popup_js();exit;}
 	if(isset($_GET["intro"])){intro();exit;}
-	
+	if(isset($_GET["join-js"])){join_js();exit;}
+	if(isset($_GET["join-popup"])){join_popup();exit;}
+	if(isset($_GET["join-perform"])){join_perform();exit;}
 	
 js();
 
+function join_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{restart_connection}");
+	echo "YahooWin6('905','$page?join-popup=yes','$title')";
+	
+}
+
+function join_perform(){
+	$sock=new sockets();
+	$t=$_GET["t"];
+	$datas=unserialize(base64_decode($sock->getFrameWork("squid.php?join-reste=yes&MyCURLTIMEOUT=300")));
+	$text=@implode("\n", $datas);
+	$html="<textarea style='width:100%;height:550px;font-size:11.5px;overflow:auto;border:1px solid #CCCCCC;padding:5px'>$text</textarea>
+	<script>
+		document.getElementById('$t-center').innerHTML='';
+	</script>
+	
+	";	
+	echo $html;
+}
+
+function join_popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();	
+	$sock=new sockets();
+	$t=time();
+	$html="
+	<center style='font-size:18px' id='$t-center'>{please_wait}...<p>&nbsp;</p><p>&nbsp;</p></center>
+	<div id='$t' style='margin-bottom:20px'></div>
+	<script>
+		LoadAjax('$t','$page?join-perform=yes&t=$t');
+	</script>
+	";
+	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+
+}
 
 function status_kerb(){
 	$sock=new sockets();
@@ -52,15 +96,18 @@ function status_kerb(){
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	$tpl=new templates();
 
+
 	if($EnableKerbAuth==0){return;}
-	
+	writelogs("squid.php?ping-kdc=yes",__FUNCTION__,__FILE__,__LINE__);
 	$sock->getFrameWork("squid.php?ping-kdc=yes");
 	$datas=unserialize(@file_get_contents("ressources/logs/kinit.array"));
-	if(!is_array($datas)){
-		echo "<script>LoadAjaxTiny('{$_GET["t"]}','squid.adker.php?status=yes&t=$t');</script>";
+	if(count($datas)==0){
+		echo "
+		<script>LoadAjaxTiny('{$_GET["t"]}','squid.adker.php?status=yes&t=$t');</script>";
 		return;
 		
 	}
+	
 	$img="img/error-24.png";
 	$textcolor="#8A0D0D";
 	$text=$datas["INFO"];
@@ -340,7 +387,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{APP_SQUIDKERAUTH}");
-	$html="YahooWin4(600,'$page?tabs=yes','$title');";
+	$html="YahooWin4(650,'$page?tabs=yes','$title');";
 	echo $html;
 	}
 	
@@ -448,6 +495,7 @@ function settings(){
 	$samba_version=$sock->getFrameWork("samba.php?fullversion=yes");
 	$ldap_parameters=$tpl->_ENGINE_parse_body("{ldap_parameters2}");
 	$about_this_section=$tpl->_ENGINE_parse_body("{about_this_section}");
+	$schedule_parameters=$tpl->javascript_parse_text("{schedule_parameters}");
 	$samba36=0;
 	if(preg_match("#^3\.6\.#", $samba_version)){$samba36=1;}
 	
@@ -459,16 +507,22 @@ function settings(){
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 	$configADSamba=unserialize(base64_decode($sock->GET_INFO("SambaAdInfos")));
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
+	$LockKerberosAuthentication=$sock->GET_INFO("LockKerberosAuthentication");
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
+	if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
+	if(!is_numeric("$LockKerberosAuthentication")){$LockKerberosAuthentication=1;}
 	$samba_installed=1;
 	if(!$users->SAMBA_INSTALLED){$samba_installed=0;}
 	
 	if(!isset($array["SAMBA_BACKEND"])){$array["SAMBA_BACKEND"]="tdb";}
+	if(!isset($array["COMPUTER_BRANCH"])){$array["COMPUTER_BRANCH"]="CN=Computers";}
+	if($array["COMPUTER_BRANCH"]==null){$array["COMPUTER_BRANCH"]="CN=Computers";}
 	if($samba36==1){$arrayBCK["autorid"]="autorid";}
 	$arrayBCK["ad"]="ad";
 	$arrayBCK["rid"]="rid";
 	$arrayBCK["tdb"]="tdb";
-	
+	if($LockKerberosAuthentication==1){$EnableKerberosAuthentication=0;}
 	
 	$html="
 	<table style='width:100%'>
@@ -493,57 +547,78 @@ function settings(){
 			<td width=1%><img src='img/arrow-right-24.png'></td>
 			<td nowrap>		
 				<a href=\"javascript:blur();\" 
-					OnClick=\"javascript:YahooSearchUser('550','$page?ldap-params=yes','$ldap_parameters');\" 
+					OnClick=\"javascript:YahooSearchUser('650','$page?ldap-params=yes','$ldap_parameters');\" 
 					style='font-size:14px;text-decoration:underline'>$ldap_parameters</a>
-		</td>
-	</tr>
+				</td>
+		</tr>
+		<tr>
+			<td width=1%><img src='img/arrow-right-24.png'></td>
+			<td nowrap>		
+				<a href=\"javascript:blur();\" 
+					OnClick=\"javascript:YahooSearchUser('550','$page?schedule-params=yes','$schedule_parameters');\" 
+					style='font-size:14px;text-decoration:underline'>$schedule_parameters</a>
+				</td>
+		</tr>		
 		</table>		
 	</td>
 	</table>
 	
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend>{EnableWindowsAuthentication}:</td>
+		<td class=legend style='font-size:14px'>{EnableWindowsAuthentication}:</td>
 		<td>". Field_checkbox("EnableKerbAuth",1,"$EnableKerbAuth","EnableKerbAuthCheck()")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend>{WINDOWS_DNS_SUFFIX}:</td>
+		<td class=legend style='font-size:14px'>{authenticate_from_kerberos}:</td>
+		<td>". Field_checkbox("EnableKerberosAuthentication",1,"$EnableKerberosAuthentication","EnableKerbAuthCheck()")."</td>
+		<td>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:14px'>{WINDOWS_DNS_SUFFIX}:</td>
 		<td>". Field_text("WINDOWS_DNS_SUFFIX",$array["WINDOWS_DNS_SUFFIX"],"font-size:14px;padding:3px;width:190px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend>{WINDOWS_SERVER_NETBIOSNAME}:</td>
+		<td class=legend style='font-size:14px'>{WINDOWS_SERVER_NETBIOSNAME}:</td>
 		<td>". Field_text("WINDOWS_SERVER_NETBIOSNAME",$array["WINDOWS_SERVER_NETBIOSNAME"],"font-size:14px;padding:3px;width:190px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:12px'>{ADNETBIOSDOMAIN}:</td>
+		<td class=legend style='font-size:14px'>{ADNETBIOSDOMAIN}:</td>
 		<td>". Field_text("ADNETBIOSDOMAIN",$array["ADNETBIOSDOMAIN"],"font-size:14px;padding:3px;width:165px")."</td>
 		<td>". help_icon("{howto_ADNETBIOSDOMAIN}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:12px'>{ADNETIPADDR}:</td>
+		<td class=legend style='font-size:14px'>{ADNETIPADDR}:</td>
 		<td>". field_ipv4("ADNETIPADDR",$array["ADNETIPADDR"],"font-size:14px")."</td>
 		<td>". help_icon("{howto_ADNETIPADDR}")."</td>
 	</tr>			
 	<tr>
-		<td class=legend>{WINDOWS_SERVER_TYPE}:</td>
+		<td class=legend style='font-size:14px'>{WINDOWS_SERVER_TYPE}:</td>
 		<td>". Field_array_Hash($severtype,"WINDOWS_SERVER_TYPE",$array["WINDOWS_SERVER_TYPE"],"style:font-size:14px;padding:3px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend>{database_backend}:</td>
+		<td class=legend style='font-size:14px'>{COMPUTERS_BRANCH}:</td>
+		<td>". Field_text("COMPUTER_BRANCH",$array["COMPUTER_BRANCH"],"font-size:14px;padding:3px;width:165px")."</td>
+		<td>&nbsp;</td>
+	</tr>	
+	
+	
+	
+	<tr>
+		<td class=legend style='font-size:14px'>{database_backend}:</td>
 			<td>". Field_array_Hash($arrayBCK,"SAMBA_BACKEND",$array["SAMBA_BACKEND"],"style:font-size:14px;padding:3px")."</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend>{administrator}:</td>
+		<td class=legend style='font-size:14px'>{administrator}:</td>
 		<td>". Field_text("WINDOWS_SERVER_ADMIN",$array["WINDOWS_SERVER_ADMIN"],"font-size:14px;padding:3px;width:190px")."</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend>{password}:</td>
+		<td class=legend style='font-size:14px'>{password}:</td>
 		<td>". Field_password("WINDOWS_SERVER_PASS",$array["WINDOWS_SERVER_PASS"],"font-size:14px;padding:3px;width:190px")."</td>
 		<td>&nbsp;</td>
 	</tr>
@@ -553,6 +628,10 @@ function settings(){
 	
 	<script>
 		function EnableKerbAuthCheck(){
+			var EnableKerbAuth=0;
+			var EnableKerberosAuthentication=$EnableKerberosAuthentication;
+			var LockKerberosAuthentication=$LockKerberosAuthentication;
+			
 			var samba_installed=$samba_installed;
 			document.getElementById('WINDOWS_DNS_SUFFIX').disabled=true;
 			document.getElementById('WINDOWS_SERVER_NETBIOSNAME').disabled=true;
@@ -562,10 +641,19 @@ function settings(){
 			document.getElementById('ADNETBIOSDOMAIN').disabled=true;
 			document.getElementById('ADNETIPADDR').disabled=true;
 			document.getElementById('SAMBA_BACKEND').disabled=true;
+			document.getElementById('COMPUTER_BRANCH').disabled=true;
 			
 			
 			
-			if(document.getElementById('EnableKerbAuth').checked){
+			if(document.getElementById('EnableKerbAuth').checked){EnableKerbAuth=1;}
+			if(LockKerberosAuthentication==0){
+			if(document.getElementById('EnableKerberosAuthentication').checked){
+				EnableKerbAuth=1;
+				EnableKerberosAuthentication=1;
+				
+			}}
+			
+			if(EnableKerbAuth==1){
 				document.getElementById('WINDOWS_DNS_SUFFIX').disabled=false;
 				document.getElementById('WINDOWS_SERVER_NETBIOSNAME').disabled=false;
 				document.getElementById('WINDOWS_SERVER_TYPE').disabled=false;
@@ -574,6 +662,23 @@ function settings(){
 				document.getElementById('ADNETBIOSDOMAIN').disabled=false;
 				document.getElementById('ADNETIPADDR').disabled=false;
 				document.getElementById('SAMBA_BACKEND').disabled=false;
+				document.getElementById('COMPUTER_BRANCH').disabled=false;
+				if(document.getElementById('EnableKerberosAuthentication').checked){
+					document.getElementById('EnableKerbAuth').checked=false
+					document.getElementById('EnableKerbAuth').disabled=true;
+					document.getElementById('SAMBA_BACKEND').disabled=true;
+				}else{
+					document.getElementById('EnableKerbAuth').disabled=false;
+					document.getElementById('SAMBA_BACKEND').disabled=false;
+				}
+				if(document.getElementById('EnableKerbAuth').checked){
+					document.getElementById('EnableKerberosAuthentication').checked=false;
+					document.getElementById('EnableKerberosAuthentication').disabled=true;
+					document.getElementById('SAMBA_BACKEND').disabled=false;
+				}else{
+					document.getElementById('EnableKerberosAuthentication').disabled=false;
+				}
+				
 				
 			}
 			
@@ -582,6 +687,27 @@ function settings(){
 					document.getElementById('ADNETBIOSDOMAIN').disabled=false;
 				}
 			}
+			
+			if(!document.getElementById('EnableKerberosAuthentication').checked){
+				document.getElementById('EnableKerbAuth').disabled=false;
+				document.getElementById('SAMBA_BACKEND').disabled=false;
+				
+			}
+			if(document.getElementById('EnableKerbAuth').checked){
+				document.getElementById('EnableKerberosAuthentication').disabled=false;
+				document.getElementById('SAMBA_BACKEND').disabled=false;
+			}
+			
+			if(samba_installed==0){
+				document.getElementById('SAMBA_BACKEND').disabled=true;
+				document.getElementById('EnableKerbAuth').disabled=true;
+			}
+			
+			if(LockKerberosAuthentication==1){
+				document.getElementById('EnableKerberosAuthentication').disabled=true;
+			}
+			
+			
 		}
 		
 		function RefreshAll(){
@@ -600,6 +726,10 @@ function settings(){
 			var pp=encodeURIComponent(document.getElementById('WINDOWS_SERVER_PASS').value);
 			var XHR = new XHRConnection();
 			if(document.getElementById('EnableKerbAuth').checked){XHR.appendData('EnableKerbAuth',1);}else{XHR.appendData('EnableKerbAuth',0);}
+			if(document.getElementById('EnableKerberosAuthentication').checked){XHR.appendData('EnableKerberosAuthentication',1);}else{XHR.appendData('EnableKerberosAuthentication',0);}
+			
+			
+			XHR.appendData('COMPUTER_BRANCH',document.getElementById('COMPUTER_BRANCH').value);
 			XHR.appendData('SAMBA_BACKEND',document.getElementById('SAMBA_BACKEND').value);
 			XHR.appendData('WINDOWS_DNS_SUFFIX',document.getElementById('WINDOWS_DNS_SUFFIX').value);
 			XHR.appendData('WINDOWS_SERVER_NETBIOSNAME',document.getElementById('WINDOWS_SERVER_NETBIOSNAME').value);
@@ -629,6 +759,8 @@ function ldap_params(){
 	$tpl=new templates();
 	$active=new ActiveDirectory();
 	$sock=new sockets();
+	$UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
+	if(!is_numeric($UseDynamicGroupsAcls)){$UseDynamicGroupsAcls=0;}
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));	
 	$t=time();
 	if($array["LDAP_DN"]==null){$array["LDAP_DN"]=$active->ldap_dn_user;}
@@ -641,6 +773,10 @@ function ldap_params(){
 	<div id='serverkerb-$t'></div>
 	<div class=explain style='font-size:14px'>{ldap_ntlm_parameters_explain}</div>
 	<table style='width:99%' class=form>
+	<tr>
+		<td class=legend style='font-size:14px'>{use_dynamic_groups_acls}:</td>
+		<td>". Field_checkbox("UseDynamicGroupsAcls",1,$UseDynamicGroupsAcls)."</td>
+	</tr>	
 	<tr>
 		<td class=legend style='font-size:14px'>{non_ntlm_domain}:</td>
 		<td>". Field_text("LDAP_NONTLM_DOMAIN",$array["LDAP_NONTLM_DOMAIN"],"font-size:14px;padding:3px;width:190px")."</td>
@@ -655,11 +791,11 @@ function ldap_params(){
 	</tr>		
 	<tr>
 		<td class=legend style='font-size:14px'>{suffix}:</td>
-		<td>". Field_text("LDAP_SUFFIX",$array["LDAP_SUFFIX"],"font-size:14px;padding:3px;width:290px")."</td>
+		<td>". Field_text("LDAP_SUFFIX",$array["LDAP_SUFFIX"],"font-size:14px;padding:3px;width:310px")."</td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:14px'>{bind_dn}:</td>
-		<td>". Field_text("LDAP_DN",$array["LDAP_DN"],"font-size:14px;padding:3px;width:290px")."</td>
+		<td>". Field_text("LDAP_DN",$array["LDAP_DN"],"font-size:12px;padding:3px;width:310px")."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{password}:</td>
@@ -679,11 +815,17 @@ function ldap_params(){
 		if(results.length>3){alert(results);document.getElementById('serverkerb-$t').innerHTML='';return;}
 		document.getElementById('serverkerb-$t').innerHTML='';
 		YahooSearchUserHide();
+		if(document.getElementById('main_dansguardian_mainrules')){
+			RefreshTab('main_dansguardian_mainrules');
+		}
 	}		
 	
 		function SaveLDAPADker(){
+			var UseDynamicGroupsAcls=0;
 			var pp=encodeURIComponent(document.getElementById('LDAP_PASSWORD-$t').value);
 			var XHR = new XHRConnection();
+			if(document.getElementById('UseDynamicGroupsAcls').checked){UseDynamicGroupsAcls=1;}
+			XHR.appendData('UseDynamicGroupsAcls',UseDynamicGroupsAcls);
 			XHR.appendData('LDAP_NONTLM_DOMAIN',document.getElementById('LDAP_NONTLM_DOMAIN').value);
 			XHR.appendData('LDAP_SERVER',document.getElementById('LDAP_SERVER').value);
 			XHR.appendData('LDAP_PORT',document.getElementById('LDAP_PORT').value);
@@ -704,12 +846,14 @@ function ldap_params(){
 
 function ldap_params_save(){
 	$sock=new sockets();
+	$sock->SET_INFO("UseDynamicGroupsAcls", $_POST["UseDynamicGroupsAcls"]);
 	$_POST["LDAP_PASSWORD"]=url_decode_special_tool($_POST["LDAP_PASSWORD"]);
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 	while (list ($num, $ligne) = each ($_POST) ){
 		$array[$num]=$ligne;
 	}
 	$sock->SaveConfigFile(base64_encode(serialize($array)), "KerbAuthInfos");
+	$sock->getFrameWork("squid.php?squid-reconfigure=yes");
 }
 
 function settingsSave(){
@@ -727,6 +871,7 @@ function settingsSave(){
 	if($MyDomain<>$_POST["WINDOWS_DNS_SUFFIX"]){
 		$tpl=new templates();
 		$sock->SET_INFO("EnableKerbAuth", 0);
+		$sock->SET_INFO("EnableKerberosAuthentication", 0);
 		$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
 		echo $tpl->javascript_parse_text("{error}: {WINDOWS_DNS_SUFFIX} {$_POST["WINDOWS_DNS_SUFFIX"]}\n{is_not_a_part_of} $Myhostname ($MyDomain)",1);
 		return;
@@ -737,6 +882,7 @@ function settingsSave(){
 	if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $resolved)){
 		$tpl=new templates();
 		$sock->SET_INFO("EnableKerbAuth", 0);
+		$sock->SET_INFO("EnableKerberosAuthentication", 0);
 		$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
 		echo $tpl->javascript_parse_text("{error}: {unable_to_resolve} $adhost",1);
 		return;	
@@ -745,22 +891,31 @@ function settingsSave(){
 	
 	
 	$sock->SET_INFO("EnableKerbAuth", $_POST["EnableKerbAuth"]);
+	$sock->SET_INFO("EnableKerberosAuthentication", $_POST["EnableKerberosAuthentication"]);
+	if($_POST["EnableKerberosAuthentication"]==1){$sock->SET_INFO("EnableKerbAuth", 0);}
+	
 	$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
 	$sock->getFrameWork("services.php?kerbauth=yes");
 	if($users->SQUID_INSTALLED){$sock->getFrameWork("cmd.php?squid-rebuild=yes");}
 	
 	if($users->SAMBA_INSTALLED){
-		$sock->getFrameWork("services.php?nsswitch=yes");
-		$sock->getFrameWork("cmd.php?samba-reconfigure=yes");
+		if($_POST["EnableKerberosAuthentication"]==0){
+			$sock->getFrameWork("services.php?nsswitch=yes");
+			$sock->getFrameWork("cmd.php?samba-reconfigure=yes");
+		}
 	}
 }
 
 
 function SambeReconnectAD(){
 	$sock=new sockets();
+	$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
+	if(!is_numeric($EnableKerberosAuthentication)){$EnableKerberosAuthentication=0;}
 	$sock->getFrameWork("services.php?kerbauth=yes");
-	$sock->getFrameWork("services.php?nsswitch=yes");
-	$sock->getFrameWork("cmd.php?samba-reconfigure=yes");	
+	if($EnableKerberosAuthentication==0){
+		$sock->getFrameWork("services.php?nsswitch=yes");
+		$sock->getFrameWork("cmd.php?samba-reconfigure=yes");
+	}	
 }
 
 function test_auth(){
@@ -887,8 +1042,12 @@ function kerbchkconf(){
 	$tpl=new templates();
 	$sock=new sockets();	
 	$users=new usersMenus();
-	$samba_version=$sock->getFrameWork("samba.php?fullversion=yes");
-	echo $tpl->_ENGINE_parse_body("<div style='font-size:14px'>{APP_SAMBA}:$samba_version</div>");
+	if($users->SAMBA_INSTALLED){
+		$samba_version=$sock->getFrameWork("samba.php?fullversion=yes");
+		echo $tpl->_ENGINE_parse_body("<center><div style='font-size:14px'>{APP_SAMBA}:$samba_version</div></center>");
+	}else{
+		echo $tpl->_ENGINE_parse_body("<center><div style='font-size:14px'>{APP_SAMBA}: {NOT_INSTALLED}</div></center>");
+	}
 	
 	
 	if(!$users->MSKTUTIL_INSTALLED){echo $tpl->_ENGINE_parse_body(Paragraphe32("APP_MSKTUTIL", "APP_MSKTUTIL_NOT_INSTALLED", "Loadjs('setup.index.php?js=yes');", "error-24.png"));return;}
@@ -908,4 +1067,82 @@ function kerbchkconf(){
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
 	$ip=gethostbyname($hostname);
 	if($ip==$hostname){echo $tpl->_ENGINE_parse_body(Paragraphe32("WINDOWS_NAME_SERVICE_NOT_KNOWN", "noacco:<strong style='font-size:12px'>$hostname</strong>", null, "error-24.png"));return;}
+	
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	if($EnableKerbAuth==1){
+		$page=CurrentPageName();
+		echo $tpl->_ENGINE_parse_body("<center style='margin:5px'>".button("{restart_connection}",
+		 "Loadjs('$page?join-js=yes')","14px")."</center>");
+	}
+	
+	
 }
+
+function schedule_params(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$t=time();
+	
+	$AdSchBuildProxy=$sock->GET_INFO("AdSchBuildProxy");
+	$AdSchBuildUfdb=$sock->GET_INFO("AdSchBuildUfdb");
+	$AdSchRestartSquid=$sock->GET_INFO("AdSchRestartSquid");
+	if(!is_numeric($AdSchBuildProxy)){$AdSchBuildProxy=0;}
+	if(!is_numeric($AdSchBuildUfdb)){$AdSchBuildUfdb=0;}
+	if(!is_numeric($AdSchRestartSquid)){$AdSchRestartSquid=0;}
+	$html="<div class='explain' style='font-size:14px'>
+	{ad_kerb_schedule_explain}
+	</div>
+	<div id='test-$t'></div>
+	<table style='width:99%' class=form>
+	<tr>
+		<td valign='top' class=legend style='font-size:14px'>{build_proxy_parameters}:</td>
+		<td>". Field_checkbox("AdSchBuildProxy", 1,$AdSchBuildProxy)."</td>
+	</tr>
+	<tr>
+		<td valign='top' class=legend style='font-size:14px'>{build_web_filtering_rules}:</td>
+		<td>". Field_checkbox("AdSchBuildUfdb", 1,$AdSchBuildUfdb)."</td>
+	</tr>	
+	<tr>
+		<td valign='top' class=legend style='font-size:14px'>{restart_the_web_proxy_service}:</td>
+		<td>". Field_checkbox("AdSchRestartSquid", 1,$AdSchRestartSquid)."</td>
+	</tr>	
+	<tr>
+		<td colspan=2 align='right'><hr>". button("{apply}", "AdSchBuildProxy$t()","16px")."</td>
+	</tr>
+	</table>
+	<script>
+	var x_AdSchBuildProxy$t= function (obj) {
+			var results=obj.responseText;
+			if(results.length>3){alert(results);}
+			document.getElementById('test-$t').innerHTML='';
+			
+		}		
+		
+		function AdSchBuildProxy$t(){
+			var XHR = new XHRConnection();
+			AdSchBuildProxy=0;
+			AdSchBuildUfdb=0;
+			AdSchRestartSquid=0;
+			if(document.getElementById('AdSchBuildProxy').checked){AdSchBuildProxy=1;}
+			if(document.getElementById('AdSchBuildUfdb').checked){AdSchBuildUfdb=1;}
+			if(document.getElementById('AdSchRestartSquid').checked){AdSchRestartSquid=1;}
+			
+			XHR.appendData('AdSchRestartSquid',AdSchRestartSquid);
+			XHR.appendData('AdSchBuildUfdb',AdSchBuildUfdb);
+			XHR.appendData('AdSchBuildProxy',AdSchBuildProxy);
+			AnimateDiv('test-$t');
+			XHR.sendAndLoad('$page', 'POST',x_AdSchBuildProxy$t);
+		
+		}		
+	</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+}
+function schedule_save(){
+	$sock=new sockets();
+	while (list ($num, $ligne) = each ($_POST) ){
+		$sock->SET_INFO("$num",$ligne);
+	}
+}
+

@@ -2139,4 +2139,31 @@ Note: After the certificate generation, you need to restart all linked services.
 <sended_messages>sended message(s)</sended_messages>
 <my_messaging_statistics_text>your account SMTP Messaging statistics</my_messaging_statistics_text>
 <postfix_stats_month_explain>This task build monthly messaging statistics tables from the daily messaging statistics tables</postfix_stats_month_explain>
-<postfix_stats_month>Monthly messaging statistics</postfix_stats_month>  
+<postfix_stats_month>Monthly messaging statistics</postfix_stats_month>
+<use_dynamic_groups_acls>Use dynamic ACLS groups</use_dynamic_groups_acls>
+<dynamic_activedirectory_group>Dynamic Active Directory Group</dynamic_activedirectory_group>
+<vps_server_watchdog>Virtual servers watchdog</vps_server_watchdog>
+<vps_server_watchdog_explain>This task must be scheduled only if your Artica server is able to provide Virtual machines with LXC.[br]
+It designed to ensure that Virtual machines are UP and running and correcly set.
+</vps_server_watchdog_explain>
+<authenticate_from_kerberos>Authenticate from Kerberos</authenticate_from_kerberos>
+<ad_kerb_schedule_explain>Define operation to carry out when Active Directory members import schedule task has been executed</ad_kerb_schedule_explain>
+<build_proxy_parameters>Build proxy parameters</build_proxy_parameters>
+<build_web_filtering_rules>Build web filtering rules</build_proxy_parameters>
+<restart_the_web_proxy_service>Restart the Web proxy service</restart_the_web_proxy_service>
+<reconfigure_proxy_task_explain>This task is designed to rebuild the proxy configuration and ACLs and reload the proxy</reconfigure_proxy_task_explain>
+<reconfigure_proxy_task>Reconfigure the proxy service</reconfigure_proxy_task>
+<schedule_parameters>Schedule parameters</schedule_parameters>
+<COMPUTERS_BRANCH>Computers branch</COMPUTERS_BRANCH>
+<NOT_INSTALLED>Not installed</NOT_INSTALLED>
+<messaging_statistics>Messaging statistics</messaging_statistics>
+<refresh_kerberos_ticket_explain>This task refresh the kerberos ticket when connecting the server to an Active Directory Windows server</refresh_kerberos_ticket_explain>
+<refresh_kerberos_ticket>Refresh kerberos ticket</refresh_kerberos_ticket_explain>
+<banned_configuration>Banned configuration</banned_configuration>
+<remote_appliance_error_text>This server is managed by a Statistics Appliance.[br]
+Connect to %s in order to modify parameters</remote_appliance_error_text>
+<warning_malware_patrol_consumme_performance>Malware patrol is a set of several thousand expressions rules that the proxy will check on each request.[br]
+If you server did not have a strong performance this will increase times to receive Web pages.[br]
+If after enable it your users complain about a low bandwidth, disable this feature.
+</warning_malware_patrol_consumme_performance>
+<strip-domain-from-username>Remove the domain in member session</strip-domain-from-username>  

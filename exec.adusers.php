@@ -64,6 +64,27 @@ function ImportTasks(){
 		$php5=$unix->LOCATE_PHP5_BIN();
 		shell_exec("$nohup $php5 ". dirname(__FILE__)."/exec.squidguard.php --build schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
 	}
+	
+	$AdSchBuildProxy=$sock->GET_INFO("AdSchBuildProxy");
+	$AdSchBuildUfdb=$sock->GET_INFO("AdSchBuildUfdb");
+	$AdSchRestartSquid=$sock->GET_INFO("AdSchRestartSquid");
+	if(!is_numeric($AdSchBuildProxy)){$AdSchBuildProxy=0;}
+	if(!is_numeric($AdSchBuildUfdb)){$AdSchBuildUfdb=0;}
+	if(!is_numeric($AdSchRestartSquid)){$AdSchRestartSquid=0;}
+
+	if($AdSchBuildProxy==1){
+		shell_exec("$php5 ". dirname(__FILE__)."/exec.squid.build --build --force schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1");
+	}
+	if($AdSchBuildUfdb==1){
+		shell_exec("$php5 ". dirname(__FILE__)."/exec.squidguard.php --build --force schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1");
+	}
+
+	if($AdSchRestartSquid==1){
+		shell_exec("$php5 ". dirname(__FILE__)."/exec.squidguard.php  --reload-squid schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1");
+	}
+	
+	
+	
 }
 
 

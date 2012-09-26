@@ -61,7 +61,7 @@ private
        function LOCATE_PHP5_EXTENSION_DIR_GW():string;
        function PROCESS_MEMORY_SINGLE(PID:string):integer;
        function LIST_PID_BY_PIDFATHER(PPID:string):TstringList;
-       function GIDFromName(group_name:string):Integer;
+
        function UIDFromName(username:string):Integer;
        function DirectoryListTstring(path:string):TstringList;
        function PidByProcessPath_PPID(pid:string):string;
@@ -89,6 +89,7 @@ public
       PLISTPID:TstringList;
       DirListFiles:TstringList;
       constructor Create();
+      function GIDFromName(group_name:string):Integer;
       function Load_DisableFollowServiceHigerThan1G():integer;
       function CHECK_PERL_MODULES_VER(ModulesToCheck:string):string;
       function GET_LANGUAGE_LOCAL():string;

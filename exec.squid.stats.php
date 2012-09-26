@@ -348,7 +348,6 @@ function recategorize_singleday($day,$nopid=false,$tablename=null){
 	if($f>0){
 		ufdbguard_admin_events("Re-categorized table $table with $f websites ($took)",__FUNCTION__,__FILE__,__LINE__,"statistics");
 	}
-	writelogs_squid("Re-categorized table $table with $f websites ($took)",__FUNCTION__,__FILE__,__LINE__,"categorize");	
 	if($GLOBALS["VERBOSE"]){echo "recategorize_singleday($day) FINISH\n";}
 }
 
@@ -562,7 +561,7 @@ function visited_websites_by_day($nopid=false){
 	}
 	$took=$unix->distanceOfTimeInWords($t1,time());
 	ufdbguard_admin_events("Success update $countWorks in $took",__FUNCTION__,__FILE__,__LINE__,"stats");
-	members_central();
+	members_central(true);
 }
 
 function visited_websites_by_day_perform($tableSource,$tableDest){
@@ -1295,21 +1294,24 @@ function members_central_grouped(){
 }
 
 
-function members_central(){
+function members_central($aspid=false){
 	
 	if(!ifMustBeExecuted()){
 		ufdbguard_admin_events("Not necessary to execute this task...",__FUNCTION__,__FILE__,__LINE__,"stats");
 		return;
-	}	
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	$myfile=basename(__FILE__);
-	$unix=new unix();
-	if($unix->process_exists($oldpid,$myfile)){
-		ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
-		return;
 	}
-	
+	if(!$aspid){	
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=@file_get_contents($pidfile);
+		$myfile=basename(__FILE__);
+		$unix=new unix();
+		if($unix->process_exists($oldpid,$myfile)){
+			ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}
+	}
+	clients_hours();
+	visited_websites_by_day();
 	
 	if(!$GLOBALS["Q"]->TABLE_EXISTS("UserAuthDays")){$GLOBALS["Q"]->CheckTables();}
 	$unix=new unix();
@@ -1846,7 +1848,7 @@ function week_uris($asPid=false){
 			return;
 		}
 	}	
-	
+	visited_websites_by_day();
 	$sql="SELECT tablename,DATE_FORMAT( zDate, '%Y%m%d' ) AS tablesource, DAYOFWEEK(zDate) as DayNumber,WEEK( zDate ) AS tweek, YEAR( zDate ) AS tyear FROM tables_day WHERE weekdone =0 AND zDate < DATE_SUB( NOW( ) , INTERVAL 1 DAY ) ORDER BY zDate";
 	
 	if($GLOBALS["VERBOSE"]){echo $sql."\n";}

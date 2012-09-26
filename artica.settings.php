@@ -1,5 +1,5 @@
 <?php
-$GLOBALS["ICON_FAMILY"]="PARAMETERS";
+	$GLOBALS["ICON_FAMILY"]="PARAMETERS";
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -10,7 +10,7 @@ $GLOBALS["ICON_FAMILY"]="PARAMETERS";
 	include_once('ressources/class.system.network.inc');
 	include_once('ressources/class.os.system.inc');
 	include_once('ressources/class.samba.inc');
-	
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 	
 $usersmenus=new usersMenus();
 
@@ -670,7 +670,7 @@ function HTTPS_PORT(){
 	if(!is_numeric($ArticaHttpUseSSL)){$ArticaHttpUseSSL=1;}
 	if(!is_numeric($LighttpdArticaDisabled)){$LighttpdArticaDisabled=0;}
 	if(!is_numeric($LighttpdArticaDisableSSLv2)){$LighttpdArticaDisableSSLv2=0;}
-	if($ArticaHttpsPort==null){$ArticaHttpsPort="9000";}
+	if(!is_numeric($ArticaHttpsPort)){$ArticaHttpsPort="9000";}
 	
 	
 	$ip=new networking();

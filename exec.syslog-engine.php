@@ -712,6 +712,8 @@ function system_admin_events_checks($nopid=false){
 		}		
 		
 		$array["text"]=mysql_escape_string($array["text"]);
+		$array["text"]=str_replace("'", "`", $array["text"]);
+		
 		WriteMyLogs("system_admin_events:{$array["function"]}/{$array["file"]}: Task  `{$array["TASKID"]}` ". strlen("{$array["text"]}")."bytes",__FUNCTION__,__FILE__,__LINE__);
 		$f[]="('{$array["zdate"]}','{$array["function"]}','{$array["file"]}','{$array["line"]}','{$array["text"]}','{$array["category"]}','{$array["TASKID"]}')";
 		@unlink($filename);

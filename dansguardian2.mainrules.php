@@ -4,6 +4,7 @@
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.squid.inc');
+	include_once('ressources/class.ActiveDirectory.inc');
 	
 	
 $usersmenus=new usersMenus();
@@ -407,12 +408,15 @@ function rules_toolbox_left(){
 	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
-	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");		
+	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");		
 	
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	if($EnableWebProxyStatsAppliance==1){$EnableUfdbGuard=1;}
+
 	
 	$users=new usersMenus();
 	if(!$users->APP_UFDBGUARD_INSTALLED){$EnableUfdbGuard=0;}
@@ -481,14 +485,50 @@ function rules_table(){
 	$compile_rules=$tpl->_ENGINE_parse_body("{compile_rules}");
 	$service_events=$tpl->_ENGINE_parse_body("{service_events}");
 	$global_parameters=$tpl->_ENGINE_parse_body("{global_parameters}");
+	$ldap_parameters=$tpl->_ENGINE_parse_body("{ldap_parameters2}");
+	$error_ldap=null;
 	$buttons="
 	buttons : [
 	{name: '$add_rule', bclass: 'add', onpress : DansGuardianNewRule},
 	{name: '$compile_rules', bclass: 'Reconf', onpress : CompileUfdbGuardRules},
 	{name: '$global_parameters', bclass: 'Settings', onpress : UfdbGuardConfigs},
-	
-	
 	],";
+	
+	
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");		
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	if($EnableKerbAuth==1){
+		$ad=new ActiveDirectory();
+		if($ad->ldapFailed){
+			$ad->ldap_last_error=nl2br($ad->ldap_last_error);
+			$error_ldap=$tpl->_ENGINE_parse_body("
+		<div id='$t'>
+	<table style='width:95%' class=form>
+	<tr>
+	<td valign='top' width=95%>
+		<div style='font-size:14px;color:#CC0A0A'>
+		<img src='img/error-64.png' style='float:left;margin:3px'>
+		<strong style='font-size:14px'>{error}:LDAP&nbsp;&raquo;&nbsp;Active Directory ($ad->ldap_host:$ad->ldap_port)</strong><hr>
+		<span style='font-size:11px'>$ad->ldap_last_error</span>
+		</div>
+		<div style='text-align:right;width:100%'>
+		<table style='width:5%' align='right'>
+			<tr>
+			<td width=1%><img src='img/arrow-right-24.png'></td>
+			<td nowrap>		
+				<a href=\"javascript:blur();\" 
+					OnClick=\"javascript:YahooSearchUser('650','squid.adker.php?ldap-params=yes','$ldap_parameters');\" 
+					style='font-size:14px;text-decoration:underline;font-weight:bold'>$ldap_parameters</a>
+				</td>
+		</tr>
+		</table>
+		</div>
+	</td>
+	</tr>
+	</table>
+	</div>");}
+	}	
+	
 $TBSIZE=223;
 $TBWIDTH=615;
 if($tpl->language=="fr"){$TBSIZE=204;$TBWIDTH=610;}
@@ -496,6 +536,7 @@ if($tpl->language=="fr"){$TBSIZE=204;$TBWIDTH=610;}
 	
 $html="
 <div style='margin-left:-10px;margin-right:-10px'>
+$error_ldap
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 </div>
 <script>

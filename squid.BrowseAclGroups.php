@@ -608,7 +608,7 @@ function group_list(){
 		$val=0;
 		
 		$ligne['GroupName']=utf8_encode($ligne['GroupName']);
-		$GroupTypeText=$tpl->_ENGINE_parse_body($aclss->GroupTypeToText($ligne["GroupType"]));
+		$GroupTypeText=$tpl->_ENGINE_parse_body($q->acl_GroupType[$ligne["GroupType"]]);
 		$select=imgsimple("arrow-right-24.png","","YahooWinBrowseHide();{$_GET["callback"]}('{$ligne['ID']}')");
 		
 		$editjs="<a href=\"javascript:Blurz();\" 
@@ -617,11 +617,15 @@ function group_list(){
 		
 		
 		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}'"));
+		$CountDeMembers=$ligne2["tcount"];
+		if($ligne["GroupType"]=="proxy_auth_ads"){$CountDeMembers="-";}
+		
+		
 	$data['rows'][] = array(
 		'id' => "group{$ligne['ID']}",
 		'cell' => array("<span style='font-size:14px;'>$editjs{$ligne['GroupName']}</a></span>",
 		"<span style='font-size:14px;'>$GroupTypeText</span>",
-		"<span style='font-size:14px;'>{$ligne2['tcount']}</span>",
+		"<span style='font-size:14px;'>$CountDeMembers</span>",
 	
 	$select)
 		);

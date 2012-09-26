@@ -24,7 +24,7 @@ js();
 function js(){
 	$sock=new sockets();
 	$page=CurrentPageName();
-	$sock->getFrameWork("squid.php?recompile-debug=yes");
+	$sock->getFrameWork("squid.php?recompile-debug=yes&MyCURLTIMEOUT=600");
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{compile_in_debug}");
 	echo "YahooWinBrowse('650','$page?popup=yes','$title')";

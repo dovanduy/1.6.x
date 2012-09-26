@@ -81,7 +81,7 @@ function tabs(){
 	
 	
 	echo "
-	<div id=main_multi_config_postfix$t style='width:100%;height:700px;overflow:auto'>
+	<div id=main_multi_config_postfix$t style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>

@@ -246,7 +246,7 @@ function build_ufdbguard_config(){
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
-	
+	$users=new usersMenus();
 
 	$ufdb=new compile_ufdbguard();
 	$datas=$ufdb->buildConfig();	
@@ -265,6 +265,7 @@ function build_ufdbguard_config(){
 	shell_exec("$chmod 755 /etc/squid3/ufdbGuard.conf");
 	shell_exec("$chmod -R 755 /etc/squid3/ufdbGuard.conf");
 	shell_exec("$chmod -R 755 /etc/ufdbguard");	
+	
 	shell_exec("chown -R squid:squid /etc/ufdbguard");
 	shell_exec("chown -R squid:squid /etc/squid3");
 	
@@ -353,6 +354,7 @@ function build(){
 	$chmod=$unix->find_program("chmod");
 	$squidbin=$unix->find_program("squid3");
 	$nohup=$unix->find_program("nohup");
+	$unix->SystemCreateUser("squid","squid");
 	@mkdir("/var/tmp",0775,true);
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");

@@ -37,7 +37,7 @@ private
      function ReadFileIntoString(path:string):string;
      procedure CHECK_SCHEMA_DEBIAN_PERMISSIONS();
      function FIND_USERID():string;
-     procedure MONIT_WATCHDOG();
+
 
 
 
@@ -562,38 +562,6 @@ RegExpr.free;
 
 end;
 //##############################################################################
-procedure topenldap.MONIT_WATCHDOG();
-var
-   mem_monit_bin_path:string;
-   l:TstringList;
-   pidpath:string;
-begin
-
-
-   mem_monit_bin_path:=SYS.LOCATE_GENERIC_BIN('monit');
-   if length(mem_monit_bin_path)=0 then begin
-      logs.Debuglogs('slapd: [INFO] Monit is not installed, cannot monitor slapd...');
-      exit;
-   end;
-
-pidpath:=PID_PATH();
-if length(pidpath)<5 then pidpath:='/var/run/slapd/slapd.pid';
-      logs.Debuglogs('slapd: [INFO] Monit pid path:'+pidpath);
-l:=Tstringlist.Create();
-l.Add('check process '+ExtractFileName(SLAPD_BIN_PATH())+' with pidfile '+PID_PATH());
-l.Add('start program = "/etc/init.d/artica-postfix start ldap --monit"');
-l.Add('stop program  = "/etc/init.d/artica-postfix stop ldap --monit"');
-l.Add('if cpu is greater than 80% for 2 cycles then alert');
-l.Add('if cpu usage > 95% for 5 cycles then restart');
-l.Add('if 3 restarts within 3 cycles then timeout');
-logs.Debuglogs('slapd: [INFO] Monit done...');
-logs.WriteToFile(l.Text,'/etc/monit/conf.d/APP_OPENLDAP.monitrc');
-SYS.MONIT_CHECK('APP_OPENLDAP');
-l.free;
-end;
-
-
-
 procedure topenldap.SAVE_SLAPD_CONF();
 var
   ldap_suffix,artica_admin,artica_password,user:string;
@@ -640,7 +608,7 @@ begin
       logs.Debuglogs('slapd: [INFO] server skip auto-change ldap configuration...');
       exit;
    end;
-  MONIT_WATCHDOG();
+
   FIX_ARTICA_SCHEMAS();
   SET_DB_CONFIG();
   CHECK_SCHEMA_DEBIAN_PERMISSIONS();

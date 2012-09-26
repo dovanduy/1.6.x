@@ -1,5 +1,5 @@
 <?php
-	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}	
+	if(isset($_GET["verbose"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}	
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -177,7 +177,8 @@ function items_list(){
 	$acl=new squid_acls();
 	
 	$search='%';
-	$table="(SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.zmd5 as mkey,webfilters_sqgroups.* FROM webfilters_sqacllinks,webfilters_sqgroups 
+	$table="(SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.zmd5 as mkey,
+	webfilters_sqgroups.* FROM webfilters_sqacllinks,webfilters_sqgroups 
 	WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID AND webfilters_sqacllinks.aclid=$ID) as t";
 	
 	$page=1;
@@ -230,8 +231,13 @@ function items_list(){
 		$val=0;
 		$mkey=$ligne["mkey"];
 		$GroupName=utf8_encode($ligne["GroupName"]);
+		$GroupType=$ligne["GroupType"];
+		$GroupTypeName=$tpl->_ENGINE_parse_body($q->acl_GroupType[$GroupType]);
 		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}'"));
 		$items=$ligne2["tcount"];
+		if($GroupType=="proxy_auth_ads"){
+			$items="-";
+		}
 		
 $href="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID={$ligne['ID']}');\" 
@@ -241,7 +247,7 @@ $href="<a href=\"javascript:blur();\"
 		
 	$data['rows'][] = array(
 		'id' => "$mkey",
-		'cell' => array("$href$GroupName</a>$additional_text",
+		'cell' => array("$href$GroupName </a><span style='font-size:12px'>&nbsp;($GroupTypeName)</span>$additional_text",
 		"<span style='font-size:14px;font-weight:bold'>$items</span>",
 		$delete)
 		);

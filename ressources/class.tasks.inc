@@ -70,7 +70,8 @@ class system_tasks{
 			$this->tasks_array[47]="{awstats_postfix_parser}";
 			$this->tasks_array[48]="{postfix_stats_days}";
 			$this->tasks_array[49]="{postfix_stats_month}";
-			
+			$this->tasks_array[50]="{refresh_kerberos_ticket}";
+			$this->tasks_array[51]="{vps_server_watchdog}";
 			
 			
 			
@@ -125,6 +126,8 @@ class system_tasks{
 			$this->tasks_explain_array[47]="{awstats_postfix_parser_explain}";
 			$this->tasks_explain_array[48]="{postfix_stats_days_explain}";
 			$this->tasks_explain_array[49]="{postfix_stats_month_explain}";
+			$this->tasks_explain_array[50]="{refresh_kerberos_ticket_explain}";
+			$this->tasks_explain_array[51]="{vps_server_watchdog_explain}";
 			
 			
 			
@@ -182,6 +185,8 @@ class system_tasks{
 			$this->tasks_processes[47]="exec.postfix.parse.awstats.php"; //5mn
 			$this->tasks_processes[48]="exec.postfix-stats.php --days"; //5mn
 			$this->tasks_processes[49]="exec.postfix-stats.php --month"; //5mn
+			$this->tasks_processes[50]="exec.kerbauth.php --refresh-ticket"; //5mn
+			$this->tasks_processes[51]="exec.vservers.php --watchdog";
 			
 	
 	}

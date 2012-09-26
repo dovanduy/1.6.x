@@ -5552,9 +5552,7 @@ function service_logs_to_table($filename){
 				<td width=99%><code style='font-size:12px'>$val</code></td>
 				</tr>
 				";
-		
-		
-	}
+		}
 	
 	$html=$html."
 	</tbody>
@@ -5583,13 +5581,12 @@ function FATAL_ERROR_SHOW_128($text){
 	$tpl=new templates();
 	$html="
 	<center style='margin:30px'>
-	<table style='width:99% class=form>
+	<table style='width:99%' class=form>
 	<tr>
 		<td valign='top' style='width:1%'>
 			<img src='img/error-128.png'>
 		</td>
-		<td><div style='font-size:18px;color:#E41717'>$text</div>
-		</td>
+		<td><div style='font-size:18px;color:#E41717'>$text</div></td>
 	</tr>
 	</table>
 	</center>

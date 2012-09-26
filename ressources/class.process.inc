@@ -29,6 +29,7 @@ function MemoryInstances(){
 		$Toremove["exec.schedules.php"]=true;	
 		$Toremove["exec.smtp-senderadv.php"]=true;	
 		
+		$arrayK["exec.hamachi.php"]=5;
 		$arrayK["exec.squid-tail-injector.php"]=20;
 		$arrayK["exec.virtuals-ip.php"]=10;
 		$arrayK["exec.watchdog.php"]=3;

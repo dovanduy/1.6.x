@@ -322,7 +322,7 @@ function execute_task_squid($ID){
 
 function isMaxInstances(){
 	
-	$MaxInstnaces=8;
+	$MaxInstnaces=11;
 	$MaxInstancesToDie=16;
 	$p=new processes_php();
 	$MemoryInstances=$p->MemoryInstances();

@@ -125,6 +125,12 @@ private function CACHEDORNOT($SquidCode){
                 }
 
 }	
+	private function InjectUserAgent($userAgent){
+		$md5=md5($userAgent);
+		if(is_file("/var/log/artica-postfix/squid-userAgent/$md5.sql")){return;}
+		@file_put_contents("/var/log/artica-postfix/squid-userAgent/$md5.sql", $userAgent);
+	}
+
 	
 	private function InjectUserAuthDb($user,$ip,$mac,$userAgent){
 		if($GLOBALS["DisableArticaProxyStatistics"]==1){return;}

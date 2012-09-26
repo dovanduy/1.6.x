@@ -310,6 +310,12 @@ function EnableAV(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableClamavInCiCap",$_POST["EnableAV"]);
 	$sock->SET_INFO("EnableClamavInCiCap2",$_POST["EnableAV"]);
+	$users=new usersMenus();
+	if($users->WEBSTATS_APPLIANCE){
+		$sock->SET_INFO("EnableStatisticsCICAPService",$_POST["EnableAV"]);
+		
+	}
+	$sock->getFrameWork("services.php?restart-artica-status=yes");
 	$ci=new cicap();
 	$ci->Save();
 }

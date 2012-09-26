@@ -1765,6 +1765,7 @@ function VirtualHostsIPAddresses($StandardPort,$listenAddr,$SSLPORT){
 	$hashListenAddr=unserialize(base64_decode($sock->GET_INFO("FreeWebsApacheListenTable")));
 	if(is_array($hashListenAddr)){
 		while (list ($ipport, $array) = each ($hashListenAddr)){
+			if($GLOBALS["VERBOSE"]){echo "DEBUG:: FreeWebsApacheListenTable: $ipport Line:".__LINE__."\n";}
 			if($ligne["SSL"]==1){
 				$NameVirtualHostSSL[]="\tListen $ipport";
 				continue;
@@ -1774,6 +1775,7 @@ function VirtualHostsIPAddresses($StandardPort,$listenAddr,$SSLPORT){
 	}
 	
 	if(count($NameVirtualHost)==0){
+		if($GLOBALS["VERBOSE"]){echo "DEBUG:: listenAddr: $listenAddr Line:".__LINE__."\n";}
 		if($listenAddr<>"*"){
 			$Listen[]="Listen $listenAddr:$StandardPort";
 		}else{$Listen[]="Listen $StandardPort";}
@@ -1781,6 +1783,7 @@ function VirtualHostsIPAddresses($StandardPort,$listenAddr,$SSLPORT){
 	
 	if(count($NameVirtualHostSSL)==0){
 		if($listenAddr<>"*"){
+			if($GLOBALS["VERBOSE"]){echo "DEBUG:: listenAddr: $listenAddr:$SSLPORT Line:".__LINE__."\n";}
 			$NameVirtualHostSSL[]="\tListen $listenAddr:$SSLPORT";
 		}else{$NameVirtualHostSSL[]="\tListen $SSLPORT";}
 	}	
@@ -1796,10 +1799,12 @@ function VirtualHostsIPAddresses($StandardPort,$listenAddr,$SSLPORT){
 		
 		if($ligne["ServerPort"]>0){
 			if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $ligne["ServerIP"])){
+				if($GLOBALS["VERBOSE"]){echo "DEBUG:: listenAddr: {$ligne["ServerIP"]}:{$ligne["ServerPort"]} Line:".__LINE__."\n";}
 				$NameVirtualHost[]="NameVirtualHost {$ligne["ServerIP"]}:{$ligne["ServerPort"]}";
 				continue;	
 				}
 				
+			if($GLOBALS["VERBOSE"]){echo "DEBUG:: listenAddr: $listenAddr:{$ligne["ServerPort"]} Line:".__LINE__."\n";}
 			$NameVirtualHost[]="NameVirtualHost $listenAddr:{$ligne["ServerPort"]}";
 			continue;				
 				
@@ -1808,6 +1813,7 @@ function VirtualHostsIPAddresses($StandardPort,$listenAddr,$SSLPORT){
 			if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $ligne["ServerIP"])){
 					$NameVirtualHost[]="NameVirtualHost {$ligne["ServerIP"]}:$StandardPort";
 					if($ligne["useSSL"]==1){
+						if($GLOBALS["VERBOSE"]){echo "DEBUG:: listenAddr: {$ligne["ServerIP"]}:$SSLPORT Line:".__LINE__."\n";}
 						$NameVirtualHostSSL[]="\tNameVirtualHost {$ligne["ServerIP"]}:$SSLPORT";
 					}
 					continue;

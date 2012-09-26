@@ -608,6 +608,14 @@ function writelogs($text=null,$function=null,$line=0){
 					}
 				}
 			}
+			if($errnum==1548){
+				$sock=new sockets();
+				$sock->getFrameWork("mysql.php?mysql-upgrade=yes&instance-id=$this->instance_id");
+				$this->mysql_error=$this->mysql_error."\nArtica as performed a mysql_upgrade, please retry later\n";
+			}
+			
+			
+			
 		}
 		
 		

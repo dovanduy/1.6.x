@@ -28,6 +28,9 @@ class squid_stats_appliance{
 			$sock=new sockets();
 			$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO('RemoteStatisticsApplianceSettings')));
 		}
+		if(!isset($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
+		if(!isset($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
+		if(!isset($RemoteStatisticsApplianceSettings["SERVER"])){$RemoteStatisticsApplianceSettings["SERVER"]=null;}
 		if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
 		if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
 		$REMOTE_SSERVER=$RemoteStatisticsApplianceSettings["SERVER"];
@@ -73,6 +76,7 @@ class squid_stats_appliance{
 		
 		$mysqlbin=$unix->find_program("mysql");
 		$q=new mysql();
+		$password=null;
 		if($q->mysql_server=="127.0.0.1"){$servcmd=" --socket=/var/run/mysqld/mysqld.sock ";}else{$servcmd=" --host=$q->mysql_server --port=$q->mysql_port ";}
 		if($q->mysql_password<>null){$password=" --password=$q->mysql_password ";}
 		$cmdline="$mysqlbin --batch --force --user=$q->mysql_admin$password $servcmd";
@@ -98,16 +102,74 @@ class squid_stats_appliance{
 		if(!is_file("$this->workdir/artica_backup.gz")){$this->export_tables();}
 		if(!is_file("$this->workdir/squidlogs.gz")){$this->export_tables();}
 		if(!is_file("$this->workdir/artica_backup.gz")){echo "<ERROR>artica_backup.gz no such file</ERROR>";die();}
-		if(!is_file("$this->workdir/squidlogs.gz")){echo "<ERROR>artica_backup.gz no such file</ERROR>";die();}		
+		if(!is_file("$this->workdir/squidlogs.gz")){echo "<ERROR>artica_backup.gz no such file</ERROR>";die();}	
+		if(!is_file("$this->workdir/settingsHD.gz")){$this->export_artica_conf();}	
+		if(!is_file("$this->workdir/settingsHD.gz")){echo "<ERROR>settingsHD.gz no such file</ERROR>";die();}	
 		$base="ressources/".basename($this->workdir);
 		$array["$base/artica_backup.gz"]=true;
 		$array["$base/squidlogs.gz"]=true;
+		
 		echo "<SUCCESS>".base64_encode(serialize($array))."</SUCCESS>";
 		
 	}
 	
+	private function GET_REPLICATED_TOKENS(){
+		$array["ArticaSquidParameters"]=true;
+		$array["hasProxyTransparent"]=true;
+		$array["UseTProxyMode"]=true;
+		$array["KernelSendRedirects"]=true;
+		$array["kavicapserverEnabled"]=true;
+		$array["ufdbguardConfig"]=true;
+		$array["EnableMalwarePatrol"]=true;
+		$array["DDClientConfig"]=true;
+		$array["OpenDNSConfig"]=true;
+		$array["AllowAllNetworksInSquid"]=true;
+		$array["EnableDDClient"]=true;
+		$array["EnableOpenDNSInProxy"]=true;
+		$array["SquidAutoblock"]=true;	
+		$array["SquidDisableAllFilters"]=true;	
+		$array["UseDynamicGroupsAcls"]=true;
+		$array["KerbAuthInfos"]=true;
+		$array["EnableKerbAuth"]=true;
+		return $array;
+	}
+	
+	
+	public function REPLICATE_ETC_ARTICA_CONFS(){
+		$unix=new unix();
+		$sock=new sockets();
+		$filetemp=$unix->FILE_TEMP().".gz";
+		$desttemp=$unix->FILE_TEMP().".art";
+		$curl=new ccurl("$this->URI/ressources/squid-export/settingsHD.gz");
+		
+		
+		if(!$curl->GetFile($filetemp)){ufdbguard_admin_events("Check $this->URI/ressources/squid-export/settingsHD.gz failed with error: $curl->error", __FUNCTION__, __FILE__, __LINE__, "squidstats");return;}
+		if(!is_file($filetemp)){ufdbguard_admin_events("Check $filetemp no such file...", __FUNCTION__, __FILE__, __LINE__, "squidstats");}
+		if(!$unix->uncompress($filetemp, $desttemp)){ufdbguard_admin_events("Uncompress $filetemp error", __FUNCTION__, __FILE__, __LINE__, "squidstats");return;}
+		@unlink($filetemp);
+		$array=unserialize(base64_decode(@file_get_contents($desttemp)));
+		$c=0;
+		if(!is_array($array)){ufdbguard_admin_events("$desttemp not an array....", __FUNCTION__, __FILE__, __LINE__, "squidstats");return;}
+		$TOKENS=$this->GET_REPLICATED_TOKENS();
+		while (list ($key, $value) = each ($array) ){
+			if(!isset($TOKENS[$key])){continue;}
+			if($GLOBALS["VERBOSE"]){echo "Saving $key ". strlen($value)." bytes...\n";}
+			$sock->SET_INFO($key, $value);
+			$c++;
+		}
+		
+		ufdbguard_admin_events("Success applied  $c parameters", __FUNCTION__, __FILE__, __LINE__, "squidstats");
+		
+	}
+	
+	private function export_artica_conf(){
+		$sock=new sockets();
+		$sock->getFrameWork("services.php?export-etc-artica=yes&MyCURLTIMEOUT=120");
+	}
+	
 	
 	public function export_tables(){
+		$this->export_artica_conf();
 		$q=new mysql();
 		$q->BD_CONNECT();
 		$artica_backup["squid_pools"]=true;
@@ -124,7 +186,7 @@ class squid_stats_appliance{
 		$artica_backup["squid_white"]=true;
 		
 		$databases["artica_backup"]=$artica_backup;
-		if(!is_dir($workdir)){@mkdir($this->workdir,0775,true);}
+		if(!is_dir($this->workdir)){@mkdir($this->workdir,0775,true);}
 		$dump=new phpMyDumper("artica_backup",$q->mysql_connection,"$this->workdir/artica_backup.gz",true,$artica_backup);
 		$dump->doDump();
 		

@@ -66,7 +66,7 @@ function popup(){
 	
 	
 	echo "
-	<div id=main_config_sslbump style='width:100%;height:600px;overflow:auto'>
+	<div id=main_config_sslbump style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>

@@ -17,8 +17,8 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 
 
-	$unix=new unix();
-	$sock=new sockets();
+$unix=new unix();
+$sock=new sockets();
 $GLOBALS["RELOAD"]=false;
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["NO_USE_BIN"]=false;
@@ -44,7 +44,7 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 	$GLOBALS["CLASS_USERS"]=new usersMenus();
 	if($GLOBALS["VERBOSE"]){echo "squid binary=$squidbin\n";}
 	
-	
+if($argv[1]=="--notify-clients-proxy"){notify_remote_proxys();return;}	
 if($argv[1]=="--reload-squid"){if($GLOBALS["VERBOSE"]){echo "reload in debug mode\n";} Reload_Squid();die();}
 if($argv[1]=="--retrans"){retrans();die();}
 if($argv[1]=="--certificate"){certificate_generate();die();}
@@ -74,13 +74,16 @@ if($argv[1]=="--rotate"){rotate_logs();die();}
 if($argv[1]=="--replicate"){remote_appliance_restore_tables();die();}
 if($argv[1]=="--banddebug"){bandwithdebug();die();}
 
-
+// $EnableRemoteStatisticsAppliance -> Le proxy est un client.
+// $EnableWebProxyStatsAppliance -> Le serveur est un serveur de statistiques.
 
 
 $EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 $EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+$users=new usersMenus();
+if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;$sock->SET_INFO("$EnableWebProxyStatsAppliance",1);}
 if($EnableWebProxyStatsAppliance==1){notify_remote_proxys();}
 
 //request_header_max_size
@@ -164,6 +167,7 @@ if($argv[1]=="--build"){
 		echo "Starting......: Config: $SQUID_CONFIG_PATH\n";
 		echo "Starting......: User..: $squid_user\n";
 		echo "Starting......: Checking blocked sites\n";
+		shell_exec("$NOHUP $PHP ".basename(__FILE__)."/exec.squid.netads.php");
 		$squid->BuildBlockedSites();
 		echo "Starting......: Checking FTP ACLs\n";
 		acl_clients_ftp();
@@ -221,6 +225,7 @@ function remote_appliance_restore_tables(){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	if($EnableRemoteStatisticsAppliance==0){$GLOBALS[__FUNCTION__."_EXECUTED"]=true;return;}
 	$s=new squid_stats_appliance();
+	$s->REPLICATE_ETC_ARTICA_CONFS();
 	$s->Replicate();	
 	$GLOBALS[__FUNCTION__."_EXECUTED"]=true;
 }
@@ -232,6 +237,8 @@ function CheckFilesAndSecurity(){
 	$unix=new unix();
 	$chown=$unix->find_program("chown");
 	$squid_user=SquidUser();
+	$ln=$unix->find_program("ln");
+	if(!is_dir("/var/logs")){@mkdir("/var/logs",0755,true);}
 	
 	if(!is_dir("/var/cache/squid/00")){
 			@mkdir("/var/cache/squid",0644,true);
@@ -241,11 +248,15 @@ function CheckFilesAndSecurity(){
 	@mkdir("/var/lib/squid/session",0755,true);
 	if(!is_dir("/var/run/squid")){@mkdir("/var/run/squid",0755,true);}
 	@mkdir("/var/log/squid/squid",0755,true);
+	if(!is_file("/var/logs/cache.log")){@file_put_contents("/var/logs/cache.log", "\n");}
+	if(!is_dir("/usr/share/squid3/errors/lb-lu")){shell_exec("$ln -sf /usr/share/squid3/errors/en-us /usr/share/squid3/errors/lb-lu");}
 	
 	$unix->chown_func($squid_user, $squid_user,"/var/lib/squid/session");
 	$unix->chown_func($squid_user, $squid_user,"/etc/squid3/*");
 	$unix->chown_func($squid_user, $squid_user,"/var/run/squid");
 	$unix->chown_func($squid_user, $squid_user,"/var/log/squid/*");
+	$unix->chown_func($squid_user, $squid_user,"/var/logs");
+	$unix->chown_func($squid_user, $squid_user,"/var/logs/cache.log");
 	
 	
 	
@@ -342,6 +353,7 @@ function remove_cache($cacheenc){
 function Reload_Squid(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
 	$sock=new sockets();
 	WriteToSyslogMail("Reload_Squid():: Ask to reload squid", basename(__FILE__));
 	$SquidCacheReloadTTL=$sock->GET_INFO("SquidCacheReloadTTL");
@@ -349,6 +361,11 @@ function Reload_Squid(){
 	$TimeFile="/etc/artica-postfix/pids/reloadsquid.time";
 	$PidFile="/etc/artica-postfix/pids/reloadsquid.pid";
 	$TimeMin=$unix->file_time_min($TimeFile);
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	
 	$oldpid=$unix->get_pid_from_file($PidFile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
@@ -406,6 +423,20 @@ function Reload_Squid(){
 		}
 		
 		echo "Starting......: $val\n";
+	}
+	
+	if($EnableWebProxyStatsAppliance==1){
+		if(is_file("/etc/init.d/syslog")){
+			$results=array();
+			echo "Starting......: reloading syslog engine\n";
+			exec("/etc/init.d/syslog reload 2>&1",$results);
+			while (list ($num, $val) = each ($results)){echo "Starting......: syslog $val\n";}
+		}
+		
+	}
+	
+	if($EnableRemoteStatisticsAppliance==1){
+		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.netagent.php >/dev/null 2>&1 &");
 	}
 
 	//shell_exec("$nohup /etc/init.d/artica-postfix start squid-cache --without-compile >/dev/null 2>&1 &");
@@ -1379,13 +1410,19 @@ function notify_remote_proxys($COMMANDS=null){
 	$q=new mysql_squid_builder();
 	$sql="SELECT * FROM squidservers";
 	$results=$q->QUERY_SQL($sql);
+	
+	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." nodes clients...\n";}
+	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$server=$ligne["ipaddr"];
 		$port=$ligne["port"];
-		writelogs("remote server $server:$port",__FUNCTION__,__FILE__,__LINE__);
+		if(!is_numeric($port)){$port=9000;}
+		if($port<10){$port=9000;}
+		
 		if(!is_numeric($port)){continue;}
 		$refix="https";
 		$uri="$refix://$server:$port/squid.stats.listener.php";
+		writelogs("remote server $uri",__FUNCTION__,__FILE__,__LINE__);
 		$curl=new ccurl($uri,true);
 		$curl->parms["CHANGE_CONFIG"]=$COMMANDS;
 		if(!$curl->get()){ufdbguard_admin_events("$server:$port","FAILED Notify `$COMMANDS` $curl->error", __FUNCTION__, __FILE__, __LINE__, "squidstats");continue;}
@@ -1409,6 +1446,20 @@ function watchdog_config(){
 	if(!is_numeric($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}	
 	$reloadmonit=false;
 	$monit_file="/etc/monit/conf.d/squid.monitrc";
+	$conf=file("/etc/squid3/squid.conf");
+	while (list ($index, $line) = each ($conf)){
+		if(preg_match("#http_port\s+(.*)#", $line,$re)){
+			if(!preg_match("#(transparent|intercept)#", $line)){
+				$http_port=trim($re[1]);
+				break;
+			}
+		}
+	}
+	echo "Starting......: Squid Monit found port line:$http_port\n";
+	if($http_port<>null){
+		if(preg_match("#([0-9\.]+):([0-9]+)#", $http_port)){$http_port2="if failed host {$re[1]} port {$re[2]}  then restart";}
+		if(preg_match("#^([0-9]+)$#", $http_port)){$http_port2="if failed port {$re[1]} then restart";}		
+	}
 	
 	
 	if($MonitConfig["watchdog"]==0){
@@ -1428,6 +1479,7 @@ function watchdog_config(){
    		$f[]="with pidfile $pidfile";
    		$f[]="start program = \"/usr/sbin/squid-monit-start\"";
    		$f[]="stop program =  \"/usr/sbin/squid-monit-stop\"";
+   		if($http_port2<>null){$f[]="$http_port2";}
    		if($MonitConfig["watchdogMEM"]){
   			$f[]="if totalmem > {$MonitConfig["watchdogMEM"]} MB for 5 cycles then alert";
    		}

@@ -73,10 +73,19 @@ function ufdbclient_popup(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));	
+	$lock=0;
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	
 	$UseRemoteUfdbguardService=$datas["UseRemoteUfdbguardService"];
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
 	if(!is_numeric($datas["remote_port"])){$datas["remote_port"]=3977;}
+	
+	if($EnableRemoteStatisticsAppliance==1){
+		$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
+		$datas["remote_server"]=$RemoteStatisticsApplianceSettings["SERVER"];
+		$lock=1;
+	}
 	
 	
 	
@@ -109,8 +118,15 @@ function ufdbclient_popup(){
 	}	
 
 	function RemoteUfdbCheck(){
+		var lock=$lock;
 		document.getElementById('remote_port').disabled=true;
 		document.getElementById('remote_server').disabled=true;	
+		
+		if(lock==1){
+			document.getElementById('UseRemoteUfdbguardService').disabled=true;
+			return;
+		}
+		
 		if(document.getElementById('UseRemoteUfdbguardService').checked){
 			document.getElementById('remote_server').disabled=false;
 			document.getElementById('remote_port').disabled=false;
@@ -118,14 +134,18 @@ function ufdbclient_popup(){
 	}
 	
 	function SaveufdbGuardClient(){
+		var lock=$lock;
+		if(lock==1){
+			Loadjs('squid.newbee.php?error-remote-appliance=yes');
+			return;
+		}
 		var XHR = new XHRConnection();
 		if(document.getElementById('UseRemoteUfdbguardService').checked){
     		XHR.appendData('UseRemoteUfdbguardService',1);}else{
     		XHR.appendData('UseRemoteUfdbguardService',0);}
-
 			XHR.appendData('remote_server',document.getElementById('remote_server').value);
     		XHR.appendData('remote_port',document.getElementById('remote_port').value);	
-    		
+		
  			AnimateDiv('$t');
     		XHR.sendAndLoad('$page', 'POST',x_SaveufdbGuardClient);
 	}	
@@ -145,10 +165,15 @@ function tabs(){
 		$tpl=new templates();
 		$page=CurrentPageName();
 		$users=new usersMenus();
+		$sock=new sockets();
+		$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+		if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
 	
 		$array["popup"]='{service_parameters}';
 		if(!$users->WEBSTATS_APPLIANCE){$array["ufdbclient"]='{client_parameters}';}
-		
+		if($EnableRemoteStatisticsAppliance==1){unset($array["popup"]);}
 		
 	while (list ($num, $ligne) = each ($array) ){
 		 $tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
