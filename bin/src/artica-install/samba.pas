@@ -178,6 +178,7 @@ var
   time:string;
   ldap_string:string;
   mds:string;
+  KerbAuthDisableNsswitch:integer;
 begin
 
 if not FileExists(lib_pam_ldap_path()) then begin
@@ -192,6 +193,9 @@ end;
 
 
 if not TryStrToInt(SYS.GET_INFO('DisableWinbindd'),DisableWinbindd) then DisableWinbindd:=0;
+if not TryStrToInt(SYS.GET_INFO('KerbAuthDisableNsswitch'),KerbAuthDisableNsswitch) then KerbAuthDisableNsswitch:=0;
+
+
 
 if FileExists(WINBIND_BIN_PATH()) then begin
    logs.Debuglogs('Starting......: Samba winbindd is installed');
@@ -200,6 +204,10 @@ if FileExists(WINBIND_BIN_PATH()) then begin
    logs.Debuglogs('Starting......: DisableWinbindd...........: '+IntToStr(DisableWinbindd));
    logs.Debuglogs('Starting......: LinkWinbindToSytem........: '+IntToStr(LinkWinbindToSytem));
    logs.Debuglogs('Starting......: EnableSambaActiveDirectory: '+IntToStr(EnableSambaActiveDirectory));
+   logs.Debuglogs('Starting......: KerbAuthDisableNsswitch: '+IntToStr(KerbAuthDisableNsswitch));
+
+
+
    if TypeOfSamba=3 then winbind:=' winbind';
    if EnableKerbAuth=1 then begin
       winbind:=' winbind';
@@ -208,7 +216,17 @@ if FileExists(WINBIND_BIN_PATH()) then begin
    end;
    if LinkWinbindToSytem=1 then winbind:=' winbind';
    if EnableSambaActiveDirectory=1 then winbind:=' winbind';
-   if DisableWinbindd=1 then winbind:='';
+
+   if DisableWinbindd=1 then begin
+       logs.Debuglogs('Starting......:  DisableWinbindd set to ban winbind..');
+        winbind:='';
+   end;
+
+   if KerbAuthDisableNsswitch=1 then begin
+      logs.Debuglogs('Starting......:  KerbAuthDisableNsswitch set to ban winbind..');
+      winbind:='';
+   end;
+
 end else begin
        logs.Debuglogs('Starting......: Samba winbindd is not installed');
 end;
@@ -232,7 +250,7 @@ if FileExists(libnss_mdns()) then mds:='files mdns4_minimal [NOTFOUND=return] dn
 
 l:=TstringList.Create;
 l.Add('# /etc/nsswitch.conf');
-l.Add('#');
+l.Add('# Artica: saved on '+time);
 l.Add('# Example configuration of GNU Name Service Switch functionality.');
 l.Add('# If you have the `glibc-doc-reference'' and `info'' packages installed, try:');
 l.Add('# `info libc "Name Service Switch"'' for information about this file.');

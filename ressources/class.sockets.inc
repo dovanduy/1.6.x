@@ -435,8 +435,10 @@ private function fopen_curl($uri){
 	$data=curl_exec($ch);
 	$errno=curl_errno($ch);
 	curl_close($ch);
-	if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET] -> $uri: ". strlen($data)." bytes length Err.$errno".__FUNCTION__." Line:".__LINE__."<br>\n";}
+	
+	
 	if($errno>0){
+		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET] -> $uri: ". strlen($data)." bytes length Err.$errno".__FUNCTION__." Line:".__LINE__."<br>\n";}
 		include_once(dirname(__FILE__)."/class.ccurl.inc");
 		$cc=new ccurl();
 		$errstr=$cc->ParseError($error);

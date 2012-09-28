@@ -330,7 +330,9 @@ class templates{
 							$text=str_replace('-&amp;raquo;','-&raquo;',$text);
 							$text=str_replace('[h3]','<H3>',$text);
 							$text=str_replace('[/h3]','</H3>',$text);
-							$text=str_replace('%ORGA',$_SESSION["ou"],$text);
+							if(isset($_SESSION["ou"])){
+								$text=str_replace('%ORGA',$_SESSION["ou"],$text);
+							}
 							
 							
 							$text=str_ireplace('%u0153','oe',$text);

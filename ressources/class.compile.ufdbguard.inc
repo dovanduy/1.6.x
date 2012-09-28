@@ -20,6 +20,7 @@ class compile_ufdbguard{
 	var $SquidGuardWebUseExternalUri=0;
 	var $SquidGuardWebExternalUri=null;
 	var $UseDynamicGroupsAcls=0;
+	var $KerbAuthDisableNsswitch=0;
 	
 	
 	function compile_ufdbguard(){
@@ -33,6 +34,7 @@ class compile_ufdbguard{
 		$this->SquidDatabasesArticaEnable=$sock->GET_INFO("SquidDatabasesArticaEnable");
 		$this->SquidGuardWebUseExternalUri=$sock->GET_INFO("SquidGuardWebUseExternalUri");
 		$this->SquidGuardWebExternalUri=$sock->GET_INFO("SquidGuardWebExternalUri");
+		$this->KerbAuthDisableNsswitch=$sock->GET_INFO("KerbAuthDisableNsswitch");
 
 		$this->SquidGuardWebFollowExtensions=$sock->GET_INFO("SquidGuardWebFollowExtensions");
 		$this->UpdateUtilityRedirectEnable=$sock->GET_INFO("UpdateUtilityRedirectEnable");
@@ -48,6 +50,7 @@ class compile_ufdbguard{
 		if(!is_numeric($this->EnableWebProxyStatsAppliance)){$this->EnableWebProxyStatsAppliance=0;}
 		if(!is_numeric($this->SquidGuardWebFollowExtensions)){$this->SquidGuardWebFollowExtensions=1;}
 		if(!is_numeric($this->SquidDatabasesArticaEnable)){$this->SquidDatabasesArticaEnable=1;}
+		if(!is_numeric($this->KerbAuthDisableNsswitch)){$this->KerbAuthDisableNsswitch=1;}
 		if($this->SquidGuardWebUseExternalUri==1){if(strlen($this->SquidGuardWebExternalUri)>3){$this->SquidGuardIPWeb=$this->SquidGuardWebExternalUri;}}
 			
 		echo "Starting......: ufdbGuard SquidGuardIPWeb = `$this->SquidGuardIPWeb`\n";
@@ -502,7 +505,8 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 	
 	
 	private function build_membersrule($ruleid){
-		
+		$UseDynamicGroupsAcls=$this->UseDynamicGroupsAcls;
+		if($this->KerbAuthDisableNsswitch==1){$UseDynamicGroupsAcls=0;}
 		$array=array();
 		$sql="SELECT webfilter_group.* FROM webfilter_group,webfilter_assoc_groups
 		 WHERE webfilter_assoc_groups.group_id=webfilter_group.ID
@@ -533,7 +537,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				$FULLDN=base64_decode($re[1]);
 			}
 			
-			if($this->UseDynamicGroupsAcls==1){
+			if($UseDynamicGroupsAcls==1){
 				if(preg_match("#^CN=(.+?),.*#i", $FULLDN,$re)){
 					$groupname=$this->ActiveDirectoryToName($re[1]);
 					if($groupname<>null){
@@ -670,20 +674,27 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$IS_CAT_ADDED=false;
 		$array=array();
 		
+		$BANNARTICA["isp"]=true;
+		
+		
 		if($this->SquidDatabasesArticaEnable==1){
-			if(is_file($categorypathArtica)){
-				if(!is_file("$BASEArt/expressions")){@file_put_contents("$BASEArt/expressions", "\n");}
-				$GLOBALS["UFDBART"][$categoryname]=$categoryNameArt;
-				$array[]="category \"$categoryNameArt\" {";
-				if($RedirectUri<>null){$array[]=$RedirectUri;}
-				$categorypathArtica=str_replace(".ufdb", "", $categorypathArtica);
-				$IS_CAT_ADDED=true;
-				$array[]="\tdomainlist\t\"$categorypathArtica\"";
-				$array[]="}\n";	
+			if(!isset($BANNARTICA[$OrigninalCategoryName])){
+					if(is_file($categorypathArtica)){
+						if(!is_file("$BASEArt/expressions")){@file_put_contents("$BASEArt/expressions", "\n");}
+						$GLOBALS["UFDBART"][$categoryname]=$categoryNameArt;
+						$array[]="category \"$categoryNameArt\" {";
+						if($RedirectUri<>null){$array[]=$RedirectUri;}
+						$categorypathArtica=str_replace(".ufdb", "", $categorypathArtica);
+						$IS_CAT_ADDED=true;
+						$array[]="\tdomainlist\t\"$categorypathArtica\"";
+						$array[]="}\n";	
+					}
 			}
+			 
 		}
 
 		if($this->SquidDatabasesUtlseEnable==1){
+		
 			if(is_file($categorypathTLSE)){
 				$IS_CAT_ADDED=true;
 				if(!is_file("$BASETLSE/expressions")){@file_put_contents("$BASETLSE/expressions", "\n");}
@@ -693,8 +704,9 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				$categorypathTLSE=str_replace(".ufdb", "", $categorypathTLSE);
 				$array[]="\tdomainlist\t\"$categorypathTLSE\"";
 				$array[]="}\n";	
+				}
 			}
-		}
+		
 
 		
 		if(!is_file("$main_path/$categoryname/domains")){

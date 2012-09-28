@@ -8,7 +8,8 @@ class squid_acls{
 	var $SQUID_GROUPS_ITEMS_TYPE=array();
 	var $RequestedGroupeType=null;
 	var $UseDynamicGroupsAcls=0;
-	
+	var $EnableKerbAuth=0;
+	var $AUTH=0;
 
 	public function squid_acls(){
 		if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
@@ -17,7 +18,13 @@ class squid_acls{
 		$this->ACL_ARP_ENABLED=$users->SQUID_ARP_ACL_ENABLED;
 		$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
 		if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}
-	
+		$this->EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+		if(!is_numeric($this->EnableKerbAuth)){$this->EnableKerbAuth=0;}
+		$squid=new squidbee();
+		if($squid->LDAP_AUTH==1){$this->AUTH=1;}
+		if($squid->LDAP_EXTERNAL_AUTH==1){$this->AUTH=1;}
+		if($squid->EnableKerbAuth==1){$this->AUTH=1;}
+		
 	}
 
 	
@@ -48,12 +55,18 @@ class squid_acls{
 			}
 			
 			if($ligne["GroupType"]=="proxy_auth_ads"){
+				if($this->EnableKerbAuth==0){echo "Starting......: Squid : `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP EnableKerbAuth = 0\n";continue;}
 				$this->availableGroups[$ligne["ID"]]=true;
 				$this->acls_array[]="acl $acls_name external ads_group ". utf8_encode($ligne["GroupName"]);
 				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
 				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
 				continue;				
 			}
+			if($ligne["GroupType"]=="proxy_auth"){
+				if($this->AUTH==0){echo "Starting......: Squid : `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP AUTH = 0\n";continue;}				
+				
+			}
+			
 			
 			
 			$AclsItemsCount=$this->buildItems($ligne["ID"],$ReturnFirstValue);

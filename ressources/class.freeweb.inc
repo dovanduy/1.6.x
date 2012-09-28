@@ -2889,7 +2889,10 @@
 			if(!$this->AS_ROOT){return;}
 			$conf[]="\tSSLCertificateFile {$GLOBALS["SSLKEY_PATH"]}/$this->servername.crt";
 			$conf[]="\tSSLCertificateKeyFile {$GLOBALS["SSLKEY_PATH"]}/$this->servername.key";
-			if($this->sslcertificate==null){return @implode("\n", $f);}
+			if($this->sslcertificate==null){return @implode("\n", $conf);}
+			
+			
+			
 			$directory="/etc/openssl/certificate_center/$this->sslcertificate";
 			$CommonName=$this->sslcertificate;
 			if(!is_file("$directory/chain.crt")){

@@ -418,6 +418,7 @@ function export_version2(){
 		if(!$q->ok){ufdbguard_admin_events("Exporting $category_table ($CountCategoryTableRows rows) failed $q->mysql_error task aborted",__FUNCTION__,__FILE__,__LINE__,"backup");return;}
 		
 		$f["TABLES"][$category]=$category_table;
+		$f["TABLES_SIZE"][$category]=$CountCategoryTableRows;
 		
 		echo "Compressing  $WORKDIR/$category_table.csv\n";
 		compress("$WORKDIR/$category_table.csv", "$WORKDIR/$category_table.gz");

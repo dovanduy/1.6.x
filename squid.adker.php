@@ -509,6 +509,9 @@ function settings(){
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
 	$LockKerberosAuthentication=$sock->GET_INFO("LockKerberosAuthentication");
+	$KerbAuthDisableNsswitch=$sock->GET_INFO("KerbAuthDisableNsswitch");
+	if(!is_numeric($KerbAuthDisableNsswitch)){$KerbAuthDisableNsswitch=0;}
+	
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
 	if(!is_numeric("$LockKerberosAuthentication")){$LockKerberosAuthentication=1;}
@@ -568,7 +571,13 @@ function settings(){
 		<td class=legend style='font-size:14px'>{EnableWindowsAuthentication}:</td>
 		<td>". Field_checkbox("EnableKerbAuth",1,"$EnableKerbAuth","EnableKerbAuthCheck()")."</td>
 		<td>&nbsp;</td>
-	</tr>	
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{KerbAuthDisableNsswitch}:</td>
+		<td>". Field_checkbox("KerbAuthDisableNsswitch",1,"$KerbAuthDisableNsswitch")."</td>
+		<td>&nbsp;</td>
+	</tr>
+	
 	<tr>
 		<td class=legend style='font-size:14px'>{authenticate_from_kerberos}:</td>
 		<td>". Field_checkbox("EnableKerberosAuthentication",1,"$EnableKerberosAuthentication","EnableKerbAuthCheck()")."</td>
@@ -642,6 +651,7 @@ function settings(){
 			document.getElementById('ADNETIPADDR').disabled=true;
 			document.getElementById('SAMBA_BACKEND').disabled=true;
 			document.getElementById('COMPUTER_BRANCH').disabled=true;
+			document.getElementById('KerbAuthDisableNsswitch').disabled=true;
 			
 			
 			
@@ -663,6 +673,9 @@ function settings(){
 				document.getElementById('ADNETIPADDR').disabled=false;
 				document.getElementById('SAMBA_BACKEND').disabled=false;
 				document.getElementById('COMPUTER_BRANCH').disabled=false;
+				document.getElementById('KerbAuthDisableNsswitch').disabled=false;
+				
+				
 				if(document.getElementById('EnableKerberosAuthentication').checked){
 					document.getElementById('EnableKerbAuth').checked=false
 					document.getElementById('EnableKerbAuth').disabled=true;
@@ -720,6 +733,7 @@ function settings(){
 		RefreshServerKerb();
 		document.getElementById('serverkerb-animated').innerHTML='';
 		if(document.getElementById('AdSquidStatusLeft')){RefreshDansguardianMainService();}
+		if(document.getElementById('squid-status')){LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');}
 	}		
 	
 		function SaveKERBProxy(){
@@ -727,6 +741,8 @@ function settings(){
 			var XHR = new XHRConnection();
 			if(document.getElementById('EnableKerbAuth').checked){XHR.appendData('EnableKerbAuth',1);}else{XHR.appendData('EnableKerbAuth',0);}
 			if(document.getElementById('EnableKerberosAuthentication').checked){XHR.appendData('EnableKerberosAuthentication',1);}else{XHR.appendData('EnableKerberosAuthentication',0);}
+			if(document.getElementById('KerbAuthDisableNsswitch').checked){XHR.appendData('KerbAuthDisableNsswitch',1);}else{XHR.appendData('KerbAuthDisableNsswitch',0);}
+			
 			
 			
 			XHR.appendData('COMPUTER_BRANCH',document.getElementById('COMPUTER_BRANCH').value);
@@ -892,6 +908,7 @@ function settingsSave(){
 	
 	$sock->SET_INFO("EnableKerbAuth", $_POST["EnableKerbAuth"]);
 	$sock->SET_INFO("EnableKerberosAuthentication", $_POST["EnableKerberosAuthentication"]);
+	$sock->SET_INFO("KerbAuthDisableNsswitch", $_POST["KerbAuthDisableNsswitch"]);
 	if($_POST["EnableKerberosAuthentication"]==1){$sock->SET_INFO("EnableKerbAuth", 0);}
 	
 	$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");

@@ -58,19 +58,18 @@ class squid_acls_groups{
 		$prefix=null;
 		if($reverse){$prefix="!";}
 		$acls_name=array();
-		$sql="SELECT webfilters_sqacllinks.gpid,webfilters_sqgroups.ID FROM webfilters_sqacllinks,webfilters_sqgroups 
+		$sql="SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,webfilters_sqgroups.ID FROM webfilters_sqacllinks,webfilters_sqgroups 
 		WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID AND webfilters_sqacllinks.aclid=$aclid";
 		$q=new mysql_squid_builder();
 		$results = $q->QUERY_SQL($sql);
 		if($GLOBALS["VERBOSE"]){echo "DEBUG: ACLS: ID:$aclid -> ". mysql_num_rows($results)." items\n";}
 		while ($ligne = mysql_fetch_assoc($results)) {
+			$neg=null;
 			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}' AND enabled=1"));
 			$items=$ligne2["tcount"];
-			if($items==0){
-				if($GLOBALS["VERBOSE"]){echo "DEBUG: ACLS: ID:$aclid -> GroupID {$ligne['ID']} 0 items skip". mysql_num_rows($results)." items\n";}continue;}
-
-				
-				$acls_name[]="{$prefix}Group{$ligne["ID"]}";	
+			if($items==0){if($GLOBALS["VERBOSE"]){echo "DEBUG: ACLS: ID:$aclid -> GroupID {$ligne['ID']} 0 items skip". mysql_num_rows($results)." items\n";}continue;}
+			if($ligne["negation"]==1){$neg="!";}
+			$acls_name[]="{$neg}{$prefix}Group{$ligne["ID"]}";	
 			
 		}	
 		if($GLOBALS["VERBOSE"]){echo "DEBUG: ACLS: ID:$aclid ->". count($acls_name)." final items\n";}
@@ -188,12 +187,14 @@ class squid_acls_groups{
 	
 	private function getobjectsNameFromAclrule($aclid){
 		$f=array();
-		$sql="SELECT webfilters_sqacllinks.gpid,webfilters_sqgroups.* FROM webfilters_sqacllinks,webfilters_sqgroups 
+		$tableorg=null;
+		$sql="SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,webfilters_sqgroups.* FROM webfilters_sqacllinks,webfilters_sqgroups 
 		WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID AND webfilters_sqacllinks.aclid=$aclid";
 		$q=new mysql_squid_builder();
 		$results = $q->QUERY_SQL($sql);
 		while ($ligne = mysql_fetch_assoc($results)) {
 			if($ligne["enabled"]==0){continue;}
+			$butnot=null;
 			$GroupName=utf8_encode($ligne["GroupName"]);
 			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}' AND enabled=1"));
 			$items=$ligne2["tcount"];
@@ -204,12 +205,18 @@ class squid_acls_groups{
 			if($ligne["GroupType"]=="proxy_auth_ads"){$items_text=null;}
 			$template=$this->template_name($ligne['ID']);
 			if($template<>null){$template=" - {template} $template";}else{$template=" - {template} {default}";}
+			if(isset($_GET["toexplainorg"])){$tableorg="&table-org={$_GET["toexplainorg"]}";}
+			if($ligne["negation"]==1){
+				$butnot="{notfor}&nbsp;";
+				$template=null;
+			}
+			
 			
 $href="<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID={$ligne['ID']}');\" 
+		OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID={$ligne['ID']}$tableorg');\" 
 		style='font-size:12px;text-decoration:underline'>";				
 			
-			$f[]="&laquo;$href$GroupName</a>&raquo; <span style='font-size:10px'>($items_text$template)</span>";
+			$f[]="$butnot&laquo;$href$GroupName</a>&raquo; <span style='font-size:10px'>($items_text$template)</span>";
 		}
 		return $f;
 		

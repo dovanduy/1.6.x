@@ -60,7 +60,7 @@ function item_popup_js(){
 	
 	if($ID<0){$title="{new_item}";}
 	$title=$tpl->_ENGINE_parse_body($title);
-	$html="YahooWin5(450,'$page?AddItem-tab=yes&item-id=$ID&ID={$_GET["ID"]}&table-t={$_GET["table-t"]}','$title')";
+	$html="YahooWin5(450,'$page?AddItem-tab=yes&item-id=$ID&ID={$_GET["ID"]}&table-t={$_GET["table-t"]}&table-org={$_GET["table-org"]}','$title')";
 	echo $html;
 }
 
@@ -79,7 +79,7 @@ function AddGroup_js(){
 	
 	if($ID<0){$title="{new_item}";}
 	$title=$tpl->_ENGINE_parse_body($title);
-	$html="YahooWin4(546,'$page?EditGroup-popup=yes&ID=$ID&link-acl={$_GET["link-acl"]}&table-acls-t={$_GET["table-acls-t"]}','$title')";
+	$html="YahooWin4(546,'$page?EditGroup-popup=yes&ID=$ID&link-acl={$_GET["link-acl"]}&table-acls-t={$_GET["table-acls-t"]}&table-org={$_GET["table-org"]}','$title')";
 	echo $html;	
 	
 }
@@ -96,15 +96,19 @@ function EditGroup_popup(){
 	$acltpl_md5=trim($ligne["acltpl"]);
 	$acltpl="{default}";
 	$sock=new sockets();
-	$browse=button("{browse}...", "Loadjs('squid.templates.php?choose-acl=$ID')");
+	$jstpl="blur();";
+	$browse="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.templates.php?choose-acl=$ID');\" 
+	style='font-weight:normal;text-decoration:underline;font-size:14px'>";
 	if($ID<1){$buttonname="{add}";$browse=null;$acltpl=null;}	
 	if($acltpl_md5<>null){
 			$md5=$acltpl_md5;
 			$sql="SELECT template_title FROM squidtpls WHERE `zmd5`='{$acltpl_md5}'";
 			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+			$templatename=$ligne2["template_title"];
+			
 			$acltpl=addslashes($ligne2["template_title"]);
 			$jstpl="Loadjs('squid.templates.php?Zoom-js=$md5&subject=". base64_encode($acltpl)."');";
-			$acltpl="<a href=\"javascript:blur();\" OnClick=\"$jstpl\" style='font-size:14px;text-decoration:underline'>$acltpl</a>";
+			$acltpl="<a href=\"javascript:blur();\" OnClick=\"$jstpl\" style='font-size:14px;text-decoration:underline'>$templatename</a>";
 		}	
 	
 	
@@ -127,8 +131,19 @@ function EditGroup_popup(){
 		<td>". Field_array_Hash($GroupType,"GroupType",$ligne["GroupType"],"style:font-size:14px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{template}:</td>
-		<td><strong style='font-size:14px'><span id='acltplTxt'>$acltpl</span>&nbsp;$browse</td>
+		<td class=legend style='font-size:14px' valign='top'>{template}:</td>
+		<td>
+			<table style='width:99%'>
+			<tr>
+				<td width=1% valign='top'><img src='img/arrow-right-16.png'></td>
+				<td valign='top'><strong style='font-size:12px'><span id='acltplTxt'>$acltpl</span></a></td>
+			</tr>
+			<tr>
+				<td width=1% valign='top'><img src='img/arrow-right-16.png'></td>
+				<td valign='top'><span style='font-size:14px'>$browse<span id='acltplTxt'>{change_template}</span></a></td>
+			</tr>			
+		</table>
+		</td>
 	</tr>	
 	
 	<tr>
@@ -144,7 +159,9 @@ function EditGroup_popup(){
 		document.getElementById('GroupName').value='';
 		if(document.getElementById('formulaire-choix-groupe-proxy')){RefreshFormulaireChoixGroupeProxy();}
 		var tableaclt='{$_GET["table-acls-t"]}';
+		var tableorg='{$_GET["table-org"]}';
 		if(tableaclt.length>3){ $('#table-items-'+tableaclt).flexReload();}
+		if(tableorg.length>3){ $('#'+tableorg).flexReload();}
 		RefreshSquidGroupTable();
 	}
 	
@@ -296,7 +313,7 @@ function EditGroup_tabs(){
 	if($ligne["GroupType"]=="proxy_auth_ads"){unset($array["items"]);}
 
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&ID=$ID&tab=yes\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&ID=$ID&tab=yes&table-org={$_GET["table-org"]}\"><span>$ligne</span></a></li>\n");
 	
 	}
 
@@ -328,7 +345,7 @@ function items_js(){
 var DeleteGroupItemTemp=0;
 $(document).ready(function(){
 $('#table-$t').flexigrid({
-	url: '$page?items-list=yes&ID=$ID',
+	url: '$page?items-list=yes&ID=$ID&table-org={$_GET["table-org"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '$items', name : 'pattern', width : 386, sortable : true, align: 'left'},
@@ -356,7 +373,7 @@ buttons : [
 	});   
 });
 function AddItem() {
-	Loadjs('$page?AddItem-js=yes&item-id=-1&ID=$ID&table-t=$t');
+	Loadjs('$page?AddItem-js=yes&item-id=-1&ID=$ID&table-t=$t&table-org={$_GET["table-org"]}');
 	
 }	
 
@@ -458,7 +475,7 @@ buttons : [
 	});   
 });
 function AddGroup() {
-	Loadjs('$page?AddGroup-js=yes&ID=-1');
+	Loadjs('$page?AddGroup-js=yes&ID=-1&table-org={$_GET["table-org"]}');
 	
 }	
 
@@ -473,6 +490,8 @@ function RefreshSquidGroupTable(){
 		if(document.getElementById('main_filter_rule_edit')){RefreshTab('main_filter_rule_edit');}
 		if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
 		$('#rowtime'+TimeRuleIDTemp).remove();
+		var tableorg='{$_GET["table-org"]}';
+		if(tableorg.length>3){ $('#'+tableorg).flexReload();}		
 	}
 	
 	var x_EnableDisableGroup= function (obj) {
@@ -496,6 +515,8 @@ function RefreshSquidGroupTable(){
 		var res=obj.responseText;
 		if(res.length>3){alert(res);return;}
 		$('#rowgroup'+DeleteSquidAclGroupTemp).remove();
+		var tableorg='{$_GET["table-org"]}';
+		if(tableorg.length>3){ $('#'+tableorg).flexReload();}		
 	}
 	
 	function EnableDisableGroup(ID){
@@ -533,7 +554,7 @@ function item_tab(){
 
 	while (list ($num, $ligne) = each ($array) ){
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&item-id={$_GET["item-id"]}&ID={$_GET["ID"]}&table-t={$_GET["table-t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&item-id={$_GET["item-id"]}&ID={$_GET["ID"]}&table-t={$_GET["table-t"]}&table-org={$_GET["table-org"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 	
 	}
 
@@ -560,7 +581,7 @@ function item_form_import(){
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType FROM webfilters_sqgroups WHERE ID='$ID'"));
 	$GroupType=$ligne["GroupType"];
-	$GroupTypeText=$GLOBALS["GroupType"][$GroupType];
+	$GroupTypeText=$q->acl_GroupType[$GroupType];
 	$sock=new sockets();
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}		
@@ -578,6 +599,7 @@ function item_form_import(){
 	if($GroupType=="arp"){$explain="{ComputerMacAddress}";}
 	if($GroupType=="dstdomain"){$explain="{squid_ask_domain}";}
 	if($GroupType=="port"){$explain="{acl_squid_remote_ports_explain}";}
+	if($GroupType=="dst"){$explain="{acl_squid_dst_explain}";}
 	if($GroupType=="proxy_auth"){
 		
 		if($EnableKerbAuth==1){
@@ -621,6 +643,8 @@ function item_form_import(){
 		}else{
 			$('#table-{$_GET["table-t"]}').flexReload();
 		}
+		var tableorg='{$_GET["table-org"]}';
+		if(tableorg.length>3){ $('#'+tableorg).flexReload();}			
 		
 	}
 	
@@ -706,7 +730,10 @@ function item_form(){
 		if(res.length>3){alert(res);return;}
 		document.getElementById('$t-pattern').value='';
 		$('#table-{$_GET["table-t"]}').flexReload();
-		RefreshSquidGroupTable();
+		var tableorg='{$_GET["table-org"]}';
+		if(tableorg.length>3){ $('#'+tableorg).flexReload();}	
+		ifFnExistsCallIt('RefreshSquidGroupTable');		
+		
 	}
 	
 	function SaveItemsModeCheck(e){

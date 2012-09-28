@@ -30,6 +30,8 @@ if(isset($_GET["whitelist"])){whitelist();exit;}
 
 if(isset($_POST["pattern"])){member_edit_save();exit;}
 if(isset($_POST["member-delete"])){member_edit_del();exit;}
+if(isset($_GET["explain-group-type"])){group_explain_type();exit;}
+if(isset($_GET["explain-group-button"])){group_display_button();exit;}
 
 tabs();
 
@@ -163,7 +165,7 @@ function group_edit(){
 	$bt_browse="<input type='button' value='{browse}...' OnClick=\"javascript:MemberBrowsePopup();\" style='font-size:13px'>";
 	if($ID>1){if($ligne["localldap"]==2){$bt_bt=null;$bt_browse=null;}}
 	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}
-	
+	$t=time();
 	$html="
 	<div id='dansguardinMainGroupDiv'>
 	<table style='width:99%' class=form>
@@ -181,7 +183,7 @@ function group_edit(){
 	<tr>
 		<td class=legend>{groupid}:</td>
 		<td>". Field_text("gpid",$ligne["gpid"],"font-size:14px;width:65px")."</td>
-		<td>$bt_browse</td>
+		<td><span id='button-$t'>$bt_browse</span></td>
 	</tr>		
 	
 	<tr>
@@ -193,7 +195,10 @@ function group_edit(){
 		<td class=legend>{description}:</td>
 		<td><textarea name='description' id='description' style='width:100%;height:50px;overflow:auto;font-size:14px'>". $ligne["description"]."</textarea></td>
 		<td>&nbsp;</td>
-	</tr>	
+	</tr>
+	<tr>
+		<td colspan=3><span id='explain-$t'></span></td>
+	</tr>		
 	<tr>
 		<td colspan=3 align='right'><hr>$bt_bt</td>
 	</tr>
@@ -217,6 +222,13 @@ function group_edit(){
 				if(tt.length>0){if(t2.length==0){document.getElementById('description').value=tt;}}
 			}
 		}
+		var localldap=document.getElementById('localldap').value;
+		if(ID>-1){document.getElementById('localldap').disabled=true;}
+		LoadAjax('explain-$t','$page?explain-group-type=yes&type='+localldap+'&t=$t&ID=$ID');
+		
+		
+		
+		
 	}
 	
 	
@@ -280,6 +292,37 @@ function group_edit(){
 	echo $tpl->_ENGINE_parse_body($html);
 	
 }
+
+function group_explain_type(){
+	$t=$_GET["t"];
+	$type=$_GET["type"];
+	$page=CurrentPageName();
+	$html="<div class=explain style='font-size:14px'>{group_explain_proxy_acls_type_{$type}}</div>
+	<script>
+		LoadAjax('button-$t','$page?explain-group-button=yes&ID=$ID&type=$type');
+	</script>
+	
+	";
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+function group_display_button(){
+	
+	
+	$t=$_GET["t"];
+	$ID=$_GET["ID"];
+	$type=$_GET["type"];
+	if($type==1){return;}
+	if($ID>-1){return;}
+	$bt_browse="<input type='button' value='{browse}...' OnClick=\"javascript:MemberBrowsePopup();\" style='font-size:13px'>";
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body($bt_browse);
+}
+
+
+
 function group_edit_save(){
 	
 	$ID=$_POST["ID"];

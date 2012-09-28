@@ -1640,8 +1640,11 @@ function global_status_tlse_db(){
 	$sock=new sockets();
 	$SquidDatabasesUtlseEnable=$sock->GET_INFO("SquidDatabasesUtlseEnable");
 	if(!is_numeric($SquidDatabasesUtlseEnable)){$SquidDatabasesUtlseEnable=1;}
-	
-	if($SquidDatabasesUtlseEnable==1){$disable_text="{database}:&nbsp;{enabled}";}else{$disable_text="{database}:&nbsp;{disabled}";}
+	$color="color:black";
+	if($SquidDatabasesUtlseEnable==1){$disable_text="{database}:&nbsp;{enabled}";}else{
+		$disable_text="{database}:&nbsp;{disabled}";
+		$color="color:#B6ACAC";
+	}
 	
 	$sock=new sockets();
 	$scheduledAR=unserialize(base64_decode($sock->getFrameWork("squid.php?schedule-maintenance-tlse=yes")));
@@ -1672,8 +1675,8 @@ function global_status_tlse_db(){
 			<td colspan=2 style='font-size:16px'>{toulouse_university}$running</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px;font-weight:bold'>{items}:</td>
-			<td style='font-size:14px;font-weight:bold'>$items</td>
+			<td class=legend style='font-size:14px;font-weight:bold;$color;'>{items}:</td>
+			<td style='font-size:14px;font-weight:bold;$color'>$items</td>
 		</tr>	
 		<tr>
 			<td colspan=2 style='font-size:14px' align='right'>
@@ -1681,15 +1684,17 @@ function global_status_tlse_db(){
 			<tbody>
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ToulouseDBUpdateNow();\" style='font-size:12px;text-decoration:underline'>{update_now}</a></td>
+				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ToulouseDBUpdateNow();\" style='font-size:12px;$color;text-decoration:underline'>{update_now}</a></td>
 			</tr>
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.update.events.php?filename=exec.update.squid.tlse.php');\" style='font-size:12px;text-decoration:underline'>{display_update_events}</a></td>
+				<td nowrap><a href=\"javascript:blur();\" 
+				OnClick=\"javascript:Loadjs('squid.update.events.php?filename=exec.update.squid.tlse.php');\" 
+				style='font-size:12px;text-decoration:underline;$color;'>{display_update_events}</a></td>
 			</tr>	
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:TlseDisable();\" style='font-size:12px;text-decoration:underline'>$disable_text</a></td>
+				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:TlseDisable();\" style='font-size:12px;$color;text-decoration:underline'>$disable_text</a></td>
 			</tr>						
 			</tbody>
 			</table>
@@ -1755,12 +1760,15 @@ function global_status_artica_db(){
 	
 	
 	
-	
+	$color="color:black;";
 	$sock=new sockets();
 	$scheduledAR=unserialize(base64_decode($sock->getFrameWork("squid.php?schedule-maintenance-exec=yes")));
 	$SquidDatabasesArticaEnable=$sock->GET_INFO("SquidDatabasesArticaEnable");
 	if(!is_numeric($SquidDatabasesArticaEnable)){$SquidDatabasesArticaEnable=1;}
-	if($SquidDatabasesArticaEnable==1){$disable_text="Artica&nbsp;{database}:&nbsp;{enabled}";}else{$disable_text="Artica&nbsp;{database}:&nbsp;{disabled}";}
+	if($SquidDatabasesArticaEnable==1){$disable_text="Artica&nbsp;{database}:&nbsp;{enabled}";}else{
+		$disable_text="Artica&nbsp;{database}:&nbsp;{disabled}";
+		$color="color:#B6ACAC";
+	}
 	
 	$running="<br><i style='font-size:12px'>{update_task_stopped}</i>";
 	if($scheduledAR["RUNNING"]){$running="<br><i style='font-size:12px;color:#BA0000'>{update_currently_running_since} {$scheduledAR["TIME"]}Mn</i>";}
@@ -1812,7 +1820,7 @@ $purctext="		<tr>
 	$tableau="<table style='width:99%' class=form>
 	<tbody>
 		<tr>
-			<td colspan=2 style='font-size:16px'>{artica_databases}$running</td>
+			<td colspan=2 style='font-size:16px;$color'>{artica_databases}$running</td>
 		</tr>
 	$purctext
 		<tr>
@@ -1846,8 +1854,8 @@ $purctext="		<tr>
 				</table>
 			</td>			
 		<tr>
-			<td class=legend style='font-size:14px;font-weight:bold'>{articaitems}:</td>
-			<td style='font-size:14px;font-weight:bold'>$itemsArtica</td>
+			<td class=legend style='font-size:14px;font-weight:bold;$color'>{articaitems}:</td>
+			<td style='font-size:14px;font-weight:bold;$color'>$itemsArtica</td>
 		</tr>
 
 	
@@ -1857,19 +1865,19 @@ $purctext="		<tr>
 			<tbody>
 						<tr>
 							<td width=1%><img src='img/arrow-right-16.png'>
-							<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ArticaDBDisable();\" style='font-size:12px;text-decoration:underline'>$disable_text</a></td>
+							<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ArticaDBDisable();\" style='font-size:12px;text-decoration:underline;$color'>$disable_text</a></td>
 						</tr>			
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ArticaDBUpdateNow();\" style='font-size:12px;text-decoration:underline'>{update_now}</a></td>
+				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ArticaDBUpdateNow();\" style='font-size:12px;text-decoration:underline;$color'>{update_now}</a></td>
 			</tr>
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.update.events.php');\" style='font-size:12px;text-decoration:underline'>{display_update_events}</a></td>
+				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.update.events.php');\" style='font-size:12px;text-decoration:underline;$color'>{display_update_events}</a></td>
 			</tr>	
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('ufdbguard.databases.php?scripts=compile-schedule');\" style='font-size:12px;text-decoration:underline'>{compilation_schedule}</a></td>
+				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('ufdbguard.databases.php?scripts=compile-schedule');\" style='font-size:12px;text-decoration:underline;$color'>{compilation_schedule}</a></td>
 			</tr>						
 			</tbody>
 			</table>

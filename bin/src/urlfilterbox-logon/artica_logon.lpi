@@ -37,7 +37,7 @@
         <CursorPos X="26" Y="16"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
-        <UsageCount Value="51"/>
+        <UsageCount Value="52"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
@@ -58,10 +58,10 @@
         <Filename Value="logon.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="logon"/>
-        <CursorPos X="49" Y="106"/>
-        <TopLine Value="75"/>
+        <CursorPos X="14" Y="436"/>
+        <TopLine Value="403"/>
         <EditorIndex Value="1"/>
-        <UsageCount Value="50"/>
+        <UsageCount Value="51"/>
         <Loaded Value="True"/>
       </Unit3>
       <Unit4>
@@ -104,7 +104,7 @@
         <Loaded Value="True"/>
       </Unit8>
     </Units>
-    <JumpHistory Count="25" HistoryIndex="24">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="logon.pas"/>
         <Caret Line="511" Column="37" TopLine="477"/>
@@ -205,6 +205,26 @@
         <Filename Value="logon.pas"/>
         <Caret Line="100" Column="58" TopLine="73"/>
       </Position25>
+      <Position26>
+        <Filename Value="logon.pas"/>
+        <Caret Line="421" Column="1" TopLine="374"/>
+      </Position26>
+      <Position27>
+        <Filename Value="logon.pas"/>
+        <Caret Line="422" Column="1" TopLine="398"/>
+      </Position27>
+      <Position28>
+        <Filename Value="logon.pas"/>
+        <Caret Line="24" Column="15" TopLine="1"/>
+      </Position28>
+      <Position29>
+        <Filename Value="logon.pas"/>
+        <Caret Line="314" Column="9" TopLine="287"/>
+      </Position29>
+      <Position30>
+        <Filename Value="logon.pas"/>
+        <Caret Line="437" Column="9" TopLine="403"/>
+      </Position30>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>

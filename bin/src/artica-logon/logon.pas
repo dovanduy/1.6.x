@@ -26,6 +26,7 @@ private
      procedure NightlyBuild();
      function GetLatestNightlyVersion():string;
      procedure ChangeDNS();
+     function ParseResolvConf():string;
 public
     procedure   Free;
     constructor Create();
@@ -673,7 +674,7 @@ var
    iptcp:ttcpip;
    Gayteway:string;
    perform:string;
-   l:Tstringlist;
+   l,s:Tstringlist;
    RegExpr:TRegExpr;
    AutorizePerform:boolean;
    eth:string;
@@ -685,6 +686,7 @@ begin
     IP:=iptcp.IP_ADDRESS_INTERFACE(eth);
     NETMASK:=iptcp.IP_MASK_INTERFACE(eth);
     Gayteway:=iptcp.IP_LOCAL_GATEWAY(eth);
+    DNS:=ParseResolvConf();
     perform:='o';
 
     if(IP='0.0.0.0') then IP:='172.16.14.135';
@@ -746,9 +748,9 @@ begin
     if length(trim(answer))>0 then Gayteway:=answer;
 
 
-    writeln('Give the First DNS ip address for this computer:['+Gayteway+']');
+    writeln('Give the First DNS ip address for this computer:['+DNS+']');
     readln(answer);
-    if length(trim(answer))>0 then DNS:=answer else DNS:=Gayteway;
+    if length(trim(answer))>0 then DNS:=answer else DNS:=DNS;
 
     RegExpr:=TRegExpr.Create;
     AutorizePerform:=true;
@@ -785,6 +787,22 @@ begin
         exit;
     end;
 
+    s:=Tstringlist.Create;
+    if length(DNS)>0 then  s.Add('nameserver '+DNS);
+    s.Add('nameserver 156.154.70.1');
+    s.Add('nameserver 8.8.4.4');
+    try
+       s.SaveToFile('/etc/resolv.conf');
+    finally
+    end;
+
+
+    forceDirectories('/etc/resolvconf/resolv.conf.d');
+    try
+       s.SaveToFile('/etc/resolvconf/resolv.conf.d/base ');
+    finally
+    end;
+    s.free;
 
 
 l:=Tstringlist.Create;
@@ -819,7 +837,38 @@ exit;
 
 end;
 
+function tlogon.ParseResolvConf():string;
+var
+   IP:string;
+   Gateway:string;
+   DNS,answer:string;
+   NETMASK:string;
+   iptcp:ttcpip;
+   Gayteway:string;
+   perform:string;
+   l:Tstringlist;
+   RegExpr:TRegExpr;
+   AutorizePerform:boolean;
+   s:TstringList;
+   i:integer;
+begin
+     l:=Tstringlist.Create;
+     try
+           l.LoadFromFile('/etc/resolv.conf');
+     except
+           exit;
+     end;
 
+     RegExpr:=TRegExpr.Create;
+     RegExpr.Expression:='^nameserver\s+(.*)';
+     for i:=0 to l.Count-1 do begin
+         if RegExpr.Exec(l.Strings[i]) then begin
+            result:=RegExpr.Match[1];
+            RegExpr.free;
+            l.free;
+         end;
+     end;
+end;
 
 
 

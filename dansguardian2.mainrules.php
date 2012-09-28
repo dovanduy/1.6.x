@@ -344,6 +344,9 @@ function rules_toolbox_left(){
 	$Computers=numberFormat($Computers,0,""," ");
 
 	$UsersRequests=$q->COUNT_ROWS("webfilters_usersasks");
+
+	$tablescat=$q->LIST_TABLES_CATEGORIES();
+	$CountDeCategories=numberFormat(count($tablescat),0,""," ");
 	
 	
 	$html="
@@ -398,7 +401,18 @@ function rules_toolbox_left(){
 			</table>
 		</td>
 	</tr>		
-	
+	<tr>
+		<td valign='top' width=1%><img src='img/32-categories.png'></td>
+		<td valign='top' width=99%>
+			<table style='width:100%'>
+			<tr>
+				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
+				OnClick=\"javascript:Loadjs('squid.categories.php')\" nowrap><strong>$CountDeCategories&nbsp;{categories}</td>
+			</tr>
+			</table>
+		</td>
+	</tr>		
 	</table> 
 	
 	

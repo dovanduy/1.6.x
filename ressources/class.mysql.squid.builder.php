@@ -58,6 +58,7 @@ class mysql_squid_builder{
 		$this->acl_GroupType["src"]="{addr}";
 		$this->acl_GroupType["arp"]="{ComputerMacAddress}";
 		$this->acl_GroupType["dstdomain"]="{dstdomain}";
+		$this->acl_GroupType["dst"]="{dst}";
 		$this->acl_GroupType["proxy_auth"]="{members}";
 		if($EnableKerbAuth==1){if($UseDynamicGroupsAcls==1){$this->acl_GroupType["proxy_auth_ads"]="{dynamic_activedirectory_group}";}}
 		$this->acl_GroupType["port"]="{remote_ports}";
@@ -1330,13 +1331,16 @@ public function CheckTables($table=null){
 			$sql="CREATE TABLE `squidlogs`.`webfilters_sqacllinks` (
 			`zmd5` VARCHAR( 90 ) NOT NULL PRIMARY KEY ,
 			`aclid` BIGINT( 100 ) NOT NULL ,
+			`negation` smallint(1) NOT NULL ,
 			`gpid` INT( 100 ) NOT NULL ,
-			INDEX ( `aclid` , `gpid`)
+			INDEX ( `aclid` , `gpid`,`negation`)
 			)";	
 
 			$this->QUERY_SQL($sql,$this->database);
 			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "FATAL !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
 		}
+		
+		if(!$this->FIELD_EXISTS("webfilters_sqacllinks", "negation")){$this->QUERY_SQL("ALTER TABLE `webfilters_sqacllinks` ADD `negation` smallint(1) NOT NULL");}
 
 		if(!$this->TABLE_EXISTS('webfilters_usersasks',$this->database)){	
 			$sql="CREATE TABLE `squidlogs`.`webfilters_usersasks` (

@@ -63,6 +63,7 @@ if($argv[1]=="--v2-index"){updatev2_index();die();}
 if($argv[1]=="--ufdb"){ufdbtables();die();}
 if($argv[1]=="--ufdb-first"){ufdbFirst();die();}
 if($argv[1]=="--scan-db"){scan_artica_databases();die();}
+if($argv[1]=="--repair"){updatev2_checktables_repair();die();}
 
 
 
@@ -111,15 +112,21 @@ function ufdbtables(){
 	while (list ($tablename, $size) = each ($REMOTE_CACHE) ){	
 		if($size<>$LOCAL_CACHE[$tablename]){
 			$c++;
-			echo "UFDB: downloading $tablename\n";
+			$OriginalSize=$size;
+			echo "UFDB: downloading $tablename remote size:$size, local size:{$LOCAL_CACHE[$tablename]}\n";
 			$curl=new ccurl("$URIBASE/$tablename.gz");
+			$curl->Timeout=380;
 			if(!$curl->GetFile("/tmp/$tablename.gz")){
 				ufdbguard_admin_events("UFDB::Fatal: unable to download blacklist $tablename.gz file $curl->error",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
 				continue;
 			}
 			
 			@mkdir("$WORKDIR/$tablename",0755,true);
-			if(!ufdbtables_uncompress("/tmp/$tablename.gz","$WORKDIR/$tablename/domains.ufdb")){ufdbguard_admin_events("UFDB::Fatal: unable to extract blacklist $tablename.gz file",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");continue;}
+			if(!ufdbtables_uncompress("/tmp/$tablename.gz","$WORKDIR/$tablename/domains.ufdb")){
+				ufdbguard_admin_memory("UFDB::Fatal: unable to extract blacklist $tablename.gz file",__FUNCTION__,__FILE__,__LINE__,
+				"ufbd-artica");
+				continue;
+			}
 			@chown("$WORKDIR/$tablename/domains.ufdb", "squid");
 			@chgrp("$WORKDIR/$tablename/domains.ufdb", "squid");
 			$size=$unix->file_size("$WORKDIR/$tablename/domains.ufdb");
@@ -127,21 +134,22 @@ function ufdbtables(){
 			$BigSize=$BigSize+$size;
 			@chown("$WORKDIR/$tablename", "squid");
 			@chgrp("$WORKDIR/$tablename", "squid");	
-			$LOCAL_CACHE[$tablename]=$size;	
-			ufdbguard_admin_events("UFDB::Success update $tablename category $size Ko",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");			
+			$LOCAL_CACHE[$tablename]=$OriginalSize;	
+			ufdbguard_admin_memory("UFDB::Success update $tablename category $size Ko",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");			
 		}
 		
 	}
 	
 	@file_put_contents($CACHE_FILE, base64_encode(serialize($LOCAL_CACHE)));
-	
-	if($c>0){	
-		ufdbguard_admin_events("UFDB::Success update $c categories $BigSize extracted",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+	$ufdbguard_admin_memory=@implode("\n", $GLOBALS["ufdbguard_admin_memory"]);	
+	if($c>0){
+		
+		ufdbguard_admin_events("UFDB::Success update $c categories $BigSize extracted\n$ufdbguard_admin_memory",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
 		$sock->TOP_NOTIFY("Success update $c blacklists categories $BigSize Ko extracted","info");
 		
 	}else{
 		if($GLOBALS["FORCE"]){
-			ufdbguard_admin_events("No update available",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+			ufdbguard_admin_events("No update available\n$ufdbguard_admin_memory",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
 		}
 	}
 	
@@ -183,8 +191,8 @@ function updatev2_index(){
 	}
 
 	$f=unserialize(base64_decode(@file_get_contents("/tmp/index.txt")));
-	if(!is_array($f)){ufdbguard_admin_events("Fatal: index file, no such array",__FUNCTION__,__FILE__,__LINE__,"update");}	
-	print_r($f);
+	if(!is_array($f)){ufdbguard_admin_events("Fatal: index file, no such array",__FUNCTION__,__FILE__,__LINE__,"update");return;}	
+	return $f;
 	
 	
 }
@@ -275,7 +283,6 @@ function updatev2(){
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,__FILE__)){
 		if($GLOBALS["SCHEDULE_ID"]>0){ufdbguard_admin_events("Warning: Already running pid $pid",__FUNCTION__,__FILE__,__LINE__,"update");}
-		writelogsBLKS("Warning: Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
 	
@@ -344,6 +351,7 @@ function updatev2(){
 
 
 function updatev2_checktables($npid=false){
+	$GLOBALS["ufdbguard_admin_memory"]=array();
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$nohup=$unix->find_program("nohup");
@@ -368,7 +376,14 @@ function updatev2_checktables($npid=false){
 	WriteMyLogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	
 	$results=$q->QUERY_SQL($sql);
+	if(mysql_numrows($results)==0){
+		if(updatev2_checktables_repair()){return;}
+		$sql="SELECT tablename FROM webfilters_updates WHERE updated=0";
+		WriteMyLogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	}
+	
 	if(mysql_numrows($results)==0){return;}
+	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 		
 		if(system_is_overloaded(basename(__FILE__))){WriteMyLogs("Overloaded, sleep 30s",__FUNCTION__,__FILE__,__LINE__);sleep(30);}
@@ -378,7 +393,7 @@ function updatev2_checktables($npid=false){
 			WriteMyLogs("Overloaded, Die()",__FUNCTION__,__FILE__,__LINE__);
 			$ldao=getSystemLoad();
 			ufdbguard_admin_events("{$ligne["tablename"]}: processing black list database injection aborted System is overloaded ($ldao), the processing will be aborted and restart in next cycle
-			Task stopped line $c/$count rows\n",__FUNCTION__,__FILE__,__LINE__,"update");
+			Task stopped line $c/$count rows\n".ufdbguard_admin_compile(),__FUNCTION__,__FILE__,__LINE__,"update");
 			die();
 		}		
 						
@@ -395,7 +410,7 @@ function updatev2_checktables($npid=false){
 		if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE {$ligne["tablename"]} MARKED as updated done... Line:". __LINE__."\n";}
 		if(!$q->ok){
 			WriteMyLogs("Fatal: unable to extract blacklist $q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
-			ufdbguard_admin_events("Fatal: unable to extract blacklist $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"update");
+			ufdbguard_admin_events("Fatal: unable to extract blacklist $q->mysql_error \n".ufdbguard_admin_compile(),__FUNCTION__,__FILE__,__LINE__,"update");
 			return false;
 		}
 		
@@ -405,18 +420,59 @@ function updatev2_checktables($npid=false){
 	return true;
 }
 
+function updatev2_checktables_repair(){
+
+	$q=new mysql_squid_builder();
+	$sql="SELECT tablename FROM webfilters_updates WHERE updated=1";
+	
+	
+	$results=$q->QUERY_SQL($sql);
+	if(mysql_numrows($results)==0){return;}
+		
+	$carz=new mysql_catz();
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$tablename=$ligne["tablename"];
+		if($carz->COUNT_ROWS($tablename)==0){
+			$sql="UPDATE webfilters_updates SET updated=0 WHERE tablename='$tablename'";
+			ufdbguard_admin_memory("$tablename is empty, rescan it...", __FUNCTION__, __FILE__, __LINE__);
+			$q->QUERY_SQL($sql);
+		}
+		
+	}
+
+	$array=updatev2_index();
+	$rowstables=$array["TABLES_SIZE"];
+	$tablesnames=$array["TABLES"];
+	while (list ($category, $rowsnum) = each ($rowstables) ){
+		if($category=="housing/reale_state_"){continue;}
+		$category_table=$tablesnames[$category];
+		$mynum=$carz->COUNT_ROWS($category_table);
+		if($mynum<>$rowsnum){
+			$pourc=round(($rowsnum/$mynum)*100);
+			if($pourc<97){
+				echo "$category: cloud= $rowsnum, me = $mynum {$pourc}% \n";
+				$sql="UPDATE webfilters_updates SET updated=0 WHERE tablename='$tablename'";
+				ufdbguard_admin_memory("$tablename is {$pourc}% filled, rescan it...", __FUNCTION__, __FILE__, __LINE__);
+				$q->QUERY_SQL($sql);				
+			}
+		}
+	}
+	
+	
+}
+
 function updatev2_download($tablename){
 	$unix=new unix();
 	$curl=new ccurl("http://www.artica.fr/catz/$tablename.gz");
 	$curl->Timeout=600;
 	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: http://www.artica.fr/catz/$tablename.gz Line:". __LINE__."\n";}
 	if(!$curl->GetFile("/tmp/$tablename.gz")){
-		ufdbguard_admin_events("Fatal: unable to download blacklist $tablename $curl->error",__FUNCTION__,__FILE__,__LINE__,"update");
+		ufdbguard_admin_memory("Fatal: unable to download blacklist $tablename $curl->error",__FUNCTION__,__FILE__,__LINE__,"update");
 		echo "BLACKLISTS: Failed to retreive http://www.artica.fr/catz/$tablename.gz ($curl->error)\n";
 		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Downloading $tablename.gz failed ($curl->error)", basename(__FILE__));}
 		return false;
 	}else{
-		ufdbguard_admin_events("Success: Download blacklist $tablename size:" .$unix->file_size_human("/tmp/$tablename.gz"),__FUNCTION__,__FILE__,__LINE__,"update");
+		ufdbguard_admin_memory("Success: Download blacklist $tablename size:" .$unix->file_size_human("/tmp/$tablename.gz"),__FUNCTION__,__FILE__,__LINE__,"update");
 	}
 	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: $tablename.gz success Line:". __LINE__."\n";}
 	return true;
@@ -454,14 +510,14 @@ function updatev2_inject($tablename){
 	if(!$q->TABLE_EXISTS($tablename)){
 		if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CREATING CATEGORY TABLE `$tablename` Line:". __LINE__."\n";}
 		try {
-			ufdbguard_admin_events("Creating category table `$tablename`",__FUNCTION__,__FILE__,__LINE__,"update");
+			ufdbguard_admin_memory("Creating category table `$tablename`",__FUNCTION__,__FILE__,__LINE__,"update");
 			$q->CreateCategoryTable(null,$tablename);			
-		} catch (Exception $e) {ufdbguard_admin_events("Fatal: ".$e->getMessage(),__FUNCTION__,__FILE__,__LINE__);}
+		} catch (Exception $e) {ufdbguard_admin_memory("Fatal: ".$e->getMessage(),__FUNCTION__,__FILE__,__LINE__);}
 						
 		
 	}
 	if(!$q->TABLE_EXISTS($tablename)){
-		ufdbguard_admin_events("Fatal: unable to create category $tablename",__FUNCTION__,__FILE__,__LINE__,"update");
+		ufdbguard_admin_memory("Fatal: unable to create category $tablename",__FUNCTION__,__FILE__,__LINE__,"update");
 		if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename` DOES NOT EXISTS\n";}
 		return false;
 	}
@@ -480,7 +536,7 @@ function updatev2_inject($tablename){
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){
 		if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename` IMPORTING FAILED Line:". __LINE__."\n";}
-		ufdbguard_admin_events("Fatal: unable to extract blacklist $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"update");
+		ufdbguard_admin_memory("Fatal: unable to extract blacklist $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"update");
 		return false;
 	}
 	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename` IMPORTING SUCCESS Unlink /tmp/$tablename.csv Line:". __LINE__."\n";}
@@ -495,7 +551,7 @@ function updatev2_inject($tablename){
 	
 	
 	if($sum>0){
-		ufdbguard_admin_events("Success: to import $tablename with $sum domains",__FUNCTION__,__FILE__,__LINE__,"update");
+		ufdbguard_admin_memory("Success: to import $tablename with $sum domains",__FUNCTION__,__FILE__,__LINE__,"update");
 	}
 	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename`SUCCESS -> RETURN TRUE Line:". __LINE__."\n";}
 	return true;
@@ -774,3 +830,14 @@ function WriteMyLogs($text,$function,$file,$line){
 
 
 
+function ufdbguard_admin_memory($text,$function,$file,$line,$none){
+	if($GLOBALS["VERBOSE"]){echo "$function:: $text in line: $line\n";}
+	$GLOBALS["ufdbguard_admin_memory"][]="$function:: $text in line: $line";
+	
+}
+
+function ufdbguard_admin_compile(){
+	return @implode("\n", $GLOBALS["ufdbguard_admin_memory"]);
+	$GLOBALS["ufdbguard_admin_memory"]=array();
+}
+				

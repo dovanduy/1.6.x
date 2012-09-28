@@ -574,9 +574,8 @@ function view_table(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		
 		$title=base64_encode($ligne["template_title"]);
-		if($_GET["choose-acl"]<1){
-			$linkZoom="<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$Mypage?Zoom-js={$ligne['zmd5']}&subject=$title');\" style='font-size:12px;text-decoration:underline'>";
-		}
+		$linkZoom="<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$Mypage?Zoom-js={$ligne['zmd5']}&subject=$title');\" style='font-size:12px;text-decoration:underline'>";
+	
 		$cell=array();
 		$delete=imgsimple("delete-24.png",null,"TemplateDelete('{$ligne['zmd5']}')");
 		$cell[]="$span.$linkZoom{$ligne['lang']}</a></span>";

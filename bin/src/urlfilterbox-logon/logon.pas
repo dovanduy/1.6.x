@@ -21,6 +21,7 @@ private
      SYS:TSystem;
      artica_path:string;                      
      ldap:Topenldap;
+     function ParseResolvConf():string;
 public
     procedure   Free;
     constructor Create();
@@ -297,6 +298,7 @@ var
    l:Tstringlist;
    RegExpr:TRegExpr;
    AutorizePerform:boolean;
+   s:TstringList;
 begin
     AutorizePerform:=false;
     iptcp:=ttcpip.Create;
@@ -309,7 +311,7 @@ begin
     if(Gayteway='0.0.0.0') then Gayteway:='172.16.14.2';
     if length(NETMASK)=0 then NETMASK:='255.255.255.0';
     if length(Gayteway)=0 then Gayteway:='172.16.14.2';
-
+    DNS:=ParseResolvConf();
     fpsystem('clear');
     writeln('Network configurator v1.3');
     writeln('By default, the URL Filter Box server is set in DHCP Mode');
@@ -366,6 +368,11 @@ begin
         exit;
     end;
 
+    s:=Tstringlist.Create;
+    if length(DNS)>0 then  s.Add('nameserver '+DNS);
+    s.Add('nameserver 156.154.70.1');
+    s.Add('nameserver 8.8.4.4');
+
     writeln('Are you OK with these details (Y/N) :');
     writeln('IP address....: "'+IP+'"');
     writeln('Gayteway......: "'+Gayteway+'"');
@@ -413,6 +420,33 @@ exit;
 
 end;
 
+function tlogon.ParseResolvConf():string;
+var
+   IP:string;
+   Gateway:string;
+   DNS,answer:string;
+   NETMASK:string;
+   iptcp:ttcpip;
+   Gayteway:string;
+   perform:string;
+   l:Tstringlist;
+   RegExpr:TRegExpr;
+   AutorizePerform:boolean;
+   s:TstringList;
+   i:integer;
+begin
+     l:=Tstringlist.Create;
+     l.LoadFromFile('/etc/resolv.conf');
+     RegExpr:=TRegExpr.Create;
+     RegExpr.Expression:='^nameserver\s+(.*)';
+     for i:=0 to l.Count-1 do begin
+         if RegExpr.Exec(l.Strings[i]) then begin
+            result:=RegExpr.Match[1];
+            RegExpr.free;
+            l.free;
+         end;
+     end;
+end;
 
 
 

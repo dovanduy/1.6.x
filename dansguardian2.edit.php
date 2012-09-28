@@ -1563,7 +1563,7 @@ function groups_list(){
 				"<img src='img/$imgGP'>",
 				"<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:$jsSelect\" 
-				style='font-size:16px;text-decoration:underline'>{$ligne['groupname']}</span></a>$groupadd_text<div style='font-size:10px'>$textExplainGroup<i>{$ligne["description"]}</i>",
+				style='font-size:16px;text-decoration:underline'>{$ligne['groupname']}</span></a>$groupadd_text<div style='font-size:10px'>$textExplainGroup<i>&laquo;{$ligne["description"]}&raquo;</i>",
 				"<span style='font-size:16px;'>$CountDeMembers</span>",$delete
 				)
 		);		
@@ -1592,13 +1592,13 @@ function checksADGroup($groupname){
 	if(!$checked){
 		
 	
-		$html="<table>
+		$html=$tpl->_ENGINE_parse_body("<table style='border:0px'>
 		<tr>
-			<td width=1%><img src='img/warning-panneau-24.png'></td>
-			<td><strong style='font-size:12px'>{this_group_is_not_retranslated_to_the_system}</td>
+			<td width=1% style='border:0px;border-left:0px;border-bottom:0px;' valign='top'><img src='img/warning-panneau-24.png'></td>
+			<td style='border:0px;border-left:0px;border-bottom:0px;' valign='top'><strong style='font-size:12px'>{this_group_is_not_retranslated_to_the_system}</td>
 		</tr>
 		</table>
-		";
+		");
 	}else{
 		$html=$tpl->_ENGINE_parse_body(count($userinfo["members"])." {members}");
 	}
@@ -1624,7 +1624,7 @@ function groups_choose(){
 	
 	
 	$html="
-	<div style='margin-right:-10px;margin-left:-15px'>
+	<div style='margin-right:-10px;margin-left:-10px'>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 	</div>
 	
@@ -1635,7 +1635,7 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'icon', width :31, sortable : false, align: 'left'},
-		{display: '$group', name : 'groupname', width : 450, sortable : true, align: 'left'},
+		{display: '$group', name : 'groupname', width : 440, sortable : true, align: 'left'},
 		{display: '&nbsp;', name : 'icon', width :31, sortable : false, align: 'left'},
 		],
 	$buttons
@@ -1649,7 +1649,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 593,
+	width: 585,
 	height: 340,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -1743,7 +1743,9 @@ function groups_choose_search(){
 	$data['rows'] = array();
 	
 		
-	
+		$localldap[0]="{ldap_group}";
+		$localldap[1]="{virtual_group}";
+		$localldap[2]="{active_directory_group}";	
 
 	
 while ($ligne = mysql_fetch_assoc($results)) {
@@ -1753,13 +1755,13 @@ while ($ligne = mysql_fetch_assoc($results)) {
 		$add=imgsimple("arrow-right-24.png","{select} {group}","DansGuardianAddSavedGroup({$ligne["ID"]})");
 		$imgGP="win7groups-32.png";
 		if($ligne["localldap"]<2){$imgGP="group-32.png";}
-		
+		$typeexplain=$tpl->_ENGINE_parse_body($localldap[$ligne["localldap"]]);
 	
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
 			"<img src='img/$imgGP'>",
-			"<span style='font-size:16px'>{$ligne["groupname"]} {$ligne["localldap"]}</div>
+			"<span style='font-size:16px'>{$ligne["groupname"]}&nbsp;<span style='font-size:13px'>&laquo;$typeexplain&raquo;</span></div>
 			<div style='font-size:10px'><i>{$ligne["description"]}</i></div>",
 			$add
 			)

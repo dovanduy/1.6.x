@@ -13,6 +13,10 @@ Votre compte est pour l'instant inactif.[br]
 Vous devez cliquez sur le lien ci-dessous afin de l'activer.[br]
 %URL[br]
 Une fois cette requ&ecirc;te ex&eacute;cut&eacute;e sur le serveur Web, vous serez en mesure d'afficher votre espace personnel sur  %SERVERNAME.[br]</account_verification_text>
+<acl_squid_dst_explain>Requ&ecirc;tes vers des adresses IPv4 ou Ipv6.[br]
+Un r&eacute;seau complet comme 172.16.1.0 : &quot;172.16.1.0/24&quot;[br]
+Une adresse IP unique: &quot;172.16.1.25/32&quot; ou &quot;172.16.1.25&quot;[br]
+Une tranche d'adresses par exemple de la 172.16.1.25 &agrave; 172.16.1.35 : &quot;172.16.1.25-172.16.1.35/32&quot;</acl_squid_dst_explain>
 <acl_squid_remote_ports_explain>Ports de destinations.[br]Indiquez un entier qui repr&eacute;sente le num&eacute;ro du port ( 5896 ou 65244).[br]
 Vous pouvez aussi indiquer une tranche de port aussi. Exemple : 0-1024</acl_squid_remote_ports_explain>
 <action_exec_rule>Ex&eacute;cuter cette r&egrave;gle en t&acirc;che de fond ?</action_exec_rule>
@@ -341,6 +345,7 @@ Si vous utilisez cette application avec Artica, il est conseill&eacute; d'active
 <change_ldap_suffix>Modifier le suffixe LDAP</change_ldap_suffix>
 <change_netbios_name>Modifier le nom netbios</change_netbios_name>
 <change_root_password_text>Modifier le mot de passe root de cette application</change_root_password_text>
+<change_template>Modifier le mod&egrave;le</change_template>
 <change_timecode>Modifier le TimeCode original</change_timecode>
 <change_timecode_explain>Modifier la &quot;Date&quot; du message dans l'ent&ecirc;te juste avant de l'envoyer</change_timecode_explain>
 <check_acls>V&eacute;rifie les ACLS sur les dossiers.</check_acls>
@@ -558,6 +563,7 @@ Dans cette section, indiquez le domaine &agrave; ajouter &agrave; la machine vir
 <downloadz>T&eacute;l&eacute;charger</downloadz>
 <download_file>T&eacute;l&eacute;charger le fichier</download_file>
 <do_not_cache>N'enregistre pas dans le cache</do_not_cache>
+<dst>Adresse(s) IP de destination</dst>
 <duplicate_the_ruleid_give_name>Indiquez le nom de la nouvelle r&egrave;gle afin de dupliquer la r&egrave;gle source:</duplicate_the_ruleid_give_name>
 <dynamic_activedirectory_group>Groupe Active Directory dynamique</dynamic_activedirectory_group>
 <D_MODEL_ENC>ID mod&egrave;le</D_MODEL_ENC>
@@ -706,6 +712,10 @@ MaxMind effectue des tests de connexions, cela n'a pas de sens de r&eacute;duire
 <groups2>Groupes</groups2>
 <groupsF>Groupes</groupsF>
 <groups_for_rules>Groupes pour les r&egrave;gles</groups_for_rules>
+<group_explain_proxy_acls_type_0>Un groupe LDAP est destin&eacute; &agrave; stocker des membres depuis un serveur LDAP.[br]
+G&eacute;n&eacute;ralement ceux ajout&eacute;s dans le syst&egrave;me LDAP local du serveur.</group_explain_proxy_acls_type_0>
+<group_explain_proxy_acls_type_1>Un groupe virtuel est destin&eacute; &agrave; stocker des &eacute;l&eacute;ments de types diff&eacute;rents comme des adresses IP, masques de r&eacute;seaux, membres...</group_explain_proxy_acls_type_1>
+<group_explain_proxy_acls_type_2>Un groupe Active Directory est destin&eacute; &agrave; englober des membres depuis un serveur Microsoft Active Directory li&eacute; &agrave; ce serveur.</group_explain_proxy_acls_type_2>
 <havp_transparent_not_same_port>Le port source du mode transparent et le port d'&eacute;coute ne peuvent &ecirc;tre le m&ecirc;me</havp_transparent_not_same_port>
 <hdparmT>Tests des disques durs</hdparmT>
 <hdparm_explain>Cette t&acirc;che lance les tests de performances des disques durs.</hdparm_explain>
@@ -800,6 +810,7 @@ Beaucoup de soci&eacute;t&eacute;s ou utilisateurs individuels l'on adopt&eacute
 Voici les logiciels clients disponibles sous Windows (et/ou Linux) qui permettent d'&eacute;tablir des communication avec le serveur Jabber.</JABBER_SOFT_CLIENTS>
 <junk_mail_folder>Dossier Spam</junk_mail_folder>
 <junk_mail_folder_zexplain>D&eacute;placer automatiquement les messages dans le courrier ind&eacute;sirable en fonction de l'ent&ecirc;te des messages.</junk_mail_folder_zexplain>
+<KerbAuthDisableNsswitch>Ne pas int&eacute;grer l'AD dans le syst&egrave;me local</KerbAuthDisableNsswitch>
 <kernel.panic_on_oops>
 Enable kernel detection and handling of any process that causes a crashand calls the panic() function at the end.[br]
 The kernel.panic parameter must also be set to 1. Default is 1 (enable).
@@ -1041,6 +1052,7 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 <nonhierarchical_direct>Requ&ecirc;tes non-hi&eacute;rarchiques en direct</nonhierarchical_direct>
 <non_ntlm_domain>Domaine (sans NTLM)</non_ntlm_domain>
 <notcaching_websites>Les sites Internet qui ne seront pas mis en cache par le proxy</notcaching_websites>
+<notfor>pas pour</notfor>
 <noticeregisterform>En m'inscrivant j'accepte de recevoir des emails et newsletters de Artica Tech ou de ses partenaires.</noticeregisterform>
 <notify_all>Tout notifier</notify_all>
 <notify_when_cpu_exceed>Notifier lorsque la conso. CPU exc&egrave;de</notify_when_cpu_exceed>
@@ -1269,6 +1281,7 @@ Cette op&eacute;ration d&eacute;truira toutes les donn&eacute;es.</reset_smtp_lo
 <restore_sitename_ask>Restaurer ce site Internet</restore_sitename_ask>
 <retreival_mailrules_text>Cr&eacute;ation et &eacute;dition des r&egrave;gles permettant de r&eacute;cup&eacute;rer des messages stock&eacute;es dans des boites aux lettres non g&eacute;r&eacute;es par votre compte local.</retreival_mailrules_text>
 <retry>Recommencer</retry>
+<reverse>Inverse</reverse>
 <rewrite_rules>R&egrave;gles de r&eacute;&eacute;criture</rewrite_rules>
 <rewrite_rules_affect_explain>Activez les r&egrave;gles de r&eacute;&eacute;criture pr&eacute;-enregistr&eacute;es afin de le mettre en place dans cette r&egrave;gle principale</rewrite_rules_affect_explain>
 <rewrite_rules_fdb_explain>Les r&egrave;gles de r&eacute;&eacute;criture vous permettent de remplacer des mots ou des lettres dans les requ&ecirc;tes des utilisateurs.[br]
@@ -1517,6 +1530,7 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de savoir si elle &agrave; &ea
 <thishour>cette heure</thishour>
 <this_computer_already_exists>Cet ordinateur existe d&eacute;j&agrave;</this_computer_already_exists>
 <this_feature_require_210v_minimal>Cette fonctionnalit&eacute; requi&egrave;re la version 2.10 ou sup&eacute;rieur</this_feature_require_210v_minimal>
+<this_group_is_not_retranslated_to_the_system>Ce groupe n'est pas retraduit dans le syst&egrave;me local.</this_group_is_not_retranslated_to_the_system>
 <this_request_contains_no_data>Cette requ&ecirc;te contient aucune donn&eacute;e</this_request_contains_no_data>
 <threads>Threads</threads>
 <threads_created>Thread(s) cr&eacute;&eacute;(s)</threads_created>

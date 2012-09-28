@@ -410,7 +410,7 @@ function page(){
 var DeleteSquidAclGroupTemp=0;
 $(document).ready(function(){
 $('#table-$t').flexigrid({
-	url: '$page?acls-list=yes&t=$t',
+	url: '$page?acls-list=yes&t=$t&toexplainorg=table-$t',
 	dataType: 'json',
 	colModel : [
 		{display: '$rule', name : 'aclname', width : 249, sortable : true, align: 'left'},

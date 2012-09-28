@@ -23,16 +23,22 @@ if($argv[1]=="--build"){build();exit;}
 function build(){
 	$sock=new sockets();	
 	$EnableSambaActiveDirectory=$sock->GET_INFO("EnableSambaActiveDirectory");
+	$KerbAuthDisableNsswitch=$sock->GET_INFO("KerbAuthDisableNsswitch");
+	
 	if(!is_numeric($EnableSambaActiveDirectory)){$EnableSambaActiveDirectory=0;}
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}	
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	if(!is_numeric($KerbAuthDisableNsswitch)){$KerbAuthDisableNsswitch=0;}		
+	
+	
+	
 	$unix=new unix();
 	$winbindd=$unix->find_program("winbindd");
 	if(is_file($winbindd)){
 		if($EnableKerbAuth==1){$EnableSambaActiveDirectory=1;}
 	}
 	
-	
+	if($KerbAuthDisableNsswitch==1){$EnableSambaActiveDirectory=0;}
 	if($EnableSambaActiveDirectory==0){echo "Starting......: pam.d, ActiveDirectory is disabled\n";}else{echo "Starting......: pam.d, ActiveDirectory is Enabled\n";}
 		
 	$f[]="@include common-auth";

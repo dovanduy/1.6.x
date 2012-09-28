@@ -20,6 +20,7 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 if(isset($_GET["items-list"])){items_list();exit;}
 if(isset($_POST["acl-rule-link"])){items_link();exit;}
 if(isset($_POST["acl-rule-link-delete"])){items_unlink();exit;}
+if(isset($_POST["acl-rule-link-negation"])){items_negation();exit;}
 
 items_js();
 
@@ -64,6 +65,7 @@ function items_js(){
 	$items=$tpl->_ENGINE_parse_body("{items}");
 	$new_item=$tpl->_ENGINE_parse_body("{link_object}");
 	$new_group=$tpl->_ENGINE_parse_body("{new_proxy_object}");
+	$reverse=$tpl->_ENGINE_parse_body("{reverse}");
 	$t=$_GET["t"];
 	$html="
 	<table class='table-items-$t' style='display: none' id='table-items-$t' style='width:99%'></table>
@@ -74,7 +76,8 @@ $('#table-items-$t').flexigrid({
 	url: '$page?items-list=yes&ID=$ID&t=$t&aclid={$_GET["aclid"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$objects', name : 'gpid', width : 448, sortable : true, align: 'left'},
+		{display: '$objects', name : 'gpid', width : 415, sortable : true, align: 'left'},
+		{display: '$reverse', name : 'negation', width : 31, sortable : false, align: 'center'},
 		{display: '$items', name : 'items', width : 69, sortable : false, align: 'center'},
 		{display: '&nbsp;', name : 'del', width : 31, sortable : false, align: 'center'},
 		
@@ -129,6 +132,15 @@ function LinkAclRuleGpid{$_GET["aclid"]}(gpid){
 		XHR.sendAndLoad('$page', 'POST',x_DeleteObjectLinks);
 		  		
 	}
+	
+	function ChangeNegation(mkey){
+		var value=0;
+		var XHR = new XHRConnection();
+		if(document.getElementById('negation-'+mkey).checked){value=1;}
+		XHR.appendData('acl-rule-link-negation', mkey);
+		XHR.appendData('value', value);
+		XHR.sendAndLoad('$page', 'POST',x_LinkAclRuleGpid{$_GET["aclid"]});
+	}
 
 	var x_DeleteObjectLinks= function (obj) {
 		var res=obj.responseText;
@@ -142,6 +154,16 @@ function LinkAclRuleGpid{$_GET["aclid"]}(gpid){
 	
 	echo $html;
 	
+}
+
+function items_negation(){
+	$md5=$_POST["acl-rule-link-negation"];
+	$sql="UPDATE webfilters_sqacllinks SET negation={$_POST["value"]} WHERE zmd5='$md5'";
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$sock=new sockets();	
+	$sock->getFrameWork("squid.php?build-smooth=yes");		
 }
 
 function items_unlink(){
@@ -175,9 +197,10 @@ function items_list(){
 	$q=new mysql_squid_builder();
 	$ID=$_GET["aclid"];
 	$acl=new squid_acls();
+	$t0=$_GET["t"];
 	
 	$search='%';
-	$table="(SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.zmd5 as mkey,
+	$table="(SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,webfilters_sqacllinks.zmd5 as mkey,
 	webfilters_sqgroups.* FROM webfilters_sqacllinks,webfilters_sqgroups 
 	WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID AND webfilters_sqacllinks.aclid=$ID) as t";
 	
@@ -235,20 +258,20 @@ function items_list(){
 		$GroupTypeName=$tpl->_ENGINE_parse_body($q->acl_GroupType[$GroupType]);
 		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}'"));
 		$items=$ligne2["tcount"];
-		if($GroupType=="proxy_auth_ads"){
-			$items="-";
-		}
+		if($GroupType=="proxy_auth_ads"){$items="-";}
 		
 $href="<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID={$ligne['ID']}');\" 
+		OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID={$ligne['ID']}&table-org=table-items-$t0');\" 
 		style='font-size:14px;ont-weight:bold;text-decoration:underline'>";	
 		
 		$delete=imgsimple("delete-24.png",null,"DeleteObjectLinks('$mkey')");
+		$negation=Field_checkbox("negation-$mkey", 1,$ligne["negation"],"ChangeNegation('$mkey')");
+		
 		
 	$data['rows'][] = array(
 		'id' => "$mkey",
 		'cell' => array("$href$GroupName </a><span style='font-size:12px'>&nbsp;($GroupTypeName)</span>$additional_text",
-		"<span style='font-size:14px;font-weight:bold'>$items</span>",
+		$negation,"<span style='font-size:14px;font-weight:bold'>$items</span>",
 		$delete)
 		);
 	}

@@ -23,6 +23,7 @@
 	if(isset($_GET["field-list"])){field_list();exit;}
 	if(isset($_GET["query"])){query();exit;}
 	if(isset($_POST["DeleteCategorizedWebsite"])){DeleteCategorizedWebsite();exit;}
+	if(isset($_POST["ReallyDeleteCategorizedWebsite"])){DeleteCategorizedWebsiteReally();exit;}
 	if(isset($_GET["move-category-popup"])){MoveCategory_popup();exit;}
 	if(isset($_POST["MoveCategorizedWebsite"])){MoveCategorizedWebsite();exit;}
 	if(isset($_POST["MoveCategorizedWebsitePattern"])){MoveCategorizedWebsiteAll();exit;}
@@ -68,7 +69,8 @@ function tabs(){
 	
 	if($_GET["category"]<>null){
 		unset($array["list"]);
-		
+		unset($array["status"]);
+		unset($array["size"]);
 	}
 	
 
@@ -235,6 +237,13 @@ $searchitem
 		$('#$t').flexReload();
 	}		
 	
+	function ReallyDeleteCategorizedWebsite(zmd5,table){
+		MEMMD=zmd5;
+		var XHR = new XHRConnection();
+		XHR.appendData('ReallyDeleteCategorizedWebsite',zmd5);
+		XHR.appendData('TABLE',table);
+		XHR.sendAndLoad('$page', 'POST',x_DeleteCategorizedWebsite);	
+	}	
 	
 	function DeleteCategorizedWebsite(zmd5,table){
 		MEMMD=zmd5;
@@ -275,7 +284,7 @@ function query(){
 	$page=1;
 	$COUNT_ROWS=$q->COUNT_ROWS($table);
 	
-	if($COUNT_ROWS==0){json_error_show("category:$category ,Table: $table, $nowebsites");}
+	if($COUNT_ROWS==0){json_error_show("category:$category ,Table: $table, $nowebsites",1);}
 	
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
@@ -304,7 +313,7 @@ function query(){
 		}
 		
 		
-		$sql="SELECT COUNT(zmd5) as TCOUNT FROM `$table` WHERE enabled=1 $searchstring";
+		$sql="SELECT COUNT(zmd5) as TCOUNT FROM `$table` WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$total = $ligne["TCOUNT"];
 		
@@ -319,17 +328,17 @@ function query(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT zDate,zmd5,pattern  FROM `$table` WHERE enabled=1 $searchstring $ORDER $limitSql";	
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	$sql="SELECT zDate,zmd5,pattern  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
 	$results = $q->QUERY_SQL($sql);
-	
-	
+	if(!$q->ok){json_error_show($q->mysql_error,1);}
+	if(mysql_num_rows($results)==0){json_error_show("$nowebsites",1);}
+	$disabled_text=$tpl->_ENGINE_parse_body("{disabled}");
 	
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
-	if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
+	
 	if($orgQuery<>null){$moveAll=imgtootltip("arrow-multiple-right-24.png","{move}","MoveAllCategorizedWebsite2('$category','$table','$orgQuery')");}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -348,17 +357,25 @@ function query(){
 			$added="<div><i style='font-size:11px'>$also: ".@implode(", ", $tt)."</i></div>";
 		}
 		
-		
+		$enabled=$ligne["enabled"];
+		$color="color:black";
+		if($enabled==0){
+			$color="color:#B6ACAC";
+			$added=$added."<div><i style='font-size:11px'>$disabled_text</i></div>";
+			$moveAll="&nbsp;";
+			$move="&nbsp;";
+			$delete=imgtootltip("delete-24.png","{delete}","ReallyDeleteCategorizedWebsite('{$ligne["zmd5"]}','$table')");
+		}
 		
 $jscat="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('squid.categorize.php?www={$ligne["pattern"]}');\"
-		style='font-size:14px;text-decoration:underline'>";		
+		style='font-size:14px;text-decoration:underline;$color'>";		
 		
 	$data['rows'][] = array(
 		'id' => $ligne['zmd5'],
 		'cell' => array("
-		<span style='font-size:14px'>{$ligne['zDate']}</span>",
-		"<span style='font-size:14px'>$jscat{$ligne['pattern']}</a></span>$added",$moveAll,
+		<span style='font-size:14px;$color'>{$ligne['zDate']}</span>",
+		"<span style='font-size:14px;$color'>$jscat{$ligne['pattern']}</a></span>$added",$moveAll,
 		$move,$delete)
 		);
 	}
@@ -586,6 +603,12 @@ function DeleteCategorizedWebsite(){
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?export-deleted-categories=yes");
+}
+function DeleteCategorizedWebsiteReally(){
+	$q=new mysql_squid_builder();
+	$md5=$_POST["ReallyDeleteCategorizedWebsite"];
+	$table=$_POST["TABLE"];
+	$q->QUERY_SQL("DELETE FROM $table WHERE zmd5='$md5'");
 }
 
 function MoveCategorizedWebsite($md5=null,$nextCategory=null,$table=null){
