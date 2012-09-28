@@ -1,1 +1,0 @@
-../setup-ubuntu/setup_suse_class.pas

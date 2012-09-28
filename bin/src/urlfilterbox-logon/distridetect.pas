@@ -1,1 +1,0 @@
-../setup-ubuntu/distridetect.pas

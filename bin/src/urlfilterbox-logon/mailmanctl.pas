@@ -1,1 +1,0 @@
-../artica-install/mailmanctl.pas

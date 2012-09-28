@@ -1,1 +1,0 @@
-../setup-ubuntu/setup_collectd.pas

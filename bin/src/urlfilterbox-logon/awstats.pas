@@ -1,1 +1,0 @@
-../artica-install/awstats.pas

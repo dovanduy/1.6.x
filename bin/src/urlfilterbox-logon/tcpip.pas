@@ -1,1 +1,0 @@
-../artica-install/tcpip.pas
