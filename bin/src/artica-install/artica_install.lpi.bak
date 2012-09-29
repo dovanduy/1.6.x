@@ -87,8 +87,8 @@
       <Unit5>
         <Filename Value="samba.pas"/>
         <UnitName Value="samba"/>
-        <CursorPos X="25" Y="253"/>
-        <TopLine Value="218"/>
+        <CursorPos X="18" Y="253"/>
+        <TopLine Value="246"/>
         <EditorIndex Value="3"/>
         <UsageCount Value="114"/>
         <Loaded Value="True"/>

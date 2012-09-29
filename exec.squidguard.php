@@ -2026,6 +2026,7 @@ function ufdbguard_recompile_missing_dbs(){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
 	if($EnableRemoteStatisticsAppliance==1){return;}	
 	$unix=new unix();
+	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
 	$touch=$unix->find_program("touch");
 	@mkdir("/var/lib/squidguard",755,true);
 	$q=new mysql_squid_builder();
@@ -2041,13 +2042,13 @@ function ufdbguard_recompile_missing_dbs(){
 			@mkdir("/var/lib/squidguard/$categoryname",755,true);
 			$sql="SELECT LOWER(pattern) FROM {$ligne["c"]} WHERE enabled=1 AND pattern REGEXP '[a-zA-Z0-9\_\-]+\.[a-zA-Z0-9\_\-]+' ORDER BY pattern INTO OUTFILE '$table.temp' FIELDS OPTIONALLY ENCLOSED BY 'n'";
 			$q->QUERY_SQL($sql);
-			if(!is_file("/var/lib/mysql/squidlogs/$table.temp")){
-				echo "Starting......: ufdbGuard /var/lib/mysql/squidlogs/$table.temp no such file\n";
+			if(!is_file("$MYSQL_DATA_DIR/squidlogs/$table.temp")){
+				echo "Starting......: ufdbGuard $MYSQL_DATA_DIR/squidlogs/$table.temp no such file\n";
 				continue;
 			}
-			echo "Starting......: ufdbGuard /var/lib/mysql/squidlogs/$table.temp done...\n";
-			@copy("/var/lib/mysql/squidlogs/$table.temp", "/var/lib/squidguard/$categoryname/domains");	
-			@unlink("/var/lib/mysql/squidlogs/$table.temp");
+			echo "Starting......: ufdbGuard $MYSQL_DATA_DIR/squidlogs/$table.temp done...\n";
+			@copy("$MYSQL_DATA_DIR/squidlogs/$table.temp", "/var/lib/squidguard/$categoryname/domains");	
+			@unlink("$MYSQL_DATA_DIR/squidlogs/$table.temp");
 			echo "Starting......: ufdbGuard UFDBGUARD_COMPILE_SINGLE_DB(/var/lib/squidguard/$categoryname/domains)\n";
 			UFDBGUARD_COMPILE_SINGLE_DB("/var/lib/squidguard/$categoryname/domains");					
 		}else{

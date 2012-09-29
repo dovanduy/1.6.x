@@ -1334,15 +1334,35 @@ function transparent_popup(){
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	
+	if($squid->hasProxyTransparent==1){
+		$seeiptables="
+		<tr>
+		<td colspan=2>
+		<table>
+		<tr>
+			<td width=1%><img src='img/arrow-right-16.png'></td>
+			<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.transparent.iptables.php');\"
+			style='font-size:14px;text-decoration:underline'>{display_fw_rules}</a>
+			</td>
+		</tr>
+		</table>
+		</td>
+		</tr>
+		";
+		
+	}
+	
 	$field=Paragraphe_switch_img('{transparent_mode}','{transparent_mode_text}','squid_transparent',$squid->hasProxyTransparent,null,350);
 	$html="
 	
 	<div id='squid_transparentdiv'>
-		<div style='float:right'>". help_icon("{transparent_mode_limitations}")."</div><div class=explain>{transparent_mode_explain}</div>
+		<div style='float:right'>". help_icon("{transparent_mode_limitations}")."</div>
+			<div class=explain style='font-size:14px'>{transparent_mode_explain}</div>
 		<table style='width:99%' class=form>
 			<tr>
 				<td colspan=2>$field</td>
 			</tr>
+			$seeiptables
 			<tr>
 				<td class=legend style='font-size:14px'>{use_tproxy_mode}:</td>
 				<td>". Field_checkbox("UseTProxyMode", 1,$UseTProxyMode)."</td>

@@ -141,6 +141,16 @@ if($argv[1]=="--build"){
 				die();
 			}
 		}
+		
+		if($EnableRemoteStatisticsAppliance==1){
+			$r=new squid_stats_appliance();
+			echo "Starting......: ################################\n";
+			echo "Starting......: # This server is connected to: #\n";
+			echo "Starting......: # $r->URI #\n";
+			echo "Starting......: ################################\n";
+			remote_appliance_restore_tables();
+		}
+		
 		squid_reconfigure_build_tool();
 		$childpid=posix_getpid();
 		$sock=new sockets();
@@ -167,7 +177,7 @@ if($argv[1]=="--build"){
 		echo "Starting......: Config: $SQUID_CONFIG_PATH\n";
 		echo "Starting......: User..: $squid_user\n";
 		echo "Starting......: Checking blocked sites\n";
-		shell_exec("$NOHUP $PHP ".basename(__FILE__)."/exec.squid.netads.php");
+		shell_exec("$NOHUP $PHP ".basename(__FILE__)."/exec.squid.netads.php >/dev/null 2>&1 &");
 		$squid->BuildBlockedSites();
 		echo "Starting......: Checking FTP ACLs\n";
 		acl_clients_ftp();
@@ -184,7 +194,7 @@ if($argv[1]=="--build"){
 		errors_details_txt();
 		BuildCaches(true);
 		CheckFilesAndSecurity();
-		build_schedules();
+		build_schedules(true);
 		echo "Starting......: Reloading proxy service...\n";
 		Reload_Squid();
 		$BuildAllTemplatesDone=$sock->GET_INFO("BuildAllTemplatesDone");
@@ -225,8 +235,10 @@ function remote_appliance_restore_tables(){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	if($EnableRemoteStatisticsAppliance==0){$GLOBALS[__FUNCTION__."_EXECUTED"]=true;return;}
 	$s=new squid_stats_appliance();
+	echo "Starting......: Replicate settings from the remote appliance...\n";
 	$s->REPLICATE_ETC_ARTICA_CONFS();
-	$s->Replicate();	
+	$s->Replicate();
+	echo "Starting......: Replicate all settings from the remote appliance done...\n";	
 	$GLOBALS[__FUNCTION__."_EXECUTED"]=true;
 }
 
@@ -246,6 +258,7 @@ function CheckFilesAndSecurity(){
 			exec("{$GLOBALS["SQUIDBIN"]} -z 2>&1",$results);
 	}
 	@mkdir("/var/lib/squid/session",0755,true);
+	@mkdir("/var/lib/ssl_db",0755,true);
 	if(!is_dir("/var/run/squid")){@mkdir("/var/run/squid",0755,true);}
 	@mkdir("/var/log/squid/squid",0755,true);
 	if(!is_file("/var/logs/cache.log")){@file_put_contents("/var/logs/cache.log", "\n");}
@@ -256,6 +269,7 @@ function CheckFilesAndSecurity(){
 	$unix->chown_func($squid_user, $squid_user,"/var/run/squid");
 	$unix->chown_func($squid_user, $squid_user,"/var/log/squid/*");
 	$unix->chown_func($squid_user, $squid_user,"/var/logs");
+	$unix->chown_func($squid_user, $squid_user,"/var/lib/ssl_db");
 	$unix->chown_func($squid_user, $squid_user,"/var/logs/cache.log");
 	
 	
@@ -269,6 +283,7 @@ function CheckFilesAndSecurity(){
 	if(!is_file("/etc/squid3/squid-block.acl")){@file_put_contents("/etc/squid3/squid-block.acl","");}
 	if(!is_file("/etc/squid3/clients_ftp.acl")){@file_put_contents("/etc/squid3/clients_ftp.acl","");}
 	if(!is_file("/etc/squid3/allowed-user-agents.acl")){@file_put_contents("/etc/squid3/allowed-user-agents.acl","");}	
+	
 	if(is_file("/var/lib/samba/winbindd_privileged")){
 		$setfacl=$unix->find_program("setfacl");
 		if(is_file($setfacl)){shell_exec("$setfacl -m u:squid:rx /var/lib/samba/winbindd_privileged >/dev/null 2>&1");}
@@ -283,9 +298,10 @@ function CheckFilesAndSecurity(){
 	}
 	
 	$ssl_crtd=locate_ssl_crtd();
-	if(!is_file("/var/lib/ssl_db/certs")){
+	if(!is_file("/var/lib/ssl_db/index.txt")){
 		if(is_file($ssl_crtd)){
 			shell_exec("$ssl_crtd -c -s /var/lib/ssl_db");
+			$unix->chown_func($squid_user, $squid_user,"/var/lib/ssl_db/*");
 		}else{
 			echo "Starting......: unable to stat ssl_crtd to fill `/var/lib/ssl_db`\n";	
 		}
@@ -378,6 +394,8 @@ function Reload_Squid(){
 		$GLOBALS["SQUIDBIN"]=$unix->find_program("squid");
 		if(!is_file($GLOBALS["SQUIDBIN"])){$GLOBALS["SQUIDBIN"]=$unix->find_program("squid3");}
 	}
+	
+	shell_exec("$php5 ". dirname(__FILE__)."/exec.squid.transparent.php");
 
 	$pid=$unix->get_pid_from_file("/var/run/squid.pid");
 	if(!$unix->process_exists($pid)){
@@ -1817,7 +1835,7 @@ function rotate_logs(){
 	$sock->TOP_NOTIFY("{proxy_logrotate_done}$addedtext {took} $took","info");
 }
 
-function build_schedules(){
+function build_schedules($notfcron=false){
 	$unix=new unix();
 	$q=new mysql_squid_builder();
 	$sock=new sockets();
@@ -1829,6 +1847,9 @@ function build_schedules(){
 		writelogs("Already executed pid $oldpid",__FILE__,__FUNCTION__,__LINE__);
 		return;
 	}
+	
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
 	
 	@file_put_contents($pidfile, getmypid());
 	
@@ -1877,21 +1898,22 @@ function build_schedules(){
 	@unlink("/etc/artica-postfix/squid.schedules");
 	$nice=EXEC_NICE();
 	$q=new mysql_squid_builder();
-	
+	$c=0;$d=0;
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$allminutes="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59";
 		$TaskType=$ligne["TaskType"];
 		$TimeText=$ligne["TimeText"];
 		if($TaskType==0){continue;}
 		if($ligne["TimeText"]==null){continue;}
+		if($EnableRemoteStatisticsAppliance==1){if($q->tasks_remote_appliance[$TaskType]){$d++;continue;}}
 		
 		$md5=md5("$TimeText$TaskType");
 		if(isset($alreadydone[$md5])){if($GLOBALS["VERBOSE"]){echo "Starting......: artica-postfix watchdog task {$ligne["ID"]} already set\n";}continue;}
 		$alreadydone[$md5]=true;		
 		
 		
-		if(!isset($q->tasks_processes[$TaskType])){continue;}
-		if(isset($q->tasks_disabled[$TaskType])){continue;}
+		if(!isset($q->tasks_processes[$TaskType])){$d++;continue;}
+		if(isset($q->tasks_disabled[$TaskType])){$d++;continue;}
 		$script=$q->tasks_processes[$TaskType];
 		
 		if(trim($ligne["TimeText"]=="$allminutes * * * *")){$ligne["TimeText"]="* * * * *";}
@@ -1902,6 +1924,7 @@ function build_schedules(){
 		$f[]="";
 		
 		@file_put_contents("/etc/cron.d/squidsch-{$ligne["ID"]}", @implode("\n", $f));
+		$c++;
 		continue;
 		
 		
@@ -1941,6 +1964,11 @@ function build_schedules(){
 	}
 	
 	@file_put_contents("/etc/artica-postfix/squid.schedules",implode("\n",$f));
+	if($notfcron){
+		echo "Starting......: Squid $c scheduled tasks ($d disabled)\n";
+		return;
+	}
+	
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$nohup /etc/init.d/artica-postfix restart fcron >/dev/null 2>&1 &");
 	

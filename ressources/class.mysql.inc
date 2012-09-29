@@ -10,6 +10,7 @@ class mysql{
 	var $mysql_password;
 	var $mysql_port;
 	var $mysql_error;
+	var $mysql_errornum=0;
 	var $hostname;
 	var $ok=false;
 	var $CurrentPageName;
@@ -568,7 +569,8 @@ function writelogs($text=null,$function=null,$line=0){
 			$ok=@mysql_select_db($database);
 	    	if (!$ok){
 	    		$errnum=@mysql_errno($this->mysql_connection);
-	    		$des=@mysql_error();
+	    		$des=@mysql_error($this->mysql_connection);
+	    		$this->mysql_errornum=$errnum;
 	    		$this->mysql_error=$des;
 	    		$time=date('h:i:s');
 	    		
@@ -585,8 +587,8 @@ function writelogs($text=null,$function=null,$line=0){
 					$des=" please retry again...\n".$des;
 				}						
 	    		if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
-	    		$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error Number ($errnum) ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin:$MYSQLpassword ($called)",__CLASS__.'/'.__FUNCTION__,__LINE__);
-	    		$this->mysql_error="QUERY_SQL:: mysql_select_db:: Error  ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin:" .strlen($MYSQLpassword)." password length line:".__LINE__;
+	    		$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error Number ($errnum) ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin ($called)",__CLASS__.'/'.__FUNCTION__,__LINE__);
+	    		$this->mysql_error="QUERY_SQL:: mysql_select_db:: Error  ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin line:".__LINE__;
 	    		
 	    		$this->ok=false;
 	    		return null;

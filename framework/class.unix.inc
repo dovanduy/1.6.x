@@ -801,6 +801,14 @@ function PROCESS_TTL_TEXT($pid){
     		
     	}
    }
+   
+   
+   FUNCTION MYSQL_DATA_DIR(){
+   		$sock=new sockets();
+   		$ChangeMysqlDir=$sock->GET_INFO("ChangeMysqlDir");
+		if($ChangeMysqlDir==null){$ChangeMysqlDir="/var/lib/mysql";}
+   		return $ChangeMysqlDir;
+   }
 
 
 function PROCESS_TTL($pid){
@@ -4186,10 +4194,7 @@ function DirFiles($path,$regexsearch=null){
 	} 
 	
 	public function MYSQL_DATADIR(){
-		$cnf=$this->MYSQL_MYCNF_PATH();
-		$ini=new iniFrameWork($cnf);
-		$return=$ini->get("mysqld","datadir");
-		if(trim($return==null)){return "/var/lib/mysql";}
+		return $this->MYSQL_DATA_DIR();
 
 	} 	
 	

@@ -379,6 +379,7 @@ function search(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
+	$sock=new sockets();
 	$search='%';
 	$table="webfilters_schedules";
 	$page=1;
@@ -386,6 +387,9 @@ function search(){
 	$sock=new sockets();
 	$DisableSquidDefaultSchedule=$sock->GET_INFO("DisableSquidDefaultSchedule");
 	if(!is_numeric($DisableSquidDefaultSchedule)){$DisableSquidDefaultSchedule=0;}	
+	
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	
 	$total=0;
 	if($q->COUNT_ROWS($table,"artica_events")==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
@@ -459,6 +463,13 @@ function search(){
 		
 		if($TaskType==21){$color="#A0A0A0";}
 		if($q->tasks_disabled[$TaskType]){$color="#A0A0A0";$enable="&nbsp;";}
+		if($EnableRemoteStatisticsAppliance==1){
+			if($q->tasks_remote_appliance[$TaskType]){
+				$color="#A0A0A0";$enable="&nbsp;";
+			}
+		}
+		
+		
 		
 		$span="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?AddNewSchedule-js=yes&ID={$ligne['ID']}');\"
 		 style='font-size:16px;font-weight:bold;color:$color;text-decoration:underline'>";

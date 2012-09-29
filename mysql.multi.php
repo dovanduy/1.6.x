@@ -332,7 +332,7 @@ function mysql_instance_params(){
 	
 	$GetLastInstanceNum=GetLastInstanceNum()+1;
 	if(!is_numeric($ligne["listen_port"])){$ligne["listen_port"]=GetLastPort()+1;}
-	if($ligne["Dir"]==null){$ligne["Dir"]="/var/lib/mysql-$GetLastInstanceNum";}
+	if($ligne["Dir"]==null){$ligne["Dir"]="$MYSQL_DATA_DIR-$GetLastInstanceNum";}
 	
 	$nets=Field_array_Hash($ips,"$t-addr",$ligne["listen_addr"],"style:font-size:14px;padding:3px");
 	$html="

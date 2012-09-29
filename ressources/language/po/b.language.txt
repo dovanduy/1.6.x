@@ -618,6 +618,7 @@ Do you want to carry out this operation ?
 <display_config>Display configuration</display_config>
 <display_config_text>Display this item Artica builed configuration file</display_config_text>
 <display_current_sessions>Display current active sessions</display_current_sessions>
+<display_fw_rules>Display FireWall rules</display_fw_rules>
 <display_indexation_events>Display indexation events</display_indexation_events>
 <dnsbl_service>DNSBL service</dnsbl_service>
 <dnsmasq_bulk_import_explain>This feature allows you to import items.[br]
@@ -730,6 +731,8 @@ According your privileges your will be able to personnalize enabled services beh
 <error_instances_same_port>Error instances cannot share the same IP/Port</error_instances_same_port>
 <ERROR_IPSET_NOT_INSTALLED>Error ipset tool is not installed</ERROR_IPSET_NOT_INSTALLED>
 <error_missing_data_in_mysql>Error, missing data in MySQL database</error_missing_data_in_mysql>
+<error_missing_tables_click_to_repair>Error, there is some missing tables on the database.[br]
+Click on the "repair" button in order to create these tables</error_missing_tables_click_to_repair>
 <error_no_member_set>Error, no member defined</error_no_member_set>
 <error_no_ou_created>Error no organization created or found</error_no_ou_created>
 <error_only_imap_supported>Cannot display this feature, only IMAP protocol is supported.</error_only_imap_supported>
@@ -1642,6 +1645,7 @@ If websites are not categorized, they will be added in the table and you are abl
 <squid_week_stats>Week statistics generation</squid_week_stats>
 <squid_week_stats_explain>This task will build week statistics tables for both blocked/visited sections</squid_week_stats_explain>
 <srvtimeout>Remote server send data timeout</srvtimeout>
+<sslbum_wl_not_supported_transp>Notice: This feature did not support in transparent mode.</sslbum_wl_not_supported_transp>
 <ssl_certificates_center_text>The certificate center allows you to generate SSL certificate for services that provide SSL features such as Web servers, mail servers...
 </ssl_certificates_center_text>
 <ssl_fingerprint_importerror>Cannot import SSL fingerprint of a non-ssl rule.
@@ -2018,6 +2022,7 @@ eg: http://10.10.10.2/proxy.pac
 </wpad_label_text>
 <wpad_title>Automatic Proxy</wpad_title>
 <wrong_password>Wrong password</wrong_password>
+<wrong_value>wrong value</wrong_value>
 <www_abortion>websites about arguments in favor of or against abortion, describe abortion procedures,
 offer help in obtaining or avoiding abortion.</www_abortion>
 <www_alcohol>Sites that provide information on, promote, or support the sale of alcoholic beverages and associated paraphernalia</www_alcohol>

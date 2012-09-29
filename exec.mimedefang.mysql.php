@@ -42,10 +42,11 @@ function start(){
 function inject_extracted_attach($filepath){
 	if($GLOBALS["VERBOSE"]){echo "Injecting $filepath\n";}
 	$unix=new unix();
-	if(!is_dir("/var/lib/mysql")){@mkdir("/var/lib/mysql",0755,true);@chown("/var/lib/mysql","mysql");@chgrp("/var/lib/mysql","mysql");}
+	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
+	if(!is_dir($MYSQL_DATA_DIR)){@mkdir($MYSQL_DATA_DIR,0755,true);@chown($MYSQL_DATA_DIR,"mysql");@chgrp($MYSQL_DATA_DIR,"mysql");}
 		
 	$basename=basename($filepath);
-	$tempfile="/var/lib/mysql/$basename";
+	$tempfile="$MYSQL_DATA_DIR/$basename";
 	$last_modified = filemtime($filepath);
 	$filetime=date("Y-m-d H:i:s",$last_modified);
 	$filesize=$unix->file_size($filepath);

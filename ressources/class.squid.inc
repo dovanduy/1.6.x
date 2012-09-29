@@ -1986,11 +1986,22 @@ function SaveToLdap($norestart=false){
 		$sock=new sockets();
 		$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
 		
+		if(!isset($datas["UseRemoteUfdbguardService"])){$datas["UseRemoteUfdbguardService"]=0;}
+		if(!isset($datas["remote_port"])){$datas["remote_port"]=3977;}
+		if(!isset($datas["remote_server"])){$datas["remote_server"]=null;}
+		if(!isset($datas["listen_addr"])){$datas["listen_addr"]="127.0.0.1";}
+		if(!isset($datas["listen_port"])){$datas["listen_port"]="3977";}
+		if(!isset($datas["tcpsockets"])){$datas["tcpsockets"]=1;}		
+		
 		if($this->EnableRemoteStatisticsAppliance==1){
+			if($this->ASROOT){
+				echo "Starting......: [UFDB]: Using remote appliance {$RemoteStatisticsApplianceSettings["SERVER"]}:{$datas["listen_port"]} as Web filtering engine\n";
+			}
 			$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
 			$datas["remote_server"]=$RemoteStatisticsApplianceSettings["SERVER"];
+			$datas["UseRemoteUfdbguardService"]=1;
+			$datas["remote_port"]=$datas["listen_port"];
 		}		
-		
 		
 		$binary=$users->ufdbgclient_path;
 		$log="-l /var/log/squid";
@@ -2000,12 +2011,7 @@ function SaveToLdap($norestart=false){
 		$minor=$unix->UFDBGUARDD_MINOR();
 		
 		
-		if(!isset($datas["UseRemoteUfdbguardService"])){$datas["UseRemoteUfdbguardService"]=0;}
-		if(!isset($datas["remote_port"])){$datas["remote_port"]=3977;}
-		if(!isset($datas["remote_server"])){$datas["remote_server"]=null;}
-		if(!isset($datas["listen_addr"])){$datas["listen_addr"]="127.0.0.1";}
-		if(!isset($datas["listen_port"])){$datas["listen_port"]="3977";}
-		if(!isset($datas["tcpsockets"])){$datas["tcpsockets"]=1;}
+
 		
 		
 		if(!is_numeric($datas["listen_port"])){$datas["listen_port"]="3977";}
@@ -2838,10 +2844,10 @@ function BuildSquidConf(){
 		
 		$conf=$conf."#http/https ports\n";
 		$conf=$conf."http_port $SquidBinIpaddr$listen_port$transparent$http_port_sslbump\n";
-		if($second_port_transparent<>null){$conf=$conf."$second_port_transparent\n";}
+		if($second_port_transparent<>null){$conf=$conf."$second_port_transparent$http_port_sslbump\n";}
 		
 		if($this->second_listen_port>0){
-			$conf=$conf."http_port $SquidBinIpaddr$this->second_listen_port\n";
+			$conf=$conf."http_port $SquidBinIpaddr$this->second_listen_port$http_port_sslbump\n";
 		}
 		
 		
@@ -3484,7 +3490,6 @@ function BuildSquidConf(){
 			
 			if($this->SSL_BUMP==null){return null;}
 			if($this->SSL_BUMP==0){return null;}
-			if($this->hasProxyTransparent==1){return null;}
 			writelogs("SQUID INTVAL: $this->intvalVersion",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			
 			if($this->IS_32){
@@ -3547,7 +3552,7 @@ function BuildSquidConf(){
 		private function ssl_bump_access(){
 			if($this->SSL_BUMP==0){return null;}
 			if($this->IS_27){return null;}
-			
+			if(!$this->ASROOT){return;}
 			if($this->SSL_BUMP_WHITE_LIST==1){
 				$array[]="ssl_bump deny all";
 				$array[]="always_direct allow all";
@@ -3568,17 +3573,20 @@ function BuildSquidConf(){
 					$www_tbl=explode(".",$ligne["website_name"]);
 					if(count($www_tbl)>2){
 						unset($www_tbl[0]);
-						$www=".".@implode(".",$www_tbl);
+						$www_table[]=".".@implode(".",$www_tbl);
 					}else{
-						$www=".".$www;
+						$www_table[]=".".$www;
 					}
 					if(isset($ALREADY[$www])){continue;}
-					$array[]="acl no_ssl_bump dstdomain {$www}";
+					
 					$ALREADY[$www]=true;
 				}
 			}
 			
-			if($c>0){
+			if(count($www_table)>0){
+				@file_put_contents("/etc/squid3/no_ssl_bump", @implode("\n", $www_table));
+				if($this->ASROOT){echo "Starting......: SSLBUMP:: no bump for ". count($www_table)." domains\n";}
+				$array[]="acl no_ssl_bump dstdomain \"/etc/squid3/no_ssl_bump\"";
 				$array[]="ssl_bump deny no_ssl_bump";
 				
 			}

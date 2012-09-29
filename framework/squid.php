@@ -84,7 +84,7 @@ if(isset($_GET["enable-http-violations-enabled"])){enable_http_violations_enable
 if(isset($_GET["update-ufdb-precompiled"])){update_ufdb_precompiled();exit;}
 if(isset($_GET["squid-sessions"])){squidclient_sessions();exit;}
 if(isset($_GET["notify-remote-proxy"])){notify_remote_proxy();exit;}
-
+if(isset($_GET["fw-rules"])){fw_rules();exit;}
  
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
@@ -1155,3 +1155,11 @@ function squid_iptables(){
 }
 
 
+function fw_rules(){
+	$unix=new unix();
+	$iptables_save=$unix->find_program("iptables-save");
+	$grep=$unix->find_program("grep");
+	exec("$iptables_save|grep ArticaSquidTransparent 2>&1",$results);
+	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";
+	
+}

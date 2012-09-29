@@ -83,14 +83,22 @@ if(is_dir("/usr/share/poweradmin/install")){shell_exec("/bin/rm -rf /usr/share/p
 
 }
 
-function rebuild_database(){
+function rebuild_database($nollop=false){
+	$unix=new unix();
+	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
+	echo "Starting......: PowerDNS destroy database and recreate it\n";
 	$q=new mysql();
 	$q->DELETE_DATABASE("powerdns");
-	checkMysql();
+	$rm=$unix->find_program("rm");
+	if(is_dir("$MYSQL_DATA_DIR/powerdns")){
+		echo "Starting......: PowerDNS removing $MYSQL_DATA_DIR/powerdns\n";
+		shell_exec("$rm -rf $MYSQL_DATA_DIR/powerdns");
+	}
+	checkMysql($nollop);
 	shell_exec("/etc/init.d/artica-postfix restart pdns");
 }
 
-function checkMysql(){
+function checkMysql($nollop=false){
 	$unix=new unix();
 	$passwdcmdline=null;
 	$mysql=$unix->find_program("mysql");
@@ -145,7 +153,13 @@ while (list ($num, $filename) = each ($f) ){
 			) Engine=InnoDB;";
 		$q->QUERY_SQL($sql,"powerdns");
 		if(!$q->ok){
-			echo "Starting......: PowerDNS creating 'domains' table FAILED\n";
+			
+			if(!$nollop){
+				echo "Starting......: PowerDNS creating 'domains' table FAILED -> rebuild the database\n";
+				rebuild_database(true);}else{
+					echo "Starting......: PowerDNS creating 'domains' table FAILED -> Aborting\n";
+					return;}
+			
 		}else{
 			$q->QUERY_SQL("CREATE UNIQUE INDEX name_index ON domains(name);","powerdns");
 		}

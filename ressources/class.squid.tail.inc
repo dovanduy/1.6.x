@@ -40,11 +40,17 @@ class squid_tail{
 					if($ip=="127.0.0.1"){return;}
 					if($this->CACHEDORNOT($SquidCode)){$cached=1;}
 					if($mac=="00:00:00:00:00:00"){$mac==null;}
-					$this->Builsql($ip,$user,$uri,$code_error,$size,$time,$cached,$mac);
+					
 					if(preg_match('#UserAgent:"(.+?)"#', $buffer,$re)){$UserAgent=$re[1];}
 					if(preg_match('#Forwarded:"(.*?)"#', $buffer,$re)){$Forwarded=trim($re[1]);}
-					if($Forwarded=="-"){$Forwarded=null;}	
-					if(strlen($Forwarded)>4){$ip=$Forwarded;}									
+					if($Forwarded=="-"){$Forwarded=null;}
+					if($Forwarded=="0.0.0.0"){$Forwarded=null;}
+					if($Forwarded=="255.255.255.255"){$Forwarded=null;}
+					if(strlen($Forwarded)>4){
+						if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $Forwarded)){$ip=$Forwarded;}
+					}	
+					
+					$this->Builsql($ip,$user,$uri,$code_error,$size,$time,$cached,$mac);								
 					$this->InjectUserAuthDb($user,$ip,$mac,$UserAgent);
 					
 					return true;
@@ -63,11 +69,16 @@ class squid_tail{
 					$SquidCode=$re[8];
 					if($ip=="127.0.0.1"){return;}
 					if($this->CACHEDORNOT($SquidCode)){$cached=1;}
-					$this->Builsql($ip,$user,$uri,$code_error,$size,$time,$cached,null);
+					
 					if(preg_match('#UserAgent:"(.+?)"#', $buffer,$re)){$UserAgent=$re[1];}
 					if(preg_match('#Forwarded:"(.*?)"#', $buffer,$re)){$Forwarded=trim($re[1]);}
 					if($Forwarded=="-"){$Forwarded=null;}
-					if(strlen($Forwarded)>4){$ip=$Forwarded;}	
+					if($Forwarded=="0.0.0.0"){$Forwarded=null;}
+					if($Forwarded=="255.255.255.255"){$Forwarded=null;}
+					if(strlen($Forwarded)>4){
+						if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $Forwarded)){$ip=$Forwarded;}
+					}	
+					$this->Builsql($ip,$user,$uri,$code_error,$size,$time,$cached,null);
 					$this->InjectUserAuthDb($user,$ip,$mac,$UserAgent);
 					return true;
 						

@@ -2140,6 +2140,8 @@ Note: After the certificate generation, you need to restart all linked services.
 <my_messaging_statistics_text>your account SMTP Messaging statistics</my_messaging_statistics_text>
 <postfix_stats_month_explain>This task build monthly messaging statistics tables from the daily messaging statistics tables</postfix_stats_month_explain>
 <postfix_stats_month>Monthly messaging statistics</postfix_stats_month>
+<error_missing_tables_click_to_repair>Error, there is some missing tables on the database.[br]
+Click on the "repair" button in order to create these tables</error_missing_tables_click_to_repair>
 <dst>Destination IP(s)</dst>
 <use_dynamic_groups_acls>Use dynamic ACLS groups</use_dynamic_groups_acls>
 <dynamic_activedirectory_group>Dynamic Active Directory Group</dynamic_activedirectory_group>
@@ -2183,3 +2185,6 @@ If after enable it your users complain about a low bandwidth, disable this featu
 <notfor>not for</notfor>
 <KerbAuthDisableNsswitch>Not include Active Directory in the local system</KerbAuthDisableNsswitch>
 <this_group_is_not_retranslated_to_the_system>This group is not translated in the local system</this_group_is_not_retranslated_to_the_system>
+<display_fw_rules>Display FireWall rules</display_fw_rules>
+<wrong_value>wrong value</wrong_value>
+<sslbum_wl_not_supported_transp>Notice: This feature did not support in transparent mode.</sslbum_wl_not_supported_transp>

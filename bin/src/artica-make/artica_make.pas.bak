@@ -1247,7 +1247,7 @@ begin
 
   if ParamStr(1)='APP_OWNCLOUD' then begin
          joomla:=tsetup_joomla.Create;
-         joomla.eyeOS_install();
+         joomla.Ownloud_install();
          zinstall.EMPTY_CACHE();
          halt(0);
    end;
@@ -1557,11 +1557,16 @@ begin
 
    if ParamStr(1)='APP_PDNS' then begin
          writeln('STARTING UPGRADE SYSTEM, PLEASE WAIT.....');
+         zinstall.INSTALL_STATUS('APP_PDNS',12);
+         zinstall.INSTALL_PROGRESS('APP_PDNS','{checking}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-pdns');
          samba:=install_samba.Create;
          writeln('STARTING INSTALL/COMPILE POWERDNS, PLEASE WAIT.....');
+         zinstall.INSTALL_STATUS('APP_PDNS',15);
          samba.pdnsinstall();
+         zinstall.INSTALL_STATUS('APP_POWERADMIN',12);
          samba.poweradmin();
+         zinstall.INSTALL_STATUS('APP_POWERADMIN',100);
          fpsystem('/etc/init.d/artica-postfix restart pdns');
          fpsystem(sys.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.admin.status.postfix.flow.php --force &');
          zinstall.EMPTY_CACHE();

@@ -158,7 +158,7 @@ function popup_status(){
 		</table>
 	</tr>
 	</table>
-	<div id='zarafa-services-status' style='width:100%;height:600px;min-height:600px;overflow:auto'></div>
+	<div id='zarafa-services-status' style='width:100%;'></div>
 	
 	
 	<script>

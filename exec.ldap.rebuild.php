@@ -1,4 +1,7 @@
 <?php
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
@@ -225,7 +228,14 @@ function CreateNAB(){
 }
 function test_connexion(){
 	$ldap=new clladp();
-	if($ldap->ldapFailed){$result="FALSE";}else{$result="TRUE";}
+	if($ldap->ldapFailed){
+		shell_exec("/etc/init.d/slapd restart");
+	}
+		
+	$ldap=new clladp();
+	if($ldap->ldapFailed){
+		if($GLOBALS["VERBOSE"]){echo "Starting LDAP................: SUCCESS\n";}
+		$result="FALSE";}else{$result="TRUE";}
 	@file_put_contents("/etc/artica-postfix/LDAP_TESTS", $result);
 	
 }

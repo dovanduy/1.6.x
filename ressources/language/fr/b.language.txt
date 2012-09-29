@@ -538,6 +538,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</disable_amavisdeamon_ask>
 <display_config>Afficher la configuration</display_config>
 <display_config_text>Afficher la configuration de cet &eacute;l&eacute;ment construite par Artica</display_config_text>
 <display_current_sessions>Afficher les sessions actives</display_current_sessions>
+<display_fw_rules>Afficher les r&egrave;gles du pare-feu</display_fw_rules>
 <display_indexation_events>Visualise les &eacute;v&egrave;nements li&eacute;s &agrave; l'indexation des ressources d&eacute;finies.</display_indexation_events>
 <dnsbl_service>Service DNSBL</dnsbl_service>
 <dnsmasq_bulk_import_explain>Cette fonctionnalit&eacute; vous permet d'importer en masse des &eacute;l&eacute;ments.[br]
@@ -634,6 +635,8 @@ Cette section ne peut &ecirc;tre affich&eacute;e.</ERROR_HTTRACK_NOT_INSTALLED>
 <error_instances_same_port>Erreur, les instances ne peuvent partager les m&ecirc;mes adresses/ports</error_instances_same_port>
 <ERROR_IPSET_NOT_INSTALLED>Erreur, l'outil IpSet n'est pas install&eacute;</ERROR_IPSET_NOT_INSTALLED>
 <error_missing_data_in_mysql>Erreur: Donn&eacute;e manquante dans la base MySQL</error_missing_data_in_mysql>
+<error_missing_tables_click_to_repair>Erreur, Il y a des tables manquantes dans la base de donn&eacute;es.[br]
+Cliquez sur le bouton &quot;R&eacute;parer&quot; afin d'ordonner la reconstruction de la structure de la base.</error_missing_tables_click_to_repair>
 <error_no_member_set>Erreur, pas de membre indiqu&eacute;</error_no_member_set>
 <error_no_ou_created>Erreur, aucune organisation cr&eacute;e ou trouv&eacute;e</error_no_ou_created>
 <error_only_imap_supported>Ne peut afficher cette fonctionnalit&eacute;, uniquement disponible dans le cadre du protocole IMAP</error_only_imap_supported>
@@ -1446,6 +1449,7 @@ Vous pouvez les cat&eacute;goriser vous-m&ecirc;me.</squid_test_categories_expla
 <squid_week_stats>G&eacute;n&eacute;ration des statistiques hebdomadaires</squid_week_stats>
 <squid_week_stats_explain>Cette t&acirc;che assure la cr&eacute;ation des tables de statistiques de visites et de blocage par semaine.</squid_week_stats_explain>
 <srvtimeout>D&eacute;lai MAX d'envoi des donn&eacute;es</srvtimeout>
+<sslbum_wl_not_supported_transp>Note: Cette fonctionnalit&eacute; est inop&eacute;rante en mode transparent.</sslbum_wl_not_supported_transp>
 <ssl_certificates_center_text>Le Centre des certificats vous permet de g&eacute;n&eacute;rer des certificats SSL pour les services qui utilisent les fonctionnalit&eacute;s SSL tels que les serveurs Webs, serveurs de messagerie...</ssl_certificates_center_text>
 <ssl_fingerprint_importerror>Ne peut importer l'empreinte SSL sur un serveur non-ssl, activez l'option SSL si besoin.</ssl_fingerprint_importerror>
 <ssl_port>Port SSL</ssl_port>
@@ -1781,6 +1785,7 @@ Ceci afin de forcer les stations de travail &agrave; utiliser ce fichier comme p
 Exemple: http://10.10.10.2/proxy.pac</wpad_label_text>
 <wpad_title>Proxy Automatique</wpad_title>
 <wrong_password>Mauvais mot de passe</wrong_password>
+<wrong_value>mauvaise valeur</wrong_value>
 <www_abortion>Sites Internet qui sont pour ou contre l'avortement et permettant d'aider et d'offrir les proc&eacute;dures d'avortement</www_abortion>
 <www_alcohol>Sites Internet produisant de l'information ou bien de la promotion sur la vente d'alcool ou ustensiles associ&eacute;s.</www_alcohol>
 <www_animals>Sites Web sur les animaux (excluant les animaux de compagnie)</www_animals>

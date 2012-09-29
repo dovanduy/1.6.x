@@ -583,14 +583,14 @@ echo "Starting zarafa..............: LDAP config done (".basename(__FILE__).")\n
 	
 }
 function remove_database(){
-	shell_exec("/bin/rm -f /var/lib/mysql/ib_logfile*");
-	shell_exec("/bin/rm -f /var/lib/mysql/ibdata*");
-	shell_exec("/bin/rm -rf /var/lib/mysql/zarafa");
+	shell_exec("/bin/rm -f $MYSQL_DATA_DIR/ib_logfile*");
+	shell_exec("/bin/rm -f $MYSQL_DATA_DIR/ibdata*");
+	shell_exec("/bin/rm -rf $MYSQL_DATA_DIR/zarafa");
 	shell_exec("/etc/init.d/artica-postfix restart mysql >/tmp/zarafa_removedb 2>&1");
 	shell_exec("/etc/init.d/artica-postfix restart zarafa-server >>/tmp/zarafa_removedb 2>&1");
 	$unix=new unix();
 	$unix->send_email_events("Success removing zarafa databases", 
-	"removed /var/lib/mysql/ib_logfile*\nremoved /var/lib/mysql/ibdata*\nremoved /var/lib/mysql/zarafa\n\n".@file_get_contents("/tmp/zarafa_removedb"), "mailbox");
+	"removed $MYSQL_DATA_DIR/ib_logfile*\nremoved $MYSQL_DATA_DIR/ibdata*\nremoved $MYSQL_DATA_DIR/zarafa\n\n".@file_get_contents("/tmp/zarafa_removedb"), "mailbox");
 }
 
 function yaffas(){

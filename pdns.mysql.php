@@ -18,6 +18,7 @@ if(isset($_GET["items"])){items();exit;}
 if(isset($_GET["item-id"])){item_popup();exit;}
 if(isset($_POST["id"])){item_save();exit;}
 if(isset($_POST["delete-item"])){item_delete();exit;}
+if(isset($_POST["RepairPDNSTables"])){RepairPDNSTables();exit;}
 table();
 
 
@@ -26,8 +27,38 @@ function table(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$users=new usersMenus();
+	$q=new mysql();
 	$TB_HEIGHT=500;
 	$TB_WIDTH=880;
+	
+	$table="records";
+	$database='powerdns';
+	
+	
+	
+	if(!$q->TABLE_EXISTS("records", "powerdns")){
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{error_missing_tables_click_to_repair}")."
+		<hr>
+		<center id='$t'>". button("{repair}", "RepairPDNSTables()","22px")."</center>
+		<script>
+			var x_RepairPDNSTables=function (obj) {
+					var results=obj.responseText;
+					if(results.length>0){alert(results);}	
+			
+					RefreshTab('main_config_pdns');
+				}
+			function RepairPDNSTables(){
+				var XHR = new XHRConnection();
+				XHR.appendData('RepairPDNSTables','yes');
+				AnimateDiv('$t');
+			    XHR.sendAndLoad('$page', 'POST',x_RepairPDNSTables);	
+			}
+			</script>		
+		
+		");
+		return;
+		
+	}
 
 	$new_entry=$tpl->_ENGINE_parse_body("{new_item}");
 	$t=time();
@@ -42,7 +73,7 @@ function table(){
 	{name: '$new_entry', bclass: 'Add', onpress : NewPDNSEntry2$t},
 	
 	],	";
-	
+			//$('#flexRT$t').flexReload();
 	
 	$html="
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
@@ -109,6 +140,7 @@ function NewPDNSEntry2$t(id){
 	title='$new_entry';
 	YahooWin5('550','$page?item-id=0&t=$t','PowerDNS:'+title);
 }
+
 	
 </script>";
 	
@@ -117,7 +149,7 @@ function NewPDNSEntry2$t(id){
 
 function items(){
 	
-$tpl=new templates();
+	$tpl=new templates();
 	$MyPage=CurrentPageName();
 	$q=new mysql();
 	$t=$_GET["t"];
@@ -196,6 +228,11 @@ $tpl=new templates();
 	
 echo json_encode($data);		
 	
+}
+
+function RepairPDNSTables(){
+	$sock=new sockets();
+	echo @implode("\n",unserialize(base64_decode($sock->getFrameWork("pdns.php?repair-tables=yes"))));
 }
 
 function item_popup(){

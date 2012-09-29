@@ -87,7 +87,9 @@ function popup(){
 
 
 function parameters_main(){
-	
+$sock=new sockets();
+$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	$squid=new squidbee();
 	$page=CurrentPageName();
 	$sslbumb=false;
@@ -100,13 +102,10 @@ function parameters_main(){
 		$enableSSLBump=Paragraphe_switch_img("{activate_ssl_bump}",
 	"{activate_ssl_bump_text}","EnableSSLBump-$t",$squid->SSL_BUMP,null,450);
 		
-		
-		
-	if(!$sslbumb){
-		
-		$enableSSLBump=Paragraphe_switch_disable("{wrong_squid_version}: &laquo;$users->SQUID_VERSION&raquo;",
-	"{wrong_squid_version_feature_text}",null,450);
-		
+    if(!is_numeric($squid->ssl_port)){$squid->ssl_port =$squid->listen_port+5;}		
+	if($squid->ssl_port<3){$squid->ssl_port =$squid->listen_port+5;}	
+	if($EnableRemoteStatisticsAppliance==0){
+		if(!$sslbumb){$enableSSLBump=Paragraphe_switch_disable("{wrong_squid_version}: &laquo;$users->SQUID_VERSION&raquo;","{wrong_squid_version_feature_text}",null,450);}
 	}
 	$html="
 	<div style='font-size:14px' id='sslbumpdiv$t'></div>
@@ -154,10 +153,18 @@ function parameters_main(){
 
 function parameters_enable_save(){
 	$squid=new squidbee();
+	$tpl=new templates();
+	if($squid->ssl_port==443){
+		echo $tpl->javascript_parse_text("443: {wrong_value}");
+		return;
+	}
+	
 	$squid->SSL_BUMP=$_GET["EnableSSLBump"];
 	$squid->ssl_port=$_GET["ssl_port"];
 	$squid->SSL_BUMP_WHITE_LIST=$_GET["SSL_BUMP_WHITE_LIST"];
 	$squid->SaveToLdap();
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?squid-iptables=yes");
 	
 }
 
@@ -172,6 +179,12 @@ function whitelist_popup(){
 	$SSL_BUMP_WL=$tpl->_ENGINE_parse_body("{SSL_BUMP_WL}");
 	$website_ssl_wl_help=$tpl->javascript_parse_text("{website_ssl_wl_help}");
 	$parameters=$tpl->javascript_parse_text("{parameters}");
+	
+	$squid=new squidbee();
+	if($squid->hasProxyTransparent==1){
+		$explain="<div style='font-weight:bold;color:#BD0000'>{sslbum_wl_not_supported_transp}</div>";
+	}
+	
 	//$q=new mysql_squid_builder();
 	//$q->QUERY_SQL("ALTER TABLE `usersisp` ADD UNIQUE (`email`)");
 	
@@ -182,7 +195,7 @@ function whitelist_popup(){
 	],";	
 	
 $html="
-<div class=explain style='font-size:13px'>$SSL_BUMP_WL</div>
+<div class=explain style='font-size:13px'>$SSL_BUMP_WL$explain</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	

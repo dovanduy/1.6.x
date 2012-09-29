@@ -17,6 +17,7 @@ class mysqlserver{
 	var $ZARAFA_INSTALLED=false;
 	var $MYSQL_BIN_PARAMS=array();
 	var $INNODB_FILE_PER_TABLE_INSTALL=false;
+	var $MYSQL_DATA_DIR="";
 	
 	function mysqlserver(){
 		$this->load();
@@ -29,7 +30,8 @@ class mysqlserver{
 		$this->EnableZarafaTuning=$EnableZarafaTuning;
 		$this->ZARAFA_INSTALLED=$users->ZARAFA_INSTALLED;
 		$this->INNODB_FILE_PER_TABLE_INSTALL=$users->INNODB_FILE_PER_TABLE_INSTALL;
-		
+   		$this->MYSQL_DATA_DIR=$sock->GET_INFO("ChangeMysqlDir");
+		if($this->MYSQL_DATA_DIR==null){$this->MYSQL_DATA_DIR="/var/lib/mysql";}		
 		
 		if(posix_getuid()==0){
 			$GLOBALS["AS_ROOT"]=true;
@@ -230,7 +232,7 @@ class mysqlserver{
 		}
 		
 		$conf=$conf ."basedir=/usr\n";
-		$conf=$conf ."datadir=/var/lib/mysql\n";
+		$conf=$conf ."datadir=$this->MYSQL_DATA_DIR\n";
 		$conf=$conf ."tmpdir=/tmp\n";
 		$conf=$conf. "skip-locking\n";
 		$conf=$conf. "skip-bdb\n";
@@ -317,7 +319,7 @@ class mysqlserver{
 		}				
 		
 		$conf=$conf ."basedir=/usr\n";
-		$conf=$conf ."datadir=/var/lib/mysql\n";
+		$conf=$conf ."datadir=$this->MYSQL_DATA_DIR\n";
 		$conf=$conf ."log-error\n";
 		$conf=$conf ."tmpdir=/tmp\n";
 		$conf=$conf. "skip-locking\n";
@@ -450,9 +452,9 @@ class mysqlserver{
 		$mysqlSSL=$sock->GET_INFO("mysqlSSL");
 		if(!is_numeric($mysqlSSL)){$mysqlSSL=0;}
 		if($mysqlSSL==0){return null;}
-		$files[]="/var/lib/mysql/mysql-ca-cert.pem";
-		$files[]="/var/lib/mysql/mysql-server-cert.pem";
-		$files[]="/var/lib/mysql/mysql-server-key.pem";
+		$files[]="$this->MYSQL_DATA_DIR/mysql-ca-cert.pem";
+		$files[]="$this->MYSQL_DATA_DIR/mysql-server-cert.pem";
+		$files[]="$this->MYSQL_DATA_DIR/mysql-server-key.pem";
 		$continue=true;
 		while (list ($i, $filename) = each ($files) ){if(!is_file($filename)){echo "$filename no such file\n";$continue=false;}}
 		if(!$continue){
@@ -463,9 +465,9 @@ class mysqlserver{
 		}
 		if(!$continue){return null;}
 		$f[]="ssl";
-		$f[]="ssl-ca=/var/lib/mysql/mysql-ca-cert.pem";
-		$f[]="ssl-cert=/var/lib/mysql/mysql-server-cert.pem";
-		$f[]="ssl-key=/var/lib/mysql/mysql-server-key.pem";
+		$f[]="ssl-ca=$this->MYSQL_DATA_DIR/mysql-ca-cert.pem";
+		$f[]="ssl-cert=$this->MYSQL_DATA_DIR/mysql-server-cert.pem";
+		$f[]="ssl-key=$this->MYSQL_DATA_DIR/mysql-server-key.pem";
 		$f[]=""; 	
 		$this->setssl();	
 		return @implode("\n", $f);
@@ -523,7 +525,7 @@ class mysqlserver{
 		
 		if(isset($mysqld_variables_cmdline["general_log"])){
 				$mysqld["general_log"]="Yes";
-				$mysqld["general_log_file"]="/var/lib/mysql/general_log.log";
+				$mysqld["general_log_file"]="$this->MYSQL_DATA_DIR/general_log.log";
 		}else{
 			if($GLOBALS["VERBOSE"]){echo "mysqld: Building: general_log token does not exists in ". count($mysqld_variables_cmdline)." items in array\n";}
 		}		
@@ -531,9 +533,9 @@ class mysqlserver{
 		$ssl=$this->ssl_server_mode();
 		if($ssl<>null){
 			$mysqld["ssl"]=null;
-			$mysqld["ssl-ca"]="/var/lib/mysql/mysql-ca-cert.pem";
-			$mysqld["ssl-cert"]="/var/lib/mysql/mysql-server-cert.pem";
-			$mysqld["ssl-key"]="/var/lib/mysql/mysql-server-key.pem";	
+			$mysqld["ssl-ca"]="$this->MYSQL_DATA_DIR/mysql-ca-cert.pem";
+			$mysqld["ssl-cert"]="$this->MYSQL_DATA_DIR/mysql-server-cert.pem";
+			$mysqld["ssl-key"]="$this->MYSQL_DATA_DIR/mysql-server-key.pem";	
 		}
 		
 		$mysqld["user"]="mysql";
@@ -541,7 +543,7 @@ class mysqlserver{
 		$mysqld["socket"]="/var/run/mysqld/mysqld.sock";
 		$mysqld["port"]="3306";
 		$mysqld["basedir"]="/usr";
-		$mysqld["datadir"]="/var/lib/mysql";
+		$mysqld["datadir"]="$this->MYSQL_DATA_DIR";
 		$mysqld["tmpdir"]="/tmp";
 		
 		if($this->main_array["skip_external_locking"]=="yes"){
@@ -767,7 +769,7 @@ class mysqlserver{
 		
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$ID=$ligne["ID"];
-			if($ligne["Dir"]==null){$ligne["Dir"]="/var/lib/mysql-$ID";}
+			if($ligne["Dir"]==null){$ligne["Dir"]="$this->MYSQL_DATA_DIR-$ID";}
 			if($lc_messages_dir){$lc_messages_dir_cmd=" --lc-messages-dir=";}
 			$mysql_install_db_cmds="$mysql_install_db --user=mysql --datadir=\"{$ligne["Dir"]}\"$lc_messages_dir_cmd";
 			if($ID==$GLOBALS["SHOWLOGONLYFOR"]){echo "Starting......: [Note] Mysql building configuration for instance Number $ID..\n";}

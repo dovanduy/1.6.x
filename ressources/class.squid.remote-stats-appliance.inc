@@ -7,8 +7,10 @@ include_once(dirname(__FILE__)."/class.mysql.dump.inc");
 class squid_stats_appliance{
 	var $URI=null;
 	var $workdir=null;
+	var $ASROOT=false;
 	
 	function squid_stats_appliance(){
+		if(posix_getuid()==0){$this->ASROOT=true;}
 		$this->workdir=dirname(__FILE__)."/squid-export";
 		$this->URI=$this->SquidStatsApplianceUri();
 		$sock=new sockets();
@@ -80,21 +82,32 @@ class squid_stats_appliance{
 		if($q->mysql_server=="127.0.0.1"){$servcmd=" --socket=/var/run/mysqld/mysqld.sock ";}else{$servcmd=" --host=$q->mysql_server --port=$q->mysql_port ";}
 		if($q->mysql_password<>null){$password=" --password=$q->mysql_password ";}
 		$cmdline="$mysqlbin --batch --force --user=$q->mysql_admin$password $servcmd";
+		$c=0;
 		while (list ($index, $sourcefile) = each ($TARGETS) ){
 			$destinationfile=$sourcefile.".sql";
-			if(!$unix->uncompress($sourcefile, "$destinationfile")){ufdbguard_admin_events("replication failed uncompress $sourcefile", __FUNCTION__, __FILE__, __LINE__, "squidstats");continue;}
+			if(!$unix->uncompress($sourcefile, "$destinationfile")){
+				if($this->ASROOT){echo "Starting......: Replicate $localdatabase MySQL failed (uncompress $sourcefile) failed..\n";}
+				ufdbguard_admin_events("replication failed uncompress $sourcefile", 
+				__FUNCTION__, __FILE__, __LINE__, "squidstats");
+				continue;
+			}
 			$localdatabase=basename($sourcefile);
 			$localdatabase=str_replace(".gz", "", $localdatabase);
 			$cmd="$cmdline --database=$localdatabase <$destinationfile 2>&1";
 			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+			
 			exec($cmd,$results);
 			@unlink($destinationfile);
 			if($q->IS_ERROR_DUMP_CMDLINE($results)){
+				if($this->ASROOT){echo "Starting......: Replicate $localdatabase MySQL tables failed..\n";}
 				ufdbguard_admin_events("replication failed restoring $localdatabase with $destinationfile with error $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "squidstats");
 				continue;
 			}
+			$c++;
 			ufdbguard_admin_events("replication success restoring database $localdatabase", __FUNCTION__, __FILE__, __LINE__, "squidstats");
 		} 
+		if($this->ASROOT){echo "Starting......: Replicate $c MySQL tables done..\n";}
+		
 	}
 	
 	
@@ -151,13 +164,14 @@ class squid_stats_appliance{
 		$c=0;
 		if(!is_array($array)){ufdbguard_admin_events("$desttemp not an array....", __FUNCTION__, __FILE__, __LINE__, "squidstats");return;}
 		$TOKENS=$this->GET_REPLICATED_TOKENS();
+		
 		while (list ($key, $value) = each ($array) ){
 			if(!isset($TOKENS[$key])){continue;}
 			if($GLOBALS["VERBOSE"]){echo "Saving $key ". strlen($value)." bytes...\n";}
 			$sock->SET_INFO($key, $value);
 			$c++;
 		}
-		
+		if($this->ASROOT){echo "Starting......: Replicate $c parameters done..\n";}
 		ufdbguard_admin_events("Success applied  $c parameters", __FUNCTION__, __FILE__, __LINE__, "squidstats");
 		
 	}
@@ -184,6 +198,10 @@ class squid_stats_appliance{
 		$artica_backup["squid_block"]=true;
 		$artica_backup["dansguardian_files"]=true;
 		$artica_backup["squid_white"]=true;
+		$artica_backup["SquidBoosterMem"]=true;
+		$artica_backup["SquidBoosterMemK"]=true;
+		$artica_backup["SquidBoosterOnly"]=true;
+		  
 		
 		$databases["artica_backup"]=$artica_backup;
 		if(!is_dir($this->workdir)){@mkdir($this->workdir,0775,true);}

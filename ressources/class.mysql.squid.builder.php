@@ -27,6 +27,7 @@ class mysql_squid_builder{
 	var $EnableSargGenerator=0;
 	var $tasks_array=array();
 	var $tasks_explain_array=array();
+	var $tasks_remote_appliance=array();
 	var $tasks_processes=array();
 	var $tasks_disabled=array();
 	var $last_id;
@@ -35,15 +36,14 @@ class mysql_squid_builder{
 	function mysql_squid_builder(){
 		$sock=new sockets();
 		$squidEnableRemoteStatistics=$sock->GET_INFO("squidEnableRemoteStatistics");
-		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+		$this->EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 		$squidRemostatisticsServer=$sock->GET_INFO("squidRemostatisticsServer");
 		$squidRemostatisticsPort=$sock->GET_INFO("squidRemostatisticsPort");
 		$squidRemostatisticsUser=$sock->GET_INFO("squidRemostatisticsUser");
 		$squidRemostatisticsPassword=$sock->GET_INFO("squidRemostatisticsPassword");
 		if(!is_numeric($squidEnableRemoteStatistics)){$squidEnableRemoteStatistics=0;}
-		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-		if($EnableRemoteStatisticsAppliance==1){$squidEnableRemoteStatistics=0;}
-		$this->EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance;
+		if(!is_numeric($this->EnableRemoteStatisticsAppliance)){$this->EnableRemoteStatisticsAppliance=0;}
+		if($this->EnableRemoteStatisticsAppliance==1){$squidEnableRemoteStatistics=0;}
 		$this->DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 		if(!is_numeric($this->DisableArticaProxyStatistics)){$this->DisableArticaProxyStatistics=0;}
 		$this->EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
@@ -108,6 +108,13 @@ class mysql_squid_builder{
 				$this->tasks_disabled[26]=true;
 				$this->tasks_disabled[27]=true;
 				
+			}
+			
+			if($this->EnableRemoteStatisticsAppliance==1){
+				$tasks_remote_appliance=$this->tasks_remote_appliance;
+				while (list ($TaskType, $none) = each ($tasks_remote_appliance) ){
+					$this->tasks_disabled[$TaskType]=true;
+				}
 			}
 			
 	}
@@ -241,6 +248,32 @@ class mysql_squid_builder{
 			$this->tasks_processes[38]="exec.dansguardian.injector.php";
 			$this->tasks_processes[39]="exec.squid.php --build --force";
 	
+			$this->tasks_remote_appliance["36"]=true;
+			$this->tasks_remote_appliance["34"]=true;
+			$this->tasks_remote_appliance["30"]=true;
+			$this->tasks_remote_appliance["29"]=true;
+			$this->tasks_remote_appliance["28"]=true;
+			$this->tasks_remote_appliance["27"]=true;
+			$this->tasks_remote_appliance["26"]=true;
+			$this->tasks_remote_appliance["25"]=true;
+			$this->tasks_remote_appliance["23"]=true;
+			$this->tasks_remote_appliance["22"]=true;
+			$this->tasks_remote_appliance["14"]=true;
+			$this->tasks_remote_appliance["15"]=true;
+			$this->tasks_remote_appliance["16"]=true;
+			$this->tasks_remote_appliance["13"]=true;
+			$this->tasks_remote_appliance["12"]=true;
+			$this->tasks_remote_appliance["9"]=true;
+			$this->tasks_remote_appliance["10"]=true;
+			$this->tasks_remote_appliance["11"]=true;
+			$this->tasks_remote_appliance["8"]=true;
+			$this->tasks_remote_appliance["7"]=true;
+			$this->tasks_remote_appliance["6"]=true;
+			$this->tasks_remote_appliance["3"]=true;
+			$this->tasks_remote_appliance["2"]=true;
+			$this->tasks_remote_appliance["1"]=true;
+			
+			
 	}
 	
 	public function CheckDefaultSchedules(){
@@ -297,6 +330,7 @@ class mysql_squid_builder{
 			
 
 			while (list ($TaskType, $content) = each ($array) ){
+				if($this->tasks_disabled[$TaskType]){continue;}
 				$ligne=mysql_fetch_array($this->QUERY_SQL("SELECT TimeText FROM webfilters_schedules WHERE TaskType=$TaskType"));
 				if($ligne["TimeText"]<>null){continue;}
 				

@@ -124,11 +124,14 @@ if(!is_file($mycnf)){echo "Starting......: Mysql my.cnf........: unable to stat 
 @file_put_contents($mycnf,$datas);
 echo "Starting......: Mysql Updating \"$mycnf\" success ". strlen($datas)." bytes\n";
 
-function checks(){
+function checks($nodestroy=false){
 	$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 	$q=new mysql();
 	$q->BuildTables();	
 	$execute=false;
+	$unix=new unix();
+	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
+	$rm=$unix->find_program("rm");	
 	
 $tableEngines = array("hardware"=>"InnoDB","accesslog"=>"InnoDB","bios"=>"InnoDB","memories"=>"InnoDB","slots"=>"InnoDB",
 "registry"=>"InnoDB","monitors"=>"InnoDB","ports"=>"InnoDB","storages"=>"InnoDB","drives"=>"InnoDB","inputs"=>"InnoDB",
@@ -139,27 +142,51 @@ $tableEngines = array("hardware"=>"InnoDB","accesslog"=>"InnoDB","bios"=>"InnoDB
 		if(!$q->DATABASE_EXISTS("ocsweb")){$execute=true;}
 		if(!$execute){
 			while (list ($table, $ligne) = each ($tableEngines) ){
-				if(!$q->TABLE_EXISTS($table,"ocsweb")){$execute=true;break;}
+				if(!$q->TABLE_EXISTS($table,"ocsweb")){
+					if($GLOBALS["VERBOSE"]){echo "$table does not exists...\n";}
+					$execute=true;break;}else{
+						if($GLOBALS["VERBOSE"]){echo "ocsweb/$table OK...\n";}	
+					}
 			}
 		}
 		
+	}else{
+		if($GLOBALS["VERBOSE"]){echo "/usr/share/artica-postfix/bin/install/ocsbase_new.sql no such file...\n";}
 	}
 	
 	
 	reset($tableEngines);
 	if($execute){
-		$unix=new unix();
 		$q->CREATE_DATABASE("ocsweb");
 		$mysql=$unix->find_program("mysql");
 		$password=$q->mysql_password;
 		if(strlen($password)>0){$password=" -p$password";}
 		$cmd="$mysql -u $q->mysql_admin$password --batch -h $q->mysql_server -P $q->mysql_port -D ocsweb < /usr/share/artica-postfix/bin/install/ocsbase_new.sql";
 		exec($cmd,$results);
-		exec($cmd,$results);
-		exec($cmd,$results);
-		while (list ($table, $ligne) = each ($tableEngines) ){
-			if(!$q->TABLE_EXISTS($table,"ocsweb")){$unix->send_email_events("Unable to create OCS table (missing $table) table" , "$cmd\nmysql results\n".@implode("\n", $results),"system");break;}
+		while (list ($a, $b) = each ($results) ){
+			if($GLOBALS["VERBOSE"]){echo "$b";}
 		}
+		$results=array();
+
+		while (list ($table, $ligne) = each ($tableEngines) ){
+			if(!$q->TABLE_EXISTS($table,"ocsweb")){
+				if($GLOBALS["VERBOSE"]){echo "Unable to create OCS table (missing $table) table\n";}
+				$unix->send_email_events("Unable to create OCS table (missing $table) table" , "$cmd\nmysql results\n".@implode("\n", $results),"system");break;}
+		}
+	}else{
+		
+		$sql="SELECT COUNT(networks.HARDWARE_ID),networks.*,hardware.* FROM networks,hardware WHERE networks.HARDWARE_ID=hardware.ID";
+		$q->QUERY_SQL($sql,"ocsweb");
+		if(!$q->ok){
+			if(preg_match("#Table '(.*?)' doesn't exist#", $q->mysql_error)){
+				if(!$nodestroy){
+					$q->DELETE_DATABASE("ocsweb");
+					if(is_dir("$MYSQL_DATA_DIR/ocsweb")){echo "Starting......: OCS removing $MYSQL_DATA_DIR/ocsweb\n";shell_exec("$rm -rf $MYSQL_DATA_DIR/ocsweb");}
+					checks(true);
+				}
+			}
+		}
+		
 	}
 	
 	
@@ -928,11 +955,11 @@ function _repair_database($database){
 	$sql="SHOW TABLES";
 	$results=$q->QUERY_SQL($sql,"squidlogs");	
 	$unix=new unix();
+	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
 	$time1=time();
 	$myisamchk=$unix->find_program("myisamchk");
 	$mysqlcheck=$unix->find_program("mysqlcheck"); 	
 	$mysqlcheck_logs=null;
-	$q=new mysql();
 	$sql="SHOW TABLES";
 	$results=$q->QUERY_SQL($sql,$database);
 	
@@ -953,7 +980,7 @@ function _repair_database($database){
 		
 		echo $table."\n";
 		if(is_file($myisamchk)){
-			shell_exec("$myisamchk -r --safe-recover --force /var/lib/mysql/$database/$table");
+			shell_exec("$myisamchk -r --safe-recover --force $MYSQL_DATA_DIR/$database/$table");
 		}else{
 			$q->REPAIR_TABLE($database,$table);
 		}

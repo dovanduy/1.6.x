@@ -11,6 +11,7 @@ include_once(dirname(__FILE__) . '/ressources/class.system.network.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . '/ressources/class.computers.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ocs.inc');
+include_once(dirname(__FILE__) . '/ressources/class.ccurl.inc');
 
 if(is_array($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}}
 if(is_array($argv)){if(preg_match("#--rebuild#",implode(" ",$argv))){$GLOBALS["REBUILD"]=true;}}
@@ -303,7 +304,7 @@ function CreateOnpenSSLCOnf(){
 	$ini->_params["CA_default"]["policy"]		= "policy_match";	
 
 	
-	$ini->_params["req_attributes"]["challengePassword"]="$ldap->ldap_password";
+	$ini->_params["req_attributes"]["challengePassword"]="A challenge password";
 	$ini->_params["req_attributes"]["challengePassword_min"]="4";
 	$ini->_params["req_attributes"]["challengePassword_max"]="20";
 	$ini->_params["req_attributes"]["unstructuredName"]="An optional company name";	
@@ -419,13 +420,13 @@ function CreateCertificate(){
 function CreateFinalCertificate(){
 	$sock=new sockets();
 	$certs=$sock->GET_INFO("OCSServerDotCrt");
+	echo "Starting......: OCS web Engine OCSServerDotCrt = `$certs`\n";
 	if(strlen($certs)<50){
-		return null;
+		echo "Starting......: OCS web Engine aborting...\n";
+		if(is_file("/etc/ocs/cert/cacert.pem")){return null;}
 	}
-	shell_exec("/usr/share/artica-postfix/bin/artica-install wget \"http://www.cacert.org/certs/root.crt\" /etc/ocs/cert/cacert.pem");
-	
-	
-	
+	$curl=new ccurl("http://www.cacert.org/certs/root.crt");
+	$curl->GetFile("/etc/ocs/cert/cacert.pem");
 }
 
 function AutomaticInjection(){
@@ -540,8 +541,10 @@ function builddbinc(){
 	$f[]="define(\"PSWD_BASE\",\"$q->mysql_password\");";
 	$f[]="?>";
 	@file_put_contents("/usr/share/ocsinventory-reports/ocsreports/dbconfig.inc.php", @implode("\n", $f));
-	echo "Starting......: OCS web Engine dbconfig.inc.php done\n"; 	
-
+	echo "Starting......: OCS web Engine dbconfig.inc.php done\n"; 
+	if(!is_file("etc/ocs/cert/cacert.pem")){	
+		CreateSelfSignedCertificate();
+	}
 }
 
 

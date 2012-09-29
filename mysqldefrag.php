@@ -129,6 +129,7 @@ function Dumpimport($innodb_file_pertable=0){
 	$unix=new unix();	
 	$q=new mysql();
 	$mysql_admin=$q->mysql_admin;
+	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
 	if(trim($mysql_admin)==null){
 		system_admin_events("Error, unable to get mysql_admin credentials", __FUNCTION__, __FILE__, __LINE__, "mysql");
 		die();
@@ -151,8 +152,8 @@ function Dumpimport($innodb_file_pertable=0){
 		die();
 	}	
 	
-	$BaseDir="/var/lib/mysql";
-	$files=$unix->DirFiles("/var/lib/mysql");
+	$BaseDir=$MYSQL_DATA_DIR;
+	$files=$unix->DirFiles($BaseDir);
 	
 	
 	system_admin_events("Info, stopping mysql", __FUNCTION__, __FILE__, __LINE__, "mysql");
@@ -184,9 +185,9 @@ function Dumpimport($innodb_file_pertable=0){
 		$php5=$unix->LOCATE_PHP5_BIN();
 		shell_exec("$php5 ".dirname(__FILE__)."/exec.mysql.build.php");	
 		system_admin_events("Deleting, ibdata1,ib_logfile0,ib_logfile1 is enabled", __FUNCTION__, __FILE__, __LINE__, "mysql");
-		@unlink("/var/lib/mysql/ibdata1");
-		@unlink("/var/lib/mysql/ib_logfile0");
-		@unlink("/var/lib/mysql/ib_logfile1");
+		@unlink("$MYSQL_DATA_DIR/ibdata1");
+		@unlink("$MYSQL_DATA_DIR/ib_logfile0");
+		@unlink("$MYSQL_DATA_DIR/ib_logfile1");
 	}
 	
 

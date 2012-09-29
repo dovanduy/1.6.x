@@ -232,7 +232,7 @@ function mailboxes_folders($ID){
 	
 }
 
-function mailbox_settings($ID){
+function mailbox_settings($ID,$tolog=array()){
 	$sql="SELECT * FROM mbx_migr_users WHERE zmd5='$ID'";
 	$q=new mysql();
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
@@ -240,6 +240,7 @@ function mailbox_settings($ID){
 	$imap_server=$ligne["imap_server"];
 	$cert_fingerprint=$ligne["cert_fingerprint"];
 	$uid=$ligne["uid"];
+
 	$usessl=$ligne["usessl"];
 	$remote_username=$ligne["username"];
 	$username=$ligne["username"];
@@ -258,6 +259,13 @@ function mailbox_settings($ID){
 	$passwordr=$ligne["passwordr"];
 	$cert_fingerprintr=$ligne["cert_fingerprintr"];
 	if($remote_username==null){$remote_username=md5(time());}
+	
+	if($uid==null){
+		$tolog[]="$ID: uid is null, aborting";
+		if($usernamer<>null){
+			$tolog[]="$ID: assume `$usernamer` as uid...";
+		}
+	}
 	
 	$Folders=unserialize(base64_decode($ligne["mbxfolders"]));
 	
@@ -302,11 +310,18 @@ function mailbox_settings($ID){
 		$offlineImapConf[]="maxage = $maxage";
 	}
 	
-
+	if($ct->password==null){
+		$tolog[]="$ID: warning, Target server: no password is set for `$uid`";
+		if($passwordr<>null){
+			$tolog[]="$ID: Target server: assume `passwordr (****)` as password...";
+			$ct->password=$passwordr;
+		}
+	}
 	
 	$offlineImapConf[]="[Repository TargetServer]";
 	$offlineImapConf[]="";
 	if($AsGateway==0){
+		$tolog[]="$ID: using local mode 127.0.0.1:143 for `$uid`";
 		$offlineImapConf[]="type = IMAP";
 		$offlineImapConf[]="remotehost = 127.0.0.1";
 		$offlineImapConf[]="ssl = 0";
@@ -314,10 +329,12 @@ function mailbox_settings($ID){
 		$offlineImapConf[]="remoteuser = $uid";
 		$offlineImapConf[]="remotepass = $ct->password";
 	}else{
+		
 		$offlineImapConf[]="type = IMAP";
 		$offlineImapConf[]="remotehost = $imapr_server";
 		if($usesslr==1){$offlineImapConf[]="ssl = 1";$offlineImapConf[]="remoteport = 993";}else{$offlineImapConf[]="ssl = 0";$offlineImapConf[]="remoteport = 143";}
 		if(strlen($cert_fingerprintr)>5){$offlineImapConf[]="cert_fingerprint = $cert_fingerprintr";}
+		$tolog[]="$ID: Target server: using gateway mode $imapr_server for `$usernamer`";
 		$offlineImapConf[]="remoteuser = $usernamer";
 		$offlineImapConf[]="remotepass = $passwordr";		
 	}
@@ -334,6 +351,8 @@ function mailbox_settings($ID){
 	$offlineImapConf[]="remotehost = $imap_server";
 	if($folderfilter<>null){$offlineImapConf[]=$folderfilter;}		
 		
+	$tolog[]="$ID: source server (where orginal messages are stored) : $remote_username@$imap_server password=".length($remote_password)." bytes";
+	
 	if($usessl==1){
 			$offlineImapConf[]="ssl = 1";
 			$offlineImapConf[]="remoteport = 993";
@@ -365,7 +384,7 @@ function mailbox_settings($ID){
 	
 		@mkdir("/etc/artica-postfix/offline-imap",666,true);
 		@file_put_contents("/etc/artica-postfix/offline-imap/$ID.cfg",@implode("\n",$offlineImapConf));
-			
+		return $tolog;
 	
 }
 
@@ -399,10 +418,11 @@ function member($ID){
 	$remote_username=$ligne["username"];
 	$ct=new user($uid);
 	$tolog[]="{$ligne["username"]}@$imap_server SSL:$usessl Port:993/143 fingerprint:$cert_fingerprint Using $offlineimap";
-	mailbox_settings($ID);
+	
+	$tolog=mailbox_settings($ID,$tolog);
 	exec("$offlineimap --version 2>&1",$tolog);
 	$t=time();
-	if(is_file("$offlineimap")){
+	if(is_file($offlineimap)){
 		if($verbosed==1){$debug=" -d ALL";}
 		$cmd="$NICE$offlineimap -u basic -l /etc/artica-postfix/offline-imap/$ID.log -c /etc/artica-postfix/offline-imap/$ID.cfg$debug 2>&1";
 		$tolog[]=$cmd;
