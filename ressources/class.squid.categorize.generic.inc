@@ -1484,6 +1484,7 @@ private function socialnet($www){
 		if(preg_match("#\.healthcentral\.com$#", $www)){return "health";}
 		if(preg_match("#\.lgds\.eu$#", $www)){return "health";}
 		if(preg_match("#\.apigem\.org$#", $www)){return "health";}
+		if(preg_match("#\.curie\.fr$#", $www)){return "health";}
 		
 			
 		if(preg_match("#\.aufeminin\.com$#", $www)){return "womanbrand";}
@@ -1696,6 +1697,7 @@ private function socialnet($www){
 		if(preg_match("#^garage-.*?\.fr$#", $www)){return "automobile/cars";}
 		if(preg_match("#^brasserie-#",$www)){return "recreation/nightout";}
 		if(preg_match("#^recettes-.*?\.fr$#", $www)){return "hobby/cooking";}
+		if(preg_match("#\.cuisineblog\.fr$#", $www)){return "hobby/cooking";}
 		if(preg_match("#\.meltyfood\.fr$#", $www)){return "hobby/cooking";}
 		if(preg_match("#\.rezeptwiese\.[a-z]+$#", $www)){return "hobby/cooking";}
 		if(preg_match("#\.marmitoncdn\.org$#", $www)){return "hobby/cooking";}

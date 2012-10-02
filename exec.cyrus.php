@@ -25,7 +25,9 @@ function listmailboxes(){
 	$cachefile="∕etc/artica-postfix/listmailboxes.db";
 	$ldap=new clladp();
 	$cyruspass=$ldap->CyrusPassword();	
+	if($cyruspass==null){echo "Warning cyrus password is not set!!!\n";}
 	$cmd="/usr/share/artica-postfix/bin/cyrus-admin.pl -u cyrus -p \"$cyruspass\" --list 2>&1";
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 	exec($cmd,$results);
 	echo @implode("\n", $results);
 

@@ -60,7 +60,7 @@ if($argv[1]=='--thumbs-parse'){thumbnail_parse();exit;}
 
 
 
-
+if($argv[1]=='--users-size'){users_size_hour();die();}
 if($argv[1]=='--scan-hours'){scan_hours();die();}
 if($argv[1]=='--scan-months'){scan_months();die();}
 if($argv[1]=='--tables-days'){table_days();die();}
@@ -431,19 +431,26 @@ function __re_categorize_subtables($oldT1=0){
 }
 
 
-function scan_hours(){
+function scan_hours($nopid=false){
 	if(!$GLOBALS["FORCE"]){
-		if(system_is_overloaded(basename(__FILE__))){error_log(basename(__FILE__)."::Fatal, Overloaded system, aborting task");die();}
+		if(system_is_overloaded(basename(__FILE__))){
+			writelogs_squid("Fatal, Overloaded system, aborting task",__FUNCTION__,__FILE__,__LINE__);
+			die();
+		}
 	}
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/scan_hours.time";
 	@file_put_contents($timefile, time());
 	
-	
-	$oldpid=@file_get_contents($pidfile);
-	$unix=new unix();
-	if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}die();}
+	if(!$nopid){
+		$oldpid=@file_get_contents($pidfile);
+		$unix=new unix();
+		if($unix->process_exists($oldpid)){
+			writelogs_squid("Fatal, already executed $oldpid, aborting task",__FUNCTION__,__FILE__,__LINE__);
+			die();
+		}
+	}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	$GLOBALS["Q"]->FixTables();
@@ -2641,6 +2648,71 @@ function thumbnail_alexa($path,$max){
 		echo "$c/$max {$tt[1]}\n";
 		thumbnail_site($tt[1]);
 	}
+	
+}
+
+function users_size_hour(){
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=@file_get_contents($pidfile);
+	if($oldpid<100){$oldpid=null;}
+	$unix=new unix();
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($pidtime>50){
+			ufdbguard_admin_events("Killing pid $oldpid, running since $pidtime mn", __FUNCTION__, __FILE__, __LINE__, "stats");
+			$kill=$unix->find_program("kill");
+			shell_exec("$kill -9 $oldpid");
+		}else{
+			ufdbguard_admin_events("pid already in memory $oldpid, running since $pidtime mn", __FUNCTION__, __FILE__, __LINE__, "stats");
+			return;
+		}
+		
+	}
+	
+	$mypid=getmypid();
+	@file_put_contents($pidfile,$mypid);
+	$q=new mysql_squid_builder();
+	$sql="SELECT DATE_FORMAT(zdate,'%Y%m%d') as tablesuffix,
+	DATE_FORMAT(zdate,'%Y-%m-%d') as tday,
+	COUNT(zMD5) as thits,
+	SUM(size) as size,HOUR(zdate) as zhour,
+	uid,ipaddr,hostname,account,MAC,UserAgent
+	FROM (SELECT * FROM UserSizeRTT WHERE zdate<DATE_SUB(NOW(),INTERVAL 1 HOUR)) as t
+	GROUP BY tablesuffix,zhour,uid,ipaddr,hostname,account,MAC,UserAgent";
+	
+	$results=$q->QUERY_SQL($sql);
+	
+	if(!$q->ok){ufdbguard_admin_events("Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+	$t=time();
+	if(mysql_num_rows($results)==0){return;}	
+	$c=0;
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+		$zMD5=md5(serialize($ligne));
+		if($ligne["tday"]=="1970-01-01"){continue;}
+		$ligne["UserAgent"]=addslashes($ligne["UserAgent"]);
+		$ligne["uid"]=addslashes($ligne["uid"]);
+		if($ligne["uid"]=="-"){$ligne["uid"]=null;}
+		$f[$ligne["tablesuffix"]][]="('$zMD5','{$ligne["uid"]}','{$ligne["tday"]}','{$ligne["ipaddr"]}','{$ligne["hostname"]}','{$ligne["account"]}','{$ligne["MAC"]}','{$ligne["UserAgent"]}','{$ligne["size"]}','{$ligne["thits"]}','{$ligne["zhour"]}')";
+	}	
+	
+	if(count($f)>0){
+		while (list ($tablesuffix, $rows) = each ($f) ){
+			$tablename="UserSizeD_$tablesuffix";
+			if(!$q->CreateUserSizeRTT_day($tablename)){ufdbguard_admin_events("$tablename: Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+			$sql="INSERT IGNORE INTO `$tablename` (`zMD5`,`uid`,`zdate`,`ipaddr`,`hostname`,`account`,`MAC`,`UserAgent`,`size`,`hits`,`hour`) VALUES ".@implode(",", $rows);
+			$q->QUERY_SQL($sql);
+			if(!$q->ok){ufdbguard_admin_events("$tablename: Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+			
+		}
+		
+		$sql="DELETE FROM UserSizeRTT WHERE zdate<DATE_SUB(NOW(),INTERVAL 1 HOUR)";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){ufdbguard_admin_events("$tablename: Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+		$q->QUERY_SQL("OPTIMIZE TABLE UserSizeRTT");
+		
+	}
+	
+	scan_hours(true);
 	
 }
 

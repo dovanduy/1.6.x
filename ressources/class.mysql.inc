@@ -995,6 +995,9 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	
 	
 	function TABLE_EXISTS($table,$database,$nocache=false){
+		$table=str_replace("`", "", $table);
+		$table=str_replace("'", "", $table);
+		$table=str_replace("\"", "", $table);
 		if(!$nocache){
 			if(!isset($GLOBALS["__MYSQL_TABLE_EXISTS"])){$GLOBALS["__MYSQL_TABLE_EXISTS"]=array();}
 			if(isset($GLOBALS["__MYSQL_TABLE_EXISTS"][$database][$table])){if($GLOBALS["__MYSQL_TABLE_EXISTS"][$database][$table]==true){return true;}}
@@ -1601,6 +1604,9 @@ function mysql_real_escape_string2($query){
 	
 	
 	FUNCTION COUNT_ROWS($table,$database){
+		$table=str_replace("`", "", $table);
+		$table=str_replace("'", "", $table);
+		$table=str_replace("\"", "", $table);
 		if(!function_exists("mysql_connect")){return 0;}
 		$sql="show TABLE STATUS WHERE Name='$table'";
 		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql,$database));

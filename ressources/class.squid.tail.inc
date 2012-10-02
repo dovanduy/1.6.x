@@ -15,6 +15,31 @@ class squid_tail{
 		$GLOBALS["USERSDB"]=unserialize($usersMacsDB);
 	}
 	
+	private function InjectSize($user,$ip,$mac,$UserAgent,$size){
+		if($ip=="127.0.0.1"){return;}
+		if($ip=="127.0.0.1"){return;}
+		if($mac=="00:00:00:00:00:00"){$mac=null;}
+		if($mac==null){$mac=$this->GetMacFromIP($ip);}
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $ip)){$computername=$this->GetComputerName($ip);}else{$computername=$ip;}
+		
+		if(!is_dir("/var/log/artica-postfix/squid-usersize")){@mkdir("/var/log/artica-postfix/squid-usersize",0755,true);}
+		$array=array(
+			"MD5"=>md5("$user$ip$mac$UserAgent"),
+			"TIME"=>time(),
+			"uid"=>$user,
+			"IP"=>$ip,
+			"MAC"=>$mac,
+			"UGNT"=>$UserAgent,
+			"HOSTNAME"=>$computername,
+			"SIZE"=>$size
+		);
+
+		$final=serialize($array);
+		$md=md5($final);
+		@file_put_contents("/var/log/artica-postfix/squid-usersize/$md.ev",$final);
+				
+	}
+	
 	
 	public function parse_tail($buffer){
 			$buffer=trim($buffer);
@@ -52,10 +77,11 @@ class squid_tail{
 					
 					$this->Builsql($ip,$user,$uri,$code_error,$size,$time,$cached,$mac);								
 					$this->InjectUserAuthDb($user,$ip,$mac,$UserAgent);
-					
+					$this->InjectSize($user,$ip,$mac,$UserAgent,$size);
 					return true;
 						
 			}	
+
 			
 			
 			if(preg_match('#(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(GET|POST|CONNECT|NONE)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
@@ -80,6 +106,7 @@ class squid_tail{
 					}	
 					$this->Builsql($ip,$user,$uri,$code_error,$size,$time,$cached,null);
 					$this->InjectUserAuthDb($user,$ip,$mac,$UserAgent);
+					$this->InjectSize($user,$ip,$mac,$UserAgent,$size);
 					return true;
 						
 			}	
@@ -146,6 +173,7 @@ private function CACHEDORNOT($SquidCode){
 	private function InjectUserAuthDb($user,$ip,$mac,$userAgent){
 		if($GLOBALS["DisableArticaProxyStatistics"]==1){return;}
 		if($ip=="127.0.0.1"){return;}
+		if($mac=="00:00:00:00:00:00"){$mac=null;}
 		if($mac==null){$mac=$this->GetMacFromIP($ip);}
 		$md5=md5("$user$ip$mac$userAgent");
 		if(is_file("/var/log/artica-postfix/squid-users/$md5.sql")){return;}
@@ -218,7 +246,7 @@ private function CACHEDORNOT($SquidCode){
 			$squid_error["507"]="Insufficient Storage";
 			$squid_error["600"]="Squid header parsing error";	
 	
-	
+	if($mac=="00:00:00:00:00:00"){$mac=null;}
 	
 	$URLAR=parse_url($uri);
 	if(isset($URLAR["host"])){$sitename=$URLAR["host"];}
@@ -350,14 +378,32 @@ private function CACHEDORNOT($SquidCode){
 		if(isset($GLOBALS["CACHEARP"][$ttl][$ipaddr])){return $GLOBALS["CACHEARP"][$ttl][$ipaddr];}
 		
 		if(!isset($GLOBALS["SBIN_ARP"])){$unix=new unix();$GLOBALS["SBIN_ARP"]=$unix->find_program("arp");}
-		if(strlen($GLOBALS["SBIN_ARP"])<4){return;}
+		if(!isset($GLOBALS["SBIN_ARPING"])){$unix=new unix();$GLOBALS["SBIN_ARPING"]=$unix->find_program("arping");}
 		
+		if(strlen($GLOBALS["SBIN_ARPING"])>3){
+			$cmd="{$GLOBALS["SBIN_ARPING"]} $ipaddr -c 1 -r 2>&1";
+			exec($cmd,$results);
+			while (list ($num, $line) = each ($results)){
+				if(preg_match("#^([0-9a-zA-Z\:]+)#", $line,$re)){
+					$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+					return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+				}
+			}
+		}
+		
+		
+		$results=array();
+			
+		if(strlen($GLOBALS["SBIN_ARP"])<4){return;}
 		if(!isset($GLOBALS["SBIN_PING"])){$unix=new unix();$GLOBALS["SBIN_PING"]=$unix->find_program("ping");}
 		if(!isset($GLOBALS["SBIN_NOHUP"])){$unix=new unix();$GLOBALS["SBIN_NOHUP"]=$unix->find_program("nohup");}
 		
+		
+		
+		
 		$cmd="{$GLOBALS["SBIN_ARP"]} -n \"$ipaddr\" 2>&1";
 		$this->events($cmd);
-		exec("{$GLOBALS["SBIN_ARP"]} -n \"$ipaddr\" 2>&1",$results);
+		exec($cmd,$results);
 		while (list ($num, $line) = each ($results)){
 			if(preg_match("#^[0-9\.]+\s+.+?\s+([0-9a-z\:]+)#", $line,$re)){
 				if($re[1]=="no"){continue;}

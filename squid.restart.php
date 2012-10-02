@@ -74,6 +74,7 @@ var tantS=0;
 function popup(){
 	$page=CurrentPageName();
 	
+	
 	if(isset($_GET["onlySquid"])){
 
 		$onlySquid="&onlySquid=yes";
@@ -96,11 +97,30 @@ function popup(){
 function restart(){
 	
 	$sock=new sockets();
-	$cmd="?force-restart-squid=yes";
+	
+	$users=new usersMenus();
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}	
+	
+	
+	$cmd="cmd.php?force-restart-squid=yes";
 	if(isset($_GET["onlySquid"])){
-		$cmd="?force-restart-squidonly=yes";
+		$cmd="cmd.php?force-restart-squidonly=yes";
 	}
-	$sock->getFrameWork("cmd.php$cmd");
+	
+	if($EnableWebProxyStatsAppliance==1){
+		$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
+		$tpl=new templates();
+		
+		echo $tpl->_ENGINE_parse_body("
+		<center style='font-size:18px'>{proxy_clients_was_notified}</center>");
+		return;
+	}
+	
+	$sock->getFrameWork($cmd);
 	
 	echo "
 	<center><img src=\"img/wait_verybig.gif\"></center>

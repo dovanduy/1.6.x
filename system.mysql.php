@@ -334,7 +334,7 @@ function tabs(){
 	
 	
 	echo "
-	<div id=main_config_mysql style='width:100%;height:750px;overflow:auto'>
+	<div id=main_config_mysql style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -409,7 +409,7 @@ function popup(){
 	
 $t=time();	
 $html="
-
+<center>
 <div style='width:720px'>
 <table style='width:99%' class=form>
 <tr>
@@ -421,6 +421,7 @@ $html="
 </table>
 	
 	</div>
+</center>
 	<script>
 	LoadAjax('mysql-status','$page?mysql-status=yes');
 	LoadAjax('$t','$page?text-status=yes');

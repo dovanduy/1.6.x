@@ -14,9 +14,8 @@ if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 if($argv[1]=="--register"){register();die();}
 
-
-if(!ifMustBeExecuted()){die();}
 if($argv[1]=="--uuid"){$sock=new sockets();echo base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"))."\n";die();}
+if(!ifMustBeExecuted()){die();}
 if($argv[1]=="--patterns"){die();}
 if($argv[1]=="--sitesinfos"){die();}
 if($argv[1]=="--groupby"){die();}
@@ -398,7 +397,10 @@ function Export($asPid=false){
 if(!is_array($array)){WriteMyLogs("Nothing to export",__FUNCTION__,__FILE__,__LINE__);return;}
 if(count($array)==0){WriteMyLogs("Nothing to export",__FUNCTION__,__FILE__,__LINE__);return;}
 
-	if($uuid<>"8cdd119c-2dc1-452d-b9d0-451c6046464f"){
+$WHITELISTED["1636b7346f2e261c5b21abfcaef45a69"]=true;
+$WHITELISTED["8cdd119c-2dc1-452d-b9d0-451c6046464f"]=true;
+
+	if(!isset($WHITELISTED[$uuid])){
 		if(count($array)>500){
 			$q->QUERY_SQL("TRUNCATE TABLE categorize_delete");
 			writelogs_squid("Too much categories to export ".count($array).">500, aborting",__FUNCTION__,__FILE__,__LINE__,"export");

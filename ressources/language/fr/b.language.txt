@@ -58,6 +58,8 @@ Vous pouvez ajouter des mots simples tels que &quot;porn&quot; or &quot;suck&quo
 Par exemple: 10.10.10.1:9001
 Si le port n'est pas d&eacute;finit, il sera renseign&eacute; par d&eacute;faut comme 9001</add_artica_agent_explain>
 <add_category_text>Ajouter une nouvelle cat&eacute;gorie dans votre configuration.</add_category_text>
+<add_dns_in_config>Ajoutez les serveurs DNS dans les param&egrave;tres</add_dns_in_config>
+<add_dns_in_config_perf_explain>Vous obtiendrez de meilleurs performances en ajoutant vos DNS dans la configuration.</add_dns_in_config_perf_explain>
 <add_domain>Ajouter un domaine</add_domain>
 <add_message_content>Ajouter le contenu</add_message_content>
 <add_mime_type_white_explain>Donnez ici le type MIME que vous d&eacute;sirez exclure. 
@@ -318,6 +320,7 @@ Elle permet de construire les tables n&eacute;cessaires &agrave; la construction
 <build_rules>Construire les r&egrave;gles</build_rules>
 <build_support_package>Construire un paquetage &quot;support&quot;</build_support_package>
 <build_web_filtering_rules>Construire les r&egrave;gles du filtrage web</build_web_filtering_rules>
+<byMonth>Par mois</byMonth>
 <bypass_iffailed>Passer outre en cas d'&eacute;chec</bypass_iffailed>
 <by_proxy_groups>Par groupe de Proxy</by_proxy_groups>
 <cached_items>&Eacute;l&eacute;ment(s) du cache</cached_items>
@@ -366,6 +369,8 @@ Aucun message n'est envoy&eacute; dans le test.</check_recipient_explain>
 <check_system_updates>V&eacute;rifie les mises &agrave; jour syst&egrave;mes</check_system_updates>
 <check_system_updates_explain>Ex&eacute;cute le syst&egrave;me de mise &agrave; jour officiel du constructeur du syst&egrave;me d'exploitation afin de v&eacute;rifier si des nouvelles mises &agrave; jour sont disponibles.</check_system_updates_explain>
 <chgroot_password>Mot de passe root</chgroot_password>
+<choose_date>Choisir une date</choose_date>
+<choose_day>Choisir une journ&eacute;e</choose_day>
 <choose_your_zarafa_webserver_type>Choisir le type d'application Zarafa</choose_your_zarafa_webserver_type>
 <chrome_pac_how_to>Google chrome utilise les m&ecirc;mes param&egrave;tres de connexion que le navigateur Internet Explorer/Syst&egrave;me.[br]
 Le changement des param&egrave;tres dans Google Chrome affecte donc aussi ceux de Internet Explorer et vis versa.[br]
@@ -731,6 +736,8 @@ G&eacute;n&eacute;ralement ceux ajout&eacute;s dans le syst&egrave;me LDAP local
 <hobby-other>Sites de loisirs et sur la vie de tous les jours[br]Ce qui ne peut pas &ecirc;tre plac&eacute; dans les autres cat&eacute;gories</hobby-other>
 <hook_mailboxto>Raccrocher la BAL &agrave;</hook_mailboxto>
 <hostname>Nom d'h&ocirc;te</hostname>
+<hourly_bandwidth_users>Bande passante utilisateurs par heure</hourly_bandwidth_users>
+<hourly_bandwidth_users_explain>Cette t&acirc;che calcul la bande passante utilis&eacute;e des utilisateurs par heure.</hourly_bandwidth_users_explain>
 <hourly_cache_performances>Performances horaire du cache</hourly_cache_performances>
 <hourly_cache_performances_explain>Calcul les performances du cache pour chaque heure.</hourly_cache_performances_explain>
 <howtogenerateproxycsv>Comment g&eacute;n&eacute;rer des fichier de logs au format CSV ?</howtogenerateproxycsv>
@@ -1006,7 +1013,10 @@ Basically, each distribution list added in this section are stored outside the L
 <mysql_tmp_mem_text>D&eacute;finir le r&eacute;pertoire temporaire en m&eacute;moire afin d'am&eacute;liorer les performances.</mysql_tmp_mem_text>
 <mysql_tuning>Tuning MySQL</mysql_tuning>
 <mysql_warn_must_tune>Il semble que le service MySQL risque d'utiliser plus de m&eacute;moire que le syst&egrave;me peut en fournir (%m Mb).[br]Cliquez ici afin de r&eacute;duire sa consommation m&eacute;moire.</mysql_warn_must_tune>
+<my_backuped_mails>Mes messages sauvegard&eacute;s</my_backuped_mails>
+<my_backuped_mails_text>Recherchez et renvoyez vos messages sauvegard&eacute;s</my_backuped_mails_text>
 <my_members>Mes membres</my_members>
+<my_messaging_statistics>Statistiques de mon compte de messagerie sur les messages re&ccedil;us et envoy&eacute;s par le relais de messagerie.</my_messaging_statistics>
 <my_messaging_statistics_text>Les statistiques SMTP de votre compte de messagerie.</my_messaging_statistics_text>
 <my_public_ip>Mon adresse IP Publique</my_public_ip>
 <nb_employees>Nombre d'employ&eacute;s</nb_employees>
@@ -1162,6 +1172,7 @@ Autoriser seulement les adresses: 192.168.*: &quot;192.168&quot;.[br]
 Autoriser une seule adresse: &quot;192.168.1.5&quot;</protect_phpmyadmin_item_text>
 <protect_phpmyadmin_text>Renforce la s&eacute;curit&eacute; d'acc&egrave;s &agrave; l'application PhpMyAdmin.</protect_phpmyadmin_text>
 <proxy_child>Proxy enfant</proxy_child>
+<proxy_clients_was_notified>Les clients proxy ont &eacute;t&eacute;s notifi&eacute;s afin de red&eacute;marrer leurs services.</proxy_clients_was_notified>
 <PROXY_EVENTS>&Eacute;v&egrave;nements Proxy</PROXY_EVENTS>
 <proxy_logrotate_done>La rotation des logs du proxy a &eacute;t&eacute; effectu&eacute;e</proxy_logrotate_done>
 <proxy_objects>objets proxy</proxy_objects>

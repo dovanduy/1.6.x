@@ -192,12 +192,7 @@ if($argv[1]=="--arkeia"){echo arkwsd()."\n";echo arkeiad();die();}
 if($argv[1]=="--haproxy"){echo haproxy();die();}
 if($argv[1]=="--mailman"){echo mailman();die();}
 if($argv[1]=="--mimedefang"){echo mimedefang()."\n".mimedefangmx();die();}
-
-
-
-
-
-
+if($argv[1]=="--mailarchiver"){echo mailarchiver();die();}
 
 if($GLOBALS["VERBOSE"]){echo "cannot understand {$argv[1]} assume perhaps it is a function\n";}
 
@@ -911,7 +906,7 @@ function launch_all_status($force=false){
 	"dnsmasq","iscsi","watchdog_yorel","netatalk","postfwd2","vps_servers","smartd","crossroads_multiple","auth_tail","greyhole_watchdog","greensql","nscd","tomcat",
 	"openemm","openemm_sendmail","cgroups","ntpd_server","arpd","ps_mem","ipsec","yaffas","ifconfig_network","testingrrd","zarafa_multi","memcached","UpdateUtilityHTTP",
 	"udevd_daemon","dbus_daemon","ejabberd","pymsnt", "arkwsd", "arkeiad","haproxy","klms_status","klmsdb_status","klms_milter","CleanLogs","mimedefangmx","mimedefang",
-	"zarafa_search","snort"
+	"zarafa_search","snort","mailarchiver"
 	);
 	$data1=$GLOBALS["TIME_CLASS"];
 	$data2 = time();
@@ -1706,6 +1701,41 @@ function mimedefang_version(){
 	}
 	
 }
+//========================================================================================================================================================
+function mailarchiver(){
+	$MailArchiverEnabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('MailArchiverEnabled');
+	if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
+	if($GLOBALS["VERBOSE"]){echo "DEBUG: MailArchiverEnabled..: $MailArchiverEnabled\n";}
+	$pid_path="/var/run/maildump/maildump.pid";
+	if($GLOBALS["VERBOSE"]){echo "DEBUG: pid path....: $pid_path\n";}
+	$master_pid=trim(@file_get_contents($pid_path));
+	if($GLOBALS["VERBOSE"]){echo "DEBUG: master pid..: $master_pid\n";}	
+	
+	$l[]="[APP_MAILARCHIVER]";
+	$l[]="service_name=APP_MAILARCHIVER";
+	$l[]="master_version=1.0.20090200";
+	$l[]="service_cmd=mailarchiver";
+	$l[]="service_disabled=$MailArchiverEnabled";
+	$l[]="pid_path=$pid_path";
+	$l[]="watchdog_features=1";
+	$l[]="family=postfix";
+	if($MailArchiverEnabled==0){return implode("\n",$l);return;}
+	 
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		WATCHDOG("APP_MAILARCHIVER","mailarchiver");
+		$l[]="running=0";
+		$l[]="installed=1\n";
+		return implode("\n",$l);
+		return;
+	}
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+	
+	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.mailarchiver.php >/dev/null 2>&1 &");
+	return implode("\n",$l);return;	
+	
+}
 
 //========================================================================================================================================================
 function mimedefang(){
@@ -1717,7 +1747,7 @@ function mimedefang(){
 
 
 	}
-	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('MimeDefangEnabled');
+	$MimeDefangEnabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('MimeDefangEnabled');
 	if(!is_numeric($MimeDefangEnabled)){$MimeDefangEnabled=0;}
 
 	if($GLOBALS["VERBOSE"]){echo "DEBUG: MimeDefangEnabled..: $MimeDefangEnabled\n";}
@@ -1731,11 +1761,11 @@ function mimedefang(){
 	$l[]="service_name=APP_MIMEDEFANG";
 	$l[]="master_version=".mimedefang_version();
 	$l[]="service_cmd=mimedefang";
-	$l[]="service_disabled=$enabled";
+	$l[]="service_disabled=$MimeDefangEnabled";
 	$l[]="pid_path=$pid_path";
 	$l[]="watchdog_features=1";
 	$l[]="family=postfix";
-	if($enabled==0){return implode("\n",$l);return;}
+	if($MimeDefangEnabled==0){return implode("\n",$l);return;}
 	 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		WATCHDOG("APP_MIMEDEFANG","mimedefang");
@@ -2437,8 +2467,9 @@ function cyrus_imap(){
 	$l[]="running=1";
 	$l[]=GetMemoriesOf($master_pid);
 	$l[]="";
-
+	if(is_file("/var/run/saslauthd/mux")){@chmod("/var/run/saslauthd/mux", 0777);}
 	return implode("\n",$l);return;
+	
 
 }
 
@@ -2682,6 +2713,8 @@ function saslauthd(){
 	$l[]="running=1";
 	$l[]=GetMemoriesOf($master_pid);
 	$l[]="";
+	
+	if(is_file("/var/run/saslauthd/mux")){@chmod("/var/run/saslauthd/mux", 0777);}
 
 	return implode("\n",$l);return;
 

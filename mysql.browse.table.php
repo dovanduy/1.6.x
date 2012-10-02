@@ -112,6 +112,9 @@ function sql_query_js(){
 		
 		$q->mysql_error=str_replace("'", "`", $q->mysql_error);
 		$q->mysql_error=str_replace("\n", "\\n", $q->mysql_error);
+		$sql=str_replace("'", "`", $sql);
+		$sql=str_replace("\n", "\\n", $sql);
+		
 		echo "alert('$q->mysql_error\\n$sql')";
 		return;
 	}

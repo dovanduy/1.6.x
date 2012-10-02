@@ -1,25 +1,78 @@
 <?php
 class squid_acls_groups{
 	var $GroupTypesTxt=array();
-	
+	var $ACL_ARP_ENABLED=false;
+	var $RequestedGroupeType=null;
+	var $UseDynamicGroupsAcls=0;
+	var $EnableKerbAuth=0;
+	var $AUTH=0;	
 
 	function squid_acls_groups(){
 	$this->GroupTypes["src"]="{addr}";
 	$this->GroupTypes["arp"]="{ComputerMacAddress}";
 	$this->GroupTypes["dstdomain"]="{dstdomain}";
 	$this->GroupTypes["proxy_auth"]="{members}";
-		
+	$sock=new sockets();
+	$this->ACL_ARP_ENABLED=$users->SQUID_ARP_ACL_ENABLED;
+	$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
+	if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}
+	$this->EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	if(!is_numeric($this->EnableKerbAuth)){$this->EnableKerbAuth=0;}
+	$squid=new squidbee();
+	if($squid->LDAP_AUTH==1){$this->AUTH=1;}
+	if($squid->LDAP_EXTERNAL_AUTH==1){$this->AUTH=1;}
+	if($squid->EnableKerbAuth==1){$this->AUTH=1;}		
 		
 	}
+	
+	function buildacls_order(){
+		$q=new mysql_squid_builder();
+		$sql="SELECT webfilters_sqacls.ID,
+		webfilters_sqacls.xORDER,
+		webfilters_sqaclaccess.httpaccess_data,
+		webfilters_sqaclaccess.httpaccess
+		FROM webfilters_sqacls, webfilters_sqaclaccess 
+		WHERE webfilters_sqacls.ID=webfilters_sqaclaccess.aclid
+		AND webfilters_sqacls.enabled=1
+		ORDER BY webfilters_sqacls.xORDER";
+
+		$results = $q->QUERY_SQL($sql);
+		if(!$q->ok){if(preg_match("#Error Table.*?doesn't exist#",$q->mysql_error)){$q->CheckTables();$results = $q->QUERY_SQL($sql);}}
+		if($GLOBALS["VERBOSE"]){echo "DEBUG: ACLS: Find `byorder` -> ". mysql_num_rows($results)." items\n";}
+		if(!$q->ok){if($GLOBALS["AS_ROOT"]){echo "Starting......: Squid : $q->mysql_error\n";}}
+		
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$httpaccess=$ligne["httpaccess"];
+			if($httpaccess=="tcp_outgoing_tos"){continue;}
+			if($httpaccess=="url_rewrite_access_deny"){continue;}
+			if($httpaccess=="adaptation_access_deny"){continue;}
+			$reverse=false;
+			
+			$aclid=$ligne["ID"];
+			if($httpaccess=="deny_access_except"){$reverse=true;$firstToken="http_access deny";}
+			if($httpaccess=="access_allow"){$firstToken="http_access allow";}
+			if($httpaccess=="access_deny"){$firstToken="http_access deny";}
+			$groups=$this->buildacls_bytype_items($aclid,$reverse);
+			if($GLOBALS["AS_ROOT"]){echo "Starting......: Squid :[$aclid] $httpaccess ($firstToken) ". count($groups)." token(s)\n";}
+			if(count($groups)==0){continue;}
+			$conf[]="$firstToken ".@implode(" ", $groups);
+			
+			
+		}	
+		
+		return @implode("\n", $conf);
+		
+	}
+	
 	
 	function buildacls_bytype($ruletype){
 		if($GLOBALS["VERBOSE"]){echo "DEBUG: ACLS: Find `$ruletype`\n";}
 		$rulesAcls=array();
-		$sql="SELECT webfilters_sqacls.ID,webfilters_sqaclaccess.httpaccess_data
+		$sql="SELECT webfilters_sqacls.ID,webfilters_sqacls.xORDER,webfilters_sqaclaccess.httpaccess_data
 		FROM webfilters_sqacls, webfilters_sqaclaccess 
 		WHERE webfilters_sqacls.ID=webfilters_sqaclaccess.aclid
 		AND webfilters_sqacls.enabled=1
-		AND webfilters_sqaclaccess.httpaccess='$ruletype'";
+		AND webfilters_sqaclaccess.httpaccess='$ruletype' ORDER BY webfilters_sqacls.xORDER";
 		$reverse=false;
 		$q=new mysql_squid_builder();
 		if($ruletype=="deny_access_except"){$reverse=true;}
@@ -58,12 +111,22 @@ class squid_acls_groups{
 		$prefix=null;
 		if($reverse){$prefix="!";}
 		$acls_name=array();
-		$sql="SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,webfilters_sqgroups.ID FROM webfilters_sqacllinks,webfilters_sqgroups 
+		$sql="SELECT 
+		webfilters_sqacllinks.gpid,
+		webfilters_sqacllinks.negation,
+		webfilters_sqgroups.GroupType,
+		webfilters_sqgroups.ID 
+		FROM webfilters_sqacllinks,webfilters_sqgroups 
 		WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID AND webfilters_sqacllinks.aclid=$aclid";
 		$q=new mysql_squid_builder();
 		$results = $q->QUERY_SQL($sql);
 		if($GLOBALS["VERBOSE"]){echo "DEBUG: ACLS: ID:$aclid -> ". mysql_num_rows($results)." items\n";}
 		while ($ligne = mysql_fetch_assoc($results)) {
+			$GroupType=$ligne["GroupType"];
+		
+			if($GroupType=="proxy_auth_ads"){if($this->EnableKerbAuth==0){continue;}}
+			if($GroupType=="proxy_auth"){if($this->AUTH==0){continue;}}
+			
 			$neg=null;
 			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}' AND enabled=1"));
 			$items=$ligne2["tcount"];

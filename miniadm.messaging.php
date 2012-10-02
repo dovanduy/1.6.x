@@ -62,7 +62,9 @@ function messaging_left(){
 	$users=new usersMenus();
 	$tpl=new templates();
 	$EnableFetchmail=$sock->GET_INFO("EnableFetchmail");
+	$MailArchiverEnabled=$sock->GET_INFO("MailArchiverEnabled");
 	if(!is_numeric($EnableFetchmail)){$EnableFetchmail=0;}
+	if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
 	
 	if($users->AllowFetchMails){
 		if($users->fetchmail_installed){
@@ -75,20 +77,20 @@ function messaging_left(){
 	}
 	
 	if($users->AllowEditAliases){
-		
 		$t[]=Paragraphe("rebuild-mailboxes-64.png", "{aliases}", "{enduser_aliases_text}","miniadm.aliases.php");
-		
 	}
 
 	if($users->AllowUserMaillog){
-		
 		$t[]=Paragraphe("64-mailevents.png", "{messaging_events}", "{messaging_events_text}","miniadm.maillog.php");
-		
 	}
+	
+	if($MailArchiverEnabled==1){
+		$t[]=Paragraphe("64-backup.png", "{my_backuped_mails}", "{my_backuped_mails_text}","miniadm.messaging.backup.php");
+	}	
 	
 	$t[]=Paragraphe("statistics-64.png", "{messaging_statistics}", "{my_messaging_statistics}","miniadm.messaging.user.stats.php");
 
-	
+
 	
 	$html="<div class=BodyContent><center><div style='width:700px'>".CompileTr3($t,"none")."</div></center></div>";
 	echo $tpl->_ENGINE_parse_body($html);

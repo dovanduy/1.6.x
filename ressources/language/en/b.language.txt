@@ -2142,6 +2142,9 @@ Note: After the certificate generation, you need to restart all linked services.
 <postfix_stats_month>Monthly messaging statistics</postfix_stats_month>
 <error_missing_tables_click_to_repair>Error, there is some missing tables on the database.[br]
 Click on the "repair" button in order to create these tables</error_missing_tables_click_to_repair>
+<add_dns_in_config>Add DNS servers in settings</add_dns_in_config>
+<add_dns_in_config_perf_explain>You will obtain better performances by specify 
+DNS servers in your configuration</add_dns_in_config_perf_explain>
 <dst>Destination IP(s)</dst>
 <use_dynamic_groups_acls>Use dynamic ACLS groups</use_dynamic_groups_acls>
 <dynamic_activedirectory_group>Dynamic Active Directory Group</dynamic_activedirectory_group>
@@ -2188,3 +2191,12 @@ If after enable it your users complain about a low bandwidth, disable this featu
 <display_fw_rules>Display FireWall rules</display_fw_rules>
 <wrong_value>wrong value</wrong_value>
 <sslbum_wl_not_supported_transp>Notice: This feature did not support in transparent mode.</sslbum_wl_not_supported_transp>
+<hourly_bandwidth_users>Hourly bandwidth users</hourly_bandwidth_users>
+<hourly_bandwidth_users_explain>This task calculate members bandwidth consumption for each hour</hourly_bandwidth_users_explain>
+<proxy_clients_was_notified>Proxy clients has been notified to restart services</proxy_clients_was_notified>
+<my_backuped_mails>My Backuped messages</my_backuped_mails>
+<my_backuped_mails_text>Search and resend your backuped messages</my_backuped_mails_text>
+<choose_day>Choose day</choose_day>
+<choose_date>Choose date</choose_date>
+<my_messaging_statistics>Statistics of my messaging.[br]Sent and received messages passed trought the relay for my account</my_messaging_statistics>
+<byMonth>By month</byMonth>

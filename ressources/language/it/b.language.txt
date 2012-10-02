@@ -69,6 +69,10 @@ Define ip:port (10.10.10.1:9001).
 If no port is defined, default will be the 9001.
 </add_artica_agent_explain>
 <add_category_text>Add a new category in your configuration</add_category_text>
+<add_dns_in_config>Add DNS servers in settings/add_dns_in_config>
+<add_dns_in_config_perf_explain>You will obtain better performances by specify DNS servers in your configuration</add_dns_in_config>
+<add_dns_in_config_perf_explain>You will obtain better performances by specify 
+DNS servers in your configuration</add_dns_in_config_perf_explain>
 <add_domain>Add a domain</add_domain>
 <add_message_content>Add message content</add_message_content>
 <add_mime_type_white_explain>Give here the Mime type you want to be whitelisted.
@@ -372,6 +376,7 @@ It is designed to build websites statistics.</build_crypted_tables_catz_explain>
 <build_rules>Build rules</build_rules>
 <build_support_package>Build a "support" package</build_support_package>
 <build_web_filtering_rules>Build web filtering rules</build_web_filtering_rules>
+<byMonth>By month</byMonth>
 <bypass_iffailed>Bypass service if failed</bypass_iffailed>
 <by_proxy_groups>By proxy group</by_proxy_groups>
 <cached_items>Cached item(s)</cached_items>
@@ -430,6 +435,8 @@ The process will build a message as a MS Outlook Client.
 <check_system_updates>Verify system updates</check_system_updates>
 <check_system_updates_explain>Execute the standard operating system updates and verify if there are new updates provided by the operating system vendor</check_system_updates_explain>
 <chgroot_password>Root password</chgroot_password>
+<choose_date>Choose date</choose_date>
+<choose_day>Choose day</choose_day>
 <choose_your_zarafa_webserver_type>Choose your Zarafa Webserver type</choose_your_zarafa_webserver_type>
 <chrome_pac_how_to>how_to_configure_browser_isp>Google Chrome uses the same connection and proxy settings as Windows.[br]
 Changing these settings affects Google Chrome as well as Internet Explorer and other Windows programs.[br]
@@ -833,6 +840,8 @@ hobbies and other tasks that comprise everyday life that cannot be categorized o
 </hobby-other>
 <hook_mailboxto>Hook mailbox to</hook_mailboxto>
 <hostname>hostname</hostname>
+<hourly_bandwidth_users>Hour bandwidth users</hourly_bandwidth_users>
+<hourly_bandwidth_users_explain>This task calculate members bandwidth consumption for each hour</hourly_bandwidth_users_explain>
 <hourly_cache_performances>Hourly cache performances</hourly_cache_performances>
 <hourly_cache_performances_explain>Calculate the caching performance for each hour</hourly_cache_performances_explain>
 <howtogenerateproxycsv>How to generate CSV logs ?</howtogenerateproxycsv>
@@ -1157,7 +1166,10 @@ This task is able to defrag Mysql tables on your MySQL server
 <mysql_tuning>MySQL tuning</mysql_tuning>
 <mysql_warn_must_tune>It seems that the MySQL service should use more memory than your server can serve (%m Mb).[br]
 Click on this warning in order to reduce the MySQL memory consumption.</mysql_warn_must_tune>
+<my_backuped_mails>My Backuped messages</my_backuped_mails>
+<my_backuped_mails_text>Search and resend your backuped messages</my_backuped_mails_text>
 <my_members>My members</my_members>
+<my_messaging_statistics>Statistics of my messages sent and received for my account</my_messaging_statistics>
 <my_messaging_statistics_text>your account SMTP Messaging statistics</my_messaging_statistics_text>
 <my_public_ip>My Public IP</my_public_ip>
 <nb_employees>employees number:</nb_employees>
@@ -1324,6 +1336,7 @@ Allow only a single IP: &quot;192.168.1.5&quot;
 </protect_phpmyadmin_item_text>
 <protect_phpmyadmin_text>Enforce security and defines rules that restrict access to the mysql folder that handle phpmyadmin</protect_phpmyadmin_text>
 <proxy_child>Child Proxy</proxy_child>
+<proxy_clients_was_notified>Proxy clients has been notified to restart services</proxy_clients_was_notified>
 <PROXY_EVENTS>Proxy events</PROXY_EVENTS>
 <proxy_logrotate_done>Proxy log rotation as been performed</proxy_logrotate_done>
 <proxy_objects>Proxy objects</proxy_objects>

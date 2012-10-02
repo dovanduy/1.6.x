@@ -27,6 +27,10 @@ if(isset($_GET["transactions-order"])){transaction_search_postfixid();exit;}
 if(isset($_GET["reconfigure-mailman"])){reconfigure_mailman();exit;}
 if(isset($_GET["mailbox-transport"])){mailbox_transport();exit;}
 if(isset($_GET["mailbox-transport-maps"])){mailbox_transport_maps();exit;}
+if(isset($_GET["milters"])){build_milters();exit;}
+if(isset($_GET["restart-mailarchiver"])){restart_mailarchiver();exit;}
+if(isset($_GET["mailarchiver-status"])){mailarchiver_status();exit;}
+
 
 if(isset($_GET["happroxy"])){happroxy();exit;}
 
@@ -72,6 +76,14 @@ function isp_adv_remount(){
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
 }
+function restart_mailarchiver(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup /etc/init.d/artica-postfix restart mailarchiver >/dev/null 2>&1 &";
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
+}
+
 
 function multibubble(){
 	$unix=new unix();
@@ -98,6 +110,25 @@ function multiple_reconfigure_single(){
 	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.postfix-multi.php --instance-reconfigure \"$hostname\" >/dev/null 2>&1 &";
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+}
+function build_milters(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();	
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.postfix.maincf.php --milters >/dev/null 2>&1 &");	
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	shell_exec($cmd);	
+	$cmd=trim("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	shell_exec($cmd);		
+		
+}
+function mailarchiver_status(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();	
+	$cmd="$php5 /usr/share/artica-postfix/exec.status.php --mailarchiver --nowachdog";
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";	
 }
 
 function happroxy(){

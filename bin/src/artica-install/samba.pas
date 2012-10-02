@@ -179,8 +179,9 @@ var
   ldap_string:string;
   mds:string;
   KerbAuthDisableNsswitch:integer;
+  compat_string:string;
 begin
-
+   compat_string:='compat';
 if not FileExists(lib_pam_ldap_path()) then begin
    logs.Debuglogs('nsswitch_conf:: unable to stat pam_ldap.so');
    exit;
@@ -225,6 +226,7 @@ if FileExists(WINBIND_BIN_PATH()) then begin
    if KerbAuthDisableNsswitch=1 then begin
       logs.Debuglogs('Starting......:  KerbAuthDisableNsswitch set to ban winbind..');
       winbind:='';
+      compat_string:='files';
    end;
 
 end else begin
@@ -256,9 +258,9 @@ l.Add('# If you have the `glibc-doc-reference'' and `info'' packages installed, 
 l.Add('# `info libc "Name Service Switch"'' for information about this file.');
 l.Add('bind_policy soft');
 l.Add('');
-l.Add('passwd:         compat'+ldap_string+winbind);
-l.Add('group:          compat'+ldap_string+winbind);
-l.Add('shadow:         compat'+ldap_string+winbind);
+l.Add('passwd:         '+compat_string+' '+ldap_string+winbind);
+l.Add('group:          '+compat_string+' '+ldap_string+winbind);
+l.Add('shadow:         '+compat_string+' '+ldap_string+winbind);
 l.Add('');
 l.Add('hosts:          '+mds);
 l.Add('networks:       files');

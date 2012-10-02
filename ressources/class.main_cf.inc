@@ -1222,6 +1222,8 @@ public	function BuildMilters($asarray=false){
 		$artica=new artica_general();
 		$milter_protcol=0;
 		$postfix_version=$user->POSTFIX_VERSION;
+		$MailArchiverEnabled=$sock->GET_INFO("MailArchiverEnabled");
+		if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
 		$milter_connect_macros="j _ {daemon_name} {if_name} {if_addr} {client_name} {client_addr} {client_resolve} {client_ptr}";
 		$milter_helo_macros = "{tls_version} {cipher} {cipher_bits} {cert_subject} {cert_issuer}";
 		$milter_mail_macros = "i {auth_type} {auth_authen} {auth_ssf} {auth_author} {mail_mailer} {mail_host} {mail_addr} {client_addr} {if_addr}";
@@ -1380,11 +1382,7 @@ public	function BuildMilters($asarray=false){
 			
 			
 		
-		if($user->EnableMysqlFeatures==1){
-			if($user->EnableAmavisDaemon<>1){
-				if($sock->GET_INFO("MailArchiverEnabled")==1){$smtpd_milters[]="unix:/var/run/maildump/maildump.socket";}
-			}
-		}
+		if($MailArchiverEnabled==1){$smtpd_milters[]="unix:/var/run/maildump/maildump.socket";}
 			
 		
 		if(count($smtpd_milters)>0){

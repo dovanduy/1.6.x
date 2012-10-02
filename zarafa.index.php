@@ -74,6 +74,7 @@ function popup(){
 	$array["popup-mailbox"]="{mailboxes}";
 	$array["popup-license"]="{zarafa_license}";
 	$array["tools"]="{tools}";
+	$array["backup"]="{backup}";
 	
 	if(count($array)>6){$fontsize="font-size:12px"; }
 	
@@ -106,6 +107,11 @@ function popup(){
 
 		if($num=="popup-instances"){
 			$html[]="<li><a href=\"zarafa.freewebs.php$adduri2\"><span>$ligne</span></a></li>\n";
+			continue;
+		}	
+
+		if($num=="backup"){
+			$html[]="<li><a href=\"zarafa.backup.php$adduri2\"><span>$ligne</span></a></li>\n";
 			continue;
 		}			
 		

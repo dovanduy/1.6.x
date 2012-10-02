@@ -1365,7 +1365,9 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 	$this->events("EnableStopPostfix=$EnableStopPostfix",__FUNCTION__,__LINE__);	
 	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 	$EnableArticaSMTPStatistics=$sock->GET_INFO("EnableArticaSMTPStatistics");
+	$MailArchiverEnabled=$sock->GET_INFO("MailArchiverEnabled");
 	if(!is_numeric($EnableArticaSMTPStatistics)){$EnableArticaSMTPStatistics=1;}
+	if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
 	$ini_notifs=new Bs_IniHandler();
 	$this->events("cmd.php?SmtpNotificationConfigRead=yes",__FUNCTION__,__LINE__);
 	$ini_notifs->loadString($sock->getFrameWork("cmd.php?SmtpNotificationConfigRead=yes"));	
@@ -1432,6 +1434,25 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA",$ini,null,1,"220px",true,1,"Loadjs('quicklinks.postfix.php?js=yes')");
 		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA_GATEWAY",$ini,null,1,"220px",true,1,"Loadjs('quicklinks.postfix.php?js=yes')");
 		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA_WEB",$ini,null,1,"220px",true,1,"Loadjs('quicklinks.postfix.php?js=yes')");
+	}
+	
+	if($MailArchiverEnabled==1){
+		$ini=new Bs_IniHandler();
+		$ini->loadString(base64_decode($sock->getFrameWork("postfix.php?mailarchiver-status=yes")));
+		$multis[]=DAEMON_STATUS_LINE("APP_MAILARCHIVER",$ini,null,1,"220px",true,1,"Loadjs('postfix.index.php?script=backup')");
+		include_once(dirname(__FILE__).'/class.mysql.archive.builder.inc');	
+		$qArch=new mysql_mailarchive_builder();
+		if($qArch->TABLE_EXISTS("indextables")){
+			$qArchLigne=mysql_fetch_array($qArch->QUERY_SQL("SELECT SUM(rowsnum) as trows,SUM(size) as tsize FROM indextables"));
+			$emailsNumber=numberFormat($qArchLigne["trows"],0,'.',' ');
+			$emailsSize=FormatBytes($qArchLigne["tsize"]/1024);
+			$backup="
+				<tr". CellRollOver("Loadjs('postfix.index.php?script=backup')","{all_mailbackup_text}").">
+					<td align='right' style='$textFONTStyle'>{backup}:</a>&nbsp;</td>
+					<td colspan=2 nowrap><strong style='$textFONTStyle;font-weight:bold;'>". 
+					numberFormat($emailsNumber,0,'.',' ')."</strong>&nbsp;emails&nbsp;($emailsSize)</td>
+				</tr>";
+		}
 	}
 	
 	
@@ -1528,13 +1549,8 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 		
 	
 		
-		if($table_storage>0){$backup="
-					<tr ". CellRollOver("Loadjs('domains.backup.php?js=yes&Master=yes')","{all_mailbackup_text}").">
-						<td align='right' style='$textFONTStyle'>{backup}:</a>&nbsp;</td>
-						<td colspan=2 nowrap><strong style='$textFONTStyle;font-weight:bold;'>". numberFormat($table_storage,0,'.',' ')."</strong>&nbsp;emails&nbsp;</td>
-					</tr>	";
-		}	
-	
+
+		
 		
 		if($table_smtp_logs>0){$nb_events="
 					<tr ". CellRollOver().">

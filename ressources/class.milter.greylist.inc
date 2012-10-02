@@ -380,10 +380,17 @@ function BuildConfig(){
 								if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist `{$ligne["method"]}` field `pattern` is null but assume description `{$rz[1]}@{$rz[2]}`\n";}
 								$ligne["pattern"]="{$rz[1]}@{$rz[2]}";
 							}
+							
+							if(preg_match("#\*@([a-zA-Z0-9\-\_\.]+)#", $ligne["description"],$rz)){
+								$ligne["type"]="domain";
+								if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist `{$ligne["method"]}` field `pattern` is null but assume description `@{$rz[1]}`\n";}
+								$ligne["pattern"]=$rz[1];
+							}
+							
 						}
 					}	
 
-					if(trim($ligne["pattern"])==null){if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist field `pattern` is null skipping rule {$ligne["ID"]}\n";}continue;}		
+					if(trim($ligne["pattern"])==null){if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist field `pattern` desc:`{$ligne["description"]}` is null skipping rule {$ligne["ID"]}\n";}continue;}		
 					if($ligne["type"]=="domain"){if(strpos($ligne["pattern"], '@')>0){$ligne["type"]="from";}}
 					$ligne["pattern"]=$this->is_regex($ligne["pattern"]);
 					if(trim($ligne["pattern"])==null){if($GLOBALS["VERBOSE"]){echo "Warning BuildConfig() pattern is null for {$ligne["pattern"]} in line ".__LINE__."\n";}}

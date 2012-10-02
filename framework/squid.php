@@ -181,18 +181,7 @@ function recategorize_week(){
 	
 }
 function cron_tail_injector_plus(){
-	return;
-	$unix=new unix();
-	$php5=$unix->LOCATE_PHP5_BIN();
- 	$targetfile="/etc/cron.d/SquidTailInjector";
- 	$f[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin:/usr/share/artica-postfix/bin";
-	$f[]="MAILTO=\"\"";
-	$f[]="* * * * *  root $php5 /usr/share/artica-postfix/exec.squid-tail-injector.php >/dev/null 2>&1";
-	$f[]="";	
-	
-	@file_put_contents($targetfile,implode("\n",$f));
-	$chmod=$unix->find_program("chmod");
-	shell_exec("$chmod 640 $targetfile");
+	cron_tail_injector_moins();
 }
 function cron_tail_injector_moins(){
 	@unlink("/etc/cron.d/SquidTailInjector");

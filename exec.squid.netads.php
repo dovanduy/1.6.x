@@ -20,6 +20,7 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 
 $unix=new unix();
 $sock=new sockets();
+
 $array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 $net=$unix->find_program("net");
 

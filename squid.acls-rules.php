@@ -22,6 +22,7 @@
 	if(isset($_GET["acl-rule-settings"])){acl_rule_settings();exit;}
 	if(isset($_POST["acl-rule-delete"])){acl_rule_delete();exit;}
 	if(isset($_POST["acl-rule-enable"])){acl_rule_enable();exit;}
+	if(isset($_POST["acl-rule-move"])){acl_rule_move();exit;}
 	if(isset($_POST["aclrulename"])){acl_main_rule_edit();exit;}
 	if(isset($_POST["ApplySquid"])){squid_compile();exit;}
 	page();
@@ -390,6 +391,49 @@ function acl_rule_enable(){
 		
 	}
 	
+function acl_rule_move(){
+	
+	$q=new mysql_squid_builder();
+	$sql="SELECT xORDER FROM webfilters_sqacls WHERE `ID`='{$_POST["acl-rule-move"]}'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$xORDER_ORG=$ligne["xORDER"];
+	$xORDER=$xORDER_ORG;
+	if($_POST["acl-rule-dir"]==1){$xORDER=$xORDER_ORG-1;}
+	if($_POST["acl-rule-dir"]==0){$xORDER=$xORDER_ORG+1;}
+	if($xORDER<0){$xORDER=0;}
+	$sql="UPDATE webfilters_sqacls SET xORDER=$xORDER WHERE `ID`='{$_POST["acl-rule-move"]}'";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;;return;}
+	//echo $sql."\n";
+	
+	if($_POST["acl-rule-dir"]==1){
+		$xORDER2=$xORDER+1;
+		if($xORDER2<0){$xORDER2=0;}
+		$sql="UPDATE webfilters_sqacls SET xORDER=$xORDER2 WHERE `ID`<>'{$_POST["acl-rule-move"]}' AND xORDER=$xORDER";
+		$q->QUERY_SQL($sql);
+		//echo $sql."\n";
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+	if($_POST["acl-rule-dir"]==0){
+		$xORDER2=$xORDER-1;
+		if($xORDER2<0){$xORDER2=0;}
+		$sql="UPDATE webfilters_sqacls SET xORDER=$xORDER2 WHERE `ID`<>'{$_POST["acl-rule-move"]}' AND xORDER=$xORDER";
+		$q->QUERY_SQL($sql);
+		//echo $sql."\n";
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+
+	$c=0;
+	$sql="SELECT ID FROM webfilters_sqacls ORDER BY xORDER";
+	$results = $q->QUERY_SQL($sql);
+
+	while ($ligne = mysql_fetch_assoc($results)) {	
+		$q->QUERY_SQL("UPDATE webfilters_sqacls SET xORDER=$c WHERE `ID`={$ligne["ID"]}");
+		$c++;
+	}
+	
+	
+}
 	
 function page(){
 	
@@ -414,9 +458,11 @@ $('#table-$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$rule', name : 'aclname', width : 249, sortable : true, align: 'left'},
-		{display: '$description', name : 'items', width : 492, sortable : false, align: 'left'},
-		{display: '', name : 'none2', width : 22, sortable : true, align: 'left'},
-		{display: '', name : 'none3', width : 31, sortable : false, align: 'left'},
+		{display: '$description', name : 'items', width : 457, sortable : false, align: 'left'},
+		{display: '', name : 'up', width : 13, sortable : false, align: 'center'},
+		{display: '', name : 'xORDER', width : 13, sortable : true, align: 'center'},
+		{display: '', name : 'none2', width : 15, sortable : true, align: 'left'},
+		{display: '', name : 'none3', width : 25, sortable : false, align: 'left'},
 		
 	],
 buttons : [
@@ -427,7 +473,7 @@ buttons : [
 	searchitems : [
 		{display: '$rule', name : 'aclname'},
 		],
-	sortname: 'aclname',
+	sortname: 'xORDER',
 	sortorder: 'asc',
 	usepager: true,
 	title: '',
@@ -445,6 +491,19 @@ function AddAcl() {
 	
 }	
 
+	var x_EnableDisableAclRule= function (obj) {
+		var res=obj.responseText;
+		if(res.length>3){alert(res);return;}
+		$('#table-$t').flexReload();
+	}
+
+function AclUpDown(ID,dir){
+		var XHR = new XHRConnection();
+		XHR.appendData('acl-rule-move', ID);
+		XHR.appendData('acl-rule-dir', dir);
+		XHR.sendAndLoad('$page', 'POST',x_EnableDisableAclRule);  	
+}
+
 
 	var x_DeleteSquidAclGroup= function (obj) {
 		var res=obj.responseText;
@@ -454,11 +513,7 @@ function AddAcl() {
 		$('#rowtime'+TimeRuleIDTemp).remove();
 	}
 	
-	var x_EnableDisableAclRule= function (obj) {
-		var res=obj.responseText;
-		if(res.length>3){alert(res);return;}
-		$('#table-$t').flexReload();
-	}
+
 	
 	var x_SquidBuildNow= function (obj) {
 		var res=obj.responseText;
@@ -577,12 +632,15 @@ function acl_list(){
 		
 		$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID']));
 		
+		$up=imgsimple("arrow-up-16.png","","AclUpDown('{$ligne['ID']}',1)");
+		$down=imgsimple("arrow-down-18.png","","AclUpDown('{$ligne['ID']}',0)");
+		
 	$data['rows'][] = array(
 		'id' => "acl{$ligne['ID']}",
 		'cell' => array("<a href=\"javascript:blur();\"  OnClick=\"javascript:Loadjs('$MyPage?Addacl-js=yes&ID={$ligne['ID']}&t={$_GET["t"]}');\" 
 		style='font-size:16px;text-decoration:underline;color:$color'>{$ligne['aclname']}</span>",
 		"<span style='font-size:12px;color:$color'>$explain</span>",
-		$disable,$delete)
+		$up,$down,$disable,$delete)
 		);
 	}
 	

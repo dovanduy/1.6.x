@@ -1038,6 +1038,7 @@ function all_status(){
 	$APP_PROXY_PAC=DAEMON_STATUS_ROUND("ID:APP_PROXY_PAC",$ini,null,1);
 	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_ROUND("ID:APP_SQUIDGUARD_HTTP",$ini,null,1);
 	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("ID:APP_UFDBGUARD",$ini,null,1);
+	$squid=new squidbee();
 	
 	$md=md5(date('Ymhis'));
 	if(!$users->WEBSTATS_APPLIANCE){
@@ -1046,10 +1047,21 @@ function all_status(){
 		$swappiness_saved=unserialize(base64_decode($sock->GET_INFO("kernel_values")));
 		if(!is_numeric($swappiness_saved["swappiness"])){
 			if($swappiness>30){
-				$tr[]=DAEMON_STATUS_ROUND_TEXT("warning-panneau-42.png","{high_swap_value}","{high_swap_value_text}","Loadjs('squid.perfs.php')");
+				$tr[]=DAEMON_STATUS_ROUND_TEXT("warning-panneau-42.png","{high_swap_value}",
+				"{high_swap_value_text}","Loadjs('squid.perfs.php')");
 			}
 			
-		}	
+		}
+
+		$SquidAsSeenDNS=$sock->GET_INFO("SquidAsSeenDNS");
+		if(!is_numeric($SquidAsSeenDNS)){$SquidAsSeenDNS=0;}
+		if( count($squid->dns_array)==0){
+			if($SquidAsSeenDNS==0){
+				$tr[]=DAEMON_STATUS_ROUND_TEXT("warning-panneau-42.png","{add_dns_in_config}",
+				"{add_dns_in_config_perf_explain}","Loadjs('squid.popups.php?script=dns')");
+			}
+		}
+		
 	}
 	$tr[]=$squid_status;
 	$tr[]=$dansguardian_status;
@@ -1152,6 +1164,9 @@ $restart_all_services="	<tr>
 		OnClick=\"javascript:Loadjs('squid.restart.php');\" 
 		style='font-size:12px;text-decoration:underline'>{restart_all_services}</a></td>
 	</tr>
+	";
+
+$restart_service_only="
 	<tr>
 		<td width=1%><img src='img/service-restart-32.png'></td>
 		<td nowrap><a href=\"javascript:blur();\" 
@@ -1164,7 +1179,7 @@ if($users->WEBSTATS_APPLIANCE){
 	$squid_rotate=null;
 	$debug_compile=null;
 	$current_sessions=null;
-	$restart_all_services=null;
+	$restart_service_only=null;
 }
 	
 	$tables[]="
@@ -1178,6 +1193,7 @@ if($users->WEBSTATS_APPLIANCE){
 
 
 	$restart_all_services
+	$restart_service_only
 	$squid_rotate
 	$ufdbbutt
 	$debug_compile

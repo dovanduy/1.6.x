@@ -161,6 +161,7 @@ class mysql_squid_builder{
 			$this->tasks_array[37]="{squid_tail_injector}";
 			$this->tasks_array[38]="{web_injector}";
 			$this->tasks_array[39]="{reconfigure_proxy_task}";
+			$this->tasks_array[40]="{hourly_bandwidth_users}";
 			
 			
 			
@@ -204,7 +205,7 @@ class mysql_squid_builder{
 			$this->tasks_explain_array[37]="{squid_tail_injector_explain}";
 			$this->tasks_explain_array[38]="{web_injector_explain}";
 			$this->tasks_explain_array[39]="{reconfigure_proxy_task_explain}";
-			
+			$this->tasks_explain_array[40]="{hourly_bandwidth_users_explain}";
 			
 			
 
@@ -247,7 +248,9 @@ class mysql_squid_builder{
 			$this->tasks_processes[37]="exec.squid-tail-injector.php";
 			$this->tasks_processes[38]="exec.dansguardian.injector.php";
 			$this->tasks_processes[39]="exec.squid.php --build --force";
+			$this->tasks_processes[40]="exec.squid.stats.php --users-size";
 	
+			$this->tasks_remote_appliance["40"]=true;
 			$this->tasks_remote_appliance["36"]=true;
 			$this->tasks_remote_appliance["34"]=true;
 			$this->tasks_remote_appliance["30"]=true;
@@ -324,6 +327,7 @@ class mysql_squid_builder{
 			$array[36]=array("TimeText"=>"5 5 * * *","TimeDescription"=>"Members statistics each day at 05h05");
 			$array[37]=array("TimeText"=>"* * * * *","TimeDescription"=>"Inject into Mysql each minute");
 			$array[38]=array("TimeText"=>"* * * * *","TimeDescription"=>"Inject into Mysql each minute");
+			$array[40]=array("TimeText"=>"10 * * * *","TimeDescription"=>"Each hour +10mn");
 			
 			
 			
@@ -1332,16 +1336,17 @@ public function CheckTables($table=null){
 			`aclname` VARCHAR( 128 ) NOT NULL ,
 			`acltpl`  VARCHAR( 90 ) NOT NULL ,
 			`enabled` SMALLINT( 1 ) NOT NULL ,
-			INDEX ( `aclname` , `enabled`),
+			`xORDER` SMALLINT( 2 ) NOT NULL ,
+			INDEX ( `aclname` , `enabled`,`xORDER`),
 			KEY `acltpl`(`acltpl`)
 			)";	
 
 			$this->QUERY_SQL($sql,$this->database);
 			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "FATAL !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
-		}else{
-			if($GLOBALS["VERBOSE"]){echo "DATABASE CHECK webfilters_sqacls EXISTS...\n";}
 		}
-		
+		if(!$this->FIELD_EXISTS("webfilters_sqacls", "xORDER")){
+			$this->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `xORDER` smallint(2) NOT NULL,ADD INDEX(`xORDER`)");
+		}
 	
 
 	if(!$this->TABLE_EXISTS('webfilters_sqaclaccess',$this->database)){	
@@ -2176,8 +2181,8 @@ public function CheckTables($table=null){
 	
 	
 	FUNCTION MAC_TO_NAME($MAC=null){
+		if($mac=="00:00:00:00:00:00"){return null;}
 		if($MAC==null){return null;}
-		writelogs("$MAC",__FUNCTION__,__FILE__,__LINE__);
 		include_once(dirname(__FILE__)."/class.tcpip.inc");
 		$ip=new IP();
 		$tt=array();
@@ -2843,6 +2848,68 @@ private function CategoriesFamily($www){
 		}		
 		return true;
 	
+	}
+	
+	function CreateUserSizeRTTTable(){
+		if($this->EnableRemoteStatisticsAppliance==1){return;}
+		if(!$this->TABLE_EXISTS("UserSizeRTT",$this->database)){	
+		$sql="CREATE TABLE IF NOT EXISTS `UserSizeRTT` (
+			  `zMD5` varchar(90) NOT NULL,
+			  `uid` varchar(90) NOT NULL,
+			  `zdate` DATETIME NOT NULL,
+			  `ipaddr` varchar(50) NOT NULL,
+			  `hostname` varchar(120) NOT NULL,
+			  `account` BIGINT(100) NOT NULL,
+			  `MAC` varchar(20) NOT NULL,
+			  `UserAgent` varchar(128) NOT NULL,
+			  `size` BIGINT(100) NOT NULL,
+			  PRIMARY KEY (`zMD5`),
+			  KEY `uid` (`uid`),
+			  KEY `zdate` (`zdate`),
+			  KEY `ipaddr` (`ipaddr`),
+			  KEY `hostname` (`hostname`),
+			  KEY `account` (`account`),
+			  KEY `MAC` (`MAC`),
+			  KEY `UserAgent` (`UserAgent`),
+			  KEY `size` (`size`)
+			) ";
+			$this->QUERY_SQL($sql,$this->database);
+			if(!$this->ok){writelogs("$this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return false;}
+		}	
+	}
+
+	function CreateUserSizeRTT_day($tablename){
+		if($this->EnableRemoteStatisticsAppliance==1){return;}
+		if(!$this->TABLE_EXISTS("$tablename",$this->database)){	
+		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+			  `zMD5` varchar(90) NOT NULL,
+			  `uid` varchar(90) NOT NULL,
+			  `zdate` DATE NOT NULL,
+			  `ipaddr` varchar(50) NOT NULL,
+			  `hostname` varchar(120) NOT NULL,
+			  `account` BIGINT(100) NOT NULL,
+			  `MAC` varchar(20) NOT NULL,
+			  `UserAgent` varchar(128) NOT NULL,
+			  `size` BIGINT(100) NOT NULL,
+			  `hits` BIGINT(100) NOT NULL,
+			  `hour` smallint(4) NOT NULL,
+			  KEY `uid` (`uid`),
+			  KEY `zdate` (`zdate`),
+			  KEY `ipaddr` (`ipaddr`),
+			  KEY `hostname` (`hostname`),
+			  KEY `account` (`account`),
+			  KEY `MAC` (`MAC`),
+			  KEY `UserAgent` (`UserAgent`),
+			  KEY `size` (`size`),
+			  KEY `hits` (`hits`),
+			  KEY `hour` (`hour`)
+			) ";
+			$this->QUERY_SQL($sql,$this->database);
+			if(!$this->ok){writelogs("$this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return false;}
+		}
+
+		return true;
+		
 	}
 	
 	

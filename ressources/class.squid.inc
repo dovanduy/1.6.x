@@ -334,6 +334,7 @@ class squidbee{
 	
 	
 	private function root_squid_version(){
+		if(isset($GLOBALS[__FUNCTION__])){return $GLOBALS[__FUNCTION__];}
 		$unix=new unix();
 		$squidbin=$unix->find_program("squid");
 		if($squidbin==null){$squidbin=$unix->find_program("squid3");}
@@ -345,12 +346,16 @@ class squidbee{
 				if($re[1]=="3.1."){$re[1]="3.1.0";}
 				if($re[1]=="3.2."){$re[1]="3.2.0";}
 				echo "Starting......: Squid : Version (as root) '{$re[1]}'\n";
+				$GLOBALS[__FUNCTION__]=$re[1];
 				return $re[1];
 			}
 		}
 		
 		$version=$unix->CACHE_VERSIONS("APP_SQUID");
-		if($version<>null){return $version;}
+		
+		if($version<>null){
+			$GLOBALS[__FUNCTION__]=$version;
+			return $version;}
 		
 		
 		echo "Warning !!!!!! cannot find version in $squidbin ! !!\n";
@@ -3344,41 +3349,8 @@ function BuildSquidConf(){
 			}else{
 				echo "Starting......: Squid : ACL Engine tcp_outgoing_tos No rules..\n";
 			}	
-
-			
-			$deny_access_except=$acls->buildacls_bytype("deny_access_except");
-			if(count($deny_access_except)>0){
-				echo "Starting......: Squid : ACL Engine deny_access_except ".count($deny_access_except)." rules..\n";
-				while (list ($index, $line) = each ($deny_access_except) ){
-					$conf[]="http_access deny $line";
-				}
-			}else{
-				echo "Starting......: Squid : ACL Engine deny_access_except No rules..\n";
-			}				
 			
 			
-			
-			
-			$acls_allows=$acls->buildacls_bytype("access_allow");
-			if(count($acls_allows)>0){
-				echo "Starting......: Squid : ACL Engine access_allow ".count($deny_access_except)." rules..\n";
-				while (list ($index, $line) = each ($acls_allows) ){
-					$conf[]="http_access allow $line";
-				}
-			}else{
-				echo "Starting......: Squid : ACL Engine access_allow No rules..\n";
-			}
-			
-			
-			$acls_deny=$acls->buildacls_bytype("access_deny");
-			if(count($acls_deny)>0){
-				echo "Starting......: Squid : ACL Engine access_deny ".count($deny_access_except)." rules..\n";
-				while (list ($index, $line) = each ($acls_deny) ){
-					$conf[]="http_access deny $line";
-				}
-			}else{
-				echo "Starting......: Squid : ACL Engine access_deny No rules..\n";
-			}
 			
 			
 			
@@ -3431,17 +3403,25 @@ function BuildSquidConf(){
 			if($this->EnableUserAgentBanAll==1){$conf[]="http_access deny !AllowedBrowsers";}		
 			if(isset($GLOBALS["HTTP_ACCESS"]["BLOCKEDSITES"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["BLOCKEDSITES"];}	
 			if(isset($GLOBALS["HTTP_ACCESS"]["MALWARE_PATROL"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["MALWARE_PATROL"];}			
+			
+			$conf[]=$acls->buildacls_order();
 			if(isset($GLOBALS["HTTP_ACCESS"]["WHITELISTED_AUTH"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["WHITELISTED_AUTH"];}
 			if(isset($GLOBALS["HTTP_ACCESS"]["WHITELISTED_BROWSERS"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["WHITELISTED_BROWSERS"];}
+			if(isset($GLOBALS["HTTP_ACCESS"]["EXTERNAL_ARTICA_HELPER"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["EXTERNAL_ARTICA_HELPER"];}
+			
 			if(isset($GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"];}
 			if(isset($GLOBALS["HTTP_ACCESS"]["LDAP_GROUP"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["LDAP_GROUP"];}
-			if(isset($GLOBALS["HTTP_ACCESS"]["EXTERNAL_ARTICA_HELPER"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["EXTERNAL_ARTICA_HELPER"];}			
+						
+			
 			
 			
 			if($this->ASROOT){
+				
 				$acls_rules=$GLOBALS["aclGen"]->build_http_access();
 				echo "Starting......: Squid : ACL ". count($acls_rules)." rule(s) from engine\n";}
-				if(count($acls_rules)>0){$conf[]=@implode("\n", $acls_rules);
+				if(count($acls_rules)>0){
+					$conf[]="# Builded acls from engine...";
+					$conf[]=@implode("\n", $acls_rules);
 			}
 				
 			if(isset($GLOBALS["HTTP_ACCESS"]["ISP_NETWORK"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["ISP_NETWORK"];}

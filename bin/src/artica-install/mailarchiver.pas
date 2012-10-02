@@ -20,6 +20,7 @@ private
      LOGS:Tlogs;
      SYS:TSystem;
      artica_path:string;
+     Arch:integer;
      MailArchiverEnabled:integer;
      amavis:Tamavis;
 
@@ -43,7 +44,7 @@ begin
        forcedirectories('/etc/artica-postfix');
        LOGS:=tlogs.Create();
        SYS:=zSYS;
-
+       Arch:=SYS.ArchStruct();
 
        if not DirectoryExists('/usr/share/artica-postfix') then begin
               artica_path:=ParamStr(0);
@@ -56,15 +57,6 @@ begin
 
   amavis:=tamavis.Create(SYS);
   if not TryStrToInt(SYS.GET_INFO('MailArchiverEnabled'),MailArchiverEnabled)  then MailArchiverEnabled:=0;
-  if fileExists(amavis.AMAVISD_BIN_PATH()) then begin
-        if MailArchiverEnabled=1 then begin
-           SYS.set_INFO('EnableAmavisBackup','1');
-           SYS.set_INFO('MailArchiverEnabled','0');
-        end;
-     MailArchiverEnabled:=0;
-  end;
-
-
 end;
 //##############################################################################
 procedure tmailarchive.free();
@@ -75,7 +67,13 @@ end;
 //##############################################################################
 function tmailarchive.PID_NUM():string;
 begin
-     result:=SYS.PIDOF(artica_path + '/bin/mail-dump');
+     if FileExists('/var/run/maildump/maildump.pid') then begin
+       result:=SYS.GET_PID_FROM_PATH('/var/run/maildump/maildump.pid');
+       if SYS.PROCESS_EXIST(result) then exit;
+     end;
+
+     if Arch=32 then result:=SYS.PIDOF(artica_path + '/bin/mail-dump');
+     if Arch=64 then result:=SYS.PIDOF(artica_path + '/bin/mail-dump64');
 end;
 //##############################################################################
 
@@ -86,6 +84,7 @@ var
    pid:string;
    parms:string;
    count:integer;
+
 begin
 
 
@@ -124,13 +123,17 @@ begin
   fpsystem('/bin/rm -rf /var/run/maildump');
   forceDirectories('/var/run/maildump');
   forceDirectories('/tmp/savemail');
-
+  forceDirectories('/var/spool/mail-rtt-backup');
 
 
   fpsystem('/bin/chown -R postfix:postfix /var/run/maildump');
   fpsystem('/bin/chown -R postfix:postfix /tmp/savemail');
+  fpsystem('/bin/chown -R postfix:postfix /var/spool/mail-rtt-backup');
+  if FileExists('/var/run/maildump/maildump.socket') then logs.DeleteFile('/var/run/maildump/maildump.socket');
+  parms:=artica_path + '/bin/mail-dump -p local:/var/run/maildump/maildump.socket';
+  if Arch=64 then parms:=artica_path + '/bin/mail-dump64 -p local:/var/run/maildump/maildump.socket';
 
-  parms:=SYS.LOCATE_SU() +' postfix -c "'+artica_path + '/bin/mail-dump -p local:/var/run/maildump/maildump.socket" &';
+
   logs.DebugLogs('Starting......: mailArchiver daemon');
   fpsystem(parms);
   logs.Debuglogs(parms);
@@ -141,7 +144,7 @@ begin
         count:=count+1;
         logs.DebugLogs('tmailarchive.START(): wait sequence ' + intToStr(count) + ' PID=' + pid);
         if count>20 then begin
-            logs.DebugLogs('Starting......: mailArchiver timed-out...');
+            logs.DebugLogs('Starting......: mailArchiver timed-out...`'+parms+'`');
            break;
         end;
         pid:=PID_NUM();
@@ -150,7 +153,10 @@ begin
 
   if SYS.PROCESS_EXIST(pid) then begin
        logs.DebugLogs('Starting......: mailArchiver daemon success PID '+pid);
-       logs.WriteToFile(pid,'/var/run/maildump/maildump.pid');
+       if not FileExists('/var/run/maildump/maildump.pid') then logs.WriteToFile(pid,'/var/run/maildump/maildump.pid');
+       fpsystem('/bin/chown postfix:postfix /var/run/maildump/maildump.socket');
+       fpsystem('/bin/chmod 777 /var/run/maildump/maildump.socket');
+       fpsystem('/bin/chmod 755 /var/run/maildump');
   end;
 
 

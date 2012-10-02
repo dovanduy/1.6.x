@@ -127,6 +127,10 @@ class mysql_syslog{
 		$f[]="('/var/log/mail-backup/*',1,'daily','100',5,'','Mail statistics',1)";
 		$f[]="('/var/log/pymsnt/pymsnt.log',1,'daily','100',5,'/etc/init.d/pymsnt reload','MSN Module for ejabberd',1)";
 		$f[]="('/var/log/ejabberd/*',1,'daily','100',5,'/etc/init.d/artica-postfix ejabberd restart','{APP_EJABBERD}',1)";
+		$f[]="('/var/log/kaspersky/kav4proxy/*',1,'daily','100',5,'/etc/init.d/kav4proxy restart','{APP_KAV4PROXY}',1)";
+		$f[]="('/var/log/lighttpd/*',1,'daily','100',5,'/etc/init.d/artica-postfix restart apache','Lighttpd',1)";
+		$f[]="('/var/log/apt/*',1,'daily','100',5,'/etc/init.d/artica-postfix restart apache','apt-get',1)";
+		
 		
 		while (list ($num, $path) = each ($t) ){		
 			$f[]="('$path',1,'daily','100',5,'$defaultrestart','Rotate $path',1)";

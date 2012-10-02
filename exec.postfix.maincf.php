@@ -88,7 +88,7 @@ if($argv[1]=='--notifs-templates'){postfix_templates();ReloadPostfix(true);exit;
 if($argv[1]=='--restricted-domains'){restrict_relay_domains();exit;}
 if($argv[1]=='--debug-peer-list'){debug_peer_list();ReloadPostfix(true);die();}
 if($argv[1]=='--badnettr'){badnettr($argv[2],$argv[3],$argv[4]);ReloadPostfix(true);die();}
-if($argv[1]=='--milters'){smtpd_milters();ReloadPostfix(true);die();}
+if($argv[1]=='--milters'){smtpd_milters();RestartPostix();die();}
 
 
 
@@ -458,7 +458,12 @@ function buildtables_background(){
 	system("$php5 /usr/share/artica-postfix/exec.postfix.hashtables.php");
 }
 
-
+function RestartPostix(){
+	$unix=new unix();
+	$postfix=$unix->find_program("postfix");
+	if(is_file($postfix)){shell_exec("$postfix stop >/dev/null 2>&1");}
+	if(is_file($postfix)){shell_exec("$postfix start >/dev/null 2>&1");}
+}
 function ReloadPostfix($nohastables=false){
 	$ldap=new clladp();
 	$domains=$ldap->Hash_domains_table();

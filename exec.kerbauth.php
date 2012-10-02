@@ -868,7 +868,8 @@ function SAMBA_PROXY(){
 		
 		$f[]="\tclient ntlmv2 auth = Yes";
 		$f[]="\tclient lanman auth = No";
-		$f[]="\twinbind normalize names = Yes";
+		$f[]="\twinbind normalize names = no";
+		//$f[]="\twinbind normalize names = Yes"; # bug 9226
 		$f[]="\twinbind separator = /";
 		$f[]="\twinbind use default domain = yes";
 		$f[]="\twinbind nested groups = Yes";

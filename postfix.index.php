@@ -505,36 +505,20 @@ function multidomains_popup(){
 function backup_script(){
 $page=CurrentPageName();	
 $html=
-	"YahooWin2(550,'$page?popup-backup-behavior=yes','backup...',''); 
-
-	
-var X_ApplyBackupBehavior= function (obj) {
-	var results=obj.responseText;
-	alert(results);
-	YahooWin2(550,'$page?popup-backup-behavior=yes','backup...',''); 
-	}
-		
-	function ApplyBackupBehavior(){
-		var XHR = new XHRConnection();
-		XHR.appendData('MailArchiverEnabled',document.getElementById('enable_archiver').value);
-		document.getElementById('img_enable_archiver').src='img/wait_verybig.gif';
-		XHR.sendAndLoad('$page', 'GET',X_ApplyBackupBehavior);				
-	}";
+	"YahooWin2(550,'$page?popup-backup-behavior=yes','backup...','');";
 	
 return  $html;	
 }
 
 function backup_save(){
-	
 	$MailArchiverEnabled=$_GET["MailArchiverEnabled"];
 	writelogs("MailArchiverEnabled=$MailArchiverEnabled",__FUNCTION__,__FILE__);
 	$sock=new sockets();
 	$sock->SET_INFO('MailArchiverEnabled',$MailArchiverEnabled);
-	$main=new main_cf();
-	$main->save_conf();
-	$main->save_conf_to_server();
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?SaveMaincf=yes");
+	$sock->getFrameWork("postfix.php?milters=yes");
+	$sock->getFrameWork("postfix.php?restart-mailarchiver=yes");
+	
 	}
 
 
@@ -1187,6 +1171,8 @@ function milter_behavior_popup(){
 }
 
 function backup_popup(){
+	
+	$tpl=new templates();
 	$sock=new sockets();
 	$users=new usersMenus();
 	$enable_amavis=$sock->GET_INFO("EnableAmavisDaemon");
@@ -1194,43 +1180,52 @@ function backup_popup(){
 	$ArticaAmavisEnablePlugin=$sock->GET_INFO("ArticaAmavisEnablePlugin");
 	if(!is_numeric($ArticaAmavisEnablePlugin)){$ArticaAmavisEnablePlugin=1;}
 	
-	if($users->ASSP_INSTALLED){
-		if($enable_assp==1){
-			echo "<script>
-					Loadjs('assp.php?script-backup=yes');
-					YahooWin2Hide();
-				</script>
-				";
-			exit;		
+	$fontsize="font-size:14px";
+	$array["backup-options"]='{options}';
+	$array["backup-status"]='{status}';
+
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="backup-options"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.archiver.php?hostname=$hostname\"><span>$ligne</span></a></li>\n");
+			continue;
 		}
+		
+		if($num=="backup-status"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.archiver.php?hostname=$hostname&status=yes\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+
+		$html[]= "<li><a href=\"$page?main=$num&hostname=$hostname\"><span>$ligne</span></a></li>\n";
 	}
 	
 	
-	if($users->AMAVIS_INSTALLED){
-		if($enable_amavis==1){
-			if($ArticaAmavisEnablePlugin==1){
-			echo "<script>
-					Loadjs('amavis.index.php?script=backup');
-					YahooWin2Hide();
-				</script>
-				";
-			return;
-			}
-		}
-	}
+	echo "
+	<div id=main_config_archiver style='width:100%;height:$height;overflow:auto;$fontsize'>
+		<ul>". implode("\n",$html)."</ul>
+	</div>
+		<script>
+		  $(document).ready(function() {
+			$(\"#main_config_archiver\").tabs();});
+			
+			QuickLinkShow('quicklinks-APP_POSTFIX');
+			
+		</script>";		
 	
-	
-	
-	
+	return;
 	
 	$milter=Paragraphe_switch_img('{enable_APP_MAILARCHIVER}',
 	'{enable_APP_MAILARCHIVER_text}','enable_archiver',$sock->GET_INFO("MailArchiverEnabled"),'{enable_disable}',450);
 
 	$html="
-	<H1>{backupemail_behavior}</H1>
+	<table style='width:99%' class=form>
+	<tr>
+	<td>
+	<div style='font-size:22px'>{backupemail_behavior}<hr></div>
 	$milter
-	<div style='text-align:right;width:100%'>". button("{apply}","ApplyBackupBehavior()")."</div>
-	";
+	<div style='text-align:right;width:100%'><hr>". button("{apply}","ApplyBackupBehavior()","16px")."</div>
+	</td>
+	</tr>
+	</table>";
 	
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html,'postfix.plugins.php');	
@@ -1755,6 +1750,10 @@ function icon_backup(){
 
 
 function mailbox_section(){
+	
+	
+	
+	
 	if(GET_CACHED(__FILE__,__FUNCTION__.$_GET["mailbox-section"],null)){return;}
 	
 	
@@ -1762,7 +1761,7 @@ function mailbox_section(){
 
 	
 	
-$failedtext="{ERROR_NO_PRIVILEGES_OR_PLUGIN_DISABLED}";
+	$failedtext="{ERROR_NO_PRIVILEGES_OR_PLUGIN_DISABLED}";
 	$users=new usersMenus();
 	$users->LoadModulesEnabled();
 	

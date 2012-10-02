@@ -31,7 +31,16 @@ table();
 
 function dns_add(){
 	$squid=new squidbee();
-	$squid->dns_array[]=$_POST["nameserver"];
+	reset($squid->dns_array);
+	while (list ($num, $ip) = each ($squid->dns_array) ){$nameserver[$ip]=true;}
+	$nameserver[$_POST["nameserver"]]=true;
+	
+	$squid->dns_array=array();
+	while (list ($ipaddr, $none) = each ($nameserver) ){
+		$squid->dns_array[]=$ipaddr;
+	}
+	
+	
 	if(!$squid->SaveToLdap()){
 		echo $squid->ldap_error;
 		exit;
@@ -41,6 +50,16 @@ function dns_add(){
 function dns_del(){
 	$squid=new squidbee();
 	unset($squid->dns_array[$_POST["DnsDelete"]]);
+	reset($squid->dns_array);
+	
+	while (list ($num, $ip) = each ($squid->dns_array) ){$nameserver[$ip]=true;}
+	
+	$squid->dns_array=array();
+	while (list ($ipaddr, $none) = each ($nameserver) ){
+		$squid->dns_array[]=$ipaddr;
+	}	
+	
+	
 	if(!$squid->SaveToLdap()){
 		echo $squid->ldap_error;
 		exit;
@@ -59,11 +78,15 @@ function table(){
 	$new_dns=$tpl->_ENGINE_parse_body("{new_dns_server}");
 	$EnableOpenDNSInProxy=$sock->GET_INFO("EnableOpenDNSInProxy");
 	$restart_service=$tpl->javascript_parse_text("{restart_service}");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 
+	$newdns="{name: '$new_dns', bclass: 'add', onpress : dnsadd},";
+	if($EnableRemoteStatisticsAppliance==1){$newdns=null;}
 
 	$buttons="
 	buttons : [
-		{name: '$new_dns', bclass: 'add', onpress : dnsadd},
+		$newdns
 		{name: '$restart_service', bclass: 'ReConf', onpress : RestartService$t},
 	],";
 
@@ -79,7 +102,7 @@ $html="	$texttoadd<table class='table-$t' style='display: none' id='table-$t' st
 var xmemnum=0;
 $(document).ready(function(){
 $('#table-$t').flexigrid({
-	url: '$page?details-tablerows=yes&t=$t&field={$_GET["field"]}&value={$_GET["value"]}',
+	url: '$page?details-tablerows=yes&t=$t&field={$_GET["field"]}&value={$_GET["value"]}&EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance',
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'none', width :45, sortable : false, align: 'center'},
@@ -89,7 +112,7 @@ $('#table-$t').flexigrid({
 	$buttons
 	sortname: 'zDate',
 	sortorder: 'asc',
-	usepager: false,
+	usepager: true,
 	title: '',
 	useRp: true,
 	rp: 15,
@@ -149,12 +172,14 @@ function details_tablerows(){
 	$data['page'] = $page;
 	$data['total'] = count($squid->dns_array);
 	$data['rows'] = array();
-	
-	
+	$sock=new sockets();
+	$sock->SET_INFO("SquidAsSeenDNS", 1);
+	reset($squid->dns_array);
+	$EnableRemoteStatisticsAppliance=$_GET["EnableRemoteStatisticsAppliance"];
 
 		while (list ($num, $nameserver) = each ($squid->dns_array) ){
 			$delete=imgtootltip('delete-24.png','{delete}',"DnsDelete$t($num)");
-			
+			if($EnableRemoteStatisticsAppliance==1){$delete="&nbsp;";}
 			$data['rows'][] = array(
 				'id' => "squid-dns-$num",
 				'cell' => array(

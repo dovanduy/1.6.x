@@ -25,6 +25,7 @@ $GLOBALS["NO_USE_BIN"]=false;
 $GLOBALS["REBUILD"]=false;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["OUTPUT"]=false;
+$GLOBALS["AS_ROOT"]=true;
 
 WriteMyLogs("commands= ".implode(" ",$argv),"MAIN",__FILE__,__LINE__);
 if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}

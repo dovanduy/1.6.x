@@ -16,6 +16,7 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if($argv[1]=="--unveiltech"){unveiltech();die();}
 if($argv[1]=="--youtube"){youtube();die();}
 if($argv[1]=="--users-agents"){useragents();die();}
+if($argv[1]=="--users-size"){ParseUsersSize();die();}
 
 
 
@@ -47,7 +48,7 @@ if($argv[1]=="--users-agents"){useragents();die();}
 	ParseUserAuth();
 	youtube();
 	useragents();
-
+	ParseUsersSize();
 	events("FINISH....");
 //EnableWebProxyStatsAppliance
 
@@ -55,6 +56,88 @@ if($argv[1]=="--users-agents"){useragents();die();}
 //$q=new mysql_squid_builder();
 //$q->CheckTables();
 //if($q->MysqlFailed){events_tail("squid-injector:: Mysql connection failed, aborting.... Line: ".__LINE__);die();}
+
+function ParseUsersSize(){
+	$f=array();
+	$unix=new unix();
+	$hostname=$unix->hostname_g();		
+	
+	if(function_exists("system_is_overloaded")){
+		if(system_is_overloaded()){
+			ufdbguard_admin_events("Fatal:$hostname Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}	
+	}
+
+	$q=new mysql_squid_builder();
+	$q->CreateUserSizeRTTTable();
+	if(!$q->TABLE_EXISTS("UserSizeRTT")){
+		ufdbguard_admin_events("Fatal:$hostname UserSizeRTT no such table, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return;
+	}
+	
+	if (!$handle = opendir("/var/log/artica-postfix/squid-usersize")) { @mkdir("/var/log/artica-postfix/squid-usersize",0755,true);}
+	if (!$handle = opendir("/var/log/artica-postfix/squid-usersize")) { 
+		ufdbguard_admin_events("Fatal:$hostname /var/log/artica-postfix/squid-usersize no such directory",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return;
+	}
+	
+
+	$prefix="INSERT IGNORE INTO UserSizeRTT (`zMD5`,`uid`,`zdate`,`ipaddr`,`hostname`,`account`,`MAC`,`UserAgent`,`size`) VALUES";
+	
+	while (false !== ($filename = readdir($handle))) {
+				if($filename=="."){continue;}
+				if($filename==".."){continue;}
+				$targetFile="/var/log/artica-postfix/squid-usersize/$filename";
+				$countDeFiles++;	
+				$account=0;
+				$array=unserialize(@file_get_contents($targetFile));
+				if(!is_array($array)){@unlink($targetFile);continue;}
+				
+				$time=$array["TIME"];
+				$md5=$array["MD5"];
+				if($md5==null){@unlink($targetFile);continue;}
+				if(!is_numeric($time)){@unlink($targetFile);continue;}
+				if($time==0){@unlink($targetFile);continue;}
+				$zdate=date("Y-m-d H:i:s",$time);
+				
+				$md5=md5($md5.$time);
+				$uid=$array["uid"];
+				if($uid=="-"){$uid=null;}
+				$ipaddr=$array["IP"];
+				$MAC=$array["MAC"];
+				$hostname=$array["HOSTNAME"];
+				$UserAgent=$array["UGNT"];
+				if(strlen($UserAgent)<2){$UserAgent=null;}
+				$size=$array["SIZE"];
+				if($size==0){@unlink($targetFile);continue;}
+				if($hostname==null){$hostname=GetComputerName($ipaddr);}
+				if(!is_numeric($account)){$account=0;}
+				if($MAC<>null){if($uid==null){$uid=$q->UID_FROM_MAC($mac);}}
+				if(strlen($UserAgent)<3){$UserAgent=null;}
+				if(strlen($uid)<3){$uid=null;}
+				
+				$f[]="('$md5','$uid','$zdate','$ipaddr','$hostname','$account','$MAC','$UserAgent','$size')";
+				@unlink($targetFile);
+		}
+		if(count($f)>0){
+			$q->QUERY_SQL("$prefix ".@implode(",", $f));
+			if(!$q->ok){
+				ufdbguard_admin_events("Fatal:$hostname $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"stats");
+			}		
+		}
+				
+	
+}
+
+function GetComputerName($ip){
+		if(isset($GLOBALS["resvip"][$ip])){return $GLOBALS["resvip"][$ip];}
+		$name=gethostbyaddr($ip);
+		$GLOBALS["resvip"]=$name;
+		return $name;
+		}
+	
+
 
 function ParseUserAuth(){
 	
@@ -114,8 +197,8 @@ while (false !== ($filename = readdir($handle))) {
 		if($filename==".."){continue;}
 		$targetFile="/var/log/artica-postfix/squid-userAgent/$filename";
 		$countDeFiles++;
-		$pattern=@file_get_contents($targetFile);
-		if(trim($pattern)==null){@unlink($targetFile);continue;}
+		$pattern=trim(@file_get_contents($targetFile));
+		if(strlen($pattern)<3){@unlink($targetFile);continue;}
 		
 		$pattern=mysql_escape_string($pattern);
 		$f[]="('$pattern')";
@@ -136,8 +219,43 @@ while (false !== ($filename = readdir($handle))) {
 }
 
 
+function ParseSquidLogMain_sql_toarray($filename){
+	$data=trim(@file_get_contents($filename));
+	$q=new mysql_squid_builder();
+	$array=explode(",", $data);
+	while (list ($num, $val) = each ($array) ){
+		$array[$num]=str_replace("'", "", $array[$num]);
+		$array[$num]=addslashes($array[$num]);
+	}
+	$array[0]=str_replace("(", "", $array[0]);
+	$array[13]=str_replace(")", "", $array[13]);
+	
+	$sitename=$array[0];
+	$uri=$array[1];
+	$TYPE=$array[2];
+	$REASON=$array[3];
+	$CLIENT=$array[4];
+	$date=$array[5];
+	$zMD5=$array[6];
+	$site_IP=$array[7];
+	$Country=$array[8];
+	$size=$array[9];
+	$username=$array[10];
+	$cached=$array[11];
+	$mac=$array[12];
+	$hostname=$array[13];
+	
+	if(strlen($username)<3){$username=null;}
+	
+	if($mac=="00:00:00:00:00:00"){$mac=null;}
+	if($mac==null){$mac=GetMacFromIP($CLIENT);}
+	if($username=="-"){$username=null;}
+	if($mac<>null){if($username==null){$username=$q->UID_FROM_MAC($mac);}}
+	if($hostname==null){$hostname=GetComputerName($CLIENT);}
+	$line="('$sitename','$uri','$TYPE','$REASON','$CLIENT','$date','$zMD5','$site_IP','$Country','$size','$username','$cached','$mac','$hostname')";
+	return $line;
 
-
+}
 function ParseSquidLogMain(){
 
 $sock=new sockets();
@@ -177,7 +295,9 @@ while (false !== ($filename = readdir($handle))) {
 		$datasql=trim(@file_get_contents($targetFile));
 		if(trim($datasql)==null){@unlink($targetFile);continue;}
 		$tablehour="squidhour_". date("YmdH",filemtime($targetFile));
-		$array["TABLES"][$tablehour][]=@file_get_contents($targetFile);
+		$array["TABLES"][$tablehour][]=ParseSquidLogMain_sql_toarray($targetFile);
+		
+		
 		@unlink($targetFile);
 		if(system_is_overloaded(__FILE__)){
 			$GLOBALS["WAIT-OVERLOAD-TIMEOUT"]++;
@@ -235,7 +355,7 @@ function youtube(){
 	if(!$q->TABLE_EXISTS("youtube_objects")){echo "youtube_objects no such table\n";return;}
 	
 	$array_sql=array();
-	$accounts=$q->ACCOUNTS_ISP();
+	
 	@mkdir("/var/log/artica-postfix/youtube",0755,true);
 	@mkdir("/var/log/artica-postfix/youtube-errors",0755,true);
 	if (!$handle = opendir("/var/log/artica-postfix/youtube")) {return;}
@@ -250,6 +370,11 @@ function youtube(){
 		$time=$array["time"];
 		$mac=$array["mac"];
 		$hostname=$array["hostname"];
+		if($username=="-"){$username=null;}
+		if(strlen($username)<3){$username=null;}	
+		
+		
+		
 		if($mac==null){$mac=GetMacFromIP($clientip);}
 		if($GLOBALS["VERBOSE"]){echo "$mac:: $VIDEOID -> \n";}	
 		if(!youtube_infos($VIDEOID)){
@@ -258,7 +383,7 @@ function youtube(){
 		$timeint=strtotime($time);
 		$timeKey=date('YmdH');
 		$account=0;
-		if($mac<>null){$account=$q->MAC_TO_NAME($mac);}
+		if($mac<>null){if($username==null){$username=$q->UID_FROM_MAC($mac);}}
 		$array_sql[$timeKey][]="('$time','$clientip','$hostname','$username','$mac','$account','$VIDEOID')";
 		@unlink($targetFile);
 		}

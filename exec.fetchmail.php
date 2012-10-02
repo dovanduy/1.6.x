@@ -227,6 +227,8 @@ function build_line($ligne){
 			if($ligne["dropdelivered"]==1){
 				$dropdelivered="\n\tdropdelivered is {$ligne["is"]} here";
 			}
+			
+			
 			$tf=array();
 			$folders=unserialize(base64_decode($ligne["folders"]));
 			if($GLOBALS["VERBOSE"]){echo "Folder: ". count($folders)." items\n";}
@@ -348,7 +350,10 @@ function BuildRules(){
 		return;
 		}
 		
-		
+		if(is_file("/etc/fetchmail.perso")){
+			$l[]="# fetchmail.perso content";
+			$l[]=@file_get_contents("/etc/fetchmail.perso");
+		}
 		
 		if(is_array($l)){
 			$conf=implode("\n",$l);

@@ -17,6 +17,9 @@
 		die();
 	}	
 	
+	if(isset($_GET["service-cmds"])){service_cmds_js();exit;}
+	if(isset($_GET["service-cmds-peform"])){service_cmds_perform();exit;}	
+	
 	if(isset($_GET["MailBoxesDomainList"])){MailBoxesDomainList_js();exit;}
 	if(isset($_GET["main"])){main_switch();exit;}
 	if(isset($_GET["status"])){echo main_status();exit;}
@@ -41,7 +44,57 @@
 	js();
 
 	
+function service_cmds_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$cmd=$_GET["service-cmds"];
+	
+	$html="YahooWin4('650','$page?service-cmds-peform=$cmd','Cyrus IMAPD::$cmd');";
+	echo $html;	
+}
+function service_cmds_perform(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$datas=unserialize(base64_decode($sock->getFrameWork("cyrus.php?service-cmds={$_GET["service-cmds-peform"]}")));
+	
+		$html="
+<div style='width:100%;height:350px;overflow:auto'>
+<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
+<thead class='thead'>
+	<tr>
+	<th>{events}</th>
+	</tr>
+</thead>
+<tbody class='tbody'>";	
+	
+	while (list ($key, $val) = each ($datas) ){
+		if(trim($val)==null){continue;}
+		if(trim($val=="->")){continue;}
+		if(isset($alread[trim($val)])){continue;}
+		$alread[trim($val)]=true;
+		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
+		$val=htmlentities($val);
+			$html=$html."
+			<tr class=$classtr>
+			<td width=99%><code style='font-size:12px'>$val</code></td>
+			</tr>
+			";
+	
+	
+}
 
+$html=$html."
+</tbody>
+</table>
+</div>
+<script>
+	RefreshTab('main_config_mimedefang');
+</script>
+
+";
+	echo $tpl->_ENGINE_parse_body($html);
+}
 	
 	
 function squatter_js(){
@@ -426,7 +479,7 @@ function popup_status(){
 	<center><img src='img/bg-cyrus.jpg'></center></td>
 	<td valign='top'>
 	
-		<div id='services_status_mbx_cyrus' style='height:150px'>". main_status() . "</div><br>
+		<div id='services_status_mbx_cyrus'>". main_status() . "</div><br>
 		<div style='font-size:14px;' class=explain>{about_cyrus}</div>
 	</td>
 	
@@ -816,15 +869,37 @@ function popup_cyrreconstruct(){
 
 
 function main_status(){
-
-$users=new usersMenus();
-			
+	$users=new usersMenus();
+	$page=CurrentPageName();
 	$ini=new Bs_IniHandler();
 	$sock=new sockets();
 	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?cyrus-imap-status=yes')));	
 	$status=DAEMON_STATUS_ROUND("CYRUSIMAP",$ini,null);
+	
+	$html="
+	<table style='width:100%'>
+	<tr>
+	<td valign='top'>
+	$status
+			<center style='margin-top:-30px;margin-bottom:10px;width:95%'>
+		<table style='width:150px' class=form>
+		<tbody>
+		<tr>
+			<td width=10% align='center;'>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?service-cmds=stop')")."</td>
+			<td width=10% align='center'>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?service-cmds=restart')")."</td>
+			<td width=10% align='center'>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
+		</tr>
+		</tbody>
+		</table>
+		</center>	
+	</td>
+	</tr>
+	</table>
+	";
+	
+	
 	$tpl=new templates();
-	return $tpl->_ENGINE_parse_body($status);
+	return $tpl->_ENGINE_parse_body($html);
 	
 }
 function main_conf(){
