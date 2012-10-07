@@ -270,6 +270,14 @@ begin
       logs.Syslogs('Stopping openLdap server.....: Already stopped');
       exit;
   end;
+
+  fpsystem('kill '+pid);
+  pid:=LDAP_PID();
+  sleep(900);
+   if not SYS.PROCESS_EXIST(pid) then begin
+      logs.Syslogs('Stopping openLdap server.....: '+pid+' Stopped');
+      exit;
+  end;
   fpsystem(INITD_PATH()+' stop');
 
 end;
@@ -608,7 +616,7 @@ begin
       logs.Debuglogs('slapd: [INFO] server skip auto-change ldap configuration...');
       exit;
    end;
-  MONIT_WATCHDOG();
+
   FIX_ARTICA_SCHEMAS();
   SET_DB_CONFIG();
   CHECK_SCHEMA_DEBIAN_PERMISSIONS();

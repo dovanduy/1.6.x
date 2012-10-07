@@ -646,6 +646,12 @@ function writelogs($text=null,$function=null,$line=0){
 				}
 				
 				$this->mysql_error="Error $des $called line ".__LINE__;
+				
+				if(preg_match("#Incorrect key file for table '.\/(.+?)/(.+?)\.MYI'#",$des,$re)){
+					echo "<H2>DB:$database Error table {$re[2]} is crashed $errnum : i will try to repair it</H2>";
+					$this->REPAIR_TABLE($database,$re[2]);
+					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error table {$re[1]} is crashed $errnum -> i will try to repair it ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				}
 							
 				if(preg_match("#Table '(.+?)' is marked as crashed and should be repaired#",$des,$re)){
 					echo "<H2>DB:$database Error table {$re[1]} is crashed $errnum : i will try to repair it</H2>";

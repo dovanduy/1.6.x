@@ -534,6 +534,8 @@ class usersMenus {
 	var $VPS_OPENVZ=false;
 	var $ZARAFA_SEARCH_INSTALLED=false;
 	var $OWNCLOUD_INSTALLED=false;
+	var $LIGHT_INSTALL=false;
+	var $CORP_LICENSE=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -666,6 +668,9 @@ class usersMenus {
 			if(isset($_GLOBAL["VPS_OPENVZ"])){$this->VPS_OPENVZ=$_GLOBAL["VPS_OPENVZ"];}
 			if(isset($_GLOBAL["ZARAFA_SEARCH_INSTALLED"])){$this->ZARAFA_SEARCH_INSTALLED=$_GLOBAL["ZARAFA_SEARCH_INSTALLED"];}
 			if(isset($_GLOBAL["OWNCLOUD_INSTALLED"])){$this->OWNCLOUD_INSTALLED=$_GLOBAL["OWNCLOUD_INSTALLED"];}
+			if(isset($_GLOBAL["LIGHT_INSTALL"])){$this->LIGHT_INSTALL=$_GLOBAL["LIGHT_INSTALL"];}
+			//Are you sure to do that !!!, breaking the license turn you to a pirate...
+			if(isset($_GLOBAL["CORP_LICENSE"])){$this->CORP_LICENSE=$_GLOBAL["CORP_LICENSE"];}
 			
 			
 			
@@ -2244,7 +2249,59 @@ private function MAILBOXES_MENUS($array=array()){
 					}
 			}
 		}
-	}	
+	}
+
+	private function Allrights(){
+			$this->AllowUserMaillog=true;
+			$this->AsAnAdministratorGeneric=true;
+			$this->AsSystemAdministrator=true;
+			$this->AsMailBoxAdministrator=true;
+			$this->AsPostfixAdministrator=true;
+			$this->AllowChangeKav=true;
+			$this->AllowChangeKas=true;
+			$this->AllowAddUsers=true;
+			$this->AsOrgAdmin=true;
+			$this->AseMailCampaignsAdmin=true;
+			$this->AllowViewStatistics=true;
+			$this->AllowEditOuSecurity=true;
+			$this->AsSquidAdministrator=true;
+			$this->AsSambaAdministrator=true;
+			$this->AsDnsAdministrator=true;
+			$this->AsQuarantineAdministrator=true;
+			$this->AsDansGuardianAdministrator=true;
+			$this->AllowDansGuardianBanned=true;
+			$this->AllowFetchMails=true;
+			$this->AllowChangeAntiSpamSettings=true;
+			$this->AllowSenderCanonical=true;
+			$this->AsMailManAdministrator=true;
+			$this->AsOrgStorageAdministrator=true;
+			$this->AllowManageOwnComputers=true;
+			$this->AsOrgPostfixAdministrator=true;
+			$this->AsDansGuardianGroupRule=true;
+			$this->AsMessagingOrg=true;
+			$this->AsInventoryAdmin=true;
+			$this->AsJoomlaWebMaster=true;
+			$this->AsVirtualBoxManager=true;
+			$this->AllowChangeDomains=true;
+			$this->OverWriteRestrictedDomains=true;
+			$this->AsWebMaster=true;
+			$this->AllowChangeAntiSpamSettings=true;
+			$this->AllowChangeUserPassword=true;
+			$this->AllowFetchMails=true;
+			$this->AllowChangeUserKas=true;
+			$this->AllowEditAliases=true;
+			$this->AllowChangeMailBoxRules=true;
+			$this->AllowSenderCanonical=true;
+			$this->AllowOpenVPN=true;
+			$this->AllowDansGuardianBanned=true;
+			$this->AllowXapianDownload=true;
+			$this->AllowManageOwnComputers=true;
+			$this->AllowEditAliases=true;	
+			$this->AsWebFilterRepository=true;		
+			$this->AsWebStatisticsAdministrator=true;
+			$this->AsMessagingOrg=true;
+			$this->AllowEditOuSecurity=true;			
+	}
 	
 	function _TranslateRights($priv,$log=false){
 		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=1000;if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();}}
@@ -2255,6 +2312,9 @@ private function MAILBOXES_MENUS($array=array()){
 		if($GLOBALS["posix_getuid"]==0){
 			$this->AsMailBoxAdministrator=true;
 			$this->AsArticaAdministrator=true;
+			$this->AsArticaAdministrator=true;
+			$this->Allrights();
+			return;
 		}
 		$this->AsArticaAdministrator=false;
 		$this->AsSystemAdministrator=false;
@@ -2432,55 +2492,7 @@ private function MAILBOXES_MENUS($array=array()){
 			}
 		
 		if($this->AsArticaAdministrator==true){
-			$this->AllowUserMaillog=true;
-			$this->AsAnAdministratorGeneric=true;
-			$this->AsSystemAdministrator=true;
-			$this->AsMailBoxAdministrator=true;
-			$this->AsPostfixAdministrator=true;
-			$this->AllowChangeKav=true;
-			$this->AllowChangeKas=true;
-			$this->AllowAddUsers=true;
-			$this->AsOrgAdmin=true;
-			$this->AseMailCampaignsAdmin=true;
-			$this->AllowViewStatistics=true;
-			$this->AllowEditOuSecurity=true;
-			$this->AsSquidAdministrator=true;
-			$this->AsSambaAdministrator=true;
-			$this->AsDnsAdministrator=true;
-			$this->AsQuarantineAdministrator=true;
-			$this->AsDansGuardianAdministrator=true;
-			$this->AllowDansGuardianBanned=true;
-			$this->AllowFetchMails=true;
-			$this->AllowChangeAntiSpamSettings=true;
-			$this->AllowSenderCanonical=true;
-			$this->AsMailManAdministrator=true;
-			$this->AsOrgStorageAdministrator=true;
-			$this->AllowManageOwnComputers=true;
-			$this->AsOrgPostfixAdministrator=true;
-			$this->AsDansGuardianGroupRule=true;
-			$this->AsMessagingOrg=true;
-			$this->AsInventoryAdmin=true;
-			$this->AsJoomlaWebMaster=true;
-			$this->AsVirtualBoxManager=true;
-			$this->AllowChangeDomains=true;
-			$this->OverWriteRestrictedDomains=true;
-			$this->AsWebMaster=true;
-			$this->AllowChangeAntiSpamSettings=true;
-			$this->AllowChangeUserPassword=true;
-			$this->AllowFetchMails=true;
-			$this->AllowChangeUserKas=true;
-			$this->AllowEditAliases=true;
-			$this->AllowChangeMailBoxRules=true;
-			$this->AllowSenderCanonical=true;
-			$this->AllowOpenVPN=true;
-			$this->AllowDansGuardianBanned=true;
-			$this->AllowXapianDownload=true;
-			$this->AllowManageOwnComputers=true;
-			$this->AllowEditAliases=true;	
-			$this->AsWebFilterRepository=true;		
-			$this->AsWebStatisticsAdministrator=true;
-			$this->AsMessagingOrg=true;
-			$this->AllowEditOuSecurity=true;	
+			$this->Allrights();
 			}
 			
 			if($this->AsSquidAdministrator){

@@ -315,7 +315,7 @@ function group_display_button(){
 	$ID=$_GET["ID"];
 	$type=$_GET["type"];
 	if($type==1){return;}
-	if($ID>-1){return;}
+	
 	$bt_browse="<input type='button' value='{browse}...' OnClick=\"javascript:MemberBrowsePopup();\" style='font-size:13px'>";
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($bt_browse);

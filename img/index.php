@@ -146,26 +146,8 @@ The free existing Web consoles for Postfix in particular do not provide all the 
 			<table style='margin-left:-5px;margin-top:-40px'>
 				<tr>
 					<td width=1%><img src='/img/arrow-right-16.png'></td>
-					<td><a href='index.php?option=com_content&amp;view=article&amp;catid=null&amp;id=449:proxy-appliances-features-list' style='font-weight:bold'>Features list</a></td>
-				</tr>			
-				<tr>
-					<td width=1%><img src='/img/arrow-right-16.png'></td>
-					<td nowrap><a href='http://sourceforge.net/projects/artica-squid/files/ISO/proxy-appliances/' style='font-weight:bold'>Proxy Appliance</a></td>
-				</tr>
-				<tr>
-					<td width=1%><img src='/img/arrow-right-16.png'></td>
-					<td nowrap><a href='http://sourceforge.net/projects/artica-squid/files/ISO/load-balancer-appliance/' style='font-weight:bold'>Load-balancer Appliance</a></td>
-				</tr>	
-				<tr>
-					<td width=1%><img src='/img/arrow-right-16.png'></td>
-					<td><a href='http://proxy-appliance.org/' style='font-weight:bold'>Dedicated Web site</a></td>
+					<td><a href='http://proxy-appliance.org/' style='font-weight:bold'>More informations</a></td>
 				</tr>							
-				<tr>
-					<td width=1%><img src='/img/arrow-right-16.png'></td>
-					<td><a href='index.php/screenshots/squid-proxy-a-artica' style='font-weight:bold'>Screenshots</a></td>
-				</tr>
-
-				
 			</table>
 		</div>
 	</div>

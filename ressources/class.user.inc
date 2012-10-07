@@ -818,7 +818,7 @@ class user{
 
 
 	$this->MailingListAddressGroup=$this->MaillingListGroupGET();
-
+	$this->LoadFetchMailAddrs();
 		
 	}
 	
@@ -2140,7 +2140,27 @@ function joomla(){
 				$delivery_user=$delivery_user." OR delivery_user='$ligne' $and";
 			}
 		return $delivery_user;		
-	}	
+	}
+
+	private function LoadFetchMailAddrs(){
+		if(isset($_SESSION["FECTORGMAIL"])){
+			while (list ($num, $ligne) = each ($_SESSION["FECTORGMAIL"])){$this->HASH_ALL_MAILS[]=$ligne;}
+			return;
+		}
+		
+		if(!class_exists("mysql")){include_once(dirname(__FILE__).'/class.mysql.inc');}
+		$q=new mysql();
+		$sql="SELECT orgmail FROM fetchmail_rules WHERE uid='$this->uid'";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#.*?@.*#", $ligne["orgmail"])){
+				if(!isset($_SESSION["FECTORGMAIL"][$ligne["orgmail"]])){
+					$_SESSION["FECTORGMAIL"][$ligne["orgmail"]]=$ligne["orgmail"];
+					$this->HASH_ALL_MAILS[]=$ligne["orgmail"];
+				}
+			}
+		}
+	}
 	
 	
 	

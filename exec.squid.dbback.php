@@ -28,6 +28,8 @@ function start(){
 		ufdbguard_admin_events("already $oldpid pid exists in memory, aborting", __FUNCTION__, __FILE__, __LINE__, "backup");
 		return;
 	}
+	
+	
 	@file_put_contents($pidfile, getmypid());
 	LoadParams();
 	if($GLOBALS["EnableBackup"]==0){
@@ -128,7 +130,7 @@ function backupTable($tablename,$filename){
 }
 
 function LoadParams(){
-	if(isset($GLOBALS["DaysbackupOlder"])){return;}
+	
 	$sock=new sockets();
 	$SquidBackupStats=unserialize(base64_decode($sock->GET_INFO("SquidBackupStats")));
 	$t=time();
@@ -147,7 +149,9 @@ function LoadParams(){
 	$GLOBALS["EnableBackup"]=$EnableBackup;
 	$GLOBALS["DaysbackupOlder"]=$DaysbackupOlder;
 	$GLOBALS["WORKDIR"]=$SquidBackupStats["workdir"];
-	
+	$users=new usersMenus();
+	if(!is_numeric($GLOBALS["DaysbackupOlder"])){$GLOBALS["DaysbackupOlder"]=90;}
+	if(!$users->CORP_LICENSE){$GLOBALS["EnableBackup"]=0;}
 }
 
 function week_visited(){

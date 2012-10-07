@@ -1,5 +1,4 @@
 <?php
-ini_set("memory_limit","400M");
 error_reporting(E_ALL & ~E_NOTICE);
 if(!isset($GLOBALS["DEBUG_INCLUDES"])){$GLOBALS["DEBUG_INCLUDES"]=false;}
 if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/class.semaphores.php\n";}

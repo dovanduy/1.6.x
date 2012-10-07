@@ -4,7 +4,6 @@ if(!isset($GLOBALS["DEBUG_MEM"])){$GLOBALS["DEBUG_MEM"]=false;}
 if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
 if($GLOBALS["DEBUG_MEM"]){events("Memory: class.templates.inc START -> ".round(((memory_get_usage()/1024)/1000),2) ."M ".__LINE__);}
 if(!isset($GLOBALS["DEBUG_INCLUDES"])){$GLOBALS["DEBUG_INCLUDES"]=false;}
-ini_set("memory_limit","400M");
 if(isset($_GET["debug-page"])){	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(!$GLOBALS["EXECUTED_AS_ROOT"]){if(isset($GLOBALS["KAV4PROXY_NOSESSION"])){if(!$GLOBALS["KAV4PROXY_NOSESSION"]){session_start();}}}
 if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/class.sockets.inc\n";}
@@ -5359,10 +5358,11 @@ function numberFormat  ($number  , $decimals = 2 , $dec_point = '.' , $sep = ','
    
     return $num;
 }	
-function CompileTr3($array){
+function CompileTr3($array,$noform=false){
 	if(!is_array($array)){return null;}
 	if(count($array)==0){return null;}
-$tables[]="<table style='width:99%' class=form><tr>";
+	if(!$noform){$classform="class=form";}
+$tables[]="<table style='width:99%' $classform><tr>";
 $t=0;
 while (list ($key, $line) = each ($array) ){
 		$line=trim($line);
@@ -5459,10 +5459,10 @@ function quicklinks_paragraphe($img,$title,$text,$link){
 	<table style='width:205px;margin-top:2px' OnClick=\"javascript:$link\" id='quicklinks-$title' class=QuickLinkTable>
 	<tbody>
 	<tr>
-		<td width=1% valign='top'>". imgtootltip($img,$text,$link)."</td>
+		<td width=1% valign='top'>". imgtootltip($img,$text)."</td>
 		<td style='padding-left:2px;' valign='top' width=99%>
 		<div style='font-size:14px;font-weight:bold;letter-spacing:-1px;padding-bottom:3px;border-bottom:1px solid white;margin-bottom:3px'  
-		OnClick=\"javascript:$link\">{{$title}}
+		>{{$title}}
 		</div>
 	</tr>
 	</tbody>

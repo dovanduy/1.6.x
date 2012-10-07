@@ -476,6 +476,8 @@ class settings_inc {
 	var $SAMBA_CLUSTER_SUPPORT=false;
 	var $KLMS_INSTALLED=false;
 	var $ZARAFA_SEARCH_INSTALLED=false;
+	var $LIGHT_INSTALL=false;
+	var $CORP_LICENSE=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -665,8 +667,9 @@ class settings_inc {
 			if(isset($_GLOBAL["SSHFS_INSTALLED"])){$this->SSHFS_INSTALLED=$_GLOBAL["SSHFS_INSTALLED"];;}
 			if(isset($_GLOBAL["APP_ARKEIA_INSTALLED"])){$this->APP_ARKEIA_INSTALLED=$_GLOBAL["APP_ARKEIA_INSTALLED"];;}
 			if(isset($_GLOBAL["ZARAFA_SEARCH_INSTALLED"])){$this->ZARAFA_SEARCH_INSTALLED=$_GLOBAL["ZARAFA_SEARCH_INSTALLED"];;}
-			
-			
+			if(isset($_GLOBAL["LIGHT_INSTALL"])){$this->LIGHT_INSTALL=$_GLOBAL["LIGHT_INSTALL"];}
+			// Are you sure to do that !!!, breaking the license turn you to a pirate...
+			if(isset($_GLOBAL["CORP_LICENSE"])){$this->CORP_LICENSE=$_GLOBAL["CORP_LICENSE"];}
 					
 			$this->bindrrd_installed=$_GLOBAL["bindrrd_installed"];
 			$this->fdm_installed=$_GLOBAL["fdm_installed"];

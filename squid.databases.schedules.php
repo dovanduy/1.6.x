@@ -27,7 +27,46 @@ if(isset($_POST["schedule-delete"])){AddNewSchedule_delete();exit;}
 if(isset($_POST["schedule-run"])){AddNewSchedule_run();exit;}
 
 if(isset($_POST["DisableSquidDefaultSchedule"])){DisableSquidDefaultSchedule();exit;}
+
+if(isset($_GET["compile-settings-js"])){compile_settings_js();exit;}
+if(isset($_GET["compile-settings-popup"])){compile_settings_popup();exit;}
+if(isset($_GET["compile-settings-perform"])){compile_settings_perform();exit;}
+
+
 page();
+
+function compile_settings_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{compile_settings}");
+	echo "YahooWin6('905','$page?compile-settings-popup=yes','$title')";
+	
+}
+function compile_settings_popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();	
+	$sock=new sockets();
+	$t=time();
+	$html="
+	<center style='font-size:18px' id='$t-center'>{please_wait}...<p>&nbsp;</p><p>&nbsp;</p></center><div id='$t' style='margin-bottom:20px'></div>
+	<script>LoadAjax('$t','$page?compile-settings-perform=yes&t=$t');</script>
+	";
+	echo $tpl->_ENGINE_parse_body($html);
+}
+function compile_settings_perform(){
+	$sock=new sockets();
+	$t=$_GET["t"];
+	$datas=unserialize(base64_decode($sock->getFrameWork("squid.php?compile-schedules-reste=yes&MyCURLTIMEOUT=300")));
+	$text=@implode("\n", $datas);
+	$html="<textarea style='width:100%;height:550px;font-size:11.5px;overflow:auto;border:1px solid #CCCCCC;padding:5px'>$text</textarea>
+	<script>
+		document.getElementById('$t-center').innerHTML='';
+		
+	</script>
+	
+	";	
+	echo $html;	
+}
 
 function AddNewSchedule_js(){
 	$ID=$_GET["ID"];
@@ -246,6 +285,7 @@ function page(){
 	$events=$tpl->_ENGINE_parse_body("{events}");
 	$run_this_task_now=$tpl->javascript_parse_text("{run_this_task_now} ?");
 	$parameters=$tpl->_ENGINE_parse_body("{parameters}");
+	$compile_settings=$tpl->_ENGINE_parse_body("{compile_settings}");
 	
 	$qS=new mysql_squid_builder();
 	$q=new mysql();
@@ -280,6 +320,7 @@ $('#$t').flexigrid({
 buttons : [
 	{name: '$new_schedule', bclass: 'add', onpress : AddNewSchedule},
 	{name: '$parameters', bclass: 'Settings', onpress : Parmaeters$t},
+	{name: '$compile_settings', bclass: 'Reconf', onpress : CompileSettings$t},
 	
 		],	
 	searchitems : [
@@ -301,6 +342,10 @@ buttons : [
 
 	function AddNewSchedule(category){
 			Loadjs('$page?AddNewSchedule-js=yes&ID=0');
+	}
+	
+	function CompileSettings$t(){
+		Loadjs('$page?compile-settings-js=yes');
 	}
 	
 	function SquidCrontaskUpdateTable(){

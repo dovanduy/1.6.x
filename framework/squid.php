@@ -45,6 +45,13 @@ if(isset($_GET["remove-cache"])){remove_cache();exit;}
 if(isset($_GET["logrotate"])){logrotate();exit;}
 if(isset($_GET["squid-iptables"])){squid_iptables();exit;}
 if(isset($_GET["join-reste"])){squid_join_reste();exit;}
+if(isset($_GET["disconnect-reste"])){squid_disconnect_reste();exit;}
+if(isset($_GET["compile-schedules-reste"])){compile_schedule_reste();exit;}
+if(isset($_GET["reconfigure-quotas-tenir"])){reconfigure_quotas_tenir();exit;}
+if(isset($_GET["reconfigure-quotas"])){reconfigure_quotas();exit;}
+
+
+
 
 if(isset($_GET["refresh-caches-infos"])){refresh_cache_infos();exit;}
 if(isset($_GET["purge-categories"])){purge_categories();exit;}
@@ -660,6 +667,12 @@ function squid_join_reste(){
 	exec("$php5 /usr/share/artica-postfix/exec.kerbauth.php --build 2>&1",$results);
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 }
+function squid_disconnect_reste(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	exec("$php5 /usr/share/artica-postfix/exec.kerbauth.php --disconnect 2>&1",$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
+}
 
 
 function refresh_cache_infos(){
@@ -1045,7 +1058,7 @@ function recompile_debug(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/squid.indebug.log");
-	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build --verbose >/usr/share/artica-postfix/ressources/logs/web/squid.indebug.log >/dev/null 2>&1 &");	
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --build --verbose >/usr/share/artica-postfix/ressources/logs/web/squid.indebug.log 2>&1");	
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 }
@@ -1141,6 +1154,32 @@ function squid_iptables(){
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
 	
+}
+function compile_schedule_reste(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --build-schedules --verbose 2>&1");	
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
+	exec($cmd,$results);
+	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";	
+}
+
+function reconfigure_quotas_tenir(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.quotasbuild.php --build --verbose 2>&1");	
+	exec($cmd,$results);
+	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";		
+}
+function reconfigure_quotas(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.quotasbuild.php --build --verbose >/dev/null 2>&1 &");	
+	exec($cmd,$results);
+	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";		
 }
 
 

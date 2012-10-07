@@ -1,5 +1,5 @@
 <?php
-ini_set('memory_limit', '64M');
+
 session_start();
 unset($_SESSION["uid"]);
 unset($_SESSION["privileges"]);

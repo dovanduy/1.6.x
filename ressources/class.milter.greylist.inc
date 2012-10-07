@@ -321,6 +321,21 @@ private function string_to_regex($pattern){
 	
 }
 
+private function check_patternvalues_domain($pattern,$type){
+	if($GLOBALS["VERBOSE"]){echo "Check `$pattern`:`$type`\n";}
+	if(strpos($pattern, '@')>0){
+		if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist field `pattern` `$pattern` is an email address, switch to from\n";}
+		return "from";}
+	
+	if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $pattern)){
+		if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist field `pattern` `$pattern` is an ip address, switch to addr\n";}
+		return "addr";
+	}
+						
+	return $type;
+	
+}
+
 
 function BuildConfig(){
 			if($this->hostname==null){$this->hostname="master";}
@@ -391,7 +406,10 @@ function BuildConfig(){
 					}	
 
 					if(trim($ligne["pattern"])==null){if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist field `pattern` desc:`{$ligne["description"]}` is null skipping rule {$ligne["ID"]}\n";}continue;}		
-					if($ligne["type"]=="domain"){if(strpos($ligne["pattern"], '@')>0){$ligne["type"]="from";}}
+					if($ligne["type"]=="domain"){
+						$ligne["type"]=$this->check_patternvalues_domain($ligne["pattern"],$ligne["type"]);
+					}
+						
 					$ligne["pattern"]=$this->is_regex($ligne["pattern"]);
 					if(trim($ligne["pattern"])==null){if($GLOBALS["VERBOSE"]){echo "Warning BuildConfig() pattern is null for {$ligne["pattern"]} in line ".__LINE__."\n";}}
 					$this->acl[]="acl {$ligne["method"]} {$ligne["type"]} {$ligne["pattern"]} #ID:{$ligne["ID"]} {$ligne["description"]}";
@@ -443,13 +461,15 @@ function BuildConfig(){
 			if(is_array($array_acl2)){
 				while (list ($num, $ligne) = each ($array_acl2) ){
 					if(trim($ligne)==null){continue;}
-					if(preg_match("#whitelist domain\s+(.+)#",$ligne)){
-					if(strpos($ligne,"@")>0){$array_acl2[$num]=str_replace("@","",$ligne);}
+					if(preg_match("#whitelist domain\s+(.+)#",$ligne,$re)){
+						//if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist $this->hostname whitelist -> {$re[1]}\n";}
+						if(strpos($ligne,"@")>0){$array_acl2[$num]=str_replace("@","",$ligne);}
 					}
 					
 					if(preg_match("#^dacl#",$ligne)){$ligne=str_replace("dacl", "acl", $ligne); $array_acl2[$num]=$ligne;}
 					if(preg_match("#^acl whitelist\s+(.+?)\s+(.+?)#",$ligne,$re)){
 						if(strtolower($re[1])=="header"){
+							if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist $this->hostname whitelist domain -> {$re[2]}\n";}
 							$ligne=str_replace("acl whitelist header", "acl whitelist domain", $ligne);
 							$array_acl2[$num]=$ligne;
 						}
@@ -695,6 +715,8 @@ function BuildConfig(){
 			$conf=$conf ."\n";
 			$conf=$conf ."#ACLS Rules\n\n";
 			if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist $this->hostname adding array_acl2=". count($array_acl2)." rules\n";}
+			@file_put_contents("/etc/milteracls.txt",  implode("\n",$array_acl2));
+			
 			$conf=$conf . implode("\n",$array_acl2);
 			$conf=$conf."\n";
 			if($GLOBALS["ROOT"]){

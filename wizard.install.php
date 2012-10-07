@@ -547,7 +547,8 @@ $html="
 	$sock=new sockets();
 	$sock->SET_INFO("myhostname","$netbiosname.$domainname");
 	$sock->getFrameWork("cmd.php?ChangeHostName=$netbiosname.$domainname");
-	$sock->getFrameWork("services.php?resolvConf=yes");	
+	$sock->getFrameWork("services.php?resolvConf=yes");
+	$sock->getFrameWork("services.php?folders-security=yes");		
 	$sock->SaveConfigFile($_GET["savedsettings"], "WizardSavedSettings");
 	
 	

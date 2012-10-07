@@ -32,6 +32,8 @@ Vous pouvez aussi indiquer une tranche de port aussi. Exemple : 0-1024</acl_squi
 <activate_web_engine>Activer le service Web</activate_web_engine>
 <activew>Actif</activew>
 <active_directory>Active Directory</active_directory>
+<active_directory_group>Groupe Active Directory</active_directory_group>
+<active_directory_member>Membre Active Directory</active_directory_member>
 <active_directory_security>Mode de s&eacute;curit&eacute; Active Directory</active_directory_security>
 <active_directory_security_explain>Si vous avez un environnement Active Directory, il est possible de faire partie du domaine en tant que membre natif d'Active Directory.[br]M&ecirc;me si une politique de s&eacute;curit&eacute; limite l'utilisation de protocoles d'authentification compatibles avec NT, le serveur Samba peut faire partie d'un ADS &agrave; l'aide de Kerberos.[br]Samba en mode membre d'Active Directory peut accepter des tickets Kerberos</active_directory_security_explain>
 <act_as_gateway>Agir en tant que passerelle</act_as_gateway>
@@ -214,6 +216,7 @@ Si vous utilisez kaspersky Anti-Spam 3.x, il offrira aussi les capacit&eacute;s 
 <ARTICA_ADMPRXY_TXT>L'interface Web Proxy Utilisateur vous permet de fournir une interface Web aux utilisateurs afin d'administrer leurs param&egrave;tres</ARTICA_ADMPRXY_TXT>
 <artica_install_watchdog>Surveillance des d&eacute;mons Artica</artica_install_watchdog>
 <artica_install_watchdog_explain>Cette t&acirc;che s'assure que les d&eacute;mons Artica sont bien en fonctionnement</artica_install_watchdog_explain>
+<artica_license>Licence Artica</artica_license>
 <artica_manager>SuperAdmin Artica</artica_manager>
 <artica_manager_password>Mode de passe du SuperAdmin Artica</artica_manager_password>
 <ARTICA_STATISTICS>Statistiques Artica</ARTICA_STATISTICS>
@@ -250,11 +253,13 @@ Elle est con&ccedil;ue pour injecter les fichiers transform&eacute;s au format M
 <backto31xsquid_explain>Cette op&eacute;ration va effectuer un retour vers la branche stable 3.1x du proxy.
 Elle va supprimer la version existante pour la remplacer vers cette ancienne branche par le bais d'une compilation.
 Voulez-vous effectuer cette op&eacute;ration ?</backto31xsquid_explain>
+<backups>Sauvegardes</backups>
 <backup_categories>Sauvegarder vos cat&eacute;gories</backup_categories>
 <backup_categories_explain>Extrait le contenu des cat&eacute;gories depuis la base MySQL et les sauvegarde dans le r&eacute;pertoire [b]/home/squid/categories_backuped[/b]</backup_categories_explain>
 <backup_containers>Sauvegardes</backup_containers>
 <backup_container_path>Chemin de la sauvegarde</backup_container_path>
 <backup_directory>R&eacute;pertoire de sauvegarde</backup_directory>
+<backup_executed_in_background>La sauvegarde a &eacute;t&eacute; lanc&eacute;e en t&acirc;che de fond.</backup_executed_in_background>
 <backup_old_than>Sauvegarder plus vieux que</backup_old_than>
 <backup_stats>Sauvegarde des stats</backup_stats>
 <backup_table_to>Sauvegarder la table dans</backup_table_to>
@@ -335,8 +340,10 @@ Elle permet de construire les tables n&eacute;cessaires &agrave; la construction
 <cache_override_webserver_strong>Le cache surcharge le site web (fort)</cache_override_webserver_strong>
 <cache_parameters>Param&egrave;tres de cache</cache_parameters>
 <cache_priorities>Priorit&eacute;s du cache</cache_priorities>
+<cache_time>Temps du cache</cache_time>
 <cannot_use_ssl_no_networking_set>Impossible d'utiliser SSL tant que le r&eacute;seau ne soit pas activ&eacute; dans cette configuration.</cannot_use_ssl_no_networking_set>
 <categorized_in_articadb>Ajout&eacute; &agrave; l'int&eacute;rieur des bases Artica</categorized_in_articadb>
+<categorize_websites>Cat&eacute;goriser des sites web</categorize_websites>
 <certificates_center>Centre des certificats</certificates_center>
 <certificate_chain>Certificat cha&icirc;ne</certificate_chain>
 <certificate_chain_explain>Un Certificat cha&icirc;ne est un document texte qui contient tous les certificats provenant de l'autorit&eacute; de confiance.</certificate_chain_explain>
@@ -419,6 +426,7 @@ Faites tr&egrave;s attention &agrave; ce que vous faites &agrave; travers ce for
 <compilation_status>&Eacute;tat de la compilation</compilation_status>
 <compiled_categories>Cat&eacute;gories compil&eacute;es</compiled_categories>
 <compile_in_debug>Compiler les param&egrave;tres en mode verbeux</compile_in_debug>
+<compile_settings>Compiler les param&egrave;tres</compile_settings>
 <compile_squid_repo>Mise &agrave; jour et compilation de Squid 3.2x</compile_squid_repo>
 <compile_squid_repo_explain>Cette t&acirc;che est en mesure de v&eacute;rifier les derni&egrave;res versions disponibles sur le site squid-cache.org.[br]Si une nouvelle version est disponible, elle sera en mesure de compiler la nouvelle version et de l'installer.[br]C'est &agrave; prendre avec pr&eacute;cautions car aucun tests n'est r&eacute;alis&eacute;s au terme de son ex&eacute;cution.</compile_squid_repo_explain>
 <compile_this_category>Compiler cette cat&eacute;gorie</compile_this_category>
@@ -472,6 +480,7 @@ Une mise &agrave; jour prend environ 150Mb de bande passante.</databases_ufdbupd
 <default_cache>Cache par d&eacute;faut</default_cache>
 <default_domain>Domaine par d&eacute;faut</default_domain>
 <default_rules>R&egrave;gles par d&eacute;faut</default_rules>
+<default_value_is_used>La valeur par d&eacute;faut est utilis&eacute;e.</default_value_is_used>
 <default_webrule>R&egrave;gle par d&eacute;faut de filtrage</default_webrule>
 <delayed_items>&eacute;l&eacute;ments retard&eacute;s</delayed_items>
 <delay_class_1>Tout est limit&eacute; dans un groupe unique</delay_class_1>
@@ -564,6 +573,7 @@ Dans cette section, indiquez le domaine &agrave; ajouter &agrave; la machine vir
 <domain_security>Mode de s&eacute;curit&eacute; domaine</domain_security>
 <domain_security_explain>En mode de s&eacute;curit&eacute; domaine, le serveur Samba dispose d'un compte machine (un compte de confiance pour la s&eacute;curit&eacute; du domaine) qui force toutes les requ&ecirc;tes d'authentification &agrave; passer par les contr&ocirc;leurs de domaine.[br]Le serveur Samba se voit devenir un serveur membre du domaine.</domain_security_explain>
 <download2>T&eacute;l&eacute;chargement</download2>
+<downloaded_flow_this_hour>Flux t&eacute;l&eacute;charg&eacute; par heure</downloaded_flow_this_hour>
 <downloaded_size_per_day>Flux t&eacute;l&eacute;charg&eacute; par jour</downloaded_size_per_day>
 <downloaded_size_per_hour>Taille des t&eacute;l&eacute;chargements par heure</downloaded_size_per_hour>
 <downloadz>T&eacute;l&eacute;charger</downloadz>
@@ -755,6 +765,7 @@ Une fichier PAC indique aux navigateurs l'utilisation appropri&eacute;e d'un pro
 <icp_port>Port ICP</icp_port>
 <icp_port_explain>Le port d'&eacute;coute afin de communiquer par requ&ecirc;tes ICP avec les autres Proxy.[br]
 Le port standard UDP pour les requ&ecirc;tes iCP est 3130.[br]Par d&eacute;faut, ce port est d&eacute;sactiv&eacute; ( 0 )</icp_port_explain>
+<identification>Identification</identification>
 <ID_FS_SEC_TYPE>Type de secteurs de fichiers</ID_FS_SEC_TYPE>
 <ID_MODEL_ENC>Mod&egrave;le Enc.</ID_MODEL_ENC>
 <ID_PART_TABLE_TYPE>Type de table de partition</ID_PART_TABLE_TYPE>
@@ -803,6 +814,7 @@ Avec votre compte vous &ecirc;tes en mesure d'acc&eacute;der &agrave; Internet e
 <internal_networks>R&eacute;seaux internes</internal_networks>
 <internal_scheduler>T&acirc;ches p&eacute;riodiques internes</internal_scheduler>
 <internal_scheduler_text>Affiche les t&acirc;ches internes programm&eacute;es par le service Artica</internal_scheduler_text>
+<internet_access_per_day>Acc&egrave;s internet par jour</internet_access_per_day>
 <internet_browsing>Surf Internet</internet_browsing>
 <invalid>Non valide</invalid>
 <in_database>Dans la base</in_database>
@@ -820,6 +832,7 @@ Beaucoup de soci&eacute;t&eacute;s ou utilisateurs individuels l'on adopt&eacute
 Voici les logiciels clients disponibles sous Windows (et/ou Linux) qui permettent d'&eacute;tablir des communication avec le serveur Jabber.</JABBER_SOFT_CLIENTS>
 <junk_mail_folder>Dossier Spam</junk_mail_folder>
 <junk_mail_folder_zexplain>D&eacute;placer automatiquement les messages dans le courrier ind&eacute;sirable en fonction de l'ent&ecirc;te des messages.</junk_mail_folder_zexplain>
+<KerbAuthDisableGroupListing>D&eacute;sactiver le parcours utilisateurs/groupes</KerbAuthDisableGroupListing>
 <KerbAuthDisableNsswitch>Ne pas int&eacute;grer l'AD dans le syst&egrave;me local</KerbAuthDisableNsswitch>
 <kernel.panic_on_oops>
 Enable kernel detection and handling of any process that causes a crashand calls the panic() function at the end.[br]
@@ -843,6 +856,7 @@ In most cases where the computer is not running as a router of some kind, we cou
 <last>Dernier(s)</last>
 <last_status>Dernier &eacute;tat</last_status>
 <last_transaction_messages>Derni&egrave;res transactions des messages</last_transaction_messages>
+<last_update>Derni&egrave;re mise &agrave; jour</last_update>
 <latest_scan>Derni&egrave;re anaylyse</latest_scan>
 <launch_UpdateUtility>Lance Update Utility</launch_UpdateUtility>
 <launch_UpdateUtility_explain>T&eacute;l&eacute;charges les bases de mise &agrave; jour des produits kaspersky et construit le d&eacute;p&ocirc;t local</launch_UpdateUtility_explain>
@@ -855,6 +869,10 @@ Celui-ci &eacute;tant pr&eacute;sente sur Debian ou Ubuntu.</ldap_doesnt_support
 <LDAP_PRIORITY>Priorit&eacute; LDAP</LDAP_PRIORITY>
 <ldap_proxy>Proxy LDAP</ldap_proxy>
 <levels>Niveaux</levels>
+<license_active>Licence active</license_active>
+<license_inactive>Licence inactive</license_inactive>
+<license_invalid>licence invalide</license_invalid>
+<license_status>&Eacute;tat de la licence</license_status>
 <ligghtpd_perf_howto>Cette interface d'administration Web utilise le moteur liighttpd afin de fournir la g&eacute;n&eacute;ration des pages Web.[br]
 Artica utilise deux moteurs.[br]
 Le premier permet l'administration du serveur.[br]
@@ -928,6 +946,7 @@ Voulez-vous lancer l'op&eacute;ration ?</mandatories_packages_ask>
 <max-attempts>Tentatives MAX</max-attempts>
 <MaxDays>Nb jours MAX</MaxDays>
 <maxfilesize>Taille MAX d'un fichier</maxfilesize>
+<maxquota>Quota maximal</maxquota>
 <MaxRateBw>Bande passante MAX</MaxRateBw>
 <maxretries>NB MAX de tentatives</maxretries>
 <MaxRotation>Rotation MAX</MaxRotation>
@@ -1084,6 +1103,8 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 <objects_group>Groupe d'objets</objects_group>
 <OCS_LNX_AGENT_NOTINSTALLED>L'agent r&eacute;seau OCS n'est pas install&eacute; ou n'est pas d&eacute;tect&eacute; sur votre syst&egrave;me.[br]Utiliser le centre d'installation afin de l'installer pour pouvoir le connecter &agrave; un serveur central OCS</OCS_LNX_AGENT_NOTINSTALLED>
 <offlineimap_gateway_explain>Au lieu d'effectuer la synchronisation avec une bo&icirc;te aux lettres locale, celle-ci sera effectu&eacute;e avec une boite aux lettres h&eacute;berg&eacute;e par un serveur distant.</offlineimap_gateway_explain>
+<old_statistics_interface>Ancienne interface de statistiques</old_statistics_interface>
+<old_statistics_interface_text>Si quelque chose manque, utilisez l'ancienne interface de statistiques.</old_statistics_interface_text>
 <OnlyEnabled>Seulement actif</OnlyEnabled>
 <only_from_activedirectory>Seulement depuis l'Active Directory</only_from_activedirectory>
 <opened_ports>Ports ouverts</opened_ports>
@@ -1097,6 +1118,7 @@ Le service principal va &ecirc;tre recharg&eacute;.</operation_in_background_res
 <optimize_database>Optimiser la base de donn&eacute;es</optimize_database>
 <options_will_be_available_after_creating_service>Les options seront disponibles apr&egrave;s avoir cr&eacute;er le service</options_will_be_available_after_creating_service>
 <orginal_values>Valeurs originales</orginal_values>
+<original_emailaddr>Adresse eMail d'origine</original_emailaddr>
 <OS>Syst&egrave;me d'exploitation</OS>
 <pagepeeker_icon_text>PagePeeker vous autorise &agrave; cr&eacute;er des miniatures des sites Internet qui vont &ecirc;tre affich&eacute;s dans les statistiques d'Artica.</pagepeeker_icon_text>
 <paranoid_anonymous>Mode parano&iuml;aque</paranoid_anonymous>
@@ -1119,6 +1141,8 @@ Nous conseillons de ne pas trop agrandir la fr&eacute;quence d'analyse car cela 
 Toutes les donn&eacute;es sauvegard&eacute;es dans cet objet seront alors d&eacute;truites.</perform_empty_ask>
 <perform_operation>Lancer l'op&eacute;ration</perform_operation>
 <per_category>Par cat&eacute;gorie</per_category>
+<per_day>par jour</per_day>
+<per_hour>par heure</per_hour>
 <phrase_most_day_activehour>&eacute;tait l'heure la plus active de la journ&eacute;e</phrase_most_day_activehour>
 <pkg_upgrade_interface>Mise &agrave; jour des paquets syst&egrave;me</pkg_upgrade_interface>
 <pkg_upgrade_interface_explain>Cette t&acirc;che est autoris&eacute;e &agrave; mettre &agrave; jour les syst&egrave;mes de paquets activ&eacute;s et en attente de mise &agrave; jour &agrave; travers l'interface.[br]Si aucun paquet n'est s&eacute;lectionn&eacute;, la t&acirc;che sera alors termin&eacute;e automatiquement.</pkg_upgrade_interface_explain>
@@ -1238,6 +1262,7 @@ Cordialement.</recovery_password_message_text>
 <regenerate_thumbnail>Rafra&icirc;chir la miniature</regenerate_thumbnail>
 <register_howto>Bienvenue dans le formulaire d'enregistrement.[br]
 Apr&egrave;s avoir appliqu&eacute; ce formulaire, vous recevrez une message de confirmation pour activer votre compte.</register_howto>
+<registration_failed>&Eacute;chec d'enregistrement</registration_failed>
 <reindex_caches>R&eacute;-indexer les caches</reindex_caches>
 <reindex_caches_warn>Cette op&eacute;ration va supprimer les fichiers qui stockent les indexes de vos caches.
 Pendant cette op&eacute;ration, le service proxy ne sera pas disponible.
@@ -1305,6 +1330,9 @@ Elles peuvent aussi interdire l'acc&egrave;s &agrave; certains sites Internet en
 <routing_lmtp_table_explain>Cette table permet d'effectuer le routage des comptes de bo&icirc;tes aux lettres (destination finale) vers les agents de d&eacute;livrance de courriers (MDA). Les r&egrave;gles d&eacute;finissent donc le service final de destination.[br]
 De fa&ccedil;on g&eacute;n&eacute;rale le protocole LMTP est utilis&eacute; afin de d&eacute;livrer le courrier vers un service de type Zarafa ou Cyrus-imap.</routing_lmtp_table_explain>
 <routing_recipient_table_explain>Cette table liste les r&egrave;gles d'acheminement en fonction des adresses de messagerie de destination.[br]La diff&eacute;rence avec la table associ&eacute;es aux organisations est que ces r&egrave;gles priment et permettent aussi l'utilisation des adresses e messagerie compl&egrave;tes des destinataires (user@dompain.tld).</routing_recipient_table_explain>
+<run_backup>Lancer la sauvegarde</run_backup>
+<run_backup_confirm>Cette op&eacute;ration va lancer la t&acirc;che sauvegarde sur votre serveur en arri&egrave;re plan.
+Voulez-vous effectuer cette op&eacute;ration ?</run_backup_confirm>
 <run_this_task_now>D&eacute;marrer cette t&acirc;che maintenant</run_this_task_now>
 <run_update_task_now>Lancer la t&acirc;che maintenant</run_update_task_now>
 <safaripac_how_to>T&eacute;l&eacute;chargez le PDF gr&acirc;ce au lien ci-dessous afin de configurer la section configuration automatique du proxy.</safaripac_how_to>
@@ -1324,6 +1352,7 @@ La s&eacute;curit&eacute; au niveau du partage peut &ecirc;tre impl&eacute;ment&
 <save_and_send>Sauver et envoyer</save_and_send>
 <saving_network_done>Enregistrement du r&eacute;seau r&eacute;ussi</saving_network_done>
 <saving_network_failed>&Eacute;chec d'enregistrement du r&eacute;seau</saving_network_failed>
+<scan_dir>Analyse du dossier</scan_dir>
 <scan_filesystem_size>Analyse de l'occupation disque</scan_filesystem_size>
 <scan_filesystem_size_explain>Cette t&acirc;che parcours l'ensemble des r&eacute;pertoires de votre syst&egrave;me afin de calculer l'occupation disque de chaque r&eacute;pertoire.[br]
 De cette fa&ccedil;on, vous serez en mesure de visualiser des graphique des taux d'occupation de votre disque dur.</scan_filesystem_size_explain>
@@ -1356,6 +1385,7 @@ Elle est en charge d'enregistrer les pi&egrave;ces jointes originales dans la ba
 <service_options_text>Param&egrave;tres globaux du service et options avanc&eacute;es.</service_options_text>
 <service_reloaded_in_background_mode>Succ&egrave;s, 
 la demande de rechargement &agrave; &eacute;t&eacute; lanc&eacute;e en t&acirc;che de fond.</service_reloaded_in_background_mode>
+<service_status>&Eacute;tat du service</service_status>
 <service_tuning>Performances du service</service_tuning>
 <SessionPathInMemory>R&eacute;pertoire de sessions en m&eacute;moire</SessionPathInMemory>
 <SessionPathInMemory_explain>Par d&eacute;faut, les informations de sessions sont stock&eacute;es temporairement sur le disque dur dans /var/lib/php5, cette fonctionnalit&eacute; (si la valeur est sup&eacute;rieur &agrave; 0) va monter une partition en m&eacute;moire afin d'effectuer le stockage des informations de sessions.[br]Il y a de grandes chances qu'elle am&eacute;liore les performances du moteur PHP et de l'interface d'Artica.</SessionPathInMemory_explain>
@@ -1407,6 +1437,11 @@ Il sont marqu&eacute;s pour suppression et l'utilisateur ne les visualise plus.[
 <spamass_scr4>Lorsque le classificateur bay&eacute;sien et les tests r&eacute;seaux sont utilis&eacute;s.</spamass_scr4>
 <squidgroups>Groupes de proxy</squidgroups>
 <SquidGuardWebFollowExtensions_explain>Il est recommand&eacute; de ne pas renvoyer une page d'erreur HTML lorsque la page principale demande une image ou bien un script.[br]Rediriger sur une page HTML alors que cela n'est pas demand&eacute; veut dire que l'affichage de la page peut &ecirc;tre d&eacute;t&eacute;rior&eacute;e voir illisible.[br]Cette fonctionnalit&eacute; permet de construire un objet vide en fonction de ce qui est bloqu&eacute;.[br]Si la requ&ecirc;te qui doit &ecirc;tre bloqu&eacute;e est une image, alors une image de 1 pixel sera renvoy&eacute;e.</SquidGuardWebFollowExtensions_explain>
+<squidqota_hostname>Quota pour une machine h&ocirc;te.[br]Indiquez * pour toutes les machines ou un nom d'ordinateur.[br]le caract&egrave;re * &eacute;tant support&eacute;.</squidqota_hostname>
+<squidqota_ipaddr>Indique un quota par adresses TCP/IP.[br]Indiquez * pour toutes les adresses ou une adresse avec une &eacute;toile 192.168.1.* voir m&ecirc;me 192.*</squidqota_ipaddr>
+<squidqota_MAC>Quota par adresses MAC.[br]indiquez * pour toutes les adresses MAC ou indiquez une adresse MAC comme 00:0c:29:4d:89:ad</squidqota_MAC>
+<squidqota_uid>Quota pour un membre LDAP/Active Directory comme &quot;user1&quot;.[br]Indiquez * pour tous les membres.</squidqota_uid>
+<squidquota>Quota des acc&egrave;s Internet</squidquota>
 <squid_aclmax_connections_explain>Utilis&eacute; pour limiter le nombre de connexions d'une adresse IP d'un poste utilisateur qui &agrave; d&eacute;j&agrave; ouvert X sessions TCP sur le proxy.[br][b]Note: Ceci fonctionne seulement sur les connexion TCP directes. Le protocole indirect X-Forwarded-For ne sera pas comptabilis&eacute;.[/b]</squid_aclmax_connections_explain>
 <squid_backup_stats>Sauvegarde des tables de statistiques</squid_backup_stats>
 <squid_backup_stats_explain>Cette t&acirc;che nettoie et sauvegarde les tables de statistiques en fonction des param&egrave;tres de sauvegarde dans la fonctionnalit&eacute; de sauvegarde des statistiques</squid_backup_stats_explain>
@@ -1544,8 +1579,10 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de savoir si elle &agrave; &ea
 <thewebproxy_appliance>L'appliance de Statistiques Proxy</thewebproxy_appliance>
 <thishour>cette heure</thishour>
 <this_computer_already_exists>Cet ordinateur existe d&eacute;j&agrave;</this_computer_already_exists>
+<this_feature_is_disabled_corp_license>Cette fonctionnalit&eacute; est uniquement disponible via l'utilisation de la licence entreprise.</this_feature_is_disabled_corp_license>
 <this_feature_require_210v_minimal>Cette fonctionnalit&eacute; requi&egrave;re la version 2.10 ou sup&eacute;rieur</this_feature_require_210v_minimal>
 <this_group_is_not_retranslated_to_the_system>Ce groupe n'est pas retraduit dans le syst&egrave;me local.</this_group_is_not_retranslated_to_the_system>
+<this_message_contains_no_data>Ce message contient aucune donn&eacute;e</this_message_contains_no_data>
 <this_request_contains_no_data>Cette requ&ecirc;te contient aucune donn&eacute;e</this_request_contains_no_data>
 <threads>Threads</threads>
 <threads_created>Thread(s) cr&eacute;&eacute;(s)</threads_created>
@@ -1707,6 +1744,8 @@ Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pre
 <vps_server_watchdog>Surveillance des serveurs virtuels</vps_server_watchdog>
 <vps_server_watchdog_explain>Cette t&acirc;che doit &ecirc;tre utilis&eacute;e seulement si vous avez transform&eacute; votre serveur Artica en un virtualisateur de machines via LXC.[br]
 Elle est con&ccedil;ue pour s'assurer que les machines virtuelles sont en activit&eacute; et correctement configur&eacute;es.</vps_server_watchdog_explain>
+<waiting_approval>En attente de confirmation</waiting_approval>
+<waiting_registration>En attente d'inscription</waiting_registration>
 <wait_xs_per_message>Attendre X secondes par message envoy&eacute;</wait_xs_per_message>
 <wait_xs_per_message_explain>Ce param&egrave;tre, si il est plus grand que 0 indique au processus SMTP d'attendre X secondes avant d'envoyer un autre message dans la m&ecirc;me session SMTP.[br]
 Cette m&eacute;thode sera utilis&eacute;e: se connecter, envoyer un message, attendre X secondes, envoyer un message, attendre X secondes, se d&eacute;connecter</wait_xs_per_message_explain>

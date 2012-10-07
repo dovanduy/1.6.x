@@ -408,7 +408,7 @@ mysqlbin:=SYS.LOCATE_mysqld_bin();
            writeln('Stopping mysql...............: Fatal error SYS.PIDOF() function');
            continue;
         end;
-        sleep(500);
+        sleep(1000);
         count:=count+1;
         if count>40 then begin
             writeln('Stopping mysql...............: timeout with mysql_admin');
@@ -586,6 +586,7 @@ var
    MysqlBinAllAdresses:integer;
    MySqlTmpDir:string;
    MySqlTmpDirCMD:string;
+   MySQLTMPMEMSIZE:integer;
 begin
 
 
@@ -706,7 +707,8 @@ ForceDirectories('/var/log/mysql');
    logs.DebugLogs('Starting......: LOGS ENABLED........:' +IntTostr(EnableMysqlLog));
    logs.DebugLogs('Starting......: Daemon..............:' +daemon_bin_path);
    logs.DebugLogs('Starting......: Bind address........:' +bind_address2);
-
+   logs.DebugLogs('Starting......: Change init.d script...');
+   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initd-mysql.php >/dev/null 2>&1'):
    if length(logbin)>0 then logs.OutputCmd('/bin/chown -R '+mysql_user+':'+mysql_user+' '+logbin);
    forcedirectories('/var/run/mysqld');
    logs.OutputCmd('/bin/chown -R '+mysql_user+':'+mysql_user+' /var/run/mysqld');

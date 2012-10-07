@@ -37,6 +37,8 @@ If turn to red, the service will be off and no antivirus scanning will be perfor
 <activate_web_engine>Activate the Web engine</activate_web_engine>
 <activew>Active</activew>
 <active_directory>Active Directory</active_directory>
+<active_directory_group>Active Directory group</active_directory_group>
+<active_directory_member>Active Directory member</active_directory_member>
 <active_directory_security>Active Directory security</active_directory_security>
 <active_directory_security_explain>
 f you have an Active Directory environment, it is possible to join the domain as a native Active Directory member.[br]
@@ -263,6 +265,7 @@ With this plugin you can use Backup On The Fly feature trough Amavis and if you 
 <ARTICA_ADMPRXY_TXT>End-User Web Proxy Interface allows you to provide a Web interface for users in order to manage their proxy settings</ARTICA_ADMPRXY_TXT>
 <artica_install_watchdog>Artica daemon watchdog</artica_install_watchdog>
 <artica_install_watchdog_explain>This task ensure that Artica daemons are up</artica_install_watchdog_explain>
+<artica_license>Artica License</artica_license>
 <artica_manager>Artica SuperAdmin</artica_manager>
 <artica_manager_password>rtica SuperAdmin password</artica_manager_password>
 <ARTICA_STATISTICS>Artica statistics</ARTICA_STATISTICS>
@@ -301,11 +304,13 @@ This operation will remove the current version and will compile the old one.
 Do you want to carry out this operation ?
 
 </backto31xsquid_explain>
+<backups>backups</backups>
 <backup_categories>Backup your categories</backup_categories>
 <backup_categories_explain>Extract your categories content from Mysql database and backup them into [b]/home/squid/categories_backuped[/b] directory</backup_categories_explain>
 <backup_containers>backup containers</backup_containers>
 <backup_container_path>Backup container path</backup_container_path>
 <backup_directory>Backup directory</backup_directory>
+<backup_executed_in_background>Backup as been executed in background mode</backup_executed_in_background>
 <backup_old_than>Backup old than</backup_old_than>
 <backup_stats>Stats. backup</backup_stats>
 <backup_table_to>Backup table to</backup_table_to>
@@ -391,8 +396,10 @@ It is designed to build websites statistics.</build_crypted_tables_catz_explain>
 <cache_override_webserver_strong>Cache override webserver (strong)</cache_override_webserver_strong>
 <cache_parameters>Cache parameters</cache_parameters>
 <cache_priorities>Cache priorities</cache_priorities>
+<cache_time>Cache time</cache_time>
 <cannot_use_ssl_no_networking_set>Unable to use SSL: The network is not set in the configuration</cannot_use_ssl_no_networking_set>
 <categorized_in_articadb>enabled inside the Artica Database</categorized_in_articadb>
+<categorize_websites>Categorize Internet sites</categorize_websites>
 <certificates_center>Certificates Center</certificates_center>
 <certificate_chain>Certificate Chain</certificate_chain>
 <certificate_chain_explain>A certificate chain is a plaintext file that contains all the certificates
@@ -487,6 +494,7 @@ Please take care about what command-line you send...</commandline_explain>
 <compilation_status>Compilation status</compilation_status>
 <compiled_categories>Compiled categories</compiled_categories>
 <compile_in_debug>Compile parameters in debug mode</compile_in_debug>
+<compile_settings>Compile settings</compile_settings>
 <compile_squid_repo>Update & compile Squid 3.2x</compile_squid_repo>
 <compile_squid_repo_explain>This task will check latest squid-cache version directly on the squid-cache.org website and compile it on the system.[br]
 You should take care about enabling this task because there is no tests made before installing the new version</compile_squid_repo_explain>
@@ -548,6 +556,7 @@ An update is about 150Mb size.
 <default_cache>Default cache</default_cache>
 <default_domain>Default domain</default_domain>
 <default_rules>Default rules</default_rules>
+<default_value_is_used>Default value is used</default_value_is_used>
 <default_webrule>Default Web filtering rule</default_webrule>
 <delayed_items>Delayed items</delayed_items>
 <delay_class_1>Everything is limited by a single aggregate bucket</delay_class_1>
@@ -654,6 +663,7 @@ Define the listen port and the part of the URI that point to the PAC file.
 <domain_security_explain>In domain security mode, the Samba server has a machine account (domain security trust account) and causes all authentication requests to be passed through to the domain controllers.[br]
 The Samba server is made into a domain member server</domain_security_explain>
 <download2>Download</download2>
+<downloaded_flow_this_hour>Downloaded flow this hour</downloaded_flow_this_hour>
 <downloaded_size_per_day>Downloaded size per day</downloaded_size_per_day>
 <downloaded_size_per_hour>Downloaded size per hour</downloaded_size_per_hour>
 <downloadz>Download</downloadz>
@@ -867,6 +877,7 @@ a PAC defines how web browsers can automatically choose the appropriate proxy se
 The standard UDP port for ICP is 3130.[br]
 Default is disabled (0).
 </icp_port_explain>
+<identification>Identification</identification>
 <ID_FS_SEC_TYPE>File sectors type</ID_FS_SEC_TYPE>
 <ID_MODEL_ENC>Model Enc.</ID_MODEL_ENC>
 <ID_PART_TABLE_TYPE>Partition table type</ID_PART_TABLE_TYPE>
@@ -934,6 +945,7 @@ Check the howto section in order to set your browser.</instroduction_enduser_pro
 <internal_networks>Internal networks</internal_networks>
 <internal_scheduler>Internal scheduler</internal_scheduler>
 <internal_scheduler_text>Display scheduled tasks in the internal Artica scheduler</internal_scheduler_text>
+<internet_access_per_day>Internet access per day</internet_access_per_day>
 <internet_browsing>Internet Browsing</internet_browsing>
 <invalid>invalid</invalid>
 <in_database>In database</in_database>
@@ -951,6 +963,7 @@ lots of companies and individual users has already adopted it.[b]There are numer
 </JABBER_SOFT_CLIENTS>
 <junk_mail_folder>Junk Mail folder</junk_mail_folder>
 <junk_mail_folder_zexplain>Move automatically to Junk folder according Header in message</junk_mail_folder_zexplain>
+<KerbAuthDisableGroupListing>Disable users/groups listing</KerbAuthDisableGroupListing>
 <KerbAuthDisableNsswitch>Not include Active Directory in the local system</KerbAuthDisableNsswitch>
 <kernel.panic_on_oops>
 Enable kernel detection and handling of any process that causes a crashand calls the panic() function at the end.[br]
@@ -974,6 +987,7 @@ In most cases where the computer is not running as a router of some kind, we cou
 <last>last</last>
 <last_status>Last status</last_status>
 <last_transaction_messages>Last messages transactions</last_transaction_messages>
+<last_update>Last update</last_update>
 <latest_scan>latest scan</latest_scan>
 <launch_UpdateUtility>Launch Update Utility</launch_UpdateUtility>
 <launch_UpdateUtility_explain>Download new updates for Kaspersky products and build the local repository</launch_UpdateUtility_explain>
@@ -987,6 +1001,10 @@ This feature is currently supported by Ubuntu or Debian system.
 <LDAP_PRIORITY>LDAP priority</LDAP_PRIORITY>
 <ldap_proxy>LDAP Proxy</ldap_proxy>
 <levels>levels</levels>
+<license_active>active license</license_active>
+<license_inactive>license inactive</license_inactive>
+<license_invalid>invalid license</license_invalid>
+<license_status>license status</license_status>
 <ligghtpd_perf_howto>Basically, this Web interface use lighttpd Web server engine to provide Web management interface.[br]
 Artica use 2 Web engine:[br]
 The first is the Web engine that provides administration Web pages.[br]
@@ -1064,6 +1082,7 @@ Create new group or new users, defines settings and privileges.</manage_users_an
 <max-attempts>MAX attempts</max-attempts>
 <MaxDays>Max Days</MaxDays>
 <maxfilesize>Max size of a file</maxfilesize>
+<maxquota>Max Quota</maxquota>
 <MaxRateBw>Max transfer rate</MaxRateBw>
 <maxretries>MAX retries</maxretries>
 <MaxRotation>Max rotation</MaxRotation>
@@ -1237,6 +1256,8 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <objects_group>Objects group</objects_group>
 <OCS_LNX_AGENT_NOTINSTALLED>The OCS Linux agent is not detected or installed on this system.[br]Use the setup control center in order to install the OCS Network agent on your server</OCS_LNX_AGENT_NOTINSTALLED>
 <offlineimap_gateway_explain>Instead replicate remote mailbox server to local server, the process will replicate from remote server to another remote server</offlineimap_gateway_explain>
+<old_statistics_interface>Old statistics interface</old_statistics_interface>
+<old_statistics_interface_text>If there is something missing, use the old statistics interface in order to view others statistics</old_statistics_interface_text>
 <OnlyEnabled>Only enabled</OnlyEnabled>
 <only_from_activedirectory>Only from Active Directory</only_from_activedirectory>
 <opened_ports>Opened ports</opened_ports>
@@ -1252,6 +1273,7 @@ The main service will be restarted...</operation_in_background_restart_service>
 <optimize_database>Optimize the database</optimize_database>
 <options_will_be_available_after_creating_service>Options will be available after creating the service</options_will_be_available_after_creating_service>
 <orginal_values>Original values</orginal_values>
+<original_emailaddr>original email address</original_emailaddr>
 <OS>Operating system</OS>
 <pagepeeker_icon_text>PagePeeker allows you to create Website Thumbnails that can be displayed in statistics Artica Web pages.</pagepeeker_icon_text>
 <paranoid_anonymous>Paranoid mode</paranoid_anonymous>
@@ -1275,6 +1297,8 @@ We suggest to not define a schedule more than 10 minutes to prevent too many fil
 The object will not be deleted but all datas will be erased</perform_empty_ask>
 <perform_operation>Perform operation</perform_operation>
 <per_category>Per category</per_category>
+<per_day>per day</per_day>
+<per_hour>per hour</per_hour>
 <phrase_most_day_activehour>was the most active time of this day</phrase_most_day_activehour>
 <pkg_upgrade_interface>Upgrade system packages</pkg_upgrade_interface>
 <pkg_upgrade_interface_explain>This task is able to upgrade system packages you have enabled in the Web administration interface.[br]If no package has been selected, the task will die automatically</pkg_upgrade_interface_explain>
@@ -1407,6 +1431,7 @@ Have fun.
 <refresh_website_each>Refresh Website each</refresh_website_each>
 <regenerate_thumbnail>Refresh thumbnail</regenerate_thumbnail>
 <register_howto>Welcome on the register form.[br]After apply this form, you will receive an email in order to complete registration</register_howto>
+<registration_failed>registration failed</registration_failed>
 <reindex_caches>Re-index caches</reindex_caches>
 <reindex_caches_warn>This operation will remove the index caches files and let the proxy to re-index itself caches.
 During this operation the proxy service will not be available.
@@ -1480,6 +1505,11 @@ Basically it designed to use LMTP protocol to communicate to a Cyrus-Imap or a Z
 <routing_recipient_table_explain>This table list routing rules by recipient address/domain.[br]Instead organization section, it allows to add full mail address.[br]
 With this table you can forward messages to a specific recipient email address.[br]
 All added rules are stronger than organizations routing rules..</routing_recipient_table_explain>
+<run_backup>Run backup</run_backup>
+<run_backup_confirm>This operation will launch a backup task on your server.
+The operation will be launched in background mode.
+Do you want to carry out this operation ?
+</run_backup_confirm>
 <run_this_task_now>Run this task now</run_this_task_now>
 <run_update_task_now>Run the update task now</run_update_task_now>
 <safaripac_how_to>Download the PDF with the link bellow in order to set your Automatic Proxy configuration settings</safaripac_how_to>
@@ -1502,6 +1532,7 @@ Note: [b]Monthly and weekly statistics are already scheduled[/b].</sarg_build_da
 <save_and_send>Save and send</save_and_send>
 <saving_network_done>Save network done</saving_network_done>
 <saving_network_failed>Saving network failed</saving_network_failed>
+<scan_dir>Scan folder</scan_dir>
 <scan_filesystem_size>Scan filesystem size</scan_filesystem_size>
 <scan_filesystem_size_explain>This task parse all directories on your disk and calculate the used size for each directory in order to display report file system disk space usage</scan_filesystem_size_explain>
 <scan_mailattachments_queue>
@@ -1534,6 +1565,7 @@ It is in charge to upload extracted attachments to the MySQL database and clean 
 <service_options>Service options</service_options>
 <service_options_text>Main daemon Global parameters and advanced options</service_options_text>
 <service_reloaded_in_background_mode>Success, the reloading task was executed in background mode</service_reloaded_in_background_mode>
+<service_status>Service status</service_status>
 <service_tuning>Service tuning</service_tuning>
 <SessionPathInMemory>Session path in memory</SessionPathInMemory>
 <SessionPathInMemory_explain>By default, sessions informations are stored in /var/lib/php5, this feature (if higher than 0) will create a memory container in order to save sessions informations.[br]
@@ -1603,6 +1635,11 @@ and produces a valid javascript document for blocked javascript objects.[br]
 If a blocked image is redirected to an HTML page, the browser receives HTML code where it expects an image and gets confused, 
 may generate errors, or become slow.
 </SquidGuardWebFollowExtensions_explain>
+<squidqota_hostname>Quota For an hostname.[br]Set * for all hostname or computer or computer.*</squidqota_hostname>
+<squidqota_ipaddr>Define quota per IP address.[br]Set * for all IP addresses or an IP address part such as 192.168.1.* or 192.*</squidqota_ipaddr>
+<squidqota_MAC>Quota per MAC address.[br]Set * for all MAC address or define a mac address such as 00:0c:29:4d:89:ad</squidqota_MAC>
+<squidqota_uid>Quota For an LDAP/Active directory member such as "user1". Set * for all members</squidqota_uid>
+<squidquota>Web access quota</squidquota>
 <squid_aclmax_connections_explain>This will be matched when the client's IP address has more than X TCP connections established.[br]
 <b>NOTE: This only measures direct TCP links so X-Forwarded-For indirect clients are not counted.</squid_aclmax_connections_explain>
 <squid_backup_stats>Backup statistics tables</squid_backup_stats>
@@ -1750,8 +1787,10 @@ Check events in order to see if it was successfully executed.
 <thewebproxy_appliance>The Web Proxy statistics Appliance</thewebproxy_appliance>
 <thishour>This hour</thishour>
 <this_computer_already_exists>This computer already exists</this_computer_already_exists>
+<this_feature_is_disabled_corp_license>This feature is only available when using a coporate license</this_feature_is_disabled_corp_license>
 <this_feature_require_210v_minimal>This feature require version 2.10 or above</this_feature_require_210v_minimal>
 <this_group_is_not_retranslated_to_the_system>This group is not translated in the local system</this_group_is_not_retranslated_to_the_system>
+<this_message_contains_no_data>This message contains no data</this_message_contains_no_data>
 <this_request_contains_no_data>This request contains no data</this_request_contains_no_data>
 <threads>Threads</threads>
 <threads_created>Thread(s) created</threads_created>
@@ -1927,6 +1966,8 @@ Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pre
 <vps_server_watchdog_explain>This task must be scheduled only if your Artica server is able to provide Virtual machines with LXC.[br]
 It designed to ensure that Virtual machines are UP and running and correcly set.
 </vps_server_watchdog_explain>
+<waiting_approval>Waiting For Approval</waiting_approval>
+<waiting_registration>Waiting registration</waiting_registration>
 <wait_xs_per_message>Wait X seconds per sended message</wait_xs_per_message>
 <wait_xs_per_message_explain>This parameter (if higher than 0) define if the process must wait X seconds before send a new mail in the same SMTP connection.[br]
 The process will do this method : Connect, send a message, wait x seconds, send a new message, wait x second and disconnect</wait_xs_per_message_explain>

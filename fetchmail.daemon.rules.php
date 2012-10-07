@@ -145,11 +145,11 @@ function ImportBulk$t(){
 function UserFetchMailRule$t(num,userid){
 	if(document.getElementById('dialog3_c')){
         if(document.getElementById('dialog3_c').style.visibility=='visible'){
-	            YahooWin4('891','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid+'&t=$t',userid+'&raquo;&raquo;'+num);
+	            YahooWin4('923','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid+'&t=$t',userid+'&raquo;&raquo;'+num);
 	            return true;
 	        }
 		}
-       	YahooWin2('891','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid+'&t=$t',userid+'&raquo;&raquo;'+num);
+       	YahooWin2('923','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid+'&t=$t',userid+'&raquo;&raquo;'+num);
         }
         
 var x_DeleteFetchmailRule= function (obj) {

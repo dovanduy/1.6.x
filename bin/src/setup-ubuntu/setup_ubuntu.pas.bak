@@ -124,6 +124,7 @@ begin
             fpsystem('/usr/sbin/php5 /usr/share/artica-postfix/exec.apt-get.php --sources-list >/dev/null 2>&1');
             install:=tubuntu.Create;
             writeln('check-base-system:: Scanning softwares, please wait...');
+            install.DEBUG:=true;
             install.InstallPackageListssilent(install.CheckBaseSystem());
             writeln('check-base-system:: Scanning softwares done, terminated');
             halt(0);
@@ -600,6 +601,7 @@ begin
 
 if length(paramstr(1))>0 then begin
      if paramstr(1)<>'--verbose' then begin
+     if paramstr(1)<>'--light' then begin
         writeln('Unable to understand ',paramstr(1));
         halt(0);
      end;

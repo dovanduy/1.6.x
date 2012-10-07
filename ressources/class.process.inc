@@ -28,6 +28,7 @@ function MemoryInstances(){
 		$Toremove["exec.openvpn.php"]=true;	
 		$Toremove["exec.schedules.php"]=true;	
 		$Toremove["exec.smtp-senderadv.php"]=true;	
+		$Toremove["external_acl_squid.php"]=true;
 		
 		$arrayK["exec.hamachi.php"]=5;
 		$arrayK["exec.squid-tail-injector.php"]=20;

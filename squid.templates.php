@@ -18,6 +18,7 @@
 	if(isset($_POST["newtemplate"])){TEMPLATE_ADD_SAVE();exit;}
 	if(isset($_POST["template_body"])){ZOOM_SAVE();exit;}
 	if(isset($_POST["TEMPLATE_DATA"])){TEMPLATE_SAVE();}
+	if(isset($_POST["template_header"])){TEMPLATE_HEADER_SAVE();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["popup-table"])){popup_table();exit;}
 	if(isset($_GET["view-table"])){view_table();exit;}
@@ -47,11 +48,13 @@ function ZOOM_JS(){
 	
 }
 function HEADER_JS(){
-	$zmd5=$_GET["Zoom-js"];
+	$zmd5=$_GET["zmd5"];
 	$page=CurrentPageName();
+	$tpl=new templates();
 	$title=base64_decode($_GET["subject"]);
 	$title=str_replace("'","`", $title);
-	$html="YahooWinBrowse(820,'$page?Headers-popup=yes&zmd5=$zmd5','$title')";
+	$headers_text=$tpl->_ENGINE_parse_body("{headers}");
+	$html="YahooWinBrowse(820,'$page?Headers-popup=yes&zmd5=$zmd5','$title:$headers_text')";
 	echo $html;	
 	
 }
@@ -65,9 +68,13 @@ function js(){
 	if($_GET["choose-acl"]>0){
 		$yahoo="YahooWinBrowse";
 	}
+	if(isset($_GET["choose-generic"])){
+		$yahoo="YahooWinBrowse";
+		
+	}
 	$html="
 	$('#SquidTemplateErrorsTable').remove();
-	$yahoo('774','$page?popup=yes&choose-acl={$_GET["choose-acl"]}','$title');";
+	$yahoo('774','$page?popup=yes&choose-acl={$_GET["choose-acl"]}&choose-generic={$_GET["choose-generic"]}&divid={$_GET["divid"]}&yahoo=$yahoo','$title');";
 	echo $html;
 	}
 	
@@ -79,7 +86,8 @@ function ZOOM_PREVIEW(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$newheader=trim($ligne["template_header"]);
+	$newheader=trim(stripslashes($ligne["template_header"]));
+	$ligne["template_body"]=stripslashes($ligne["template_body"]);
 	if($newheader==null){$newheader=@file_get_contents("ressources/databases/squid.default.header.db");}
 	$newheader=str_replace("{TITLE}", $ligne["template_title"], $newheader);
 	$templateDatas="$newheader{$ligne["template_body"]}</body></html>";
@@ -90,13 +98,17 @@ function HEADERS_POPUP(){
 	$q=new mysql_squid_builder();
 	$page=CurrentPageName();
 	$t=time();
-	$sql="SELECT template_body,template_title FROM squidtpls WHERE `zmd5`='{$_GET["zmd5"]}'";
+	$sql="SELECT template_header FROM squidtpls WHERE `zmd5`='{$_GET["zmd5"]}'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if(!$q->ok){	$errorsql="<div style='font-size:14px;font-weight:bold;color:#B10000;margin:10px'>{$_GET["zmd5"]}::$q->mysql_error</div>";}
 	$page=CurrentPageName();
+	$ligne["template_header"]=stripslashes($ligne["template_header"]);
 	$tpl=new templates();
-	if($ligne["template_header"]==null){$ligne["template_header"]=@file_get_contents("ressources/databases/squid.default.header.db");}
+	if($ligne["template_header"]==null){
+		$error="<div style='font-size:14px;font-weight:bold;color:#B10000;margin:10px'>{$_GET["zmd5"]}::{default_value_is_used}</div>";
+		$ligne["template_header"]=@file_get_contents("ressources/databases/squid.default.header.db");}
 	$html="
-	
+	$error$errorsql
 	<textarea style='width:100%;height:450px;font-family:monospace;
 	overflow:auto;font-size:13px;border:4px solid #CCCCCC;background-color:transparent' id='{$_GET["zmd5"]}-header-$t'>
 		{$ligne["template_header"]}
@@ -132,6 +144,7 @@ function ZOOM_POPUP(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	$page=CurrentPageName();
 	$tpl=new templates();	
+	$headers_text=$tpl->_ENGINE_parse_body("{headers}");
 	$ligne["template_body"]=trim($ligne["template_body"]);	
 	if($ligne["template_body"]==null){
 		$ligne["template_body"]="<table class=\"w100 h100\"><tr><td class=\"c m\"><table style=\"margin:0 auto;border:solid 1px #560000\"><tr><td class=\"l\" style=\"padding:1px\"><div style=\"width:346px;background:#E33630\"><div style=\"padding:3px\"><div style=\"background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF\"><div style=\"background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF\"><h1>ERROR: The requested URL could not be retrieved</h1></div><div class=\"c\" style=\"font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0\">Proxy Error</div><div style=\"background:#F7F7F7;padding:20px 28px 36px\"> <div id=\"titles\"> <h1>ERROR</h1> <h2>The requested URL could not be retrieved</h2> </div> <hr>  <div id=\"content\"> <p>The following error was encountered while trying to retrieve the URL: <a href=\"%U\">%U</a></p>  <blockquote id=\"error\"> <p><b>Access Denied.</b></p> </blockquote>  <p>Access control configuration prevents your request from being allowed at this time. Please contact your service provider if you feel this is incorrect.</p>  <p>Your cache administrator is <a href=\"mailto:%w%W\">%w</a>.</p> <br> </div>  <hr> <div id=\"footer\"> <p>Generated %T by %h (%s)</p> <!-- %c --> </div> </div></div></div></td></tr></table></td></tr></table>";
@@ -141,7 +154,7 @@ function ZOOM_POPUP(){
 	<tr>
 	<td width=99%>&nbsp;</td>
 	<td nowrap width=1%><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?headers-js=yes&zmd5={$_GET["zmd5"]}');\"
-		style='font-size:14px;font-weight:bold;text-decoration:underline'>{headers}</a>
+		style='font-size:14px;font-weight:bold;text-decoration:underline'>$headers_text</a>
 	</td>
 	<td nowrap width=1%><a href=\"javascript:blur();\" OnClick=\"s_PopUp('$page?preview=yes&zmd5={$_GET["zmd5"]}',800,800);\"
 		style='font-size:14px;font-weight:bold;text-decoration:underline'>{preview}</a>
@@ -277,9 +290,7 @@ function TEMPLATE_ADD(){
 					if (res.length>3){alert(res);return;}
 					YahooWin5Hide();
 					$('#SquidTemplateErrorsTable').flexReload();
-					
-					
-				}	
+			}	
 		function SaveNewTemplate$t(){
 				var lang=document.getElementById('lang1-$t').value;
 				if(lang.length==0){alert('Please select a language..');return;}
@@ -339,9 +350,10 @@ function TEMPLATE_ADD_SAVE(){
 	}
 	
 	$sql="INSERT IGNORE INTO squidtpls (zmd5,template_name,template_title,lang,template_body) VALUES ('$md5','{$_POST["template_name"]}','{$_POST["template_title"]}','{$_POST["lang"]}','{$_POST["template_body"]}')";
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL($sql,"artica_backup");			
-	if(!$q->ok){echo $q->mysql_error;return;}
+	if(!$q->ok){echo $q->mysql_error;	writelogs( $q->mysql_error,__FUNCTION__,__FILE__,__LINE__);return;}
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?build-templates=yes&zmd5=$md5");		
 	
@@ -363,7 +375,7 @@ function select_lang(){
 	$field=Field_array_Hash($lang, "lang1-$t",null,"RefreshSquidLangTemplateErrorsTable$t()",null,0,"font-size:16px");
 	$html="
 	
-		<table style='width:100%;margin-top:50px;margin-bottom:8px'>
+		<table style='width:99%;margin-top:50px;margin-bottom:8px;' class=form>
 		<tbody>
 			<tr>
 			<td class=legend style='font-size:16px'>{language}:</td>
@@ -379,6 +391,7 @@ function select_lang(){
 				var lang=document.getElementById('lang1-$t').value;
 				if(lang.length==0){alert('Please select a language..');return;}
 				$('#SquidTemplateErrorsTable').flexOptions({ url: '$page?view-table=yes&choose-acl={$_GET["choose-acl"]}&lang='+lang+'&xlang='+lang }).flexReload();
+				YahooWin5Hide();
 			}
 		</script>
 		";
@@ -399,16 +412,18 @@ function popup(){
 	$title=$tpl->_ENGINE_parse_body("{subject}");
 	$new_template=$tpl->_ENGINE_parse_body("{new_template}");
 	$ask_remove_template=$tpl->javascript_parse_text("{ask_remove_template}");
+	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
+	$date=$tpl->_ENGINE_parse_body("{zDate}");
 	$t=time();
 	$backToDefault=$tpl->_ENGINE_parse_body("{backToDefault}");
 	$ERROR_SQUID_REBUILD_TPLS=$tpl->javascript_parse_text("{ERROR_SQUID_REBUILD_TPLS}");
 	$q=new mysql_squid_builder();	
 	if($q->COUNT_ROWS("squidtpls")==0){$sock=new sockets();$sock->getFrameWork("squid.php?build-default-tpls=yes");}
 	$back="		{name: '$backToDefault', bclass: 'Reconf', onpress : RebuidSquidTplDefault},";
-	$template_title_size=449;
+	$template_title_size=325;
 	if($_GET["choose-acl"]>0){
 		$chooseacl_column="{display: '&nbsp;', name : 'select', width : 31, sortable : false, align: 'center'},";
-		$template_title_size=407;
+		$template_title_size=283;
 	}
 	
 	
@@ -420,12 +435,13 @@ function popup(){
 var mem$t='';
 $(document).ready(function(){
 $('#SquidTemplateErrorsTable').flexigrid({
-	url: '$page?view-table=yes&lang=$tpl->language&choose-acl={$_GET["choose-acl"]}',
+	url: '$page?view-table=yes&lang=&choose-acl={$_GET["choose-acl"]}&choose-generic={$_GET["choose-generic"]}&divid={$_GET["divid"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '$lang', name : 'lang', width :32, sortable : true, align: 'left'},
 		{display: '$template_name', name : 'template_name', width :190, sortable : true, align: 'left'},
 		{display: '$title', name : 'template_title', width : $template_title_size, sortable : false, align: 'left'},
+		{display: '$date', name : 'template_time', width : 110, sortable : true, align: 'left'},
 		$chooseacl_column
 		{display: '&nbsp;', name : 'delete', width : 31, sortable : false, align: 'center'},
 	],
@@ -434,6 +450,7 @@ $('#SquidTemplateErrorsTable').flexigrid({
 		{name: '$new_template', bclass: 'add', onpress : NewTemplate},
 		{name: '$lang', bclass: 'Search', onpress : SearchLanguage},
 		{separator: true},
+		{name: '$online_help', bclass: 'Help', onpress : help$t},
 
 		],
 	
@@ -441,8 +458,8 @@ $('#SquidTemplateErrorsTable').flexigrid({
 		{display: '$template_name', name : 'template_name'},
 		{display: '$title', name : 'template_title'}
 		],
-	sortname: 'template_name',
-	sortorder: 'asc',
+	sortname: 'template_time',
+	sortorder: 'desc',
 	usepager: true,
 	title: '$squid_choose_template',
 	useRp: true,
@@ -455,8 +472,14 @@ $('#SquidTemplateErrorsTable').flexigrid({
 	});   
 });
 
+function help$t(){
+	s_PopUpFull('http://proxy-appliance.org/index.php?cID=282','1024','900');
+}
+
+
+
 	function SearchLanguage(){
-		YahooWin5(250,'$page?Select-lang=yes&choose-acl={$_GET["choose-acl"]}','$lang');
+		YahooWin5(350,'$page?Select-lang=yes&choose-acl={$_GET["choose-acl"]}','$lang');
 	}
 	function NewTemplate(){
 		YahooWin5('550','$page?new-template=yes&t=$t','$new_template');
@@ -493,7 +516,20 @@ $('#SquidTemplateErrorsTable').flexigrid({
 		}
 		
 		
-	}    
+	} 
+
+	function ChooseGenericTemplate(tmplname){
+		if(document.getElementById('{$_GET["choose-generic"]}')){
+			document.getElementById('{$_GET["choose-generic"]}').value=tmplname;
+		}
+		if(document.getElementById('{$_GET["divid"]}')){
+			document.getElementById('{$_GET["divid"]}').innerHTML=tmplname;
+		}		
+		{$_GET["yahoo"]}Hide();
+	
+	
+	}
+	
     
     function ChooseAclsTplSquid(acl,zmd5){
     	var XHR = new XHRConnection();
@@ -528,9 +564,11 @@ function view_table(){
 	$table="squidtpls";
 	$page=1;
 	if($_GET["lang"]<>null){$FORCEQ=" AND lang='{$_GET["lang"]}'";}
+	$choose_generic=$_GET["choose-generic"];
+	if(!$q->FIELD_EXISTS($table, "template_time")){$q->CheckTables();}
 	
-	
-	if($q->COUNT_ROWS($table)==0){json_error_show("NO data in $table",2);}
+	if(!$q->TABLE_EXISTS($table)){json_error_show("$table no such table",2);}
+	if($q->COUNT_ROWS($table)==0){json_error_show("No data in $table",2);}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -578,13 +616,18 @@ function view_table(){
 	
 		$cell=array();
 		$delete=imgsimple("delete-24.png",null,"TemplateDelete('{$ligne['zmd5']}')");
-		$cell[]="$span.$linkZoom{$ligne['lang']}</a></span>";
-		$cell[]=$span.$linkZoom.$ligne['template_name']."</a></span>";
-		$cell[]="$span.$linkZoom{$ligne["template_title"]}</a></span>";
+		$cell[]="$span$linkZoom{$ligne['lang']}</a></span>";
+		$cell[]="$span$linkZoom{$ligne['template_name']}</a></span>";
+		$cell[]="$span$linkZoom{$ligne["template_title"]}</a></span>";
+		$cell[]="$span$linkZoom{$ligne["template_time"]}</a></span>";
 		if($_GET["choose-acl"]>0){
 			$cell[]=imgsimple("arrow-right-24.png",null,"ChooseAclsTplSquid('{$_GET["choose-acl"]}','{$ligne['zmd5']}')");
 			
-		}		
+		}
+
+		if(strlen($choose_generic)>3){
+			$cell[]=imgsimple("arrow-right-24.png",null,"ChooseGenericTemplate('{$ligne['template_name']}')");
+		}
 		
 		$cell[]=$delete;
 		
@@ -651,15 +694,23 @@ function TEMPLATE_REMOVE(){
 	$sock->getFrameWork("cmd.php?squid-templates=yes");	
 }
 
-function TEMPLATE_SAVE(){
-	$sql="UPDATE squid_templates SET `TEMPLATE_DATA`='{$_POST["TEMPLATE_DATA"]}' WHERE `TEMPLATE_NAME`='{$_POST["TEMPLATE_NAME"]}'";
-	$q=new mysql();
-	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squid-templates=yes");
-	
-}
 
+function TEMPLATE_HEADER_SAVE(){
+	$template_header=addslashes($_POST["template_header"]);
+	if(strlen($template_header)==0){echo "template_header: no data\n";return;}
+	$zmd5=$_POST["zmd5"];
+	if($zmd5==null){echo "Fatal Key is null!\n";return;}
+	$sql="UPDATE squidtpls SET `template_header`='$template_header' WHERE `zmd5`='$zmd5'";
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL($sql,"artica_backup");
+	
+	if(!$q->ok){
+		echo $q->mysql_error;
+		writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?build-templates=yes&zmd5=$zmd5");	
+}
 
 ?>

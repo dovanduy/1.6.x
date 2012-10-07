@@ -19,6 +19,7 @@ private
        kvmready:boolean;
        libs:tlibs;
        EXCLUDE_APPS:TstringList;
+       LIGHT_INSTALL:boolean;
        function is_application_installed(appname:string):boolean;
        function InstallPackageLists(list:string):boolean;
        function CheckCyrus():string;
@@ -71,12 +72,20 @@ ArchStruct:=libs.ArchStruct();
 AsKimSuffi:=libs.IsKImsuffi();
 EXCLUDE_APPS:=TStringList.Create;
    if FileExists('/tmp/packages.list') then fpsystem('/bin/rm -f /tmp/packages.list');
-
+   LIGHT_INSTALL:=false;
 
      if length(Paramstr(1))>0 then begin
         if Paramstr(1)<>'--check-base-system' then begin
             writeln('you can use --silent in order to install packages without human interaction');
         end;
+
+        if Paramstr(1)='--light' then begin
+           ForceDirectories('/etc/artica-postfix');
+           fpsystem('/bin/touch /etc/artica-postfix/LIGHT_INSTALL');
+        end;
+
+        if FileExists('/etc/artica-postfix/LIGHT_INSTALL') then LIGHT_INSTALL:=true;
+
      end;
 end;
 //#########################################################################################
@@ -251,6 +260,7 @@ begin
           fpsystem('DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get -o Dpkg::Options::="--force-confnew" install -f');
           fpsystem('DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get -o Dpkg::Options::="--force-confnew" autoremove');
           if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix restart postfix >/dev/null 2>&1 &');
+          fpsystem('/usr/share/artica-postfix/bin/process1 --force');
           Show_Welcome;
           exit;
     end;
@@ -264,6 +274,7 @@ begin
           if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix restart imap');
           fpsystem('/usr/share/artica-postfix/bin/artica-make APP_ROUNDCUBE3');
           if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix restart >/dev/null 2>&1 &');
+          fpsystem('/usr/share/artica-postfix/bin/process1 --force');
        end;
           Show_Welcome;
           exit;
@@ -277,6 +288,7 @@ begin
           if FileExists('/etc/init.d/artica-postfix') then  begin
              fpsystem('/etc/init.d/artica-postfix restart samba >/dev/null 2>&1 &');
              fpsystem('/usr/share/artica-postfix/bin/artica-install --nsswitch');
+             fpsystem('/usr/share/artica-postfix/bin/process1 --force');
           end;
           Show_Welcome;
           exit;
@@ -288,6 +300,7 @@ begin
           fpsystem('DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get -o Dpkg::Options::="--force-confnew" install -f');
           fpsystem('DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get -o Dpkg::Options::="--force-confnew" autoremove');
           if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix restart squid >/dev/null 2>&1 &');
+          fpsystem('/usr/share/artica-postfix/bin/process1 --force');
           Show_Welcome;
           exit;
     end;
@@ -911,7 +924,7 @@ end;
 
 //lvm
 if not libs.COMMANDLINE_PARAMETERS('--without-lvm') then begin
-   l.add('lvm2');
+   if not LIGHT_INSTALL then l.add('lvm2');
 end;
 
 l.add('libc6-dev');
@@ -999,8 +1012,8 @@ l.add('libgd2-xpm-dev');
 l.Add('libnss-ldap');
 l.Add('libpam-ldap');
 l.Add('ldap-utils');
-l.add('resolvconf');
-L.add('ipband');
+if not LIGHT_INSTALL then l.add('resolvconf');
+if not LIGHT_INSTALL then L.add('ipband');
 
 
 l.Add('sasl2-bin');
@@ -1012,7 +1025,7 @@ l.add('bzip2');
 l.add('zip');
 l.add('re2c');
 l.add('arping');
-l.add('httrack');//xapian
+if not LIGHT_INSTALL then l.add('httrack');//xapian
 
 
 l.add('libgdbm-dev'); //for grawl
@@ -1064,7 +1077,7 @@ l.add('gettext');
 l.add('ruby');
 l.add('rsync');
 l.add('dnsutils');
-if not FileExists('/usr/sbin/pdns_server') then l.add('dnsmasq');
+if not LIGHT_INSTALL then if not FileExists('/usr/sbin/pdns_server') then l.add('dnsmasq');
 l.add('curlftpfs');
 L.add('davfs2');
 
@@ -1126,12 +1139,12 @@ if distri.DISTRINAME_CODE='DEBIAN' then begin
       l.Add('jove');
       l.Add('rdate'); // sets the system's date from a remote host
       l.Add('rsh-client');
-      l.add('hddtemp');
+if not LIGHT_INSTALL then l.add('hddtemp');
       l.Add('tcsh');
       l.Add('console-common');
       l.Add('libmcrypt-dev');
       l.add('libconfuse-dev');
-      L.add('sysstat');
+if not LIGHT_INSTALL then L.add('sysstat');
       l.Add('php5-imap');
       l.add('php-net-sieve');
       l.Add('php5-mcrypt');
@@ -1243,15 +1256,15 @@ if distri.DISTRINAME_CODE='DEBIAN' then begin
       l.add('python-feedparser');
       l.add('python-utidylib');
       l.add('python-yenc');
-      l.add('libboost-filesystem1.35.0');
-      l.add('libboost-system1.35.0');
-      l.add('libicu38');
+if not LIGHT_INSTALL then l.add('libboost-filesystem1.35.0');
+if not LIGHT_INSTALL then l.add('libboost-system1.35.0');
+if not LIGHT_INSTALL then l.add('libicu38');
       l.add('libreadline5-dev');
 
 
      if FileExists('/sbin/udevsettle')  then begin
 
-         l.add('open-iscsi');
+        if not LIGHT_INSTALL then l.add('open-iscsi');
      end;
 
    end;
@@ -1295,8 +1308,8 @@ if distri.DISTRINAME_CODE='DEBIAN' then begin
         l.add('iputils-ping');
         l.add('vim-tiny');
         l.add('libapache-mod-security');
-        l.add('libboost-filesystem1.42.0');
-        l.add('libboost-system1.42.0');
+        if not LIGHT_INSTALL then l.add('libboost-filesystem1.42.0');
+        if not LIGHT_INSTALL then l.add('libboost-system1.42.0');
         l.add('libicu44');
         l.add('libreadline6-dev');
         l.add('libssh2-php');
@@ -1308,7 +1321,7 @@ if distri.DISTRINAME_CODE='DEBIAN' then begin
 
 
         if FileExists('/sbin/udevd')  then begin
-           l.add('open-iscsi');
+           if not LIGHT_INSTALL then l.add('open-iscsi');
         end;
 
 
@@ -1337,8 +1350,7 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
       l.Add('jove');
       l.Add('rdate'); // sets the system's date from a remote host
       l.Add('rsh-client');
-      l.add('hddtemp');
-      l.add('autofs');
+      if not LIGHT_INSTALL then l.add('hddtemp');
       l.add('autofs-ldap');
       l.Add('tcsh');
       l.Add('console-common');
@@ -1463,11 +1475,11 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
 
 
    if UbuntuIntVer=10 then begin
-       l.add('libboost-system1.40.0');
-       l.add('libboost-system1.40.0');
-       l.add('libicu42');
-       l.add('open-iscsi');
-       if not non_free then l.Add('lha');
+      if not LIGHT_INSTALL then l.add('libboost-system1.40.0');
+      if not LIGHT_INSTALL then l.add('libboost-system1.40.0');
+      if not LIGHT_INSTALL then l.add('libicu42');
+      if not LIGHT_INSTALL then l.add('open-iscsi');
+      if not non_free then l.Add('lha');
 //       if not AsKimSuffi then  if not isVPSDetected() then L.add('cgroup-bin');
 
    end;
@@ -1490,7 +1502,7 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
        l.add('python-openssl');
        L.add('xtables-addons-common');
        l.add('libcrack2');
-       L.add('avahi-daemon');
+       if not LIGHT_INSTALL then L.add('avahi-daemon');
        l.add('libnss-mdns');
     end;
 
@@ -1520,7 +1532,7 @@ l.Add('libusb-0.1-4 ');
 l.Add('libcdio-dev ');
 l.add('libssl-dev');
 l.Add('curl');
-l.Add('lm-sensors');
+if not LIGHT_INSTALL then l.Add('lm-sensors');
 l.Add('libsasl2-modules ');
 l.Add('libauthen-sasl-perl');
 l.add('xutils-dev');
@@ -1891,6 +1903,7 @@ var
    distri:tdistriDetect;
    UbuntuIntVer:integer;
    no_free:boolean;
+   lightinstall:boolean;
 begin
 f:='';
 l:=TstringList.Create;
@@ -1898,7 +1911,7 @@ distri:=tdistriDetect.Create();
 UbuntuIntVer:=9;
 libs:=tlibs.Create;
 if not TryStrToInt(distri.DISTRINAME_VERSION,UbuntuIntVer) then UbuntuIntVer:=9;
-
+if FileExists('/etc/artica-postfix/LIGHT_INSTALL') then lightinstall:=true;
 
 if distri.DISTRINAME_CODE='UBUNTU' then begin
    if UbuntuIntVer=10 then no_free:=true;
@@ -1918,10 +1931,10 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
 
 
     if UbuntuIntVer>7 then begin
-         l.Add('razor');
-         l.Add('pyzor');
-         l.Add('sanitizer');
-        if not FileExists('/usr/bin/spamd') then l.Add('spamassassin');
+         if not lightinstall then l.Add('razor');
+         if not lightinstall then l.Add('pyzor');
+         if not lightinstall then l.Add('sanitizer');
+         if not lightinstall then if not FileExists('/usr/bin/spamd') then l.Add('spamassassin');
          l.add('libsys-syslog-perl');
          l.Add('libcrypt-ssleay-perl');
          l.Add('libgeo-ipfree-perl');
@@ -1964,10 +1977,10 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
 end;
 
 if distri.DISTRINAME_CODE='DEBIAN' then begin
-         l.Add('razor');
-         l.Add('pyzor');
-         l.Add('sanitizer');
-         if not FileExists('/usr/bin/spamd') then l.Add('spamassassin');
+         if not lightinstall then l.Add('razor');
+         if not lightinstall then l.Add('pyzor');
+         if not lightinstall then l.Add('sanitizer');
+         if not lightinstall then if not FileExists('/usr/bin/spamd') then l.Add('spamassassin');
          l.Add('libcrypt-ssleay-perl');
          l.Add('libgeo-ipfree-perl');
          l.Add('libconvert-tnef-perl');
@@ -2031,37 +2044,37 @@ l.add('libtext-wrapper-perl');
 l.add('libmath-round-perl');
 l.Add('ttf-dustin ');
 l.Add('libgd-tools ');
-l.Add('awstats');
+if not lightinstall then l.Add('awstats');
 if not FileExists('/usr/sbin/postfix') then begin
    l.add('postfix');
    l.Add('postfix-ldap');
    l.Add('postfix-pcre');
 end;
-l.Add('mailman');
-l.Add('spamc');
-l.Add('rpm');
-l.add('tnef');
+if not lightinstall then l.Add('mailman');
+if not lightinstall then l.Add('spamc');
+if not lightinstall then l.Add('rpm');
+if not lightinstall then l.add('tnef');
 L.add('php5-pspell');
 L.add('m4');
 
 l.Add('netpbm');
-l.Add('gifsicle');
+if not lightinstall then l.Add('gifsicle');
 
-l.Add('gocr');
-l.Add('ocrad');
+if not lightinstall then l.Add('gocr');
+if not lightinstall then l.Add('ocrad');
 l.Add('libstring-approx-perl');
 l.Add('libmldbm-sync-perl');
-l.Add('imagemagick');
-l.Add('tesseract-ocr');
+if not lightinstall then l.Add('imagemagick');
+if not lightinstall then l.Add('tesseract-ocr');
 
 
 
 //OCS
-l.Add('libxml-simple-perl');
-l.Add('libnet-ip-perl');
+if not lightinstall then l.Add('libxml-simple-perl');
+if not lightinstall then l.Add('libnet-ip-perl');
 l.Add('libwww-perl');
 
-l.Add('libnet-ssleay-perl');
+if not lightinstall then l.Add('libnet-ssleay-perl');
 l.add('ipmitool');
 l.add('libnet-cups-perl');
 l.add('libmodule-install-perl');
@@ -2069,6 +2082,7 @@ l.add('libmodule-install-perl');
 
 
 //Zarafa
+if not lightinstall then begin
 l.add('uuid-dev'); //zarafa
 l.add('libnet-ldap-perl');
 l.add('libio-socket-ssl-perl');
@@ -2090,7 +2104,7 @@ l.add('libjson-perl');
 l.add('libmime-lite-perl');
 l.add('libio-socket-inet6-perl');
 l.add('lsb-release');
-
+end;
 
 
 if distri.DISTRINAME_CODE='UBUNTU' then begin

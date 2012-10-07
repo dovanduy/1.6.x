@@ -1,5 +1,5 @@
 <?php
-ini_set('memory_limit', '64M');
+
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.cyrus.inc');
 include_once('ressources/class.mysql.inc');

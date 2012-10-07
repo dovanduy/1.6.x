@@ -28,7 +28,7 @@ if($argv[1]=='--winbinddmonit'){winbindd_monit();die();}
 if($argv[1]=='--join'){JOIN_ACTIVEDIRECTORY();die();}
 if($argv[1]=='--samba-ver'){SAMBA_VERSION_DEBUG();die();}
 if($argv[1]=='--refresh-ticket'){refresh_ticket();die();}
-
+if($argv[1]=='--disconnect'){disconnect();exit;}
 
 
 unset($argv[0]);
@@ -177,12 +177,14 @@ function krb5conf(){
 	$kinitpassword=$array["WINDOWS_SERVER_PASS"];
 	$kinitpassword=str_replace("'","",escapeshellarg($kinitpassword));
 	$kinitpassword=str_replace('$', '\$', $kinitpassword);	
-	
+	$workgroup=$array["ADNETBIOSDOMAIN"];
 	
 	echo "Starting......: $function, Active Directory hostname `$hostname`\n";
 	echo "Starting......: $function, my domain: \"$mydomain\"\n";
 	echo "Starting......: $function, my hostname: \"$myFullHostname\"\n";
-	echo "Starting......: $function, my netbiosname: \"$myNetBiosName\"\n";	
+	echo "Starting......: $function, my netbiosname: \"$myNetBiosName\"\n";
+	echo "Starting......: $function, my workgroup: \"$workgroup\"\n";		
+	
 	
 	
 	
@@ -552,94 +554,101 @@ function JOIN_ACTIVEDIRECTORY(){
 	$myNetbiosname=$unix->hostname_simple();
 	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Trying to relink this server with Active Directory $ad_server.$domain_lower server", basename(__FILE__));}
 	$A2=array();
-		
-
-
-	echo "Starting......:  $function, [$adminname 0]: join as netrpc.. (without IP addr and without domain)\n";	
+	
+	
+	
+	echo "Starting......: [$function::".__LINE__."], Administrator `$adminname`\n";
+	echo "Starting......: [$function::".__LINE__."], Workgroup `$workgroup`\n";
+	echo "Starting......: [$function::".__LINE__."], Active Directory `$ad_server` ($ipaddr)\n";	
+	echo "Starting......: [$function::".__LINE__."], [$adminname 0]: join as netrpc.. (without IP addr and without domain)\n";	
+	
 	$cmd="$netbin rpc join -U $adminname%$adminpassword 2>&1";
 	exec($cmd,$A2);
-	if($GLOBALS["VERBOSE"]){echo "Starting......:  Samba, $cmd\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......:  [$function::".__LINE__."], $cmd\n";}
 	while (list ($index, $line) = each ($A2) ){
 		if(preg_match("#Joined#", $line)){
 			echo "Starting......:  $function, [$adminname]: join for $workgroup (without IP addr and without domain) success\n";
 			$JOINEDRES=true;
 			echo "Starting......:  $function, [$adminname]: join for $workgroup with ads method\n";
 			$cmd="$netbin ads join -U $adminname%$adminpassword 2>&1";
-			if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
+			if($GLOBALS["VERBOSE"]){SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$cmd);}
 			exec("$cmd",$A3);
-			while (list ($index, $line) = each ($A3) ){echo "Starting......:  Samba, [$adminname]: ads join: $line\n";}
+			while (list ($index, $line) = each ($A3) ){SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);}
 			$NetADSINFOS=$unix->SAMBA_GetNetAdsInfos();
 			$KDC_SERVER=$NetADSINFOS["KDC server"];
 			if($KDC_SERVER==null){echo "Starting......:  $function, [$adminname]: unable to join the domain $domain_lower (KDC server is null)\n";}
 			break;
 		}
-		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......:  Samba, $line", basename(__FILE__));}	
+		echo "Starting......: [$function::".__LINE__."], [$adminname 0]: $line\n";
+			
 	}
 	
 
 if(!$JOINEDRES){
-		echo "Starting......:  $function, [$adminname]: Kdc server ads = `$KDC_SERVER`\n";
+		echo "Starting......:  [$function::".__LINE__."], [$adminname]: Kdc server ads = `$KDC_SERVER`\n";
 		if($KDC_SERVER==null){
 			$cmd="$netbin ads join -W $ad_server.$domain_lower -S $ad_server -U $adminname%$adminpassword 2>&1";
-			if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......:  [$function::".__LINE__."], $cmd\n";}
 			exec("$cmd",$results);
-			while (list ($index, $line) = each ($results) ){echo "Starting......:  $function,ads join [$adminname]: $line\n";}	
+			while (list ($index, $line) = each ($results) ){SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);}	
 			$NetADSINFOS=$unix->SAMBA_GetNetAdsInfos();
 			$KDC_SERVER=$NetADSINFOS["KDC server"];
 		}
 		
-		if($KDC_SERVER==null){echo "Starting......:  $function, [$adminname]: unable to join the domain $domain_lower (KDC server is null)\n";}
+		if($KDC_SERVER==null){echo "Starting......:  [$function::".__LINE__."], [$adminname]: unable to join the domain $domain_lower (KDC server is null)\n";}
 	
 		
 	
 		
-	echo "Starting......:  $function, [$adminname]: setauthuser..\n";
-	$cmd="$netbin setauthuser -U $adminname%$adminpassword";	
+	echo "Starting......:  [$function::".__LINE__."], [$adminname]: setauthuser..\n";
+	$cmd="$netbin setauthuser -U $adminname%$adminpassword 2>&1";	
 	if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
-	shell_exec($cmd);	
-	
+	$results=array();
+	exec("$cmd",$results);
+	while (list ($index, $line) = each ($results) ){SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);}
+		
 	if($ipaddr==null){
 		$JOINEDRES=false;
-		echo "Starting......:  $function, [$adminname 0]: join for $workgroup (without IP addr)\n";	
+		echo "Starting......:  [$function::".__LINE__."], [$adminname 0]: join for $workgroup (without IP addr)\n";	
 		if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
 		$cmd="$netbin join -U $adminname%$adminpassword $workgroup 2>&1";
 		exec($cmd,$A1);
 		while (list ($index, $line) = each ($A1) ){
 			if(preg_match("#Joined#", $line)){
-				echo "Starting......:  $function, [$adminname]: join for $workgroup (without IP addr) success\n";
+				echo "Starting......:  [$function::".__LINE__."], [$adminname]: join for $workgroup (without IP addr) success\n";
 				$JOINEDRES=true;
 				break;
 			}
-			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......:  Samba, $line", basename(__FILE__));}
+			SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);
 		}
 		
 		if(!$JOINEDRES){
-			echo "Starting......:  $function, [$adminname 0]: join as netrpc.. (without IP addr)\n";	
+			echo "Starting......:  [$function::".__LINE__."], [$adminname 0]: join as netrpc.. (without IP addr)\n";	
 			$cmd="$netbin rpc join -U $adminname%$adminpassword $workgroup 2>&1";
 			exec($cmd,$A2);
 			if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
 			while (list ($index, $line) = each ($A2) ){
 				if(preg_match("#Joined#", $line)){
-					echo "Starting......:  $function, [$adminname]: join for $workgroup (without IP addr) success\n";
+					echo "Starting......:  [$function::".__LINE__."], [$adminname]: join for $workgroup (without IP addr) success\n";
 					$JOINEDRES=true;
 					break;
 				}
-				if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......:  Samba, $line", basename(__FILE__));}	
+				SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);
 			}
 		}
 		
 	}
 	
 	if($ipaddr<>null){
-		echo "Starting......:  $function, [$adminname 1]: ads '$netbin ads join -I $ipaddr -U $adminname%**** $workgroup'\n";
+		echo "Starting......:  [$function::".__LINE__."], [$adminname 1]: ads '$netbin ads join -I $ipaddr -U $adminname%**** $workgroup'\n";
 		//$cmd="$netbin ads join -S $ad_server.$domain_lower -I $ipaddr -U $adminname%$adminpassword 2>&1";
 		$cmd="$netbin ads join -I $ipaddr -U $adminname%$adminpassword $workgroup 2>&1";
 		if($GLOBALS["VERBOSE"]){echo "Starting......:  Samba, $cmd\n";}
 		exec($cmd,$BIGRES2);	
 		while (list ($index, $line) = each ($BIGRES2) ){
 			if(preg_match("#Failed to join#i", $line)){
-				echo "Starting......:  $function, [$adminname 1]: ads join failed ($line), using pure IP\n";
-				echo "Starting......:  $function, [$adminname 1]: '$netbin ads join -I $ipaddr -U $adminname%*** $workgroup'\n";
+				echo "Starting......:  [$function::".__LINE__."], [$adminname 1]: ads join failed ($line), using pure IP\n";
+				echo "Starting......:  [$function::".__LINE__."], [$adminname 1]: '$netbin ads join -I $ipaddr -U $adminname%*** $workgroup'\n";
 				$cmd="$netbin ads join -I $ipaddr -U $adminname%$adminpassword $workgroup 2>&1";
 				if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd line:". __LINE__."\n";}
 				$BIGRESS=array();
@@ -648,13 +657,13 @@ if(!$JOINEDRES){
 				if(!is_array($BIGRESS)){$BIGRESS=array();}
 				if(count($BIGRESS)==0){
 					$cmd="$netbin ads join -I $ipaddr -U $adminname%$adminpassword 2>&1";
-					if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
+					echo "Starting......:  [$function::".__LINE__."], $cmd\n";
 					exec($cmd,$BIGRESS);
 				}
 				
 				if(count($BIGRESS)>0){
 					while (list ($index, $line) = each ($BIGRESS) ){
-						if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $line\n";}
+						SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);
 						if(preg_match("#(Failed to|Unable to|Error in)#i", $line)){$BIGRESS=array();}
 					}
 				}
@@ -662,18 +671,18 @@ if(!$JOINEDRES){
 				
 				
 				
-				if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, ".count($BIGRESS)." lines line:".__LINE__."\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......:  [$function::".__LINE__."], ".count($BIGRESS)." lines line:".__LINE__."\n";}
 				if(!is_array($BIGRESS)){$BIGRESS=array();}
 				if(count($BIGRESS)==0){
 					$cmd="$netbin rpc join -I $ipaddr -U $adminname%$adminpassword 2>&1";
-					if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd Line:".__LINE__."\n";}
+					if($GLOBALS["VERBOSE"]){echo "Starting......:  [$function::".__LINE__."], $cmd Line:".__LINE__."\n";}
 					exec($cmd,$BIGRESS);
 				}
 				
-				if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, ".count($BIGRESS)." lines line:".__LINE__."\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......:  [$function::".__LINE__."], ".count($BIGRESS)." lines line:".__LINE__."\n";}
 				if(count($BIGRESS)>0){
 					while (list ($index, $line) = each ($BIGRESS) ){
-						if($GLOBALS["VERBOSE"]){echo "Starting......:  Samba, $line\n";}
+						SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);
 						if(preg_match("#(Failed to|Unable to|Error in)#i", $line)){$BIGRESS=array();}
 					}
 				}			
@@ -682,20 +691,20 @@ if(!$JOINEDRES){
 				if(!is_array($BIGRESS)){$BIGRESS=array();}
 				if(count($BIGRESS)==0){
 					$cmd="$netbin rpc join -S $ad_server -n $myNetbiosname -U $adminname%$adminpassword 2>&1";
-					if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd Line:".__LINE__."\n";}
+					echo "Starting......: [$function::".__LINE__."], $cmd Line:".__LINE__."\n";
 					exec($cmd,$BIGRESS);
 				}			
 				
 				reset($BIGRESS);
 				while (list ($index, $line) = each ($BIGRESS) ){
-					echo "Starting......:  Samba, [$adminname 2] $line\n";
+					SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);
 					if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......:  $function, $line", basename(__FILE__));}
 				}
 				
 				break;
 			}
-			echo "Starting......:  Samba,[$adminname 1] $line\n";
-			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......:  $function, $line", basename(__FILE__));}
+			echo "Starting......: [$function::".__LINE__."],[$adminname 1] $line\n";
+			
 		}
 		
 		
@@ -709,7 +718,7 @@ if(!$JOINEDRES){
 	if($KDC_SERVER==null){$NetADSINFOS=$unix->SAMBA_GetNetAdsInfos();$KDC_SERVER=$NetADSINFOS["KDC server"];}
 	if($KDC_SERVER==null){echo "Starting......:  Samba, [$adminname]: unable to join the domain $domain_lower\n";}	
 
-	echo "Starting......:  $function, [$adminname]: Kdc server ads : $KDC_SERVER Create keytap...\n";
+	echo "Starting......: [$function::".__LINE__."], [$adminname]: Kdc server ads : $KDC_SERVER Create keytap...\n";
 	
 	unset($results);
 	$cmd="$netbin ads keytab create -P -U $adminname%$adminpassword 2>&1";
@@ -720,17 +729,17 @@ if(!$JOINEDRES){
 	$nohup=$unix->find_program("nohup");
 	$smbcontrol=$unix->find_program("smbcontrol");
 	
-	echo "Starting......:  $function, [$adminname]: restarting Samba\n";
+	echo "Starting......: [$function::".__LINE__."], [$adminname]: restarting Samba\n";
 	$results=array();
 	exec("/etc/init.d/artica-postfix start samba 2>&1",$results);
 	while (list ($index, $line) = each ($results) ){echo "Starting......:  $function, restarting: [$adminname]: $line\n";}
 	
 	
-	echo "Starting......:  $function, [$adminname]: restarting Artica-status\n";
+	echo "Starting......: [$function::".__LINE__."], [$adminname]: restarting Artica-status\n";
 	$results=array();
 	shell_exec("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
 	if(is_file($smbcontrol)){
-		echo "Starting......:  $function, [$adminname]: reloading winbindd\n";
+		echo "Starting......: [$function::".__LINE__."], [$adminname]: reloading winbindd\n";
 		exec("$smbcontrol winbindd reload-config 2>&1",$results);
 		exec("$smbcontrol winbindd online 2>&1",$results);
 		while (list ($index, $line) = each ($results) ){echo "Starting......:  $function, reloading: [$adminname]: $line\n";}
@@ -793,7 +802,8 @@ function SAMBA_PROXY(){
 	$adminpassword=str_replace("'", "", $adminpassword);
 	$adminname=$array["WINDOWS_SERVER_ADMIN"];
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];
-	
+	$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
+	if(!is_numeric($KerbAuthDisableGroupListing)){$KerbAuthDisableGroupListing=0;}
 	
 	
 	$workgroup=$array["ADNETBIOSDOMAIN"];
@@ -826,8 +836,13 @@ function SAMBA_PROXY(){
 	//$f[]="\tkerberos method = system keytab";
 	$f[]="\trealm = $realm";
 	$f[]="\tsecurity = ads";
-	$f[]="\twinbind enum groups = yes";
-	$f[]="\twinbind enum users = yes";	
+	if($KerbAuthDisableGroupListing==0){
+		$f[]="\twinbind enum groups = Yes";
+		$f[]="\twinbind enum users = Yes";	
+	}else{
+		$f[]="\twinbind enum groups = No";
+		$f[]="\twinbind enum users = No";			
+	}
 	$f[]="\tidmap config * : range = 10000 - 20000";			
 	$f[]="\tidmap config * : backend = tdb";	
 	
@@ -869,7 +884,7 @@ function SAMBA_PROXY(){
 		$f[]="\tclient ntlmv2 auth = Yes";
 		$f[]="\tclient lanman auth = No";
 		$f[]="\twinbind normalize names = no";
-		//$f[]="\twinbind normalize names = Yes"; # bug 9226
+		$f[]="\twinbind normalize names = Yes"; # bug 9226
 		$f[]="\twinbind separator = /";
 		$f[]="\twinbind use default domain = yes";
 		$f[]="\twinbind nested groups = Yes";
@@ -1047,6 +1062,52 @@ function ping_kdc(){
 	@chmod(0777,"/usr/share/artica-postfix/ressources/logs/kinit.array");
 	if($users->SQUID_INSTALLED){winbind_priv();}
 	
+}
+
+function SAMBA_OUTPUT_ERRORS($prefix,$line){
+	
+	if(preg_match("#NT_STATUS_INVALID_LOGON_HOURS#", $line)){
+		echo "Starting......: \n";
+		echo "Starting......: ******************************\n";
+		echo "Starting......: ** ERROR NT_STATUS_INVALID_LOGON_HOURS\n";
+		echo "Starting......: ** account not allowed to logon during\n"; 
+		echo "Starting......: ** these logon hours\n";
+		echo "Starting......: ******************************\n";
+		echo "Starting......: \n";
+		
+	}
+	
+	if(preg_match("#NT_STATUS_LOGON_FAILURE#", $line)){
+		echo "Starting......: \n";
+		echo "Starting......: ******************************\n";
+		echo "Starting......: ** ERROR NT_STATUS_LOGON_FAILURE\n";
+		echo "Starting......: ** inactive account with bad password specified\n"; 
+		echo "Starting......: ******************************\n";
+		echo "Starting......: \n";
+		
+	}	
+	if(preg_match("#NT_STATUS_ACCOUNT_EXPIRED#", $line)){
+		echo "Starting......: \n";
+		echo "Starting......: ******************************\n";
+		echo "Starting......: ** ERROR NT_STATUS_LOGON_FAILURE\n";
+		echo "Starting......: ** account expired\n"; 
+		echo "Starting......: ******************************\n";
+		echo "Starting......: \n";
+		
+	}	
+	if(preg_match("#NT_STATUS_ACCESS_DENIED#", $line)){
+		echo "Starting......: \n";
+		echo "Starting......: ******************************\n";
+		echo "Starting......: ** ERROR NT_STATUS_ACCESS_DENIED\n";
+		echo "Starting......: ** Wrong administrator credentials (username or password)\n"; 
+		echo "Starting......: ******************************\n";
+		echo "Starting......: \n";
+		
+	}	
+	
+	
+	
+	echo "$prefix $line\n";
 }
 
 
@@ -1264,6 +1325,44 @@ function winbindd_monit(){
 		echo "starting......: winbindd monit: restarting monit\n";
 		shell_exec("$nohup /usr/share/artica-postfix/bin/artica-install --monit-check >/dev/null 2>&1 &");
 }
+function disconnect(){
+	$unix=new unix();	
+	$user=new settings_inc();
+	$netbin=$unix->LOCATE_NET_BIN_PATH();
+	$kdestroy=$unix->find_program("kdestroy");
+	$sock=new sockets();
+	$nohup=$unix->find_program("nohup");
+	
+	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
+	if(!isset($array["USE_AUTORID"])){$array["USE_AUTORID"]=1;}
+	if(!is_numeric($array["USE_AUTORID"])){$array["USE_AUTORID"]=1;}	
+	
+	
+	$domainUp=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
+	$domain_lower=strtolower($array["WINDOWS_DNS_SUFFIX"]);
+	$adminpassword=$array["WINDOWS_SERVER_PASS"];
+	$adminpassword=escapeshellarg($adminpassword);
+	$adminpassword=str_replace("'", "", $adminpassword);
+	$adminname=$array["WINDOWS_SERVER_ADMIN"];
+	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];	
+	
+	$function=__FUNCTION__;
+	if(!is_file($netbin)){echo "Starting......:  net, no such binary\n";return;}
+	if(!$user->SAMBA_INSTALLED){echo "Starting......:  Samba, no such software\n";return;}	
+	exec("$netbin ads keytab flush 2>&1",$results);
+	exec("$netbin ads leave -U $adminname%$adminpassword 2>&1",$results);
+	exec("$kdestroy 2>&1",$results);
+	
+	
+	$sock->SET_INFO("EnableKerbAuth", 0);
+	exec("/usr/share/artica-postfix/bin/artica-install --nsswitch 2>&1",$results);
+	exec("/etc/init.d/artica-postfix restart samba 2>&1",$results);	
+	while (list ($num, $ligne) = each ($results) ){
+		echo "Leave......: $ligne\n";
+	}	
+	
+	shell_exec("$nohup /etc/init.d/artica-postfix restart squid-cache >/dev/null 2>&1 &");
+}
 
 
 function checkParams(){
@@ -1288,6 +1387,5 @@ function checkParams(){
 function xsyslog($text){
 	echo $text."\n";
 	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail($text, basename(__FILE__));}
-	
-	
+
 }

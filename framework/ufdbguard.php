@@ -9,6 +9,8 @@ if(isset($_GET["recompile"])){recompile();exit;}
 if(isset($_GET["recompile-all"])){recompile_all();exit;}
 if(isset($_GET["db-status"])){db_status();exit;}
 if(isset($_GET["recompile-dbs"])){recompile_all();exit;}
+if(isset($_GET["service-cmds"])){service_cmds();exit;}
+
 
 
 
@@ -50,3 +52,18 @@ function db_status(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 }
 
+function service_cmds(){
+	$action=$_GET["service-cmds"];
+	
+	if($action=="reconfigure"){
+		$php5=$unix->LOCATE_PHP5_BIN();
+		exec("$php5 /usr/share/artica-postfix/exec.squidguard.php --build --verbose 2>&1",$results);
+		echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+		return;
+		
+	}
+	
+	$results[]="/etc/init.d/ufdb $action 2>&1";
+	exec("/etc/init.d/ufdb $action 2>&1",$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}

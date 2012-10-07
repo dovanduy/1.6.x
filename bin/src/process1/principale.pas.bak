@@ -389,7 +389,7 @@ var
    amanda               :tamanda;
    tomcat               :ttomcat;
    openemm              :topenemm;
-   openldap_admin,openldap_password,openldap_server:string;
+   openldap_admin,openldap_password,openldap_server,corp:string;
    crossroads          :tcrossroads;
 begin
        verbosed:=false;
@@ -454,6 +454,18 @@ begin
 
        
    if verbosed then writeln('web_settings:: 5%');
+   if FileExists('/usr/local/share/artica/.lic') then begin
+      corp:=logs.ReadFromFile('/usr/local/share/artica/.lic');
+      StringReplace(corp, #13#10, '', [rfReplaceAll]);
+
+      if trim(corp)='TRUE' then begin
+           list.Add('$_GLOBAL["CORP_LICENSE"]=True;');
+      end else begin
+          if verbosed then writeln('web_settings:: 7%, license error:"',corp,'"');
+      end;
+   end else begin
+        if verbosed then writeln('web_settings:: 7%, license error');
+   end;
    if FileExists('/usr/share/artica-postfix/bin/setup-ubuntu') then if not FileExists('/etc/artica-postfix/settings/Daemons/LinuxDistributionCodeName') then logs.OutputCmd('/usr/share/artica-postfix/bin/setup-ubuntu --kill');
    if FIleExists('/etc/artica-postfix/MYCOSI_APPLIANCE') then list.Add('$_GLOBAL["MYCOSI_APPLIANCE"]=True;');
    if FIleExists('/etc/artica-postfix/SQUID_APPLIANCE') then list.Add('$_GLOBAL["SQUID_APPLIANCE"]=True;');
@@ -467,6 +479,7 @@ begin
    if FileExists('/etc/artica-postfix/ZARAFA_APPLIANCE') then list.Add('$_GLOBAL["ZARAFA_APPLIANCE"]=True;') else list.Add('$_GLOBAL["ZARAFA_APPLIANCE"]=false;');
    if FileExists('/etc/artica-postfix/CYRUS_APPLIANCE') then list.Add('$_GLOBAL["CYRUS_APPLIANCE"]=True;') else list.Add('$_GLOBAL["CYRUS_APPLIANCE"]=false;');
    if FileExists('/proc/user_beancounters') then list.Add('$_GLOBAL["VPS_OPENVZ"]=True;') else list.Add('$_GLOBAL["VPS_OPENVZ"]=false;');
+   if FileExists('/etc/artica-postfix/LIGHT_INSTALL') then list.Add('$_GLOBAL["LIGHT_INSTALL"]=True;') else list.Add('$_GLOBAL["LIGHT_INSTALL"]=false;');
 
 
 
@@ -999,7 +1012,7 @@ begin
           end else begin
                if not FileExists(mldap.SLAPD_CONF_PATH()) then begin
                     writeln('Warning slpad.conf, no such file, restarting LDAP server');
-                    fpsystem('/usr/share/artica-postfix/bin
+                    fpsystem('/usr/share/artica-postfix/bin/artica-install --slapdconf');
                     fpsystem('/etc/init.d/artica-postfix restart ldap');
                end;
           end;

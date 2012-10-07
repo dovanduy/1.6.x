@@ -29,7 +29,7 @@ if($argv[1]=='--wrong-numbers'){wrong_number();die();}
 if($argv[1]=='--DirectoriesSize'){DirectoriesSize();die();}
 if($argv[1]=='--cleanbin'){Cleanbin();die();}
 if($argv[1]=='--zarafa-locks'){ZarafaLocks();die();}
-
+if($argv[1]=='--squid-caches'){CleanCacheStores();die();}
 
 
 
@@ -48,6 +48,35 @@ function init(){
 	$GLOBALS["logs_cleaning"]=$sock->GET_NOTIFS("logs_cleaning");
 	$GLOBALS["MaxTempLogFilesDay"]=$sock->GET_INFO("MaxTempLogFilesDay");
 	if($GLOBALS["MaxTempLogFilesDay"]==null){$GLOBALS["MaxTempLogFilesDay"]=5;}
+	
+	
+}
+
+function CleanCacheStores(){
+	$unix=new unix();
+	$users=new usersMenus();
+	if(!$users->SQUID_INSTALLED){return;}
+	$rm=$unix->find_program("rm");
+	$f=file("/etc/squid3/squid.conf");
+	while (list ($index, $line) = each ($f)){
+		if(preg_match("#^cache_dir\s+(.*?)\s+(.+?)\s+#" , $line,$re)){
+			if($GLOBALS["VERBOSE"]){echo "Found Cache `{$re[2]}`\n";}
+			$effective[$re[2]]=true;
+		}
+		
+	}
+	$dirs=$unix->dirdir("/var/cache");
+	while (list ($directory, $line) = each ($dirs)){
+		if(isset($effective[$directory])){continue;}
+		$dirname=basename($directory);
+		
+		if(preg_match("#^squid.*#", $dirname)){
+			if($GLOBALS["VERBOSE"]){echo "Found dir `$dirname`\n";}
+			$unix->send_email_events("Old squid cache directory $dirname will be deleted", "", "logs_cleaning");
+			system_admin_events("Old squid cache directory $dirname will be deleted", __FUNCTION__, __FILE__, __LINE__, "clean");
+			shell_exec("$rm -rf $directory >/dev/null 2>&1");
+		}
+	}
 	
 	
 }
@@ -170,6 +199,7 @@ function Clean_tmp_path($aspid=false){
 	if($GLOBALS["VERBOSE"]){echo "/tmp done..\n";}
 	ZarafaLocks();
 	CleanSquidStoreLogs();
+	CleanCacheStores();
 }
 
 function Cleanbin(){

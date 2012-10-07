@@ -31,7 +31,7 @@ if(isset($_GET["restart-dagent"])){restart_dagent();exit;}
 if(isset($_GET["restart-search"])){restart_search();exit;}
 if(isset($_GET["restart-server"])){restart_zarafaserver();exit;}
 if(isset($_GET["restart-gateway"])){restart_zarafagateway();exit;}
-
+if(isset($_GET["run-backup"])){run_backup();exit;}
 
 
 
@@ -79,9 +79,15 @@ function multi_delete(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.zarafa-multi.php --delete $id 2>&1 &";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
-	exec($cmd,$results);
-	
-	
+	shell_exec($cmd);
+}
+function run_backup(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.zarafa-backup.php --exec 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
+	shell_exec($cmd);
 }
 
 function softdelete(){

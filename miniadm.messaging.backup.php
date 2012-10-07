@@ -17,7 +17,9 @@ if(isset($_GET["MessageID"])){MessageID_content();exit;}
 if(isset($_GET["byMonth"])){table_bydays();exit;}
 if(isset($_GET["choose-day"])){choose_day();exit;}
 if(isset($_GET["title-day"])){title_day();exit;}
-
+if(isset($_GET["MessageID-resend-js"])){MessageID_resend_js();exit;}
+if(isset($_GET["MessageID-resend-popup"])){MessageID_resend_popup();exit;}
+if(isset($_POST["MessageID-send"])){MessageID_resend_perform();exit;}
 main_page();
 
 function main_page(){
@@ -181,7 +183,8 @@ $('#flexRT$t').flexigrid({
 		{display: '$from', name : 'mailfrom', width :152, sortable : true, align: 'left'},
 		{display: '$recipient', name : 'mailto', width :152, sortable : true, align: 'left'},
 		{display: '$subject', name : 'subject', width :300, sortable : true, align: 'left'},
-		{display: '$size', name : 'mailsize', width :103, sortable : true, align: 'left'},
+		{display: '$size', name : 'message_size', width :103, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'none', width :21, sortable : true, align: 'center'},
 	],
 	$buttons
 
@@ -214,6 +217,75 @@ function Chooseday$t(){
 </script>";
 	
 	echo $html;	
+}
+
+function MessageID_resend_popup(){
+	$tpl=new templates();
+	$q=new mysql_mailarchive_builder();
+	$sql="SELECT mailto,mailfrom,message_size,original_messageid,zDate FROM `{$_GET["table"]}` WHERE MessageID='{$_GET["MessageID-resend-popup"]}'";
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
+	$subkect=mime_decode($ligne["subject"]);
+	$page=CurrentPageName();
+			
+	
+	$t=time();
+	$tpl=new templates();
+	$ligne["zDate"]=date('{l} d {F} H:i:s',strtotime($ligne["zDate"]));
+	
+	$html="
+	<div class=BodyContent>
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:16px'>{zDate}:</td>
+		<td style='font-size:16px'>{$ligne["zDate"]}</td>
+	</tr>		
+	<tr>
+		<td class=legend style='font-size:16px'>{message_id}:</td>
+		<td style='font-size:16px'>{$ligne["original_messageid"]}</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:16px'>{sender}:</td>
+		<td>". Field_text("mailfrom-$t",$ligne["mailfrom"],"font-size:16px;width:240px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{recipient}:</td>
+		<td>". Field_text("mailto-$t",$ligne["mailto"],"font-size:16px;width:240px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{size}:</td>
+		<td style='font-size:16px'>". FormatBytes($ligne["message_size"]/1024)."</td>
+	</tr>
+	<tr>
+		<td colspan=2 align=right><hr>". button("{resend}","Resend$t()","18px")."</td>
+	</tr>
+	</table>	
+	</div>
+	<span id='$t-div'></span>
+<script>
+	var x_Resend$t= function (obj) {
+		var results=obj.responseText;
+		document.getElementById('$t-div').innerHTML=results;
+	}		
+	
+		
+	function  Resend$t(){
+		
+		
+		AnimateDiv('$t-div');
+		var mailfrom=document.getElementById('mailfrom-$t').value;
+		var mailto=document.getElementById('mailto-$t').value;
+		
+		var XHR = new XHRConnection();
+		XHR.appendData('mailfrom',mailfrom);
+		XHR.appendData('mailto',mailto);
+		XHR.appendData('MessageID-send','{$_GET["MessageID-resend-popup"]}');
+		XHR.appendData('table','{$_GET["table"]}');
+		XHR.sendAndLoad('$page', 'POST',x_Resend$t);
+		}
+</script>	
+	";
+	echo $tpl->_ENGINE_parse_body($html);
+	
 }
 
 function table_bydays_items(){
@@ -318,7 +390,10 @@ function table_bydays_items(){
 		$MessageID=$ligne["MessageID"] ;
 		$time=strtotime($ligne["zDate"]);
 		$zDate=date("H:i:s",$time);
-		if(count($tm)>0){$zDate=$tpl->_ENGINE_parse_body(date("{l} d H:i:s",$time));}
+		if(count($tm)>0){
+			$zDate=$tpl->_ENGINE_parse_body(date("{l} d H:i:s",$time));
+			$table_query=date("Ymd",$time);
+		}
 		$mailfrom=$ligne["mailfrom"];
 		$mailto=$ligne["mailto"];
 		$subject=mime_decode($ligne["subject"]);
@@ -326,6 +401,8 @@ function table_bydays_items(){
 		
 		$urljs="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$myPage?MessageID-js=$MessageID&table=$table_query')\"
 		style='font-size:11px;text-decoration:underline'>";
+		$resend=imgsimple("arrow-blue-left-24.png",null,"javascript:Loadjs('$myPage?MessageID-resend-js=$MessageID&table=$table_query')");
+		
 		
 		//$subject=mime_decode($subject);
 		$data['rows'][] = array(
@@ -336,6 +413,7 @@ function table_bydays_items(){
 					"<span style='font-size:11px;color:$color'>$urljs{$mailto}</a></span>",
 					"<span style='font-size:11px;color:$color'>$urljs{$subject}</a></span>",
 					"<span style='font-size:11px;color:$color'>$urljs{$message_size}</a></span>",
+					"<span style='font-size:11px;color:$color'>$resend</a></span>",
 					
 					)
 				);
@@ -346,6 +424,17 @@ echo json_encode($data);
 	
 	
 	
+}
+
+
+
+function MessageID_resend_js(){
+	$q=new mysql_mailarchive_builder();
+	$sql="SELECT subject FROM `{$_GET["table"]}` WHERE MessageID='{$_GET["MessageID-resend-js"]}'";
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
+	$subkect=mime_decode($ligne["subject"]);
+	$page=CurrentPageName();
+	echo "YahooWin('800','$page?MessageID-resend-popup={$_GET["MessageID-resend-js"]}&table={$_GET["table"]}','$subkect');";	
 }
 
 function MessageID_js(){
@@ -391,4 +480,88 @@ function mime_decode($s) {
     $decoded = $decoded . $text;
   }
   return utf8_encode($decoded);
+}
+
+function MessageID_resend_perform(){
+	
+
+	$workdir=dirname(__FILE__). "/ressources/logs/web";
+	$mailfrom=$_POST["mailfrom"];
+	$MessageID=$_POST["MessageID-send"];
+	$table=$_POST["table"];
+	$mailto=$_POST["mailto"];
+	
+	$sql="SELECT MessageBody,BinMessg FROM `$table` WHERE MessageID='$MessageID'";
+	$tpl=new templates();
+	$q=new mysql_mailarchive_builder();
+	$user=new user($_SESSION["uid"]);
+	
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if(!$q->ok){
+		echo $tpl->_ENGINE_parse_body("
+	<div class=BodyContent>
+	<div style='background-color:#D90000;border:1px solid #870000;padding:50px'>
+		<center>
+			<p style='color:white;font-size:18px;border:1px solid white;padding:10px;margin:10px'>{failed}<br>
+			$mailto<hr><p style='color:white;font-size:18px;border:1px solid white;padding:10px;margin:10px'>$q->mysql_error</p><hr>
+			</p>
+		</center>
+	</div></div>");
+	exit;
+	}
+	$filename=md5($ligne["MessageBody"]);
+	
+	$lenght=strlen($ligne["BinMessg"]);
+	if($lenght==0){
+			echo $tpl->_ENGINE_parse_body("
+	<div class=BodyContent>
+	<div style='background-color:#D90000;border:1px solid #870000;padding:50px'>
+		<center>
+			<p style='color:white;font-size:18px;border:1px solid white;padding:10px;margin:10px'>{failed}<br>
+			$mailto<hr><p style='color:white;font-size:18px;border:1px solid white;padding:10px;margin:10px'>{this_message_contains_no_data}</p><hr>
+			</p>
+		</center>
+	</div></div>");
+	exit;
+	}
+	$lenghttext=FormatBytes($lenght/1024);
+	writelogs("Sending message $workdir/$filename from $mailfrom ($lenght bytes)",__FUNCTION__,__FILE__,__LINE__);
+	file_put_contents("$workdir/$filename",$ligne["BinMessg"]);
+	if(!is_file("$workdir/$filename")){
+				echo $tpl->_ENGINE_parse_body("
+	<div class=BodyContent>
+	<div style='background-color:#D90000;border:1px solid #870000;padding:50px'>
+		<center>
+			<p style='color:white;font-size:18px;border:1px solid white;padding:10px;margin:10px'>{failed}<br>
+			$mailto<hr><p style='color:white;font-size:18px;border:1px solid white;padding:10px;margin:10px'>
+			$workdir/$filename permission denied</p><hr>
+			</p>
+		</center>
+	</div></div>");
+	exit;
+	}
+	
+	writelogs("Sending message $workdir/$filename from $mailfrom",__FUNCTION__,__FILE__,__LINE__);
+	$cmd="/usr/sbin/sendmail -bm -t -f $mailfrom <$workdir/$filename $mailto 2>&1";
+	
+	exec($cmd,$resultsMail);
+	while (list ($num, $tablez) = each ($resultsMail) ){
+		$resultsMail[$num]="<div style='font-size:16px;color:#2E6E9E;font-weigth:bold'>" .htmlentities($resultsMail[$num])."</div>";
+	}
+	
+	//@unlink("/tmp/$filename");
+	$resultsMailTxt=@implode("<br>", $resultsMail);
+	echo $tpl->_ENGINE_parse_body("
+	<div class=BodyContent>
+	
+		<center>
+			<p style='font-size:18px;border:1px solid white;padding:10px;margin:10px;color:#2E6E9E'>{success} $lenghttext</p>
+			<div style='text-align:left'>$resultsMailTxt</div>
+		</center>
+	</div>
+	</div>");
+	
+	
 }

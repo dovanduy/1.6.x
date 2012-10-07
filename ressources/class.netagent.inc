@@ -22,6 +22,8 @@ class netagent{
 		if($this->nodeid<1){
 			if(!$norestart){$this->_register();}
 		}
+		$hostid=$this->hostid();
+		if($GLOBALS["OUTPUT"]){echo "Send status to the remote console with node id:$this->nodeid AND hostid=$hostid...\n";}
 		$this->sendstatus();
 		
 		
@@ -30,25 +32,34 @@ class netagent{
 	
 	
 	private function _register(){
+		if($GLOBALS["OUTPUT"]){echo "Register to $this->master_uri\n";}
 		writelogs("[$this->nodeid]: master_uri `$this->master_uri`",__FUNCTION__,__FILE__,__LINE__);
 		$curl=new ccurl($this->master_uri."/nodes.listener.php");
 		if(is_numeric($this->nodeid) && $this->nodeid>0){
 			$curl->parms["nodeid"]=$this->nodeid;
 		}
 		$hostid=$this->hostid();
-		echo "Register to $this->master_uri with hostid `$hostid`\n";
+		if($GLOBALS["OUTPUT"]){echo "Register to $this->master_uri with hostid `$hostid`\n";}
 		$curl->parms["REGISTER"]="yes";
 		$curl->parms["nets"]=$this->GetNets();
 		$curl->parms["hostname"]=exec("hostname -f");
 		$curl->parms["port"]=0;
 		$curl->parms["hostid"]=$this->hostid();
 		$curl->parms["ISARTICA"]=1;
-		if(!$curl->get()){writelogs("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}
+		
+		if($GLOBALS["VERBOSE"]){
+			$curl->parms["VERBOSE"]=1;
+		}
+		
+		if(!$curl->get()){
+			if($GLOBALS["OUTPUT"]){echo "Unable to register with Fatal error: $curl->error\n";}
+			writelogs("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}
 		if(preg_match("#<ERROR>(.+?)</ERROR>#is", $curl->data,$re)){
 			echo "FATAL ERROR ".$re[1]."\n";
 			return;
 		}
 		if(preg_match("#<SUCCESS>([0-9]+)</SUCCESS>#is", $curl->data,$re)){
+			if($GLOBALS["OUTPUT"]){echo "SUCCESS NODE ID ".$re[1]."\n";}
 			writelogs("SUCCESS NODE ID ".$re[1],__FUNCTION__,__FILE__,__LINE__);
 			$GLOBALS["CLASS_SOCKET"]->SET_INFO("NODE_ID",$re[1]);
 			@file_put_contents("/etc/artica-postfix/settings/Daemons/NODE_ID", $re[1]);
@@ -114,6 +125,7 @@ class netagent{
 	
 	
 	private function sendstatus(){
+		if($GLOBALS["OUTPUT"]){echo "Compiling informations...\n";}
 		include(dirname(__FILE__)."/settings.inc");
 		$sock=new sockets();
 		$ArticaHttpsPort=$sock->GET_INFO("ArticaHttpsPort");
@@ -121,6 +133,8 @@ class netagent{
 		$hostname=$this->hostname();
 		$rm=$GLOBALS["CLASS_UNIX"]->find_program("rm");
 		$values=base64_encode(serialize($_GLOBAL));
+		$hostid=$this->hostid();
+		
 		$curl=new ccurl($this->master_uri."/nodes.listener.php");
 		$curlparms["SETTINGS_INC"]=$values;
 		$curlparms["nodeid"]=$this->nodeid;
@@ -132,11 +146,17 @@ class netagent{
 		$curlparms["prodstatus"]=base64_encode(@file_get_contents("/usr/share/artica-postfix/ressources/logs/global.status.ini"));
 		$curlparms["squid_caches_info"]=$this->squid_caches_infos();
 		$curlparms["disks_list"]=base64_encode(serialize($this->GetDiskList()));
-		$curlparms["hostid"]=$this->hostid();
+		$curlparms["hostid"]=$hostid;
 		$curlparms["CACHE_LOGS"]=$this->cache_logs();
 		$curlparms["SQUIDVER"]=$GLOBALS["CLASS_SOCKET"]->getFrameWork("squid.php?full-version=yes");
 		$curlparms["ARCH"]=$this->Architecture();
+		$curlparms["ISARTICA"]=1;
 		$curlparms["ArticaHttpsPort"]=$ArticaHttpsPort;
+		if($GLOBALS["VERBOSE"]){
+			if($GLOBALS["OUTPUT"]){echo "[$hostid]::Asking to be in verbose mode\n";}
+			$curlparms["VERBOSE"]=1;
+		}
+		
 		
 		$curlparms["ISARTICA"]=1;
 		$curlparms["PARMS"]=$this->parse_daemon_settings();
@@ -147,20 +167,37 @@ class netagent{
 		
 		
 		@file_put_contents(dirname(__FILE__)."/com.txt", base64_encode(serialize($curlparms)));
+		if($GLOBALS["OUTPUT"]){echo "Compressing informations...\n";}
 		$this->compress(dirname(__FILE__)."/com.txt",dirname(__FILE__)."/com.txt.gz");
 		writelogs("[$this->nodeid]: ". count($_GLOBAL)." items Softs:".round(strlen($curlparms["softwares"])/1024) ."Ko",__FUNCTION__,__FILE__,__LINE__);
 		
-		if(!$curl->postFile("SETTINGS_INC",dirname(__FILE__)."/com.txt.gz",array("HOSTNAME"=>$hostname,"nodeid"=>$this->nodeid))){
+		if($GLOBALS["OUTPUT"]){echo "Posting informations...\n";}
+		if(!$curl->postFile("SETTINGS_INC",dirname(__FILE__)."/com.txt.gz",array("HOSTNAME"=>$hostname,"nodeid"=>$this->nodeid,"hostid"=>$hostid))){
+			if($GLOBALS["OUTPUT"]){echo "Posting informations Failed $curl->error...\n";}
 			writelogs("[$this->nodeid]: Failed $curl->error",__FUNCTION__,__FILE__,__LINE__);
 			
 		}
+		
+		if($GLOBALS["VERBOSE"]){
+			echo "Received datas:\n". htmlspecialchars($curl->data)."\n";
+		}
+		
 		@unlink(dirname(__FILE__)."/com.txt");
 		@unlink(dirname(__FILE__)."/com.gz");
 		shell_exec("$rm -rf /tmp/process1-*");
+		if($GLOBALS["OUTPUT"]){echo "Checking orders...". strlen($curl->data)." bytes\n";}
+		
+		if(preg_match("#<NODEID>([0-9]+)</NODEID>#is", $curl->data,$re)){
+			if($GLOBALS["OUTPUT"]){echo "Update nodeid:{$re[1]} \n";}
+			$GLOBALS["CLASS_SOCKET"]->SET_INFO("NODE_ID",$re[1]);
+		}
+		
+		
 		if(preg_match("#<ORDERS>(.+?)</ORDERS>#is", $curl->data,$re)){
 			$this->OrdersParse($re[1]);
 		}
 		
+		if($GLOBALS["OUTPUT"]){echo "Done...\n";}
 		
 	}
 	
@@ -175,12 +212,15 @@ class netagent{
 			$orderdata=unserialize(base64_decode($array["orderdata"]));
 			$OrderOK=false;
 			while (list ($OrderKey, $OrderValue) = each ($orderdata) ){
+				if($GLOBALS["OUTPUT"]){echo "Execute order $OrderKey = $OrderValue..\n";}
 				if($this->OrderExecute($OrderKey,$OrderValue)){
 					$OrderOK=true;
 				}
 			}
 			
-			if($OrderOK){$this->OrderOk($orderid);}
+			if($OrderOK){
+				if($GLOBALS["OUTPUT"]){echo "Executed order $orderid done...\n";}
+				$this->OrderOk($orderid);}
 			
 		}
 	}
@@ -195,7 +235,11 @@ class netagent{
 		$curl->parms["nodeid"]=$this->nodeid;
 		$curl->parms["hostid"]=$this->hostid();
 		$curl->parms["orderid"]=$orderid;
-		if(!$curl->get()){writelogs("[$this->nodeid]: orderid=$orderid: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}
+		if(!$curl->get()){
+			if($GLOBALS["OUTPUT"]){echo "orderid=$orderid: Fatal $curl->error\n";}
+			writelogs("[$this->nodeid]: orderid=$orderid: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
 	}
 	
 
@@ -348,7 +392,7 @@ class netagent{
 	}
 	
 	
-	private function hostid(){
+	public function hostid(){
 		$hostid=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/HOSTID"));
 		if($hostid<>null){return $hostid;}
 			
@@ -356,7 +400,7 @@ class netagent{
 		$hostidbin=$unix->find_program("hostid");
 		if(is_file($hostidbin)){
 			exec("$hostidbin 2>&1",$results);
-			$hostid=trim(@implode("", $results));
+			$hostid=md5(trim(@implode("", $results).time()));
 			if($hostid<>"00000000"){
 				@file_put_contents("/etc/artica-postfix/settings/Daemons/HOSTID", $hostid);
 				return $hostid;

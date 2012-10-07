@@ -21,10 +21,10 @@ class squid_tail{
 		if($mac=="00:00:00:00:00:00"){$mac=null;}
 		if($mac==null){$mac=$this->GetMacFromIP($ip);}
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $ip)){$computername=$this->GetComputerName($ip);}else{$computername=$ip;}
-		
+		if($user=="-"){$user=null;}
 		if(!is_dir("/var/log/artica-postfix/squid-usersize")){@mkdir("/var/log/artica-postfix/squid-usersize",0755,true);}
 		$array=array(
-			"MD5"=>md5("$user$ip$mac$UserAgent"),
+			"MD5"=>md5("$user$ip$mac$UserAgent".time()),
 			"TIME"=>time(),
 			"uid"=>$user,
 			"IP"=>$ip,
@@ -33,7 +33,8 @@ class squid_tail{
 			"HOSTNAME"=>$computername,
 			"SIZE"=>$size
 		);
-
+		$size_events=($size/1024)/1000;
+		//$this->events("InjectSize $user,$ip,$mac,{$size_events}M");
 		$final=serialize($array);
 		$md=md5($final);
 		@file_put_contents("/var/log/artica-postfix/squid-usersize/$md.ev",$final);
@@ -175,6 +176,7 @@ private function CACHEDORNOT($SquidCode){
 		if($ip=="127.0.0.1"){return;}
 		if($mac=="00:00:00:00:00:00"){$mac=null;}
 		if($mac==null){$mac=$this->GetMacFromIP($ip);}
+		if($user=="-"){$user=null;}
 		$md5=md5("$user$ip$mac$userAgent");
 		if(is_file("/var/log/artica-postfix/squid-users/$md5.sql")){return;}
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $ip)){$computername=$this->GetComputerName($ip);}else{$computername=$ip;}
@@ -360,9 +362,26 @@ private function CACHEDORNOT($SquidCode){
 	
 	if($mac=="00:00:00:00:00:00"){$mac=null;}
 	if(strpos($mac, ":")==0){$mac=null;}
-	$sql="('$sitename','$uri','$TYPE','$REASON','$CLIENT','$date','$zMD5','$site_IP','$Country','$size','$username','$cached','$mac','$hostname')";
+	
+	$FINAL_ARRAY["sitename"]=$sitename;
+	$FINAL_ARRAY["uri"]=$uri;
+	$FINAL_ARRAY["TYPE"]=$TYPE;
+	$FINAL_ARRAY["REASON"]=$REASON;
+	$FINAL_ARRAY["CLIENT"]=$CLIENT;
+	$FINAL_ARRAY["date"]=$date;
+	$FINAL_ARRAY["zMD5"]=$zMD5;
+	$FINAL_ARRAY["site_IP"]=$site_IP;
+	$FINAL_ARRAY["Country"]=$Country;
+	$FINAL_ARRAY["size"]=$size;
+	$FINAL_ARRAY["username"]=$username;
+	$FINAL_ARRAY["cached"]=$cached;
+	$FINAL_ARRAY["mac"]=$mac;
+	$FINAL_ARRAY["hostname"]=$hostname;
+	
+	
+	
 	$this->events("[SQUID]: dansguardian-stats2: ".$sql."  (".__LINE__.")" );
-	@file_put_contents("/var/log/artica-postfix/dansguardian-stats2/$zMD5.sql",$sql);	
+	@file_put_contents("/var/log/artica-postfix/dansguardian-stats2/$zMD5.sql",serialize($FINAL_ARRAY));	
 	if(count($GLOBALS["RTIME"])>500){unset($GLOBALS["RTIME"]);}
 	$GLOBALS["RTIME"][]=array($sitename,$uri,$TYPE,$REASON,$CLIENT,$date,$zMD5,$site_IP,$Country,$size,$username,$mac);
 	@file_put_contents("/etc/artica-postfix/squid-realtime.cache",base64_encode(serialize($GLOBALS["RTIME"])));
@@ -463,7 +482,7 @@ private function CACHEDORNOT($SquidCode){
 		             );
 		
 		foreach ($cst as $k=>$v) {
-		    events($k.': '.geoip_db_filename($v).'  '.(geoip_db_avail($v) ? 'Available':''));
+		    $this->events($k.': '.geoip_db_filename($v).'  '.(geoip_db_avail($v) ? 'Available':''));
 		}	
 	}		
 	

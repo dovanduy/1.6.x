@@ -91,6 +91,7 @@ class mysql_squid_builder{
 	}
 	
 	private function fill_tasks_disabled(){
+			$users=new usersMenus();
 			if($this->DisableArticaProxyStatistics==1){
 				$this->tasks_disabled[15]=true;
 				$this->tasks_disabled[16]=true;
@@ -102,6 +103,10 @@ class mysql_squid_builder{
 				$this->tasks_disabled[2]=true;
 				$this->tasks_disabled[23]=true;
 				$this->tasks_disabled[25]=true;
+			}
+			
+			if(!$users->CORP_LICENSE){
+				$this->tasks_disabled[20]=true;
 			}
 			
 			if($this->EnableSargGenerator==0){
@@ -1093,6 +1098,22 @@ public function CheckTables($table=null){
 
 		if(!$this->FIELD_EXISTS("webfilters_databases_disk", "filtime")){
 			$this->QUERY_SQL("ALTER TABLE `webfilters_databases_disk` ADD `filtime`  BIGINT(100) NOT NULL ,ADD INDEX ( `filtime` )");
+		}
+
+		if(!$this->TABLE_EXISTS('webfilters_quotas',$this->database)){	
+			$sql="CREATE TABLE `squidlogs`.`webfilters_quotas` (
+			`ID` INT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			`xtype` VARCHAR( 40 ) NOT NULL ,
+			`value` VARCHAR(150) ,
+			`maxquota` BIGINT(100) ,
+			`enabled` smallint(1),
+			`duration` smallint(1),
+			KEY `type` (`xtype`),
+			KEY `value` (`value`),
+			KEY `duration` (`duration`),
+			KEY `maxquota` (`maxquota`)
+			)";	
+			$this->QUERY_SQL($sql,$this->database);
 		}		
 		
 		
@@ -1462,6 +1483,9 @@ public function CheckTables($table=null){
 				INDEX ( `hostname` , `udpated` , `created` )
 				)";
 			$this->QUERY_SQL($sql,$this->database);
+			if(!$this->ok){
+				writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+			}
 		}
 
 		if(!$this->FIELD_EXISTS("squidservers", "udpated")){
@@ -1882,14 +1906,23 @@ public function CheckTables($table=null){
 			  `template_body` LONGTEXT  NOT NULL,
 			  `template_header` LONGTEXT  NOT NULL,
 			  `template_title` varchar(255)  NOT NULL,
+			  `template_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			  `lang` varchar(5)  NOT NULL,
 			  PRIMARY KEY (`zmd5`),
 			  KEY `template_name` (`template_name`,`lang`),
 			  KEY `template_title` (`template_title`),
+			  KEY `template_time` (`template_time`),
 			  FULLTEXT KEY `template_body` (`template_body`)
 			)";		
 		$this->QUERY_SQL($sql,$this->database);
 		}
+		
+		
+		if(!$this->FIELD_EXISTS("squidtpls", "template_time")){		
+			$sql="ALTER TABLE `squidtpls` ADD `template_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,ADD INDEX (`template_time`)"; 
+			$this->QUERY_SQL($sql,"artica_backup");
+			if(!$this->ok){writelogs("$this->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}			
+		}			
 		
 		if(!$this->FIELD_EXISTS("squidtpls", "template_header")){$this->QUERY_SQL("ALTER TABLE `squidtpls` ADD `template_header` LONGTEXT  NOT NULL");}
 		

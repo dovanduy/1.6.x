@@ -84,7 +84,10 @@ function ufdbtables(){
 	$CACHE_FILE="/etc/artica-postfix/ufdb.tables.db";
 	$URIBASE="http://www.artica.fr/ufdb";
 	$WORKDIR="/var/lib/ufdbartica";
-	
+	if(@file_get_contents("/usr/local/share/artica/.lic")<>"TRUE"){
+		ufdbguard_admin_events("UFDB::Warning: only corporate license is allowed to be updated...",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+		die("license error\n");
+	}
 	
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$nohup=$unix->find_program("nohup");

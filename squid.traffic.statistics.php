@@ -52,7 +52,7 @@ while (list ($num, $ligne) = each ($array) ){
 		}	
 	
 		if($num=="day-consumption"){
-			$html[]= "<li><a href=\"squid.traffic.statistics.days.php?$num\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li><a href=\"\squid.traffic.statistics.days.php?$num\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 		if($num=="week-consumption"){
@@ -395,7 +395,7 @@ function squid_status_stats(){
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if($EnableRemoteStatisticsAppliance==1){return;}
-	
+	$users=new usersMenus();
 	$sock=new sockets();
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}	
@@ -443,7 +443,10 @@ function squid_status_stats(){
 	
 	
 		
-	
+	if(!$users->CORP_LICENSE){
+		$license_inactive="<br><strong style='font-size:11px;font-weight:bolder;color:#BA1010'>{license_inactive}</strong>";
+		
+	}
 	
 	$DAYSNumbers=$q->COUNT_ROWS("tables_day");
 	
@@ -462,7 +465,8 @@ function squid_status_stats(){
 		if($CachePermformance>20){$color="#6DBB6A";}
 		$cachePerfText="
 		<tr>
-		<td valign='top' style='font-size:14px;'><b style='color:$color'>$CachePermformance%</b> {cache_performance} ({now})</td>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' style='font-size:12px;'><b style='color:$color'>$CachePermformance%</b> {cache_performance} ({now})</td>
 		</tr>
 		";
 		
@@ -472,48 +476,73 @@ function squid_status_stats(){
 	$mouse="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\"";
 	
 	$submenu="	
+	
 	<tr>
-		<td valign='top' style='font-size:14px'><b>$totalsize</b> {downloaded_flow}</td>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' style='font-size:12px'><b>$totalsize</b> {downloaded_flow}</td>
 	</tr>
+	
 	<tr>
-		<td valign='top' style='font-size:14px'><b>$pref%</b> {cache_performance}</td>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' style='font-size:12px'><b>$pref%</b> {cache_performance}</td>
 	</tr>
+	
 	$cachePerfText";
 	
 	
-	$main_table="	<tr>
-		<td valign='top' style='font-size:14px;text-decoration:underline' $mouse OnClick=\"javascript:SquidQuickLinks()\"><b>$DAYSNumbers</b> {daysOfStatistics}</td>
+	$main_table="<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td width=99% valign='top' style='font-size:12px;text-decoration:underline' $mouse OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?js=yes')\"><b>$DAYSNumbers</b> {daysOfStatistics}</td>
 	</tr>
+	
 	<tr>
-		<td valign='top' style='font-size:14px'><b>$requests</b> {requests}</td>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' style='font-size:12px'><b>$requests</b> {requests}</td>
 	</tr>
+	
 	<tr>
-		<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.nodes.php')\"><b>$Computers</b> {computers}</td>
-	</tr>		
-	<tr>
-		<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.visited.php')\"><b>$websitesnums</b> {visited_websites}</td>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.nodes.php')\"><b>$Computers</b> {computers}</td>
 	</tr>	
-
+		
 	<tr>
-		<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.php')\"><b>$categories</b> {websites_categorized}</td>
-	</tr>
-	<tr>
-		<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"blur()\"><b>$PhishingURIS</b> {phishing_uris}</td>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.visited.php')\"><b>$websitesnums</b> {visited_websites}</td>
 	</tr>	
+	
 	<tr>
-		<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"blur()\"><b>$MalwaresURIS</b> {viruses_uris}</td>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.php')\"><b>$categories</b> {websites_categorized}$license_inactive</td>
 	</tr>
+	
 	<tr>
-		<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"blur()\"><b>$MalwarePatrolDatabasesCount</b> Malware Patrol</td>
-	</tr>					
-	<tr>
-		<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.visited.php?onlyNot=yes')\"><b>$websitesnumsNot</b> {not_categorized}</td>
-	</tr>				
-	<tr>
-		<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.php')\"><b>$tablescatNUM</b> {categories}</td>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"blur()\"><b>$PhishingURIS</b> {phishing_uris}</td>
 	</tr>	
+	
 	<tr>
-		<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.toexport.php')\"><b>$export</b> {websites_to_export}</td>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"blur()\"><b>$MalwaresURIS</b> {viruses_uris}</td>
+	</tr>
+	
+	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"blur()\"><b>$MalwarePatrolDatabasesCount</b> Malware Patrol</td>
+	</tr>	
+					
+	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.visited.php?onlyNot=yes')\"><b>$websitesnumsNot</b> {not_categorized}</td>
+	</tr>	
+				
+	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.php')\"><b>$tablescatNUM</b> {categories}</td>
+	</tr>	
+	
+	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.toexport.php')\"><b>$export</b> {websites_to_export}</td>
 	</tr>";
 	
 	}	
@@ -522,13 +551,18 @@ function squid_status_stats(){
 		$main_table="	
 			
 			<tr>
-				<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"blur()\"><b>$PhishingURIS</b> {phishing_uris}</td>
+				<td width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"blur()\"><b>$PhishingURIS</b> {phishing_uris}</td>
 			</tr>	
+			
 			<tr>
-				<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"blur()\"><b>$MalwaresURIS</b> {viruses_uris}</td>
+				<td width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"blur()\"><b>$MalwaresURIS</b> {viruses_uris}</td>
 			</tr>
+			
 			<tr>
-				<td valign='top' $mouse style='font-size:14px;text-decoration:underline' OnClick=\"blur()\"><b>$MalwarePatrolDatabasesCount</b> Malware Patrol</td>
+				<td width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"blur()\"><b>$MalwarePatrolDatabasesCount</b> Malware Patrol</td>
 			</tr>";					
 	
 		
@@ -540,20 +574,13 @@ $html="
 	$main_table	
 	$submenu
 	
-	<tr>
-		<td valign='top'>
-			<table style='width:99%;margin-top:10px' class=form >
-			<tbody>
 			<tr>
-				<td valign='top' width=1%>". imgtootltip("32-categories-add.png","{add_websites}","javascript:Loadjs('squid.visited.php?add-www=yes')")."</td>
-				<td style='font-size:14px' width=99% valign=middle>
-					<a href=\"javascript:Loadjs('squid.visited.php?add-www=yes')\" 
-					style='font-size:14px;text-decoration:underline'>{add_websites}</a></td>
-			</tr>
-			</tbody>
-			</table>
-		</td>
-	</tr>	
+				<td width=1%><img src='img/plus-16.png'></td>
+				<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
+				OnClick=\"javascript:Loadjs('squid.visited.php?add-www=yes')\"><b>{categorize_websites}</b></td>
+			</tr>	
+	
+	
 	
 	</tbody>
 	</table>

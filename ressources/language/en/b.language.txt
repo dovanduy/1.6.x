@@ -2200,3 +2200,44 @@ If after enable it your users complain about a low bandwidth, disable this featu
 <choose_date>Choose date</choose_date>
 <my_messaging_statistics>Statistics of my messaging.[br]Sent and received messages passed trought the relay for my account</my_messaging_statistics>
 <byMonth>By month</byMonth>
+<this_message_contains_no_data>This message contains no data</this_message_contains_no_data>
+<KerbAuthDisableGroupListing>Disable users/groups listing</KerbAuthDisableGroupListing>
+<original_emailaddr>original email address</original_emailaddr>
+<backups>backups</backups>
+<run_backup>Run backup</run_backup>
+<run_backup_confirm>This operation will launch a backup task on your server.
+The operation will be launched in background mode.
+Do you want to carry out this operation ?
+</run_backup_confirm>
+<scan_dir>Scan folder</scan_dir>
+<internet_access_per_day>Internet access per day</internet_access_per_day>
+<old_statistics_interface>Old statistics interface</old_statistics_interface>
+<old_statistics_interface_text>If there is something missing, use the old statistics interface in order to view others statistics</old_statistics_interface>
+<backup_executed_in_background>Backup as been executed in background mode</backup_executed_in_background>
+<compile_settings>Compile settings</compile_settings>
+<downloaded_flow_this_hour>Downloaded flow this hour</downloaded_flow_this_hour>
+<categorize_websites>Categorize Internet sites</categorize_websites>
+<identification>Identification</identification>
+<squidquota>Web access quota</squidquota>
+<service_status>Service status</service_status>
+<squidqota_ipaddr>Define quota per IP address.[br]Set * for all IP addresses or an IP address part such as 192.168.1.* or 192.*</squidqota_ipaddr>
+<squidqota_MAC>Quota per MAC address.[br]Set * for all MAC address or define a mac address such as 00:0c:29:4d:89:ad</squidqota_MAC>
+<squidqota_uid>Quota For an LDAP/Active directory member such as "user1". Set * for all members</squidqota_uid>
+<squidqota_hostname>Quota For an hostname.[br]Set * for all hostname or computer or computer.*</squidqota_hostname>
+<maxquota>Max Quota</maxquota>
+<per_day>per day</per_day>
+<per_hour>per hour</per_hour>
+<cache_time>Cache time</cache_time>
+<default_value_is_used>Default value is used</default_value_is_used>
+<active_directory_member>Active Directory member</active_directory_member>
+<active_directory_group>Active Directory group</active_directory_group>
+<artica_license>Artica License</artica_license>
+<waiting_registration>Waiting registration</waiting_registration>
+<waiting_approval>Waiting For Approval</waiting_approval>
+<registration_failed>registration failed</registration_failed>
+<last_update>Last update</last_update>
+<license_active>active license</license_active>
+<license_invalid>invalid license</license_invalid>
+<license_status>license status</license_status>
+<license_inactive>license inactive</license_inactive>
+<this_feature_is_disabled_corp_license>This feature is only available when using a coporate license</this_feature_is_disabled_corp_license>

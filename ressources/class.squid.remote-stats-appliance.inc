@@ -144,6 +144,10 @@ class squid_stats_appliance{
 		$array["UseDynamicGroupsAcls"]=true;
 		$array["KerbAuthInfos"]=true;
 		$array["EnableKerbAuth"]=true;
+		$array["SquidQuotasParams"]=true;
+		$array["SquidBoosterMem"]=true;
+		$array["SquidBoosterMemK"]=true;
+		$array["SquidBoosterOnly"]=true;		
 		return $array;
 	}
 	
@@ -198,9 +202,8 @@ class squid_stats_appliance{
 		$artica_backup["squid_block"]=true;
 		$artica_backup["dansguardian_files"]=true;
 		$artica_backup["squid_white"]=true;
-		$artica_backup["SquidBoosterMem"]=true;
-		$artica_backup["SquidBoosterMemK"]=true;
-		$artica_backup["SquidBoosterOnly"]=true;
+		$artica_backup["hostsusers"]=true;
+
 		  
 		
 		$databases["artica_backup"]=$artica_backup;
@@ -218,6 +221,7 @@ class squid_stats_appliance{
 		$squidlogs["webfilters_sqtimes_rules"]=true;
 		$squidlogs["webfilters_blkwhlts"]=true;
 		$squidlogs["webfilters_usersasks"]=true;
+		$squidlogs["webfilters_quotas"]=true;
 		$squidlogs["squidtpls"]=true;
 		
 		

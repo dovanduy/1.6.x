@@ -257,8 +257,10 @@ function build_ufdbguard_config(){
 	@mkdir("/var/tmp",0775,true);
 	@mkdir("/etc/ufdbguard",0777,true);
 	@mkdir("/etc/squid3",0755,true);
+	@mkdir("/var/log/squid",0755,true);
 	@unlink("/etc/ufdbguard/ufdbGuard.conf");
 	@unlink("/etc/squid3/ufdbGuard.conf");	
+	
 	@file_put_contents("/etc/ufdbguard/ufdbGuard.conf",$datas);
 	@file_put_contents("/etc/squid3/ufdbGuard.conf",$datas);
 	$sock->TOP_NOTIFY("{webfiltering_parameters_was_saved}");
@@ -267,6 +269,7 @@ function build_ufdbguard_config(){
 	shell_exec("$chmod -R 755 /etc/ufdbguard");	
 	
 	shell_exec("chown -R squid:squid /etc/ufdbguard");
+	shell_exec("chown -R squid:squid /var/log/squid");
 	shell_exec("chown -R squid:squid /etc/squid3");
 	
 	

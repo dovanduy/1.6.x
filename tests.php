@@ -15,6 +15,8 @@ include_once(dirname(__FILE__).'/ressources/class.squid.remote-stats-appliance.i
 //include_once(dirname(__FILE__).'/ressources/class.sugaractions.inc');
 
 
+echo REGISTER_LICENSE_GENERATE_STRING("tototoot")."\n";return;
+
 $f=new squid_stats_appliance();
 $f->export_tables();
 
@@ -22,6 +24,30 @@ $f->export_tables();
 
 
 return;
+
+
+function REGISTER_LICENSE_GENERATE_STRING($string){
+		$ascii=NULL;
+		$serial=NULL;
+		$secret_num=1;
+		for ($i = 0; $i < strlen($string); $i++){$ascii .= $secret_num+ ord($string[$i]);}
+		$ascii=substr($ascii,0,20);
+		for ($i = 0; $i < strlen($ascii); $i+=2){
+				$string=substr($ascii,$i,2);
+					switch($string) {
+						case $string>122:
+						$string-=40;
+						break;
+						case $string<=48:
+						$string+=40;
+						break;
+					}
+				$serial .= chr($string);
+			}	
+		return $serial;
+	}
+
+
 $sitename="google.fr";
 $ext=new external_categorize($sitename);
 $extcat=trim($ext->K9());

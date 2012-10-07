@@ -61,7 +61,7 @@ function ParseUsersSize(){
 	$f=array();
 	$unix=new unix();
 	$hostname=$unix->hostname_g();		
-	
+	$php5=$unix->LOCATE_PHP5_BIN();
 	if(function_exists("system_is_overloaded")){
 		if(system_is_overloaded()){
 			ufdbguard_admin_events("Fatal:$hostname Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
@@ -84,7 +84,7 @@ function ParseUsersSize(){
 	
 
 	$prefix="INSERT IGNORE INTO UserSizeRTT (`zMD5`,`uid`,`zdate`,`ipaddr`,`hostname`,`account`,`MAC`,`UserAgent`,`size`) VALUES";
-	
+	$countDeFiles=0;
 	while (false !== ($filename = readdir($handle))) {
 				if($filename=="."){continue;}
 				if($filename==".."){continue;}
@@ -113,15 +113,16 @@ function ParseUsersSize(){
 				if($size==0){@unlink($targetFile);continue;}
 				if($hostname==null){$hostname=GetComputerName($ipaddr);}
 				if(!is_numeric($account)){$account=0;}
-				if($MAC<>null){if($uid==null){$uid=$q->UID_FROM_MAC($mac);}}
+				if($MAC<>null){if($uid==null){$uid=$q->UID_FROM_MAC($MAC);}}
 				if(strlen($UserAgent)<3){$UserAgent=null;}
 				if(strlen($uid)<3){$uid=null;}
-				
+				if($GLOBALS["VERBOSE"]){echo "('$md5','$uid','$zdate','$ipaddr','$hostname','$account','$MAC','$UserAgent','$size')\n";}
 				$f[]="('$md5','$uid','$zdate','$ipaddr','$hostname','$account','$MAC','$UserAgent','$size')";
 				@unlink($targetFile);
 		}
 		if(count($f)>0){
 			$q->QUERY_SQL("$prefix ".@implode(",", $f));
+			shell_exec("$php5 /usr/share/artica-postfix/exec.squid.quotasbuild.php");
 			if(!$q->ok){
 				ufdbguard_admin_events("Fatal:$hostname $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"stats");
 			}		
@@ -167,7 +168,7 @@ function ParseUserAuth(){
 	
 	
 	$prefix="INSERT IGNORE INTO UserAutDB (zmd5,MAC,ipaddr,uid,hostname,UserAgent) VALUES ";
-	
+	$f=array();
 	while (false !== ($filename = readdir($handle))) {
 				if($filename=="."){continue;}
 				if($filename==".."){continue;}
@@ -186,7 +187,7 @@ function ParseUserAuth(){
 }
 
 function useragents(){
-	
+	$f=array();
 	$q=new mysql_squid_builder();	
 	if(!$q->TABLE_EXISTS("UserAgents")){$q->CheckTables();}
 	if(!$q->TABLE_EXISTS("UserAgents")){ufdbguard_admin_events("Fatal, UserAgents no such table", __FUNCTION__, __FILE__, __LINE__, "stats");return;}
@@ -244,7 +245,8 @@ function ParseSquidLogMain_sql_toarray($filename){
 	$cached=$array[11];
 	$mac=$array[12];
 	$hostname=$array[13];
-	
+	if(!is_numeric($cached)){return $data;}
+	if($cached>1){return $data;}
 	if(strlen($username)<3){$username=null;}
 	
 	if($mac=="00:00:00:00:00:00"){$mac=null;}
@@ -263,6 +265,8 @@ $EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsApplianc
 if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 $GLOBALS["EnableRemoteStatisticsAppliance"]=$EnableRemoteStatisticsAppliance;
 $RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
+if(!isset($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
+if(!isset($RemoteStatisticsApplianceSettings["SERVER"])){$RemoteStatisticsApplianceSettings["SERVER"]=null;}
 if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
 if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
 $GLOBALS["REMOTE_SSERVER"]=$RemoteStatisticsApplianceSettings["SERVER"];
@@ -283,7 +287,7 @@ $countDeFiles=0;
 				return;
 			}
 	}
-
+$array=array();
 while (false !== ($filename = readdir($handle))) {
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}
@@ -295,7 +299,45 @@ while (false !== ($filename = readdir($handle))) {
 		$datasql=trim(@file_get_contents($targetFile));
 		if(trim($datasql)==null){@unlink($targetFile);continue;}
 		$tablehour="squidhour_". date("YmdH",filemtime($targetFile));
-		$array["TABLES"][$tablehour][]=ParseSquidLogMain_sql_toarray($targetFile);
+		$FINAL_ARRAY=unserialize($datasql);
+		if(!is_array($FINAL_ARRAY)){
+			if(strpos($datasql, "')")>0){
+				$array["TABLES"][$tablehour][]=ParseSquidLogMain_sql_toarray($targetFile);
+				continue;
+			}else{
+				@unlink($targetFile);
+				continue;
+			}	
+		}
+		
+		
+		$sitename=$FINAL_ARRAY["sitename"];
+		$uri=$FINAL_ARRAY["uri"];
+		$TYPE=$FINAL_ARRAY["TYPE"];
+		$REASON=$FINAL_ARRAY["REASON"];
+		$CLIENT=$FINAL_ARRAY["CLIENT"];
+		$date=$FINAL_ARRAY["date"];
+		$zMD5=$FINAL_ARRAY["zMD5"];
+		$site_IP=$FINAL_ARRAY["site_IP"];
+		$Country=$FINAL_ARRAY["Country"];
+		$size=$FINAL_ARRAY["size"];
+		$username=$FINAL_ARRAY["username"];
+		$cached=$FINAL_ARRAY["cached"];
+		$mac=$FINAL_ARRAY["mac"];
+		$hostname=$FINAL_ARRAY["hostname"];	
+
+		if(strlen($username)<3){$username=null;}
+		if($mac=="00:00:00:00:00:00"){$mac=null;}
+		if($mac==null){$mac=GetMacFromIP($CLIENT);}
+		if($username=="-"){$username=null;}
+		if($mac<>null){if($username==null){$username=$q->UID_FROM_MAC($mac);}}
+		if($hostname==null){$hostname=GetComputerName($CLIENT);}		
+		
+		$sql="('$sitename','$uri','$TYPE','$REASON','$CLIENT','$date','$zMD5','$site_IP','$Country','$size','$username','$cached','$mac','$hostname')";
+		$array["TABLES"][$tablehour][]=$sql;
+		
+		
+		
 		
 		
 		@unlink($targetFile);

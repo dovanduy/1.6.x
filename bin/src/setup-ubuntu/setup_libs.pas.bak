@@ -2326,7 +2326,7 @@ if length(trim(base))=0 then begin
          writeln('Files Sharing (include Samba and Pure-ftpd):..........:Installed');
     end;
 end else begin
-     writeln('Files Sharing (include Samba and Pure-ftpd):..........: Disabled: require: ',base);
+     writeln('Files Sharing (include Samba and Pure-ftpd):..........: Disabled: require: "',base,'" (stop the install program and restart it)');
 end;
 
 if length(trim(base))=0 then begin

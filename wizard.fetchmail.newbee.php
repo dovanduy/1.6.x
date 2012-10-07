@@ -492,7 +492,7 @@ $html="
 	<td valign='top'>
 			<table style='width:450px;'>
 			<tr>
-				<td valign='top' colspan=2 style='font-size:16px;font-weight:bold;padding-bottom:10px;padding-top:15px'>{session_information}:<br></td>
+				<td valign='top' colspan=3 style='font-size:16px;font-weight:bold;padding-bottom:10px;padding-top:15px'>{session_information}:<br></td>
 			</tr>
 			<tr>
 				<td width=1%>&nbsp;</td>
@@ -504,7 +504,11 @@ $html="
 				<td class=legend nowrap  style='font-size:14px'>{password}:</td>
 				<td>" . Field_password("pass-$t",$array["pass"],"font-size:14px;width:200px")."</td>
 			</tr>	
-			
+			<tr>
+				<td width=1%>&nbsp;</td>
+				<td class=legend nowrap  style='font-size:14px'>{original_emailaddr}:</td>
+				<td>" . Field_text("orgmail-$t",$array["orgmail"],"font-size:14px;width:200px")."</td>
+			</tr>			
 			<tr>
 				<td valign='top' colspan=3 style='font-size:16px;font-weight:bold;padding-bottom:10px;padding-top:15px'>{server_information}:<br></td>
 			</tr>
@@ -585,6 +589,7 @@ $html="
 		XHR.appendData('pass',pp);
 		XHR.appendData('poll',document.getElementById('poll-$t').value);
 		XHR.appendData('proto',document.getElementById('proto-$t').value);
+		XHR.appendData('orgmail',document.getElementById('orgmail-$t').value);
 		if(document.getElementById('keep-$t').checked){XHR.appendData('keep',1);}else{XHR.appendData('keep',0);}
 		AnimateDiv('fetchmail-rule');
 		XHR.sendAndLoad('$page', 'POST',x_FetchmailSaveAccount$t);

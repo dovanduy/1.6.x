@@ -24,6 +24,7 @@ $GLOBALS["ArticaWatchDogList"]=unserialize(base64_decode($sock->GET_INFO("Artica
 $GLOBALS["PHP5"]=$unix->LOCATE_PHP5_BIN();
 $GLOBALS["NICE"]=$unix->EXEC_NICE();
 $GLOBALS["nohup"]=$unix->find_program("nohup");
+$GLOBALS["KILLBIN"]=$unix->find_program("kill");
 if($GLOBALS["VERBOSE"]){echo "DEBUG MODE ENABLED\n";}
 if($GLOBALS["VERBOSE"]){echo "command line: {$GLOBALS["COMMANDLINE"]}\n";}
 $GLOBALS["AMAVIS_WATCHDOG"]=unserialize(@file_get_contents("/etc/artica-postfix/amavis.watchdog.cache"));
@@ -1123,10 +1124,9 @@ function squid_master_status(){
 	}
 	$sqdbin=$GLOBALS["CLASS_UNIX"]->find_program("squid");
 	if(!is_file($sqdbin)){$sqdbin=$GLOBALS["CLASS_UNIX"]->find_program("squid3");}
+	$EnableRemoteStatisticsAppliance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	
-	
-
-
 	$l[]="[SQUID]";
 	$l[]="service_name=APP_SQUID";
 	$l[]="master_version=". squid_master_status_version();
@@ -1160,6 +1160,12 @@ function squid_master_status(){
 		$cmd=trim($prefixcmd.dirname(__FILE__)."/exec.squid.php --build-schedules-test >/dev/null 2>&1 &");
 		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 		shell_exec($cmd);
+	}
+	
+	if($EnableRemoteStatisticsAppliance==1){
+		$cmd=trim($prefixcmd.dirname(__FILE__)."/exec.netagent.php --timeout >/dev/null 2>&1 &");
+		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+		shell_exec($cmd);		
 	}
 	
 	
@@ -4465,7 +4471,7 @@ function arpd(){
 	if(!is_numeric($EnableArpDaemon)){$EnableArpDaemon=1;}
 	$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF($bin,true);
 	if($EnableArpDaemon==0){if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){shell_exec("/etc/init.d/arpd stop");}}	
-	
+	if($GLOBALS["CLASS_USERS"]->LIGHT_INSTALL){$GLOBALS["CLASS_SOCKETS"]->SET_INFO("EnableArpDaemon",0);$EnableArpDaemon=0;}
 	$l[]="[APP_ARPD]";
 	$l[]="service_name=APP_ARPD";
 	$l[]="master_version=No";
@@ -4487,6 +4493,10 @@ function arpd(){
 		WATCHDOG("APP_ARPD","arpd");
 		$l[]="";
 		return implode("\n",$l);
+	}else{
+		if($EnableArpDaemon==0){
+			shell_exec("{$GLOBALS["KILLBIN"]} -9 $master_pid >/dev/null 2>&1");
+		}
 	}
 	$l[]=GetMemoriesOf($master_pid);
 	$l[]="";
@@ -7367,6 +7377,9 @@ function vnstat(){
 	$bin_path=$GLOBALS["CLASS_UNIX"]->find_program("vnstatd");
 	$EnableVnStat=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableVnStat");
 	if($EnableVnStat==null){$EnableVnStat=1;}
+	if($GLOBALS["CLASS_USERS"]->LIGHT_INSTALL){if($EnableVnStat==1){$GLOBALS["CLASS_SOCKETS"]->SET_INFO("EnableVnStat",0);$EnableVnStat=0;}
+	$master_pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pid_path);
+	
 	$pid_path="/var/run/vnstat.pid";
 
 	$l[]="[APP_VNSTAT]";
@@ -7377,9 +7390,12 @@ function vnstat(){
 	//$l[]="remove_cmd=--pureftpd-remove";
 	$l[]="family=network";
 	$l[]="watchdog_features=1";
-	if($EnableVnStat==0){return implode("\n",$l);return;}
+	if($EnableVnStat==0){
+		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){shell_exec("{$GLOBALS["KILLBIN"]} -9 $master_pid >/dev/null 2>&1");}
+		return implode("\n",$l);return;}
+	}
 
-	$master_pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pid_path);
+	
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF($bin_path);
@@ -7390,7 +7406,6 @@ function vnstat(){
 		WATCHDOG("APP_VNSTAT","vnstat");
 		$l[]="running=0\ninstalled=1";$l[]="";
 		return implode("\n",$l);
-		return;
 	}
 
 	$l[]="running=1";

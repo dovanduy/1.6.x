@@ -323,7 +323,7 @@ function MultiplesInstances_start($hostname,$ou){
 	$pid=MultiplesInstancesPID($hostname);
 	if($unix->process_exists($pid)){
 			shell_exec("/bin/chown -R postfix:postfix /var/spool/postfix/var/run");
-			shell_exec("/bin/chmod -R 755 /var/spool/postfix/var/run");
+			shell_exec("/bin/chmod 755 /var/spool/postfix/var/run");
 			$main->ConfigureMilters();	
 		}
 	

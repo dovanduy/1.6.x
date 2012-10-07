@@ -241,6 +241,7 @@ class Fetchmail_settings{
 	
 	
 	function EditRule($POSTED_ARRAY,$ID){
+		unset($_SESSION["FECTORGMAIL"]);
 		writelogs("ID=$ID",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$ID=trim($ID);
 		if($ID==null){$ID=0;}
@@ -252,6 +253,16 @@ class Fetchmail_settings{
 				$POSTED_ARRAY["uid"]=$ldap->uid_from_email($POSTED_ARRAY["is"]);
 			
 		}}
+		
+		
+		if(isset($POSTED_ARRAY["orgmail"])){
+			if($POSTED_ARRAY["orgmail"]==null){
+				if(preg_match("#.*?@.*#", $POSTED_ARRAY["user"])){
+					$POSTED_ARRAY["orgmail"]=$POSTED_ARRAY["user"];
+				}
+			}
+		}
+		
 	
 		if(isset($POSTED_ARRAY["poll"])){
 			$sqa["`poll`"]=$POSTED_ARRAY["poll"];
@@ -281,6 +292,7 @@ class Fetchmail_settings{
 		if(isset($POSTED_ARRAY["schedule"])){$sqa["`schedule`"]=$POSTED_ARRAY["schedule"];;$sq[]=" `schedule`='{$POSTED_ARRAY["schedule"]}'";}
 		if(isset($POSTED_ARRAY["sslproto"])){$sqa["`sslproto`"]=$POSTED_ARRAY["sslproto"];;$sq[]=" `sslproto`='{$POSTED_ARRAY["sslproto"]}'";}
 		if(isset($POSTED_ARRAY["smtp_port"])){$sqa["`smtp_port`"]=$POSTED_ARRAY["smtp_port"];;$sq[]=" `smtp_port`='{$POSTED_ARRAY["smtp_port"]}'";}
+		if(isset($POSTED_ARRAY["orgmail"])){$sqa["`orgmail`"]=$POSTED_ARRAY["orgmail"];;$sq[]=" `orgmail`='{$POSTED_ARRAY["orgmail"]}'";}
 
 		
 		
@@ -304,23 +316,26 @@ class Fetchmail_settings{
 		
 		writelogs($sql,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$q=new mysql();
+		
 		if(!$q->QUERY_SQL($sql,"artica_backup")){
-			writelogs("ERROR: ".$q->mysql_error,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			return false;
+			$q->BuildTables();
+			if(!$q->QUERY_SQL($sql,"artica_backup")){writelogs("ERROR: ".$q->mysql_error,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return false;}		
 		}
-			$sock=new sockets();
-			$sock->getFrameWork('fetchmail.php?reload-fetchmail=yes');
-			if($sock->GET_INFO("ArticaMetaEnabled")==1){$sock->getFrameWork("cmd.php?artica-meta-fetchmail-rules=yes");}
-				
-			return true;	
+		$sock=new sockets();
+		$sock->getFrameWork('fetchmail.php?reload-fetchmail=yes');
+		if($sock->GET_INFO("ArticaMetaEnabled")==1){$sock->getFrameWork("cmd.php?artica-meta-fetchmail-rules=yes");}
+		return true;	
 		
 	}
 	
 	
 	function AddRule($POSTED_ARRAY){
 		
+		if(!isset($POSTED_ARRAY["orgmail"])){$POSTED_ARRAY["orgmail"]=null;}
+		if($POSTED_ARRAY["orgmail"]==null){if(preg_match("#.*?@.*#", $POSTED_ARRAY["user"])){$POSTED_ARRAY["orgmail"]=$POSTED_ARRAY["user"];}}
+		
 		$md5=md5($POSTED_ARRAY["uid"].$POSTED_ARRAY["is"].$POSTED_ARRAY["user"].$POSTED_ARRAY["poll"].$POSTED_ARRAY["proto"]);
-		$sql="INSERT INTO fetchmail_rules (`uid`,`is`,`user`,`pass`,`poll`,`proto`,`keep`,`nokeep`,`enabled`,`md5`,`smtp_host`,`schedule`)
+		$sql="INSERT INTO fetchmail_rules (`uid`,`is`,`user`,`pass`,`poll`,`proto`,`keep`,`nokeep`,`enabled`,`md5`,`smtp_host`,`schedule`,`orgmail`)
 		VALUES('{$POSTED_ARRAY["uid"]}',
 		'{$POSTED_ARRAY["is"]}',
 		'{$POSTED_ARRAY["user"]}',
@@ -332,7 +347,8 @@ class Fetchmail_settings{
 		 1,
 		 '$md5',
 		 '{$POSTED_ARRAY["smtp_host"]}',
-		 '{$POSTED_ARRAY["schedule"]}'
+		 '{$POSTED_ARRAY["schedule"]}',
+		 '{$POSTED_ARRAY["orgmail"]}'
 		 )";
 		
 		$q=new mysql();
@@ -376,7 +392,8 @@ class Fetchmail_settings{
 				"limit"=>$ligne["limit"],
 				"schedule"=>$ligne["schedule"],
 				"sslproto"=>$ligne["sslproto"],
-				"smtp_port"=>$ligne["smtp_port"]
+				"smtp_port"=>$ligne["smtp_port"],
+				"orgmail"=>$ligne["orgmail"]
 			);
 		}
 		
@@ -414,7 +431,8 @@ class Fetchmail_settings{
 				"limit"=>$ligne["limit"],
 				"schedule"=>$ligne["schedule"],
 				"sslproto"=>$ligne['sslproto'],
-				"smtp_port"=>$ligne["smtp_port"]
+				"smtp_port"=>$ligne["smtp_port"],
+				"orgmail"=>$ligne["orgmail"]
 			);
 		}
 		
@@ -449,7 +467,8 @@ class Fetchmail_settings{
 				"limit"=>$ligne["limit"],
 				"schedule"=>$ligne["schedule"],
 				"sslproto"=>$ligne["sslproto"],
-				"smtp_port"=>$ligne["smtp_port"]
+				"smtp_port"=>$ligne["smtp_port"],
+				"orgmail"=>$ligne["orgmail"]
 			);
 		
 		

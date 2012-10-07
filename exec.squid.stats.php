@@ -2672,6 +2672,9 @@ function users_size_hour(){
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	$q=new mysql_squid_builder();
+	$numrows_0=$q->COUNT_ROWS("UserSizeRTT");
+	
+	ufdbguard_admin_events("Starting PID $mypid, table store $numrows_0 rows", __FUNCTION__, __FILE__, __LINE__, "stats");
 	$sql="SELECT DATE_FORMAT(zdate,'%Y%m%d') as tablesuffix,
 	DATE_FORMAT(zdate,'%Y-%m-%d') as tday,
 	COUNT(zMD5) as thits,
@@ -2709,8 +2712,11 @@ function users_size_hour(){
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){ufdbguard_admin_events("$tablename: Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
 		$q->QUERY_SQL("OPTIMIZE TABLE UserSizeRTT");
-		
+		$numrows_1=$q->COUNT_ROWS("UserSizeRTT");
+		$total=$numrows_0-$numrows_1;
+		ufdbguard_admin_events(count($f). " new injected table and $total new row(s)",__FUNCTION__,__FILE__,__LINE__,"stats");
 	}
+	
 	
 	scan_hours(true);
 	

@@ -3,7 +3,8 @@
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");
-	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
+	if(isset($_GET["VERBOSE"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
+	if(isset($_POST["VERBOSE"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.blackboxes.inc');
 	include_once('ressources/class.mysql.squid.builder.php');		
@@ -20,11 +21,13 @@
 	
 	
 function SETTINGS_INC(){
+	$q=new mysql_blackbox();
 	reset($_FILES['SETTINGS_INC']);
 	$error=$_FILES['SETTINGS_INC']['error'];
 	$tmp_file = $_FILES['SETTINGS_INC']['tmp_name'];
 	$hostname=$_POST["HOSTNAME"];
 	$nodeid=$_POST["nodeid"];
+	$hostid=$_POST["hostid"];
 	$content_dir=dirname(__FILE__)."/ressources/conf/upload/$hostname-$nodeid";
 	if(!is_dir($content_dir)){mkdir($content_dir,0755,true);}
 	if( !is_uploaded_file($tmp_file) ){while (list ($num, $val) = each ($_FILES['SETTINGS_INC']) ){$error[]="$num:$val";}writelogs("ERROR:: ".@implode("\n", $error),__FUNCTION__,__FILE__,__LINE__);exit();}
@@ -43,7 +46,33 @@ function SETTINGS_INC(){
 		writelogs("blackboxes::$hostname ($nodeid) Error $moved_file.txt : Not an array...",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
+	if(isset($curlparms["VERBOSE"])){
+		$GLOBALS["VERBOSE"]=true;
+		ini_set('html_errors',0);
+		ini_set('display_errors', 1);
+		ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string','');
+		ini_set('error_append_string','');
+	}
+	
 	$MYSSLPORT=$curlparms["ArticaHttpsPort"];
+	$ISARTICA=$curlparms["ISARTICA"];
+	$sql="SELECT hostid,nodeid FROM nodes WHERE `hostid`='$hostid'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if($ligne["hostid"]==null){
+		$sql="INSERT INTO nodes (hostname,ipaddress,port,hostid,BigArtica) 
+		VALUES ('$hostname','{$_SERVER["REMOTE_ADDR"]}','$MYSSLPORT','$hostid',$ISARTICA)";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo "<ERROR>$ME: Statisics appliance: $q->mysql_error:\n$sql\n line:".__LINE__."</ERROR>\n";return;}	
+		$sql="SELECT hostid,nodeid FROM nodes WHERE `hostid`='$hostid'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));	
+			
+	}
+	$nodeid=$ligne["nodeid"];
+	if($GLOBALS["VERBOSE"]){echo "Output nodeid:$nodeid\n";}
+	echo "\n<NODEID>$nodeid</NODEID>\n";
+	
+	
 	$settings=$curlparms["SETTINGS_INC"];
 	$softs=$curlparms["softwares"];
 	$perfs=$curlparms["perfs"];
@@ -51,6 +80,7 @@ function SETTINGS_INC(){
 	$back=new blackboxes($nodeid);
 	$back->VERSION=$curlparms["VERSION"];
 	$back->hostname=$hostname;
+	if($GLOBALS["VERBOSE"]){echo "Statistics Appliance:: $hostname ($nodeid) v.{$curlparms["VERSION"]}\n";}
 	writelogs("$hostname ($nodeid) v.{$curlparms["VERSION"]}",__FUNCTION__,__FILE__,__LINE__);
 	$back->SaveSettingsInc($settings,$perfs,$softs,$prodstatus,$curlparms["ISARTICA"]);
 	$back->SaveDisks($curlparms["disks_list"]);
@@ -59,15 +89,15 @@ function SETTINGS_INC(){
 	
 	if(strlen(trim($curlparms["SQUIDVER"]))>1){
 		$qSQ=new mysql_squid_builder();
-		writelogs($_SERVER["REMOTE_ADDR"] .":$MYSSLPORT production server....",__FUNCTION__,__FILE__,__LINE__);
+		if(!$qSQ->TABLE_EXISTS("squidservers")){$q->CheckTables();}
+		writelogs($_SERVER["REMOTE_ADDR"] .":port:: `$MYSSLPORT` production server....",__FUNCTION__,__FILE__,__LINE__);
 		$hostname=gethostbyaddr($_SERVER["REMOTE_ADDR"]);
 		$time=date('Y-m-d H:i:s');
-		$sql="INSERT IGNORE INTO `squidservers` (ipaddr,hostname,port,created,udpated) VALUES ('{$_SERVER["REMOTE_ADDR"]}','$hostname','{$_POST["MYSSLPORT"]}','$time','$time')";
+		$sql="INSERT IGNORE INTO `squidservers` (ipaddr,hostname,port,created,udpated) VALUES ('{$_SERVER["REMOTE_ADDR"]}','$hostname','$MYSSLPORT','$time','$time')";
 		$ligne=mysql_fetch_array($qSQ->QUERY_SQL("SELECT ipaddr FROM squidservers WHERE ipaddr='{$_SERVER["REMOTE_ADDR"]}'"));
 		if($ligne["ipaddr"]==null){$qSQ->QUERY_SQL($sql);}else{
-			$q->QUERY_SQL("UPDATE `squidservers` SET udpated='$time' WHERE ipaddr='{$ligne["ipaddr"]}'");
+			$qSQ->QUERY_SQL("UPDATE `squidservers` SET udpated='$time' WHERE ipaddr='{$ligne["ipaddr"]}'");
 		}	
-	
 	}
 	
 	if(isset($curlparms["nets"])){
@@ -83,7 +113,6 @@ function SETTINGS_INC(){
 	writelogs("blackboxes::$hostname ($nodeid):: Full squid version {$curlparms["SQUIDVER"]}",__FUNCTION__,__FILE__,__LINE__);
 	
 	if(isset($curlparms["SQUIDVER"])){$back->squid_save_squidver($curlparms["SQUIDVER"]);}
-	
 	if(isset($curlparms["ARCH"])){$back->SetArch($curlparms["ARCH"]);}
 	if(isset($curlparms["PARMS"])){$back->DaemonsSettings($curlparms["PARMS"]);}		
 	
@@ -120,6 +149,7 @@ function REGISTER(){
 	$nodeid=$_POST["nodeid"];
 	$hostid=$_POST["hostid"];
 	$ISARTICA=$_POST["ISARTICA"];
+	
 	if(!is_numeric($ISARTICA)){$ISARTICA=0;}
 	if(!is_numeric($nodeid)){$nodeid=0;}
 	if(!is_array($array)){
@@ -149,21 +179,25 @@ function REGISTER(){
 		$sql="UPDATE nodes SET hostname='{$_POST["hostname"]}',
 		ipaddress='{$_SERVER["REMOTE_ADDR"]}',
 		port='{$_POST["port"]}',
-		hostid='$hostid' WHERE nodeid='$nodeid',BigArtica=$ISARTICA";
-		
+		hostid='$hostid' WHERE nodeid='$nodeid'";
+		if($GLOBALS["VERBOSE"]){echo "$ME:$sql\n";}
 		$q->QUERY_SQL($sql);
 		
 		
 		if(preg_match("#Unknown column 'hostid'#",$q->mysql_error)){
 			$q->QUERY_SQL("DROP TABLE nodes");
 			$q->CheckTables();
-			$q->QUERY_SQL("INSERT INTO nodes (hostname,ipaddress,port,hostid,BigArtica) VALUES ('{$_POST["hostname"]}','{$_SERVER["REMOTE_ADDR"]}','{$_POST["port"]}','$hostid',$ISARTICA)");
+			$sql="INSERT INTO nodes (hostname,ipaddress,port,hostid,BigArtica) 
+			VALUES ('{$_POST["hostname"]}','{$_SERVER["REMOTE_ADDR"]}','{$_POST["port"]}','$hostid',$ISARTICA)";
+			$q->QUERY_SQL($sql);
+			if(!$q->ok){echo "<ERROR>$ME: Statisics appliance: $q->mysql_error:\n$sql\n line:".__LINE__."</ERROR>\n";return;}
 			$sql="SELECT nodeid FROM nodes WHERE `hostid`='$hostid'";
 			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+			if(!$q->ok){echo "<ERROR>$ME: Statisics appliance: $q->mysql_error:\n$sql\n line:".__LINE__."</ERROR>\n";return;}
 			$nodeid=$ligne["nodeid"];			
 		}		
 		
-		if(!$q->ok){echo "<ERROR>$ME: Statisics appliance: $q->mysql_error: line:".__LINE__."</ERROR>\n";return;}
+		if(!$q->ok){echo "<ERROR>$ME: Statisics appliance: $q->mysql_error:\n$sql\n line:".__LINE__."</ERROR>\n";return;}	
 		echo "<SUCCESS>$nodeid</SUCCESS>";
 		
 	}else{
@@ -172,7 +206,7 @@ function REGISTER(){
 		writelogs("Adding new item",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		$sql="INSERT INTO nodes (hostname,ipaddress,port,hostid,BigArtica) VALUES ('{$_POST["hostname"]}','{$_SERVER["REMOTE_ADDR"]}','{$_POST["port"]}','$hostid','$ISARTICA')";
 		$q->QUERY_SQL($sql);
-		
+		if($GLOBALS["VERBOSE"]){if(!$q->ok){echo "<ERROR>$ME: Statisics appliance: $q->mysql_error: line:".__LINE__."</ERROR>\n";}}	
 		if(preg_match("#Unknown column 'hostid'#",$q->mysql_error)){
 			$q->QUERY_SQL("DROP TABLE nodes");
 			$q->CheckTables();

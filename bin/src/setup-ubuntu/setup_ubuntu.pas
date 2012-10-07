@@ -601,8 +601,10 @@ begin
 
 if length(paramstr(1))>0 then begin
      if paramstr(1)<>'--verbose' then begin
+     if paramstr(1)<>'--light' then begin
         writeln('Unable to understand ',paramstr(1));
         halt(0);
+     end;
      end;
 end;
 writeln('initialize... ');

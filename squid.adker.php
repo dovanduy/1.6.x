@@ -48,6 +48,9 @@
 	if(isset($_GET["join-popup"])){join_popup();exit;}
 	if(isset($_GET["join-perform"])){join_perform();exit;}
 	
+	if(isset($_GET["diconnect-js"])){diconnect_js();exit;}
+	if(isset($_GET["disconnect-popup"])){diconnect_popup();exit;}
+	if(isset($_GET["disconnect-perform"])){diconnect_perform();exit;}
 js();
 
 function join_js(){
@@ -57,7 +60,13 @@ function join_js(){
 	echo "YahooWin6('905','$page?join-popup=yes','$title')";
 	
 }
-
+function diconnect_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{disconnect}");
+	echo "YahooWin6('905','$page?disconnect-popup=yes','$title')";
+	
+}
 function join_perform(){
 	$sock=new sockets();
 	$t=$_GET["t"];
@@ -70,6 +79,20 @@ function join_perform(){
 	
 	";	
 	echo $html;
+}
+function diconnect_perform(){
+	$sock=new sockets();
+	$t=$_GET["t"];
+	$datas=unserialize(base64_decode($sock->getFrameWork("squid.php?disconnect-reste=yes&MyCURLTIMEOUT=300")));
+	$text=@implode("\n", $datas);
+	$html="<textarea style='width:100%;height:550px;font-size:11.5px;overflow:auto;border:1px solid #CCCCCC;padding:5px'>$text</textarea>
+	<script>
+		document.getElementById('$t-center').innerHTML='';
+		RefreshTab('main_adker_tabs');
+	</script>
+	
+	";	
+	echo $html;	
 }
 
 function join_popup(){
@@ -85,9 +108,20 @@ function join_popup(){
 	</script>
 	";
 	echo $tpl->_ENGINE_parse_body($html);
-	
-	
-
+}
+function diconnect_popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();	
+	$sock=new sockets();
+	$t=time();
+	$html="
+	<center style='font-size:18px' id='$t-center'>{please_wait}...<p>&nbsp;</p><p>&nbsp;</p></center>
+	<div id='$t' style='margin-bottom:20px'></div>
+	<script>
+		LoadAjax('$t','$page?disconnect-perform=yes&t=$t');
+	</script>
+	";
+	echo $tpl->_ENGINE_parse_body($html);	
 }
 
 function status_kerb(){
@@ -496,6 +530,7 @@ function settings(){
 	$ldap_parameters=$tpl->_ENGINE_parse_body("{ldap_parameters2}");
 	$about_this_section=$tpl->_ENGINE_parse_body("{about_this_section}");
 	$schedule_parameters=$tpl->javascript_parse_text("{schedule_parameters}");
+	$disconnect=$tpl->_ENGINE_parse_body("{disconnect}");
 	$samba36=0;
 	if(preg_match("#^3\.6\.#", $samba_version)){$samba36=1;}
 	
@@ -510,7 +545,12 @@ function settings(){
 	$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
 	$LockKerberosAuthentication=$sock->GET_INFO("LockKerberosAuthentication");
 	$KerbAuthDisableNsswitch=$sock->GET_INFO("KerbAuthDisableNsswitch");
+	$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
+	
+	
+	
 	if(!is_numeric($KerbAuthDisableNsswitch)){$KerbAuthDisableNsswitch=0;}
+	if(!is_numeric($KerbAuthDisableGroupListing)){$KerbAuthDisableGroupListing=0;}
 	
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
@@ -526,6 +566,18 @@ function settings(){
 	$arrayBCK["rid"]="rid";
 	$arrayBCK["tdb"]="tdb";
 	if($LockKerberosAuthentication==1){$EnableKerberosAuthentication=0;}
+	
+	if($EnableKerbAuth==1){
+		$disconnectTR="
+		<tr>
+			<td width=1%><img src='img/stop-24.png'></td>
+			<td nowrap>		
+				<a href=\"javascript:blur();\" 
+					OnClick=\"javascript:Loadjs('$page?diconnect-js=yes')\" 
+					style='font-size:14px;text-decoration:underline'>$disconnect</a>
+				</td>
+		</tr>";
+	}
 	
 	$html="
 	<table style='width:100%'>
@@ -561,7 +613,8 @@ function settings(){
 					OnClick=\"javascript:YahooSearchUser('550','$page?schedule-params=yes','$schedule_parameters');\" 
 					style='font-size:14px;text-decoration:underline'>$schedule_parameters</a>
 				</td>
-		</tr>		
+		</tr>	
+		$disconnectTR	
 		</table>		
 	</td>
 	</table>
@@ -577,6 +630,11 @@ function settings(){
 		<td>". Field_checkbox("KerbAuthDisableNsswitch",1,"$KerbAuthDisableNsswitch")."</td>
 		<td>&nbsp;</td>
 	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{KerbAuthDisableGroupListing}:</td>
+		<td>". Field_checkbox("KerbAuthDisableGroupListing",1,"$KerbAuthDisableGroupListing")."</td>
+		<td>&nbsp;</td>
+	</tr>	
 	
 	<tr>
 		<td class=legend style='font-size:14px'>{authenticate_from_kerberos}:</td>
@@ -652,6 +710,7 @@ function settings(){
 			document.getElementById('SAMBA_BACKEND').disabled=true;
 			document.getElementById('COMPUTER_BRANCH').disabled=true;
 			document.getElementById('KerbAuthDisableNsswitch').disabled=true;
+			document.getElementById('KerbAuthDisableGroupListing').disabled=true;
 			
 			
 			
@@ -674,6 +733,7 @@ function settings(){
 				document.getElementById('SAMBA_BACKEND').disabled=false;
 				document.getElementById('COMPUTER_BRANCH').disabled=false;
 				document.getElementById('KerbAuthDisableNsswitch').disabled=false;
+				document.getElementById('KerbAuthDisableGroupListing').disabled=false;
 				
 				
 				if(document.getElementById('EnableKerberosAuthentication').checked){
@@ -742,6 +802,7 @@ function settings(){
 			if(document.getElementById('EnableKerbAuth').checked){XHR.appendData('EnableKerbAuth',1);}else{XHR.appendData('EnableKerbAuth',0);}
 			if(document.getElementById('EnableKerberosAuthentication').checked){XHR.appendData('EnableKerberosAuthentication',1);}else{XHR.appendData('EnableKerberosAuthentication',0);}
 			if(document.getElementById('KerbAuthDisableNsswitch').checked){XHR.appendData('KerbAuthDisableNsswitch',1);}else{XHR.appendData('KerbAuthDisableNsswitch',0);}
+			if(document.getElementById('KerbAuthDisableGroupListing').checked){XHR.appendData('KerbAuthDisableGroupListing',1);}else{XHR.appendData('KerbAuthDisableGroupListing',0);}
 			
 			
 			
@@ -906,12 +967,24 @@ function settingsSave(){
 	
 	
 	
-	$sock->SET_INFO("EnableKerbAuth", $_POST["EnableKerbAuth"]);
+	
 	$sock->SET_INFO("EnableKerberosAuthentication", $_POST["EnableKerberosAuthentication"]);
 	$sock->SET_INFO("KerbAuthDisableNsswitch", $_POST["KerbAuthDisableNsswitch"]);
+	$sock->SET_INFO("KerbAuthDisableGroupListing", $_POST["KerbAuthDisableGroupListing"]);
+	
+	
+	
 	if($_POST["EnableKerberosAuthentication"]==1){$sock->SET_INFO("EnableKerbAuth", 0);}
 	
 	$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
+	
+	if(strpos($_POST["ADNETBIOSDOMAIN"], ".")>0){
+		echo "The netbios domain \"{$_POST["ADNETBIOSDOMAIN"]}\" is invalid.\n";
+		$sock->SET_INFO("EnableKerbAuth", 0);
+		return;
+	}
+	
+	$sock->SET_INFO("EnableKerbAuth", $_POST["EnableKerbAuth"]);
 	$sock->getFrameWork("services.php?kerbauth=yes");
 	if($users->SQUID_INSTALLED){$sock->getFrameWork("cmd.php?squid-rebuild=yes");}
 	

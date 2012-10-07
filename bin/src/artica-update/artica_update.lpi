@@ -9,7 +9,7 @@
       <MainUnit Value="0"/>
       <TargetFileExt Value=""/>
       <Title Value="artica-update"/>
-      <ActiveEditorIndexAtStart Value="0"/>
+      <ActiveEditorIndexAtStart Value="7"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -26,7 +26,7 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <Units Count="72">
+    <Units Count="73">
       <Unit0>
         <Filename Value="artica_update.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -215,8 +215,8 @@
         <Filename Value="update.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="update"/>
-        <CursorPos X="110" Y="764"/>
-        <TopLine Value="740"/>
+        <CursorPos X="1" Y="226"/>
+        <TopLine Value="194"/>
         <EditorIndex Value="7"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
@@ -559,6 +559,13 @@
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit71>
+      <Unit72>
+        <Filename Value="../artica-install/mysql_daemon.pas"/>
+        <UnitName Value="mysql_daemon"/>
+        <CursorPos X="106" Y="705"/>
+        <TopLine Value="684"/>
+        <UsageCount Value="10"/>
+      </Unit72>
     </Units>
     <JumpHistory Count="29" HistoryIndex="28">
       <Position1>

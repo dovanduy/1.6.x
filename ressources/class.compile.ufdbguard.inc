@@ -21,7 +21,7 @@ class compile_ufdbguard{
 	var $SquidGuardWebExternalUri=null;
 	var $UseDynamicGroupsAcls=0;
 	var $KerbAuthDisableNsswitch=0;
-	
+	var $licensed=0;
 	
 	function compile_ufdbguard(){
 		$GLOBALS["SRC"]=array();
@@ -52,7 +52,7 @@ class compile_ufdbguard{
 		if(!is_numeric($this->SquidDatabasesArticaEnable)){$this->SquidDatabasesArticaEnable=1;}
 		if(!is_numeric($this->KerbAuthDisableNsswitch)){$this->KerbAuthDisableNsswitch=1;}
 		if($this->SquidGuardWebUseExternalUri==1){if(strlen($this->SquidGuardWebExternalUri)>3){$this->SquidGuardIPWeb=$this->SquidGuardWebExternalUri;}}
-			
+		if(@file_get_contents("/usr/local/share/artica/.lic")=="TRUE"){$this->licensed=1;}else{$this->SquidDatabasesArticaEnable=0;}
 		echo "Starting......: ufdbGuard SquidGuardIPWeb = `$this->SquidGuardIPWeb`\n";
 		if($this->SquidGuardWebUseExternalUri==0){
 			if($this->SquidGuardIPWeb==null){$this->SquidGuardIPWeb="http://$usrs->hostname:9020/exec.squidguard.php";}
@@ -618,7 +618,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 		
 	private function build_categories_paragraph($category){
-		
+		if($this->licensed==0){$this->SquidDatabasesArticaEnable=0;}
 		$sock=new sockets();
 		$OrigninalCategoryName=$category;
 		if(isset($GLOBALS["CATEGORIES_BUILDED"][$OrigninalCategoryName])){return;}

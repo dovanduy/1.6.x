@@ -169,6 +169,9 @@ function tabs(){
 	$sock=new sockets();
 	
 	$array["main-rules"]='{rules}';
+	$array["quotas"]='{quotas}';
+	
+	
 	if($users->APP_UFDBGUARD_INSTALLED){
 		$array["rewrite-rules"]='{rewrite_rules}';
 	}
@@ -176,13 +179,15 @@ function tabs(){
 	$array["section_basic_filters-time"]='{connection_time}';
 	$array["section_basic_filters-terms"]='{terms_groups}';
 	
+	
+	
 	if($users->C_ICAP_INSTALLED){
 		if($users->C_ICAP_DNSBL){
-			$array["c-icap-dnsbl"]='{CICAP_DNSBL}';
+			//$array["c-icap-dnsbl"]='{CICAP_DNSBL}';
 		}
 	}	
 	
-	
+	$array["ufdbguard-status"]="{service_status}";
 	$fontsize=14;
 	if(count($array)>5){$fontsize=11.5;}
 	$t=time();
@@ -192,6 +197,12 @@ function tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.rewrite.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+			
+		if($num=="quotas"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.helpers.quotas.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 		
 		if($num=="section_basic_filters-bandwith"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.bandwith.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
@@ -216,7 +227,10 @@ function tabs(){
 			continue;
 		}		
 				
-	
+		if($num=="ufdbguard-status"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.status.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 	}

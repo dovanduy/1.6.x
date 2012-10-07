@@ -809,6 +809,45 @@ class squidbee{
 		return @implode("\n", $f);
 	}
 	
+	private function external_acl_helper_MacToUid(){
+		$q=new mysql();
+		if(!$this->ACL_ARP_ENABLED){return;}
+		$array["CACHE_TIME"]=360;
+		if($q->COUNT_ROWS("hostsusers","artica_backup")==0){return;}
+		if($this->is_auth()){$L[]="%LOGIN";}
+		$L[]="%SRC";
+		$L[]="%SRCEUI48";
+		$L[]="%>{X-Forwarded-For}";
+		if($this->IS_32){$ipv4=" ipv4";}
+		$f[]="external_acl_type MacToUid ttl={$array["CACHE_TIME"]} negative_ttl={$array["CACHE_TIME"]} children-startup=2 children-idle=2$ipv4 ".@implode(" ", $L)." /usr/share/artica-postfix/external_acl_squid.php --mactouid";
+		$f[]="acl MacToUid_acl external MacToUid\n";
+		$GLOBALS["HTTP_ACCESS"]["MacToUid"]="http_access deny !MacToUid_acl";
+		return @implode("\n", $f);		
+		
+	}
+	
+	
+	private function external_acl_helper(){
+		$q=new mysql_squid_builder();
+		if($q->COUNT_ROWS("webfilters_quotas")==0){return;}
+		$sock=new sockets();
+		$array=unserialize(base64_decode($sock->GET_INFO("SquidQuotasParams")));
+		if(!is_numeric($array["CACHE_TIME"])){$array["CACHE_TIME"]=120;}
+		if(!is_numeric($array["DISABLE_MODULE"])){$array["DISABLE_MODULE"]=0;}
+		if($array["DISABLE_MODULE"]==1){return;}
+		if($array["TEMPLATE"]==null){$array["TEMPLATE"]="ERR_ACCESS_DENIED";}		
+		if($this->is_auth()){$L[]="%LOGIN";}
+		$L[]="%SRC";
+		if($this->ACL_ARP_ENABLED){$L[]="%SRCEUI48";}
+		$L[]="%>{X-Forwarded-For}";
+		if($this->IS_32){$ipv4=" ipv4";}
+		$f[]="external_acl_type quotas ttl={$array["CACHE_TIME"]} negative_ttl={$array["CACHE_TIME"]} children-startup=5 children-idle=5$ipv4 ".@implode(" ", $L)." /usr/share/artica-postfix/external_acl_squid.php";
+		$f[]="acl quotas_acl external quotas\n";
+		$f[]="deny_info ERR_{$array["TEMPLATE"]} quotas_acl\n";
+		$GLOBALS["HTTP_ACCESS"]["QUOTAS"]="http_access deny !quotas_acl";
+		return @implode("\n", $f);
+	}
+	
 	private function request_header_access(){
 		if($this->IS_27){return "#request_header_access/request_header_replace not supported in 2.7x\n";}
 		if(!$this->ASROOT){return;}
@@ -1118,7 +1157,14 @@ function SaveToLdap($norestart=false){
 			
 			return $array;
 			
-		}		
+		}	
+
+		public function is_auth(){
+			if($this->LDAP_AUTH==1){return true;}
+			if($this->LDAP_EXTERNAL_AUTH==1){return true;}
+			if($this->EnableKerbAuth==1){return true;}
+			return false;
+		}
 		
 		
 		private function ldap_auth_conf(){
@@ -2496,10 +2542,12 @@ function BuildSquidConf(){
 			
 		if($this->hasProxyTransparent==1){$this->LDAP_AUTH=0;$this->NTLM_AUTH=0;}
 		$squid_sessions_builder=$this->squid_sessions_builder();
-		
+		$conf=$conf.  $this->external_acl_helper_MacToUid();
 		$conf=$conf . $this->ntlm_auth_conf();
 		$conf=$conf . $this->ldap_auth_conf();
 		$conf=$conf . $this->krb_auth_conf();
+		
+		$conf=$conf . $this->external_acl_helper();
 		if($squid_sessions_builder<>null){$conf=$conf . $squid_sessions_builder."\n";}
 		$conf=$conf . "#--------- TWEEKS PERFORMANCES\n";
 		$conf=$conf . "# http://blog.last.fm/2007/08/30/squid-optimization-guide\n";
@@ -3091,7 +3139,7 @@ function BuildSquidConf(){
 		$CSV["a12"]="\"%Ss:%Sh\"";
 		$CSV["a13"]="\"%{User-Agent}>h\"";
 		$CSV["a14"]="\"%{X-Forwarded-For}>h\"";
-		
+	
 		if(($this->IS_31) && (!$this->IS_32)){
 			unset($CSV["a4"]);
 			unset($CSV["a3"]);
@@ -3332,6 +3380,8 @@ function BuildSquidConf(){
 			$this->allow_squid_localhost=1;
 			$ACL_MANAGER=$this->ACL_MANAGER();
 			if($ACL_MANAGER<>null){$conf[]=$ACL_MANAGER;}
+			if(isset($GLOBALS["HTTP_ACCESS"]["MacToUid"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["MacToUid"];}
+			
 			if($this->ACL_ARP_ENABLED){
 				$conf[]="http_access allow whitelisted_mac_computers";
 				$conf[]="url_rewrite_access deny whitelisted_mac_computers";
@@ -3349,7 +3399,7 @@ function BuildSquidConf(){
 			}else{
 				echo "Starting......: Squid : ACL Engine tcp_outgoing_tos No rules..\n";
 			}	
-			
+			if(isset($GLOBALS["HTTP_ACCESS"]["QUOTAS"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["QUOTAS"];}
 			
 			
 			

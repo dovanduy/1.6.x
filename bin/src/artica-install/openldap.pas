@@ -270,6 +270,15 @@ begin
       logs.Syslogs('Stopping openLdap server.....: Already stopped');
       exit;
   end;
+
+  fpsystem('kill '+pid);
+  pid:=LDAP_PID();
+  sleep(900);
+   if not SYS.PROCESS_EXIST(pid) then begin
+      logs.Syslogs('Stopping openLdap server.....: '+pid+' Stopped');
+      exit;
+  end;
+
   fpsystem(INITD_PATH()+' stop');
 
 end;

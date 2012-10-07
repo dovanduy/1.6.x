@@ -17,13 +17,14 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
 if($argv[1]=="--exec"){start();die();}
+if($argv[1]=="--dirs"){ScanDirs();die();}
 
 function start(){
-
-	
+	$sock=new sockets();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$unix=new unix();
 	$me=basename(__FILE__);
+	
 	if($unix->process_exists(@file_get_contents($pidfile),$me)){
 		if($GLOBALS["VERBOSE"]){echo " --> Already executed.. ". @file_get_contents($pidfile). " aborting the process\n";}
 		system_admin_events("--> Already executed.. ". @file_get_contents($pidfile). " aborting the process", __FUNCTION__, __FILE__, __LINE__, "zarafa");
@@ -31,11 +32,20 @@ function start(){
 	}
 	
 	@file_put_contents($pidfile, getmypid());
+	
+	
 	$zarafaserv=$unix->find_program("zarafa-server");
 	if(!is_file($zarafaserv)){
 		system_admin_events("zarafa-server, no such binary aborting...", __FUNCTION__, __FILE__, __LINE__, "zarafa");
 		die();
 	}
+	
+	$ZarafaBackupParams=unserialize(base64_decode($sock->GET_INFO("ZarafaBackupParams")));
+	if($ZarafaBackupParams["DEST"]==null){$ZarafaBackupParams["DEST"]="/home/zarafa-backup";}
+	if(!is_numeric($ZarafaBackupParams["DELETE_OLD_BACKUPS"])){$ZarafaBackupParams["DELETE_OLD_BACKUPS"]=1;}
+	if(!is_numeric($ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"])){$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]=10;}
+		
+	
 	build_script();
 	$t=time();
 	if($GLOBALS["VERBOSE"]){echo " -> /bin/artica-zarafa-backup.sh\n";}
@@ -43,14 +53,56 @@ function start(){
 	if($GLOBALS["VERBOSE"]){echo @implode("\n", $results)."\n";}
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
 	system_admin_events("Backup done took:$took\n".@implode("\n", $results), __FUNCTION__, __FILE__, __LINE__, "zarafa");
-
-
+	$NOW=date("Ymd");
+	
+	$stamp="{$ZarafaBackupParams["DEST"]}/$NOW/took.txt";
+	$datestamp="{$ZarafaBackupParams["DEST"]}/$NOW/time.txt";
+	@file_put_contents($stamp, $took);
+	@file_put_contents($datestamp, date("Y-m-d H:i:s"));
+	ScanDirs();
 
 }
+function ScanDirs(){
+	$sock=new sockets();
+	$ZarafaBackupParams=unserialize(base64_decode($sock->GET_INFO("ZarafaBackupParams")));
+	if($ZarafaBackupParams["DEST"]==null){$ZarafaBackupParams["DEST"]="/home/zarafa-backup";}
+	if(!is_numeric($ZarafaBackupParams["DELETE_OLD_BACKUPS"])){$ZarafaBackupParams["DELETE_OLD_BACKUPS"]=1;}
+	if(!is_numeric($ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"])){$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]=10;}
+			
+	$unix=new unix();
+	$directories=$unix->dirdir($ZarafaBackupParams["DEST"]);
+	
+	while (list ($directory, $ext) = each ($directories) ){if(is_file("$directory/zarafa.gz")){$Gooddirs[$directory]=true;}}
+	
+	$q=new mysql();
+	$q->QUERY_SQL("TRUNCATE TABLE zarafa_backup","artica_backup");
+	$prefix="INSERT INTO zarafa_backup (`filepath`,`filesize`,`ztime`,`zDate`) VALUES ";
+	
+	while (list ($directory, $ext) = each ($Gooddirs) ){
+		$date=null;
+		$stamp="$directory/took.txt";
+		$datestamp="$directory/time.txt";		
+		$size=$unix->file_size("$directory/zarafa.gz");
+		if(is_file($datestamp)){$date=@file_get_contents($datestamp);}
+		if($date==null){$date=date("Y-m-d H:i:s",filemtime("$directory/zarafa.gz") );}
+		if(is_file($stamp)){$took=@file_get_contents($stamp);}
+		if($GLOBALS["VERBOSE"]){echo "$date ($took) $directory/zarafa.gz $size\n";}
+		$directory=addslashes($directory);
+		$f[]="('$directory','$size','$took','$date')";
+	}
+	
+	if(count($f)>0){
+		$sql="$prefix". @implode(",", $f);
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){system_admin_events("Fatal $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "backup");}
+	}
+	
+}
+
 
 function build_script(){
 	$sock=new sockets();
-	
+	$unix=new unix();
 	$ZarafaBackupParams=unserialize(base64_decode($sock->GET_INFO("ZarafaBackupParams")));
 	
 	if($ZarafaBackupParams["DEST"]==null){$ZarafaBackupParams["DEST"]="/home/zarafa-backup";}
@@ -61,6 +113,12 @@ function build_script(){
 	if(trim($q->mysql_password)==null){
 		$nopass=1;
 	}
+	$SLAPCATE=null;
+	$slapcat=$unix->find_program("slapcat");
+	if(is_file($slapcat)){
+		$slapdconf=$unix->LOCATE_SLPAD_CONF();
+		$SLAPCATE="$slapcat -f $slapdconf";
+		} 	
 	
 	if($GLOBALS["VERBOSE"]){echo "$q->mysql_server; no pass:$nopass DEST:{$ZarafaBackupParams["DEST"]}\n";}
 	
@@ -100,7 +158,7 @@ $f[]="NOTIFY_EMAIL=\"user@domain.com\"";
 $f[]="NOTIFY_SUBJECT=\"MySQL Backup Notification\"";
 $f[]="";
 $f[]="# Delete old backups";
-$f[]="DELETE_OLD_BACKUPS={$ZarafaBackupParams["DELETE_OLD_BACKUPS"]}";
+$f[]="DELETE_OLD_BACKUPS=0";
 $f[]="DELETE_BACKUPS_OLDER_THAN_DAYS={$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]}";
 $f[]="";
 $f[]="# Usually there is no need to modify the variables below";
@@ -176,7 +234,8 @@ $f[]="	done";
 $f[]="    fi";
 $f[]="    ";
 $f[]="    if [ \"\$skipdb\" == \"-1\" ] ; then";
-$f[]="	FILE=\"\$MBD/\$db.\$HOST.\$NOW\"";
+$f[]="	FILE=\"\$MBD/zarafa\"";
+$f[]="	echo \"Creating container \$FILE\"";
 $f[]="	# do all inone job in pipe,";
 $f[]="	# connect to mysql using mysqldump for select mysql database";
 $f[]="	# and pipe it out to gz file in backup dir :)";
@@ -191,6 +250,7 @@ $f[]="        if [ \$ERR != 0 ]; then";
 $f[]="	  NOTIFY_MESSAGE=\"Error: \$ERR, while backing up database: \$db\"	";
 $f[]="	else";
 $f[]="	  NOTIFY_MESSAGE=\"Successfully backed up database: \$db\"";
+$f[]="	  $SLAPCATE -l \$MBD/ldap.ldif >/dev/null";
 $f[]="	fi	";
 $f[]="        gen_email \$SEND_EMAIL \$TMP_MSG_FILE 1 \"\$NOTIFY_MESSAGE\"";
 $f[]="        echo \$NOTIFY_MESSAGE";

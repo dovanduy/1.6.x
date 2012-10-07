@@ -127,6 +127,13 @@ var
 begin
   result:=trim(SYS.GET_INFO('SYSTEMID'));
   if length(result)>3 then exit(result);
+  fpsystem(sys.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.web-community-filter.php --uuid');
+  result:=trim(SYS.GET_INFO('SYSTEMID'));
+  if length(result)>3 then exit(result);
+
+
+
+
   blkid:=trim(SYS.LOCATE_GENERIC_BIN('blkid'));
   hostid:=trim(SYS.LOCATE_GENERIC_BIN('hostid'));
   if FileExists(hostid) then begin
@@ -245,6 +252,7 @@ begin
    fpsystem('/bin/cp -f '+tmpfile+' ' + basePath);
    logs.OutputCmd('/bin/chmod 755 '+basePath);
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.setup-center.php >/dev/null 2>&1');
+   fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.web-community-filter.php --register-lic >/dev/null 2>&1 &');
    testini.free;
 
 end;
@@ -764,7 +772,6 @@ kav4Proxy.free;
     logs.Debuglogs('perform_update() -> Current version.........:'+IntToStr(current));
     logs.Debuglogs('perform_update() -> Remote file.............:'+lastestfile);
     logs.Debuglogs('perform_update() -> URI.....................:'+uri);
-    logs.Debuglogs('perform_update() -> Updating GEOIP....'+uri);
 
     if autoinstall then begin
         logs.Debuglogs('perform_update() -> autoinstall is enabled...');

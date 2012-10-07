@@ -4827,7 +4827,10 @@ end;
 end;
 //#############################################################################
 function Tsystem.LOCATE_MYSQL_ADMIN():string;
+var ss:string;
 begin
+ss:=LOCATE_GENERIC_BIN('mysqladmin');
+if FileExists(ss) then exit(ss);
 if FileExists('/usr/bin/mysqladmin') then exit('/usr/bin/mysqladmin');
 end;
 //#############################################################################

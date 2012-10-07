@@ -408,7 +408,7 @@ logs.Debuglogs('###################### FRAMEWORK #####################');
       logs.Debuglogs('LIGHTTPD_START():: framework already running with PID number ' + pid);
       exit();
    end;
-
+    fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.web-community-filter.php --register-lic >/dev/null 2>&1 &');
     DEFAULT_CONF();
     logs.OutputCmd(LIGHTTPD_BIN_PATH()+ ' -f /etc/artica-postfix/framework.conf');
 

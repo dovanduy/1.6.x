@@ -49,7 +49,7 @@ function AddNewSchedule_js(){
 	}
 	
 	$title=$tpl->_ENGINE_parse_body($title);
-	echo "YahooWin2('550','$page?AddNewSchedule-popup=yes&ID=$ID','$title')";
+	echo "YahooWin2('650','$page?AddNewSchedule-popup=yes&ID=$ID','$title')";
 	
 }
 
@@ -171,7 +171,7 @@ function AddNewSchedule_popup(){
 	<div id='div-$t'>
 	<table style='width:99%' class='form'>
 	<tr>
-		<td class=legend style='font-size:14px'>{task_type}:</td>
+		<td class=legend style='font-size:14px' nowrap>{task_type}:</td>
 		<td>". Field_array_Hash($taskz, "TaskType-$t",$ligne["TaskType"],"ExplainTaskType()",null,0,"font-size:14px")."</td>
 	</tr>
 	<tr>

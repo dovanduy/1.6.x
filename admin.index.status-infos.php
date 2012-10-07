@@ -147,17 +147,6 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 			}
 		}
 	}
-	if($users->AsSambaAdministrator){
-		if($users->SAMBA_INSTALLED){
-			$samba=left_menus_format("APP_SAMBA","32-samba.png",
-			"QuickLinksSamba();","APP_SAMBA_TEXT");
-			
-		}
-		
-	}
-	
-	
-
 
 	$GLOBALS["ICON_FAMILY"]="SYSTEM";
 	Paragraphe("database-connect-settings-64.png", "{APP_MYSQL}", "{APP_MYSQL_TEXT}","javascript:AnimateDiv('BodyContent');Loadjs('system.mysql.php');");
@@ -186,7 +175,9 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 	if(!$users->KASPERSKY_WEB_APPLIANCE){
 		if(!$users->SQUID_APPLIANCE){
 			if($users->AsSambaAdministrator){
-				$samba=left_menus_format("APP_SAMBA","32-samba.png","QuickLinksSamba();");
+				if($users->SAMBA_INSTALLED){
+					$samba=left_menus_format("APP_SAMBA","32-samba.png","QuickLinksSamba();");
+				}
 			}
 			
 		}
@@ -340,7 +331,9 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 		
 		
 		if($users->MAILMAN_INSTALLED){
-			$mailman=left_menus_format('mailman','mailman-32.png',"only:Loadjs('mailman.php?script=yes')","manage_distribution_lists");
+			if(!$users->LIGHT_INSTALL){
+				$mailman=left_menus_format('mailman','mailman-32.png',"only:Loadjs('mailman.php?script=yes')","manage_distribution_lists");
+			}
 		}
 		if($users->fetchmail_installed){
 			$fetchmail=left_menus_format("APP_FETCHMAIL","fetchmail-rule-32.png","LoadAjax('BodyContent','fetchmail.index.php?quicklinks=yes');QuickLinkShow('quicklinks-APP_FETCHMAIL');");
@@ -396,6 +389,10 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 		
 	}
 	
+	if($users->SQUID_INSTALLED){
+		$license=left_menus_format("artica_license","32-key.png","only:Loadjs('artica.license.php')");
+	}
+	
 	if($OnlySMTP){
 		$samba=null;
 		$computers=null;
@@ -406,6 +403,7 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 		$bookmarks
 		<table style='width:99%' class=form>
 		<tbody>
+		$license
 		$squid_stats
 		$postfix
 		$miltergreylist
@@ -710,6 +708,11 @@ function wizards(){
 	
 	if($mustchangeHostname){echo "<script>Loadjs('admin.chHostname.php');</script>";}	
 	
+	if($WizardNetLeaveUnconfigured==0){
+		$user=new usersMenus();
+		if($user->VPS_OPENVZ){$sock->SET_INFO("WizardNetLeaveUnconfigured", 1);}
+		$WizardNetLeaveUnconfigured=1;
+	}
 	
 	
 	if($DisableNetworksManagement==0){

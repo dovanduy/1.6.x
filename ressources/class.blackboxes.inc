@@ -174,6 +174,13 @@ class blackboxes{
 		
 		while (list ($key, $arr) = each ($ini->_params) ){
 			$ttlogs[]=$key;
+			if(!isset($arr["master_version"])){$arr["master_version"]=null;}
+			if(!isset($arr["master_pid"])){$arr["master_pid"]=0;}
+			if(!isset($arr["master_memory"])){$arr["master_memory"]=0;}
+			if(!isset($arr["master_cached_memory"])){$arr["master_cached_memory"]=0;}
+			if(!isset($arr["processes_number"])){$arr["processes_number"]=0;}
+			if(!isset($arr["running"])){$arr["running"]=0;}
+			if(!isset($arr["installed"])){$arr["installed"]=0;}
 			
 			$f[]="('$this->nodeid',
 			'{$arr["service_name"]}',
@@ -220,6 +227,7 @@ class blackboxes{
 	}
 	
 	public function SaveDisks($EncodedDatas){
+		$size=0;
 		$array=unserialize(base64_decode($EncodedDatas));
 		if(!is_array($array["DISKS"])){writelogs("Not an array... ",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);return;}
 		if(count($array["DISKS"])==0){writelogs("No item... ",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);return;}		
@@ -248,6 +256,7 @@ class blackboxes{
 	public function squid_save_cache_infos($EncodedDatas){
 		$array=unserialize(base64_decode($EncodedDatas));
 		if(!is_array($array)){return;}
+		$f=array();
 		$q=new mysql_blackbox();
 		if(!$q->TABLE_EXISTS("cachestatus")){$q->CheckTables();}
 		$uuid=$this->nodeid;

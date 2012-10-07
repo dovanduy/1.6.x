@@ -1,5 +1,4 @@
 <?php
-	ini_set("memory_limit","400M");
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');

@@ -72,7 +72,7 @@ if($users->dnsmasq_installed){$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");if
 $cyrus=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-mailbox.png", "mailboxes",null, "QuickLinkCyrus()"));
 if($EnableRemoteStatisticsAppliance==0){
 	if($DisableArticaProxyStatistics==0){	
-		$squidStats=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "SquidQuickLinks()"));
+		$squidStats=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "QuickLinkSystems('section_squid_stats')"));
 	}
 }
 $miltergrey=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-milter-greylist.png", "APP_MILTERGREYLIST","", "QuickLinkSystems('section_mgreylist')"));
@@ -125,7 +125,7 @@ if($users->LOAD_BALANCE_APPLIANCE){
 }
 
 if($users->WEBSTATS_APPLIANCE){
-	$squidStats=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "SquidQuickLinks()"));
+	$squidStats=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "QuickLinkSystems('section_squid_stats')"));
 	if($users->AsSquidAdministrator){$squidStatsTasks=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-tasks.png", "tasks","", "QuickLinkSystems('section_squid_tasks')"));}
 	$postfix=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-settings.png", "APP_SQUID","softwares_mangement_text", "QuickLinkSystems('section_webstats_squids')"));
 	$postfix_multiple=null;
@@ -510,7 +510,7 @@ function section_jabberd(){echo "<script>LoadAjax('BodyContent','ejabberd.php');
 function section_klms(){echo "<script>LoadAjax('BodyContent','klms.php');QuickLinkShow('quicklinks-APP_KLMS');</script>";}
 function section_haproxy(){echo "<script>javascript:AnimateDiv('BodyContent');Loadjs('haproxy.php');</script>";}
 function section_webstats_squids(){echo "<script>javascript:AnimateDiv('BodyContent');LoadAjax('middle','squid.webstats.quicklinks.php');</script>";}
-
+function section_squid_stats(){echo "<script>LoadAjax('BodyContent','squid.statistics.central.php')</script>";}
 
 
 function section_shared_folders(){

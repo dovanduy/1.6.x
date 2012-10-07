@@ -54,6 +54,7 @@ if($argv[1]=="--caches-reconstruct"){ReconstructCaches();die();}
 if($argv[1]=="--compilation-params"){compilation_params();die();}
 if($argv[1]=="--mysql-tpl"){DefaultTemplatesInMysql();die();}
 if($argv[1]=="--tpl-save"){TemplatesInMysql();die();}
+if($argv[1]=="--templates"){TemplatesInMysql();die();}
 if($argv[1]=="--tpl-unique"){TemplatesUniqueInMysql($argv[2]);die();}
 if($argv[1]=="--cache-infos"){caches_infos();die();}
 if($argv[1]=="--writeinitd"){writeinitd();die();}
@@ -456,6 +457,8 @@ function Reload_Squid(){
 	
 	if($EnableRemoteStatisticsAppliance==1){
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.netagent.php >/dev/null 2>&1 &");
+	}else{
+		shell_exec("$nohup /etc/init.d/artica-postfix restart auth-logger >/dev/null 2>&1 &");
 	}
 
 	//shell_exec("$nohup /etc/init.d/artica-postfix start squid-cache --without-compile >/dev/null 2>&1 &");
@@ -723,6 +726,7 @@ function ApplyConfig($smooth=false){
 	remote_appliance_restore_tables();
 	
 	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
 	kernel_values();
 	$squid=new squidbee();
 	
@@ -1285,11 +1289,17 @@ function TemplatesUniqueInMysql($zmd5){
 	if($EnableRemoteStatisticsAppliance==1){if($GLOBALS["VERBOSE"]){echo "Use the Web statistics appliance to get template files...\n";}TemplatesInMysql_remote();return;}	
 	
 	$base="/usr/share/squid-langpack";
+	@mkdir("/usr/share/squid3/errors/templates",0755,true);
 	@mkdir($base,0755,true);
 	if(!is_dir("$base/templates")){@mkdir("$base/templates",0755,true);}
 	$sql="SELECT * FROM squidtpls WHERE `zmd5`='{$zmd5}'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	if(!$q->ok){echo $q->mysql_error."\n";return;}
+	
+	$ligne["template_header"]=stripslashes($ligne["template_header"]);
+	$ligne["template_title"]=stripslashes($ligne["template_title"]);
+	$ligne["template_body"]=stripslashes($ligne["template_body"]);	
+	
 	$header=trim($ligne["template_header"]);
 	if($ligne["template_name"]==null){
 		print_r($ligne);
@@ -1304,14 +1314,22 @@ function TemplatesUniqueInMysql($zmd5){
 	$templateDatas="$newheader{$ligne["template_body"]}</body></html>";
 	@mkdir(dirname($filename),0755,true);
 	@file_put_contents($filename, $templateDatas);
+	
+	if($GLOBALS["VERBOSE"]){echo "Writing /usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}\n";}
 	@file_put_contents("/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}", $templateDatas);
 	$unix->chown_func("squid","squid","/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}");
 	$unix->chown_func("squid:squid",null, "/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}");
 	$unix->chown_func("squid:squid",null, dirname($filename)."/*");
 	if($ligne["lang"]=="en"){
-	if($GLOBALS["VERBOSE"]){echo "Writing $base/templates/{$ligne["template_name"]}\n";}
-	@file_put_contents("$base/templates/{$ligne["template_name"]}", $templateDatas);}
-	$unix->chown_func("squid:squid", null,"$base/templates/{$ligne["template_name"]}");
+		if($GLOBALS["VERBOSE"]){echo "Writing /usr/share/squid3/errors/templates/{$ligne["template_name"]}\n";}
+		@file_put_contents("/usr/share/squid3/errors/templates/{$ligne["template_name"]}", $templateDatas);
+		$unix->chown_func("squid:squid", null,"/usr/share/squid3/errors/templates/{$ligne["template_name"]}");
+		
+		if($GLOBALS["VERBOSE"]){echo "Writing $base/templates/{$ligne["template_name"]}\n";}
+		@file_put_contents("$base/templates/{$ligne["template_name"]}", $templateDatas);
+		$unix->chown_func("squid:squid", null,"$base/templates/{$ligne["template_name"]}");
+	}
+		
 }
 
 
@@ -1339,8 +1357,13 @@ function TemplatesInMysql(){
 	if(!$q->ok){ufdbguard_admin_events("Fatal,$q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "proxy");return;}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
+		$ligne["template_header"]=stripslashes($ligne["template_header"]);
+		$ligne["template_title"]=stripslashes($ligne["template_title"]);
+		$ligne["template_body"]=stripslashes($ligne["template_body"]);
 		$header=trim($ligne["template_header"]);
 		if($header==null){$header=$headerTemp;}
+		
+		
 		if(!preg_match("#^ERR_.+#", $ligne["template_name"])){$ligne["template_name"]="ERR_".$ligne["template_name"];}
 		$filename="$base/{$ligne["lang"]}/{$ligne["template_name"]}";
 		$newheader=str_replace("{TITLE}", $ligne["template_title"], $header);
@@ -1356,9 +1379,15 @@ function TemplatesInMysql(){
 			@mkdir("/usr/share/squid3/errors/{$ligne["lang"]}");
 			$unix->chown_func("squid","squid","/usr/share/squid3/errors/{$ligne["lang"]}");
 		}
-		
-		
-		if($ligne["lang"]=="en"){@file_put_contents("$base/templates/{$ligne["template_name"]}", $templateDatas);}
+		if($ligne["lang"]=="en"){
+			if($GLOBALS["VERBOSE"]){echo "Writing /usr/share/squid3/errors/templates/{$ligne["template_name"]}\n";}
+			@file_put_contents("/usr/share/squid3/errors/templates/{$ligne["template_name"]}", $templateDatas);
+			$unix->chown_func("squid:squid", null,"/usr/share/squid3/errors/templates/{$ligne["template_name"]}");
+			
+			if($GLOBALS["VERBOSE"]){echo "Writing $base/templates/{$ligne["template_name"]}\n";}
+			@file_put_contents("$base/templates/{$ligne["template_name"]}", $templateDatas);
+			$unix->chown_func("squid:squid", null,"$base/templates/{$ligne["template_name"]}");
+		}
 	}
 	
 	$unix=new unix();
@@ -1431,9 +1460,10 @@ function notify_remote_proxys($COMMANDS=null){
 	$results=$q->QUERY_SQL($sql);
 	
 	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." nodes clients...\n";}
-	
+	$ALREADYDONE=array();
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$server=$ligne["ipaddr"];
+		if(isset($ALREADYDONE[$server])){continue;}
 		$port=$ligne["port"];
 		if(!is_numeric($port)){$port=9000;}
 		if($port<10){$port=9000;}
@@ -1447,6 +1477,7 @@ function notify_remote_proxys($COMMANDS=null){
 		if(!$curl->get()){ufdbguard_admin_events("$server:$port","FAILED Notify `$COMMANDS` $curl->error", __FUNCTION__, __FILE__, __LINE__, "squidstats");continue;}
 		if(preg_match("#<ANSWER>OK</ANSWER>#is",$curl->data)){ufdbguard_admin_events("$server:$port","SUCCESS to notify Notify `$COMMANDS`", __FUNCTION__, __FILE__, __LINE__, "squidstats");continue;}
 		ufdbguard_admin_events("$server:$port","$server:$port","FAILED Notify `$COMMANDS` $curl->error: $curl->data", __FUNCTION__, __FILE__, __LINE__, "squidstats");
+		$ALREADYDONE[$server]=true;
 	}
 }
 
@@ -1883,7 +1914,8 @@ function build_schedules($notfcron=false){
 	$chmod=$unix->find_program("chmod");
 	foreach (glob("/etc/cron.d/*") as $filename) {
 		$file=basename($filename);
-		if(preg_match("#squidsch-[0-9]+#", $filename)){@unlink($filename);}
+		
+		if(preg_match("#squidsch-[0-9]+#", $filename)){if($GLOBALS["VERBOSE"]){echo "Removing old task $file\n";}@unlink($filename);}
 	}
 	
 	$settings=unserialize(base64_decode($sock->GET_INFO("FcronSchedulesParams")));
@@ -1913,10 +1945,15 @@ function build_schedules($notfcron=false){
 		$alreadydone[$md5]=true;		
 		
 		
-		if(!isset($q->tasks_processes[$TaskType])){$d++;continue;}
-		if(isset($q->tasks_disabled[$TaskType])){$d++;continue;}
+		if(!isset($q->tasks_processes[$TaskType])){
+			if($GLOBALS["VERBOSE"]){echo "Starting......: artica-postfix task {$ligne["ID"]} no such task...\n";}
+			$d++;continue;
+		}
+		if(isset($q->tasks_disabled[$TaskType])){
+			if($GLOBALS["VERBOSE"]){echo "Starting......: artica-postfix task {$ligne["ID"]} is disabled or did not make sense...\n";}
+			$d++;continue;}
 		$script=$q->tasks_processes[$TaskType];
-		
+		if($GLOBALS["VERBOSE"]){echo "Starting......: artica-postfix create task {$ligne["ID"]} type $TaskType..\n";}
 		if(trim($ligne["TimeText"]=="$allminutes * * * *")){$ligne["TimeText"]="* * * * *";}
 		
 		$f=array();
@@ -1969,7 +2006,18 @@ function build_schedules($notfcron=false){
 		echo "Starting......: Squid $c scheduled tasks ($d disabled)\n";
 		return;
 	}
+	$cron_path=$unix->find_program("cron");
+	$kill=$unix->find_program("kill");
+	$cron_pid=null;
+	if(is_file("/var/run/cron.pid")){$cron_pid=$unix->get_pid_from_file("/var/run/cron.pid");}
+	if(!$unix->process_exists($cron_pid)){$cron_pid=0;}
+	if(!is_numeric($cron_pid) OR $cron_pid<5){$cron_pid=$unix->PIDOF("$cron_path");}
+	if($cron_pid>5){
+		if($GLOBALS["VERBOSE"]){echo "Starting......: artica-postfix reloading $cron_path [$cron_pid]...\n";}
+		shell_exec("$kill -HUP $cron_pid");
+	}
 	
+	if($GLOBALS["VERBOSE"]){echo "Starting......: artica-postfix reloading fcron...\n";}
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$nohup /etc/init.d/artica-postfix restart fcron >/dev/null 2>&1 &");
 	

@@ -13,6 +13,8 @@
 	if(!$users->AsWebStatisticsAdministrator){die("no rights");}	
 
 	
+	if(isset($_GET["js"])){js();exit;}
+	
 	if(!isset($_GET["day"])){$_GET["day"]=date("Y-m-d");}
 	if(!isset($_GET["type"])){$_GET["type"]="size";}
 	if($_GET["type"]==null){$_GET["type"]="size";}
@@ -43,7 +45,13 @@
 	
 page_de_garde();
 
-
+function js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{internet_access_per_day}");
+	$html="YahooWin('950','$page?byjs=yes','$title')";
+	echo $html;
+}
 
 function right_tabs(){
 	$q=new mysql_squid_builder();
@@ -673,7 +681,12 @@ function left(){
 function page_de_garde(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
-	$html="<table style='width:105%;margin-left:-15px;padding-right:-15px;margin-right:-15px'>
+	$styletable="style='width:105%;margin-left:-15px;padding-right:-15px;margin-right:-15px'";
+	if(isset($_GET["byjs"])){$styletable=null;}
+		
+		
+	
+	$html="<table $styletable>
 	<tbody>
 	<tr>
 		<td valign='top' width=1%>

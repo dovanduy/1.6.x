@@ -1,5 +1,6 @@
 <?php
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
@@ -9,10 +10,13 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.squidguard.inc');
 
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
+
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 if($argv[1]=="--register"){register();die();}
+if($argv[1]=="--uuid"){uuid_check();die();}
+if($argv[1]=="--register-lic"){register_lic();die();}
+
 
 if($argv[1]=="--uuid"){$sock=new sockets();echo base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"))."\n";die();}
 if(!ifMustBeExecuted()){die();}
@@ -109,6 +113,73 @@ function register(){
 	
 	
 }	
+
+function uuid_check(){
+	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+	echo $uuid."\n";
+}
+
+function register_lic(){
+	$sock=new sockets();
+	$unix=new unix();
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){echo "License information: Already executed PID:$pid, die()\n";die();}
+	
+	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
+	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+	if(!is_numeric($LicenseInfos["REGISTER"])){echo "License information: server is not registered\n";}
+	if($LicenseInfos["REGISTER"]<>1){echo "License information: server is not registered\n";die();}	
+	$LicenseInfos["UUID"]=$uuid;	
+	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	//if($GLOBALS["VERBOSE"]){$curl->parms["VERBOSE"]="yes";}
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
+	if($LicenseInfos["license_number"]=="--"){$LicenseInfos["license_number"]=null;}
+	
+	if(strpos($LicenseInfos["license_number"], "(")>0){$LicenseInfos["license_number"]=null;}
+	@mkdir("/usr/local/share/artica",640,true);
+	
+	$curl->parms["REGISTER-LIC"]=base64_encode(serialize($LicenseInfos));
+	$curl->get();
+	
+	if(preg_match("#REGISTRATION_OK:\[(.+?)\]#s", $curl->data,$re)){
+			$LicenseInfos["license_status"]="{waiting_approval}";
+			$LicenseInfos["license_number"]=$re[1];
+			$LicenseInfos["TIME"]=time();
+			$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+			@unlink("/usr/local/share/artica/.lic");
+			return;
+	}
+	if(preg_match("#LICENSE_OK:\[(.+?)\]#s", $curl->data,$re)){
+			@file_put_contents("/usr/local/share/artica/.lic", "TRUE");
+			$LicenseInfos["license_status"]="{license_active}";
+			$LicenseInfos["TIME"]=time();
+			$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+			return;
+	}
+	if(preg_match("#REGISTRATION_INVALID#s", $curl->data,$re)){
+		@unlink("/usr/local/share/artica/.lic");
+		$LicenseInfos["license_status"]="{license_invalid}";
+		$LicenseInfos["license_number"]=null;
+		$LicenseInfos["TIME"]=time();
+		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+		return;
+	}		
+		
+	if($curl->error<>null){
+		system_admin_events("License registration failed with error $curl->error", "GetLicense", "license", 0, "license");
+	}
+	if(!is_file("/usr/local/share/artica/.lic")){
+		$LicenseInfos["TIME"];
+		$LicenseInfos["license_status"]="{registration_failed} $curl->error";
+		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+	}
+}
 	
 function ExportPersonalCategories($asPid=false){
 	$unix=new unix();

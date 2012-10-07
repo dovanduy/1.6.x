@@ -24,7 +24,7 @@ js();
 function js(){
 	$sock=new sockets();
 	$page=CurrentPageName();
-	$sock->getFrameWork("squid.php?recompile-debug=yes&MyCURLTIMEOUT=600");
+	
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{compile_in_debug}");
 	echo "YahooWinBrowse('650','$page?popup=yes','$title')";
@@ -39,7 +39,7 @@ function popup(){
 	
 	<script>
 		function Refresh$t(){LoadAjax('squid-debug-land','$page?table=yes');}
-		setTimeout('Refresh$t()',5000);
+		setTimeout('Refresh$t()',300);
 	</script>
 	
 	
@@ -51,7 +51,8 @@ function table(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
-		
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?recompile-debug=yes&MyCURLTIMEOUT=600");	
 	if(!is_file("ressources/logs/web/squid.indebug.log")){
 		echo "<center><img src='img/wait_verybig_mini_red.gif'></center>	
 		<script>
@@ -156,7 +157,7 @@ function search(){
 	$c=0;
 	while (list ($key, $line) = each ($array) ){
 		if(trim($line)==null){continue;}
-			if($search<>null){if(!preg_match("#$search#i#", $line)){continue;}}
+			if($search<>null){if(!preg_match("#$search#i", $line)){continue;}}
 			$md=md5($line);
 		
 		$c++;

@@ -13,6 +13,7 @@ class squid_acls_groups{
 	$this->GroupTypes["dstdomain"]="{dstdomain}";
 	$this->GroupTypes["proxy_auth"]="{members}";
 	$sock=new sockets();
+	$users=new usersMenus();
 	$this->ACL_ARP_ENABLED=$users->SQUID_ARP_ACL_ENABLED;
 	$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
 	if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}

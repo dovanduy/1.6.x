@@ -255,6 +255,7 @@ function run_schedules($ID){
 }
 
 function execute_task_squid($ID){
+	
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$GLOBALS["SCHEDULE_ID"]=$ID;
@@ -278,8 +279,10 @@ function execute_task_squid($ID){
 	$internal_load=$array_load[0];	
 	
 	writelogs("Task $ID Load:$internal_load cmdline `{$GLOBALS["CMDLINES"]}`",__FUNCTION__,__FILE__,__LINE__);
-	
-	if(isMaxInstances()){return;}
+	$GLOBALS["SCHEDULE_ID"]=$ID;
+	if(isMaxInstances()){
+		ufdbguard_admin_events("Too much instances loaded, aborting task...", __FUNCTION__, __FILE__, __LINE__, "scheduler");
+		return;}
 	
 	
 	if(system_is_overloaded(basename(__FILE__))){
@@ -289,7 +292,9 @@ function execute_task_squid($ID){
 				writelogs("Task $ID -> overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, wait 1s",__FUNCTION__,__FILE__,__LINE__);
 				sleep(1);
 			}
-			if(!system_is_overloaded(basename(__FILE__))){break;}
+			if(!system_is_overloaded(basename(__FILE__))){
+				ufdbguard_admin_events("Overloaded system, aborting task...", __FUNCTION__, __FILE__, __LINE__, "scheduler");
+				break;}
 		}
 	}
 	
@@ -312,7 +317,7 @@ function execute_task_squid($ID){
 	$cmd="$nice $php5 $WorkingDirectory/$script --schedule-id=$ID >/dev/null";
 	if(preg_match("#^bin:(.+)#",$script, $re)){$cmd="$nice $WorkingDirectory/bin/{$re[1]} >/dev/null";}
 	
-	
+	ufdbguard_admin_events("Task {$GLOBALS["SCHEDULE_ID"]} will be executed with `$cmd` ", __FUNCTION__, __FILE__, __LINE__, "scheduler");
 	writelogs("Task {$GLOBALS["SCHEDULE_ID"]} will be executed with `$cmd` ",__FUNCTION__,__FILE__,__LINE__);
 	$t=time();
 	shell_exec($cmd);	

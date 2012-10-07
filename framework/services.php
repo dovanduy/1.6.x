@@ -36,6 +36,8 @@ if(isset($_GET["mysqlinfos"])){mysqlinfos();exit;}
 if(isset($_GET["reload-openldap-tenir"])){reload_openldap_tenir();exit;}
 if(isset($_GET["process1-tenir"])){process1_tenir();exit;}
 
+
+if(isset($_GET["license-register"])){register_license();exit;}
 if(isset($_GET["register"])){register_server_www();exit;}
 if(isset($_GET["pdns-status"])){pdns_status();exit;}
 if(isset($_GET["dnsmasq-status"])){dnsmasq_status();exit;}
@@ -145,6 +147,9 @@ if(isset($_GET["setup-ubuntu"])){setup_ubuntu();exit;}
 if(isset($_GET["service-dropbox-cmds"])){service_dropbox_cmd();exit;}
 if(isset($_GET["beancounters"])){beancounters();exit;}
 if(isset($_GET["export-etc-artica"])){export_etc_artica();exit;}
+if(isset($_GET["folders-security"])){folders_security();exit;}
+
+
 
 if(isset($_GET["blkid"])){blkid_infos();exit;}
 
@@ -1362,6 +1367,14 @@ function register_server_www(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
 	
 }
+function register_license(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.web-community-filter.php --register-lic 2>&1");
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
 
 function kav4proxy_service_cmds(){
 	$unix=new unix();
@@ -1488,4 +1501,10 @@ function export_etc_artica(){
 	$php=$unix->LOCATE_PHP5_BIN();	
 	shell_exec("$php /usr/share/artica-postfix/exec.export-artica-settings.php");
 	
+}
+function folders_security(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	writelogs_framework("$php /usr/share/artica-postfix/exec.checkfolder-permissions.php",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec("$php /usr/share/artica-postfix/exec.checkfolder-permissions.php");	
 }

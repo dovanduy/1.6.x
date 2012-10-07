@@ -1,5 +1,4 @@
 <?php
-ini_set("memory_limit","400M");
 include_once(dirname(__FILE__).'/class.ini-frame.inc');
 include_once("/usr/share/artica-postfix/ressources/class.sockets.inc");
 include_once("/usr/share/artica-postfix/ressources/class.ini.inc");
@@ -64,6 +63,14 @@ public function LOCATE_VBoxHeadless(){
 		if(is_file("/usr/lib/openldap/slapd")){return "/usr/lib/openldap/slapd";}
 		return $this->find_program("slpad");
 	}
+	
+	public function LOCATE_SLPAD_CONF(){
+		if(is_file('/etc/ldap/slapd.conf')){return '/etc/ldap/slapd.conf';}
+		if(is_file('/etc/openldap/slapd.conf')){return '/etc/openldap/slapd.conf';}
+		if(is_file('/etc/openldap/ldap.conf')){return '/etc/openldap/ldap.conf';}
+		if(is_file('/opt/artica/etc/openldap/slapd.conf')){return '/opt/artica/etc/openldap/slapd.conf';}
+		if(is_file('/usr/local/etc/openldap/slapd.conf')){return '/usr/local/etc/openldap/slapd.conf';} 
+	}	
 	
 	public function LOCATE_SIEVEC(){
 		if(is_file("/usr/sbin/sievec")){return "/usr/sbin/sievec";}
@@ -3313,7 +3320,7 @@ public function IsProtectedDirectory($folder){
 	   			return ;
 	   		}
 		}
-	
+	  
 	  $tbl[]=$complete_string;
 	  @file_put_contents($ConfigurationFile,implode("\n",$tbl)."\n");
 	  
@@ -3380,7 +3387,13 @@ public function IsProtectedDirectory($folder){
 	 	 if(strlen($part)==0){ 
 	           $suffix='acl whitelist domain';
 	           $domain=str_replace("","@",$domain);
-	           $pattern=$domain;
+	           if(substr($domain, 0,1)=="."){$domain=substr($domain, 1,strlen($domain));}
+	           $pattern=trim($domain);
+	           if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $domain)){
+	           		$suffix='acl whitelist addr';
+	           }
+	           
+	           
 	 	 }else{
 	 	 	$suffix="acl whitelist from";
 	 	 }
@@ -3478,20 +3491,26 @@ public function APACHE_DIR_SITES_ENABLED(){
 public function GetUniqueID(){
 	$uuid=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SYSTEMID"));
 	if($uuid==null){
-		$unix=new unix();
-		$blkid=$unix->find_program("blkid");
-		exec($blkid,$results);
-		while (list ($index, $line) = each ($results) ){
-			if(preg_match("#UUID=\"(.+?)\"#",$line,$re)){
-				$uuid=$re[1];
-			}
-		}
-		
+		$uuid=$this->gen_uuid();
 		@file_put_contents("/etc/artica-postfix/settings/Daemons/SYSTEMID",$uuid);
 	}
 	
 	return $uuid;	
 	
+}
+
+private function gen_uuid(){
+    return sprintf(
+        '%08x-%04x-%04x-%02x%02x-%012x',
+        mt_rand(),
+        mt_rand(0, 65535),
+        bindec(substr_replace(
+            sprintf('%016b', mt_rand(0, 65535)), '0100', 11, 4)
+        ),
+        bindec(substr_replace(sprintf('%08b', mt_rand(0, 255)), '01', 5, 2)),
+        mt_rand(0, 255),
+        mt_rand()
+    );
 }
 
 public function ifconfig_all_ips(){
@@ -4753,5 +4772,6 @@ function update_events($text,$function,$file,$line,$category=null){
 	
 	
 }
+
 
 ?>

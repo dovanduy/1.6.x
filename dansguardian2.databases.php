@@ -1751,6 +1751,7 @@ function global_status_artica_db(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$date=GetLastUpdateDate();
+	$users=new usersMenus();
 	$q=new mysql();
 	$sql="SELECT avg(progress) as pourcent FROM updates_categories  WHERE filesize>0";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
@@ -1767,6 +1768,13 @@ function global_status_artica_db(){
 	if(!is_numeric($SquidDatabasesArticaEnable)){$SquidDatabasesArticaEnable=1;}
 	if($SquidDatabasesArticaEnable==1){$disable_text="Artica&nbsp;{database}:&nbsp;{enabled}";}else{
 		$disable_text="Artica&nbsp;{database}:&nbsp;{disabled}";
+		$color="color:#B6ACAC";
+	}
+	$CORP_LICENSE=1;
+	if(!$users->CORP_LICENSE){
+		$CORP_LICENSE=0;
+		$SquidDatabasesArticaEnable=0;
+		$disable_text="Artica&nbsp;{database}:&nbsp;<strong style='color:#BA1010'>{license_inactive}</strong>";
 		$color="color:#B6ACAC";
 	}
 	
@@ -1893,6 +1901,8 @@ $purctext="		<tr>
 		}	
 
 		function ArticaDBUpdateNow(){
+			var CORP_LICENSE=$CORP_LICENSE;
+			if(CORP_LICENSE==0){alert('license error');return;}
 			var XHR = new XHRConnection();
 			XHR.appendData('global-artica-status-update','yes');
 			XHR.sendAndLoad('$page', 'POST',x_ArticaDBUpdateNow);
@@ -1907,6 +1917,8 @@ $purctext="		<tr>
 
 		
 		function ArticaDBDisable(){
+			var CORP_LICENSE=$CORP_LICENSE;
+			if(CORP_LICENSE==0){alert('license error');return;}
 			var XHR = new XHRConnection();
 			XHR.appendData('global-artica-enable-update','$SquidDatabasesArticaEnable');
 			XHR.sendAndLoad('$page', 'POST',xArticaDBDisable);		

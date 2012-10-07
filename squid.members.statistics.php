@@ -158,7 +158,7 @@ echo $tpl->_ENGINE_parse_body($table);
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$array["status"]='{status}';
+	$array["quotas"]='{quotas}';
 	$array["query"]='{query}';
 	$array["day-consumption"]='{days}';
 	$array["simplified"]='{table}';
@@ -167,6 +167,11 @@ function tabs(){
 		if($num=="simplified"){
 			$html[]= "<li><a href=\"squid.members.table.php\"><span>$ligne</span></a></li>\n";
 			continue;
+		}
+		
+		if($num=="quotas"){
+			$html[]= "<li><a href=\"squid.members.quotas.php\"><span>$ligne</span></a></li>\n";
+			continue;			
 		}
 		
 	if($num=="query"){

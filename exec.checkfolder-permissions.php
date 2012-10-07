@@ -19,6 +19,8 @@ include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 include_once(dirname(__FILE__) . '/framework/class.settings.inc');
 
+
+if(is_file("/usr/share/artica-postfix/class.users.menus.inc")){@unlink("/usr/share/artica-postfix/class.users.menus.inc");}
 $f=file("/etc/lighttpd/lighttpd.conf");
 while (list ($num, $line) = each ($f) ){
 	if(preg_match("#server\.username.*?\"(.+?)\"#", $line,$re)){

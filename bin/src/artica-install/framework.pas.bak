@@ -558,7 +558,7 @@ if not tryStrToInt(sys.GET_INFO('LighttpdArticaMaxChildren'),LighttpdArticaMaxCh
 if not tryStrToInt(sys.GET_INFO('PHP_FCGI_MAX_REQUESTS'),PHP_FCGI_MAX_REQUESTS) then PHP_FCGI_MAX_REQUESTS:=200;
 
 PHP_FCGI_CHILDREN:=3;
-max_procs:=2;
+max_procs:=3;
 
 
 if LighttpdArticaMaxProcs>0 then max_procs:=LighttpdArticaMaxProcs;

@@ -27,6 +27,7 @@ private
      function GetLatestNightlyVersion():string;
      procedure ChangeDNS();
      function ParseResolvConf():string;
+     function StatisticsAppliance():string;
 public
     procedure   Free;
     constructor Create();
@@ -82,6 +83,7 @@ var
    eth:string;
    iptcp:ttcpip;
    CURRENTIP:string;
+   squidbin:string;
    ISOCanDisplayUserNamePassword,ISOCanChangeIP,ISOCanReboot,ISOCanShutDown,ISOCanChangeRootPWD,ISOCanChangeLanguage:integer;
 begin
 ArticaAgent:=false;
@@ -110,7 +112,8 @@ end;
 if FileExists('/opt/artica-agent/usr/share/artica-agent/artica-agent.php') then ArticaAgent:=true;
 
 if ArticaAgent then  ISOCanDisplayUserNamePassword:=0;
-
+squidbin:=SYS.LOCATE_GENERIC_BIN('squid');
+if Not FileExists(squidbin) then squidbin:=SYS.LOCATE_GENERIC_BIN('squid3');
 
 if not  ArticaAgent then  begin
    writeln('Artica version ' + SYS.ARTICA_VERSION());
@@ -118,7 +121,6 @@ if not  ArticaAgent then  begin
    if not SYS.PROCESS_EXIST(lighttp.LIGHTTPD_PID()) then fpsystem('/etc/init.d/artica-postfix start apache >/dev/null 2>&1 &');
    slighttpd:=Tlighttpd.Create(SYS);
    port:=slighttpd.LIGHTTPD_LISTEN_PORT();
-
    SYSURIS:=Tsystem.Create();
    try
       uris:=SYSURIS.txt_uris(port);
@@ -162,6 +164,8 @@ end;
 if not  ArticaAgent then writeln('[C]..... Synchronize settings & remove cache');
 writeln('[D]..... Upgrade to a nightly build (',GetLatestNightlyVersion(),')');
 if FileExists('/usr/bin/htop') then writeln('[E]..... Process Monitor');
+if FileExists(squidbin) then writeln('[F]..... Register to statistics appliance');
+
 writeln('[L]..... Configure languages');
 writeln('[M]..... Modify DNS');
 writeln('[N]..... Modify eth0 interface');
@@ -201,6 +205,11 @@ if a='E' then begin
    exit;
 end;
 
+if a='F' then begin
+   StatisticsAppliance();
+   Menu();
+   exit;
+end;
 if a='B' then begin
    fpsystem('/opt/kaspersky/klms/bin/klms-control --reset-web-admin-password');
    writeln('[Enter] key to Exit');
@@ -686,7 +695,9 @@ begin
     IP:=iptcp.IP_ADDRESS_INTERFACE(eth);
     NETMASK:=iptcp.IP_MASK_INTERFACE(eth);
     Gayteway:=iptcp.IP_LOCAL_GATEWAY(eth);
-    DNS:=ParseResolvConf();
+               DNS:=ParseResolvConf();
+               writeln('dns',DNS);
+               exit;
     perform:='o';
 
     if(IP='0.0.0.0') then IP:='172.16.14.135';
@@ -747,7 +758,7 @@ begin
     readln(answer);
     if length(trim(answer))>0 then Gayteway:=answer;
 
-
+    DNS:=ParseResolvConf();
     writeln('Give the First DNS ip address for this computer:['+DNS+']');
     readln(answer);
     if length(trim(answer))>0 then DNS:=answer else DNS:=DNS;
@@ -802,7 +813,7 @@ begin
        s.SaveToFile('/etc/resolvconf/resolv.conf.d/base ');
     finally
     end;
-
+    s.free;
 
 
 l:=Tstringlist.Create;
@@ -836,6 +847,46 @@ exit;
 
 
 end;
+function tlogon.StatisticsAppliance():string;
+var
+   inis:Tinifile;
+   php:string;
+   hostname,port,ssl,answer:string;
+begin
+   php:=SYS.LOCATE_PHP5_BIN();
+   fpsystem(php+' /usr/share/artica-postfix/exec.netagent.php --register-infos');
+   if not FileExists('/etc/artica-postfix/remote-appliance-settings.ini') then begin
+          writeln('Fatal error while retreive informations...');
+          writeln('[Enter] key to Exit');
+          readln(answer);
+          exit;
+   end;
+   inis:=Tinifile.Create('/etc/artica-postfix/remote-appliance-settings.ini');
+   hostname:=inis.ReadString('INFO','server','10.10.10.1');
+   port:=inis.ReadString('INFO','port','9000');
+   ssl:=inis.ReadString('INFO','ssl','1');
+
+   writeln('Give the hostname/IP of the Statistics appliance server:['+hostname+']');
+   readln(answer);
+   if length(trim(answer))>0 then hostname:=answer;
+
+   writeln('Give the port number of the Statistics appliance Web interface:['+port+']');
+   readln(answer);
+   if length(trim(answer))>0 then port:=answer;
+
+   if ssl='1' then ssl:='Y' else ssl:='N';
+   writeln('Use ssl to conenct to  '+port+' ? Y/N:['+ssl+']');
+   readln(answer);
+   answer:=UpperCase(answer);
+   if length(trim(answer))>0 then ssl:=answer;
+
+   writeln('Launching the connection procedure...');
+   if ssl='Y' then ssl:='1' else ssl:='0';
+   fpsystem(php+' /usr/share/artica-postfix/exec.netagent.php --register-console '+hostname+' '+port+' '+ssl);
+   writeln('[Enter] key to Exit');
+   readln(answer);
+   exit;
+end;
 
 function tlogon.ParseResolvConf():string;
 var
@@ -866,6 +917,7 @@ begin
             result:=RegExpr.Match[1];
             RegExpr.free;
             l.free;
+            exit;
          end;
      end;
 end;

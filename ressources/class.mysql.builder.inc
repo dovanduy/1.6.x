@@ -4454,6 +4454,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  `is` varchar(255) NOT NULL,
 				  `user` varchar(255) NOT NULL,
 				  `pass` varchar(255) NOT NULL,
+				  `orgmail` varchar(255) NOT NULL,
 				  `poll` varchar(255) NOT NULL,
 				  `proto` varchar(20) NOT NULL,
 				  `sslproto` varchar(20) NOT NULL,
@@ -4480,6 +4481,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  PRIMARY KEY (`ID`),
 				  UNIQUE KEY `md5` (`md5`),
 				  KEY `smtp_host` (`smtp_host`),
+				  KEY `orgmail` (`orgmail`),
 				  KEY `uid` (`uid`)
 				) ";
 			$this->QUERY_SQL($sql,'artica_backup');
@@ -4490,6 +4492,11 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 			$sql="ALTER TABLE `fetchmail_rules` ADD `sslproto` VARCHAR( 20 ) NOT NULL";
 			$this->QUERY_SQL($sql,'artica_backup');
 		}
+		
+		if(!$this->FIELD_EXISTS("fetchmail_rules","orgmail","artica_backup")){
+			$sql="ALTER TABLE `fetchmail_rules` ADD `orgmail` VARCHAR( 255 ) NOT NULL";
+			$this->QUERY_SQL($sql,'artica_backup');
+		}		
 		
 		if(!$this->FIELD_EXISTS("fetchmail_rules","nokeep","artica_backup")){
 			$sql="ALTER TABLE `fetchmail_rules` ADD `nokeep` INT( 1 ) NOT NULL DEFAULT '0'";
@@ -4598,7 +4605,20 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		}
 		
-		
+		if(!$this->TABLE_EXISTS('zarafa_backup','artica_backup')){	
+			$sql="CREATE TABLE IF NOT EXISTS `zarafa_backup` (
+				  `ID` int(11) NOT NULL AUTO_INCREMENT,
+				  `filepath` varchar(255) NOT NULL,
+				  `filesize` BIGINT(100) NOT NULL,
+				  `ztime` varchar(128) NOT NULL,
+				  `zDate` DATETIME NOT NULL,
+				  PRIMARY KEY (`ID`),
+				  KEY (`filepath`),
+				  KEY `filesize` (`filesize`),
+				  KEY `zDate` (`zDate`)
+				)";
+			$this->QUERY_SQL($sql,'artica_backup');
+			}		
 
 		
 		if(!$this->TABLE_EXISTS('nics_virtuals','artica_backup')){	
@@ -6362,10 +6382,12 @@ if(!$this->TABLE_EXISTS('kav4proxy_av_stats','artica_events')){
 			`TEMPLATE_NAME` VARCHAR( 80 ) NOT NULL ,
 			`TEMPLATE_DATA` TEXT NOT NULL ,
 			`TEMPLATE_DATA_SOURCE` TEXT NOT NULL ,
-			PRIMARY KEY ( `TEMPLATE_NAME` ))";
+			 PRIMARY KEY ( `TEMPLATE_NAME` )
+			 )";
 			$this->QUERY_SQL($sql,'artica_backup');
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		}
+	
 
 		if(!$this->TABLE_EXISTS('haproxy','artica_backup')){
 					$sql="CREATE TABLE IF NOT EXISTS `haproxy` (

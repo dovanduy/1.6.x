@@ -30,8 +30,20 @@ popup();
 
 
 function popup(){
+	
+	
+	
 	$page=CurrentPageName();
 	$tpl=new templates();	
+	
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$html=FATAL_ERROR_SHOW_128("{this_feature_is_disabled_corp_license}");
+		echo $tpl->_ENGINE_parse_body($html);
+		return;
+	}
+		
+	
 	$tablename=$tpl->_ENGINE_parse_body("{tablename}");
 	$filepath=$tpl->javascript_parse_text("{filepath}");
 	$filesize=$tpl->_ENGINE_parse_body("{filesize}");
@@ -167,14 +179,10 @@ function Settings(){
 		if(!document.getElementById('EnableBackup-$t').checked){
 			document.getElementById('DaysbackupOlder').disabled=true;
 			document.getElementById('workdir-$t').disabled=true;
-			document.getElementById('WeekBackupOlder').disabled=true;
-			document.getElementById('MonthsbackupOlder').disabled=true;
-			
 		}else{
 			document.getElementById('workdir-$t').disabled=false;
 			document.getElementById('DaysbackupOlder').disabled=false;
-			document.getElementById('WeekBackupOlder').disabled=false;
-			document.getElementById('MonthsbackupOlder').disabled=false;		
+		
 		}
 		
 	}

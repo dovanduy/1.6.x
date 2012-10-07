@@ -23,22 +23,30 @@ function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$q=new mysql();
-	
+	$users=new usersMenus();
 	$mac=$tpl->_ENGINE_parse_body("{ComputerMacAddress}");
 	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
 	$new_computer=$tpl->_ENGINE_parse_body("{new_computer}");
 	$members=$tpl->_ENGINE_parse_body("{member}");
 	$new_member=$tpl->_ENGINE_parse_body("{new_member}");
+	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
+	$apply_parameters=$tpl->_ENGINE_parse_body("{apply_parameters}");
 	$TB_WIDTH=820;
 	$t=time();
 	
 	if($_GET["userid"]==null){
 		$filtersearch="{display: '$members', name : 'uid'},";
-		$nemember="{name: '$new_member', bclass: 'add', onpress : NewMember},";
+		$nemember=",{name: '$new_member', bclass: 'add', onpress : NewMember}";
+	}
+	
+	if($users->SQUID_INSTALLED){
+		$helpbt=",{name: '$online_help', bclass: 'Help', onpress : help$t}";
+		$btrcompile=",{name: '$apply_parameters', bclass: 'Reconf', onpress : SquidRecompile$t}";
+		
 	}
 	
 $buttons="buttons : [
-	{name: '$new_computer', bclass: 'add', onpress : LinkComputer},$nemember
+	{name: '$new_computer', bclass: 'add', onpress : LinkComputer}$nemember$btrcompile$helpbt
 		],";	
 	
 	$html="
@@ -78,8 +86,15 @@ $('#table-$t').flexigrid({
 });
 
 function LinkComputer(){
-	YahooWin5(535,'$page?AddComputer=yes&userid={$_GET["userid"]}','$new_computer');
+	YahooWin5(630,'$page?AddComputer=yes&userid={$_GET["userid"]}','$new_computer');
 
+}
+function help$t(){
+	s_PopUpFull('http://www.proxy-appliance.org/index.php?cID=295','1024','900');
+}
+
+function SquidRecompile$t(){
+	Loadjs('squid.debug.compile.php');
 }
 
 function NewMember(){Loadjs('create-user.php');}
@@ -120,6 +135,9 @@ function LinkComputerRefresh(){
 
 
 function computer_list(){
+	
+	
+	
 	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
@@ -292,8 +310,12 @@ function AddComputer_save(){
 	$q=new mysql();
 	$tpl=new templates();
 	$mac=trim($_POST["computer-mac"]);
-	$mac=str_replace("-", ":", $mac);
 	$mac=strtolower($mac);
+	$mac=str_replace("-", ":", $mac);
+	$_POST["computer-name"]=trim($_POST["computer-name"]);
+	$_POST["computer-name"]=strtolower($_POST["computer-name"]);
+	$_POST["userid"]=trim($_POST["userid"]);
+	$_POST["userid"]=strtolower($_POST["userid"]);
 	
 	if(trim($_POST["userid"]==null)){
 		echo $tpl->javascript_parse_text("{error_no_member_set}");
@@ -312,7 +334,7 @@ function AddComputer_save(){
 	$q->QUERY_SQL($sql,'artica_backup');
 	if(!$q->ok){echo $q->mysql_error;return;}	
 	$sock=new sockets();
-	$sock->getFrameWork("squid.php?squid-reconfigure=yes");
+	$sock->getFrameWork("squid.php?reconfigure-quotas=yes");
 }
 
 function DeletedComputerLink(){
@@ -320,8 +342,7 @@ function DeletedComputerLink(){
 	$q->QUERY_SQL("DELETE FROM hostsusers WHERE `zmd5`='{$_POST["DeletedComputerLink"]}'",'artica_backup');
 	if(!$q->ok){echo $q->mysql_error;return;}	
 	$sock=new sockets();
-	$sock->getFrameWork("squid.php?squid-reconfigure=yes");
-	$sock->getFrameWork("squid.php?user-mac-translation=yes");		
+	$sock->getFrameWork("squid.php?reconfigure-quotas=yes");	
 }
 
 function IsRight(){
