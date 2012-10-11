@@ -63,8 +63,10 @@ end;
 //##############################################################################
 function tvmtools.BIN_PATH():string;
 begin
+
    if FileExists('/usr/sbin/vmware-guestd') then exit('/usr/sbin/vmware-guestd');
    if FileExists('/usr/lib/vmware-tools/bin32/vmware-user-loader') then exit('/usr/lib/vmware-tools/bin32/vmware-user-loader');
+
 end;
 //##############################################################################
 function tvmtools.INITD_PATH():string;

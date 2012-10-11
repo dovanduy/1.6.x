@@ -2291,3 +2291,8 @@ issues with the filesystem.
 Contact our support department or take a look of the system console
 if your server does not respond after a reboot
 </restart_computer_and_defrag_warn>
+<use_freeweb_service>Use FreeWebs service</use_freeweb_service>
+<verif_auth_each>Verify authentication each</verif_auth_each>
+<CACHE_AUTH>Show splash screen each</CACHE_AUTH>
+<wrong_password_or_username>Wrong password or username</wrong_password_or_username>
+<accesstime_to_internet_expired>Access time to Internet expired</accesstime_to_internet_expired>

@@ -372,7 +372,6 @@ function artica_parse($filename){
 			if($domainfrom==null){$domainfrom="Unknown";}
 			if($domainto==null){$domainto="Unknown";}
 			$md5=md5("$instancename$day$time$from$to$size");
-			events("$ligne -> smtpcode:$smtpcode");
 			$sq[]="('$md5','$zdate','$instancename','$from','$domainfrom','$to','$domainto','$ipfrom','$ipto','$smtpcode','$size',0)";
 			$events_number++;
 			

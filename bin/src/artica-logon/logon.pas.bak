@@ -164,7 +164,7 @@ end;
 if not  ArticaAgent then writeln('[C]..... Synchronize settings & remove cache');
 writeln('[D]..... Upgrade to a nightly build (',GetLatestNightlyVersion(),')');
 if FileExists('/usr/bin/htop') then writeln('[E]..... Process Monitor');
-if FileExists(squidbin) then writeln('[F]..... Register to statistics appliance');
+if FileExists(squidbin) then writeln('[F]..... Register to a statistics appliance');
 
 writeln('[L]..... Configure languages');
 writeln('[M]..... Modify DNS');
@@ -369,7 +369,8 @@ if a='Y' then begin
    writeln('[Enter] key to return to menu');
    readln();
 end;
-
+    writeln('Unable to understand "',a,'" [Enter] key to return to menu');
+   readln();
  Menu();
 
 end;
@@ -695,9 +696,7 @@ begin
     IP:=iptcp.IP_ADDRESS_INTERFACE(eth);
     NETMASK:=iptcp.IP_MASK_INTERFACE(eth);
     Gayteway:=iptcp.IP_LOCAL_GATEWAY(eth);
-               DNS:=ParseResolvConf();
-               writeln('dns',DNS);
-               exit;
+
     perform:='o';
 
     if(IP='0.0.0.0') then IP:='172.16.14.135';

@@ -2535,7 +2535,7 @@
 				//$f[]="	// Define the relative URL for Drag and drop file upload";
 				$f[]="	define(\"DND_FILEUPLOAD_URL\", \"index.php?load=upload_attachment&\");";
 				//$f[]="	// Define the path to the plugin directory (No slash at the end)";
-				$f[]="	define(\"PATH_PLUGIN_DIR\", \"$this->WORKING_DIRECTORY/plugins\");";
+				$f[]="	define(\"PATH_PLUGIN_DIR\", \"plugins\");";
 				//$f[]="	// Enable the plugins";
 				$f[]="	define(\"ENABLE_PLUGINS\", true);";
 				//$f[]="	// Define list of disabled plugins separated by semicolon";

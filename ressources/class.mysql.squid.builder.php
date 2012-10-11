@@ -1656,8 +1656,28 @@ public function CheckTables($table=null){
 				  KEY `description` (`description`)
 				)";
 			$this->QUERY_SQL($sql,$this->database);
-		}			
+		}
+
 		
+		if(!$this->TABLE_EXISTS('hotspot_sessions',$this->database)){	
+			$sql="CREATE TABLE `squidlogs`.`hostspot_sessions` (
+			`md5` VARCHAR( 90 ) NOT NULL ,
+			`logintime` BIGINT( 100 ) NOT NULL ,
+			`maxtime` INT( 100 ) NOT NULL ,
+			`finaltime` INT( 100 ) NOT NULL ,
+			`username` VARCHAR( 128 ) NOT NULL ,
+			`MAC` VARCHAR( 90 ) NOT NULL PRIMARY KEY ,
+			`uid` VARCHAR( 128 ) NOT NULL ,
+			`hostname` VARCHAR( 128 ) NOT NULL ,			
+			PRIMARY KEY ( `md5` ) ,
+			INDEX ( `logintime` , `maxtime` , `username` ,`finaltime`),
+			KEY `MAC` (`MAC`),
+			KEY `uid` (`uid`),
+			KEY `hostname` (`hostname`)
+			)";	
+			$this->QUERY_SQL($sql,$this->database);
+		}	
+		if(!$this->FIELD_EXISTS("hostspot_sessions", "finaltime")){$this->QUERY_SQL("ALTER TABLE `hostspot_sessions` ADD `finaltime` BIGINT( 100 ) NOT NULL ,ADD INDEX ( `finaltime` )");}
 		
 		if(!$this->TABLE_EXISTS('webfilter_dnsbl',$this->database)){	
 			$sql="CREATE TABLE IF NOT EXISTS `webfilter_dnsbl` (

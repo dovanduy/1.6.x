@@ -387,6 +387,15 @@ $baddirs["2000"]=true;
     	}
 	}
 	
+	foreach (glob("/var/log/artica-postfix/postfix.awstats.log.*") as $filename){
+		$countfile++;
+		$size=@filesize($filename)/1024;
+		$GLOBALS["DELETED_SIZE"]=$GLOBALS["DELETED_SIZE"]+$size;
+		$GLOBALS["DELETED_FILES"]=$GLOBALS["DELETED_FILES"]+1; 
+		@unlink($filename);  
+	}
+	
+	
 	$countfile=0;
 if($GLOBALS["VERBOSE"]){echo "/tmp/process1*\n";}
 	foreach (glob("/tmp/process1*") as $filename) {

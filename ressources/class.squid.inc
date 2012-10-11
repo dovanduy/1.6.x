@@ -838,14 +838,24 @@ class squidbee{
 		if(!is_file($squid_ext_session_acl_path)){return "#SplashScreen unable to stat ext_session_acl path\n";}
 		$sock=new sockets();
 		$unix=new unix();
-		$array=unserialize(base64_decode($sock->GET_INFO("SplashScreenParams")));
+		$array=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));
+		$SplashScreenURI=$sock->GET_INFO("SplashScreenURI");
+		if(trim($SplashScreenURI)==null){return;}
+		if(!preg_match("#http.*?:#", $SplashScreenURI)){return;}
 		if(!is_numeric($array["CACHE_TIME"])){$array["CACHE_TIME"]=120;}
 		if($this->is_auth()){$L[]="%LOGIN";}
 		$L[]="%SRC";
 		if($this->ACL_ARP_ENABLED){$L[]="%SRCEUI48";}
 		$L[]="%>{X-Forwarded-For}";
-		
-		if($this->IS_32){$ipv4=" ipv4";}		
+		$URLAR=parse_url($SplashScreenURI);
+		if(isset($URLAR["host"])){$sitename=$URLAR["host"];}
+		if(preg_match("#^www\.(.*?)#", $sitename,$re)){$sitename=$re[1];}
+		if($this->IS_32){$ipv4=" ipv4";}	
+
+		$acl_SplashPage="acl SplashPage dstdomain .$sitename";
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $sitename)){
+			$acl_SplashPage="acl SplashPage dst $sitename";
+		}
 		
 		$ExternSession[]="external_acl_type SplashScreenSessionsDef concurrency=100 ttl=3";
 		$ExternSession[]=@implode(" ", $L);
@@ -860,19 +870,19 @@ class squidbee{
 		@mkdir("/var/lib/squid/SplashScreenSessions",0755,true);
 		$unix->chown_func("squid","squid", "/var/lib/squid/SplashScreenSessions/*");
 		$f[]="\n#----------- Splash Screen authentication mode ----------------";
-		$f[]=@implode(" ", $ExternSession);
-		$f[]="acl SplashScreenSessionAcl external SplashScreenSessionsDef LOGIN";
-		$f[]=@implode(" ", $ExternActive);
-		$f[]="acl SplashScreenActiveAcl external SplashScreenActiveDef";
-		$f[]="external_acl_type SplashScreenAuthDef ttl={$array["CACHE_TIME"]} negative_ttl={$array["CACHE_TIME"]} children-startup=5 children-idle=5$ipv4 ".@implode(" ", $L)." %URI /usr/share/artica-postfix/external_acl_squid.php --splash";
+		//$f[]=@implode(" ", $ExternSession);
+		//$f[]="acl SplashScreenSessionAcl external SplashScreenSessionsDef LOGIN";
+		//$f[]=@implode(" ", $ExternActive);
+		//$f[]="acl SplashScreenActiveAcl external SplashScreenActiveDef";
+		$f[]="external_acl_type SplashScreenAuthDef ttl={$array["CACHE_TIME"]} negative_ttl=0 children-startup=5 children-idle=5$ipv4 ".@implode(" ", $L)." %URI /usr/share/artica-postfix/external_acl_squid.php --splash";
 		$f[]="acl SplashScreenAuthAcl external SplashScreenAuthDef";
-		$f[]="acl SplashPage dstdomain .artica.fr";
-		$f[]="deny_info http://www.artica.fr SplashScreenActiveAcl";
+		$f[]="$acl_SplashPage";
+		$f[]="deny_info $SplashScreenURI?request=%U SplashScreenAuthAcl";
 		$f[]="#-----------------------------------------------------------------\n";
 		$accesses[]="# ------ SplashScreen Rules ------";
-		$accesses[]="http_access allow SplashPage";
-		$accesses[]="http_access allow SplashScreenAuthAcl SplashScreenSessionAcl";
-		$accesses[]="http_access deny !SplashPage !SplashScreenActiveAcl";
+		//$accesses[]="http_access allow SplashPage";
+		//$accesses[]="http_access allow SplashScreenAuthAcl SplashScreenSessionAcl";
+		$accesses[]="http_access deny !SplashPage !SplashScreenAuthAcl";
 		$accesses[]="#\n";
 		
 		$GLOBALS["HTTP_ACCESS"]["SPLASH"]=@implode("\n", $accesses);

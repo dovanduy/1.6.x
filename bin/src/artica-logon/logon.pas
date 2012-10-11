@@ -164,7 +164,7 @@ end;
 if not  ArticaAgent then writeln('[C]..... Synchronize settings & remove cache');
 writeln('[D]..... Upgrade to a nightly build (',GetLatestNightlyVersion(),')');
 if FileExists('/usr/bin/htop') then writeln('[E]..... Process Monitor');
-if FileExists(squidbin) then writeln('[F]..... Register to statistics appliance');
+if FileExists(squidbin) then writeln('[F]..... Register to a Statistics Appliance');
 
 writeln('[L]..... Configure languages');
 writeln('[M]..... Modify DNS');
@@ -369,7 +369,8 @@ if a='Y' then begin
    writeln('[Enter] key to return to menu');
    readln();
 end;
-
+    writeln('Unable to understand "',a,'" [Enter] key to return to menu');
+   readln();
  Menu();
 
 end;

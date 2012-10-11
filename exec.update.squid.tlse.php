@@ -236,7 +236,9 @@ function compile(){
 	}
 	
 	ufdbguard_admin_events("Compiling $c databases done, took:".$unix->distanceOfTimeInWords($t,time(),true),__FUNCTION__,__FILE__,__LINE__,"update");
-	
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 /usr/share/artica-postfix/exec.squidguard.php --build schedule-id={$GLOBALS["SCHEDULE_ID"]}");
 }
 
 function CoherenceRepertoiresUfdb(){

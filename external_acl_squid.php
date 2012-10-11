@@ -2,12 +2,17 @@
 <?php
   //ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
   error_reporting(0);
+  $GLOBALS["SplashScreenURI"]=null;
   $GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');
   $GLOBALS["PID"]=getmypid();
   $GLOBALS["STARTIME"]=time();
   $GLOBALS["MACTUIDONLY"]=false;
+  $GLOBALS["uriToHost"]=array();
   set_time_limit(0);
   $max_execution_time=ini_get('max_execution_time'); 
+  if(is_file("/etc/artica-postfix/settings/Daemons/SplashScreenURI")){$GLOBALS["SplashScreenURI"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/SplashScreenURI");}
+ 
+  
   WLOG("starting... max_execution_time:$max_execution_time argv[1]={$argv[1]}");
   if($argv[1]=="--mactouid"){$GLOBALS["MACTUIDONLY"]=true;}
   if($argv[1]=="--splash"){$GLOBALS["SPLASH"]=true;}
@@ -19,6 +24,7 @@ while (!feof(STDIN)) {
  $url = trim(fgets(STDIN));
  if($url<>null){
  	$array=parseURL($url);
+ 	$SplashScreenURI=$GLOBALS["SplashScreenURI"];
  	WLOG($url." str:".strlen($url)." LOGIN:{$array["LOGIN"]},IPADDR:{$array["IPADDR"]} MAC:{$array["MAC"]} HOST:{$array["HOST"]} URI:{$array["URI"]}");
  	
  	if($GLOBALS["MACTUIDONLY"]){
@@ -30,14 +36,18 @@ while (!feof(STDIN)) {
  	}
  	
  	if($GLOBALS["SPLASH"]){
- 		WLOG("ASK: Slpash = {$array["URI"]} {$array["RHOST"]} ?");
- 		if($array["RHOST"]=="www.artica.fr"){
+ 		
+ 		if($array["RHOST"]==uriToHost($SplashScreenURI)){
  			WLOG("ASK: Slpash = {$array["URI"]} {$array["RHOST"]} OK");
  			fwrite(STDOUT, "OK\n");
  			continue;
  		}
- 		WLOG("ASK: Slpash = {$array["URI"]} {$array["RHOST"]} ERR");
- 		fwrite(STDOUT, "ERR message=\"Authenticate please\"\n");
+ 		
+ 		
+		
+ 		WLOG("ASK: Slpash = {$array["URI"]} {$array["IPADDR"]} MAC:{$array["MAC"]} ?");
+ 		$uid=SplasHCheckAuth($array);
+ 		fwrite(STDOUT, "ERR message=\"". base64_encode(serialize($array))."\"\n");
  		continue;
  	}
  	
@@ -76,12 +86,14 @@ function parseURL($url){
 		$uri=$re[1]."://".$re[2];
 		WLOG("found uri $uri");
 		$url=trim(str_replace($uri, "", $url));
+		WLOG("Analyze $url");
 	}
 	if($uri==null){
-		if(preg_match("#([a-z0-9\.]):([0-9]+)$#i", $url,$re)){
+		if(preg_match("#([a-z0-9\.]+):([0-9]+)$#i", $url,$re)){
 			$uri="http://".$re[1].":".$re[2];
 			WLOG("found uri $uri");
-			$url=trim(str_replace($uri, "", $url));
+			$url=trim(str_replace($re[1].":".$re[2], "", $url));
+			WLOG("Analyze \"$url\"");
 		}
 	}
 	if($uri<>null){
@@ -94,11 +106,12 @@ function parseURL($url){
 	
 	if(isset($GLOBALS["CACHE_URI"][$md5])){return $GLOBALS["CACHE_URI"][$md5];}
 	$tr=explode(" ", $url);
-	
+	while (list ($index, $line) = each ($tr)){WLOG("tr[$index] = $line");	}
 	
 	
 	//max auth=4
 	if(count($tr)==4){
+		WLOG("count --> 4");
 		$login=$tr[0];
 		$ipaddr=$tr[1];
 		$mac=$tr[2];
@@ -106,19 +119,22 @@ function parseURL($url){
 		if(isset($tr[4])){$uri=$tr[4];}
 		if($mac=="00:00:00:00:00:00"){$mac=null;}
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $forwarded)){$ipaddr=$forwarded;}
+		if($mac==null){$mac=GetMacFromIP($ipaddr);}
+		
+		if($mac=="00:00:00:00:00:00"){$mac=null;}
 		$GLOBALS["CACHE_URI"][$md5]["LOGIN"]=$login;
 		$GLOBALS["CACHE_URI"][$md5]["IPADDR"]=$ipaddr;
 		$GLOBALS["CACHE_URI"][$md5]["MAC"]=$mac;
 		$GLOBALS["CACHE_URI"][$md5]["HOST"]=GetComputerName($ipaddr);
 		$GLOBALS["CACHE_URI"][$md5]["URI"]=$uri;
 		$GLOBALS["CACHE_URI"][$md5]["RHOST"]=$rhost;
-					
 		return $GLOBALS["CACHE_URI"][$md5];
 	}
 	
 	
 	
 	if(count($tr)==3){
+		WLOG("count --> 3");
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $tr[0])){
 			//ip en premier donc mac=ok, pas de login
 			$login=null;	
@@ -130,11 +146,14 @@ function parseURL($url){
 			//login en premier donc mac=bad
 			$login=$tr[0];
 			$ipaddr=$tr[1];
-			$mac=null;
+			
 			$forwarded=$tr[2];
 			if(isset($tr[3])){$uri=$tr[3];}	
 		}
-		
+		if($mac=="00:00:00:00:00:00"){$mac=null;}
+		if(preg_match("#[0-9]+\[0-9]+\.[0-9]+\.[0-9]+#", $forwarded)){$ipaddr=$forwarded;}
+		if($mac==null){$mac=GetMacFromIP($ipaddr);}
+		if($mac=="00:00:00:00:00:00"){$mac=null;}
 		$GLOBALS["CACHE_URI"][$md5]["LOGIN"]=$login;
 		$GLOBALS["CACHE_URI"][$md5]["IPADDR"]=$ipaddr;
 		$GLOBALS["CACHE_URI"][$md5]["MAC"]=$mac;
@@ -148,15 +167,21 @@ function parseURL($url){
 	
 	
 	if(count($tr)==2){
+		WLOG("count --> 2");
 		//pas de login et pas de MAC;
 		$login=null;	
 		$ipaddr=$tr[0];
 		$mac=null;
 		$forwarded=$tr[1];
 		if(isset($tr[2])){$uri=$tr[2];}	
+		if(preg_match("#[0-9]+\[0-9]+\.[0-9]+\.[0-9]+#", $forwarded)){$ipaddr=$forwarded;}
+		
+	}
+	if($mac==null){$mac=GetMacFromIP($ipaddr);}
+	else{		
+		if($mac=="00:00:00:00:00:00"){$mac=null;$mac=GetMacFromIP($ipaddr);}
 	}
 	if($mac=="00:00:00:00:00:00"){$mac=null;}
-	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $forwarded)){$ipaddr=$forwarded;}
 	$GLOBALS["CACHE_URI"][$md5]["LOGIN"]=$login;
 	$GLOBALS["CACHE_URI"][$md5]["IPADDR"]=$ipaddr;
 	$GLOBALS["CACHE_URI"][$md5]["MAC"]=$mac;
@@ -191,12 +216,7 @@ function GetMacToUid($mac){
 }
 
 
-function GetComputerName($ip){
-	if($GLOBALS["resvip"][$ip]<>null){return $GLOBALS["resvip"][$ip];}
-	$name=gethostbyaddr($ip);
-	$GLOBALS["resvip"]=$name;
-	return $name;
-}
+
 
 function CheckQuota($CPINFOS){
 	$RULES=unserialize(@file_get_contents("/etc/squid3/squid.durations.ini"));
@@ -350,10 +370,12 @@ function CheckQuota_hour($infos,$xtype,$pattern,$quotaBytes){
 	
 }
 
-function notify(){
+function SplasHCheckAuth($array){
 	$ch = curl_init();
+	
+	$params="?checks=".base64_encode(serialize($array));
 	curl_setopt($ch, CURLOPT_INTERFACE,"127.0.0.1");
-	curl_setopt($ch, CURLOPT_URL, "http://127.0.0.1:47980/squid.php?external-helper=yes");
+	curl_setopt($ch, CURLOPT_URL, $GLOBALS["SplashScreenURI"].$params);
 	curl_setopt($ch, CURLOPT_HEADER, 0);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 	curl_setopt($ch, CURLOPT_POST, 0);
@@ -362,7 +384,7 @@ function notify(){
 	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 	curl_setopt($ch, CURLOPT_HTTPHEADER, array("Pragma: no-cache", "Cache-Control: no-cache"));
 	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
-	curl_setopt ($ch, CURLOPT_TIMEOUT, $CURLOPT_TIMEOUT);
+	curl_setopt ($ch, CURLOPT_TIMEOUT, 60);
 	$data=curl_exec($ch);
 	$errno=curl_errno($ch);
 	curl_close($ch);
@@ -385,4 +407,95 @@ function WLOG($text=null){
 	
 	@fwrite($GLOBALS["F"], "$date [{$GLOBALS["PID"]}]: $text\n");
 }
+
+function uriToHost($uri){
+	if(count($GLOBALS["uriToHost"])>20000){$GLOBALS["uriToHost"]=array();}
+	if(isset($GLOBALS["uriToHost"][$uri])){return $GLOBALS["uriToHost"][$uri];}
+	$URLAR=parse_url($uri);
+	if(isset($URLAR["host"])){$sitename=$URLAR["host"];}
+	if(preg_match("#^www\.(.*?)#", $sitename,$re)){$sitename=$re[1];}
+	if(preg_match("#(.*?):[0-9]+#", $sitename)){$sitename=$re[1];}
+	$GLOBALS["uriToHost"][$uri]=$sitename;
+	return $sitename;
+	
+}
+function GetComputerName($ip){
+		$time=time("Ymh");
+		if(count($GLOBALS["resvip"])>5){unset($GLOBALS["resvip"]);}
+		if(isset($GLOBALS["resvip"][$time][$ip])){return $GLOBALS["resvip"][$time][$ip];}
+		$name=gethostbyaddr($ip);
+		$GLOBALS["resvip"][$time]=$name;
+		return $name;
+		}
+function GetMacFromIP($ipaddr){
+		$ipaddr=trim($ipaddr);
+		$ttl=date('YmdH');
+		if(count($GLOBALS["CACHEARP"])>3){unset($GLOBALS["CACHEARP"]);}
+		if(isset($GLOBALS["CACHEARP"][$ttl][$ipaddr])){return $GLOBALS["CACHEARP"][$ttl][$ipaddr];}
+		if(!isset($GLOBALS["SBIN_ARP"])){$GLOBALS["SBIN_ARP"]=find_program("arp");}
+		if(!isset($GLOBALS["SBIN_ARPING"])){$GLOBALS["SBIN_ARPING"]=find_program("arping");}
+		
+		if(strlen($GLOBALS["SBIN_ARPING"])>3){
+			$cmd="{$GLOBALS["SBIN_ARPING"]} $ipaddr -c 1 -r 2>&1";
+			exec($cmd,$results);
+			while (list ($num, $line) = each ($results)){
+				if(preg_match("#^([0-9a-zA-Z\:]+)#", $line,$re)){
+					$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+					return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+				}
+			}
+		}
+		
+		
+		$results=array();
+			
+		if(strlen($GLOBALS["SBIN_ARP"])<4){return;}
+		if(!isset($GLOBALS["SBIN_PING"])){$GLOBALS["SBIN_PING"]=find_program("ping");}
+		if(!isset($GLOBALS["SBIN_NOHUP"])){$GLOBALS["SBIN_NOHUP"]=find_program("nohup");}
+		
+		$cmd="{$GLOBALS["SBIN_ARP"]} -n \"$ipaddr\" 2>&1";
+		$this->events($cmd);
+		exec($cmd,$results);
+		while (list ($num, $line) = each ($results)){
+			if(preg_match("#^[0-9\.]+\s+.+?\s+([0-9a-z\:]+)#", $line,$re)){
+				if($re[1]=="no"){continue;}
+				$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+				return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+			}
+			
+		}
+		
+		if(!isset($GLOBALS["PINGEDHOSTS"][$ipaddr])){
+			shell_exec("{$GLOBALS["SBIN_NOHUP"]} {$GLOBALS["SBIN_PING"]} $ipaddr -c 3 >/dev/null 2>&1 &");
+			$GLOBALS["PINGEDHOSTS"][$ipaddr]=true;
+		}
+			
+		
+	}
+function find_program($strProgram) {
+	  $key=md5($strProgram);
+	  if(isset($GLOBALS["find_program"][$key])){return $GLOBALS["find_program"][$key];}
+	  $value=trim(internal_find_program($strProgram));
+	  $GLOBALS["find_program"][$key]=$value;
+      return $value;
+}
+function internal_find_program($strProgram){
+	  global $addpaths;	
+	  $arrPath = array('/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin', 
+	  '/usr/local/sbin',
+	  '/usr/kerberos/bin',
+	  
+	  );
+	  
+	  if (function_exists("is_executable")) {
+	    foreach($arrPath as $strPath) {
+	      $strProgrammpath = $strPath . "/" . $strProgram;
+	      if (is_executable($strProgrammpath)) {
+	      	  return $strProgrammpath;
+	      }
+	    }
+	  } else {
+	   	return strpos($strProgram, '.exe');
+	  }
+	}	
 ?>

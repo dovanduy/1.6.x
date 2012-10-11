@@ -148,7 +148,9 @@ class squid_stats_appliance{
 		$array["SquidBoosterMem"]=true;
 		$array["SquidBoosterMemK"]=true;
 		$array["SquidBoosterOnly"]=true;
-		$arra["EnableSplashScreen"]=true;		
+		$array["EnableSplashScreen"]=true;
+		$array["SplashScreenURI"]=true;	
+		$array["HotSpotConfig"]=true;
 		return $array;
 	}
 	
