@@ -124,6 +124,7 @@ function ajax_pop(){
 		if(!is_numeric($EnableAmavisDaemon)){$EnableAmavisDaemon=0;}
 		
 		$EnableArticaPolicyFilter=$sock->GET_INFO("EnableArticaPolicyFilter");
+		$EnableArticaPolicyFilter=0;
 		if(!is_numeric($EnableArticaPolicyFilter)){$EnableArticaPolicyFilter=0;}
 		
 		

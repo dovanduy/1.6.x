@@ -1505,6 +1505,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		$conf[]="\n\t<Directory \"$freeweb->WORKING_DIRECTORY/\">";
 		
 		if($DirectoryContent==null){
+			$DirectoryIndex=$freeweb->DirectoryIndex();
 			$conf[]="\t\tDirectoryIndex $DirectoryIndex";
 	   		$conf[]="\t\tOptions{$Indexes} +FollowSymLinks MultiViews$OptionExecCGI";
 	   		if($IndexIgnores<>null){$conf[]=$IndexIgnores;}
@@ -1513,6 +1514,8 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 			if($AllowOverride<>null){$conf[]=$AllowOverride;}
 			$conf[]="\t\tOrder allow,deny";
 			if($allowFrom<>null){$conf[]=$allowFrom;}
+		}else{
+			$conf[]=$DirectoryContent;
 		}
 		if($geoip<>null){$conf[]="\t\tDeny from env=BlockCountry";}
 		if($mod_rewrite<>null){$conf[]=$mod_rewrite;}

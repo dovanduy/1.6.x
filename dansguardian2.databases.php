@@ -1250,7 +1250,7 @@ $html="
 <tbody>
 <tr>
 	<td valign='top' width=50%><div id='artica-status-databases-$t'></td>
-	<td valign='top' width=50%><div id='tlse-status-databases'></td>
+	<td valign='top' width=50%><div id='tlse-status-databases-$t'></td>
 </tr>
 <tr>
 	<td valign='top' width=50%><div id='clamav-status-databases-$t'></td>
@@ -1261,7 +1261,7 @@ $html="
 <div class=explain style='font-size:16px'>{webfilter_status_text}</div>
 <script>
 	function RefreshArticaDBStatus(){
-		LoadAjax('artica-status-databases-$t','$page?global-artica-status-databases=yes');
+		LoadAjax('artica-status-databases-$t','$page?global-artica-status-databases=yes&t=$t');
 		LoadAjax('clamav-status-databases-$t','$page?global-clamav-status-databases=yes');
 		LoadAjax('statistics-status-databases-$t','$page?global-statistics-status-databases=yes');
 		
@@ -1645,7 +1645,7 @@ function global_status_tlse_db(){
 		$disable_text="{database}:&nbsp;{disabled}";
 		$color="color:#B6ACAC";
 	}
-	
+	$t=$_GET["t"];
 	$sock=new sockets();
 	$scheduledAR=unserialize(base64_decode($sock->getFrameWork("squid.php?schedule-maintenance-tlse=yes")));
 	$running="<br><i style='font-size:12px'>{update_task_stopped}</i>";
@@ -1736,7 +1736,7 @@ function global_status_tlse_db(){
 		<td valign='top' width=99%>$tableau</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". imgtootltip("refresh-24.png","{refresh}","RefreshArticaDBStatus();")."</td>
+		<td colspan=2 align='right'><hr>". imgtootltip("refresh-24.png","{refresh}","LoadAjax('tlse-status-databases-$t','$page?global-tlse-status-databases=yes&t=$t');")."</td>
 	</tr>
 	</tbody>
 	</table>
@@ -1758,7 +1758,7 @@ function global_status_artica_db(){
 	if(!is_numeric($ligne["pourcent"])){$ligne["pourcent"]=0;}
 	$pourcent=round($ligne["pourcent"],2);
 	$purc=pourcentage($pourcent);
-	
+	$t=$_GET["t"];
 	
 	
 	$color="color:black;";
@@ -1938,12 +1938,13 @@ $purctext="		<tr>
 		<td valign='top' width=99%>$tableau</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". imgtootltip("refresh-24.png","{refresh}","RefreshArticaDBStatus();")."</td>
+		<td colspan=2 align='right'><hr>". imgtootltip("refresh-24.png","{refresh}","LoadAjax('artica-status-databases-$t','$page?global-artica-status-databases=yes&t=$t');")."</td>
 	</tr>
 	</tbody>
 	</table>
 	<script>
-		LoadAjax('tlse-status-databases','$page?global-tlse-status-databases=yes');
+		
+		LoadAjax('tlse-status-databases-$t','$page?global-tlse-status-databases=yes&t=$t');
 	</script>
 	
 	";

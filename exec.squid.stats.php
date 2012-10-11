@@ -34,7 +34,7 @@ $sock=new sockets();
 
 if($argv[1]=='--clean-catz-cache'){$GLOBALS["Q"]->QUERY_SQL("TRUNCATE TABLE webfilters_categories_caches");die();}
 
-if(!is_dir("/var/log/artica-postfix/artica-squid-events")){@mkdir("/var/log/artica-postfix/artica-squid-events",644,true);}
+if(!is_dir("/var/log/artica-postfix/artica-squid-events")){@mkdir("/var/log/artica-postfix/artica-squid-events",644,die());}
 $squidEnableRemoteStatistics=$sock->GET_INFO("squidEnableRemoteStatistics");
 if(!is_numeric($squidEnableRemoteStatistics)){$squidEnableRemoteStatistics=0;}
 if($squidEnableRemoteStatistics==1){events("this server is not in charge of statistics...");die();}
@@ -134,7 +134,7 @@ function sync_categories(){
 	$oldpid=@file_get_contents($pidfile);
 	if($oldpid<100){$oldpid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}die();}
+	if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
 	
@@ -268,7 +268,7 @@ function recategorize_singleday($day,$nopid=false,$tablename=null){
 		
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 		$oldpid=@file_get_contents($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}die();}
+		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
 	}
 	$daySource=$day;
 	$mypid=getmypid();
@@ -353,7 +353,7 @@ function recategorize_singleday($day,$nopid=false,$tablename=null){
 
 function __re_categorize_subtables($oldT1=0){
 	$unix=new unix();
-	if(systemMaxOverloaded()){writelogs_squid("Fatal: VERY Overloaded system, die();",__FUNCTION__,__FILE__,__LINE__,"stats");return;	}	
+	if(systemMaxOverloaded()){writelogs_squid("Fatal: VERY Overloaded system, return;",__FUNCTION__,__FILE__,__LINE__,"stats");return;	}	
 	$sock=new sockets();
 	$RecategorizeSecondsToWaitOverload=$sock->GET_INFO("RecategorizeSecondsToWaitOverload");
 	$RecategorizeMaxExecutionTime=$sock->GET_INFO("RecategorizeSecondsToWaitOverload");
@@ -417,7 +417,7 @@ function __re_categorize_subtables($oldT1=0){
 		}			
 
 		if(system_is_overloaded(__FILE__)){writelogs_squid("Fatal: Overloaded system, sleeping $RecategorizeSecondsToWaitOverload secondes...",__FUNCTION__,__FILE__,__LINE__,"stats");sleep($RecategorizeSecondsToWaitOverload);}
-		if(systemMaxOverloaded()){writelogs_squid("Fatal: VERY Overloaded system, die();",__FUNCTION__,__FILE__,__LINE__,"stats");return;	}
+		if(systemMaxOverloaded()){writelogs_squid("Fatal: VERY Overloaded system, return;",__FUNCTION__,__FILE__,__LINE__,"stats");return;	}
 		
 		$distanceInSeconds = round(abs(time() - $t));
 	    $distanceInMinutes = round($distanceInSeconds / 60);
@@ -435,7 +435,7 @@ function scan_hours($nopid=false){
 	if(!$GLOBALS["FORCE"]){
 		if(system_is_overloaded(basename(__FILE__))){
 			writelogs_squid("Fatal, Overloaded system, aborting task",__FUNCTION__,__FILE__,__LINE__);
-			die();
+			return;
 		}
 	}
 	
@@ -448,12 +448,13 @@ function scan_hours($nopid=false){
 		$unix=new unix();
 		if($unix->process_exists($oldpid)){
 			writelogs_squid("Fatal, already executed $oldpid, aborting task",__FUNCTION__,__FILE__,__LINE__);
-			die();
+			return;
 		}
 	}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	$GLOBALS["Q"]->FixTables();
+	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	shell_exec("$php5 /usr/share/artica-postfix/exec.fcron.php --squid-recategorize-task &");
 	nodes_scan();
@@ -469,7 +470,7 @@ function scan_months(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}die();}
+	if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	table_days();
@@ -488,14 +489,21 @@ function flow_month($nopid=false){
 		$oldpid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
 		$unix=new unix();
-		if($unix->process_exists($oldpid,$myfile)){die();}
+		if($unix->process_exists($oldpid,$myfile)){return;}
 	}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	
-$sql="SELECT MONTH(zDate) AS smonth,YEAR(zDate) AS syear FROM tables_day WHERE zDate<DATE_SUB(NOW(),INTERVAL 1 DAY) AND month_flow=0 ORDER BY zDate";
+	$sql="SELECT MONTH(zDate) AS smonth,YEAR(zDate) AS syear FROM tables_day WHERE zDate<DATE_SUB(NOW(),INTERVAL 1 DAY) AND month_flow=0 ORDER BY zDate";
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
-	if(!$GLOBALS["Q"]->ok){events_tail("{$GLOBALS["Q"]->mysql_error}\n------\n$sql\n----");return;}
+	
+	if(!$GLOBALS["Q"]->ok){
+		if(preg_match("#Unknown column#i", $GLOBALS["Q"]->mysql_error)){$GLOBALS["Q"]->CheckTables();$results=$GLOBALS["Q"]->QUERY_SQL($sql);}
+	}
+	if(!$GLOBALS["Q"]->ok){
+		events_tail("{$GLOBALS["Q"]->mysql_error}\n------\n$sql\n----");
+		return;
+	}
 		
 	$num_rows = mysql_num_rows($results);
 	if($num_rows==0){if($GLOBALS["VERBOSE"]){echo "No datas ". __FUNCTION__." ".__LINE__."\n";}return;}
@@ -693,7 +701,7 @@ function members_month($nopid=false){
 	if($nopid){
 		$oldpid=@file_get_contents($pidfile);
 		$unix=new unix();
-		if($unix->process_exists($oldpid)){die();}
+		if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);		
 	}
@@ -729,7 +737,7 @@ function members_month_query($month,$year){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){die();}
+	if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	table_days();
@@ -817,7 +825,7 @@ function members_hours($nopid=false){
 	if(!$nopid){
 		$oldpid=@file_get_contents($pidfile);
 		$unix=new unix();
-		if($unix->process_exists($oldpid)){die();}
+		if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);
 	}
@@ -922,7 +930,7 @@ function clients_hours($nopid=false){
 	$unix=new unix();
 	if(!$nopid){
 		$oldpid=@file_get_contents($pidfile);
-		if($unix->process_exists($oldpid)){die();}
+		if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);		
 	}
@@ -1317,8 +1325,8 @@ function members_central($aspid=false){
 			return;
 		}
 	}
-	clients_hours();
-	visited_websites_by_day();
+	clients_hours(true);
+	visited_websites_by_day(true);
 	
 	if(!$GLOBALS["Q"]->TABLE_EXISTS("UserAuthDays")){$GLOBALS["Q"]->CheckTables();}
 	$unix=new unix();
@@ -1687,7 +1695,7 @@ function block_days($nopid=false){
 		$oldpid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
 		$unix=new unix();
-		if($unix->process_exists($oldpid,$myfile)){die();}
+		if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
 	}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
@@ -1866,7 +1874,7 @@ function week_uris($asPid=false){
 	if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: $q->mysql_error on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");return false;}
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$week_table="{$ligne["tyear"]}{$ligne["tweek"]}_week";
-		if($GLOBALS["VERBOSE"]){echo "Week table ->`$week_table`\n";}
+		if($GLOBALS["VERBOSE"]){echo "******\n\nWeek table ->`$week_table`\n\n******\n";}
 		if(!$GLOBALS["Q"]->CreateWeekTable($week_table)){writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$week_table` (CREATE)",__FUNCTION__,__FILE__,__LINE__,"stats");continue;}
 		$DayNumber=$ligne["DayNumber"];
 		$tablesource="{$ligne["tablesource"]}_hour";
@@ -2061,7 +2069,7 @@ function defragment_category_tables(){
 	$oldpid=@file_get_contents($pidfile);
 	if($oldpid<100){$oldpid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}die();}
+	if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
 	
@@ -2437,7 +2445,7 @@ function thumbnail_parse(){
 	$oldpid=@file_get_contents($pidfile);
 	if($oldpid<100){$oldpid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);die();}
+	if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
 	$ttim=$unix->file_time_min($pidTime);
@@ -2673,7 +2681,7 @@ function users_size_hour(){
 	@file_put_contents($pidfile,$mypid);
 	$q=new mysql_squid_builder();
 	$numrows_0=$q->COUNT_ROWS("UserSizeRTT");
-	
+	$UsersAgents=array();
 	ufdbguard_admin_events("Starting PID $mypid, table store $numrows_0 rows", __FUNCTION__, __FILE__, __LINE__, "stats");
 	$sql="SELECT DATE_FORMAT(zdate,'%Y%m%d') as tablesuffix,
 	DATE_FORMAT(zdate,'%Y-%m-%d') as tday,
@@ -2696,6 +2704,9 @@ function users_size_hour(){
 		$ligne["uid"]=addslashes($ligne["uid"]);
 		if($ligne["uid"]=="-"){$ligne["uid"]=null;}
 		$f[$ligne["tablesuffix"]][]="('$zMD5','{$ligne["uid"]}','{$ligne["tday"]}','{$ligne["ipaddr"]}','{$ligne["hostname"]}','{$ligne["account"]}','{$ligne["MAC"]}','{$ligne["UserAgent"]}','{$ligne["size"]}','{$ligne["thits"]}','{$ligne["zhour"]}')";
+		if(trim($ligne["UserAgent"])<>null){
+			$UsersAgents[]="('".addslashes($ligne["UserAgent"])."')";
+		}
 	}	
 	
 	if(count($f)>0){
@@ -2717,6 +2728,18 @@ function users_size_hour(){
 		ufdbguard_admin_events(count($f). " new injected table and $total new row(s)",__FUNCTION__,__FILE__,__LINE__,"stats");
 	}
 	
+	if(count($UsersAgents)>0){
+		$q->QUERY_SQL("INSERT IGNORE INTO UserAgents (`pattern`) VALUES ". @implode(",", $UsersAgents));
+	}
+	
+	if($q->COUNT_ROWS("UserAgents")==0){
+		$sql="SELECT UserAgent FROM UserSizeD_".date("Ymd")." GROUP BY UserAgent";
+		$results=$q->QUERY_SQL($sql);
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+			if(trim($ligne["UserAgent"])<>null){$UsersAgents[]="('".addslashes($ligne["UserAgent"])."')";}
+		}
+		$q->QUERY_SQL("INSERT IGNORE INTO UserAgents (`pattern`) VALUES ". @implode(",", $UsersAgents));
+	}
 	
 	scan_hours(true);
 	

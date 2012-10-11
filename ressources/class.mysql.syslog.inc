@@ -122,7 +122,7 @@ class mysql_syslog{
 		$defaultFtechmailrestart=mysql_escape_string(@implode("\n", $f2));
 		$f[]="('/var/log/fetchmail.log',1,'daily','100',5,'$defaultFtechmailrestart','{APP_FETCHMAIL}',1)";
 		$f[]="('/var/log/squid/*.log',1,'daily','100',5,'%SQUIDBIN% -k rotate\n/etc/init.d/ufdb rotatelog\n/etc/init.d/artica-postfix restart ufdb-tail','{APP_SQUID}',1)";
-		$f[]="('/var/log/php.log',1,'daily','100',5,'','{APP_PHP5}',1)";
+		$f[]="('/var/log/php.log',1,'daily','50',5,'','{APP_PHP5}',1)";
 		$f[]="('/var/log/apache2/*.log',1,'daily','100',5,'%PHP% /usr/share/artica-postfix/exec.freeweb.php --reload','{APP_APACHE}',1)";
 		$f[]="('/var/log/mail-backup/*',1,'daily','100',5,'','Mail statistics',1)";
 		$f[]="('/var/log/pymsnt/pymsnt.log',1,'daily','100',5,'/etc/init.d/pymsnt reload','MSN Module for ejabberd',1)";
@@ -130,6 +130,7 @@ class mysql_syslog{
 		$f[]="('/var/log/kaspersky/kav4proxy/*',1,'daily','100',5,'/etc/init.d/kav4proxy restart','{APP_KAV4PROXY}',1)";
 		$f[]="('/var/log/lighttpd/*',1,'daily','100',5,'/etc/init.d/artica-postfix restart apache','Lighttpd',1)";
 		$f[]="('/var/log/apt/*',1,'daily','100',5,'/etc/init.d/artica-postfix restart apache','apt-get',1)";
+		$f[]="('/var/log/snort',1,'daily','50',5,'/etc/init.d/snort restart','snort',1)";
 		
 		
 		while (list ($num, $path) = each ($t) ){		

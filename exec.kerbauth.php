@@ -803,7 +803,9 @@ function SAMBA_PROXY(){
 	$adminname=$array["WINDOWS_SERVER_ADMIN"];
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];
 	$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
+	$KerbAuthDisableNormalizeName=$sock->GET_INFO("KerbAuthDisableNormalizeName");
 	if(!is_numeric($KerbAuthDisableGroupListing)){$KerbAuthDisableGroupListing=0;}
+	if(!is_numeric($KerbAuthDisableNormalizeName)){$KerbAuthDisableNormalizeName=1;}
 	
 	
 	$workgroup=$array["ADNETBIOSDOMAIN"];
@@ -883,8 +885,11 @@ function SAMBA_PROXY(){
 		
 		$f[]="\tclient ntlmv2 auth = Yes";
 		$f[]="\tclient lanman auth = No";
-		$f[]="\twinbind normalize names = no";
-		$f[]="\twinbind normalize names = Yes"; # bug 9226
+		if($KerbAuthDisableNormalizeName==1){
+			$f[]="\twinbind normalize names = No";
+		}else{
+			$f[]="\twinbind normalize names = Yes"; # bug 9226
+		}
 		$f[]="\twinbind separator = /";
 		$f[]="\twinbind use default domain = yes";
 		$f[]="\twinbind nested groups = Yes";

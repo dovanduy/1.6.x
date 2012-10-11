@@ -181,6 +181,7 @@ function clean_squid_stats_no_items(){
 		if($rows==0){
 			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
 			$count_tables++;
+			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
 			$q->DELETE_TABLE($table);
 		}
 		
@@ -197,6 +198,7 @@ function clean_squid_stats_no_items(){
 		if($rows==0){
 			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
 			$count_tables++;
+			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
 			$q->DELETE_TABLE($table);
 		}
 	}	
@@ -210,6 +212,7 @@ function clean_squid_stats_no_items(){
 		if($rows==0){
 			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
 			$count_tables++;
+			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
 			$q->DELETE_TABLE($table);
 		}
 		
@@ -224,6 +227,7 @@ function clean_squid_stats_no_items(){
 		if($rows==0){
 			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
 			$count_tables++;
+			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
 			$q->DELETE_TABLE($table);
 		}
 	}
@@ -237,6 +241,7 @@ function clean_squid_stats_no_items(){
 		if($rows==0){
 			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
 			$count_tables++;
+			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
 			$q->DELETE_TABLE($table);
 		}
 		
@@ -250,6 +255,7 @@ function clean_squid_stats_no_items(){
 		if($rows==0){
 			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
 			$count_tables++;
+			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
 			$q->DELETE_TABLE($table);
 		}
 		
@@ -263,6 +269,7 @@ function clean_squid_stats_no_items(){
 		if($rows==0){
 			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
 			$count_tables++;
+			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
 			$q->DELETE_TABLE($table);
 		}
 		
@@ -276,6 +283,7 @@ function clean_squid_stats_no_items(){
 		if($rows==0){
 			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
 			$count_tables++;
+			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
 			$q->DELETE_TABLE($table);
 		}
 		
@@ -288,6 +296,7 @@ function clean_squid_stats_no_items(){
 		if($rows==0){
 			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
 			$count_tables++;
+			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
 			$q->DELETE_TABLE($table);
 		}
 		
@@ -300,6 +309,7 @@ function clean_squid_stats_no_items(){
 		if($rows==0){
 			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
 			$count_tables++;
+			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
 			$q->DELETE_TABLE($table);
 		}
 		
@@ -312,6 +322,7 @@ function clean_squid_stats_no_items(){
 		if($rows==0){
 			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
 			$count_tables++;
+			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
 			$q->DELETE_TABLE($table);
 		}
 		

@@ -101,6 +101,7 @@ class squidbee{
 	var $SSL_BUMP_WHITE_LIST=0;
 	var $EnableSquidCSV=0;
 	var $EnableRemoteStatisticsAppliance=0;
+	var $EnableSplashScreen=0;
 	
 	function squidbee(){
 		if(posix_getuid()==0){$this->ASROOT=true;}
@@ -133,6 +134,7 @@ class squidbee{
 		$this->UseTProxyMode=$sock->GET_INFO("UseTProxyMode");
 		$this->EnableSquidCSV=$sock->GET_INFO("EnableSquidCSV");
 		$this->EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
+		$this->EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
 		
 		if($this->KavICAPRemoteAddr==null){$this->EnableKavICAPRemote=0;}
 		if(!is_numeric($this->KavICAPRemotePort)){$this->EnableKavICAPRemote=0;}
@@ -143,6 +145,7 @@ class squidbee{
 		if(!is_numeric($this->UseTProxyMode)){$this->UseTProxyMode=0;}
 		if(!is_numeric($this->EnableSquidCSV)){$this->EnableSquidCSV=0;}
 		if(!is_numeric($this->EnableKerberosAuthentication)){$this->EnableKerberosAuthentication=0;}
+		if(!is_numeric($this->EnableSplashScreen)){$this->EnableSplashScreen=0;}
 		if($this->EnableKerberosAuthentication==1){$this->EnableKerbAuth=0;}
 		$users=new usersMenus();
 		
@@ -625,7 +628,9 @@ class squidbee{
 		if($this->EnableChangeRequestSize==null){$this->EnableChangeRequestSize="0";}
 		if($this->enable_cicap==null){$this->enable_cicap=0;}
 		if($this->listen_port==null){$this->listen_port=3128;}
-		if($this->visible_hostname==null){$this->visible_hostname="proxyweb";}
+		if($this->visible_hostname=="proxyweb"){$this->visible_hostname=null;}
+		if($this->visible_hostname==null){if(class_exists("unix")){$unix=new unix();$this->visible_hostname=$unix->hostname_g();}}
+		if($this->visible_hostname==null){$this->visible_hostname=$users->hostname;}
 		if($this->LDAP_AUTH==null){$this->LDAP_AUTH=0;}
 		if($this->NTLM_AUTH==null){$this->NTLM_AUTH=0;}
 		if($this->enable_kavproxy==null){$this->enable_kavproxy=0;}
@@ -826,6 +831,55 @@ class squidbee{
 		
 	}
 	
+	private function external_acl_helper_splash_screen(){
+		if($this->EnableSplashScreen==0){return;}
+		if(!$this->ASROOT){return;}
+		$squid_ext_session_acl_path=$this->squid_ext_session_acl_path();
+		if(!is_file($squid_ext_session_acl_path)){return "#SplashScreen unable to stat ext_session_acl path\n";}
+		$sock=new sockets();
+		$unix=new unix();
+		$array=unserialize(base64_decode($sock->GET_INFO("SplashScreenParams")));
+		if(!is_numeric($array["CACHE_TIME"])){$array["CACHE_TIME"]=120;}
+		if($this->is_auth()){$L[]="%LOGIN";}
+		$L[]="%SRC";
+		if($this->ACL_ARP_ENABLED){$L[]="%SRCEUI48";}
+		$L[]="%>{X-Forwarded-For}";
+		
+		if($this->IS_32){$ipv4=" ipv4";}		
+		
+		$ExternSession[]="external_acl_type SplashScreenSessionsDef concurrency=100 ttl=3";
+		$ExternSession[]=@implode(" ", $L);
+		$ExternSession[]=$squid_ext_session_acl_path;
+		$ExternSession[]="-a -T 10800 -b /var/lib/squid/SplashScreenSessions/";
+		
+		
+		$ExternActive[]="external_acl_type SplashScreenActiveDef concurrency=100 ttl=3";
+		$ExternActive[]=@implode(" ", $L);
+		$ExternActive[]=$squid_ext_session_acl_path;
+		$ExternActive[]="-a -T 10800 -b /var/lib/squid/SplashScreenSessions/";		
+		@mkdir("/var/lib/squid/SplashScreenSessions",0755,true);
+		$unix->chown_func("squid","squid", "/var/lib/squid/SplashScreenSessions/*");
+		$f[]="\n#----------- Splash Screen authentication mode ----------------";
+		$f[]=@implode(" ", $ExternSession);
+		$f[]="acl SplashScreenSessionAcl external SplashScreenSessionsDef LOGIN";
+		$f[]=@implode(" ", $ExternActive);
+		$f[]="acl SplashScreenActiveAcl external SplashScreenActiveDef";
+		$f[]="external_acl_type SplashScreenAuthDef ttl={$array["CACHE_TIME"]} negative_ttl={$array["CACHE_TIME"]} children-startup=5 children-idle=5$ipv4 ".@implode(" ", $L)." %URI /usr/share/artica-postfix/external_acl_squid.php --splash";
+		$f[]="acl SplashScreenAuthAcl external SplashScreenAuthDef";
+		$f[]="acl SplashPage dstdomain .artica.fr";
+		$f[]="deny_info http://www.artica.fr SplashScreenActiveAcl";
+		$f[]="#-----------------------------------------------------------------\n";
+		$accesses[]="# ------ SplashScreen Rules ------";
+		$accesses[]="http_access allow SplashPage";
+		$accesses[]="http_access allow SplashScreenAuthAcl SplashScreenSessionAcl";
+		$accesses[]="http_access deny !SplashPage !SplashScreenActiveAcl";
+		$accesses[]="#\n";
+		
+		$GLOBALS["HTTP_ACCESS"]["SPLASH"]=@implode("\n", $accesses);
+		return @implode("\n", $f);
+	}
+	
+
 	
 	private function external_acl_helper(){
 		$q=new mysql_squid_builder();
@@ -1276,8 +1330,21 @@ function SaveToLdap($norestart=false){
 		}
 		
 		
-		
-		
+		private function squid_ext_session_acl_path(){
+			if(is_file('/lib/squid3/ext_session_acl')){return '/lib/squid3/ext_session_acl';}
+			if(is_file('/usr/lib/squid3/ext_session_acl')){return '/usr/lib/squid3/ext_session_acl';}
+			if(is_file('/usr/lib64/squid3/ext_session_acl')){return '/usr/lib64/squid3/ext_session_acl';}
+			if(is_file('/lib/squid3/ext_session_acl')){return '/lib/squid3/ext_session_acl';}
+			if(is_file('/lib64/squid3/ext_session_acl')){return '/lib64/squid3/ext_session_acl';}
+			if(is_file('/usr/lib/squid/ext_session_acl')){return '/usr/lib/squid/ext_session_acl';}
+			if(is_file('/usr/lib/squid/ext_session_acl')){return '/usr/lib/squid/ext_session_acl';}
+			if(is_file('/usr/lib64/squid/ext_session_acl')){return '/usr/lib64/squid/ext_session_acl';}
+			if(is_file('/usr/lib64/squid/ext_session_acl')){return '/usr/lib64/squid/ext_session_acl';}
+			if(is_file('/usr/local/lib/squid/ext_session_acl')){return '/usr/local/lib/squid/ext_session_acl';}
+			if(is_file('/usr/local/lib64/squid/ext_session_acl')){return '/usr/local/lib64/squid/ext_session_acl';}
+			if(is_file('/opt/artica/libexec/ext_session_acl')){return '/opt/artica/libexec/ext_session_acl';} 				
+		}
+	
 		
 		private function ACL_BANNED_COMPUTERS_IP(){
 			@file_put_contents("/etc/squid3/banned-computers-by-mac.acl","");
@@ -2543,6 +2610,7 @@ function BuildSquidConf(){
 		if($this->hasProxyTransparent==1){$this->LDAP_AUTH=0;$this->NTLM_AUTH=0;}
 		$squid_sessions_builder=$this->squid_sessions_builder();
 		$conf=$conf.  $this->external_acl_helper_MacToUid();
+		$conf=$conf.  $this->external_acl_helper_splash_screen();
 		$conf=$conf . $this->ntlm_auth_conf();
 		$conf=$conf . $this->ldap_auth_conf();
 		$conf=$conf . $this->krb_auth_conf();
@@ -3400,7 +3468,8 @@ function BuildSquidConf(){
 				echo "Starting......: Squid : ACL Engine tcp_outgoing_tos No rules..\n";
 			}	
 			if(isset($GLOBALS["HTTP_ACCESS"]["QUOTAS"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["QUOTAS"];}
-			
+			if(isset($GLOBALS["HTTP_ACCESS"]["SPLASH"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["SPLASH"];}
+					
 			
 			
 			

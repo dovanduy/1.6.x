@@ -75,6 +75,7 @@ if($argv[1]=="--remove-cache"){remove_cache($argv[2]);die();}
 if($argv[1]=="--rotate"){rotate_logs();die();}
 if($argv[1]=="--replicate"){remote_appliance_restore_tables();die();}
 if($argv[1]=="--banddebug"){bandwithdebug();die();}
+if($argv[1]=="--acls"){output_acls();die();}
 
 // $EnableRemoteStatisticsAppliance -> Le proxy est un client.
 // $EnableWebProxyStatsAppliance -> Le serveur est un serveur de statistiques.
@@ -252,6 +253,7 @@ function CheckFilesAndSecurity(){
 	$chown=$unix->find_program("chown");
 	$squid_user=SquidUser();
 	$ln=$unix->find_program("ln");
+	$rm=$unix->find_program("rm");
 	if(!is_dir("/var/logs")){@mkdir("/var/logs",0755,true);}
 	
 	if(!is_dir("/var/cache/squid/00")){
@@ -302,6 +304,7 @@ function CheckFilesAndSecurity(){
 	$ssl_crtd=locate_ssl_crtd();
 	if(!is_file("/var/lib/ssl_db/index.txt")){
 		if(is_file($ssl_crtd)){
+			if(is_dir("/var/lib/ssl_db")){shell_exec("$rm -rf /var/lib/ssl_db");}
 			shell_exec("$ssl_crtd -c -s /var/lib/ssl_db");
 			$unix->chown_func($squid_user, $squid_user,"/var/lib/ssl_db/*");
 		}else{
@@ -387,6 +390,7 @@ function Reload_Squid(){
 	
 	$oldpid=$unix->get_pid_from_file($PidFile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "Starting......: Squid : Another artica script runnin pid $oldpid, aborting ...\n";
 		WriteToSyslogMail("Reload_Squid():: Another artica script runnin pid $oldpid, aborting ...", basename(__FILE__));
 		return;
 	}
@@ -397,6 +401,7 @@ function Reload_Squid(){
 		if(!is_file($GLOBALS["SQUIDBIN"])){$GLOBALS["SQUIDBIN"]=$unix->find_program("squid3");}
 	}
 	
+	echo "Starting......: Squid : Checking transparent mode..\n";
 	shell_exec("$php5 ". dirname(__FILE__)."/exec.squid.transparent.php");
 
 	$pid=$unix->get_pid_from_file("/var/run/squid.pid");
@@ -404,14 +409,17 @@ function Reload_Squid(){
 		@unlink($TimeFile);
 		@file_put_contents($TimeFile, time());
 		@file_put_contents($PidFile, getmypid());
+		echo "Starting......: Squid : Squid is not running, start it\n";
 		WriteToSyslogMail("Reload_Squid():: Squid is not running, start it...", basename(__FILE__));
 		shell_exec("/etc/init.d/artica-postfix start squid-cache");
 	}
 	
-	
+	if(!$GLOBALS["FORCE"]){
 	if($TimeMin<$SquidCacheReloadTTL){
+		echo "Starting......: Squid : Reload squid aborted, need at least {$SquidCacheReloadTTL}mn current {$TimeMin}mn\n";
 		WriteToSyslogMail("Reload_Squid():: Reload squid aborted, need at least {$SquidCacheReloadTTL}mn current {$TimeMin}mn", basename(__FILE__));
 		return;
+		}
 	}
 	
 	@unlink($TimeFile);
@@ -690,7 +698,7 @@ function kernel_values(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.kernel-tuning.php >/dev/null 2>&1 &";	
+	$cmd="$php5 /usr/share/artica-postfix/exec.kernel-tuning.php --squid";	
 }
 
 function security_limit(){
@@ -722,12 +730,17 @@ function ApplyConfig($smooth=false){
 	}else{
 		echo "Starting......: Squid ulimit no such binary...\n"; 
 	}
+	
+	echo "Starting......: Squid apply kernel settings\n"; 
+	kernel_values();
+	echo "Starting......: Squid apply Checks security limits\n"; 
 	security_limit();
+	
 	remote_appliance_restore_tables();
 	
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
-	kernel_values();
+	
 	$squid=new squidbee();
 	
 	
@@ -2059,6 +2072,12 @@ function bandwithdebug(){
 	ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
 	$ban=new squid_bandwith_builder();
 	echo $ban->compile();
+}
+
+function output_acls(){
+	$q=new squidbee();
+	$acls=new squid_acls_groups();
+	echo "\n\n-----------------\n".$acls->buildacls_order()."\n-----------------\n\n";
 }
 
 

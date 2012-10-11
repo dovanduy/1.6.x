@@ -30,7 +30,7 @@ function GreensqlDaemonsSettings(){
 	
 	$sql="SELECT frontend_ip,frontend_port FROM proxy WHERE proxyid=1";
 	$q=new mysql();	
-	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'greensql'));	
 	@file_put_contents("/etc/artica-postfix/settings/Mysql/GreenIP", $ligne["frontend_ip"]);
 	@file_put_contents("/etc/artica-postfix/settings/Mysql/GreenPort", $ligne["frontend_port"]);	
 }

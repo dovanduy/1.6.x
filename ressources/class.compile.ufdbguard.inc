@@ -110,11 +110,19 @@ class compile_ufdbguard{
 		if($datas["listen_addr"]==null){$datas["listen_addr"]="127.0.0.1";}
 		if(!is_numeric($datas["listen_port"])){$datas["listen_port"]="3977";}
 		if(!is_numeric($datas["tcpsockets"])){$datas["tcpsockets"]=0;}
+		echo "Starting......: ufdbguardd: Major:$major, Minor:$minor\n";
+		
+		if($this->EnableWebProxyStatsAppliance==1){
+			if($datas["listen_addr"]=="127.0.0.1"){
+				echo "Starting......: ufdbguardd: Listen all addresses and not 127.0.0.1\n";
+				$datas["listen_addr"]="all";
+			}
+		}
 
 		$unix=new unix();
 		$major=$unix->UFDBGUARDD_MAJOR();
 		$minor=$unix->UFDBGUARDD_MINOR();
-		echo "Starting......: ufdbguardd: Major:$major, Minor:$minor\n";
+		
 		
 		if($major>0){if($minor>26){$datas["tcpsockets"]=1;}}
 		
@@ -160,7 +168,7 @@ class compile_ufdbguard{
 		$conf[]="logblock on";
 		$conf[]="logall {$ufdbguardConfig["DebugAll"]}";
 		$conf[]="ufdb-debug-filter {$ufdbguardConfig["DebugAll"]}";
-		$conf[]="strip-domain-from-username {$ufdbguardConfig["strip-domain-from-username"]}";
+		if($ufdbguardConfig["strip-domain-from-username"]=="on"){$conf[]="strip-domain-from-username on";}
 		$conf[]="max-logfile-size  20000000";
 		$conf[]="analyse-uncategorised-urls off";
 		$conf[]="ufdb-show-url-details on";
@@ -844,6 +852,18 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 
 	}
 	
+	private function build_acls_uriFromRuleID($ID){
+		$RedirectUriDEF="$this->SquidGuardIPWeb";
+		$q=new mysql_squid_builder();
+		$sql="SELECT ExternalWebPage,UseExternalWebPage FROM webfilter_rules WHERE ID=$ID";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if($ligne["UseExternalWebPage"]==0){return $RedirectUriDEF;}
+		if(trim($ligne["ExternalWebPage"])==null){return $RedirectUriDEF;}
+		if(!preg_match("#^http.*?:#",$ligne["ExternalWebPage"])){return $RedirectUriDEF;}
+		return $ligne["ExternalWebPage"];
+	}
+	
+	
 	function build_acls(){
 		$allows=array();
 		$banns=array();		
@@ -858,6 +878,15 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$bannedRegexP=null;	
 		if($GLOBALS["EnableGoogleSafeSearch"]==1){$this->DansGuardianDefaultMainRule["GoogleSafeSearch"]=0;}
 		$MyRuleGoogleSafeSearch=$this->DansGuardianDefaultMainRule["GoogleSafeSearch"];	
+		if(!isset($this->DansGuardianDefaultMainRule["endofrule"])){$this->DansGuardianDefaultMainRule["endofrule"]="any";}
+		if(!isset($this->DansGuardianDefaultMainRule["UseExternalWebPage"])){$this->DansGuardianDefaultMainRule["UseExternalWebPage"]=0;}
+		if(!isset($this->DansGuardianDefaultMainRule["ExternalWebPage"])){$this->DansGuardianDefaultMainRule["ExternalWebPage"]=null;$this->DansGuardianDefaultMainRule["UseExternalWebPage"]=0;}
+		if($this->DansGuardianDefaultMainRule["ExternalWebPage"]==null){$this->DansGuardianDefaultMainRule["UseExternalWebPage"]=0;}
+		
+
+		
+		$endofrule=$this->DansGuardianDefaultMainRule["endofrule"];
+		if($endofrule<>null){$endofrule=" $endofrule";}
 		
 		if($this->SquidGuardWebUseExternalUri==0){
 			if(!preg_match("#^http.*?\/\/#",$this->SquidGuardIPWeb)){
@@ -865,6 +894,14 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				if(!preg_match("#squidguard\.php#",$this->SquidGuardIPWeb)){$this->SquidGuardIPWeb=$this->SquidGuardIPWeb."/exec.squidguard.php?$redirect_pattern";}
 			}		
 		}
+		
+		$RedirectUriDEF="$this->SquidGuardIPWeb";
+		if($this->DansGuardianDefaultMainRule["UseExternalWebPage"]==1){
+			if(preg_match("#^http.*?:#", $this->DansGuardianDefaultMainRule["ExternalWebPage"])){
+				$RedirectUriDEF=$this->DansGuardianDefaultMainRule["ExternalWebPage"];
+			}
+		}		
+		
 		
 		$array[]="acl{";
 		$sql="SELECT category,modeblk FROM webfilter_blks WHERE webfilter_id=0";
@@ -949,8 +986,8 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 		$array[]="\t\"default\"$time{";
 		if($rewrite_rules<>null){$array[]=$rewrite_rules;}
-		$array[]="\t\tpass ".trim(@implode(" ", $allows)." $bannedExtDomains$bannedfiles$bannedRegexP".@implode(" ", $banns))." all";
-		$array[]="\t\tredirect $this->SquidGuardIPWeb?$redirect_pattern";
+		$array[]="\t\tpass ".trim(@implode(" ", $allows)." $bannedExtDomains$bannedfiles$bannedRegexP".@implode(" ", $banns)).$endofrule;
+		$array[]="\t\tredirect $RedirectUriDEF?$redirect_pattern";
 		$array[]="\t}";	
 		$bannedfiles=null;
 		if(is_array($GLOBALS["SRC"])){
@@ -961,6 +998,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				$time=null;
 				$else=null;
 				echo "Starting......: ufdbGuard rule `$groupname`\n";
+				$URI=$this->build_acls_uriFromRuleID($RULE_ID);
 				
 				if($GLOBALS["TIMESRULES"][$RULE_ID]["MATCH"]<>null){
 						$time=" {$GLOBALS["TIMESRULES"][$RULE_ID]["MATCH"]} timeR{$RULE_ID} ";
@@ -977,12 +1015,15 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				$groupname=str_replace(" ", "-", $groupname);
 				$compile_categories_fromruleid=$this->compile_categories_fromruleid($RULE_ID);
 				$compile_rewriterules_fromruleid=$this->compile_rewriterules_fromruleid($RULE_ID);
-				$redirect_pattern="rule-id=$RULE_ID&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
+
+				$redirect_pattern="?rule-id=$RULE_ID&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
+				$RedirectUri=$this->build_acls_uriFromRuleID($RULE_ID);
+				if($RedirectUri<>$this->SquidGuardIPWeb){$redirect_pattern=null;}
 				
 				$array[]="\t\"$groupname\"$time{";
 				if($compile_rewriterules_fromruleid<>null){$array[]=$compile_rewriterules_fromruleid;}
 				if($compile_categories_fromruleid<>null){$array[]=$compile_categories_fromruleid;}
-				$array[]="\t\tredirect $this->SquidGuardIPWeb?$redirect_pattern";
+				$array[]="\t\tredirect $RedirectUri$redirect_pattern";
 				$array[]="\t}$else\n";	
 			}
 			
@@ -1148,17 +1189,18 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$allows=array();
 		$banns=array();
 		if(!isset($GLOBALS["EnableGoogleSafeSearch"])){$sock=new sockets();$GLOBALS["EnableGoogleSafeSearch"]=$sock->GET_INFO("EnableGoogleSafeSearch");if(!is_numeric($GLOBALS["EnableGoogleSafeSearch"])){$GLOBALS["EnableGoogleSafeSearch"]=1;}}
-		$sql="SELECT GoogleSafeSearch,groupmode FROM webfilter_rules WHERE ID='$RULE_ID'";
+		$sql="SELECT GoogleSafeSearch,groupmode,endofrule FROM webfilter_rules WHERE ID='$RULE_ID'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if($ligne["groupmode"]==0){
 			echo "Starting......: ufdbGuard rule:$RULE_ID deny all users...\n";
 			return "\t\tpass none";
 		}
-		
+		$endofrule=$ligne["endofrule"];
+		if($endofrule<>null){$endofrule=" $endofrule";}
 		if($GLOBALS["EnableGoogleSafeSearch"]==1){$ligne["GoogleSafeSearch"]=0;}
 		$MyRuleGoogleSafeSearch=$ligne["GoogleSafeSearch"];
 		
-		
+			
 		
 		$sql="SELECT * FROM webfilter_blks WHERE webfilter_id=$RULE_ID";
 		$q=new mysql_squid_builder();
@@ -1215,7 +1257,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 			$banns[]="!safesearch";
 		}
 			
-		return "\t\tpass ".trim(@implode(" ", $allows)."$bannedExtDomains$bannedfiles$bannedRegexP ".@implode(" ", $banns))." all";
+		return "\t\tpass ".trim(@implode(" ", $allows)."$bannedExtDomains$bannedfiles$bannedRegexP ".@implode(" ", $banns)).$endofrule;
 		
 	}
 	

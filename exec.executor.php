@@ -216,7 +216,6 @@ die();
 
 function stats_console(){
 	$array[]="exec.admin.smtp.flow.status.php";
-	$array[]="exec.postfix-logger.php --postfix";
 	$array[]="exec.postfix.iptables.php";
 	
 	

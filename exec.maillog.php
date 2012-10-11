@@ -21,7 +21,7 @@ include_once(dirname(__FILE__).'/ressources/class.amavis.maillog.inc');
 events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after includes class.amavis.maillog.inc line: ".__LINE__);
 
 //Jun 29 14:53:54 ns214639 postfix-outbond-167-33.ultranavy.info/smtpd[23815]: warning: SASL authentication failure: cannot connect to saslauthd server: No such file or directory 
-
+@mkdir("/var/log/artica-postfix/MGREYSTATS");
 $set=new settings_inc();
 $GLOBALS["CLASS_SETTINGS"]=$set;
 if($set->cyrus_imapd_installed){
@@ -406,6 +406,9 @@ if(preg_match("#qmgr\[.+?: removed#",$buffer)){return null;}
 if(preg_match("#cyrus\/lmtp\[.+?Delivered#",$buffer)){return null;}
 if(preg_match("#ESMTP::.+?\/var\/amavis\/tmp\/amavis#",$buffer)){return null;}
 if(preg_match("#zarafa-dagent.+?Client disconnected#",$buffer)){return null;}
+if(strpos($buffer, "MGREYSTATS")>0){$md5=md5($buffer);@file_put_contents("/var/log/artica-postfix/MGREYSTATS/$md5", $buffer);return;}
+
+
 
 
 if(preg_match("#postfix-script\[.+?: the Postfix mail system is not running#", $buffer)){

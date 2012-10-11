@@ -29,6 +29,7 @@ class squid_acls{
 
 	
 	public function Build_Acls(){
+		echo "Starting......: Squid : Building ACLS (patched on 2012-10-08)\n";
 		$this->Build_Acls_Groups();
 		$this->Build_Acls_time();
 	}
@@ -54,8 +55,17 @@ class squid_acls{
 				continue;
 			}
 			
+			if($ligne["GroupType"]=="arp"){
+				if(!$this->ACL_ARP_ENABLED){
+					echo "Starting......: !! *****\n";
+					echo "Starting......: Squid : ACL Engine Group: $acls_name `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} will be not available (ARP is not compiled)\n";
+					echo "Starting......: !! *****\n";
+				}
+			}			
+			
 			if($ligne["GroupType"]=="proxy_auth_ads"){
 				if($this->EnableKerbAuth==0){echo "Starting......: Squid : `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP EnableKerbAuth = 0\n";continue;}
+				echo "Starting......: Squid : ACL Engine Group `{$ligne["GroupName"]}` - {$ligne["ID"]}: $acls_name is available\n";
 				$this->availableGroups[$ligne["ID"]]=true;
 				$this->acls_array[]="acl $acls_name external ads_group ". utf8_encode($ligne["GroupName"]);
 				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
@@ -63,24 +73,32 @@ class squid_acls{
 				continue;				
 			}
 			if($ligne["GroupType"]=="proxy_auth"){
-				if($this->AUTH==0){echo "Starting......: Squid : `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP AUTH = 0\n";continue;}				
+				if($this->AUTH==0){
+					echo "Starting......: Squid : `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP AUTH = 0\n";
+					continue;
+				}				
 				
+			}
+			if($ligne["GroupType"]=="browser"){
+				$ligne["GroupType"]="browser -i";
 			}
 			
 			
 			
 			$AclsItemsCount=$this->buildItems($ligne["ID"],$ReturnFirstValue);
-			echo "Starting......: Squid : ACL Engine Group: $acls_name `{$ligne["GroupName"]}` $AclsItemsCount item(s)\n";	
+			echo "Starting......: Squid : ACL Engine Group: $acls_name `{$ligne["GroupName"]}` `$AclsItemsCount` item(s)\n";	
 			
 			
 			if($AclsItemsCount>0){
-				if($ligne["GroupType"]=="arp"){if(!$this->ACL_ARP_ENABLED){echo "Starting......: Squid : ACL Engine Group: $acls_name `{$ligne["GroupName"]}` ARP is not compiled, skipping\n";continue;}}
 				$this->availableGroups[$ligne["ID"]]=true;
 				echo "Starting......: Squid : ACL Engine Group: $acls_name is available\n";
 				$this->acls_array[]="acl $acls_name {$ligne["GroupType"]} \"/etc/squid3/acls/container_{$ligne["ID"]}.txt\" ";
 				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
 				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
-				
+			}else{
+				echo "Starting......: !! *****\n";
+				echo "Starting......: Squid : ACL Engine Group: $acls_name `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} will be not available (no item)\n";
+				echo "Starting......: !! *****\n";
 			}
 		}
 	}
@@ -141,7 +159,7 @@ class squid_acls{
 	
 	public function build_http_access(){
 		$this->build_http_access_time();
-		echo "Starting......: Squid : ACL Engine Rules ". count($this->http_access)." items\n"; 
+		echo "Starting......: Squid : build_http_access() ACL Engine Rules ". count($this->http_access)." items\n"; 
 		return $this->http_access;
 		
 	}
@@ -174,8 +192,11 @@ class squid_acls{
 			if($GroupeType=="arp"){
 				$ligne["pattern"]=str_replace("-", ":", $ligne["pattern"]);
 			}
+			if($GroupeType=="src"){
+				if(trim($ligne["pattern"])=="0.0.0.0/0"){$ligne["pattern"]="all";}
+				if(trim($ligne["pattern"])=="0.0.0.0"){$ligne["pattern"]="all";}
+			}
 			
-	
 			
 			
 			if(isset($already[$ligne["pattern"]])){continue;}

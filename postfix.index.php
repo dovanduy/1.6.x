@@ -665,7 +665,9 @@ function antispam_popup(){
 	$users->LoadModulesEnabled();
 	$sock=new sockets();
 	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
+	$EnableArticaSMTPFilter=0;
 	$EnableArticaPolicyFilter=$sock->GET_INFO("EnableArticaPolicyFilter");
+	$EnableArticaPolicyFilter=0;
 	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 	$amavis=Paragraphe_switch_disable('{enable_amavis}','{feature_not_installed}','{feature_not_installed}');
 	$amavis_disabled=Paragraphe_switch_disable('{enable_amavis}','{feature_not_installed}','{feature_not_installed}');
@@ -688,8 +690,8 @@ function antispam_popup(){
 		}
 	}
 	
-	$artica=Paragraphe_switch_img('{enable_artica_filter}','{enable_artica_filter_text}','EnableArticaSMTPFilter',$EnableArticaSMTPFilter,'{enable_disable}',290);
-	$artica_policy=Paragraphe_switch_img('{enable_artica_policy}','{enable_artica_policy_text}','EnableArticaPolicyFilter',$EnableArticaPolicyFilter,'{enable_disable}',290);
+	//$artica=Paragraphe_switch_img('{enable_artica_filter}','{enable_artica_filter_text}','EnableArticaSMTPFilter',$EnableArticaSMTPFilter,'{enable_disable}',290);
+	//$artica_policy=Paragraphe_switch_img('{enable_artica_policy}','{enable_artica_policy_text}','EnableArticaPolicyFilter',$EnableArticaPolicyFilter,'{enable_disable}',290);
 	
 	
 	if($users->ASSP_INSTALLED){
@@ -1881,6 +1883,7 @@ function Transport_rules(){
 	$users=new usersMenus();
 	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
+	$EnableArticaSMTPFilter=0;
 	
 	$failedtext="{ERROR_NO_PRIVILEGES_OR_PLUGIN_DISABLED}";
 	$network=Buildicon64('DEF_ICO_POSTFIX_NETWORK');

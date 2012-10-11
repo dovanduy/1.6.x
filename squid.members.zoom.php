@@ -566,9 +566,9 @@ function what_popup(){
 	}	
 	
 	if(preg_match("#_(week|day)#", $tableQuery)){
-			$MyMonthText="&raquo;".$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($_GET["table"]));
+			$MyMonthText="&raquo;".$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($tableQuery));
 			if(preg_match("#_(day)#", $tableQuery)){
-				$MyMonthText="&raquo;".$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
+				$MyMonthText="&raquo;".$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($tableQuery));
 			}
 		}
 	

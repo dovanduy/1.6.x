@@ -523,6 +523,7 @@ private function restrict_relay_domains(){
 		$users=new usersMenus();
 		$sock=new sockets();
 		$EnableArticaPolicyFilter=$sock->GET_INFO("EnableArticaPolicyFilter");
+		$EnableArticaPolicyFilter=0;
 		$EnableCluebringer=$sock->GET_INFO("EnableCluebringer");
 		$array_filters=unserialize(base64_decode($this->GET_BIGDATA("PluginsEnabled")));
 		if($array_filters["APP_POSTFWD2"]==1){
@@ -578,6 +579,7 @@ private function restrict_relay_domains(){
 		$sock=new sockets();
 		$users=new usersMenus();
 		$EnableArticaPolicyFilter=$sock->GET_INFO("EnableArticaPolicyFilter");
+		$EnableArticaPolicyFilter=0;
 		if(!is_numeric($EnableArticaPolicyFilter)){$EnableArticaPolicyFilter=0;}
 		$EnableAmavisDaemon=$users->EnableAmavisDaemon;
 		if(!$users->AMAVIS_INSTALLED){$EnableAmavisDaemon=0;}
@@ -1049,6 +1051,11 @@ private function recipient_bcc_domain_maps(){
 	}
 	
 	public function mailman_transport($array=array()){
+		$sock=new sockets();
+		$EnableMailman=$sock->GET_INFO("EnableMailman");
+		if(!is_numeric($EnableMailman)){$EnableMailman=0;}
+		if($EnableMailman==0){return $array;}
+		
 		$q=new mysql();
 		$CountDeMailMan=0;
 		$f[]="admin";
@@ -1061,6 +1068,9 @@ private function recipient_bcc_domain_maps(){
 		$f[]="subscribe";
 		$f[]="unsubscribe";
 		
+		if(!isset($GLOBALS["MYDOMAINS"])){$ldap=new clladp();$GLOBALS["MYDOMAINS"]=$ldap->AllDomains();}
+		$MYDOMAINS=$GLOBALS["MYDOMAINS"];
+		
 		
 		$sql="SELECT `list`,`emailhost`,`mangle` FROM mailmaninfos WHERE `delete`=0";
 		$results = $q->QUERY_SQL($sql,'artica_backup');
@@ -1071,10 +1081,16 @@ private function recipient_bcc_domain_maps(){
 				reset($f);
 				while (list ($index, $prefix) = each ($f) ){
 					if($GLOBALS["VERBOSE"]){echo "{$ligne["list"]}-$prefix@{$ligne["emailhost"]} -> mailman:\n";}
-					$array["{$ligne["list"]}-$prefix@{$ligne["emailhost"]}"]="mailman:";}
+					$array["{$ligne["list"]}-$prefix@{$ligne["emailhost"]}"]="mailman:";
+				}
 				continue;
 			}
 			if($GLOBALS["VERBOSE"]){echo "{$ligne["emailhost"]} -> mailman:\n";}
+			
+			if(isset($MYDOMAINS[$ligne["emailhost"]])){
+				if($this->AS_ROOT){echo "{$ligne["emailhost"]} cannot be a mailman list because it be handle by an organization !!!\n";}
+				continue;
+			}
 			$array[$ligne["emailhost"]]="mailman:";
 			$CountDeMailMan++;
 		}
@@ -2818,7 +2834,10 @@ private function smtp_sasl_password_map(){
 			$EnableSubmission=$this->GET("EnableSubmission");
 			$EnablePostScreen=$this->GET("EnablePostScreen");
 			$PostfixMasterEnableSSL=$this->GET("PostfixMasterEnableSSL");
+			
 			$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
+			$EnableArticaSMTPFilter=0;
+			
 			$array_filters=unserialize(base64_decode($this->GET_BIGDATA("PluginsEnabled")));
 			$PostFixEnableAiguilleuse=$this->GET("PostFixEnableAiguilleuse");
 			$amavis[]="";
@@ -2836,7 +2855,13 @@ private function smtp_sasl_password_map(){
 			if(isset($array_filters["APP_ARTICA_FILTER"])){if($EnableArticaSMTPFilter==1){$array["APP_ARTICA_FILTER"]=$array_filters["APP_ARTICA_FILTER"];}}else{$array["APP_ARTICA_FILTER"]=0;}
 			if($array["APP_ARTICA_FILTER"]==null){$array["APP_ARTICA_FILTER"]=0;}
 			if($PostFixEnableAiguilleuse==1){$array["APP_ARTICA_FILTER"]=1;}
-				
+			
+			$PostFixEnableAiguilleuse=0;
+			
+			if($array["APP_ARTICA_FILTER"]==1){
+				$sock->SET_INFO("EnableArticaSMTPFilter",0);
+				$PostFixEnableAiguilleuse=0;
+			}
 			
 			
 			$artica[]="";

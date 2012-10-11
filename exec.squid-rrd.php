@@ -29,7 +29,11 @@ function squidrrd(){
 	@unlink($timefile1);
 	
 	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed PID $oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
+	
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+			writelogs("Already executed PID $oldpid",__FUNCTION__,__FILE__,__LINE__);
+			return;
+	}
 	@file_put_contents($pidfile, getmypid());
 	
 	$f=explode("\n", @file_get_contents("/etc/squid3/squid.conf"));

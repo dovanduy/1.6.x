@@ -2309,7 +2309,12 @@ function Check_smtp_logs_table(){
 			`line` INT( 10 ) NOT NULL ,
 			`category` VARCHAR( 50 ) NOT NULL ,
 			`TASKID` BIGINT( 100 ) NOT NULL ,
-			INDEX ( `zDate` , `function` , `filename` , `line` , `category`,`TASKID` )
+			KEY  `zDate` ( `zDate`),
+			KEY `function` (`function`),
+			KEY `filename` (`filename`),
+			KEY `line` (`line`),
+			KEY `TASKID` (`TASKID`), 
+			KEY `category` (`category`)
 			)";		
 		$this->QUERY_SQL($sql,'artica_events');
 		if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}

@@ -1,9 +1,9 @@
 <?php
-include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
-include_once(dirname(__FILE__) . '/ressources/class.user.inc');
-include_once(dirname(__FILE__) . '/ressources/class.mysql.inc');
-include_once(dirname(__FILE__) . '/ressources/class.maincf.multi.inc');
-include_once(dirname(__FILE__) . '/ressources/class.main_cf.inc');
+include_once(dirname(__FILE__) . '/class.ldap.inc');
+include_once(dirname(__FILE__) . '/class.user.inc');
+include_once(dirname(__FILE__) . '/class.mysql.inc');
+include_once(dirname(__FILE__) . '/class.maincf.multi.inc');
+include_once(dirname(__FILE__) . '/class.main_cf.inc');
 
 
 

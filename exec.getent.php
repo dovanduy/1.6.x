@@ -52,6 +52,7 @@ function samba_domains_info(){
 		if(strtolower($array["Primary"])=="yes"){$array["Primary"]=1;}else{$array["Primary"]=0;}
 		if(strtolower($array["AD"])=="yes"){$array["AD"]=1;}else{$array["AD"]=0;}
 		if(strtolower($array["Native"])=="yes"){$array["Native"]=1;}else{$array["Native"]=0;}
+		if(!isset($array["Alt_Name"])){$array["Alt_Name"]=null;}
 		$sql="INSERT IGNORE INTO samba_domains_info (`domain`,`Alt_Name`,`SID`,`AD`,`Native`,`Primary`) 
 		VALUES('$domain','{$array["Alt_Name"]}','{$array["SID"]}',{$array["AD"]},{$array["Native"]},{$array["Primary"]})";
 		if($GLOBALS["VERBOSE"]){echo $sql."\n";}
@@ -235,6 +236,9 @@ if(count($sql)>1){
 
 function ActiveDirectoryGroups(){
 	$unix=new unix();
+	$gps=array();
+	$uids=array();
+	$function=__FUNCTION__;
 	$wbinfo=$unix->find_program("wbinfo");	
 	$results=array();
 	if(!is_file($wbinfo)){
@@ -246,7 +250,7 @@ function ActiveDirectoryGroups(){
 	if(!$q->TABLE_EXISTS("activedirectoryusers", "artica_backup")){$q->BuildTables();}
 	
 	exec("$wbinfo -g 2>&1",$results);	
-	if($GLOBALS["VERBOSE"]){echo "$wbinfo -g return ". count($results)." items\n";}
+	if($GLOBALS["VERBOSE"]){echo "$function:: $wbinfo -g return ". count($results)." items\n";}
 	
 	while (list ($num, $group) = each ($results) ){
 		$array[$group]=ActiveDirectoryUsers($group,$wbinfo);
@@ -259,6 +263,7 @@ function ActiveDirectoryGroups(){
 	
 
 	while (list ($group, $arrayU) = each ($array) ){
+		if($GLOBALS["VERBOSE"]){echo "$function:: loop group=`$group`\n";}
 		if(!isset($arrayU["GPID"])){continue;}
 		$gpid=$arrayU["GPID"];
 		$group=addslashes(utf8_encode($group));

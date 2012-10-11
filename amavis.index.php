@@ -269,6 +269,7 @@ function altermime_popup(){
 	$sock=new sockets();
 	$EnableAlterMime=$sock->GET_INFO('EnableAlterMime');
 	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
+	$EnableArticaSMTPFilter=0;
 	if($EnableArticaSMTPFilter<>1){echo altermime_articafilter_failed();exit;}
 	$level=Paragraphe_switch_img('{activate_disclaimer}',"{altermime_switch}","altermime_enable",$EnableAlterMime,null,280);
 	$tinymce=Paragraphe('icon-html-64.png','{edit_disclaimer}','{edit_disclaimer_text}',"javascript:LoadDisclaimer()");

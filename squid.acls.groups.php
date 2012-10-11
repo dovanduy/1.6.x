@@ -21,7 +21,7 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "<H2>$alert</H2>";
 	die();	
 }
-
+if(isset($_GET["js"])){js();exit;}
 if(isset($_GET["groups-list"])){group_list();exit;}
 if(isset($_GET["AddGroup-js"])){AddGroup_js();exit;}
 if(isset($_GET["EditGroup-popup"])){EditGroup_popup();exit;}
@@ -47,6 +47,15 @@ if(isset($_POST["DeleteItem"])){item_delete();exit;}
 
 
 page();
+
+function js(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$title=$tpl->_ENGINE_parse_body("{proxy_objects}");
+	$html="YahooWin('750','$page?table-width=730&table-heigth=450&GroupName-width=360&GroupType-width=169&table-org={$_GET["toexplainorg"]}','$title')";
+	echo $html;
+	
+}
 
 
 
@@ -438,7 +447,16 @@ function page(){
 	$items=$tpl->_ENGINE_parse_body("{items}");
 	$delete_group_ask=$tpl->javascript_parse_text("{inputbox delete group}");
 	$t=time();		
-
+	$table_width=835;
+	$table_height=350;
+	$GroupName_width=372;
+	$GroupType_width=278;
+	if(isset($_GET["table-width"])){$table_width=$_GET["table-width"];}
+	if(isset($_GET["table-heigth"])){$table_height=$_GET["table-heigth"];}
+	if(isset($_GET["GroupName-width"])){$GroupName_width=$_GET["GroupName-width"];}
+	if(isset($_GET["GroupType-width"])){$GroupType_width=$_GET["GroupType-width"];}
+	
+	
 	$html=$tpl->_ENGINE_parse_body("")."
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
@@ -448,8 +466,8 @@ $('#table-$t').flexigrid({
 	url: '$page?groups-list=yes',
 	dataType: 'json',
 	colModel : [
-		{display: '$description', name : 'GroupName', width : 372, sortable : true, align: 'left'},
-		{display: '$time', name : 'GroupType', width : 278, sortable : true, align: 'left'},
+		{display: '$description', name : 'GroupName', width : $GroupName_width, sortable : true, align: 'left'},
+		{display: '$time', name : 'GroupType', width : $GroupType_width, sortable : true, align: 'left'},
 		{display: '$items', name : 'items', width : 37, sortable : false, align: 'center'},
 		{display: '', name : 'none2', width : 22, sortable : false, align: 'left'},
 		{display: '', name : 'none3', width : 36, sortable : false, align: 'left'},
@@ -468,8 +486,8 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 835,
-	height: 250,
+	width: $table_width,
+	height: $table_height,
 	singleSelect: true
 	
 	});   
@@ -481,6 +499,8 @@ function AddGroup() {
 
 function RefreshSquidGroupTable(){
 	$('#table-$t').flexReload();
+	var tableorg='{$_GET["table-org"]}';
+	if(tableorg.length>3){ $('#'+tableorg).flexReload();}		
 }
 
 
@@ -594,7 +614,8 @@ function item_form_import(){
 	
 	if($GroupType=="src"){
 		$explain="{acl_src_text}";
-		$browse="<input type='button' value='{browse}...' OnClick=\"javascript:Loadjs('squid.BrowseItems.php?field=$t-pattern&type=ipaddr');\" style='font-size:12px'>";
+		$browse="<input type='button' value='{browse}...' 
+		OnClick=\"javascript:Loadjs('squid.BrowseItems.php?field=$t-pattern&type=ipaddr');\" style='font-size:12px'>";
 	}
 	if($GroupType=="arp"){$explain="{ComputerMacAddress}";}
 	if($GroupType=="dstdomain"){$explain="{squid_ask_domain}";}
@@ -603,7 +624,8 @@ function item_form_import(){
 	if($GroupType=="proxy_auth"){
 		
 		if($EnableKerbAuth==1){
-			$browse="<input type='button' value='{browse}...' OnClick=\"javascript:Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=1&OnlyAD=1&OnlyGUID=1');\" style='font-size:12px'>";
+			$browse="<input type='button' value='{browse}...' 
+			OnClick=\"javascript:Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=1&OnlyAD=1&OnlyGUID=1');\" style='font-size:12px'>";
 		}
 		$explain="{acl_proxy_auth_explain}";}
 	
@@ -696,6 +718,10 @@ function item_form(){
 	if($GroupType=="dstdomain"){$explain="{squid_ask_domain}";}
 	if($GroupType=="maxconn"){$explain="{squid_aclmax_connections_explain}";}
 	if($GroupType=="port"){$explain="{acl_squid_remote_ports_explain}";}
+	if($GroupType=="browser"){
+		$explain="{acl_squid_browser_explain}";
+		$browse=button("{list}..","Loadjs('squid.browsers.php?ShowOnly=1')","12px");
+	}
 	
 	
 	

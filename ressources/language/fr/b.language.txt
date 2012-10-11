@@ -13,6 +13,10 @@ Votre compte est pour l'instant inactif.[br]
 Vous devez cliquez sur le lien ci-dessous afin de l'activer.[br]
 %URL[br]
 Une fois cette requ&ecirc;te ex&eacute;cut&eacute;e sur le serveur Web, vous serez en mesure d'afficher votre espace personnel sur  %SERVERNAME.[br]</account_verification_text>
+<acl_squid_browser_explain>Expression r&eacute;guli&egrave;re qui correspond &agrave; un User-Agent dans l'ent&ecirc;te des requ&ecirc;tes Web.[br]
+Exemple:: Mozilla/ ^Keyvelop$ ^ClamWin/ Symbian iP(hone|od).[br]
+Ou Mozilla \(compatible; MSIE\) [br]
+Qui pourrait correspondre aux navigateurs Mozilla et Microsoft</acl_squid_browser_explain>
 <acl_squid_dst_explain>Requ&ecirc;tes vers des adresses IPv4 ou Ipv6.[br]
 Un r&eacute;seau complet comme 172.16.1.0 : &quot;172.16.1.0/24&quot;[br]
 Une adresse IP unique: &quot;172.16.1.25/32&quot; ou &quot;172.16.1.25&quot;[br]
@@ -26,6 +30,8 @@ Vous pouvez aussi indiquer une tranche de port aussi. Exemple : 0-1024</acl_squi
 <ACTIVATE_ANTIVIRUS_SERVICE_TEXT>Active/d&eacute;sactiver le d&eacute;mon Antivirus pour ce type de service</ACTIVATE_ANTIVIRUS_SERVICE_TEXT>
 <ACTIVATE_ANTIVIRUS_WSERVICE_TEXT>Mettre en vert pour activer le service antivirus et faire passer le flux &agrave; l'analyse anti-malwares.[br]En rouge pour d&eacute;sactiver le service et &eacute;teindre le d&eacute;mon antivirus</ACTIVATE_ANTIVIRUS_WSERVICE_TEXT>
 <ACTIVATE_ARKEIA>Activer le service Arkeia</ACTIVATE_ARKEIA>
+<activate_hostpot>Activation du syst&egrave;me de HotSpot</activate_hostpot>
+<activate_hostpot_explain>Si vert, les utilisateurs vont &ecirc;tre redirig&eacute;s vers un service web avant d'acc&eacute;der &agrave; Internet.</activate_hostpot_explain>
 <activate_session_engine>Activer le moteur des sessions</activate_session_engine>
 <activate_this_backend>Activer ce serveur</activate_this_backend>
 <activate_webfilter_engine>Activer le moteur de filtrage Web</activate_webfilter_engine>
@@ -185,6 +191,8 @@ M&ecirc;me dans le cadre de l'utilisation d'un smartphone, d'un poste de travail
 Sarg produit beaucoup d'informations sur l'activit&eacute; des  utilisateurs Internet telles que le temps, le poids, les sites etc...</APP_SARG_TXT>
 <APP_SPAMASSASSIN_TEXT>SpamAssassin est un programme (en Perl) qui fait passer un certain nombre de tests au message.[br] En fonction du r&eacute;sultat de ces tests, il attribue un score au message.[br]
 Si le score d&eacute;passe un certain seuil, le courriel est alors consid&eacute;r&eacute; comme du Spam.</APP_SPAMASSASSIN_TEXT>
+<APP_SPLASHSQUID>Page HotSpot</APP_SPLASHSQUID>
+<APP_SPLASHSQUID_TEXT>La pge HotSpot peut &ecirc;tre utilis&eacute;e avec la fonctionnalit&eacute; HotSpot du proxy.[br]Elle permet de g&eacute;n&eacute;rer une page d'authentification ou un &eacute;cran d'accueil afin d'autoriser l'acc&egrave;s &agrave; Internet.</APP_SPLASHSQUID_TEXT>
 <APP_SQUID0>Squid cache branche 2.7x</APP_SQUID0>
 <APP_SQUID31>Squid Cache 3.1x</APP_SQUID31>
 <APP_SQUID32_REPOS>D&eacute;p&ocirc;t Squid 3.2x</APP_SQUID32_REPOS>
@@ -296,6 +304,7 @@ Toutes les adresses ajout&eacute;es ici seront alors rendues invisibles dans les
 <b>user@domain</br>
 <bricks>Briques</bricks>
 <browser>navigateur</browser>
+<browsers>Navigateurs</browsers>
 <browser_not_supported>Votre navigateur n'est pas support&eacute; ici.</browser_not_supported>
 <browser_not_supported1>Vous utilisez actuellement un navigateur non support&eacute; par l'application</browser_not_supported1>
 <browser_not_supported2>Nous vous sugg&eacute;rons d'utiliser l'un de ceux list&eacute;s ci-dessous afin de continuer.</browser_not_supported2>
@@ -402,6 +411,7 @@ Lancer cette op&eacute;ration ?</clean_memory_ask>
 <clean_now>Lancer la purge maintenant</clean_now>
 <clean_now_for>Purger maintenant pour</clean_now_for>
 <clean_task_logs>Nettoie les logs et fichiers temporaires</clean_task_logs>
+<click_here_price_quote>Cliquez ici pour une demande d'offre de prix</click_here_price_quote>
 <click_to_download>Cliquer pour t&eacute;l&eacute;charger</click_to_download>
 <click_to_install>Cliquer pour installer</click_to_install>
 <client_fqdn>Nom d'h&ocirc;te du client</client_fqdn>
@@ -430,6 +440,8 @@ Faites tr&egrave;s attention &agrave; ce que vous faites &agrave; travers ce for
 <compile_squid_repo>Mise &agrave; jour et compilation de Squid 3.2x</compile_squid_repo>
 <compile_squid_repo_explain>Cette t&acirc;che est en mesure de v&eacute;rifier les derni&egrave;res versions disponibles sur le site squid-cache.org.[br]Si une nouvelle version est disponible, elle sera en mesure de compiler la nouvelle version et de l'installer.[br]C'est &agrave; prendre avec pr&eacute;cautions car aucun tests n'est r&eacute;alis&eacute;s au terme de son ex&eacute;cution.</compile_squid_repo_explain>
 <compile_this_category>Compiler cette cat&eacute;gorie</compile_this_category>
+<compile_tlse_database>Compiler les bases de l'Universit&eacute; de Toulouse</compile_tlse_database>
+<compile_tlse_database_explain>Cette t&acirc;che transforme les fichiers texte r&eacute;cup&eacute;r&eacute;s depuis l'Universit&eacute; de Toulouse en base de donn&eacute;es de production.</compile_tlse_database_explain>
 <compile_ufdb_repos>Compile les bases au mode UFDB</compile_ufdb_repos>
 <compile_ufdb_repos_explain>Cette t&acirc;che est &agrave; utiliser si votre serveur est en mode ASP.[br]
 Elle permet de compiler les cat&eacute;gories en mode [b].ufdb[/b] et de les sauvegarder &agrave; distance sur un serveur FTP.</compile_ufdb_repos_explain>
@@ -441,6 +453,7 @@ Elle permet de compiler les cat&eacute;gories en mode [b].ufdb[/b] et de les sau
 <configure_your_isp_proxy_explain>Si vous &ecirc;tes l'administrateur du proxy de votre entreprise et que vous souhaitez utiliser ce service en tant que proxy parent, [br]
 Utilisez les informations suivantes.</configure_your_isp_proxy_explain>
 <configure_your_proxy>Param&eacute;trez votre proxy</configure_your_proxy>
+<config_file_tiny>Fichier de config.</config_file_tiny>
 <confirm_delete_zarafa>Cette op&eacute;ration va supprimer le service Zarafa et aussi toutes les bo&icirc;tes aux lettres concern&eacute;es.
 Voulez-vous effectuer cette op&eacute;ration ?</confirm_delete_zarafa>
 <confirm_scan_size>Analyser chaque dossier et calculer l'espace disque</confirm_scan_size>
@@ -460,6 +473,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</convertto_innodb_file_per_tablea
 Pendant ce temps, des services seront indisponibles...</convert_background_warn>
 <copy>Copier</copy>
 <copy_from>Copier depuis</copy_from>
+<CORP_LICENSE_EXPLAIN>Artica Proxy appliance est un logiciel libre avec une souscription logicielle.[br]Certaines fonctionnalit&eacute;s sont d&eacute;sactiv&eacute;es dans la version libre.[br]Cliquez sur le lien ci-dessous afin de disposer de plus amples informations sur le type de licence.</CORP_LICENSE_EXPLAIN>
 <CpuUsage>Utilisation CPU</CpuUsage>
 <createfolders>Cr&eacute;er les dossiers</createfolders>
 <credentials>Param&egrave;tres d'authentification</credentials>
@@ -545,6 +559,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</disable_amavisdeamon_ask>
 <disable_incompatibility_mech>D&eacute;sactiver le m&eacute;canisme d'incompatibilit&eacute;</disable_incompatibility_mech>
 <disable_mimedefang_ask>Cette t&acirc;che va d&eacute;sactiver MimeDefang, Continuer ?</disable_mimedefang_ask>
 <disable_this_backend>D&eacute;sactiver ce serveur</disable_this_backend>
+<disable_this_rule_no_access_set>D&eacute;sactiver cette r&egrave;gle car aucun acc&egrave;s principal n'a &eacute;t&eacute; d&eacute;fini.</disable_this_rule_no_access_set>
 <disable_TimeCapsule_toolbox>D&eacute;sactiver l'ic&ocirc;ne &quot;Time Capsule&quot; dans la barre d'outils</disable_TimeCapsule_toolbox>
 <disable_zarafa_web_service>D&eacute;sactiver le service Web Zarafa</disable_zarafa_web_service>
 <disclaimers>Disclaimers</disclaimers>
@@ -691,6 +706,7 @@ imap.company2.tld;POP3;sabrina;SaBr1n@;sabrina.giuras;ssl23;1[br]
 <fetch_folders_explain>R&eacute;cup&eacute;rer les messages stock&eacute;s dans des dossiers sp&eacute;cifiques.</fetch_folders_explain>
 <filepath>Chemin du fichier</filepath>
 <file_server>Serveur de fichiers</file_server>
+<finish_rule_by>Finir la r&egrave;gle par</finish_rule_by>
 <firefoxpac_how_to>S&eacute;lectionnez le menu &quot;Options&quot; puis cliquez sur l'onglet r&eacute;seau et le bouton Param&egrave;tres.[br]
 Cochez la case Configuration automatique du proxy et indiquez l'url suivante;</firefoxpac_how_to>
 <firewall_behavior>Comportement du Pare-Feux</firewall_behavior>
@@ -746,6 +762,8 @@ G&eacute;n&eacute;ralement ceux ajout&eacute;s dans le syst&egrave;me LDAP local
 <hobby-other>Sites de loisirs et sur la vie de tous les jours[br]Ce qui ne peut pas &ecirc;tre plac&eacute; dans les autres cat&eacute;gories</hobby-other>
 <hook_mailboxto>Raccrocher la BAL &agrave;</hook_mailboxto>
 <hostname>Nom d'h&ocirc;te</hostname>
+<HotSpot>HotSpot</HotSpot>
+<HotSpot_text>&quot;HotSpot&quot; est une fonctionnalit&eacute; vous permettant d'afficher une page web d'authentification ou pas afin d'autoriser les acc&egrave;s Internet</HotSpot_text>
 <hourly_bandwidth_users>Bande passante utilisateurs par heure</hourly_bandwidth_users>
 <hourly_bandwidth_users_explain>Cette t&acirc;che calcul la bande passante utilis&eacute;e des utilisateurs par heure.</hourly_bandwidth_users_explain>
 <hourly_cache_performances>Performances horaire du cache</hourly_cache_performances>
@@ -833,6 +851,7 @@ Voici les logiciels clients disponibles sous Windows (et/ou Linux) qui permetten
 <junk_mail_folder>Dossier Spam</junk_mail_folder>
 <junk_mail_folder_zexplain>D&eacute;placer automatiquement les messages dans le courrier ind&eacute;sirable en fonction de l'ent&ecirc;te des messages.</junk_mail_folder_zexplain>
 <KerbAuthDisableGroupListing>D&eacute;sactiver le parcours utilisateurs/groupes</KerbAuthDisableGroupListing>
+<KerbAuthDisableNormalizeName>D&eacute;sactiver la normalisation des noms</KerbAuthDisableNormalizeName>
 <KerbAuthDisableNsswitch>Ne pas int&eacute;grer l'AD dans le syst&egrave;me local</KerbAuthDisableNsswitch>
 <kernel.panic_on_oops>
 Enable kernel detection and handling of any process that causes a crashand calls the panic() function at the end.[br]
@@ -872,6 +891,7 @@ Celui-ci &eacute;tant pr&eacute;sente sur Debian ou Ubuntu.</ldap_doesnt_support
 <license_active>Licence active</license_active>
 <license_inactive>Licence inactive</license_inactive>
 <license_invalid>licence invalide</license_invalid>
+<license_number>Num&eacute;ro de licence</license_number>
 <license_status>&Eacute;tat de la licence</license_status>
 <ligghtpd_perf_howto>Cette interface d'administration Web utilise le moteur liighttpd afin de fournir la g&eacute;n&eacute;ration des pages Web.[br]
 Artica utilise deux moteurs.[br]
@@ -1009,6 +1029,7 @@ Veuillez reconfigurer chaque instance pour cet effet.</multiple_postfix_not_act_
 <mysql_defrag_all>D&eacute;-fragmenter le serveur MySQL enti&egrave;rement</mysql_defrag_all>
 <mysql_defrag_all_explain>Cette t&acirc;che permet de d&eacute;-fragmenter le serveur MySQL en entier.[br]Elle va sauvegarder l'ensemble du serveur MySQL et d&eacute;truire les fichiers originaux puis va r&eacute;importer toutes les donn&eacute;es afin de repartir sur des nouveaux indexes.[br]Vous n'avez pas &agrave; &quot;programmer&quot; cette t&acirc;che du fait que l'ordonnanceur vous oblige &agrave; d&eacute;finir une p&eacute;riode hebdomadaire mais sachez que cette t&acirc;che pourrait &ecirc;tre ex&eacute;cut&eacute;e quelques fois dans l'ann&eacute;e.[br]
 Cr&eacute;ez la t&acirc;che mais d&eacute;sactivez-la de l'ordonnanceur afin de la lancer qu'uniquement manuellement.</mysql_defrag_all_explain>
+<mysql_events>&Eacute;v&egrave;nements MySQL</mysql_events>
 <mysql_graphs>Graphiques et statistiques MySQL</mysql_graphs>
 <mysql_graphs_text>Affiche des statistiques sur les performances du service MySQL</mysql_graphs_text>
 <mysql_instance>Instance MySQL</mysql_instance>
@@ -1154,6 +1175,9 @@ Toutes les donn&eacute;es sauvegard&eacute;es dans cet objet seront alors d&eacu
 <pluginsw>Plugins</pluginsw>
 <portal_options>Options du portail</portal_options>
 <portal_title>Titre du portail</portal_title>
+<postfixlogger_scanner>Injecteur MySQL des &eacute;v&egrave;nements Postfix</postfixlogger_scanner>
+<postfixlogger_scanner_explain>Artica surveille les &eacute;v&egrave;nements de messagerie en temps r&eacute;el.[br]Lorsqu'un &eacute;v&egrave;nement de routage est d&eacute;tect&eacute;, il pr&eacute;pare un fichier et le place dans un r&eacute;pertoire de travail.[br]
+Cette t&acirc;che &quot;ramasse-miettes&quot; analyse ces fichiers afin d'ins&eacute;rer les &eacute;v&egrave;nements dans le serveur MySQL</postfixlogger_scanner_explain>
 <PostfixMultiTrustAllInstances>Les instances se font confiance entre-elles</PostfixMultiTrustAllInstances>
 <PostfixMultiTrustAllInstances_text>Si tourn&eacute; en vert alors toutes les adresses des instances seront rajout&eacute;es dans les r&eacute;seaux de confiance.[br]Elles seront alors capables de discuter entre-elles et d'&eacute;mettre des messages ves Internet sans subir un &quot;relaying access denied&quot;</PostfixMultiTrustAllInstances_text>
 <POSTFIX_EVENTS>&Eacute;v&egrave;nements SMTP</POSTFIX_EVENTS>
@@ -1185,6 +1209,7 @@ Nous vous sugg&eacute;rons de modifier la r&egrave;gle &agrave; IGNORE si vous d
 <prefer_direct>Pr&eacute;f&eacute;rer le direct</prefer_direct>
 <prepend_subject>Pr&eacute;fixer le sujet</prepend_subject>
 <preview>Pr&eacute;-visualiser</preview>
+<price_quote>Offre de prix</price_quote>
 <private_key>Clef priv&eacute;e</private_key>
 <private_key_ssl_explain>Cette section affiche le contenu de la clef priv&eacute;e, ne fournissez pas ce fichier &agrave; n'importe qui.[br]Prot&eacute;gez soigneusement cette clef priv&eacute;e[br].
 En particulier soyez sur de pouvoir la restaurer si elle est &eacute;gar&eacute;e.[br]Cette clef est utilis&eacute;e dans les op&eacute;rations afin de g&eacute;n&eacute;rer la  demande de signature de certificat (CSR)</private_key_ssl_explain>
@@ -1475,8 +1500,11 @@ Si pour certaines raisons vous d&eacute;sirez que le proxy essayes de se connect
 <squid_request_requestsstats_log>&Eacute;tat de la requ&ecirc;te Squid (TCP_MISS etc)</squid_request_requestsstats_log>
 <squid_request_statuscode_log>Code de retour HTTP du site distant</squid_request_statuscode_log>
 <squid_request_url_log>Requ&ecirc;te URL du client (historique, filtr&eacute; ou pour log)</squid_request_url_log>
+<squid_rrd>G&eacute;n&eacute;rateur grahiques de Performances</squid_rrd>
+<squid_rrd_explain>Cette t&acirc;che produit les graphiques des performance du proxy en cours d'ex&eacute;cution.</squid_rrd_explain>
 <squid_second_port_explain>Si la valeur est sup&eacute;rieur &agrave; 0, cette option force le proxy &agrave; ouvrir un deuxi&egrave;me port.[br]
 Ce second port est un port standard qui n'utilisera pas le mode transparent si la fonctionnalit&eacute; de mise en mode transparent du proxy &agrave; &eacute;t&eacute; activ&eacute;e.</squid_second_port_explain>
+<squid_splash_logon_explain>Afin d'acc&egrave;der &agrave; Internet, indiquez votre compte et mot de passe.</squid_splash_logon_explain>
 <squid_ssl_port_explain>Le port d'&eacute;coute que le proxy va utiliser pour les clients qui vont effectuer des requ&ecirc;tes TLS ou SSL.
 Commun&eacute;ment en r&eacute;f&eacute;rence au HTTPS</squid_ssl_port_explain>
 <squid_syslog_text>Envoyer les requ&ecirc;tes Proxy vers un serveur Syslog</squid_syslog_text>
@@ -1547,6 +1575,7 @@ Cette t&acirc;che est en charge d'analyser la file d'attente et d'importer les d
 <tablename>Nom de table</tablename>
 <tables>Tables</tables>
 <tables_size>Taille des tables</tables_size>
+<table_does_not_exists>La table n'existe pas</table_does_not_exists>
 <target_folder>R&eacute;pertoire cible</target_folder>
 <task>Task</task>
 <tasks_klms8_text>Affiche les t&acirc;ches en cours et leur identifiant unique afin de les stopper/arr&ecirc;ter/&eacute;diter.</tasks_klms8_text>
@@ -1620,8 +1649,11 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de savoir si elle &agrave; &ea
 Afin de parfaire au mieux le filtrage web, cette section peut &ecirc;tre alors utilis&eacute;e.[br]
 Dans cette section vous ajoutez des groupes d'expressions (voir les groupes d'expressions) qui sont souvent des extraits des sites et liens web non d&eacute;sir&eacute;s.[br]
 Chaque domaine et URL sera alors compar&eacute; avec les expressions ajout&eacute;s des les groupes.</ufdbguard_terms_explain>
+<ufdb_any>Laisser passer (any)</ufdb_any>
+<ufdb_none>Rien d'autre (none)</ufdb_none>
 <unable_freeweb_delete_mailman>Impossible de supprimer ce site Web.
 Il est r&eacute;serv&eacute; &agrave; une liste de distribution MailMan</unable_freeweb_delete_mailman>
+<unable_to_add_this_domain_conflict>Impossible d'ajouter ce domaine, risques de conflits</unable_to_add_this_domain_conflict>
 <unable_to_obtain_uri>Impossible d'obtenir l'URL</unable_to_obtain_uri>
 <unable_to_perform_operation_zarafa_bind_all_addresses>Op&eacute;ration arr&ecirc;t&eacute;e.[br]La passerelle Zarafa ma&icirc;tre &eacute;coute sur toutes les adresses r&eacute;seau (0.0.0.0).</unable_to_perform_operation_zarafa_bind_all_addresses>
 <unable_to_resolve>Impossible de r&eacute;soudre</unable_to_resolve>
@@ -1778,6 +1810,8 @@ En effet, elle assure la centralisation des statistiques, le moteur de filtrage 
 Si vous avez besoin de plus amples informations, nous vous invitons &agrave; consulter notre service de support technique.[br]
 [b]Info supp.:[/b]Si vous d&eacute;sactivez le moteur de statistiques, sachez qu'il possible de le r&eacute;activer &agrave; travers l'interface Web.[br]</WARN_SQUID_STATS_PERFS>
 <warn_ufdbguard_not_activated_explain>Le moteur de filtrage Web n'est pas activ&eacute; dans votre configuration.[br]Des fonctionnalit&eacute;s ne seront pas appliqu&eacute;es.[br]Allez dans la section des &eacute;tats de services afin de l'activer.</warn_ufdbguard_not_activated_explain>
+<warn_ufdbguard_no_license>La licence entreprise n'est pas activ&eacute;e.[br]La base Artica contenant plus de 29 millions de sites cat&eacute;goris&eacute;s est d&eacute;sactiv&eacute;e.[br]
+Votre licence gratuite vous permet d'utiliser la base de donn&eacute;es de filtrage Web de l'Universit&eacute; de Toulouse.</warn_ufdbguard_no_license>
 <WARN_USB_SCAN_MISSING>Le fichier d'analyse des disques durs est manquant.[br]Cette erreur indique que Artica est actuellement en cours d'indexation de vos disques durs ou n'est pas capable de r&eacute;cup&eacute;rer la liste des disques durs.[br]Si, au bout de quelques minutes cette erreur est encore affich&eacute;e, essayez d'ex&eacute;cuter [b]artica-install --usb-scan-write[/b] ou contactez notre support technique.</WARN_USB_SCAN_MISSING>
 <watchdog>Moniteur de services</watchdog>
 <watchdog_amavis_text>S'assure que le service Amavis est en fonctionnement et qu'il ne d&eacute;passe pas les limites d&eacute;finies en mati&egrave;re de charge processeur et m&eacute;moire.</watchdog_amavis_text>
@@ -1825,6 +1859,9 @@ Cliquez sur le bouton ci-dessous afin d'activer le service.</web_engine_not_acti
 <whitelist_zarafa_contacts>Exporter les contacts Zarafa dans la base des listes blanches.</whitelist_zarafa_contacts>
 <whitelist_zarafa_contacts_explain>Cette t&acirc;che va exporter les adresses eMail des contacts enregistr&eacute;s dans les carnets d'adresses de vos utilisateurs et va recharger les filtres avec les nouvelles donn&eacute;es.</whitelist_zarafa_contacts_explain>
 <white_mime_type>Mettre en liste blanche par type Mime</white_mime_type>
+<winbind_normalize_names>Ce param&egrave;tre contr&ocirc;le la possibilit&eacute; pour le service Winbindd de remplacer les espaces dans les noms de comptes et groupes par des tirets soulign&eacute;s (_).[br]
+Par exemple, lorsque le nom de connexion est &quot;Space Kadet&quot;, il sera alors remplac&eacute; par &quot;space_kadet&quot;.[br]
+Ceci afin de simplifier les scripts shell avec la manipulation des noms</winbind_normalize_names>
 <WIZARD_BACKUP_SSH_STORAGE_EXPLAIN>Indiquez dans ce formulaire les param&egrave;tres pour se connecter au service SSH distant.</WIZARD_BACKUP_SSH_STORAGE_EXPLAIN>
 <word>word</word>
 <workingdir_in_memory>R&eacute;pertoire en m&eacute;moire</workingdir_in_memory>

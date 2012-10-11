@@ -50,7 +50,8 @@ class vhosts{
 	"MAILMAN"=>"mailman-128.png",
 	"PIWIGO"=>"piwigo-128.png",
 	"MAILHOSTING"=>"attach-document-128.png",
-	"OWNCLOUD"=>"owncloud-128.png"
+	"OWNCLOUD"=>"owncloud-128.png",
+	"SPLASHSQUID"=>"webfilter-128.png",
 //	
 	);
 	
@@ -93,7 +94,8 @@ class vhosts{
 	"MAILMAN"=>"mailman-64.png",
 	"PIWIGO"=>"piwigo-64.png",
 	"MAILHOSTING"=>"attach-document-64.png",
-	"OWNCLOUD"=>"owncloud-64.png"
+	"OWNCLOUD"=>"owncloud-64.png",
+	"SPLASHSQUID"=>"webfilter-64.png",
 	);
 
 	
@@ -102,9 +104,9 @@ class vhosts{
 	
 	
 	var $noneeduser=array("JOOMLA"=>true,"ROUNDCUBE"=>true,"ARTICA_USR"=>true,"ZARAFA_MOBILE"=>true,"ZARAFA"=>true,"DRUPAL"=>true,
-	'WEBDAV'=>true,"BACKUPPC"=>true,"SQUID_STATS"=>true,"ARKEIA"=>true,"XAPIAN"=>true);
+	'WEBDAV'=>true,"BACKUPPC"=>true,"SQUID_STATS"=>true,"ARKEIA"=>true,"XAPIAN"=>true,"SPLASHSQUID"=>true);
 	var $noneeduser_mysql=array("ARTICA_USR"=>true,"ZARAFA_MOBILE"=>true,"ZARAFA"=>true,"DRUPAL"=>true,"WEBDAV"=>true,"BACKUPPC"=>true,"SQUID_STATS"=>true,
-	"ARKEIA"=>true,"SARG"=>true,"XAPIAN"=>true);
+	"ARKEIA"=>true,"SARG"=>true,"XAPIAN"=>true,"SPLASHSQUID"=>true);
 	
 	
 	
@@ -148,6 +150,7 @@ class vhosts{
 	"PIWIGO"=>array("TITLE"=>"APP_PIWIGO","TEXT"=>"APP_PIWIGO_TEXT"),
 	"MAILHOSTING"=>array("TITLE"=>"WWW_MAILHOSTING","TEXT"=>"WWW_MAILHOSTING_TEXT"),
 	"OWNCLOUD"=>array("TITLE"=>"APP_OWNCLOUD","TEXT"=>"APP_OWNCLOUD_TEXT"),
+	"SPLASHSQUID"=>array("TITLE"=>"APP_SPLASHSQUID","TEXT"=>"APP_SPLASHSQUID_TEXT"),
 	
 	
 	);
@@ -231,6 +234,8 @@ function listOfAvailableServices($freeweb=false){
 		if($user->XAPIAN_PHP_INSTALLED){$array["XAPIAN"]="Xapian Desktop";}
 		if($user->PIWIGO_INSTALLED){$array["PIWIGO"]="{APP_PIWIGO}";}
 		if($user->OWNCLOUD_INSTALLED){$array["OWNCLOUD"]="{APP_OWNCLOUD}";}
+		$array["SPLASHSQUID"]="{APP_SPLASHSQUID}";
+		
 		
 		
 		

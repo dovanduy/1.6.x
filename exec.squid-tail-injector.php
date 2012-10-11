@@ -17,6 +17,8 @@ if($argv[1]=="--unveiltech"){unveiltech();die();}
 if($argv[1]=="--youtube"){youtube();die();}
 if($argv[1]=="--users-agents"){useragents();die();}
 if($argv[1]=="--users-size"){ParseUsersSize();die();}
+if($argv[1]=="--squid"){ParseSquidLogMain();die();}
+
 
 
 
@@ -27,8 +29,10 @@ if($argv[1]=="--users-size"){ParseUsersSize();die();}
 	$unix=new unix();
 	
 	if($unix->process_exists($oldpid,basename(__FILE__))){
-		events("Already executed pid $oldpid -> DIE");
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		events("Already executed pid $oldpid since {$time}mn-> DIE");
+		
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
 		die();
 	}
 	$mypid=getmypid();
@@ -45,9 +49,13 @@ if($argv[1]=="--users-size"){ParseUsersSize();die();}
 	ParseSquidLogMain();
 	events("Execute ParseSquidLogMainError()");
 	ParseSquidLogMainError();
+	events("Execute ParseUserAuth()");
 	ParseUserAuth();
+	events("Execute youtube()");
 	youtube();
+	events("Execute useragents()");
 	useragents();
+	events("Execute ParseUsersSize()");
 	ParseUsersSize();
 	events("FINISH....");
 //EnableWebProxyStatsAppliance
@@ -128,7 +136,7 @@ function ParseUsersSize(){
 			}		
 		}
 				
-	
+	events("Closing... /var/log/artica-postfix/squid-usersize/ ($countDeFiles files scanned)");
 }
 
 function GetComputerName($ip){
@@ -193,9 +201,11 @@ function useragents(){
 	if(!$q->TABLE_EXISTS("UserAgents")){ufdbguard_admin_events("Fatal, UserAgents no such table", __FUNCTION__, __FILE__, __LINE__, "stats");return;}
 
 if (!$handle = opendir("/var/log/artica-postfix/squid-userAgent")) {@mkdir("/var/log/artica-postfix/squid-userAgent",0755,true);die();}
+$c=0;
 while (false !== ($filename = readdir($handle))) {
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}
+		$c++;
 		$targetFile="/var/log/artica-postfix/squid-userAgent/$filename";
 		$countDeFiles++;
 		$pattern=trim(@file_get_contents($targetFile));
@@ -216,7 +226,7 @@ while (false !== ($filename = readdir($handle))) {
 			ufdbguard_admin_events("Fatal, $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "stats");
 		}
 	}
-		
+	events("ParseUserAuth():: FINISH.... $c files");
 }
 
 
@@ -273,6 +283,7 @@ $GLOBALS["REMOTE_SSERVER"]=$RemoteStatisticsApplianceSettings["SERVER"];
 $GLOBALS["REMOTE_SPORT"]=$RemoteStatisticsApplianceSettings["PORT"];
 $GLOBALS["REMOTE_SSL"]=$RemoteStatisticsApplianceSettings["SSL"];
 $unix=new unix();
+$q=new mysql_squid_builder();
 $hostname=$unix->hostname_g();
 events("Open /var/log/artica-postfix/dansguardian-stats2");
 if (!$handle = opendir("/var/log/artica-postfix/dansguardian-stats2")) {@mkdir("/var/log/artica-postfix/dansguardian-stats2",0755,true);die();}
@@ -288,23 +299,29 @@ $countDeFiles=0;
 			}
 	}
 $array=array();
+events("Starting loop for /var/log/artica-postfix/dansguardian-stats2");
 while (false !== ($filename = readdir($handle))) {
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}
 		$targetFile="/var/log/artica-postfix/dansguardian-stats2/$filename";
 		$countDeFiles++;
 		if($GLOBALS["WAIT-OVERLOAD-TIMEOUT"]>1000){events("Fatal: Overloaded system:{$GLOBALS["SYSTEM_INTERNAL_LOAD"]}: after 1000 cycles, stopping after parsing $countDeFiles");return;}		
-		
+		usleep(500);
 		
 		$datasql=trim(@file_get_contents($targetFile));
 		if(trim($datasql)==null){@unlink($targetFile);continue;}
 		$tablehour="squidhour_". date("YmdH",filemtime($targetFile));
-		$FINAL_ARRAY=unserialize($datasql);
+		$FINAL_ARRAY=@unserialize($datasql);
 		if(!is_array($FINAL_ARRAY)){
 			if(strpos($datasql, "')")>0){
+				if($GLOBALS["VERBOSE"]){echo $datasql."\n";}
 				$array["TABLES"][$tablehour][]=ParseSquidLogMain_sql_toarray($targetFile);
+				@unlink($targetFile);
+				$c++;
+				if($c>800){inject_array($array["TABLES"]);unset($array["TABLES"]);$c=0;}
 				continue;
 			}else{
+				events("Fatal... unlink $targetFile");
 				@unlink($targetFile);
 				continue;
 			}	
@@ -334,6 +351,7 @@ while (false !== ($filename = readdir($handle))) {
 		if($hostname==null){$hostname=GetComputerName($CLIENT);}		
 		
 		$sql="('$sitename','$uri','$TYPE','$REASON','$CLIENT','$date','$zMD5','$site_IP','$Country','$size','$username','$cached','$mac','$hostname')";
+		events($sql);
 		$array["TABLES"][$tablehour][]=$sql;
 		
 		
@@ -368,6 +386,8 @@ while (false !== ($filename = readdir($handle))) {
 		events("Injecting ". count($array["TABLES"]). " lines Load:{$GLOBALS["SYSTEM_INTERNAL_LOAD"]}: on Line: ".__LINE__);
 		inject_array($array["TABLES"]);
 	}
+	
+	events("Closing... /var/log/artica-postfix/dansguardian-stats2 ($countDeFiles files scanned)");
 
 }
 
@@ -375,11 +395,14 @@ function ParseSquidLogMainError(){
 	if(!is_dir("/var/log/artica-postfix/dansguardian-stats2-errors")){return ;}
 	if (!$handle = opendir("/var/log/artica-postfix/dansguardian-stats2-errors")) {return;}
 	$unix=new unix();
+	$c=0;
 	while (false !== ($filename = readdir($handle))) {
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}	
+		$c++;
 		$targetFile="/var/log/artica-postfix/dansguardian-stats2-errors/$filename";
 		$minutes=$unix->file_time_min($targetFile);
+		events("ParseSquidLogMainError():: $filename {$minutes}Mn");
 		if($minutes>2880){@unlink($targetFile);continue;}
 		$array["TABLES"]=unserialize(@file_get_contents($targetFile));
 		@unlink($targetFile);
@@ -388,7 +411,7 @@ function ParseSquidLogMainError(){
 		inject_array($array["TABLES"]);
 		unset($array["TABLES"]);
 	}
-	
+	events("ParseSquidLogMainError():: Done... ($c files)");
 }
 
 function youtube(){
@@ -401,9 +424,11 @@ function youtube(){
 	@mkdir("/var/log/artica-postfix/youtube",0755,true);
 	@mkdir("/var/log/artica-postfix/youtube-errors",0755,true);
 	if (!$handle = opendir("/var/log/artica-postfix/youtube")) {return;}
+	$c=0;
 	while (false !== ($filename = readdir($handle))) {
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}	
+		$c++;
 		$targetFile="/var/log/artica-postfix/youtube/$filename";
 		$array=unserialize(@file_get_contents($targetFile));
 		$VIDEOID=$array["VIDEOID"];
@@ -430,13 +455,13 @@ function youtube(){
 		@unlink($targetFile);
 		}
 
-if(count($array_sql)==0){
-	if($GLOBALS["VERBOSE"]){
-		echo "array_sql no rows...\n";
-		return;
+	if(count($array_sql)==0){
+		if($GLOBALS["VERBOSE"]){
+			echo "array_sql no rows...\n";
+			return;
+		}
+		
 	}
-	
-}
 		while (list ($timeKey, $rows) = each ($array_sql) ){
 			$q->check_youtube_hour($timeKey);
 			$sql="INSERT INTO youtubehours_$timeKey (zDate,ipaddr,hostname,uid,MAC,account,youtubeid) VALUES ".
@@ -449,7 +474,7 @@ if(count($array_sql)==0){
 			}
 		}
 		
-	
+	events("youtube():: Done... ($c files)");
 }
 
 function youtube_infos($VIDEOID){

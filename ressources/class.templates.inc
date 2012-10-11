@@ -3691,6 +3691,7 @@ function CheckSessions(){
 		$noback["android.logon.php"]=true;
 		$noback["fonts.css.php"]=true;
 		$noback["mailattach.php"]=true;
+		$noback["splashproxy.php"]=true;
 		
 		if(!class_exists("usersMenus")){
 			writelogs("Unable to stat class usersMenus include ".dirname(__FILE__)."/class.users.menus.inc",__CLASS__.'/'.__FUNCTION__,__FILE__);

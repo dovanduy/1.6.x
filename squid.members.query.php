@@ -90,7 +90,7 @@ function ChangeDay$t(){
 }
 
 function ChangeWeek$t(){
-	YahooWin(624,'$page?change-week=yes&t=$t','$week');
+	YahooWin(650,'$page?change-week=yes&t=$t','$week');
 }
 function ChangeMonth$t(){
 	YahooWin(400,'$page?change-month=yes&t=$t','$month');

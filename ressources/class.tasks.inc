@@ -4,6 +4,7 @@ class system_tasks{
 	var $tasks_array=array();
 	var $tasks_explain_array=array();
 	var $tasks_processes=array();
+	var $task_disabled=array();
 	public function system_tasks(){
 		$this->fill_task_array();
 		$q=new mysql();
@@ -72,7 +73,8 @@ class system_tasks{
 			$this->tasks_array[49]="{postfix_stats_month}";
 			$this->tasks_array[50]="{refresh_kerberos_ticket}";
 			$this->tasks_array[51]="{vps_server_watchdog}";
-			
+			$this->tasks_array[52]="{postfixlogger_scanner}";
+			$this->tasks_array[53]="{snort_scanner}";
 			
 			
 			$this->tasks_explain_array[1]="{reboot_system_explain}";
@@ -128,6 +130,8 @@ class system_tasks{
 			$this->tasks_explain_array[49]="{postfix_stats_month_explain}";
 			$this->tasks_explain_array[50]="{refresh_kerberos_ticket_explain}";
 			$this->tasks_explain_array[51]="{vps_server_watchdog_explain}";
+			$this->tasks_explain_array[52]="{postfixlogger_scanner_explain}";
+			$this->tasks_explain_array[53]="{snort_scanner_explain}";
 			
 			
 			
@@ -187,12 +191,72 @@ class system_tasks{
 			$this->tasks_processes[49]="exec.postfix-stats.php --month"; //5mn
 			$this->tasks_processes[50]="exec.kerbauth.php --refresh-ticket"; //5mn
 			$this->tasks_processes[51]="exec.vservers.php --watchdog";
-			
+			$this->tasks_processes[52]="exec.postfix-logger.php --postfix";
+			$this->tasks_processes[53]="exec.syslog-engine.php --snort";
+			$this->DisableTasks();
 	
 	}
 	
+private function DisableTasks(){
+	$users=new usersMenus();
+	$sock=new sockets();
+	$q=new mysql();
+	$EnableSnort=$sock->GET_INFO("EnableSnort");
+	$LXCEnabled=$sock->GET_INFO("LXCEnabled");
+	if(!is_numeric($EnableSnort)){$EnableSnort=0;}
+	if(!is_numeric($LXCEnabled)){$LXCEnabled=0;}
+	if(!$users->SNORT_INSTALLED){$EnableSnort=0;}
+	if(!$users->LXC_INSTALLED){$LXCEnabled=0;}
+	$ActAsASyslogServer=$sock->GET_INFO("ActAsASyslogServer");
+	$ActAsASyslogClient=$sock->GET_INFO("ActAsASyslogClient");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($ActAsASyslogServer)){$ActAsASyslogServer=0;}
+	if(!is_numeric($ActAsASyslogClient)){$ActAsASyslogClient=0;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if($EnableRemoteStatisticsAppliance==1){$ActAsASyslogClient=1;}
 	
-   
+	if($ActAsASyslogServer==1){
+		$EnableSnort=1;
+		$users->POSTFIX_INSTALLED=true;
+	}
+	
+	if($ActAsASyslogClient==1){
+		$EnableSnort=0;
+		$users->POSTFIX_INSTALLED=false;
+	}
+	
+	if($EnableSnort=0){$this->task_disabled[53]=true;}
+	
+	
+	if($q->COUNT_ROWS("ipban","artica_backup")==0){$users->IPBAN_INSTALLED=false;}
+	
+	if($LXCEnabled==0){
+		$this->task_disabled[51]=true;
+	}
+	
+	if(!$users->POSTFIX_INSTALLED){
+		$this->task_disabled[52]=true;
+		$this->task_disabled[46]=true;
+		$this->task_disabled[48]=true;
+		$this->task_disabled[49]=true;
+		$this->task_disabled[37]=true;
+		$this->task_disabled[35]=true;
+	}
+	
+	if(!$users->ZARAFA_INSTALLED){
+		$this->task_disabled[31]=true;
+		$this->task_disabled[34]=true;
+	}
+	
+	
+	if(!$users->IPBAN_INSTALLED){
+		$this->task_disabled[10]=true;
+		$this->task_disabled[11]=true;
+	}
+	
+	
+	
+}
 	
 	
 public function CheckDefaultSchedules(){
@@ -240,7 +304,8 @@ public function CheckDefaultSchedules(){
 		$array[47]=array("TimeText"=>"5,10,15,20,25,30,35,40,45,50,55,59 * * * *","TimeDescription"=>"parse queue Each 5mn");
 		$array[48]=array("TimeText"=>"45 0,5,10,15,20 * * *","TimeDescription"=>"Days statistics each 5 Hours +45mn");
 		$array[49]=array("TimeText"=>"25 0 * * *","TimeDescription"=>"Monthly statistics each day at 00h25");
-		
+		$array[52]=array("TimeText"=>"2,7,12,17,22,27,32,37,42,47,52,57 * * * *","TimeDescription"=>"parse queue Each 5mn");
+		$array[53]=array("TimeText"=>"* * * * *","TimeDescription"=>"Scan snort results Each 1mn");
 		
 			
 		$c=0;

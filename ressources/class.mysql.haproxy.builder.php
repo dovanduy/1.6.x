@@ -52,6 +52,7 @@ class mysql_haproxy_builder{
 	
 	FUNCTION DELETE_TABLE($table){
 		if(!function_exists("mysql_connect")){return 0;}
+		if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL table $this->database/$table was deleted $called" , __FUNCTION__, __FILE__, __LINE__, "mysql-delete");}
 		$this->QUERY_SQL("DROP TABLE `$table`",$this->database);
 	}		
 	

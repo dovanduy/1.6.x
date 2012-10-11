@@ -162,7 +162,9 @@ function status_list(){
 	$users->LoadModulesEnabled();
 	$sock=new sockets();
 	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
+	$EnableArticaSMTPFilter=0;
 	$EnableArticaPolicyFilter=$sock->GET_INFO("EnableArticaPolicyFilter");
+	$EnableArticaPolicyFilter=0;
 	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 	$amavis=Paragraphe_switch_disable('{enable_amavis}','{feature_not_installed}','{feature_not_installed}');
 	$assp=Paragraphe_switch_disable('{enable_assp}','{feature_not_installed}','{feature_not_installed}');
@@ -230,7 +232,7 @@ function status_list(){
 
 	
 	
-	$array["APP_ARTICA_POLICY"]["INSTALLED"]=False;	
+	//$array["APP_ARTICA_POLICY"]["INSTALLED"]=False;	
 	
 	
 	$array["AMAVISD_MILTER"]["NAME"]="APP_AMAVISD_MILTER";

@@ -426,7 +426,21 @@ function rules_toolbox_left(){
 			</tr>
 			</table>
 		</td>
+	</tr>	
+
+	<tr>
+		<td valign='top' width=1%><img src='img/script-32.png'></td>
+		<td valign='top' width=99%>
+			<table style='width:100%'>
+			<tr>
+				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
+				OnClick=\"javascript:Loadjs('ufdbguard.databases.php?scripts=config-file');\" nowrap>{config_file_tiny}</td>
+			</tr>
+			</table>
+		</td>
 	</tr>		
+	
 	</table> 
 	
 	
@@ -450,23 +464,54 @@ function rules_toolbox_left(){
 	if(!$users->APP_UFDBGUARD_INSTALLED){$EnableUfdbGuard=0;}
 	
 	
+	if($EnableUfdbGuard==1){
+		if(!$users->CORP_LICENSE){
+		echo $tpl->_ENGINE_parse_body("
+		<div id='$t'>
+			<table style='width:95%;margin-bottom:20px' class=form>
+			<tr>
+			<td valign='top' width=99%>
+				<div style='font-size:14px;color:#CC0A0A'>
+				<img src='img/info-48.png' style='float:left;margin:3px'>
+				<span style='font-size:11px'>{warn_ufdbguard_no_license}</span>
+				<table style='width:100%'>
+				<tr>
+					<td width=1%><img src='img/arrow-right-16.png'></td>
+					<td width=99%><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('artica.license.php');\" 
+					style='text-decoration:underline;color:black'>{artica_license}</a></td>
+					</tr>
+					</table>
+				</div>
+			</td>
+			</tr>
+			</table>
+			</div>");			
+			
+			
+		}
+		
+		
+		
+	}
+	
 	$t=time();
 	if($EnableUfdbGuard==0){
 		echo $tpl->_ENGINE_parse_body("
 		<div id='$t'>
-	<table style='width:99%' class=form>
+	<table style='width:95%;margin-bottom:20px' class=form>
 	<tr>
 	<td valign='top' width=99%>
-		<center style='font-size:14px;color:#CC0A0A'>
-		<img src='img/warning-panneau-64.png' style='float:left;margin:3px'>
+		<div style='font-size:14px;color:#CC0A0A'>
+		<img src='img/warning-panneau-42.png' style='float:left;margin:3px'>
 		<span style='font-size:11px'>{warn_ufdbguard_not_activated_explain}</span>
 		<table style='width:100%'>
 		<tr>
 			<td width=1%><img src='img/arrow-right-16.png'></td>
-			<td width=99%><a href=\"javascript:blur();\" OnClick=\"javascript:EnableUFDB2();\" style='text-decoration:underline;color:black'>{activate_webfilter_engine}</a></td>
+			<td width=99%><a href=\"javascript:blur();\" OnClick=\"javascript:EnableUFDB2();\" 
+			style='text-decoration:underline;color:black'>{activate_webfilter_engine}</a></td>
 			</tr>
 			</table>
-		</center>
+		</div>
 	</td>
 	</tr>
 	</table>
@@ -500,7 +545,7 @@ function rules_table(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$t=time();	
-	$add_rule=$tpl->_ENGINE_parse_body("{add} {rule}");
+	$add_rule=$tpl->_ENGINE_parse_body("{new_rule}");
 	$rule_text=$tpl->_ENGINE_parse_body("{rule}");
 	$TimeSpace=TimeToText(unserialize(base64_decode($ligne["TimeSpace"])));
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
@@ -514,12 +559,15 @@ function rules_table(){
 	$service_events=$tpl->_ENGINE_parse_body("{service_events}");
 	$global_parameters=$tpl->_ENGINE_parse_body("{global_parameters}");
 	$ldap_parameters=$tpl->_ENGINE_parse_body("{ldap_parameters2}");
+	$config_file=$tpl->_ENGINE_parse_body("{config_file}");
 	$error_ldap=null;
 	$buttons="
 	buttons : [
 	{name: '$add_rule', bclass: 'add', onpress : DansGuardianNewRule},
 	{name: '$compile_rules', bclass: 'Reconf', onpress : CompileUfdbGuardRules},
 	{name: '$global_parameters', bclass: 'Settings', onpress : UfdbGuardConfigs},
+	
+	
 	],";
 	
 	
@@ -619,6 +667,8 @@ $('#flexRT$t').flexigrid({
 	function UfdbguardEvents(){
 		Loadjs('$page?UfdbguardEvents=yes');
 	}
+	
+
 	
 		var x_DansGuardianDeleteMainRule= function (obj) {
 			var res=obj.responseText;

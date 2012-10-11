@@ -35,7 +35,7 @@ if(isset($_GET["refresh-my-ip"])){public_ip_refresh();exit;}
 if(isset($_GET["mysqlinfos"])){mysqlinfos();exit;}
 if(isset($_GET["reload-openldap-tenir"])){reload_openldap_tenir();exit;}
 if(isset($_GET["process1-tenir"])){process1_tenir();exit;}
-
+if(isset($_GET["system-defrag"])){system_defrag();exit;}
 
 if(isset($_GET["license-register"])){register_license();exit;}
 if(isset($_GET["register"])){register_server_www();exit;}
@@ -171,6 +171,12 @@ function mysql_status(){
 function arkeia_status(){
 	exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.status.php --arkeia --nowachdog",$results);
 	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";		
+}
+function system_defrag(){
+	$unix=new unix();
+	$shutdown=$unix->find_program("shutdown");
+	shell_exec("$shutdown -rF now");
+	
 }
 
 function UpdateUtility_status(){
@@ -938,7 +944,6 @@ function cmdlinePerf(){
 	if(preg_match("#^vi\s+(.+)#", $cmdline)){$cmdline="cat {$re[1]}";}
 	if(preg_match("#^\/vi\s+(.+)#", $cmdline)){$cmdline="cat {$re[1]}";}
 	$cmdline = str_replace(array('\\', '%'), array('\\\\', '%%'), $cmdline); 
-	$cmdline = escapeshellcmd($cmdline);
 	$cmdline = str_replace('\&\&','&&',$cmdline);
 	
 	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);	

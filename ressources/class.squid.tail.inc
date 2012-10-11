@@ -380,7 +380,7 @@ private function CACHEDORNOT($SquidCode){
 	
 	
 	
-	$this->events("[SQUID]: dansguardian-stats2: ".$sql."  (".__LINE__.")" );
+	//$this->events("[SQUID]: dansguardian-stats2: ".$sql."  (".__LINE__.")" );
 	@file_put_contents("/var/log/artica-postfix/dansguardian-stats2/$zMD5.sql",serialize($FINAL_ARRAY));	
 	if(count($GLOBALS["RTIME"])>500){unset($GLOBALS["RTIME"]);}
 	$GLOBALS["RTIME"][]=array($sitename,$uri,$TYPE,$REASON,$CLIENT,$date,$zMD5,$site_IP,$Country,$size,$username,$mac);

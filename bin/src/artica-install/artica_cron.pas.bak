@@ -602,7 +602,7 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
 
 
 
-      if EnableSnort=1 then l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10s ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.syslog-engine.php --snort');
+
       if EnableSnort=0 then logs.DebugLogs('Starting......: Daemon (fcron) SNORT parser is disabled');
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 3  ' +cmdnice+artica_path+'/bin/process1');
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.rsync.events.php');
@@ -849,18 +849,6 @@ l.add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10 '+ SYS.LOCAT
       if FileExists(zpostfix.POSFTIX_POSTCONF_PATH()) then begin
          SYS.CRON_CREATE_SCHEDULE('0,7,13,18,23,28,33,38,43,48,53,58 * * * *',cmdnice+php5bin+ ' ' +artica_path+'/exec.smtp-senderadv.php','artica-cron-smtpadv');
       end;
-
-
-
-
-
-
-
-
-
-
-
-
 
       //specifiques
       quarantine_report_schedules();

@@ -898,8 +898,11 @@ Execute ('rm -f ' + BasePath + '/bin/stjhGF1q');
 Execute ('rm -f ' + BasePath + '/bin/stoNge3B');
 Execute ('rm -f ' + BasePath + '/bin/stVWx38X');
 Execute ('rm -f ' + BasePath + '/bin/stx9pXBm');
+Execute ('rm -f ' + BasePath + '/bin/stjy3lA1');
+Execute ('rm -f ' + BasePath + '/bin/stXH5fM4');
 Execute ('rm -f'  + BasePath + '/bin/*.o');
 Execute ('rm -f ' + BasePath + '/bin/*.ppu');
+Execute ('rm -f ' + BasePath + '/bin/*.zip');
 
 Execute('strip -s ' + BasePath + '/bin/artica-install');
 Writeln('STRIP artica-postfix/bin/artica-install');

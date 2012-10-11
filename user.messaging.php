@@ -198,7 +198,8 @@ function IS_ARTICA_FILTER(){
 	$users=new usersMenus();
 	$users->LoadModulesEnabled();
 	$POSTFIX_INSTALLED=$users->POSTFIX_INSTALLED;
-	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");	
+	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
+	$EnableArticaSMTPFilter=0;	
 	if(!$POSTFIX_INSTALLED){return false;}
 	if($EnableArticaSMTPFilter==0){return false;}
 	return true;
@@ -213,6 +214,7 @@ function IS_DISCLAIMER(){
 	$ALTERMIME_INSTALLED=$users->ALTERMIME_INSTALLED;
 	$EnableAlterMime=$sock->GET_INFO('EnableAlterMime');
 	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
+	$EnableArticaSMTPFilter=0;
 	$DisclaimerOrgOverwrite=$sock->GET_INFO("DisclaimerOrgOverwrite");
 	if(!$POSTFIX_INSTALLED){$disclaimer=false;}
 	if(!$ALTERMIME_INSTALLED){$disclaimer=false;}

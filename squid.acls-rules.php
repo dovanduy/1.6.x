@@ -23,6 +23,7 @@
 	if(isset($_POST["acl-rule-delete"])){acl_rule_delete();exit;}
 	if(isset($_POST["acl-rule-enable"])){acl_rule_enable();exit;}
 	if(isset($_POST["acl-rule-move"])){acl_rule_move();exit;}
+	if(isset($_POST["acl-rule-order"])){acl_rule_order();exit;}
 	if(isset($_POST["aclrulename"])){acl_main_rule_edit();exit;}
 	if(isset($_POST["ApplySquid"])){squid_compile();exit;}
 	page();
@@ -391,6 +392,33 @@ function acl_rule_enable(){
 		
 	}
 	
+function acl_rule_order(){
+	$q=new mysql_squid_builder();
+	$ID=$_POST["acl-rule-order"];
+	$neworder=$_POST["acl-rule-value"];
+	$sql="SELECT ID FROM webfilters_sqacls WHERE `xORDER`='{$neworder}'";	
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if($ligne["ID"]>0){
+		$alt=$neworder+1;
+		$sql="UPDATE webfilters_sqacls SET xORDER=$alt WHERE `ID`={$ligne["ID"]}";
+		$q->QUERY_SQL($sql);
+	}
+	
+	$sql="UPDATE webfilters_sqacls SET xORDER=$neworder WHERE `ID`={$ID}";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}	
+	
+	$c=0;
+	$sql="SELECT ID FROM webfilters_sqacls ORDER BY xORDER";
+	$results = $q->QUERY_SQL($sql);
+
+	while ($ligne = mysql_fetch_assoc($results)) {	
+		$q->QUERY_SQL("UPDATE webfilters_sqacls SET xORDER=$c WHERE `ID`={$ligne["ID"]}");
+		$c++;
+	}	
+	
+}
+	
 function acl_rule_move(){
 	
 	$q=new mysql_squid_builder();
@@ -434,7 +462,7 @@ function acl_rule_move(){
 	
 	
 }
-	
+
 function page(){
 	
 	$page=CurrentPageName();
@@ -444,9 +472,11 @@ function page(){
 	$description=$tpl->_ENGINE_parse_body("{description}");
 	$rule=$tpl->_ENGINE_parse_body("{rule}");
 	$new_rule=$tpl->_ENGINE_parse_body("{new_rule}");
+	$groups=$tpl->_ENGINE_parse_body("{proxy_objects}");
 	$delete_rule_ask=$tpl->javascript_parse_text("{delete_rule_ask}");
 	$apply_params=$tpl->_ENGINE_parse_body("{apply_parameters}");
-	$t=time();		
+	$t=time();
+	$order=$tpl->javascript_parse_text("{order}");
 
 	$html="
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
@@ -467,6 +497,7 @@ $('#table-$t').flexigrid({
 	],
 buttons : [
 	{name: '$new_rule', bclass: 'add', onpress : AddAcl},
+	{name: '$groups', bclass: 'Group', onpress : GroupsSection$t},
 	{separator: true},
 	{name: '$apply_params', bclass: 'Reload', onpress : SquidBuildNow$t},
 		],	
@@ -491,6 +522,10 @@ function AddAcl() {
 	
 }	
 
+function GroupsSection$t(){
+	Loadjs('squid.acls.groups.php?js=yes&toexplainorg=table-$t');
+}
+
 	var x_EnableDisableAclRule= function (obj) {
 		var res=obj.responseText;
 		if(res.length>3){alert(res);return;}
@@ -502,6 +537,16 @@ function AclUpDown(ID,dir){
 		XHR.appendData('acl-rule-move', ID);
 		XHR.appendData('acl-rule-dir', dir);
 		XHR.sendAndLoad('$page', 'POST',x_EnableDisableAclRule);  	
+}
+
+function ChangeRuleOrder(ID,xdef){
+	var neworder=prompt('$order',xdef);
+	if(neworder){
+		var XHR = new XHRConnection();
+		XHR.appendData('acl-rule-order', ID);
+		XHR.appendData('acl-rule-value', neworder);
+		XHR.sendAndLoad('$page', 'POST',x_EnableDisableAclRule);  	
+	}
 }
 
 
@@ -621,7 +666,7 @@ function acl_list(){
 	if(mysql_num_rows($results)==0){json_error_show("No rules....");}
 	
 	$acls=new squid_acls_groups();
-
+	$order=$tpl->_ENGINE_parse_body("{order}:");
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$val=0;
 		$color="black";
@@ -630,15 +675,19 @@ function acl_list(){
 		$delete=imgsimple("delete-24.png",null,"DeleteSquidAclRule('{$ligne['ID']}')");
 		if($ligne["enabled"]==0){$color="#9C9C9C";}
 		
-		$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID']));
+		$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID'],$ligne["enabled"]));
 		
 		$up=imgsimple("arrow-up-16.png","","AclUpDown('{$ligne['ID']}',1)");
 		$down=imgsimple("arrow-down-18.png","","AclUpDown('{$ligne['ID']}',0)");
 		
+		
 	$data['rows'][] = array(
 		'id' => "acl{$ligne['ID']}",
 		'cell' => array("<a href=\"javascript:blur();\"  OnClick=\"javascript:Loadjs('$MyPage?Addacl-js=yes&ID={$ligne['ID']}&t={$_GET["t"]}');\" 
-		style='font-size:16px;text-decoration:underline;color:$color'>{$ligne['aclname']}</span>",
+		style='font-size:16px;text-decoration:underline;color:$color'>{$ligne['aclname']}</span></A>
+		<div style='font-size:11px'><i>$order&laquo;<a href=\"javascript:blur();\"
+		Onclick=\"javascript:ChangeRuleOrder({$ligne['ID']},{$ligne["xORDER"]});\"
+		style=\"text-decoration:underline\">{$ligne["xORDER"]}</a>&raquo;</i></div>",
 		"<span style='font-size:12px;color:$color'>$explain</span>",
 		$up,$down,$disable,$delete)
 		);

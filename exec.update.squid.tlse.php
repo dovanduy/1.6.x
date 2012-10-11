@@ -1,7 +1,9 @@
 <?php
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
+$GLOBALS["FORCE"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
+if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
@@ -16,6 +18,10 @@ include_once(dirname(__FILE__).'/ressources/class.compile.ufdbguard.inc');
 $GLOBALS["MYPID"]=getmypid();
 if($argv[1]=="--ufdbcheck"){CoherenceRepertoiresUfdb();die();}
 if($argv[1]=="--mysqlcheck"){CoherenceBase();die();}
+if($argv[1]=="--localcheck"){CoherenceOffiels();die();}
+if($argv[1]=="--compile"){compile();die();}
+
+
 
 Execute();
 
@@ -32,21 +38,32 @@ function Execute(){
 	$unix=new unix();	
 	$ufdbGenTable=$unix->find_program("ufdbGenTable");
 	$pid=@file_get_contents($pidfile);
-	if($unix->process_exists($pid,$myFile)){WriteMyLogs("Already executed PID:$pid, die()",__FUNCTION__,__FILE__,__LINE__);die();}
 	$getmypid=$GLOBALS["MYPID"];
+	if(!$GLOBALS["FORCE"]){
+		if($unix->process_exists($pid,$myFile)){
+			$timePid=$unix->PROCCESS_TIME_MIN($pid);
+			ufdbguard_admin_events("Already executed PID:$pid, since {$timePid}Mn die() ",__FUNCTION__,__FILE__,__LINE__,"update");
+			die();
+		}
+		
+	}
 	@file_put_contents($pidfile,$getmypid);
 	
-	WriteMyLogs("Executed pid $getmypid",__FUNCTION__,__FILE__,__LINE__);
-	WriteMyLogs("ufdbGenTable:$ufdbGenTable",__FUNCTION__,__FILE__,__LINE__);
+	echo "Executed pid $getmypid\n";
+	echo "ufdbGenTable:$ufdbGenTable\n";
 	$sock=new sockets();
 	$SquidDatabasesUtlseEnable=$sock->GET_INFO("SquidDatabasesUtlseEnable");
 	if(!is_numeric($SquidDatabasesUtlseEnable)){$SquidDatabasesUtlseEnable=1;}	
-	if($SquidDatabasesUtlseEnable==0){WriteMyLogs("Toulouse university is disabled",__FUNCTION__,__FILE__,__LINE__);die();}
-
-	$time=$unix->file_time_min($cachetime);
-	if($time<120){
-		ufdbguard_admin_events("$cachetime: {$time}Mn need 120Mn",__FUNCTION__,__FILE__,__LINE__,"update");
-		WriteMyLogs("$cachetime: {$time}Mn need 120Mn",__FUNCTION__,__FILE__,__LINE__);	die();
+	
+	if($SquidDatabasesUtlseEnable==0){
+		echo "Toulouse university is disabled\n";
+	}
+	if(!$GLOBALS["FORCE"]){
+		$time=$unix->file_time_min($cachetime);
+		if($time<120){
+			echo "$cachetime: {$time}Mn need 120Mn\n";
+			die();
+		}
 	}
 	@unlink($cachetime);
 	@file_put_contents($cachetime, time());
@@ -55,7 +72,8 @@ function Execute(){
 	$q=new mysql_squid_builder();
 	$results=$q->QUERY_SQL("SELECT * FROM ftpunivtlse1fr");
 	if(!$q->ok){
-		if(strpos($q->mysql_error, "doesn't exist")>0){$q->CheckTables();$results=$q->QUERY_SQL("SELECT * FROM ftpunivtlse1fr");}
+		if(strpos($q->mysql_error, "doesn't exist")>0){$q->CheckTables();
+		$results=$q->QUERY_SQL("SELECT * FROM ftpunivtlse1fr");}
 	}
 	
 	
@@ -72,14 +90,35 @@ function Execute(){
 		
 	}
 	
+	$ARRAYSUM_REMOTE=GET_MD5S_REMOTE();
+
+	while (list ($filename,$md5) = each ($ARRAYSUM_REMOTE) ){
+		if(!isset($ARRAYSUM_LOCALE[$filename])){$ARRAYSUM_LOCALE[$filename]=null;}
+		if($ARRAYSUM_LOCALE[$filename]<>$md5){update_remote_file($BASE_URI,$filename,$md5);}
+	}
+	
+	if(is_dir("/var/lib/ftpunivtlse1fr")){
+		$chown=$unix->find_program("chown");
+		shell_exec("$chown squid:squid /var/lib/ftpunivtlse1fr");
+		shell_exec("$chown -R squid:squid /var/lib/ftpunivtlse1fr/");
+		
+	}
+	CoherenceOffiels();
+	CoherenceRepertoiresUfdb();
 	
 	
+	
+	
+}
+
+function GET_MD5S_REMOTE(){
+	$unix=new unix();
 	$BASE_URI="ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib";
-	
 	$indexuri="$BASE_URI/MD5SUM.LST";
 	$cache_temp=$unix->FILE_TEMP();	
 	$curl=new ccurl($indexuri);
 	WriteMyLogs("Downloading $indexuri",__FUNCTION__,__FILE__,__LINE__);
+	$curl->Timeout=320;
 	if(!$curl->GetFile($cache_temp)){
 		WriteMyLogs("Fatal error downloading $indexuri $curl->error",__FUNCTION__,__FILE__,__LINE__);
 		ufdbguard_admin_events("Fatal: unable to download index file $indexuri `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"update");
@@ -95,25 +134,8 @@ function Execute(){
 		if($filename=="domains.tar.gz"){continue;}
 		if($filename=="MD5SUM.LST"){continue;}
 		$ARRAYSUM_REMOTE[$filename]=$md5;
-	}
-	while (list ($filename,$md5) = each ($ARRAYSUM_REMOTE) ){
-		if(!isset($ARRAYSUM_LOCALE[$filename])){$ARRAYSUM_LOCALE[$filename]=null;}
-		if($ARRAYSUM_LOCALE[$filename]<>$md5){update_remote_file($BASE_URI,$filename,$md5);}
-		
-	}
-	
-	if(is_dir("/var/lib/ftpunivtlse1fr")){
-		$chown=$unix->find_program("chown");
-		shell_exec("$chown squid:squid /var/lib/ftpunivtlse1fr");
-		shell_exec("$chown -R squid:squid /var/lib/ftpunivtlse1fr/");
-		
-	}
-	
-	CoherenceRepertoiresUfdb();
-	
-	
-	
-	
+	}	
+	return $ARRAYSUM_REMOTE;
 }
 
 
@@ -124,9 +146,12 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	$q=new mysql_squid_builder();
 	$tar=$unix->find_program("tar");
 	$rm=$unix->find_program("rm");
+	$ln=$unix->find_program("ln");
 	$ufdbGenTable=$unix->find_program("ufdbGenTable");
+	$Conversion=$q->TLSE_CONVERTION();
 	$ufdb=new compile_ufdbguard();
 	$curl=new ccurl($indexuri);
+	$curl->Timeout=360;
 	echo "Downloading $indexuri\n";
 	$cache_temp="/tmp/$filename";
 	if(!$curl->GetFile($cache_temp)){echo "Fatal error downloading $indexuri $curl->error\n";
@@ -136,6 +161,11 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	
 	@mkdir("/var/lib/ftpunivtlse1fr",755,true);
 	$categoryname=str_replace(".tar.gz", "", $filename);
+	$categoryDISK=$categoryname;
+	if(isset($Conversion[$categoryname])){$categoryDISK=$Conversion[$categoryname];}
+	$categoryDISK=str_replace("/", "_", $categoryDISK);
+	
+	
 	ufdbguard_admin_events("Extracting $filename for category $categoryname",__FUNCTION__,__FILE__,__LINE__,"update");
 	if(is_dir("/var/lib/ftpunivtlse1fr/$categoryname")){shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");}
 	@mkdir("/var/lib/ftpunivtlse1fr/$categoryname",755,true);
@@ -148,8 +178,15 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	if($GLOBALS["VERBOSE"]){echo "/var/lib/ftpunivtlse1fr/$categoryname/domains -> $CountDeSitesFile websites\n";}
 	if($CountDeSitesFile==0){
 		ufdbguard_admin_events("/var/lib/ftpunivtlse1fr/$categoryname/domains corrupted, no website",__FUNCTION__,__FILE__,__LINE__,"update");
+		shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");
 		return;		
 	}
+	
+	if($categoryDISK<>$categoryname){
+		if(is_dir("/var/lib/ftpunivtlse1fr/$categoryDISK")){shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryDISK");}
+		shell_exec("ln -sf /var/lib/ftpunivtlse1fr/$categoryDISK /var/lib/ftpunivtlse1fr/$categoryname");
+	}
+	
 	WriteMyLogs("DELETE FROM ftpunivtlse1fr WHERE filename='$filename'",__FUNCTION__,__FILE__,__LINE__);
 	$q->QUERY_SQL("DELETE FROM ftpunivtlse1fr WHERE filename='$filename'");
 	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"update");return;}
@@ -159,30 +196,110 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	if($GLOBALS["VERBOSE"]){echo "ufdbGenTable=$ufdbGenTable\n";}
 	if(is_file($ufdbGenTable)){
 		$t=time();
-		
 		$ufdb->UfdbGenTable("/var/lib/ftpunivtlse1fr/$categoryname",$categoryname);
 	}
 	
 	
 }
 
+function compile(){
+	$ufdb=new compile_ufdbguard();
+	$q=new mysql_squid_builder();
+	$unix=new unix();
+	
+	$t=time();
+	$myFile=basename(__FILE__);
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$unix=new unix();	
+	$ufdbGenTable=$unix->find_program("ufdbGenTable");
+	if(!is_file($ufdbGenTable)){return;}
+	
+	
+	$pid=@file_get_contents($pidfile);
+	$getmypid=$GLOBALS["MYPID"];
+	if(!$GLOBALS["FORCE"]){
+		if($unix->process_exists($pid,$myFile)){
+			$timePid=$unix->PROCCESS_TIME_MIN($pid);
+			ufdbguard_admin_events("Already executed PID:$pid, since {$timePid}Mn die() ",__FUNCTION__,__FILE__,__LINE__,"update");
+			die();
+		}
+	}	
+	
+	
+	$Conversion=$q->TLSE_CONVERTION();
+	$workdir="/var/lib/ftpunivtlse1fr";
+	$c=0;
+	while (list ($directory, $line) = each ($Conversion) ){
+		$c++;
+		$ufdb->UfdbGenTable("$workdir/$directory",$directory);	
+		$unix->chown_func("squid", "squid","$workdir/$directory");
+	}
+	
+	ufdbguard_admin_events("Compiling $c databases done, took:".$unix->distanceOfTimeInWords($t,time(),true),__FUNCTION__,__FILE__,__LINE__,"update");
+	
+}
+
 function CoherenceRepertoiresUfdb(){
 	$unix=new unix();
+	$q=new mysql_squid_builder();
+	$BASE_URI="ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib";
 	$ufdbGenTable=$unix->find_program("ufdbGenTable");
 	if(!is_file($ufdbGenTable)){return;}
 	$ufdb=new compile_ufdbguard();
 	$rm=$unix->find_program("rm");
 	$dirs=$unix->dirdir("/var/lib/ftpunivtlse1fr");
+	$Conversion=$q->TLSE_CONVERTION();
 	while (list ($directory, $line) = each ($dirs) ){
+		$database=basename($directory);
+		if(isset($Conversion[$database])){
 		if(!is_file("$directory/domains")){echo "$directory has no domains\n";shell_exec("$rm -rf $directory");continue;}
+		
 		if(is_file("$directory/domains.ufdb")){
 			if($GLOBALS["VERBOSE"]){echo "$directory/domains.ufdb OK\n";}
-			continue;}
-		$ufdb->UfdbGenTable("$directory",basename($directory));	
+			continue;
+		}
+			$ufdb->UfdbGenTable("$directory",basename($directory));	
+		}
 	}
 	
 	
 }
+
+function CoherenceOffiels(){
+	$workdir="/var/lib/ftpunivtlse1fr";
+	$unix=new unix();
+	$BASE_URI="ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib";
+	$q=new mysql_squid_builder();
+	$table=$q->TLSE_CONVERTION();
+	$ARRAYSUM_REMOTE=GET_MD5S_REMOTE();
+	while (list ($database, $articacat) = each ($table) ){
+		$directory=str_replace("/", "_", $articacat);
+		$targetdir=$workdir."/$database";
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":: Checking $targetdir/domains\n";}
+		if(!is_file("$targetdir/domains")){
+			ufdbguard_admin_events("$database is not in disk... download it..",__FUNCTION__,__FILE__,__LINE__,"update");
+			update_remote_file($BASE_URI,"$database.tar.gz",$ARRAYSUM_REMOTE["$database.tar.gz"]);
+		}
+	}
+	
+	reset($table);
+	while (list ($database, $articacat) = each ($table) ){
+		$directory=str_replace("/", "_", $articacat);
+		
+		$targetdir=$workdir."/$directory";
+		$sourcedir=$workdir."/$database";
+		@chmod($sourcedir, 0755);
+		$unix->chown_func("squid", "squid",$sourcedir);
+		if(!is_dir($targetdir)){
+			if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":: Checking $targetdir no such directory make symbolic to $sourcedir\n";}
+			shell_exec("ln -sf $sourcedir $targetdir");
+		}
+	}
+	
+	
+}
+
+
 
 function CoherenceBase(){
 	$unix=new unix();

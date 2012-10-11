@@ -140,6 +140,36 @@ class mysql_postfix_builder{
 		
 	}
 	
+	public function milter_BuildHourTable($tablename){
+		if($this->TABLE_EXISTS($tablename)){return true;}
+		
+		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+			  `zmd5` varchar(90) NOT NULL,
+			  `ztime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			  `zhour` tinyint(2) NOT NULL,
+			  `mailfrom` varchar(255) NOT NULL,
+			  `instancename` varchar(255) NOT NULL,
+			  `mailto` varchar(255) NOT NULL,
+			  `domainfrom` varchar(128) NOT NULL,
+			  `domainto` varchar(128) NOT NULL,
+			  `senderhost` varchar(128) NOT NULL,
+			  `failed` varchar(15) NOT NULL,
+			  PRIMARY KEY (`zmd5`),
+			  KEY `ztime` (`ztime`,`zhour`),
+			  KEY `mailfrom` (`mailfrom`),
+			  KEY `mailto` (`mailto`),
+			  KEY `domainfrom` (`domainfrom`),
+			  KEY `domainto` (`domainto`),
+			  KEY `senderhost` (`senderhost`),
+			  KEY `instancename` (`instancename`),
+			  KEY `failed` (`failed`)
+			)";
+
+		if(!$this->QUERY_SQL($sql)){return false;}
+		return true;
+		
+	}	
+	
 	public function BuildDayTable($tablename){
 		if($this->TABLE_EXISTS($tablename)){return true;}
 		

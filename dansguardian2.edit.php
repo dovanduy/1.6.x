@@ -1122,7 +1122,9 @@ function rule_edit(){
 	$EnableGoogleSafeSearch=$sock->GET_INFO("EnableGoogleSafeSearch");
 	if(!is_numeric($EnableGoogleSafeSearch)){$EnableGoogleSafeSearch=1;}	
 	
-
+	$ENDOFRULES[null]="{select}";
+	$ENDOFRULES["any"]="{ufdb_any}";
+	$ENDOFRULES["none"]="{ufdb_none}";
 	
 	
 	
@@ -1130,6 +1132,9 @@ function rule_edit(){
 		$sql="SELECT * FROM webfilter_rules WHERE ID=$ID";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		
+	}else{
+		
+		if(!isset($ligne["endofrule"])){$ligne["endofrule"]="any";}
 	}
 	
 	$users=new usersMenus();
@@ -1155,6 +1160,9 @@ function rule_edit(){
 	if(!is_numeric($ligne["naughtynesslimit"])){$ligne["naughtynesslimit"]=50;}
 	if(!is_numeric($ligne["embeddedurlweight"])){$ligne["embeddedurlweight"]=0;}
 	if(!is_numeric($ligne["GoogleSafeSearch"])){$ligne["GoogleSafeSearch"]=0;}
+	if(!is_numeric($ligne["UseExternalWebPage"])){$ligne["UseExternalWebPage"]=0;}
+
+	
 	
 	if($EnableGoogleSafeSearch==0){
 	$EnableGoogleSafeSearchField="
@@ -1238,16 +1246,38 @@ function rule_edit(){
 		<td style='font-size:16px'>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{groupmode}:</td>
-		<td style='font-size:16px'>". Field_array_Hash($groupmode,"groupmode",$ligne["groupmode"],"style:font-size:16px;")."</td>
-		<td>&nbsp;</td>
-	</tr>		
-$EnableGoogleSafeSearchField	
-	<tr>
 		<td class=legend style='font-size:16px'>{enabled}:</td>
 		<td style='font-size:16px'>". Field_checkbox("enabled",1,$ligne["enabled"])."</td>
 		<td>&nbsp;</td>
+	</tr>		
+	
+	<tr>
+		<td class=legend style='font-size:16px'>{groupmode}:</td>
+		<td style='font-size:16px'>". Field_array_Hash($groupmode,"groupmode",$ligne["groupmode"],"style:font-size:16px;")."</td>
+		<td>&nbsp;</td>
 	</tr>	
+	<tr>
+		<td class=legend style='font-size:16px'>{finish_rule_by}:</td>
+		<td style='font-size:16px'>". Field_array_Hash($ENDOFRULES,"endofrule",$ligne["endofrule"],"style:font-size:16px;")."</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{external_uri}:</td>
+		<td>". Field_checkbox("UseExternalWebPage",1,$ligne["UseExternalWebPage"],"UseExternalWebPageCheck()")."</td>
+		<td>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:16px'>{redirect_url}:</td>
+		<td style='font-size:16px'>". Field_text("ExternalWebPage",$ligne["ExternalWebPage"],"font-size:16px;")."</td>
+		<td style='font-size:16px'>&nbsp;</td>
+	</tr>	
+	 
+	
+	 
+	
+	
+$EnableGoogleSafeSearchField	
+
 	
 	<tr>
 		<td colspan=3 align='right'><hr>". button($button_name,"SaveDansGUardianMainRule()",18)."</td>
@@ -1268,11 +1298,23 @@ $EnableGoogleSafeSearchField
 		
 	}
 	
+	function UseExternalWebPageCheck(){
+		document.getElementById('ExternalWebPage').disabled=true;
+		if(document.getElementById('UseExternalWebPage').checked){
+			document.getElementById('ExternalWebPage').disabled=false;
+		}
+	}
+	
 		function SaveDansGUardianMainRule(){
 		      var XHR = new XHRConnection();
 		      XHR.appendData('groupname', document.getElementById('groupname').value);
 		      if(document.getElementById('naughtynesslimit')){ XHR.appendData('naughtynesslimit', document.getElementById('naughtynesslimit').value);}
 		      if(document.getElementById('searchtermlimit')){ XHR.appendData('searchtermlimit', document.getElementById('searchtermlimit').value);}
+		      if(document.getElementById('endofrule')){ XHR.appendData('endofrule', document.getElementById('endofrule').value);}
+		      if(document.getElementById('ExternalWebPage')){ XHR.appendData('ExternalWebPage', document.getElementById('ExternalWebPage').value);}
+		      
+		      
+		      
 		      if(document.getElementById('embeddedurlweight')){ XHR.appendData('embeddedurlweight', document.getElementById('embeddedurlweight').value);}
 			  if(document.getElementById('bypass')){ XHR.appendData('bypass', document.getElementById('bypass').value);}
 			  if(document.getElementById('groupmode')){ XHR.appendData('groupmode', document.getElementById('groupmode').value);}
@@ -1282,6 +1324,10 @@ $EnableGoogleSafeSearchField
   			  if(document.getElementById('EnableGoogleSafeSearch-$t')){
   			  	if(document.getElementById('EnableGoogleSafeSearch-$t').checked){XHR.appendData('GoogleSafeSearch',1);}else{XHR.appendData('GoogleSafeSearch',0);}
   			  }
+   			  if(document.getElementById('UseExternalWebPage')){
+  			  	if(document.getElementById('UseExternalWebPage').checked){XHR.appendData('UseExternalWebPage',1);}else{XHR.appendData('UseExternalWebPage',0);}
+  			  } 			  
+  			  
 		      
 		      
 		      
@@ -1302,9 +1348,6 @@ $EnableGoogleSafeSearchField
 				document.getElementById('embeddedurlweight').disabled=true;	
 			}
 			
-			
-			
-			
 			if(DISABLE_DANS_FIELDS==0){
 				if(document.getElementById('naughtynesslimit')){document.getElementById('naughtynesslimit').disabled=false;}
 				if(document.getElementById('searchtermlimit')){document.getElementById('searchtermlimit').disabled=false;}
@@ -1320,11 +1363,10 @@ $EnableGoogleSafeSearchField
 				document.getElementById('enabled').disabled=true;
 				document.getElementById('groupname').disabled=true;
 			}
-			
-			
-			
+
 		}
 	CheckFields();
+	UseExternalWebPageCheck();
 	</script>
 	";
 	echo $tpl->_ENGINE_parse_body($html);
@@ -1333,6 +1375,7 @@ $EnableGoogleSafeSearchField
 function rule_edit_save(){
 	$ID=$_POST["ID"];
 	$q=new mysql_squid_builder();
+	$q->CheckTables();
 	$sock=new sockets();
 	
 	writelogs("Save ruleid `$ID`",__FUNCTION__,__FILE__,__LINE__);

@@ -926,7 +926,15 @@ function list_add(){
 	}
 	
 	$emailhost="$emailhost.$domain";
-	if($_POST["mangle"]==1){$emailhost=$domain;}
+	
+	
+	if($_POST["mangle"]==1){$emailhost=$domain;}else{
+		if($emailhost==null){
+			echo $tpl->javascript_parse_text("{unable_to_add_this_domain_conflict}: $domain");
+			return;
+		}
+		
+	}
 	
 	
 	$mailman=new mailmancontrol($listname);

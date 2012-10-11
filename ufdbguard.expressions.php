@@ -138,10 +138,11 @@ function rules_browse_list(){
 	$page=1;
 	
 	$total=0;
+	
+	if(!$q->TABLE_EXISTS($table)){json_error_show("$table no such table");}
+	
 	if($q->COUNT_ROWS($table)==0){
-		writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
-		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
-		echo json_encode($data);
+		if(!$q->ok){json_error_show("No data");}
 		return ;
 	}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
@@ -157,11 +158,13 @@ function rules_browse_list(){
 		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){json_error_show($q->mysql_error);}
 		$total = $ligne["TCOUNT"];
 		
 	}else{
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table`";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){json_error_show($q->mysql_error);}
 		$total = $ligne["TCOUNT"];
 	}
 	
@@ -176,20 +179,12 @@ function rules_browse_list(){
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
-	
+	if(!$q->ok){json_error_show($q->mysql_error);}
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
-	
-	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ligne['groupname']=str_replace("'", "`", $ligne['groupname']);
@@ -236,11 +231,11 @@ function rules_link_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT rulename FROM webfilter_ufdbexpr WHERE ID={$_GET["ID"]}"));
-	$ligne["rulename"]=str_replace("'", "`", $ligne["rulename"]);
+	$ligne["rulename"]=utf8_encode(str_replace("'", "`", $ligne["rulename"]));
 	$t=$_GET["t"];
-	
+	$description=$tpl->javascript_parse_text("{groups2}:{expressions}::{$ligne["rulename"]}");
 	$html="
-	YahooWin6('600','$page?rule-link=yes&ID={$_GET["ID"]}&ruleid={$_GET["ruleid"]}&t={$_GET["t"]}','{$ligne["rulename"]}');";
+	YahooWin6('600','$page?rule-link=yes&ID={$_GET["ID"]}&ruleid={$_GET["ruleid"]}&t={$_GET["t"]}','$description');";
 	echo $html;
 }
 
@@ -305,7 +300,7 @@ buttons : [
     
     function RefreshTableDesLaisonsExpressionsUfdb(){
     	$('#$t-table1').flexReload();
-    	
+    	$('#$t-table').flexReload();
     }
     
 	var x_LinkExprRuleS$t=function(obj){
@@ -512,14 +507,14 @@ function table(){
 	$tpl=new templates();
 	$q=new mysql_squid_builder();	
 	$rulename=$tpl->_ENGINE_parse_body("{rulename}");
-	$description=$tpl->_ENGINE_parse_body("{groups}:{expressions}");
+	$description=$tpl->javascript_parse_text("{groups2}:{expressions}");
 	$category=$tpl->_ENGINE_parse_body("{category}");	
 	$delete=$tpl->_ENGINE_parse_body("{delete}");	
 	$files_restrictions=$tpl->_ENGINE_parse_body("{files_restrictions}");
 	$add=$tpl->_ENGINE_parse_body("{new_rule}");
 	$ufdbguard_terms_explain=$tpl->_ENGINE_parse_body("{ufdbguard_terms_explain}");
 	$give_the_rulename=$tpl->javascript_parse_text("{give_the_rulename}");
-	$TB_WIDTH=668;
+	$TB_WIDTH=872;
 	$disable_all=Field_checkbox("disable_{$ligne["zmd5"]}", 1,$ligne["enabled"],"bannedextensionlist_enable('{$ligne["zmd5"]}')");
 	$t=time();
 	
@@ -534,8 +529,8 @@ $('#$t-table').flexigrid({
 	dataType: 'json',
 	colModel : [
 		
-		{display: '$rulename', name : 'rulename', width : 221, sortable : true, align: 'left'},
-		{display: '$description', name : 'description', width : 278, sortable : false, align: 'left'},
+		{display: '$rulename', name : 'rulename', width : 289, sortable : true, align: 'left'},
+		{display: '$description', name : 'description', width : 411, sortable : false, align: 'left'},
 		{display: '&nbsp;', name : 'none2', width : 30, sortable : false, align: 'left'},
 		{display: '&nbsp;', name : 'none4', width : 30, sortable : false, align: 'left'},
 		{display: '&nbsp;', name : 'none3', width : 30, sortable : false, align: 'left'},
@@ -557,7 +552,7 @@ buttons : [
 	rp: 15,
 	showTableToggleBtn: false,
 	width: $TB_WIDTH,
-	height: 250,
+	height: 400,
 	singleSelect: true
 	
 	});   
@@ -636,7 +631,10 @@ function rules_list(){
 	$total=0;
 	if(!$q->TABLE_EXISTS($table)){$q->CheckTables();}
 	
-	if($q->COUNT_ROWS($table,"artica_backup")==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table,"artica_backup")==0){
+		json_error_show("No row");
+	}
+		
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -653,11 +651,13 @@ function rules_list(){
 		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		if(!$q->ok){json_error_show("$q->mysql_error");}
 		$total = $ligne["TCOUNT"];
 		
 	}else{
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		if(!$q->ok){json_error_show("$q->mysql_error");}
 		$total = $ligne["TCOUNT"];
 	}
 	
@@ -678,15 +678,17 @@ function rules_list(){
 	$divstart="<span style='font-size:14px;font-weight:bold'>";
 	$divstop="</div>";
 	$noneTXT=$tpl->_ENGINE_parse_body("{none}");
-	
+	if(!$q->ok){json_error_show("$q->mysql_error");}
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$md5=md5("ruleexp".$ligne["ID"]);
 		$color="black";
 		$textdisabledRow=null;
 		$disable=Field_checkbox("$md5", 1,$ligne["enabled"],"RuleExpEnable$t('$md5',{$ligne["ID"]})");
-		$delete=imgtootltip("delete-24.png","{delete} {$ligne['rulename']}","RuleExpressionDelete$t('{$ligne["ID"]}')");
-		$link=imgtootltip("arrowup-24.png","{link} {$ligne['rulename']}","RuleLink$t('{$ligne["ID"]}')");
-		
+		$delete=imgsimple("delete-24.png","{delete} {$ligne['rulename']}","RuleExpressionDelete$t('{$ligne["ID"]}')");
+		$link=imgsimple("arrowup-24.png","{link} {$ligne['rulename']}","RuleLink$t('{$ligne["ID"]}')");
+		$RuleName=$ligne['rulename'];
+		if(trim($RuleName)==null){$RuleName="New Rule ID {$ligne["ID"]}";}
+		$RuleName=utf8_encode($RuleName);
 		
 		if($ligne["enabled"]==0){$color="#737373";$textdisabledRow="<i> ($textdisabled)</i>";}
 		$jsrule="<a href=\"javascript:blur();\" 
@@ -711,7 +713,7 @@ function rules_list(){
 	$data['rows'][] = array(
 		'id' => "ruleexp".$ligne['ID'],
 	'cell' => array(
-		"<span style='font-size:13px'>$jsrule{$ligne['rulename']}</a></strong>",
+		"<span style='font-size:13px'>$jsrule$RuleName</a></strong>",
 		"<span style='font-size:12px'>{$description}</span>",
 		"<div style='margin-top:5px'>$disable</div>",$link,$delete)
 		);
@@ -765,8 +767,8 @@ function rules_edit(){
 function rules_add(){
 	$q=new mysql_squid_builder();
 	$q->CheckTables();
-	$_POST["rule-add"]=mysql_real_escape_string($_POST["rule-add"]);
-	$q->QUERY_SQL("INSERT INTO webfilter_ufdbexpr (rulename,enabled,ruleid) VALUES('{$_POST["rule-add"]}',1,{$_POST["ruleid"]})");
+	$RuleName=addslashes($_POST["rule-add"]);
+	$q->QUERY_SQL("INSERT INTO webfilter_ufdbexpr (rulename,enabled,ruleid) VALUES('$RuleName',1,{$_POST["ruleid"]})");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?rebuild-filters=yes");	

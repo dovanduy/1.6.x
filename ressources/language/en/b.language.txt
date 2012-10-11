@@ -2241,3 +2241,53 @@ Do you want to carry out this operation ?
 <license_status>license status</license_status>
 <license_inactive>license inactive</license_inactive>
 <this_feature_is_disabled_corp_license>This feature is only available when using a coporate license</this_feature_is_disabled_corp_license>
+<license_number>License number</license_number>
+<price_quote>Price Quote</price_quote>
+<click_here_price_quote>Click here for a price quote</click_here_price_quote>
+<CORP_LICENSE_EXPLAIN>Artica Proxy Appliance is an Open source based solution with a subscription-based software product.
+Some features are disabled in the Open source edition, Click the link below to get more information about the licence.</CORP_LICENSE_EXPLAIN>
+<warn_ufdbguard_no_license>The coporate license is not activated.[br]Artica Database that contains more than 29M web sites is disabled.[br]
+Your free license allows you to use only the French Toulouse university Web filtering database.</warn_ufdbguard_no_license>
+<mysql_events>MySQL events</mysql_events>
+<postfixlogger_scanner>MySQL postfix events injector</postfixlogger_scanner>
+<postfixlogger_scanner_explain>Artica monitor mail events in realtime.[br]When it detects a mail event, it prepare a file in a directory queue.[br]
+This task is able to scan all prepared files in order to inject content into MySQL database.</postfixlogger_scanner_explain>
+<squid_rrd_explain>This task build Proxy performances graphs</squid_rrd_explain>
+<squid_rrd>Proxy performances graphs generator</squid_rrd>
+<finish_rule_by>Finish rule by</finish_rule_by>
+<config_file_tiny>Config file</config_file_tiny>
+<ufdb_any>Pass other websites (any)</ufdb_any>
+<ufdb_none>Nothing else (none)</ufdb_none>
+<finish_rule_by>Finish rule by</finish_rule_by>
+<table_does_not_exists>Table does not exists</table_does_not_exists>
+<compile_tlse_database>Compile Toulouse Unversity databases</compile_tlse_database>
+<compile_tlse_database_explain>This task transform text files from the Toulouse university to database production mode</compile_tlse_database_explain>
+<HotSpot>HotSpot</HotSpot>
+<HotSpot_text>HotSpot is a feature that allows you to display a Web page or authentication page in order to allow access to Internet</HotSpot_text>
+<disable_this_rule_no_access_set>Disable this rule because no main access set</disable_this_rule_no_access_set>
+<activate_hostpot>Activate the HotSpot system</activate_hostpot>
+<activate_hostpot_explain>If turned to green, users will be redirected to a web server for accessing to Internet</activate_hostpot_explain>
+<APP_SPLASHSQUID>HotSpot Front End</APP_SPLASHSQUID>
+<APP_SPLASHSQUID_TEXT>HotSpot Front End can be used with the proxy HostSpot feature.[br]It allows you to generate a Web authentication form or a splash screen before 
+Allowing access to users.</APP_SPLASHSQUID_TEXT>
+<squid_splash_logon_explain>To access to internet, set your username and password here.</squid_splash_logon_explain>
+<unable_to_add_this_domain_conflict>Unable to add this domain, it should cause a conflict with</unable_to_add_this_domain_conflict>
+<KerbAuthDisableNormalizeName>Disable normalize name</KerbAuthDisableNormalizeName>
+<winbind_normalize_names>
+This parameter controls whether winbindd will replace whitespace in user and group names with an underscore (_) character.[br]
+For example, whether the name "Space Kadet" should be replaced with the string "space_kadet".[br]
+Frequently Unix shell scripts will have difficulty with usernames contains whitespace due to the default field separator in the shell
+</winbind_normalize_names>
+<acl_squid_browser_explain>Regular expression matching on the request user-agent header[br]
+Example: Mozilla/ ^Keyvelop$ ^ClamWin/ Symbian iP(hone|od)[br]
+or Mozilla \(compatible; MSIE\) [br]
+This should match mozilla and msie based browsers. 
+</acl_squid_browser_explain>
+<browsers>Browsers</browsers>
+<restart_computer_and_defrag>Reboot and repair damaged file systems</restart_computer_and_defrag>
+<restart_computer_and_defrag_warn>
+The repair tool will sometimes require the root password be entered on the console in order to repair some 
+issues with the filesystem. 
+Contact our support department or take a look of the system console
+if your server does not respond after a reboot
+</restart_computer_and_defrag_warn>

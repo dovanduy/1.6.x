@@ -447,11 +447,13 @@ var
    Load1mn,Load5mn,Load15mn:integer;
    SystemWatchMemoryUsage,SystemWatchCPUUser,SystemWatchCPUSystem:integer;
    EnableWatchMemoryUsage,EnableWatchCPUsage,DoNotCheckSystem:integer;
+   rmbin:string;
 begin
 ForceDirectories('/var/monit');
 ForceDirectories('/var/run/monit');
 ForceDirectories('/etc/monit/conf.d');
 myversion:=VERSIONNUM();
+rmbin:=SYS.LOCATE_GENERIC_BIN('rm');
 l:=Tstringlist.Create;
 logs.DebugLogs('Starting......: daemon monitor version '+ INtTOstr(myversion));
 if not TryStrToInt(SYS.GET_INFO('SystemLoadNotif'),SystemLoadNotif) then SystemLoadNotif:=0;
@@ -625,6 +627,13 @@ if DoNotCheckSystem=0 then begin
    end;
 end;
 
+l.add('check file php.log with path /var/log/php.log');
+l.add('      if size > 100 MB then');
+l.add('         exec "'+rmbin+' -f /var/log/php.log"');
+l.add('');
+l.add('check file usrphp.log with path /usr/share/artica-postfix/ressources/logs/php.log');
+l.add('      if size > 100 MB then');
+l.add('         exec "'+rmbin+' -f /usr/share/artica-postfix/ressources/logs/php.log"');
 l.add('');
 l.add('include /etc/monit/conf.d/*');
 logs.WriteToFile(l.Text,'/etc/monit/monitrc');

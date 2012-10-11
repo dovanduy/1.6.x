@@ -955,27 +955,29 @@ function buildconf(){
 			$conf=$conf.");\n";
 			$conf=$conf."\n";
 			$conf=$conf."\n";
-			$conf=$conf."@av_scanners = (\n";
+			
 			$always_clean=null;
 			$EnableClamavDaemon=$sock->GET_INFO("EnableClamavDaemon");
 			if(!is_numeric($EnableClamavDaemon)){$EnableClamavDaemon=0;}
 			if($users->CLAMAV_INSTALLED){
 				if(strlen($users->CLAMAV_SOCKET)>0){
 					if($EnableClamavDaemon==1){
+						$conf=$conf."@av_scanners = (\n";
 						$conf=$conf."['ClamAV-clamd',\&ask_daemon, [\"CONTSCAN {}\", \"$users->CLAMAV_SOCKET\"],qr/\bOK$/, qr/\bFOUND$/,qr/^.*?: (?!Infected Archive)(.*) FOUND$/m ]\n";
-					}
+					
+				
+						if($this->main_array["BEHAVIORS"]["always_clean"]==1){$always_clean="['always-clean', sub {0}]";}
+						$conf=$conf.");\n";
+						$conf=$conf."@av_scanners_backup = ($always_clean);\n";
+						$conf=$conf."\n";
+					  }
 				}
 				
-				if($this->main_array["BEHAVIORS"]["always_clean"]==1){
-					$always_clean="['always-clean', sub {0}]";
-				}
 			}
 			
 			
 			
-			$conf=$conf.");\n";
-			$conf=$conf."@av_scanners_backup = ($always_clean);\n";
-			$conf=$conf."\n";
+
 			$conf=$conf."\n";
 			$conf=$conf."1;  # insure a defined return value";
 			return $conf;	

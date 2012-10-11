@@ -568,9 +568,9 @@ function popup(){
 	$senderHost=Paragraphe("user-server-64.png","{user_transport}","{user_transport_text}","javascript:LoadUserTransport()","{user_transport_text}");
 	$sender_bcc=Paragraphe("duplicate-mails-64.png","{sender_bcc}","{sender_bcc_text}","javascript:SenderBCCMaps()","{sender_bcc_text}");
 	//quota-policy-64-grey.png
-	$quota_policy=Paragraphe("quota-policy-64-grey.png","{quotas_policies}","{quotas_policies_sender_text}");
+	//$quota_policy=Paragraphe("quota-policy-64-grey.png","{quotas_policies}","{quotas_policies_sender_text}");
 	if($sock->GET_INFO("EnableArticaPolicyFilter")==1){
-		$quota_policy=Paragraphe("quota-policy-64.png","{quotas_policies}","{quotas_policies_sender_text}","javascript:Loadjs('domains.edit.user.sender.quota.php?uid={$_GET["popup"]}')","{quotas_text}");
+		//$quota_policy=Paragraphe("quota-policy-64.png","{quotas_policies}","{quotas_policies_sender_text}","javascript:Loadjs('domains.edit.user.sender.quota.php?uid={$_GET["popup"]}')","{quotas_text}");
 	}
 	
 	$leftinfos=leftinfos($_GET["popup"]);
@@ -593,11 +593,7 @@ function popup(){
 			<tr>
 				<td valign='top'>$AllowedSMTPTroughtInternet</td>
 				<td valign='top'>$sender_bcc</td>
-			</tr>
-			<tr>
-				<td valign='top'>$quota_policy</td>
-				<td valign='top'>&nbsp;</td>
-			</tr>			
+			</tr>		
 			</table>			
 		</td>
 	</tr>

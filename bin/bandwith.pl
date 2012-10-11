@@ -3,7 +3,7 @@ use IO::Socket::INET;
 use Time::HiRes;
 use warnings;
 
-my $host = '81.88.96.44';
+my $host = 'qualiserv.directique.com';
 my $port = 2001;
 my $proto = 'tcp';
 

@@ -856,8 +856,8 @@ class usersMenus {
 			
 			
 			
-			$this->autofs_installed=$_GLOBAL["autofs_installed"];
-			$this->APACHE_PORT=$_GLOBAL["APACHE_PORT"];
+			if(isset($_GLOBAL["autofs_installed"])){$this->autofs_installed=$_GLOBAL["autofs_installed"];}
+			if(isset($_GLOBAL["APACHE_PORT"])){$this->APACHE_PORT=$_GLOBAL["APACHE_PORT"];}
 			$this->NFS_SERVER_INSTALLED=$_GLOBAL["NFS_SERVER_INTSALLED"];
 			$this->LVM_INSTALLED=$_GLOBAL["LVM_INSTALLED"];
 			$this->MYSQL_NDB_MGMD_INSTALLED=$_GLOBAL["MYSQL_NDB_MGMD_INSTALLED"];
@@ -867,7 +867,7 @@ class usersMenus {
 			if(isset($_GLOBAL["ASSP_INSTALLED"])){$this->ASSP_INSTALLED=$_GLOBAL["ASSP_INSTALLED"];}
 			$this->MEM_HIGER_1G=$_GLOBAL["MEM_HIGER_1G"];
 			$this->LMB_LUNDIMATIN_INSTALLED=$_GLOBAL["LMB_LUNDIMATIN_INSTALLED"];
-			$this->APACHE_MODE_VHOSTS_LDAP=$_GLOBAL["APACHE_MODE_VHOSTS_LDAP"];
+			if(isset($_GLOBAL["APACHE_MODE_VHOSTS_LDAP"])){$this->APACHE_MODE_VHOSTS_LDAP=$_GLOBAL["APACHE_MODE_VHOSTS_LDAP"];}
 			$this->TCP_ARRAY=$_GLOBAL["TCP_ARRAY"];
 			$this->POWER_DNS_INSTALLED=$_GLOBAL["POWER_DNS_INSTALLED"];
 			if(isset($_GLOBAL["CLAMD_INSTALLED"])){$this->CLAMD_INSTALLED=$_GLOBAL["CLAMD_INSTALLED"];}
@@ -917,7 +917,7 @@ class usersMenus {
 			$this->hostname=str_replace('.(none)','',$this->hostname);
 			$this->fqdn=str_replace('.(none)','',$this->fqdn);
 			$this->BACKUPPC_INSTALLED=$_GLOBAL["BACKUPPC_INSTALLED"];
-			$this->BACKUPPC_APACHE=$_GLOBAL["BACKUPPC_APACHE"];
+			if(isset($_GLOBAL["BACKUPPC_APACHE"])){$this->BACKUPPC_APACHE=$_GLOBAL["BACKUPPC_APACHE"];}
 			$this->KAV4FS_INSTALLED=$_GLOBAL["KAV4FS_INSTALLED"];
 			if(isset($_GLOBAL["KAV4PROXY_LICENSE_ERROR"])){$this->KAV4PROXY_LICENSE_ERROR=$_GLOBAL["KAV4PROXY_LICENSE_ERROR"];}
 			if(isset($_GLOBAL["KAV4PROXY_LICENSE_ERROR_TEXT"])){$this->KAV4PROXY_LICENSE_ERROR_TEXT=$_GLOBAL["KAV4PROXY_LICENSE_ERROR_TEXT"];}

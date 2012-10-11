@@ -48,6 +48,7 @@ if($argv[1]=='--mysqltuner'){mysqltuner();die();}
 if($argv[1]=='--database-rescan'){databases_rescan($argv[2],$argv[3]);die();}
 if($argv[1]=='--database-dump'){database_dump($argv[2],$argv[3]);die();}
 if($argv[1]=='--mysql-upgrade'){mysql_upgrade($argv[2]);die();}
+if($argv[1]=='--repair-db'){_repair_database($argv[2]);die();}
 
 
 
@@ -962,18 +963,27 @@ function _repair_database($database){
 	$mysqlcheck_logs=null;
 	$sql="SHOW TABLES";
 	$results=$q->QUERY_SQL($sql,$database);
-	
+	if(!$q->ok){
+		system_admin_events("Maintenance on database $database failed $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"mysql-error");	
+		return;
+	}
 	if(mysql_num_rows($results)==0){
-		system_admin_events("Maintenance on database $database aborting, no table stored",__FUNCTION__,__FILE__,__LINE__,"mysql");	
+		system_admin_events("Maintenance on database $database aborting, no table stored",__FUNCTION__,__FILE__,__LINE__,"mysql-error");	
 		return;
 	}
 	
+	$user=$q->mysql_admin;
+	$ty[]=" --user=$user";
+	if($q->mysql_password<>null){
+		$ty[]="--password=$q->mysql_password";
+	}
+	$credentials=@implode(" ", $ty);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$table=$ligne["Tables_in_$database"];
 		$tt=time();
 		if(is_file($mysqlcheck)){
-			exec("$mysqlcheck -r $database $table 2>&1",$mysqlcheck_array);
-			$mysqlcheck_logs=$mysqlcheck_logs."\n".@implode("\n",$mysqlcheck_array);
+			exec("$mysqlcheck$credentials -r $database $table 2>&1",$mysqlcheck_array);
+			$mysqlcheck_logs=$mysqlcheck_logs."\n$mysqlcheck on $table:\n".@implode("\n",$mysqlcheck_array);
 			unset($mysqlcheck_array);
 		}		
 			

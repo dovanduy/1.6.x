@@ -17,6 +17,12 @@ Once clicked on the link, you may proceed to edit your profile in order to fill 
 or you could modify your Options to customize your browsing experience of this site.[br]
 If you would rather do these things later, you can do so by following the links around the site to your User Control Panel.[br]
 </account_verification_text>
+<acl_squid_browser_explain>Regular expression matching on the request user-agent header[br]
+Example: Mozilla/ ^Keyvelop$ ^ClamWin/ Symbian iP(hone|od)[br]
+or Mozilla \(compatible; MSIE\) [br]
+This should match mozilla and msie based browsers. 
+<acl_squid_browser_explain>
+<browsers>Browsers</acl_squid_browser_explain>
 <acl_squid_dst_explain>Request for IPv4/IPv6 destination (server) IP addresse(s)[br]
 1.This refers to the whole Network with address 172.16.1.0: "172.16.1.0/24" or "172.16.1.0"[br]
 2.This refers specific single IP Address: "172.16.1.25/32"[br]
@@ -31,6 +37,8 @@ If you would rather do these things later, you can do so by following the links 
 <ACTIVATE_ANTIVIRUS_WSERVICE_TEXT>If turn to green, your proxy will send all requests to the antivirus service for malwares content scanning.[br]
 If turn to red, the service will be off and no antivirus scanning will be performed</ACTIVATE_ANTIVIRUS_WSERVICE_TEXT>
 <ACTIVATE_ARKEIA>Activate Arkeia</ACTIVATE_ARKEIA>
+<activate_hostpot>Activate the HotSpot system</activate_hostpot>
+<activate_hostpot_explain>If turned to green, users will be redirected to a web server for accessing to Internet</activate_hostpot_explain>
 <activate_session_engine>Active the session engine mode</activate_session_engine>
 <activate_this_backend>Activate this backend</activate_this_backend>
 <activate_webfilter_engine>Activate Webfilter engine</activate_webfilter_engine>
@@ -231,6 +239,9 @@ secure, private and controlled solution.</APP_OWNCLOUD_TEXT>
 <APP_SARG_TXT>Squid Analysis Report Generator is a tool that allow you to view "where" your users are going to on the Internet.[br]
 Sarg provides many informations about Squid users activities: times, bytes, sites, etc...</APP_SARG_TXT>
 <APP_SPAMASSASSIN_TEXT>SpamAssassin uses a variety of spam-detection techniques, that includes DNS-based and fuzzy-checksum-based spam detection, Bayesian filtering, external programs, blacklists and online databases</APP_SPAMASSASSIN_TEXT>
+<APP_SPLASHSQUID>HotSpot Front End</APP_SPLASHSQUID>
+<APP_SPLASHSQUID_TEXT>HotSpot Front End can be used with the proxy HostSpot feature.[br]It allows you to generate a Web authentication form or a splash screen before 
+Allowing access to users.</APP_SPLASHSQUID_TEXT>
 <APP_SQUID0>Squid cache branch 2.7x</APP_SQUID0>
 <APP_SQUID31>Squid Cache 3.1x</APP_SQUID31>
 <APP_SQUID32_REPOS>Squid 3.2x repository</APP_SQUID32_REPOS>
@@ -352,6 +363,7 @@ If you enable this option, the process will send the bounce message trough it's 
 <b>user@domain</br>
 <bricks>Bricks</bricks>
 <browser>browser</browser>
+<browsers>Browsers</browsers>
 <browser_not_supported>Your browser is not supported here</browser_not_supported>
 <browser_not_supported1>You are currently using an unsupported browser</browser_not_supported1>
 <browser_not_supported2>Please install one of the many optional browsers below to proceed</browser_not_supported2>
@@ -470,6 +482,7 @@ Perform this operation ?</clean_memory_ask>
 <clean_now>Clean now</clean_now>
 <clean_now_for>Clean now for</clean_now_for>
 <clean_task_logs>Clean logs and temp files</clean_task_logs>
+<click_here_price_quote>Click here for a price quote</click_here_price_quote>
 <click_to_download>Click to download</click_to_download>
 <click_to_install>Click to install</click_to_install>
 <client_fqdn>Client FQDN</client_fqdn>
@@ -499,6 +512,8 @@ Please take care about what command-line you send...</commandline_explain>
 <compile_squid_repo_explain>This task will check latest squid-cache version directly on the squid-cache.org website and compile it on the system.[br]
 You should take care about enabling this task because there is no tests made before installing the new version</compile_squid_repo_explain>
 <compile_this_category>Compile this category</compile_this_category>
+<compile_tlse_database>Compile Toulouse Unversity databases</compile_tlse_database>
+<compile_tlse_database_explain>This task transform text files from the Toulouse university to database production mode</compile_tlse_database_explain>
 <compile_ufdb_repos>Compile UFBD databases for repository</compile_ufdb_repos>
 <compile_ufdb_repos_explain>This task is intended if your use this server has an ASP service.[br]It designed to compile categories into .ufdb databases and upload them to a repository</compile_ufdb_repos_explain>
 <compressed_size>Compressed size</compressed_size>
@@ -510,6 +525,7 @@ You should take care about enabling this task because there is no tests made bef
 Use informations bellow in order to set your Proxy.
 </configure_your_isp_proxy_explain>
 <configure_your_proxy>Configure your proxy</configure_your_proxy>
+<config_file_tiny>Config file</config_file_tiny>
 <confirm_delete_zarafa>This operation will delete this Zarafa service and will remove all stores
 Do you want to carry out this operation ?
 </confirm_delete_zarafa>
@@ -531,6 +547,8 @@ Do you want to perform this operation ?
 during this time, some service will be not available...</convert_background_warn>
 <copy>Copy</copy>
 <copy_from>Copy from</copy_from>
+<CORP_LICENSE_EXPLAIN>Artica Proxy Appliance is an Open source based solution with a subscription-based software product.
+Some features are disabled in the Open source edition, Click the link below to get more information about the licence.</CORP_LICENSE_EXPLAIN>
 <CpuUsage>CPU usage</CpuUsage>
 <createfolders>Create folders</createfolders>
 <credentials>Credentials</credentials>
@@ -627,6 +645,7 @@ Do you want to carry out this operation ?
 <disable_incompatibility_mech>Disable incompatibility mech</disable_incompatibility_mech>
 <disable_mimedefang_ask>This task will disable the MimeDefang daemon. Proceed ?</disable_mimedefang_ask>
 <disable_this_backend>Disable this backend</disable_this_backend>
+<disable_this_rule_no_access_set>Disable this rule because no main access set</disable_this_rule_no_access_set>
 <disable_TimeCapsule_toolbox>Disable "TimeCapsule" toolbox</disable_TimeCapsule_toolbox>
 <disable_zarafa_web_service>Disable Zarafa Web service</disable_zarafa_web_service>
 <disclaimers>Disclaimers</disclaimers>
@@ -790,6 +809,7 @@ imap.company2.tld;POP3;sabrina;SaBr1n@;sabrina.giuras;ssl23;1[br]
 <fetch_folders_explain>Retreive messages stored on specific folders</fetch_folders_explain>
 <filepath>File path</filepath>
 <file_server>File server</file_server>
+<finish_rule_by>Finish rule by</finish_rule_by>
 <firefoxpac_how_to>Select options menu, click on Network tab and the settings button.[br]Check the Automatic proxy configuration url and set the following URL:</firefoxpac_how_to>
 <firewall_behavior>Firewall behavior</firewall_behavior>
 <firewall_behavior_text>Set the Firewall behavior and parameters</firewall_behavior_text>
@@ -850,6 +870,8 @@ hobbies and other tasks that comprise everyday life that cannot be categorized o
 </hobby-other>
 <hook_mailboxto>Hook mailbox to</hook_mailboxto>
 <hostname>hostname</hostname>
+<HotSpot>HotSpot</HotSpot>
+<HotSpot_text>HotSpot is a feature that allows you to display a Web page or authentication page in order to allow access to Internet</HotSpot_text>
 <hourly_bandwidth_users>Hour bandwidth users</hourly_bandwidth_users>
 <hourly_bandwidth_users_explain>This task calculate members bandwidth consumption for each hour</hourly_bandwidth_users_explain>
 <hourly_cache_performances>Hourly cache performances</hourly_cache_performances>
@@ -964,6 +986,7 @@ lots of companies and individual users has already adopted it.[b]There are numer
 <junk_mail_folder>Junk Mail folder</junk_mail_folder>
 <junk_mail_folder_zexplain>Move automatically to Junk folder according Header in message</junk_mail_folder_zexplain>
 <KerbAuthDisableGroupListing>Disable users/groups listing</KerbAuthDisableGroupListing>
+<KerbAuthDisableNormalizeName>Disable normalize name</KerbAuthDisableNormalizeName>
 <KerbAuthDisableNsswitch>Not include Active Directory in the local system</KerbAuthDisableNsswitch>
 <kernel.panic_on_oops>
 Enable kernel detection and handling of any process that causes a crashand calls the panic() function at the end.[br]
@@ -1004,6 +1027,7 @@ This feature is currently supported by Ubuntu or Debian system.
 <license_active>active license</license_active>
 <license_inactive>license inactive</license_inactive>
 <license_invalid>invalid license</license_invalid>
+<license_number>License number</license_number>
 <license_status>license status</license_status>
 <ligghtpd_perf_howto>Basically, this Web interface use lighttpd Web server engine to provide Web management interface.[br]
 Artica use 2 Web engine:[br]
@@ -1156,6 +1180,7 @@ You need to reconfigure each instance.
 [br]You did not have to execute this task daily but sometimes during the Year...[br]
 You have to schedule this task and disable it from the scheduler in order to just execute it manually 
 </mysql_defrag_all_explain>
+<mysql_events>MySQL events</mysql_events>
 <mysql_graphs>Mysql graphs & charts</mysql_graphs>
 <mysql_graphs_text>Display graphs & charts about Mysql service performances</mysql_graphs_text>
 <mysql_instance>MySQL instance</mysql_instance>
@@ -1310,6 +1335,9 @@ The object will not be deleted but all datas will be erased</perform_empty_ask>
 <pluginsw>Plugins</pluginsw>
 <portal_options>Portal options</portal_options>
 <portal_title>Portal title</portal_title>
+<postfixlogger_scanner>MySQL postfix events injector</postfixlogger_scanner>
+<postfixlogger_scanner_explain>Artica monitor mail events in realtime.[br]When it detects a mail event, it prepare a file in a directory queue.[br]
+This task is able to scan all prepared files in order to inject content into MySQL database.</postfixlogger_scanner_explain>
 <PostfixMultiTrustAllInstances>All instances trust all instances</PostfixMultiTrustAllInstances>
 <PostfixMultiTrustAllInstances_text>If turned to green, all created instances will be added automatically in the trusted network of all instances.[br]
 In this case, each instance can send email to other without received a relaying access denied.
@@ -1345,6 +1373,7 @@ It designed to relay/handle the whole domain and all addresses associated to the
 <prefer_direct>Prefer direct</prefer_direct>
 <prepend_subject>Prepend subject</prepend_subject>
 <preview>Preview</preview>
+<price_quote>Price Quote</price_quote>
 <private_key>Private key</private_key>
 <private_key_ssl_explain>it contains a private key; do not disclose this file to anyone.
 [br]Carefully protect the private key.[br]
@@ -1673,8 +1702,11 @@ going direct fails set this to on.</squid_prefer_direct>
 <squid_request_requestsstats_log>Squid request status (TCP_MISS etc)</squid_request_requestsstats_log>
 <squid_request_statuscode_log>HTTP status code received from the next hop</squid_request_statuscode_log>
 <squid_request_url_log>Request URL from client (historic, filtered for logging)</squid_request_url_log>
+<squid_rrd>Proxy performances graphs generator</squid_rrd>
+<squid_rrd_explain>This task build Proxy performances graphs</squid_rrd_explain>
 <squid_second_port_explain>If value is up to 0,this option force the proxy to open a second port.[br]
 This second port is a standard port and will be not turned to transparent mode (if transparent is enabled).</squid_second_port_explain>
+<squid_splash_logon_explain>To access to internet, set your username and password here.</squid_splash_logon_explain>
 <squid_ssl_port_explain>The socket port where proxy will listen for client requests made over TLS or SSL connections. Commonly referred to as HTTPS.</squid_ssl_port_explain>
 <squid_syslog_text>Send proxy requests to a remote syslog server</squid_syslog_text>
 <squid_tail_injector>Squid Tail Injector</squid_tail_injector>
@@ -1753,6 +1785,7 @@ This stask will parse this queue and insert values into MySQL database.</system_
 <tablename>Table name</tablename>
 <tables>Tables</tables>
 <tables_size>Tables size</tables_size>
+<table_does_not_exists>Table does not exists</table_does_not_exists>
 <target_folder>Target folder</target_folder>
 <task>Task</task>
 <tasks_klms8_text>Display unning tasks and their identifiers in order to stop/start/edit and monitor them</tasks_klms8_text>
@@ -1829,8 +1862,11 @@ To achieve additional blocking this section can be used.[br]
 In this section you enter expressions groups (see the group terms section) that are mostly likely part of unwanted domains and urls.[br]
 Each domains and url will be matched against the entries found in the added expressions groups.
 </ufdbguard_terms_explain>
+<ufdb_any>Pass other websites (any)</ufdb_any>
+<ufdb_none>Nothing else (none)</ufdb_none>
 <unable_freeweb_delete_mailman>Unable to Delete this web site
 this web site serve a Mailman distribution list.</unable_freeweb_delete_mailman>
+<unable_to_add_this_domain_conflict>Unable to add this domain, it should cause a conflict with</unable_to_add_this_domain_conflict>
 <unable_to_obtain_uri>Unable to obtain uri</unable_to_obtain_uri>
 <unable_to_perform_operation_zarafa_bind_all_addresses>Unable to perform operation.[br]The Zarafa gateway/server listen all IP adresses (0.0.0.0)</unable_to_perform_operation_zarafa_bind_all_addresses>
 <unable_to_resolve>Unable to resolve</unable_to_resolve>
@@ -2011,6 +2047,8 @@ If you need more informations, please contact our support team.[br]
 [br]
 </WARN_SQUID_STATS_PERFS>
 <warn_ufdbguard_not_activated_explain>The Webfilter Engine is not activated in your configuration.[br]Some rules will be not applied on your proxy.[br]Go into services status section in order to enable it</warn_ufdbguard_not_activated_explain>
+<warn_ufdbguard_no_license>The coporate license is not activated.[br]Artica Database that contains more than 29M web sites is disabled.[br]
+Your free license allows you to use only the French Toulouse university Web filtering database.</warn_ufdbguard_no_license>
 <WARN_USB_SCAN_MISSING>The Hard drive index file is missing.[br]This error means that Artica is currently indexing your hard drives or unable to scan your hard drives.[br]
 If this issue still occurs in several minutes, try to run the tool [b]artica-install --usb-scan-write[/b] or contact our support team.
 </WARN_USB_SCAN_MISSING>
@@ -2064,6 +2102,11 @@ Click next to proceed.
 <whitelist_zarafa_contacts_explain>This task will export all zarafa contacts to the central whitelist database.[br]
 This to add in whitelist all contacts saved by your members</whitelist_zarafa_contacts_explain>
 <white_mime_type>Whitelist content by Mime Type</white_mime_type>
+<winbind_normalize_names>
+This parameter controls whether winbindd will replace whitespace in user and group names with an underscore (_) character.[br]
+For example, whether the name "Space Kadet" should be replaced with the string "space_kadet".[br]
+Frequently Unix shell scripts will have difficulty with usernames contains whitespace due to the default field separator in the shell
+</winbind_normalize_names>
 <WIZARD_BACKUP_SSH_STORAGE_EXPLAIN>Give in the form below credentials that have write access to the remote SSH service</WIZARD_BACKUP_SSH_STORAGE_EXPLAIN>
 <word>word</word>
 <workingdir_in_memory>Direcory in memory</workingdir_in_memory>

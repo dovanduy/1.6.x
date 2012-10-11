@@ -147,7 +147,8 @@ class squid_stats_appliance{
 		$array["SquidQuotasParams"]=true;
 		$array["SquidBoosterMem"]=true;
 		$array["SquidBoosterMemK"]=true;
-		$array["SquidBoosterOnly"]=true;		
+		$array["SquidBoosterOnly"]=true;
+		$arra["EnableSplashScreen"]=true;		
 		return $array;
 	}
 	

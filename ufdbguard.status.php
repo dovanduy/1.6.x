@@ -87,9 +87,35 @@ function page(){
 function main(){
 	$page=CurrentPageName();
 	$tpl=new templates();		
-	
+	$t=time();
 	$html="
-		<div style='font-size:18px'>{webfilter}::{service_status}</div>";
+		<div style='font-size:18px'>{webfilter}::{service_status}</div>
+		<table style='width:99%' style='margin:10px'>
+		<tr>
+		<td valign='top'>
+			<div id='artica-status-databases-$t'></div>
+		</td>
+		</tr>
+		<tr>
+		
+		<td valign='top'>
+			<div id='tlse-status-databases-$t'></div>
+		</td>
+		</tr>
+		</table>
+
+		
+		<script>
+			LoadAjaxTiny('ufdb-main-toolbox-status','dansguardian2.mainrules.php?rules-toolbox-left=yes');
+			setTimeout('dbstatus$t()',3000);
+			
+			function dbstatus$t(){
+				LoadAjaxTiny('artica-status-databases-$t','dansguardian2.databases.php?global-artica-status-databases=yes&t=$t');
+				
+			}			
+		</script>
+		
+		";
 	
 	
 	echo $tpl->_ENGINE_parse_body($html);	
@@ -128,6 +154,8 @@ function service_status(){
 		<td valign='top'>$APP_SQUIDGUARD_HTTP</td>
 	</tr>	
 	</table>
+	<br>
+	<div id='ufdb-main-toolbox-status'></div>
 	<script>
 		LoadAjax('main-status-$t','$page?main=yes&t=$t');
 	</script>	

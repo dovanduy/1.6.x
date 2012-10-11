@@ -509,14 +509,14 @@ function webservice(){
 		var XHR = new XHRConnection();
 		XHR.appendData('FreeWebsRebuildvHosts','{$_GET["servername"]}');
 		AnimateDiv('freewebdiv');
-		XHR.sendAndLoad('freeweb.edit.php', 'POST',x_SaveFreeWebMain);
+		XHR.sendAndLoad('freeweb.edit.php', 'POST',x_SaveFreeWebMain$t);
 	}
 	
 	function FreeWebsRebuildGroupware(){
 		var XHR = new XHRConnection();
 		XHR.appendData('FreeWebsRebuildGroupware','{$_GET["servername"]}');
 		AnimateDiv('freewebdiv');
-		XHR.sendAndLoad('freeweb.edit.php', 'POST',x_SaveFreeWebMain);
+		XHR.sendAndLoad('freeweb.edit.php', 'POST',x_SaveFreeWebMain$t);
 	}			
 
 

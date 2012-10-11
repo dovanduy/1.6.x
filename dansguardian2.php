@@ -81,7 +81,7 @@ function tabs(){
 	$array["ufdbguard"]='{service_parameters}';
 
 	if($EnableRemoteStatisticsAppliance==0){
-		$array["groups"]='{groups}';
+		$array["groups"]='{groups2}';
 		$array["databases"]='{webfilter_databases}';
 		if($enable_streamcache==1){$array["streamcache"]='{streamcache_status}';}
 	}
@@ -979,7 +979,8 @@ function ufdbguard_service_options(){
 
 	$compile_schedule=Paragraphe("clock-gold-64.png","{compilation_schedule}","{compilation_schedule_text}","javascript:Loadjs('ufdbguard.databases.php?scripts=compile-schedule')");
 
-	$ufdbguard_conf=Paragraphe("script-64.png","ufdbguard.conf","{ufdbguard_conf_read_text}","javascript:Loadjs('ufdbguard.databases.php?scripts=config-file')");
+	$ufdbguard_conf=Paragraphe("script-64.png","ufdbguard.conf","{ufdbguard_conf_read_text}",
+	"javascript:Loadjs('ufdbguard.databases.php?scripts=config-file')");
 
 	$cicap=Paragraphe('c-icap-64-grey.png','{APP_C_ICAP}','{feature_not_installed}',"");
 

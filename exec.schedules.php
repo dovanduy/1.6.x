@@ -127,6 +127,12 @@ function build_schedules(){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: artica-postfix watchdog (fcron) Unable to stat task process of `$TaskType`\n";}
 			continue;
 		}
+		
+		if(isset($task->task_disabled[$TaskType])){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: artica-postfix`$TaskType` disabled\n";}
+			continue;
+		}
+		
 		$script=$task->tasks_processes[$TaskType];
 		
 		
@@ -211,6 +217,7 @@ function execute_task($ID){
 	$TaskType=$ligne["TaskType"];
 	if($TaskType==0){return;}	
 	if(!isset($tasks->tasks_processes[$TaskType])){system_admin_events("Unable to understand task type `$TaskType` For this task" , __FUNCTION__, __FILE__, __LINE__, "tasks");return;}
+	if(isset($task->task_disabled[$TaskType])){return;}
 	$script=$tasks->tasks_processes[$TaskType];
 	$nice=$unix->EXEC_NICE();
 	$nohup=$unix->find_program("nohup");
@@ -241,6 +248,9 @@ function run_schedules($ID){
 	if($TaskType==0){return;}	
 	if(!isset($tasks->tasks_processes[$TaskType])){system_admin_events("Unable to understand task type `$TaskType` For this task" , __FUNCTION__, __FILE__, __LINE__, "tasks");return;}
 	$script=$tasks->tasks_processes[$TaskType];
+	if(isset($task->task_disabled[$TaskType])){return;}
+	
+	
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();

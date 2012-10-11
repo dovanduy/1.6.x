@@ -730,6 +730,7 @@ function smtpd_client_restrictions(){
 if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	$EnablePostfixAntispamPack=$sock->GET_INFO("EnablePostfixAntispamPack");
 	$EnableArticaPolicyFilter=$sock->GET_INFO("EnableArticaPolicyFilter");
+	$EnableArticaPolicyFilter=0;
 	$EnableAmavisInMasterCF=$sock->GET_INFO('EnableAmavisInMasterCF');
 	$EnableAmavisDaemon=$sock->GET_INFO('EnableAmavisDaemon');		
 	$amavis_internal=null;
@@ -930,6 +931,7 @@ function smtpd_recipient_restrictions(){
 	$EnableCluebringer=$sock->GET_INFO("EnableCluebringer");
 	$EnablePostfixAntispamPack=$sock->GET_INFO("EnablePostfixAntispamPack");
 	$EnableArticaPolicyFilter=$sock->GET_INFO("EnableArticaPolicyFilter");
+	$EnableArticaPolicyFilter=0;
 	if($GLOBALS["DEBUG"]){echo "EnableCluebringer=$EnableCluebringer\n";}
 	$EnableAmavisInMasterCF=$sock->GET_INFO('EnableAmavisInMasterCF');
 	$EnableAmavisDaemon=$sock->GET_INFO('EnableAmavisDaemon');	
@@ -1755,6 +1757,7 @@ function smtpd_end_of_data_restrictions(){
 	if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLASS_USERS_MENUS"]=$users;}else{$users=$GLOBALS["CLASS_USERS_MENUS"];}
 	$EnableArticaPolicyFilter=$sock->GET_INFO("EnableArticaPolicyFilter");
+	$EnableArticaPolicyFilter=0;
 	$EnableCluebringer=$sock->GET_INFO("EnableCluebringer");
 	
 	$main=new maincf_multi("master");
@@ -2151,6 +2154,7 @@ function MasterCFBuilder($restart_service=false){
 	if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	if(!is_object($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
+	$EnableArticaSMTPFilter=0;
 	$EnableAmavisInMasterCF=$sock->GET_INFO('EnableAmavisInMasterCF');
 	$EnableAmavisDaemon=$sock->GET_INFO('EnableAmavisDaemon');
 	$PostfixEnableMasterCfSSL=$sock->GET_INFO("PostfixEnableMasterCfSSL");

@@ -1062,6 +1062,9 @@
 			if($this->groupware=="XAPIAN"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			if($this->groupware=="ANDROWEB"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			if($this->groupware=="MAILHOSTING"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
+			if($this->groupware=="SPLASHSQUID"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
+			
+			
 			
 			return false;
 			
@@ -1763,6 +1766,8 @@
 			if($this->groupware=="ARTICA_MINIADM"){return "miniadm.php";}
 			if($this->groupware=="ARTICA_ADMPRXY"){return "squid.users.logon.php";}
 			if($this->groupware=="MAILHOSTING"){return "mailattach.php";}
+			if($this->groupware=="SPLASHSQUID"){return "splashproxy.php";}
+			
 			if($this->groupware=="KLMS"){if(is_file("/etc/apache2/conf.d/klmsui.conf")){@unlink("/etc/apache2/conf.d/klmsui.conf");}return "index.shtml";}			
 			return "index.php index.html";
 			
@@ -1779,9 +1784,11 @@
 				$f["403"]="/android.404.php";
 			}
 			
-			if($this->groupware=="MAILHOSTING"){
-				$f["403"]="/mailattach.php";
-			}
+			if($this->groupware=="MAILHOSTING"){$f["403"]="/mailattach.php";}
+			if($this->groupware=="MAILHOSTING"){$f["304"]="/mailattach.php";}
+			if($this->groupware=="SPLASHSQUID"){$f["403"]="/splashproxy.php";}
+			if($this->groupware=="SPLASHSQUID"){$f["404"]="/splashproxy.php";}
+			
 			if($this->groupware=="OWNCLOUD"){
 				$f["403"]="/core/templates/403.php";
 				$f["404"]="/core/templates/404.php";
@@ -1815,6 +1822,8 @@
 				$f[]="\t\tallow from all";	
 				return @implode("\n",$f);				
 			}
+			
+			
 			
 		}
 		
@@ -1862,7 +1871,13 @@
 			if( $this->groupware=="MAILHOSTING"){
 				$array=$this->ParseArticaDirectory();
 				unset($array["mailattach.php"]);
+			}
+			if( $this->groupware=="SPLASHSQUID"){
+				$array=$this->ParseArticaDirectory();
+				unset($array["splashproxy.php"]);
 			}			
+
+			
 			
 			
 			

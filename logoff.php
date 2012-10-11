@@ -9,7 +9,7 @@ session_start();
 	*/
 
 if(isset($_GET["shutdown-js"])){shutdown_js();exit;}
-
+if(isset($_POST["defrag"])){defrag();exit;}
 
 if(isset($_GET["menus"])){
 	echo menus();
@@ -21,6 +21,17 @@ if(isset($_GET["perform"])){
 	exit;
 }
 
+function defrag(){
+	include_once(dirname(__FILE__) . "/class.sockets.inc");
+	include_once('ressources/class.templates.inc');
+	$user=new usersMenus();
+	if(!$user->AsSystemAdministrator){die();}	
+	$sock=new sockets();
+	$DisableRebootOrShutDown=$sock->GET_INFO('DisableRebootOrShutDown');		
+	if($DisableRebootOrShutDown==1){return;}
+	$sock->getFrameWork("services.php?system-defrag=yes");	
+	echo "See you !! :=)\n";
+}
 
 function perform(){
 	include_once(dirname(__FILE__) . "/class.sockets.inc");
@@ -77,9 +88,9 @@ var x_turnoff= function (obj) {
 
 function menus(){
 	include_once('ressources/class.templates.inc');
-	if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}
-	
-	
+	$tpl=new templates();
+	$restart_computer_and_defrag_warn=$tpl->javascript_parse_text("{restart_computer_and_defrag_warn}",1);
+	$page=CurrentPageName();
 	
 	$users=new usersMenus();
 	if(!$users->AsSystemAdministrator){
@@ -103,9 +114,13 @@ function menus(){
 		";
 	}
 	$reboot=imgtootltip('reboot-computer-64.png','{restart_computer}','RestartComputer()');
+	$rebootfsck=imgtootltip('reboot-computer-defrag-64.png','{restart_computer_and_defrag}','RestartDefragComputer()');
+	
 	
 	if($DisableRebootOrShutDown==1){
 		$reboot=imgtootltip('reboot-computer-64-grey.png','{restart_computer}');
+		$rebootfsck=imgtootltip('reboot-computer-defrag-64-off.png','{restart_computer_and_defrag}','blur()');
+		
 		if($AllowShutDownByInterface_tr<>null){
 			$AllowShutDownByInterface_tr=
 			"<td align='center'>".imgtootltip('shutdown-computer-64-grey.png','{shutdown}')."</td>";
@@ -126,10 +141,28 @@ function menus(){
 		</td>		
 		<td align='center'>
 			$reboot
+			$rebootfsck
 		</td>
 		$AllowShutDownByInterface_tr		
 	</tr>
 	</table>
+	<script>
+	var x_RestartDefragComputer=function(obj){
+      var tempvalue=obj.responseText;
+      if(tempvalue.length>3){alert(tempvalue);}
+      window.location ='$page';
+      
+     }	
+	
+	
+	function RestartDefragComputer(){
+			if(confirm('$restart_computer_and_defrag_warn')){
+				var XHR = new XHRConnection();
+				XHR.appendData('defrag','yes');
+				XHR.sendAndLoad('$page', 'POST',x_RestartDefragComputer);
+			}
+		}
+	</script>
 	";
 	$tpl=new templates();
 	$page=$tpl->_ENGINE_parse_body($html);

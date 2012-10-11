@@ -1186,9 +1186,7 @@ function squid_master_status(){
 	if(is_file(dirname(__FILE__)."/exec.squid.php")){
 		shell_exec(trim($prefixcmd.dirname(__FILE__)."/exec.squid.php --cache-infos >/dev/null 2>&1 &"));
 	}
-	if(is_file(dirname(__FILE__)."/exec.squid-rrd.php")){
-		shell_exec(trim($prefixcmd.dirname(__FILE__)."/exec.squid-rrd.php >/dev/null 2>&1 &"));
-	}
+
 	if(is_file(dirname(__FILE__)."/exec.kerbauth.php")){
 		shell_exec(trim($prefixcmd.dirname(__FILE__)."/exec.kerbauth.php --klist >/dev/null 2>&1 &"));
 		shell_exec(trim($prefixcmd.dirname(__FILE__)."/exec.kerbauth.php --winbinddpriv >/dev/null 2>&1 &"));
@@ -4760,6 +4758,7 @@ function monit(){
 	}
 	$l[]=GetMemoriesOf($master_pid);
 	$l[]="";
+	shell_exec("/usr/share/artica-postfix/bin/artica-install --monit-wake");
 	return implode("\n",$l);
 }
 //========================================================================================================================================================
@@ -5224,6 +5223,7 @@ function squidguard_logger(){
 }
 //========================================================================================================================================================
 function artica_policy(){
+	return;
 	if(!is_file("/usr/share/artica-postfix/exec.artica-filter-daemon.php")){return;}
 	$pid_path="/etc/artica-postfix/exec.artica-filter-daemon.php.pid";
 	$master_pid=trim(@file_get_contents($pid_path));

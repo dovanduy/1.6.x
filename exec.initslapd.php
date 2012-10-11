@@ -1380,6 +1380,9 @@ function checkDebSyslog(){
 	 		break;
 	 	}
 	}
+	
+	$filesize=filesize("/etc/init.d/syslog");
+	if($filesize<50){$RSYSLOGD_PIDFILE="/var/run/rsyslogd.pid";}
 	if($RSYSLOGD_PIDFILE==null){echo "syslog: [INFO] pidfile `cannot check pid...`\n";return;}
 	
 	echo "syslog: [INFO] pidfile `$RSYSLOGD_PIDFILE`\n";

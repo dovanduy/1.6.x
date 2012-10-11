@@ -99,13 +99,14 @@ function save(){
 
 
 function error_not_compatible(){
+	$users=new usersMenus();
 	
 	$tpl=new templates();
 	$html="<div style='margin:30px'>
 		<table style='width:99%' class=form>
 		<tr>
 			<td width=1%><img src='img/error-128.png'></td>
-			<td><div style='font-size:16px;font-weight:bold'>{this_feature_require_210v_minimal}</div>
+			<td><div style='font-size:16px;font-weight:bold'>Current Postfix: $users->POSTFIX_VERSION<hr>{this_feature_require_210v_minimal}</div>
 		</tr>
 		</table>
 		

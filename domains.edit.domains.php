@@ -607,13 +607,14 @@ function EditRelayDomain(domain_name){
 }
 
 function remote_domain_popup(){
+	$page=CurrentPageName();
 	$html="
-	<div style='width:100%;background-image:url(img/earth-256-transp.png);
-		background-position:bottom left;background-repeat:no-repeat' id='remote_domain_popup'>
+	<div style='width:100%;' id='remote_domain_popup'>
 	
 	</div>
 	<script>
-		refresh_remote_domain_popup();
+		LoadAjax('remote_domain_popup','$page?remote-domain-form=yes&add=yes&ou={$_GET["ou"]}&index={$_GET["index"]}&t={$_GET["t"]}');
+//		refresh_remote_domain_popup();
 	</script>
 	";
 	echo $html;
@@ -646,7 +647,7 @@ if($_GET["index"]<>"new domain"){
 	$dn="cn=@$num,cn=relay_recipient_maps,ou={$_GET["ou"]},dc=organizations,$ldap->suffix";
 	$trusted_smtp_domain=0;
 	if($ldap->ExistsDN($dn)){$trusted_smtp_domain=1;}
-	$edit_button="<hr>". button("{edit}","EditRelayDomain('$num')");
+	$edit_button="<hr>". button("{edit}","EditRelayDomain('$num')","22px");
 	
 	$trusted=Paragraphe_switch_img("{trusted_smtp_domain}","{trusted_smtp_domain_text}","trusted_smtp_domain",$trusted_smtp_domain,"{enable_disable}",220);
 	$roundrobin=Paragraphe('64-computer-alias.png','{roundrobin}','{roundrobin_text}',"javascript:Loadjs('$page?round-robin=yes&ou={$_GET["ou"]}&domain=$num');");
@@ -654,18 +655,13 @@ if($_GET["index"]<>"new domain"){
 	<table style='width:99%' class=form>
 		<tr>
 			<td><strong style='font-size:18px;color:black'>{domain_name}:</strong></td>
-		</tr>
-		<tr>
 			<td align='right'><strong style='font-size:18px;color:black'>{$_GET["index"]}</strong></td>
 		</tr>
-		<tr>
-			<td><hr></td>
-		</tr>							
+		<tr>							
 			<td nowrap><strong style='font-size:18px;color:black'>{target_computer_name}:&nbsp;</strong></td>
-		</tr>
 			<td align='right'>". Field_text("{$num}_IP",$arr[1],'width:256px;padding:10px;font-size:16px') ."</td>
 		</tr>
-			<td align='right'><strong style='font-size:18px;color:black'>{port}:&nbsp;". 
+			<td align='right' colspan=2><strong style='font-size:18px;color:black'>{port}:&nbsp;". 
 				Field_text("{$num}_PORT",$arr[2],'width:50px;padding:3px;font-size:16px').
 				"&nbsp;" . Field_yesno_checkbox_img("{$num}_MX",$arr[3],'{mx_look}')."&nbsp;".
 				Field_yesno_checkbox_img("{$num}_autoaliases",$alias,'<b>{autoaliases}</b><br>{autoaliases_text}')."
@@ -673,7 +669,7 @@ if($_GET["index"]<>"new domain"){
 		</tr>
 		
 		<tr>
-			<td align='right'>$edit_button</td>
+			<td align='right' colspan=2>$edit_button</td>
 		</tr>
 	</table>";
 	
@@ -684,16 +680,14 @@ if($_GET["index"]<>"new domain"){
 	$form="
 	<table style='width:99%' class=form>
 		<tr>
-			<td><strong style='font-size:18px;color:black'>{domain_name}:</strong></td>
-		</tr>
-		<tr>
+			<td class=legend><strong style='font-size:18px;color:black'>{domain_name}:</strong></td>
 			<td align='right'>". Field_text('AddNewRelayDomainName',null,'width:256px;padding:10px;font-size:16px') ."</td>
-		</tr>					
-			<td nowrap><strong style='font-size:18px;color:black'>{target_computer_name}:&nbsp;</strong></td>
 		</tr>
+		<tr>					
+			<td nowrap class=legend><strong style='font-size:18px;color:black'>{target_computer_name}:&nbsp;</strong></td>
 			<td align='right'>". Field_text('AddNewRelayDomainIP',null,'width:256px;padding:10px;font-size:16px') ."</td>
 		</tr>
-			<td align='right'><strong style='font-size:18px;color:black'>{port}:&nbsp;". 
+			<td align='right' colspan=2><strong style='font-size:18px;color:black'>{port}:&nbsp;". 
 				Field_text('AddNewRelayDomainPort','25','width:50px;padding:3px;font-size:16px') .
 				"&nbsp;" . Field_yesno_checkbox_img('MX','no','{mx_look}')."
 			</td>
@@ -704,8 +698,8 @@ if($_GET["index"]<>"new domain"){
 				"trusted_smtp_domain",1,"{enable_disable}",520)."</div></td>
 		</tr>		
 		<tr>
-			<td align='right'>
-			<hr>". button("{add}","AddRelayDomain()")."</td>
+			<td align='right' colspan=2>
+			<hr>". button("{add}","AddRelayDomain()","22px")."</td>
 		</tr>
 	</table>";
 
@@ -750,13 +744,14 @@ function RELAY_DOMAINS_LIST($ou){
 	$add_relay_domain=$tpl->_ENGINE_parse_body("{add_relay_domain}");
 	$ouescape=urlencode($ou);
 	$destination=$tpl->javascript_parse_text("{destination}");
+
 	
 		$add_remote_domain=Paragraphe("64-remotedomain-add.png",'{add_relay_domain}','{add_relay_domain_text}',
 	"javascript:AddRemoteDomain_form(\"$ou\",\"new domain\")","add_relay_domain",210);
 
 	$buttons="
 	buttons : [
-	{name: '$add_relay_domain', bclass: 'add', onpress : add_relay_domain},
+	{name: '$add_relay_domain', bclass: 'add', onpress : AddRelayDomain$t},
 	],";		
 		
 	
@@ -769,7 +764,7 @@ $html="
 <script>
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?organization-relay-domain-list-search=yes&ou={$_GET["organization-relay-domain-list"]}',
+	url: '$page?organization-relay-domain-list-search=yes&ou={$_GET["organization-relay-domain-list"]}&t=$t',
 	dataType: 'json',
 	colModel : [
 		{display: '$domain', name : 'domain', width : 205, sortable : false, align: 'left'},
@@ -798,27 +793,25 @@ $('#flexRT$t').flexigrid({
 	});   
 });
 
-	function add_relay_domain(){
-		Loadjs('domains.edit.domains.php?remote-domain-add-js=yes&t=$t&ou='+ou+'&index='+index)
-		
-	
+	function AddRelayDomain$t(){
+		Loadjs('domains.edit.domains.php?remote-domain-add-js=yes&t=$t&ou={$_GET["organization-relay-domain-list"]}&index=new%20domain')
 	}
 
 
-		var x_DeleteRelayDomain= function (obj) {
+		var x_DeleteRelayDomain$t= function (obj) {
 			var tempvalue=obj.responseText;
 			if(tempvalue.length>3){alert(tempvalue)};
 			FlexReloadRemoteDomainList();
 		}	
 	
 		
-		function DeleteRelayDomain(domain_name){
+		function DeleteRelayDomain$t(domain_name){
 			var mytext='$are_you_sure_to_delete';
 			if(confirm(mytext+' '+domain_name)){
 				var XHR = new XHRConnection();
 				XHR.appendData('DeleteRelayDomainName',domain_name);
 				XHR.appendData('ou','$ou');
-				XHR.sendAndLoad('domains.edit.domains.php', 'GET',x_DeleteRelayDomain);
+				XHR.sendAndLoad('domains.edit.domains.php', 'GET',x_DeleteRelayDomain$t);
 			}
 		
 		}
@@ -945,6 +938,9 @@ function IS_DISCLAIMER(){
 	$ALTERMIME_INSTALLED=$users->ALTERMIME_INSTALLED;
 	$EnableAlterMime=$sock->GET_INFO('EnableAlterMime');
 	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
+	$EnableArticaSMTPFilter=0;
+	
+	
 	$DisclaimerOrgOverwrite=$sock->GET_INFO("DisclaimerOrgOverwrite");
 	if(!$POSTFIX_INSTALLED){$disclaimer=false;}
 	if(!$ALTERMIME_INSTALLED){$disclaimer=false;}
@@ -1088,6 +1084,7 @@ function RELAY_DOMAINS_LIST_SEARCH(){
 	include_once("ressources/class.amavis.inc");
 	$amavis=new amavis();
 	$amavis_oui=false;
+	$t=$_GET["t"];
 	
 	writelogs("----------------> Hash_relay_domains",__FUNCTION__,__FILE__,__LINE__);	
 	$HashDomains=$ldap->Hash_relay_domains($ou);
@@ -1110,7 +1107,7 @@ $data = array();
 		$disclaimer_domain="&nbsp;";
 		$amavis_infos="&nbsp;";
 		$amavis_duplicate="&nbsp;";
-		$delete=imgtootltip("delete-24.png",'{label_delete_transport}',"DeleteRelayDomain('$num')");
+		$delete=imgtootltip("delete-24.png",'{label_delete_transport}',"DeleteRelayDomain$t('$num')");
 		if($amavis->copy_to_domain_array[strtolower($num)]["enable"]==1){$amavis_duplicate="<strong style='font-size:12px'>{$amavis->copy_to_domain_array[strtolower($num)]["duplicate_host"]}:{$amavis->copy_to_domain_array[strtolower($num)]["duplicate_port"]}";}		
 		$autoalias=$tpl->_ENGINE_parse_body($autoalias);
 		writelogs("add in row $ligne ",__FUNCTION__,__FILE__);

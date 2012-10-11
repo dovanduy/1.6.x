@@ -470,11 +470,13 @@ function section_architecture_users(){
 	$SESSIONS_MANAGER=Paragraphe('64-smtp-auth-grey.png','{APP_SQUID_SESSION_MANAGER}','{APP_SQUID_SESSION_MANAGER_TEXT}',"");
 	$ISP_MODE=Paragraphe('isp-64.png','{SQUID_ISP_MODE}','{SQUID_ISP_MODE_EXPLAIN}',"javascript:Loadjs('squid.isp.php')");
 
-    
+    $WEB_AUTH=Paragraphe('webfilter-64.png','{HotSpot}','{HotSpot_text}',
+    "javascript:Loadjs('squid.webauth.php')");
     
     $tr[]=$SESSIONS_MANAGER;
     $tr[]=$authenticate_users;
 	$tr[]=$APP_SQUIDKERAUTH;
+	$tr[]=$WEB_AUTH;
 	$tr[]=$ISP_MODE;
 	$tr[]=$proxy_pac_rules;
 	$tr[]=$templates_error;

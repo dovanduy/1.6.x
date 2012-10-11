@@ -62,6 +62,7 @@ class mysql_squid_builder{
 		$this->acl_GroupType["proxy_auth"]="{members}";
 		if($EnableKerbAuth==1){if($UseDynamicGroupsAcls==1){$this->acl_GroupType["proxy_auth_ads"]="{dynamic_activedirectory_group}";}}
 		$this->acl_GroupType["port"]="{remote_ports}";
+		$this->acl_GroupType["browser"]="{browser}";
 		
 		$this->ClassSQL=new mysql();
 		$this->UseMysql=$this->ClassSQL->UseMysql;
@@ -107,6 +108,7 @@ class mysql_squid_builder{
 			
 			if(!$users->CORP_LICENSE){
 				$this->tasks_disabled[20]=true;
+				$this->tasks_disabled[30]=true;
 			}
 			
 			if($this->EnableSargGenerator==0){
@@ -167,6 +169,10 @@ class mysql_squid_builder{
 			$this->tasks_array[38]="{web_injector}";
 			$this->tasks_array[39]="{reconfigure_proxy_task}";
 			$this->tasks_array[40]="{hourly_bandwidth_users}";
+			$this->tasks_array[41]="{squid_rrd}";
+			$this->tasks_array[42]="{compile_tlse_database}";
+			
+			
 			
 			
 			
@@ -211,6 +217,8 @@ class mysql_squid_builder{
 			$this->tasks_explain_array[38]="{web_injector_explain}";
 			$this->tasks_explain_array[39]="{reconfigure_proxy_task_explain}";
 			$this->tasks_explain_array[40]="{hourly_bandwidth_users_explain}";
+			$this->tasks_explain_array[41]="{squid_rrd_explain}";
+			$this->tasks_explain_array[42]="{compile_tlse_database_explain}";
 			
 			
 
@@ -254,7 +262,10 @@ class mysql_squid_builder{
 			$this->tasks_processes[38]="exec.dansguardian.injector.php";
 			$this->tasks_processes[39]="exec.squid.php --build --force";
 			$this->tasks_processes[40]="exec.squid.stats.php --users-size";
+			$this->tasks_processes[41]="exec.squid-rrd.php";
+			$this->tasks_processes[42]="exec.update.squid.tlse.php --compile";
 	
+			$this->tasks_remote_appliance["42"]=true;
 			$this->tasks_remote_appliance["40"]=true;
 			$this->tasks_remote_appliance["36"]=true;
 			$this->tasks_remote_appliance["34"]=true;
@@ -333,8 +344,8 @@ class mysql_squid_builder{
 			$array[37]=array("TimeText"=>"* * * * *","TimeDescription"=>"Inject into Mysql each minute");
 			$array[38]=array("TimeText"=>"* * * * *","TimeDescription"=>"Inject into Mysql each minute");
 			$array[40]=array("TimeText"=>"10 * * * *","TimeDescription"=>"Each hour +10mn");
-			
-			
+			$array[41]=array("TimeText"=>"3,6,9,11,13,16,19,21,26,29,31,36,39,41,46,49,51,56,59 * * * *","TimeDescription"=>"Check AD server each 3M");
+			$array[42]=array("TimeText"=>"30 4 * * *","TimeDescription"=>"Compile Toulouse databases tables Each day at 04h30");
 			
 			
 
@@ -357,6 +368,7 @@ class mysql_squid_builder{
 	
 	FUNCTION DELETE_TABLE($table){
 		if(!function_exists("mysql_connect")){return 0;}
+		if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL table $this->database/$table was deleted $called" , __FUNCTION__, __FILE__, __LINE__, "mysql-delete");}
 		$this->QUERY_SQL("DROP TABLE `$table`",$this->database);
 	}		
 	
@@ -370,10 +382,14 @@ class mysql_squid_builder{
 	}
 	
 	public function COUNT_ROWS($table,$database=null){
+		$this->ok=true;
 		if($database<>$this->database){$database=$this->database;}
 		$count=$this->ClassSQL->COUNT_ROWS($table,$database);
 		if(!$this->ClassSQL->ok){
+			$this->ok=false;
+			$this->mysql_error=$this->ClassSQL->mysql_error;
 			if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
+			
 			writelogs($called,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		}
 		return $count;
@@ -581,7 +597,58 @@ class mysql_squid_builder{
 			}
 		}
 		return $array;		
-	}	
+	}
+
+	public FUNCTION TLSE_CONVERTION(){
+			$f["agressif"]="aggressive";
+			$f["audio-video"]="audio-video";
+			$f["celebrity"]="celebrity";
+			$f["cleaning"]="cleaning";
+			$f["dating"]="dating";
+			$f["filehosting"]="filehosting";
+			$f["gambling"]="gamble";
+			$f["hacking"]="hacking";
+			$f["liste_bu"]="liste_bu";
+			$f["manga"]="manga";
+			$f["mobile-phone"]="mobile-phone";
+			$f["press"]="press";
+			$f["radio"]="webradio";
+			$f["redirector"]="proxy";
+			$f["sexual_education"]="sexual_education";
+			$f["sports"]="recreation/sports";
+			$f["tricheur"]="tricheur";
+			$f["webmail"]="webmail";
+			$f["adult"]="porn";
+			$f["arjel"]="arjel";
+			$f["bank"]="finance/banking";
+			$f["chat"]="chat";
+			$f["cooking"]="hobby/cooking";
+			$f["drogue"]="drugs";
+			$f["financial"]="financial";
+			$f["games"]="games";
+			$f["jobsearch"]="jobsearch";
+			$f["marketingware"]="marketingware";
+			$f["phishing"]="phishing";
+			$f["remote-control"]="remote-control";
+			$f["shopping"]="shopping";
+			$f["strict_redirector"]="strict_redirector";
+			$f["astrology"]="astrology";
+			$f["blog"]="blog";
+			$f["child"]="children";
+			$f["dangerous_material"]="dangerous_material";
+			$f["forums"]="forums";
+			$f["lingerie"]="sex/lingerie";
+			$f["malware"]="malware";
+			$f["mixed_adult"]="mixed_adult";
+			$f["publicite"]="publicite";
+			$f["reaffected"]="reaffected";
+			$f["sect"]="sect";
+			$f["social_networks"]="socialnet";
+			$f["strong_redirector"]="strong_redirector";
+			$f["warez"]="warez";
+			return $f;		
+		
+	}
 	
 	
 	public function LIST_TABLES_DAYS(){
@@ -1025,11 +1092,14 @@ public function CheckTables($table=null){
 				  	enabled INT(1) NOT NULL,
 					groupname VARCHAR(90) NOT NULL,
 					BypassSecretKey VARCHAR(90) NOT NULL,
+					endofrule VARCHAR(50) NOT NULL,
 					blockdownloads INT(1) NOT NULL DEFAULT '0' ,
 					naughtynesslimit INT(2) NOT NULL DEFAULT '50' ,
 					searchtermlimit INT(2) NOT NULL DEFAULT '30' ,
 					bypass INT(1) NOT NULL DEFAULT '0' ,
 					deepurlanalysis  INT(1) NOT NULL DEFAULT '0' ,
+					UseExternalWebPage SMALLINT(1) NOT NULL DEFAULT '0' ,
+					ExternalWebPage VARCHAR(256) NOT NULL DEFAULT,
 					sslcertcheck INT(1) NOT NULL DEFAULT '0' ,
 					sslmitm INT(1) NOT NULL DEFAULT '0',
 					GoogleSafeSearch smallint(1) NOT NULL DEFAULT '0',
@@ -1041,13 +1111,17 @@ public function CheckTables($table=null){
 				) ";
 			$this->QUERY_SQL($sql,$this->database);
 		}
-		
+		if(!$this->FIELD_EXISTS("webfilter_rules", "endofrule")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `endofrule` VARCHAR(50)");}
 		if(!$this->FIELD_EXISTS("webfilter_rules", "BypassSecretKey")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `BypassSecretKey` VARCHAR(90)");}
 		if(!$this->FIELD_EXISTS("webfilter_rules", "embeddedurlweight")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `embeddedurlweight` INT(1)");}
 		if(!$this->FIELD_EXISTS("webfilter_rules", "TimeSpace")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `TimeSpace` TEXT NOT NULL");}
 		if(!$this->FIELD_EXISTS("webfilter_rules", "RewriteRules")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `RewriteRules` TEXT NOT NULL");}
 		if(!$this->FIELD_EXISTS("webfilter_rules", "TemplateError")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `TemplateError` TEXT NOT NULL");}
 		if(!$this->FIELD_EXISTS("webfilter_rules", "GoogleSafeSearch")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `GoogleSafeSearch` smallint(1) NOT NULL DEFAULT '0'");}
+		if(!$this->FIELD_EXISTS("webfilter_rules", "UseExternalWebPage")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `UseExternalWebPage` smallint(1) NOT NULL DEFAULT '0'");}
+		if(!$this->FIELD_EXISTS("webfilter_rules", "ExternalWebPage")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `ExternalWebPage` VARCHAR(255) NOT NULL");}
+		
+		
 		
 		
 		if(!$this->TABLE_EXISTS('webfilter_group',$this->database)){	
@@ -1895,6 +1969,7 @@ public function CheckTables($table=null){
 		if(!$this->FIELD_EXISTS("tables_day", "visited_day")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `visited_day` TINYINT( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `visited_day` )");}
 		if(!$this->FIELD_EXISTS("tables_day", "memberscentral")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `memberscentral` TINYINT( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `memberscentral` )");}
 		if(!$this->FIELD_EXISTS("tables_day", "backuped")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `backuped` TINYINT( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `backuped` )");}
+		if(!$this->FIELD_EXISTS("tables_day", "month_flow")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `month_flow` TINYINT( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `month_flow` )");}
 		
 		 
 		
@@ -2844,8 +2919,11 @@ private function CategoriesFamily($www){
 	
 
 	function CreateWeekBlockedTable($week=null){
-		if(!is_numeric($week)){$week=date('YW')."_blocked_week";}
-		$tableblock="{$week}_blocked_week";
+		if(preg_match("#[0-9]+_blocked_week#", $week)){$tableblock=$week;}
+		else{
+			if(!is_numeric($week)){$week=date('YW')."_blocked_week";}$tableblock="{$week}_blocked_week";
+		}
+		$tableblock=str_replace("_blocked_week_blocked_week", "_blocked_week", $tableblock);
 		if(!$this->TABLE_EXISTS($tableblock)){		
 			$sql="CREATE TABLE `$tableblock` (
 			  `zMD5` VARCHAR(100) NOT NULL,

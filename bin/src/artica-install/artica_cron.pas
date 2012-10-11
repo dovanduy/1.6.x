@@ -602,8 +602,8 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
 
 
 
-      if EnableSnort=1 then l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10s ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.syslog-engine.php --snort');
-      if EnableSnort=0 then logs.DebugLogs('Starting......: Daemon (fcron) SNORT parser is disabled');
+
+
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 3  ' +cmdnice+artica_path+'/bin/process1');
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.rsync.events.php');
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 11 ' +cmdnice+ ' ' +artica_path+'/artica-install --usb-scan-write');

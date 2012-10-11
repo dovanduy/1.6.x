@@ -560,8 +560,18 @@ function writelogs($text=null,$function=null,$line=0){
 		}
 		
 		if(!$this->BD_CONNECT()){
+			if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL error DB:\"$database\" Error, unable to connect to MySQL server, request failed\n$called" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
 			$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error, unable to connect to MySQL server, request failed",__CLASS__.'/'.__FUNCTION__,__LINE__);
+			$this->ok=false;
+			$this->mysql_error=" Error, unable to connect to MySQL server";
 			return false;
+		}
+		
+		if(preg_match("#DROP TABLE\s+(.+)$#i", $sql,$re)){
+			if(function_exists("system_admin_events")){
+				$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+				system_admin_events("MySQL table $database/{$re[1]} was deleted $called" , __FUNCTION__, __FILE__, __LINE__, $category);
+			}
 		}
 		
 
@@ -588,9 +598,10 @@ function writelogs($text=null,$function=null,$line=0){
 				}						
 	    		if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
 	    		$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error Number ($errnum) ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin ($called)",__CLASS__.'/'.__FUNCTION__,__LINE__);
-	    		$this->mysql_error="QUERY_SQL:: mysql_select_db:: Error  ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin line:".__LINE__;
+	    		$this->mysql_error="QUERY_SQL:: mysql_select_db:: Error $errnum ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin line:".__LINE__;
 	    		
 	    		$this->ok=false;
+	    		if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("DB:\"$database\" $this->mysql_error" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
 	    		return null;
     		}
 		}	
@@ -614,6 +625,8 @@ function writelogs($text=null,$function=null,$line=0){
 				$sock=new sockets();
 				$sock->getFrameWork("mysql.php?mysql-upgrade=yes&instance-id=$this->instance_id");
 				$this->mysql_error=$this->mysql_error."\nArtica as performed a mysql_upgrade, please retry later\n";
+				if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+				system_admin_events("DB:\"$database\" $this->mysql_error" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
 			}
 			
 			
@@ -649,27 +662,40 @@ function writelogs($text=null,$function=null,$line=0){
 				
 				if(preg_match("#Incorrect key file for table '.\/(.+?)/(.+?)\.MYI'#",$des,$re)){
 					echo "<H2>DB:$database Error table {$re[2]} is crashed $errnum : i will try to repair it</H2>";
+					if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+					system_admin_events("DB:\"$database\" Error $des\ntable {$re[2]} is crashed $errnum : i will try to repair it " , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
 					$this->REPAIR_TABLE($database,$re[2]);
 					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error table {$re[1]} is crashed $errnum -> i will try to repair it ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				}
+				
+				
 							
 				if(preg_match("#Table '(.+?)' is marked as crashed and should be repaired#",$des,$re)){
 					echo "<H2>DB:$database Error table {$re[1]} is crashed $errnum : i will try to repair it</H2>";
+					if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+					system_admin_events("DB:$database Error table {$re[1]} is crashed $errnum : i will try to repair it" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}					
 					$this->REPAIR_TABLE($database,$re[1]);
 					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error table {$re[1]} is crashed $errnum -> i will try to repair it ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					
 				}
 				
 				if(preg_match("#Table '\.\/(.+?)\/(.+?)'\s+is marked as crashed and last#",$des,$re)){
 					echo "<H2>DB:$database Error table {$re[2]} is crashed $errnum : i will try to repair it</H2>";
+					if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+					system_admin_events("DB:$database Error $errnum, Table {$re[1]}.{$re[2]} is crashed\n$des\nArtica will try to repair it" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}						
 					$this->REPAIR_TABLE($re[1],$re[2]);
-					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error table {$re[1]} is crashed $errnum -> i will try to repair it",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error table {$re[2]} is crashed $errnum -> i will try to repair it",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				}
 				
 				if(preg_match("#Access denied for user#", $des)){
 					unset($GLOBALS["ERROR_MYSQL_NOPASSWD"]);
 					unset($GLOBALS["MYSQL_PARAMETERS"]);
 					unset($_SESSION["MYSQL_PARAMETERS"]);
+					if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+					system_admin_events("$this->mysql_error please retry..." , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}						
 					$this->mysql_error=$this->mysql_error." please retry...";
+					$this->ok=false;
+					return;
 				}
 				
 				if(preg_match("#Table\s+'\.\/(.+?)\/(.+?)'\s+is marked as crashed#",$des,$re)){
@@ -682,19 +708,22 @@ function writelogs($text=null,$function=null,$line=0){
 					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error $errnum $des line:".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					$this->writeLogs("QUERY_SQL:: DB:\"$database\" ". substr($sql,0,255)."...line:".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					$this->writelogs($sql,__CLASS__.'/'.__FUNCTION__,__FILE__);
+					if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+					system_admin_events("DB:$database Error $errnum $des" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}										
 					@mysql_close($bd);
 					$this->ok=true;
 					return true;
 				}
 
-				if(preg_match("#Error Incorrect file format '(.+?)'#",$des,$re)){
+				if(preg_match("#Incorrect file format '(.+?)'#",$des,$re)){
 					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error $errnum $des line:".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					$table=trim($re[1]);
 					if($table<>null){
 						$this->ok=false;
-						$this->mysql_error="Error Incorrect file format for table $table, table was deleted and rebuilded.";
-						$sql="DROP TABLE $table";
-						$this->BuildTables();
+						$this->mysql_error="Incorrect file format for table $table";
+						$this->REPAIR_TABLE($database,$table);
+						if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("DB:\"$database\" $this->mysql_error" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
+						
 					}
 					return null;
 				}
@@ -703,7 +732,9 @@ function writelogs($text=null,$function=null,$line=0){
 				if(preg_match('#/(.+?)/(.+?)\'\s+.+?crashed.+?(repaired|repair)#',$des,$re)){
 					if(!preg_match('#REPAIR TABLE#',$sql)){
 						$this->writeLogs("Try to repair {$re[2]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+						$this->mysql_error=$des." Artica answer Try to repair {$re[2]}";
 						$this->REPAIR_TABLE($re[1],$re[2]);
+						if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("DB:\"$database\" $this->mysql_error" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
 						$this->ok=false;
 						return null;
 					}
@@ -731,10 +762,18 @@ function writelogs($text=null,$function=null,$line=0){
 					
 				}		
 
-				if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by script:". basename($trace[1]["file"])." function {$trace[1]["function"]}() line {$trace[1]["line"]}";}}				
+				if(preg_match("#Column count doesn.*?match value count#i", $des)){$showMysqlQuery="\n$sql";}
+				if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=$this->trace_to_string($trace[1]);}}				
 				$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error $des $called \"$sql\" line:".__LINE__." of class.mysql.inc",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-
 				
+				if($errnum<>1062){
+					if(function_exists("system_admin_events")){
+						$trace=@debug_backtrace();
+						if(isset($trace[1])){$called="\n".$this->trace_to_string($trace[1])."\n";}
+						system_admin_events("DB:\"$database\" $this->mysql_error$called$showMysqlQuery" , 
+						__FUNCTION__, __FILE__, __LINE__, "mysql-error");
+					}
+				}
 				$this->affected_rows=@mysql_affected_rows($this->mysql_connection);
 				
 				if($errnum==1062){
@@ -762,6 +801,19 @@ function writelogs($text=null,$function=null,$line=0){
 	return $result_return;
 	}
 	
+	function trace_to_string($array){
+		while (list ($num, $ligne) = each ($array) ){
+			try {
+				if(is_object($ligne)){continue;}
+				if(strpos("  $ligne", '/')>0){$ligne=basename($ligne);}
+				if(is_array($ligne)){$r=@implode(" ", $ligne);unset($ligne);$ligne=$r;}
+			} catch (Exception $e) {
+			}
+			
+			$f[]="$num: $ligne";
+		}
+		return @implode("\n",$f);
+	}
 	
 	function _mysql_close(){
 		@mysql_free_result($this->mysql_connection);
@@ -844,6 +896,22 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	
 	function REPAIR_TABLE($database,$table){
 		$this->writeLogs("Try to repair $table in database $database",__CLASS__.'/'.__FUNCTION__,__LINE__);
+		
+		$sql="REPAIR TABLE $table use_frm";
+		$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
+		$this->mysql_connection=$bd;
+		$ok=@mysql_select_db($database);		
+		
+		if (!$ok){
+	    	$errnum=mysql_error();
+	    	$des=mysql_error();
+	    	$this->mysql_error=$des;
+	    	$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE: use_frm $this->mysql_error";
+			if(function_exists("system_admin_events")){system_admin_events("$this->mysql_error", __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
+	    	$this->writeLogs("REPAIR_TABLE: use_frm $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__LINE__);
+	    	@mysql_close($this->mysql_error);
+		   }		
+		
 		$sql="REPAIR TABLE $table EXTENDED";
 		$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
 		$this->mysql_connection=$bd;
@@ -852,8 +920,9 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	    	$errnum=mysql_error();
 	    	$des=mysql_error();
 	    	$this->mysql_error=$des;
-	    	$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE:$this->mysql_error";
-	    	$this->writeLogs("REPAIR_TABLE:$this->mysql_error",__CLASS__.'/'.__FUNCTION__,__LINE__);
+	    	$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE: EXTENDED $this->mysql_error";
+			if(function_exists("system_admin_events")){system_admin_events("$this->mysql_error", __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
+	    	$this->writeLogs("REPAIR_TABLE: EXTENDED $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__LINE__);
 	    	@mysql_close($this->mysql_error);
 	    	return;
 		   }
@@ -865,25 +934,34 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 				$this->mysql_error="Error Number ($errnum) ($des)";		   
 		   		@mysql_close($this->mysql_error);
 		   		$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE:$this->mysql_error";
+				if(function_exists("system_admin_events")){system_admin_events("$this->mysql_error", __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
 		   		$this->writeLogs("REPAIR_TABLE: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__LINE__);
 		}
 		
 		$ligne=$this->TABLE_STATUS($table,$database);
-		$this->writeLogs("REPAIR_TABLE: {$ligne["Comment"]}",__CLASS__.'/'.__FUNCTION__,__LINE__);
-		if(preg_match("#marked as crashed and#",$ligne["Comment"])){
+		$failed=false;
+		$this->writeLogs("REPAIR_TABLE: TABLE_STATUS -> `{$ligne["Comment"]}`",__CLASS__.'/'.__FUNCTION__,__LINE__);
+		if(preg_match("#marked as crashed and#",$ligne["Comment"])){$failed=true;}
+		if(preg_match("#Incorrect file format#",$ligne["Comment"])){$failed=true;}
+		
+		if($failed){
 			$sock=new sockets();
+			if(function_exists("system_admin_events")){system_admin_events("Lauching system repair for table $table in $database", __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
 			$results=trim($sock->getFrameWork("cmd.php?mysql-myd-file=yes&table=$table&database=$database"));
+			if(function_exists("system_admin_events")){system_admin_events("repair for $database.$table\nResult:=".$results, __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
 			$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE FAILED, checking MYD: \"$results\"";
 			$this->writeLogs("REPAIR_TABLE FAILED, checking MYD: \"$results\"",__CLASS__.'/'.__FUNCTION__,__LINE__);
 			if($results=="NO"){
-				
+				$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE: Failed -> REPAIR_TABLE_FAILED($database,$table)";
 				$this->REPAIR_TABLE_FAILED($database,$table);			
 			}
 		}
+		$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE: Success...";
 	}
 	
 	private function REPAIR_TABLE_FAILED($database,$table){
 		$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE: DROP $database/$table";
+		
 		$this->writeLogs("REPAIR_TABLE: DROP $database/$table",__CLASS__.'/'.__FUNCTION__,__LINE__);
 		$sql="DROP TABLE $table";
 		$this->QUERY_SQL($sql,$database);
@@ -897,6 +975,10 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 				$text[]="If you want to recover datas, use your backup.";
 				send_email_events($subject,@implode("\n",$text),"system");
 			}
+			if(function_exists("system_admin_events")){
+				system_admin_events($subject."\n". @implode("\n",$text)."\n".@implode("\n", $GLOBALS["REPAIR_MYSQL_TABLE"]), __FUNCTION__, __FILE__, __LINE__, "mysql-error");
+			}
+			
 		}
 	
 	function SIMPLE_GROUPWARE_ENABLED($userid){
@@ -1605,6 +1687,7 @@ function mysql_real_escape_string2($query){
 	
 	FUNCTION DELETE_TABLE($table,$database){
 		if(!function_exists("mysql_connect")){return 0;}
+		if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL table $database/$table was deleted $called" , __FUNCTION__, __FILE__, __LINE__, "mysql-delete");}
 		$this->QUERY_SQL("DROP TABLE `$table`",$database);
 	}	
 	

@@ -701,7 +701,7 @@ function schedule_maintenance_tlse_db(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.update.squid.tlse.php >/dev/null &");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.update.squid.tlse.php --force >/dev/null &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 }
@@ -1049,7 +1049,7 @@ function compile_by_interface(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/squid.compile.txt");
-	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build >/usr/share/artica-postfix/ressources/logs/web/squid.compile.txt 2>&1 &");	
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build --force >/usr/share/artica-postfix/ressources/logs/web/squid.compile.txt 2>&1 &");	
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 }

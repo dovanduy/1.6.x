@@ -29,12 +29,25 @@ function popup(){
 	$sock=new sockets();
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$users=new usersMenus();
 	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
 	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
 	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
 	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
 	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}	
 	if(!is_numeric($LicenseInfos["EMPLOYEES"])){$LicenseInfos["EMPLOYEES"]=$WizardSavedSettings["employees"];}
+	if(!$users->CORP_LICENSE){
+		
+		if($users->SQUID_INSTALLED){
+		$explain="<div style='font-size:14px'>{CORP_LICENSE_EXPLAIN}</div>";
+		$quotation="
+		<div style='font-size:16px;font-weight:bold'>{price_quote}:</div>
+		<div><a href=\"javascript:blur();\" 
+		OnClick=\"javascript:s_PopUpFull('http://www.proxy-appliance.org/index.php?cID=292','1024','900');\"
+		style=\"font-size:14px;font-weight;bold;text-decoration:underline\">{click_here_price_quote}</a></div>";
+		}
+	}
+	
 	if($LicenseInfos["license_status"]==null){
 		$LicenseInfos["license_status"]="{waiting_registration}";
 		$button_text="{register}";
@@ -45,13 +58,15 @@ function popup(){
 	if(is_numeric($LicenseInfos["TIME"])){
 		$tt=distanceOfTimeInWords($LicenseInfos["TIME"],time());
 	$last_access="	<tr>
-		<td class=legend style='font-size:16px'>{last_access}:</td>
+		<td class=legend style='font-size:16px'>{last_update}:</td>
 		<td style='font-size:16px'>$tt</td>
 	</tr>";	
 	}
 	
 	$t=time();
 	$html="
+	$explain
+	$quotation
 	<div id='$t'></div>
 	<table style='width:99%' class=form>
 	$last_access

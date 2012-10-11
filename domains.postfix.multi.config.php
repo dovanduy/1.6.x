@@ -112,6 +112,7 @@ function filters_security(){
 	$KasxFilterEnabled=$sock->GET_INFO("KasxFilterEnabled");
 	$kavmilterEnable=$sock->GET_INFO("kavmilterEnable");
 	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
+	$EnableArticaSMTPFilter=0;
 	$EnableDKFilter=$sock->GET_INFO("EnableDKFilter");
 	$EnableDkimMilter=$sock->GET_INFO("EnableDkimMilter");
 	$EnableCluebringer=$sock->GET_INFO("EnableCluebringer");

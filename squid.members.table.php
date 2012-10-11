@@ -52,7 +52,9 @@ function page(){
 		],";		
 	
 	$html="
+	<div style='margin-left:-15px'>
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
+	</div>
 <script>
 
 $(document).ready(function(){
@@ -61,7 +63,7 @@ $('#$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$date', name : 'zDate', width : 92, sortable : true, align: 'left'},
-		{display: '$member', name : 'uid', width : 238, sortable : true, align: 'left'},
+		{display: '$member', name : 'uid', width : 230, sortable : true, align: 'left'},
 		{display: '$sitename', name : 'sitename', width : 354, sortable : true, align: 'left'},
 		{display: '$size', name : 'size', width : 65, sortable : false, true: 'left'},
 		{display: '$hits', name : 'hits', width : 41, sortable : false, true: 'left'},
@@ -82,7 +84,7 @@ $('#$t').flexigrid({
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 872,
+	width: 865,
 	height: 450,
 	singleSelect: true
 	
@@ -308,7 +310,7 @@ function table_list_day(){
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		if($ligne["uid"]==null){$ligne["uid"]="-";}
-		$member="{$ligne["uid"]} ({$ligne["client"]} [{$ligne["client"]}])";
+		$member="{$ligne["uid"]} ({$ligne["client"]} [{$ligne["MAC"]}])";
 		$md5=md5(@implode(" ", $ligne));
 		$date="{$ligne["hour"]}h";
 		$ligne["size"]=FormatBytes($ligne["size"]/1024);
@@ -408,11 +410,11 @@ function table_list_month(){
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
-
+	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		if($ligne["uid"]==null){$ligne["uid"]="-";}
-		$member="{$ligne["uid"]} ({$ligne["client"]} [{$ligne["client"]}])";
+		$member="{$ligne["uid"]} ({$ligne["client"]} [{$ligne["MAC"]}])";
 		$md5=md5(@implode(" ", $ligne));
 		$DateText=null;
 		$date="{$ligne["day"]}";

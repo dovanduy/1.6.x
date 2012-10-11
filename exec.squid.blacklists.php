@@ -12,12 +12,14 @@ include_once(dirname(__FILE__).'/ressources/class.squidguard.inc');
 $GLOBALS["working_directory"]="/opt/artica/proxy";
 $GLOBALS["MAILLOG"]=array();
 $GLOBALS["CHECKTIME"]=false;
+$GLOBALS["FORCE"]=false;
 $GLOBALS["BYCRON"]=false;
 $GLOBALS["MYPID"]=getmypid();
 $GLOBALS["CMDLINE"]=@implode(" ", $argv);
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--checktime#",implode(" ",$argv))){$GLOBALS["CHECKTIME"]=true;}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 
@@ -78,7 +80,7 @@ function ufdbFirst(){
 }
 
 
-function ufdbtables(){
+function ufdbtables($nopid=false){
 	$unix=new unix();
 	$sock=new sockets();
 	$CACHE_FILE="/etc/artica-postfix/ufdb.tables.db";
@@ -86,9 +88,9 @@ function ufdbtables(){
 	$WORKDIR="/var/lib/ufdbartica";
 	if(@file_get_contents("/usr/local/share/artica/.lic")<>"TRUE"){
 		ufdbguard_admin_events("UFDB::Warning: only corporate license is allowed to be updated...",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
-		die("license error\n");
+		return;
 	}
-	
+	if(!$nopid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$nohup=$unix->find_program("nohup");
 		$pid=@file_get_contents($pidfile);
@@ -98,6 +100,7 @@ function ufdbtables(){
 			return;
 		}		
 		@file_put_contents($pidfile, getmypid());
+	}
 		
 	
 	$curl=new ccurl("$URIBASE/index.txt");
@@ -263,17 +266,19 @@ function updatev2(){
 	
 	RegisterSupport();
 	
-	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] starting...\n";}
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	if($DisableArticaProxyStatistics==1){die();}
 	
 	$unix=new unix();
-	if($GLOBALS["CHECKTIME"]){
+	if(!$GLOBALS["FORCE"]){	
+		if($GLOBALS["CHECKTIME"]){
 			$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 			if($unix->file_time_min($timeFile)<380){die();}
 			@unlink($timeFile);
 			@file_put_contents($timeFile, time());
+		}
 	}
 	
 	
@@ -285,23 +290,26 @@ function updatev2(){
 	
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,__FILE__)){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] Warning: Already running pid $pid\n";}
 		if($GLOBALS["SCHEDULE_ID"]>0){ufdbguard_admin_events("Warning: Already running pid $pid",__FUNCTION__,__FILE__,__LINE__,"update");}
 		return;
 	}
 	
 	@file_put_contents($pidfile, getmypid());	
 	$unix=new unix();
-	ufdbtables();
+	ufdbtables(true);
 	$q=new mysql_squid_builder();
 	$SquidBigDatabasesTime=$sock->GET_INFO("SquidBigDatabasesTime");
 	if(!is_numeric($SquidBigDatabasesTime)){$SquidBigDatabasesTime=0;}
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] SquidBigDatabasesTime=$SquidBigDatabasesTime\n";}
 	
 
 	
 	
-	if($GLOBALS["VERBOSE"]){echo "mydate = $SquidBigDatabasesTime\n";}
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] mydate = $SquidBigDatabasesTime\n";}
 	
 	if(!$q->TABLE_EXISTS("webfilters_updates")){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] webfilters_updates no such table...\n";}
 		ufdbguard_admin_events("Fatal: webfilters_updates no such table...",__FUNCTION__,__FILE__,__LINE__,"update");
 		return;
 	}
@@ -498,7 +506,7 @@ function updatev2_inject($tablename){
 	
 	if($tablename=="category_alcohol"){
 		if($q->TABLE_EXISTS("category_Alcohol")){
-			if($GLOBALS["VERBOSE"]){echo "DROPING `$tablename`\n";}
+			if($GLOBALS["VERBOSE"]){echo "category_Alcohol exists, DROPING `category_Alcohol`\n";}
 			$q->QUERY_SQL("DROP TABLE `category_Alcohol`");
 		}
 	}

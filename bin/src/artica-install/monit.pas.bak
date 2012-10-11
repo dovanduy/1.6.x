@@ -447,11 +447,13 @@ var
    Load1mn,Load5mn,Load15mn:integer;
    SystemWatchMemoryUsage,SystemWatchCPUUser,SystemWatchCPUSystem:integer;
    EnableWatchMemoryUsage,EnableWatchCPUsage,DoNotCheckSystem:integer;
+   rmbin:string;
 begin
 ForceDirectories('/var/monit');
 ForceDirectories('/var/run/monit');
 ForceDirectories('/etc/monit/conf.d');
 myversion:=VERSIONNUM();
+rmbin:=SYS.LOCATE_GENERIC_BIN('rm');
 l:=Tstringlist.Create;
 logs.DebugLogs('Starting......: daemon monitor version '+ INtTOstr(myversion));
 if not TryStrToInt(SYS.GET_INFO('SystemLoadNotif'),SystemLoadNotif) then SystemLoadNotif:=0;
@@ -615,16 +617,23 @@ if DoNotCheckSystem=0 then begin
 
 
 
-   if EnableLoadAvg1mnUser=1 then l.add('    if loadavg (1min) > '+IntToStr(Load1mn)+' then alert');
-   if EnableLoadAvg5mnUser=1 then l.add('    if loadavg (5min) > '+IntToStr(Load5mn)+' then alert');
-   if EnableLoadAvg15mnUser=1 then l.add('    if loadavg (15min) > '+IntToStr(Load15mn)+' then exec alert');
-   if EnableWatchMemoryUsage=1 then l.add('    if memory usage > '+IntToStr(SystemWatchMemoryUsage)+'% then alert');
+   if EnableLoadAvg1mnUser=1 then l.add('    if loadavg (1min) > '+IntToStr(Load1mn)+' for 5 cycles then alert');
+   if EnableLoadAvg5mnUser=1 then l.add('    if loadavg (5min) > '+IntToStr(Load5mn)+' for 5 cycles then alert');
+   if EnableLoadAvg15mnUser=1 then l.add('    if loadavg (15min) > '+IntToStr(Load15mn)+' for 5 cycles then alert');
+   if EnableWatchMemoryUsage=1 then l.add('    if memory usage > '+IntToStr(SystemWatchMemoryUsage)+'% for 5 cycles then alert');
    if EnableWatchCPUsage=1 then begin
-      l.add('    if cpu usage (user) > '+IntToStr(SystemWatchCPUUser)+'% then alert');
-      l.add('    if cpu usage (system) > '+IntToStr(SystemWatchCPUSystem)+'% then alert');
+      l.add('    if cpu usage (user) > '+IntToStr(SystemWatchCPUUser)+'% for 5 cycles then alert');
+      l.add('    if cpu usage (system) > '+IntToStr(SystemWatchCPUSystem)+'% for 5 cycles then alert');
    end;
 end;
 
+l.add('check file php.log with path /var/log/php.log');
+l.add('      if size > 100 MB then');
+l.add('         exec "/bin/rm -f /var/log/php.log"');
+l.add('');
+l.add('check file usrphp.log with path /usr/share/artica-postfix/ressources/logs/php.log');
+l.add('      if size > 100 MB then');
+l.add('         exec "/bin/rm -f /usr/share/artica-postfix/ressources/logs/php.log"');
 l.add('');
 l.add('include /etc/monit/conf.d/*');
 logs.WriteToFile(l.Text,'/etc/monit/monitrc');

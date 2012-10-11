@@ -6,6 +6,7 @@ $GLOBALS["VERBOSE"]=false;
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
+include_once(dirname(__FILE__).'/ressources/class.mysql.postfix.builder.inc');
 include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__)."/framework/class.ini-frame.inc");
@@ -24,7 +25,7 @@ if(!is_numeric($GLOBALS["ArticaSMTPStatsTimeFrame"])){$GLOBALS["ArticaSMTPStatsT
 if(!is_numeric($GLOBALS["ArticaStatusUsleep"])){$GLOBALS["ArticaStatusUsleep"]=50000;}
 if(!is_numeric($GLOBALS["ArticaSMTPStatsMaxFiles"])){$GLOBALS["ArticaSMTPStatsMaxFiles"]=2400;}
 if(!is_numeric($GLOBALS["EnableArticaSMTPStatistics"])){$GLOBALS["EnableArticaSMTPStatistics"]=1;}
-
+@mkdir("/var/log/artica-postfix/MGREYSTATS",0755,true);
 
 
 if($argv[1]=='--cnx-errors'){
@@ -33,6 +34,13 @@ if($argv[1]=='--cnx-errors'){
 	connexion_errors_stats();
 	die();
 }
+if($argv[1]=='--milter'){
+	events("Starting mgreylist ...");
+	MiltergreyList();
+	die();
+}
+
+
 if($argv[1]=='--cnx-only'){
 	events("Starting cnx-only ...");
 	ScanPostFixConnections();
@@ -117,12 +125,14 @@ if($argv[1]=='--amavis-stats'){
 if($argv[1]=='--postfix'){
 	events("Starting OnlyPostfix...");
 	OnlyPOstfix();
+	MiltergreyList();
 	die();
 }
 if($argv[1]=='--cnx'){
 	events("Starting ScanPostFixConnections...");
 	ScanPostFixConnections();
 	ScanPostFixConnectionsErr();
+	MiltergreyList();
 	die();
 }
 if($argv[1]=='--cnx-errors'){
@@ -175,6 +185,7 @@ ScanPostFixConnectionsErr();
 if($GLOBALS["VERBOSE"]){echo "-> ScanVirusQueue()\n";}
 ScanVirusQueue($q);
 CheckPostfixLogs();
+MiltergreyList();
 ScanPostFixMysqlErr();
 smtp_logs_day_users();
 postqueue();
@@ -236,9 +247,72 @@ function OnlyPOstfix(){
 			@unlink("$path/$file");
 		}
 	}
-		
+	//MiltergreyList();	
 	ScanPostFixConnections();
 	ScanPostFixConnectionsErr();		
+}
+
+function MiltergreyList(){
+	$WORKDIR="/var/log/artica-postfix/MGREYSTATS";
+	if (!$handle = opendir($WORKDIR)) { @mkdir($WORKDIR,0755,true);return;}
+	$countDeFiles=0;
+	$array=array();
+	
+	
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$WORKDIR/$filename";
+		$countDeFiles++;
+		$content=@file_get_contents($targetFile);
+		if(!preg_match("#MGREYSTATS:(.+?),(.+?),(.*?),(.*?),(.*?),(.*?),(.*?),(.*?)#", $content,$re)){
+			@unlink($targetFile);
+			continue;
+		}
+		
+		$md5=md5($content);
+		$instance=$re[1];
+		$publicip=$re[2];
+		$mailfrom=addslashes($re[3]);
+		$rcpt=addslashes($re[4]);
+		$tt=explode("@", $mailfrom);
+		$domainfrom=$tt[1];
+		$tt=explode("@", $rcpt);
+		$domainto=$tt[1];
+		$unknown1=$re[5];
+		$unknown2=$re[6];
+		$failed=$re[7];
+		$country=$re[8];	
+		$time=filemtime($targetFile);
+		$date=date("Y-m-d H:i:s",$time);
+		$hourtable="mgreyh_".date("YmdH",$time);
+		$HOUR=date('H',$time);
+		@unlink($targetFile);
+		$array[$hourtable][]="('$md5','$date','$HOUR','$mailfrom','$instance','$rcpt','$domainfrom','$domainto','$publicip','$failed')";
+		if(count($array[$hourtable])>800){MiltergreyList_inject($array);$array=array();}
+	}
+	
+	MiltergreyList_inject($array);
+	events("MiltergreyList():: Finish...",__FILE__);
+}
+
+function MiltergreyList_inject($array){
+	if(count($array)==0){
+		events("MiltergreyList_inject():: Nothing to do...",__FILE__);
+		return;}
+	$q=new mysql_postfix_builder();
+	events("MiltergreyList_inject():: Analyze ". count($array) ." rows",__FILE__);
+	while (list ($tablename, $sqls) = each ($array) ){
+		events("MiltergreyList_inject():: build-sql $tablename > ". count($array) ." rows",__FILE__);
+		$q->milter_BuildHourTable($tablename);
+		if(!$q->TABLE_EXISTS($tablename)){events("MiltergreyList_inject():: $tablename no such table",__FILE__);}
+		
+		$prefix="INSERT IGNORE INTO $tablename (`zmd5`,`ztime`,`zhour`,`mailfrom`,`instancename`,`mailto`,`domainfrom`,`domainto`,`senderhost`,`failed`) VALUES ";
+		$q->QUERY_SQL($prefix.@implode(",", $sqls));
+		if(!$q->ok){events("MiltergreyList_inject():: $q->mysql_error",__FILE__);}
+	}
+	events("MiltergreyList_inject():: Finish...",__FILE__);
+	
 }
 
 

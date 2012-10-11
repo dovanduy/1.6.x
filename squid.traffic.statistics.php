@@ -52,7 +52,7 @@ while (list ($num, $ligne) = each ($array) ){
 		}	
 	
 		if($num=="day-consumption"){
-			$html[]= "<li><a href=\"\squid.traffic.statistics.days.php?$num\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li><a href=\"squid.traffic.statistics.days.php?$num\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 		if($num=="week-consumption"){

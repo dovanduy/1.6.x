@@ -546,11 +546,12 @@ function settings(){
 	$LockKerberosAuthentication=$sock->GET_INFO("LockKerberosAuthentication");
 	$KerbAuthDisableNsswitch=$sock->GET_INFO("KerbAuthDisableNsswitch");
 	$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
-	
+	$KerbAuthDisableNormalizeName=$sock->GET_INFO("KerbAuthDisableNormalizeName");
 	
 	
 	if(!is_numeric($KerbAuthDisableNsswitch)){$KerbAuthDisableNsswitch=0;}
 	if(!is_numeric($KerbAuthDisableGroupListing)){$KerbAuthDisableGroupListing=0;}
+	if(!is_numeric($KerbAuthDisableNormalizeName)){$KerbAuthDisableNormalizeName=1;}
 	
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
@@ -635,7 +636,11 @@ function settings(){
 		<td>". Field_checkbox("KerbAuthDisableGroupListing",1,"$KerbAuthDisableGroupListing")."</td>
 		<td>&nbsp;</td>
 	</tr>	
-	
+	<tr>
+		<td class=legend style='font-size:14px'>{KerbAuthDisableNormalizeName}:</td>
+		<td>". Field_checkbox("KerbAuthDisableNormalizeName",1,"$KerbAuthDisableNormalizeName")."</td>
+		<td>&nbsp;</td>
+	</tr>	
 	<tr>
 		<td class=legend style='font-size:14px'>{authenticate_from_kerberos}:</td>
 		<td>". Field_checkbox("EnableKerberosAuthentication",1,"$EnableKerberosAuthentication","EnableKerbAuthCheck()")."</td>
@@ -711,6 +716,7 @@ function settings(){
 			document.getElementById('COMPUTER_BRANCH').disabled=true;
 			document.getElementById('KerbAuthDisableNsswitch').disabled=true;
 			document.getElementById('KerbAuthDisableGroupListing').disabled=true;
+			document.getElementById('KerbAuthDisableNormalizeName').disabled=true;
 			
 			
 			
@@ -734,6 +740,7 @@ function settings(){
 				document.getElementById('COMPUTER_BRANCH').disabled=false;
 				document.getElementById('KerbAuthDisableNsswitch').disabled=false;
 				document.getElementById('KerbAuthDisableGroupListing').disabled=false;
+				document.getElementById('KerbAuthDisableNormalizeName').disabled=false;
 				
 				
 				if(document.getElementById('EnableKerberosAuthentication').checked){
@@ -803,6 +810,8 @@ function settings(){
 			if(document.getElementById('EnableKerberosAuthentication').checked){XHR.appendData('EnableKerberosAuthentication',1);}else{XHR.appendData('EnableKerberosAuthentication',0);}
 			if(document.getElementById('KerbAuthDisableNsswitch').checked){XHR.appendData('KerbAuthDisableNsswitch',1);}else{XHR.appendData('KerbAuthDisableNsswitch',0);}
 			if(document.getElementById('KerbAuthDisableGroupListing').checked){XHR.appendData('KerbAuthDisableGroupListing',1);}else{XHR.appendData('KerbAuthDisableGroupListing',0);}
+			if(document.getElementById('KerbAuthDisableNormalizeName').checked){XHR.appendData('KerbAuthDisableNormalizeName',1);}else{XHR.appendData('KerbAuthDisableNormalizeName',0);}
+			
 			
 			
 			
@@ -949,6 +958,10 @@ function settingsSave(){
 		$tpl=new templates();
 		$sock->SET_INFO("EnableKerbAuth", 0);
 		$sock->SET_INFO("EnableKerberosAuthentication", 0);
+		
+		
+		
+		
 		$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
 		echo $tpl->javascript_parse_text("{error}: {WINDOWS_DNS_SUFFIX} {$_POST["WINDOWS_DNS_SUFFIX"]}\n{is_not_a_part_of} $Myhostname ($MyDomain)",1);
 		return;
@@ -967,7 +980,7 @@ function settingsSave(){
 	
 	
 	
-	
+	$sock->SET_INFO("KerbAuthDisableNormalizeName", $_POST["KerbAuthDisableNormalizeName"]);
 	$sock->SET_INFO("EnableKerberosAuthentication", $_POST["EnableKerberosAuthentication"]);
 	$sock->SET_INFO("KerbAuthDisableNsswitch", $_POST["KerbAuthDisableNsswitch"]);
 	$sock->SET_INFO("KerbAuthDisableGroupListing", $_POST["KerbAuthDisableGroupListing"]);

@@ -251,7 +251,7 @@ function group_edit(){
 		if(ID<0){ $closeYahoo;}else{RefreshTab('main_filter_rule_edit_group');}
 		if(t>0){
 			$('#flexRT$t').flexReload(); 
-			GroupsDansSearch();
+			if(IsFunctionExists('GroupsDansSearch')){GroupsDansSearch();}
 		}else{
 			if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
 			}
