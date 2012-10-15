@@ -1937,7 +1937,7 @@ function GROUP_PRIVILEGES($gid){
     	$AsMailBoxAdministrator=Field_yesno_checkbox('AsMailBoxAdministrator',$HashPrivieleges["AsMailBoxAdministrator"]);
     	$AllowViewStatistics=Field_yesno_checkbox('AllowViewStatistics',$HashPrivieleges["AllowViewStatistics"]);
     	$AllowEditOuSecurity=Field_yesno_checkbox('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);
-    	
+    	$AsHotSpotManager=Field_yesno_checkbox('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);
     	
     	 
     	
@@ -1976,6 +1976,7 @@ function GROUP_PRIVILEGES($gid){
 			$AsMailBoxAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsMailBoxAdministrator',$HashPrivieleges["AsMailBoxAdministrator"]);
 			$AllowViewStatistics="<img src='img/status_critical.gif'>".Field_hidden('AllowViewStatistics',$HashPrivieleges["AllowViewStatistics"]);
     		$AllowEditOuSecurity="<img src='img/status_critical.gif'>".Field_hidden('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);
+    		$AsHotSpotManager="<img src='img/status_critical.gif'>".Field_hidden('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);
     		
 			
     		
@@ -2026,6 +2027,7 @@ function GROUP_PRIVILEGES($gid){
 		if($priv->AsOrgPostfixAdministrator==false){$AsOrgPostfixAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsOrgPostfixAdministrator',$HashPrivieleges["AsOrgPostfixAdministrator"]);}
 		if($priv->AsOrgStorageAdministrator==false){$AsOrgStorageAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsOrgStorageAdministrator',$HashPrivieleges["AsOrgStorageAdministrator"]);}
 		if($priv->OverWriteRestrictedDomains==false){$OverWriteRestrictedDomains="<img src='img/status_critical.gif'>".Field_hidden('OverWriteRestrictedDomains',$HashPrivieleges["OverWriteRestrictedDomains"]);}
+		if($priv->AsHotSpotManager==false){$AsHotSpotManager="<img src='img/status_critical.gif'>".Field_hidden('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);}
 
 		 
 		
@@ -2042,7 +2044,7 @@ $group_allow="&nbsp;{groups_allow}</H3><br>
 			<tr>
 				<td align='right'><span style='font-size:13.5px'>{AsDansGuardianGroupRule}:</span></td><td>$AsDansGuardianGroupRule</td>
 			</tr>			
-			
+					
 			
 		</table>
 ";  	
@@ -2144,7 +2146,8 @@ $org_allow="&nbsp;{organization_allow}</H3><br>
 	<tr>
 		<td align='right' nowrap><span style='font-size:13.5px'>{AsWebMaster}:</span></td>
 		<td>$AsWebMaster</td>
-	</tr>	
+	</tr>
+		
 	<tr>
 		<td align='right'><span style='font-size:13.5px'>{AllowChangeDomains}:</span></td><td>$AllowChangeDomains</td>
 	</tr>	
@@ -2165,6 +2168,11 @@ $admin_allow="&nbsp;{administrators_allow}</H3><br>
 							<td align='right' nowrap><span style='font-size:13.5px'>{AsSquidAdministrator}:</span></td>
 							<td>$AsSquidAdministrator</td>
 						</tr>
+						<tr>
+							<td align='right'>
+								<span style='font-size:13.5px'>{AsHotSpotManager}:</span></td>
+								<td>$AsHotSpotManager</td>
+						</tr>							
 
 						<tr>
 							<td align='right' nowrap><span style='font-size:13.5px'>{AsSambaAdministrator}:</span></td>
@@ -2259,6 +2267,7 @@ $html="
 		
 		
 		function CheckAsMessagingOrg(){
+			if(!document.getElementById('AsMessagingOrg')){return;}
 			if(document.getElementById('AsMessagingOrg').checked){
 				document.getElementById('AsQuarantineAdministrator').disabled=true;
 				document.getElementById('AsMailManAdministrator').disabled=true;

@@ -114,12 +114,12 @@ function menus(){
 		";
 	}
 	$reboot=imgtootltip('reboot-computer-64.png','{restart_computer}','RestartComputer()');
-	$rebootfsck=imgtootltip('reboot-computer-defrag-64.png','{restart_computer_and_defrag}','RestartDefragComputer()');
+	$rebootfsck="<td align='center'>".imgtootltip('reboot-computer-defrag-64.png','{restart_computer_and_defrag}','RestartDefragComputer()')."</td>";
 	
 	
 	if($DisableRebootOrShutDown==1){
 		$reboot=imgtootltip('reboot-computer-64-grey.png','{restart_computer}');
-		$rebootfsck=imgtootltip('reboot-computer-defrag-64-off.png','{restart_computer_and_defrag}','blur()');
+		$rebootfsck="<td align='center'>".imgtootltip('reboot-computer-defrag-64-off.png','{restart_computer_and_defrag}','blur()')."</td>";
 		
 		if($AllowShutDownByInterface_tr<>null){
 			$AllowShutDownByInterface_tr=
@@ -136,13 +136,9 @@ function menus(){
 	<input type='hidden' id='restart_computer_text' value='{restart_computer_text}'>
 	<table style='width:100%'>
 	<tr>
-		<td align='center'>
-			".imgtootltip('64-disconnect.png','{logoff}',"MyHref('logoff.php')")."
-		</td>		
-		<td align='center'>
-			$reboot
-			$rebootfsck
-		</td>
+		<td align='center'>".imgtootltip('64-disconnect.png','{logoff}',"MyHref('logoff.php')")."</td>		
+		<td align='center'>$reboot</td>
+		$rebootfsck
 		$AllowShutDownByInterface_tr		
 	</tr>
 	</table>

@@ -5,7 +5,7 @@ include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.langages.inc");
-
+//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 
 if(isset($_POST["username"])){checklogon();exit;}
 if(isset($_GET["js"])){js();exit;}
@@ -58,6 +58,7 @@ echo $html;
 }
 
 function checklogon(){
+	$FixedLanguage=null;
 	$username=$_POST["username"];
 	$password=$_POST["password"];
 	$u=new user($username);
@@ -71,9 +72,9 @@ function checklogon(){
 	}
 	
 	if( trim($password)<>md5(trim($userPassword))){
-		writelogs("[{$_POST["artica_username"]}]: The password typed  is not the same in ldap database...",__FUNCTION__,__FILE__);
-		artica_mysql_events("Failed to logon on the management console as user from {$_SERVER["REMOTE_HOST"]} (bad password)",@implode("\n",$notice),"security","security");
-		echo "bad password";
+		writelogs("[{$_POST["username"]}]: The password typed  is not the same in ldap database...",__FUNCTION__,__FILE__);
+		artica_mysql_events("Failed to logon on the management console as user `$username` from {$_SERVER["REMOTE_HOST"]} (bad password)",@implode("\n",$notice),"security","security");
+		echo "Error: (".__LINE__.") bad password";
 		return null;		
 		
 	}
@@ -84,25 +85,23 @@ function checklogon(){
 			$users=new usersMenus();
 			$privs=new privileges($u->uid);
 			$privileges_array=$privs->privs;
-			setcookie("mem-logon-user", $_POST["artica_username"], time()+172800);
+
 			$_SESSION["privileges_array"]=$privs->privs;
 			$_SESSION["privs"]=$privileges_array;
-			$_SESSION["OU_LANG"]=$privileges_array["ForceLanguageUsers"];
+			if(isset($privileges_array["ForceLanguageUsers"])){$_SESSION["OU_LANG"]=$privileges_array["ForceLanguageUsers"];}
 			$_SESSION["uid"]=$username;
 			$_SESSION["privileges"]["ArticaGroupPrivileges"]=$privs->content;
-			$_SESSION["groupid"]=$ldap->UserGetGroups($_POST["artica_username"],1);
+			$_SESSION["groupid"]=$ldap->UserGetGroups($_POST["username"],1);
 			$_SESSION["DotClearUserEnabled"]=$u->DotClearUserEnabled;
 			$_SESSION["MailboxActive"]=$u->MailboxActive;
 			$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
 			$_SESSION["ou"]=$u->ou;
 			$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
 			$lang=new articaLang();
-			writelogs("[{$_POST["artica_username"]}]: Default organization language={$_SESSION["OU_LANG"]}",__FUNCTION__,__FILE__);
+			writelogs("[{$_POST["username"]}]: Default organization language={$_SESSION["OU_LANG"]}",__FUNCTION__,__FILE__);
 			if(trim($_SESSION["OU_LANG"])<>null){
 				$_SESSION["detected_lang"]=$_SESSION["OU_LANG"];
-				setcookie("artica-language", $_SESSION["OU_LANG"], time()+172800);
 			}else{
-				setcookie("artica-language", $_POST["lang"], time()+172800);
 				$_SESSION["detected_lang"]=$lang->get_languages();
 			}
 			if(trim($FixedLanguage)<>null){$_SESSION["detected_lang"]=$FixedLanguage;}

@@ -1,4 +1,6 @@
 <?php
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__.":: DEBUG...()\n<br>";}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -6,7 +8,7 @@
 	include_once('ressources/class.ini.inc');
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.rtmm.tools.inc');
-
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__.":: Load done...()\n<br>";}
 	
 	
 	$user=new usersMenus();
@@ -329,6 +331,7 @@ function popup_categories_sql(){
 //ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__.":: mysql_squid_builder()\n<br>";}
 	$q=new mysql_squid_builder();
 	$OnlyEnabled=false;
 	if(isset($_GET["OnlyEnabled"])){$OnlyEnabled=true;}
@@ -338,7 +341,7 @@ function popup_categories_sql(){
 	$ORDER="ORDER BY categorykey ASC";
 	$FORCE_FILTER=null;
 	if(trim($_GET["group"])<>null){$FORCE_FILTER=" AND master_category='{$_GET["group"]}'";}
-	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__.":: q->COUNT_ROWS($table)\n<br>";}
 	if($q->COUNT_ROWS($table)==0){
 		$ss=new dansguardian_rules();
 		$ss->CategoriesTableCache();
@@ -347,14 +350,18 @@ function popup_categories_sql(){
 	$www=trim(strtolower($_GET["www"]));
 	
 	$ArticaDBZ=new mysql_catz();
-	$catArDB=explode(",", $ArticaDBZ->GET_CATEGORIES($www));
+	$CategoriesFound=$ArticaDBZ->GET_CATEGORIES($www);
+	$catArDB=explode(",", $CategoriesFound);
+	
 	writelogs("ArticaDB($www) = ".@implode(",", $catArDB),__FUNCTION__,__FILE__,__LINE__);
 	if(is_array($catArDB)){while (list ($num, $ligne) = each ($catArDB) ){$ligne=trim($ligne);if($ligne==null){continue;}$hash_ARTICA[$ligne]=true;}}
 	
 	
 	if(preg_match("#www\.(.+?)$#i",$www,$re)){$www=$re[1];}
 	$q=new mysql_squid_builder();
-	$cats=explode(",", $q->GET_CATEGORIES($www,true,true,true,true));
+	
+	$CategoriesFound=$q->GET_CATEGORIES($www,true,true,true,true);
+	$cats=explode(",", $CategoriesFound);
 	$www_encoded=base64_encode($_GET["www"]);
 	
 	$COUNT_ROWS=$q->COUNT_ROWS($table);

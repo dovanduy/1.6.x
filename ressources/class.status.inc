@@ -1092,6 +1092,7 @@ if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 				
 				
 				$categories=$q->COUNT_CATEGORIES();
+				if($categories<500){$sock->getFrameWork("squid.php?update-blacklist=yes");}
 				$categories=numberFormat($categories,0,""," ");		
 				
 				$CachePermformance=$q->CachePerfHour();

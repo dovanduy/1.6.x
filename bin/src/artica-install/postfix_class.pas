@@ -290,7 +290,7 @@ var
     RegExpr:TRegExpr;
 
 begin
-result:=SYS.GET_CACHE_VERSION('APP_POSTFIX');
+   result:=SYS.GET_CACHE_VERSION('APP_POSTFIX');
    if length(result)>0 then exit;
    tmp:=logs.FILE_TEMP();
    RegExpr:=TRegExpr.Create;

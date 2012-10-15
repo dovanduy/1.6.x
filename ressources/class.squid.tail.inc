@@ -73,7 +73,7 @@ class squid_tail{
 					if($Forwarded=="0.0.0.0"){$Forwarded=null;}
 					if($Forwarded=="255.255.255.255"){$Forwarded=null;}
 					if(strlen($Forwarded)>4){
-						if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $Forwarded)){$ip=$Forwarded;}
+						if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $Forwarded)){$ip=$Forwarded;$mac=null;}
 					}	
 					
 					$this->Builsql($ip,$user,$uri,$code_error,$size,$time,$cached,$mac);								

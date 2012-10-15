@@ -449,17 +449,24 @@ function dansguardian_status(){
 	$SquideCapAVEnabled=$sock->GET_INFO("SquideCapAVEnabled");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
 	$EnableMalwarePatrol=$sock->GET_INFO("EnableMalwarePatrol");
 	if(!is_numeric($EnableMalwarePatrol)){$EnableMalwarePatrol=0;}
 	if(!is_numeric($SquidDisableAllFilters)){$SquidDisableAllFilters=0;}
+	if(!is_numeric($EnableSplashScreen)){$EnableSplashScreen=0;}
 	if($SquidGuardIPWeb==null){$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");if(!is_numeric($SquidGuardApachePort)){$SquidGuardApachePort=9020;}$fulluri="http://".$_SERVER['SERVER_ADDR'].':'.$SquidGuardApachePort."/exec.squidguard.php";$sock->SET_INFO("SquidGuardIPWeb", $fulluri);}
 	if($SquidGuardServerName==null){$sock->SET_INFO("SquidGuardServerName",$_SERVER['SERVER_ADDR']);}
 	$eCapClam=null;
 
 
 	$pic="status_ok-grey.gif";
+	$picSplashScreen="status_ok-grey.gif";
 	$EnableActiveDirectoryText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('squid.adker.php');\" 
+		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
+	
+	$EnableSplashScreenText="<a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('squid.webauth.php');\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
 
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
@@ -473,6 +480,13 @@ function dansguardian_status(){
 		OnClick=\"javascript:Loadjs('squid.adker.php');\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";		
 
+	}
+	
+	if($EnableSplashScreen==1){
+		$picSplashScreen="status_ok.gif";
+		$EnableSplashScreenText="<a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('squid.webauth.php');\" 
+		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";				
 	}
 
 
@@ -554,7 +568,13 @@ function dansguardian_status(){
 			</tr>";			
 
 	}
-
+	
+	$SplashScreenFinal="<tr>
+			<td width=1%><span id='spalsh-$time'><img src='img/$picSplashScreen'></td>
+			<td class=legend nowrap>HotSpot:</td>
+			<td><div style='font-size:12px' nowrap>$EnableSplashScreenText</td>
+			</tr>";	
+	
 	if(!$users->KASPERSKY_WEB_APPLIANCE){
 		$pic="status_ok-grey.gif";
 		$eCapAVText="{not_installed}";
@@ -765,7 +785,10 @@ function dansguardian_status(){
 	}
 
 	if($t>0){
-		$table="<table style='width:99%' class=form><tbody>$EnableActiveDirectoryTextTR$ufdb$eCapClam$dansgu$cicap$kav$kavMeta$MalWarePatrol$StreamCache$DisableAllFilters</tbody></table>";
+		$table="<table style='width:99%' class=form><tbody>
+		$EnableActiveDirectoryTextTR
+		$SplashScreenFinal
+		$ufdb$eCapClam$dansgu$cicap$kav$kavMeta$MalWarePatrol$StreamCache$DisableAllFilters</tbody></table>";
 
 	}
 

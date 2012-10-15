@@ -565,6 +565,7 @@ class squidbee{
 			$this->alt_listen_port=$ini->_params["NETWORK"]["ALT_PORT"];
 			$this->CACHE_SIZE=$ini->_params["CACHE"]["CACHE_SIZE"];
 			$this->CACHE_PATH=$ini->_params["CACHE"]["CACHE_PATH"];
+			$this->CACHE_PATH=str_replace(" ", "_", $this->CACHE_PATH);
 			$this->CACHE_TYPE=$ini->_params["CACHE"]["CACHE_TYPE"];
 			$this->enable_cicap=$sock->GET_INFO('CicapEnabled');
 			$this->enable_squidguard=$sock->GET_INFO('squidGuardEnabled');
@@ -600,6 +601,9 @@ class squidbee{
 				if(is_array($ini->_params)){
 					while (list ($num, $val) = each ($ini->_params)){
 						if(preg_match('#cache:(.+)#',$num,$re)){
+							
+							$re[1]=str_replace(" ", "_", $re[1]);
+							
 							$this->cache_list[$re[1]]=array(
 							"cache_type"=>$ini->_params[$num]["cache_type"],
 							"cache_dir_level1"=>$ini->_params[$num]["cache_dir_level1"],
@@ -874,14 +878,15 @@ class squidbee{
 		//$f[]="acl SplashScreenSessionAcl external SplashScreenSessionsDef LOGIN";
 		//$f[]=@implode(" ", $ExternActive);
 		//$f[]="acl SplashScreenActiveAcl external SplashScreenActiveDef";
-		$f[]="external_acl_type SplashScreenAuthDef ttl={$array["CACHE_TIME"]} negative_ttl=0 children-startup=5 children-idle=5$ipv4 ".@implode(" ", $L)." %URI /usr/share/artica-postfix/external_acl_squid.php --splash";
+		//ttl={$array["CACHE_TIME"]}
+		$f[]="external_acl_type SplashScreenAuthDef  ttl={$array["CACHE_TIME"]} negative_ttl=0 children-startup=5 children-idle=5$ipv4 ".@implode(" ", $L)." %URI /usr/share/artica-postfix/external_acl_squid.php --splash session-time={$array["CACHE_TIME"]}";
 		$f[]="acl SplashScreenAuthAcl external SplashScreenAuthDef";
 		$f[]="$acl_SplashPage";
-		$f[]="deny_info $SplashScreenURI?request=%U SplashScreenAuthAcl";
+		$f[]="deny_info $SplashScreenURI?request=%o SplashScreenAuthAcl";
 		$f[]="#-----------------------------------------------------------------\n";
 		$accesses[]="# ------ SplashScreen Rules ------";
 		//$accesses[]="http_access allow SplashPage";
-		//$accesses[]="http_access allow SplashScreenAuthAcl SplashScreenSessionAcl";
+		$accesses[]="http_access deny !SplashScreenAuthAcl CONNECT";
 		$accesses[]="http_access deny !SplashPage !SplashScreenAuthAcl";
 		$accesses[]="#\n";
 		
@@ -1091,7 +1096,7 @@ function SaveToLdap($norestart=false){
 			$ini=$ini."SSL_BUMP=$this->SSL_BUMP\n";
 			
 			
-			
+			$this->CACHE_PATH=str_replace(" ", "_", $this->CACHE_PATH);
 			$ini=$ini."[KAV]\n";
 			$ini=$ini."enabled=$this->enable_kavproxy\n";
 			$ini=$ini."[DANSGUARDIAN]\n";
@@ -1110,6 +1115,7 @@ function SaveToLdap($norestart=false){
 				$num=null;
 				$val=null;
 				while (list ($num, $val) = each ($this->cache_list)){
+					$num=str_replace(" ", "_", $num);
 					$ini=$ini."[cache:$num]\n";
 					$ini=$ini."cache_type={$val["cache_type"]}\n";
 					$ini=$ini."cache_dir_level1={$val["cache_dir_level1"]}\n";
@@ -3156,7 +3162,7 @@ function BuildSquidConf(){
 			}
 		}
 		
-		
+		$this->CACHE_PATH=str_replace(" ", "_", $this->CACHE_PATH);
 		if($this->ASROOT){echo "Starting......: Squid Main cache \"{$this->CACHE_PATH}\" ({$this->CACHE_TYPE})\n";}
 		$conf=$conf."\n";
 		
@@ -3184,7 +3190,7 @@ function BuildSquidConf(){
 						//$conf=$conf."cache_dir {$this->cache_list[$num]["cache_type"]} $num {$this->cache_list[$num]["cache_size"]} max-size=32768\n";
 						continue;
 					}
-					
+					$num=str_replace(" ", "_", $num);
 					$conf=$conf."cache_dir {$this->cache_list[$num]["cache_type"]} $num {$this->cache_list[$num]["cache_size"]} {$this->cache_list[$num]["cache_dir_level1"]} {$this->cache_list[$num]["cache_dir_level2"]} $this->store_dir_minsize \n";
 				}
 			}

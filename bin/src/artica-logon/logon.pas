@@ -874,7 +874,7 @@ begin
    if length(trim(answer))>0 then port:=answer;
 
    if ssl='1' then ssl:='Y' else ssl:='N';
-   writeln('Use ssl to conenct to  '+port+' ? Y/N:['+ssl+']');
+   writeln('Use ssl to connect to  '+port+' ? Y/N:['+ssl+']');
    readln(answer);
    answer:=UpperCase(answer);
    if length(trim(answer))>0 then ssl:=answer;

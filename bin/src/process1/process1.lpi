@@ -316,14 +316,14 @@
         <UnitName Value="collectd"/>
         <CursorPos X="83" Y="668"/>
         <TopLine Value="1"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
       </Unit36>
       <Unit37>
         <Filename Value="../artica-install/dansguardian.pas"/>
         <UnitName Value="dansguardian"/>
         <CursorPos X="1" Y="50"/>
         <TopLine Value="6"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
       </Unit37>
       <Unit38>
         <Filename Value="../artica-install/amavisd_milter.pas"/>
@@ -533,7 +533,7 @@
       <Unit64>
         <Filename Value="vmwaretools.pas"/>
         <UnitName Value="vmwaretools"/>
-        <CursorPos X="4" Y="69"/>
+        <CursorPos X="84" Y="72"/>
         <TopLine Value="43"/>
         <EditorIndex Value="4"/>
         <UsageCount Value="17"/>

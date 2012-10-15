@@ -3,18 +3,28 @@
 	$GLOBALS["ICON_FAMILY"]="ANTISPAM";
 	include_once('ressources/class.templates.inc');
 	include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
-	include_once(dirname(__FILE__).'/class.mysql.squid.builder.php');
-	include_once(dirname(__FILE__).'/class.user.php');
+	include_once(dirname(__FILE__).'/ressources/class.mysql.squid.builder.php');
+$GLOBALS["POLICY_DEFAULT"]="Company retains the right, at its sole discretion, to refuse new service to any individual, group, or business.
+Company also reserves the right to monitor Internet access to its services by authorized users and clients, as part of the normal course of its business practice. 
+Should Company discover users engaged in any violation of the Acceptable Use Policy, which create denial of access or impediment of service, and which adversely affect Company’s ability to provide services, Company reserves the right to temporarily suspend user access to the its Servers and/or database.  
+Company shall make written/electronic notification to user’s point of contact of any temporary suspension, and the cause thereof, as soon as reasonably possible. 
+This temporary suspension will remain in effect until all violations have ceased.  
+Company also retains the right to discontinue service with 30 days’ prior written notice for repeated violation of the acceptable use policy.
+";		
 	
 	
 	
 	if(isset($_GET["checks"])){checks();exit;}
 	if(isset($_GET["css-main"])){echo css();exit;}
-	if(isset($_POST["username"])){check_auth();}
+	if(isset($_POST["username"])){check_auth();exit;}
 page();	
 function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$sock=new sockets();
+	$t=time();
+	
+	$HotSpotConfig=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));
 	$array=unserialize(base64_decode($_GET["request"]));
 	
 	$LOGIN=$array["LOGIN"];
@@ -23,13 +33,34 @@ function page(){
 	$HOST=$array["HOST"];
 	$URI=$array["URI"];
 	
+	if(!isset($HotSpotConfig["USETERMSLABEL"])){$HotSpotConfig["USETERMSLABEL"]=null;}
+	if(!isset($HotSpotConfig["USETERMS"])){$HotSpotConfig["USETERMS"]=1;}
+
+	if(!is_numeric($HotSpotConfig["USETERMS"])){$HotSpotConfig["USETERMS"]=1;}
+	if($HotSpotConfig["USETERMSLABEL"]==null){$HotSpotConfig["USETERMSLABEL"]="I agree to terms";}
+	
+	
+	$youmustaceptterms=$tpl->javascript_parse_text("{youmustaceptterms}: {$HotSpotConfig["USETERMSLABEL"]}");
+	
 	$md5key=md5("$LOGIN$IPADDR$MAC$HOST");
 	
 	if($URI==null){$URI="http://www.google.com";}
 	
 	$squid_splash_logon_explain=$tpl->_ENGINE_parse_body("{squid_splash_logon_explain}");
 	
-	$t=time();
+	
+	if($HotSpotConfig["USETERMS"]==1){
+		$useterms="
+		<div style='text-align:right;margin-top:-15px;margin-bottom:10px'>
+			<a href=\"javascript:blur();\" OnClick=\"javascript:Terms$t();\"
+			style='color:#E50000;text-decoration:underline'>{$HotSpotConfig["USETERMSLABEL"]}</a>&nbsp;". 
+			Field_checkbox("USETERMS$t", 1)
+		."</div>";
+		
+	}
+	
+	
+	
 	$html="<!DOCTYPE html>
 <html lang=\"en\">
 <head>
@@ -97,16 +128,16 @@ function page(){
 			<form action=\"#\">
 				<div class=\"f\">
 					<div class=\"field\">
-						<label for=\"flogin\">{username}:</label> <input type=\"text\" name=\"username\" id=\"artica_username\" onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" OnKeyPress=\"javascript:SendLogon(event)\">
+						<label for=\"username\">{username}:</label> <input type=\"text\" name=\"username\" id=\"username\" onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" OnKeyPress=\"javascript:SendLogon$t(event)\">
 		
 					</div>
 					<div class=\"field\">
-						<label for=\"fpassword\">{password}:</label> <input type=\"password\" name=\"password\" id=\"artica_password\" onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" OnKeyPress=\"javascript:SendLogon(event)\">
+						<label for=\"password\">{password}:</label> <input type=\"password\" name=\"password\" id=\"password\" onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" OnKeyPress=\"javascript:SendLogon$t(event)\">
 						<div id='lostpassworddiv'></div>
 					</div>
+					$useterms
 					<div class=\"field button\">
-						<span id='YouCanAnimateIt-$t'></span>
-						".
+						<span id='YouCanAnimateIt-$t'></span>".
 						button("{logon}", "SendLogonStart$t()",18)."
 					</div>
 				</div>
@@ -120,24 +151,37 @@ function page(){
   </div>
   
  <script>
- var x_SendLogonStart=function(obj){
-		if(document.getElementById('YouCanAnimateIt')){document.getElementById('YouCanAnimateIt').innerHTML='';}
+ var x_SaveHotSpot$t=function(obj){
+		if(document.getElementById('YouCanAnimateIt-$t')){document.getElementById('YouCanAnimateIt-$t').innerHTML='';}
      	var tempvalue=obj.responseText;
-	 	if(tempvalue.length)>0){alert(tempvalue);return;}
+	 	if(tempvalue.length>1){alert(tempvalue);return;}
 		 var url='$URI';
 		 document.location.href=url;
 		}	 
 	 	
 	function SendLogonStart$t(){
+		if(document.getElementById('USETERMS$t')){
+			if(!document.getElementById('USETERMS$t').checked){
+				alert('$youmustaceptterms');
+				return;
+			}
+		}
+		var XHR = new XHRConnection();
  		var user=document.getElementById('username').value;
  		var password=MD5(document.getElementById('password').value);
  		XHR.appendData('username',user);
 		XHR.appendData('password',password);
 		XHR.appendData('md5key','$md5key');
 		XHR.appendData('request','{$_GET["request"]}');
-		
-		AnimateDiv('YouCanAnimateIt-$t');
+		if(document.getElementById('YouCanAnimateIt-$t')){
+			document.getElementById('YouCanAnimateIt-$t').innerHTML='<img src=\"/img/preloader.gif\">';
+		}
 		XHR.sendAndLoad('$page', 'POST',x_SaveHotSpot$t);
+ 	 }
+ 	 
+ 	 function SendLogon$t(e){
+ 	 	if(!checkEnter(e)){return;}
+ 	 	SendLogonStart$t();
  	 }
  	
  </script>
@@ -176,17 +220,46 @@ function page(){
 }
 
 function check_auth(){
+	$tpl=new templates();
+	//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+	$username=$_POST["username"];
+	$time=time();
+	if($username==null){
+		echo $tpl->javascript_parse_text("{wrong_password_or_username}");
+		return;
+	}
+	
+	include_once(dirname(__FILE__).'/ressources/class.user.inc');
 	$sock=new sockets();
 	$tpl=new templates();
+	$users=new usersMenus();
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	$HotSpotConfig=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));
+	if(!isset($HotSpotConfig["FINAL_TIME"])){$HotSpotConfig["FINAL_TIME"]=0;}
+	if(!isset($HotSpotConfig["USELDAP"])){$HotSpotConfig["USELDAP"]=1;}
+	if(!isset($HotSpotConfig["CACHE_AUTH"])){$HotSpotConfig["CACHE_AUTH"]=60;}
+	if(!isset($HotSpotConfig["CACHE_TIME"])){$HotSpotConfig["CACHE_TIME"]=120;}
+	if(!isset($HotSpotConfig["USEMYSQL"])){$HotSpotConfig["USEMYSQL"]=1;}
+	if(!isset($HotSpotConfig["USEAD"])){$HotSpotConfig["USEAD"]=0;}
+	
+	
+	
 	if(!is_numeric($HotSpotConfig["USELDAP"])){$HotSpotConfig["USELDAP"]=1;}
 	if(!is_numeric($HotSpotConfig["USEMYSQL"])){$HotSpotConfig["USEMYSQL"]=1;}
 	if(!is_numeric($HotSpotConfig["CACHE_AUTH"])){$HotSpotConfig["CACHE_AUTH"]=60;}
 	if(!is_numeric($HotSpotConfig["CACHE_TIME"])){$HotSpotConfig["CACHE_TIME"]=120;}
-	if(!is_numeric($HotSpotConfig["FINAL_TIME"])){$HotSpotConfig["FINAL_TIME"]=0;}	
+	if(!is_numeric($HotSpotConfig["FINAL_TIME"])){$HotSpotConfig["FINAL_TIME"]=0;}
+	
+	if($EnableKerbAuth==0){$HotSpotConfig["USEAD"]=0;}
+	if(!$users->CORP_LICENSE){$HotSpotConfig["USEAD"]=0;}
+	
+	$CACHE_AUTH=$HotSpotConfig["CACHE_AUTH"];	
 	$username=$_POST["username"];
 	$password=$_POST["password"];
-	$md5key=$_POST["md5key"];
+	$md5key=trim($_POST["md5key"]);
+	if($md5key==null){echo "md5key is null...\n";return;}
+	
 	$array=unserialize(base64_decode($_POST["request"]));
 	$LOGIN=$array["LOGIN"];
 	$IPADDR=$array["IPADDR"];
@@ -195,25 +268,43 @@ function check_auth(){
 	
 	$auth=false;
 	
-	$sql="SELECT md5,finaltime FROM hostspot_sessions WHERE md5='$md5key'";
+	$q=new mysql_squid_builder();
+	
+	$sql="SELECT md5,finaltime FROM hotspot_sessions WHERE md5='$md5key'";
+	
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if(!$q->ok){echo $q->mysql_error."\n$sql";return;}
+	$md5_session=$ligne["md5"];
 	
-		if($ligne["finaltime"]>0){
-			if($ligne["finaltime"]>time()){
-				echo $tpl->javascript_parse_text("{accesstime_to_internet_expired}");
-				return;	
-			}
-		}	
+	if($HotSpotConfig["USEAD"]==1){
+		$creds["username"]=$username;
+		$creds["password"]=$password;
+		$results=trim(base64_decode($sock->GET_INFO("squid.php?pamlogon=".base64_encode(serialize($creds)))));
+		if($results=="SUCCESS"){$auth=true;}
+	}
 	
+
 	if($HotSpotConfig["USELDAP"]==1){
 		$ct=new user($username);
 		if(md5($ct->password)==$password){$auth=true;}
 		
 	}
-	if(!$auth){
-		
-		
+	$ASUID=false;
+	if($HotSpotConfig["USEMYSQL"]==1){
+		if(!$q->TABLE_EXISTS("hotspot_members")){$q->CheckTables();}
+		$sql="SELECT uid,password,ttl,sessiontime,enabled FROM hotspot_members WHERE uid='$username'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if($ligne["uid"]<>null){
+			$ASUID=true;
+			if($ligne["password"]==$password){$auth=true;}
+			if($ligne["sessiontime"]>0){$CACHE_AUTH=$ligne["sessiontime"];}
+			if($ligne["enabled"]==0){echo $tpl->javascript_parse_text("{access_to_internet_disabled} ({disabled})");die();}
+			if(intval($ligne["ttl"])>0){if($time>$ligne["ttl"]){echo $tpl->javascript_parse_text("{accesstime_to_internet_expired}");die();	}}
+			
+		}
 	}
+		
+	
 	
 	
 if(!$auth){
@@ -222,30 +313,41 @@ if(!$auth){
 }
 
 		$q=new mysql_squid_builder();
-		$CACHE_AUTH=$HotSpotConfig["CACHE_AUTH"]*60;
-		$time=time();
-		$nexttime=$time+$CACHE_AUTH;
 		
-		$finaltime=0;
-		if($ligne["finaltime"]==0){
-			if($HotSpotConfig["FINAL_TIME"]>0){
-				$FINAL_TIME=$HotSpotConfig["FINAL_TIME"]*60;
-				$finaltime=$time+$FINAL_TIME;
-			}
-		}
+		if(!is_numeric($CACHE_AUTH)){$CACHE_AUTH=60;}
+		
+		$finaltime = strtotime("+$CACHE_AUTH minutes", $time);
+		
+		
 
 	if($LOGIN<>null){$uid=$LOGIN;}else{	$uid=$username;}	
 		
-		if($ligne["md5"]<>null){
-			$sql="UPDATE hostspot_sessions SET logintime=$time,maxtime=$nexttime,
-			username='$username',uid='$uid',MAC='$MAC',hostname='$HOST' WHERE md5='$md5key'";		
+		if($md5_session<>null){
+			$sql="UPDATE hotspot_sessions SET logintime=$time,maxtime=$CACHE_AUTH,
+			username='$username',uid='$uid',MAC='$MAC',hostname='$HOST',
+			finaltime=$finaltime
+			WHERE md5='$md5key'";		
 		}else{
-			$sql="INSERT IGNORE INTO hostspot_sessions (logintime, maxtime,finaltime,username,uid,MAC,hostname)
-			VALUES($time,$nexttime,$finaltime,'$username','$uid','$MAC','$HOST')";
+			$sql="INSERT IGNORE INTO hotspot_sessions (md5,logintime, maxtime,finaltime,username,uid,MAC,hostname)
+			VALUES('$md5key',$time,$finaltime,$CACHE_AUTH,'$username','$uid','$MAC','$HOST')";
+			
+		}			
+
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error."\n$sql";return;}		
+		
+		if($HotSpotConfig["USEMYSQL"]==1){
+			if(!$ASUID){
+				$sql="INSERT IGNORE INTO hotspot_members (uid,MAC,hostname,ipaddr,enabled) VALUES ('$uid','$MAC','$HOST','$IPADDR',1)";
+			}else{
+				$sql="UPDATE hotspot_members SET MAC='$MAC',hostname='$HOST',ipaddr='$IPADDR' WHERE uid='$uid'";
+			}
+			$q->QUERY_SQL($sql);
 			
 		}
-	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error;}
+		
+		
+
 	
 }
 
@@ -325,6 +427,23 @@ echo $css;
 }
 
 function checks(){
+	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+	$sock=new sockets();
+	
+	$HotSpotConfig=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));
+	
+	if(!isset($HotSpotConfig["FINAL_TIME"])){$HotSpotConfig["FINAL_TIME"]=0;}
+	if(!isset($HotSpotConfig["USELDAP"])){$HotSpotConfig["USELDAP"]=1;}
+	if(!isset($HotSpotConfig["CACHE_AUTH"])){$HotSpotConfig["CACHE_AUTH"]=60;}
+	if(!isset($HotSpotConfig["CACHE_TIME"])){$HotSpotConfig["CACHE_TIME"]=120;}
+	if(!isset($HotSpotConfig["USEMYSQL"])){$HotSpotConfig["USEMYSQL"]=1;}	
+	
+	if(!is_numeric($HotSpotConfig["USELDAP"])){$HotSpotConfig["USELDAP"]=1;}
+	if(!is_numeric($HotSpotConfig["USEMYSQL"])){$HotSpotConfig["USEMYSQL"]=1;}
+	if(!is_numeric($HotSpotConfig["CACHE_AUTH"])){$HotSpotConfig["CACHE_AUTH"]=60;}
+	if(!is_numeric($HotSpotConfig["CACHE_TIME"])){$HotSpotConfig["CACHE_TIME"]=120;}
+	if(!is_numeric($HotSpotConfig["FINAL_TIME"])){$HotSpotConfig["FINAL_TIME"]=0;}		
+	
 	$array=unserialize(base64_decode($_GET["checks"]));
 	$LOGIN=$array["LOGIN"];
 	$IPADDR=$array["IPADDR"];
@@ -332,9 +451,67 @@ function checks(){
 	$HOST=$array["HOST"];
 	$URI=$array["URI"];
 	$md5key=md5("$LOGIN$IPADDR$MAC$HOST");
-	$sql="SELECT uid,finaltime,logintime,maxtime FROM hostspot_sessions WHERE md5='$md5key'";
+	$sql="SELECT uid,finaltime,logintime,maxtime FROM hotspot_sessions WHERE md5='$md5key'";
+	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	if($ligne["uid"]==null){die();}	
+	$mytime=time();
+	echo "\nmd5key=$md5key\nuid={$ligne["uid"]}";
+	
+	
+	if($ligne["uid"]==null){
+        header("HTTP/1.0 401 Unauthorized");
+        header("Status: 401 Unauthorized");
+		die("401 Unauthorized $md5key $LOGIN $IPADDR $MAC$HOST".__LINE__);
+	}	
+	
+	$uid=$ligne["uid"];
+	$uid=$ligne["uid"];
+	$finaltime=$ligne["finaltime"];
+	$maxtime=$ligne["maxtime"];
+	$logintime=$ligne["logintime"];
+		
+	
+	
+	if($HotSpotConfig["USEMYSQL"]==1){
+		$sql="SELECT uid,ttl,enabled FROM hotspot_members WHERE uid='$uid'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if($ligne["uid"]<>null){
+			if($ligne["enabled"]==0){
+		        header("HTTP/1.0 401 Unauthorized");
+		        header("Status: 401 Unauthorized");
+				die("401 Unauthorized Account disabled".__LINE__);				
+			}
+		}
+		
+		if($ligne["ttl"]>0){
+			if($mytime>$ligne["ttl"]){
+		 		header("HTTP/1.0 401 Unauthorized");
+		    	header("Status: 401 Unauthorized");
+				die("401 Unauthorized Account expired".__LINE__);
+			}				
+		}
+		
+	}
+	
+	
+
+	$maxtimeInSeconds=$maxtime*60;
+	
+	$distanceInSeconds = round(abs(time() - $logintime));	
+	echo "\nCurrent time:$mytime;\nMax time: {$maxtimeInSeconds}s;Login time:$logintime\nDiff: {$distanceInSeconds}s (require $maxtimeInSeconds)";
+	
+	if(intval($distanceInSeconds)>intval($maxtimeInSeconds)){
+		 echo "\nMyTime:$distanceInSeconds > MaxtimeInSeconds:$maxtimeInSeconds";
+		 header("HTTP/1.0 401 Unauthorized");
+         header("Status: 401 Unauthorized");
+		 die("401 Unauthorized ".__LINE__);}
+		 
+		if($HotSpotConfig["USEMYSQL"]==1){$sql="UPDATE hotspot_members SET MAC='$MAC',hostname='$HOST',ipaddr='$IPADDR' WHERE uid='$uid'";$q->QUERY_SQL($sql);}		 
+	 
+		 
+	echo "\n<OK>uid=$uid</OK>";
+
+	
 	
 }
 

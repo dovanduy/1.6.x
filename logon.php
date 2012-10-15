@@ -632,9 +632,10 @@ function logon(){
 
 	if(trim($_POST["artica_username"])==trim($_GLOBAL["ldap_admin"])){
 		if($md5Manager<>$md5submitted){
+			$tpl=new templates();
 			writelogs("Testing logon.... password:{$_POST["artica_password"]}!==\"{$_GLOBAL["ldap_password"]}\"",__FUNCTION__,__FILE__,__LINE__);	
 			artica_mysql_events("Failed to logon on the Artica Web console from {$_SERVER["REMOTE_HOST"]}",@implode("\n",$notice),"security","security");
-			echo "Bad password";
+			echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 			return null;
 		}else{
 			

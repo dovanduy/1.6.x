@@ -49,13 +49,21 @@ function headNav(){
 	$page=CurrentPageName();
 	$ct=new user($_SESSION["uid"]);
 	if($ct->DisplayName==null){$ct->DisplayName=$_SESSION["uid"];}	
-	
+	$users=new usersMenus();
 	$picture="/img/defaultFbProfileUser50x50.jpg";
 	if(preg_match("#\/thumbnail-96-(.+?)$#", $ct->ThumbnailPath,$re)){
 		if(is_file("ressources/profiles/icons/thumbnail-50-{$re[1]}")){
 			$picture="ressources/profiles/icons/thumbnail-50-{$re[1]}";
 		}
-	}	
+	}
+
+	if($users->POSTFIX_INSTALLED){
+	
+	$messaging="			<li class=\"navItem middleItem\">
+				<a class=\"navLink bigPadding\" href=\"miniadm.messaging.php\" id=\"findFriendsNav\">{messaging}</a>
+			</li>";
+}
+	
 	
 $html="
 	<div class=\"rfloat\">
@@ -65,10 +73,7 @@ $html="
 					<img class=\"ThumbAccountPhoto\" src=\"$picture\" />
 						<span class=\"ThumbAccountName\">$ct->DisplayName</span></a>
 			</li>
-			<li class=\"navItem middleItem\">
-				<a class=\"navLink bigPadding\" href=\"miniadm.messaging.php\" 
-					id=\"findFriendsNav\">{messaging}</a>
-				</li>
+
 				<li class=\"navItem middleItem\" id=\"navHome\">
 					<a class=\"navLink bigPadding\" href=\"miniadm.index.php\" accesskey=\"1\">{home}</a>
 				</li>
@@ -108,6 +113,13 @@ function left(){
 		$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("users_and_groups",
 		"manage_users_and_groups_ou_explain",
 		"miniadmin.members.php");
+	}
+	
+	if($users->AsHotSpotManager){
+		$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("hostpot_members",
+		"hostpot_members_text",
+		"miniadmin.hotspot.php");		
+		
 	}
 	
 	if(count($tr)==0){return;}

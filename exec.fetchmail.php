@@ -237,7 +237,7 @@ function build_line($ligne){
 					while (list ($md, $fenc) = each ($folders) ){
 						$fff=base64_decode($fenc);
 						if($GLOBALS["VERBOSE"]){echo "Folder: `$fff`\n";}
-						$tf[]="$fff";
+						$tf[]="\"$fff\"";
 					}
 				}
 			}

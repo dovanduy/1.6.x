@@ -364,6 +364,7 @@ function updatev2(){
 function updatev2_checktables($npid=false){
 	$GLOBALS["ufdbguard_admin_memory"]=array();
 	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$nohup=$unix->find_program("nohup");
 	$cmdRepairOptimize="echo \"NOOP\"";
@@ -405,6 +406,7 @@ function updatev2_checktables($npid=false){
 			$ldao=getSystemLoad();
 			ufdbguard_admin_events("{$ligne["tablename"]}: processing black list database injection aborted System is overloaded ($ldao), the processing will be aborted and restart in next cycle
 			Task stopped line $c/$count rows\n".ufdbguard_admin_compile(),__FUNCTION__,__FILE__,__LINE__,"update");
+			$unix->THREAD_COMMAND_SET("$php ".__FILE__." --v2 schedule-id={$GLOBALS["SCHEDULE_ID"]}");
 			die();
 		}		
 						

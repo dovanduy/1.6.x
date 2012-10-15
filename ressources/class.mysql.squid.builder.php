@@ -1099,10 +1099,10 @@ public function CheckTables($table=null){
 					bypass INT(1) NOT NULL DEFAULT '0' ,
 					deepurlanalysis  INT(1) NOT NULL DEFAULT '0' ,
 					UseExternalWebPage SMALLINT(1) NOT NULL DEFAULT '0' ,
-					ExternalWebPage VARCHAR(256) NOT NULL DEFAULT,
+					ExternalWebPage VARCHAR(256) NOT NULL,
 					sslcertcheck INT(1) NOT NULL DEFAULT '0' ,
 					sslmitm INT(1) NOT NULL DEFAULT '0',
-					GoogleSafeSearch smallint(1) NOT NULL DEFAULT '0',
+					GoogleSafeSearch SMALLINT(1) NOT NULL DEFAULT '0',
 					TimeSpace TEXT NOT NULL,
 					TemplateError TEXT NOT NULL,
 					RewriteRules TEXT NOT NULL,
@@ -1660,13 +1660,13 @@ public function CheckTables($table=null){
 
 		
 		if(!$this->TABLE_EXISTS('hotspot_sessions',$this->database)){	
-			$sql="CREATE TABLE `squidlogs`.`hostspot_sessions` (
+			$sql="CREATE TABLE `squidlogs`.`hotspot_sessions` (
 			`md5` VARCHAR( 90 ) NOT NULL ,
 			`logintime` BIGINT( 100 ) NOT NULL ,
 			`maxtime` INT( 100 ) NOT NULL ,
 			`finaltime` INT( 100 ) NOT NULL ,
 			`username` VARCHAR( 128 ) NOT NULL ,
-			`MAC` VARCHAR( 90 ) NOT NULL PRIMARY KEY ,
+			`MAC` VARCHAR( 90 ) NOT NULL,
 			`uid` VARCHAR( 128 ) NOT NULL ,
 			`hostname` VARCHAR( 128 ) NOT NULL ,			
 			PRIMARY KEY ( `md5` ) ,
@@ -1676,8 +1676,32 @@ public function CheckTables($table=null){
 			KEY `hostname` (`hostname`)
 			)";	
 			$this->QUERY_SQL($sql,$this->database);
+			if(!$this->ok){echo "CREATE TABLE hotspot_sessions Failed $this->mysql_error\n";}
 		}	
-		if(!$this->FIELD_EXISTS("hostspot_sessions", "finaltime")){$this->QUERY_SQL("ALTER TABLE `hostspot_sessions` ADD `finaltime` BIGINT( 100 ) NOT NULL ,ADD INDEX ( `finaltime` )");}
+		
+		if(!$this->TABLE_EXISTS('hotspot_members',$this->database)){	
+			$sql="CREATE TABLE `squidlogs`.`hotspot_members` (
+			`uid` VARCHAR( 128 ) NOT NULL ,
+			`password` VARCHAR( 128 ) NOT NULL ,
+			`ttl` INT( 100 ) NOT NULL ,
+			`sessiontime` INT( 100 ) NOT NULL ,
+			`MAC` VARCHAR( 90 ) NOT NULL,
+			`hostname` VARCHAR( 128 ) NOT NULL ,	
+			`ipaddr` VARCHAR( 50 ) NOT NULL ,
+			`enabled` smallint(1) NOT NULL,		
+			PRIMARY KEY ( `uid` ) ,
+			INDEX ( `ttl` , `sessiontime`,`enabled`),
+			KEY `MAC` (`MAC`),
+			KEY `hostname` (`hostname`),
+			KEY `ipaddr` (`ipaddr`)
+			)";	
+			$this->QUERY_SQL($sql,$this->database);
+			if(!$this->ok){echo "CREATE TABLE hotspot_sessions Failed $this->mysql_error\n";}
+		}		
+		
+		
+		
+		if(!$this->FIELD_EXISTS("hotspot_sessions", "finaltime")){$this->QUERY_SQL("ALTER TABLE `hotspot_sessions` ADD `finaltime` BIGINT( 100 ) NOT NULL ,ADD INDEX ( `finaltime` )");}
 		
 		if(!$this->TABLE_EXISTS('webfilter_dnsbl',$this->database)){	
 			$sql="CREATE TABLE IF NOT EXISTS `webfilter_dnsbl` (
@@ -2438,11 +2462,15 @@ public function CheckTables($table=null){
 		
 		
 		$tablescat=$this->LIST_TABLES_CATEGORIES();
+		
+		
+		
 		$tablescat_count=0;
 		reset($tablescat);
 		while (list ($table, $none) = each ($tablescat) ){
 			if($table=="category_"){continue;}
 			if(preg_match("#bak$#", $table)){continue;}
+			if(!$this->TABLE_EXISTS($table)){continue;}
 			$sql="SELECT category FROM $table WHERE pattern='$sitename' AND enabled=1";
 			$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
 			$tablescat_count++;
@@ -2458,6 +2486,8 @@ public function CheckTables($table=null){
 			while (list ($a, $b) = each ($cattmp) ){if($b<>null){$cat[]=$b;}}
 		}
 		
+		
+		
 		if(!$noArticaDB){
 			$qz=new mysql_catz();
 			$catz=$qz->GET_CATEGORIES($sitename);
@@ -2468,6 +2498,7 @@ public function CheckTables($table=null){
 				return $catz;
 			}
 		}
+		
 		
 		
 		if(count($cat)==0){
@@ -2556,15 +2587,18 @@ public function CheckTables($table=null){
 				return $category;
 			}
 			
-		$ipaddr=gethostbyname($sitename);
-		if($ipaddr==$sitename){
-			$ipaddr=gethostbyname("www.$sitename");
+		
+		if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitename)){
+			$ipaddr=gethostbyname($sitename);
 			if($ipaddr==$sitename){
-				$this->categorize_reaffected($sitename);
-				$GLOBALS["CATEGORIZELOGS-COUNT"]++;
-				return "reaffected";
-			}
-		}			
+				$ipaddr=gethostbyname("www.$sitename");
+				if($ipaddr==$sitename){
+					$this->categorize_reaffected($sitename);
+					$GLOBALS["CATEGORIZELOGS-COUNT"]++;
+					return "reaffected";
+				}
+			}	
+		}		
 			
 			
 	}

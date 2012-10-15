@@ -284,6 +284,10 @@ function status(){
 					<td><strong style='font-size:14px'>$blackbox->laststatus</td>
 				</tr>
 				<tr>
+					<td class=legend style='font-size:14px'>{uuid}:</td>
+					<td><strong style='font-size:14px'>$blackbox->hostid</td>
+				</tr>				
+				<tr>
 					<td class=legend style='font-size:14px'>{hostname}:</td>
 					<td><strong style='font-size:14px'><a href=\"javascript:blur();\"
 					OnClick=\"javascript:Loadjs('$page?hostname-node-js=yes&nodeid={$_GET["nodeid"]}');\"
@@ -350,7 +354,7 @@ $('#table-$t').flexigrid({
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 850,
+	width: 845,
 	height: 250,
 	singleSelect: true
 	

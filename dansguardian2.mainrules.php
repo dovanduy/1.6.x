@@ -714,6 +714,7 @@ function rules_table_list(){
 	$FORCE_FILTER=null;
 	$total=0;
 	
+	if(!$q->TABLE_EXISTS($table)){$q->CheckTables();}
 	
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}

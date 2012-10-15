@@ -240,7 +240,7 @@ function listOfAvailableServices($freeweb=false){
 		
 		
 	}
-	$array["ARTICA_USR"]="{APP_ARTICA_USR}";
+	//$array["ARTICA_USR"]="{APP_ARTICA_USR}";
 	return $array;
 }	
 	

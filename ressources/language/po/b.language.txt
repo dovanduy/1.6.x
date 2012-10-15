@@ -4,6 +4,8 @@
 <duplicate_the_ruleid_give_name>Give the new rule name in order to duplicate the rule:<//squid_aclmax_connections_explain>
 <about_item>About</about_item>
 <about_this_section>About this section</about_this_section>
+<accesstime_to_internet_expired>Access time to Internet expired</accesstime_to_internet_expired>
+<access_to_internet_disabled>Your access to internet is disabled</access_to_internet_disabled>
 <account_verification>Account verification</account_verification>
 <account_verification_text>
 Welcome to %SERVERNAME[br]
@@ -110,6 +112,7 @@ Example: Allow Kaspersky Antivirus to not be authenticated: regex:\\*[A-Za-z]+=$
 <ADNETIPADDR>AD server IP address</ADNETIPADDR>
 <advanced_ISP_routing>Advanced ISP routing</advanced_ISP_routing>
 <advanced_ISP_routing_text>ISP routing rules matching ISP anti-spam rules when sending bulk mailings</advanced_ISP_routing_text>
+<ad_database_is_disabled_because>The Active Directory database feature is disabled because:</ad_database_is_disabled_because>
 <ad_kerb_schedule_explain>Define operation to carry out when Active Directory members import schedule task has been executed</ad_kerb_schedule_explain>
 <against>against</against>
 <agent_address>Agent address</agent_address>
@@ -281,6 +284,7 @@ With this plugin you can use Backup On The Fly feature trough Amavis and if you 
 <artica_manager_password>rtica SuperAdmin password</artica_manager_password>
 <ARTICA_STATISTICS>Artica statistics</ARTICA_STATISTICS>
 <ARTICA_STATISTICS_TEXT>Artica MySQL statistics engine parameters</ARTICA_STATISTICS_TEXT>
+<AsHotSpotManager>As HotSpot Manager</AsHotSpotManager>
 <ask_change_suffix>This operation will reconfigure all services and disconnect from the Web console.
 Proceed to change the master branch to:</ask_change_suffix>
 <ask_convert_item>This operation will convert your element, Do you wan to carry out this operation ?</ask_convert_item>
@@ -397,6 +401,7 @@ It is designed to build websites statistics.</build_crypted_tables_catz_explain>
 <bypass_iffailed>Bypass service if failed</bypass_iffailed>
 <by_proxy_groups>By proxy group</by_proxy_groups>
 <cached_items>Cached item(s)</cached_items>
+<CACHE_AUTH>Show splash screen each</CACHE_AUTH>
 <cache_cell_size>Cache cell size</cache_cell_size>
 <cache_indexedobject_size>Cache Indexed object size</cache_indexedobject_size>
 <cache_indexedobject_size_explain>This cache contains unique id's of objects. (about 512kb per user)</cache_indexedobject_size_explain>
@@ -758,6 +763,7 @@ Credentials used are important because it will define if indexed files will be a
 <enable_zarafa_multi>Enable the multiple Zarafa instances</enable_zarafa_multi>
 <enable_zarafa_multi_text>If turn to green you will be able to create multiple Zarafa Mailboxes services on this server</enable_zarafa_multi_text>
 <enable_zarafa_search>Activate Zarafa Search engine</enable_zarafa_search>
+<endtime>End time</endtime>
 <enduser_aliases_text>Add other email addresses linked to your account</enduser_aliases_text>
 <enduser_explain_section>This section allows you to manage your account in the [b]%ORGA[/b] organization.[br]
 According your privileges your will be able to personnalize enabled services behviors
@@ -870,6 +876,8 @@ hobbies and other tasks that comprise everyday life that cannot be categorized o
 </hobby-other>
 <hook_mailboxto>Hook mailbox to</hook_mailboxto>
 <hostname>hostname</hostname>
+<hostpot_members>HotSpot members</hostpot_members>
+<hostpot_members_text>Manage HostSpot sessions and members</hostpot_members_text>
 <HotSpot>HotSpot</HotSpot>
 <HotSpot_text>HotSpot is a feature that allows you to display a Web page or authentication page in order to allow access to Internet</HotSpot_text>
 <hourly_bandwidth_users>Hour bandwidth users</hourly_bandwidth_users>
@@ -1061,6 +1069,7 @@ In this section, you can see the memory used and the process number used by the 
 <LockLdapConfig>Lock LDAP configuration</LockLdapConfig>
 <LOG>log</LOG>
 <logged_as>Logged as</logged_as>
+<logintime>Logon time</logintime>
 <login_domain>LOGIN domain</login_domain>
 <logoff_text>Disconnect from the Web interface and return back to the login screen</logoff_text>
 <logs_container>Logs container</logs_container>
@@ -1219,6 +1228,7 @@ Click on this warning in order to reduce the MySQL memory consumption.</mysql_wa
 <nb_employees>employees number:</nb_employees>
 <need_to_reboot_ask>To correctly setup the operation, you need to reboot the computer.
 Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
+<new_account>New account</new_account>
 <new_address>New address</new_address>
 <new_alias>New alias</new_alias>
 <new_artica_server>New Artica server</new_artica_server>
@@ -1268,6 +1278,7 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <notify_when_cpu_exceed>Notify when CPU exceed</notify_when_cpu_exceed>
 <notify_when_memory_exceed>Notify when memory exceed</notify_when_memory_exceed>
 <not_caching>Not caching</not_caching>
+<not_connected_to_active_directory>Not connected to any Active Directory</not_connected_to_active_directory>
 <NOT_INSTALLED>Not installed</NOT_INSTALLED>
 <no_entry>No entry</no_entry>
 <no_expression_group>No expression group</no_expression_group>
@@ -1502,6 +1513,13 @@ Check events in order to see results</replic_executed_in_background_mode>
 <reset_smtp_logs_ask>Empty the SMTP events table ?
 All datas according SMTP events will be removed</reset_smtp_logs_ask>
 <reset_table>Empty table</reset_table>
+<restart_computer_and_defrag>Reboot and repair damaged file systems</restart_computer_and_defrag>
+<restart_computer_and_defrag_warn>
+The repair tool will sometimes require the root password be entered on the console in order to repair some 
+issues with the filesystem. 
+Contact our support department or take a look of the system console
+if your server does not respond after a reboot
+</restart_computer_and_defrag_warn>
 <restart_connection>Restart connection</restart_connection>
 <restart_kav4Proxy>Restart Kaspersky For proxy server</restart_kav4Proxy>
 <restart_kav4Proxy_explain>Stop and start the Kaspersky antivirus service designed for your proxy</restart_kav4Proxy_explain>
@@ -1527,6 +1545,7 @@ These rules can be designed to help users in order to not make mistakes accessin
 For example replace gogle.coom by google.com.[br]It can be used or to ban users accessing some websites by replace a website to other website.[br]
 for example replace bing.com to google.com or microsoft.com to ubuntu.com :=).
 </rewrite_rules_fdb_explain>
+<re_authenticate_each>Re-authenticate each</re_authenticate_each>
 <root_account>Root account</root_account>
 <routing_lmtp_table_explain>This table list routing rules per final mailbox account to the final MDA (Mail Delivery Agent) it designed to define where to put messages in the final way.[br]
 Basically it designed to use LMTP protocol to communicate to a Cyrus-Imap or a Zarafa destination server.[br]
@@ -1914,12 +1933,17 @@ Samba can also accept session-based username/password requests.[br]
 The client maintains multiple authentication contexts by using a unique UID for each logon.
 </user_level_security_explain>
 <UseSMTPProto>Use SMTP protocol</UseSMTPProto>
+<use_active_directory>use Active Directory</use_active_directory>
+<use_dedicated_database>Use dedicated database</use_dedicated_database>
 <use_dynamic_groups_acls>Use dynamic ACLS groups</use_dynamic_groups_acls>
 <use_external_link>Use external link</use_external_link>
 <use_external_mysql_server>Use an external MySQL server</use_external_mysql_server>
+<use_freeweb_service>Use FreeWebs service</use_freeweb_service>
+<use_ldap_database>Use LDAP database</use_ldap_database>
 <use_local_service>Use local service</use_local_service>
 <use_memory>Use memory</use_memory>
 <use_schedule>Use schedule</use_schedule>
+<use_terme_of_use>Use Terms of Service</use_terme_of_use>
 <use_tproxy_mode>Use Tproxy mode</use_tproxy_mode>
 <values>values</values>
 <verbose_mode>Verbose mode</verbose_mode>
@@ -1930,6 +1954,7 @@ If the server is busy this task will stop it's process.[br]
 This task is able to check if all categories databases are successfully updated.[br]
 If not, it is in charge to continue injecting datas inside databases.
 </verify_urls_databases_explain>
+<verif_auth_each>Verify authentication each</verif_auth_each>
 <very_high>Very high</very_high>
 <veto_files_add_explain>Set the pattern in order to block files or directory
  * and ? can be used to specify multiple files or directories.
@@ -2119,6 +2144,7 @@ eg: http://10.10.10.2/proxy.pac
 </wpad_label_text>
 <wpad_title>Automatic Proxy</wpad_title>
 <wrong_password>Wrong password</wrong_password>
+<wrong_password_or_username>Wrong password or username</wrong_password_or_username>
 <wrong_value>wrong value</wrong_value>
 <www_abortion>websites about arguments in favor of or against abortion, describe abortion procedures,
 offer help in obtaining or avoiding abortion.</www_abortion>
@@ -2166,6 +2192,7 @@ In this case, logged users will able to search documents in their area</XAPIAN_S
 <xtimeout>TimeOut</xtimeout>
 <xtype>Type</xtype>
 <X_FORWARDED_FOR_NOT_ENABLED_IN_SQUID>The option X-Forwarded-For is not enabled in your Squid-cache installation.[br]You should re-install Squid-Cache trough setup center</X_FORWARDED_FOR_NOT_ENABLED_IN_SQUID>
+<youmustaceptterms>You must accept:</youmustaceptterms>
 <youritems>Your items</youritems>
 <YourRealCompany>Your real company</YourRealCompany>
 <your_home_dir_seems_not_indexed>Your Home directory seems to not be indexed...</your_home_dir_seems_not_indexed>

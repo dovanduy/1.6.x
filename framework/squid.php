@@ -50,7 +50,7 @@ if(isset($_GET["compile-schedules-reste"])){compile_schedule_reste();exit;}
 if(isset($_GET["reconfigure-quotas-tenir"])){reconfigure_quotas_tenir();exit;}
 if(isset($_GET["reconfigure-quotas"])){reconfigure_quotas();exit;}
 
-
+if(isset($_GET["pamlogon"])){samba_pam_logon();exit;}
 
 
 if(isset($_GET["refresh-caches-infos"])){refresh_cache_infos();exit;}
@@ -92,7 +92,7 @@ if(isset($_GET["update-ufdb-precompiled"])){update_ufdb_precompiled();exit;}
 if(isset($_GET["squid-sessions"])){squidclient_sessions();exit;}
 if(isset($_GET["notify-remote-proxy"])){notify_remote_proxy();exit;}
 if(isset($_GET["fw-rules"])){fw_rules();exit;}
- 
+if(isset($_GET["update-blacklist"])){update_blacklist();exit;}
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 
@@ -814,6 +814,22 @@ function boosterpourc(){
 	
 }
 
+function samba_pam_logon(){
+	$unix=new unix();
+	$wbinfo=$unix->find_program("wbinfo");
+	$creds=unserialize(base64_decode($_GET["pamlogon"]));
+	exec("$wbinfo --pam-logon={$creds["username"]}%'{$creds["password"]}' 2>&1",$results);
+	while (list ($num, $ligne) = each ($results) ){	
+		if(preg_match("#succeeded#", $ligne)){
+			echo "<articadatascgi>". base64_encode("SUCCESS")."</articadatascgi>";
+			return;
+		}
+	}
+	
+}
+
+if(isset($_GET["pamlogon"])){samba_pam_logon();exit;}
+
 function compile_list(){
 	$unix=new unix();
 	$squidbin=$unix->find_program("squid");
@@ -1112,6 +1128,14 @@ function logrotate(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --rotate >/dev/null 2>&1 &");	
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
+}
+function update_blacklist(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.blacklists.php --v2 >/dev/null 2>&1 &");	
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
 }

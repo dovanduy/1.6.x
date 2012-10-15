@@ -262,12 +262,14 @@ function CheckFilesAndSecurity(){
 			exec("{$GLOBALS["SQUIDBIN"]} -z 2>&1",$results);
 	}
 	@mkdir("/var/lib/squid/session",0755,true);
+	@mkdir("/var/squid/cache",0755,true);
 	@mkdir("/var/lib/ssl_db",0755,true);
 	if(!is_dir("/var/run/squid")){@mkdir("/var/run/squid",0755,true);}
 	@mkdir("/var/log/squid/squid",0755,true);
 	if(!is_file("/var/logs/cache.log")){@file_put_contents("/var/logs/cache.log", "\n");}
 	if(!is_dir("/usr/share/squid3/errors/lb-lu")){shell_exec("$ln -sf /usr/share/squid3/errors/en-us /usr/share/squid3/errors/lb-lu");}
 	
+	$unix->chown_func($squid_user, $squid_user,"/var/squid/cache");
 	$unix->chown_func($squid_user, $squid_user,"/var/lib/squid/session");
 	$unix->chown_func($squid_user, $squid_user,"/etc/squid3/*");
 	$unix->chown_func($squid_user, $squid_user,"/var/run/squid");

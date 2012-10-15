@@ -32,13 +32,15 @@ js();
 function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$width=862;
 	$title=$tpl->_ENGINE_parse_body("{categories}");
-	if($_GET["category"]<>null){$title=$title."::{$_GET["category"]}";}
+	if($_GET["category"]<>null){$title=$title."::{$_GET["category"]}";$width=720;}
 	if($_GET["website"]<>null){
 		if(preg_match("#^www\.(.+)#", $_GET["website"],$re)){$_GET["website"]=$re[1];}
 		$title=$title."::{$_GET["website"]}";
+		$width=720;
 	}
-	$start="YahooWin4('720','$page?tabs=yes&category={$_GET["category"]}&website={$_GET["website"]}','$title');";
+	$start="YahooWin4('$width','$page?tabs=yes&category={$_GET["category"]}&website={$_GET["website"]}','$title');";
 	$html="
 	$start
 	";
@@ -87,7 +89,7 @@ while (list ($num, $ligne) = each ($array) ){
 		}
 		
 		if($num=="size"){
-			$html[]= "<li><a href=\"dansguardian2.databases.compiled.php\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+			$html[]= "<li><a href=\"dansguardian2.databases.compiled.php?status=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
 			continue;
 		}		
 	

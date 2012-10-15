@@ -164,7 +164,7 @@ end;
 if not  ArticaAgent then writeln('[C]..... Synchronize settings & remove cache');
 writeln('[D]..... Upgrade to a nightly build (',GetLatestNightlyVersion(),')');
 if FileExists('/usr/bin/htop') then writeln('[E]..... Process Monitor');
-if FileExists(squidbin) then writeln('[F]..... Register to a statistics appliance');
+if FileExists(squidbin) then writeln('[F]..... Register to a Statistics Appliance');
 
 writeln('[L]..... Configure languages');
 writeln('[M]..... Modify DNS');

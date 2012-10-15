@@ -174,14 +174,17 @@ function ExecuteMD5_inject($data_temp_file){
 	$numCache=$numCache+$GLOBALS["INJECTED_ELEMENTST"];
 	$time=$unix->file_time_min("/etc/artica-postfix/WBF_INSTANT_NOTIFY");
 	if($time>120){
-		$numCacheText=xaFormatNumber($number,0," ");
-		$sock->TOP_NOTIFY("$numCacheText {items_has_been_added_in_webfiltering_database}","info");
-		@unlink("/etc/artica-postfix/WBF_INSTANT_NOTIFY");
-		@file_put_contents("/etc/artica-postfix/WBF_INSTANT_NOTIFY", 0);
+		if($number>0){
+			$numCacheText=xaFormatNumber($number,0," ");
+			$sock->TOP_NOTIFY("$numCacheText {items_has_been_added_in_webfiltering_database}","info");
+			@unlink("/etc/artica-postfix/WBF_INSTANT_NOTIFY");
+			@file_put_contents("/etc/artica-postfix/WBF_INSTANT_NOTIFY", 0);
+		}
 	}
 	@file_put_contents("/etc/artica-postfix/WBF_INSTANT_NOTIFY", $numCache);
-	
-	ufdbguard_admin_events("Success: adding $COUNT_GLOBAL websites in ".$unix->distanceOfTimeInWords($t1,time()),__FUNCTION__,__FILE__,__LINE__,"update");			
+	if($COUNT_GLOBAL>0){
+		ufdbguard_admin_events("Success: adding $COUNT_GLOBAL websites in ".$unix->distanceOfTimeInWords($t1,time()),__FUNCTION__,__FILE__,__LINE__,"update");
+	}			
 	return true;
 }
 

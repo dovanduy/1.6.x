@@ -31,12 +31,13 @@ tabs();
 function tabs(){
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$array["architecture-content"]='{main_parameters}';
+	$array["node-status"]='{status}';
 	$array["caches"]='{caches}';
-	$array["architecture-users"]='{users_interactions}';
-	$array["architecture-adv"]='{advanced_options}';
-	$array["plugins"]='{proxy_plugins}';
-	$array["events"]='{events}';
+	//$array["architecture-users"]='{users_interactions}';
+	//$array["architecture-adv"]='{advanced_options}';
+	//$array["plugins"]='{proxy_plugins}';
+	$array["events"]='Proxy:{service_events}';
+	$array["ufdbgclient"]='{webfiltering_events}';
 	
 	
 
@@ -49,6 +50,12 @@ function tabs(){
 			continue;
 			
 		}
+		
+		if($num=="node-status"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.status.php?nodeid={$_GET["nodeid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			continue;
+			
+		}		
 		
 		if($num=="events"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.cachelogs.php?nodeid={$_GET["nodeid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");

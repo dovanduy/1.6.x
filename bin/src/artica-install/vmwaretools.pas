@@ -66,7 +66,7 @@ begin
 
    if FileExists('/usr/sbin/vmware-guestd') then exit('/usr/sbin/vmware-guestd');
    if FileExists('/usr/lib/vmware-tools/bin32/vmware-user-loader') then exit('/usr/lib/vmware-tools/bin32/vmware-user-loader');
-
+   if FileExists('/usr/sbin/vmtoolsd') then exit('/usr/sbin/vmtoolsd');
 end;
 //##############################################################################
 function tvmtools.INITD_PATH():string;
@@ -84,12 +84,14 @@ end;
 
 function tvmtools.PID_PATH():string;
 begin
+if FileExists('/var/run/vmtoolsd.pid') then exit('/var/run/vmtoolsd.pid');
 exit('/var/run/vmware-guestd.pid');
 end;
 //##############################################################################
 function tvmtools.PID_NUM():string;
 begin
     if not FIleExists(PID_PATH()) then begin
+       if FileExists('/usr/sbin/vmtoolsd') then result:=SYS.PIDOF('vmtoolsd');
        if FileExists('/usr/sbin/vmware-guestd') then result:=SYS.PIDOF('vmware-guestd');
        if FileExists('/usr/lib/vmware-tools/bin32/vmware-user-loader') then result:=SYS.PIDOF('/usr/lib/vmware-tools/bin32/vmware-user-loader');
     end else begin

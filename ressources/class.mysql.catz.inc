@@ -144,6 +144,7 @@ class mysql_catz{
 		$tablescat=$this->LIST_TABLES_CATEGORIES();	
 		$tablescat_count=0;
 		while (list ($table, $none) = each ($tablescat) ){
+			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__.":: $sitename -> $table ?\n<br>";}
 			$category=null;
 			if($table=="category_"){continue;}
 			if(isset($BADCATZ[$table])){continue;}

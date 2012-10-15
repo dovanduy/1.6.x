@@ -163,6 +163,7 @@ class mysql_blackbox{
 			  `articaver` varchar(40) NOT NULL,
 			  `BigArtica` smallint(1) NOT NULL,
 			  `arch` smallint(2),
+			  `UfdbClientLogs` TEXT NOT NULL,
 			  PRIMARY KEY (`nodeid`),
 			  UNIQUE KEY `hostid` (`hostid`),
 			  KEY `port` (`port`,`memory`,`numproc`,`statusnum`),
@@ -183,6 +184,7 @@ class mysql_blackbox{
 			if(!$this->FIELD_EXISTS("nodes", "squidver")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `squidver` varchar(50) NOT NULL,ADD KEY `squidver` (`squidver`)");}
 			if(!$this->FIELD_EXISTS("nodes", "arch")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `arch` smallint(2) NOT NULL,ADD KEY `arch` (`arch`)");}
 			if(!$this->FIELD_EXISTS("nodes", "BigArtica")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `BigArtica` smallint(1) NOT NULL,ADD KEY `BigArtica` (`BigArtica`)");}
+			if(!$this->FIELD_EXISTS("nodes", "UfdbClientLogs")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `UfdbClientLogs` TEXT NOT NULL");}
 			
 			if(!$this->TABLE_EXISTS("squidconf")){
 			$sql="CREATE TABLE IF NOT EXISTS `squidconf` (

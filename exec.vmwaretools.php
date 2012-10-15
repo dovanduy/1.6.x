@@ -70,12 +70,19 @@ function installbyPath($SourceFile){
 	if(is_dir("/root/VMwareArticaInstall")){shell_exec("$rm -rf /root/VMwareArticaInstall");}
 	@mkdir("/root/VMwareArticaInstall",0640,true);
 	shell_exec("$tar -xf $SourceFile -C /root/VMwareArticaInstall/");
+	events("Extract ". basename($SourceFile)." Source package done");
+	
 	
 	if(!is_file("/root/VMwareArticaInstall/vmware-tools-distrib/vmware-install.pl")){
 		events("Failed /root/VMwareArticaInstall/vmware-tools-distrib/vmware-install.pl no such file");
 		shell_exec("$rm -rf /root/VMwareArticaInstall");
 		return;
 	}
+	events("Launch setup vmware-install.pl");
+	if(!is_dir("/root/VMwareArticaInstall/vmware-tools-distrib")){
+		events("Failed /root/VMwareArticaInstall/vmware-tools-distrib no such directory");
+	}
+	
 	chdir("/root/VMwareArticaInstall/vmware-tools-distrib");
 	events("Installing VMWare Tools....");
 	$results=array();
@@ -91,6 +98,8 @@ function installbyPath($SourceFile){
 		
 	}
 	
+	
+	
 	if(file_exists("/usr/bin/vmware-toolbox-cmd")){
 	events("VMWare Tools installed");
 		$results=array();
@@ -100,6 +109,8 @@ function installbyPath($SourceFile){
 	}
 
 	if(is_dir("/root/VMwareArticaInstall")){shell_exec("$rm -rf /root/VMwareArticaInstall");}
+	events("Indexing softwares database");
+	shell_exec("/usr/share/artica-postfix/bin/process1 --force");
 	
 }
 

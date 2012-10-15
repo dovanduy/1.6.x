@@ -261,6 +261,7 @@ class templates{
 		}
 		
 		$value=null;
+		if(!isset($_SESSION["translation-en"])){$_SESSION["translation-en"]=array();}
 		if(isset($_SESSION["translation"][$text])){$value=$_SESSION["translation"][$text];}
 		if($value==null){
 		//	writelogs("Warning !! _SESSION[\"translation\"][$text] as no translation... choose the en traslation",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);

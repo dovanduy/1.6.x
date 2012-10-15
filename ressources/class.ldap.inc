@@ -1641,6 +1641,9 @@ function Hash_GetALLUsers(){
 		}
 		
 		//Fake sender  -----------------------------------------------------------------------------------------
+		
+		if(!isset($attrs["ArticaFakedMailFrom"])){$attrs["ArticaFakedMailFrom"][0]="pass";}
+		
 		if(!is_array($attrs["ArticaFakedMailFrom"])){
 			$upd["ArticaFakedMailFrom"][0]="pass";
 			$this->Ldap_add_mod($dn,$upd);
@@ -1651,6 +1654,8 @@ function Hash_GetALLUsers(){
 		//----------------------------------------------------------------------------------------------------
 		
 		//Fake sender  -----------------------------------------------------------------------------------------
+		if(!isset($attrs["ArticaDenyNoMXRecords"])){$attrs["ArticaDenyNoMXRecords"][0]="pass";}
+		
 		if(!is_array($attrs["ArticaDenyNoMXRecords"])){
 			$upd["ArticaDenyNoMXRecords"][0]="pass";
 			$this->Ldap_add_mod($dn,$upd);
@@ -1661,6 +1666,7 @@ function Hash_GetALLUsers(){
 		//----------------------------------------------------------------------------------------------------		
 		
 		//quarantine  -----------------------------------------------------------------------------------------
+		if(!isset($attrs["ArticaMaxDayQuarantine"])){$attrs["ArticaMaxDayQuarantine"][0]="3";}	
 		if(!is_array($attrs["ArticaMaxDayQuarantine"])){
 			$upd["ArticaMaxDayQuarantine"][0]="3";
 			$this->Ldap_add_mod($dn,$upd);

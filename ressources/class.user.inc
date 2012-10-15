@@ -532,6 +532,22 @@ class user{
 		
 		
 		$upd[]=array();
+		if(!isset($attrs["MailboxSecurityParameters"])){$attrs["MailboxSecurityParameters"][0]=null;}
+		if(!isset($attrs["MailBoxMaxSize"])){$attrs["MailBoxMaxSize"][0]=null;}
+		if(!isset($attrs["DotClearUserEnabled"])){$attrs["DotClearUserEnabled"][0]=null;}
+		if(!isset($attrs["PostFixUserTransport"])){$attrs["PostFixUserTransport"][0]=null;}
+		if(!isset($attrs["EnableUserSpamLearning"])){$attrs["EnableUserSpamLearning"][0]=null;}
+		if(!isset($attrs["vacationStart"])){$attrs["vacationStart"][0]=null;}
+		if(!isset($attrs["vacationEnd"])){$attrs["vacationEnd"][0]=null;}
+		if(!isset($attrs["vacationInfo"])){$attrs["vacationInfo"][0]=null;}
+		if(!isset($attrs["vacationEnabled"])){$attrs["vacationEnabled"][0]=null;}
+		if(!isset($attrs["FTPDownloadBandwidth"])){$attrs["FTPDownloadBandwidth"][0]=null;}
+		if(!isset($attrs["FTPDownloadRatio"])){$attrs["FTPDownloadRatio"][0]=null;}
+		if(!isset($attrs["FTPQuotaFiles"])){$attrs["FTPQuotaFiles"][0]=null;}
+		if(!isset($attrs["FTPQuotaMBytes"])){$attrs["FTPQuotaMBytes"][0]=null;}
+		if(!isset($attrs["FTPStatus"])){$attrs["FTPStatus"][0]=null;}
+		if(!isset($attrs["FTPUploadBandwidth"])){$attrs["FTPUploadBandwidth"][0]=null;}
+		if(!isset($attrs["FTPUploadRatio"])){$attrs["FTPUploadRatio"][0]=null;}
 		
 		$this->MailboxSecurityParameters=$attrs["MailboxSecurityParameters"][0];
 		$this->homeDirectory=$attrs["homeDirectory"][0];
@@ -540,6 +556,7 @@ class user{
 		$this->password=$attrs["userPassword"][0];
 		$this->MailboxActive=$attrs["MailboxActive"][0];
 		if(isset($attrs["ArticaUserFilterRule"][0])){$this->ArticaUserFilterRule=$attrs["ArticaUserFilterRule"][0];}
+		if(!isset($attrs["FTPStatus"])){$attrs["FTPStatus"][0]=null;}
 		$this->FTPStatus=$attrs["FTPStatus"][0];
 		$this->accountActive=$attrs["accountActive"][0];
 		$this->mail=$attrs["mail"][0];

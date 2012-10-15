@@ -145,6 +145,7 @@ class usersMenus {
 	var $kavmilter_installed=false;
 	var $APACHE_MOD_AUTHNZ_LDAP=false;
 	var $OverWriteRestrictedDomains=false;
+	var $AsHotSpotManager=false;
 	/* This licence must be used Only with Artica-for postfix */
 	var $ChartLicence="D1XFWGMEW9L.HSK5T4Q79KLYCK07EK";
 	/*you cannot use it without any authorizations of maani.us.
@@ -730,13 +731,13 @@ class usersMenus {
 			if(isset($_GLOBAL["bogofilter_installed"])){$this->BOGOFILTER_INSTALLED=$_GLOBAL["bogofilter_installed"];}
 			if(isset($_GLOBAL["SQUID_VERSION"])){$this->SQUID_VERSION=$_GLOBAL["SQUID_VERSION"];}
 			if(isset($_GLOBAL["SQUID_LDAP_AUTH"])){$this->SQUID_LDAP_AUTH=$_GLOBAL["SQUID_LDAP_AUTH"];}
-			$this->stunnel4_installed=$_GLOBAL["stunnel4_installed"];
+			if(isset($_GLOBAL["stunnel4_installed"])){$this->stunnel4_installed=$_GLOBAL["stunnel4_installed"];}
 			if(isset($_GLOBAL["DKIMFILTER_INSTALLED"])){$this->DKIMFILTER_INSTALLED=$_GLOBAL["DKIMFILTER_INSTALLED"];}
 			if(isset($_GLOBAL["DKIMFILTER_SOCKET"])){$this->DKIMFILTER_SOCKET=$_GLOBAL["DKIMFILTER_SOCKET"];}
-			$this->POSTFIX_VERSION=$_GLOBAL["POSTFIX_VERSION"];
-			$this->blkid_installed=$_GLOBAL["blkid_installed"];
+			if(isset($_GLOBAL["POSTFIX_VERSION"])){$this->POSTFIX_VERSION=$_GLOBAL["POSTFIX_VERSION"];}
+			if(isset($_GLOBAL["blkid_installed"])){$this->blkid_installed=$_GLOBAL["blkid_installed"];}
 			if(isset($_GLOBAL["usb_list"])){$this->usb_list=$_GLOBAL["usb_list"];}
-			$this->nmap_installed=$_GLOBAL["nmap_installed"];
+			if(isset($_GLOBAL["nmap_installed"])){$this->nmap_installed=$_GLOBAL["nmap_installed"];}
 			if(isset($_GLOBAL["roundcube_mysql_sources"])){$this->roundcube_mysql_sources=$_GLOBAL["roundcube_mysql_sources"];}
 			if(isset($_GLOBAL["roundcube_web_folder"])){$this->roundcube_web_folder=$_GLOBAL["roundcube_web_folder"];}
 			if(isset($_GLOBAL["fetchmail_configured"])){$this->fetchmail_configured=$_GLOBAL["fetchmail_configured"];}
@@ -2300,7 +2301,8 @@ private function MAILBOXES_MENUS($array=array()){
 			$this->AsWebFilterRepository=true;		
 			$this->AsWebStatisticsAdministrator=true;
 			$this->AsMessagingOrg=true;
-			$this->AllowEditOuSecurity=true;			
+			$this->AllowEditOuSecurity=true;
+			$this->AsHotSpotManager=true;			
 	}
 	
 	function _TranslateRights($priv,$log=false){
@@ -2368,6 +2370,7 @@ private function MAILBOXES_MENUS($array=array()){
 		if(!isset($priv["AsWebFilterRepository"])){$priv["AsWebFilterRepository"]="no";}
 		if(!isset($priv["AsWebStatisticsAdministrator"])){$priv["AsWebStatisticsAdministrator"]="no";}
 		if(!isset($priv["AllowUserMaillog"])){$priv["AllowUserMaillog"]="no";}
+		if(!isset($priv["AsHotSpotManager"])){$priv["AsHotSpotManager"]="no";}
 		
 		
 		
@@ -2403,6 +2406,8 @@ private function MAILBOXES_MENUS($array=array()){
 		if($priv["AsOrgPostfixAdministrator"]=='yes'){$this->AsOrgPostfixAdministrator=true;}
 		if($priv["AsDansGuardianGroupRule"]=='yes'){$this->AsDansGuardianGroupRule=true;}
 		if($priv["AsMessagingOrg"]=='yes'){$this->AsMessagingOrg=true;}
+		if($priv["AsHotSpotManager"]=='yes'){$this->AsHotSpotManager=true;}
+		
 		if($priv["AsOrgAdmin"]=='yes'){$this->AsOrgAdmin=true;}
 		if($priv["AsInventoryAdmin"]=='yes'){$this->AsInventoryAdmin=true;}
 		if($priv["AseMailCampaignsAdmin"]=='yes'){$this->AseMailCampaignsAdmin=true;}
@@ -2425,6 +2430,7 @@ private function MAILBOXES_MENUS($array=array()){
 			$this->AsSquidAdministrator=true;
 			$this->AsSystemAdministrator=true;
 			$this->AsMessagingOrg=true;
+			$this->AsHotSpotManager=true;
 		}
 		
 		if(isset($priv["PasswdPolicy"])){
@@ -2488,6 +2494,7 @@ private function MAILBOXES_MENUS($array=array()){
 			$this->AllowManageOwnComputers=true;
 			$this->AsDansGuardianGroupRule=true;
 			$this->AsMessagingOrg=true;
+			$this->AsHotSpotManager=true;
 			
 			}
 		
@@ -2501,11 +2508,13 @@ private function MAILBOXES_MENUS($array=array()){
 				$this->AsDansGuardianGroupRule=true;
 				$this->AsDansGuardianAdministrator=true;
 				$this->AsWebStatisticsAdministrator=true;
+				$this->AsHotSpotManager=true;
 			}
 			
 			if($this->AsDansGuardianAdministrator){
 				$this->AsDansGuardianGroupRule=true;
 				$this->AsWebStatisticsAdministrator=true;
+				$this->AsHotSpotManager=true;
 			}
 			
 		if($this->AsPostfixAdministrator){

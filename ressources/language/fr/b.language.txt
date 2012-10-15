@@ -4,6 +4,8 @@
 <duplicate_the_ruleid_give_name>Give the new rule name in order to duplicate the rule:<//squid_aclmax_connections_explain>
 <about_item>A propos</about_item>
 <about_this_section>A propos de cette section</about_this_section>
+<accesstime_to_internet_expired>Temps d'acc&egrave;s &agrave; Internet expir&eacute;</accesstime_to_internet_expired>
+<access_to_internet_disabled>Votre acc&egrave;s &agrave; Internet est d&eacute;sactiv&eacute;</access_to_internet_disabled>
 <account_verification>V&eacute;rification du compte</account_verification>
 <account_verification_text>Bienvenue &agrave; %SERVERNAME[br]
 Veuillez sauvegarder les param&egrave;tres de votre compte ci-dessous:[br]
@@ -92,6 +94,7 @@ Par exemple: Autoriser Kaspersky Antivrus &agrave; se mettre &agrave; jour sans 
 <ADNETIPADDR>Adresse IP du serveur AD</ADNETIPADDR>
 <advanced_ISP_routing>Routage sp&eacute;cifique ISP</advanced_ISP_routing>
 <advanced_ISP_routing_text>R&egrave;gles de routage pour ISP afin d'adapter les envois en masse en fonction des r&egrave;gles des fournisseurs</advanced_ISP_routing_text>
+<ad_database_is_disabled_because>La fonctionnalit&eacute; Active Directory est d&eacute;sactiv&eacute;e pour les raisons suivantes:</ad_database_is_disabled_because>
 <ad_kerb_schedule_explain>Indiquez les op&eacute;rations &agrave; entreprendre apr&egrave;s que la t&acirc;che programm&eacute;e d'importation des comptes Active Directory soit ex&eacute;cut&eacute;e.</ad_kerb_schedule_explain>
 <against>contre</against>
 <agent_address>Agent address</agent_address>
@@ -229,6 +232,7 @@ Si vous utilisez kaspersky Anti-Spam 3.x, il offrira aussi les capacit&eacute;s 
 <artica_manager_password>Mode de passe du SuperAdmin Artica</artica_manager_password>
 <ARTICA_STATISTICS>Statistiques Artica</ARTICA_STATISTICS>
 <ARTICA_STATISTICS_TEXT>Param&egrave;tres du moteur de g&eacute;n&eacute;ration de statistiques Artica via MySQL</ARTICA_STATISTICS_TEXT>
+<AsHotSpotManager>G&egrave;re le HotSpot</AsHotSpotManager>
 <ask_change_suffix>Cette op&eacute;ration va reconfigurer tous les services et vous d&eacute;connecter de la console.
 Proc&eacute;der au changement de la branche principale :</ask_change_suffix>
 <ask_convert_item>Cette op&eacute;ration va convertir cet &eacute;l&eacute;ment, voulez-vous lancer son ex&eacute;cution ?</ask_convert_item>
@@ -338,6 +342,7 @@ Elle permet de construire les tables n&eacute;cessaires &agrave; la construction
 <bypass_iffailed>Passer outre en cas d'&eacute;chec</bypass_iffailed>
 <by_proxy_groups>Par groupe de Proxy</by_proxy_groups>
 <cached_items>&Eacute;l&eacute;ment(s) du cache</cached_items>
+<CACHE_AUTH>Afficher la page d'accueil chaque</CACHE_AUTH>
 <cache_cell_size>Taille de Cache globale</cache_cell_size>
 <cache_indexedobject_size>Taille des indexes des objets</cache_indexedobject_size>
 <cache_indexedobject_size_explain>Ce cache contient les indexes des identifiants des objets (a peu pr&egrave;s 512Kb par utilisateur).</cache_indexedobject_size_explain>
@@ -656,6 +661,7 @@ Elle va parcourir l'ensemble des r&eacute;pertoires dans le partage avec les dro
 <enable_zarafa_multi>Activer le mode multiple instances</enable_zarafa_multi>
 <enable_zarafa_multi_text>Si vous mettez en vert, vous serez en mesure de cr&eacute;er plusieurs services de courrier Zarafa ind&eacute;pendants sur cette m&ecirc;me machine.</enable_zarafa_multi_text>
 <enable_zarafa_search>Activer le service Zarafa Search</enable_zarafa_search>
+<endtime>Fin du temps</endtime>
 <enduser_aliases_text>Ajouter d'autres adresses de messagerie &agrave; votre compte local</enduser_aliases_text>
 <enduser_explain_section>Cette section vous permet de modifier votre compte dans l'organisation [b]%ORGA[/b].[br]
 En fonction de vos privil&egrave;ges, vous serez en mesure de personnaliser les comportements des services activ&eacute;s pour votre organisation.</enduser_explain_section>
@@ -762,6 +768,8 @@ G&eacute;n&eacute;ralement ceux ajout&eacute;s dans le syst&egrave;me LDAP local
 <hobby-other>Sites de loisirs et sur la vie de tous les jours[br]Ce qui ne peut pas &ecirc;tre plac&eacute; dans les autres cat&eacute;gories</hobby-other>
 <hook_mailboxto>Raccrocher la BAL &agrave;</hook_mailboxto>
 <hostname>Nom d'h&ocirc;te</hostname>
+<hostpot_members>Membres HotSpot</hostpot_members>
+<hostpot_members_text>G&eacute;rer les sessions HotSpot ansi que les membres autoris&eacute;s &agrave; utiliser le service</hostpot_members_text>
 <HotSpot>HotSpot</HotSpot>
 <HotSpot_text>&quot;HotSpot&quot; est une fonctionnalit&eacute; vous permettant d'afficher une page web d'authentification ou pas afin d'autoriser les acc&egrave;s Internet</HotSpot_text>
 <hourly_bandwidth_users>Bande passante utilisateurs par heure</hourly_bandwidth_users>
@@ -924,6 +932,7 @@ Cette section vous permet de visualiser le nombre de d&eacute;mons utilis&eacute
 <LockLdapConfig>Verrouiller la configuration LDAP</LockLdapConfig>
 <LOG>Log</LOG>
 <logged_as>Connect&eacute; en tant que</logged_as>
+<logintime>D&eacute;but se session</logintime>
 <login_domain>Domaine de connexion</login_domain>
 <logoff_text>Se d&eacute;connecter de l'interface Web et retourner &agrave; la page d'authentification.</logoff_text>
 <logs_container>Conteneur de logs</logs_container>
@@ -1062,6 +1071,7 @@ Basically, each distribution list added in this section are stored outside the L
 <nb_employees>Nombre d'employ&eacute;s</nb_employees>
 <need_to_reboot_ask>Pour appliquer correctement la configuration, il faudra red&eacute;marrer la machine.
 Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t&acirc;che ?</need_to_reboot_ask>
+<new_account>Nouveau compte</new_account>
 <new_address>Nouvelle adresse</new_address>
 <new_alias>Nouvel alias</new_alias>
 <new_artica_server>Nouveau serveur Artica</new_artica_server>
@@ -1111,6 +1121,7 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 <notify_when_cpu_exceed>Notifier lorsque la conso. CPU exc&egrave;de</notify_when_cpu_exceed>
 <notify_when_memory_exceed>Notifier lorsque la m&eacute;moire exc&egrave;de</notify_when_memory_exceed>
 <not_caching>Non mis en cache</not_caching>
+<not_connected_to_active_directory>N'est pas connect&eacute; &agrave; un Active Directory</not_connected_to_active_directory>
 <NOT_INSTALLED>Non install&eacute;</NOT_INSTALLED>
 <no_entry>Pas d'entr&eacute;e</no_entry>
 <no_expression_group>Pas de groupe d'expressions.</no_expression_group>
@@ -1328,6 +1339,9 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de valider son bon fonctionnem
 <reset_smtp_logs_ask>Vider la table des &eacute;v&egrave;nements SMTP ?
 Cette op&eacute;ration d&eacute;truira toutes les donn&eacute;es.</reset_smtp_logs_ask>
 <reset_table>Vider la table</reset_table>
+<restart_computer_and_defrag>Red&eacute;marrer l'ordinateur et r&eacute;parer les fichiers syst&egrave;mes endommag&eacute;s</restart_computer_and_defrag>
+<restart_computer_and_defrag_warn>Le syst&egrave;me de r&eacute;paration peut parfois vous demander le compte root en mode console afin de r&eacute;parer certains probl&egrave;mes sur les fichiers.
+Contactez notre support ou regardez la console syst&egrave;me du serveur si votre serveur ne r&eacute;pond pas apr&egrave;s le red&eacute;marrage.</restart_computer_and_defrag_warn>
 <restart_connection>Re-connecter</restart_connection>
 <restart_kav4Proxy>Red&eacute;marrer Kaspersky Pour Proxy</restart_kav4Proxy>
 <restart_kav4Proxy_explain>Arr&ecirc;te et d&eacute;marre le service Antivirus Kaspersky d&eacute;di&eacute; &agrave; votre proxy.</restart_kav4Proxy_explain>
@@ -1351,6 +1365,7 @@ Cette op&eacute;ration d&eacute;truira toutes les donn&eacute;es.</reset_smtp_lo
 <rewrite_rules_fdb_explain>Les r&egrave;gles de r&eacute;&eacute;criture vous permettent de remplacer des mots ou des lettres dans les requ&ecirc;tes des utilisateurs.[br]
 Ces r&egrave;gles peuvent aider les utilisateurs &agrave; acc&eacute;der aux sites avec des fautes d'orthographes.[br]Par exemple, remplacer  gogle.coom par google.com.[br]
 Elles peuvent aussi interdire l'acc&egrave;s &agrave; certains sites Internet en les rempla&ccedil;ant par d'autres sites.[br]Par exemple, remplacer bing.com par google.com voir m&ecirc;me remplacer microsoft.com par ubuntu.com :=).</rewrite_rules_fdb_explain>
+<re_authenticate_each>R&eacute;-authentifier chaque</re_authenticate_each>
 <root_account>Compte Root</root_account>
 <routing_lmtp_table_explain>Cette table permet d'effectuer le routage des comptes de bo&icirc;tes aux lettres (destination finale) vers les agents de d&eacute;livrance de courriers (MDA). Les r&egrave;gles d&eacute;finissent donc le service final de destination.[br]
 De fa&ccedil;on g&eacute;n&eacute;rale le protocole LMTP est utilis&eacute; afin de d&eacute;livrer le courrier vers un service de type Zarafa ou Cyrus-imap.</routing_lmtp_table_explain>
@@ -1694,12 +1709,17 @@ Vous devriez uniquement activer cette option que si le filtrage Web n'est pas cr
 <user_level_security>S&eacute;curit&eacute; au niveau de l'utilisateur</user_level_security>
 <user_level_security_explain>La s&eacute;curit&eacute; au niveau de l'utilisateur est le choix par d&eacute;faut pour Samba.[br]. Si le serveur accepte le nom d'utilisateur/mot de passe du client, ce dernier peut alors monter des partages multiples sans devoir saisir un mot de passe &agrave; chaque fois.[br]Samba peut aussi accepter des requ&ecirc;tes nom d'utilisateur/mot de passe bas&eacute;es sur les sessions.[br] Le client maintient des contextes d'authentification multiples gr&acirc;ce &agrave; l'utilisation d'un identifiant utilisateur unique (ou UID) pour chaque connexion.</user_level_security_explain>
 <UseSMTPProto>Utiliser le protocole SMTP</UseSMTPProto>
+<use_active_directory>Utiliser Active Directory</use_active_directory>
+<use_dedicated_database>Utiliser la base d&eacute;di&eacute;</use_dedicated_database>
 <use_dynamic_groups_acls>Utiliser les ACLs dynamiques pour les groupes</use_dynamic_groups_acls>
 <use_external_link>Utiliser un lien externe</use_external_link>
 <use_external_mysql_server>Utiliser un serveur MySQL distant</use_external_mysql_server>
+<use_freeweb_service>Utiliser le service FreeWebs</use_freeweb_service>
+<use_ldap_database>Utiliser la base LDAP</use_ldap_database>
 <use_local_service>Utilise le service local</use_local_service>
 <use_memory>utiliser la m&eacute;moire</use_memory>
 <use_schedule>Utiliser la programmation</use_schedule>
+<use_terme_of_use>Utiliser &quot;conditions de services&quot;</use_terme_of_use>
 <use_tproxy_mode>Utiliser le mode TProxy</use_tproxy_mode>
 <values>valeurs</values>
 <verbose_mode>Mode verbeux</verbose_mode>
@@ -1707,6 +1727,7 @@ Vous devriez uniquement activer cette option que si le filtrage Web n'est pas cr
 <verify_urls_databases>V&eacute;rifie les bases de sites Artica</verify_urls_databases>
 <verify_urls_databases_explain>Lorsque la t&acirc;che principale de mise &agrave; jour &agrave; t&eacute;l&eacute;charg&eacute; les base de donn&eacute;es, celle-ci va injecter les sites Internet cat&eacute;goris&eacute;s dans la base SQL.[br]Si le serveur est trop occup&eacute; alors elle arr&ecirc;tera son processus.[br]
 Cette t&acirc;che &agrave; pour but de reprendre le processus &agrave; intervalles r&eacute;guli&egrave;res afin de continuer &agrave; injecter les sites Internet.</verify_urls_databases_explain>
+<verif_auth_each>V&eacute;rifier l'authentification chaque</verif_auth_each>
 <very_high>Tr&egrave;s &eacute;lev&eacute;</very_high>
 <veto_files_add_explain>Indiquez le masque qui va bloquer les &eacute;critures.
 * et ? peuvent &ecirc;tre utilis&eacute;s afin de sp&eacute;cifier de multiples fichiers ou r&eacute;pertoires.
@@ -1872,6 +1893,7 @@ Ceci afin de forcer les stations de travail &agrave; utiliser ce fichier comme p
 Exemple: http://10.10.10.2/proxy.pac</wpad_label_text>
 <wpad_title>Proxy Automatique</wpad_title>
 <wrong_password>Mauvais mot de passe</wrong_password>
+<wrong_password_or_username>Mauvais mot de passe ou utilisateur</wrong_password_or_username>
 <wrong_value>mauvaise valeur</wrong_value>
 <www_abortion>Sites Internet qui sont pour ou contre l'avortement et permettant d'aider et d'offrir les proc&eacute;dures d'avortement</www_abortion>
 <www_alcohol>Sites Internet produisant de l'information ou bien de la promotion sur la vente d'alcool ou ustensiles associ&eacute;s.</www_alcohol>
@@ -1913,6 +1935,7 @@ Cette section ne peut &ecirc;tre visualis&eacute;e.</XAPIAN_NOT_INSTALLED_ERROR>
 <xtimeout>Temps imparti</xtimeout>
 <xtype>Type</xtype>
 <X_FORWARDED_FOR_NOT_ENABLED_IN_SQUID>L'option X-Forwarded-For n'est pas activ&eacute; dans l'installation de votre squid.[br]Vous devriez r&eacute;-installer le Proxy Squid &agrave; travers le centre d'installation.</X_FORWARDED_FOR_NOT_ENABLED_IN_SQUID>
+<youmustaceptterms>Vous devez accepter:</youmustaceptterms>
 <youritems>Vos &eacute;l&eacute;ments</youritems>
 <YourRealCompany>Votre vrai soci&eacute;t&eacute;</YourRealCompany>
 <your_home_dir_seems_not_indexed>Votre r&eacute;pertoire personnel ne semble pas avoir &eacute;t&eacute; index&eacute;</your_home_dir_seems_not_indexed>

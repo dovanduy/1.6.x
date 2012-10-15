@@ -290,7 +290,7 @@ function MultiplesInstances_start($hostname,$ou){
 	echo "Starting......: milter-greylist hostname \"$hostname\"\n";
 	$bin_path=$unix->find_program("milter-greylist");
 	
-	@mkdir("/var/spool/postfix/var/run/milter-greylist/$hostname",666,true);
+	@mkdir("/var/spool/postfix/var/run/milter-greylist/$hostname",0755,true);
 	@mkdir("/var/milter-greylist/$hostname",666,true);
 	if(!is_file("/var/milter-greylist/$hostname/greylist.db")){@file_put_contents("/var/milter-greylist/$hostname/greylist.db"," ");}
 	shell_exec("/bin/chmod 644 /var/milter-greylist/$hostname/greylist.db");
@@ -322,10 +322,11 @@ function MultiplesInstances_start($hostname,$ou){
 	
 	$pid=MultiplesInstancesPID($hostname);
 	if($unix->process_exists($pid)){
-			shell_exec("/bin/chown -R postfix:postfix /var/spool/postfix/var/run");
-			shell_exec("/bin/chmod 755 /var/spool/postfix/var/run");
 			$main->ConfigureMilters();	
 		}
+		
+	$unix->chown_func("postfix","postfix","/var/spool/postfix/var/run/milter-greylist/*");
+	$unix->chown_func("postfix","postfix","/var/spool/postfix/var/run/milter-greylist/$hostname/*");
 	
 }
 

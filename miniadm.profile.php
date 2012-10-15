@@ -43,8 +43,13 @@ function content(){
 	
 	
 	$picture="ressources/$ct->ThumbnailPath";
+
 	if(is_file("$picture")){
-		$picture="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('miniadm.profile.php?upload-pic-js=yes');\"><img src='ressources/$ct->ThumbnailPath' style='margin:10px'></a>";
+		$picture="<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:Loadjs('miniadm.profile.php?upload-pic-js=yes');\">
+		<img src='ressources/$ct->ThumbnailPath' style='margin:10px'></a>";
+	}else{
+		$picture=null;
 	}
 	
 	$html="

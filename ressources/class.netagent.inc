@@ -148,6 +148,7 @@ class netagent{
 		$curlparms["disks_list"]=base64_encode(serialize($this->GetDiskList()));
 		$curlparms["hostid"]=$hostid;
 		$curlparms["CACHE_LOGS"]=$this->cache_logs();
+		$curlparms["UFDBCLIENT_LOGS"]=$this->ufdbclientlog();
 		$curlparms["SQUIDVER"]=$GLOBALS["CLASS_SOCKET"]->getFrameWork("squid.php?full-version=yes");
 		$curlparms["ARCH"]=$this->Architecture();
 		$curlparms["ISARTICA"]=1;
@@ -259,6 +260,12 @@ class netagent{
 		exec("$tail -n 1500 /var/log/squid/cache.log 2>&1",$results);
 		return base64_encode(serialize($results));
 	}
+	private function ufdbclientlog(){
+		$tail=$GLOBALS["CLASS_UNIX"]->find_program("tail");
+		exec("$tail -n 1500 /var/log/squid/ufdbgclient.log 2>&1",$results);
+		return base64_encode(serialize($results));
+	}	
+	
 
 	public function squid_get_confs(){
 		$MASTERURI=$this->master_uri."/ressources/logs/web/squid/$this->nodeid";

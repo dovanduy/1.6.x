@@ -42,6 +42,9 @@ class blackboxes{
 		$this->IsArtica=$ligne["BigArtica"];
 		$this->hostid=$ligne["hostid"];
 		if(!$q->TABLE_EXISTS("pms$this->nodeid")){$q->build_cached_items_table($this->nodeid);}
+		if(!is_numeric($this->port)){$this->port=9000;}
+		if($this->port==0){$this->port=9000;}
+		
 	}
 	
 	public function chock(){
@@ -273,6 +276,13 @@ class blackboxes{
 			$q->QUERY_SQL("$profix".@implode(",", $f));
 			if(!$q->ok){writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		}		
+	}
+	
+	public function squid_ufdbclientlog($EncodedDatas){
+		$sql="UPDATE nodes SET UfdbClientLogs='$EncodedDatas' WHERE hostid='$this->hostid'";
+		$q=new mysql_blackbox();
+		$q->QUERY_SQL($prefix.@implode(",", $tt));
+		if(!$q->ok){writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 	}
 	
 	public function squid_save_cachelogs($EncodedDatas){

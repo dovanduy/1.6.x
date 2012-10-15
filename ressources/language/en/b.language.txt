@@ -2296,3 +2296,18 @@ if your server does not respond after a reboot
 <CACHE_AUTH>Show splash screen each</CACHE_AUTH>
 <wrong_password_or_username>Wrong password or username</wrong_password_or_username>
 <accesstime_to_internet_expired>Access time to Internet expired</accesstime_to_internet_expired>
+<use_terme_of_use>Use Terms of Service</use_terme_of_use>
+<AsHotSpotManager>As HotSpot Manager</AsHotSpotManager>
+<youmustaceptterms>You must accept:</youmustaceptterms>
+<hostpot_members>HotSpot members</hostpot_members>
+<hostpot_members_text>Manage HostSpot sessions and members</hostpot_members_text>
+<logintime>Logon time</logintime>
+<endtime>End time</endtime>
+<access_to_internet_disabled>Your access to internet is disabled</access_to_internet_disabled>
+<new_account>New account</new_account>
+<use_active_directory>use Active Directory</use_active_directory>
+<ad_database_is_disabled_because>The Active Directory database feature is disabled because:</ad_database_is_disabled_because>
+<not_connected_to_active_directory>Not connected to any Active Directory</not_connected_to_active_directory>
+<use_dedicated_database>Use dedicated database</use_dedicated_database>
+<use_ldap_database>Use LDAP database</use_ldap_database>
+<re_authenticate_each>Re-authenticate each</re_authenticate_each>
