@@ -37,7 +37,7 @@ function tabs(){
 	//$array["architecture-adv"]='{advanced_options}';
 	//$array["plugins"]='{proxy_plugins}';
 	$array["events"]='Proxy:{service_events}';
-	$array["ufdbgclient"]='{webfiltering_events}';
+	$array["ufdbgclient"]='{webfilter_events}';
 	
 	
 
@@ -46,23 +46,29 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="caches"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.caches32.php?nodeid={$_GET["nodeid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.caches32.php?nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
 			
 		}
 		
+		if($num=="ufdbgclient"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.ufdbgclient.php?nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			continue;
+			
+		}		
+		
 		if($num=="node-status"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.status.php?nodeid={$_GET["nodeid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.status.php?nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
 			
 		}		
 		
 		if($num=="events"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.cachelogs.php?nodeid={$_GET["nodeid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.cachelogs.php?nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time&nodeid={$_GET["nodeid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time&nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 	}
 	
 	

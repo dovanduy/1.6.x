@@ -76,7 +76,7 @@ $resolvConfBuild=$resolv->build();
 
 
 
-
+shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.initslapd.php dnsmasq");
 
 if($EnableWebProxyStatsAppliance==1){notify_remote_proxys_dnsmasq();}
 

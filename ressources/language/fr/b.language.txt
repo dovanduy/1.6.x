@@ -1304,6 +1304,8 @@ Apr&egrave;s avoir appliqu&eacute; ce formulaire, vous recevrez une message de c
 Pendant cette op&eacute;ration, le service proxy ne sera pas disponible.
 Voulez-vous effectuer cette op&eacute;ration ?</reindex_caches_warn>
 <relay_server>Serveur relais de messagerie</relay_server>
+<reload_proxy_service>Recharger le service Proxy</reload_proxy_service>
+<reload_proxy_service_text>Force le proxy &agrave; relire sa configuration et red&eacute;marrer les extensions associ&eacute;es.</reload_proxy_service_text>
 <reload_service>Recharger le service</reload_service>
 <reload_service_text>Reconfigure les param&egrave;tres et force le service &agrave; recharger sa configuration.[br]
 Le service ne sera pas stopp&eacute; mais juste rafra&icirc;chit.</reload_service_text>
@@ -1350,6 +1352,7 @@ Contactez notre support ou regardez la console syst&egrave;me du serveur si votr
 <restart_onlysquid>Red&eacute;marrer le Proxy</restart_onlysquid>
 <restart_proxy_service>Red&eacute;marrage du service Proxy</restart_proxy_service>
 <restart_proxy_service_explain>Cette t&acirc;che red&eacute;marre simplement le proxy afin de rafra&icirc;chir ses processus et sa m&eacute;moire.</restart_proxy_service_explain>
+<restart_proxy_service_text>Arr&ecirc;te le service Proxy et le red&eacute;marre, toutes les connexions HTTP seront alors termin&eacute;es.</restart_proxy_service_text>
 <restart_the_web_proxy_service>Red&eacute;marrer et configurer le service proxy</restart_the_web_proxy_service>
 <restart_webconsole_service>Red&eacute;marre le moteur Web de la console Artica</restart_webconsole_service>
 <restart_webconsole_service_explain>Arr&ecirc;te le service lighttpd et le red&eacute;marre afin de rafra&icirc;chir les param&egrave;tres de la console</restart_webconsole_service_explain>
@@ -1851,6 +1854,7 @@ Par exemple, si vous indiquez domain.tld comme domaine de suffixe et que vous ac
 <webfiltering_parameters_was_saved>Les param&egrave;tres du moteur de filtrage web ont &eacute;t&eacute;s appliqu&eacute;s sur le serveur.</webfiltering_parameters_was_saved>
 <webfiltering_service>Service de filtrage Internet</webfiltering_service>
 <webfiltering_service_events>&Eacute;v&eacute;nements du moteur de filtrage Web</webfiltering_service_events>
+<webfilter_events>&Eacute;v&egrave;nements du filtrage Web</webfilter_events>
 <webinterface_check>V&eacute;rifie la sant&eacute; de l'interface Web</webinterface_check>
 <webinterface_check_explain>Cette t&acirc;che v&eacute;rifie que le moteur Web de l'interface Artica est en bonne sant&eacute;.[br]
 Le cas &eacute;ch&eacute;ant, exemple erreur 500, elle essaiera de red&eacute;marrer le service Web.</webinterface_check_explain>

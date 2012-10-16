@@ -80,7 +80,10 @@ $miltergrey=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-milter-greylist.p
 $postfix_multiple=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("postfix-multi-48.png", "multiple_instances",null, "QuickLinkPostfixMulti()"));
 if($EnablePostfixMultiInstance==0){$postfix_multiple=null;}
 if(($users->SQUID_APPLIANCE) OR ($users->KASPERSKY_WEB_APPLIANCE)){$OnlyWeb=true;}
-$freewebs=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("website-48.png", "free_web_servers","freewebs_explain", "QuickLinkSystems('section_freeweb')"));
+
+if($EnableRemoteStatisticsAppliance==0){
+	$freewebs=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("website-48.png", "free_web_servers","freewebs_explain", "QuickLinkSystems('section_freeweb')"));
+}
 if($DisableFreeWebToolBox==1){$freewebs=null;}
 
 if($users->cyrus_imapd_installed){$postfwd2=$cyrus;}
@@ -870,7 +873,8 @@ if($publicip==null){$publicip="x.x.x.x";}
 		</tr>
 				<tr>
 					<td valign='top' style='font-size:12px' class=legend nowrap>{server}:</td>
-					<td valign='top' style='font-size:12px'><strong id='squidcklinks-host-infos'></strong><strong>$LINEMANU</strong></td>
+					<td valign='top' style='font-size:12px'><strong id='squidcklinks-host-infos'></strong>
+						<div><i style='font-weight:bold;font-size:11px'>$LINEMANU</i></div></td>
 				</tr>
 				<tr>
 					<td valign='top' style='font-size:12px' class=legend nowrap>{public_ip}:</td>

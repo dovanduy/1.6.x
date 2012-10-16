@@ -730,9 +730,8 @@ function section_status(){
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	
-	
-	
-	
+
+	$array["remote-web-appliances"]="{appliances}";
 	
 	$fontsize=14;
 	
@@ -741,14 +740,22 @@ function section_status(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="software-update"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.softwares.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.softwares.php\">
+				<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="events-squidaccess"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.accesslogs.php?table-size=898&url-row=433\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
-		}		
+		}	
+
+		
+		if($num=="remote-web-appliances"){
+				$html[]= $tpl->_ENGINE_parse_body( "<li ><a href=\"squid.statsappliance.clients.php\">
+					<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n",null,"310",null,1);
+				continue;
+			}		
 		
 		
 		

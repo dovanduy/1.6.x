@@ -627,6 +627,7 @@ private function socialnet($www){
 		if(preg_match("#\.fbops\.com$#", $www)){return "socialnet";}
 		if(preg_match("#\.esj-lille\.net$#", $www)){return "socialnet";}
 		if(preg_match("#\.necat\.ru$#", $www)){return "socialnet";}
+		if(preg_match("#^fbcdn_sphotos_.*?-.*?\.akamaihd\.net$#", $www)){return "socialnet";}
 
 	}	
 	
@@ -751,6 +752,7 @@ private function socialnet($www){
 		if(preg_match("#\.ezanga-xml\.com$#", $www)){return "publicite";}
 		if(preg_match("#\.falktec\.com$#", $www)){return "publicite";}
 		if(preg_match("#\.publicidad\.net$#", $www)){return "publicite";}
+		if(preg_match("#\.mmads.mobi$#", $www)){return "publicite";}
 		
 	}
 	
@@ -1045,6 +1047,7 @@ private function socialnet($www){
 		if(preg_match("#\.raptrcdn\.com$#", $www)){return "games";}
 		if(preg_match("#\.ala\.bz$#", $www)){return "games";}
 		if(preg_match("#\.zgncdn\.com$#", $www)){return "games";}
+		if(preg_match("#\.zynga\.com$#", $www)){return "games";}
 		
 	}
 	

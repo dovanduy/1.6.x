@@ -13,7 +13,7 @@
 	if(isset($_POST["INSCRIPTION"])){INSCRIPTION();exit;}
 	if(isset($_POST["CHANGE_CONFIG"])){CHANGE_CONFIG();exit;}
 	if(isset($_POST["SQUID_TABLES_INDEX"])){export_tables();exit;}
-
+	
 
 
 
@@ -95,6 +95,7 @@ function CHANGE_CONFIG(){
 	if($_POST["CHANGE_CONFIG"]=="USERSMAC"){
 		$sock=new sockets();
 		$sock->getFrameWork("squid.php?squid-reconfigure=yes");
+		$sock->getFrameWork("services.php?build-system-tasks=yes");
 		$sock->send_email_events_notroot("Order to rebuild UsersMac database", "The statistics appliance send order \"USERSMAC\"", "proxy");
 		echo "<ANSWER>OK</ANSWER>\n";		
 	}	
@@ -102,8 +103,8 @@ function CHANGE_CONFIG(){
 	if($_POST["CHANGE_CONFIG"]=="BUILDCONF"){
 		$sock=new sockets();
 		$sock->getFrameWork("squid.php?squid-reconfigure=yes");
+		$sock->getFrameWork("services.php?build-system-tasks=yes");
 		$sock->send_email_events_notroot("Order to rebuild squid config", "The statistics appliance send order \"BUILDCONF\"", "proxy");
-		
 		echo "<ANSWER>OK</ANSWER>\n";		
 	}		
 	

@@ -18,8 +18,17 @@ class blackboxes{
 	var $Architecture=0;
 	var $IsArtica=0;
 	var $hostid=null;
+	var $ssl=1;
+	var $ssluri=null;
+	var $sslnouri=null;
 	
 	function blackboxes($nodeid=0){
+		if(!is_numeric($nodeid)){
+			if(strlen($nodeid)>0){
+				$this->hostid=$nodeid;
+				$this->load();return;
+			}
+		}
 		$this->nodeid=$nodeid;
 		if(!is_numeric($this->nodeid)){$this->nodeid=0;return;}
 		if($this->nodeid>0){$this->load();}
@@ -29,6 +38,7 @@ class blackboxes{
 	private function load(){
 		$q=new mysql_blackbox();
 		$sql="SELECT * FROM nodes WHERE nodeid=$this->nodeid";
+		if(strlen($this->hostid)>5){$sql="SELECT * FROM nodes WHERE hostid='$this->hostid'";}
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$this->hostname=$ligne["hostname"];
 		$this->ipaddress=$ligne["ipaddress"];
@@ -41,10 +51,14 @@ class blackboxes{
 		$this->Architecture=$ligne["arch"];
 		$this->IsArtica=$ligne["BigArtica"];
 		$this->hostid=$ligne["hostid"];
+		$this->nodeid=$ligne["nodeid"];
+		if(!isset($ligne["ssl"])){$ligne["ssl"]=1;}
+		$this->ssl=$ligne["ssl"];
 		if(!$q->TABLE_EXISTS("pms$this->nodeid")){$q->build_cached_items_table($this->nodeid);}
 		if(!is_numeric($this->port)){$this->port=9000;}
 		if($this->port==0){$this->port=9000;}
-		
+		$this->ssluri="https://$this->ipaddress:$this->port";
+		$this->sslnouri="http://$this->ipaddress:$this->port";
 	}
 	
 	public function chock(){
@@ -71,6 +85,12 @@ class blackboxes{
 	
 	public function restart_squid(){
 		$parms["RESTART_SQUID"]="yes";
+		_udfbguard_admin_events("Ask to create new order `RESTART_SQUID` for $this->hostid ($this->hostname)", __FUNCTION__, __FILE__, __LINE__, "communicate");
+		return $this->SendOrder($parms);			
+	}
+
+	public function reconfigure_squid(){
+		$parms["RECONFIGURE_SQUID"]="yes";
 		return $this->SendOrder($parms);			
 	}	
 	
@@ -85,6 +105,7 @@ class blackboxes{
 	
 	private function SendOrder($parms){
 		if(($this->port<5) OR ($this->IsArtica==1)){
+			
 			return $this->OrderQueue($parms);
 			
 		}		
@@ -92,7 +113,8 @@ class blackboxes{
 		$ArticaHttpsPort=$sock->GET_INFO("ArticaHttpsPort");
 		$ArticaHttpUseSSL=$sock->GET_INFO("ArticaHttpUseSSL");
 		if(!is_numeric($ArticaHttpUseSSL)){$ArticaHttpUseSSL=1;}
-		if(!is_numeric($ArticaHttpsPort)){$ArticaHttpsPort="9000";}	
+		if(!is_numeric($ArticaHttpsPort)){$ArticaHttpsPort="9000";}
+			
 		$curl=new ccurl("http://$this->ipaddress:$this->port/listener.php");		
 		$curl->parms["SSL"]=$ArticaHttpUseSSL;
 		$curl->parms["PORT"]=$ArticaHttpsPort;
@@ -113,7 +135,13 @@ class blackboxes{
 			$sql="INSERT IGNORE INTO `poolorders` (`hostid`,`nodeid`,`orderid`,`orderdata`) VALUES ('$this->hostid','$this->nodeid','$orderid','$order')";		
 			$q=new mysql_blackbox();
 			$q->QUERY_SQL($sql);
-			if(!$q->ok){echo $q->mysql_error;return false;}
+			
+			if(!$q->ok){echo $q->mysql_error;
+			_udfbguard_admin_events("Creating new order for $this->hostid ($this->hostname) failed\n$q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "communicate");
+			return false;}
+			$sock=new sockets();
+			$sock->getFrameWork("services.php?blackbox-notify=$this->hostid");
+			_udfbguard_admin_events("Creating new order for $this->hostid ($this->hostname)", __FUNCTION__, __FILE__, __LINE__, "communicate");
 			return true;
 	}
 	
@@ -281,7 +309,7 @@ class blackboxes{
 	public function squid_ufdbclientlog($EncodedDatas){
 		$sql="UPDATE nodes SET UfdbClientLogs='$EncodedDatas' WHERE hostid='$this->hostid'";
 		$q=new mysql_blackbox();
-		$q->QUERY_SQL($prefix.@implode(",", $tt));
+		$q->QUERY_SQL($sql);
 		if(!$q->ok){writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 	}
 	
@@ -300,6 +328,7 @@ class blackboxes{
 		$prefix="INSERT IGNORE INTO `cachelogs$this->nodeid`(`zDate`,`line`) VALUES ";
 		while (list ($directory, $line) = each ($array)){
 			$line=trim($line);
+			$zDate=null;
 			if($line==null){continue;}
 			if(preg_match("#^(.+)\s+([0-9:]+)\s+(.+)#", $line,$re)){
 				$time=strtotime("{$re[1]} {$re[2]}");

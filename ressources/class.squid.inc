@@ -2578,6 +2578,11 @@ function BuildSquidConf(){
 		
 		if($this->ASROOT){
 			echo "Starting......: Squid Version $this->SQUID_BIN_VERSION\n";
+			$conf=$conf . "# Squid version $this->SQUID_BIN_VERSION\n";
+			$conf=$conf . "# Builded by Artica v.".trim(@file_get_contents("/usr/share/artica-postfix/VERSION"))."\n";
+			$conf=$conf . "# Date: ".date("Y-m-d H:i:s")."\n";
+			
+			
 			if($this->IS_30){if($GLOBALS["VERBOSE"]){echo "Starting......: Squid : is 3.x OK\n";}}
 			if(!$this->IS_32){if($GLOBALS["VERBOSE"]){echo "Starting......: Squid : is NOT 3.2.x OK\n";}}
 			if($this->IS_32){if($GLOBALS["VERBOSE"]){echo "Starting......: Squid : is 3.2.x OK\n";}}
@@ -2625,11 +2630,13 @@ function BuildSquidConf(){
 			
 		if($this->hasProxyTransparent==1){$this->LDAP_AUTH=0;$this->NTLM_AUTH=0;}
 		$squid_sessions_builder=$this->squid_sessions_builder();
-		$conf=$conf.  $this->external_acl_helper_MacToUid();
-		$conf=$conf.  $this->external_acl_helper_splash_screen();
+
 		$conf=$conf . $this->ntlm_auth_conf();
 		$conf=$conf . $this->ldap_auth_conf();
 		$conf=$conf . $this->krb_auth_conf();
+		$conf=$conf.  $this->external_acl_helper_MacToUid();
+		$conf=$conf.  $this->external_acl_helper_splash_screen();		
+		
 		
 		$conf=$conf . $this->external_acl_helper();
 		if($squid_sessions_builder<>null){$conf=$conf . $squid_sessions_builder."\n";}

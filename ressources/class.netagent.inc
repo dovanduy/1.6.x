@@ -129,6 +129,8 @@ class netagent{
 		include(dirname(__FILE__)."/settings.inc");
 		$sock=new sockets();
 		$ArticaHttpsPort=$sock->GET_INFO("ArticaHttpsPort");
+		$ArticaHttpUseSSL=$sock->GET_INFO("ArticaHttpUseSSL");
+		if(!is_numeric($ArticaHttpUseSSL)){$ArticaHttpUseSSL=1;}
 		if(!is_numeric($ArticaHttpsPort)){$ArticaHttpsPort="9000";}
 		$hostname=$this->hostname();
 		$rm=$GLOBALS["CLASS_UNIX"]->find_program("rm");
@@ -153,6 +155,8 @@ class netagent{
 		$curlparms["ARCH"]=$this->Architecture();
 		$curlparms["ISARTICA"]=1;
 		$curlparms["ArticaHttpsPort"]=$ArticaHttpsPort;
+		$curlparms["usessl"]=$ArticaHttpUseSSL;
+		
 		if($GLOBALS["VERBOSE"]){
 			if($GLOBALS["OUTPUT"]){echo "[$hostid]::Asking to be in verbose mode\n";}
 			$curlparms["VERBOSE"]=1;
@@ -214,20 +218,25 @@ class netagent{
 			$OrderOK=false;
 			while (list ($OrderKey, $OrderValue) = each ($orderdata) ){
 				if($GLOBALS["OUTPUT"]){echo "Execute order $OrderKey = $OrderValue..\n";}
-				if($this->OrderExecute($OrderKey,$OrderValue)){
-					$OrderOK=true;
-				}
+				if($this->OrderExecute($OrderKey,$OrderValue)){$OrderOK=true;}
 			}
 			
 			if($OrderOK){
 				if($GLOBALS["OUTPUT"]){echo "Executed order $orderid done...\n";}
 				$this->OrderOk($orderid);}
-			
-		}
+			}
 	}
 	
 	private function OrderExecute($ORDER,$ORDER_VALUE){
 		if($ORDER=="SQUID"){$this->squid_get_confs();return true;}
+		if($ORDER=="RESTART_SQUID"){shell_exec("/etc/init.d/artica-postfix restart squid-cache &");return true;}
+		if($ORDER=="RECONFIGURE_SQUID"){
+			$unix=new unix();
+			$squidbin=$unix->find_program("squid");
+			if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
+			shell_exec("$squidbin -k reconfigure");
+			return true;
+		}
 		
 	}
 	

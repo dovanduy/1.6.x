@@ -227,6 +227,10 @@ private function DisableTasks(){
 	
 	if($EnableSnort=0){$this->task_disabled[53]=true;}
 	
+	if($EnableRemoteStatisticsAppliance==0){
+		$this->task_disabled[9]=true;
+	}
+	
 	
 	if($q->COUNT_ROWS("ipban","artica_backup")==0){$users->IPBAN_INSTALLED=false;}
 	
@@ -262,8 +266,7 @@ private function DisableTasks(){
 public function CheckDefaultSchedules(){
 		$sock=new sockets();
 		$q=new mysql();
-		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+
 		if(!$q->TABLE_EXISTS('system_schedules',"artica_backup")){	
 			$q->BuildTables();
 
@@ -280,7 +283,7 @@ public function CheckDefaultSchedules(){
 		$array[6]=array("TimeText"=>"0 4,8,12,16,20 * * *","TimeDescription"=>"Each 4 hours");
 		$array[2]=array("TimeText"=>"30 0,5,10,15,20 * * *","TimeDescription"=>"Each 5 Hours");
 		$array[8]=array("TimeText"=>"5 0 * * *","TimeDescription"=>"Each day at 00:05");
-		if($EnableRemoteStatisticsAppliance==1){$array[9]=array("TimeText"=>"10,20,30,40,50 * * * *","TimeDescription"=>"Each 10mn");}
+		$array[9]=array("TimeText"=>"10,20,30,40,50 * * * *","TimeDescription"=>"Each 10mn");
 		$array[10]=array("TimeText"=>"0,15,30,45 * * * *","TimeDescription"=>"Each 15mn");
 		$array[11]=array("TimeText"=>"0,30 * * * *","TimeDescription"=>"Each 30mn");
 		$array[14]=array("TimeText"=>"0 4 * * 0,2,5","TimeDescription"=>"Scan disks each 2 days");

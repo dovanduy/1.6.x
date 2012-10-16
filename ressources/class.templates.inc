@@ -3205,16 +3205,17 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 	$uid=$_SESSION["uid"];
 	if($uid==-100){$uid="RootMaster";}
 	if(!isset($_COOKIE["DisableToolTips"])){$_COOKIE["DisableToolTips"]=0;}
-	$text=str_replace("'", "`", $text);
+	if($nowrap==0){$text=str_replace("'", "`", $text);}
 	
 	
-	
-	if(!$GLOBALS["EXECUTED_AS_ROOT"]){
-		$lang=$_COOKIE["artica-language"];
-		if($lang==null){$lang="en";}
-		$md5=md5("$img$title$text$link$width");
-		$datas=GET_CACHED(__FILE__,__FUNCTION__,$md5,true);
-		if($datas<>null){return $datas;}
+	if(!$nowrap==0){
+		if(!$GLOBALS["EXECUTED_AS_ROOT"]){
+			$lang=$_COOKIE["artica-language"];
+			if($lang==null){$lang="en";}
+			$md5=md5("$img$title$text$link$width");
+			$datas=GET_CACHED(__FILE__,__FUNCTION__,$md5,true);
+			if($datas<>null){return $datas;}
+		}
 	}
 	
 	if(strpos($title, ":error_notinstalled")){
@@ -3229,8 +3230,9 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 		$img=$img[0];
 	}
 	
-	
-	$tips=$text;
+	if($tips==null){
+		$tips=$text;
+	}
 	
 	if(!$GLOBALS["EXECUTED_AS_ROOT"]){
 		$title=$tpl->_ENGINE_parse_body($title);
@@ -3352,7 +3354,9 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 
 	
 	$min_height="height:70px";
-	$min_height_title="height:36px;";
+	if($nowrap==0){
+		$min_height_title="height:36px;";
+	}
 	
 	$tbl=explode("\n",$text);
 	if(is_array($tbl)){
@@ -4611,6 +4615,19 @@ function _admin_event($text,$function,$file,$line,$category){
 	
 }
 
+function _udfbguard_admin_events($text,$function,$file,$line,$category){
+	if(!isset($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+	$text=addslashes($text);
+	$file=basename($file);
+	$zdate=date("Y-m-d H:i:s");
+	$f="('$zdate','$function','$file','$line','$text','$category','{$GLOBALS["SCHEDULE_ID"]}')";
+	$prefix="INSERT IGNORE INTO ufdbguard_admin_events 
+		(`zDate`,`function`,`filename`,`line`,`description`,`category`,`TASKID`) VALUES $f";
+	if(!class_exists("mysql")){include_once(dirname(__FILE__)."/class.mysql.inc");}
+	$q=new mysql();
+	$q->QUERY_SQL($prefix,"artica_events");
+	if(!$q->ok){echo $q->mysql_error."\n";}
+}
 
 function infected_queue($TaskName,$InfectedPath,$ComputerName,$virusname){
 	$date=date('Y-m-d H:i:s');

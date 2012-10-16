@@ -92,8 +92,8 @@ $final_array["PROC_TYPE"]=$PROCS[0]["MODEL"];
 
 if(is_file($virtwhat)){
 	exec("$virtwhat 2>&1",$virtwhatA);
-	$virtwhatB=trim(@implode("", $virtwhatA));
-	
+	$virtwhatB=trim(@implode(" ", $virtwhatA));
+	if(preg_match("#^(.+?)\s+#", $virtwhatB,$re)){$virtwhatB=$re[1];}
 	if($virtwhatB<>null){
 		if($GLOBALS["VERBOSE"]){echo "$virtwhat -> $virtwhatB\n";}
 		$final_array["MANUFACTURER"]=$virtwhatB;

@@ -58,7 +58,7 @@ if($_GET["stats"]){
 	if($EnableWebProxyStatsAppliance==1){
 		if($users->AsDansGuardianAdministrator){
 			$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("web-filtering-48.png", "WEB_FILTERING","softwares_mangement_text", "QuickLinkSystems('section_webfiltering_dansguardian')"));
-			$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-settings.png", "parameters","softwares_mangement_text", "QuickLinkSystems('section_parameters_statapp')"));
+			$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-settings.png", "APP_SQUID","softwares_mangement_text", "QuickLinkSystems('section_webstats_squids')"));
 		}
 	}
 	
@@ -387,7 +387,7 @@ $html="
 	echo $tpl->_ENGINE_parse_body($html);
 	
 }
-
+function section_webstats_squids(){echo "<script>javascript:AnimateDiv('BodyContent');LoadAjax('middle','squid.webstats.quicklinks.php');</script>";}
 function section_computer_header(){
 
 $hour=date('h');

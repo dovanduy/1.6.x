@@ -14,6 +14,7 @@ include_once(dirname(__FILE__) . "/ressources/class.mysql.squid.builder.php");
 
 
 
+if(preg_match("#--norestart#",implode(" ",$argv))){$GLOBALS["NORESTART"]=true;}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if($argv[1]=='--rsylogd'){rsyslog_check_includes();die();}
@@ -107,15 +108,22 @@ function build_server_mode(){
 	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){$ActAsASyslogServer=1;$EnableWebProxyStatsAppliance=1;$sock->SET_INFO("ActAsASyslogServer", 1);$sock->SET_INFO("EnableWebProxyStatsAppliance", 1);}
 	
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
-	if($EnableWebProxyStatsAppliance==1){$ActAsASyslogServer=1;}
+	if($EnableWebProxyStatsAppliance==1){
+		$ActAsASyslogServer=1;
+		$sock->SET_INFO("ActAsASyslogServer", 1);
+	}
 	
 	if(!is_numeric($ActAsASyslogServer)){
 		echo "Starting......: syslog server parameters not defined, aborting tasks\n";
+		return;
 	}
+	
+	
 	
 	if(is_file("/etc/default/syslogd")){
 		echo "Starting......: syslog old syslog mode\n";
 		build_server_mode_debian();
+		if($GLOBALS["NORESTART"]){return;}
 		shell_exec("/etc/init.d/artica-postfix restart auth-logger");
 		return;
 	}
@@ -123,6 +131,7 @@ function build_server_mode(){
 	if(is_dir("/etc/rsyslog.d")){
 		echo "Starting......: syslog rsyslog mode\n";
 		build_server_mode_ubuntu();
+		if($GLOBALS["NORESTART"]){return;}
 		shell_exec("/etc/init.d/artica-postfix restart auth-logger");
 	}
 }
@@ -630,6 +639,7 @@ restart_syslog();
 
 
 function restart_syslog(){
+	if($GLOBALS["NORESTART"]){return;}
 	echo "Starting......: syslog restart daemon\n";
 	$unix=new unix();
 	$sysloginit=$unix->LOCATE_SYSLOG_INITD();

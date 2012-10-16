@@ -73,25 +73,16 @@ function serverlist(){
 	
 	$t=time();
 	$apply=imgtootltip("arrow-down-32.png","{apply} {all}","BuildRemoteConfig()");
-	
-	$html="
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th width=1%>". imgtootltip("plus-24.png","{add}","AddArticaAgent()")."</th>
-		<th width=99%>{servers}:{listen_port}</th>
-		<th>{load}</th>
-		<th width=1%>{refresh}</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";	
+
 	
 	$sql="SELECT * FROM nodes";
 	$results=$q->QUERY_SQL($sql);
 	$classtr=null;
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		
 		$nodeid=$ligne["nodeid"];
 		$server=$ligne["ipaddress"];
+		$hostid=$ligne["hostid"];
 		$port=$ligne["port"];
 		$hostname=$ligne["hostname"];
 		$laststatus=distanceOfTimeInWords(time(),strtotime($ligne["laststatus"]));
@@ -148,30 +139,24 @@ function serverlist(){
 			<td style='border:0px'>$memtext</td>
 		</tr>
 		</table>";
+
+		
 		}
 		
+		$tooltip="<li>Load:{$perfs["LOAD_POURC"]}%</li><li>Swap:{$swapar_perc}%</li><li>Mem:{$mem_used_p}%</li>";		
 		
-		$href="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('nodes.php?nodeid=$nodeid')\" style='font-size:16px;text-decoration:underline'>";
+		$href="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('nodes.php?nodeid=$nodeid&hostid=$hostid')\" style='font-size:16px;text-decoration:underline'>";
 		
-		$graphs="&nbsp;";
-		if(is_file("ressources/conf/upload/$nodeid/connections.day.png")){$graphs=imgtootltip("graphs-32.png","{graphs}","Loadjs('squid.graphs.php?hostname-js=$hostname')");} 
-		
-			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-			$html=$html."
-			<tr class=$classtr>
-			<td width=1% align=center valign='middle'><img src='img/32-white-computer.png'></td>
-			<td style='font-size:16px' width=99%><strong>$href$fqdn_hostname:$port</a></strong><div style='font-size:11px'><i>{since}:$laststatus</i></div></td>
-			<td>$perftext</td>
-			<td width=1% align=center valign='middle'>". imgtootltip("refresh-32.png","{refresh}","RefreshNode($nodeid)")."</td>
-			</tr>
 			
-			
-			";
+		$tr[]=Paragraphe("64-network-server.png", "$fqdn_hostname", 
+		"<div style='font-size:11px'><i>{since}:$laststatus</i></div>$perftext",
+		"javascript:Loadjs('nodes.php?nodeid=$nodeid&hostid=$hostid')",$tooltip,350,null,1);
+
 			
 		
 	}
 	
-	$html=$html."</tbody></table>";
+	$html=CompileTr2($tr,"form");
 
 	echo $tpl->_ENGINE_parse_body($html);
 	
@@ -189,10 +174,11 @@ function servers(){
 	
 	$html="
 	<div style='width:100%;text-align:right;float:right'>". imgtootltip("refresh-24.png","{refresh}","RefreshTableau()")."</div>
-	<div class=explain style='font-size:14px'>{prodservers_statsappliance_explain}</div>
+	
 	<center id='$t'></div>
 	
 	</center>
+	<div class=explain style='font-size:14px'>{prodservers_statsappliance_explain}</div>
 	<script>
 	
 		
@@ -254,101 +240,20 @@ function BuildRemoteConfig(){
 }
 
 function events(){
-	$tpl=new templates();
-	$page=CurrentPageName();
-	
-	
+	$t=time();
 	
 	$html="
-	<table style='width:99%' class=form>
-		<tbody>
-			<tr>
-				<td class=legend>{search}:</td>
-				<td>". Field_text("statsremoteservers-search",null,"font-size:16px",null,null,null,false,"statsremoteservers_SearchEventsCheck(event)")."</td>
-				<td>". button("{search}","statsremoteservers_SearchEvents()")."</td>
-			</tr>
-		</tbody>
-	</table>
-	<div id='statsremoteservers-list-table' style='width:100%;height:350px;overflow:auto;background-color:white'></div>
-	
+	<div id='$t'></div>
 	<script>
-		function statsremoteservers_SearchEventsCheck(e){
-			if(checkEnter(e)){statsremoteservers_SearchEvents();}
-		}
-	
-		function statsremoteservers_SearchEvents(){
-			var se=escape(document.getElementById('statsremoteservers-search').value);
-			LoadAjax('statsremoteservers-list-table','$page?statsremoteservers-list-search=yes&search='+se);
-		}
-	
-	statsremoteservers_SearchEvents();
-	</script>";
-	
-	echo $tpl->_ENGINE_parse_body($html);	
-	
-}
-
-
-function events_search(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$q=new mysql_squid_builder();
-	$search="*".$_GET["search"]."*";
-	$search=str_replace("**", "*", $search);
-	$search=str_replace("**", "*", $search);
-	$search=str_replace("*", "%", $search);
-	$emailing_campain_linker_delete_confirm=$tpl->javascript_parse_text("{emailing_campain_linker_delete_confirm}");
-	
-	$style="style='font-size:14px;'";
-	
-	
-	$sql="SELECT * FROM stats_appliance_events WHERE `events` LIKE '$search' ORDER BY zDate DESC LIMIT 0,150";
-	
-	$html="<center>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th>{date}</th>
-		<th>{hostname}</th>
-		<th>{events}&nbsp;|&nbsp;$search</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";	
-	
-		$q=new mysql_squid_builder();
-		writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
-		$results=$q->QUERY_SQL($sql);
-		$cs=0;
-		if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}
-		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		if(preg_match("#line:([0-9]+)\s+script:(.+)#", $ligne["text"],$re)){
-			$ligne["text"]=str_replace("line:{$re[1]} script:{$re[2]}", "", $ligne["text"]);
-		}
-		$line=$re[1];
-		$file=$re[2];
-		$ligne["text"]=htmlentities($ligne["text"]);
-		$ligne["text"]=nl2br($ligne["text"]);
-		
-		$html=$html."
-		<tr class=$classtr>
-			<td width=1% $style nowrap>{$ligne["zDate"]}</td>
-			<td width=1% $style nowrap>{$ligne["hostname"]}</td>
-			<td width=99% $style nowrap>{$ligne["events"]}</td>
-			
-			
-		</tr>
-		";
-	}
-	$html=$html."</tbody></table>
-	
-	<script>
-
+		LoadAjax('$t','squid.update.events.php?popup=yes&filename=&taskid=&category=communicate&tablesize=&descriptionsize=&table=&tablesize=835&descriptionsize=658')
 	</script>
 	";
-	echo $tpl->_ENGINE_parse_body($html);
+	echo $html;
 	
 }
+
+
+
 
 function RefreshNode(){
 	$node=new blackboxes($_POST["refresh-node"]);

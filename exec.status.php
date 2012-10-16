@@ -4300,7 +4300,10 @@ function apachesrc(){
 	$master_pid=trim(@file_get_contents($pid_path));
 	$binpath=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_BIN_PATH();
 	if(strlen($binpath)<5){return;}
+	$EnableRemoteStatisticsAppliance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 
+	if($EnableRemoteStatisticsAppliance==1){$EnableFreeWeb=0;}
 
 	$l[]="[APP_APACHE_SRC]";
 	$l[]="service_name=APP_APACHE_SRC";
@@ -4430,7 +4433,7 @@ function nscd(){
 	}
 	$bin=$GLOBALS["CLASS_UNIX"]->find_program("nscd");
 	$EnableNSCD=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableNSCD");
-	if(!is_numeric($EnableNSCD)){$EnableNSCD=1;}
+	if(!is_numeric($EnableNSCD)){$EnableNSCD=0;}
 	$pid_path="/var/run/nscd/nscd.pid";
 	$master_pid=trim(@file_get_contents($pid_path));
 	$version=nscd_version($bin);
@@ -4450,6 +4453,7 @@ function nscd(){
 	if($EnableNSCD==0){$l[]="";return implode("\n",$l);return;}
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		shell_exec("{$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.initslapd.php nscd");
 		shell_exec("/etc/init.d/nscd start");
 		$l[]="";
 		return implode("\n",$l);

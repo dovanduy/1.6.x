@@ -90,6 +90,7 @@ if(isset($_GET["restart-cicap"])){restart_cicap();exit;}
 if(isset($_GET["cicap-events"])){events_cicap();exit;}
 if(isset($_GET["rotatebuild"])){rotatebuild();exit;}
 if(isset($_GET["netagent"])){netagent();exit;}
+if(isset($_GET["netagent-ping"])){netagent_ping();exit;}
 
 if(isset($_GET["admin-events"])){admin_events();exit;}
 
@@ -148,6 +149,7 @@ if(isset($_GET["service-dropbox-cmds"])){service_dropbox_cmd();exit;}
 if(isset($_GET["beancounters"])){beancounters();exit;}
 if(isset($_GET["export-etc-artica"])){export_etc_artica();exit;}
 if(isset($_GET["folders-security"])){folders_security();exit;}
+if(isset($_GET["blackbox-notify"])){blackbox_notify();exit;}
 
 
 
@@ -1060,6 +1062,18 @@ function netagent(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);	
 }
+
+
+function netagent_ping(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim($nohup." ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.netagent.php >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	shell_exec($cmd);		
+
+	
+}
+
 function restart_framework(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
@@ -1469,6 +1483,17 @@ function lighttpd_own(){
 	@chown("/usr/share/artica-postfix/ressources/conf/upload", $username);
 	@chgrp("/usr/share/artica-postfix/ressources/conf/upload", $groupname);
 	
+	
+}
+
+function blackbox_notify(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();	
+	$hostid=$_GET["blackbox-notify"];
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php /usr/share/artica-postfix/exec.blackbox.php --ping $hostid >/dev/null 2>&1 &";
+	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 	
 }
 

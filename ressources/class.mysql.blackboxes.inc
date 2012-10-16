@@ -151,6 +151,7 @@ class mysql_blackbox{
 			  `hostname` varchar(128) NOT NULL,
 			  `ipaddress` varchar(50) NOT NULL,
 			  `port` int(5) NOT NULL,
+			  `ssl` smallint(1) NOT NULL,
 			  `laststatus` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			  `memory` int(10) NOT NULL,
 			  `numproc` int(1) NOT NULL,
@@ -185,6 +186,7 @@ class mysql_blackbox{
 			if(!$this->FIELD_EXISTS("nodes", "arch")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `arch` smallint(2) NOT NULL,ADD KEY `arch` (`arch`)");}
 			if(!$this->FIELD_EXISTS("nodes", "BigArtica")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `BigArtica` smallint(1) NOT NULL,ADD KEY `BigArtica` (`BigArtica`)");}
 			if(!$this->FIELD_EXISTS("nodes", "UfdbClientLogs")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `UfdbClientLogs` TEXT NOT NULL");}
+			if(!$this->FIELD_EXISTS("nodes", "ssl")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `ssl` smallint(1) NOT NULL");}
 			
 			if(!$this->TABLE_EXISTS("squidconf")){
 			$sql="CREATE TABLE IF NOT EXISTS `squidconf` (

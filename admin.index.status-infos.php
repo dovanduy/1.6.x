@@ -136,7 +136,9 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 	}
 	
 	$DisableFrontBrowseComputers=$sock->GET_INFO('DisableFrontBrowseComputers');
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");	
 	if(!is_numeric($DisableFrontBrowseComputers)){$DisableFrontBrowseComputers=0;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	
 	
 	if($DisableFrontBrowseComputers==0){	
@@ -230,16 +232,17 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 	
 	if($users->APACHE_INSTALLED){
 		if($users->AsAnAdministratorGeneric){
-			
-			
-			$freewebs="
-				<tr>
-					<td width=1%>". imgtootltip("free-web-32.png","FreeWebs","QuickLinkSystems('section_freeweb');",null,"{$t}3")."</td>
-					<td style='font-size:11px' nowrap><a href=\"javascript:blur();\" 
-							OnClick=\"javascript:SeTimeOutIMG32('{$t}3');QuickLinkSystems('section_freeweb');;\" 
-							style='font-size:11px;text-decoration:underline'>FreeWebs</a></td>
-				</tr>
-				";			
+		 if($EnableRemoteStatisticsAppliance==0){
+				
+				$freewebs="
+					<tr>
+						<td width=1%>". imgtootltip("free-web-32.png","FreeWebs","QuickLinkSystems('section_freeweb');",null,"{$t}3")."</td>
+						<td style='font-size:11px' nowrap><a href=\"javascript:blur();\" 
+								OnClick=\"javascript:SeTimeOutIMG32('{$t}3');QuickLinkSystems('section_freeweb');;\" 
+								style='font-size:11px;text-decoration:underline'>FreeWebs</a></td>
+					</tr>
+					";			
+			}
 		}
 	}
 

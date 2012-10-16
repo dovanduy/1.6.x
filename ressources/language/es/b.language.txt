@@ -1478,6 +1478,8 @@ During this operation the proxy service will not be available.
 Do you want to perform this operation ?
 </reindex_caches_warn>
 <relay_server>Mail relay server</relay_server>
+<reload_proxy_service>Reload the proxy service</reload_proxy_service>
+<reload_proxy_service_text>Force the proxy to read the configuration file and reload plugins.</reload_proxy_service_text>
 <reload_service>Reload service</reload_service>
 <reload_service_text>Reconfigure parameters and force the service to reload the configuration.[br]
 The service will be not stopped but just refreshed.</reload_service_text>
@@ -1528,6 +1530,7 @@ if your server does not respond after a reboot
 <restart_onlysquid>Restart only the proxy</restart_onlysquid>
 <restart_proxy_service>Restart proxy service</restart_proxy_service>
 <restart_proxy_service_explain>This task restart the proxy service and refresh memory/processes</restart_proxy_service_explain>
+<restart_proxy_service_text>Stop the Proxy service and restart it, all HTTP sessions will be lost</restart_proxy_service_text>
 <restart_the_web_proxy_service>Restart the Web proxy service</restart_the_web_proxy_service>
 <restart_webconsole_service>Restart the Artica Web Console service</restart_webconsole_service>
 <restart_webconsole_service_explain>Stop the lighttpd daemon and restart it by refresh it's memory and parameters</restart_webconsole_service_explain>
@@ -2095,6 +2098,7 @@ For example if you define domain.tld as the domain suffix and you enable WebDav 
 <webfiltering_parameters_was_saved>Web filtering parameters was applied to the server</webfiltering_parameters_was_saved>
 <webfiltering_service>Web Filtering service</webfiltering_service>
 <webfiltering_service_events>Web filtering service events</webfiltering_service_events>
+<webfilter_events>Webfilter events</webfilter_events>
 <webinterface_check>Checks the Web interface health</webinterface_check>
 <webinterface_check_explain>This task checks the Artica Web interface engine.[br]If the Web engine is down or crash (eg: error 500), it try to restart it</webinterface_check_explain>
 <webserver>Web server</webserver>

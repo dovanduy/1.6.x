@@ -23,6 +23,7 @@ function registerconsole($ipaddr,$port,$ssl){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableRemoteStatisticsAppliance", 1);
 	$GLOBALS["OUTPUT"]=true;
+	$php=$unix->LOCATE_PHP5_BIN();
 	$RemoteStatisticsApplianceSettings["SSL"]=$ssl;
 	$RemoteStatisticsApplianceSettings["PORT"]=$port;
 	$RemoteStatisticsApplianceSettings["SERVER"]=$ipaddr;
@@ -30,6 +31,7 @@ function registerconsole($ipaddr,$port,$ssl){
 	if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
 	$RemoteStatisticsApplianceSettings_final=base64_encode(serialize($RemoteStatisticsApplianceSettings));
 	$sock->SET_INFO("RemoteStatisticsApplianceSettings", $RemoteStatisticsApplianceSettings_final);
+	shell_exec("$php ".dirname(__FILE__)."/exec.schedules.php");
 	communicate();
 }
 
@@ -68,20 +70,33 @@ function revokehostid(){
 function communicate(){
 	$unix=new unix();
 	$sock=new sockets();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$kill=$unix->find_program("kill");
 	$GLOBALS["CLASS_SOCKET"]=$sock;
 	$GLOBALS["CLASS_UNIX"]=$unix;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,__FILE__)){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
 		if($GLOBALS["OUTPUT"]){echo "Remote stat appliance, Already running pid $pid\n";}
-		WriteMyLogs("Warning: Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}		
-	@file_put_contents($pidfile, getmypid());	
+		if($time<10){	
+			WriteMyLogs("Warning: Already running pid $pid since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}else{
+			shell_exec("$kill -9 $pid");
+		}
+	}		
+	@file_put_contents($pidfile, getmypid());
+
+	
 	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if($EnableRemoteStatisticsAppliance==0){
-		if($GLOBALS["VERBOSE"]){echo "$EnableRemoteStatisticsAppliance = 0\n";}
-		return;}
+		if($GLOBALS["VERBOSE"]){
+			echo "$EnableRemoteStatisticsAppliance = 0\n";}
+			return;
+	}
 	
 	if($GLOBALS["OUTPUT"]){echo "Ping the remote appliance...\n";}
 	$net=new netagent();

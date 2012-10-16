@@ -1456,7 +1456,7 @@ function notify_remote_proxys($COMMANDS=null){
 	$oldpid=@file_get_contents($EXEC_PID_FILE);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$timefile=$unix->file_time_min($EXEC_PID_FILE);
-		if($timefile<15){ufdbguard_admin_events("Skipping, Already executed pid $oldpid {$timefile}Mn...", __FUNCTION__, __FILE__, __LINE__, "squidstats");return ;}
+		if($timefile<15){ufdbguard_admin_events("Skipping, Already executed pid $oldpid {$timefile}Mn...", __FUNCTION__, __FILE__, __LINE__, "communicate");return ;}
 		
 	}	
 	
@@ -1467,31 +1467,59 @@ function notify_remote_proxys($COMMANDS=null){
 	$f=new squid_stats_appliance();
 	$f->export_tables();
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
-	ufdbguard_admin_events("Exporting MySQL datas done... took:$took", __FUNCTION__, __FILE__, __LINE__, "squidstats");
+	ufdbguard_admin_events("Exporting MySQL datas done... took:$took", 
+	__FUNCTION__, __FILE__, __LINE__, "communicate");
 	
 	include_once(dirname(__FILE__)."/ressources/class.ccurl.inc");
 	$q=new mysql_squid_builder();
 	$sql="SELECT * FROM squidservers";
 	$results=$q->QUERY_SQL($sql);
 	
+	if(mysql_num_rows($results)==0){
+		ufdbguard_admin_events("No client set, aborting", __FUNCTION__, __FILE__, __LINE__, "communicate");
+		return;
+	}
+	
 	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." nodes clients...\n";}
 	$ALREADYDONE=array();
+	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$server=$ligne["ipaddr"];
-		if(isset($ALREADYDONE[$server])){continue;}
 		$port=$ligne["port"];
 		if(!is_numeric($port)){$port=9000;}
-		if($port<10){$port=9000;}
+		if($port<10){$port=9000;}		
 		
-		if(!is_numeric($port)){continue;}
+		if(isset($ALREADYDONE[$server])){
+			ufdbguard_admin_events("Skip server $server (already done)", __FUNCTION__, __FILE__, __LINE__, "communicate");
+			continue;}
+		
+		if(!is_numeric($port)){
+			ufdbguard_admin_events("Skip server $server (no numeric port)", __FUNCTION__, __FILE__, __LINE__, "communicate");
+			continue;
+		}
 		$refix="https";
 		$uri="$refix://$server:$port/squid.stats.listener.php";
-		writelogs("remote server $uri",__FUNCTION__,__FILE__,__LINE__);
+		ufdbguard_admin_events("Sending order `$COMMANDS` to $uri", __FUNCTION__, __FILE__, __LINE__, "communicate");
+		
 		$curl=new ccurl($uri,true);
 		$curl->parms["CHANGE_CONFIG"]=$COMMANDS;
-		if(!$curl->get()){ufdbguard_admin_events("$server:$port","FAILED Notify `$COMMANDS` $curl->error", __FUNCTION__, __FILE__, __LINE__, "squidstats");continue;}
-		if(preg_match("#<ANSWER>OK</ANSWER>#is",$curl->data)){ufdbguard_admin_events("$server:$port","SUCCESS to notify Notify `$COMMANDS`", __FUNCTION__, __FILE__, __LINE__, "squidstats");continue;}
-		ufdbguard_admin_events("$server:$port","$server:$port","FAILED Notify `$COMMANDS` $curl->error: $curl->data", __FUNCTION__, __FILE__, __LINE__, "squidstats");
+		if(!$curl->get()){
+			ufdbguard_admin_events("$server:$port FAILED Notify `$COMMANDS` $curl->error", 
+			__FUNCTION__, __FILE__, __LINE__, "communicate");
+			continue;
+		}
+		
+		
+		if(preg_match("#<ANSWER>OK</ANSWER>#is",$curl->data)){
+				ufdbguard_admin_events("$server:$port SUCCESS to notify Notify `$COMMANDS`", 
+				__FUNCTION__, __FILE__, __LINE__, "communicate");
+				continue;
+		}
+		
+		ufdbguard_admin_events("$server:$port","$server:$port","FAILED Notify `$COMMANDS` $curl->error: $curl->data", 
+		__FUNCTION__, __FILE__, __LINE__, 
+		"communicate");
+		
 		$ALREADYDONE[$server]=true;
 	}
 }

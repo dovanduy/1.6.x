@@ -43,7 +43,7 @@ function js(){
 	$page=CurrentPageName();
 	$blk=new blackboxes($_GET["nodeid"]);
 	$title=$blk->hostname;
-	$html="YahooWin('890','$page?tabs=yes&nodeid={$_GET["nodeid"]}','$title')";
+	$html="YahooWin('890','$page?tabs=yes&nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}','$title')";
 	echo $html;
 	
 }
@@ -464,7 +464,7 @@ function tabs(){
 	
 	$tpl=new templates();
 	$page=CurrentPageName();
-	
+	$hostid=$_GET["hostid"];
 	$array["status"]="{status}";
 	$blk=new blackboxes($_GET["nodeid"]);
 	
@@ -482,27 +482,27 @@ function tabs(){
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 			if($num=="softwares"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.softwares.php?nodeid={$_GET["nodeid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.softwares.php?nodeid={$_GET["nodeid"]}&hostid=$hostid\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 				continue;
 			}
 			
 			if($num=="network"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.network.php?nodeid={$_GET["nodeid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.network.php?nodeid={$_GET["nodeid"]}&hostid=$hostid\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 				continue;
 			}	
 			
 			if($num=="disks"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.disks.php?nodeid={$_GET["nodeid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.disks.php?nodeid={$_GET["nodeid"]}&hostid=$hostid\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 				continue;
 			}			
 
 			if($num=="squid"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.php?nodeid={$_GET["nodeid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.php?nodeid={$_GET["nodeid"]}&hostid=$hostid\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 				continue;
 			}			
 		
 		
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&nodeid={$_GET["nodeid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&nodeid={$_GET["nodeid"]}&hostid=$hostid\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 	}
 	
 	
