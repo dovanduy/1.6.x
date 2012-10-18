@@ -208,8 +208,6 @@ if($argv[1]=="--functions"){
 
 if($argv[1]=="--all-squid"){
 	$conf[]=squid_master_status();
-	$conf[]=c_icap_master_status();
-	$conf[]=dansguardian_master_status();
 	$conf[]=kav4Proxy_status();
 	$conf[]=proxy_pac_status();
 	$conf[]=squid_tail();
@@ -1285,8 +1283,8 @@ function c_icap_master_status(){
 	$SQUIDEnable=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("SQUIDEnable");
 	$SquidDisableAllFilters=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("SquidDisableAllFilters");
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;$GLOBALS["CLASS_SOCKETS"]->SET_INFO("SQUIDEnable",1);}
-	
-	
+	$EnableRemoteStatisticsAppliance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('EnableRemoteStatisticsAppliance');
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$CicapEnabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("CicapEnabled");
 	
 	
@@ -1310,10 +1308,10 @@ function c_icap_master_status(){
 	if($SquidDisableAllFilters==1){$CicapEnabled=0;}
 		
 	if(!$GLOBALS["CLASS_USERS"]->MEM_HIGER_1G){
-		if($CicapEnabled==1){$GLOBALS["CLASS_SOCKETS"]->SET_INFO("$CicapEnabled",0);}
+		if($CicapEnabled==1){$GLOBALS["CLASS_SOCKETS"]->SET_INFO("CicapEnabled",0);}
 		$CicapEnabled=0;
 	}
-	
+	if($EnableRemoteStatisticsAppliance==1){$CicapEnabled=0;}
 	
 	$master_pid=trim(@file_get_contents("/var/run/c-icap.pid"));
 
@@ -1337,6 +1335,7 @@ function c_icap_master_status(){
 
 
 	if($master_pid==null){$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF($binpath);}
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF($binpath);}
 	
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		WATCHDOG("APP_C_ICAP",'cicap');
@@ -2179,17 +2178,21 @@ function ufdbguardd_tail(){
 	$EnableUfdbGuard=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableUfdbGuard");
 	$EnableWebProxyStatsAppliance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableWebProxyStatsAppliance");
 	$UseRemoteUfdbguardService=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('UseRemoteUfdbguardService');
+	$EnableRemoteStatisticsAppliance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('EnableRemoteStatisticsAppliance');
 	if($GLOBALS["VERBOSE"]){echo "EnableUfdbGuard=$EnableUfdbGuard\n";}
 	if($GLOBALS["VERBOSE"]){echo "EnableWebProxyStatsAppliance=$EnableWebProxyStatsAppliance\n";}
 	if($GLOBALS["VERBOSE"]){echo "UseRemoteUfdbguardService=$UseRemoteUfdbguardService\n";}
+	if($GLOBALS["VERBOSE"]){echo "EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance\n";}
 
 	
 	
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if($EnableUfdbGuard==null){$EnableUfdbGuard=0;}
 	if($EnableWebProxyStatsAppliance==1){$EnableUfdbGuard=1;}
 	if($UseRemoteUfdbguardService==1){$EnableUfdbGuard=0;}
+	if($EnableRemoteStatisticsAppliance==1){$EnableUfdbGuard=0;}
 	
 	
 	

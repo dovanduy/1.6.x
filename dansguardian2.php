@@ -1089,7 +1089,7 @@ function dansguardian_service_status(){
 	$CicapEnabled=$sock->GET_INFO('CicapEnabled');
 	$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
 	if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
-	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=0;}
+	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}
 
 
 

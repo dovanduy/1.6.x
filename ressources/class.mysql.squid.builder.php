@@ -1,14 +1,17 @@
 <?php
-if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
-include_once(dirname(__FILE__).'/class.users.menus.inc');
-include_once(dirname(__FILE__).'/class.mysql.inc');
-include_once(dirname(__FILE__)."/class.categorize.externals.inc");
-include_once(dirname(__FILE__)."/class.mysql.blackboxes.inc");
-include_once(dirname(__FILE__)."/class.mysql.catz.inc");
-include_once(dirname(__FILE__).'/effectiveTLDs.inc.php');
-include_once(dirname(__FILE__).'/regDomain.inc.php');
-include_once(dirname(__FILE__).'/class.simple.image.inc');
 
+if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
+if(function_exists("debug_mem")){debug_mem();}
+include_once(dirname(__FILE__).'/class.users.menus.inc');
+if(function_exists("debug_mem")){debug_mem();}
+include_once(dirname(__FILE__).'/class.mysql.inc');
+if(function_exists("debug_mem")){debug_mem();}
+include_once(dirname(__FILE__)."/class.mysql.blackboxes.inc");
+if(function_exists("debug_mem")){debug_mem();}
+include_once(dirname(__FILE__)."/class.mysql.catz.inc");
+if(function_exists("debug_mem")){debug_mem();}
+include_once(dirname(__FILE__).'/class.simple.image.inc');
+if(function_exists("debug_mem")){debug_mem();}
 
 class mysql_squid_builder{
 	var $ClassSQL;
@@ -171,6 +174,8 @@ class mysql_squid_builder{
 			$this->tasks_array[40]="{hourly_bandwidth_users}";
 			$this->tasks_array[41]="{squid_rrd}";
 			$this->tasks_array[42]="{compile_tlse_database}";
+			$this->tasks_array[43]="{squid_check_lost_tables}";
+			
 			
 			
 			
@@ -219,6 +224,7 @@ class mysql_squid_builder{
 			$this->tasks_explain_array[40]="{hourly_bandwidth_users_explain}";
 			$this->tasks_explain_array[41]="{squid_rrd_explain}";
 			$this->tasks_explain_array[42]="{compile_tlse_database_explain}";
+			$this->tasks_explain_array[43]="{squid_check_lost_tables_explain}";
 			
 			
 
@@ -264,7 +270,9 @@ class mysql_squid_builder{
 			$this->tasks_processes[40]="exec.squid.stats.php --users-size";
 			$this->tasks_processes[41]="exec.squid-rrd.php";
 			$this->tasks_processes[42]="exec.update.squid.tlse.php --compile";
+			$this->tasks_processes[43]="exec.squid.stats.php --repair-hours";
 	
+			$this->tasks_remote_appliance["43"]=true;
 			$this->tasks_remote_appliance["42"]=true;
 			$this->tasks_remote_appliance["40"]=true;
 			$this->tasks_remote_appliance["36"]=true;
@@ -332,6 +340,7 @@ class mysql_squid_builder{
 			$array[14]=array("TimeText"=>"30 6 * * *","TimeDescription"=>"Optimize all tables  each day at 06h30");
 			$array[15]=array("TimeText"=>"0 * * * *","TimeDescription"=>"Calculate cache performance each hour");
 			$array[16]=array("TimeText"=>"30 5,10,15,20 * * *","TimeDescription"=>"each 5 hours");
+			$array[17]=array("TimeText"=>"30 * * * *","TimeDescription"=>"each 1h30");
 			$array[21]=array("TimeText"=>"0 2,4,6,8,10,12,14,16,18,20,22 * * *","TimeDescription"=>"Check AD server each 2H");
 			$array[25]=array("TimeText"=>"14 4 * * *","TimeDescription"=>"Members Week blocked at 04:14");
 			$array[28]=array("TimeText"=>"10,20,30,40,50 * * * *","TimeDescription"=>"check thumbnails queue each 10mn");
@@ -346,6 +355,7 @@ class mysql_squid_builder{
 			$array[40]=array("TimeText"=>"10 * * * *","TimeDescription"=>"Each hour +10mn");
 			$array[41]=array("TimeText"=>"3,6,9,11,13,16,19,21,26,29,31,36,39,41,46,49,51,56,59 * * * *","TimeDescription"=>"Check AD server each 3M");
 			$array[42]=array("TimeText"=>"30 4 * * *","TimeDescription"=>"Compile Toulouse databases tables Each day at 04h30");
+			$array[43]=array("TimeText"=>"30 3 * * *","TimeDescription"=>"Lost tables Each day at 03h30");
 			
 			
 
@@ -505,6 +515,24 @@ class mysql_squid_builder{
 		}
 		return $array;		
 	}
+	
+	public function LIST_TABLES_HOURS_TEMP(){
+		if(isset($GLOBALS["LIST_TABLES_HOURS_TEMP"])){return $GLOBALS["LIST_TABLES_HOURS_TEMP"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'squidhour_%'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+		
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#squidhour_[0-9]+$#", $ligne["c"])){
+				$GLOBALS["LIST_TABLES_HOURS_TEMP"][$ligne["c"]]=$ligne["c"];
+				$array[$ligne["c"]]=$ligne["c"];
+			}
+		}
+		return $array;		
+	}	
+	
 	
 	public function LIST_TABLES_dansguardian_events(){
 		if(isset($GLOBALS["LIST_TABLES_dansguardian_events"])){return $GLOBALS["LIST_TABLES_dansguardian_events"];}
@@ -2199,7 +2227,7 @@ public function CheckTables($table=null){
 		if(!$this->FIELD_EXISTS("categorize_delete", "sended")){$this->QUERY_SQL("ALTER TABLE `categorize_delete` ADD `sended` INT( 1 ) NOT NULL ,ADD INDEX ( `sended` )");} 
 		
 		if(!$this->TABLE_EXISTS('personal_categories',$this->database)){	
-				$sql="CREATE TABLE `squidlogs`.`personal_categories` (
+				$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`personal_categories` (
 				`category` VARCHAR( 15 ) NOT NULL ,
 				`category_description` VARCHAR( 255 ) NOT NULL ,
 				`master_category` VARCHAR( 50 ) NOT NULL ,
@@ -2212,7 +2240,7 @@ public function CheckTables($table=null){
 		
 		
 	if(!$this->TABLE_EXISTS('work_optimize',$this->database)){	
-		$sql="CREATE TABLE `squidlogs`.`work_optimize` (
+		$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`work_optimize` (
 		`table_name` VARCHAR( 50 ) NOT NULL ,
 		`job` TINYINT NOT NULL ,
 		PRIMARY KEY ( `table_name` ))";
@@ -2220,7 +2248,7 @@ public function CheckTables($table=null){
 		}
 		
 		if(!$this->TABLE_EXISTS('work_squid_repo',$this->database)){	
-		$sql="CREATE TABLE `squidlogs`.`work_squid_repo` (
+		$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`work_squid_repo` (
 		`version` VARCHAR( 50 ) NOT NULL ,
 		`package` longblob NOT NULL ,
 		PRIMARY KEY ( `version` )
@@ -2233,7 +2261,7 @@ public function CheckTables($table=null){
 	if(!$this->FIELD_EXISTS("personal_categories", "master_category")){$this->QUERY_SQL("ALTER TABLE `personal_categories` ADD `master_category` VARCHAR( 50 ) NOT NULL ,ADD KEY `master_category` (`master_category`)");}
 		
 	if(!$this->TABLE_EXISTS('usersisp',$this->database)){			
-		$sql="CREATE TABLE `squidlogs`.`usersisp` (
+		$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`usersisp` (
 				`userid` BIGINT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
 				`email` VARCHAR( 128 ) NOT NULL ,
 				`user_password` VARCHAR( 90 ) NOT NULL ,
@@ -2275,7 +2303,7 @@ public function CheckTables($table=null){
 		}		
 
 		if(!$this->TABLE_EXISTS('usersisp_catztables',$this->database)){	
-			$sql="CREATE TABLE `squidlogs`.`usersisp_catztables` (
+			$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`usersisp_catztables` (
 				`ID` BIGINT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
 				`zmd5` VARCHAR( 90 ) NOT NULL,
 				`category` VARCHAR( 255 ) NOT NULL,
@@ -2289,7 +2317,7 @@ public function CheckTables($table=null){
 		}
 		
 		if(!$this->TABLE_EXISTS('webfilters_thumbnails',$this->database)){	
-			$sql="CREATE TABLE `squidlogs`.`webfilters_thumbnails` (
+			$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`webfilters_thumbnails` (
 				`zmd5` VARCHAR( 90 ) NOT NULL ,
 				`withid` SMALLINT( 1 ) NOT NULL ,
 				`sended` SMALLINT( 1 ) NOT NULL ,
@@ -2435,7 +2463,10 @@ public function CheckTables($table=null){
 	function GET_CATEGORIES($sitename,$nocache=false,$nok9=false,$noheuristic=false,$noArticaDB=false){
 		
 
-		
+		if(!isset($GLOBALS["BlueCoatKey"])){
+			$sock=new sockets();
+			$GLOBALS["BlueCoatKey"]=trim($sock->GET_INFO("BlueCoatKey"));
+		}
 		
 		$GLOBALS["CATEGORIZELOGS"]=array();
 		if(isset($GLOBALS["GET_CATEGORIES_MEMORY"][$sitename])){return $GLOBALS["GET_CATEGORIES_MEMORY"][$sitename];}
@@ -2525,44 +2556,51 @@ public function CheckTables($table=null){
 		
 		if(!$nok9){
 			if(count($cat)==0){
-				$ext=new external_categorize($sitename);
-				$extcat=trim($ext->K9());
-				if($extcat<>null){
-					$GLOBALS["CATEGORIZELOGS-COUNT"]++;
-					$sock=new sockets();$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
-					$newmd5=md5("$extcat$sitename");
-					$GLOBALS["CATEGORIZELOGS"][]="K9 FOUND";
-					$category_table="category_".$this->category_transform_name($extcat);
-					$this->QUERY_SQL("INSERT IGNORE INTO categorize_changes (zmd5,sitename,category) VALUES('$newmd5','$sitename','$extcat')");
-					$this->QUERY_SQL("INSERT IGNORE INTO $category_table (zmd5,zDate,category,pattern,uuid) VALUES('$newmd5',NOW(),'$extcat','$sitename','$uuid')");
-					$this->QUERY_SQL("DELETE FROM webtests WHERE sitename='$sitename'");				
-					$cat[]=$extcat;
-				}else{
-					$GLOBALS["CATEGORIZELOGS"][]="K9 FAILED";
+				if(strlen($GLOBALS["BlueCoatKey"])>3){
+					include_once(dirname(__FILE__)."/class.categorize.externals.inc");
+					if(function_exists("debug_mem")){debug_mem();}
+					$ext=new external_categorize($sitename);
+					$extcat=trim($ext->K9());
+					if($extcat<>null){
+						$GLOBALS["CATEGORIZELOGS-COUNT"]++;
+						$sock=new sockets();$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+						$newmd5=md5("$extcat$sitename");
+						$GLOBALS["CATEGORIZELOGS"][]="K9 FOUND";
+						$category_table="category_".$this->category_transform_name($extcat);
+						$this->QUERY_SQL("INSERT IGNORE INTO categorize_changes (zmd5,sitename,category) VALUES('$newmd5','$sitename','$extcat')");
+						$this->QUERY_SQL("INSERT IGNORE INTO $category_table (zmd5,zDate,category,pattern,uuid) VALUES('$newmd5',NOW(),'$extcat','$sitename','$uuid')");
+						$this->QUERY_SQL("DELETE FROM webtests WHERE sitename='$sitename'");				
+						$cat[]=$extcat;
+					}else{
+						$GLOBALS["CATEGORIZELOGS"][]="K9 FAILED";
+					}
 				}
-			}
+		  }
 		}
-		
 		
 		if(!$nok9){	
 			if(count($cat)==0){
-				$ext=new external_categorize($sitename);
-				$extcat=trim($ext->UBoxTrendmicroGetCatCode());
-				if($extcat<>null){
-					$GLOBALS["CATEGORIZELOGS"][]="TREND SUCCESS";
-					$GLOBALS["CATEGORIZELOGS-COUNT"]++;
-					$sock=new sockets();
-					$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
-					$newmd5=md5("$extcat$sitename");
-					$category_table="category_".$this->category_transform_name($extcat);
-					$this->QUERY_SQL("INSERT IGNORE INTO categorize_changes (zmd5,sitename,category) VALUES('$newmd5','$sitename','$extcat')");
-					$this->QUERY_SQL("INSERT IGNORE INTO $category_table (zmd5,zDate,category,pattern,uuid) VALUES('$newmd5',NOW(),'$extcat','$sitename','$uuid')");
-					$this->QUERY_SQL("DELETE FROM webtests WHERE sitename='$sitename'");				
-					$cat[]=$extcat;
-				}else{
-					$GLOBALS["CATEGORIZELOGS"][]="TREND FAILED";
-				}
-			}	
+				if(strlen($GLOBALS["BlueCoatKey"])>3){
+					include_once(dirname(__FILE__)."/class.categorize.externals.inc");
+					if(function_exists("debug_mem")){debug_mem();}				
+					$ext=new external_categorize($sitename);
+					$extcat=trim($ext->UBoxTrendmicroGetCatCode());
+					if($extcat<>null){
+						$GLOBALS["CATEGORIZELOGS"][]="TREND SUCCESS";
+						$GLOBALS["CATEGORIZELOGS-COUNT"]++;
+						$sock=new sockets();
+						$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+						$newmd5=md5("$extcat$sitename");
+						$category_table="category_".$this->category_transform_name($extcat);
+						$this->QUERY_SQL("INSERT IGNORE INTO categorize_changes (zmd5,sitename,category) VALUES('$newmd5','$sitename','$extcat')");
+						$this->QUERY_SQL("INSERT IGNORE INTO $category_table (zmd5,zDate,category,pattern,uuid) VALUES('$newmd5',NOW(),'$extcat','$sitename','$uuid')");
+						$this->QUERY_SQL("DELETE FROM webtests WHERE sitename='$sitename'");				
+						$cat[]=$extcat;
+					}else{
+						$GLOBALS["CATEGORIZELOGS"][]="TREND FAILED";
+					}
+				}	
+			}
 		}		
 		
 		
@@ -2605,6 +2643,10 @@ public function CheckTables($table=null){
 	
 	
 	public function GetFamilySites($sitename){
+		if(function_exists("debug_mem")){debug_mem();}
+		include_once(dirname(__FILE__).'/effectiveTLDs.inc.php');
+		if(function_exists("debug_mem")){debug_mem();}
+		include_once(dirname(__FILE__).'/regDomain.inc.php');		
 		if(strpos(" $sitename", ".")==0){return $sitename;}
 		
 		
@@ -2979,7 +3021,7 @@ private function CategoriesFamily($www){
 		}
 		$tableblock=str_replace("_blocked_week_blocked_week", "_blocked_week", $tableblock);
 		if(!$this->TABLE_EXISTS($tableblock)){		
-			$sql="CREATE TABLE `$tableblock` (
+			$sql="CREATE TABLE IF NOT EXISTS `$tableblock` (
 			  `zMD5` VARCHAR(100) NOT NULL,
 			  `day` INT(2) NOT NULL ,
 			  `hits` BIGINT(100) NOT NULL ,
@@ -3006,7 +3048,9 @@ private function CategoriesFamily($www){
 			  KEY `why` (`why`)
 			)"; 
 			$this->QUERY_SQL($sql); 
-			if(!$this->ok){writelogs("$this->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			if(!$this->ok){
+				writelogs("$this->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				
 			$this->mysql_error=$this->mysql_error."\n$sql";return false;}else{writelogs("Checking $tableblock SUCCESS",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
 			}
 

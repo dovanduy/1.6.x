@@ -10,14 +10,16 @@ if(count($_GET)>0){
 
 
 function refresh_service_status(){
-	
-	if(GET_CACHED(__FILE__, __FUNCTION__,md5($_GET["refresh-service-status"]),false,1)){
-		return;
+	if(!$GLOBALS["VERBOSE"]){
+		if(GET_CACHED(__FILE__, __FUNCTION__,md5($_GET["refresh-service-status"]),false,1)){return;}
 	}
+	
+	$refresh["C-ICAP"]="APP_C_ICAP";
 	
 	if(preg_match("#SERVICE-STATUS-ROUND-(.+)#", $_GET["refresh-service-status"],$re)){
 		$tpl=new templates();
 		$key=$re[1];
+		if($GLOBALS["VERBOSE"]){echo "Prod: $key\n<br>";}
 		$content=GetIniContent($key);
 		if($content==null){
 			if(!is_file("ressources/logs/global.status.ini")){return;}
@@ -26,7 +28,7 @@ function refresh_service_status(){
 			$bsini=new Bs_IniHandler();
 			$bsini->loadString($content);
 		}
-		if($bsini->_params["$key"]["service_name"]==null){return null;}
+		if($bsini->_params[$key]["service_name"]==null){return null;}
 		$prod=$bsini->_params[$key]["service_name"];
 		$status=DAEMON_STATUS_ROUND($key,$bsini);
 		$html=$tpl->_ENGINE_parse_body($status);
@@ -40,7 +42,7 @@ function GetIniContent($PRODUCT){
 	$array["SQUID"]["SQUID"]=true;
 	$array["SQUID"]["DANSGUARDIAN"]=true;
 	$array["SQUID"]["KAV4PROXY"]=true;
-	$array["SQUID"]["C-ICAP"]=true;
+	
 	$array["SQUID"]["APP_PROXY_PAC"]=true;
 	$array["SQUID"]["APP_SQUIDGUARD_HTTP"]=true;
 	$array["SQUID"]["APP_UFDBGUARD"]=true;
@@ -54,7 +56,22 @@ function GetIniContent($PRODUCT){
 		return $datas;
 		
 	}
-
+	
+	if($GLOBALS["VERBOSE"]){echo "Prod: $PRODUCT\n<br>";}
+	
+	$array["PP"]["C-ICAP"]="APP_C_ICAP";
+	$array["PA"]["C-ICAP"]="cmd.php?cicap-ini-status=yes";
+	
+	if(isset($array["PA"][$PRODUCT])){
+		$filecache="ressources/logs/web/{$array["PP"][$PRODUCT]}.status";
+		if(is_file($filecache)){if(zfile_time_min($filecache)<1){return @file_get_contents($filecache);}}
+		$sock=new sockets();
+		$datas=base64_decode($sock->getFrameWork($array["PA"][$PRODUCT]));
+		@unlink($filecache);
+		@file_put_contents($filecache, $datas);
+		return $datas;
+	}
+	
 	
 }
 

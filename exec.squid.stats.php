@@ -4,6 +4,13 @@ $GLOBALS["REBUILD"]=false;
 $GLOBALS["OLD"]=false;
 $GLOBALS["FORCE"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
+if(is_array($argv)){
+	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;}
+	if(preg_match("#--old#",implode(" ",$argv))){$GLOBALS["OLD"]=true;}
+	if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+	if(preg_match("#--rebuild#",implode(" ",$argv))){$GLOBALS["REBUILD"]=true;}
+}
+if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ccurl.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
@@ -13,43 +20,42 @@ include_once(dirname(__FILE__).'/ressources/class.squid.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
-
 WriteMyLogs("commands= ".implode(" ",$argv),"MAIN",__FILE__,__LINE__);
-
-
 $GLOBALS["Q"]=new mysql_squid_builder();
-if(is_array($argv)){
-	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
-	if(preg_match("#--old#",implode(" ",$argv))){$GLOBALS["OLD"]=true;}
-	if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
-	if(preg_match("#--rebuild#",implode(" ",$argv))){$GLOBALS["REBUILD"]=true;}
-	
-	
-}
-if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 $unix=new unix();
 $GLOBALS["CLASS_UNIX"]=$unix;
-events("Executed " .@implode(" ",$argv));
+events("Params: " .@implode(" ",$argv));
 $sock=new sockets();
-
 if($argv[1]=='--clean-catz-cache'){$GLOBALS["Q"]->QUERY_SQL("TRUNCATE TABLE webfilters_categories_caches");die();}
 
-if(!is_dir("/var/log/artica-postfix/artica-squid-events")){@mkdir("/var/log/artica-postfix/artica-squid-events",644,die());}
+if(!is_dir("/var/log/artica-postfix/artica-squid-events")){
+	@mkdir("/var/log/artica-postfix/artica-squid-events",644,true);
+	die();
+}
 $squidEnableRemoteStatistics=$sock->GET_INFO("squidEnableRemoteStatistics");
-if(!is_numeric($squidEnableRemoteStatistics)){$squidEnableRemoteStatistics=0;}
-if($squidEnableRemoteStatistics==1){events("this server is not in charge of statistics...");die();}
 $DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+if(!is_numeric($squidEnableRemoteStatistics)){$squidEnableRemoteStatistics=0;}
+
+if($squidEnableRemoteStatistics==1){
+		events("this server is not in charge of statistics...");
+		die();
+}
+
+
+
 if($DisableArticaProxyStatistics==1){ufdbguard_admin_events("Statistics are disabled in this configuration (DisableArticaProxyStatistics)","MAIN",__FILE__,__LINE__);die();}
 
 
 if(!ifMustBeExecuted()){
+	WriteMyLogs("This server is not in charge of statistics","MAIN",__FILE__,__LINE__);
 	if($GLOBALS["VERBOSE"]){echo "this server is not in charge of statistics (categories repositories or Statistics Appliance) ...\n";}
-	events("this server is not in charge of statistics (categories repositories or Statistics Appliance) ...");die();
+	events("this server is not in charge of statistics (categories repositories or Statistics Appliance) ...");
+	die();
 }
 
 if($GLOBALS["VERBOSE"]){echo "LAUNCH: '{$argv[1]}'\n";}
-
+if($argv[1]=='--repair-hours'){repair_hours();if($GLOBALS["VERBOSE"]){echo "END: '{$argv[1]}'\n";}exit;} # Recherche les tables squidhour_* et les réinjectes.
 if($argv[1]=='--defrag'){defragment_category_tables();exit;}
 if($argv[1]=='--defragtable'){defragment_category_table($argv[2]);exit;}
 if($argv[1]=='--rangetables'){rangetables();exit;}
@@ -92,6 +98,7 @@ if($argv[1]=='--webcacheperfs'){webcacheperfs();exit;}
 if($argv[1]=='--visited-days'){visited_websites_by_day();exit;}
 if($argv[1]=='--repair-categories'){RepairCategoriesBases();exit;}
 if($argv[1]=='--members-central'){members_central();exit;}
+
 
 
 
@@ -523,8 +530,9 @@ function flow_month($nopid=false){
 
 function visited_websites_by_day($nopid=false){
 	$unix=new unix();
+	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	if($nopid){
+	if(!$nopid){
 		$oldpid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
 		if($unix->process_exists($oldpid,$myfile)){
@@ -1839,6 +1847,10 @@ function _table_hours_perform($tablename){
 		if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
 	}
 	
+	
+	
+
+	
 	return true;
 	
 }
@@ -1863,7 +1875,7 @@ function week_uris($asPid=false){
 			return;
 		}
 	}	
-	visited_websites_by_day();
+	visited_websites_by_day(true);
 	$sql="SELECT tablename,DATE_FORMAT( zDate, '%Y%m%d' ) AS tablesource, DAYOFWEEK(zDate) as DayNumber,WEEK( zDate ) AS tweek, YEAR( zDate ) AS tyear FROM tables_day WHERE weekdone =0 AND zDate < DATE_SUB( NOW( ) , INTERVAL 1 DAY ) ORDER BY zDate";
 	
 	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
@@ -2742,6 +2754,52 @@ function users_size_hour(){
 	}
 	
 	scan_hours(true);
+	
+}
+
+function repair_hours(){
+	$unix=new unix();
+	if($GLOBALS["VERBOSE"]){echo "Starting ".__FUNCTION__."\n";}
+	$q=new mysql_squid_builder();
+	$CurrentHourTable="squidhour_".date("YmdH");
+	if($GLOBALS["VERBOSE"]){echo "Find hours tables...\n";}
+	$tables=$q->LIST_TABLES_HOURS_TEMP();
+	$c=0;
+	if($GLOBALS["VERBOSE"]){echo "Find hours tables done ". count($tables)." table(s)...\n";}
+	while (list ($table, $none) = each ($tables) ){
+		if($table==$CurrentHourTable){if($GLOBALS["VERBOSE"]){echo "SKIP `$table`\n";}continue;}
+		if($GLOBALS["VERBOSE"]){echo "Analyze: $table\n";}
+		if(!preg_match("#squidhour_([0-9]+)#",$table,$re)){continue;}
+		$hour=$re[1];
+		$year=substr($hour,0,4);
+		$month=substr($hour,4,2);
+		$day=substr($hour,6,2);		
+		
+		
+		if(_table_hours_perform($table)){
+			$c++;
+			$took=$unix->distanceOfTimeInWords($t,time());
+			$q->QUERY_SQL("DROP TABLE `$table`");
+			writelogs_squid("success analyze $table in $took",__FUNCTION__,__FILE__,__LINE__,"stats");
+		}		
+		
+		
+		$dansguardian_table="dansguardian_events_$year$month$day";
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT tablename FROM  tables_day WHERE tablename='$dansguardian_table'"));
+		if($ligne["tablename"]==null){
+			$sql="INSERT IGNORE INTO tables_day (tablename,zDate) VALUES ('$dansguardian_table','$year-$month-$day')";
+		}else{
+			$sql="UPDATE tables_day SET Hour=0,members=0,month_members=0,weekdone=0 WHERE tablename='$dansguardian_table'";
+		}
+		$q->QUERY_SQL($sql);
+	}
+	
+	if($c>0){
+		ufdbguard_admin_events("Success repair $c tables ",__FUNCTION__,__FILE__,__LINE__,"stats");
+		week_uris();
+		week_uris_blocked();
+	}
+	
 	
 }
 

@@ -128,6 +128,7 @@ Les fonctionnalit&eacute;s affich&eacute;es ne sont pas appliqu&eacute;es &agrav
 <and_only_when_downloading_files_with_extension>et seulement lors du t&eacute;l&eacute;chargement de certains types de fichiers</and_only_when_downloading_files_with_extension>
 <anonymous_browsing>Navigation anonyme</anonymous_browsing>
 <anonymous_browsing_explain>Vous d&eacute;sirez emp&ecirc;cher les navigateurs d'&eacute;mettre des informations sensibles telles que le type de syst&egrave;me d'exploitation, version du navigateur, date ou heure, page de r&eacute;f&eacute;rence...</anonymous_browsing_explain>
+<antivirus_parameters>Param&egrave;tres antivirus</antivirus_parameters>
 <ApacheLogRotate>Activer la rotation des logs par serveur</ApacheLogRotate>
 <ApacheLogRotate_explain>Effectue une rotation des fichiers de logs avec les param&egrave;tres sp&eacute;cifi&eacute;s.</ApacheLogRotate_explain>
 <appliances>Appliances</appliances>
@@ -1493,6 +1494,10 @@ Il sont marqu&eacute;s pour suppression et l'utilisateur ne les visualise plus.[
 <squid_band_aclgroup_restriction_text>Liste des Proxy ACLs qui vont utiliser cette r&egrave;gle</squid_band_aclgroup_restriction_text>
 <squid_booster>Proxy booster</squid_booster>
 <squid_booster_text>Le mode Proxy booster vous permet d'activer un cache proxy qui sera uniquement plac&eacute; en m&eacute;moire afin d%u2019acc&eacute;l&eacute;rer les acc&egrave;s au cache.[br]En effet un disque dur avoisine les 300Mb/s alors que la m&eacute;moire est &agrave; plus de 3800Mb/s</squid_booster_text>
+<squid_check_lost_tables>V&eacute;rifie les tables horaires perdues.</squid_check_lost_tables>
+<squid_check_lost_tables_explain>Artica g&eacute;n&egrave;re les logs d'acc&egrave;s pour chaque heure.[br]
+Si les serveurs est charg&eacute;, les statistiques horaires ne seront pas calcul&eacute;s.[br]
+Cette t&acirc;che parcours les tables horaires non trait&eacute;es et injecte les donn&eacute;es pour un nouveau cycle.</squid_check_lost_tables_explain>
 <squid_csv_logs>&Eacute;v&egrave;nements temps r&eacute;el en CSV</squid_csv_logs>
 <squid_csv_logs_explain>Sauvegardez les &eacute;v&egrave;nements au format CSV afin de jouer avec les logs avec un logiciel qui comprend le format CSV comme Microsoft Excel ou OpenOffice.</squid_csv_logs_explain>
 <squid_ext_session_acl_not_found_explain>Le binaire de gestion de session n'a pas &eacute;t&eacute; trouv&eacute; sur votre serveur.Cette fonctionnalit&eacute; ne fonctionnera pas.</squid_ext_session_acl_not_found_explain>

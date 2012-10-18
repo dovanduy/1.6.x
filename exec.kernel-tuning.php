@@ -51,6 +51,8 @@ if(!is_array($DEFAULTS)){
 	
 	while (list ($key, $value) = each ($DEFAULTS) ){
 		echo "{$GLOBALS["PREFIX_OUPUT"]} tuning $key = `$value`\n";
+		if($value==null){continue;}
+		if($key=="vm.vfs_cache_pressure"){continue;}
 		$SYSCTLCONF[$key]=$value;
 		$cmd[]="$sysctl -w $key=$value";
 		
@@ -63,16 +65,16 @@ if(!is_array($DEFAULTS)){
 	if(count($ARRAY)<2){echo "{$GLOBALS["PREFIX_OUPUT"]} tuning (squid) not set..\n";}
 	if(count($ARRAY)>2){
 		$SYSCTLCONF["vm.swappiness"]=$ARRAY["swappiness"];
-		$SYSCTLCONF["vm.vfs_cache_pressure"]=$ARRAY["vfs_cache_pressure"];
+		//$SYSCTLCONF["vm.vfs_cache_pressure"]=$ARRAY["vfs_cache_pressure"];
 		$SYSCTLCONF["vm.overcommit_memory"]=$ARRAY["overcommit_memory"];
 		$SYSCTLCONF["net.ipv4.tcp_max_syn_backlog"]=$ARRAY["tcp_max_syn_backlog"];
 		echo "{$GLOBALS["PREFIX_OUPUT"]} tuning vm.swappiness={$ARRAY["swappiness"]}\n";
-		echo "{$GLOBALS["PREFIX_OUPUT"]} tuning vm.vfs_cache_pressure={$ARRAY["vfs_cache_pressure"]}\n";
+		//echo "{$GLOBALS["PREFIX_OUPUT"]} tuning vm.vfs_cache_pressure={$ARRAY["vfs_cache_pressure"]}\n";
 		echo "{$GLOBALS["PREFIX_OUPUT"]} tuning vm.overcommit_memory={$ARRAY["overcommit_memory"]}\n";
 		echo "{$GLOBALS["PREFIX_OUPUT"]} tuning net.ipv4.tcp_max_syn_backlog={$ARRAY["tcp_max_syn_backlog"]}\n";
 		
 		$cmd[]="$sysctl -w vm.swappiness={$ARRAY["swappiness"]}";
-		$cmd[]="$sysctl -w vm.vfs_cache_pressure={$ARRAY["vfs_cache_pressure"]}";
+		$cmd[]="$sysctl -w vm.vfs_cache_pressure=100";
 		$cmd[]="$sysctl -w vm.overcommit_memory={$ARRAY["overcommit_memory"]}";
 		$cmd[]="$sysctl -w net.ipv4.tcp_max_syn_backlog={$ARRAY["tcp_max_syn_backlog"]}";
 	}
@@ -80,6 +82,7 @@ if(!is_array($DEFAULTS)){
 	if(count($cmd)==0){die();}
 	
 	while (list ($num, $ligne) = each ($SYSCTLCONF) ){
+		if($ligne==null){continue;}
 		$tt[]="$num=$ligne";
 		
 	}

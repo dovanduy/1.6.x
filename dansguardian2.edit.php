@@ -1996,7 +1996,8 @@ function blacklist_list(){
 	if(!$q->TABLE_EXISTS($tableProd)){$q->CheckTables();}
 	$sql="SELECT `category` FROM $tableProd WHERE `webfilter_id`={$_GET["RULEID"]} AND modeblk={$_GET["modeblk"]}";
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><code style='font-size:11px'>$sql</code>";}	
+	if(!$q->ok){json_error_show("$q->mysql_error",1);}
+	
 	
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$cats[$ligne["category"]]=true;

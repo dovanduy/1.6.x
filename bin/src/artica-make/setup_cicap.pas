@@ -75,20 +75,9 @@ begin
   squid:=Tsquid.Create;
   dans:=tdansguardian.Create(SYS);
   install.INSTALL_PROGRESS('APP_C_ICAP','{checking}');
-
-
-    if not FileExists(squid.SQUID_BIN_PATH()) then begin
-         install.INSTALL_PROGRESS('APP_C_ICAP','{failed}');
-         install.INSTALL_STATUS('APP_C_ICAP',110);
-         writeln('Unable to stat squid');
-         exit;
-    end;
-
-
-
-
-  install.INSTALL_PROGRESS('APP_C_ICAP','{downloading}');
   install.INSTALL_STATUS('APP_C_ICAP',30);
+  install.INSTALL_PROGRESS('APP_C_ICAP','{downloading}');
+  install.INSTALL_STATUS('APP_C_ICAP',35);
   SetCurrentDir('/root');
 
 

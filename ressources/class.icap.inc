@@ -23,6 +23,10 @@ class icap{
 	var $KavICAPRemoteAddr=null;
 	var $KavICAPRemotePort=0;	
 	var $enable_metascanner=0;
+	var $EnableRemoteStatisticsAppliance=0;
+	var $RemoteApplianceServer=null;
+	var $CicapEnabled=0;
+	var $IcapServerAddress="127.0.0.1";
 	
 	function icap(){
 		$users=new usersMenus();
@@ -35,7 +39,7 @@ class icap{
 		$this->enable_cicap=$sock->GET_INFO('CicapEnabled');
 		$this->enable_kavproxy=$sock->GET_INFO('kavicapserverEnabled');
 		$this->enable_squidguard=$sock->GET_INFO('squidGuardEnabled');
-		
+		$this->EnableRemoteStatisticsAppliance=$sock->GET_INFO('EnableRemoteStatisticsAppliance');
 		
 		$this->EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
 		$this->EnableSquidGuardInCiCAP=$sock->GET_INFO("EnableSquidGuardInCiCAP");
@@ -49,7 +53,8 @@ class icap{
 		if(!is_numeric($this->enable_kavproxy)){$this->enable_kavproxy=0;}
 		if(!is_numeric($this->EnableKavICAPRemote)){$this->EnableKavICAPRemote=0;}
 		if(!is_numeric($this->enable_metascanner)){$this->enable_metascanner=0;}			
-		if(!is_numeric($this->EnableClamavInCiCap)){$this->EnableClamavInCiCap=0;}
+		if(!is_numeric($this->EnableClamavInCiCap)){$this->EnableClamavInCiCap=1;}
+		if(!is_numeric($this->EnableRemoteStatisticsAppliance)){$this->EnableRemoteStatisticsAppliance=0;}
 		if(!is_numeric($this->EnableSquidGuardInCiCAP)){$this->EnableSquidGuardInCiCAP=0;$sock->SET_INFO("EnableSquidGuardInCiCAP","0");}
 		
 		
@@ -71,6 +76,16 @@ class icap{
 		if(!$users->C_ICAP_INSTALLED){$this->enable_cicap=0;}
 		if(!$users->SQUIDGUARD_INSTALLED){$this->EnableSquidGuardInCiCAP=0;}
 		if($this->EnableKavICAPRemote==1){$this->enable_kavproxy=1;}
+		
+		if($this->EnableRemoteStatisticsAppliance==1){
+			$this->CicapEnabled=$sock->GET_INFO("CicapEnabled");
+			if(!is_numeric($this->CicapEnabled)){$this->CicapEnabled=0;}
+			$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
+			$this->RemoteApplianceServer=$RemoteStatisticsApplianceSettings["SERVER"];
+			$this->IcapServerAddress=$this->RemoteApplianceServer;
+			if($this->ASROOT){echo "Starting......: [ICAP]: Using remote appliance {$this->RemoteApplianceServer} as Web Antivirus engine\n";}
+		}			
+		
 		
 		$this->buildCicapConfig();
 		
@@ -116,11 +131,11 @@ class icap{
 		
 		$kav_rules[]="# --------- icap_service C-ICAP (mode 3.0.x)";
 		
-		if($this->EnableSquidGuardInCiCAP==1){$kav_rules[]="icap_service\tservice_req reqmod_precache O icap://127.0.0.1:1345/srv_url_check";}
+		if($this->EnableSquidGuardInCiCAP==1){$kav_rules[]="icap_service\tservice_req reqmod_precache O icap://$this->IcapServerAddress:1345/srv_url_check";}
 		if(!$users->KASPERSKY_WEB_APPLIANCE){
-			if($this->EnableClamavInCiCap==1){$kav_rules[]="icap_service\tservice_avi respmod_precache 1 icap://127.0.0.1:1345/srv_clamav";}
+			if($this->EnableClamavInCiCap==1){$kav_rules[]="icap_service\tservice_avi respmod_precache 1 icap://$this->IcapServerAddress:1345/srv_clamav";}
 		}
-		if($this->enable_metascanner==1){$kav_rules[]="icap_service\tservice_khse respmod_precache 1 icap://127.0.0.1:1345/khse";}		
+		if($this->enable_metascanner==1){$kav_rules[]="icap_service\tservice_khse respmod_precache 1 icap://$this->IcapServerAddress:1345/khse";}		
 		
 		
 		$kav_rules[]="";
@@ -157,7 +172,7 @@ class icap{
 				return;
 			}
 		
-		$IpAddrr="127.0.0.1";$port=1344;
+		$IpAddrr=$this->IcapServerAddress;$port=1344;
 		if($this->EnableKavICAPRemote==1){$IpAddrr=$this->KavICAPRemoteAddr;$port=$this->KavICAPRemotePort;}
 		if($this->EnableKavICAPRemote==0){$kav=new Kav4Proxy();if(preg_match("#(.+?):([0-9]+)#", $kav->main_array["ListenAddress"],$re)){$IpAddrr=$re[1];$port=$re[2];}}
 		
@@ -196,7 +211,7 @@ class icap{
 		if($this->enable_cicap<>1){return null;}
 		$sock=new sockets();
 		$DisableCicapDNBSL=$sock->GET_INFO("DisableCicapDNBSL");
-		if(!is_numeric($DisableCicapDNBSL)){$DisableCicapDNBSL=0;}		
+		if(!is_numeric($DisableCicapDNBSL)){$DisableCicapDNBSL=1;}		
 		$kav_rules[]="# --------- adaptation for C-ICAP service";
 		$kav_rules[]="";
 		$class_url_check=FALSE;
@@ -319,7 +334,7 @@ class icap{
 		if($this->enable_cicap<>1){return null;}
 		$sock=new sockets();
 		$DisableCicapDNBSL=$sock->GET_INFO("DisableCicapDNBSL");
-		if(!is_numeric($DisableCicapDNBSL)){$DisableCicapDNBSL=0;}			
+		if(!is_numeric($DisableCicapDNBSL)){$DisableCicapDNBSL=1;}			
 		
 		if($this->ASROOT){echo "Starting......: Squid activating C-ICAP\n";}
 		$kav_rules[]="# --------- icap_service C-ICAP mode 3.1.x";
@@ -330,7 +345,7 @@ class icap{
 				$this->ICAP_SERVICES_COUNT=$this->ICAP_SERVICES_COUNT+1;
 				$class_url_check=true;
 				$kav_rules[]="# --------- icap_service C-ICAP + SquidGuard";
-				$kav_rules[]="icap_service\tservice_url_check reqmod_precache routing=on bypass=on icap://127.0.0.1:1345/url_check";
+				$kav_rules[]="icap_service\tservice_url_check reqmod_precache routing=on bypass=on icap://$this->IcapServerAddress:1345/url_check";
 				}
 			}
 			
@@ -339,7 +354,7 @@ class icap{
 			if($DisableCicapDNBSL==0){
 				$this->ICAP_SERVICES_COUNT=$this->ICAP_SERVICES_COUNT+1;
 				$kav_rules[]="# --------- icap_service C-ICAP + DNSBL";
-				$kav_rules[]="icap_service\tservice_url_check reqmod_precache routing=on bypass=on icap://127.0.0.1:1345/url_check";				
+				$kav_rules[]="icap_service\tservice_url_check reqmod_precache routing=on bypass=on icap://$this->IcapServerAddress:1345/url_check";				
 			}
 		}
 
@@ -351,7 +366,7 @@ class icap{
 					$modules_path=$this->LOCATE_C_ICAP_MODULES_DIR();
 					if(is_file("$modules_path/srv_clamav.so")){
 						$this->ICAP_SERVICES_COUNT=$this->ICAP_SERVICES_COUNT+1;
-						$kav_rules[]="icap_service  service_antivir respmod_precache routing=on bypass=on icap://127.0.0.1:1345/srv_clamav";
+						$kav_rules[]="icap_service  service_antivir respmod_precache routing=on bypass=on icap://$this->IcapServerAddress:1345/srv_clamav";
 						}
 					}
 				}
@@ -360,7 +375,7 @@ class icap{
 	   if($this->enable_metascanner==1){
 	   		if(is_file("/opt/kaspersky/khse/libexec/libms-icap.so")){
 	   			$this->ICAP_SERVICES_COUNT=$this->ICAP_SERVICES_COUNT+1;
-	   			$kav_rules[]="icap_service  khse respmod_precache routing=on bypass=on icap://127.0.0.1:1345/khse";
+	   			$kav_rules[]="icap_service  khse respmod_precache routing=on bypass=on icap://$this->IcapServerAddress:1345/khse";
 	   		}
 	   }		
 			
@@ -378,7 +393,7 @@ class icap{
 		$this->ICAP_SERVICES_COUNT=$this->ICAP_SERVICES_COUNT+1;
 		if($this->ASROOT){echo "Starting......: Squid adaptation enabled\n";}
 		
-		$IpAddrr="127.0.0.1";$port=1344;
+		$IpAddrr=$this->IcapServerAddress;$port=1344;
 		if($this->EnableKavICAPRemote==1){$IpAddrr=$this->KavICAPRemoteAddr;$port=$this->KavICAPRemotePort;}
 		if($this->EnableKavICAPRemote==0){$kav=new Kav4Proxy();if(preg_match("#(.+?):([0-9]+)#", $kav->main_array["ListenAddress"],$re)){$IpAddrr=$re[1];$port=$re[2];}}
 		

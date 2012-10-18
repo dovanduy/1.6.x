@@ -1,5 +1,5 @@
 <?php
-if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -1027,16 +1027,18 @@ function all_status(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$ini=new Bs_IniHandler();
+	$ini2=new Bs_IniHandler();
 	$tpl=new templates();
 	$users=new usersMenus();
 
 	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?squid-ini-status=yes')));
-
-
+	$ini2->loadString(base64_decode($sock->getFrameWork('cmd.php?cicap-ini-status=yes')));
+	
+	
 	$squid_status=DAEMON_STATUS_ROUND("ID:SQUID",$ini,null,1);
 	$dansguardian_status=DAEMON_STATUS_ROUND("ID:DANSGUARDIAN",$ini,null,1);
 	$kav=DAEMON_STATUS_ROUND("ID:KAV4PROXY",$ini,null,1);
-	$cicap=DAEMON_STATUS_ROUND("ID:C-ICAP",$ini,null,1);
+	$cicap=DAEMON_STATUS_ROUND("ID:C-ICAP",$ini2,null,1);
 	$APP_PROXY_PAC=DAEMON_STATUS_ROUND("ID:APP_PROXY_PAC",$ini,null,1);
 	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_ROUND("ID:APP_SQUIDGUARD_HTTP",$ini,null,1);
 	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("ID:APP_UFDBGUARD",$ini,null,1);
@@ -1065,6 +1067,13 @@ function all_status(){
 		}
 		
 	}
+	
+	$CicapEnabled=0;
+	if($users->C_ICAP_INSTALLED){
+		$CicapEnabled=$sock->GET_INFO("CicapEnabled");
+		if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
+	}
+	
 	$tr[]=$squid_status;
 	$tr[]=$dansguardian_status;
 	$tr[]=$kav;
@@ -1122,6 +1131,20 @@ function all_status(){
 		</tr>	
 	";
 	}
+	
+	if($CicapEnabled==1){
+		$cicapButt="
+			<tr>
+		<td width=1%><img src='img/icon-antivirus-32.png'></td>
+		<td nowrap><a href=\"javascript:blur();\" 
+		OnClick=\"javascript:Loadjs('c-icap.index.php');\" 
+		style='font-size:12px;text-decoration:underline'>{antivirus_parameters}</a></td>
+		</tr>	
+	";		
+		
+	}
+	
+	
 	
 
 $supportpckg="
@@ -1204,6 +1227,7 @@ if($users->WEBSTATS_APPLIANCE){
 	</td>
 	<td valign='top' width='50%'>
 		<table style='width:100%'>
+			$cicapButt
 			$current_sessions
 		</table>
 	</td>

@@ -14,6 +14,12 @@ include_once(dirname(__FILE__).'/ressources/class.squid.remote-stats-appliance.i
 
 //include_once(dirname(__FILE__).'/ressources/class.sugaractions.inc');
 
+$unix=new unix();
+print_r($unix->proc_exec("ls -la"));
+
+return;
+
+
 
 echo REGISTER_LICENSE_GENERATE_STRING("tototoot")."\n";return;
 

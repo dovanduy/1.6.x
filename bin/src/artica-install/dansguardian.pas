@@ -32,6 +32,7 @@ private
      username:string;
      SQUIDEnable:integer;
      EnableStatisticsCICAPService:integer;
+     EnableRemoteStatisticsAppliance:integer;
      TAIL_STARTUP:string;
      function LOCATE_C_ICAP_CONFIG():string;
      function GET_VALUE_DATA(conf_path:string;key:string):string;
@@ -104,6 +105,8 @@ begin
        if not TryStrToInt(SYS.GET_INFO('DansGuardianEnableUserFrontEnd'),DansGuardianEnableUserFrontEnd) then DansGuardianEnableUserFrontEnd:=1;
        if not TryStrToInt(SYS.GET_INFO('SQUIDEnable'),SQUIDEnable) then SQUIDEnable:=1;
        if not TryStrToInt(SYS.GET_INFO('EnableStatisticsCICAPService'),EnableStatisticsCICAPService) then EnableStatisticsCICAPService:=1;
+       if not TryStrToInt(SYS.GET_INFO('EnableRemoteStatisticsAppliance'),EnableRemoteStatisticsAppliance) then EnableRemoteStatisticsAppliance:=0;
+
 
 
 
@@ -117,11 +120,14 @@ begin
           CicapEnabled:=1;
           if EnableStatisticsCICAPService=0 then CicapEnabled:=0;
        end;
-       if not SYS.ISMemoryHiger1G() then begin
+       if EnableRemoteStatisticsAppliance=0 then begin
+        if not SYS.ISMemoryHiger1G() then begin
               if CicapEnabled=1 then logs.Syslogs('Starting......: Fatal Memory is under 1G, C-ICAP will be disabled');
               SYS.set_INFO('CicapEnabled','0');
               CicapEnabled:=0;
+        end;
        end;
+
 
 
        if not DirectoryExists('/usr/share/artica-postfix') then begin
@@ -550,6 +556,11 @@ if CicapEnabled=0 then begin
      exit;
 end;
 
+ if EnableRemoteStatisticsAppliance=1 then begin
+     logs.Debuglogs('Starting......: c-icap is disabled it using the remote appliance "EnableRemoteStatisticsAppliance" token ...');
+     C_ICAP_STOP();
+     exit;
+ end;
 
 PID:= C_ICAP_PID();
 

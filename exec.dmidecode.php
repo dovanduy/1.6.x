@@ -89,18 +89,14 @@ $final_array["CHASSIS"]=$chassisManufacturer;
 $final_array["PROCESSORS"]=count($PROCS);
 $final_array["MHZ"]=$PROCS[0]["MHZ"];
 $final_array["PROC_TYPE"]=$PROCS[0]["MODEL"];
-
-if(is_file($virtwhat)){
-	exec("$virtwhat 2>&1",$virtwhatA);
-	$virtwhatB=trim(@implode(" ", $virtwhatA));
-	if(preg_match("#^(.+?)\s+#", $virtwhatB,$re)){$virtwhatB=$re[1];}
-	if($virtwhatB<>null){
-		if($GLOBALS["VERBOSE"]){echo "$virtwhat -> $virtwhatB\n";}
+$virtwhatB=virtwhat();
+if($virtwhatB<>null){
+	
 		$final_array["MANUFACTURER"]=$virtwhatB;
 		$final_array["PRODUCT"]=$virtwhatB;
 		$final_array["CHASSIS"]=$virtwhatB;
 	}
-}
+
 
 if($GLOBALS["VERBOSE"]){print_r($final_array);}
 $newdatas=urlencode(base64_encode(serialize($final_array)));
@@ -108,4 +104,16 @@ $newdatas=urlencode(base64_encode(serialize($final_array)));
 @file_put_contents("/etc/artica-postfix/dmidecode.cache.url",$newdatas);
 
 
-
+function virtwhat(){
+	$unix=new unix();
+	$virtwhat=$unix->find_program("virt-what");	
+	if(!is_file($virtwhat)){return;}
+	$virtwhatA=$unix->proc_exec($virtwhat);
+	$virtwhatB=trim(@implode(" ", $virtwhatA));
+	if($GLOBALS["VERBOSE"]){echo "Found: $virtwhatB\n";}
+	if(preg_match("#^(.+?)\s+#", $virtwhatB,$re)){$virtwhatB=$re[1];}
+	if($GLOBALS["VERBOSE"]){echo "Found: $virtwhatB\n";}
+	if($virtwhatB==null){return;}
+	return $virtwhatB;
+	
+}

@@ -2,35 +2,33 @@
 if(!isset($GLOBALS["EXECUTED_AS_ROOT"])){if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();if($GLOBALS["posix_getuid"]==0){$GLOBALS["EXECUTED_AS_ROOT"]=true;}else{$GLOBALS["EXECUTED_AS_ROOT"]=false;}}}
 if(!isset($GLOBALS["DEBUG_MEM"])){$GLOBALS["DEBUG_MEM"]=false;}
 if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.templates.inc START -> ".round(((memory_get_usage()/1024)/1000),2) ."M ".__LINE__);}
-if(!isset($GLOBALS["DEBUG_INCLUDES"])){$GLOBALS["DEBUG_INCLUDES"]=false;}
+debug_mem();
 if(isset($_GET["debug-page"])){	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(!$GLOBALS["EXECUTED_AS_ROOT"]){if(isset($GLOBALS["KAV4PROXY_NOSESSION"])){if(!$GLOBALS["KAV4PROXY_NOSESSION"]){session_start();}}}
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/class.sockets.inc\n";}
+debug_mem();
 include_once(dirname(__FILE__) . "/class.sockets.inc");
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.templates.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M : after class.sockets.inc".__LINE__);}
+debug_mem();
 date_default_timezone_set(getLocalTimezone());
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/class.ldap.inc\n";}
+debug_mem();
 include_once(dirname(__FILE__) . '/class.ldap.inc');
-if($GLOBALS["DEBUG_MEM"]){events("Memory:class.templates.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M : after class.ldap.inc".__LINE__);}
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/logs.inc\n";}
+debug_mem();
 if(!function_exists("writelogs")){include_once(dirname(__FILE__) . '/logs.inc');}
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.templates.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M : after logs.inc".__LINE__);}
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/class.users.menus.inc\n";}
+debug_mem();
 if(is_file(dirname(__FILE__) . '/class.users.menus.inc')){include_once(dirname(__FILE__) . '/class.users.menus.inc');}
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.templates.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M : after class.users.menus.inc".__LINE__);}
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/class.os.system.inc\n";}
+debug_mem();
 include_once(dirname(__FILE__).  '/class.os.system.inc');
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.templates.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M : after class.os.system.inc".__LINE__);}
+debug_mem();
 if(is_file(dirname(__FILE__) . '/class.privileges.inc')){include_once(dirname(__FILE__).  '/class.privileges.inc');}
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.templates.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M : after class.privileges.inc".__LINE__);}
+debug_mem();
 if(is_file(dirname(__FILE__) . '/class.html.tools.inc')){include_once(dirname(__FILE__).  '/class.html.tools.inc');}
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.templates.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M : after class.html.tools.inc".__LINE__);}
+debug_mem();
 include_once(dirname(__FILE__).  '/class.ini.inc');
+debug_mem();
 include_once(dirname(__FILE__).  '/class.mysql.inc');
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.templates.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M : after class.ini.inc".__LINE__);}
+debug_mem();
 CheckSessions();
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.templates.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M : after CheckSessions()".__LINE__);}
+debug_mem();
+
 
 
 $GLOBALS['_DLANG']='en';
@@ -462,12 +460,17 @@ class templates{
 			$this->top_menus=null;
 			}
 			
-		if(isset($_COOKIE["artica-template"])){if($GLOBALS["VERBOSE"]){echo "Template: {$_COOKIE["artica-template"]}\n";}}else{$_COOKIE["artica-template"]=null;}
+		if(isset($_COOKIE["artica-template"])){
+			if($GLOBALS["VERBOSE"]){
+				if(function_exists("debug_mem")){debug_mem();}
+				echo "Template: {$_COOKIE["artica-template"]}\n";
+			}
+		}else{$_COOKIE["artica-template"]=null;}
 		$template_file="index.html";
 		if(isset($GLOBALS["CHANGE_TEMPLATE"])){$template_file=$GLOBALS["CHANGE_TEMPLATE"];}		
 		$template_path=dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/$template_file";
 		if(!is_file($template_path)){
-			if($GLOBALS["VERBOSE"]){echo "Template: $template_path no such file	\n";}
+			if($GLOBALS["VERBOSE"]){echo "Template: $template_path no such file	\n";if(function_exists("debug_mem")){debug_mem();}}
 			$template_path=dirname(__FILE__) . "/templates/default/index.html";
 			$GLOBALS["CHANGE_TEMPLATE"]="default";
 		}
@@ -477,9 +480,9 @@ class templates{
 				$_SESSION["detected_lang"]=$this->_detect_lang();
 				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}:::LANG:[{$_SESSION["detected_lang"]}] new LANG IS NOW {$_SESSION["detected_lang"]}::".__FUNCTION__." open $template_path ". strlen($template)." bytes in " . basename(__FILE__). " line ".__LINE__);}
 		}
-		if($GLOBALS["VERBOSE"]){echo "Template: open $template_path\n";}
+		if($GLOBALS["VERBOSE"]){echo "Template: open $template_path\n";if(function_exists("debug_mem")){debug_mem();}}
 		$template=$this->_readfile($template_path);
-		
+		if(function_exists("debug_mem")){debug_mem();}
 		$template=str_replace("{TEMPLATE_SEARCH}",$this->search_menus,$template);
 		$template=str_replace("{TEMPLATE_LEFT_MENUS}",$this->left_menus,$template);
 		$template=str_replace("{TEMPLATE_TOP_MENUS}",$this->top_menus,$template);
@@ -4587,7 +4590,7 @@ function THREAD_COMMAND_SET($zcommands){
 }
 
 function _admin_event($text,$function,$file,$line,$category){
-	$mem=round(((memory_get_usage()/1024)/1000),2);
+	$mem=round(((memory_get_usage(true)/1024)/1000),2);
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];
 	$text=$text."\nMemory used for this script:{$mem}M; System Load: $internal_load";
@@ -5236,19 +5239,17 @@ function IsPhysicalAddress($address){
 }
 
 function getLocalTimezone(){
+	if(function_exists("debug_mem")){debug_mem();}
 	$page=CurrentPageName();
 	if($page=="exec.artica-filter.php"){return;}
 	if(isset($_SESSION["GET_TIME_ZONE"])){
 		if($_SESSION["GET_TIME_ZONE"]<>null){return $_SESSION["GET_TIME_ZONE"];}
 	}
-	if(!isset($GLOBALS["CLASS_SOCKET"])){
-		include_once(dirname(__FILE__)."/class.sockets.inc");
-		$GLOBALS["CLASS_SOCKET"]=new sockets();
-		$sock=$GLOBALS["CLASS_SOCKET"];
-	}else{$sock=$GLOBALS["CLASS_SOCKET"];}
+	$sock=new sockets();
 	$timezones=$sock->GET_INFO('timezones');
 	if($timezones<>null){
 		$_SESSION["GET_TIME_ZONE"]=$timezones;
+		if(function_exists("debug_mem")){debug_mem();}
 		return $timezones;
 	}
 	
@@ -5301,6 +5302,7 @@ function getLocalTimezone(){
     if(sizeof($index)!=1){return;}
     $_SESSION["GET_TIME_ZONE"]=$index[0];
     $sock->SET_INFO('timezones',$index[0]);
+	if(function_exists("debug_mem")){debug_mem();}
     return $index[0];
 }
 
@@ -5646,6 +5648,25 @@ function SIMPLE_PARAGRAPHE_BLUE_ARROWTR($title,$text,$js,$img="arrow-blue-left-2
 	
 	
 }
-
-
+function events_debug($text=null,$function=null,$line=0){echo "$function::$line $text<br>\n";}
+function debug_mem($text=null){
+	$calledscript=null;$functioncript=null;$linescript=null;
+	if(!isset($GLOBALS["DEBUG_MEM"])){return;}
+	if(!$GLOBALS["DEBUG_MEM"]){return;}
+	$memory_get_usage=memory_get_usage(true);
+	$ko=round($memory_get_usage/1024,2);
+	$trace=debug_backtrace();
+	
+	$line=$trace[0]["line"];
+	$file=basename($trace[0]["file"]);
+	if(isset($trace[1]["file"])){$calledscript=basename($trace[1]["file"]);}
+	if(isset($trace[1]["line"])){$linescript=basename($trace[1]["line"]);}
+	if(isset($trace[1]["function"])){$functioncript=basename($trace[1]["function"]);}
+	unset($trace);
+	echo "Memory: {$ko}Ko line:$line of $file (called by $calledscript in $linescript func: $functioncript())\n<br>"; 
+	
+	
+	
+	
+}
 ?>

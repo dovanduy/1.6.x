@@ -61,6 +61,8 @@ function testcatz($sitename){
 }
 
 function parseblogs(){
+	include_once(dirname(__FILE__)."/ressources/class.categorize.externals.inc");
+	if(function_exists("debug_mem")){debug_mem();}
 	$f=file("/var/log/bluealpha.log");
 	$bb=new external_categorize();
 	$BC=$bb->UboxBlueaCoatAlter();

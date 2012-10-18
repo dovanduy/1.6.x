@@ -89,11 +89,11 @@ function status(){
 	$sock=new sockets();
 	$ini=new Bs_IniHandler();
 	$users=new usersMenus();
-	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?squid-ini-status=yes')));	
+	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?cicap-ini-status=yes')));	
 	$CICAP=DAEMON_STATUS_ROUND("C-ICAP",$ini,null,0);
 	$t=time();
 	$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
-	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=0;}	
+	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}	
 	$events=$tpl->_ENGINE_parse_body("{events}");
 	
 	$vir="32-virus-find-grey.png";
@@ -162,11 +162,11 @@ $('#node-table-$t').flexigrid({
 	
 	sortname: '	ipaddr',
 	sortorder: 'asc',
-	usepager: false,
+	usepager: true,
 	title: '',
 	useRp: false,
 	rp: 50,
-	showTableToggleBtn: false,
+	showTableToggleBtn: true,
 	width: 641,
 	height: 290,
 	singleSelect: true
@@ -231,7 +231,7 @@ function index(){
 	
 	
 	echo $tpl->_ENGINE_parse_body("
-	<div id=main_config_cicap style='width:100%;height:600px;overflow:auto'>
+	<div id=main_config_cicap style='width:100%;overflow:auto'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -318,6 +318,21 @@ function EnableAV(){
 	$sock->getFrameWork("services.php?restart-artica-status=yes");
 	$ci=new cicap();
 	$ci->Save();
+	NotifyServers();
+}
+
+function NotifyServers(){
+	$sock=new sockets();
+	$users=new usersMenus();
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}	
+	if($EnableWebProxyStatsAppliance==1){
+		$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
+	}	
+	
 }
 
 
@@ -328,7 +343,7 @@ function clamav(){
 	$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
 	$EnableClamavInCiCap2=$sock->GET_INFO("EnableClamavInCiCap2");
 	if(!is_numeric($EnableSquidGuardInCiCAP)){$EnableSquidGuardInCiCAP=0;}
-	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=0;}			
+	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}			
 	$html="
 	<div style='font-size:14px;margin:8px' class=explain>{clamav_settings_text}</div>
 	
@@ -458,7 +473,7 @@ function daemons(){
 	$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
 	
 	if(!is_numeric($EnableSquidGuardInCiCAP)){$EnableSquidGuardInCiCAP=0;}
-	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=0;}
+	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}
 	
 	
 	$users=new usersMenus();
@@ -675,7 +690,7 @@ $sock=new sockets();
 	
 	$tpl=new templates();
 	$ci->Save();
-	
+	NotifyServers();
 }
 
 function save_settings(){
@@ -707,7 +722,7 @@ function save_settings(){
 	
 	$tpl=new templates();
 	$ci->Save();
-	
+	NotifyServers();
 }
 
 function events_table(){
@@ -718,9 +733,13 @@ function events_table(){
 	$data = array();
 	$data['page'] = 1;
 	$data['total'] = count($rows);
-	$data['rows'] = array();	
+	$data['rows'] = array();
+	$c=0;	
 	while (list ($num, $line) = each ($rows)){	
 		$line=trim($line);
+		$line=str_replace("#012", "", $line);
+		$c++;
+		if(preg_match("#No Profile configured#", $line)){continue;}
 		if(preg_match("#^(.+?)\s+([0-9]+)\s+([0-9:]+)\s+.+?:(.+)#" , $line,$re)){
 			$date="{$re[1]} {$re[2]} {$re[3]}";
 			$line=trim($re[4]);
@@ -737,6 +756,7 @@ function events_table(){
 		)
 		);
 	}	
+	$data['total'] =$c;
 	echo json_encode($data);
 }
 

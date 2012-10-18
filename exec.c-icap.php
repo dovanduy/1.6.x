@@ -15,7 +15,7 @@ if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 
-
+if($argv[1]="--template"){gen_template();reconfigure();exit;}
 
 if($argv[1]=="--db-maintenance"){dbMaintenance();exit;}
 if($argv[1]=="--maint-schedule"){dbMaintenanceSchedule();exit;}
@@ -61,6 +61,7 @@ function build(){
 	
 	@mkdir("/usr/etc",0755,true);
 	CicapMagic("/usr/etc/c-icap.magic");
+	gen_template();
 	if(is_file($squidbin)){
 		dbMaintenanceSchedule();
 	}
@@ -193,7 +194,7 @@ $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 }
 
 function dbMaintenanceSchedule(){
-	
+	return;
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
@@ -290,6 +291,34 @@ $f[]="0:%!:PS:PostScript document:DOCUMENT";
 $f[]="";
 $f[]="";
 @file_put_contents($path,@implode("\n",$f));
+}
+
+function gen_template($reconfigure=false){
+$template="YTo4MTp7aTowO3M6NjoiPGh0bWw+IjtpOjE7czo2OiI8aGVhZD4iO2k6MjtzOjY3OiIJPG1ldGEgaHR0cC1lcXVpdj0nY29udGVudC10eXBlJyBjb250ZW50PSd0ZXh0L2h0bWw7Y2hhcnNldD11dGYtOCc+IjtpOjM7czoyNzoiCTx0aXRsZT5WSVJVUyBGT1VORDwvdGl0bGU+IjtpOjQ7czoyNDoiCTxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+IjtpOjU7czoyMzoiCWh0bWwsYm9keXtoZWlnaHQ6MTAwJX0iO2k6NjtzOjY6Iglib2R5eyI7aTo3O3M6NjE6Igl3aWR0aDoxMDAlO21pbi1oZWlnaHQ6MTAwJTttYXJnaW46MDtwYWRkaW5nOjA7Y29sb3I6IzJDMkMyQzsiO2k6ODtzOjMzOiIJZm9udC1mYW1pbHk6J1RhaG9tYScsICdWZXJkYW5hJzsiO2k6OTtzOjE2OiIJZm9udC1zaXplOjExcHg7IjtpOjEwO3M6MTY6IgliYWNrZ3JvdW5kOiNGRkYiO2k6MTE7czoyOiIJfSI7aToxMjtzOjE1OiIJZm9ybXttYXJnaW46MH0iO2k6MTM7czo0NDoiCXRhYmxlLGlucHV0LHNlbGVjdHtmb250Om5vcm1hbCAxMDAlIHRhaG9tYX0iO2k6MTQ7czoyMzoiCWltZ3tib3JkZXI6MDttYXJnaW46MH0iO2k6MTU7czozMjoiCXRhYmxle2JvcmRlci1jb2xsYXBzZTpjb2xsYXBzZX0iO2k6MTY7czoxNzoiCWF7Y29sb3I6IzYyNzA3RH0iO2k6MTc7czozMToiCS50LHRyLnQgdGR7dmVydGljYWwtYWxpZ246dG9wfSI7aToxODtzOjI2OiIJLm17dmVydGljYWwtYWxpZ246bWlkZGxlfSI7aToxOTtzOjM0OiIJLmIsdHIuYiB0ZHt2ZXJ0aWNhbC1hbGlnbjpib3R0b219IjtpOjIwO3M6NDM6Igl0ci50IHRkIHRkLHRyLmIgdGQgdGR7dmVydGljYWwtYWxpZ246YXV0b30iO2k6MjE7czoyMDoiCS5se3RleHQtYWxpZ246bGVmdH0iO2k6MjI7czoyMjoiCS5je3RleHQtYWxpZ246Y2VudGVyfSI7aToyMztzOjIxOiIJLnJ7dGV4dC1hbGlnbjpyaWdodH0iO2k6MjQ7czoyNjoiCS5ub2Jye3doaXRlLXNwYWNlOm5vd3JhcH0iO2k6MjU7czoyNDoiCS5yZWx7cG9zaXRpb246cmVsYXRpdmV9IjtpOjI2O3M6MjQ6IgkuYWJze3Bvc2l0aW9uOmFic29sdXRlfSI7aToyNztzOjE2OiIJLmZse2Zsb2F0OmxlZnR9IjtpOjI4O3M6MTc6IgkuZnJ7ZmxvYXQ6cmlnaHR9IjtpOjI5O3M6MTY6IgkuY2x7Y2xlYXI6Ym90aH0iO2k6MzA7czoxODoiCS53MTAwe3dpZHRoOjEwMCV9IjtpOjMxO3M6MTk6IgkuaDEwMHtoZWlnaHQ6MTAwJX0iO2k6MzI7czoyNToiCWJpZywuYmlne2ZvbnQtc2l6ZToxMjUlfSI7aTozMztzOjI4OiIJc21hbGwsLnNtYWxse2ZvbnQtc2l6ZTo5NSV9IjtpOjM0O3M6NDI6IgkubWljcm97Y29sb3I6I0RERDtmb250Om5vcm1hbCA5cHggdGFob21hfSI7aTozNTtzOjM1OiIJaDF7Zm9udDpib2xkIDIwcHggYXJpYWw7IG1hcmdpbjowfSI7aTozNjtzOjM1OiIJaDR7Zm9udDpib2xkIDEycHggYXJpYWw7IG1hcmdpbjowfSI7aTozNztzOjU3OiIJcHt0ZXh0LWFsaWduOmp1c3RpZnk7bGluZS1oZWlnaHQ6MS4zO21hcmdpbjowIDAgMC41ZW0gMH0iO2k6Mzg7czoyNToiCS56e2JvcmRlcjoxcHggc29saWQgcmVkfSI7aTozOTtzOjQ4OiIJLmgxcHh7aGVpZ2h0OjFweDtmb250LXNpemU6MXB4O2xpbmUtaGVpZ2h0OjFweH0iO2k6NDA7czozNjoiCXVse21hcmdpbjo2cHggMCA2cHggMjBweDtwYWRkaW5nOjB9IjtpOjQxO3M6MjA6Igl1bCBsaXttYXJnaW46M3B4IDB9IjtpOjQyO3M6ODoiPC9zdHlsZT4iO2k6NDM7czo3OiI8L2hlYWQ+IjtpOjQ0O3M6OToiPGJvZHk+77u/IjtpOjQ1O3M6MjU6Ijx0YWJsZSBjbGFzcz0idzEwMCBoMTAwIj4iO2k6NDY7czo1OiIJPHRyPiI7aTo0NztzOjE4OiIJCTx0ZCBjbGFzcz0iYyBtIj4iO2k6NDg7czo1NzoiCQkJPHRhYmxlIHN0eWxlPSJtYXJnaW46MCBhdXRvO2JvcmRlcjpzb2xpZCAxcHggIzU2MDAwMCI+IjtpOjQ5O3M6ODoiCQkJCTx0cj4iO2k6NTA7czozOToiCQkJCQk8dGQgY2xhc3M9ImwiIHN0eWxlPSJwYWRkaW5nOjFweCI+IjtpOjUxO3M6NTA6IgkJCQkJCTxkaXYgc3R5bGU9IndpZHRoOjM0NnB4O2JhY2tncm91bmQ6I0UzMzYzMCI+IjtpOjUyO3M6MzI6IgkJCQkJCQk8ZGl2IHN0eWxlPSJwYWRkaW5nOjNweCI+IjtpOjUzO3M6ODU6IgkJCQkJCQkJPGRpdiBzdHlsZT0iYmFja2dyb3VuZDojQkYwQTBBO3BhZGRpbmc6OHB4O2JvcmRlcjpzb2xpZCAxcHggI0ZGRjtjb2xvcjojRkZGIj4iO2k6NTQ7czozMDoiCQkJCQkJCQkJPGg0PlZpcnVzIEZvdW5kOjwvaDQ+IjtpOjU1O3M6MjI6IgkJCQkJCQkJCTxoMT4lVlZOPC9oMT4iO2k6NTY7czoxNDoiCQkJCQkJCQk8L2Rpdj4iO2k6NTc7czoxMjE6IgkJCQkJCQkJPGRpdiBjbGFzcz0iYyIgc3R5bGU9ImZvbnQ6Ym9sZCAxM3B4IGFyaWFsO3RleHQtdHJhbnNmb3JtOnVwcGVyY2FzZTtjb2xvcjojRkZGO3BhZGRpbmc6OHB4IDAiPkFjY2VzcyBkZW5pZWQ8L2Rpdj4iO2k6NTg7czo2MzoiCQkJCQkJCQk8ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOiNGN0Y3Rjc7cGFkZGluZzoyMHB4IDI4cHggMzZweCI+IjtpOjU5O3M6NDg6IlRoZSByZXF1ZXN0ZWQgVVJMIGNhbm5vdCBiZSBwcm92aWRlZDxicj48YnI+IDxiPiI7aTo2MDtzOjU3OiJUaGUgcmVxdWVzdGVkIG9iamVjdCBhdCB0aGUgVVJMOjwvYj48YnI+PGJyPiVodW88YnI+PGJyPiAiO2k6NjE7czo3MzoiPGI+VmlydXMgZGV0ZWN0ZWQ6PC9iPjxicj4gPGJyPjxkaXYgc3R5bGU9J2ZvbnQtc2l6ZToxMnB4Jz4lVlZOPC9kaXY+PGJyPiI7aTo2MjtzOjgwOiI8L2k+PHN0cm9uZz5UaGlzIG1lc3NhZ2UgZ2VuZXJhdGVkIGJ5IEMtSUNBUCBzZXJ2aWNlOjwvYj46Jm5ic3A7PC9zdHJvbmc+JWl1PC9pPiI7aTo2MztzOjY6IjwvZGl2PiI7aTo2NDtzOjU4OiIJCQkJCQkJCTxkaXYgc3R5bGU9ImJhY2tncm91bmQ6I0Y3RjdGNztwYWRkaW5nOjAgMnB4IDJweCI+IjtpOjY1O3M6NjQ6IgkJCQkJCQkJCTxkaXYgc3R5bGU9ImJhY2tncm91bmQ6I0U5RTlFOTtwYWRkaW5nOjEycHggMzBweCAxNHB4Ij4iO2k6NjY7czoxNDE6IgkJCQkJCQkJCTxiPkNsYW1hdiBhbnRpdmlydXMgZW5naW5lOiA8Yj4gJVZWViA8L2I+PC9hPjwvYj4gPGJyPgoJCQkJCQkJCTxhIGhyZWY9Imh0dHA6Ly9wcm94eS1hcHBsaWFuY2Uub3JnIj5BYm91dCBBcnRpY2EgUHJveHkgQXBwbGlhbmNlPC9hPiI7aTo2NztzOjE0OiIJCQkJCQkJCTwvZGl2PiI7aTo2ODtzOjE0OiIJCQkJCQkJCTwvZGl2PiI7aTo2OTtzOjEzOiIJCQkJCQkJPC9kaXY+IjtpOjcwO3M6MTI6IgkJCQkJCTwvZGl2PiI7aTo3MTtzOjEwOiIJCQkJCTwvdGQ+IjtpOjcyO3M6OToiCQkJCTwvdHI+IjtpOjczO3M6MTE6IgkJCTwvdGFibGU+IjtpOjc0O3M6NzoiCQk8L3RkPiI7aTo3NTtzOjY6Igk8L3RyPiI7aTo3NjtzOjg6IjwvdGFibGU+IjtpOjc3O3M6MDoiIjtpOjc4O3M6MDoiIjtpOjc5O3M6NzoiPC9ib2R5PiI7aTo4MDtzOjc6IjwvaHRtbD4iO30=";
+$f=unserialize(base64_decode($template));
+$path=base64_decode("L3Vzci9zaGFyZS9jX2ljYXAvdGVtcGxhdGVzL3ZpcnVzX3NjYW4vZW4vVklSVVNfRk9VTkQ=");
+@file_put_contents($path, @implode("\n", $f));	
+	
+}
+
+function is_running(){
+	$unix=new unix();
+	$binpath=$unix->find_program("c-icap");
+	$master_pid=trim(@file_get_contents("/var/run/c-icap.pid"));
+	if($master_pid==null){$master_pid=$unix->PIDOF($binpath);}
+	if(!$unix->process_exists($master_pid)){$master_pid=$unix->PIDOF($binpath);}
+	
+	if(!$unix->process_exists($master_pid)){return false;}
+	return true;	
+}
+
+function reconfigure(){
+	$unix=new unix();
+	$echo=$unix->find_program("echo");
+	if(!is_running()){echo "Starting......: c-icap, not running...\n";return;}
+	echo "Starting......: c-icap reconfigure service...\n"; 
+	shell_exec("echo -n \"reconfigure\" > /var/run/c-icap/c-icap.ctl");
+	
 }
 
 

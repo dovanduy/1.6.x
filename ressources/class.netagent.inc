@@ -230,13 +230,7 @@ class netagent{
 	private function OrderExecute($ORDER,$ORDER_VALUE){
 		if($ORDER=="SQUID"){$this->squid_get_confs();return true;}
 		if($ORDER=="RESTART_SQUID"){shell_exec("/etc/init.d/artica-postfix restart squid-cache &");return true;}
-		if($ORDER=="RECONFIGURE_SQUID"){
-			$unix=new unix();
-			$squidbin=$unix->find_program("squid");
-			if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
-			shell_exec("$squidbin -k reconfigure");
-			return true;
-		}
+		if($ORDER=="RECONFIGURE_SQUID"){$unix=new unix();$php5=$unix->LOCATE_PHP5_BIN();shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --reconfigure-squid");return true;}
 		
 	}
 	

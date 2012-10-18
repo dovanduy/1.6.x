@@ -690,8 +690,8 @@ class squidnodes{
 		$sock=new sockets();
 		$DisableCicapDNBSL=$sock->GET_INFO("DisableCicapDNBSL");
 		$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
-		if(!is_numeric($DisableCicapDNBSL)){$DisableCicapDNBSL=0;}
-		if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=0;}
+		if(!is_numeric($DisableCicapDNBSL)){$DisableCicapDNBSL=1;}
+		if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}
 		if(!is_numeric($EnableCicap)){$EnableCicap=0;}		
 		
 		if($EnableCicap==0){return null;}
@@ -731,8 +731,8 @@ class squidnodes{
 		$sock=new sockets();
 		$EnableCicap=$this->GET("EnableCicap");
 		$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
-		if(!is_numeric($DisableCicapDNBSL)){$DisableCicapDNBSL=0;}
-		if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=0;}
+		if(!is_numeric($DisableCicapDNBSL)){$DisableCicapDNBSL=1;}
+		if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}
 		if(!is_numeric($EnableCicap)){$EnableCicap=0;}	
 
 		if($EnableCicap==1){

@@ -1568,7 +1568,6 @@ begin
          samba.poweradmin();
          zinstall.INSTALL_STATUS('APP_POWERADMIN',100);
          fpsystem('/etc/init.d/artica-postfix restart pdns');
-         fpsystem(sys.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.admin.status.postfix.flow.php --force &');
          zinstall.EMPTY_CACHE();
          halt(0);;
    end;

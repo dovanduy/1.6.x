@@ -1730,6 +1730,7 @@ begin
             halt(0);
          end;
          ccicap.xinstall();
+         zinstall.EMPTY_CACHE();
          halt(0);
    end;
 

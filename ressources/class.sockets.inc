@@ -1,13 +1,15 @@
 <?php
 error_reporting(E_ALL & ~E_NOTICE);
 if(!isset($GLOBALS["DEBUG_INCLUDES"])){$GLOBALS["DEBUG_INCLUDES"]=false;}
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/class.semaphores.php\n";}
+if(function_exists("debug_mem")){debug_mem();}
 include_once(dirname(__FILE__)."/class.semaphores.php");
+if(function_exists("debug_mem")){debug_mem();}
 include_once(dirname(__FILE__)."/logs.inc");
+if(function_exists("debug_mem")){debug_mem();}
 
 if(function_exists("posix_getuid")){
 	if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
-	if(!$GLOBALS["AS_ROOT"]){if(!$GLOBALS["KAV4PROXY_NOSESSION"]){session_start();}}
+	if(!$GLOBALS["AS_ROOT"]){if(!$GLOBALS["KAV4PROXY_NOSESSION"]){if(function_exists("debug_mem")){debug_mem();}session_start();}}
 }
 class sockets{
 	var $remote_ip;
@@ -390,12 +392,12 @@ function GET_NOTIFS($key){
 private function fopen_framework($uri){
 		if(function_exists("curl_exec")){return $this->fopen_curl($uri);}
 	
-		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET] -> $uri: ".__FUNCTION__." Line:".__LINE__."<br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] -> $uri: ".__FUNCTION__." Line:".__LINE__."<br>\n";}
 		
 		$fp = @fopen ("http://127.0.0.1:47980/$uri", "r");
 
 		if (!$fp) {
-			if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET] ERROR: unable to open remote file http://127.0.0.1:47980/$uri $errno $errstr<br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] ERROR: unable to open remote file http://127.0.0.1:47980/$uri $errno $errstr<br>\n";}
 			error_log("ERROR: unable to open remote file http://127.0.0.1:47980/$uri $errno $errstr ".__FUNCTION__." Line:".__LINE__."<br>\n");
 			if(function_exists("writelogs")){writelogs("ERROR: unable to open remote file http://127.0.0.1:47980/$uri",
 			__CLASS__ . "=>" . __FUNCTION__,__FILE__);}
@@ -406,9 +408,13 @@ private function fopen_framework($uri){
 		while (!feof ($fp)) {$line =$line .  fgets ($fp, 1024) . "\n";}
 		
 		fclose($fp);
-		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET] -> $uri: ". strlen($data)." $errno $errstr ".__FUNCTION__." Line:".__LINE__."<br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] -> $uri: ". strlen($data)." $errno $errstr ".__FUNCTION__." Line:".__LINE__."<br>\n";}
 		return $line;
 		
+}
+private function mem_getusage(){
+	$mem=round(memory_get_usage(true)/1024)."Ko";
+	return $mem;
 }
 
 private function fopen_curl($uri){
@@ -417,7 +423,7 @@ private function fopen_curl($uri){
 		$CURLOPT_TIMEOUT=$re[1];
 	}
 	$errno=0;
-	if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET] -> $uri curl_init() ".__FUNCTION__." Line:".__LINE__."<br>\n";}
+	if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] -> $uri curl_init() ".__FUNCTION__." Line:".__LINE__."<br>\n";}
 	$ch = curl_init();
 	curl_setopt($ch, CURLOPT_INTERFACE,"127.0.0.1");
 	curl_setopt($ch, CURLOPT_URL, "http://127.0.0.1:47980/$uri");
@@ -430,18 +436,18 @@ private function fopen_curl($uri){
 	curl_setopt($ch, CURLOPT_HTTPHEADER, array("Pragma: no-cache", "Cache-Control: no-cache"));
 	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
 	curl_setopt ($ch, CURLOPT_TIMEOUT, $CURLOPT_TIMEOUT);
-	if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET] -> $uri curl_exec() ".__FUNCTION__." Line:".__LINE__."<br>\n";}
+	if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] -> $uri curl_exec() ".__FUNCTION__." Line:".__LINE__."<br>\n";}
 	$data=curl_exec($ch);
 	$errno=curl_errno($ch);
 	curl_close($ch);
 	
 	
 	if($errno>0){
-		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET] -> $uri: ". strlen($data)." bytes length Err.$errno".__FUNCTION__." Line:".__LINE__."<br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] -> $uri: ". strlen($data)." bytes length Err.$errno".__FUNCTION__." Line:".__LINE__."<br>\n";}
 		include_once(dirname(__FILE__)."/class.ccurl.inc");
 		$cc=new ccurl();
 		$errstr=$cc->ParseError($error);
-		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET] ERROR: unable to open remote file http://127.0.0.1:47980/$uri $errno $errstr<br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] ERROR: unable to open remote file http://127.0.0.1:47980/$uri $errno $errstr<br>\n";}
 		error_log("ERROR: unable to open remote file http://127.0.0.1:47980/$uri $errno $errstr ".__FUNCTION__." Line:".__LINE__);
 		if(function_exists("writelogs")){writelogs("ERROR: unable to open remote file http://127.0.0.1:47980/$uri",
 		__CLASS__ . "=>" . __FUNCTION__,__FILE__);}
@@ -526,12 +532,12 @@ function GET_MYSQL_ROOT($key){
 		
 		
 			
-		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET]  http://127.0.0.1:47980/$uri<br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."]  http://127.0.0.1:47980/$uri<br>\n";}
 		if($GLOBALS["AS_ROOT"]){writelogs("http://127.0.0.1:47980/$uri",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		
 		$line=$this->fopen_framework($uri);
 
-		if(trim($line)==null){if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET] return null<br>\n";}return null;}
+		if(trim($line)==null){if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] return null<br>\n";}return null;}
 		if(trim($line)=="<articadatascgi></articadatascgi>"){return null;}
 
 		if(preg_match('#<articadatascgi>(.+)</articadatascgi>#s',$line,$regs)){

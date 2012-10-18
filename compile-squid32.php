@@ -660,8 +660,22 @@ while (list ($num, $filename) = each ($f)){
 	if(!is_dir("$base/$dirname")){@mkdir("$base/$dirname",0755,true);}
 	shell_exec("/bin/cp -f $filename $base/$dirname/");
 	
-}	
+}
+$C_ICAP_VERSION=C_ICAP_VERSION();
+$Architecture=Architecture();
+echo "C-icap version $C_ICAP_VERSION ($Architecture)\n";
+mkdir("/root/c-icap/usr/share/c_icap",0755,true);
+shell_exec("/bin/cp -rf /usr/share/c_icap/* /root/c-icap/usr/share/c_icap/");
+shell_exec("/bin/cp -rf /usr/lib/c_icap/* /root/c-icap/usr/lib/c_icap/");
+chdir($base);
+shell_exec("/bin/tar -cf /root/c-icap-$C_ICAP_VERSION-$Architecture.tar.gz *");
+}
+
+function C_ICAP_VERSION(){
 	
+	$results=exec("/usr/bin/c-icap-config --version");
+	preg_match("#([0-9\.]+)#", $results,$re);
+	return $re[1];
 }
 
 

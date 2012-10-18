@@ -3214,7 +3214,7 @@ begin
 
      ArrayList.Add('[APP_KAV4PROXY] "' + kav4proxy.VERSION() + '"');
      ArrayList.Add('[APP_DANSGUARDIAN] "' + DANS_VER + '"');
-     ArrayList.Add('[APP_C_ICAP] "'+dansguardian.C_ICAP_VERSION()+'');
+     ArrayList.Add('[APP_C_ICAP] "'+dansguardian.C_ICAP_VERSION()+'"');
      ArrayList.Add('[APP_SPAMASSASSIN] "' + ASVer + '"');
      ArrayList.Add('[APP_KAV4SAMBA] "' + kav4samba.VERSION()+ '"');
 

@@ -392,7 +392,9 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 		
 	}
 	
-	if($users->SQUID_INSTALLED){
+	
+	
+	if($users->APP_UFDBGUARD_INSTALLED){
 		$license=left_menus_format("artica_license","32-key.png","only:Loadjs('artica.license.php')");
 	}
 	

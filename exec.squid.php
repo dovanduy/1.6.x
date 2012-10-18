@@ -372,6 +372,11 @@ function remove_cache($cacheenc){
 	
 }
 
+function Start_squid(){
+	system("/usr/share/artica-postfix/bin/artica-install -watchdog squid-cache --without-config");
+	system("/etc/init.d/artica-postfix restart auth-logger");
+}
+
 
 function Reload_Squid(){
 	$unix=new unix();
@@ -413,7 +418,8 @@ function Reload_Squid(){
 		@file_put_contents($PidFile, getmypid());
 		echo "Starting......: Squid : Squid is not running, start it\n";
 		WriteToSyslogMail("Reload_Squid():: Squid is not running, start it...", basename(__FILE__));
-		shell_exec("/etc/init.d/artica-postfix start squid-cache");
+		Start_squid();
+		return;
 	}
 	
 	if(!$GLOBALS["FORCE"]){

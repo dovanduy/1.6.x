@@ -1405,7 +1405,7 @@ function global_clamav_db(){
 	$CicapEnabled=$sock->GET_INFO('CicapEnabled');
 	$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
 	if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
-	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=0;}
+	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}
 	
 	
 	$logo="clamav-64.png";

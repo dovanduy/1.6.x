@@ -166,7 +166,7 @@ class pagebuilder{
 				if(is_file("/usr/share/artica-postfix/js/$val")){$jquery_custom=$val;break;}
 			}			
 			
-			
+			if($GLOBALS["VERBOSE"]){echo  "Memory: ".round(memory_get_usage(true)/1024)." Ko\n<br>";}
 			$jsTable[]="/mouse.js";
 			$jsTable[]="/js/md5.js";
 			$jsTable[]="/XHRConnection.js";

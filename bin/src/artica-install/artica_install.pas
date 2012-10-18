@@ -226,6 +226,13 @@ end;
    halt(0);
 end;
 
+if ParamStr(1)='--cicap-version' then begin
+zdansguardian:=Tdansguardian.Create(SYS);
+writeln(zdansguardian.C_ICAP_VERSION());
+halt(0);
+end;
+
+
 
 if Paramstr(1)='--tomcat-version' then begin
    ztomcat:=ttomcat.Create(SYS);

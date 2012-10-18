@@ -2,9 +2,9 @@
 define("alse", "alse");
 $GLOBALS["AS_ROOT"]=false;
 if(!isset($GLOBALS["DEBUG_MEM"])){$GLOBALS["DEBUG_MEM"]=false;}
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.users.menus.inc START AT -> ".round(((memory_get_usage()/1024)/1000),2) ." line:".__LINE__);}
+if(function_exists("debug_mem")){debug_mem();}
 include_once(dirname(__FILE__) .'/logs.inc');
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.users.menus.inc -> ".round(((memory_get_usage()/1024)/1000),2) ." after include logs.inc line:".__LINE__);}
+if(function_exists("debug_mem")){debug_mem();}
 
 if(function_exists("posix_getuid")){
 	if(posix_getuid()<>0){
@@ -16,7 +16,7 @@ if(function_exists("posix_getuid")){
 	}
 }
 
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.users.menus.inc -> ".round(((memory_get_usage()/1024)/1000),2) ." LOADED line:".__LINE__);}
+if(function_exists("debug_mem")){debug_mem();}
 
 
 class usersMenus {

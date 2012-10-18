@@ -3,20 +3,19 @@ if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}
 if(!isset($GLOBALS["DEBUG_TEMPLATE"])){$GLOBALS["DEBUG_TEMPLATE"]=false;}
 if(!isset($GLOBALS["DEBUG_MEM"])){$GLOBALS["DEBUG_MEM"]=false;}
 if(!isset($GLOBALS["DEBUGLOGS"])){$GLOBALS["DEBUGLOGS"]=false;}
-
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.ldap.inc -> START AT ".round(((memory_get_usage()/1024)/1000),2) ."M :".__LINE__);}
+if(function_exists("debug_mem")){debug_mem();}
 
 if(dirname($_SERVER['PHP_SELF'])<>"/smartsieve"){
-	include_once(dirname(__FILE__) . '/class.sockets.inc');
-	if($GLOBALS["DEBUG_MEM"]){events("Memory: class.ldap.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M : after class.sockets.inc".__LINE__);}
+	if(!class_exists("sockets")){include_once(dirname(__FILE__) . '/class.sockets.inc');}
+	if(function_exists("debug_mem")){debug_mem();}
 }
 
-if(!function_exists("writelogs")){include_once(dirname(__FILE__) . '/logs.inc');}
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.ldap.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M after logs :".__LINE__);}
-include_once(dirname(__FILE__) . '/class.templates.inc');
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.ldap.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M after templates.inc :".__LINE__);}
-if(file_exists(dirname(__FILE__) . '/class.sqlite.inc')){include_once(dirname(__FILE__) . '/class.sqlite.inc');}
-if($GLOBALS["DEBUG_MEM"]){events("Memory: class.ldap.inc -> ".round(((memory_get_usage()/1024)/1000),2) ."M after sqlite :".__LINE__);}
+if(function_exists("debug_mem")){debug_mem();}
+if(!function_exists("writelogs")){include_once(dirname(__FILE__) . '/logs.inc');if(function_exists("debug_mem")){debug_mem();}}
+if(function_exists("debug_mem")){debug_mem();}
+if(!class_exists("templates")){include_once(dirname(__FILE__) . '/class.templates.inc');if(function_exists("debug_mem")){debug_mem();}}
+//if(file_exists(dirname(__FILE__) . '/class.sqlite.inc')){include_once(dirname(__FILE__) . '/class.sqlite.inc');}
+if(function_exists("debug_mem")){debug_mem();}
 
 
 
@@ -4570,3 +4569,4 @@ function strip_path_accents($path){
 	//$path=str_replace("%uFFFD","è",$path);
 	return $path;
 }
+function events_debug_ldap($text=null,$function=null,$line=0){echo "$function::$line $text<br>\n";}

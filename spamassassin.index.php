@@ -1,10 +1,12 @@
 <?php
-	include_once('ressources/class.templates.inc');
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}	
+include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.artica.inc');
 	include_once('ressources/class.ini.inc');
 	include_once('ressources/class.spamassassin.inc');
+	
 	$user=new usersMenus();
 		if($user->AsPostfixAdministrator==false){
 		$tpl=new templates();

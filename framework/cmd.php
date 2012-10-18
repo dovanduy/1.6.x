@@ -613,6 +613,8 @@ if(isset($_GET["sshd-authorized-keys"])){SSHD_KEY_UPLOAD_PUB();exit;}
 if(isset($_GET["squid-status"])){SQUID_STATUS();exit;}
 if(isset($_GET["squid-reload"])){SQUID_RELOAD();exit;}
 if(isset($_GET["squid-ini-status"])){SQUID_INI_STATUS();exit;}
+if(isset($_GET["cicap-ini-status"])){CICAP_INI_STATUS();exit;}
+
 if(isset($_GET["squid-restart"])){SQUID_RESTART();exit;}
 if(isset($_GET["squid-restart-now"])){SQUID_RESTART_NOW();exit;}
 if(isset($_GET["force-restart-squid"])){SQUID_RESTART_ALL();exit;}
@@ -1392,6 +1394,15 @@ function SQUID_INI_STATUS(){
 	exec($cmd,$results);
 	echo "<articadatascgi>". base64_encode(implode("\n",$results))."</articadatascgi>";
 }
+
+function CICAP_INI_STATUS(){
+	$cmd=LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.status.php --c-icap --nowachdog";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(implode("\n",$results))."</articadatascgi>";	
+	
+}
+
 function SQUID_RELOAD(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();

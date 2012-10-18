@@ -236,7 +236,7 @@ function parameters(){
 	}
 	
 	if($writeDefault){
-		$sock->SaveClusterConfigFile(base64_encode(serialize($KernelDefaultsValues)), "KernelDefaultsValues");
+		$sock->SaveConfigFile(base64_encode(serialize($KernelDefaultsValues)), "KernelDefaultsValues");
 	}
 	
 	reset($config);

@@ -93,6 +93,8 @@ if(is_dir("/usr/share/phpldapadmin/config")){
 	$phpldapadmin="	$php5 ".dirname(__FILE__)."/exec.phpldapadmin.php --build >/dev/null 2>&1";
 }
 
+$kernel_tuning="$php5 ".dirname(__FILE__)."/exec.kernel-tuning.php >/dev/null 2>&1";
+
 if($GLOBALS["VERBOSE"]){echo "-> ARRAY;\n";}
 
 $f[]="#!/bin/sh";
@@ -419,17 +421,20 @@ $f[]="		message \"info\" \"[INFO] No db_recover done\"	";
 $f[]="	fi";
 $f[]="";
 $f[]="	# Start message";
-$f[]="	message \"info\" \"[INFO] Launching OpenLDAP...\"";
+$f[]="	message \"info\" \"[INFO] Tuning the kernel...\"";
+$f[]="$kernel_tuning";
 if($phpldapadmin<>null){
 	$f[]="	message \"info\" \"[INFO] Configuring phpldapadmin...\"";	
 	$f[]=$phpldapadmin;
 }
+
 $f[]="	message \"info\" \"[INFO] setup nsswitch\"";	
 $f[]="	/usr/share/artica-postfix/bin/artica-install --nsswitch >/dev/null 2>&1 &";
 $f[]="	message \"info\" \"[INFO] setup slapd\"";
 $f[]="	/usr/share/artica-postfix/bin/artica-install --slapdconf";
 $f[]="	message \"info\" \"[INFO] setup init.d\"";
 $f[]="	$php5 $mebin";
+$f[]="	message \"info\" \"[INFO] Launching OpenLDAP...\"";
 $f[]="";
 $f[]="	# File descriptor limit, only for root";
 $f[]="	if [ \$MYUID -eq 0 ]";

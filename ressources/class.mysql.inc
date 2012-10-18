@@ -1,7 +1,9 @@
 <?php
 set_time_limit(0);
 $squidBuilder=dirname(__FILE__)."/class.mysql.squid.builder.php";
+if(function_exists("debug_mem")){debug_mem();}
 if(is_file($squidBuilder)){include_once($squidBuilder);}
+if(function_exists("debug_mem")){debug_mem();}
 function QUERY_SQL($sql,$logfile=null,$notLog=0,$Database='artica_filter'){$s=new mysql();return $s->QUERY_SQL($sql,$Database);}
 		
 class mysql{
@@ -1094,9 +1096,10 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		
 		if(!$this->DATABASE_EXISTS($database)){
 			$this->writeLogs("Database $database does not exists...create it",__CLASS__.'/'.__FUNCTION__,__FILE__);
-			$this->CREATE_DATABASE($database);
-			if(!$this->DATABASE_EXISTS($database)){$this->writeLogs("Unable to create $database database",__CLASS__.'/'.__FUNCTION__,__FILE__);
-			return false;}
+			if(!$this->CREATE_DATABASE($database)){
+				$this->writeLogs("Unable to create $database database",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				return false;
+			}
 		}
 		
 		$sql="SHOW TABLES";
@@ -1602,6 +1605,7 @@ function mysql_real_escape_string2($query){
 	FUNCTION CREATE_DATABASE($database,$nocache=false){
 		$this->mysql_password=trim($this->mysql_password);
 		if(!$nocache){
+		$this->BD_CONNECT();
 		if($this->DATABASE_EXISTS($database)){
 			writelogs("CREATE_DATABASE $database Already exists aborting",__CLASS__,__FILE__,__FILE__,__LINE__);
 			$this->ok=true;
@@ -1612,10 +1616,11 @@ function mysql_real_escape_string2($query){
 		}else{
 			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
 		}
-		writelogs("CREATE DATABASE $database",__CLASS__,__FILE__,__FILE__,__LINE__);
+		writelogs("CREATE DATABASE $database",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		if(!$bd){
-    		$des=mysql_error();
-    		$errnum=mysql_errno();	
+    		$des=mysql_error($bd);
+    		$errnum=mysql_errno($bd);	
+			
     		$this->mysql_error="($errnum) $des $this->mysql_admin@$this->mysql_server";
     		writelogs("($errnum) $des $this->mysql_admin@$this->mysql_server ($des) `$this->mysql_password`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
     		if($this->mysql_server=="127.0.0.1"){
@@ -1635,8 +1640,9 @@ function mysql_real_escape_string2($query){
     		$results=@mysql_query("CREATE DATABASE `$database`");
 			if(mysql_error()){
 				$time=date('h:i:s');
-				$errnum=mysql_errno();
-				$des=mysql_error();
+				$errnum=mysql_errno($bd);
+				$des=mysql_error($bd);
+				if(preg_match("#database exists#", $des)){$this->ok=true;return true;}
 				$this->mysql_error="CREATE DATABASE $database -> Error Number ($errnum) ($des)";
 				writelogs("($errnum) $des $this->mysql_admin@$this->mysql_server",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				return false;

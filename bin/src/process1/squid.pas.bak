@@ -32,6 +32,8 @@ private
      withoutcompile:boolean;
      EnableUfdbGuard:integer;
      EnableSquidClamav:integer;
+     MyPidPath:string;
+     MyPID:string;
      function COMMANDLINE_PARAMETERS(FoundWhatPattern:string):boolean;
      function get_INFOS(key:string):string;
      function ReadFileIntoString(path:string):string;
@@ -115,7 +117,7 @@ public
     procedure   PROXY_PAC_START();
     procedure   rebuild_caches();
     function    GetFreeMem():integer;
-
+    function    isMustBeExecuted():boolean;
 
 END;
 
@@ -127,8 +129,9 @@ begin
        LOGS:=tlogs.Create();
        SYS:=Tsystem.Create;
        withoutcompile:=false;
-       D:=COMMANDLINE_PARAMETERS('--verbpse');
-       
+       D:=COMMANDLINE_PARAMETERS('--verbose');
+       MyPidPath:='/etc/artica-postfix/pids/artica-install-squid.pid';
+       MyPID:=SYS.SYSTEM_GET_MYPID();
        if not TryStrToInt(SYS.GET_INFO('DansGuardianEnabled'),DansGuardianEnabled) then DansGuardianEnabled:=0;
        if not TryStrToInt(SYS.GET_INFO('SQUIDEnable'),SQUIDEnable) then SQUIDEnable:=1;
        if not TryStrToInt(SYS.GET_INFO('SquidEnableProxyPac'),SquidEnableProxyPac) then SquidEnableProxyPac:=0;
@@ -162,8 +165,8 @@ end;
 procedure tsquid.free();
 begin
     logs.Free;
-    SYS.Free;
-    Caches.free;
+    try SYS.Free; finally end;
+   try Caches.free; finally end;
 end;
 //##############################################################################
 function tsquid.SQUID_BIN_PATH():string;
@@ -196,16 +199,33 @@ begin
 
 end;
 //##############################################################################
+function tsquid.isMustBeExecuted():boolean;
+var
+EnableWebProxyStatsAppliance:integer;
+CategoriesRepositoryEnable:integer;
+begin
+if FileExists(SQUID_BIN_PATH()) then exit(true);
+if Not TryStrToInt(SYS.GET_INFO('EnableWebProxyStatsAppliance'),EnableWebProxyStatsAppliance) then EnableWebProxyStatsAppliance:=0;
+if Not TryStrToInt(SYS.GET_INFO('CategoriesRepositoryEnable'),EnableWebProxyStatsAppliance) then CategoriesRepositoryEnable:=0;
+if Not TryStrToInt(SYS.GET_INFO('EnableWebProxyStatsAppliance'),EnableWebProxyStatsAppliance) then EnableWebProxyStatsAppliance:=0;
+if EnableWebProxyStatsAppliance=1 then exit(true);
+if EnableWebProxyStatsAppliance=1 then exit(true);
+if EnableWebProxyStatsAppliance=1 then exit(true);
+result:=false;
+end;
 function tsquid.icap_enabled():boolean;
 var
    l            :TstringList;
    RegExpr      :TRegExpr;
    i            :integer;
    FileTemp     :string;
+   squidbin     :string;
 begin
    result:=false;
+   squidbin:=SQUID_BIN_PATH();
+   if not FileExists(squidbin) then exit;
    FileTemp:=logs.FILE_TEMP();
-   fpsystem(SQUID_BIN_PATH() + ' -v >'+FileTemp + ' 2>&1');
+   fpsystem(squidbin + ' -v >'+FileTemp + ' 2>&1');
    if not FileExists(Filetemp) then exit;
    l:=TstringList.Create;
    l.LoadFromFile(FileTemp);
@@ -236,10 +256,13 @@ var
    RegExpr      :TRegExpr;
    i            :integer;
    FileTemp     :string;
+   squidbin     :string;
 begin
    result:=false;
+   squidbin:=SQUID_BIN_PATH();
+   if not FileExists(squidbin) then exit;
    FileTemp:=logs.FILE_TEMP();
-   fpsystem(SQUID_BIN_PATH() + ' -v >'+FileTemp + ' 2>&1');
+   fpsystem(squidbin + ' -v >'+FileTemp + ' 2>&1');
    if not FileExists(Filetemp) then exit;
    l:=TstringList.Create;
    l.LoadFromFile(FileTemp);
@@ -317,8 +340,23 @@ if RegExpr.Exec(LastLog) then begin
 end;
 //##############################################################################
 procedure tsquid.SQUID_RELOAD();
-var pid:string;
+var
+
+pid,timefile:string;
+SquidCacheReloadTTL:Integer;
+SquidCacheReloadTTLCur:integer;
 begin
+  timefile:='/etc/artica-postfix/pids/reloadsquid.time';
+  if Not TryStrToInt(SYS.GET_INFO('SquidCacheReloadTTL'),SquidCacheReloadTTL) then SquidCacheReloadTTL:=10;
+  SquidCacheReloadTTLCur:=SYS.FILE_TIME_BETWEEN_MIN(timefile);
+  if SquidCacheReloadTTLCur< SquidCacheReloadTTL then begin
+     logs.Syslogs('Reload squid aborted, need at least '+IntToStr(SquidCacheReloadTTL)+'mn current '+IntToStr(SquidCacheReloadTTLCur)+'mn');
+     exit;
+  end;
+
+  logs.DeleteFile(timefile);
+  logs.WriteToFile('#',timefile);
+
   pid:=SQUID_PID();
   logs.Debuglogs('Starting......: reloading SQUID PID: '+pid);
   if SYS.PROCESS_EXIST(pid) then begin
@@ -454,10 +492,25 @@ procedure tsquid.START_SIMPLE();
     WithoutConfig:boolean;
     UrlFlilterBox:boolean;
 begin
+
+pid:=trim(logs.ReadFromFile(MyPidPath));
+if(pid<>MyPID) then begin
+    if SYS.PROCESS_EXIST(pid) then begin
+         logs.Debuglogs('Starting......: squid, artica-install already running PID '+pid+' aborting');
+         exit;
+    end;
+end;
+logs.WriteToFile(MyPID,MyPidPath);
+
 mybinVer:=SQUID_BIN_VERSION(SQUID_VERSION());
 WithoutConfig :=false;
 UrlFlilterBox:=false;
-if SYS.COMMANDLINE_PARAMETERS('--without-config') then WithoutConfig:=true;
+if SYS.COMMANDLINE_PARAMETERS('--without-config') then begin
+   WithoutConfig:=true;
+   logs.Debuglogs('Starting......: Squid Skip configuration...');
+   if FileExists('/etc/artica-postfix/squid.lock') then  logs.DeleteFile('/etc/artica-postfix/squid.lock');
+end;
+
 if DirectoryExists('/opt/urlfilterbox') then UrlFlilterBox:=true;
 
 if FileExists('/etc/artica-postfix/squid.lock') then  begin
@@ -475,7 +528,7 @@ SYS:=Tsystem.Create;
   end;
 
   if SQUIDEnable=0 then begin
-      logs.Debuglogs('Starting......: Squid is disabled aborting...');
+      logs.Debuglogs('Starting......: Squid is disabled aborting by SQUIDEnable...'+IntTostr(SQUIDEnable));
        pid:=SQUID_PID();
         if SYS.PROCESS_EXIST(pid) then begin
          SQUID_STOP();
@@ -491,8 +544,17 @@ SYS:=Tsystem.Create;
      exit;
   end;
 
-if not SYS.IsUserExists('squid') then SYS.AddUserToGroup('squid','squid','','');
-if FileExists('/usr/share/artica-postfix/exec.squid.php') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.php --writeinitd >/dev/null 2>&1');
+if not SYS.IsUserExists('squid') then begin
+   logs.Debuglogs('Starting......: Squid, creating squid user...');
+      SYS.AddUserToGroup('squid','squid','','');
+end;
+
+
+if FileExists('/usr/share/artica-postfix/exec.squid.php') then begin
+   logs.Debuglogs('Starting......: Squid writing init.d startup script...');
+   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.php --writeinitd >/dev/null 2>&1');
+end;
+
 if not UrlFlilterBox then begin
 if not DirectoryExists('/var/lib/squidguard') then begin
    ForceDirectories('/var/lib/squidguard');
@@ -694,6 +756,14 @@ procedure tsquid.SQUID_START();
     pidpath:string;
 begin
 SYS:=Tsystem.Create;
+pid:=trim(logs.ReadFromFile(MyPidPath));
+if(pid<>MyPID) then begin
+    if SYS.PROCESS_EXIST(pid) then begin
+         logs.Debuglogs('Starting......: squid, artica-install already running PID '+pid+' aborting');
+         exit;
+    end;
+end;
+logs.WriteToFile(MyPID,MyPidPath);
 
 if FileExists('/etc/artica-postfix/squid.lock') then  begin
     logs.Debuglogs('Starting......: squid.lock aborting...');
@@ -788,7 +858,7 @@ if FileExists('/usr/local/lib64/squid/squid_kerb_auth') then exit('/usr/local/li
 if FileExists('/opt/artica/libexec/squid_kerb_auth') then exit('/opt/artica/libexec/squid_kerb_auth');
 end;
 //#############################################################################
-function ext_session_acl_path():string;
+function tsquid.ext_session_acl_path():string;
 begin
 if FileExists('/lib/squid3/ext_session_acl') then exit('/lib/squid3/ext_session_acl');
 if FileExists('/usr/lib/squid3/ext_session_acl') then exit('/usr/lib/squid3/ext_session_acl');
@@ -1209,6 +1279,8 @@ procedure tsquid.SQUID_STOP_GHOST();
     configpath:string;
     oldproc:integer;
 begin
+
+
 binpath:=SQUID_BIN_PATH();
 writeln('Stopping Squid...............: checking ghost processes');
 writeln('Stopping Squid...............: binary is '+binpath);
@@ -1258,6 +1330,16 @@ procedure tsquid.SQUID_STOP();
     l:Tstringlist;
     killbin:string;
 begin
+
+pid:=trim(logs.ReadFromFile(MyPidPath));
+if(pid<>MyPID) then begin
+    if SYS.PROCESS_EXIST(pid) then begin
+         logs.Debuglogs('Starting......: squid, artica-install already running PID '+pid+' aborting');
+         exit;
+    end;
+end;
+logs.WriteToFile(MyPID,MyPidPath);
+
 count:=0;
 binpath:=SQUID_BIN_PATH();
 configpath:=SQUID_CONFIG_PATH();
@@ -1267,7 +1349,8 @@ killbin:=SYS.LOCATE_GENERIC_BIN('kill');
   pid:=SQUID_PID();
 
   if not SYS.PROCESS_EXIST(pid) then begin
-      writeln('Stopping Squid...............: Already stopped');SQUID_STOP_GHOST();
+      writeln('Stopping Squid...............: Already stopped');
+      SQUID_STOP_GHOST();
       exit;
   end;
 
@@ -1277,7 +1360,7 @@ killbin:=SYS.LOCATE_GENERIC_BIN('kill');
   if SYS.PROCESS_EXIST(pid) then begin
      if length(trim(pid))>0 then writeln('Stopping Squid smoothly......: "' + pid + '" PID');
      fpsystem(binpath+' -f '+configpath+' -k shutdown >'+FileTemp+' 2>&1');
-     sleep(1000);
+
      l:=TstringList.Create;
      l.LoadFromFile(FileTemp);
      logs.DeleteFile(FileTemp);
@@ -1285,21 +1368,29 @@ killbin:=SYS.LOCATE_GENERIC_BIN('kill');
          if length(trim(l.Strings[i]))=0 then continue;
          writeln('Stopping Squid...............: ',l.Strings[i]);
      end;
+     sleep(10000);
+
      pid:=SQUID_PID();
 
+     if length(trim(pid))>0 then begin
+        writeln('Stopping Squid...............: Send signal to "' + pid + '" PID');
+        fpsystem(killbin+' '+pid+' >/dev/null 2>&1');
+     end;
+
+  count:=0;
    while SYS.PROCESS_EXIST(pid) do begin
-        if length(trim(pid))>0 then begin
-           writeln('Stopping Squid...............: "' + pid + '" PID');
-           fpsystem(killbin+' '+pid+' >/dev/null 2>&1');
-        end;
-        sleep(500);
+        sleep(5000);
         inc(count);
-        if count>30 then break;
+        writeln('Stopping Squid...............: Waiting '+intToStr(i)+'/120');
+        if count>120 then begin
+           writeln('Stopping Squid...............: Timed-out');
+           break;
+        end;
         pid:=SQUID_PID();
    end;
    
    if SYS.PROCESS_EXIST(pid) then begin
-       writeln('Stopping Squid...............: '+pid+' pid timeout, kill it...');
+       writeln('Stopping Squid...............: "'+pid+'" Send signal to kill it...');
        logs.OutputCmd('/bin/kill -9 '+pid);
    end;
 
@@ -1309,6 +1400,7 @@ killbin:=SYS.LOCATE_GENERIC_BIN('kill');
         sleep(100);
         inc(count);
         if count>30 then break;
+        writeln('Stopping Squid...............: "'+pid+'" Send signal to kill it...');
         logs.OutputCmd('/bin/kill -9 '+pid);
         pid:=SQUID_PID();
 
@@ -1321,14 +1413,14 @@ killbin:=SYS.LOCATE_GENERIC_BIN('kill');
       writeln('Stopping Squid...............: Failed');
       exit;
    end;
-   writeln('Stopping Squid...............: Success');
+   writeln('Stopping Squid...............: Success: stopped');
 end;
 
 
 oldproc:=SQUID_OLD_PROCESS();
 count:=0;
 while oldproc>5 do begin
-     writeln('Stopping Squid...............: ',oldproc,' pid ...');
+     writeln('Stopping Squid...............: old process: ',oldproc,' pid ...');
      sleep(100);
      inc(count);
      if count>30 then break;
@@ -1337,14 +1429,25 @@ while oldproc>5 do begin
 end;
 
 for i:=1 to 10 do begin
-pid:=SYS.PIDOF(SQUID_BIN_PATH());
+    pid:=SYS.PIDOF(binpath);
 
-if length(pid)>0 then begin
-      writeln('Stopping Squid...............: Ghost daemon ' +pid);
-      logs.OutputCmd('/bin/kill -9 '+pid);
-end else begin
-    break;
+    if length(pid)>0 then begin
+      writeln('Stopping Squid...............: Send kill signal to daemon "' +pid+'" pidof "'+binpath+'"');
+      logs.OutputCmd('/bin/kill '+pid);
+      sleep(5000);
+    end else begin
+        break;
+    end;
 end;
+
+for i:=1 to 10 do begin
+    pid:=SYS.PIDOF(binpath);
+    if length(pid)>0 then begin
+      writeln('Stopping Squid...............: Force kill signal to daemon "' +pid+'" pidof "'+binpath+'"');
+      logs.OutputCmd('/bin/kill -9 '+pid);
+    end else begin
+        break;
+    end;
 end;
 
 for i:=1 to 10 do begin
@@ -1426,13 +1529,17 @@ begin
    if not SYS.COMMANDLINE_PARAMETERS('--squid-version-bin') then result:=SYS.GET_CACHE_VERSION('APP_SQUID');
 
    if length(result)>2 then begin
-      if SYS.verbosed then writeln('SQUID_VERSION():',result,' from memory');
+      if SYS.verbosed then writeln('tsquid.SQUID_VERSION():',result,' from memory');
+      exit;
+   end;
+
+   squidbin:=SQUID_BIN_PATH();
+   if SYS.verbosed then writeln('tsquid.SQUID_VERSION():',squidbin);
+   if not FileExists(squidbin) then begin
+      if SYS.verbosed then writeln('tsquid.SQUID_VERSION():not installed');
       exit;
    end;
    fpsystem(SYS.LOCATE_PHP5_BIN() +' /usr/share/artica-postfix/exec.squid.php --compilation-params');
-   squidbin:=SQUID_BIN_PATH();
-   if SYS.verbosed then writeln('SQUID_VERSION():',squidbin);
-   if not FileExists(SQUID_BIN_PATH()) then exit;
    tmpstr:=logs.FILE_TEMP();
    fpsystem(squidbin + ' -v >'+tmpstr+' 2>&1');
    tmp:=SYS.ReadFileIntoString(tmpstr);
@@ -1440,7 +1547,7 @@ begin
    RegExpr:=TRegExpr.Create;
    RegExpr.Expression:='Squid Cache: Version ([0-9\.A-Za-z]+)';
    if RegExpr.Exec(tmp) then result:=RegExpr.Match[1];
-   if SYS.verbosed then writeln('SQUID_VERSION():',result);
+   if SYS.verbosed then writeln('tsquid.SQUID_VERSION(): 1534',result);
    RegExpr.Free;
    SYS.SET_CACHE_VERSION('APP_SQUID',result);
 
@@ -1459,7 +1566,7 @@ begin
    result:=0;
    squidbin:=SQUID_BIN_PATH();
    if SYS.verbosed then writeln('SQUID_ARP_ACL_ENABLED():',squidbin);
-   if not FileExists(SQUID_BIN_PATH()) then exit;
+   if not FileExists(squidbin) then exit;
    tmpstr:=logs.FILE_TEMP();
    fpsystem(squidbin + ' -v >'+tmpstr+' 2>&1');
    tmp:=SYS.ReadFileIntoString(tmpstr);
@@ -1621,70 +1728,8 @@ GLOBAL_INI.Free;
 end;
 //#############################################################################
 procedure tsquid.WRITE_INITD();
-var
-   l:TstringList;
-   initPath:string;
 begin
-
-l:=TstringList.Create;
-initPath:=SQUID_INIT_PATH();
-if length(initPath)=0 then initPath:='/etc/init.d/squid' else exit;
-
-l.add('#! /bin/sh');
-l.add('#');
-l.add('# squid3		Startup script for the SQUID HTTP proxy-cache.');
-l.add('#');
-l.add('# Version:	@(#)squid3.rc  1.0  07-Jul-2006  luigi@debian.org');
-l.add('#');
-l.add('### BEGIN INIT INFO');
-l.add('# Provides:          squid');
-l.add('# Required-Start:    $local_fs $network');
-l.add('# Required-Stop:     $local_fs $network');
-l.add('# Should-Start:      $named');
-l.add('# Should-Stop:       $named');
-l.add('# Default-Start:     2 3 4 5');
-l.add('# Default-Stop:      0 1 6');
-l.add('# Short-Description: Squid HTTP Proxy');
-l.add('### END INIT INFO');
-l.add('');
-l.add('PATH=/bin:/usr/bin:/sbin:/usr/sbin');
-l.add('');
-l.add('');
-l.add('start () {');
-l.add('	/etc/init.d/artica-postfix start squid');
-l.add('}');
-l.add('');
-l.add('stop () {');
-l.add('      /etc/init.d/artica-postfix stop squid');
-l.add('}');
-l.add('');
-l.add('case "$1" in');
-l.add('    start)');
-l.add('	/etc/init.d/artica-postfix start squid');
-l.add('	;;');
-l.add('    stop)');
-l.add('	/etc/init.d/artica-postfix stop squid');
-l.add('	;;');
-l.add('    reload|force-reload)');
-l.add('	/etc/init.d/artica-postfix stop squid');
-l.add('	/etc/init.d/artica-postfix start squid');
-l.add('	;;');
-l.add('    restart)');
-l.add('	/etc/init.d/artica-postfix stop squid');
-l.add('	/etc/init.d/artica-postfix start squid');
-l.add('	;;');
-l.add('    *)');
-l.add('	echo "Usage: '+initPath+' {start|stop|reload|force-reload|restart}"');
-l.add('	exit 3');
-l.add('	;;');
-l.add('esac');
-l.add('');
-l.add('exit 0');
-
-l.SaveToFile(initPath);
-l.free;
-
-
+fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initd-squid.php');
 end;
 
 //#############################################################################

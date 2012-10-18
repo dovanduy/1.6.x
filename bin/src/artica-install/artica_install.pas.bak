@@ -1179,7 +1179,7 @@ if ParamStr(1)='--monit-status' then begin
 end;
 if ParamStr(1)='--monit-wake' then begin
    zmonit:=tmonit.Create(SYS);
-   zmonit.BuildStatus();
+   zmonit.wakeup();
    zmonit.free;
    SYS.free;
    halt(0);

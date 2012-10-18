@@ -130,6 +130,9 @@ function popup(){
 	$tpl=new templates();
 	$TB_WIDTH=689;
 	
+	$users=new usersMenus();
+
+	
 	if(isset($_GET["tablesize"])){$TB_WIDTH=$_GET["tablesize"];}
 	$page=CurrentPageName();
 	$t=time();
@@ -146,6 +149,11 @@ function popup(){
 	$category_text=$tpl->_ENGINE_parse_body("{category}");
 	if($category==null){
 		
+		if($q->COUNT_ROWS("webfilters_categories_caches")==0){
+			$dans=new dansguardian_rules();
+			$dans->CategoriesTableCache();
+			
+		}
 		$sql="SELECT categorykey FROM webfilters_categories_caches ORDER BY categorykey";
 		$results = $q->QUERY_SQL($sql);
 		$s[]="{display: '$select', name : ''}";
@@ -174,6 +182,9 @@ function popup(){
 $rowebsite=346;
 if(isset($_GET["rowebsite"])){$rowebsite=$_GET["rowebsite"];$rowebsite=$rowebsite-40;}
 
+	if(!$users->CORP_LICENSE){
+		$title=$title."<img src='img/status_warning.gif'>".$tpl->_ENGINE_parse_body("{license_inactive}!")."";
+	}
 	
 echo "
 <span id='FlexReloadWebsiteCategoriesManageDiv'></span>
@@ -330,7 +341,7 @@ function query(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT zDate,zmd5,pattern  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
+	$sql="SELECT zDate,zmd5,pattern,enabled  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show($q->mysql_error,1);}
 	if(mysql_num_rows($results)==0){json_error_show("$nowebsites",1);}

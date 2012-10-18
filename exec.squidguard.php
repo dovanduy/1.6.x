@@ -1067,7 +1067,10 @@ function parseTemplate_LocalDB(){
 	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
 	$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");
 	$GLOBALS["JS_NO_CACHE"]=true;
-	$GLOBALS["JS_HEAD_PREPREND"]="http://$SquidGuardServerName:$SquidGuardApachePort";
+	$proto="http";
+	
+	if (isset($_SERVER['HTTPS'])){if (strtolower($_SERVER['HTTPS']) == 'on'){$proto="https";}}
+	$GLOBALS["JS_HEAD_PREPREND"]="$proto://{$_SERVER["SERVER_NAME"]}:{$_SERVER["SERVER_PORT"]}";
 	$t=time();
 	include_once(dirname(__FILE__)."/ressources/class.page.builder.inc");
 	include_once(dirname(__FILE__)."/ressources/class.templates.inc");
@@ -1144,7 +1147,7 @@ function parseTemplate_LocalDB(){
 		AnimateDiv('div-$t');
 		XHR.sendAndLoad('$page', 'POST',X_SendPass);     		
 	}		
-	
+	MessagesTophideAllMessages();
 	</script>
 	</body>
 	</html>";
@@ -1159,10 +1162,11 @@ function parseTemplate_SinglePassWord(){
 	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
 	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
 	$sock=new sockets();
-	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
-	$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");
+	$proto="http";
+	if (isset($_SERVER['HTTPS'])){if (strtolower($_SERVER['HTTPS']) == 'on'){$proto="https";}}
+	$GLOBALS["JS_HEAD_PREPREND"]="$proto://{$_SERVER["SERVER_NAME"]}:{$_SERVER["SERVER_PORT"]}";
 	$GLOBALS["JS_NO_CACHE"]=true;
-	$GLOBALS["JS_HEAD_PREPREND"]="http://$SquidGuardServerName:$SquidGuardApachePort";
+	
 	$t=time();
 	include_once(dirname(__FILE__)."/ressources/class.page.builder.inc");
 	include_once(dirname(__FILE__)."/ressources/class.templates.inc");
@@ -1235,7 +1239,7 @@ function parseTemplate_SinglePassWord(){
 		AnimateDiv('div-$t');
 		XHR.sendAndLoad('$page', 'POST',X_SendPass);     		
 	}		
-	
+	MessagesTophideAllMessages();
 	</script>
 	</body>
 	</html>";
@@ -1286,13 +1290,16 @@ function parseTemplate(){
 	if(!is_numeric($SquidGuardWebAllowUnblock)){$SquidGuardWebAllowUnblock=0;}
 	if(!is_numeric($SquidGuardWebFollowExtensions)){$SquidGuardWebFollowExtensions=1;}
 	if(!is_numeric($SquidGuardWebUseLocalDatabase)){$SquidGuardWebUseLocalDatabase=0;}
+	$proto="http";
+
+	if (isset($_SERVER['HTTPS'])){if (strtolower($_SERVER['HTTPS']) == 'on'){$proto="https";}}
 	
 	while (list ($num, $ligne) = each ($_GET) ){
 		parseTemplateLogs("$num=`$ligne`",__FUNCTION__,__FILE__,__LINE__);
 	}
 	
 	$GLOBALS["JS_NO_CACHE"]=true;
-	$GLOBALS["JS_HEAD_PREPREND"]="http://$SquidGuardServerName:$SquidGuardApachePort";
+	$GLOBALS["JS_HEAD_PREPREND"]="$proto://{$_SERVER["SERVER_NAME"]}:{$_SERVER["SERVER_PORT"]}";
 	
 	if($SquidGuardWebFollowExtensions==1){
 		if(parseTemplate_extension($_GET["url"])){return;}
@@ -1308,6 +1315,7 @@ function parseTemplate(){
 	
 	$defaultjs="alert('Disabled')";
 	$ADD_JS_PACK=false;
+	
 	
 	
 	if($SquidGuardWebAllowUnblock==1){

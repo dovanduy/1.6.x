@@ -1,4 +1,5 @@
 <?php
+if(!isset($GLOBALS["AS_ROOT"])){$GLOBALS["AS_ROOT"]=false;}
 include_once(dirname(__FILE__).'/class.dansguardian.inc');
 include_once(dirname(__FILE__).'/class.kav4proxy.inc');
 include_once(dirname(__FILE__).'/class.mysql.inc');
@@ -738,6 +739,7 @@ class squidbee{
 	
 	
 	function SquidAcountUpdate(){
+		if(isset($GLOBALS["SquidAcountUpdate"])){return;}
 		$ldap=new clladp();
 		$upd=array();
 		$dn="cn=squidinternalauth,dc=organizations,$ldap->suffix";
@@ -763,6 +765,7 @@ class squidbee{
 			$upd["userpassword"][0]=$ldap->ldap_password;
 			$ldap->Ldap_modify($dn,$upd);
 		}
+		$GLOBALS["SquidAcountUpdate"]=true;
 	}
 	
 	
@@ -4029,7 +4032,7 @@ class cicap{
 		$this->enable_metascanner=$sock->GET_INFO("KavMetascannerEnable");
 		
 		if(!is_numeric($this->EnableSquidGuardInCiCAP)){$this->EnableSquidGuardInCiCAP=1;}
-		if(!is_numeric($this->EnableClamavInCiCap==null)){$this->EnableClamavInCiCap=0;}
+		if(!is_numeric($this->EnableClamavInCiCap==null)){$this->EnableClamavInCiCap=1;}
 		if(!is_numeric($this->EnableCicapToSyslog==null)){$this->EnableCicapToSyslog=1;}
 		
 		if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
@@ -4037,7 +4040,7 @@ class cicap{
 		if(!$users->SQUIDGUARD_INSTALLED){$this->EnableSquidGuardInCiCAP=0;}
 		if($users->APP_UFDBGUARD_INSTALLED){
 			if($this->EnableUfdbGuard==1){
-				echo "Starting......: c-icap disabling squidGuard databases, UfdbGuard is enabled\n";
+				if($GLOBALS["AS_ROOT"]){echo "Starting......: c-icap disabling squidGuard databases, UfdbGuard is enabled\n";}
 				$this->EnableSquidGuardInCiCAP=0;
 			}
 		}
@@ -4062,7 +4065,7 @@ class cicap{
 		if($this->main_array["CONF"]["srv_clamav.SendPercentData"]==null){$this->main_array["CONF"]["srv_clamav.SendPercentData"]="5";}
 		if($this->main_array["CONF"]["srv_clamav.StartSendPercentDataAfter"]==null){$this->main_array["CONF"]["srv_clamav.StartSendPercentDataAfter"]="2";}
 		if($this->main_array["CONF"]["srv_clamav.MaxObjectSize"]==null){$this->main_array["CONF"]["srv_clamav.MaxObjectSize"]="5";}
-		if($this->main_array["CONF"]["srv_clamav.ClamAvMaxFilesInArchive"]==null){$this->main_array["CONF"]["srv_clamav.ClamAvMaxFilesInArchive"]="0";}
+		if($this->main_array["CONF"]["srv_clamav.ClamAvMaxFilesInArchive"]==null){$this->main_array["CONF"]["srv_clamav.ClamAvMaxFilesInArchive"]="10";}
 		if($this->main_array["CONF"]["srv_clamav.ClamAvMaxFileSizeInArchive"]==null){$this->main_array["CONF"]["srv_clamav.ClamAvMaxFileSizeInArchive"]="100";}		
 		if($this->main_array["CONF"]["srv_clamav.ClamAvMaxRecLevel"]==null){$this->main_array["CONF"]["srv_clamav.ClamAvMaxRecLevel"]="5";}
 		if($this->main_array["CONF"]["ThreadsPerChild"]==0){$this->main_array["CONF"]["ThreadsPerChild"]=10;}
@@ -4130,7 +4133,7 @@ class cicap{
 			$sock=new sockets();
 			$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 			$DisableCicapDNBSL=$sock->GET_INFO("DisableCicapDNBSL");
-			if(!is_numeric($DisableCicapDNBSL)){$DisableCicapDNBSL=0;}
+			if(!is_numeric($DisableCicapDNBSL)){$DisableCicapDNBSL=1;}
 			if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 			$users=$GLOBALS["CLASS_USERS"];
 			$user="squid";
@@ -4154,7 +4157,7 @@ class cicap{
 			
 			
 			echo "Starting......: c-icap using User $user ($usermenus->hostname)\n";
-			$conf[]="PidFile /var/run/c-icap.pid";
+			$conf[]="PidFile /var/run/c-icap.pid ";
 			$conf[]="CommandsSocket /var/run/c-icap/c-icap.ctl";
 			$conf[]="Timeout {$this->main_array["CONF"]["Timeout"]}";
 			//$conf[]="KeepAlive Off";
@@ -4197,14 +4200,14 @@ class cicap{
 			//$conf[]="echo.PreviewSize 512";
 			//$conf[]="echo.TransferIgnore gif, jpeg";
 			$filelogger=true;
-			if($this->EnableSquidGuardInCiCAP==1){
+			/*if($this->EnableSquidGuardInCiCAP==1){
 				echo "Starting......: c-icap using squidGuard databases\n";
 				$icc=new cicap_filter();
 				$conf[]=$icc->Buildacls();
 			}else{
 				echo "Starting......: c-icap disable squidGuard databases\n";
 			}
-			
+			*/
 
 			
 			
@@ -4216,8 +4219,8 @@ class cicap{
 				$conf[]="#Sysloger";
 				$conf[]="Module logger sys_logger.so";
 				$conf[]="Logger sys_logger";
-				$conf[]="sys_logger.server_priority crit";				
-				$conf[]="sys_logger.access_priority crit";
+				$conf[]="sys_logger.server_priority debug";				
+				$conf[]="sys_logger.access_priority debug";
 				$conf[]="sys_logger.Prefix \"C-ICAP:\"";
 				$conf[]="sys_logger.Facility local1";
 				$conf[]="sys_logger.LogFormat \"%tl;%a;%un;%iu;%is;%huo\"";
@@ -4233,7 +4236,7 @@ class cicap{
 			if($this->enable_metascanner==1){
 				$conf[]="Service khse /opt/kaspersky/khse/libexec/libms-icap.so";
 			}			
-			
+			/*
 			if($SquidActHasReverse<>1){
 				if(is_file("$modules_path/dnsbl_tables.so")){$conf[]="Module common bdb_tables.so";}
 				$conf[]="Module common dnsbl_tables.so";
@@ -4260,13 +4263,45 @@ class cicap{
 		
 				if($this->EnableSquidGuardInCiCAP==1){$conf[]=$icc->GetSquidGuarddbs();}
 			}
+			*/
+			$VirusScan=false;
+			if(!$users->KASPERSKY_WEB_APPLIANCE){
+			if(is_file("$modules_path/virus_scan.so")){
+				echo "Starting......: c-icap clamav library: $modules_path/virus_scan.so\n";
+				$VirusScan=true;
+				$conf[]="Service antivirus_module virus_scan.so";
+				$conf[]="ServiceAlias srv_clamav virus_scan";
+				$conf[]="ServiceAlias  avscan virus_scan?allow204=on&sizelimit=off&mode=simple";
+				$conf[]="virus_scan.ScanFileTypes TEXT DATA EXECUTABLE ARCHIVE MSOFFICE";
+				$conf[]="virus_scan.SendPercentData {$this->main_array["CONF"]["srv_clamav.SendPercentData"]}";
+				$conf[]="virus_scan.StartSendPercentDataAfter {$this->main_array["CONF"]["srv_clamav.StartSendPercentDataAfter"]}M";
+				$conf[]="virus_scan.Allow204Responces off";
+				$conf[]="virus_scan.MaxObjectSize  {$this->main_array["CONF"]["srv_clamav.MaxObjectSize"]}M";
+				$conf[]="virus_scan.UseClamd off";
+				$conf[]="virus_scan.ClamdSocket /var/run/clamav/clamd.ctl";
+				$conf[]="virus_scan.ClamAvTmpDir /var/tmp";
+				$conf[]="virus_scan.ClamAvMaxFilesInArchive {$this->main_array["CONF"]["srv_clamav.ClamAvMaxFilesInArchive"]}";
+				$conf[]="virus_scan.ClamAvMaxFileSizeInArchive {$this->main_array["CONF"]["srv_clamav.ClamAvMaxFileSizeInArchive"]}M";
+				$conf[]="virus_scan.ClamAvMaxScanSize 100M";
+				$conf[]="virus_scan.ClamAvMaxRecLevel {$this->main_array["CONF"]["srv_clamav.ClamAvMaxRecLevel"]}";
+				if($this->main_array["CONF"]["ViralatorMode"]==1){
+					$sock->SET_INFO("CiCapViralatorMode",1);
+					$conf[]="#	virus_scan.VirSaveDir {$this->main_array["CONF"]["VirSaveDir"]}";
+					$conf[]="#	virus_scan.VirHTTPUrl   \"{$this->main_array["CONF"]["VirHTTPServer"]}\"";
+					$conf[]="#	virus_scan.VirUpdateTime   15";
+					$conf[]="#	virus_scan.VirScanFileTypes ARCHIVE EXECUTABLE";
+					$conf[]="";	
+				}else{$sock->SET_INFO("CiCapViralatorMode",0);}			
+				}
+			}
 			
+		if(!$VirusScan){
 			if(!$users->KASPERSKY_WEB_APPLIANCE){
 			echo "Starting......: c-icap clamav library: $modules_path/srv_clamav.so\n";
 			if(is_file("$modules_path/srv_clamav.so")){
 				$sock=new sockets();
 				$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
-				if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=0;}
+				if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}
 				if($EnableClamavInCiCap==1){
 						if($this->main_array["CONF"]["VirSaveDir"]<>null){
 							if(!is_dir($this->main_array["CONF"]["VirSaveDir"])){
@@ -4275,8 +4310,9 @@ class cicap{
 						}
 						$conf[]="";
 						$conf[]="#Clamav";
-						$conf[]="Service antivirus_module srv_clamav.so srv_url_check.so";
+						$conf[]="Service antivirus_module srv_clamav.so";
 						$conf[]="ServiceAlias  avscan srv_clamav?allow204=off&sizelimit=off&mode=simple";
+						$conf[]="srv_clamav.UseClamd off";
 						$conf[]="srv_clamav.ScanFileTypes TEXT DATA EXECUTABLE ARCHIVE MSOFFICE";
 						$conf[]="srv_clamav.TransferIgnore flv, f4v, f4p, f4a, f4b, mpeg, mp2, mp3";
 						$conf[]="srv_clamav.SendPercentData {$this->main_array["CONF"]["srv_clamav.SendPercentData"]}";
@@ -4302,7 +4338,7 @@ class cicap{
 					}
 				}
 			}
-				
+		}	
 				
 				
 				@mkdir("/var/log/c-icap",0666,true);

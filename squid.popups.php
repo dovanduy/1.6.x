@@ -1,3 +1,4 @@
+
 <?php
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -1504,6 +1505,17 @@ function plugins_js(){
  		}
 	";
 }
+function NotifyServers(){
+	$sock=new sockets();
+	$users=new usersMenus();
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}	
+	if($EnableWebProxyStatsAppliance==1){
+		$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
+	}	
+	
+}
 
 function plugins_save(){
 	$squid=new squidbee();
@@ -1641,6 +1653,7 @@ function plugins_save(){
 	if(!$squid->SaveToLdap()){
 			if(trim($squid->ldap_error)<>null){echo $squid->ldap_error;}
 			return;
+			NotifyServers();
 	}
 	
 	writelogs("Save kavProxy:Final $squid->enable_kavproxy",__FUNCTION__,__FILE__);

@@ -505,7 +505,12 @@ logs.WriteToFile(MyPID,MyPidPath);
 mybinVer:=SQUID_BIN_VERSION(SQUID_VERSION());
 WithoutConfig :=false;
 UrlFlilterBox:=false;
-if SYS.COMMANDLINE_PARAMETERS('--without-config') then WithoutConfig:=true;
+if SYS.COMMANDLINE_PARAMETERS('--without-config') then begin
+   WithoutConfig:=true;
+   logs.Debuglogs('Starting......: Squid Skip configuration...');
+   if FileExists('/etc/artica-postfix/squid.lock') then  logs.DeleteFile('/etc/artica-postfix/squid.lock');
+end;
+
 if DirectoryExists('/opt/urlfilterbox') then UrlFlilterBox:=true;
 
 if FileExists('/etc/artica-postfix/squid.lock') then  begin
@@ -539,8 +544,17 @@ SYS:=Tsystem.Create;
      exit;
   end;
 
-if not SYS.IsUserExists('squid') then SYS.AddUserToGroup('squid','squid','','');
-if FileExists('/usr/share/artica-postfix/exec.squid.php') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.php --writeinitd >/dev/null 2>&1');
+if not SYS.IsUserExists('squid') then begin
+   logs.Debuglogs('Starting......: Squid, creating squid user...');
+   SYS.AddUserToGroup('squid','squid','','');
+end;
+
+
+if FileExists('/usr/share/artica-postfix/exec.squid.php') then begin
+   logs.Debuglogs('Starting......: Squid writing init.d startup script...');
+   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.php --writeinitd >/dev/null 2>&1');
+end;
+
 if not UrlFlilterBox then begin
 if not DirectoryExists('/var/lib/squidguard') then begin
    ForceDirectories('/var/lib/squidguard');
@@ -1363,11 +1377,12 @@ killbin:=SYS.LOCATE_GENERIC_BIN('kill');
         fpsystem(killbin+' '+pid+' >/dev/null 2>&1');
      end;
 
+  count:=0;
    while SYS.PROCESS_EXIST(pid) do begin
         sleep(5000);
         inc(count);
-        writeln('Stopping Squid...............: Waiting '+intToStr(i)+'/90');
-        if count>90 then begin
+        writeln('Stopping Squid...............: Waiting '+intToStr(i)+'/120');
+        if count>120 then begin
            writeln('Stopping Squid...............: Timed-out');
            break;
         end;

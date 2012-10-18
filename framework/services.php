@@ -1392,6 +1392,9 @@ function register_license(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$cmd=trim("$php5 /usr/share/artica-postfix/exec.web-community-filter.php --register-lic 2>&1");
 	exec($cmd,$results);
+	$cmd="$nohup /usr/share/artica-postfix/bin/process1 --force ".time()." >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	shell_exec($cmd);
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 }
 

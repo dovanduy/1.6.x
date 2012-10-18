@@ -1,7 +1,10 @@
 <?php
 if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
+if(function_exists("debug_mem")){debug_mem();}
 include_once(dirname(__FILE__).'/class.users.menus.inc');
+if(function_exists("debug_mem")){debug_mem();}
 include_once(dirname(__FILE__).'/class.mysql.inc');
+if(function_exists("debug_mem")){debug_mem();}
 class mysql_catz{
 	var $ClassSQL;
 	var $ok=false;
@@ -28,7 +31,9 @@ class mysql_catz{
 			$this->mysql_port=$this->ClassSQL->mysql_port;
 			$this->mysql_server=$this->ClassSQL->mysql_server;
 			if(!$this->DATABASE_EXISTS($this->database)){$this->CREATE_DATABASE($this->database);}
+			if(function_exists("debug_mem")){debug_mem();}
 			if($this->TestingConnection()){}else{$this->MysqlFailed=true;}
+			if(function_exists("debug_mem")){debug_mem();}
 		}
 		
 	}

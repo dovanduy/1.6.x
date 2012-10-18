@@ -22,6 +22,7 @@ private
      TAIL_LOG_PATH:string;
      EnableUfdbGuard:integer;
      EnableWebProxyStatsAppliance:integer;
+     EnableRemoteStatisticsAppliance:integer;
      UseRemoteUfdbguardService:integer;
      SQUIDEnable:integer;
      binpath:string;
@@ -57,6 +58,9 @@ begin
        if not TryStrToInt(SYS.GET_INFO('EnableUfdbGuard'),EnableUfdbGuard) then EnableUfdbGuard:=0;
        if not TryStrToInt(SYS.GET_INFO('EnableWebProxyStatsAppliance'),EnableWebProxyStatsAppliance) then EnableWebProxyStatsAppliance:=0;
        if not TryStrToInt(SYS.GET_INFO('UseRemoteUfdbguardService'),UseRemoteUfdbguardService) then UseRemoteUfdbguardService:=0;
+       if not TryStrToInt(SYS.GET_INFO('EnableRemoteStatisticsAppliance'),EnableRemoteStatisticsAppliance) then EnableRemoteStatisticsAppliance:=0;
+
+
 
        if not SYS.ISMemoryHiger1G() then begin
           if EnableUfdbGuard=1 then begin
@@ -167,6 +171,12 @@ if EnableUfdbGuard=0 then begin
    exit;
 end;
 
+if EnableRemoteStatisticsAppliance=1 then begin
+   logs.DebugLogs('Starting......:  ufdbguardd is disabled: using statistics appliance...');
+   STOP();
+   exit;
+end;
+
 if SYS.PROCESS_EXIST(PID_NUM()) then begin
    logs.DebugLogs('Starting......:  ufdbguardd Already running using PID ' +PID_NUM()+ '...');
    exit;
@@ -257,6 +267,12 @@ if noufdbg then noufdbgcmdline:=' --noufdbg';
 
 if EnableUfdbGuard=0 then begin
    logs.DebugLogs('Starting......:  ufdbguardd is disabled');
+   TAIL_STOP();
+   exit;
+end;
+
+if EnableRemoteStatisticsAppliance=1 then begin
+   logs.DebugLogs('Starting......:  ufdbguardd is disabled: using statistics appliance');
    TAIL_STOP();
    exit;
 end;

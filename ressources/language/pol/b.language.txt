@@ -154,6 +154,7 @@ The filter must run and perform mail filtering as expected...</amavis_is_current
 <and_only_when_downloading_files_with_extension>and only when trying to download files with these extensions</and_only_when_downloading_files_with_extension>
 <anonymous_browsing>anonymous browsing</anonymous_browsing>
 <anonymous_browsing_explain>You want to prevent your browser from sending out sensitive information such as the type of your operating system, browser, date/time, referrer page</anonymous_browsing_explain>
+<antivirus_parameters>Anti-Virus parameters</antivirus_parameters>
 <ApacheLogRotate>Enable Web servers log rotation</ApacheLogRotate>
 <ApacheLogRotate_explain>Rotate all Web servers log with specified parameters</ApacheLogRotate_explain>
 <appliances>Appliances</appliances>
@@ -1700,6 +1701,9 @@ may generate errors, or become slow.
 <squid_band_aclgroup_restriction_text>List of Proxy acls groups using this rule</squid_band_aclgroup_restriction_text>
 <squid_booster>Proxy booster</squid_booster>
 <squid_booster_text>Proxy booster allows you to enable a cache directory directly in memory in order to boost you proxy performance</squid_booster_text>
+<squid_check_lost_tables>Check lost hourly tables</squid_check_lost_tables>
+<squid_check_lost_tables_explain>Artica generate access logs for each hour.[br]If the server is busy the hourly statistics will be not calculated.[br]
+This task parse all hourly lost tables and inject data into the standard cycle.</squid_check_lost_tables_explain>
 <squid_csv_logs>CSV access events</squid_csv_logs>
 <squid_csv_logs_explain>Save real-time events in CSV format in order to play with logs directly with a software that understand the csv format such as Microsof Excel or OpenOffice.</squid_csv_logs_explain>
 <squid_ext_session_acl_not_found_explain>The session helper binary was not found on this server, this feature will not works has expected</squid_ext_session_acl_not_found_explain>

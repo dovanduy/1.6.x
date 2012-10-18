@@ -151,6 +151,7 @@ class squid_stats_appliance{
 		$array["EnableSplashScreen"]=true;
 		$array["SplashScreenURI"]=true;	
 		$array["HotSpotConfig"]=true;
+		$array["CicapEnabled"]=true;
 		return $array;
 	}
 	

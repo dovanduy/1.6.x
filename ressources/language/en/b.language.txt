@@ -2296,6 +2296,7 @@ if your server does not respond after a reboot
 <CACHE_AUTH>Show splash screen each</CACHE_AUTH>
 <wrong_password_or_username>Wrong password or username</wrong_password_or_username>
 <accesstime_to_internet_expired>Access time to Internet expired</accesstime_to_internet_expired>
+<antivirus_parameters>Anti-Virus parameters</antivirus_parameters>
 <webfilter_events>Webfilter events</webfilter_events>
 <reload_proxy_service>Reload the proxy service</reload_proxy_service>
 <reload_proxy_service_text>Force the proxy to read the configuration file and reload plugins.</reload_proxy_service_text>
@@ -2315,3 +2316,6 @@ if your server does not respond after a reboot
 <use_ldap_database>Use LDAP database</use_ldap_database>
 <re_authenticate_each>Re-authenticate each</re_authenticate_each>
 <restart_proxy_service_text>Stop the Proxy service and restart it, all HTTP sessions will be lost</restart_proxy_service_text>
+<squid_check_lost_tables_explain>Artica generate access logs for each hour.[br]If the server is busy the hourly statistics will be not calculated.[br]
+This task parse all hourly lost tables and inject data into the standard cycle.</squid_check_lost_tables_explain>
+<squid_check_lost_tables>Check lost hourly tables</squid_check_lost_tables>

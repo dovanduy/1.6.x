@@ -1,4 +1,5 @@
 <?php
+
 include_once(dirname(__FILE__).'/class.ini-frame.inc');
 include_once("/usr/share/artica-postfix/ressources/class.sockets.inc");
 include_once("/usr/share/artica-postfix/ressources/class.ini.inc");
@@ -1797,6 +1798,69 @@ public function KILL_PROCESS($pid,$signal=0){
 	}
 
 }
+
+
+
+
+function proc_exec($cmd){
+	$BUF_SIZE=1024;
+	$FD_WRITE=0 ;      # stdin
+	$FD_READ=1;
+	$FD_ERR= 2;        # stderr	
+	$errbuf=null;
+    $descriptorspec = array(
+        0 => array("pipe", "r"),
+        1 => array("pipe", "w"),
+        2 => array("pipe", "w")
+    );
+
+    $ptr = proc_open($cmd, $descriptorspec, $pipes, NULL, $_ENV);
+    if (!is_resource($ptr)){return array();}
+
+    while (($buffer = fgets($pipes[$FD_READ], $BUF_SIZE)) != NULL || ($errbuf = fgets($pipes[$FD_ERR], $BUF_SIZE)) != NULL) {
+        if (!isset($flag)) {
+            $pstatus = proc_get_status($ptr);
+            $first_exitcode = $pstatus["exitcode"];
+            $flag = true;
+        }
+        if (strlen($buffer)){
+        	$buffer=str_replace("\n", "", $buffer);
+        	$buffer=str_replace("\r", "", $buffer);
+            $array[]=$buffer;
+        }
+        
+        if (strlen($errbuf)){
+            //echo "ERR: " . $errbuf;
+        }
+    }
+
+    foreach ($pipes as $pipe){
+        fclose($pipe);
+    }
+
+    
+    $pstatus = proc_get_status($ptr);
+    if (!strlen($pstatus["exitcode"]) || $pstatus["running"]) {
+        
+        if ($pstatus["running"])
+            proc_terminate($ptr);
+        $ret = proc_close($ptr);
+    } else {
+        if ((($first_exitcode + 256) % 256) == 255
+                && (($pstatus["exitcode"] + 256) % 256) != 255)
+            $ret = $pstatus["exitcode"];
+        elseif (!strlen($first_exitcode))
+            $ret = $pstatus["exitcode"];
+        elseif ((($first_exitcode + 256) % 256) != 255)
+            $ret = $first_exitcode;
+        else
+            $ret = 0; 
+        proc_close($ptr);
+    }
+
+    return $array;
+}
+
 
 
 
@@ -4058,9 +4122,10 @@ function DirFiles($path,$regexsearch=null){
 
 
 	public function PIDOF($binpath,$noppid=false){
+		
 		$cmd=$this->find_program('pidof')." -s $binpath";
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":: $cmd\n";}
-		exec($this->find_program('pidof')." -s $binpath",$re);
+		$re=$this->proc_exec($cmd);
 		while (list ($num, $ligne) = each ($re) ){	
 			if(preg_match("#[0-9]+#",$ligne)){
 				$pid=trim($ligne);

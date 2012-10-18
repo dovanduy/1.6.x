@@ -388,6 +388,8 @@ return @implode("\n",$f);
 }
 	
 private function MaxRCPT(){
+	if(!class_exists("maincf_multi")){include_once(dirname(__FILE__)."/class.maincf.multi.inc");}
+	
 	$main=new maincf_multi("master","master");
 	$max_rcpt_to=$main->GET("max_rcpt_to");
 	if($max_rcpt_to==0){return array();}

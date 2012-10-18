@@ -83,7 +83,7 @@ function perfs(){
 	if(preg_match("#([0-9]+)\s+#",$cache_mem,$re)){$cache_mem=$re[1];}
 	
 	$swappiness=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("vm.swappiness")); //2
-	$vfs_cache_pressure=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("vm.vfs_cache_pressure")); //50
+	//$vfs_cache_pressure=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("vm.vfs_cache_pressure")); //50
 	$overcommit_memory=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("vm.overcommit_memory")); //2
 	
 	$tcp_max_syn_backlog=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("net.ipv4.tcp_max_syn_backlog")); //4096 
@@ -95,7 +95,11 @@ function perfs(){
  * echo 1 > /proc/sys/net/ipv4/ip_forward echo 1 > /proc/sys/net/ipv4/ip_nonlocal_bind echo 0 > /proc/sys/net/ipv4/conf/all/rp_filter echo 1024 65535 > /proc/sys/net/ipv4/ip_local_port_range echo 102400 > /proc/sys/net/ipv4/tcp_max_syn_backlog echo 1000000 > /proc/sys/net/ipv4/ip_conntrack_max echo 1000000 > /proc/sys/fs/file-max echo 60 > /proc/sys/kernel/msgmni echo 32768 > /proc/sys/kernel/msgmax echo 65536 > /proc/sys/kernel/msgmnb :: Maximizing Kernel configuration 
  */	
 	
-
+$removecachepressure="		<tr >
+			<td align='right' class=legend nowrap style='font-size:16px'>Kernel:vm.vfs_cache_pressure:</strong></td>
+			<td valign='middle' align='right' style='font-size:18px;padding-right:5px'>$vfs_cache_pressure</td>
+			<td valign='middle'>".Field_text("vfs_cache_pressure",50,"font-size:18px;width:40px")."</strong></td>
+		</tr>";
 	
 	$html="
 	<input type='hidden' id='cache_mem' value='$mem_cached'>
@@ -148,11 +152,7 @@ function perfs(){
 		<td valign='middle' style='font-size:18px'>". Field_text("swappiness",5,"font-size:18px;width:40px")."&nbsp;%</td>
 		</tr>				
 		
-		<tr >
-			<td align='right' class=legend nowrap style='font-size:16px'>Kernel:vm.vfs_cache_pressure:</strong></td>
-			<td valign='middle' align='right' style='font-size:18px;padding-right:5px'>$vfs_cache_pressure</td>
-			<td valign='middle'>".Field_text("vfs_cache_pressure",50,"font-size:18px;width:40px")."</strong></td>
-		</tr>			
+			
 		
 		
 		<tr>
@@ -184,7 +184,7 @@ function perfs(){
 		var XHR = new XHRConnection();
 		XHR.appendData('cache_mem',document.getElementById('cache_mem').value);
 		XHR.appendData('swappiness',document.getElementById('swappiness').value);
-		XHR.appendData('vfs_cache_pressure',document.getElementById('vfs_cache_pressure').value);
+		//XHR.appendData('vfs_cache_pressure',document.getElementById('vfs_cache_pressure').value);
 		XHR.appendData('overcommit_memory',document.getElementById('overcommit_memory').value);
 		XHR.appendData('tcp_max_syn_backlog',document.getElementById('tcp_max_syn_backlog').value);
 		
@@ -220,7 +220,7 @@ function save(){
 	
 	$sock->SaveConfigFile( base64_encode(serialize($_GET)),"kernel_values");
 	$sock->getFrameWork("cmd.php?sysctl-setvalue={$_GET["swappiness"]}&key=".base64_encode("vm.swappiness")); //15
-	$sock->getFrameWork("cmd.php?sysctl-setvalue={$_GET["vfs_cache_pressure"]}&key=".base64_encode("vm.vfs_cache_pressure")); //15
+	//$sock->getFrameWork("cmd.php?sysctl-setvalue={$_GET["vfs_cache_pressure"]}&key=".base64_encode("vm.vfs_cache_pressure")); //15
 	$sock->getFrameWork("cmd.php?sysctl-setvalue={$_GET["overcommit_memory"]}&key=".base64_encode("vm.overcommit_memory")); //15
 	$sock->getFrameWork("cmd.php?sysctl-setvalue={$_GET["tcp_max_syn_backlog"]}&key=".base64_encode("net.ipv4.tcp_max_syn_backlog"));	
 	

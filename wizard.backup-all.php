@@ -678,13 +678,17 @@ function BACKUP_COMPILE(){
 	$resource_type=$_SESSION["WIZARD"]["W_RESOURCE"];
 	$CRON_CONTAINER=$_SESSION["WIZARD"]["CRON_CONTAINER"];
 	$md5=md5($schedule.$pattern);
-	
+
 	$q=new mysql();
+	$pattern=addslashes($pattern);
+	$resource_type=addslashes($resource_type);
+	$schedule=addslashes($schedule);
+	
 	$sql="INSERT INTO  backup_schedules(`zMD5`,`resource_type`,`pattern`,`schedule`,`datasbackup`,`container`)
-	VALUES('$md5','$resource_type','$pattern','$schedule','$datasbackup','$CRON_CONTAINER')";
+	VALUES ('$md5','$resource_type','$pattern','$schedule','$datasbackup','$CRON_CONTAINER')";
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){
-		echo $q->mysql_error;
+		echo $q->mysql_error."\n$sql";
 		return ;
 	}
 	$sock=new sockets();
