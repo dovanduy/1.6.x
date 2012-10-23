@@ -576,11 +576,13 @@ Voulez-vous effectuer cette op&eacute;ration ?</disable_amavisdeamon_ask>
 <disable_zarafa_web_service>D&eacute;sactiver le service Web Zarafa</disable_zarafa_web_service>
 <disclaimers>Disclaimers</disclaimers>
 <disk_usage>Utilisation disque</disk_usage>
+<display_access_by_members>Afficher les acc&egrave;s par utilisateur</display_access_by_members>
 <display_config>Afficher la configuration</display_config>
 <display_config_text>Afficher la configuration de cet &eacute;l&eacute;ment construite par Artica</display_config_text>
 <display_current_sessions>Afficher les sessions actives</display_current_sessions>
 <display_fw_rules>Afficher les r&egrave;gles du pare-feu</display_fw_rules>
 <display_indexation_events>Visualise les &eacute;v&egrave;nements li&eacute;s &agrave; l'indexation des ressources d&eacute;finies.</display_indexation_events>
+<display_performance_status>Affichage de l'&eacute;tat des performances</display_performance_status>
 <dnsbl_service>Service DNSBL</dnsbl_service>
 <dnsmasq_bulk_import_explain>Cette fonctionnalit&eacute; vous permet d'importer en masse des &eacute;l&eacute;ments.[br]
 Les &eacute;l&eacute;ments doivent &ecirc;tre sous la forme &quot;h&ocirc;te,AdresseIP&quot; s&eacute;par&eacute;s par un retour chariot. Ex:[br]
@@ -727,6 +729,10 @@ imap.company2.tld;POP3;sabrina;SaBr1n@;sabrina.giuras;ssl23;1[br]
 [br]Si le &quot;local account&quot; ou compte local n'existe pas dans la base d'Artica, alors la r&egrave;gle sera ignor&eacute;e dans l'importation.</fetchmail_import_explain>
 <fetch_folders_explain>R&eacute;cup&eacute;rer les messages stock&eacute;s dans des dossiers sp&eacute;cifiques.</fetch_folders_explain>
 <filepath>Chemin du fichier</filepath>
+<file_descriptors>Descripteurs de fichiers</file_descriptors>
+<file_descriptors_squid_explain>G&eacute;n&eacute;ralement, un descripteur de fichier est un index d'une entr&eacute;e dans le noyau-r&eacute;sident.[br]
+Dans un syst&egrave;me Unix, les descripteurs de fichier peuvent d&eacute;signer des fichiers, des r&eacute;pertoires, des devices bloc ou caract&egrave;re (souvent appel&eacute;s fichiers sp&eacute;ciaux), des pipes nomm&eacute;s ou des pipes anonymes.
+Cette valeur limite le nombre de fichiers que peut ouvrir le proxy en m&ecirc;me temps.</file_descriptors_squid_explain>
 <file_server>Serveur de fichiers</file_server>
 <finish_rule_by>Finir la r&egrave;gle par</finish_rule_by>
 <firefoxpac_how_to>S&eacute;lectionnez le menu &quot;Options&quot; puis cliquez sur l'onglet r&eacute;seau et le bouton Param&egrave;tres.[br]
@@ -1160,6 +1166,8 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 <offlineimap_gateway_explain>Au lieu d'effectuer la synchronisation avec une bo&icirc;te aux lettres locale, celle-ci sera effectu&eacute;e avec une boite aux lettres h&eacute;berg&eacute;e par un serveur distant.</offlineimap_gateway_explain>
 <old_statistics_interface>Ancienne interface de statistiques</old_statistics_interface>
 <old_statistics_interface_text>Si quelque chose manque, utilisez l'ancienne interface de statistiques.</old_statistics_interface_text>
+<onlycorpavailable>Cette fonctionnalit&eacute; est uniquement disponible avec une licence entreprise.[br]
+Nous vous sugg&eacute;reront de mettre &agrave; jour la licence de votre serveur.</onlycorpavailable>
 <OnlyEnabled>Seulement actif</OnlyEnabled>
 <only_from_activedirectory>Seulement depuis l'Active Directory</only_from_activedirectory>
 <opened_ports>Ports ouverts</opened_ports>
@@ -1274,6 +1282,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</purge_catagories_table_explain>
 <PYMSNT_HOWTO>Ce formulaire vous permet d'activer le protocole MSN dans votre serveur de chat.[br]
 Indique le nom d'h&ocirc;te ou le domaine.[br]
 [b]Attention,il ne permettra pas de connecter un client pure MSN et le protocol fournit reste tr&egrave;s ancien et ne sera pas compatible avec les clients MSN modernes.[b]</PYMSNT_HOWTO>
+<QuerySize>Poids r&eacute;cup&eacute;r&eacute;</QuerySize>
 <realsize>Taille r&eacute;elle</realsize>
 <realtime_events_squid>&Eacute;v&egrave;nements temps r&eacute;el</realtime_events_squid>
 <realtime_requests>Requ&ecirc;tes en temps r&eacute;el</realtime_requests>
@@ -1777,6 +1786,7 @@ Pour indiquer des valeurs multiples, sp&eacute;cifiez les masques avec des virgu
 Exemple : *.bat,*.cmd,*.com,*.exe,*.vbs,*.msi,*.pif,*.reg</veto_files_add_explain>
 <veto_files_explain>C'est la liste des fichiers et r&eacute;pertoires qui ne seront pas visibles et accessibles.[br]
 Les caract&egrave;res &quot;*&quot; et &quot;?&quot; peuvent &ecirc;tre utilis&eacute;s afin de sp&eacute;cifier de multiples fichiers ou r&eacute;pertoires comme des jokers DOS.</veto_files_explain>
+<video_title>Titre de la vid&eacute;o</video_title>
 <virtual_company>Soci&eacute;t&eacute; virtuelle</virtual_company>
 <virtual_hostname_cannot_same_main_hostname>Le serveur virtuel ne peut pas avoir le m&ecirc;me nom que le service Web ma&icirc;tre.
 Vous pouvez changer le nom d'h&ocirc;te du service Web ma&icirc;tre dans la configuration g&eacute;n&eacute;rale de FreeWebs</virtual_hostname_cannot_same_main_hostname>
@@ -1908,6 +1918,8 @@ Cliquez sur le bouton ci-dessous afin d'activer le service.</web_engine_not_acti
 <web_injector>&Eacute;v&egrave;nements temps r&eacute;el du Proxy</web_injector>
 <web_injector_explain>Cette t&acirc;che va lister les &eacute;v&egrave;nements proxy en temps r&eacute;el et va les injecter dans la base MySQL.</web_injector_explain>
 <web_interface_service>Service de l'interface Web</web_interface_service>
+<web_statistics>Statistiques Internet</web_statistics>
+<web_statistics_member_text>Visualiser les acc&egrave;s Internet de votre soci&eacute;t&eacute; pass&eacute;s &agrave; travers le proxy.</web_statistics_member_text>
 <web_suffix_domain>Suffixe de domaine Internet</web_suffix_domain>
 <weeks>Semaines</weeks>
 <WELCOME_ON_ARTICA_PROJECT>Bienvenue dans le projet Artica</WELCOME_ON_ARTICA_PROJECT>
@@ -1985,6 +1997,7 @@ Cette section ne peut &ecirc;tre visualis&eacute;e.</XAPIAN_NOT_INSTALLED_ERROR>
 <your_messaging_statistics>Vos statistiques de messagerie</your_messaging_statistics>
 <your_settings>Vos param&egrave;tres</your_settings>
 <YoutubeForSchoolsExplainT>Donne la possibilit&eacute; aux &eacute;coles d'afficher uniquement les vid&eacute;os Youtube EDU.[br]Vid&eacute;os uniquement &agrave; caract&egrave;re &eacute;ducatif.</YoutubeForSchoolsExplainT>
+<youtube_objects_statistics_text>Afficher les objets YouTube t&eacute;l&eacute;charg&eacute;s par les utilisateurs.</youtube_objects_statistics_text>
 <you_have_to_reload_webpage>Vous devez recharger cette page Internet</you_have_to_reload_webpage>
 <you_need_to_restart_service_take_effet>Vous avez besoin de red&eacute;marrer le service 
 afin de prendre en compte les modifications.</you_need_to_restart_service_take_effet>

@@ -27,6 +27,7 @@ class offlineimap{
 	var $maildir_path=null;
 	var $maildir_final=null;
 	
+	var $MD5_account=null;
 	
 	
 	function offlineimap(){
@@ -35,7 +36,7 @@ class offlineimap{
 	
 	
 	function buildconf(){
-		
+		$this->MD5_account=md5($this->remote_username.$this->remote_imap);
 		$offlineImapConf[]="[general]";
 		$offlineImapConf[]="accounts = $this->remote_username";
 		$offlineImapConf[]="maxsyncaccounts = 1";
@@ -49,12 +50,12 @@ class offlineimap{
 		$offlineImapConf[]="statuschar = .";
 		$offlineImapConf[]="";
 		$offlineImapConf[]="[Account $this->remote_username]";
-		$offlineImapConf[]="localrepository = Local";
-		$offlineImapConf[]="remoterepository = Remote";
+		$offlineImapConf[]="localrepository = Local$this->MD5_account";
+		$offlineImapConf[]="remoterepository = Remote$this->MD5_account";
 		$offlineImapConf[]="status_backend = sqlite";
 		if($this->maxsize>0){$this->maxsize=($this->maxsize*1024)*1000;$offlineImapConf[]="maxsize = $this->maxsize";}
 		if($this->maxage>0){$offlineImapConf[]="maxage = $this->maxage";}	
-
+		
 		$local=$this->Local();
 		$remote=$this->Remote();
 		if($local==null){$this->buildlogs("Fatal error while creating local config", __FUNCTION__, __LINE__);return;}
@@ -69,7 +70,7 @@ class offlineimap{
 	}
 	
 	private function Local(){
-		$offlineImapConf[]="[Repository Local]";
+		$offlineImapConf[]="[Repository Local$this->MD5_account]";
 		
 		if($this->LocalType=="maildir"){
 			$this->maildir_final=$this->local_maildir();
@@ -85,7 +86,7 @@ class offlineimap{
 	
 	private function Remote(){
 		
-		$offlineImapConf[]="[Repository Remote]";
+		$offlineImapConf[]="[Repository Remote$this->MD5_account]";
 		
 		if($this->RemoteType=="imap"){
 			if($this->remote_username==null){
@@ -99,7 +100,7 @@ class offlineimap{
 			}			
 			
 			$offlineImapConf[]="type = IMAP";
-			$offlineImapConf[]="maxconnections = 2";
+			$offlineImapConf[]="maxconnections = 3";
 			$offlineImapConf[]="remotehost = $this->remote_imap";
 			if($this->remote_ssl==1){
 				$offlineImapConf[]="ssl = 1";

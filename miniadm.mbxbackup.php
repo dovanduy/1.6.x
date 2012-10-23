@@ -192,7 +192,7 @@ function Run$t(md){
 	if(confirm('$error_want_operation')){
  		var XHR = new XHRConnection();
    	 	XHR.appendData('run-item',md);
-   	 	XHR.sendAndLoad('$page', 'POST',x_Run$t);		
+   	 	XHR.sendAndLoad('$page', 'POST',x_Enable$t);		
 	}
 
 }
@@ -327,7 +327,7 @@ function backup_rule_enable(){
 function backup_rule_perform(){
 	$md5=$_POST["run-item"];
 	$sock=new sockets();
-	$sock->getFrameWork("services.php?run-backup=yes&md5=$md5");
+	$sock->getFrameWork("offlineimap.php?run-backup=yes&md5=$md5");
 	
 }
 

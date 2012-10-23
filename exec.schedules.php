@@ -9,9 +9,7 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--no-restart#",implode(" ",$argv))){$GLOBALS["WITHOUT_RESTART"]=true;}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::framework/class.unix.inc\n";}
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::frame.class.inc\n";}
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.tasks.inc');
@@ -177,11 +175,13 @@ function execute_task($ID){
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
 		system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		return;
 	}
 	
 	$pidtime=$unix->file_time_min($pidfile);
 	if($pidtime<1){
 		system_admin_events("last execution was done since {$pidtime}mn" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		return;
 	}	
 
 	@unlink($pidfile);
@@ -274,11 +274,13 @@ function execute_task_squid($ID){
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
 		system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		return;
 	}
 	
 	$pidtime=$unix->file_time_min($pidfile);
 	if($pidtime<1){
 		system_admin_events("last execution was done since {$pidtime}mn" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		return;
 	}
 	
 	

@@ -415,11 +415,14 @@ function section_architecture_advanced(){
     
     $csvstats=Paragraphe("csv-64.png", "{squid_csv_logs}", "{squid_csv_logs_explain}","javascript:Loadjs('squid.csv.php')");
     
-    
+     $file_descriptors=Paragraphe("64-filetype.png", "{file_descriptors}", "{file_descriptors_squid_explain}",
+    "javascript:Loadjs('squid.file_desc.php')");   
     
     $tr[]=$squid_conf;
     $tr[]=$squid_advanced_parameters;
     $tr[]=$memory_option;
+    
+    $tr[]=$file_descriptors;
     $tr[]=$dns_servers;
     $tr[]=$performances_tuning;
     $tr[]=$loadbalancing;
@@ -1182,6 +1185,14 @@ $current_sessions="
 		style='font-size:12px;text-decoration:underline'>{display_current_sessions}</a></td>
 		</tr>	
 	";	
+$performances="
+			<tr>
+		<td width=1%><img src='img/performance-tuning-32.png'></td>
+		<td nowrap><a href=\"javascript:blur();\" 
+		OnClick=\"javascript:Loadjs('squid.squidclient.info.php');\" 
+		style='font-size:12px;text-decoration:underline'>{display_performance_status}</a></td>
+		</tr>	
+	";	
 
 $restart_all_services="	<tr>
 		<td width=1%><img src='img/service-restart-32.png'></td>
@@ -1205,6 +1216,7 @@ if($users->WEBSTATS_APPLIANCE){
 	$debug_compile=null;
 	$current_sessions=null;
 	$restart_service_only=null;
+	$performances=null;
 }
 	$refresh=imgtootltip("refresh-32.png","{refresh}","LoadAjax('squid-services','$page?squid-services=yes');");
 	$tables[]="
@@ -1230,6 +1242,7 @@ if($users->WEBSTATS_APPLIANCE){
 		<table style='width:100%'>
 			$cicapButt
 			$current_sessions
+			$performances
 		</table>
 	</td>
 	</tr>

@@ -387,12 +387,13 @@ function section_architecture_advanced(){
 	$squid_parent_proxy=Paragraphe('server-redirect-64.png','{squid_parent_proxy}','{squid_parent_proxy_text}',"javascript:Loadjs('squid.parent.proxy.php')");
 	$squid_reverse_proxy=Paragraphe('squid-reverse-64.png','{squid_reverse_proxy}','{squid_reverse_proxy_text}',"javascript:Loadjs('squid.reverse.proxy.php')");
 	$squid_advanced_parameters=Paragraphe('64-settings.png','{squid_advanced_parameters}','{squid_advanced_parameters_text}',"javascript:Loadjs('squid.advParameters.php')");
-	$squid_conf=Paragraphe('script-view-64.png','{configuration_file}','{display_generated_configuration_file}',"javascript:Loadjs('squid.conf.php')");
+	//$squid_conf=Paragraphe('script-view-64.png','{configuration_file}','{display_generated_configuration_file}',"javascript:Loadjs('squid.conf.php')");
 	$performances_tuning=Paragraphe('performance-tuning-64.png','{tune_squid_performances}','{tune_squid_performances_text}',"javascript:Loadjs('squid.perfs.php')");
 	$denywebistes=Paragraphe("folder-64-denywebistes.png","{deny_websites}","{deny_websites_text}","javascript:Loadjs('squid.popups.php?script=url_regex');");
 	if($sock->GET_INFO("SquidActHasReverse")==1){
     	$squid_accl_websites=Paragraphe('website-64.png','{squid_accel_websites}','{squid_accel_websites_text}',"javascript:Loadjs('squid.reverse.websites.php')");
     }
+    
     
     $redirectors_options=Paragraphe('redirector-64.png','{squid_redirectors}','{squid_redirectors_text}',
     "javascript:Loadjs('squid.redirectors.php')");  
@@ -412,9 +413,13 @@ function section_architecture_advanced(){
     
     $csvstats=Paragraphe("csv-64.png", "{squid_csv_logs}", "{squid_csv_logs_explain}","javascript:Loadjs('squid.csv.php')");
     
+    $file_descriptors=Paragraphe("64-filetype.png", "{file_descriptors}", "{file_descriptors_squid_explain}",
+    "javascript:Loadjs('squid.file_desc.php')");
     
     
-    $tr[]=$squid_conf;
+    
+    
+    $tr[]=$file_descriptors;
     $tr[]=$squid_advanced_parameters;
     $tr[]=$memory_option;
     $tr[]=$dns_servers;

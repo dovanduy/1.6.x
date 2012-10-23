@@ -95,6 +95,10 @@ if(isset($_GET["fw-rules"])){fw_rules();exit;}
 if(isset($_GET["update-blacklist"])){update_blacklist();exit;}
 if(isset($_GET["cicap-template"])){CICAP_TEMPLATE();exit;}
 if(isset($_GET["cicap-memboost"])){CICAP_MEMBOOST();exit;}
+if(isset($_GET["stats-members-generic"])){stats_members_generic();exit;}
+if(isset($_GET["squidclient-infos"])){squidclient_infos();exit;}
+
+
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 
@@ -1174,6 +1178,30 @@ function update_blacklist(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
 }
 
+
+function squidclient_infos(){
+	$unix=new unix();
+try {
+		$builded=$unix->squidclient_builduri();
+	} catch (Exception $e) {
+		writelogs_framework("Fatal: ".$e->getMessage(),__FUNCTION__,__LINE__);
+		echo "<articadatascgi>".base64_decode(serialize(array()))."</articadatascgi>";
+		return;
+	}
+	
+	$cmd="$builded:info 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	exec($cmd,$results);	
+	$start=false;
+	while (list($num,$val)=each($results)){
+		if(preg_match("#Current Time#", $val)){$start=true;continue;}
+		if(!$start){continue;}
+		$f[]=$val;
+	}
+	echo "<articadatascgi>".base64_encode(serialize($f))."</articadatascgi>";
+	
+}
+
 function squidclient_sessions(){
 	writelogs_framework("OK START",__FUNCTION__,__LINE__);
 	$unix=new unix();
@@ -1248,4 +1276,13 @@ function fw_rules(){
 	exec("$iptables_save|grep ArticaSquidTransparent 2>&1",$results);
 	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";
 	
+}
+
+function stats_members_generic(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.stats.php --members-central-grouped >/dev/null 2>&1 &");		
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
+	shell_exec($cmd);
 }

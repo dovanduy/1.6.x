@@ -1170,6 +1170,22 @@ public function check_storage_table(){
 		$this->QUERY_SQL($sql,"artica_events");
 	}	
 	
+	if(!$this->TABLE_EXISTS('mbxs_backup_storage','artica_backup')){		
+		$sql="CREATE TABLE IF NOT EXISTS `mbxs_backup_storage` (
+		  `filepath` VARCHAR( 255 ) NOT NULL PRIMARY KEY ,
+		  `zDate` datetime NOT NULL,
+		  `filesize` INT( 100 ) NOT NULL,
+		  `imapserv` varchar(255) NOT NULL,
+		  `account` varchar(255) NOT NULL,
+		  `zmd5` varchar(90) NOT NULL,
+		  KEY `imapserv` (`imapserv`),
+		  KEY `zmd5` (`zmd5`),
+		  KEY `filesize` (`filesize`),
+		  KEY `zDate` (`zDate`)
+		)";
+		$this->QUERY_SQL($sql,"artica_events");
+	}	
+	
 	
 	if(!$this->TABLE_EXISTS('postfix_transport_recipients','artica_backup')){		
 		$sql="CREATE TABLE IF NOT EXISTS `postfix_transport_recipients` (

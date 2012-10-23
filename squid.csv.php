@@ -43,7 +43,8 @@ function popup(){
 	$p=Paragraphe_switch_img("{enable_csv_generator}", "{enable_csv_generator_text}","EnableSquidCSV-$t",$EnableSquidCSV,null,"450");
 	$SquidCsvParams=unserialize(base64_decode($sock->GET_INFO("SquidCsvParams")));
 	
-	
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	
 	
 	$array["a1"]="{client_source_ip_address}";
@@ -113,6 +114,8 @@ function popup(){
 	}	
 	
 	function SaveCSVGen(){
+		var lock=$EnableRemoteStatisticsAppliance;
+		if(lock==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}		
 		var XHR = new XHRConnection();
 		XHR.appendData('EnableSquidCSV',document.getElementById('EnableSquidCSV-$t').value);
 		".@implode("\n", $js)."

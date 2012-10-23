@@ -122,6 +122,12 @@ function left(){
 		
 	}
 	
+	if($users->AsWebStatisticsAdministrator){
+		$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("web_statistics",
+		"web_statistics_member_text",
+		"miniadm.webstats.php");			
+	}
+	
 	if(count($tr)==0){return;}
 	$tpl=new templates();
 	$html="<div class=\"BodyContent\"><table style='widh:100%'> ".@implode("", $tr)."</table></div>";

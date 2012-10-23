@@ -551,7 +551,7 @@ function writelogs($text=null,$function=null,$line=0){
 	
 	
 	function QUERY_SQL($sql,$database=null){
-		
+		$showMysqlQuery=null;
 		$database=trim($database);
 		if(!$this->UseMysql){
 			$q=new lib_sqlite();

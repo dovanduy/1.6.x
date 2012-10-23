@@ -100,6 +100,7 @@ if($argv[1]=='--repair-categories'){RepairCategoriesBases();exit;}
 if($argv[1]=='--members-central'){members_central();exit;}
 if($argv[1]=='--repair-week'){repair_week();exit;}
 if($argv[1]=='--dump-days'){dump_days();exit;}
+if($argv[1]=='--members-central-grouped'){members_central_grouped();exit;}
 
 
 
@@ -1292,10 +1293,16 @@ function members_central_grouped(){
 	if(!$GLOBALS["Q"]->TABLE_EXISTS("UserAuthDaysGrouped")){$GLOBALS["Q"]->CheckTables();}
 	$unix=new unix();
 	if(!$GLOBALS["Q"]->TABLE_EXISTS("UserAuthDaysGrouped")){ufdbguard_admin_events("Fatal UserAuthDaysGrouped no such table", __FUNCTION__, __FILE__, __LINE__, "stats");return;}
-	$f=array();
-	$sql="TRUNCATE TABLE UserAuthDaysGrouped";
+
+	$sql="TRUNCATE TABLE `UserAuthDaysGrouped`";
+	if($GLOBALS["VERBOSE"]){echo "$sql\n";}
 	$GLOBALS["Q"]->QUERY_SQL($sql);
-	$sql="SELECT ipaddr, hostname, uid, MAC, account, SUM( QuerySize ) AS QuerySize, SUM( hits ) AS hits FROM UserAuthDays GROUP BY ipaddr, hostname, uid, MAC, account";
+	if(!$GLOBALS["Q"]->ok){ufdbguard_admin_events("Fatal {$GLOBALS["Q"]->mysql_error}", __FUNCTION__, __FILE__, __LINE__, "stats");return;}	
+	
+	
+	
+	$sql="SELECT ipaddr, hostname, uid, MAC, account, SUM( QuerySize ) AS QuerySize, SUM( hits ) AS hits 
+	FROM UserAuthDays GROUP BY ipaddr, hostname, uid, MAC, account";
 	
 	if($GLOBALS["VERBOSE"]){echo "$sql\n";}
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
@@ -1303,19 +1310,41 @@ function members_central_grouped(){
 	if($GLOBALS["VERBOSE"]){echo "$count items...\n";}
 	if(!$GLOBALS["Q"]->ok){ufdbguard_admin_events("Fatal {$GLOBALS["Q"]->mysql_error}", __FUNCTION__, __FILE__, __LINE__, "stats");return;}	
 	$cc=0;
+	$f=array();
 	$prefix="INSERT INTO UserAuthDaysGrouped (`ipaddr`,`hostname`,`uid`,`MAC`,`account`,`QuerySize`,`hits`) VALUES ";
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$ligne["uid"]=trim($ligne["uid"]);
+		$ligne["MAC"]=trim($ligne["MAC"]);
+		if(trim($ligne["ipaddr"])==null){continue;}
+		if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#",$ligne["ipaddr"])){continue;}
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#",$ligne["uid"])){continue;}
+		if($ligne["MAC"]<>null){if(!preg_match("#[0-9a-z\:]+$#", $ligne["MAC"])){continue;}}
+		if(strpos($ligne["hostname"], ":")>0){continue;}
+		if(strpos($ligne["hostname"], "%")>0){continue;}
+		if(strpos($ligne["ipaddr"], ":")>0){continue;}
+		if(strpos($ligne["ipaddr"], "%")>0){continue;}
+		if(strpos($ligne["uid"], "/")>0){continue;}
+		if(strpos($ligne["uid"], "&")>0){continue;}
+		writeDebugLogs("Insert {$ligne["ipaddr"]} {$ligne["hostname"]} {$ligne["uid"]}",__FUNCTION__,__FILE__,__LINE__);
+		
 		$f[]="('{$ligne["ipaddr"]}','{$ligne["hostname"]}','{$ligne["uid"]}','{$ligne["MAC"]}','{$ligne["account"]}','{$ligne["QuerySize"]}','{$ligne["hits"]}')";
 		
 		if(count($f)>500){
 			$cc=$cc+count($f);
 			if($GLOBALS["VERBOSE"]){echo "$cc/$count\n";}
 			$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
+			unset($f);
 			$f=array();
 		}
 		
 	}
-	if(count($f)>0){$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));}
+	
+	
+	
+	if(count($f)>0){
+		if($GLOBALS["VERBOSE"]){echo "$cc/$count\n";}
+		$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
+	}
 	
 }
 
@@ -1343,10 +1372,7 @@ function members_central($aspid=false){
 	$unix=new unix();
 	
 	
-	if(!$GLOBALS["Q"]->TABLE_EXISTS("UserAuthDays")){
-		ufdbguard_admin_events("Fatal UserAuthDays no such table", __FUNCTION__, __FILE__, __LINE__, "stats");
-		return;
-	}
+	if(!$GLOBALS["Q"]->TABLE_EXISTS("UserAuthDays")){ufdbguard_admin_events("Fatal UserAuthDays no such table", __FUNCTION__, __FILE__, __LINE__, "stats");return;}
 	$sql="SELECT tablename,zDate FROM tables_day WHERE memberscentral=0 AND zDate<DATE_SUB(NOW(),INTERVAL 1 DAY)";
 	if($GLOBALS["VERBOSE"]){echo "$sql\n";}
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
@@ -1417,14 +1443,35 @@ function _members_central_perform($tablesource,$date){
 	echo "$tablesource $numrows entries\n";
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		
+		$ligne["uid"]=trim($ligne["uid"]);
+		$ligne["MAC"]=trim($ligne["MAC"]);
+		if(trim($ligne["CLIENT"])==null){continue;}
+		if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#",$ligne["CLIENT"])){continue;}
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#",$ligne["uid"])){continue;}
+		if($ligne["MAC"]<>null){if(!preg_match("#[0-9a-z\:]+$#", $ligne["MAC"])){continue;}}
+		if(strpos($ligne["hostname"], ":")>0){continue;}
+		if(strpos($ligne["hostname"], "%")>0){continue;}
+		if(strpos($ligne["CLIENT"], ":")>0){continue;}
+		if(strpos($ligne["CLIENT"], "%")>0){continue;}
+		if(strpos($ligne["uid"], "/")>0){continue;}
+		if(strpos($ligne["uid"], "&")>0){continue;}		
+		
+		
+		
 		$md5=md5(serialize($ligne));
 		$ipaddr=$ligne["CLIENT"];
 		$hostname=$ligne["hostname"];
-		$uid=addslashes($ligne["uid"]);
+		
 		$MAC=$ligne["MAC"];
 		$account=$ligne["account"];
 		$QuerySize=$ligne["tsize"];
 		$hits=$ligne["thits"];
+		
+		if(strlen($uid)<3){if(strlen($MAC)>3){$uid=$GLOBALS["Q"]->UID_FROM_MAC($MAC);}}
+		$uid=addslashes($uid);
+		
+		
 		$f[]="('$md5','$date','$ipaddr','$hostname','$uid','$MAC','$account','$QuerySize','$hits')";
 		if(count($f)>500){
 			$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
@@ -1438,6 +1485,14 @@ function _members_central_perform($tablesource,$date){
 			if(!$GLOBALS["Q"]->ok){ufdbguard_admin_events("Fatal {$GLOBALS["Q"]->mysql_error}", __FUNCTION__, __FILE__, __LINE__, "stats");return;}
 			$f=array();
 		}	
+		
+	$sql="SELECT uid,MAC FROM webfilters_nodes";
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if(strlen($ligne["uid"])>1){
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE UserAuthDays SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGHT(uid)<2");
+		}
+	}			
 	
 	return true;
 }
@@ -1851,8 +1906,14 @@ function _table_hours_perform($tablename){
 	}
 	
 	
-	
-
+	$sql="SELECT uid,MAC FROM webfilters_nodes";
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if(strlen($ligne["uid"])>1){
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE $dansguardian_table SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGHT(uid)<2");
+		}
+		
+	}
 	
 	return true;
 	
@@ -1964,6 +2025,14 @@ function _week_uris_perform($tablesource,$week_table,$DAYOFWEEK){
 		if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: on destination `$week_table` {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
 	}
 	
+	$sql="SELECT uid,MAC FROM webfilters_nodes";
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if(strlen($ligne["uid"])>1){
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE $week_table SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGHT(uid)<2");
+		}
+	}	
+	
 	return true;	
 	
 }
@@ -2026,6 +2095,7 @@ function week_uris_blocked($asPid=false){
 		}
 		
 	}
+			
 	
 	
 	$took=$unix->distanceOfTimeInWords($tStart,time(),true);
@@ -2087,6 +2157,16 @@ function _week_uris_blocked_perform($tablesource,$week_table,$DAYOFWEEK){
 		$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
 		if(!$GLOBALS["Q"]->ok){ufdbguard_admin_events("Fatal: {$GLOBALS["Q"]->mysql_error} on `$week_table`",__FUNCTION__,__FILE__,__LINE__,"stats");return false;}
 	}
+	
+
+	$sql="SELECT uid,MAC FROM webfilters_nodes";
+	
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if(strlen($ligne["uid"])>1){
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE $week_table SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGHT(uid)<2");
+		}
+	}	
 	
 	ufdbguard_admin_events("Success: added $t1 rows on `$week_table`",__FUNCTION__,__FILE__,__LINE__,"stats");
 	return true;	
@@ -2861,6 +2941,8 @@ function repair_week(){
 		
 	}
 	
+	members_central_grouped();
+	
 }
 
 function repair_week_refresh($YEAR,$WEEK){
@@ -2924,6 +3006,13 @@ function dump_days(){
 		
 	}
 	
+}
+
+function writeDebugLogs($text,$function,$file,$line){
+	$t=date("Y-m-d H:i:s");
+	$pid=getmypid();
+	$log="/var/log/$function.".basename($file).".log";
+	writeOtherlogs($log,"$t [$pid] $function:: $text in line $line");
 }
 
 

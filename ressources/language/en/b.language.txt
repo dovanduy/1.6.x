@@ -2364,3 +2364,15 @@ according privileges set in organizations.</mailboxes_backups_text_admin>
 <free_license_one_rule_text>The community license allows you to create only one rule for this feature.
 Please, upgrade to a corporate license...</free_license_one_rule_text>
 <executed>Executed</executed>
+<web_statistics>Web statistics</web_statistics>
+<web_statistics_member_text>Display your company Proxy internet statistics</web_statistics_member_text>
+<youtube_objects_statistics_text>Display Youtube objects downloaded by your members.</youtube_objects_statistics_text>
+<onlycorpavailable>This feature is only available with a corporate license.[br]
+We suggest to upgrade this server to a coporate licensed server</onlycorpavailable>
+<video_title>Video title</video_title>
+<display_access_by_members>Display accesses by member</display_access_by_members>
+<QuerySize>Downloaded size</QuerySize>
+<file_descriptors>filedescriptors</file_descriptors>
+<file_descriptors_squid_explain>Generally, a file descriptor is an index for an entry in a kernel-resident data structure containing the details of all open file.[br]
+This value limit the proxy to not open file more than the specified value.</file_descriptors_squid_explain>
+<display_performance_status>Display performances status</display_performance_status>

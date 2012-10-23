@@ -23,6 +23,7 @@ function backup_md5($md5){
 	$sock=new sockets();
 	$unix=new unix();
 	$q=new mysql();
+	$backend_root="/root/.offlineimap";
 	
 	$pidfile="/var/run/offlineimap-$md5.pid";
 	$oldpid=@file_get_contents($pidfile);
@@ -82,6 +83,12 @@ function backup_md5($md5){
 	$rm=$unix->find_program("rm");
 	$NICE=EXEC_NICE();	
 	$t=time();
+	$CacheLocal="$backend_root/Account-{$ligne["uid"]}";
+	$CacheRemote="$backend_root/Account-{$ligne["account"]}";
+	
+	if(is_dir($CacheLocal)){shell_exec("$rm -rf $CacheLocal");}
+	if(is_dir($CacheRemote)){shell_exec("$rm -rf $CacheRemote");}
+	
 	$cmd="$NICE$offlineimap -u basic -c $fileConf -l $logfile 2>&1";
 	exec($cmd,$results);
 	
@@ -113,6 +120,19 @@ function backup_md5($md5){
 	buildlogs("$FinalFile: $FinalFileSize",__FUNCTION__,__LINE__);
 	buildlogs("Execution done took:".$unix->distanceOfTimeInWords($t,time()),__FUNCTION__,__LINE__);
 	LogsToMysqlMD5($md5);
+	
+
+	$imapserv=addslashes($imapserv);
+	$account=addslashes($account);
+	$FinalFileSize=$unix->file_size($FinalFile);
+	$FinalFile=addslashes($FinalFile);
+	$q->QUERY_SQL("DELETE FROM mbxs_backup_storage WHERE filepath='$FinalFile'","artica_backup");
+	
+	$sql="INSERT IGNORE INTO mbxs_backup_storage (`zDate`,`filepath`,`filesize`,`imapserv`,`account`,`zmd5`) 
+	VALUES (NOW(),'$FinalFile','$FinalFileSize','$imapserv','$account','$md5')";
+	$q->QUERY_SQL($sql,"artica_backup");
+	
+	
 	
 }
 
@@ -161,7 +181,7 @@ function buildlogs($text,$function,$line){
 function LogsToMysqlMD5($md5){
 	$final=base64_encode(serialize($GLOBALS["EV"]));
 	unset($GLOBALS["EV"]);
-	$sql="INSERT INTO mbxs_backup (zDate,content,md5) VALUES ('".date("Y-m-d H:i:s")."','$final','$md5')";
+	$sql="INSERT INTO mbxs_backup (zDate,content,zmd5) VALUES ('".date("Y-m-d H:i:s")."','$final','$md5')";
 	$q=new mysql();
 	if(!$q->TABLE_EXISTS("mbxs_backup", "artica_events")){$q->BuildTables();}
 	$q->QUERY_SQL($sql,"artica_events");

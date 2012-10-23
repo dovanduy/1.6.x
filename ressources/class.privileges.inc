@@ -224,8 +224,10 @@ $spec",1);
 			return null;
 		}
 		$attrs = ldap_get_attributes($ldap->ldap_connection, $entry_id);
-		if($GLOBALS["VERBOSE"]){echo "[PRIVS]:[$this->uid] {$attrs["ArticaGroupPrivileges"][0]}\n";}		
-		return $attrs["ArticaGroupPrivileges"][0];
+		if($GLOBALS["VERBOSE"]){echo "[PRIVS]:[$this->uid] {$attrs["ArticaGroupPrivileges"][0]}\n";}	
+		if(isset($attrs["ArticaGroupPrivileges"][0])){	
+			return $attrs["ArticaGroupPrivileges"][0];
+		}
 	}
 	
 	

@@ -103,6 +103,7 @@ class squidbee{
 	var $EnableSquidCSV=0;
 	var $EnableRemoteStatisticsAppliance=0;
 	var $EnableSplashScreen=0;
+	var $max_filedesc=8192;
 	
 	function squidbee(){
 		if(posix_getuid()==0){$this->ASROOT=true;}
@@ -558,6 +559,10 @@ class squidbee{
 			$this->EnableParentProxy=$ini->_params["NETWORK"]["EnableParentProxy"];
 			if(isset($ini->_params["NETWORK"]["prefer_direct"])){$this->prefer_direct=$ini->_params["NETWORK"]["prefer_direct"];}
 			if(isset($ini->_params["NETWORK"]["nonhierarchical_direct"])){$this->nonhierarchical_direct=$ini->_params["NETWORK"]["nonhierarchical_direct"];}
+			if(isset($ini->_params["NETWORK"]["max_filedesc"])){$this->max_filedesc=$ini->_params["NETWORK"]["max_filedesc"];}
+			
+			
+			
 			
 			$this->ssl_port=$ini->_params["NETWORK"]["SSL_PORT"];
 			$this->SSL_BUMP_WHITE_LIST=$ini->_params["NETWORK"]["SSL_BUMP_WHITE_LIST"];
@@ -1060,7 +1065,7 @@ function SaveToLdap($norestart=false){
 			$ini=$ini."EnableParentProxy=$this->EnableParentProxy\n";
 			$ini=$ini."prefer_direct=$this->prefer_direct\n";
 			$ini=$ini."nonhierarchical_direct=$this->nonhierarchical_direct\n";
-			
+			$ini=$ini."max_filedesc=$this->max_filedesc\n";
 			
 			
 			if($this->enable_dansguardian==1){
@@ -1162,11 +1167,13 @@ function SaveToLdap($norestart=false){
 			
 			$sock->SaveConfigFile(base64_encode(serialize($this->EXTERNAL_LDAP_AUTH_PARAMS)),"SquidExternalAuth");
 			$sock->SaveConfigFile(base64_encode(serialize($this->FTP_PARAMS)),"SquidFTPParams");
+			$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+			if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 			
-
-			
-				
-			
+			if(class_exists("usersMenus")){
+				$users=new usersMenus();
+				if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
+			}
 			
 			if($this->enable_dansguardian==1){
 				writelogs("",__FUNCTION__,__FILE__);
@@ -1179,6 +1186,12 @@ function SaveToLdap($norestart=false){
 				$sock->getFrameWork("cmd.php?kav4proxy-reconfigure=yes");
 			}
 			
+			if($EnableWebProxyStatsAppliance==1){
+				$sock=new sockets();
+				$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
+				return;
+			}	
+			
 			if(!$norestart){
 				$sock->getFrameWork("squid.php?build-smooth=yes");
 			}
@@ -1187,6 +1200,21 @@ function SaveToLdap($norestart=false){
 		}
 		
 		function SaveToServer($norestart=false){
+			
+			$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+			if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+			
+			if(class_exists("usersMenus")){
+				$users=new usersMenus();
+				if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
+			}		
+
+			if($EnableWebProxyStatsAppliance==1){
+				$sock=new sockets();
+				$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
+				return;
+			}
+			
 			if(!$norestart){
 				$sock=new sockets();
 				$sock->getFrameWork("cmd.php?squidnewbee=yes");	
@@ -2561,7 +2589,7 @@ function BuildSquidConf(){
 		$SquidBoosterOnly=$this->zcheck_squidbooster_value();
 		if(!is_numeric($SquidBoosterMem)){$SquidBoosterMem=0;}
 		if(!is_numeric($SquidBoosterMemK)){$SquidBoosterMemK=50;}
-		
+		if(!is_numeric($this->max_filedesc)){$this->max_filedesc=8192;}
 		
 		
 		if($SquidBoosterMem>0){
@@ -2652,6 +2680,7 @@ function BuildSquidConf(){
 		$conf=$conf . "client_db off\n";
 		$conf=$conf . "buffered_logs on\n";
 		$conf=$conf . "half_closed_clients off\n";
+		if($this->max_filedesc>1024 ){$conf=$conf . "max_filedesc $this->max_filedesc\n";}
 
 		
 		

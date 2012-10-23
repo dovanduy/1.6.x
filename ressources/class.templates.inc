@@ -3718,7 +3718,7 @@ function CheckSessions(){
 				"uid"=>$_SESSION["uid"],"ipaddr"=>$_SERVER["REMOTE_ADDR"],"myname"=>$_SERVER["SERVER_NAME"],
 				"interface"=>$_SESSION["InterfaceType"]);
 				$filename=dirname(__FILE__)."/logs/web/queue/sessions/".time().".".md5($GLOBALS["SESSION_ID"].$_SERVER["REMOTE_ADDR"].$_SERVER["SERVER_NAME"].$_SESSION["InterfaceType"]);
-				if(!is_file($filename)){file_put_contents($filename,serialize($array));}
+				if(!is_file($filename)){@file_put_contents($filename,serialize($array));}
 			}
 		}
 		

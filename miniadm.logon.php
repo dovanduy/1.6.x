@@ -3,9 +3,9 @@ session_start();
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
-include_once(dirname(__FILE__)."/ressources/class.user.inc");
-include_once(dirname(__FILE__)."/ressources/class.langages.inc");
-//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+
+
+ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 
 if(isset($_POST["username"])){checklogon();exit;}
 if(isset($_GET["js"])){js();exit;}
@@ -58,6 +58,7 @@ echo $html;
 }
 
 function checklogon(){
+	include_once(dirname(__FILE__)."/ressources/class.user.inc");
 	$FixedLanguage=null;
 	$username=$_POST["username"];
 	$password=$_POST["password"];
@@ -83,6 +84,8 @@ function checklogon(){
 	
 			$ldap=new clladp();
 			$users=new usersMenus();
+			$_SESSION["CORP"]=$users->CORP_LICENSE;
+			
 			$privs=new privileges($u->uid);
 			$privs->SearchPrivileges();
 			$privileges_array=$privs->privs;
@@ -98,11 +101,14 @@ function checklogon(){
 			$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
 			$_SESSION["ou"]=$u->ou;
 			$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
-			$lang=new articaLang();
-			writelogs("[{$_POST["username"]}]: Default organization language={$_SESSION["OU_LANG"]}",__FUNCTION__,__FILE__);
+			if(!isset($_SESSION["OU_LANG"])){$_SESSION["OU_LANG"]=null;}
+			
+		
 			if(trim($_SESSION["OU_LANG"])<>null){
 				$_SESSION["detected_lang"]=$_SESSION["OU_LANG"];
 			}else{
+				include_once(dirname(__FILE__)."/ressources/class.langages.inc");
+				$lang=new articaLang();
 				$_SESSION["detected_lang"]=$lang->get_languages();
 			}
 			if(trim($FixedLanguage)<>null){$_SESSION["detected_lang"]=$FixedLanguage;}

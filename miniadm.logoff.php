@@ -17,6 +17,7 @@ unset($_SESSION["LANG_FILES"]);
 unset($_SESSION["TRANSLATE"]);
 unset($_SESSION["translation"]);
 unset($_SESSION["__CLASS-USER-MENUS"]);
+unset($_SESSION["CORP"]);
 $_COOKIE["username"]="";
 $_COOKIE["password"]="";
 
