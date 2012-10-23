@@ -645,7 +645,7 @@ class squidbee{
 		if($this->CACHE_TYPE==null){$this->CACHE_TYPE="aufs";}
 		if($this->SSL_BUMP==null){$this->SSL_BUMP=0;}
 		
-		if(!preg_match("#([0-9]+)\.([0-9]+)#",$users->SQUID_VERSION,$re)){
+		if(preg_match("#([0-9]+)\.([0-9]+)#",$users->SQUID_VERSION,$re)){
     		if($re[1]<3){$this->SSL_BUMP=0;}else{if($re[2]<1){$this->SSL_BUMP=0;}}
 		}
 		
@@ -2927,6 +2927,7 @@ function BuildSquidConf(){
 		$conf=$conf."\n# ---------  RULES DEFINITIONS\n";
 		$conf=$conf."\nhttp_access allow purge localhost\n";
 		$conf=$conf.$this->http_access();
+		if($GLOBALS["VERBOSE"]){echo "Starting......: [ICAP]: SquidDisableAllFilters=$this->SquidDisableAllFilters\n";}
 		if($this->SquidDisableAllFilters==0){
 			$icap=new icap();
 			$conf=$conf."# --------- ICAP Services.($icap->ICAP_SERVICES_COUNT service(s))\n";
@@ -2936,6 +2937,8 @@ function BuildSquidConf(){
 			$conf=$conf."# --------- eCAP Services\n";
 			$conf=$conf.$ecap->build();
 			
+		}else{
+			if($this->ASROOT){echo "Starting......: Squid : WARNING, `Disable all filters` is enabled, No icap services will be linked...\n";}
 		}
 		$conf=$conf."\n";
 		$conf=$conf.$this->WCCP();

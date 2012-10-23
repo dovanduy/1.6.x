@@ -36,24 +36,38 @@ function popup(){
 	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
 	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}	
 	if(!is_numeric($LicenseInfos["EMPLOYEES"])){$LicenseInfos["EMPLOYEES"]=$WizardSavedSettings["employees"];}
+	
+	$ASWEB=false;
+	if($users->SQUID_INSTALLED){$ASWEB=true;}
+	if($users->WEBSTATS_APPLIANCE){$ASWEB=true;}
+	
 	if(!$users->CORP_LICENSE){
 		
-		if($users->SQUID_INSTALLED){
-		$explain="<div style='font-size:14px'>{CORP_LICENSE_EXPLAIN}</div>";
+	if($ASWEB){
+		$explain="<div style='font-size:14px' class=explain>{CORP_LICENSE_EXPLAIN}</div>";
 		$quotation="
-		<div style='font-size:16px;font-weight:bold'>{price_quote}:</div>
-		<div><a href=\"javascript:blur();\" 
-		OnClick=\"javascript:s_PopUpFull('http://www.proxy-appliance.org/index.php?cID=292','1024','900');\"
-		style=\"font-size:14px;font-weight;bold;text-decoration:underline\">{click_here_price_quote}</a></div>";
+		<div class=explain>
+			<div style='font-size:16px;font-weight:bold'>{price_quote}:</div>
+			<div>
+					<a href=\"javascript:blur();\" 
+				OnClick=\"javascript:s_PopUpFull('http://www.proxy-appliance.org/index.php?cID=292','1024','900');\"
+				style=\"font-size:14px;font-weight;bold;text-decoration:underline\">{click_here_price_quote}</a>
+			</div>
+		</div>";
 		}
 	}
+
 	
 	if($LicenseInfos["license_status"]==null){
 		$LicenseInfos["license_status"]="{waiting_registration}";
+		$star="{explain_license_free}";
 		$button_text="{register}";
 	}else{
 		$button_text="{update_now}";
+		$star="{explain_license_order}";
 	}	
+	
+	if($users->CORP_LICENSE){$star=null;}
 	
 	if(is_numeric($LicenseInfos["TIME"])){
 		$tt=distanceOfTimeInWords($LicenseInfos["TIME"],time());
@@ -98,7 +112,7 @@ function popup(){
 		<td colspan=2 align='right'><hr>". button($button_text,"RegisterSave$t()",18)."</td>
 	</tr>	
 	</table>
-	
+	<div style='margin-top:15px'><i style='font-size:12px'>*&nbsp;$star</i></div>
 	<script>
 	var x_RegisterSave$t= function (obj) {
 		var tempvalue=obj.responseText;

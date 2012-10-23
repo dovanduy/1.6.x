@@ -3732,7 +3732,8 @@ function UsersInterfaceDatasDelete(){
 			$sql="DELETE FROM logon_scriptsusers WHERE uid='$uid'";
 			$q->QUERY_SQL($sql,"artica_backup");
 			
-			
+			$sql="DELETE FROM mbxs_backup WHERE uid='$uid'";
+			$q->QUERY_SQL($sql,"artica_backup");			
 			
 			if($users->POSTFIX_INSTALLED){
 				$sock->getFrameWork("cmd.php?restart-fetchmail=yes");

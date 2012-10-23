@@ -58,8 +58,8 @@ if($globsvls["innodb_file_per_table"]=="OFF"){
 	$innodb_file_per_table=Paragraphe("tables-64-running-grey.png",'{convertto_innodb_file_per_table}',"{already_converted}","");
 }
 
-	$zarafabackup=Paragraphe("64-backup.png",'{backup_parameters}',"{zarafa_backup_parameters}",
-	"javascript:Loadjs('zarafa.backup-params.php');");
+	$zarafabackup=Paragraphe("64-backup.png",'{mailboxes_backups}',"{mailboxes_backups_text_admin}",
+	"javascript:Loadjs('imap.mbx.backup.php');");
 
 
 

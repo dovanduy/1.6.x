@@ -26,6 +26,9 @@ function writelogs($text=null,$function=null,$file_source=null,$line=null){
 		}
 	}
 	
+	if(preg_match("#netagent#", $file_source)){
+		WriteToSyslogMail("[$function::$line]: $text","netagent");
+	}
 	
 	if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
 	if(isset($_SESSION["uid"])){$name="[{$_SESSION["uid"]}]";}

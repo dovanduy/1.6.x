@@ -982,6 +982,12 @@ function launch_all_status($force=false){
 		events($cmd);
 		shell_exec($cmd);
 	}
+	
+	if(is_file(dirname(__FILE__)."/exec.cache.pages.php")){
+		$cmd=trim("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.cache.pages.php");
+		events($cmd);
+		shell_exec($cmd);		
+	}
 
 }
 // ========================================================================================================================================================

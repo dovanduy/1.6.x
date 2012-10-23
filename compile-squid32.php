@@ -28,7 +28,7 @@ if($argv[1]=="--c-icap"){package_c_icap();exit;}
 if($argv[1]=="--ufdb"){package_ufdbguard();exit;}
 if($argv[1]=="--ecapclam"){ecap_clamav();exit;}
 if($argv[1]=="--package"){create_package();exit;}
-
+if($argv[1]=="--c-icap-remove"){c_cicap_remove();exit;}
 
 
 
@@ -72,7 +72,8 @@ if(!$GLOBALS["NO_COMPILE"]){
 		echo "/root/$dirsrc/configure no such file\n";
 		$dirs=$unix->dirdir("/root/$dirsrc");
 		while (list ($num, $ligne) = each ($dirs) ){if(!is_file("$ligne/configure")){echo "$ligne/configure no such file\n";}else{
-			chdir("$ligne");echo "Change to dir $ligne\n";
+			chdir("$ligne");
+			echo "[OK]: Change to dir $ligne\n";
 			$SOURCE_DIRECTORY=$ligne;
 			break;}}
 	}
@@ -131,6 +132,7 @@ $cmds[]="CFLAGS=\"-O3 -pipe -fomit-frame-pointer -funroll-loops -ffast-math -fno
 
 
 $configure="./configure ". @implode(" ", $cmds);
+if($GLOBALS["VERBOSE"]){echo "\n\n$configure\n\n";}
 
 if($GLOBALS["SHOW_COMPILE_ONLY"]){echo $configure."\n";die();}
 if(!$GLOBALS["NO_COMPILE"]){
@@ -138,16 +140,20 @@ if(!$GLOBALS["NO_COMPILE"]){
 	echo "configuring...\n";
 	shell_exec($configure);
 	echo "make...\n";
-	shell_exec("make");
+	if($GLOBALS["VERBOSE"]){system("make");}
+	if(!$GLOBALS["VERBOSE"]){shell_exec("make");}
 	system_admin_events("Installing the new squid-cache $v version", __FUNCTION__, __FILE__, __LINE__, "software");
 	echo "make install...\n";
 	
 	$unix=new unix();
 	$squid3=$unix->find_program("squid3");
 	if(is_file($squid3)){@unlink($squid3);}
+	echo "Removing squid last install\n";
 	remove_squid();
 	echo "Make install\n";
-	shell_exec("make install");
+	if($GLOBALS["VERBOSE"]){system("make install");}
+	if(!$GLOBALS["VERBOSE"]){shell_exec("make install");}	
+	
 }
 if(!is_file("/usr/sbin/squid")){
 	system_admin_events("Installing the new squid-cache $v failed", __FUNCTION__, __FILE__, __LINE__, "software");
@@ -592,8 +598,7 @@ function ufdbguardVersion(){
 	
 }
 
-
-function package_c_icap(){
+function c_icap_array(){
 $f[]="/usr/bin/c-icap";
 $f[]="/usr/bin/c-icap-client";
 $f[]="/usr/bin/c-icap-config";
@@ -619,6 +624,10 @@ $f[]="/usr/lib/libicapapi.la";
 $f[]="/usr/lib/libicapapi.so";
 $f[]="/usr/lib/libicapapi.so.0";
 $f[]="/usr/lib/libicapapi.so.0.0.7";
+$f[]="/usr/lib/libicapapi.so.0";
+$f[]="/usr/lib/libicapapi.so.0.0.1";
+$f[]="/usr/lib/libicapapi.so.2" ;     
+$f[]="/usr/lib/libicapapi.so.2.0.2";
 $f[]="/usr/share/man/man8/c-icap.8";
 $f[]="/usr/share/man/man8/c-icap-client.8";
 $f[]="/usr/share/man/man8/c-icap-config.8";
@@ -626,6 +635,8 @@ $f[]="/usr/share/man/man8/c-icap-libicapapi-config.8";
 $f[]="/usr/share/man/man8/c-icap-mkbdb.8";
 $f[]="/usr/share/man/man8/c-icap-stretch.8";
 $f[]="/etc/c-icap.conf";
+$f[]="/etc/srv_url_check.conf";
+$f[]="/etc/virus_scan.conf";
 $f[]="/etc/c-icap.magic.default";
 $f[]="/etc/c-icap.magic";
 $f[]="/usr/lib/c_icap/bdb_tables.a";
@@ -653,22 +664,64 @@ $f[]="/etc/srv_url_check.conf.default";
 $f[]="/etc/srv_url_check.conf";
 $f[]="/etc/srv_clamav.conf.default";
 $f[]="/etc/srv_clamav.conf";
+$f[]="/usr/local/bin/fhs_judge"; 
+$f[]="/usr/local/bin/fhs_learn"; 
+$f[]="/usr/local/bin/fhs_makepreload"; 
+$f[]="/usr/local/bin/fnb_judge"; 
+$f[]="/usr/local/bin/fnb_learn"; 
+$f[]="/usr/local/bin/fnb_makepreload";
+$f[]="/usr/lib/c_icap/srv_classify.la";
+$f[]="/usr/lib/c_icap/srv_classify.so";
+return $f;	
+	
+}
 
-$base="/root/c-icap";
+function c_cicap_remove(){
+	
+/* params c-icap
+ * ./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap"
+ * ./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap" --with-clamav
+ */ 
+
+	
+	$f=c_icap_array();	
+	while (list ($num, $filename) = each ($f)){
+		if(is_file($filename)){@unlink($filename);}
+	} 
+	if(is_dir("/usr/share/c_icap")){shell_exec("/bin/rm -rf /usr/share/c_icap");}
+	if(is_dir("/usr/include/c_icap")){shell_exec("/bin/rm -rf /usr/include/c_icap");}
+	if(is_dir("/usr/lib/c_icap")){shell_exec("/bin/rm -rf /usr/lib/c_icap");}
+	echo "Uninstall C-ICAP done\n";
+}
+
+
+function package_c_icap(){
+$f=c_icap_array();
+
+$base="/root/c-icap-export";
+shell_exec("/bin/rm -rf $base");
+@mkdir($base);
 while (list ($num, $filename) = each ($f)){
 	$dirname=dirname($filename);
 	if(!is_dir("$base/$dirname")){@mkdir("$base/$dirname",0755,true);}
-	shell_exec("/bin/cp -f $filename $base/$dirname/");
+	if(is_file($filename)){
+		echo "Copy $filename into $base$dirname\n";
+		shell_exec("/bin/cp -f $filename $base$dirname/");
+	}
 	
 }
 $C_ICAP_VERSION=C_ICAP_VERSION();
 $Architecture=Architecture();
 echo "C-icap version $C_ICAP_VERSION ($Architecture)\n";
 mkdir("/root/c-icap/usr/share/c_icap",0755,true);
+mkdir("/root/c-icap/usr/include/c_icap",0755,true);
 shell_exec("/bin/cp -rf /usr/share/c_icap/* /root/c-icap/usr/share/c_icap/");
-shell_exec("/bin/cp -rf /usr/lib/c_icap/* /root/c-icap/usr/lib/c_icap/");
+shell_exec("/bin/cp -rf /usr/include/c_icap/* /root/c-icap/usr/include/c_icap/");
+
 chdir($base);
-shell_exec("/bin/tar -cf /root/c-icap-$C_ICAP_VERSION-$Architecture.tar.gz *");
+@unlink("/root/c-icap-$C_ICAP_VERSION-$Architecture.tar.gz");
+shell_exec("/bin/tar -czf /root/c-icap-$C_ICAP_VERSION-$Architecture.tar.gz *");
+echo "/root/c-icap-$C_ICAP_VERSION-$Architecture.tar.gz\n";
 }
 
 function C_ICAP_VERSION(){

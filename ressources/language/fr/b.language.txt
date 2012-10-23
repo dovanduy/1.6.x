@@ -100,6 +100,7 @@ Par exemple: Autoriser Kaspersky Antivrus &agrave; se mettre &agrave; jour sans 
 <agent_address>Agent address</agent_address>
 <aiguil_max_msg_rate>Temps MAX d'ex&eacute;cution</aiguil_max_msg_rate>
 <aiguil_max_msg_rate_explain>Le processus ma&icirc;tre (l'aiguilleur) est en charge de placer les messages dans chaque file d'attente des processus.[br]Cette valeur limite sa dur&eacute;e d'ex&eacute;cution.[br]Par d&eacute;faut, l'aiguilleur est autoriser &agrave; &quot;dispatcher&quot; les messages pendant 10mn.[br]Apr&egrave;s ces 10mn, il devra attendre la valeur &quot;Attendre X secondes...&quot; (5 minutes) avant de recommencer son traitement.</aiguil_max_msg_rate_explain>
+<alert_page>Page d'alerte</alert_page>
 <AllowNoPassword>Autoriser sans mot de passe</AllowNoPassword>
 <AllowPublicDownload>Autoriser le t&eacute;l&eacute;chargement publique</AllowPublicDownload>
 <AllowUserMaillog>Peut rechercher/visualiser leurs &eacute;v&egrave;nements SMTP</AllowUserMaillog>
@@ -242,6 +243,7 @@ Proc&eacute;der au changement de la branche principale :</ask_change_suffix>
 <ask_delete_this_rule>Supprimer cette r&egrave;gle ? Tous les &eacute;l&eacute;ments seront d&eacute;truits...</ask_delete_this_rule>
 <ask_give_rulename>Donnez le nom de la r&egrave;gle</ask_give_rulename>
 <ask_remove_template>Supprimer ce mod&egrave;le ?</ask_remove_template>
+<AsOwnMailBoxBackup>Peut sauvegarder ses bo&icirc;tes aux lettres</AsOwnMailBoxBackup>
 <attachments_storage>Conteneur des pi&egrave;ces jointes</attachments_storage>
 <attempts>tentatives</attempts>
 <authenticate>authentification</authenticate>
@@ -400,6 +402,10 @@ Cliquez dans le menu outil.[br]
 S&eacute;lectionnez Param&egrave;tres.[br]
 Cliquez sur l'onglet.[br]
 Dans la section r&eacute;seau, cliquez sur Changer les param&egrave;tres proxy.</chrome_pac_how_to>
+<CICAP_MEM_BOOST_EXPLAIN>Le booster de m&eacute;moire C-ICAP vous permet de d&eacute;finir une plage de la m&eacute;moire physique pour les t&acirc;che d'analyse antivirus.[br]
+Par d&eacute;faut l'antivirus utilise le disque pour effectuer ses analyses.[br]
+En utilisant la m&eacute;moire, vous augmenter radicalement les performances.[br]
+Indiquez ici un nombre en MB de la m&eacute;moire que vous souhaitez allouer aux t&acirc;ches d'analyses.[br]256Mb est un bon point de d&eacute;part.</CICAP_MEM_BOOST_EXPLAIN>
 <CICAP_SERVICE_TEXT>Param&egrave;tres du service C-ICAP et optimisation des performances</CICAP_SERVICE_TEXT>
 <class>Classe</class>
 <CleanArticaSquidDatabases>Nettoyer les statistiques Artica dans MySQL</CleanArticaSquidDatabases>
@@ -630,6 +636,8 @@ Ce service va consommer environ 500Mb de m&eacute;moire (voir plus).
 Voulez-vous effectuer cette op&eacute;ration ?</enable_amavisdeamon_ask>
 <enable_antivirus>Activer la v&eacute;rification antivirus</enable_antivirus>
 <enable_antivirus_protection>Activer la protection</enable_antivirus_protection>
+<enable_backup_mailboxes_features>Activer la fonction de sauvegarde des bo&icirc;tes aux lettres</enable_backup_mailboxes_features>
+<enable_backup_mailboxes_features_explain>Si vert, les membres autoris&eacute;s seront en mesure de cr&eacute;er des r&egrave;gles de sauvegarde de leurs bo&icirc;tes aux lettres IMAP locales ou distantes.</enable_backup_mailboxes_features_explain>
 <enable_body_randomize>Ajouter une valeur al&eacute;atoire &agrave; la fin du message</enable_body_randomize>
 <enable_body_randomize_replace>Replacer un mot clef avec des valeurs al&eacute;atoires</enable_body_randomize_replace>
 <enable_csv_generator>Activer le g&eacute;n&eacute;rateur CSV</enable_csv_generator>
@@ -683,12 +691,19 @@ Cliquez sur le bouton &quot;R&eacute;parer&quot; afin d'ordonner la reconstructi
 <error_you_need_to_choose_network_addr_config>Erreur, vous devez choisir une adresse r&eacute;seau dans la configuration principale.</error_you_need_to_choose_network_addr_config>
 <ERROR_ZARAAF_MULTIPLE_INSTANCES_FREEWEB>La fonctionnalit&eacute; des multiples WebMail pour Zarafa n'est disponible que si et seulement si les moteur FreeWebs est activ&eacute;.</ERROR_ZARAAF_MULTIPLE_INSTANCES_FREEWEB>
 <exclusive>Exclusif</exclusive>
+<executed>Ex&eacute;cut&eacute;</executed>
 <execute_replication>Ex&eacute;cuter</execute_replication>
 <exlude_mimetype_explain>Cette section permet d'exclure du filtrage de contenu comme l'antivirus des &eacute;l&eacute;ments par type MIME.[br]
 Ces &eacute;l&eacute;ments ne seront pas par contre exclus du filtrage d'URLs</exlude_mimetype_explain>
 <expand>&Eacute;tendre</expand>
 <ExpiresSoon>Expire bient&ocirc;t</ExpiresSoon>
 <expire_in_days>Expire dans (jours)</expire_in_days>
+<explain_license_free>Votre serveur est en mode &quot;communaut&eacute;&quot;.[br]
+Le mode communaut&eacute; vous permet d'utiliser ce serveur autant de temps que vous le souhaitez mais avec des fonctionnalit&eacute;s restreintes.[br]
+Pour utiliser ce serveur avec toutes les fonctionnalit&eacute;s, cliquez ici afin de faire une demande de cotation.</explain_license_free>
+<explain_license_order>Vous avez fait une demande de cotation &agrave; travers cette interface Web.[br]
+Notre service commercial va vous envoyer ou vous a envoy&eacute; une proposition commerciale.[br]
+Le serveur est en attente de paiement afin d'activer les fonctionnalit&eacute;s d&eacute;di&eacute;es aux entreprises.[br]</explain_license_order>
 <explain_sourcefolder_offlineimap>S&eacute;lectionnez les dossier que vous d&eacute;sirez synchroniser.[br]
 Par d&eacute;faut, tous les dossiers sont synchronis&eacute;s.[br]
 Si des dossiers sont s&eacute;lectionn&eacute;s dans cette section, cela veut dire que la synchronisation sera uniquement limit&eacute;e &agrave; la liste ci-dessous.</explain_sourcefolder_offlineimap>
@@ -729,9 +744,12 @@ Cochez la case Configuration automatique du proxy et indiquez l'url suivante;</f
 <FreeWebsDisableBrowsing>D&eacute;sactiver le parcours des r&eacute;pertoires</FreeWebsDisableBrowsing>
 <freeweb_WebCopy_explain>Pointer le service Web vers le r&eacute;pertoire WebCopy</freeweb_WebCopy_explain>
 <free_cat_force_explain>Par d&eacute;faut, et avant d'ajouter un nouveau site Internet dans les cat&eacute;gories, le moteur v&eacute;rifie que le site ne soit pas d&eacute;j&agrave; cat&eacute;goris&eacute;.[br]Si vous c&ocirc;chez cette option, cette v&eacute;rification ne sera pas effectu&eacute;e et l'enregistrement s'effectuera automatiquement.</free_cat_force_explain>
+<free_license_one_rule_text>La licence communautaire n'autorise que la cr&eacute;ation d'une seule r&egrave;gle.[br]
+Nous vous sugg&eacute;rons de mettre &agrave; jour la licence.</free_license_one_rule_text>
 <from_time>De l'heure</from_time>
 <fulluri>URL compl&egrave;te</fulluri>
 <full_features>Toutes fonctionnalit&eacute;s</full_features>
+<generated_on>G&eacute;n&eacute;r&eacute; le</generated_on>
 <generate_x509>G&eacute;n&eacute;rer un certificat auto-sign&eacute;</generate_x509>
 <generate_x509_text>Un certificat auto-sign&eacute; est une identit&eacute; de certification qui est sign&eacute; par la m&ecirc;me entit&eacute; qui le certifie.</generate_x509_text>
 <generic>G&eacute;n&eacute;rique</generic>
@@ -945,6 +963,8 @@ Vous recevrez un nouveau mot de passe rapidement.[br]
 Utilisez-le afin de vous connecter sur le site.</lost_password_explain>
 <MAC>Adresse MAC</MAC>
 <mac_users_linker>Liaisons Adresses MAC/Membres</mac_users_linker>
+<mailboxes_backups>Sauvegarde des bo&icirc;tes aux lettres</mailboxes_backups>
+<mailboxes_backups_text>Sauvegarder ou restaurer vos bo&icirc;tes aux lettres IMAP locales ou distantes.</mailboxes_backups_text>
 <MAILBOXES_MIGRATION_EXPLAIN_2>Si vous d&eacute;sirez cr&eacute;er une r&egrave;gle de synchronisation pour un utilisateur d&eacute;j&agrave; cr&eacute;&eacute;, ajouter l'identifiant de l'utilisateur &agrave; la fin de la ligne.[br]Exemple:[br][br]jhon;123;ssl:imap.remotehost.com;jhon.local[/b]</MAILBOXES_MIGRATION_EXPLAIN_2>
 <mailbox_agent>Agent de courrier</mailbox_agent>
 <mailbox_agent_text>Adresse local ou distante de l'agent de courrier MDA afin de sauvegarder les messages dans les bo&icirc;tes aux lettres finales.</mailbox_agent_text>
@@ -995,6 +1015,7 @@ Voulez-vous lancer l'op&eacute;ration ?</mandatories_packages_ask>
 <max_waiting_minutes_onload>Temps Max d'attente si le syst&egrave;me est charg&eacute;</max_waiting_minutes_onload>
 <members_stats>Statistiques des members</members_stats>
 <members_stats_explain>Calcul l'utilisation de la navigation et statistiques des membres par jour.</members_stats_explain>
+<memory_booster>Booster de m&eacute;moire</memory_booster>
 <message>Message</message>
 <messages>Messages</messages>
 <messaging_statistics>Statistiques de la messagerie</messaging_statistics>
@@ -1077,6 +1098,7 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 <new_alias>Nouvel alias</new_alias>
 <new_artica_server>Nouveau serveur Artica</new_artica_server>
 <new_backend>Nouveau serveur client</new_backend>
+<new_backup_rule>Nouvelle r&egrave;gle de sauvegarde</new_backup_rule>
 <new_certificate>Nouveau certificat</new_certificate>
 <new_computer>Nouvel ordinateur</new_computer>
 <new_connection>Nouvelle connexion</new_connection>
@@ -1275,6 +1297,8 @@ Mais dans certains cas, et surtout lorsque le serveur ne g&egrave;re pas les com
 Dans ce cas, utilisez ce syst&egrave;me de programmation afin de s'assurer que les param&egrave;tres de messagerie sont rafra&icirc;chis.</recompile_postfix_parameters_explain>
 <reconfigure_mta>Re-param&egrave;trer le MTA</reconfigure_mta>
 <reconfigure_postfix_in_background>La reconfiguration du MTA est op&eacute;r&eacute;e en t&acirc;che de fond...</reconfigure_postfix_in_background>
+<reconfigure_proxy_service>Re-param&eacute;trage du service proxy</reconfigure_proxy_service>
+<reconfigure_proxy_service_text>Reconstruit les param&egrave;tres et les fichiers de configuration et force le service proxy &agrave; se recharger.[br]Toutes les connexions seront stopp&eacute;es pendant la proc&eacute;dure.</reconfigure_proxy_service_text>
 <reconfigure_proxy_task>Reconfigure le service du Proxy Web</reconfigure_proxy_task>
 <reconfigure_proxy_task_explain>Cette t&acirc;che est con&ccedil;ue pour reconstruire les param&egrave;tres du proxy et les acls ainsi que de recharger le service du proxy.</reconfigure_proxy_task_explain>
 <reconfigure_webfilter_service>Reconfigurer le service de filtrage</reconfigure_webfilter_service>
@@ -1381,6 +1405,9 @@ Voulez-vous effectuer cette op&eacute;ration ?</run_backup_confirm>
 <run_update_task_now>Lancer la t&acirc;che maintenant</run_update_task_now>
 <safaripac_how_to>T&eacute;l&eacute;chargez le PDF gr&acirc;ce au lien ci-dessous afin de configurer la section configuration automatique du proxy.</safaripac_how_to>
 <sambasquid_simple_intro>Dans une configuration &quot;Proxy&quot;, le moteur Samba est utilis&eacute; afin de &quot;lier&quot; le proxy avec un serveur Microsoft Active Directory afin de fournir une authentification NTLM transparente.</sambasquid_simple_intro>
+<samba_is_not_installed>Le logiciel Samba n'est pas install&eacute; sur cet ordinateur.[br]
+Dans ce cas, la fonctionnalit&eacute; ne peut &ecirc;tre disponible ou activ&eacute;e.[br]
+Nous vous sugg&eacute;reront d'utiliser le centre d'installation afin d'installer ce logiciel.</samba_is_not_installed>
 <SAMBA_NOT_CONNECTED_AD_ERROR>Votre serveur n'est pas connect&eacute; &agrave; un contr&ocirc;leur Active Directory.[br]
 Cette fonctionnalit&eacute; ne peut &ecirc;tre affich&eacute;e</SAMBA_NOT_CONNECTED_AD_ERROR>
 <samba_plugins>Extensions Samba</samba_plugins>
@@ -1636,6 +1663,8 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de savoir si elle &agrave; &ea
 <this_group_is_not_retranslated_to_the_system>Ce groupe n'est pas retraduit dans le syst&egrave;me local.</this_group_is_not_retranslated_to_the_system>
 <this_message_contains_no_data>Ce message contient aucune donn&eacute;e</this_message_contains_no_data>
 <this_request_contains_no_data>Cette requ&ecirc;te contient aucune donn&eacute;e</this_request_contains_no_data>
+<this_service_is_managed_remote_statsappliance>Impossible d'afficher cette fonctionnalit&eacute;.[br]
+Le service est actuellement g&eacute;r&eacute; par l'appliance de statistiques.</this_service_is_managed_remote_statsappliance>
 <threads>Threads</threads>
 <threads_created>Thread(s) cr&eacute;&eacute;(s)</threads_created>
 <threads_running>Thread(s) en fonctionnement</threads_running>
@@ -1689,6 +1718,7 @@ Il est r&eacute;serv&eacute; &agrave; une liste de distribution MailMan</unable_
 <UpdateUtilityEnableHTTP_explain>Si vous activez le service HTTP, l'ensemble de vos outils antivirus Kaspersky seront redirig&eacute;s vers le d&eacute;p&ocirc;t local.[br]
 Dans ce cas, les outils de s&eacute;curit&eacute; n'iront pas sur Internet pour t&eacute;l&eacute;charger les mises &agrave; jour mais utiliseront le d&eacute;p&ocirc;t local afin d'&eacute;conomiser la bande passante.</UpdateUtilityEnableHTTP_explain>
 <update_agent>Mettre &agrave; jour l'agent</update_agent>
+<update_dbcatz_running>Mise &agrave; jour des des cat&eacute;gories en cours</update_dbcatz_running>
 <update_for_all_products>Mise &agrave; jour de tous les produits</update_for_all_products>
 <update_kaspersky_databases>Mise &agrave; jour de la base Kaspersky</update_kaspersky_databases>
 <update_kaspersky_databases_explain>Lance l'outil de mise &agrave; jour de Kaspersky afin de r&eacute;cup&eacute;rer les derni&egrave;res bases antivirus.</update_kaspersky_databases_explain>
@@ -1696,6 +1726,9 @@ Dans ce cas, les outils de s&eacute;curit&eacute; n'iront pas sur Internet pour 
 <update_precompiled_ufdb_explain>Cette t&acirc;che va t&eacute;l&eacute;charger les bases pr&eacute;-compil&eacute;es pour le moteur de filtrage Web.[br]
 Les bases pr&eacute;-compil&eacute;es sont les bases de production afin de filtrer vos utilisateurs.</update_precompiled_ufdb_explain>
 <update_squid>Mettre &agrave; jour le proxy</update_squid>
+<update_SQUIDAB_EXP>Les bases de cat&eacute;gories des statistiques sont actuellement en train de se mettre &agrave; jour.[br]
+Pendant l'ex&eacute;cution de cette t&acirc;che votre serveur peut &ecirc;tre surcharg&eacute;.[br]
+Cette t&acirc;che est ex&eacute;cut&eacute;e afin d'importer plus de 29 millions de sites Web cat&eacute;goris&eacute;s dans la base MySQL.</update_SQUIDAB_EXP>
 <update_tlse>V&eacute;rifie les bases de l'Universite de Toulouse</update_tlse>
 <update_tlse_explain>V&eacute;rifie si il n'y a pas de nouvelle bases de sites cat&eacute;goris&eacute;s &agrave; mettre &agrave; jour via les serveurs de mise &agrave; jour de l'Universit&eacute; de Toulouse.</update_tlse_explain>
 <update_your_ip_address>Mettre &agrave; jour votre adresse IP</update_your_ip_address>
@@ -1707,6 +1740,7 @@ Vous devriez uniquement activer cette option que si le filtrage Web n'est pas cr
 <UseAglobalPassword>Utiliser un mot de passe g&eacute;n&eacute;rique</UseAglobalPassword>
 <UseCookies>Utiliser les cookies</UseCookies>
 <UseLocalDatabase>Utiliser la base locale</UseLocalDatabase>
+<UseMyCorporateMBX>Utilise ma bo&icirc;te aux lettres entreprise</UseMyCorporateMBX>
 <UseNetworkCard>Utiliser la carte r&eacute;seau</UseNetworkCard>
 <UseOnlyBooster>Utiliser uniquement ce booster</UseOnlyBooster>
 <UserAgents>Identifiants navigateurs</UserAgents>

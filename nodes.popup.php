@@ -40,7 +40,7 @@ function tabs(){
 		$users=new usersMenus();
 	
 		$array["popup"]='{appliances}';
-		$array["update"]='{update}';
+		//$array["events"]='{events}';
 		
 		
 		

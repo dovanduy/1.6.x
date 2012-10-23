@@ -210,7 +210,7 @@ function parameters(){
 		//$config["vm.nr_hugepages"]["PROP"]=512;
 		$config["vm.vfs_cache_pressure"]["PROP"]=50;
 		$config["vm.overcommit_ratio"]["PROP"]="0";
-		$config["vm.overcommit_memory"]["PROP"]=2;
+		$config["vm.overcommit_memory"]["PROP"]=1;
 		$config["vm.swappiness"]["PROP"]=5;
 		$config["vm.lower_zone_protection"]["PROP"]=250;
 		$config["kernel.panic_on_oops"]["PROP"]=0;

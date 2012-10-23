@@ -30,6 +30,7 @@ if(preg_match("#--withoutloading#",implode(" ",$argv))){$GLOBALS["NO_USE_BIN"]=t
 if($argv[1]=="--squid"){$GLOBALS["PREFIX_OUPUT"]="Starting......: Squid, kernel:";}
 if($argv[1]=="--reboot"){$GLOBALS["REBOOT"]=true;}
 if($argv[1]=="--sysctl"){sysctl_start();die();}
+if($argv[1]=="--shmall"){shared_memory();die();}
 $unix=new unix();
 $sock=new sockets();
 $sysctl=$unix->find_program("sysctl");
@@ -48,11 +49,10 @@ while (list ($index, $line) = each ($f) ){
 if(!is_array($DEFAULTS)){
 	echo "{$GLOBALS["PREFIX_OUPUT"]} tuning not set..";
 }else{
-	
+	$DEFAULTS["vm.overcommit_memory"]=1;
 	while (list ($key, $value) = each ($DEFAULTS) ){
 		echo "{$GLOBALS["PREFIX_OUPUT"]} tuning $key = `$value`\n";
 		if($value==null){continue;}
-		if($key=="vm.vfs_cache_pressure"){continue;}
 		$SYSCTLCONF[$key]=$value;
 		$cmd[]="$sysctl -w $key=$value";
 		
@@ -64,18 +64,19 @@ if(!is_array($DEFAULTS)){
 	if(!is_array($ARRAY)){echo "{$GLOBALS["PREFIX_OUPUT"]} tuning (squid) not set..\n";}
 	if(count($ARRAY)<2){echo "{$GLOBALS["PREFIX_OUPUT"]} tuning (squid) not set..\n";}
 	if(count($ARRAY)>2){
+		$ARRAY["overcommit_memory"]=1;
 		$SYSCTLCONF["vm.swappiness"]=$ARRAY["swappiness"];
 		//$SYSCTLCONF["vm.vfs_cache_pressure"]=$ARRAY["vfs_cache_pressure"];
 		$SYSCTLCONF["vm.overcommit_memory"]=$ARRAY["overcommit_memory"];
 		$SYSCTLCONF["net.ipv4.tcp_max_syn_backlog"]=$ARRAY["tcp_max_syn_backlog"];
 		echo "{$GLOBALS["PREFIX_OUPUT"]} tuning vm.swappiness={$ARRAY["swappiness"]}\n";
-		//echo "{$GLOBALS["PREFIX_OUPUT"]} tuning vm.vfs_cache_pressure={$ARRAY["vfs_cache_pressure"]}\n";
+		if(isset($ARRAY["vfs_cache_pressure"])){echo "{$GLOBALS["PREFIX_OUPUT"]} tuning vm.vfs_cache_pressure={$ARRAY["vfs_cache_pressure"]}\n";}
 		echo "{$GLOBALS["PREFIX_OUPUT"]} tuning vm.overcommit_memory={$ARRAY["overcommit_memory"]}\n";
 		echo "{$GLOBALS["PREFIX_OUPUT"]} tuning net.ipv4.tcp_max_syn_backlog={$ARRAY["tcp_max_syn_backlog"]}\n";
 		
 		$cmd[]="$sysctl -w vm.swappiness={$ARRAY["swappiness"]}";
-		$cmd[]="$sysctl -w vm.vfs_cache_pressure=100";
-		$cmd[]="$sysctl -w vm.overcommit_memory={$ARRAY["overcommit_memory"]}";
+		if(isset($ARRAY["vfs_cache_pressure"])){$cmd[]="$sysctl -w vm.vfs_cache_pressure={$ARRAY["vfs_cache_pressure"]}";}
+		$cmd[]="$sysctl -w vm.overcommit_memory=1";
 		$cmd[]="$sysctl -w net.ipv4.tcp_max_syn_backlog={$ARRAY["tcp_max_syn_backlog"]}";
 	}
 	
@@ -115,10 +116,39 @@ if(is_array($ARRAY)){$run=true;}else{echo "{$GLOBALS["PREFIX_OUPUT"]} `kernel_va
 
 	if($run){
 		echo "{$GLOBALS["PREFIX_OUPUT"]} running kernel setup. (sysctl.conf)\n";
+		shared_memory();
+		shell_exec("$sysctl -w vm.overcommit_memory=1 >/dev/null 2>&1 &");
 		shell_exec("$nohup $sysctl -p >/dev/null 2>&1 &");
 	}else{
 		echo "{$GLOBALS["PREFIX_OUPUT"]} running kernel no setup..\n";
 	}
+}
+
+function shared_memory(){
+	$TotalKbytes=0;
+	$f=file("/proc/meminfo");
+	
+	while (list ($num, $ligne) = each ($f) ){
+		
+		if(preg_match("#MemTotal:\s+([0-9]+)\s+#", $ligne,$re)){
+			
+			$TotalKbytes=$re[1];
+			$TotalBytes=$TotalKbytes*1024;
+			echo "shmall Max memory: {$TotalKbytes}kb ($TotalBytes bytes)\n";
+		}
+	}
+	if($TotalKbytes==0){echo("Fatal error ".basename(__FILE__));return;}
+	$PageSize=exec("/usr/bin/getconf PAGE_SIZE");
+	echo "shmall: PAGE_SIZE =  $PageSize\n";
+	$ShmallValue=$TotalBytes/$PageSize;
+	$ShmallMaxValue=$ShmallValue*$PageSize;
+	$ShmallMaxValueKB=round($ShmallMaxValue/1024,2);
+	$ShmallValueKB=round($ShmallValue/1024,2);
+	echo "shmall: kernel.shmall  =  $ShmallValue bytes ($ShmallValueKB KB)\n";
+	echo "shmall: kernel.shmmax  =  $ShmallMaxValue bytes ($ShmallMaxValueKB KB)\n";
+	shell_exec("/bin/echo $ShmallMaxValue >/proc/sys/kernel/shmmax");
+	shell_exec("/bin/echo $ShmallValue >/proc/sys/kernel/shmall");
+	shell_exec("/bin/echo 4096 >/proc/sys/kernel/shmmni");	
 }
 
 ?>	

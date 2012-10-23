@@ -124,6 +124,7 @@ class phpMyDumper {
 	* @param boolean $hexValue It defines if the output is base 16 or not
 	*/
 	function getTableData($table,$hexValue = true) {
+		if($GLOBALS["AS_ROOT"]){echo "Exporting MySQL table `$table`\n";}
 		// Header
 		$data = "\n-- --------------------------------------------------------\n";
 		$data .= "-- \n";

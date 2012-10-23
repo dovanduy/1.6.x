@@ -537,6 +537,7 @@ class usersMenus {
 	var $OWNCLOUD_INSTALLED=false;
 	var $LIGHT_INSTALL=false;
 	var $CORP_LICENSE=false;
+	var $AsOwnMailBoxBackup=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -672,6 +673,7 @@ class usersMenus {
 			if(isset($_GLOBAL["LIGHT_INSTALL"])){$this->LIGHT_INSTALL=$_GLOBAL["LIGHT_INSTALL"];}
 			//Are you sure to do that !!!, breaking the license turn you to a pirate...
 			if(isset($_GLOBAL["CORP_LICENSE"])){$this->CORP_LICENSE=$_GLOBAL["CORP_LICENSE"];}
+			
 			
 			
 			
@@ -2302,13 +2304,16 @@ private function MAILBOXES_MENUS($array=array()){
 			$this->AsWebStatisticsAdministrator=true;
 			$this->AsMessagingOrg=true;
 			$this->AllowEditOuSecurity=true;
-			$this->AsHotSpotManager=true;			
+			$this->AsHotSpotManager=true;
+			$this->AsOwnMailBoxBackup=true;			
 	}
 	
 	function _TranslateRights($priv,$log=false){
 		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=1000;if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();}}
 		if(!is_array($priv)){
-			if($GLOBALS["posix_getuid"]<>0){writelogs("No privileges set",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			if($GLOBALS["posix_getuid"]<>0){
+				if($GLOBALS["VERBOSE"]){echo "No privileges set\n";}
+				writelogs("No privileges set",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			return;
 		}
 		if($GLOBALS["posix_getuid"]==0){
@@ -2371,6 +2376,7 @@ private function MAILBOXES_MENUS($array=array()){
 		if(!isset($priv["AsWebStatisticsAdministrator"])){$priv["AsWebStatisticsAdministrator"]="no";}
 		if(!isset($priv["AllowUserMaillog"])){$priv["AllowUserMaillog"]="no";}
 		if(!isset($priv["AsHotSpotManager"])){$priv["AsHotSpotManager"]="no";}
+		if(!isset($priv["AsOwnMailBoxBackup"])){$priv["AsOwnMailBoxBackup"]="no";}
 		
 		
 		
@@ -2422,6 +2428,9 @@ private function MAILBOXES_MENUS($array=array()){
 		if($priv["AsDansGuardianAdministrator"]=='yes'){$this->AsDansGuardianAdministrator=true;}
 		if($priv["AsWebFilterRepository"]=='yes'){$this->AsWebFilterRepository=true;}
 		if($priv["AsWebStatisticsAdministrator"]=='yes'){$this->AsWebStatisticsAdministrator=true;}
+		if($priv["AsOwnMailBoxBackup"]=='yes'){$this->AsOwnMailBoxBackup=true;}
+		
+		
 		
 	
 		if($_SESSION["uid"]==-100){

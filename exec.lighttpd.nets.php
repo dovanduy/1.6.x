@@ -25,6 +25,9 @@ function phpmyadmin_secu(){
 	if(!$q->ok){
 		if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";return;}
 	}
+	
+	if(@mysql_num_rows($results)==0){return;}
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ligne["pattern"]=trim($ligne["pattern"]);
 		if($ligne["pattern"]==null){continue;}

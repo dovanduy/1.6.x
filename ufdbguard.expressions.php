@@ -514,6 +514,7 @@ function table(){
 	$add=$tpl->_ENGINE_parse_body("{new_rule}");
 	$ufdbguard_terms_explain=$tpl->_ENGINE_parse_body("{ufdbguard_terms_explain}");
 	$give_the_rulename=$tpl->javascript_parse_text("{give_the_rulename}");
+	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
 	$TB_WIDTH=872;
 	$disable_all=Field_checkbox("disable_{$ligne["zmd5"]}", 1,$ligne["enabled"],"bannedextensionlist_enable('{$ligne["zmd5"]}')");
 	$t=time();
@@ -538,7 +539,7 @@ $('#$t-table').flexigrid({
 buttons : [
 		{name: '$add', bclass: 'add', onpress : AddNewExprRule$t},
 		{separator: true},
-
+		{name: '$online_help', bclass: 'Help', onpress : help$t},
 		
 		],	
 	searchitems : [
@@ -557,6 +558,10 @@ buttons : [
 	
 	});   
 });
+function help$t(){
+	s_PopUpFull('http://proxy-appliance.org/index.php?cID=313','1024','900');
+}
+
 
 	var x_AddNewExprRule$t=function(obj){
 		var results=obj.responseText;

@@ -90,10 +90,12 @@ begin
   end;
 
 
+
   writeln('Install c-icap extracted on "'+source_folder+'"');
   install.INSTALL_STATUS('APP_C_ICAP',50);
   install.INSTALL_PROGRESS('APP_C_ICAP','{compiling}');
 
+  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/compile-squid32.php --c-icap-remove');
 
   SetCurrentDir(source_folder);
   cmd:='./configure --enable-static --prefix=/usr --includedir="\${prefix}/include"';

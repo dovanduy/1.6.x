@@ -19,8 +19,35 @@ if(isset($_GET["month"])){month();exit;}
 if(isset($_GET["year"])){year();exit;}
 if(isset($_POST["LoadAvgClean"])){LoadAvgClean();exit;}
 
+injectSquid();
+PageDeGarde();
+License();
 
-PageDeGarde();exit;
+
+exit;
+
+function injectSquid(){
+	$users=new usersMenus();
+	$run=false;
+	$sock=new sockets();
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
+	if($EnableWebProxyStatsAppliance==1){$users->WEBSTATS_APPLIANCE=true;}
+	if($users->WEBSTATS_APPLIANCE){$run=true;}
+	if($users->SQUID_INSTALLED){$run=true;}
+	if(!$run){return;}	
+	$inf=trim($sock->getFrameWork("squid.php?isInjectrunning=yes") );
+	if($inf<>null){
+		$tpl=new templates();
+	$html="<div style='margin-bottom:15px'>".
+	Paragraphe("tables-64-running.png", "{update_dbcatz_running}","{update_SQUIDAB_EXP}<hr><b>{since}:&nbsp;{$inf}&nbsp;{minutes}</b>", 
+	"javascript:blur()","go_to_section",300,132,1);
+	echo $tpl->_ENGINE_parse_body($html)."</div>";		
+	}
+}
+
+
+
 
 function js(){
 	
@@ -31,6 +58,31 @@ function js(){
 	echo "YahooWin3('750','$page?tabs=yes','$title')";
 	
 	
+}
+
+
+function license(){
+	$users=new usersMenus();
+	$tpl=new templates();
+	if($users->CORP_LICENSE){return;}
+	$ASWEB=false;
+	if($users->SQUID_INSTALLED){$ASWEB=true;}
+	if($users->WEBSTATS_APPLIANCE){$ASWEB=true;}
+	
+		
+	$sock=new sockets();
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	if($LicenseInfos["license_status"]==null){
+		$text="{explain_license_free}";
+		
+	}else{
+		$text="{explain_license_order}";
+	}
+		
+	$html="<div style='margin-top:15px'>".
+	Paragraphe("license-error-64.png", "{artica_license}",$text, 
+	"javascript:Loadjs('artica.license.php')","go_to_section",300,132,1);
+	echo $tpl->_ENGINE_parse_body($html)."</div>";
 }
 
 function tabs(){

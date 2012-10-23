@@ -23,6 +23,7 @@
 	
 	
 function SETTINGS_INC(){
+	$ME=$_SERVER["SERVER_ADDR"];
 	$q=new mysql_blackbox();
 	reset($_FILES['SETTINGS_INC']);
 	$error=$_FILES['SETTINGS_INC']['error'];
@@ -63,8 +64,8 @@ function SETTINGS_INC(){
 	$sql="SELECT hostid,nodeid FROM nodes WHERE `hostid`='$hostid'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	if($ligne["hostid"]==null){
-		$sql="INSERT INTO nodes (hostname,ipaddress,port,hostid,BigArtica,ssl) 
-		VALUES ('$hostname','{$_SERVER["REMOTE_ADDR"]}','$MYSSLPORT','$hostid',$ISARTICA,$ssl)";
+		$sql="INSERT INTO nodes (`hostname`,`ipaddress`,`port`,`hostid`,`BigArtica`,`ssl`) 
+		VALUES ('$hostname','{$_SERVER["REMOTE_ADDR"]}','$MYSSLPORT','$hostid','$ISARTICA','$ssl')";
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){echo "<ERROR>$ME: Statisics appliance: $q->mysql_error:\n$sql\n line:".__LINE__."</ERROR>\n";return;}	
 		$sql="SELECT hostid,nodeid FROM nodes WHERE `hostid`='$hostid'";
@@ -145,7 +146,7 @@ function ORDER_DELETE(){
 	if(!$q->TABLE_EXISTS("poolorders")){$q->CheckTables();}
 	$sql="DELETE FROM poolorders WHERE orderid='{$_POST["orderid"]}'";
 	$q->QUERY_SQL($sql);
-	_udfbguard_admin_events("orderid {$_POST["orderid"]} as been executed by remote host $blk->hostname", __FUNCTION__, __FILE__, __LINE__, "communicate");	
+	_udfbguard_admin_events("orderid {$_POST["roder_text"]} ({$_POST["orderid"]}) as been executed by remote host $blk->hostname", __FUNCTION__, __FILE__, __LINE__, "communicate");	
 	if(!$q->ok){writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}	
 }
 
@@ -204,8 +205,8 @@ function REGISTER(){
 		if(preg_match("#Unknown column 'hostid'#",$q->mysql_error)){
 			$q->QUERY_SQL("DROP TABLE nodes");
 			$q->CheckTables();
-			$sql="INSERT INTO nodes (hostname,ipaddress,port,hostid,BigArtica,ssl) 
-			VALUES ('{$_POST["hostname"]}','{$_SERVER["REMOTE_ADDR"]}','{$_POST["port"]}','$hostid',$ISARTICA,$usessl)";
+			$sql="INSERT INTO nodes (`hostname`,`ipaddress`,`port`,`hostid`,`BigArtica`,`ssl`) 
+			VALUES ('{$_POST["hostname"]}','{$_SERVER["REMOTE_ADDR"]}','{$_POST["port"]}','$hostid','$ISARTICA','$usessl')";
 			$q->QUERY_SQL($sql);
 			if(!$q->ok){echo "<ERROR>$ME: Statisics appliance: $q->mysql_error:\n$sql\n line:".__LINE__."</ERROR>\n";return;}
 			$sql="SELECT nodeid FROM nodes WHERE `hostid`='$hostid'";
@@ -221,8 +222,8 @@ function REGISTER(){
 		echo "Adding new item\n...";
 		
 		writelogs("Adding new item",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-		$sql="INSERT INTO nodes (hostname,ipaddress,port,hostid,BigArtica,ssl) 
-		VALUES ('{$_POST["hostname"]}','{$_SERVER["REMOTE_ADDR"]}','{$_POST["port"]}','$hostid','$ISARTICA',$usessl)";
+		$sql="INSERT INTO nodes (`hostname`,`ipaddress`,`port`,`hostid`,`BigArtica`,`ssl`) 
+		VALUES ('{$_POST["hostname"]}','{$_SERVER["REMOTE_ADDR"]}','{$_POST["port"]}','$hostid','$ISARTICA','$usessl')";
 		$q->QUERY_SQL($sql);
 		if($GLOBALS["VERBOSE"]){if(!$q->ok){echo "<ERROR>$ME: Statisics appliance: $q->mysql_error: line:".__LINE__."</ERROR>\n";}}	
 		if(preg_match("#Unknown column 'hostid'#",$q->mysql_error)){

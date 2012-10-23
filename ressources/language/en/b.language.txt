@@ -2297,6 +2297,9 @@ if your server does not respond after a reboot
 <wrong_password_or_username>Wrong password or username</wrong_password_or_username>
 <accesstime_to_internet_expired>Access time to Internet expired</accesstime_to_internet_expired>
 <antivirus_parameters>Anti-Virus parameters</antivirus_parameters>
+<samba_is_not_installed>Samba software is not installed on this computer.[br]
+In this case, this feature cannot be available or activated...[br]
+We suggest to use the Setup Center in order to install Samba software</samba_is_not_installed>
 <webfilter_events>Webfilter events</webfilter_events>
 <reload_proxy_service>Reload the proxy service</reload_proxy_service>
 <reload_proxy_service_text>Force the proxy to read the configuration file and reload plugins.</reload_proxy_service_text>
@@ -2319,3 +2322,45 @@ if your server does not respond after a reboot
 <squid_check_lost_tables_explain>Artica generate access logs for each hour.[br]If the server is busy the hourly statistics will be not calculated.[br]
 This task parse all hourly lost tables and inject data into the standard cycle.</squid_check_lost_tables_explain>
 <squid_check_lost_tables>Check lost hourly tables</squid_check_lost_tables>
+<explain_license_free>	
+Your Artica server is currently using the community mode.[br]
+The community mode allows you to use this Artica server as long as you like (with restricted functionalities).[br]
+If you need to use this Artica server with all features, please click here to receive a quotation.[br]
+</explain_license_free>	
+<explain_license_order>Your quotation request has been received and our Sales Department sent you a sales proposal by email.[br]
+The key is pending activation. For reminder, this key will allow you to beneficiate to all advanced features of the product.[br]
+To activate the key, a purchase order is needed with the full payment of the license.
+</explain_license_order>
+<alert_page>Alert page</alert_page>
+<generated_on>Generated on</generated_on>
+<CICAP_MEM_BOOST_EXPLAIN>C-ICAP memory booster allows you to define a physical memory container in for Antivirus processes.[br]
+By default, the antivirus use the hard disk to perform analysis operations.[br]
+Using the memory for these tasks will increase antivirus performances.[br]
+Define here the number of MB of memory you wan to use in order to perform scanning.[br]
+256 MB should be a good starting point.[br]
+</CICAP_MEM_BOOST_EXPLAIN>
+<memory_booster>Memory booster</memory_booster>
+<update_dbcatz_running>Update categories task is running</update_running>
+<update_SQUIDAB_EXP>The Artica categories statistics databases update task is running.
+[br]During this task, your server should be loaded.[br]
+This task is designed to import more than 29.000.000 websites into the MySQL database.[br]
+</update_SQUIDAB_EXP>
+<reconfigure_proxy_service>Reconfigure the proxy service</reconfigure_proxy_service>
+<reconfigure_proxy_service_text>Rebuild all settings and configuration files and force the proxy service to reload the daemon.[br]
+All connections will be stopped during this operation.
+</reconfigure_proxy_service_text>
+<this_service_is_managed_remote_statsappliance>Warning, cannot display this feature.[br]
+This service is managed by the remote statistics appliance.</this_service_is_managed_remote_statsappliance>
+<AsOwnMailBoxBackup>Can backup it's mailboxes</AsOwnMailBoxBackup>
+<mailboxes_backups>Mailboxes backups</mailboxes_backups>
+<mailboxes_backups_text>Backup or restore your IMAP mailboxes of your account or your remote IMAP mailboxes
+<∕mailboxes_backups_text>
+<mailboxes_backups_text_admin>Allows your members to backup content of their mailboxes (local or remote) 
+according privileges set in organizations.</mailboxes_backups_text_admin>
+<enable_backup_mailboxes_features>Activate Members mailbox backup feature</enable_backup_mailboxes_features>
+<enable_backup_mailboxes_features_explain>If turn to green, members will be allowed to create backup rules for their local mailboxes or their remote mailboxes.</enable_backup_mailboxes_features_explain>
+<new_backup_rule>New backup rule</new_backup_rule>
+<UseMyCorporateMBX>Use my corporate mailbox</UseMyCorporateMBX>
+<free_license_one_rule_text>The community license allows you to create only one rule for this feature.
+Please, upgrade to a corporate license...</free_license_one_rule_text>
+<executed>Executed</executed>

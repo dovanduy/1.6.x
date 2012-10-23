@@ -198,6 +198,8 @@ class netagent{
 		}
 		
 		
+		
+		
 		if(preg_match("#<ORDERS>(.+?)</ORDERS>#is", $curl->data,$re)){
 			$this->OrdersParse($re[1]);
 		}
@@ -218,27 +220,50 @@ class netagent{
 			$OrderOK=false;
 			while (list ($OrderKey, $OrderValue) = each ($orderdata) ){
 				if($GLOBALS["OUTPUT"]){echo "Execute order $OrderKey = $OrderValue..\n";}
-				if($this->OrderExecute($OrderKey,$OrderValue)){$OrderOK=true;}
+				writelogs("Accepted order $OrderKey from statistics appliance",__FUNCTION__,__FILE__,__LINE__);
+				if($this->OrderExecute($OrderKey,$OrderValue)){
+					if($GLOBALS["OUTPUT"]){echo "Executed order $orderid done...\n";}
+					$this->OrderOk($orderid,$OrderKey);
+				}
 			}
-			
-			if($OrderOK){
-				if($GLOBALS["OUTPUT"]){echo "Executed order $orderid done...\n";}
-				$this->OrderOk($orderid);}
-			}
+		}
 	}
 	
 	private function OrderExecute($ORDER,$ORDER_VALUE){
-		if($ORDER=="SQUID"){$this->squid_get_confs();return true;}
-		if($ORDER=="RESTART_SQUID"){shell_exec("/etc/init.d/artica-postfix restart squid-cache &");return true;}
-		if($ORDER=="RECONFIGURE_SQUID"){$unix=new unix();$php5=$unix->LOCATE_PHP5_BIN();shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --reconfigure-squid");return true;}
+		$unix=new unix();$php5=$unix->LOCATE_PHP5_BIN();
+		if($ORDER=="SQUID"){
+			$this->squid_get_confs();
+			return true;
+		}
+		if($ORDER=="RESTART_SQUID"){
+			shell_exec("/etc/init.d/artica-postfix restart squid-cache &");
+			return true;
+		}
+		if($ORDER=="RECONFIGURE_SQUID"){
+			shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
+			return true;
+		}
+		if($ORDER=="AD_DISCONNECT"){
+			shell_exec("$php5 /usr/share/artica-postfix/exec.kerbauth.php --disconnect 2>&1");
+			return true;
+		}
+		if($ORDER=="AD_CONNECT"){
+			shell_exec("$php5 /usr/share/artica-postfix/exec.kerbauth.php --build --force 2>&1");
+			return true;
+		}
+		if($ORDER=="BUILDCONF"){
+			shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --build --force 2>&1");
+			return true;
+		}
 		
 	}
 	
-	private function OrderOk($orderid){
+	private function OrderOk($orderid,$roder_text=null){
 		$curl=new ccurl($this->master_uri."/nodes.listener.php");
 		$curl->parms["nodeid"]=$this->nodeid;
 		$curl->parms["hostid"]=$this->hostid();
 		$curl->parms["orderid"]=$orderid;
+		$curl->parms["roder_text"]=$roder_text;
 		if(!$curl->get()){
 			if($GLOBALS["OUTPUT"]){echo "orderid=$orderid: Fatal $curl->error\n";}
 			writelogs("[$this->nodeid]: orderid=$orderid: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);

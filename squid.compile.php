@@ -22,6 +22,20 @@ js();
 
 function js(){
 	$sock=new sockets();
+	$users=new usersMenus();
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
+	
+	if($EnableWebProxyStatsAppliance==1){
+		$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
+		$tpl=new templates();
+		echo "alert('".$tpl->javascript_parse_text("{proxy_clients_was_notified}")."');";
+		return;
+	}	
+	
 	$sock->getFrameWork("squid.php?compile-by-interface=yes");
 	
 	$page=CurrentPageName();

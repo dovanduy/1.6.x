@@ -84,7 +84,7 @@ function perfs(){
 	
 	$swappiness=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("vm.swappiness")); //2
 	//$vfs_cache_pressure=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("vm.vfs_cache_pressure")); //50
-	$overcommit_memory=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("vm.overcommit_memory")); //2
+	$overcommit_memory=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("vm.overcommit_memory")); //1
 	
 	$tcp_max_syn_backlog=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("net.ipv4.tcp_max_syn_backlog")); //4096 
 	
@@ -158,7 +158,7 @@ $removecachepressure="		<tr >
 		<tr>
 			<td align='right' class=legend nowrap style='font-size:16px'>Kernel:vm.overcommit_memory:</strong></td>
 			<td valign='middle' align='right' style='font-size:18px;padding-right:5px'>$overcommit_memory</td>
-			<td valign='middle'>".Field_text("overcommit_memory",2,"font-size:18px;width:40px")."</strong></td>
+			<td valign='middle'>".Field_text("overcommit_memory",1,"font-size:18px;width:40px")."</strong></td>
 		</tr>
 		<tr>
 			<td align='right' class=legend nowrap style='font-size:16px'>Kernel:net.ipv4.tcp_max_syn_backlog:</strong></td>
@@ -185,7 +185,7 @@ $removecachepressure="		<tr >
 		XHR.appendData('cache_mem',document.getElementById('cache_mem').value);
 		XHR.appendData('swappiness',document.getElementById('swappiness').value);
 		//XHR.appendData('vfs_cache_pressure',document.getElementById('vfs_cache_pressure').value);
-		XHR.appendData('overcommit_memory',document.getElementById('overcommit_memory').value);
+		//XHR.appendData('overcommit_memory',document.getElementById('overcommit_memory').value);
 		XHR.appendData('tcp_max_syn_backlog',document.getElementById('tcp_max_syn_backlog').value);
 		
 		XHR.appendData('fqdncache_size',document.getElementById('fqdncache_size').value);
@@ -221,7 +221,7 @@ function save(){
 	$sock->SaveConfigFile( base64_encode(serialize($_GET)),"kernel_values");
 	$sock->getFrameWork("cmd.php?sysctl-setvalue={$_GET["swappiness"]}&key=".base64_encode("vm.swappiness")); //15
 	//$sock->getFrameWork("cmd.php?sysctl-setvalue={$_GET["vfs_cache_pressure"]}&key=".base64_encode("vm.vfs_cache_pressure")); //15
-	$sock->getFrameWork("cmd.php?sysctl-setvalue={$_GET["overcommit_memory"]}&key=".base64_encode("vm.overcommit_memory")); //15
+	//$sock->getFrameWork("cmd.php?sysctl-setvalue={$_GET["overcommit_memory"]}&key=".base64_encode("vm.overcommit_memory")); //15
 	$sock->getFrameWork("cmd.php?sysctl-setvalue={$_GET["tcp_max_syn_backlog"]}&key=".base64_encode("net.ipv4.tcp_max_syn_backlog"));	
 	
 	

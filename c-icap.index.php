@@ -96,6 +96,15 @@ function status(){
 	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}	
 	$events=$tpl->_ENGINE_parse_body("{events}");
 	
+	$error_page_js="Loadjs('c-icap.alertpage.php')";
+	$memory_booster_js="Loadjs('c-icap.memory.php')";
+	
+	
+	if(!$users->CORP_LICENSE){
+		$error_page_js="alert('".$tpl->javascript_parse_text("{this_feature_is_disabled_corp_license}")."');";
+	}
+	
+	
 	$vir="32-virus-find-grey.png";
 	$virtxt="{enable_antivirus}";
 	$js="EnableAV(1)";
@@ -138,7 +147,20 @@ function status(){
 				<td width=99%><a href=\"javascript:blur();\" 
 				OnClick=\"javascript:$js;\" 
 				style='font-size:14px;text-decoration:underline'>$virtxt</td>
-			</tr>										
+			</tr>	
+			<tr>
+				<td valign='middle' width=1%><img src='img/webpage-settings-32.png'></td>
+				<td width=99%><a href=\"javascript:blur();\" 
+				OnClick=\"javascript:$error_page_js;\" 
+				style='font-size:14px;text-decoration:underline'>{alert_page}</td>
+			</tr>
+			<tr>
+				<td valign='middle' width=1%><img src='img/memory-32.png'></td>
+				<td width=99%><a href=\"javascript:blur();\" 
+				OnClick=\"javascript:$memory_booster_js;\" 
+				style='font-size:14px;text-decoration:underline'>{memory_booster}</td>
+			</tr>			
+			
 		</table>
 	</td>
 	</tr>
@@ -217,15 +239,33 @@ function index(){
 	$users=new usersMenus();
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$sock=new sockets();
+	
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if($EnableRemoteStatisticsAppliance==1){
+		$tpl=new templates();
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{this_service_is_managed_remote_statsappliance}"));
+		return;
+		
+	}
+	
+	
 	$array["status"]='{status}';
 	$array["daemons"]='{daemon_settings}';
 	
 	$array["clamav"]='{clamav_settings}';
 	if($users->KASPERSKY_WEB_APPLIANCE){unset($array["clamav"]);}
+	$array["exclude"]='{exclude}';
+	https://192.168.1.116:9000/
 	
 	//$array["logs"]='{icap_logs}';
 	
 	while (list ($num, $ligne) = each ($array) ){
+		if($num=="exclude"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.hosts.blks.php?popup=yes&blk=6\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}
 		$html[]= "<li><a href=\"$page?main=$num\"><span style='font-size:14px'>$ligne</span></a></li>\n";
 	}
 	

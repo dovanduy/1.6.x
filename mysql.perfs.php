@@ -249,7 +249,8 @@ function popup(){
 	var x_ParseFormSave$t= function (obj) {
 		var results=obj.responseText;
 		YahooWin4Hide();
-		if(document.getElementById('admin_perso_tabs')){RefreshTab('admin_perso_tabs');}
+		CacheOff();
+		
 	}			
 		
 		function ParseFormSave$t(){

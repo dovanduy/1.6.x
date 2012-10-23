@@ -1,11 +1,13 @@
 <?php
+$GLOBALS["AS_ROOT"]=false;
+if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
+
 $GLOBALS["ICON_FAMILY"]="SYSTEM";
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if($GLOBALS["VERBOSE"]){echo "Memory:(".__LINE__.") " .round(memory_get_usage(true)/1024)."Ko<br>\n";}
-$GLOBALS["DEBUG_PRIVS"]=true;
 include_once('ressources/class.templates.inc');
 if($GLOBALS["VERBOSE"]){echo "Memory:(".__LINE__.") " .round(memory_get_usage(true)/1024)."Ko<br>\n";}
-session_start();
+if(!$GLOBALS["AS_ROOT"]){session_start();}
 include_once('ressources/class.html.pages.inc');
 include_once('ressources/class.cyrus.inc');
 include_once('ressources/class.main_cf.inc');
@@ -13,6 +15,10 @@ include_once('ressources/charts.php');
 include_once('ressources/class.syslogs.inc');
 include_once('ressources/class.system.network.inc');
 include_once('ressources/class.os.system.inc');
+
+if($GLOBALS["AS_ROOT"]){
+	if($argv[1]=="--status-right"){status_right();status_computer();main_admin_tabs();exit;}
+}
 
 //ini_set('display_errors', 1);
 //ini_set('error_reporting', E_ALL);
@@ -369,7 +375,11 @@ error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
 
 function main_admin_tabs(){
 	
-	if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}
+
+	
+	if(!$GLOBALS["AS_ROOT"]){
+		if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}
+	}
 	
 	if($GLOBALS["VERBOSE"]){echo "<li>".__FUNCTION__." line:".__LINE__."</li>";}
 	$array["t:frontend"]="{status}";
@@ -382,13 +392,12 @@ function main_admin_tabs(){
 	$sock=new sockets();
 	$array["t:graphs"]='{graphs}';	
 	
-	if($users->VPS_OPENVZ){
-		$array["t:openvz"]='OpenVZ';	
-	}
+	if($users->VPS_OPENVZ){$array["t:openvz"]='OpenVZ';}
 	
 	if($artica->EnableMonitorix==1){$array["t:monitorix"]='{monitorix}';}
-	if($users->WEBSTATS_APPLIANCE){$users->POSTFIX_INSTALLED=false;
-	$array["t:remote-web-appliances"]='{appliances}';
+	if($users->WEBSTATS_APPLIANCE){
+		$users->POSTFIX_INSTALLED=false;
+		$array["t:remote-web-appliances"]='{appliances}';
 	}
 	
 	
@@ -427,14 +436,18 @@ if($users->KASPERSKY_SMTP_APPLIANCE){
 }	
 
 if(count($array)<6){
-	if($users->AsSystemAdministrator){$array["t:cnx"]="{connections}";}
+	$array["t:cnx"]="{connections}";
 }
 
 $count=count($array);
 //if($count<7){$array["add-tab"]="{add}&nbsp;&raquo;";}
-$page=CurrentPageName();
-$tpl=new templates();
-$width="758px";
+
+
+
+		
+$page=CurrentPageName();	
+	if($GLOBALS["AS_ROOT"]){$_GET["tab-font-size"]="14px";}
+	$width="800px";
 if(isset($_GET["tab-font-size"])){
 	if($_GET["tab-font-size"]=="14px"){$_GET["tab-font-size"]="12px";}
 	$style="style=font-size:{$_GET["tab-font-size"]}";
@@ -459,7 +472,7 @@ if(count($array)>7){$style="style=font-size:11px";}
 			}			
 			
 			if($re[1]=="remote-web-appliances"){
-				$html[]= "<li ><a href=\"squid.statsappliance.clients.php\"><span $style>$ligne</span></a></li>\n";
+				$html[]= "<li ><a href=\"squid.statsappliance.clients.php?listonly=yes\"><span $style>$ligne</span></a></li>\n";
 				continue;
 			}				
 			
@@ -490,6 +503,11 @@ $html= "
 		  $(document).ready(function() {
 			$(\"#admin_perso_tabs\").tabs();});
 		</script>";	
+
+	if($GLOBALS["AS_ROOT"]){
+		@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.tabs.html", $html);
+		return;
+	}
 
 SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
 return $html;	
@@ -608,9 +626,19 @@ function status_computer_mysql_memory_check(){
 
 
 function status_computer(){
+	if(!$GLOBALS["AS_ROOT"]){
+		if(is_file("/usr/share/artica-postfix/ressources/logs/web/admin.index.memory.html")){
+			$tpl=new templates();
+			echo $tpl->_ENGINE_parse_body(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.memory.html"));
+			return;
+		}
+	}
+	
+	
 	$page=CurrentPageName();
-	$newfrontend=false;if(isset($_GET["newfrontend"])){$newfrontend=true;}
 	$sock=new sockets();
+	$newfrontend=false;if(isset($_GET["newfrontend"])){$newfrontend=true;}
+	
 	$MySqlMemoryCheck=$sock->GET_INFO("MySqlMemoryCheck");
 	if(!is_numeric($MySqlMemoryCheck)){$MySqlMemoryCheck=0;}
 	if($MySqlMemoryCheck==0){
@@ -619,15 +647,17 @@ function status_computer(){
 	}
 	
 	if(!$GLOBALS["VERBOSE"]){
-		if(GET_CACHED(__FILE__, __FUNCTION__,"time",false,3)){return;}
-		if(internal_load()>1.2){if(GET_CACHED(__FILE__, __FUNCTION__)){return;}}
+		if(!$GLOBALS["AS_ROOT"]){
+			if(GET_CACHED(__FILE__, __FUNCTION__,"time",false,3)){return;}
+			if(internal_load()>1.2){if(GET_CACHED(__FILE__, __FUNCTION__)){return;}}
+		}
 	}
 	
 	if($newfrontend){
 		$ajaxadd="&newfrontend=yes";
 	}
 	
-	include_once("ressources/class.os.system.tools.inc");
+	include_once(dirname(__FILE__)."/ressources/class.os.system.tools.inc");
 	$html=status_mysql();
 	$os=new os_system();
 	$html=$html.RoundedLightGrey($os->html_Memory_usage())."<br>
@@ -637,6 +667,13 @@ function status_computer(){
 	
 	
 	";
+	if($GLOBALS["AS_ROOT"]){
+		include_once(dirname(__FILE__).'/framework/class.unix.inc');
+		include_once(dirname(__FILE__).'/framework/frame.class.inc');		
+		@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.memory.html", $html);
+		return;
+	}
+	
 	SET_CACHED(__FILE__, __FUNCTION__, $html);
 	SET_CACHED(__FILE__, __FUNCTION__,"time", $html);
 	echo $html;
@@ -695,9 +732,11 @@ function status_mysql(){
 function status_right_image(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
-	$tpl=new templates();	
-	if(!isset($_GET["status_right_image"])){if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,false,2)){return null;}}
-	include_once(dirname(__FILE__)."/ressources/class.browser.detection.inc");
+	$tpl=new templates();
+	if(!$GLOBALS["AS_ROOT"]){	
+		if(!isset($_GET["status_right_image"])){if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,false,2)){return null;}}
+		include_once(dirname(__FILE__)."/ressources/class.browser.detection.inc");
+	}
 	$users=new usersMenus();
 	$tpl=new templates();
 	$newfrontend=false;
@@ -709,14 +748,6 @@ function status_right_image(){
 	</script>
 	";
 
-	writelogs("Building status... ",__FUNCTION__,__FILE__,__LINE__);
-	
-	if(!$users->AsArticaAdministrator){
-		if($GLOBALS["VERBOSE"]){writelogs("[DEBUG] -> Not an administrator, aborting !",__FUNCTION__,__FILE__,__LINE__);}
-		die("<H2 style='color:red'>permission denied</H2>");}
-		$page=CurrentPageName();
-		if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";
-	}
 
 	if($users->WEBSTATS_APPLIANCE){
 			$status=new status();
@@ -815,10 +846,20 @@ function status_right_image(){
 
 function status_right(){
 	$t=time();
+	$page=CurrentPageName();
 	if(isset($_GET["newfrontend"])){$newfrontend=true;}
-	$sock=new sockets();
-	$sock->getFrameWork('cmd.php?ForceRefreshRight=yes');
-	if($GLOBALS["VERBOSE"]){writelogs("[DEBUG] -> echo next scripts...",__FUNCTION__,__FILE__,__LINE__);}
+	if($GLOBALS["AS_ROOT"]){$newfrontend=true;}
+	if(!$GLOBALS["AS_ROOT"]){
+		if(is_file("/usr/share/artica-postfix/ressources/logs/web/admin.index.status.html")){
+			$tpl=new templates();
+			echo $tpl->_ENGINE_parse_body(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.status.html"));
+			return;
+		}
+		$sock=new sockets();
+		$sock->getFrameWork('cmd.php?ForceRefreshRight=yes');
+		if($GLOBALS["VERBOSE"]){writelogs("[DEBUG] -> echo next scripts...",__FUNCTION__,__FILE__,__LINE__);}
+	}
+	
 	if(!$newfrontend){
 		$infos="LoadAjaxTiny('right-status-infos','admin.left.php?part1=yes');";
 	}else{

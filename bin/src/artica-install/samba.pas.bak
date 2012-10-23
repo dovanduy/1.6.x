@@ -259,8 +259,8 @@ l.Add('# `info libc "Name Service Switch"'' for information about this file.');
 l.Add('bind_policy soft');
 l.Add('');
 l.Add('passwd:         '+compat_string+' '+ldap_string+winbind);
-l.Add('group:          compat'+ldap_string+winbind);
-l.Add('shadow:         compat'+ldap_string+winbind);
+l.Add('group:          '+compat_string+' '+ldap_string+winbind);
+l.Add('shadow:         '+compat_string+' '+ldap_string+winbind);
 l.Add('');
 l.Add('hosts:          '+mds);
 l.Add('networks:       files');
@@ -504,6 +504,9 @@ begin
            exit;
     end;
 
+    ForceDirectories('/var/log/samba');
+    ForceDirectories('/var/run/samba');
+    ForceDirectories('/var/run/samba/winbindd_privileged');
 
     aa_complain:=SYS.LOCATE_GENERIC_BIN('aa-complain');
     if FIleExists('aa_complain') then begin

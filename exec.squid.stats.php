@@ -98,6 +98,9 @@ if($argv[1]=='--webcacheperfs'){webcacheperfs();exit;}
 if($argv[1]=='--visited-days'){visited_websites_by_day();exit;}
 if($argv[1]=='--repair-categories'){RepairCategoriesBases();exit;}
 if($argv[1]=='--members-central'){members_central();exit;}
+if($argv[1]=='--repair-week'){repair_week();exit;}
+if($argv[1]=='--dump-days'){dump_days();exit;}
+
 
 
 
@@ -1876,13 +1879,18 @@ function week_uris($asPid=false){
 		}
 	}	
 	visited_websites_by_day(true);
-	$sql="SELECT tablename,DATE_FORMAT( zDate, '%Y%m%d' ) AS tablesource, DAYOFWEEK(zDate) as DayNumber,WEEK( zDate ) AS tweek, YEAR( zDate ) AS tyear FROM tables_day WHERE weekdone =0 AND zDate < DATE_SUB( NOW( ) , INTERVAL 1 DAY ) ORDER BY zDate";
+	if($GLOBALS["VERBOSE"]){echo "Search tables sources in tables_day\n";}
+	$sql="SELECT tablename,DATE_FORMAT( zDate, '%Y%m%d' ) AS tablesource, 
+	DAYOFWEEK(zDate) as DayNumber,WEEK( zDate ) AS tweek, YEAR( zDate ) AS tyear 
+	FROM tables_day WHERE weekdone =0 AND zDate < DATE_SUB( NOW( ) , INTERVAL 1 DAY ) ORDER BY zDate";
+	
+	
 	
 	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
 	
 	$unix=new unix();
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
-	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." rows\n";}
+	if($GLOBALS["VERBOSE"]){echo "Search tables sources in tables_day:: ".mysql_num_rows($results)." rows\n";}
 	if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: $q->mysql_error on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");return false;}
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$week_table="{$ligne["tyear"]}{$ligne["tweek"]}_week";
@@ -1921,8 +1929,20 @@ function _week_uris_perform($tablesource,$week_table,$DAYOFWEEK){
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: on source table `$tablesource` {$GLOBALS["Q"]->mysql_error} ",__FUNCTION__,__FILE__,__LINE__,"stats");return false;}
 	$f=array();
+	$source_events=$GLOBALS["Q"]->COUNT_ROWS($tablesource);
+	
+	if($source_events==0){
+		preg_match("#^([0-9]+)_hour#", $tablesource,$re);
+		$dansguardian_events_table="dansguardian_events_{$re[1]}";
+		$dansguardian_events_rows=$GLOBALS["Q"]->COUNT_ROWS($dansguardian_events_table);
+		if($dansguardian_events_rows>0){
+			_clients_hours_perfom($dansguardian_events_table,$tablesource);
+			$source_events=$GLOBALS["Q"]->COUNT_ROWS($tablesource);
+		}
+	}
 	
 	
+	if($GLOBALS["VERBOSE"]){echo "$tablesource:: store ".mysql_num_rows($results)." rows / $source_events events source-table: $dansguardian_events_table ( $dansguardian_events_rows events )\n";}
 	$prefix="INSERT IGNORE INTO $week_table (zMD5,sitename,familysite,client,hostname,day,MAC,size,hits,uid,category,cached,account) VALUES ";
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -1939,6 +1959,7 @@ function _week_uris_perform($tablesource,$week_table,$DAYOFWEEK){
 	
 	
 	if(count($f)>0){
+		if($GLOBALS["VERBOSE"]){echo "$week_table:: Added ". count($f) ." events\n";}
 		$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
 		if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: on destination `$week_table` {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
 	}
@@ -2796,14 +2817,114 @@ function repair_hours(){
 	
 	if($c>0){
 		ufdbguard_admin_events("Success repair $c tables ",__FUNCTION__,__FILE__,__LINE__,"stats");
-		week_uris();
-		week_uris_blocked();
+		
 	}
 	
 	
+	repair_week();
+	week_uris();
+	week_uris_blocked();	
+	
 }
 
+function repair_week(){
+	$q=new mysql_squid_builder();
+	
+	
+	$sql="SELECT tablename,DATE_FORMAT( zDate, '%Y%m%d' ) AS tablesource, 
+	DAYOFWEEK(zDate) as DayNumber,WEEK( zDate ) AS tweek, 
+	YEAR( zDate ) AS tyear FROM tables_day WHERE zDate < DATE_SUB( NOW( ) , INTERVAL 1 DAY ) ORDER BY zDate";	
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		writelogs_squid("Fatal: $q->mysql_error on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return false;
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo "Search tables sources in tables_day:: ".mysql_num_rows($results)." rows\n";}
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$week_table="{$ligne["tyear"]}{$ligne["tweek"]}_week";	
+		if(isset($already[$week_table])){continue;}
+		$tablesource="{$ligne["tablesource"]}_hour";
+		$DayNumber=$ligne["DayNumber"];
+		$weekNum=$ligne["tweek"];
+		$already[$week_table]=true;
+		if($GLOBALS["VERBOSE"]){echo "Week: $weekNum, Scanning table $week_table - source $tablesource Day number:$DayNumber \n";}
+		if(!$q->TABLE_EXISTS($week_table)){
+			if($GLOBALS["VERBOSE"]){echo "Week: $weekNum, $week_table !!! Not exists.....\n";}
+			repair_week_refresh($ligne["tyear"],$ligne["tweek"]);
+		}
+		if($q->COUNT_ROWS($week_table)==0){
+			if($GLOBALS["VERBOSE"]){echo "Week: $weekNum, $week_table !!! No row.....\n";}
+			repair_week_refresh($ligne["tyear"],$ligne["tweek"]);
+		}
+		
+	}
+	
+}
 
+function repair_week_refresh($YEAR,$WEEK){
+	$q=new mysql_squid_builder();
+	$week_table="$YEAR{$WEEK}_week";	
+	$sql="UPDATE tables_day SET weekdone=0 WHERE WEEK(zDate)=$WEEK AND YEAR( zDate )=$YEAR";
+	writelogs_squid("Week number $WEEK is ordered to be re-calculated",__FUNCTION__,__FILE__,__LINE__,"stats");
+	if(!$q->TABLE_EXISTS($week_table)){$q->QUERY_SQL("DROP TABLE $week_table");}
+	$q->QUERY_SQL($sql);
+	week_uris(false);
+	
+}
+
+function dump_days(){
+	$q=new mysql_squid_builder();
+	
+	echo "Today: " . date("Y-m-d")."\n";
+	
+	$LIST_TABLES_QUERIES=$q->LIST_TABLES_QUERIES();
+	while (list ($index, $value) = each ($LIST_TABLES_QUERIES) ){
+		echo "$value : `$index` \n";
+		
+	}
+	
+	$LIST_TABLES_HOURS=$q->LIST_TABLES_HOURS();
+	while (list ($index, $value) = each ($LIST_TABLES_HOURS) ){
+		echo "$value : `$index` \n";
+		
+	}	
+	$sql="SELECT *,DATE_FORMAT( zDate, '%Y%m%d' ) AS tablesource,DAYOFWEEK(zDate) as DayNumber,WEEK( zDate ) AS tweek, 
+	YEAR( zDate ) AS tyear FROM tables_day ORDER BY zDate";	
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		writelogs_squid("Fatal: $q->mysql_error on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return false;
+	}
+
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		
+		
+		$tablename=$ligne["tablename"];
+		$countRows=$q->COUNT_ROWS($tablename);
+		$tablesource="{$ligne["tablesource"]}_hour";
+		$DayNumber=$ligne["DayNumber"];
+		$weekNum=$ligne["tweek"];
+		$week_table="{$ligne["tyear"]}{$ligne["tweek"]}_week";	
+		echo "$tablename ( $countRows rows) ------------------------------------------------------------\n";
+		$tablesource_exists="yes";
+		$week_table_exists="yes";
+		if(!$q->TABLE_EXISTS($tablesource)){$tablesource_exists="no";}
+		if(!$q->TABLE_EXISTS($week_table)){$week_table_exists="no";}
+		$week_table_rows=$q->COUNT_ROWS($week_table);
+		echo "Table source $tablesource Exists:$tablesource_exists\n";
+		echo "Table Week $week_table Exists:$week_table_exists ( $week_table_rows rows )\n";
+		
+		while (list ($index, $value) = each ($ligne) ){
+			if(is_numeric($index)){continue;}
+			//echo "$index: `$value`\n";
+			
+		}
+		
+	}
+	
+}
 
 
 

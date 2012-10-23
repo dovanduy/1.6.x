@@ -121,6 +121,7 @@ Example: Allow Kaspersky Antivirus to not be authenticated: regex:\\*[A-Za-z]+=$
 This value limit the time duration of the router.[br]
 By default, the router is allowed to put mails on each instance during 10mn.[br]After 10Mn it must wait the "Wait X seconds after MAX execution" (5 minutes) before processing again the main queue.
 </aiguil_max_msg_rate_explain>
+<alert_page>Alert page</alert_page>
 <AllowNoPassword>Allow no password</AllowNoPassword>
 <AllowPublicDownload>Allow public download</AllowPublicDownload>
 <AllowUserMaillog>Can display real-time SMTP mail events</AllowUserMaillog>
@@ -294,6 +295,7 @@ Proceed to change the master branch to:</ask_change_suffix>
 <ask_delete_this_rule>Delete this rule ? All items will be removed</ask_delete_this_rule>
 <ask_give_rulename>Give the rule name</ask_give_rulename>
 <ask_remove_template>Remove this template ?</ask_remove_template>
+<AsOwnMailBoxBackup>Can backup it's mailboxes</AsOwnMailBoxBackup>
 <attachments_storage>Attachments storage</attachments_storage>
 <attempts>attempts</attempts>
 <authenticate>authenticate</authenticate>
@@ -470,6 +472,12 @@ Select Settings.[br]
 Click the Under the Hood tab.[br]
 In the "Network" section, click Change proxy settings. This will open the Internet Properties dialog[br]
 </chrome_pac_how_to>
+<CICAP_MEM_BOOST_EXPLAIN>C-ICAP memory booster allows you to define a physical memory container in for Antivirus processes.[br]
+By default, the antivirus use the hard disk to perform analysis operations.[br]
+Using the memory for these tasks will increase antivirus performances.[br]
+Define here the number of MB of memory you wan to use in order to perform scanning.[br]
+256 MB should be a good starting point.[br]
+</CICAP_MEM_BOOST_EXPLAIN>
 <CICAP_SERVICE_TEXT>C-ICAP service parameters and performances tweaks</CICAP_SERVICE_TEXT>
 <class>Class</class>
 <CleanArticaSquidDatabases>Clean Artica MySQL statistics databases</CleanArticaSquidDatabases>
@@ -726,6 +734,8 @@ Do you want to carry out this operation ?
 </enable_amavisdeamon_ask>
 <enable_antivirus>Activate antivirus checking</enable_antivirus>
 <enable_antivirus_protection>Enable protection</enable_antivirus_protection>
+<enable_backup_mailboxes_features>Activate Members mailbox backup feature</enable_backup_mailboxes_features>
+<enable_backup_mailboxes_features_explain>If turn to green, members will be allowed to create backup rules for their local mailboxes or their remote mailboxes.</enable_backup_mailboxes_features_explain>
 <enable_body_randomize>Randomize a string at the end of the body</enable_body_randomize>
 <enable_body_randomize_replace>Replace keyword in body with randomize strings</enable_body_randomize_replace>
 <enable_csv_generator>Activate the CSV generator</enable_csv_generator>
@@ -785,12 +795,22 @@ Click on the "repair" button in order to create these tables</error_missing_tabl
 <error_you_need_to_choose_network_addr_config>Error, you need to select the network Ip adress in the main configuration</error_you_need_to_choose_network_addr_config>
 <ERROR_ZARAAF_MULTIPLE_INSTANCES_FREEWEB>Multiple Zarafa WebMail instances feature is only available if FreeWebs feature is enabled</ERROR_ZARAAF_MULTIPLE_INSTANCES_FREEWEB>
 <exclusive>Exclusive</exclusive>
+<executed>Executed</executed>
 <execute_replication>Execute</execute_replication>
 <exlude_mimetype_explain>This section will exclude content filtering such as antivirus from elements by mime type.[br]
 These items will not be excluded from the URLs filtering engine</exlude_mimetype_explain>
 <expand>Expand</expand>
 <ExpiresSoon>Expires Soon</ExpiresSoon>
 <expire_in_days>Expire in (days)</expire_in_days>
+<explain_license_free>	
+Your Artica server is currently using the free mode.[br]
+The free mode allows you to use this Artica server as long as you like (with restricted functionalities).[br]
+If you need to use this Artica server with all features, please click here to receive a quotation.[br]
+</explain_license_free>
+<explain_license_order>Your quotation request had been received and our Sales Department sent you a sales proposal by email.[br]
+The key is pending activation. For reminder, this key will allow you to beneficiate to all advanced features of the product.[br]
+To activate the key, a purchase order is needed with the full payment of the license.
+</explain_license_order>
 <explain_sourcefolder_offlineimap>Select folders you wan to synchronize.[br]
 By default, all mailbox folders are synchronized.[br]
 Select some of them means you want to restrict sync task only to these folders</explain_sourcefolder_offlineimap>
@@ -832,9 +852,12 @@ imap.company2.tld;POP3;sabrina;SaBr1n@;sabrina.giuras;ssl23;1[br]
 <freeweb_WebCopy_explain>Point the Web service to the WebCopy directory</freeweb_WebCopy_explain>
 <free_cat_force_explain>By default, before adding an item into category, the engine will check if this item is not already saved.[br]
 If you check this option, the item will be added without any checking.</free_cat_force_explain>
+<free_license_one_rule_text>The community license allows you to create only one rule for this feature.
+Please, upgrade to a corporate license...</free_license_one_rule_text>
 <from_time>From time</from_time>
 <fulluri>complete URL</fulluri>
 <full_features>Full features</full_features>
+<generated_on>Generated on</generated_on>
 <generate_x509>Generate self-signed certificate</generate_x509>
 <generate_x509_text>A self-signed certificate is an identity certificate that is signed by 
 the same entity whose identity it certifies.</generate_x509_text>
@@ -1083,6 +1106,9 @@ Use this new password to access the site.
 </lost_password_explain>
 <MAC>Mac Address</MAC>
 <mac_users_linker>MAC addresses/Members linker</mac_users_linker>
+<mailboxes_backups>Mailboxes backups</mailboxes_backups>
+<mailboxes_backups_text>Backup/restore your IMAP mailboxes of your account or remote IMAP accounts<∕mailboxes_backups_text>
+<mailboxes_backups_text_admin>Allows your members to backup content of their mailboxes (local or remote) according privileges set in organizations.</mailboxes_backups_text>
 <MAILBOXES_MIGRATION_EXPLAIN_2>If you want to add synchronize rule to an already mailbox, add the user id at the end of the line.[br]
 example:[br]jhon;123;ssl:imap.remotehost.com;jhon.local[/b]
 </MAILBOXES_MIGRATION_EXPLAIN_2>
@@ -1139,6 +1165,7 @@ A server restart also sets the maximum size of existing MEMORY tables to the glo
 <max_waiting_minutes_onload>MAX time to wait when system is loaded</max_waiting_minutes_onload>
 <members_stats>Members statistics</members_stats>
 <members_stats_explain>This task calculate Members statistics/usage per day</members_stats_explain>
+<memory_booster>Memory booster</memory_booster>
 <message>message</message>
 <messages>messages</messages>
 <messaging_statistics>Messaging statistics</messaging_statistics>
@@ -1234,6 +1261,7 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <new_alias>New alias</new_alias>
 <new_artica_server>New Artica server</new_artica_server>
 <new_backend>New Backend</new_backend>
+<new_backup_rule>New bckup rule</new_backup_rule>
 <new_certificate>New certificate</new_certificate>
 <new_computer>New computer</new_computer>
 <new_connection>New connection</new_connection>
@@ -1447,6 +1475,10 @@ If your server is connected to a remote database and cannot receive order to ref
 to schedule a compilation...</recompile_postfix_parameters_explain>
 <reconfigure_mta>Reconfigure the MTA</reconfigure_mta>
 <reconfigure_postfix_in_background>The MTA reconfiguration task as been performed in background mode</reconfigure_postfix_in_background>
+<reconfigure_proxy_service>Reconfigure the proxy service</reconfigure_proxy_service>
+<reconfigure_proxy_service_text>Rebuild all settings and configuration files and force the proxy service to reload the daemon.[br]
+All connexions will be stopped during this operation.
+</reconfigure_proxy_service_text>
 <reconfigure_proxy_task>Reconfigure the proxy service</reconfigure_proxy_task>
 <reconfigure_proxy_task_explain>This task is designed to rebuild the proxy configuration and ACLs and reload the proxy<reconfigure_proxy_task_explain>
 <reconfigure_proxy_task>Reconfigure the proxy service</reconfigure_proxy_task_explain>
@@ -1566,6 +1598,9 @@ Do you want to carry out this operation ?
 <run_update_task_now>Run the update task now</run_update_task_now>
 <safaripac_how_to>Download the PDF with the link bellow in order to set your Automatic Proxy configuration settings</safaripac_how_to>
 <sambasquid_simple_intro>In the proxy configuration, the Samba engine is used to perform NTLM transparent authentication with an Microsoft Active Directory server.</sambasquid_simple_intro>
+<samba_is_not_installed>Samba software is not installed on this computer.[br]
+In this case, this feature cannot be available or activated...[br]
+We suggest to use the Setup Center in order to install Samba software</samba_is_not_installed>
 <SAMBA_NOT_CONNECTED_AD_ERROR>Your server is not connected to any Active Directory server.[br]This feature cannot be displayed</SAMBA_NOT_CONNECTED_AD_ERROR>
 <samba_plugins>Samba plugins</samba_plugins>
 <samba_security_mode>Samba Security Mode</samba_security_mode>
@@ -1851,6 +1886,8 @@ Check events in order to see if it was successfully executed.
 <this_group_is_not_retranslated_to_the_system>This group is not translated in the local system</this_group_is_not_retranslated_to_the_system>
 <this_message_contains_no_data>This message contains no data</this_message_contains_no_data>
 <this_request_contains_no_data>This request contains no data</this_request_contains_no_data>
+<this_service_is_managed_remote_statsappliance>Warning, cannot display this feature.[br]
+This service is managed by the remote statistics appliance.</this_service_is_managed_remote_statsappliance>
 <threads>Threads</threads>
 <threads_created>Thread(s) created</threads_created>
 <threads_running>Thread(s) running</threads_running>
@@ -1906,6 +1943,7 @@ this web site serve a Mailman distribution list.</unable_freeweb_delete_mailman>
 In this case Kaspersky products will not retreive updates from the Internet but from this local machine.
 </UpdateUtilityEnableHTTP_explain>
 <update_agent>Update Agent</update_agent>
+<update_dbcatz_running>Update categories task is running</update_dbcatz_running>
 <update_for_all_products>Update all products</update_for_all_products>
 <update_kaspersky_databases>Update Kaspersky Database</update_kaspersky_databases>
 <update_kaspersky_databases_explain>Launch the Kaspersky updater in order to retreive latest antivirus databases</update_kaspersky_databases_explain>
@@ -1913,6 +1951,10 @@ In this case Kaspersky products will not retreive updates from the Internet but 
 <update_precompiled_ufdb_explain>This task will download precompiled update databases for Web Filtering engine.[br]
 Precompiled databases are the production bases for filter your users.</update_precompiled_ufdb_explain>
 <update_squid>Update Squid Proxy</update_squid>
+<update_SQUIDAB_EXP>The Artica categories statistics databases update task is running.
+[br]During this task, your server should be loaded.[br]
+This task is designed to import more than 29.000.000 websites into the MySQL database.[br]
+</update_SQUIDAB_EXP>
 <update_tlse>Check Toulouse University databases</update_tlse>
 <update_tlse_explain>Check is there is new blacklist databases from the Toulouse Unversity repository server</update_tlse_explain>
 <update_your_ip_address>Update your IP address</update_your_ip_address>
@@ -1925,6 +1967,7 @@ You should only enable this if the webfiltering process is not critical to your 
 <UseAglobalPassword>Use a global password</UseAglobalPassword>
 <UseCookies>Use Cookies</UseCookies>
 <UseLocalDatabase>Use local database</UseLocalDatabase>
+<UseMyCorporateMBX>Use my corporate mailbox</UseMyCorporateMBX>
 <UseNetworkCard>Use Network card</UseNetworkCard>
 <UseOnlyBooster>Use only the booster cache</UseOnlyBooster>
 <UserAgents>User-Agents</UserAgents>

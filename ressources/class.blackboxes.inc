@@ -61,10 +61,27 @@ class blackboxes{
 		$this->sslnouri="http://$this->ipaddress:$this->port";
 	}
 	
+	public function NotifyAll($order){
+	
+		$q=new mysql_blackbox();
+		$sql="SELECT nodeid FROM nodes";
+		$results = $q->QUERY_SQL($sql);
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$bb=new blackboxes($ligne["nodeid"]);
+			$bb->GenericOrder($order);
+		}
+	}
+	
 	public function chock(){
 		$parms["REGISTER"]="yes";
 		return $this->SendOrder($parms);
 	}
+	
+	public function GenericOrder($order){
+		$parms[$order]="yes";
+		return $this->SendOrder($parms);		
+		
+	}	
 	
 	public function reboot(){
 		$parms["REBOOT"]="yes";
@@ -156,7 +173,7 @@ class blackboxes{
 		if(!is_numeric($ligne["nodeid"])){$ligne["nodeid"]=0;}
 		if($ligne["nodeid"]==0){
 			$q->QUERY_SQL("INSERT INTO nodes (nodeid,hostname,ipaddress,port,BigArtica) 
-			VALUES ($this->nodeid,'$this->hostname','{$_SERVER["REMOTE_ADDR"]}','9001',$IsArtica)");
+			VALUES ($this->nodeid,'$this->hostname','{$_SERVER["REMOTE_ADDR"]}','9000',$IsArtica)");
 		}
 		
 		

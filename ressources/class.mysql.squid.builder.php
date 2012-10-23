@@ -67,6 +67,7 @@ class mysql_squid_builder{
 		$this->acl_GroupType["port"]="{remote_ports}";
 		$this->acl_GroupType["browser"]="{browser}";
 		
+		
 		$this->ClassSQL=new mysql();
 		$this->UseMysql=$this->ClassSQL->UseMysql;
 		$this->mysql_admin=$this->ClassSQL->mysql_admin;
@@ -487,6 +488,9 @@ class mysql_squid_builder{
 		return $array;
 		
 	}
+	
+	
+	
 
 	public function CategoryShellEscape($category){
 		$category=trim($category);
@@ -2963,7 +2967,7 @@ private function CategoriesFamily($www){
 	}	
 	
 	function CategoryWeightedImport(){
-		$f=unserialize(@file_get_contents("ressources/databases/weightedPhrases.db"));
+		$f=unserialize(@file_get_contents(dirname(__FILE__)."/databases/weightedPhrases.db"));
 		$prefix="INSERT IGNORE INTO phraselists_weigthed (zmd5,zDate,category,pattern,score,uuid,language) VALUES ";
 		while (list ($linum, $line) = each ($f) ){
 			if(trim($line)==null){continue;}

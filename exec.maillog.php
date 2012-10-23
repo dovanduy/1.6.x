@@ -491,6 +491,19 @@ if(preg_match("#zarafa-dagent\[.+?Unable to bind to port\s+([0-9]+)#", $buffer,$
 }
 
 
+if(preg_match("#zarafa-server.+?Error while connecting to indexer#",$buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/zarafa-server.Error.while.connecting.to.indexer";
+	$timefile=file_time_min($file);
+	if($timefile>5){
+		shell_exec("{$GLOBALS["NOHUP_PATH"]} /etc/init.d/zarafa-search start >/dev/null 2>&1 &");
+		email_events("Zarafa Error while connecting to indexer",
+		"zarafa-server claim \n$buffer\nthe zarafa indexer service was started","mailbox");
+		@file_put_contents($file,"#");
+		}else{events("zarafa-indexer service issue {$timefile}Mn/5Mn");}
+	return;		
+}
+
+
 if(preg_match("#zarafa-server.+?SQL Failed:(.+)#",$buffer,$re)){
 	$file="/etc/artica-postfix/croned.1/zarafa-server.".md5($re[1]);
 	$timefile=file_time_min($file);

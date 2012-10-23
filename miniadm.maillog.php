@@ -33,7 +33,7 @@ function content(){
 	$t=time();
 	
 $html="<div class=BodyContent>
-		<div style='font-size:14px'><a href=\"miniadm.index.php\">{myaccount}</a></div>
+		<div style='font-size:14px'><a href=\"miniadm.index.php\">{myaccount}</a>&nbsp;&raquo;&nbsp;<a href=\"miniadm.messaging.php\">{mymessaging}</a></div>
 		<H1>{organization}&nbsp&raquo;{$_SESSION["ou"]}</H1>
 		<p>{messaging_events_text}</p>
 	</div>

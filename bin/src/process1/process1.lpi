@@ -12,7 +12,7 @@
       <MainUnit Value="0"/>
       <TargetFileExt Value=""/>
       <Title Value="process1"/>
-      <ActiveEditorIndexAtStart Value="13"/>
+      <ActiveEditorIndexAtStart Value="3"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -52,12 +52,12 @@
         <Filename Value="principale.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="principale"/>
-        <CursorPos X="41" Y="898"/>
-        <TopLine Value="867"/>
+        <CursorPos X="82" Y="1249"/>
+        <TopLine Value="1217"/>
         <EditorIndex Value="3"/>
         <UsageCount Value="206"/>
         <Bookmarks Count="1">
-          <Item0 X="6" Y="1234" ID="0"/>
+          <Item0 X="6" Y="1233" ID="0"/>
         </Bookmarks>
         <Loaded Value="True"/>
       </Unit2>
@@ -278,7 +278,7 @@
         <Filename Value="squid.pas"/>
         <UnitName Value="squid"/>
         <CursorPos X="61" Y="541"/>
-        <TopLine Value="506"/>
+        <TopLine Value="541"/>
         <EditorIndex Value="13"/>
         <UsageCount Value="123"/>
         <Loaded Value="True"/>
@@ -516,123 +516,123 @@
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="principale.pas"/>
-        <Caret Line="651" Column="72" TopLine="638"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position1>
       <Position2>
         <Filename Value="principale.pas"/>
-        <Caret Line="482" Column="111" TopLine="455"/>
+        <Caret Line="11" Column="183" TopLine="1"/>
       </Position2>
       <Position3>
         <Filename Value="principale.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="378" Column="34" TopLine="351"/>
       </Position3>
       <Position4>
         <Filename Value="principale.pas"/>
-        <Caret Line="11" Column="183" TopLine="1"/>
+        <Caret Line="467" Column="141" TopLine="440"/>
       </Position4>
       <Position5>
         <Filename Value="principale.pas"/>
-        <Caret Line="378" Column="34" TopLine="351"/>
+        <Caret Line="541" Column="146" TopLine="514"/>
       </Position5>
       <Position6>
-        <Filename Value="principale.pas"/>
-        <Caret Line="467" Column="141" TopLine="440"/>
+        <Filename Value="zarafa_server.pas"/>
+        <Caret Line="12" Column="17" TopLine="1"/>
       </Position6>
       <Position7>
         <Filename Value="principale.pas"/>
-        <Caret Line="541" Column="146" TopLine="514"/>
+        <Caret Line="752" Column="110" TopLine="721"/>
       </Position7>
       <Position8>
-        <Filename Value="zarafa_server.pas"/>
-        <Caret Line="12" Column="17" TopLine="1"/>
+        <Filename Value="principale.pas"/>
+        <Caret Line="477" Column="111" TopLine="431"/>
       </Position8>
       <Position9>
         <Filename Value="principale.pas"/>
-        <Caret Line="752" Column="110" TopLine="721"/>
+        <Caret Line="992" Column="83" TopLine="975"/>
       </Position9>
       <Position10>
         <Filename Value="principale.pas"/>
-        <Caret Line="477" Column="111" TopLine="431"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position10>
       <Position11>
         <Filename Value="principale.pas"/>
-        <Caret Line="992" Column="83" TopLine="975"/>
+        <Caret Line="16" Column="97" TopLine="1"/>
       </Position11>
       <Position12>
         <Filename Value="principale.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="60" Column="26" TopLine="33"/>
       </Position12>
       <Position13>
         <Filename Value="principale.pas"/>
-        <Caret Line="16" Column="97" TopLine="1"/>
+        <Caret Line="357" Column="34" TopLine="330"/>
       </Position13>
       <Position14>
         <Filename Value="principale.pas"/>
-        <Caret Line="60" Column="26" TopLine="33"/>
+        <Caret Line="427" Column="23" TopLine="400"/>
       </Position14>
       <Position15>
         <Filename Value="principale.pas"/>
-        <Caret Line="357" Column="34" TopLine="330"/>
+        <Caret Line="1302" Column="40" TopLine="1273"/>
       </Position15>
       <Position16>
-        <Filename Value="principale.pas"/>
-        <Caret Line="427" Column="23" TopLine="400"/>
+        <Filename Value="../artica-install/amavisd_milter.pas"/>
+        <Caret Line="57" Column="32" TopLine="30"/>
       </Position16>
       <Position17>
         <Filename Value="principale.pas"/>
-        <Caret Line="1302" Column="40" TopLine="1273"/>
+        <Caret Line="1303" Column="44" TopLine="1273"/>
       </Position17>
       <Position18>
         <Filename Value="../artica-install/amavisd_milter.pas"/>
-        <Caret Line="57" Column="32" TopLine="30"/>
+        <Caret Line="67" Column="33" TopLine="40"/>
       </Position18>
       <Position19>
         <Filename Value="principale.pas"/>
-        <Caret Line="1303" Column="44" TopLine="1273"/>
+        <Caret Line="459" Column="44" TopLine="433"/>
       </Position19>
       <Position20>
-        <Filename Value="../artica-install/amavisd_milter.pas"/>
-        <Caret Line="67" Column="33" TopLine="40"/>
+        <Filename Value="principale.pas"/>
+        <Caret Line="460" Column="56" TopLine="431"/>
       </Position20>
       <Position21>
         <Filename Value="principale.pas"/>
-        <Caret Line="459" Column="44" TopLine="433"/>
+        <Caret Line="436" Column="49" TopLine="431"/>
       </Position21>
       <Position22>
         <Filename Value="principale.pas"/>
-        <Caret Line="460" Column="56" TopLine="431"/>
+        <Caret Line="898" Column="41" TopLine="867"/>
       </Position22>
       <Position23>
-        <Filename Value="principale.pas"/>
-        <Caret Line="436" Column="49" TopLine="431"/>
+        <Filename Value="squid.pas"/>
+        <Caret Line="861" Column="87" TopLine="834"/>
       </Position23>
       <Position24>
-        <Filename Value="principale.pas"/>
-        <Caret Line="898" Column="41" TopLine="867"/>
+        <Filename Value="squid.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position24>
       <Position25>
         <Filename Value="squid.pas"/>
-        <Caret Line="861" Column="87" TopLine="834"/>
+        <Caret Line="67" Column="28" TopLine="40"/>
       </Position25>
       <Position26>
         <Filename Value="squid.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="810" Column="21" TopLine="767"/>
       </Position26>
       <Position27>
         <Filename Value="squid.pas"/>
-        <Caret Line="67" Column="28" TopLine="40"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position27>
       <Position28>
         <Filename Value="squid.pas"/>
-        <Caret Line="810" Column="21" TopLine="767"/>
+        <Caret Line="102" Column="29" TopLine="75"/>
       </Position28>
       <Position29>
-        <Filename Value="squid.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Filename Value="principale.pas"/>
+        <Caret Line="1728" Column="94" TopLine="1707"/>
       </Position29>
       <Position30>
-        <Filename Value="squid.pas"/>
-        <Caret Line="102" Column="29" TopLine="75"/>
+        <Filename Value="principale.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position30>
     </JumpHistory>
   </ProjectOptions>

@@ -49,8 +49,10 @@ function enable_transparent(){
 	$SSL_BUMP=$squid->SSL_BUMP;
 	$iptables=$unix->find_program("iptables");	
 	$sysctl=$unix->find_program("sysctl");
-	$ips=$unix->ifconfig_all_ips();
+	$ips=$unix->ifconfig_interfaces_list();
+	
 	unset($ips["127.0.0.1"]);
+	unset($ips["lo"]);
 	echo "Starting......: Squid Transparent mode: enabled in transparent mode in $squid->listen_port Port (SSL_BUMP=$SSL_BUMP) SSL PORT:$ssl_port\n";
 	echo "Starting......: Squid Transparent mode: enable the gateway mode...\n";
 	echo "Starting......: Squid Transparent mode: KernelSendRedirects = $KernelSendRedirects...\n";
@@ -69,7 +71,7 @@ function enable_transparent(){
 	
 	iptables_delete_all();
 	
-	if($SquidBinIpaddr<>null){$ips=array();$ips[]=$SquidBinIpaddr;}
+	if($SquidBinIpaddr<>null){$ips=array();$ips["eth0"]=$SquidBinIpaddr;}
 	
 	if($UseTProxyMode==1){
 		
@@ -88,10 +90,12 @@ $INPUTINTERFACE="eth0";
 $MARKLOG="-m comment --comment \"ArticaSquidTransparent\"";
 $SQUIDPORT=$squid->listen_port;
 	
-	while (list ($index, $ip) = each ($ips) ){
+	while (list ($interface, $ip) = each ($ips) ){
 		$SQUIDIP=$ip;
-		
-		echo "Starting......: Squid Transparent mode: Adding ipTables rules for $ip\n";
+		if(preg_match("#^ham#", $interface)){
+			echo "Starting......: Squid Transparent mode: Squid Transparent mode: skipping $interface interface\n";
+			continue;}
+		echo "Starting......: Squid Transparent mode:$index Adding ipTables rules for $ip\n";
 		shell_exec2("$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 80 -j ACCEPT $MARKLOG");
 		//shell_exec2("$iptables -t nat -A PREROUTING -s $ip -p tcp --dport 80 -j ACCEPT );
 
@@ -103,25 +107,14 @@ $SQUIDPORT=$squid->listen_port;
 		
 	}
 	
-		shell_exec2("$iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port $SQUIDPORT $MARKLOG");
-		if($SSL_BUMP==1){shell_exec2("$iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port $ssl_port $MARKLOG");}
-		shell_exec2("$iptables -t nat -A POSTROUTING -j MASQUERADE $MARKLOG");
-		shell_exec2("$iptables -t mangle -A PREROUTING -p tcp --dport $SQUIDPORT -j DROP $MARKLOG");	
-		//shell_exec2("$iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port $squid->listen_port -m comment --comment \"ArticaSquidTransparent\"");
-		if($SSL_BUMP==1){
-			shell_exec2("$iptables -t mangle -A PREROUTING -p tcp --dport $ssl_port -j DROP $MARKLOG");	
-			//shell_exec2("$iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port $ssl_port -m comment --comment \"ArticaSquidTransparent\"");
-		
-		}
-	
-	
-	//shell_exec2("$iptables -t nat -A POSTROUTING -j MASQUERADE -m comment --comment \"ArticaSquidTransparent\"");
-	//shell_exec2("$iptables -t mangle -A PREROUTING -p tcp --dport $squid->listen_port -j DROP -m comment --comment \"ArticaSquidTransparent\"");
-	//if($SSL_BUMP==1){shell_exec2("$iptables -t mangle -A PREROUTING -p tcp --dport $ssl_port -j DROP -m comment --comment \"ArticaSquidTransparent\"");}
-	
-	
-	
-	
+	shell_exec2("$iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port $SQUIDPORT $MARKLOG");
+	if($SSL_BUMP==1){shell_exec2("$iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port $ssl_port $MARKLOG");}
+	shell_exec2("$iptables -t nat -A POSTROUTING -j MASQUERADE $MARKLOG");
+	shell_exec2("$iptables -t mangle -A PREROUTING -p tcp --dport $SQUIDPORT -j DROP $MARKLOG");	
+	if($SSL_BUMP==1){
+		shell_exec2("$iptables -t mangle -A PREROUTING -p tcp --dport $ssl_port -j DROP $MARKLOG");	
+	}
+
 }
 
 

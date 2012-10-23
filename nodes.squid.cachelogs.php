@@ -147,7 +147,7 @@ function rows_table(){
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
-	if(preg_match("#(crashing|failed|No such|FATAL|abnormally|WARNING)#", $ligne["line"])){$color="red";}		
+	if(preg_match("#(crashing|failed|No such|FATAL|abnormally|WARNING|refused)#", $ligne["line"])){$color="red";}		
 		
 		$data['rows'][] = array(
 		'id' => $ligne['mac'],

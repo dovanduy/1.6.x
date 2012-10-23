@@ -504,6 +504,9 @@ begin
            exit;
     end;
 
+    ForceDirectories('/var/log/samba');
+    ForceDirectories('/var/run/samba');
+
 
     aa_complain:=SYS.LOCATE_GENERIC_BIN('aa-complain');
     if FIleExists('aa_complain') then begin

@@ -19,37 +19,26 @@ class privileges{
 				$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";			
 		}
 		
-		if(isset($_SESSION[__CLASS__][$uid])){
-			if(count($_SESSION[__CLASS__][$uid]["PRIVS"])==0){
-				if($GLOBALS["DEBUG_PRIVS"]){writelogs("->SearchPrivileges($uid,$privilegesuid) $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		if($GLOBALS["VERBOSE"]){$this->SearchPrivileges();}
+		if(!isset($_SESSION["privileges_array"])){$this->SearchPrivileges();}
+		
+		
+			if(count($_SESSION["privileges_array"])==0){
+				$this->ldap=new clladp();
+				if($GLOBALS["DEBUG"]){echo "->SearchPrivileges($uid,$privilegesuid)\n";}
 				$this->SearchPrivileges();
-				
-			}
-			if($GLOBALS["DEBUG_PRIVS"]){
-				$this->DebugPrivs();
-				writelogs("Return $uid cached object ".count($_SESSION[__CLASS__][$uid]["PRIVS"])." $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			}
+				if($GLOBALS["VERBOSE"]){$this->DebugPrivs();}
 			
-			$this->content=$_SESSION[__CLASS__][$uid]["CONTENT"];
-			$this->privs=$_SESSION[__CLASS__][$uid]["PRIVS"];
-			return;
-		}
-		
-		
-		
-		
-		if($uid<>null){
-			$this->ldap=new clladp();
-			$this->uid=$uid;
-			$this->SearchPrivileges();
-		}
-		
-		
+			}
+		$this->content=$_SESSION[__CLASS__][$uid]["CONTENT"];
+		$this->privs=$_SESSION["privileges_array"];
+		return;
 	}
 	private function DebugPrivs(){
 		$array=$_SESSION[__CLASS__][$this->uid]["PRIVS"];
 		while (list ($num, $ligne) = each ($array) ){
 			if($ligne=="yes"){
+				echo "[PRIVS]: $num = [$ligne]\n";
 				writelogs("$num = [$ligne]",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			}
 		}
@@ -119,16 +108,16 @@ $spec",1);
 		
 	}
 	
-	private function SearchPrivileges(){
+	public function SearchPrivileges(){
 			
 			if($this->uid<>-100){
-				if($GLOBALS["DEBUG_PRIVS"]){writelogs("SearchPrivileges -> $this->uid",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+				if($GLOBALS["VERBOSE"]){echo "SearchPrivileges -> $this->uid\n";}
 				$this->ldap=new clladp();
 				$this->privileges_groups();	
 				$this->ParsePrivilegesOU();
 				$this->GetContent();
 				$this->SinglePrivileges();
-				$_SESSION[__CLASS__][$this->uid]["PRIVS"]=$this->privs;
+				$_SESSION["privileges_array"]=$this->privs;
 				$_SESSION[__CLASS__][$this->uid]["CONTENT"]=$this->content;
 			}	
 		
@@ -137,6 +126,8 @@ $spec",1);
 	
 	public function EmptyCache(){
 		unset($_SESSION[__CLASS__][$this->uid]);
+		unset($_SESSION["privileges_array"]);
+		unset($_SESSION[__CLASS__][$this->uid]["CONTENT"]);
 		
 	}
 	
@@ -186,7 +177,7 @@ $spec",1);
 			$userdn=$ldap->_Get_dn_userid($this->uid);
 			if(!preg_match("#ou=users,ou=(.+?),dc#",$userdn,$re)){return ;}
 			$ou=$re[1];
-			$hash=$this->ldap->OUDatas($ou);
+			$hash=$ldap->OUDatas($ou);
 			if($this->webpage=="logon.php"){writelogs("[$this->uid] parsing $ou organization privileges ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			if(isset($hash["ArticaGroupPrivileges"])){
 				$privs=$this->ParsePrivileges($hash["ArticaGroupPrivileges"]);
@@ -207,21 +198,13 @@ $spec",1);
 		if($this->uid==-100){return;}
 		if($this->uid==null){return;}
 		if($this->privilegesuid==null){
-			if($GLOBALS["DEBUG_PRIVS"]){writelogs("[$this->uid] parsing  user privileges ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			if($GLOBALS["VERBOSE"]){echo "[PRIVS]:[$this->uid] parsing  user privileges\n";}
 			$ArticaGroupPrivileges=$this->UserPrivs();
 		}else{
 			$ArticaGroupPrivileges=$this->privilegesuid;
 		}
-		if(preg_match_all('#\[([a-zA-Z]+)\]="(.+?)"#is',$ArticaGroupPrivileges,$reg)){
-			if($this->webpage=="logon.php"){writelogs("Privileges hase been defined for this user...this is now in priority",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			unset($this->privs);$this->privs=array();
-				while (list ($num, $ligne) = each ($reg[1]) ){
-					if($this->webpage=="logon.php"){writelogs("PRIV:$ligne={$reg[2][$num]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-					if($ligne=="ForceLanguageUsers"){$this->privs[$ligne]=$ligne;}
-					$this->privs[$ligne]=$reg[2][$num];
-				}			
-		}
 		
+		$this->ParsePrivileges($ArticaGroupPrivileges);
 	}
 	
 	
@@ -240,7 +223,8 @@ $spec",1);
 			writelogs( "INFOS: bad value $entry_id: ($entry_id)  find: (uid=$this->uid) -> aborting function search engine doesn`t found the pattern",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			return null;
 		}
-		$attrs = ldap_get_attributes($ldap->ldap_connection, $entry_id);		
+		$attrs = ldap_get_attributes($ldap->ldap_connection, $entry_id);
+		if($GLOBALS["VERBOSE"]){echo "[PRIVS]:[$this->uid] {$attrs["ArticaGroupPrivileges"][0]}\n";}		
 		return $attrs["ArticaGroupPrivileges"][0];
 	}
 	

@@ -723,8 +723,7 @@ begin
    if FileExists(imapsync.MAILSYNC_BIN_PATH()) then list.Add('$_GLOBAL["mailsync_installed"]=True;') else list.Add('$_GLOBAL["mailsync_installed"]=False;');
    imapsync.Free;
 
-  // offlineimap
-   if FileExists(SYS.LOCATE_GENERIC_BIN('offlineimap')) then list.Add('$_GLOBAL["offlineimap_installed"]=True;') else list.Add('$_GLOBAL["offlineimap_installed"]=False;');
+
 
    //winexe
    if FileExists('/usr/bin/winexe') then list.Add('$_GLOBAL["winexe_installed"]=True;') else list.Add('$_GLOBAL["winexe_installed"]=False;');
@@ -1238,6 +1237,14 @@ logs.Debuglogs('Tprocess1.web_settings():: ############# CHECKING POSTFIX ######
 if FileExists(SYS.LOCATE_GENERIC_BIN('postconf')) then begin
         list.Add('$_GLOBAL["POSTFIX_INSTALLED"]=True;');
         if FileExists(SYS.LOCATE_POSTSCREEN()) then list.Add('$_GLOBAL["POSTSCREEN_INSTALLED"]=True;') else list.Add('$_GLOBAL["POSTSCREEN_INSTALLED"]=False;');
+
+          // offlineimap
+   if FileExists(SYS.LOCATE_GENERIC_BIN('offlineimap')) then begin
+      list.Add('$_GLOBAL["offlineimap_installed"]=True;') end else begin
+      fpsystem('/usr/share/artica-postfix/bin/artica-make APP_OFFLINEIMAP >/dev/null 2>&1 &');
+      list.Add('$_GLOBAL["offlineimap_installed"]=False;');
+   end;
+
         //------------- policyd-weight
         try
            pol:=tpolicyd_weight.Create(SYS);
@@ -1726,17 +1733,20 @@ logs.Debuglogs('web_settings() -> 75%');
 
     LOGS.Debuglogs('web_settings() Terminate save file');
     forcedirectories(php_path + '/ressources');
+    logs.DeleteFile(php_path + '/ressources/settings.new.inc');
     logs.WriteToFile(list.Text,php_path + '/ressources/settings.new.inc');
+    logs.DeleteFile(php_path + '/ressources/settings.inc');
+    logs.WriteToFile(list.Text,php_path + '/ressources/settings.inc');
+
     if DirectoryExists('/opt/artica-agent/usr/share/artica-agent/ressources') then begin
        if verbosed then writeln('web_settings:: 100% -> /opt/artica-agent/usr/share/artica-agent/ressources/settings.inc');
        logs.WriteToFile(list.Text,'/opt/artica-agent/usr/share/artica-agent/ressources/settings.inc');
     end;
 
 
-    fpsystem('/bin/cp -f '+php_path + '/ressources/settings.new.inc '+php_path + '/ressources/settings.inc');
     fpchmod(php_path + '/ressources/settings.inc',&755);
     logs.Debuglogs('thProcThread.web_settings('+ php_path + ') -> TERM');
-    if FileExists('/usr/share/artica-postfix/exec.admin.status.postfix.flow.php') then fpsystem(SYS.EXEC_NICE()+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.admin.status.postfix.flow.php &');
+
     if FileExists('/usr/share/artica-postfix/exec.hdparm.php') then begin
        if not FileExists('/etc/artica-postfix/settings/Daemons/HdparmInfos') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.hdparm.php &');
     end;

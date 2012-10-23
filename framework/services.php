@@ -1541,3 +1541,6 @@ function folders_security(){
 	writelogs_framework("$php /usr/share/artica-postfix/exec.checkfolder-permissions.php",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec("$php /usr/share/artica-postfix/exec.checkfolder-permissions.php");	
 }
+
+
+

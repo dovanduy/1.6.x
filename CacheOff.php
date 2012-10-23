@@ -65,37 +65,46 @@ if(function_exists("apc_clear_cache")){
 			$sock->DATA_CACHE_EMPTY();			
 			
 		
-writelogs("Clean cache, language was {$_SESSION["detected_lang"]}",__FUNCTION__,__FILE__,__LINE__);	
-unset($_SESSION["CACHE_PAGE"]);			
-unset($_SESSION["APC"]);
-unset($_SESSION["cached-pages"]);
-unset($_SESSION["translation-en"]);
-unset($_SESSION["translation"]);
-unset($_SESSION["privileges"]);
-unset($_SESSION["qaliases"]);
-unset($_SERVER['PHP_AUTH_USER']);
-unset($_SESSION["ARTICA_HEAD_TEMPLATE"]);
-unset($_SESSION['smartsieve']['authz']);
-unset($_SESSION["passwd"]);
-unset($_SESSION["LANG_FILES"]);
-unset($_SESSION["TRANSLATE"]);
-unset($_SESSION["__CLASS-USER-MENUS"]);
-unset($_SESSION["translation"]);
-unset($_SESSION["ICON_MYSQL_CACHE"]);
-unset($_SESSION["CATZ"]);
-unset($_SESSION[md5("statusPostfix_satus")]);
-@unlink("ressources/logs/postfix.status.html");
+			writelogs("Clean cache, language was {$_SESSION["detected_lang"]}",__FUNCTION__,__FILE__,__LINE__);	
+			unset($_SESSION["CACHE_PAGE"]);			
+			unset($_SESSION["APC"]);
+			unset($_SESSION["cached-pages"]);
+			unset($_SESSION["translation-en"]);
+			unset($_SESSION["translation"]);
+			unset($_SESSION["privileges"]);
+			unset($_SESSION["qaliases"]);
+			unset($_SERVER['PHP_AUTH_USER']);
+			unset($_SESSION["ARTICA_HEAD_TEMPLATE"]);
+			unset($_SESSION['smartsieve']['authz']);
+			unset($_SESSION["passwd"]);
+			unset($_SESSION["LANG_FILES"]);
+			unset($_SESSION["TRANSLATE"]);
+			unset($_SESSION["__CLASS-USER-MENUS"]);
+			unset($_SESSION["translation"]);
+			unset($_SESSION["ICON_MYSQL_CACHE"]);
+			unset($_SESSION["CATZ"]);
+			unset($_SESSION[md5("statusPostfix_satus")]);
+			@unlink("ressources/logs/postfix.status.html");
 
-include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
-$q=new mysql_squid_builder();
-$q->QUERY_SQL("TRUNCATE TABLE webfilters_categories_caches");
-$q=new mysql();
-$q->QUERY_SQL("UPDATE setup_center SET CODE_NAME_STRING='',CODE_NAME_ABOUT=''",'artica_backup');
+			$workdir="/usr/share/artica-postfix/ressources/logs/web";
+			$ToDelete["admin.index.tabs.html"]=true;
+			$ToDelete["admin.index.memory.html"]=true;
+			$ToDelete["admin.index.notify.html"]=true;
+			$ToDelete["admin.index.quicklinks.html"]=true;
+			$ToDelete["logon.html"]=true;
+			$ToDelete["traffic.statistics.html"]=true;
+			while (list ($filename, $val) = each ($ToDelete) ){@unlink("$workdir/$filename");}
+
+			include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+			$q=new mysql_squid_builder();
+			$q->QUERY_SQL("TRUNCATE TABLE webfilters_categories_caches");
+			$q=new mysql();
+			$q->QUERY_SQL("UPDATE setup_center SET CODE_NAME_STRING='',CODE_NAME_ABOUT=''",'artica_backup');
 
 
-$tpl=new templates();
-$html=$tpl->javascript_parse_text($text,1);
-$html=str_replace("\n", "<br>", $html);
-echo "<div class=explain style='font-size:14px'>".$html."</div>";
+			$tpl=new templates();
+			$html=$tpl->javascript_parse_text($text,1);
+			$html=str_replace("\n", "<br>", $html);
+			echo "<div class=explain style='font-size:14px'>".$html."</div>";
 
 ?>

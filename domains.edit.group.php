@@ -1938,8 +1938,7 @@ function GROUP_PRIVILEGES($gid){
     	$AllowViewStatistics=Field_yesno_checkbox('AllowViewStatistics',$HashPrivieleges["AllowViewStatistics"]);
     	$AllowEditOuSecurity=Field_yesno_checkbox('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);
     	$AsHotSpotManager=Field_yesno_checkbox('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);
-    	
-    	 
+    	$AsOwnMailBoxBackup=Field_yesno_checkbox('AsOwnMailBoxBackup',$HashPrivieleges["AsOwnMailBoxBackup"]);
     	
     	
     	
@@ -2028,7 +2027,7 @@ function GROUP_PRIVILEGES($gid){
 		if($priv->AsOrgStorageAdministrator==false){$AsOrgStorageAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsOrgStorageAdministrator',$HashPrivieleges["AsOrgStorageAdministrator"]);}
 		if($priv->OverWriteRestrictedDomains==false){$OverWriteRestrictedDomains="<img src='img/status_critical.gif'>".Field_hidden('OverWriteRestrictedDomains',$HashPrivieleges["OverWriteRestrictedDomains"]);}
 		if($priv->AsHotSpotManager==false){$AsHotSpotManager="<img src='img/status_critical.gif'>".Field_hidden('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);}
-
+		
 		 
 		
 		
@@ -2066,6 +2065,9 @@ $user_allow="&nbsp;{users_allow}</H3><br>
 						</tr>
 						<tr>
 							<td align='right' nowrap><span style='font-size:13.5px'>{AllowUserMaillog}:</span></td><td>" . Field_yesno_checkbox('AllowUserMaillog',$HashPrivieleges["AllowUserMaillog"]) ."</td>
+						</tr>						
+						<tr>
+							<td align='right' nowrap><span style='font-size:13.5px'>{AsOwnMailBoxBackup}:</span></td><td>" . Field_yesno_checkbox('AsOwnMailBoxBackup',$HashPrivieleges["AsOwnMailBoxBackup"]) ."</td>
 						</tr>						
 						
 						

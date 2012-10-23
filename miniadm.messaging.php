@@ -1,6 +1,8 @@
 <?php
 session_start();
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+
+ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
+ini_set('error_append_string',null);
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
@@ -65,6 +67,8 @@ function messaging_left(){
 	$MailArchiverEnabled=$sock->GET_INFO("MailArchiverEnabled");
 	if(!is_numeric($EnableFetchmail)){$EnableFetchmail=0;}
 	if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
+	$OfflineImapBackupTool=$sock->GET_INFO("OfflineImapBackupTool");
+	if(!is_numeric($OfflineImapBackupTool)){$OfflineImapBackupTool=0;}	
 	
 	if($users->AllowFetchMails){
 		if($users->fetchmail_installed){
@@ -74,6 +78,14 @@ function messaging_left(){
 			}
 			
 		}
+	}
+	
+	if($OfflineImapBackupTool==0){$users->AsOwnMailBoxBackup=false;}
+	
+	if($users->AsOwnMailBoxBackup){
+		$t[]=Paragraphe("64-backup.png", "{mailboxes_backups}", "{mailboxes_backups_text}","miniadm.mbxbackup.php");
+	}else{
+		$t[]=Paragraphe("64-backup-grey.png", "{mailboxes_backups}", "{mailboxes_backups_text}");
 	}
 	
 	if($users->AllowEditAliases){

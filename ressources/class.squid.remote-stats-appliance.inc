@@ -93,6 +93,7 @@ class squid_stats_appliance{
 			}
 			$localdatabase=basename($sourcefile);
 			$localdatabase=str_replace(".gz", "", $localdatabase);
+			if($this->ASROOT){echo "Starting......: Replicate ". basename($destinationfile)."\n";}
 			$cmd="$cmdline --database=$localdatabase <$destinationfile 2>&1";
 			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 			
@@ -152,6 +153,13 @@ class squid_stats_appliance{
 		$array["SplashScreenURI"]=true;	
 		$array["HotSpotConfig"]=true;
 		$array["CicapEnabled"]=true;
+		$array["EnableKerberosAuthentication"]=true;
+		$array["EnableKerbAuth"]=true; 
+		$array["KerbAuthInfos"]=true; 
+		$array["SambaAdInfos"]=true; 
+		$array["LockKerberosAuthentication"]=true; 
+		$array["KerbAuthDisableGroupListing"]=true;
+		$array["KerbAuthDisableNormalizeName"]=true;
 		return $array;
 	}
 	

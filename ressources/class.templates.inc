@@ -1252,6 +1252,9 @@ function string_to_sql_search($pattern){
 }
 
 function string_to_flexquery(){
+	if(!isset($_POST["qtype"])){return;}
+	if(!isset($_POST["query"])){return;}
+	if(trim($_POST["query"])==null){return;}
 	$search=string_to_sql_search($_POST["query"]);
 	if($search==null){return null;}
 	if(strpos("  $search", "%")>0){
@@ -3245,8 +3248,9 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 	}
 	$tips=str_replace("'","",$tips);
 	$tips=str_replace("	","",$tips);
-	$height=null;
-	if($height==null){$height="min-height:70px;";}
+	$min_height=";min-height:112px";
+	if(is_numeric($height)){$min_height="min-height:{$height}px;";}
+	
 	
 	
 	if(preg_match('#new:#',$link)){
@@ -3356,7 +3360,7 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 		}
 
 	
-	$min_height="height:70px";
+	
 	if($nowrap==0){
 		$min_height_title="height:36px;";
 	}
@@ -3375,10 +3379,10 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 	}
 		
 	$max_caracts=30;
-	$max_text_caracts=83;
+	$max_text_caracts=110;
 	if($width>290){
 		$max_caracts=40;
-		$max_text_caracts=130;
+		$max_text_caracts=150;
 	}	
 	
 	$title_entity_decode=html_entity_decode($title);
@@ -3396,7 +3400,8 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 		
 		$title_lenght=strlen($title);
 		if($title_lenght<25){$min_height_title=null;}
-		$title="<h3 style='$min_height_title;text-transform:none;$H3_STYLE_TITLE_FONT_COLOR'>$title</h3>";
+		//supprimé, $min_height_title
+		$title="<h3 style=';text-transform:none;$H3_STYLE_TITLE_FONT_COLOR'>$title</h3>";
 
 		if($nowrap==0){
 			if(strlen($text)>$max_text_caracts){
@@ -3410,15 +3415,13 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 		}
 		
 		$text="
-		<div id='text_$id' style='$min_height;font-size:11px;font-family:Verdana;letter-spacing:-1px'>
+		<div id='text_$id' style='font-size:11px;'>
 			$text
 		</div>";
 		}else{
-			$text="<span id='text_$id' style='font-family:Verdana;letter-spacing:-1p'>$text</span>";
+			$text="<span id='text_$id'>$text</span>";
 		}
 	
-	$height=null;
-	if(trim($height)<>null){$height=";height:{$height}px";}
 	
 	if($float){$styleFloat=";float:left;";}
 	
@@ -3444,7 +3447,7 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 	//$OnMouseOutToolTip="OnMouseOut=\"$tooltip_out\"";
 	if($next_image<>null){$next_image="<center style='padding:3px'><img src='img/$next_image'></center>";}
 	$html="
-	<div style='width:{$width}px$height$styleFloat;min-height:112px' class='paragraphe' id='$id' $OnMouseOver $OnMouseOut>
+	<div style='width:{$width}px$styleFloat;$min_height' class='paragraphe' id='$id' $OnMouseOver $OnMouseOut>
 		<table style='width:100%'>
 			<tr>
 				<td width=1% valign='top'>

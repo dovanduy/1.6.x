@@ -296,7 +296,7 @@ function Build_defaults(){
 				echo "Starting......: Kav4proxy tmpfs is disabled\n";
 				if($this->is_tmpfs_mounted()){
 					echo "Starting......: Kav4proxy unmounting filesystem\n";
-					shell_exec("$umount -f /tmp/Kav4proxy");
+					shell_exec("$umount -l /tmp/Kav4proxy");
 				}
 			}
 			

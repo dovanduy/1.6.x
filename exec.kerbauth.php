@@ -473,8 +473,8 @@ function build(){
 	$kadmin_bin=$unix->find_program("kadmin");
 	$netbin=$unix->LOCATE_NET_BIN_PATH();
 	if(!is_file($msktutil)){return;}
-	
-	
+	@mkdir("/var/log/samba",0755,true);
+	@mkdir("/var/run/samba",0755,true);
 	$uname=posix_uname();
 	$mydomain=$uname["domainname"];
 	$myFullHostname=$unix->hostname_g();
@@ -779,17 +779,23 @@ function SAMBA_PROXY(){
 	$IsAppliance=false;
 	if($GLOBALS["VERBOSE"]){"users=new usersMenus(); in line ".__LINE__."\n";}
 	$user=new settings_inc();
+	$unix=new unix();
+	$sock=new sockets();
 	
 	
 	if(!$user->SAMBA_INSTALLED){echo "Starting......:  Samba, no such software\n";return;}
 	if($user->SQUID_APPLIANCE){$IsAppliance=true;}
 	if($user->KASPERSKY_WEB_APPLIANCE){$IsAppliance=true;}
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($user->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}		
+	if($EnableWebProxyStatsAppliance==1){$IsAppliance=true;}
+	
 	if(!$IsAppliance){echo "Starting......:  Samba,This is not a Proxy appliance, i leave untouched smb.conf\n";return;}
 	echo "Starting......:  Samba, it is an appliance...\n";
 
-	if($GLOBALS["VERBOSE"]){"sock=new sockets();; in line ".__LINE__."\n";}
-	$unix=new unix();
-	$sock=new sockets();
+	
+
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 	if(!isset($array["USE_AUTORID"])){$array["USE_AUTORID"]=1;}
 	if(!is_numeric($array["USE_AUTORID"])){$array["USE_AUTORID"]=1;}	
@@ -1117,8 +1123,15 @@ function SAMBA_OUTPUT_ERRORS($prefix,$line){
 
 
 function winbind_priv($reloadservs=false){
+	$unix=new unix();
 	echo "starting......: winbindd_priv...\n";
-	if(!winbind_priv_is_group()){xsyslog("winbindd_priv group did not exists...");return;}
+	if(!winbind_priv_is_group()){
+		xsyslog("winbindd_priv group did not exists...create it");
+		$groupadd=$unix->find_program("groupadd");
+		$cmd="$groupadd winbindd_priv >/dev/null 2>&1";
+	}
+	
+	
 	
 	$unix=new unix();
 	$gpass=$unix->find_program('gpass');

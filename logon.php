@@ -29,30 +29,30 @@
 	ini_set('display_errors', 1);
 	ini_set('error_reporting', E_ALL);
 	
+if(count($_GET)>0){
+	include_once('ressources/class.templates.inc');
+	include_once('ressources/class.ldap.inc');
+	include_once('ressources/class.user.inc');
+	include_once('ressources/class.langages.inc');
+	include_once('ressources/class.sockets.inc');
+	include_once('ressources/class.mysql.inc');
+	include_once('ressources/class.privileges.inc');
+	include_once('ressources/class.browser.detection.inc');
+}
 
-include_once('ressources/class.templates.inc');
-include_once('ressources/class.ldap.inc');
-include_once('ressources/class.user.inc');
-include_once('ressources/class.langages.inc');
-include_once('ressources/class.sockets.inc');
-include_once('ressources/class.mysql.inc');
-include_once('ressources/class.privileges.inc');
-include_once('ressources/class.browser.detection.inc');
-
+if(isset($_GET["logon-form-build"])){logonForm(true);exit;}
 if(isset($_GET["popup-lang"])){TEMPLATE_LANG_POPUP();exit;}
 if(isset($_GET["TEMPLATE_LANG_LINK"])){TEMPLATE_LANG_LINK();exit;}
-if($_GET["script"]=="autoaccount"){autoaccount_js();exit;}
+if(isset($_GET["script"])){
+	if($_GET["script"]=="autoaccount"){autoaccount_js();exit;}
+}
 if(isset($_GET["first_name"])){autoaccount_submit();exit;}
 if(isset($_GET["createaccountForm"])){autoaccount_form();exit;}
 if(isset($_GET["submitedform"])){autoaccount_form2();exit;}
 if(isset($_GET["lang"])){lang();exit;}
 if(isset($_POST["artica_username"])){logon();exit;}
 if(isset($_GET["login-form"])){pagelogon();exit;}
-if(count($_REQUEST)>0){while (list($num,$val)=each($_REQUEST)){	
-	writelogs("Requested = $num= $val",__FUNCTION__,__FILE__,__LINE__);
-	}
-}
-$page=CurrentPageName();
+
 
 if(!is_file("ressources/settings.inc")){echo "
 <div style='margin:200px;padding:10px;border:2px solid red'><center><H1>
@@ -169,15 +169,31 @@ echo $html;
 }
 
 function pagelogon(){
-$sock=new sockets();
-$user=new usersMenus();
-
-if($user->SQUID_INSTALLED){
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/logon.html";
+	if(is_file($cachefile)){
+		include_once('ressources/class.templates.inc');
+		$tpl=new templates();
+		echo $tpl->_ENGINE_parse_body(@file_get_contents($cachefile));
+		return;
+	}
+	
+	include_once('ressources/class.templates.inc');
+	include_once('ressources/class.ldap.inc');
+	include_once('ressources/class.user.inc');
+	include_once('ressources/class.langages.inc');
+	include_once('ressources/class.sockets.inc');
+	include_once('ressources/class.mysql.inc');
+	include_once('ressources/class.privileges.inc');
+	include_once('ressources/class.browser.detection.inc');	
 	$sock=new sockets();
-	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
-	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
-	if($SQUIDEnable==0){$user->SQUID_INSTALLED=false;}
-}
+	$user=new usersMenus();
+	
+	if($user->SQUID_INSTALLED){
+		$sock=new sockets();
+		$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+		if($SQUIDEnable==0){$user->SQUID_INSTALLED=false;}
+	}
 
 error_log("logon form ". __FILE__. " line ". __LINE__);
 $fixed_template=$sock->GET_INFO('ArticaFixedTemplate');
@@ -253,7 +269,7 @@ if(!CheckAutousers()){$newacc=null;}
 	}
 
 if($imglogon<>null){$imglogon="background-image:url($imglogon);";}
-$logonForm=logonForm();
+//$logonForm=logonForm();
 
 	$sock=new sockets();
 	$logon_parameters=unserialize(base64_decode($sock->GET_INFO("LogonPageSettings")));
@@ -281,24 +297,23 @@ function SaveSession(){
 }
 
 function LoadModal(){
-$('#loginform').modal({onOpen: function (dialog) {
-	dialog.overlay.fadeIn('slow', function () {
-		dialog.container.slideDown('slow', function () {
-			dialog.data.fadeIn('slow');
+	$('#loginform').modal({onOpen: function (dialog) {
+		dialog.overlay.fadeIn('slow', function () {
+			dialog.container.slideDown('slow', function () {
+				dialog.data.fadeIn('slow');
+			});
 		});
-	});
-}});
-
-
-
-
+	}});
 }
+
+LoadAjax('logon-form','$page?logon-form-build=yes');
 </script>
 $addedlogo
 $newacc
 
 <center>
-$logonForm
+<span id='logon-form'></span>
+
 <div style='width:667px;height:395px;
 	background-position:center top;
 	$imglogon
@@ -310,12 +325,13 @@ $logonForm
 ";
 
 $tpl=new templates();
+@file_put_contents($cachefile, $html);
 $html=$tpl->_ENGINE_parse_body($html);
-//SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
+
 echo $html;
 }
 
-function logonForm(){
+function logonForm($ouptut=false){
 	include_once(dirname(__FILE__)."/ressources/class.html.tools.inc");
 	$sock=new sockets();
 	$users=new usersMenus();
@@ -479,6 +495,11 @@ $ldap_error
 $script
 
 ";
+if($ouptut){
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body($html);
+	return;
+}
 return $html;
 }
 
@@ -591,6 +612,9 @@ function applyLang(){
 
 function logon(){
 	include("ressources/settings.inc");
+	include_once('ressources/class.sockets.inc');
+	include_once('ressources/class.ldap.inc');
+	include_once('ressources/class.user.inc');	
 	$sock=new sockets();
 	$_POST["artica_password"]=url_decode_special($_POST["artica_password"]);
 	writelogs("Testing logon....{$_POST["artica_username"]}",__FUNCTION__,__FILE__,__LINE__);
@@ -938,11 +962,20 @@ function lang(){
 
 
 function buildPage(){
+	include_once('ressources/class.templates.inc');
+	include_once('ressources/class.ldap.inc');
+	include_once('ressources/class.user.inc');
+	include_once('ressources/class.langages.inc');
+	include_once('ressources/class.sockets.inc');
+	include_once('ressources/class.mysql.inc');
+	include_once('ressources/class.privileges.inc');
+	include_once('ressources/class.browser.detection.inc');	
+	include_once(dirname(__FILE__)."/ressources/class.langages.inc");
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	unset($_SESSION);
 	$GLOBALS["DEBUG_TEMPLATE"]=true;
-	include_once(dirname(__FILE__)."/ressources/class.langages.inc");
+	
 	$langAutodetect=new articaLang();
 	$DetectedLanguage=$langAutodetect->get_languages();
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;	

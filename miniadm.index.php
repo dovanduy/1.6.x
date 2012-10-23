@@ -59,10 +59,10 @@ function headNav(){
 
 	if($users->POSTFIX_INSTALLED){
 	
-	$messaging="			<li class=\"navItem middleItem\">
+	$messaging="<li class=\"navItem middleItem\">
 				<a class=\"navLink bigPadding\" href=\"miniadm.messaging.php\" id=\"findFriendsNav\">{messaging}</a>
 			</li>";
-}
+	}
 	
 	
 $html="
@@ -72,8 +72,8 @@ $html="
 				<a href=\"miniadm.profile.php\" title=\"Profil\">
 					<img class=\"ThumbAccountPhoto\" src=\"$picture\" />
 						<span class=\"ThumbAccountName\">$ct->DisplayName</span></a>
-			</li>
-
+				</li>
+				$messaging
 				<li class=\"navItem middleItem\" id=\"navHome\">
 					<a class=\"navLink bigPadding\" href=\"miniadm.index.php\" accesskey=\"1\">{home}</a>
 				</li>

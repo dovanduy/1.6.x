@@ -49,7 +49,7 @@ if(isset($_GET["disconnect-reste"])){squid_disconnect_reste();exit;}
 if(isset($_GET["compile-schedules-reste"])){compile_schedule_reste();exit;}
 if(isset($_GET["reconfigure-quotas-tenir"])){reconfigure_quotas_tenir();exit;}
 if(isset($_GET["reconfigure-quotas"])){reconfigure_quotas();exit;}
-
+if(isset($_GET["isInjectrunning"])){isInjectrunning();exit;}
 if(isset($_GET["pamlogon"])){samba_pam_logon();exit;}
 
 
@@ -93,6 +93,8 @@ if(isset($_GET["squid-sessions"])){squidclient_sessions();exit;}
 if(isset($_GET["notify-remote-proxy"])){notify_remote_proxy();exit;}
 if(isset($_GET["fw-rules"])){fw_rules();exit;}
 if(isset($_GET["update-blacklist"])){update_blacklist();exit;}
+if(isset($_GET["cicap-template"])){CICAP_TEMPLATE();exit;}
+if(isset($_GET["cicap-memboost"])){CICAP_MEMBOOST();exit;}
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 
@@ -493,6 +495,38 @@ function ufdbguard_compile_all_databases(){
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squidguard.php --compile-all-categories >/dev/null 2>&1 &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+}
+
+function CICAP_TEMPLATE(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.c-icap.php --template >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
+}
+function CICAP_MEMBOOST(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.c-icap.php --memboost >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);			
+}
+
+function isInjectrunning(){
+	$unix=new unix();
+	$pgrep=$unix->find_program("pgrep");
+	exec("pgrep -l -f \"exec.squid.blacklists.php --v2\" 2>&1",$results);
+	while (list ($num, $ligne) = each ($results) ){	
+		if(preg_match("#pgrep#", $ligne)){continue;}
+		if(preg_match("#^([0-9]+).*?blacklists\.php#", $ligne,$re)){
+			echo "<articadatascgi>". $unix->PROCCESS_TIME_MIN($re[1])."</articadatascgi>";
+			return;
+		}
+	}
+	 
+	
 }
 
 

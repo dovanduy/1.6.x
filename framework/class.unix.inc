@@ -3593,6 +3593,19 @@ public function ifconfig_all_ips(){
 	
 }
 
+public function ifconfig_interfaces_list(){
+	$ri=array();
+	$cmd=$this->find_program("ip")." -o addr sho 2>&1";
+	exec($cmd,$results);
+	while (list ($index, $line) = each ($results) ){
+		if(preg_match("#^[0-9]+:\s+(.*?)\s+inet\s+([0-9\.]+)\/#", $line,$re)){
+			$ri[$re[1]]=$re[2];
+		}
+		
+	}	
+	return $ri;
+}
+
 public function LOCATE_APACHE_CTL(){
 	$apachectl=$this->find_program("apachectl");
 	if(is_file($apachectl)){return $apachectl;}
@@ -4126,6 +4139,7 @@ function DirFiles($path,$regexsearch=null){
 		$cmd=$this->find_program('pidof')." -s $binpath";
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":: $cmd\n";}
 		$re=$this->proc_exec($cmd);
+		if(is_array($re)){
 		while (list ($num, $ligne) = each ($re) ){	
 			if(preg_match("#[0-9]+#",$ligne)){
 				$pid=trim($ligne);
@@ -4136,6 +4150,7 @@ function DirFiles($path,$regexsearch=null){
 				
 				return $this->PROCESS_PPID($pid);
 			}
+		}
 		}
 		
 	}

@@ -1,29 +1,29 @@
 <?php
+$GLOBALS["AS_ROOT"]=false;
+if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
-include_once('ressources/class.templates.inc');
-session_start();
-include_once('ressources/class.html.pages.inc');
-include_once('ressources/class.cyrus.inc');
-include_once('ressources/class.main_cf.inc');
-include_once('ressources/charts.php');
-include_once('ressources/class.syslogs.inc');
-include_once('ressources/class.system.network.inc');
-include_once('ressources/class.os.system.inc');
+include_once(dirname(__FILE__).'/ressources/class.templates.inc');
+if(!$GLOBALS["AS_ROOT"]){session_start();}
+include_once(dirname(__FILE__).'/ressources/class.html.pages.inc');
+include_once(dirname(__FILE__).'/ressources/class.cyrus.inc');
+include_once(dirname(__FILE__).'/ressources/class.main_cf.inc');
+include_once(dirname(__FILE__).'/ressources/charts.php');
+include_once(dirname(__FILE__).'/ressources/class.syslogs.inc');
+include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
+include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 
-//ini_set('display_errors', 1);
-//ini_set('error_reporting', E_ALL);
 if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();$users=$GLOBALS["CLASS_USERS"];}else{$users=$GLOBALS["CLASS_USERS"];}
-if(!$users->AsAnAdministratorGeneric){die("Not autorized");}
+if(!$GLOBALS["AS_ROOT"]){if(!$users->AsAnAdministratorGeneric){die("Not autorized");}}
 if(isset($_GET["off"])){off();exit;}
 if(isset($_GET["squidcklinks-host-infos"])){squidcklinks_host_infos();exit;}
 if(isset($_GET["RefreshMyIp"])){RefreshMyIp();exit;}
 if(function_exists($_GET["function"])){call_user_func($_GET["function"]);exit;}
+
+if(!$GLOBALS["AS_ROOT"]){
+	if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}
+}
+
 $sock=new sockets();
-	
-
-
-if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}
-
 $page=CurrentPageName();
 $tpl=new templates();
 
@@ -34,6 +34,8 @@ $EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsApplianc
 $DisableFreeWebToolBox=$sock->GET_INFO('DisableFreeWebToolBox');
 $DisableTimeCapsuleToolBox=$sock->GET_INFO('DisableTimeCapsuleToolBox');
 $DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 $SambaEnabled=$sock->GET_INFO("SambaEnabled");
 $EnableFetchmail=$sock->GET_INFO("EnableFetchmail");
 if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
@@ -47,6 +49,8 @@ if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsApplian
 if(!is_numeric($DisableFreeWebToolBox)){$DisableFreeWebToolBox=0;}
 if(!is_numeric($DisableTimeCapsuleToolBox)){$DisableTimeCapsuleToolBox=0;}
 $OnlyWeb=false;
+
+if($EnableWebProxyStatsAppliance==1){$users->WEBSTATS_APPLIANCE=true;}
 
 if($SambaEnabled==1){
 	$samba=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-samba.png", "APP_SAMBA","fileshare_text", "QuickLinksSamba()"));
@@ -351,7 +355,10 @@ while (list ($key, $line) = each ($GLOBALS["QUICKLINKS-ITEMS"]) ){
 	";
 	
 	
-	
+if($GLOBALS["AS_ROOT"]){
+	@file_put_contents($status_path, $html);
+	return;
+}	
 
 
 $tpl=new templates();

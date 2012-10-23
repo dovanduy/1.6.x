@@ -6,12 +6,14 @@ class squid_acls_groups{
 	var $UseDynamicGroupsAcls=0;
 	var $EnableKerbAuth=0;
 	var $AUTH=0;	
+	var $GroupTypes=array();
 
 	function squid_acls_groups(){
 	$this->GroupTypes["src"]="{addr}";
 	$this->GroupTypes["arp"]="{ComputerMacAddress}";
 	$this->GroupTypes["dstdomain"]="{dstdomain}";
 	$this->GroupTypes["proxy_auth"]="{members}";
+	$this->GroupTypes["proto"]="{proto}";
 	$sock=new sockets();
 	$users=new usersMenus();
 	$this->ACL_ARP_ENABLED=$users->SQUID_ARP_ACL_ENABLED;

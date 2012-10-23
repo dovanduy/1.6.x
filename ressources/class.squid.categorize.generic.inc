@@ -1048,6 +1048,7 @@ private function socialnet($www){
 		if(preg_match("#\.ala\.bz$#", $www)){return "games";}
 		if(preg_match("#\.zgncdn\.com$#", $www)){return "games";}
 		if(preg_match("#\.zynga\.com$#", $www)){return "games";}
+		if(preg_match("#\.koreus\.com$#", $www)){return "games";}
 		
 	}
 	
@@ -1252,6 +1253,7 @@ private function socialnet($www){
 		if(preg_match("#\.pncbank\.com$#",$www)){return "finance/banking";}
 		if(preg_match("#\.citibank\.com$#",$www)){return "finance/banking";}
 		if(preg_match("#\.bornpay\.com$#",$www)){return "finance/banking";}
+		if(preg_match("#\.credit-agricole\.fr$#",$www)){return "finance/banking";}
 		if(preg_match("#\.banquepopulaire\.fr$#",$www)){return "finance/banking";}
 		if(preg_match("#\.societegenerale\.fr$#",$www)){return "finance/banking";}
 		if(preg_match("#\.labanquepostale\.fr$#",$www)){return "finance/banking";}

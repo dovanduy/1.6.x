@@ -69,6 +69,7 @@ function diconnect_js(){
 }
 function join_perform(){
 	$sock=new sockets();
+	$users=new usersMenus();
 	$t=$_GET["t"];
 	$datas=unserialize(base64_decode($sock->getFrameWork("squid.php?join-reste=yes&MyCURLTIMEOUT=300")));
 	$text=@implode("\n", $datas);
@@ -78,6 +79,18 @@ function join_perform(){
 	</script>
 	
 	";	
+	
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}	
+
+	if($EnableWebProxyStatsAppliance==1){
+		include_once(dirname(__FILE__)."/ressources/class.blackboxes.inc");
+		$bb=new blackboxes();
+		$bb->NotifyAll("AD_CONNECT");
+	}
+	
 	echo $html;
 }
 function diconnect_perform(){
@@ -90,8 +103,19 @@ function diconnect_perform(){
 		document.getElementById('$t-center').innerHTML='';
 		RefreshTab('main_adker_tabs');
 	</script>
+	";
+
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}	
+
+	if($EnableWebProxyStatsAppliance==1){
+		include_once(dirname(__FILE__)."/ressources/class.blackboxes.inc");
+		$bb=new blackboxes();
+		$bb->NotifyAll("AD_DISCONNECT");
+	}	
 	
-	";	
 	echo $html;	
 }
 
@@ -469,6 +493,14 @@ function tabs(){
 function popup(){
 $page=CurrentPageName();
 $users=new usersMenus();
+$sock=new sockets();
+
+$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}	
+
+
 $tpl=new templates();
 	if(!$users->MSKTUTIL_INSTALLED){
 		echo $tpl->_ENGINE_parse_body("
@@ -483,8 +515,9 @@ $tpl=new templates();
 		</table>
 		");return;
 	}
-	if(strlen($users->squid_kerb_auth_path)<2){
-		echo $tpl->_ENGINE_parse_body("
+	if($EnableWebProxyStatsAppliance==0){
+		if(strlen($users->squid_kerb_auth_path)<2){
+			echo $tpl->_ENGINE_parse_body("
 		<table style='width:99%' class=form>
 		<tr>
 			<td valign='top' width=1%><img src='img/error-64.png'></td>
@@ -492,8 +525,8 @@ $tpl=new templates();
 		</tr>
 		</table>
 		");return;
-	}   
-
+		}   
+	}
 
 	$html="
 	<div id='serverkerb-animated'></div>
@@ -535,7 +568,6 @@ function settings(){
 	if(preg_match("#^3\.6\.#", $samba_version)){$samba36=1;}
 	
 	
-
 	
 	
 	$sock=new sockets();
@@ -547,6 +579,11 @@ function settings(){
 	$KerbAuthDisableNsswitch=$sock->GET_INFO("KerbAuthDisableNsswitch");
 	$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
 	$KerbAuthDisableNormalizeName=$sock->GET_INFO("KerbAuthDisableNormalizeName");
+	
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}		
 	
 	
 	if(!is_numeric($KerbAuthDisableNsswitch)){$KerbAuthDisableNsswitch=0;}
@@ -578,6 +615,12 @@ function settings(){
 					style='font-size:14px;text-decoration:underline'>$disconnect</a>
 				</td>
 		</tr>";
+	}
+	
+	if($samba_installed==0){
+		
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{samba_is_not_installed}"));
+		return;
 	}
 	
 	$html="
@@ -948,6 +991,11 @@ function settingsSave(){
 	include_once(dirname(__FILE__)."/class.html.tools.inc");
 	$_POST["WINDOWS_SERVER_PASS"]=url_decode_special_tool($_POST["WINDOWS_SERVER_PASS"]);
 	
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}	
+	
 	
 	$_POST["WINDOWS_DNS_SUFFIX"]=trim(strtolower($_POST["WINDOWS_DNS_SUFFIX"]));
 	$Myhostname=$sock->getFrameWork("cmd.php?full-hostname=yes");	
@@ -958,10 +1006,6 @@ function settingsSave(){
 		$tpl=new templates();
 		$sock->SET_INFO("EnableKerbAuth", 0);
 		$sock->SET_INFO("EnableKerberosAuthentication", 0);
-		
-		
-		
-		
 		$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
 		echo $tpl->javascript_parse_text("{error}: {WINDOWS_DNS_SUFFIX} {$_POST["WINDOWS_DNS_SUFFIX"]}\n{is_not_a_part_of} $Myhostname ($MyDomain)",1);
 		return;
@@ -1007,18 +1051,35 @@ function settingsSave(){
 			$sock->getFrameWork("cmd.php?samba-reconfigure=yes");
 		}
 	}
+	
+	if($EnableWebProxyStatsAppliance==1){
+		$sock=new sockets();
+		$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
+	}
 }
 
 
 function SambeReconnectAD(){
 	$sock=new sockets();
+	$users=new usersMenus();
 	$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
 	if(!is_numeric($EnableKerberosAuthentication)){$EnableKerberosAuthentication=0;}
 	$sock->getFrameWork("services.php?kerbauth=yes");
 	if($EnableKerberosAuthentication==0){
 		$sock->getFrameWork("services.php?nsswitch=yes");
 		$sock->getFrameWork("cmd.php?samba-reconfigure=yes");
+	}
+
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}	
+
+	if($EnableWebProxyStatsAppliance==1){
+		$sock=new sockets();
+		$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
 	}	
+	
 }
 
 function test_auth(){

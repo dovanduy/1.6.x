@@ -832,6 +832,7 @@ function html_Memory_usage(){
 	$dd
 	$bb
 	</table>
+	<div style='font-size:10px;text-align:right'><i>{generated_on}:". date("H:i:s")."</i></div>
 	";	
 	
 	$tpl=new templates();

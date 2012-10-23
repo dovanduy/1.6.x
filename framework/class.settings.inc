@@ -478,6 +478,7 @@ class settings_inc {
 	var $ZARAFA_SEARCH_INSTALLED=false;
 	var $LIGHT_INSTALL=false;
 	var $CORP_LICENSE=false;
+	var $WEBSTATS_APPLIANCE=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;

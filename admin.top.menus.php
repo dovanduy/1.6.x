@@ -1,12 +1,14 @@
 <?php
+$GLOBALS["AS_ROOT"]=false;
+if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
-include_once('ressources/class.templates.inc');
-include_once('ressources/class.html.pages.inc');
-include_once('ressources/class.system.network.inc');
-include_once('ressources/class.os.system.inc');
-include_once('ressources/class.system.nics.inc');
+include_once(dirname(__FILE__).'/ressources/class.templates.inc');
+include_once(dirname(__FILE__).'/ressources/class.html.pages.inc');
+include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
+include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
+include_once(dirname(__FILE__).'/ressources/class.system.nics.inc');
 
-
+if($argv[1]=="update-white-32-tr"){update_white_32_tr();exit;}
 if(isset($_GET["update-white-32-tr"])){update_white_32_tr();exit;}
 if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}
 $page=CurrentPageName();
@@ -71,7 +73,15 @@ function update_white_32_tr(){
 	
 	$tpl=new templates();
 	$sock=new sockets();
-	if($_SESSION["uid"]<>-100){if(is_numeric($_SESSION["uid"])){return null;}}
+	if(!$GLOBALS["AS_ROOT"]){
+		
+		if($_SESSION["uid"]<>-100){if(is_numeric($_SESSION["uid"])){return null;}}
+		if(is_file("/usr/share/artica-postfix/ressources/logs/web/admin.index.notify.html")){
+			echo $tpl->_ENGINE_parse_body(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.notify.html"));
+			return;	
+			}
+		}
+	
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$q=new mysql();

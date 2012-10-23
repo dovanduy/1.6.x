@@ -1,13 +1,21 @@
 <?php
-if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
-	include_once('ressources/class.templates.inc');
-	include_once('ressources/class.users.menus.inc');
-	include_once('ressources/class.squid.inc');
-	include_once('ressources/class.status.inc');
-	include_once('ressources/class.artica.graphs.inc');
+	$GLOBALS["AS_ROOT"]=false;
+	$dirname=dirname(__FILE__);
+	if(count($argv)>0){if(preg_match("#--verbose#", @implode(" ", $argv))){$_GET["verbose"]=1;}}
+	if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+	include_once("$dirname/ressources/class.templates.inc");
+	include_once("$dirname/ressources/class.users.menus.inc");
+	include_once("$dirname/ressources/class.squid.inc");
+	include_once("$dirname/ressources/class.status.inc");
+	include_once("$dirname/ressources/class.artica.graphs.inc");
 	
-	$users=new usersMenus();
-	if(!$users->AsWebStatisticsAdministrator){die();}
+	if(!$GLOBALS["AS_ROOT"]){
+		$users=new usersMenus();
+		if(!$users->AsWebStatisticsAdministrator){die("Permission denied");}
+	}
+	
+	if($argv[1]=="squid-status-stats"){squid_status_stats();exit;}
 	if(isset($_GET["status"])){status();exit;}
 	if(isset($_GET["squid-general-status"])){general_status();exit;}
 	if(isset($_GET["squid-status-stats"])){squid_status_stats();exit;}
@@ -392,6 +400,17 @@ function general_status(){
 }
 
 function squid_status_stats(){
+	if(!$GLOBALS["AS_ROOT"]){
+		$cachefile="/usr/share/artica-postfix/ressources/logs/web/traffic.statistics.html";
+		if(is_file($cachefile)){$tpl=new templates();
+		$cacheContent=@file_get_contents($cachefile);
+		if(strlen($cacheContent)>20){
+			echo $tpl->_ENGINE_parse_body(@file_get_contents($cachefile));
+			return;
+			}
+		}
+	}
+	
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if($EnableRemoteStatisticsAppliance==1){return;}
@@ -402,7 +421,7 @@ function squid_status_stats(){
 	$MalwarePatrolDatabasesCount=$sock->getFrameWork("cmd.php?MalwarePatrolDatabasesCount=yes");
 	
 	
-	if(CACHE_SESSION_GET(__FUNCTION__,__FILE__)){return;}
+	if(!$GLOBALS["AS_ROOT"]){if(CACHE_SESSION_GET(__FUNCTION__,__FILE__)){return;}}
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$q=new mysql_squid_builder();

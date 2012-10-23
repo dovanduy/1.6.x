@@ -1141,6 +1141,36 @@ public function check_storage_table(){
 		$this->QUERY_SQL($sql,"artica_backup");
 	}	
 	
+	
+	if(!$this->TABLE_EXISTS('mbxs_backup','artica_backup')){		
+		$sql="CREATE TABLE IF NOT EXISTS `mbxs_backup` (
+		  `uid` varchar(128) NOT NULL,
+		  `enabled` smallint(1) NOT NULL DEFAULT '1',
+		  `imapserv` varchar(255) NOT NULL,
+		  `account` varchar(255) NOT NULL,
+		  `config` longtext NOT NULL,
+		  `zmd5` varchar(90) NOT NULL,
+		  PRIMARY KEY (`zmd5`),
+		  KEY `enabled` (`enabled`),
+		  KEY `imapserv` (`imapserv`),
+		  KEY `account` (`account`)
+		)";
+		$this->QUERY_SQL($sql,"artica_backup");
+	}	
+	
+	if(!$this->TABLE_EXISTS('mbxs_backup','artica_events')){		
+		$sql="CREATE TABLE IF NOT EXISTS `mbxs_backup` (
+		  `ID` INT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+		  `zDate` datetime NOT NULL,
+		  `content` longtext NOT NULL,
+		  `zmd5` varchar(90) NOT NULL,
+		  KEY `zmd5` (`zmd5`),
+		  KEY `zDate` (`zDate`)
+		)";
+		$this->QUERY_SQL($sql,"artica_events");
+	}	
+	
+	
 	if(!$this->TABLE_EXISTS('postfix_transport_recipients','artica_backup')){		
 		$sql="CREATE TABLE IF NOT EXISTS `postfix_transport_recipients` (
 		  `recipient` varchar(255) NOT NULL PRIMARY KEY,

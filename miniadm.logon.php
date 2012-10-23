@@ -84,6 +84,7 @@ function checklogon(){
 			$ldap=new clladp();
 			$users=new usersMenus();
 			$privs=new privileges($u->uid);
+			$privs->SearchPrivileges();
 			$privileges_array=$privs->privs;
 
 			$_SESSION["privileges_array"]=$privs->privs;

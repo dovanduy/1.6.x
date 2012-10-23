@@ -583,12 +583,26 @@ echo "Starting zarafa..............: LDAP config done (".basename(__FILE__).")\n
 	
 }
 function remove_database(){
+	$q=new mysql();
+	$unix=new unix();
+	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
+	$q->DELETE_DATABASE("zarafa");
+	if(!$q->ok){
+		echo "Error while removing zarafa database...$q->mysql_error\n";
+		return;
+	}
+	
+	if(!is_dir($MYSQL_DATA_DIR)){
+		echo "Failed to locate $MYSQL_DATA_DIR\n";
+		return;
+	}
+	
 	shell_exec("/bin/rm -f $MYSQL_DATA_DIR/ib_logfile*");
 	shell_exec("/bin/rm -f $MYSQL_DATA_DIR/ibdata*");
 	shell_exec("/bin/rm -rf $MYSQL_DATA_DIR/zarafa");
 	shell_exec("/etc/init.d/artica-postfix restart mysql >/tmp/zarafa_removedb 2>&1");
 	shell_exec("/etc/init.d/artica-postfix restart zarafa-server >>/tmp/zarafa_removedb 2>&1");
-	$unix=new unix();
+	
 	$unix->send_email_events("Success removing zarafa databases", 
 	"removed $MYSQL_DATA_DIR/ib_logfile*\nremoved $MYSQL_DATA_DIR/ibdata*\nremoved $MYSQL_DATA_DIR/zarafa\n\n".@file_get_contents("/tmp/zarafa_removedb"), "mailbox");
 }

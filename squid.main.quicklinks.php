@@ -1035,13 +1035,13 @@ function all_status(){
 	$ini2->loadString(base64_decode($sock->getFrameWork('cmd.php?cicap-ini-status=yes')));
 	
 	
-	$squid_status=DAEMON_STATUS_ROUND("ID:SQUID",$ini,null,1);
-	$dansguardian_status=DAEMON_STATUS_ROUND("ID:DANSGUARDIAN",$ini,null,1);
-	$kav=DAEMON_STATUS_ROUND("ID:KAV4PROXY",$ini,null,1);
-	$cicap=DAEMON_STATUS_ROUND("ID:C-ICAP",$ini2,null,1);
-	$APP_PROXY_PAC=DAEMON_STATUS_ROUND("ID:APP_PROXY_PAC",$ini,null,1);
-	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_ROUND("ID:APP_SQUIDGUARD_HTTP",$ini,null,1);
-	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("ID:APP_UFDBGUARD",$ini,null,1);
+	$squid_status=DAEMON_STATUS_ROUND("SQUID",$ini,null,1);
+	$dansguardian_status=DAEMON_STATUS_ROUND("DANSGUARDIAN",$ini,null,1);
+	$kav=DAEMON_STATUS_ROUND("KAV4PROXY",$ini,null,1);
+	$cicap=DAEMON_STATUS_ROUND("C-ICAP",$ini2,null,1);
+	$APP_PROXY_PAC=DAEMON_STATUS_ROUND("APP_PROXY_PAC",$ini,null,1);
+	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_ROUND("APP_SQUIDGUARD_HTTP",$ini,null,1);
+	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("APP_UFDBGUARD",$ini,null,1);
 	$squid=new squidbee();
 	
 	$md=md5(date('Ymhis'));
@@ -1206,9 +1206,10 @@ if($users->WEBSTATS_APPLIANCE){
 	$current_sessions=null;
 	$restart_service_only=null;
 }
-	
+	$refresh=imgtootltip("refresh-32.png","{refresh}","LoadAjax('squid-services','$page?squid-services=yes');");
 	$tables[]="
 	</table>
+	<div style='text-align:right;margin-top:-15px'>$refresh</div>
 	</div>
 	<table style='width:99%' class=form>
 	<tr>
@@ -1237,14 +1238,10 @@ if($users->WEBSTATS_APPLIANCE){
 	
 	
 	
-	$refresh=imgtootltip("refresh-32.png","{refresh}","LoadAjax('squid-services','$page?squid-services=yes');");
 	
-	$html="".@implode("\n", $tables)."<div style='text-align:right'>$refresh</div>
-		
-		
-		
-		
-		<script>
+	
+	$html=@implode("\n", $tables)."
+	<script>
 	var x_ReconfigureUfdb= function (obj) {
 		var res=obj.responseText;
 		if (res.length>3){alert(res);}

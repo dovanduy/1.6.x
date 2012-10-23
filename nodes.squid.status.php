@@ -17,7 +17,7 @@ if(!$usersmenus->AsAnAdministratorGeneric){
 }
 if(isset($_POST["reconfigure-squid"])){reconfigure_squid();exit;}
 if(isset($_POST["restart-squid"])){restart_squid();exit;}
-
+if(isset($_POST["reconf-squid"])){reconf_squid();exit;}
 page();
 
 
@@ -32,8 +32,10 @@ function page(){
 	
 	$actions[]=Paragraphe32("reload_proxy_service", "reload_proxy_service_text", "SquidNodeReload$t()", "reload-32.png");
 	$actions[]=Paragraphe32("restart_proxy_service", "restart_proxy_service_text", "SquidNodeRestart$t()", "service-restart-32.png");
-	
-	
+	$actions[]=Paragraphe32("reconfigure_proxy_service", "reconfigure_proxy_service_text", "SquidNodeReconf$t()", "reconfigure-32.png");
+	$actions[]=Paragraphe32("configuration_file", "display_generated_configuration_file", 
+	"Loadjs('nodes.squid.conf.php?nodeid={$_GET["nodeid"]}')", "script-32.png");
+
 	
 	$action=CompileTr3($actions);
 		
@@ -78,7 +80,15 @@ function page(){
 		XHR.appendData('restart-squid','$hostid');
 		AnimateDiv('$t');
 		XHR.sendAndLoad('$page', 'POST',x_SquidNodeReload$t);
-	}	
+	}
+
+	function SquidNodeReconf$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('reconf-squid','$hostid');
+		AnimateDiv('$t');
+		XHR.sendAndLoad('$page', 'POST',x_SquidNodeReload$t);	
+	
+	}
 	
 	
 	</script>
@@ -107,4 +117,11 @@ function restart_squid(){
 	if(!$q->restart_squid()){$tpl->javascript_parse_text("{failed}: $q->ipaddress");return;}
 	echo $tpl->javascript_parse_text("{success}: $q->ipaddress");	
 	
+}
+function reconf_squid(){
+	$tpl=new templates();
+	$hostid=$_POST["reconf-squid"];
+	$q=new blackboxes($hostid);
+	if(!$q->reconfigure_squid()){$tpl->javascript_parse_text("{failed}: $q->ipaddress");return;}
+	echo $tpl->javascript_parse_text("{success}: $q->ipaddress");	
 }

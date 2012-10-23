@@ -16,6 +16,7 @@ if(!$usersmenus->AsSquidAdministrator){
 	die();	
 }
 
+if(isset($_GET["listonly"])){servers();exit;}
 if(isset($_GET["servers"])){servers();exit;}
 if(isset($_GET["nodes-list"])){serverlist();exit;}
 if(isset($_GET["events"])){events();exit;}
@@ -53,7 +54,7 @@ function tabs(){
 	
 	
 	echo "
-	<div id=main_statsremoteservers_tabs style='width:99%;overflow:auto'>
+	<div id='main_statsremoteservers_tabs'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -150,7 +151,7 @@ function serverlist(){
 			
 		$tr[]=Paragraphe("64-network-server.png", "$fqdn_hostname", 
 		"<div style='font-size:11px'><i>{since}:$laststatus</i></div>$perftext",
-		"javascript:Loadjs('nodes.php?nodeid=$nodeid&hostid=$hostid')",$tooltip,350,null,1);
+		"javascript:Loadjs('nodes.php?nodeid=$nodeid&hostid=$hostid')",$tooltip,340,null,1);
 
 			
 		
