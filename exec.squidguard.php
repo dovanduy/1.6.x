@@ -113,11 +113,11 @@ if($argv[1]=="--conf"){echo conf();exit;}
 
 
 function build_categories(){
-$q=new mysql_squid_builder();
-
-$sql="SELECT LOWER(pattern) FROM category_porn WHERE enabled=1 AND pattern REGEXP '[a-zA-Z0-9\_\-]+\.[a-zA-Z0-9\_\-]+' ORDER BY pattern INTO OUTFILE '/tmp/porn.txt' FIELDS OPTIONALLY ENCLOSED BY 'n'";
-$q->QUERY_SQL($sql);	
-if(!$q->ok){echo $q->mysql_error."\n";}
+	$q=new mysql_squid_builder();
+	
+	$sql="SELECT LOWER(pattern) FROM category_porn WHERE enabled=1 AND pattern REGEXP '[a-zA-Z0-9\_\-]+\.[a-zA-Z0-9\_\-]+' ORDER BY pattern INTO OUTFILE '/tmp/porn.txt' FIELDS OPTIONALLY ENCLOSED BY 'n'";
+	$q->QUERY_SQL($sql);	
+	if(!$q->ok){echo $q->mysql_error."\n";}
 	
 	
 }
@@ -665,7 +665,7 @@ function UFDBGUARD_COMPILE_SINGLE_DB($path){
 	}
 	if(!is_file($domain_path)){
 		events_ufdb_tail("exec.squidguard.php:: $domain_path no such file, create an empty one",__LINE__);
-		@mkdir(dirname($domain_path),755,true);
+		@mkdir(dirname($domain_path),0755,true);
 		@file_put_contents($domain_path,"#");
 	}
 	
@@ -2003,7 +2003,7 @@ function databases_status(){
 	if($GLOBALS["VERBOSE"]){echo "databases_status() line:".__LINE__."\n";}
 	$unix=new unix();
 	$chmod=$unix->find_program("chmod");
-	@mkdir("/var/lib/squidguard",755,true);
+	@mkdir("/var/lib/squidguard",0755,true);
 	$q=new mysql_squid_builder();
 	$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'category_%'";
 	$results=$q->QUERY_SQL($sql);
@@ -2039,7 +2039,7 @@ function ufdbguard_recompile_missing_dbs(){
 	$unix=new unix();
 	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
 	$touch=$unix->find_program("touch");
-	@mkdir("/var/lib/squidguard",755,true);
+	@mkdir("/var/lib/squidguard",0755,true);
 	$q=new mysql_squid_builder();
 	$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'category_%'";
 	$results=$q->QUERY_SQL($sql);
@@ -2050,7 +2050,7 @@ function ufdbguard_recompile_missing_dbs(){
 		$categoryname=$re[1];
 		echo "Starting......: ufdbGuard $table -> $categoryname\n";
 		if(!is_file("/var/lib/squidguard/$categoryname/domains")){
-			@mkdir("/var/lib/squidguard/$categoryname",755,true);
+			@mkdir("/var/lib/squidguard/$categoryname",0755,true);
 			$sql="SELECT LOWER(pattern) FROM {$ligne["c"]} WHERE enabled=1 AND pattern REGEXP '[a-zA-Z0-9\_\-]+\.[a-zA-Z0-9\_\-]+' ORDER BY pattern INTO OUTFILE '$table.temp' FIELDS OPTIONALLY ENCLOSED BY 'n'";
 			$q->QUERY_SQL($sql);
 			if(!is_file("$MYSQL_DATA_DIR/squidlogs/$table.temp")){

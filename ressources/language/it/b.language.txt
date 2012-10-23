@@ -664,11 +664,13 @@ Do you want to carry out this operation ?
 <disable_zarafa_web_service>Disable Zarafa Web service</disable_zarafa_web_service>
 <disclaimers>Disclaimers</disclaimers>
 <disk_usage>Disk usage</disk_usage>
+<display_access_by_members>Display accesses by member</display_access_by_members>
 <display_config>Display configuration</display_config>
 <display_config_text>Display this item Artica builed configuration file</display_config_text>
 <display_current_sessions>Display current active sessions</display_current_sessions>
 <display_fw_rules>Display FireWall rules</display_fw_rules>
 <display_indexation_events>Display indexation events</display_indexation_events>
+<display_performance_status>Display performances status</display_performance_status>
 <dnsbl_service>DNSBL service</dnsbl_service>
 <dnsmasq_bulk_import_explain>This feature allows you to import items.[br]
 Items must be "host,ipaddress" separated by a carriage return eg:[br]
@@ -835,6 +837,9 @@ imap.company2.tld;POP3;sabrina;SaBr1n@;sabrina.giuras;ssl23;1[br]
 </fetchmail_import_explain>
 <fetch_folders_explain>Retreive messages stored on specific folders</fetch_folders_explain>
 <filepath>File path</filepath>
+<file_descriptors>filedescriptors</file_descriptors>
+<file_descriptors_squid_explain>Generally, a file descriptor is an index for an entry in a kernel-resident data structure containing the details of all open file.[br]
+This value limit the proxy to not open file more than the specified value.</file_descriptors_squid_explain>
 <file_server>File server</file_server>
 <finish_rule_by>Finish rule by</finish_rule_by>
 <firefoxpac_how_to>Select options menu, click on Network tab and the settings button.[br]Check the Automatic proxy configuration url and set the following URL:</firefoxpac_how_to>
@@ -1323,6 +1328,8 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <offlineimap_gateway_explain>Instead replicate remote mailbox server to local server, the process will replicate from remote server to another remote server</offlineimap_gateway_explain>
 <old_statistics_interface>Old statistics interface</old_statistics_interface>
 <old_statistics_interface_text>If there is something missing, use the old statistics interface in order to view others statistics</old_statistics_interface_text>
+<onlycorpavailable>This feature is only available with a corporate license.[br]
+We suggest to upgrade this server to a coporate licensed server</onlycorpavailable>
 <OnlyEnabled>Only enabled</OnlyEnabled>
 <only_from_activedirectory>Only from Active Directory</only_from_activedirectory>
 <opened_ports>Opened ports</opened_ports>
@@ -1451,6 +1458,7 @@ Do you want to perform this operation ?
 users should be authenticated trough username@yourMSNGateway
 [b]Warning there are many chances that modern MSN clients cannot connect to this protocol.[b]
 </PYMSNT_HOWTO>
+<QuerySize>Downloaded size</QuerySize>
 <realsize>Real size</realsize>
 <realtime_events_squid>Realtime events</realtime_events_squid>
 <realtime_requests>Realtime requests</realtime_requests>
@@ -1612,6 +1620,13 @@ The different ways of implementing a security level are called security modes.
 <samba_watchdog>Samba service Watchdog</samba_watchdog>
 <samba_watchdog_text>Ensure that Samba services are up and notify if CPU/memory exceed limits</samba_watchdog_text>
 <sample-size>Sample size</sample-size>
+<Sanesecurity_signatures>Sanesecurity add-on signatures</Sanesecurity_signatures>
+<Sanesecurity_signatures_explain>
+Sanesecurity add-on signatures provide enhanced email/Web security against the following email types:[br]
+Phishing, Spear phishing, Fake lottery, Ecard malware, Casino, Fake jobs, Fake loans, 419s, 
+Fake Diplomas, porn, emailed malware and other general spam.[br]
+SaneSecurity signatures are a culmination of hard work and commitment to provide Third-Party signatures to 
+the web community that are of professional quality</Sanesecurity_signatures_explain>
 <sarg_build_daily_stats>Build daily statistics with SARG</sarg_build_daily_stats>
 <sarg_build_daily_stats_explain>This task can be used only if you have enabled and installed Sarg tool.[br]It designed to generate daily statistics.[br]
 Note: [b]Monthly and weekly statistics are already scheduled[/b].</sarg_build_daily_stats_explain>
@@ -1685,6 +1700,8 @@ If you set it to automatic mode, the SMTP engine will use the MX according the R
 <smtp_from>SMTP From</smtp_from>
 <smtp_password>SMTP Password</smtp_password>
 <smtp_username>SMTP username</smtp_username>
+<snort_scanner>IDS Snort Scanner parser</snort_scanner>
+<snort_scanner_explain>This task is designed to parse IDS snort events in put them into MySQL database</snort_scanner_explain>
 <softdelete_lifetime>Softdelete LifeTime</softdelete_lifetime>
 <softdelete_lifetime_explain>
 Soft Deletes always remain in the database, until they are purged.[br]
@@ -2014,6 +2031,7 @@ Example:*.bat,*.cmd,*.com,*.exe,*.vbs,*.msi,*.pif,*.reg
 <veto_files_explain>This is a list of files and directories that are neither visible nor accessible.[br]
 "*" and "?" can be used to specify multiple files or directories as in DOS wildcards.
 </veto_files_explain>
+<video_title>Video title</video_title>
 <virtual_company>Virtual company</virtual_company>
 <virtual_hostname_cannot_same_main_hostname>Virtual hostname cannot be the same of the main service hostname.
 You can change the hostname on the master service in the main FreeWebs configuration</virtual_hostname_cannot_same_main_hostname>
@@ -2160,6 +2178,8 @@ Click on the button below in order to activate the service.
 <web_injector>Proxy Real-time events</web_injector>
 <web_injector_explain>This task parse proxy real-time events and inject these events into MySQL database</web_injector_explain>
 <web_interface_service>Web Interface Service</web_interface_service>
+<web_statistics>Web statistics</web_statistics>
+<web_statistics_member_text>Display your company Proxy internet statistics</web_statistics_member_text>
 <web_suffix_domain>Internet suffix domain</web_suffix_domain>
 <weeks>Weeks</weeks>
 <WELCOME_ON_ARTICA_PROJECT>Welcome on the Artica project</WELCOME_ON_ARTICA_PROJECT>
@@ -2250,6 +2270,7 @@ In this case, logged users will able to search documents in their area</XAPIAN_S
 <your_messaging_statistics>Your messaging statistics</your_messaging_statistics>
 <your_settings>Your settings</your_settings>
 <YoutubeForSchoolsExplainT>Gives schools the ability to access a broad set of educational videos on YouTube EDU and to select the specific videos that are accessible from within your school network</YoutubeForSchoolsExplainT>
+<youtube_objects_statistics_text>Display Youtube objects downloaded by your members.</youtube_objects_statistics_text>
 <you_have_to_reload_webpage>You have to reload this Web page</you_have_to_reload_webpage>
 <you_need_to_restart_service_take_effet>You need to restart the service in order
 to make parameters/tasks in production mode</you_need_to_restart_service_take_effet>

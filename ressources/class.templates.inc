@@ -4611,7 +4611,7 @@ function _admin_event($text,$function,$file,$line,$category){
 	
 	if($GLOBALS["EXECUTED_AS_ROOT"]){
 		$md5=md5($serialize);
-		if(!is_dir("/var/log/artica-postfix/system_admin_events")){@mkdir("/var/log/artica-postfix/system_admin_events",755,true);}
+		if(!is_dir("/var/log/artica-postfix/system_admin_events")){@mkdir("/var/log/artica-postfix/system_admin_events",0755,true);}
 		@file_put_contents("/var/log/artica-postfix/system_admin_events/$md5.log", $serialize);	
 		return;
 	}

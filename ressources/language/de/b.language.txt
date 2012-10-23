@@ -1620,6 +1620,13 @@ The different ways of implementing a security level are called security modes.
 <samba_watchdog>Samba service Watchdog</samba_watchdog>
 <samba_watchdog_text>Ensure that Samba services are up and notify if CPU/memory exceed limits</samba_watchdog_text>
 <sample-size>Sample size</sample-size>
+<Sanesecurity_signatures>Sanesecurity add-on signatures</Sanesecurity_signatures>
+<Sanesecurity_signatures_explain>
+Sanesecurity add-on signatures provide enhanced email/Web security against the following email types:[br]
+Phishing, Spear phishing, Fake lottery, Ecard malware, Casino, Fake jobs, Fake loans, 419s, 
+Fake Diplomas, porn, emailed malware and other general spam.[br]
+SaneSecurity signatures are a culmination of hard work and commitment to provide Third-Party signatures to 
+the web community that are of professional quality</Sanesecurity_signatures_explain>
 <sarg_build_daily_stats>Build daily statistics with SARG</sarg_build_daily_stats>
 <sarg_build_daily_stats_explain>This task can be used only if you have enabled and installed Sarg tool.[br]It designed to generate daily statistics.[br]
 Note: [b]Monthly and weekly statistics are already scheduled[/b].</sarg_build_daily_stats_explain>
@@ -1693,6 +1700,8 @@ If you set it to automatic mode, the SMTP engine will use the MX according the R
 <smtp_from>SMTP From</smtp_from>
 <smtp_password>SMTP Password</smtp_password>
 <smtp_username>SMTP username</smtp_username>
+<snort_scanner>IDS Snort Scanner parser</snort_scanner>
+<snort_scanner_explain>This task is designed to parse IDS snort events in put them into MySQL database</snort_scanner_explain>
 <softdelete_lifetime>Softdelete LifeTime</softdelete_lifetime>
 <softdelete_lifetime_explain>
 Soft Deletes always remain in the database, until they are purged.[br]

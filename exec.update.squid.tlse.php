@@ -168,7 +168,7 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	
 	ufdbguard_admin_events("Extracting $filename for category $categoryname",__FUNCTION__,__FILE__,__LINE__,"update");
 	if(is_dir("/var/lib/ftpunivtlse1fr/$categoryname")){shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");}
-	@mkdir("/var/lib/ftpunivtlse1fr/$categoryname",755,true);
+	@mkdir("/var/lib/ftpunivtlse1fr/$categoryname",0755,true);
 	shell_exec("$tar -xf $cache_temp -C /var/lib/ftpunivtlse1fr/");
 	if(!is_file("/var/lib/ftpunivtlse1fr/$categoryname/domains")){
 		ufdbguard_admin_events("/var/lib/ftpunivtlse1fr/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__,"update");

@@ -1417,7 +1417,7 @@ function public_ip_refresh(){
 function admin_events(){
 	$serialize=base64_decode($_GET["admin-events"]);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/system_admin_events")){@mkdir("/var/log/artica-postfix/system_admin_events",755,true);}
+	if(!is_dir("/var/log/artica-postfix/system_admin_events")){@mkdir("/var/log/artica-postfix/system_admin_events",0755,true);}
 	@file_put_contents("/var/log/artica-postfix/system_admin_events/$md5.log", $serialize);
 }
 function mysqlinfos(){

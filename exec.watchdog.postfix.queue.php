@@ -149,7 +149,7 @@ function postqueue_master($instance="MASTER"){
 	
 	$content=serialize($array);
 	$filename=md5($content);
-	if(!is_dir("/var/log/artica-postfix/postqueue")){@mkdir("/var/log/artica-postfix/postqueue",755,true);}
+	if(!is_dir("/var/log/artica-postfix/postqueue")){@mkdir("/var/log/artica-postfix/postqueue",0755,true);}
 	@file_put_contents("/var/log/artica-postfix/postqueue/$filename.array",$content);
 }
 

@@ -1462,7 +1462,7 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 			@file_put_contents("$root/plugins/globaladdressbook/config.inc.php",$nab_conf);
 			shell_exec("/bin/chmod -R 770 $root/plugins/globaladdressbook");
 			shell_exec("/bin/chmod 660 $root/plugins/globaladdressbook/*.php");
-			chmod("$root/plugins/globaladdressbook/config.inc.php",755);
+			chmod("$root/plugins/globaladdressbook/config.inc.php",0755);
 			
 		}
 	}

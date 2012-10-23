@@ -535,7 +535,7 @@ function fishTank(){
 		return;
 	}		
 	
-	@mkdir("/var/lib/squidguard/phishtank",755,true);
+	@mkdir("/var/lib/squidguard/phishtank",0755,true);
 	$unix=new unix();
 	$gunzip=$unix->find_program("gunzip");
 	$chown=$unix->find_program("chown");

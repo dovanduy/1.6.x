@@ -75,6 +75,7 @@ class system_tasks{
 			$this->tasks_array[51]="{vps_server_watchdog}";
 			$this->tasks_array[52]="{postfixlogger_scanner}";
 			$this->tasks_array[53]="{snort_scanner}";
+			$this->tasks_array[54]="{Sanesecurity_signatures}";
 			
 			
 			$this->tasks_explain_array[1]="{reboot_system_explain}";
@@ -132,6 +133,7 @@ class system_tasks{
 			$this->tasks_explain_array[51]="{vps_server_watchdog_explain}";
 			$this->tasks_explain_array[52]="{postfixlogger_scanner_explain}";
 			$this->tasks_explain_array[53]="{snort_scanner_explain}";
+			$this->tasks_explain_array[54]="{Sanesecurity_signatures_explain}";
 			
 			
 			
@@ -193,6 +195,11 @@ class system_tasks{
 			$this->tasks_processes[51]="exec.vservers.php --watchdog";
 			$this->tasks_processes[52]="exec.postfix-logger.php --postfix";
 			$this->tasks_processes[53]="exec.syslog-engine.php --snort";
+			//ClamaV
+			$this->tasks_processes[54]="exec.scamp.php";
+			
+			
+			
 			$this->DisableTasks();
 	
 	}

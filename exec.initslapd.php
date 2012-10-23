@@ -743,14 +743,25 @@ $f[]="	then";
 $f[]="		PID=`$pidofbin \$SLAPD_BIN`";
 $f[]="		message \"info\" \"[INFO] pidof:\$PID\"";
 $f[]="	fi";
+
+$f[]="LEN=\${#PID}";
+$f[]="if [ \$LEN -eq 0 ]";
+$f[]="		then";
+$f[]="		message \"info\" \"[INFO] slapd not running PID is null\"";
+$f[]="		return 1";
+$f[]="	fi";
 $f[]="";
 $f[]="	if [ ! -e /proc/\$PID ]";
+
 $f[]="	then";
-$f[]="		message \"info\" \"[INFO] slapd running PID:\$PID\"";
+$f[]="		message \"info\" \"[INFO] slapd not running\"";
 $f[]="		return 1";
 $f[]="	else";
+$f[]="		message \"info\" \"[INFO] slapd running PID:\$PID\"";
 $f[]="		return 0";
 $f[]="	fi";
+$f[]="	message \"info\" \"[INFO] slapd not running\"";
+$f[]="	return 1";
 $f[]="}";
 $f[]="";
 $f[]="display_status() {";

@@ -184,7 +184,7 @@ function backuptable(){
 	
 	if(!is_numeric($PARAMS["PORT"])){$PARAMS["PORT"]=3306;}
 	$PARAMS["PASS"]=escapeshellarg($PARAMS["PASS"]);
-	@mkdir($PARAMS["PATH"],755,true);
+	@mkdir($PARAMS["PATH"],0755,true);
 	$cmd="$mysqldump --user={$PARAMS["ROOT"]} --password={$PARAMS["PASS"]} --port={$PARAMS["PORT"]} --host={$PARAMS["HOST"]} {$PARAMS["DB"]} {$PARAMS["TABLE"]} > $tfile 2>&1";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	exec($cmd,$results);

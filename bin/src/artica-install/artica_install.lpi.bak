@@ -12,7 +12,7 @@
       <MainUnit Value="0"/>
       <TargetFileExt Value=""/>
       <Title Value="artica-install"/>
-      <ActiveEditorIndexAtStart Value="11"/>
+      <ActiveEditorIndexAtStart Value="20"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -53,8 +53,8 @@
       <Unit2>
         <Filename Value="global_conf.pas"/>
         <UnitName Value="global_conf"/>
-        <CursorPos X="69" Y="3217"/>
-        <TopLine Value="3190"/>
+        <CursorPos X="3" Y="29"/>
+        <TopLine Value="1"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="107"/>
         <Bookmarks Count="1">
@@ -87,8 +87,8 @@
       <Unit5>
         <Filename Value="samba.pas"/>
         <UnitName Value="samba"/>
-        <CursorPos X="1" Y="509"/>
-        <TopLine Value="480"/>
+        <CursorPos X="87" Y="381"/>
+        <TopLine Value="354"/>
         <EditorIndex Value="11"/>
         <UsageCount Value="114"/>
         <Loaded Value="True"/>
@@ -130,8 +130,8 @@
         <Filename Value="clamav.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="clamav"/>
-        <CursorPos X="56" Y="981"/>
-        <TopLine Value="981"/>
+        <CursorPos X="1" Y="492"/>
+        <TopLine Value="465"/>
         <EditorIndex Value="20"/>
         <UsageCount Value="203"/>
         <Loaded Value="True"/>
@@ -1209,124 +1209,124 @@
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="artica_cron.pas"/>
-        <Caret Line="20" Column="69" TopLine="1"/>
+        <Filename Value="artica_install.pas"/>
+        <Caret Line="1180" Column="29" TopLine="1151"/>
       </Position1>
       <Position2>
-        <Filename Value="global_conf.pas"/>
-        <Caret Line="6" Column="42" TopLine="1"/>
+        <Filename Value="artica_install.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position2>
       <Position3>
         <Filename Value="global_conf.pas"/>
-        <Caret Line="11" Column="154" TopLine="1"/>
+        <Caret Line="3205" Column="47" TopLine="3190"/>
       </Position3>
       <Position4>
-        <Filename Value="global_conf.pas"/>
-        <Caret Line="10" Column="70" TopLine="1"/>
+        <Filename Value="dansguardian.pas"/>
+        <Caret Line="76" Column="29" TopLine="29"/>
       </Position4>
       <Position5>
-        <Filename Value="global_conf.pas"/>
-        <Caret Line="3217" Column="59" TopLine="3190"/>
+        <Filename Value="dansguardian.pas"/>
+        <Caret Line="380" Column="13" TopLine="353"/>
       </Position5>
       <Position6>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="77" Column="33" TopLine="52"/>
+        <Caret Line="520" Column="21" TopLine="493"/>
       </Position6>
       <Position7>
-        <Filename Value="dansguardian.pas"/>
-        <Caret Line="563" Column="18" TopLine="536"/>
-      </Position7>
-      <Position8>
-        <Filename Value="global_conf.pas"/>
-        <Caret Line="3217" Column="60" TopLine="3190"/>
-      </Position8>
-      <Position9>
-        <Filename Value="dansguardian.pas"/>
-        <Caret Line="79" Column="31" TopLine="52"/>
-      </Position9>
-      <Position10>
-        <Filename Value="dansguardian.pas"/>
-        <Caret Line="737" Column="27" TopLine="704"/>
-      </Position10>
-      <Position11>
-        <Filename Value="artica_install.pas"/>
-        <Caret Line="1180" Column="29" TopLine="1151"/>
-      </Position11>
-      <Position12>
-        <Filename Value="artica_install.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position12>
-      <Position13>
-        <Filename Value="global_conf.pas"/>
-        <Caret Line="3205" Column="47" TopLine="3190"/>
-      </Position13>
-      <Position14>
-        <Filename Value="dansguardian.pas"/>
-        <Caret Line="76" Column="29" TopLine="29"/>
-      </Position14>
-      <Position15>
-        <Filename Value="dansguardian.pas"/>
-        <Caret Line="380" Column="13" TopLine="353"/>
-      </Position15>
-      <Position16>
-        <Filename Value="dansguardian.pas"/>
-        <Caret Line="520" Column="21" TopLine="493"/>
-      </Position16>
-      <Position17>
         <Filename Value="class_install.pas"/>
         <Caret Line="897" Column="106" TopLine="888"/>
-      </Position17>
-      <Position18>
+      </Position7>
+      <Position8>
         <Filename Value="class_install.pas"/>
         <Caret Line="1" Column="1" TopLine="1"/>
-      </Position18>
-      <Position19>
+      </Position8>
+      <Position9>
         <Filename Value="class_install.pas"/>
         <Caret Line="13" Column="94" TopLine="1"/>
-      </Position19>
-      <Position20>
+      </Position9>
+      <Position10>
         <Filename Value="class_install.pas"/>
         <Caret Line="628" Column="20" TopLine="601"/>
-      </Position20>
-      <Position21>
+      </Position10>
+      <Position11>
         <Filename Value="class_install.pas"/>
         <Caret Line="1094" Column="34" TopLine="1067"/>
-      </Position21>
-      <Position22>
+      </Position11>
+      <Position12>
         <Filename Value="class_install.pas"/>
         <Caret Line="1104" Column="38" TopLine="1067"/>
-      </Position22>
-      <Position23>
+      </Position12>
+      <Position13>
         <Filename Value="ufdbguardd.pas"/>
         <Caret Line="275" Column="87" TopLine="238"/>
-      </Position23>
-      <Position24>
+      </Position13>
+      <Position14>
         <Filename Value="samba.pas"/>
         <Caret Line="61" Column="26" TopLine="57"/>
-      </Position24>
-      <Position25>
-        <Filename Value="samba.pas"/>
-        <Caret Line="507" Column="40" TopLine="1899"/>
-      </Position25>
-      <Position26>
+      </Position14>
+      <Position15>
         <Filename Value="samba.pas"/>
         <Caret Line="1" Column="1" TopLine="1"/>
-      </Position26>
-      <Position27>
+      </Position15>
+      <Position16>
         <Filename Value="samba.pas"/>
         <Caret Line="361" Column="30" TopLine="333"/>
-      </Position27>
-      <Position28>
+      </Position16>
+      <Position17>
         <Filename Value="samba.pas"/>
         <Caret Line="1" Column="1" TopLine="1"/>
-      </Position28>
-      <Position29>
+      </Position17>
+      <Position18>
         <Filename Value="samba.pas"/>
         <Caret Line="120" Column="16" TopLine="93"/>
-      </Position29>
-      <Position30>
+      </Position18>
+      <Position19>
         <Filename Value="samba.pas"/>
         <Caret Line="239" Column="9" TopLine="212"/>
+      </Position19>
+      <Position20>
+        <Filename Value="samba.pas"/>
+        <Caret Line="499" Column="133" TopLine="480"/>
+      </Position20>
+      <Position21>
+        <Filename Value="samba.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position21>
+      <Position22>
+        <Filename Value="global_conf.pas"/>
+        <Caret Line="3217" Column="69" TopLine="3190"/>
+      </Position22>
+      <Position23>
+        <Filename Value="global_conf.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position23>
+      <Position24>
+        <Filename Value="global_conf.pas"/>
+        <Caret Line="29" Column="3" TopLine="1"/>
+      </Position24>
+      <Position25>
+        <Filename Value="clamav.pas"/>
+        <Caret Line="26" Column="56" TopLine="1"/>
+      </Position25>
+      <Position26>
+        <Filename Value="clamav.pas"/>
+        <Caret Line="71" Column="20" TopLine="44"/>
+      </Position26>
+      <Position27>
+        <Filename Value="clamav.pas"/>
+        <Caret Line="492" Column="15" TopLine="465"/>
+      </Position27>
+      <Position28>
+        <Filename Value="clamav.pas"/>
+        <Caret Line="1630" Column="140" TopLine="1619"/>
+      </Position28>
+      <Position29>
+        <Filename Value="clamav.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position29>
+      <Position30>
+        <Filename Value="clamav.pas"/>
+        <Caret Line="71" Column="1" TopLine="44"/>
       </Position30>
     </JumpHistory>
   </ProjectOptions>

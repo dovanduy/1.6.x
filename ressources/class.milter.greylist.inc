@@ -722,7 +722,7 @@ function BuildConfig(){
 			if($GLOBALS["ROOT"]){
 				$unix=new unix();
 				$php5=$unix->LOCATE_PHP5_BIN();
-				@mkdir("/var/log/milter-greylist",777,true);
+				@mkdir("/var/log/milter-greylist",0777,true);
 				$conf=$conf."stat \"|logger -t milter-greylist -p mail.info\" \"MGREYSTATS:$this->hostname,%i,%f,%r,%a,%A,%S,%C\\n\"";
 				$conf=$conf ."\n";
 			}

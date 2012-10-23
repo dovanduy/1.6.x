@@ -68,7 +68,7 @@ public
     procedure CLAMD_RELOAD();
 
     function  CLAMD_WRITE_CONF():boolean;
-    PROCEDURE SCAMP_CONF();
+
 
 
     function  CLAMAV_INITD():string;
@@ -489,7 +489,7 @@ begin
          logs.Debuglogs('Starting......: clamav daemon Configuration....:"'+CLAMD_CONF_PATH()+'"');
          logs.Debuglogs('Starting......: clamav daemon DatabaseDirectory:"'+DatabaseDirectory+'"');
          sleep(100);
-         SCAMP_CONF();
+
 
 
          aa_complain:=SYS.LOCATE_GENERIC_BIN('aa-complain');
@@ -648,67 +648,6 @@ logs.WriteToFile(l.Text,'/etc/clamav-unofficial-sigs.conf');
 logs.Debuglogs('Starting......: clamav-unofficial-sigs.conf done...');
 end;
 
-
-PROCEDURE Tclamav.SCAMP_CONF();
-var
-   l:Tstringlist;
-   DatabaseDirectory,PidFile,user:string;
-begin
-DatabaseDirectory:=CLAMD_GETINFO('DatabaseDirectory');
-PidFile:=CLAMD_GETINFO('PidFile');
-l:=TstringList.create;
-if fileExists(postfix.POSFTIX_POSTCONF_PATH()) then begin
-   user:='postfix';
-end else begin
-   user:='clamav';
-end;
-
-
-L.Add('Config_Version {');
-L.Add('Config_Ver=3');
-L.Add('}');
-L.Add('default {');
-L.Add('SIG_DB='+DatabaseDirectory);
-L.Add('T_DIR=${SIG_DB}/tmp');
-L.Add('MSR_DIR=${T_DIR}/msr');
-L.Add('SI_DIR=${T_DIR}/securite');
-L.Add('MW_DIR=${T_DIR}/malware');
-L.Add('C_GROUP=postfix');
-L.Add('C_PID='+PidFile);
-L.Add('REST=0');
-L.Add('C_USER='+user);
-L.Add('get_malware=1');
-L.Add('get_msrbl=1');
-L.Add('get_sane=1');
-L.Add('get_securite=1');
-L.Add('gpg_key_url=http://www.sanesecurity.net/publickey.gpg');
-L.Add('MSRBL=rsync://rsync.mirror.msrbl.com/msrbl/');
-L.Add('MW_FILE=mbl.db');
-L.Add('MW_URL=http://www.malware.com.br/cgi/submit-agressive?action=list_clamav''&''type=agressive');
-L.Add('GET_LDB=1');
-L.Add('RELOAD=1');
-L.Add('SANE=rsync://rsync.sanesecurity.net/sanesecurity');
-L.Add('SANE_DB=${T_DIR}/sane');
-L.Add('SI_URL1=http://clamav.securiteinfo.com/vx.hdb.gz');
-L.Add('SI_URL2=http://clamav.securiteinfo.com/honeynet.hdb.gz');
-L.Add('SI_URL3=http://clamav.securiteinfo.com/securiteinfo.hdb.gz');
-L.Add('SI_URL4=http://clamav.securiteinfo.com/antispam.ndb.gz');
-L.Add('SI_URL=$SI_URL1" "$SI_URL2" "$SI_URL3" "$SI_URL4');
-L.Add('msrbl_Images=MSRBL-Images.hdb');
-L.Add('msrbl_SPAM_CR=MSRBL-SPAM-CR.ndb');
-L.Add('msrbl_SPAM=MSRBL-SPAM.ndb');
-L.Add('W_SUM=1');
-L.Add('MK_LOG=1');
-L.Add('}');
-try
-   l.SaveToFile('/etc/scamp.conf');
-except
-      logs.Syslogs('Tclamav.SCAMP_CONF():: unable to save /etc/scamp.conf file')
-end;
-
-l.free;
-end;
-//##############################################################################
 
 
 FUNCTION TClamav.CLAMAV_STATUS():string;

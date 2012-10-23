@@ -443,31 +443,46 @@ function __re_categorize_subtables($oldT1=0){
 
 
 function scan_hours($nopid=false){
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+	$timefile="/etc/artica-postfix/pids/scan_hours.time";	
+	
 	if(!$GLOBALS["FORCE"]){
 		if(system_is_overloaded(basename(__FILE__))){
+			$oldpid=@file_get_contents($pidfile);
+			$unix=new unix();
+			if($unix->process_exists($oldpid)){
+				$kill=$unix->find_program("kill");
+				shell_exec("$kill -9 $oldpid >/dev/null");
+			}
 			writelogs_squid("Fatal, Overloaded system, aborting task",__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}
 	}
 	
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-	$timefile="/etc/artica-postfix/pids/scan_hours.time";
-	@file_put_contents($timefile, time());
+
+
 	
 	if(!$nopid){
 		$oldpid=@file_get_contents($pidfile);
 		$unix=new unix();
 		if($unix->process_exists($oldpid)){
-			writelogs_squid("Fatal, already executed $oldpid, aborting task",__FUNCTION__,__FILE__,__LINE__);
-			return;
+			$ttl=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($ttl>120){
+				writelogs_squid("Fatal, Executed $oldpid more than 120mn {$ttl}mn, killing task",__FUNCTION__,__FILE__,__LINE__);
+				$kill=$unix->find_program("kill");
+				shell_exec("$kill -9 $oldpid >/dev/null");
+			}else{
+				writelogs_squid("Fatal, Executed $oldpid since {$ttl}mn, aborting task",__FUNCTION__,__FILE__,__LINE__);
+				return;
+			}
 		}
 	}
+	
+	@file_put_contents($timefile, time());
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	$GLOBALS["Q"]->FixTables();
 	$unix=new unix();
-	$php5=$unix->LOCATE_PHP5_BIN();
-	shell_exec("$php5 /usr/share/artica-postfix/exec.fcron.php --squid-recategorize-task &");
 	nodes_scan();
 	table_hours();
 	table_days();
@@ -533,6 +548,11 @@ function flow_month($nopid=false){
 
 
 function visited_websites_by_day($nopid=false){
+	if(isset($GLOBALS["visited_websites_by_day_executed"])){
+		if($GLOBALS["VERBOSE"]){echo "visited_websites_by_day():: Already executed, aborting\n";}
+		return true;
+	}
+	$GLOBALS["visited_websites_by_day_executed"]=true;
 	$unix=new unix();
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -563,16 +583,17 @@ function visited_websites_by_day($nopid=false){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$tableDest=$ligne["suffix"]."_visited";
 		$tableSource=$ligne["suffix"]."_hour";
-		
+		if($GLOBALS["VERBOSE"]){echo "visited_websites_by_day():: $tableDest -> $tableSource ($countWorks)\n";}
 		if(!$GLOBALS["Q"]->CreateVisitedDayTable($tableDest)){
 			ufdbguard_admin_events("Fatal while creating  $tableDest table with error {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");
 			return;
 		}
 		
 		if(!$GLOBALS["Q"]->TABLE_EXISTS($tableSource)){
-			ufdbguard_admin_events("Fatal while filling  $tableDest table $tableSource no such table",__FUNCTION__,__FILE__,__LINE__,"stats");
+			ufdbguard_admin_events("$c] Fatal while filling  $tableDest table $tableSource no such table",__FUNCTION__,__FILE__,__LINE__,"stats");
 			continue;
 		}
+		
 		$c++; 
 		if(visited_websites_by_day_perform($tableSource,$tableDest)){
 			$GLOBALS["Q"]->QUERY_SQL("UPDATE tables_day SET visited_day=1 WHERE tablename='{$ligne["tablename"]}'");
@@ -938,6 +959,11 @@ function _members_hours_perfom($tabledata,$nexttable){
 
 
 function clients_hours($nopid=false){
+	if(isset($GLOBALS["clients_hours_executed"])){
+		if($GLOBALS["VERBOSE"]){echo "clients_hours():: Already executed\n";}
+		return true;
+	}
+	$GLOBALS["clients_hours_executed"]=true;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
 	if(!$nopid){
@@ -946,7 +972,7 @@ function clients_hours($nopid=false){
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);		
 	}
-	
+	if($GLOBALS["VERBOSE"]){echo "clients_hours()::  -> table_days()\n";}
 	table_days();
 	$currenttable="dansguardian_events_".date('Ymd');
 	$next_table=date('Ymd')."_hour";
@@ -960,7 +986,10 @@ function clients_hours($nopid=false){
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){events_tail("$q->mysql_error");return;}
 	$num_rows = mysql_num_rows($results);
-	if($num_rows==0){if($GLOBALS["VERBOSE"]){echo "No datas ". __FUNCTION__." ".__LINE__."\n";}return;}
+	if($num_rows==0){
+		if($GLOBALS["VERBOSE"]){echo "clients_hours():: No datas ". __FUNCTION__." ".__LINE__."\n";}
+		return;
+	}
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$next_table=$ligne["suffix"]."_hour";
@@ -976,6 +1005,13 @@ function _clients_hours_perfom($tabledata,$nexttable){
 $filter_hour=null;	
 $filter_hour_1=null;
 $filter_hour_2=null;
+if(isset($GLOBALS["$tabledata$nexttable"])){
+	if($GLOBALS["VERBOSE"]){echo "$tabledata -> $nexttable already executed, return true\n";}
+	return true;
+}
+
+$GLOBALS["$tabledata$nexttable"]=true;
+
 $GLOBALS["Q"]->CreateHourTable($nexttable);
 $todaytable=date('Ymd')."_hour";
 $CloseTable=true;
@@ -987,14 +1023,23 @@ if($nexttable==$todaytable){
 	$CloseTable=false;
 }
 
+if(!$CloseTable){
+	if($GLOBALS["VERBOSE"]){echo "Ordered to not close table `$nexttable` == `$todaytable`...\n";}
+}
+
 $sql="SELECT hour FROM $nexttable ORDER BY hour DESC LIMIT 0,1";
 $ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL($sql));
 if(!is_numeric($ligne["hour"])){$ligne["hour"]=-1;}
 events_tail("processing  $tabledata Last hour >{$ligne["hour"]}h");
-$filter_hour_2=" AND HOUR>{$ligne["hour"]}";
+$filter_hour_2=null;
 
 
 events_tail("Processing $tabledata -> $nexttable  (today is $todaytable) filter:'$filter_hour_2' in line ".__LINE__);
+if(!$GLOBALS["Q"]->TABLE_EXISTS($tabledata)){
+	events_tail("Create $tabledata in line ".__LINE__);
+	$GLOBALS["Q"]->CheckTables($tabledata);
+	return true;
+}
 
 $sql="SELECT SUM( QuerySize ) AS QuerySize, SUM(hits) as hits,cached, HOUR( zDate ) AS HOUR , CLIENT, Country, uid, sitename,MAC,hostname,account
 FROM $tabledata
@@ -1490,7 +1535,7 @@ function _members_central_perform($tablesource,$date){
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if(strlen($ligne["uid"])>1){
-			$GLOBALS["Q"]->QUERY_SQL("UPDATE UserAuthDays SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGHT(uid)<2");
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE UserAuthDays SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGTH(uid)<2");
 		}
 	}			
 	
@@ -1910,7 +1955,7 @@ function _table_hours_perform($tablename){
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if(strlen($ligne["uid"])>1){
-			$GLOBALS["Q"]->QUERY_SQL("UPDATE $dansguardian_table SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGHT(uid)<2");
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE $dansguardian_table SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGTH(uid)<2");
 		}
 		
 	}
@@ -2029,7 +2074,7 @@ function _week_uris_perform($tablesource,$week_table,$DAYOFWEEK){
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if(strlen($ligne["uid"])>1){
-			$GLOBALS["Q"]->QUERY_SQL("UPDATE $week_table SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGHT(uid)<2");
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE $week_table SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGTH(uid)<2");
 		}
 	}	
 	
@@ -2127,7 +2172,10 @@ function _week_uris_blocked_perform($tablesource,$week_table,$DAYOFWEEK){
 		ufdbguard_admin_events("Alter table $week_table (create new `account` field)",__FUNCTION__,__FILE__,__LINE__,"stats");
 		$GLOBALS["Q"]->QUERY_SQL("ALTER TABLE `$week_table` ADD `account` BIGINT(100) NOT NULL ,ADD INDEX ( `account` )");
 	}
-	
+	if(!$GLOBALS["Q"]->FIELD_EXISTS($week_table, "MAC")){
+		ufdbguard_admin_events("Alter table $week_table (create new `MAC` field)",__FUNCTION__,__FILE__,__LINE__,"stats");
+		$GLOBALS["Q"]->QUERY_SQL("ALTER TABLE `$week_table` ADD `MAC` VARCHAR(20) NOT NULL ,ADD INDEX ( `MAC` )");
+	}	
 	
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -2164,7 +2212,7 @@ function _week_uris_blocked_perform($tablesource,$week_table,$DAYOFWEEK){
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if(strlen($ligne["uid"])>1){
-			$GLOBALS["Q"]->QUERY_SQL("UPDATE $week_table SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGHT(uid)<2");
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE $week_table SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGTH(uid)<2");
 		}
 	}	
 	

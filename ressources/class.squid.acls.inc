@@ -37,7 +37,7 @@ class squid_acls{
 	
 	private function Build_Acls_Groups(){
 		$q=new mysql_squid_builder();
-		@mkdir("/etc/squid3/acls",755,true);
+		@mkdir("/etc/squid3/acls",0755,true);
 		$sql="SELECT ID,GroupName,GroupType FROM webfilters_sqgroups WHERE enabled=1";
 		$results = $q->QUERY_SQL($sql);
 		$ReturnFirstValue=false;
@@ -357,9 +357,9 @@ class squid_acls{
 		if(!isset($array["EXPLAIN"])){$array["EXPLAIN"]="Your are not allowed to acces to internet at this time";}
 		if(!isset($array["REASON"])){$array["REASON"]="Surfing to internet banned";}	
 		
-		@mkdir("/usr/share/squid-langpack/en",755,true);
-		if(!is_dir("/usr/share/squid-langpack/en/templates")){@mkdir("/usr/share/squid-langpack/en/templates",755,true);}
-		if(!is_dir("/usr/share/squid3/errors/templates")){@mkdir("/usr/share/squid3/errors/templates",755,true);}
+		@mkdir("/usr/share/squid-langpack/en",0755,true);
+		if(!is_dir("/usr/share/squid-langpack/en/templates")){@mkdir("/usr/share/squid-langpack/en/templates",0755,true);}
+		if(!is_dir("/usr/share/squid3/errors/templates")){@mkdir("/usr/share/squid3/errors/templates",0755,true);}
 		
 		$content="<table class=\"w100 h100\">
 		<tr>

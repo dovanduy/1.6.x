@@ -222,7 +222,7 @@ class compile_ufdbguard{
 		}
 		
 		while (list ($ruleid, $patternsArray) = each ($mainArray)){
-			@mkdir("$main_path/RegexRule$ruleid",755,true);
+			@mkdir("$main_path/RegexRule$ruleid",0755,true);
 			echo "Starting......: ufdbGuard Rule:$ruleid -> ". count($patternsArray)." expressions rules\n";
 			
 			
@@ -323,7 +323,7 @@ class compile_ufdbguard{
 		}
 		$f=array();
 		while (list ($ruleid, $exts) = each ($banned)){
-			@mkdir("$main_path/FileBlock{$ligne["ruleid"]}",755,true);
+			@mkdir("$main_path/FileBlock{$ligne["ruleid"]}",0755,true);
 			$pattern=@implode("|", $exts);
 			@file_put_contents("$main_path/FileBlock{$ligne["ruleid"]}/expressions", "(.*\/.*\.($pattern))$");
 			$f[]="category \"FileBlock{$ruleid}\"{";
@@ -352,7 +352,7 @@ class compile_ufdbguard{
 		}
 		$f=array();
 		while (list ($ruleid, $exts) = each ($banned)){
-			@mkdir("$main_path/DomExtBlock{$ligne["ruleid"]}",755,true);
+			@mkdir("$main_path/DomExtBlock{$ligne["ruleid"]}",0755,true);
 			$pattern=@implode("\n", $exts);
 			@file_put_contents("$main_path/DomExtBlock{$ligne["ruleid"]}/expressions", $pattern);
 			$f[]="category \"DomExtBlock{$ruleid}\"{";
@@ -843,7 +843,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 			
 		$array[]="\ncategory checked{";
 		$array[]="domainlist	checked/domains";
-		@mkdir("/var/lib/squidguard/checked",755,true);
+		@mkdir("/var/lib/squidguard/checked",0755,true);
 		$array[]="}\n";
 	
 		return @implode("\n", $array);
@@ -1311,15 +1311,15 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 			$fake[]=md5(time()+1).".biz";
 			$fake[]=md5(time()+2).".biz";
 			$fake[]=md5(time()+3).".biz";
-			@mkdir($main_path,755,true);
+			@mkdir($main_path,0755,true);
 			@file_put_contents("$main_path/domains", @implode("\n", $fake));
 			if(!is_file("$main_path/urls")){shell_exec("/bin/touch $main_path/urls");}
 			$this->UfdbGenTable($main_path,$category);
 			return;
 		}
 		
-		@mkdir("/tmp/$tablename",777,true);
-		shell_exec("$chmod 777 /tmp/$tablename");
+		@mkdir("/tmp/$tablename",0777,true);
+		shell_exec("$chmod 0777 /tmp/$tablename");
 		$q=new mysql_squid_builder();
 		$badDomains[""]=true;
 		$badDomains["com"]=true;
@@ -1345,16 +1345,24 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 		
 		//$sql="SELECT * FROM `$tablename` WHERE enabled=1";
+		@mkdir("/tmp/$tablename",0777,true);
+		$chmod=$unix->find_program("chmod");
+		shell_exec("$chmod 0777 /tmp");
+		shell_exec("$chmod 0777 /tmp/$tablename");		
+		
 		$sql="SELECT pattern FROM $tablename WHERE enabled=1 ORDER BY pattern INTO OUTFILE '/tmp/$tablename/domains' LINES TERMINATED BY '\n';";
 		
 		$q->QUERY_SQL($sql);
 		$mysqlquerry_took=$unix->distanceOfTimeInWords($t1,time(),true);
 		$writetodisk_took=$unix->distanceOfTimeInWords($t1,time(),true);
 		if(!$q->ok){
-			ufdbguard_admin_events("MySQL error `$q->mysql_error` aborting",__FUNCTION__,__FILE__,__LINE__,"$categorySource");
+			if(preg_match("#writing file '(.*?)'#",$q->mysql_error,$re)){$df=$unix->find_program("df");exec("$df -h ".dirname($re[1]),$dfh);}
+			ufdbguard_admin_events("MySQL error `$q->mysql_error` aborting\n".@implode("\n",$dfh),__FUNCTION__,__FILE__,__LINE__,"$categorySource");
 			if($GLOBALS["OUPUT"]){echo "Starting......: ufdbGuard Failed to compile $categorySource $q->mysql_error\n";}
 			ufdbguard_admin_events("Failed to compile $categorySource $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"compile");
-			echo $q->mysql_error."\n";return ;
+			echo $q->mysql_error."\n";
+			@unlink("/tmp/$tablename/domains");
+			return ;
 		}
 		
 		
@@ -1377,13 +1385,20 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		if(isset($GLOBALS["PHISHING_COMPILED"])){return;}
 		$unix=new unix();
 		$main_path="/var/lib/squidguard/phishing";
-		@mkdir("/tmp/phishing_uris");
+		@mkdir("/tmp/phishing_uris",0777,true);
 		$chmod=$unix->find_program("chmod");
-		shell_exec("$chmod 777 /tmp/phishing_uris");
+		shell_exec("$chmod 0777 /tmp");
+		shell_exec("$chmod 0777 /tmp/phishing_uris");
 		$sql="SELECT uri FROM uris_phishing INTO OUTFILE '/tmp/phishing_uris/urls' LINES TERMINATED BY '\n';";
 		$q=new mysql_squid_builder();
 		$q->QUERY_SQL($sql);
-		if(!$q->ok){echo $q->mysql_error."\n";}
+		if(!$q->ok){
+			if(preg_match("#writing file '(.*?)'#",$q->mysql_error,$re)){$df=$unix->find_program("df");exec("$df -h ".dirname($re[1]),$dfh);}
+			ufdbguard_admin_events("$q->mysql_error\n".@implode("\n", $dfh),__FUNCTION__,__FILE__,__LINE__,"compile");
+			echo $q->mysql_error."\n";
+			@unlink("/tmp/phishing_uris/urls");
+			return;
+		}
 		@copy("/tmp/phishing_uris/urls", "$main_path/urls");
 		@unlink("/tmp/phishing_uris/urls");
 		$GLOBALS["PHISHING_COMPILED"]=true;
@@ -1395,11 +1410,17 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$main_path="/var/lib/squidguard/malware";
 		@mkdir("/tmp/phishing_uris");
 		$chmod=$unix->find_program("chmod");
-		shell_exec("$chmod 777 /tmp/phishing_uris");
+		@mkdir("/tmp/phishing_uris",0777,true);
+		shell_exec("$chmod 0777 /tmp");
+		shell_exec("$chmod 0777 /tmp/phishing_uris");		
 		$sql="SELECT uri FROM uris_phishing INTO OUTFILE '/tmp/phishing_uris/urls' LINES TERMINATED BY '\n';";
 		$q=new mysql_squid_builder();
 		$q->QUERY_SQL($sql);
-		if(!$q->ok){echo $q->mysql_error."\n";}
+		if(!$q->ok){
+			echo $q->mysql_error."\n";
+			@unlink("/tmp/phishing_uris/urls");
+			return;
+		}
 		@copy("/tmp/phishing_uris/urls", "$main_path/urls");
 		@unlink("/tmp/phishing_uris/urls");
 		$GLOBALS["MALWARE_COMPILED"]=true;

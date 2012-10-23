@@ -4705,7 +4705,7 @@ function cyrus_rebuild_all_mailboxes(){
 	$f="/usr/share/artica-postfix/ressources/logs/web/". md5($_GET["cyrus-rebuild-all-mailboxes"])."-mailboxes-rebuilded.log";
 	@unlink("$f");
 	@file_put_contents($f,"");
-	@chmod($f,755);
+	@chmod($f,0755);
 	NOHUP_EXEC(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.cyrus-restore.php --rebuildmailboxes {$_GET["cyrus-rebuild-all-mailboxes"]}");
 	
 }

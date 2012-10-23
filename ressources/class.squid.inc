@@ -315,7 +315,7 @@ class squidbee{
 		for($i=0;$i<$this->CPU_NUMBER;$i++){
 			$f[]="cache_dir rock $RockStoreDirectory-$i $RockStoreSize max-size=32768"; 
 			if(!is_dir($RockStoreDirectory-$i)){
-				@mkdir("$RockStoreDirectory-$i",755,true);
+				@mkdir("$RockStoreDirectory-$i",0755,true);
 				shell_exec("/bin/chown squid:squid $RockStoreDirectory-$i");
 				$MustAddCaches=true;
 			}
@@ -323,7 +323,7 @@ class squidbee{
 		}
 		
 		if(!is_dir($RockStoreDirectory)){
-			@mkdir("$RockStoreDirectory",755,true);
+			@mkdir("$RockStoreDirectory",0755,true);
 			$MustAddCaches=true;
 		}
 

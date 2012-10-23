@@ -116,7 +116,7 @@ class roundcube_freewebs{
 	
 	
 	public function build(){
-		if(!is_dir($this->www_dir)){@mkdir($this->www_dir,755,true);}
+		if(!is_dir($this->www_dir)){@mkdir($this->www_dir,0755,true);}
 		
 		if(!is_dir("/usr/share/roundcube")){
 			writelogs("[$this->servername] /usr/share/roundcube no such directory",__FUNCTION__,__FILE__,__LINE__);

@@ -2376,3 +2376,12 @@ We suggest to upgrade this server to a coporate licensed server</onlycorpavailab
 <file_descriptors_squid_explain>Generally, a file descriptor is an index for an entry in a kernel-resident data structure containing the details of all open file.[br]
 This value limit the proxy to not open file more than the specified value.</file_descriptors_squid_explain>
 <display_performance_status>Display performances status</display_performance_status>
+<Sanesecurity_signatures>Sanesecurity add-on signatures</Sanesecurity_signatures>
+<Sanesecurity_signatures_explain>
+Sanesecurity add-on signatures provide enhanced email/Web security against the following email types:[br]
+Phishing, Spear phishing, Fake lottery, Ecard malware, Casino, Fake jobs, Fake loans, 419s, 
+Fake Diplomas, porn, emailed malware and other general spam.[br]
+SaneSecurity signatures are a culmination of hard work and commitment to provide Third-Party signatures to 
+the web community that are of professional quality</Sanesecurity_signatures_explain>
+<snort_scanner>IDS Snort Scanner parser</snort_scanner>
+<snort_scanner_explain>This task is designed to parse IDS snort events in put them into MySQL database</snort_scanner_explain>

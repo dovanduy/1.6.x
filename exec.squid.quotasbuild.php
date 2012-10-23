@@ -67,7 +67,11 @@ while ($ligne = mysql_fetch_assoc($results)) {
 
 if(count($array)==0){@unlink($file_duration);}else{@file_put_contents($file_duration, serialize($array));}
 $table="UserSizeD_".date("Ymd");
-if(!$q->TABLE_EXISTS($table)){shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build-schedules >/dev/null 2>&1 &");}
+
+if(!$q->TABLE_EXISTS($table)){
+	$q->CreateUserSizeRTT_day($table);
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build-schedules >/dev/null 2>&1 &");
+}
 shell_exec("$php5 /usr/share/artica-postfix/exec.squid.stats.php --users-size >/dev/null 2>&1");
 $sql="SELECT uid,ipaddr,hostname,account,MAC,SUM(size) as size FROM `$table` GROUP BY uid,ipaddr,hostname,account,MAC";
 $results = $q->QUERY_SQL($sql);	

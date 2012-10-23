@@ -54,10 +54,10 @@ class cyrus_maillog{
 			$fileTime="/etc/artica-postfix/croned.1/". md5($re[1]).".No.such.file.or.directory";
 			$ftime=file_time_min($fileTime);
 			if($ftime>5){
-				@mkdir(dirname($re[1]),775,true);
+				@mkdir(dirname($re[1]),0775,true);
 				$buffer="Artica has detected a fatal error on cyrus\n$buffer\nthe ".basename($re[1]) . " file will be created";
 				$this->email_events("Cyrus missing file error on ".basename($re[1]),$buffer,"mailbox");
-				@mkdir(dirname($re[1]),755,true);
+				@mkdir(dirname($re[1]),0755,true);
 				@file_put_contents($re[1], "\n");
 				$cmd="{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["CHOWN"]} -R cyrus:mail ".dirname($re[1])." >/dev/null 2>&1 &";
 				$this->events($cmd);
@@ -304,7 +304,7 @@ class cyrus_maillog{
 			$unix=new unix();
 			$GLOBALS["TOUCH_PATH"]=$unix->find_program("touch");
 		}
-		@mkdir(dirname($file),775,true);
+		@mkdir(dirname($file),0775,true);
 		$this->events("cyrus_sieve_error():: /bin/touch \"$file\"");
 		shell_exec("/bin/touch \"$file\" &");
 	}	

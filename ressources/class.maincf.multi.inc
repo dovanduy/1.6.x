@@ -3092,8 +3092,8 @@ private function smtp_sasl_password_map(){
 			$conf[]="";			
 			
 			if($GLOBALS["AS_ROOT"]){
-				@mkdir("/var/log/artica-adv",755,true);
-				@mkdir("/var/spool/artica-adv",755,true);
+				@mkdir("/var/log/artica-adv",0755,true);
+				@mkdir("/var/spool/artica-adv",0755,true);
 				@chown("/var/log/artica-adv", $GLOBALS["WWW-USER"]);
 				@chown("/var/spool/artica-adv", $GLOBALS["WWW-USER"]);
 				

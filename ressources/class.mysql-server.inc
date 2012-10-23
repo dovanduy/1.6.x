@@ -801,7 +801,7 @@ class mysqlserver{
 			
 			
 			if(!is_dir($ligne["Dir"])){
-				@mkdir($ligne["Dir"],755,true);
+				@mkdir($ligne["Dir"],0755,true);
 				shell_exec("$chown mysql:mysql {$ligne["Dir"]} >/dev/null 2>&1");
 				echo "Starting......: [Note] Mysql Installing databases in {$ligne["Dir"]}\n";
 				if($GLOBALS["VERBOSE"]){echo "Starting......: Mysql $mysql_install_db_cmds\n";}

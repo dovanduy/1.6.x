@@ -1021,8 +1021,9 @@ public function CheckTables($table=null){
 			  `zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			  `client` varchar(90) NOT NULL,
 			  `hostname` varchar(120) NOT NULL,
-			 `account` BIGINT(100) NOT NULL,
+			  `account` BIGINT(100) NOT NULL,
 			  `website` varchar(125) NOT NULL,
+			  `MAC` varchar(20) NOT NULL,
 			  `category` varchar(50) NOT NULL,
 			  `rulename` varchar(50) NOT NULL,
 			  `public_ip` varchar(40) NOT NULL,
@@ -1034,6 +1035,7 @@ public function CheckTables($table=null){
 			  PRIMARY KEY (`ID`),
 			  KEY `zDate` (`zDate`),
 			  KEY `client` (`client`),
+			  KEY `MAC` (`MAC`),
 			  KEY `hostname` (`hostname`),
 			  KEY `account` (`account`),
 			  KEY `website` (`website`),
@@ -1066,6 +1068,7 @@ public function CheckTables($table=null){
 			`zDate` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
 			`client` VARCHAR( 90 ) NOT NULL ,
 			`hostname` VARCHAR( 120 ) NOT NULL ,
+			`MAC` VARCHAR( 20 ) NOT NULL ,
 			`account` BIGINT(100) NOT NULL ,
 			`website` VARCHAR( 125 ) NOT NULL ,
 			`category` VARCHAR( 50 ) NOT NULL ,
@@ -1079,6 +1082,7 @@ public function CheckTables($table=null){
 			KEY `website` (`website`),
 			KEY `category` (`category`),
 			KEY `rulename` (`rulename`),
+			KEY `MAC` (`MAC`),
 			KEY `public_ip` (`public_ip`)
 			
 			)"; 
@@ -1095,7 +1099,9 @@ public function CheckTables($table=null){
 		}
 
 		if(!$this->FIELD_EXISTS("$tableblockMonth", "hostname")){$this->QUERY_SQL("ALTER TABLE `$tableblockMonth` ADD `hostname` VARCHAR( 120 ) NOT NULL ,ADD INDEX ( `hostname` )");}
+		if(!$this->FIELD_EXISTS("$tableblockMonth", "MAC")){$this->QUERY_SQL("ALTER TABLE `$tableblockMonth` ADD `MAC` VARCHAR( 20 ) NOT NULL ,ADD INDEX ( `MAC` )");}
 		if(!$this->FIELD_EXISTS("$tableblockMonth", "account")){$this->QUERY_SQL("ALTER TABLE `$tableblockMonth` ADD `account` BIGINT(100) NOT NULL ,ADD INDEX ( `account` )");}
+		
 		
 			
 		if($this->TABLE_EXISTS("webfilters_schedules",$this->database)){
@@ -3031,6 +3037,7 @@ private function CategoriesFamily($www){
 			  `hits` BIGINT(100) NOT NULL ,
 			  `client` varchar(90) NOT NULL,
 			  `hostname` varchar(120) NOT NULL,
+			  `MAC` varchar(20) NOT NULL,
 			  `account` BIGINT(100) NOT NULL,
 			  `website` varchar(125) NOT NULL,
 			  `category` varchar(50) NOT NULL,
@@ -3043,6 +3050,7 @@ private function CategoriesFamily($www){
 			  KEY `day` (`day`),
 			  KEY `client` (`client`),
 			  KEY `hostname` (`hostname`),
+			  KEY `MAC` (`MAC`),
 			  KEY `account` (`account`),
 			  KEY `website` (`website`),
 			  KEY `category` (`category`),
@@ -3059,6 +3067,7 @@ private function CategoriesFamily($www){
 			}
 
 		}		
+		if(!$this->FIELD_EXISTS("$tableblock", "MAC")){$this->QUERY_SQL("ALTER TABLE `$tableblock` ADD `MAC` VARCHAR( 20 ) NOT NULL ,ADD INDEX ( `MAC` )");}
 		return true;
 	
 	}

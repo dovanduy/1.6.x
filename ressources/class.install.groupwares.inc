@@ -267,7 +267,7 @@ private function ROUNDCUBE_INSTALL(){
 			@file_put_contents("$this->root/plugins/globaladdressbook/config.inc.php",$nab_conf);
 			shell_exec("/bin/chmod -R 770 $this->root/plugins/globaladdressbook");
 			shell_exec("/bin/chmod 660 $this->root/plugins/globaladdressbook/*.php");
-			chmod("$this->root/plugins/globaladdressbook/config.inc.php",755);
+			chmod("$this->root/plugins/globaladdressbook/config.inc.php",0755);
 			
 		}
 	}

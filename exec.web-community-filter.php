@@ -609,7 +609,7 @@ function WriteCategory($category){
 	@mkdir("/etc/dansguardian/lists/blacklist-artica/$category",0755,true);
 	@mkdir("/var/lib/squidguard/blacklist-artica/$category",0755,true);
 	
-	if(!is_dir("/var/lib/squidguard/$category")){@mkdir("/var/lib/squidguard/$category",755,true);}
+	if(!is_dir("/var/lib/squidguard/$category")){@mkdir("/var/lib/squidguard/$category",0755,true);}
 	if(!is_dir("/etc/dansguardian/lists/blacklist/$category/urls")){@mkdir("/etc/dansguardian/lists/blacklist/$category/urls",755,true);}
 	if(!is_file("/etc/dansguardian/lists/blacklist/$category/urls")){@file_put_contents("/etc/dansguardian/lists/blacklist/$category/urls","\n");}
 	if(!is_file("/var/lib/squidguard/$category/urls")){@file_put_contents("/var/lib/squidguard/$category/urls","\n");}

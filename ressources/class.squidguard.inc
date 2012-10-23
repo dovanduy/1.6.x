@@ -465,7 +465,7 @@ class squidguard{
 			
 			
 			if(!is_dir("$fileBlock_path")){
-				@mkdir("$fileBlock_path",755,true);
+				@mkdir("$fileBlock_path",0755,true);
 			}
 			
 			if(!is_file("$fileBlock_path/expressions")){@file_put_contents("$fileBlock_path/expressions","");}
@@ -489,7 +489,7 @@ class squidguard{
 		if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "$sql\nError $q->mysql_error\n";}}
 		
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			@mkdir("{$GLOBALS["guarddb"]}/{$ligne["pattern"]}",755,true);
+			@mkdir("{$GLOBALS["guarddb"]}/{$ligne["pattern"]}",0755,true);
 			$addplus="plus-".$this->substrCategory($ligne["pattern"]);
 			$addplus=str_replace("/","-",$addplus);
 			$addplus=str_replace("_","-",$addplus);
@@ -516,7 +516,7 @@ class squidguard{
 			file_put_contents("{$GLOBALS["guarddb"]}/web-filter-plus/BL/{$ligne["pattern"]}/expressions","\n");
 
 			$main_path="{$GLOBALS["guarddb"]}/blacklist-artica/{$ligne["pattern"]}";
-			@mkdir("{$GLOBALS["guarddb"]}/blacklist-artica",755,true);
+			@mkdir("{$GLOBALS["guarddb"]}/blacklist-artica",0755,true);
 			
 			$this->CategoriesDefinitions[$addplus_com][]="\tdomainlist blacklist-artica/{$ligne["pattern"]}/domains";
 			if($this->EnableUfdbGuard<>1){ $this->CategoriesDefinitions[$addplus_com][]="\turllist blacklist-artica/{$ligne["pattern"]}/urls";}
@@ -540,7 +540,7 @@ class squidguard{
 			if($GLOBALS["VERBOSE"]){echo "Default rule personal cat -> \"$category\" (default)\n";}			
 				
 			$main_path="{$GLOBALS["guarddb"]}/personal-categories/$categoryPrint";
-			@mkdir($main_path,755,true);
+			@mkdir($main_path,0755,true);
 			
 			echo "Starting......: squidGuard Personal category $category ($categoryPrint) for Default rule\n";
 			$this->CategoriesDefinitions["P-$categoryPrint"][]="\tdomainlist personal-categories/$categoryPrint/domains";
@@ -565,7 +565,7 @@ class squidguard{
 		if($this->EnableSquidFilterWhiteListing){$commutator=null;}
 		if($GLOBALS["VERBOSE"]){echo "SearchCategories($RuleID)\n";}
 		$main_path="{$GLOBALS["guarddb"]}/personal-categories/W-$RuleID";
-		@mkdir($main_path,755,true);
+		@mkdir($main_path,0755,true);
 		$this->DestOfRules[$RuleID]["W-$RuleID"]="W-$RuleID";
 		$this->CategoriesDefinitions["W-$RuleID"][]="\tdomainlist personal-categories/W-$RuleID/domains";
 		$this->CategoriesDefinitions["W-$RuleID"][]="\turllist personal-categories/W-$RuleID/urls";
@@ -577,7 +577,7 @@ class squidguard{
 		
 		
 		$main_path="{$GLOBALS["guarddb"]}/personal-categories/filesblock-{$this->rules[$RuleID]}";
-		@mkdir($main_path,755,true);
+		@mkdir($main_path,0755,true);
 		$this->DestOfRules[$RuleID]["F-$RuleID"]="!F-$RuleID";
 		$this->CategoriesDefinitions["F-$RuleID"][]="\texpressionlist personal-categories/filesblock-{$this->rules[$RuleID]}/expressions";
 		$this->CategoriesDefinitions["F-$RuleID"][]="\turllist personal-categories/filesblock-{$this->rules[$RuleID]}/urls";
@@ -599,7 +599,7 @@ class squidguard{
 
 				
 				$main_path="{$GLOBALS["guarddb"]}/{$ligne["pattern"]}";
-				@mkdir($main_path,755,true);
+				@mkdir($main_path,0755,true);
 				$categoryName=$this->substrCategory($ligne["pattern"]);
 				
 				$this->CategoriesDefinitions[$categoryName][]="\tdomainlist {$ligne["pattern"]}/domains";
@@ -610,7 +610,7 @@ class squidguard{
 				file_put_contents("$main_path/expressions","\n");				
 					
 				$main_path="{$GLOBALS["guarddb"]}/web-filter-plus/BL/{$ligne["pattern"]}";
-				@mkdir($main_path,755,true);
+				@mkdir($main_path,0755,true);
 				
 				$this->CategoriesDefinitions[$addplus][]="\tdomainlist web-filter-plus/BL/{$ligne["pattern"]}/domains";
 				$this->CategoriesDefinitions[$addplus][]="\turllist web-filter-plus/BL/{$ligne["pattern"]}/urls";
@@ -623,7 +623,7 @@ class squidguard{
 				
 					
 				$main_path="{$GLOBALS["guarddb"]}/blacklist-artica/{$ligne["pattern"]}";	
-				@mkdir($main_path,755,true);
+				@mkdir($main_path,0755,true);
 				if($GLOBALS["VERBOSE"]){echo "SearchCategories($RuleID):$original_category -> compile_artica_category()\n";}
 				$this->compile_artica_category($RuleID,$original_category,$main_path,$addplus);
 				$this->CategoriesDefinitions[$addplus_com][]="\tdomainlist blacklist-artica/{$ligne["pattern"]}/domains";

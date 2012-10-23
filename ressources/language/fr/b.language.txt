@@ -1426,6 +1426,10 @@ La s&eacute;curit&eacute; au niveau du partage peut &ecirc;tre impl&eacute;ment&
 <samba_watchdog>Surveillance du service Samba</samba_watchdog>
 <samba_watchdog_text>S'assure que les services Samba sont bien actifs et qu'ils n'exc&egrave;dent pas les limites CPU/M&eacute;moire.</samba_watchdog_text>
 <sample-size>Taille de l'exemple</sample-size>
+<Sanesecurity_signatures>Signatures additionnelles ScanSecurity</Sanesecurity_signatures>
+<Sanesecurity_signatures_explain>Cette t&acirc;che assure la mise &agrave; jour des signatures SaneSecurity.
+Les signatures Sanesecurity fournissent des signatures additionnelles au moteur ClamAV afin de d&eacute;tecter le Phishing,les fausses loteries, les logiciels de cadeaux mailveillants, Casino, emplois fictifs, pr&ecirc;ts fictifs,faux dipl&ocirc;mes, porno, les logiciels malveillants et autres mails envoy&eacute;s par courriel en g&eacute;n&eacute;ral.[br]
+Ces signatures sont l'aboutissement d'un travail acharn&eacute; et de l'engagement de fournir des signatures pour la communaut&eacute; Web avec une qualit&eacute; professionnelle.</Sanesecurity_signatures_explain>
 <sarg_build_daily_stats>Construire les statistiques journali&egrave;res avec Sarg</sarg_build_daily_stats>
 <sarg_build_daily_stats_explain>Cette t&acirc;che peut &ecirc;tre utilis&eacute;e si et seulement si vous avez install&eacute; et activ&eacute; le logiciel SARG.[br]Elle permet de construire les statistiques de visites par jour.[br][b]Note[/b]: ne vous pr&eacute;occupez pas de la programmation des statistiques hebdomadaires et mensuelles, elles sont d&eacute;j&agrave; programm&eacute;es.[/b]</sarg_build_daily_stats_explain>
 <sarg_build_hourly_stats>Construit les statistiques horaires avec SARG</sarg_build_hourly_stats>
@@ -1492,6 +1496,8 @@ Cette section vous permet de sauvegarder ces &eacute;v&egrave;nements sur disque
 <smtp_from>&Eacute;metteur SMTP</smtp_from>
 <smtp_password>Mot de passe SMTP</smtp_password>
 <smtp_username>Utilisateur SMTP</smtp_username>
+<snort_scanner>Traitements de l'IDS SNORT</snort_scanner>
+<snort_scanner_explain>Cette t&acirc;che est un ramasse-miettes, permettant d'injecter les &eacute;v&egrave;nements du logiciel SNORT dans la base MySQL.</snort_scanner_explain>
 <softdelete_lifetime>Dur&eacute;e de vie de la suppression douce</softdelete_lifetime>
 <softdelete_lifetime_explain>La suppression douce garde les messages tant qu'ils n'ont pas &eacute;t&eacute; purg&eacute;s.[br]
 La purge des &eacute;l&eacute;ments d&eacute;pend de la valeur de configuration.[br]Cette option d&eacute;finit le temps maximal de vie d'un &eacute;l&eacute;ment supprim&eacute; dans la base de donn&eacute;es.[br]

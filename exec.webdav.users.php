@@ -108,7 +108,7 @@ function buildUsers(){
 		if($group->groupName==null){if($GLOBALS["VERBOSE"]){echo "Cannot find group name for $uid\n";}continue;}
 		
 		$servername="$uid.$WebDavSuffix";
-		@mkdir("$usr->homeDirectory/.dav",755,true);
+		@mkdir("$usr->homeDirectory/.dav",0755,true);
 		$f=array();
 		
 		if($SSL==1){

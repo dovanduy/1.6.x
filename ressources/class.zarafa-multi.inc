@@ -87,8 +87,8 @@ class zarafamulti{
 				$mysql_database="zarafa$this->instance_id";			
 			}
 			
-			@mkdir($this->attachment_path,755,true);
-			@mkdir("$this->etcpath/userscripts",755,true);
+			@mkdir($this->attachment_path,0755,true);
+			@mkdir("$this->etcpath/userscripts",0755,true);
 		
 			$f[]="server_bind		    = $this->server_bind";
 			$f[]="server_hostname       = $this->servername";
@@ -169,7 +169,7 @@ class zarafamulti{
 	
 	
 	private function licensed_cfg(){
-		@mkdir("$this->etcpath/license",755,true);
+		@mkdir("$this->etcpath/license",0755,true);
 		$f[]="server_pipe_name 	= /var/run/zarafa-licensed-$this->instance_id";
 		$f[]="server_socket		= file:///var/run/zarafa-$this->instance_id";
 		$f[]="license_path		= $this->etcpath/license";
