@@ -1448,7 +1448,7 @@ end;
        list.Add('$_GLOBAL["squid_ext_session_acl"]="' + squid.ext_session_acl_path() + '";' );
 
        if not FileExists(SYS.LOCATE_GENERIC_BIN('purge')) then begin
-          if FileExists('/usr/share/artica-postfix/bin/artica-make') then fpsystem('/usr/share/artica-postfix/bin/artica-make APP_SQUID32_PURGE >/dev/null 2>&1');
+          if FileExists('/usr/share/artica-postfix/bin/artica-make') then fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' /usr/share/artica-postfix/bin/artica-make APP_SQUID32_PURGE >/dev/null 2>&1 &');
        end;
 
 
@@ -1457,7 +1457,9 @@ end;
        if squid.ntlm_enabled() then  list.Add('$_GLOBAL["SQUID_NTLM_ENABLED"]=True;') else list.Add('$_GLOBAL["SQUID_NTLM_ENABLED"]=False;');
        if squid.SQUID_ARP_ACL_ENABLED()=1 then list.Add('$_GLOBAL["SQUID_ARP_ACL_ENABLED"]=True;') else list.Add('$_GLOBAL["SQUID_ARP_ACL_ENABLED"]=False;');
 
-
+       if not FileExists('/opt/articatech/bin/articadb') then begin
+          if FileExists('/usr/share/artica-postfix/exec.squid.blacklists.php') then  fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.blacklists.php --v2 >/dev/null 2>&1 &');
+       end;
 
       if length(SYS.LOCATE_GENERIC_BIN('squidclamav'))>5 then begin
          list.add('$_GLOBAL["APP_SQUIDCLAMAV_INSTALLED"]=True;');

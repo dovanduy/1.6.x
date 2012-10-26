@@ -288,6 +288,7 @@ function CoherenceOffiels(){
 	while (list ($database, $articacat) = each ($table) ){
 		$directory=str_replace("/", "_", $articacat);
 		
+		
 		$targetdir=$workdir."/$directory";
 		$sourcedir=$workdir."/$database";
 		@chmod($sourcedir, 0755);

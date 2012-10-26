@@ -211,24 +211,39 @@ function sync_categories(){
 }
 
 
-function re_categorize(){
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
-	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		ufdbguard_admin_events("Already executed pid $oldpid",__FUNCTION__,__FILE__,__LINE__,"stats");
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+function re_categorize($nopid=false){
+	
+	if(isset($GLOBALS[__FUNCTION__])){
+		ufdbguard_admin_events("Already executed function",__FUNCTION__,__FILE__,__LINE__,"stats");
 		return;
 	}
+	
+	$GLOBALS[__FUNCTION__]=true;
+	
+	if(!$nopid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=@file_get_contents($pidfile);
+		if($oldpid<100){$oldpid=null;}
+		$unix=new unix();
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			ufdbguard_admin_events("Already executed pid $oldpid",__FUNCTION__,__FILE__,__LINE__,"stats");
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+			return;
+		}
+	
+	
+	$mypid=getmypid();
+	@file_put_contents($pidfile,$mypid);	
+	}
+	
+	
 	not_categorized_day_scan();
 	if(systemMaxOverloaded()){
 		ufdbguard_admin_events("Fatal: VERY Overloaded system, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
 		return;	
 	}		
 	
-	$mypid=getmypid();
-	@file_put_contents($pidfile,$mypid);	
+
 	$sock=new sockets();
 	$RecategorizeSecondsToWaitOverload=$sock->GET_INFO("RecategorizeSecondsToWaitOverload");
 	$RecategorizeMaxExecutionTime=$sock->GET_INFO("RecategorizeSecondsToWaitOverload");
@@ -281,6 +296,12 @@ function recategorize_singleday($day,$nopid=false,$tablename=null){
 		$oldpid=@file_get_contents($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
 	}
+	
+	if($day==null){
+		re_categorize(true);
+		return;
+	}
+	
 	$daySource=$day;
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	

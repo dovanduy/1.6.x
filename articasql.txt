@@ -7,5 +7,22 @@ CFLAGS="-mcpu=amd64 -march=amd64 -O3 -pipe -fomit-frame-pointer" ./configure --p
 --skip-name-resolve --skip-networking --pid-file=/var/run/articasqld.pid --tmpdir=/opt/articatech/tmp --user=root --datadir=/opt/articatech/var/mysql
 
 /opt/articatech/bin/articadb --defaults-file=/opt/articatech/my.cnf --user=root --datadir=/opt/articatech/data --skip-name-resolve --pid-file=/var/run/articadb.pid 
+CREATE TABLE `mysql.innodb_table_stats` (
+  `database_name` varchar(64) COLLATE utf8_bin NOT NULL,
+  `table_name` varchar(64) COLLATE utf8_bin NOT NULL,
+  `last_update` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `n_rows` bigint(20) unsigned NOT NULL,
+  `clustered_index_size` bigint(20) unsigned NOT NULL,
+  `sum_of_other_index_sizes` bigint(20) unsigned NOT NULL,
+  PRIMARY KEY (`database_name`,`table_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin STATS_PERSISTENT=0
 
-
+CREATE TABLE mysql.innodb_table_stats (
+database_name VARCHAR(64) NOT NULL,
+table_name VARCHAR(64) NOT NULL,
+last_update TIMESTAMP NOT NULL NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+n_rows BIGINT UNSIGNED NOT NULL,
+clustered_index_size BIGINT UNSIGNED NOT NULL,
+sum_of_other_index_sizes BIGINT UNSIGNED NOT NULL,
+PRIMARY KEY (database_name, table_name)
+) ENGINE=INNODB DEFAULT CHARSET=utf8 COLLATE=utf8_bin STATS_PERSISTENT=0;

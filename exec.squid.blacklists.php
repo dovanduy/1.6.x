@@ -290,18 +290,21 @@ function updatev2(){
 		}
 	}
 	
-	
-	
-	
-	$GLOBALS["FULL"]=true;
-	
-	
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,__FILE__)){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($time<7200){
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] Warning: Already running pid $pid\n";}
-		if($GLOBALS["SCHEDULE_ID"]>0){ufdbguard_admin_events("Warning: Already running pid $pid",__FUNCTION__,__FILE__,__LINE__,"update");}
+		if($GLOBALS["SCHEDULE_ID"]>0){ufdbguard_admin_events("Warning: Already running pid $pid since {$time}Mn",__FUNCTION__,__FILE__,__LINE__,"update");}
 		return;
+		}
+		else{
+			$kill=$unix->find_program("kill");
+			shell_exec("$kill -9 $pid");
+			if($GLOBALS["SCHEDULE_ID"]>0){ufdbguard_admin_events("Warning: Old task pid $pid since {$time}Mn wille be killed, (reach 7200mn)",__FUNCTION__,__FILE__,__LINE__,"update");}			
+		}
 	}
+	
 	
 	@file_put_contents($pidfile, getmypid());	
 	$LOCAL_VERSION=@file_get_contents("/opt/articatech/VERSION");

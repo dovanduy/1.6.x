@@ -1041,7 +1041,7 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	$cicap=DAEMON_STATUS_LINE("C-ICAP",$ini,null,1,"220px");
 	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_LINE("APP_SQUIDGUARD_HTTP",$ini,null,1,"220px",true,1,"Loadjs('squidguardweb.php')");
 	$APP_UFDBGUARD=DAEMON_STATUS_LINE("APP_UFDBGUARD",$ini,null,1,"220px",true,1,"Loadjs('dansguardian2.php?js-ufdbguard=yes')");
-
+	$APP_ARTICADB=DAEMON_STATUS_LINE("APP_ARTICADB",$ini,null,1,"220px",true,1,"Loadjs('squid.categories.php')");
 
 	$pointers="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" ";
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
@@ -1049,7 +1049,7 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}	
-if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 
 	if($EnableRemoteStatisticsAppliance==1){
 		$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
@@ -1157,7 +1157,7 @@ if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 		<div style='padding-left:155px;min-height:250px'>
 			<h3 style='font-size:16px;font-weight:bold;'>{APP_SQUID}</h3>
 			<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>$text</i>$start$icap
-			$status_dansguardian$status_kav4proxy$cicap$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD</span>
+			$status_dansguardian$status_kav4proxy$cicap$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD$APP_ARTICADB</span>
 			$stats_paragraphe
 			$connectedApps
 			<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:s_PopUp('squid.accesslogs.php?external=yes',1024,768);\"><i><strong style='text-decoration:underline'>{access_events}</strong></i></div> 

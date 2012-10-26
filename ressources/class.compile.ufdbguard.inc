@@ -627,10 +627,24 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 	private function build_categories_paragraph($category){
 		if($this->licensed==0){$this->SquidDatabasesArticaEnable=0;}
+		if($category=="isp"){echo "Starting......: WARN ufdbGuard Checking category `$category` is banned, SKIP\n";return ;}
+		if($category=="audio-video"){
+			if(is_dir("/var/lib/ftpunivtlse1fr/audio-video")){
+				if(!is_dir("/var/lib/ftpunivtlse1fr/audiovideo")){
+					shell_exec("/bin/ln -sf /var/lib/ftpunivtlse1fr/audio-video /var/lib/ftpunivtlse1fr/audiovideo");
+				}
+			}
+			
+		}
+		
+		
 		$sock=new sockets();
+		$this->SquidDatabasesUtlseEnable=$sock->GET_INFO("SquidDatabasesUtlseEnable");
+		if(!is_numeric($this->SquidDatabasesUtlseEnable)){$this->SquidDatabasesUtlseEnable=1;}
 		$OrigninalCategoryName=$category;
 		if(isset($GLOBALS["CATEGORIES_BUILDED"][$OrigninalCategoryName])){return;}
 		echo "Starting......: ufdbGuard Checking category `$category`\n";
+		echo "Starting......: ufdbGuard Toulouse University Enabled `$this->SquidDatabasesUtlseEnable`\n";
 		if($this->SquidGuardWebFollowExtensions==1){$follow_ext="&followext=yes";}
 		if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
 		$q=$GLOBALS["Q"];
@@ -703,46 +717,54 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 
 		if($this->SquidDatabasesUtlseEnable==1){
 		
-			if(is_file($categorypathTLSE)){
-				$IS_CAT_ADDED=true;
-				if(!is_file("$BASETLSE/expressions")){@file_put_contents("$BASETLSE/expressions", "\n");}
-				$GLOBALS["UNIVTOULOUSE"][$categoryname]=$categoryNameTLSE;
-				$array[]="category \"$categoryNameTLSE\" {";
-				if($RedirectUri<>null){$array[]=$RedirectUri;}
-				$categorypathTLSE=str_replace(".ufdb", "", $categorypathTLSE);
-				$array[]="\tdomainlist\t\"$categorypathTLSE\"";
-				$array[]="}\n";	
-				}
-			}
+				if(is_file($categorypathTLSE)){
+					$IS_CAT_ADDED=true;
+					if(!is_file("$BASETLSE/expressions")){@file_put_contents("$BASETLSE/expressions", "\n");}
+					$GLOBALS["UNIVTOULOUSE"][$categoryname]=$categoryNameTLSE;
+					$array[]="category \"$categoryNameTLSE\" {";
+					if($RedirectUri<>null){$array[]=$RedirectUri;}
+					$categorypathTLSE=str_replace(".ufdb", "", $categorypathTLSE);
+					echo "Starting......: ufdbGuard Adding $categoryNameTLSE (Toulouse U.)\n";
+					$array[]="\tdomainlist\t\"$categorypathTLSE\"";
+					$array[]="}\n";	
+					}else{
+						echo "Starting......: WARN ufdbGuard Checking category `$category` $categorypathTLSE No such file\n";
+					}
+		}else{
+					echo "Starting......: WARN category `$category` Toulouse University $main_path/$categoryname/domains no such file\n";
+				}	
+				
+				
+			
 		
 
 		
-		if(!is_file("$main_path/$categoryname/domains")){
-			echo "Starting......: ufdbGuard $categoryname/domains, no such file\n";
-			$order="COMPILEDB:$category";$md5=md5($order);
-			$q->QUERY_SQL("INSERT IGNORE INTO framework_orders (`zmd5`,`ORDER`) VALUES('$md5','$order')");
-			if(!$q->ok){if(strpos($q->mysql_error, "doesn't exist")>0){$q->CheckTables();$q->QUERY_SQL("INSERT IGNORE INTO framework_orders (`zmd5`,`ORDER`) VALUES('$md5','$order')");}}
-			ufdbguard_admin_events("skip category $categoryname $main_path/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__,"config");
-		}			
+				if(!is_file("$main_path/$categoryname/domains")){
+					echo "Starting......: FAILED ufdbGuard $categoryname/domains, no such file\n";
+					$order="COMPILEDB:$category";$md5=md5($order);
+					$q->QUERY_SQL("INSERT IGNORE INTO framework_orders (`zmd5`,`ORDER`) VALUES('$md5','$order')");
+					if(!$q->ok){if(strpos($q->mysql_error, "doesn't exist")>0){$q->CheckTables();$q->QUERY_SQL("INSERT IGNORE INTO framework_orders (`zmd5`,`ORDER`) VALUES('$md5','$order')");}}
+					ufdbguard_admin_events("skip category $categoryname $main_path/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__,"config");
+				}		
 
 		
 			
-		$size=@filesize("$main_path/$categoryname/domains");
-		echo "Starting......: ufdbGuard $categoryname/domains = $size bytes length\n";
-		if($size<12){
-			$rowsnum=$q->COUNT_ROWS($table);
-			if($rowsnum>0){
-				if($rowsnum<100000){
-					echo "Starting......: ufdbGuard $categoryname/domains $rowsnum rows -> Compile\n";
-					$GLOBALS["OUPUT"]=true;
-					$this->compile_category($categoryname);
+				$size=@filesize("$main_path/$categoryname/domains");
+				echo "Starting......: INFO ufdbGuard $categoryname/domains = $size bytes length\n";
+				if($size<12){
+					$rowsnum=$q->COUNT_ROWS($table);
+					if($rowsnum>0){
+						if($rowsnum<100000){
+							echo "Starting......: ufdbGuard $categoryname/domains $rowsnum rows -> Compile\n";
+							$GLOBALS["OUPUT"]=true;
+							$this->compile_category($categoryname);
+						}
+					}
 				}
-			}
-		}
 		
 	if(is_file($categorynamePersoPathBase)){
 				$IS_CAT_ADDED=true;
-				echo "Starting......: ufdbGuard Adding $categorynamePerso\n";
+				echo "Starting......: ufdbGuard Adding $categorynamePerso (PERSO)\n";
 				if(!is_file("$categorynamePersoBAse/expressions")){@file_put_contents("$categorynamePersoBAse/expressions", "\n");}
 				$GLOBALS["PERSONALCATZ"][$categoryname]=$categorynamePerso;
 				$array[]="category \"$categorynamePerso\" {";
