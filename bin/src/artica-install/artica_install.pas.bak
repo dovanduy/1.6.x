@@ -23,7 +23,7 @@ dkfilter, ufdbguardd, dkimmilter, dropbox, articapolicy, virtualbox, tftpd,
 crossroads, articastatus, articaexecutor, articabackground, pptpd, apt_mirror,
 ddclient, cluebringer, apachesrc, toolsversions, sabnzbdplus, fusermount,
 vnstat, munin, greyhole, autofs, iscsitarget, snort, greensql, amanda, tomcat,
-openemm, arpd, yaffas, netatalk, memcached,ejabberd;
+openemm, arpd, yaffas, netatalk, memcached,ejabberd, Unit1;
 
 var
 DisableIMAPVerif:integer;
@@ -225,6 +225,13 @@ end;
    zZarafa.BuildCertificate();
    halt(0);
 end;
+
+if ParamStr(1)='--cicap-version' then begin
+zdansguardian:=Tdansguardian.Create(SYS);
+writeln(zdansguardian.C_ICAP_VERSION());
+halt(0);
+end;
+
 
 
 if Paramstr(1)='--tomcat-version' then begin

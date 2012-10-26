@@ -924,8 +924,7 @@ begin
    if FIleExists('/opt/yaffas/webmin/miniserv.pl') then  list.Add('$_GLOBAL["YAFFAS_INSTALLED"]=True;') else list.Add('$_GLOBAL["YAFFAS_INSTALLED"]=False;');
    if FIleExists('/opt/kaspersky/khse/libexec/libms-icap.so') then list.Add('$_GLOBAL["APP_KHSE_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_KHSE_INSTALLED"]=False;');
    if FIleExists(SYS.LOCATE_GENERIC_BIN('sabnzbdplus')) then  list.Add('$_GLOBAL["APP_SABNZBDPLUS_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_SABNZBDPLUS_INSTALLED"]=False;');
-
-
+   if FIleExists('/opt/articatech/bin/articadb') then  list.Add('$_GLOBAL["ARTICADB_INSTALLED"]=True;') else list.Add('$_GLOBAL["ARTICADB_INSTALLED"]=False;');
 
 
       if not FileExists(php_path) then begin

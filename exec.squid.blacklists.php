@@ -17,10 +17,10 @@ $GLOBALS["BYCRON"]=false;
 $GLOBALS["MYPID"]=getmypid();
 $GLOBALS["CMDLINE"]=@implode(" ", $argv);
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
-if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;$GLOBALS["CHECKTIME"]=false;}
 if(preg_match("#--checktime#",implode(" ",$argv))){$GLOBALS["CHECKTIME"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
-if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;}
+if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;$GLOBALS["CHECKTIME"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 
 if($argv[1]=="--support"){RegisterSupport();exit;}
@@ -263,30 +263,38 @@ if($GLOBALS["VERBOSE"]){echo "scanned ". count($f)." files\n";}
 
 function updatev2(){
 	$sock=new sockets();
+	$unix=new unix();
 	
+	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	RegisterSupport();
 	
+	$t=time();
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] starting...\n";}
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
-	if($DisableArticaProxyStatistics==1){die();}
+	if($DisableArticaProxyStatistics==1){
+		ufdbguard_admin_events("Warning: DisableArticaProxyStatistics is enabled, aborting",__FUNCTION__,__FILE__,__LINE__,"update");
+		die();
+	}
 	
 	$unix=new unix();
-	if(!$GLOBALS["FORCE"]){	
-		if($GLOBALS["CHECKTIME"]){
-			$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-			if($unix->file_time_min($timeFile)<380){die();}
-			@unlink($timeFile);
-			@file_put_contents($timeFile, time());
+	if(is_dir("/opt/articatech/data/catz")){
+		if(!$GLOBALS["FORCE"]){	
+			if($GLOBALS["CHECKTIME"]){
+				$CHECKTIME=$unix->file_time_min($timeFile);
+				if($CHECKTIME<2880){ufdbguard_admin_events("Warning: last update since {$CHECKTIME}Mn, require minimal 2880Mn (48H)",__FUNCTION__,__FILE__,__LINE__,"update");return;}
+				@unlink($timeFile);
+				@file_put_contents($timeFile, time());
+			}
 		}
 	}
 	
 	
 	
 	
-	
 	$GLOBALS["FULL"]=true;
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	
 	
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,__FILE__)){
@@ -296,289 +304,91 @@ function updatev2(){
 	}
 	
 	@file_put_contents($pidfile, getmypid());	
-	$unix=new unix();
-	ufdbtables(true);
-	$q=new mysql_squid_builder();
-	$SquidBigDatabasesTime=$sock->GET_INFO("SquidBigDatabasesTime");
-	if(!is_numeric($SquidBigDatabasesTime)){$SquidBigDatabasesTime=0;}
-	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] SquidBigDatabasesTime=$SquidBigDatabasesTime\n";}
+	$LOCAL_VERSION=@file_get_contents("/opt/articatech/VERSION");
+	$curl=new ccurl("http://www.artica.fr/ufdb/articatechdb.version");
+	$curl->GetFile("/tmp/articatechdb.version");
+	$array=unserialize(base64_decode(@file_get_contents("/tmp/articatechdb.version")));
+	$REMOTE_VERSION=$array["ARTICATECH"]["VERSION"];
+	$REMOTE_MD5=$array["ARTICATECH"]["MD5"];
+	$REMOTE_SIZE=$array["ARTICATECH"]["SIZE"];
 	
-
+	if($GLOBALS["VERBOSE"]){echo "Local: $LOCAL_VERSION, remote $REMOTE_VERSION (".(($REMOTE_SIZE/1024)/1000)." MB)\n";}
 	
-	
-	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] mydate = $SquidBigDatabasesTime\n";}
-	
-	if(!$q->TABLE_EXISTS("webfilters_updates")){
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] webfilters_updates no such table...\n";}
-		ufdbguard_admin_events("Fatal: webfilters_updates no such table...",__FUNCTION__,__FILE__,__LINE__,"update");
-		return;
-	}
-	$nohup=$unix->find_program("nohup");
-	
-	
-	
-	$curl=new ccurl("http://www.artica.fr/catz/index.txt");
-	if(!$curl->GetFile("/tmp/index.txt")){
-		ufdbguard_admin_events("Fatal: unable to download blacklist index file $curl->error",__FUNCTION__,__FILE__,__LINE__,"update");
-		echo "BLACKLISTS: Failed to retreive http://www.artica.fr/catz/index.txt ($curl->error)\n";
-		return;
-	}
-
-	$f=unserialize(base64_decode(@file_get_contents("/tmp/index.txt")));
-	if(!is_array($f)){
-		ufdbguard_admin_events("Fatal: index file, no such array",__FUNCTION__,__FILE__,__LINE__,"update");
+	if($LOCAL_VERSION==$REMOTE_VERSION){
+		if($GLOBALS["VERBOSE"]){echo "Noting to do : $LOCAL_VERSION\n";}
+		ufdbtables(true); 
+		schedulemaintenance();
+		EXECUTE_BLACK_INSTANCE();
+		return;		
 	}
 	
-	$time=strtotime($myDate);
-	writelogs("Current date: `$SquidBigDatabasesTime` / repostitory time = {$f["TIME"]}",__FUNCTION__,__FILE__,__LINE__);
-	
-	if($GLOBALS["FORCE"]){writelogs("Force has been used... restart all import task",__FUNCTION__,__FILE__,__LINE__);}
-	if(!$GLOBALS["FORCE"]){
-		if($SquidBigDatabasesTime==$f["TIME"]){
-			if($GLOBALS["VERBOSE"]){echo "curetime = {$f["TIME"]}, no updates\n";}
-			updatev2_checktables();
-			return;
-		}
+	@mkdir("/home/articadb",0755,true);
+	$curl=new ccurl("http://www.artica.fr/ufdb/articadb.tar.gz");
+	$curl->Timeout=7200;
+	if(!$curl->GetFile("/home/articadb/articadb.tar.gz")){
+		$took=$unix->distanceOfTimeInWords($t,time());
+		ufdbguard_admin_events("Fatal : $curl->error after $took",__FUNCTION__,__FILE__,__LINE__,"update");
+		@unlink("/home/articadb/articadb.tar.gz");
+		ufdbtables(true); 
+		schedulemaintenance();
+		EXECUTE_BLACK_INSTANCE();
+		return;		
 	}
 	
-	$q->QUERY_SQL("TRUNCATE TABLE webfilters_updates");
-	$prefix="INSERT IGNORE INTO webfilters_updates (tablename,zDate,updated) VALUES ";
-	$sock->SET_INFO("SquidBigDatabasesTime", $f["TIME"]);
-	
-	
-	$newdate=date("Y-m-d H:i:s",$f["TIME"]);
-	while (list ($category, $category_table) = each ($f["TABLES"]) ){
-		$tt[]="('$category_table','$newdate',0)";
-		
+	$LOCAL_MD5=md5_file("/home/articadb/articadb.tar.gz");
+	if($LOCAL_MD5<>$REMOTE_MD5){
+		$took=$unix->distanceOfTimeInWords($t,time());
+		ufdbguard_admin_events("Fatal : $LOCAL_MD5 <> $REMOTE_MD5, corrupted download after $took",__FUNCTION__,__FILE__,__LINE__,"update");
+		@unlink("/home/articadb/articadb.tar.gz");
+		ufdbtables(true); 
+		schedulemaintenance();
+		EXECUTE_BLACK_INSTANCE();
+		return;				
 	}
 	
-	$q->QUERY_SQL($prefix.@implode(",", $tt));
-	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"update");return;}
+	$tar=$unix->find_program("tar");
+	if($GLOBALS["VERBOSE"]){echo "uncompressing /home/articadb/articadb.tar.gz\n";}
+	@mkdir("/opt/articatech");
+	shell_exec("/etc/init.d/artica-postfix stop articadb");
+	shell_exec("$tar -xf /home/articadb/articadb.tar.gz -C /opt/articatech/");
+	@unlink("/home/articadb/articadb.tar.gz");
+	if($GLOBALS["VERBOSE"]){echo "starting Articadb\n";}
+	shell_exec("/etc/init.d/artica-postfix start articadb");
 	
-	updatev2_checktables();
-	schedulemaintenance();
-	EXECUTE_BLACK_INSTANCE();
+	
+	$q=new mysql();
+	if(!$q->DATABASE_EXISTS("catz")){
+		ufdbguard_admin_events("Removing old database catz",__FUNCTION__,__FILE__,__LINE__,"update");
+		$q->DELETE_DATABASE("catz");
+	}
+	$took=$unix->distanceOfTimeInWords($t,time());
+	$REMOTE_SIZE=FormatBytes($REMOTE_SIZE/1024);
+	ufdbguard_admin_events("New Artica Database statistics $REMOTE_VERSION ($REMOTE_SIZE) updated took:$took.",__FUNCTION__,__FILE__,__LINE__,"update");
+	
 }
 
 
 function updatev2_checktables($npid=false){
-	$GLOBALS["ufdbguard_admin_memory"]=array();
-	$unix=new unix();
-	$php=$unix->LOCATE_PHP5_BIN();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$nohup=$unix->find_program("nohup");
-	$cmdRepairOptimize="echo \"NOOP\"";
-	if($npid){
-		$pid=@file_get_contents($pidfile);
-		if($unix->process_exists($pid,__FILE__)){
-			writelogsBLKS("Warning: Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);
-			return;
-		}		
-		
-	}
-	
-	@file_put_contents($pidfile, getmypid());
-	$sock=new sockets();
-	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
-	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
-	if($DisableArticaProxyStatistics==1){die();}
-	
-	$q=new mysql_squid_builder();
-	$sql="SELECT tablename FROM webfilters_updates WHERE updated=0";
-	WriteMyLogs($sql,__FUNCTION__,__FILE__,__LINE__);
-	
-	$results=$q->QUERY_SQL($sql);
-	if(mysql_numrows($results)==0){
-		if(updatev2_checktables_repair()){return;}
-		$sql="SELECT tablename FROM webfilters_updates WHERE updated=0";
-		WriteMyLogs($sql,__FUNCTION__,__FILE__,__LINE__);
-	}
-	
-	if(mysql_numrows($results)==0){return;}
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
-		
-		if(system_is_overloaded(basename(__FILE__))){WriteMyLogs("Overloaded, sleep 30s",__FUNCTION__,__FILE__,__LINE__);sleep(30);}
-		
-		
-		if(system_is_overloaded(basename(__FILE__))){
-			WriteMyLogs("Overloaded, Die()",__FUNCTION__,__FILE__,__LINE__);
-			$ldao=getSystemLoad();
-			ufdbguard_admin_events("{$ligne["tablename"]}: processing black list database injection aborted System is overloaded ($ldao), the processing will be aborted and restart in next cycle
-			Task stopped line $c/$count rows\n".ufdbguard_admin_compile(),__FUNCTION__,__FILE__,__LINE__,"update");
-			$unix->THREAD_COMMAND_SET("$php ".__FILE__." --v2 schedule-id={$GLOBALS["SCHEDULE_ID"]}");
-			die();
-		}		
-						
-		
-		WriteMyLogs("Processing: {$ligne["tablename"]}",__FUNCTION__,__FILE__,__LINE__);
-		if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: updatev2_download({$ligne["tablename"]})  Line:". __LINE__."\n";}
-		if(!updatev2_download($ligne["tablename"])){continue;}
-		if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: updatev2_inject({$ligne["tablename"]})  Line:". __LINE__."\n";}
-		if(!updatev2_inject($ligne["tablename"])){continue;}
-		
-		if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE {$ligne["tablename"]} execute maintain tasks Line:". __LINE__."\n";}
-		$q->QUERY_SQL("DELETE FROM {$ligne["tablename"]} WHERE pattern='thisisarandomentrythatdoesnotexist.com'");
-		$q->QUERY_SQL("UPDATE webfilters_updates SET updated=1 WHERE tablename='{$ligne["tablename"]}'");
-		if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE {$ligne["tablename"]} MARKED as updated done... Line:". __LINE__."\n";}
-		if(!$q->ok){
-			WriteMyLogs("Fatal: unable to extract blacklist $q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
-			ufdbguard_admin_events("Fatal: unable to extract blacklist $q->mysql_error \n".ufdbguard_admin_compile(),__FUNCTION__,__FILE__,__LINE__,"update");
-			return false;
-		}
-		
-	}
-	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: $cmdRepairOptimize Line:". __LINE__."\n";}
-	shell_exec($cmdRepairOptimize);
-	return true;
+
 }
 
 function updatev2_checktables_repair(){
-
-	$q=new mysql_squid_builder();
-	$sql="SELECT tablename FROM webfilters_updates WHERE updated=1";
-	
-	
-	$results=$q->QUERY_SQL($sql);
-	if(mysql_numrows($results)==0){return;}
-		
-	$carz=new mysql_catz();
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$tablename=$ligne["tablename"];
-		if($carz->COUNT_ROWS($tablename)==0){
-			$sql="UPDATE webfilters_updates SET updated=0 WHERE tablename='$tablename'";
-			ufdbguard_admin_memory("$tablename is empty, rescan it...", __FUNCTION__, __FILE__, __LINE__);
-			$q->QUERY_SQL($sql);
-		}
-		
-	}
-
-	$array=updatev2_index();
-	$rowstables=$array["TABLES_SIZE"];
-	$tablesnames=$array["TABLES"];
-	while (list ($category, $rowsnum) = each ($rowstables) ){
-		if($category=="housing/reale_state_"){continue;}
-		$category_table=$tablesnames[$category];
-		$mynum=$carz->COUNT_ROWS($category_table);
-		if($mynum<>$rowsnum){
-			$pourc=round(($rowsnum/$mynum)*100);
-			if($pourc<97){
-				echo "$category: cloud= $rowsnum, me = $mynum {$pourc}% \n";
-				$sql="UPDATE webfilters_updates SET updated=0 WHERE tablename='$tablename'";
-				ufdbguard_admin_memory("$tablename is {$pourc}% filled, rescan it...", __FUNCTION__, __FILE__, __LINE__);
-				$q->QUERY_SQL($sql);				
-			}
-		}
-	}
-	
 	
 }
 
 function updatev2_download($tablename){
-	$unix=new unix();
-	$curl=new ccurl("http://www.artica.fr/catz/$tablename.gz");
-	$curl->Timeout=600;
-	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: http://www.artica.fr/catz/$tablename.gz Line:". __LINE__."\n";}
-	if(!$curl->GetFile("/tmp/$tablename.gz")){
-		ufdbguard_admin_memory("Fatal: unable to download blacklist $tablename $curl->error",__FUNCTION__,__FILE__,__LINE__,"update");
-		echo "BLACKLISTS: Failed to retreive http://www.artica.fr/catz/$tablename.gz ($curl->error)\n";
-		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Downloading $tablename.gz failed ($curl->error)", basename(__FILE__));}
-		return false;
-	}else{
-		ufdbguard_admin_memory("Success: Download blacklist $tablename size:" .$unix->file_size_human("/tmp/$tablename.gz"),__FUNCTION__,__FILE__,__LINE__,"update");
-	}
-	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: $tablename.gz success Line:". __LINE__."\n";}
-	return true;
+	
 	
 }
 
 function updatev2_inject($tablename){
-	$unix=new unix();
-	$chmod=$unix->find_program("chmod");
-	if($tablename=="category_housing_reale_state_"){return true;}
-	
-	if(!extractGZ("/tmp/$tablename.gz","/tmp/$tablename.csv")){
-		ufdbguard_admin_events("Fatal: unable to extract blacklist $tablename",__FUNCTION__,__FILE__,__LINE__,"update");
-		@unlink("/tmp/$tablename.gz");
-	}
-	shell_exec("$chmod 777 /tmp/$tablename.csv");
-	
-	$q=new mysql_catz();
-	$q2=new mysql_squid_builder();
-	
-	if($tablename=="category_alcohol"){
-		if($q->TABLE_EXISTS("category_Alcohol")){
-			if($GLOBALS["VERBOSE"]){echo "category_Alcohol exists, DROPING `category_Alcohol`\n";}
-			$q->QUERY_SQL("DROP TABLE `category_Alcohol`");
-		}
-	}
-	
-	
-	$tablename=strtolower($tablename);
-	if(!$q2->TABLE_EXISTS($tablename)){
-		$q2->CreateCategoryTable(null,$tablename);	
-	}
-	
-	
-	if(!$q->TABLE_EXISTS($tablename)){
-		if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CREATING CATEGORY TABLE `$tablename` Line:". __LINE__."\n";}
-		try {
-			ufdbguard_admin_memory("Creating category table `$tablename`",__FUNCTION__,__FILE__,__LINE__,"update");
-			$q->CreateCategoryTable(null,$tablename);			
-		} catch (Exception $e) {ufdbguard_admin_memory("Fatal: ".$e->getMessage(),__FUNCTION__,__FILE__,__LINE__);}
-						
-		
-	}
-	if(!$q->TABLE_EXISTS($tablename)){
-		ufdbguard_admin_memory("Fatal: unable to create category $tablename",__FUNCTION__,__FILE__,__LINE__,"update");
-		if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename` DOES NOT EXISTS\n";}
-		return false;
-	}
-	
-	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename` EXISTS Line:". __LINE__."\n";}
-	
-	$rows_before=$q->COUNT_ROWS($tablename);
-	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename` $rows_before before import task Line:". __LINE__."\n";}
-	
-	
-	$q->QUERY_SQL("TRUNCATE TABLE $tablename");
-	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename` TRUNCATE OK Line:". __LINE__."\n";}
-	$sql="LOAD DATA INFILE '/tmp/$tablename.csv' IGNORE INTO TABLE $tablename FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\\n' (zmd5)";
-	
-	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename` IMPORTING.... Line:". __LINE__."\n";}
-	$q->QUERY_SQL($sql);
-	if(!$q->ok){
-		if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename` IMPORTING FAILED Line:". __LINE__."\n";}
-		ufdbguard_admin_memory("Fatal: unable to extract blacklist $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"update");
-		return false;
-	}
-	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename` IMPORTING SUCCESS Unlink /tmp/$tablename.csv Line:". __LINE__."\n";}
-	@unlink("/tmp/$tablename.csv");
-	
-	$count2=$q->COUNT_ROWS($tablename);
-	
-	$sum=$count2-$rows_before; 
-	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename` q->LOG_ADDED_CATZ() IMPORTING SUCCESS $sum new elements Line:". __LINE__."\n";}
-	$q2->LOG_ADDED_CATZ($tablename,$sum);
-	
-	
-	
-	if($sum>0){
-		ufdbguard_admin_memory("Success: to import $tablename with $sum domains",__FUNCTION__,__FILE__,__LINE__,"update");
-	}
-	if($GLOBALS["VERBOSE"]){echo "[".__GetMemory()."]: CATEGORY TABLE `$tablename`SUCCESS -> RETURN TRUE Line:". __LINE__."\n";}
-	return true;
-	
+
 }
 
 
 
 function updatev2_currentdate(){
-	$q=new mysql_squid_builder();
-	if(!$q->TABLE_EXISTS("webfilters_updates")){$q->checkTables();}
-	$sql="SELECT zDate FROM webfilters_updates GROUP BY zDate ORDER BY zDate DESC LIMIT 0,1";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	return $ligne["zDate"];
+
 }
 
 

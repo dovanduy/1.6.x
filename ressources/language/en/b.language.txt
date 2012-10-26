@@ -2142,7 +2142,7 @@ Note: After the certificate generation, you need to restart all linked services.
 <postfix_stats_month>Monthly messaging statistics</postfix_stats_month>
 <error_missing_tables_click_to_repair>Error, there is some missing tables on the database.[br]
 Click on the "repair" button in order to create these tables</error_missing_tables_click_to_repair>
-<add_dns_in_config>Add DNS servers in settings</add_dns_in_config>
+<add_dns_in_config>Add DNS servers</add_dns_in_config>
 <add_dns_in_config_perf_explain>You will obtain better performances by specify 
 DNS servers in your configuration</add_dns_in_config_perf_explain>
 <dst>Destination IP(s)</dst>
@@ -2385,3 +2385,4 @@ SaneSecurity signatures are a culmination of hard work and commitment to provide
 the web community that are of professional quality</Sanesecurity_signatures_explain>
 <snort_scanner>IDS Snort Scanner parser</snort_scanner>
 <snort_scanner_explain>This task is designed to parse IDS snort events in put them into MySQL database</snort_scanner_explain>
+<APP_ARTICADB>Web Categories Daemon</APP_ARTICADB>

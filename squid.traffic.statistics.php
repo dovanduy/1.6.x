@@ -436,7 +436,8 @@ function squid_status_stats(){
 		$export=numberFormat($export,0,""," ");	
 	}	
 	
-	$categories=$q->COUNT_CATEGORIES();
+	$catz=new mysql_catz();
+	$categories=$catz->COUNT_CATEGORIES();
 	$categories=numberFormat($categories,0,""," ");
 	
 	$tablescat=$q->LIST_TABLES_CATEGORIES();

@@ -1,25 +1,23 @@
 </SambaWinBindCacheTime_explain>Diciembre<//SambaWinBindCacheTime_explain>
-<ABOUT_NETATALK>Netatalk is a freely-available Open Source AFP fileserver.[br]
- It also provides a kernel level implementation of the AppleTalk Protocol Suite[br]
-Your system will be able to serve many Macintosh clients simultaneously as an AppleShare file server (AFP).
-</ABOUT_NETATALK>
+<ABOUT_NETATALK>Netatalk es una libre disposici&oacute;n de c&oacute;digo abierto servidor de archivos AFP. [Br]
+Tambi&eacute;n proporciona una implementaci&oacute;n a nivel de kernel de la serie de AppleTalk Protocol [br]
+El sistema ser&aacute; capaz de servir a muchos clientes Macintosh simult&aacute;neamente como un servidor de archivos AppleShare (AFP).</ABOUT_NETATALK>
 <aboveeq>es mayor</aboveeq>
 <abovenot>no es mayor</abovenot>
 <access_events>Eventos de Acceso</access_events>
 <acls_and_quotas>ACLs y cuotas</acls_and_quotas>
 <acls_folders_rebuild_text>Esto reconfigura todos los permisos y ACLs, continuar?</acls_folders_rebuild_text>
-<acls_no_such_dir_text>This directory does not exists on your system.[br]Perhaps you have remove it.[br]I suggest to remove this entry..</acls_no_such_dir_text>
-<acl_proxy_auth_explain>Give here username (the userid) that is stored by your LDAP server or Active Directory.[br]
-Note that it is only available if your have enabled the Proxy Authentication</acl_proxy_auth_explain>
+<acls_no_such_dir_text>Este directorio no existe en el sistema. [Br] Tal vez usted la ha eliminado. [Br] Sugiero eliminar esta entrada ..</acls_no_such_dir_text>
+<acl_proxy_auth_explain>Indique aqu&iacute; el nombre de usuario (el ID de usuario) que se almacena en el servidor LDAP o Active Directory. [Br]
+Tenga en cuenta que s&oacute;lo est&aacute; disponible si ha activado la autenticaci&oacute;n del proxy.</acl_proxy_auth_explain>
 <ActAsSMTPGatewayStatistics>Actuar como los registros y estad&iacute;sticas de puerta de enlace SMTP</ActAsSMTPGatewayStatistics>
-<ActAsSMTPGatewayStatistics_text>If enabled this server will server SMTP events statistics and will be in charge of manage/backup/restore SMTP system logs</ActAsSMTPGatewayStatistics_text>
+<ActAsSMTPGatewayStatistics_text>Si se habilita este servidor SMTP del servidor de estad&iacute;sticas de eventos, este se encargar&aacute; de gestionar / almacenar / restablecer registros SMTP del sistema</ActAsSMTPGatewayStatistics_text>
 <ActHasMaster>Act tiene Primario (Master)</ActHasMaster>
 <ActHasSlave>Act tiene Secundario (Esclavo)</ActHasSlave>
 <activate_openvpn_connection>Activar la conexion openvpn y conectarse al VPN</activate_openvpn_connection>
 <activate_sync_port>Activar el puerto de sincronizaci&oacute;n</activate_sync_port>
-<activate_sync_port_mgreylist_text>If you enable this feature, remote MX server are able to connect in order to retreive the greylisting database trough the 5252 port.[br]
-If you have firewalls between your MXs, you should enable TCP connections in both directions between random unprivileged source ports and destination port 5252.
-</activate_sync_port_mgreylist_text>
+<activate_sync_port_mgreylist_text>Si se activa esta funci&oacute;n, el servidor remoto MX es capaz de conectarse con el fin de obtener la base de datos a trav&eacute;s de la lista gris del puerto 5252. [Br]
+Si dispone de servidores de seguridad entre sus MXS, debe activar las conexiones TCP en ambas direcciones entre los puertos de origen aleatorios sin privilegios y el puerto de destino 5252.</activate_sync_port_mgreylist_text>
 <ActiveDirectory_branches>Dominios de Active Directory</ActiveDirectory_branches>
 <activedirectory_ipaddr>Agregar direccion IP (opcional)</activedirectory_ipaddr>
 <active_directory_group>Grupo de Active Directory</active_directory_group>
@@ -34,7 +32,7 @@ vease http://www.iana.org/assignments/character-sets</AddDefaultCharset_explain>
 <AddInArticaLogonFrontPage_text>Si activado, la pagina principal tiene enlace a paginas publicas de registracion</AddInArticaLogonFrontPage_text>
 <additional_addresses>direcciones adicionales</additional_addresses>
 <addrbl_server_text>Agregue Servidores RBL para la inspeccion</addrbl_server_text>
-<ADDWEBSITE_PROXY_EXPLAIN>Add a website inside the category databases in order to filter it or to add it into the Web proxy statistics</ADDWEBSITE_PROXY_EXPLAIN>
+<ADDWEBSITE_PROXY_EXPLAIN>A&ntilde;adir un sitio web dentro de las bases de datos de categor&iacute;a con el fin de filtrar o para a&ntilde;adirlo a las estad&iacute;sticas del proxy Web</ADDWEBSITE_PROXY_EXPLAIN>
 <add_amanda_computer>Agregar un nuevo computador /directorio remoto al respado</add_amanda_computer>
 <add_a_new_group_in_this_org>Agregar un nuevo grupo a su organizacion</add_a_new_group_in_this_org>
 <add_a_subdomain>Agregar un Subdominio</add_a_subdomain>
@@ -46,31 +44,28 @@ vease http://www.iana.org/assignments/character-sets</AddDefaultCharset_explain>
 <add_keywords>agregue palabras claves</add_keywords>
 <add_keywords_smtp_check>Agregue palabras claves a la base de datos para luego checkearlos en cada email</add_keywords_smtp_check>
 <add_loadbalance_service>Agregar servicio nuevo de balanceo</add_loadbalance_service>
-<add_loadbalance_service_text>Create a new service that will be in charge of balancing connections to backend servers</add_loadbalance_service_text>
+<add_loadbalance_service_text>Crear un nuevo servicio que se encargar&aacute; del balanceo de las conexiones a los servidores de back-end</add_loadbalance_service_text>
 <ADD_LVM_DISK>agregue un disco LVM</ADD_LVM_DISK>
 <ADD_LVM_DISK_TEXT>Convertir un disco fisico en un disco LVM.[br] La informacion existente se perdera!</ADD_LVM_DISK_TEXT>
 <add_members>Agregar miembros</add_members>
 <add_mount_point>Crear una conexion</add_mount_point>
 <add_mount_point_text>Crear una conexion al dispositivo o a una carpeta repota en la red</add_mount_point_text>
-<add_multiple_keywords_explain>Give here the list of keywords you need to check (separated by a carriage return).[br]
-Set the mail section you need to check all for the entire mail content, subject for the subject...[br] 
-Define the Spam score that will be added when mail match the defined keyword.[br]
-</add_multiple_keywords_explain>
-<add_multiple_members_explain>Put here members (email addresses) you want to add.[br]Each member must be separated by a carriage return</add_multiple_members_explain>
+<add_multiple_keywords_explain>Se proporcionar&aacute; aqu&iacute; la lista de palabras clave que usted necesita para comprobar (una por linea). [Br]
+Establezca la secci&oacute;n de correo cuyo contenido necesita verificar, asunto por asunto ... [br]
+Definir la puntuaci&oacute;n de spam que se a&ntilde;adir&aacute; cuando el correo que coincida con la palabra clave definida. [Br]</add_multiple_keywords_explain>
+<add_multiple_members_explain>Ponga aqui los usuarios (direcciones de correo electr&oacute;nico) que desea agregar. [Br] Cada usuario debe estar una linea diferente.</add_multiple_members_explain>
 <add_multiple_rbl_explain>Agregar aqui sus servidores RBL que necesite investigar separados por un retorno de carro.-</add_multiple_rbl_explain>
 <add_mysql_user_text>A&ntilde;adir un nuevo administrador de MySQL, que pueda conectar con el servidor</add_mysql_user_text>
 <add_new_disk>Agregar nuevo disco</add_new_disk>
 <add_new_route_text>A&ntilde;adir una nueva regla de ruteo TCP / IP</add_new_route_text>
-<add_official_domains_popup_text>Add here your domain name (eg mydomain.com)
-you can add multiple domains, separate them with a comma:
-eg(mydomain.com,mydomain.net,mydomain.fr,mydomain.de,mydomain.us)
-</add_official_domains_popup_text>
-<add_serveralias_ask>Give the Web servername: www.domain.tld or domain.tld or *.domain.tld...</add_serveralias_ask>
-<add_smb_virtual_server>Add a new Samba virtual server that will be emulated by the main Samba process</add_smb_virtual_server>
+<add_official_domains_popup_text>A&ntilde;ada aqu&iacute; su nombre de dominio (por ejemplo, mydomain.com)
+puede agregar varios dominios, sep&aacute;relos con una coma:
+por ejemplo, (mydomain.com, mydomain.net, mydomain.fr, mydomain.de, mydomain.us)</add_official_domains_popup_text>
+<add_serveralias_ask>Dar el nombre del servidor Web:. www.domain.tld o domain.tld o domain.tld * ...</add_serveralias_ask>
+<add_smb_virtual_server>Agregar un nuevo servidor Samba virtual que ser&aacute; emulado por el proceso principal de Samba</add_smb_virtual_server>
 <add_storage>A&ntilde;adir un nuevo almacenamiento</add_storage>
-<add_subdomain_explain>In this form, you can add a sub-domain of listed domains in the drop-down list.[br]
-Choose the main domain and set the subdomain you want to create.[br]
-</add_subdomain_explain>
+<add_subdomain_explain>De esta forma, se puede a&ntilde;adir un sub-dominio de dominios que aparecen en la lista desplegable. [Br]
+Elija el dominio principal y establezca el subdominio que desea crear. [Br]</add_subdomain_explain>
 <add_to_menu>A&ntilde;adir al men&uacute;</add_to_menu>
 <add_vip_members_text>Agregar nuevos miembros en los procesos VIPTrack</add_vip_members_text>
 <add_virtual_server>A&ntilde;adir un nuevo servidor virtual</add_virtual_server>
@@ -78,10 +73,10 @@ Choose the main domain and set the subdomain you want to create.[br]
 <add_websites>A&ntilde;adir sitios web</add_websites>
 <ADMINISTRATION_THEME>Administraci&oacute;n tema</ADMINISTRATION_THEME>
 <ADNETBIOSDOMAIN>NetBIOS en dominios de AD</ADNETBIOSDOMAIN>
-<advanced_artica_options_text>Define Artica global settings such as notifications, specific Web interface settings, Proxy use, LDAP parameters, master admin and password...</advanced_artica_options_text>
+<advanced_artica_options_text>Defina los ajustes de Artica globales como notificaciones, ajustes espec&iacute;ficos de la interfaz Web, use Proxy, par&aacute;metros LDAP, admin y la contrase&ntilde;a maestra ...</advanced_artica_options_text>
 <AD_CONNECTION_ERROR>Error conectando a Active Directoye</AD_CONNECTION_ERROR>
 <AD_CONNECTION_OK>Conectado con Active Directory</AD_CONNECTION_OK>
-<affect_vg_to_service>Affect this group to a service (FreeWebs or Virtuals servers)</affect_vg_to_service>
+<affect_vg_to_service>Afectar a  este grupo un servicio (FreeWebs o servidores Virtuales)</affect_vg_to_service>
 <affect_vg_to_service_explain>This option define that this LVM group will be used to create container for a given service.[br]For example, if you define this group to FreeWebs, you will be able to define a quotas in FreeWebs.[br]Web directory will be stored in a dedicated Virtual disk
 </affect_vg_to_service_explain>
 <Airflow_Temperature_Cel>Temperatura del flujo de aire (WDC)</Airflow_Temperature_Cel>
@@ -329,18 +324,17 @@ For Windows 2008 server you need to install [b]Hotfix 951191[/b].
 If it is the first time you use it, use the username "admin" and password "yaffas" to enter into the console panel.
 </APP_YAFFAS_TEXT>
 <APP_ZARAFA6>Servidor Zarafa 6.x</APP_ZARAFA6>
-<APP_ZARAFA_INDEXER>Zarafa Indexer</APP_ZARAFA_INDEXER>
+<APP_ZARAFA_INDEXER>Indizador Zarafa</APP_ZARAFA_INDEXER>
 <APP_Z_PUSH>Z-Push</APP_Z_PUSH>
-<APP_Z_PUSH_TEXT>The Z-Push software allows users with PDA's and Smartphones to synchronize their email,
-contacts, calendar items and tasks directly with a Zarafa server over UMTS, GPRS, WiFi or GSM data connections</APP_Z_PUSH_TEXT>
+<APP_Z_PUSH_TEXT>El software Z-Push permite a los usuarios con PDA y Smartphones para sincronizar su correo electr&oacute;nico, contactos, elementos de calendario y tareas directamente con un servidor Zarafa sobre UMTS, GPRS, WiFi o conexi&oacute;n de datos GSM</APP_Z_PUSH_TEXT>
 <April>Abril</April>
 <architecture>Arquitectura</architecture>
-<arpd_enable_kernel_helper>Enable kernel helper, leaving leading role to kernel</arpd_enable_kernel_helper>
-<ARPD_EXPLAIN>On some occasions, it is useful to view or alter the contents of the kernel's ARP tables, for example when you suspect a duplicate Internet address is the cause for some intermittent network problem.</ARPD_EXPLAIN>
-<arpd_no_kernel_replacement>Collect gratuitous ARP, but not messing with kernel functionality</arpd_no_kernel_replacement>
-<arpd_options>ARP Daemon options</arpd_options>
-<arpd_replace_kernel>Completely replace kernel resolution</arpd_replace_kernel>
-<arp_table>ARP table</arp_table>
+<arpd_enable_kernel_helper>Habilitar el kernel helper, dejando protagonismo al kernel</arpd_enable_kernel_helper>
+<ARPD_EXPLAIN>En algunas ocasiones, es &uacute;til para ver o modificar el contenido de las tablas ARP del n&uacute;cleo, por ejemplo, cuando se sospecha que una direcci&oacute;n IP duplicada es la causa de alg&uacute;n problema de red intermitente.</ARPD_EXPLAIN>
+<arpd_no_kernel_replacement>Recoger ARP gratuito, pero no jugar con la funcionalidad del kernel</arpd_no_kernel_replacement>
+<arpd_options>Opciones del demonio ARP.</arpd_options>
+<arpd_replace_kernel>Reemplazar la resolucion del kernel por completo.</arpd_replace_kernel>
+<arp_table>Tabla ARP</arp_table>
 <ArticaInCgroups>Artica processes in Processes groups</ArticaInCgroups>
 <ArticaInCgroups_explain>Execute artica scripts and processes in a defined process group</ArticaInCgroups_explain>
 <ArticaSMTPStatsMaxFiles>Max files per task</ArticaSMTPStatsMaxFiles>

@@ -51,7 +51,7 @@ if(isset($_GET["reconfigure-quotas-tenir"])){reconfigure_quotas_tenir();exit;}
 if(isset($_GET["reconfigure-quotas"])){reconfigure_quotas();exit;}
 if(isset($_GET["isInjectrunning"])){isInjectrunning();exit;}
 if(isset($_GET["pamlogon"])){samba_pam_logon();exit;}
-
+if(isset($_GET["articadb-version"])){articadb_version();exit;}
 
 if(isset($_GET["refresh-caches-infos"])){refresh_cache_infos();exit;}
 if(isset($_GET["purge-categories"])){purge_categories();exit;}
@@ -1276,6 +1276,14 @@ function fw_rules(){
 	exec("$iptables_save|grep ArticaSquidTransparent 2>&1",$results);
 	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";
 	
+}
+
+function articadb_version(){
+	if(!is_file("/opt/articatech/VERSION")){
+		echo "<articadatascgi>0.000</articadatascgi>";
+		return;
+	}
+	echo "<articadatascgi>". @file_get_contents("/opt/articatech/VERSION")."</articadatascgi>";
 }
 
 function stats_members_generic(){

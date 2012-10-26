@@ -22,6 +22,7 @@ if($GLOBALS["VERBOSE"]){echo "????\n";}
 
 function build(){
 	$unix=new unix();
+	$ln=$unix->find_program("ln");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid)){
@@ -36,6 +37,13 @@ function build(){
 	$ln=$unix->find_program("ln");
 	if(is_file("/opt/kaspersky/khse/libexec/libframework.so")){if(!is_file("/lib/libframework.so")){shell_exec("$ln -s /opt/kaspersky/khse/libexec/libframework.so /lib/libframework.so");}}
 	if(is_file("/opt/kaspersky/khse/libexec/libyaml-cpp.so.0.2")){if(!is_file("/lib/libyaml-cpp.so.0.2")){shell_exec("$ln -s /opt/kaspersky/khse/libexec/libyaml-cpp.so.0.2 /lib/libyaml-cpp.so.0.2");}}	
+	
+	if(!is_file("/lib/libbz2.so.1.0")){
+		if(is_file("/usr/lib/c_icap/libbz2.so.1.0.4")){
+			shell_exec("$ln -s /usr/lib/c_icap/libbz2.so.1.0.4 /lib/libbz2.so.1.0");
+		}
+	}
+	
 	
 	if(is_dir("/opt/kaspersky/khse/libexec")){
 		shell_exec("$chmod 755 /opt/kaspersky/khse/libexec >/dev/null 2>&1");

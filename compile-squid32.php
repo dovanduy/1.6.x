@@ -691,6 +691,9 @@ function c_cicap_remove(){
 	if(is_dir("/usr/share/c_icap")){shell_exec("/bin/rm -rf /usr/share/c_icap");}
 	if(is_dir("/usr/include/c_icap")){shell_exec("/bin/rm -rf /usr/include/c_icap");}
 	if(is_dir("/usr/lib/c_icap")){shell_exec("/bin/rm -rf /usr/lib/c_icap");}
+	
+	
+	
 	echo "Uninstall C-ICAP done\n";
 }
 
@@ -717,6 +720,8 @@ mkdir("/root/c-icap/usr/share/c_icap",0755,true);
 mkdir("/root/c-icap/usr/include/c_icap",0755,true);
 shell_exec("/bin/cp -rf /usr/share/c_icap/* /root/c-icap/usr/share/c_icap/");
 shell_exec("/bin/cp -rf /usr/include/c_icap/* /root/c-icap/usr/include/c_icap/");
+//error while loading shared libraries: libbz2.so.1.0
+shell_exec("/bin/cp /lib/libbz2.so.1.0.4 /usr/lib/c_icap/");
 
 chdir($base);
 @unlink("/root/c-icap-$C_ICAP_VERSION-$Architecture.tar.gz");

@@ -1038,6 +1038,7 @@ function all_status(){
 	$ini2->loadString(base64_decode($sock->getFrameWork('cmd.php?cicap-ini-status=yes')));
 	
 	
+	
 	$squid_status=DAEMON_STATUS_ROUND("SQUID",$ini,null,1);
 	$dansguardian_status=DAEMON_STATUS_ROUND("DANSGUARDIAN",$ini,null,1);
 	$kav=DAEMON_STATUS_ROUND("KAV4PROXY",$ini,null,1);
@@ -1045,6 +1046,10 @@ function all_status(){
 	$APP_PROXY_PAC=DAEMON_STATUS_ROUND("APP_PROXY_PAC",$ini,null,1);
 	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_ROUND("APP_SQUIDGUARD_HTTP",$ini,null,1);
 	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("APP_UFDBGUARD",$ini,null,1);
+	$APP_FRESHCLAM=DAEMON_STATUS_ROUND("APP_FRESHCLAM",$ini,null,1);
+	$APP_ARTICADB=DAEMON_STATUS_ROUND("APP_ARTICADB",$ini,null,1);
+	
+	
 	$squid=new squidbee();
 	
 	$md=md5(date('Ymhis'));
@@ -1084,6 +1089,8 @@ function all_status(){
 	$tr[]=$APP_PROXY_PAC;
 	$tr[]=$APP_SQUIDGUARD_HTTP;
 	$tr[]=$APP_UFDBGUARD;
+	$tr[]=$APP_FRESHCLAM;
+	$tr[]=$APP_ARTICADB;
 	
 	
 

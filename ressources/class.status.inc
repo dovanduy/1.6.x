@@ -1091,7 +1091,8 @@ if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 				$websitesnums=numberFormat($websitesnums,0,""," ");	
 				
 				
-				$categories=$q->COUNT_CATEGORIES();
+				$catz=new mysql_catz();
+				$categories=$catz->COUNT_CATEGORIES();
 				if($categories<500){$sock->getFrameWork("squid.php?update-blacklist=yes");}
 				$categories=numberFormat($categories,0,""," ");		
 				
@@ -1131,9 +1132,8 @@ if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	}
 	
 	if($DisableArticaProxyStatistics==1){	
-		$q=new mysql_squid_builder();
-		$categories=$q->COUNT_CATEGORIES();
-		$categories=numberFormat($categories,0,""," ");	
+		$catz=new mysql_catz();
+		$categories=numberFormat($catz->COUNT_CATEGORIES(),0,""," ");
 		$stats_paragraphe="<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i></div>";			
 		
 	}

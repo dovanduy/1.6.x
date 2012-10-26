@@ -194,6 +194,9 @@ if($argv[1]=="--haproxy"){echo haproxy();die();}
 if($argv[1]=="--mailman"){echo mailman();die();}
 if($argv[1]=="--mimedefang"){echo mimedefang()."\n".mimedefangmx();die();}
 if($argv[1]=="--mailarchiver"){echo mailarchiver();die();}
+if($argv[1]=="--articadb"){echo articadb();die();}
+
+
 
 if($GLOBALS["VERBOSE"]){echo "cannot understand {$argv[1]} assume perhaps it is a function\n";}
 
@@ -214,6 +217,7 @@ if($argv[1]=="--all-squid"){
 	$conf[]=squidguardweb();
 	$conf[]=ufdbguardd();
 	$conf[]=freshclam();
+	$conf[]=articadb();
 	echo @implode("\n",$conf);
 	die();
 }
@@ -905,7 +909,7 @@ function launch_all_status($force=false){
 	"dnsmasq","iscsi","watchdog_yorel","netatalk","postfwd2","vps_servers","smartd","crossroads_multiple","auth_tail","greyhole_watchdog","greensql","nscd","tomcat",
 	"openemm","openemm_sendmail","cgroups","ntpd_server","arpd","ps_mem","ipsec","yaffas","ifconfig_network","testingrrd","zarafa_multi","memcached","UpdateUtilityHTTP",
 	"udevd_daemon","dbus_daemon","ejabberd","pymsnt", "arkwsd", "arkeiad","haproxy","klms_status","klmsdb_status","klms_milter","CleanLogs","mimedefangmx","mimedefang",
-	"zarafa_search","snort","mailarchiver"
+	"zarafa_search","snort","mailarchiver","articadb"
 	);
 	$data1=$GLOBALS["TIME_CLASS"];
 	$data2 = time();
@@ -1086,6 +1090,54 @@ function OpenVPNClientsStatus(){
 	@file_put_contents("/usr/share/artica-postfix/ressources/logs/openvpn-clients.status",$final);
 	return $final;
 
+}
+
+function articadb(){
+	if(!$GLOBALS["CLASS_USERS"]->ARTICADB_INSTALLED){if($GLOBALS["VERBOSE"]){echo __FUNCTION__." articadb is not installed\n";}return null;}else{if($GLOBALS["VERBOSE"]){echo __FUNCTION__." articadb is installed\n";}}
+	$EnableArticaDB=1;
+	if(!$GLOBALS["CLASS_USERS"]->SQUID_INSTALLED){$EnableArticaDB=0;}
+	$EnableWebProxyStatsAppliance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableRemoteStatisticsAppliance");
+	$DisableArticaProxyStatistics=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableArticaProxyStatistics");
+	if(is_file('/etc/artica-postfix/WEBSTATS_APPLIANCE')){$EnableWebProxyStatsAppliance=1;}
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=1;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+	if($DisableArticaProxyStatistics==1){$EnableArticaDB=0;}
+    if($EnableRemoteStatisticsAppliance==1 ){$EnableArticaDB=0;}
+    if($EnableWebProxyStatsAppliance==1){$EnableArticaDB=1;}
+    $pid_path="/var/run/articadb.pid";
+    
+	$l[]="[APP_ARTICADB]";
+	$l[]="service_name=APP_ARTICADB";
+	$l[]="service_cmd=articadb";
+	$l[]="master_version=".trim(@file_get_contents("/opt/articatech/VERSION"));
+	$l[]="service_disabled=$EnableArticaDB";
+	$l[]="family=statistics";
+	$l[]="watchdog_features=1";
+	if($EnableArticaDB==0){$l[]="";return implode("\n",$l);return;}
+
+	$master_pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pid_path);
+	$l[]="watchdog_features=1";
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		WATCHDOG("APP_ARTICADB","articadb");
+		$l[]="running=0\ninstalled=1";$l[]="";
+		return implode("\n",$l);
+		return;
+	}
+
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		$l[]="running=0\ninstalled=1";$l[]="";
+		return implode("\n",$l);return;
+	}
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+	return implode("\n",$l);return;
+    
+	
 }
 
 function squid_master_status_version(){

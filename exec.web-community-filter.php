@@ -541,10 +541,7 @@ function pushit(){
 	}
 }
 
-function import(){
-	return;
-	
-}
+function import(){return;}
 
 function ParseGzSqlFile($filepath){
 	

@@ -1,0 +1,11 @@
+ 	
+/etc/artica-postfix/WEBSTATS_APPLIANCE
+cmake . -DCMAKE_INSTALL_PREFIX=/opt/articatech/mysql -DMYSQL_DATADIR=/opt/articatech/mysql/data -DMYSQL_PROJECT_NAME=ProxyStatsDB -DSYSCONFDIR=/opt/articatech/mysql/etc -DWITH_EMBEDDED_SERVER=ON -DMYSQL_UNIX_ADDR=/var/run/articadb.sock -DWITH_EMBEDDED_SERVER=ON -DDISABLE_SHARED=ON -DMYSQL_USER=root 
+ 
+CFLAGS="-mcpu=amd64 -march=amd64 -O3 -pipe -fomit-frame-pointer" ./configure --prefix=/opt/articatech --program-prefix=artica- --with-server-suffix="ArticaStats" --with-mysqld-user=root --with-named-curses-libs=/opt/articatech/lib/libncurses.a --with-unix-socket-path=/var/run/articadb.sock --with-big-tables --with-embedded-server --without-man --libexecdir=/opt/articatech/bin --libdir=/opt/articatech/lib  --with-client-ldflags=-all-static --with-mysqld-ldflags=-all-static --disable-shared --with-extra-charsets=none --enable-assembler --without-debug --without-docs --without-ndbcluster --without-ndb-sci --without-ndb-test --without-ndb-docs
+ 
+--skip-name-resolve --skip-networking --pid-file=/var/run/articasqld.pid --tmpdir=/opt/articatech/tmp --user=root --datadir=/opt/articatech/var/mysql
+
+/opt/articatech/bin/articadb --defaults-file=/opt/articatech/my.cnf --user=root --datadir=/opt/articatech/data --skip-name-resolve --pid-file=/var/run/articadb.pid 
+
+

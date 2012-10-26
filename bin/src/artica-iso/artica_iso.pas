@@ -139,6 +139,12 @@ end;
           fpsystem('/bin/mv /home/artica/packages/roundcube.tar.gz /home/artica/packages/roundcube.tar.gz.old');
        end;
 
+        if FileExists('/home/artica/packages/articasql.tar.gz') then begin
+            writeln('Artica ISO: PLEASE WAIT.... INSTALLING Artica Mysql Statistics.....');
+           forceDirectories('/opt/articatech');
+           fpsystem('/bin/tar -xf /home/artica/packages/articasql.tar.gz -C /opt/articatech/ >/dev/null 2>&1');
+           fpsystem('/bin/mv /home/artica/packages/articasql.tar.gz /home/artica/packages/articasql.tar.gz.old');
+        end;
        if FIleExists('/usr/bin/apt-get') then begin
           writeln('Artica ISO: PLEASE WAIT.... REMOVING EXIM IF IT EXISTS...');
           fpsystem('/usr/bin/apt-get --purge --yes --force-yes --remove exim4* >/dev/Null 2>&1');

@@ -1,6 +1,4 @@
-
 <?php
-$GLOBALS["DEBUG_MEM"]=true;
 $mem=round(((memory_get_usage()/1024)/1000),2);events("START WITH {$mem}MB ","MAIN",__LINE__);
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__)."/framework/class.unix.inc");

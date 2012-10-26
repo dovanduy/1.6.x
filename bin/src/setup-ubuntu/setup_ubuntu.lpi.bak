@@ -44,8 +44,8 @@
         <Filename Value="setup_ubuntu_class.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="setup_ubuntu_class"/>
-        <CursorPos X="77" Y="1947"/>
-        <TopLine Value="1906"/>
+        <CursorPos X="70" Y="303"/>
+        <TopLine Value="255"/>
         <EditorIndex Value="5"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
@@ -63,7 +63,7 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="setup_libs"/>
         <CursorPos X="27" Y="2307"/>
-        <TopLine Value="2288"/>
+        <TopLine Value="2414"/>
         <EditorIndex Value="8"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>

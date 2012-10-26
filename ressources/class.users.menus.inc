@@ -538,6 +538,7 @@ class usersMenus {
 	var $LIGHT_INSTALL=false;
 	var $CORP_LICENSE=false;
 	var $AsOwnMailBoxBackup=false;
+	var $ARTICADB_INSTALLED=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -680,6 +681,7 @@ class usersMenus {
 			
 			$this->hostname=$_GLOBAL["fixed_hostname"];
 			$this->fqdn=$_GLOBAL["fqdn_hostname"];
+			if(isset($_GLOBAL["ARTICADB_INSTALLED"])){$this->ARTICADB_INSTALLED=$_GLOBAL["ARTICADB_INSTALLED"];;}
 			if(isset($_GLOBAL["DANSGUARDIAN_INSTALLED"])){$this->DANSGUARDIAN_INSTALLED=$_GLOBAL["DANSGUARDIAN_INSTALLED"];;}
 			if(isset($_GLOBAL["KAV4PROXY_PID"])){$this->KAV4PROXY_PID=$_GLOBAL["KAV4PROXY_PID"];;}
 			if(isset($_GLOBAL["dnsmasq_installed"])){$this->dnsmasq_installed=$_GLOBAL["dnsmasq_installed"];;}

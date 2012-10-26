@@ -21,12 +21,21 @@ class mysql{
 	var $UseMysql=true;
 	var $affected_rows=0;
 	var $TestIngConnectionPerformed=false;
+	var $SocketPath=null;
+	var $TryTCP=true;
 	
-	function mysql(){
+	function mysql($DefSettings=null){
 		if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
 		$phpPage=basename($_SERVER["SCRIPT_FILENAME"]);
 	  	$this->CurrentPageName=$phpPage;
-	  	$this->FillSettings();
+	  	if(is_array($DefSettings)){
+	  		while (list ($num, $line) = each ($DefSettings)){
+	  			$this->$num=$line;
+	  		}
+	  	}else{
+	  		$this->FillSettings();
+	  	}
+	  	
 	  	if($this->mysql_server=="localhost"){$this->mysql_server="127.0.0.1";}
 		if($this->mysql_server=="locahost"){$this->mysql_server="127.0.0.1";}
 			
@@ -177,31 +186,57 @@ class mysql{
 	
 	function TestingConnection($noretry=false){
 		$this->TestIngConnectionPerformed=true;
+		$bd=false;
+		$SockPath="/var/run/mysqld/mysqld.sock";
+		if($this->SocketPath<>null){$SockPath=$this->SocketPath;$this->mysql_server=="localhost";}
 		
 		if(!function_exists('mysql_connect')){
 			$this->writelogs("Error, mysql_connect function does not exists...",__FUNCTION__,__LINE__);
 			return false;
 		}
 		
+		if(!$this->TryTCP){
+			$this->mysql_server=="localhost";
+		}
 		
 		
-		if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-			if($this->mysql_password<>null){
-				$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,$this->mysql_password);
-			}else{
-				ini_set("mysql.default_password", null);
-				$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,null);
+		if($this->SocketPath<>null){
+			ini_set("mysql.default_password", null);
+			$bd=@mysql_connect(":$SockPath",$this->mysql_admin,$this->mysql_password);
+			if($bd){return true;}
+			if($GLOBALS["VERBOSE"]){echo "mysql_connect(\":$SockPath\",$this->mysql_admin,..failed\n";}
+		}
+		
+		if(!$bd){
+			if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
+				if($this->mysql_password<>null){
+					$bd=@mysql_connect(":$SockPath",$this->mysql_admin,$this->mysql_password);
+				}else{
+					ini_set("mysql.default_password", null);
+					$bd=@mysql_connect(":$SockPath",$this->mysql_admin,null);
+				}
 			}
-		}else{
+			if($bd){return true;}
+			if($GLOBALS["VERBOSE"]){echo "mysql_connect(\":$SockPath\",$this->mysql_admin,..failed\n";}
+		}
+		
+		
+		if(!$bd){
+		  if($this->TryTCP){
 			if($this->mysql_password<>null){
 				ini_set("mysql.default_password", null);
 				$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
 			}else{
+				ini_set("mysql.default_password", null);
 				$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,null);
 			}
+		  }
+		  if($bd){return true;}
+		  if($GLOBALS["VERBOSE"]){echo "mysql_connect(\"$this->mysql_server:$this->mysql_port\",$this->mysql_admin,..failed\n";}		  
+		  
 		}
 		
-		
+		if($GLOBALS["VERBOSE"]){echo "All connections failed\n";}
 		
 		if(!$bd){
 			$des=mysql_error();
@@ -211,7 +246,7 @@ class mysql{
 					$this->mysql_admin="root";
 					$this->mysql_password==null;
 					ini_set("mysql.default_password", null);
-					@mysql_close($bd);
+					@mysql_close();
 					return $this->TestingConnection(true);
 				}
 			}
@@ -220,8 +255,8 @@ class mysql{
     		$des=mysql_error();
     		$this->mysql_error=$des;
     		$errnum=mysql_errno();
-			if($GLOBALS["VERBOSE"]){echo "mysql_connect failed ($errnum) \"$des\"\n";}
-    		$this->writeLogs("Error Number ($errnum) ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin:$this->mysql_password $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__ );
+			if($GLOBALS["VERBOSE"]){echo "mysql_connect($SockPath/$this->mysql_server:$this->mysql_port) failed ($errnum) \"$des\"\n";}
+    		$this->writeLogs("Error Number ($errnum) ($des) config:$SockPath OR $this->mysql_server:$this->mysql_port@$this->mysql_admin:$this->mysql_password $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__ );
 			return false;
 		}
 		
@@ -289,12 +324,9 @@ function writelogs($text=null,$function=null,$line=0){
 	}
 	
 	function REPAIR_TABLES($database){
-		if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-			$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,$this->mysql_password);
-		}else{
-			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-		}
-  	 	$mysql_result = mysql_query("SHOW TABLES;",$bd);
+		$this->BD_CONNECT();
+
+  	 	$mysql_result = mysql_query("SHOW TABLES;",$this->mysql_connection);
  		while ($ligne = mysql_fetch_row($mysql_result)){
  			$table_name=$ligne[0];
  			echo "<div><code>Repair $database/$table_name</code></div>";
@@ -318,91 +350,41 @@ function writelogs($text=null,$function=null,$line=0){
 			return false;
 		}
 		
-		$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-		if(!$bd){
-			$errnum=mysql_error();
-	    	$des=mysql_error();
-	    	writelogs("Error $errnum, $des",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-	    	$this->mysql_error="Error $errnum, $des";
-	    	return false;
-		}
-		return true;
+		return $this->BD_CONNECT();
 	}
 	
 	public function EXECUTE_SQL($sql){
 		@mysql_close();
-		if($this->mysql_password=="!nil"){$this->mysql_password=null;}
-		if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-			$connect=":/var/run/mysqld/mysqld.sock";
-			$MysqlServerLog=":/var/run/mysqld/mysqld.sock";
-			if(strlen(trim(($this->mysql_password)))==0){
-				$connect=$connect." (without password)";
-				$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,null);
-			}else{
-				$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,$this->mysql_password);
-			}
-		}
-		else{
-			$connect="$this->mysql_server:$this->mysql_port";
-			if(strlen(trim(($this->mysql_password)))==0){
-				$MysqlServerLog="$this->mysql_server:$this->mysql_port";
-				$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin);
-			}else{
-				$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-			}
-			
-		}
-		
-		if(@mysql_errno($bd)>-1){
-			if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-				$MysqlServerLog="$this->mysql_server:$this->mysql_port";
-				$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin);
-			}
-			
-		}
-		
-		if(@mysql_errno($bd)>-1){
-			$errnum=@mysql_errno($bd);
-			if($errnum<>0){
-				$des=mysql_error($bd);
-	    		$this->mysql_error="Error connecting to $MysqlServerLog with username $this->mysql_admin Number `$errnum`,$des pass:".strlen($this->mysql_password)." length\nConnect:$connect";
-	    		writelogs("Error connecting to $MysqlServerLog with username $this->mysql_admin Number `$errnum`, $this->mysql_error pass:".strlen($this->mysql_password)." length",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-	    		return false;
-			}
-		}
-		@mysql_unbuffered_query($sql,$bd);
-		$errnum=@mysql_errno($bd);
+		$this->BD_CONNECT();
+		@mysql_unbuffered_query($sql,$this->mysql_connection);
+		$errnum=@mysql_errno($this->mysql_connection);
 		if($errnum<>0){
 				$time=date('h:i:s');
-				$errnum=@mysql_errno($bd);
-				$des=@mysql_error($bd);
+				$errnum=@mysql_errno($this->mysql_connection);
+				$des=@mysql_error($this->mysql_connection);
 				$this->mysql_error="Error query to $MysqlServerLog with username $this->mysql_admin Number ($errnum) ($des)";
 				writelogs("Error query to $MysqlServerLog with username $this->mysql_admin Number `$errnum`, $this->mysql_error pass:".strlen($this->mysql_password)." length",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				@mysql_close($bd);
+				@mysql_close($this->mysql_connection);
 				return false;				
 		}
 		
-		@mysql_close($bd);		
+		@mysql_close($this->mysql_connection);		
 		return true;
 	}
 	
 	
 	public function SET_NAMES_UTF8(){
-		if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-			$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,$this->mysql_password);
-		}else{
-			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-		}
-		@mysql_query("SET NAMES UTF8");
+		$this->BD_CONNECT();
+		@mysql_query("SET NAMES UTF8",$this->mysql_connection);
 		
 		
-		if(mysql_error()){
+		if(mysql_error($this->mysql_connection)){
 				$time=date('h:i:s');
-				$errnum=mysql_errno();
-				$des=mysql_error();
+				$errnum=mysql_errno($this->mysql_connection);
+				$des=mysql_error($this->mysql_connection);
 				$this->mysql_error="Error Number ($errnum) ($des)";
 				writelogs("$this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				@mysql_close($bd);
+				@mysql_close($this->mysql_connection);
 				return false;
 		}
 		
@@ -431,18 +413,10 @@ function writelogs($text=null,$function=null,$line=0){
 			return null;
 		}
 		
-		if($this->mysql_admin==null){
-			$this->writeLogs("MakeConnection:: mysql_admin is null, restart parameters ",__CLASS__.'/'.__FUNCTION__,__LINE__);
-			unset($_SESSION["MYSQL_PARAMETERS"]);
-			unset($GLOBALS["MYSQL_PARAMETERS"]);
-			$this->FillSettings();
-		}
-
-		$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-			
-		$this->mysql_connection=$bd;
+		$this->BD_CONNECT();
+		
 		if($database<>null){
-			$ok=@mysql_select_db($database);
+			$ok=@mysql_select_db($database,$this->mysql_connection);
 	    	if (!$ok){
 	    		$errnum=mysql_errno($this->mysql_connection);
 	    		$des=mysql_error($this->mysql_connection);
@@ -468,11 +442,12 @@ function writelogs($text=null,$function=null,$line=0){
 	}
 	
 	public function BD_CONNECT($noretry=false){
-		
+		$SocketPath="/var/run/mysqld/mysqld.sock";
+		if($this->SocketPath<>null){$SocketPath=$this->SocketPath;}
 		$this->ok=true;
 		if(!function_exists('mysql_connect')){$this->mysql_error="mysql_connect() function does not exists";$this->ok=false;return false;}
 		if(($this->mysql_admin==null) && ($this->mysql_password==null)){$this->mysql_admin="root";if(!isset($GLOBALS["ERROR_MYSQL_NOADMIN"])){}$GLOBALS["ERROR_MYSQL_NOADMIN"]=true;}
-		
+		$serverLog=null;
 		$MYSQLpassword=$this->mysql_password;
 		if($MYSQLpassword=="!nil"){$MYSQLpassword=null;$this->mysql_password=null;}
 		$MYSQLpassword=stripslashes($MYSQLpassword);
@@ -484,17 +459,27 @@ function writelogs($text=null,$function=null,$line=0){
 			
 		}
 		
+		if($this->SocketPath<>null){
+			ini_set("mysql.default_password", null);
+			$bd=@mysql_connect(":$this->SocketPath",$this->mysql_admin,$this->mysql_password);
+			if($bd){
+				$this->mysql_connection=$bd;		
+				return true;				
+			}
+		}
 		
 		
 		if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-			$serverLog=":/var/run/mysqld/mysqld.sock";
+			if($SocketPath==null){if($GLOBALS["VERBOSE"]){echo "No socket path defined !!!\n";}}
+			$serverLog=":$SocketPath";
 			if($this->mysql_password<>null){
-				$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,$this->mysql_password);
+				$bd=@mysql_connect(":$SocketPath",$this->mysql_admin,$this->mysql_password);
 			}else{
 				ini_set("mysql.default_password", null);
-				$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,null);
+				$bd=@mysql_connect(":$SocketPath",$this->mysql_admin,null);
 			}
 		}else{
+		 if($this->TryTCP){
 			$serverLog="$this->mysql_server:$this->mysql_port";
 			if($this->mysql_password<>null){
 				$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
@@ -502,6 +487,7 @@ function writelogs($text=null,$function=null,$line=0){
 				ini_set("mysql.default_password", null);
 				$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,null);
 			}
+		 }
 		}
 		
 		
@@ -510,18 +496,18 @@ function writelogs($text=null,$function=null,$line=0){
 		
 		
 		if(!$bd){
-			$des=mysql_error();
-			$errnum=mysql_errno();	
+			$des=mysql_error($bd);
+			$errnum=mysql_errno($bd);	
 			if(($errnum==1045) or ($errnum==0) OR !is_numeric($errnum)){if(!$noretry){$this->mysql_admin="root";$this->mysql_password=null;$this->BD_CONNECT(true);return;}}
 			
 			$this->writeLogs("CONNECT TO DATABASE: Error Number ($errnum) ($des) config:$serverLog@$this->mysql_admin:$this->mysql_password $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__ );
 			if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
 				$serverLog="$this->mysql_server:$this->mysql_port";
 				if($this->mysql_password<>null){
-					$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
+					 if($this->TryTCP){$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);}
 				}else{
 					ini_set("mysql.default_password", null);
-					$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,null);
+					 if($this->TryTCP){$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,null);}
 				}
 			}
 		}
@@ -533,13 +519,13 @@ function writelogs($text=null,$function=null,$line=0){
 						if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 					} catch (Exception $e) {$this->writeLogs("QUERY_SQL:: Fatal: ".$e->getMessage(),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 				}
-			$des=mysql_error();
-			$errnum=mysql_errno();				
+			$des=mysql_error($bd);
+			$errnum=mysql_errno($bd);				
     		$this->mysql_error=$des;
 			if($GLOBALS["VERBOSE"]){echo "mysql_connect failed ($errnum) \"$des\" $called";}
     		$this->writeLogs("CONNECT TO DATABASE: Error Number ($errnum) ($des) config:$serverLog@$this->mysql_admin:$this->mysql_password $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__ );
 			if(strpos($des, "Can't connect to local MySQL server")){
-				if($GLOBALS["AS_ROOT"]){shell_exec("/etc/init.d/artica-postfix start mysql");}
+				if($this->TryTCP){if($GLOBALS["AS_ROOT"]){shell_exec("/etc/init.d/artica-postfix start mysql");}}
 			}
     		return false;
 		}		
@@ -570,15 +556,16 @@ function writelogs($text=null,$function=null,$line=0){
 		}
 		
 		if(preg_match("#DROP TABLE\s+(.+)$#i", $sql,$re)){
+			$TableDropped=$re[1];
 			if(function_exists("system_admin_events")){
 				$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
-				system_admin_events("MySQL table $database/{$re[1]} was deleted $called" , __FUNCTION__, __FILE__, __LINE__, $category);
+				system_admin_events("MySQL table $database/$TableDropped was deleted $called" , __FUNCTION__, __FILE__, __LINE__, "mysql-delete");
 			}
 		}
 		
 
 		if($database<>null){
-			$ok=@mysql_select_db($database);
+			$ok=@mysql_select_db($database,$this->mysql_connection);
 	    	if (!$ok){
 	    		$errnum=@mysql_errno($this->mysql_connection);
 	    		$des=@mysql_error($this->mysql_connection);
@@ -612,7 +599,7 @@ function writelogs($text=null,$function=null,$line=0){
 		//if(preg_match("#Got error 134 from storage engine#i", $q->mysql_error)){
 		if(!$results){
 			$errnum=mysql_errno($this->mysql_connection);
-			$des=mysql_error();
+			$des=mysql_error($this->mysql_connection);
 			if(preg_match("#Got error 134 from storage engine#i", $des)){
 				if(preg_match("\s+from\s+(.*?)\s+#i", $sql,$re)){
 					$table=$re[1];
@@ -639,7 +626,7 @@ function writelogs($text=null,$function=null,$line=0){
 		
 		if(!$results){
 			$errnum=mysql_errno($this->mysql_connection);
-			$des=mysql_error();
+			$des=mysql_error($this->mysql_connection);
 			@mysql_free_result($this->mysql_connection);
 			if($des<>null){
 				if($GLOBALS["VERBOSE"]){echo "\n<br><strong>Error $errnum $des ".__CLASS__.'/'.__FUNCTION__." in line ". __LINE__."</strong>";}
@@ -650,7 +637,7 @@ function writelogs($text=null,$function=null,$line=0){
 				$time=date('h:i:s');
 				$errnum=mysql_errno($this->mysql_connection);
 				@mysql_free_result($this->mysql_connection);
-				$des=mysql_error();
+				$des=mysql_error($this->mysql_connection);
 				if($GLOBALS["VERBOSE"]){echo "\n<br><strong>Error $errnum $des ".__CLASS__.'/'.__FUNCTION__." in line ". __LINE__."</strong>";}
 							
 			if(function_exists("debug_backtrace")){
@@ -900,13 +887,12 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		$this->writeLogs("Try to repair $table in database $database",__CLASS__.'/'.__FUNCTION__,__LINE__);
 		
 		$sql="REPAIR TABLE $table use_frm";
-		$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-		$this->mysql_connection=$bd;
-		$ok=@mysql_select_db($database);		
+		$this->BD_CONNECT();
+		$ok=@mysql_select_db($database,$this->mysql_connection);		
 		
 		if (!$ok){
-	    	$errnum=mysql_error();
-	    	$des=mysql_error();
+	    	$errnum=mysql_error($this->mysql_connection);
+	    	$des=mysql_error($this->mysql_connection);
 	    	$this->mysql_error=$des;
 	    	$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE: use_frm $this->mysql_error";
 			if(function_exists("system_admin_events")){system_admin_events("$this->mysql_error", __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
@@ -915,12 +901,11 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		   }		
 		
 		$sql="REPAIR TABLE $table EXTENDED";
-		$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-		$this->mysql_connection=$bd;
-		$ok=@mysql_select_db($database);
+		$this->BD_CONNECT();
+		$ok=@mysql_select_db($database,$this->mysql_connection);
 		if (!$ok){
-	    	$errnum=mysql_error();
-	    	$des=mysql_error();
+	    	$errnum=mysql_error($this->mysql_connection);
+	    	$des=mysql_error($this->mysql_connection);
 	    	$this->mysql_error=$des;
 	    	$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE: EXTENDED $this->mysql_error";
 			if(function_exists("system_admin_events")){system_admin_events("$this->mysql_error", __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
@@ -931,8 +916,8 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		   
 		if(mysql_error($this->mysql_connection)){
 				$time=date('h:i:s');
-				$errnum=mysql_errno();
-				$des=mysql_error();
+				$errnum=mysql_errno($this->mysql_connection);
+				$des=mysql_error($this->mysql_connection);
 				$this->mysql_error="Error Number ($errnum) ($des)";		   
 		   		@mysql_close($this->mysql_error);
 		   		$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE:$this->mysql_error";
@@ -1016,29 +1001,29 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		if($user==$this->mysql_admin){return;}
 		if(!$this->mysql_connection){return;}
 	    $results=@mysql_query("DROP USER '$user'@'localhost';",$this->mysql_connection);
-		if(mysql_error()){
+		if(mysql_error($this->mysql_connection)){
 				$time=date('h:i:s');
 				$errnum=mysql_errno();
-				$des=mysql_error();
+				$des=mysql_error($this->mysql_connection);
 				$this->mysql_error="DROP USER '$user'@'localhost' -> Error Number ($errnum) ($des)";
 				writelogs("($errnum) $des $this->mysql_admin@$this->mysql_server",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				return ;
 			}		
 		$results=@mysql_query("DROP USER '$user'@'127.0.0.1';",$this->mysql_connection);
-		if(mysql_error()){
+		if(mysql_error($this->mysql_connection)){
 				$time=date('h:i:s');
 				$errnum=mysql_errno();
-				$des=mysql_error();
+				$des=mysql_error($this->mysql_connection);
 				$this->mysql_error="DROP USER '$user'@'localhost' -> Error Number ($errnum) ($des)";
 				writelogs("($errnum) $des $this->mysql_admin@$this->mysql_server",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				return ;
 			}
 
 		$results=@mysql_query("DROP USER '$user'@'%';",$this->mysql_connection);
-		if(mysql_error()){
+		if(mysql_error($this->mysql_connection)){
 				$time=date('h:i:s');
 				$errnum=mysql_errno();
-				$des=mysql_error();
+				$des=mysql_error($this->mysql_connection);
 				$this->mysql_error="DROP USER '$user'@'localhost' -> Error Number ($errnum) ($des)";
 				writelogs("($errnum) $des $this->mysql_admin@$this->mysql_server",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				return ;
@@ -1420,20 +1405,10 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 
 	public function SHOW_VARIABLES(){
 		$sql="SHOW VARIABLES;";
-			if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-			$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,$this->mysql_password);
-		}else{
-			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-		}
-	if(!$bd){
-    		$errnum=mysql_error();
-    		$des=mysql_error();
-    		$this->mysql_error=$des;
-    		return null;
-		}
-		$results=@mysql_query($sql);
-		$errnum=mysql_error();
-    	$des=mysql_error();
+		$this->BD_CONNECT();
+		$results=@mysql_query($sql,$this->mysql_connection);
+		$errnum=mysql_error($this->mysql_connection);
+    	$des=mysql_error($this->mysql_connection);
     	$this->mysql_error=$des;
 		
 		
@@ -1445,42 +1420,20 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		}
 		
 	function SET_VARIABLES($key,$value){
-		
-	if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-		}else{
-			$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,$this->mysql_password);
-		}
-		if(!$bd){
-    		$errnum=mysql_error();
-    		$des=mysql_error();
-    		$this->mysql_error=$des;
-    		return null;
-			}
-		$results=@mysql_query("SET GLOBAL $key = $value");
-		$errnum=mysql_error();
-    	$des=mysql_error();
+		$this->BD_CONNECT();
+		$results=@mysql_query("SET GLOBAL $key = $value",$this->mysql_connection);
+		$errnum=mysql_error($this->mysql_connection);
+    	$des=mysql_error($this->mysql_connection);
     	$this->mysql_error=$des;
 		}	
 
 		
 	function DATABASE_LIST_SIMPLE(){
 		$sql="SHOW DATABASES";
-		if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-			$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,$this->mysql_password);
-		}else{
-			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-		}
-		
-		if(!$bd){
-    		$errnum=mysql_error();
-    		$des=mysql_error();
-    		$this->mysql_error=$des;
-    		return null;
-		}
-		$results=@mysql_query($sql);
-		$errnum=mysql_error();
-    	$des=mysql_error();
+		$this->BD_CONNECT();
+		$results=@mysql_query($sql,$this->mysql_connection);
+		$errnum=mysql_error($this->mysql_connection);
+    	$des=mysql_error($this->mysql_connection);
     	$this->mysql_error=$des;
 		
 		
@@ -1494,21 +1447,10 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		
 	function DATABASE_LIST(){
 		$sql="SHOW DATABASES";
-		if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-			$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,$this->mysql_password);
-		}else{
-			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-		}
-		
-		if(!$bd){
-    		$errnum=mysql_error();
-    		$des=mysql_error();
-    		$this->mysql_error=$des;
-    		return null;
-		}
-		$results=@mysql_query($sql);
-		$errnum=mysql_error();
-    	$des=mysql_error();
+		$this->BD_CONNECT();
+		$results=@mysql_query($sql,$this->mysql_connection);
+		$errnum=mysql_error($this->mysql_connection);
+    	$des=mysql_error($this->mysql_connection);
     	$this->mysql_error=$des;
 		
 		
@@ -1521,21 +1463,10 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		
 	function FLUSH_PRIVILEGES(){
 		$sql="FLUSH PRIVILEGES";
-		if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-			$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,$this->mysql_password);
-		}else{
-			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-		}
-		
-		if(!$bd){
-    		$errnum=mysql_error();
-    		$des=mysql_error();
-    		$this->mysql_error=$des;
-    		return null;
-		}
-		$results=@mysql_query($sql);
-		$errnum=mysql_error();
-    	$des=mysql_error();
+		$this->BD_CONNECT();
+		$results=@mysql_query($sql,$this->mysql_connection);
+		$errnum=mysql_error($this->mysql_connection);
+    	$des=mysql_error($this->mysql_connection);
     	$this->mysql_error=$des;
 
 		}		
@@ -1605,43 +1536,17 @@ function mysql_real_escape_string2($query){
 	FUNCTION CREATE_DATABASE($database,$nocache=false){
 		$this->mysql_password=trim($this->mysql_password);
 		if(!$nocache){
-		$this->BD_CONNECT();
+		if(!$this->BD_CONNECT()){writelogs("CREATE_DATABASE Connection failed",__CLASS__,__FILE__,__FILE__,__LINE__);}
 		if($this->DATABASE_EXISTS($database)){
 			writelogs("CREATE_DATABASE $database Already exists aborting",__CLASS__,__FILE__,__FILE__,__LINE__);
 			$this->ok=true;
 			return true;
 		}}
-		if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
-			$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$this->mysql_admin,$this->mysql_password);
-		}else{
-			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
-		}
-		writelogs("CREATE DATABASE $database",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		if(!$bd){
-    		$des=mysql_error($bd);
-    		$errnum=mysql_errno($bd);	
-			
-    		$this->mysql_error="($errnum) $des $this->mysql_admin@$this->mysql_server";
-    		writelogs("($errnum) $des $this->mysql_admin@$this->mysql_server ($des) `$this->mysql_password`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-    		if($this->mysql_server=="127.0.0.1"){
-    			if($this->mysql_admin<>null){
-    				if($this->mysql_password<>null){
-    					$sock=new sockets();
-    					if($sock->GET_INFO("MysqlAccountAutoCreated")<>1){
-    						writelogs("All parameters are good for creating the $this->mysql_admin account in mysql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-    						$sock->getFrameWork("cmd.php?ChangeMysqlLocalRoot=$this->mysql_admin&password=$this->mysql_password");
-    						$sock->SET_INFO("MysqlAccountAutoCreated",1);
-    					}
-    				}
-    			}
-    		}
-    		return false;
-		}
-    		$results=@mysql_query("CREATE DATABASE `$database`");
-			if(mysql_error()){
+  		$results=@mysql_query("CREATE DATABASE `$database`",$this->mysql_connection);
+			if(mysql_error($this->mysql_connection)){
 				$time=date('h:i:s');
-				$errnum=mysql_errno($bd);
-				$des=mysql_error($bd);
+				$errnum=mysql_errno($this->mysql_connection);
+				$des=mysql_error($this->mysql_connectiond);
 				if(preg_match("#database exists#", $des)){$this->ok=true;return true;}
 				$this->mysql_error="CREATE DATABASE $database -> Error Number ($errnum) ($des)";
 				writelogs("($errnum) $des $this->mysql_admin@$this->mysql_server",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
@@ -1656,7 +1561,7 @@ function mysql_real_escape_string2($query){
 	FUNCTION CHECK_PERFORMANCES(){
 		if(!function_exists("mysql_connect")){return 0;}
 		$this->BD_CONNECT();
-		$results=@mysql_query("SELECT benchmark(100000000,1+2);");
+		$results=@mysql_query("SELECT benchmark(100000000,1+2);",$this->mysql_connection);
 	}
 	
 	

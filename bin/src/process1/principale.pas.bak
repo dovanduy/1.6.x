@@ -1241,9 +1241,7 @@ if FileExists(SYS.LOCATE_GENERIC_BIN('postconf')) then begin
           // offlineimap
    if FileExists(SYS.LOCATE_GENERIC_BIN('offlineimap')) then begin
       list.Add('$_GLOBAL["offlineimap_installed"]=True;') end else begin
-
-
-
+      fpsystem('/usr/share/artica-postfix/bin/artica-make APP_OFFLINEIMAP >/dev/null 2>&1 &');
       list.Add('$_GLOBAL["offlineimap_installed"]=False;');
    end;
 

@@ -465,7 +465,10 @@ class icap{
 			
 			reset($f);
 			while (list ($a, $filename) = each ($f) ){
-				if(is_file("$dir/$filename")){return $dir;}
+				if(is_file("$dir/$filename")){
+					if($this->ASROOT){echo "Starting......: [ICAP]: $dir/$filename OK Find library `$filename` done...\n";}
+					return $dir;
+				}
 				if($GLOBALS["VERBOSE"]){
 					if($this->ASROOT){echo "Starting......: [ICAP]: $dir/$filename no such file\n";}
 				}

@@ -1,6 +1,7 @@
 <?php
 session_start();
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
+if($_SESSION["uid"]=="-100"){header("location:logoff.php");}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");

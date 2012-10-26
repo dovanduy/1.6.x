@@ -355,6 +355,8 @@ public function LOCATE_VBoxHeadless(){
 			return;
 		}
 		$http_port=$this->squid_get_alternate_port();
+		$interface="127.0.0.1";
+		if(preg_match("#([0-9\.]+):([0-9]+)#",$http_port,$re)){$interface=$re[1];$http_port=$re[2];}
 		$cmd="$squidclient -h 127.0.0.1 -p $http_port$auth mgr";
 		writelogs_framework("$cmd",__FUNCTION__,__LINE__);
 		return $cmd;
@@ -2278,7 +2280,7 @@ public function file_size_human($path){
 
 	exec($this->find_program("du")." -h $path ",$results);
 	while (list ($num, $line) = each ($results)){
-		if(preg_match("#^([0-9A-Z]+)\s+#",$line,$re)){
+		if(preg_match("#^([0-9A-Z,]+)\s+#",$line,$re)){
 			return $re[1];break;
 		}
 	}
@@ -4211,7 +4213,12 @@ function DirFiles($path,$regexsearch=null){
 	private function squid_get_alternate_port(){
 		$f=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
 		while (list ($num, $ligne) = each ($f) ){
+			if(preg_match("#(transparent|tproxy|intercept)#i", trim($ligne))){continue;}
 			if(preg_match("#http_port\s+([0-9]+)$#", trim($ligne),$re)){return $re[1];}
+			if(preg_match("#http_port\s+([0-9\.]+):([0-9]+)$#", trim($ligne),$re)){return "{$re[1]}:{$re[2]}";}
+			
+			if(preg_match("#http_port\s+([0-9]+)\s+#", trim($ligne),$re)){return $re[1];}
+			if(preg_match("#http_port\s+([0-9\.]+):([0-9]+)\s+#", trim($ligne),$re)){return "{$re[1]}:{$re[2]}";}			
 		}
 		
 	}
@@ -4796,7 +4803,7 @@ function system_admin_events($text,$function,$file,$line,$category){
 	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/system_admin_events")){@mkdir("/var/log/artica-postfix/system_admin_events",755,true);}
+	if(!is_dir("/var/log/artica-postfix/system_admin_events")){@mkdir("/var/log/artica-postfix/system_admin_events",0755,true);}
 	@file_put_contents("/var/log/artica-postfix/system_admin_events/$md5.log", $serialize);
 }
 
@@ -4817,7 +4824,7 @@ function ufdbguard_admin_events($text,$function,$file,$line,$category){
 	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/ufdbguard_admin_events")){@mkdir("/var/log/artica-postfix/ufdbguard_admin_events",755,true);}
+	if(!is_dir("/var/log/artica-postfix/ufdbguard_admin_events")){@mkdir("/var/log/artica-postfix/ufdbguard_admin_events",0755,true);}
 	@file_put_contents("/var/log/artica-postfix/ufdbguard_admin_events/$md5.log", $serialize);
 }
 function mysql_admin_events($text,$function,$file,$line,$category=null){
@@ -4831,7 +4838,7 @@ function mysql_admin_events($text,$function,$file,$line,$category=null){
 	$array["category"]=$category;
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/mysql_admin_events")){@mkdir("/var/log/artica-postfix/mysql_admin_events",755,true);}
+	if(!is_dir("/var/log/artica-postfix/mysql_admin_events")){@mkdir("/var/log/artica-postfix/mysql_admin_events",0755,true);}
 	@file_put_contents("/var/log/artica-postfix/mysql_admin_events/$md5.log", $serialize);
 	
 	
@@ -4847,7 +4854,7 @@ function update_events($text,$function,$file,$line,$category=null){
 	$array["category"]=$category;
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/update_admin_events")){@mkdir("/var/log/artica-postfix/update_admin_events",755,true);}
+	if(!is_dir("/var/log/artica-postfix/update_admin_events")){@mkdir("/var/log/artica-postfix/update_admin_events",0755,true);}
 	@file_put_contents("/var/log/artica-postfix/update_admin_events/$md5.log", $serialize);
 	
 	

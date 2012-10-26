@@ -23,7 +23,7 @@ dkfilter, ufdbguardd, dkimmilter, dropbox, articapolicy, virtualbox, tftpd,
 crossroads, articastatus, articaexecutor, articabackground, pptpd, apt_mirror,
 ddclient, cluebringer, apachesrc, toolsversions, sabnzbdplus, fusermount,
 vnstat, munin, greyhole, autofs, iscsitarget, snort, greensql, amanda, tomcat,
-openemm, arpd, yaffas, netatalk, memcached,ejabberd;
+openemm, arpd, yaffas, netatalk, memcached,ejabberd, articadb;
 
 var
 DisableIMAPVerif:integer;

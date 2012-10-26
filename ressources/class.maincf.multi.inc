@@ -3081,7 +3081,7 @@ private function smtp_sasl_password_map(){
 			$conf[]="  flags=F  user=mail argv=/usr/share/artica-postfix/bin/artica-whitelist -a \${nexthop} -s \${sender} --spam";
 			$conf[]=""; 
 			$conf[]="zarafa    unix  -       n       n       -       -       pipe";
-			$conf[]="  user=mail argv=/usr/local/bin/zarafa-dagent \${user}";
+			$conf[]="  user=mail argv=/usr/bin/zarafa-dagent \${user}";
 			$conf[]=""; 
 			if($PostFixEnableAiguilleuse==1){$aiguilleusecmd=" -z yes";}
 			$conf[]="artica-filter    unix  -       n       n       -       20       pipe";

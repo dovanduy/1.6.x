@@ -129,62 +129,51 @@ function statusDB(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$date=GetLastUpdateDate();
-	$q=new mysql_squid_builder();
-	$sql="SELECT COUNT(*) as tcount FROM webfilters_updates WHERE updated=1";
-	$sum=$q->COUNT_ROWS("webfilters_updates");
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	if(!is_numeric($ligne["tcount"])){$ligne["tcount"]=0;}
-	$countUpdate=intval($ligne["tcount"]);
-	$reste=$sum-$countUpdate;
-	writelogs("Somme = $sum Updated=$countUpdate Reste=$reste",__FUNCTION__,__FILE__,__LINE__);
-	$pourcent=round($reste/$sum,2)*100;
-	
-	if($sum==$countUpdate){$pourcent=100;}
-	
-	if($pourcent<100){
-		if($pourcent>0){
-			$linkPourcent="<a href=\"javascript:blur();\"
-			OnClick=\"javascript:YahooWin5('550','$page?mysql-progress=yes','{update_progress}:&nbsp;$pourcent%');\"
-			style='font-size:16px;text-decoration:underline'>";
+	$q=new mysql_catz();
+	$sock=new sockets();
+	$ini=new Bs_IniHandler();
+	$catz=$q->LIST_TABLES_CATEGORIES();
+	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?squid-ini-status=yes')));
+	$APP_ARTICADB=DAEMON_STATUS_ROUND("APP_ARTICADB",$ini,null,1);
+	$sql="SHOW VARIABLES LIKE '%version%';";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){writelogs("Fatal Error: $q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if($ligne["Variable_name"]=="slave_type_conversions"){continue;}
+		$tt[]="	<tr>
+					<td colspan=2><div style='font-size:16px'>{$ligne["Variable_name"]}:&nbsp;{$ligne["Value"]}</a></div></td>
+				</tr>";
 		}
-	}
 	
-	$purc=pourcentage($pourcent);
-	$t=time();
-	$q=new mysql_squid_builder();
-	$SQL_ALL_ITEMS="SELECT SUM( TABLE_ROWS ) AS tcount
-	FROM information_schema.tables
-	WHERE table_schema = 'squidlogs'
-	AND table_name LIKE 'category_%'";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($SQL_ALL_ITEMS,"artica_backup"));	
-	$items=$ligne["tcount"];
-	$items=numberFormat($items,0,""," ");
+	
+	
+	
+	$items=numberFormat($q->COUNT_CATEGORIES(),0,""," ");
 	$html="
 	<div class=explain>{artica_update_categories_howto}</div>
-	
+	<table style='width:99%' class=form>
+	<tr>
+	<td valign='top'>$APP_ARTICADB</td>
+	<td valign='top'>
 	<table style='width:100%'>
 	<tbody>
 	<tr>
 		<td colspan=2><div style='font-size:16px'>{pattern_database_version}:&nbsp;$date&nbsp</div></td>
 	</tr>
-		<td><div style='font-size:16px'>$linkPourcent{update_progress}:&nbsp;$pourcent%&nbsp</a></div></td>
-		<td>$purc</td>
+	
+	<tr>
+		<td colspan=2><div style='font-size:16px'>{categories}:&nbsp;".count($catz)."</a></div></td>
+		
 	</tr>
 	<tr>
 		<td colspan=2><div style='font-size:16px'>{categorized_websites}:&nbsp;$items&nbsp</div></td>
 	</tr>
-	<tr>
-		<td colspan=2 align='left'><div id='instant-update-$t'></div></td>	
-	<tr>
-		<td colspan=2 align='right'>". imgtootltip("refresh-32.png","{refresh}","RefreshTab('squid_categories_zoom')")."</td>
-	</tr>	
+	".@implode("", $tt)."
 	</tbody>
 	</table>
-	<script>
-		LoadAjax('instant-update-$t','$page?instant-update-daily=yes');
-	</script>
-	
-	
+	</td>
+	</tr>
+	</table>
 	";
 	echo $tpl->_ENGINE_parse_body($html);
 	
@@ -193,11 +182,8 @@ function statusDB(){
 
 
 function GetLastUpdateDate(){
-	$q=new mysql_squid_builder();
-	if(!$q->TABLE_EXISTS("webfilters_updates")){$q->checkTables();}
-	$sql="SELECT zDate FROM webfilters_updates GROUP BY zDate ORDER BY zDate DESC LIMIT 0,1";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	return $ligne["zDate"];
+	$sock=new sockets();
+	return $sock->getFrameWork("squid.php?articadb-version=yes");
 }
 
 
@@ -1791,15 +1777,8 @@ function global_status_artica_db(){
 	$itemsPerso=$ligne["tcount"];
 	$itemsPerso=numberFormat($itemsPerso,0,""," ");
 	
-	
-	$SQL_ALL_ITEMS="SELECT SUM( TABLE_ROWS ) AS tcount
-	FROM information_schema.tables
-	WHERE table_schema = 'catz'
-	AND table_name LIKE 'category_%'";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($SQL_ALL_ITEMS,"information_schema"));
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}	
-	$itemsArtica=$ligne["tcount"];
-	$itemsArtica=numberFormat($itemsArtica,0,""," ");
+	$catz=new mysql_catz();
+	$itemsArtica=numberFormat($catz->COUNT_CATEGORIES(),0,""," ");
 
 	$q=new mysql_squid_builder();
 	$backuped_items=$q->COUNT_ROWS("webfilters_backupeddbs");
@@ -1810,27 +1789,11 @@ function global_status_artica_db(){
 	$backuped_items_text="$backuped_items {backup_containers} ($backuped_items_size)";
 	
 	
-	
-$purctext="		<tr>
-			<td class=legend style='font-size:14px;font-weight:bold'>{progress}:</td>
-			<td style='font-size:14px;font-weight:bold'>$pourcent%</td>
-		</tr>
-		<tr>
-			<td class=legend style='font-size:14px;font-weight:bold'>&nbsp;</td>
-			<td style='font-size:14px;font-weight:bold'>$purc</td>
-		</tr>";	
-	
-	if($purc<100){
-		$purctext=null;
-	}
-	
-	
 	$tableau="<table style='width:99%' class=form>
 	<tbody>
 		<tr>
 			<td colspan=2 style='font-size:16px;$color'>{artica_databases}$running</td>
 		</tr>
-	$purctext
 		<tr>
 			<td class=legend style='font-size:14px;font-weight:bold'>{youritems}:</td>
 			<td style='font-size:14px;font-weight:bold'>$itemsPerso</td>

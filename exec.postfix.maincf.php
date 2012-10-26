@@ -2430,7 +2430,7 @@ $conf[]="artica-blacklist\tunix\t-\tn\tn\t-\t-\tpipe flags=F  user=mail argv=/us
 $conf[]="artica-reportwbl\tunix\t-\tn\tn\t-\t-\tpipe flags=F  user=mail argv=/usr/share/artica-postfix/bin/artica-whitelist -a \${nexthop} -s \${sender} --report";
 $conf[]="artica-reportquar\tunix\t-\tn\tn\t-\t-\tpipe flags=F  user=mail argv=/usr/share/artica-postfix/bin/artica-whitelist -a \${nexthop} -s \${sender} --quarantines";
 $conf[]="artica-spam\tunix\t-\tn\tn\t-\t-\tpipe flags=F  user=mail argv=/usr/share/artica-postfix/bin/artica-whitelist -a \${nexthop} -s \${sender} --spam";
-$conf[]="zarafa\tunix\t-\tn\tn\t-\t-\tpipe	user=mail argv=/usr/local/bin/zarafa-dagent \${user}";
+$conf[]="zarafa\tunix\t-\tn\tn\t-\t-\tpipe	user=mail argv=/usr/bin/zarafa-dagent \${user}";
 $conf[]="artica-filter\tunix\t-\tn\tn\t-\t$ArticaFilterMaxProc\tpipe flags=FOh  user=www-data argv=/usr/share/artica-postfix/exec.artica-filter.php -f \${sender} --  -s \${sender} -r \${recipient} -c \${client_address}";
 $conf[]="";
 $conf[]=$master_amavis;

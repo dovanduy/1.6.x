@@ -288,6 +288,7 @@ begin
           if FileExists('/etc/init.d/artica-postfix') then  begin
              fpsystem('/etc/init.d/artica-postfix restart samba >/dev/null 2>&1 &');
              fpsystem('/usr/share/artica-postfix/bin/artica-install --nsswitch');
+             fpsystem('/usr/share/artica-postfix/bin/process1 --force');
           end;
           Show_Welcome;
           exit;
@@ -299,6 +300,7 @@ begin
           fpsystem('DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get -o Dpkg::Options::="--force-confnew" install -f');
           fpsystem('DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get -o Dpkg::Options::="--force-confnew" autoremove');
           if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix restart squid >/dev/null 2>&1 &');
+          fpsystem('/usr/share/artica-postfix/bin/process1 --force');
           Show_Welcome;
           exit;
     end;

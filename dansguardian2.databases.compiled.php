@@ -1792,14 +1792,8 @@ function global_status_artica_db(){
 	$itemsPerso=numberFormat($itemsPerso,0,""," ");
 	
 	
-	$SQL_ALL_ITEMS="SELECT SUM( TABLE_ROWS ) AS tcount
-	FROM information_schema.tables
-	WHERE table_schema = 'catz'
-	AND table_name LIKE 'category_%'";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($SQL_ALL_ITEMS,"information_schema"));
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}	
-	$itemsArtica=$ligne["tcount"];
-	$itemsArtica=numberFormat($itemsArtica,0,""," ");
+	$catz=new mysql_catz();
+	$itemsArtica=numberFormat($catz->COUNT_CATEGORIES(),0,""," ");
 
 	$q=new mysql_squid_builder();
 	$backuped_items=$q->COUNT_ROWS("webfilters_backupeddbs");

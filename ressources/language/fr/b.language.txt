@@ -68,7 +68,7 @@ Vous pouvez ajouter des mots simples tels que &quot;porn&quot; or &quot;suck&quo
 Par exemple: 10.10.10.1:9001
 Si le port n'est pas d&eacute;finit, il sera renseign&eacute; par d&eacute;faut comme 9001</add_artica_agent_explain>
 <add_category_text>Ajouter une nouvelle cat&eacute;gorie dans votre configuration.</add_category_text>
-<add_dns_in_config>Ajoutez les serveurs DNS dans les param&egrave;tres</add_dns_in_config>
+<add_dns_in_config>Ajoutez les serveurs DNS</add_dns_in_config>
 <add_dns_in_config_perf_explain>Vous obtiendrez de meilleurs performances en ajoutant vos DNS dans la configuration.</add_dns_in_config_perf_explain>
 <add_domain>Ajouter un domaine</add_domain>
 <add_message_content>Ajouter le contenu</add_message_content>
@@ -147,6 +147,7 @@ Artica configurera alors le service pour que vous utilisez le m&ecirc;me compte 
 Utilisez le centre d'installation afin de l'installer.</APP_ARKEIA_NOT_INSTALLED>
 <APP_ARKEIA_TXT>Le logiciel applicatif Arkeia est une application de sauvegarde et de restauration rapide, facile  et flexible</APP_ARKEIA_TXT>
 <APP_ARKWSD>Service Web Arkeia</APP_ARKWSD>
+<APP_ARTICADB>Service cat&eacute;gories Web</APP_ARTICADB>
 <APP_ARTICA_AGENT>Agent Artica</APP_ARTICA_AGENT>
 <APP_ARTICA_AGENT_TEXT>L'agent Artica est un service qui effectue la liaison entre les n%u0153uds distants et ce serveur.[br]Il re&ccedil;oit les ordres depuis ce serveur afin des les ex&eacute;cuter &agrave; distance.</APP_ARTICA_AGENT_TEXT>
 <APP_BTRFS_CONVERT_EXPLAIN>Convertir cette partition vers un syst&egrave;me de fichier BtrFS</APP_BTRFS_CONVERT_EXPLAIN>

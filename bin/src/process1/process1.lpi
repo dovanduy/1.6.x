@@ -52,12 +52,12 @@
         <Filename Value="principale.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="principale"/>
-        <CursorPos X="82" Y="1249"/>
-        <TopLine Value="1217"/>
+        <CursorPos X="66" Y="929"/>
+        <TopLine Value="895"/>
         <EditorIndex Value="3"/>
         <UsageCount Value="206"/>
         <Bookmarks Count="1">
-          <Item0 X="6" Y="1233" ID="0"/>
+          <Item0 X="6" Y="1232" ID="0"/>
         </Bookmarks>
         <Loaded Value="True"/>
       </Unit2>
@@ -73,12 +73,10 @@
         <UnitName Value="global_conf"/>
         <CursorPos X="102" Y="31"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="14"/>
         <UsageCount Value="101"/>
         <Bookmarks Count="1">
           <Item0 X="1" Y="4519" ID="1"/>
         </Bookmarks>
-        <Loaded Value="True"/>
       </Unit4>
       <Unit5>
         <Filename Value="zsystem.pas"/>
@@ -201,7 +199,7 @@
         <UnitName Value="openldap"/>
         <CursorPos X="31" Y="68"/>
         <TopLine Value="41"/>
-        <EditorIndex Value="21"/>
+        <EditorIndex Value="19"/>
         <UsageCount Value="104"/>
         <Loaded Value="True"/>
       </Unit21>
@@ -360,7 +358,7 @@
         <UnitName Value="apache_artica"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="18"/>
+        <EditorIndex Value="17"/>
         <UsageCount Value="119"/>
         <Loaded Value="True"/>
       </Unit42>
@@ -392,7 +390,7 @@
         <UnitName Value="ufdbguardd"/>
         <CursorPos X="25" Y="165"/>
         <TopLine Value="110"/>
-        <EditorIndex Value="17"/>
+        <EditorIndex Value="16"/>
         <UsageCount Value="106"/>
         <Loaded Value="True"/>
       </Unit46>
@@ -401,7 +399,7 @@
         <UnitName Value="toolsversions"/>
         <CursorPos X="46" Y="793"/>
         <TopLine Value="766"/>
-        <EditorIndex Value="16"/>
+        <EditorIndex Value="15"/>
         <UsageCount Value="105"/>
         <Loaded Value="True"/>
       </Unit47>
@@ -410,7 +408,7 @@
         <UnitName Value="fusermount"/>
         <CursorPos X="47" Y="390"/>
         <TopLine Value="346"/>
-        <EditorIndex Value="20"/>
+        <EditorIndex Value="18"/>
         <UsageCount Value="104"/>
         <Loaded Value="True"/>
       </Unit48>
@@ -419,9 +417,7 @@
         <UnitName Value="squidguard"/>
         <CursorPos X="41" Y="112"/>
         <TopLine Value="95"/>
-        <EditorIndex Value="19"/>
         <UsageCount Value="104"/>
-        <Loaded Value="True"/>
       </Unit49>
       <Unit50>
         <Filename Value="../artica-install/clamav.pas"/>
@@ -492,7 +488,7 @@
         <UnitName Value="lighttpd"/>
         <CursorPos X="75" Y="314"/>
         <TopLine Value="280"/>
-        <EditorIndex Value="15"/>
+        <EditorIndex Value="14"/>
         <UsageCount Value="80"/>
         <Loaded Value="True"/>
       </Unit58>

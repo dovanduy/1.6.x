@@ -81,8 +81,7 @@ Define ip:port (10.10.10.1:9001).
 If no port is defined, default will be the 9001.
 </add_artica_agent_explain>
 <add_category_text>Add a new category in your configuration</add_category_text>
-<add_dns_in_config>Add DNS servers in settings/add_dns_in_config>
-<add_dns_in_config_perf_explain>You will obtain better performances by specify DNS servers in your configuration</add_dns_in_config>
+<add_dns_in_config>Add DNS servers</add_dns_in_config>
 <add_dns_in_config_perf_explain>You will obtain better performances by specify 
 DNS servers in your configuration</add_dns_in_config_perf_explain>
 <add_domain>Add a domain</add_domain>
@@ -179,6 +178,7 @@ Use the setup control center in order to install the application.
 </APP_ARKEIA_NOT_INSTALLED>
 <APP_ARKEIA_TXT>The Arkeia Software Application is a fast, flexible and reliable backup and recovery software solution</APP_ARKEIA_TXT>
 <APP_ARKWSD>Arkeia web service</APP_ARKWSD>
+<APP_ARTICADB>Web Categories Daemon</APP_ARTICADB>
 <APP_ARTICA_AGENT>Artica agent</APP_ARTICA_AGENT>
 <APP_ARTICA_AGENT_TEXT>Artica agent is a service that link your remote node to this server, it is able to receive order from this server and execute it localy.</APP_ARTICA_AGENT_TEXT>
 <APP_BTRFS_CONVERT_EXPLAIN>Converting this partition to a Brtfs filesystem.</APP_BTRFS_CONVERT_EXPLAIN>

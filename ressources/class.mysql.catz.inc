@@ -19,17 +19,23 @@ class mysql_catz{
 	var $EnableRemoteStatisticsAppliance=0;
 	var $last_id;
 	var $affected_rows=0;
-	
-	
+	var $SocketPath=null;
+	var $TryTCP=true;	
+	var $arrayConfig=array();
 	function mysql_catz($nomysql=FALSE){
 		if(!$nomysql){
 			$sock=new sockets();
-			$this->ClassSQL=new mysql();
+			$this->arrayConfig["mysql_admin"]="root";
+			$this->arrayConfig["SocketPath"]="/var/run/articadb.sock";
+			$this->arrayConfig["TryTCP"]=false;
+			
+			
+			$this->ClassSQL=new mysql($this->arrayConfig);
 			$this->UseMysql=$this->ClassSQL->UseMysql;
 			$this->mysql_admin=$this->ClassSQL->mysql_admin;
 			$this->mysql_password=$this->ClassSQL->mysql_password;
-			$this->mysql_port=$this->ClassSQL->mysql_port;
-			$this->mysql_server=$this->ClassSQL->mysql_server;
+			$this->ClassSQL->SocketPath="/var/run/articadb.sock";
+			$this->ClassSQL->TryTCP=false;
 			if(!$this->DATABASE_EXISTS($this->database)){$this->CREATE_DATABASE($this->database);}
 			if(function_exists("debug_mem")){debug_mem();}
 			if($this->TestingConnection()){}else{$this->MysqlFailed=true;}
@@ -41,12 +47,14 @@ class mysql_catz{
 	public function TestingConnection(){
 		$this->ok=true;
 		$this->ClassSQL->ok=true;
+		$this->ClassSQL=new mysql($this->arrayConfig);
 		$a=$this->ClassSQL->TestingConnection();
 		$this->mysql_error=$this->ClassSQL->mysql_error;
 		return $a;
 	}
 	
 	public function COUNT_ROWS($table,$database=null){
+		$this->ClassSQL=new mysql($this->arrayConfig);
 		if($database<>$this->database){$database=$this->database;}
 		$count=$this->ClassSQL->COUNT_ROWS($table,$database);
 		if(!$this->ClassSQL->ok){
@@ -66,7 +74,7 @@ class mysql_catz{
 		if($table=="category_teans"){$table="category_teens";}
 		if($database==null){$database=$this->database;}
 		if($database<>$this->database){$database=$this->database;}
-		$a=$this->ClassSQL->TABLE_EXISTS($table,$database);
+		$a=$this->ClassSQL->TABLE_EXISTS($table,$database,true);
 		if(!$a){
 				if(function_exists("debug_backtrace")){
 				try {$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}} catch (Exception $e) {writelogs("TABLE_EXISTS:: Fatal: ".$e->getMessage(),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}
@@ -76,6 +84,7 @@ class mysql_catz{
 		
 	}
 	private function DATABASE_EXISTS($database){
+		$this->ClassSQL=new mysql($this->arrayConfig);
 		if($database<>$this->database){$database=$this->database;}
 		return $this->ClassSQL->DATABASE_EXISTS($database);
 	}
@@ -87,6 +96,7 @@ class mysql_catz{
 	
 	public function QUERY_SQL($sql,$database=null){
 		if($database<>$this->database){$database=$this->database;}
+		$this->ClassSQL=new mysql($this->arrayConfig);
 		$results=$this->ClassSQL->QUERY_SQL($sql,$database);
 		$this->ok=$this->ClassSQL->ok;
 		$this->mysql_error=$this->ClassSQL->mysql_error;
@@ -391,7 +401,7 @@ function TransArray(){
 			$sql="CREATE TABLE `$this->database`.`$tablename` (
 					`zmd5` VARCHAR( 90 ) NOT NULL ,
 					PRIMARY KEY ( `zmd5` )
-					)";
+					) ENGINE = MYISAM";
 			$this->QUERY_SQL($sql,$this->database);
 			if(!$this->ok){writelogs("Failed to create $category",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return false;}
 		}

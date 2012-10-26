@@ -918,6 +918,7 @@ l.add('e2fsprogs');
 
 if ArchStruct=64 then begin
    l.add('libc6-i386');
+   l.add('lib32stdc++6');
    //l.add('ia32-libs');
 end;
 

@@ -479,6 +479,7 @@ class settings_inc {
 	var $LIGHT_INSTALL=false;
 	var $CORP_LICENSE=false;
 	var $WEBSTATS_APPLIANCE=false;
+	var $ARTICADB_INSTALLED=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -895,6 +896,10 @@ class settings_inc {
 			if(isset($_GLOBAL["Z_PUSH_INSTALLED"])){$this->Z_PUSH_INSTALLED=$_GLOBAL["Z_PUSH_INSTALLED"];}
 			if(isset($_GLOBAL["APP_AMANDA_INSTALLED"])){$this->APP_AMANDA_INSTALLED=$_GLOBAL["APP_AMANDA_INSTALLED"];}
 			if(isset($_GLOBAL["DRUPAL7_INSTALLED"])){$this->DRUPAL7_INSTALLED=$_GLOBAL["DRUPAL7_INSTALLED"];}
+			if(isset($_GLOBAL["ARTICADB_INSTALLED"])){$this->ARTICADB_INSTALLED=$_GLOBAL["ARTICADB_INSTALLED"];}
+			
+			
+			
 			$this->TOMCAT_JAVA=$_GLOBAL["TOMCAT_JAVA"];
 			$this->TOMCAT_DIR=$_GLOBAL["TOMCAT_DIR"];
 			$this->APACHE_MOD_TOMCAT=$_GLOBAL["APACHE_MOD_TOMCAT"];

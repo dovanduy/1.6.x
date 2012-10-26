@@ -128,6 +128,9 @@ class mysql_squid_builder{
 				}
 			}
 			
+			$this->tasks_disabled[6]=true;
+			$this->tasks_disabled[2]=true;
+			
 	}
 	
 	private function fill_task_array(){

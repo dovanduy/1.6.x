@@ -23,9 +23,13 @@ if(is_array($argv)){
 
 	
 if($argv[1]=="--getcatz"){print_r(LIST_TABLES_CATEGORIES());die();}
-if($argv[1]=="--build"){Buildrepo();die();}		
+if($argv[1]=="--build"){Buildrepo();die();}
 if($argv[1]=="--compress"){compress_categories();die();}
-if($argv[1]=="--v2"){export_version2();die();}
+if($argv[1]=="--compress-tables"){CompressTables();die();}
+
+
+
+if($argv[1]=="--v2"){Buildrepo();export_version2();die();}
 if($argv[1]=="--ufdb"){compile_databases();die();}
 if($argv[1]=="--ufdb-compress"){compile_databases_compress();die();}
 if($argv[1]=="--ufdb-repo"){compile_databases_repo();die();}
@@ -39,15 +43,132 @@ if($argv[1]=="--empty-perso-catz"){empty_personal_categories();exit;}
 
 echo "Unable to understand ".@implode(" ", $argv)."\n";
 
-
 function Buildrepo(){
 	$cats=LIST_TABLES_CATEGORIES();
+	$unix=new unix();
+	$q=new mysql_squid_builder();
+	$t=time();
+	$rm=$unix->find_program("rm");
+	$tar=$unix->find_program("tar");
+	$curl=$unix->find_program("curl");
+	
+	$WORKDIR="/home/artica/webdbs";
+	@mkdir($WORKDIR,0777,true);
+	$unix->chmod_func(0777, "/home/artica/webdbs");
+	
+	if(is_file("/root/articadb-data.tar.gz")){
+			if(is_dir("/opt/articatech/data/catz")){
+			echo "Removing /opt/articatech/data\n";
+			shell_exec("/bin/rm -rf /opt/articatech/data");
+			@mkdir("/opt/articatech/data",0755);
+			echo "Uncompress /root/articadb-data.tar.gz\n";
+			shell_exec("$tar -xf /root/articadb-data.tar.gz -C /opt/articatech/data/");
+			echo "Restart articadb service\n";
+			shell_exec("/etc/init.d/artica-postfix restart articadb");
+			sleep(5);
+		}
+	}
+	$q2=new mysql_catz();
 	while (list ($index, $category_table) = each ($cats) ){
-		echo "<H5 style='font-size:14px;font-weight:bold;color:red'>Extracting table $category_table<H5>";
-		ExportCategory($category_table);
+		$c++;
+		echo $category_table."\n";
+		
+		echo "Exporting $category_table for category\n";
+		if(is_file("$WORKDIR/$category_table.csv")){@unlink("$WORKDIR/$category_table.csv");}
+		$CountCategoryTableRows=$q->COUNT_ROWS("$category_table");
+		if($CountCategoryTableRows==0){ufdbguard_admin_events("Exporting $category_table skipped, no data",__FUNCTION__,__FILE__,__LINE__,"backup");continue;}
+		$sql="SELECT MD5(pattern) FROM $category_table WHERE enabled=1 
+		INTO OUTFILE '$WORKDIR/$category_table.csv'
+		FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\\n'";		
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){
+			ufdbguard_admin_events("$q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "cloud");
+			return;
+		}
+		if(is_file("$WORKDIR/$category_table.csv")){
+			echo "$WORKDIR/$category_table.csv -> ".$unix->file_size_human("$WORKDIR/$category_table.csv")."\n";
+		}
+		
+		
+		
+		if(!$q2->TABLE_EXISTS($category_table)){
+			$q2->CreateCategoryTable(null,$category_table);
+		}else{
+			$q2->DELETE_TABLE($category_table);
+			$q2->CreateCategoryTable(null,$category_table);
+		}
+		
+		if(!$q2->TABLE_EXISTS($category_table)){
+			ufdbguard_admin_events("Failed to create $category_table `$q2->mysql_error`", __FUNCTION__, __FILE__, __LINE__, "cloud");
+			return;
+		}
+		echo "$category_table catz/$category_table\n";
+		$sql="LOAD DATA INFILE '$WORKDIR/$category_table.csv' IGNORE INTO TABLE $category_table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\\n' (zmd5)";
+		$q2->QUERY_SQL($sql);
+		$q->QUERY_SQL("OPTIMIZE TABLE $category_table");
+		
+		if(!$q2->ok){
+			ufdbguard_admin_events("$q2->mysql_error", __FUNCTION__, __FILE__, __LINE__, "cloud");
+			@unlink("$WORKDIR/$category_table.csv");
+			return;
+		}		
+		
+		@unlink("$WORKDIR/$category_table.csv");
+		
 	}	
+	$took=$unix->distanceOfTimeInWords($t,time());
+	$databaseVersion=date("Ymd");
+	@file_put_contents("/opt/articatech/VERSION", $databaseVersion);	
+	ufdbguard_admin_events("Building catz v.$databaseVersion database done, took $took", __FUNCTION__, __FILE__, __LINE__, "cloud");
+	CompressTables();
+	ufdbguard_admin_events("Compressing table v.$databaseVersion done...", __FUNCTION__, __FILE__, __LINE__, "cloud");
+	
+	
+	CompresseWholeDatas();
+	if(!is_file("/home/articatech-db/articadb.tar.gz")){
+		ufdbguard_admin_events("/home/articatech-db/articadb.tar.gz no such file",__FUNCTION__,__FILE__,__LINE__,"backup");
+		return;
+	}
+	$ftpass=@file_get_contents("/root/ftp-password");
+	if($ftpass==null){return;}
+	$ftpwww=trim(@file_get_contents("/root/compile_databases_repo"));	
+	if(!is_file($curl)){ufdbguard_admin_events("Exporting ftp aborted curl, no such binary",__FUNCTION__,__FILE__,__LINE__,"backup");return;}
+	$fileMD5=md5_file("/home/articatech-db/articadb.tar.gz");
+	$t=time();
+	shell_exec("$curl -T /home/articatech-db/articadb.tar.gz $ftpwww/ --user $ftpass");
+	$array["ARTICATECH"]["VERSION"]=$databaseVersion;
+	$array["ARTICATECH"]["MD5"]=$fileMD5;
+	$array["ARTICATECH"]["SIZE"]=$unix->file_size("/home/articatech-db/articadb.tar.gz");
+	@file_put_contents("/home/articatech-db/articatechdb.version", base64_encode(serialize($array)));
+	shell_exec("$curl -T /home/articatech-db/articatechdb.version $ftpwww/ --user $ftpass");
+	$took=$unix->distanceOfTimeInWords($t,time());
+	ufdbguard_admin_events("Uploading articadb.tar.gz [$fileMD5]: Version $databaseVersion done, took $took", __FUNCTION__, __FILE__, __LINE__, "cloud");
 	
 }
+
+function CompressTables(){
+	$unix=new unix();
+	$files=$unix->DirFiles("/opt/articatech/data/catz","\.MYI$");
+	$myisampack=$unix->find_program("myisampack");
+	while (list ($file, $none) = each ($files) ){
+		echo "Compressing $file\n";
+		shell_exec("$myisampack /opt/articatech/data/catz/$file");
+	}
+	
+}
+
+function CompresseWholeDatas(){
+	$unix=new unix();
+	$tar=$unix->find_program("tar");
+	
+	@mkdir("/home/articatech-db",0755,true);
+	@unlink("/home/articatech-db/articadb.tar.gz");
+	$cmd="cd /opt/articatech && $tar -czf /home/articatech-db/articadb.tar.gz *";
+	echo "$cmd\n";
+	chdir("/opt/articatech");
+	shell_exec($cmd);	
+}
+
 
 function build_categories(){
 	
@@ -334,9 +455,9 @@ function bifilesimport(){
 	
 }
 
-
-function LIST_TABLES_CATEGORIES(){
+function Blacklisted_categories(){
 		$remove["category_radio"]=true;
+		$remove["category_aa_list_blanche"]=true;
 		$remove["category_radiotv"]=true;
 		$remove["category_gambling"]=true;
 		$remove["category_drogue"]=true;
@@ -345,8 +466,19 @@ function LIST_TABLES_CATEGORIES(){
 		$remove["category_hobby_games"]=true;
 		$remove["category_spywmare"]=true;
 		$remove["category_phishtank"]=true;
+		$remove["category_housing_reale_state_"]=true;
+		$remove["category_wfa_sites"]=true;
+		$remove["category_a_noir_acc_ouve"]=true;
+		$remove["category_siti_approvati"]=true;
+		$remove["category_reseau_social"]=true;	
+		return $remove;
 	
-	
+}
+
+
+function LIST_TABLES_CATEGORIES(){
+		$remove=Blacklisted_categories();
+
 		if(isset($GLOBALS["LIST_TABLES_CATEGORIES"])){if($GLOBALS["VERBOSE"]){echo "return array\n";}return $GLOBALS["LIST_TABLES_CATEGORIES"];}
 		$array=array();
 		$q=new mysql_squid_builder();
@@ -759,7 +891,7 @@ function import_backuped_categories($path=null){
 		ufdbguard_admin_events("An another task is running pid $oldpid aborting",__FUNCTION__,__FILE__,__LINE__,"restore");return;
 	}
 	@file_put_contents($pidfile, getmypid());
-	
+	$Blacklisted_categories=Blacklisted_categories();
 	
 	$workdir="/home/squid/restore-catz";;
 	
@@ -774,6 +906,11 @@ function import_backuped_categories($path=null){
 	$catArray=$q->LIST_TABLES_CATEGORIES();
 	$c=0;
 	while (list ($category_table, $category_table2) = each ($catArray) ){
+		if($Blacklisted_categories[$category_table]){
+			ufdbguard_admin_events("Skip $category_table -> Blacklisted",__FUNCTION__,__FILE__,__LINE__,"restore");
+			continue;
+		}
+		
 		$filename_csv="$workdir/$category_table.csv";
 		$filename_gz="$workdir/$category_table.gz";
 		if(is_file($filename_csv)){
