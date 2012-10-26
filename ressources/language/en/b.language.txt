@@ -2386,3 +2386,4 @@ the web community that are of professional quality</Sanesecurity_signatures_expl
 <snort_scanner>IDS Snort Scanner parser</snort_scanner>
 <snort_scanner_explain>This task is designed to parse IDS snort events in put them into MySQL database</snort_scanner_explain>
 <APP_ARTICADB>Web Categories Daemon</APP_ARTICADB>
+<acls_add_dstdomaindst>Give the web server name eg: domain.tld or 10.10.10.1</acls_add_dstdomaindst>

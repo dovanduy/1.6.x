@@ -256,17 +256,24 @@ function index(){
 	
 	$array["clamav"]='{clamav_settings}';
 	if($users->KASPERSKY_WEB_APPLIANCE){unset($array["clamav"]);}
-	$array["exclude"]='{exclude}';
-	https://192.168.1.116:9000/
+	$array["exclude"]='{exclude}:Mime';
+	$array["exclude-www"]='{exclude}:{websites}';
+
 	
 	//$array["logs"]='{icap_logs}';
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="exclude"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.hosts.blks.php?popup=yes&blk=6\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.hosts.blks.php?popup=yes&blk=6\"><span style='font-size:13px'>$ligne</span></a></li>\n");
 			continue;
 		}
-		$html[]= "<li><a href=\"$page?main=$num\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		
+		if($num=="exclude-www"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"c-icap.wwwex.php\"><span style='font-size:13px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		$html[]= "<li><a href=\"$page?main=$num\"><span style='font-size:13px'>$ligne</span></a></li>\n";
 	}
 	
 	

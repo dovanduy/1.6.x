@@ -1698,6 +1698,14 @@ public function CheckTables($table=null){
 				)";
 			$this->QUERY_SQL($sql,$this->database);
 		}
+		
+		if(!$this->TABLE_EXISTS('webfilter_avwhitedoms',$this->database)){	
+			$sql="CREATE TABLE IF NOT EXISTS `webfilter_avwhitedoms` (
+				  `websitename` varchar(128) NOT NULL,
+				  PRIMARY KEY (`websitename`)
+				)";
+			$this->QUERY_SQL($sql,$this->database);
+		}		
 
 		
 		if(!$this->TABLE_EXISTS('hotspot_sessions',$this->database)){	

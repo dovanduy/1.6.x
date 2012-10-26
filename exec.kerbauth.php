@@ -167,8 +167,8 @@ function krb5conf(){
 	$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
 	if(!is_numeric($EnableKerberosAuthentication)){$EnableKerberosAuthentication=0;}
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}		
-	
 	if(!isset($array["WINDOWS_SERVER_TYPE"])){$array["WINDOWS_SERVER_TYPE"]="WIN_2003";}
+	if($array["WINDOWS_SERVER_TYPE"]==null){$array["WINDOWS_SERVER_TYPE"]="WIN_2003";}	
 	
 	echo "Starting......: $function, Active Directory type `{$array["WINDOWS_SERVER_TYPE"]}`\n";
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
@@ -178,6 +178,7 @@ function krb5conf(){
 	$kinitpassword=str_replace("'","",escapeshellarg($kinitpassword));
 	$kinitpassword=str_replace('$', '\$', $kinitpassword);	
 	$workgroup=$array["ADNETBIOSDOMAIN"];
+
 	
 	echo "Starting......: $function, Active Directory hostname `$hostname`\n";
 	echo "Starting......: $function, my domain: \"$mydomain\"\n";
@@ -189,6 +190,7 @@ function krb5conf(){
 	
 	
 	if($array["WINDOWS_SERVER_TYPE"]=="WIN_2003"){
+		echo "Starting......: $function, Active Directory type Windows 2003, adding default_tgs_enctypes\n";
 		$t[]="# For Windows 2003:";
 		$t[]=" default_tgs_enctypes = rc4-hmac des-cbc-crc des-cbc-md5";
 		$t[]=" default_tkt_enctypes = rc4-hmac des-cbc-crc des-cbc-md5";
@@ -198,6 +200,7 @@ function krb5conf(){
 	}
 
 	if($array["WINDOWS_SERVER_TYPE"]=="WIN_2008AES"){
+		echo "Starting......: $function, Active Directory type Windows 2008, adding default_tgs_enctypes\n";
 		$t[]="; for Windows 2008 with AES";
 		$t[]=" default_tgs_enctypes = aes256-cts-hmac-sha1-96 rc4-hmac des-cbc-crc des-cbc-md5";
 		$t[]=" default_tkt_enctypes = aes256-cts-hmac-sha1-96 rc4-hmac des-cbc-crc des-cbc-md5";
@@ -220,7 +223,7 @@ function krb5conf(){
 		$dns_lookup_kdc="no";
 		
 	}
-	
+	//allow_weak_crypto = true ?? -> 
 	$hostname_up=strtoupper($hostname);
 	$f[]=" [logging]";
 	$f[]=" default = FILE:/var/log/krb5libs.log";
@@ -236,8 +239,10 @@ function krb5conf(){
 	$f[]=" forwardable = yes";
 	if($default_keytab_name<>null){$f[]="default_keytab_name = $default_keytab_name";}
 	$f[]="";
-	@implode("\n", $t);
-
+	echo "Starting......: $function, ". count($t)." lines for default_tgs_enctypes\n";
+	if( count($t)>0){
+		$f[]=@implode("\n", $t);
+	}
 	$f[]="[realms]";
 	$f[]=" $realms = {";
 	$f[]="  kdc = $hostname";

@@ -11,7 +11,7 @@
   $GLOBALS["DEBUG_LEVEL"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/SplashDebug");
   if(!is_numeric($GLOBALS["DEBUG_LEVEL"])){$GLOBALS["DEBUG_LEVEL"]=1;}
   if($GLOBALS["DEBUG_LEVEL"]>0){$GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');}
-  set_time_limit(0);
+  
   $max_execution_time=ini_get('max_execution_time'); 
   if(is_file("/etc/artica-postfix/settings/Daemons/SplashScreenURI")){$GLOBALS["SplashScreenURI"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/SplashScreenURI");}
   if(preg_match("#session-time=([0-9]+)#", @implode(" ", $argv),$re)){$GLOBALS["SESSION_TIME"]=$re[1];}
@@ -23,8 +23,6 @@
   if($argv[1]=="--splash"){$GLOBALS["SPLASH"]=true;}
   
   
- 
-
 while (!feof(STDIN)) {
  $url = trim(fgets(STDIN));
  

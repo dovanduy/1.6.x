@@ -281,6 +281,31 @@ class icap{
 	
 	private function ICAP_CHAINS(){
 		$f[]="# --------- adaptation chain services.";
+		$f[]="# --------- ByPass ICAP AV ?.";
+		if(!class_exists("mysql_squid_builder")){include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");}
+		
+		$q=new mysql_squid_builder();
+		$sql="SELECT websitename FROM webfilter_avwhitedoms";
+		$results = $q->QUERY_SQL($sql);
+		$dst=array();
+		
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$websitename=trim($ligne["websitename"]);
+			if($websitename==null){continue;}
+			if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $websitename)){$dst[$websitename]=$websitename;continue;}
+			if(preg_match("#^www\.(.+)#", $websitename,$re[1])){$websitename=".$websitename";$dstdomain[$websitename]=$websitename;continue;}
+			if(preg_match("#.+?\..+?#", $websitename)){$dstdomain[$websitename]=$websitename;continue;}
+		}
+		
+		if(count($dst)>0){
+			$r=array();
+			while (list ($a, $b) = each ($dst) ){
+				$r[]=$a;
+			}
+			
+		}
+		
+		
 		$class_url_check=FALSE;
 		$kav_rules[]="";
 		if($this->enable_cicap){
@@ -324,7 +349,10 @@ class icap{
 			$acls_deny=$acls->buildacls_bytype("adaptation_access_deny");
 			if(count($acls_deny)>0){
 				while (list ($index, $line) = each ($acls_deny) ){$f[]="adaptation_access ANTIVIRUS_CHAINS deny $line";}
-			}			
+			}
+
+			
+			
 			
 			
 			$f[]="adaptation_access ANTIVIRUS_CHAINS allow all";

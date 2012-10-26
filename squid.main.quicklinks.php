@@ -1224,6 +1224,8 @@ if($users->WEBSTATS_APPLIANCE){
 	$current_sessions=null;
 	$restart_service_only=null;
 	$performances=null;
+	$SquidBoosterMemText=null;
+	$supportpckg=null;
 }
 	$refresh=imgtootltip("refresh-32.png","{refresh}","LoadAjax('squid-services','$page?squid-services=yes');");
 	$tables[]="

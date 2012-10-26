@@ -210,6 +210,7 @@ class generic_categorize{
 		if(preg_match("#\.hiboox\.com$#",$www)){return "imagehosting";}
 		if(preg_match("#\.imagestime\.com$#",$www)){return "imagehosting";}
 		if(preg_match("#\.imageporter\.com$#",$www)){return "imagehosting";}
+		if(preg_match("#\.pixi\.ru$#",$www)){return "imagehosting";}
 		
 	}
 	
@@ -541,6 +542,7 @@ class generic_categorize{
 		if(preg_match("#\.google.com\.[a-z]+$#", $www)){return "searchengines";}
 		if(preg_match("#\.krak\.dk+$#", $www)){return "searchengines";}
 		if(preg_match("#\.paginasamarillas\.com$#", $www)){return "searchengines";}
+		if(preg_match("#\.les-pages\.com$#", $www)){return "searchengines";}
 	}
 	
 	private function dictionaries($www){
@@ -559,6 +561,7 @@ class generic_categorize{
 		if(preg_match("#\.imonografias\.com$#",$www)){return "dictionaries";}
 		if(preg_match("#\.academic.ru$#",$www)){return "dictionaries";}
 		if(preg_match("#\.fracademic.com$#",$www)){return "dictionaries";}
+		if(preg_match("#\.diplodocs\.com$#",$www)){return "dictionaries";}
 	}
 	
 	private function webtv($www){
@@ -627,6 +630,7 @@ private function socialnet($www){
 		if(preg_match("#\.fbops\.com$#", $www)){return "socialnet";}
 		if(preg_match("#\.esj-lille\.net$#", $www)){return "socialnet";}
 		if(preg_match("#\.necat\.ru$#", $www)){return "socialnet";}
+		if(preg_match("#\.moikrug\.ru$#", $www)){return "socialnet";}
 		if(preg_match("#^fbcdn_sphotos_.*?-.*?\.akamaihd\.net$#", $www)){return "socialnet";}
 
 	}	
@@ -753,6 +757,7 @@ private function socialnet($www){
 		if(preg_match("#\.falktec\.com$#", $www)){return "publicite";}
 		if(preg_match("#\.publicidad\.net$#", $www)){return "publicite";}
 		if(preg_match("#\.mmads.mobi$#", $www)){return "publicite";}
+		if(preg_match("#\.grt01\.com$#", $www)){return "publicite";}
 		
 	}
 	
