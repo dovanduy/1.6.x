@@ -768,6 +768,7 @@ end;
 
 ZarafaServerSMTPIP:=trim(SYS.GET_INFO('ZarafaServerSMTPIP'));
 if length(ZarafaServerSMTPIP)=0 then ZarafaServerSMTPIP:='127.0.0.1';
+if ZarafaServerSMTPIP='0.0.0.0' then ZarafaServerSMTPIP:='127.0.0.1';
 ZarafaStoreOutsidePath:=trim(SYS.GET_INFO('ZarafaStoreOutsidePath'));
 
 

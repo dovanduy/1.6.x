@@ -120,9 +120,9 @@ function search(){
 		
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgtootltip("32-parameters.png","{edit}","WeightedPhraseEdit('{$ligne["language"]}','{$ligne["category"]}')");
-		$delete=imgtootltip("delete-32.png","{delete}","DansGuardianDeleteMember('{$ligne["ID"]}')");
-		$compile=imgtootltip("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");
+		$select=imgsimple("32-parameters.png","{edit}","WeightedPhraseEdit('{$ligne["language"]}','{$ligne["category"]}')");
+		$delete=imgsimple("delete-32.png","{delete}","DansGuardianDeleteMember('{$ligne["ID"]}')");
+		$compile=imgsimple("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");
 		$color="black";
 
 		$TOTAL_ITEMS=$TOTAL_ITEMS+$ligne["tcount"];
@@ -163,7 +163,7 @@ function search(){
 	
 	<script>
 		function DansGuardianCompileDB(category){
-			Loadjs('$page?compile-db-js='+category);
+			Loadjs('ufdbguard.compile.category.php?category='+category);
 		}
 		
 		function CheckStatsApplianceC(){
@@ -267,9 +267,9 @@ function WeightedPhraseEdit_search(){
 		
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgtootltip("32-parameters.png","{edit}","WeightedPhraseEdit('{$ligne["language"]}','{$ligne["category"]}')");
-		$delete=imgtootltip("delete-32.png","{delete}","DeleteWords('{$ligne["zmd5"]}')");
-		$compile=imgtootltip("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");
+		$select=imgsimple("32-parameters.png","{edit}","WeightedPhraseEdit('{$ligne["language"]}','{$ligne["category"]}')");
+		$delete=imgsimple("delete-32.png","{delete}","DeleteWords('{$ligne["zmd5"]}')");
+		$compile=imgsimple("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");
 		$color="black";
 
 		if(trim($ligne["pattern"]==null)){continue;}

@@ -1466,7 +1466,7 @@ function virtuals_del(){
 		$sql="DELETE FROM nics_virtuals WHERE ID={$_GET["virt-del"]}";
 		
 		$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q-ok){echo $q->mysql_error;return;}
+		if(!$q->ok){echo $q->mysql_error;return;}
 		
 		$sql="DELETE FROM iptables_bridge WHERE nics_virtuals_id={$_GET["virt-del"]}";
 		$q=new mysql();
@@ -1475,7 +1475,7 @@ function virtuals_del(){
 		$sql="DELETE FROM crossroads_smtp WHERE ipaddr='{$_GET["virt-del"]}'";
 		
 		
-		if(!$q-ok){echo $q->mysql_error;return;}
+		if(!$q->ok){echo $q->mysql_error;return;}
 		
 }
 

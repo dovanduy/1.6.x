@@ -14,6 +14,9 @@ MONIT();
 checkDebSyslog();
 dnsmasq_init_debian();
 nscd_init_debian();
+
+
+
 function buildscript(){
 if($GLOBALS["VERBOSE"]){echo "starting init.d config...\n";}
 $sock=new sockets();
@@ -75,6 +78,7 @@ $SLAPD_SERVICES=@implode(" ", $ldap).$SLAPD_SERVICESSSL;
 if($users->ZARAFA_INSTALLED){$ZARAFA_INSTALLED=1;}
 $DB_RECOVER_BIN=$unix->LOCATE_DB_RECOVER();
 $DB_ARCHIVE_BIN=$unix->LOCATE_DB_ARCHIVE();
+$LDAP_SCHEMA_PATH=$unix->LDAP_SCHEMA_PATH();
 $rm=$unix->find_program("rm");
 $SLAPD_CONF=$unix->SLAPD_CONF_PATH();
 $SLAPD_PID_FILE=$unix->SLAPD_PID_PATH();
@@ -98,6 +102,36 @@ if(is_dir("/usr/share/phpldapadmin/config")){
 $kernel_tuning="$php5 ".dirname(__FILE__)."/exec.kernel-tuning.php >/dev/null 2>&1";
 
 if($GLOBALS["VERBOSE"]){echo "-> ARRAY;\n";}
+
+   $shemas[]="core.schema";
+   $shemas[]="cosine.schema";
+   $shemas[]="mod_vhost_ldap.schema";
+   $shemas[]="nis.schema";
+   $shemas[]="inetorgperson.schema";
+   $shemas[]="evolutionperson.schema";
+   $shemas[]="postfix.schema";
+   $shemas[]="dhcp.schema";
+   $shemas[]="samba.schema";
+   $shemas[]="ISPEnv.schema";
+   $shemas[]="mozilla-thunderbird.schema";
+   $shemas[]="officeperson.schema";
+   $shemas[]="pureftpd.schema";
+   $shemas[]="joomla.schema";
+   $shemas[]="autofs.schema";
+   $shemas[]="dnsdomain2.schema";
+   $shemas[]="zarafa.schema";
+   
+   while (list ($num, $file) = each ($shemas) ){
+   	if(is_file("/usr/share/artica-postfix/bin/install/$file")){
+   		if(is_file("$LDAP_SCHEMA_PATH/$file")){@unlink("$LDAP_SCHEMA_PATH/$file");}
+   		@copy("/usr/share/artica-postfix/bin/install/$file", "$LDAP_SCHEMA_PATH/$file");
+   		echo "slapd: [INFO] installing `$file` schema\n";
+   		$unix->chmod_func(0777,"$LDAP_SCHEMA_PATH/$file");
+   	}
+   }
+   
+   
+   
 
 $f[]="#!/bin/sh";
 $f[]="";
@@ -1372,7 +1406,7 @@ function MONIT(){
 	@file_put_contents("/etc/monit/conf.d/APP_OPENLDAP.monitrc", @implode("\n", $f));
 	
 	
-	$f[]=array();
+	$f=array();
 	
 	if(is_file("/etc/init.d/sysklogd")){
 		$f[]="check process syslogd with pidfile /var/run/syslogd.pid";
@@ -1886,6 +1920,9 @@ function dnsmasq_init_debian(){
 	@file_put_contents("/etc/init.d/dnsmasq", @implode("\n", $f));
 	echo "dnsmasq: [INFO] dnsmasq path `/etc/init.d/dnsmasq` done\n";	
 }
+
+
+
 
 function nscd_init_debian(){
 	$unix=new unix();

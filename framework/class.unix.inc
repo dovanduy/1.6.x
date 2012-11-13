@@ -2814,7 +2814,7 @@ public function alt_stat($file) {
 				if(preg_match("#$filename#",$cmdline)){return true;}else{return false;}
 			}
 			
-			
+			if($GLOBALS["VERBOSE"]){echo "unix/process_exists($pid) -->RUNNING\n";}
 			return true;
 		}else{
 			if($GLOBALS["VERBOSE"]){echo "unix/process_exists($pid) /proc/$pid/exe no such file\n";}
@@ -2831,7 +2831,13 @@ public function alt_stat($file) {
 			$cmdline=@file_get_contents("/proc/$pid/cmdline");
 			if($GLOBALS["VERBOSE"]){echo "unix/process_exists($pid) cmdline: $cmdline\n";}
 			$filename=str_replace("/", '\/', $filename);
-			if(preg_match("#$filename#",$cmdline)){return true;}else{return false;}
+			if(preg_match("#$filename#i",$cmdline)){
+					if($GLOBALS["VERBOSE"]){echo "unix/process_exists($pid) -->matches $filename -> RUNNING\n";}
+					return true;
+			}else{
+				if($GLOBALS["VERBOSE"]){echo "unix/process_exists($pid) --> NO matches $filename -> STOPPED\n";}
+				return false;
+			}
 			return true;
 		}
 		
@@ -3698,6 +3704,12 @@ public function LOCATE_STUNNEL_BIN(){
 		
 	}
 	
+	function LDAP_SCHEMA_PATH(){
+	  	if(is_dir('/etc/ldap/schema')){return '/etc/ldap/schema';}
+	    if(is_dir('/etc/openldap/schema')){return '//etc/openldap/schema';}
+	    if(is_dir('/opt/artica/etc/openldap/schema')){return '//opt/artica/etc/openldap/schema';}
+	}	
+	
 	
 	public function find_program($strProgram) {
 	  $key=md5($strProgram);
@@ -3721,6 +3733,17 @@ public function LOCATE_STUNNEL_BIN(){
       return $value;
 		
 	}
+	
+	public function LOCATE_mysqld_bin(){
+		if(isset($GLOBALS[__FUNCTION__])){return $GLOBALS[__FUNCTION__];}
+		$bin=$this->find_program('mysqld');
+		if(is_file($bin)){$GLOBALS[__FUNCTION__]=$bin;return $bin;}
+		if(is_file("/opt/artica/mysql/libexec/mysqld")){$GLOBALS[__FUNCTION__]="/opt/artica/mysql/libexec/mysqld";return "/opt/artica/mysql/libexec/mysqld";}
+		if(is_file("/usr/libexec/mysqld")){$GLOBALS[__FUNCTION__]="/usr/libexec/mysqld";return "/usr/libexec/mysqld";}
+
+	}
+//##############################################################################
+	
 	
 	public function BLKID_INFOS($dev){
 		$blkid=$this->find_program("blkid");
@@ -4785,13 +4808,13 @@ function ini_set_verbosed(){
 			ini_set('error_prepend_string','');
 			ini_set('error_append_string','');	
 }
-function system_admin_events($text,$function,$file,$line,$category){
+function system_admin_events($text,$function,$file,$line,$category,$taskid=0){
 	
 	$mem=round(((memory_get_usage()/1024)/1000),2);
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];
 	$text=$text."\nMemory used for this script:{$mem}M; System Load: $internal_load";
-	
+	if($taskid>0){$GLOBALS["SCHEDULE_ID"]=$taskid;}
 	if(!isset($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
 	if($GLOBALS["VERBOSE"]){echo "$function:: $text in line $line in file ".basename($file)."\n";}
 	$array["zdate"]=date("Y-m-d H:i:s");
@@ -4807,13 +4830,14 @@ function system_admin_events($text,$function,$file,$line,$category){
 	@file_put_contents("/var/log/artica-postfix/system_admin_events/$md5.log", $serialize);
 }
 
-function ufdbguard_admin_events($text,$function,$file,$line,$category){
+function ufdbguard_admin_events($text,$function,$file,$line,$category,$taskid=0){
 	$mem=round(((memory_get_usage()/1024)/1000),2);
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];
 	$text=$text."\nMemory used for this script:{$mem}M; System Load: $internal_load";	
 	
 	if(!isset($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+	if($taskid>0){$GLOBALS["SCHEDULE_ID"]=$taskid;}
 	if($GLOBALS["VERBOSE"]){echo "$function:: $text in line $line in file $file\n";}
 	$array["zdate"]=date("Y-m-d H:i:s");
 	$array["text"]=$text;

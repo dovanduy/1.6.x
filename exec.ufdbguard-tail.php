@@ -19,11 +19,15 @@ $GLOBALS["ufdbGenTable"]=$GLOBALS["CLASS_UNIX"]->find_program("ufdbGenTable");
 $GLOBALS["chown"]=$GLOBALS["CLASS_UNIX"]->find_program("chown");
 $GLOBALS["nohup"]=$GLOBALS["CLASS_UNIX"]->find_program("nohup");
 $GLOBALS["PHP5_BIN"]=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
+$GLOBALS["SBIN_ARP"]=$GLOBALS["CLASS_UNIX"]->find_program("arp");
+$GLOBALS["SBIN_ARPING"]=$GLOBALS["CLASS_UNIX"]->find_program("arping");
+
+
 $GLOBALS["RELOADCMD"]="{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} ".dirname(__FILE__)."/exec.squidguard.php --reload-ufdb";
 if($argv[1]=='--date'){echo date("Y-m-d H:i:s")."\n";}
 @mkdir("/var/log/artica-postfix/squid-stats",0666,true);
 
-@mkdir("/var/log/artica-postfix/ufdbguard-queue",0666,true);
+@mkdir("/var/log/artica-postfix/ufdbguard-blocks",0666,true);
 events("Running new $pid ");
 events_ufdb_exec("Artica ufdb-tail running $pid");
 ufdbguard_admin_events("Watchdog running pid $pid","MAIN",__FILE__,__LINE__,"ufdbguard-service");
@@ -259,18 +263,31 @@ if(preg_match("#\] REDIR\s+#", $buffer)){return;}
 		$date=time();
 		$table=date('Ymd')."_blocked";
 		$category=CategoryCodeToCatName($category);
-		
-		
+		if($user=="-"){$user=null;}
+		$MAC=xGetMacFromIP($local_ip);
 		
 		if(!is_dir("/var/log/artica-postfix/pagepeeker")){@mkdir("/var/log/artica-postfix/pagepeeker",600,true);}
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){$public_ip=$www;$www=IpToHostname($www);}
 		$Clienthostname=IpToHostname($local_ip);
-		if($user<>"-"){$local_ip=$user;}
-		$md5=md5("$date,$local_ip,$rulename,$category,$www,$public_ip");
-		$sql="INSERT INTO `$table` (`client`,`website`,`category`,`rulename`,`public_ip`,`why`,`blocktype`,`hostname`) VALUES";
-		$sql="('$local_ip','$www','$category','$rulename','$public_ip','blocked domain','blocked domain','$Clienthostname')";
-		@file_put_contents("/var/log/artica-postfix/ufdbguard-queue/$md5.sql",$sql);
-		events("$www ($public_ip) blocked by rule $rulename/$category from $local_ip/$Clienthostname ".@filesize("/var/log/artica-postfix/ufdbguard-queue/$md5.sql")." bytes");
+		
+		$array["uid"]=$user;
+		$array["MAC"]=$MAC;
+		$array["TIME"]=$time;
+		$array["category"]=$category;
+		$array["rulename"]=$rulename;
+		$array["public_ip"]=$public_ip;
+		$array["blocktype"]="blocked domain";
+		$array["why"]="blocked domain";
+		$array["hostname"]=$Clienthostname;
+		$array["website"]=$www;
+		$array["client"]=$local_ip;
+		$serialize=serialize($array);
+		$md5=md5($serialize);		
+		
+		
+		
+		@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql",$serialize);
+		events("$www ($public_ip) blocked by rule $rulename/$category from $user/$local_ip/$Clienthostname/$MAC ".@filesize("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql")." bytes");
 		if(!is_file("/var/log/artica-postfix/pagepeeker/".md5($www))){@file_put_contents("/var/log/artica-postfix/pagepeeker/".md5($www), $www);}			
 		
 		return;
@@ -286,20 +303,36 @@ if(preg_match("#\] REDIR\s+#", $buffer)){return;}
 		$rulename=$re[3];
 		$category=$re[4];
 		$uri=$re[5];
+		$time=time();
 		$array=parse_url($uri);	
 		$www=$array["host"];
 		if(strpos($www, ":")>0){$t=explode(":", $www);$www=$t[0];}
 		$category=CategoryCodeToCatName($category);
+		$MAC=xGetMacFromIP($local_ip);
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){$public_ip=$www;$www=IpToHostname($www);}else{$public_ip=HostnameToIp($www);}
 		if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}
 		$Clienthostname=IpToHostname($local_ip);
-		if($user<>"-"){$local_ip=$user;}
-		$md5=md5("$date,$local_ip,$rulename,$category,$www,$public_ip");
-		$sql="INSERT INTO `$table` (`client`,`website`,`category`,`rulename`,`public_ip`,`why`,`blocktype`,`hostname`) VALUES";
-		$sql="('$local_ip','$www','$category','$rulename','$public_ip','blocked domain','blocked domain','$Clienthostname')";
-
-		@file_put_contents("/var/log/artica-postfix/ufdbguard-queue/$md5.sql",$sql);
-		events("$www ($public_ip) blocked by rule $rulename/$category from $local_ip/$Clienthostname ".@filesize("/var/log/artica-postfix/ufdbguard-queue/$md5.sql")." bytes");
+		if($user=="-"){$user=null;}
+		$md5=md5("$date,$local_ip,$rulename,$category,$www,$public_ip$MAC$user");
+		
+		
+		$array["uid"]=$user;
+		$array["uri"]=$uri;
+		$array["MAC"]=$MAC;
+		$array["TIME"]=$time;
+		$array["category"]=$category;
+		$array["rulename"]=$rulename;
+		$array["public_ip"]=$public_ip;
+		$array["blocktype"]="blocked domain";
+		$array["why"]="blocked domain";
+		$array["hostname"]=$Clienthostname;
+		$array["website"]=$www;
+		$array["client"]=$local_ip;
+		$serialize=serialize($array);
+		$md5=md5($serialize);
+		
+		@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql",$serialize);
+		events("$www ($public_ip) blocked by rule $rulename/$category from $user/$local_ip/$Clienthostname/$MAC ".@filesize("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql")." bytes");
 		if(!is_file("/var/log/artica-postfix/pagepeeker/".md5($www))){@file_put_contents("/var/log/artica-postfix/pagepeeker/".md5($www), $www);}					
 		return;
 		
@@ -333,7 +366,7 @@ function IpToHostname($ipaddr){
 
 function CategoryCodeToCatName($category){
 		if(preg_match("#^art(.+)#", $category,$re)){$category=$re[1];}
-		if(preg_match("#^tlse(.+)#", $category,$re)){$category=$re[1];}
+		if(preg_match("#^tls(.+)#", $category,$re)){$category=$re[1];}
 		if($category=="listebu"){$category="liste_bu";}
 		if($category=="adult"){$category="porn";}
 		if($category=="agressivecat"){$category="agressive";}
@@ -391,4 +424,56 @@ function xsyslog($text){
 	
 	
 }
+
+	function xGetMacFromIP($ipaddr){
+		$ipaddr=trim($ipaddr);
+		$ttl=date('YmdH');
+		if(count($GLOBALS["CACHEARP"])>3){unset($GLOBALS["CACHEARP"]);}
+		if(isset($GLOBALS["CACHEARP"][$ttl][$ipaddr])){return $GLOBALS["CACHEARP"][$ttl][$ipaddr];}
+		
+		if(!isset($GLOBALS["SBIN_ARP"])){$unix=new unix();$GLOBALS["SBIN_ARP"]=$unix->find_program("arp");}
+		if(!isset($GLOBALS["SBIN_ARPING"])){$unix=new unix();$GLOBALS["SBIN_ARPING"]=$unix->find_program("arping");}
+		
+		if(strlen($GLOBALS["SBIN_ARPING"])>3){
+			$cmd="{$GLOBALS["SBIN_ARPING"]} $ipaddr -c 1 -r 2>&1";
+			exec($cmd,$results);
+			while (list ($num, $line) = each ($results)){
+				if(preg_match("#^([0-9a-zA-Z\:]+)#", $line,$re)){
+					$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+					return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+				}
+			}
+		}
+		
+		
+		$results=array();
+			
+		if(strlen($GLOBALS["SBIN_ARP"])<4){return;}
+		if(!isset($GLOBALS["SBIN_PING"])){$unix=new unix();$GLOBALS["SBIN_PING"]=$unix->find_program("ping");}
+		if(!isset($GLOBALS["SBIN_NOHUP"])){$unix=new unix();$GLOBALS["SBIN_NOHUP"]=$unix->find_program("nohup");}
+		
+		
+		
+		
+		$cmd="{$GLOBALS["SBIN_ARP"]} -n \"$ipaddr\" 2>&1";
+		
+		exec($cmd,$results);
+		while (list ($num, $line) = each ($results)){
+			if(preg_match("#^[0-9\.]+\s+.+?\s+([0-9a-z\:]+)#", $line,$re)){
+				if($re[1]=="no"){continue;}
+				$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+				return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+			}
+			
+		}
+		
+		if(!isset($GLOBALS["PINGEDHOSTS"][$ipaddr])){
+			shell_exec("{$GLOBALS["SBIN_NOHUP"]} {$GLOBALS["SBIN_PING"]} $ipaddr -c 3 >/dev/null 2>&1 &");
+			$GLOBALS["PINGEDHOSTS"][$ipaddr]=true;
+		}
+			
+		
+	}
+
+
 ?>

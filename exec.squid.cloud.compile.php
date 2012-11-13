@@ -30,6 +30,7 @@ if($argv[1]=="--compress-tables"){CompressTables();die();}
 
 
 if($argv[1]=="--v2"){Buildrepo();export_version2();die();}
+if($argv[1]=="--buildrepo"){Buildrepo();die();}
 if($argv[1]=="--ufdb"){compile_databases();die();}
 if($argv[1]=="--ufdb-compress"){compile_databases_compress();die();}
 if($argv[1]=="--ufdb-repo"){compile_databases_repo();die();}
@@ -38,6 +39,7 @@ if($argv[1]=="--backup-catz"){backup_categories();exit;}
 if($argv[1]=="--backup-catz-mysql"){FillMysqlDatabase();exit;}
 if($argv[1]=="--import-backuped-categories"){import_backuped_categories($argv[2]);exit;}
 if($argv[1]=="--empty-perso-catz"){empty_personal_categories();exit;}
+if($argv[1]=="--export-cat"){export_category($argv[2]);exit;}
 
 
 
@@ -51,7 +53,8 @@ function Buildrepo(){
 	$rm=$unix->find_program("rm");
 	$tar=$unix->find_program("tar");
 	$curl=$unix->find_program("curl");
-	
+	$myisamchk=$unix->find_program("myisamchk");
+	$myisampack=$unix->find_program("myisampack");
 	$WORKDIR="/home/artica/webdbs";
 	@mkdir($WORKDIR,0777,true);
 	$unix->chmod_func(0777, "/home/artica/webdbs");
@@ -71,17 +74,30 @@ function Buildrepo(){
 	$q2=new mysql_catz();
 	while (list ($index, $category_table) = each ($cats) ){
 		$c++;
-		echo $category_table."\n";
+		echo "***************************\n****". $category_table."****\n***************************\n";
 		
 		echo "Exporting $category_table for category\n";
 		if(is_file("$WORKDIR/$category_table.csv")){@unlink("$WORKDIR/$category_table.csv");}
+		
+		
+		$sql="DELETE FROM $category_table WHERE enabled=0";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){
+			sendEmail("Error $category_table in line ".__LINE__." $q->mysql_error", "Function:".__FUNCTION__);
+			ufdbguard_admin_events("$q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "cloud");
+			return;
+		}		
+		
 		$CountCategoryTableRows=$q->COUNT_ROWS("$category_table");
+		
+		$FINALCOUNTS_SOURCES[$category_table]=$CountCategoryTableRows;
+		
 		if($CountCategoryTableRows==0){ufdbguard_admin_events("Exporting $category_table skipped, no data",__FUNCTION__,__FILE__,__LINE__,"backup");continue;}
-		$sql="SELECT MD5(pattern) FROM $category_table WHERE enabled=1 
-		INTO OUTFILE '$WORKDIR/$category_table.csv'
+		$sql="SELECT MD5(pattern) FROM $category_table INTO OUTFILE '$WORKDIR/$category_table.csv'
 		FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\\n'";		
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){
+			sendEmail("Error $category_table in line ".__LINE__." $q->mysql_error", "Function:".__FUNCTION__);
 			ufdbguard_admin_events("$q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "cloud");
 			return;
 		}
@@ -99,28 +115,94 @@ function Buildrepo(){
 		}
 		
 		if(!$q2->TABLE_EXISTS($category_table)){
+			sendEmail("Error Failed to create $category_table `$q2->mysql_error`", "Function:".__FUNCTION__);
 			ufdbguard_admin_events("Failed to create $category_table `$q2->mysql_error`", __FUNCTION__, __FILE__, __LINE__, "cloud");
 			return;
 		}
-		echo "$category_table catz/$category_table\n";
+		echo "IMPORT CATEGORY TABLE $category_table\n";
 		$sql="LOAD DATA INFILE '$WORKDIR/$category_table.csv' IGNORE INTO TABLE $category_table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\\n' (zmd5)";
 		$q2->QUERY_SQL($sql);
-		$q->QUERY_SQL("OPTIMIZE TABLE $category_table");
 		
 		if(!$q2->ok){
+			sendEmail("Error Failed to import $category_table `$q2->mysql_error`", "Function:".__FUNCTION__);
 			ufdbguard_admin_events("$q2->mysql_error", __FUNCTION__, __FILE__, __LINE__, "cloud");
 			@unlink("$WORKDIR/$category_table.csv");
 			return;
-		}		
+		}			
+		
+		
+		$CountCategoryTableRows2=$q2->COUNT_ROWS("$category_table");
+		echo "$category_table ($CountCategoryTableRows items) catz/$category_table ($CountCategoryTableRows2 items)\n";
+		
+		
+		if($CountCategoryTableRows2<>$CountCategoryTableRows){
+			sendEmail("Num row differ source:$CountCategoryTableRows dest:$CountCategoryTableRows2", "Function:".__FUNCTION__);
+			ufdbguard_admin_events("Num row differ source:$CountCategoryTableRows dest:$CountCategoryTableRows2", __FUNCTION__, __FILE__, __LINE__, "cloud");
+			return;			
+			
+		}
+		
+		
+	
+		$size1=$unix->file_size("/opt/articatech/data/catz/$category_table.MYI");
 		
 		@unlink("$WORKDIR/$category_table.csv");
 		
+		echo "OPTIMIZE TABLE $category_table\n";
+		$q2->QUERY_SQL("OPTIMIZE TABLE $category_table");
+		echo "LOCK TABLE $category_table\n";
+		$q2->QUERY_SQL("LOCK TABLE $category_table WRITE");
+		$q2->QUERY_SQL("FLUSH TABLE $category_table");
+		echo "myisamchk $category_table\n";
+		shell_exec("$myisamchk -cFU /opt/articatech/data/catz/$category_table.MYI");
+		echo "myisampack $category_table\n";
+		shell_exec("$myisampack -f /opt/articatech/data/catz/$category_table.MYI");
+		echo "Repair indexes $category_table\n";
+		shell_exec("$myisamchk -raqS /opt/articatech/data/catz/$category_table.MYI");
+		$q2->QUERY_SQL("FLUSH TABLE $category_table");
+		$size2=$unix->file_size("/opt/articatech/data/catz/$category_table.MYI");
+		$safe=round(($size1-$size2)/1024,2);
+		echo "Safe: $category_table: Safe:$safe Ko\n\n";
 	}	
+	$MAILBODY=array();
+	$CountDestTot=0;
+	$FINAL_LISTES_TABLES_CATZ=$q2->LIST_TABLES_CATEGORIES();
+	while (list ($index, $category_table) = each ($FINAL_LISTES_TABLES_CATZ) ){
+		$CountSource=$FINALCOUNTS_SOURCES[$category_table];
+		if($CountSource==0){continue;}
+		if(!isset($FINALCOUNTS_SOURCES[$category_table])){
+			$MAILBODY[]="Missing $category_table from source";
+			continue;
+			}
+		
+		
+		$CountDest=$q2->COUNT_ROWS($category_table);
+		if($CountSource<>$CountDest){
+			sendEmail("$category_table: Num row differ source:$CountSource dest:$CountDest", "Function:".__FUNCTION__);
+			ufdbguard_admin_events("$category_table: Num row differ source:$CountSource dest:$CountSource", __FUNCTION__, __FILE__, __LINE__, "cloud");
+			return;				
+		}
+		$MAILBODY[]="$category_table: ".numberFormat($CountDest,0,""," ");
+		$CountDestTot=$CountDestTot+$CountDest;
+		
+	}
+	$MAILBODY[]="---------------\nTotal: ".numberFormat($CountDestTot,0,""," ");
+	
+	if($CountDestTot<28697420){
+		sendEmail("Fatal: $CountDestTot is lower than 28697420 !!", "Function:".__FUNCTION__);
+		return;
+	}
+	
+	
+	echo @implode("\n", $MAILBODY);
+	
+	
+	
 	$took=$unix->distanceOfTimeInWords($t,time());
 	$databaseVersion=date("Ymd");
 	@file_put_contents("/opt/articatech/VERSION", $databaseVersion);	
 	ufdbguard_admin_events("Building catz v.$databaseVersion database done, took $took", __FUNCTION__, __FILE__, __LINE__, "cloud");
-	CompressTables();
+	
 	ufdbguard_admin_events("Compressing table v.$databaseVersion done...", __FUNCTION__, __FILE__, __LINE__, "cloud");
 	
 	
@@ -142,14 +224,30 @@ function Buildrepo(){
 	@file_put_contents("/home/articatech-db/articatechdb.version", base64_encode(serialize($array)));
 	shell_exec("$curl -T /home/articatech-db/articatechdb.version $ftpwww/ --user $ftpass");
 	$took=$unix->distanceOfTimeInWords($t,time());
-	ufdbguard_admin_events("Uploading articadb.tar.gz [$fileMD5]: Version $databaseVersion done, took $took", __FUNCTION__, __FILE__, __LINE__, "cloud");
-	
+	$sizemail=$array["ARTICATECH"]["SIZE"]/1024;
+	$sizemail=round($sizemail/1000,2);
+	sendEmail("Uploading new articadb.tar.gz [{$sizemail}MB] Version $databaseVersion done,took $took", @implode("\n", $MAILBODY));
+	ufdbguard_admin_events("Uploading new articadb.tar.gz [{$sizemail}MB]: Version $databaseVersion done, took $took", __FUNCTION__, __FILE__, __LINE__, "cloud");
+	backup_categories(true);
+}
+
+function sendEmail($subject,$content=null){
+$unix=new unix();	
+$from="robot@".$unix->hostname_g();
+$header=null;
+$header .= "From: ARTICA <$from>\r\n";
+$header .= 'MIME-Version: 1.0' . "\n" . 'Content-type: text/plain; charset=UTF-8';
+$header .= "Reply-To: $from\r\n";
+$header .= 'X-Mailer: PHP/' . phpversion()."\r\n";
+$mailto=@file_get_contents("/root/artica-notifs.txt");
+if($mailto==null){return;}
+@mail("$mailto",$subject,$content,$header);
 }
 
 function CompressTables(){
 	$unix=new unix();
 	$files=$unix->DirFiles("/opt/articatech/data/catz","\.MYI$");
-	$myisampack=$unix->find_program("myisampack");
+	
 	while (list ($file, $none) = each ($files) ){
 		echo "Compressing $file\n";
 		shell_exec("$myisampack /opt/articatech/data/catz/$file");
@@ -167,6 +265,16 @@ function CompresseWholeDatas(){
 	echo "$cmd\n";
 	chdir("/opt/articatech");
 	shell_exec($cmd);	
+}
+
+function export_category($cattable){
+	$q=new mysql();
+	@mkdir("/home/export_tables",0777,true);
+	$sql="SELECT pattern FROM $cattable WHERE enabled=1 ORDER BY pattern INTO OUTFILE '/home/export_tables/$cattable.txt' LINES TERMINATED BY '\n';";
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error."\n";}
+	echo "/home/export_tables/$cattable.txt done\n";
 }
 
 
@@ -594,11 +702,28 @@ function export_version2(){
 	
 }
 
+function compile_databases_check(){
+	$unix=new unix();
+	$nice=EXEC_NICE();	
+	$sock=new sockets();
+	$myisamchk=$unix->find_program("myisamchk");
+	$MYSQL_DATA_DIR=$sock->GET_INFO("ChangeMysqlDir");
+	if($MYSQL_DATA_DIR==null){$MYSQL_DATA_DIR="/var/lib/mysql";}		
+	
+	$files=$unix->DirRecursiveFiles($MYSQL_DATA_DIR."/squidlogs","category*.MYI");
+	while (list ($index, $file) = each ($files) ){
+		$cmdchk=trim("$nice $myisamchk -c -C -r -f $file >/dev/null 2>&1");
+		if($GLOBALS["VERBOSE"]){echo "Checking ".basename($file)."\n";echo "$cmdchk\n";}
+		shell_exec($cmdchk);
+	}		
+	
+}
+
 function compile_databases(){
 	$unix=new unix();
 	$ufdbGenTable=$unix->find_program("ufdbGenTable");
 	if(!is_file($ufdbGenTable)){ufdbguard_admin_events("Task aborted ufdbGenTable no such binary",__FUNCTION__,__FILE__,__LINE__,"ufdbGenTable");return;}
-	
+	$sock=new sockets();
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
@@ -607,7 +732,9 @@ function compile_databases(){
 		ufdbguard_admin_events("Task already running PID: $oldpid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"ufdbGenTable");
 		return;
 	}
-	
+	$myisamchk=$unix->find_program("myisamchk");
+	$MYSQL_DATA_DIR=$sock->GET_INFO("ChangeMysqlDir");
+	if($MYSQL_DATA_DIR==null){$MYSQL_DATA_DIR="/var/lib/mysql";}		
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
 	
@@ -618,9 +745,11 @@ function compile_databases(){
 	$tables=$q->TransArray();
 	
 		$q=new mysql_squid_builder();
+		$badDomains=$q->GetFamilySitestt(null,true);
 		$badDomains[""]=true;
 		$badDomains["com"]=true;
 		$badDomains["fr"]=true;
+		$badDomains["lu"]=true;
 		$badDomains["de"]=true;
 		$badDomains["nl"]=true;
 		$badDomains["org"]=true;
@@ -632,16 +761,19 @@ function compile_databases(){
 		$badDomains["biz"]=true;
 		$badDomains["info"]=true;
 		$badDomains["ee"]=true;
-		
-		
-	
+		$badDomains["com.br"]=true;
+		$badDomains["com.ar"]=true;
+		$badDomains["co.hk"]=true;
+		$badDomains["co.za"]=true;
 	
 	while (list ($tablename, $category) = each ($tables) ){
 		
 		if(is_file("$workdir/$tablename/domains.ufdb")){
-			echo "SKIP $tablename -> $category\n";
+			echo "WARN !!! SKIP $tablename -> $category\n";
 			continue;
 		}
+		
+	
 		
 		//if($tablename=="category_shopping"){echo "skip $tablename\n";continue;}
 		if($tablename=="category_translator"){echo "skip $tablename\n";continue;}
@@ -657,20 +789,53 @@ function compile_databases(){
 				break;
 			}
 		}
+	
 		
 		echo "COMPILE $tablename -> $category\n";
+		
+		if(!$q->TABLE_EXISTS($tablename)){$q->CreateCategoryTable(null,$tablename);}
+		
+		$sql="DELETE FROM $tablename WHERE enabled=0";
+		if(!$q->ok){
+			sendEmail($q->mysql_error, "Function: ".__FUNCTION__."\nFile:".__FILE__."\nLine:".__LINE__);
+			ufdbguard_admin_events("Compiling $tablename failed .$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"ufdbGenTable");
+			echo "$q->mysql_error !!! \n";
+			return;
+		}	
+		
 		if(is_file("$workdir/$tablename/domains")){@unlink("$workdir/$tablename/domains");}
 		if(is_dir("/tmp/$tablename")){shell_exec("/bin/rm -rf /tmp/$tablename");}
 		@mkdir("/tmp/$tablename",0777,true);
 		@chmod("/tmp/$tablename", 0777);
 		@chmod("/tmp", 0777);
-		if(!$q->TABLE_EXISTS($tablename)){$q->CreateCategoryTable(null,$tablename);}
-		$sql="SELECT pattern FROM (SELECT pattern FROM $tablename WHERE enabled=1 ORDER BY pattern) as t INTO OUTFILE '/tmp/$tablename/domains' LINES TERMINATED BY '\n';";
+		
+		$sql="SELECT pattern FROM $tablename ORDER BY pattern INTO OUTFILE '/tmp/$tablename/domains' LINES TERMINATED BY '\n';";
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){
-			ufdbguard_admin_events("Compiling $tablename failed .$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"ufdbGenTable");
-			echo "FATAL::".$q->mysql_error."\n";return;
+			if(preg_match("#marked as crashed and should be repaired", $q->mysql_error)){
+				sendEmail($q->mysql_error, "Function: ".__FUNCTION__."\nFile:".__FILE__."\nLine:".__LINE__);
+				shell_exe("$myisamchk --safe-recover $MYSQL_DATA_DIR/squidlogs/$tablename.MYI 2>&1");
+				sendEmail("$myisamchk --safe-recover $MYSQL_DATA_DIR/squidlogs/$tablename.MYI", "Done"); 
+					
+			}else{
+				ufdbguard_admin_events("Compiling $tablename failed .$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"ufdbGenTable");
+				sendEmail($q->mysql_error, "Function: ".__FUNCTION__."\nFile:".__FILE__."\nLine:".__LINE__);
+				echo "FATAL::".$q->mysql_error."\n";
+				return;
+				
+			}
+			
+			$q->QUERY_SQL($sql);
+			if(!$q->ok){
+				ufdbguard_admin_events("Compiling $tablename failed .$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"ufdbGenTable");
+				sendEmail($q->mysql_error, "Function: ".__FUNCTION__."\nFile:".__FILE__."\nLine:".__LINE__);
+				echo "FATAL::".$q->mysql_error."\n";
+				return;				
+			}
+			
+			
 		}
+			
 		if(is_dir("$workdir/$tablename")){shell_exec("/bin/rm -rf $workdir/$tablename");}
 		@mkdir("$workdir/$tablename",true);
 		@copy("/tmp/$tablename/domains", "$workdir/$tablename/domains");
@@ -775,22 +940,26 @@ function compile_databases_repo(){
 		$sizeT=$size;
 		$sizeT=$sizeT/1024;
 		$sizeT=round($sizeT/1000,2);
+		$sizeTMail=$sizeTMail+$sizeT;
 		echo "[$i/$Max]:: $tablename ($size) - {$sizeT}M (uploading)\n";
 		$resultsCurl=array();
 		$t=time();
-		exec("$curl -T $workdir/$tablename.gz $ftpwww/ --user $ftpass",$resultsCurl);
+		exec("$curl -T $workdir/$tablename.gz $ftpwww/ --user $ftpass 2>&1",$resultsCurl);
 		$took=$unix->distanceOfTimeInWords($t,time());
+		$resultsCurl[]="$tablename TOOK:$took";
+		$LogMail[]=@implode("\r\n", $resultsCurl);
 		ufdbguard_admin_events("[$i/$Max]: uploading $ftpwww/$tablename.gz ($sizeT K) success took: $took\n".@implode("\n", $resultsCurl),__FUNCTION__,__FILE__,__LINE__,"ufdbGenTable");
 		
 	}
 	
 	
 	@file_put_contents("$workdir/index.txt",base64_encode(serialize($array)));
-	shell_exec("curl -T $workdir/index.txt $ftpwww/ --user $ftpass");
-	
+	$resultsCurl=array();
+	exec("curl -T $workdir/index.txt $ftpwww/ --user $ftpass 2>&1",$resultsCurl);
+	$LogMail[]=@implode("\r\n", $resultsCurl);
 	$took=$unix->distanceOfTimeInWords($t0,time());
-	ufdbguard_admin_events("Exporting $d compiled tables success took: $took\n$cmd",__FUNCTION__,__FILE__,__LINE__,"ufdbGenTable");	
-	
+	ufdbguard_admin_events("Exporting $d compiled tables success took: $took",__FUNCTION__,__FILE__,__LINE__,"ufdbGenTable");	
+	sendEmail("Uploading $d ufdbguard databases [{$sizeTMail}MB] took: $took",@implode("\r\n", $LogMail));
 	
 }
 
@@ -811,20 +980,22 @@ function compile_databases_categoryKey($category){
 	return $category_compile;
 }
 
-function backup_categories(){
+function backup_categories($nopid=false){
 	$unix=new unix();
 	$WORKDIR="/home/squid/categories_backuped";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	
-	$oldpid=@file_get_contents($pidfile);
-	$myfile=basename(__FILE__);
-	if($unix->process_exists($oldpid,$myfile)){
-		ufdbguard_admin_events("Task already running PID: $oldpid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"stats");
-		return;
-	}
-	
+	if(!$nopid){
+		$oldpid=@file_get_contents($pidfile);
+		$myfile=basename(__FILE__);
+		if($unix->process_exists($oldpid,$myfile)){
+			ufdbguard_admin_events("Task already running PID: $oldpid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}
+		
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
+	}
+	
 	$chmod=$unix->find_program("chmod");
 	echo "Creating directory $WORKDIR\n";
 	@mkdir("$WORKDIR",0777,true);
@@ -840,6 +1011,7 @@ function backup_categories(){
 		FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\\n'";		
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){
+			sendEmail("Failed Backup  $category_table Fatal: $q->mysql_error");
 			ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"backup");
 			continue;
 		}
@@ -853,6 +1025,7 @@ function backup_categories(){
 		compress("$WORKDIR/$category_table.csv", "$WORKDIR/$category_table.gz");
 		
 		if(!is_file("$WORKDIR/$category_table.gz")){
+			sendEmail("Failed Backup  $category_table $WORKDIR/$category_table.gz no such file");
 			ufdbguard_admin_events("Fatal: $WORKDIR/$category_table.gz no such file",__FUNCTION__,__FILE__,__LINE__,"backup");
 			continue;
 		}
@@ -861,6 +1034,7 @@ function backup_categories(){
 		$size=round($size/1024,2);
 		@unlink("$WORKDIR/$category_table.csv");
 		$took=$unix->distanceOfTimeInWords($t1,time());
+		$MAILBODY[]="$category_table ( $size KB) ";
 		ufdbguard_admin_events("Success: $category_table.gz {$size}K took $took",__FUNCTION__,__FILE__,__LINE__,"backup");
 	}
 	
@@ -873,6 +1047,9 @@ function backup_categories(){
 		chdir($WORKDIR);
 		shell_exec("$tar -czf $WORKDIR/storage/$date-categories.tar.gz *.gz");
 		ufdbguard_admin_events("Task finish took $took",__FUNCTION__,__FILE__,__LINE__,"backup");
+		
+		sendEmail("Backup categories success took $took in $WORKDIR/storage/$date-categories.tar.gz",@implode("\r\n", $MAILBODY));
+		
 		reset($catArray);
 		while (list ($category_table, $category_table2) = each ($catArray) ){
 			if($GLOBALS["VERBOSE"]){echo "Remove $WORKDIR/$category_table.gz\n";}
@@ -999,7 +1176,7 @@ function import_backuped_categories_inject($filename_csv,$category_table){
 			$countend=$q->COUNT_ROWS($category_table);
 			$final=$countend-$countstart;
 			$GLOBALS["COUNT_FINAL"]=$GLOBALS["COUNT_FINAL"]+$final;
-			echo "$category_table: $category: $c items, $final new entries added\n";	
+			echo "$category_table: $category: ".numberFormat($c,0,""," ")." items, ".numberFormat($final,0,""," ")." new entries added\n";	
 			$n=array();
 			
 		}	
@@ -1017,12 +1194,13 @@ if(count($n)>0){
 			$countend=$q->COUNT_ROWS($category_table);
 			$final=$countend-$countstart;
 			$GLOBALS["COUNT_FINAL"]=$GLOBALS["COUNT_FINAL"]+$final;
-			echo "$c items, $final new entries added\n";	
+			echo "$category_table: $category: ".numberFormat($c,0,""," ")." items, ".numberFormat($final,0,""," ")." new entries added\n";	
 			$n=array();
 			
 		}
 
-	$final=$countend-$countstart;	
+	$final=$countend-$countstart;
+	echo "$category_table: items, ".numberFormat($final,0,""," ")." added items\n";		
 	ufdbguard_admin_events("$category_table $final added items",__FUNCTION__,__FILE__,__LINE__,"restore");
 	@unlink($filename_csv);	
 	return true;

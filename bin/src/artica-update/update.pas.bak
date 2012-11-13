@@ -58,7 +58,6 @@ public
       PROCEDURE update_spamassasin();
       Procedure update_dansguardian();
       procedure indexini();
-      procedure NightlyBuild();
       PROCEDURE perform_update_nightly();
       procedure clamav_engine_update();
       procedure backup_ldap_database();
@@ -222,7 +221,11 @@ begin
       end;
    end;
    
-   if not mustupdate then exit;
+   if not mustupdate then begin
+      fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.web-community-filter.php --register-lic >/dev/null 2>&1 &');
+      exit;
+   end;
+
    logs.Debuglogs('Checkindex: refresh index.ini file...');
 
 
@@ -278,7 +281,7 @@ if FileExists('/etc/artica-postfix/KASPERSKY_WEB_APPLIANCE') then exit;
 
 if EnableScanSecurity=1 then begin
    logs.Syslogs('EnableScanSecurity is on, downloading patterns from http://www.sanesecurity.net');
-   clamav.SCAMP_CONF();
+
    logs.Syslogs('Writing configuration done...');
    logs.Syslogs('Executing scamp...');
 
@@ -505,28 +508,16 @@ begin
 end;
 //#############################################################################
 PROCEDURE tupdate.perform_update_nightly();
-var
-CONF       :TiniFile;
+var  forcestr,debgustr:string;
+
 begin
-
-  CONF:=TiniFile.Create('/etc/artica-postfix/artica-update.conf');
-  if Lowercase(CONF.ReadString('AUTOUPDATE','nightlybuild','no'))<>'yes' then begin
-     logs.Debuglogs('perform_update_nightly():: nightly builds feature is disabled');
-     CONF.Free;
-     exit;
-  end;
-
-  CONF.Free;
-  if FileExists('/etc/artica-postfix/croned.1/nightly') then begin
-     if SYS.FILE_TIME_BETWEEN_MIN('/etc/artica-postfix/croned.1/nightly')<120 then begin
-        logs.Debuglogs('perform_update_nightly():: nightly builds feature (too short time, require 120mn)');
-        exit;
-     end;
-  end;
+         D:=GLOBAL_INI.COMMANDLINE_PARAMETERS('--verbose');
+  if FORCED then forcestr:=' --force';
+  if D then debgustr:=' --verbose';
+  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.nightly.php'+forcestr+debgustr);
 
   NightlyBuild();
-  logs.DeleteFile('/etc/artica-postfix/croned.1/nightly');
-  logs.OutputCmd('/bin/touch /etc/artica-postfix/croned.1/nightly');
+
 end;
 //#############################################################################
 
@@ -919,94 +910,6 @@ begin
    SYS.WGET_DOWNLOAD_FILE('http://malware.hiperlinks.com.br/cgi/submit-agressive?action=list_squid&type=agressive','/etc/squid3/malwares.acl');
 end;
 
-//#############################################################################
-procedure tupdate.NightlyBuild();
-var
-   MyCurrentVersion:integer;
-   LastestBuild:integer;
-   Lastest:string;
-   tmpstr:string;
-   CONF:TiniFile;
-   uri:string;
-   ArticaFileTemp:string;
-   RebootAfterArticaUpgrade:integer;
-begin
-
-MyCurrentVersion:=GetCurrentVersion();
-logs.DeleteFile(MasterIndexFile);
-CheckIndex();
-CONF:=TiniFile.Create(MasterIndexFile);
-if not TryStrToInt(SYS.GET_INFO('RebootAfterArticaUpgrade'),RebootAfterArticaUpgrade) then RebootAfterArticaUpgrade:=0;
-Lastest:=CONF.ReadString('NEXT','artica-nightly','');
-    logs.Debuglogs('NightlyBuild():: latest nightly build available version:'+Lastest);
-    logs.Syslogs('Artica nightly build: latest nightly build available version:'+Lastest);
-if length(Lastest)=0 then begin
-   logs.Debuglogs('NightlyBuild():: No nightly build available.(artica-nightly key is null)');
-   logs.Syslogs('Artica nightly build: No nightly build available.(artica-nightly key is null)');
-end;
-LastestBuild:=StripNumber(Lastest);
-if LastestBuild=MyCurrentVersion then begin
-    logs.Syslogs('Artica nightly build: up-to-date');
-    logs.Debuglogs('NightlyBuild():: up-to-date... aborting ('+IntTostr(LastestBuild)+'='+IntTostr(MyCurrentVersion)+')');
-    exit;
-end;
-
-if LastestBuild<MyCurrentVersion then begin
-    logs.Syslogs('Artica nightly build: up-to-date');
-    logs.Debuglogs('NightlyBuild():: up-to-date... aborting ('+IntTostr(LastestBuild)+'<'+IntTostr(MyCurrentVersion)+')');
-    exit;
-end;
-  logs.Syslogs('Artica nightly build: Downloading new version ' + Lastest);
-  logs.Debuglogs('NightlyBuild():: Downloading new version ' + Lastest);
-  uri:='http://www.artica.fr/nightbuilds/artica-'+Lastest+'.tgz';
-  forceDirectories('/tmp/'+Lastest);
-
-  ArticaFileTemp:='/tmp/'+Lastest+'/'+Lastest+'.tgz';
-  logs.Debuglogs('NightlyBuild():: downloading....');
-  GLOBAL_INI.WGET_DOWNLOAD_FILE(uri,ArticaFileTemp);
-  logs.Syslogs('Artica nightly build: Downloading new version ' + Lastest+' done... starting installation');
-  logs.Debuglogs('NightlyBuild():: Stopping artica...');
-  fpsystem('/etc/init.d/artica-postfix stop');
-  logs.Debuglogs('NightlyBuild():: Stopping artica twice ...');
-  fpsystem('/etc/init.d/artica-postfix stop');
-  logs.Debuglogs('NightlyBuild():: decompressing '+ArticaFileTemp );
-  logs.Syslogs('Artica nightly build: decompressing ' + ArticaFileTemp);
-
-  if not FileExists(ArticaFileTemp) then begin
-     logs.Debuglogs('NightlyBuild():: Corrupted package '+ArticaFileTemp);
-     logs.Syslogs('Artica nightly build: Corrupted  package:' + ArticaFileTemp);
-     exit;
-  end;
-
-  writeln('NightlyBuild():: Extracting package, please wait...');
-  fpsystem('killall artica-install >/dev/null 2>&1');
-
-  logs.OutputCmd('/bin/tar -xf '+ArticaFileTemp +' -C /usr/share/');
-
-  if RebootAfterArticaUpgrade=1 then begin
-    logs.NOTIFICATION('[ARTICA]:('+sys.HOSTNAME_g()+') success update new artica nightly build version ' + GLOBAL_INI.ARTICA_VERSION()+' system will be rebooted','your server is now up-to-date with the new version ' + GLOBAL_INI.ARTICA_VERSION(),'update');
-    fpsystem(SYS.LOCATE_GENERIC_BIN('reboot'));
-  end;
-  logs.Debuglogs('Starting artica....');
-  fpsystem('/etc/init.d/artica-postfix start &');
-  SYS.THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart ldap');
-  logs.Debuglogs('Setting permissions');
-  fpsystem('/etc/init.d/artica-postfix restart artica-status');
-  fpsystem('/usr/share/artica-postfix/bin/process1 -perm');
-  logs.Debuglogs('Setting permissions done...');
-  MyCurrentVersion:=GetCurrentVersion();
-
-  logs.OutputCmd('/bin/rm -rf /tmp/'+Lastest);
-
- if LastestBuild=MyCurrentVersion then begin
-    logs.Debuglogs('NightlyBuild():: NightlyBuild():: success');
-    logs.NOTIFICATION('[ARTICA]:('+sys.HOSTNAME_g()+') success update new artica nightly build version ' + GLOBAL_INI.ARTICA_VERSION(),'your server is now up-to-date with the new version ' + GLOBAL_INI.ARTICA_VERSION(),'update');
-    fpsystem('/usr/share/artica-postfix/bin/artica-make --empty-cache &');
-    exit;
-end;
-
-
-end;
 //#############################################################################
 function tupdate.Install_new_version(lastestfile:string):boolean;
 var

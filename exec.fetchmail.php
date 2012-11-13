@@ -19,7 +19,7 @@ if($argv[1]=="--multi-start"){BuildRules();die();}
 if($argv[1]=="--single-debug"){SingleDebug($argv[2]);die();}
 if($argv[1]=="--monit"){build_monit();die();}
 if($argv[1]=="--import"){import($argv[2]);die();}
-
+if($argv[1]=="--import-file"){import_filename($argv[2]);die();}
 
 
 BuildRules();
@@ -534,6 +534,19 @@ function build_monit(){
 		$unix->THREAD_COMMAND_SET("/usr/share/artica-postfix/bin/artica-install --monit-check");
 	}	
 }
+
+function import_filename($filename){
+	if(!is_file($filename)){echo "$filename (no such file)\n";}
+	$f=new Fetchmail_settings();
+	$array=$f->parse_config(@file_get_contents($filename));
+	echo "Importing ". count($array)." lines/rules form \"$path\"\n";
+	$fetch=new Fetchmail_settings();
+	while (list ($num, $ligne) = each ($array) ){
+		if($fetch->EditRule($ligne, 0,true) );
+	}
+	
+}
+
 
 function import($path){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";

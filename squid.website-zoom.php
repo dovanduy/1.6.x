@@ -13,19 +13,74 @@
 	if(!$users->AsWebStatisticsAdministrator){die("no rights");}	
 	
 	if(isset($_GET["js"])){echo js();exit;}
+	if(isset($_GET["popup"])){page();exit;}
 	
 	
-	
-page();
+tab();
 
 
 function js(){
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
+		echo "alert('$onlycorpavailable');";
+		return;
+	}		
+	
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$www=$_GET["sitename"];
-	$html="RTMMail(918,'$page?sitename=$www','ZOOM:$www')";
+	$html="RTMMail(1000,'$page?sitename=$www&xtime={$_GET["xtime"]}','ZOOM:$www')";
 	echo $html;
 	
+	
+}
+
+function tab(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$q=new mysql_squid_builder();
+	$familysite=$q->GetFamilySites($_GET["sitename"]);
+	
+	
+	if(is_numeric($_GET["xtime"])){
+		$dateT=" ".date("{l} {F} d",$_GET["xtime"]);
+		if($tpl->language=="fr"){$dateT=date("{l} d {F} ",$_GET["xtime"]);}
+		$array["day"]="{websites}";
+		$array["members"]="{members}";
+	}
+	$array["popup"]="{status} $dateT";
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="day"){
+			$day=date("Y-m-d",$_GET["xtime"]);
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.traffic.statistics.days.php?today-zoom-popup-history=yes&day=$day&type=size&familysite=$familysite\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		if($num=="members"){
+			$day=date("Y-m-d",$_GET["xtime"]);
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.traffic.statistics.days.php?today-zoom-popup-members=yes&day=$day&type=size&familysite=$familysite\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+	
+		
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&sitename={$_GET["sitename"]}&xtime={$_GET["xtime"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+	}
+	
+
+	
+	echo "
+	<div id=main_config_zoomwebsite>
+		<ul>". implode("\n",$html)."</ul>
+	</div>
+		<script>
+				$(document).ready(function(){
+					$('#main_config_zoomwebsite').tabs();
+			
+			
+			});
+		</script>";		
 	
 }
 

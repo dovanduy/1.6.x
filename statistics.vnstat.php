@@ -15,7 +15,7 @@
 	
 	if(isset($_GET["popup"])){tabs();exit;}
 	if(isset($_GET["etch"])){etch();exit;}
-	
+	if(isset($_POST["EnableVnStat"])){EnableVnStat();exit;}
 
 
 	js();
@@ -70,6 +70,37 @@ echo $tpl->_ENGINE_parse_body("
 }
 
 function etch(){
+	$sock=new sockets();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$EnableVnStat=$sock->GET_INFO("EnableVnStat");
+	if(!is_numeric($EnableVnStat)){$EnableVnStat=1;}
+	$t=time();
+	if($EnableVnStat==0){
+		$html=FATAL_ERROR_SHOW_128("{APP_VNSTAT_DISABLED_EXPLAIN}")." <center style='margin:30px' id='$t'>".button("{activate}","EnableVnStat()","22px")."</center>
+		<script>
+		
+		var x_EnableVnStat= function (obj) {
+			var tempvalue=obj.responseText;
+			if(tempvalue.length>3){alert(tempvalue)}
+		    RefreshTab('main_config_vnstat');
+			}
+		
+		
+		function EnableVnStat(){
+			var XHR = new XHRConnection();
+			XHR.appendData('EnableVnStat',1);
+		    XHR.sendAndLoad('$page', 'POST',x_EnableVnStat);
+		}</script>
+		";
+		echo $tpl->_ENGINE_parse_body($html);
+		return;
+		
+	}
+	
+	
+	
+	
 		$interface=$_GET["etch"];
 		$cmdr[]="ressources/logs/vnstat-$interface-resume.png";
 		$cmdr[]="ressources/logs/vnstat-$interface-hourly.png";
@@ -77,8 +108,8 @@ function etch(){
 		$cmdr[]="ressources/logs/vnstat-$interface-monthly.png";
 		$cmdr[]="ressources/logs/vnstat-$interface-top.png";
 		$imgs=array();
-		$tpl=new templates();
-		$page=CurrentPageName();
+		
+		
 		$error="<center style='font-size:18px;color:red;margin:5px;font-weight:bolder'>{NO_DATA_COME_BACK_LATER}</center><center><img src='img/report-warning-256.png'></center>";		
 		
 		while (list ($num, $filename) = each ($cmdr) ){
@@ -94,4 +125,11 @@ function etch(){
 	
 }
 
-
+function EnableVnStat(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableVnStat",1);
+	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
+	$sock->getFrameWork("cmd.php?RestartVnStat=yes");
+	
+	
+}

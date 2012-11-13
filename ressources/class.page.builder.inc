@@ -196,6 +196,7 @@ class pagebuilder{
 			//$jsTable[]="/js/jquery.collapse.js";
 			$jsTable[]="/js/jquery.cookie.js";
 			$jsTable[]="/js/fileuploader.js";
+			$jsTable[]="/js/mobiscroll-2.1.custom.min.js";
 
 
 			if(($this->CurrentPageName()=="logon.php") OR ($this->CurrentPageName()=="logoff.php") OR ($this->CurrentPageName()=="404.php")){
@@ -332,6 +333,7 @@ class pagebuilder{
 			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/ui.selectmenu.css\" />";
 			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/fileuploader.css\" />";
 			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/fonts.css.php\" />";
+			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/mobiscroll-2.1.custom.min.css\" />";
 			
 			
 			$_SESSION["ARTICA_HEAD_TEMPLATE"]=$html;

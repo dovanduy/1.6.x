@@ -725,6 +725,7 @@ function main_config_artica(){
 	
 	
 	if(!is_numeric($cpuLimitEnabled)){$sock->SET_INFO("cpuLimitEnabled",0);$cpuLimitEnabled=0;}
+	if(!is_numeric($EnableBandwithCalculation)){$sock->SET_INFO("EnableBandwithCalculation",1);$EnableBandwithCalculation=1;}
 	if(!is_numeric($MaxtimeBackupMailSizeCalculate)){$MaxtimeBackupMailSizeCalculate=300;}
 	if(!is_numeric($cpulimit)){$cpulimit=0;}
 	if(!is_numeric($cgroupsEnabled)){$cgroupsEnabled=0;}

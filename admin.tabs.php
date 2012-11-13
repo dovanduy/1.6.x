@@ -63,7 +63,18 @@ function refresh_status_js(){
 			LoadAjax('IMAGE_STATUS_INFO','admin.index.php?status_right_image=yes&t=$t');
 		
 		}
+		
+		
+		if(document.getElementById('mem_status_computer')){
+			setTimeout('refreshComputersStatus$t()',5000);
+		
+		}
 	
+		
+	function refreshComputersStatus$t(){
+		LoadAjaxTiny('mem_status_computer','admin.index.php?memcomputer=yes&newfrontend=yes');
+	}
+		
 	";
 		
 }

@@ -26,6 +26,7 @@ if($argv[1]=="--month"){STATS_BuildMonthTables();return;}
 
 function STATS_BuildDayTables(){
 	$unix=new unix();
+	$GLOBALS["DAYSTATS"]=0;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid)){
@@ -42,12 +43,13 @@ function STATS_BuildDayTables(){
 	day_tables();
 	
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
-	system_admin_events("day tables generated from hour tables took: $took" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
+	system_admin_events("{$GLOBALS["DAYSTATS"]}: day tables generated from hour tables took: $took" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
 
 }
 
 function STATS_BuildMonthTables(){
 	$unix=new unix();
+	$GLOBALS["DAYSTATS"]=0;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid)){
@@ -63,7 +65,7 @@ function STATS_BuildMonthTables(){
 	month_tables();
 
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
-	system_admin_events("Task Month tables from day tables took: $took" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");	
+	system_admin_events("Task Month tables from {$GLOBALS["DAYSTATS"]} day tables took: $took" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");	
 	
 }
 
@@ -135,7 +137,7 @@ function _month_table($day){
 		$GLOBALS["Q"]->QUERY_SQL($sql);
 		if(!$GLOBALS["Q"]->ok){system_admin_events($GLOBALS["Q"]->mysql_error, __FUNCTION__, __FILE__, __LINE__, "postfix-stats");return;}
 	}
-	
+	$GLOBALS["DAYSTATS"]=$GLOBALS["DAYSTATS"]+1;
 	return true;	
 	
 }
@@ -206,7 +208,7 @@ function _day_tables($day){
 
 		
 	}
-	
+	$GLOBALS["DAYSTATS"]=$GLOBALS["DAYSTATS"]+1;
 	return true;
 }
 

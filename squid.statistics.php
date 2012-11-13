@@ -15,7 +15,7 @@
 	
 	
 	$user=new usersMenus();
-	if(!$user->AsSquidAdministrator){
+	if(!$user->AsWebStatisticsAdministrator){
 		$tpl=new templates();
 		echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		exit;

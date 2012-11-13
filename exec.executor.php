@@ -351,7 +351,7 @@ function group5(){
 	$array["exec.watchdog.php"]="exec.watchdog.php";
 	
 	
-	$array["exec.syslog-engine.php --adminlogs"]="exec.syslog-engine.php --adminlogs";
+	
 	
 	if($GLOBALS["NMAP_INSTALLED"]){
 		$ComputersAllowNmap=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('ComputersAllowNmap');
@@ -506,7 +506,6 @@ function group10(){
 	$array[]="exec.watchdog.php --queues";
 	$array[]="exec.freeweb.php --perms";
 	$array[]="exec.freeweb.php --all-status";
-	$array[]="exec.syslog-engine.php --psmem";
 	$array[]="exec.patchs.php";
 	
 	if($GLOBALS["UFDBGUARD_INSTALLED"]){$array[]="exec.web-community-filter.php --groupby";}
@@ -598,9 +597,7 @@ if(!is_numeric($GLOBALS["TIME"]["GROUP2"])){$GLOBALS["TIME"]["GROUP2"]=time();re
 	if(!system_is_overloaded()){
 		if($GLOBALS["SQUID_INSTALLED"]){
 			$array[]="exec.dansguardian.injector.php";
-			$array[]="exec.squid.blacklists.php --schedule-maintenance";
 		}else{
-			if($GLOBALS["KAV4PROXY_INSTALLED"]){$array[]="exec.squid.blacklists.php --schedule-maintenance";}
 			if($GLOBALS["KAV4PROXY_INSTALLED"]){$array[]="exec.dansguardian.injector.php";}
 		}
 	}

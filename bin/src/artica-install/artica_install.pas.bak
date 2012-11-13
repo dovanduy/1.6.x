@@ -23,7 +23,7 @@ dkfilter, ufdbguardd, dkimmilter, dropbox, articapolicy, virtualbox, tftpd,
 crossroads, articastatus, articaexecutor, articabackground, pptpd, apt_mirror,
 ddclient, cluebringer, apachesrc, toolsversions, sabnzbdplus, fusermount,
 vnstat, munin, greyhole, autofs, iscsitarget, snort, greensql, amanda, tomcat,
-openemm, arpd, yaffas, netatalk, memcached,ejabberd, Unit1;
+openemm, arpd, yaffas, netatalk, memcached,ejabberd, articadb;
 
 var
 DisableIMAPVerif:integer;
@@ -218,6 +218,7 @@ end;
 if Paramstr(1)='--zarafa-reconfigure' then begin
    zZarafa:=tzarafa_server.CReate(SYS);
    zZarafa.server_cfg();
+   if Paramstr(2)='--start-daemon' then fpsyste('/etc/init.d/zarafa-server start');
    halt(0);
 end;
  if Paramstr(1)='--zarafa-ssl' then begin
@@ -2556,16 +2557,6 @@ begin
 install.install_init_d();
 halt(0);
 end;
-
-
-
-
-if paramStr(1)='--fix-schemas' then
-begin
-zldap.FIX_ARTICA_SCHEMAS();
-halt(0);
-end;
-
 
 if paramStr(1)='wget' then begin
 GLOBAL_INI:=MyConf.Create();

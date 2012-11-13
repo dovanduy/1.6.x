@@ -249,7 +249,7 @@ class templates{
 		}
 		
 		$_SESSION["detected_lang"]=$this->language;
-		
+		if(!isset($_SESSION["translation"])){$_SESSION["translation"]=array();}
 		
 		if(count($_SESSION["translation"])<100){
 			writelogs("Dumping $this->language",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
@@ -1046,6 +1046,34 @@ function field_date($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	
 }
 
+function field_iphone_time($name,$value){
+	$t=time();
+	$tpl=new templates();
+	if(trim($value)==null){$value=date("H:i");}
+	$hourt=$tpl->javascript_parse_text("{hours}");
+	$style="style=\"display:none\"";
+return "$help
+	<input type='text' id='$name' name='$name' value=\"$value\" $style>
+	<script>
+			$(function(){
+    $('#$name').scroller({
+        preset: 'time',
+        theme: 'ios',
+        display: 'inline',
+        mode: 'scroller',
+        hourText:'$hourt',
+        timeFormat:'HH:ii',
+        timeWheels:'HH:ii'
+        
+    });    
+});
+	</script>
+	";			
+	
+
+	
+}
+
 function field_time($name,$value=null,$style=null,$class=null,$OnChange=null,$help=null,$helpInside=false,$jsPressKey=null,$DISABLED=false,$OnClick=null){
 	$value=trim($value);
 	$size=null;
@@ -1238,7 +1266,6 @@ function string_to_regex($pattern){
 	$pattern=str_replace("^", "\^", $pattern);
 	$pattern=str_replace("!", "\!", $pattern);
 	$pattern=str_replace("*", ".*?", $pattern);
-	
 	return $pattern;
 	
 }
@@ -3415,7 +3442,7 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 		}
 		
 		$text="
-		<div id='text_$id' style='font-size:11px;'>
+		<div id='text_$id' style='font-size:11px;margin-top:5px'>
 			$text
 		</div>";
 		}else{
@@ -5261,7 +5288,7 @@ function getLocalTimezone(){
     $arr = localtime($iTime);
     $arr[5] += 1900;
     $arr[4]++;
-    $iTztime = gmmktime($arr[2], $arr[1], $arr[0], $arr[4], $arr[3], $arr[5], $arr[8]);
+    $iTztime = gmmktime($arr[2], $arr[1], $arr[0], $arr[4], $arr[3], $arr[5]);
     $offset = doubleval(($iTztime-$iTime)/(60*60));
     $zonelist =
     array
@@ -5382,11 +5409,13 @@ function numberFormat  ($number  , $decimals = 2 , $dec_point = '.' , $sep = ','
    
     return $num;
 }	
-function CompileTr3($array,$noform=false){
+function CompileTr3($array,$noform=false,$title=null){
 	if(!is_array($array)){return null;}
 	if(count($array)==0){return null;}
 	if(!$noform){$classform="class=form";}
+	
 $tables[]="<table style='width:99%' $classform><tr>";
+if($title<>null){$tables[]="<tr><td colspan=3>$title</td></tr>";}
 $t=0;
 while (list ($key, $line) = each ($array) ){
 		$line=trim($line);
@@ -5406,21 +5435,22 @@ if($t<3){
 	return implode("\n",$tables);
 }
 function CompileTrGen($array,$num=5){
-$tables[]="<table style='width:100%'><tr>";
-$t=0;
-while (list ($key, $line) = each ($array) ){
-		$line=trim($line);
-		if($line==null){continue;}
-		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
-		if($t==$num){$t=0;$tables[]="</tr><tr>";}
-		
-}
-if($t<$num){
-	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
+	if(!is_array($array)){return null;}
+	$tables[]="<table style='width:100%'><tr>";
+	$t=0;
+	while (list ($key, $line) = each ($array) ){
+			$line=trim($line);
+			if($line==null){continue;}
+			$t=$t+1;
+			$tables[]="<td valign='top'>$line</td>";
+			if($t==$num){$t=0;$tables[]="</tr><tr>";}
+			
 	}
-}
+	if($t<$num){
+		for($i=0;$i<=$t;$i++){
+			$tables[]="<td valign='top'>&nbsp;</td>";				
+		}
+	}
 				
 	$tables[]="</tr></table>";	
 	return implode("\n",$tables);

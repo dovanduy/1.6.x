@@ -12,7 +12,7 @@ uses
   jcheckmail,dhcp_server,dstat,rsync,smartd,tcpip,policyd_weight,apache_artica,autofs,assp,pdns,gluster,nfsserver,zabbix,hamachi,postfilter, vmwaretools,zarafa_server,monit,wifi,
   emailrelay,mldonkey,backuppc,kav4fs,ocsi,ocsagent,sshd,auditd,squidguard_page,dkfilter,ufdbguardd,squidguard,framework,dkimmilter,dropbox,articapolicy,virtualbox,tftpd,crossroads,articastatus,articaexecutor,articabackground,pptpd,
   apt_mirror,cluebringer,apachesrc,sabnzbdplus,fusermount,vnstat,munin,greyhole,iscsitarget,postfwd2,snort,greensql,amanda,yaffas,netatalk,articadb,
-  mailarchiver in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/mailarchiver.pas',ddclient,tomcat,openemm,fuppes,arpd,memcached,updateutilityhttp,ejabberd,haproxy,arkeia,klms,
+  mailarchiver in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/mailarchiver.pas',ddclient,tomcat,openemm,fuppes,arpd,memcached,updateutilityhttp,ejabberd,haproxy,arkeia,klms,suricata,
   kas3         in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/kas3.pas',
   kavmilter    in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/kavmilter.pas',
   dnsmasq      in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/dnsmasq.pas',
@@ -664,6 +664,7 @@ var
    arkeia:tarkeia;
    klms:tklms;
    articadb:tarticadb;
+   suricata:tsuricata;
 begin
     GLOBAL_INI:=myconf.Create;
     Zclam:=TClamav.Create;
@@ -808,7 +809,12 @@ begin
                exit();
             end;
 
-
+           if ParamStr(2)='suricata' then begin
+               suricata:=tsuricata.Create(GLOBAL_INI.SYS);
+               suricata.STOP();
+               suricata.free;
+               exit();
+            end;
 
            if ParamStr(2)='klms' then begin
                klms:=tklms.Create(GLOBAL_INI.SYS);
@@ -1806,7 +1812,7 @@ begin
                writeln('|openssh|auditd|squidguard-http|fetchmail-logger|dkfilter|ufdb|ufdb-tail|squidguard-tail|framework|dkim-milter|dropbox|artica-policy|virtualbox-web');
                writeln('|tftpd|crossroads|artica-status|artica-exec|artica-back|pptpd|pptpd-clients|apt-mirror|squidclamav-tail|ddclient|cluebringer|apachesrc');
                writeln('|sabnzbdplus|fcron|fuse|vnstat|winbindd|munin|greyhole|amavis-milter|iscsi|auth-logger|snort|greensql|amanda|zarafa-lmtp|tomcat|openemm');
-               writeln('|sendmail-openemm|fuppes|cgroups|arpd|yaffas|netatalk|loadbalance|memcached|UpdateUtility|ejabberd|haproxy|arkeia|klms|klmsdb|articadb');
+               writeln('|sendmail-openemm|fuppes|cgroups|arpd|yaffas|netatalk|loadbalance|memcached|UpdateUtility|ejabberd|haproxy|arkeia|klms|klmsdb|articadb|suricata');
                exit();
             end;
 
@@ -1947,6 +1953,7 @@ var
    klms:tklms;
    zlogs:tlogs;
    articadb:tarticadb;
+   suricata:tsuricata;
 begin
     GLOBAL_INI:=myconf.Create;
     SYS:=Tsystem.Create;
@@ -2346,6 +2353,13 @@ begin
                articadb.free;
                exit();
             end;
+           if ParamStr(2)='suricata' then begin
+               suricata:=tsuricata.Create(GLOBAL_INI.SYS);
+               suricata.START();
+               suricata.free;
+               exit();
+            end;
+
 
 
            if ParamStr(2)='klmsdb' then begin
@@ -3141,7 +3155,7 @@ begin
                writeln('|openssh|auditd|squidguard-http|fetchmail-logger|dkfilter|ufdb|ufdb-tail|squidguard-tail|framework|dkim-milter|dropbox|artica-policy|virtualbox-web');
                writeln('|tftpd|crossroads|artica-status|artica-exec|artica-back|pptpd|pptpd-clients|apt-mirror|squidclamav-tail|ddclient|cluebringer|apachesrc');
                writeln('|sabnzbdplus|fcron|fuse|vnstat|winbindd|munin|greyhole|amavis-milter|iscsi|auth-logger|snort|greensql|amanda|zarafa-lmtp|tomcat|openemm');
-               writeln('|sendmail-openemm|fuppes|cgroups|arpd|yaffas|netatalk|loadbalance|memcached|UpdateUtility|ejabberd|haproxy|arkeia|klms|klmsdb|articadb');
+               writeln('|sendmail-openemm|fuppes|cgroups|arpd|yaffas|netatalk|loadbalance|memcached|UpdateUtility|ejabberd|haproxy|arkeia|klms|klmsdb|articadb|suricata');
                exit();
             end;
 

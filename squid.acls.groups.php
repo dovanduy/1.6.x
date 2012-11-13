@@ -21,6 +21,7 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "<H2>$alert</H2>";
 	die();	
 }
+if(isset($_POST["TimeSave"])){item_date_save();exit;}
 if(isset($_GET["js"])){js();exit;}
 if(isset($_GET["groups-list"])){group_list();exit;}
 if(isset($_GET["AddGroup-js"])){AddGroup_js();exit;}
@@ -42,7 +43,7 @@ if(isset($_POST["item-import"])){item_import();exit;}
 if(isset($_POST["item-pattern"])){item_save();exit;}
 if(isset($_POST["EnableItem"])){item_enable();exit;}
 if(isset($_POST["DeleteItem"])){item_delete();exit;}
-
+if(isset($_GET["items-date"])){item_date();exit;}
 
 
 
@@ -111,13 +112,16 @@ function EditGroup_popup(){
 	if($ID<1){$buttonname="{add}";$browse=null;$acltpl=null;}	
 	if($acltpl_md5<>null){
 			$md5=$acltpl_md5;
-			$sql="SELECT template_title FROM squidtpls WHERE `zmd5`='{$acltpl_md5}'";
+			$sql="SELECT template_name,template_link FROM squidtpls WHERE `zmd5`='{$acltpl_md5}'";
 			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
-			$templatename=$ligne2["template_title"];
+			$templatename=$ligne2["template_name"];
 			
-			$acltpl=addslashes($ligne2["template_title"]);
+			$acltpl=addslashes($ligne2["template_name"]);
 			$jstpl="Loadjs('squid.templates.php?Zoom-js=$md5&subject=". base64_encode($acltpl)."');";
 			$acltpl="<a href=\"javascript:blur();\" OnClick=\"$jstpl\" style='font-size:14px;text-decoration:underline'>$templatename</a>";
+			if($ligne2["template_link"]==1){
+				$acltpl="<span style='font-size:14px;'>$templatename</span>";
+			}
 		}	
 	
 	
@@ -305,6 +309,108 @@ function item_import(){
 		$sock->getFrameWork("cmd.php?squid-rebuild=yes");	
 	}
 }
+
+function item_date(){
+	$ID=$_GET["ID"];
+	$page=CurrentPageName();
+	$tableorg=$_GET["table-org"];
+	$q=new mysql_squid_builder();
+	$tpl=new templates();
+	$sql="SELECT other FROM webfilters_sqitems WHERE gpid='$ID'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$t=time();
+	$pattern=base64_decode($ligne["other"]);
+	$TimeSpace=unserialize(base64_decode($ligne["other"]));
+	
+	
+	$days=array("0"=>"Monday","1"=>"Tuesday","2"=>"Wednesday","3"=>"Thursday","4"=>"Friday","5"=>"Saturday","6"=>"Sunday");
+	$title="<strong style='font-size:16px'>{days}:</strong>";
+	
+	while (list ($num, $val) = each ($days) ){
+		
+		$jsjs[]="if(document.getElementById('$t-day_{$num}').checked){ XHR.appendData('day_{$num}',1);}else{ XHR.appendData('day_{$num}',0);}";
+		
+		$tt[]="
+		<table style='width:1%'>
+		<tr>
+		<td width=1%>". Field_checkbox("$t-day_{$num}",1,$TimeSpace["day_{$num}"])."</td>
+		<td width=99% class=legend style='font-size:16px' align='left'>{{$val}}</td>
+		</tr>
+		</table>
+		";
+		
+	}	
+	
+	$dayF=CompileTr3($tt,false,$title);
+	
+	
+	$html="
+	<div id='animate-$t'></div>
+	$dayF
+	<table style='width:99%' class=form>
+	<tr>
+		<td valign='top' width=50%>
+		<center>
+		<strong style='font-size:16px'>{from_time}</strong>
+		".field_iphone_time("FT-$t",$TimeSpace["H1"])."</center></td>
+		<td valign='top' width=50%><center>
+		<strong style='font-size:16px'>{to_time}</strong>
+		".field_iphone_time("FT2-$t",$TimeSpace["H2"])."</center></td>
+	</tr>
+	</table>
+	<hr>
+	<div style='width:100%;text-align:right'>". button("{apply}","SaveFF$t()","18px")."</div>
+	
+	<script>
+	var x_SaveFF$t= function (obj) {
+		var tableorg='$tableorg';
+		var res=obj.responseText;
+		document.getElementById('animate-$t').innerHTML='';
+		var ID=$ID;
+		if(res.length>3){alert(res);return;}
+		RefreshTab('main_content_rule_editsquidgroup');
+		if(tableorg.length>3){ $('#'+tableorg).flexReload();}
+	}
+	
+	function SaveFF$t(){
+		      var XHR = new XHRConnection();
+		      XHR.appendData('TimeSave', 'yes');
+		      XHR.appendData('ID', '$ID');
+		      ". @implode("\n", $jsjs)."
+		      XHR.appendData('H1', document.getElementById('FT-$t').value);
+		      XHR.appendData('H2', document.getElementById('FT2-$t').value);
+			  AnimateDiv('animate-$t');
+		      XHR.sendAndLoad('$page', 'POST',x_SaveFF$t);  		
+		}
+		
+	</script>
+	
+	";
+	
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+function item_date_save(){
+	$ID=$_POST["ID"];
+	$sql="SELECT other,pattern FROM webfilters_sqitems WHERE gpid='$ID'";
+	$q=new mysql_squid_builder();
+	$q->CheckTables();
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$pattern=base64_encode(serialize($_POST));
+	if(strlen(trim($ligne["pattern"]))<3){
+		$sql="INSERT INTO webfilters_sqitems (pattern,gpid,enabled,other) VALUES ('$pattern','$ID','1','$pattern');";
+	}else{
+		$sql="UPDATE webfilters_sqitems SET pattern='$pattern',other='$pattern' WHERE gpid='$ID'";
+	}
+	
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;}
+	
+	
+}
 	
 	
 	
@@ -320,8 +426,20 @@ function EditGroup_tabs(){
 	$array["EditGroup-popup"]='{settings}';
 	
 	if($ligne["GroupType"]=="proxy_auth_ads"){unset($array["items"]);}
+	if($ligne["GroupType"]=="NudityScan"){
+		unset($array["items"]);
+		$array["NudityParams"]="{global_parameters}";
+	
+	}
+	if($ligne["GroupType"]=="time"){unset($array["items"]);$array["items-date"]='{items}';}
 
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="NudityParams"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"squid.nudityscan.php?popup=yes\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&ID=$ID&tab=yes&table-org={$_GET["table-org"]}\"><span>$ligne</span></a></li>\n");
 	
 	}
@@ -718,6 +836,7 @@ function item_form(){
 	if($GroupType=="dstdomain"){$explain="{squid_ask_domain}";}
 	if($GroupType=="maxconn"){$explain="{squid_aclmax_connections_explain}";}
 	if($GroupType=="port"){$explain="{acl_squid_remote_ports_explain}";}
+	if($GroupType=="ext_user"){$explain="{acl_squid_ext_user_explain}";}
 	if($GroupType=="browser"){
 		$explain="{acl_squid_browser_explain}";
 		$browse=button("{list}..","Loadjs('squid.browsers.php?ShowOnly=1')","12px");
@@ -863,7 +982,7 @@ function group_list(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));json_encode($data);return;}
-	
+	$GroupType=$q->acl_GroupType;
 	$GroupType["src"]="{addr}";
 	$GroupType["arp"]="{ComputerMacAddress}";
 	$GroupType["dstdomain"]="{dstdomain}";

@@ -95,7 +95,7 @@ function build_schedules(){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: artica-postfix watchdog (fcron) remove $filename\n";}
 			@unlink($filename);}
 	}
-	
+	@unlink("/etc/artica-postfix/TASKS_CACHE.DB");
 	@unlink("/etc/artica-postfix/system.schedules");
 	$TRASNCODE["0 * * * *"]="1h";
 	$TRASNCODE["0 4,8,12,16,20 * * *"]="4h";
@@ -168,36 +168,51 @@ function build_schedules(){
 }
 function execute_task($ID){
 	$unix=new unix();
+	$tasks=new system_tasks();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$GLOBALS["SCHEDULE_ID"]=$ID;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.pid";
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
-		system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		return;
 	}
 	
 	$pidtime=$unix->file_time_min($pidfile);
 	if($pidtime<1){
-		system_admin_events("last execution was done since {$pidtime}mn" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		system_admin_events("last execution was done since {$pidtime}mn" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		return;
 	}	
 
 	@unlink($pidfile);
 	@file_put_contents($pidfile, getmypid());
 	$array_load=sys_getloadavg();
-	$internal_load=$array_load[0];		
+	$internal_load=$array_load[0];	
+
+	$TASKS_CACHE=unserialize(@file_get_contents("/etc/artica-postfix/TASKS_CACHE.DB"));
+	if(isset($TASKS_CACHE[$ID])){
+		$TaskType=$TASKS_CACHE[$ID]["TaskType"];
+		if(isset($task->task_disabled[$TaskType])){
+			writelogs("Task $ID is disabled",__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
+	}
+	
+	
 	
 	writelogs("Task $ID Load:$internal_load cmdline `{$GLOBALS["CMDLINES"]}`",__FUNCTION__,__FILE__,__LINE__);	
 	
-	if(isMaxInstances()){return;}
+	if(isMaxInstances()){
+		system_admin_events("Too Many instances running, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		return;
+	}
 	
 	if(system_is_overloaded(basename(__FILE__))){
 		OverloadedCheckBadProcesses();
 		for($i=0;$i<20;$i++){
 			if(system_is_overloaded(basename(__FILE__))){
-				writelogs("Task $ID -> overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, wait 1s",__FUNCTION__,__FILE__,__LINE__);
+				writelogs("Task $ID -> overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} `{$tasks->tasks_processes[$TaskType]}`, wait 1s",__FUNCTION__,__FILE__,__LINE__);
 				sleep(1);
 			}
 			if(!system_is_overloaded(basename(__FILE__))){break;}
@@ -205,17 +220,19 @@ function execute_task($ID){
 	}
 	
 	if(system_is_overloaded(basename(__FILE__))){
-		system_admin_events("Overloaded system after 20 secondes, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		system_admin_events("Overloaded system after 20 secondes, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
 		return;
 	}
 
-	
-	$q=new mysql();
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TaskType FROM system_schedules WHERE ID=$ID","artica_backup"));
-	$tasks=new system_tasks();
-	$TaskType=$ligne["TaskType"];
-	if($TaskType==0){return;}	
+	if(!isset($TASKS_CACHE[$ID])){
+		$q=new mysql();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TaskType FROM system_schedules WHERE ID=$ID","artica_backup"));
+		$TaskType=$ligne["TaskType"];
+		$TASKS_CACHE[$ID]["TaskType"]=$ligne["TaskType"];
+		@file_put_contents("/etc/artica-postfix/TASKS_CACHE.DB", serialize($TASKS_CACHE));
+	}	
+	if($TaskType==0){return;}
 	if(!isset($tasks->tasks_processes[$TaskType])){system_admin_events("Unable to understand task type `$TaskType` For this task" , __FUNCTION__, __FILE__, __LINE__, "tasks");return;}
 	if(isset($task->task_disabled[$TaskType])){return;}
 	$script=$tasks->tasks_processes[$TaskType];
@@ -229,7 +246,7 @@ function execute_task($ID){
 	$t=time();
 	shell_exec($cmd);	
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
-	system_admin_events("Task is executed took $took" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+	system_admin_events("Task is executed took $took" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 }
 
 function events($text,$function,$line){
@@ -259,7 +276,7 @@ function run_schedules($ID){
 	if(preg_match("#^bin:(.+)#",$script, $re)){$cmd="$nice $WorkingDirectory/bin/{$re[1]} >/dev/null";}	
 	
 	writelogs("Task {$GLOBALS["SCHEDULE_ID"]} is executed with `$cmd` ",__FUNCTION__,__FILE__,__LINE__);
-	system_admin_events("Task is executed with `$script`" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+	system_admin_events("Task is executed with `$script`" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 	shell_exec($cmd);
 	
 }
@@ -267,34 +284,52 @@ function run_schedules($ID){
 function execute_task_squid($ID){
 	
 	$unix=new unix();
+	$q=new mysql_squid_builder();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$GLOBALS["SCHEDULE_ID"]=$ID;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.squid.pid";
+	$array_load=sys_getloadavg();
+	$internal_load=$array_load[0];		
+	
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
-		system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		ufdbguard_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		return;
 	}
 	
 	$pidtime=$unix->file_time_min($pidfile);
 	if($pidtime<1){
-		system_admin_events("last execution was done since {$pidtime}mn" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		ufdbguard_admin_events("last execution was done since {$pidtime}mn" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		return;
 	}
+	
+	if(system_is_overloaded(basename(__FILE__))){
+		ufdbguard_admin_events("Very overloaded system {$internal_load}, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		die();	
+	}
+	
+	$TASKS_CACHE=unserialize(@file_get_contents("/etc/artica-postfix/TASKS_SQUID_CACHE.DB"));
+	if(isset($TASKS_CACHE[$ID])){
+		$TaskType=$TASKS_CACHE[$ID]["TaskType"];
+		if(isset($q->tasks_disabled[$TaskType])){
+			writelogs("Task $ID is disabled",__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
+	}	
 	
 	
 	usleep(rand(900, 3000));
 	@unlink($pidfile);
 	@file_put_contents($pidfile, getmypid());
-	$array_load=sys_getloadavg();
-	$internal_load=$array_load[0];	
+
 	
 	writelogs("Task $ID Load:$internal_load cmdline `{$GLOBALS["CMDLINES"]}`",__FUNCTION__,__FILE__,__LINE__);
 	$GLOBALS["SCHEDULE_ID"]=$ID;
 	if(isMaxInstances()){
-		ufdbguard_admin_events("Too much instances loaded, aborting task...", __FUNCTION__, __FILE__, __LINE__, "scheduler");
-		return;}
+		ufdbguard_admin_events("Too much instances loaded, aborting task...", __FUNCTION__, __FILE__, __LINE__, "scheduler",$ID);
+		return;
+	}
 	
 	
 	if(system_is_overloaded(basename(__FILE__))){
@@ -311,16 +346,19 @@ function execute_task_squid($ID){
 	}
 	
 	if(system_is_overloaded(basename(__FILE__))){
-		ufdbguard_admin_events("Overloaded system after 20 secondes ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+		ufdbguard_admin_events("Overloaded system after 20 secondes ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
 		return;
 	}
-	
-	$q=new mysql_squid_builder();
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TaskType FROM webfilters_schedules WHERE ID=$ID"));
-	$TaskType=$ligne["TaskType"];
+	if(!isset($TASKS_CACHE[$ID])){
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TaskType FROM webfilters_schedules WHERE ID=$ID"));
+		$TaskType=$ligne["TaskType"];
+		$TASKS_CACHE[$ID]["TaskType"]=$ligne["TaskType"];
+		@file_put_contents("/etc/artica-postfix/TASKS_SQUID_CACHE.DB", serialize($TASKS_CACHE));		
+	}
 	if($TaskType==0){continue;}	
-	if(!isset($q->tasks_processes[$TaskType])){ufdbguard_admin_events("Unable to understand task type `$TaskType` For this task" , __FUNCTION__, __FILE__, __LINE__, "tasks");return;}
+	if(!isset($q->tasks_processes[$TaskType])){ufdbguard_admin_events("Unable to understand task type `$TaskType` For this task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);return;}
+	if(isset($q->tasks_disabled[$TaskType])){ufdbguard_admin_events("Task type `$TaskType` is disabled" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);return;}
 	$script=$q->tasks_processes[$TaskType];
 	$nice=$unix->EXEC_NICE();
 	$nohup=$unix->find_program("nohup");
@@ -329,12 +367,12 @@ function execute_task_squid($ID){
 	$cmd="$nice $php5 $WorkingDirectory/$script --schedule-id=$ID >/dev/null";
 	if(preg_match("#^bin:(.+)#",$script, $re)){$cmd="$nice $WorkingDirectory/bin/{$re[1]} >/dev/null";}
 	
-	ufdbguard_admin_events("Task {$GLOBALS["SCHEDULE_ID"]} will be executed with `$cmd` ", __FUNCTION__, __FILE__, __LINE__, "scheduler");
+	ufdbguard_admin_events("Task {$GLOBALS["SCHEDULE_ID"]} will be executed with `$cmd` ", __FUNCTION__, __FILE__, __LINE__, "scheduler",$ID);
 	writelogs("Task {$GLOBALS["SCHEDULE_ID"]} will be executed with `$cmd` ",__FUNCTION__,__FILE__,__LINE__);
 	$t=time();
 	shell_exec($cmd);	
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
-	ufdbguard_admin_events("Task is executed took $took" , __FUNCTION__, __FILE__, __LINE__, "tasks");
+	ufdbguard_admin_events("Task is executed took $took" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 }
 
 function isMaxInstances(){

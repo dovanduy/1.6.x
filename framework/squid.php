@@ -52,6 +52,16 @@ if(isset($_GET["reconfigure-quotas"])){reconfigure_quotas();exit;}
 if(isset($_GET["isInjectrunning"])){isInjectrunning();exit;}
 if(isset($_GET["pamlogon"])){samba_pam_logon();exit;}
 if(isset($_GET["articadb-version"])){articadb_version();exit;}
+if(isset($_GET["articadb-checkversion"])){articadb_checkversion();exit;}
+if(isset($_GET["articadb-nextversion"])){articadb_nextversion();exit;}
+if(isset($_GET["articadb-progress"])){articadb_progress();exit;}
+if(isset($_GET["articadb-launch"])){articadb_update_now();exit;}
+
+
+
+if(isset($_GET["summarize-day"])){summarize_day();exit;}
+
+
 
 if(isset($_GET["refresh-caches-infos"])){refresh_cache_infos();exit;}
 if(isset($_GET["purge-categories"])){purge_categories();exit;}
@@ -71,6 +81,10 @@ if(isset($_GET["run-scheduled-task"])){run_schedules();exit;}
 if(isset($_GET["UpdateUtility-webevents"])){UpdateUtility_webevents();exit;}
 if(isset($_GET["ufdbguard-events"])){ufdbguard_events();exit;}
 if(isset($_GET["ufdbguard-compile-smooth-tenir"])){ufdbguard_compile_smooth_tenir();exit;}
+if(isset($_GET["ufdbguard-restart-tenir"])){ufdbguard_restart_tenir();exit;}
+
+
+
 if(isset($_GET["purge-site"])){purge_site();exit;}
 if(isset($_GET["boosterpourc"])){boosterpourc();exit;}
 
@@ -97,6 +111,8 @@ if(isset($_GET["cicap-template"])){CICAP_TEMPLATE();exit;}
 if(isset($_GET["cicap-memboost"])){CICAP_MEMBOOST();exit;}
 if(isset($_GET["stats-members-generic"])){stats_members_generic();exit;}
 if(isset($_GET["squidclient-infos"])){squidclient_infos();exit;}
+if(isset($_GET["articadbsize"])){articadb_size();exit;}
+if(isset($_GET["CheckRunningTasks"])){CheckRunningTasks();exit;}
 
 
 
@@ -164,6 +180,29 @@ function watchdog_config(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
 		
 }
+
+
+
+function CheckRunningTasks(){
+	$unix=new unix();
+	$ps=$unix->find_program("ps");
+	$grep=$unix->find_program("grep");
+	$array=array();
+	exec("$ps -x|grep -E \"schedule-id=\" 2>&1",$results);
+	writelogs_framework(count($results)." items..",__FUNCTION__,__FILE__,__LINE__);	
+	while (list ($num, $val) = each ($results)){
+		
+		if(preg_match("#^([0-9]+).*?schedule-id=([0-9]+)#", $val,$re)){
+			$array[$re[2]]=$unix->PROCCESS_TIME_MIN($re[1]);
+			
+		}else{
+			writelogs_framework("BAD:{$re[2]} -> $val",__FUNCTION__,__FILE__,__LINE__);	
+		}
+	}
+	echo "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";	
+}
+
+
 
 function build_schedules(){
 	$unix=new unix();
@@ -488,8 +527,16 @@ function ufdbguard_compile_database(){
 	$database=$_GET["ufdbguard-compile-database"];
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squidguard.php --compile-category $database >/dev/null 2>&1 &");
+	$devnull=">/dev/null";
+	$debugfile="/usr/share/artica-postfix/ressources/logs/web/squidguard-$database.dbg";
+	if(isset($_GET["debug"])){
+		@unlink($debugfile);
+		$devnull="--verbose >$debugfile";
+	}
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squidguard.php --compile-category $database $devnull 2>&1 &");
 	shell_exec($cmd);
+	
+	if(isset($_GET["debug"])){sleep(1);@chmod($debugfile,0777);}
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
 }
 function ufdbguard_compile_all_databases(){
@@ -1112,7 +1159,7 @@ function recompile_debug(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/squid.indebug.log");
-	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --build --verbose >/usr/share/artica-postfix/ressources/logs/web/squid.indebug.log 2>&1");	
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --build --force --verbose >/usr/share/artica-postfix/ressources/logs/web/squid.indebug.log 2>&1");	
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 }
@@ -1283,7 +1330,55 @@ function articadb_version(){
 		echo "<articadatascgi>0.000</articadatascgi>";
 		return;
 	}
+	
+	if(is_file("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version")){
+		@chmod("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version",0755);
+	}
+	
 	echo "<articadatascgi>". @file_get_contents("/opt/articatech/VERSION")."</articadatascgi>";
+}
+function articadb_checkversion(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$results[]="$php5 /usr/share/artica-postfix/exec.squid.blacklists.php --get-version --verbose 2>&1";
+	exec("$php5 /usr/share/artica-postfix/exec.squid.blacklists.php --get-version --verbose 2>&1",$results);	
+	echo "<articadatascgi>".base64_encode(@implode("<br>\n",$results))."</articadatascgi>";
+}
+function articadb_nextversion(){
+	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version")){
+		$unix=new unix();
+		$php5=$unix->LOCATE_PHP5_BIN();
+		exec("$php5 /usr/share/artica-postfix/exec.squid.blacklists.php --get-version --verbose 2>&1",$results);	
+	}
+	
+	if(is_file("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version")){
+		echo "<articadatascgi>". @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version")."</articadatascgi>";
+	}
+}
+function articadb_progress(){
+	$array=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.progress"));
+	$downl=trim(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.download"));
+	$array["DOWN"]=$downl;
+	echo "<articadatascgi>".base64_encode(serialize($array))."</articadatascgi>";
+}
+
+function articadb_update_now(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.blacklists.php --v2 --checktime >/dev/null 2>&1 &");		
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
+	shell_exec($cmd);
+}
+
+function articadb_size(){
+	$unix=new unix();
+	$du=$unix->find_program("du");
+	$cmd="$du -hs /opt/articatech/data 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	exec("$cmd",$results);
+	preg_match("#^(.+?)\s+#", $results[0],$re);
+	echo "<articadatascgi>".$re[1]."</articadatascgi>";
 }
 
 function stats_members_generic(){
@@ -1293,4 +1388,19 @@ function stats_members_generic(){
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.stats.php --members-central-grouped >/dev/null 2>&1 &");		
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
 	shell_exec($cmd);
+}
+
+function summarize_day(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();	
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.stats.php --summarize-daysingle {$_GET["summarize-day"]} {$_GET["tablename"]} --verbose");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
+	exec("$cmd",$results);
+	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";
+}
+
+function ufdbguard_restart_tenir(){
+	shell_exec("/etc/init.d/ufdb restart");
+	shell_exec("/etc/init.d/artica-postfix restart ufdb-tail");
+	
 }

@@ -364,6 +364,15 @@ $('#flexRT$t').flexigrid({
 
 
 function today_zoom_popup_history(){
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
+		echo "<script>alert('$onlycorpavailable');</script>";
+		return;
+	}		
+	
+	
 	$page=CurrentPageName();
 	$tpl=new templates();		
 	$q=new mysql_squid_builder();	
@@ -407,14 +416,14 @@ function today_zoom_popup_history(){
 		$ydata[]=$ligne["totalsize"];}
 	}	
 	$t=time();
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".day.$hour_table.{$_GET["familysite"]}.$type.png";
+	$targetedfile="ressources/logs/".md5(basename(__FILE__).".".__FUNCTION__.".day.$hour_table.{$_GET["familysite"]}.$type").".png";
 	$gp=new artica_graphs();
-	$gp->width=750;
+	$gp->width=930;
 	$gp->height=220;
 	$gp->filename="$targetedfile";
 	$gp->xdata=$xdata;
 	$gp->ydata=$ydata;
-	$gp->y_title=null;
+	$gp->y_title="MB";
 	$gp->x_title=$tpl->_ENGINE_parse_body("{hours}");
 	$gp->title=null;
 	$gp->margin0=true;
@@ -422,7 +431,7 @@ function today_zoom_popup_history(){
 	$gp->color="146497";
 	$gp->line_green();
 	
-	$image="<center style='margin-top:10px' class=form><img src='$targetedfile?$t'></center>";
+	$image="<center style='margin-top:10px;margin-bottom:10px' class=form><img src='$targetedfile?$t'></center>";
 	if(!is_file($targetedfile)){writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);$image=null;}
 	
 	
@@ -439,8 +448,8 @@ $('#flexRT$t').flexigrid({
 		{display: 'MAC', name : 'MAC', width : 107, sortable : false, align: 'left'},
 		{display: 'IP', name : 'client', width : 85, sortable : false, align: 'left'},
 		{display: '$sitename', name : 'sitename', width : 326, sortable : false, align: 'left'},
-		{display: '$table_field', name : 'uri', width : 56, sortable : false, align: 'left'},
-		{display: '$category', name : 'category', width : 114, sortable : false, align: 'left'},
+		{display: '$table_field', name : 'uri', width : 67, sortable : false, align: 'left'},
+		{display: '$category', name : 'category', width : 206, sortable : false, align: 'left'},
 		
 
 		],
@@ -453,8 +462,8 @@ $('#flexRT$t').flexigrid({
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 828,
-	height: 280,
+	width: 940,
+	height: 400,
 	singleSelect: true
 	
 	});   

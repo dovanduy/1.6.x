@@ -615,6 +615,7 @@ function logon(){
 	include_once('ressources/class.sockets.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.user.inc');	
+	include_once('ressources/class.langages.inc');
 	$sock=new sockets();
 	$_POST["artica_password"]=url_decode_special($_POST["artica_password"]);
 	writelogs("Testing logon....{$_POST["artica_username"]}",__FUNCTION__,__FILE__,__LINE__);
@@ -662,7 +663,7 @@ function logon(){
 			echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 			return null;
 		}else{
-			
+			$users=new usersMenus();
 			artica_mysql_events("Success to logon on the Artica Web console from {$_SERVER["REMOTE_HOST"]} as SuperAdmin",@implode("\n",$notice),"security","security");
 			//session_start();
 			$_SESSION["uid"]='-100';
@@ -671,6 +672,7 @@ function logon(){
 			$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
 			setcookie("artica-language", $_POST["lang"], time()+172800);
 			$_SESSION["detected_lang"]=$_POST["lang"];
+			$_SESSION["CORP"]=$users->CORP_LICENSE;
 			$_SESSION["privileges"]["ArticaGroupPrivileges"]='
 			[AllowAddGroup]="yes"
 			[AllowAddUsers]="yes"
@@ -717,6 +719,7 @@ function logon(){
 			$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
 			$_SESSION["ou"]=$u->ou;
 			$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
+			$_SESSION["CORP"]=$users->CORP_LICENSE;
 			$lang=new articaLang();
 			writelogs("[{$_POST["artica_username"]}]: Default organization language={$_SESSION["OU_LANG"]}",__FUNCTION__,__FILE__);
 			if(trim($_SESSION["OU_LANG"])<>null){
@@ -745,7 +748,7 @@ function logon(){
 			$array["PASSWORD"]=md5($_POST["artica_username"]);
 			$credentials=base64_encode(serialize($array));
 			artica_mysql_events("Success to redirect on the end-user management console from {$_SERVER["REMOTE_HOST"]} as User",@implode("\n",$notice),"security","security");
-			echo "location:../user-backup/logon.php?credentials=$credentials";
+			echo "location:../miniadm.logon.php?credentials=$credentials";
 			return null;
 		exit;}else{	
 		writelogs("[{$_POST["artica_username"]}]: The password typed  is not the same in ldap database...",__FUNCTION__,__FILE__);

@@ -76,6 +76,10 @@ class system_tasks{
 			$this->tasks_array[52]="{postfixlogger_scanner}";
 			$this->tasks_array[53]="{snort_scanner}";
 			$this->tasks_array[54]="{Sanesecurity_signatures}";
+			$this->tasks_array[55]="{myisamchk_task}";
+			$this->tasks_array[56]="{syslog_engine}";
+			$this->tasks_array[57]="{ps_mem}";
+			$this->tasks_array[58]="{tests_speed}";
 			
 			
 			$this->tasks_explain_array[1]="{reboot_system_explain}";
@@ -134,6 +138,10 @@ class system_tasks{
 			$this->tasks_explain_array[52]="{postfixlogger_scanner_explain}";
 			$this->tasks_explain_array[53]="{snort_scanner_explain}";
 			$this->tasks_explain_array[54]="{Sanesecurity_signatures_explain}";
+			$this->tasks_explain_array[55]="{myisamchk_task_explain}";
+			$this->tasks_explain_array[56]="{syslog_engine_explain}";
+			$this->tasks_explain_array[57]="{ps_mem_explain}";
+			$this->tasks_explain_array[58]="{tests_speed_explain}";
 			
 			
 			
@@ -197,7 +205,10 @@ class system_tasks{
 			$this->tasks_processes[53]="exec.syslog-engine.php --snort";
 			//ClamaV
 			$this->tasks_processes[54]="exec.scamp.php";
-			
+			$this->tasks_processes[55]="exec.mysql.build.php --myisamchk";
+			$this->tasks_processes[56]="exec.syslog-engine.php";
+			$this->tasks_processes[57]="exec.syslog-engine.php --psmem";
+			$this->tasks_processes[58]="exec.testspeed.php";
 			
 			
 			$this->DisableTasks();
@@ -265,6 +276,10 @@ private function DisableTasks(){
 		$this->task_disabled[11]=true;
 	}
 	
+	if(!$users->SNORT_INSTALLED){
+		$this->task_disabled[53]=true;
+	}
+	
 	
 	
 }
@@ -285,8 +300,9 @@ public function CheckDefaultSchedules(){
 		
 		$update=false;
 		$array[12]=array("TimeText"=>"30 23 * * *","TimeDescription"=>"Clean tables each day at 23h30");
-		$array[4]=array("TimeText"=>"30 7 * * *","TimeDescription"=>"MySQLTuner each day at 07h30");
-		$array[5]=array("TimeText"=>"0 * * * *","TimeDescription"=>"Each hour");
+		$array[55]=array("TimeText"=>"15 5 * * *","TimeDescription"=>"myisamchk each day at 05h15");
+		$array[5]=array("TimeText"=>"30 7 * * *","TimeDescription"=>"MySQLTuner each day at 07h30");
+		$array[4]=array("TimeText"=>"0 * * * *","TimeDescription"=>"Each hour");
 		$array[6]=array("TimeText"=>"0 4,8,12,16,20 * * *","TimeDescription"=>"Each 4 hours");
 		$array[2]=array("TimeText"=>"30 0,5,10,15,20 * * *","TimeDescription"=>"Each 5 Hours");
 		$array[8]=array("TimeText"=>"5 0 * * *","TimeDescription"=>"Each day at 00:05");
@@ -316,7 +332,9 @@ public function CheckDefaultSchedules(){
 		$array[49]=array("TimeText"=>"25 0 * * *","TimeDescription"=>"Monthly statistics each day at 00h25");
 		$array[52]=array("TimeText"=>"2,7,12,17,22,27,32,37,42,47,52,57 * * * *","TimeDescription"=>"parse queue Each 5mn");
 		$array[53]=array("TimeText"=>"* * * * *","TimeDescription"=>"Scan snort results Each 1mn");
-		
+		$array[56]=array("TimeText"=>"5,20,35 * * * *","TimeDescription"=>"Each 15mn");
+		$array[57]=array("TimeText"=>"7,22,37 * * * *","TimeDescription"=>"Each 15mn");
+		$array[58]=array("TimeText"=>"12 * * * *","TimeDescription"=>"Bandwidth Checker Each hour +12mn");
 			
 		$c=0;
 		while (list ($TaskType, $content) = each ($array) ){

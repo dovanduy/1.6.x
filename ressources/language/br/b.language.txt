@@ -1,12 +1,10 @@
-</br>
-<b>domain<//br>
-</squid_aclmax_connections_explain>
-<duplicate_the_ruleid_give_name>Give the new rule name in order to duplicate the rule:<//squid_aclmax_connections_explain>
-<about_item>About</about_item>
-<about_this_section>About this section</about_this_section>
-<accesstime_to_internet_expired>Access time to Internet expired</accesstime_to_internet_expired>
-<access_to_internet_disabled>Your access to internet is disabled</access_to_internet_disabled>
-<account_verification>Account verification</account_verification>
+</br>&lt;b&gt;dom&iacute;nio<//br>
+</squid_aclmax_connections_explain>&lt;duplicate_the_ruleid_give_name&gt;D&ecirc; um novo nome a regra para que possa duplic&aacute;-la:<//squid_aclmax_connections_explain>
+<about_item>Sobre</about_item>
+<about_this_section>Sobre essa sess&atilde;o</about_this_section>
+<accesstime_to_internet_expired>Tempo de acesso a Internet expirou</accesstime_to_internet_expired>
+<access_to_internet_disabled>Seu acesso est&aacute; desativado</access_to_internet_disabled>
+<account_verification>Verifica&ccedil;&atilde;o da conta</account_verification>
 <account_verification_text>
 Welcome to %SERVERNAME[br]
 Please keep this email for your records. Your account information is as follows:[br]
@@ -19,6 +17,7 @@ Once clicked on the link, you may proceed to edit your profile in order to fill 
 or you could modify your Options to customize your browsing experience of this site.[br]
 If you would rather do these things later, you can do so by following the links around the site to your User Control Panel.[br]
 </account_verification_text>
+<acls_add_dstdomaindst>D&ecirc; o nome do servidor ex: domain.tld ou 10.10.10.1</acls_add_dstdomaindst>
 <acl_squid_browser_explain>Regular expression matching on the request user-agent header[br]
 Example: Mozilla/ ^Keyvelop$ ^ClamWin/ Symbian iP(hone|od)[br]
 or Mozilla \(compatible; MSIE\) [br]
@@ -30,32 +29,35 @@ This should match mozilla and msie based browsers.
 2.This refers specific single IP Address: "172.16.1.25/32"[br]
 3.This refers range of IP Addresses from  172.16.1.25 to 172.16.1.35: "172.16.1.25-172.16.1.35/32"[br]
 </acl_squid_dst_explain>
+<acl_squid_ext_user_explain>String match on username returned by external acl helper.[br]
+Used for MAC/Member translation or when using HostSpot feature.[br]
+</acl_squid_ext_user_explain>
 <acl_squid_remote_ports_explain>Destination TCP Ports.[br]Set a numeric number of desired ports eg: 5896 or 65244.[br]You can define a port range too eg: 0-1024</acl_squid_remote_ports_explain>
-<action_exec_rule>Execute this rule in background mode ?</action_exec_rule>
-<ACTIVATEANTIVIRUSSERVICE>Activate the Antivirus service</ACTIVATEANTIVIRUSSERVICE>
+<action_exec_rule>Executa essa regra em segundo plano?</action_exec_rule>
+<ACTIVATEANTIVIRUSSERVICE>Ativar o servi&ccedil;o de Antivirus</ACTIVATEANTIVIRUSSERVICE>
 <ACTIVATEANTIVIRUSWSERVICETEXT>Enable/disable the antivirus daemon in order to filter HTTP/FTP flow in real-time</ACTIVATEANTIVIRUSWSERVICETEXT>
 <ACTIVATE_ANTIVIRUS_SERVICE>Activate the Antivirus service</ACTIVATE_ANTIVIRUS_SERVICE>
 <ACTIVATE_ANTIVIRUS_SERVICE_TEXT>Enable/Disable the Antivirus for the desired service.</ACTIVATE_ANTIVIRUS_SERVICE_TEXT>
 <ACTIVATE_ANTIVIRUS_WSERVICE_TEXT>If turn to green, your proxy will send all requests to the antivirus service for malwares content scanning.[br]
 If turn to red, the service will be off and no antivirus scanning will be performed</ACTIVATE_ANTIVIRUS_WSERVICE_TEXT>
-<ACTIVATE_ARKEIA>Activate Arkeia</ACTIVATE_ARKEIA>
+<ACTIVATE_ARKEIA>Ativar Arkeia</ACTIVATE_ARKEIA>
 <activate_hostpot>Activate the HotSpot system</activate_hostpot>
 <activate_hostpot_explain>If turned to green, users will be redirected to a web server for accessing to Internet</activate_hostpot_explain>
 <activate_session_engine>Active the session engine mode</activate_session_engine>
 <activate_this_backend>Activate this backend</activate_this_backend>
 <activate_webfilter_engine>Activate Webfilter engine</activate_webfilter_engine>
 <activate_web_engine>Activate the Web engine</activate_web_engine>
-<activew>Active</activew>
+<activew>Ativo</activew>
 <active_directory>Active Directory</active_directory>
 <active_directory_group>Active Directory group</active_directory_group>
 <active_directory_member>Active Directory member</active_directory_member>
-<active_directory_security>Active Directory security</active_directory_security>
+<active_directory_security>Seguran&ccedil;a do Active Directory</active_directory_security>
 <active_directory_security_explain>
 f you have an Active Directory environment, it is possible to join the domain as a native Active Directory member.[br]
 Even if a security policy restricts the use of NT-compatible authentication protocols,
 the Samba server can join an ADS using Kerberos.[br]
 Samba in Active Directory member mode can accept Kerberos tickets</active_directory_security_explain>
-<act_as_gateway>Act as Gateway</act_as_gateway>
+<act_as_gateway>Agir com um Gateway</act_as_gateway>
 <added_websites>Added websites</added_websites>
 <addexpression_ufdbguard_explain>This form helps you to add terms or regular expressions in the database.[br]
 You can add simple words like "porn" or "suck" or "weapons" and use regular expressions:[br]
@@ -161,6 +163,8 @@ The filter must run and perform mail filtering as expected...</amavis_is_current
 <apply_klms_config_text>Apply all settings and restart Kaspersky Mail security main service.</apply_klms_config_text>
 <apply_parameters>Apply parameters</apply_parameters>
 <apply_privileges>Apply privileges</apply_privileges>
+<APPLY_SETTINGS_FETCHMAIL>Saving fetchmail rules and restart service</APPLY_SETTINGS_FETCHMAIL>
+<APPLY_SETTINGS_SQUID>Please wait....[br]The proxy settings and all filters will be rebuilded...</APPLY_SETTINGS_SQUID>
 <APP_ARKEIA>Arkeia Network Backup</APP_ARKEIA>
 <APP_ARKEIAD>Arkeia Service</APP_ARKEIAD>
 <APP_ARKEIA_FREEWEB_HOWTO>
@@ -258,6 +262,9 @@ Intended use is for displaying "terms of use" pages, ad popups etc</APP_SQUID_SE
 <APP_UPDATEUTILITYHTTP>Update Utility HTTP</APP_UPDATEUTILITYHTTP>
 <APP_UPDATEUTILITYRUN>Update Utility (executing)</APP_UPDATEUTILITYRUN>
 <APP_VMWARE_TOOLS_NOT_INSTALLED>VMWare Tools are not installed on this server</APP_VMWARE_TOOLS_NOT_INSTALLED>
+<APP_VNSTAT_DISABLED_EXPLAIN>Network interface card cannot be displayed.[br]The VnStat service is currently disabled.[br]
+Click on the enable button in order to start the VnStat service in order to build statistics.</APP_VNSTAT_DISABLED_EXPLAIN>
+<APP_WEBAPP>Zarafa WebAPP WebMail (from sources)</APP_WEBAPP>
 <APP_WEBSTATS_TABLET_TEXT>WebStats Tablet is an Artica Web front-end interface dedicated for Web statistics on tablets limited on 980x509 screen size</APP_WEBSTATS_TABLET_TEXT>
 <APP_XAPIAN_FREEWEB_TEXT>Xapian Search is a meta-search engine portal that indexing resources specified in the Xapian Search area.</APP_XAPIAN_FREEWEB_TEXT>
 <APP_ZARAFA_SEARCH>Zarafa Search daemon</APP_ZARAFA_SEARCH>
@@ -339,6 +346,7 @@ Do you want to carry out this operation ?
 There is no sense to perform this task without a Zarafa server installed and less than 24H</backup_zarafa_db_explain>
 <back_to_31xbranch>Back to 3.1x</back_to_31xbranch>
 <back_to_events>Back to events</back_to_events>
+<bandwidth>bandwidth</bandwidth>
 <bannedextensionlistdomain_explain>This feature allows you to ban domains by extensions that usually represents countries (eg fr,de,us,com).[br]
 for example you can ban xxx extension (that represents the new porn domains scope).
 </bannedextensionlistdomain_explain>
@@ -355,6 +363,8 @@ Each IP address added in this section will be not displayed in the Artica Interf
 <bind_address>Bind address</bind_address>
 <blacklist_categories>Blacklist categories</blacklist_categories>
 <blank_page>Blank page</blank_page>
+<blocked_events>Blocked events</blocked_events>
+<blocked_hits>Blocked events</blocked_hits>
 <body_checks_text>These are applied to all other content,including multi-part message boundaries</body_checks_text>
 <body_randomize_table>Body randomize table</body_randomize_table>
 <bookmark_item>Bookmark this item</bookmark_item>
@@ -420,6 +430,7 @@ It is designed to build websites statistics.</build_crypted_tables_catz_explain>
 <cannot_use_ssl_no_networking_set>Unable to use SSL: The network is not set in the configuration</cannot_use_ssl_no_networking_set>
 <categorized_in_articadb>enabled inside the Artica Database</categorized_in_articadb>
 <categorize_websites>Categorize Internet sites</categorize_websites>
+<category_database_update>Categories database update</category_database_update>
 <certificates_center>Certificates Center</certificates_center>
 <certificate_chain>Certificate Chain</certificate_chain>
 <certificate_chain_explain>A certificate chain is a plaintext file that contains all the certificates
@@ -584,6 +595,7 @@ An update is about 150Mb size.
 <database_backend>Database backend</database_backend>
 <database_privileges>Databases privileges</database_privileges>
 <database_source>Database source</database_source>
+<DateTime>Date and time</DateTime>
 <day_events_of>Events day of</day_events_of>
 <default_cache>Default cache</default_cache>
 <default_domain>Default domain</default_domain>
@@ -665,12 +677,17 @@ Do you want to carry out this operation ?
 <disclaimers>Disclaimers</disclaimers>
 <disk_usage>Disk usage</disk_usage>
 <display_access_by_members>Display accesses by member</display_access_by_members>
+<display_blocked_events>Display blocked events</display_blocked_events>
 <display_config>Display configuration</display_config>
 <display_config_text>Display this item Artica builed configuration file</display_config_text>
 <display_current_sessions>Display current active sessions</display_current_sessions>
 <display_fw_rules>Display FireWall rules</display_fw_rules>
 <display_indexation_events>Display indexation events</display_indexation_events>
+<display_members_for_this_day>Display members for this day</display_members_for_this_day>
+<display_not_categorized_websites>Display unknown sites</display_not_categorized_websites>
 <display_performance_status>Display performances status</display_performance_status>
+<display_visited_websites>Display visited sites</display_visited_websites>
+<display_youtube_for_this_day>Display downloaded videos downloaded on this day</display_youtube_for_this_day>
 <dnsbl_service>DNSBL service</dnsbl_service>
 <dnsmasq_bulk_import_explain>This feature allows you to import items.[br]
 Items must be "host,ipaddress" separated by a carriage return eg:[br]
@@ -697,12 +714,16 @@ Define the listen port and the part of the URI that point to the PAC file.
 <domain_security>Domain security</domain_security>
 <domain_security_explain>In domain security mode, the Samba server has a machine account (domain security trust account) and causes all authentication requests to be passed through to the domain controllers.[br]
 The Samba server is made into a domain member server</domain_security_explain>
+<done_you_close>Task done, you can close this popup</done_you_close>
 <download2>Download</download2>
+<downloadb>Download</downloadb>
 <downloaded_flow_this_hour>Downloaded flow this hour</downloaded_flow_this_hour>
+<downloaded_size>Downloaded size</downloaded_size>
 <downloaded_size_per_day>Downloaded size per day</downloaded_size_per_day>
 <downloaded_size_per_hour>Downloaded size per hour</downloaded_size_per_hour>
 <downloadz>Download</downloadz>
 <download_file>Download file</download_file>
+<download_timeout>Download timeout</download_timeout>
 <do_not_cache>Do not cache</do_not_cache>
 <dst>Destination IP(s)</dst>
 <duplicate_the_ruleid_give_name>Give the new rule name in order to duplicate the rule:</duplicate_the_ruleid_give_name>
@@ -824,8 +845,13 @@ If these default settings did not reflect your needs, you can add tasks yourself
 <external_uri>Exernal URL</external_uri>
 <external_webpage>External Web Page</external_webpage>
 <extract>Extract</extract>
+<extracting_package>Extracting package</extracting_package>
+<ext_user>External user</ext_user>
 <failed_login>Login failed</failed_login>
 <failed_number>Failed number</failed_number>
+<familysite>Global website</familysite>
+<fetchmail_importcomp_explain>This feature allows you to import rules from a already compiled fetchmail file.[br]
+Define here the path to your fetchmail rules file and click on import button</fetchmail_importcomp_explain>
 <fetchmail_import_explain>This section allows you to import fetchmail rules from a CSV file.[br]
 The CSV content must be formated as:[br]
 [b]
@@ -835,6 +861,7 @@ imap.company2.tld;POP3;sabrina;SaBr1n@;sabrina.giuras;ssl23;1[br]
 [/b]
 [brIf the local account does not exists on the Artica database, the rule will be skipped.[br]
 </fetchmail_import_explain>
+<fetchmail_parameters_compilation>Fetchmail compilation parameters</fetchmail_parameters_compilation>
 <fetch_folders_explain>Retreive messages stored on specific folders</fetch_folders_explain>
 <filepath>File path</filepath>
 <file_descriptors>filedescriptors</file_descriptors>
@@ -859,6 +886,8 @@ This value limit the proxy to not open file more than the specified value.</file
 If you check this option, the item will be added without any checking.</free_cat_force_explain>
 <free_license_one_rule_text>The community license allows you to create only one rule for this feature.
 Please, upgrade to a corporate license...</free_license_one_rule_text>
+<from_compiled_file>From compiled file</from_compiled_file>
+<from_csv_file>From a CSV file</from_csv_file>
 <from_time>From time</from_time>
 <fulluri>complete URL</fulluri>
 <full_features>Full features</full_features>
@@ -1061,6 +1090,7 @@ This feature is currently supported by Ubuntu or Debian system.
 <LDAP_PRIORITY>LDAP priority</LDAP_PRIORITY>
 <ldap_proxy>LDAP Proxy</ldap_proxy>
 <levels>levels</levels>
+<licensed_mailboxes>Licensed mailboxes</licensed_mailboxes>
 <license_active>active license</license_active>
 <license_inactive>license inactive</license_inactive>
 <license_invalid>invalid license</license_invalid>
@@ -1073,6 +1103,8 @@ The second is the framework that run in root and designed to listen orders from 
 According your server performance, you can increase or decrease the memory consumption of the Web engine.[br]
 In this section, you can see the memory used and the process number used by the Web engine.
 </ligghtpd_perf_howto>
+<limit_bandwidth>Limit the bandwidth</limit_bandwidth>
+<links>links</links>
 <link_computer>Link a computer</link_computer>
 <link_expression>Link expression</link_expression>
 <link_group>Link group</link_group>
@@ -1171,9 +1203,11 @@ A server restart also sets the maximum size of existing MEMORY tables to the glo
 <members_stats>Members statistics</members_stats>
 <members_stats_explain>This task calculate Members statistics/usage per day</members_stats_explain>
 <memory_booster>Memory booster</memory_booster>
+<memory_directory>Working directory memory</memory_directory>
 <message>message</message>
 <messages>messages</messages>
 <messaging_statistics>Messaging statistics</messaging_statistics>
+<mgreylist_empty_db_warn>This procedure will purge all current Grey/white database: Proceed ?</mgreylist_empty_db_warn>
 <milliseconds>milliseconds</milliseconds>
 <mimedefang_filehosting>Attachments hosting</mimedefang_filehosting>
 <mimedefang_filehosting_explain>This section allows you to create rules in order to keep large attachments out of inboxes</mimedefang_filehosting_explain>
@@ -1213,6 +1247,8 @@ You need to reconfigure each instance.
 </multiple_postfix_not_act_performed>
 <multiple_zarafa_instances>Multiple Zarafa instances</multiple_zarafa_instances>
 <multiple_zarafa_instances_text>Create several Zarafa servers on this server in order to provide Mailboxes server for each organization</multiple_zarafa_instances_text>
+<myisamchk_task>MyISAM tables checking</myisamchk_task>
+<myisamchk_task_explain>This task is in charge of check & repair all MyISAM MySQL tables and restart the MySQL server after operations</myisamchk_task_explain>
 <mymessaging_text>Setup your mailbox and messaging options according your organization and your privileges</mymessaging_text>
 <myretreival_mailrules>My retrieval external messages rules</myretreival_mailrules>
 <mysql_admin>MySQL administrator</mysql_admin>
@@ -1222,6 +1258,7 @@ You need to reconfigure each instance.
 [br]You did not have to execute this task daily but sometimes during the Year...[br]
 You have to schedule this task and disable it from the scheduler in order to just execute it manually 
 </mysql_defrag_all_explain>
+<mysql_engine>MySQL Engine</mysql_engine>
 <mysql_events>MySQL events</mysql_events>
 <mysql_graphs>Mysql graphs & charts</mysql_graphs>
 <mysql_graphs_text>Display graphs & charts about Mysql service performances</mysql_graphs_text>
@@ -1271,6 +1308,8 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <new_computer>New computer</new_computer>
 <new_connection>New connection</new_connection>
 <new_database>New Database</new_database>
+<new_database_available>New database available</new_database_available>
+<new_database_available_category_text>A new category database is available on update server, click here if you want to update it</new_database_available_category_text>
 <new_diffusion_list>New Mailing List</new_diffusion_list>
 <new_directory>New directory</new_directory>
 <new_dnsdomain>New DNS Domain</new_dnsdomain>
@@ -1296,6 +1335,8 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <new_schedule>New schedule</new_schedule>
 <new_server>New Server</new_server>
 <new_service>New service</new_service>
+<new_statistics_interface>The new statistics interface Howto</new_statistics_interface>
+<new_statistics_interface_text>Display howto access to advanced Web statistics interface on your server</new_statistics_interface_text>
 <new_template>New template</new_template>
 <new_useragent_pattern>New User Agent pattern</new_useragent_pattern>
 <new_virtual_ip>New virtual IP</new_virtual_ip>
@@ -1323,6 +1364,7 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <no_saved_web_site_catz>No Internet site is stored in database</no_saved_web_site_catz>
 <no_schedule_set>You did not set the schedule...</no_schedule_set>
 <no_surffor>No surf for</no_surffor>
+<nudityScan>Nudity Scanner</nudityScan>
 <objects_group>Objects group</objects_group>
 <OCS_LNX_AGENT_NOTINSTALLED>The OCS Linux agent is not detected or installed on this system.[br]Use the setup control center in order to install the OCS Network agent on your server</OCS_LNX_AGENT_NOTINSTALLED>
 <offlineimap_gateway_explain>Instead replicate remote mailbox server to local server, the process will replicate from remote server to another remote server</offlineimap_gateway_explain>
@@ -1332,6 +1374,7 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 We suggest to upgrade this server to a coporate licensed server</onlycorpavailable>
 <OnlyEnabled>Only enabled</OnlyEnabled>
 <only_from_activedirectory>Only from Active Directory</only_from_activedirectory>
+<only_one_value_no_graph>Only one value as been generated for this query.[br]In this case, graphs cannot be builded</only_one_value_no_graph>
 <opened_ports>Opened ports</opened_ports>
 <open_files_limit>Open files limit</open_files_limit>
 <open_files_limit_explain>The number of files that the operating system permits mysqld to open.[br]
@@ -1374,10 +1417,18 @@ The object will not be deleted but all datas will be erased</perform_empty_ask>
 <phrase_most_day_activehour>was the most active time of this day</phrase_most_day_activehour>
 <pkg_upgrade_interface>Upgrade system packages</pkg_upgrade_interface>
 <pkg_upgrade_interface_explain>This task is able to upgrade system packages you have enabled in the Web administration interface.[br]If no package has been selected, the task will die automatically</pkg_upgrade_interface_explain>
+<please_choose_a_bandwith_rule>Please choose a bandwidth rule</please_choose_a_bandwith_rule>
 <please_define_sender>Please, define a sender</please_define_sender>
 <please_fill_all_form_values>Please, fill all values in this form</please_fill_all_form_values>
 <please_fill_subdomain_correctly>Please, fill the sub-domain correctly</please_fill_subdomain_correctly>
+<please_wait_compiling_items>Please wait, compiling items...</please_wait_compiling_items>
 <please_wait_compiling_rules>Please wait, compiling rules...</please_wait_compiling_rules>
+<please_wait_configuring_the_module>Please wait... configuring the module...</please_wait_configuring_the_module>
+<please_wait_empty_console_cache>Please wait, empty the cache console</please_wait_empty_console_cache>
+<please_wait_reconfiguring_filter>Please wait, reconfiguring filter</please_wait_reconfiguring_filter>
+<please_wait_refresh_web_pages>Please wait, refresh current pages</please_wait_refresh_web_pages>
+<please_wait_reloading_service>Please wait... reloading the service</please_wait_reloading_service>
+<please_wait_restarting_filter>Please wait, restarting filter service</please_wait_restarting_filter>
 <please_wait_search_transaction_history>Please wait, searching transactions history</please_wait_search_transaction_history>
 <pluginsw>Plugins</pluginsw>
 <portal_options>Portal options</portal_options>
@@ -1427,6 +1478,7 @@ It designed to relay/handle the whole domain and all addresses associated to the
 In particular, be sure to backup the private key, as there is no means to recover it should it be lost.[br]
 The private key is used as input in the command to generate a Certificate Signing Request (CSR)
 </private_key_ssl_explain>
+<probability>probability</probability>
 <protect_phpmyadmin>Protect the phpMyadmin application</protect_phpmyadmin>
 <protect_phpmyadmin_item_text>The engine will allow item that you define in pattern field.[br]
 It parse your pattern using regular expression.[br]
@@ -1435,15 +1487,23 @@ Allow only IP Addresses: 192.168.*: &quot;192.168&quot;
 Allow only a single IP: &quot;192.168.1.5&quot;
 </protect_phpmyadmin_item_text>
 <protect_phpmyadmin_text>Enforce security and defines rules that restrict access to the mysql folder that handle phpmyadmin</protect_phpmyadmin_text>
+<protocol_version>Protocol version</protocol_version>
 <proxy_child>Child Proxy</proxy_child>
 <proxy_clients_was_notified>Proxy clients has been notified to restart services</proxy_clients_was_notified>
 <PROXY_EVENTS>Proxy events</PROXY_EVENTS>
 <proxy_logrotate_done>Proxy log rotation as been performed</proxy_logrotate_done>
 <proxy_objects>Proxy objects</proxy_objects>
 <proxy_parameters>Proxy parameters</proxy_parameters>
+<proxy_parameters_compilation>Proxy Parameters compilation</proxy_parameters_compilation>
 <proxy_plugins>Proxy plugins</proxy_plugins>
 <proxy_public_address>Proxy Public address</proxy_public_address>
 <proxy_server>Proxy server</proxy_server>
+<proxy_statistics_interface>Access to the proxy Web interface statistics</proxy_statistics_interface>
+<proxy_statistics_interface_text>Disconnect from this console and access to the end-user interface</proxy_statistics_interface_text>
+<ps_mem>Memory processes</ps_mem>
+<ps_mem_explain>This task scan the processes memory queue.[br]By default, Artica checks memory of each process running on the system and put it into a directory.[br]
+This task is in charge to import values into the MySQL database.
+</ps_mem_explain>
 <public_information>Public information</public_information>
 <public_ip_explain>This task verify the Public IP address of the Artica network</public_ip_explain>
 <public_key_ssl_explain>This is your public key that will be used to your SSL service.[br]
@@ -1509,6 +1569,7 @@ Have fun.
 <refresh_kerberos_ticket_explain>This task refresh the kerberos ticket when connecting the server to an Active Directory Windows server</refresh_kerberos_ticket_explain>
 <refresh_rate>Refresh rate</refresh_rate>
 <refresh_status>Refresh status</refresh_status>
+<refresh_summary>Refresh summary</refresh_summary>
 <refresh_website_each>Refresh Website each</refresh_website_each>
 <regenerate_thumbnail>Refresh thumbnail</regenerate_thumbnail>
 <register_howto>Welcome on the register form.[br]After apply this form, you will receive an email in order to complete registration</register_howto>
@@ -1739,6 +1800,10 @@ and produces a valid javascript document for blocked javascript objects.[br]
 If a blocked image is redirected to an HTML page, the browser receives HTML code where it expects an image and gets confused, 
 may generate errors, or become slow.
 </SquidGuardWebFollowExtensions_explain>
+<SquidNudityScanExplain>Nudity Scanner is a scanner that analyzes pictures and determine whether an image may contain nudity.[br]
+It analyses the colors used in different sections of an image to determine whether those colors match the human skin color tones.[br]
+As result of the analysis it returns a score value that reflects the probability of the image to contain nudity.
+</SquidNudityScanExplain>
 <squidqota_hostname>Quota For an hostname.[br]Set * for all hostname or computer or computer.*</squidqota_hostname>
 <squidqota_ipaddr>Define quota per IP address.[br]Set * for all IP addresses or an IP address part such as 192.168.1.* or 192.*</squidqota_ipaddr>
 <squidqota_MAC>Quota per MAC address.[br]Set * for all MAC address or define a mac address such as 00:0c:29:4d:89:ad</squidqota_MAC>
@@ -1813,6 +1878,7 @@ Enable ssl option on this rule...
 </ssl_fingerprint_importerror>
 <ssl_port>SSL port</ssl_port>
 <standard_anonymous>Anonymous mode</standard_anonymous>
+<starting_service>starting service</starting_service>
 <statistics_database>Statistics database</statistics_database>
 <StatsPerfsSquidAnswered_continue>Your choice:
 Continue and using the Statistics Engine on your server.
@@ -1825,6 +1891,7 @@ Disable and stop the Statistics Engine on your server.
 You will be redirect to the main administration page.
 Thanks for using Artica !
 </StatsPerfsSquidAnswered_disablestats>
+<stopping_service>Stopping service</stopping_service>
 <StopRefresh>Stop refresh</StopRefresh>
 <stop_articastats>Stop Artica Statistics engine</stop_articastats>
 <stop_refresh>Stop refresh</stop_refresh>
@@ -1847,6 +1914,8 @@ It force the Web filter to rebuild the members list inside Web filter rules.</sy
 <syncronize_dns_entries>Synchronize PowerDNS entries</syncronize_dns_entries>
 <syncronize_dns_entries_explain>This task execute synchronization of DNS entries between Artica servers.[br]
 This task make sense if you have added replication servers under the PowerDNS section</syncronize_dns_entries_explain>
+<syslog_engine>System logs parser</syslog_engine>
+<syslog_engine_explain>This task is in charge to parse all events from the system, and insert them into MySQL database</syslog_engine_explain>
 <syslog_events>System logs events</syslog_events>
 <SystemLoadNotif>Send report when system load exceed</SystemLoadNotif>
 <system_load_task>Parse system load statistics</system_load_task>
@@ -1889,6 +1958,8 @@ Check events in order to see if it was successfully executed.
 <tcp_outgoing_tos_value>byte-value</tcp_outgoing_tos_value>
 <telephoneNumber>Telephone number</telephoneNumber>
 <terms_groups>Expressions groups</terms_groups>
+<tests_speed>Internet bandwidth calculation</tests_speed>
+<tests_speed_explain>This task checks your Internet bandwith status and insert results into the MySQL database</tests_speed_explain>
 <test_auth>Testing auth.</test_auth>
 <test_categories>Testing categorization</test_categories>
 <test_message>Send test message</test_message>
@@ -1917,6 +1988,8 @@ This task will parse this queue in order to build thumbnails for stattistics pur
 <times>times</times>
 <token>token</token>
 <top_categories>Top categories</top_categories>
+<top_categories_by_hits>Top categories by hits</top_categories_by_hits>
+<top_categories_by_size>Top categories by size</top_categories_by_size>
 <top_members>TOP Members</top_members>
 <total_per_thread_buffers>Total per thread buffers</total_per_thread_buffers>
 <to_time>To time</to_time>
@@ -1956,6 +2029,9 @@ this web site serve a Mailman distribution list.</unable_freeweb_delete_mailman>
 <unblocks>Unblocks</unblocks>
 <unblock_parameters>Unblock parameters</unblock_parameters>
 <unhook_mailbox>Unhook mailbox</unhook_mailbox>
+<unknown_websites>unknown website(s)</unknown_websites>
+<unknown_websites_miniadm_explain>Artica try to retreive the right category for each visited website in order to display statistics by category.[br]
+You will find here unknown websites.[br]When clicking on a day, you will be able to fill category for each unknown website.</unknown_websites_miniadm_explain>
 <UpdateUtilityEnableHTTP_explain>If you enable this HTTP service, all your Kaspersky products will be redirected to the new local repository server.[br]
 In this case Kaspersky products will not retreive updates from the Internet but from this local machine.
 </UpdateUtilityEnableHTTP_explain>
@@ -1975,6 +2051,7 @@ This task is designed to import more than 29.000.000 websites into the MySQL dat
 <update_tlse>Check Toulouse University databases</update_tlse>
 <update_tlse_explain>Check is there is new blacklist databases from the Toulouse Unversity repository server</update_tlse_explain>
 <update_your_ip_address>Update your IP address</update_your_ip_address>
+<uploadb>Upload</uploadb>
 <upload_a_file>Upload a File</upload_a_file>
 <upload_your_picture>Upload your picture</upload_your_picture>
 <url_rewrite_bypass_explain>When this is enabled, a request will not go through the
@@ -1982,6 +2059,7 @@ Webfilter service if all processes are busy.  If this is disabled and the webfil
 with a FATAL error and ask you to increase the number of processes.[br]
 You should only enable this if the webfiltering process is not critical to your caching system.</url_rewrite_bypass_explain>
 <UseAglobalPassword>Use a global password</UseAglobalPassword>
+<UseALink>Use a link</UseALink>
 <UseCookies>Use Cookies</UseCookies>
 <UseLocalDatabase>Use local database</UseLocalDatabase>
 <UseMyCorporateMBX>Use my corporate mailbox</UseMyCorporateMBX>
@@ -2022,6 +2100,9 @@ This task is able to check if all categories databases are successfully updated.
 If not, it is in charge to continue injecting datas inside databases.
 </verify_urls_databases_explain>
 <verif_auth_each>Verify authentication each</verif_auth_each>
+<version_comment>Version comment</version_comment>
+<version_compile_machine>Compiled on</version_compile_machine>
+<version_compile_os>Compiled on system</version_compile_os>
 <very_high>Very high</very_high>
 <veto_files_add_explain>Set the pattern in order to block files or directory
  * and ? can be used to specify multiple files or directories.
@@ -2031,6 +2112,7 @@ Example:*.bat,*.cmd,*.com,*.exe,*.vbs,*.msi,*.pif,*.reg
 <veto_files_explain>This is a list of files and directories that are neither visible nor accessible.[br]
 "*" and "?" can be used to specify multiple files or directories as in DOS wildcards.
 </veto_files_explain>
+<video>video</video>
 <video_title>Video title</video_title>
 <virtual_company>Virtual company</virtual_company>
 <virtual_hostname_cannot_same_main_hostname>Virtual hostname cannot be the same of the main service hostname.
@@ -2198,6 +2280,7 @@ Click next to proceed.
 <whitelist_zarafa_contacts_explain>This task will export all zarafa contacts to the central whitelist database.[br]
 This to add in whitelist all contacts saved by your members</whitelist_zarafa_contacts_explain>
 <white_mime_type>Whitelist content by Mime Type</white_mime_type>
+<who>who</who>
 <winbind_normalize_names>
 This parameter controls whether winbindd will replace whitespace in user and group names with an underscore (_) character.[br]
 For example, whether the name "Space Kadet" should be replaced with the string "space_kadet".[br]
@@ -2244,6 +2327,7 @@ Any service which will allow to bypass internal security architecure, such as an
 Science Laboratories,Research Laboratories...</www_sciences>
 <www_society>A variety of topics, groups, and assocations relevant to the general populace, broad issues that impact a variety of people, including safety, children, societies, and philanthropic groups.</www_society>
 <www_suspicious>Websites that should have suspicious content and/or intent that poses an elevated security or privacy risk.</www_suspicious>
+<www_tattooing>All about inserting indelible ink into the dermis layer of the skin to change the pigment or a form of body modification including piercing.</www_tattooing>
 <www_terrorism>Websites that try to advocate, commend,praise or give terrorism benefits. To resume, This category is stored in "violence" section and  did not include websites that explain,define fight or relate terrorism news</www_terrorism>
 <Xapian Desktop>Xapian Desktop</Xapian Desktop>
 <xapian_db_size_explain>This is the size of the Xapian index database</xapian_db_size_explain>
@@ -2271,7 +2355,9 @@ In this case, logged users will able to search documents in their area</XAPIAN_S
 <your_settings>Your settings</your_settings>
 <YoutubeForSchoolsExplainT>Gives schools the ability to access a broad set of educational videos on YouTube EDU and to select the specific videos that are accessible from within your school network</YoutubeForSchoolsExplainT>
 <youtube_objects_statistics_text>Display Youtube objects downloaded by your members.</youtube_objects_statistics_text>
+<youtube_videos>Youtube videos</youtube_videos>
 <you_have_to_reload_webpage>You have to reload this Web page</you_have_to_reload_webpage>
+<you_need_to_reconfigre_proxy>You need to reconfigure/restart the proxy service in order to apply changes in production mode</you_need_to_reconfigre_proxy>
 <you_need_to_restart_service_take_effet>You need to restart the service in order
 to make parameters/tasks in production mode</you_need_to_restart_service_take_effet>
 <you_need_to_squidrotatecsv>If you have modified headers and/or enabled/disable the CSV feature,

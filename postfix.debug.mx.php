@@ -282,12 +282,38 @@ function ParseErrorsArray($array){
 function send_msg_popup(){
 	
 	$tpl=new templates();
-	$page=CurrentPageName();	
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+	if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=0;}
+	
 	$t=time();
+	
+	if($EnablePostfixMultiInstance==1){
+		
+		$hosts["127.0.0.1"]="127.0.0.1";
+		$sql="SELECT ou, ip_address, `key` , `value` FROM postfix_multi WHERE (`key` = 'myhostname')";
+		$q=new mysql();
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$ip_address=$ligne["ip_address"];
+			$hostname=$ligne["value"];
+			if(strlen($ip_address)<4){continue;}
+			$hosts[$ip_address]=$hostname;		
+		}
+		
+		$hosts_field="	<tr>
+		<td class=legend style='font-size:16px'>{hostname}:</td>
+		<td>".Field_array_Hash($hosts,"host-$t",$_COOKIE["send-msg-popup-host"],null,null,0,"font-size:16px")."</td>
+		</tr>";
+	}
+	
+	
 	$html="
 	<div id='work-$t'></div>
 	<div class=explain style='font-size:14px'>{check_sendmsg_explain}</div>
 	<table style='width:99%' class=form>
+	$hosts_field
 	<tr>
 		<td class=legend style='font-size:16px'>{sender}:</td>
 		<td>".Field_text("sender-$t",$_COOKIE["send-msg-popup-sender"],"font-size:16px;width:220px")."</td>
@@ -330,16 +356,23 @@ function send_msg_popup(){
 	
 	
 		function MsgSendTest$t(){
+			var XHR = new XHRConnection();
 			var sender=document.getElementById('sender-$t').value;
 			var recipient=document.getElementById('recipient-$t').value;
 			var subject=document.getElementById('subject-$t').value;
 			var content=document.getElementById('content-$t').value;
+			
+			if(document.getElementById('host-$t')){
+				Set_Cookie('send-msg-popup-host',document.getElementById('host-$t').value,'3600', '/', '', '');
+				XHR.appendData('send-msg-popup-host',document.getElementById('host-$t').value);
+			}
+			
 			Set_Cookie('send-msg-popup-sender',sender,'3600', '/', '', '');
 			Set_Cookie('send-msg-popup-recipient',recipient,'3600', '/', '', '');
 			Set_Cookie('send-msg-popup-subject',subject,'3600', '/', '', '');
 			Set_Cookie('send-msg-popup-content',content,'3600', '/', '', '');  
 			AnimateDiv('work-$t');
-			var XHR = new XHRConnection();
+			
 			
 			XHR.appendData('send-msg-popup-sender',sender);
 			XHR.appendData('send-msg-popup-recipient',recipient);
@@ -363,6 +396,10 @@ function send_msg_popup_send(){
 	$mail = new PHPMailer(false); 
 	$mail->IsSMTP(); 
 	$mail->Host       = "127.0.0.1";
+	if(isset($_POST["send-msg-popup-host"])){
+		$mail->Host       =$_POST["send-msg-popup-host"];
+	}
+	
 	$mail->SMTPDebug  = 2;  
 	
 	try {
@@ -373,7 +410,7 @@ function send_msg_popup_send(){
 	  $mail->Subject = $_POST["send-msg-popup-subject"];
 	  $mail->AltBody = $_POST["send-msg-popup-content"];
 	  
-  
+  	  
 	  $mail->AddCustomHeader("X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2900.3028");
 	  $mail->AddCustomHeader("X-Mailer: Microsoft Office Outlook 11");
 	  $mail->AddCustomHeader("Accept-Language: en-US");

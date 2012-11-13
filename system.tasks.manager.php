@@ -23,6 +23,7 @@ if(isset($_GET["task-m"])){tasks_start();exit;}
 if(isset($_GET["clean-mem-js"])){clean_mem_js();exit;}
 if(isset($_POST["clean-mem-perform"])){clean_mem_perform();exit;}
 if(isset($_GET["tasks-list"])){task_list();exit;}
+if(isset($_POST["kill9"])){kill9();exit;}
 js();
 
 function js(){
@@ -67,6 +68,12 @@ echo $html;
 function clean_mem_perform(){
 	$sock=new sockets();
 	$sock->getFrameWork("services.php?CleanCacheMem=yes");
+	
+}
+
+function kill9(){
+	$sock=new sockets();
+	$sock->getFrameWork("cmd.php?kill-pid-single={$_POST["kill9"]}");
 	
 }
 
@@ -204,11 +211,12 @@ $('#flexRT$t').flexigrid({
 	url: '$page?tasks-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: 'PPID', name : 'ffff', width : 49, sortable : false, align: 'left'},
+		{display: 'PID', name : 'ffff', width : 49, sortable : false, align: 'left'},
 		{display: '%CPU', name : 'aaa', width : 43, sortable : false, align: 'left'},	
 		{display: '%MEM', name : 'bbb', width : 45, sortable : true, align: 'left'},
 		{display: '$time', name : 'ccc', width : 56, sortable : false, align: 'left'},
-		{display: '$task', name : 'ddd', width : 684, sortable : false, align: 'left'},
+		{display: '$task', name : 'ddd', width : 636, sortable : false, align: 'left'},
+		{display: 'kill', name : 'eee', width : 31, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -247,6 +255,15 @@ $('#flexRT$t').flexigrid({
 		if(!document.getElementById('flexRT$t')){return;}
 		$('#flexRT$t').flexReload();
 		setTimeout('xStart1$t()',5000);
+	}
+
+	function Kill9(pid){
+		if(confirm('Kill PID:'+pid+' ?')){
+		var XHR = new XHRConnection();
+		XHR.appendData('kill9',pid);
+		XHR.sendAndLoad('$page', 'POST',x_sslBumbAddwl);				
+		
+		}
 	}	
 	
 	
@@ -276,7 +293,7 @@ function jsold(){
 		if(refreshTask<2){refreshTask=5;}
 		{$prefix}tant = {$prefix}tant+1;
 		if ({$prefix}tant < refreshTask ) {                           
-	      	setTimeout(\"{$prefix}demarre()\",800);
+	      	setTimeout(\"{$prefix}demarre()\",2500);
 	      } else {
 				{$prefix}tant = 0;
 				{$prefix}ChargeLogs();
@@ -325,6 +342,8 @@ function jsold(){
 	
 	}
 	
+
+	
 var x_ParseFormLDAP= function (obj) {
 				var results=obj.responseText;
 				if(results.length>0){alert(results);}
@@ -341,7 +360,7 @@ echo $html;
 
 
 function task_list(){
-	
+$tpl=new templates();	
 $sock=new sockets();
 $datas=$sock->getFrameWork("cmd.php?TaskLastManager=yes");
 
@@ -361,21 +380,29 @@ if($_POST["query"]<>null){
 
 if(preg_match_all("#([0-9]+)\s+([0-9\.]+)\s+([0-9\.]+)\s+([0-9\:]+)\S+(.+)#",$datas,$re)){
 	$c=0;
+	
 	while (list ($num, $ligne) = each ($re[1]) ){
 		
-		
+		$color="black";
 		$cmd=$re[5][$num];
 		if($tofind<>null){if(!preg_match("#$tofind#", $cmd)){continue;}}
 		$c++;
+		$ttl=$sock->getFrameWork("cmd.php?TaskLastManagerTime=$ligne");
+		
+		$cpu=intval($re[2][$num]);
+		if($cpu>70){$color="#BA0000";}
+		
+		$kill=imgsimple("delete-24.png",null,"Kill9('$ligne')");
+		
 		$data['rows'][] = array(
-		'id' => $uid,
+		'id' => md5(serialize($re)),
 		'cell' => array(
 		"<span style='font-size:14px;color:$color'>$ligne</span>",
 		"<span style='font-size:14px;color:$color'>{$re[2][$num]}%</span>",
 		"<span style='font-size:14px;color:$color'>{$re[3][$num]}%</a></span>",
 		"<span style='font-size:14px;color:$color'>{$re[4][$num]}</a></span>",
-		"<span style='font-size:14px;color:$color'>$cmd</a></span>",
-		
+		"<span style='font-size:14px;color:$color'>$cmd</a></span><div style='font-size:11px;font-weight:bold'><i>TTL:&nbsp;$ttl</i></div>",
+		"<span style='font-size:14px;color:$color'>$kill</a></span>",
 		
 		)
 		);		

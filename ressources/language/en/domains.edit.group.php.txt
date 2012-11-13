@@ -69,7 +69,7 @@ But, all saved folders in your settings will be re-mounted automatically</Remove
 imaging you want to share /home/shared with john and sully, this features will create a folder "myshared" in heach home directory of yours users and point it to /home/shared</shared_folders_explain>
 <shared_folders_text>Share a folder with all users of this group</shared_folders_text>
 <sieve_auto_explain>Your mailbox server store a feature that allow your users to create mailbox filters in charge of sorting mails by severals conditions.[br]This powerfull feature is performed directly by the server and not by the messaging client[br]
-In this case, it provides many benefits by reducing the bandwith, reducing the messaging client process and so on..[br]
+In this case, it provides many benefits by reducing the bandwidth, reducing the messaging client process and so on..[br]
 The Artica Mailbox filter option allow Artica to add rules on each group's account based on SPAM mails.[br]Rules created will move SPAM mails directly in Junk mailboxes without any user interaction.[br]
 In this case, when you update/add an user, Artica will automatically add this rule on each mailbox.</sieve_auto_explain>
 <sieve_auto_script>Maibox filters</sieve_auto_script>

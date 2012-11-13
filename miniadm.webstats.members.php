@@ -10,6 +10,11 @@ include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.postfix.builder.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 
+
+
+
+
+
 if(isset($_GET["content"])){content();exit;}
 if(isset($_GET["master-content"])){master_content();exit;}
 if(isset($_GET["items"])){items();exit;}

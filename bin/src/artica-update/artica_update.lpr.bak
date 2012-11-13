@@ -231,6 +231,7 @@ begin
          zlogs.Debuglogs('Already instance executed');
          halt(0);
     end;
+    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.nightly.php --force');
     XSETS.NightlyBuild();
     halt(0);
  end;
@@ -297,7 +298,7 @@ if not TryStrToInt(SYS.GET_INFO('EnableScheduleUpdates'),EnableScheduleUpdates) 
  XSETS.perform_update_nightly();
  if not FileExists('/etc/init.d/artica-boot') then fpsystem('/usr/share/artica-postfix/bin/artica-install --artica-boot >/dev/null 2>&1');
  fpsystem('/etc/init.d/artica-boot start');
- 
+ fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system &');
  zlogs.Debuglogs('Halt now....');
  halt(0);
 end.

@@ -60,7 +60,6 @@ public
     function    PID_PATH():string;
     function    get_LDAP(key:string):string;
     procedure   set_LDAP(key:string;val:string);
-    procedure   FIX_ARTICA_SCHEMAS();
     function    LDAP_DATABASES_PATH():string;
     procedure   SAVE_SLAPD_CONF();
     function    STATUS():string;
@@ -350,68 +349,6 @@ begin
 
 end;
 //#############################################################################
-procedure topenldap.FIX_ARTICA_SCHEMAS();
-var
-   articaSchema:string;
-   TargetSchema:string;
-   DisableLdapSchemaLinking:integer;
-   i:integer;
-
-begin
-if not FileExists(SLAPD_BIN_PATH()) then begin
-   logs.DebugLogs('slapd: [INFO] schemas, ldap did not exists... Skip');
-   exit;
-end;
-if not FileExists(artica_path + '/bin/install/postfix.schema') then begin
-   logs.DebugLogs('WARNING !!! unable to stat '+artica_path + '/bin/install/postfix.schema');
-   exit;
-end;
-
-if not FileExists(artica_path + '/bin/install/samba.schema') then begin
-   logs.DebugLogs('WARNING !!! unable to stat '+artica_path + '/bin/install/samba.schema');
-   exit;
-end;
-
-if paramStr(2)='off'  then begin
-   writeln('slapd: [INFO] Schemas Disable Linking  schemas...');
-   SYS.set_INFOS('DisableLdapSchemaLinking','1');
-end;
-
-if paramStr(2)='on'  then begin
-   writeln('slapd: [INFO] Schemas Enable Linking  schemas...');
-   SYS.set_INFOS('DisableLdapSchemaLinking','0');
-end;
-
-if not TryStrToInt(SYS.GET_INFO('DisableLdapSchemaLinking'),DisableLdapSchemaLinking) then DisableLdapSchemaLinking:=0;
-
-   for i:=0 to schemas.Count-1 do begin
-       if FileExists(SCHEMA_PATH() + '/'+ schemas.Strings[i]) then begin
-          writeln('slapd: [INFO]  Schemas deleting '+SCHEMA_PATH() + '/'+ schemas.Strings[i]);
-          logs.DeleteFile(SCHEMA_PATH() + '/'+schemas.Strings[i]);
-       end;
-   end;
-
-   for i:=0 to schemas.Count-1 do begin
-       articaSchema:=artica_path + '/bin/install/'+schemas.Strings[i];
-       TargetSchema:=SCHEMA_PATH() + '/'+schemas.Strings[i];
-       if FileExists(articaSchema) then begin
-          logs.DebugLogs('slapd: [INFO] installing schema '+schemas.Strings[i]);
-          logs.OutputCmd('/bin/chmod 777 '+articaSchema);
-          if DisableLdapSchemaLinking=1 then begin
-             logs.OutputCmd('/bin/cp '+articaSchema+' ' + TargetSchema);
-             logs.OutputCmd('/bin/chmod 777 '+TargetSchema);
-          end else begin
-             logs.OutputCmd('/bin/ln -s --force ' + articaSchema+' ' + TargetSchema);
-          end;
-       end;
-   end;
-
-
-   logs.DebugLogs('slapd: [INFO] Schemas Done....');
-
-
-end;
-//#############################################################################
 procedure topenldap.SLAP_INDEX();
 begin
 
@@ -618,7 +555,7 @@ begin
       exit;
    end;
 
-  FIX_ARTICA_SCHEMAS();
+
   SET_DB_CONFIG();
   CHECK_SCHEMA_DEBIAN_PERMISSIONS();
     if DirectoryExists('/etc/openldap/slapd.d') then begin

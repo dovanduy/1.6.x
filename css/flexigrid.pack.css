@@ -152,6 +152,10 @@ div.pGroup{float:left;background:none;height:24px;margin:0 5px}
 .flexigrid div.fbutton .MyMSN {
   background: url("/img/msn-16.png") no-repeat scroll left center transparent;
 }
+.flexigrid div.fbutton .Network {
+  background: url("/img/network-1-20.gif") no-repeat scroll left center transparent;
+}
+
 .flexigrid div.fbutton .MyMSNOff {
   background: url("/img/msn-16-grey.png") no-repeat scroll left center transparent;
 }

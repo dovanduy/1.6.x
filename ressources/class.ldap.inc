@@ -1,5 +1,6 @@
 <?php
 if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
+if(!isset($GLOBALS["DEBUG"])){$GLOBALS["DEBUG"]=false;}
 if(!isset($GLOBALS["DEBUG_TEMPLATE"])){$GLOBALS["DEBUG_TEMPLATE"]=false;}
 if(!isset($GLOBALS["DEBUG_MEM"])){$GLOBALS["DEBUG_MEM"]=false;}
 if(!isset($GLOBALS["DEBUGLOGS"])){$GLOBALS["DEBUGLOGS"]=false;}
@@ -16,12 +17,6 @@ if(function_exists("debug_mem")){debug_mem();}
 if(!class_exists("templates")){include_once(dirname(__FILE__) . '/class.templates.inc');if(function_exists("debug_mem")){debug_mem();}}
 //if(file_exists(dirname(__FILE__) . '/class.sqlite.inc')){include_once(dirname(__FILE__) . '/class.sqlite.inc');}
 if(function_exists("debug_mem")){debug_mem();}
-
-
-
-
-
-
 define('grep_ip','([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)');
 
 class LdapUserInfos{
@@ -213,9 +208,8 @@ class clladp{
 						if(!$fp){
 							$trace=debug_backtrace();
 							$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";		
-							if($GLOBALS["VERBOSE"]){writelogs("Fatal: fsockopen -> $this->ldap_host:$this->ldap_port",__CLASS__.'/'.__FUNCTION__,__FILE__);}
-							writelogs("Fatal: ERROR unable to connect to ldap server in line ". __LINE__." $this->ldap_host, $this->ldap_port \"$errstr\" $called",
-							__CLASS__."/" .__FUNCTION__,__FILE__);
+							if($GLOBALS["DEBUG"]){writelogs("Fatal: fsockopen -> $this->ldap_host:$this->ldap_port",__CLASS__.'/'.__FUNCTION__,__FILE__);}
+							if($GLOBALS["DEBUG"]){writelogs("Fatal: ERROR unable to connect to ldap server in line ". __LINE__." $this->ldap_host, $this->ldap_port \"$errstr\" $called",__CLASS__."/" .__FUNCTION__,__FILE__);}
 							$this->ldap_last_error=$errstr;$this->ldapFailed=true;
 							$sock=new sockets();
 							if(!isset($GLOBALS["ASLDAPRESTARTED"])){
@@ -1602,7 +1596,8 @@ function Hash_GetALLUsers(){
 		if (! $search){return $res;}
 		$entry_id = ldap_first_entry($this->ldap_connection,$search);
 		$attrs = ldap_get_attributes($this->ldap_connection,$entry_id);
-		
+		if(!isset($attrs["ArticaGroupPrivileges"])){$attrs["ArticaGroupPrivileges"]=null;}
+		if(isset($attrs["OuTrustMyUSers"])){$attrs["OuTrustMyUSers"]=null;}
 		// privileges
 		
 		if(!is_array($attrs["ArticaGroupPrivileges"])){
@@ -1621,24 +1616,6 @@ function Hash_GetALLUsers(){
 			}
 		}
 
-		//Kaspersky Anti-Spam -----------------------------------------------------------------------------------------
-		if(!is_array($attrs["KasperkyASDatasRules"])){
-			$upd["KasperkyASDatasRules"][0]="DEFAULT";
-			$this->Ldap_add_mod($dn,$upd);
-			$res["KasperkyASDatasRules"]="DEFAULT";
-		}else{
-			$res["KasperkyASDatasRules"]=$attrs["KasperkyASDatasRules"][0];
-		}
-		
-		//Kaspersky Anti-virus -----------------------------------------------------------------------------------------
-		if(!is_array($attrs["KasperkyAVScanningDatas"])){
-			$upd["KasperkyAVScanningDatas"][0]="DEFAULT";
-			$this->Ldap_add_mod($dn,$upd);
-			$res["kav4mailservers"]="DEFAULT";
-		}else{
-			$res["kav4mailservers"]=$attrs["KasperkyAVScanningDatas"][0];	
-		}
-		
 		//Fake sender  -----------------------------------------------------------------------------------------
 		
 		if(!isset($attrs["ArticaFakedMailFrom"])){$attrs["ArticaFakedMailFrom"][0]="pass";}
@@ -1691,45 +1668,7 @@ function Hash_GetALLUsers(){
 		}		
 	//RBL  -----------------------------------------------------------------------------------------
 
-	if(!is_array($attrs["RblServersAction"])){
-		unset($upd);
-		$upd["RblServersAction"]="pass";
-		$this->Ldap_add_mod($dn,$upd);
-	}else{
-		$res["RblServersAction"]=$attrs["RblServersAction"][0];
-	}
-	
-	if(!is_array($attrs["SURBLServersAction"])){
-		unset($upd);
-		$upd["SURBLServersAction"]="pass";
-		$this->Ldap_add_mod($dn,$upd);
-	}else{
-		$res["SURBLServersAction"]=$attrs["SURBLServersAction"][0];
-	}	
-	if(isset($attrs["RblServers"])){	
-		if(is_array($attrs["RblServers"])){
-			for($i=0;$i<$attrs["RblServers"]["count"];$i++){
-				$res["RblServers"][$i]=$attrs["RblServers"][$i];
-			}
-		}
-	}			
-	if(isset($attrs["SURBLServers"])){				
-		if(is_array($attrs["SURBLServers"])){
-			for($i=0;$i<$attrs["SURBLServers"]["count"];$i++){
-				$res["SURBLServers"][$i]=$attrs["SURBLServers"][$i];
-				}
-			}
-		}			
 			
-	//bogospam action  -----------------------------------------------------------------------------------------		
-		if(!is_array($attrs["BogoFilterAction"])){
-			unset($upd);	
-			$upd["BogoFilterAction"]="80;prepend;*** SPAM ***";
-			$this->Ldap_add_mod($dn,$upd);			
-		}else{
-			$res["BogoFilterAction"]=$attrs["BogoFilterAction"][0];	
-		}
-
 	//trust users  -----------------------------------------------------------------------------------------		
 	if(!is_array($attrs["OuTrustMyUSers"])){
 		unset($upd);	
@@ -2507,6 +2446,7 @@ function Hash_GetALLUsers(){
 		function UserGetGroups($userid,$reverse=0){
 		if($this->ldapFailed){return array();}
 		if($userid==null){return null;}	
+		$res=array();
 		$attrs=array('gidNumber','cn');
 		$sr =@ldap_search($this->ldap_connection,$this->suffix,"(&(objectClass=posixGroup)(memberUid=$userid))",$attrs);	
 			if($sr){

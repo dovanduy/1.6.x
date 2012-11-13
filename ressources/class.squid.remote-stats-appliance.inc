@@ -234,6 +234,7 @@ class squid_stats_appliance{
 		$squidlogs["webfilters_blkwhlts"]=true;
 		$squidlogs["webfilters_usersasks"]=true;
 		$squidlogs["webfilters_quotas"]=true;
+		$squidlogs["webfilter_avwhitedoms"]=true;
 		$squidlogs["squidtpls"]=true;
 		
 		

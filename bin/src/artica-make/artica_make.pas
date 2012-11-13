@@ -575,6 +575,13 @@ begin
          halt(0);
    end;
 
+   if ParamStr(1)='APP_WEBAPP' then begin
+         zarafa:=tzarafa.Create;
+         zarafa.webapp_svn();
+         zinstall.EMPTY_CACHE();
+         halt(0);
+   end;
+
 
    if ParamStr(1)='APP_ZARAFA_CLUCENE' then begin
          zarafa:=tzarafa.Create;

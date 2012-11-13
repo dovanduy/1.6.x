@@ -19,6 +19,7 @@
 if(isset($_GET["params"])){params();exit;}
 if(isset($_GET["items"])){items();exit;}
 if(isset($_POST["RunBackup"])){runbackup();exit;}
+if(isset($_POST["RunScan"])){RunScan();exit;}
 popup();
 	
 	
@@ -44,19 +45,11 @@ function popup(){
 	$run="{name: '$run_backup', bclass: 'Down', onpress : Run$t},";
 	$scan="{name: '$scan_dir', bclass: 'Reload', onpress : Scan$t},";
 	
-	
-	
-
-	
 $buttons="buttons : [
 		$parms$run$scan
-			],	";	
-	
-
-	
-//ztime 	zhour 	mailfrom 	instancename 	mailto 	domainfrom 	domainto 	senderhost 	recipienthost 	mailsize 	smtpcode 	
+			],	";		
 	$html="
-	<div id='query-explain'></div>
+	<div id='query-explain-$t'></div>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 <script>
 var mem$t='';
@@ -101,9 +94,16 @@ function Params$t(){
 
 var x_Run$t=function (obj) {
 	var results=obj.responseText;
-	if(results.length>2){alert(results);}			
+	if(results.length>5){alert(results);}			
 	
 }	
+var x_RunScan$t=function (obj) {
+	var results=obj.responseText;
+	if(results.length>5){alert(results);}	
+	document.getElementById('query-explain-$t').innerHTML='';		
+	$('#flexRT$t').flexReload();
+}	
+
 
 function Run$t(){
 	if(confirm('$run_backup_confirm')){
@@ -115,7 +115,10 @@ function Run$t(){
 }
 
 function Scan$t(){
-
+	var XHR = new XHRConnection();
+	XHR.appendData('RunScan','yes');
+	XHR.sendAndLoad('$page', 'POST',x_RunScan$t);
+	AnimateDiv('query-explain-$t');
 }
 
 </script>";
@@ -194,5 +197,16 @@ function items(){
 	
 	
 echo json_encode($data);	
+	
+}
+
+
+function RunScan(){
+	
+	//exec.zarafa-backup.php --dirs
+	$sock=new sockets();
+	$datas=unserialize(base64_decode($sock->getFrameWork("zarafa.php?backup-scan-dirs=yes&MyCURLTIMEOUT=120")));
+	echo @implode("\n", $datas);
+	
 	
 }

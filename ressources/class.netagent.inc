@@ -146,16 +146,23 @@ class netagent{
 		$curlparms["nets"]=$this->GetNets();
 		$curlparms["hostname"]=$hostname;
 		$curlparms["prodstatus"]=base64_encode(@file_get_contents("/usr/share/artica-postfix/ressources/logs/global.status.ini"));
+		if($GLOBALS["VERBOSE"]){echo "50% squid_caches_info\n";}
 		$curlparms["squid_caches_info"]=$this->squid_caches_infos();
 		$curlparms["disks_list"]=base64_encode(serialize($this->GetDiskList()));
 		$curlparms["hostid"]=$hostid;
+		if($GLOBALS["VERBOSE"]){echo "55% cache_logs\n";}
 		$curlparms["CACHE_LOGS"]=$this->cache_logs();
+		if($GLOBALS["VERBOSE"]){echo "56% UFDBCLIENT_LOGS\n";}
 		$curlparms["UFDBCLIENT_LOGS"]=$this->ufdbclientlog();
+		if($GLOBALS["VERBOSE"]){echo "57% SQUIDVER\n";}
 		$curlparms["SQUIDVER"]=$GLOBALS["CLASS_SOCKET"]->getFrameWork("squid.php?full-version=yes");
 		$curlparms["ARCH"]=$this->Architecture();
 		$curlparms["ISARTICA"]=1;
 		$curlparms["ArticaHttpsPort"]=$ArticaHttpsPort;
 		$curlparms["usessl"]=$ArticaHttpUseSSL;
+		if($GLOBALS["VERBOSE"]){echo "57% YOREL\n";}
+		$curlparms["YOREL"]=$this->BuilYorelGraphs();
+		
 		
 		if($GLOBALS["VERBOSE"]){
 			if($GLOBALS["OUTPUT"]){echo "[$hostid]::Asking to be in verbose mode\n";}
@@ -281,7 +288,24 @@ class netagent{
 		if(!is_file($dbPath)){return;}
 		include($dbPath);
 		return array("DISKS"=>$_GLOBAL["disks_list"],"USB"=>$_GLOBAL["usb_list"]);
-	}	
+	}
+
+	private function BuilYorelGraphs(){
+		$unix=new unix();
+		$tar=$unix->find_program("tar");
+		$t=$unix->FILE_TEMP();
+		chdir("/opt/artica/share/www/system/rrd");
+		if($GLOBALS["VERBOSE"]){echo "cd /opt/artica/share/www/system/rrd & $tar -czf $t.tar.gz *\n";}
+		if($GLOBALS["VERBOSE"]){system("cd /opt/artica/share/www/system/rrd & $tar -czvf $t.tar.gz *");}
+		else{
+			shell_exec("cd /opt/artica/share/www/system/rrd & $tar -czf $t.tar.gz *");
+		}
+		$content=@file_get_contents("$t.tar.gz");
+		@unlink("$t.tar.gz");
+		chdir("/root");
+		return base64_encode($content);
+		
+	}
 	
 	private function cache_logs(){
 		$tail=$GLOBALS["CLASS_UNIX"]->find_program("tail");

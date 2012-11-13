@@ -42,6 +42,7 @@ ParseLogs();
 ParseLogsNew();
 ParseSitesInfos();
 PaseUdfdbGuard();
+PaseUdfdbGuardnew();
 ParseUdfdbGuard_failed();
 $t2=time();
 $distanceOfTimeInWords=distanceOfTimeInWords($t1,$t2);
@@ -255,6 +256,96 @@ function ParseLogsNew(){
   	
 }
 
+function PaseUdfdbGuardnew(){
+	$sock=new sockets();
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	@mkdir("/var/log/artica-postfix/ufdbguard-blocks",0777,true);
+	@mkdir("/var/log/artica-postfix/ufdbguard-blocks-errors",0777,true);
+	$GLOBALS["EnableRemoteStatisticsAppliance"]=$EnableRemoteStatisticsAppliance;
+	$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
+	if(!isset($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=null;}
+	if(!isset($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=null;}
+	if(!isset($RemoteStatisticsApplianceSettings["SERVER"])){$RemoteStatisticsApplianceSettings["SERVER"]=null;}
+	
+	if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
+	if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
+	$GLOBALS["REMOTE_SSERVER"]=$RemoteStatisticsApplianceSettings["SERVER"];
+	$GLOBALS["REMOTE_SPORT"]=$RemoteStatisticsApplianceSettings["PORT"];
+	$GLOBALS["REMOTE_SSL"]=$RemoteStatisticsApplianceSettings["SSL"];
+	$unix=new unix();
+	$hostname=$unix->hostname_g();	
+	$BIGARRAY=array();
+	if($EnableRemoteStatisticsAppliance==0){
+		$q=new mysql_squid_builder();
+		$q->CheckTables();
+	}	
+
+	if (!$handle = opendir("/var/log/artica-postfix/ufdbguard-blocks")) {
+		events_tail("PaseUdfdbGuardnew:: -> glob failed in Line: /var/log/artica-postfix/ufdbguard-blocks ".__LINE__);
+		return ;
+	}
+
+	//$sql="INSERT INTO `$table` (`client`,`website`,`category`,`rulename`,`public_ip`,`why`,`blocktype`,`hostname`,`uid`,`MAC`) VALUES";
+	
+	$c=0;
+	events_tail("PaseUdfdbGuardnew:: parsing  /var/log/artica-postfix/ufdbguard-blocks directory...");
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="/var/log/artica-postfix/ufdbguard-blocks/$filename";	
+		$array=unserialize(@file_get_contents($targetFile));
+		if(!is_array($array)){
+			events_tail("PaseUdfdbGuard:: $targetFile, not an array....");
+			@unlink($targetFile);
+			continue;
+		}
+		
+		$uid=$array["uid"];
+		$MAC=$array["MAC"];
+		$time=$array["TIME"];
+		$category=$array["category"];
+		$rulename=$array["rulename"];
+		$public_ip=$array["public_ip"];
+		$blocktype=$array["blocktype"];
+		$uri=addslashes($array["uri"]);
+		$why=$array["why"];
+		$Clienthostname=$array["hostname"];
+		$www=$array["website"];
+		$local_ip=$array["client"];		
+		$table=date('Ymd',$time)."_blocked";
+		$sql="('$local_ip','$www','$category','$rulename','$public_ip','$why','$blocktype','$Clienthostname','$uid','$MAC','$uri')";	
+		if(!isset($checked[$table])){
+			if(!$q->CheckTablesBlocked_day(0,$table)){
+				events_tail("PaseUdfdbGuard:: Fatal CheckTablesBlocked_day($table)...");
+				return;
+			}
+		}
+		
+		$BIGARRAY[$table][]=$sql;
+		@unlink($targetFile);
+		$c++;
+		if($c>500){break;}
+	}
+	events_tail("PaseUdfdbGuardnew:: BIGARRAY = ".count($BIGARRAY)."...");
+	if(count($BIGARRAY)==0){return;}
+	$q=new mysql_squid_builder();
+	$ev=0;
+	while (list ($tablename, $queries) = each ($BIGARRAY) ){
+		$q->CheckTablesBlocked_day(0,$tablename);
+		$prefix="INSERT INTO `$tablename` (`client`,`website`,`category`,`rulename`,`public_ip`,`why`,`blocktype`,`hostname`,`uid`,`MAC`,`uri`) VALUES ";
+		if(!$q->QUERY_SQL($prefix.@implode(",", $queries))){
+			events_tail("PaseUdfdbGuardnew:: Fatal $q->mysql_error");
+			@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks-errors/$tablename.".time(), serialize($queries));
+			ufdbguard_admin_events("$q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "injector");
+		}
+		$ev=$ev+count($queries);
+	}
+	
+	events_tail("PaseUdfdbGuardnew:: $ev events done");
+}
+
+
 function PaseUdfdbGuard(){
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
@@ -265,6 +356,9 @@ function PaseUdfdbGuard(){
 	
 	$GLOBALS["EnableRemoteStatisticsAppliance"]=$EnableRemoteStatisticsAppliance;
 	$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
+	if(!isset($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=null;}
+	if(!isset($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=null;}
+	if(!isset($RemoteStatisticsApplianceSettings["SERVER"])){$RemoteStatisticsApplianceSettings["SERVER"]=null;}	
 	if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
 	if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
 	$GLOBALS["REMOTE_SSERVER"]=$RemoteStatisticsApplianceSettings["SERVER"];
@@ -281,6 +375,7 @@ function PaseUdfdbGuard(){
 	$count=0;
 	$total=0;
 	$tableblock=date('Ymd')."_blocked";
+	$f=array();
 	$PREFIX="INSERT INTO `$tableblock` (client,website,category,rulename,public_ip,`why`,`blocktype`,`hostname`) VALUES";
 	events_tail("PaseUdfdbGuard:: parsing /var/log/artica-postfix/ufdbguard-queue Line: ".__LINE__);
 	foreach (glob("/var/log/artica-postfix/ufdbguard-queue/*.sql") as $filename) {
@@ -464,7 +559,7 @@ echo " -------------------------------------------------\n";
 
 function events_tail($text){
 		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
-		if($GLOBALS["VERBOSE"]){echo "$text\n";}
+		//if($GLOBALS["VERBOSE"]){echo "$text\n";}
 		$pid=@getmypid();
 		$date=@date("h:i:s");
 		$logFile="/var/log/artica-postfix/auth-tail.debug";

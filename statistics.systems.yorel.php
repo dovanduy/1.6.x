@@ -50,7 +50,7 @@ function popup(){
 	
 	echo "
 	<div id=main_stats_yorels_index style='width:100%;height:auto;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
+		<ul style='font-size:14px'>". implode("\n",$html)."</ul>
 	</div>
 		<script>
 				$(document).ready(function(){
@@ -88,7 +88,7 @@ $md=md5(date('Ymdhis'));
 	
 	$html="
 <input type='hidden' id='t' value='$t'>
-<div class='explain'>{system_perfomances_text}</div
+<div class='explain' style='font-size:14px'>{system_perfomances_text}</div
 <table style='width:600px' align=center>
 <tr>
 <td valign='top'>

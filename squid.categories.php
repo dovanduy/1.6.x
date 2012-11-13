@@ -16,6 +16,7 @@
 		exit;
 		
 	}
+	
 	if(isset($_GET["js-popup-master"])){js_popup_master();exit;}
 	if(isset($_GET["subtitles-categories"])){subtitle_categories();exit;}
 	if(isset($_GET["tabs"])){tabs();exit;}
@@ -73,6 +74,10 @@ function tabs(){
 		unset($array["list"]);
 		unset($array["status"]);
 		unset($array["size"]);
+		
+	}else{
+		$catzadd="&middlesize=yes";
+		
 	}
 	
 
@@ -84,7 +89,7 @@ while (list ($num, $ligne) = each ($array) ){
 	
 	
 		if($num=="list"){
-			$html[]= "<li><a href=\"dansguardian2.databases.php?categories=\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+			$html[]= "<li><a href=\"dansguardian2.databases.php?categories=$catzadd\"><span style='font-size:14px'>$ligne</span></a></li>\n";
 			continue;
 		}
 		
@@ -94,7 +99,7 @@ while (list ($num, $ligne) = each ($array) ){
 		}		
 	
 	
-		$html[]= "<li><a href=\"$page?$num&category={$_GET["category"]}&website={$_GET["website"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$html[]= "<li><a href=\"$page?$num&category={$_GET["category"]}$catzadd&website={$_GET["website"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n";
 	}
 	
 	
@@ -164,8 +169,11 @@ function popup(){
 		$searchitem="	searchitems : [
 		".@implode(",\n", $s)."
 		],";
-	}
 		
+		
+		
+	}
+if($_GET["middlesize"]=="yes"){$TB_WIDTH=830;}
 		if($_GET["category"]<>null){
 			$table_title="$category_text::$category";
 		$buttons="buttons : [
@@ -360,7 +368,7 @@ function query(){
 		
 		
 		$added=null;
-		$categories=$q->GET_CATEGORIES($ligne["pattern"],true,true,true);
+		/*$categories=$q->GET_CATEGORIES($ligne["pattern"],true,true,true);
 		writelogs("{$ligne["pattern"]}= $categories ",__FUNCTION__,__FILE__,__LINE__);
 		$categories=str_replace($category, "", $categories);
 		$ff=explode(",",$categories);
@@ -369,7 +377,7 @@ function query(){
 		if(count($tt)>0){
 			$added="<div><i style='font-size:11px'>$also: ".@implode(", ", $tt)."</i></div>";
 		}
-		
+		*/
 		$enabled=$ligne["enabled"];
 		$color="color:black";
 		if($enabled==0){

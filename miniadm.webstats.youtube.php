@@ -15,7 +15,27 @@ if(isset($_GET["master-content"])){master_content();exit;}
 if(isset($_GET["items"])){items();exit;}
 if(isset($_GET["thumbnail"])){thumbnail();exit;}
 if(isset($_GET["categories-list"])){categories_list();exit;}
+if(isset($_GET["js"])){js();exit;}
+
 main_page();
+
+function js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	if(!$_SESSION["CORP"]){
+		
+		$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
+		echo "alert('$onlycorpavailable');";	
+		return;
+	}
+	$q=new mysql_squid_builder();
+	$youtube_objects=$q->COUNT_ROWS("youtube_objects");
+	$youtube_objects=numberFormat($youtube_objects,0,""," ");
+	
+	$title=$tpl->_ENGINE_parse_body("$youtube_objects Youtube {objects}");
+	echo "YahooWin3('926','$page?master-content=yes','$title')";
+	
+}
 
 function main_page(){
 	$page=CurrentPageName();
@@ -42,10 +62,17 @@ function content(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
+	
+	if(isset($_GET["xtime"])){
+		$_GET["year"]=date("Y",$_GET["xtime"]);
+		$_GET["month"]=date("m",$_GET["xtime"]);
+		$_GET["day"]=date("d",$_GET["xtime"]);	
+	}
+	
 	$html="
 	<div class=BodyContent>
 		<div style='font-size:14px'><a href=\"miniadm.index.php\">{myaccount}</a>
-		&nbsp;&raquo;&nbsp;<a href=\"miniadm.webstats.php\">{web_statistics}</a>
+		&nbsp;&raquo;&nbsp;<a href=\"miniadm.webstats.php?t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}\">{web_statistics}</a>
 		
 		</div>
 		<H1>Youtube {objects}</H1>
@@ -286,13 +313,17 @@ function items(){
 	$unit=$seconds;
 	$ligne["duration"]=format_time($ligne["duration"]);
 	
+	$urljsSIT="<a href=\"javascript:blur();\" 
+	OnClick=\"javascript:Loadjs('miniadm.webstats.youtubeid.php?youtubeid=$youtubeid');\"
+	style='font-size:14px;text-decoration:underline;color:$color'>";	
+	
 	$data['rows'][] = array(
 		'id' => "$zmd5",
 		'cell' => array(
-			"<span style='font-size:14px;color:$color'><a href=\"javascript:blur();\" OnClick=\"VideoInfo$t('$youtubeid')\"><img src='$MyPage?thumbnail=$youtubeid'></span></a>",
-			"<span style='font-size:14px;color:$color'>$urljs{$ligne["uploaded"]}</a></span>",
-			"<span style='font-size:14px;color:$color'>$urljs{$ligne["title"]}</span>",
-			"<span style='font-size:14px;color:$color'>$urljs{$ligne["category"]}</span>",
+			"<span style='font-size:14px;color:$color'><a href=\"javascript:blur();\" OnClick=\"Loadjs('miniadm.webstats.youtubeid.php?youtubeid=$youtubeid');\"><img src='$MyPage?thumbnail=$youtubeid'></span></a>",
+			"<span style='font-size:14px;color:$color'>$urljsSIT{$ligne["uploaded"]}</a></span>",
+			"<span style='font-size:14px;color:$color'>$urljsSIT{$ligne["title"]}</span>",
+			"<span style='font-size:14px;color:$color'>$urljsSIT{$ligne["category"]}</span>",
 			"<span style='font-size:14px;color:$color'>{$ligne["duration"]}</span>",
 			"<span style='font-size:14px;color:$color'>{$ligne["hits"]}</span>",
 			)

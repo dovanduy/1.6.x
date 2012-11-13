@@ -662,6 +662,13 @@ $products[]=array(
 	);		
 	
 $products[]=array(
+	"PRODUCT_CODE"=>"APP_WEBAPP",
+	"REPO_CODE"=>"webapp",
+	"FAMILY"=>"WEB",
+	"SUBFAMILY"=>"APP",
+	);		
+	
+$products[]=array(
 	"PRODUCT_CODE"=>"APP_SUGARCRM",
 	"REPO_CODE"=>"SugarCE",
 	"FAMILY"=>"WEB",

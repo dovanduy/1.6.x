@@ -446,3 +446,21 @@ INPUT:hover .unityDivForm  {
 .QuickLinkTable tr { color:white; }
 .QuickLinkTable td {color:white; }
 .QuickLinkTable td a {color:white; }
+
+
+.mainHeaderContent { width:900px;height: 94px; background: url(/img/headerbg.png) repeat-x left -200px; position: relative; margin: 0px 10px;;margin-bottom:5px}
+.mainHeaderContent:after { height: 94px; background: url(/img/headerbg.png) no-repeat left 0px; position: absolute; left:  -10px; top:  0px; width: 10px; content: "."; zoom:  1; display: block; text-indent: -999em; overflow: hidden; }
+.mainHeaderContent:before { height: 94px; background: url(/img/headerbg.png) no-repeat right -100px; float: right; width: 10px; content: "."; zoom:  1; display: block; margin-right: -10px; vertical-align: top; text-indent: -999em; overflow: hidden; }
+
+.kwicks {
+	list-style: none;
+	position: relative;
+	margin: 0;
+	padding: 0;
+	padding-top:15px;
+}
+
+.kwicks li{
+	border-radius: 5px 5px 5px 5px;	
+}
+}

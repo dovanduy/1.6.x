@@ -18,7 +18,10 @@
 		
 	}
 	
+	
+	if(isset($_POST["QuickCategorize"])){QuickCategorize();exit;}
 	if(isset($_GET["rescan-js"])){rescan_js();exit;}
+	if(isset($_POST["ResCanVisited"])){rescan_perform();exit;}
 	if(isset($_POST["rescan_perform"])){rescan_perform();exit;}
 	
 	if(isset($_GET["popup"])){popup();exit;}
@@ -140,7 +143,7 @@ function js(){
 	$t=$_GET["t"];
 	$categorize_this_query=$tpl->_ENGINE_parse_body("{categorize_this_query}");
 	if(isset($_GET["onlyNot"])){$onlyNot="&onlyNot=yes";}
-	$start="YahooWin3('720','$page?popup=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}$onlyNot','$title');";
+	$start="YahooWin3('890','$page?popup=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}$onlyNot','$title');";
 	if(isset($_GET["add-www"])){
 		if($category<>null){$category_text="&raquo;&raquo;{category}&raquo;&raquo;$category";}
 		$title=$tpl->_ENGINE_parse_body("{add_websites}$category_text");
@@ -213,7 +216,7 @@ function free_catgorized_tabs(){
 	
 	
 	echo "
-	<div id=main_config_visitedwebs$t style='width:100%;height:100%;overflow:auto'>
+	<div id=main_config_visitedwebs$t style='width:100%;height:100%'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -255,7 +258,7 @@ function popup(){
 	
 	
 	echo "
-	<div id=main_config_visitedwebs style='width:100%;height:550px;overflow:auto'>
+	<div id=main_config_visitedwebs style='width:100%'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -491,6 +494,41 @@ function already_Cats($www){
 	return false;
 }
 
+function QuickCategorize(){
+	
+	$sock=new sockets();
+	$q=new mysql_squid_builder();
+	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));	
+	
+	$www=$_POST["sitename"];
+	$day=$_POST["day"];
+	$category=$_POST["category"];
+
+	$category_table="category_".$q->category_transform_name($category);
+	if(!$q->TABLE_EXISTS($category_table)){
+		$q->CreateCategoryTable($_POST["category"]);
+		if(!$q->ok){echo "create table  $category_table failed $q->mysql_error line ". __LINE__ ." in file ".__FILE__."\n";continue;}
+	}	
+	
+	$md5=md5($category.$www);
+	$q->QUERY_SQL("INSERT IGNORE INTO $category_table (zmd5,zDate,category,pattern,uuid) VALUES('$md5',NOW(),'$category','$www','$uuid')");
+	if(!$q->ok){echo "categorize $www failed $q->mysql_error line ". __LINE__ ." in file ".__FILE__."\n";return;}
+	
+	$q->QUERY_SQL("INSERT IGNORE INTO categorize (zmd5,zDate,category,pattern,uuid) VALUES('$md5',NOW(),'$category','$www','$uuid')");
+	if($day<>null){
+		$timeday=strtotime("$day 00:00:00");
+		$table=date("Ymd",$timeday)."_hour";
+		$sql=$q->QUERY_SQL("UPDATE $table SET category='$category' WHERE sitename='$www'");
+		if(!$q->ok){echo "categorize $www failed $q->mysql_error line ". __LINE__ ." in file ".__FILE__."\n";return;}
+	}
+	
+	
+	$sock=new sockets();
+	$sock->getFrameWork("cmd.php?export-community-categories=yes");	
+	$sock->getFrameWork("squid.php?NoCategorizedAnalyze=yes");
+	
+}
+
 function free_catgorized_save(){
 	include_once(dirname(__FILE__)."/ressources/class.html2text.inc");
 	$sock=new sockets();
@@ -503,9 +541,14 @@ function free_catgorized_save(){
 	while (list ($num, $ligne) = each (	$h2t->_link_array)){
 		if(trim($ligne)==null){continue;}
 		$ligne=strtolower($ligne);
+		$ligne=str_replace("(whois)", "", $ligne);
+		$ligne=trim($ligne);
 		if(preg_match("#[0-9]+\.[0-9]+.[0-9]+.[0-9]+:[0-9]+#", $ligne)){continue;}
 		if(strpos(" $ligne", "http")==0){$ligne="http://$ligne";}
 		$hostname=parse_url($ligne,PHP_URL_HOST);
+		
+		
+		
 		if(preg_match("#^www\.(.+)#", $hostname,$re)){$hostname=$re[1];}
 		if(preg_match("#^\.(.+)#", $hostname,$re)){$hostname=$re[1];}
 		if(preg_match("#^\*\.(.+)#", $hostname,$re)){$hostname=$re[1];}
@@ -524,6 +567,8 @@ function free_catgorized_save(){
 	if(!is_numeric($ForceCat)){$ForceCat=0;}
 	while (list ($num, $www) = each ($f) ){
 		writelogs("Scanning $www",__FUNCTION__,__FILE__,__LINE__);
+		$www=str_replace("(whois)", "", $www);
+		$www=trim($www);		
 		$www=trim(strtolower($www));
 		if($www==null){continue;}
 		$www=stripslashes($www);
@@ -608,9 +653,8 @@ function free_catgorized_save(){
 		
 		$category_table="category_".$q->category_transform_name($category);
 		if(!$q->TABLE_EXISTS($category_table)){
-			echo "create table  $category_table for {$_POST["category"]}\n";
 			$q->CreateCategoryTable($_POST["category"]);
-			if(!$q-ok){echo "create table  $category_table failed $q->mysql_error line ". __LINE__ ." in file ".__FILE__."\n";continue;}
+			if(!$q->ok){echo "create table  $category_table failed $q->mysql_error line ". __LINE__ ." in file ".__FILE__."\n";continue;}
 		
 		}
 		
@@ -635,26 +679,64 @@ $tpl=new templates();
 $country=$tpl->_ENGINE_parse_body("{country}");
 $website=$tpl->_ENGINE_parse_body("{website}");
 $hits=$tpl->_ENGINE_parse_body("{hits}");
-$t=time();	
+$t=time();
+$rescan=$tpl->javascript_parse_text("{rescan}");
+
+	$table="visited_sites";
+	$country_select=null;
+	if($day<>null){
+		$qDay=$day;
+		$time=strtotime("$day 00:00:00");
+		$table=date("Ymd",$time)."_hour";
+		$country_select=",country";
+	}	
+	
+	$week=trim($_GET["week"]);
+	if($week<>null){
+		$qDay=$week;
+		$time=strtotime("{$_GET["week"]} 00:00:00");
+		$table=date("YW",$time)."_week";
+		
+	}
+
+	$month=trim($_GET["month"]);
+	if($month<>null){
+		$qDay=$month;
+		$time=strtotime("{$_GET["month"]} 00:00:00");
+		$table=date("Ym",$time)."_day";
+	}
+
+	if($table=="visited_sites"){
+	$buttons="
+	buttons : [
+	
+	{name: '$rescan', bclass: 'Reload', onpress : ResCanVisited$t},
+	
+	],	";
+	
+	}
+
+
 $html="
 <span id='SQUIDNOCATREFRESHTABLEID'></span>
 <table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
-
+var mem$t;
 $(document).ready(function(){
 $('#table-$t').flexigrid({
 	url: '$page?no-cat-list=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '$country', name : 'country', width :25, sortable : false, align: 'center'},
-		{display: '$website', name : 'sitename', width :408, sortable : true, align: 'left'},
+		{display: '$website', name : 'sitename', width :334, sortable : true, align: 'left'},
 		{display: 'Google', name : 'google', width :31, sortable : false, align: 'center'},
 		{display: 'Link', name : 'link', width :31, sortable : false, align: 'center'},
 		{display: '$hits', name : 'HitsNumber', width :47, sortable : true, align: 'left'},
 		{display: '$categorize', name : 'client', width :46, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'ffff', width :215, sortable : false, align: 'left'},
 
 	],
-
+$buttons
 	searchitems : [
 		{display: '$website', name : 'sitename'},
 		],
@@ -665,7 +747,7 @@ $('#table-$t').flexigrid({
 	useRp: true,
 	rp: 25,
 	showTableToggleBtn: false,
-	width: 679,
+	width: 839,
 	height: 369,
 	singleSelect: true
 	
@@ -674,6 +756,38 @@ $('#table-$t').flexigrid({
 
 	function SQUIDNOCATREFRESHTABLE(){
 		$('#table-$t').flexReload();
+	}
+	
+	var x_ResCanVisited$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert('\"'+results+'\"');return;}
+		$('#table-$t').flexReload();
+	}	
+	
+	var x_QuickCategorize= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert('\"'+results+'\"');return;}
+		$('#row'+mem$t).remove();
+	}
+
+	function ResCanVisited$t(){
+			var XHR = new XHRConnection();
+			XHR.appendData('ResCanVisited','yes');
+			XHR.sendAndLoad('$page', 'POST',x_ResCanVisited$t);		
+	}
+	
+	
+	function QuickCategorize(sitename,id){
+			mem$t=id;
+			var XHR = new XHRConnection();
+			XHR.appendData('QuickCategorize','yes');
+			XHR.appendData('sitename',sitename);
+			var category=document.getElementById('dropdown-'+id).value;
+			XHR.appendData('category',category);
+			XHR.appendData('day','{$_GET["day"]}');
+			if(category.length==0){return;}
+			XHR.sendAndLoad('$page', 'POST',x_QuickCategorize);		
+	
 	}
 
 
@@ -797,6 +911,14 @@ function not_categorized_list(){
 	if(mysql_num_rows($results)==0){
 		$sql=wordwrap($sql,80,"<br>");
 		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
+		
+		$dans=new dansguardian_rules();
+		$cats=$dans->LoadBlackListes();
+		while (list ($num, $ligne) = each ($cats) ){$newcat[$num]=$num;}
+		$newcat[null]=$tpl->_ENGINE_parse_body("{select}");
+			
+				
+		
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$categorize_link=null;
@@ -820,17 +942,28 @@ function not_categorized_list(){
 			OnClick=\"javascript:Loadjs('squid.websites.infos.php?www={$ligne["sitename"]}&day=$qDay');\"
 			style='font-size:14px;text-decoration:underline'>{$ligne["sitename"]}</a>";
 			
+			$id=md5($ligne['sitename']);
+			
+			$field_category=Field_array_Hash($newcat,"dropdown-$id",null,"blur()","style:font-size:12.5px");	
+			$field_category="<table style=\"margin:0;padding:0;border:0\">
+			<tr style=\"margin:0;padding:0;border:0\">
+				<td style=\"margin:0;padding:0;border:0\">$field_category</td>
+				<td style=\"margin:0;padding:0;border:0;padding-left:5px\">". imgsimple("ok-blue-left-24.png",null,"QuickCategorize('{$ligne['sitename']}','$id')")."</td>
+			</tr>
+			</table>
+			";
+			
 			
 		
 			$data['rows'][] = array(
-			'id' => $ligne['sitename'],
+			'id' => $id,
 			'cell' => array(
 				"<img src='img/{$_SESSION["COUNTRIES_FLAGS"][$ligne["country"]]}>",
 				 "$sitename$categorize_link",
-				imgsimple("Google-24.png",null,"s_PopUp('http://www.google.com/search?q=%22{$ligne["sitename"]}%22&ie=utf-8&oe=utf-8&client=ubuntu&channel=fs&safe=active&safeui=on',800,800)"),
-				imgsimple("link-24.png",null,"s_PopUp('http://{$ligne["sitename"]}',800,800)"),
+				imgsimple("Google-24.png",null,"s_PopUpFull('http://www.google.com/search?q=%22{$ligne["sitename"]}%22&ie=utf-8&oe=utf-8&client=ubuntu&channel=fs&safe=active&safeui=on',800,800)"),
+				imgsimple("link-24.png",null,"s_PopUpFull('http://{$ligne["sitename"]}',800,800)"),
 				
-				"<span style='font-size:14px;font-weight:bold'>{$ligne["HitsNumber"]}</span>",$categorize)
+				"<span style='font-size:14px;font-weight:bold'>{$ligne["HitsNumber"]}</span>",$categorize,$field_category)
 			);
 	}
 	

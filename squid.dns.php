@@ -132,7 +132,9 @@ function RestartService$t(){
 			var results=obj.responseText;
 			if(results.length>3){alert(results);return;}
 			$('#table-$t').flexReload();
-			
+			if(document.getElementById('squid-services')){
+				LoadAjax('squid-services','squid.main.quicklinks.php?squid-services=yes');
+			}
 		}
 		
 		var x_dnsdel= function (obj) {

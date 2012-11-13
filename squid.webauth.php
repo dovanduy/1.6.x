@@ -140,8 +140,10 @@ function options(){
 	var x_SaveHostportConfig$t= function (obj) {
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
+		Loadjs('squid.compile.progress.php');
 		document.getElementById('$t-animate').innerHTML='';
-		RefreshTab('squid_hotspot');
+		
+		
 	}		
 		
 		
@@ -266,8 +268,8 @@ function popup(){
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
 		document.getElementById('$t-animate').innerHTML='';
-		RefreshTab('squid_hotspot');
-		if(document.getElementById('squid_main_svc')){RefreshTab('squid_main_svc');}
+		Loadjs('squid.compile.progress.php');
+		
 	}
 
 

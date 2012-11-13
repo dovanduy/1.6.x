@@ -53,10 +53,13 @@ function popup(){
 	</td>
 	</tr>
 	</table>
+	
+	
+	
 	<table style='width:99%' class=form>
 	<tr>
 		<td width=400px valign='top'>
-			<div id='thumbs-$md'>".
+			<div id='thumbs-$md' class=BodyContent>".
 				RoundedLightWhite("<img src='squid.statistics.php?thumbnail=$www&t=$time' class='rounded'>")."
 				</div>
 			
@@ -64,6 +67,7 @@ function popup(){
 			
 		</td>
 		<td valign='top'>
+		<div  class=BodyContent>
 			<table style='width:100%'>
 			<tr>
 				<td class=legend style='font-size:14px'>{requests}:</td>
@@ -79,7 +83,7 @@ function popup(){
 			</tr>					
 			</table>
 			<div id='siteinfos-$md'></div>
-		
+		</div>
 		</td>
 	</tr>
 	</table>

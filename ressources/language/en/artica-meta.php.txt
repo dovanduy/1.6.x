@@ -218,7 +218,7 @@ This feature will check the Swap system each 30Mn and clean it according limits 
 <proxy_address>Proxy address</proxy_address>
 <receive>receive</receive>
 <connection_date>Connection date</connection_date>
-<OPENVPN_CONN_STATUS_EXPLAIN>This is the list of VPN connected nodes, it display informations about bandwith usage and connections time</OPENVPN_CONN_STATUS_EXPLAIN>
+<OPENVPN_CONN_STATUS_EXPLAIN>This is the list of VPN connected nodes, it display informations about bandwidth usage and connections time</OPENVPN_CONN_STATUS_EXPLAIN>
 <server_settings>Server settings</server_settings>
 <wakeup_computer>Remote Wake-up</wakeup_computer>
 <wakeup_computer_text>turn on this computer using a special network message called a magic packet</wakeup_computer_text>

@@ -41,16 +41,16 @@ if($EnablePostfixMultiInstance==1){
 	$sql="SELECT ou, ip_address, `key` , `value` FROM postfix_multi WHERE (`key` = 'myhostname')";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){system_admin_events( "Fatal, $q->mysql_error\n","MAIN", __FILE__,
-	 __LINE__, "postfix");return;}
-	$hostname=$ligne["value"];
-	if(strlen($hostname)<4){continue;}
-	$t=time();
-	$ttA=array();
-	exec("$php5 /usr/share/artica-postfix/exec.postfix-multi.php --instance-reconfigure \"$hostname\" 2>&1",$ttA);
-	$took=$unix->distanceOfTimeInWords($t,time(),true);	 
-	system_admin_events("Reconfigure postfix $hostname instance done took $took\n".@implode("\n", $ttA), "MAIN", __FILE__,
-	 __LINE__, "postfix");	
+	if(!$q->ok){system_admin_events( "Fatal, $q->mysql_error\n","MAIN", __FILE__,__LINE__, "postfix");return;}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$hostname=$ligne["value"];
+		if(strlen($hostname)<4){continue;}
+		$t=time();
+		$ttA=array();
+		exec("$php5 /usr/share/artica-postfix/exec.postfix-multi.php --instance-reconfigure \"$hostname\" 2>&1",$ttA);
+		$took=$unix->distanceOfTimeInWords($t,time(),true);	 
+		system_admin_events("Reconfigure postfix $hostname instance done took $took\n".@implode("\n", $ttA), "MAIN", __FILE__,__LINE__, "postfix");
+	}	
 	
 }
 

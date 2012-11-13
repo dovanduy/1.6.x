@@ -10,7 +10,7 @@
 
 	
 	if(isset($_GET["search"])){popup_list();exit;}
-	
+	if(isset($_POST["empty-db"])){empty_db();exit;}
 	popup();
 
 
@@ -26,12 +26,21 @@ function popup(){
 	$whitelisted=$tpl->_ENGINE_parse_body("{whitelisted}");
 	if(!isset($_GET["hostname"])){$_GET["hostname"]="master";}
 	if($_GET["hostname"]==null){$_GET["hostname"]="master";}
+	$empty=$tpl->javascript_parse_text("{empty}");
+	$mgreylist_empty_db_warn=$tpl->javascript_parse_text("{mgreylist_empty_db_warn}");
+	
+$buttons="buttons : [
+	{name: '$empty', bclass: 'Delz', onpress : EmptyDB$t},
+	{separator: true},
+	],	";	
+	
 
 if($explain<>null){$explain="<div class=explain style='font-size:13px'>$explain</div>";}	
 $html="
 $explain
+<center>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-	
+</center>	
 <script>
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
@@ -65,7 +74,23 @@ $('#flexRT$t').flexigrid({
 	});   
 });
 
+		var x_EmptyDB$t= function (obj) {
+			var results=obj.responseText;
+			if(results.length>5){alert(results);}
+			RefreshTab('main_config_mgreylist');
+		}
 
+function EmptyDB$t(){
+	if(confirm('$mgreylist_empty_db_warn')){
+		var XHR = new XHRConnection();
+		XHR.appendData('empty-db','yes');
+		XHR.appendData('hostname','{$_GET["hostname"]}');
+		AnimateDiv('flexRT$t');
+		XHR.sendAndLoad('$page', 'POST',x_EmptyDB$t);		
+	
+	}
+
+}
 
 </script>
 
@@ -159,4 +184,15 @@ function popup_list(){
 	
 echo json_encode($data);		
 
+}
+
+function empty_db(){
+	$q=new mysql();
+	$hostname=$_POST["hostname"];
+	
+	$sql="DELETE FROM greylist_turples WHERE hostname='$hostname'";
+	$q->QUERY_SQL($sql,"artica_events");
+	$sock=new sockets();
+	$sock->getFrameWork("milter-greylist.php?empty-database=yes&hostname=$hostname");
+		
 }

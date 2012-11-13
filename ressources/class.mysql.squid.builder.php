@@ -37,6 +37,7 @@ class mysql_squid_builder{
 	var $acl_GroupType=array();
 	
 	function mysql_squid_builder(){
+		if(!class_exists("sockets")){include_once(dirname(__FILE__)."/class.sockets.inc");}
 		$sock=new sockets();
 		$squidEnableRemoteStatistics=$sock->GET_INFO("squidEnableRemoteStatistics");
 		$this->EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
@@ -66,6 +67,9 @@ class mysql_squid_builder{
 		if($EnableKerbAuth==1){if($UseDynamicGroupsAcls==1){$this->acl_GroupType["proxy_auth_ads"]="{dynamic_activedirectory_group}";}}
 		$this->acl_GroupType["port"]="{remote_ports}";
 		$this->acl_GroupType["browser"]="{browser}";
+		$this->acl_GroupType["NudityScan"]="{nudityScan}";
+		$this->acl_GroupType["time"]="{DateTime}";
+		$this->acl_GroupType["ext_user"]="{ext_user}";
 		
 		
 		$this->ClassSQL=new mysql();
@@ -97,6 +101,15 @@ class mysql_squid_builder{
 	
 	private function fill_tasks_disabled(){
 			$users=new usersMenus();
+			
+			if($users->PROXYTINY_APPLIANCE){
+				$this->tasks_disabled[1]=true;
+				$this->tasks_disabled[8]=true;
+				$this->tasks_disabled[31]=true;
+				$this->tasks_disabled[42]=true;
+				$this->DisableArticaProxyStatistics=1;
+			}
+			
 			if($this->DisableArticaProxyStatistics==1){
 				$this->tasks_disabled[15]=true;
 				$this->tasks_disabled[16]=true;
@@ -108,6 +121,16 @@ class mysql_squid_builder{
 				$this->tasks_disabled[2]=true;
 				$this->tasks_disabled[23]=true;
 				$this->tasks_disabled[25]=true;
+				$this->tasks_disabled[14]=true;
+				$this->tasks_disabled[3]=true;
+				$this->tasks_disabled[28]=true;
+				$this->tasks_disabled[29]=true;
+				$this->tasks_disabled[34]=true;
+				$this->tasks_disabled[36]=true;
+				$this->tasks_disabled[37]=true;
+				$this->tasks_disabled[38]=true;
+				$this->tasks_disabled[40]=true;
+				$this->tasks_disabled[43]=true;
 			}
 			
 			if(!$users->CORP_LICENSE){
@@ -357,7 +380,7 @@ class mysql_squid_builder{
 			$array[37]=array("TimeText"=>"* * * * *","TimeDescription"=>"Inject into Mysql each minute");
 			$array[38]=array("TimeText"=>"* * * * *","TimeDescription"=>"Inject into Mysql each minute");
 			$array[40]=array("TimeText"=>"10 * * * *","TimeDescription"=>"Each hour +10mn");
-			$array[41]=array("TimeText"=>"3,6,9,11,13,16,19,21,26,29,31,36,39,41,46,49,51,56,59 * * * *","TimeDescription"=>"Check AD server each 3M");
+			$array[41]=array("TimeText"=>"3,6,9,11,13,16,19,21,26,29,31,36,39,41,46,49,51,56,59 * * * *","TimeDescription"=>"Generate Graphs each 3M");
 			$array[42]=array("TimeText"=>"30 4 * * *","TimeDescription"=>"Compile Toulouse databases tables Each day at 04h30");
 			$array[43]=array("TimeText"=>"30 3 * * *","TimeDescription"=>"Lost tables Each day at 03h30");
 			
@@ -593,6 +616,45 @@ class mysql_squid_builder{
 		return $array;		
 		
 	}	
+	
+	public function LIST_TABLES_YOUTUBE_HOURS(){
+		if(isset($GLOBALS["LIST_TABLES_YOUTUBE_HOURS"])){return $GLOBALS["LIST_TABLES_YOUTUBE_HOURS"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'youtubehours_%'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+		
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#youtubehours_[0-9]+#", $ligne["c"])){
+				$GLOBALS["LIST_TABLES_YOUTUBE_HOURS"][$ligne["c"]]=$ligne["c"];
+				$array[$ligne["c"]]=$ligne["c"];
+			}
+		}
+		if($GLOBALS["VERBOSE"]){echo "Return " . count($array)." tables\n";}
+		return $array;		
+		
+	}	
+	public function LIST_TABLES_YOUTUBE_DAYS(){
+		if(isset($GLOBALS["LIST_TABLES_YOUTUBE_DAYS"])){return $GLOBALS["LIST_TABLES_YOUTUBE_DAYS"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND 
+		table_name LIKE 'youtubeday_%'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+		
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#youtubeday_[0-9]+#", $ligne["c"])){
+				$GLOBALS["LIST_TABLES_YOUTUBE_DAYS"][$ligne["c"]]=$ligne["c"];
+				$array[$ligne["c"]]=$ligne["c"];
+			}
+		}
+		if($GLOBALS["VERBOSE"]){echo "Return " . count($array)." tables\n";}
+		return $array;		
+		
+	}	
+	
 	public function LIST_TABLES_VISITED(){
 		if(isset($GLOBALS["LIST_TABLES_VISITED"])){return $GLOBALS["LIST_TABLES_VISITED"];}
 		$array=array();
@@ -648,6 +710,7 @@ class mysql_squid_builder{
 			$f["mobile-phone"]="mobile-phone";
 			$f["press"]="press";
 			$f["radio"]="webradio";
+			
 			$f["redirector"]="proxy";
 			$f["sexual_education"]="sexual_education";
 			$f["sports"]="recreation/sports";
@@ -865,6 +928,45 @@ class mysql_squid_builder{
 		$GLOBALS[__CLASS__.__FUNCTION__]=$array;
 		return $array;
 	}
+	
+	public function TableNudityHour($prefix=null){
+		if($this->EnableRemoteStatisticsAppliance==1){return;}
+		if($prefix==null){$prefix=date("YmdH");}
+		
+		$table="znudehour_$prefix";
+		
+		if(!$this->TABLE_EXISTS($table,$this->database)){
+		writelogs("Checking $table in $this->database NOT EXISTS...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		$sql="CREATE TABLE IF NOT EXISTS `$table` (
+		  `sitename` varchar(90) NOT NULL,
+		  `uri` varchar(255) NOT NULL,
+		  `ipaddr` varchar(50) NOT NULL DEFAULT '',
+		  `hostname` varchar(120) NOT NULL DEFAULT '',
+		  `zDate` datetime NOT NULL,
+		  `zMD5` varchar(90) NOT NULL,
+		  `uid` varchar(128) NOT NULL,
+		  `MAC` varchar(20) NOT NULL,
+		  `POURC` INT(3) NOT NULL,
+		  PRIMARY KEY (`zMD5`),
+		  KEY `sitename` (`sitename`),
+		  KEY `hostname` (`hostname`),
+		  KEY `zDate` (`zDate`),
+		  KEY `ipaddr` (`ipaddr`),
+		  KEY `uid` (`uid`),
+		  KEY `POURC` (`POURC`),
+		  KEY `MAC` (`MAC`)
+		) ";
+	  $this->QUERY_SQL($sql,$this->database); 
+			if(!$this->ok){
+				writelogs("$this->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$this->mysql_error=$this->mysql_error."\n$sql";
+				return false;
+			}
+		}
+		
+		return true;
+		
+	}	
 
 	
 	public function TablePrimaireHour($prefix=null){
@@ -939,9 +1041,93 @@ class mysql_squid_builder{
 			 )";
 			$this->QUERY_SQL($sql,$this->database);
 		}
-		
-		
 	}
+	
+	public function check_youtube_day($timekey=null){
+		if($timekey==null){$timekey=date('Ymd');}
+		
+		$table="youtubeday_$timekey";
+		if(!$this->TABLE_EXISTS("$table",$this->database)){	
+			$sql="CREATE TABLE `squidlogs`.`$table` (
+			`zmd5` VARCHAR(128) PRIMARY KEY,
+			`zDate` date NOT NULL,
+			`hour` smallint(2) NOT NULL,
+			`ipaddr` VARCHAR(40),
+			`hostname` VARCHAR(128),
+			`uid` VARCHAR(40) NOT NULL,
+			`MAC` VARCHAR(20) NOT NULL,
+			`account` BIGINT(100) NOT NULL,
+			`youtubeid` VARCHAR(60) NOT NULL,
+			`hits` BIGINT(100) NOT NULL,
+			 KEY `ipaddr`(`ipaddr`),
+			 KEY `hour`(`hour`),
+			 KEY `hits`(`hits`),
+			 KEY `zDate`(`zDate`),
+			 KEY `hostname`(`hostname`),
+			 KEY `uid`(`uid`),
+			 KEY `MAC`(`MAC`),
+			 KEY `account`(`account`)
+			 )";
+			$this->QUERY_SQL($sql,$this->database);
+			return $this->ok;
+		}
+		
+		return true;
+	}
+
+public function CheckTablesBlocked_day($time=0,$tableblock=null){
+	if(!is_numeric($time)){$time=time();}
+	if($tableblock==null){
+		if($time==0){$time=time();}
+		$tableblock=date('Ymd',$time)."_blocked";
+	}
+
+	
+	if(!$this->TABLE_EXISTS($tableblock,'artica_events')){		
+			$sql="CREATE TABLE IF NOT EXISTS `$tableblock` (
+			  `ID` bigint(100) NOT NULL AUTO_INCREMENT,
+			  `zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			  `client` varchar(90) NOT NULL,
+			  `uid` varchar(90) NOT NULL,
+			  `hostname` varchar(120) NOT NULL,
+			  `account` BIGINT(100) NOT NULL,
+			  `website` varchar(125) NOT NULL,
+			  `MAC` varchar(20) NOT NULL,
+			  `category` varchar(50) NOT NULL,
+			  `rulename` varchar(50) NOT NULL,
+			  `public_ip` varchar(40) NOT NULL,
+			  `uri` varchar(255) NOT NULL,
+			  `event` varchar(20) NOT NULL,
+			  `why` varchar(90) NOT NULL,
+			  `explain` text NOT NULL,
+			  `blocktype` varchar(255) NOT NULL,
+			  PRIMARY KEY (`ID`),
+			  KEY `zDate` (`zDate`),
+			  KEY `uid` (`uid`),
+			  KEY `client` (`client`),
+			  KEY `MAC` (`MAC`),
+			  KEY `hostname` (`hostname`),
+			  KEY `account` (`account`),
+			  KEY `website` (`website`),
+			  KEY `category` (`category`),
+			  KEY `rulename` (`rulename`),
+			  KEY `public_ip` (`public_ip`),
+			  KEY `event` (`event`),
+			  KEY `why` (`why`)
+			)"; 
+		$this->QUERY_SQL($sql); 
+		if(!$this->ok){
+			writelogs("$this->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->mysql_error=$this->mysql_error."\n$sql";
+			return false;
+		}
+
+		}
+		
+	$this->RepairTableBLock($tableblock);	
+	return true;
+
+}
 	
 	
 public function CheckTables($table=null){
@@ -1017,50 +1203,7 @@ public function CheckTables($table=null){
 	if(!$this->FIELD_EXISTS("$table", "hits")){$this->QUERY_SQL("ALTER TABLE `$table` ADD `hits` BIGINT(100) NOT NULL,ADD KEY `hits` (`hits`)");}
 		
 		
-	$tableblock=date('Ymd')."_blocked";	
-	if(!$this->TABLE_EXISTS($tableblock,'artica_events')){		
-			$sql="CREATE TABLE IF NOT EXISTS `$tableblock` (
-			  `ID` bigint(100) NOT NULL AUTO_INCREMENT,
-			  `zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			  `client` varchar(90) NOT NULL,
-			  `hostname` varchar(120) NOT NULL,
-			  `account` BIGINT(100) NOT NULL,
-			  `website` varchar(125) NOT NULL,
-			  `MAC` varchar(20) NOT NULL,
-			  `category` varchar(50) NOT NULL,
-			  `rulename` varchar(50) NOT NULL,
-			  `public_ip` varchar(40) NOT NULL,
-			  `uri` varchar(255) NOT NULL,
-			  `event` varchar(20) NOT NULL,
-			  `why` varchar(90) NOT NULL,
-			  `explain` text NOT NULL,
-			  `blocktype` varchar(255) NOT NULL,
-			  PRIMARY KEY (`ID`),
-			  KEY `zDate` (`zDate`),
-			  KEY `client` (`client`),
-			  KEY `MAC` (`MAC`),
-			  KEY `hostname` (`hostname`),
-			  KEY `account` (`account`),
-			  KEY `website` (`website`),
-			  KEY `category` (`category`),
-			  KEY `rulename` (`rulename`),
-			  KEY `public_ip` (`public_ip`),
-			  KEY `event` (`event`),
-			  KEY `why` (`why`)
-			)"; 
-		$this->QUERY_SQL($sql); 
-		
-			if(!$this->ok){
-					writelogs("$this->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-					$this->mysql_error=$this->mysql_error."\n$sql";
-					return false;
-				}else{
-					writelogs("Checking $table SUCCESS",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
-			}
 
-		}
-		$tableblock=date('Ymd')."_blocked";
-		$this->RepairTableBLock($tableblock);
 		
 		
 		$tableblockMonth=date('Ym')."_blocked_days";
@@ -1070,6 +1213,7 @@ public function CheckTables($table=null){
 			`hits` BIGINT( 100 ),
 			`zDate` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
 			`client` VARCHAR( 90 ) NOT NULL ,
+			`uid` VARCHAR( 90 ) NOT NULL ,
 			`hostname` VARCHAR( 120 ) NOT NULL ,
 			`MAC` VARCHAR( 20 ) NOT NULL ,
 			`account` BIGINT(100) NOT NULL ,
@@ -1079,6 +1223,7 @@ public function CheckTables($table=null){
 			`public_ip` VARCHAR( 40 ) NOT NULL ,
 			KEY `zDate` (`zDate`),
 			KEY `hits` (`hits`),
+			KEY `uid` (`uid`),
 			KEY `client` (`client`),
 			KEY `hostname` (`hostname`),
 			KEY `account` (`account`),
@@ -1336,6 +1481,28 @@ public function CheckTables($table=null){
 		
 		
 		
+		if(!$this->TABLE_EXISTS("youtube_dayz",$this->database)){	
+			$sql="CREATE TABLE `squidlogs`.`youtube_dayz` (
+			`zDate` date NOT NULL,
+			`hits` BIGINT(100) NOT NULL,
+			`ipaddr` VARCHAR(40),
+			`hostname` VARCHAR(128),
+			`uid` VARCHAR(40) NOT NULL,
+			`MAC` VARCHAR(20) NOT NULL,
+			`account` BIGINT(100) NOT NULL,
+			`youtubeid` VARCHAR(60) NOT NULL,
+			 KEY `ipaddr`(`ipaddr`),
+			 KEY `zDate`(`zDate`),
+			 KEY `hits`(`hits`),
+			 KEY `hostname`(`hostname`),
+			 KEY `uid`(`uid`),
+			 KEY `MAC`(`MAC`),
+			 KEY `account`(`account`)
+			 )";
+			$this->QUERY_SQL($sql,$this->database);
+			
+		}
+		
 
 		
 		if(!$this->TABLE_EXISTS('RegexCatz',$this->database)){	
@@ -1456,6 +1623,7 @@ public function CheckTables($table=null){
 			$sql="CREATE TABLE `squidlogs`.`webfilters_sqitems` (
 			`ID` INT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
 			`pattern` VARCHAR( 128 ) NOT NULL ,
+			`other` TEXT NOT NULL ,
 			`gpid` INT( 100 ) NOT NULL ,
 			`enabled` SMALLINT( 1 ) NOT NULL ,
 			INDEX ( `pattern` , `enabled`,`gpid`)
@@ -1463,9 +1631,9 @@ public function CheckTables($table=null){
 
 			$this->QUERY_SQL($sql,$this->database);
 		}
-		
-		
-		
+		if(!$this->FIELD_EXISTS("webfilters_sqitems", "other")){
+			$this->QUERY_SQL("ALTER TABLE `webfilters_sqitems` ADD `other` TEXT NOT NULL");
+		}
 		if(!$this->TABLE_EXISTS('webfilters_sqacls',$this->database)){	
 			$sql="CREATE TABLE `webfilters_sqacls` (
 			`ID` INT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
@@ -2015,6 +2183,8 @@ public function CheckTables($table=null){
 			  `totalsize` int(100) NOT NULL,
 			  `requests` int(100) NOT NULL,
 			  `cache_perfs` int(2) NOT NULL,
+			  `YouTubeHits` int(100) NOT NULL,
+			  `MembersCount` int(100) NOT NULL,
 			  `Hour` int(1) NOT NULL,
 			  `members` int(1) NOT NULL DEFAULT '0',
 			  `month_members` int(1) NOT NULL DEFAULT '0',
@@ -2027,7 +2197,9 @@ public function CheckTables($table=null){
 			  `not_categorized` INT(50) NOT NULL DEFAULT '0',
 			  `visited_day` tinyint(1) NOT NULL DEFAULT '0',
 			  `memberscentral` tinyint(1) NOT NULL DEFAULT '0',
+			  `compressed`  tinyint(1) NOT NULL DEFAULT '0',
 			  `backuped` tinyint(1) NOT NULL DEFAULT '0',
+			  `youtube_dayz` tinyint(1) NOT NULL DEFAULT '0',
 			  PRIMARY KEY (`tablename`),
 			  KEY `zDate` (`zDate`,`size`,`size_cached`,`cache_perfs`),
 			  KEY `Hour` (`Hour`),
@@ -2035,6 +2207,7 @@ public function CheckTables($table=null){
 			  KEY `requests` (`requests`),
 			  KEY `members` (`members`),
 			  KEY `memberscentral` (`memberscentral`),
+			  KEY `youtube_dayz` (`youtube_dayz`),
 			  KEY `month_members` (`month_members`),
 			  KEY `month_flow` (`month_flow`),
 			  KEY `blocks` (`blocks`),
@@ -2042,7 +2215,10 @@ public function CheckTables($table=null){
 			  KEY `weekdone` (`weekdone`),
 			  KEY `weekbdone` (`weekbdone`),
 			  KEY `not_categorized` (`not_categorized`),
+			  KEY `YouTubeHits` (`YouTubeHits`),
+			  KEY `MembersCount` (`MembersCount`),
 			  KEY `month_query` (`month_query`),
+			  KEY `compressed` (`compressed`),
 			  KEY `visited_day` (`visited_day`)
 			)";
 			$this->QUERY_SQL($sql,$this->database);
@@ -2063,8 +2239,11 @@ public function CheckTables($table=null){
 		if(!$this->FIELD_EXISTS("tables_day", "memberscentral")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `memberscentral` TINYINT( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `memberscentral` )");}
 		if(!$this->FIELD_EXISTS("tables_day", "backuped")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `backuped` TINYINT( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `backuped` )");}
 		if(!$this->FIELD_EXISTS("tables_day", "month_flow")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `month_flow` TINYINT( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `month_flow` )");}
+		if(!$this->FIELD_EXISTS("tables_day", "compressed")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `compressed` SMALLINT( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `compressed` )");}
+		if(!$this->FIELD_EXISTS("tables_day", "YouTubeHits")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `YouTubeHits` INT( 100 ) NOT NULL DEFAULT '0', ADD INDEX ( `YouTubeHits` )");}
+		if(!$this->FIELD_EXISTS("tables_day", "MembersCount")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `MembersCount` INT( 100 ) NOT NULL DEFAULT '0', ADD INDEX ( `MembersCount` )");}
+		if(!$this->FIELD_EXISTS("tables_day", "youtube_dayz")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `youtube_dayz` TINYINT( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `youtube_dayz` )");}
 		
-		 
 		
 		
 	if(!$this->TABLE_EXISTS('squidtpls',$this->database)){	
@@ -2075,11 +2254,14 @@ public function CheckTables($table=null){
 			  `template_header` LONGTEXT  NOT NULL,
 			  `template_title` varchar(255)  NOT NULL,
 			  `template_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			  `template_link` smallint(1) NOT NULL,
+			  `template_uri` varchar(255)  NOT NULL,
 			  `lang` varchar(5)  NOT NULL,
 			  PRIMARY KEY (`zmd5`),
 			  KEY `template_name` (`template_name`,`lang`),
 			  KEY `template_title` (`template_title`),
 			  KEY `template_time` (`template_time`),
+			  KEY `template_link` (`template_link`),
 			  FULLTEXT KEY `template_body` (`template_body`)
 			)";		
 		$this->QUERY_SQL($sql,$this->database);
@@ -2093,6 +2275,8 @@ public function CheckTables($table=null){
 		}			
 		
 		if(!$this->FIELD_EXISTS("squidtpls", "template_header")){$this->QUERY_SQL("ALTER TABLE `squidtpls` ADD `template_header` LONGTEXT  NOT NULL");}
+		if(!$this->FIELD_EXISTS("squidtpls", "template_link")){$this->QUERY_SQL("ALTER TABLE `squidtpls` ADD `template_link` smallint(1)  NOT NULL,ADD INDEX (`template_link`)");}
+		if(!$this->FIELD_EXISTS("squidtpls", "template_uri")){$this->QUERY_SQL("ALTER TABLE `squidtpls` ADD `template_uri` VARCHAR(255)  NOT NULL");}
 		
 		if(!$this->TABLE_EXISTS('tables_hours',$this->database)){	
 		$sql="CREATE TABLE IF NOT EXISTS `tables_hours` (
@@ -2372,12 +2556,7 @@ public function CheckTables($table=null){
 			$count=$this->COUNT_ROWS($table);
 			$c=$c+$count;
 		}
-		$crypt=new mysql_catz();
-		$cryptedTables=0;
-		if($c<3000000){
-			$cryptedTables=$crypt->COUNT_CATEGORIES();
-		}
-		return $c+$cryptedTables;
+		return $c;
 	}
 	
 	
@@ -2475,9 +2654,26 @@ public function CheckTables($table=null){
 	FUNCTION UID_FROM_MAC($mac){
 		if(isset($GLOBALS[__FUNCTION__][$mac])){return $GLOBALS[__FUNCTION__][$mac];}
 		if(trim($mac)==null){return ;}
+		
+		if($GLOBALS["AS_ROOT"]){
+			if(is_file("/etc/squid3/MacToUid.ini")){
+				$array=unserialize(@file_get_contents("/etc/squid3/MacToUid.ini"));
+				if(isset($array[$mac])){$GLOBALS[__FUNCTION__][$mac]=$array[$mac];return $array[$mac];}
+			}
+		}
+		
+		
 		$ligne=mysql_fetch_array($this->QUERY_SQL("SELECT uid FROM webfilters_nodes WHERE MAC='$mac'"));
-		$GLOBALS[__FUNCTION__][$mac]=$ligne["uid"];
-		return $ligne["uid"];
+		$uid=trim($ligne["uid"]);
+		
+		if($uid==null){
+			$q=new mysql();
+			$ligne=mysql_fetch_array($this->QUERY_SQL("SELECT uid FROM hostsusers WHERE MacAddress='$mac'","artica_backup"));
+			$uid=trim($ligne["uid"]);
+		}
+		
+		$GLOBALS[__FUNCTION__][$mac]=$uid;
+		return $uid;
 	}
 	
 	
@@ -2543,6 +2739,7 @@ public function CheckTables($table=null){
 		if(!$noArticaDB){
 			$qz=new mysql_catz();
 			$catz=$qz->GET_CATEGORIES($sitename);
+			if($GLOBALS["VERBOSE"]){echo "qz->GET_CATEGORIES($sitename) = $catz\n";}
 			if($catz<>null){
 				$catsql=addslashes($catz);
 				$this->QUERY_SQL("DELETE FROM webtests WHERE sitename='$sitename'");
@@ -2662,8 +2859,12 @@ public function CheckTables($table=null){
 			
 	}
 	
+
+	
 	
 	public function GetFamilySites($sitename){
+		
+		if(!isset($GLOBALS["DEBUGFAM"])){$GLOBALS["DEBUGFAM"]=false;}
 		if(function_exists("debug_mem")){debug_mem();}
 		include_once(dirname(__FILE__).'/effectiveTLDs.inc.php');
 		if(function_exists("debug_mem")){debug_mem();}
@@ -2674,10 +2875,16 @@ public function CheckTables($table=null){
 		if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $sitename)){return $sitename;}
 		if(function_exists("getRegisteredDomain")){
 			$tmp=trim(getRegisteredDomain($sitename));
-			if($tmp<>null){return $tmp;}
+			$tt=$this->GetFamilySitestt(null,true);
+			if($GLOBALS["DEBUGFAM"]){echo "getRegisteredDomain($sitename)=\"$tmp\"<>\"$tt\"\n";}
+			if($tmp<>null){
+				if(isset($tt[$tmp])){return $sitename;}
+				return $tmp;
+			}
 		}
 		
 		$tmp=$this->GetFamilySitestt($sitename);
+		if($GLOBALS["DEBUGFAM"]){echo "GetFamilySitestt($sitename)=$tmp";}
 		if(strpos($tmp, ".")>0){return $tmp;}
 		
 		writelogs("Fatal unable to find familysite for $sitename",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
@@ -2715,9 +2922,9 @@ public function CheckTables($table=null){
     }
     
     
-    private function GetFamilySitestt($domain){
+    public function GetFamilySitestt($domain,$getpartOnly=false){
 			$tlds = array(
-			    'com'=>true,
+			    'com'=>array('ya'=>true),
 				'name'=>true,
 				're'=>true,
 				'ru'=>true,
@@ -2725,41 +2932,63 @@ public function CheckTables($table=null){
 				'org'=>true,
 				'net'=>true,
 				'cn'=>array('com'=>true),
-				'ar'=>array('educ'=>true,"com"=>true),
-			    'uk' => array('co' => true,"ac"=>true,"gov"=>true,"org"=>true,"me"=>true),
-				'id' => array('net' => true,"web"=>true,"ac"=>true,"co"=>true,"or"=>true),
-				'ua' => array('dn' => true,"dp"=>true,"od"=>true),
-				'au' => array('net' => true,"com"=>true,"gov"=>true),
-				'pt' => array('com' => true,"gov"=>true,"uc"=>true,"ua"=>true),
-				'ph'=> array('com'=>true),
-				'th' => array('co' => true,"go"=>true),
-				'co' => array('gov' => true,"za"=>true),
+				'ar'=>array('educ'=>true,"com"=>true,"gov"=>true),
+				'ci'=>array('gouv'=>true,"com"=>true),
+				'biz'=>true,
+			    'uk' => array('co' => true,"ac"=>true,"gov"=>true,"org"=>true,"me"=>true,"gov"=>true),
+				'id' => array('net' => true,"web"=>true,"ac"=>true,"co"=>true,"or"=>true,"gov"=>true),
+				'ua' => array('dn' => true,"dp"=>true,"od"=>true,"gov"=>true),
+				'au' => array('net' => true,"com"=>true,"gov"=>true,"gov"=>true),
+				'pt' => array('com' => true,"gov"=>true,"uc"=>true,"ua"=>true,"gov"=>true),
+				'ph'=> array('com'=>true,"gov"=>true),
+				'th' => array('co' => true,"go"=>true,"in"=>true,"gov"=>true),
+				'tr' => array('com' => true,"org"=>true,"co"=>true,"gov"=>true),
+				'co' => array('gov' => true,"za"=>true,"gov"=>true),
 				'gi' => array('gov' => true),
-				'ca' => array('qc' => true),
+				'ca' => array('qc' => true,"gov"=>true),
 				'ch' =>true,
 				'cn' => array('com' => true,"gov"=>true),
 				'cz' =>true,
+				'ee' =>true,
+				'hk'=> array('co' => true),
 				'il' => array('co' => true),
 				'io' => true,
 				'info'=>true,
-				'jp'=>array('ne'=>true),
+				'jp'=>array('ne'=>true,'org' => true,"co"=>true,"gov"=>true),
 				'no'=>true,
+				'nu'=>true,
 				'bz'=>true,
-				'br' => array('com' => true,"org"=>true),
-				'ec' => array('com' => true),
-				'eg' => array('gov' => true),
+				'nz' => array('org' => true,"co"=>true,"gov"=>true),
+				'br' => array('com' => true,"org"=>true,"gov"=>true),
+				'ec' => array('com' => true,"gov"=>true),
+				'eg' => array('gov' => true,'com'=>true,"gov"=>true),
 				'fi'=>true,
 				'fm'=>true,
-				'fr'=>array('gouv' => true),
-				'ua'=>array('net'=>true,"com"=>true),
+				'me'=>true,
+				'my'=> array('com' => true,"gov"=>true),
+				'fr'=>array('gouv' => true,"gov"=>true),
+				'ua'=>array('net'=>true,"com"=>true,"gov"=>true),
 				'kz'=>true,
+				'kr'=>array('or'=>true,"gov"=>true),
 				'vn'=>true,
-				'za'=>array('co'=>true),
+				'za'=>array('co'=>true,'com'=>true,"gov"=>true),
+			
 				
 				
 		);
+		if($getpartOnly){
+			foreach ($tlds as $key => $part) {
+				$doms[$key]=true;
+				if(is_array($part)){
+					while (list ($a, $b) = each ($part) ){
+						$doms["$a.$key"]=true;
+					}
+					continue;
+				}
+			}		
+			return $doms;
+		}
 		
-		// split domain
 		$parts = explode('.', $domain);
 		$tmp = $tlds;
 		// travers the tree in reverse order, from right to left
@@ -2770,6 +2999,8 @@ public function CheckTables($table=null){
 		        break;
 		    }
 		}
+		if($getpartOnly){return $tmp;}
+		
 		$get=implode('.', array_slice($parts, - $key - 1));
 		if(substr($get, 0,1)=="."){$get=substr($get, 1,strlen($get)); }  
 		return $get; 	
@@ -3313,6 +3544,7 @@ private function CategoriesFamily($www){
 		if(!$this->FIELD_EXISTS("$tableblock", "blocktype")){$this->QUERY_SQL("ALTER TABLE `$tableblock` ADD `blocktype` VARCHAR( 255 )");}
 		if(!$this->FIELD_EXISTS("$tableblock", "hostname")){$this->QUERY_SQL("ALTER TABLE `$tableblock` ADD `hostname` VARCHAR( 120 ) NOT NULL ,ADD INDEX ( `hostname` )");}
 		if(!$this->FIELD_EXISTS("$tableblock", "account")){$this->QUERY_SQL("ALTER TABLE `$tableblock` ADD `account` BIGINT(100) NOT NULL ,ADD INDEX ( `account` )");}
+		if(!$this->FIELD_EXISTS("$tableblock", "uid")){$this->QUERY_SQL("ALTER TABLE `$tableblock` ADD `uid` VARCHAR(90) NOT NULL ,ADD INDEX ( `uid` )");}
 				
 		
 	}
@@ -3484,6 +3716,12 @@ private function CategoriesFamily($www){
 			return $f;
 	}
 	
+	
+	public function TIME_FROM_WEEK_TABLE($tablename){
+		$hash=$this->WEEK_HASHTIME_FROM_TABLENAME($tablename);
+		return 	$hash[0];	
+	}
+	
 	public function WEEK_TIME_FROM_TABLENAME($tablename){
 			$Cyear=substr($tablename, 0,4);
 			$Cweek=substr($tablename,4,2);
@@ -3494,14 +3732,26 @@ private function CategoriesFamily($www){
 	}	
 	
 	public function MONTH_TITLE_FROM_TABLENAME($tablename){
+		$date=$this->TIME_FROM_MONTH_TABLE($tablename);
+		return date("{F} Y",$date);
+		
+	}
+	
+	public function TIME_FROM_MONTH_TABLE($tablename){
 		$Cyear=substr($tablename, 0,4);
 		$month=substr($tablename,4,2);
 		$month=str_replace("_", "", $month);
 		$dayfull="01-$month-$Cyear 00:00:00";
-		$date=strtotime($dayfull);
-		return date("{F} Y",$date);
-		
-	}
+		return strtotime($dayfull);
+	}	
+	
+	public function TIME_FROM_DAY_TABLE($tablename){
+		$Cyear=substr($tablename, 0,4);
+		$CMonth=substr($tablename,4,2);
+		$CDay=substr($tablename,6,2);
+		$CDay=str_replace("_", "", $CDay);
+		return strtotime("$Cyear-$CMonth-$CDay 00:00:00");
+	}		
 	
 	public function WEEK_TABLE_TO_MONTH($tablename){
 			$Cyear=substr($tablename, 0,4);
@@ -3513,21 +3763,12 @@ private function CategoriesFamily($www){
 	}	
 
 	public function DAY_TITLE_FROM_TABLENAME($tablename){
-		$Cyear=substr($tablename, 0,4);
-		$CMonth=substr($tablename,4,2);
-		$CDay=substr($tablename,6,2);
-		$CDay=str_replace("_", "", $CDay);
-		$time=strtotime("$Cyear-$CMonth-$CDay");
+		$time=$this->TIME_FROM_DAY_TABLE($tablename);
 		return date("{l} d {F} Y",$time);
 	}
 	
 	public function DAY_TABLENAME_TO_TIME($tablename){
-		$Cyear=substr($tablename, 0,4);
-		$CMonth=substr($tablename,4,2);
-		$CDay=substr($tablename,6,2);
-		$CDay=str_replace("_", "", $CDay);
-		$time=strtotime("$Cyear-$CMonth-$CDay");
-		return $time;
+		return $this->TIME_FROM_DAY_TABLE($tablename);
 	}	
 		
 		

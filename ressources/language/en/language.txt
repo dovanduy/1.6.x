@@ -1908,7 +1908,7 @@ The default is to use the local machine name, $myhostname, which defaults to the
 <network_settings_text>You need to choose wich network interface the Postfix mail server will hook, choose on the field above</network_settings_text>
 <net_settings>Network IP Settings</net_settings>
 <net_settings_text>Change your network configuration IP, add IP aliases and more...</net_settings_text>
-<net_statistic>Network bandwith</net_statistic>
+<net_statistic>Network bandwidth</net_statistic>
 <new>new</new>
 <newtork_help_me>Help me to find networks</newtork_help_me>
 <new_mail_receive_from>New mail from</new_mail_receive_from>
@@ -4336,8 +4336,8 @@ provide by Sanesecurity, SecuriteInfo, MalwarePatrol, OITC, INetMsg and ScamNail
 <view_results>View results</view_results>
 <FILE_ALREADY_SCHEDULED>File already scheduled</FILE_ALREADY_SCHEDULED>
 <downloads_edk_section>Downloads</downloads_edk_section>
-<download_kbs>Download bandwith</download_kbs>
-<upload_kbs>Upload bandwith</upload_kbs>
+<download_kbs>Download bandwidth</download_kbs>
+<upload_kbs>Upload bandwidth</upload_kbs>
 <downloaded>Downloaded</downloaded>
 <uploaded>Uploaded</uploaded>
 <DOWNLOAD_CONFIRM_CANCEL>Stop downloading task ?</DOWNLOAD_CONFIRM_CANCEL>
@@ -4363,16 +4363,16 @@ If you did not open this port, you will have a LowID and you will not be able to
 <ACTIVATE_APP_GROUPWARE_APACHE>Activate the groupware web service</ACTIVATE_APP_GROUPWARE_APACHE>
 <NoDisplayIPBlocked>Hide IP Blocked servers</NoDisplayIPBlocked>
 <filetp_explain>this feature downloads file from a HTTP, FTP url.[br]Give the full link in the form bellow in order to download the file</filetp_explain>
-<edonkey_bandwith_explain>This section will change the allowed bandwith during the day.[br]
+<edonkey_bandwith_explain>This section will change the allowed bandwidth during the day.[br]
 For example, you can set 50kbs download and 10kbs upload during the working time and 1Mb download and 1mb upload during the night.[br]
 Define here the time when configuration will be switched.
 </edonkey_bandwith_explain>
 <add_schedule_parameter>add_schedule_parameter</add_schedule_parameter>
 <at_this_time>At this time</at_this_time>
-<max_hard_upload_rate>Upload bandwith</max_hard_upload_rate>
+<max_hard_upload_rate>Upload bandwidth</max_hard_upload_rate>
 <current_parameters>Current parameters</current_parameters>
-<max_hard_download_rate>Download bandwith</max_hard_download_rate>
-<bandwith>bandwith</bandwith>
+<max_hard_download_rate>Download bandwidth</max_hard_download_rate>
+<bandwith>bandwidth</bandwith>
 <USER_WEBDAV>Home Directory sharing trough Internet</USER_WEBDAV>
 <USER_WEBDAV_TEXT>Share the Home directory of this user using WebDav protocol.[br]WebDAV is a recently-developed protocol for connecting to a file server. It's easier and more secure than FTP</USER_WEBDAV_TEXT>
 <ACTIVATE_THIS_USER_WEBDAV>Activate HTTP remote access</ACTIVATE_THIS_USER_WEBDAV>
@@ -4669,24 +4669,24 @@ You can use this feature to provide a specific Proxy for servers which store rob
 <softwares_list>Softwares list</softwares_list>
 <softwares_list_text>Display softwares installed on your entire network.</softwares_list_text>
 <softwares_versions>Softwares versions</softwares_versions>
-<bandwith_limitation>Bandwith...</bandwith_limitation>
-<add_bandwith_rule>Add a new bandwith limitation rule</add_bandwith_rule>
-<delay_pool_param_net>Limit the bandwith to</delay_pool_param_net>
+<bandwith_limitation>bandwidth...</bandwith_limitation>
+<add_bandwith_rule>Add a new bandwidth limitation rule</add_bandwith_rule>
+<delay_pool_param_net>Limit the bandwidth to</delay_pool_param_net>
 <delay_pool_param_user_max>When an user download a file that exceed</delay_pool_param_user_max>
-<delay_pool_param_user_limit>Then limit the bandwith to</delay_pool_param_user_limit>
+<delay_pool_param_user_limit>Then limit the bandwidth to</delay_pool_param_user_limit>
 <edit_the_rule>Edit rule</edit_the_rule>
 <delete_rule>Delete rule</delete_rule>
 <time_restriction>Time restriction</time_restriction>
-<squid_band_time_restriction_text>Restrict the bandwith during a specific period of the week</squid_band_time_restriction_text>
-<squid_band_net_restriction_text>Set network scope of this bandwith rule</squid_band_net_restriction_text>
+<squid_band_time_restriction_text>Restrict the bandwidth during a specific period of the week</squid_band_time_restriction_text>
+<squid_band_net_restriction_text>Set network scope of this bandwidth rule</squid_band_net_restriction_text>
 <activate_rule>Activate the rule</activate_rule>
 <limit_computers_scope_to>Limit computers scope to</limit_computers_scope_to>
-<squid_band_www_restriction_text>Restrict bandwith for specific web domains</squid_band_www_restriction_text>
+<squid_band_www_restriction_text>Restrict bandwidth for specific web domains</squid_band_www_restriction_text>
 <give_internet_domain_name>Give the internet domain name: 
 eg www.facebook.com or .facebook.com or .facebook.</give_internet_domain_name>
 <by_file_type>By file type</by_file_type>
-<squid_band_file_restriction_text>Reduce the bandwith by file type</squid_band_file_restriction_text>
-<add_attachment_bandwith_text>Add file that reduce the bandwith when trying to download it</add_attachment_bandwith_text>
+<squid_band_file_restriction_text>Reduce the bandwidth by file type</squid_band_file_restriction_text>
+<add_attachment_bandwith_text>Add file that reduce the bandwidth when trying to download it</add_attachment_bandwith_text>
 <acl_file_type_add_popup>Set file extensions separated by a comma (eg : zip,iso,exe,pif,vbs,rar)</acl_file_type_add_popup>
 <NO_OCS_AGENT_INSTALLED_OR_NO_COMMUNICATION>It seems that this computer did have any OCS agent installed or OCS agent did not send it's inventory database</NO_OCS_AGENT_INSTALLED_OR_NO_COMMUNICATION>
 <PUBLISHER>Publisher</PUBLISHER>

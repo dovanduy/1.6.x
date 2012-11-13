@@ -175,8 +175,8 @@ function tabs(){
 	if($users->APP_UFDBGUARD_INSTALLED){
 		$array["rewrite-rules"]='{rewrite_rules}';
 	}
-	$array["section_basic_filters-bandwith"]='{bandwith_limitation_full}';
-	$array["section_basic_filters-time"]='{connection_time}';
+	//$array["section_basic_filters-bandwith"]='{bandwith_limitation_full}';
+	//$array["section_basic_filters-time"]='{connection_time}';
 	$array["section_basic_filters-terms"]='{terms_groups}';
 	
 	
@@ -427,7 +427,7 @@ function rules_toolbox_left(){
 			</table>
 		</td>
 	</tr>	
-
+	
 	<tr>
 		<td valign='top' width=1%><img src='img/script-32.png'></td>
 		<td valign='top' width=99%>

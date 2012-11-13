@@ -231,7 +231,7 @@ begin
          zlogs.Debuglogs('Already instance executed');
          halt(0);
     end;
-    XSETS.NightlyBuild();
+    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.nightly.php --force');
     halt(0);
  end;
 

@@ -440,6 +440,10 @@ function squid_status_stats(){
 	$categories=$catz->COUNT_CATEGORIES();
 	$categories=numberFormat($categories,0,""," ");
 	
+	$YourItems=$q->COUNT_CATEGORIES();
+	$YourItems=numberFormat($YourItems,0,""," ");
+	
+	
 	$tablescat=$q->LIST_TABLES_CATEGORIES();
 	$tablescatNUM=numberFormat(count($tablescat),0,""," ");
 
@@ -477,7 +481,10 @@ function squid_status_stats(){
 	$pref=round($ligne["pourc"]);	
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(sitename) as tcount FROM visited_sites WHERE LENGTH(category)=0"));
-	$websitesnumsNot=numberFormat($ligne["tcount"],0,""," ");	
+	$websitesnumsNot=numberFormat($ligne["tcount"],0,""," ");
+
+	$youtube_objects=$q->COUNT_ROWS("youtube_objects");
+	$youtube_objects=numberFormat($youtube_objects,0,""," ");
 	
 	$CachePermformance=$q->CachePerfHour();
 	if($CachePermformance>-1){
@@ -527,14 +534,26 @@ function squid_status_stats(){
 		
 	<tr>
 		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.visited.php')\"><b>$websitesnums</b> {visited_websites}</td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
+		OnClick=\"javascript:Loadjs('squid.visited.php')\"><b>$websitesnums</b> {visited_websites}</td>
 	</tr>	
+	
+	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
+		OnClick=\"javascript:Loadjs('miniadm.webstats.youtube.php?js=yes')\"><b>$youtube_objects</b> Youtube {objects}</td>
+	</tr>	
+	
+	
 	
 	<tr>
 		<td width=1%><img src='img/arrow-right-16.png'></td>
 		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.php')\"><b>$categories</b> {websites_categorized}$license_inactive</td>
 	</tr>
-	
+	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.php')\">{youritems}: <b>$YourItems</b></td>
+	</tr>	
 	<tr>
 		<td width=1%><img src='img/arrow-right-16.png'></td>
 		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"blur()\"><b>$PhishingURIS</b> {phishing_uris}</td>
@@ -587,21 +606,19 @@ function squid_status_stats(){
 	
 		
 	}
-
+	
+	$addwebsites="			<tr>
+				<td width=1%><img src='img/plus-16.png'></td>
+				<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
+				OnClick=\"javascript:Loadjs('squid.visited.php?add-www=yes')\"><b>{categorize_websites}</b></td>
+			</tr>	";
+	if($users->PROXYTINY_APPLIANCE ){$addwebsites=null;}
 $html="
 <table style='width:100%'>
 	<tbody>
 	$main_table	
 	$submenu
-	
-			<tr>
-				<td width=1%><img src='img/plus-16.png'></td>
-				<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('squid.visited.php?add-www=yes')\"><b>{categorize_websites}</b></td>
-			</tr>	
-	
-	
-	
+	$addwebsites
 	</tbody>
 	</table>
 ";

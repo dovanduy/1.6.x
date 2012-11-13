@@ -323,9 +323,20 @@ $q=new mysql_squid_builder();
 		$color="black";
 		$return_code_text=null;
 			
-			
+			$color="black";
 			if(preg_match('#(.+?)\s+(.+?)\s+squid\[.+?:\s+MAC:(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+\[(.+?)\]\s+\"([A-Z]+)\s+(.+?)\s+.*?"\s+([0-9]+)\s+([0-9]+)#i',$line,$re)){
-
+				$re[6]=trim($re[6]);
+				if($re[5]=="-"){
+					if( ($re[6]<>"-") && !is_null($re[6])){
+						$re[5]=$re[6];
+						$re[6]="-";
+					}	
+				}
+				
+			if(preg_match("#(TCP_DENIED|ERR_CONNECT_FAIL)#", $line)){
+					$color="#BA0000";
+				}	
+				
 				$uri=$re[9];
 				$date=date("Y-m-d H:i:s",strtotime($re[7]));
 				$mac=$re[3];
@@ -342,11 +353,22 @@ $q=new mysql_squid_builder();
 				if($host=="cache_object"){continue;}
 				$uri=str_replace($host, "<a href=\"javascript:blur()\" 
 				OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?today-zoom=yes&type=req&familysite=$host&day=$today');\" 
-				style='text-decoration:underline'>$host</a>", $uri);
+				style='text-decoration:underline;color:$color'>$host</a>", $uri);
+				
+				$spanON="<span style='color:$color'>";
+				$spanOFF="</span>";
+				
+				if($mac=="00:00:00:00:00:00"){$mac=null;}
+				if($mac<>null){
+					$mac="<a href=\"javascript:blur()\" 
+					OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&MAC=$mac');\" 
+					style='text-decoration:underline;color:$color'>$mac</a>";
+					
+				}
 				
 					$data['rows'][] = array(
 						'id' => md5($line),
-						'cell' => array($date, $proto,$uri.$return_code_text,"$ip ($mac/$user/$dom)")
+						'cell' => array("$spanON$date$spanOFF", "$spanON$proto$spanOFF","$spanON$uri.$return_code_text$spanOFF","$spanON$ip ($mac/$user/$dom)$spanOFF")
 					);					
 					
 					continue;
@@ -356,10 +378,21 @@ $q=new mysql_squid_builder();
 			
 			if(preg_match('#(.*?)\s+([0-9]+)\s+([0-9:]+).*?\]:\s+(.*?)\s+(.+)\s+(.+)\s+.+?"([A-Z]+)\s+(.+?)\s+.*?"\s+([0-9]+)\s+([0-9]+)#',$line,$re)){
 	
-				
+			if(preg_match("#(TCP_DENIED|ERR_CONNECT_FAIL)#", $line)){
+					$color="#BA0000";
+				}			
 				    $dates="{$re[1]} {$re[2]} ".date('Y'). " {$re[3]}";
 					$ip=$re[4];
 					$user=$re[5];
+					
+					$re[6]=trim($re[6]);
+					if($re[5]=="-"){
+						if( ($re[6]<>"-") && !is_null($re[6])){
+							$re[5]=$re[6];
+							$re[6]="-";
+						}	
+					}					
+					
 					$date=date("Y-m-d H:i:s",strtotime($dates));
 					$uri=$re[8];
 					$proto=$re[7];
@@ -369,11 +402,14 @@ $q=new mysql_squid_builder();
 					if($host=="cache_object"){continue;}
 				$uri=str_replace($host, "<a href=\"javascript:blur()\" 
 				OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?today-zoom=yes&type=req&familysite=$host&day=$today');\" 
-				style='text-decoration:underline'>$host</a>", $uri);					
+				style='text-decoration:underline;color:$color'>$host</a>", $uri);					
 
+				$spanON="<span style='color:$color'>";
+				$spanOFF="</span>";		
+				
 					$data['rows'][] = array(
 						'id' => md5($line),
-						'cell' => array($date, $proto,$uri.$return_code_text,"$ip ($user)")
+						'cell' => array("$spanON$date$spanOFF", "$spanON$proto$spanOFF","$spanON$uri.$return_code_text$spanOFF","$spanON$ip ($user)$spanOFF")
 					);					
 					
 					continue;

@@ -3,6 +3,7 @@ $GLOBALS["VERBOSE"]=false;
 $GLOBALS["DEBUG"]=false;;
 $GLOBALS["FORCE"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__) . '/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__) . '/ressources/class.sockets.inc');
@@ -23,8 +24,8 @@ if($argv[1]=='--rsylogd'){rsyslog_check_includes();die();}
 
 if(!$GLOBALS["FORCE"]){
 	if(system_is_overloaded(basename(__FILE__))){
-		WriteMyLogs("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__);
-		writelogs("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting","MAIN",__FILE__,__LINE__);
+		system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");
+		system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");
 		die();
 	}
 }
@@ -41,23 +42,23 @@ if($argv[1]=='--haproxy'){haproxy_events();die();}
 
 if($argv[1]=='--auth-logs'){
 		authlogs();
-		if(system_is_overloaded(basename(__FILE__))){writelogs("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting","MAIN",__FILE__,__LINE__);die();}
+		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		sessions_logs();
-		if(system_is_overloaded(basename(__FILE__))){writelogs("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting","MAIN",__FILE__,__LINE__);die();}
+		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		ipblocks();
-		if(system_is_overloaded(basename(__FILE__))){writelogs("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting","MAIN",__FILE__,__LINE__);die();}
+		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		clamd_mem();
-		if(system_is_overloaded(basename(__FILE__))){writelogs("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting","MAIN",__FILE__,__LINE__);die();}
+		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		admin_logs();
-		if(system_is_overloaded(basename(__FILE__))){writelogs("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting","MAIN",__FILE__,__LINE__);die();}
+		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		crossroads();
-		if(system_is_overloaded(basename(__FILE__))){writelogs("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting","MAIN",__FILE__,__LINE__);die();}
+		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		udfbguard_admin_events();
-		if(system_is_overloaded(basename(__FILE__))){writelogs("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting","MAIN",__FILE__,__LINE__);die();}
+		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		dhcpd_logs();
-		if(system_is_overloaded(basename(__FILE__))){writelogs("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting","MAIN",__FILE__,__LINE__);die();}
+		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		system_admin_events_checks();
-		if(system_is_overloaded(basename(__FILE__))){writelogs("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting","MAIN",__FILE__,__LINE__);die();}
+		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		haproxy_events();
 		die();
 }
@@ -90,13 +91,18 @@ if($time<5){die();}
 @unlink($timefile);
 @file_put_contents($timefile, time());
 
+
+udfbguard_admin_events();
+admin_logs();
+if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
+ps_mem(true);
 authlogs();
+if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 sessions_logs();
 ipblocks();
+if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 clamd_mem();
-admin_logs();
 crossroads();
-udfbguard_admin_events();
 dhcpd_logs();
 die();
 
@@ -699,12 +705,22 @@ function system_admin_events_checks($nopid=false){
 		
 	}	
 	
+	// removed : foreach (glob("/var/log/artica-postfix/system_admin_events/*") as $filename) {
+	$BaseWorkDir="/var/log/artica-postfix/system_admin_events";
+	if (!$handle = opendir($BaseWorkDir)) {
+		echo "Failed open $BaseWorkDir\n";
+		return;
+	}
+	
 	$q=new mysql();	
 	$q->BuildTables();
 	if(!$q->TABLE_EXISTS('system_admin_events','artica_events',true)){return;}
 	$prefix="INSERT IGNORE INTO system_admin_events (`zDate`,`function`,`filename`,`line`,`description`,`category`,`TASKID`) VALUES ";
-	foreach (glob("/var/log/artica-postfix/system_admin_events/*") as $filename) {
-		$array=unserialize(@file_get_contents($filename));
+	while (false !== ($filename = readdir($handle))) {
+			if($filename=="."){continue;}
+			if($filename==".."){continue;}
+			$targetFile="$BaseWorkDir/$filename";
+		$array=unserialize(@file_get_contents($BaseWorkDir));
 		if(!is_array($array)){
 			$array["text"]=basename($filename)." is not an array, skip event ".@file_get_contents($filename);
 			$array["date"]=date('Y-m-d H:i:s');
@@ -726,7 +742,7 @@ function system_admin_events_checks($nopid=false){
 		
 		WriteMyLogs("system_admin_events:{$array["function"]}/{$array["file"]}: Task  `{$array["TASKID"]}` ". strlen("{$array["text"]}")."bytes",__FUNCTION__,__FILE__,__LINE__);
 		$f[]="('{$array["zdate"]}','{$array["function"]}','{$array["file"]}','{$array["line"]}','{$array["text"]}','{$array["category"]}','{$array["TASKID"]}')";
-		@unlink($filename);
+		@unlink($targetFile);
 	}
 	
 	if(count($f)>0){$sql=$prefix.@implode(",", $f);

@@ -43,7 +43,7 @@ function bigbuild(){
 
 
 function build(){
-
+if(!function_exists("IsPhysicalAddress")){include_once(dirname(__FILE__)."/ressources/class.templates.inc");}
 $unix=new unix();
 $file_duration="/etc/squid3/squid.durations.ini";
 $file_quotas_day="/etc/squid3/squid.quotasD.ini";
@@ -101,13 +101,25 @@ while ($ligne = mysql_fetch_assoc($results)) {
 	$array["MAC"][$ligne["MAC"]]=$ligne["size"];
 }
 @file_put_contents($file_quotas_hour, serialize($array));
+$array=array();
+	$q=new mysql_squid_builder();
+	$sql="SELECT * FROM webfilters_nodes WHERE LENGTH(uid)>1";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		if($ligne["MAC"]=="00:00:00:00:00:00"){continue;}
+		if(!IsPhysicalAddress($ligne["MAC"])){continue;}
+		if($GLOBALS["VERBOSE"]){echo "{$ligne["MAC"]} = {$ligne["uid"]}\n";}
+		$array[$ligne["MAC"]]=$ligne["uid"];
+	}
+
 
 $q=new mysql();
 $sql="SELECT MacAddress, uid FROM hostsusers";
 $results = $q->QUERY_SQL($sql,"artica_backup");	
-$array=array();
+
 while ($ligne = mysql_fetch_assoc($results)) {
 	$mac=strtolower(trim($ligne["MacAddress"]));
+	if(!IsPhysicalAddress($mac)){continue;}
 	$uid=strtolower(trim($ligne["uid"]));
 	$array[$mac]=$uid;
 	}

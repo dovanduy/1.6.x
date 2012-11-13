@@ -1,7 +1,7 @@
 <?php
 include_once(dirname(__FILE__)."/frame.class.inc");
 
-
+if(isset($_GET["empty-database"])){database_empty();exit;}
 
 if(isset($_GET["dump-database"])){database_list();exit;}
 function database_list(){
@@ -44,6 +44,27 @@ function database_list(){
 	@chmod($inc_file,0755);
 	
 	
+}
+
+function database_empty(){
+	$hostname=$_GET["hostname"];
+	if($hostname==null){$hostname="master";}
+	if($hostname=="master"){
+		$d[]="/var/milter-greylist/greylist.db";
+		$d[]="/usr/share/artica-postfix/ressources/logs/mgrelist-db.inc";
+	}
+	if($hostname<>"master"){
+		$d[]="/var/milter-greylist/$hostname/greylist.db";
+		$d[]="/usr/share/artica-postfix/ressources/logs/mgrelist-{$_GET["hostname"]}.inc";
+	}
+	$d[]="/usr/share/artica-postfix/ressources/logs/greylist-count-$hostname.tot";
+	$d[]="/usr/share/artica-postfix/ressources/logs/mgrelist-$hostname.inc";
+	while (list ($num, $line) = each ($d) ){
+		if(is_file($line)){@unlink($line);}
+	}
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup /etc/init.d/artica-postfix restart mgreylist >/dev/null 2>&1 &");
 }
 
 ?>

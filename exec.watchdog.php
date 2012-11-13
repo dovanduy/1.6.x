@@ -51,6 +51,7 @@ function startprocess($APP_NAME,$cmd){
 	
 }
 function bandwith(){
+	return;
 	$sock=new sockets();
 	$EnableBandwithCalculation=$sock->GET_INFO("EnableBandwithCalculation");
 	if(!is_numeric($EnableBandwithCalculation)){$EnableBandwithCalculation=0;}

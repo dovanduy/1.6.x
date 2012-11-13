@@ -43,27 +43,27 @@ Refresh web page or check events in order to display task status.</install_app>
 <web_interface>Web interface</web_interface>
 <access_to_web_administration_interface>Access to the web administration interface</access_to_web_administration_interface>
 <Q.O.S>Quality of Service</Q.O.S>
-<qos_intro>Define bandwith limitations and rates in order to manage network services priorities</qos_intro>
+<qos_intro>Define bandwidth limitations and rates in order to manage network services priorities</qos_intro>
 <add_qos_service>Add a new QOS service</add_qos_service>
 <add_qos_service_text>Add a new QOS service based on your interface card.</add_qos_service_text>
 <add_qos_service_explain>This form will add a QOS service on your network card.[br]
 The selected network card will be hooked by the QOS service in order to adjust bandwith</add_qos_service_explain>
-<nic_bandwith>Network Card bandwith</nic_bandwith>
+<nic_bandwith>Network Card bandwidth</nic_bandwith>
 <qos_service_name>QOS service name</qos_service_name>
-<new_bandwith>new bandwith</new_bandwith>
-<qos_new_bandwith_container>Add a bandwith container based on the main service</qos_new_bandwith_container>
+<new_bandwith>new bandwidth</new_bandwith>
+<qos_new_bandwith_container>Add a bandwidth container based on the main service</qos_new_bandwith_container>
 <qos_class_explain>Define this container. You can create network rules based on sources or destinations that will be limited by this container.[br]
 You can add an "over" value. This defines the overboost if the rule exceed the defined bandwith</qos_class_explain>
 <qos_class_name>Container name</qos_class_name>
 <containers>Containers</containers>  
 <qos_over>Overboost</qos_over>
 <add_to_left_menu>Add to the left menu</add_to_left_menu>
-<qos_class_delete_confirm>Are you sure to delete this bandwith container ?
+<qos_class_delete_confirm>Are you sure to delete this bandwidth container ?
 All firewall rules associated to this container will be removed.</qos_class_delete_confirm>
 <destination_port>Destination port</destination_port>
 <source_port>source port</source_port>
 <delete_service>Delete this service</delete_service>
-<qos_service_delete_confirm>Are you sure to delete this bandwith service ?
+<qos_service_delete_confirm>Are you sure to delete this bandwidth service ?
 All containers and firewall rules associated to this service will be removed.</qos_service_delete_confirm>
 <qos_artica_explain>This section manage the Q.O.S service.[br]You need to change the gateway parameter on your workstations/servers TCP/IP settings section.[br]
 Point the gateway address it to this Artica server.[br]

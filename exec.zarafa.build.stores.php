@@ -7,9 +7,11 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
+$GLOBALS["FORCE"]=false;
 $GLOBALS["NOMAIL"]=false;
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["FORCE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--nomail#",implode(" ",$argv))){$GLOBALS["NOMAIL"]=true;}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 
 
@@ -18,13 +20,17 @@ if($argv[1]=="--relink-to"){relinkto($argv[2],$argv[3]);exit;}
 if(system_is_overloaded(basename(__FILE__))){echo "Overloaded, die()";die();}
 if($argv[1]=="--orphans"){orphans();die();}
 if($argv[1]=="--emergency"){emergency_user($argv[2]);die();}
-if($argv[1]=="--export-hash"){export_hash();die();}
+if($argv[1]=="--export-hash"){user_status_table();die();}
 if($argv[1]=="--view-hash"){view_hash();die();}
 if($argv[1]=="--config"){config();die();}
 if($argv[1]=="--ldap-config"){ldap_config();die();}
 if($argv[1]=="--exoprhs"){export_orphans();die();}
 if($argv[1]=="--remove-database"){remove_database();exit;}
 if($argv[1]=="--yaffas"){yaffas();exit;}
+if($argv[1]=="--users-status"){user_status_table();exit;}
+
+
+
 
 
 die();
@@ -66,6 +72,9 @@ $q->BuildTables();
 $q->QUERY_SQL("TRUNCATE TABLE `zarafa_orphaned`","artica_backup");
 $zarafaadmin=$unix->find_program("zarafa-admin");
 exec("$zarafaadmin --list-orphans 2>&1",$array);
+
+
+
 while (list ($index, $line) = each ($array) ){
 	$store=null;
 	
@@ -126,6 +135,7 @@ while (list ($index, $line) = each ($array) ){
 
 	
 	@file_put_contents("/tmp/zarafa.scan.txt", @implode("\n", $array)."\n".@implode("\n", $arraylo));
+	user_status_table();
 }
 
 
@@ -212,55 +222,6 @@ function emergency_user($uid){
 	
 }
 
-
-function export_hash(){
-	
-	
-	
-	$unix=new unix();
-	$time=$unix->file_time_min("/etc/artica-postfix/zarafa-export.db");
-	
-	if($time<240){$unix->events(basename(__FILE__).": /etc/artica-postfix/zarafa-export.db $time Minutes < 240 aborting...");return;}
-	
-	
-	
-	$pidfile="/etc/artica-postfix/cron.2/".basename(__FILE__).".".__FUNCTION__.".pid";
-	if($unix->process_exists(@file_get_contents($pidfile,basename(__FILE__)))){
-		$unix->events(basename(__FILE__).":Already executed, aborting");
-		return;
-	}
-	@file_get_contents($pidfile,getmypid());
-	
-	
-	
-	$GLOBALS["zarafa_admin"]=$unix->find_program("zarafa-admin");
-	if(!is_file($GLOBALS["zarafa_admin"])){return;}
-	$companies=array();
-	
-	exec("{$GLOBALS["zarafa_admin"]} --list-companies 2>&1",$results);
-	while (list ($index, $line) = each ($results) ){
-		if($line==null){continue;}
-		if(preg_match("#------#",$line)){continue;}
-		if(preg_match("#companyname#",$line)){continue;}
-		if(preg_match("#list\s+\(#",$line)){continue;}
-		if(preg_match("#\s+(.+?)\s+(.+?)$#",$line,$re)){
-			$companies[$re[1]]["ADMIN"]=$re[2];
-		}
-		
-		
-	}
-	
-	if(!is_array($companies)){return;}
-	while (list ($company, $array) = each ($companies) ){
-		$companies[$company]["USERS"]=export_hash_users($company);
-		
-	}
-	
-	@unlink("/etc/artica-postfix/zarafa-export.db");
-	@file_put_contents("/etc/artica-postfix/zarafa-export.db",base64_encode(serialize($companies)));
-	
-	
-}
 
 function view_hash(){
 	
@@ -596,12 +557,15 @@ function remove_database(){
 		echo "Failed to locate $MYSQL_DATA_DIR\n";
 		return;
 	}
-	
+	echo "Starting zarafa..............: remove $MYSQL_DATA_DIR/ib_logfile*\n";
 	shell_exec("/bin/rm -f $MYSQL_DATA_DIR/ib_logfile*");
 	shell_exec("/bin/rm -f $MYSQL_DATA_DIR/ibdata*");
+	echo "Starting zarafa..............: remove $MYSQL_DATA_DIR/zarafa*\n";
 	shell_exec("/bin/rm -rf $MYSQL_DATA_DIR/zarafa");
+	echo "Starting zarafa..............: restart MySQL\n";
 	shell_exec("/etc/init.d/artica-postfix restart mysql >/tmp/zarafa_removedb 2>&1");
-	shell_exec("/etc/init.d/artica-postfix restart zarafa-server >>/tmp/zarafa_removedb 2>&1");
+	echo "Starting zarafa..............: restart Zarafa server\n";
+	shell_exec("/etc/init.d/zarafa-server restart >>/tmp/zarafa_removedb 2>&1");
 	
 	$unix->send_email_events("Success removing zarafa databases", 
 	"removed $MYSQL_DATA_DIR/ib_logfile*\nremoved $MYSQL_DATA_DIR/ibdata*\nremoved $MYSQL_DATA_DIR/zarafa\n\n".@file_get_contents("/tmp/zarafa_removedb"), "mailbox");
@@ -668,6 +632,112 @@ function relinkto($from,$to){
 		system_admin_events("hook store $storeid for $from to public folder of $to:\n".@implode("\n", $results), __FUNCTION__, __FILE__, __LINE__, "zarafa");
 	}
 
+}
+
+function user_status_table(){
+	$unix=new unix();
+	$timefile="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$mns=$unix->file_time_min($timefile);
+	if(!$GLOBALS["FORCE"]){
+		if($mns<180){return;}
+		@unlink($timefile);
+		@file_put_contents($timefile, time());
+	}
+	
+
+	
+	
+	$zarafaadmin=$unix->find_program("zarafa-admin");	
+	exec("$zarafaadmin -l 2>&1",$results);
+	while (list ($num, $line) = each ($results) ){
+		$line=trim($line);
+		if(preg_match("#User list for\s+(.+?)\(#i",$line,$re)){$ou=$re[1];continue;}
+		if(preg_match("#Username#", $line)){continue;}
+		if(preg_match("#SYSTEM#", $line)){continue;}
+		if(preg_match("#^(.+?)\s+.+?#", $line,$re)){
+			$array[$ou][$re[1]]=_user_status_table_info($re[1],$zarafaadmin);
+		}
+	}
+	
+	$q=new mysql();
+
+	if(!$q->TABLE_EXISTS('zarafauserss','artica_events')){	
+		$sql="CREATE TABLE IF NOT EXISTS `zarafauserss` (
+			  `zmd5` varchar(90) NOT NULL PRIMARY KEY,
+			  `uid` varchar(128) NOT NULL,
+			  `ou` varchar(128) NOT NULL,
+			  `mail` varchar(255) NOT NULL,
+			  `license` TINYINT(1) NOT NULL,
+			  `NONACTIVETYPE` varchar(60) NOT NULL,
+			  `storesize` INT(100) NOT NULL,
+			  KEY `uid` (`uid`),
+			  KEY `ou` (`ou`),
+			  KEY `mail` (`mail`),
+			  KEY `license` (`license`),
+			  KEY `NONACTIVETYPE` (`NONACTIVETYPE`),
+			  KEY `storesize` (`storesize`)
+			) ";
+		$q->QUERY_SQL($sql,'artica_events');	
+		if(!$q->ok){echo $q->mysql_error."\n";return;}	
+		
+	}
+		
+		$prefix="INSERT IGNORE INTO zarafauserss (zmd5,uid,ou,mail,license,NONACTIVETYPE,storesize) VALUES ";
+		while (list ($ou, $members) = each ($array) ){	
+			while (list ($uid, $main) = each ($members) ){	
+				$md5=md5("$uid$ou");
+				$f[]="('$md5','$uid','$ou','{$main["MAIL"]}','{$main["ACTIVE"]}','{$main["NONACTIVETYPE"]}','{$main["STORE_SIZE"]}')";
+			}	
+				
+		}
+			
+		
+	if(count($f)==0){return;}
+		
+	$q->QUERY_SQL("TRUNCATE TABLE zarafauserss","artica_events");
+	$q->QUERY_SQL($prefix.@implode(",", $f),"artica_events");
+	if(!$q->ok){echo $q->mysql_error."\n";}
+	
+}
+
+function _user_status_table_info($uid,$zarafaadmin){
+	
+	
+	
+	$array=array();
+	if($GLOBALS["VERBOSE"]){echo "$zarafaadmin --details \"$uid\" 2>&1\n";}
+	exec("$zarafaadmin --details \"$uid\" 2>&1",$results);
+	while (list ($num, $line) = each ($results) ){
+		if(preg_match("#Emailaddress:\s+(.+)#", $line,$re)){$array["MAIL"]=trim($re[1]);continue;}
+		if(preg_match("#Active:\s+(.+)#i", $line,$re)){
+			$res=0;
+			$active=trim(strtolower($re[1]));
+			if($GLOBALS["VERBOSE"]){echo "$uid: Active: $active\n";}
+			if(is_numeric($active)){$res=$active;}else{if($active=="yes"){$res=1;}}
+			if($GLOBALS["VERBOSE"]){echo "$uid: Active: $res\n";}
+			$array["ACTIVE"]=$res;continue;
+		}
+		
+		if(preg_match("#Non-active type:\s+(.+)#i", $line,$re)){
+			$array["NONACTIVETYPE"]=trim($re[1]);continue;
+		}
+		
+		if(preg_match("#Current store size:\s+([0-9\.]+)\s+([A-Z]+)#i", $line,$re)){
+			$size=trim($re[1]);
+			$unit=trim($re[2]);
+			if($unit=="MB"){$size=$size*1000;$size=$size*1024;$unit="B";}
+			if($unit=="KB"){$size=$size*1024;$unit="B";}
+			if($unit=="GB"){$size=$size*1000;$size=$size*1000;$size=$size*1024;}
+			$array["STORE_SIZE"]=$size;continue;
+		}
+		
+
+	}
+
+	
+return $array;	
+	
+	
 }
 
 

@@ -768,6 +768,7 @@ end;
 
 ZarafaServerSMTPIP:=trim(SYS.GET_INFO('ZarafaServerSMTPIP'));
 if length(ZarafaServerSMTPIP)=0 then ZarafaServerSMTPIP:='127.0.0.1';
+if(ZarafaServerSMTPIP='0.0.0.0' then ZarafaServerSMTPIP:='127.0.0.1';
 ZarafaStoreOutsidePath:=trim(SYS.GET_INFO('ZarafaStoreOutsidePath'));
 
 
@@ -1007,7 +1008,7 @@ l.free;
  // /etc/zarafa/gateway.cfg
 l:=Tstringlist.Create;
 l.add('server_bind	=	'+ZarafaGatewayBind);
-l.add('server_socket	=	http://localhost:236/zarafa');
+l.add('server_socket	=	http://'+ZarafaServerListenIP+':236/zarafa');
 l.add('run_as_user = root');
 l.add('run_as_group = root');
 l.add('pid_file = /var/run/zarafa-gateway.pid');

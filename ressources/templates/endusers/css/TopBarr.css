@@ -432,3 +432,75 @@ line-height:13px !important;
 	min-height:79px;
 	line-height:13px !important;
 }
+
+#calendrier {
+	width:99%;
+}
+#calendrier table{
+	border-collapse:collapse;
+	width:100%;
+}
+#calendrier th{
+	border-top:1px solid;
+	border-bottom:1px solid #000000;
+}
+#calendrier th.mois{
+	padding:3px;
+}
+
+#calendrier th.mois a{
+}
+
+#calendrier th.semaine{
+	border-bottom:1px solid;
+}
+
+#calendrier th.jour{
+
+}
+#calendrier td{
+
+	text-align:center;
+	border-top:1px solid #000000;
+	border-bottom:1px solid #000000;
+	
+	font-weight:bold;
+}
+#calendrier td.today{
+	background-color:#2682AF;
+	color:white;
+}
+#calendrier td.inactif{
+	font-style:italic;
+	color:#999999;
+}
+#calendrier td.event{
+	background-color:#1595D3;
+	color:white !important;
+}
+#calendrier_events{
+	background-color:#FFFF99;
+}
+#calendrier_events .event{
+	margin:2px;
+	padding:2px;
+}
+#calendrier td.event a {
+    border-bottom: 2px solid;
+    color:white !important;
+    text-decoration: none;
+}
+
+.tableView thead th.checkBoxCell,
+.tableView tbody td.checkBoxCell { padding: 0px 5px 0px 10px; width: 13px; }
+.tableView thead td,
+.tableView thead th { height: 23px; border-bottom: 1px #b1b1b1 solid; padding: 0px 5px 0px 10px; }
+.tableView thead tr { background: transparent url( /ressources/templates/default/img/thead_bg.jpg ) repeat-x left bottom;}
+.tableView thead a { color: #000000; text-decoration: none; }
+.tableView tbody tr { background-color: #ffffff; }
+.tableView tbody tr.oddRow { background-color: #fafafa; }
+.tableView tbody td {border-bottom: 1px #d5d5d5 solid; height:41px;padding: 0px 5px 0px 10px;  }
+.tableView .checkBoxCell input { margin: 0px; padding: 0px; display: block; width: 13px; height: 13px; }
+.tableView thead span, .tableView thead a { cursor: pointer; text-shadow: #fff 1px 1px 0px; }
+.tableView { width: 100%;}
+.tableView thead th { text-align: left; font-weight: normal; font-size: 11px; }

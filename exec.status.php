@@ -885,7 +885,7 @@ function launch_all_status($force=false){
 	
 	if(is_dir("/etc/resolvconf")){
 		if(!is_file("/etc/resolvconf/resolv.conf.d/base")){
-			$cmd=trim("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.virtuals-ip.php --resolvconf");
+			$cmd=trim("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.virtuals-ip.php --resolvconf >/dev/null 2>&1");
 			events($cmd);
 			shell_exec($cmd);
 		}
@@ -988,7 +988,7 @@ function launch_all_status($force=false){
 	}
 	
 	if(is_file(dirname(__FILE__)."/exec.cache.pages.php")){
-		$cmd=trim("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.cache.pages.php");
+		$cmd=trim("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.cache.pages.php >/dev/null 2>&1 &");
 		events($cmd);
 		shell_exec($cmd);		
 	}
@@ -1099,7 +1099,11 @@ function articadb(){
 	$EnableWebProxyStatsAppliance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableRemoteStatisticsAppliance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableRemoteStatisticsAppliance");
 	$DisableArticaProxyStatistics=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableArticaProxyStatistics");
+	if(is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){$DisableArticaProxyStatistics=1;$GLOBALS["CLASS_SOCKETS"]->SET_INFO("DisableArticaProxyStatistics",1);}
 	if(is_file('/etc/artica-postfix/WEBSTATS_APPLIANCE')){$EnableWebProxyStatsAppliance=1;}
+	
+	
+	
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=1;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
@@ -2189,8 +2193,10 @@ function ufdbguardd(){
 	
 	
 	if(!is_file("/etc/artica-postfix/ufdbfirst")){
-		ufdbguard_admin_events("Launching first updates of Ufdbguard databases",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
-		shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.blacklists.php --ufdb-first >/dev/null 2>&1 &");	
+		if(!is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){
+			ufdbguard_admin_events("Launching first updates of Ufdbguard databases",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.blacklists.php --ufdb-first >/dev/null 2>&1 &");
+		}	
 	}
 	
 
@@ -2802,7 +2808,9 @@ function syslogger(){
 	$l[]="family=system";
 	$l[]="pid_path=$pid_path";
 	
-	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.syslog-engine.php >/dev/null 2>&1 &");
+	
+	$size=$GLOBALS["CLASS_UNIX"]->file_size("/usr/share/artica-postfix/ressources/logs/php.log");
+	if($size>104857600){@unlink("/usr/share/artica-postfix/ressources/logs/php.log");}
 	
 	
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
@@ -3030,6 +3038,7 @@ function lighttpd(){
 }
 //========================================================================================================================================================
 function boa(){
+	return;
 	if(is_dir("/opt/artica-agent/usr/share/artica-agent")){return;}
 	$pid_path="/etc/artica-postfix/boa.pid";
 	$master_pid=trim(@file_get_contents($pid_path));
@@ -6546,11 +6555,13 @@ function zarafa_licensed(){
 //========================================================================================================================================================
 function zarafa_indexer(){
 
-	if(!$GLOBALS["CLASS_USERS"]->ZARAFA_INSTALLED){
+	if(!$GLOBALS["CLASS_USERS"]->ZARAFA_INDEXER_INSTALLED){
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__." not installed\n";}
 		return null;
 	}
-
+	$binpath=$GLOBALS["CLASS_UNIX"]->find_program("zarafa-indexer");
+	if(!is_file($binpath)){return;}
+	
 	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableZarafaIndexer");
 	if(!is_numeric($enabled)){$enabled=0;}
 	$pid_path="/var/run/zarafa-indexer.pid";
@@ -7440,9 +7451,17 @@ function openvpn(){
 function vnstat(){
 	if(!$GLOBALS["CLASS_USERS"]->APP_VNSTAT_INSTALLED){return;}
 	$bin_path=$GLOBALS["CLASS_UNIX"]->find_program("vnstatd");
+	if(!is_file($bin_path)){return;}
 	$EnableVnStat=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableVnStat");
-	if($EnableVnStat==null){$EnableVnStat=1;}
-	if($GLOBALS["CLASS_USERS"]->LIGHT_INSTALL){if($EnableVnStat==1){$GLOBALS["CLASS_SOCKETS"]->SET_INFO("EnableVnStat",0);$EnableVnStat=0;}
+	if(!is_numeric($EnableVnStat)){$EnableVnStat=1;}
+	if($GLOBALS["VERBOSE"]){echo "EnableVnStat = $EnableVnStat\n";}
+	
+	if($GLOBALS["CLASS_USERS"]->LIGHT_INSTALL){
+		if($EnableVnStat==1){
+			$GLOBALS["CLASS_SOCKETS"]->SET_INFO("EnableVnStat",0);
+			$EnableVnStat=0;
+		}
+	}
 	$master_pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pid_path);
 	
 	$pid_path="/var/run/vnstat.pid";
@@ -7455,10 +7474,16 @@ function vnstat(){
 	//$l[]="remove_cmd=--pureftpd-remove";
 	$l[]="family=network";
 	$l[]="watchdog_features=1";
+	
+	
 	if($EnableVnStat==0){
-		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){shell_exec("{$GLOBALS["KILLBIN"]} -9 $master_pid >/dev/null 2>&1");}
-		return implode("\n",$l);return;}
+		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+			shell_exec("{$GLOBALS["KILLBIN"]} -9 $master_pid >/dev/null 2>&1");
+		}
+	
+		return implode("\n",$l);
 	}
+	
 
 	
 
@@ -8071,12 +8096,7 @@ function events_Loadavg($text,$function=null,$line=0){
 }
 
 function bandwith(){
-	$EnableBandwithCalculation=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableBandwithCalculation");
-	if(!is_numeric($EnableBandwithCalculation)){$EnableBandwithCalculation=0;}
-	if($EnableBandwithCalculation==0){return;}
-	$cmd=trim("{$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.watchdog.php --bandwith >/dev/null 2>&1 &");
-	events($cmd,__FUNCTION__,__LINE__);
-	shell_exec($cmd);
+	return;
 }
 
 function phpmyadmin_perms(){

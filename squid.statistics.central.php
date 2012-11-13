@@ -105,14 +105,23 @@ function central_information(){
 	$tpl=new templates();	
 
 	$tr[]=Paragraphe32("old_statistics_interface", "old_statistics_interface_text", "SquidQuickLinks();", "status_statistics-22.png");
+	$tr[]=Paragraphe32("new_statistics_interface", "new_statistics_interface_text", "s_PopUpFull('http://proxy-appliance.org/index.php?cID=326',1024,768,'Statistics');",
+	 "help-32.png");
+$tr[]=Paragraphe32("proxy_statistics_interface", "proxy_statistics_interface_text", 
+	"document.location.href='logoff.php?goto=miniadm.logon.php';",
+	 "link-32.png");
+		
 	
-	$table=CompileTr3($tr,true);	
+	
+	
+	$table=CompileTr2($tr,true);	
 	
 	$html="
 	<div style='font-size:18px'>{SQUID_STATS}</div>
 	<div id='graph1-$t'></div>
-	<div style='margin-top:15px'>$table</div>
-	
+	<center>
+	<div style='margin-top:15px;width:80%'>$table</div>
+	</center>
 	<script>
 		LoadAjax('info-gene-$t','squid.traffic.statistics.php?squid-status-stats=yes');
 		LoadAjax('graph1-$t','$page?graphique_heure=yes');

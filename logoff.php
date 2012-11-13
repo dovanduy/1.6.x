@@ -202,11 +202,15 @@ while (list ($num, $ligne) = each ($_SESSION) ){
 }
 
 session_destroy();
+$URL="logon.php";
+if(isset($_GET["goto"])){
+$URL=$_GET["goto"];	
+}
 
 echo "
 <html>
 <head>
-<META HTTP-EQUIV=\"Refresh\" CONTENT=\"0; URL=logon.php\"> 
+<META HTTP-EQUIV=\"Refresh\" CONTENT=\"0; URL=$URL\"> 
 	<link href='css/styles_main.css' rel=\"styleSheet\" type='text/css' />
 	<link href='css/styles_header.css' rel=\"styleSheet\" type='text/css' />
 	<link href='css/styles_middle.css' rel=\"styleSheet\" type='text/css' />

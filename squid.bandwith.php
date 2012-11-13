@@ -20,6 +20,8 @@
 	
 	if(isset($_GET["js"])){js();exit;}
 
+	if(isset($_POST["choose-acl-rule"])){browse_acl_rule_save();exit;}
+	
 	if(isset($_GET["BandExplainRuleClass"])){bandwith_rule_class_explain();exit;}
 	if(isset($_GET["rules"])){rules_popup();exit;}
 	if(isset($_GET["rules-add"])){rules_add();exit;}
@@ -40,7 +42,8 @@
 	
 	if(isset($_GET["bandwith-rule-pobjects"])){acl_net_pobjects();exit;}
 	if(isset($_GET["acl-group-add"])){acl_net_pobjects_add();exit;}
-	
+	if(isset($_GET["by-acls-js"])){byacls_js();exit;}
+	if(isset($_GET["browser-acl-js"])){browser_acl_js();exit;}
 	
 	
 	
@@ -76,10 +79,40 @@
 	
 popup();
 
+function byacls_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{bandwith_limitation_full}");
+	echo "YahooWinS('650','$page?by-acls=yes&table-source={$_GET["t"]}','$title')";
+	
+}
+function browser_acl_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{browse}&raquo;{bandwith_limitation_full}");
+	echo "YahooWinS('650','$page?by-acls=yes&table-source={$_GET["t"]}&choose=yes&aclruleid={$_GET["aclruleid"]}','$title')";	
+	
+}
+
 function js(){
 	
 	$page=CurrentPageName();
 	echo "$('#BodyContent').load('$page');";
+}
+
+function browse_acl_rule_save(){
+	$q=new mysql_squid_builder();
+	$ID=$_POST["ID"];
+	$aclname=$_POST["aclname-save"];
+	
+	if($ID<0){
+		$sql="INSERT INTO webfilters_sqacls (aclname,enabled) VALUES ('$aclname',1)";
+	}
+	
+	$q->CheckTables();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}	
+	
 }
 
 function bandwith_rule_js(){
@@ -88,6 +121,7 @@ function bandwith_rule_js(){
 	$ID=$_GET["ID"];
 	$t=$_GET["t"];
 	if(!is_numeric($ID)){$ID=0;}
+	if(isset($_GET["by-acls"])){$byacl="&by-acls=yes";}
 	
 	if($ID>0){
 		$q=new mysql();
@@ -100,11 +134,12 @@ function bandwith_rule_js(){
 	
 	
 	$title=$tpl->_ENGINE_parse_body(utf8_encode($title));
-	$html="YahooWin('750','$page?bandwith-rule-tabs=yes&ID=$ID&t=$t','$title');";
+	$html="YahooWin('750','$page?bandwith-rule-tabs=yes&ID=$ID&t=$t$byacl','$title');";
 	echo $html;		
 }
 function bandwith_rule_class_explain(){
 	$classid=$_GET["BandExplainRuleClass"];
+	if($classid==0){return;}
 	$rules_class_explains[1]="{delay_class_1}";
 	$rules_class_explains[2]="{delay_class_2}";
 	$rules_class_explains[3]="{delay_class_3}";
@@ -139,9 +174,14 @@ function bandwith_rule_tabs(){
 	$array["files"]="{by_file_type}";
 	$array["time"]="{time_restriction}";
 	
-	$fontsize=14;
+	if(isset($_GET["by-acls"])){
+		unset($array);
+		$array["parameters"]="{parameters}";
+		
+	}
 	
-	$t=time();
+	$fontsize=14;
+	if(!is_numeric($t)){$t=time();}
 	while (list ($num, $ligne) = each ($array) ){
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?bandwith-rule-$num=$t&ID=$ID&t=$t\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 	}
@@ -223,21 +263,34 @@ function bandwith_rules_list(){
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
 	
 
-		//<td>". Paragraphe("bandwith-limit-64.png","{$ligne["rulename"]}","$text","javascript:SquidBandRightPanel('{$ligne["ID"]}')")."</td>
-	
+	$byacl=false;
+	if(isset($_GET["by-acls"])){$byacl=true;$byaclToken="&by-acls=yes";}
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=$ligne["ID"];
 		$md5=md5($ligne["ID"]);
 		$ligne["rulename"]=utf8_encode($ligne["rulename"]);
-		$text=$tpl->_ENGINE_parse_body(rule_format_text($ID));
+		$text=$tpl->_ENGINE_parse_body(rule_format_text($ID,$byacl));
 		writelogs("{$ligne["ID"]} => {$ligne["rulename"]}",__FUNCTION__,__FILE__,__LINE__);
-		$js="Loadjs('$MyPage?bandwith-rule-js=yes&ID={$ligne["ID"]}&t=$t')";
+		$js="Loadjs('$MyPage?bandwith-rule-js=yes&ID={$ligne["ID"]}&t=$t$byaclToken')";
 		
-		$delete=imgtootltip("delete-24.png",$ligne["rulename"],"DeleteBandRule({$ligne['ID']})");
-		
+		$delete=imgsimple("delete-24.png",$ligne["rulename"],"DeleteBandRule({$ligne['ID']})");
+		if(isset($_GET["choose"])){
+			$rulenameTT=$tpl->javascript_parse_text($ligne["rulename"]);
+			$delete=imgsimple("arrow-right-24.png",$ligne["rulename"],"ChooseBandwithAclRule({$ligne['ID']},{$_GET["aclruleid"]},'$rulenameTT')");
+		}
+	
 		
 		$color="black";
-		if($ligne["enable"]==0){$color="#7B7B7B";}
+		if($ligne["enable"]==0){
+			$color="#7B7B7B";
+			if(isset($_GET["choose"])){
+				$delete=imgsimple("arrow-right-24-grey.png",$ligne["rulename"],null);
+			}
+		}
+		
+		
+		
+		
 		$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
@@ -265,12 +318,23 @@ function popup(){
 	$delete=$tpl->javascript_parse_text("{delete} {rule} ?");
 	$squid_bandwith_rules_explain=$tpl->_ENGINE_parse_body("{squid_bandwith_rules_explain}");
 	$delete_rule=$tpl->javascript_parse_text("{delete_rule}");
+	
+	$explain_size=528;
+	$table_width=830;
 	$buttons="
 	buttons : [
 	{name: '$new_rule', bclass: 'add', onpress : AddBandRule},
 	],";		
 		
+if(isset($_GET["by-acls"])){
+	$byacl="&by-acls=yes";
+	$explain_size=339;
+	$table_width=630;
+}
 
+if(isset($_GET["choose"])){
+	$choose="&choose=yes";
+}
 	
 $html="
 <div id='tableau-bandwith-regles' class=explain style='font-size:14px'>$squid_bandwith_rules_explain</div>
@@ -280,12 +344,12 @@ $html="
 <script>
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?bandwith-rules-list=yes&t=$t',
+	url: '$page?bandwith-rules-list=yes&t=$t$byacl$choose&aclruleid={$_GET["aclruleid"]}',
 	dataType: 'json',
 	colModel : [
 		{display: 'ID', name : 'ID', width : 32, sortable : true, align: 'center'},
 		{display: '$rulename', name : 'rulename', width : 140, sortable : true, align: 'left'},	
-		{display: '$explain', name : 'ItemsNumber', width :528, sortable : false, align: 'left'},
+		{display: '$explain', name : 'ItemsNumber', width :$explain_size, sortable : false, align: 'left'},
 		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'center'},
 		],
 	$buttons
@@ -299,7 +363,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 830,
+	width: $table_width,
 	height: 350,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -314,6 +378,10 @@ $('#flexRT$t').flexigrid({
 
 	function FlexReloadRulesBandwith(){
 		$('#flexRT$t').flexReload();
+		var tsource='{$_GET["table-source"]}';
+		if(tsource.length>0){
+			$('#flexRT'+tsource).flexReload();
+		}
 	}
 	
 	function DeleteBandRule(ID){
@@ -327,10 +395,20 @@ $('#flexRT$t').flexigrid({
 
 	
 	function x_DeleteBandRule(obj){
-				var tempvalue=obj.responseText;
-				if(tempvalue.length>3){alert(tempvalue);}
-				FlexReloadRulesBandwith();
-	}		
+		var tempvalue=obj.responseText;
+		if(tempvalue.length>3){alert(tempvalue);}
+		FlexReloadRulesBandwith();
+	}	
+
+	function ChooseBandwithAclRule(bandid,aclid,ruletxt){
+		document.getElementById('delay_access_id').value=bandid;
+		document.getElementById('delay_access_id_text').innerHTML=ruletxt;
+		document.getElementById('delay_access').checked=true;
+		YahooWinSHide();
+		limit_bandwidth_check();
+		
+		
+	}
 
 
 
@@ -403,13 +481,6 @@ $('#flexRT$t').flexigrid({
 	function BandAclFILE(ID){
 		YahooWin(650,'$page?acl-file=yes&ID='+ID,'$by_file_type');
 	}	
-	
-	
-	
-
-	
-	
-	
 	RefreshPanel();
 	</script>
 	
@@ -529,7 +600,7 @@ function compile_acls_datas_groups($array,$keyforlog){
 	if(count($f)==0){return false;}
 	return @implode("", $f);
 }
-function rule_format_text($ruleid){
+function rule_format_text($ruleid,$byacl=false){
 	
 	
 	$q=new mysql();
@@ -551,37 +622,37 @@ function rule_format_text($ruleid){
 	$delay_pool_max_file=$delay_pool_max_file*8;
 	$delay_pool_max_file=$delay_pool_max_file/1000;		
 	
+	if(!$byacl){
+		$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='SRC_RESTRICT' AND enabled=1";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
+		$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
+		$txt=compile_acls_datas($ACL_DATAS,"$ruleid -> SRC_RESTRICT");
+		if($txt<>null){$aclInt1="<br><i>{and_only_on_specified_networks}:$txt</i>";}
+		
+		$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='DOMAIN_RESTRICT' AND enabled=1";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
+		$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
+		$txt=compile_acls_datas($ACL_DATAS,"$ruleid -> DOMAIN_RESTRICT");
+		if($txt<>null){$aclInt2="<br><i>{and_only_to_these_websites}:$txt</i>";}	
+		
+		$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='FILE_RESTRICT' AND enabled=1";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
+		$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
+		$txt=compile_acls_datas($ACL_DATAS,"$ruleid -> FILE_RESTRICT");
+		if($txt<>null){$aclInt3="<br><i>{and_only_when_downloading_files_with_extension}:$txt</i>";}	
+		
+		$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='TIME_RESTRICT' AND enabled=1";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
+		$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
+		$txt=rule_format_time($ACL_DATAS,"$ruleid -> TIME_RESTRICT");
+		if($txt<>null){$aclInt4="<br><i>{time}: $txt</i>";}	
 	
-	$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='SRC_RESTRICT' AND enabled=1";
-	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
-	$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
-	$txt=compile_acls_datas($ACL_DATAS,"$ruleid -> SRC_RESTRICT");
-	if($txt<>null){$aclInt1="<br><i>{and_only_on_specified_networks}:$txt</i>";}
-	
-	$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='DOMAIN_RESTRICT' AND enabled=1";
-	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
-	$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
-	$txt=compile_acls_datas($ACL_DATAS,"$ruleid -> DOMAIN_RESTRICT");
-	if($txt<>null){$aclInt2="<br><i>{and_only_to_these_websites}:$txt</i>";}	
-	
-	$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='FILE_RESTRICT' AND enabled=1";
-	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
-	$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
-	$txt=compile_acls_datas($ACL_DATAS,"$ruleid -> FILE_RESTRICT");
-	if($txt<>null){$aclInt3="<br><i>{and_only_when_downloading_files_with_extension}:$txt</i>";}	
-	
-	$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='TIME_RESTRICT' AND enabled=1";
-	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
-	$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
-	$txt=rule_format_time($ACL_DATAS,"$ruleid -> TIME_RESTRICT");
-	if($txt<>null){$aclInt4="<br><i>{time}: $txt</i>";}	
-
-	$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='GROUP_RESTRICT' AND enabled=1";
-	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
-	$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
-	$txt=compile_acls_datas_groups($ACL_DATAS,"$ruleid -> GROUP_RESTRICT");
-	if($txt<>null){$aclInt5="<br><i>{proxy_objects}: $txt</i>";}	
-	
+		$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='GROUP_RESTRICT' AND enabled=1";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
+		$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
+		$txt=compile_acls_datas_groups($ACL_DATAS,"$ruleid -> GROUP_RESTRICT");
+		if($txt<>null){$aclInt5="<br><i>{proxy_objects}: $txt</i>";}	
+	}
 	
 		
 	return "{delay_pool_param_net} <strong>{$delay_pool_net}kb/s</strong>.<br>{delay_pool_param_user_max} {$delay_pool_max_file}kb/s<br> 
@@ -615,6 +686,7 @@ function rule_format_time($ACL_DATAS,$forlog=null){
 function rules_add(){
 	$button_title="{add}";
 	$ID=$_GET["ID"];
+	$t=$_GET["t"];
 	if(!is_numeric($ID)){$ID=0;}
 	$enable=1;
 	
@@ -642,12 +714,14 @@ function rules_add(){
 		$enable=$ligne["enable"];
 		
 		$rule_class=$ligne["rule_class"];
+
+	}
+	
 		$rules_classes[1]="{class} 1";
 		$rules_classes[2]="{class} 2";
 		$rules_classes[3]="{class} 3";
 		$rules_classes[4]="{class} 4";
-		$rules_classes[5]="{class} 5";
-	}
+		$rules_classes[5]="{class} 5";	
 
 	if(!is_numeric($rule_class)){$rule_class=2;}
 	$rule_name=utf8_encode($rule_name);
@@ -702,7 +776,7 @@ function rules_add(){
 			if(ID==0){YahooWinHide();}
 			if(document.getElementById('tableau-bandwith-regles')){FlexReloadRulesBandwith();}
 			if(document.getElementById('main_bandwithrule_$ID')){RefreshTab('main_bandwithrule_$ID');}
-			
+			if(document.getElementById('table-$t')){ $('#table-$t').flexReload(); }
 			
 		}			
 			

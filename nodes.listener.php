@@ -3,8 +3,15 @@
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");
-	if(isset($_GET["VERBOSE"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
-	if(isset($_POST["VERBOSE"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
+	if(isset($_REQUEST["VERBOSE"])){
+		$GLOBALS["VERBOSE"]=true;
+		ini_set('html_errors',0);
+		ini_set('display_errors', 1);
+		ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string',$_SERVER["SERVER_ADDR"].":");
+		ini_set('error_append_string',"");
+	}
+	
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.blackboxes.inc');
 	include_once('ressources/class.mysql.squid.builder.php');		
@@ -25,6 +32,7 @@
 function SETTINGS_INC(){
 	$ME=$_SERVER["SERVER_ADDR"];
 	$q=new mysql_blackbox();
+	$sock=new sockets();
 	reset($_FILES['SETTINGS_INC']);
 	$error=$_FILES['SETTINGS_INC']['error'];
 	$tmp_file = $_FILES['SETTINGS_INC']['tmp_name'];
@@ -88,6 +96,29 @@ function SETTINGS_INC(){
 	writelogs("$hostname ($nodeid) v.{$curlparms["VERSION"]}",__FUNCTION__,__FILE__,__LINE__);
 	$back->SaveSettingsInc($settings,$perfs,$softs,$prodstatus,$curlparms["ISARTICA"]);
 	$back->SaveDisks($curlparms["disks_list"]);
+	
+	if(isset($curlparms["YOREL"])){
+		$mepath=dirname(__FILE__);
+		$srcYourelPAth="$mepath/logs/web/$hostid/yorel.tar.gz";
+		ini_set('html_errors',0);
+		ini_set('display_errors', 1);
+		ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string',$_SERVER["SERVER_ADDR"].":");
+		ini_set('error_append_string',"");
+		if(!is_dir(dirname($srcYourelPAth))){mkdir(dirname($srcYourelPAth),0755,true);}
+		file_put_contents($srcYourelPAth, base64_decode($curlparms["YOREL"]));
+		if(is_file($srcYourelPAth)){
+			unset($curlparms["YOREL"]);
+			if($GLOBALS["VERBOSE"]){echo "{$_SERVER["SERVER_ADDR"]}: $srcYourelPAth ". filesize($srcYourelPAth)." bytes\n";}
+			exec("/bin/tar -xvf $srcYourelPAth -C ".dirname($srcYourelPAth)."/ 2>&1",$out);
+			if($GLOBALS["VERBOSE"]){while (list ($a, $aa) = each ($out) ){echo "{$_SERVER["SERVER_ADDR"]}:$aa\n";}}
+			unlink($srcYourelPAth);
+			$sock->getFrameWork("services.php?chowndir=".base64_encode(dirname($srcYourelPAth)));
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "{$_SERVER["SERVER_ADDR"]}: $srcYourelPAth no such file\n";}
+		}
+	}
+	
 	
 	writelogs("blackboxes::$hostname squid version {$curlparms["SQUIDVER"]}",__FUNCTION__,__FILE__,__LINE__);
 	

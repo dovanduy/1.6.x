@@ -208,7 +208,7 @@ class artica_graphs{
 			
 	}	
 	
-function pie(){
+function pie($debug=false){
 	$tpl=new templates();
 	$graph = new PieGraph($this->width,$this->height);
 	$targetArray=array();
@@ -281,6 +281,7 @@ function pie(){
 		$graph->Stroke("$this->filename");
 		$gdImgHandler = $graph->Stroke($this->filename);
 	} catch (JpGraphException $e) {
+		if($debug){echo "$title: Fatal Error ". $e->getMessage()."<br>";}
 		if(posix_getuid()==0){echo "$title: Fatal Error ". $e->getMessage()."\n";}
 		writelogs("$title: Fatal Error " . $e->getMessage()."\n",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		

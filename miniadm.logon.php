@@ -8,6 +8,7 @@ include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 
 if(isset($_POST["username"])){checklogon();exit;}
+if(isset($_GET["credentials"])){checklogonCreds();exit;}
 if(isset($_GET["js"])){js();exit;}
 $t=time();
 $page=CurrentPageName();
@@ -55,6 +56,57 @@ SendLogonButton$t();
 echo $html;
 	
 	
+}
+
+function checklogonCreds(){
+	include_once(dirname(__FILE__)."/ressources/class.user.inc");
+	$FixedLanguage=null;
+
+	if(!isset($_GET["credentials"])){
+		header("location:".basename(__FILE__));
+		return;
+	}
+	$array=unserialize(base64_decode($_GET["credentials"]));
+	
+	
+	
+	$username=$array["USERNAME"];
+	$password=$array["PASSWORD"];
+	
+	$u=new user($username);
+	$tpl=new templates();
+	$userPassword=$u->password;
+	if(trim($u->uidNumber)==null){header("location:".basename(__FILE__));return;}	
+	if( trim($password)<>md5(trim($userPassword))){header("location:".basename(__FILE__));return;}	
+	
+	$ldap=new clladp();
+	$users=new usersMenus();
+	$_SESSION["CORP"]=$users->CORP_LICENSE;
+	$privs=new privileges($u->uid);
+	$privs->SearchPrivileges();
+	$privileges_array=$privs->privs;
+	$_SESSION["privileges_array"]=$privs->privs;
+	$_SESSION["privs"]=$privileges_array;
+	if(isset($privileges_array["ForceLanguageUsers"])){$_SESSION["OU_LANG"]=$privileges_array["ForceLanguageUsers"];}
+	$_SESSION["uid"]=$username;
+	$_SESSION["privileges"]["ArticaGroupPrivileges"]=$privs->content;
+	$_SESSION["groupid"]=$ldap->UserGetGroups($_POST["username"],1);
+	$_SESSION["DotClearUserEnabled"]=$u->DotClearUserEnabled;
+	$_SESSION["MailboxActive"]=$u->MailboxActive;
+	$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
+	$_SESSION["ou"]=$u->ou;
+	$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
+	if(!isset($_SESSION["OU_LANG"])){$_SESSION["OU_LANG"]=null;}
+	
+			if(trim($_SESSION["OU_LANG"])<>null){
+				$_SESSION["detected_lang"]=$_SESSION["OU_LANG"];
+			}else{
+				include_once(dirname(__FILE__)."/ressources/class.langages.inc");
+				$lang=new articaLang();
+				$_SESSION["detected_lang"]=$lang->get_languages();
+			}
+			if(trim($FixedLanguage)<>null){$_SESSION["detected_lang"]=$FixedLanguage;}	
+	header("location:miniadm.index.php");
 }
 
 function checklogon(){

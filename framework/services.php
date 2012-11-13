@@ -150,6 +150,7 @@ if(isset($_GET["beancounters"])){beancounters();exit;}
 if(isset($_GET["export-etc-artica"])){export_etc_artica();exit;}
 if(isset($_GET["folders-security"])){folders_security();exit;}
 if(isset($_GET["blackbox-notify"])){blackbox_notify();exit;}
+if(isset($_GET["chowndir"])){lighttpd_chowndir();exit;}
 
 
 
@@ -1488,6 +1489,20 @@ function lighttpd_own(){
 	
 	
 }
+function lighttpd_chowndir(){
+	$f=file("/etc/lighttpd/lighttpd.conf");
+	while (list ($num, $line) = each ($f) ){
+		if(preg_match("#server\.username.*?\"(.+?)\"#", $line,$re)){$username=$re[1];continue;}
+		if(preg_match("#server\.groupname.*?\"(.+?)\"#", $line,$re)){$groupname=$re[1];continue;}	
+		if($groupname<>null){if($username<>null){break;}}
+		
+	}	
+
+	
+	$unix=new unix();
+	$unix->chown_func($username, $groupname,base64_decode($_GET["chowndir"]));
+}
+
 
 function blackbox_notify(){
 	$unix=new unix();

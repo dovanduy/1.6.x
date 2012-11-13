@@ -316,6 +316,7 @@ procedure tsyslogng.STOP();
 begin
 
      count:=0;
+     if not FileExists(DEAMON_BIN_PATH()) then exit;
 
 
      if SYS.PROCESS_EXIST(SYSLOG_PID()) then begin

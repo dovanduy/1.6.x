@@ -466,6 +466,7 @@ function tabs(){
 	$page=CurrentPageName();
 	$hostid=$_GET["hostid"];
 	$array["status"]="{status}";
+	$array["system"]="{system}";
 	$blk=new blackboxes($_GET["nodeid"]);
 	
 	if($blk->settings_inc["SQUID_INSTALLED"]){
@@ -475,7 +476,7 @@ function tabs(){
 	$array["network"]="{network}";
 	$array["disks"]="{disks}";
 	$array["softwares"]="{softwares}";
-	$array["system"]="{system}";
+	
 	
 
 
@@ -500,7 +501,10 @@ function tabs(){
 				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.squid.php?nodeid={$_GET["nodeid"]}&hostid=$hostid\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 				continue;
 			}			
-		
+			if($num=="system"){
+				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"nodes.yorel.php?nodeid={$_GET["nodeid"]}&hostid=$hostid\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+				continue;
+			}		
 		
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&nodeid={$_GET["nodeid"]}&hostid=$hostid\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 	}

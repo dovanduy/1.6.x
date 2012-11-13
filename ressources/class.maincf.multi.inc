@@ -812,6 +812,7 @@ private function recipient_bcc_domain_maps(){
 		
 	private function alias_maps(){
 		$sock=new sockets();
+		$alias_maps=array();
 		$MailingListUseLdap=$sock->GET_INFO("MailingListUseLdap");
 		if(!is_numeric($MailingListUseLdap)){$MailingListUseLdap=0;}
 		
@@ -905,7 +906,9 @@ private function recipient_bcc_domain_maps(){
 			for($t=0;$t<$hash[$i]["mail"]["count"];$t++){
 				$hash[$i]["mail"][$t]=trim($hash[$i]["mail"][$t]);
 				if($hash[$i]["mail"][$t]==null){continue;}
-				$alias_maps[]="$uid:{$hash[$i]["mail"][$t]}";
+				if(!preg_match("#(.*?)@(.+?)#", $uid)){
+					$alias_maps[]="$uid:{$hash[$i]["mail"][$t]}";
+				}
 				$virtual_mailbox[]="{$hash[$i]["mail"][$t]}\t$uid";
 				$virtual_alias_maps[]="{$hash[$i]["mail"][$t]}\t{$hash[$i]["mail"][$t]}";
 			}
@@ -917,6 +920,7 @@ private function recipient_bcc_domain_maps(){
 		$hash=$ldap->Ldap_search($dn,$filter,$attrs);
 		for($i=0;$i<$hash["count"];$i++){
 			$cn=$hash[$i]["cn"][0];
+			if(preg_match("#(.*?)@(.+?)#", $cn,$re)){$cn=$re[1];}
 			$alias_maps[]="$cn:x";
 			}	
 			
@@ -977,7 +981,6 @@ private function recipient_bcc_domain_maps(){
 		if(is_array($alias_maps)){
 			echo "Starting......: Postfix \"$this->myhostname\" ". count($alias_maps)." aliases\n";
 			$alias_maps_cf[]="hash:/etc/postfix-$this->myhostname/aliases" .$this->mailman_aliases();
-			
 			@file_put_contents("/etc/postfix-$this->myhostname/aliases",@implode("\n",$alias_maps));
 			//shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/aliases >/dev/null 2>&1");
 			shell_exec("{$GLOBALS["postalias"]} -c /etc/postfix-$this->myhostname hash:/etc/postfix-$this->myhostname/aliases >/dev/null 2>&1");

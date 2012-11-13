@@ -132,6 +132,8 @@ class mysql_catz{
 
 	
 	function GET_CATEGORIES($sitename){
+		$keyMem=date("Ymdh");
+		$orgsitename=$sitename;
 		$BADCATZ["category_drogue"]=true;
 		$BADCATZ["category_english_malware"]=true;
 		$BADCATZ["category_forum"]=true;
@@ -153,31 +155,62 @@ class mysql_catz{
 		if(preg_match("#^www\.(.+)#", $sitename,$re)){$sitename=$re[1];}
 		
 		if(substr($sitename, 0,1)=="."){$sitename=substr($sitename, 1,strlen($sitename));}
+		$orgsite=$sitename;
 		$sitename=md5($sitename);
 		if($debug){echo "$sitename\n";}
 		$trans=$this->TransArray();
-		$tablescat=$this->LIST_TABLES_CATEGORIES();	
-		$tablescat_count=0;
+		if(!isset($GLOBALS["TABLESCATEZ$keyMem"])){
+			$GLOBALS["TABLESCATEZ$keyMem"]=$this->LIST_TABLES_CATEGORIES(true);
+		}	
+		$tablescat_count=count($GLOBALS["TABLESCATEZ$keyMem"]);
+		$t1=time();
+		$tablescat=$GLOBALS["TABLESCATEZ$keyMem"];
 		while (list ($table, $none) = each ($tablescat) ){
-			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__.":: $sitename -> $table ?\n<br>";}
 			$category=null;
-			if($table=="category_"){continue;}
-			if(isset($BADCATZ[$table])){continue;}
-			if(preg_match("#bak$#", $table)){continue;}
-			if(isset($GLOBALS["TABLEINEXISTS"][$table])){continue;}
-			if(!$this->TABLE_EXISTS($table)){$GLOBALS["TABLEINEXISTS"][$table]=true;continue;}
+			if($table=="category_"){
+				if($GLOBALS["VERBOSE"]){echo "qz->GET_CATEGORIES($sitename) bad $table (category_)\n";}
+				continue;}
+			if(isset($BADCATZ[$table])){
+				if($GLOBALS["VERBOSE"]){echo "qz->GET_CATEGORIES($sitename) bad $table (BADCATZ)\n";}
+				continue;}
+			if(preg_match("#bak$#", $table)){
+				if($GLOBALS["VERBOSE"]){echo "qz->GET_CATEGORIES($sitename) bad $table (bak)\n";}
+				continue;}
+			if(isset($GLOBALS["TABLEINEXISTS"][$table])){
+				if($GLOBALS["VERBOSE"]){echo "qz->GET_CATEGORIES($sitename) bad $table (TABLEINEXISTS)\n";}
+				continue;}
+			if(!$this->TABLE_EXISTS($table)){
+				if($GLOBALS["VERBOSE"]){echo "qz->GET_CATEGORIES($sitename) no such table $table\n";}
+				$GLOBALS["TABLEINEXISTS"][$table]=true;
+				continue;
+			}
+			
+			
 			$ligne=mysql_fetch_array($this->QUERY_SQL("SELECT zmd5 FROM $table WHERE zmd5='$sitename'"));
-			if(isset($trans[$table])){$category=$trans[$table];}
+			
+			
+			if(isset($trans[$table])){
+				
+				$category=$trans[$table];
+			}
+			
+			
 			if($category<>null){
 				$tablescat_count++;
 				if($ligne["zmd5"]<>null){
 					if($debug){echo "ArticaDB::$orgsite: \"$category\"\n";}
-					if($GLOBALS["VERBOSE"]){echo "Found $category FOR \"$sitename\" in ". __CLASS__ ." line: ".__LINE__."\n";}
+					if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES: Found $category FOR \"$sitename\" in ". __CLASS__ ." line: ".__LINE__."\n";}
 					$cattmp[$category]=$category;
 				}
 			}
+		
+		
+		
 		}	
 
+		$t2=time();
+		$time=$t2-$t1;
+		if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES:: $orgsitename ".count($cattmp)." {$time}s\n";}
 		if(count($cattmp)==0){return null;}
 		
 		
@@ -188,8 +221,21 @@ class mysql_catz{
 		return @implode(",", $cat);
 	}
 	
-	public function LIST_TABLES_CATEGORIES(){
-		if(isset($GLOBALS["LIST_TABLES_CATEGORIES"])){return $GLOBALS["LIST_TABLES_CATEGORIES"];}
+	public function LIST_TABLES_CATEGORIES($nocache=false){
+		if(!$nocache){
+			if(isset($GLOBALS["LIST_TABLES_CATEGORIES"])){return $GLOBALS["LIST_TABLES_CATEGORIES"];}
+		}
+		
+		$f=$this->TransArray();
+		while (list ($table, $none) = each ($f) ){	
+			if($this->TABLE_EXISTS($table)){
+				if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES: `$table` exists...\n";}
+				$array[$table]=$table;
+			}else{
+				if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES: `$table` no such table...\n";}
+			}
+		}
+		
 		$array=array();
 		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$this->database' AND table_name LIKE 'category_%'";
 		$results=$this->QUERY_SQL($sql);

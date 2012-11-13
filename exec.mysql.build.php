@@ -49,6 +49,7 @@ if($argv[1]=='--database-rescan'){databases_rescan($argv[2],$argv[3]);die();}
 if($argv[1]=='--database-dump'){database_dump($argv[2],$argv[3]);die();}
 if($argv[1]=='--mysql-upgrade'){mysql_upgrade($argv[2]);die();}
 if($argv[1]=='--repair-db'){_repair_database($argv[2]);die();}
+if($argv[1]=='--myisamchk'){myisamchk();die();}
 
 
 
@@ -267,6 +268,59 @@ function mysql_upgrade($instanceid){
 	shell_exec($cmdline);
 	shell_exec($cmdchk); 
 	maintenance(true);
+	
+}
+
+function myisamchk(){
+	$unix=new unix();
+	$sock=new sockets();
+	$myisamchk=$unix->find_program("myisamchk");
+	$nice=EXEC_NICE();
+	if(!is_file($myisamchk)){
+		system_admin_events("myisamchk no such binary",__FUNCTION__,__FILE__,__LINE__,"mysql-repair");
+		return;
+	}
+	$MYSQL_DATA_DIR=$sock->GET_INFO("ChangeMysqlDir");
+	if($MYSQL_DATA_DIR==null){$MYSQL_DATA_DIR="/var/lib/mysql";}	
+
+	if(!$GLOBALS["FORCE"]){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pidfileTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		$kill=$unix->find_program("kill");
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($time>420){
+			shell_exec("$kill -9 $oldpid");
+			system_admin_events("Already process $oldpid since {$time}Mn will be killed",__FUNCTION__,__FILE__,__LINE__,"mysql-repair");
+		}else{
+			if($unix->process_exists($oldpid,basename(__FILE__))){
+				system_admin_events("Already process $oldpid since {$time}Mn exists",__FUNCTION__,__FILE__,__LINE__,"mysql-repair");
+				return;
+			}
+		}
+		
+		$time=$unix->file_time_min($pidfileTime);
+		if($time<20){
+			system_admin_events("Minimal time = 20Mn (current is {$time}Mn)",__FUNCTION__,__FILE__,__LINE__,"mysql-repair");
+			return;
+		}
+		@unlink($pidfileTime);
+		@file_put_contents($pidfileTime, time());
+		@file_put_contents($pidfile, getmypid());
+	}
+
+	$t=time();
+	
+	$files=$unix->DirRecursiveFiles($MYSQL_DATA_DIR,"*.MYI");
+	while (list ($index, $file) = each ($files) ){
+		$cmdchk=trim("$nice $myisamchk -c -C -r -f $file >/dev/null 2>&1");
+		if($GLOBALS["VERBOSE"]){echo "Checking ".basename($file)."\n";echo "$cmdchk\n";}
+		shell_exec($cmdchk);
+	}
+	
+	$took=$unix->distanceOfTimeInWords($t,time(),true);
+	exec("/etc/init.d/artica-postfix restart mysql 2>&1",$results);
+	system_admin_events("Success checking ".count($files)." MYISAM tables took:$took\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"mysql-repair");
 	
 }
 
@@ -990,7 +1044,7 @@ function _repair_database($database){
 		
 		echo $table."\n";
 		if(is_file($myisamchk)){
-			shell_exec("$myisamchk -r --safe-recover --force $MYSQL_DATA_DIR/$database/$table");
+			shell_exec("$myisamchk --safe-recover --force $MYSQL_DATA_DIR/$database/$table");
 		}else{
 			$q->REPAIR_TABLE($database,$table);
 		}

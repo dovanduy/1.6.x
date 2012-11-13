@@ -502,6 +502,7 @@ class usersMenus {
 	var $ARPD_INSTALLED=false;
 	var $YAFFAS_INSTALLED=false;
 	var $SQUID_APPLIANCE=false;
+	var $PROXYTINY_APPLIANCE=false;
 	var $APP_KHSE_INSTALLED=false;
 	var $MYSQLD_MULTI_INSTALLED=false;
 	var $MONIT_INSTALLED=false;
@@ -539,6 +540,9 @@ class usersMenus {
 	var $CORP_LICENSE=false;
 	var $AsOwnMailBoxBackup=false;
 	var $ARTICADB_INSTALLED=false;
+	var $SURICATA_INSTALLED=false;
+	var $ZARAFA_INDEXER_INSTALLED=false;
+	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -670,8 +674,15 @@ class usersMenus {
 			if(isset($_GLOBAL["CYRUS_APPLIANCE"])){$this->CYRUS_APPLIANCE=$_GLOBAL["CYRUS_APPLIANCE"];}
 			if(isset($_GLOBAL["VPS_OPENVZ"])){$this->VPS_OPENVZ=$_GLOBAL["VPS_OPENVZ"];}
 			if(isset($_GLOBAL["ZARAFA_SEARCH_INSTALLED"])){$this->ZARAFA_SEARCH_INSTALLED=$_GLOBAL["ZARAFA_SEARCH_INSTALLED"];}
+			if(isset($_GLOBAL["ZARAFA_INDEXER_INSTALLED"])){$this->ZARAFA_INDEXER_INSTALLED=$_GLOBAL["ZARAFA_INDEXER_INSTALLED"];}
+			
+			
+			
 			if(isset($_GLOBAL["OWNCLOUD_INSTALLED"])){$this->OWNCLOUD_INSTALLED=$_GLOBAL["OWNCLOUD_INSTALLED"];}
 			if(isset($_GLOBAL["LIGHT_INSTALL"])){$this->LIGHT_INSTALL=$_GLOBAL["LIGHT_INSTALL"];}
+			if(isset($_GLOBAL["SURICATA_INSTALLED"])){$this->SURICATA_INSTALLED=$_GLOBAL["SURICATA_INSTALLED"];}
+			
+			
 			//Are you sure to do that !!!, breaking the license turn you to a pirate...
 			if(isset($_GLOBAL["CORP_LICENSE"])){$this->CORP_LICENSE=$_GLOBAL["CORP_LICENSE"];}
 			
@@ -760,6 +771,7 @@ class usersMenus {
 			if(isset($_GLOBAL["OPENEMM_SENDMAIL_VERSION"])){$this->OPENEMM_SENDMAIL_VERSION=$_GLOBAL["OPENEMM_SENDMAIL_VERSION"];}
 			if(isset($_GLOBAL["YAFFAS_INSTALLED"])){$this->YAFFAS_INSTALLED=$_GLOBAL["YAFFAS_INSTALLED"];}
 			if(isset($_GLOBAL["SQUID_APPLIANCE"])){$this->SQUID_APPLIANCE=$_GLOBAL["SQUID_APPLIANCE"];}
+			if(isset($_GLOBAL["PROXYTINY_APPLIANCE"])){$this->PROXYTINY_APPLIANCE=$_GLOBAL["PROXYTINY_APPLIANCE"];}
 			if(isset($_GLOBAL["NETATALK_INSTALLED"])){$this->NETATALK_INSTALLED=$_GLOBAL["NETATALK_INSTALLED"];}
 			if(isset($_GLOBAL["SAMBA_APPLIANCE"])){$this->SAMBA_APPLIANCE=$_GLOBAL["SAMBA_APPLIANCE"];}
 			if(isset($_GLOBAL["APP_KHSE_INSTALLED"])){$this->APP_KHSE_INSTALLED=$_GLOBAL["APP_KHSE_INSTALLED"];}
@@ -1048,6 +1060,10 @@ class usersMenus {
 				$this->APP_AUDITD_INSTALLED=false;
 				$this->BACKUPPC_INSTALLED=false;
 				$this->nmap_installed=false;
+			}
+			
+			if($this->PROXYTINY_APPLIANCE){
+				$this->SQUID_APPLIANCE=true;
 			}
 			
 			if($this->KASPERSKY_WEB_APPLIANCE){
@@ -2615,24 +2631,16 @@ private function MAILBOXES_MENUS($array=array()){
 	}
 	
 	function IfIsAnuser($log=false){
-			if($this->AsAnAdministratorGeneric=true){return false;}
+			
 			if($this->AsMessagingOrg){return false;}
 			if($this->AseMailCampaignsAdmin){return false;}
-			if($this->AsOrgPostfixAdministrator){return false;}			
+			
 			
 			if($this->AsSystemAdministrator){
 				if($log){writelogs("[{$_SESSION["uid"]}]:logon:  AsSystemAdministrator=TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__);}
 				return false;}
-			
-			if($this->AsWebStatisticsAdministrator){
-				if($log){writelogs("[{$_SESSION["uid"]}]:logon:  AsWebStatisticsAdministrator=TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__);}
-				return false;}				
-				
-			
-				
-			if($this->AsWebStatisticsAdministrator){
-				if($log){writelogs("[{$_SESSION["uid"]}]:logon:  AsWebStatisticsAdministrator=TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__);}
-			return false;}
+		
+
 				
 			if($this->AsVirtualBoxManager){
 				if($log){writelogs("[{$_SESSION["uid"]}]:logon:  AsVirtualBoxManager=TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__);}

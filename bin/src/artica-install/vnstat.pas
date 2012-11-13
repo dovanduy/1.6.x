@@ -20,6 +20,7 @@ private
      artica_path:string;
      EnableVnStat:integer;
      binpath:string;
+     D:boolean;
 public
     procedure   Free;
     constructor Create(const zSYS:Tsystem);
@@ -39,7 +40,10 @@ begin
        LOGS:=tlogs.Create();
        SYS:=zSYS;
        binpath:=BIN_PATH();
+       D:=SYS.verbosed;
+       EnableVnStat:=1;
        if not TryStrToInt(SYS.GET_INFO('EnableVnStat'),EnableVnStat) then EnableVnStat:=1;
+       if D then writeln('EnableVnStat -> ',SYS.GET_INFO('EnableVnStat'),'=',EnableVnStat);
 end;
 //##############################################################################
 procedure tvnstat.free();
@@ -117,7 +121,7 @@ begin
 
 
 if EnableVnStat=0 then begin
-   logs.DebugLogs('Starting......:  VnStat is disabled (key:EnableVnStat)');
+   logs.DebugLogs('Starting......:  VnStat is disabled (key:EnableVnStat=0)');
    STOP();
    exit;
 end;

@@ -27,7 +27,7 @@ function link_user_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{link_to_an_user}");
-	$html="YahooWin6('500','$page?link-user-popup=yes&MAC={$_GET["MAC"]}','$title');";
+	$html="YahooWin6('520','$page?link-user-popup=yes&MAC={$_GET["MAC"]}','$title');";
 	echo $html;
 }
 
@@ -47,7 +47,7 @@ function node_infos_js(){
 	$uid=$computer->ComputerIDFromMAC($_GET["MAC"]);
 	$title=$tpl->_ENGINE_parse_body("{status}::{computer}:{$_GET["MAC"]}::$uid");
 	
-	$html="YahooWin5('650','$page?node-infos-tabs=yes&MAC={$_GET["MAC"]}','$title');";
+	$html="YahooWin5('748','$page?node-infos-tabs=yes&MAC={$_GET["MAC"]}','$title');";
 	echo $html;	
 	
 }
@@ -56,6 +56,14 @@ function link_user_save(){
 	$_POST["uid"]=mysql_escape_string($_POST["uid"]);
 	$sql="UPDATE webfilters_nodes SET uid='{$_POST["uid"]}' WHERE MAC='{$_POST["MAC"]}'";
 	$q=new mysql_squid_builder();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT MAC FROM webfilters_nodes WHERE MAC='{$_POST["MAC"]}'"));
+	
+	if($ligne["MAC"]==null){
+		$sql="INSERT INTO webfilters_nodes (MAC,uid) VALUES ('{$_POST["MAC"]}','{$_POST["uid"]}')";
+	}
+	
+	
+	
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;}
 }
@@ -65,6 +73,7 @@ function link_user_popup(){
 	$tpl=new templates();	
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_nodes WHERE MAC='{$_GET["MAC"]}'"));
+	$you_need_to_reconfigure_proxy=$tpl->javascript_parse_text("{you_need_to_reconfigre_proxy}");
 	$t=time();
 	$html="
 	<div id='div-$t'>
@@ -86,8 +95,8 @@ function link_user_popup(){
       if(tempvalue.length>3){alert(tempvalue);}
       YahooWin6Hide();
       if(document.getElementById('main_node_infos_tab')){RefreshTab('main_node_infos_tab');}
-      RefreshNodesSquidTbl();
-      
+      IsFunctionExists('RefreshNodesSquidTbl'){ RefreshNodesSquidTbl();}
+      alert('$you_need_to_reconfigure_proxy');
      }	
 
      function LinkUserStatsDBcHeck(e){
@@ -112,13 +121,20 @@ function link_user_popup(){
 
 function node_infos_tabs(){
 	$page=CurrentPageName();
-	$tpl=new templates();	
+	$tpl=new templates();
+	$users=new usersMenus();
 	$array["node-infos-status"]="{status}";
 	$array["node-infos-UserAgents"]="{UserAgents}";
 	$array["node-infos-IPADDRS"]="{ip_addresses}";
 	$array["node-infos-GROUPS"]="{proxy_objects}";
 	$array["node-infos-WEBACCESS"]="{webaccess}";
 	$array["node-infos-RULES"]="{access_rules}";
+	
+	if($users->PROXYTINY_APPLIANCE){
+		unset($array["node-infos-WEBACCESS"]);
+		unset($array["node-infos-RULES"]);
+	}
+	
 	$textsize="13px";
 
 	$t=time();
@@ -285,7 +301,9 @@ function popup(){
 	$t=time();
 	
 	$html="
+	<center>
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
+	</center>
 <script>
 
 $(document).ready(function(){
@@ -472,7 +490,9 @@ function node_infos_UserAgents(){
 	}
 	
 	$html="
+	<center>
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
+	</center>
 <script>
 
 $(document).ready(function(){

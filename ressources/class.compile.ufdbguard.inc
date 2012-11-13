@@ -24,6 +24,7 @@ class compile_ufdbguard{
 	var $licensed=0;
 	
 	function compile_ufdbguard(){
+		if(!isset($GLOBALS["OUPUT"])){$GLOBALS["OUPUT"]=false;}
 		$GLOBALS["SRC"]=array();
 		$sock=new sockets();
 		$usrs=new usersMenus();
@@ -628,6 +629,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 	private function build_categories_paragraph($category){
 		if($this->licensed==0){$this->SquidDatabasesArticaEnable=0;}
 		if($category=="isp"){echo "Starting......: WARN ufdbGuard Checking category `$category` is banned, SKIP\n";return ;}
+		if($category=="english-malware"){echo "Starting......: WARN ufdbGuard Checking category `$category` is banned, SKIP\n";return ;}
 		if($category=="audio-video"){
 			if(is_dir("/var/lib/ftpunivtlse1fr/audio-video")){
 				if(!is_dir("/var/lib/ftpunivtlse1fr/audiovideo")){
@@ -934,6 +936,8 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 			$bannedRegexP=null;
 			$category=trim($ligne["category"]);
 			if($category==null){continue;}
+			if($category=="english_malware"){echo "Starting......: ufdbGuard build ACLS:$category skipped\n";continue;}
+			
 			$category=$this->TransFormCategoryName($category);
 
 			
@@ -1237,6 +1241,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				if(isset($ARRAY["{$blks["modeblk"]}$RULE_ID{$blks["category"]}"])){continue;}
 				$category=$q->CategoryShellEscape($blks["category"]);
 				if($category=="agressive"){$category="agressivecat";}
+				if($category=="english_malware"){echo "Starting......: ufdbGuard ruleid:$RULE_ID category `$category` skipped\n";continue;}
 				
 				
 				if(!isset($GLOBALS["CATEGORIES_ADDED"][$category])){

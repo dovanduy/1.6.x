@@ -13,8 +13,10 @@ class squid_bandwith_builder{
 	var $rules_explain=array();
 	var $delay_is_acls=array();
 	var $additionalsAcls=array();
+	var $AS_ROOT=false;
 	
 	function squid_bandwith_builder(){
+		$this->AS_ROOT=$GLOBALS["AS_ROOT"];
 		$this->loadRules();
 		
 		
@@ -42,6 +44,10 @@ class squid_bandwith_builder{
 		}
 	}
 	
+	
+	
+	
+	
 	function compile(){
 		if(count($this->rules_array)==0){
 			if($GLOBALS["VERBOSE"]){echo "rules_array 0 element (die())\n";}
@@ -62,8 +68,8 @@ class squid_bandwith_builder{
 			$this->filetype($pool_id,$index);
 			$this->dstdomain($pool_id,$index);
 			$this->work_time($pool_id,$index);
-			
-			if(!$this->delay_is_acls[$index]){$this->delay_access[]="delay_access $index allow all";}else{$this->delay_access[]="delay_access $index deny all";}
+			$this->proxy_objects($pool_id,$index);
+			if(!$this->delay_is_acls[$index]){$this->delay_access[]="delay_access $index deny all";}else{$this->delay_access[]="delay_access $index deny all";}
 		}	
 		
 		if(count($this->additionalsAcls)>0){
@@ -214,6 +220,22 @@ class squid_bandwith_builder{
 		{from} {$ACL_DATAS["hour1"]}:{$ACL_DATAS["min1"]} {to} {$ACL_DATAS["hour2"]}:{$ACL_DATAS["min2"]}";
 		
 		
+	}
+	
+	
+	private function proxy_objects($pool_id,$index){
+		$q=new mysql_squid_builder();
+		$sql="SELECT aclid,httpaccess_value,httpaccess_data 
+		FROM webfilters_sqaclaccess WHERE httpaccess='delay_access' AND httpaccess_data='$pool_id'";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
+		$aclid=$ligne["aclid"];
+		if($this->AS_ROOT){echo "Starting......: [ACLS]: [bandwidth] Rule ID $pool_id (delay_access:$index) = ACLS number $aclid\n";}
+		$s=new squid_acls_groups();
+		$groups=$s->buildacls_bytype_items($aclid);
+		if(count($groups)>0){
+			$this->delay_access[]="delay_access $index allow ".@implode(" ",$groups);	
+			$this->delay_is_acls[$index]=true;
+		}
 	}
 	
 	

@@ -24,11 +24,6 @@ events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after includes cl
 @mkdir("/var/log/artica-postfix/MGREYSTATS");
 $set=new settings_inc();
 $GLOBALS["CLASS_SETTINGS"]=$set;
-if($set->cyrus_imapd_installed){
-	include_once(dirname(__FILE__).'/ressources/class.cyrus.maillog.inc');
-	events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after includes class.cyrus.maillog.inc line: ".__LINE__);
-}
-
 events("Memory: FINISH ".round(((memory_get_usage()/1024)/1000),2) ." after includes line: ".__LINE__);
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
@@ -433,11 +428,24 @@ if(strpos($buffer," amavis[")>0){
 	if($p->parse()){$p=null;return;}
 }
 
-
 $p=new postfix_maillog_buffer($buffer);if($p->parse()){$p=null;return;}
 
+if(strpos($buffer," zarafa-")>0){
+	if(!class_exists("zarafa_maillog_buffer")){include_once(dirname(__FILE__)."/ressources/class.zarafa.maillog.inc");}
+	$p=new zarafa_maillog_buffer($buffer);
+	if($p->parse()){$p=null;return;}
+}
+
+
 if($GLOBALS["CLASS_SETTINGS"]->cyrus_imapd_installed){
+	if(!class_exists("cyrus_maillog")){include_once(dirname(__FILE__)."/ressources/class.cyrus.maillog.inc");}
 	$p=new cyrus_maillog($buffer);if($p->ParseBuffer()){$p=null;return;}
+}
+
+
+if(preg_match("#createuser\[.+?User store\s+'(.+?)'\s+createdi#",$buffer,$re)){
+	$this->email_events("Zarafa server new store created for {$re[1]}",$buffer,"mailbox");
+	return;
 }
 
 if(preg_match("#milter-greylist:.+?bind failed: Address already in use#",$buffer,$re)){
@@ -450,71 +458,10 @@ if(preg_match("#milter-greylist:.+?bind failed: Address already in use#",$buffer
 		$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/artica-postfix restart mgreylist >/dev/null 2>&1 &";
 		events("$cmd");
 		shell_exec_maillog($cmd);
+		
 	}
+	return;
 }
-
-
-if(preg_match("#zarafa-server.+?SQL Failed: Can't create table '\./zarafa/(.+?)\.frm'#",$buffer,$re)){
-	$file="/etc/artica-postfix/croned.1/zarafa-server.tablefailed".md5($re[1]);
-	$timefile=file_time_min($file);
-	if($timefile>10){
-		email_events("Zarafa server SQL issue unable to create [{$re[1]}] table",
-		"zarafa-server claim \n$buffer\nThere is an SQL issue\nplease Check Artica Technology support service.","mailbox");
-		@file_put_contents($file,"#");
-		}else{events("Zarafa-server SQL issue {$re[1]} {$timefile}Mn/5Mn");}
-	return;	
-}
-
-if(preg_match("#0x00000000d49b20: SQL Failed: Table 'zarafa\.(.+?)' doesn't exist#",$buffer,$re)){
-	$file="/etc/artica-postfix/croned.1/zarafa-server.table.{$re[1]}.failed.".md5($re[1]);
-	$timefile=file_time_min($file);
-	if($timefile>10){
-		email_events("Zarafa server SQL issue table [{$re[1]}] doesn't exist",
-		"zarafa-server claim \n$buffer\nThere is an SQL issue\nYou should delete the zarafa database trough Artica tools console in order to rebuild correctly the database.","mailbox");
-		@file_put_contents($file,"#");
-		}else{events("Zarafa-server SQL issue {$re[1]} {$timefile}Mn/5Mn");}
-	return;	
-}
- 
-
-
-if(preg_match("#zarafa-dagent\[.+?Unable to bind to port\s+([0-9]+)#", $buffer,$re)){
-	$file="/etc/artica-postfix/croned.1/zarafa-dagent.Unable.to.bind.to.port.{$re[1]}";
-	$timefile=file_time_min($file);
-	if($timefile>5){
-		exec("{$GLOBALS["NETSTAT_PATH"]} -tlnp 2>&1",$results);
-		email_events("Zarafa Unable to bind to port {$re[1]}",
-		"zarafa-dagent claim \n$buffer\nThere is an listen port issue\nplease Check this report in order to see if there is an another process that listen this port\n".@implode("\n", $results),"mailbox");
-		@file_put_contents($file,"#");
-		}else{events("zarafa-dagent Port issue {$re[1]} {$timefile}Mn/5Mn");}
-	return;	
-}
-
-
-if(preg_match("#zarafa-server.+?Error while connecting to indexer#",$buffer,$re)){
-	$file="/etc/artica-postfix/croned.1/zarafa-server.Error.while.connecting.to.indexer";
-	$timefile=file_time_min($file);
-	if($timefile>5){
-		shell_exec("{$GLOBALS["NOHUP_PATH"]} /etc/init.d/zarafa-search start >/dev/null 2>&1 &");
-		email_events("Zarafa Error while connecting to indexer",
-		"zarafa-server claim \n$buffer\nthe zarafa indexer service was started","mailbox");
-		@file_put_contents($file,"#");
-		}else{events("zarafa-indexer service issue {$timefile}Mn/5Mn");}
-	return;		
-}
-
-
-if(preg_match("#zarafa-server.+?SQL Failed:(.+)#",$buffer,$re)){
-	$file="/etc/artica-postfix/croned.1/zarafa-server.".md5($re[1]);
-	$timefile=file_time_min($file);
-	if($timefile>10){
-		email_events("Zarafa server SQL issue",
-		"zarafa-server claim \n$buffer\nThere is an SQL issue\nplease Check Artica Technology support service.","mailbox");
-		@file_put_contents($file,"#");
-		}else{events("Zarafa-server SQL issue {$re[1]} {$timefile}Mn/5Mn");}
-	return;			
-}
-
 
 
 

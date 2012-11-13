@@ -478,7 +478,7 @@ function search(){
 //######"
 	//TimeText TimeDescription TaskType enabled
 	
-	
+	$CheckRunningTasks=base64_decode(unserialize($sock->getFrameWork("squid.php?CheckRunningTasks=yes")));
 	$q2=new mysql();
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
@@ -491,7 +491,12 @@ function search(){
 		
 		$enable=Field_checkbox($md5, 1,$ligne["enabled"],"SquidTaskEnable('$md5',{$ligne['ID']})");
 		$delete=imgtootltip("delete-24.png","{delete} {$ligne['ID']}","SquidTaskDelete('{$ligne['ID']}')");
-		$run=$tpl->_ENGINE_parse_body(imgtootltip("24-run.png","{run} {$ligne['ID']}","SquidTaskRun('{$ligne['ID']}','$jstaskexplain')"));;
+		
+		
+		
+		$run_icon="24-run.png";
+		if(isset($CheckRunningTasks[$ligne['ID']])){$run_icon="preloader.gif";}
+		$run=$tpl->_ENGINE_parse_body(imgtootltip($run_icon,"{run} {$ligne['ID']}","SquidTaskRun('{$ligne['ID']}','$jstaskexplain')"));;
 		
 		
 		
@@ -515,16 +520,16 @@ function search(){
 		}
 		
 		
-		
+		$sincerun=null;
 		$span="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?AddNewSchedule-js=yes&ID={$ligne['ID']}');\"
 		 style='font-size:16px;font-weight:bold;color:$color;text-decoration:underline'>";
 		$ligne["TimeDescription"]=utf8_encode($ligne["TimeDescription"]);
-		
+		if(isset($CheckRunningTasks[$ligne['ID']])){$sincerun="<br><i>{$CheckRunningTasks[$ligne['ID']]}</i>";}
 		//rowSquidTask
 	$data['rows'][] = array(
 		'id' => "SquidTask".$ligne['ID'],
 		'cell' => array("$span{$ligne['ID']}</a>",
-		"$span"."[".$TaskType."]&nbsp;{$ligne["TaskType"]}</a>","$span{$ligne["TimeDescription"]}</a>",$run,$events,
+		"$span"."[".$TaskType."]&nbsp;{$ligne["TaskType"]}</a>","$span{$ligne["TimeDescription"]}</a>$sincerun",$run,$events,
 		
 		"<div style='margin-top:5px'>$enable</div>",$delete )
 		);

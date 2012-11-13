@@ -1130,6 +1130,13 @@ l.add('libfuse-dev');
 
 l.add('libqt4-xml'); // Kaspersky Upate Utility
 
+if FileExists('/usr/bin/zarafa-server') then begin
+   l.add('ant'); // WebAPP Zarafa
+   l.add('openjdk-6-jdk');
+end;
+
+
+
 
 
 if distri.DISTRINAME_CODE='DEBIAN' then begin
@@ -1317,6 +1324,7 @@ if not LIGHT_INSTALL then l.add('libicu38');
         L.add('xtables-addons-common');
         L.add('xtables-addons-source');
         l.add('virt-what');
+        l.add('suricata'); ///usr/bin/suricata
 //        if not AsKimSuffi then if not isVPSDetected() then l.add('cgroup-bin');
 
 
@@ -1426,6 +1434,7 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
       l.Add('bridge-utils');
       l.Add('python-software-properties');
       l.Add('screen');
+      l.add('suricata');
 
 
    end;
@@ -1613,12 +1622,12 @@ var
    distri:tdistriDetect;
    UbuntuIntVer:integer;
 begin
-
+l:=TstringList.Create;
 if ArchStruct=64 then begin
    l.add('libc6-i386');
    //l.add('ia32-libs');
 end;
-l:=TstringList.Create;
+
 l.Add('php5-cgi');
 l.Add('php5-cli');
 l.Add('php5-ldap');

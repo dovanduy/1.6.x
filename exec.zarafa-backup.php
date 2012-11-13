@@ -86,7 +86,11 @@ function ScanDirs(){
 		if(is_file($datestamp)){$date=@file_get_contents($datestamp);}
 		if($date==null){$date=date("Y-m-d H:i:s",filemtime("$directory/zarafa.gz") );}
 		if(is_file($stamp)){$took=@file_get_contents($stamp);}
-		if($GLOBALS["VERBOSE"]){echo "$date ($took) $directory/zarafa.gz $size\n";}
+		
+		if($GLOBALS["VERBOSE"]){
+			$sizeDBG=round(($size/1024)/1000,2);
+			echo "Found: Container saved on: $date took:$took $directory/zarafa.gz Size:$sizeDBG MB\n";
+		}
 		$directory=addslashes($directory);
 		$f[]="('$directory','$size','$took','$date')";
 	}
@@ -96,6 +100,8 @@ function ScanDirs(){
 		$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){system_admin_events("Fatal $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "backup");}
 	}
+	
+	echo count($f)." container(s) found...\n";
 	
 }
 

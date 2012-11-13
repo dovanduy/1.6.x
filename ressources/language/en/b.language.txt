@@ -249,7 +249,7 @@ for example replace bing.com to google.com or microsoft.com to ubuntu.com :=).
 <top_members>TOP Members</top_members>
 <MAC>Mac Address</MAC>
 <phrase_most_day_activehour>was the most active time of this day</phrase_most_day_activehour>
-<squid_bandwith_rules_explain>This section allows you to reduce the bandwith according members, websites, filetype and time</squid_bandwith_rules_explain>
+<squid_bandwith_rules_explain>This section allows you to reduce the bandwidth according members, websites, filetype and time</squid_bandwith_rules_explain>
 <squid_test_categories_explain>This section allows you to test Artica categorization.[br]
 You can add websites and see if there are not categorized in the Artica Database.[br]
 If websites are categorized, they will be not added in the table.[br]
@@ -2387,3 +2387,90 @@ the web community that are of professional quality</Sanesecurity_signatures_expl
 <snort_scanner_explain>This task is designed to parse IDS snort events in put them into MySQL database</snort_scanner_explain>
 <APP_ARTICADB>Web Categories Daemon</APP_ARTICADB>
 <acls_add_dstdomaindst>Give the web server name eg: domain.tld or 10.10.10.1</acls_add_dstdomaindst>
+<myisamchk_task_explain>This task is in charge of check & repair all MyISAM MySQL tables and restart the MySQL server after operations</myisamchk_task_explain>
+<myisamchk_task>MyISAM tables checking</myisamchk_task>
+<syslog_engine>System logs parser</syslog_engine>
+<syslog_engine_explain>This task is in charge to parse all events from the system, and insert them into MySQL database</syslog_engine_explain>
+<nudityScan>Nudity Scanner</nudityScan>
+<mysql_engine>MySQL Engine</mysql_engine>
+<protocol_version>Protocol version</protocol_version>
+<version_comment>Version comment</version_comment>
+<version_compile_machine>Compiled on</version_compile_machine>
+<version_compile_os>Compiled on system</version_compile_os>
+<SquidNudityScanExplain>Nudity Scanner is a scanner that analyzes pictures and determine whether an image may contain nudity.[br]
+It analyses the colors used in different sections of an image to determine whether those colors match the human skin color tones.[br]
+As result of the analysis it returns a score value that reflects the probability of the image to contain nudity.
+</SquidNudityScanExplain>
+<probability>probability</probability>
+<memory_directory>Working directory memory</memory_directory>
+<download_timeout>Download timeout</download_timeout>
+<proxy_parameters_compilation>Proxy Parameters compilation</proxy_parameters_compilation>
+<please_wait_empty_console_cache>Please wait, empty the cache console</please_wait_empty_console_cache>
+<please_wait_refresh_web_pages>Please wait, refresh current pages</please_wait_refresh_web_pages>
+<APPLY_SETTINGS_SQUID>Please wait....[br]The proxy settings and all filters will be rebuilded...</APPLY_SETTINGS_SQUID>
+<please_wait_configuring_the_module>Please wait... configuring the module...</please_wait_configuring_the_module>
+<mgreylist_empty_db_warn>This procedure will purge all current Grey/white database: Proceed ?</mgreylist_empty_db_warn>
+<limit_bandwidth>Limit the bandwidth</limit_bandwidth>
+<UseALink>Use a link</UseALink>
+<DateTime>Date and time</DateTime>
+<downloadb>Download</downloadb>
+<uploadb>Upload</uploadb>
+<ps_mem>Memory processes</ps_mem>
+<ps_mem_explain>This task scan the processes memory queue.[br]By default, Artica checks memory of each process running on the system and put it into a directory.[br]
+This task is in charge to import values into the MySQL database.
+</ps_mem_explain>
+<tests_speed>Internet bandwidth calculation</tests_speed>
+<tests_speed_explain>This task checks your Internet bandwidth status and insert results into the MySQL database</tests_speed_explain>
+<bandwidth>bandwidth</bandwidth>
+<please_choose_a_bandwith_rule>Please choose a bandwidth rule</please_choose_a_bandwith_rule>
+<APP_WEBAPP>Zarafa WebAPP WebMail (from sources)</APP_WEBAPP>
+<ext_user>External user</ext_user>
+<acl_squid_ext_user_explain>String match on username returned by external acl helper.[br]
+Used for MAC/Member translation or when using HostSpot feature.[br]
+</acl_squid_ext_user_explain>
+<you_need_to_reconfigre_proxy>You need to reconfigure/restart the proxy service in order to apply changes in production mode</you_need_to_reconfigre_proxy>
+<downloaded_size>Downloaded size</downloaded_size>
+<display_visited_websites>Display visited sites</display_visited_websites>
+<display_not_categorized_websites>Display unknown sites</display_not_categorized_websites>
+<unknown_websites>unknown website(s)</unknown_websites>
+<unknown_websites_miniadm_explain>Artica try to retreive the right category for each visited website in order to display statistics by category.[br]
+You will find here unknown websites.[br]When clicking on a day, you will be able to fill category for each unknown website.</unknown_websites_miniadm_explain>
+<from_csv_file>From a CSV file</from_csv_file>
+<from_compiled_file>From compiled file</from_compiled_file>
+<fetchmail_importcomp_explain>This feature allows you to import rules from a already compiled fetchmail file.[br]
+Define here the path to your fetchmail rules file and click on import button</fetchmail_importcomp_explain>
+<fetchmail_parameters_compilation>Fetchmail compilation parameters</fetchmail_parameters_compilation>
+<APPLY_SETTINGS_FETCHMAIL>Saving fetchmail rules and restart service</APPLY_SETTINGS_FETCHMAIL>
+<please_wait_reloading_service>Please wait... reloading the service</please_wait_reloading_service>
+<licensed_mailboxes>Licensed mailboxes</licensed_mailboxes>
+<APP_VNSTAT_DISABLED_EXPLAIN>Network interface card statistics cannot be displayed.[br]The VnStat service is currently disabled.[br]
+Click on the enable button in order to start the VnStat service in order to build statistics.</APP_VNSTAT_DISABLED_EXPLAIN>
+<display_members_for_this_day>Display members for this day</display_members_for_this_day>
+<only_one_value_no_graph>Only one value as been generated for this query.[br]In this case, graphs cannot be builded</only_one_value_no_graph>
+<familysite>Global website</familysite>
+<blocked_hits>Blocked events</blocked_hits>
+<display_blocked_events>Display blocked events</display_blocked_events>
+<top_categories_by_hits>Top categories by hits</top_categories_by_hits>
+<top_categories_by_size>Top categories by size</top_categories_by_size>
+<www_tattooing>All about inserting indelible ink into the dermis layer of the skin to change the pigment or a form of body modification including piercing.</www_tattooing>
+<blocked_events>Blocked events</blocked_events>
+<youtube_videos>Youtube videos</youtube_videos>
+<display_youtube_for_this_day>Display downloaded videos downloaded on this day</display_youtube_for_this_day>
+<refresh_summary>Refresh summary</refresh_summary>
+<please_wait_compiling_items>Please wait, compiling items...</please_wait_compiling_items>
+<please_wait_reconfiguring_filter>Please wait, reconfiguring filter</please_wait_reconfiguring_filter>
+<please_wait_restarting_filter>Please wait, restarting filter service</please_wait_restarting_filter>
+<done_you_close>Task done, you can close this popup</done_you_close>
+<new_statistics_interface>The new statistics interface Howto</new_statistics_interface>
+<new_statistics_interface_text>Display howto access to advanced Web statistics interface on your server</new_statistics_interface_text>
+<proxy_statistics_interface>Access to the proxy Web interface statistics</proxy_statistics_interface>
+<proxy_statistics_interface_text>Disconnect from this console and access to the end-user interface</proxy_statistics_interface_text>
+<new_database_available>New database available</new_database_available>
+<new_database_available_category_text>A new category database is available on update server, click here if you want to update it</new_database_available_category_text>
+<category_database_update>Categories database update</category_database_update>
+<stopping_service>Stopping service</stopping_service>
+<extracting_package>Extracting package</extracting_package>
+<starting_service>starting service</starting_service>
+<video>video</video>
+<links>links</links>
+<who>who</who>

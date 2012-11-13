@@ -30,6 +30,7 @@ private
      innodb_file_per_table:integer;
      EnableMysqlLog:integer;
      thread_concurrency:integer;
+     VerboseCMDLIne:string;
      procedure CleanIniMysql();
      procedure cluster_management_saveconf();
      procedure cluster_replicat_saveconf();
@@ -79,7 +80,7 @@ begin
        SYS:=zSYS;
        D:=LOGS.COMMANDLINE_PARAMETERS('debug');
        EnableMysqlClusterManager:=0;
-
+       if SYS.verbosed then VerboseCMDLIne:=' --verbose';
        if not tryStrToInt(SYS.GET_INFO('EnableMysqlClusterManager'),EnableMysqlClusterManager) then EnableMysqlClusterManager:=0;
        if not tryStrToInt(SYS.GET_INFO('EnableMysqlClusterReplicat'),EnableMysqlClusterReplicat) then EnableMysqlClusterReplicat:=0;
        if not tryStrToInt(SYS.GET_INFO('EnableMysqlLog'),EnableMysqlLog) then EnableMysqlLog:=0;
@@ -349,137 +350,8 @@ end;
 //#############################################################################
 
 procedure tmysql_daemon.SERVICE_STOP();
-var
-   pid:string;
-   mysqladmin:string;
-   mysqladmin_pid:string;
-   mysqlbin:string;
-   count:integer;
-   user,password,cmdlineP,cmdline:string;
 begin
-
-mysqladmin:=SYS.LOCATE_MYSQL_ADMIN();
-mysqlbin:=SYS.LOCATE_mysqld_bin();
-
-  if not FileExists(mysqladmin) then begin
-     logs.Syslogs('Unable to stat mysqladmin program !!!');
-     exit;
-  end;
-
-    user:=SYS.MYSQL_INFOS('database_admin');
-    password:=SYS.MYSQL_INFOS('database_password');
-   pid:=PID_NUM();
-
-
-
-
- if(length(password)>0) then begin
-        password:=AnsiReplaceText(password,'&','\&');
-       password:=AnsiReplaceText(password,'<','\<');
-       password:=AnsiReplaceText(password,'>','\>');
-       password:=AnsiReplaceText(password,'$','\$');
-       password:=AnsiReplaceText(password,'!','\!');
-       cmdlineP:=' --password='+password;
-  end;
-
-
-  if not SYS.PROCESS_EXIST(pid) then begin
-     writeln('Stopping mysql...............: Already stopped');
-     TUNE_MYSQL();
-     exit;
-  end;
-
-  writeln('Stopping mysql...............: ' + pid + ' PID');
-  cmdline:=mysqladmin +' --user='+user+cmdlineP+' shutdown &';
-  logs.Debuglogs(cmdline);
-  fpsystem(cmdline);
-  sleep(100);
-  mysqladmin_pid:=SYS.PIDOF(mysqladmin);
-  count:=0;
-  SYS:=Tsystem.Create();
-
-   while SYS.PROCESS_EXIST(mysqladmin_pid) do begin
-        try begin
-            SYS.Free;
-            SYS:=Tsystem.Create();
-            pid:=SYS.PIDOF(mysqladmin)
-        end;
-        except
-           writeln('Stopping mysql...............: Fatal error SYS.PIDOF() function');
-           continue;
-        end;
-        sleep(1000);
-        count:=count+1;
-        if count>40 then begin
-            writeln('Stopping mysql...............: timeout with mysql_admin');
-            break;
-        end;
-  end;
-
-  count:=0;
-  writeln('');
-  pid:=PID_NUM();
-  if SYS.PROCESS_EXIST(pid) then begin
-     writeln('Stopping mysql...............: killing smoothly mysql PID '+pid);
-     while SYS.PROCESS_EXIST(pid) do begin
-           fpsystem('/bin/kill -15 '+pid);
-           sleep(400);
-           count:=count+1;
-           if count>30 then begin
-              writeln('');
-              writeln('Stopping mysql...............: timeout while killing smoothly processes');
-              break;
-            end;
-            sys.free;
-            SYS:=Tsystem.Create();
-            pid:=PID_NUM();
-     end;
-  end;
-
-
-  sys.free;
-  SYS:=Tsystem.Create();
-  pid:=SYS.PIDOF(mysqlbin);
-  if length(pid)>0 then begin
-     writeln('Stopping mysql...............: Force killing mysql PID '+pid);
-     while length(pid)>0 do begin
-           fpsystem('/bin/kill -9 '+pid);
-           sleep(400);
-           count:=count+1;
-           write('.');
-           if count>30 then begin
-              writeln('');
-              writeln('Stopping mysql...............: timeout while Force killing processes');
-              break;
-            end;
-        sys.free;
-        SYS:=Tsystem.Create();
-        pid:=PID_NUM();
-     end;
-  end else begin
-       writeln('Stopping mysql...............: stopped');
-  end;
-
-  if FIleExists('/usr/sbin/mysqlmanager') then begin
-     pid:=SYS.PROCESSES_LIST('/usr/sbin/mysqlmanager');              
-     if length(pid)>0 then begin
-        writeln('Stopping mysql...............: mysqlmanager: pid(s)'+pid);
-        fpsystem('/bin/kill -9 '+pid);
-     end;
-  end;
-
-
-  sys.free;
-  SYS:=Tsystem.Create();
-  pid:=PID_NUM();
-  if not SYS.PROCESS_EXIST(pid) then begin
-     writeln('Stopping mysql...............: success');
-  end else begin
-      writeln('Stopping mysql...............: failed');
-  end;
-
-  
-  
+     fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.mysql.start.php --stop'+VerboseCMDLIne);
 end;
 //##################################################################################
 function tmysql_daemon.VERSION():string;
@@ -568,229 +440,8 @@ begin
 end;
 
 procedure tmysql_daemon.SERVICE_START(nochecks:boolean);
-var
-   pid,cmd   :string;
-   Datadir,logbin,FileTemp,syslog,EnableMysqlFeatures:string;
-   artica_backup_pid:string;
-   processname:string;
-   pid_file:string;
-   socket:string;
-   mysql_user:string;
-   logpathstring:string;
-   ldap:topenldap;
-   mysql_install_db:string;
-   count:integer;
-   ChangeMysqlDir:string;
-   bind_address,bind_address2:string;
-   MysqlRemoveidbLogs:integer;
-   MysqlBinAllAdresses:integer;
-   MySqlTmpDir:string;
-   MySqlTmpDirCMD:string;
-   MySQLTMPMEMSIZE:integer;
 begin
-
-
-
- if FileExists('/etc/artica-postfix/mysql.stop') then begin
-    logs.DebugLogs('Starting......: Mysql locked, exiting');
-    exit;
- end;
-logpathstring:='';
- FileTemp:=artica_path+'/ressources/logs/mysql.start.daemon';
- mysql_install_db:=SYS.LOCATE_GENERIC_BIN('mysql_install_db');
- processname:=ExtractFileName(ParamStr(0));
-if not FileExists(SYS.LOCATE_mysqld_bin()) then begin
-   logs.DebugLogs('Starting......: Mysql is not installed, abort');
-   exit;
-end;
-
-if SYS.isoverloadedTooMuch() then begin
-   logs.DebugLogs('Starting......: System is overloaded');
-   exit;
-end;
-
-EnableMysqlFeatures:=SYS.GET_INFO('EnableMysqlFeatures');
-if not TryStrToInt(SYS.GET_INFO('MysqlBinAllAdresses'),MysqlBinAllAdresses) then MysqlBinAllAdresses:=0;
-if not TryStrToInt(SYS.GET_INFO('MySQLTMPMEMSIZE'),MySQLTMPMEMSIZE) then MySQLTMPMEMSIZE:=0;
-
-
-
-if length(EnableMysqlFeatures)=0 then begin
-   SYS.set_INFO('EnableMysqlFeatures','1');
-   EnableMysqlFeatures:='1';
-end;
-
-if  SYS.GET_INFO('MysqlTooManyConnections')='1' then begin
-    logs.DebugLogs('Starting......: Mysql MysqlTooManyConnections=1, abort');
-    exit;
-end;
-MySqlTmpDir:=SYS.GET_INFO('MySQLTMPDIR');
-if MySqlTmpDir='/tmp' then MySqlTmpDir:='';
-
-if length(MySqlTmpDir)>3 then begin
-       logs.DebugLogs('Starting......: MySQL tempdir : '+MySqlTmpDir);
-       fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.mysql.build.php --tmpfs');
-       if not DirectoryExists(MySqlTmpDir) then begin
-          ForceDirectories(MySqlTmpDir);
-          fpsystem('/bin/chmod 755 '+MySqlTmpDir);
-          fpsystem('/bin/chmod -R 755 '+MySqlTmpDir+'/* >/dev/null 2>&1');
-          fpsystem('/bin/chown mysql:mysql '+MySqlTmpDir);
-          fpsystem('/bin/chown -R mysql:mysql '+MySqlTmpDir+'/* >/dev/null 2>&1');
-       end;
-       MySqlTmpDirCMD:=' --tmpdir='+MySqlTmpDir;
-end;
-
-if processname<>'artica-backup' then begin
-   artica_backup_pid:=SYS.PIDOF('artica-backup');
-   if SYS.PROCESS_EXIST(artica_backup_pid) then begin
-      logs.Syslogs('Starting......: Mysql is disabled until artica-backup is running');
-      exit;
-   end;
-end;
-
-if SYS.PROCESS_EXIST(PID_NUM()) then begin
-     if SYS.GET_INFO('EnableMysqlFeatures')='0' then begin
-        logs.Syslogs('Starting......: Mysql is disabled by "EnableMysqlFeatures" stop it...');
-        SERVICE_STOP();
-     end;
-     logs.DebugLogs('Starting......: Mysql is already running using PID ' + PID_NUM() + '...');
-     exit();
-  end;
-  
-if SYS.GET_INFO('EnableMysqlFeatures')='0' then begin
-   logs.Debuglogs('Starting......: Mysql is disabled by "EnableMysqlFeatures"...');
-   exit;
-end;
-
-
-pid_file:=SERVER_PARAMETERS('pid-file');
-socket:=SERVER_PARAMETERS('socket');
-if length(pid_file)=0 then SET_MYSQLD_PARAMETERS('pid-file','/var/run/mysqld/mysqld.pid');
-SET_MYSQLD_PARAMETERS('socket','/var/run/mysqld/mysqld.sock');
-ForceDirectories('/var/log/mysql');
-
-
-
-   logbin:=SERVER_PARAMETERS('log_bin');
-   mysql_user:=SERVER_PARAMETERS('user');
-   fpsystem('/bin/chmod 777 /tmp');
-   if length(mysql_user)=0 then mysql_user:='mysql';
-   if length(logbin)=0 then logbin:=SERVER_PARAMETERS('log');
-
-   bind_address:='';
-   bind_address2:=SERVER_PARAMETERS('bind-address');
-   if length(trim(bind_address2))=0 then begin
-      bind_address:=' --bind-address=127.0.0.1';
-      bind_address2:='127.0.0.1';
-   end;
-
-   if(MysqlBinAllAdresses=1) then begin
-      bind_address2:='All (0.0.0.0)';
-      bind_address:=' --bind-address=0.0.0.0';
-   end;
-
-
-   datadir:=SERVER_PARAMETERS('datadir');
-   logbin:=ExtractFileDir(logbin);
-   syslog:=SYS.LOCATE_SYSLOG_PATH();
-   logs.DebugLogs('Starting......: tuning '+ CNF_PATH() );
-   TUNE_MYSQL();
-   logs.DebugLogs('Starting......: Mysql my.cnf........:' +CNF_PATH());
-   logs.DebugLogs('Starting......: Mysql init.d........:' +INIT_PATH());
-   logs.DebugLogs('Starting......: Mysql Pid path......:' +SERVER_PARAMETERS('pid-file'));
-   logs.DebugLogs('Starting......: Mysql log-bin.......:' +logbin);
-   logs.DebugLogs('Starting......: datadir.............:' +datadir);
-   logs.DebugLogs('Starting......: syslog..............:' +syslog);
-   logs.DebugLogs('Starting......: socket..............:' +socket);
-   logs.DebugLogs('Starting......: user................:' +mysql_user);
-   logs.DebugLogs('Starting......: pid-file............:' +pid_file);
-   logs.DebugLogs('Starting......: LOGS ENABLED........:' +IntTostr(EnableMysqlLog));
-   logs.DebugLogs('Starting......: Daemon..............:' +daemon_bin_path);
-   logs.DebugLogs('Starting......: Bind address........:' +bind_address2);
-   logs.DebugLogs('Starting......: Change init.d script...');
-   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initd-mysql.php >/dev/null 2>&1'):
-   if length(logbin)>0 then logs.OutputCmd('/bin/chown -R '+mysql_user+':'+mysql_user+' '+logbin);
-   forcedirectories('/var/run/mysqld');
-   logs.OutputCmd('/bin/chown -R '+mysql_user+':'+mysql_user+' /var/run/mysqld');
-   logs.OutputCmd('/bin/chown -R '+mysql_user+':'+mysql_user+' /var/log/mysql');
-   ChangeMysqlDir:=SYS.GET_INFO('ChangeMysqlDir');
-   if length(ChangeMysqlDir)>0 then begin
-      if DirectoryExists(ChangeMysqlDir) then begin
-         fpsystem('/bin/chmod 755 '+ChangeMysqlDir);
-         fpsystem('/bin/chmod -R 755 '+ChangeMysqlDir+'/*');
-         fpsystem('/bin/chown mysql:mysql '+ChangeMysqlDir);
-         fpsystem('/bin/chown -R mysql:mysql '+ChangeMysqlDir+'/*');
-      end;
-   end;
-
-
-     if not TryStrToINt(SYS.GET_INFO('MysqlRemoveidbLogs'),MysqlRemoveidbLogs) then MysqlRemoveidbLogs:=0;
-     if MysqlRemoveidbLogs=1 then begin
-        fpsystem('/bin/mv /var/lib/mysql/ib_logfile* /tmp/');
-        sys.set_INFO('MysqlRemoveidbLogs','0');
-     end;
-   if DirectoryExists(datadir) then logs.OutputCmd('/bin/chown -R '+mysql_user+':'+mysql_user+' '+datadir);
-   CleanMyCnf();
-   if(EnableMysqlLog=1) then logpathstring:=' --log=/var/log/mysql.log --log-slow-queries=/var/log/mysql-slow-queries.log --log-error=/var/log/mysql.error.log --log-warnings';
-   if not FileExists('/var/log/mysql-slow-queries.log') then logs.OutputCmd('/bin/touch /var/log/mysql-slow-queries.log');
-   if not FileExists('/var/log/mysql.error') then logs.OutputCmd('/bin/touch /var/log/mysql.error.log');
-   if not FileExists('/var/log/mysql.log') then logs.OutputCmd('/bin/touch /var/log/mysql.log');
-   if not FileExists('/var/log/mysql.warn') then logs.OutputCmd('/bin/touch /var/log/mysql.warn.log');
-
-   logs.OutputCmd('/bin/chown '+mysql_user+':'+mysql_user+' /var/log/mysql-slow-queries.log');
-   logs.OutputCmd('/bin/chown '+mysql_user+':'+mysql_user+' /var/log/mysql.error.log');
-   logs.OutputCmd('/bin/chown '+mysql_user+':'+mysql_user+' /var/log/mysql.log');
-   logs.OutputCmd('/bin/chown '+mysql_user+':'+mysql_user+' /var/log/mysql.warn.log');
-
-
-   datadir:=SERVER_PARAMETERS('datadir');
-   logs.DebugLogs('Starting......: Mysql Checking :' +datadir+'/mysql/host.frm');
-   if not FileExists(datadir+'/mysql/host.frm') then begin
-     if FileExists(mysql_install_db) then begin
-        logs.Debuglogs('Starting......: Mysql installing default databases.');
-        fpsystem(mysql_install_db);
-     end else begin
-         logs.DebugLogs('Starting......: unable to stat mysql_install_db');
-     end;
-   end;
-
-   DELETE_PARAMETERS('skip-innodb');
-   DELETE_PARAMETERS('skip-bdb');
-
-   if innodb_file_per_table=1 then begin
-       logs.DebugLogs('Starting......: Mysql using innodb file per table feature');
-   end;
-
-   if FileExists('/var/run/mysqld/mysqld.err') then logs.DeleteFile('/var/run/mysqld/mysqld.err');
-   cmd:=daemon_bin_path+bind_address+' --pid-file=/var/run/mysqld/mysqld.pid '+logpathstring+MySqlTmpDirCMD+ ' >/var/log/mysql/mysql.start.log 2>&1 &';
-
-   if FileExists('/usr/sbin/aa-complain')  then begin
-        logs.DebugLogs('Starting......: Mysql adding mysql in apparamor complain mode...');
-        fpsystem('/usr/sbin/aa-complain ' +daemon_bin_path+' >/dev/null 2>&1');
-   end;
-   fpsystem(cmd);
-   pid:=PID_NUM();
-   count:=0;
-    while not SYS.PROCESS_EXIST(pid) do begin
-     sleep(300);
-     inc(count);
-     if count>5 then begin
-       logs.DebugLogs('Starting......: Mysql (timeout!!!)');
-       logs.DebugLogs('Starting......: Mysql "'+cmd+'"');
-       break;
-     end;
-      pid:=PID_NUM();
-   end;
-
- pid:=PID_NUM();
- if not SYS.PROCESS_EXIST(pid) then begin
-    logs.DebugLogs('Starting......: Mysql failed with command line '+cmd);
-    if not nochecks then SERVICE_START(true);
- end else begin
-   logs.DebugLogs('Starting......: Mysql success PID ' + pid);
-   logs.DeleteFile(FileTemp);
- end;
-
+     fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.mysql.start.php --start');
 end;
 //############################################################################# #
 function tmysql_daemon.checks_errors():boolean;
@@ -798,11 +449,20 @@ var
    l:Tstringlist;
    i:integer;
    RegExpr:TRegExpr;
+   MySQLLOgErrorPath,datadir:string;
 begin
   result:=false;
-  if not FileExists('/var/log/mysql/mysql.start.log') then exit(false);
+
+MySQLLOgErrorPath:=SYS.GET_INFO('MySQLLOgErrorPath');
+datadir:=trim(SYS.GET_INFO('ChangeMysqlDir'));
+if length(datadir)=0 then datadir:='/var/lib/mysql';
+if length(MySQLLOgErrorPath)=0 then MySQLLOgErrorPath:=datadir+'/mysqld.err';
+
+  if not FileExists(MySQLLOgErrorPath) then exit(false);
   l:=Tstringlist.Create();
-  l.LoadFromFile('/var/log/mysql/mysql.start.log');
+  logs.DebugLogs('Starting......: Mysql reading '+MySQLLOgErrorPath);
+  l.LoadFromFile(MySQLLOgErrorPath);
+  RegExpr:=TRegExpr.Create;
   for i:=0 to l.Count-1 do begin
       if length(trim(l.Strings[i]))=0 then continue;
       RegExpr.Expression:='WARNING: The host ''(.+?)'' could not be looked up with resolveip';
@@ -812,6 +472,15 @@ begin
           l.free;
           exit(true);
       end;
+      RegExpr.Expression:='InnoDB:.*?log file.*?ib_logfile0 is of different size';
+       if RegExpr.Exec(l.Strings[i]) then begin
+            logs.DebugLogs('Starting......: Mysql InnoDB issue... remove ib_logfile0 and ib_logfile1 in '+datadir);
+            logs.DeleteFile(datadir+'/ib_logfile0');
+            logs.DeleteFile(datadir+'/ib_logfile1');
+            fpsystem('/etc/init.d/artica-postfix restart mysql &');
+            halt(0);
+       end;
+
       logs.DebugLogs('Starting......: Mysql '+l.Strings[i]);
   end;
           RegExpr.free;

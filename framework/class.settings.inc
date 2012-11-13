@@ -463,6 +463,7 @@ class settings_inc {
 	var $ARPD_INSTALLED=false;
 	var $YAFFAS_INSTALLED=false;
 	var $SQUID_APPLIANCE=false;
+	var $PROXYTINY_APPLIANCE=false;
 	var $MPM_ITK_MODULE=false;
 	var $APACHE_MOD_BW=false;
 	var $QUOTA_INSTALLED=false;
@@ -480,6 +481,8 @@ class settings_inc {
 	var $CORP_LICENSE=false;
 	var $WEBSTATS_APPLIANCE=false;
 	var $ARTICADB_INSTALLED=false;
+	var $SURICATA_INSTALLED=false;
+	var $ZARAFA_INDEXER_INSTALLED=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -583,6 +586,8 @@ class settings_inc {
 			if(isset($_GLOBAL["ARPD_INSTALLED"])){$this->ARPD_INSTALLED=$_GLOBAL["ARPD_INSTALLED"];}
 			if(isset($_GLOBAL["NETATALK_INSTALLED"])){$this->NETATALK_INSTALLED=$_GLOBAL["NETATALK_INSTALLED"];}
 			if(isset($_GLOBAL["SQUID_APPLIANCE"])){$this->SQUID_APPLIANCE=$_GLOBAL["SQUID_APPLIANCE"];}
+			if(isset($_GLOBAL["PROXYTINY_APPLIANCE"])){$this->PROXYTINY_APPLIANCE=$_GLOBAL["PROXYTINY_APPLIANCE"];}			
+			
 			if(isset($_GLOBAL["MPM_ITK_MODULE"])){$this->MPM_ITK_MODULE=$_GLOBAL["MPM_ITK_MODULE"];}
 			if(isset($_GLOBAL["APACHE_MOD_BW"])){$this->APACHE_MOD_BW=$_GLOBAL["APACHE_MOD_BW"];}
 			if(isset($_GLOBAL["MYSQLD_MULTI_INSTALLED"])){$this->MYSQLD_MULTI_INSTALLED=$_GLOBAL["MYSQLD_MULTI_INSTALLED"];}
@@ -669,6 +674,10 @@ class settings_inc {
 			if(isset($_GLOBAL["SSHFS_INSTALLED"])){$this->SSHFS_INSTALLED=$_GLOBAL["SSHFS_INSTALLED"];;}
 			if(isset($_GLOBAL["APP_ARKEIA_INSTALLED"])){$this->APP_ARKEIA_INSTALLED=$_GLOBAL["APP_ARKEIA_INSTALLED"];;}
 			if(isset($_GLOBAL["ZARAFA_SEARCH_INSTALLED"])){$this->ZARAFA_SEARCH_INSTALLED=$_GLOBAL["ZARAFA_SEARCH_INSTALLED"];;}
+			if(isset($_GLOBAL["ZARAFA_INDEXER_INSTALLED"])){$this->ZARAFA_INDEXER_INSTALLED=$_GLOBAL["ZARAFA_INDEXER_INSTALLED"];;}
+			
+			
+			
 			if(isset($_GLOBAL["LIGHT_INSTALL"])){$this->LIGHT_INSTALL=$_GLOBAL["LIGHT_INSTALL"];}
 			// Are you sure to do that !!!, breaking the license turn you to a pirate...
 			if(isset($_GLOBAL["CORP_LICENSE"])){$this->CORP_LICENSE=$_GLOBAL["CORP_LICENSE"];}
@@ -838,7 +847,7 @@ class settings_inc {
 			if(isset($_GLOBAL["THINSTATION_INSTALLED"])){$this->THINSTATION_INSTALLED=$_GLOBAL["THINSTATION_INSTALLED"];}
 			if(isset($_GLOBAL["SAMBA_CLUSTER_SUPPORT"])){$this->SAMBA_CLUSTER_SUPPORT=$_GLOBAL["SAMBA_CLUSTER_SUPPORT"];}
 			if(isset($_GLOBAL["KLMS_INSTALLED"])){$this->KLMS_INSTALLED=$_GLOBAL["KLMS_INSTALLED"];}
-			
+			if(isset($_GLOBAL["SURICATA_INSTALLED"])){$this->SURICATA_INSTALLED=$_GLOBAL["SURICATA_INSTALLED"];}
 			
 			
 			
@@ -923,6 +932,7 @@ class settings_inc {
 			$ArticaMetaEnabled=trim($sock->GET_INFO("ArticaMetaEnabled"));
 			if($ArticaMetaEnabled==null){$sock->SET_INFO("ArticaMetaEnabled","0");}
 			if($ArticaMetaEnabled==1){$this->ARTICA_META_ENABLED=true;}
+			if($this->PROXYTINY_APPLIANCE){$this->SQUID_APPLIANCE=true;}
 			
 			$pear=explode(";",$_GLOBAL["PEAR_PACKAGES"]);
 			if(is_array($pear)){

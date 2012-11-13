@@ -173,10 +173,10 @@ Un r&eacute;seau/masque : 10.1.0.0/255.255.0.0
 Une notation CDIR: 10.1.0.0/16</apache_auth_ip_explain>
 <apache_explain_BandWidth>La source peut &ecirc;tre un nom d'h&ocirc;te complet (host.domain.tld), une partie d'un domaine, une adresse IP (192.168.218.5) , un masque de r&eacute;seau (192.168.1.0/24) ou bien l'entr&eacute;e &quot;all&quot; qui indique &quot;Tous&quot;.[br]
 Si la vitesse est de 0, il n'y a aucune limite.</apache_explain_BandWidth>
-<apache_explain_LargeFileLimit>Type is the filename extension, or * for all. E.g. you can use ".tgz" to match only tar-compressed files, ".avi" to match video files.[br]
-minimum size is the minimum size (in kbytes) of the file to be matched.[br]
-That way you can match huge video files that hog your bandwidth.
-</apache_explain_LargeFileLimit>
+<apache_explain_LargeFileLimit>Type est l'extension du fichier, ou * pour tous.[br]
+Par exemple vous pouvez utiliser &quot;.tgz&quot; afin de correspondre aux fichier compress&eacute;s de type tar ou bien &quot;.avi&quot; afin de faire correspondre aux fichiers video.[br]
+La taille minimale est le poids du fichier ( en kbytes)  des fichiers correspondants.[br]
+Ainsi vous pouvez limiter les gros fichiers vid&eacute;o qui prennent de la bande passante.</apache_explain_LargeFileLimit>
 <apache_explain_MaxConnection>Connexions MAX repr&eacute;sente le maximum de connexions simultan&eacute;es accept&eacute;e pour la &quot;source&quot;.[br]
 Au del&agrave; de cette limite, le serveur enverra une code erreur 503 &quot;Service Temporairement Indisponible&quot;.[br]
 La source peut &ecirc;tre un nom d'h&ocirc;te complet (host.domain.tld), une partie d'un domaine, une adresse IP (192.168.218.5) , un masque de r&eacute;seau (192.168.1.0/24) ou bien l'entr&eacute;e &quot;all&quot; qui indique &quot;Tous&quot;.[br]

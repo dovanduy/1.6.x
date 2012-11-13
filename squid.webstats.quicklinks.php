@@ -7,7 +7,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	
 	
 $usersmenus=new usersMenus();
-if(!$usersmenus->AsSquidAdministrator){
+if(!$usersmenus->AsWebStatisticsAdministrator){
 	$tpl=new templates();
 	$alert=$tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
 	echo "alert('$alert');";
@@ -60,8 +60,8 @@ if($DisableArticaProxyStatistics==0){
 
 
 $statisticsAdded=false;
-$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("service-check-48.png", "services_status","system_information_text", "QuickLinkSystems('section_status')"));
-$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-parameters.png", "proxy_parameters","section_security_text", "QuickLinkSystems('section_architecture')"));
+if($users->AsSquidAdministrator){$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("service-check-48.png", "services_status","system_information_text", "QuickLinkSystems('section_status')"));}
+if($users->AsSquidAdministrator){$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-parameters.png", "proxy_parameters","section_security_text", "QuickLinkSystems('section_architecture')"));}
 if($users->AsSquidAdministrator){$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-tasks.png", "tasks","", "QuickLinkSystems('section_tasks')"));}
 
 //$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-network-user.png", "members","softwares_mangement_text", "QuickLinkSystems('section_members')"));
@@ -117,7 +117,7 @@ if(isset($_GET["NoStart"])){$start=null;}
 
 	
 	$html="
-            <div id='QuickLinksTop'>
+            <div id='QuickLinksTop' class=mainHeaderContent>
                 <ul class='kwicks'>
 					".@implode("\n", $f)."
                     

@@ -480,7 +480,7 @@ begin
    if FileExists('/etc/artica-postfix/CYRUS_APPLIANCE') then list.Add('$_GLOBAL["CYRUS_APPLIANCE"]=True;') else list.Add('$_GLOBAL["CYRUS_APPLIANCE"]=false;');
    if FileExists('/proc/user_beancounters') then list.Add('$_GLOBAL["VPS_OPENVZ"]=True;') else list.Add('$_GLOBAL["VPS_OPENVZ"]=false;');
    if FileExists('/etc/artica-postfix/LIGHT_INSTALL') then list.Add('$_GLOBAL["LIGHT_INSTALL"]=True;') else list.Add('$_GLOBAL["LIGHT_INSTALL"]=false;');
-
+   if FileExists('/etc/artica-postfix/PROXYTINY_APPLIANCE') then list.Add('$_GLOBAL["PROXYTINY_APPLIANCE"]=True;') else list.Add('$_GLOBAL["PROXYTINY_APPLIANCE"]=false;');
 
 
    if FileExists('/usr/share/z-push/version.php') then list.Add('$_GLOBAL["Z_PUSH_INSTALLED"]=True;') else list.Add('$_GLOBAL["Z_PUSH_INSTALLED"]=false;');
@@ -506,6 +506,7 @@ begin
    if FIleExists(SYS.LOCATE_GENERIC_BIN('gfs2_tool')) then list.Add('$_GLOBAL["GFS2_INSTALLED"]=True;') else list.Add('$_GLOBAL["GFS2_INSTALLED"]=False;');
    if FIleExists(SYS.LOCATE_GENERIC_BIN('httrack')) then list.Add('$_GLOBAL["HTTRACK_INSTALLED"]=True;') else list.Add('$_GLOBAL["HTTRACK_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('mimedefang')) then list.Add('$_GLOBAL["MIMEDEFANG_INSTALLED"]=True;') else list.Add('$_GLOBAL["MIMEDEFANG_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('suricata')) then list.Add('$_GLOBAL["SURICATA_INSTALLED"]=True;') else list.Add('$_GLOBAL["SURICATA_INSTALLED"]=False;');
 
 
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_authnz_ldap.so') then list.Add('$_GLOBAL["APACHE_MOD_AUTHNZ_LDAP"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_AUTHNZ_LDAP"]=False;');
@@ -762,6 +763,10 @@ begin
    if FileExists(zarafa.SERVER_BIN_PATH()) then begin
       list.ADD('$_GLOBAL["ZARAFA_INSTALLED"]=True;');
       if FileExists(SYS.LOCATE_GENERIC_BIN('zarafa-search')) then list.ADD('$_GLOBAL["ZARAFA_SEARCH_INSTALLED"]=True;') else list.Add('$_GLOBAL["ZARAFA_SEARCH_INSTALLED"]=False;');
+      if FileExists(SYS.LOCATE_GENERIC_BIN('zarafa-indexer')) then list.ADD('$_GLOBAL["ZARAFA_INDEXER_INSTALLED"]=True;') else list.Add('$_GLOBAL["ZARAFA_INDEXER_INSTALLED"]=False;');
+
+
+
    end else begin
        list.Add('$_GLOBAL["ZARAFA_INSTALLED"]=False;');
    end;

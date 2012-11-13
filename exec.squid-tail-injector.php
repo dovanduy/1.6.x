@@ -18,6 +18,7 @@ if($argv[1]=="--youtube"){youtube();die();}
 if($argv[1]=="--users-agents"){useragents();die();}
 if($argv[1]=="--users-size"){ParseUsersSize();die();}
 if($argv[1]=="--squid"){ParseSquidLogMain();die();}
+if($argv[1]=="--nudity"){nudityScan();die();}
 
 
 
@@ -57,6 +58,8 @@ if($argv[1]=="--squid"){ParseSquidLogMain();die();}
 	useragents();
 	events("Execute ParseUsersSize()");
 	ParseUsersSize();
+	events("Execute nudityScan()");
+	nudityScan();
 	events("FINISH....");
 //EnableWebProxyStatsAppliance
 
@@ -145,6 +148,65 @@ function GetComputerName($ip){
 		$GLOBALS["resvip"]=$name;
 		return $name;
 		}
+		
+		
+function nudityScan(){
+	if(function_exists("system_is_overloaded")){
+		if(system_is_overloaded()){
+			writelogs_squid("Fatal:$hostname Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}	
+	}
+	$SquidNuditScanParams=unserialize(base64_decode(@file_get_contents("/etc/squid3/SquidNudityScanParams")));
+	$iPicScanVal = $SquidNuditScanParams['picscanval'];
+	if(!is_numeric($iPicScanVal)){$iPicScanVal=70;}
+	$iPicScanVal=intval($iPicScanVal);
+	if($iPicScanVal>99){$iPicScanVal=99;}	
+	
+	if(!is_dir("/var/log/squid/nudity")){return;}
+	if (!$handle = opendir("/var/log/squid/nudity")){return;}
+	
+	$countDeFiles=0;
+	$FF=array();
+	while (false !== ($filename = readdir($handle))) {
+				if($filename=="."){continue;}
+				if($filename==".."){continue;}
+				$targetFile="/var/log/squid/nudity/$filename";
+				$countDeFiles++;
+				$array=unserialize(@file_get_contents($targetFile));
+				$zmd5=md5(serialize($array));
+				$uid=addslashes($array["LOGIN"]);
+				$ipaddr=$array["IPADDR"];
+				$MAC=addslashes($array["MAC"]);
+				$hostname=addslashes($array["HOST"]);
+				$uri=addslashes($array["URI"]);
+				$servername=addslashes($array["RHOST"]);
+				$POURC=$array["POURC"];
+				$time=filemtime($targetFile);
+				$tablePrefix=date("YmdH",$time);
+				$zDate=date("Y-m-d H:i:s");
+				$sqline="('$zmd5','$servername','$uri','$ipaddr','$hostname','$zDate','$uid','$MAC','$POURC')";
+				$FF[$tablePrefix][]=$sqline;
+				@unlink($targetFile);
+				
+		}
+
+		if(count($FF)==0){return;}
+		
+		$q=new mysql_squid_builder();
+		while (list ($tablePrefix, $f) = each ($FF) ){
+			if(count($f)>0){
+				if($q->TableNudityHour($tablePrefix)){
+					$tablename="znudehour_$tablePrefix";
+					$prefix="INSERT IGNORE INTO $tablename (zMD5,sitename,uri,ipaddr,hostname,zDate,uid,MAC,POURC) VALUES ".@implode(",", $f);
+					$q->QUERY_SQL($prefix);
+					if(!$q->ok){echo $q->mysql_error;}
+					}
+				}
+				
+			}
+		
+}
 	
 
 
@@ -211,7 +273,7 @@ while (false !== ($filename = readdir($handle))) {
 		$pattern=trim(@file_get_contents($targetFile));
 		if(strlen($pattern)<3){@unlink($targetFile);continue;}
 		
-		$pattern=mysql_escape_string($pattern);
+		$pattern=addslashes($pattern);
 		$f[]="('$pattern')";
 		@unlink($targetFile);
 }
@@ -223,7 +285,7 @@ while (false !== ($filename = readdir($handle))) {
 		$sql="INSERT IGNORE INTO UserAgents (pattern) VALUES ".@implode(",", $f);
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){
-			ufdbguard_admin_events("Fatal, $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "stats");
+			ufdbguard_admin_events("Fatal for  ".count($f)." files, $q->mysql_error\n$sql", __FUNCTION__, __FILE__, __LINE__, "stats");
 		}
 	}
 	events("ParseUserAuth():: FINISH.... $c files");

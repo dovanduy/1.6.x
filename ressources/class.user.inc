@@ -611,12 +611,12 @@ class user{
 		$this->EnableUserSpamLearning=$attrs["EnableUserSpamLearning"][0];
 		
 		
-		$this->vacationActive=$attrs["vacationActive"][0];
-		$this->vacationStart=$attrs["vacationStart"][0];
-		$this->vacationEnd=$attrs["vacationEnd"][0];
-		$this->vacationInfo=$attrs["vacationInfo"][0];
-		$this->vacationEnabled=$attrs["vacationEnabled"][0];
-		$this->EnableBackupAccount=$attrs["EnableBackupAccount"][0];
+		if(isset($attrs["vacationActive"][0])){$this->vacationActive=$attrs["vacationActive"][0];}
+		if(isset($attrs["vacationStart"][0])){$this->vacationStart=$attrs["vacationStart"][0];}
+		if(isset($attrs["vacationEnd"][0])){$this->vacationEnd=$attrs["vacationEnd"][0];}
+		if(isset($attrs["vacationInfo"][0])){$this->vacationInfo=$attrs["vacationInfo"][0];}
+		if(isset($attrs["vacationEnabled"][0])){$this->vacationEnabled=$attrs["vacationEnabled"][0];}
+		if(isset($attrs["EnableBackupAccount"][0])){$this->EnableBackupAccount=$attrs["EnableBackupAccount"][0];}
 		if(isset($attrs["ArticaGroupPrivileges"][0])){$this->ArticaGroupPrivileges=$attrs["ArticaGroupPrivileges"][0];}
 		if(isset($attrs["RsyncBackupTargetPath"][0])){$this->RsyncBackupTargetPath=$attrs["RsyncBackupTargetPath"][0];}
 		if(isset($attrs["UserRelayHostForward"][0])){$this->UserRelayHostForward=$attrs["UserRelayHostForward"][0];}

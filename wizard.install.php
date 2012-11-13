@@ -314,7 +314,11 @@ function setup_3(){
 	
 	if($users->CYRUS_APPLIANCE){
 		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='IMAP-POP3 OpenSource Appliance'>";
-	}	
+	}
+
+	if($users->PROXYTINY_APPLIANCE){
+		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='Tiny Proxy Appliance'>";
+	}		
 	
 	
 	

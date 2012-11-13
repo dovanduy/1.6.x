@@ -619,6 +619,7 @@ function group_list(){
 		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}'"));
 		$CountDeMembers=$ligne2["tcount"];
 		if($ligne["GroupType"]=="proxy_auth_ads"){$CountDeMembers="-";}
+		if($GroupType=="NudityScan"){$CountDeMembers="-";}
 		
 		
 	$data['rows'][] = array(

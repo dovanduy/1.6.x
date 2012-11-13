@@ -280,7 +280,7 @@ function cgroup_edit(){
 	if($_GET["ID"]>0){
 		$sql="SELECT * FROM cgroups_groups WHERE ID={$_GET["ID"]}";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-		if(!$q-ok){echo "<H2>$q->mysql_error</H2>";}
+		if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}
 		$button_name="{apply}";
 	}
 	
@@ -603,7 +603,7 @@ function cgroup_processes_running_list(){
 	$q=new mysql();			
 	$sql="SELECT groupname FROM cgroups_groups WHERE ID={$_GET["GPID"]}";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	if(!$q-ok){echo "<H2>$q->mysql_error</H2>";return;}	
+	if(!$q->ok){echo "<H2>$q->mysql_error</H2>";return;}	
 	
 	$sock=new sockets();
 	$hash=unserialize(base64_decode($sock->getFrameWork("cgroup.php?runingplist={$ligne["groupname"]}")));

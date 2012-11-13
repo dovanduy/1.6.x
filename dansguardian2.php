@@ -86,7 +86,11 @@ function tabs(){
 		if($enable_streamcache==1){$array["streamcache"]='{streamcache_status}';}
 	}
 
-
+	if($users->PROXYTINY_APPLIANCE){
+		unset($array["ufdbguard"]);
+		unset($array["rules"]);
+		unset($array["databases"]);
+	}
 
 
 	$fontsize=14;
@@ -798,7 +802,7 @@ function dansguardian_status(){
 		$MEM_HIGER_1G=0;
 
 	}
-
+	$t=time();
 	$html="
 	$table
 	<script>
@@ -806,9 +810,9 @@ function dansguardian_status(){
 			LoadAjax('dansguardian-service-status','$page?dansguardian-service-status=yes');
 		}
 		
-		var x_enable_plugins= function (obj) {
+		var x_enable_plugins$t= function (obj) {
 			var results=obj.responseText;
-			if(results.length>0){alert(results);}
+			if(results.length>5){alert(results);}
 			Loadjs('squid.popups.php?x-save-plugins=yes');
 		}
 
@@ -827,7 +831,7 @@ function dansguardian_status(){
 			 XHR.appendData('enable_plugins','yes');
 			 XHR.appendData('enable_ufdbguardd',value);
 			 document.getElementById('ufd-$time').innerHTML='<center style=\"width:100%\"><img src=img/wait.gif></center>';
-			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins);	
+			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins$t);	
 		}
 		function EnableKav4Proxy(value){
 			 var MEM_HIGER_1G=$MEM_HIGER_1G;
@@ -837,7 +841,7 @@ function dansguardian_status(){
 			 XHR.appendData('enable_plugins','yes');
 			 XHR.appendData('enable_kavproxy',value);
 			 document.getElementById('kav4-$time').innerHTML='<center style=\"width:100%\"><img src=img/wait.gif></center>';
-			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins);	
+			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins$t);	
 		}
 		
 		function EnableDansguardian(value){
@@ -846,7 +850,7 @@ function dansguardian_status(){
 			 XHR.appendData('enable_plugins','yes');
 			 XHR.appendData('enable_dansguardian',value);
 			 document.getElementById('dans-$time').innerHTML='<center style=\"width:100%\"><img src=img/wait.gif></center>';
-			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins);		
+			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins$t);		
 		}
 		
 		function JSDisableAllFilters(value){
@@ -877,7 +881,7 @@ function dansguardian_status(){
 			 XHR.appendData('enable_plugins','yes');
 			 XHR.appendData('enable_ecapav',value);
 			 document.getElementById('ecapav-$time').innerHTML='<center style=\"width:100%\"><img src=img/wait.gif></center>';
-			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins);	
+			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins$t);	
 		}			
 		
 		
@@ -890,7 +894,7 @@ function dansguardian_status(){
 			 XHR.appendData('enable_plugins','yes');
 			 XHR.appendData('enable_c_icap',value);
 			 document.getElementById('cicap-$time').innerHTML='<center style=\"width:100%\"><img src=img/wait.gif></center>';
-			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins);	
+			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins$t);	
 		}		
 		function EnableMetaScan(value){
 			 var MEM_HIGER_1G=$MEM_HIGER_1G;
@@ -900,7 +904,7 @@ function dansguardian_status(){
 			 XHR.appendData('enable_plugins','yes');
 			 XHR.appendData('enable_metascanner',value);
 			 document.getElementById('kavmeta-$time').innerHTML='<center style=\"width:100%\"><img src=img/wait.gif></center>';
-			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins);	
+			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins$t);	
 		}		
 		
 		function JSEnableStreamCache(value){
@@ -909,7 +913,7 @@ function dansguardian_status(){
 			 XHR.appendData('enable_plugins','yes');
 			 XHR.appendData('enable_streamcache',value);
 			 document.getElementById('stream-$time').innerHTML='<center style=\"width:100%\"><img src=img/wait.gif></center>';
-			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins);	
+			 XHR.sendAndLoad('squid.popups.php', 'GET',x_enable_plugins$t);	
 		}		
 		
 		RefreshDansguardianMainService();

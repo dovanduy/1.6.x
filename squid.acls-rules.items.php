@@ -259,6 +259,7 @@ function items_list(){
 		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}'"));
 		$items=$ligne2["tcount"];
 		if($GroupType=="proxy_auth_ads"){$items="-";}
+		if($GroupType=="NudityScan"){$items="-";}
 		
 $href="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID={$ligne['ID']}&table-org=table-items-$t0');\" 

@@ -1424,15 +1424,7 @@ echo $tpl->_ENGINE_parse_body($html,'squid.index.php');
 }
 
 function x_save_plugins(){
-echo "
-			LoadAjax('div-poubelle','CacheOff.php?cache=yes');
-			CacheOff();
-			YahooWin2Hide();
-			 if(document.getElementById('squid_main_config')){RefreshTab('squid_main_config');}
-			 if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
-			 if(document.getElementById('TEMPLATE_LEFT_MENUS')){ RefreshLeftMenu();}
-			 if(document.getElementById('squid-status')){LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');}
-			";	
+echo "Loadjs('squid.compile.progress.php');";	
 	
 }
 

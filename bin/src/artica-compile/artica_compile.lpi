@@ -188,8 +188,8 @@
         <Filename Value="compile.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="compile"/>
-        <CursorPos X="49" Y="900"/>
-        <TopLine Value="857"/>
+        <CursorPos X="53" Y="1129"/>
+        <TopLine Value="1095"/>
         <EditorIndex Value="2"/>
         <UsageCount Value="159"/>
         <Loaded Value="True"/>

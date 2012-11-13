@@ -18,10 +18,15 @@
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$users=new usersMenus();
 	$array["tasks"]='{tasks}';
 	$array["tasks_events"]='{tasks}:{events}';
 	$array["events"]='{events}';
 
+	if($users->PROXYTINY_APPLIANCE){
+		unset($array["events"]);
+	}
+	
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="tasks_events"){

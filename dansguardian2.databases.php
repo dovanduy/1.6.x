@@ -141,16 +141,21 @@ function statusDB(){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($ligne["Variable_name"]=="slave_type_conversions"){continue;}
 		$tt[]="	<tr>
-					<td colspan=2><div style='font-size:16px'>{$ligne["Variable_name"]}:&nbsp;{$ligne["Value"]}</a></div></td>
+					<td colspan=2><div style='font-size:14px'>{{$ligne["Variable_name"]}}:&nbsp;{$ligne["Value"]}</a></div></td>
 				</tr>";
 		}
 	
+	$arrayV=unserialize(base64_decode($sock->getFrameWork("squid.php?articadb-nextversion=yes")));
+	$REMOTE_VERSION=$arrayV["ARTICATECH"]["VERSION"];
+	if($REMOTE_VERSION>$date){
+		$REMOTE_SIZE=$arrayV["ARTICATECH"]["SIZE"];	
+		$REMOTE_SIZE=FormatBytes($REMOTE_SIZE/1024);
+		$updaebutton="<div style='text-align:right'><hr>".button("{update}:{version} $REMOTE_VERSION ($REMOTE_SIZE)", "Loadjs('squid.blacklist.upd.php')",16)."</div>";
+	}
 	
-	
-	
+	$dbsize=$sock->getFrameWork("squid.php?articadbsize=yes");
 	$items=numberFormat($q->COUNT_CATEGORIES(),0,""," ");
 	$html="
-	<div class=explain>{artica_update_categories_howto}</div>
 	<table style='width:99%' class=form>
 	<tr>
 	<td valign='top'>$APP_ARTICADB</td>
@@ -158,7 +163,7 @@ function statusDB(){
 	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td colspan=2><div style='font-size:16px'>{pattern_database_version}:&nbsp;$date&nbsp</div></td>
+		<td colspan=2><div style='font-size:16px'>{pattern_database_version}:&nbsp;$date&nbsp($dbsize)</div></td>
 	</tr>
 	
 	<tr>
@@ -168,12 +173,16 @@ function statusDB(){
 	<tr>
 		<td colspan=2><div style='font-size:16px'>{categorized_websites}:&nbsp;$items&nbsp</div></td>
 	</tr>
+	<tr>
+		<td colspan=2><div style='font-size:16px;font-weight:bold;margin-top:10px'>{mysql_engine}:</div></td>
+	</tr>	
 	".@implode("", $tt)."
 	</tbody>
 	</table>
 	</td>
 	</tr>
 	</table>
+	$updaebutton
 	";
 	echo $tpl->_ENGINE_parse_body($html);
 	
@@ -191,25 +200,15 @@ function compile_db_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$ask=$tpl->javascript_parse_text("{confirm_dnsg_compile_db} {$_GET["compile-db-js"]}");
+	$t=time();
 	$html="
-	
-	
-var X_compiledb= function (obj) {
-		var results=obj.responseText;
-		if(results.length>1){alert(results);}
-		if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
-	}
-	
-	function compiledb(){
+	function compiledb$t(){
 		if(confirm('$ask')){
-			var XHR = new XHRConnection();
-			XHR.appendData('compile-db-perform','{$_GET["compile-db-js"]}');
-			XHR.sendAndLoad('$page', 'POST',X_compiledb);
-		
+			Loadjs('dansguardian2.databases.compile.php?db={$_GET["compile-db-js"]}');
 		}
 	}
 	
-	compiledb();
+	compiledb$t();
 	";
 	
 	echo $html;
@@ -351,6 +350,8 @@ function categories(){
 	$category=$tpl->_ENGINE_parse_body("{category}");
 	$tablewith=691;
 	$compilesize=35;
+	$size_elemnts=50;
+	$size_size=58;
 	$delete="{display: 'delete', name : 'icon3', width : 35, sortable : false, align: 'left'},";
 	$categorysize=387;
 	if($_GET["minisize"]=="yes"){
@@ -364,6 +365,16 @@ function categories(){
 		$tablewith=837;
 		$categorysize=530;
 	}	
+	if($_GET["middlesize"]=="yes"){
+		$tablewith=828;
+		$size_elemnts=70;
+		$size_size=80;
+		$categorysize=400;
+		$TABLE_ROWS2="{display: 'Artica', name : 'TABLE_ROWS2', width : $size_elemnts, sortable : false, align: 'left'},";
+		$artica="&artica=yes";
+		
+	}
+	
 	
 	
 	$t=time();
@@ -374,13 +385,14 @@ function categories(){
 <script>
 $(document).ready(function(){
 $('#dansguardian2-category-$t').flexigrid({
-	url: '$page?category-search=yes&minisize={$_GET["minisize"]}&t=$t',
+	url: '$page?category-search=yes&minisize={$_GET["minisize"]}&t=$t$artica',
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'icon1', width : 32, sortable : false, align: 'left'},
 		{display: '$category', name : 'table_name', width : $categorysize, sortable : false, align: 'left'},
-		{display: '$size', name : 'category', width : 58, sortable : false, align: 'left'},
-		{display: '$items', name : 'TABLE_ROWS', width : 50, sortable : true, align: 'left'},
+		{display: '$size', name : 'category', width : $size_size, sortable : false, align: 'left'},
+		{display: '$items', name : 'TABLE_ROWS', width : $size_elemnts, sortable : true, align: 'left'},
+		$TABLE_ROWS2
 		{display: 'compile', name : 'icon2', width : $compilesize, sortable : false, align: 'left'},
 		$delete
 		
@@ -428,7 +440,7 @@ buttons : [
 		}
 		
 		function DansGuardianCompileDB(category){
-			Loadjs('$page?compile-db-js='+category);
+			Loadjs('ufdbguard.compile.category.php?category='+category);
 		}
 		
 		function CheckStatsApplianceC(){
@@ -487,7 +499,8 @@ function categories_search(){
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
 	$t=$_GET["t"];
-	
+	$artica=false;
+	if(isset($_GET["artica"])){$artica=true;}
 	if(!$q->TestingConnection()){json_error_show("Testing connection to MySQL server failed...",1);}
 	
 	
@@ -560,7 +573,7 @@ function categories_search(){
 		writelogs("Scanning table $table",__FUNCTION__,__FILE__,__LINE__);
 		$select=imgtootltip("32-parameters.png","{edit}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
 		
-		$compile=imgtootltip("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");		
+		$compile=imgsimple("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");		
 		$items=$q->COUNT_ROWS($ligne["c"]);
 		$itemsEnc=$enc->COUNT_ROWS($ligne["c"]);
 		
@@ -594,25 +607,33 @@ function categories_search(){
 		
 		if($EnableWebProxyStatsAppliance==0){if($sizedb_org<35){$pic="<img src='img/warning-panneau-32.png'>";}}
 		
-		$viewDB=imgtootltip("mysql-browse-database-32.png","{view}","javascript:Loadjs('squid.categories.php?category={$categoryname}')");		
+		$viewDB=imgsimple("mysql-browse-database-32.png","{view}","javascript:Loadjs('squid.categories.php?category={$categoryname}')");		
 		
 		$categoryText=$tpl->_ENGINE_parse_body("<div style='font-size:14px';font-weight:bold'>$linkcat$categoryname</div>
 		</a><div style='font-size:11px;width:100%;font-weight:normal'>{$text_category}</div>");
 		$items=numberFormat($items,0,""," ");
 		$itemsEnc=numberFormat($itemsEnc,0,""," ");
-		$compile=imgtootltip("compile-distri-32.png","{saveToDisk} $categoryname","DansGuardianCompileDB('$categoryname')");
-		$delete=imgtootltip("delete-32.png","{delete}","TableCategoryPurge('$table')");
+		$compile=imgsimple("compile-distri-32.png","{saveToDisk} $categoryname","DansGuardianCompileDB('$categoryname')");
+		$delete=imgsimple("delete-32.png","{delete}","TableCategoryPurge('$table')");
 		if($_GET["minisize"]=="yes"){$delete=null;}
 		
 		
-		
+		$cell=array();
+		$cell[]=$pic;
+		$cell[]=$categoryText;
+		$cell[]="<div style='font-size:13px;padding-top:15px;font-weight:bold'>$sizedb</div>";
+		if(!$artica){
+			$cell[]="<div style='font-size:13px;padding-top:5px;font-weight:bold'>$items<br>$itemsEnc</strong>";
+		}else{
+			$cell[]="<div style='font-size:13px;padding-top:15px;font-weight:bold'>$items</strong>";
+			$cell[]="<div style='font-size:13px;padding-top:15px;font-weight:bold'>$itemsEnc</strong>";
+		}
+		$cell[]=$compile;
+		$cell[]=$delete;
 		
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
-		'cell' => array(
-		"$pic",
-		"$categoryText","<div style='font-size:13px;padding-top:15px;font-weight:bold'>$sizedb</div>",
-		"<div style='font-size:13px;padding-top:5px;font-weight:bold'>$items<br>$itemsEnc</strong>","$compile",$delete)
+		'cell' => $cell
 		);
 	}
 	
@@ -678,9 +699,9 @@ function categories_search2(){
 		if(!preg_match("#^category_(.+)#", $table,$re)){continue;}
 		$categoryname=$re[1];
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgtootltip("32-parameters.png","{edit}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
-		$delete=imgtootltip("delete-32.png","{delete}","DansGuardianDeleteMember('{$ligne["ID"]}')");
-		$compile=imgtootltip("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");
+		$select=imgsimple("32-parameters.png","{edit}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
+		$delete=imgsimple("delete-32.png","{delete}","DansGuardianDeleteMember('{$ligne["ID"]}')");
+		$compile=imgsimple("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");
 		$color="black";
 		
 		$items=$q->COUNT_ROWS($ligne["c"]);
@@ -717,7 +738,7 @@ function categories_search2(){
 		if($EnableWebProxyStatsAppliance==0){
 			if($sizedb_org<35){$pic="<img src='img/warning-panneau-32.png'>";}
 		}
-		$viewDB=imgtootltip("mysql-browse-database-32.png","{view}","javascript:Loadjs('squid.categories.php?category={$categoryname}')");
+		$viewDB=imgsimple("mysql-browse-database-32.png","{view}","javascript:Loadjs('squid.categories.php?category={$categoryname}')");
 		$html=$html."
 		<tr class=$classtr>
 			<td width=1%>$pic</td>
@@ -733,7 +754,7 @@ function categories_search2(){
 	}
 	
 	$TOTAL_ITEMS=numberFormat($TOTAL_ITEMS,0,""," ");	
-	$PurgeDatabase=imgtootltip("database-32-delete.png","{purge_catagories_database_text}","PurgeCategoriesDatabase()");
+	$PurgeDatabase=imgsimple("database-32-delete.png","{purge_catagories_database_text}","PurgeCategoriesDatabase()");
 	
 	
 	$header="<center>
@@ -848,7 +869,7 @@ function add_category_popup(){
 				<tr>
 					<td width=1%><img src='img/database-connect-24-2.png'></td>
 					<td width=99%><a href=\"javascript:blur();\" 
-					OnClick=\"javascript:CompilePersonalCat$t();\" 
+					OnClick=\"javascript:Loadjs('ufdbguard.compile.category.php?category={$_GET["cat"]}&t=$t');\" 
 					style='font-size:12px;text-decoration:underline'>{compile_this_category}</a>
 					</td>
 				</tr>				
@@ -962,13 +983,6 @@ var X_SavePersonalCategory= function (obj) {
 			XHR.sendAndLoad('$page', 'POST',X_DeletePersonalCat$t);
 		}
 	
-	}
-	
-	function CompilePersonalCat$t(){
-		var XHR = new XHRConnection();
-		XHR.appendData('compile-db-perform','{$_GET["cat"]}');
-		AnimateDiv('perso-cat-form');
-		XHR.sendAndLoad('$page', 'POST',X_CompilePersonalCat$t);
 	}
 	
 	function checkform(){

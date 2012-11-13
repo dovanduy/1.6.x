@@ -60,7 +60,7 @@ while (list ($key, $line) = each ($GLOBALS["QUICKLINKS-ITEMS"]) ){
 
 	
 	$html="
-            <div id='QuickLinksTop'>
+            <div id='QuickLinksTop' class=mainHeaderContent>
                 <ul class='kwicks'>
 					".@implode("\n", $f)."
                     

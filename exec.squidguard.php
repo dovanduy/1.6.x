@@ -36,7 +36,7 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(count($argv)>0){
 	$imploded=implode(" ",$argv);
-	if(preg_match("#--verbose#",$imploded)){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set_verbosed(); }
+	if(preg_match("#--verbose#",$imploded)){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["OUPUT"]=true;ini_set_verbosed(); }
 	if(preg_match("#--reload#",$imploded)){$GLOBALS["RELOAD"]=true;}
 	if(preg_match("#--force#",$imploded)){$GLOBALS["FORCE"]=true;}
 	if(preg_match("#--shalla#",$imploded)){$GLOBALS["SHALLA"]=true;}
@@ -173,9 +173,8 @@ function build_ufdbguard_HUP(){
 	}
 	echo "Starting......: UfdbGuard reloading service no pid is found, Starting service...\n";
 	ufdbguard_start();
-	
-	
-	
+	shell_exec("/etc/init.d/artica-postfix restart ufdb-tail");
+
 }
 
 function ufdbguard_start(){
@@ -1778,11 +1777,13 @@ function inject($category,$table=null,$file=null){
 		$c++;
 		$www =trim(fgets($handle, 4096));
 		if($www==null){$CBADNULL++;continue;}
+		$www=str_replace('"', "", $www);
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){$CBADIP++;continue;}
 		$www=trim(strtolower($www));
 		if($www=="thisisarandomentrythatdoesnotexist.com"){$CBAD++;continue;}
 		if($www==null){$CBADNULL++;continue;}
 		if(preg_match("#(.+?)\s+(.+)#", $www,$re)){$www=$re[1];}
+		
 		if(strpos($www, "#")>0){echo "FALSE: $www\n";continue;}
 		$md5=md5($www.$category);
 		$n[]="('$md5',NOW(),'$category','$www','$uuid')";
@@ -1794,7 +1795,7 @@ function inject($category,$table=null,$file=null){
 			if(!$q->ok){echo $q->mysql_error."\n";$n=array();continue;}
 			$countend=$q->COUNT_ROWS($table);
 			$final=$countend-$countstart;
-			echo "$c items, $final new entries added - $CBADNULL bad entries for null value,$CBADIP entries for IP addresses\n";	
+			echo "".numberFormat($c,0,""," ")." items, ".numberFormat($final,0,""," ")." new entries added - $CBADNULL bad entries for null value,$CBADIP entries for IP addresses\n";	
 			$n=array();
 			
 		}
@@ -1817,7 +1818,7 @@ function inject($category,$table=null,$file=null){
 		
 	$countend=$q->COUNT_ROWS($table);
 	$final=$countend-$countstart;
-	echo "$final new entries added\n";
+	echo "".numberFormat($final,0,""," ")." new entries added\n";
 	
 	@unlink($file);
 	
@@ -2124,11 +2125,22 @@ function UFDBGUARD_COMPILE_CATEGORY($category){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
 	if($EnableRemoteStatisticsAppliance==1){return;}	
 	$unix=new unix();
+	if($GLOBALS["VERBOSE"]){
+		$ufdbguardd=$unix->find_program("ufdbguardd");
+		system("$ufdbguardd -v");
+	}
+	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($pid,basename(__FILE__))){return;}
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		ufdbguard_admin_events("Compile $category category aborting,task pid $oldpid running since {$time}Mn",__FUNCTION__,__FILE__,__LINE__,"compile");
+		return;
+	}
 	@file_put_contents($pidfile, getmypid());
 	$t=time();
+	
+	
 	ufdbguard_admin_events("start $category category compilation",__FUNCTION__,__FILE__,__LINE__,"compile");
 	$ufdb=new compile_ufdbguard();
 	$ufdb->compile_category($category);

@@ -20,6 +20,9 @@ include_once(dirname(__FILE__).'/ressources/class.squid.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
+
+
+
 WriteMyLogs("commands= ".implode(" ",$argv),"MAIN",__FILE__,__LINE__);
 $GLOBALS["Q"]=new mysql_squid_builder();
 $unix=new unix();
@@ -36,14 +39,12 @@ $squidEnableRemoteStatistics=$sock->GET_INFO("squidEnableRemoteStatistics");
 $DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 if(!is_numeric($squidEnableRemoteStatistics)){$squidEnableRemoteStatistics=0;}
-
-if($squidEnableRemoteStatistics==1){
-		events("this server is not in charge of statistics...");
-		die();
+if(is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){
+	$DisableArticaProxyStatistics=1;
+	$sock->SET_INFO("DisableArticaProxyStatistics", 1);
 }
 
-
-
+if($squidEnableRemoteStatistics==1){events("this server is not in charge of statistics...");die();}
 if($DisableArticaProxyStatistics==1){ufdbguard_admin_events("Statistics are disabled in this configuration (DisableArticaProxyStatistics)","MAIN",__FILE__,__LINE__);die();}
 
 
@@ -55,6 +56,7 @@ if(!ifMustBeExecuted()){
 }
 
 if($GLOBALS["VERBOSE"]){echo "LAUNCH: '{$argv[1]}'\n";}
+if($argv[1]=='--nocat-sync'){not_categorized_day_resync();exit;}
 if($argv[1]=='--repair-hours'){repair_hours();if($GLOBALS["VERBOSE"]){echo "END: '{$argv[1]}'\n";}exit;} # Recherche les tables squidhour_* et les réinjectes.
 if($argv[1]=='--defrag'){defragment_category_tables();exit;}
 if($argv[1]=='--defragtable'){defragment_category_table($argv[2]);exit;}
@@ -66,10 +68,15 @@ if($argv[1]=='--thumbs-parse'){thumbnail_parse();exit;}
 
 
 
+if($argv[1]=='--youtube-days'){youtube_days();die();}
 if($argv[1]=='--users-size'){users_size_hour();die();}
 if($argv[1]=='--scan-hours'){scan_hours();die();}
 if($argv[1]=='--scan-months'){scan_months();die();}
 if($argv[1]=='--tables-days'){table_days();die();}
+if($argv[1]=='--summarize-days'){summarize_days();die();}
+
+
+
 if($argv[1]=='--tables-hours'){table_hours();die();}
 if($argv[1]=='--block-days'){block_days();die();}
 if($argv[1]=='--block-week'){week_uris_blocked();die();}
@@ -92,7 +99,7 @@ if($argv[1]=='--re-categorize'){re_categorize();exit;}
 if($argv[1]=='--re-categorize-day'){recategorize_singleday($argv[2]);exit;}
 if($argv[1]=='--re-categorize-week'){recategorize_singleday($argv[2]);exit;}
 if($argv[1]=='--whois'){visited_sites_whois();exit;}
-if($argv[1]=='--calculate-not-categorized'){_not_categorized_day_scan();exit;}
+if($argv[1]=='--calculate-not-categorized'){not_categorized_day_resync();exit;}
 if($argv[1]=='--optimize'){optimize_tables();exit;}
 if($argv[1]=='--webcacheperfs'){webcacheperfs();exit;}
 if($argv[1]=='--visited-days'){visited_websites_by_day();exit;}
@@ -101,6 +108,10 @@ if($argv[1]=='--members-central'){members_central();exit;}
 if($argv[1]=='--repair-week'){repair_week();exit;}
 if($argv[1]=='--dump-days'){dump_days();exit;}
 if($argv[1]=='--members-central-grouped'){members_central_grouped();exit;}
+if($argv[1]=='--compress-tablesdays'){compress_tablesdays();exit;}
+if($argv[1]=='--summarize-daysingle'){_summarize_days($argv[2],$argv[3]);exit;}
+if($argv[1]=='--youtube-dayz'){youtube_dayz();exit;}
+
 
 
 
@@ -502,11 +513,15 @@ function scan_hours($nopid=false){
 	@file_put_contents($timefile, time());
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
+	
+	
 	$GLOBALS["Q"]->FixTables();
-	$unix=new unix();
+	
 	nodes_scan();
 	table_hours();
 	table_days();
+	summarize_days();
+	compress_tablesdays();
 	clients_hours(true);
 	members_hours(true);
 	week_uris();
@@ -521,6 +536,7 @@ function scan_months(){
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	table_days();
+	compress_tablesdays();
 	members_month(true);
 	flow_month(true);
 	block_days(true);	
@@ -1017,6 +1033,8 @@ function clients_hours($nopid=false){
 		if(!$q->CreateHourTable($next_table)){events_tail("Failed to create $next_table");return;}
 		if(!_clients_hours_perfom($ligne["tablename"],$next_table)){events_tail("Failed to process {$ligne["tablename"]} to $next_table");return;}
 	}
+	
+	youtube_days();
 }
 
 
@@ -1206,9 +1224,59 @@ $sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d %H:00:00') as tdate FROM squid_cache_pe
 		}
 }
 
+function installgeoip(){
+	if(isset($GLOBALS["installgeoip_executed"])){return;}
+	$GLOBALS["installgeoip_executed"]=true;
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$pecl=$unix->find_program("pecl");
+	
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.geoip.update.php >/dev/null 2>&1 &");
+	
+	if(is_file($pecl)){
+			if(!is_file("/etc/artica-postfix/php-geoip-checked")){
+			shell_exec("/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system");
+			shell_exec("$pecl install geoip");
+			shell_exec("/etc/init.d/artica-postfix restart apache");
+			@file_put_contents("/etc/artica-postfix/php-geoip-checked",time());
+			}
+		}	
+	
+}
+
+function UpdateGeoip(){
+	if(isset($GLOBALS["UpdateGeoip_executed"])){return;}
+	$GLOBALS["UpdateGeoip_executed"]=true;
+	$unix=new unix();
+	$ln=$unix->find_program("ln");
+	$database="/usr/share/GeoIP/GeoIP.dat";
+	if(!is_file($database)){installgeoip();return null;}
+	if(!is_file("/usr/local/share/GeoIP/GeoIPCity.dat")){
+		if(is_file("/usr/local/share/GeoIP/GeoLiteCity.dat")){
+			shell_exec("$ln -s /usr/local/share/GeoIP/GeoLiteCity.dat /usr/local/share/GeoIP/GeoIPCity.dat >/dev/null 2>&1");
+		}
+	}
+
+
+	if(!is_file("/usr/share/GeoIP/GeoIPCity.dat")){
+		if(is_file("/usr/share/GeoIP/GeoLiteCity.dat")){
+			system("$ln -s /usr/share/GeoIP/GeoLiteCity.dat /usr/share/GeoIP/GeoIPCity.dat >/dev/null 2>&1");
+		}
+	}
+
+	if(!function_exists("geoip_record_by_name")){installgeoip();return null;}
+	
+}
+
 
 function GeoIP($servername){
 	
+	
+	if(!is_file("/usr/share/GeoIP/GeoIPCity.dat")){
+		UpdateGeoip();
+		if(!is_file("/usr/share/GeoIP/GeoIPCity.dat")){return array();}
+	}
 	
 	
 	if(!function_exists("geoip_record_by_name")){
@@ -1262,7 +1330,52 @@ function COUNT_REQUESTS($tablename){
 	
 }
 
+function not_categorized_day_resync(){
+	$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') AS `tprefix`, `tablename`  FROM tables_day WHERE `not_categorized`>0 ORDER BY zDate DESC";
+	if($GLOBALS["VERBOSE"]){echo "not_categorized_day_resync\n";}
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	if(!$GLOBALS["Q"]->ok){
+		if($GLOBALS["VERBOSE"]){echo "{$GLOBALS["Q"]->mysql_error}\n";}
+		ufdbguard_admin_events("Fatal {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return;
+	}
+	$num_rows = mysql_num_rows($results);
+	if($num_rows==0){
+		if($GLOBALS["VERBOSE"]){echo "No item\n";}
+		return;}
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$tablename=$ligne["tablename"];
+		$table_day="{$ligne["tprefix"]}_hour";
+		if(!$GLOBALS["Q"]->TABLE_EXISTS("$table_day")){
+			if($GLOBALS["VERBOSE"]){echo "$table_day no such table\n";}
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE tables_day SET not_categorized=0 WHERE tablename='$tablename'");
+			continue;
+		}
+		$sql="SELECT sitename,category FROM $table_day GROUP BY sitename,category HAVING LENGTH(category)=0 ";
+		$results2=$GLOBALS["Q"]->QUERY_SQL($sql);
+		
+		if(!$GLOBALS["Q"]->ok){
+			if($GLOBALS["VERBOSE"]){echo "{$GLOBALS["Q"]->mysql_error}\n";}
+			ufdbguard_admin_events("Fatal {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}		
+		
+		$NotCategorized=mysql_num_rows($results2);
+			
+		if($GLOBALS["VERBOSE"]){echo "$table_day $NotCategorized Websites...\n";}
+		$GLOBALS["Q"]->QUERY_SQL("UPDATE tables_day SET not_categorized=$NotCategorized WHERE tablename='$tablename'");
+	}
+}
+
+
 function not_categorized_day_scan(){
+	
+
+
+	not_categorized_day_resync();
+	
+	
 	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d') AS `suffix`, `tablename`  FROM tables_day WHERE `not_categorized`>0 ORDER BY zDate DESC";
 	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
 	
@@ -1573,7 +1686,16 @@ function table_days(){
 	events_tail(count($tables)." tables to scan in line ".__LINE__);
 	
 	while (list ($tablename, $date) = each ($tables) ){
-		if($today==$date){events_tail("Skipping Today table $tablename in line ".__LINE__);continue;}
+		if($today==$date){
+			events_tail("Skipping Today table $tablename in line ".__LINE__);
+			continue;
+		}
+		if(!$GLOBALS["Q"]->TABLE_EXISTS($tablename)){
+			events_tail("Skipping Today table $tablename in line (did not exists)".__LINE__);
+			continue;			
+		}
+		
+		
 		$sql="SELECT zDate FROM tables_day WHERE tablename='$tablename'";
 		$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL($sql));
 		if($ligne["zDate"]==null){
@@ -1590,9 +1712,13 @@ function table_days(){
 				if($GLOBALS["VERBOSE"]){echo "$date cached = $cached , not cached =$notcached total=$totalsize perf=$cache_perfs% requests=$requests\n";}
 				$GLOBALS["Q"]->QUERY_SQL("INSERT INTO tables_day (tablename,zDate,size,size_cached,totalsize,cache_perfs,requests) 
 				VALUES('$tablename','$date','$notcached','$cached','$totalsize','$cache_perfs','$requests');");
-				if(!$GLOBALS["Q"]->ok){events_tail("{$GLOBALS["Q"]->mysql_error} in line ".__LINE__);}
+				if(!$GLOBALS["Q"]->ok){
+					events_tail("{$GLOBALS["Q"]->mysql_error} in line ".__LINE__);
+				}
 			}
 		}
+		
+	
 }
 
 function members_month_delete(){
@@ -1619,7 +1745,9 @@ function members_month_delete(){
 }
 
 function visited_sites_whois(){
+	$unix=new unix();
 	if(!$GLOBALS["FORCE"]){
+		
 		$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
 		$timeOfFile=$unix->file_time_min($timefile);
 		if($timeOfFile<520){return;}
@@ -1668,7 +1796,7 @@ function visited_sites_whois(){
 }
 
 function visited_sites(){
-	
+	if($GLOBALS["VERBOSE"]){$GLOBALS["FORCE"]=true;}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
 	$oldpid=@file_get_contents($pidfile);
@@ -1679,10 +1807,15 @@ function visited_sites(){
 	@file_put_contents($pidfile,$mypid);
 	if(!$GLOBALS["FORCE"]){
 		$timeOfFile=$unix->file_time_min($timefile);
-		if($timeOfFile<240){return;}
-		@unlink($timefile);
-		@file_put_contents($timefile, time());
+		if($timeOfFile<240){
+			if($GLOBALS["VERBOSE"]){echo "{$timeOfFile}Mn,require 240Mn\n";}
+			return;
+		}
 	}
+	@unlink($timefile);
+	@file_put_contents($timefile, time());
+	
+	
 	
 	$t1=time();	
 	
@@ -1693,6 +1826,9 @@ function visited_sites(){
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	$num_rows = mysql_num_rows($results);
 	if($num_rows==0){if($GLOBALS["VERBOSE"]){echo "No datas ". __FUNCTION__." ".__LINE__."\n";}return;}
+	
+	if($GLOBALS["VERBOSE"]){echo "$num_rows entries... in ". __FUNCTION__." ".__LINE__."\n";}
+	
 	
 	$ROWS_visited_sites_catz=array();
 	$ROWS_visited_sites_prefix="INSERT IGNORE INTO visited_sites_catz (`zmd5`,`category`,`familysite`) VALUES ";
@@ -1710,7 +1846,17 @@ function visited_sites(){
 		if($country<>null){$country=",country='".addslashes($country)."'";;}
 		if($GLOBALS["VERBOSE"]){echo "{$ligne["sitename"]} {$array[0]} hits, {$array[1]} size Country '$country' on {$array[2]} tables\n";}
 		$categories=$GLOBALS["Q"]->GET_CATEGORIES($ligne["sitename"],true);
+		
+		if($categories<>null){
+			if($GLOBALS["VERBOSE"]){echo "UPDATE {$ligne["sitename"]} ->$categories\n";}
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE visited_sites SET category='$categories' WHERE sitename='{$ligne["sitename"]}'");
+			if(!$GLOBALS["Q"]->ok){
+			if($GLOBALS["VERBOSE"]){echo "UPDATE {$GLOBALS["Q"]->mysql_error}\n";}
+			}
+		}
+		
 		$FamilySite=$GLOBALS["Q"]->GetFamilySites($ligne["sitename"]);
+		if($GLOBALS["VERBOSE"]){echo "{$ligne["sitename"]} categories = $categories\n";} 
 		thumbnail_site($ligne["sitename"]);
 		if($FamilySite<>null){
 			$FamilySite_update=",familysite='$FamilySite'";
@@ -1787,6 +1933,7 @@ function ifMustBeExecuted(){
 	$CategoriesRepositoryEnable=$sock->GET_INFO("CategoriesRepositoryEnable");
 	if($CategoriesRepositoryEnable==1){return true;}
 	if(!$users->SQUID_INSTALLED){$update=false;}
+	if($users->PROXYTINY_APPLIANCE){$update=false;}
 	return $update;
 }
 
@@ -1908,7 +2055,7 @@ function table_hours(){
 			writelogs_squid("success analyze $tablename in $took",__FUNCTION__,__FILE__,__LINE__,"stats");
 		}
 	}
-	
+	youtube_days();
 	$scan_hour_timefile="/etc/artica-postfix/pids/scan_hours.time";
 	$time=$unix->file_time_min($scan_hour_timefile);
 	if($time>119){
@@ -3083,6 +3230,297 @@ function writeDebugLogs($text,$function,$file,$line){
 	$log="/var/log/$function.".basename($file).".log";
 	writeOtherlogs($log,"$t [$pid] $function:: $text in line $line");
 }
+
+function youtube_days(){
+	if(isset($GLOBALS["youtube_days_executed"])){return;}
+	$GLOBALS["youtube_days_executed"]=true;
+	$q=new mysql_squid_builder();
+	$timekey=date('YmdH');
+	$currenttable="youtubehours_$timekey";
+	$LIST_TABLES_YOUTUBE_HOURS=$q->LIST_TABLES_YOUTUBE_HOURS();
+	while (list ($tablesource, $value) = each ($LIST_TABLES_YOUTUBE_HOURS) ){
+		if($tablesource==$currenttable){continue;}
+		if(!_youtube_days($tablesource)){continue;}
+		$q->QUERY_SQL("DROP TABLE $tablesource");
+	}
+	youtube_count();
+	youtube_dayz();
+	
+}
+function _youtube_days($tablesource){
+	
+	$q=new mysql_squid_builder();
+	$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') as tdate,DATE_FORMAT(zDate,'%Y-%m-%d') as tdate2 FROM $tablesource LIMIT 0,1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if(!$q->ok){echo $q->mysql_error;return false;}
+	if(trim($ligne["tdate"])==null){return false;}
+	
+	$tabledesc="youtubeday_{$ligne["tdate"]}";
+	$zDay=$ligne["tdate2"];
+	if(!$q->check_youtube_day($ligne["tdate"])){return false;}
+	$sql="SELECT COUNT(*) as hits,DATE_FORMAT(zDate,'%H') as hour,ipaddr,hostname,uid,MAC,account,youtubeid 
+	FROM $tablesource GROUP BY hour,ipaddr,hostname,uid,MAC,account,youtubeid";
+	if(!$q->ok){writelogs_squid("Fatal: $q->mysql_error on `$tablesource`",__FUNCTION__,__FILE__,__LINE__,"stats");return false;}
+	$f=array();
+	$prefix="INSERT IGNORE INTO $tabledesc (`zmd5`,`zDate`,`hour`,`ipaddr`,`hostname`,`uid`,`MAC`,`account`,`youtubeid`,`hits`) VALUES ";
+	
+	$results=$q->QUERY_SQL($sql);
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$md5=md5(serialize($ligne));
+		$f[]="('$md5','$zDay','{$ligne["hour"]}','{$ligne["ipaddr"]}','{$ligne["hostname"]}','{$ligne["uid"]}','{$ligne["MAC"]}','{$ligne["account"]}','{$ligne["youtubeid"]}','{$ligne["hits"]}')";
+	}	
+	
+	if(count($f)>0){
+		$q->QUERY_SQL($prefix.@implode(",", $f));
+		if(!$q->ok){return false;}
+	}
+	return true;
+}
+
+function youtube_count(){
+	
+	$q=new mysql_squid_builder();
+	$LIST_TABLES_YOUTUBE_DAYS=$q->LIST_TABLES_YOUTUBE_DAYS();
+	while (list ($tablesource, $value) = each ($LIST_TABLES_YOUTUBE_DAYS) ){
+		$sql="SELECT SUM(hits) as thits,youtubeid FROM $tablesource GROUP BY youtubeid";
+		$results=$q->QUERY_SQL($sql);
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			
+			if(isset($YTBE[$ligne["youtubeid"]])){
+				$YTBE[$ligne["youtubeid"]]=$YTBE[$ligne["youtubeid"]]+$ligne["thits"];
+				continue;
+			}
+			
+			$YTBE[$ligne["youtubeid"]]=$ligne["thits"];
+			
+		}
+		
+	}
+	
+	while (list ($youtubeid, $count) = each ($YTBE) ){
+		$sql="UPDATE youtube_objects SET hits=$count WHERE youtubeid='$youtubeid'";
+		$q->QUERY_SQL($sql);
+	}
+	
+	
+}
+
+
+function compress_tablesdays(){
+	$unix=new unix();
+	$sock=new sockets();
+	$myisamchk=$unix->find_program("myisamchk");
+	$myisampack=$unix->find_program("myisampack");
+	$MYSQL_DATA_DIR=$sock->GET_INFO("ChangeMysqlDir");
+	if($MYSQL_DATA_DIR==null){$MYSQL_DATA_DIR="/var/lib/mysql";}
+	$t=time();	
+	$q=new mysql_squid_builder();
+	$q->CheckTables();
+	$sql="SELECT tablename, zDate FROM `tables_day` WHERE `compressed`=0";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		writelogs_squid("Fatal: $q->mysql_error on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return;
+	}
+	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." uncompressed tables...\n";}
+	$c=0;
+	$MYSQL_DATA_DIR="$MYSQL_DATA_DIR/squidlogs";
+	$safe1=0;
+	$safe2=0;
+	
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$tablename=$ligne["tablename"];
+		if($ligne["zDate"]==date("Y-m-d")){
+			if($GLOBALS["VERBOSE"]){echo "Skip $tablename\n";}
+			continue;}
+		
+		if(!$q->TABLE_EXISTS($tablename)){
+			if($GLOBALS["VERBOSE"]){echo "Skip $tablename (did not exists)\n";}
+			$fL[]="Skip $tablename (did not exists)";
+			$q->QUERY_SQL("UPDATE tables_day SET `compressed`=1 WHERE `tablename`='$tablename'");	
+			continue;
+		}
+		$q->QUERY_SQL("OPTIMIZE TABLE $tablename");
+		$q->QUERY_SQL("LOCK TABLE $tablename WRITE");
+		$q->QUERY_SQL("FLUSH TABLE $tablename");
+		if(!is_file("$MYSQL_DATA_DIR/$tablename.MYI")){
+			if($GLOBALS["VERBOSE"]){echo "Skip $MYSQL_DATA_DIR/$tablename.MYI (did not exists)\n";}
+			$fL[]="Skip $MYSQL_DATA_DIR/$tablename.MYI (did not exists)";
+			continue;
+		}
+		
+		$size=$unix->file_size("$MYSQL_DATA_DIR/$tablename.MYI");
+		
+		$c++;
+		if($GLOBALS["VERBOSE"]){echo "$myisamchk -cFU $MYSQL_DATA_DIR/$tablename.MYI\n";}
+		shell_exec("$myisamchk -cFU $MYSQL_DATA_DIR/$tablename.MYI");	
+		shell_exec("$myisampack -f $MYSQL_DATA_DIR/$tablename.MYI");
+		shell_exec("$myisamchk -raqS $MYSQL_DATA_DIR/$tablename.MYI");
+		$q->QUERY_SQL("FLUSH TABLE $category_table");
+		$q->QUERY_SQL("UPDATE tables_day SET `compressed`=1 WHERE `tablename`='$tablename'");
+		$size2=$unix->file_size("$MYSQL_DATA_DIR/$tablename.MYI");
+
+		$safe1=$size-$size2;
+		$safe2=$safe2+$safe1;
+		if($GLOBALS["VERBOSE"]){echo "$tablename:". round($safe2/1024)." Ko\n";}
+		if(system_is_overloaded(__FILE__)){
+			$safe2=FormatBytes($safe2/1024);
+			ufdbguard_admin_events("Fatal overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting task after $c days tables ($safe2 safe disk)",__FUNCTION__,__FILE__,__LINE__,"visited");	
+			return;
+		}		
+		
+	}	
+
+	if($c>0){
+		$safe2=FormatBytes($safe2/1024);
+		writelogs_squid("Success compress : $c days tables ($safe2 safe disk)",__FUNCTION__,__FILE__,__LINE__,"stats");	
+	}
+		
+	
+}
+
+function youtube_dayz(){
+	$q=new mysql_squid_builder();
+	$sql="SELECT tablename,DATE_FORMAT(zDate,'%Y%m%d') AS suffix 
+	FROM tables_day WHERE youtube_dayz=0 AND zDate<DATE_SUB(NOW(),INTERVAL 1 DAY) ORDER BY zDate";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		if(preg_match("#Unknown column#i", $q->mysql_error)){
+			$q->CheckTables();
+			$results=$q->QUERY_SQL($sql);
+		}
+		
+		if(!$q->ok){
+			writelogs_squid("Fatal: $q->mysql_error on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}
+	}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+		$tablename=$ligne["tablename"];
+		$suffix=$ligne["suffix"];
+		$sourcetable="youtubeday_$suffix";
+		if( _youtube_dayz($sourcetable) ){
+			$q->QUERY_SQL("UPDATE tables_day SET youtube_dayz=1 WHERE tablename='$tablename'");
+		}
+	}
+}
+
+function _youtube_dayz($sourcetable){
+	$q=new mysql_squid_builder();
+	if(!$q->TABLE_EXISTS($sourcetable)){return true;}
+	$sql="SELECT zDate,ipaddr,hostname,uid,MAC,account,youtubeid,SUM(hits) as hits FROM $sourcetable
+	GROUP BY zDate,ipaddr,hostname,uid,MAC,account,youtubeid";
+	
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){writelogs_squid("Fatal: $q->mysql_error on `$sourcetable`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+		
+	$f=array();	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+		$f[]="('{$ligne["zDate"]}','{$ligne["hits"]}','{$ligne["ipaddr"]}','{$ligne["hostname"]}','{$ligne["uid"]}','{$ligne["MAC"]}','{$ligne["youtubeid"]}')";
+		
+		
+	}
+	
+	$prefix="INSERT IGNORE INTO youtube_dayz (zDate,hits,ipaddr,hostname,uid,MAC,youtubeid) VALUES ";
+	
+	if(count($f)>0){
+		$q->QUERY_SQL($prefix.@implode(",", $f));
+		if(!$q->ok){
+			writelogs_squid("Fatal: $q->mysql_error on `$sourcetable`",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}
+		
+	}
+	return true;
+	
+}
+
+function summarize_days(){
+	if(isset($GLOBALS["summarize_days_executed"])){return;}
+	$GLOBALS["summarize_days_executed"]=true;
+		
+	$unix=new unix();
+	if(!$GLOBALS["VERBOSE"]){
+		$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+		if($unix->file_time_min($timefile)<480){return;}
+		@unlink($timefile);
+		@file_put_contents($timefile, time());
+	}
+	
+	$q=new mysql_squid_builder();
+	$q->CheckTables();
+	$sql="SELECT tablename,DATE_FORMAT(zDate,'%Y%m%d') as dpref FROM tables_day";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){writelogs_squid("Fatal: $q->mysql_error on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+	
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+		$dpref=$ligne["dpref"];
+		if($GLOBALS["VERBOSE"]){echo "Scanning: {$ligne["tablename"]}\n";}
+		_summarize_days($dpref,$ligne["tablename"]);
+	}
+	writelogs_squid("Success Summarize ".mysql_num_rows($results)." day tables",__FUNCTION__,__FILE__,__LINE__,"stats");	
+	
+}
+
+function _summarize_days($dpref,$tablename){
+		$q=new mysql_squid_builder();
+		$tablename_members="{$dpref}_members";
+		$tablename_blocked="{$dpref}_blocked";
+		$tablename_youtube="youtubeday_{$dpref}";
+		$tablename_hour="{$dpref}_hour";
+		$BlockedCount=0;
+		$MembersCount=0;
+		$SumHits=0;
+		$SumSize=0;
+		$NotCategorized=0;
+		$YouTubeHits=0;
+		if(!$q->TABLE_EXISTS("$tablename_hour")){return;}
+		$sql="SELECT COUNT(zMD5) as tcount FROM $tablename_hour WHERE LENGTH(category)=0";
+		$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){echo $q->mysql_error."\n";return;}
+		$NotCategorized=$ligne2["tcount"];
+	
+		$sql="SELECT SUM(size) as tsize,SUM(hits) as thits FROM $tablename_hour";
+		$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));	
+		if(!$q->ok){echo $q->mysql_error."\n";return;}
+		$SumSize=$ligne2["tsize"];
+		$SumHits=$ligne2["thits"];		
+		
+		
+		if($q->TABLE_EXISTS($tablename_members)){
+			$sql="SELECT count( * ) AS tcount FROM ( SELECT client, hostname, MAC, uid FROM $tablename_members GROUP BY client, hostname, MAC, uid ) AS t";
+			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+			if(!$q->ok){echo $q->mysql_error."\n";return;}
+			$MembersCount=$ligne2["tcount"];	
+		}
+		
+		if($q->TABLE_EXISTS($tablename_blocked)){$BlockedCount=$q->COUNT_ROWS($tablename_blocked);}	
+
+		if($q->TABLE_EXISTS($tablename_youtube)){
+			$sql="SELECT SUM( hits ) AS tcount FROM $tablename_youtube";
+			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));	
+			if(!$q->ok){echo $q->mysql_error."\n";return;}
+			$YouTubeHits=$ligne2["tcount"];		
+			
+		}
+		
+		if($GLOBALS["VERBOSE"]){echo "totalBlocked=$BlockedCount,MembersCount=$MembersCount, requests=$SumHits, totalsize=$SumSize, not_categorized=$NotCategorized, YouTubeHits=$YouTubeHits\n";}
+		
+		$sql="UPDATE tables_day
+		SET totalBlocked=$BlockedCount,
+		MembersCount=$MembersCount,
+		requests=$SumHits,
+		totalsize=$SumSize,
+		not_categorized=$NotCategorized,
+		YouTubeHits=$YouTubeHits
+		WHERE tablename='$tablename'";
+		$q->QUERY_SQL($sql);
+	}
+
+
 
 
 

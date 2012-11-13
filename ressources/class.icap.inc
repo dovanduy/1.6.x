@@ -233,10 +233,13 @@ class icap{
 		
 		if($this->C_ICAP_31_icap_service()){
 				$kav_rules[]="adaptation_service_set class_antivirus service_antivir";
-				if($this->ASROOT){echo "Starting......: [ICAP]: C-ICAP, ". count(count($GLOBALS["WHITELISTED_MIMETYPE"]))." exclusion(s)\n";}
-				if(count($GLOBALS["WHITELISTED_MIMETYPE"])>0){
-					$kav_rules[]="adaptation_access class_antivirus deny StreamMimeWhite";
+				if(count($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"])>0){
+					reset($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]);
+					while (list ($index, $line) = each ($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]) ){$kav_rules[]="adaptation_access class_antivirus deny $line";}
 				}				
+				if($this->ASROOT){echo "Starting......: [ICAP]: C-ICAP, StreamMimeWhite:". count(count($GLOBALS["WHITELISTED_MIMETYPE"]))." exclusion(s)\n";}
+				if(count($GLOBALS["WHITELISTED_MIMETYPE"])>0){$kav_rules[]="adaptation_access class_antivirus deny StreamMimeWhite";}				
+				
 				$kav_rules[]="adaptation_access class_antivirus allow all";
 			
 		}else{
@@ -281,30 +284,6 @@ class icap{
 	
 	private function ICAP_CHAINS(){
 		$f[]="# --------- adaptation chain services.";
-		$f[]="# --------- ByPass ICAP AV ?.";
-		if(!class_exists("mysql_squid_builder")){include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");}
-		
-		$q=new mysql_squid_builder();
-		$sql="SELECT websitename FROM webfilter_avwhitedoms";
-		$results = $q->QUERY_SQL($sql);
-		$dst=array();
-		
-		while ($ligne = mysql_fetch_assoc($results)) {
-			$websitename=trim($ligne["websitename"]);
-			if($websitename==null){continue;}
-			if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $websitename)){$dst[$websitename]=$websitename;continue;}
-			if(preg_match("#^www\.(.+)#", $websitename,$re[1])){$websitename=".$websitename";$dstdomain[$websitename]=$websitename;continue;}
-			if(preg_match("#.+?\..+?#", $websitename)){$dstdomain[$websitename]=$websitename;continue;}
-		}
-		
-		if(count($dst)>0){
-			$r=array();
-			while (list ($a, $b) = each ($dst) ){
-				$r[]=$a;
-			}
-			
-		}
-		
 		
 		$class_url_check=FALSE;
 		$kav_rules[]="";
@@ -340,6 +319,10 @@ class icap{
 			}
 			
 			if($this->ASROOT){echo "Starting......: [ICAP]: ".count($GLOBALS["WHITELISTED_MIMETYPE"])." exclusion(s)\n";}
+			if(count($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"])>0){
+				reset($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]);
+				while (list ($index, $line) = each ($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]) ){$f[]="adaptation_access ANTIVIRUS_CHAINS deny $line";}
+			}
 			
 			if(count($GLOBALS["WHITELISTED_MIMETYPE"])>0){
 				$f[]="adaptation_access ANTIVIRUS_CHAINS deny StreamMimeWhite";

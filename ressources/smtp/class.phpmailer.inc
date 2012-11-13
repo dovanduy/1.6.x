@@ -776,8 +776,13 @@ class PHPMailer {
     }
 
     $this->smtp->do_debug = $this->SMTPDebug;
-    $hosts = explode(';', $this->Host);
     $index = 0;
+    if(strpos($this->Host, ";")>0){
+    	$hosts = explode(';', $this->Host);
+    	
+    }else{
+    	$hosts[0]=$this->Host;
+    }
     $connection = $this->smtp->Connected();
 
     // Retry while there is no connection

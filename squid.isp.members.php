@@ -109,7 +109,7 @@ function members_delete(){
 	
 	$sql="DELETE FROM usersisp WHERE userid='{$_POST["kill-userid"]}'";
 	$q->QUERY_SQL($sql);
-	if(!$q-ok){echo $q->mysql_error;return;}
+	if(!$q->ok){echo $q->mysql_error;return;}
 	
 }
 
@@ -119,7 +119,7 @@ function members_enable(){
 	$q=new mysql_squid_builder();	
 	$sql="UPDATE usersisp SET enabled={$_POST["value"]} WHERE userid='{$_POST["enable-userid"]}'";
 	$q->QUERY_SQL($sql);
-	if(!$q-ok){echo $q->mysql_error;return;}
+	if(!$q->ok){echo $q->mysql_error;return;}
 	
 }
 

@@ -498,9 +498,20 @@ function buildconf(){
 		if(trim($this->main_array["HEADERS"]["X_HEADER_LINE"])==null){$this->main_array["HEADERS"]["X_HEADER_LINE"]='$myproduct_name $myversion_id ($myversion_date) at $mydomain';}		
 		
 		
-		if(posix_getuid()==0){echo "Starting......: amavisd-new build configuration loglevel:{$this->main_array["BEHAVIORS"]["log_level"]}\n";}
-		if(posix_getuid()==0){echo "Starting......: amavisd-new build configuration myhostname:$myhostname\n";}
-		if(posix_getuid()==0){echo "Starting......: amavisd-new Amavis debug mode::$AmavisDebugSpamassassin\n";}
+		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: amavisd-new build configuration loglevel:{$this->main_array["BEHAVIORS"]["log_level"]}\n";}
+		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: amavisd-new build configuration myhostname:$myhostname\n";}
+		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: amavisd-new Amavis debug mode::$AmavisDebugSpamassassin\n";}
+		
+		
+		if($GLOBALS["EXECUTED_AS_ROOT"]){
+			@mkdir("/var/amavisd/.spamassassin",0755,true);
+			if(!is_file("/var/amavisd/.spamassassin/user_prefs")){@file_put_contents("/var/amavisd/.spamassassin/user_prefs", "\n");}
+			if(class_exists("unix")){
+				$unix=new unix();
+				$unix->chown_func("postfix","postfix", "/var/amavisd/.spamassassin");
+				$unix->chown_func("postfix","postfix", "/var/amavisd/.spamassassin/user_prefs");
+			}
+		}
 		
 		
 		//if($users->ALTERMIME_INSTALLED){if($this->EnableAlterMime==1){$altermime=true;}}
@@ -524,6 +535,7 @@ function buildconf(){
 		$conf=$conf."\$TEMPBASE = \"\$MYHOME/tmp\";   # working directory, needs to exist, -T\n";
 		$conf=$conf."\$ENV{TMPDIR} = \$TEMPBASE;    # environment variable TMPDIR, used by SA, etc.\n";
 		$conf=$conf."\$QUARANTINEDIR = '/var/virusmails';  # -Q\n";
+		//$conf=$conf."\$user_rules_dir = '/var/amavisd/.spamassassin';\n";
 		$conf=$conf."\$log_level = {$this->main_array["BEHAVIORS"]["log_level"]};# verbosity 0..5, -d\n";		
 		$conf=$conf."\$log_recip_templ 	= undef;    # disable by-recipient level-0 log entries\n";
 		$conf=$conf."\$DO_SYSLOG = 1;              # log via syslogd (preferred)\n";
@@ -1476,15 +1488,18 @@ function BlackListFromDomain($domain){
 
 	if(!is_array($res_bl)){return null;}
 	
+	$fileSave="/var/amavis/$domain.blacklist.db";
+	$fileSave=str_replace("@", "-", $fileSave);
+	
 	if($GLOBALS["EXECUTED_AS_ROOT"]){
 		@mkdir("/etc/amavis",0755,true);
-		@file_put_contents("/var/amavis/$domain.blacklist.db", @implode("\n", $res_bl)."\n");
-		@chmod("/var/amavis/$domain.blacklist.db", 0644);
-		@chown("/var/amavis/$domain.blacklist.db", "postfix");
+		@file_put_contents($fileSave, @implode("\n", $res_bl)."\n");
+		@chmod($fileSave, 0644);
+		@chown($fileSave, "postfix");
 	}
 	
-	
-	return "\t'.$domain'=> read_hash(\"/var/amavis/$domain.blacklist.db\")";	
+
+	return "\t'.$domain'=> read_hash(\"$fileSave\")";	
 	
 	//return "'$domain'=> [qw(".implode(" ",$res_bl).")]";
 	
@@ -1507,6 +1522,7 @@ private function per_recip_whitelist_sender_lookup_mysql(){
 		
 		while (list ($index, $rcptto) = each ($ct->HASH_ALL_MAILS) ){
 			$nextfile="/var/amavis/$rcptto.whitelist.db";
+			$nextfile=str_replace("@", "-", $nextfile);
 			@file_put_contents($nextfile, @implode("\n", $senders)."\n");
 			@chmod($nextfile, 0644);
 			@chown($nextfile, "postfix");			
@@ -1541,15 +1557,19 @@ function WhitelistsFromDomain($domain){
 		}
 
 	if(!is_array($res_bl)){return null;}
+	
+	$fileSave="/var/amavis/$domain.whitelist.db";
+	$fileSave=str_replace("@", "-", $fileSave);	
+	
 	if($GLOBALS["EXECUTED_AS_ROOT"]){
 		@mkdir("/var/amavis",0755,true);
-		@file_put_contents("/var/amavis/$domain.whitelist.db", @implode("\n", $res_bl)."\n");
-		@chmod("/var/amavis/$domain.whitelist.db", 0644);
-		@chown("/var/amavis/$domain.whitelist.db", "postfix");
+		@file_put_contents($fileSave, @implode("\n", $res_bl)."\n");
+		@chmod($fileSave, 0644);
+		@chown($fileSave, "postfix");
 	}
 	
 	
-	return "\t'.$domain'=> read_hash(\"/var/amavis/$domain.whitelist.db\")";
+	return "\t'.$domain'=> read_hash(\"$fileSave\")";
 }
 
 private function DKIM_outgoing_list(){

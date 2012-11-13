@@ -39,6 +39,7 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 		private $ajax = false;						// activation ajax
 		private $ajaxDiv = "";						// nom du div ajax
 		private $ajaxScript = "";					// ecriture du script ajax
+		var $USLink=false;
 
 		
 	
@@ -80,8 +81,8 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 		* a_semaine = no de semaine
 */
 	
-		private function _ecritLien($a_lien,$a_annee,$a_mois=0,$a_jour=0,$a_semaine=0)
-		{
+		private function _ecritLien($a_lien,$a_annee,$a_mois=0,$a_jour=0,$a_semaine=0){
+			if($this->USLink){return $this->_ecritLienUS($a_lien,$a_annee,$a_mois,$a_jour,$a_semaine);}
 			$lien = $a_lien;
 			$lien .= "calname=".$this->calName;
 			$lien .= "&annee=".$a_annee;
@@ -93,6 +94,21 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 				$lien .= "&semaine=".$a_semaine;
 			
 			return($lien);
+		}
+		
+		private function _ecritLienUS($a_lien,$a_annee,$a_mois=0,$a_jour=0,$a_semaine=0){
+			$lien = $a_lien;
+			$lien .= "calname=".$this->calName;
+			$lien .= "&year=".$a_annee;
+			if ($a_mois>0)
+				$lien .= "&month=".$a_mois;
+			if ($a_jour>0)
+				$lien .= "&day=".$a_jour;
+			if ($a_semaine>0)
+				$lien .= "&week=".$a_semaine;
+			
+			return($lien);			
+			
 		}
 
 	

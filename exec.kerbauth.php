@@ -7,6 +7,7 @@ include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 include_once(dirname(__FILE__)."/framework/class.settings.inc");
 $GLOBALS["CHECKS"]=false;
 $GLOBALS["FORCE"]=false;
+$GLOBALS["JUST_PING"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;echo "VERBOSED !!! \n";}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
@@ -20,7 +21,7 @@ if($argv[1]=='--winbinddpriv'){winbind_priv_perform(true);die();}
 
 if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Executing with `{$argv[1]}` command...", basename(__FILE__));}
 if($argv[1]=="--build"){build();die();}
-if($argv[1]=="--ping"){ping_kdc();die();}
+if($argv[1]=="--ping"){$GLOBALS["JUST_PING"]=true;ping_kdc();die();}
 if($argv[1]=="--samba-proxy"){SAMBA_PROXY();die();}
 if($argv[1]=='--winbindfix'){winbindfix();die();}
 if($argv[1]=='--winbindacls'){winbindd_set_acls_mainpart();die();}
@@ -1002,9 +1003,11 @@ function echo2($content){
 }
 
 function ping_kdc(){
+	
 	$sock=new sockets();
 	$unix=new unix();
 	$users=new settings_inc();
+	$chmod=$unix->find_program("chmod");
 	$filetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
@@ -1076,7 +1079,13 @@ function ping_kdc(){
 	@file_put_contents($filetime, time());
 	@file_put_contents("/usr/share/artica-postfix/ressources/logs/kinit.array", serialize($array));
 	@chmod(0777,"/usr/share/artica-postfix/ressources/logs/kinit.array");
-	if($users->SQUID_INSTALLED){winbind_priv();}
+	if($users->SQUID_INSTALLED){
+		if(!$GLOBALS["JUST_PING"]){winbind_priv();}
+		if(!is_dir("/var/lib/samba/smb_krb5")){@mkir("/var/lib/samba/smb_krb5",0777,true);}
+		shell_exec("$chmod 1775 /var/lib/samba/smb_krb5 >/dev/null 2>&1");
+		shell_exec("$chmod 1775 /var/lib/samba >/dev/null 2>&1");
+	}
+	
 	
 }
 
@@ -1136,7 +1145,7 @@ function winbind_priv($reloadservs=false){
 		$cmd="$groupadd winbindd_priv >/dev/null 2>&1";
 	}
 	
-	
+	if(!is_dir("/var/lib/samba/smb_krb5")){@mkir("/var/lib/samba/smb_krb5",0777,true);}
 	
 	$unix=new unix();
 	$gpass=$unix->find_program('gpass');
@@ -1228,7 +1237,7 @@ function winbind_priv_perform($withpid=false){
 		$nohup=$unix->find_program("nohup");
 		if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
 		if(is_file($squidbin)){
-			xsyslog("starting......: Reloading $squidbin");
+			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("starting......: Reloading $squidbin");}
 			shell_exec("$squidbin -k reconfigure >/dev/null 2>&1 &");
 		}
 	}
@@ -1311,6 +1320,7 @@ function winbindd_set_acls_mainpart(){
 
 
 function winbindd_monit(){
+	  
 	  if(is_file("/etc/monit/conf.d/winbindd.monitrc")){echo "starting......: winbindd monit: Already set\n";return;}
 	   $unix=new unix();
 	   $monit=$unix->find_program("monit");

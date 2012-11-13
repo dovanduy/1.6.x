@@ -1,7 +1,114 @@
 #!/usr/bin/php -q
 <?php
+
 ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+
+include_once(dirname(__FILE__)."/ressources/class.squid.categorize.generic.inc");
+include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+
+
+
+file_put_contents( 'progress.txt', '' );
+
+$targetFile = fopen( 'testfile.iso', 'w' );
+
+$ch = curl_init( 'http://ftp.free.org/mirrors/releases.ubuntu-fr.org/11.04/ubuntu-11.04-desktop-i386-fr.iso' );
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt( $ch, CURLOPT_NOPROGRESS, false );
+curl_setopt( $ch, CURLOPT_PROGRESSFUNCTION, 'progressCallback' );
+curl_setopt( $ch, CURLOPT_FILE, $targetFile );
+curl_exec( $ch );
+fclose( $ch );
+
+function progressCallback( $download_size, $downloaded_size, $upload_size, $uploaded_size )
+{
+    static $previousProgress = 0;
+    
+    if ( $download_size == 0 )
+        $progress = 0;
+    else
+        $progress = round( $downloaded_size * 100 / $download_size );
+    
+    if ( $progress > $previousProgress){
+    	echo $progress."\n";
+        $previousProgress = $progress;
+        $fp = fopen( 'progress.txt', 'a' );
+        fputs( $fp, "$progress\n" );
+        fclose( $fp );
+    }
+}
+
+
+
+
+
+
+
+return;
+
+
+
+
+
+
+
+
+
+
 $GLOBALS["VERBOSE"]=true;
+$GLOBALS["DEBUGFAM"]=true;
+$q=new mysql_squid_builder();
+
+echo $q->GetFamilySites("spireweather.co.uk");
+
+
+
+$g=new generic_categorize();
+$f=explode("\n", @file_get_contents("/home/dtouzeau/Bureau/adblockplus.txt"));
+while (list ($num, $ligne) = each ($f) ){
+	$firstletter=substr($ligne, 0,1);
+	if($firstletter<>"|"){continue;}
+	if(strpos($ligne,"^")==0){continue;}
+	if(strpos($ligne,"*")>0){continue;}
+	if(strpos($ligne,"$")>0){continue;}
+	if(strpos($ligne,"/")>0){continue;}
+	if(strpos($ligne,"msn.com")>0){continue;}
+	if(strpos($ligne,"google")>0){continue;}
+	if(strpos($ligne,"microsoft")>0){continue;}
+	
+	$ligne=str_replace("|", "", $ligne);
+	$ligne=str_replace("^", "", $ligne);
+	$cat=$g->GetCategories($ligne);
+	if($cat<>null){
+		if($cat<>"tracker"){continue;}
+	}
+	echo $ligne." $cat\n";
+	$tt[]=$ligne;
+	
+}
+@file_put_contents("/home/dtouzeau/Bureau/adblockplus.txt", @implode("\n", $tt));
+return;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');

@@ -10,7 +10,10 @@
 	include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 	include_once(dirname(__FILE__) . '/framework/frame.class.inc');	
 	include_once(dirname(__FILE__) . "/ressources/class.categorize.externals.inc");
+	$GLOBALS["SENDMAIL"]=false;
+	//exec.cleancloudcatz.php --all --sendmail
 	if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
+	if(preg_match("#--sendmail#",implode(" ",$argv),$re)){$GLOBALS["SENDMAIL"]=true;}
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	if($argv[1]=="--nocatz"){nocatz();exit();}
 	if($argv[1]=="--all"){catzall();exit();}
@@ -33,13 +36,26 @@ function catzall(){
 	}
 	
 	$t=time();
-	
+	$q=new mysql_squid_builder();
+	$count1=$q->COUNT_CATEGORIES();
 	$GLOBALS["CATEGORIZELOGS-COUNT"]=0;
 	$GLOBALS["CATEGORIZELOGS-COUNTED"]=0;
-	catz();
 	nocatz();
+	catz();
+	$count2=$q->COUNT_CATEGORIES();
+	$AddedWebsites=$count2-$count1;
 	$took=$unix->distanceOfTimeInWords($t,time());
-	ufdbguard_admin_events("Cloud categorized took $took {$GLOBALS["CATEGORIZELOGS-COUNTED"]} items scanned, {$GLOBALS["CATEGORIZELOGS-COUNT"]} new items categorized",__FUNCTION__,__FILE__,__LINE__,"categorize");
+	ufdbguard_admin_events("Cloud categorized took $took {$GLOBALS["CATEGORIZELOGS-COUNTED"]} items scanned, $AddedWebsites new items categorized",__FUNCTION__,__FILE__,__LINE__,"categorize");
+	if($GLOBALS["SENDMAIL"]){
+		$mem=round(((memory_get_usage()/1024)/1000),2);
+		$array_load=sys_getloadavg();
+		$internal_load=$array_load[0];
+		$text="\r\nMemory used for this script:{$mem}M; System Load: $internal_load\r\n";			
+		sendEmail("Cloud categorized took $took $AddedWebsites added {$GLOBALS["CATEGORIZELOGS-COUNTED"]} items scanned, {$GLOBALS["CATEGORIZELOGS-COUNT"]} items deleted",$text);
+		
+	}
+	
+	
 }	
 
 function testcatz($sitename){
@@ -111,10 +127,22 @@ function catz(){
 			continue;
 		}
 
-		echo "$c/$max $md5 -> `SKIP` \"$www\" by line $line [".__LINE__."]\n";
+		echo "$c/$max $md5 -> `SKIP` \"$www\" by line [".__LINE__."]\n";
 		
 	}
 	
+}
+
+function sendEmail($subject,$content){
+$unix=new unix();	
+$from="robot@".$unix->hostname_g();
+$header .= "From: ARTICA <$from>\r\n";
+$header .= 'MIME-Version: 1.0' . "\n" . 'Content-type: text/plain; charset=UTF-8';
+$header .= "Reply-To: $from\r\n";
+$header .= 'X-Mailer: PHP/' . phpversion()."\r\n";
+$mailto=@file_get_contents("/root/artica-notifs.txt");
+if($mailto==null){return;}
+@mail("$mailto",$subject,$content,$header);
 }
 
 // 1636b7346f2e261c5b21abfcaef45a69
@@ -173,7 +201,7 @@ function nocatz($router=null){
 			continue;			
 		}
 
-		echo "$c/$max $md5 -> `SKIP` \"$www\" ($ipaddr) by line $line [".__LINE__."]\n";
+		echo "$c/$max $md5 -> `SKIP` \"$www\" ($ipaddr) by line [".__LINE__."]\n";
 		not_categorized_add($www,$ipaddr);
 	}	
 	

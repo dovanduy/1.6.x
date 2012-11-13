@@ -30,11 +30,12 @@ class privileges{
 				if($GLOBALS["VERBOSE"]){$this->DebugPrivs();}
 			
 			}
-		$this->content=$_SESSION[__CLASS__][$uid]["CONTENT"];
+		if(isset($_SESSION[__CLASS__][$uid]["CONTENT"])){$this->content=$_SESSION[__CLASS__][$uid]["CONTENT"];}
 		$this->privs=$_SESSION["privileges_array"];
 		return;
 	}
 	private function DebugPrivs(){
+		if(!isset($_SESSION[__CLASS__][$this->uid]["PRIVS"])){return;}
 		$array=$_SESSION[__CLASS__][$this->uid]["PRIVS"];
 		while (list ($num, $ligne) = each ($array) ){
 			if($ligne=="yes"){

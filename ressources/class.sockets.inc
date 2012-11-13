@@ -398,7 +398,7 @@ private function fopen_framework($uri){
 
 		if (!$fp) {
 			if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] ERROR: unable to open remote file http://127.0.0.1:47980/$uri $errno $errstr<br>\n";}
-			error_log("ERROR: unable to open remote file http://127.0.0.1:47980/$uri $errno $errstr ".__FUNCTION__." Line:".__LINE__."<br>\n");
+			//error_log("ERROR: unable to open remote file http://127.0.0.1:47980/$uri $errno $errstr ".__FUNCTION__." Line:".__LINE__."<br>\n");
 			if(function_exists("writelogs")){writelogs("ERROR: unable to open remote file http://127.0.0.1:47980/$uri",
 			__CLASS__ . "=>" . __FUNCTION__,__FILE__);}
 			$this->error=true;
@@ -679,9 +679,10 @@ function GET_MYSQL_ROOT($key){
 
 
 	function LANGUAGE_DUMP($lang){
+		if($GLOBALS["AS_ROOT"]){return;}
 		if($lang=="undefined"){return;}
 		writelogs("Dumping language $lang",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-		
+		$data=array();
 		if(class_exists("Memcache")){
 			$memcache = new Memcache();
 			$memcache->connect('unix:///var/run/memcached.sock', 0);

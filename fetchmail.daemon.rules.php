@@ -16,6 +16,7 @@ if(isset($_GET["search-list"])){echo section_rules_search();exit;}
 if(isset($_GET["ajax"])){ajax_index();exit;}
 if(isset($_GET["fetchmail-daemon-rules"])){echo section_rules_list();exit;}
 if(isset($_POST["enabled"])){rule_enable();exit;}
+if(isset($_POST["DeleteAll"])){rule_delete_all();exit;}
 section_Fetchmail_Daemon();
 
 
@@ -84,6 +85,8 @@ function section_rules_list(){
 	$new_rule=$tpl->_ENGINE_parse_body("{new_rule}");
 	$delete_rule=$tpl->javascript_parse_text("{delete_rule}");
 	$refresh=$tpl->_ENGINE_parse_body("{refresh}");
+	$deleteAll=$tpl->_ENGINE_parse_body("{delete_all}");
+	$apply=$tpl->_ENGINE_parse_body("{apply_parameters}");
 	$t=time();
 	
 	
@@ -94,7 +97,10 @@ function section_rules_list(){
 	buttons : [
 	{name: '$new_rule', bclass: 'Add', onpress : add_fetchmail_rules$t},
 	{name: '$import', bclass: 'Copy', onpress : ImportBulk$t},
+	{name: '$deleteAll', bclass: 'Delz', onpress : DeletAll$t},
 	{name: '$refresh', bclass: 'Reload', onpress : Reload$t},
+	{name: '$apply', bclass: 'Reconf', onpress : ApplyParams$t},
+	
 		],	";		
 	
 	
@@ -168,6 +174,24 @@ var x_DeleteFetchmailRule= function (obj) {
   
   }
   
+	var x_DeletAll$t= function (obj) {
+		var tempvalue=obj.responseText;
+		if(tempvalue.length>3){alert(tempvalue);return;}
+		Reload$t();
+	}    
+  
+  function DeletAll$t(){
+  	if(confirm('$deleteAll ?')){
+   	 var XHR = new XHRConnection();
+  	 XHR.appendData('DeleteAll','yes');
+  	 XHR.sendAndLoad('$page', 'POST',x_DeletAll$t);   	
+  	}
+  }
+  
+  function ApplyParams$t(){
+  	Loadjs('fetchmail.compile.progress.php?t=$t');
+  }
+  
   function Reload$t(){
   	$('#flexRT$t').flexReload();
   }
@@ -195,22 +219,34 @@ function add_fetchmail_rules$t(){
 	return;
 }
 
+function ApplyParams(){
+	
+	
+	$sock=new sockets();
+	$sock->getFrameWork('cmd.php?restart-fetchmail=yes');		
+}
+
 function rule_delete(){
 	$q=new mysql();
 	$sql="DELETE FROM fetchmail_rules WHERE ID={$_POST["DeleteRule"]}";
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork('cmd.php?restart-fetchmail=yes');
+
 	
+}
+
+function rule_delete_all(){
+	$q=new mysql();
+	$sql="TRUNCATE TABLE fetchmail_rules";
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo $q->mysql_error;return;}	
 }
 
 function rule_enable(){
 	$q=new mysql();
 	$q->QUERY_SQL("UPDATE fetchmail_rules SET enabled={$_POST["enabled"]} WHERE ID={$_POST["ID"]}","artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork('cmd.php?restart-fetchmail=yes');	
+
 }
 
 function section_rules_search(){

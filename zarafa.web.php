@@ -100,12 +100,17 @@ function tabs(){
 	$q=new mysql();
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$users=new usersMenus();
+	
 	$array["popup"]="{general_settings}";
 	if($_GET["font-size"]>14){$_GET["font-size"]=14;}
 	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";}
 	$array["popup-tune"]="{service_tuning}";
 	$array["popup-mysql"]="{mysql_tuning}";
-	$array["popup-indexer"]="{APP_ZARAFA_INDEXER}";
+	
+	if($users->ZARAFA_INDEXER_INSTALLED){
+		$array["popup-indexer"]="{APP_ZARAFA_INDEXER}";
+	}
 	$array["tools"]="{tools}";
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -380,8 +385,10 @@ $net=new networking();
 $nets=$net->ALL_IPS_GET_ARRAY();
 $nets["0.0.0.0"]="{all}";
 
+$netsSMTP=$nets;
+unset($netsSMTP["0.0.0.0"]);
+$SMTPfield=Field_array_Hash($netsSMTP,"ZarafaServerSMTPIP",$ZarafaServerSMTPIP,"font-size:13px;padding:3px");
 
-$SMTPfield=Field_array_Hash($nets,"ZarafaServerSMTPIP",$ZarafaServerSMTPIP,"font-size:13px;padding:3px");
 $convert_current_attachments_text=$tpl->javascript_parse_text("{convert_current_attachments}");
 
 $fieldsServ[]="ZarafaStoreOutsidePath";
@@ -1033,9 +1040,9 @@ $net=new networking();
 
 $nets=$net->ALL_IPS_GET_ARRAY();
 $nets["0.0.0.0"]="{all}";
-
-
-$SMTPfield=Field_array_Hash($nets,"ZarafaServerSMTPIP",$ZarafaServerSMTPIP,"font-size:13px;padding:3px");
+$netsSMTP=$nets;
+unset($netsSMTP["0.0.0.0"]);
+$SMTPfield=Field_array_Hash($netsSMTP,"ZarafaServerSMTPIP",$ZarafaServerSMTPIP,"font-size:13px;padding:3px");
 $convert_current_attachments_text=$tpl->javascript_parse_text("{convert_current_attachments}");
 
 $fieldsServ[]="ZarafaStoreOutsidePath";

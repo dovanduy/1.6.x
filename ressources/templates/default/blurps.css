@@ -233,12 +233,7 @@ div .RoundedGrey{
 }
 
 /* defaults for all examples */
-.kwicks {
-	list-style: none;
-	position: relative;
-	margin: 0;
-	padding: 0;
-}
+
 .kwicks li{
 	display: block;
 	overflow: hidden;

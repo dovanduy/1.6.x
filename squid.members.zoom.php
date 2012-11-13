@@ -8,7 +8,12 @@
 	
 	$users=new usersMenus();
 	if(!$users->AsWebStatisticsAdministrator){die();}	
-	
+	if(!$users->CORP_LICENSE){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
+		echo "alert('$onlycorpavailable')";
+		die();
+	}	
 	
 	
 	if(isset($_GET["tabs"])){tabs();exit;}
@@ -21,6 +26,10 @@
 	if(isset($_GET["alsoknown"])){alsoknown();exit;}
 	
 	if(isset($_GET["what"])){what_popup();exit;}
+	if(isset($_GET["blocked"])){blocked_popup();exit;}
+	if(isset($_GET["blocked-search"])){blocked_search();exit;}
+	
+	
 	
 js();
 
@@ -37,15 +46,20 @@ function js(){
 		$tablejs="&table={$_GET["table"]}";
 		if(preg_match("#_week#", $_GET["table"])){
 			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($_GET["table"]));
-			
-			if(preg_match("#_(day)#", $tableQuery)){
-				$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
-			}
-			
 		}
-	
+			
+		if(preg_match("#_day$#", $_GET["table"])){
+			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
+		}
+			
+		if(preg_match("#_hour$#", $_GET["table"])){
+			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->DAY_TITLE_FROM_TABLENAME($_GET["table"]));
+		}			
+			
 	}
-	$html="YahooWin('750','$page?tabs=yes&field=$field&value=$value$tablejs','$title$title_add')";
+	
+	
+	$html="YahooWin('850','$page?tabs=yes&field=$field&value=$value$tablejs','$title$title_add')";
 	echo $html;
 }
 
@@ -59,7 +73,9 @@ $page=CurrentPageName();
 	
 	$field=$_GET["field"];
 	$value=$_GET["value"];	
-	if(isset($_GET["table"])){$tablejs="&table={$_GET["table"]}";}
+	if(isset($_GET["table"])){
+		$array["blocked"]='{blocked} ?';
+		$tablejs="&table={$_GET["table"]}";}
 	while (list ($num, $ligne) = each ($array) ){
 		
 		$html[]= "<li><a href=\"$page?$num=yes&field=$field&value=$value$tablejs\"><span>$ligne</span></a></li>\n";
@@ -109,6 +125,10 @@ function status(){
 	$sq="SELECT SUM(hits) as hits, SUM(QuerySize) as QuerySize FROM UserAuthDaysGrouped";
 
 	if(isset($_GET["table"])){
+		
+	
+		
+		
 		if($field=="ipaddr"){$field="client";}
 		$sql="SELECT SUM(size) as QuerySize,SUM(hits) as hits FROM `{$_GET["table"]}`";
 		
@@ -217,10 +237,25 @@ function history_content(){
 	$sql="SELECT DAY(zDate) as tday,SUM(QuerySize) as QuerySize,SUM(hits) as hits FROM 
 	`UserAuthDays`  WHERE `$field`='$value' 
 	AND zDate> DATE_SUB(NOW(),INTERVAL {$_GET["INTERVAL"]} DAY) GROUP BY tday ORDER BY tday";
+
+		$fieldgroup="day";
+		$x_title="{days}";	
+		$maintitle="downloaded_size_per_day";
+		$maintitle2="requests_per_day";	
 	
 	if(isset($_GET["table"])){
 		if($field=="ipaddr"){$field="client";}
-		$sql="SELECT day as tday,SUM(size) as QuerySize,SUM(hits) as hits FROM 
+
+			
+		if(preg_match("#_hour$#", $_GET["table"])){
+			$fieldgroup="hour";
+			$x_title="{hours}";	
+			$maintitle="downloaded_size_per_hour";
+			$maintitle2="requests_per_hour";	
+		}			
+		
+		
+		$sql="SELECT $fieldgroup as tday,SUM(size) as QuerySize,SUM(hits) as hits FROM 
 		`{$_GET["table"]}`  WHERE `$field`='$value' GROUP BY tday ORDER BY tday";
 		
 	}
@@ -228,6 +263,19 @@ function history_content(){
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){
 		echo "<H3>Warning<hr>$sql<hr>$q->mysql_error</H3>";
+	}
+	
+	if(mysql_num_rows($results)<2){
+		$error=$tpl->_ENGINE_parse_body("{only_one_value_no_graph}");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$size=round(($ligne["QuerySize"]/1024)/1000);
+			$day=$ligne["tday"];
+			$hits=$ligne["hits"];;
+			if($fieldgroup=="hour"){$day="{$day}h00";}
+		}
+		echo $tpl->_ENGINE_parse_body("<div style='font-size:18px'>$error<hr>{$size}MB/$hits {events} {at} $day </div>");
+		return;
+		
 	}
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -242,17 +290,17 @@ function history_content(){
 		
 	}	
 	
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".". md5($sql).".png";
-	$targetedfile2="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".". md5($sql).".2.png";
+	$targetedfile="ressources/logs/".md5(basename(__FILE__).".".__FUNCTION__.".$sql").".png";
+	$targetedfile2="ressources/logs/".md5(basename(__FILE__).__FUNCTION__.$sql.__LINE__).".png";
 	$gp=new artica_graphs();
 	
-	$gp->width=650;
+	$gp->width=750;
 	$gp->height=350;
 	$gp->filename="$targetedfile";
 	$gp->xdata=$xdata;
 	$gp->ydata=$ydata;
 	$gp->y_title=$tpl->_ENGINE_parse_body("{size}");;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{days}");
+	$gp->x_title=$tpl->_ENGINE_parse_body($x_title);
 	$gp->title=null;
 	$gp->margin0=true;
 	$gp->Fillcolor="blue@0.9";
@@ -260,13 +308,13 @@ function history_content(){
 	$gp->line_green();
 	
 	$gp2=new artica_graphs();
-	$gp2->width=650;
+	$gp2->width=750;
 	$gp2->height=350;
 	$gp2->filename="$targetedfile2";
 	$gp2->xdata=$xdata2;
 	$gp2->ydata=$ydata2;
 	$gp2->y_title=$tpl->_ENGINE_parse_body("{hits}");;
-	$gp2->x_title=$tpl->_ENGINE_parse_body("{days}");
+	$gp2->x_title=$tpl->_ENGINE_parse_body($x_title);
 	$gp2->title=null;
 	$gp2->margin0=true;
 	$gp2->Fillcolor="blue@0.9";
@@ -280,12 +328,12 @@ function history_content(){
 		$html=$html."
 		<center>
 			<div style='width:99%' class=form>
-				<div style='font-size:18px;margin:8px'>&laquo;$value&raquo;&nbsp;{downloaded_size_per_day} (MB)</div>
+				<div style='font-size:18px;margin:8px'>&laquo;$value&raquo;&nbsp;{{$maintitle}} (MB)</div>
 				<img src='$targetedfile'>
 			</div>
 			
 			<div style='width:99%' class=form>
-				<div style='font-size:18px;margin:8px'>&laquo;$value&raquo;&nbsp;{requests_per_day}</div>
+				<div style='font-size:18px;margin:8px'>&laquo;$value&raquo;&nbsp;{{$maintitle2}}</div>
 				<img src='$targetedfile2'>
 			</div>			
 		</center>
@@ -368,7 +416,7 @@ function alsoknown(){
 	echo $tpl->_ENGINE_parse_body(@implode("\n", $tr));	
 }
 
-function where_popup(){
+function blocked_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();		
 	$field=$_GET["field"];
@@ -377,7 +425,7 @@ function where_popup(){
 	$MyTableMonth=date("Ym")."_day";
 	$MyMonthText=date("{F}");
 	$q=new mysql_squid_builder();
-	
+	$tableQuery=$_GET["table"];
 	if(isset($_GET["table"])){
 		$MyTableMonth=$_GET["table"];
 	}
@@ -388,16 +436,24 @@ function where_popup(){
 		return;
 	}	
 	
-	if(preg_match("#_(week|day)#", $tableQuery)){
-			$MyMonthText="&raquo;".$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($_GET["table"]));
-			if(preg_match("#_(day)#", $tableQuery)){
-				$MyMonthText="&raquo;".$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
-			}
+		if(preg_match("#(.+?)_week#", $_GET["table"],$re)){
+			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($_GET["table"]));
+			$nexttable="{$re[1]}_blocked_week";
 		}
+			
+		if(preg_match("#(.+?)_day$#", $_GET["table"],$re)){
+			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
+			$nexttable="{$re[1]}_blocked";
+		}
+			
+		if(preg_match("#(.+?)_hour$#", $_GET["table"],$re)){
+			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->DAY_TITLE_FROM_TABLENAME($_GET["table"]));
+			$nexttable="{$re[1]}_blocked";
+		}	
 	
 	
 	if($field=="ipaddr"){$field="client";}
-	$title=$tpl->_ENGINE_parse_body("{where} ? &raquo;&raquo;{{$field}}::$value ($MyMonthText)");
+	$title=$tpl->_ENGINE_parse_body("{blocked} ? &raquo;&raquo;{{$field}}::$value $title_add");
 	
 	$t=time();	
 	$sitename=$tpl->_ENGINE_parse_body("{sitename}");	
@@ -426,6 +482,193 @@ function where_popup(){
 	
 	$html="
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
+
+<script>
+
+$(document).ready(function(){
+$('#$t').flexigrid({
+	url: '$page?blocked-search=yes&field=$field&value=$value&table=$nexttable',
+	dataType: 'json',
+	colModel : [
+		{display: '$sitename', name : 'website', width : 472, sortable : true, align: 'left'},
+		{display: '$category', name : 'category', width : 170, sortable : true, align: 'left'},
+		{display: '$hits', name : 'hits', width : 94, sortable : true, align: 'left'},
+
+		
+		
+	],$buttons
+	searchitems : [
+		{display: '$sitename', name : 'website'},
+		{display: '$category', name : 'category'},
+		],
+	sortname: 'hits',
+	sortorder: 'desc',
+	usepager: true,
+	title: '$title',
+	useRp: true,
+	rp: 15,
+	showTableToggleBtn: false,
+	width: 793,
+	height: 450,
+	singleSelect: true
+	
+	});
+});
+</script>";	
+echo $tpl->_ENGINE_parse_body($html);		
+	
+}
+
+function blocked_search(){
+	$q=new mysql_squid_builder();	
+	$tableQuery=$_GET["table"];
+	$tpl=new templates();
+	$page=1;
+	$FORCE_FILTER=null;
+	$total=0;
+	
+	$q->CheckTablesBlocked_day(0,$tableQuery);
+	if(!$q->TABLE_EXISTS("$tableQuery")){json_error_show("$tableQuery no such table");}
+	$tablejs="&table=$tableQuery";
+	$table="(SELECT website,{$_GET["field"]},COUNT(ID) as hits,category FROM $tableQuery
+	WHERE {$_GET["field"]}='{$_GET["value"]}' GROUP BY website,{$_GET["field"]},category) as t";
+	
+	
+	if($q->COUNT_ROWS($tableQuery)==0){json_error_show("Empty table $tableQuery");}
+	
+	
+	
+	if(isset($_POST["sortname"])){
+		if($_POST["sortname"]<>null){
+			$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";
+		}
+	}	
+	
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
+	$searchstring=string_to_flexquery();
+		
+	if($searchstring<>null){	
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+		if(!$q->ok){json_error_show("$q->mysql_error");}
+		$total = $ligne["TCOUNT"];
+		
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){json_error_show("$q->mysql_error");}
+		$total = $ligne["TCOUNT"];
+	}
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
+	
+
+	
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+	$results = $q->QUERY_SQL($sql);	
+	if(!$q->ok){json_error_show("$q->mysql_error");}
+		
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$md5=md5(serialize($line));
+		$ligne["hits"]=numberFormat($ligne["hits"],0,""," ");
+		
+		$jsuid="
+		<a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('squid.members.sitename.php?field={$_GET["field"]}&value={$_GET["value"]}$tablejs&familysite={$ligne["familysite"]}')\"
+		style='font-size:16px;text-decoration:underline'>";
+		$jsuid=null;
+	
+
+	$data['rows'][] = array(
+		'id' => $md5,
+		'cell' => array(
+			"<span style='font-size:16px'>$jsuid{$ligne["website"]}</a></span>",
+			"<span style='font-size:16px'>{$ligne["category"]}</a></span>",
+			"<span style='font-size:16px'>{$ligne["hits"]}</span>",
+	
+	 	 	
+			)
+		);
+	}
+	
+	
+echo json_encode($data);
+	
+}
+
+function where_popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();		
+	$field=$_GET["field"];
+	$value=$_GET["value"];	
+
+	$MyTableMonth=date("Ym")."_day";
+	$MyMonthText=date("{F}");
+	$q=new mysql_squid_builder();
+	$tableQuery=$_GET["table"];
+	if(isset($_GET["table"])){
+		$MyTableMonth=$_GET["table"];
+	}
+	
+	
+	if(!$q->TABLE_EXISTS($MyTableMonth)){
+		echo FATAL_ERROR_SHOW_128("&laquo;$MyTableMonth&raquo; {table_does_not_exists}");
+		return;
+	}	
+	
+		if(preg_match("#_week#", $_GET["table"])){
+			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($_GET["table"]));
+		}
+			
+		if(preg_match("#_day$#", $_GET["table"])){
+			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
+		}
+			
+		if(preg_match("#_hour$#", $_GET["table"])){
+			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->DAY_TITLE_FROM_TABLENAME($_GET["table"]));
+		}	
+	
+	
+	if($field=="ipaddr"){$field="client";}
+	$title=$tpl->_ENGINE_parse_body("{where} ? &raquo;&raquo;{{$field}}::$value $title_add");
+	
+	$t=time();	
+	$sitename=$tpl->_ENGINE_parse_body("{sitename}");	
+	$category=$tpl->_ENGINE_parse_body("{category}");	
+	$hits=$tpl->_ENGINE_parse_body("{hits}");
+	$size=$tpl->_ENGINE_parse_body("{size}");
+	$sitename=$tpl->_ENGINE_parse_body("{sitename}");
+	$ipaddr=$tpl->_ENGINE_parse_body("{ipaddr}");
+	$members=$tpl->_ENGINE_parse_body("{members}");
+	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
+	$mac=$tpl->_ENGINE_parse_body("{MAC}");
+	$week=$tpl->_ENGINE_parse_body("{week}");
+	$month=$tpl->_ENGINE_parse_body("{month}");
+	$TB_WIDTH=550;
+	$t=time();
+	
+	$buttons="
+	buttons : [
+	{name: '<b>$day</b>', bclass: 'Calendar', onpress : ChangeDay$t},
+	{name: '<b>$week</b>', bclass: 'Calendar', onpress : ChangeWeek$t},
+	{name: '<b>$month</b>', bclass: 'Calendar', onpress : ChangeMonth$t},
+	
+		],";
+
+	$buttons=null;
+	
+	$html="
+	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
+
 <script>
 
 $(document).ready(function(){
@@ -452,7 +695,7 @@ $('#$t').flexigrid({
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 700,
+	width: 793,
 	height: 450,
 	singleSelect: true
 	
@@ -475,7 +718,7 @@ function where_search(){
 	if($tableQuery==null){$tableQuery=$MyTableMonth;}
 	$tablejs="&table=$tableQuery";
 	$table="(SELECT familysite,{$_GET["field"]},SUM(size) as size,SUM(hits) as hits,category FROM $tableQuery
-	WHERE {$_GET["field"]}='{$_GET["value"]}' GROUP BY familysite,{$_GET["field"]}) as t";
+	WHERE {$_GET["field"]}='{$_GET["value"]}' GROUP BY familysite,{$_GET["field"]},category) as t";
 	
 	
 	if($q->COUNT_ROWS($tableQuery)==0){json_error_show("Table empty");}
@@ -565,12 +808,17 @@ function what_popup(){
 		$tableQuery=$MyTableMonth;
 	}	
 	
-	if(preg_match("#_(week|day)#", $tableQuery)){
-			$MyMonthText="&raquo;".$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($tableQuery));
-			if(preg_match("#_(day)#", $tableQuery)){
-				$MyMonthText="&raquo;".$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($tableQuery));
-			}
+		if(preg_match("#_week#", $_GET["table"])){
+			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($_GET["table"]));
 		}
+			
+		if(preg_match("#_day$#", $_GET["table"])){
+			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
+		}
+			
+		if(preg_match("#_hour$#", $_GET["table"])){
+			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->DAY_TITLE_FROM_TABLENAME($_GET["table"]));
+		}	
 	
 	
 	if($_GET["field"]=="ipaddr"){$_GET["field"]="client";}
@@ -604,7 +852,7 @@ function what_popup(){
 	$gp=new artica_graphs($targetedfilePie);	
 	$gp->xdata=$xdata;
 	$gp->ydata=$ydata;	
-	$gp->width=650;
+	$gp->width=750;
 	$gp->height=550;
 	$gp->ViewValues=true;
 	$gp->x_title=$tpl->_ENGINE_parse_body("{what} ? $MyMonthText");
@@ -618,7 +866,7 @@ if(!is_file($targetedfilePie)){
 		$html=$html."
 		<center>
 			<div style='width:99%' class=form>
-				<div style='font-size:18px;margin:8px'>&laquo;$value&raquo;&nbsp;{what} $MyMonthText</div>
+				<div style='font-size:18px;margin:8px'>&laquo;$value&raquo;&nbsp;{what} $title_add</div>
 				<img src='$targetedfilePie'>
 			</div>
 			

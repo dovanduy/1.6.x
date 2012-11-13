@@ -24,6 +24,9 @@ function build(){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	
 	if($EnableRemoteStatisticsAppliance==1){download_mydb();return;}
+	if(!function_exists("IsPhysicalAddress")){include_once(dirname(__FILE__)."/ressources/class.templates.inc");}
+	if(!class_exists("mysql_squid_builder")){include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");}
+	
 	
 	$unix=new unix();
 	$arpd=$unix->find_program("arpd");
@@ -38,13 +41,23 @@ function build(){
 			
 		}
 	}
-	
-	$q=new mysql();
-	
-	$sql="SELECT * FROM hostsusers";
-	$q=new mysql();
+
+	$q=new mysql_squid_builder();
+	$sql="SELECT * FROM webfilters_nodes WHERE LENGTH(uid)>1";
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	while ($ligne = mysql_fetch_assoc($results)) {
+		if($ligne["MAC"]=="00:00:00:00:00:00"){continue;}
+		if(!IsPhysicalAddress($ligne["MAC"])){continue;}
+		if($GLOBALS["VERBOSE"]){echo "{$ligne["MAC"]} = {$ligne["uid"]}\n";}
+		$MACS["MACS"][$ligne["MAC"]]["UID"]=$ligne["uid"];
+	}
+	
+	$q=new mysql();
+	$sql="SELECT * FROM hostsusers";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		if($ligne["MacAddress"]=="00:00:00:00:00:00"){continue;}
+		if(!IsPhysicalAddress($ligne["MacAddress"])){continue;}
 		if($GLOBALS["VERBOSE"]){echo "{$ligne["MacAddress"]} = {$ligne["uid"]}\n";}
 		if(preg_match("#group:@(.+?):([0-9]+)#", $ligne["uid"],$re)){
 			$MACS["MACS"][$ligne["MacAddress"]]["UID"]=$re[1];
@@ -53,6 +66,7 @@ function build(){
 		$MACS["MACS"][$ligne["MacAddress"]]["UID"]=$ligne["uid"];
 		
 	}
+	
 	
 	
 	

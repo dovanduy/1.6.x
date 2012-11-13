@@ -124,7 +124,7 @@ For example if a client with an internal IP is 192.168.12.* establish a connecti
 <RUN_COMPILATION>Run compilation</RUN_COMPILATION>
 <sarg_access>Acces to Proxy statistics</sarg_access>
 <requests>requests</requests>
-<apt_mirror_threads>Number of processes used for download packages.[br]Increase this value will increase the bandwith consumption.</apt_mirror_threads>
+<apt_mirror_threads>Number of processes used for download packages.[br]Increase this value will increase the bandwidth consumption.</apt_mirror_threads>
 <updated_from_community>Updated from community repository</updated_from_community>
 <added_on>added on</added_on>
 <enable_in_left_menus>Display in left menu</enable_in_left_menus>

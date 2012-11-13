@@ -19,6 +19,8 @@ class ccurl{
 	var $UserAgent=null;
 	var $Timeout=120;
 	var $error_num=0;
+	var $WriteProgress=false;
+	var $ProgressFile=null;
 	
 	// CURLOPT_INTERFACE
 	
@@ -285,6 +287,13 @@ class ccurl{
 			}
 			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
 			curl_setopt($ch, CURLOPT_TIMEOUT, $this->Timeout);
+			
+			if($this->WriteProgress){
+				$GLOBALS["CurlprogressCallbackFile"]=$this->ProgressFile;
+				curl_setopt( $ch, CURLOPT_NOPROGRESS, false );
+				curl_setopt( $ch, CURLOPT_PROGRESSFUNCTION, 'CurlprogressCallback' );
+			}
+			
 			//$this->ArticaProxyServerEnabled=null;
 			
 			if($this->ArticaProxyServerEnabled=="yes"){
@@ -377,4 +386,22 @@ class ccurl{
 	
 	
 	
+}
+
+function CurlprogressCallback( $download_size, $downloaded_size, $upload_size, $uploaded_size ){
+    static $previousProgress = 0;
+    
+    if ( $download_size == 0 )
+        $progress = 0;
+    else
+        $progress = round( $downloaded_size * 100 / $download_size );
+       
+    
+    if ( $progress > $previousProgress){
+    	if($GLOBALS["VERBOSE"]){echo $progress."\n";}
+        $previousProgress = $progress;
+        $fp = fopen( $GLOBALS["CurlprogressCallbackFile"], 'w' );
+        fputs( $fp, "$progress\n" );
+        fclose( $fp );
+    }
 }

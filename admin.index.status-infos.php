@@ -483,7 +483,7 @@ if($EnableWebProxyStatsAppliance==1){$users->SQUID_INSTALLED=true;}
 $OnlySMTP=false;
 if($users->SMTP_APPLIANCE){$OnlySMTP=true;}
 if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
-
+if(!$users->PROXYTINY_APPLIANCE){
 	if($users->SQUID_INSTALLED){
 		if($users->AsWebStatisticsAdministrator ){
 			$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
@@ -495,7 +495,7 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 			}
 		}
 	}
-
+}
 
 
 	if($users->POSTFIX_INSTALLED){

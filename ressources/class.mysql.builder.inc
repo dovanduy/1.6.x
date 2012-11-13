@@ -800,7 +800,29 @@ public function check_storage_table(){
 				) ";	
 	
 			$this->QUERY_SQL($sql,"artica_events");
-	}		
+	}
+
+	
+	if(!$this->TABLE_EXISTS('zarafauserss','artica_events')){	
+		$sql="CREATE TABLE IF NOT EXISTS `zarafauserss` (
+			  `zmd5` varchar(90) NOT NULL PRIMARY KEY,
+			  `uid` varchar(128) NOT NULL,
+			  `ou` varchar(128) NOT NULL,
+			  `mail` varchar(255) NOT NULL,
+			  `license` TINYINT(1) NOT NULL,
+			  `NONACTIVETYPE` varchar(60) NOT NULL,
+			  `storesize` INT(100) NOT NULL,
+			  KEY `uid` (`uid`),
+			  KEY `ou` (`ou`),
+			  KEY `mail` (`mail`),
+			  KEY `license` (`license`),
+			  KEY `NONACTIVETYPE` (`NONACTIVETYPE`),
+			  KEY `storesize` (`storesize`)
+			) ";
+		$this->QUERY_SQL($sql,'artica_events');	
+	
+		}		
+	
 
 	if(!$this->TABLE_EXISTS('smbstatus_users_dirs','artica_events')){		
 			$sql="CREATE TABLE IF NOT EXISTS `smbstatus_users_dirs` (
@@ -921,6 +943,7 @@ public function check_storage_table(){
 		}		
 	
 	
+		
 	if(!$this->TABLE_EXISTS('icons_db','artica_backup')){		
 				$sql="CREATE TABLE IF NOT EXISTS `icons_db` (
 				  `zmd5` varchar(90) NOT NULL,
@@ -1344,7 +1367,7 @@ public function check_storage_table(){
 			  `account_id` int(5) NOT NULL,
 			  `zDate` datetime NOT NULL,
 			  `subject` VARCHAR(255) NOT NULL,
-			  `events` longtext COLLATE utf8_unicode_ci NOT NULL,
+			  `events` longtext NOT NULL,
 			  `PID` int(5) NOT NULL,
 			  PRIMARY KEY (`ID`),
 			  KEY `account_id` (`account_id`,`zDate`),
@@ -1354,6 +1377,21 @@ public function check_storage_table(){
 			$this->QUERY_SQL($sql,"artica_events");
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	} 
+	
+	if(!$this->TABLE_EXISTS('speedtests','artica_events')){		
+			$sql="CREATE TABLE IF NOT EXISTS `speedtests` (
+			  `zDate` datetime NOT NULL,
+			  `ISP` VARCHAR(255) NOT NULL,
+			  `download` FLOAT(10,2),
+			  `upload` FLOAT(10,2),
+			  KEY `zDate` (`zDate`),
+			  KEY `download` (`download`),
+			  KEY `upload` (`upload`)
+			)";
+			$this->QUERY_SQL($sql,"artica_events");
+			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+	} 	
+	
 	
 	if(!$this->FIELD_EXISTS("fetchmail_debug_execute","subject","artica_events")){
 		$sql="ALTER TABLE `fetchmail_debug_execute` ADD `subject` VARCHAR(255) NOT NULL,ADD INDEX ( `subject` )";
@@ -3005,8 +3043,6 @@ if(!$this->TABLE_EXISTS('smtp_logs_day_users','artica_events')){
 			) ";
 			$this->QUERY_SQL($sql,"artica_backup");
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-		}else{
-			if($GLOBALS["VERBOSE"]){echo "artica_backup\smtp_generic_maps Exists\n";}
 		}	
 
 		if(!$this->TABLE_EXISTS('redirectmail','artica_backup')){	

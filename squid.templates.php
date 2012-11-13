@@ -239,9 +239,9 @@ function TEMPLATE_AFFECT(){
 		echo $q->mysql_error;return;
 	
 	}
-	$sql="SELECT template_title FROM squidtpls WHERE `zmd5`='{$_POST["zmd5"]}'";
+	$sql="SELECT template_name FROM squidtpls WHERE `zmd5`='{$_POST["zmd5"]}'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	echo $ligne["template_title"];
+	echo $ligne["template_name"];
 }
 
 
@@ -255,11 +255,12 @@ function TEMPLATE_ADD(){
 	$lang[]="{select}";
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$txt=$ligne["lang"];
+		if(is_numeric($txt)){continue;}
+		if($ligne["lang"]==null){continue;}
 		$lang[$ligne["lang"]]=$txt;
 	}		
 	$field=Field_array_Hash($lang, "lang1-$t",$tpl->language,null,null,0,"font-size:16px");
-	$html="
-		<id id='$t'></div>
+	$html="<div id='$t'></div>
 		<table style='width:100%;margin-top:20px;margin-bottom:8px' class=form>
 		<tbody>
 			<tr>
@@ -270,10 +271,17 @@ function TEMPLATE_ADD(){
 				<td class=legend style='font-size:16px'>{subject}:</td>
 				<td>". Field_text("template_title-$t",null,"font-size:16px;width:95%")."</td>
 			</tr>	
-			
 			<tr>
 				<td class=legend style='font-size:16px'>{language}:</td>
 				<td>$field</td>
+			</tr>			
+			<tr>
+				<td class=legend style='font-size:16px'>{UseALink}:</td>
+				<td>". Field_checkbox("template_link-$t",1,0,"UseALink$t()")."</td>
+			</tr>			
+			<tr>
+				<td class=legend style='font-size:16px'>{url}:</td>
+				<td>". Field_text("template_uri-$t",null,"font-size:16px;width:95%")."</td>
 			</tr>
 			<tr>
 				<td colspan=2 align='right'><hr>". button("{add}","SaveNewTemplate$t()",16)."</td>*
@@ -292,24 +300,49 @@ function TEMPLATE_ADD(){
 					$('#SquidTemplateErrorsTable').flexReload();
 			}	
 		function SaveNewTemplate$t(){
+				var template_link=0;
 				var lang=document.getElementById('lang1-$t').value;
-				if(lang.length==0){alert('Please select a language..');return;}
 				var tplname=document.getElementById('tplname-$t').value;
-				if(tplname.length==0){alert('Please select a template name..');return;}
-				
 				var tplTitle=document.getElementById('template_title-$t').value;
-				if(tplTitle.length==0){alert('Please select a template subject..');return;}				
+				template_uri=document.getElementById('template_uri-$t').value;
+				if(document.getElementById('template_link-$t').checked){template_link=1;}
+				
+				if(template_link==0){
+					if(lang.length==0){alert('Please select a language..');return;}
+					if(tplname.length==0){alert('Please select a template name..');return;}
+					if(tplTitle.length==0){alert('Please select a template subject..');return;}
+				}else{
+					if(template_uri.length==0){alert('Please define an URL..');return;}
+				}
 				
 		    	var XHR = new XHRConnection();
 		    	XHR.appendData('newtemplate',tplname);
 		      	XHR.appendData('template_name',tplname);
 		      	XHR.appendData('template_title',tplTitle);
+		      	XHR.appendData('template_link',template_link);
+		      	XHR.appendData('template_uri',template_uri);
 		      	XHR.appendData('lang',lang);
 		      	AnimateDiv('$t');
 		      	XHR.sendAndLoad('$page', 'POST',x_SaveNewTemplate$t);   				
 				
 				
 			}
+			
+			function UseALink$t(){
+				var UseALink=0;
+				if(document.getElementById('template_link-$t').checked){UseALink=1;}
+				if(UseALink==1){
+					document.getElementById('lang1-$t').disabled=true;
+					document.getElementById('template_title-$t').disabled=true;
+				}else{
+					document.getElementById('lang1-$t').disabled=false;
+					document.getElementById('template_title-$t').disabled=false;				
+				}
+				
+				
+			
+			}
+			
 		</script>
 		";
 	echo $tpl->_ENGINE_parse_body($html);	
@@ -348,10 +381,13 @@ function TEMPLATE_ADD_SAVE(){
 	while (list ($num, $line) = each ($_POST)){
 		$_POST[$num]=addslashes($line);
 	}
-	
-	$sql="INSERT IGNORE INTO squidtpls (zmd5,template_name,template_title,lang,template_body) VALUES ('$md5','{$_POST["template_name"]}','{$_POST["template_title"]}','{$_POST["lang"]}','{$_POST["template_body"]}')";
+	 
+	$sql="INSERT IGNORE INTO squidtpls (zmd5,template_name,template_title,lang,template_body,template_link,template_uri) 
+	VALUES ('$md5','{$_POST["template_name"]}','{$_POST["template_title"]}','{$_POST["lang"]}',
+	'{$_POST["template_body"]}','{$_POST["template_link"]}','{$_POST["template_uri"]}')";
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$q=new mysql_squid_builder();
+	$q->CheckTables();
 	$q->QUERY_SQL($sql,"artica_backup");			
 	if(!$q->ok){echo $q->mysql_error;	writelogs( $q->mysql_error,__FUNCTION__,__FILE__,__LINE__);return;}
 	$sock=new sockets();
@@ -456,7 +492,10 @@ $('#SquidTemplateErrorsTable').flexigrid({
 	
 	searchitems : [
 		{display: '$template_name', name : 'template_name'},
-		{display: '$title', name : 'template_title'}
+		{display: '$title', name : 'template_title'},
+		{display: 'URL', name : 'template_uri'},
+		
+		
 		],
 	sortname: 'template_time',
 	sortorder: 'desc',
@@ -614,6 +653,13 @@ function view_table(){
 		$title=base64_encode($ligne["template_title"]);
 		$linkZoom="<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$Mypage?Zoom-js={$ligne['zmd5']}&subject=$title');\" style='font-size:12px;text-decoration:underline'>";
 	
+		
+		if($ligne["template_link"]==1){
+			$ligne['lang']="-";
+			$ligne["template_title"]=$ligne["template_uri"];
+			$linkZoom=null;
+		}
+		
 		$cell=array();
 		$delete=imgsimple("delete-24.png",null,"TemplateDelete('{$ligne['zmd5']}')");
 		$cell[]="$span$linkZoom{$ligne['lang']}</a></span>";

@@ -2,6 +2,64 @@
 
 class categorize_tracker{
 function Tracker($www){	
+				if(preg_match("#\.asp-cc\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.trafic\.ro$#", $www)){return "tracker";}
+				if(preg_match("#\.nextstat\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.visiostats\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.visistat\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.doubleverify\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.gcion\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.clickfuse\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.mktoresp.com$#", $www)){return "tracker";}
+				if(preg_match("#^log[0-9]+\.$#", $www)){return "tracker";}
+				if(preg_match("#\.pixanalytics\.com$#", $www)){return "tracker";}
+				if(preg_match("#^stat\..+?$#", $www)){return "tracker";}
+				if(preg_match("#\.clickdensity\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.addfreestats.com$#", $www)){return "tracker";}
+				if(preg_match("#\.cedexis-radar\.net$#", $www)){return "tracker";}
+				if(preg_match("#\.digital-metric\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.ssstats\.net$#", $www)){return "tracker";}
+				if(preg_match("#\.servedtoyou\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.effectivemeasure\.net$#", $www)){return "tracker";}
+				if(preg_match("#^[0-9]+\.stats\..+?$#", $www)){return "tracker";}
+				if(preg_match("#^tracker[0-9]+\.#", $www)){return "tracker";}
+				if(preg_match("#^tracking[0-9]+\.#", $www)){return "tracker";}
+				if(preg_match("#^webtracker\.#", $www)){return "tracker";}
+				if(preg_match("#^eulerian\.#", $www)){return "tracker";}
+				if(preg_match("#^youmetrix\.co\.uk$#", $www)){return "tracker";}
+				if(preg_match("#\.eficiens-serving\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.histats\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.opentracker\.net$#", $www)){return "tracker";}
+				if(preg_match("#\.spylog\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.webtrends\.com$#", $www)){return "tracker";}
+				if(preg_match("#^mail-stats\..+#", $www)){return "tracker";}
+				if(preg_match("#\.affistats\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.thetrafficstat\.net$#", $www)){return "tracker";}
+				if(preg_match("#\.metric\.gstatic\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.deskmetrics\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.webtracker\.[a-z]+$#", $www)){return "tracker";}
+				if(preg_match("#\.lphbs\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.labs\.apnic\.net$#", $www)){return "tracker";}
+				if(preg_match("#\.conduit-data\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.telemetrytaxonomy\.net$#", $www)){return "tracker";}
+				if(preg_match("#\.msecndsl\.net$#", $www)){return "tracker";}
+				if(preg_match("#\.checkeffect\.at$#", $www)){return "tracker";}
+				if(preg_match("#\.open-web\.eu$#", $www)){return "tracker";}
+				if(preg_match("#\.emltrk\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.hittail\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.gotlocations\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.hypestat\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.hitscounters\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.metrixstream\.com$#", $www)){return "tracker";}
+				if(preg_match("#\.hotlog\.ru$#", $www)){return "tracker";}
+				if(preg_match("#\.mochibot\.com$#", $www)){return "tracker";}
+				if(preg_match("#^statistik\..*?#", $www)){return "tracker";}
+				if(preg_match("#^statistik[0-9]+\..*?#", $www)){return "tracker";}
+				if(preg_match("#^clicks[0-9]+\.#", $www)){return "tracker";}
+				if(preg_match("#^stats[0-9]+\.#", $www)){return "tracker";}
+				if(preg_match("#\.analytics\.#", $www)){return "tracker";}
+				if(preg_match("#\.etrack\.hk$#", $www)){return "tracker";}
+				if(preg_match("#\.estaticos\.net$#", $www)){return "tracker";}	
 				if(preg_match("#click\.geopaysys\.com$#", $www)){return "tracker";}
 				if(preg_match("#click\.kataweb\.it$#", $www)){return "tracker";}
 				if(preg_match("#click\.tv\.repubblica\.it$#", $www)){return "tracker";}
@@ -302,7 +360,6 @@ function Tracker($www){
 				if(preg_match("#\.roitracking\.net$#", $www)){return "tracker";}
 				if(preg_match("#\.roivista\.com$#", $www)){return "tracker";}
 				if(preg_match("#rok\.com\.com$#", $www)){return "tracker";}
-				if(preg_match("#rover\.ebay\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.royalcount\.de$#", $www)){return "tracker";}
 				if(preg_match("#\.rsvpgenius\.com$#", $www)){return "tracker";}
 				if(preg_match("#rtd\.tubemogul\.com$#", $www)){return "tracker";}
@@ -366,7 +423,6 @@ function Tracker($www){
 				if(preg_match("#service-stat\.tbn\.ru$#", $www)){return "tracker";}
 				if(preg_match("#\.servicetick\.com$#", $www)){return "tracker";}
 				if(preg_match("#service\.velaro\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.serving-sys\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.servustats\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.sessioncam\.com$#", $www)){return "tracker";}
 				if(preg_match("#sett\.i12\.de$#", $www)){return "tracker";}
@@ -1905,7 +1961,6 @@ function Tracker($www){
 				if(preg_match("#\.sensisdata\.com\.au$#", $www)){return "tracker";}
 				if(preg_match("#\.sensisdigitalmedia\.com\.au$#", $www)){return "tracker";}
 				if(preg_match("#\.servedbyopenx\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.serving-sys\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.sharethis\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.shorttailmedia\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.silver-path\.com$#", $www)){return "tracker";}

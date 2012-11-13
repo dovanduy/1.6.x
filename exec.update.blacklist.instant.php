@@ -117,7 +117,11 @@ function Execute(){
 	if($APIKEY==null){return;}
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
-	if($DisableArticaProxyStatistics==1){WriteMyLogs("DisableArticaProxyStatistics=$DisableArticaProxyStatistics abort...",__FUNCTION__,__FILE__,__LINE__);return;}	
+	if($DisableArticaProxyStatistics==1){WriteMyLogs("DisableArticaProxyStatistics=$DisableArticaProxyStatistics abort...",__FUNCTION__,__FILE__,__LINE__);return;}
+	if(is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){
+		$DisableArticaProxyStatistics=1;
+		$sock->SET_INFO("DisableArticaProxyStatistics",1);
+	}	
 	WriteMyLogs("Execute()...",__FUNCTION__,__FILE__,__LINE__);
 
 }

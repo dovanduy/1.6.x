@@ -41,7 +41,7 @@ function js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{mysql_performancesM}');
 	if(!is_numeric($_GET["instance-id"])){$_GET["instance-id"]=0;}
-	$html="YahooWin4('550','$page?popup=yes&instance-id={$_GET["instance-id"]}','$title')";
+	$html="YahooWin4('727','$page?popup=yes&instance-id={$_GET["instance-id"]}','$title')";
 	echo $html;
 }
 

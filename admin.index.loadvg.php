@@ -24,27 +24,56 @@ PageDeGarde();
 License();
 
 
+
 exit;
 
 function injectSquid(){
+	if($GLOBALS["VERBOSE"]){echo "InjectSquid ->\n<br>";}
 	$users=new usersMenus();
 	$run=false;
 	$sock=new sockets();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
+	if($users->PROXYTINY_APPLIANCE){return;}
 	if($EnableWebProxyStatsAppliance==1){$users->WEBSTATS_APPLIANCE=true;}
 	if($users->WEBSTATS_APPLIANCE){$run=true;}
 	if($users->SQUID_INSTALLED){$run=true;}
+	if($GLOBALS["VERBOSE"]){echo "run -> $run\n<br>";}
 	if(!$run){return;}	
 	$inf=trim($sock->getFrameWork("squid.php?isInjectrunning=yes") );
+	if($GLOBALS["VERBOSE"]){echo "inf -> $inf\n<br>";}
 	if($inf<>null){
 		$tpl=new templates();
 	$html="<div style='margin-bottom:15px'>".
 	Paragraphe("tables-64-running.png", "{update_dbcatz_running}","{update_SQUIDAB_EXP}<hr><b>{since}:&nbsp;{$inf}&nbsp;{minutes}</b>", 
-	"javascript:blur()","go_to_section",300,132,1);
-	echo $tpl->_ENGINE_parse_body($html)."</div>";		
+	"javascript:Loadjs('squid.blacklist.upd.php')","go_to_section",300,132,1);
+	echo $tpl->_ENGINE_parse_body($html)."</div>";	
+	return;	
 	}
+	
+	$datas=base64_decode($sock->getFrameWork("squid.php?articadb-checkversion=yes"));
+	if($GLOBALS["VERBOSE"]){echo "$datas<br>\n";}
+	
+	$LOCAL_VERSION=$sock->getFrameWork("squid.php?articadb-version=yes");
+	$array=unserialize(base64_decode($sock->getFrameWork("squid.php?articadb-nextversion=yes")));
+	$REMOTE_VERSION=$array["ARTICATECH"]["VERSION"];
+	$REMOTE_MD5=$array["ARTICATECH"]["MD5"];
+	$REMOTE_SIZE=$array["ARTICATECH"]["SIZE"];	
+	$REMOTE_SIZE=FormatBytes($REMOTE_SIZE/1024);
+	if($REMOTE_VERSION>$LOCAL_VERSION){
+		$tpl=new templates();
+		$html="<div style='margin-bottom:15px'>".
+		Paragraphe("64-download.png", "{new_database_available}","{new_database_available_category_text}<hr>{version}:$REMOTE_VERSION ($REMOTE_SIZE)", 
+		"javascript:Loadjs('squid.categories.php')","go_to_section",300,132,1);
+		echo $tpl->_ENGINE_parse_body($html)."</div>";	
+		return;			
+	}
+	
 }
+
+
+
+
 
 
 
@@ -163,13 +192,13 @@ function tabs(){
 			//$gp->SetFillColor('green'); 
 			
 			$gp->line_green();
-			if(!is_file($targetedfile)){writelogs("Fatal \"$targetedfile\" no such file! ($c items)",__FUNCTION__,__FILE__,__LINE__);return;}
-			writelogs("Checking ps_mem -> $targetedfile",__FUNCTION__,__FILE__,__LINE__);
-			echo "<center><div onmouseout=\"javascript:this.className='paragraphe';this.style.cursor='default';\" onmouseover=\"javascript:this.className='paragraphe_over';
-			this.style.cursor='pointer';\" id=\"6ce2f4832d82c6ebaf5dfbfa1444ed58\" OnClick=\"javascript:Loadjs('admin.index.psmem.php?all=yes')\" class=\"paragraphe\" style=\"width: 300px; min-height: 112px; cursor: default;\">
-			<h3 style='text-transform: none;margin-bottom:5px'>$memory_average</h3>
-			<img src='$targetedfile'>
-			</div></center>";		
+			if(is_file($targetedfile)){
+				echo "<center><div onmouseout=\"javascript:this.className='paragraphe';this.style.cursor='default';\" onmouseover=\"javascript:this.className='paragraphe_over';
+				this.style.cursor='pointer';\" id=\"6ce2f4832d82c6ebaf5dfbfa1444ed58\" OnClick=\"javascript:Loadjs('admin.index.psmem.php?all=yes')\" class=\"paragraphe\" style=\"width: 300px; min-height: 112px; cursor: default;\">
+				<h3 style='text-transform: none;margin-bottom:5px'>$memory_average</h3>
+				<img src='$targetedfile'>
+				</div></center>";	
+			}	
 		
 	}
 	
@@ -182,6 +211,8 @@ function tabs(){
 	
 	$sock=new sockets();
 	$users=new usersMenus();
+	$EnableBandwithCalculation=$sock->GET_INFO("EnableBandwithCalculation");
+	if(!is_numeric($EnableBandwithCalculation)){$EnableBandwithCalculation=1;}
 	
 	
 writelogs("Checking milter-greylist",__FUNCTION__,__FILE__,__LINE__);	
@@ -280,6 +311,51 @@ writelogs("Checking milter-greylist",__FUNCTION__,__FILE__,__LINE__);
 	}
 	
 // --------------------------------------------------------------------------------------	
+
+	if($EnableBandwithCalculation==1){
+		$targetedfile="ressources/logs/".basename(__FILE__).".bandwithm.png";
+		$sql="SELECT DATE_FORMAT(zDate,'%H') as tdate,AVG(download) as tbandwith FROM speedtests 
+		WHERE DATE_FORMAT(zDate,'%Y-%m-%d')=DATE_FORMAT(NOW(),'%Y-%m-%d') 
+		GROUP BY DATE_FORMAT(zDate,'%H')
+		ORDER BY zDate";
+		$results=$q->QUERY_SQL($sql,"artica_events");
+		if(mysql_num_rows($results)>1){
+			$xtitle=$tpl->javascript_parse_text("{hours}");
+			$maintitle=$tpl->javascript_parse_text("{today}: {bandwith}");
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+					$size=round($ligne["tbandwith"],0);
+					$gp->xdata[]=$ligne["thour"];
+					$gp->ydata[]=$ligne["tdate"];
+					$c++;
+					
+				}
+			
+			if(is_file($targetedfile)){@unlink($targetedfile);}
+			
+			$gp->width=300;
+			$gp->height=120;
+			$gp->filename="$targetedfile";
+			$gp->y_title=null;
+			$gp->x_title=$xtitle;
+			$gp->title=null;
+			$gp->margin0=true;
+			$gp->Fillcolor="blue@0.9";
+			$gp->color="146497";
+			$tpl=new templates();
+			$gp->line_green();	
+			if(is_file($targetedfile)){		
+				echo "<center><div onmouseout=\"javascript:this.className='paragraphe';this.style.cursor='default';\" 
+				onmouseover=\"javascript:this.className='paragraphe_over';this.style.cursor='pointer';\" 
+				id=\"". md5(time())."\" OnClick=\"javascript:Loadjs('bandwith.stats.php')\" 
+				class=\"paragraphe\" style=\"width: 300px; min-height: 112px; cursor: default;\">
+				<h3 style='text-transform: none;margin-bottom:5px'>$maintitle</h3>
+				<img src='$targetedfile'>
+				</div></center>";	
+			}
+			
+		}
+	}
+// --------------------------------------------------------------------------------------		
 
 	
 echo "</center>
@@ -705,10 +781,16 @@ function PageDeGarde(){
 	$sock->getFrameWork("services.php?chmod-rrd=yes");
 	$id=time();
 	if($GLOBALS["VERBOSE"]){echo __LINE__." buildgraph()<br>\n";}
-	
+	if(!is_dir(dirname(__FILE__)."/ressources/logs")){
+		@mkdir(dirname(__FILE__)."/ressources/logs",0777,true);
+	}
 
 	if(!$rrd->buildgraph(dirname(__FILE__)."/ressources/logs/rrd.load.png","loadavg_1")){	
-		$img="<span style='color:#CB0B0B;font-size:12px'>Graph error:$rrd->error</span>";
+		if(is_file(dirname(__FILE__)."/ressources/logs/rrd.load.png")){
+			$img="<img src=\"ressources/logs/rrd.load.png?$id\">";
+		}else{
+			$img="<span style='color:#CB0B0B;font-size:12px'>Graph error:$rrd->error</span>";
+		}
 	}else{
 		$img="<img src=\"ressources/logs/rrd.load.png?$id\">";
 	}
@@ -726,7 +808,11 @@ function PageDeGarde(){
 	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("{memory} MB"));
 	$id=time();
 	if(!$rrd->buildgraph(dirname(__FILE__)."/ressources/logs/rrd.mem.png","mem_user")){	
-		$img2="<span style='color:#CB0B0B;font-size:12px'>Graph error:$rrd->error</span>";
+		if(is_file(dirname(__FILE__)."/ressources/logs/rrd.mem.png")){
+			$img2="<img src=\"ressources/logs/rrd.mem.png?$id\">";
+		}else{
+			$img2="<span style='color:#CB0B0B;font-size:12px'>Graph error:$rrd->error</span>";
+		}
 	}else{
 		$img2="<img src=\"ressources/logs/rrd.mem.png?$id\">";
 	}	
@@ -745,7 +831,11 @@ function PageDeGarde(){
 	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("{cpu} %"));
 	$id=time();
 	if(!$rrd->buildgraph(dirname(__FILE__)."/ressources/logs/rrd.cpu.png","cpu_user")){	
-		$img3="<span style='color:#CB0B0B;font-size:12px'>Graph error:$rrd->error</span>";
+		if(is_file(dirname(__FILE__)."/ressources/logs/rrd.cpu.png")){
+			$img3="<img src=\"ressources/logs/rrd.cpu.png?$id\">";
+		}else{
+			$img3="<span style='color:#CB0B0B;font-size:12px'>Graph error:$rrd->error</span>";
+		}
 	}else{
 		$img3="<img src=\"ressources/logs/rrd.cpu.png?$id\">";
 	}	

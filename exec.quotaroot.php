@@ -23,6 +23,22 @@ if($argv[1]=="--quota-sql"){quotas_mysql();die();}
 function quota_users(){
 	
 	$unix=new unix();
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,__FILE__)){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($time<10){	
+			writelogs("Warning: Already running pid $pid since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}else{
+			shell_exec("$kill -9 $pid");
+		}
+	}		
+	@file_put_contents($pidfile, getmypid());	
+	
+	
+	
 	$setquota=$unix->find_program("setquota");
 	if($GLOBALS["VERBOSE"]){echo "setquota:$setquota\n";}
 	if(strlen($setquota)==0){return;}

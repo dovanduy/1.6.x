@@ -25,6 +25,9 @@ if(isset($_GET["process-ttl"])){process_timeexec();exit;}
 if(isset($_GET["LaunchRemoteInstall"])){LaunchRemoteInstall();exit;}
 if(isset($_GET["restart-web-server"])){RestartWebServer();exit;}
 if(isset($_GET["restart-artica-status"])){RestartArticaStatus();exit;}
+if(isset($_GET["RestartVnStat"])){RestartVnStat();exit;}
+
+
 if(isset($_GET["wake-on-lan"])){WakeOnLan();exit;}
 
 if(isset($_GET["net-ads-leave"])){net_ads_leave();exit;}
@@ -88,6 +91,7 @@ if(isset($_GET["buildFrontEnd"])){buildFrontEnd();exit;}
 if(isset($_GET["cpualarm"])){cpualarm();exit;}
 if(isset($_GET["CurrentLoad"])){CurrentLoad();exit;}
 if(isset($_GET["TaskLastManager"])){TaskLastManager();exit;}
+if(isset($_GET["TaskLastManagerTime"])){TaskLastManagerTime();exit;}
 if(isset($_GET["start-all-services"])){StartAllServices();exit;}
 if(isset($_GET["kill-pid-number"])){process_kill();exit;}
 if(isset($_GET["kill-pid-single"])){process_kill_single();exit;}
@@ -2035,7 +2039,12 @@ function RestartArticaStatus(){
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 }
-
+function RestartVnStat(){
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup /etc/init.d/artica-postfix restart vnstat >/dev/null 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
 
 function RestartApacheGroupwareForce(){
 	shell_exec('/etc/init.d/artica-postfix restart apache-groupware');
@@ -2605,8 +2614,14 @@ function CurrentLoad(){
 }
 
 function TaskLastManager(){
-	$datas=shell_exec("/bin/ps -w axo ppid,pcpu,pmem,time,args --sort -pcpu,-pmem|/usr/bin/head --lines=30");	
+	$datas=shell_exec("/bin/ps -w axo pid,pcpu,pmem,time,args --sort -pcpu,-pmem|/usr/bin/head --lines=30");	
 	echo "<articadatascgi>$datas</articadatascgi>";
+}
+function TaskLastManagerTime(){
+	$unix=new unix();
+	$time=$unix->PROCESS_TTL_TEXT($_GET["TaskLastManagerTime"]);
+	//writelogs_framework("{$_GET["TaskLastManagerTime"]} = $time",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
+	echo "<articadatascgi>$time</articadatascgi>";
 }
 
 function postfixQueues(){
@@ -5163,6 +5178,12 @@ function SQUID_CACHE_INFOS(){
 
 
 function cicap_reconfigure(){
+	
+	if(isset($_GET["tenir"])){
+		shell_exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.c-icap.php --build");
+		return;
+	}
+	
 	NOHUP_EXEC(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.c-icap.php --build");
 }
 
@@ -5177,12 +5198,32 @@ function cicap_restart(){
 
 function SQUID_RESTART_NOW(){
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/squid.caches.infos");
-	shell_exec("/etc/init.d/artica-postfix restart squid-cache");
+	$cmd="/etc/init.d/artica-postfix restart squid-cache";
+	$EnableWebProxyStatsAppliance=@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){$EnableWebProxyStatsAppliance=1;}
+	if($EnableWebProxyStatsAppliance==1){
+		$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --notify-clients-proxy");
+	}
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	
 }
 function SQUID_RESTART(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	shell_exec("$nohup /etc/init.d/artica-postfix restart squid-cache >/dev/null 2>&1 &");
+	
+	$cmd="$nohup /etc/init.d/artica-postfix restart squid-cache >/dev/null 2>&1 &";
+	
+	$EnableWebProxyStatsAppliance=@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){$EnableWebProxyStatsAppliance=1;}
+	if($EnableWebProxyStatsAppliance==1){
+		$php5=LOCATE_PHP5_BIN2();
+		$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --notify-clients-proxy >/dev/null 2>&1 &");
+	}
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 }
 function SQUID_CACHES(){
 	$unix=new unix();
@@ -8006,6 +8047,21 @@ function winbindd_stop(){
 	$unix->THREAD_COMMAND_SET($cmd);	
 }
 
+function myisamchk(){
+	$db=$_GET["database"];
+	$table=$_GET["table"];
+	$unix=new unix();
+	$MYSQL_DATADIR=$unix->MYSQL_DATADIR();
+	
+	if(!is_file("$MYSQL_DATADIR/$db/$table.MYI")){
+		return;
+		
+	}
+	$myisamchk=$unix->find_program("myisamchk");
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup $myisamchk --safe-recover $MYSQL_DATADIR/$db/$table.MYI >/dev/null 2>&1 &");	
+	
+}
 
 function mysql_myd_file(){
 	$db=$_GET["database"];

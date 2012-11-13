@@ -22,6 +22,8 @@ $DisableArticaProxyStatistics=trim(@file_get_contents("/etc/artica-postfix/setti
 
 if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
+if(is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){$DisableArticaProxyStatistics=1;}
+
 $GLOBALS["EnableRemoteSyslogStatsAppliance"]=$EnableRemoteSyslogStatsAppliance;
 $GLOBALS["DisableArticaProxyStatistics"]=$DisableArticaProxyStatistics;
 events("SQUID ENGINE: EnableRemoteStatisticsAppliance = $EnableRemoteSyslogStatsAppliance");

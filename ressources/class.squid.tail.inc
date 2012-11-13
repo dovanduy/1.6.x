@@ -46,6 +46,7 @@ class squid_tail{
 			$buffer=trim($buffer);
 			
 			
+			
 			if(preg_match("#GET cache_object#",$buffer)){return true;}
 			
 			if(preg_match("#^.+?squid\[[0-9]+\]:#", $buffer,$re)){

@@ -100,26 +100,41 @@ function rebuild_database($nollop=false){
 
 function checkMysql($nollop=false){
 	$unix=new unix();
+	
+	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if($unix->file_time_min($timefile)<1){
+		echo "Starting......: PowerDNS need at least 1mn, aborting\n";
+		return;
+	}
+	@unlink($timefile);
+	@file_put_contents($timefile, time());
+	
 	$passwdcmdline=null;
 	$mysql=$unix->find_program("mysql");
 	$q=new mysql();
+	
+	if(!$q->TestingConnection(true)){
+		echo "Starting......: PowerDNS creating, MySQL seems not ready..\n";
+		return;
+	}
+	
+	
 	if(!$q->DATABASE_EXISTS("powerdns")){
 		echo "Starting......: PowerDNS creating 'powerdns' database\n";
-		if(!$q->CREATE_DATABASE("powerdns")){
-			echo "Starting......: PowerDNS creating 'powerdns' database failed\n"; 
-			return;
-		}
+		if(!$q->CREATE_DATABASE("powerdns")){echo "Starting......: PowerDNS creating 'powerdns' database failed\n"; return;}
 	}
 
-echo "Starting......: PowerDNS 'powerdns' database OK\n";
+	echo "Starting......: PowerDNS 'powerdns' database OK\n";
 
-$f[]="poweradmin-mysql-db-structure.sql";
-$f[]="powerdns-mysql-db-structure.sql";
-$f[]="poweradmin-mysql-update-to-2.1.5.sql";
-$f[]="poweradmin-mysql-update-to-2.1.6.sql";
-$f[]="poweradmin-mysql-update-to-2.1.7.sql";
+	$f[]="poweradmin-mysql-db-structure.sql";
+	$f[]="powerdns-mysql-db-structure.sql";
+	$f[]="poweradmin-mysql-update-to-2.1.5.sql";
+	$f[]="poweradmin-mysql-update-to-2.1.6.sql";
+	$f[]="poweradmin-mysql-update-to-2.1.7.sql";
 
-if($q->mysql_password<>null){$passwdcmdline=" -p$q->mysql_password";}
+	if($q->mysql_password<>null){$passwdcmdline=" -p$q->mysql_password";}
+
+
 while (list ($num, $filename) = each ($f) ){
 	if(is_file("/usr/share/poweradmin/sql/$filename")){
 		$cmd="$mysql -B -u $q->mysql_admin$passwdcmdline --database=powerdns -E < /usr/share/poweradmin/sql/$filename >/dev/null 2>&1";
@@ -151,20 +166,15 @@ while (list ($num, $filename) = each ($f) ){
 			 account         VARCHAR(40) DEFAULT NULL,
 			 primary key (id)
 			) Engine=InnoDB;";
-		$q->QUERY_SQL($sql,"powerdns");
-		if(!$q->ok){
-			
-			if(!$nollop){
-				echo "Starting......: PowerDNS creating 'domains' table FAILED -> rebuild the database\n";
-				rebuild_database(true);}else{
-					echo "Starting......: PowerDNS creating 'domains' table FAILED -> Aborting\n";
-					return;}
-			
+			$q->QUERY_SQL($sql,"powerdns");
+			if(!$q->ok){echo "Starting......: PowerDNS creating 'domains' table FAILED\n";}else{return;}
+			echo "Starting......: PowerDNS table 'domains' Success\n";
 		}else{
+			echo "Starting......: PowerDNS table 'domains' Success\n";
 			$q->QUERY_SQL("CREATE UNIQUE INDEX name_index ON domains(name);","powerdns");
 		}
 		
-	}
+	
 
 	if(!$q->TABLE_EXISTS("records", "powerdns")){
 		echo "Starting......: PowerDNS creating 'records' table\n";
@@ -179,21 +189,27 @@ while (list ($num, $filename) = each ($f) ){
 			  change_date     INT DEFAULT NULL,
 			  primary key(id)
 			)Engine=InnoDB;";
-		$q->QUERY_SQL($sql,"powerdns");
-		if(!$q->ok){
-			echo "Starting......: PowerDNS creating 'records' table FAILED\n";
-		}{
+			$q->QUERY_SQL($sql,"powerdns");
+			if(!$q->ok){
+				echo "Starting......: PowerDNS creating 'records' table FAILED\n";
+				return;
+			}
+			
 			$q->QUERY_SQL("CREATE INDEX rec_name_index ON records(name);","powerdns");
 			$q->QUERY_SQL("CREATE INDEX nametype_index ON records(name,type);","powerdns");
 			$q->QUERY_SQL("CREATE INDEX domain_id ON records(domain_id);","powerdns");
 			$q->QUERY_SQL("alter table records add ordername VARCHAR(255);","powerdns");
 			$q->QUERY_SQL("alter table records add auth bool;","powerdns");
 			$q->QUERY_SQL("create index orderindex on records(ordername);","powerdns");
-			$q->QUERY_SQL("alter table records change column type type VARCHAR(10);","powerdns");
+			$q->QUERY_SQL("alter table records change column type type VARCHAR(10);","powerdns");			
+			echo "Starting......: PowerDNS creating 'records' table success\n";
+			
+		}else{
+			echo "Starting......: PowerDNS creating 'records' table success\n";
 	
 		}
 		
-	}
+	
 
 
 	if(!$q->TABLE_EXISTS("supermasters", "powerdns")){
@@ -206,13 +222,19 @@ while (list ($num, $filename) = each ($f) ){
 		$q->QUERY_SQL($sql,"powerdns");
 		if(!$q->ok){
 			echo "Starting......: PowerDNS creating 'supermasters' table FAILED\n";
-		}{
+			return;
+		}
 			$q->QUERY_SQL("CREATE INDEX rec_name_index ON records(name);","powerdns");
 			$q->QUERY_SQL("CREATE INDEX nametype_index ON records(name,type);","powerdns");
 			$q->QUERY_SQL("CREATE INDEX domain_id ON records(domain_id);","powerdns");
-		}
-		
+			echo "Starting......: PowerDNS creating 'supermasters' table success\n";
+	}else{
+		echo "Starting......: PowerDNS creating 'supermasters' table success\n";
 	}
+	
+	
+	
+	
 	if(!$q->TABLE_EXISTS("domainmetadata", "powerdns")){
 		echo "Starting......: PowerDNS creating 'domainmetadata' table\n";
 		$sql="create table domainmetadata (
@@ -222,15 +244,19 @@ while (list ($num, $filename) = each ($f) ){
 			 content        TEXT,
 			 primary key(id)
 			);";
-	$q->QUERY_SQL($sql,"powerdns");
+		$q->QUERY_SQL($sql,"powerdns");
 		if(!$q->ok){
 			echo "Starting......: PowerDNS creating 'domainmetadata' table FAILED\n";
-		}else{
-			
-			$q->QUERY_SQL("create index domainmetaidindex on domainmetadata(domain_id);","powerdns");  
+			return;
 		}
-		
-	}	
+			echo "Starting......: PowerDNS creating 'domainmetadata' table success\n";
+			$q->QUERY_SQL("create index domainmetaidindex on domainmetadata(domain_id);","powerdns");  
+	}else{
+		echo "Starting......: PowerDNS 'domainmetadata' table success\n";
+	}
+
+	
+	
 	
 	if(!$q->TABLE_EXISTS("cryptokeys", "powerdns")){
 		echo "Starting......: PowerDNS creating 'cryptokeys' table\n";
@@ -245,11 +271,16 @@ while (list ($num, $filename) = each ($f) ){
 	$q->QUERY_SQL($sql,"powerdns");
 		if(!$q->ok){
 			echo "Starting......: PowerDNS creating 'cryptokeys' table FAILED\n";
-		}else{
-			$q->QUERY_SQL("create index domainidindex on cryptokeys(domain_id);","powerdns");
+			return;
 		}
+		echo "Starting......: PowerDNS creating 'cryptokeys' table success\n";
+		$q->QUERY_SQL("create index domainidindex on cryptokeys(domain_id);","powerdns");
+	}else{
+			
+		echo "Starting......: PowerDNS 'cryptokeys' table success\n";
+	}
 		
-	}		
+			
 
 	if(!$q->TABLE_EXISTS("tsigkeys", "powerdns")){
 		echo "Starting......: PowerDNS creating 'tsigkeys' table\n";
@@ -260,87 +291,50 @@ while (list ($num, $filename) = each ($f) ){
 			 secret         VARCHAR(255),
 			 primary key(id)
 			);";
-	$q->QUERY_SQL($sql,"powerdns");
+		$q->QUERY_SQL($sql,"powerdns");
 		if(!$q->ok){
 			echo "Starting......: PowerDNS creating 'tsigkeys' table FAILED\n";
-		}else{
-			$q->QUERY_SQL("create unique index namealgoindex on tsigkeys(name, algorithm);","powerdns");
+			return;
 		}
+		echo "Starting......: PowerDNS creating 'tsigkeys' table success\n";
+		$q->QUERY_SQL("create unique index namealgoindex on tsigkeys(name, algorithm);","powerdns");
 		
+	}else{
+		
+		echo "Starting......: PowerDNS 'tsigkeys' table success\n";
 	}
 
 
 
 	if(!$q->TABLE_EXISTS("users", "powerdns")){
 		echo "Starting......: PowerDNS creating 'users' table\n";
-	
-		$sql="CREATE TABLE IF NOT EXISTS `users` (
-			  `id` int(11) NOT NULL AUTO_INCREMENT,
-			  `username` varchar(16) NOT NULL DEFAULT '0',
-			  `password` varchar(34) NOT NULL DEFAULT '0',
-			  `fullname` varchar(255) NOT NULL DEFAULT '0',
-			  `email` varchar(255) NOT NULL DEFAULT '0',
-			  `description` varchar(1024) NOT NULL DEFAULT '0',
-			  `perm_templ` tinyint(4) NOT NULL DEFAULT '0',
-			  `active` tinyint(4) NOT NULL DEFAULT '0',
-			  PRIMARY KEY (`id`))"; 
+		$sql="CREATE TABLE IF NOT EXISTS `users` ( `id` int(11) NOT NULL AUTO_INCREMENT, `username` varchar(16) NOT NULL DEFAULT '0', `password` varchar(34) NOT NULL DEFAULT '0', `fullname` varchar(255) NOT NULL DEFAULT '0', `email` varchar(255) NOT NULL DEFAULT '0', `description` varchar(1024) NOT NULL DEFAULT '0', `perm_templ` tinyint(4) NOT NULL DEFAULT '0', `active` tinyint(4) NOT NULL DEFAULT '0', PRIMARY KEY (`id`))"; 
 		$q->QUERY_SQL($sql,"powerdns");
-		if(!$q->ok){
-			echo "Starting......: PowerDNS creating 'users' table FAILED\n";
-		}
+		if(!$q->ok){ echo "Starting......: PowerDNS creating 'users' table FAILED\n"; return; }
+		echo "Starting......: PowerDNS creating 'users' table success\n";
+	}else{
+		echo "Starting......: PowerDNS 'users' table success\n";
 		
 	}
 	
 	
 	if(!$q->TABLE_EXISTS("perm_items", "powerdns")){
 		echo "Starting......: PowerDNS creating 'perm_items' table\n";
-	
-		$sql="CREATE TABLE IF NOT EXISTS `perm_items` (
-		  `id` int(11) NOT NULL AUTO_INCREMENT,
-		  `name` varchar(64) NOT NULL DEFAULT '0',
-		  `descr` varchar(1024) NOT NULL DEFAULT '0',
-		  PRIMARY KEY (`id`)
-		) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=62 ;";
-		
+		$sql="CREATE TABLE IF NOT EXISTS `perm_items` ( `id` int(11) NOT NULL AUTO_INCREMENT, `name` varchar(64) NOT NULL DEFAULT '0', `descr` varchar(1024) NOT NULL DEFAULT '0', PRIMARY KEY (`id`) ) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=62 ;";
 		$q->QUERY_SQL($sql,"powerdns");
-		if(!$q->ok){
-			echo "Starting......: PowerDNS creating 'perm_items' table FAILED\n";
-		}else{
-			$sql="INSERT INTO `perm_items` (`id`, `name`, `descr`) VALUES
-			(41, 'zone_master_add', 'User is allowed to add new master zones.'),
-			(42, 'zone_slave_add', 'User is allowed to add new slave zones.'),
-			(43, 'zone_content_view_own', 'User is allowed to see the content and meta data of zones he owns.'),
-			(44, 'zone_content_edit_own', 'User is allowed to edit the content of zones he owns.'),
-			(45, 'zone_meta_edit_own', 'User is allowed to edit the meta data of zones he owns.'),
-			(46, 'zone_content_view_others', 'User is allowed to see the content and meta data of zones he does not own.'),
-			(47, 'zone_content_edit_others', 'User is allowed to edit the content of zones he does not own.'),
-			(48, 'zone_meta_edit_others', 'User is allowed to edit the meta data of zones he does not own.'),
-			(49, 'search', 'User is allowed to perform searches.'),
-			(50, 'supermaster_view', 'User is allowed to view supermasters.'),
-			(51, 'supermaster_add', 'User is allowed to add new supermasters.'),
-			(52, 'supermaster_edit', 'User is allowed to edit supermasters.'),
-			(53, 'user_is_ueberuser', 'User has full access. God-like. Redeemer.'),
-			(54, 'user_view_others', 'User is allowed to see other users and their details.'),
-			(55, 'user_add_new', 'User is allowed to add new users.'),
-			(56, 'user_edit_own', 'User is allowed to edit their own details.'),
-			(57, 'user_edit_others', 'User is allowed to edit other users.'),
-			(58, 'user_passwd_edit_others', 'User is allowed to edit the password of other users.'),
-			(59, 'user_edit_templ_perm', 'User is allowed to change the permission template that is assigned to a user.'),
-			(60, 'templ_perm_add', 'User is allowed to add new permission templates.'),
-			(61, 'templ_perm_edit', 'User is allowed to edit existing permission templates.');";
-			$q->QUERY_SQL($sql,"powerdns");
-		}
+		if(!$q->ok){ echo "Starting......: PowerDNS creating 'perm_items' table FAILED\n"; return; }
+		echo "Starting......: PowerDNS creating 'perm_items' table success\n";
+		$sql="INSERT INTO `perm_items` (`id`, `name`, `descr`) VALUES (41, 'zone_master_add', 'User is allowed to add new master zones.'), (42, 'zone_slave_add', 'User is allowed to add new slave zones.'), (43, 'zone_content_view_own', 'User is allowed to see the content and meta data of zones he owns.'), (44, 'zone_content_edit_own', 'User is allowed to edit the content of zones he owns.'), (45, 'zone_meta_edit_own', 'User is allowed to edit the meta data of zones he owns.'), (46, 'zone_content_view_others', 'User is allowed to see the content and meta data of zones he does not own.'), (47, 'zone_content_edit_others', 'User is allowed to edit the content of zones he does not own.'), (48, 'zone_meta_edit_others', 'User is allowed to edit the meta data of zones he does not own.'), (49, 'search', 'User is allowed to perform searches.'), (50, 'supermaster_view', 'User is allowed to view supermasters.'), (51, 'supermaster_add', 'User is allowed to add new supermasters.'), (52, 'supermaster_edit', 'User is allowed to edit supermasters.'), (53, 'user_is_ueberuser', 'User has full access. God-like. Redeemer.'), (54, 'user_view_others', 'User is allowed to see other users and their details.'), (55, 'user_add_new', 'User is allowed to add new users.'), (56, 'user_edit_own', 'User is allowed to edit their own details.'), (57, 'user_edit_others', 'User is allowed to edit other users.'), (58, 'user_passwd_edit_others', 'User is allowed to edit the password of other users.'), (59, 'user_edit_templ_perm', 'User is allowed to change the permission template that is assigned to a user.'), (60, 'templ_perm_add', 'User is allowed to add new permission templates.'), (61, 'templ_perm_edit', 'User is allowed to edit existing permission templates.');";
+		$q->QUERY_SQL($sql,"powerdns");
+	}else{
+		
+		echo "Starting......: PowerDNS 'perm_items' table success\n";
 	}
+	
 	
 	if(!$q->TABLE_EXISTS("perm_templ", "powerdns")){
 		echo "Starting......: PowerDNS creating 'perm_templ' table\n";
-	
-		$sql="CREATE TABLE IF NOT EXISTS `perm_templ` (
-			  `id` int(11) NOT NULL AUTO_INCREMENT,
-			  `name` varchar(128) NOT NULL DEFAULT '0',
-			  `descr` varchar(1024) NOT NULL DEFAULT '0',
-			  PRIMARY KEY (`id`)
-			) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2 ;";
+		$sql="CREATE TABLE IF NOT EXISTS `perm_templ` ( `id` int(11) NOT NULL AUTO_INCREMENT, `name` varchar(128) NOT NULL DEFAULT '0', `descr` varchar(1024) NOT NULL DEFAULT '0', PRIMARY KEY (`id`) ) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2 ;";
 		$q->QUERY_SQL($sql,"powerdns");
 		if(!$q->ok){
 			echo "Starting......: PowerDNS creating 'perm_templ' table FAILED\n";
@@ -352,52 +346,38 @@ while (list ($num, $filename) = each ($f) ){
 	
 	if(!$q->TABLE_EXISTS("perm_templ_items", "powerdns")){
 		echo "Starting......: PowerDNS creating 'perm_templ_items' table\n";
-	
-		$sql="CREATE TABLE IF NOT EXISTS `perm_templ_items` (
-		  `id` int(11) NOT NULL AUTO_INCREMENT,
-		  `templ_id` int(11) NOT NULL DEFAULT '0',
-		  `perm_id` int(11) NOT NULL DEFAULT '0',
-		  PRIMARY KEY (`id`)
-		) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=250 ;";
+		$sql="CREATE TABLE IF NOT EXISTS `perm_templ_items` ( `id` int(11) NOT NULL AUTO_INCREMENT, `templ_id` int(11) NOT NULL DEFAULT '0', `perm_id` int(11) NOT NULL DEFAULT '0', PRIMARY KEY (`id`) ) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=250 ;";
 		$q->QUERY_SQL($sql,"powerdns");
-		if(!$q->ok){
-			echo "Starting......: PowerDNS creating 'perm_templ_items' table FAILED\n";
-		}else{
-			$sql="INSERT INTO `perm_templ_items` (`id`, `templ_id`, `perm_id`) VALUES (249, 1, 53);";
-			$q->QUERY_SQL($sql,"powerdns");
-		}
+		if(!$q->ok){echo "Starting......: PowerDNS creating 'perm_templ_items' table FAILED\n";return;}
+		echo "Starting......: PowerDNS creating 'perm_templ_items' table success\n";
+		$sql="INSERT INTO `perm_templ_items` (`id`, `templ_id`, `perm_id`) VALUES (249, 1, 53);";
+		$q->QUERY_SQL($sql,"powerdns");
+	}else{
+		echo "Starting......: PowerDNS 'perm_templ_items' table success\n";
+		
 	}
 
 	if(!$q->TABLE_EXISTS("zones", "powerdns")){
 		echo "Starting......: PowerDNS creating 'zones' table\n";
-	
-		$sql="CREATE TABLE IF NOT EXISTS `zones` (
-		  `id` int(11) NOT NULL AUTO_INCREMENT,
-		  `domain_id` int(11) NOT NULL DEFAULT '0',
-		  `owner` int(11) NOT NULL DEFAULT '0',
-		  `comment` varchar(1024) DEFAULT '0',
-		  `zone_templ_id` int(11) NOT NULL,
-		  PRIMARY KEY (`id`)
-		) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;";	
+		$sql="CREATE TABLE IF NOT EXISTS `zones` ( `id` int(11) NOT NULL AUTO_INCREMENT, `domain_id` int(11) NOT NULL DEFAULT '0', `owner` int(11) NOT NULL DEFAULT '0', `comment` varchar(1024) DEFAULT '0', `zone_templ_id` int(11) NOT NULL, PRIMARY KEY (`id`) ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;";	
 		$q->QUERY_SQL($sql,"powerdns");
-		if(!$q->ok){
-			echo "Starting......: PowerDNS creating 'zones' table FAILED\n";
-		}
+		if(!$q->ok){echo "Starting......: PowerDNS creating 'zones' table FAILED\n";return;}
+	}else{
+		echo "Starting......: PowerDNS 'zones' table success\n";
+		
 	}
 	
-if(!$q->TABLE_EXISTS("zone_templ", "powerdns")){
+	if(!$q->TABLE_EXISTS("zone_templ", "powerdns")){
 		echo "Starting......: PowerDNS creating 'zone_templ' table\n";
-		$sql="CREATE TABLE IF NOT EXISTS `zone_templ` (
-			  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-			  `name` varchar(128) NOT NULL DEFAULT '0',
-			  `descr` varchar(1024) NOT NULL DEFAULT '0',
-			  `owner` bigint(20) NOT NULL DEFAULT '0',
-			  PRIMARY KEY (`id`)
-			) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;";	
+		$sql="CREATE TABLE IF NOT EXISTS `zone_templ` ( `id` bigint(20) NOT NULL AUTO_INCREMENT, `name` varchar(128) NOT NULL DEFAULT '0', `descr` varchar(1024) NOT NULL DEFAULT '0', `owner` bigint(20) NOT NULL DEFAULT '0', PRIMARY KEY (`id`) ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;";	
 		$q->QUERY_SQL($sql,"powerdns");
 		if(!$q->ok){
 			echo "Starting......: PowerDNS creating 'zone_templ' table FAILED\n";
+			return;
 		}
+		echo "Starting......: PowerDNS creating 'zone_templ' table success\n";
+	}else{
+		echo "Starting......: PowerDNS 'zone_templ' table success\n";	
 	}	
 	
 if(!$q->TABLE_EXISTS("zone_templ_records", "powerdns")){
@@ -418,29 +398,17 @@ if(!$q->TABLE_EXISTS("zone_templ_records", "powerdns")){
 		}
 	}
 
-if(!$q->TABLE_EXISTS("domainmetadata", "powerdns")){
-	
-	$q->QUERY_SQL("create table domainmetadata (
-	 id              INT auto_increment,
-	 domain_id       INT NOT NULL,
-	 kind            VARCHAR(16),
-	 content        TEXT,
-	 primary key(id)
-	);","powerdns");
-	if(!$q->ok){
-		echo "Starting......: PowerDNS patching database/domainmetadata failed $q->mysql_error\n";
-	}else{
+	if(!$q->TABLE_EXISTS("domainmetadata", "powerdns")){
+		$q->QUERY_SQL("create table domainmetadata ( id INT auto_increment, domain_id INT NOT NULL, kind VARCHAR(16), content TEXT, primary key(id) );","powerdns");
+		if(!$q->ok){echo "Starting......: PowerDNS patching database/domainmetadata failed $q->mysql_error\n"; return;}
 		echo "Starting......: PowerDNS patching database/domainmetadata success\n";
 		$q->QUERY_SQL("create index domainmetaidindex on domainmetadata(domain_id);","powerdns");
-		if(!$q->ok){
-			echo "Starting......: PowerDNS patching database/domainmetadata failed $q->mysql_error\n";
+		if(!$q->ok){echo "Starting......: PowerDNS patching database/domainmetadata failed $q->mysql_error\n"; }
 		}
-	}
-	
-}else{
-	echo "Starting......: PowerDNS patching database/domainmetadata OK\n";
-}
- 
+		else{
+			echo "Starting......: PowerDNS patching database/domainmetadata OK\n";
+		}
+	 
 
 	
 if(!$q->TABLE_EXISTS("cryptokeys", "powerdns")){

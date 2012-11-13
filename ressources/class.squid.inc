@@ -393,7 +393,7 @@ class squidbee{
 		if($this->intvalVersion>0){
 			
 		if($re[1]==3){
-			if($this->ASROOT){echo "Starting......: Squid : Is a 3.{$re[2]} version ($this->intvalVersion)\n";}
+			if(!isset($GLOBALS["OUTPUTED_VER"])){if($this->ASROOT){echo "Starting......: Squid : Is a 3.{$re[2]} version ($this->intvalVersion)\n";}}
 			
 			if($re[2]==0){
 				$this->IS_30=true;
@@ -427,7 +427,10 @@ class squidbee{
 		}
 		
 		if($re[1]==2){
-			if($this->ASROOT){echo "Starting......: Squid : Is a 2.{$re[2]} version ($this->intvalVersion)\n";}
+			if(!isset($GLOBALS["OUTPUTED_VER"])){
+				if($this->ASROOT){echo "Starting......: Squid : Is a 2.{$re[2]} version ($this->intvalVersion)\n";}
+				
+			}
 			$this->IS_30=false;
 			$this->IS_31=false;
 			$this->IS_32=false;
@@ -450,7 +453,7 @@ class squidbee{
 		}
 		
 	}
-			
+			$GLOBALS["OUTPUTED_VER"]=true;
 		
 	}
 	
@@ -531,11 +534,20 @@ class squidbee{
 		if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 		$users=$GLOBALS["CLASS_USERS"];
 		$this->ACL_ARP_ENABLED=$users->SQUID_ARP_ACL_ENABLED;
-		if($this->ACL_ARP_ENABLED){if($this->ASROOT){echo "Starting......: Squid : ARP OK, acls with Mac addresses enabled\n";}}else{if($this->ASROOT){echo "Starting......: Squid : ARP Not enabled, acls with Mac addresses disabled\n";}}
+		
+		if($this->ACL_ARP_ENABLED){
+			if($this->ASROOT){
+				if(!isset($GLOBALS["OUTPUTED_ARP"])){echo "Starting......: Squid : ARP OK, acls with Mac addresses enabled\n";}}
+				}else{
+					if($this->ASROOT){
+						if(!isset($GLOBALS["OUTPUTED_ARP"])){echo "Starting......: Squid : ARP Not enabled, acls with Mac addresses disabled\n";}
+					}
+				}
 		
 		
 		$network=null;
 		$dns=null;
+		$GLOBALS["OUTPUTED_ARP"]=true;
 		if($this->ArticaSquidParameters==null){$this->ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');}
 		
 		if(!isset($GLOBALS["SQUID_MEMORYCONF"]["INI_ARRAY"])){
@@ -829,8 +841,28 @@ class squidbee{
 	private function external_acl_helper_MacToUid(){
 		$q=new mysql();
 		if(!$this->ACL_ARP_ENABLED){return;}
+		if(!$this->ASROOT){return;}
 		$array["CACHE_TIME"]=360;
-		if($q->COUNT_ROWS("hostsusers","artica_backup")==0){return;}
+		$count=$q->COUNT_ROWS("hostsusers","artica_backup");
+		$ERR[]="# external_acl_helper_MacToUid hostsusers table $count elements";
+		if(!$q->ok){
+			$q->mysql_error=str_replace("\n", " ", $q->mysql_error);
+			$ERR[]="# external_acl_helper_MacToUid $q->mysql_error";
+		}
+		
+		
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(MAC) as tcount FROM webfilters_nodes WHERE LENGTH(uid)>1"));
+		$ERR[]="# external_acl_helper_MacToUid webfilters_nodes table {$ligne["tcount"]} elements";
+		if(!$q->ok){
+			$q->mysql_error=str_replace("\n", " ", $q->mysql_error);
+			$ERR[]="# external_acl_helper_MacToUid $q->mysql_error";
+		}
+		
+		$count=$count+$ligne["tcount"];
+		if($count==0){
+			return @implode("\n", $ERR)."\n";
+		}
 		if($this->is_auth()){$L[]="%LOGIN";}
 		$L[]="%SRC";
 		$L[]="%SRCEUI48";
@@ -839,15 +871,59 @@ class squidbee{
 		$f[]="external_acl_type MacToUid ttl={$array["CACHE_TIME"]} negative_ttl={$array["CACHE_TIME"]} children-startup=2 children-idle=2$ipv4 ".@implode(" ", $L)." /usr/share/artica-postfix/external_acl_squid.php --mactouid";
 		$f[]="acl MacToUid_acl external MacToUid\n";
 		$GLOBALS["HTTP_ACCESS"]["MacToUid"]="http_access deny !MacToUid_acl";
+		
+		if(class_exists("unix")){
+			$unix=new unix();
+			$php=$unix->LOCATE_PHP5_BIN();
+			$nohup=$unix->find_program("nohup");
+			echo "Starting......: Squid : Mac To uid, building database...\n";
+			shell_exec("$php /usr/share/artica-postfix/exec.squid.quotasbuild.php >/dev/null 2>&1");
+		}
+		
+		
 		return @implode("\n", $f);		
 		
 	}
 	
+	
+	private function external_acl_helper_nudity_scanner(){
+		if(!$this->ASROOT){return;}
+		$sock=new sockets();
+		$SquidNuditScanParams=unserialize(base64_decode($sock->GET_INFO("SquidNudityScanParams")));
+		if(!isset($SquidNuditScanParams["ProcessesNumber"])){$SquidNuditScanParams["ProcessesNumber"]=30;}
+		$ProcessesNumber=$SquidNuditScanParams["ProcessesNumber"];
+		if(!is_numeric($ProcessesNumber)){$ProcessesNumber=30;}
+		$array["CACHE_TIME"]=360;
+		if($this->is_auth()){$L[]="%LOGIN";}
+		$q=new mysql_squid_builder();
+		$sql="SELECT COUNT( * ) as tcount
+			FROM webfilters_sqgroups, webfilters_sqacls, webfilters_sqacllinks
+			WHERE webfilters_sqacllinks.aclid = webfilters_sqacls.ID
+			AND webfilters_sqacllinks.gpid = webfilters_sqgroups.ID
+			AND webfilters_sqgroups.GroupType = 'NudityScan'
+			AND webfilters_sqgroups.enabled =1
+			AND webfilters_sqacls.enabled =1";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){if($this->ASROOT){echo "Starting......: Squid : NudityScanner $q->mysql_error\n";}return;}
+		if($this->ASROOT){echo "Starting......: Squid : NudityScanner {$ligne["tcount"]} items\n";}
+		if($ligne["tcount"]==0){return;}
+		if($this->is_auth()){$L[]="%LOGIN";}
+		$L[]="%SRC";
+		if($this->ACL_ARP_ENABLED){$L[]="%SRCEUI48";}
+		$L[]="%>{X-Forwarded-For}";
+		if($this->IS_32){$ipv4=" ipv4";}	
+		$GLOBALS["ArtcExtrnNudeScanner"]=true;
+		$f[]="external_acl_type ArtcExtrnNudeScanner ttl={$array["CACHE_TIME"]} negative_ttl={$array["CACHE_TIME"]} children-startup=5 children-idle=3 children-max=$ProcessesNumber $ipv4 ".@implode(" ", $L)." %URI /usr/share/artica-postfix/picporn.php\n";
+		return @implode("\n", $f);
+		
+		
+	}
+	
+	
 	private function external_acl_helper_splash_screen(){
 		if($this->EnableSplashScreen==0){return;}
 		if(!$this->ASROOT){return;}
-		$squid_ext_session_acl_path=$this->squid_ext_session_acl_path();
-		if(!is_file($squid_ext_session_acl_path)){return "#SplashScreen unable to stat ext_session_acl path\n";}
+	
 		$sock=new sockets();
 		$unix=new unix();
 		$array=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));
@@ -869,16 +945,7 @@ class squidbee{
 			$acl_SplashPage="acl SplashPage dst $sitename";
 		}
 		
-		$ExternSession[]="external_acl_type SplashScreenSessionsDef concurrency=100 ttl=3";
-		$ExternSession[]=@implode(" ", $L);
-		$ExternSession[]=$squid_ext_session_acl_path;
-		$ExternSession[]="-a -T 10800 -b /var/lib/squid/SplashScreenSessions/";
-		
-		
-		$ExternActive[]="external_acl_type SplashScreenActiveDef concurrency=100 ttl=3";
-		$ExternActive[]=@implode(" ", $L);
-		$ExternActive[]=$squid_ext_session_acl_path;
-		$ExternActive[]="-a -T 10800 -b /var/lib/squid/SplashScreenSessions/";		
+	
 		@mkdir("/var/lib/squid/SplashScreenSessions",0755,true);
 		$unix->chown_func("squid","squid", "/var/lib/squid/SplashScreenSessions/*");
 		$f[]="\n#----------- Splash Screen authentication mode ----------------";
@@ -1855,7 +1922,98 @@ function SaveToLdap($norestart=false){
 			
 			
 			return null;
-		}	
+		}
+		
+	private function ACL_TEMPLATES_URIS(){
+		if(!$this->ASROOT){return;}
+		if(isset($GLOBALS[__CLASS__][__FUNCTION__])){return @implode("\n",$GLOBALS[__CLASS__][__FUNCTION__]);}
+		$q=new mysql_squid_builder();
+		$sql="SELECT template_uri FROM squidtpls WHERE template_link=1";
+		$results = $q->QUERY_SQL($sql);
+		$acls=array();
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$acls[]="^". $this->string_to_regex($ligne["template_uri"]);
+		}
+		if($this->ASROOT){echo "Starting......: [ACLS]: ".count($acls)." error templates URI(s)\n";}
+		if(count($acls)==0){$GLOBALS[__CLASS__][__FUNCTION__]=null;return;}
+		@file_put_contents("/etc/squid3/acls/templatesacls.txt", @implode("\n", $acls));
+		$GLOBALS["HTTP_ACCESS_ALLOW_TEMPLATES"]="http_access allow AllowedUrisTemplates";
+		$results="acl AllowedUrisTemplates url_regex -i \"/etc/squid3/acls/templatesacls.txt\"\n";
+		$GLOBALS[__CLASS__][__FUNCTION__]=$results;
+		return $results;
+		
+	}
+	
+	private function string_to_regex($pattern){
+		if(trim($pattern)==null){return null;}
+		$pattern=str_replace(".", "\.", $pattern);
+		$pattern=str_replace("[", "\[", $pattern);
+		$pattern=str_replace("]", "\]", $pattern);
+		$pattern=str_replace("(", "\(", $pattern);
+		$pattern=str_replace(")", "\)", $pattern);
+		$pattern=str_replace("$", "\$", $pattern);
+		$pattern=str_replace("?", "\?", $pattern);
+		$pattern=str_replace("#", "\#", $pattern);
+		$pattern=str_replace("{", "\{", $pattern);
+		$pattern=str_replace("}", "\}", $pattern);
+		$pattern=str_replace("!", "\!", $pattern);
+	
+		return $pattern;
+		
+	}		
+
+		private function ACL_WHITELISTED_FOR_ANTIVIRUS(){
+			if(!class_exists("mysql_squid_builder")){include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");}
+			if(isset($GLOBALS["D_ACL_WHITELISTED_FOR_ANTIVIRUS"])){return @implode("\n", $GLOBALS["D_ACL_WHITELISTED_FOR_ANTIVIRUS"]);}
+			$q=new mysql_squid_builder();
+			$sql="SELECT websitename FROM webfilter_avwhitedoms";
+			$results = $q->QUERY_SQL($sql);
+			$GLOBALS["D_ACL_WHITELISTED_FOR_ANTIVIRUS"][]="# --------- webfilter_avwhitedoms ".mysql_num_rows($results)." item(s)";
+			if(!$q->ok){
+				$q->mysql_error=str_replace("\n", " ", $q->mysql_error);
+				$GLOBALS["D_ACL_WHITELISTED_FOR_ANTIVIRUS"][]="# --------- $q->mysql_error";
+				return @implode("\n", $f);
+			}
+			$dst=array();
+			$dstdomain=array();
+		
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$websitename=trim($ligne["websitename"]);
+			if($websitename==null){continue;}
+			if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $websitename)){$dst[$websitename]=$websitename;continue;}
+			if(preg_match("#^www\.(.+)#", $websitename,$re[1])){$websitename=".$websitename";$dstdomain[$websitename]=$websitename;continue;}
+			if(preg_match("#.+?\..+?#", $websitename)){
+				if(substr($websitename, 0,1)<>'.'){$websitename=".$websitename";}
+				$dstdomain[$websitename]=$websitename;
+				continue;
+			}
+		}
+
+
+		if(count($dst)>0){
+			$GLOBALS["D_ACL_WHITELISTED_FOR_ANTIVIRUS"][]="# --------- ByPass ICAP AV ". count($dst). " IP ADDR(s)";
+			$r=array();
+			while (list ($a, $b) = each ($dst) ){$r[]=$a;}
+			$GLOBALS["D_ACL_WHITELISTED_FOR_ANTIVIRUS"][]="acl ByPassAVICAPdst dst \"/etc/squid3/acls/ByPassAVICAPdst.txt\"";
+			@file_put_contents("/etc/squid3/acls/ByPassAVICAPdst.txt", @implode("\n", $r));
+			$GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"][]="ByPassAVICAPdst";
+			//$ZE[]="adaptation_access ANTIVIRUS_CHAINS deny ByPassAVICAPdst";
+		}			
+		if(count($dstdomain)>0){
+			$GLOBALS["D_ACL_WHITELISTED_FOR_ANTIVIRUS"][]="# --------- ByPass ICAP AV -> ". count($dstdomain)." domain(s)";
+			$r=array();
+			while (list ($a, $b) = each ($dstdomain) ){$r[]=$a;}
+			$GLOBALS["D_ACL_WHITELISTED_FOR_ANTIVIRUS"][]="acl ByPassAVICAPdms dstdomain \"/etc/squid3/acls/ByPassAVICAPdms.txt\"";
+			@file_put_contents("/etc/squid3/acls/ByPassAVICAPdms.txt", @implode("\n", $r));
+			$GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"][]="ByPassAVICAPdms";
+			//$ZE[]="adaptation_access ANTIVIRUS_CHAINS deny ByPassAVICAPdms";
+		}			
+			
+		return @implode("\n", $GLOBALS["D_ACL_WHITELISTED_FOR_ANTIVIRUS"]);
+		
+			
+		}
+		
 		
 		private function WHITELISTED_AUTH_BROWSERS(){
 			if(isset($GLOBALS[__CLASS__][__FUNCTION__])){return @implode("\n",$GLOBALS[__CLASS__][__FUNCTION__]);}
@@ -2666,7 +2824,8 @@ function BuildSquidConf(){
 		$conf=$conf . $this->ldap_auth_conf();
 		$conf=$conf . $this->krb_auth_conf();
 		$conf=$conf.  $this->external_acl_helper_MacToUid();
-		$conf=$conf.  $this->external_acl_helper_splash_screen();		
+		$conf=$conf.  $this->external_acl_helper_splash_screen();
+		$conf=$conf.  $this->external_acl_helper_nudity_scanner();	
 		
 		
 		$conf=$conf . $this->external_acl_helper();
@@ -2931,7 +3090,13 @@ function BuildSquidConf(){
 		if($this->ACL_ARP_ENABLED){
 			$conf=$conf ."\nacl whitelisted_mac_computers arp \"/etc/squid3/whitelisted-computers-by-mac.acl\n";
 		}
-		$conf=$conf ."\n".$this->ACL_WHITELISTED_MIMETYPES()."\n";
+		$ACL_TEMPLATES_URIS=$this->ACL_TEMPLATES_URIS();
+		$ACL_WHITELISTED_FOR_ANTIVIRUS=$this->ACL_WHITELISTED_FOR_ANTIVIRUS();
+		$ACL_WHITELISTED_MIMETYPES=$this->ACL_WHITELISTED_MIMETYPES();
+		if($ACL_WHITELISTED_MIMETYPES<>null){$conf=$conf ."\n$ACL_WHITELISTED_MIMETYPES\n";}
+		if($ACL_WHITELISTED_FOR_ANTIVIRUS<>null){$conf=$conf ."\n$ACL_WHITELISTED_FOR_ANTIVIRUS\n";}
+		if($ACL_TEMPLATES_URIS<>null){$conf=$conf ."\n$ACL_TEMPLATES_URIS\n";}		
+		
 		if($this->SquidDisableAllFilters==0){
 			$conf=$conf .$this->ACL_BANNED_COMPUTERS_IP();
 			$conf=$conf .$this->ACL_MESSENGERS();
@@ -2939,7 +3104,7 @@ function BuildSquidConf(){
 		if($this->ASROOT){
 			$GLOBALS["aclGen"]=new squid_acls();
 			$GLOBALS["aclGen"]->Build_Acls();
-			echo "Starting......: Squid : ".count($GLOBALS["aclGen"]->acls_array)." ACLs\n";
+			echo "Starting......: [ACLS]: (class.squid.inc) L.".__LINE__." ".count($GLOBALS["aclGen"]->acls_array)." ACLs\n";
 			if(count($GLOBALS["aclGen"]->acls_array)>0){
 				$ACLS_TO_ADD=@implode("\n",$GLOBALS["aclGen"]->acls_array);
 				if($GLOBALS["VERBOSE"]){echo "......................\nACLS to add in squid from Acls engine \n$ACLS_TO_ADD\n......................\n";}
@@ -3506,6 +3671,13 @@ function BuildSquidConf(){
 			$this->allow_squid_localhost=1;
 			$ACL_MANAGER=$this->ACL_MANAGER();
 			if($ACL_MANAGER<>null){$conf[]=$ACL_MANAGER;}
+			
+			if(isset($GLOBALS["HTTP_ACCESS_ALLOW_TEMPLATES"])){
+				if($GLOBALS["HTTP_ACCESS_ALLOW_TEMPLATES"]<>null){
+					$conf[]=$GLOBALS["HTTP_ACCESS_ALLOW_TEMPLATES"];
+				}
+			}
+			
 			if(isset($GLOBALS["HTTP_ACCESS"]["MacToUid"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["MacToUid"];}
 			
 			if($this->ACL_ARP_ENABLED){
@@ -3520,10 +3692,10 @@ function BuildSquidConf(){
 			
 			$tcp_outgoing_tos=$acls->buildacls_bytype("tcp_outgoing_tos");
 			if(count($tcp_outgoing_tos)>0){
-				echo "Starting......: Squid : ACL Engine tcp_outgoing_tos ".count($tcp_outgoing_tos)." rules..\n";
+				echo "Starting......: [ACLS]: Engine tcp_outgoing_tos ".count($tcp_outgoing_tos)." rules..\n";
 				while (list ($index, $line) = each ($tcp_outgoing_tos) ){$conf[]="tcp_outgoing_tos $line";}
 			}else{
-				echo "Starting......: Squid : ACL Engine tcp_outgoing_tos No rules..\n";
+				echo "Starting......: [ACLS]: ACL Engine tcp_outgoing_tos No rules..\n";
 			}	
 			if(isset($GLOBALS["HTTP_ACCESS"]["QUOTAS"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["QUOTAS"];}
 			if(isset($GLOBALS["HTTP_ACCESS"]["SPLASH"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["SPLASH"];}
@@ -3581,6 +3753,7 @@ function BuildSquidConf(){
 			if(isset($GLOBALS["HTTP_ACCESS"]["BLOCKEDSITES"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["BLOCKEDSITES"];}	
 			if(isset($GLOBALS["HTTP_ACCESS"]["MALWARE_PATROL"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["MALWARE_PATROL"];}			
 			
+			if($this->ASROOT){echo "Starting......: [ACLS]: Building http_access rules... (Line ".__LINE__.")\n";}
 			$conf[]=$acls->buildacls_order();
 			if(isset($GLOBALS["HTTP_ACCESS"]["WHITELISTED_AUTH"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["WHITELISTED_AUTH"];}
 			if(isset($GLOBALS["HTTP_ACCESS"]["WHITELISTED_BROWSERS"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["WHITELISTED_BROWSERS"];}
@@ -3595,7 +3768,7 @@ function BuildSquidConf(){
 			if($this->ASROOT){
 				
 				$acls_rules=$GLOBALS["aclGen"]->build_http_access();
-				echo "Starting......: Squid : ACL ". count($acls_rules)." rule(s) from engine\n";}
+				echo "Starting......: [ACLS]: ". count($acls_rules)." rule(s) from engine (Line ".__LINE__.")\n";}
 				if(count($acls_rules)>0){
 					$conf[]="# Builded acls from engine...";
 					$conf[]=@implode("\n", $acls_rules);

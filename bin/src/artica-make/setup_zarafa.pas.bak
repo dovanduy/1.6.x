@@ -55,6 +55,7 @@ public
    function webapp():boolean;
    procedure netatalk();
    procedure arkeia();
+   function webapp_svn():boolean;
 END;
 
 implementation
@@ -114,6 +115,71 @@ if length(source_folder)=0 then source_folder:=libs.COMPILE_GENERIC_APPS('z-push
 
 end;
 //#########################################################################################
+
+
+function tzarafa.webapp_svn():boolean;
+var antbin:string;
+begin
+result:=false;
+source_folder:='';
+CODE_NAME:='APP_WEBAPP';
+antbin:=SYS.LOCATE_GENERIC_BIN('ant');
+if not FileExists(antbin) then begin
+   writeln('The "ant" binary tool (/usr/bin/ant) is not installed on this server');
+   writeln('Please synchronize packages trough the setup center');
+   install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
+   install.INSTALL_STATUS(CODE_NAME,110);
+   exit;
+end;
+
+install.INSTALL_PROGRESS(CODE_NAME,'{downloading}');
+install.INSTALL_STATUS(CODE_NAME,35);
+
+source_folder:=libs.COMPILE_GENERIC_APPS('webapp');
+  if not DirectoryExists(source_folder) then begin
+     writeln('Install WebAPP failed...');
+     writeln(source_folder+' No such directory');
+     install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
+     install.INSTALL_STATUS(CODE_NAME,110);
+     exit;
+  end;
+
+   SetCurrentDir(source_folder);
+   install.INSTALL_PROGRESS(CODE_NAME,'{compiling}');
+   install.INSTALL_STATUS(CODE_NAME,70);
+   writeln('Install WebAPP '+antbin +' deploy');
+   fpsystem(antbin+' deploy');
+
+   if not FileExists(source_folder+'/deploy/index.php') then begin
+     writeln('Install WebAPP failed after compilation...');
+     writeln(source_folder+'/deploy/index.php no such file');
+     install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
+     install.INSTALL_STATUS(CODE_NAME,110);
+     exit;
+   end;
+
+   SetCurrentDir(source_folder);
+   install.INSTALL_PROGRESS(CODE_NAME,'{installing}');
+   install.INSTALL_STATUS(CODE_NAME,90);
+
+
+   if DirectoryExists('/usr/share/zarafa-webapp') then fpsystem('/bin/rm -rf /usr/share/zarafa-webapp');
+   ForceDirectories('/usr/share/zarafa-webapp');
+   fpsystem('/bin/cp -rf '+source_folder+'/deploy/* /usr/share/zarafa-webapp/');
+
+   if not FileExists('/usr/share/zarafa-webapp/index.php') then begin
+     writeln('/usr/share/zarafa-webapp/index.php no such file...');
+     install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
+     install.INSTALL_STATUS(CODE_NAME,110);
+     exit;
+   end;
+     writeln('Install WebApp success...');
+     install.INSTALL_PROGRESS(CODE_NAME,'{success}');
+     install.INSTALL_STATUS(CODE_NAME,100);
+     fpsystem('/bin/rm -rf '+source_folder);
+end;
+//#########################################################################################
+
 function tzarafa.hamachi():boolean;
 var
    Arch:integer;
@@ -1464,7 +1530,7 @@ if arch=64 then begin
                install.INSTALL_PROGRESS(CODE_NAME,'{failed} ubuntu 10.04 only');
                exit;
             end;
-
+            if distri.DISTRI_MAJOR=10 then pkg:='zarafa-ubuntu120-x64';
             if distri.DISTRI_MAJOR=10 then pkg:='zarafa-ubuntu100-x64';
             if distri.DISTRI_MAJOR=8 then pkg:='zarafa-ubuntu80-x64';
        end;

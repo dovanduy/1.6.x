@@ -119,7 +119,7 @@ if(isset($_GET["NoStart"])){$start=null;}
 
 	
 	$html="
-            <div id='QuickLinksTop'>
+            <div id='QuickLinksTop' class=mainHeaderContent>
                 <ul class='kwicks'>
 					".@implode("\n", $f)."
                     
@@ -386,7 +386,7 @@ function section_architecture_tabs(){
 
 function section_architecture_advanced(){
 	$sock=new sockets();
-
+	$users=new usersMenus();
 	$squid_parent_proxy=Paragraphe('server-redirect-64.png','{squid_parent_proxy}','{squid_parent_proxy_text}',"javascript:Loadjs('squid.parent.proxy.php')");
 	$squid_reverse_proxy=Paragraphe('squid-reverse-64.png','{squid_reverse_proxy}','{squid_reverse_proxy_text}',"javascript:Loadjs('squid.reverse.proxy.php')");
 	$squid_advanced_parameters=Paragraphe('64-settings.png','{squid_advanced_parameters}','{squid_advanced_parameters_text}',"javascript:Loadjs('squid.advParameters.php')");
@@ -416,7 +416,9 @@ function section_architecture_advanced(){
     $csvstats=Paragraphe("csv-64.png", "{squid_csv_logs}", "{squid_csv_logs_explain}","javascript:Loadjs('squid.csv.php')");
     
      $file_descriptors=Paragraphe("64-filetype.png", "{file_descriptors}", "{file_descriptors_squid_explain}",
-    "javascript:Loadjs('squid.file_desc.php')");   
+    "javascript:Loadjs('squid.file_desc.php')");
+
+    if($users->PROXYTINY_APPLIANCE){$disable_stats=null;}
     
     $tr[]=$squid_conf;
     $tr[]=$squid_advanced_parameters;
@@ -963,6 +965,11 @@ function section_status(){
 	$array["graphs"]="{statistics}";
 	$array["software-update"]='{softwares_update}';
 	
+	if($users->PROXYTINY_APPLIANCE){
+		unset($array["software-update"]);
+	}
+	
+	
 	$fontsize=14;
 	
 	if($language=="fr"){$fontsize="12.5";}
@@ -1122,7 +1129,7 @@ function all_status(){
 
 	$SquidBoosterMemText="
 		<tr>
-			<td width=1%><img src='img/service-restart-32.png'></td>
+			<td width=1%><img src='img/memory-32.png'></td>
 			<td><div id='ptx-status'></div></td>
 		</tr>
 	";
@@ -1174,7 +1181,16 @@ $squid_rotate="
 		style='font-size:12px;text-decoration:underline'>{squid_logrotate_perform}</a></td>
 		</tr>	
 	";
-	
+
+
+$reconfigure="
+			<tr>
+		<td width=1%><img src='img/reconfigure-32.png'></td>
+		<td nowrap><a href=\"javascript:blur();\" 
+		OnClick=\"javascript:Loadjs('squid.compile.progress.php');\"
+		style='font-size:12px;text-decoration:underline'>{reconfigure}</a></td>
+		</tr>	
+	";	
 $debug_compile="
 			<tr>
 		<td width=1%><img src='img/32-logs.png'></td>
@@ -1218,6 +1234,7 @@ $restart_service_only="
 	</tr>	";
 	
 $users=new usersMenus();
+
 if($users->WEBSTATS_APPLIANCE){
 	$squid_rotate=null;
 	$debug_compile=null;
@@ -1236,19 +1253,20 @@ if($users->WEBSTATS_APPLIANCE){
 	<tr>
 	<td valign='top' width='50%'>
 		<table style='width:100%'>
-		$SquidBoosterMemText
-
-
+	$reconfigure
 	$restart_all_services
 	$restart_service_only
+	$SquidBoosterMemText
 	$squid_rotate
-	$ufdbbutt
-	$debug_compile
-	$supportpckg
+	
+
 	</table>
 	</td>
 	<td valign='top' width='50%'>
 		<table style='width:100%'>
+			$ufdbbutt
+			$debug_compile
+			$supportpckg		
 			$cicapButt
 			$current_sessions
 			$performances

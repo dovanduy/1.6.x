@@ -970,6 +970,7 @@ function Squid_status(){
 	$q=new mysql();
 	$ini=new Bs_IniHandler();
 	$sock=new sockets();
+	$users=new usersMenus();
 	$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?squid-ini-status=yes")));
 	$master_version=$ini->_params["SQUID"]["master_version"];
 	$master_pid=$ini->_params["SQUID"]["master_pid"];
@@ -1050,6 +1051,7 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}	
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+	if($users->PROXYTINY_APPLIANCE){$DisableArticaProxyStatistics=1;}
 
 	if($EnableRemoteStatisticsAppliance==1){
 		$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
@@ -1073,28 +1075,51 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	
 	if($DisableArticaProxyStatistics==0){	
 		if($EnableRemoteStatisticsAppliance==0){
+			
 				$q=new mysql_squid_builder();
 				$requests=$q->EVENTS_SUM();
-				$requests=numberFormat($requests,0,""," ");
+				if($requests>0){
+					$requests=numberFormat($requests,0,""," ");
+					$requests_text="<div style='font-size:12px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'><i><strong>$requests {requests}</strong></i></div>";
+				}
 				
 				$q=new mysql_squid_builder();
 				$tableblock=date('YW')."_blocked_week";	
 				if($q->TABLE_EXISTS($tableblock)){
 					$ligneW=$q->COUNT_ROWS($tableblock);
-					$blocked_today=numberFormat($ligneW,0,""," ")." {blocked_websites} {this_week}";
-				}else{
-					$blocked_today="No such table";
+					if($ligneW>0){
+						$blocked_today=numberFormat($ligneW,0,""," ")." {blocked_websites} {this_week}";
+						$blocked_today_text="<div style='font-size:10px;text-align:right;width:220px'><i><strong style='text-decoration:normal'>$blocked_today</strong></i></div>";
+					}
 				}
 				
 				
 				$websitesnums=$q->COUNT_ROWS("visited_sites");
-				$websitesnums=numberFormat($websitesnums,0,""," ");	
+				if($websitesnums>0){
+					$websitesnums=numberFormat($websitesnums,0,""," ");	
+					$websitesnums_text="<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:underline'>$websitesnums {visited_websites}</strong></i></div>";
+				}
 				
 				
 				$catz=new mysql_catz();
 				$categories=$catz->COUNT_CATEGORIES();
 				if($categories<500){$sock->getFrameWork("squid.php?update-blacklist=yes");}
-				$categories=numberFormat($categories,0,""," ");		
+				
+				if($categories>0){
+					$categories=numberFormat($categories,0,""," ");		
+					$categories_text="<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i></div>";
+				}
+				
+				$persoCatz=$q->COUNT_CATEGORIES();
+				if($persoCatz>0){
+					$persoCatz=numberFormat($persoCatz,0,""," ");
+					$persoCatz_text="<div style='font-size:12px;text-align:right;width:220px' $pointers 
+					OnClick=\"javascript:Loadjs('squid.categories.php')\">
+					<i><strong style='text-decoration:underline'>{youritems}: $persoCatz</strong></i>
+					</div>";
+					
+				}
+				
 				
 				$CachePermformance=$q->CachePerfHour();
 				if($CachePermformance>-1){
@@ -1111,21 +1136,30 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 					$ligne=mysql_fetch_array($blkbx->QUERY_SQL($sql));
 					$size=FormatBytes($ligne["tsize"]/1024);
 					$itemcount=$ligne["tiems"];
-					$itemscaches="<div style='font-size:12px;text-align:right;width:220px' 
-					$pointers OnClick=\"javascript:Loadjs('squid.categories.php')\">
-					<i><strong style='text-decoration:underline'>$itemcount {cached_items} ($size)</strong></i></div>";
+					if($itemcount>0){
+						$itemscaches="<div style='font-size:12px;text-align:right;width:220px' 
+						$pointers OnClick=\"javascript:Loadjs('squid.categories.php')\">
+						<i><strong style='text-decoration:underline'>$itemcount {cached_items} ($size)</strong></i></div>";
+					}
 				}
 				
 				
 				
 				$stats_paragraphe="
-				<div style='font-size:12px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'><i><strong>$requests {requests}</strong></i></div>
+				<!-- requests_text -->
+				$requests_text
+				<!-- cachePerfText -->
 				$cachePerfText
+				<!-- itemscaches -->
 				$itemscaches
-				<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i></div>
-				<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:underline'>$websitesnums {visited_websites}</strong></i></div>
-				<div style='font-size:10px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:underline'>$blocked_today</strong></i></div>
-				
+				<!-- categories_text -->
+				$categories_text
+				<!-- websitesnums_text -->
+				$websitesnums_text
+				<!-- persoCatz_text -->
+				$persoCatz_text
+				<!-- blocked_today_text -->
+				$blocked_today_text
 				";
 				
 			}
@@ -1134,7 +1168,7 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	if($DisableArticaProxyStatistics==1){	
 		$catz=new mysql_catz();
 		$categories=numberFormat($catz->COUNT_CATEGORIES(),0,""," ");
-		$stats_paragraphe="<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i></div>";			
+		$stats_paragraphe="<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i></div>$persoCatz";			
 		
 	}
 	
@@ -1147,6 +1181,7 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 		$text="<span style='color:#B80000;font-size:13px'>{migration_script_run_text} PID:{$migration_pid[0]} {since}:{$migration_pid[1]}Mn</span>";
 	}
 	
+	if($DisableArticaProxyStatistics==1){$stats_paragraphe=null;}
 	
 	$jsDesign="OnClick=\"javascript:s_PopUp('squid.accesslogs.php?external=yes',1024,768);\"
 	OnMouseOver=\"this.style.cursor='pointer';\" OnMouseOut=\"this.style.cursor='auto'\"";

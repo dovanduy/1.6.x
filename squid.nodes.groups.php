@@ -80,9 +80,9 @@ function page(){
 	$t=time();
 	$html="
 	
-	<div style='margin:-10px;margin-left:-15px'>
+	<center>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-	</div>
+	</center>
 	
 <script>
 $(document).ready(function(){

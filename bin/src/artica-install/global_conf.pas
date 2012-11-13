@@ -3283,7 +3283,17 @@ begin
     ArrayList.Add('[APP_ZARAFA] "' + zarafa_server.VERSION() + '"');
     ArrayList.Add('[APP_ZARAFA_WEB] "' + zarafa_server.VERSION() + '"');
 
-    if FileExists('/usr/share/zarafa-webapp/index.php') then ArrayList.Add('[APP_ZARAFA_WEBAPP] "Unknown"');
+    if FileExists('/usr/share/zarafa-webapp/index.php') then begin
+       if not FileExists('/usr/share/zarafa-webapp/version') then begin
+          ArrayList.Add('[APP_ZARAFA_WEBAPP] "Unknown"');
+          ArrayList.Add('[APP_WEBAPP] "Unknown"');
+       end;
+       if FileExists('/usr/share/zarafa-webapp/version') then begin
+          ArrayList.Add('[APP_ZARAFA_WEBAPP] "'+trim(logs.ReadFromFile('/usr/share/zarafa-webapp/version'))+'"');
+          ArrayList.Add('[APP_WEBAPP] "'+trim(logs.ReadFromFile('/usr/share/zarafa-webapp/version'))+'"');
+       end;
+    end;
+
 
     except
        logs.Syslogs('FATAL ERROR on APP_ZARAFA after zarafa_server.VERSION()');

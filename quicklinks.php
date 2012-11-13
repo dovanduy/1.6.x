@@ -49,7 +49,7 @@ if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsApplian
 if(!is_numeric($DisableFreeWebToolBox)){$DisableFreeWebToolBox=0;}
 if(!is_numeric($DisableTimeCapsuleToolBox)){$DisableTimeCapsuleToolBox=0;}
 $OnlyWeb=false;
-
+if($users->PROXYTINY_APPLIANCE){$user->SQUID_APPLIANCE=true;}
 if($EnableWebProxyStatsAppliance==1){$users->WEBSTATS_APPLIANCE=true;}
 
 if($SambaEnabled==1){
@@ -99,9 +99,7 @@ if($users->KASPERSKY_WEB_APPLIANCE){$samba=null;$postfix_multiple=null;$postfwd2
 if(!$users->AsSquidAdministrator){$squid=null;}
 if(!$users->AsSystemAdministrator){$network=null;}
 if(!$users->AsPostfixAdministrator){$postfix=null;$postfix_multiple=null;$postfwd2=null;$postfix_events=null;}
-if($users->ZARAFA_APPLIANCE){
-	$postfix=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("zarafa-logo-48.png", "APP_ZARAFA",null, "QuickLinkPostfix()"));
-}
+if($users->ZARAFA_APPLIANCE){$postfix=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("zarafa-logo-48.png", "APP_ZARAFA",null, "QuickLinkPostfix()"));}
 if(!$users->AsWebStatisticsAdministrator){$squidStats=null;}
 if(!$users->MILTERGREYLIST_INSTALLED){$miltergrey=null;}
 
@@ -221,8 +219,8 @@ if(!$OnlyWeb){
 				$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("bigkav-48.png", "APP_KAV4PROXY","softwares_mangement_text", "QuickLinkSystems('section_kav4proxy')"));
 				}
 			}
-			if(count($tr2)<7){	
-				if(($users->APP_UFDBGUARD_INSTALLED) OR ($users->DANSGUARDIAN_INSTALLED)){
+			if($users->SQUID_APPLIANCE){
+				if(count($tr2)<7){	
 					if($users->AsDansGuardianAdministrator){
 						$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("web-filtering-48.png", "WEB_FILTERING","softwares_mangement_text", "QuickLinkSystems('section_webfiltering_dansguardian')"));
 					}
@@ -231,7 +229,8 @@ if(!$OnlyWeb){
 			
 			
 			
-			if($users->SQUID_APPLIANCE){
+			
+			if(($users->SQUID_APPLIANCE) OR ($users->WEBSTATS_APPLIANCE)){
 					if($users->AsDansGuardianAdministrator){
 						$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-logs.png", "PROXY_EVENTS","PROXY_EVENTS", "QuickLinkSystems('section_squid_rtmm')"));
 					}
@@ -267,7 +266,7 @@ while (list ($key, $line) = each ($GLOBALS["QUICKLINKS-ITEMS"]) ){
 
 	
 	$html="
-            <div id='QuickLinksTop'>
+            <div id='QuickLinksTop' class=mainHeaderContent>
                 <ul class='kwicks'>
 					".@implode("\n", $f)."
                     

@@ -19,7 +19,7 @@ include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 include_once(dirname(__FILE__) . '/framework/class.settings.inc');
 
-
+$sock=new sockets();
 if(is_file("/usr/share/artica-postfix/class.users.menus.inc")){@unlink("/usr/share/artica-postfix/class.users.menus.inc");}
 $f=file("/etc/lighttpd/lighttpd.conf");
 while (list ($num, $line) = each ($f) ){
@@ -226,5 +226,25 @@ if(is_file($postconf)){
 
 
 }
+
+$MySQLTMPDIR=trim($sock->GET_INFO("MySQLTMPDIR"));
+if($MySQLTMPDIR<>null){
+	if($MySQLTMPDIR<>"/tmp"){
+		if(strlen($MySQLTMPDIR)>3){
+			if(!is_dir("MySQLTMPDIR")){@mkdir($MySQLTMPDIR,0777);}
+			$unix->chmod_func(0777, $MySQLTMPDIR);
+			$unix->chown_func("mysql","mysql", $MySQLTMPDIR);
+		}
+	}
+}
+
+foreach (glob("/usr/share/artica-postfix/*") as $filename) {
+	if(is_numeric(basename($filename))){@unlink($filename);}
+}
+
+
+
+
+
 
 ?>

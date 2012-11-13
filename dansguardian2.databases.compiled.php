@@ -17,7 +17,6 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "alert('$alert');";
 	die();	
 }
-
 if(isset($_GET["instant-update-daily"])){instant_update_daily();exit;}
 if(isset($_GET["instant-update-weekly"])){instant_update_weekly();exit;}
 if(isset($_POST["enable-clamav-global"])){enable_clamav_global();exit;}
@@ -442,7 +441,7 @@ buttons : [
 		}
 		
 		function DansGuardianCompileDB(category){
-			Loadjs('$page?compile-db-js='+category);
+			Loadjs('ufdbguard.compile.category.php?category='+category);
 		}
 		
 		function CheckStatsApplianceC(){
@@ -574,7 +573,7 @@ function categories_search(){
 		writelogs("Scanning table $table",__FUNCTION__,__FILE__,__LINE__);
 		$select=imgtootltip("32-parameters.png","{edit}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
 		
-		$compile=imgtootltip("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");		
+		$compile=imgsimple("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");		
 		$items=$q->COUNT_ROWS($ligne["c"]);
 		$itemsEnc=$enc->COUNT_ROWS($ligne["c"]);
 		
@@ -614,8 +613,8 @@ function categories_search(){
 		</a><div style='font-size:11px;width:100%;font-weight:normal'>{$text_category}</div>");
 		$items=numberFormat($items,0,""," ");
 		$itemsEnc=numberFormat($itemsEnc,0,""," ");
-		$compile=imgtootltip("compile-distri-32.png","{saveToDisk} $categoryname","DansGuardianCompileDB('$categoryname')");
-		$delete=imgtootltip("delete-32.png","{delete}","TableCategoryPurge('$table')");
+		$compile=imgsimple("compile-distri-32.png","{saveToDisk} $categoryname","DansGuardianCompileDB('$categoryname')");
+		$delete=imgsimple("delete-32.png","{delete}","TableCategoryPurge('$table')");
 		if($_GET["minisize"]=="yes"){$delete=null;}
 		
 		
@@ -862,7 +861,7 @@ function add_category_popup(){
 				<tr>
 					<td width=1%><img src='img/database-connect-24-2.png'></td>
 					<td width=99%><a href=\"javascript:blur();\" 
-					OnClick=\"javascript:CompilePersonalCat$t();\" 
+					OnClick=\"javascript:Loadjs('ufdbguard.compile.category.php?category={$_GET["cat"]}&t=$t')\" 
 					style='font-size:12px;text-decoration:underline'>{compile_this_category}</a>
 					</td>
 				</tr>				
@@ -979,10 +978,7 @@ var X_SavePersonalCategory= function (obj) {
 	}
 	
 	function CompilePersonalCat$t(){
-		var XHR = new XHRConnection();
-		XHR.appendData('compile-db-perform','{$_GET["cat"]}');
-		AnimateDiv('perso-cat-form');
-		XHR.sendAndLoad('$page', 'POST',X_CompilePersonalCat$t);
+		Loadjs('ufdbguard.compile.category.php?category={$_GET["cat"]}&t=$t');
 	}
 	
 	function checkform(){

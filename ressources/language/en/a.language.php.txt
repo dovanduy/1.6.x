@@ -1936,8 +1936,8 @@ This restriction is useful at the end of a restriction list, to make the default
 <Proxy>Proxy</Proxy>
 <mysqldefault_php_text>This is the  Mysql default credentials used for PHP applications (include Artica itself).[br]by default PHP applications default credentials use the same values has Artica Mysql credential</mysqldefault_php_text>
 <UseSamePHPMysqlCredentials>Use same credentials</UseSamePHPMysqlCredentials>
-<EnableBandwithCalculation>Enable bandwith calculation</EnableBandwithCalculation>
-<EnableBandwithCalculation_explain>If enabled, artica will try to determine your Internet bandwith</EnableBandwithCalculation>
+<EnableBandwithCalculation>Enable bandwidth calculation</EnableBandwithCalculation>
+<EnableBandwithCalculation_explain>If enabled, artica will try to determine your Internet bandwidth</EnableBandwithCalculation>
 <zarafa_mysql_tuning_text>It is imperative that you correctly configure MySQL to achieve maximum performance on your server;[br]
 Almost all performance bottlenecks are within the database access itself, so getting your SQL queries to run as quickly as 
 possible is very important.[br]
@@ -2247,7 +2247,7 @@ If you have firewalls between your MXs, you should enable TCP connections in bot
 <last_30_days>Last 30 days</last_30_days>
 <squidcacheperf_howto>Your proxy service is intended to store internet objects into the server local disks.[br]
 In this case, when users requesting objects, objects should be downloaded directly from the proxy and not from Internet.[br]
-This to safe your Internet bandwith and to speed the retreival object trough the local network (10Mb/100Mb/1Gb).[br]
+This to safe your Internet bandwidth and to speed the retreival object trough the local network (10Mb/100Mb/1Gb).[br]
 If your cache is under 50% performance ratio, this means your server is misconfigured and you have to change some parameters.[br]
 It depends on what kind of objects your users downloading from Internet.[br]
 For example streaming videos cannot be cached by your server but their filesize are calculated in statistics.[br]
@@ -2727,7 +2727,7 @@ expense report, Web office, professionals calendars/meeting, intranets...</www_w
 <webalyzer_howto>WebAlyzer is tool that will parse a remote Internet page and will check all links in the web page content.[br]
 It will produce a table with known and unknown websites.[br]
 Unknown webistes will be added into your "visited" database.</webalyzer_howto>
-<bandwith_limitation_full>Bandwith limitation</bandwith_limitation_full>
+<bandwith_limitation_full>Bandwidth limitation</bandwith_limitation_full>
 <hide>hide</hide>
 <instances_statusZ>Instances Status</instances_statusZ>
 <www_housingbric>Websites about articles on tasks (home repair,home renovations,home remodeling, painting, plumbing and electrical) and repairs around the home and garden.</www_housingbric>
@@ -2986,7 +2986,7 @@ Carry out this task ?
 <user_most_active>Most active users</user_most_active>
 <phrase_most_day_activeday>was the most active day</phrase_most_day_activeday>
 <phrase_thisisthegraph1>This is the graph about all hits by day</phrase_thisisthegraph1>
-<of_bandwith>of the bandwith</of_bandwith>
+<of_bandwith>of the bandwidth</of_bandwith>
 <APP_NOIP>No-IP DNS service</APP_NOIP>
 <APP_NOIP_TEXT>Check/Submit DNS Update periodically trough the No-IP dynamic DNS service</APP_NOIP_TEXT>
 <enable_no_ip_service>Activate DNS update on NO-IP</enable_no_ip_service>
@@ -3009,13 +3009,13 @@ sequence number query packet every winbind cache time seconds.
 <others_users_have_browsed_internet_too>users have browsed Internet too</others_users_have_browsed_internet_too>
 <RebootAfterArticaUpgrade>Reboot system after Artica upgrade</RebootAfterArticaUpgrade>
 <webstatsUserIntro1>During this period, this user has visited X0 websites  and consumed X1 of the bandwidth.[br]
- It have generated X2 requests on the server.[br]The server have saved X3 datas in its cache (X3PRC bandwith safe for this user only).
+ It have generated X2 requests on the server.[br]The server have saved X3 datas in its cache (X3PRC bandwidth safe for this user only).
 </webstatsUserIntro1>
 <top_visited_categories>Most visited categories</top_visited_categories>
-<top_visited_categories_mostwieght>The main category browsed by this user that consume the bandwith was X with Y downloaded size</top_visited_categories_mostwieght>
+<top_visited_categories_mostwieght>The main category browsed by this user that consume the bandwidth was X with Y downloaded size</top_visited_categories_mostwieght>
 <others_categories_visited>visited categories (total)</others_categories_visited>
 <webstatsCatIntro1>websites has been visited from this category</webstatsUserIntro1>
-<webstatsCatIntro2>XMB has been downloaded from these websites with about XRQ requests.[br]This category represents XPRC of your total bandwith</webstatsCatIntro2>  
+<webstatsCatIntro2>XMB has been downloaded from these websites with about XRQ requests.[br]This category represents XPRC of your total bandwidth</webstatsCatIntro2>  
 <OPENVPN_ADMIN_HELP_TEXT>
 After generating the package that store the SSL certificate your users have to download the following OpenVPN clients.[br]
 For windows, The zip package must be decompressed under the [b]C:\Program Files\OpenVPN\Config[/b] directory. 
@@ -3265,7 +3265,7 @@ If you did not want to do that change the Filter Group mode field to "filtered"<
 <check_configuration>Check settings</check_configuration>
 <check_configuration_text>Verify applied settings in debug mode</check_configuration_text>
 <add_to_menu>Add to menu</add_to_menu>
-<enable_bandwith_limitation>Enable bandwith limitation</enable_bandwith_limitation>
+<enable_bandwith_limitation>Enable bandwidth limitation</enable_bandwith_limitation>
 <mod_bw_text>This feature allows you to limit bandwidth usage on every virtual host or directory or to restrict the number of simultaneous connections</mod_bw_text>
 <apache_explain_BandWidth>source may be a full host (host.domain.tld), part of a domain , an ip address (192.168.218.5) , a network mask (192.168.1.0/24), or "all".
 If speed is 0, there is no limit.</apache_explain_BandWidth>
@@ -3278,10 +3278,10 @@ Any connection over the max will get a 503 Service Temporarily Unavailable.
  source may be a full host (host.domain.tld), part of a domain , an ip address (192.168.218.5) , a network mask (192.168.1.0/24), or "all".
 If max connections is 0, there is no limit.[br]
 Note:[br]
-You NEED to have a bandwith rule limit for the same origin.[br]
+You NEED to have a bandwidth rule limit for the same origin.[br]
 It doesnt need to be a low limit, you can use an unlimited setting.[br]
 The reason has to do with the way the program manages memory.[br]
-If you dont put a bandwith rule using the same origin, Max connections will be ignored.</apache_explain_MaxConnection>
+If you dont put a bandwidth rule using the same origin, Max connections will be ignored.</apache_explain_MaxConnection>
 <max_connections>MAX connections</max_connections>
 <limitation_engine>Limitation Engine</limitation_engine>
 <limit_client>Limit by source</limit_client>

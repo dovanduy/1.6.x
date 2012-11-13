@@ -470,25 +470,25 @@ function parse_database($filename,$hostname){
 if(count($sql)>0){
 	if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist Finally save ".count($sql)." events\n";}
 	$newsql=$prefix." ".@implode(",", $sql);$q->QUERY_SQL($newsql,"artica_events");$sql=array();}
-if(!$q->ok){echo $q->mysql_error."\n";return ;}	
-$unix=new unix();
-$tail=$unix->find_program("tail");
-$chmod=$unix->find_program("chmod");
-exec("$tail -n 2 $filename 2>&1",$tails);
+	if(!$q->ok){echo $q->mysql_error."\n";return ;}	
+	$unix=new unix();
+	$tail=$unix->find_program("tail");
+	$chmod=$unix->find_program("chmod");
+	exec("$tail -n 2 $filename 2>&1",$tails);
 
-while (list ($num, $ligne) = each ($tails) ){
-		if(preg_match("#Summary:\s+([0-9]+)\s+records,\s+([0-9]+)\s+greylisted,\s+([0-9]+)\s+whitelisted,\s+([0-9]+)\s+tarpitted#", $ligne,$re)){
-			$array["RECORDS"]=$re[1];
-			$array["GREYLISTED"]=$re[2];
-			$array["WHITELISTED"]=$re[3];
-			$array["TARPITED"]=$re[4];
-			if($GLOBALS["VERBOSE"]){print_r($array);}
-			@file_put_contents("/usr/share/artica-postfix/ressources/logs/greylist-count-$hostname.tot", serialize($array));
-			shell_exec("$chmod 755 /usr/share/artica-postfix/ressources/logs/greylist-count-$hostname.tot");
-		}else{
-			if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist no match $ligne\n";}
-		}
-}
+	while (list ($num, $ligne) = each ($tails) ){
+			if(preg_match("#Summary:\s+([0-9]+)\s+records,\s+([0-9]+)\s+greylisted,\s+([0-9]+)\s+whitelisted,\s+([0-9]+)\s+tarpitted#", $ligne,$re)){
+				$array["RECORDS"]=$re[1];
+				$array["GREYLISTED"]=$re[2];
+				$array["WHITELISTED"]=$re[3];
+				$array["TARPITED"]=$re[4];
+				if($GLOBALS["VERBOSE"]){print_r($array);}
+				@file_put_contents("/usr/share/artica-postfix/ressources/logs/greylist-count-$hostname.tot", serialize($array));
+				shell_exec("$chmod 755 /usr/share/artica-postfix/ressources/logs/greylist-count-$hostname.tot");
+			}else{
+				if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist no match $ligne\n";}
+			}
+	}
 			
 }
 

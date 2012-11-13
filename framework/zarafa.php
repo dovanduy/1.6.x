@@ -32,8 +32,8 @@ if(isset($_GET["restart-search"])){restart_search();exit;}
 if(isset($_GET["restart-server"])){restart_zarafaserver();exit;}
 if(isset($_GET["restart-gateway"])){restart_zarafagateway();exit;}
 if(isset($_GET["run-backup"])){run_backup();exit;}
-
-
+if(isset($_GET["backup-scan-dirs"])){run_backup_scandirs();exit;}
+if(isset($_GET["reload-mailboxes-force"])){mailboxes_scan_all();exit;}
 
 while (list ($num, $ligne) = each ($_GET) ){$a[]="$num=$ligne";}
 writelogs_framework("unable to unserstand ".@implode("&",$a),__FUNCTION__,__FILE__,__LINE__);
@@ -88,6 +88,15 @@ function run_backup(){
 	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.zarafa-backup.php --exec 2>&1 &";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
+}
+
+function run_backup_scandirs(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php5 /usr/share/artica-postfix/exec.zarafa-backup.php --dirs --verbose 2>&1";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
+	exec($cmd,$results);	
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 }
 
 function softdelete(){
@@ -280,6 +289,14 @@ function mailboxes_scan_ou(){
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 	
+}
+
+function mailboxes_scan_all(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.zarafa.build.stores.php --users-status --force >/dev/null 2>&1");
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);		
 }
 
 

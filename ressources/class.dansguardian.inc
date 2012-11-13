@@ -556,8 +556,9 @@ class dansguardian_rules{
 									"sexual_education"=>"{sexual_education}",
 									"abortion"=>"{www_abortion}",
 									"dating"=>"{dating}",
+									"tattooing"=>"{www_tattooing}",
 	
-									
+							
 									"agressive"=>"{agressif}",
 									"violence"=>"{violence}",
 									"terrorism"=>"{www_terrorism}",
@@ -911,7 +912,9 @@ class dansguardian_rules{
 		  	"paytosurf"=>"paytosurf-20.png",
 		  	"meetings"=>"meetings-20.png",
 		  	"getmarried"=>"20_getmarried.png",
-		  	"police"=>"20-police.png"
+		  	"police"=>"20-police.png",
+		 	"tattooing"=>"tatoo-20.png",
+		   		
 		  	
 		  		  	);
 									

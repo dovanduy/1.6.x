@@ -31,7 +31,7 @@ if(!$users->AsAnAdministratorGeneric){
 	writelogs("Redirect to miniadm.php",__FUNCTION__,__FILE__,__LINE__);header('location:miniadm.php');
 	exit;
 }
-
+if(isset($_GET["admin-index-status-mysql"])){echo status_mysql();exit;}
 if(isset($_GET["status_right_image"])){status_right_image();exit;}
 if(isset($_GET["warnings"])){warnings_js();exit;}
 if(isset($_GET["warnings-popup"])){warnings_popup();exit;}
@@ -424,7 +424,9 @@ function main_admin_tabs(){
 		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 		if($SQUIDEnable==1){
 			$array["t:HTTP_FILTER_STATS"]="{MONITOR}";
-			$array["t:HTTP_BLOCKED_STATS"]="{blocked_websites}";
+			if(!$users->PROXYTINY_APPLIANCE){
+				$array["t:HTTP_BLOCKED_STATS"]="{blocked_websites}";
+			}
 		}
 	}
 	
@@ -639,12 +641,7 @@ function status_computer(){
 	$sock=new sockets();
 	$newfrontend=false;if(isset($_GET["newfrontend"])){$newfrontend=true;}
 	
-	$MySqlMemoryCheck=$sock->GET_INFO("MySqlMemoryCheck");
-	if(!is_numeric($MySqlMemoryCheck)){$MySqlMemoryCheck=0;}
-	if($MySqlMemoryCheck==0){
-		$html=status_computer_mysql_memory_check();
-		if($html<>null){echo $html;return;}
-	}
+	
 	
 	if(!$GLOBALS["VERBOSE"]){
 		if(!$GLOBALS["AS_ROOT"]){
@@ -658,7 +655,10 @@ function status_computer(){
 	}
 	
 	include_once(dirname(__FILE__)."/ressources/class.os.system.tools.inc");
-	$html=status_mysql();
+	$html="<div id='admin-index-status-mysql'></div>
+	<script>LoadAjaxTiny('admin-index-status-mysql','$page?admin-index-status-mysql=yes');</script>";
+	
+	
 	$os=new os_system();
 	$html=$html.RoundedLightGrey($os->html_Memory_usage())."<br>
 	<script>
@@ -685,12 +685,22 @@ function status_mysql(){
 	$sock=new sockets();
 	
 	
+	$MySqlMemoryCheck=$sock->GET_INFO("MySqlMemoryCheck");
+	if(!is_numeric($MySqlMemoryCheck)){$MySqlMemoryCheck=0;}
+	if($MySqlMemoryCheck==0){
+		$status_computer_mysql_memory_check=status_computer_mysql_memory_check();
+		if($status_computer_mysql_memory_check<>null){$status_computer_mysql_memory_check=$status_computer_mysql_memory_check."<br>";}
+	}	
+	
+	
+	
 	$sql="SELECT count(*) FROM admin_cnx";
 	$q->QUERY_SQL($sql,"artica_events");
 	if(!$q->ok){
 		if(preg_match("#Access denied for user#",$q->mysql_error)){
 			$error=urlencode(base64_encode("$q->mysql_error"));
 			return "
+			$status_computer_mysql_memory_check
 			<script>
 				Loadjs('admin.mysql.error.php?error=$error');
 			</script>
@@ -703,7 +713,17 @@ function status_mysql(){
 			$sql="SELECT count(*) FROM admin_cnx";
 			$q->QUERY_SQL($sql,"artica_events");
 			if(!$q->ok){
-				return RoundedLightGrey($tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error}","$q->mysql_error",null,"$q->mysql_error",330,80)))."<br>";
+				$t2=time();
+				return $status_computer_mysql_memory_check.RoundedLightGrey($tpl->_ENGINE_parse_body(
+				Paragraphe('danger64.png',"{mysql_error}",
+				"$q->mysql_error",null,"$q->mysql_error",330,80)))."
+				<br>
+				<script>
+					function RefreshMySQL$t2(){ LoadAjaxTiny('admin-index-status-mysql','$page?admin-index-status-mysql=yes'); }
+					setTimeout('RefreshMySQL$t2()',5000);
+				</script>
+				
+				";
 				return;
 			}
 		}
@@ -714,7 +734,7 @@ function status_mysql(){
 			$sql="SELECT count(*) FROM admin_cnx";
 			$q->QUERY_SQL($sql,"artica_events");
 			if(!$q->ok){
-				return RoundedLightGrey($tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error}","$q->mysql_error",null,"$q->mysql_error",330,80)))."<br>";
+				return $status_computer_mysql_memory_check.RoundedLightGrey($tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error}","$q->mysql_error",null,"$q->mysql_error",330,80)))."<br>";
 				return;
 			}			
 			
@@ -722,10 +742,12 @@ function status_mysql(){
 		
 		
 		if(trim($q->mysql_error)<>null){
-			return RoundedLightGrey($tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error}","$q->mysql_error",null,"$q->mysql_error",330,80)))."<br>";
+			return $status_computer_mysql_memory_check.RoundedLightGrey($tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error}","$q->mysql_error",null,"$q->mysql_error",330,80)))."<br>";
 		}
 		
-	}	
+	}
+
+	return $status_computer_mysql_memory_check;
 	
 }
 

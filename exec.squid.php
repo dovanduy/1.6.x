@@ -611,6 +611,49 @@ function ReconstructCaches(){
 	caches_infos();
 }
 
+function NudeBooster(){
+	$sock=new sockets();
+	$unix=new unix();	
+	$umount=$unix->find_program("umount");
+	$SquidNuditScanParams=unserialize(base64_decode($sock->GET_INFO("SquidNudityScanParams")));	
+	if(!isset($SquidNuditScanParams["MemoryDir"])){$SquidNuditScanParams["MemoryDir"]=0;}
+	$MemoryDir=$SquidNuditScanParams["MemoryDir"];
+	$workdir="/var/lib/nudityScan";	
+	if(!is_numeric($MemoryDir)){$MemoryDir=0;}
+	echo "Starting......: Squid nudity MemBoost {$MemoryDir}M\n";
+	if($MemoryDir==0){
+		shell_exec("$umount -l /var/lib/nudityScan >/dev/null 2>&1");
+		return;
+	}
+	$idbin=$unix->find_program("id");
+	$rm=$unix->find_program("rm");
+	$mount=$unix->find_program("mount");
+	exec("$idbin squid 2>&1",$results);
+	if(!preg_match("#uid=([0-9]+).*?gid=([0-9]+)#", @implode("", $results),$re)){echo "Starting......: Squid nudity squid no such user...\n";return;}
+	
+	shell_exec("$umount -l $workdir");
+	$uid=$re[1];
+	$gid=$re[2];	
+	shell_exec("$rm -rf $workdir");
+	@mkdir($workdir,0755);	
+	echo "Starting......: Squid nudity MemBoost squid ($uid/$gid)\n";	
+	shell_exec("$mount -t tmpfs -o size={$MemoryDir}M,noauto,user,exec,uid=$uid,gid=$gid tmpfs $workdir");
+	$mountedM=NudeBooster_tmpfs_mounted_size();
+	if($mountedM>1){echo "Starting......: Squid nudity MemBoost mounted with {$mountedM}M\n";}else{
+		echo "Starting......: Squid nudity mounted failed\n";
+	}			
+	
+}
+
+function NudeBooster_tmpfs_mounted_size(){
+	$unix=new unix();
+	$mount=$unix->find_program("mount");
+	exec("$mount 2>&1",$results);
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#^tmpfs on.*?lib\/nudityScan.*?tmpfs\s+\(.*?size=([0-9]+)M#", $ligne,$re)){return $re[1];}}
+	return null;
+}
+
 
 function BuildCaches($NOTSTART=false){
 	echo "Starting......: Squid Check *** caches ***\n";
@@ -756,9 +799,14 @@ function ApplyConfig($smooth=false){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	
 	$squid=new squidbee();
-	
-	
-	
+	$sock=new sockets();
+
+
+	@mkdir("/var/log/squid/nudity",0755,true);
+	@copy("/etc/artica-postfix/settings/Daemons/SquidNudityScanParams","/etc/squid3/SquidNudityScanParams");
+	$unix->chown_func("squid","squid", "/etc/squid3/SquidNudityScanParams");
+	$unix->chown_func("squid","squid", "/var/log/squid/nudity");
+	NudeBooster();
 	if(!is_dir("/usr/share/squid-langpack")){TemplatesInMysql();exit;}
 	writelogs("->BuildBlockedSites",__FUNCTION__,__FILE__,__LINE__);
 	$EnableRemoteStatisticsAppliance=0;
@@ -1323,9 +1371,11 @@ function TemplatesUniqueInMysql($zmd5){
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	if(!$q->ok){echo $q->mysql_error."\n";return;}
 	
+	if($ligne["template_link"]==1){return;}
 	$ligne["template_header"]=stripslashes($ligne["template_header"]);
 	$ligne["template_title"]=stripslashes($ligne["template_title"]);
 	$ligne["template_body"]=stripslashes($ligne["template_body"]);	
+	
 	
 	$header=trim($ligne["template_header"]);
 	if($ligne["template_name"]==null){
@@ -1387,6 +1437,7 @@ function TemplatesInMysql(){
 		$ligne["template_header"]=stripslashes($ligne["template_header"]);
 		$ligne["template_title"]=stripslashes($ligne["template_title"]);
 		$ligne["template_body"]=stripslashes($ligne["template_body"]);
+		if($ligne["template_link"]==1){continue;}
 		$header=trim($ligne["template_header"]);
 		if($header==null){$header=$headerTemp;}
 		
@@ -1921,7 +1972,7 @@ function build_schedules($notfcron=false){
 		
 		if(preg_match("#squidsch-[0-9]+#", $filename)){if($GLOBALS["VERBOSE"]){echo "Removing old task $file\n";}@unlink($filename);}
 	}
-	
+	@unlink("/etc/artica-postfix/TASKS_SQUID_CACHE.DB");
 	$settings=unserialize(base64_decode($sock->GET_INFO("FcronSchedulesParams")));
 	if(!isset($settings["max_nice"])){$settings["max_nice"]=19;}
 	if(!isset($settings["max_load_avg5"])){$settings["max_load_avg5"]=3;}

@@ -446,6 +446,7 @@ buttons : [
 	searchitems : [
 		{display: '$description', name : 'TimeDescription'},
 		],
+		
 	sortname: 'ID',
 	sortorder: 'asc',
 	usepager: true,
@@ -575,7 +576,7 @@ function search(){
 		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
 		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
 		$search=$_POST["query"];
-		$searchstring="AND ((`{$_POST["qtype"]}` LIKE '$search') OR (`content` LIKE '$search'))";
+		$searchstring="AND ((`{$_POST["qtype"]}` LIKE '$search') OR (`TimeDescription` LIKE '$search'))";
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$total = $ligne["TCOUNT"];

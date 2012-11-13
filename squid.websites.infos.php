@@ -12,9 +12,9 @@
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");	
 	$user=new usersMenus();
-	if(!$user->AsSquidAdministrator){
+	if(!$user->AsWebStatisticsAdministrator){
 		$tpl=new templates();
-		echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}").");";
+		echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		exit;
 		
 	}
@@ -223,7 +223,7 @@ function logsuris_day(){
 			$ydata[]=$ligne["hits"];
 		}	
 		
-		$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".{$_GET["www"]}.hits.png";
+		$targetedfile="ressources/logs/".md5(basename(__FILE__).".".__FUNCTION__).".{$_GET["www"]}.hits.png";
 		$gp=new artica_graphs();
 		$gp->width=550;
 		$gp->height=220;

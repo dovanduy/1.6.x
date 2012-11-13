@@ -106,14 +106,15 @@ class Fetchmail_settings{
 				if(preg_match('#poll\s+(.+?)\s+#',$line,$re)){
 					$arr[$i]["poll"]=trim($re[1]);
 				}
-				if(preg_match('#proto\s+([a-z0-9]+)#',$line,$re)){$arr[$i]["proto"]=$re[1];}				
+				if(preg_match('#^proto\s+([a-z0-9]+)#',$line,$re)){$arr[$i]["proto"]=$re[1];}				
 				if(preg_match('#aka\s+(.+)#',$line,$re)){$arr[$i]["aka"]=$re[1];}	
 				if(preg_match('#via\s+(.+)#',$line,$re)){$arr[$i]["poll"]=$re[1];}								
 				if(preg_match('#user\s+([a-zA-Z0-9\.\-_@]+)#',$line,$re)){$arr[$i]["user"]=$re[1];}					
 				if(preg_match('#(pass|password)\s+(.+?)\s+#',$line,$re)){$arr[$i]["pass"]=$re[2];}									
 				if(preg_match('#is\s+(.+?)\s+#',$line,$re)){$arr[$i]["is"]=$re[1];}													
 				if(preg_match('#\s+ssl\s+#',$line,$re)){$arr[$i]["ssl"]=true;}						
-				if(preg_match('#\s+keep\s+#',$line,$re)){$arr[$i]["keep"]=true;}																	
+				if(preg_match('#\s+keep\s+#',$line,$re)){$arr[$i]["keep"]=true;}
+				if(preg_match('#^keep\s+#',$line,$re)){$arr[$i]["keep"]=true;}																		
 				if(preg_match('#nokeep#',$line,$re)){$arr[$i]["nokeep"]=false;}					
 				if(preg_match('#fetchall#',$line,$re)){$arr[$i]["fetchall"]=true;}					
 				if(preg_match('#nofetchall#',$line,$re)){$arr[$i]["fetchall"]=false;}					
@@ -122,16 +123,16 @@ class Fetchmail_settings{
 				if(preg_match('#interval\s+([0-9]+)#',$line,$re)){$arr[$i]["interval"]=$re[1];}
 				if(preg_match('#tracepolls#i',$line,$re)){$arr[$i]["tracepolls"]=true;}					
 				if(preg_match('#folder\s+(.+)#',$line,$re)){$arr[$i]["folder"]=$re[1];}
-				if(preg_match('#limit\s+([0-9]+)#',$line,$re)){$arr[$i]["limit"]=$re[1];}
+				if(preg_match('#limit\s+([0-9]+)#',$line,$re)){$arr[$i]["limit"]=$re[1]/1024;}
 				if(preg_match('#timeout\s+([0-9]+)#',$line,$re)){$arr[$i]["timeout"]=$re[1];}		
 				if(preg_match('#disabled#',$line,$re)){$arr[$i]["disabled"]=true;}
 				if(preg_match('#multidrop#',$line,$re)){$arr[$i]["multidrop"]=true;}
 				if(preg_match('#sslcertck#',$line,$re)){$arr[$i]["sslcertck"]=true;}
 				if(preg_match('#dropdelivered#',$line,$re)){$arr[$i]["dropdelivered"]=true;}
-				
+				if(preg_match('#smtphost\s+(.+?)\s+#',$line,$re)){$arr[$i]["smtp_host"]=$re[1];}
 				
 				if(preg_match('#sslfingerprint\s+\'(.+?)\'\s+#',$line,$re)){$arr[$i]["sslfingerprint"]=$re[1];}		
-				
+				$arr[$i]["enabled"]=1;
 				
 			
 				}
@@ -141,7 +142,7 @@ class Fetchmail_settings{
 	}
 	
 		
-	function compile($array){
+	function compile($array,$noreload=false){
 		if(!isset($GLOBALS["FetchMailGLobalDropDelivered"])){
 			$sock=new sockets();
 			$GLOBALS["FetchMailGLobalDropDelivered"]=$sock->GET_INFO("FetchMailGLobalDropDelivered");
@@ -240,12 +241,13 @@ class Fetchmail_settings{
 	}
 	
 	
-	function EditRule($POSTED_ARRAY,$ID){
+	function EditRule($POSTED_ARRAY,$ID,$noreload=false){
 		unset($_SESSION["FECTORGMAIL"]);
 		writelogs("ID=$ID",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$ID=trim($ID);
 		if($ID==null){$ID=0;}
 		if($ID<0){$ID=0;}
+		if(!isset($POSTED_ARRAY["uid"])){$POSTED_ARRAY["uid"]=null;}
 		
 		if($POSTED_ARRAY["uid"]==null){
 			if($POSTED_ARRAY["is"]<>null){
@@ -253,7 +255,7 @@ class Fetchmail_settings{
 				$POSTED_ARRAY["uid"]=$ldap->uid_from_email($POSTED_ARRAY["is"]);
 			
 		}}
-		
+		if($POSTED_ARRAY["uid"]==null){$POSTED_ARRAY["uid"]=$POSTED_ARRAY["is"];}
 		
 		if(isset($POSTED_ARRAY["orgmail"])){
 			if($POSTED_ARRAY["orgmail"]==null){
@@ -299,9 +301,11 @@ class Fetchmail_settings{
 		
 		$sqa["`md5`"]=$md5;
 		
+		
 		while (list ($num, $line) = each ($sqa) ){
 			$fields[]="$num";
 			$values[]="'$line'";
+			
 			$sql_add="INSERT INTO fetchmail_rules (".implode(",",$fields).") VALUES(".implode(",",$values).")";
 		}
 		
@@ -311,6 +315,8 @@ class Fetchmail_settings{
 			writelogs("Editing rule $ID",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$sql=$sql_upd;
 		}else{
+			if((!isset($sqa["`poll`"]) OR $sqa["`poll`"]==null)){return;}
+			if((!isset($sqa["`user`"]) OR $sqa["`user`"]==null)){return;}
 			$sql=$sql_add;
 		}
 		
@@ -321,9 +327,11 @@ class Fetchmail_settings{
 			$q->BuildTables();
 			if(!$q->QUERY_SQL($sql,"artica_backup")){writelogs("ERROR: ".$q->mysql_error,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return false;}		
 		}
-		$sock=new sockets();
-		$sock->getFrameWork('fetchmail.php?reload-fetchmail=yes');
-		if($sock->GET_INFO("ArticaMetaEnabled")==1){$sock->getFrameWork("cmd.php?artica-meta-fetchmail-rules=yes");}
+		if(!$noreload){
+			$sock=new sockets();
+			$sock->getFrameWork('fetchmail.php?reload-fetchmail=yes');
+			if($sock->GET_INFO("ArticaMetaEnabled")==1){$sock->getFrameWork("cmd.php?artica-meta-fetchmail-rules=yes");}
+		}
 		return true;	
 		
 	}
