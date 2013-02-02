@@ -28,68 +28,98 @@ function js(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{authentication}&nbsp;&raquo;{members}&nbsp;&raquo;{$_GET["servername"]}");
-	$html="YahooWin6('450','$page?popup=yes&servername={$_GET["servername"]}','$title')";
+	$html="YahooWin6('550','$page?popup=yes&servername={$_GET["servername"]}','$title')";
 	echo $html;
 	}
 	
 function popup(){
 	
+	$page=CurrentPageName();
 	$tpl=new templates();
-	$page=CurrentPageName();	
+	$users=new usersMenus();
+	$q=new mysql();
+	$TB_HEIGHT=350;
+	$TB_WIDTH=350;
+	$t=time();
+	$tt=time();
 	$freeweb=new freeweb($_GET["servername"]);
-	if($freeweb->ou<>null){$suffix="&organization=$freeweb->ou";}
+	if($freeweb->ou<>null){$suffix="&organization=$freeweb->ou";}	
+	$title=$tpl->_ENGINE_parse_body("{members}/{groups}");
+	$new_entry=$tpl->_ENGINE_parse_body("{new_item}");
+	$members=$tpl->_ENGINE_parse_body("{members}");
+	$new_volume=$tpl->_ENGINE_parse_body("{new_volume}");
+	$ipaddr=$tpl->_ENGINE_parse_body("{addr}");
+	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
+	$link_member=$tpl->_ENGINE_parse_body("{link_member}");
 	
+	$buttons="
+	buttons : [
+	{name: '$link_member', bclass: 'Add', onpress : LinkMember$t},
+
+	],	";
+	//$('#flexRT$t').flexReload();
 	$html="
-	<div class=explain>{freeweb_authldap_members_explain}</div>
-	<table style='width:100%'>
-		<tr>
-			<td class=legend>{members}</td>
-			<td>".Field_text("freeweb-member-add",null,"font-size:16px;padding:3px,width:120px")."</td>
-			<td><input type='button' OnClick=\"javascript:Loadjs('MembersBrowse.php?field-user=freeweb-member-add$suffix&prepend=1&prepend-guid=1');\" value='{browse}...'></td>
-			<td>". button("{add}","FreeWebAuthldapAdd()")."</td>
-		</tr>
-	</table>
-	
-	<div id='freeweb-member-list' style='width:100%;height:250px;overflow:auto'></div>
-	
-	
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 	<script>
+	var mem$t='';
+	$(document).ready(function(){
+	$('#flexRT$t').flexigrid({
+	url: '$page?freeweb-member-list=yes&servername={$_GET["servername"]}&t=$t',
+			dataType: 'json',
+			colModel : [
+			{display: '&nbsp;', name : 'icon', width :31, sortable : true, align: 'center'},
+			{display: '$members', name : 'name', width :414, sortable : true, align: 'left'},
+			{display: '&nbsp;', arrow : 'name', width :31, sortable : true, align: 'center'},
+			],
+			$buttons
 	
-		var x_FreeWebAuthldapAdd=function (obj) {
+			searchitems : [
+			{display: '$members', name : 'name'},
+			],
+				
+			sortname: 'name',
+			sortorder: 'asc',
+			usepager: true,
+			title: '$title',
+			useRp: true,
+			rp: 50,
+			showTableToggleBtn: false,
+			width: 535,
+			height: $TB_HEIGHT,
+			singleSelect: true,
+			rpOptions: [10, 20, 30, 50,100,200,500]
+	
+	});
+	});
+	
+	
+	function LinkMember$t(){
+		Loadjs('MembersBrowse.php?callback=LinkMemberCallBack$t$suffix&prepend=1&prepend-guid=1');
+	}
+	
+		var x_LinkMemberCallBack$t=function (obj) {
 			var results=obj.responseText;
 			if(results.length>0){alert(results);}	
-			RefreshMembersFreeWebList();		
-		}		
+			$('#flexRT$t').flexReload();	
+		}			
 	
-		function FreeWebAuthldapAdd(){
+	function LinkMemberCallBack$t(id,prependText,guid){
 			var XHR = new XHRConnection();
-			XHR.appendData('freeweb-member-add',document.getElementById('freeweb-member-add').value);
+			XHR.appendData('freeweb-member-add',prependText+id);
 			XHR.appendData('servername','{$_GET["servername"]}');
-    		XHR.sendAndLoad('$page', 'POST',x_FreeWebAuthldapAdd);
-		}
-		
-		function RefreshMembersFreeWebList(){
-			LoadAjax('freeweb-member-list','$page?freeweb-member-list=yes&servername={$_GET["servername"]}');
-		
-		}
-		
-		function DeleteLDAPAUthMember(val){
+    		XHR.sendAndLoad('$page', 'POST',x_LinkMemberCallBack$t);	
+	}
+	
+		function DeleteLDAPAUthMember$t(val){
 			var XHR = new XHRConnection();
 			XHR.appendData('freeweb-member-del',val);
 			XHR.appendData('servername','{$_GET["servername"]}');
-    		XHR.sendAndLoad('$page', 'POST',x_FreeWebAuthldapAdd);
-		}
-		
-	RefreshMembersFreeWebList();
+    		XHR.sendAndLoad('$page', 'POST',x_LinkMemberCallBack$t);
+		}	
 	
-	</script>
+	</script>";
 	
-	
-	";
-	
-	
-	echo $tpl->_ENGINE_parse_body($html);
-
+	echo $html;	
 }
 
 function membersAdd(){
@@ -103,49 +133,73 @@ function membersDel(){
 	$freeweb->SaveParams();	
 }
 
-
 function memberslist(){
 	$freeweb=new freeweb($_GET["servername"]);
 	$users=$freeweb->Params["LDAP"]["members"];
 	$tpl=new templates();
-	$page=CurrentPageName();
+	$page=1;
+	$t=$_GET["t"];
+	if(!is_array($users)){
+		json_error_show("No member",1);
+	}
+	
+	if(count($users)==0){
+		json_error_show("No member",1);
+	}
+	
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = 0;
+	$data['rows'] = array();
 
-	$html="
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-	<th colspan=3>{members}/{groups}</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";		
-if(is_array($users)){	
-while (list ($num, $ligne) = each ($users) ){
-		if($num==null){continue;}
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		
-		$delete=imgtootltip("delete-32.png","{delete}","DeleteLDAPAUthMember('$num')");
-		
+	$search=string_to_flexregex();
+	$c=0;
+	while (list ($num, $ligne) = each ($users) ){
+		if($search<>null){
+			if(!preg_match("#$search#", $ligne)){continue;}
+		}
 		$gid=0;
-		
+		$id=md5($ligne);
+		$delete=imgsimple("delete-32.png","{delete}","DeleteLDAPAUthMember$t('$num')");
+		$Displayname=null;
 		
 		if(preg_match("#^group:@(.+?):([0-9]+)#",$num,$re)){
 			$img="wingroup.png";
 			$Displayname="{$re[1]} ({$re[2]})";
 			$gid=$re[2];
 		}
-		if(preg_match("#^user:(.+)#",$num,$re)){
-			$img="winuser.png";
-			$Displayname="{$re[1]}";
-		}		
-$html=$html."
-		<tr class=$classtr>
-		<td width=1% align='center' valign='middle'><img src='img/$img'></td>
-		<td><strong style='font-size:14px;text-decoration:underline' >$Displayname</td>
-		<td width=1% align='center' valign='middle'>$delete</td>
-		</tr>
-	";
+		
+		if($Displayname==null){
+			if(preg_match("#^user:(.+)#",$num,$re)){
+				$img="winuser.png";
+				$Displayname="{$re[1]}";
+			}
+		}
+		if($Displayname==null){
+			if(preg_match("#^group:@(.+?)$#",$num,$re)){
+				$img="wingroup.png";
+				$Displayname="{$re[1]}";
+			}		
+		}	
+		if($Displayname==null){$Displayname=$num;}
+		
+		$c++;
+		$data['rows'][] = array(
+				'id' => $id,
+				'cell' => array(
+						"<img src='img/$img'>",
+						"<span style='font-size:16px;font-weight:bold'>$Displayname</span>",
+						$delete
+						
+				)
+		);		
+		
+		
+		
 	}
+	$data['total'] = $c;
+	echo json_encode($data);
 }
-	$html=$html."</table>";
-	echo $tpl->_ENGINE_parse_body($html);
-}
+
+
+

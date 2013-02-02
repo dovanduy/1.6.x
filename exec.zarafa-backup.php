@@ -18,6 +18,9 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
 if($argv[1]=="--exec"){start();die();}
 if($argv[1]=="--dirs"){ScanDirs();die();}
+if($argv[1]=="--remove-dirs"){RemoveDirs();die();}
+
+
 
 function start(){
 	$sock=new sockets();
@@ -60,6 +63,7 @@ function start(){
 	@file_put_contents($stamp, $took);
 	@file_put_contents($datestamp, date("Y-m-d H:i:s"));
 	ScanDirs();
+	RemoveDirs();
 
 }
 function ScanDirs(){
@@ -103,6 +107,43 @@ function ScanDirs(){
 	
 	echo count($f)." container(s) found...\n";
 	
+}
+
+function RemoveDirs(){
+	$sock=new sockets();
+	$database="artica_backup";
+	$ZarafaBackupParams=unserialize(base64_decode($sock->GET_INFO("ZarafaBackupParams")));
+	if($ZarafaBackupParams["DEST"]==null){$ZarafaBackupParams["DEST"]="/home/zarafa-backup";}
+	if(!is_numeric($ZarafaBackupParams["DELETE_OLD_BACKUPS"])){$ZarafaBackupParams["DELETE_OLD_BACKUPS"]=1;}
+	if(!is_numeric($ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"])){$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]=10;}
+	if($ZarafaBackupParams["DELETE_OLD_BACKUPS"]==0){return;}
+
+	$maxDays=$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"];
+	$sql="SELECT filepath,zDate FROM zarafa_backup WHERE zDate<DATE_SUB(NOW(),INTERVAL $maxDays DAY)";
+	$q=new mysql();
+	$unix=new unix();
+	$results = $q->QUERY_SQL($sql,$database);
+	if(!$q->ok){echo "$q->mysql_error\n";return;}
+	
+	$rm=$unix->find_program("rm");
+	$c=0;
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$filepath=$ligne["filepath"];
+		
+		if(is_dir($filepath)){
+			$c++;
+			echo "Removing $filepath ({$ligne["zDate"]})\n";
+			$tt[]=$filepath;
+			shell_exec("$rm -rf $filepath");
+			$q->QUERY_SQL("DELETE FROM zarafa_backup WHERE `filepath`='$filepath'","artica_backup");
+		}
+		
+		
+	}
+	echo $c." container(s) deleted, max day(s):$maxDays ...\n";
+	if($c>0){
+		system_admin_events("$c container(s) deleted, max day(s):$maxDays ...\n".@implode("\n", $tt), __FUNCTION__, __FILE__, __LINE__, "zarafa");
+	}
 }
 
 

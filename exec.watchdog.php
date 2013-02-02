@@ -16,12 +16,14 @@ if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 if($argv[1]=="--start-process"){startprocess($argv[2],$argv[3]);exit;}
 if($argv[1]=="--monit"){monit();die();}
-if(systemMaxOverloaded()){error_log(basename(__FILE__)."::Fatal: Aborting report, this system is too many overloaded...");die();}
+if(!$GLOBALS["FORCE"]){
+	if(systemMaxOverloaded()){error_log(basename(__FILE__)."::Fatal: Aborting report, this system is too many overloaded...");die();}
+}
 
 $unix=new unix();
 $GLOBALS["CLASS_UNIX"]=$unix;
 $pidfile="/etc/artica-postfix/".basename(__FILE__)."pid";
-$currentpid=trim(@file_get_contents($pidefile));
+$currentpid=trim(@file_get_contents($pidfile));
 if($unix->process_exists($currentpid)){die();}
 
 @file_put_contents($pidfile,getmypid());

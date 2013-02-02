@@ -509,6 +509,8 @@ class mysql_multi{
     		$errnum=mysql_errno($bdA);
 			if($GLOBALS["VERBOSE"]){echo "mysql_connect failed ($errnum) \"$des\"\n";}
     		$this->writeLogs("Instance: $this->instance_id::$this->SocketPath::Error Number ($errnum) ($des) $this->mysql_admin,$this->mysql_password$INFOS",__CLASS__.'/'.__FUNCTION__,__LINE__ );
+    		$sock=new sockets();
+    		$sock->getFrameWork("services.php?restart-mysql-emergency=yes");
 			return false;
 		}		
 			

@@ -1054,6 +1054,9 @@ private function admin_maps_by_ccat(){
 
 private function whitelist_sender_maps(){
 	$f=array();
+	if(!function_exists("string_to_regex")){
+		include_once(dirname(__FILE__)."/class.templates.inc");
+	}
 	$sql="SELECT * FROM postfix_global_whitelist WHERE enabled=1 ORDER BY sender";	
 	$q=new mysql();
 	if(!$q->TestingConnection()){
@@ -1065,11 +1068,14 @@ private function whitelist_sender_maps(){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$pattern=trim($ligne["sender"]);
 		if($pattern==null){continue;}
+		$already[$ligne["sender"]]=true;
 		$pattern=str_replace('.','\.',$pattern);
 		$pattern=str_replace("*",".*",$pattern);
 		$pattern="\tqr'$pattern$'i\n";	
 		$f[]=$pattern;
-	}	
+	}
+
+	
 	
 	if(count($f)==0){return;}
 	echo "Starting......: amavisd-new whitelisted senders ". count($f)." items\n";
@@ -1450,6 +1456,11 @@ function per_recip_blacklist_whitelist_sender_lookup_tables(){
 		$array_white[]=$per_recip_whitelist_sender_lookup_mysql;
 	}
 	
+	$per_recip_blacklist_sender_lookup_mysql=$this->per_recip_blacklist_sender_lookup_mysql();
+	if($per_recip_blacklist_sender_lookup_mysql<>null){
+		$array_black[]=$per_recip_blacklist_sender_lookup_mysql;
+	}	
+	
 	if(count($array_white)>0){
 		$white="\n";
 		$white=$white."\$per_recip_whitelist_sender_lookup_tables = {\n";
@@ -1506,7 +1517,7 @@ function BlackListFromDomain($domain){
 }
 
 private function per_recip_whitelist_sender_lookup_mysql(){
-	$sql="SELECT *  FROM contacts_whitelist";
+	$sql="SELECT *  FROM contacts_whitelist WHERE `enabled`=1";
 	$q=new mysql();
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	$ARRAY=array();
@@ -1517,8 +1528,8 @@ private function per_recip_whitelist_sender_lookup_mysql(){
 	if(count($ARRAY)==0){return null;}
 	while (list ($uid, $senders) = each ($ARRAY) ){
 		$ct=new user($uid);
-		if(!$ct->UserExists){$q->QUERY_SQL("DELETE FROM `contacts_whitelist` WHERE uid='$uid'","artica_backup");continue;}
-		if(count($ct->HASH_ALL_MAILS)==0){$q->QUERY_SQL("DELETE FROM `contacts_whitelist` WHERE uid='$uid'","artica_backup");continue;}
+		if(!$ct->UserExists){continue;}
+		if(count($ct->HASH_ALL_MAILS)==0){continue;}
 		
 		while (list ($index, $rcptto) = each ($ct->HASH_ALL_MAILS) ){
 			$nextfile="/var/amavis/$rcptto.whitelist.db";
@@ -1535,7 +1546,36 @@ private function per_recip_whitelist_sender_lookup_mysql(){
 	}
 	
 }
+private function per_recip_blacklist_sender_lookup_mysql(){
+	$sql="SELECT *  FROM contacts_blacklist WHERE `enabled`=1";
+	$q=new mysql();
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	$ARRAY=array();
+	$f=array();
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$ARRAY[$ligne["uid"]][]=$ligne["sender"];
+	}
+	if(count($ARRAY)==0){return null;}
+	while (list ($uid, $senders) = each ($ARRAY) ){
+		$ct=new user($uid);
+		if(!$ct->UserExists){continue;}
+		if(count($ct->HASH_ALL_MAILS)==0){continue;}
 
+		while (list ($index, $rcptto) = each ($ct->HASH_ALL_MAILS) ){
+			$nextfile="/var/amavis/$rcptto.blacklist.db";
+			$nextfile=str_replace("@", "-", $nextfile);
+			@file_put_contents($nextfile, @implode("\n", $senders)."\n");
+			@chmod($nextfile, 0644);
+			@chown($nextfile, "postfix");
+			$f[]="\t'$rcptto'=> read_hash(\"$nextfile\")";
+		}
+	}
+
+	if(count($f)>0){
+		return implode(",\n",$f);
+	}
+
+}
 
 function WhitelistsFromDomain($domain){
 	$ldap=new clladp();

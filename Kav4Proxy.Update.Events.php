@@ -1,7 +1,11 @@
 <?php
+
+	if(isset($_GET["verbose"])){echo __LINE__." verbose OK<br>\n";$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.users.menus.inc');
-
+	include_once('ressources/class.ldap.inc');
+	include_once('ressources/class.mysql.inc');
+	include_once('ressources/class.users.menus.inc');
 
 $user=new usersMenus();
 	if($user->AsSquidAdministrator==false){
@@ -13,6 +17,7 @@ $user=new usersMenus();
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["kav4proxy-event-search"])){events_search();exit;}
 	if(isset($_GET["details"])){details();exit;}
+	if(isset($_REQUEST["clean-events"])){clean_events();exit;}
 js();
 
 
@@ -34,40 +39,169 @@ function js(){
 
 function popup(){
 	$page=CurrentPageName();
-	$tpl=new templates();	
+	$t=time();
+	$tpl=new templates();
+	$date=$tpl->_ENGINE_parse_body("{date}");
+	$type=$tpl->_ENGINE_parse_body("{xtype}");
+	$events=$tpl->_ENGINE_parse_body("{events}");
+	$clean=$tpl->javascript_parse_text("{clean}");
+	$ask_events_clean=$tpl->javascript_parse_text("{ask_events_clean}");
+	
+	$buttons="
+	buttons : [
+	
+	{name: '$clean', bclass: 'Delz', onpress : clean$t},
+	
+	],	";	
+	
 	$html="
-	<center>
-		<table style='width:80%' class=form>
-		<tbody>
-		<tr>
-			<td class=legend>{EVENT}:<td>
-			<td>". Field_text("kav4proxy-event-search",null,"font-size:16px;padding:4px",null,null,null,false,"Kav4ProxyEventCheck(event)")."</td>
-			<td widh=1%>". button("{search}","Kav4ProxyEventSearch()")."</td>
-		</tr>
-		</tbody>
-		</table>
-		<hr>
-		<div id='kav4proxy-event-list' style='width:100%;height:450px;overflow:auto'></div>
+	
+	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
+<script>
+var DeleteSquidAclGroupTemp=0;
+$(document).ready(function(){
+$('#table-$t').flexigrid({
+	url: '$page?kav4proxy-event-search=yes',
+	dataType: 'json',
+	colModel : [
+		{display: '$date', name : 'zDate', width : 138, sortable : true, align: 'left'},
+		{display: '$events', name : 'subject', width : 652, sortable : false, align: 'left'},
 		
-		<script>
-			function Kav4ProxyEventCheck(e){
-				if(checkEnter(e)){Kav4ProxyEventSearch();return;}
-			}
-		
-			function Kav4ProxyEventSearch(){
-				var se=escape(document.getElementById('kav4proxy-event-search').value);
-				LoadAjax('kav4proxy-event-list','$page?kav4proxy-event-search=yes&search='+se);
-			
-			}
-			Kav4ProxyEventSearch();
-			
+	],
+	$buttons
+	searchitems : [
+		{display: '$date', name : 'zDate'},
+		{display: '$events', name : 'subject'},
+		],
+	sortname: 'zDate',
+	sortorder: 'desc',
+	usepager: true,
+	title: '',
+	useRp: true,
+	rp: 100,
+	rpOptions: [10, 20, 30, 50,100,200,500],
+	showTableToggleBtn: false,
+	width: 835,
+	height: 450,
+	singleSelect: true
+	
+	});   
+});	
+
+	var x_clean$t= function (obj) {
+		var results=obj.responseText;
+	    if(results.length>3){  alert(results);}
+	    $('#table-$t').flexReload();	
+	    
+	}	
+
+function clean$t(){
+	if(!confirm('$ask_events_clean')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('clean-events','yes');
+	XHR.sendAndLoad('$page', 'POST',x_clean$t);		
+
+}
+
+
 	</script>
 	";
+	
+	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);
 	
 }
+function clean_events(){
+	$q=new mysql();
+	$q->QUERY_SQL("DROP TABLE kav4proxy_updates","artica_events");
+	$q->BuildTables();
+	if(!$q->ok){echo $q->mysql_error;}
+}
 
 function events_search(){
+	$t=$_GET["t"];
+	$tpl=new templates();
+	$MyPage=CurrentPageName();
+	$q=new mysql();
+	$users=new usersMenus();
+	$sock=new sockets();
+	$ID=$_GET["ID"];
+	$table="kav4proxy_updates";		
+	$tablename=$table;
+	$database="artica_events";
+	$search='%';
+	$page=1;
+	$FORCE_FILTER=null;
+	
+	
+	if(!$q->TABLE_EXISTS($tablename, $database)){json_error_show("$tablename doesn't exists...");}
+	if($q->COUNT_ROWS($tablename, $database)==0){json_error_show("No data");}
+
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
+	
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+		
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+	}
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
+	
+
+	
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	$results = $q->QUERY_SQL($sql,$database);
+	
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
+	
+	if(!$q->ok){json_error_show($q->mysql_error);}	
+
+	while ($ligne = mysql_fetch_assoc($results)) {
+	$zmd5=md5(serialize($ligne));
+	$color="black";
+	
+	
+	
+	//familysite 	size 	hits
+	
+	$urljsSIT="<a href=\"javascript:blur();\" 
+	OnClick=\"javascript:Loadjs('miniadm.MembersTrack.sitename.php?ID=$ID&sitename={$ligne["sitename"]}');\"
+	style='font-size:12px;text-decoration:underline;color:$color'>";
+	
+	$urljsCAT="<a href=\"javascript:blur();\" 
+	OnClick=\"javascript:Loadjs('miniadm.MembersTrack.category.php?ID=$ID&category=".urlencode($ligne["category"])."');\"
+	style='font-size:12px;text-decoration:underline;color:$color'>";	
+	
+	
+	
+	
+	$data['rows'][] = array(
+		'id' => "$zmd5",
+		'cell' => array(
+			"<span style='font-size:12px;color:$color'>{$ligne["zDate"]}</a></span>",
+			"<span style='font-size:12px;color:$color'>{$ligne["subject"]}</a></span>",
+			)
+		);
+	}
+	
+	
+echo json_encode($data);		
+return;	
+	
 	$page=CurrentPageName();
 	$tpl=new templates();		 
 	if(trim($_GET["search"])<>null){

@@ -12,7 +12,7 @@
 <clamav_protect>Protection antivirus ClamAV</clamav_protect>
 <config>Script de configuration</config>
 <Cure>Activer l'analyse d'objets Infect&eacute;s</Cure>
-<del_folder_name>&Ecirc;tes-vous s&ucirc;r de supprimer ce dossier ??</del_folder_name>
+<del_folder_name>Supprimer ce dossier ??</del_folder_name>
 <del_sub_folder>Supprimer le dossier</del_sub_folder>
 <disable netbios>D&eacute;sactiver netbios</disable netbios>
 <disable netbios_text>Activer ce param&egrave;tre va rendre inop&eacute;rant le support du netbios dans Samba.[br]

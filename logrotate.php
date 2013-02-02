@@ -220,7 +220,7 @@ function tabs(){
 		
 			
 		}
-	echo "<div id=main_logrotate style='width:100%;height:600px;overflow:auto;background-color:white;'>
+	echo "<div id=main_logrotate>
 				<ul>". implode("\n",$html)."</ul>
 		</div>
 		<script>
@@ -755,7 +755,7 @@ function storage_view_search(){
 function search_store(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
-	$q=new mysql_builder();
+	$q=new mysql_syslog();
 	$search='%';
 	$table="store";
 	$page=1;

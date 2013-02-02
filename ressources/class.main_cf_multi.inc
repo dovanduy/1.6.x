@@ -185,7 +185,6 @@ class main_header_check{
 				$this->array_from[]=array("PATTERN"=>$ligne,"EXPLAIN"=>$regs[2][$num]);
 			}
 		}
-		
 	}	
 	
 	

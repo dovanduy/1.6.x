@@ -38,6 +38,11 @@ function launch_tests(){
 		return;
 	}
 	
+	if(system_is_overloaded(basename(__FILE__))){
+		system_admin_events("Overloaded, aborting task...",__FUNCTION__,__FILE__,__LINE__,"system");
+		return;
+	}
+	
 	@file_put_contents($pidfile, getmypid());
 	
 	$datafile="/etc/artica-postfix/settings/Daemons/HdparmInfos";

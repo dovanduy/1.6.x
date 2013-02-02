@@ -6,161 +6,180 @@ include_once(dirname(__FILE__).'/class.groups.inc');
 include_once(dirname(__FILE__).'/class.auto-aliases.inc');
 include_once(dirname(__FILE__).'/class.mysql.inc');
 include_once(dirname(__FILE__).'/class.privileges.inc');
-
+include_once(dirname(__FILE__)."/class.external.ad.inc");
 
 class user{
-	var $DoesNotExists;
-	var $DisplayName;
-	var $domainname;
-	var $password;
-	var $uid;
-	var $NotASambaUser=false;
-	var $mail;
-	var $aliases;
-	var $UserExists=false;
-	var $error;
-	var $ou;
-	var $dn;
-	var $group_id;
-	var $mailDir;
-	var $homeDirectory;
-	var $local_sid;
-	var $samba_installed=false;
-	var $objectClass_array=array();
-	var $MailboxActive;
-	var $ArticaUserFilterRule;
-	var $FTPStatus;
-	var $accountActive;
-	var $accountGroup;
-	var $sambaLogonTime;
-	var $sambaLogoffTime;
-	var $sambaKickoffTime;
-	var $sambaPwdCanChange;
-	var $sambaPrimaryGroupSID;
-	var $sambaAcctFlags;
-	var $sambaNTPassword;
-	var $sambaLMPassword;
-	var $sambaHomePath;
-	var $sambaHomeDrive;
-	var $sambaProfilePath;
-	var $SambaAdminServerIPDefined;
-	var $DisableAccountLessThan4Caracters=false;	
-	var $MailingListAddressGroup=0;
-	var $zarafaAdmin=0;
-	var $zarafaSharedStoreOnly=0;
-	var $zarafaSendAsPrivilege=array();
+	public $DoesNotExists;
+	public $DisplayName;
+	public $domainname;
+	public $password;
+	public $uid;
+	public $NotASambaUser=false;
+	public $mail;
+	public $aliases;
+	public $UserExists=false;
+	public $error;
+	public $ou;
+	public $dn;
+	public $group_id;
+	public $mailDir;
+	public $homeDirectory;
+	public $local_sid;
+	public $samba_installed=false;
+	public $objectClass_array=array();
+	public $MailboxActive;
+	public $ArticaUserFilterRule;
+	public $FTPStatus;
+	public $accountActive;
+	public $accountGroup;
+	public $sambaLogonTime;
+	public $sambaLogoffTime;
+	public $sambaKickoffTime;
+	public $sambaPwdCanChange;
+	public $sambaPrimaryGroupSID;
+	public $sambaAcctFlags;
+	public $sambaNTPassword;
+	public $sambaLMPassword;
+	public $sambaHomePath;
+	public $sambaHomeDrive;
+	public $sambaProfilePath;
+	public $SambaAdminServerIPDefined;
+	public $DisableAccountLessThan4Caracters=false;	
+	public $MailingListAddressGroup=0;
+	public $zarafaAdmin=0;
+	public $zarafaSharedStoreOnly=0;
+	public $zarafaHidden=0;
+	public $zarafaSendAsPrivilege=array();
 		
-	var $uidNumber;
-	var $FinalDateToLive=0;
-	var $vacationActive="FALSE";
-	var $vacationStart=null;
-	var $vacationEnd=null;
-	var $vacationInfo=null;
+	public $uidNumber;
+	public $FinalDateToLive=0;
+	public $vacationActive="FALSE";
+	public $vacationStart=null;
+	public $vacationEnd=null;
+	public $vacationInfo=null;
 	
 	
-	var $FTPDownloadBandwidth=550;	
-	var $FTPDownloadRatio=5;	
-	var $FTPQuotaFiles=50;	
-	var $FTPQuotaMBytes=1000;	
-	var $FTPUploadBandwidth=550;	
-	var $FTPUploadRatio=1;	
+	public $FTPDownloadBandwidth=550;	
+	public $FTPDownloadRatio=5;	
+	public $FTPQuotaFiles=50;	
+	public $FTPQuotaMBytes=1000;	
+	public $FTPUploadBandwidth=550;	
+	public $FTPUploadRatio=1;	
 	
 	//Joomla
-	var $JoomlaGroup;
+	public $JoomlaGroup;
 	
 	//amavis
-	var $amavisSpamLover="FALSE";
-	var $amavisBadHeaderLover="FALSE";
-	var $amavisBypassVirusChecks="FALSE";
-	var $amavisBypassSpamChecks="FALSE";
-	var $amavisBypassHeaderChecks="FALSE";
-	var $amavisSpamTagLevel="-999";
-	var $amavisSpamTag2Level="5";
-	var $amavisSpamKillLevel="5";
-	var $amavisSpamModifiesSubj="TRUE";
-	var $FetchMailMatchAddresses=array();	
-	var $EnableBackupAccount=0;
-	var $RsyncBackupTargetPath=null;
+	public $amavisSpamLover="FALSE";
+	public $amavisBadHeaderLover="FALSE";
+	public $amavisBypassVirusChecks="FALSE";
+	public $amavisBypassSpamChecks="FALSE";
+	public $amavisBypassHeaderChecks="FALSE";
+	public $amavisSpamTagLevel="-999";
+	public $amavisSpamTag2Level="5";
+	public $amavisSpamKillLevel="5";
+	public $amavisSpamModifiesSubj="TRUE";
+	public $FetchMailMatchAddresses=array();	
+	public $EnableBackupAccount=0;
+	public $RsyncBackupTargetPath=null;
 	
-	var $gecos;
-	var $loginShell;
-	var $sambaSID;
-	var $sambaPrimaryGroupGID;
-	var $gidNumber_array=array();
-	var $givenName;
-	var $AsAnSambaAccount;
-	var $attributs_array=array();
-	var $homeDirectoryBinded=array();
-	var $sn;
-	var $samba_groups=array();
-	var $cn;
-	var $MailAlternateAddress;
-	var $RecipientToAdd=array();
-	var $ldap_error;
-	var $SenderCanonical;
-	var $fetchmail_rules=array();
-	var $array_groups=array();
-	var $ArticaInterfaceLogon;
-	var $jpegPhoto;
-	var $jpegPhotoError='';
-	var $img_identity;
-	var $jpegPhoto_datas='';
-	var $thumbnail_path;
-	var $telephoneNumber;
-	var $mobile;
-	var $title;
-	var $postalCode;
-	var $postalAddress;
-	var $street;
-	var $town;
-	var $postOfficeBox;	
-	var $email_addresses=array();
+	public $gecos;
+	public $loginShell;
+	public $sambaSID;
+	public $sambaPrimaryGroupGID;
+	public $gidNumber_array=array();
+	public $givenName;
+	public $AsAnSambaAccount;
+	public $attributs_array=array();
+	public $homeDirectoryBinded=array();
+	public $sn;
+	public $samba_groups=array();
+	public $cn;
+	public $MailAlternateAddress;
+	public $RecipientToAdd=array();
+	public $ldap_error;
+	public $SenderCanonical;
+	public $fetchmail_rules=array();
+	public $array_groups=array();
+	public $ArticaInterfaceLogon;
+	public $jpegPhoto;
+	public $jpegPhotoError='';
+	public $img_identity;
+	public $jpegPhoto_datas='';
+	public $thumbnail_path;
+	public $telephoneNumber;
+	public $mobile;
+	public $title;
+	public $postalCode;
+	public $postalAddress;
+	public $street;
+	public $town;
+	public $postOfficeBox;	
+	public $email_addresses=array();
 	
-	var $MailboxSecurityParameters;
-	var $MailBoxMaxSize;
-	var $AllowedSMTPTroughtInternet;
-	var $amavisWhitelistSender=array();
-	var $amavisBlacklistSender=array();
-	var $AlternateSmtpRelay;
-	var $DotClearUserEnabled;
-	var $EnableUserSpamLearning;
-	var $vacationEnabled="FALSE";
-	var $privileges_array=array();
-	var $cyrus_imapd_installed=false;
-	var $UserRelayHostForward=null;
-	var $HASH_ALL_MAILS=array();
-	var $UsersInterfaceDatas;
-	var $ThumbnailPath;
-	var $CryptedHome;
-	var $CryptedHomePassword=null;
-	var $CryptedHomeSize=null;
-	var $SenderBccMaps=null;
-	var $SAMBA_ENABLED=true;
-	var $SIMPLE_SCHEMA=false;
-	var $ArticaGroupPrivileges=null;
+	public $MailboxSecurityParameters;
+	public $MailBoxMaxSize;
+	public $AllowedSMTPTroughtInternet;
+	public $amavisWhitelistSender=array();
+	public $amavisBlacklistSender=array();
+	public $AlternateSmtpRelay;
+	public $DotClearUserEnabled;
+	public $EnableUserSpamLearning;
+	public $vacationEnabled="FALSE";
+	public $privileges_array=array();
+	public $cyrus_imapd_installed=false;
+	public $UserRelayHostForward=null;
+	public $HASH_ALL_MAILS=array();
+	public $UsersInterfaceDatas;
+	public $ThumbnailPath;
+	public $CryptedHome;
+	public $CryptedHomePassword=null;
+	public $CryptedHomeSize=null;
+	public $SenderBccMaps=null;
+	public $SAMBA_ENABLED=true;
+	public $SIMPLE_SCHEMA=false;
+	public $ArticaGroupPrivileges=null;
 	
-	var $zarafaQuotaWarn=0;
-	var $zarafaQuotaSoft=0;
-	var $zarafaQuotaHard=0;
-	var $zarafaQuotaOverride=0;
-	var $zarafaMbxLang;
-	var $WebDavUser=0;
-	var $zarafaEnabledFeatures=null;
-	var $zarafaDisabledFeatures=null;
-	var $EnableManageUsersTroughActiveDirectory=false;
-	var $ldapClass;
+	public $zarafaQuotaWarn=0;
+	public $zarafaQuotaSoft=0;
+	public $zarafaQuotaHard=0;
+	public $zarafaQuotaOverride=0;
+	public $zarafaMbxLang;
+	public $WebDavUser=0;
+	public $zarafaEnabledFeatures=null;
+	public $zarafaDisabledFeatures=null;
+	public $EnableManageUsersTroughActiveDirectory=false;
+	public $ldapClass;
+	public $AsActiveDirectoryMember=false;
 
 			
 	function user($uid=null,$dn=null){
+		if(function_exists("debug_backtrace")){
+			$trace=debug_backtrace();
+			if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["class"]}/{$trace[1]["function"]}() line {$trace[1]["line"]}";}
+		}
+		writelogs("Loading $uid, $dn $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
 		$users=new usersMenus();
 		$this->cyrus_imapd_installed=$users->cyrus_imapd_installed;
 		$group=new groups(null);
 		$ldap=new clladp();
 		$sock=new sockets();
-		if($ldap->ldapFailed){
-			$this->error="LDAP Failed: $ldap->ldap_last_error";
-			return null;}
+		
+		if(isset($_SESSION[__CLASS__][$this->uid]["AsActiveDirectoryMember"])){
+			if($_SESSION[__CLASS__][$this->uid]["AsActiveDirectoryMember"]){
+				if(strpos($dn,",")>0){
+					writelogs("Loading LoadFromActiveDirectory $dn $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					$this->LoadFromActiveDirectory($dn);
+				}else{
+					writelogs("Loading LoadFromActiveDirectory $uid $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					$this->LoadFromActiveDirectory($uid);
+				}
+				return;
+			}
+		}
+		
+		if($ldap->ldapFailed){$this->error="LDAP Failed: $ldap->ldap_last_error";return null;}
 		$this->ldapClass=$ldap;
 		$this->samba_installed=$users->SAMBA_INSTALLED;
 		$DisableAccountLessThan4Caracters=$sock->GET_INFO("DisableAccountLessThan4Caracters");
@@ -181,7 +200,11 @@ class user{
 		
 		if($uid<>null){
 			if($this->EnableManageUsersTroughActiveDirectory){
-				$this->LoadFromActiveDirectory($uid);
+				if(strpos($dn,",")>0){
+					$this->LoadFromActiveDirectory($dn);
+				}else{
+					$this->LoadFromActiveDirectory($uid);
+				}
 				return;
 			}
 		}
@@ -207,7 +230,11 @@ class user{
 			$this->uid=str_replace(" ",".",$this->uid);
 			if($this->password==null){$this->BuildDefaultPassword();}
 			$emailsp=explode('@',$this->mail);
-			if($this->domainname==null){$this->domainname=$emailsp[1];}
+			if(count($emailsp)>0){
+				if(isset($emailsp[1])){
+					if($this->domainname==null){$this->domainname=$emailsp[1];}
+				}
+			}
 			if($this->DisplayName==null){$this->DisplayName=$this->uid;}
 			
 			if($this->postalCode==null){$this->postalCode='0000';}
@@ -267,6 +294,10 @@ class user{
 			if($this->zarafaQuotaHard==null){$this->zarafaQuotaHard="0";}
 			if($this->zarafaQuotaOverride==null){$this->zarafaQuotaOverride="0";}
 			if($this->zarafaSharedStoreOnly==null){$this->zarafaSharedStoreOnly="0";}
+			
+			if(!is_numeric($this->zarafaSharedStoreOnly)){$this->zarafaSharedStoreOnly=0;}
+			if(!is_numeric($this->zarafaHidden)){$this->zarafaHidden=0;}
+			
 			if(!is_numeric($this->WebDavUser)){$this->WebDavUser=0;}
 			
 			
@@ -310,55 +341,107 @@ class user{
 	}
 	
 	
-	private function LoadFromActiveDirectory($uid){
+	private function mem_getusage(){
+		$time=0;
+		$unit="KB";
+		$mem=round(memory_get_usage(true)/1024);
+		if($mem>1024){$mem=round($mem/1000,2);$unit="MB";}
+			
+		$xtime=microtime(true);
+		if(!isset($GLOBALS["VERBOSE_MICROTIME"])){
+			$GLOBALS["VERBOSE_MICROTIME"]=$xtime;
+		}else{
+			$time = $xtime - $GLOBALS["VERBOSE_MICROTIME"];
+			$GLOBALS["VERBOSE_MICROTIME"]=$xtime;
+			$time=round($time,2);
+		}
+		return $time."s ".$mem.$unit;
+	}	
+	private function LoadFromActiveDirectory_prime($uid=null){
+		writelogs("Loading $uid",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] <strong style='color:red'>p->LoadMember($this->uid)</strong><br>\n";}
+		include_once(dirname(__FILE__)."/class.external.ad.inc");
+		$p=new external_ad_search();
+		if($uid==null){$uid=$this->uid;}
+		$attrs=$p->LoadMember($uid);
+		if(!is_array($attrs)){$this->DoesNotExists=true;return false;}
+		$_SESSION[__CLASS__][$uid]["AsActiveDirectoryMember"]=true;
+		$this->AsActiveDirectoryMember=true;
+		$this->ou=$p->ou;
+		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] <strong style='color:red'>User OU = $this->ou</strong><br>\n";}
+		return $attrs;		
+	}
+	
+	private function LoadFromActiveDirectory($uid,$ByNewClass=false){
+		
+		if(function_exists("debug_backtrace")){
+			$trace=debug_backtrace();
+			if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["class"]}/{$trace[1]["function"]}() line {$trace[1]["line"]}";}
+		}
+		
+		writelogs("$uid $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		
 		$this->uid=$uid;
-		$ldap=new ldapAD();
-		$sAMAccountName=$this->uid;
-		$searchdn=$ldap->suffix;
-		$sr =@ldap_search($ldap->ldap_connection,$searchdn,"(sAMAccountName=".$sAMAccountName.")");
-		
-		if(!$sr){
-			writelogs("Unable to find : $uid stamp DoesNotExists has TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			$this->DoesNotExists=true;
-			return null;
+		if(!$ByNewClass){
+			$ldap=new clladp();
+			if(!$ldap->IsKerbAuth()){
+				$ldap=new ldapAD();
+				$sAMAccountName=$this->uid;
+				$searchdn=$ldap->suffix;
+				$sr =@ldap_search($ldap->ldap_connection,$searchdn,"(sAMAccountName=".$sAMAccountName.")");	
+				if(!$sr){writelogs("Unable to find : $uid stamp DoesNotExists has TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);$this->DoesNotExists=true;return null;}
+				$entry_id = ldap_first_entry($ldap->ldap_connection,$sr);
+				if(!$entry_id){writelogs( 'INFOS: bad value $entry_id: (' . $entry_id . ')  find: (sAMAccountName=' . $sAMAccountName . ') -> aborting function search engine doesn`t found the pattern',__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);$this->DoesNotExists=true;return null;}
+				$attrs = ldap_get_attributes($ldap->ldap_connection, $entry_id);
+			}else{
+				$attrs=$this->LoadFromActiveDirectory_prime($uid);
+				
+			}
+			
+		}else{
+			$attrs=$this->LoadFromActiveDirectory_prime($uid);
 		}
 		
-		$entry_id = ldap_first_entry($ldap->ldap_connection,$sr);
-		if(!$entry_id){
-			writelogs( 'INFOS: bad value $entry_id: (' . $entry_id . ')  find: (sAMAccountName=' . $sAMAccountName . ') -> aborting function search engine doesn`t found the pattern',__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			$this->DoesNotExists=true;
-			return null;
-		}
-		$attrs = ldap_get_attributes($ldap->ldap_connection, $entry_id);
-		$this->dn=$ldap->_Get_dn_userid($this->uid);
+		if(isset($attrs["distinguishedName"][0])){$this->dn=$attrs["distinguishedName"][0];}
+		if(isset($attrs["dn"])){$this->dn=$attrs["dn"];}
 		
 		for($i=0;$i<$attrs["objectClass"]["count"];$i++){
 			$class=$attrs["objectClass"][$i];
 			$this->objectClass_array[$class]=$class;
 		}
 		
-		for($i=0;$i<$attrs["gidNumber"]["count"];$i++){$this->gidNumber_array[$i]=$attrs["gidNumber"][$i];}		
+		if(isset($attrs["gidNumber"]["count"])){
+			for($i=0;$i<$attrs["gidNumber"]["count"];$i++){$this->gidNumber_array[$i]=$attrs["gidNumber"][$i];}
+		}		
 		while (list ($num, $ligne) = each ($attrs)){if(!is_numeric($num)){$this->attributs_array[$num]=$num;}}
 		$this->DisplayName=$attrs["displayName"][0];
 		if($this->mail<>null){$this->mail=$attrs["mail"][0];$this->HASH_ALL_MAILS[]=$this->mail;}
-		$this->givenName=$attrs["givenName"][0];
-		$this->cn=$attrs["cn"][0];
-		$this->accountGroup=$attrs["primarygroupid"][0];
-		$this->sambaPrimaryGroupSID=$attrs["primarygroupid"][0];
-		$this->sn=$attrs["sn"][0];
-		$this->jpegPhoto=$attrs["jpegPhoto"][0];
-		$this->jpegPhoto_datas=$attrs["jpegPhoto"][0];
-		$this->telephoneNumber=$attrs["telephoneNumber"][0];
-		$this->mobile=$attrs["mobile"][0];
-		$this->title=$attrs["name"][0];
-		$this->postalCode=$attrs["postalCode"][0];
-		$this->postalAddress=$attrs["streetaddress"][0];
-		$this->street=$attrs["streetaddress"][0];
-		$this->town=$attrs["l"][0];
-		$this->postOfficeBox=$attrs["postOfficeBox"][0];
+		if(isset($attrs["givenName"][0])){$this->givenName=$attrs["givenName"][0];}
+		if(isset($attrs["cn"][0])){$this->cn=$attrs["cn"][0];}
+		if(isset($attrs["primarygroupid"][0])){$this->accountGroup=$attrs["primarygroupid"][0];}
+		if(isset($attrs["primarygroupid"][0])){$this->sambaPrimaryGroupSID=$attrs["primarygroupid"][0];}
+		if(isset($attrs["sn"][0])){$this->sn=$attrs["sn"][0];}
+		if(isset($attrs["jpegPhoto"][0])){$this->jpegPhoto=$attrs["jpegPhoto"][0];}
+		if(isset($attrs["jpegPhoto"][0])){$this->jpegPhoto_datas=$attrs["jpegPhoto"][0];}
+		if(isset($attrs["telephoneNumber"][0])){$this->telephoneNumber=$attrs["telephoneNumber"][0];}
+		if(isset($attrs["mobile"][0])){$this->mobile=$attrs["mobile"][0];}
+		if(isset($attrs["name"][0])){$this->title=$attrs["name"][0];}
+		if(isset($attrs["postalCode"][0])){$this->postalCode=$attrs["postalCode"][0];}
+		if(isset($attrs["streetaddress"][0])){$this->postalAddress=$attrs["streetaddress"][0];}
+		if(isset($attrs["streetaddress"][0])){$this->street=$attrs["streetaddress"][0];}
+		if(isset($attrs["l"][0])){$this->town=$attrs["l"][0];}
+		if(isset($attrs["postOfficeBox"][0])){$this->postOfficeBox=$attrs["postOfficeBox"][0];}
 		$this->UserExists=true;
+		return true;
 		
 		
+	}
+	
+	
+	private function LoadDataFromActiveDirectory($dn=null){
+		if(strpos($dn, ",")>0){return $this->LoadFromActiveDirectory($dn,true);}
+		return $this->LoadFromActiveDirectory($this->uid,true);
+
 		
 	}
 	
@@ -444,6 +527,7 @@ class user{
 	
 	function SieveScripts(){
 				//SIEVE
+			if(!isset($this->privileges_array["EnableSieveArticaScript"])){return;}
 			if($this->privileges_array["EnableSieveArticaScript"]==1){
 				if($this->cyrus_imapd_installed){
 					include_once(dirname(__FILE__).'/class.sieve.inc');
@@ -467,6 +551,9 @@ class user{
 		
 		return false;
 	}
+	
+	
+
 			
 			
 	private function LoadUserDatas($userdn=null){
@@ -480,8 +567,8 @@ class user{
 		$SambaUser=false;
 		
 		$uid=$this->uid;
+		writelogs("$userdn",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		
-		$group=new groups(null);
 		if($uid==null){writelogs("Resquest an uid null, aborting",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);$this->DoesNotExists=true;return null;}
 		if($uid==-100){return null;}
 		
@@ -489,8 +576,11 @@ class user{
 		$pattern_uid=$ldap->ldap_escape($uid);
 		
 		$searchdn="dc=organizations,$ldap->suffix";
+		if(strpos($userdn, ",")>0){$searchdn=$userdn;$this->dn=$userdn;}
+		
 		$sr =@ldap_search($ldap->ldap_connection,$searchdn,"(uid=".$pattern_uid.")");
 		
+		if(!$sr){if($ldap->IsKerbAuth()==1){if($this->LoadDataFromActiveDirectory($userdn)){return;}}}
 		
 		
 		if(!$sr){
@@ -504,6 +594,7 @@ class user{
 		
 		$entry_id = ldap_first_entry($ldap->ldap_connection,$sr);
 		if(!$entry_id){
+			if($ldap->IsKerbAuth()==1){if($this->LoadDataFromActiveDirectory($userdn)){return;}}
 			writelogs( 'INFOS: bad value $entry_id: (' . $entry_id . ')  find: (uid=' . $pattern_uid . ') -> aborting function search engine doesn`t found the pattern',__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->DoesNotExists=true;
 			return null;
@@ -517,7 +608,7 @@ class user{
 			$this->objectClass_array[$class]=$class;
 		}
 		
-		
+		$group=new groups(null);
 		
 		
 		for($i=0;$i<$attrs["gidNumber"]["count"];$i++){
@@ -553,7 +644,9 @@ class user{
 		$this->homeDirectory=$attrs["homeDirectory"][0];
 		$this->mailDir=$attrs["mailDir"][0];
 		$this->DisplayName=$attrs["displayName"][0];
-		$this->password=$attrs["userPassword"][0];
+		if(isset($attrs["userPassword"][0])){
+			$this->password=$attrs["userPassword"][0];
+		}
 		$this->MailboxActive=$attrs["MailboxActive"][0];
 		if(isset($attrs["ArticaUserFilterRule"][0])){$this->ArticaUserFilterRule=$attrs["ArticaUserFilterRule"][0];}
 		if(!isset($attrs["FTPStatus"])){$attrs["FTPStatus"][0]=null;}
@@ -630,6 +723,8 @@ class user{
 		if(isset($attrs["zarafaQuotaHard"][0])){$this->zarafaQuotaOverride=$attrs["zarafaQuotaHard"][0];}
 		if(isset($attrs["zarafaMbxLang"][0])){$this->zarafaMbxLang=$attrs["zarafaMbxLang"][0];}
 		if(isset($attrs["zarafaSharedStoreOnly"][0])){$this->zarafaSharedStoreOnly=$attrs["zarafaSharedStoreOnly"][0];}
+		if(isset($attrs["zarafaHidden"][0])){$this->zarafaHidden=$attrs["zarafaHidden"][0];}
+		
 		
 		
 		if(isset($attrs["zarafaSendAsPrivilege"]["count"])){
@@ -642,10 +737,7 @@ class user{
 		if(isset($attrs["zarafaEnabledFeatures"][0])){$this->zarafaEnabledFeatures=$attrs["zarafaEnabledFeatures"][0];}
 		if(isset($attrs["zarafaDisabledFeatures"][0])){$this->zarafaDisabledFeatures=$attrs["zarafaDisabledFeatures"][0];}
 		
-		
-		
-		
-		
+
 		//amavis
 		if(isset($attrs["amavisSpamLover"][0])){$this->amavisSpamLover=$attrs["amavisSpamLover"][0];}
 		if(isset($attrs["amavisBadHeaderLover"][0])){$this->amavisBadHeaderLover=$attrs["amavisBadHeaderLover"][0];}
@@ -659,29 +751,33 @@ class user{
 		$this->UserExists=true;
 		
 		//PureFTPD
-		$this->FTPDownloadBandwidth=$attrs["FTPDownloadBandwidth"][0];
-		$this->FTPDownloadRatio=$attrs["FTPDownloadRatio"][0];
-		$this->FTPQuotaFiles=$attrs["FTPQuotaFiles"][0];
-		$this->FTPQuotaMBytes=$attrs["FTPQuotaMBytes"][0];
-		$this->FTPStatus=$attrs["FTPStatus"][0];
-		$this->FTPUploadBandwidth=$attrs["FTPUploadBandwidth"][0];
-		$this->FTPUploadRatio=$attrs["FTPUploadRatio"][0];
+		if(isset($attrs["FTPDownloadBandwidth"][0])){$this->FTPDownloadBandwidth=$attrs["FTPDownloadBandwidth"][0];}
+		if(isset($attrs["FTPDownloadRatio"][0])){$this->FTPDownloadRatio=$attrs["FTPDownloadRatio"][0];}
+		if(isset($attrs["FTPQuotaFiles"][0])){$this->FTPQuotaFiles=$attrs["FTPQuotaFiles"][0];}
+		if(isset($attrs["FTPQuotaMBytes"][0])){$this->FTPQuotaMBytes=$attrs["FTPQuotaMBytes"][0];}
+		if(isset($attrs["FTPStatus"][0])){$this->FTPStatus=$attrs["FTPStatus"][0];}
+		if(isset($attrs["FTPUploadBandwidth"][0])){$this->FTPUploadBandwidth=$attrs["FTPUploadBandwidth"][0];}
+		if(isset($attrs["FTPUploadRatio"][0])){$this->FTPUploadRatio=$attrs["FTPUploadRatio"][0];}
+		
+		if(isset($attrs["UsersInterfaceDatas"][0])){$this->UsersInterfaceDatas=$attrs["UsersInterfaceDatas"][0];}
+		if(isset($attrs["JoomlaGroup"][0])){$this->JoomlaGroup=$attrs["JoomlaGroup"][0];}
 		
 		if(!class_exists("mysql")){include_once(dirname(__FILE__)."/class.mysql.inc");}
 		$q=new mysql();
 		$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT `uid` FROM webdavusers WHERE `uid`='$this->uid'",'artica_backup'));
 		if($ligne["uid"]<>null){$this->WebDavUser=1;}
 		
-		if(isset($attrs["UsersInterfaceDatas"][0])){$this->UsersInterfaceDatas=$attrs["UsersInterfaceDatas"][0];}
+		
 
 		if($this->FinalDateToLive==null){$this->FinalDateToLive=0;}
 		
-		$this->JoomlaGroup=$attrs["JoomlaGroup"][0];
-		
+		if($GLOBALS["VERBOSE"]){echo "$this->uid = uidNumber:$this->uidNumber\n";}
 		if($daemon_uid>0){writelogs("($this->uid):: $this->uid = uidNumber:$this->uidNumber ;CryptedHome=\"$this->CryptedHome\",Vacation Enable=\"$this->vacationEnabled\"; vacationActive=\"$this->vacationActive\" EnableUserSpamLearning={$attrs["EnableUserSpamLearning"][0]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		
 		//uidNumber
+		if($GLOBALS["VERBOSE"]){echo " **** Check uid number ****\n";}
 		$newnumber=$this->uidNumberCheck(1);
+		if($GLOBALS["VERBOSE"]){echo " **** $newnumber ****\n";}
 		$old_id=$this->uidNumber;
 		
 		if($newnumber<>$old_id){
@@ -1458,8 +1554,28 @@ class user{
 	}
 	
 	
-	function find_ldap_items($users,$ou=null,$nogetent=false,$ObjectZarafa=false,$MaxItems=0,$OnlyGroups=0,$OnlyUsers=0){
+	function find_ldap_items($users,$ou=null,$nogetent=false,$ObjectZarafa=false,$MaxItems=0,$OnlyGroups=0,$OnlyUsers=0,$OnlyCheckAD=0){
 		$ldap=$this->ldapClass;
+		$EnableKerbAuth=0;
+		$UserSearched=false;
+		$GroupSearched=false;
+		if(!isset($_SESSION["EnableKerbAuth"])){
+			$sock=new sockets();
+			$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+			if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+			$_SESSION["EnableKerbAuth"]=$EnableKerbAuth;
+		}
+		
+		if(!isset($_SESSION["EnableSambaActiveDirectory"])){
+			$sock=new sockets();
+			$EnableSambaActiveDirectory=$sock->GET_INFO("EnableSambaActiveDirectory");
+			if(!is_numeric($EnableSambaActiveDirectory)){$EnableSambaActiveDirectory=0;}
+			$_SESSION["EnableSambaActiveDirectory"]=$EnableSambaActiveDirectory;
+		}
+		
+		if($_SESSION["EnableKerbAuth"]==1){$EnableKerbAuth=1;}
+		if($_SESSION["EnableSambaActiveDirectory"]==1){$EnableKerbAuth=1;}
+		
 		if($MaxItems==0){$MaxItems_sql=50;}else{$MaxItems_sql=$MaxItems;}
 		$suffix=$ldap->suffix;
 		if($ou<>null){
@@ -1471,6 +1587,8 @@ class user{
 		$users=$users."*";
 		$users=str_replace('**','*',$users);
 		$usersqsql=str_replace("*", "%", $users);
+		
+		if($OnlyCheckAD==0){
 		if(!$nogetent){
 			include_once(dirname(__FILE__)."/class.mysql.inc");
 			$q=new mysql();
@@ -1498,28 +1616,44 @@ class user{
 		
 		}
 		
+	}
+		
 		if($OnlyGroups==0){
-			$sr =@ldap_search($ldap->ldap_connection,$suffix,"(&(objectClass=userAccount)(|(uid=$users)(cn=$users)(displayName=$users)))",
-			array("displayname","uid"),null,$MaxItems);
-			if($sr){
-					$result = ldap_get_entries($ldap->ldap_connection, $sr);
-					for($i=0;$i<$result["count"];$i++){
-						$displayname=$result[$i]["displayname"][0];
-						$uid=$result[$i]["uid"][0];
-						if(isset($ALREADY[$uid])){continue;}
-						if($displayname==null){$displayname=$uid;}
-						$res[$uid]=$displayname;
-					}
+			$UserSearched=true;
+			if($OnlyCheckAD==0){
+				$sr =@ldap_search($ldap->ldap_connection,$suffix,"(&(objectClass=userAccount)(|(uid=$users)(cn=$users)(displayName=$users)))",
+				array("displayname","uid"),null,$MaxItems);
+				if($sr){
+						$result = ldap_get_entries($ldap->ldap_connection, $sr);
+						for($i=0;$i<$result["count"];$i++){
+							$displayname=$result[$i]["displayname"][0];
+							$uid=$result[$i]["uid"][0];
+							if(isset($ALREADY[$uid])){continue;}
+							if($displayname==null){$displayname=$uid;}
+							$res[$uid]=$displayname;
+						}
+					
+			}
+			if($EnableKerbAuth==1){
+				$adKerb=new external_ad_search();
+				$res=$adKerb->searchUser($users,$res);
+			}
 					
 			}else{
 				writelogs("Error for userAccount (".ldap_err2str(ldap_errno($ldap->ldap_connection)).")",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				if($EnableKerbAuth==1){	
+					$adKerb=new external_ad_search();
+					$res=$adKerb->searchUser($users,$res);
+				}
 			}
 		}
 		
-		if($OnlyUsers==0){	
-			$sr =@ldap_search($ldap->ldap_connection,$suffix,"(&(objectClass=posixGroup)(|(cn=$users)(displayName=$users)))",
-			array("displayname","cn","gidNumber"),null,$MaxItems);
-			if($sr){
+		if($OnlyUsers==0){
+			if($OnlyCheckAD==0){	
+				$GroupSearched=true;
+				$sr =@ldap_search($ldap->ldap_connection,$suffix,"(&(objectClass=posixGroup)(|(cn=$users)(displayName=$users)))",
+				array("displayname","cn","gidNumber"),null,$MaxItems);
+				if($sr){
 					$result = ldap_get_entries($ldap->ldap_connection, $sr);
 					for($i=0;$i<$result["count"];$i++){
 						$displayname=$result[$i]["displayname"][0];
@@ -1528,11 +1662,32 @@ class user{
 						if($displayname==null){$displayname=$uid;}
 						$res["@$uid"]="@$displayname:$gidNumber";
 					}
-					
-			}else{
-				writelogs("Error for posixGroup",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);		
+						
+				}else{
+					writelogs("Error for posixGroup",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);		
+				}
 			}
+			
+			if($EnableKerbAuth==1){
+				$adKerb=new external_ad_search();
+				$res=$adKerb->searchGroup($users,$res);
+			}	
 		}
+		
+		if(!$UserSearched){
+			if($EnableKerbAuth==1){
+			$adKerb=new external_ad_search();
+			$res=$adKerb->searchUser($users,$res);
+			}
+		}		
+		if(!$GroupSearched){
+			if($EnableKerbAuth==1){
+				$adKerb=new external_ad_search();
+				$res=$adKerb->searchGroup($users,$res);
+			}
+		}		
+		
+		
 		writelogs("(&(objectClass=posixGroup)(uid=$users)) in $suffix ". count($res)." elements",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		return $res;
 		
@@ -2202,17 +2357,13 @@ function joomla(){
 	
 	function LastUidNumber(){
 		$sock=new sockets();
-		$LastUidNumber=trim($sock->GET_INFO("LastUidNumber",true));
-		if(is_numeric($LastUidNumber)){
-			if($GLOBALS["VERBOSE"]){echo "$LastUidNumber is_numeric... OK\n";}
-			if($LastUidNumber>2000){
-				if($GLOBALS["VERBOSE"]){echo "$LastUidNumber >2000 OK\n";}
-				$LastUidNumber=$LastUidNumber+1;
-				$sock->SET_INFO("LastUidNumber", $LastUidNumber);
-				return $LastUidNumber;
-				
-			}
+		if(isset($GLOBALS["LastUidNumber"])){
+			$GLOBALS["LastUidNumber"]=$GLOBALS["LastUidNumber"]+1;
+			if($GLOBALS["VERBOSE"]){echo __LINE__.":LastUidNumber: Return {$GLOBALS["LastUidNumber"]}\n";}
+			$sock->SET_INFO("LastUidNumber", $GLOBALS["LastUidNumber"]);
+			return $GLOBALS["LastUidNumber"];
 		}
+
 		$ldap=new clladp();
 		writelogs("Search the last uid number",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
       	$r =@ldap_search($ldap->ldap_connection, $ldap->suffix, '(uidnumber=*)',array("uidnumber"));
@@ -2221,7 +2372,7 @@ function joomla(){
          			ldap_sort($ldap->ldap_connection, $r, "uidNumber");
             		$result = ldap_get_entries($ldap->ldap_connection, $r);
 					$count = $result['count'];
-         			if($GLOBALS["VERBOSE"]){echo "$count items\n";}
+         			if($GLOBALS["VERBOSE"]){echo "LastUidNumber:$count items\n";}
          			for($i=0;$i<$count;$i++){
          				$id=$result[$i]['uidnumber'][0];
          				if($id>$biguid){$biguid=$id;}
@@ -2233,8 +2384,29 @@ function joomla(){
       			$biguid=2000;
       		}
       		if($biguid<2000){$biguid=2000;}
-      		$sock->SET_INFO("LastUidNumber", $biguid);
-      		return $biguid;
+      	if($biguid==2000){	
+			$GLOBALS["LastUidNumber"]=trim($sock->GET_INFO("LastUidNumber",true));
+			if(is_numeric($GLOBALS["LastUidNumber"])){
+				if($GLOBALS["VERBOSE"]){echo __LINE__.":LastUidNumber:{$GLOBALS["LastUidNumber"]} is_numeric... OK\n";}
+				if($GLOBALS["LastUidNumber"]>2000){
+					if($GLOBALS["VERBOSE"]){echo __LINE__.":LastUidNumber:{$GLOBALS["LastUidNumber"]} >2000 OK\n";}
+					$GLOBALS["LastUidNumber"]=$GLOBALS["LastUidNumber"]+1;
+					$sock->SET_INFO("LastUidNumber", $GLOBALS["LastUidNumber"]);
+					if($GLOBALS["VERBOSE"]){echo __LINE__.":LastUidNumber: Return {$GLOBALS["LastUidNumber"]} OK\n";}
+					return $GLOBALS["LastUidNumber"];
+				}
+			}
+      	} 
+
+      	$uidtemp=$sock->GET_INFO("LastUidNumber",true);
+      	if(is_numeric($uidtemp)){
+      		if($uidtemp>$biguid){$biguid=$uidtemp+1;}
+      	}
+      		
+      	$GLOBALS["LastUidNumber"]=$biguid;
+		if($GLOBALS["VERBOSE"]){echo "LastUidNumber:$biguid\n";}
+      	$sock->SET_INFO("LastUidNumber", $biguid);
+      	return $biguid;
       		
 	}
 	
@@ -2344,6 +2516,7 @@ function FTPSettingsEdit(){
 		if($OuDefaultLang<>null){
 			if(trim($this->zarafaMbxLang)==null){
 				$this->SaveZarafaMbxLang($OuDefaultLang);
+				$sock=new sockets();
 				$sock->getFrameWork("cmd.php?zarafa-admin=yes");
 				$sock->getFrameWork("zarafa.php?zarafa-user-create-store=$this->uid&lang=$OuDefaultLang");	
 				$sock->getFrameWork("zarafa.php?foldersnames=yes&uid=$this->uid&lang=$OuDefaultLang");
@@ -2453,6 +2626,7 @@ function FTPSettingsEdit(){
 	
 	private function Vacation(){
 		$ldap=new clladp();
+		$users=new usersMenus();
 		if(!$ldap->ExistsDN($this->dn)){writelogs("$this->dn NO SUCH DN",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return;}
 		
 		writelogs("vacationActive=\"$this->vacationActive\"..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
@@ -2508,7 +2682,7 @@ function FTPSettingsEdit(){
 	
 	private function Zarafa_User(){
 		$ldap=new clladp();
-		
+		$upd=array();
 		if(!isset($this->objectClass_array["zarafa-user"])){
 			writelogs("objectClass `zarafa-user` does not exists...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$upd=$this->AddObjectClassReturned("zarafa-user",$upd);
@@ -2527,6 +2701,7 @@ function FTPSettingsEdit(){
 		//UsersInterfaceDatas,WebDavUser,homeDirectoryBinded,zarafaMbxLang
 		writelogs("objectClass `UserArticaClass`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$ldap=new clladp();
+		$upd=array();
 		if(!$ldap->ExistsDN($this->dn)){writelogs("$this->dn NO SUCH DN",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return;}
 		$users=new usersMenus();
 		if(!isset($this->objectClass_array["UserArticaClass"])){
@@ -2613,7 +2788,7 @@ function FTPSettingsEdit(){
 		//givenName,homePhone,homePostalAddress,initials,jpegPhoto,labeledURI,mail,manager,mobile,o,
 		//pager,photo,preferredLanguage,roomNumber,secretary,uid,userCertificate,userPKCS12,userSMIMECertificate,
 		//x500uniqueIdentifier
-		
+		$upd=array();
 		if(!isset($this->objectClass_array["inetOrgPerson"])){
 			writelogs("objectClass `inetOrgPerson` does not exists...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$upd=$this->AddObjectClassReturned("inetOrgPerson",$upd);
@@ -3512,6 +3687,7 @@ function UsersInterfaceDatasDelete(){
 		
 		function GetGroups($userid,$reverse=0){
 		if($userid==null){return null;}	
+		$res=array();
 		$attrs=array('gidNumber','cn');
 		$ldap=$this->ldapClass;
 		$sr =@ldap_search($ldap->ldap_connection,$ldap->suffix,"(&(objectClass=posixGroup)(memberUid=$userid))",$attrs);	
@@ -3733,7 +3909,14 @@ function UsersInterfaceDatasDelete(){
 			$q->QUERY_SQL($sql,"artica_backup");
 			
 			$sql="DELETE FROM mbxs_backup WHERE uid='$uid'";
+			$q->QUERY_SQL($sql,"artica_backup");
+
+			$sql="DELETE FROM contacts_blacklist WHERE uid='$uid'";
+			$q->QUERY_SQL($sql,"artica_backup");
+			
+			$sql="DELETE FROM contacts_whitelist WHERE uid='$uid'";
 			$q->QUERY_SQL($sql,"artica_backup");			
+			
 			
 			if($users->POSTFIX_INSTALLED){
 				$sock->getFrameWork("cmd.php?restart-fetchmail=yes");
@@ -3770,6 +3953,13 @@ function UsersInterfaceDatasDelete(){
 		}
 			
 		function Groups_list(){
+			
+			if($this->AsActiveDirectoryMember){
+				include_once(dirname(__FILE__)."/class.external.ad.inc");
+				$p=new external_ad_search();
+				return $p->GroupsOfMember($this->dn);
+			}
+			
 			
 			if($this->EnableManageUsersTroughActiveDirectory){
 				include_once(dirname(__FILE__)."/class.mysql.inc");
@@ -3870,6 +4060,7 @@ function draw_jpeg_photos($sourceimage=null){
 	}
 	
 	if(!file_exists($jpeg_filename)){
+		
 		writelogs("Create temporary image ". strlen($this->jpegPhoto)." bytes in $jpeg_filename",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$outjpeg = @fopen($jpeg_filename, "wb");
 		@fwrite($outjpeg, $this->jpegPhoto);
@@ -3928,10 +4119,10 @@ function draw_jpeg_photos($sourceimage=null){
 
 
 class nab{
-	var $dn;
-	var $ou;
-	var $uid;
-	var $ldapClass;
+	public $dn;
+	public $ou;
+	public $uid;
+	public $ldapClass;
 	
 	function nab($uid,$ou){
 		$this->ldapClass=new clladp();

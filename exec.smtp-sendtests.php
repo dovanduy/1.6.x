@@ -50,7 +50,7 @@ function SendTest($Key){
 		$TargetHostname=inet_interfaces();
 		smtp::events("Local, instance $servername: $TargetHostname",__FUNCTION__,__FILE__,__LINE__);
 		if($servername<>"master"){
-			smtp::events("Local, instance $servername: changed to $TargetHostname",__FUNCTION__,__FILE__,__LINE__);
+			smtp::events("Local, instance $servername: changed to inet_interfaces()::$TargetHostname",__FUNCTION__,__FILE__,__LINE__);
 			$TargetHostname=$listen_addr;
 		}
 	}
@@ -63,12 +63,16 @@ function SendTest($Key){
 	$params["helo"]=$instance;
 	$params["bindto"]=$BinDTO;
 	$params["debug"]=true;
+	
+	smtp::events("smtp_auth: {$datas["smtp_auth"]}, user:{$params["user"]},relay:{$datas["relay"]} ",__FUNCTION__,__FILE__,__LINE__);
+	
 	smtp::events("Me: HELO: $instance",__FUNCTION__,__FILE__,__LINE__);
 	
 	if($datas["smtp_auth"]==1){
 		$params["auth"]=true;
 		$params["user"]=$datas["smtp_auth_user"];
 		$params["pass"]=$datas["smtp_auth_passwd"];
+		if(trim($datas["relay"])==null){if($TargetHostname<>null){$datas["relay"]=$TargetHostname;}}
 		$TargetHostname=$datas["relay"];
 		
 	}	

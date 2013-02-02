@@ -40,6 +40,7 @@ private
     procedure ICAL_CONFIG();
     function  APACHE_FOUND_ERROR():boolean;
     function GET_CERTIFICATE_INFO(key:string):string;
+    function ifIpAddrAvailable(ipadr:string):boolean;
 
     procedure CHECK_CYRUS_CONFIG();
     function  GATEWAY_BIN_PATH():string;
@@ -688,7 +689,7 @@ var
    ZarafaDeliverBind:string;
    ZarafaMajorVersion,ZarafaMinorVersion,ZarafaSoftDelete,ZarafaCacheCellSize,ZarafaCacheObjectSize,ZarafaCacheIndexedObjectSize,ZarafaCacheQuotaLifeTime:Integer;
    ZarafaCacheQuotaSize,ZarafaCacheAclSize,ZarafaCacheUserSize,ZarafaCacheUserDetailsSize,ZarafaCacheUserDetailsLifeTime,ZarafaThreadStackSize,ZarafaCacheServerSize,ZarafadAgentJunk:integer;
-   EnableZarafaSearch,EnableZarafaSearchAttach:integer;
+   EnableZarafaSearch,EnableZarafaSearchAttach,ZarafaLogLevel,ZarafaEnableSecurityLogging:integer;
 begin
 attachment_storage:='database';
 if not TryStrToInt(SYS.GET_INFO('ZarafaUserSafeMode'),ZarafaUserSafeMode) then ZarafaUserSafeMode:=0;
@@ -729,6 +730,8 @@ if not TryStrToInt(SYS.GET_INFO('ZarafaCacheServerSize'),ZarafaCacheServerSize) 
 
 if not TryStrToInt(SYS.GET_INFO('EnableZarafaSearch'),EnableZarafaSearch) then EnableZarafaSearch:=0;
 if not TryStrToInt(SYS.GET_INFO('EnableZarafaSearchAttach'),EnableZarafaSearchAttach) then EnableZarafaSearchAttach:=0;
+if not TryStrToInt(SYS.GET_INFO('ZarafaLogLevel'),ZarafaLogLevel) then ZarafaLogLevel:=2;
+if not TryStrToInt(SYS.GET_INFO('ZarafaEnableSecurityLogging'),ZarafaEnableSecurityLogging) then ZarafaEnableSecurityLogging:=0;
 
 
 
@@ -768,7 +771,7 @@ end;
 
 ZarafaServerSMTPIP:=trim(SYS.GET_INFO('ZarafaServerSMTPIP'));
 if length(ZarafaServerSMTPIP)=0 then ZarafaServerSMTPIP:='127.0.0.1';
-if(ZarafaServerSMTPIP='0.0.0.0' then ZarafaServerSMTPIP:='127.0.0.1';
+if ZarafaServerSMTPIP='0.0.0.0' then ZarafaServerSMTPIP:='127.0.0.1';
 ZarafaStoreOutsidePath:=trim(SYS.GET_INFO('ZarafaStoreOutsidePath'));
 
 
@@ -786,6 +789,12 @@ ZarafaGatewayBind:=SYS.GET_INFO('ZarafaGatewayBind');
 if length(trim(ZarafaServerListenIP))=0 then ZarafaServerListenIP:='127.0.0.1';
 if length(trim(ZarafaGatewayBind))=0 then ZarafaGatewayBind:='0.0.0.0';
 
+if(ZarafaServerListenIP<>'127.0.0.1') then begin
+   if not ifIpAddrAvailable(trim(ZarafaServerListenIP)) then begin
+      logs.DebugLogs('Starting zarafa..............: Zarafa-server '+ZarafaServerListenIP+' is not available, switch to 127.0.0.1');
+      ZarafaServerListenIP:='127.0.0.1';
+    end;
+end;
 
 
 forceDirectories('/var/log/zarafa');
@@ -829,8 +838,15 @@ l.add('running_path = /');
 l.add('session_timeout		= 300');
 l.add('license_socket		= /var/run/zarafa-licensed');
 l.add('log_method		= syslog');
+if(ZarafaEnableSecurityLogging=1) then begin
+l.add('audit_log_enabled         = yes');
+l.add('audit_log_method         = syslog');
+l.add('audit_log_file           = -');
+l.add('audit_log_level          = '+IntToStr(ZarafaLogLevel));
+l.add('audit_log_timestamp      = 0');
+end;
 l.add('log_file		= /var/log/zarafa/server.log');
-l.add('log_level		= 2');
+l.add('log_level		= '+IntTostr(ZarafaLogLevel));
 l.add('log_timestamp		= 1');
 l.add('mysql_host		= '+SYS.MYSQL_INFOS('mysql_server'));
 l.add('mysql_port		= '+SYS.MYSQL_INFOS('port'));
@@ -926,6 +942,8 @@ l.add('deletegroup_script	=	/etc/zarafa/userscripts/deletegroup');
 l.add('createcompany_script	=	/etc/zarafa/userscripts/createcompany');
 l.add('deletecompany_script	=	/etc/zarafa/userscripts/deletecompany');
 
+
+
 l.add('enable_distributed_zarafa = false');
 l.add('storename_format = %f');
 l.add('loginname_format = %u');
@@ -935,6 +953,10 @@ l.add('hide_everyone = no');
 l.add('plugin_path		= '+pluginpath);
 l.add('user_safe_mode = '+user_safe_mode);
 if ZarafaMajorVersion>6 then l.add('disabled_features = '+disabled_features);
+
+
+
+
 forceDirectories('/etc/zarafa');
 logs.WriteToFile(l.Text,'/etc/zarafa/server.cfg');
 l.clear;
@@ -954,7 +976,7 @@ l.add('run_as_group = ');
 l.add('pid_file = /var/run/zarafa-spooler.pid');
 l.add('running_path = /');
 l.add('log_method	=	syslog');
-l.add('log_level	=	3');
+l.add('log_level	=	'+IntTostr(ZarafaLogLevel));
 l.add('log_file	=	/var/log/zarafa/spooler.log');
 l.add('log_timestamp	=	1');
 l.add('max_threads = 5');
@@ -964,6 +986,11 @@ l.add('always_send_delegates = no');
 l.add('allow_redirect_spoofing = no');
 l.add('copy_delegate_mails = yes');
 l.add('always_send_tnef = yes');
+if ZarafaMajorVersion>6 then begin
+   if ZarafaMinorVersion>0 then begin
+      l.add('plugin_enabled     = no');
+   end;
+end;
 logs.WriteToFile(l.Text,'/etc/zarafa/spooler.cfg');
 l.clear;
 l.free;
@@ -980,7 +1007,7 @@ l.add('cleanup_lockfiles	=	no');
 l.add('server_socket   =   file:///var/run/zarafa');
 l.add('server_bind_name   =   file:///var/run/zarafa-indexer');
 l.add('log_method          =   syslog');
-l.add('log_level           =   2');
+l.add('log_level           =   '+IntTostr(ZarafaLogLevel));
 l.add('log_timestamp       =   1');
 l.add('index_sync_stream	= yes');
 l.add('index_interval      =   '+IntToStr(ZarafaIndexerInterval));
@@ -1032,7 +1059,7 @@ l.add('ssl_verify_client	=	no');
 l.add('ssl_verify_file		=	');
 l.add('ssl_verify_path		=');
 l.add('log_method	=	syslog');
-l.add('log_level	=	2');
+l.add('log_level	=	'+IntTostr(ZarafaLogLevel));
 l.add('log_file	=	/var/log/zarafa/gateway.log');
 l.add('log_timestamp	=	1');
 logs.WriteToFile(l.Text,'/etc/zarafa/gateway.cfg');
@@ -1042,16 +1069,20 @@ l.free;
 
  // /etc/zarafa/dagent.cfg
 l:=Tstringlist.Create;
-l.add('server_bind	=	'+ZarafaDeliverBind);
-l.add('server_socket	=	file:///var/run/zarafa');
-l.add('run_as_user = root');
-l.add('run_as_group = root');
-l.add('pid_file = /var/run/zarafa-dagent.pid');
-l.add('lmtp_max_threads = 20');
-l.add('lmtp_port  = 2003');
-l.add('log_method	=	syslog');
-l.add('');
-l.add('archive_on_delivery = no');
+l.add('server_bind	  = '+ZarafaDeliverBind);
+l.add('server_socket	  = file:///var/run/zarafa');
+l.add('run_as_user        = root');
+l.add('run_as_group       = root');
+l.add('pid_file           = /var/run/zarafa-dagent.pid');
+l.add('lmtp_max_threads   = 20');
+l.add('lmtp_port          = 2003');
+l.add('log_method	  = syslog');
+if ZarafaMajorVersion>6 then begin
+   if ZarafaMinorVersion>0 then begin
+      l.add('plugin_enabled     = no');
+   end;
+end;
+l.add('archive_on_delivery= no');
 l.add('');
 
 l.add('spam_header_name = '+ ZarafadAgentJunkHeader);
@@ -1224,6 +1255,34 @@ begin
 
 end;
 //#############################################################################
+function tzarafa_server.ifIpAddrAvailable(ipadr:string):boolean;
+var
+RegExpr:TRegExpr;
+ datas : string;
+ ifconfig:string;
+ l:Tstringlist;
+ i:integer;
+begin
+ Result:=False;
+ ifconfig:=SYS.LOCATE_GENERIC_BIN('ifconfig');
+ if not FileExists(ifconfig) then exit;
+ l:=TstringList.Create;
+     ipadr:=AnsiReplaceText(ipadr,'.','\.');
+     fpsystem(ifconfig +' -a 2>&1 >/tmp/artica-ifIpAddrAvailable'+ipadr+'.tmp');
+     if not FileExists('/tmp/artica-ifIpAddrAvailable.tmp') then exit;
+     datas:= ReadFileIntoString('/opt/artica/logs/ifconfig_' + if_name);
+     l.LoadFromFile('/tmp/artica-ifIpAddrAvailable.tmp');
+
+     RegExpr:=TRegExpr.create;
+     RegExpr.expression:=ipadr;
+     for i:=0 to l.Count-1 do begin;
+         if RegExpr.Exec(l.Strings[i]) then begin
+            RegExpr.Free;
+            Result:=True;
+            exit;
+         end;
+   end;
+end;
 function tzarafa_server.IS_LDAP_ACTIVE():boolean;
 var
    pid:string;
@@ -1378,13 +1437,7 @@ var
    i:integer;
 begin
      zbin:=SERVER_BIN_PATH();
-     attach:='';
-     if not SYS.BuildPids() then begin
-         logs.DebugLogs('Starting zarafa..............: artica starter is already running...');
-         exit;
-     end;
-
-    if not FileExists(zbin) then begin
+      if not FileExists(zbin) then begin
        logs.DebugLogs('Starting zarafa..............: Zarafa-server not installed');
        exit;
     end;
@@ -1417,46 +1470,10 @@ end;
         if FileExists('/usr/lib/libicudata.so.44') then fpsystem('/bin/ln -s  /usr/lib/libicudata.so.44 /usr/lib/libicudata.so.40');
      end;
 
+ fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initdzarafa.php');
+ fpsystem('/etc/init.d/zarafa-server start');
+ pid:=SERVER_GET_PID();
 
-
-     if not TryStrToInt(SYS.GET_INFO('ZarafaStoreOutside'),ZarafaStoreOutside) then ZarafaStoreOutside:=0;
-     if ZarafaStoreOutside=1 then begin
-        attach:=' --ignore-attachment-storage-conflict';
-        logs.DebugLogs('Starting zarafa..............: Zarafa-server ignore attachments storage conflicts is enabled');
-     end;
-
-if FileExists('/etc/artica-postfix/zarafa-ignore-database-version-conflict') then  begin
-      conflict:=' --ignore-database-version-conflict';
-      logs.DebugLogs('Starting zarafa..............: Zarafa-server ignore Database conflict is enabled');
-end;
-tmpstr:=logs.FILE_TEMP();
-cmd:=zbin+' -c /etc/zarafa/server.cfg'+conflict+attach+' >'+tmpstr+' 2>&1';
-logs.DebugLogs('Starting zarafa..............: Zarafa-server config "/etc/zarafa/server.cfg"');
-fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.zarafa.build.stores.php --ldap-config');
-fpsystem(cmd);
-FileData:=Tstringlist.Create;
-FileData.LoadFromFile(tmpstr);
-logs.DeleteFile(tmpstr);
-RegExpr:=TRegExpr.Create;
-for i:=0 to FileData.Count-1 Do begin
-    logs.DebugLogs('Starting zarafa..............: '+FileData.Strings[i]);
-end;
-
-
-
-
-pid:=SERVER_GET_PID();
-count:=0;
- while not SYS.PROCESS_EXIST(pid) do begin
-        sleep(100);
-        inc(count);
-        if count>40 then begin
-           logs.DebugLogs('Starting zarafa..............: Zarafa-server (timeout)');
-           break;
-        end;
-        pid:=SERVER_GET_PID();
-  end;
-pid:=SERVER_GET_PID();
 if sys.PROCESS_EXIST(pid) then begin
       logs.DebugLogs('Starting zarafa..............: Zarafa-server success running PID '+ pid);
       if FileExists('/usr/share/doc/zarafa/zarafa7-upgrade') then begin
@@ -1872,42 +1889,7 @@ begin
        writeln('Stopping Zarafa-server.......: Not installed');
        exit;
     end;
-   pid:=SERVER_GET_PID();
-
-   if not sys.PROCESS_EXIST(pid) then begin
-       writeln('Stopping Zarafa-server.......: Already stopped');
-       exit;
-   end;
-   writeln('Stopping Zarafa-server.......: PID '+pid);
-   fpsystem('/bin/kill '+ pid);
-  while sys.PROCESS_EXIST(pid) do begin
-      sleep(100);
-      if sys.PROCESS_EXIST(pid) then fpsystem('/bin/kill '+ pid);
-      inc(count);
-      if count>50 then begin
-         writeln('Stopping Zarafa-server.......: time-out');
-         logs.OutputCmd('/bin/kill -9 ' + pid);
-         break;
-      end;
-      pid:=SERVER_GET_PID();
-  end;
-
-    pids:=Tstringlist.Create;
-    pids.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST(zbin));
-    for i:=0 to  pids.Count -1 do begin
-          if length(pids.Strings[i])=0 then continue;
-          if not TryStrToInt(pids.Strings[i],t) then continue;
-          if t<3 then continue;
-          writeln('Stopping Zarafa-server.......: killing orphan pid: ',t);
-          fpsystem('/bin/kill -9 '+intToStr(t));
-    end;
-
-    pid:=SERVER_GET_PID();
-   if not sys.PROCESS_EXIST(pid) then begin
-       writeln('Stopping Zarafa-server.......: stopped');
-       exit;
-   end;
-    writeln('Stopping Zarafa-server.......: failed');
+    fpsystem('/etc/init.d/zarafa-server stop');
 end;
 //##############################################################################
 procedure tzarafa_server.GATEWAY_STOP();

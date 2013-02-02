@@ -187,7 +187,7 @@ function checksGroups(){
 	}
 	if(count($sqlA)==0){return;}
 
-	$q->QUERY_SQL("TRUNCATE TABLE activedirectory_groupsNames","artica_backup");
+	
 	$sqlfinal=$prefix." ".@implode(",", $sqlA);
 	$q->QUERY_SQL($sqlfinal,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error."\n";return;}

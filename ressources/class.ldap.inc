@@ -127,6 +127,8 @@ class clladp{
 	function clladp(){
 		$this->ldapFailed=false;
 		if(!isset($GLOBALS["VERBOSE++"])){$GLOBALS["VERBOSE++"]=false;}
+		if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
+		
 		include_once(dirname(__FILE__) . '/class.active.directory.inc');
 		if(isset($_GET["debug-page"])){$GLOBALS["VERBOSE"]=true;}
 		if(!isset($GLOBALS["AS_ROOT"])){$GLOBALS["AS_ROOT"]=false;if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
@@ -304,7 +306,7 @@ function ldap_escape($str){
     return ($str);
 }	
 
-private function ldap_perform_connection($ldapport=null){
+public function ldap_perform_connection($ldapport=null){
 	if(isset($GLOBALS["LDAP_CONNECT_ID"])){
 		$this->ldap_connection=$GLOBALS["LDAP_CONNECT_ID"];
 		if(isset($GLOBALS["LDAP_BIN_ID"])){
@@ -537,6 +539,11 @@ private function ldap_perform_connection($ldapport=null){
 	}
 	
 	function get_organization_picture($ou,$size){
+		if($this->IsKerbAuth()){
+			if($size==32){return "img/folder-org-32.png";}
+			if($size==64){return "img/folder-org-64.png";}
+		}
+		
 		$this->ldap_perform_connection();
 		if($this->EnableManageUsersTroughActiveDirectory){return "img/64-org-settings.png";}
 		include_once(dirname(__FILE__)."/class.images.inc");
@@ -615,6 +622,12 @@ private function ldap_perform_connection($ldapport=null){
 	}
 	
 	function CountDeUSerOu($ou){
+		if($this->IsOUUnderActiveDirectory($ou)){
+			include_once(dirname(__FILE__)."/class.external.ad.inc");
+			$p=new external_ad_search();
+			writelogs("-> class.external.ad.inc -> CountDeUSerOu($ou)",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			return $p->CountDeUSerOu($ou);
+		}
 		$this->ldap_perform_connection();
 		$pattern="(objectclass=userAccount)";
 		$dn="ou=users,ou=$ou,dc=organizations,$this->suffix";
@@ -769,7 +782,12 @@ private function ldap_perform_connection($ldapport=null){
 		if(!$this->ExistsDN($dn)){
 		if(!$this->ldap_add($dn,$update_array)){
 			if($this->ldap_last_error_num<>68){
-				echo "Error: Adding\n$ou\ndn:$dn\n".$this->ldap_last_error;
+				if(preg_match("#contact LDAP server#i", $this->ldap_last_error)){
+					$newterror="The LDAP server will be restarted, please retry in few minutes\n";
+					$sock=new sockets();
+					$sock->getFrameWork("services.php?restart-ldap=yes");
+				}
+				echo "{$newterror}Error: Adding\n$ou\ndn:$dn\n".$this->ldap_last_error;
 				return false;
 				}
 			}
@@ -1479,6 +1497,10 @@ function Hash_GetALLUsers(){
 		
 		if($GLOBALS["DEBUG_TEMPLATE"]){$debugThis=true;}
 		if($debugThis){echo "<li>hash_get_ou():: Starting: haskey=$keyMem ".__LINE__."</li>\n";}
+		if($this->IsKerbAuth()){
+			$ldap=new external_ad_search();
+			return $ldap->hash_get_ou($has_key);
+		}
 		
 		
 		
@@ -1505,7 +1527,7 @@ function Hash_GetALLUsers(){
 
 		if($this->ldapFailed){
 			if($debugThis){echo "<li>hash_get_ou():: ldapFailed line:".__LINE__."</li>\n";}
-			return null;
+			return $this->ActiveDirectoryOrganizations($has_key,$res);
 		}
 		$this->ldap_perform_connection();
 		$ld =$this->ldap_connection;
@@ -1522,8 +1544,9 @@ function Hash_GetALLUsers(){
 			if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} ldap_get_entries($ld,$sr) ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			$hash=ldap_get_entries($ld,$sr);
 			if(!is_array($hash)){
-				if($debugThis){echo "<li>hash_get_ou():: Not an array:".__LINE__."</li>\n";}	
-				return array();
+				if($debugThis){echo "<li>hash_get_ou():: Not an array:".__LINE__."</li>\n";}
+				return $this->ActiveDirectoryOrganizations($has_key);
+				
 			}
 				
 			while (list ($num, $ligne) = each ($hash) ){
@@ -1548,11 +1571,63 @@ function Hash_GetALLUsers(){
 				if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} LDAP ERROR $error".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			}
 			
-		if($debugThis){echo "<li>hash_get_ou():: Array of ". count($res)." line:".__LINE__."</li>\n";}	
+		if($debugThis){echo "<li>hash_get_ou():: Array of ". count($res)." line:".__LINE__."</li>\n";}
+		$res=$this->ActiveDirectoryOrganizations($has_key,$res);
 		$GLOBALS["hash_get_ou_$keyMem"]=$res;
 		return $res;
 		
 		}
+		
+	public function IsOUUnderActiveDirectory($ou){
+		if($this->IsKerbAuth()==0){
+			if($GLOBALS["VERBOSE"]){echo "IsKerbAuth return 0<br>\n";}
+			return false;
+		}
+	
+		$dn="ou=$ou,dc=organizations,$this->suffix";
+		if($this->ExistsDN($dn)){
+			if($GLOBALS["VERBOSE"]){echo "$dn exists under ldap...<br>\n";}
+			return false;
+		}
+		include_once(dirname(__FILE__)."/class.external.ad.inc");
+		$ad=new external_ad_search();
+		$res=$ad->SearchOu($ou);
+		if($GLOBALS["VERBOSE"]){echo "ad->SearchOu($ou) return $res<br>\n";}
+		return $res;
+	}
+	
+	public function IsKerbAuth() {
+		$EnableKerbAuth=0;
+		if(!isset($_SESSION["EnableKerbAuth"])){
+			$sock=new sockets();
+			$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+			if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+			$_SESSION["EnableKerbAuth"]=$EnableKerbAuth;
+		}
+		
+		if(!isset($_SESSION["EnableSambaActiveDirectory"])){
+			$sock=new sockets();
+			$EnableSambaActiveDirectory=$sock->GET_INFO("EnableSambaActiveDirectory");
+			if(!is_numeric($EnableSambaActiveDirectory)){$EnableSambaActiveDirectory=0;}
+			$_SESSION["EnableSambaActiveDirectory"]=$EnableSambaActiveDirectory;
+		}
+		
+		if($_SESSION["EnableKerbAuth"]==1){$EnableKerbAuth=1;}
+		if($_SESSION["EnableSambaActiveDirectory"]==1){$EnableKerbAuth=1;}	
+		return $EnableKerbAuth;	
+		
+	}
+	
+		
+	private function ActiveDirectoryOrganizations($has_key=false,$array=array()){
+	
+		if($this->IsKerbAuth()==1){
+			include_once(dirname(__FILE__)."/class.external.ad.inc");
+			$ad=new external_ad_search();
+			return $ad->hash_get_ou($has_key,$array);
+		}
+		return $array;
+	}
 		
 		
 	function ReadDNInfos($dn){
@@ -1899,6 +1974,12 @@ function Hash_GetALLUsers(){
 	
 	
 	function Hash_domains_table($ou=null){
+		
+		
+		// !!!!!! For postfix a dev
+		if($this->IsKerbAuth()){return array();}
+		
+		
 		$res=array();
 		$this->ldap_perform_connection();
 		$ld =$this->ldap_connection;
@@ -2379,6 +2460,12 @@ function Hash_GetALLUsers(){
 		}
 
 		function hash_groups($ou,$fieldlist=0){
+			
+			if($this->IsKerbAuth()){
+				$ldap=new external_ad_search();
+				return $ldap->hash_groups($ou,$fieldlist);
+			}
+			
 			if($this->EnableManageUsersTroughActiveDirectory){$ldap=new ldapAD();return $ldap->hash_groups($ou,$fieldlist);}
 			
 			if($this->ldapFailed){
@@ -2444,6 +2531,15 @@ function Hash_GetALLUsers(){
 		}
 		
 		function UserGetGroups($userid,$reverse=0){
+		if($this->IsKerbAuth()){
+			include_once(dirname(__FILE__))."/class.external.ad.inc";
+			$p=new external_ad_search();
+			$u=new user($userid);
+			if($u->AsActiveDirectoryMember){
+				$res=$p->GroupsOfMember($u->dn);
+				return $res;
+			}
+		}	
 		if($this->ldapFailed){return array();}
 		if($userid==null){return null;}	
 		$res=array();
@@ -2453,7 +2549,8 @@ function Hash_GetALLUsers(){
 				$result = ldap_get_entries($this->ldap_connection, $sr);
 				if(!is_array($result)){return array();}
 				for($i=0;$i<$result["count"];$i++){
-					if($reverse==1){$res[$result[$i]["gidnumber"][0]]=$result[$i]["cn"][0];}else{$res[$result[$i]["cn"][0]]=$result[$i]["gidnumber"][0];}
+					if($reverse==1){$res[$result[$i]["gidnumber"][0]]=$result[$i]["cn"][0];}
+					else{$res[$result[$i]["cn"][0]]=$result[$i]["gidnumber"][0];}
 					
 				}
 				
@@ -2468,15 +2565,17 @@ function Hash_GetALLUsers(){
 		
 		if( count($group_datas["members"])==0){
 			$update_array["memberUid"]=$userid;
-			writelogs("This group have no members, delete  memberUid object",__FUNCTION__,__FILE__);
+			writelogs("This group have no members, delete  memberUid object",__CLASS__.'/'.__FUNCTION__,__FILE__);	
 			$this->Ldap_del_mod($group_datas["dn"],$update_array);
-			if(trim($ldap->ldap_last_error)<>null){echo $ldap->ldap_last_error;}
+			if(trim($ldap->ldap_last_error)<>null){echo "This group have no members, delete  memberUid object\n$ldap->ldap_last_error";}
 			return false;
 			}
-	$update_array["memberUid"]=$userid;
-	if(!$this->Ldap_del_mod($group_datas["dn"],$update_array)){
+			
+		$update_array["memberUid"]=$userid;
+		writelogs("{$group_datas["dn"]} remove memberUid=$userid ",__CLASS__.'/'.__FUNCTION__,__FILE__);	
+		if(!$this->Ldap_del_mod($group_datas["dn"],$update_array)){
 			if($ldap->ldap_last_error<>null){return false;}
-	}
+		}
 		return true;
 	}
 	
@@ -2768,7 +2867,11 @@ if($res["ARRAY_KEYS"]["FTPStatus"]==null){
 						while (list ($num, $ligne) = each ($privs) ){
 							if($ligne=="yes"){$org_priv[$num]="yes";}
 							if($ligne=="1"){$org_priv[$num]="1";}
-							if($num=="ForceLanguageUsers"){$org_priv[$num]=$ligne;}							
+							if($num=="ForceLanguageUsers"){$org_priv[$num]=$ligne;}	
+							if($num=="VirtualSambaServer"){$org_priv["VIRTUALS_SERVERS"][$ligne]=true;$org_priv["VirtualSambaServer"]=$ligne;}
+							if($num=="PostfixInstance"){$org_priv["POSTFIX_SERVERS"][$ligne]=true;$org_priv["PostfixInstance"]=$ligne;}	
+
+							
 						}
 						unset($privs);
 					}
@@ -2797,8 +2900,14 @@ if($res["ARRAY_KEYS"]["FTPStatus"]==null){
 				if($debug){writelogs("reg[1]=".count($reg[1])." attrs",__CLASS__.'/'.__FUNCTION__,__FILE__);}
 			
 				while (list ($num, $ligne) = each ($reg[1]) ){
+					if(trim($reg[2][$num])==null){
+						writelogs("$ligne=NULL, Abort",__CLASS__.'/'.__FUNCTION__,__FILE__);
+						continue;}
 					if($debug){writelogs("$ligne={$reg[2][$num]}",__CLASS__.'/'.__FUNCTION__,__FILE__);}
+					if($ligne=="VirtualSambaServer"){$priv["VIRTUALS_SERVERS"][$reg[2][$num]]=true;}
+					if($ligne=="PostfixInstance"   ){$priv["POSTFIX_SERVERS"][$reg[2][$num]]=true;}
 					$priv[$ligne]=$reg[2][$num];
+					writelogs("$ligne={$reg[2][$num]}",__CLASS__.'/'.__FUNCTION__,__FILE__);
 					}
 		}else{
 			if($debug){writelogs("content no match #\[([a-zA-Z]+)\]=\"(.+?)\"#is",__CLASS__.'/'.__FUNCTION__,__FILE__);}
@@ -2978,18 +3087,59 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 		return $group->main_array;		
 		}
 		        
+//-------------------------------------------------------------------------------------------------------------------------------------		
+		private function ReloadServicesAfterDomain($domain,$ou){
+			$usr=new usersMenus();
+			$sock=new sockets();
+			if($usr->cyrus_imapd_installed){
+				$sock->getFrameWork("cmd.php?cyrus-check-cyr-accounts=yes");
+			}
+		
+			if($usr->POSTFIX_INSTALLED){
+				$sock->getFrameWork("cmd.php?postfix-transport-maps=yes");
+				if($usr->AMAVIS_INSTALLED){$sock->getFrameWork("cmd.php?amavis-restart=yes");}
+				$EnableDKFilter=$sock->GET_INFO("EnableDkimMilter");
+				if($EnableDKFilter==null){$EnableDKFilter=0;}
+				if($EnableDKFilter==1){$sock->getFrameWork("services.php?reload-dkim=yes");}				
+				$PostmasterAutoCreate=$sock->GET_INFO("PostmasterAutoCreate");
+				if(!is_numeric($PostmasterAutoCreate)){$PostmasterAutoCreate=1;}
+				if($PostmasterAutoCreate==1){
+					include_once(dirname(__FILE__)."/class.user.inc");
+					$user=new user("postmaster");
+					$user->domainname=$domain;
+					$user->ou=$ou;
+					$user->mail="postmaster@$domain";
+					$user->password=time();
+					if(!$user->add_user()){writelogs("Failed to add Postmaster $user->ldap_error",__CLASS__.'/'.__FUNCTION__,__FILE__);return;}
+					$user=new user("postmaster");
+					$user->add_alias("hostmaster@$domain");
+					$user->add_alias("webmaster@$domain");
+					$user->add_alias("abuse@$domain");
+				}
+			}
+		
+		}		
+		
+		
+		
 //-------------------------------------------------------------------------------------------------------------------------------------		      
 	function AddDomainEntity($ou=null,$domain){
 		$sock=new sockets();
 		$upd=array();
 		$update_array=array();
+		if($ou==null){
+			echo "Cannot create a domain without an organization...\n";
+			return;
+		}
 	
 		if(class_exists("usersMenus")){
 			$LOCAL_MDA=false;
 			$users=new usersMenus();
 			if($users->cyrus_imapd_installed){$LOCAL_MDA=true;}
 			if($users->ZARAFA_INSTALLED){$LOCAL_MDA=true;}
-			if(!$LOCAL_MDA){return $this->AddRelayDomain($ou, $domain, "10.10.10.1");}
+			if($users->POSTFIX_INSTALLED){
+				if(!$LOCAL_MDA){return $this->AddRelayDomain($ou, $domain, "10.10.10.1");}
+			}
 		}
 		
 			
@@ -3036,8 +3186,7 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 				writelogs("Failed add classes:" .explode("\n",$upd),__CLASS__.'/'.__FUNCTION__,__FILE__);
 				return false;
 			}else{
-				$sock=new sockets();
-				$sock->getFrameWork("cmd.php?cyrus-reload=yes");
+				$this->ReloadServicesAfterDomain($domain,$ou);
 				return true;
 			}
 			
@@ -3063,9 +3212,10 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 		
 		writelogs("Add domain \"$domain\" in $cn",__FUNCTION__,__FILE__);	
 		if(!$this->Ldap_modify($cn,$update_array)){return false;}
-		
-		
-		
+		include_once(dirname(__FILE__)."/class.pdns.inc");
+		$p=new pdns();
+		$p->AddDomain($domain);
+		$this->ReloadServicesAfterDomain($domain,$ou);
 		return true;
 		}
 //-------------------------------------------------------------------------------------------------------------------------------------
@@ -3137,7 +3287,9 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 		}	
 	
 		if($this->ldap_last_error<>null){echo $ldap->ldap_last_error;}
-		
+		include_once(dirname(__FILE__)."/class.pdns.inc");
+		$p=new pdns();
+		$p->DelDomain($domain);		
 	}
 	
 	
@@ -3492,6 +3644,7 @@ function Hash_get_restrictions_classes_tables($class_name,$table_name){
 function load_mynetworks(){
 		$this->ldap_perform_connection();
 		$Networks_disabled=array();
+		$nets=array();
 		$dn="cn=mynetworks_maps,cn=artica,$this->suffix";
 		$sr =@ldap_read($this->ldap_connection,$dn,'objectClass=PostfixMynetworks');
 		if ($sr) {
@@ -3528,7 +3681,7 @@ function load_mynetworks(){
 		}		
 		
 		
-		if(is_array($nets)){
+		if(count($nets)>0){
 			while (list ($i, $myNetwork) = each ($nets) ){	
 				$array_mynetworks[]=$myNetwork;
 			}

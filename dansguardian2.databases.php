@@ -128,6 +128,17 @@ function delete_category(){
 function statusDB(){
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$users=new usersMenus();
+	
+	
+	if(!$users->ARTICADB_INSTALLED){
+		$html=FATAL_ERROR_SHOW_128("{ARTICADB_NOT_INSTALLED_EXPLAIN}")."<center style='margin:80px'>
+		<hr>".button("{install}", "Loadjs('squid.blacklist.upd.php')",16)."</center>";
+		echo $tpl->_ENGINE_parse_body($html);
+		return;
+	}
+	
+	
 	$date=GetLastUpdateDate();
 	$q=new mysql_catz();
 	$sock=new sockets();
@@ -153,6 +164,25 @@ function statusDB(){
 		$updaebutton="<div style='text-align:right'><hr>".button("{update}:{version} $REMOTE_VERSION ($REMOTE_SIZE)", "Loadjs('squid.blacklist.upd.php')",16)."</div>";
 	}
 	
+	$nextcheck=$sock->getFrameWork("squid.php?articadb-nextcheck=yes");
+	$nextcheck=intval($nextcheck);
+	if($nextcheck>0){
+		$nextcheck_text="	
+	<tr>
+		<td colspan=2><div style='font-size:16px'>{next_check_in}:&nbsp;{$nextcheck}Mn</div></td>
+	</tr>";
+	}
+	
+	if($nextcheck<0){
+		$nextcheck=str_replace("-", "", $nextcheck);
+		$nextcheckTime=time()-(intval($nextcheck)*60);
+		$nextcheckTimeText=distanceOfTimeInWords($nextcheckTime,time());
+		$nextcheck_text="	
+	<tr>
+		<td colspan=2><div style='font-size:16px'>{last_check}:&nbsp;$nextcheckTimeText</div></td>
+	</tr>";		
+	}
+	
 	$dbsize=$sock->getFrameWork("squid.php?articadbsize=yes");
 	$items=numberFormat($q->COUNT_CATEGORIES(),0,""," ");
 	$html="
@@ -165,7 +195,7 @@ function statusDB(){
 	<tr>
 		<td colspan=2><div style='font-size:16px'>{pattern_database_version}:&nbsp;$date&nbsp($dbsize)</div></td>
 	</tr>
-	
+	$nextcheck_text
 	<tr>
 		<td colspan=2><div style='font-size:16px'>{categories}:&nbsp;".count($catz)."</a></div></td>
 		
@@ -307,9 +337,7 @@ function tabs(){
 		}		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t&maximize=yes\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 	}
-	
-	
-	
+
 	echo "
 	<div id=main_databasesCAT_quicklinks_tabs style='width:99%;overflow:auto'>
 		<ul>". implode("\n",$html)."</ul>
@@ -363,7 +391,9 @@ function categories(){
 	
 	if($_GET["maximize"]=="yes"){
 		$tablewith=837;
-		$categorysize=530;
+		$categorysize=469;
+		$size_size=72;
+		$size_elemnts=105;
 	}	
 	if($_GET["middlesize"]=="yes"){
 		$tablewith=828;
@@ -391,7 +421,7 @@ $('#dansguardian2-category-$t').flexigrid({
 		{display: '&nbsp;', name : 'icon1', width : 32, sortable : false, align: 'left'},
 		{display: '$category', name : 'table_name', width : $categorysize, sortable : false, align: 'left'},
 		{display: '$size', name : 'category', width : $size_size, sortable : false, align: 'left'},
-		{display: '$items', name : 'TABLE_ROWS', width : $size_elemnts, sortable : true, align: 'left'},
+		{display: '$items', name : 'TABLE_ROWS', width : $size_elemnts, sortable : true, align: 'right'},
 		$TABLE_ROWS2
 		{display: 'compile', name : 'icon2', width : $compilesize, sortable : false, align: 'left'},
 		$delete
@@ -400,6 +430,8 @@ $('#dansguardian2-category-$t').flexigrid({
 buttons : [
 	{name: '$addCat', bclass: 'add', onpress : AddNewCategory},
 	{name: '$SaveToDisk', bclass: 'Catz', onpress : SaveAllToDisk},
+	{name: 'Artica', bclass: 'Search', onpress : SwitchToArtica},
+	{name: '$size', bclass: 'Search', onpress : LoadCategoriesSize},
 	{name: '$purge', bclass: 'Delz', onpress : PurgeCategoriesDatabase},
 		],	
 	searchitems : [
@@ -424,9 +456,17 @@ buttons : [
 			Loadjs('$page?add-perso-cat-js=yes&t=$t');
 		}
 		
+		function SwitchToArtica(){
+			$('#dansguardian2-category-$t').flexOptions({url: '$page?category-search=yes&minisize={$_GET["minisize"]}&t=$t&artica=1'}).flexReload();
+		}
+		
 		function SaveAllToDisk(){
 			Loadjs('$page?compile-all-dbs-js=yes')
 		
+		}
+		
+		function LoadCategoriesSize(){
+			Loadjs('dansguardian2.compilesize.php')
 		}
 	
 		function CategoryDansSearchCheck(e){
@@ -489,7 +529,7 @@ buttons : [
 	
 }
 
-function categories_search(){
+function categories_search($forceArtica=false){
 	$MyPage=CurrentPageName();
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -499,9 +539,14 @@ function categories_search(){
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
 	$t=$_GET["t"];
-	$artica=false;
+	$artica=$forceArtica;
 	if(isset($_GET["artica"])){$artica=true;}
+	$tableSchema="squidlogs";
 	if(!$q->TestingConnection()){json_error_show("Testing connection to MySQL server failed...",1);}
+	
+	if(!$q->TABLE_EXISTS("webfilters_categories_caches")){$q->CheckTables();}
+	$dans=new dansguardian_rules();
+	$dans->LoadBlackListes();	
 	
 	
 	$sql="SELECT * FROM personal_categories";
@@ -522,6 +567,12 @@ function categories_search(){
 		}
 	}	
 	
+	if($artica){
+		$q=new mysql_catz();
+		writelogs("Artica mode -> $q->database ".$q->COUNT_CATEGORIES(),__FUNCTION__,__FILE__,__LINE__);
+		$tableSchema="catz";
+	}
+	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
 
@@ -532,16 +583,18 @@ function categories_search(){
 		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
 		$search=$_POST["query"];
 		$searchstring="table_name LIKE 'category_$search'";
-		$sql="SELECT COUNT( table_name ) AS tcount FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'category_$search'";
+		$sql="SELECT COUNT( table_name ) AS tcount FROM information_schema.tables WHERE table_schema = '$tableSchema' AND table_name LIKE 'category_$search'";
+		writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(!$q->ok){json_error_show("Mysql Error [".__LINE__."]: $q->mysql_error",1);}
 		$total = $ligne["tcount"];
 		
 	}else{
-		$sql="SELECT COUNT(table_name) as TCOUNT FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'category_%'";
+		$sql="SELECT COUNT(table_name) as TCOUNT FROM information_schema.tables WHERE table_schema = '$tableSchema' AND table_name LIKE 'category_%'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(!$q->ok){json_error_show("Mysql Error [".__LINE__."]: $q->mysql_error",1);}
 		$total = $ligne["TCOUNT"];
+		writelogs("$sql = $total",__FUNCTION__,__FILE__,__LINE__);
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
@@ -553,12 +606,23 @@ function categories_search(){
 	
 	
 	
-	$sql="SELECT table_name as c,TABLE_ROWS FROM information_schema.tables WHERE table_schema = 'squidlogs' AND $searchstring $ORDER $limitSql";	
+	$sql="SELECT table_name as c,TABLE_ROWS FROM information_schema.tables WHERE table_schema = '$tableSchema' AND $searchstring $ORDER $limitSql";	
 	
 	writelogs("$q->mysql_admin:$q->mysql_password:$sql",__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show("Mysql Error [".__LINE__."]: $q->mysql_error",1);}
-	if(mysql_num_rows($results)==0){json_error_show("No categories table found...",1);}
+	if(mysql_num_rows($results)==0){
+		if(!$artica){
+			categories_search(true);
+			return;
+		}
+
+		
+	}
+	
+	if(mysql_num_rows($results)==0){
+		json_error_show("($tableSchema) No categories table found...",1);
+	}	
 	
 	$data = array();
 	$data['page'] = $page;
@@ -572,14 +636,15 @@ function categories_search(){
 		$table=$ligne["c"];
 		writelogs("Scanning table $table",__FUNCTION__,__FILE__,__LINE__);
 		$select=imgtootltip("32-parameters.png","{edit}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
+		$UnivToulouseItems=null;
 		
-		$compile=imgsimple("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");		
+		$itemsEncTxt=null;
 		$items=$q->COUNT_ROWS($ligne["c"]);
 		$itemsEnc=$enc->COUNT_ROWS($ligne["c"]);
 		
 		if(!preg_match("#^category_(.+)#", $table,$re)){continue;}
 		$categoryname=$re[1];	
-
+		$compile=imgsimple("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");
 
 		if(!isset($dans->array_blacksites[$categoryname])){
 			if(isset($dans->array_blacksites[str_replace("_","-",$categoryname)])){$categoryname=str_replace("_","-",$categoryname);}
@@ -612,21 +677,30 @@ function categories_search(){
 		$categoryText=$tpl->_ENGINE_parse_body("<div style='font-size:14px';font-weight:bold'>$linkcat$categoryname</div>
 		</a><div style='font-size:11px;width:100%;font-weight:normal'>{$text_category}</div>");
 		$items=numberFormat($items,0,""," ");
-		$itemsEnc=numberFormat($itemsEnc,0,""," ");
+		if($itemsEnc>0){
+			$itemsEncTxt="<br><span style='font-size:11px'>Artica:&nbsp;".numberFormat($itemsEnc,0,""," ");"</span>";
+		}
 		$compile=imgsimple("compile-distri-32.png","{saveToDisk} $categoryname","DansGuardianCompileDB('$categoryname')");
 		$delete=imgsimple("delete-32.png","{delete}","TableCategoryPurge('$table')");
 		if($_GET["minisize"]=="yes"){$delete=null;}
 		
+		$q2=new mysql_squid_builder();
+		$ligneTLS=mysql_fetch_array($q2->QUERY_SQL("SELECT websitesnum FROM univtlse1fr WHERE category='$categoryname'"));
+		//writelogs("Toulouse, $categoryname -> {$ligneTLS["websitesnum"]}");
+		$UnivToulouse_websitesnum=$ligneTLS["websitesnum"];
+		if($UnivToulouse_websitesnum>0){
+			$UnivToulouseItems="<br><span style='font-size:11px'>University:&nbsp".numberFormat($UnivToulouse_websitesnum,0,""," ")."</span>";
+		}
 		
 		$cell=array();
 		$cell[]=$pic;
 		$cell[]=$categoryText;
 		$cell[]="<div style='font-size:13px;padding-top:15px;font-weight:bold'>$sizedb</div>";
 		if(!$artica){
-			$cell[]="<div style='font-size:13px;padding-top:5px;font-weight:bold'>$items<br>$itemsEnc</strong>";
+			$cell[]="<div style='font-size:13px;padding-top:5px;font-weight:bold'>$items$itemsEncTxt$UnivToulouseItems</strong>";
 		}else{
+			$cell[]="<div style='font-size:13px;padding-top:15px;font-weight:bold'>-</strong>";
 			$cell[]="<div style='font-size:13px;padding-top:15px;font-weight:bold'>$items</strong>";
-			$cell[]="<div style='font-size:13px;padding-top:15px;font-weight:bold'>$itemsEnc</strong>";
 		}
 		$cell[]=$compile;
 		$cell[]=$delete;
@@ -642,7 +716,12 @@ echo json_encode($data);
 	
 }
 
-
+function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){
+	$tmp1 = round((float) $number, $decimals);
+	while (($tmp2 = preg_replace('/(\d+)(\d\d\d)/', '\1 \2', $tmp1)) != $tmp1)
+		$tmp1 = $tmp2;
+	return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));
+}
 
 function categories_search2(){
 
@@ -694,7 +773,7 @@ function categories_search2(){
 		$table=$ligne["c"];
 		$sizedb=$ArraySIZES[$table]["DBSIZE"];
 		$sizeTXT=$ArraySIZES[$table]["TXTSIZE"];
-		
+		$UnivToulouse=null;
 		
 		if(!preg_match("#^category_(.+)#", $table,$re)){continue;}
 		$categoryname=$re[1];
@@ -735,6 +814,13 @@ function categories_search2(){
 			style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
 		}
 		
+		$q2=new mysql_squid_builder();
+		$ligneTLS=mysql_fetch_array($q2->QUERY_SQL("SELECT websitesnum FROM univtlse1fr WHERE category='{$ligne['categorykey']}'"));
+		$UnivToulouse_websitesnum=$ligneTLS["websitesnum"];
+		if($UnivToulouse_websitesnum>0){
+			$UnivToulouse="T:".numberFormat($UnivToulouse_websitesnum,0,""," ");
+		}
+		
 		if($EnableWebProxyStatsAppliance==0){
 			if($sizedb_org<35){$pic="<img src='img/warning-panneau-32.png'>";}
 		}
@@ -746,7 +832,7 @@ function categories_search2(){
 			$linkcat$categoryname</a><div style='font-size:11px;width:100%;font-weight:normal'>{$text_category}</div></td>
 			<td style='font-size:14px;font-weight:bold;color:$color' width=1% nowrap align='right'>$sizedb</td>
 			<td width=1%>$viewDB</td>
-			<td style='font-size:14px;font-weight:bold;color:$color' width=1% nowrap align='right'>".numberFormat($items,0,""," ")."</td>
+			<td style='font-size:14px;font-weight:bold;color:$color' width=1% nowrap align='right'>".numberFormat($items,0,""," ")."$UnivToulouse</td>
 			<td width=1%>$compile</td>
 			<td width=1%>$delete</td>
 		</tr>
@@ -823,7 +909,7 @@ function add_category_tabs(){
 		}
 		
 		if($num=="category-events"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.update.events.php?popup=yes&category=$catzenc&t=$t&tablesize=695&descriptionsize=530\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.update.logs.php?popup=yes&category=$catzenc&t=$t&tablesize=695&descriptionsize=530\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
@@ -1656,7 +1742,8 @@ function global_status_tlse_db(){
 	
 	//univ-toulouse-64-grey.png
 	if($SquidDatabasesUtlseEnable==0){$logo="univ-toulouse-64-grey.png";}
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(websitesnum) as tcount FROM ftpunivtlse1fr"));	
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(websitesnum) as tcount FROM univtlse1fr"));	
 	$items=$ligne["tcount"];
 	if($items==0){
 		if($SquidDatabasesUtlseEnable==1){
@@ -1689,7 +1776,7 @@ function global_status_tlse_db(){
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>
 				<td nowrap><a href=\"javascript:blur();\" 
-				OnClick=\"javascript:Loadjs('squid.update.events.php?filename=exec.update.squid.tlse.php');\" 
+				OnClick=\"javascript:Loadjs('squid.update.logs.php?filename=exec.update.squid.tlse.php');\" 
 				style='font-size:12px;text-decoration:underline;$color;'>{display_update_events}</a></td>
 			</tr>	
 			<tr>
@@ -1858,7 +1945,7 @@ function global_status_artica_db(){
 			</tr>
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.update.events.php');\" style='font-size:12px;text-decoration:underline;$color'>{display_update_events}</a></td>
+				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.update.logs.php?filename=exec.squid.blacklists.php');\" style='font-size:12px;text-decoration:underline;$color'>{display_update_events}</a></td>
 			</tr>	
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>

@@ -1,4 +1,5 @@
 <?php
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -31,12 +32,13 @@ function js(){
 	if(!isset($_GET["Zarafa"])){$_GET["Zarafa"]=0;}
 	if(!isset($_GET["OnlyAD"])){$_GET["OnlyAD"]=0;}
 	if(isset($_GET["security"])){$_GET["security"]=null;}
-	
+	if(!isset($_GET["OnlyName"])){$_GET["OnlyName"]=0;}
+	if(!isset($_GET["OnlyCheckAD"])){$_GET["OnlyCheckAD"]=0;}
 	
 	
 	
 	$title=$tpl->_ENGINE_parse_body("{browse}::{members}::");
-	echo "YahooUser('534','$page?popup=yes&field-user={$_GET["field-user"]}&NOComputers={$_GET["NOComputers"]}&prepend={$_GET["prepend"]}&prepend-guid={$_GET["prepend-guid"]}&OnlyUsers={$_GET["OnlyUsers"]}&organization={$_GET["organization"]}&OnlyGroups={$_GET["OnlyGroups"]}&OnlyGUID={$_GET["OnlyGUID"]}&callback={$_GET["callback"]}&Zarafa={$_GET["Zarafa"]}&OnlyAD={$_GET["OnlyAD"]}&security={$_GET["security"]}','$title');";	
+	echo "YahooUser('534','$page?popup=yes&field-user={$_GET["field-user"]}&OnlyCheckAD={$_GET["OnlyCheckAD"]}&OnlyName={$_GET["OnlyName"]}&NOComputers={$_GET["NOComputers"]}&prepend={$_GET["prepend"]}&prepend-guid={$_GET["prepend-guid"]}&OnlyUsers={$_GET["OnlyUsers"]}&organization={$_GET["organization"]}&OnlyGroups={$_GET["OnlyGroups"]}&OnlyGUID={$_GET["OnlyGUID"]}&callback={$_GET["callback"]}&Zarafa={$_GET["Zarafa"]}&OnlyAD={$_GET["OnlyAD"]}&security={$_GET["security"]}','$title');";	
 	
 	
 	
@@ -51,8 +53,13 @@ function popup(){
 	if($_GET["prepend-guid"]==null){$_GET["prepend-guid"]=0;}
 	$OnlyGUID=$_GET["OnlyGUID"];
 	$OnlyAD=$_GET["OnlyAD"];
+	$OnlyName=$_GET["OnlyName"];
+	$OnlyCheckAD=$_GET["OnlyCheckAD"];
+	if(!is_numeric($OnlyName)){$OnlyName=0;}
 	if(!is_numeric($OnlyGUID)){$OnlyGUID=0;}
 	if(!is_numeric($OnlyAD)){$OnlyAD=0;}
+	if(!is_numeric($OnlyCheckAD)){$OnlyCheckAD=0;}
+	
 	if($_GET["callback"]<>null){$callback="{$_GET["callback"]}(id,prependText,guid);YahooUserHide();return;";}	
 	
 	$sock=new sockets();
@@ -70,12 +77,12 @@ function popup(){
 	$new_group=$tpl->_ENGINE_parse_body("{new_group}");
 	$title=null;
 	$filter=$tpl->_ENGINE_parse_body("{filter}");
-	
+	$groups=$tpl->_ENGINE_parse_body("{groups}");
 	
 	$SUFFIX[]="&prepend={$_GET["prepend"]}&field-user={$_GET["field-user"]}&prepend-guid={$_GET["prepend-guid"]}";
 	$SUFFIX[]="&OnlyUsers={$_GET["OnlyUsers"]}&OnlyGUID={$_GET["OnlyGUID"]}&organization={$_GET["organization"]}";
 	$SUFFIX[]="&OnlyGroups={$_GET["OnlyGroups"]}&callback={$_GET["callback"]}&NOComputers={$_GET["NOComputers"]}";
-	$SUFFIX[]="&Zarafa={$_GET["Zarafa"]}&OnlyAD=$OnlyAD&t=$t&security={$_GET["security"]}";
+	$SUFFIX[]="&Zarafa={$_GET["Zarafa"]}&OnlyAD=$OnlyAD&t=$t&security={$_GET["security"]}&OnlyName=$OnlyName&OnlyCheckAD=$OnlyCheckAD";
 	$SUFFIX_FORMATTED=@implode("", $SUFFIX);
 	$buttons="
 	buttons : [
@@ -101,6 +108,7 @@ $('#flexRT$t').flexigrid({
 	$buttons
 	searchitems : [
 		{display: '$members', name : 'members'},
+		{display: '$groups', name : 'groups'},
 		],
 	sortname: 'groupname',
 	sortorder: 'asc',
@@ -164,10 +172,12 @@ function SambaAclBrowseFilter(){
 	$OnlyGUID=$_GET["OnlyAD"];
 	$OnlyUsers=$_GET["OnlyUsers"];
 	$NOComputers=$_GET["NOComputers"];
+	$OnlyName=$_GET["OnlyName"];
 	if(!is_numeric($OnlyAD)){$OnlyAD=0;}
 	if(!is_numeric($OnlyGUID)){$OnlyGUID=0;}
 	if(!is_numeric($OnlyUsers)){$OnlyUsers=0;}
 	if(!is_numeric($NOComputers)){$NOComputers=1;}
+	if(!is_numeric($OnlyName)){$OnlyName=0;}
 	if($NOComputers==0){$NOComputers=1;}
 	
 	
@@ -306,86 +316,129 @@ function popup_old(){
 	
 	
 }
-
-function query_ad_groups_old(){
-	
-	$q=new mysql();
-	$_GET["query"]="*{$_GET["query"]}*";
-	$_GET["query"]=str_replace("**", "*", $_GET["query"]);
-	$_GET["query"]=str_replace("**", "*", $_GET["query"]);
-	$_GET["query"]=str_replace("*", "%", $_GET["query"]);
-	$nogetent=false;	
-	if($_GET["OnlyUsers"]=="yes"){$_GET["OnlyUsers"]=1;}
-	$OnlyUsers=$_GET["OnlyUsers"];
-	$OnlyGroups=$_GET["OnlyGroups"];
-	$OnlyGUID=$_GET["OnlyGUID"];
-	$sql="SELECT * FROM activedirectory_groupsNames WHERE groupname LIKE '{$_GET["query"]}' ORDER BY groupname LIMIT 0,50";
-	$results=$q->QUERY_SQL($sql,"artica_backup");
-	
-	$html=$html."
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-	<th colspan=2>{active_directory_group}</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";		
-	
-	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$prepend="ad:";
-		$gid=$ligne["dn"];
-		$num=$ligne["groupname"];
-		$num=str_replace("'", "`", $num);
-		$Displayname=$num;
-		$gid=base64_encode($gid);
-		$img="wingroup.png";
-		$js="SambaBrowseSelect('$num','$prepend','$gid')";
-		if($_GET["callback"]<>null){$js="{$_GET["callback"]}('$num','$prepend','$gid')";}
-		
-	$html=$html."
-		<tr class=$classtr>
-		<td width=1% align='center' valign='middle'><img src='img/$img'></td>
-		<td 
-		onMouseOver=\"this.style.cursor='pointer'\" 
-		OnMouseOut=\"this.style.cursor='default'\"
-		OnClick=\"javascript:$js;\"
-		><strong style='font-size:14px;text-decoration:underline' >$Displayname</td>
-		</tr>
-	";
-	}
-	
-	$html=$html."
-	</tbody>
-	</table>
-	
-	";
-	
-	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("$html");	
-	
-	
-	
-}
-function query(){
+function query_group(){
 	if($_GET["OnlyUsers"]=="yes"){$_GET["OnlyUsers"]=1;}
 	$users=new user();
 	$query=$_POST["query"];
-	
-	$nogetent=false;	
-		
+	$nogetent=false;
 	$OnlyUsers=$_GET["OnlyUsers"];
 	$OnlyGroups=$_GET["OnlyGroups"];
 	$OnlyGUID=$_GET["OnlyGUID"];
+	$OnlyName=$_GET["OnlyName"];
+	$OnlyCheckAD=$_GET["OnlyCheckAD"];
+	$Zarafa=$_GET["Zarafa"];
+	$ObjectZarafa=false;
+	
+	if(!is_numeric($OnlyGUID)){$OnlyGUID=0;}
+	if(!is_numeric($OnlyUsers)){$OnlyUsers=0;}
+	if(!is_numeric($OnlyName)){$OnlyName=0;}
+	if(!is_numeric($OnlyCheckAD)){$OnlyCheckAD=0;}
+	if($Zarafa==1){$nogetent=true;$ObjectZarafa=true;}
+	
+	
+	$OnlyUsers=0;
+	$OnlyGroups=1;
+
+	
 	$ObjectZarafa=false;
 	$Zarafa=$_GET["Zarafa"];
 	if($Zarafa==1){$nogetent=true;$ObjectZarafa=true;}
 	$hash=array();
 	if(!isset($_GET["prepend"])){$_GET["prepend"]=0;}else{if($_GET["prepend"]=='yes'){$_GET["prepend"]=1;}if($_GET["prepend"]=='no'){$_GET["prepend"]=0;}}
 	$WORKGROUP=null;
+	$sock=new sockets();
+	$ldap=new clladp();
+	if($ldap->IsKerbAuth()){
+		$adKerb=new external_ad_search();
+		$hash=$adKerb->searchGroup($query,array(),$_POST["rp"]);
+		
+	}else{
+		$hash=$users->find_ldap_items($query,$_GET["organization"],$nogetent,$ObjectZarafa,$_POST["rp"],$OnlyGUID,$OnlyUsers,$OnlyCheckAD);
+	}
+	
+	$query=$_POST["query"];
+	if($query==null){$query="*";}
+	
+	$data = array();
+	$data['page'] = 1;
+	$data['total'] = count($hash);
+	$data['rows'] = array();
+	$c=0;
+	
+	while (list ($num, $ligne) = each ($hash) ){
+		if($num==null){continue;}
+		$gid=0;
+	
+	
+		if(preg_match("#^@(.+?):([0-9]+)#",$ligne,$re)){
+			if($OnlyUsers==1){continue;}
+			$img="wingroup.png";
+			$Displayname="{$re[1]}";
+			$prepend="group:";
+			$gid=$re[2];
+			if($OnlyName==1){if(preg_match("#^@(.+)#", $num,$ri)){$num=$ri[1];}}
+				
+		}
+	
+		$js="SambaBrowseSelect('$num','$prepend',$gid)";
+		if($_GET["callback"]<>null){$js="{$_GET["callback"]}('$num','$prepend',$gid)";}
+	
+		$c++;
+		if($c>$_POST["rp"]){break;}
+	
+		$data['rows'][] = array(
+				'id' => md5(serialize($ligne["displayname"])),
+				'cell' => array(
+						"<img src='img/$img'>",
+						"<span style='font-size:14px;font-weight:bolder'>$Displayname</span> <span style='font-size:11px'>($num)</span>",
+						"<span style='font-size:14px'>".imgsimple("arrow-right-24.png","{add}",$js)."</span>",
+				)
+		);
+	
+	
+	
+	}
+	$data['total'] = $c;
+	echo json_encode($data);	
+	
+	
+	
+}
+
+function query(){
+	if($_GET["OnlyUsers"]=="yes"){$_GET["OnlyUsers"]=1;}
+	$users=new user();
+	$query=$_POST["query"];
+	
+	if($_POST["qtype"]=="groups"){
+		query_group();
+		return;
+		
+	}
+	
+	$nogetent=false;	
+		
+	$OnlyUsers=$_GET["OnlyUsers"];
+	$OnlyGroups=$_GET["OnlyGroups"];
+	$OnlyGUID=$_GET["OnlyGUID"];
+	$OnlyName=$_GET["OnlyName"];
+	$OnlyCheckAD=$_GET["OnlyCheckAD"];
+	$Zarafa=$_GET["Zarafa"];
+	
 	if(!is_numeric($OnlyGUID)){$OnlyGUID=0;}
 	if(!is_numeric($OnlyUsers)){$OnlyUsers=0;}
+	if(!is_numeric($OnlyName)){$OnlyName=0;}
+	if(!is_numeric($OnlyCheckAD)){$OnlyCheckAD=0;}	
 	
+	
+	$ObjectZarafa=false;
+	
+	if($Zarafa==1){$nogetent=true;$ObjectZarafa=true;}
+	$hash=array();
+	if(!isset($_GET["prepend"])){$_GET["prepend"]=0;}else{if($_GET["prepend"]=='yes'){$_GET["prepend"]=1;}if($_GET["prepend"]=='no'){$_GET["prepend"]=0;}}
+	$WORKGROUP=null;
+
+	$sock=new sockets();
 	
 	
 	
@@ -409,7 +462,7 @@ function query(){
 		
 	}
 	
-	$hash=$users->find_ldap_items($query,$_GET["organization"],$nogetent,$ObjectZarafa,$_POST["rp"],$OnlyGUID,$OnlyUsers);
+	$hash=$users->find_ldap_items($query,$_GET["organization"],$nogetent,$ObjectZarafa,$_POST["rp"],$OnlyGUID,$OnlyUsers,$OnlyCheckAD);
 
 	
 	$data = array();
@@ -429,6 +482,8 @@ function query(){
 			$Displayname="{$re[1]}";
 			$prepend="group:";
 			$gid=$re[2];
+			if($OnlyName==1){if(preg_match("#^@(.+)#", $num,$ri)){$num=$ri[1];}}
+			
 		}else{
 			if($OnlyGroups==1){continue;}
 			$Displayname=$ligne;
@@ -454,7 +509,7 @@ function query(){
 		'id' => md5(serialize($ligne["displayname"])),
 		'cell' => array(
 			"<img src='img/$img'>",
-			"<span style='font-size:14px;font-weight:bolder'>$Displayname</span>",
+			"<span style='font-size:14px;font-weight:bolder'>$Displayname</span> <span style='font-size:11px'>($num)</span>",
 			"<span style='font-size:14px'>".imgsimple("arrow-right-24.png","{add}",$js)."</span>",
 			)
 		);		
@@ -469,87 +524,4 @@ function query(){
 }
 
 
-function query_old(){
-	if($_GET["OnlyUsers"]=="yes"){$_GET["OnlyUsers"]=1;}
-	if(($_GET["OnlyAD"]==1) && ($_GET["OnlyUsers"]==0)){query_ad_groups();exit;}
-	$users=new user();
-	if($_GET["query"]=='*'){$_GET["query"]=null;}
-	$nogetent=false;	
-	
-	$OnlyUsers=$_GET["OnlyUsers"];
-	$OnlyGroups=$_GET["OnlyGroups"];
-	$OnlyGUID=$_GET["OnlyGUID"];
-	$ObjectZarafa=false;
-	$Zarafa=$_GET["Zarafa"];
-	if($Zarafa==1){$nogetent=true;$ObjectZarafa=true;}
-	$hash=$users->find_ldap_items($_GET["query"],$_GET["organization"],$nogetent,$ObjectZarafa);
-	
-	
-
-	if(!isset($_GET["prepend"])){$_GET["prepend"]=0;}else{
-		if($_GET["prepend"]=='yes'){$_GET["prepend"]=1;}
-		if($_GET["prepend"]=='no'){$_GET["prepend"]=0;}
-	}
-	if(!is_array($hash)){return null;}
-	
-	$html=$html."
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-	<th colspan=2>{members}/{groups}</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";		
-	
-	
-while (list ($num, $ligne) = each ($hash) ){
-		if($num==null){continue;}
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$gid=0;
-		
-		
-		if(preg_match("#^@(.+?):([0-9]+)#",$ligne,$re)){
-			if($OnlyUsers==1){continue;}
-			$img="wingroup.png";
-			$Displayname="{$re[1]}";
-			$prepend="group:";
-			$gid=$re[2];
-		}else{
-			if($OnlyGroups==1){continue;}
-			$Displayname=$ligne;
-			$img="winuser.png";
-			$prepend="user:";
-		}
-		
-		if(substr($num,strlen($num)-1,1)=='$'){
-			if($_GET["NOComputers"]==1){continue;}
-			$Displayname=str_replace('$','',$Displayname);
-			$img="base.gif";
-			$prepend="computer:";
-			
-		}
-		
-		$js="SambaBrowseSelect('$num','$prepend',$gid)";
-		if($_GET["callback"]<>null){$js="{$_GET["callback"]}('$num','$prepend',$gid)";}
-		
-	$html=$html."
-		<tr class=$classtr>
-		<td width=1% align='center' valign='middle'><img src='img/$img'></td>
-		<td 
-		onMouseOver=\"this.style.cursor='pointer'\" 
-		OnMouseOut=\"this.style.cursor='default'\"
-		OnClick=\"javascript:$js;\"
-		><strong style='font-size:14px;text-decoration:underline' >$Displayname</td>
-		</tr>
-	";
-	}
-	
-	$html=$html."</table>
-	
-	";
-	
-	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("$html");	
-	
-}
 

@@ -47,6 +47,7 @@ public
       procedure xinstall(sourcestring:string='');
       procedure xinstall_REMOVE_SAMBA();
     procedure pdnsinstall();
+    procedure pdnsinstall_static();
     procedure scannedonly();
     procedure greyhole();
     procedure poweradmin();
@@ -54,6 +55,7 @@ public
     function talloc():boolean;
     procedure popt();
     procedure ctdb();
+    procedure CAS_SERVER();
 END;
 
 implementation
@@ -134,6 +136,164 @@ exit;
 
 end;
 //##############################################################################
+procedure install_samba.CAS_SERVER();
+var
+   CODE_NAME:string;
+   cmd:string;
+   zdate:string;
+   smbsources:string;
+   l:Tstringlist;
+   i:integer;
+   compile:boolean;
+   dnsmasq_bin:string;
+   package_name:string;
+   tarbin:string;
+   aptget:string;
+begin
+  CODE_NAME:='APP_CAS';
+  compile:=false;
+  distri:=tdistriDetect.Create;
+  Arch:=libs.ArchStruct();
+  writeln('RESULT.................: Architecture : ',Arch);
+  writeln('RESULT.................: Distribution : ',distri.DISTRINAME,' (DISTRINAME)');
+  writeln('RESULT.................: Major version: ',distri.DISTRI_MAJOR,' (DISTRI_MAJOR)');
+  writeln('RESULT.................: Artica Code  : ',distri.DISTRINAME_CODE,' (DISTRINAME_CODE)');
+  if  distri.DISTRINAME_CODE='DEBIAN' then compile:=true;
+  if  distri.DISTRINAME_CODE='UBUNTU' then compile:=true;
+  if not compile then begin
+        install.INSTALL_STATUS(CODE_NAME,110);
+        install.INSTALL_PROGRESS(CODE_NAME,'{failed} distribution not supported...');
+        exit;
+  end;
+ install.INSTALL_STATUS(CODE_NAME,30);
+ install.INSTALL_PROGRESS(CODE_NAME,'{checking}');
+
+  aptget:=SYS.LOCATE_GENERIC_BIN('apt-get');
+  if Not FileExists('/usr/share/maven2/bin/mvn') then begin
+    fpsystem('DEBIAN_FRONTEND=noninteractive '+aptget+' -o Dpkg::Options::="--force-confnew" --force-yes -y install maven2');
+  end;
+
+  if Not FileExists('/usr/share/maven2/bin/mvn') then begin
+        install.INSTALL_STATUS(CODE_NAME,110);
+        install.INSTALL_PROGRESS(CODE_NAME,'{failed} installing maven2...');
+        exit;
+  end;
+
+  if Not FileExists('/etc/init.d/tomcat6') then begin
+    fpsystem('DEBIAN_FRONTEND=noninteractive '+aptget+' -o Dpkg::Options::="--force-confnew" --force-yes -y install tomcat6');
+  end;
+
+   if Not FileExists('/etc/init.d/tomcat6') then begin
+        install.INSTALL_STATUS(CODE_NAME,110);
+        install.INSTALL_PROGRESS(CODE_NAME,'{failed} installing tomcat6...');
+        exit;
+  end;
+
+  if Not FileExists('/usr/share/cas-server/pom.xml') then begin
+     fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/compile-CAS.php');
+  end;
+
+  if Not FileExists('/usr/share/cas-server/pom.xml') then begin
+        install.INSTALL_STATUS(CODE_NAME,110);
+        install.INSTALL_PROGRESS(CODE_NAME,'{failed} installing C.A.S server...');
+        exit;
+  end;
+ install.INSTALL_STATUS(CODE_NAME,100);
+ install.INSTALL_PROGRESS(CODE_NAME,'{installed}');
+ fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.cas-server.php');
+end;
+
+procedure install_samba.pdnsinstall_static();
+var
+   CODE_NAME:string;
+   cmd:string;
+   zdate:string;
+   smbsources:string;
+   l:Tstringlist;
+   i:integer;
+   compile:boolean;
+   dnsmasq_bin:string;
+   package_name:string;
+   tarbin:string;
+begin
+  CODE_NAME:='APP_PDNS_STATIC';
+  compile:=false;
+  distri:=tdistriDetect.Create;
+  Arch:=libs.ArchStruct();
+  writeln('RESULT.................: Architecture : ',Arch);
+  writeln('RESULT.................: Distribution : ',distri.DISTRINAME,' (DISTRINAME)');
+  writeln('RESULT.................: Major version: ',distri.DISTRI_MAJOR,' (DISTRI_MAJOR)');
+  writeln('RESULT.................: Artica Code  : ',distri.DISTRINAME_CODE,' (DISTRINAME_CODE)');
+
+  dnsmasq_bin:=SYS.LOCATE_GENERIC_BIN('dnsmasq');
+  if FileExists(dnsmasq_bin) then begin
+     writeln('DnsMasq is detected, remove it....');
+     if FileExists('/usr/bin/aptitude') then fpsystem('/usr/bin/aptitude -q -y purge dnsmasq');
+     if FileExists('/bin/rpm') then fpsystem('/bin/rpm --quiet -e dnsmasq');
+  end;
+
+   dnsmasq_bin:=SYS.LOCATE_GENERIC_BIN('dnsmasq');
+   if FileExists(dnsmasq_bin) then begin
+      fpsystem('/etc/init.d/artica-postfix stop dnsmasq');
+      fpsystem('/bin/rm '+dnsmasq_bin);
+   end;
+
+  if distri.DISTRINAME_CODE='DEBIAN' then compile:=true;
+  if distri.DISTRINAME_CODE='UBUNTU' then compile:=true;
+  if distri.DISTRINAME_CODE='FEDORA' then compile:=true;
+  if not compile then begin
+     writeln('Upgrading from pre-compiled for ',distri.DISTRINAME_CODE,' is not yet supported');
+     writeln('Please, contact Artica-technology support if need support on ',distri.DISTRINAME_CODE);
+     writeln('');
+     if FileExists(SYS.LOCATE_GENERIC_BIN('pdns_server')) then begin
+        install.INSTALL_STATUS(CODE_NAME,100);
+        install.INSTALL_PROGRESS(CODE_NAME,'{success}');
+        exit;
+     end;
+   install.INSTALL_STATUS(CODE_NAME,110);
+   install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
+   exit;
+  end;
+
+  if Arch=32 then package_name:='pdns-static-i386';
+  if Arch=64 then package_name:='pdns-static-amd64';
+   writeln('Checking package name '+package_name );
+ install.INSTALL_STATUS(CODE_NAME,30);
+ source_folder:='';
+ install.INSTALL_PROGRESS(CODE_NAME,'{downloading}');
+ source_folder:=libs.COMPILE_GENERIC_APPS(package_name,true);
+   if not FileExists(source_folder) then begin
+     writeln('Install '+CODE_NAME+' failed...'+source_folder+' no such file');
+     install.INSTALL_STATUS(CODE_NAME,110);
+     exit;
+  end;
+install.INSTALL_STATUS(CODE_NAME,50);
+install.INSTALL_PROGRESS(CODE_NAME,'{checking}');
+tarbin:=SYS.LOCATE_GENERIC_BIN('tar');
+
+install.INSTALL_STATUS(CODE_NAME,60);
+install.INSTALL_PROGRESS(CODE_NAME,'{installing}');
+
+fpsystem(tarbin+' xf '+source_folder+' -C /');
+if not FileExists(SYS.LOCATE_GENERIC_BIN('pdns_recursor')) then begin
+   install.INSTALL_STATUS(CODE_NAME,110);
+   install.INSTALL_PROGRESS(CODE_NAME,'{failed} pdns_recursor');
+   exit;
+end;
+writeln('Install '+CODE_NAME+' success (recursor)...');
+install.INSTALL_STATUS(CODE_NAME,100);
+install.INSTALL_PROGRESS(CODE_NAME,'{installed}');
+
+fpsystem('/usr/share/artica-postfix/bin/artica-make APP_POWERADMIN');
+SYS.THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart pdns');
+
+exit;
+
+end;
+//##############################################################################
+
+
+//##############################################################################
 procedure install_samba.pdnsinstall();
 var
    CODE_NAME:string;
@@ -198,7 +358,7 @@ install.INSTALL_STATUS(CODE_NAME,50);
 install.INSTALL_PROGRESS(CODE_NAME,'{checking}');
 SetCurrentDir(source_folder);
 writeln('using source dir',source_folder);
-cmd:='./configure --prefix=/usr --sysconfdir=/etc/powerdns --mandir=\${prefix}/share/man --infodir=\${prefix}/share/info --libdir=''${prefix}/lib/powerdns'' --libexecdir=''${prefix}/lib'' --with-dynmodules="ldap pipe gmysql geo"';
+cmd:='./configure --prefix=/usr --sysconfdir=/etc/powerdns --mandir=\${prefix}/share/man --infodir=\${prefix}/share/info --libdir=''${prefix}/lib/powerdns'' --libexecdir=''${prefix}/lib'' --with-dynmodules="ldap pipe gmysql geo" --without-sqlite3';
 cmd:=cmd+' --with-modules=""';
 writeln('using configure: ',cmd);
 fpsystem(cmd);

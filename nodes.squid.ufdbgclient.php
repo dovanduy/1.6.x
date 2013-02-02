@@ -87,11 +87,17 @@ function rows_table(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	if(!$q->ok){json_error_show("$q->mysql_error",1);}
 	
-	$array=unserialize(base64_decode($ligne["UfdbClientLogs"]));
-	if(!is_array($array)){json_error_show("No data",1);}
+	if(strlen($ligne["UfdbClientLogs"])==0){
+		json_error_show("UfdbClientLogs No content...",1);
+	}
+	
+	$base=base64_decode($ligne["UfdbClientLogs"]);
+	$array=unserialize($base);
+	
+	if(!is_array($array)){json_error_show(strlen($ligne["UfdbClientLogs"])." bytes...Not an array...",1);}
 	
 	$page=1;
-	if(count($array)==0){json_error_show("No data",1);}	
+	if(count($array)==0){json_error_show("No rows",1);}	
 	krsort($array);
 	
 	

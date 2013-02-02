@@ -50,20 +50,23 @@ class squid_acls_groups{
 		if(!$q->ok){if(preg_match("#Error Table.*?doesn't exist#",$q->mysql_error)){$q->CheckTables();$results = $q->QUERY_SQL($sql);}}
 		$this->debugOutput("Find `by order` -> ". mysql_num_rows($results)." items", __FUNCTION__, __LINE__);
 		if(!$q->ok){$this->debugOutput("$q->mysql_error", __FUNCTION__, __LINE__);}
-		
+		$conf=array();
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$httpaccess=$ligne["httpaccess"];
 			if($httpaccess=="tcp_outgoing_tos"){continue;}
 			if($httpaccess=="url_rewrite_access_deny"){continue;}
 			if($httpaccess=="adaptation_access_deny"){continue;}
 			if($httpaccess=="delay_access"){continue;}
-			
+			if($httpaccess=="tcp_outgoing_address"){continue;}
+			if($httpaccess=="snmp_access_allow"){continue;}
+			if($httpaccess=="log_access"){continue;}
 			$reverse=false;
 			
 			$aclid=$ligne["ID"];
 			if($httpaccess=="deny_access_except"){$reverse=true;$firstToken="http_access deny";}
 			if($httpaccess=="access_allow"){$firstToken="http_access allow";}
 			if($httpaccess=="access_deny"){$firstToken="http_access deny";}
+			
 			
 			$this->debugOutput("->buildacls_bytype_items($aclid,$reverse)", __FUNCTION__, __LINE__);
 			$groups=$this->buildacls_bytype_items($aclid,$reverse);
@@ -117,7 +120,16 @@ class squid_acls_groups{
 				$valueToAdd=$valueToAdd." ";
 			}
 			
+			if($ruletype=="tcp_outgoing_address"){
+				$valueToAdd=$ligne["httpaccess_data"];
+				if($valueToAdd==null){continue;}
+				$valueToAdd=$valueToAdd." ";
+			}
 			
+			if($ruletype=="log_access"){
+				$valueToAdd="stdio:/var/log/squid/access_acl_$aclid.csv csv_acls ";
+			}	
+				
 			$rulesAcls[]=$valueToAdd.@implode(" ", $groups);
 			
 			
@@ -146,6 +158,8 @@ class squid_acls_groups{
 			$GroupType=$ligne["GroupType"];
 			$neg=null;
 			$this->debugOutput("$aclid `$GroupType` ID:{$ligne['ID']}", __FUNCTION__, __LINE__);
+			
+			
 			if($GroupType=="proxy_auth_ads"){
 				if($this->EnableKerbAuth==0){
 					$this->debugOutput("$aclid: proxy_auth_ads by EnableKerbAuth is disabled, SKIP", __FUNCTION__, __LINE__);
@@ -157,6 +171,16 @@ class squid_acls_groups{
 				$acls_name[]="{$neg}{$prefix}Group{$ligne["ID"]}";	
 				continue;
 			}
+			
+			if($GroupType=="dynamic_acls"){
+				if($ligne["negation"]==1){$neg="!";}
+				$this->debugOutput("$aclid: dynamic_acls -> {$neg}{$prefix}Group{$ligne["ID"]}", __FUNCTION__, __LINE__);
+				$acls_name[]="{$neg}{$prefix}Group{$ligne["ID"]}";
+				continue;
+			}			
+			
+			
+			
 			if($GroupType=="NudityScan"){
 				if(!$GLOBALS["ArtcExtrnNudeScanner"]){
 					$this->debugOutput("$aclid: NudityScan ArtcExtrnNudeScanner is disabled, SKIP", __FUNCTION__, __LINE__);
@@ -252,6 +276,16 @@ class squid_acls_groups{
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='access_allow'"));
 		$access_allow=$ligne["httpaccess_value"];
 		if(!is_numeric($access_allow)){$access_allow=0;}	
+
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='snmp_access_allow'"));
+		$snmp_access_allow=$ligne["httpaccess_value"];
+		if(!is_numeric($snmp_access_allow)){$snmp_access_allow=0;}	
+
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='log_access'"));
+		$log_access=$ligne["httpaccess_value"];
+		if(!is_numeric($log_access)){$log_access=0;}		
+		
+		
 		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='deny_access_except'"));
 		$deny_access_except=$ligne["httpaccess_value"];
@@ -262,7 +296,13 @@ class squid_acls_groups{
 		$tcp_outgoing_tos=$ligne["httpaccess_value"];
 		$tcp_outgoing_tos_value=$ligne["httpaccess_data"];
 		if(!is_numeric($tcp_outgoing_tos)){$tcp_outgoing_tos=0;}	
-		if($tcp_outgoing_tos_value==null){$tcp_outgoing_tos_value="0x20";}		
+		if($tcp_outgoing_tos_value==null){$tcp_outgoing_tos_value="0x20";}
+
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='tcp_outgoing_address'"));
+		$tcp_outgoing_address=$ligne["httpaccess_value"];
+		$tcp_outgoing_address_value=$ligne["httpaccess_data"];
+		if(!is_numeric($tcp_outgoing_address)){$tcp_outgoing_address=0;}	
+		if($tcp_outgoing_tos_value==null){$tcp_outgoing_address=0;}			
 
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='delay_access'"));
 		$delay_access=$ligne["httpaccess_value"];
@@ -280,7 +320,11 @@ class squid_acls_groups{
 		if($access_deny==1){$url_rewrite_access_deny=0;$adaptation_access_deny=0;$cache_deny=0;$access_allow=0;}
 		if($access_deny==1){$explain[]="<strong style=\"color:$explain_deny_color\">{deny_access}</strong>";}
 		if($access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">{allow}</strong>";}
+		if($snmp_access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">{allow_snmp_access}</strong>";}
+		if($log_access==1){$explain[]="<strong style=\"color:$explain_allow_color\">{log_to_csv} <a href=\"squid.acls-rules.php?csv=$aclid\" style='text-decoration:underline'>&laquo;download&raquo;</a></strong>";}
 		if($deny_access_except==1){$explain[]="{deny_access_except}";$reverse_text=true;}
+		
+		
 		
 		if($delay_access==1){
 			$q2=new mysql();
@@ -295,6 +339,7 @@ class squid_acls_groups{
 		if($url_rewrite_access_deny==1){$explain[]="{pass_trough_thewebfilter_engine}";}
 		if($adaptation_access_deny==1){$explain[]="{pass_trough_antivirus_engine}";}
 		if($tcp_outgoing_tos==1){$explain[]="{set_specific_dcsp} $tcp_outgoing_tos_value";}
+		if($tcp_outgoing_address==1){$explain[]="{acl_tcp_outgoing_address} $tcp_outgoing_address_value";}
 		
 		
 		if($cache_deny==1){$explain[]="{do_not_cache}";}
@@ -332,6 +377,8 @@ class squid_acls_groups{
 		$tableorg=null;
 		$ARRAY_NO_ITEM["proxy_auth_ads"]=true;
 		$ARRAY_NO_ITEM["NudityScan"]=true;
+		$ARRAY_NO_ITEM["dynamic_acls"]=true;
+
 		$sql="SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,webfilters_sqgroups.* FROM webfilters_sqacllinks,webfilters_sqgroups 
 		WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID AND webfilters_sqacllinks.aclid=$aclid";
 		$q=new mysql_squid_builder();
@@ -348,6 +395,13 @@ class squid_acls_groups{
 			}
 			if($ligne["GroupType"]=="proxy_auth_ads"){$items_text=null;}
 			if($ligne["GroupType"]=="NudityScan"){$items_text=null;}
+			if($ligne["GroupType"]=="dynamic_acls"){
+				$ligne3=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilter_aclsdynamic WHERE gpid='{$ligne['ID']}'"));
+				$items_text="&nbsp;<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('miniadmin.proxy.dynamic.acls.php?ByJs={$ligne['ID']}');\"
+				style='font-size:12px;font-weight:normal;text-decoration:underline'>{$ligne3["tcount"]} {rules}</a>&nbsp;";
+				
+			}
+			
 			
 			$template=$this->template_name($ligne['ID']);
 			if($template<>null){$template=" - {template} $template";}else{$template=" - {template} {default}";}

@@ -1,18 +1,20 @@
 <?php
 include_once(dirname(__FILE__)."/class.ActiveDirectory.inc");
 class squid_acls{
-	var $acls_array=array();
-	var $availableGroups=array();
-	var $http_access=array();
-	var $ACL_ARP_ENABLED=false;
-	var $SQUID_GROUPS_ITEMS_TYPE=array();
-	var $RequestedGroupeType=null;
-	var $UseDynamicGroupsAcls=0;
-	var $EnableKerbAuth=0;
-	var $AUTH=0;
-	var $instancetime=null;
+	public $acls_array=array();
+	public $availableGroups=array();
+	public $http_access=array();
+	public $ACL_ARP_ENABLED=false;
+	public $SQUID_GROUPS_ITEMS_TYPE=array();
+	public $RequestedGroupeType=null;
+	public $UseDynamicGroupsAcls=0;
+	public $EnableKerbAuth=0;
+	public $AUTH=0;
+	public $instancetime=null;
+	public $ASROOT=false;
 
 	public function squid_acls(){
+		if(posix_getuid()==0){$this->ASROOT=true;}
 		if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 		$users=$GLOBALS["CLASS_USERS"];
 		$sock=new sockets();
@@ -26,6 +28,9 @@ class squid_acls{
 		if($squid->LDAP_EXTERNAL_AUTH==1){$this->AUTH=1;}
 		if($squid->EnableKerbAuth==1){$this->AUTH=1;}
 		$this->instancetime=time();
+		if(!isset($GLOBALS["COMPILE_SQUID_TOKENS"])){$this->compilation_params();}
+		if(count($GLOBALS["COMPILE_SQUID_TOKENS"])<3){$this->compilation_params();}
+		
 	}
 
 	
@@ -71,7 +76,9 @@ class squid_acls{
 			}			
 			
 			if($ligne["GroupType"]=="proxy_auth_ads"){
+				
 				if($this->EnableKerbAuth==0){echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP EnableKerbAuth = 0\n";continue;}
+				if($this->UseDynamicGroupsAcls==0){echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP UseDynamicGroupsAcls = 0\n";continue;}
 				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:proxy_auth_ads $acls_name is available\n";
 				$this->availableGroups[$ligne["ID"]]=true;
 				$this->acls_array[]="acl $acls_name external ads_group ". utf8_encode($ligne["GroupName"]);
@@ -79,6 +86,19 @@ class squid_acls{
 				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
 				continue;				
 			}
+			
+			
+			if($ligne["GroupType"]=="dynamic_acls"){
+				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:dynamic_acls $acls_name is available\n";
+				$this->availableGroups[$ligne["ID"]]=true;
+				$this->acls_array[]="acl $acls_name external DynamicAcls ID{$ligne["ID"]}";
+				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
+							if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
+							continue;
+				}			
+			
+			
+			
 			
 			if($ligne["GroupType"]=="NudityScan"){
 				if(!$GLOBALS["ArtcExtrnNudeScanner"]){
@@ -142,16 +162,26 @@ class squid_acls{
 		}
 	}
 	
+
+	
+	
 	private function acl_tpl($aclid){
 		$sql="SELECT acltpl FROM webfilters_sqgroups WHERE ID='$aclid'";
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if($ligne["acltpl"]==null){return;}
-		$sql="SELECT template_name,lang,template_link,template_uri FROM squidtpls WHERE `zmd5`='{$ligne["acltpl"]}'";
+		$acltpl=$ligne["acltpl"];
+		$sql="SELECT template_name,lang,template_link,template_uri FROM squidtpls WHERE `zmd5`='$acltpl'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$tplname=$ligne["template_name"];
 		if(!preg_match("#ERR_.+#", $ligne["template_name"])){$ligne["template_name"]="ERR_".$ligne["template_name"];}
 		$template_path="/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}";
-		if($ligne["template_link"]==1){return $ligne["template_uri"];}
+		if($ligne["template_link"]==1){
+			$freeWebsLink="?a=%a&e=%e&ee=%E&www=%H&url=%R&x=%x&T=$acltpl&M=%M";
+			$ligne["template_uri"]=str_replace("%FREEWEBS%", $freeWebsLink, $ligne["template_uri"]);
+			return $ligne["template_uri"];
+		
+		}
 		if(!is_file($template_path)){return null;}
 		return $ligne["template_name"];
 		
@@ -476,7 +506,35 @@ class squid_acls{
 		
 	}
 	
-	
+	private function compilation_params(){
+		if(!$this->ASROOT){return;}
+		if(isset($GLOBALS["COMPILE_SQUID_TOKENS"])){return $GLOBALS["COMPILE_SQUID_TOKENS"];}
+		$unix=new unix();
+		$squidbin=$unix->find_program("squid");
+		if($squidbin==null){$squidbin=$unix->find_program("squid3");}
+		exec("$squidbin -v 2>&1",$results);
+		$text=@implode("\n", $results);
+		if(preg_match("#configure options:\s+(.+)#is", $text,$re)){$text=$re[1];}
+		if(preg_match_all("#'(.+?)'#is", $text, $re)){
+			while (list ($index, $line) = each ($re[1])){
+				if(preg_match("#(.+?)=(.*)#", $line,$ri)){
+					$key=$ri[1];
+					$value=$ri[2];
+					$key=str_replace("--", "", $key);
+					if(trim($value)==null){$value=true;}
+					$GLOBALS["COMPILE_SQUID_TOKENS"][$key]=$value;
+					continue;
+				}
+				$key=$line;
+				$value=1;
+				$key=str_replace("--", "", $key);
+				if($GLOBALS["VERBOSE"]){echo "squid -v [$key] = `$value`\n";}
+				$GLOBALS["COMPILE_SQUID_TOKENS"][$key]=$value;
+			}
+				
+		}
+		return $GLOBALS["COMPILE_SQUID_TOKENS"];
+	}	
 	
 	
 

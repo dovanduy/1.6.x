@@ -3090,6 +3090,7 @@ begin
      pdns:=tpdns.Create(SYS);
     try
        ArrayList.Add('[APP_PDNS] "'+pdns.VERSION()+'"');
+       ArrayList.Add('[APP_PDNS_STATIC] "'+pdns.VERSION()+'"');
     except
           logs.Syslogs('FATAL ERROR on CGI_ALL_APPLIS_INSTALLED after pdns.VERSION()');
     end;
@@ -3179,6 +3180,9 @@ begin
     end;
 
 
+
+
+
     //gluster
     if debug then writeln('GLUSTER START');
     gluster:=tgluster.Create(SYS);
@@ -3257,6 +3261,9 @@ begin
     ArrayList.Add('[APP_INETD] "' + SYS.INETD_VERSION() + '"');
     ArrayList.Add('[APP_SIMPLE_GROUPEWARE] "' + SIMPLE_CALENDAR_VERSION() + '"');
     ArrayList.Add('[APP_ATOPENMAIL] "' + toolsversions.ATMAIL_VERSION() + '"');
+    ArrayList.Add('[APP_PYAUTHENNTLM] "' + toolsversions.APP_PYAUTHENNTLM() + '"');
+
+
 
     xapian:=Txapian.Create(SYS);
     ArrayList.Add('[APP_XAPIAN] "' + xapian.VERSION() + '"');
@@ -3293,6 +3300,8 @@ begin
           ArrayList.Add('[APP_WEBAPP] "'+trim(logs.ReadFromFile('/usr/share/zarafa-webapp/version'))+'"');
        end;
     end;
+
+
     except
        logs.Syslogs('FATAL ERROR on APP_ZARAFA after zarafa_server.VERSION()');
     end;
@@ -3376,6 +3385,7 @@ begin
     ArrayList.Add('[APP_SQUID0] "'+ XSQUID_VERSION + '"');
     ArrayList.Add('[APP_SQUID2] "'+ XSQUID_VERSION + '"');
     ArrayList.Add('[APP_SQUID3] "'+ XSQUID_VERSION + '"');
+    ArrayList.Add('[APP_SQUID31] "'+ XSQUID_VERSION + '"');
 
     if debug then logs.Debuglogs('-> Cpureftpd.PURE_FTPD_VERSION');
     ArrayList.Add('[APP_PUREFTPD] "'+ Cpureftpd.PURE_FTPD_VERSION() + '"');

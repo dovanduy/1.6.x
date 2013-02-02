@@ -249,16 +249,25 @@ function items_list(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));json_encode($data);return;}
-	
+	$rules=$tpl->_ENGINE_parse_body("{rules}");
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$val=0;
 		$mkey=$ligne["mkey"];
 		$GroupName=utf8_encode($ligne["GroupName"]);
 		$GroupType=$ligne["GroupType"];
+		$additional_text=null;
+		$items=null;
 		$GroupTypeName=$tpl->_ENGINE_parse_body($q->acl_GroupType[$GroupType]);
 		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}'"));
 		$items=$ligne2["tcount"];
 		if($GroupType=="proxy_auth_ads"){$items="-";}
+		if($GroupType=="dynamic_acls"){
+			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilter_aclsdynamic WHERE gpid='{$ligne['ID']}'"));
+			$items="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('miniadmin.proxy.dynamic.acls.php?ByJs={$ligne['ID']}');\"
+			style='font-size:14px;font-weight:bold;text-decoration:underline'>{$ligne2["tcount"]}</a>";
+			$additional_text="&nbsp;&nbsp;<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('miniadmin.proxy.dynamic.acls.php?ByJs={$ligne['ID']}');\"
+			style='font-size:14px;font-weight:bold;text-decoration:underline'>[$rules]</a>";
+		}
 		if($GroupType=="NudityScan"){$items="-";}
 		
 $href="<a href=\"javascript:blur();\" 

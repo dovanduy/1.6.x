@@ -23,7 +23,7 @@ function page(){
 	$page=CurrentPageName();
 	$md=md5($_GET["www"]);
 	$html="<div id='startpoint-$md'></div>
-	<script>LoadAjax('startpoint-$md','$page?startpoint=yes&www={$_GET["www"]}');</script>
+	<script>LoadAjax('startpoint-$md','$page?startpoint=yes&www={$_GET["www"]}&xtime={$_GET["xtime"]}&week={$_GET["week"]}&year={$_GET["year"]}&month={$_GET["month"]}');</script>
 	";
 	echo $html;
 	
@@ -37,6 +37,13 @@ function popup(){
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM visited_sites WHERE sitename='$www'"));
 	$time=time();
+	$year=$_GET["year"];
+	if(!is_numeric($year)){$year=date('Y');}
+	if(is_numeric($_GET["week"])){
+		$tablename="$year{$_GET["week"]}_week";
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(hits) as HitsNumber,SUM(size) as Querysize FROM $tablename WHERE sitename='$www'"));
+		if(!$q->ok){echo $q->mysql_error;}
+	}
 	
 	
 	$requests=numberFormat($ligne["HitsNumber"],0,""," ");

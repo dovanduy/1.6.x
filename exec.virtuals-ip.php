@@ -10,11 +10,12 @@ $GLOBALS["NO_GLOBAL_RELOAD"]=false;
 $GLOBALS["AS_ROOT"]=true;
 $GLOBALS["SLEEP"]=false;
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set_verbosed();}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);ini_set_verbosed();}
 if(preg_match("#--sleep#",implode(" ",$argv))){$GLOBALS["SLEEP"]=true;}
 if($argv[1]=="--resolvconf"){resolvconf();exit;}
-if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded system,die()","MAIN",__FILE__,__LINE__);die();}
 if($argv[1]=="--interfaces"){interfaces_show();die();}
+if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded system,die()","MAIN",__FILE__,__LINE__);die();}
+
 if($argv[1]=="--just-add"){routes();die();}
 if($argv[1]=="--ifconfig"){ifconfig_tests();exit;}
 if($argv[1]=="--bridges"){bridges_build();exit;}
@@ -91,6 +92,7 @@ function reconstruct_interface($eth){
 }
 
 function build(){
+$GLOBALS["SAVED_INTERFACES"]=array();
 $users=new usersMenus();	
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $oldpid=@file_get_contents($pidfile);
@@ -99,6 +101,8 @@ if($unix->process_exists($oldpid,basename(__FILE__))){
 	echo "Starting......: Building networks already executed PID: $oldpid\n";
 	die();
 }
+Checkipv6();
+
 @file_put_contents($pidfile,getmypid());
 
 	if($users->AS_DEBIAN_FAMILY){
@@ -112,8 +116,15 @@ if($unix->process_exists($oldpid,basename(__FILE__))){
 	bridges_build();
 	echo "Starting......: checking IPV6\n";
 	Checkipv6();
+	
+	echo "Starting......: reloading ". count($GLOBALS["SAVED_INTERFACES"])." interface(s)\n";
 	while (list ($num, $val) = each ($GLOBALS["SAVED_INTERFACES"]) ){
 		ifupifdown($val);
+	}
+	
+	if(count($GLOBALS["SAVED_INTERFACES"])==0){
+		echo "Starting......: Building Ipv6 virtuals IP...\n";
+		Checkipv6Virts();
 	}
 	
 	echo "Starting......: Stopping...\n";
@@ -314,6 +325,63 @@ function postfix_multiples_instances(){
 		echo "Starting......: reconfigure postfix instance $hostname\n";
 		shell_exec("$php /usr/share/artica-postfix/exec.postfix-multi.php --instance-reconfigure \"$hostname\"");
 	}
+}
+
+function Checkipv6Virts(){
+	$unix=new unix();
+	$sock=new sockets();
+	$EnableipV6=$sock->GET_INFO("EnableipV6");
+	if(!is_numeric($EnableipV6)){$EnableipV6=0;}	
+	if($EnableipV6==0){return;}
+	$q=new mysql();
+	$sql="SELECT nic FROM nics_virtuals WHERE ipv6=1";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	$eths=array();
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){		
+		$eths[$ligne["nic"]]=$ligne["nic"];
+		
+	}
+	if(count($eths)==0){
+		echo "Starting......: Building Ipv6 virtuals IP -> 0 interface...\n";
+		return;
+	}
+	
+	
+	$echo=$unix->find_program("echo");
+	$ipbin=$unix->find_program("ip");
+	$ip=new IP();
+	$sh=array();
+	while (list ($eth, $ligne) = each ($eths) ){
+		echo "Starting......: Building Ipv6 virtuals IP for `$eth` interface...\n";
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/disable_ipv6";		
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/autoconf";
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/accept_ra";
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/accept_ra_defrtr";
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/accept_ra_pinfo";
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/accept_ra_rtr_pref";	
+		$sql="SELECT * FROM nics_virtuals WHERE ipv6=1 AND nic='$eth' ORDER BY ID DESC";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+			$ipv6addr=$ligne["ipaddr"];
+			$netmask=$ligne["netmask"];
+			if(!is_numeric($netmask)){$netmask=0;}
+			if($netmask==0){continue;}
+			if(!$ip->isIPv6($ipv6addr)){continue;}
+			echo "Starting......: Building Ipv6 virtuals IP for `$eth` [$ipv6addr/$netmask]...\n";
+  		    $sh[]="$ipbin addr add dev $eth $ipv6addr/$netmask";
+  		 		
+			
+		}
+		
+	}
+	
+	if(count($sh)==0){return;}
+	while (list ($num, $cmdline) = each ($sh) ){
+		if($GLOBALS["VERBOSE"]){echo "Starting......: Building Ipv6 virtuals $cmdline\n";}
+		shell_exec($cmdline);
+	}
+	
+
 }
 
 

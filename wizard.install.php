@@ -586,7 +586,12 @@ function ou_save(){
 	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
 	$ldap=new clladp();
 	$ldap->AddOrganization($savedsettings["organization"]);
-	$ldap->AddDomainEntity($savedsettings["smtp_domainname"],$savedsettings["organization"]);
+	$ldap->AddDomainEntity($savedsettings["organization"],$savedsettings["smtp_domainname"]);
+	$sock=new sockets();
+	$sock->getFrameWork("cmd.php?reconfigure-postfix=yes");
+	$sock->getFrameWork("cmd.php?squid-rebuild=yes");
+	$sock->getFrameWork("cyrus.php?service-cmds=restart");
+	
 	
 $html="
 		<table style='width:99%' class=form>

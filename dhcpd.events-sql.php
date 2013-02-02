@@ -5,7 +5,7 @@ include_once('ressources/class.users.menus.inc');
 include_once('ressources/class.mysql.inc');
 include_once('ressources/class.computers.inc');
 $users=new usersMenus();
-if(!$users->AsSystemAdministrator){		
+if(!GetRights()){		
 	$tpl=new templates();
 	echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 	die();exit();
@@ -14,6 +14,12 @@ if(!$users->AsSystemAdministrator){
 	
 	if(isset($_GET["items-list"])){search();exit;}
 	page();
+	
+	function GetRights(){
+		$users=new usersMenus();
+		if($users->AsSystemAdministrator){return true;}
+		if($users->ASDCHPAdmin){return true;}
+	}	
 	
 function page(){
 	
@@ -140,7 +146,7 @@ function search(){
 			$uid=$computers->ComputerIDFromMAC($mac);
 			if($uid<>null){
 				
-				$uri="<a href=\"javascript:blur();\" OnClick=\"javascript:YahooUser(870,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=','$uid');\" style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>$mac</a>&nbsp;<span style='font-size:11px'>($uid)</span>";
+				$uri="<a href=\"javascript:blur();\" OnClick=\"javascript:YahooUser(962,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=','$uid');\" style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>$mac</a>&nbsp;<span style='font-size:11px'>($uid)</span>";
 				$ligne["description"]=str_replace($mac,$uri,$ligne["description"]);
 			}
 		}

@@ -803,8 +803,12 @@ private function WINBINDD_PARAMS(){
 		$WORKGROUP=strtoupper($this->config_activedirectory["WORKGROUP"]);
 		$SambaUseBackendAD=$sock->GET_INFO("SambaUseBackendAD");
 		$SambaWinBindCacheTime=$sock->GET_INFO("SambaWinBindCacheTime");
+
+		
 		if(!is_numeric($SambaUseBackendAD)){$SambaUseBackendAD=0;}
 		if(!is_numeric($SambaWinBindCacheTime)){$SambaWinBindCacheTime=1800;}
+		
+		
 		$conf[]="\tsecurity = ADS";
 		$conf[]="\trealm = ". strtoupper($this->config_activedirectory["ADDOMAIN"])."\n";
 		
@@ -910,7 +914,11 @@ private function netbios_aliases(){
 	$sql="SELECT hostname,ou,workgroup FROM samba_hosts ORDER BY hostname";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo "$q->mysql_error\n";}
+	if(!$q->ok){
+		if(preg_match("#doesn.*?t exist#", $q->mysql_error)){return;}
+		writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+		return;
+		}
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($ligne["hostname"]=="master"){continue;}
 		if(strlen($ligne["hostname"])>19){$ligne["hostname"]=substr($ligne["hostname"], 0,19);}
@@ -990,6 +998,7 @@ function BuildConfig(){
 					while (list ($Asnull, $sambaAlias) = each ($this->samba_aliases) ){
 						if($this->posix_getuid==0){echo "Starting......: [$netbiosname]: Virtual server [$sambaAlias]\n";} 
 						$smbalias=new samba_aliases($sambaAlias);
+						$smbalias->ASROOT=$GLOBALS["AS_ROOT"];
 						$smbalias->build();
 					}
 				}
@@ -1006,13 +1015,22 @@ function BuildConfig(){
 				$WORKGROUP=$arrayKerberos["ADNETBIOSDOMAIN"];
 			}
 			
+			$SambaMapUntrustedDomain=$sock->GET_INFO("SambaMapUntrustedDomain");
+			if(!is_numeric($SambaMapUntrustedDomain)){$SambaMapUntrustedDomain=1;}
 			
+
 			
 			$this->WORKGROUP=$WORKGROUP;
 			$conf[]="\tworkgroup = $WORKGROUP";
 			$conf[]="\tnetbios name = {$this->main_array["global"]["netbios name"]}";
 			$conf[]="\tserver string = {$this->main_array["global"]["server string"]}";
 			$conf[]="\tdisable netbios ={$this->main_array["global"]["disable netbios"]}";
+			
+			if($SambaMapUntrustedDomain==1){
+				$conf[]="\tmap untrusted to domain = Yes";
+			}else{
+				$conf[]="\tmap untrusted to domain = No";
+			}			
 			
 			$mySamba=new samba_aliases("master");
 			if($mySamba->upTo357==0){
@@ -1745,12 +1763,13 @@ function CreateDomainName($CurrentDomain){
 		$upd["sambaForceLogoff"][]="-1";
 		$upd["sambaRefuseMachinePwdChange"][]="0";
 		if(!$this->ldap->ldap_add($dn,$upd)){
-			echo "CreateDomainName($CurrentDomain)\n$SID\n{$this->ldap->ldap_last_error}\n";
-			exit;
+			writelogs("CreateDomainName($CurrentDomain)\n$SID\n{$this->ldap->ldap_last_error}",__CLASS__.'/'.__FUNCTION__,__FILE__);
+			return false;
 		}
 		else{
 			$tpl=new templates();
 			writelogs("sambaDomainName:Creating $CurrentDomain $SID success",__CLASS__.'/'.__FUNCTION__,__FILE__);
+			return true;
 		}
 		
 	}

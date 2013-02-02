@@ -54,14 +54,17 @@ class mysql_catz{
 	}
 	
 	public function COUNT_ROWS($table,$database=null){
-		$this->ClassSQL=new mysql($this->arrayConfig);
-		if($database<>$this->database){$database=$this->database;}
-		$count=$this->ClassSQL->COUNT_ROWS($table,$database);
-		if(!$this->ClassSQL->ok){
-			if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
-			writelogs($called,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		}
-		return $count;
+		$table=str_replace("`", "", $table);
+		$table=str_replace("'", "", $table);
+		$table=str_replace("\"", "", $table);
+		$sql="show TABLE STATUS WHERE Name='$table'";
+		if(!function_exists("mysql_fetch_array")){return 0;}
+		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql));
+		
+		if($ligne["Rows"]==null){$ligne["Rows"]=0;}
+		
+		return $ligne["Rows"];
+		
 	}
 	
 	
@@ -70,23 +73,49 @@ class mysql_catz{
 		return $this->ClassSQL->TABLE_SIZE($table,$database);		
 	}
 	
-	public function TABLE_EXISTS($table,$database=null){
-		if($table=="category_teans"){$table="category_teens";}
+	public function TABLE_EXISTS($table,$database=null,$nocache=false){
+		$keyCache=__FUNCTION__;
+		$table=str_replace("`", "", $table);
+		$table=str_replace("'", "", $table);
+		$table=str_replace("\"", "", $table);
 		if($database==null){$database=$this->database;}
-		if($database<>$this->database){$database=$this->database;}
-		$a=$this->ClassSQL->TABLE_EXISTS($table,$database,true);
-		if(!$a){
-				if(function_exists("debug_backtrace")){
-				try {$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}} catch (Exception $e) {writelogs("TABLE_EXISTS:: Fatal: ".$e->getMessage(),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}
-				writelogs($called,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
+		if(!$nocache){
+			if(!isset($GLOBALS[$keyCache])){$GLOBALS[$keyCache]=array();}
+			if(isset($GLOBALS[$keyCache][$database][$table])){if($GLOBALS[$keyCache][$database][$table]==true){return true;}}
+			if(isset($_SESSION[$keyCache][$database][$table])){if($_SESSION[$keyCache][$database][$table]==true){return true;}}
 		}
-		return $a;
+		
+		if(!$this->DATABASE_EXISTS($database)){
+			writelogs("Database $database does not exists...create it",__CLASS__.'/'.__FUNCTION__,__FILE__);
+			if(!$this->CREATE_DATABASE($database)){
+				writelogs("Unable to create $database database",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				return false;
+			}
+		}
+		
+		
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$this->database'";
+		$results=$this->QUERY_SQL($sql,$database);
+		if(!$this->ok){writelogs($this->mysql_error,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		$result=false;
+		writelogs(mysql_num_rows($results)." items $sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$GLOBALS[$keyCache][$database][$ligne["c"]]=true;
+			if(!$GLOBALS["AS_ROOT"]){$_SESSION[$keyCache][$database][$ligne["c"]]=true;}
+			if(strtolower($table)==strtolower($ligne["c"])){
+				
+				$result=true;}
+		}
+		
+		return $result;
+		
+	
 		
 	}
 	private function DATABASE_EXISTS($database){
 		$this->ClassSQL=new mysql($this->arrayConfig);
 		if($database<>$this->database){$database=$this->database;}
-		return $this->ClassSQL->DATABASE_EXISTS($database);
+		return $this->ClassSQL->DATABASE_EXISTS($database,true);
 	}
 	
 	private function FIELD_EXISTS($table,$field,$database=null){
@@ -223,15 +252,20 @@ class mysql_catz{
 	
 	public function LIST_TABLES_CATEGORIES($nocache=false){
 		if(!$nocache){
-			if(isset($GLOBALS["LIST_TABLES_CATEGORIES"])){return $GLOBALS["LIST_TABLES_CATEGORIES"];}
+			if(!$GLOBALS["AS_ROOT"]){
+				if(isset($_SESSION["CATZLIST_TABLES_CATEGORIES"])){return $_SESSION["CATZLIST_TABLES_CATEGORIES"];}
+			}
+			if(isset($GLOBALS["LIST_TABLES_CATEGORIES_CATZ"])){return $GLOBALS["LIST_TABLES_CATEGORIES_CATZ"];}
 		}
 		
 		$f=$this->TransArray();
 		while (list ($table, $none) = each ($f) ){	
 			if($this->TABLE_EXISTS($table)){
 				if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES: `$table` exists...\n";}
+				
 				$array[$table]=$table;
 			}else{
+				
 				if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES: `$table` no such table...\n";}
 			}
 		}
@@ -241,18 +275,35 @@ class mysql_catz{
 		$results=$this->QUERY_SQL($sql);
 		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){if($ligne["c"]=="category_"){$this->QUERY_SQL("DROP TABLE `category_`");continue;}$array[$ligne["c"]]=$ligne["c"];}
-		$GLOBALS["LIST_TABLES_CATEGORIES"]=$array;
+		
+		if(count($array)>0){
+			if(!$GLOBALS["AS_ROOT"]){
+				$_SESSION["CATZLIST_TABLES_CATEGORIES"]=$array;
+			}
+		}
+		$GLOBALS["LIST_TABLES_CATEGORIES_CATZ"]=$array;
 		return $array;
 		
 	}	
 	
 	function COUNT_CATEGORIES(){
+		if(!$GLOBALS["AS_ROOT"]){
+			if(isset($_SESSION["CATZLIST_COUNT_CATEGORIES"])){return $_SESSION["CATZLIST_COUNT_CATEGORIES"];}
+		}
+		
 		$c=0;
 		$tablescat=$this->LIST_TABLES_CATEGORIES();
 		while (list ($table, $none) = each ($tablescat) ){		
 			$count=$this->COUNT_ROWS($table);
 			$c=$c+$count;
 		}
+		
+		if($c>0){
+			if(!$GLOBALS["AS_ROOT"]){
+				$_SESSION["CATZLIST_COUNT_CATEGORIES"]=$c;
+			}
+		}
+		
 		return $c;
 	}
 	
@@ -265,7 +316,7 @@ class mysql_catz{
 function TransArray(){
 		
 			$trans["category_society"]="society";
-			$trans["category_association"]="association";
+			$trans["category_association"]="associations";
 			$trans["category_publicite"]="publicite";
 			$trans["category_phishtank"]="phishtank";
 			$trans["category_shopping"]="shopping";
@@ -415,6 +466,7 @@ function TransArray(){
 			$trans["category_womanbrand"]="womanbrand";	
 			$trans["category_horses"]="horses";	
 			$trans["category_meetings"]="meetings";	
+			$trans["category_tattooing"]="tattooing";	
 			return $trans;		
 		
 	}	
@@ -441,6 +493,18 @@ function TransArray(){
 		if($tablename=="category_spywmare"){$tablename="category_spyware";}
 		if($tablename=="category_housing_reale_state_"){$tablename="category_finance_realestate";}
 		
+		if(!$this->DATABASE_EXISTS($this->database)){
+			$this->CREATE_DATABASE($this->database);
+			if(!$this->ok){return false;}
+			if(!$this->DATABASE_EXISTS($this->database)){
+				$this->mysql_error="$this->database, no such database....";
+				return false;
+			}
+				
+			
+		}
+		
+		
 		$tablename=strtolower($tablename);
 		if(!$this->TABLE_EXISTS($tablename,$this->database)){	
 			if($GLOBALS["VERBOSE"]){echo "CREATE CATEGORY TABLE `$tablename`\n";}
@@ -449,7 +513,17 @@ function TransArray(){
 					PRIMARY KEY ( `zmd5` )
 					) ENGINE = MYISAM";
 			$this->QUERY_SQL($sql,$this->database);
-			if(!$this->ok){writelogs("Failed to create $category",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return false;}
+			if(!$this->ok){
+				if(function_exists("debug_backtrace")){
+					try {
+						$trace=@debug_backtrace();
+						if(isset($trace[1])){$called="\ncalled by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+					} catch (Exception $e) {$this->writeLogs("Fatal: ".$e->getMessage(),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+				}
+				$this->mysql_error=$this->mysql_error." cat:$category $called";
+				writelogs("Failed to create $category $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				return false;
+			}
 		}
 
 		return true;

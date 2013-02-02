@@ -1,4 +1,5 @@
 <?php
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -73,7 +74,7 @@ function popup(){
 	
 	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";$adduri="&font-size={$_GET["font-size"]}";$adduri2="?font-size={$_GET["font-size"]}";}
 	
-	$array["popup-instances"]="{multiple_webmail}";
+	//$array["popup-instances"]="{multiple_webmail}";
 	$array["popup-mailbox"]="{mailboxes}";
 	$array["popup-license"]="{zarafa_license}";
 	$array["tools"]="{tools}";
@@ -82,9 +83,7 @@ function popup(){
 	if(count($array)>6){$fontsize="font-size:12px"; }
 	
 	while (list ($num, $ligne) = each ($array) ){
-		
-
-		
+	
 		if($num=="popup-multi"){
 			$html[]="<li><a href=\"zarafa.multi.php$adduri2\"><span>$ligne</span></a></li>\n";
 			continue;
@@ -118,8 +117,9 @@ function popup(){
 		$html[]="<li><a href=\"$page?$num=yes$adduri\"><span>$ligne</span></a></li>\n";
 			
 		}	
-	
-	$tab="<div id=main_config_zarafa style='width:759px;height:100%;overflow:auto;$fontsize'>
+	$tabwidth=759;
+	if(is_numeric($_GET["tabwith"])){$tabwitdh=$_GET["tabwith"];}
+	$tab="<div id=main_config_zarafa style='width:{$tabwitdh}px;$fontsize'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -137,16 +137,28 @@ function popup(){
 }
 
 function popup_status(){
+	
+	if(GET_CACHED(__FILE__, __FUNCTION__)){return;}
+	
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$sock=new sockets();
 	$datas=base64_decode($sock->getFrameWork('cmd.php?Global-Applications-Status=yes'));
+	
 	$ini=new Bs_IniHandler();
 	$ini->loadString($datas);
 	$users=new usersMenus();
 	if($users->YAFFAS_INSTALLED){
 		$yaffas="<div class=explain>{APP_YAFFAS_TEXT}</div>";
 	}
+	if($ini->_params["APP_ZARAFA"]["master_version"]==null){unset($ini->_params["APP_ZARAFA"]["master_version"]);}
+	
+	if(!isset($ini->_params["APP_ZARAFA"]["master_version"])){
+		
+		$datas=base64_decode($sock->getFrameWork('cmd.php?zarafa-status=yes'));
+		$ini->loadString($datas);
+	}
+	
 	$html="
 	<table style='width:100%'>
 	<tr>
@@ -161,6 +173,13 @@ function popup_status(){
 			OnClick=\"javascript:Loadjs('postfix.events.new.php?js-zarafa=yes');\" 
 			style='font-size:13px;text-decoration:underline'>{APP_ZARAFA}:{events}</a></td>
 		</tr>
+		<tr>
+			<td width=1%><img src='img/arrow-right-24.png'></td>
+			<td nowrap><a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('zarafa.audit.logs.php');\" 
+			style='font-size:13px;text-decoration:underline'>{APP_ZARAFA}:{audit}</a></td>
+		</tr>		
+		
 		</table>
 	</tr>
 	</table>
@@ -171,7 +190,9 @@ function popup_status(){
 		LoadAjax('zarafa-services-status','$page?services-status=yes');
 	</script>
 	";
-	echo $tpl->_ENGINE_parse_body($html);
+	$html=$tpl->_ENGINE_parse_body($html);
+	SET_CACHED(__FILE__, __FUNCTION__, null, $html);
+	echo $html;
 }
 
 function services_status(){

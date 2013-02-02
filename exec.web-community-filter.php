@@ -115,6 +115,7 @@ function register(){
 }	
 
 function uuid_check(){
+	$sock=new sockets();
 	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
 	echo $uuid."\n";
 }
@@ -122,11 +123,18 @@ function uuid_check(){
 function register_lic(){
 	$sock=new sockets();
 	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid)){echo "License information: Already executed PID:$pid, die()\n";die();}
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$cmdADD=null;
+	if($EnableRemoteStatisticsAppliance==1){
+		$cmdADD="$nohup ".$unix->LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.netagent.php >/dev/null 2>&1 &";
+	}
 	
 	
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
@@ -153,6 +161,7 @@ function register_lic(){
 			$LicenseInfos["TIME"]=time();
 			$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
 			@unlink("/usr/local/share/artica/.lic");
+			if($cmdADD<>null){shell_exec($cmdADD);}
 			return;
 	}
 	if(preg_match("#LICENSE_OK:\[(.+?)\]#s", $curl->data,$re)){
@@ -160,6 +169,7 @@ function register_lic(){
 			$LicenseInfos["license_status"]="{license_active}";
 			$LicenseInfos["TIME"]=time();
 			$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+			if($cmdADD<>null){shell_exec($cmdADD);}
 			return;
 	}
 	if(preg_match("#REGISTRATION_INVALID#s", $curl->data,$re)){
@@ -168,6 +178,7 @@ function register_lic(){
 		$LicenseInfos["license_number"]=null;
 		$LicenseInfos["TIME"]=time();
 		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+		if($cmdADD<>null){shell_exec($cmdADD);}
 		return;
 	}		
 		
@@ -179,6 +190,7 @@ function register_lic(){
 		$LicenseInfos["license_status"]="{registration_failed} $curl->error";
 		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
 	}
+	if($cmdADD<>null){shell_exec($cmdADD);}
 }
 	
 function ExportPersonalCategories($asPid=false){

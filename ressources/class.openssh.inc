@@ -24,7 +24,8 @@ class openssh{
 			if(preg_match("#^ListenAddress\s+(.+)#",$line,$re)){$this->ListenAddress[]=$re[1];continue;}
 			if(preg_match("#^HostKey\s+(.+)#",$line,$re)){$this->HostKey[]=$re[1];continue;}			
 			
-			if(preg_match("#^([A-Za-z0-9]+)\s+(.+)#",$line,$re)){								
+			if(preg_match("#^([A-Za-z0-9]+)\s+(.+)#",$line,$re)){		
+				if($re[1]=="Banner"){$re[2]=1;}					
 				$this->main_array[$re[1]]=trim($re[2]);
 			}else{
 				if($GLOBALS["VERBOSE"]){writelogs("$line -> NO MATCH" ,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
@@ -76,9 +77,19 @@ class openssh{
 	
 	function save(){
 		$users=new usersMenus();
+		$sock=new sockets();
+		$SSHDBanner=$sock->GET_INFO("SSHDBanner");		
 		if(preg_match("#([0-9]+)\.([0-9]+)#",$users->OPENSSH_VER,$re)){$opensshver="{$re[1]}{$re[2]}";}
 		if($opensshver<50){unset($this->main_array["MaxSessions"]);}
 		unset($this->main_array["finduser"]);
+		
+		if($this->main_array["Banner"]==1){
+			if(strlen($SSHDBanner)>5){
+				$this->main_array["Banner"]="/etc/artica-postfix/settings/Daemons/SSHDBanner";
+			}
+		}else{
+			unset($this->main_array["Banner"]);
+		}
 		
 		while (list ($num, $line) = each ($this->main_array)){
 			if(trim($line)==null){continue;}

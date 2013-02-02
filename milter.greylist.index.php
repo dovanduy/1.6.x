@@ -7,8 +7,20 @@
 	include_once('ressources/class.ini.inc');
 	include_once('ressources/class.milter.greylist.inc');
 	include_once('ressources/class.artica.graphs.inc');
+	include_once('ressources/class.maincf.multi.inc');
+	
+	if(isset($_GET["hostname"])){if(trim($_GET["hostname"])==null){unset($_GET["hostname"]);}}
+	
 	$user=new usersMenus();
-	if($user->AsPostfixAdministrator==false){header('location:users.index.php');exit();}
+	if(!isset($_GET["hostname"])){
+		if($user->AsPostfixAdministrator==false){header('location:users.index.php');exit();}
+	}else{
+		if(!PostFixMultiVerifyRights()){
+			$tpl=new templates();
+			echo "alert('". $tpl->javascript_parse_text("{$_GET["hostname"]}::{ERROR_NO_PRIVS}")."');";
+			die();exit();
+		}
+	}
 	
 	
 	if(isset($_GET["greylist-config"])){popup_settings_tab_params();exit;}
@@ -112,6 +124,7 @@ function js(){
 		 XHR.appendData('autowhite',document.getElementById('autowhite').value);
 		 XHR.appendData('autowhite_TIME',document.getElementById('autowhite_TIME').value);
 		 XHR.appendData('hostname','{$_GET["hostname"]}');
+		 XHR.appendData('ou','{$_GET["ou"]}');
 		 AnimateDiv('MilterGreyListConfigGeneSaveID0');
 		 XHR.sendAndLoad('$page', 'GET',x_MilterGreyListPrincipalSave);
 	}
@@ -557,7 +570,7 @@ function main_acladd(){
 			XHR.appendData('gpid_class',document.getElementById('gpid_class').value);
 			XHR.appendData('delay',document.getElementById('delay').value);
 		}		
-		
+		XHR.appendData('ou','{$_GET["ou"]}');
 		XHR.appendData('hostname','{$_GET["hostname"]}');
 		AnimateDiv('$id');
      	XHR.sendAndLoad('$page', 'GET',x_SaveMilterGreyListAclID);
@@ -568,7 +581,7 @@ function main_acladd(){
 		  var fieldz=document.getElementById(id).value;
 		  if(fieldz.length==0){return;}
 		  if(!document.getElementById('explainc-$t')){alert('explainc-$t No such ID !');}
-	      LoadAjaxTiny('explainc-$t','$page?explainThisacl='+fieldz)  ;
+	      LoadAjaxTiny('explainc-$t','$page?explainThisacl='+fieldz+'&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}')  ;
 	      ChangeForm$t();
 	}
 
@@ -576,7 +589,7 @@ function ChangeForm$t(){
       xclass='{$_GET["num"]}';
       xtype=document.getElementById('$t-type').value;
       var hostname='{$_GET["hostname"]}';
-      LoadAjax('addform-$t','$page?ChangeFormType='+xtype+'&class={$_GET["num"]}&hostname={$_GET["hostname"]}')
+      LoadAjax('addform-$t','$page?ChangeFormType='+xtype+'&class={$_GET["num"]}&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}')
    
       
 }	
@@ -603,7 +616,7 @@ function main_acl($noecho=0){
 
 	
 	<script>
-		LoadAjax('acllist','$page?acllist=true&hostname={$_GET["hostname"]}$expand');
+		LoadAjax('acllist','$page?acllist=true&hostname={$_GET["hostname"]}$expand&ou={$_GET["ou"]}');
 	</script>
 	";
 	
@@ -627,7 +640,7 @@ $rule=$tpl->_ENGINE_parse_body("{rule}");
 $t=time();
 if(trim($hostname)==null){$hostname="master";$_GET["hostname"]="master";}
 $TB_WIDTH=750;
-$TB_HEIGHT=245;
+$TB_HEIGHT=400;
 $ROW_EXPLAIN=300;
 $TB_PATTERN=165;
 $TB_TYPE=96;
@@ -647,7 +660,7 @@ $html="
 var idtmp='';
 $(document).ready(function(){
 $('#miltergrey-instances-list').flexigrid({
-	url: '$page?acl-table-list=yes&hostname=$hostname&t=$t',
+	url: '$page?acl-table-list=yes&hostname=$hostname&t=$t&ou={$_GET["ou"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '$method', name : 'method', width :70, sortable : true, align: 'left'},
@@ -687,7 +700,7 @@ buttons : [
 	}
 
 	function LoadMilterGreyListAcl$t(index){
-		YahooWin4(450,'$page?add_acl=true&num='+index+'&hostname={$_GET["hostname"]}','$acl&nbsp;$rule&nbsp;'+index);	
+		YahooWin4(450,'$page?add_acl=true&num='+index+'&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$acl&nbsp;$rule&nbsp;'+index);	
 	}
 
 var X_DeleteAclIDNewFunc= function (obj) {
@@ -727,7 +740,10 @@ function main_acl_table(){
 	if(!$q->TABLE_EXISTS("miltergreylist_acls", "artica_backup")){$q->BuildTables();}
 	
 	
-	if($q->COUNT_ROWS($table,"artica_backup")==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table,"artica_backup")==0){
+		json_error_show("NO item,1");
+		
+	}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -772,6 +788,7 @@ function main_acl_table(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	$results = $q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){json_error_show($q->mysql_error,1);}
 	$divstart="<span style='font-size:14px;font-weight:bold'>";
 	$divstop="</div>";
 	
@@ -1315,7 +1332,7 @@ function popup_db(){
 		
 		function BrowseMgreySearch(){
 			var se=escape(document.getElementById('browse-mgreydb-search').value);
-			LoadAjax('browse-mgrey-list','$page?browse-mgrey-list=yes&search='+se);
+			LoadAjax('browse-mgrey-list','$page?browse-mgrey-list=yes&search='+se+'&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}');
 		}
 		
 		

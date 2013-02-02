@@ -163,6 +163,12 @@ if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLAS
 	$statusSpamassassinUpdateFile="/usr/share/artica-postfix/ressources/logs/sa-update-status.html";
 	$statusSpamassassinUpdateText=null;$service=null;$blacklist=null;$no_orgs=null;$zabbix=null;$samba=null;$computers=null;$nobackup=null;$check_apt=null;$services=null;
 	
+	
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}	
+	
+	
 	if(!$users->SQUID_INSTALLED){
 		if(!$users->POSTFIX_INSTALLED){
 			if($users->SAMBA_INSTALLED){
@@ -546,7 +552,7 @@ if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLAS
 	if($users->SAMBA_INSTALLED){
 		$SAMBA_INSTALLED=1;
 		$SAMBA_INSTALLED=$sock->GET_INFO("SambaEnabled");
-		if($SAMBA_INSTALLED==null){$SAMBA_INSTALLED=1;}
+		if(!is_numeric($SAMBA_INSTALLED)){$SAMBA_INSTALLED=1;}
 	}
 	
 	events("POSTFIX_INSTALLED=$POSTFIX_INSTALLED,SQUID_INSTALLED=$SQUID_INSTALLED,SAMBA_INSTALLED=$SAMBA_INSTALLED");
@@ -648,6 +654,12 @@ function samba_status(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	shell_exec("$php5 /usr/share/artica-postfix/exec.status.php --samba --nowachdog >/tmp/samba.status.ini 2>&1");
 	$ini->loadFile("/tmp/samba.status.ini");
+	
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+	if($SambaEnabled==0){$user->SAMBA_INSTALLED=false;}	
+	
+	
 	if($user->SAMBA_INSTALLED){
 		$samba_status=DAEMON_STATUS_ROUND("SAMBA_SMBD",$ini);
 		$nmmbd=DAEMON_STATUS_ROUND("SAMBA_NMBD",$ini);

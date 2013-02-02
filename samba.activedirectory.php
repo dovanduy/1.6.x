@@ -88,7 +88,7 @@ function tabs(){
 	
 	
 	echo "
-	<div id=main_config_samba_active_directory style='width:100%;height:710px;overflow:auto'>
+	<div id=main_config_samba_active_directory style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -493,7 +493,7 @@ function groups_list(){
 	$page=1;
 	$FORCE_FILTER="";
 	
-	if($q->COUNT_ROWS($table,$database)==0){json_error_js($tpl->_ENGINE_parse_body("TABLE:$table<br>{error_no_datas}"));}
+	if($q->COUNT_ROWS($table,$database)==0){json_error_show($tpl->_ENGINE_parse_body("TABLE:$table<br>{error_no_datas}"));}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){

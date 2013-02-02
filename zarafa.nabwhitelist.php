@@ -41,7 +41,11 @@ function popup(){
 	$sock=new sockets();
 	$page=CurrentPageName();
 	$ZarafaAdbksWhiteTask=$sock->GET_INFO("ZarafaAdbksWhiteTask");
+	$ZarafaWhiteSentItems=$sock->GET_INFO("ZarafaWhiteSentItems");
 	if(!is_numeric($ZarafaAdbksWhiteTask)){$ZarafaAdbksWhiteTask=0;}
+	if(!is_numeric($ZarafaWhiteSentItems)){$ZarafaWhiteSentItems=1;}
+	if(!is_numeric($ZarafaJunkItems)){$ZarafaJunkItems=1;}
+	
 	
 	
 	$p=Paragraphe_switch_img("{addressbooks_whitelisting}", "{addressbooks_whitelisting_zarafa}",
@@ -58,13 +62,21 @@ function popup(){
 		<table style='width:99%' class=form>
 				<tr>
 				
-				<td>$p</td>
+				<td colspan=2>$p</td>
 				
 			</tr>		
-			
-			
 			<tr>
-				<td align='right'><hr>". button("{apply}","Zarafa$t()","18px")."</td>
+				<td class=legend style='font-size:16px'>{use_sent_items}:</td>
+				<td>". Field_checkbox("ZarafaWhiteSentItems", 1,$ZarafaWhiteSentItems)."</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:16px'>{use_Junk_items}:</td>
+				<td>". Field_checkbox("ZarafaJunkItems", 1,$ZarafaJunkItems)."</td>
+			</tr>			
+						
+						
+			<tr>
+				<td align='right' colspan=2><hr>". button("{apply}","Zarafa$t()","18px")."</td>
 			</tr>		
 		</table>
 	<script>
@@ -79,7 +91,13 @@ function popup(){
 	function Zarafa$t(){
 		var XHR = new XHRConnection();
 		var ZarafadAgentJunk=0;
+		var ZarafaWhiteSentItems=0;
+		var ZarafaJunkItems=0;
+		if(document.getElementById('ZarafaWhiteSentItems').checked){ZarafaWhiteSentItems=1;}
+		if(document.getElementById('ZarafaJunkItems').checked){ZarafaJunkItems=1;}
 		XHR.appendData('ZarafaAdbksWhiteTask',document.getElementById('ZarafaAdbksWhiteTask').value);
+		XHR.appendData('ZarafaWhiteSentItems',ZarafaWhiteSentItems);
+		XHR.appendData('ZarafaJunkItems',ZarafaJunkItems);
 		AnimateDiv('div-$t');
 		XHR.sendAndLoad('$page', 'POST',x_Zarafa$t);
 		}
@@ -95,5 +113,9 @@ function popup(){
 function ZarafaSave(){
 	$sock=new sockets();
 	$sock->SET_INFO("ZarafaAdbksWhiteTask", $_POST["ZarafaAdbksWhiteTask"]);
+	$sock->SET_INFO("ZarafaWhiteSentItems", $_POST["ZarafaWhiteSentItems"]);
+	$sock->SET_INFO("ZarafaJunkItems", $_POST["ZarafaJunkItems"]);
+	
+	
 }
 

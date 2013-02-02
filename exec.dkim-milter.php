@@ -3,6 +3,7 @@ include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
+include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
@@ -231,24 +232,40 @@ function WhitelistHosts(){
 	$sock=new sockets();
 	$q=new mysql();
 
-
+	$ip=new networking();
+	
 	
 	$f[]="127.0.0.1";
+	$already["127.0.0.1"]=true;
 	$sql="SELECT * FROM postfix_whitelist_con";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo "$q->mysql_error\n";}
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if(isset($already[$ligne["ipaddr"]])){continue;}
 		if(isset($already[$ligne["hostname"]])){continue;}
-		echo "Starting......: milter-dkim Trusted Host \"{$ligne["ipaddr"]}\"\n";
-		echo "Starting......: milter-dkim Trusted Host \"{$ligne["hostname"]}\"\n";
+		echo "Starting......: milter-dkim Trusted Host \"{$ligne["ipaddr"]}\" FROM postfix_whitelist_con\n";
+		echo "Starting......: milter-dkim Trusted Host \"{$ligne["hostname"]}\" FROM postfix_whitelist_con\n";
 		$f[]=$ligne["ipaddr"];
 		$f[]=$ligne["hostname"];
 		$already[$ligne["hostname"]]=true;
 		$already[$ligne["ipaddr"]]=true;
 		
 	}
-
+	
+	$allips=$ip->ALL_IPS_GET_ARRAY();
+	
+	while (list ($ip, $line) = each ($allips) ){
+		if(isset($already[$ip])){continue;}
+		$already[$ip]=true;
+		echo "Starting......: milter-dkim Trusted Host \"$ip\" FROM ALL_IPS_GET_ARRAY\n";
+		$f[]=$ip;
+		$hostname=gethostbyaddr($ip);
+		if(isset($already[$hostname])){continue;}
+		$already[$hostname]=true;
+		echo "Starting......: milter-dkim Trusted Host \"$hostname\" FROM ALL_IPS_GET_ARRAY\n";
+		$f[]=$hostname;
+	}
+	
 	@mkdir("/etc/mail/dkim",0755,true);
  	@file_put_contents("/etc/mail/dkim/trusted-hosts",@implode("\n",$f));
  	echo "Starting......: milter-dkim generating trusted hosts ". count($f)." entries done...\n";
@@ -268,7 +285,7 @@ function MyNetworks($trust=1){
 	while (list ($num, $line) = each ($t) ){
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\s+(.+?)\s+#", $line,$re)){
 			echo "Starting......: milter-dkim Internal Host \"{$re[1]}\"\n";
-			$f[]=$re[1];
+			$nets[]=$re[1];
 			$already[$re[1]]=true;
 		}else{
 			if($GLOBALS["VERBOSE"]){echo "Starting......: milter-dkim DEBUG HOSTS: $line, No match\n";}
@@ -283,14 +300,13 @@ function MyNetworks($trust=1){
 		if(isset($already[$ligne["value"]])){continue;}
 		echo "Starting......: milter-dkim Internal Host \"{$ligne["ip_address"]}\"\n";
 		echo "Starting......: milter-dkim Internal Host \"{$ligne["value"]}\"\n";		
-		$f[]=$ligne["ip_address"];
-		$f[]=$ligne["value"];
+		$nets[]=$ligne["ip_address"];
+		$nets[]=$ligne["value"];
 		$already[$ligne["ip_address"]]=true;
 		$already[$ligne["value"]]=true;
 	}		
 		
 		echo "Starting......: milter-dkim generating internal hosts ". count($nets)." entries done...\n";
-		$nets[]="";
 		@file_put_contents("/etc/mail/dkim/internal-hosts",@implode("\n",$nets));
 }
 

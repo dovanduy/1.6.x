@@ -26,6 +26,8 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	if(isset($_GET["verify-caches-logs"])){verfiy_caches_logs();exit;}
 	if(isset($_GET["verify-cache-events"])){verfiy_caches_events();exit;}
 	if(isset($_POST["delete-cache"])){delete_cache();exit;}
+	if(isset($_POST["DisableAnyCache"])){DisableAnyCache();exit;}
+	if(isset($_GET["license-explain"])){license_explain();exit;}
 	page();
 
 
@@ -36,8 +38,11 @@ function page(){
 		$tpl=new templates();
 		$q=new mysql_squid_builder();
 		$sock=new sockets();
+		$users=new usersMenus();
 		$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
+		$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 		if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
+		if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 		$sql="SELECT * FROM cacheconfig WHERE `uuid`='{$_GET["uuid"]}'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$CPUS=$ligne["workers"];	
@@ -48,50 +53,24 @@ function page(){
 		$warning_rebuild_squid_caches=$tpl->javascript_parse_text("{warning_rebuild_squid_caches}");
 		$globalCachesizeTOT=(($globalCachesize*1000)*$CPUS);
 		$globalCachesize_text=FormatBytes($globalCachesizeTOT);
-		$rebuild_caches_warn=$tpl->javascript_parse_text("{rebuild_caches_warn}");
+		
 		$reindex_caches_warn=$tpl->javascript_parse_text("{reindex_caches_warn}");
 		$verify_caches=$tpl->javascript_parse_text("{verify_caches}");
 		$delete_cache=$tpl->javascript_parse_text("{delete_cache}");
 		$WARN_OPE_RESTART_SQUID_ASK=$tpl->javascript_parse_text("{WARN_OPE_RESTART_SQUID_ASK}");
-	$html="
-	<div id='section_squidcache32'>
-	<table style='width:100%'>
-	<tbody>
-	<tr>
-		<td valign='top' width=50%>
-	
-	
-	<div id='caches-32-div'>
-		<table style='width:99%' class=form>
-		<tr>
-			<td class=legend>{DisableSquidSNMPMode}:</td>
-			<td>". Field_checkbox("DisableSquidSNMPMode",1,$DisableSquidSNMPMode,"CheckSNMPMode()")."</td>
-		</tr>		
+		$warn_disable_squid_cany_cache=$tpl->javascript_parse_text("{warn_disable_squid_cany_cache}");
+		$t=time();
 		
+		$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+		$CORP=0;
+		if($users->CORP_LICENSE){$CORP=1;}
 		
-		<tr>
-			<td class=legend>{cache_directory}:</td>
-			<td>". Field_text("cachesDirectory",$cachesDirectory,"font-size:16px;width:250px")."</td>
-		</tr>
-		<tr>
-			<td class=legend>{number_of_daemons}:</td>
-			<td>". Field_text("workers",$CPUS,"font-size:16px;width:60px")."</td>
-		</tr>	
-		<tr>
-			<td class=legend>{cache_size_by_daemon}:</td>
-			<td style='font-size:16px;'>". Field_text("globalCachesize",$globalCachesize,"font-size:16px;width:60px")."&nbsp;MB&nbsp;($globalCachesize_text)</td>
-		</tr>	
-		<tr>
-			<td colspan=2 align=right><hr>". button("{apply}", "SaveSquid32Caches()",16)."</td>
-		</tr>
-		</table>
-		</div>
-		
+		$toolbox="
 		<table style='width:99%' class=form>
 		<tr>
 			<td width=1%><img src='img/reconstruct-database-32.png'></td>
 			<td width=99%><a href=\"javascript:blur();\" 
-			OnClick=\"javascript:RebuildAllCaches();\" 
+			OnClick=\"javascript:Loadjs('squid.rebuild.caches.php?uuid={$_GET["uuid"]}');\" 
 			style='font-size:13px;text-decoration:underline'>{rebuild_caches}</a></td>
 		</tr>
 		<tr>
@@ -106,10 +85,52 @@ function page(){
 			OnClick=\"javascript:VerifyCaches();\" 
 			style='font-size:13px;text-decoration:underline'>{verify_caches}</a></td>
 		</tr>			
-		
-		
 		</table>
-		<div class=explain style='margin-top:10px'>{squid32_caches_explain}</div>
+		<div class=explain style='margin-top:10px'>{squid32_caches_explain}</div>";
+		
+		if($DisableAnyCache==1){$toolbox=null;}
+		
+	$html="
+	<div id='$t-license'></div>
+	<div id='section_squidcache32'>
+	<table style='width:100%'>
+	<tbody>
+	<tr>
+		<td valign='top' width=50%>
+	
+	
+	<div id='caches-32-div'>
+		<table style='width:99%' class=form>
+		<tr>
+			<td class=legend>{DisableSquidSNMPMode}:</td>
+			<td>". Field_checkbox("DisableSquidSNMPMode",1,$DisableSquidSNMPMode,"CheckSNMPMode()")."</td>
+		</tr>		
+		
+		<tr>
+			<td class=legend>{DisableAnyCache}:</td>
+			<td>". Field_checkbox("DisableAnyCache",1,$DisableAnyCache,"CheckDisableAnyCache()")."</td>
+		</tr>		
+		
+		
+		<tr>
+			<td class=legend>{cache_directory}:</td>
+			<td>". Field_text("cachesDirectory",$cachesDirectory,"font-size:12.5px;width:180px")."</td>
+		</tr>
+		<tr>
+			<td class=legend>{number_of_daemons}:</td>
+			<td>". Field_text("workers",$CPUS,"font-size:16px;width:60px")."</td>
+		</tr>	
+		<tr>
+			<td class=legend>{cache_size_by_daemon}:</td>
+			<td style='font-size:16px;'>". Field_text("globalCachesize",$globalCachesize,"font-size:16px;width:60px")."&nbsp;MB&nbsp;($globalCachesize_text)</td>
+		</tr>	
+		<tr>
+			<td colspan=2 align=right><hr>". button("{apply}", "SaveSquid32Caches()",16)."</td>
+		</tr>
+		</table>
+		</div>
+		$toolbox
+
 		</div>		
 		
 	</td>
@@ -149,14 +170,33 @@ function page(){
 		
 		}
 		
-		function RebuildAllCaches(){
-			if(confirm('$rebuild_caches_warn')){
-				var XHR = new XHRConnection();
-				XHR.appendData('rebuild-caches','yes');
-				AnimateDiv('caches-32-div');		
-				XHR.sendAndLoad('$page', 'POST',x_SaveSquid32Caches);
+	var x_CheckDisableAnyCache= function (obj) {
+			var results=obj.responseText;
+			if(results.length>3){alert(results);}
+			RefreshTab('squid_main_caches_new');
+			RefreshTab('main_squid_quicklinks_tabs');
+			Loadjs('squid.compile.progress.php');
+		}			
+		
+		
+		
+		function CheckDisableAnyCache(){
+			DisableAnyCache=0;
+			if(document.getElementById('DisableAnyCache').checked){DisableAnyCache=1;}
+			if(DisableAnyCache==1){
+				if(!confirm('$warn_disable_squid_cany_cache')){
+					document.getElementById('DisableAnyCache').checked=false;
+					return;
+				}
 			}
+			var XHR = new XHRConnection();
+			XHR.appendData('DisableAnyCache',DisableAnyCache);
+			AnimateDiv('caches-32-div');	
+			XHR.sendAndLoad('$page', 'POST',x_CheckDisableAnyCache);
 		}
+		
+		
+
 		
 	var x_VerifyCaches= function (obj) {
 			var results=obj.responseText;
@@ -198,9 +238,18 @@ function page(){
 		
 		
 		function CheckSNMPMode(){
+			
 			document.getElementById('workers').disabled=true;
 			document.getElementById('cachesDirectory').disabled=true;
 			document.getElementById('globalCachesize').disabled=true;
+			var CORP=$CORP;
+			if(CORP==0){
+				document.getElementById('DisableSquidSNMPMode').checked=true;
+				document.getElementById('DisableSquidSNMPMode').disabled=true;
+				LoadAjaxTiny('$t-license','$page?license-explain=yes');
+			}
+			
+			
 			if(!document.getElementById('DisableSquidSNMPMode').checked){
 				document.getElementById('workers').disabled=false;
 				document.getElementById('cachesDirectory').disabled=false;
@@ -209,18 +258,17 @@ function page(){
 			checkButtonMode();
 		}
 		
-		function Squid32RefreshCacheStatusAuto(){
+
+		
+		function Squid32RefreshCacheStatusAuto1(){
 			if(document.getElementById('squid-caches-status')){
 				LoadAjax('squid-caches-status','$page?squid-caches-status=yes&uuid={$_GET["uuid"]}');
-				setTimeout('Squid32RefreshCacheStatusAuto()',10000);
-			}
-			
+				
+			}		
 		}
 		
-		
-		
 		CheckSNMPMode();
-		setTimeout('Squid32RefreshCacheStatusAuto()',10000);
+		setTimeout('Squid32RefreshCacheStatusAuto1()',10000);
 	</script>
 	
 	
@@ -234,6 +282,30 @@ function page(){
 	
 	
 }
+
+function license_explain(){
+	$users=new usersMenus();
+	if($users->CPU_NUMBER<2){return;}
+	
+	$tpl=new templates();
+	$squid_worker_license_explain=$tpl->_ENGINE_parse_body("{squid_worker_license_explain}");
+	$squid_worker_license_explain=str_replace("%s","$users->CPU_NUMBER",$squid_worker_license_explain);
+	$html="
+	<table style='width:99%' class=form>
+	<tr>
+		<td valign='top' width=1%><img src='img/64-key.png' style='margin:5px'></td>
+		<td valign='top' style='font-size:14px;' width=99%>$squid_worker_license_explain</td>
+	</tr>
+	<tr>
+		<td style='font-size:14px' colspan=2 align='right'><a href=\"javascript:Loadjs('artica.license.php');\" 
+		style='font-size:14px;text-decoration:underline;font-weight:bold'>&laquo;&nbsp;Artica license&nbsp;&raquo;</a></td>
+	</tr>
+	</table>	
+	";
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
 
 function verfiy_caches_logs(){
 	$t=time();
@@ -290,6 +362,16 @@ function verify_caches(){
 function add_new_disk_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
+		$content="alert('$onlycorpavailable')";
+		echo $content;	
+		return;
+	}	
+		
+	
 	$title=$tpl->_ENGINE_parse_body("{add_new_cache_container}");
 	if(isset($_GET["chdef"])){
 		$title=$tpl->_ENGINE_parse_body("{default_cache}");
@@ -306,8 +388,11 @@ function button_mode(){
 		$tpl=new templates();
 		$sock=new sockets();
 		$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
+		$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 		if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
+		if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 		if($DisableSquidSNMPMode==0){return null;}
+		if($DisableAnyCache==1){return null;}
 		
 		$js="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?add-new-disk-js=yes');\" style='font-size:14px;font-weight:bold;text-decoration:underline'>";
 		
@@ -359,10 +444,49 @@ function reindex_caches(){
 
 
 function squid_cache_status(){
+
+		$sock=new sockets();
+		$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+		if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}	
+		if($DisableAnyCache==1){return;}	
 		$page=CurrentPageName();
 		$squid=new squidbee();
-		$tpl=new templates();
+		$tpl=new templates();		
+		$t=time();
 		$q=new mysql_squid_builder();
+		
+		$exec_squid_rebuild_cache_mem=unserialize(base64_decode($sock->getFrameWork("squid.php?exec_squid_rebuild_cache_mem=yes")));
+		if(isset($exec_squid_rebuild_cache_mem["PID"])){
+			if($exec_squid_rebuild_cache_mem["PID"]>0){
+				$datas=@file_get_contents("ressources/logs/web/rebuild-cache.txt");
+				
+				$tt=time();
+				$html="
+				<div style='width:100%;text-align:right'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('squid-caches-status','$page?squid-caches-status=yes&uuid={$_GET["uuid"]}');")."</div>
+				<table style='width:99%' class=form>
+				<tr>
+					<td width=1%><img src='img/wait_verybig_mini_red-48.gif'></td>
+					<td style='font-size:16px'>{exec_squid_rebuild_cache_mem}</div>
+						<div style='font-size:14px;font-weight:bold'>{pid}:{$exec_squid_rebuild_cache_mem["PID"]}, {since} {$exec_squid_rebuild_cache_mem["TIME"]}</div>
+					</td>
+				</tr>
+				</table>	
+					
+				";
+				$tb=array();
+				$tb=explode("\n",$datas);
+				krsort($tb);
+				if(strlen($datas)>100){$html=$html."<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:11.5px'
+	id='textarea$t'>".@implode("\n", $tb)."</textarea>";
+				}
+				echo $tpl->_ENGINE_parse_body($html);
+				return;
+				
+				
+			}
+		}
+		
 		$sql="SELECT * FROM cachestatus WHERE uuid='{$_GET["uuid"]}'";
 		$results=$q->QUERY_SQL($sql);
 		if(!$q->ok){echo "<H3>Error: $this->mysql_error</H3>";return;}
@@ -454,6 +578,18 @@ function squid_cache_status(){
 
 	$html=$html."
 	<div style='width:100%;text-align:right'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('squid-caches-status','$page?squid-caches-status=yes&uuid={$_GET["uuid"]}');")."</div>
+	
+	<script>
+		function Squid32RefreshCacheStatusAuto$t(){
+			if(document.getElementById('squid-caches-status')){
+				LoadAjax('squid-caches-status','$page?squid-caches-status=yes&uuid={$_GET["uuid"]}');
+			}		
+		}
+		
+		setTimeout('Squid32RefreshCacheStatusAuto$t',10000);
+		
+	</script>
+	
 
 		
 	
@@ -637,6 +773,15 @@ function squid_cache_save_default(){
 
 
 function add_new_disk_save(){
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
+		$content="alert('$onlycorpavailable')";
+		echo $onlycorpavailable;	
+		return;
+	}		
+	
 	if($_POST["cache_directory"]==null){echo "False:cache directory is null\n";exit;}
 	$squid=new squidbee();
 	if(isset($_GET["main-is-cache"])){
@@ -684,3 +829,8 @@ function Calculate_maxcachessize(){
 	
 }
 
+function DisableAnyCache(){
+	$sock=new sockets();
+	$sock->SET_INFO('DisableAnyCache',$_POST["DisableAnyCache"]);
+}
+?>

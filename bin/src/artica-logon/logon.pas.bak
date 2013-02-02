@@ -84,6 +84,9 @@ var
    iptcp:ttcpip;
    CURRENTIP:string;
    squidbin:string;
+   ARTICA_VERSION:string;
+   ARTICA_NIGHTLY_VERSION:string;
+   htop_bin:string;
    ISOCanDisplayUserNamePassword,ISOCanChangeIP,ISOCanReboot,ISOCanShutDown,ISOCanChangeRootPWD,ISOCanChangeLanguage:integer;
 begin
 ArticaAgent:=false;
@@ -97,6 +100,7 @@ if not TryStrToInt(SYS.GET_INFO('ISOCanChangeRootPWD'),ISOCanChangeRootPWD) then
 if not TryStrToInt(SYS.GET_INFO('ISOCanChangeLanguage'),ISOCanChangeLanguage) then ISOCanChangeLanguage:=1;
 eth:=SYS.GET_INFO('ArticaLogonEth');
 if length(eth)=0 then eth:='eth0';
+htop_bin:=SYS.LOCATE_GENERIC_BIN('htop');
 
     iptcp:=ttcpip.Create;
     CURRENTIP:=iptcp.IP_ADDRESS_INTERFACE(eth);
@@ -116,7 +120,9 @@ squidbin:=SYS.LOCATE_GENERIC_BIN('squid');
 if Not FileExists(squidbin) then squidbin:=SYS.LOCATE_GENERIC_BIN('squid3');
 
 if not  ArticaAgent then  begin
-   writeln('Artica version ' + SYS.ARTICA_VERSION());
+   ARTICA_VERSION:= trim(SYS.ARTICA_VERSION());
+   ARTICA_NIGHTLY_VERSION:=GetLatestNightlyVersion();
+   writeln('Artica version ' + ARTICA_VERSION);
    fpsystem('/etc/init.d/artica-postfix start framework >/dev/null 2>&1 &');
    if not SYS.PROCESS_EXIST(lighttp.LIGHTTPD_PID()) then fpsystem('/etc/init.d/artica-postfix start apache >/dev/null 2>&1 &');
    slighttpd:=Tlighttpd.Create(SYS);
@@ -130,7 +136,7 @@ if not  ArticaAgent then  begin
    end;
        logs.Debuglogs('display menu....');
 
-       writeln('Access to the Artica Web interface');
+       writeln('Artica "'+ARTICA_VERSION+'" WebAccess');
        writeln('**********************************************');
        writeln('Uri(s) you can use with your web browser:');
        writeln(uris);
@@ -162,7 +168,7 @@ if FileExists('/opt/kaspersky/klms/bin/klms-control') then begin
    writeln('[C]..... Restart Kaspersky Services');
 end;
 if not  ArticaAgent then writeln('[C]..... Synchronize settings & remove cache');
-writeln('[D]..... Upgrade to a nightly build (',GetLatestNightlyVersion(),')');
+if ARTICA_VERSION<>ARTICA_NIGHTLY_VERSION then writeln('[D]..... Upgrade to a nightly build (',ARTICA_NIGHTLY_VERSION,')');
 if FileExists('/usr/bin/htop') then writeln('[E]..... Process Monitor');
 if FileExists(squidbin) then writeln('[F]..... Register to a Statistics Appliance');
 
@@ -170,6 +176,7 @@ writeln('[L]..... Configure languages');
 writeln('[M]..... Modify DNS');
 writeln('[N]..... Modify eth0 interface');
 writeln('[P]..... Modify root password');
+if FileExists(htop_bin) then writeln('[H]..... Tasks Manager');
 writeln('[R]..... Reboot');
 writeln('[S]..... Shutdown');
 if not  ArticaAgent then writeln('[U]..... Global Administrator Username  & password');
@@ -210,6 +217,13 @@ if a='F' then begin
    Menu();
    exit;
 end;
+if a='H' then begin
+   fpsystem(htop_bin);
+   Menu();
+   exit;
+end;
+
+
 if a='B' then begin
    fpsystem('/opt/kaspersky/klms/bin/klms-control --reset-web-admin-password');
    writeln('[Enter] key to Exit');
@@ -237,6 +251,8 @@ if a='L' then begin
 end;
 
 if a='M' then begin
+   Writeln('This operation will change your DNS parameters, type [ENTER] key to continue..');
+   readln();
    ChangeDNS();
    Menu();
    exit;
@@ -640,6 +656,7 @@ begin
    l:=Tstringlist.Create;
    f:=Tstringlist.Create;
    RegExpr:=TRegExpr.Create;
+   if FileExists('/etc/resolv.conf') then begin
    l.LoadFromFile('/etc/resolv.conf');
    for i:=0 to l.Count-1 do begin
        RegExpr.Expression:='nameserver\s+(.+)';
@@ -659,8 +676,9 @@ begin
       end;
   end;
  end;
-
-  DNS:=f.Strings[0];
+ DNS:=f.Strings[0];
+end;
+  if length(DNS)=0 then DNS:='8.8.8.8';
   writeln('Give the First DNS ip address for this computer:['+DNS+']');
   readln(answer);
   if length(trim(answer))>0 then DNS:=answer;
@@ -836,7 +854,6 @@ NETMASK:=iptcp.IP_MASK_INTERFACE(eth);
 Gayteway:=iptcp.IP_LOCAL_GATEWAY(eth);
 writeln('New configuration done '+IP+'/'+NETMASK +' Gateway:'+Gayteway);
 
-writeln('Restarting services, please wait....');
 writeln('Restarting Artica Web interface console, please wait....');
 if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix restart apache >/dev/null 2>&1');
 if FileExists('/etc/init.d/artica-agent') then fpsystem('/etc/init.d/artica-agent restart >/dev/null 2>&1');
@@ -874,7 +891,7 @@ begin
    if length(trim(answer))>0 then port:=answer;
 
    if ssl='1' then ssl:='Y' else ssl:='N';
-   writeln('Use ssl to conenct to  '+port+' ? Y/N:['+ssl+']');
+   writeln('Use ssl to connect to  '+port+' ? Y/N:['+ssl+']');
    readln(answer);
    answer:=UpperCase(answer);
    if length(trim(answer))>0 then ssl:=answer;

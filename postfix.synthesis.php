@@ -30,15 +30,22 @@ function tabs(){
 	if($hostname==null){$hostname="master";}
 	$page=CurrentPageName();
 	$array["security"]='{security}';
-	
+	$array["status-pattern"]="{patterns_versions}";
 	
 	while (list ($num, $ligne) = each ($array) ){
+
+		if($num=="status-pattern"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.security.php?status-pattern=yes\"><span>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		
 		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&hostname=$hostname\"><span>$ligne</span></a></li>\n");
 	}
 	$md=md5($hostname);
 	
 	echo "
-	<div id=main_config_postfix_synthesis_$md style='width:100%;height:790px;overflow:auto'>
+	<div id=main_config_postfix_synthesis_$md style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -369,7 +376,7 @@ function security_postfix(){
 	$html="
 	<div style='text-align:right'>". imgtootltip("refresh-24.png","{refresh}","RefreshTab('main_config_postfix_synthesis_$md')")."</div>
 	<H3 style='font-size:16px'>{APP_POSTFIX} &raquo; {filters_connect}</h3>
-	<table style='width:665px' class=form>
+	<table style='width:95%' class=form>
 		<tr>
 			<td class=legend width='350px'>{postfix_autoblock}:</td>
 			<td width='230px'><a href=\"javascript:blur()\" OnClick=\"javascript:$js_iptables\" $stylea>$EnablePostfixAutoBlock_text&nbsp;$PostfixAutoBlock_rules</a></td>
@@ -440,7 +447,7 @@ function security_postfix(){
 	</table>
 	
 	<H3 style='font-size:16px'>{filters_connect}</h3>
-	<table style='width:665px' class=form>
+	<table style='width:95%' class=form>
 		<tr>
 			<td class=legend width='350px'>{gl_YES-QUICK}:</td>
 			<td width='230px'><a href=\"javascript:blur()\" OnClick=\"javascript:$mgreylist_js\" $stylea>$MilterGreyListEnabled</a></td>
@@ -449,7 +456,7 @@ function security_postfix(){
 	</table>
 	
 	<H3 style='font-size:16px'>{APP_POSTFIX} &raquo; {messages_restriction}</h3>
-	<table style='width:665px' class=form>
+	<table style='width:95%' class=form>
 	". _MaxRcptTO($hostname)."
 	<tr>
 		<td class=legend width='350px'>{message_size_limit}:</td>
@@ -472,7 +479,7 @@ function security_postfix(){
 	
 	</table>
 	<H3 style='font-size:16px'>{APP_POSTFIX} &raquo; {content_filters}</h3>
-	<table style='width:665px' class=form>
+	<table style='width:95%' class=form>
 	<tr>
 		<td class=legend width='350px'>{header_content_filters_rules}:</td>
 		<td width='230px'><a href=\"javascript:blur()\" OnClick=\"javascript:$js_regex\" $stylea>$header_content_filters_rules</a></td>
@@ -490,7 +497,7 @@ function security_postfix(){
 	</tr>	
 	</table>
 	<H3 style='font-size:16px'>{content_filters} &raquo; {APP_KAS3}</h3>
-	<table style='width:665px' class=form>
+	<table style='width:95%' class=form>
 	<tr>
 		<td class=legend width='350px'>{APP_KAS3}:</td>
 		<td width='230px'><a href=\"javascript:blur()\" OnClick=\"javascript:$kas_js\" $stylea>$kas_text</a></td>
@@ -514,7 +521,7 @@ function security_postfix(){
 	
 </table>
 	<H3 style='font-size:16px'>{content_filters} &raquo; {addons_bundle}</h3>
-<table style='width:665px' class=form>
+<table style='width:95%' class=form>
 	<tr>
 		<td class=legend width='350px'>{attachment_blocking}:</td>
 		<td width='230px'><a href=\"javascript:blur()\" OnClick=\"javascript:$kas_js\" $stylea>$EnableAmavisDaemon_text&nbsp;$amavis_attachs_rules</a></td>

@@ -56,7 +56,10 @@ function daemons_status(){
 		$ldap_error=$ldap->ErrorConnection()."<br>";
 	}
 	
-	
+	$sock=new sockets();
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}	
 	
 	
 	$all=$status->StatusFailed();

@@ -37,6 +37,7 @@ public
     function    PID_NUM():string;
     procedure   START();
     procedure   STOP();
+    procedure   RELOAD();
     procedure   RECURSOR_STOP();
     procedure   RECURSOR_START();
     function    STATUS:string;
@@ -330,6 +331,7 @@ var
    loglevel:integer;
    PowerDNSLogsQueries:integer;
    PowerDNSDNSSEC:integer;
+   cmdline:string;
 begin
      if DisablePowerDnsManagement=1 then exit;
      quiet:='yes';
@@ -351,15 +353,16 @@ begin
     forcedirectories('/var/run/pdns');
     if loglevel>8 then trace:=' --trace';
     if PowerDNSLogsQueries=1 then quiet:='no';
-
-    fpsystem(RECURSOR_BIN_PATH()+' --daemon --export-etc-hosts --quiet='+quiet+' --config-dir=/etc/powerdns'+trace);
+    cmdline:=RECURSOR_BIN_PATH()+' --daemon --export-etc-hosts --socket-dir=/var/run/pdns --quiet='+quiet+' --config-dir=/etc/powerdns'+trace;
+    fpsystem(cmdline);
     count:=0;
  while not SYS.PROCESS_EXIST(RECURSOR_PID_NUM()) do begin
 
         sleep(100);
         inc(count);
-        if count>10 then begin
+        if count>90 then begin
            logs.DebugLogs('Starting......: PowerDNS Recursor (timeout)');
+           logs.DebugLogs('Starting......: PowerDNS Recursor "'+cmdline+'"');
            break;
         end;
   end;
@@ -376,10 +379,33 @@ end;
 
 
 //#############################################################################
+
+procedure tpdns.RELOAD();
+var
+   recursor_pid:string;
+   pdns_pid:string;
+   pdns_control,rec_control:string;
+begin
+recursor_pid:=RECURSOR_PID_NUM();
+pdns_pid:=PID_NUM();
+pdns_control:=SYS.LOCATE_GENERIC_BIN('pdns_control');
+rec_control:=SYS.LOCATE_GENERIC_BIN('rec_control');
+logs.DebugLogs('Starting......: PowerDNS reloading PID:'+pdns_pid);
+fpsystem(pdns_control+' --config-dir=/etc/powerdns reload >/dev/null 2>&1');
+logs.DebugLogs('Starting......: PowerDNS Recursor reloading PID:'+recursor_pid);
+fpsystem(rec_control+' --config-dir=/etc/powerdns --socket-dir=/var/run/pdns  reload >/dev/null 2>&1');
+
+end;
+//#############################################################################
+
+
+
 procedure tpdns.STOP();
 var
    count:integer;
    pid:string;
+   pgrep:string;
+   zpids:Tstringlist;
 begin
 
     if DisablePowerDnsManagement=1 then begin
@@ -398,6 +424,13 @@ begin
 pid:=PID_NUM();
     IF not sys.PROCESS_EXIST(pid) then begin
        writeln('Stopping PowerDNS............: Already stopped');
+    zpids:=Tstringlist.Create;
+    zpids:=SYS.PIDOF_PATTERN_PROCESS_LIST('exec.pdns.pipe.php');
+    count:=0;
+    for count:=0 to zpids.Count-1 do begin
+        writeln('Stopping PowerDNS............: Stopping artica hook pid: ' +zpids.Strings[count]);
+       fpsystem('/bin/kill '+zpids.Strings[count]+' >/dev/null');
+    end;
        RECURSOR_STOP();
        exit;
     end;
@@ -429,15 +462,25 @@ IF not sys.PROCESS_EXIST(pid) then begin
        count:=0;
        pid:=PID_NUM();
        while SYS.PROCESS_EXIST(pid) do begin
-            sleep(100);
+            sleep(200);
             inc(count);
         if count>10 then begin
            writeln('Stopping PowerDNS............: time-out');
+           logs.OutputCmd('/bin/kill -9 '+pid);
            break;
         end;
          logs.OutputCmd('/bin/kill '+pid);
          pid:=PID_NUM();
      end;
+
+    writeln('Stopping PowerDNS............: Stopping cheks artica hooks processes');
+    zpids:=Tstringlist.Create;
+    zpids:=SYS.PIDOF_PATTERN_PROCESS_LIST('exec.pdns.pipe.php');
+    count:=0;
+    for count:=0 to zpids.Count-1 do begin
+        writeln('Stopping PowerDNS............: Stopping artica hook pid: ' +zpids.Strings[count]);
+       fpsystem('/bin/kill '+zpids.Strings[count]+' >/dev/null');
+    end;
 
 
 pid:=PID_NUM();
@@ -554,16 +597,26 @@ var
    PowerChroot:integer;
    PowerActHasMaster:integer;
    PowerDNSDNSSEC:integer;
-   PowerDNSDisableLDAP:integer;
+   PowerDNSDisableLDAP,PDSNInUfdb:integer;
    gmysql,launch_ldap:string;
    PowerDNSPublicMode:integer;
+   SquidActHasReverse:integer;
    PowerActAsSlave:integer;
    PdnsNoWriteConf:integer;
    PowerSkipCname:integer;
+   cdirlistV6,pipe:string;
+   iplistV6:string;
+   RecursoriplistV6:string;
+   RecursoripAllowFrom:string;
+   database_admin:string;
+   EnableUfdbGuard:integer;
 begin
 if DisablePowerDnsManagement=1 then exit;
 
 iplist:='';
+iplistV6:='';
+RecursoriplistV6:='';
+RecursoripAllowFrom:='';
 ForceDirectories('/etc/powerdns/pdns.d');
 if not TryStrToInt(SYS.GET_INFO('PowerDNSLogLevel'),loglevel) then loglevel:=1;
 if not TryStrToInt(SYS.GET_INFO('PowerDNSMySQLEngine'),PowerDNSMySQLEngine) then PowerDNSMySQLEngine:=1;
@@ -577,7 +630,20 @@ if not TryStrToInt(SYS.GET_INFO('PowerDNSPublicMode'),PowerDNSPublicMode) then P
 if not TryStrToInt(SYS.GET_INFO('PowerActAsSlave'),PowerActAsSlave) then PowerActAsSlave:=0;
 if not TryStrToInt(SYS.GET_INFO('PdnsNoWriteConf'),PdnsNoWriteConf) then PdnsNoWriteConf:=0;
 if not TryStrToInt(SYS.GET_INFO('PowerSkipCname'),PowerSkipCname) then PowerSkipCname:=0;
+if not TryStrToInt(SYS.GET_INFO('PDSNInUfdb'),PDSNInUfdb) then PDSNInUfdb:=0;
+if not TryStrToInt(SYS.GET_INFO('SquidActHasReverse'),SquidActHasReverse) then SquidActHasReverse:=0;
+if not TryStrToInt(SYS.GET_INFO('EnableUfdbGuard'),EnableUfdbGuard) then EnableUfdbGuard:=0;
 
+
+
+if SquidActHasReverse=1 then PDSNInUfdb:=0;
+if EnableUfdbGuard=0 then PDSNInUfdb:=0;
+if not FileExists('/usr/bin/ufdbgclient') then PDSNInUfdb:=0;
+
+database_admin:=SYS.GET_MYSQL('database_admin');
+if length(database_admin)=0 then database_admin:='root';
+pipe:='';
+if PDSNInUfdb=1 then pipe:='pipe,';
 
 
 // PowerSkipCname: Do not perform CNAME indirection for each query
@@ -589,8 +655,7 @@ end;
 
 if not FileExists(SYS.LOCATE_GENERIC_BIN('pdnssec')) then PowerDNSDNSSEC:=0;
 if not MYSQL_EXISTS() then begin
-   logs.DebugLogs('Starting......: PowerDNS is not MySQL compliance...');
-   PowerDNSMySQLEngine:=0;
+   logs.DebugLogs('Starting......: PowerDNS seems not MySQL compliance but continue anyway...');
 end;
 
 PowerDNSListenAddrDefault:=true;
@@ -611,6 +676,21 @@ cdirlist:='127.0.0.0/8,127.0.0.1,';
                       if length(cdirtmp)>0 then begin
                            if pos(cdirtmp,' '+cdirlist)=0 then cdirlist:=cdirlist+cdirtmp+',';
                       end;
+              end;
+        end;
+
+ end;
+
+  if FileExists('/etc/artica-postfix/settings/Daemons/PowerDNSListenAddrV6') then begin
+        PowerDNSListenAddr:=Tstringlist.Create;
+        PowerDNSListenAddr.LoadFromFile('/etc/artica-postfix/settings/Daemons/PowerDNSListenAddrV6');
+        for i:=0 to PowerDNSListenAddr.Count-1 do begin
+              if length(trim(PowerDNSListenAddr.Strings[i]))>0 then begin
+               logs.DebugLogs('Starting......: PowerDNS listen IPV6 address '+PowerDNSListenAddr.Strings[i]);
+               if length(trim(PowerDNSListenAddr.Strings[i]))=0 then continue;
+               iplistV6:=iplistV6+trim(PowerDNSListenAddr.Strings[i])+',';
+               RecursoriplistV6:=RecursoriplistV6+'['+PowerDNSListenAddr.Strings[i]+'],';
+               RecursoripAllowFrom:=RecursoripAllowFrom+PowerDNSListenAddr.Strings[i]+',';
               end;
         end;
 
@@ -640,7 +720,8 @@ l:=Tstringlist.Create;
 
 if Copy(iplist,length(iplist),1)=',' then iplist:=Copy(iplist,1,length(iplist)-1);
 if Copy(cdirlist,length(cdirlist),1)=',' then cdirlist:=Copy(cdirlist,1,length(cdirlist)-1);
-if PowerDNSMySQLEngine=1 then gmysql:='gmysql ';
+//if PowerDNSMySQLEngine=1 then gmysql:='gmysql ';
+gmysql:='gmysql ';
 logs.DebugLogs('Starting......: PowerDNS PowerDNSMySQLEngine='+IntToStr(PowerDNSMySQLEngine));
 
 
@@ -680,14 +761,25 @@ l.add('# distributor-threads=3');
 l.add('# fancy-records=no');
 l.add('guardian=yes');
 
-launch_ldap:=' ldap';
+launch_ldap:=',ldap';
 if PowerDNSDisableLDAP=1 then launch_ldap:='';
-l.add('launch='+ gmysql+launch_ldap);
+l.add('launch='+pipe+gmysql+launch_ldap);
+if PDSNInUfdb=1 then begin
+   fpsystem('/bin/chmod 777 /usr/share/artica-postfix/exec.pdns.pipe.php >/dev/null 2>&1');
+   l.add('pipe-command=/usr/share/artica-postfix/exec.pdns.pipe.php');
+   l.add('pipebackend-abi-version=2');
+   l.add('distributor-threads=2');
+end;
 l.add('lazy-recursion=yes');
 l.add('# load-modules=');
 l.add('#local-address=0.0.0.0');
 l.add('local-address='+iplist);
-l.add('#local-ipv6=::1');
+
+if(length(iplistV6)>3) then iplistV6:='::1,'+iplistV6;
+iplistV6:=AnsiReplaceText(iplistV6,',,',',');
+iplistV6:=AnsiReplaceText(iplistV6,',,',',');
+if(length(iplistV6)=0) then l.add('#local-ipv6=::1');
+if(length(iplistV6)>3) then l.add('local-ipv6='+iplistV6);
 //l.add('query-local-address6=::1');
 l.add('local-port=53');
 l.add('log-dns-details=on');
@@ -733,28 +825,23 @@ if PowerDisableDisplayVersion=0 then l.add('version-string=powerdns') else l.add
 
 
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.greensql.php --sets');
-if PowerDNSMySQLEngine=1 then begin
-   mysql_server:=SYS.GET_MYSQL('mysql_server');
-   if not TryStrToInt(SYS.GET_MYSQL('port'),mysql_port) then mysql_port:=3306;
+mysql_server:=SYS.GET_MYSQL('mysql_server');
+if not TryStrToInt(SYS.GET_MYSQL('port'),mysql_port) then mysql_port:=3306;
 
-   if PowerUseGreenSQL=1 then begin
-      mysql_server:=SYS.GET_MYSQL('GreenIP');
-      if not TryStrToInt(SYS.GET_MYSQL('GreenPort'),mysql_port) then mysql_port:=3305;
-   end;
-   if length(mysql_server)=0 then mysql_server:='127.0.0.1';
-   logs.DebugLogs('Starting......: PowerDNS MySQL backend is enabled ['+mysql_server+':'+IntTostr(mysql_port)+']');
-
-   l.add('gmysql-host='+mysql_server);
-   l.add('gmysql-user='+SYS.GET_MYSQL('database_admin'));
-   l.add('gmysql-password='+SYS.GET_MYSQL('database_password'));
-   l.add('gmysql-port='+IntTostr(mysql_port));
-   l.add('gmysql-dbname=powerdns');
-   if PowerDNSDNSSEC=1 then begin
-      l.add('gmysql-dnssec');
-      logs.DebugLogs('Starting......: PowerDNS DNSSEC is enabled...');
-    end;
-end else begin
-    logs.DebugLogs('Starting......: PowerDNS MySQL/DNSSEC support is disabled');
+if PowerUseGreenSQL=1 then begin
+    mysql_server:=SYS.GET_MYSQL('GreenIP');
+    if not TryStrToInt(SYS.GET_MYSQL('GreenPort'),mysql_port) then mysql_port:=3305;
+end;
+if length(mysql_server)=0 then mysql_server:='127.0.0.1';
+logs.DebugLogs('Starting......: PowerDNS MySQL backend is enabled ['+mysql_server+':'+IntTostr(mysql_port)+']');
+l.add('gmysql-host='+mysql_server);
+l.add('gmysql-user='+database_admin);
+l.add('gmysql-password='+SYS.GET_MYSQL('database_password'));
+l.add('gmysql-port='+IntTostr(mysql_port));
+l.add('gmysql-dbname=powerdns');
+if PowerDNSDNSSEC=1 then begin
+    l.add('gmysql-dnssec');
+    logs.DebugLogs('Starting......: PowerDNS DNSSEC is enabled...');
 end;
 
 if PowerDNSDisableLDAP=1 then logs.DebugLogs('Starting......: PowerDNS LDAP backend is disabled');
@@ -798,15 +885,14 @@ end;
 
 l.add('recursor=127.0.0.1:1553');
 
-if PowerDNSMySQLEngine=1 then begin
-   l.add('gmysql-host='+mysql_server);
-   l.add('gmysql-port='+IntTostr(mysql_port));
-   l.add('gmysql-user='+SYS.GET_MYSQL('database_admin'));
-   l.add('gmysql-password='+SYS.GET_MYSQL('database_password'));
-   l.add('gmysql-dbname=powerdns');
-   logs.DebugLogs('Starting......: PowerDNS checks MySQL table and database...');
-   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pdns.php --mysql');
-end;
+
+l.add('gmysql-host='+mysql_server);
+l.add('gmysql-port='+IntTostr(mysql_port));
+l.add('gmysql-user='+database_admin);
+l.add('gmysql-password='+SYS.GET_MYSQL('database_password'));
+l.add('gmysql-dbname=powerdns');
+logs.DebugLogs('Starting......: PowerDNS checks MySQL table and database...');
+fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pdns.php --mysql');
 
 
 
@@ -814,13 +900,22 @@ end;
 logs.WriteToFile(l.Text,'/etc/powerdns/pdns.d/pdns.local');
 logs.DebugLogs('Starting......: PowerDNS updating /etc/powerdns/pdns.d/pdns.local done...');
 L.Clear;
+RecursoripAllowFrom:=cdirlist+','+RecursoripAllowFrom;
+RecursoripAllowFrom:=AnsiReplaceText(RecursoripAllowFrom,',,',',');
+RecursoripAllowFrom:=AnsiReplaceText(RecursoripAllowFrom,',,',',');
+
+If FileExists('/etc/powerdns/forward-zones-file') then l.add('forward-zones-file=/etc/powerdns/forward-zones-file');
+If FileExists('/etc/powerdns/forward-zones-recurse') then l.add('forward-zones-recurse='+logs.ReadFromFile('/etc/powerdns/forward-zones-recurse'));
+
+// Forward-zone
+
 l.add('local-address=127.0.0.1');
 l.add('quiet=no');
 l.add('config-dir=/etc/powerdns/');
 l.add('daemon=yes');
 l.add('local-port=1553');
 l.add('log-common-errors=yes');
-l.add('allow-from='+cdirlist);
+l.add('allow-from='+RecursoripAllowFrom);
 l.add('socket-dir=/var/run/pdns');
 //l.add('query-local-address6=');
 logs.WriteToFile(l.Text,'/etc/powerdns/recursor.conf');

@@ -345,7 +345,7 @@ l.Add('strace');
 l.Add('sysfsutils');
 l.Add('tcsh');
 l.Add('time');
-l.Add('eject');
+if Major<18 then l.Add('eject');
 l.add('zlib');
 
 if ArchStruct=64 then begin
@@ -578,7 +578,7 @@ l.add('clamav-milter');
 l.add('sendmail-devel');
 l.add('milter-greylist');
 //l.add('mimedefang');
-if not FileExists('/usr/sbin/spamd') then l.Add('spamassassin');
+if not FileExists('/usr/bin/spamd') then l.Add('spamassassin');
 l.Add('mailman');
 l.add('postfix-perl-scripts');
 

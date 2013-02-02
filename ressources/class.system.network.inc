@@ -36,6 +36,7 @@ class networking{
 	
   public function Local_interfaces($filter=false) {
     $results = array();
+    $bufr=null;
     if ($this->rfts('/proc/net/dev', $bufr)) {
       $bufe = explode("\n", $bufr);
       foreach($bufe as $buf) {
@@ -214,31 +215,40 @@ class networking{
 	}
 		
 		private function GetNicInfosAsRoot($nic){
-			if(isset($GLOBALS["GetNicInfosAsRoot$nic"])){return $GLOBALS["GetNicInfosAsRoot$nic"];}
+			if(isset($GLOBALS["GetNicInfosAsRoot$nic"])){
+				if($GLOBALS["VERBOSE"]){echo "*** GetNicInfosAsRoot($nic) *** \n{$GLOBALS["GetNicInfosAsRoot$nic"]}\n";}
+				return $GLOBALS["GetNicInfosAsRoot$nic"];
+			}
 			exec("/usr/share/artica-postfix/bin/artica-install --nicinfos $nic",$results);
 			$datas=trim(@implode("\n",$results));
+			if($GLOBALS["VERBOSE"]){echo "*** GetNicInfosAsRoot($nic) *** \n$datas\n";}
 			$GLOBALS["GetNicInfosAsRoot$nic"]=$datas;
 			return $datas;
 		}
 		
 		private function GetNicStatusAsRoot($nic){
 			if(isset($GLOBALS["GetNicStatusAsRoot$nic"])){return $GLOBALS["GetNicStatusAsRoot$nic"];}
-			exec("/usr/share/artica-postfix/bin/artica-install --nicstatus {$_GET["nicstatus"]}",$results);
+			exec("/usr/share/artica-postfix/bin/artica-install --nicstatus $nic",$results);
 			$datas=trim(@implode(" ",$results));
+			if($GLOBALS["VERBOSE"]){echo "*** GetNicStatusAsRoot *** \n$datas\n";}
 			$GLOBALS["GetNicStatusAsRoot$nic"]=$datas;
 			return $datas;
 		}		
 		
 	
 	function GetNicInfos($nic){
+			if($GLOBALS["VERBOSE"]){echo "*** GetNicInfos($nic) *** \n";}
+			if($nic==null){return;}
 			include_once(dirname(__FILE__) . '/class.sockets.inc');
-			if(isset($GLOBALS["CLASS_SOCKETS"])){$sock=$GLOBALS["CLASS_SOCKETS"];}else{$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}
+			if(isset($GLOBALS["CLASS_SOCKETS"])){
+				$sock=$GLOBALS["CLASS_SOCKETS"];}else{$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}
 			
 			if(!isset($GLOBALS["NIC_INFOS_$nic"])){
 				if($GLOBALS["AS_ROOT"]){$GLOBALS["NIC_INFOS_$nic"]=$this->GetNicInfosAsRoot($nic);}else{$GLOBALS["NIC_INFOS_$nic"]=$sock->getFrameWork("cmd.php?nic-infos=$nic");}
 			}
-			
 			$datas=$GLOBALS["NIC_INFOS_$nic"];
+			if($GLOBALS["VERBOSE"]){echo "*** GetNicInfos($nic) *** \n$datas\n";}
+			
 			$tbl=explode("\n",$datas);
 			if(!is_array($tbl)){return array();}
 			$array=array();
@@ -266,6 +276,10 @@ class networking{
 	}
 	
 	function GetInfosReturnDefault($array,$nic=null){
+		$default_addr=null;
+		$default_netmask=null;
+		$default_gateway=null;
+		$bradcast_default=null;
 		if(count($this->arrayNameServers)==0){$this->LoadNameServers();}
 		if($nic<>null){
 			include_once(dirname(__FILE__) . '/class.sockets.inc');
@@ -298,6 +312,11 @@ class networking{
 		if(!isset($array["PEERNTPD"])){$array["PEERNTPD"]=null;}
 		if(!isset($array["GATEWAY"])){$array["GATEWAY"]=null;}
 		if(!isset($array["BROADCAST"])){$array["BROADCAST"]=null;}
+		if(!isset($array["IPADDR"])){$array["IPADDR"]=null;}
+		if(!isset($array["NETMASK"])){$array["NETMASK"]=null;}
+		if(!isset($array["BOOTPROTO"])){$array["BOOTPROTO"]=null;}
+		if(!isset($array["ipv6"])){$array["ipv6"]=null;}
+		
 		
 		
 		

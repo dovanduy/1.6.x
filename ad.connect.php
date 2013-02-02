@@ -400,7 +400,7 @@ function winbindd(){
 			return;
 
 			}
-		AdConnectPopup();
+			if(document.getElementById('main_ad_connect_popup')){RefreshTab('main_ad_connect_popup');}
 		}	
 		
 	var X_NetAdsLeave= function (obj) {
@@ -645,6 +645,8 @@ function avoptions_form(){
 	$SambaWinBindCacheTime=$sock->GET_INFO("SambaWinBindCacheTime");
 	if(!is_numeric($SambaWinBindCacheTime)){$SambaWinBindCacheTime=1600;}	
 	
+	$SambaMapUntrustedDomain=$sock->GET_INFO("SambaMapUntrustedDomain");
+	if(!is_numeric($SambaMapUntrustedDomain)){$SambaMapUntrustedDomain=1;}
 	
 	$version=$users->SAMBA_VERSION;
 	$upTo36=0;
@@ -678,6 +680,11 @@ function avoptions_form(){
 		<td>". Field_checkbox("SambaWinbindUseDefaultDomain", 1,$SambaWinbindUseDefaultDomain)."</td>
 		<td width=1%>". help_icon("{SambaWinbindUseDefaultDomain_text}")."</td>
 	</tr>
+	<tr>
+		<td class=legend>{map_untrusted_to_domain}:</td>
+		<td>". Field_checkbox("SambaMapUntrustedDomain", 1,$SambaMapUntrustedDomain)."</td>
+		<td width=1%>". help_icon("{map_untrusted_to_domain_explain}")."</td>
+	</tr>				
 			<tr>
 				<td valign='middle' class=legend>{SambaWinBindCacheTime}:</td>
 				<td style='font-size:13px'>". Field_text("SambaWinBindCacheTime",$SambaWinBindCacheTime,"width:60px;padding:3px;font-size:13px")."&nbsp;{seconds}</td>
@@ -707,6 +714,9 @@ function avoptions_form(){
 			if(document.getElementById('SambaWinbindRpcOnly').checked){XHR.appendData('SambaWinbindRpcOnly',1);}else{XHR.appendData('SambaWinbindRpcOnly',0);}
 			if(document.getElementById('SambaAllowTrustedDomains').checked){XHR.appendData('SambaAllowTrustedDomains',1);}else{XHR.appendData('SambaAllowTrustedDomains',0);}
 			if(document.getElementById('SambaWinbindUseDefaultDomain').checked){XHR.appendData('SambaWinbindUseDefaultDomain',1);}else{XHR.appendData('SambaWinbindUseDefaultDomain',0);}
+			if(document.getElementById('SambaMapUntrustedDomain').checked){XHR.appendData('SambaMapUntrustedDomain',1);}else{XHR.appendData('SambaMapUntrustedDomain',0);}
+			
+			
 			XHR.appendData('SambaWinBindCacheTime',document.getElementById('SambaWinBindCacheTime').value);
 			
 			
@@ -726,6 +736,7 @@ function avoptions_save(){
 	$sock->SET_INFO("SambaAllowTrustedDomains", $_POST["SambaAllowTrustedDomains"]);
 	$sock->SET_INFO("SambaWinbindUseDefaultDomain", $_POST["SambaWinbindUseDefaultDomain"]);
 	$sock->SET_INFO("SambaWinBindCacheTime", $_POST["SambaWinBindCacheTime"]);
+	$sock->SET_INFO("SambaMapUntrustedDomain",  $_POST["SambaMapUntrustedDomain"]);
 	$sock->getFrameWork("cmd.php?samba-save-config=yes");
 }
 

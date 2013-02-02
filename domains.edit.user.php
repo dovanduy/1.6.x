@@ -49,6 +49,9 @@ if(isset($_GET["zarafa-mailbox-edit"])){ZARAFA_MAILBOX_EDIT_JS ();exit ();}
 if(isset($_GET["zarafaQuotaWarn"])){ZARAFA_MAILBOX_SAVE ();exit ();}
 if(isset($_POST["user_zarafa_enable_pop3"])){ZARAFA_DISABLE_FEATURES_SAVE();exit;}
 if(isset($_POST["zarafaSharedStoreOnly"])){zarafaSharedStoreOnly();exit;}
+if(isset($_POST["zarafaHidden"])){zarafaHidden();exit;}
+
+
 
 if(isset($_GET["AJAX_COMPUTER_NETBIOS_LINK"])){AJAX_COMPUTER_NETBIOS_LINK();exit;}
 
@@ -96,17 +99,17 @@ if(isset($_GET["SaveComputerInfo"])){COMPUTER_SAVE_INFOS ();exit ();}
 if(isset($_GET["NmapScanComputer"])){COMPUTER_NMAP ();exit ();}
 if(isset($_GET["DeleteComputer"])){COMPUTER_DELETE ();exit ();}
 if(isset($_GET["DeletComputerAliases"])){COMPUTER_DELETE_ALIAS ();exit ();}
-if(isset($_GET["DeleteSenderCanonical"])){USER_DELETE_CANONICAL ();exit ();}
+
 if(isset($_GET["script"])){SWITCH_SCRIPTS ();exit ();}
 if(isset($_GET["TOOLS_REPAIR"] )){TOOLS_REPAIR ();exit ();}
 if(isset($_GET["TOOLS_SYNC"])){TOOLS_SYNC ();exit ();}
-if(isset($_GET["TOOLS_IMPORT"])){TOOLS_IMPORT ();exit ();}
+
 if(isset($_GET["RepairThisMailbox"])){TOOLS_REPAIR_OP ();exit ();}
 if(isset($_GET["ShowMbxRepair"])){TOOLS_REPAIR_LOGS ();exit ();}
 if(isset($_GET["applypureftpd"])){USER_FTP_APPLY_SAVE ();exit ();}
 if(isset($_GET["LaunchExportOperation"])){TOOL_SYNC_LAUNCH ();exit ();}
 if(isset($_GET["SaveAllowedSMTP"])){SaveAllowedSMTP ();exit ();}
-if(isset($_GET["user_transport"])){USER_TRANSPORT ();exit ();}
+
 if(isset($_GET["relay_address"])){USER_TRANSPORT_SAVE ();exit ();}
 if(isset($_GET["DeleteAlternateSmtpRelay"])){USER_TRANSPORT_DELTE ();exit ();}
 if(isset($_GET["remote_imap_server"])){TOOLS_IMPORT_SAVE ();exit ();}
@@ -121,7 +124,7 @@ if(isset($_GET["LauchMbxImport"])){TOOLS_IMPORT_LAUNCH ();exit ();}
 if(isset($_GET["CalendarPickup"])){CalendarPickup ();exit ();}
 if(isset($_GET["changeuid"])){USER_CHANGE_UID();exit ();}
 if(isset($_GET["changeuidFrom"])){USER_CHANGE_UID_SAVE ();exit ();}
-if(isset($_GET["EnableUserSpamLearning-js"])){USER_JUNK_LEARNING_JS ();exit ();}
+
 if(isset($_GET["EnableUserSpamLearning-popup"])){USER_JUNK_LEARNING_POPUP ();exit ();}
 if(isset($_GET["EnableUserSpamLearning"])){USER_JUNK_LEARNING_SAVE ();exit ();}
 
@@ -312,6 +315,9 @@ function AJAX_USER_TAB() {
 	$users = new usersMenus ( );
 	$users->LoadModulesEnabled ();
 	$sock=new sockets();
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}	
+	$sock=new sockets();
 	$as_connected_user = false;
 	if(isset($_GET["userid"])){
 		if (substr ($_GET["userid"], strlen ($_GET["userid"] ) - 1, 1 ) == '$') {
@@ -353,8 +359,10 @@ function AJAX_USER_TAB() {
 	}
 	
 	if ($users->SAMBA_INSTALLED) {
-		$arr["file_share"] = "{file_share}";
-		if($users->CRYPTSETUP_INSTALLED) {$arr["safebox"]="{coffrefort}";}
+		if($SambaEnabled==1){
+			$arr["file_share"] = "{file_share}";
+			if($users->CRYPTSETUP_INSTALLED) {$arr["safebox"]="{coffrefort}";}
+		}
 	}
 	
 
@@ -371,6 +379,17 @@ function AJAX_USER_TAB() {
 	
 	$arr["computer"] = "{computer}";
 	
+	if($users->PROXYTINY_APPLIANCE){$users->SQUID_APPLIANCE=true;}
+	if($users->WEBSTATS_APPLIANCE){$users->SQUID_APPLIANCE=true;}
+	if($users->KASPERSKY_WEB_APPLIANCE){$users->SQUID_APPLIANCE=true;}
+	
+	if($users->SQUID_APPLIANCE){
+		unset($arr["file_share"]);
+		unset($arr["safebox"]);
+		unset($arr["aliases"]);	
+		unset($arr["computer"]);
+	}
+	
 	if($users->EnableManageUsersTroughActiveDirectory){
 		unset($arr["file_share"]);
 		unset($arr["ftp_access"]);
@@ -380,6 +399,8 @@ function AJAX_USER_TAB() {
 		unset($arr["aliases"]);
 	}
 	
+	
+
 	
 	$itemsnum=count($arr);
 	if($itemsnum<7){$styleText="style='font-size:14px'";}
@@ -1251,13 +1272,15 @@ function AJAX_USER_WARNING(){
 			}else{
 				
 				$len=strlen($datas);
-				$f[]="<tr>
-					<td width=1% valign='top'><img src='img/24-green.png'></td>
-					<td style='font-size:13px;color:black'>
-					<div><strong style='font-size:13px'>{operating_system_user_has}</strong><br></div>
-					<i style='font-size:9px;color:#black'>$datas</i>
-					</td>
-				</tr>";				
+				if($len>3){
+					$f[]="<tr>
+						<td width=1% valign='top'><img src='img/24-green.png'></td>
+						<td style='font-size:13px;color:black'>
+						<div><strong style='font-size:13px'>{operating_system_user_has}</strong><br></div>
+						<i style='font-size:9px;color:#black'>$datas</i>
+						</td>
+					</tr>";		
+				}		
 				
 			}
 	}
@@ -1287,11 +1310,12 @@ function AJAX_USER_WARNING(){
 function AJAX_USER_FORM() {
 	$page=CurrentPageName();
 	$t=md5(time().$_GET["userid"]);
+	$dn=$_GET["dn"];
 	$html="<div id='$t'></div>
 	<script>
 		$(\"#container-users-tabs\").remove();
 		$(\"#container-computer-tabs\").remove();
-		LoadAjax('$t','$page?AJAX_USER_FORM_NEXT=yes&userid={$_GET["userid"]}&t={$_GET["t"]}');
+		LoadAjax('$t','$page?AJAX_USER_FORM_NEXT=yes&userid={$_GET["userid"]}&t={$_GET["t"]}&dn=$dn');
 	</script>
 			
 	";
@@ -1301,6 +1325,9 @@ function AJAX_USER_FORM() {
 
 
 function AJAX_USER_FORM_NEXT() {
+	$userid=$_GET["userid"];
+	$dn=base64_decode($_GET["dn"]);
+	if(strpos($dn,",")>0){$userid=$dn;}
 	
 	if (substr ($_GET["userid"], strlen ($_GET["userid"] ) - 1, 1 ) == '$') {
 		echo AJAX_COMPUTER_TAB ();
@@ -1648,6 +1675,7 @@ function USER_ALIASES($userid) {
 }
 
 function USER_FORM() {
+	$dn=base64_decode($_GET["dn"]);
 	
 	if (! isset ($_GET["ajaxmode"])){
 		$ldap = new clladp ( );
@@ -2600,9 +2628,12 @@ function USER_CHANGE_EMAIL_SAVE() {
 function USER_CHANGE_PASSWORD() {
 	$priv = new usersMenus();
 	$users=new usersMenus();
+	$sock=new sockets();
 	$ct = new user($_GET["uid"]);
 	writelogs("$ct->uid password=".strlen($ct->password)." length",__FUNCTION__,__FILE__);
-	
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}	
 	
 	if($users->SAMBA_INSTALLED){
 		if($ct->AsAnSambaAccount){
@@ -2647,6 +2678,7 @@ function USER_CHANGE_PASSWORD() {
 
 function USER_NOTEXISTS($uid,$error=null) {
 	$page = CurrentPageName ();
+	
 	$clean = Paragraphe ( "clean-user-64.png", '{CLEAN_USER_DATAS}', '{CLEAN_USER_EXPLAIN}', "javascript:Loadjs('$page?USER_CLEAN_JS=$uid')" );
 	
 	$html = "
@@ -2685,7 +2717,7 @@ function USER_MESSAGING($userid) {
 	}
 	$us = new user ( $userid );
 	if ($us->DoesNotExists) {
-		return USER_NOTEXISTS ( $userid );
+		return USER_NOTEXISTS ( $userid,'USER_MESSAGING' );
 	}
 	
 	if ($_GET["userid"] == $_SESSION ["uid"]) {
@@ -2833,7 +2865,7 @@ function USER_ACCOUNT_POPUP($userid) {
 	if(strlen($_GET["dn"])>0){$userdn=base64_decode($_GET["dn"]);}
 	
 	$us = new user ($userid,$userdn);
-	if ($us->DoesNotExists) {return USER_NOTEXISTS ( $userid,$us->error );}
+	if ($us->DoesNotExists) {return USER_NOTEXISTS ( $userid,$us->error."<br>Func:USER_ACCOUNT_POPUP()" );}
 	$as_connected_user = false;
 	if ($_GET["userid"] == $_SESSION ["uid"]) {$as_connected_user = true;}
 	include_once (dirname ( __FILE__ ) . '/ressources/class.obm.inc');
@@ -2841,6 +2873,12 @@ function USER_ACCOUNT_POPUP($userid) {
 	$ldap = new clladp ( );
 	
 	$usermenus = new usersMenus ( );
+	$sock=new sockets();
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+	if($SambaEnabled==0){$usermenus->SAMBA_INSTALLED=false;}	
+	
+	
 	$page = CurrentPageName ();
 	$styleTDRight = "style='padding:5px;font-size:11px'";
 	$styleTDLeft = "style='padding:5px;font-size:11px'";
@@ -3069,7 +3107,7 @@ function USER_ACCOUNT_POPUP($userid) {
 	if($priv->AsSystemAdministrator){
 		$moveorguser=Paragraphe ( "user-move-64.png", '{change_organization}', '{change_user_organization_text}',"javascript:Loadjs('domains.edit.user.moveorg.php?userid=$userid')");
 	}
-	
+	if($us->AsActiveDirectoryMember){$usermenus->EnableManageUsersTroughActiveDirectory=true;}
 	
 	if($usermenus->EnableManageUsersTroughActiveDirectory){
 		$SystemInfoUser=$SystemInfoUser_disabled;
@@ -3136,17 +3174,17 @@ function USER_ACCOUNT_POPUP($userid) {
 	if (strlen ( $us->jpegPhoto ) > 0) {$array ["img"] = $us->img_identity;} else {$array ["img"] = "img/contact-unknown-user.png";}
 	$array["mail"] = $us->mail;
 	$array["phone"] = $us->telephoneNumber;
-	$array["sn"] = $ligne ["sn"] [0];
+	$array["sn"] = $us->sn;
 	$array["displayname"] = $us->DisplayName;
 	$array["givenname"] = $us->givenName;
 	$array["JS"] = "javascript:s_PopUp('edit.thumbnail.php?uid=$us->uid',600,300)";
 	$array["title"] = $us->title;
 	$array["mobile"] = $us->mobile;
 	$array["ou"] = $us->ou;
-	$array["uid"]=$us->uid;
+	$array["uid"]=$_GET["userid"];
 	$array["uidNumber"] = $us->uidNumber;
 	$useridentity = finduser_format ( $array,true );
-	
+	$userid=urlencode($userid);
 	$html = "
 		<input type='hidden' id='delete_this_user' value='{delete_this_user}'>
 		<form name='userLdapform'>
@@ -3172,7 +3210,8 @@ function USER_ACCOUNT_POPUP($userid) {
 	$html
 	</div>
 	<script>
-		LoadAjax('userid-warning','$page?userid-warning=yes&userid=$userid');
+		
+		LoadAjax('userid-warning','$page?userid-warning=yes&userid=$userid&dn={$_GET["dn"]}');
 	</script>
 	";
 	
@@ -3389,6 +3428,10 @@ function ZARAFA_MAILBOX($uid) {
 						<td class=legend style='font-size:13px'>{zarafaSharedStoreOnly}:</td>
 						<td style='font-size:13px'>" . Field_checkbox ( "zarafaSharedStoreOnly", 1, $u->zarafaSharedStoreOnly,"zarafaSharedStoreOnlyCheck()" ) . "</td>
 					</tr>					
+					<tr>
+						<td class=legend style='font-size:13px'>{zarafaHidden}:</td>
+						<td style='font-size:13px'>" . Field_checkbox ( "zarafaHidden", 1, $u->zarafaHidden,"zarafaHiddenOnlyCheck()" ) . "</td>
+					</tr>					
 					
 					
 					<tr>
@@ -3481,6 +3524,16 @@ function ZARAFA_MAILBOX($uid) {
 		XHR.appendData('uid','$uid');
 		XHR.sendAndLoad('$page', 'POST',X_UserZarafaFeatures);	
 		
+	}
+	
+	function zarafaHiddenOnlyCheck(){
+		var XHR = new XHRConnection();
+		if(document.getElementById('zarafaHidden').checked){XHR.appendData('zarafaHidden','1');}else{XHR.appendData('zarafaHidden','0');}
+		XHR.appendData('uid','$uid');
+		XHR.sendAndLoad('$page', 'POST',X_UserZarafaFeatures);		
+	
+	
+	
 	}
 	
 	
@@ -4402,109 +4455,21 @@ function USER_FTP_APPLY_SAVE() {
 }
 
 function USER_GROUP($userid) {
+	$t=time();
+	$userid=urlencode($userid);
+	
+	echo "<div id='$t'></div>
+	<script>LoadAjax('$t','domains.edit.user.groups.php?userid=$userid&dn={$_GET["dn"]}');</script>";
+	return ;
+	
+	
 	$html = "<div id='POPUP_MEMBER_GROUP_ID'>" . USER_GROUP_CONTENT ( $userid ) . "</div>";
 	return $html;
 }
 
-function USER_GROUP_LIST($userid) {
-	if (substr ( $userid, strlen ( $userid ) - 1, 1 ) == '$') {$users = new computers ( $userid );} else {$users = new user ( $userid );}
-	$ou = $users->ou;
-	$groups = $users->Groups_list();
-	$priv = new usersMenus ( );
-	$sambagroups = array ("515" => true, "548" => true, "544" => true, "551" => true, "512" => true, "514" => true, "513" => true, 550 => true, 552 => true );
-	if (is_array ( $groups )) {
-	$gp="<center>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th width=1%>&nbsp;</th>
-		<th colspan=3>{groups}</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";	
-		while ( list ( $num, $ligne ) = each ( $groups ) ) {
-			$delete = imgtootltip ( '32-group-delete-icon.png', '{DISCONNECT_FROM_GROUP} ' . $ligne, "DeleteUserGroup($num,'$userid')" );
-			$privileges = imgtootltip ( "members-priv-32.png", '{privileges}', "Loadjs('domains.edit.group.php?GroupPrivilegesjs=$num')" );
-			
-			if($priv->EnableManageUsersTroughActiveDirectory){
-				$delete = imgtootltip ( '32-group-delete-icon-grey.png', '{DISCONNECT_FROM_GROUP} ' . $ligne);	
-				$privileges = imgtootltip ( "members-priv-32-grey.png", '{privileges}' );
-			}
-			
-			if(!is_numeric($num)){$num=urlencode($num);}
-			$groupjs = "Loadjs('domains.edit.group.php?ou=$ou&js=yes&group-id=$num')";
-			
-			if ($sambagroups [$ligne]) {$privileges = null;$groupjs = null;}
-			
-			if ($priv->AllowAddUsers == false) {$delete = "&nbsp;";$groupjs = null;}
-			
-			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-			$gp = $gp . "
-			<tr class=$classtr>
-			<td width=1%><img src='img/32-group-icon.png'></td>
-			<td valign='middle' style='font-size:15px;font-weight:bold'><a href=\"javascript:blur();\" OnClick=\"javascript:$groupjs\" style='font-size:15px;font-weight:bold;text-decoration:underline'>$ligne</a></td>
-			<td valign='middle' width=1%>$privileges</td>
-			<td width=1% valign='top'>$delete</td>
-			</tr>";
-		
-		}
-		
-		$gp = $gp . "
-		</tbody>
-		</table>";
-	}
-	$tpl = new templates ( );
-	return $tpl->_ENGINE_parse_body ( $gp );
-}
 
-function USER_GROUP_CONTENT($userid) {
-	
-	if (substr ( $userid, strlen ( $userid ) - 1, 1 ) == '$') {
-		$users = new computers ( $userid );
-	} else {
-		$users = new user ( $userid );
-	}
-	$ou = $users->ou;
-	$sambagroups = array ("515" => true, "548" => true, "544" => true, "551" => true, "512" => true, "514" => true, "513" => true, 550 => true, 552 => true );
-	
-	$priv = new usersMenus ( );
-	$button = "<input type='button' value='{add}&nbsp;&raquo;' OnClick=\"javascript:AddMemberGroup();\" style='margin-bottom:0px'>";
-	if ($priv->AllowAddUsers == false) {
-		$button = null;
-	}
-	
-	$gp = "<h3>{member_of_group}:</H3>
-		<center>
-			<div id='USER_GROUP' style='margin:3px;padding:5px;height:200px;overflow:auto'>" . USER_GROUP_LIST ( $userid ) . "</div>
-		</center>";
-	
-	
-	$ou_encoded = base64_encode ( $ou );
-	$groupjs="Loadjs('domains.group.user.affect.php?ou=$ou_encoded&uid=$userid')";
-	$addgroup=Paragraphe ("64-folder-group-add.png", "{add_group}", "{ADD_USER_GROUP_TEXT}", "javascript:$groupjs" );
-	
-	if($priv->EnableManageUsersTroughActiveDirectory){
-		$addgroup=Paragraphe ("64-folder-group-add-grey.png", "{add_group}", "{ADD_USER_GROUP_TEXT}");
-	}
-	
-	$html = "
-	<table style='width:100%'>
-	<tr>
-	<td valign='top'>$addgroup</td>
-	<td valign='top'>
-	
-	<h5>$users->DisplayName:{move_member}</h5>
-	<form name='ffm1'>
-	<input type='hidden' name='userid' id='userid' value='$userid'>
-	$gp
-	</td>
-	</tr>
-	</table>";
-	$tpl = new Templates ( );
-	
-	return $tpl->_ENGINE_parse_body ( $html );
 
-}
+
 
 
 
@@ -4516,7 +4481,7 @@ function DeleteUserGroup() {
 		exit ();
 	}
 	$ldap = new clladp ( );
-	
+
 	$userid = $_GET["user"];
 	$groupid = $_GET["DeleteUserGroup"];
 	if (! $ldap->UserDeleteToGroup ( $userid, $groupid )) {
@@ -4527,16 +4492,16 @@ function DeleteUserGroup() {
 function AddMemberGroup() {
 	$usr = new usersMenus ( );
 	$tpl = new templates ( );
-	
+
 	writelogs ( "Adding user {$_GET["user"]} to group {$_GET["AddMemberGroup"]}", __FUNCTION__, __FILE__, __LINE__ );
-	
+
 	if ($usr->AllowAddGroup == false) {
 		writelogs ( "The administrator have no provileges to execute this operation....", __FUNCTION__, __FILE__, __LINE__ );
 		echo $tpl->_ENGINE_parse_body ( '{no_privileges}' );
 		echo Page ($_GET["user"]);
 		exit ();
 	}
-	
+
 	if (trim ($_GET["AddMemberGroup"] == null )) {
 		return null;
 	}
@@ -4549,7 +4514,7 @@ function AddMemberGroup() {
 		echo html_entity_decode ( $tpl->_ENGINE_parse_body ( "{success}: {$_GET["user"]} to group {$_GET["AddMemberGroup"]}" ) );
 		writelogs ( "Adding user {$_GET["user"]} to group {$_GET["AddMemberGroup"]} => SUCCESS", __FUNCTION__, __FILE__, __LINE__ );
 	}
-	
+
 	die ();
 }
 
@@ -5834,6 +5799,19 @@ function zarafaSharedStoreOnly(){
 		echo "zarafaSharedStoreOnly = '$zarafaSharedStoreOnly'\nLDAP ERROR :\nFunction: ".__FUNCTION__."\nPage: ".basename(__FILE__)."\nLine:".__LINE__."\nError:\n".$ldap->ldap_last_error;
 		return;
 	}	
+}
+
+function zarafaHidden(){
+	$zarafaHidden=$_POST["zarafaHidden"];
+	if(!is_numeric($zarafaHidden)){$zarafaHidden=0;}
+	$u=new user($_POST["uid"]);
+	$ldap=new clladp();	
+	$upd["$zarafaHidden"][0]=$zarafaHidden;
+	if(!$ldap->Ldap_modify($u->dn, $upd)){
+		echo "$zarafaHidden = '$zarafaHidden'\nLDAP ERROR :\nFunction: ".__FUNCTION__."\nPage: ".basename(__FILE__)."\nLine:".__LINE__."\nError:\n".$ldap->ldap_last_error;
+		return;
+	}		
+	
 }
 
 function ZARAFA_DISABLE_FEATURES_SAVE(){

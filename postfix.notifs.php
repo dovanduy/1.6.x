@@ -5,12 +5,18 @@
 	include_once('ressources/class.os.system.inc');
 	include_once('ressources/class.maincf.multi.inc');
 	include_once('ressources/class.main_cf.inc');
+	include_once('ressources/class.maincf.multi.inc');
 	
+	if(isset($_GET["hostname"])){if(trim($_GET["hostname"])==null){unset($_GET["hostname"]);}}
 	
-	if(!Isright()){
-		$tpl=new templates();
-		echo "alert('".$tpl->javascript_parse_text('{ERROR_NO_PRIVS}')."');";
-		die();
+	if(!isset($_GET["hostname"])){
+		if($user->AsPostfixAdministrator==false){header('location:users.index.php');exit();}
+	}else{
+		if(!PostFixMultiVerifyRights()){
+			$tpl=new templates();
+			echo "alert('". $tpl->javascript_parse_text("{$_GET["hostname"]}::{ERROR_NO_PRIVS}")."');";
+			die();exit();
+		}
 	}
 	
 	if(isset($_GET["tabs"])){tabs();exit;}

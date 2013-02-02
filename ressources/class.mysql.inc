@@ -105,6 +105,13 @@ class mysql{
 	$this->mysql_password=str_replace("\r", "", $this->mysql_password);
 	$this->mysql_password=trim($this->mysql_password);	
 	
+	if(($this->mysql_server=="!nil") OR ($this->mysql_admin=='!nil') OR ($this->mysql_password=='!nil')){
+		$this->mysql_server="127.0.0.1";
+		$this->mysql_password=null;
+		$this->mysql_admin="root";
+		
+	}
+	
 		if($this->mysql_admin==null){
 			if($GLOBALS["VERBOSE"]){echo "Get credentials mysql_admin is null, assume root...\n";}
 			$this->mysql_admin="root";
@@ -500,7 +507,7 @@ function writelogs($text=null,$function=null,$line=0){
 			$errnum=@mysql_errno($bd);	
 			if(($errnum==1045) or ($errnum==0) OR !is_numeric($errnum)){if(!$noretry){$this->mysql_admin="root";$this->mysql_password=null;$this->BD_CONNECT(true);return;}}
 			
-			$this->writeLogs("CONNECT TO DATABASE: Error Number ($errnum) ($des) config:$serverLog@$this->mysql_admin:$this->mysql_password $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__ );
+			$this->writeLogs(__LINE__."::CONNECT TO DATABASE: Error Number ($errnum) ($des) config:$serverLog@$this->mysql_admin:$this->mysql_password $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__ );
 			if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
 				$serverLog="$this->mysql_server:$this->mysql_port";
 				if($this->mysql_password<>null){
@@ -510,6 +517,20 @@ function writelogs($text=null,$function=null,$line=0){
 					 if($this->TryTCP){$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,null);}
 				}
 			}
+			
+			if(!$bd){
+				if(($this->mysql_server=="localhost") OR ($this->mysql_server=="127.0.0.1")){
+					if(function_exists("debug_backtrace")){try {$trace=@debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}} catch (Exception $e) {$this->writeLogs(__LINE__."::CONNECT TO DATABASE: Fatal: ".$e->getMessage(),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}									
+					$this->writeLogs(__LINE__."::Restarting MySQL database...$called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__ );
+					if($GLOBALS["AS_ROOT"]){shell_exec("/etc/init.d/artica-postfix start mysql");}
+					if(!$GLOBALS["AS_ROOT"]){$sock=new sockets();$sock->getFrameWork("services.php?restart-mysql-emergency=yes");}
+					echo "<H2>MySQL server was restarted Error Number ($errnum) ($des) !!! Restart your query....$called</H2>";
+					die("MySQL server was restarted Error Number ($errnum) ($des) !!! $called Restart your query....");
+				}
+				
+			}
+			
+			
 		}
 		
 		if(!$bd){
@@ -517,13 +538,13 @@ function writelogs($text=null,$function=null,$line=0){
 					try {
 						$trace=@debug_backtrace();
 						if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
-					} catch (Exception $e) {$this->writeLogs("QUERY_SQL:: Fatal: ".$e->getMessage(),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+					} catch (Exception $e) {$this->writeLogs(__LINE__."::CONNECT TO DATABASE: Fatal: ".$e->getMessage(),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 				}
 			$des=@mysql_error($bd);
 			$errnum=@mysql_errno($bd);				
     		$this->mysql_error=$des;
 			if($GLOBALS["VERBOSE"]){echo "mysql_connect failed ($errnum) \"$des\" $called";}
-    		$this->writeLogs("CONNECT TO DATABASE: Error Number ($errnum) ($des) config:$serverLog@$this->mysql_admin:$this->mysql_password $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__ );
+    		$this->writeLogs(__LINE__."::CONNECT TO DATABASE: Error Number ($errnum) ($des) config:$serverLog@$this->mysql_admin:$this->mysql_password $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__ );
 			if(strpos($des, "Can't connect to local MySQL server")){
 				if($this->TryTCP){if($GLOBALS["AS_ROOT"]){shell_exec("/etc/init.d/artica-postfix start mysql");}}
 			}
@@ -653,8 +674,49 @@ function writelogs($text=null,$function=null,$line=0){
 					echo "<H2>Line:".__LINE__."::DB:$database Error table {$re[2]} is crashed $errnum : i will try to repair it $des</H2>";
 					if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 					system_admin_events("DB:\"$database\" Error $des\ntable {$re[2]} is crashed $errnum : i will try to repair it " , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
+					$this->mysql_error="Error $errnum $des\n$sql";
 					$this->REPAIR_TABLE($database,$re[2]);
 					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error table {$re[1]} is crashed $errnum -> i will try to repair it ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					
+				}
+				
+				if(preg_match("#Incorrect key file for table '(.+)'#",$des,$re)){
+					echo "<H2>Line:".__LINE__."::DB:$database Error table {$re[1]} is crashed $errnum : i will try to repair it $des</H2>";
+					if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
+					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error table {$re[1]} is crashed $errnum -> i will try to repair it ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					$this->REPAIR_TABLE($database,$re[1]);
+					$this->ok=false;
+					$this->mysql_error="Error $errnum $des\n$sql";
+					return false;
+				}
+				
+				if(preg_match("#Can't find file: '(.+?)'#",$des,$re)){
+					echo "<H2>Line:".__LINE__."::DB:$database Error file {$re[1]} is crashed $errnum : i will try to repair it $des</H2>";
+					echo "<H2>".$this->REPAIR_TABLE_NOFILE_FOUND($database,$re[1])."</H2>";
+					$this->ok=false;
+					$this->mysql_error="Error $errnum $des\n$sql";
+					return false;
+				}
+				
+				if(preg_match("#File '\./(.+?)\/(.+?)\.MYD' not found.*?Errcode: 13#i",$des,$re)){
+					$database=$re[1];
+					echo "<H2>Line:".__LINE__."::DB:$database Error table {$re[2]} file not found $errnum : i will try to repair it $des</H2>";
+					if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
+					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error table {$re[2]} file not found  $errnum -> i will try to repair it ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					$this->REPAIR_TABLE_FILE_NOT_FOUND($database,$re[2]);
+					$this->ok=false;
+					$this->mysql_error="Error $errnum $des\n$sql";
+					return false;
+				}
+				
+				if(preg_match("#Error writing file '\.\/(.+?)/(.+?)'#",$des,$re)){
+					$database=$re[1];
+					echo "<H2>Line:".__LINE__."::DB:$database Error table {$re[2]} file Error writing file $errnum : i will try to repair it $des</H2>";
+					if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
+					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error table {$re[2]} Error writing file  $errnum -> i will try to repair it ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					$this->REPAIR_TABLE_FILE_NOT_FOUND($database,$re[2]);
+					$this->ok=false;
+					return false;
 				}
 				
 				
@@ -665,12 +727,14 @@ function writelogs($text=null,$function=null,$line=0){
 					system_admin_events("DB:$database Error table {$re[1]} is crashed $errnum : i will try to repair it" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}					
 					$this->REPAIR_TABLE($database,$re[1]);
 					$this->writeLogs("QUERY_SQL:: DB:\"$database\" Error table {$re[1]} is crashed $errnum -> i will try to repair it ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-					
+					$this->ok=false;
+					$this->mysql_error="Error $errnum $des\n$sql";
+					return false;
 				}
 				
 				if(preg_match("#Table '\.\/(.+?)\/(.+?)'\s+is marked as crashed and last#",$des,$re)){
 					if(!$GLOBALS["AS_ROOT"]){
-						echo "<H2>Line:".__LINE__."::DB:$database Error table {$re[2]} is crashed $errnum : i will try to repair it $des</H2>";
+						echo "<H2>Line:".__LINE__."::DB:$database Error table {$re[2]} is crashed Error number $errnum : i will try to repair it $des</H2>";
 						if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 						system_admin_events("DB:$database Error $errnum, Table {$re[1]}.{$re[2]} is crashed\n$des\nArtica will try to repair it" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}						
 						$this->REPAIR_TABLE($re[1],$re[2]);
@@ -711,7 +775,6 @@ function writelogs($text=null,$function=null,$line=0){
 					$this->writelogs($sql,__CLASS__.'/'.__FUNCTION__,__FILE__);
 					if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 					system_admin_events("DB:$database Error $errnum $des" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}										
-					@mysql_close($bd);
 					$this->ok=true;
 					return true;
 				}
@@ -724,7 +787,8 @@ function writelogs($text=null,$function=null,$line=0){
 						$this->mysql_error="Incorrect file format for table $table";
 						$this->REPAIR_TABLE($database,$table);
 						if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("DB:\"$database\" $this->mysql_error" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
-						
+						$this->mysql_error="Error $errnum $des\n$sql";
+						return false;
 					}
 					return null;
 				}
@@ -737,6 +801,7 @@ function writelogs($text=null,$function=null,$line=0){
 						$this->REPAIR_TABLE($re[1],$re[2]);
 						if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("DB:\"$database\" $this->mysql_error" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
 						$this->ok=false;
+						$this->mysql_error="Error $errnum $des\n$sql";
 						return null;
 					}
 				}
@@ -758,6 +823,7 @@ function writelogs($text=null,$function=null,$line=0){
 								$this->writeLogs("Try to build storage table",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 								$this->check_storage_table();
 								$this->ok=true;
+								$this->mysql_error="Error $errnum $des\n$sql";
 								return null;
 							}
 					
@@ -826,37 +892,30 @@ function myisamchk($db,$table){
 	
 	$keytask=md5(__FUNCTION__.__CLASS__.$db.$table);
 	
-	if(isset($GLOBALS[$keytask])){if($GLOBALS["VERBOSE"]){echo "myisamchk:: Already done...\n";}return;}
+	if(isset($GLOBALS[$keytask])){
+		$this->mysql_error=$this->mysql_error. ";myisamchk()::Already done";
+		if($GLOBALS["VERBOSE"]){echo "myisamchk:: Already done...\n";}return;}
 		
 	$GLOBALS[$keytask]=true;		
 		
 		
 	if($db==null){
+		$this->mysql_error=$this->mysql_error. ";myisamchk()::DB is null, abort";
 		if($GLOBALS["VERBOSE"]){echo "myisamchk:: db $db is null, aborting\n";}
 		return;
 	}
 	
 	if($table==null){
+		$this->mysql_error=$this->mysql_error. ";myisamchk()::table is null, abort";
 		if($GLOBALS["VERBOSE"]){echo "myisamchk:: table is null, aborting\n";}
 		return;
 	}
 		
 	$GLOBALS[md5(__FUNCTION__.__CLASS__.$db.$table)]=true;
-	if(!class_exists("unix")){if($GLOBALS["VERBOSE"]){echo "myisamchk::Unix:: no such class\n";}return;}
-	$unix=new unix();
-	$MYSQL_DATADIR=$unix->MYSQL_DATADIR();
+
 	
-	if(!is_file("$MYSQL_DATADIR/$db/$table.MYI")){
-		if($GLOBALS["VERBOSE"]){echo "myisamchk:: $MYSQL_DATADIR/$db/$table.MYI no such file\n";}
-		return;
-		
-	}
-	$myisamchk=$unix->find_program("myisamchk");
-	$cmd="$myisamchk --safe-recover $MYSQL_DATADIR/$db/$table.MYI >/dev/null 2>&1";
-	if($GLOBALS["VERBOSE"]){echo "myisamchk:: running \"$cmd\"\n";} 
-	shell_exec("$myisamchk --safe-recover $MYSQL_DATADIR/$db/$table.MYI >/dev/null 2>&1");	
-	if($GLOBALS["VERBOSE"]){echo "myisamchk:: running done..;\n";}
-	return true;
+	$sock=new sockets();
+	$this->mysql_error=$this->mysql_error.base64_decode($sock->getFrameWork("cmd.php?myisamchk=yes&database=$db&table=$table"));
 	
 }	
 	
@@ -933,59 +992,83 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
    //fclose($fp);
 }	
 
+
+	function REPAIR_TABLE_FILE_NOT_FOUND($database,$table){
+		$file="/var/lib/mysql/$database/$table.MYD";
+		if($GLOBALS["AS_ROOT"]){return $this->REPAIR_TABLE_NOFILE_FOUND_root($database,"$table.MYD");}
+		$sock=new sockets();
+		$this->writeLogs($sock->getFrameWork("mysql.php?mysql-fnfound=".base64_encode($file)),__CLASS__.'/'.__FUNCTION__,__LINE__);
+	}
+	
+	private function REPAIR_TABLE_NOFILE_FOUND_root($database,$filename){
+		$filename="/var/lib/mysql/$database/$filename";
+		if(is_file($filename)){
+			$this->writeLogs("$filename exists, apply security permissions",__CLASS__.'/'.__FUNCTION__,__LINE__);
+			@chmod($filename, 0755);
+			@chown($filename, "mysql");
+			@chgrp($filename, "mysql");
+			return true;
+		}else{
+			$this->writeLogs("$filename does not exists create it...",__CLASS__.'/'.__FUNCTION__,__LINE__);
+			@file_put_contents($filename, "");
+			@chmod($filename, 0755);
+			@chown($filename, "mysql");
+			@chgrp($filename, "mysql");
+			return true;			
+		}
+	}
+	
+	function REPAIR_TABLE_NOFILE_FOUND($database,$filename){
+		if($GLOBALS["AS_ROOT"]){return $this->REPAIR_TABLE_NOFILE_FOUND_root($database,$filename);}
+		$filename="/var/lib/mysql/$database/$filename";
+		$sock=new sockets();
+		$datas=$sock->getFrameWork("mysql.php?mysql-fnfound=".base64_encode($filename));
+		$this->writeLogs($datas,__CLASS__.'/'.__FUNCTION__,__LINE__);
+		return $datas;
+	}
+
 	
 	function REPAIR_TABLE($database,$table){
+		if(!$GLOBALS["AS_ROOT"]){
+			echo "<li>REPAIR_TABLE: DB::$database, Table:$table</li>";
+		}
 		$this->writeLogs("Try to repair $table in database $database",__CLASS__.'/'.__FUNCTION__,__LINE__);
+		$sock=new sockets();
+		$results=explode("\n", base64_decode($sock->getFrameWork("cmd.php?myisamchk=yes&table=$table&database=$database&MyCURLTIMEOUT=120")));
+		if(!$GLOBALS["AS_ROOT"]){
+			echo "<li>REPAIR_TABLE: myisamchk results:".@implode("<br>\n", $results)."</li>";
+		}		
+		
+		$sqlerror[]=$this->mysql_error."myisamchk results:".@implode("<br>\n", $results);
+		$this->writeLogs("cmd.php?myisamchk=yes&table=$table&database=$database",__CLASS__.'/'.__FUNCTION__,__LINE__);
 		
 		$sql="REPAIR TABLE $table use_frm";
+		$sqlerror[]="REPAIR TABLE $table use_frm<br>\n";
 		$this->BD_CONNECT();
-		$ok=@mysql_select_db($database,$this->mysql_connection);		
+		$this->QUERY_SQL($sql,$database);
+		if(!$this->ok){$sqlerror[]=$this->mysql_error;}else{$sqlerror[]="Should OK...";}
 		
-		if (!$ok){
-	    	$errnum=@mysql_error($this->mysql_connection);
-	    	$des=@mysql_error($this->mysql_connection);
-	    	$this->mysql_error=$des;
-	    	$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE: use_frm $this->mysql_error";
-			if(function_exists("system_admin_events")){system_admin_events("$this->mysql_error", __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
-	    	$this->writeLogs("REPAIR_TABLE: use_frm $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__LINE__);
-	    	@mysql_close($this->mysql_error);
-		   }		
 		
 		$sql="REPAIR TABLE $table EXTENDED";
-		$this->BD_CONNECT();
-		$ok=@mysql_select_db($database,$this->mysql_connection);
-		if (!$ok){
-	    	$errnum=@mysql_error($this->mysql_connection);
-	    	$des=@mysql_error($this->mysql_connection);
-	    	$this->mysql_error=$des;
-	    	$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE: EXTENDED $this->mysql_error";
-			if(function_exists("system_admin_events")){system_admin_events("$this->mysql_error", __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
-	    	$this->writeLogs("REPAIR_TABLE: EXTENDED $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__LINE__);
-	    	@mysql_close($this->mysql_error);
-	    	return;
-		   }
-		   
-		if(@mysql_error($this->mysql_connection)){
-				$time=date('h:i:s');
-				$errnum=@mysql_errno($this->mysql_connection);
-				$des=@mysql_error($this->mysql_connection);
-				$this->mysql_error="Error Number ($errnum) ($des)";		   
-		   		@mysql_close($this->mysql_error);
-		   		$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE:$this->mysql_error";
-				if(function_exists("system_admin_events")){system_admin_events("$this->mysql_error", __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
-		   		$this->writeLogs("REPAIR_TABLE: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__LINE__);
-		}
+		$sqlerror[]="REPAIR TABLE $table EXTENDED";
+		if(!$this->ok){$sqlerror[]=$this->mysql_error;}else{$sqlerror[]="Should OK...";}
+	
+	
+		$sqlerror[]="myisamchk...";
+		$sock->getFrameWork("cmd.php?myisamchk=yes&table=$table&database=$database&nohup=yes");
 		
-		$sock->getFrameWork("cmd.php?myisamchk=yes&table=$table&database=$database");
-		
+		$sqlerror[]="TABLE_STATUS...";
 		$ligne=$this->TABLE_STATUS($table,$database);
 		$failed=false;
+		$sqlerror[]="TABLE_STATUS:Comment=`{$ligne["Comment"]}`..";
 		$this->writeLogs("REPAIR_TABLE: TABLE_STATUS -> `{$ligne["Comment"]}`",__CLASS__.'/'.__FUNCTION__,__LINE__);
-		if(preg_match("#marked as crashed and#",$ligne["Comment"])){$failed=true;}
+		if(preg_match("#is marked as crashed#",$ligne["Comment"])){$failed=true;}
 		if(preg_match("#Incorrect file format#",$ligne["Comment"])){$failed=true;}
 		
 		if($failed){
+			$this->writeLogs("REPAIR_TABLE:$table failed -> Try other thing... ",__CLASS__.'/'.__FUNCTION__,__LINE__);
 			$sock=new sockets();
+			$sqlerror[]="Lauching system repair for table $table in $database mysql-myd-file=yes";
 			if(function_exists("system_admin_events")){system_admin_events("Lauching system repair for table $table in $database", __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
 			$results=trim($sock->getFrameWork("cmd.php?mysql-myd-file=yes&table=$table&database=$database"));
 			if(function_exists("system_admin_events")){system_admin_events("repair for $database.$table\nResult:=".$results, __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
@@ -996,13 +1079,20 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 				$this->REPAIR_TABLE_FAILED($database,$table);			
 			}
 		}
-		$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE: Success...";
+		$sqlerror[]="Should success...in line ". __LINE__." ,class:".__CLASS__;
+		$sqlerror[]="Optimize table...";
+		$sql="OPTIMIZE TABLE $table";
+		$this->QUERY_SQL($sql,$database);
+		if(!$this->ok){$sqlerror[]=$this->mysql_error;}else{$sqlerror[]="Should OK...";}
+		$this->mysql_error=@implode("<br>\n", $sqlerror);
+		$GLOBALS["REPAIR_MYSQL_TABLE"]=$sqlerror;
+		$sock->getFrameWork("cmd.php?mysql-check=yes&database=$database&table=$table&instance-id=0");
 	}
 	
 	private function REPAIR_TABLE_FAILED($database,$table){
-		$GLOBALS["REPAIR_MYSQL_TABLE"][]="REPAIR_TABLE: DROP $database/$table";
 		
-		$this->writeLogs("REPAIR_TABLE: DROP $database/$table",__CLASS__.'/'.__FUNCTION__,__LINE__);
+		
+		//$this->writeLogs("REPAIR_TABLE: DROP $database/$table",__CLASS__.'/'.__FUNCTION__,__LINE__);
 		//$sql="DROP TABLE $table";
 		//$this->QUERY_SQL($sql,$database);
 		$this->BuildTables();
@@ -1123,13 +1213,14 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	
 	
 	function TABLE_EXISTS($table,$database,$nocache=false){
+		$keyCache=__FUNCTION__;
 		$table=str_replace("`", "", $table);
 		$table=str_replace("'", "", $table);
 		$table=str_replace("\"", "", $table);
 		if(!$nocache){
-			if(!isset($GLOBALS["__MYSQL_TABLE_EXISTS"])){$GLOBALS["__MYSQL_TABLE_EXISTS"]=array();}
-			if(isset($GLOBALS["__MYSQL_TABLE_EXISTS"][$database][$table])){if($GLOBALS["__MYSQL_TABLE_EXISTS"][$database][$table]==true){return true;}}
-			if(isset($_SESSION["__MYSQL_TABLE_EXISTS"][$database][$table])){if($_SESSION["__MYSQL_TABLE_EXISTS"][$database][$table]==true){return true;}}
+			if(!isset($GLOBALS[$keyCache])){$GLOBALS[$keyCache]=array();}
+			if(isset($GLOBALS[$keyCache][$database][$table])){if($GLOBALS[$keyCache][$database][$table]==true){return true;}}
+			if(isset($_SESSION[$keyCache][$database][$table])){if($_SESSION[$keyCache][$database][$table]==true){return true;}}
 		}
 		
 		if(!$this->DATABASE_EXISTS($database)){
@@ -1142,16 +1233,14 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		
 		$sql="SHOW TABLES";
 		$results=$this->QUERY_SQL($sql,$database);
-	
+		$result=false;
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(strtolower($table)==strtolower($ligne["Tables_in_$database"])){
-				$GLOBALS["__MYSQL_TABLE_EXISTS"][$database][$table]=true;
-				$_SESSION["__MYSQL_TABLE_EXISTS"][$database][$table]=true;
-				return true;
-			}
+			$GLOBALS[$keyCache][$database][$ligne["Tables_in_$database"]]=true;
+			if(!$GLOBALS["AS_ROOT"]){$_SESSION[$keyCache][$database][$ligne["Tables_in_$database"]]=true;}
+			if(strtolower($table)==strtolower($ligne["Tables_in_$database"])){$result=true;}
 		}
 		
-		return false;
+		return $result;
 		
 	}
 	
@@ -1589,9 +1678,12 @@ function mysql_real_escape_string2($query){
 	FUNCTION CREATE_DATABASE($database,$nocache=false){
 		$this->mysql_password=trim($this->mysql_password);
 		if(!$nocache){
-		if(!$this->BD_CONNECT()){writelogs("CREATE_DATABASE Connection failed",__CLASS__,__FILE__,__FILE__,__LINE__);}
+		if(!$this->BD_CONNECT()){
+			writelogs("CREATE_DATABASE Connection failed",__FUNCTION__."/".__CLASS__,__FILE__,__LINE__);
+			return false;
+		}
 		if($this->DATABASE_EXISTS($database)){
-			writelogs("CREATE_DATABASE $database Already exists aborting",__CLASS__,__FILE__,__FILE__,__LINE__);
+			writelogs("CREATE_DATABASE $database Already exists aborting",__FUNCTION__."/".__CLASS__,__FILE__,__LINE__);
 			$this->ok=true;
 			return true;
 		}}
@@ -1653,6 +1745,8 @@ function mysql_real_escape_string2($query){
 		if(!function_exists("mysql_connect")){return 0;}
 		if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL table $database/$table was deleted $called" , __FUNCTION__, __FILE__, __LINE__, "mysql-delete");}
 		$this->QUERY_SQL("DROP TABLE `$table`",$database);
+		unset($GLOBALS["__MYSQL_TABLE_EXISTS"]);
+		unset($_SESSION["__MYSQL_TABLE_EXISTS"]);
 	}	
 	
 	
@@ -1676,7 +1770,38 @@ function mysql_real_escape_string2($query){
 		return $ligne["Index_length"]+$ligne["Data_length"];		
 		
 	}
+	
+	
+	public function LIST_TABLES_EVENTS_SYSTEM(){
+		if(isset($GLOBALS["LIST_TABLES_EVENTS"])){return $GLOBALS["LIST_TABLES_EVENTS"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'artica_events' AND table_name LIKE 'Taskev%'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
 		
+		
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$array[$ligne["c"]]=$ligne["c"];
+		}
+		$GLOBALS["LIST_TABLES_EVENTS"]=$array;
+		return $array;
+		
+	}	
+	public function LIST_TABLES_EVENTS_SQUID(){
+		if(isset($GLOBALS["LIST_TABLES_EVENTS_SQUID"])){return $GLOBALS["LIST_TABLES_EVENTS_SQUID"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'artica_events' AND table_name LIKE 'TaskSq%'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		
+		
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$array[$ligne["c"]]=$ligne["c"];
+		}
+		$GLOBALS["LIST_TABLES_EVENTS_SQUID"]=$array;
+		return $array;
+		
+	}		
 		
 		
 	FUNCTION DATABASE_SIZE($database){

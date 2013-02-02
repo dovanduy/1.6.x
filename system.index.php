@@ -320,6 +320,9 @@ function main_network(){
 	$gateway=Paragraphe('relayhost.png','{APP_ARTICA_GAYTEWAY}','{APP_ARTICA_GAYTEWAY_TEXT}',"javascript:Loadjs('index.gateway.php?script=yes')");	
 	$dhcp=Buildicon64('DEF_ICO_DHCP');
 	
+	$DNS_LINKER=Paragraphe('database-link-64.png','{DNS_LINKER}','{DNS_LINKER_TEXT}',"javascript:Loadjs('dns.linker.php')");	
+	
+	
 	if($users->OPENVPN_INSTALLED){
 		$openvpn=Buildicon64('DEF_ICO_OPENVPN');
 	}
@@ -407,6 +410,7 @@ function main_network(){
 	$tr[]=$network;
 	$tr[]=$gateway;
 	$tr[]=$dhcp;
+	$tr[]=$DNS_LINKER;
 	$tr[]=$qos;
 	$tr[]=$pdns;
 	$tr[]=$openvpn;

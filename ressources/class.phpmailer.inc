@@ -674,6 +674,7 @@ class PHPMailer {
         $this->doCallback($isSent,$to,$this->cc,$this->bcc,$this->Subject,$body);
       }
     } else {
+    	
       if ($this->SingleTo === true && count($toArr) > 1) {
         foreach ($toArr as $key => $val) {
           $rt = @mail($val, $this->EncodeHeader($this->SecureHeader($this->Subject)), $body, $header, $params);

@@ -20,15 +20,16 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 
 if($argv[1]=="--update"){StartUpdate();die();}
+if($argv[1]=="--buildconf"){buildConf();die();}
 if($argv[1]=="--update-utility-httpd"){UpdateUtilityHttpd();die();}
 if($argv[1]=="--UpdateUtility"){UpdateUtility();die();}
 
 
-function StartUpdate(){
+function buildConf(){
+	
 	$updaterbin="/opt/kaspersky/kav4proxy/bin/kav4proxy-keepup2date";
 	if(!is_file($updaterbin)){return;}
 	$t=time();
-	ufdbguard_admin_events("Starting updating Kaspersky For Proxy server", __FUNCTION__, __FILE__, __LINE__, "update");
 	$unix=new unix();
 	$sock=new sockets();
 	@mkdir("/var/run/Kav4Proxy",0777,true);
@@ -36,19 +37,13 @@ function StartUpdate(){
 	shell_exec("$chmod 777 /var/run/Kav4Proxy");
 	
 	$pidFile="/var/run/Kav4Proxy/keepup2date.pid";
-	$oldpid=$unix->get_pid_from_file($pidFile);
-	if($unix->process_exists($oldpid)){
-		ufdbguard_admin_events("Other instance $oldpid running, aborting task", __FUNCTION__, __FILE__, __LINE__, "update");
-		return;
-	}
-	
 	$UseProxy="no";
 	$ProxyAddress=null;
 	$datas=$sock->GET_INFO("ArticaProxySettings");
 	$ArticaProxyServerEnabled="no";
 	
 	
-		if(trim($datas)<>null){
+	if(trim($datas)<>null){
 			$ini=new Bs_IniHandler();
 			$ini->loadString($datas);
 			$ArticaProxyServerEnabled=$ini->_params["PROXY"]["ArticaProxyServerEnabled"];
@@ -112,10 +107,41 @@ function StartUpdate(){
 	$f[]="";	
 	
 	$tmpFileName="/etc/artica-postfix/kav4proxy-keepup2date.conf";
-	@file_put_contents($tmpFileName, @implode("\n", $f));
+	@file_put_contents($tmpFileName, @implode("\n", $f));	
 	
+	
+}
+
+
+function StartUpdate(){
+	$updaterbin="/opt/kaspersky/kav4proxy/bin/kav4proxy-keepup2date";
+	if(!is_file($updaterbin)){return;}
+	$t=time();
+	ufdbguard_admin_events("Starting updating Kaspersky For Proxy server", __FUNCTION__, __FILE__, __LINE__, "update");
+	$unix=new unix();
+	$sock=new sockets();
+	@mkdir("/var/run/Kav4Proxy",0777,true);
+	$chmod=$unix->find_program("chmod");
+	shell_exec("$chmod 777 /var/run/Kav4Proxy");
+	
+	$pidFile="/var/run/Kav4Proxy/keepup2date.pid";
+	$oldpid=$unix->get_pid_from_file($pidFile);
+	if($unix->process_exists($oldpid)){
+		ufdbguard_admin_events("Other instance $oldpid running, aborting task", __FUNCTION__, __FILE__, __LINE__, "update");
+		return;
+	}
+	
+	
+	@mkdir("/opt/tmp",0755,true);
+	@mkdir("/var/db/kav/databases",0755,true);
+	@mkdir("/var/log/artica-postfix/kaspersky/kav4proxy",0755,true);
+	shell_exec("$chmod 777 /opt/tmp");
+	shell_exec("$chmod 777 /var/db/kav/databases");
+	buildConf();
+	$logfile="/var/log/artica-postfix/kaspersky/kav4proxy/".date("Y-m-d_H-i-s");
+	$tmpFileName="/etc/artica-postfix/kav4proxy-keepup2date.conf";
 	$nice=EXEC_NICE();
-	$cmd="$nice$updaterbin -d $pidFile -c $tmpFileName 2>&1";
+	$cmd="$nice$updaterbin -d $pidFile -c $tmpFileName -l $logfile 2>&1";
 	ufdbguard_admin_events("$cmd", __FUNCTION__, __FILE__, __LINE__, "update");
 	shell_exec($cmd);
 	$t2=time();
@@ -129,6 +155,10 @@ function StartUpdate(){
 			ufdbguard_admin_events("Failed: {$re[1]}", __FUNCTION__, __FILE__, __LINE__, "update");
 		}
 	}
+	if($GLOBALS["VERBOSE"]){$verb=" --verbose";}
+	shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.kaspersky-update-logs.php --force$verb");
+	
+	
 }
 
 function UpdateUtilityHttpd(){

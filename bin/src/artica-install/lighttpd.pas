@@ -505,6 +505,7 @@ logs.Debuglogs('###################### LIGHTTPD #####################');
           logs.Debuglogs('Starting......: lighttpd: php ext conf.:' + SYS.LOCATE_PHP5_EXTCONF_DIR());
           logs.Debuglogs('Starting......: lighttpd: php session.:' + SessionPath);
           logs.Debuglogs('Starting......: lighttpd: Mem session.:' + IntTostr(SessionPathInMemory)+'M');
+
           fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.shm.php --SessionMem "'+SessionPath+'"');
           logs.OutputCmd(LIGHTTPD_BIN_PATH()+ ' -f /etc/lighttpd/lighttpd.conf');
           fpsystem(nohup+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.shm.php --service-up >/dev/null 2>&1 &');
@@ -2223,7 +2224,7 @@ l.Add('alias.url += ("/artica-agent"=> "/usr/share/artica-postfix/ressources/art
 if DenyMiniWebFromStandardPort=1 then begin
    l.Add('$HTTP["url"] =~ "^/miniadm.*|/computers|/user-backup" { url.access-deny = ( "" )}');
 end;
-
+   l.Add('$HTTP["url"] =~ "^/prxy.*\.php" { url.access-deny = ( "" )}');
 if DirectoryExists(awstats.AWSTATS_www_root()) then l.Add('alias.url += ( "/awstats" => "'+awstats.AWSTATS_www_root()+'" )');
 if FileExists('/usr/share/poweradmin/index.php') then begin
    l.Add('alias.url += ( "/powerdns" => "/usr/share/poweradmin" )');

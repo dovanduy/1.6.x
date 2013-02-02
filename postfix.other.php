@@ -25,7 +25,7 @@ function js(){
 	$title=$tpl->_ENGINE_parse_body('{other_settings}');
 	$html="
 	function PostFixOtherLoad(){
-		YahooWin5(500,'$page?otherpage=yes','$title');
+		YahooWin5(600,'$page?otherpage=yes','$title');
 		
 	}
 	
@@ -59,23 +59,22 @@ $main=new main_cf();
 
 
 $html="
-<H1>Postfix:{other_settings}</H1>
 <div id='otherpagedvi'>
 <table style='width:99%' class=form>
 <tr>
-	<td class=legend nowrap>{undisclosed_recipients_header}:</td>
-	<td>" . Field_text('undisclosed_recipients_header',$main->main_array["undisclosed_recipients_header"],'width:100%')."</td>
+	<td class=legend nowrap style='font-size:14px'>{undisclosed_recipients_header}:</td>
+	<td>" . Field_text('undisclosed_recipients_header',$main->main_array["undisclosed_recipients_header"],'width:90%;font-size:14px')."</td>
 	<td>" . help_icon("{undisclosed_recipients_header_text}")."</td>
 </tr>
 <tr>
-	<td class=legend nowrap>{enable_original_recipient}:</td>
+	<td class=legend nowrap style='font-size:14px'>{enable_original_recipient}:</td>
 	<td>" .Field_yesno_checkbox('enable_original_recipient',$main->main_array["enable_original_recipient"])."</td>
 	<td>" . help_icon("{enable_original_recipient_text}")."</td>
 </tr>
 
 
-<tr><td colspan=2><hr></td></tr>
-<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:SavePostfixOtherSection();\" value='&nbsp;&nbsp;{edit}&nbsp;&raquo;&raquo;'></td></tr>
+
+<tr><td colspan=2 align='right'><hr>".button("{apply}", "SavePostfixOtherSection()","16")."</td></tr>
 </table>
 </div>
 

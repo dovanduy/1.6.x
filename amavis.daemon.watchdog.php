@@ -70,8 +70,8 @@ function popup(){
 		if(document.getElementById('EnableAmavisWatchdog').checked){XHR.appendData('EnableAmavisWatchdog',1);}else{XHR.appendData('EnableAmavisWatchdog',0);}
 		if(document.getElementById('AmavisWatchdogKillProcesses').checked){XHR.appendData('AmavisWatchdogKillProcesses',1);}else{XHR.appendData('AmavisWatchdogKillProcesses',0);}
 		
-		XHR.appendData('max_servers',document.getElementById('AmavisWatchdogMaxCPU').value);
-		document.getElementById('AmavisWatchdogSaveParamsId').innerHTML='<center style=\"width:100%\"><img src=img/wait_verybig.gif></center>';
+		XHR.appendData('AmavisWatchdogMaxCPU',document.getElementById('AmavisWatchdogMaxCPU').value);
+		AnimateDiv('AmavisWatchdogSaveParamsId');
 		XHR.sendAndLoad('$page', 'GET',x_AmavisWatchdogSaveParams);
 		}		
 		

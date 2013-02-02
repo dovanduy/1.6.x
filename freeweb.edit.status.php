@@ -46,17 +46,41 @@ function tabs_start(){
 function tabs(){
 	$tpl=new templates();	
 	$page=CurrentPageName();
+	
+	
+	if($_GET["servername"]<>null){
+		$q=new mysql();
+		$table_name=$q->APACHE_TABLE_NAME($_GET["servername"]);
+		if($q->TABLE_EXISTS($table_name, "apachelogs")){$array["statistics"]='{statistics}';}
+		$table_name="apache_stats_".date('Ym');
+		$sql="SELECT COUNT(servername) as tcount FROM $table_name WHERE servername='{$_GET["servername"]}'";
+		if($q->mysql_error){if(!preg_match("#doesn.+?t exist#", $q->mysql_error)){echo "<H2>$q->mysql_error</H2>";}}else{$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));}
+		if($ligne["tcount"]>0){	$array["status"]=$_GET["servername"];
+	$array["today"]="{last_24h}";}
+	}
 
-	$array["status"]=$_GET["servername"];
-	$array["today"]="{last_24h}";
+
+	$array["errors"]="{errors}";
+	$array["requests"]="{requests}";
 	
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="errors"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.events.php?type=errors&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="requests"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.events.php?type=requests&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}\"><span>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}\"><span>$ligne</span></a></li>\n");
 	}
 	
 	
 	echo "
-	<div id=main_config_freewebstatus style='width:100%;overflow:auto'>
+	<div id=main_config_freewebstatus style='width:100%;font-size:14px'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>

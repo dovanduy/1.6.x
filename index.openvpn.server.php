@@ -45,7 +45,7 @@ function tabs(){
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
-		$tab[]="<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n";
+		$tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
 			
 		}
 	$tpl=new templates();
@@ -80,7 +80,9 @@ function tabs(){
 function SAVE_SERVER(){
 	$tpl=new templates();
    if(trim($vpn->main_array["GLOBAL"]["IP_START"])==null){$vpn->main_array["GLOBAL"]["IP_START"]="10.8.0.0";}
-   
+   if(preg_match("#^([0-9]+)\.([0-9]+)\.([0-9]+)\.#", $vpn->main_array["GLOBAL"]["IP_START"],$re)){
+   	$IP_START_CONFIG="{$re[1]}.{$re[2]}.{$re[3]}";
+   }
 	
 	if(isset($_POST["IP_START"])){
 		preg_match("#^([0-9]+)\.([0-9]+)\.([0-9]+)\.#", $_POST["IP_START"],$re);
@@ -90,6 +92,7 @@ function SAVE_SERVER(){
 		while (list ($localip, $ligne) = each ($ipsArray) ){
 			preg_match("#^([0-9]+)\.([0-9]+)\.([0-9]+)\.#", $localip,$re);
 			$currentIP="{$re[1]}.{$re[2]}.{$re[3]}";
+			if($currentIP==$IP_START_CONFIG){continue;}
 			if($currentIP==$startip){
 				echo $tpl->javascript_parse_text("{ERROR_OPENVPN_CLIENTISSAMEIPSERVER}\n`$currentIP` = `$startip`");
 				$_POST["IP_START"]="10.8.0.0";
@@ -174,7 +177,7 @@ $html="
 	<td>$protocol</td>
 	<td>&nbsp;</td>
 </tr>
-<tr><td colspan=2 align='right'><hr>". button("{apply}","SaveOpenVpnServerParams()")."</td></tr>
+<tr><td colspan=3 align='right'><hr>". button("{apply}","SaveOpenVpnServerParams()",18)."</td></tr>
 </table>
 <div style='font-size:16px'><strong>{service_informations}</strong></div>
 <div class=explain>{openvpn_ippub_explain}</div>
@@ -210,7 +213,7 @@ $html="
 	<td>" . Field_password('OpenVpnPasswordCert',$OpenVpnPasswordCert,'width:90x;font-size:14px;padding:3px')."</td>
 	<td>&nbsp;</td>
 <tr>
-<tr><td colspan=2 align='right'><hr>". button("{apply}","SaveOpenVpnServerParams()")."</td></tr>
+<tr><td colspan=3 align='right'><hr>". button("{apply}","SaveOpenVpnServerParams()",18)."</td></tr>
 </table>
 </div>
 <script>
@@ -341,6 +344,16 @@ while (list ($num, $ligne) = each ($nic->array_TCP) ){
 	<td>&nbsp;</td>
 </tr>
 <tr>
+	<td class=legend style='font-size:14px'>{dns_server} 1:</td>
+	<td>" . field_ipv4('VPN_DNS_DHCP_1',$vpn->main_array["GLOBAL"]["VPN_DNS_DHCP_1"],'font-size:14px;')."</td>
+	<td>&nbsp;</td>
+</tr>
+<tr>
+	<td class=legend style='font-size:14px'>{dns_server} 2:</td>
+	<td>" . field_ipv4('VPN_DNS_DHCP_2',$vpn->main_array["GLOBAL"]["VPN_DNS_DHCP_2"],'font-size:14px;')."</td>
+	<td>&nbsp;</td>
+</tr>
+<tr>
 	<td class=legend style='font-size:14px'>{remove_server_route}:</td>
 	<td>" . Field_checkbox('REMOVE_SERVER_DEFAULT_ROUTE',1,$vpn->main_array["GLOBAL"]["REMOVE_SERVER_DEFAULT_ROUTE"])."</td>
 	<td>". help_icon("{remove_server_route_vpn_explain}")."</td>
@@ -356,8 +369,8 @@ while (list ($num, $ligne) = each ($nic->array_TCP) ){
 	<td>". help_icon("{vpn_server_wakeupip_client_explain}")."</td>
 </tr>
 <tr>
-	<td colspan=2 align='right'>
-		<hr>". button("{apply}","SaveOpenVpnClientsParams()")."
+	<td colspan=3 align='right'>
+		<hr>". button("{apply}","SaveOpenVpnClientsParams()",18)."
 	</td>
 </tr>			
 </table>
@@ -385,6 +398,8 @@ while (list ($num, $ligne) = each ($nic->array_TCP) ){
 		XHR.appendData('NETMASK',document.getElementById('NETMASK').value);	
 		XHR.appendData('IPTABLES_ETH',document.getElementById('IPTABLES_ETH').value);
 		XHR.appendData('WAKEUP_IP',document.getElementById('WAKEUP_IP').value);
+		XHR.appendData('VPN_DNS_DHCP_1',document.getElementById('VPN_DNS_DHCP_1').value);
+		XHR.appendData('VPN_DNS_DHCP_2',document.getElementById('VPN_DNS_DHCP_2').value);
 		AnimateDiv('openvpnserverform2');
 		XHR.sendAndLoad('$page', 'POST',x_SaveOpenVpnClientsParams);				
 	}

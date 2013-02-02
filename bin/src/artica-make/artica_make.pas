@@ -1070,6 +1070,14 @@ begin
          halt(0);
    end;
 
+  if ParamStr(1)='APP_PYAUTHENNTLM' then begin
+         fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
+         opengoo:=setupopengoo.Create;
+         opengoo.PYAUTHENNTLM();
+         zinstall.EMPTY_CACHE();
+         halt(0);
+   end;
+
   if ParamStr(1)='APP_MOD_QOS' then begin
          opengoo:=setupopengoo.Create;
          opengoo.MOD_QOS();
@@ -1578,6 +1586,27 @@ begin
          zinstall.EMPTY_CACHE();
          halt(0);;
    end;
+
+
+   if ParamStr(1)='APP_CAS' then begin
+         samba:=install_samba.Create;
+         samba.CAS_SERVER();
+         zinstall.EMPTY_CACHE();
+         halt(0);;
+   end;
+   if ParamStr(1)='APP_PDNS_STATIC' then begin
+         writeln('STARTING UPGRADE SYSTEM, PLEASE WAIT.....');
+         zinstall.INSTALL_STATUS('APP_PDNS_STATIC',12);
+         zinstall.INSTALL_PROGRESS('APP_PDNS_STATIC','{checking}');
+         samba:=install_samba.Create;
+         writeln('STARTING INSTALL/COMPILE POWERDNS, PLEASE WAIT.....');
+         zinstall.INSTALL_STATUS('APP_PDNS_STATIC',15);
+         samba.pdnsinstall_static();
+         zinstall.EMPTY_CACHE();
+         halt(0);;
+   end;
+
+
 
    if ParamStr(1)='APP_POWERADMIN' then begin
          writeln('STARTING UPGRADE SYSTEM, PLEASE WAIT.....');

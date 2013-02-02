@@ -207,6 +207,8 @@ for i:=0 to l.Count-1 do begin
        RegExpr.free;
        exit(true);
     end;
+    if D then writeln('LINE: ',l.Strings[i]);
+
 end;
       l.free;
        RegExpr.free;
@@ -375,6 +377,7 @@ var
    servername:string;
    tmpfile:string;
    cmdline:string;
+   pidpath:string;
 begin
 
    if not FileExists(binpath) then begin
@@ -387,14 +390,19 @@ if EnableFreeWeb=0 then begin
    STOP();
    exit;
 end;
-
-logs.DebugLogs('Starting......: Apache detected pid: '+PID_PATH());
+pidpath:=PID_PATH();
+logs.DebugLogs('Starting......: Apache detected pid: '+pidpath);
 
 if SYS.PROCESS_EXIST(PID_NUM()) then begin
    logs.DebugLogs('Starting......: Apache Already running using PID ' +PID_NUM()+ '...');
    exit;
 end;
 
+
+   if FileExists(pidpath) then begin
+      logs.DebugLogs('Starting......: Apache removing "'+pidpath+'"');
+   logs.DeleteFile(pidpath);
+   end;
 
    cmd:=SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.freeweb.php --build';
    fpsystem(cmd);
@@ -422,6 +430,7 @@ end;
        end;
    end else begin
        logs.DebugLogs('Starting......: Apache started with new PID '+PID_NUM());
+       fpsystem('/etc/init.d/artica-postfix restart artica-status');
    end;
 
 end;

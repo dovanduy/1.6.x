@@ -6,7 +6,7 @@ include_once('ressources/class.users.menus.inc');
 include_once('ressources/class.dhcpd.inc');
 include_once(dirname(__FILE__).'/ressources/class.computers.inc');
 $users=new usersMenus();
-if(!$users->AsSystemAdministrator){		
+if(!GetRights()){		
 	$tpl=new templates();
 	echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 	die();exit();
@@ -25,7 +25,11 @@ if(!$users->AsSystemAdministrator){
 	
 popup();	
 	
-
+function GetRights(){
+	$users=new usersMenus();
+	if($users->AsSystemAdministrator){return true;}
+	if($users->ASDCHPAdmin){return true;}
+}
 
 function host_edit_js(){
 	$mac=$_GET["mac"];
@@ -350,7 +354,7 @@ function hosts_import(){
 	
 	if(count($f)>0){
 		$q=new mysql();
-		$q->QUERY_SQL($prefix.@implode(",", $f));
+		$q->QUERY_SQL($prefix.@implode(",", $f),"artica_backup");
 		if(!$q->ok){echo $q->mysql_error;return;}
 		$sock=new sockets();
 		$sock->SET_INFO("DHCPDOlFixedImported", 1);

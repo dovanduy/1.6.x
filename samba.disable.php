@@ -46,7 +46,7 @@ function {$prefix}StartPage(){
 		if(document.getElementById('main_samba_config')){
 			javascript:LoadAjax('main_samba_config','fileshares.index.php?main=net_share');
 		}		
-		
+		CacheOff();
 		
 		
 		YahooWin2Hide();
@@ -106,6 +106,7 @@ function SambaEnabled(){
 	$sock->SET_INFO("SambaEnabled",$_GET["SambaEnabled"]);
 	$sock->getFrameWork("cmd.php?restart-samba=yes");
 	$sock->getFrameWork('cmd.php?refresh-status=yes');
+	$sock->getFrameWork("services.php?restart-artica-status=yes");
 }
 
 

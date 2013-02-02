@@ -256,7 +256,7 @@ function mysql_upgrade($instanceid){
 	$cmdline="$mysql_upgrade --user=$q->mysql_admin$password $servcmd 2>&1";	
 	$cmdchk="$myisamchk -c -r -f mysql/*";
 	if($instanceid>0){
-		$q=new mysql_multi($instance_id);
+		$q=new mysql_multi($instanceid);
 		if($q->mysql_password<>null){$password=" --password=$q->mysql_password ";}
 		$cmdline="$mysql_upgrade --user=$q->mysql_admin$password --socket=$q->SocketPath 2>&1";
 		$cmdchk="$myisamchk -c -r -f mysql/* --defaults-file=/etc/mysql-multi.cnf";
@@ -274,54 +274,7 @@ function mysql_upgrade($instanceid){
 function myisamchk(){
 	$unix=new unix();
 	$sock=new sockets();
-	$myisamchk=$unix->find_program("myisamchk");
-	$nice=EXEC_NICE();
-	if(!is_file($myisamchk)){
-		system_admin_events("myisamchk no such binary",__FUNCTION__,__FILE__,__LINE__,"mysql-repair");
-		return;
-	}
-	$MYSQL_DATA_DIR=$sock->GET_INFO("ChangeMysqlDir");
-	if($MYSQL_DATA_DIR==null){$MYSQL_DATA_DIR="/var/lib/mysql";}	
-
-	if(!$GLOBALS["FORCE"]){
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$pidfileTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		$kill=$unix->find_program("kill");
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($time>420){
-			shell_exec("$kill -9 $oldpid");
-			system_admin_events("Already process $oldpid since {$time}Mn will be killed",__FUNCTION__,__FILE__,__LINE__,"mysql-repair");
-		}else{
-			if($unix->process_exists($oldpid,basename(__FILE__))){
-				system_admin_events("Already process $oldpid since {$time}Mn exists",__FUNCTION__,__FILE__,__LINE__,"mysql-repair");
-				return;
-			}
-		}
-		
-		$time=$unix->file_time_min($pidfileTime);
-		if($time<20){
-			system_admin_events("Minimal time = 20Mn (current is {$time}Mn)",__FUNCTION__,__FILE__,__LINE__,"mysql-repair");
-			return;
-		}
-		@unlink($pidfileTime);
-		@file_put_contents($pidfileTime, time());
-		@file_put_contents($pidfile, getmypid());
-	}
-
-	$t=time();
-	
-	$files=$unix->DirRecursiveFiles($MYSQL_DATA_DIR,"*.MYI");
-	while (list ($index, $file) = each ($files) ){
-		$cmdchk=trim("$nice $myisamchk -c -C -r -f $file >/dev/null 2>&1");
-		if($GLOBALS["VERBOSE"]){echo "Checking ".basename($file)."\n";echo "$cmdchk\n";}
-		shell_exec($cmdchk);
-	}
-	
-	$took=$unix->distanceOfTimeInWords($t,time(),true);
-	exec("/etc/init.d/artica-postfix restart mysql 2>&1",$results);
-	system_admin_events("Success checking ".count($files)." MYISAM tables took:$took\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"mysql-repair");
-	
+	return;
 }
 
 
@@ -958,8 +911,16 @@ function mysqlcheck($db,$table,$instance_id){
 	}
 	
 	exec($cmd,$results);
-	$time_duration=distanceOfTimeInWords($time1,time());	
-	$unix->send_email_events("mysqlcheck results on instance $instance_id $db/$table","$time_duration\n".@implode("\n",$results),"system");
+	$time_duration=distanceOfTimeInWords($time1,time());
+
+	$q->QUERY_SQL("OPTIMIZE TABLE `$table`",$db);
+	if(!$q->ok){
+		$OPT="\nOptimize:$q->mysql_error\n";
+	}else{
+		$OPT="\nOptimize: Success...\n";
+	}
+	
+	$unix->send_email_events("mysqlcheck results on instance $instance_id $db/$table","$time_duration\n".@implode("\n",$results).$OPT,"system");
 }
 
 

@@ -22,6 +22,8 @@
 	if(isset($_POST["FreeWebChangeInit"])){changeInit();exit;}
 	if(isset($_GET["watchdog-popup"])){watchdog_form();exit;}
 	if(isset($_POST["watchdog"])){watchdog_save();exit;}
+	if(isset($_GET["status"])){freewebs_status();exit;}
+	
 	
 	if(isset($_GET["log-rotate-js"])){log_rotate_js();exit;}
 	if(isset($_GET["log-rotate-popup"])){log_rotate_popup();exit;}
@@ -1750,6 +1752,8 @@ function FreeWebsScanSize(){
 	$sock->getFrameWork("freeweb.php?ScanSize=yes");
 	echo $success;
 }
+
+
 
 ?>
 	

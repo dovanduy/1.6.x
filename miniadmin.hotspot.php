@@ -21,6 +21,7 @@ if(isset($_POST["DeleteSession"])){sessions_remove();exit;}
 if(isset($_GET["members"])){members();exit;}
 if(isset($_GET["members-items"])){members_items();exit;}
 if(isset($_POST["EnableMember"])){members_enable();exit;}
+if(isset($_POST["DeleteMember"])){members_delete();exit;}
 if(isset($_GET["uid"])){member_popup();exit;}
 if(isset($_POST["uid"])){members_save();exit;}
 if(isset($_GET["ttl"])){members_ttl();exit;}
@@ -130,7 +131,7 @@ $('#flexRT$t').flexigrid({
 		{display: '$ttl', name : 'ttl', width :152, sortable : true, align: 'left'},
 		{display: '$finaltime', name : 'sessiontime', width :136, sortable : true, align: 'left'},
 		{display: '$enabled', name : 'enabled', width :31, sortable : false, align: 'center'},
-		{display: '&nbsp;', name : 'none', width :21, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'none', width :31, sortable : true, align: 'center'},
 	],
 	$buttons
 
@@ -187,6 +188,20 @@ function MemberEnable$t(uid){
 	XHR.appendData('value',enabled);		
 	XHR.sendAndLoad('$page', 'POST',x_MemberEnable$t);	
 	
+}
+
+	var x_DeleteMember$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);return;}
+		$('#row'+mem$t).remove();
+		
+	}
+
+function DeleteMember$t(uid,md){
+	mem$t=md;
+	var XHR = new XHRConnection();
+	XHR.appendData('DeleteMember',uid);
+	XHR.sendAndLoad('$page', 'POST',x_DeleteMember$t);		
 }
 
 </script>";
@@ -260,7 +275,7 @@ function SaveTTLHotspot(){
 
 function member_popup(){
 	$tt=$_GET["t"];
-	$uid=$_GET["uid"];
+	$uid=trim($_GET["uid"]);
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$q=new mysql_squid_builder();
@@ -357,7 +372,7 @@ function SaveAccountHotspot(){
 	
 	function Check$t(){
 		var close=$close;
-		if(close==1){return;}
+		if(close==0){return;}
 		document.getElementById('uid-$t').disabled=true;
 	
 	}
@@ -412,6 +427,14 @@ function members_enable(){
 	
 }
 
+function members_delete(){
+	$uid=$_POST["DeleteMember"];
+	$sql="DELETE FROM hotspot_members WHERE uid='$uid'";
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;}	
+}
+
 function sessions(){
 	$today=date("Y-m-d");
 	$t=time();
@@ -444,7 +467,7 @@ $('#flexRT$t').flexigrid({
 		{display: '$logintime', name : 'logintime', width :152, sortable : true, align: 'left'},
 		{display: '$finaltime', name : 'finaltime', width :136, sortable : true, align: 'left'},
 		{display: '$endtime', name : 'endtime', width :152, sortable : false, align: 'left'},
-		{display: '&nbsp;', name : 'none', width :21, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'none', width :32, sortable : true, align: 'center'},
 	],
 	$buttons
 
@@ -473,6 +496,14 @@ $('#flexRT$t').flexigrid({
 		$('#row'+mem$t).remove();
 		
 	}
+
+function DeleteMember$t(md){
+	mem$t=md;
+	var XHR = new XHRConnection();
+	XHR.appendData('DeleteSession',md);	
+	XHR.sendAndLoad('$page', 'POST',x_DeleteSession$t);	
+
+}
 
 function DeleteSession$t(md){
 	mem$t=md;
@@ -656,12 +687,12 @@ function members_items(){
 	$ttl=$tpl->_ENGINE_parse_body("{ttl}");
 	while ($ligne = mysql_fetch_assoc($results)) {
 
-		
+		$md5=md5(serialize($ligne));
 		$uid= $ligne["uid"];
 		$ttl=intval($ligne["ttl"]);
 		$logintime=intval($ligne["logintime"]);
 		$Start=$tpl->_ENGINE_parse_body(date("{l} d H:i",$logintime));
-		$delete=imgsimple("delete-24.png",null,"DeleteMember$t('{$ligne["uid"]}')");
+		$delete=imgsimple("delete-24.png",null,"DeleteMember$t('{$ligne["uid"]}','$md5')");
 		$End=$tpl->_ENGINE_parse_body(date("{l} d H:i",$ligne["finaltime"]));
 		$hostname=$ligne["hostname"];
 		$MAC=$ligne["MAC"];
@@ -674,18 +705,18 @@ function members_items(){
 		$enabled=Field_checkbox("enable_$uid", 1,$ligne["enabled"],"MemberEnable$t('$uid')");
 		$color="black";
 		if($ligne["enabled"]==0){$color="#A4A1A1";}
-		
+		$uid_url=urlencode($ligne["uid"]);
 		$urljs="<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:YahooWin4('600','$myPage?uid={$ligne["uid"]}&t=$t','{$ligne["uid"]}');\"
+		OnClick=\"javascript:YahooWin4('600','$myPage?uid=$uid_url&t=$t','{$ligne["uid"]}');\"
 		style='font-size:14px;text-decoration:underline;color:$color'>";	
 
 		$urlttl="<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:YahooWin4('500','$myPage?ttl={$ligne["uid"]}&t=$t','$ttl:{$ligne["uid"]}');\"
+		OnClick=\"javascript:YahooWin4('500','$myPage?ttl=$uid_url&t=$t','$ttl:{$ligne["uid"]}');\"
 		style='font-size:14px;text-decoration:underline;color:$color'>";		
 		
 		//$subject=mime_decode($subject);
 		$data['rows'][] = array(
-				'id' => $ligne["uid"],
+				'id' => $md5,
 				'cell' => array(
 					"<span style='font-size:14px;color:$color'>$urljs{$ligne["uid"]}</a><br><i style='font-size:12px'>$hostname&nbsp;|&nbsp;$MAC&nbsp;|&nbsp;$ipaddr</i></a></span>",
 					"<span style='font-size:14px;color:$color'>$urlttl$ttl</a></span>",

@@ -141,8 +141,6 @@ class mysql_postfix_builder{
 	}
 	
 	public function milter_BuildHourTable($tablename){
-		if($this->TABLE_EXISTS($tablename)){return true;}
-		
 		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
 			  `zmd5` varchar(90) NOT NULL,
 			  `ztime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

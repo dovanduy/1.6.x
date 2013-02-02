@@ -94,8 +94,8 @@ function serverlist(){
 		$fqdn_hostname=$settings["fqdn_hostname"];
 		if($fqdn_hostname==null){$fqdn_hostname=$server;}
 		
-		if(is_array($perfs["MEMORY"])){
-				$hash_mem=$perfs["MEMORY"];
+		if(is_array($perfs["REALMEM"])){
+				$hash_mem=$perfs["REALMEM"];
 				$mem_used_p=$hash_mem["ram"]["percent"];
 				$mem_used_kb=FormatBytes($hash_mem["ram"]["used"]);
 				$total=FormatBytes($hash_mem["ram"]["total"]);

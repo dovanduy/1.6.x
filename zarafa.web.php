@@ -115,6 +115,11 @@ function tabs(){
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
+		if($num=="status"){
+			$html[]="<li><a href=\"zarafa.index.php?popup-status=yes\"><span>$ligne</span></a></li>\n";
+			continue;
+		}		
+		
 		if($num=="popup-indexer"){
 			$html[]="<li><a href=\"zarafa.indexer.php\"><span>$ligne</span></a></li>\n";
 			continue;
@@ -251,7 +256,7 @@ function popup(){
 			
 		}	
 	
-	$tab="<div id=main_config_zarafa3 style='width:103%;$fontsize;margin:-10px'>
+	$tab="<div id=main_config_zarafa3 style='width:102%;$fontsize;margin:-10px'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -676,11 +681,17 @@ $ZarafaEnableServer=$sock->GET_INFO("ZarafaEnableServer");
 $ZarafaApacheEnable=$sock->GET_INFO("ZarafaApacheEnable");
 $ZarafaGatewayBind=$sock->GET_INFO("ZarafaGatewayBind");
 $ZarafaMAPISSLEnabled=$sock->GET_INFO('ZarafaMAPISSLEnabled');
+$ZarafaEnableSecurityLogging=$sock->GET_INFO("ZarafaEnableSecurityLogging");
+$ZarafaLogLevel=$sock->GET_INFO("ZarafaLogLevel");
 if(!is_numeric($ZarafaPop3Enable)){$ZarafaPop3Enable=1;}
 if(!is_numeric($ZarafaIMAPEnable)){$ZarafaIMAPEnable=1;}
 if(!is_numeric($ZarafaApacheEnable)){$ZarafaApacheEnable=1;}
 if(!is_numeric($ZarafaEnablePlugins)){$ZarafaEnablePlugins=0;}
 if(!is_numeric($ZarafaMAPISSLEnabled)){$ZarafaMAPISSLEnabled=0;}
+if(!is_numeric($ZarafaEnableSecurityLogging)){$ZarafaEnableSecurityLogging=0;}
+
+
+if(!is_numeric($ZarafaLogLevel)){$ZarafaLogLevel=2;}
 
 if(!is_numeric($Zarafa7IMAPDisable)){$Zarafa7IMAPDisable=0;}
 if(!is_numeric($Zarafa7Pop3Disable)){$Zarafa7Pop3Disable=0;}
@@ -743,8 +754,13 @@ $net=new networking();
 $nets=$net->ALL_IPS_GET_ARRAY();
 $nets["0.0.0.0"]="{all}";
 
+for($i=1;$i<6;$i++){
+	$ZarafaLogLevelHash[$i]=$i;
+}
+
 $netfield=Field_array_Hash($nets,"ZarafaServerListenIP",$ZarafaServerListenIP,"style:font-size:14px;padding:3px");
 $SMTPfield=Field_array_Hash($nets,"ZarafaServerSMTPIP",$ZarafaServerSMTPIP,"style:font-size:14px;padding:3px");
+$ZarafaLogLevel=Field_array_Hash($ZarafaLogLevelHash,"ZarafaLogLevel",$ZarafaLogLevel,"style:font-size:14px;padding:3px");
 $convert_current_attachments_text=$tpl->javascript_parse_text("{convert_current_attachments}");
 
 $fieldsServ[]="ZarafaStoreOutsidePath";
@@ -793,10 +809,21 @@ $ZarafaUserSafeMode_warn
 				<td width=1%>". Field_checkbox("ZarafaUserSafeMode",1,$ZarafaUserSafeMode)."</td>
 				<td width=1%>". help_icon("{user_safe_mode_text}")."</td>
 			</tr>
-				<tr>
+			<tr>
 				<td class=legend style='font-size:14px'>{ZarafaAllowToReinstall}:</td>
 				<td>". Field_checkbox("ZarafaAllowToReinstall",1,$ZarafaAllowToReinstall)."</td>
-			</tr>		
+			</tr>	
+			<tr>
+				<td class=legend style='font-size:14px'>{log_level}:</td>
+				<td>$ZarafaLogLevel</td>
+			</tr>	
+			<tr>
+				<td class=legend style='font-size:14px'>{security_logging}:</td>
+				<td>". Field_checkbox("ZarafaEnableSecurityLogging",1,$ZarafaEnableSecurityLogging)."</td>
+			</tr>			
+			
+			
+			
 		
 	</tr>
 	<tr><td colspan=3 align='right'><hr></td></tr>
@@ -884,6 +911,7 @@ $ZarafaUserSafeMode_warn
 				if(document.getElementById('ZarafaStoreOutside').checked){XHR.appendData('ZarafaStoreOutside',1);}else{XHR.appendData('ZarafaStoreOutside',0);}
 				if(document.getElementById('ZarafaUserSafeMode').checked){XHR.appendData('ZarafaUserSafeMode',1);}else{XHR.appendData('ZarafaUserSafeMode',0);}
 				if(document.getElementById('ZarafaAllowToReinstall').checked){XHR.appendData('ZarafaAllowToReinstall',1);}else{XHR.appendData('ZarafaAllowToReinstall',0);}
+				if(document.getElementById('ZarafaEnableSecurityLogging').checked){XHR.appendData('ZarafaEnableSecurityLogging',1);}else{XHR.appendData('ZarafaEnableSecurityLogging',0);}
 				
 				
 				
@@ -893,6 +921,8 @@ $ZarafaUserSafeMode_warn
 				XHR.appendData('ZarafaServerSMTPPORT',document.getElementById('ZarafaServerSMTPPORT').value);
 				XHR.appendData('ZarafaStoreOutsidePath',document.getElementById('ZarafaStoreOutsidePath').value);
 				XHR.appendData('ZarafaStoreCompressionLevel',document.getElementById('ZarafaStoreCompressionLevel').value);
+				XHR.appendData('ZarafaLogLevel',document.getElementById('ZarafaLogLevel').value);
+				
 				
 				
 				
@@ -927,7 +957,8 @@ function zarafa_settings_server_save(){
 	$sock->SET_INFO("ZarafaServerSMTPPORT", $_POST["ZarafaServerSMTPPORT"]);
 	$sock->SET_INFO("ZarafaUserSafeMode", $_POST["ZarafaUserSafeMode"]);
 	$sock->SET_INFO("ZarafaAllowToReinstall", $_POST["ZarafaAllowToReinstall"]);
-	
+	$sock->SET_INFO("ZarafaLogLevel", $_POST["ZarafaLogLevel"]);
+	$sock->SET_INFO("ZarafaEnableSecurityLogging", $_POST["ZarafaEnableSecurityLogging"]);
 	
 	
 	$sock->SET_INFO("ZarafaStoreOutside", $_POST["ZarafaStoreOutside"]);

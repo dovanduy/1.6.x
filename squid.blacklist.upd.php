@@ -113,6 +113,7 @@ function progress(){
 	if(!is_numeric($PROGRESS["POURC"])){$PROGRESS["POURC"]=0;}
 	$PROGRESS["TEXT"]=$tpl->javascript_parse_text($PROGRESS["TEXT"]);
 	if(!is_numeric($PROGRESS["DOWN"])){$PROGRESS["DOWN"]=0;}
+	if(($PROGRESS["DOWN"]<100) && ($PROGRESS["DOWN"]>0)){if($PROGRESS["POURC"]>90){$PROGRESS["POURC"]=99;}}
 	if($executed){$PROGRESS["TEXT"]=$tpl->javascript_parse_text("{running}:")." ".$PROGRESS["TEXT"];}
 	$html="
 	<script>
@@ -128,6 +129,7 @@ function progress(){
 		}else{
 			if(document.getElementById('admin_perso_tabs')){RefreshTab('admin_perso_tabs');}
 			$('#progress-{$t}').progressbar({ value: 100});
+			if(document.getElementById('infos-$t')){document.getElementById('infos-$t').innerHTML='{$PROGRESS["TEXT"]}';}
 				
 		}
 	</script>

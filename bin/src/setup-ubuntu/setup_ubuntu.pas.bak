@@ -246,8 +246,10 @@ begin
          end;
 
          if distri.DISTRINAME_CODE='DEBIAN' then  begin
+            writeln('check-postfix Starting checking ejabberd cheking sources.list...');
             fpsystem('/usr/sbin/php5 /usr/share/artica-postfix/exec.apt-get.php --sources-list >/dev/null 2>&1');
             install:=tubuntu.Create;
+            writeln('check-postfix Starting checking ejabberd cheking sources.list...');
             install.InstallPackageListssilent(install.ejabberd());
             halt(0);
          end;
@@ -604,6 +606,7 @@ if length(paramstr(1))>0 then begin
      if paramstr(1)<>'--light' then begin
         writeln('Unable to understand ',paramstr(1));
         halt(0);
+     end;
      end;
 end;
 writeln('initialize... ');

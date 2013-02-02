@@ -705,18 +705,31 @@ function finduser_list(){
 	$tpl=new templates();
 	$usermenu=new usersMenus();
 	$ldap=new clladp();
-	if($usermenu->AsAnAdministratorGeneric==true){
-		if($GLOBALS["OUTPUT_DEBUG"]){echo "It is an administrator search in the entire tree<br>";}
-		$hash_full=$ldap->UserSearch(null,$stringtofind,$_POST["rp"]);
+	if(!$ldap->IsKerbAuth()){
+	
+		if($usermenu->AsAnAdministratorGeneric==true){
+			if($GLOBALS["OUTPUT_DEBUG"]){echo "It is an administrator search in the entire tree<br>";}
+			$hash_full=$ldap->UserSearch(null,$stringtofind,$_POST["rp"]);
+			
+		}else{
+			$us=$ldap->UserDatas($_SESSION["uid"]);
+			if($GLOBALS["OUTPUT_DEBUG"]){echo "It is an user search in the {$us["ou"]} tree<br>";}
+			$hash_full=$ldap->UserSearch($us["ou"],$stringtofind,$_POST["rp"]);
+		}
 		
+		$hash1=$hash_full[0];
+		$hash2=$hash_full[1];
+	
+	
 	}else{
-		$us=$ldap->UserDatas($_SESSION["uid"]);
-		if($GLOBALS["OUTPUT_DEBUG"]){echo "It is an user search in the {$us["ou"]} tree<br>";}
-		$hash_full=$ldap->UserSearch($us["ou"],$stringtofind,$_POST["rp"]);
+		include_once(dirname(__FILE__."/ressources/class.external.ad.inc"));
+		$ad=new external_ad_search();
+		$hash_full=$ad->UserSearch(null,$stringtofind,$_POST["rp"]);
+		$hash1=$hash_full[0];
+		$hash2=$hash_full[1];
+		
 	}
 	
-	$hash1=$hash_full[0];
-	$hash2=$hash_full[1];
 	if($GLOBALS["OUTPUT_DEBUG"]){echo "Search results ".count($hash1) ." users and ".count($hash2)." contacts<br>";}
 	
 	
@@ -730,7 +743,16 @@ function finduser_list(){
 
 	if(is_array($hash1)){
 	while (list ($num, $ligne) = each ($hash1) ){
+	
 		
+		if(isset($ligne["samaccountname"][0])){$ligne["uid"][0]=$ligne["samaccountname"][0];}
+		if($ligne["uid"][0]==null){
+			if(preg_match("#^CN=(.+?),#i", $ligne["dn"],$re)){
+				$ligne["uid"][0]=$re[1];
+				$hash[$count]["displayname"][0]=$re[1];
+			}
+			
+		}
 		if($EnableManageUsersTroughActiveDirectory==0){	if(($ligne["uid"][0]==null) && ($ligne["employeenumber"][0]==null)){continue;}}
 		if(strpos($ligne["dn"],"dc=pureftpd,dc=organizations")>0){continue;}
 		$hash[$count]["displayname"][0]=trim($ligne["displayname"][0]);
@@ -757,7 +779,9 @@ function finduser_list(){
 	
 	if(is_array($hash2)){
 	while (list ($num, $ligne) = each ($hash2) ){
-	if(($ligne["uid"][0]==null) && ($ligne["employeenumber"][0]==null)){continue;}
+		if(isset($ligne["samaccountname"][0])){$ligne["uid"][0]=$ligne["samaccountname"][0];}
+		if(($ligne["uid"][0]==null) && ($ligne["employeenumber"][0]==null)){continue;}
+		
 		if(strpos($ligne["dn"],"dc=pureftpd,dc=organizations")>0){continue;}
 		$hash[$count]["displayname"][0]=$ligne["displayname"][0];
 		$hash[$count]["givenname"][0]=$ligne["givenname"][0];

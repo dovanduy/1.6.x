@@ -10,7 +10,7 @@ include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.calendar.inc");
-$users=new usersMenus();if(!$users->AsWebStatisticsAdministrator){header("location:miniadm.index.php");die();}
+if(!$_SESSION["AsWebStatisticsAdministrator"]){header("location:miniadm.index.php");die();}
 	
 
 if(isset($_GET["content"])){content();exit;}
@@ -239,7 +239,7 @@ function webstats_middle_table_items(){
 	
 	
 	if(!$q->TABLE_EXISTS($tablename_prod, $database)){json_error_show("$table doesn't exists...");}
-	if(!$q->COUNT_ROWS($tablename_prod, $database)){json_error_show("No data");}
+	if($q->COUNT_ROWS($tablename_prod, $database)==0){json_error_show("No data");}
 
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}

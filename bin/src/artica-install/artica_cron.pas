@@ -363,6 +363,11 @@ end;
 //##############################################################################
 procedure tcron.Save_processes();
 
+         const
+            CR = #$0d;
+            LF = #$0a;
+            CRLF = CR + LF;
+
 var l:TstringList;
 
 Nice:integer;
@@ -534,8 +539,8 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
       if systemMaxOverloaded<2 then systemMaxOverloaded:=6;
 
 
-     logs.WriteToFile('@reboot		root	/sbin/modprobe cifs && echo 0 > /proc/fs/cifs/OplockEnabled','/etc/cron.d/cifs-fix');
-     logs.WriteToFile('@reboot		root	'+php5bin+' /usr/share/artica-postfix/exec.schedules.php >/dev/null 2>&1','/etc/cron.d/schedules');
+     logs.WriteToFile('@reboot		root	/sbin/modprobe cifs && echo 0 > /proc/fs/cifs/OplockEnabled'+CRLF,'/etc/cron.d/cifs-fix');
+     logs.WriteToFile('@reboot		root	'+php5bin+' /usr/share/artica-postfix/exec.schedules.php >/dev/null 2>&1'+CRLF,'/etc/cron.d/schedules');
 
 
 
@@ -1031,11 +1036,7 @@ begin
           end;
       end;
 
-      ZarafaSaLearnSchedule:=SYS.GET_INFO('ZarafaSaLearnSchedule');
-      if length(ZarafaSaLearnSchedule)>5 then begin
-            logs.DebugLogs('Starting......: artica-postfix watchdog (fcron) Activate Zarafa sa-learn schedule');
-           l.Add('&'+Nicet+' '+ZarafaSaLearnSchedule+' '+SYS.LOCATE_PHP5_BIN() + ' ' + artica_path+'/exec.zarafa.learn.php');
-      end;
+
 
 
      //  ########## SQUID

@@ -3,17 +3,28 @@
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
-
+if(isset($_GET["service-cmds"])){service_cmds();exit;}
+if(isset($_GET["reload-tenir"])){reload_tenir();exit;}
 if(isset($_GET["rebuild-database"])){rebuild_database();exit;}
 if(isset($_GET["replic"])){replic_artica_servers();exit;}
 if(isset($_GET["digg"])){digg();exit;}
 if(isset($_GET["repair-tables"])){repair_tables();exit;}
-
+if(isset($_GET["build-smooth-tenir"])){reload_tenir();exit;}
+if(isset($_GET["reconfigure"])){reconfigure();exit;}
 
 writelogs_framework("Unable to understand the query ".@implode(" ",$_GET),__FUNCTION__,__FILE__,__LINE__);	
 
 
+function service_cmds(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmds=$_GET["service-cmds"];
+	$results[]="Postition: $cmds";
+	exec("/etc/init.d/artica-postfix $cmds pdns 2>&1",$results);
 
+	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";
+}
 
 function rebuild_database(){
 	$unix=new unix();
@@ -22,6 +33,18 @@ function rebuild_database(){
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.pdns.php --rebuild-database 2>&1 &");	
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
+}
+
+function reload_tenir(){
+	exec("/usr/share/artica-postfix/bin/artica-install --pdns-reload 2>&1",$results);
+	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";
+}
+
+function reconfigure(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();	
+	$cmd=trim("$nohup /usr/share/artica-postfix/bin/artica-install --pdns-reconfigure 2>&1 &");
 }
 
 function repair_tables(){

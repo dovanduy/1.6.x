@@ -68,7 +68,24 @@ function messaging_left(){
 	if(!is_numeric($EnableFetchmail)){$EnableFetchmail=0;}
 	if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
 	$OfflineImapBackupTool=$sock->GET_INFO("OfflineImapBackupTool");
-	if(!is_numeric($OfflineImapBackupTool)){$OfflineImapBackupTool=0;}	
+	if(!is_numeric($OfflineImapBackupTool)){$OfflineImapBackupTool=0;}
+
+	
+	if($users->AsPostfixAdministrator){
+		$t[]=Paragraphe("server-setup-64.png", "{MESSAGING_SERVICE}", "{MESSAGING_SERVICE_TEXT}","miniadm.messaging.postfix.php");
+		
+	}
+	
+	if(count($_SESSION["POSTFIX_SERVERS"])>0){
+		$POSTFIX_SERVERS=$_SESSION["POSTFIX_SERVERS"];
+		while (list ($hostname, $none) = each ($POSTFIX_SERVERS) ){
+		$t[]=Paragraphe("server-setup-64.png", "$hostname", 
+				"{MESSAGING_SERVICE_TEXT}","miniadm.messaging.postfix-multi.php?hostname=$hostname&ou={$_SESSION["ou"]}");
+			
+		}
+		
+	}
+	
 	
 	if($users->AllowFetchMails){
 		if($users->fetchmail_installed){
@@ -88,12 +105,20 @@ function messaging_left(){
 		$t[]=Paragraphe("64-backup-grey.png", "{mailboxes_backups}", "{mailboxes_backups_text}");
 	}
 	
+	if($users->AllowEditAsWbl){
+		$t[]=Paragraphe("domain-whitelist-64.png", "{white_black_smtp}", "{white_black_smtp_text}","miniadm.messaging.wbl.php");
+	}
+	
 	if($users->AllowEditAliases){
 		$t[]=Paragraphe("rebuild-mailboxes-64.png", "{aliases}", "{enduser_aliases_text}","miniadm.aliases.php");
 	}
 
 	if($users->AllowUserMaillog){
 		$t[]=Paragraphe("64-mailevents.png", "{messaging_events}", "{messaging_events_text}","miniadm.maillog.php");
+	}
+	
+	if($users->ZARAFA_INSTALLED){
+		$t[]=Paragraphe("contact-card-csv-64.png", "{import_contacts}", "{import_contacts_csv_text}","miniadm.zarafa-contacts-csv.php");
 	}
 	
 	if($MailArchiverEnabled==1){

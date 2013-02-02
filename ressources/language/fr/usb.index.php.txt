@@ -10,7 +10,7 @@ L'op&eacute;ration de liaison se fera automatiquement lorsque le syst&egrave;me 
 <error_understand_fs>Impossible de comprendre le format du syst&egrave;me de fichiers</error_understand_fs>
 <file_system>Syst&egrave;me de fichiers</file_system>
 <formatdevice>Formater ce p&eacute;riph&eacute;rique</formatdevice>
-<format_warning>&Ecirc;tes-vous s&ucirc;r d'effectuer cette op&eacute;ration, toutes les donn&eacute;es seront effac&eacute;es ...</format_warning>
+<format_warning>Effectuer cette op&eacute;ration ? Toutes les donn&eacute;es seront effac&eacute;es ...</format_warning>
 <local>local</local>
 <make_autobackup>Dispositif de sauvegarde automatique</make_autobackup>
 <manufacturer>Fabricant</manufacturer>

@@ -126,6 +126,8 @@ if($servername==null){return null;}
 	}	
 	
 	function extractFirsRessource($pattern){
+		if(substr($pattern, strlen($pattern)-1,1)<>"/"){$pattern=$pattern."/";}
+		if($GLOBALS["VERBOSE"]){echo "extractFirsRessource($pattern);\n";}
 		if(preg_match("#usb:\/\/(.+?)\/#",$pattern,$re)){
 			return $re[1];
 		}
@@ -150,7 +152,7 @@ if($servername==null){return null;}
 			return $re[1];
 		}	
 		
-		if(preg_match("#automount:(.+?)$#",$pattern,$re)){
+		if(preg_match("#^automount:(.+?)$#",$pattern,$re)){
 			return $re[1];
 		}			
 		if(preg_match("#local:(.+?)$#",$pattern,$re)){

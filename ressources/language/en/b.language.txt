@@ -2474,3 +2474,400 @@ Click on the enable button in order to start the VnStat service in order to buil
 <video>video</video>
 <links>links</links>
 <who>who</who>
+<use_ipv6>Use ipV6</use_ipv6>
+<zarafaHidden>Hide from AddressBook</zarafaHidden>
+<you_have_set_no_deletion>You have disabled the deletion method in the settings</you_have_set_no_deletion>
+<delete_ask_params>This operation will remove %s items, carry out this operation ?</delete_ask_params>
+<clean>clean</clean>
+<display_members_for_this_week>Display members of this week</display_members_for_this_week>
+<UseBanner>Use banner</UseBanner>
+<banner>banner</banner>
+<ARTICADB_NOT_INSTALLED_EXPLAIN>Artica Database service is not installed.[br]This service is used to categorize visited websites.[br]
+If you want to have statistics, you need to update this database service</ARTICADB_NOT_INSTALLED_EXPLAIN>
+<new_nic>new interface</new_nic>
+<requests_during_this_week>Requests during this week</requests_during_this_week>
+<size_during_this_week>Size during this week</size_during_this_week>
+<visited_subsites_during_this_week>Visited sub-sites during this week</visited_subsites_during_this_week>
+<compress_container>Compress container</compress_container>
+<backup_mysql_databases>Backup MySQL databases</backup_mysql_databases>
+<backup_mysql_databases_explain>This task will backup specified selected databases trough the MySQL databases explorer</backup_mysql_databases_explain>
+<statistics_by_date>Statistics by date</statistics_by_date>
+<statistics_by_date_text>Browse statistics using a calendar and display details by several topics</statistics_by_date_text>
+<member_wwwtrack>WebTracking Members</WebTracking Members>
+<member_wwwtrack_text>Create specific reports by query specific members or websites</member_wwwtrack_text>
+<source_file>Source file</source_file>
+<warn_restore_db>This operation will restore the database from the specified file.
+Do you want to carry out this operation ?</warn_restore_db>
+<warn_restore_db_background>The restore operation has been executed in background mode.
+You should see your datas in the selected database in few minutes
+Check the general log in order to see if the restore task was failed.
+</warn_restore_db_background>
+<report>report</report>
+<report_name>report name</report_name>
+<new_report>New report</new_report>
+<building_report>building report</building_report>
+<execute_report_compilation_ask>Execute the compilation task for this report ?
+Old datas will be removed and rebuilded for this report</execute_report_compilation_ask>
+<create_a_CSV_file>Create a CSV file</create_a_CSV_file>
+<build_reports_explain>This task will build all reports enabled as scheduled</build_reports_explain>
+<build_reports>Build reports</build_reports_explain>
+<DisableAnyCache>Disable caching Websites</DisableAnyCache>
+<warn_disable_squid_cany_cache>This feature will remove the cache system for the Proxy.
+If checked, no website will be saved into disk and be cached.
+Do you want to carry out this operation ?</warn_disable_squid_cany_cache>
+<last_check>Last check</last_check>
+<next_check_in>Next check in</next_check_in>
+<APP_SARG_HOWTO>Howto use Sarg</APP_SARG_HOWTO>
+<APP_SARG_HOWTO_TXT>Read the documentation in order to implement Squid Analyze Report Generator on Artica.</APP_SARG_HOWTO_TXT>
+<remove_disabled_items>Remove disabled items</remove_disabled_items>
+<remove_disabled_items_warn>This will remove disabled items from the database. Perform this operation ?</remove_disabled_items_warn>
+<disable_google_ssl>Turn OFF Google SSL searchs</disable_google_ssl>
+<disable_google_ssl_text>Turn OFF SSL queries on Google search engines</disable_google_ssl_text>
+<enforce_google_to_non_ssl>Turn OFF Google SSL requests</enforce_google_to_non_ssl>
+<enforce_google_to_non_ssl_text>To utilize the no SSL option for your network, 
+configure the DNS entry for www.google.com to be a CNAME for nosslsearch.google.com.[br]
+Google will not serve SSL search results for requests that we receive on this VIP.[br]
+If Google receive a search request over port 443, the certificate handshake will complete successfully, 
+but Google will then redirect the user to a non-SSL search experience along with an initial message explaining so.[br]
+By enabling this option, Artica will add in the hosts file the nosslsearch.google.com IP address to all Google websites.[br]
+You can click on the link in order to see added items.
+</enforce_google_to_non_ssl_text>
+<display_dns_items>Display DNS items</display_dns_items>
+<mailboxes_backups_text_admin>Enable the possibility to create backup task of each local/remote mailbox</mailboxes_backups_text_admin>
+<zarafa_database_recovery>Database recovery</zarafa_database_recovery>
+<zarafa_database_recovery_text>Recover the  MySQL Zarafa database crash or after a migration</zarafa_database_recovery_text>
+<zarafa_database_recovery_warn>Warning, this operation will turn MySQL service to 
+innodb-force-recovery level 3 and will remove Tables templates.
+This operation must be only executed in a last way...
+Do you want to perform this operation ?
+</zarafa_database_recovery_warn>
+<recovery_background_task>The recovery operation has been executed in background mode.</recovery_background_task>
+<license2>License</license2>
+<ask_events_clean>This operation will delete all events.
+Perform this operation ?</ask_events_clean>
+<expire_in>Expire in</expire_in>
+<key_file>Key file</key_file>
+<creationdate>Create date</creationdate>
+<expiredate>Expire date</expiredate>
+<lifespan>Life span</lifespan>
+<display_not_categorized_tests>Display Websites that are not categorized</display_not_categorized_tests>
+<main_domains>Main domains</main_domains>
+<acl_tcp_outgoing_address>Assign a network interface</acl_tcp_outgoing_address>
+<new_webserver>New website</new_webserver>
+<cache_central_for_all_nodes>Central Cache for all nodes</cache_central_for_all_nodes>
+<all_nodes_has_been_notified>All nodes has been notified</all_nodes_has_been_notified>
+<UseVirtualHosts>Use multiple virtual host</UseVirtualHosts>
+<virtualhosts>Virtual hosts</virtualhosts>
+<squid_load_balancer_text>Transform this proxy as a Load-balancer service</squid_load_balancer_text>
+<activate_loadbalancing>Activate the Load-balancing feature</activate_loadbalancing>
+<activate_loadbalancing_text>If turn to green, this proxy service will be designed to send requests to parents proxy servers.</activate_loadbalancing_text>
+<parent_options_connect_fail_limit>Specifies how many times connecting to a backend must fail before it is marked as down. Default is 10.</parent_options_connect_fail_limit>
+<parent_options_carp>Load-Balance backends which should be used as a CARP array.[br]The requests will be distributed among the parents based on the CARP load balancing hash function based on their weight.</parent_options_carp>
+<warning_lb_icp>If you define an ICP port on this section, make sure the remote backend proxy have ICP enabled and defined.[br]If not the load-balancer will define this backend as down.[br]
+To disable ICP checking, set 0 in the ICP port</warning_lb_icp> 
+<enable_all>Enable all</enable_all>
+<disable_all>Disable all</disable_all>
+<squid_snmp_explain>Monitor the Proxy cache using SNMP</squid_snmp_explain>
+<error_squid_snmp_not_compiled>The SNMP feature is not compiled into your proxy version.[br]We suggest to upgrade the Squid Proxy cache</error_squid_snmp_not_compiled>
+<snmp_community>SNMP Community</snmp_community>
+<enable_snmp>Activate SNMP access</enable_snmp>
+<remote_snmp_console_ip>Remote SNMP console IP address</remote_snmp_console_ip>
+<allow_snmp_access>Allow SNMP requests</allow_snmp_access>
+<warn_already_global_scheduled>Access denied, A global system schedule has been already set</warn_already_global_scheduled>
+<mailsync_mailboxes_rules_explain>This task is able to run all scheduled mailboxes synchronization trough MailSync or OfflineImap</mailsync_mailboxes_rules_explain>
+<mailsync_mailboxes_rules>ImapSync/OfflineImap rules</mailsync_mailboxes_rules_explain>
+<clean_mysql_events_explain>This task remove all events saved in MySQL tables designed to store tasks events</clean_mysql_events_explain>
+<clean_mysql_events>Clean tasks events</clean_mysql_events_explain>
+<ettercap_howto_ipaddr>Set a range of TCP/IP addresses with the hyphen eg 10.1.1.1-245
+Set a sing ip by set it's ip address eg : 10.1.1.2
+</ettercap_howto_ipaddr>
+<new_object>New object</new_object>
+<delete_object>Remove object</delete_object>
+<enable_arpspoofing>Enable ARP poisoning method</enable_arpspoofing>
+<enable_arpspoofing_explain>If turned to green, you will be able to change dynamically gateway addresses in order to force computers to pass trough this computer when communicate trough the LAN.[br]
+This method is only available if this server is installed on the same LAN</enable_arpspoofing_explain>
+<activate_instant_messaging>Activate Instant Messaging</activate_instant_messaging>
+<activate_instant_messaging_Zarafa>Instant messaging in Zarafa WebApp</activate_instant_messaging_Zarafa>
+<activate_instant_messaging_Zarafa_explain>The Zarafa WebApp includes a instant messaging plugin from revision 31187.[br]
+The instant messaging plugin allow you to see the presence of your colleagues and start a chat conversation with them.
+</activate_instant_messaging_Zarafa_explain>
+<InstantMessagingDomain>Instant Messaging domain</InstantMessagingDomain>
+<AutoDiscover_webserver>Autodiscover web server</AutoDiscover_webserver>
+<APP_URLSNARF>URL Sniffer</APP_URLSNARF>
+<APP_URLSNARF_TEXT>sniff HTTP requests on your network in order to provide Web statistics</APP_URLSNARF_TEXT>
+<ACTIVARE_URL_SNIFFING_TEXT>This feature will sniff your network in order to trap all URLs sended by nodes in the current LAN.
+sniffed destination ports are : tcp port 80 or port 8080 or port 3128.[br]
+</ACTIVARE_URL_SNIFFING_TEXT>
+<APP_PDNS_STATIC>PowerDNS (static)</APP_PDNS_STATIC>
+<AsOrgDNSAdmin>Can manage DNS items</AsOrgDNSAdmin>
+<domains_and_dns>Domains and DNS</domains_and_dns>
+<domains_and_dns_text>Manage your domains and DNS database</domains_and_dns_text>
+<ASDCHPAdmin>Can manage DHCP service</ASDCHPAdmin>
+<network_services_text>Manage this server network services such as DHCP/DNS/Network Interfaces...</network_services_text>
+<my_privileges>My privileges</my_privileges>
+<restart>Restart</restart>
+<start>start</start>
+<stop>stop</stop>
+<get_lease_hostnames>Get lease hostnames</get_lease_hostnames>
+<get_lease_hostnames_explain>
+Tell the server whether or not to look up the domain name corresponding to the  IP  address of each address in the lease pool and use 
+that address for the DHCP hostname  option.[br]   If  enabled,  then  this  lookup is done for all addresses in the current scope.[br]
+ By default,  or  if disabled,  no lookups are done.
+</get_lease_hostnames_explain>
+<manage_internet_domains>Manage Internet Domains</manage_internet_domains>
+<manage_internet_domains_text>Add/edit Internet domains used for your organization for messaging, DNS, web servers...</manage_internet_domains_text>
+<manage_DNS_database>Manage DNS database</manage_DNS_database>
+<new_record>New record</new_record>
+<KerbAuthTrusted>Browse trusted domains</KerbAuthTrusted>
+<dns_filter>DNS filter</dns_filter>
+<dns_filters_ufdb_text>Translate your Web filters categories with the DNS service in order to block denied web sites</dns_filters_ufdb_text>
+<activate_pdnsinufdb>Activate DNS filters</activate_pdnsinufdb>
+<activate_pdnsinufdb_explain>If turn to green, the DNS service will check your Web filtering rules before answer to DNS queries.[br]
+If some websites are banned, the DNS service will answer to the website defined in this section.</activate_pdnsinufdb_explain>
+<UFDBGUARD_NOT_ENABLED_EXPLAIN>The DNS filter feature is only available if the Web filter engine is activated.[br]
+Activate first the Web filter engine before activating this feature.
+</UFDBGUARD_NOT_ENABLED_EXPLAIN>
+<SQUID_IS_IN_REVERSE_MODE>The proxy is turned to reverse mode, there is no sense to enable this feature with a reversed proxy.</SQUID_IS_IN_REVERSE_MODE>
+<redirect_queries_to>Redirect queries to</redirect_queries_to>
+<PDNS_IS_NOT_ENABLED>The DNS service is not activated, this feature cannot be used</PDNS_IS_NOT_ENABLED>
+<powerdns_not_installed>PowerDNS is not installed</powerdns_not_installed>
+<powerdns_not_enabled>PowerDNS service is not enabled</powerdns_not_enabled>
+<map_untrusted_to_domain>Map untrusted to domain</map_untrusted_to_domain>
+<map_untrusted_to_domain_explain>Previously, when this server was a domain member and a client was connecting using an
+untrusted domain name, such as BOGUS\user the server would remap the untrusted domain to the primary domain 
+server was a member of and attempt authentication using that DOMAIN\user name.[br]
+This differed from how a Windows member server would behave.[br]
+Now, the server will replace the BOGUS name with it's SAM name.[br]
+In the case where server is acting as a PDC this will be DOMAIN\user.[br]
+In the case where this server is acting as a domain member server this will be WORKSTATION\user.[br]
+Thus, server will never assume that an incoming user name which is not qualified
+with the same primary domain, is part of server's primary domain.[br]
+While this behavior matches Windows, it may break some workflows which depended
+on server to always pass through bogus names to the DC for verification.[br]this 
+parameter "map untrusted to domain" can be [b]checked[/b] to revert to the legacy behavior.
+</map_untrusted_to_domain_explain>
+<certificate_password>Certificate password</certificate_password>
+<is_connected>Is connected</is_connected>
+<file_sharing_server>File Sharing server</file_sharing_server>
+<file_sharing_services>File Sharing services</file_sharing_services>
+<file_sharing_services_text>Manage your file sharing services on this server, share folders, define policies...</file_sharing_services_text>
+<squid_worker_license_explain>Currently your server handle %s CPUs, you can increase your proxy service speed by enabling SMP feature.[br]
+SMP feature is available only with corporate license.[br]
+Click on the link on order to request a quote trough the Artica Management console.[br]
+With a purchased corporate license you will be able to to turn this server from a Community edition to a corporate Edition.[br]
+A corporate Edition will allow you to enable this feature.
+</squid_worker_license_explain>
+<request_a_quote>Request a quote</request_a_quote>
+<update_the_request>Update the request</update_the_request>
+<caches_parameters>Caches parameters</caches_parameters>
+<cache_parameters_node_explain>Define specific caches settings for this node</cache_parameters_node_explain>
+<caches_behavior>Caches behavior</caches_behavior>
+<enable_webfilter_engine>Activate the URLs filter Engine</enable_webfilter_engine>
+<enable_webfilter_engine_stats>If turn to green, the remote node will send requests to this server in order to allow/deny HTTP requests before connecting to Internet.</enable_webfilter_engine_stats>
+<enable_antivirus_checking>Activate Antivirus checking</enable_antivirus_checking>
+<enable_antivirus_checking_stats>If turn to green, the remote node will send downloaded files to this server vor antivirus checking using C-CICAP+ClamAV or Kaspersky For Proxy server antivirus software</enable_antivirus_checking_stats>
+<enable_activedirectory_stats>If turn to green, the remote node will use the same Active Directory credentials of this server in order to authenticate members</enable_activedirectory_stats>
+<enable_activedirectory>Activate Active Directory connection</enable_activedirectory>
+<enable_mac_squid_filters>Activate MAC filtering</enable_mac_squid_filters>
+<enable_mac_squid_filters_explain>if turn to green, the Proxy will be able to log MAC addresses and you will be able to create ACLs using MAC addresses for whitelisting or blacklisting.
+MAC addresses filtering is available only if the proxy is on the same LAN, if it is not the case.[br]
+Each connection to the proxy will force it to resolve the MAC address.[br]
+ turn to green this feature will safe some response time.
+</enable_mac_squid_filters_explain>
+<squid_ComputerMacAddress_text>Proxy behavior with MAC addresses</squid_ComputerMacAddress_text>
+<TTL_CACHE>Cache TTL time</TTL_CACHE>
+<move_the_spooldir>Move the Queue directory</move_the_spooldir>
+<move_the_spooldir_text>Change the default location of the spool/queue directory in order to put it on a better place</move_the_spooldir_text>
+<move_the_spooldir_explain>This operation will change the location of the spool directory, usually /var/spool directory.[br]
+This task will move all content of the spool directory to the new directory and make a symbolic link to the original place.[br]
+</move_the_spooldir_explain>
+<tests_timeout>Tests timeout</tests_timeout>
+<page_to_check>Web page to check</page_to_check>
+<htcp_port_explain>
+[b]Hyper Text Caching Protocol[/b][br]
+This is a UDP based fetch-response protocol used to discover if a sibling peer has an object from the same URL already stored.[br]
+see RFC 2756 for details on this protocol.[br]
+This protocol sends whole HTTP headers to the peer for response decision making.[br]
+It should be preferred over ICP selection wherever possible, but can cause a larger background traffic overhead.[br]+++
+The port number where Squid sends and receives HTCP queries to and from neighbor caches.[br]
+To turn it on you want to set it to [b]4827[/b].[br]By default it is set to "0" (disabled).</htcp_port_explain>
+<htcp_port>HTCP port</htcp_port>
+<parent_options_connection_auth>Tell Proxy that this server does or not support Microsoft connection oriented authentication, and any such challenges received from there should be ignored.[br]
+Default is auto to automatically determine the status of the peer</parent_options_connection_auth>
+<parent_options_login_passthru>Send login details received from client to this server.[br]
+Both Proxy- and WWW-Authorization headers are passed without alteration to the server.[br]
+Authentication is not required by this proxy for this to work.[br]
+[i]Note: This will pass any form of authentication but only Basic auth will work through a proxy unless the connection-auth options are also used.[/i]
+</parent_options_login_passthru>
+<parent_options_login_pass>Send login details received from client to this server.[br]
+Authentication is not required by this option.[br]
+If there are no client-provided authentication headers to pass on, but username and password are available from an external ACL user= and password= result tags.[br]
+they may be sent instead.[br]
+[i]Note: To combine this with proxy_auth both proxies must share the same user database as HTTP only allows for a single login (one for proxy, one for origin server).[br]Also be warned this will expose your users proxy password to the peer. USE WITH CAUTION.[/i]
+</parent_options_login_pass>
+<parent_options_basetime_n>Specify a base amount to be subtracted from round trip times of parents.[br]
+It is subtracted before division by weight in calculating which parent to fectch from.[br]
+If the rtt is less than the base time the rtt is set to a minimal value.
+</parent_options_basetime_n>
+<APP_ARTICA_PRXYLOGS>Proxy Monitor Front-end</APP_ARTICA_PRXYLOGS>
+<APP_ARTICA_PRXYLOGS_TEXT>This service allows authenticated members to display quickly Proxy events and service statistics.[br]
+This did not include surf statistics but just to monitor the proxy service.</APP_ARTICA_PRXYLOGS_TEXT>
+<server_all_kbytes_in>Amount of traffic receive by the proxy</server_all_kbytes_in>			
+<server_all_kbytes_out>Amount of traffic sended by the proxy</server_all_kbytes_out>		
+<enable_ntlm_authentication>Enable NTLM authentification</enable_ntlm_authentication>
+<counters>Counters</counters>
+<new_domain_controller>New domain controller</new_domain_controller>
+<controller>Controller</controller>
+<APP_PYAUTHENNTLM>Python NTLM Authentication module</APP_PYAUTHENNTLM>
+<pythonntlm_not_installed>You cannot use NTLM authentification because some packages are missing on your system.[br]
+Use the setup center in order to install Python NTLM Authentication module package.</pythonntlm_not_installed>
+<link_member>Link a member</link_member>
+<KeepAlive_tlm_notset>If you want to use the NTLM authentification, you need to activate the KeepAlive feature under FreeWebs Global parameters</KeepAlive_tlm_notset>
+<dynamicgroupsAcls_events>Dynamic Groups ACLs events</dynamicgroupsAcls_events>
+<freewebs_compliance>FreeWebs compliance</freewebs_compliance>
+<http_status_code>HTTP status code</http_status_code>
+<APP_ERRSQUID>Proxy Error page</APP_ERRSQUID>
+<APP_ERRSQUID_TEXT>Display a simple Web page error according templates error in the proxy configuration</APP_ERRSQUID_TEXT>
+<databases_sizes_on_disk>Compiled databases sizes on disk</databases_sizes_on_disk>
+<check_caches>Check caches</check_caches>
+<check_caches_warning>Warning! this operation will shutdown the proxy and checks caches.
+Do you want to perform this operation ?</check_caches_warning>	
+<please_wait_check_caches>Please wait, checking caches...</please_wait_check_caches>
+<APP_PROXY>Proxy service</APP_PROXY>
+<APP_PROXY_TEXT>Manage the proxy service that running on this server</APP_PROXY_TEXT>
+<connection_method>Connection method</connection_method>
+<acl_squid_method_explain>This is the standard HTTP methods. available methods are:
+GET, PUT, POST, HEAD, CONNECT, TRACE, OPTIONS, DELETE, PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK
+BMOVE, BDELETE, BPROFIND.[br]
+the [b]CONNECT[/b] method is the method used for tunneling certain requests trough HTTP proxies.[br]
+For example: HTTPS use the [b]CONNECT[/b] method.</acl_squid_method_explain>
+<remove_postfix_section>Hide Messaging section</remove_postfix_section>
+<remove_postfix_section_text>Disconnect the messaging service from Artica Web console</remove_postfix_section>
+<remove_postfix_section_explain>If turn to green, Artica will hide any messaging section and understand there is no messaging software such as Postfix installed on your system.[br]
+Messaging softwares will be not removed but stay in the last status.[br]
+You will be able to reconnect Artica in the future if it is a mistake...</remove_postfix_section_explain>
+<import_contacts_csv_text>Import contacts into your personal AddressBook from a CSV file.</import_contacts_csv_text>
+<import_contacts>Import contacts</import_contacts>
+<import_contacts_csv_explain>This form helps to import contacts from a CSV file.[br]
+Upload your CSV file trough the form and all contacts will be added into your personal AddressBook.[br]
+Click on the link example.csv in order to get the CSV template/example.[br]
+[b]Note, importation will failed if the csv file is UTF-16 or UTF-32 encoded[/b] 
+</import_contacts_csv_explain>
+<has_been_sent_to_import_task>Has been sent to the import task</has_been_sent_to_import_task>
+<monitor>Monitor</monitor>
+<monitor_only>monitor only</monitor_only>
+<security_logging>Security logging</security_logging>
+<zarafa_audit_log_not_enabled>The security logging is not enabled, this option is not available.</zarafa_audit_log_not_enabled>
+<audit>audit</audit>
+<dynamic_acls>dynamic acls</dynamic_acls>
+<acl_squid_ext_dynamic_acls_explain>Items stored in this group are not used for the proxy itself but are used to allow members to manage simple rules trough the Dynamic ACLs Management console.
+Set here members groups you want to allow accessing to this rule.
+</acl_squid_ext_dynamic_acls_explain> 
+<dynamic_acls_newbee>Proxy rules</dynamic_acls_newbee>
+<dynamic_acls_newbee_explain>Manage %s proxy rules affected by the Proxy administrator</dynamic_acls_newbee_explain>
+<DNS_LINKER>DNS Items linker</DNS_LINKER>
+<DNS_LINKER_TEXT>Allow this server to communicate it's settings in to an Artica DNS server</DNS_LINKER_TEXT>
+<activate_dns_linker>Activate DNS linker</activate_dns_linker>
+<activate_dns_linker_text>It turn to green, this server will communicate internal data to a remote Artica server in order to fill DNS entries properly.[br]For example, all FreeWebs websites will be sended to the remote server in order to automatically enable webserver names into the DNS database.</activate_dns_linker_text>
+<send_listen_ip>Communicate with address</send_listen_ip>
+<mac>MAC Address</mac>
+<dynaacl_howto>This form edit a rule for the main proxy rule, you have to choose the type of element you want to match.[br]
+In the value form, you can use the "*" character or use a regular expression using "re:" prefix.[br]
+Example:[br]
+IP Address: 192.168.1.1[br]
+IP Address: 192.168.1.*[br]
+IP Address: re:192\.168\.[0-5]\.*[br]
+</dynaacl_howto>
+<CHILDREN_STARTUP>Processes to start</CHILDREN_STARTUP>
+<CHILDREN_IDLE>Process to prepare</CHILDREN_IDLE>
+<active_requests>Active Requests</active_requests>
+<squidlogs_explain>The SquidLogs MySQL database store all proxy statistics, Web filtering/ACLS rules and Proxy parameters.[br]
+You need to ensure that this database have enough disk space in order to let Artica make your proxy available.
+</squidlogs_explain>
+<please_wait_while_calculate_informations>Please wait, calculating requested information...</please_wait_while_calculate_informations>
+<statistics_database>Statistics Database</statistics_database>
+<syslogstore_explain>SyslogStore database store compressed logs files after log rotation.[br]It sore system events logs, Proxy events logs and all services.</syslogstore_explain>
+<opempty_database>Empty the database ?</opempty_database>
+<move_database_disk>Change database directory</move_database_disk>
+<mv_database_explain>This task will move the database location to a new directory.[br]
+Typically this task can be used to move database to a new disk with more disk space..
+</mv_database_explain>
+<choose_this_folder>Choose this directory</choose_this_folder>
+<hard_drive>Hard drive</hard_drive>
+<hard_drive_status>Hard drive status</hard_drive_status>
+<warn_ufdbguard_not_squidconf>The Web filter engine is enabled but not linked with your Proxy service.[br]
+To link the Web filter engine, you need to rebuild the proxy service.[br]
+</warn_ufdbguard_not_squidconf>
+<exec_squid_rebuild_cache_mem>An Artica process task is currently running on your cache directory.[br]
+During this time the Proxy service should encounter troubles...
+</exec_squid_rebuild_cache_mem> 	
+<sugesst_dynamic_acl_groups>Your Proxy server is connected to an Active Directory/LDAP server.[br]
+It seems that Dynamic ACLs groups are not enabled.[br]
+Dynamic ACLs groups feature allows you to define an object from a member's group stored into your Active Directory/LDAP server.[br]
+</sugesst_dynamic_acl_groups>
+<acls_parameters>ACLs parameters</acls_parameters>
+<dynamic_acls_group>Dynamic ACLs groups</dynamic_acls_group>
+<squid_stats_nolicence_explain>[b]Obtain more statistics features with the corporate license[/b][br]Currently your using the Community Edition that just allows to display a part of available statistics.[br]
+By turning this server to a corporate license, you will be able to use a dedicated web service that display all statistics features. 
+</squid_stats_nolicence_explain>
+<mailplugins>SMTP Plugins</mailplugins>
+<mta_policies>MTA Policies</mta_policies>
+<white_black_smtp>White and Black lists</white_black_smtp>
+<white_black_smtp_text>Manage your white and black lists messaging items</white_black_smtp_text>
+<whitelisted_senders>Whitelisted senders</whitelisted_senders>
+<use_sent_items>Use Sent Items</use_sent_items>
+<banned_senders>Banned senders</banned_senders>
+<move_to_whitelist>Move to whitelist</move_to_whitelist>
+<use_Junk_items>Use Junk items</use_Junk_items>
+<MESSAGING_SERVICE>Messaging service</MESSAGING_SERVICE>
+<MESSAGING_SERVICE_TEXT>Manage the SMTP MTA messaging service, routing tables, security...</MESSAGING_SERVICE_TEXT>
+<smtp_ufdbguard_notifications_text>This feature send an SMTP message for each blocked website trough the Web Filtering Engine.[br]
+If enabled, you will receive Web filtering service engine events too.( service issues, stop/start engine...)</smtp_ufdbguard_notifications_text>
+<no_instance>No instance</no_instance>
+<hide_webfiltering_section>Hide the Web Filtering Engine section</hide_webfiltering_section>
+<hide_webfiltering_section_explain>If turn to green, the Web Filtering Engine (categories rules) will be hidden in the Web console.[br]
+This doesn't "remove" the software but just hide the feature.[br]
+Your will be able to enable it trough the service parameters section.
+</hide_webfiltering_section_explain>
+<x-Forwarded-For_explain>Modify the behavior about the x-Forwarded-For header sent by the proxy to upstream servers</x-Forwarded-For_explain>
+<ufdbguard_options_explain>This section is about the Web filtering engine parameters when using white/Blacklists categories.</ufdbguard_options_explain>
+<SMTP_BANNER>SMTP Banner</SMTP_BANNER>
+<SMTP_BANNER_TEXT>SMTP greeting banner text displayed when connecting to the SMTP port</SMTP_BANNER_TEXT>
+<category_no_license_explain>Not used for webfiltering, license is required</category_no_license_explain> 
+<refreshuserlist>Users list cache time</refreshuserlist>
+<freeweb_compile_background>Parameters has been applied to the selected web server.
+This task has been scheduled in background mode</freeweb_compile_background>
+<update2>Update</update2>
+<my_microsoft_groups>My Microsoft Groups</my_microsoft_groups>
+<ufdb_no_dynamic_group>A virtual group is not compatible when using an Active Directory group or an LDAP group</ufdb_no_dynamic_group>
+<uid_length_protection>Account lenght protection</uid_length_protection>
+<disable_uid_length_protection>Disable the account length protection</disable_uid_length_protection>
+<uid_length_protection_text>By default, an account lower than 4 characters is not allowed.[br]You can disable this protection by turning to green this option</uid_length_protection_text>
+<log_to_csv>Log to a CSV file</log_to_csv>
+<timeouts_squid_parameters>Define TimeOut parameters on the proxy service</timeouts_squid_parameters>
+<timeouts>TimeOuts</timeouts>
+<client_lifetime>Client life time</client_lifetime>
+<client_lifetime_text>This defines the maximum amount of time that a client (browser) is allowed to remain connected 
+to the cache process. This is merely a safeguard against clients that disappear without properly shutting down.[br]
+It is designed to prevent a large number of sockets from being tied up in a CLOSE_WAIT state</client_lifetime_text>
+<shutdown_lifetime>Shutdown life time</shutdown_lifetime>
+<persistent_request_timeout>Persistent request timeout</persistent_request_timeout>
+<pconn_timeout>Persistent connections timeout</pconn_timeout>
+<shutdown_lifetime_text>This is the time Squid allows for existing connections to continue after it has received a shutdown signal</shutdown_lifetime_text>
+<read_timeout>Read Timeout</read_timeout>
+<read_timeout_text>On each successful read() request the timeout is reset to this amount[br]If no data is read within this period of time, the request is aborted and logged with ERR_READ_TIMEOUT</read_timeout_text>
+<incoming_rate>Incoming rate</incoming_rate>
+<incoming_rate_text>Controls squid how aggressive the new connections are accepted when compared to processing existing connections.</incoming_rate_text>
+<pconn_timeout_text>Defines the timeout value for persistent connections</pconn_timeout_text>
+<persistent_request_timeout_text>This defines the time period to wait for the next HTTP request on a persistent connection after the previous request
+completes</persistent_request_timeout_text>
+<forward_zones>Forward zones</forward_zones>
+<new_forward_zone>New forward zone</new_forward_zone>
+<zone>zone</zone>
+<blocked_requests>Blocked requests</blocked_requests>
+<unblock>Unblock</unblock>
+<UnBlockWebSiteExplain>Unblock this website will hide this website from the webfilter engine for all users.
+This operation will reload the proxy service.
+Do you want to unblock this website</UnBlockWebSiteExplain>
+<urlrewriteaccessdeny_explain>This default rule is a global whitelist only from the webfilter engine</urlrewriteaccessdeny_explain>
+<please_wait_compiling_database>Please wait, compiling database</please_wait_compiling_database>

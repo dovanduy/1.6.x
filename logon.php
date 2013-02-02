@@ -23,11 +23,22 @@
 	if(isset($_POST["Changelang"])){applyLang();exit;}
 	
 	if(isset($_SESSION["uid"])){
+		include_once('ressources/class.templates.inc');
+		include_once('ressources/class.ldap.inc');
+		include_once('ressources/class.user.inc');
+		include_once('ressources/class.langages.inc');
+		include_once('ressources/class.sockets.inc');
+		include_once('ressources/class.mysql.inc');
+		include_once('ressources/class.privileges.inc');
+		include_once('ressources/class.browser.detection.inc');
+		$users=new usersMenus();
+		if($users->AsAnAdministratorGeneric){
+			header("location:admin.index.php");exit;
+		}
 		error_log("Redirect to users.index.php in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
 		header("location:users.index.php");exit;
 	}
-	ini_set('display_errors', 1);
-	ini_set('error_reporting', E_ALL);
+
 	
 if(count($_GET)>0){
 	include_once('ressources/class.templates.inc');
@@ -189,7 +200,6 @@ function pagelogon(){
 	$user=new usersMenus();
 	
 	if($user->SQUID_INSTALLED){
-		$sock=new sockets();
 		$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 		if($SQUIDEnable==0){$user->SQUID_INSTALLED=false;}
@@ -200,7 +210,9 @@ $fixed_template=$sock->GET_INFO('ArticaFixedTemplate');
 error_log("init fixed template=$fixed_template in ". __FILE__. " line ". __LINE__);
 if(trim($fixed_template)<>null){$_COOKIE["artica-template"]=$fixed_template;}
 $imglogon="img/logon2.png";
-
+$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+if($SambaEnabled==0){$user->SAMBA_INSTALLED=false;}
 
 
 
@@ -687,13 +699,14 @@ function logon(){
 			';
 		$tpl=new templates();
 		$sock->getFrameWork("squid.php?clean-catz-cache=yes");
+		writelogs("OK it is a global admin -> location:admin.index.php",_FUNCTION__,__FILE__,__LINE__);
 		echo("location:admin.index.php");
 		exit;
 		}
 	}
 	
 	
-	writelogs('This is not Global admin, so test user...',__FUNCTION__,__FILE__);
+	writelogs('This is not Global admin, so test user...',__FUNCTION__,__FILE__,__LINE__);
 	$u=new user($_POST["artica_username"]);
 	$userPassword=$u->password;
 	if(trim($u->uidNumber)==null){
@@ -701,35 +714,15 @@ function logon(){
 		echo "Unknown user";
 		return null;
 	}
+	
+	$tpl=new templates();
+	
 	if( trim($_POST["artica_password"])==md5(trim($userPassword))){
+			BuildSession($u->uid);
 			$ldap=new clladp();
 			$users=new usersMenus();
 			$privs=new privileges($u->uid);
 			$privileges_array=$privs->privs;
-			setcookie("mem-logon-user", $_POST["artica_username"], time()+172800);
-			$_SESSION["privileges_array"]=$privs->privs;
-			$_SESSION["privs"]=$privileges_array;
-			$_SESSION["OU_LANG"]=$privileges_array["ForceLanguageUsers"];
-			$_SESSION["uid"]=$_POST["artica_username"];
-			$_SESSION["passwd"]=$_POST["artica_password"];
-			$_SESSION["privileges"]["ArticaGroupPrivileges"]=$privs->content;
-			$_SESSION["groupid"]=$ldap->UserGetGroups($_POST["artica_username"],1);
-			$_SESSION["DotClearUserEnabled"]=$u->DotClearUserEnabled;
-			$_SESSION["MailboxActive"]=$u->MailboxActive;
-			$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
-			$_SESSION["ou"]=$u->ou;
-			$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
-			$_SESSION["CORP"]=$users->CORP_LICENSE;
-			$lang=new articaLang();
-			writelogs("[{$_POST["artica_username"]}]: Default organization language={$_SESSION["OU_LANG"]}",__FUNCTION__,__FILE__);
-			if(trim($_SESSION["OU_LANG"])<>null){
-				$_SESSION["detected_lang"]=$_SESSION["OU_LANG"];
-				setcookie("artica-language", $_SESSION["OU_LANG"], time()+172800);
-			}else{
-				setcookie("artica-language", $_POST["lang"], time()+172800);
-				$_SESSION["detected_lang"]=$lang->get_languages();
-			}
-			
 			if(trim($FixedLanguage)<>null){$_SESSION["detected_lang"]=$FixedLanguage;}
 			
 			
@@ -743,7 +736,7 @@ function logon(){
 			}
 			
 			writelogs("[{$_POST["artica_username"]}]: IS AN USER =>../user-backup/logon.php",__FUNCTION__,__FILE__);
-			$tpl=new templates();
+			
 			$array["USERNAME"]=$_POST["artica_username"];
 			$array["PASSWORD"]=md5($_POST["artica_username"]);
 			$credentials=base64_encode(serialize($array));
@@ -982,7 +975,7 @@ function buildPage(){
 	$langAutodetect=new articaLang();
 	$DetectedLanguage=$langAutodetect->get_languages();
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;	
-	
+	$TEMPLATE_INDEX="logon.html";
 	
 	
 	$sock=new sockets();
@@ -992,6 +985,10 @@ function buildPage(){
 	$ProductName="Artica";
 	$template=null;
 	$FixedLanguage=$sock->GET_INFO("FixedLanguage");
+	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
+	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
+	if(!is_numeric($AsSquidLoadBalancer)){$AsSquidLoadBalancer=0;}
 	if($users->KASPERSKY_WEB_APPLIANCE){$template="Kav4Proxy";$logo="logo-kav.gif";}
 	if($users->ZARAFA_APPLIANCE){$template="zarafa";$logo="logo-kav.gif";}	
 	if($users->MYCOSI_APPLIANCE){$logo_bg="bg_header_kavweb.gif";$logo="logo-mycosi.gif";$bg_color="#FFB683";$ProductName="MyCosi";$template="myCosi";}
@@ -1003,6 +1000,9 @@ function buildPage(){
 	if($users->LOAD_BALANCE_APPLIANCE){$template="LoadBalance";}
 	if($users->HAPRROXY_APPLIANCE){$template="LoadBalance";}
 	if($users->WEBSTATS_APPLIANCE){$template="WebStats";}
+	
+	if($SquidActHasReverse==1){$TEMPLATE_INDEX="logonr.html";}
+	if($AsSquidLoadBalancer==1){$TEMPLATE_INDEX="logonb.html";}
 
 	if($template==null){
 		if($users->SQUID_INSTALLED){
@@ -1011,6 +1011,7 @@ function buildPage(){
 					$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 					if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 					if($SQUIDEnable==1){$template="Squid";}
+					
 				}
 			}
 		}
@@ -1047,14 +1048,16 @@ if($GLOBALS["VERBOSE"]){echo "<H1>template=$template line ".__LINE__."</H1>";}
 		
 		include_once(dirname(__FILE__)."/ressources/class.page.builder.inc");
 		$p=new pagebuilder();
-		if(is_file("ressources/templates/$template/logon.html"));
-		$tpl=@file_get_contents("ressources/templates/$template/logon.html");
+		if(is_file("ressources/templates/$template/$TEMPLATE_INDEX"));
+		$tpl=@file_get_contents("ressources/templates/$template/$TEMPLATE_INDEX");
 		
 		foreach (glob("ressources/templates/$template/css/*.css") as $filename) {
 			//$datas=@file_get_contents("$filename");
 			//$datas=str_replace("\n", " ", $datas);
 			$css[]="<link href=\"/$filename\" media=\"screen\" rel=\"stylesheet\" type=\"text/css\" >";;
-		}		
+		}	
+		$log[]="<!-- TEMPLATE_INDEX:$TEMPLATE_INDEX -->";
+		
 
 		foreach (glob("ressources/templates/$template/js/*.js") as $filename) {
 			$filename=basename($filename);

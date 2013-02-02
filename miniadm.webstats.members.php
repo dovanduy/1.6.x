@@ -256,7 +256,7 @@ function items(){
 	
 	
 	if(!$q->TABLE_EXISTS($table, $database)){json_error_show("$table doesn't exists...");}
-	if(!$q->COUNT_ROWS($table, $database)){json_error_show("No rules");}
+	if($q->COUNT_ROWS($table, $database)==0){json_error_show("No rules");}
 
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}

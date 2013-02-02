@@ -198,6 +198,22 @@ public function LOCATE_VBoxHeadless(){
 		return true;
 	}
 	
+	public function SystemUserGetuid($username){
+		$userinfo = posix_getpwnam($username);
+		if(!isset($userinfo["uid"])){return null;}
+		if(!is_numeric($userinfo["uid"])){return null;}
+		if($userinfo["uid"]<1){return null;}
+		return $userinfo["uid"];
+	}
+
+	public function SystemGroupUid($groupname){
+		$userinfo = posix_getgrnam($groupname);
+		if(!isset($userinfo["gid"])){return null;}
+		if(!is_numeric($userinfo["gid"])){return null;}
+		if($userinfo["gid"]<1){return null;}
+		return $userinfo["gid"];
+	}	
+	
 	
 	public function SystemCreateUser($username,$group=null,$xshell=null,$sHome=null){
 		
@@ -206,15 +222,21 @@ public function LOCATE_VBoxHeadless(){
 			if(!is_file($useradd)){return;}
 			if($xshell==null){$xshell="/bin/sh";}
 			if($group<>null){
-				if(!$this->SystemGroupExists($group)){if($this->SystemCreateGroup($group)){return false;}}
+				if(!$this->SystemGroupExists($group)){
+					if($GLOBALS["VERBOSE"]){echo "Creating Group `$group`...\n";}
+					if($this->SystemCreateGroup($group)){return false;}}
 			}
 			$cmd[]=$useradd;
 			if(strlen($xshell)>2){$cmd[]="-s $xshell";}
 			if(strlen($sHome)>2){$cmd[]="-d \"$sHome\"";}
 			if($group<>null){$cmd[]="-g $group";}
+			
+			
+			$cmd[]=$username;
 			$cmd_finale=@implode(" ", $cmd);
-			if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-			exec("$cmd 2>&1",$results);
+			if($GLOBALS["VERBOSE"]){echo $cmd_finale."\n";}
+			exec("$cmd_finale 2>&1",$results);
+			if($GLOBALS["VERBOSE"]){echo @implode("\n", $results);}
 		}
 		
 		if($group<>null){
@@ -231,6 +253,7 @@ public function LOCATE_VBoxHeadless(){
 	public function SystemCreateGroup($group){
 		$groupadd=$this->find_program("groupadd");
 		if(!is_file($groupadd)){return false;}
+		if($GLOBALS["VERBOSE"]){echo "Create group $groupadd $group\n";}
 		shell_exec("$groupadd $group");
 		return $this->SystemGroupExists($group);
 	}
@@ -282,7 +305,7 @@ public function LOCATE_VBoxHeadless(){
 		
 	}	
 	
-	private function UnixGroupExists($groupname){
+	public function UnixGroupExists($groupname){
 		$getent=$this->find_program("getent");
 		exec("$getent group $groupname 2>&1",$results);
 		while (list ($num, $val) = each ($results) ){
@@ -295,7 +318,7 @@ public function LOCATE_VBoxHeadless(){
 		
 	}
 	
-	private function UnixUserExists($username){
+	public function UnixUserExists($username){
 		
 		$getent=$this->find_program("getent");
 		$cmd="$getent shadow $username 2>&1";
@@ -316,6 +339,27 @@ public function LOCATE_VBoxHeadless(){
 		return $path_info['extension'];
 		
 	}
+	
+	public function GetMyHostId(){
+		
+		$hostid=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/HOSTID"));
+		if($hostid<>null){return $hostid;}
+	
+		
+		$hostidbin=$this->find_program("hostid");
+		if(is_file($hostidbin)){
+			exec("$hostidbin 2>&1",$results);
+			$hostid=md5(trim(@implode("", $results).time()));
+			if($hostid<>"00000000"){
+				@file_put_contents("/etc/artica-postfix/settings/Daemons/HOSTID", $hostid);
+				return $hostid;
+			}
+		}
+	
+		$hostid=md5(time());
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/HOSTID", $hostid);
+		return $hostid;
+	}	
 	
 	
 	public function SquidStatsApplianceUri(){
@@ -646,6 +690,16 @@ public function PingHost($cible){
 		return @file_get_contents("/proc/$pid/cmdline");
 	}
 	
+	private function LOCATE_PROCSTAT(){
+		$procstat=$this->find_program("procstat");
+		if(is_file($procstat)){return $procstat;}
+		if(is_file("/usr/share/artica-postfix/bin/procstat")){return "/usr/share/artica-postfix/bin/procstat";}
+		$gcc=$this->find_program("gcc");
+		if(!is_file($gcc)){return;}
+		shell_exec("$gcc -o /usr/share/artica-postfix/bin/procstat /usr/share/artica-postfix/bin/install/procstat.c");
+		if(is_file("/usr/share/artica-postfix/bin/procstat")){return "/usr/share/artica-postfix/bin/procstat";}
+	}
+	
 	Public function GetSingleMemoryOf($pid){
 		if($pid<1){
 			if($GLOBALS["DEBUG"]){echo __FUNCTION__." bad pid \"$pid\"\n";}
@@ -711,9 +765,50 @@ function THREAD_COMMAND_SET($zcommands){
 			}
 		reset($tbl);
 		}
+		
+	writelogs_framework("Schedule this command `$zcommands`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 	$tbl[]=$zcommands;
 	@file_put_contents('/etc/artica-postfix/background',implode("\n",$tbl));
 }	
+
+public function GetMemoriesOfChild($pid){
+	$pidsrc=$pid;
+	if($pid<1){
+		if($GLOBALS["DEBUG"]){echo __FUNCTION__." bad pid \"$pid\"\n";}return null;}
+
+
+		$rss=$this->PROCESS_MEMORY($pid,true);
+		$vm=$this->PROCESS_CACHE_MEMORY($pid,true);
+
+
+		if($count==0){$count=1;}
+		if($this->process_exists($pid)){$l[]="installed=1";$l[]="running=1";}
+		$l[]="application_installed=1";
+		$l[]="master_pid=$pid";
+		$l[]="master_memory=$rss";
+		$l[]="master_cached_memory=$vm";
+		$l[]="processes_number=$count";
+
+
+		exec("/usr/share/artica-postfix/bin/procstat $pid 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			if(preg_match("#start_time:.+?\(([0-9]+)#",$ligne,$re)){
+				$tt=$this->time_duration($re[1]);
+				$tt=str_replace(" Months,","M",$tt);
+				$tt=str_replace(" days,","d",$tt);
+				$tt=str_replace(" hours,","h",$tt);
+				$tt=str_replace(" minutes,","mn",$tt);
+				$tt=str_replace(" seconds","s",$tt);
+				$tt=str_replace(" hour,","h",$tt);
+				$tt=str_replace(" minute,","mn",$tt);
+				$tt=str_replace(" second","s",$tt);
+				$l[]="uptime=$tt";}
+
+		}
+		$l[]="";
+		return implode("\n",$l);return;
+
+}
 	
 	
 public function GetMemoriesOf($pid,$unique=false){
@@ -925,11 +1020,27 @@ function KERNEL_CONFIG(){
 	
 }
 
-function RESTART_SYSLOG(){
-			if(is_file("/etc/init.d/rsyslog")){shell_exec("/etc/init.d/rsyslog restart");}
-			if(is_file("/etc/init.d/syslog")){shell_exec("/etc/init.d/syslog restart");}
-			if(is_file("/etc/init.d/sysklogd")){shell_exec("/etc/init.d/sysklogd restart");}
-			if(is_file("/etc/init.d/syslog-ng")){shell_exec("/etc/init.d/syslog-ng restart");}
+function RESTART_SYSLOG($onlysyslog=false){
+			$nohup=$this->find_program("nohup");
+			if(is_file("/etc/init.d/rsyslog")){
+				if($GLOBALS["VERBOSE"]){echo "/etc/init.d/rsyslog restart\n";}
+				shell_exec("/etc/init.d/rsyslog restart");}
+			if(is_file("/etc/init.d/syslog")){
+				if($GLOBALS["VERBOSE"]){system($this->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.initslapd.php --rsyslogd-init --verbose");}else{
+					shell_exec($this->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.initslapd.php --rsyslogd-init >/dev/null 2>&1");
+				}
+				if($GLOBALS["VERBOSE"]){echo "/etc/init.d/syslog restart\n";}
+				shell_exec("$nohup /etc/init.d/syslog restart >/dev/null 2>&1 &");
+			}
+			if(is_file("/etc/init.d/sysklogd")){
+				if($GLOBALS["VERBOSE"]){echo "/etc/init.d/sysklogd restart\n";}
+				shell_exec("$nohup /etc/init.d/sysklogd restart >/dev/null 2>&1 &");
+			}
+			if(is_file("/etc/init.d/syslog-ng")){
+				if($GLOBALS["VERBOSE"]){echo "/etc/init.d/syslog-ng restart\n";}
+				shell_exec("$nohup /etc/init.d/syslog-ng restart >/dev/null 2>&1 &");
+			}
+			if($onlysyslog){return;}
 
 			shell_exec("/etc/init.d/artica-postfix restart sysloger");
 			shell_exec("/etc/init.d/artica-postfix restart postfix-logger");
@@ -1561,7 +1672,7 @@ public function EXEC_NICE(){
 			
 		}
 		
-		exec("$wc -l $path",$results);
+		exec("$wc -l $path 2>&1",$results);
 		$line=@implode(" ",$results);
 		if(preg_match("#^([0-9]+)\s+#",$line,$re)){
 			return $re[1];
@@ -2149,7 +2260,7 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		$hostname=str_replace(".", "\.", $hostname);
 		$f=explode("\n",@file_get_contents("/etc/hosts"));
 		while (list ($num, $ligne) = each ($f) ){
-			if(preg_match("#^([0-9]+).*?$hostname#", $ligne,$re)){
+			if(preg_match("#^([0-9\.]+).*?$hostname#", $ligne,$re)){
 				return $re[1];
 			}
 		}
@@ -2195,6 +2306,8 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		
 		
 	public function add_EtcHosts($hostname,$ip){
+		if(isset($GLOBALS["add_EtcHosts$hostname$ip"])){return;}
+		$GLOBALS["add_EtcHosts$hostname$ip"]=true;
 		$DisableEtcHosts=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/DisableEtcHosts"));
 		if($DisableEtcHosts==1){
 			writelogs_framework("/etc/hosts:: DisableEtcHosts is active, skip this procedure",__CLASS__.'/'.__FUNCTION__,__FILE__);
@@ -3367,6 +3480,82 @@ public function IsProtectedDirectory($folder){
 		
 	}
 	
+	public function LINUX_CODE_NAME(){
+		$f=@file_get_contents("/etc/artica-postfix/settings/Daemons/LinuxDistributionCodeName");
+		if(trim($f)<>null){return trim($f);}
+		$distriname=$this->LINUX_DISTRIBUTION();
+		if(preg_match("#Ubuntu#i", $distriname)){return "UBUNTU";}
+		if(preg_match("#debian#i", $distriname)){return "DEBIAN";}
+		if(preg_match("#suse#i", $distriname)){return "SUSE";}
+		if(preg_match("#Fedora#i", $distriname)){return "FEDORA";}
+		if(preg_match("#CentOS#i", $distriname)){return "CENTOS";}
+		
+		
+	}
+	
+	
+	
+	public function LINUX_VERS(){
+		$distriname=$this->LINUX_DISTRIBUTION();
+		if(preg_match("#([0-9]+)\.([0-9]+)#", $distriname,$re)){
+			return array(intval($re[1]),intval($re[2]));
+		}
+		
+		return array(0,0);
+		
+	}
+	
+	
+	public function LINUX_DISTRIBUTION(){
+		
+		$f=@file_get_contents("/etc/artica-postfix/settings/Daemons/LinuxDistributionFullName");
+		if(trim($f)<>null){return $f;}
+		
+		if(is_file("/etc/SuSE-release")){
+			$content=@file_get_contents("/etc/SuSE-release");
+			if(preg_match("#([0-9]+)\.([0-9]+)#is", $content)){
+				return "openSUSE {$re[1]}.{$re[2]}";
+			}
+		}
+	
+		if(is_file("/etc/lsb-release")){
+			if(!is_file("/etc/redhat-release")){
+				$content=explode("\n",@file_get_contents("/etc/lsb-release"));
+				while (list ($num, $val) = each ($content) ){
+					if(preg_match("#DISTRIB_ID=(.+)#", $val,$re)){$distri_provider=$re[1];}
+					if(preg_match("#DISTRIB_RELEASE=([0-9\.]+)#", $val,$re)){$distri_ver=$re[1];}
+					if(preg_match("#DISTRIB_CODENAME=(.+)#", $val,$re)){$distri_name=$re[1];}
+					
+				}
+				return "$distri_provider $distri_ver $distri_name";
+				
+				
+			}
+		}
+	  
+		if(is_file("/etc/debian_version")){
+			$content=explode("\n",@file_get_contents("/etc/debian_version"));
+			while (list ($num, $val) = each ($content) ){
+				if(preg_match("#([0-9\.]+)#", $val,$re)){return "Debian {$re[1]} Gnu-linux";}
+				if(preg_match("#squeeze\/sid#", $val)){return "Debian 6.0 Gnu-linux";}
+			}
+		}
+	
+		if(is_file("/etc/redhat-release")){
+			$content=explode("\n",@file_get_contents("/etc/redhat-release"));
+			while (list ($num, $val) = each ($content) ){
+				if(preg_match("#Fedora Core release\s+([0-9]+)#",$val,$re)){return "Fedora Core release {$re[1]}";}
+				if(preg_match("#Fedora release\s+([0-9]+)#",$val,$re)){return "Fedora release {$re[1]}";}
+				if(preg_match("#Scientific Linux release\s+([0-9\.]+)#",$val,$re)){return "Scientific Linux release {$re[1]}";}
+				if(preg_match("#Mandriva Linux release\s+([0-9\.]+)#",$val,$re)){return "Mandriva Linux release {$re[1]}";}
+				if(preg_match("#CentOS\s+.*?release\s+([0-9\.]+)#",$val,$re)){return "CentOS release {$re[1]}";}
+				
+			}
+			
+		}
+	}
+//##############################################################################	
+	
 	
 	public function KERNEL_VERSION_BIN(){
 		$cmd=$this->find_program("uname")." -r";
@@ -3854,8 +4043,13 @@ public function LOCATE_STUNNEL_BIN(){
 		if(!isset($GLOBALS["MEM_POSTCONF"])){$GLOBALS["MEM_POSTCONF"]=null;}
 		if($GLOBALS["MEM_POSTCONF"]<>null){$postconf=$GLOBALS["MEM_POSTCONF"];}else{$postconf=$this->find_program("postconf");$GLOBALS["MEM_POSTCONF"]=$postconf;}
 		if($GLOBALS["DEBUG"]){echo "POSTCONF_GET:: $postconf -h $value\n";}
-		exec("$postconf -h $value",$results);
-		return trim(implode("",$results));
+		exec("$postconf -h $value 2>&1",$results);
+		$v=array();
+		while (list ($num, $line) = each ($results)){
+			if(preg_match("#warning:#", $line)){continue;}
+			$v[]=$line;
+		}		
+		return trim(implode("",$v));
 		
 	}
 	
@@ -3863,11 +4057,20 @@ public function LOCATE_STUNNEL_BIN(){
 		if($GLOBALS["MEM_postmulti"]<>null){$postmulti=$GLOBALS["MEM_postmulti"];}else{$postmulti=$this->find_program("postmulti");$GLOBALS["MEM_postmulti"]=$postmulti;}
 		
 		if($GLOBALS["DEBUG"]){echo "POSTCONF_MULTI_GET:: postmulti=$postmulti\n";}
-		$cmd="$postmulti -i postfix-$instance -x postconf -h $value";
+		
+		$cmd="$postmulti -i postfix-$instance -x postconf -h $value 2>&1";
+		if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 		exec($cmd,$results);
-		$value=trim(implode("\n",$results));
-		if($GLOBALS["DEBUG"]){writelogs_framework("$cmd -> $value",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
-		return $value;
+		$v=array();
+		while (list ($num, $line) = each ($results)){
+			if(preg_match("#warning:#", $line)){continue;}
+			$v[]=$line;
+		}
+		
+		
+		$vFinal=@implode("", $v);
+		if($GLOBALS["DEBUG"]){writelogs_framework("$cmd -> $vFinal",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+		return $vFinal;
 	}
 
 	public function POSTCONF_MULTI_SET($instance,$key,$value){
@@ -3993,16 +4196,18 @@ public function LOCATE_STUNNEL_BIN(){
 	
 	
 	
-	public function events($text,$logFile=null,$phplog=false){
-		$sourcefile=null;$sourcefunction=null;$sourceline=null;
+	public function events($text,$logFile=null,$phplog=false,$sourcefunction=null,$sourceline=null){
+		$sourcefile=null;$sourceline=null;
 		$pid=getmypid();
 		$date=date("Y-m-d H:i:s");
 		if(function_exists("debug_backtrace")){
 			$trace=debug_backtrace();
 			if(isset($trace[1])){
 				$sourcefile=basename($trace[1]["file"]);
-				$sourcefunction=$trace[1]["function"];
-				$sourceline=$trace[1]["line"];
+				if($sourcefunction==null){
+					$sourcefunction=$trace[1]["function"];
+				}
+				if($sourceline==null){$sourceline=$trace[1]["line"];}
 			}
 			$line="$date [$pid] $sourcefunction::$sourceline $text\n";
 		}
@@ -4233,7 +4438,7 @@ function DirFiles($path,$regexsearch=null){
 		return $instance;
 	}
 	
-	private function squid_get_alternate_port(){
+	public function squid_get_alternate_port(){
 		$f=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
 		while (list ($num, $ligne) = each ($f) ){
 			if(preg_match("#(transparent|tproxy|intercept)#i", trim($ligne))){continue;}
@@ -4243,6 +4448,56 @@ function DirFiles($path,$regexsearch=null){
 			if(preg_match("#http_port\s+([0-9]+)\s+#", trim($ligne),$re)){return $re[1];}
 			if(preg_match("#http_port\s+([0-9\.]+):([0-9]+)\s+#", trim($ligne),$re)){return "{$re[1]}:{$re[2]}";}			
 		}
+		
+	}
+	
+	public function squid_get_system_info(){
+		
+		$squidclient=$this->find_program("squidclient");
+		$array=array();
+		$auth=null;
+		if($squidclient==null){
+			writelogs_framework("Unable to stat squidclient !!",__FUNCTION__,__LINE__);;return;}
+			$http_port=$this->squid_get_alternate_port();
+		
+			$ini=new iniFrameWork("/etc/artica-postfix/settings/Daemons/ArticaSquidParameters");
+			if($ini->_params["NETWORK"]["LDAP_AUTH"]==1){
+				$ldappassword=trim(@file_get_contents("/etc/artica-postfix/ldap_settings/password"));
+				$auth=" -u squidinternalauth -w $ldappassword ";
+			}
+		
+			$cmd="$squidclient -h 127.0.0.1 -p $http_port$auth mgr:info";
+			writelogs_framework("$cmd",__FUNCTION__,__LINE__);;
+		
+		
+			exec($cmd,$results);
+			$path=null;		
+		
+		while (list ($num, $ligne) = each ($results) ){
+			if(preg_match("#^(.*?):$#", trim($ligne),$re)){
+				$title=$re[1];
+				continue;
+			}
+		
+			if(preg_match("#\s+(.*?):\s+(.+)#", $ligne,$re)){
+				$sub=$re[1];
+				$values=trim($re[2]);
+			}
+			if(strpos($ligne, ':')==0){
+				if(preg_match("#\s+([0-9]+)\s+(.+)#", $ligne,$re)){
+					$sub=trim($re[2]);
+					$values=trim($re[1]);
+				}
+			}
+		
+			if($title==null){continue;}
+			if($sub==null){continue;}
+			$ARRAY[$title][$sub]=$values;
+		
+		
+		}
+
+		return $ARRAY;
 		
 	}
 	
@@ -4824,13 +5079,82 @@ function system_admin_events($text,$function,$file,$line,$category,$taskid=0){
 	$array["line"]=$line;
 	$array["category"]=$category;
 	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	if(isset($GLOBALS["ARGVS"])){$array["ARGVS"]=$GLOBALS["ARGVS"];}else{$array["ARGVS"]=@implode(" ",$argv);}
 	$serialize=serialize($array);
 	$md5=md5($serialize);
 	if(!is_dir("/var/log/artica-postfix/system_admin_events")){@mkdir("/var/log/artica-postfix/system_admin_events",0755,true);}
 	@file_put_contents("/var/log/artica-postfix/system_admin_events/$md5.log", $serialize);
 }
+function squid_admin_notifs($text,$function,$file,$line,$category,$taskid=0){
+
+	$mem=round(((memory_get_usage()/1024)/1000),2);
+	$array_load=sys_getloadavg();
+	$internal_load=$array_load[0];
+	$text=$text."\nMemory used for this script:{$mem}M; System Load: $internal_load";
+	if($taskid>0){$GLOBALS["SCHEDULE_ID"]=$taskid;}
+	if(!isset($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+	if($GLOBALS["VERBOSE"]){echo "$function:: $text in line $line in file ".basename($file)."\n";}
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["text"]=$text;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["category"]=$category;
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	if(isset($GLOBALS["ARGVS"])){$array["ARGVS"]=$GLOBALS["ARGVS"];}else{$array["ARGVS"]=@implode(" ",$argv);}
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("/var/log/artica-postfix/squid_admin_notifs")){@mkdir("/var/log/artica-postfix/squid_admin_notifs",0755,true);}
+	@file_put_contents("/var/log/artica-postfix/squid_admin_notifs/$md5.log", $serialize);
+}
+function system_user_events($uid,$text,$function,$file,$line,$category,$taskid=0){
+	$mem=round(((memory_get_usage()/1024)/1000),2);
+	$array_load=sys_getloadavg();
+	$internal_load=$array_load[0];
+	$text=$text."\nMemory used for this script:{$mem}M; System Load: $internal_load";
+	if($taskid>0){$GLOBALS["SCHEDULE_ID"]=$taskid;}
+	if(!isset($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+	if($GLOBALS["VERBOSE"]){echo "$function:: $text in line $line in file ".basename($file)."\n";}
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["text"]=$text;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["uid"]=$uid;
+	$array["category"]=$category;
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("/var/log/artica-postfix/system_users_events")){@mkdir("/var/log/artica-postfix/system_users_events",0755,true);}
+	@file_put_contents("/var/log/artica-postfix/system_users_events/$md5.log", $serialize);	
+	
+}
 
 function ufdbguard_admin_events($text,$function,$file,$line,$category,$taskid=0){
+	
+
+	
+	
+	if(basename($file)=="exec.squid.stats.php"){
+		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+		if(!isset($GLOBALS["MYPID"])){$GLOBALS["MYPID"]=@getmypid();}
+		if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
+		$array_load=sys_getloadavg();
+		$internal_load=$array_load[0];
+		
+		if($GLOBALS["AS_ROOT"]){
+			$date=@date("H:i:s");
+			$logFile="/var/log/artica-squid-stats.log";
+			if(is_file($logFile)){
+				$size=filesize($logFile);
+				if($size>5000000){unlink($logFile);}
+			}
+			$me="exec.squid.stats.php";
+			$f = fopen($logFile, 'a');
+			fwrite($f, "$date $me"."[".$GLOBALS["MYPID"]."/$internal_load]:$category::$function::$line: $text\n");
+			fclose($f);
+		}
+	}
 	$mem=round(((memory_get_usage()/1024)/1000),2);
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];
@@ -4850,6 +5174,19 @@ function ufdbguard_admin_events($text,$function,$file,$line,$category,$taskid=0)
 	$md5=md5($serialize);
 	if(!is_dir("/var/log/artica-postfix/ufdbguard_admin_events")){@mkdir("/var/log/artica-postfix/ufdbguard_admin_events",0755,true);}
 	@file_put_contents("/var/log/artica-postfix/ufdbguard_admin_events/$md5.log", $serialize);
+	
+	$update["exec.update.squid.tlse.php"]=true;
+	$update["exec.update.blacklist.instant.php"]=true;
+	$update["exec.squid.blacklists.php"]=true;
+	
+	if(!isset($update[basename($file)])){return;}
+	if($update[basename($file)]){
+		if(!is_dir("/var/log/artica-postfix/ufdbguard_update_events")){@mkdir("/var/log/artica-postfix/ufdbguard_update_events",0755,true);}
+		@file_put_contents("/var/log/artica-postfix/ufdbguard_update_events/$md5.log", $serialize);
+	
+	}	
+	
+	
 }
 function mysql_admin_events($text,$function,$file,$line,$category=null){
 	$file=basename($file);

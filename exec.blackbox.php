@@ -12,32 +12,40 @@ if($argv[1]=="--ping"){ping($argv[2]);exit;}
 
 
 function ping($hostid){
-	
-	
+	$mefile=basename(__FILE__);
+	$GLOBALS["CLASS_UNIX"]=new unix();
+	$GLOBALS["CLASS_UNIX"]->events("$mefile:: blackboxes($hostid)","/var/log/stats-appliance.log");
 	$black=new blackboxes($hostid);
-	
+
 	
 	$ssluri=$black->ssluri."/nodes.listener.php";
 	$nossluri=$black->sslnouri."/nodes.listener.php";
 	if($GLOBALS["VERBOSE"]){echo "Try $ssluri\n";}
+	$GLOBALS["CLASS_UNIX"]->events("$mefile:: $ssluri","/var/log/stats-appliance.log");
 	$curl=new ccurl($ssluri);
 	$curl->parms["PING-ORDERS"]=true;
+	if($GLOBALS["VERBOSE"]){$curl->parms["VERBOSE"]=true;}
 	$curl->noproxyload=true;
 	if($GLOBALS["VERBOSE"]){echo "Sending PING-ORDERS\n";}
 	if(!$curl->get()){
 		$ssluri=$nossluri;
+		$GLOBALS["CLASS_UNIX"]->events("$mefile:: $ssluri","/var/log/stats-appliance.log");
 		if($GLOBALS["VERBOSE"]){echo "error `$ssluri` $curl->error, trying http\n";}
+		
 		$curl=new ccurl($nossluri);
 		$curl->noproxyload=true;
 		$curl->parms["PING-ORDERS"]=true;
 		if(!$curl->get()){
-			ufdbguard_admin_events("Failed to send ping to $black->hostname with Error:`$curl->error`", __FUNCTION__, __FILE__, __LINE__, "communicate");
+			ufdbguard_admin_events("$mefile:: Failed to send ping to $black->hostname with Error:`$curl->error`", __FUNCTION__, __FILE__, __LINE__, "communicate");
 			return;
 		}		
 	}
 	
+	if($GLOBALS["VERBOSE"]){echo $curl->data;}
+	
 	if(preg_match("#SUCCESS<#s", $curl->data)){
-		ufdbguard_admin_events("Success to send ping to $black->hostname", __FUNCTION__, __FILE__, __LINE__, "communicate");
+		$GLOBALS["CLASS_UNIX"]->events("Success to send ping to $black->hostname","/var/log/stats-appliance.log");
+		ufdbguard_admin_events("$mefile:: Success to send ping to $black->hostname", __FUNCTION__, __FILE__, __LINE__, "communicate");
 	}
 
 	

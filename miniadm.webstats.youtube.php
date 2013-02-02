@@ -4,6 +4,7 @@ session_start();
 ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
 ini_set('error_append_string',null);
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
+if(!$_SESSION["AsWebStatisticsAdministrator"]){header("location:miniadm.index.php");die();}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
@@ -261,7 +262,7 @@ function items(){
 	if($_GET["category"]<>null){$FORCE_FILTER=" AND category='{$_GET["category"]}'";}
 	
 	if(!$q->TABLE_EXISTS($table, $database)){json_error_show("$table doesn't exists...");}
-	if(!$q->COUNT_ROWS($table, $database)){json_error_show("No rules");}
+	if($q->COUNT_ROWS($table, $database)==0){json_error_show("No rules");}
 
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}

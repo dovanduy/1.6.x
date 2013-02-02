@@ -118,6 +118,28 @@ public static function IsvalidMAC($MAC){
 		}
 		return self::toOctet( self::toUnsigned( $ip ) );
 	}
+	
+	/**
+	 * A second way to transform v4 to 6.
+	 * @param $ip octet ipv4 IP address.
+	 * @return string
+	 */	
+	
+public static function IPv4To6($ip) {
+ if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === true) {
+  if (strpos($ip, '.') > 0) {
+   $ip = substr($ip, strrpos($ip, ':')+1);
+  } else { //native ipv6
+   return $ip;
+  }
+ }
+ $is_v4 = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
+ if (!$is_v4) { return false; }
+ $iparr = array_pad(explode('.', $ip), 4, 0);
+    $Part7 = base_convert(($iparr[0] * 256) + $iparr[1], 10, 16);
+    $Part8 = base_convert(($iparr[2] * 256) + $iparr[3], 10, 16);
+    return '::ffff:'.$Part7.':'.$Part8;
+}	
 
 	/**
 	 * Given an IPv6 address in octet notation, returns an unsigned integer.
@@ -264,6 +286,25 @@ public static function IsvalidMAC($MAC){
 			return array( $start, $end );
 		}
     }
+    
+public static function ipv4ToIpv6Cdir( $original_ip_str ) {  
+	# Converto to binary form (suppress errors, we handle them)
+	$original_ip_bin = @inet_pton($original_ip_str);
+	if ($original_ip_bin === FALSE) {
+	  $subnet_str = FALSE;
+	  $subnet_bin = FALSE;
+	} else {
+	  if (strlen($original_ip_bin) == 16) {
+	    # IPv6: Replace the last 64 bits with zeroes
+	    $subnet_bin = substr_replace($original_ip_bin, str_repeat("\000", 8), -8);
+	  }
+	
+	  # Convert the result back to readable form (optional)
+	  $subnet_str = inet_ntop($subnet_bin);
+	}
+	return 	$original_ip_str."/$subnet_str";
+}
+   
 	
 	/**
 	 * Validate an IP address.

@@ -44,6 +44,17 @@ class squidguard{
 		$this->SquidGuardIPWeb=str_replace('.(none)',"",$this->SquidGuardIPWeb);
 		echo "Starting......: squidGuard verbose mode={$GLOBALS["VERBOSE"]}\n";
 		
+		$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+		$UfdbEnabledCentral=$sock->GET_INFO("UfdbEnabledCentral");
+		$AntivirusEnabledCentral=$sock->GET_INFO("AntivirusEnabledCentral");
+		
+		
+		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+		if(!is_numeric($AntivirusEnabledCentral)){$AntivirusEnabledCentral=1;}
+		if(!is_numeric($UfdbEnabledCentral)){$UfdbEnabledCentral=1;}
+		if($EnableRemoteStatisticsAppliance==1){$this->EnableUfdbGuard=$UfdbEnabledCentral;}		
+		
 	
 		$ldapbinddn="cn=$ldap->ldap_admin,$ldap->suffix";
 		$conf[]="#Ufdbguard enabled=$this->EnableUfdbGuard";

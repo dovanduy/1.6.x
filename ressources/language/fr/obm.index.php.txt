@@ -23,4 +23,4 @@ pour https: // extranet.aliasource.fr/obm/[br] url externe = extranet.aliasource
 <user_added>Utilisateurs ajout&eacute;s</user_added>
 <user_failed>Utilisateurs ont &eacute;chou&eacute;</user_failed>
 <user_updated>Utilisateurs mis &agrave; jour</user_updated>
-<warn_export_obm>&Ecirc;tes-vous s&ucirc;rs de vouloir exporter tous les utilisateurs artica vers OBM ?</warn_export_obm>
+<warn_export_obm>Exporter tous les utilisateurs artica vers OBM ?</warn_export_obm>

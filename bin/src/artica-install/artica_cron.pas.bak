@@ -363,6 +363,11 @@ end;
 //##############################################################################
 procedure tcron.Save_processes();
 
+         const
+            CR = #$0d;
+            LF = #$0a;
+            CRLF = CR + LF;
+
 var l:TstringList;
 
 Nice:integer;
@@ -534,8 +539,8 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
       if systemMaxOverloaded<2 then systemMaxOverloaded:=6;
 
 
-     logs.WriteToFile('@reboot		root	/sbin/modprobe cifs && echo 0 > /proc/fs/cifs/OplockEnabled','/etc/cron.d/cifs-fix');
-     logs.WriteToFile('@reboot		root	'+php5bin+' /usr/share/artica-postfix/exec.schedules.php >/dev/null 2>&1','/etc/cron.d/schedules');
+     logs.WriteToFile('@reboot		root	/sbin/modprobe cifs && echo 0 > /proc/fs/cifs/OplockEnabled'+CRLF,'/etc/cron.d/cifs-fix');
+     logs.WriteToFile('@reboot		root	'+php5bin+' /usr/share/artica-postfix/exec.schedules.php >/dev/null 2>&1'+CRLF,'/etc/cron.d/schedules');
 
 
 
@@ -603,7 +608,7 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
 
 
 
-      if EnableSnort=0 then logs.DebugLogs('Starting......: Daemon (fcron) SNORT parser is disabled');
+
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 3  ' +cmdnice+artica_path+'/bin/process1');
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.rsync.events.php');
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 11 ' +cmdnice+ ' ' +artica_path+'/artica-install --usb-scan-write');

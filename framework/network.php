@@ -21,7 +21,7 @@ if(isset($_GET["reconstruct-all-interfaces"])){reconstruct_all_interfaces();exit
 if(isset($_GET["arp-delete"])){arptable_delete();exit;}
 if(isset($_GET["arp-edit"])){arptable_edit();exit;}
 if(isset($_GET["ifconfig"])){ifconfig();exit;}
-
+if(isset($_GET["ifconfig6"])){ifconfig6();exit;}
 
 
 if(isset($_GET["dhcpd-leases"])){dhcpd_leases_force();exit;}
@@ -77,6 +77,21 @@ function ifconfig(){
 	$ifconfig=$unix->find_program("ifconfig");
 	exec("$ifconfig $net 2>&1",$results);
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+function ifconfig6(){
+	$net=$_GET["ifconfig6"];
+	$unix=new unix();
+	$ip=$unix->find_program("ip");	
+	$cmd="$ip -6 address show $net 2>&1";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	$array=array();
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#inet6\s+(.*?)\s+scope#", $ligne,$re)){
+			$array[$re[1]]=$re[1];
+		}
+	}
+	echo "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
 }
 
 function pinghost(){

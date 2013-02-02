@@ -1,5 +1,8 @@
 <?php
-	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
+	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');$GLOBALS["VERBOSE"]=true;}
+	if(isset($_GET["verbose"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');$GLOBALS["VERBOSE"]=true;}
+	
+	if($GLOBALS["VERBOSE"]){echo "CLASESS<br>\n";}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -7,6 +10,8 @@
 	include_once('ressources/class.rtmm.tools.inc');
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.ccurl.inc');
+	
+	
 	header("Pragma: no-cache");	
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
@@ -54,17 +59,20 @@ function page(){
 
 
 function analyze(){
+	if($GLOBALS["VERBOSE"]){echo "analyze<br>\n";}
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$q=new mysql_squid_builder();
 	$uri=$_GET["uri"];
 	$curl=new ccurl($uri);
+	if($GLOBALS["VERBOSE"]){echo "$uri<br>\n";}
 	$filename=md5($uri);
 	if(!$curl->GetFile("ressources/logs/web/$filename")){
 		echo "<H2>".$curl->error."</H2>";
 		return;
 	}
 	$ARRY=array();
+	if($GLOBALS["VERBOSE"]){echo "Open ressources/logs/web/$filename<br>\n";}
 	$datas=@file_get_contents("ressources/logs/web/$filename");
 	$tb=explode("\n", $datas);
 	@unlink("ressources/logs/web/$filename");

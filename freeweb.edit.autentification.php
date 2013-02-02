@@ -36,16 +36,23 @@ function params(){
 	$users=new usersMenus();
 	$APACHE_MOD_AUTHNZ_LDAP=0;
 	$APACHE_MOD_GEOIP=0;
+	$PERL_AUTHNTLM=0;
+	$info=null;
 	if($users->APACHE_MOD_AUTHNZ_LDAP){$APACHE_MOD_AUTHNZ_LDAP=1;}
 	if($users->APACHE_MOD_GEOIP){$APACHE_MOD_GEOIP=1;}
+	if($users->APP_PYAUTHENNTLM){$PERL_AUTHNTLM=1;}
 	$ServerSignature=$sock->GET_INFO("ApacheServerSignature");
 	if(!is_numeric($ServerSignature)){$ServerSignature=1;}	
 	if(!is_numeric($FreeWebsEnableModSecurity)){$FreeWebsEnableModSecurity=0;}
 	if(!is_numeric($FreeWebsEnableModEvasive)){$FreeWebsEnableModEvasive=0;}
 	$ZarafaWebNTLM=0;
+	$ZarafaWebNTLM=$sock->GET_INFO("ZarafaWebNTLM");
+	if(!is_numeric($ZarafaWebNTLM)){$ZarafaWebNTLM=0;}	
 	if($ligne["groupware"]=="ZARAFA"){
-		$ZarafaWebNTLM=$sock->GET_INFO("ZarafaWebNTLM");
-		if(!is_numeric($ZarafaWebNTLM)){$ZarafaWebNTLM=0;}
+		$PARAMS=$free->Params["ZARAFAWEB_PARAMS"];
+		if(!isset($PARAMS["ZarafaWebNTLM"])){$PARAMS["ZarafaWebNTLM"]=$ZarafaWebNTLM;}
+		if(!is_numeric($PARAMS["ZarafaWebNTLM"])){$PARAMS["ZarafaWebNTLM"]=$ZarafaWebNTLM;}
+		$ZarafaWebNTLM=$PARAMS["ZarafaWebNTLM"];
 		
 	}
 	
@@ -63,8 +70,20 @@ function params(){
 	if(!is_numeric($EnableLDAPAllSubDirectories)){$EnableLDAPAllSubDirectories=0;}
 	$t=time();
 
-
+	$FreeWebPerformances=unserialize(base64_decode($sock->GET_INFO("FreeWebPerformances")));
+	if(!isset($FreeWebPerformances["KeepAlive"])){$FreeWebPerformances["KeepAlive"]=0;}
 	
+	if($FreeWebPerformances["KeepAlive"]==0){
+		$info=$info.FATAL_WARNING_SHOW_128("{KeepAlive_tlm_notset}");
+	}
+
+	if($PERL_AUTHNTLM==0){
+		$info=$info.FATAL_WARNING_SHOW_128("{pythonntlm_not_installed}");
+		
+	}
+	//http://www.mail-appliance.org/index.php?cID=393
+	$onlineHelp="<a href=\"javascript:blur();\" OnClick=\"javascript:s_PopUpFull('http://mail-appliance.org/index.php?cID=393','1024','900');\"
+	style='font-size:12px;font-weight:bold;text-decoration:underline'>{online_help}</a>";
 	
 	$html="
 	<div id='$t'>
@@ -85,11 +104,20 @@ function params(){
 		<td><input type='button' OnClick=\"javascript:Loadjs('freeweb.edit.ldap.users.php?servername={$_GET["servername"]}')\" value='{browse}...' style='font-size:13px'></td>
 		<td>&nbsp;</td>
 	</tr>
-	</table>
+	<tr>
+		<td class=legend style='font-size:14px'>{enable_ntlm_authentication}:</td>
+		<td>". Field_checkbox("enable_ntlm_authentication",1,$Params["NTLM"]["enabled"],"CheckApacheNTLM$t()")."</td>
+		<td width=1% nowrap>$onlineHelp</span>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:14px'>{members}:</td>
+		<td><input type='button' OnClick=\"javascript:Loadjs('freeweb.edit.ldap.users.php?servername={$_GET["servername"]}')\" value='{browse}...' style='font-size:13px'></td>
+		<td>&nbsp;</td>
+	</tr>
+	</table>	
 	<div style='text-align:right;width:100%'><hr>". button("{apply}","CheckApacheLdap$t()",16)."</div>
-
 	</div>
-	
+	$info
 	<script>
 		var x_CheckApacheLdap$t=function (obj) {
 			var results=obj.responseText;
@@ -101,9 +129,13 @@ function params(){
 		function CheckApacheForm$t(){
 			var ZarafaWebNTLM=$ZarafaWebNTLM;
 			var APACHE_MOD_AUTHNZ_LDAP=$APACHE_MOD_AUTHNZ_LDAP;
+			var PERL_AUTHNTLM=$PERL_AUTHNTLM;
 			document.getElementById('enable_ldap_authentication').disabled=true;
 			document.getElementById('authentication_banner').disabled=true;
 			document.getElementById('EnableLDAPAllSubDirectories').disabled=true;
+			document.getElementById('enable_ntlm_authentication').disabled=true;
+			
+			
 			
 			if(APACHE_MOD_AUTHNZ_LDAP==1){
 				document.getElementById('enable_ldap_authentication').disabled=false;
@@ -113,8 +145,13 @@ function params(){
 				}
 			}
 			
+			if(PERL_AUTHNTLM==1){
+				document.getElementById('enable_ntlm_authentication').disabled=false;
+			}
+			
 			if(ZarafaWebNTLM==1){
 				
+				document.getElementById('enable_ntlm_authentication').disabled=true;
 				document.getElementById('enable_ldap_authentication').disabled=true;
 				document.getElementById('enable_ldap_authentication').checked=true;
 				document.getElementById('disabled-why').innerHTML='NTLM enabled';
@@ -135,7 +172,12 @@ function params(){
 				XHR.appendData('enable_ldap_authentication',0);
 				document.getElementById('EnableLDAPAllSubDirectories').disabled=true;
 			}
-
+			
+			if(document.getElementById('enable_ntlm_authentication').checked){
+				XHR.appendData('enable_ntlm_authentication',1);
+			}else{
+				XHR.appendData('enable_ntlm_authentication',0);
+			}
 			if(document.getElementById('EnableLDAPAllSubDirectories').checked){XHR.appendData('EnableLDAPAllSubDirectories',1);}else{XHR.appendData('EnableLDAPAllSubDirectories',0);}				
 			XHR.appendData('servername','{$_GET["servername"]}');
 			AnimateDiv('$t');
@@ -154,7 +196,7 @@ function SaveConfig(){
 	$free=new freeweb($_POST["servername"]);
 	$page=CurrentPageName();
 	$tpl=new templates();
-
+	$free->Params["NTLM"]["enabled"]=$_POST["enable_ntlm_authentication"];
 	$free->Params["LDAP"]["enabled"]=$_POST["enable_ldap_authentication"];
 	$free->Params["LDAP"]["authentication_banner"]=base64_encode($_POST["authentication_banner"]);
 	$free->Params["LDAP"]["EnableLDAPAllSubDirectories"]=$_POST["EnableLDAPAllSubDirectories"];

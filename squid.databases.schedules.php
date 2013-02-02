@@ -289,9 +289,20 @@ function page(){
 	
 	$qS=new mysql_squid_builder();
 	$q=new mysql();
+	if($q->COUNT_ROWS("ufdbguard_admin_events", "artica_events")>0){$q->QUERY_SQL("TRUNCATE TABLE ufdbguard_admin_events","artica_events");}
+	if($q->COUNT_ROWS("system_admin_events", "artica_events")>0){$q->QUERY_SQL("TRUNCATE TABLE system_admin_events","artica_events");}		
 	$tasks=$tpl->_ENGINE_parse_body("{tasks}");
 	$CountTasks=$qS->COUNT_ROWS("webfilters_schedules", "artica_backup");
-	$CountEvents=$q->COUNT_ROWS("ufdbguard_admin_events", "artica_events");
+
+	$LIST_TABLES_EVENTS_SYSTEM=$q->LIST_TABLES_EVENTS_SQUID();
+	$CountEvents=0;
+	while (list ($tablename, $rows) = each ($LIST_TABLES_EVENTS_SYSTEM) ){
+		$CountEvents=$CountEvents +$q->COUNT_ROWS($tablename, "artica_events");
+	}
+	
+	$CountEvents=numberFormat($CountEvents, 0 , '.' , ' ');	
+	
+	
 	$events=$tpl->_ENGINE_parse_body("{events}");	
 	
 	$t=time();
@@ -313,7 +324,7 @@ $('#$t').flexigrid({
 		{display: '$task', name : 'TaskType', width : 217, sortable : false, align: 'left'},
 		{display: '$description', name : 'TimeDescription', width : 410, sortable : false, align: 'left'},
 		{display: '$run', name : 'run', width : 32, sortable : false, align: 'left'},
-		{display: '$events', name : 'run1', width : 32, sortable : false, align: 'left'},
+		{display: '$events', name : 'run1', width : 32, sortable : false, align: 'center'},
 		{display: '&nbsp;', name : 'enable', width : 32, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'center'}
 	],
@@ -503,12 +514,19 @@ function search(){
 		if($ligne["enabled"]==0){$color="#A0A0A0";}
 		
 		
-		$ligne2=mysql_fetch_array($q2->QUERY_SQL("SELECT COUNT(TASKID) as tcount FROM 
-		ufdbguard_admin_events WHERE TASKID='{$ligne['ID']}'","artica_events"));
+		$tablename="TaskSq{$ligne['ID']}";
 		
+		if(!$q2->TABLE_EXISTS($tablename, "artica_events")){
+			$events=imgsimple("delete_disabled.png");
+		}else{
 		
-		if($ligne2["tcount"]>0){
-			$events=imgtootltip("events-24.png","{events} {$ligne['ID']}","Loadjs('squid.update.events.php?taskid={$ligne['ID']}')");
+			$evs=$q2->COUNT_ROWS($tablename,  "artica_events");
+			
+			
+			if($evs>0){
+				$events=imgsimple("events-24.png","{events} {$ligne['ID']}","Loadjs('squid.update.events.php?taskid={$ligne['ID']}&table=$tablename')");
+			}
+		
 		}
 		
 		if($TaskType==21){$color="#A0A0A0";}

@@ -51,7 +51,7 @@ function parseQueue(){
 function ParseFile($filename,$instancename){
 	$f=explode("\n",@file_get_contents($filename));
 	$q=new mysql_postfix_builder();
-	
+	@mkdir("/var/log/artica-postfix/Postfix-sql-error",0755,true);
 	
 	while(list( $num, $line ) = each ($f)){
 		if(trim($line)==null){continue;}
@@ -76,7 +76,10 @@ function ParseFile($filename,$instancename){
 			if(count($SQL_ARRAY[$table_hour])>5000){
 				if(!$q->BuildHourTable($table_hour)){echo "Unable to build table $table_hour $q->mysql_error\n";return;}
 				$sql="INSERT IGNORE INTO `$table_hour` (zmd5,ztime,zhour,mailfrom,mailto,domainfrom,domainto,senderhost,recipienthost,mailsize,smtpcode,instancename) VALUES " .@implode(",", $SQL_ARRAY[$table_hour]);
-				if(!$q->QUERY_SQL($sql)){echo $q->mysql_error."\n";return;}
+				if(!$q->QUERY_SQL($sql)){
+					echo $q->mysql_error."\n";
+					@file_put_contents("/var/log/artica-postfix/Postfix-sql-error/".md5($sql), $sql);
+					return;}
 				$SQL_ARRAY[$table_hour]=array();
 			}
 			continue;
@@ -102,7 +105,9 @@ function ParseFile($filename,$instancename){
 			if(count($SQL_ARRAY[$table_hour])>5000){
 				if(!$q->BuildHourTable($table_hour)){echo "Unable to build table $table_hour $q->mysql_error\n";return;}
 				$sql="INSERT IGNORE INTO `$table_hour` (zmd5,ztime,zhour,mailfrom,mailto,domainfrom,domainto,senderhost,recipienthost,mailsize,smtpcode,instancename) VALUES " .@implode(",", $SQL_ARRAY[$table_hour]);
-				if(!$q->QUERY_SQL($sql)){echo $q->mysql_error."\n";return;}
+				if(!$q->QUERY_SQL($sql)){
+					@file_put_contents("/var/log/artica-postfix/Postfix-sql-error/".md5($sql), $sql);
+					echo $q->mysql_error."\n";return;}
 				$SQL_ARRAY[$table_hour]=array();
 			}			
 			continue;
@@ -113,7 +118,9 @@ function ParseFile($filename,$instancename){
 		if(count($s)>0){
 			if(!$q->BuildHourTable($table_hour)){echo "Unable to build table $table_hour $q->mysql_error\n";return;}
 			$sql="INSERT IGNORE INTO `$table_hour` (zmd5,ztime,zhour,mailfrom,mailto,domainfrom,domainto,senderhost,recipienthost,mailsize,smtpcode,instancename) VALUES " .@implode(",", $s);
-			if(!$q->QUERY_SQL($sql)){echo $q->mysql_error."\n";return;}
+			if(!$q->QUERY_SQL($sql)){
+				@file_put_contents("/var/log/artica-postfix/Postfix-sql-error/".md5($sql), $sql);
+				echo $q->mysql_error."\n";return;}
 		}
 	}
 	

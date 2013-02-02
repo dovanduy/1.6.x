@@ -28,7 +28,7 @@ function js(){
 		
 		if($_GET["hostname"]==null){$_GET["hostname"]="master";}	
 		$html="function {$prefix}Loadpage(){
-			RTMMail('700','$page?popup-tabs=yes&hostname={$_GET["hostname"]}','$title');
+			RTMMail('803','$page?popup-tabs=yes&hostname={$_GET["hostname"]}','$title:: instance: {$_GET["hostname"]}');
 			}
 		
 			

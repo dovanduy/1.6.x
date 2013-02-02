@@ -148,11 +148,12 @@ function getent(){
 }
 	
 if(count($sql)>1){
+	$sql=array();
 	if($GLOBALS["VERBOSE"]){system_admin_events("[USERS]:: Inserting ".count($sql)." elements ",__FUNCTION__,__FILE__,__LINE__,"samba");}
 	$sqlfinal=$prefix.@implode(",", $sql);
 	$q->QUERY_SQL($sqlfinal,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error."\n";}
-	$sql=array();
+	
 	}	
 	
 	if($GLOBALS["VERBOSE"]){system_admin_events("[getent group]::  Executing, please wait",__FUNCTION__,__FILE__,__LINE__,"samba");}	
@@ -236,60 +237,8 @@ if(count($sql)>1){
 
 function ActiveDirectoryGroups(){
 	$unix=new unix();
-	$gps=array();
-	$uids=array();
-	$function=__FUNCTION__;
-	$wbinfo=$unix->find_program("wbinfo");	
-	$results=array();
-	if(!is_file($wbinfo)){
-		if($GLOBALS["VERBOSE"]){echo "wbinfo, nu such binary\n";}
-		return;}
-	
-	$q=new mysql();
-	if(!$q->TABLE_EXISTS("activedirectorygroups", "artica_backup")){$q->BuildTables();}
-	if(!$q->TABLE_EXISTS("activedirectoryusers", "artica_backup")){$q->BuildTables();}
-	
-	exec("$wbinfo -g 2>&1",$results);	
-	if($GLOBALS["VERBOSE"]){echo "$function:: $wbinfo -g return ". count($results)." items\n";}
-	
-	while (list ($num, $group) = each ($results) ){
-		$array[$group]=ActiveDirectoryUsers($group,$wbinfo);
-	}
-
-	$prefixgps="INSERT IGNORE INTO activedirectorygroups (`group`,`gpid`,`UsersNum`) VALUES ";
-	$prefixusers="INSERT IGNORE INTO activedirectoryusers (`gpid`,`uid`) VALUES ";
-	
-	
-	
-
-	while (list ($group, $arrayU) = each ($array) ){
-		if($GLOBALS["VERBOSE"]){echo "$function:: loop group=`$group`\n";}
-		if(!isset($arrayU["GPID"])){continue;}
-		$gpid=$arrayU["GPID"];
-		$group=addslashes(utf8_encode($group));
-		$gps[]="('$group',$gpid,".count($arrayU["USERS"]).")";
-		while (list ($uid, $none) = each ($arrayU["USERS"]) ){
-			$uid=addslashes(utf8_encode($uid));
-			$uids[]="($gpid,'$uid')";
-			
-		}
-		
-	}
-	
-	
-	if(count($gps)>0){	
-		$q->QUERY_SQL("TRUNCATE TABLE `activedirectorygroups`","artica_backup");
-		$sql=$prefixgps.@implode(",", $gps);
-		$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){echo "*******************\n$sql\n*************\n";}
-	}
-	if(count($uids)>0){
-		$q->QUERY_SQL("TRUNCATE TABLE `activedirectoryusers`","artica_backup");
-		$q->QUERY_SQL($prefixusers.@implode(",", $uids),"artica_backup");	
-	}	
-	
-	
-	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 /usr/share/artica-postfix/exec.clientad.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}");
 }
 
 function ActiveDirectoryUsers($group,$wbinfo){

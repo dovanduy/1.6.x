@@ -379,7 +379,7 @@ var
    tmpstr:string;
    kernelversion:string;
 begin
-
+// -o Acquire::http::Proxy="http://192.168.1.245:3140/"
 kernelversion:=KERNEL_VERSION();
 writeln('Checking kernel sources for '+kernelversion);
 if length(kernelversion)=0 then begin

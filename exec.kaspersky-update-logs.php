@@ -1,4 +1,5 @@
 <?php
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 include_once(dirname(__FILE__).'/ressources/class.users.menus.inc');
@@ -205,6 +206,7 @@ function ParseKav4ProxyLogs(){
 	if(!is_dir($dir)){return null;}
 	$unix=new unix();
 	$files=$unix->DirFiles($dir);
+	$lic=false;
 	while (list ($num, $file) = each ($files) ){
 		if(!preg_match("#([0-9\-]+)_([0-9]+)-([0-9]+)-([0-9]+)#",$file,$re)){continue;}
 		
@@ -216,6 +218,7 @@ function ParseKav4ProxyLogs(){
 			$subject="Kaspersky Antivirus Proxy: update failed";	
 			send_email_events($subject,@file_get_contents("$dir/$file"),"KASPERSKY_UPDATES",$date);
 			ParseKav4ProxyLogsMysql($date,$subject,"$dir/$file");
+			$lic=true;
 			continue;
 		}
 		
@@ -224,22 +227,31 @@ function ParseKav4ProxyLogs(){
 			$subject="Kaspersky Antivirus Proxy: $NumberofKas3FilesUpdated new viruses in databases";
 			ParseKav4ProxyLogsMysql($date,$subject,"$dir/$file");
 			send_email_events($subject,@file_get_contents("$dir/$file"),"KASPERSKY_UPDATES",$date);
+			$lic=true;
 			continue;		
 		}
 		
 		if(AllAreUp2date("$dir/$file")){
 			ParseKav4ProxyLogsMysql($date,"All files are up-to-date","$dir/$file");
+			$lic=true;
 			continue;
 		}
 		
 		if(completed("$dir/$file")){
 			ParseKav4ProxyLogsMysql($date,"Update completed successfully","$dir/$file");
+			$lic=true;
 			continue;
 		}
 		
 		$size=@filesize("$dir/$file");
 		
 		ParseKav4ProxyLogsMysql($date,"Updates launched...($size bytes)","$dir/$file");
+	}
+	
+	if($lic){
+		$php5=$unix->LOCATE_PHP5_BIN();
+		shell_exec("$php5 /usr/share/artica-postfix/exec.kav4proxy.php --license");
+		
 	}
 }
 
@@ -264,13 +276,26 @@ function completed($path){
 function ParseKav4ProxyLogsMysql($date,$subject,$filename){
 	$datas=@file_get_contents($filename);
 	if(strlen($datas)<5){return;}
-	$datas=addslashes($datas);
-	$sql="INSERT IGNORE INTO kav4proxy_updates (zDate,subject,content) VALUES('$date','$subject','$datas')";
-	$q=new mysql();
-	$q->QUERY_SQL($sql,"artica_events");
-	if(!$q->ok){
-		$unix=new unix();
-		$unix->send_email_events("Mysql error ".__FUNCTION__.",".basename(__FILE__), $q->mysql_error, "system");
+	$tr=explode("\n", $datas);
+	
+	while (list ($num, $line) = each ($tr) ){
+		if(trim($line)==null){continue;}
+		$xdate=$date;
+		if(preg_match("#\[([0-9]+)-([0-9]+)-([0-9]+)\s+(.+?)\s+[A-Z]#",$line,$re)){
+			$xdate="{$re[3]}-{$re[2]}-{$re[1]} {$re[4]}";
+		}
+		$line=addslashes($line);
+		$f[]="('$xdate','$line')";
+	}
+	
+	if(count($f)>0){
+		$sql="INSERT IGNORE INTO kav4proxy_updates (zDate,subject) VALUES ".@implode(",", $f);
+		$q=new mysql();
+		$q->QUERY_SQL($sql,"artica_events");
+		if(!$q->ok){
+			$unix=new unix();
+			$unix->send_email_events("Mysql error ".__FUNCTION__.",".basename(__FILE__), $q->mysql_error, "system");
+		}
 	}
 	@unlink("$filename");
 }

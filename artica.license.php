@@ -61,9 +61,9 @@ function popup(){
 	if($LicenseInfos["license_status"]==null){
 		$LicenseInfos["license_status"]="{waiting_registration}";
 		$star="{explain_license_free}";
-		$button_text="{register}";
+		$button_text="{request_a_quote}";
 	}else{
-		$button_text="{update_now}";
+		$button_text="{update_the_request}";
 		$star="{explain_license_order}";
 	}	
 	
@@ -119,6 +119,7 @@ function popup(){
 		document.getElementById('$t').innerHTML='';
 		if(tempvalue.length>3){alert(tempvalue);return;}
 		Loadjs('$page');
+		CacheOff();
 		}	
 	
 		function RegisterSave$t(){

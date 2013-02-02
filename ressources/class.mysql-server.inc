@@ -122,6 +122,8 @@ class mysqlserver{
 		if(!isset($this->main_array["innodb_lock_wait_timeout"])){$this->main_array["innodb_lock_wait_timeout"]=null;}
 		if(!isset($this->main_array["open_files_limit"])){$this->main_array["open_files_limit"]=null;}
 		
+		
+		
 
 		
 		if($this->main_array["skip_external_locking"]==null){$this->main_array["skip_external_locking"]='yes';}

@@ -28,7 +28,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{STATISTICS_APPLIANCE}");
-	$html="YahooWin2(550,'$page?popup=yes','$title')";
+	$html="YahooWin2(689,'$page?popup=yes','$title')";
 	echo $html;
 }
 
@@ -46,7 +46,8 @@ function popup(){
 	
 	
 	if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
-	if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}	
+	if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
+	$uuid=$sock->getFrameWork("services.php?GetMyHostId=yes");	
 	
 	//$RemoteStatisticsApplianceSettings["SERVER"]
 	$html="
@@ -55,30 +56,36 @@ function popup(){
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>
+		<td class=legend style='font-size:14px'>{uuid}:</td>
+		<td style='font-size:14px;font-weight:bold' colspan=2>$uuid</td>
+	</tr>			
+	<tr>
 		<td class=legend style='font-size:14px'>{use_stats_appliance}:</td>
 		<td style='font-size:14px'>". Field_checkbox("EnableRemoteStatisticsAppliance",1,$EnableRemoteStatisticsAppliance,"EnableRemoteStatisticsApplianceCheck()")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{hostname}:</td>
-		<td style='font-size:14px'>". Field_text("StatsServervame",$RemoteStatisticsApplianceSettings["SERVER"],"font-size:14px;width:140px")."</td>
+		<td style='font-size:14px'>". Field_text("StatsServervame",$RemoteStatisticsApplianceSettings["SERVER"],"font-size:19px;font-weight:bold;width:200px")."</td>
 		<td>&nbsp;</td>
 	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{listen_port}:</td>
+		<td style='font-size:14px'>". Field_text("StatsServerPort",$RemoteStatisticsApplianceSettings["PORT"],"font-size:14px;width:60px")."</td>
+		<td>&nbsp;</td>
+	</tr>		
+	<tr>
+		<td class=legend style='font-size:14px'>{use_ssl}:</td>
+		<td style='font-size:14px'>". Field_checkbox("StatsServerSSL",1,$RemoteStatisticsApplianceSettings["SSL"])."</td>
+		<td>&nbsp;</td>
+	</tr>						
 	<tr>
 		<td class=legend style='font-size:14px'>{send_syslogs_to_server}:</td>
 		<td style='font-size:14px'>". Field_checkbox("EnableRemoteSyslogStatsAppliance",1,$EnableRemoteSyslogStatsAppliance)."</td>
 		<td>". help_icon("{send_syslogs_to_server_client_explain}")."</td>
 	</tr>	
-	<tr>
-		<td class=legend style='font-size:14px'>{listen_port}:</td>
-		<td style='font-size:14px'>". Field_text("StatsServerPort",$RemoteStatisticsApplianceSettings["PORT"],"font-size:14px;width:60px")."</td>
-		<td>&nbsp;</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{use_ssl}:</td>
-		<td style='font-size:14px'>". Field_checkbox("StatsServerSSL",1,$RemoteStatisticsApplianceSettings["SSL"])."</td>
-		<td>&nbsp;</td>
-	</tr>
+
+
 	<tr>
 	<td colspan=3 align='right'><hr>". button("{apply}","SaveStatsApp()",16)."</td>
 	</tr>
@@ -89,8 +96,10 @@ function popup(){
 		var x_SaveStatsApp=function (obj) {
 			var results=obj.responseText;
 			if(results.length>10){alert(results);}	
+			if(document.getElementById('squid-status')){LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');}			
 			CacheOff();
 			YahooWin2Hide();
+
 		}
 	
 	
@@ -104,7 +113,8 @@ function popup(){
 				document.getElementById('StatsServervame').disabled=false;
 				document.getElementById('StatsServerPort').disabled=false;
 				document.getElementById('StatsServerSSL').disabled=false;
-				document.getElementById('EnableRemoteSyslogStatsAppliance').disabled=false;				
+				document.getElementById('EnableRemoteSyslogStatsAppliance').disabled=true;	
+				document.getElementById('EnableRemoteSyslogStatsAppliance').checked=true;			
 			
 			}
 		

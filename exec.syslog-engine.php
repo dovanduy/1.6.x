@@ -12,14 +12,16 @@ include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 include_once(dirname(__FILE__) . '/ressources/class.iptables-chains.inc');
 include_once(dirname(__FILE__) . '/ressources/class.mysql.haproxy.builder.php');
 include_once(dirname(__FILE__) . "/ressources/class.mysql.squid.builder.php");
-
+include_once(dirname(__FILE__) . "/ressources/class.mysql.builder.inc");
 
 
 if(preg_match("#--norestart#",implode(" ",$argv))){$GLOBALS["NORESTART"]=true;}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
-if($argv[1]=='--rsylogd'){rsyslog_check_includes();die();}
 
+if($argv[1]=='--updtev'){udfbguard_update_events();die();}
+if($argv[1]=='--rsylogd'){rsyslog_check_includes();die();}
+if($argv[1]=='--sysev'){sysev();die();}
 
 
 if(!$GLOBALS["FORCE"]){
@@ -36,6 +38,7 @@ if($argv[1]=='--restart-syslog'){restart_syslog();die();}
 if($argv[1]=='--build-server'){build_server_mode();die();}
 if($argv[1]=='--build-client'){build_client_mode();die();}
 if($argv[1]=='--haproxy'){haproxy_events();die();}
+if($argv[1]=='--squid-notifs'){squid_admin_notifs_check();die();}
 
 
 
@@ -58,6 +61,7 @@ if($argv[1]=='--auth-logs'){
 		dhcpd_logs();
 		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		system_admin_events_checks();
+		squid_admin_notifs_check();
 		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		haproxy_events();
 		die();
@@ -71,7 +75,7 @@ if($argv[1]=='--ipblocks'){ipblocks();system_admin_events_checks();die();}
 if($argv[1]=='--adminlogs'){admin_logs();crossroads();udfbguard_admin_events();dhcpd_logs();die();}
 if($argv[1]=='--psmem'){ps_mem(true);crossroads();udfbguard_admin_events();system_admin_events_checks();dhcpd_logs();die();}
 if($argv[1]=='--squid-tasks'){die();}
-if($argv[1]=='--update-events-check'){update_events_check(true);system_admin_events_checks();die();}
+if($argv[1]=='--update-events-check'){update_events_check(true);system_admin_events_checks();squid_admin_notifs_check();die();}
 if($argv[1]=='--squidsys'){build_local6_squid();die();}
 if($argv[1]=='--localx'){build_localx_servers();die();}
 
@@ -106,6 +110,19 @@ crossroads();
 dhcpd_logs();
 die();
 
+
+function sysev(){
+	
+		$unix=new unix();
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}	
+		$t=0;		
+		@file_put_contents($pidfile, getmypid());
+		system_admin_events_checks();
+		udfbguard_admin_events();
+	
+}
 
 function build_server_mode(){
 	$sock=new sockets();
@@ -694,6 +711,105 @@ function admin_logs(){
 		
 }
 
+function squid_admin_notifs_check($nopid=false){
+	$f=array();
+	if($nopid){
+		$unix=new unix();
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}
+		$t=0;
+
+	}
+
+	$sock=new sockets();
+	$users=new usersMenus();
+	$UfdbguardSMTPNotifs=unserialize(base64_decode($sock->GET_INFO("UfdbguardSMTPNotifs")));
+	if(!isset($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"])){$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]=0;}
+	if(!is_numeric($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"])){$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]=0;}
+	
+	// removed : foreach (glob("/var/log/artica-postfix/system_admin_events/*") as $filename) {
+	$BaseWorkDir="/var/log/artica-postfix/squid_admin_notifs";
+	
+	if (!$handle = opendir($BaseWorkDir)) {
+		echo "Failed open $BaseWorkDir\n";
+		return;
+	}
+
+	
+	include_once(dirname(__FILE__) . '/ressources/class.mail.inc');
+	include_once(dirname(__FILE__)."/ressources/smtp/class.phpmailer.inc");
+	
+	
+	$smtp_dest=$UfdbguardSMTPNotifs["smtp_dest"];
+	$smtp_sender=$UfdbguardSMTPNotifs["smtp_sender"];
+	if($smtp_dest==null){return;}
+	if($smtp_sender==null){$smtp_sender="root@artica.localhost.localdomain";}	
+
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		$array=unserialize(@file_get_contents($targetFile));
+		@unlink($targetFile);
+		if(!is_array($array)){continue;}
+		if($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]==0){continue;}
+		
+		
+		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+
+		
+		$content=$array["text"];
+		$content_array=explode("\n",$content);
+		if(count($content_array)>0){
+			for($i=0;$i<count($content_array);$i++){
+				if(trim($content_array[$i])==null){continue;}
+				if($GLOBALS["VERBOSE"]){echo "Strip `{$content_array[$i]}` line ".__LINE__."\n";}
+				$subject=substr($content_array[$i],0,75)."...";
+				break;
+			}
+			$content=@implode("\r\n", $content_array);
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "Strip `{$content}`\n";}
+			$subject=substr($content,0,75)."...";
+		}
+		
+		unset($array["text"]);
+		$content=$content."\r\n------------------------------------------\r\n";
+		while (list ($key, $value) = each ($array) ){
+			$content=$content."$key.....: $value\r\n";
+			
+		}
+		
+		
+		$subject="[$users->hostname]: $subject";
+		$mail = new PHPMailer(true);
+		$mail->IsSMTP();
+		$mail->AddAddress($smtp_dest,$smtp_dest);
+		$mail->AddReplyTo($smtp_sender,$smtp_sender);
+		$mail->From=$smtp_sender;
+		$mail->Subject=$subject;
+		$mail->Body=$content;
+		$mail->Host=$UfdbguardSMTPNotifs["smtp_server_name"];
+		$mail->Port=$UfdbguardSMTPNotifs["smtp_server_port"];
+		
+		if(($UfdbguardSMTPNotifs["smtp_auth_user"]<>null) && ($UfdbguardSMTPNotifs["smtp_auth_passwd"]<>null)){
+			$mail->SMTPAuth=true;
+			$mail->Username=$UfdbguardSMTPNotifs["smtp_auth_user"];
+			$mail->Password=$UfdbguardSMTPNotifs["smtp_auth_passwd"];
+			if($UfdbguardSMTPNotifs["tls_enabled"]==1){$mail->SMTPSecure = 'tls';}
+			if($UfdbguardSMTPNotifs["ssl_enabled"]==1){$mail->SMTPSecure = 'ssl';}
+		}
+		
+		if(!$mail->Send()){system_admin_events("Unable to send notification $mail->ErrorInfo\nsubject:\n$subject\nBody:\n$content",__FUNCTION__, __FILE__, __LINE__, "notifications");}		
+		WriteMyLogs("squid_admin_notifs_check:{$array["function"]}/{$array["file"]}: Task  `{$array["TASKID"]}` ". strlen("{$array["text"]}")."bytes",__FUNCTION__,__FILE__,__LINE__);
+		
+	}
+
+	
+
+}
+
 function system_admin_events_checks($nopid=false){
 	$f=array();
 	if($nopid){
@@ -713,67 +829,90 @@ function system_admin_events_checks($nopid=false){
 	}
 	
 	$q=new mysql();	
-	$q->BuildTables();
-	if(!$q->TABLE_EXISTS('system_admin_events','artica_events',true)){return;}
+	
 	$prefix="INSERT IGNORE INTO system_admin_events (`zDate`,`function`,`filename`,`line`,`description`,`category`,`TASKID`) VALUES ";
 	while (false !== ($filename = readdir($handle))) {
 			if($filename=="."){continue;}
 			if($filename==".."){continue;}
 			$targetFile="$BaseWorkDir/$filename";
-		$array=unserialize(@file_get_contents($BaseWorkDir));
-		if(!is_array($array)){
-			$array["text"]=basename($filename)." is not an array, skip event ".@file_get_contents($filename);
-			$array["date"]=date('Y-m-d H:i:s');
-			$array["pid"]=getmypid();
-			$array["function"]=__FUNCTION__;
-			$array["category"]="parser";
-			$array["file"]=basename(__FILE__);
-			$array["line"]=__LINE__;
-			
-		}			
+			$array=unserialize(@file_get_contents($targetFile));
+			if(!is_array($array)){
+				$array["text"]=basename($filename)." is not an array, skip event \n".@file_get_contents($targetFile);
+				$array["zdate"]=date('Y-m-d H:i:s');
+				$array["pid"]=getmypid();
+				$array["function"]=__FUNCTION__;
+				$array["category"]="parser";
+				$array["file"]=basename(__FILE__);
+				$array["line"]=__LINE__;
+			}			
 			
 			
 		if(!is_numeric($array["TASKID"])){
 			$array["TASKID"]=0;
 		}		
 		
+		$tableName="Taskev{$array["TASKID"]}";
+		$chkTables[$tableName]=true;
+		
 		$array["text"]=mysql_escape_string($array["text"]);
 		$array["text"]=str_replace("'", "`", $array["text"]);
 		
 		WriteMyLogs("system_admin_events:{$array["function"]}/{$array["file"]}: Task  `{$array["TASKID"]}` ". strlen("{$array["text"]}")."bytes",__FUNCTION__,__FILE__,__LINE__);
-		$f[]="('{$array["zdate"]}','{$array["function"]}','{$array["file"]}','{$array["line"]}','{$array["text"]}','{$array["category"]}','{$array["TASKID"]}')";
+		$f[$tableName][]="('{$array["zdate"]}','{$array["function"]}','{$array["file"]}','{$array["line"]}','{$array["text"]}','{$array["category"]}')";
 		@unlink($targetFile);
 	}
 	
-	if(count($f)>0){$sql=$prefix.@implode(",", $f);
-		$q->QUERY_SQL($sql,"artica_events");
-		if(!$q->ok){
-			WriteMyLogs("system_admin_events:: `$q->mysql_error`",__FUNCTION__,__FILE__,__LINE__);
-			writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
-		}
+	system_admin_events_inject($f);
 	
-	}
-	
+}
+
+function system_admin_events_inject($f){
+	if(count($f)==0){return;}	
+	$tq=new mysql_builder();
 	$sock=new sockets();
-	$q=new  mysql();
-	$settings=unserialize(base64_decode($sock->GET_INFO("FcronSchedulesParams")));
-	if(!is_numeric($settings["max_events"])){$settings["max_events"]="50000";}
-	$NumRows=$q->COUNT_ROWS("system_admin_events", "artica_events");
-	if($NumRows>$settings["max_events"]){
-		$toDelete=$NumRows-$settings["max_events"];
-		$q->QUERY_SQL("DELETE FROM system_admin_events ORDER BY zDate LIMIT $toDelete","artica_events");
-		if(!$q->ok){
-			if(preg_match("#Got error 134 from storage engine#i", $q->mysql_error)){
-				$q->QUERY_SQL("REPAIR TABLE system_admin_events QUICK","artica_events");
-				$q->QUERY_SQL("DELETE FROM system_admin_events ORDER BY zDate LIMIT $toDelete","artica_events");
+	$q=new mysql();	
+	
+		while (list ($tablename, $rows) = each ($f) ){
+			if(!$tq->CheckTableTaskEvents($tablename)){
+				WriteMyLogs("system_admin_events:: $tablename: `CheckTableTaskEvents failed`",__FUNCTION__,__FILE__,__LINE__);
+				continue;
 			}
-			if(!$q->ok){writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);}
-		}else{
-			$q->QUERY_SQL("OPTIMIZE TABLE system_admin_events","artica_events");
+			$chkTables[$tablename]=true;
+			$prefix="INSERT IGNORE INTO `$tablename` (`zDate`,`function`,`filename`,`line`,`description`,`category`) VALUES ";
+			$sql=$prefix.@implode(",", $rows);
+			$q->QUERY_SQL($sql,"artica_events");
+			if(!$q->ok){
+				WriteMyLogs("system_admin_events_inject:: $tablename: `$q->mysql_error`",__FUNCTION__,__FILE__,__LINE__);
+				writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+			}else{
+				if($GLOBALS["VERBOSE"]){echo "$tablename (".count($rows)." rows)\n";}
+			}			
+			
 		}
-	}	
 	
 	
+
+	$settings=unserialize(base64_decode($sock->GET_INFO("FcronSchedulesParams")));
+	if(!is_numeric($settings["max_events"])){$settings["max_events"]="10000";}
+	if(count($chkTables)==0){return;}	
+	
+		while (list ($tablename, $rows) = each ($chkTables) ){
+			$NumRows=$q->COUNT_ROWS("$tablename", "artica_events");
+			if($NumRows>$settings["max_events"]){
+				$toDelete=$NumRows-$settings["max_events"];
+				$q->QUERY_SQL("DELETE FROM `$tablename` ORDER BY zDate LIMIT $toDelete","artica_events");
+				if(!$q->ok){
+				 if(preg_match("#Got error 134 from storage engine#i", $q->mysql_error)){
+					$q->QUERY_SQL("REPAIR TABLE `$tablename` QUICK","artica_events");
+					$q->QUERY_SQL("DELETE FROM `$tablename` ORDER BY zDate LIMIT $toDelete","artica_events");
+					}
+				if(!$q->ok){writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);}
+			}else{
+				$q->QUERY_SQL("OPTIMIZE TABLE `$tablename`","artica_events");
+				}
+			}	
+		}
+		
 	
 }
 
@@ -797,7 +936,7 @@ function udfbguard_admin_events($nopid=false){
 		$array=unserialize(@file_get_contents($filename));
 		if(!is_array($array)){
 			$array["text"]=basename($filename)." is not an array, skip event ".@file_get_contents($filename);
-			$array["date"]=date('Y-m-d H:i:s');
+			$array["zdate"]=date('Y-m-d H:i:s');
 			$array["pid"]=getmypid();
 			$array["function"]=__FUNCTION__;
 			$array["category"]="parser";
@@ -806,38 +945,110 @@ function udfbguard_admin_events($nopid=false){
 			
 		}			
 			
+		if($array["category"]=="ufdbguard-service"){udfbguard_admin_events_smtp($array);}
 			
-		if(!is_numeric($array["TASKID"])){
-			$array["TASKID"]=0;
-		}		
+		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+		$tableName="TaskSq{$array["TASKID"]}";
+		
 		
 		$array["text"]=mysql_escape_string($array["text"]);
 		WriteMyLogs("ufdbguard_admin_events:{$array["function"]}/{$array["file"]}: Task  `{$array["TASKID"]}` ". strlen("{$array["text"]}")."bytes",__FUNCTION__,__FILE__,__LINE__);
+		$f[$tableName][]="('{$array["zdate"]}','{$array["function"]}','{$array["file"]}','{$array["line"]}','{$array["text"]}','{$array["category"]}')";
+		@unlink($filename);
+	}
+	
+	system_admin_events_inject($f);
+	udfbguard_update_events();
+	
+}
+function udfbguard_update_events($nopid=false){
+	if($GLOBALS["VERBOSE"]){echo "udfbguard_update_events\n";}
+	$f=array();
+	if($nopid){
+		$unix=new unix();
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}
+		$t=0;
+
+	}
+
+	$q=new mysql_squid_builder();
+	$q->CheckTables();
+	if(!$q->TABLE_EXISTS('webfilter_updateev','artica_events',true)){$q->CheckTables();}
+	$prefix="INSERT IGNORE INTO webfilter_updateev (`zDate`,`function`,`filename`,`line`,`description`,`category`,`TASKID`) VALUES ";
+	foreach (glob("/var/log/artica-postfix/ufdbguard_update_events/*") as $filename) {
+		$array=unserialize(@file_get_contents($filename));
+		if($GLOBALS["VERBOSE"]){echo "$filename\n";}
+		if(!is_array($array)){
+			if($GLOBALS["VERBOSE"]){echo "$filename not an array\n";}
+			@unlink($filename);continue;}
+
+		
+		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+		$array["text"]=mysql_escape_string($array["text"]);
+		WriteMyLogs("udfbguard_update_events:{$array["function"]}/{$array["file"]}: Task  `{$array["TASKID"]}` ". strlen("{$array["text"]}")."bytes",__FUNCTION__,__FILE__,__LINE__);
 		$f[]="('{$array["zdate"]}','{$array["function"]}','{$array["file"]}','{$array["line"]}','{$array["text"]}','{$array["category"]}','{$array["TASKID"]}')";
 		@unlink($filename);
 	}
 	
-	if(count($f)>0){$sql=$prefix.@implode(",", $f);
-		$q->QUERY_SQL($sql,"artica_events");
-		if(!$q->ok){
-			WriteMyLogs("ufdbguard_admin_events:: `$q->mysql_error`",__FUNCTION__,__FILE__,__LINE__);
-			writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
-		}
-	
+	if(count($f)>0){
+		$q->QUERY_SQL($prefix.@implode(",", $f));
+		if($GLOBALS["VERBOSE"]){echo $prefix.@implode(",", $f)."\n";}
+		if(!$q->ok){writelogs($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);}
 	}
 	
+
+	
+
+
+}
+function udfbguard_admin_events_smtp($array){
+	include_once(dirname(__FILE__) . '/ressources/class.mail.inc');
+	include_once(dirname(__FILE__)."/ressources/smtp/class.phpmailer.inc");
+	
+	if(count($array)==0){return;}
+	
+	$users=new usersMenus();
 	$sock=new sockets();
-	$settings=unserialize(base64_decode($sock->GET_INFO("FcronSchedulesParams")));
-	if(!is_numeric($settings["max_events"])){$settings["max_events"]="50000";}
-	$NumRows=$q->COUNT_ROWS("ufdbguard_admin_events", "artica_events");
-	if($NumRows>$settings["max_events"]){
-		$toDelete=$NumRows-$settings["max_events"];
-		$q->QUERY_SQL("DELETE FROM ufdbguard_admin_events ORDER BY zDate LIMIT $toDelete","artica_events");
+	$UfdbguardSMTPNotifs=unserialize(base64_decode($sock->GET_INFO("UfdbguardSMTPNotifs")));
+	if(!isset($UfdbguardSMTPNotifs["ENABLED"])){return ;}
+	if($UfdbguardSMTPNotifs["ENABLED"]==0){return ;}
+	$smtp_dest=$UfdbguardSMTPNotifs["smtp_dest"];
+	$smtp_sender=$UfdbguardSMTPNotifs["smtp_sender"];
+	if($smtp_dest==null){return;}
+	if($smtp_sender==null){$smtp_sender="root@artica.localhost.localdomain";}
+	
+	while (list ($a, $b) = each ($array)){$TEXTZ[]="$a = $b";}
+	
+	$subject="[$users->hostname]: Web filtering service notification";
+	$text=@implode("\r\n", $TEXTZ);
+	$mail = new PHPMailer(true);
+	$mail->IsSMTP();
+	$mail->AddAddress($smtp_dest,$smtp_dest);
+	$mail->AddReplyTo($smtp_sender,$smtp_sender);
+	$mail->From=$smtp_sender;
+	$mail->Subject=$subject;
+	$mail->Body=$text;
+	$mail->Host=$UfdbguardSMTPNotifs["smtp_server_name"];
+	$mail->Port=$UfdbguardSMTPNotifs["smtp_server_port"];
+	
+	if(($UfdbguardSMTPNotifs["smtp_auth_user"]<>null) && ($UfdbguardSMTPNotifs["smtp_auth_passwd"]<>null)){
+		$mail->SMTPAuth=true;
+		$mail->Username=$UfdbguardSMTPNotifs["smtp_auth_user"];
+		$mail->Password=$UfdbguardSMTPNotifs["smtp_auth_passwd"];
+		if($UfdbguardSMTPNotifs["tls_enabled"]==1){$mail->SMTPSecure = 'tls';}
+		if($UfdbguardSMTPNotifs["ssl_enabled"]==1){$mail->SMTPSecure = 'ssl';}
+	
+	
 	}
-	mysql_admin_events_check();
+	
+	$mail->Send();	
 	
 	
 }
+
+
 function mysql_admin_events_check($nopid=false){
 	$f=array();
 	if($nopid){
@@ -884,11 +1095,11 @@ $q=new mysql();
 	
 	$sock=new sockets();
 	$settings=unserialize(base64_decode($sock->GET_INFO("FcronSchedulesParams")));
-	if(!is_numeric($settings["max_events"])){$settings["max_events"]="50000";}
+	if(!is_numeric($settings["max_events"])){$settings["max_events"]="10000";}
 	$NumRows=$q->COUNT_ROWS("mysql_events", "artica_events");
 	if($NumRows>$settings["max_events"]){
 		$toDelete=$NumRows-$settings["max_events"];
-		$q->QUERY_SQL("DELETE FROM mysql_events ORDER BY zDate LIMIT $toDelete");
+		$q->QUERY_SQL("DELETE FROM mysql_events ORDER BY zDate LIMIT $toDelete","artica_events");
 	}
 	update_events_check();
 	
@@ -969,11 +1180,11 @@ if(count($f)>0){$sql=$prefix.@implode(",", $f);
 	
 	$sock=new sockets();
 	$settings=unserialize(base64_decode($sock->GET_INFO("FcronSchedulesParams")));
-	if(!is_numeric($settings["max_events"])){$settings["max_events"]="50000";}
+	if(!is_numeric($settings["max_events"])){$settings["max_events"]="10000";}
 	$NumRows=$q->COUNT_ROWS("update_events", "artica_events");
 	if($NumRows>$settings["max_events"]){
 		$toDelete=$NumRows-$settings["max_events"];
-		$q->QUERY_SQL("DELETE FROM update_events ORDER BY zDate LIMIT $toDelete");
+		$q->QUERY_SQL("DELETE FROM update_events ORDER BY zDate LIMIT $toDelete","artica_events");
 	}	
 
 
@@ -1064,8 +1275,9 @@ function ps_mem($nopid=false){
 		$pid=@file_get_contents($pidfile);
 		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}	
 		$t=0;		
-		
+		@file_put_contents($pidfile, getmypid());
 	}
+	
 	
 	
 	
@@ -1230,6 +1442,8 @@ function authlogs(){
 					}
 				}
 				$Country=addslashes($Country);
+				$hostname=addslashes($hostname);
+				$uid=addslashes($uid);
 				ssh_events("SSH Failed $ip $hostname ($Country)",__FUNCTION__,__FILE__,__LINE__);
 				$sql="INSERT IGNORE INTO auth_events (ipaddr,hostname,success,uid,zDate,Country) VALUES ('$ip','$hostname','0','$uid','$zdate','$Country')";
 				$q->QUERY_SQL($sql,"artica_events");
@@ -1252,7 +1466,8 @@ function authlogs(){
 					}
 				}	
 			$Country=addslashes($Country);
-					
+			$hostname=addslashes($hostname);
+			$uid=addslashes($uid);					
 			$sql="INSERT IGNORE INTO auth_events (ipaddr,hostname,success,uid,zDate,Country) VALUES ('$ip','$hostname','1','$uid','$zdate','$Country')";
 			ssh_events("SSH Success $ip $hostname ($Country) `$sql`",__FUNCTION__,__FILE__,__LINE__);
 			$q->QUERY_SQL($sql,"artica_events");

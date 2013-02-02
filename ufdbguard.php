@@ -12,7 +12,7 @@
 	include_once('ressources/class.squid.inc');
 	
 	$user=new usersMenus();
-	if($user->AsSquidAdministrator==false){
+	if($user->AsDansGuardianAdministrator==false){
 		$tpl=new templates();
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
@@ -174,8 +174,16 @@ function tabs(){
 		$array["popup"]='{service_parameters}';
 		if(!$users->WEBSTATS_APPLIANCE){$array["ufdbclient"]='{client_parameters}';}
 		if($EnableRemoteStatisticsAppliance==1){unset($array["popup"]);}
+		$array["notifs"]='{notifications}';
 		
 	while (list ($num, $ligne) = each ($array) ){
+		if($num=="notifs"){
+			
+			$tab[]="<li><a href=\"ufdbguard.smtp.notif.php?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+		
 		 $tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
 		}
 	
@@ -217,7 +225,7 @@ function popup(){
 	if(!is_numeric($datas["url-lookup-result-when-fatal-error"])){$datas["url-lookup-result-when-fatal-error"]=1;}
 	if(!is_numeric($datas["check-proxy-tunnel"])){$datas["check-proxy-tunnel"]=1;}
 	if(!is_numeric($datas["strip-domain-from-username"])){$datas["strip-domain-from-username"]=0;}
-	
+	if(!is_numeric($datas["refreshuserlist"])){$datas["refreshuserlist"]=15;}
 	
 	
 	if(!isset($datas["tcpsockets"])){$datas["tcpsockets"]=0;}
@@ -327,6 +335,12 @@ function popup(){
 		<td>". Field_checkbox("strip-domain-from-username",1,$datas["strip-domain-from-username"])."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>	
+	<tr>
+		<td class=legend style='font-size:14px'>{refreshuserlist}:</td>
+		<td style='font-size:14px'>". Field_checkbox("refreshuserlist",1,$datas["refreshuserlist"])."&nbsp;{minutes}</td>
+		<td width=1%>&nbsp;</td>
+	</tr>				
+				
 	
 	
 	<tr>
@@ -412,6 +426,7 @@ function popup(){
     	XHR.appendData('listen_port',document.getElementById('listen_port').value);
     	XHR.appendData('listen_addr',document.getElementById('listen_addr').value);	
     	XHR.appendData('ufdbguardReloadTTL',document.getElementById('ufdbguardReloadTTL').value);
+    	XHR.appendData('refreshuserlist',document.getElementById('refreshuserlist').value);
     	
     	
     		

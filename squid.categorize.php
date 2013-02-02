@@ -117,7 +117,7 @@ function save_category(){
 	
 	$sql_add="INSERT IGNORE INTO categorize (zmd5,zDate,category,pattern,uuid) VALUES('$md5',NOW(),'$category','$www','$uuid')";
 	$sql_add2="INSERT IGNORE INTO category_$category_table (zmd5,zDate,category,pattern,uuid) VALUES('$md5',NOW(),'$category','$www','$uuid')";
-	$sql_edit="UPDATE category_$category_table SET enabled='$enabled' WHERE zmd5='{$ligne["zmd5"]}'";
+	$sql_edit="DELETE FROM category_$category_table WHERE zmd5='{$ligne["zmd5"]}'";
 	
 
 	
@@ -188,7 +188,7 @@ function choose_group(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$q=new mysql_squid_builder();	
-	$t=time();
+	$t=$_GET["t"];
 	$new_category=$tpl->_ENGINE_parse_body("{new_category}");
 	$sql="SELECT master_category FROM webfilters_categories_caches GROUP BY master_category";
 	$results=$q->QUERY_SQL($sql);
@@ -212,7 +212,7 @@ function choose_group(){
 	function RefreshConfigCategorized$t(){
 	
 		var sdate=document.getElementById('CatzByGroup-$t').value;
-		$('#categorizer-table').flexOptions({url: '$page?categorizer-list=yes&www={$_GET["www"]}&bykav={$_GET["bykav"]}&day={$_GET["day"]}&group='+sdate}).flexReload();
+		$('#dansguardian2-category-$t').flexOptions({url: '$page?categorizer-list=yes&www={$_GET["www"]}&bykav={$_GET["bykav"]}&day={$_GET["day"]}&group='+sdate}).flexReload();
 		WinORGHide();
 	}
 	
@@ -253,7 +253,7 @@ function popup_start(){
 	if(is_numeric($_GET["table-size"])){$TB_WIDTH=$_GET["table-size"];}
 	if(is_numeric($_GET["row-explain"])){$TD_DESC=$_GET["row-explain"];}
 	
-	
+	$t=time();
 	
 	$description=$tpl->_ENGINE_parse_body("{description}");
 	$category=$tpl->_ENGINE_parse_body("{category}");	
@@ -266,11 +266,11 @@ function popup_start(){
 	$All=$tpl->_ENGINE_parse_body("{all}");
 	$group=$tpl->_ENGINE_parse_body("{group}");
 $html="
-	<table class='categorizer-table' style='display: none' id='categorizer-table' style='width:99%'></table>
+	<table class='dansguardian2-category-$t' style='display: none' id='dansguardian2-category-$t' style='width:99%'></table>
 <script>
 
 $(document).ready(function(){
-$('#categorizer-table').flexigrid({
+$('#dansguardian2-category-$t').flexigrid({
 	url: '$page?categorizer-list=yes&www={$_GET["www"]}&bykav={$_GET["bykav"]}&day={$_GET["day"]}&group={$_GET["group"]}',
 	dataType: 'json',
 	colModel : [
@@ -306,13 +306,13 @@ buttons : [
 });
 
 function AddCatz(){
-	Loadjs('dansguardian2.databases.php?add-perso-cat-js=yes');
+	Loadjs('dansguardian2.databases.php?add-perso-cat-js=yes&t=$t');
 }
 function OnlyEnabled(){
-	$('#categorizer-table').flexOptions({url: '$page?categorizer-list=yes&www={$_GET["www"]}&bykav={$_GET["bykav"]}&day={$_GET["day"]}&group={$_GET["group"]}&OnlyEnabled=1'}).flexReload(); 
+	$('#dansguardian2-category-$t').flexOptions({url: '$page?categorizer-list=yes&www={$_GET["www"]}&bykav={$_GET["bykav"]}&day={$_GET["day"]}&group={$_GET["group"]}&OnlyEnabled=1'}).flexReload(); 
 }
 function AllBack(){
-	$('#categorizer-table').flexOptions({url: '$page?categorizer-list=yes&www={$_GET["www"]}&bykav={$_GET["bykav"]}&day={$_GET["day"]}&group={$_GET["group"]}'}).flexReload(); 
+	$('#dansguardian2-category-$t').flexOptions({url: '$page?categorizer-list=yes&www={$_GET["www"]}&bykav={$_GET["bykav"]}&day={$_GET["day"]}&group={$_GET["group"]}'}).flexReload(); 
 }
 
 function AllGroups(){
@@ -411,12 +411,17 @@ function popup_categories_sql(){
 	$c=0;
 	while ($ligne = mysql_fetch_assoc($results)) {
 		if($ligne['categorykey']=="phishtank"){continue;}
+		$DISABLED=false;
 		if($ligne["picture"]==null){$ligne["picture"]="20-categories-personnal.png";}
 		$TextInterne=null;
 		$img="img/{$ligne["picture"]}";
 		$val=0;
 		if($hash_community[$ligne['categorykey']]){$val=1;}
-		if($hash_ARTICA[$ligne['categorykey']]){$TextInterne=$tpl->_ENGINE_parse_body("<div style='color:#D01313;font-size:11px;font-style:italic'>{categorized_in_articadb}</div>");}
+		if($hash_ARTICA[$ligne['categorykey']]){
+			$TextInterne=$tpl->_ENGINE_parse_body("<div style='color:#D01313;font-size:11px;font-style:italic'>{categorized_in_articadb}</div>");
+			$val=1;
+			$DISABLED=true;
+		}
 		$md=md5($ligne['categorykey']);
 		
 		
@@ -433,7 +438,7 @@ function popup_categories_sql(){
 		
 		
 		$js="DansCommunityCategory('$md','{$ligne["categorykey"]}','$www_encoded')";
-		$disable=Field_checkbox($md, 1,$val,"$js");
+		$disable=Field_checkbox($md, 1,$val,"$js",null,$DISABLED);
 		
 		$ligne['description']=utf8_encode($ligne['description']);
 		

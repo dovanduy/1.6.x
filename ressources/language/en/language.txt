@@ -3915,7 +3915,7 @@ all ActiveSync compatible mobile devices and Blackberry via the Blackberry Enter
 <postfix_multi_add_mailserver>Add a new mail server in your organization</postfix_multi_add_mailserver>
 <squid_reverse_proxy>Reverse Proxy</squid_reverse_proxy>
 <squid_reverse_proxy_text>Make one accelerator act as a single front-end for multiple servers</squid_reverse_proxy_text>
-<enable_squid_reverse>Activate SQUID is Reverse Proxy</enable_squid_reverse>
+<enable_squid_reverse>Activate has a Reverse Proxy</enable_squid_reverse>
 <enable_squid_reverse_text>Reverse proxy cache, also known as Web Server Acceleration, 
 is a method of reducing the load on a busy web server by using a web cache between the server and the internet.[br]
 Another benefit that can be gained is improved security.[br]

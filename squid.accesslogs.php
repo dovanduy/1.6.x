@@ -4,6 +4,7 @@
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.squid.inc');
+	include_once('ressources/class.squid.accesslogs.inc');
 	
 	
 $usersmenus=new usersMenus();
@@ -278,12 +279,14 @@ $Start;
 
 
 
+
+
 function events_search(){
 $page=CurrentPageName();
 $tpl=new templates();
 $sock=new sockets();
 $q=new mysql_squid_builder();
-
+$GLOBALS["Q"]=$q;
 	
 	
 		
@@ -317,12 +320,13 @@ $q=new mysql_squid_builder();
 	$data['rows'] = array();
 	$today=date("Y-m-d");
 	
-	$http_status_codes=http_status_codes();
+	$squidacc=new accesslogs();
 	
+	$c=0;
 	while (list ($key, $line) = each ($datas) ){
 		$color="black";
 		$return_code_text=null;
-			
+		$ff=array();
 			$color="black";
 			if(preg_match('#(.+?)\s+(.+?)\s+squid\[.+?:\s+MAC:(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+\[(.+?)\]\s+\"([A-Z]+)\s+(.+?)\s+.*?"\s+([0-9]+)\s+([0-9]+)#i',$line,$re)){
 				$re[6]=trim($re[6]);
@@ -333,47 +337,71 @@ $q=new mysql_squid_builder();
 					}	
 				}
 				
-			if(preg_match("#(TCP_DENIED|ERR_CONNECT_FAIL)#", $line)){
-					$color="#BA0000";
-				}	
-				
+			
+				//$ff[]="F=1";
+				//while (list ($a, $b) = each ($re) ){$ff[]="$a=$b";}
+				//$array["RE"]=@implode("<br>", $ff);
 				$uri=$re[9];
+				
 				$date=date("Y-m-d H:i:s",strtotime($re[7]));
 				$mac=$re[3];
 				$ip=$re[4];
 				$user=$re[5];
 				$dom=$re[6];
 				$proto=$re[8];
-				$return_code=$re[9];
-				$size=$re[10];
-				if($return_code>399){$color="#D60808";
-					$return_code_text="<div style='color:$color'>{$http_status_codes[$return_code]}</div>";
-				}
-				$host=$q->GetFamilySites(GetDomainFromURl($uri));
-				if($host=="cache_object"){continue;}
-				$uri=str_replace($host, "<a href=\"javascript:blur()\" 
-				OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?today-zoom=yes&type=req&familysite=$host&day=$today');\" 
-				style='text-decoration:underline;color:$color'>$host</a>", $uri);
+				$return_code=$re[10];
+				$size=$re[11];
 				
-				$spanON="<span style='color:$color'>";
-				$spanOFF="</span>";
-				
-				if($mac=="00:00:00:00:00:00"){$mac=null;}
-				if($mac<>null){
-					$mac="<a href=\"javascript:blur()\" 
-					OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&MAC=$mac');\" 
-					style='text-decoration:underline;color:$color'>$mac</a>";
-					
-				}
-				
-					$data['rows'][] = array(
-						'id' => md5($line),
-						'cell' => array("$spanON$date$spanOFF", "$spanON$proto$spanOFF","$spanON$uri.$return_code_text$spanOFF","$spanON$ip ($mac/$user/$dom)$spanOFF")
-					);					
-					
-					continue;
+				$array["IP"]=$ip;
+				$array["URI"]=$uri;
+				$array["DATE"]=$date;
+				$array["MAC"]=$mac;
+				$array["USER"]=$user;
+				$array["USER"]=$user;
+				$array["PROTO"]=$proto;
+				$array["CODE"]=$return_code;
+				$array["SIZE"]=$size;
+				$array["LINE"]=$line;
+				$mline=$squidacc->Buildline($array);
+				if(is_array($mline)){$data['rows'][] =$mline;$c++;}
+				continue;
 						
 			}
+			
+			
+			if(preg_match('#(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+.*?\s+MAC:(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+\[(.+?)\]\s+\"([A-Z]+)\s+(.+?)\s+.*?"\s+([0-9]+)\s+([0-9]+)#',$line,$re)){
+				$time=$re[3];
+				$prox=$re[4];
+				$mac=$re[5];
+				$date=date("Y-m-d H:i:s",strtotime($re[9]));
+				$ip=$re[6];
+				$user=$re[8];
+				
+				$proto=$re[10];
+				$return_code=$re[12];
+				$size=$re[13];	
+				$uri=$re[11];
+				//$ff[]="F=2";
+				//while (list ($a, $b) = each ($re) ){$ff[]="$a=$b";}
+				//$array["RE"]=@implode("<br>", $ff);
+				$array["PROXY"]=$prox;
+				$array["IP"]=$ip;
+				$array["URI"]=$uri;
+				$array["DATE"]=$date;
+				$array["MAC"]=$mac;
+				$array["USER"]=$user;
+				$array["USER"]=$user;
+				$array["PROTO"]=$proto;
+				$array["CODE"]=$return_code;
+				$array["SIZE"]=$size;
+				$array["LINE"]=$line;
+				
+				$mline=$squidacc->Buildline($array);
+				if(is_array($mline)){$data['rows'][] =$mline;$c++;}
+				continue;
+				
+			}
+			
 
 			
 			if(preg_match('#(.*?)\s+([0-9]+)\s+([0-9:]+).*?\]:\s+(.*?)\s+(.+)\s+(.+)\s+.+?"([A-Z]+)\s+(.+?)\s+.*?"\s+([0-9]+)\s+([0-9]+)#',$line,$re)){
@@ -391,26 +419,30 @@ $q=new mysql_squid_builder();
 							$re[5]=$re[6];
 							$re[6]="-";
 						}	
-					}					
+					}
+
+					//$ff[]="F=3";
+					//while (list ($a, $b) = each ($re) ){$ff[]="$a=$b";}
+					//$array["RE"]=@implode("<br>", $ff);
 					
 					$date=date("Y-m-d H:i:s",strtotime($dates));
 					$uri=$re[8];
 					$proto=$re[7];
 					$return_code=$re[8];
-					$size=$re[9];					
-					$host=$q->GetFamilySites(GetDomainFromURl($uri));
-					if($host=="cache_object"){continue;}
-				$uri=str_replace($host, "<a href=\"javascript:blur()\" 
-				OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?today-zoom=yes&type=req&familysite=$host&day=$today');\" 
-				style='text-decoration:underline;color:$color'>$host</a>", $uri);					
-
-				$spanON="<span style='color:$color'>";
-				$spanOFF="</span>";		
-				
-					$data['rows'][] = array(
-						'id' => md5($line),
-						'cell' => array("$spanON$date$spanOFF", "$spanON$proto$spanOFF","$spanON$uri.$return_code_text$spanOFF","$spanON$ip ($user)$spanOFF")
-					);					
+					$size=$re[9];
+					
+					$array["IP"]=$ip;
+					$array["URI"]=$uri;
+					$array["DATE"]=$date;
+					$array["MAC"]=$mac;
+					$array["USER"]=$user;
+					$array["USER"]=$user;
+					$array["PROTO"]=$proto;
+					$array["CODE"]=$return_code;
+					$array["SIZE"]=$size;
+					$array["LINE"]=$line;					
+					$mline=$squidacc->Buildline($array);
+					if(is_array($mline)){$data['rows'][] =$mline;$c++;}				
 					
 					continue;
 						
@@ -419,6 +451,7 @@ $q=new mysql_squid_builder();
 		writelogs("Not Filtered: $line",__FUNCTION__,__FILE__,__LINE__);
 
 	}
+	$data['total'] = $c;
 	echo json_encode($data);	
 }
 
@@ -451,60 +484,7 @@ echo $html;
 	
 }
 
-function http_status_codes(){
-return array(0=>"Used mostly with UDP traffic.",
-100=>"Continue",
-101=>"Switching Protocols",
-102=>"Processing",
-200=>"OK",
-201=>"Created",
-202=>"Accepted",
-203=>"Non-Authoritative Information",
-204=>"No Content",
-205=>"Reset Content",
-206=>"Partial Content",
-207=>"Multi Status",
-300=>"Multiple Choices",
-301=>"Moved Permanently",
-302=>"Moved Temporarily",
-303=>"See Other",
-304=>"Not Modified",
-305=>"Use Proxy",
-307=>"Temporary Redirect",
-400=>"Bad Request",
-401=>"Unauthorized",
-402=>"Payment Required",
-403=>"Forbidden",
-404=>"Not Found",
-405=>"Method Not Allowed",
-406=>"Not Acceptable",
-407=>"Proxy Authentication Required",
-408=>"Request Timeout",
-409=>"Conflict",
-410=>"Gone",
-411=>"Length Required",
-412=>"Precondition Failed",
-413=>"Request Entity Too Large",
-414=>"Request URI Too Large",
-415=>"Unsupported Media Type",
-416=>"Request Range Not Satisfiable",
-417=>"Expectation Failed",
-422=>"Unprocessable Entity",
-424=>"Locked",
-424=>"Failed Dependency",
-433=>"Unprocessable Entity",
-500=>"Internal Server Error",
-501=>"Not Implemented",
-502=>"Bad Gateway",
-503=>"Service Unavailable",
-504=>"Gateway Timeout",
-505=>"HTTP Version Not Supported",
-507=>"Insufficient Storage",
-600=>"Squid: header parsing error",
-601=>"Squid: header size overflow detected while parsing",
-601=>"roundcube: software configuration error",
-603=>"roundcube: invalid authorization");
-}
+
 function container_list(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();

@@ -35,9 +35,10 @@ if(isset($_GET["NetworkManager-check"])){NetworkManager_check();exit;}
 
 
 
-
+if(isset($_POST["CheckIpV4ToIp26"])){CheckIpV4ToIp26();exit;}
 if(isset($_GET["virtuals-list"])){virtuals_list();exit;}
 if(isset($_GET["virt-ipaddr"])){virtuals_add();exit;}
+if(isset($_POST["virt-ipv6"])){virtuals_addv6();exit;}
 if(isset($_GET["virt-del"])){virtuals_del();exit;}
 
 if(isset($_GET["script"])){switch_script();exit;}
@@ -62,10 +63,14 @@ if(isset($_GET["popup-tabs"])){tabs();exit;}
 if(isset($_GET["popup-hostname"])){tabs_hostname();exit;}
 
 if(isset($_GET["virtual-popup-add"])){virtual_add_form();exit;}
+if(isset($_GET["virtual-popup-addv6"])){virtual_add_formv6();exit;}
+
+
 if(isset($_GET["cdir-ipaddr"])){virtual_cdir();exit;}
 if(isset($_GET["postfix-virtual"])){virtuals_js();exit;}
 if(isset($_GET["js-add-nic"])){echo virtuals_js_datas();exit;}
 
+if(isset($_GET["bridges-add-form"])){Bridges_form_add();exit;}
 if(isset($_GET["bridges-list"])){Bridges_list();exit;}
 if(isset($_GET["bridge-add"])){Bridges_add();exit;}
 if(isset($_GET["bridge-del"])){Bridges_del();exit;}
@@ -397,6 +402,10 @@ function zlistnics_tabs(){
 	$users=new usersMenus();	
 	$array["networks"]="{edit_networks}";
 	$array["arpd"]="{arp_table}";
+	
+	if($users->ETTERCAP_INSTALLED){
+		$array["arpspoof"]='ARP Spoofing';
+	}	
 		
 	if($users->SNORT_INSTALLED){
 		
@@ -404,6 +413,10 @@ function zlistnics_tabs(){
 		if(strlen($APP_SNORT)>42){$APP_SNORT=substr($APP_SNORT, 0,43);}
 		$array["snort"]=$APP_SNORT;
 	}
+	
+	
+
+	
 	$array["firewall"]='{incoming_firewall}';
 	$array["firewall-white"]='{whitelist}';
 	
@@ -415,6 +428,11 @@ function zlistnics_tabs(){
 	
 	
 		while (list ($num, $ligne) = each ($array) ){
+			
+		if($num=="arpspoof"){
+			$html[]= "<li><a href=\"arp.spoof.php?none=yes$linkadd\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
+			continue;
+		}			
 			
 		if($num=="networks"){
 			$html[]= "<li><a href=\"computer-browse.php?browse-networks=yes$linkadd\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
@@ -446,7 +464,7 @@ function zlistnics_tabs(){
 	
 	$tab=time();
 	echo "
-	<div id='tabs_listnics2' style='margin:-8px;margin-right:-25px;width:$tabwidth;height:700px;overflow:auto'>
+	<div id='tabs_listnics2'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 
@@ -466,6 +484,8 @@ function zlistnics(){
 	$users=new usersMenus();
 	$snortInterfaces=array();
 	$LXCEthLocked=$sock->GET_INFO("LXCEthLocked");
+	$EnableipV6=$sock->GET_INFO("EnableipV6");
+	if(!is_numeric($EnableipV6)){$EnableipV6=0;}
 	$ASDEBIAN=0;
 	if($users->AS_DEBIAN_FAMILY){$ASDEBIAN=1;}
 	if(!is_numeric($LXCEthLocked)){$LXCEthLocked=0;}
@@ -499,6 +519,8 @@ function zlistnics(){
 	writelogs(count($datas). " rows for nic infos",__FUNCTION__,__FILE__,__LINE__);
 	if(isset($_GET["newinterface"])){$fontsize="font-size:14px;";$linkadd="&newinterface=yes";$tabwidth="100%";}
 	
+	
+	
 	$tr[]=$tpl->_ENGINE_parse_body("
 		<table style='width:320px;margin:3px;padding:3px;'
 		OnMouseOver=\";this.style.cursor='pointer';this.style.background='#F5F5F5';\"
@@ -521,6 +543,9 @@ function zlistnics(){
 		</tr>
 		</table>
 		");
+	
+	
+	
 	$tr[]="<div id='main_config_hostname'></div>
 	<script>LoadAjax('main_config_hostname','$page?popup-hostname=yes$linkadd');</script>
 	";
@@ -647,7 +672,8 @@ function zlistnics_builder(){
 	$sock=new sockets();
 	$snortInterfaces=array();
 	$LXCEthLocked=$sock->GET_INFO("LXCEthLocked");
-	
+	$EnableipV6=$sock->GET_INFO("EnableipV6");
+	if(!is_numeric($EnableipV6)){$EnableipV6=0;}
 	if(!is_numeric($LXCEthLocked)){$LXCEthLocked=0;}
 	$IPBANS=unserialize(base64_decode($sock->GET_INFO("ArticaIpListBanned")));
 	$LXCInterface=$sock->GET_INFO("LXCInterface");
@@ -789,9 +815,20 @@ function zlistnics_builder(){
 function listnicinfos($nicname,$js=null){
 	$sock=new sockets();
 	$nicinfos=$sock->getFrameWork("cmd.php?nicstatus=$nicname");
+	$EnableipV6=$sock->GET_INFO("EnableipV6");
+	if(!is_numeric($EnableipV6)){$EnableipV6=0;}	
+	
 	$IPBANS=unserialize(base64_decode($sock->GET_INFO("ArticaIpListBanned")));	
 	$tbl=explode(";",$nicinfos);
 	$tpl=new templates();
+	if($EnableipV6==1){
+		$ip6s=unserialize(base64_decode($sock->getFrameWork("network.php?ifconfig6=$nicname")));
+		while (list ($num, $ligne) = each ($ip6s) ){
+			$ip6z[]="<tr>
+					<td colspan=2 ><i style='font-size:11px'>$num</i></td>
+				</tr>";	
+		}
+	}
 	
 	$_netmask=html_entity_decode($tpl->_ENGINE_parse_body("{netmask}"));
 	if(strlen($_netmask)>11){$_netmask=texttooltip(substr($_netmask,0,8)."...:",$tpl->_ENGINE_parse_body("{netmask}"));}else{$_netmask=$_netmask.":";}
@@ -819,8 +856,16 @@ function listnicinfos($nicname,$js=null){
 	<input type='hidden' id='infos_$nicname' value='$defaults_infos_array'>
 	<table style='width:99.5%' class=form>
 	<tr>
-		<td class=legend nowrap style='color:$textColor'>{tcp_address}:</td>
-		<td style='font-weight:bold;font-size:13px;color:$textColor'>$href{$tbl[0]}</a></td>
+		<td class=legend nowrap style='color:$textColor' valign='top'>{tcp_address}:</td>
+		<td style='font-weight:bold;font-size:13px;color:$textColor'>
+			<table style='width:100%'>
+				<tr>
+					<td width=1%><img src='img/arrow-right-16.png'></td>
+					<td>$href{$tbl[0]}</a></td>
+				</tr>
+			". @implode("", $ip6z)."
+			</table>
+			</td>
 	</tr>
 	<tr>
 		<td class=legend nowrap style='color:$textColor'>$_netmask</td>
@@ -1113,6 +1158,202 @@ function Virtuals(){
 	
 }
 
+function virtual_add_formv6(){
+	$ldap=new clladp();
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$tpl=new templates();	
+	$t=$_GET["t"];
+	if(!is_numeric($t)){$t=0;}	
+	$nics=unserialize(base64_decode($sock->getFrameWork("cmd.php?list-nics=yes")));
+	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+	$NoGatewayForVirtualNetWork=$sock->GET_INFO("NoGatewayForVirtualNetWork");
+	$DisableNetworksManagement=$sock->GET_INFO("DisableNetworksManagement");
+	if(!is_numeric($NoGatewayForVirtualNetWork)){$NoGatewayForVirtualNetWork=0;}
+	if(!is_numeric($DisableNetworksManagement)){$DisableNetworksManagement=0;}
+	$FailOver=0;
+	$NoGatewayForVirtualNetWorkExplain=$tpl->javascript_parse_text("{NoGatewayForVirtualNetWorkExplain}");	
+	if($users->LinuxDistriCode=="DEBIAN"){
+		if(preg_match("#Debian\s+([0-9]+)\.#",$users->LinuxDistriFullName,$re)){
+			$DEBIAN_MAJOR=$re[1];
+			if($DEBIAN_MAJOR==6){$FailOver=1;}
+		}
+		
+	}
+	
+	
+	$title_button="{add}";
+	if(!is_numeric($_GET["ID"])){$_GET["ID"]=0;}
+	
+	if($_GET["ID"]>0){
+		$sql="SELECT * FROM nics_virtuals WHERE ID='{$_GET["ID"]}'";
+		$q=new mysql();
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$title_button="{apply}";
+	}
+	
+	if(isset($_GET["default-datas"])){
+			$default_array=unserialize(base64_decode($_GET["default-datas"]));
+			if(is_array($default_array)){
+				$ligne["nic"]=$default_array["NIC"];
+			if(preg_match("#(.+?)\.([0-9]+)$#",$default_array["IP"],$re)){
+				if($re[2]>254){$re[2]=1;}
+				$re[2]=$re[2]+1;
+				$ligne["ipaddr"]="{$re[1]}.{$re[2]}";
+				$ligne["gateway"]=$default_array["GW"];
+				$ligne["netmask"]=$default_array["NETMASK"];
+			}
+		}
+	}
+
+	
+	$styleOfFields="font-size:16px;padding:3px";
+	$ous=$ldap->hash_get_ou(true);
+	$ous["openvpn_service"]="{APP_OPENVPN}";
+	
+	if($users->crossroads_installed){
+		if($EnablePostfixMultiInstance==1){
+			$ous["crossroads"]="{load_balancer}";
+		}
+	}
+	
+	$AsDebianSystem=1;
+	while (list ($num, $val) = each ($nics) ){$nics_array[$val]=$val;}
+	if(!$users->AsDebianSystem){$AsDebianSystem=0;}
+	$nics_array[null]="{select}";
+	
+	$ous[null]="{select}";
+	
+	$nic_field=Field_array_Hash($nics_array,"nic",$ligne["nic"],null,null,0,"font-size:16px;padding:3px");
+	$ou_fields=Field_array_Hash($ous,"org",$ligne["org"],null,null,0,"font-size:16px;padding:3px");
+	
+	$array[0]="{select}";
+	$array[12]="/12";$array[13]="/13";$array[14]="/14";$array[15]="/15";$array[16]="/16";$array[17]="/17";$array[18]="/18";$array[19]="/19";$array[20]="/20";$array[21]="/21";$array[22]="/22";$array[23]="/23";$array[24]="/24";$array[25]="/25";$array[26]="/26";$array[27]="/27";$array[28]="/28";$array[29]="/29";$array[30]="/30";$array[31]="/31";$array[32]="/32";$array[33]="/33";$array[34]="/34";$array[35]="/35";$array[36]="/36";$array[37]="/37";$array[38]="/38";$array[39]="/39";$array[40]="/40";$array[41]="/41";$array[42]="/42";$array[43]="/43";$array[44]="/44";$array[45]="/45";$array[46]="/46";$array[47]="/47";$array[48]="/48";$array[49]="/49";$array[50]="/50";$array[51]="/51";$array[52]="/52";$array[53]="/53";$array[54]="/54";$array[55]="/55";$array[56]="/56";$array[57]="/57";$array[58]="/58";$array[59]="/59";$array[60]="/60";$array[61]="/61";$array[62]="/62";$array[63]="/63";$array[64]="/64";$array[104]="/104";$array[120]="/120";$array[128]="/128";
+		
+	
+	
+	$html="
+	<div id='virtip'>
+	". Field_hidden("ID","{$_GET["ID"]}")."
+	<table style='width:99%' class=form>
+	<tr>
+		<td class=legend style='font-size:16px'>{nic}:</td>
+		<td colspan=2 >$nic_field</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{organization}:</td>
+		<td colspan=2>$ou_fields</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:16px'>{tcp_address} ipv6:</td>
+		<td>" . field_text("ipaddr6",$ligne["ipaddr"],$styleOfFields.";width:220px",null,null,null,false)."</td>
+		<td>". imgtootltip("arrow-blue-left-24.png","Ipv4 to ipv6","CheckIpV4ToIp26()")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:16px'>{netmask}:</td>
+			<td colspan=2>" . Field_array_Hash($array,"netmask",$ligne["netmask"],"blur()",null,0,$styleOfFields)."</td>
+		</tr>
+		
+		<tr>
+			<td class=legend style='font-size:16px'>{gateway}:</td>
+			<td>" . field_text("gateway_virtual",$ligne["gateway"],$styleOfFields.";width:220px")."</td>
+			<td>". imgtootltip("arrow-blue-left-24.png","Ipv4 to ipv6","CheckIpV4ToIp262()")."</td>
+		</tr>		
+		<tr>
+			<td class=legend style='font-size:16px'>{ForceGateway}:</td>
+			<td colspan=2>" . Field_checkbox("ForceGateway",1,$ligne["ForceGateway"])."</td>
+		</tr>
+		
+		
+	</table>
+	</div>
+	<div id='infosVirtual' style='font-size:13px'></div>
+	<div style='text-align:right'><hr>". button($title_button,"VirtualIPAdd6Save()",18)."</div>
+	<script>
+		var Netid={$_GET["ID"]};
+		var FailOver=$FailOver;
+		
+		if(Netid>0){
+			document.getElementById('ipaddr6').disabled=true;
+		}
+		
+		
+		function CheckGateway(){
+			var NoGatewayForVirtualNetWork=$NoGatewayForVirtualNetWork;
+			var AsDebianSystem=$AsDebianSystem;
+			if(AsDebianSystem==0){
+				document.getElementById('ForceGateway').disabled=true;
+				document.getElementById('ForceGateway').checked=false;
+			}
+			document.getElementById('gateway_virtual').disabled=false;
+			if(NoGatewayForVirtualNetWork==1){
+				document.getElementById('gateway_virtual').disabled=true;
+				document.getElementById('gateway_virtual').value='';
+				document.getElementById('ForceGateway').disabled=true;
+				document.getElementById('ForceGateway').checked=false;				
+				document.getElementById('gateway_virtual').disabled=true;
+				document.getElementById('infosVirtual').innerHTML='$NoGatewayForVirtualNetWorkExplain';
+				
+			}
+			
+		}
+		
+		var X_CheckIpV4ToIp26 = function (obj) {
+			var results=obj.responseText;
+			if(results.length>3){document.getElementById('ipaddr6').value=results;}
+			
+		}		
+		var X_CheckIpV4ToIp262 = function (obj) {
+			var results=obj.responseText;
+			if(results.length>3){document.getElementById('gateway_virtual').value=results;}
+			
+		}			
+		
+		function CheckIpV4ToIp26(){
+			var XHR = new XHRConnection();
+			XHR.appendData('CheckIpV4ToIp26',document.getElementById('ipaddr6').value);
+			XHR.sendAndLoad('$page', 'POST',X_CheckIpV4ToIp26);
+		}
+		
+		function CheckIpV4ToIp262(){
+			var XHR = new XHRConnection();
+			XHR.appendData('CheckIpV4ToIp26',document.getElementById('gateway_virtual').value);
+			XHR.sendAndLoad('$page', 'POST',X_CheckIpV4ToIp262);		
+		}
+		
+		
+		function VirtualIPAdd6Save(){
+			var DisableNetworksManagement=$DisableNetworksManagement;
+			var NoGatewayForVirtualNetWork=$NoGatewayForVirtualNetWork;
+			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}		
+			var XHR = new XHRConnection();
+			XHR.appendData('virt-ipv6',1);
+			XHR.appendData('virt-ipaddr',document.getElementById('ipaddr6').value);
+			XHR.appendData('netmask',document.getElementById('netmask').value);
+			if(NoGatewayForVirtualNetWork==0){XHR.appendData('gateway',document.getElementById('gateway_virtual').value);}
+			if(NoGatewayForVirtualNetWork==1){XHR.appendData('gateway','');}
+			XHR.appendData('nic',document.getElementById('nic').value);
+			XHR.appendData('org',document.getElementById('org').value);
+			XHR.appendData('ID',document.getElementById('ID').value);
+			if(document.getElementById('ForceGateway').checked){XHR.appendData('ForceGateway',1);}else{XHR.appendData('ForceGateway',0);}
+			if(document.getElementById('failover')){
+				if(document.getElementById('failover').checked){XHR.appendData('failover',1);}else{XHR.appendData('failover',0);}
+			}
+			MemFlexGrid=$t;
+			AnimateDiv('virtip');
+			XHR.sendAndLoad('$page', 'POST',X_VirtualIPAddSave);
+		}
+		
+	CheckGateway();
+	</script>
+	
+	";
+
+	echo $tpl->_ENGINE_parse_body($html);
+
+}
+
 function virtual_add_form(){
 	$ldap=new clladp();
 	$sock=new sockets();
@@ -1286,7 +1527,9 @@ function virtual_add_form(){
 			XHR.appendData('org',document.getElementById('org').value);
 			XHR.appendData('ID',document.getElementById('ID').value);
 			if(document.getElementById('ForceGateway').checked){XHR.appendData('ForceGateway',1);}else{XHR.appendData('ForceGateway',0);}
-			if(document.getElementById('failover').checked){XHR.appendData('failover',1);}else{XHR.appendData('failover',0);}
+			if(document.getElementById('failover')){
+				if(document.getElementById('failover').checked){XHR.appendData('failover',1);}else{XHR.appendData('failover',0);}
+			}
 			MemFlexGrid=$t;
 			AnimateDiv('virtip');
 			XHR.sendAndLoad('$page', 'GET',X_VirtualIPAddSave);
@@ -1355,6 +1598,60 @@ function NetWorkBroadCastAsIpAddr(){
 	$sock->SET_INFO("NetWorkBroadCastAsIpAddr",$_GET["NetWorkBroadCastAsIpAddr"]);
 	$sock->SET_INFO("NoGatewayForVirtualNetWork",$_GET["NoGatewayForVirtualNetWork"]);
 	
+	
+}
+
+function virtuals_addv6(){
+	$sock=new sockets();
+	$tpl=new templates();
+	$ipclass=new IP();
+	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
+	$DisableNetworksManagement=$sock->GET_INFO("DisableNetworksManagement");
+	if($DisableNetworksManagement==null){$DisableNetworksManagement=0;}		
+	if($DisableNetworksManagement==1){echo $ERROR_NO_PRIVS;return;}	
+	$NoGatewayForVirtualNetWork=$sock->GET_INFO("NoGatewayForVirtualNetWork");
+	if(!is_numeric($NoGatewayForVirtualNetWork)){$NoGatewayForVirtualNetWork=0;}	
+	if($_POST["nic"]==null){echo $tpl->_ENGINE_parse_body("{nic}=null");exit;}
+	if($_POST["failover"]==1){
+		$_POST["gateway"]=$_POST["virt-ipaddr"];
+		$_POST["ForceGateway"]=0;
+		
+	}	
+	
+	if(!$ipclass->isIPv6($_POST["virt-ipaddr"])){
+		echo "{$_POST["virt-ipaddr"]} is not an ipv6 ip address...";
+		return;
+	}
+	
+	if($NoGatewayForVirtualNetWork==1){$_POST["gateway"]=null;}
+	$q=new mysql();
+	if(!is_numeric($_POST["failover"])){$_POST["failover"]=0;}
+	if(!is_numeric($_POST["ForceGateway"])){$_POST["ForceGateway"]=0;}
+	
+	if(!$q->FIELD_EXISTS("nics_virtuals","ForceGateway","artica_backup")){$sql="ALTER TABLE `nics_virtuals` ADD `ForceGateway` TINYINT( 1 ) NOT NULL";$q->QUERY_SQL($sql,'artica_backup');if(!$q->ok){echo $q->mysql_error."\n$sql\n";return;}}		
+	if(!$q->FIELD_EXISTS("nics_virtuals","failover","artica_backup")){$sql="ALTER TABLE `nics_virtuals` ADD `failover` TINYINT( 1 ) NOT NULL,ADD INDEX ( `failover` )";$q->QUERY_SQL($sql,'artica_backup');if(!$q->ok){echo $q->mysql_error."\n$sql\n\n";return;}}
+	if(!$q->FIELD_EXISTS("nics_virtuals","ipv6","artica_backup")){$sql="ALTER TABLE `nics_virtuals` ADD `ipv6` TINYINT( 1 ) NOT NULL,ADD INDEX ( `ipv6` )";$q->QUERY_SQL($sql,'artica_backup');if(!$q->ok){echo $q->mysql_error."\n$sql\n\n";return;}}	
+	$sql="INSERT INTO nics_virtuals (nic,org,ipaddr,netmask,ipv6,gateway,ForceGateway,failover)
+	VALUES('{$_POST["nic"]}','{$_POST["org"]}','{$_POST["virt-ipaddr"]}',
+	'{$_POST["netmask"]}','1','{$_POST["gateway"]}',{$_POST["ForceGateway"]},{$_POST["failover"]});
+	";	
+
+	if($_POST["ID"]>0){
+		$sql="UPDATE nics_virtuals SET nic='{$_POST["nic"]}',
+		org='{$_POST["org"]}',
+		ipaddr='{$_POST["virt-ipaddr"]}',
+		netmask='{$_POST["netmask"]}',
+		ipv6='1',
+		gateway='{$_POST["gateway"]}',
+		ForceGateway='{$_POST["ForceGateway"]}',
+		failover='{$_POST["failover"]}'
+		WHERE ID={$_POST["ID"]}";
+	}
+	writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
+	
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){if(preg_match("#Unknown col#i", $q->mysql_error)){$q->BuildTables();$q->QUERY_SQL($sql,"artica_backup");}}
+	if(!$q->ok){echo $q->mysql_error."\n$sql\n";}	
 	
 }
 
@@ -1485,7 +1782,129 @@ function ConstructVirtsIP(){
 	$nic->ConstructVirtsIP();
 }
 
+
+
 function Bridges(){
+	$page=CurrentPageName();
+	$tpl=new templates();	
+	$sock=new sockets();
+	$users=new usersMenus();
+	$TB_HEIGHT=500;
+	$TB_WIDTH=870;
+	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
+	$DisableNetworksManagement=$sock->GET_INFO("DisableNetworksManagement");
+	if($DisableNetworksManagement==null){$DisableNetworksManagement=0;}		
+		
+	$t=time();
+	$action_delete_rule=$tpl->javascript_parse_text("{action_delete_rule}");
+	$enable=$tpl->_ENGINE_parse_body("{enable}");
+	$compile_rules=$tpl->_ENGINE_parse_body("{compile_rules}");
+	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
+	$enabled=$tpl->_ENGINE_parse_body("{enabled}");
+	$items=$tpl->_ENGINE_parse_body("{items}");
+	$error_want_operation=$tpl->javascript_parse_text("{error_want_operation}");
+	$events=$tpl->javascript_parse_text("{events}");
+	$new_rule=$tpl->javascript_parse_text("{new_rule}");
+	$title=$tpl->javascript_parse_text("{video_title}");
+	$size=$tpl->javascript_parse_text("{size}");
+	$delete=$tpl->_ENGINE_parse_body("{delete}");
+	$to=$tpl->_ENGINE_parse_body("{to}");
+	$from=$tpl->_ENGINE_parse_body("{from}");
+	$rules=$tpl->_ENGINE_parse_body("{rules}");
+	//client,hostname,website,category,rulename
+	$VIRTUAL_BRIDGES_EXPLAIN=$tpl->_ENGINE_parse_body("{VIRTUAL_BRIDGES_EXPLAIN}");
+		
+	$search="	searchitems : [
+		{display: '$client', name : 'client'},
+		{display: '$hostname', name : 'hostname'},
+		{display: '$website', name : 'website'},
+		{display: '$category', name : 'category'},
+		{display: '$rulename', name : 'rulename'},
+		
+
+	],";
+	
+	$buttons="
+	buttons : [
+	
+	{name: '$new_rule', bclass: 'Add', onpress : ItemAdd$t},
+	
+	],	";
+	$html="
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
+	
+<script>
+var mem$t='';
+$(document).ready(function(){
+$('#flexRT$t').flexigrid({
+	url: '$page?bridges-list=yes&t=$t',
+	dataType: 'json',
+	colModel : [
+		{display: '&nbsp;', name : 'hostname', width :31, sortable : false, align: 'center'},
+		{display: '$from', name : 'nics_virtuals_id', width :340, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'hostname', width :31, sortable : false, align: 'center'},
+		{display: '$to', name : 'nic_linked', width :317, sortable : true, align: 'left'},
+		{display: '$rules', name : 'none', width :31, sortable : false, align: 'center'},
+		{display: '$delete', name : 'del', width :31, sortable : true, align: 'center'},		
+	],
+	$buttons
+
+
+	sortname: 'ID',
+	sortorder: 'desc',
+	usepager: true,
+	title: '<span id=\"title-$t\"></span>',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: $TB_WIDTH,
+	height: $TB_HEIGHT,
+	singleSelect: true,
+	rpOptions: [10, 20, 30, 50,100,200,500]
+	
+	});   
+});
+	function ItemAdd$t(){
+		YahooWin('700','$page?bridges-add-form=yes&t=$t','$new_rule');
+	}
+
+		function ItemHelp$t(){
+			//s_PopUpFull('http://www.mail-appliance.org/index.php?cID=339','1024','900');
+		}
+		function BridgeRefresh(){
+			$('#flexRT$t').flexReload();
+			
+		}
+		
+		function BridgeRules(ID){
+			YahooWin('700','$page?bridges-rules='+ID,'$rules::'+ID);
+		}
+		
+
+
+		var X_BridgeDelete= function (obj) {
+			var results=obj.responseText;
+			if(results.length>3){alert(results);return;}
+			$('#row'+mem$t).remove();
+		}		
+		
+		function BridgeDelete(ID,mid){
+			mem$t=mid;
+			var DisableNetworksManagement=$DisableNetworksManagement;
+			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}		
+			var XHR = new XHRConnection();
+			XHR.appendData('bridge-del',ID);
+			XHR.sendAndLoad('$page', 'GET',X_BridgeDelete);
+		}		
+
+</script>";
+	
+	echo $html;
+}
+
+
+
+function Bridges_form_add(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sql="SELECT * FROM nics_virtuals ORDER BY ID DESC";
@@ -1494,7 +1913,7 @@ function Bridges(){
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	$nics_array[null]="{select}";
 	$nics_virtual[null]="{select}";
-	
+	$t=$_GET["t"];
 	$sock=new sockets();
 	$tpl=new templates();
 	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
@@ -1519,59 +1938,40 @@ while (list ($num, $val) = each ($datas) ){
 		$nics_array[$val]=" $val ({$infos["IPADDR"]})";
 	}
 	$rules=$tpl->_ENGINE_parse_body("{rules}");
-	$html="<div class=explain>{VIRTUAL_BRIDGES_EXPLAIN}</div>
-	<div style=text-align:right'></div>
-	<table style='width:100%'>
+	$html="
+	<div class=explain style='font-size:16px'>{VIRTUAL_BRIDGES_EXPLAIN}</div>
+	<center id='id-$t'></center>
+	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend style='font-size:13px' width=1% nowrap>{from}:</td>
-		<td width=1% nowrap>". Field_array_Hash($nics_virtual,"VirtualID",null,null,null,0,"font-size:13px;padding:3px")."</td>
-		<td class=legend style='font-size:13px' width=1% nowrap>{to}:</td>
-		<td width=1%>". Field_array_Hash($nics_array,"RealInterface",null,null,null,0,"font-size:13px;padding:3px")."</td>
-		<td width=1% nowrap>". button("{add_bridge}","BridgeAdd()")."</td>
-		<td width=99%>&nbsp;</td>
+		<td class=legend style='font-size:16px' width=1% nowrap>{from}:</td>
+		<td width=1% nowrap>". Field_array_Hash($nics_virtual,"VirtualID-$t",null,null,null,0,"font-size:16px;padding:3px")."</td>
+		<td class=legend style='font-size:16px' width=1% nowrap>{to}:</td>
+		<td width=1%>". Field_array_Hash($nics_array,"RealInterface-$t",null,null,null,0,"font-size:16px;padding:3px")."</td>
+	</tr>
+	<tr>
+		<td colspan=4 align='right'><hr>". button("{add_bridge}","BridgeAdd$t()",18)."</td>
+		
 	</tr>
 	</table>
-	
-	<hr>
-	<div id='bridge-list' style='heigth:250px;overflow:auto'></div>
-	
 	<script>
-		var X_BridgeAdd= function (obj) {
+		var X_BridgeAdd$t= function (obj) {
 			var results=obj.responseText;
-			if(results.length>0){alert(results);}
-			BridgeRefresh();
+			document.getElementById('id-$t').innerHTML='';
+			if(results.length>5){alert(results);return;}
+			$('#flexRT$t').flexReload();
+			YahooWinHide();
 		}
 		
-		function BridgeAdd(){
+		function BridgeAdd$t(){
 			var DisableNetworksManagement=$DisableNetworksManagement;
 			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}
 			var XHR = new XHRConnection();
 			XHR.appendData('bridge-add','yes');
-			XHR.appendData('VirtualID',document.getElementById('VirtualID').value);
-			XHR.appendData('RealInterface',document.getElementById('RealInterface').value);
-			document.getElementById('bridge-list').innerHTML=\"<center style='margin:10px'><img src='img/wait_verybig.gif'></center>\";
-			XHR.sendAndLoad('$page', 'GET',X_BridgeAdd);
+			XHR.appendData('VirtualID',document.getElementById('VirtualID-$t').value);
+			XHR.appendData('RealInterface',document.getElementById('RealInterface-$t').value);
+			AnimateDiv('id-$t');
+			XHR.sendAndLoad('$page', 'GET',X_BridgeAdd$t);
 		}
-		
-		function BridgeDelete(ID){
-			var DisableNetworksManagement=$DisableNetworksManagement;
-			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}		
-			var XHR = new XHRConnection();
-			XHR.appendData('bridge-del',ID);
-			document.getElementById('bridge-list').innerHTML=\"<center style='margin:10px'><img src='img/wait_verybig.gif'></center>\";
-			XHR.sendAndLoad('$page', 'GET',X_BridgeAdd);
-		}
-		
-		function BridgeRefresh(){
-			LoadAjax('bridge-list','$page?bridges-list=yes');
-			
-		}
-		
-		function BridgeRules(ID){
-			YahooWin('700','$page?bridges-rules='+ID,'$rules::'+ID);
-		}
-		
-		BridgeRefresh();
 	</script>
 	
 	";
@@ -1627,52 +2027,80 @@ function Bridges_del(){
 function Bridges_list(){
 	
 	
-	$html="<table cellspacing='0' cellpadding='0' border='0' class='tableView'>
-<thead class='thead'>
-	<tr>
-	<th colspan=2  nowrap>{from}</th>
-	<th nowrap>&nbsp;</th>
-	<th colspan=2 nowrap>{to}</th>
-	<th>{rules}</th>
-	<th nowrap>{delete}</th>
-	</tr>
-</thead>";
-	
-	$sql="SELECT * FROM iptables_bridge ORDER BY ID DESC";
+	$t=$_GET["t"];
+	$tpl=new templates();
+	$MyPage=CurrentPageName();
 	$q=new mysql();
-	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){
-		if(preg_match("#doesn't exist#",$q->mysql_error)){
-			$q->BuildTables();
-			echo "<script>BridgeRefresh();</script>";
-	}
-		
-		echo "<H2>$q->mysql_error</H2>";}
+	$users=new usersMenus();
+	$sock=new sockets();
+	$xtime=$_GET["xtime"];
+	$table="iptables_bridge";
+	$search='%';
+	$database="artica_backup";	
+	$page=1;
+	$FORCE_FILTER=null;
 	$tcp=new networking();
 	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$ipaddrinfos=VirtualNicInfosIPaddr($ligne["nics_virtuals_id"]);
-		$nic_linked=$ligne["nic_linked"];
-		$infos=$tcp->GetNicInfos($nic_linked);
-		
-		$html=$html."
-		<tr class=$classtr>
-			<td width=1% style='padding:3px'><img src='img/folder-network-32.png'></td>
-			<td width=33%><strong style='font-size:14px'>{$ipaddrinfos["ETH"]} ({$ipaddrinfos["IPADDR"]})</strong></td>
-			<td width=33% style='padding:3px' align='center'><img src='img/arrow-right-32.png'></td>
-			<td width=1% style='padding:3px'><img src='img/folder-network-32.png'></td>
-			<td width=33% nowrap><strong style='font-size:14px'>$nic_linked ({$infos["IPADDR"]})</strong></td>
-			<td width=1% align=center>". imgtootltip("script-32.png","{rules}","BridgeRules({$ligne["ID"]})")."</td>
-			<td width=1% align=center>". imgtootltip("delete-24.png","{delete}","BridgeDelete({$ligne["ID"]})")."</td>
-			
-		</tr>";		
+	if(!$q->TABLE_EXISTS($table, $database)){json_error_show("`$table` doesn't exists...");}
+	if($q->COUNT_ROWS($table, $database)==0){json_error_show("No rule");}
+
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-	}
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
 		
-	$html=$html."</table>";
-	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($html);
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+	}
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
+	
+
+	
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	$results = $q->QUERY_SQL($sql,$database);
+	
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
+	
+	if(!$q->ok){json_error_show($q->mysql_error);}	
+
+	while ($ligne = mysql_fetch_assoc($results)) {
+	$zmd5=md5(serialize($ligne));
+	$color="black";
+	$ipaddrinfos=VirtualNicInfosIPaddr($ligne["nics_virtuals_id"]);
+	$nic_linked=$ligne["nic_linked"];
+	$infos=$tcp->GetNicInfos($nic_linked);	
+	$rulesIcon=imgsimple("script-32.png","{rules}","BridgeRules({$ligne["ID"]})");
+	$delete=imgsimple("delete-24.png","{delete}","BridgeDelete({$ligne["ID"]},'$zmd5')");
+	$data['rows'][] = array(
+		'id' => "$zmd5",
+		'cell' => array(
+			"<span style='font-size:16px;color:$color'><img src='img/folder-network-32.png'></span>",
+			"<span style='font-size:16px;color:$color'>{$ipaddrinfos["ETH"]} ({$ipaddrinfos["IPADDR"]})</span>",
+			"<span style='font-size:16px;color:$color'><img src='img/arrow-right-32.png'></span>",
+			"<span style='font-size:16px;color:$color'>$nic_linked ({$infos["IPADDR"]})</strong></span>",
+			"<span style='font-size:16px;color:$color'>$rulesIcon</span>",
+			"<span style='font-size:16px;color:$color'>$delete</span>",
+			)
+		);
+	}
+	
+	
+echo json_encode($data);
+
 }
 
 function Bridges_rules(){
@@ -1855,7 +2283,14 @@ function OVHNetConfig(){
 	$sock=new sockets();
 	$sock->SET_INFO("OVHNetConfig", $_POST["OVHNetConfig"]);
 }
-
+function CheckIpV4ToIp26(){
+	$ipt=$_POST["CheckIpV4ToIp26"];
+	$ip=new IP();
+	if($ip->isIPv4($ipt)){
+		echo $ip->IPv4To6($ipt);
+	}
+	
+}
 //if(isset($_GET["cdir-ipaddr"])){virtual_cdir();exit;}
 	
 

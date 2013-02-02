@@ -25,7 +25,7 @@ if(isset($_GET["reboot-node-js"])){reboot_node_js();exit;}
 if(isset($_GET["hostname-node-js"])){hostname_node_js();exit;}
 if(isset($_GET["update-node-js"])){update_node_js();exit;}
 if(isset($_GET["update-squid-js"])){update_squid_js();exit;}
-
+if(isset($_GET["services"])){services_status();exit;}
 
 if(isset($_POST["reboot-node"])){reboot_node_perform();exit;}
 if(isset($_POST["delete-node"])){delete_node_perform();exit;}
@@ -43,7 +43,19 @@ function js(){
 	$page=CurrentPageName();
 	$blk=new blackboxes($_GET["nodeid"]);
 	$title=$blk->hostname;
-	$html="YahooWin('890','$page?tabs=yes&nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}','$title')";
+	$q=new mysql_blackbox();
+	$ipZ=array();$ipsT=null;
+	$results2=$q->QUERY_SQL("SELECT ipaddr  FROM `nics` WHERE nodeid={$_GET["nodeid"]}");
+	while($ligne2=mysql_fetch_array($results2,MYSQL_ASSOC)){
+		if($ligne2["ipaddr"]=="127.0.0.1"){continue;}
+		$ipZ[]=$ligne2["ipaddr"];
+	}
+	if(count($ipZ)>0){
+		$ipsT=implode(", ", $ipZ);
+	}	
+	
+	
+	$html="YahooWin('930','$page?tabs=yes&nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}','$title&raquo;$ipsT')";
 	echo $html;
 	
 }
@@ -235,7 +247,22 @@ function status(){
 	$virtual_memory=$tpl->_ENGINE_parse_body("{virtual_memory}");
 	$version=$tpl->_ENGINE_parse_body("{version}");
 	$status=$tpl->_ENGINE_parse_body("{status}");
+	$CORP=0;
 	
+	
+	if($blackbox->settings_inc["CORP_LICENSE"]){$CORP=1;}
+	
+	if($CORP==1){
+		$CORP_TEXT="{license_active}";
+	}else{
+		$CORP_TEXT="&nbsp;<img src='img/status_warning-18.gif'><span style='font-weight:normal'>{license_invalid}</span>";
+	}
+	
+	if($blackbox->TotalMemoryMB>0){
+		$TotalMemoryMB=" <span style='font-weight:normal;font-size:13px'>({memory}: {$blackbox->TotalMemoryMB}M)";
+	}else{
+		$TotalMemoryMB="&nbsp;<img src='img/status_warning-18.gif'><span style='font-weight:normal'>No memory receive...</span>";
+	}
 	
 	$updateAgent="<tr>
 					<td >&nbsp;</td>
@@ -286,7 +313,11 @@ function status(){
 				<tr>
 					<td class=legend style='font-size:14px'>{uuid}:</td>
 					<td><strong style='font-size:14px'>$blackbox->hostid</td>
-				</tr>				
+				</tr>	
+				<tr>
+					<td class=legend style='font-size:14px'>{artica_license}:</td>
+					<td><strong style='font-size:14px'>$CORP_TEXT</td>
+				</tr>							
 				<tr>
 					<td class=legend style='font-size:14px'>{hostname}:</td>
 					<td><strong style='font-size:14px'><a href=\"javascript:blur();\"
@@ -297,7 +328,7 @@ function status(){
 				
 				<tr>
 					<td class=legend style='font-size:14px'>{cpu_number}:</td>
-					<td><strong style='font-size:14px'>{$blackbox->settings_inc["CPU_NUMBER"]}</td>
+					<td><strong style='font-size:14px'>{$blackbox->settings_inc["CPU_NUMBER"]}$TotalMemoryMB</td>
 				</tr>	
 				<tr>
 					<td class=legend style='font-size:14px'>{version}:</td>
@@ -326,47 +357,66 @@ function status(){
 		
 	</tr>
 	</table>
-	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 	
-<script>
-
-$(document).ready(function(){
-$('#table-$t').flexigrid({
-	url: '$page?status-list=yes&nodeid={$_GET["nodeid"]}',
-	dataType: 'json',
-	colModel : [
-		{display: '$software', name : 'service_name', width : 237, sortable : true, align: 'left'},
-		{display: '$memory', name : 'master_memory', width : 80, sortable : true, align: 'left'},
-		{display: '$virtual_memory', name : 'master_cached_memory', width : 124, sortable : true, align: 'left'},
-		{display: '$version', name : 'master_version', width : 92, sortable : true, align: 'left'},
-		{display: '$status', name : 'running', width : 71, sortable : true, align: 'center'},
-		{display: 'PID', name : 'running', width : 71, sortable : true, align: 'left'},
-		
-	],
-
-	searchitems : [
-		{display: '$software', name : 'category'},
-		],
-	sortname: 'running',
-	sortorder: 'desc',
-	usepager: true,
-	title: '',
-	useRp: true,
-	rp: 15,
-	showTableToggleBtn: false,
-	width: 845,
-	height: 250,
-	singleSelect: true
 	
-	});   
-});
 	
-</script>	
 	
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
 	
+}
+
+function services_status(){
+	
+	$t=time();
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$software=$tpl->_ENGINE_parse_body("{daemon}");
+	$memory=$tpl->_ENGINE_parse_body("{memory}");
+	$virtual_memory=$tpl->_ENGINE_parse_body("{virtual_memory}");
+	$version=$tpl->_ENGINE_parse_body("{version}");
+	$status=$tpl->_ENGINE_parse_body("{status}");	
+	
+	$html="	
+	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
+	<script>
+	
+	$(document).ready(function(){
+		$('#table-$t').flexigrid({
+			url: '$page?status-list=yes&nodeid={$_GET["nodeid"]}',
+			dataType: 'json',
+			colModel : [
+			{display: '$software', name : 'service_name', width : 272, sortable : true, align: 'left'},
+			{display: '$memory', name : 'master_memory', width : 80, sortable : true, align: 'left'},
+			{display: '$virtual_memory', name : 'master_cached_memory', width : 124, sortable : true, align: 'left'},
+			{display: '$version', name : 'master_version', width : 159, sortable : true, align: 'left'},
+			{display: '$status', name : 'running', width : 71, sortable : true, align: 'center'},
+			{display: 'PID', name : 'running', width : 71, sortable : true, align: 'left'},
+	
+			],
+	
+			searchitems : [
+			{display: '$software', name : 'category'},
+			],
+			sortname: 'running',
+			sortorder: 'desc',
+			usepager: true,
+			title: '',
+			useRp: true,
+			rp: 15,
+			showTableToggleBtn: false,
+			width: 871,
+			height: 400,
+			singleSelect: true
+	
+		});
+	});
+	
+		</script>";
+	
+	echo $html;
 }
 
 
@@ -461,13 +511,20 @@ echo json_encode($data);
 
 
 function tabs(){
-	
+	$blk=new blackboxes($_GET["nodeid"]);
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$hostid=$_GET["hostid"];
+	
+	if(strlen($hostid)==0){
+		$_GET["hostid"]=$blk->hostid;
+		$hostid=$_GET["hostid"];
+	}
+	
 	$array["status"]="{status}";
+	$array["services"]="{services}";
 	$array["system"]="{system}";
-	$blk=new blackboxes($_GET["nodeid"]);
+	
 	
 	if($blk->settings_inc["SQUID_INSTALLED"]){
 		$array["squid"]="{APP_SQUID}";

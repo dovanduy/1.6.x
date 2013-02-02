@@ -5,22 +5,26 @@ include_once(dirname(__FILE__)."/class.nodes.squid.inc");
 
 class blackboxes{
 	
-	var $nodeid=0;
-	var $hostname=null;
-	var $ipaddress;
-	var $port=9001;
-	var $last_error;
-	var $settings_inc=array();
-	var $laststatus=null;
-	var $VERSION=null;
-	var $etcsquidconf=null;
-	var $squid_version;
-	var $Architecture=0;
-	var $IsArtica=0;
-	var $hostid=null;
-	var $ssl=1;
-	var $ssluri=null;
-	var $sslnouri=null;
+	public $nodeid=0;
+	public $hostname=null;
+	public $ipaddress;
+	public $port=9001;
+	public $last_error;
+	public $settings_inc=array();
+	public $laststatus=null;
+	public $VERSION=null;
+	public $etcsquidconf=null;
+	public $squid_version;
+	public $Architecture=0;
+	public $IsArtica=0;
+	public $hostid=null;
+	public $ssl=1;
+	public $ssluri=null;
+	public $sslnouri=null;
+	public $TotalMemoryMB=0;
+	public $SquidSMPStatus=null;
+	public $BoosterSMPStatus=null;
+	public $SquidSystemInfo=null;
 	
 	function blackboxes($nodeid=0){
 		if(!is_numeric($nodeid)){
@@ -31,6 +35,7 @@ class blackboxes{
 		}
 		$this->nodeid=$nodeid;
 		if(!is_numeric($this->nodeid)){$this->nodeid=0;return;}
+		if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
 		if($this->nodeid>0){$this->load();}
 	}
 	
@@ -40,6 +45,13 @@ class blackboxes{
 		$sql="SELECT * FROM nodes WHERE nodeid=$this->nodeid";
 		if(strlen($this->hostid)>5){$sql="SELECT * FROM nodes WHERE hostid='$this->hostid'";}
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){
+			if(preg_match("#doesn't exist#",$q->mysql_error)){
+				$q->CheckTables();
+				$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+			}
+			if(!$q->ok){echo "** FATAL *** $q->mysql_error\n";}
+		}
 		$this->hostname=$ligne["hostname"];
 		$this->ipaddress=$ligne["ipaddress"];
 		$this->port=$ligne["port"];
@@ -49,13 +61,20 @@ class blackboxes{
 		$this->etcsquidconf=base64_decode($ligne["squidconf"]);
 		$this->squid_version=$ligne["squidver"];
 		$this->Architecture=$ligne["arch"];
+		$this->SquidSMPStatus=@implode("\n",unserialize(base64_decode($ligne["SquidSMPStatus"])));
+		$this->BoosterSMPStatus=$ligne["BoosterSMPStatus"];
+		$this->SquidSystemInfo=$ligne["SquidSystemInfo"];
 		$this->IsArtica=$ligne["BigArtica"];
-		$this->hostid=$ligne["hostid"];
+		if($ligne["hostid"]<>null){
+			$this->hostid=$ligne["hostid"];
+		}
 		$this->nodeid=$ligne["nodeid"];
+		$this->TotalMemoryMB=$ligne["TotalMemoryMB"];
 		if(!isset($ligne["ssl"])){$ligne["ssl"]=1;}
 		$this->ssl=$ligne["ssl"];
 		if(!$q->TABLE_EXISTS("pms$this->nodeid")){$q->build_cached_items_table($this->nodeid);}
 		if(!is_numeric($this->port)){$this->port=9000;}
+		if(!is_numeric($this->TotalMemoryMB)){$this->TotalMemoryMB=0;}
 		if($this->port==0){$this->port=9000;}
 		$this->ssluri="https://$this->ipaddress:$this->port";
 		$this->sslnouri="http://$this->ipaddress:$this->port";
@@ -66,8 +85,11 @@ class blackboxes{
 		$q=new mysql_blackbox();
 		$sql="SELECT nodeid FROM nodes";
 		$results = $q->QUERY_SQL($sql);
+		if($GLOBALS["AS_ROOT"]){$GLOBALS["CLASS_UNIX"]=new unix();}
+		if(isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]->events("$sql ->".mysql_num_rows($results)." items","/var/log/stats-appliance.log");}
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$bb=new blackboxes($ligne["nodeid"]);
+			if(isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]->events("id:{$ligne["nodeid"]} ->GenericOrder($order)","/var/log/stats-appliance.log");}
 			$bb->GenericOrder($order);
 		}
 	}
@@ -107,7 +129,19 @@ class blackboxes{
 	}
 
 	public function reconfigure_squid(){
+		$sock=new sockets();
+		$sock->getFrameWork("services.php?nodes-export-tables=yes");
 		$parms["RECONFIGURE_SQUID"]="yes";
+		return $this->SendOrder($parms);			
+	}	
+	
+	public function REBUILD_CACHE(){
+		$parms["REBUILD_CACHE"]="yes";
+		return $this->SendOrder($parms);			
+	}	
+
+	public function RECONSTRUCT_CACHE(){
+		$parms["RECONSTRUCT_CACHE"]="yes";
 		return $this->SendOrder($parms);			
 	}	
 	
@@ -120,9 +154,71 @@ class blackboxes{
 		
 	}
 	
+	public function GET_SQUID_INFO($key){
+		if(isset($GLOBALS["GET_SQUID_INFO_ARRAY"])){
+			$array=$GLOBALS["GET_SQUID_INFO_ARRAY"];
+			if(!isset($array[$key])){return $this->GET_SQUID_INFO_DISK($key);}
+			if(trim($array[$key])==null){return $this->GET_SQUID_INFO_DISK($key);}
+			return $array[$key];			
+		}
+		$q=new mysql();
+		if(!$q->TABLE_EXISTS("squid_nodes_settings", "artica_backup")){$q->CheckTablesSquid();}
+		$sql="SELECT `content` FROM squid_nodes_settings WHERE uuid='$this->hostid'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		if($GLOBALS["VERBOSE"]){echo "Starting......: [SMP] content=". strlen($ligne["content"])." bytes for $this->hostid\n";}
+		$array=unserialize(base64_decode($ligne["content"]));
+		if(!is_array($array)){return $this->GET_SQUID_INFO_DISK($key);}
+		$GLOBALS["GET_SQUID_INFO_ARRAY"]=$array;
+		if(!isset($array[$key])){return $this->GET_SQUID_INFO_DISK($key);}
+		if(trim($array[$key])==null){return $this->GET_SQUID_INFO_DISK($key);}
+		return $array[$key];		
+	}
+	
+	private function GET_SQUID_INFO_DISK($key){
+		$sock=new sockets();
+		return $sock->GET_INFO($key);
+		
+	}
+	
+	public function SET_SQUID_POST_INFO($arrayToSave){
+		$q=new mysql();
+		$sql="SELECT `content` FROM squid_nodes_settings WHERE uuid='$this->hostid'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$array=unserialize(base64_decode($ligne["content"]));
+		while (list ($key, $val) = each ($arrayToSave) ){
+			$array[$key]=$val;
+		}
+		
+		
+		$sql="DELETE FROM squid_nodes_settings WHERE uuid='$this->hostid'";
+		$q->QUERY_SQL($sql,"artica_backup");
+		$newdata=base64_encode(serialize($array));
+		$sql="INSERT INTO squid_nodes_settings (`uuid`,`content`) VALUES ('$this->hostid','$newdata')";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo $q->mysql_error;}
+	}	
+	
+	public function SET_SQUID_INFO($key,$value){
+		$q=new mysql();
+		$sql="SELECT `content` FROM squid_nodes_settings WHERE uuid='$this->hostid'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$array=unserialize(base64_decode($ligne["content"]));
+		$array[$key]=$value;
+		$sql="DELETE FROM squid_nodes_settings WHERE uuid='$this->hostid'";
+		$q->QUERY_SQL($sql,"artica_backup");
+		$newdata=base64_encode(serialize($array));	
+		$sql="INSERT INTO squid_nodes_settings (uuid,`content`) VALUES ('$this->hostid','$newdata')";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo $q->mysql_error;}
+	}
+	
+	
 	private function SendOrder($parms){
+		
+		if($GLOBALS["AS_ROOT"]){$unix=new unix();}
+		
 		if(($this->port<5) OR ($this->IsArtica==1)){
-			
+			if(isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]->events("this->OrderQueue()","/var/log/stats-appliance.log");}
 			return $this->OrderQueue($parms);
 			
 		}		
@@ -140,15 +236,38 @@ class blackboxes{
 			writelogs("Asking $key  node:http://$this->ipaddress:$this->port",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			$curl->parms[$key]=$arr;
 		}
-		if(!$curl->get()){$this->last_error="{$curl->error} http://$this->ipaddress:$this->port";return;}
-		if(!preg_match("#<SUCCESS>#is", $curl->data)){$this->last_error="{failed} `http://$this->ipaddress:$this->port`";return;}	
+		if($GLOBALS["AS_ROOT"]){
+			$unix->events("Sends to http://$this->ipaddress:$this->port","/var/log/stats-appliance.log");
+		}
+		
+		if(!$curl->get()){
+			if($GLOBALS["AS_ROOT"]){$unix->events("{$curl->error} http://$this->ipaddress:$this->port","/var/log/stats-appliance.log");}			
+			$this->last_error="{$curl->error} http://$this->ipaddress:$this->port";return;}
+		if(!preg_match("#<SUCCESS>#is", $curl->data)){
+			if($GLOBALS["AS_ROOT"]){$unix->events("{failed} `http://$this->ipaddress:$this->port`","/var/log/stats-appliance.log");}
+			$this->last_error="{failed} `http://$this->ipaddress:$this->port`";
+			return;
+		}	
 		return true;			
+		
+	}
+	
+	private function WriteToSyslog($text){
+		if(!function_exists("syslog")){return;}
+		$LOG_SEV=LOG_INFO;
+		openlog("stats-appliance", LOG_PID , LOG_SYSLOG);
+		syslog($LOG_SEV, $text);
+		closelog();		
 		
 	}
 	
 	private function OrderQueue($parms){
 			$order=base64_encode(serialize($parms));
-			$orderid=md5($order);
+			$orderid=md5($order.time().$this->hostid.$this->nodeid);
+			while (list ($a, $b) = each ($parms) ){$orr[]="$a=$b";}
+			reset($parms);
+			$this->WriteToSyslog("Create new order for $this->hostid[$this->nodeid] " .@implode(" ", $orr));
+			
 			$sql="INSERT IGNORE INTO `poolorders` (`hostid`,`nodeid`,`orderid`,`orderdata`) VALUES ('$this->hostid','$this->nodeid','$orderid','$order')";		
 			$q=new mysql_blackbox();
 			$q->QUERY_SQL($sql);
@@ -156,6 +275,15 @@ class blackboxes{
 			if(!$q->ok){echo $q->mysql_error;
 			_udfbguard_admin_events("Creating new order for $this->hostid ($this->hostname) failed\n$q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "communicate");
 			return false;}
+			
+			if(isset($GLOBALS["CLASS_UNIX"])){
+				$php=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();	
+				$nohup=$GLOBALS["CLASS_UNIX"]->find_program("nohup");
+				$cmd="$php /usr/share/artica-postfix/exec.blackbox.php --ping $this->hostid >/dev/null 2>&1";
+				$GLOBALS["CLASS_UNIX"]->events("$cmd","/var/log/stats-appliance.log");
+				return;
+			}
+			
 			$sock=new sockets();
 			$sock->getFrameWork("services.php?blackbox-notify=$this->hostid");
 			_udfbguard_admin_events("Creating new order for $this->hostid ($this->hostname)", __FUNCTION__, __FILE__, __LINE__, "communicate");
@@ -300,6 +428,15 @@ class blackboxes{
 		
 	}
 	
+	public function squid_save_system_infos($EncodedDatas){
+		$q=new mysql_blackbox();
+		if(!$q->FIELD_EXISTS("nodes","SquidSystemInfo")){$sql="ALTER TABLE `nodes` ADD `SquidSystemInfo` TEXT NOT NULL";$q->QUERY_SQL($sql);}
+		$sql="UPDATE nodes SET SquidSystemInfo='$EncodedDatas' WHERE hostid='$this->hostid'";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}		
+		
+	}
+	
 	
 	public function squid_save_cache_infos($EncodedDatas){
 		$array=unserialize(base64_decode($EncodedDatas));
@@ -324,10 +461,37 @@ class blackboxes{
 	}
 	
 	public function squid_ufdbclientlog($EncodedDatas){
-		$sql="UPDATE nodes SET UfdbClientLogs='$EncodedDatas' WHERE hostid='$this->hostid'";
+		$sql="UPDATE `nodes` SET UfdbClientLogs='$EncodedDatas' WHERE hostid='$this->hostid'";
 		$q=new mysql_blackbox();
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+		if($GLOBALS["VERBOSE"]){echo "squid_ufdbclientlog::$this->hostid:: ".strlen($EncodedDatas)." bytes done..\n$q->mysql_error\n";}
+		
+	}
+	
+	public function system_update_memory($TotalMemoryMB=0){
+		$q=new mysql_blackbox();
+		if(!$q->FIELD_EXISTS("nodes","TotalMemoryMB")){$sql="ALTER TABLE `nodes` ADD `TotalMemoryMB` INT(100) NOT NULL,ADD INDEX ( `TotalMemoryMB` )";$q->QUERY_SQL($sql);}
+		$sql="UPDATE nodes SET TotalMemoryMB='$TotalMemoryMB' WHERE hostid='$this->hostid'";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}		
+		
+	}
+	
+	public function system_update_smtpstatus($EncodedDatas){
+		$q=new mysql_blackbox();
+		if(!$q->FIELD_EXISTS("nodes","SquidSMPStatus")){$sql="ALTER TABLE `nodes` ADD `SquidSMPStatus` TEXT";$q->QUERY_SQL($sql);}
+		$sql="UPDATE nodes SET SquidSMPStatus='$EncodedDatas' WHERE hostid='$this->hostid'";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}		
+	}
+	
+	public function system_update_boostersmp($EncodedDatas){
+		$q=new mysql_blackbox();
+		if(!$q->FIELD_EXISTS("nodes","BoosterSMPStatus")){$sql="ALTER TABLE `nodes` ADD `BoosterSMPStatus` TEXT";$q->QUERY_SQL($sql);}
+		$sql="UPDATE nodes SET BoosterSMPStatus='$EncodedDatas' WHERE hostid='$this->hostid'";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}		
 	}
 	
 	public function squid_save_cachelogs($EncodedDatas){
@@ -437,12 +601,18 @@ class blackboxes{
 	
 	function EchoOrders(){
 		$q=new mysql_blackbox();
-		if(!$q->TABLE_EXISTS("poolorders")){$q->CheckTables();}
+		if(!$q->TABLE_EXISTS("poolorders")){$q->CheckTables();return;}
 		
 		$sql="SELECT * FROM poolorders WHERE hostid='$this->hostid'";
 		$results=$q->QUERY_SQL($sql);
-		if(mysql_num_rows($results)==0){return;}
+		if(mysql_num_rows($results)==0){
+			zWriteToSyslog("($this->hostname): Checks Orders -> nothing..");
+			return;}
+		
+		$this->WriteToSyslog("($this->hostname): ".mysql_num_rows($results)." order(s)");
+		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$this->WriteToSyslog("($this->hostname): {$ligne["orderid"]} = {$ligne["orderdata"]}");
 			$t[]=array("orderid"=>$ligne["orderid"],"orderdata"=>$ligne["orderdata"]);
 		}
 		
@@ -477,7 +647,8 @@ class blackboxes{
 			if(!$q->ok){echo $q->mysql_error;return;}
 		}
 		
-		
+		$q=new mysql();
+		$q->QUERY_SQL("DELETE FROM squid_nodes_settings WHERE uuid=$this->hostid","artica_backup");
 		
 	}
 	
@@ -565,7 +736,10 @@ class blackboxes{
 			}
 
 		$q=new mysql_blackbox();
-		$q->QUERY_SQL("DELETE FROM softwares WHERE nodeid='$this->nodeid'");	
+		$q->CheckTables();	
+		if($GLOBALS["VERBOSE"]){echo "DELETE FROM softwares WHERE nodeid='$this->nodeid'\n";}
+		$q->QUERY_SQL("DELETE FROM softwares WHERE nodeid='$this->nodeid'");
+		
 		$prefix="INSERT DELAYED INTO softwares (nodeid,software,version) VALUES ".@implode(",", $f);
 		$q->QUERY_SQL($prefix);
 	}

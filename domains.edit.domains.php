@@ -57,6 +57,7 @@
 	
 function VerifyRights(){
 	$usersmenus=new usersMenus();
+	if($_SESSION["AllowChangeDomains"]){return true;}
 	if($usersmenus->AsMessagingOrg){return true;}
 	if(!$usersmenus->AllowChangeDomains){return false;}
 }
@@ -88,7 +89,7 @@ function round_robin_js(){
 	function RoundRobinSave(){
 		var roundrobin_ipaddress=document.getElementById('roundrobin_ipaddress').value;
 		var roundrobin_nameserver=document.getElementById('roundrobin_nameserver').value;
-		document.getElementById('hostDomainList').innerHTML='<div style=\"width:100%\"><center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center></div>';
+		AnimateDiv('hostDomainList');
 		var XHR = new XHRConnection();
 		XHR.appendData('roundrobin_ipaddress',roundrobin_ipaddress);
 		XHR.appendData('roundrobin_nameserver',roundrobin_nameserver);
@@ -101,7 +102,7 @@ function round_robin_js(){
 		var XHR = new XHRConnection();
 		XHR.appendData('round-robin-delete',num);
 		XHR.appendData('domain','$domain');
-		document.getElementById('hostDomainList').innerHTML='<div style=\"width:100%\"><center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center></div>';
+		AnimateDiv('hostDomainList');
 		XHR.sendAndLoad('$page', 'GET',x_RoundRobinSave);
 	}
 		
@@ -261,7 +262,7 @@ function js_script(){
 	$datas
 	
 	function LoadOuDOmainsIndex(){
-		YahooWin0(750,'$page?ajax=yes&ou=$ou_encrypted','$title');
+		YahooWin0(750,'$page?ajax=yes&ou=$ou_encrypted&master-t={$_GET["master-t"]}','$title');
 		
 	}
 	
@@ -290,14 +291,21 @@ function js_popup(){
 	if($users->cyrus_imapd_installed){$LOCAL_MDA=true;}
 	if($users->ZARAFA_INSTALLED){$LOCAL_MDA=true;}
 	
-	
+	if(isset($_GET["expand"])){$expand="&expand=yes";}
 	
 	if($LOCAL_MDA){$arr["organization-local-domain-list"]="{local_domains}";}
-	$arr["organization-relay-domain-list"]="{remote_domains}";
+	
+	if($users->POSTFIX_INSTALLED){
+		$arr["organization-relay-domain-list"]="{remote_domains}";
+	}
+	
+	if(count($arr)==0){
+		$arr["organization-local-domain-list"]="{local_domains}";
+	}
 	
 	while(list( $num, $ligne ) = each ($arr)){
 			$ligne=$tpl->_ENGINE_parse_body($ligne);
-			$toolbox [] = "<li><a href=\"$page?$num=$ou\"><span $styleText>$ligne</span></a></li>";
+			$toolbox [] = "<li><a href=\"$page?$num=$ou&master-t={$_GET["master-t"]}$expand\"><span $styleText>$ligne</span></a></li>";
 	}
 	
 
@@ -744,7 +752,8 @@ function RELAY_DOMAINS_LIST($ou){
 	$add_relay_domain=$tpl->_ENGINE_parse_body("{add_relay_domain}");
 	$ouescape=urlencode($ou);
 	$destination=$tpl->javascript_parse_text("{destination}");
-
+	$master_t=$_GET["master-t"];
+	if(!is_numeric($master_t)){$master_t=0;}
 	
 		$add_remote_domain=Paragraphe("64-remotedomain-add.png",'{add_relay_domain}','{add_relay_domain_text}',
 	"javascript:AddRemoteDomain_form(\"$ou\",\"new domain\")","add_relay_domain",210);
@@ -752,11 +761,23 @@ function RELAY_DOMAINS_LIST($ou){
 	$buttons="
 	buttons : [
 	{name: '$add_relay_domain', bclass: 'add', onpress : AddRelayDomain$t},
-	],";		
+	],";	
+
+	
+	$TABLE_WIDTH=701;
+	$TABLE_HEIGHT=350;
+	$DOMAIN_WITH=205;
+	if(isset($_GET["expand"])){
+		$expand="&expand=yes";
+		$TABLE_WIDTH=868;
+		$TABLE_HEIGHT=500;
+		$DOMAIN_WITH=365;
+	}	
 		
 	
 	
 $html="
+<center id='DOMAINLIST-$t' style='margin-bottom:5px'></center>		
 <input type='hidden' id='ou' value='$ou'>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
@@ -764,10 +785,10 @@ $html="
 <script>
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?organization-relay-domain-list-search=yes&ou={$_GET["organization-relay-domain-list"]}&t=$t',
+	url: '$page?organization-relay-domain-list-search=yes&ou={$_GET["organization-relay-domain-list"]}&t=$t$expand',
 	dataType: 'json',
 	colModel : [
-		{display: '$domain', name : 'domain', width : 205, sortable : false, align: 'left'},
+		{display: '$domain', name : 'domain', width : $DOMAIN_WITH, sortable : false, align: 'left'},
 		{display: '$autoaliases', name : 'autoaliases', width : 40, sortable : false, align: 'left'},
 		{display: 'Anti-Spam', name : 'as', width : 72, sortable : false, align: 'center'},
 		{display: '$disclaimer', name : 'dis', width : 40, sortable : false, align: 'left'},				
@@ -785,8 +806,8 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 701,
-	height: 350,
+	width: $TABLE_WIDTH,
+	height: $TABLE_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -799,6 +820,7 @@ $('#flexRT$t').flexigrid({
 
 
 		var x_DeleteRelayDomain$t= function (obj) {
+			document.getElementById('DOMAINLIST-$t').innerHTML='';
 			var tempvalue=obj.responseText;
 			if(tempvalue.length>3){alert(tempvalue)};
 			FlexReloadRemoteDomainList();
@@ -808,6 +830,7 @@ $('#flexRT$t').flexigrid({
 		function DeleteRelayDomain$t(domain_name){
 			var mytext='$are_you_sure_to_delete';
 			if(confirm(mytext+' '+domain_name)){
+				AnimateDiv('DOMAINLIST-$t');
 				var XHR = new XHRConnection();
 				XHR.appendData('DeleteRelayDomainName',domain_name);
 				XHR.appendData('ou','$ou');
@@ -821,6 +844,9 @@ $('#flexRT$t').flexigrid({
 
 	function FlexReloadRemoteDomainList(){
 		$('#flexRT$t').flexReload();
+		var mastert=$master_t;
+		if(mastert>0){ $('#table-$master_t').flexReload(); }
+		
 	}
 	
 
@@ -971,6 +997,19 @@ function DOMAINSLIST($ou){
 	$add_local_domain=$tpl->_ENGINE_parse_body("{add_local_domain}");
 	$import_smtp_domains=$tpl->_ENGINE_parse_body("{import_smtp_domains}");
 	$ouescape=urlencode($ou);
+	$master_t=$_GET["master-t"];
+	if(!is_numeric($master_t)){$master_t=0;}
+	
+	$DOMAIN_WITH=205;
+	$TABLE_WIDTH=701;
+	$TABLE_HEIGHT=350;
+	if(isset($_GET["expand"])){
+		$expand="&expand=yes";
+		$TABLE_WIDTH=868;
+		$TABLE_HEIGHT=500;
+		$DOMAIN_WITH=365;
+	}
+	
 	
 	$buttons="
 	buttons : [
@@ -981,6 +1020,7 @@ function DOMAINSLIST($ou){
 	
 	
 $html="
+<center id='DOMAINLIST-$t' style='margin-bottom:5px'></center>	
 <input type='hidden' id='ou' value='$ou'>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
@@ -988,10 +1028,10 @@ $html="
 <script>
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?organization-local-domain-list-search=yes&ou={$_GET["organization-local-domain-list"]}',
+	url: '$page?organization-local-domain-list-search=yes&ou={$_GET["organization-local-domain-list"]}$expand',
 	dataType: 'json',
 	colModel : [
-		{display: '$domain', name : 'domain', width : 205, sortable : false, align: 'left'},
+		{display: '$domain', name : 'domain', width : $DOMAIN_WITH, sortable : false, align: 'left'},
 		{display: '$autoaliases', name : 'autoaliases', width : 40, sortable : false, align: 'left'},
 		{display: 'Anti-Spam', name : 'as', width : 72, sortable : false, align: 'center'},
 		{display: '$disclaimer', name : 'dis', width : 40, sortable : false, align: 'left'},				
@@ -1009,8 +1049,8 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 701,
-	height: 350,
+	width: $TABLE_WIDTH,
+	height: $TABLE_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -1019,10 +1059,14 @@ $('#flexRT$t').flexigrid({
 
 
 	function FlexReloadLocalDomainList(){
+		var mastert=$master_t;
+		if(mastert>0){ $('#table-$master_t').flexReload(); }
 		$('#flexRT$t').flexReload();
+		
 	}
 	
 	var x_DeleteInternetDomainInside= function (obj) {
+		document.getElementById('DOMAINLIST-$t').innerHTML='';
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue)};
 		FlexReloadLocalDomainList();
@@ -1030,6 +1074,7 @@ $('#flexRT$t').flexigrid({
 	}
 	
 	var x_AddLocalDomain_form= function (obj) {
+		document.getElementById('DOMAINLIST-$t').innerHTML='';
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
 		FlexReloadLocalDomainList();
@@ -1050,7 +1095,8 @@ function AddLocalDomain_form(){
 	if(domain){
 		var XHR = new XHRConnection();
 		XHR.appendData('AddNewInternetDomain','$ouescape');
-		XHR.appendData('AddNewInternetDomainDomainName',domain);		
+		XHR.appendData('AddNewInternetDomainDomainName',domain);
+		AnimateDiv('DOMAINLIST-$t');		
 		XHR.sendAndLoad('$page', 'GET',x_AddLocalDomain_form);
 		}
 	}	
@@ -1063,6 +1109,7 @@ function AddLocalDomain_form(){
 				var XHR = new XHRConnection();
 				XHR.appendData('DeleteInternetDomain',num);
 				XHR.appendData('ou','$ou');
+				AnimateDiv('DOMAINLIST-$t');	
 				XHR.sendAndLoad('$page', 'GET',x_DeleteInternetDomainInside);	
 			}
 			
@@ -1094,6 +1141,10 @@ function RELAY_DOMAINS_LIST_SEARCH(){
 	if($users->AMAVIS_INSTALLED){if($users->EnableAmavisDaemon==1){$amavis_oui=true;}}
 	$disclaimer=IS_DISCLAIMER();
 	$tools=new DomainsTools();
+	$domainstyle="font-size:16px";
+	if(isset($_GET["expand"])){
+		$domainstyle="font-size:18px";
+	}
 	
 	if($_POST["query"]<>null){$search=str_replace("*", ".*?", $_POST["query"]);}
 	
@@ -1127,7 +1178,7 @@ $data = array();
 	$data['rows'][] = array(
 		'id' => "dom-$num",
 		'cell' => array("
-		<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:16px;font-weight:bold;text-decoration:underline'>$num</span>",
+		<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='$domainstyle;font-weight:bold;text-decoration:underline'>$num</span>",
 		"<span style='font-size:14px'>$autoalias</span>",
 		"<span style='font-size:14px'>$amavis_infos</span>",
 		"<span style='font-size:14px'>$disclaimer_domain</span>",
@@ -1191,9 +1242,12 @@ function DOMAINSLIST_SEARCH(){
 	$HashDomains=$ldap->Hash_associated_domains($ou);
 	if($GLOBALS["VERBOSE"]){echo count($HashDomains)." domains for this ou = $ou\n";}
 	$aliases=new AutoAliases($ou);
+	$search=string_to_regex($_POST["query"]);
 	
-	
-	if($_POST["query"]<>null){$search=str_replace("*", ".*?", $_POST["query"]);}
+	$domainstyle="font-size:16px";
+	if(isset($_GET["expand"])){
+		$domainstyle="font-size:18px";
+	}	
 	
 $data = array();
 	$c=0;
@@ -1218,7 +1272,7 @@ $data = array();
 	$data['rows'][] = array(
 		'id' => "dom-$num",
 		'cell' => array("
-		<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:16px;font-weight:bold;text-decoration:underline'>$num</span>",
+		<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='$domainstyle;font-weight:bold;text-decoration:underline'>$num</span>",
 		"<span style='font-size:14px'>$autoalias</span>",
 		"<span style='font-size:14px'>$amavis_infos</span>",
 		"<span style='font-size:14px'>$disclaimer_domain</span>",
@@ -1227,6 +1281,7 @@ $data = array();
 		);
 	}
 	
+	if($c==0){json_error_show("No Internet domain...");}
 	
 	$data['page'] = 1;
 	$data['total'] = $c;
@@ -1290,29 +1345,7 @@ function AddNewInternetDomain(){
 	}
 		
 			
-	$sock=new sockets();
-	if($usr->cyrus_imapd_installed){
-		$sock->getFrameWork("cmd.php?cyrus-check-cyr-accounts=yes");
-	}
-			
-	$sock->getFrameWork("cmd.php?postfix-transport-maps=yes");
-	if($usr->AMAVIS_INSTALLED){$sock->getFrameWork("cmd.php?amavis-restart=yes");}
-	
-	$PostmasterAutoCreate=$sock->GET_INFO("PostmasterAutoCreate");
-	if(!is_numeric($PostmasterAutoCreate)){$PostmasterAutoCreate=1;}
-	if($PostmasterAutoCreate==1){
-		include_once(dirname(__FILE__)."/ressources/class.user.inc");
-		$user=new user("postmaster");
-		$user->domainname=$domain;
-		$user->ou=$ou;
-		$user->mail="postmaster@$domain";
-		$user->password=time();
-		if(!$user->add_user()){echo "Failed to add Postmaster\n$user->ldap_error";return;}
-		$user=new user("postmaster");
-		$user->add_alias("hostmaster@$domain");
-		$user->add_alias("webmaster@$domain");
-		$user->add_alias("abuse@$domain");
-	}
+
 	
 ChockServices();
 	
@@ -1456,23 +1489,7 @@ if($relayIP<>null){
 }
 
 function ChockServices(){
-	$sock=new sockets();
-	$usr=new usersMenus();
-	$sock->getFrameWork("cmd.php?postfix-transport-maps=yes");
-	
-	
-	if($usr->cyrus_imapd_installed){
-		$sock->getFrameWork("cmd.php?cyrus-check-cyr-accounts=yes");
-	}
-			
-	
-	if($usr->AMAVIS_INSTALLED){
-		$sock->getFrameWork("cmd.php?amavis-restart=yes");
-	}
 
-	$EnableDKFilter=$sock->GET_INFO("EnableDkimMilter");
-	if($EnableDKFilter==null){$EnableDKFilter=0;}	
-	if($EnableDKFilter==1){$sock->getFrameWork("services.php?reload-dkim=yes");}	
 		
 }
 
@@ -1495,7 +1512,7 @@ function EditRelayDomain(){
 		unset($auto->DomainsArray[$domain_name]);
 	}
 	$auto->Save();
-	writelogs("saving $dn relay:$relayIP:$relayPort trusted_smtp_domain=$trusted_smtp_domain",__FUNCTION__,__FILE__,__LINE__);
+	writelogs("saving relay:$relayIP:$relayPort trusted_smtp_domain=$trusted_smtp_domain",__FUNCTION__,__FILE__,__LINE__);
 	$dn="cn=transport_map,ou=$ou,dc=organizations,$ldap->suffix";
 	if(!$ldap->ExistsDN($dn)){
 		$upd=array();

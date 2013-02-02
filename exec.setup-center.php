@@ -616,6 +616,15 @@ $products[]=array(
 	"FAMILY"=>"WEB",
 	"SUBFAMILY"=>"APP",
 	);	
+
+$products[]=array(
+	"PRODUCT_CODE"=>"APP_PYAUTHENNTLM",
+	"REPO_CODE"=>"PyAuthenNTLM2",
+	"FAMILY"=>"WEB",
+	"SUBFAMILY"=>"APP",
+);
+
+
 	
 	
 	
@@ -688,6 +697,14 @@ $products[]=array(
 	);	
 $products[]=array(
 	"PRODUCT_CODE"=>"APP_SQUID",
+	"REPO_CODE"=>"squid3",
+	"FAMILY"=>"PROXY",
+	"SUBFAMILY"=>"CORE",
+
+);
+
+$products[]=array(
+	"PRODUCT_CODE"=>"APP_SQUID31",
 	"REPO_CODE"=>"squid3",
 	"FAMILY"=>"PROXY",
 	"SUBFAMILY"=>"CORE",
@@ -927,8 +944,14 @@ $products[]=array(
 	"FAMILY"=>"NETWORK",
 	"SUBFAMILY"=>"CORE"
 	);	
-	
-	
+$products[]=array(
+		"PRODUCT_CODE"=>"APP_PDNS_STATIC",
+		"REPO_CODE"=>"pdns",
+		"FAMILY"=>"NETWORK",
+		"SUBFAMILY"=>"CORE"
+);	
+
+
 	
 	$products[]=array(
 	"PRODUCT_CODE"=>"APP_POWERADMIN",

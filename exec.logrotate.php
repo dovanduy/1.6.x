@@ -7,7 +7,6 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 include_once(dirname(__FILE__)."/framework/class.settings.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.syslog.inc");
-include_once(dirname(__FILE__)."/ressources/class.mysql.syslog.inc");
 $GLOBALS["FORCE"]=false;
 $GLOBALS["EXECUTED_AS_ROOT"]=true;
 $GLOBALS["RUN_AS_DAEMON"]=false;

@@ -11,7 +11,7 @@ include_once('ressources/class.computers.inc');
 	
 	
 	$user=new usersMenus();
-	if($user->AsSystemAdministrator==false){
+	if(!GetRights_aliases()){
 		writelogs("No privileges on this account..",__FUNCTION__,__FILE__);
 		die();exit();
 		}

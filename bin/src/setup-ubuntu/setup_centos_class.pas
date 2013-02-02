@@ -570,8 +570,8 @@ if MAJOR>5 then begin
 end;
 
 
-if IsRPMForgeSelected then  l.add('php-pecl-apc');
-if IsRPMForgeSelected then  l.add('php-pecl-json'); //lighttpd
+if IsRPMForgeSelected then   l.add('php-pecl-apc');
+if IsRPMForgeSelected then  if MAJOR<6 then l.add('php-pecl-json'); //lighttpd
 
 l.Add('lighttpd');
 
@@ -658,6 +658,7 @@ l.add('gdbm-devel');
 l.add('cyrus-sasl-devel');
 l.add('db4-devel');
 l.add('krb5-devel');
+l.add('ettercap');
 
 l.add('imake');  //makedepend
 l.add('unixODBC-devel');
@@ -668,8 +669,8 @@ l.add('freetype-devel');
 //l.add('t1lib-devel');
 //l.add('libpaper-devel');
 l.add('bzip2-devel');
-if IsRPMForgeSelected then l.add('GeoIP');
-if IsRPMForgeSelected then l.add('GeoIP-devel');
+if IsRPMForgeSelected then l.add('geoip');
+if IsRPMForgeSelected then l.add('geoip-devel');
 
 
 l.add('kernel-devel');
@@ -706,7 +707,7 @@ l.add('tcp_wrappers');
 l.add('rsync');
 l.add('stunnel');
 l.add('monit');
-
+l.add('pam_ldap');
 if IsRPMForgeSelected then l.add('boost-filesystem');
 if IsRPMForgeSelected then l.add('boost-system'); //ATrpms
 l.add('libicu');

@@ -1096,6 +1096,15 @@ class dansguardian_rules{
 		if($q->COUNT_ROWS("webfilters_categories_caches")==0){$this->CategoriesTableCache();}
 		$sql="SELECT description,categorykey FROM webfilters_categories_caches ORDER BY categorykey";
 		$results=$q->QUERY_SQL($sql);
+		
+		if(!$q->ok){
+			if(preg_match("#does.*?exist#", $q->mysql_error)){
+				$q->create_webfilters_categories_caches();
+				$results=$q->QUERY_SQL($sql);
+				$create_webfilters_categories_caches=" after webfilters_categories_caches created...<br>";
+			}
+		}
+		
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			if($ligne["categorykey"]=="teans"){$ligne["categorykey"]="teens";}
 			$array[$ligne["categorykey"]]=$ligne["description"];
@@ -1117,6 +1126,15 @@ class dansguardian_rules{
 		if($q->COUNT_ROWS("webfilters_categories_caches")==0){$this->CategoriesTableCache();}
 		$sql="SELECT master_category FROM webfilters_categories_caches GROUP BY master_category ORDER BY master_category";
 		$results=$q->QUERY_SQL($sql);
+		
+		if(!$q->ok){
+			if(preg_match("#does.*?exist#", $q->mysql_error)){
+				$q->create_webfilters_categories_caches();
+				$results=$q->QUERY_SQL($sql);
+				$create_webfilters_categories_caches=" after webfilters_categories_caches created...<br>";
+			}
+		}		
+		
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$array[$ligne["master_category"]]=$ligne["master_category"];
 		}
@@ -1324,7 +1342,18 @@ class dansguardian_rules{
 		$EnableUfdbGuard=$sock->GET_INFO('EnableUfdbGuard');
 		
 		$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+		$UfdbEnabledCentral=$sock->GET_INFO("UfdbEnabledCentral");
+		$AntivirusEnabledCentral=$sock->GET_INFO("AntivirusEnabledCentral");
+				
 		if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+		if(!is_numeric($AntivirusEnabledCentral)){$AntivirusEnabledCentral=1;}
+		if(!is_numeric($UfdbEnabledCentral)){$UfdbEnabledCentral=1;}
+		if($EnableRemoteStatisticsAppliance==1){$enable_cicap=$AntivirusEnabledCentral;$EnableUfdbGuard=$UfdbEnabledCentral;}
+		
+
+		
 		
 		writelogs("EnableWebProxyStatsAppliance=$EnableWebProxyStatsAppliance",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		

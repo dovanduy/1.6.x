@@ -90,6 +90,8 @@ function ifMustBeExecuted(){
 	$user=new settings_inc();
 	if($user->SQUID_APPLIANCE){$IsHTTPAppliance=true;}
 	if($user->KASPERSKY_WEB_APPLIANCE){$IsHTTPAppliance=true;}	
+	if($user->WEBSTATS_APPLIANCE){$IsHTTPAppliance=true;}
+	if($user->PROXYTINY_APPLIANCE){$IsHTTPAppliance=true;}		
 	if(!$IsHTTPAppliance){return true;}
 	writelogs(basename(__FILE__).": is a 'squid appliance', config will be skipped",basename(__FILE__),__FILE__,__LINE__);
 	

@@ -10,10 +10,11 @@ include_once("ressources/class.main_cf.inc");
 
 if(isset($_GET["PostfixAddFallBackServer"])){PostfixAddFallBackServer();exit;}
 if(isset($_POST["PostfixAddFallBackerserverSave"])){PostfixAddFallBackerserverSave();exit;}
-if(isset($_GET["PostfixAddFallBackerserverLoad"])){echo PostfixAddFallBackerserverList();exit;}
+if(isset($_GET["PostfixAddFallBackerserverLoad"])){PostfixAddFallBackerserverList();exit;}
 if(isset($_POST["PostfixAddFallBackerserverDelete"])){PostfixAddFallBackerserverDelete();exit;}
 if(isset($_GET["PostfixAddFallBackServerMove"])){PostfixAddFallBackServerMove();exit;}
 if(isset($_GET["popup-index"])){popup_index();exit;}
+if(isset($_GET["about"])){about();exit;}
 js();
 
 function js(){
@@ -33,7 +34,7 @@ if($_GET["hostname"]==null){$_GET["hostname"]="master";}
 
 	
 $html="function {$prefix}Loadpage(){
-	YahooWin5('650','$page?popup-index=yes&hostname={$_GET["hostname"]}','$title');
+	YahooWin5('650','$page?popup-index=yes&hostname={$_GET["hostname"]}','$title:: instance: {$_GET["hostname"]}');
 	}
 
 
@@ -45,41 +46,146 @@ $html="function {$prefix}Loadpage(){
 }
 
 function popup_index(){
-$page=CurrentPageName();
-$tpl=new Templates();
-$time=time();
-$add_server=$tpl->_ENGINE_parse_body("{add_server}");
-$html="
-<div class=explain>{smtp_fallback_relay_tiny}<br>{smtp_fallback_relay_text}</div>
-<br>
-<div id='table_list_$time'></div>
-<script>
-function PostfixAddFallBackServer(Routingdomain){
-	if(!Routingdomain){Routingdomain='';}
-	YahooWin6(430,'$page?PostfixAddFallBackServer=yes&hostname={$_GET["hostname"]}&domainName='+Routingdomain,'$add_server')
+
+	$sock=new sockets();
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$time=$t;
+	$group=$tpl->_ENGINE_parse_body("{group}");
+	$type=$tpl->_ENGINE_parse_body("{type}");
+	$MX_lookups=$tpl->_ENGINE_parse_body("{MX_lookups}");
+	$delete=$tpl->_ENGINE_parse_body("{delete}");
+	$do_you_want_to_delete_this_group=$tpl->javascript_parse_text("{do_you_want_to_delete_this_group}");
+	$smtp_port=$tpl->_ENGINE_parse_body("{smtp_port}");
+	$relay_address=$tpl->_ENGINE_parse_body("{relay_address}");
+	$title=$tpl->_ENGINE_parse_body("{smtp_fallback_relay}");
+	$add_server=$tpl->_ENGINE_parse_body("{new_server}");
+
+	$buttons="
+	buttons : [
+	{name: '$add_server', bclass: 'add', onpress : PostfixAddFallBackServerNew},
+	{name: 'About', bclass: 'Help', onpress : About$t},
+	],";
+	
+	$html="<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+	<script>
+	var rowid=0;
+	$(document).ready(function(){
+	$('#flexRT$t').flexigrid({
+	url: '$page?PostfixAddFallBackerserverLoad=yes&hostname={$_GET["hostname"]}&time=$t',
+	dataType: 'json',
+	colModel : [
+	{display: '$relay_address', name : 'relay_address', width : 285, sortable : true, align: 'left'},
+	{display: '$smtp_port', name : 'smtp_port', width : 80, sortable : true, align: 'center'},
+	{display: '$MX_lookups', name : 'MX_lookups', width :72, sortable : false, align: 'center'},
+	{display: '&nbsp;', name : 'none', width :70, sortable : false, align: 'center'},
+	{display: '$delete', name : 'delete', width : 35, sortable : false, align: 'center'},
+	],
+	$buttons
+	searchitems : [
+	{display: '$relay_address', name : 'relay_address'},
+	],
+	sortname: 'groupname',
+	sortorder: 'asc',
+	usepager: true,
+	title: '$title',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: 630,
+	height: 350,
+	singleSelect: true,
+	rpOptions: [10, 20, 30, 50,100,200]
+	
+	});
+	});
+	
+	function BrowseAD(){
+	Loadjs('BrowseActiveDirectory.php');
 	}
 	
-	function RefreshFailBackServers(){
-		LoadAjax('table_list_$time','$page?PostfixAddFallBackerserverLoad=yes&hostname={$_GET["hostname"]}&time=$time');
+	function GroupsDansSearch(){
+	$('#flexRT$t').flexReload();
+	
+	}
+	
+	function About$t(){
+		YahooWinBrowse('500','$page?about=yes','About...');
+	}
+	
+	function PostfixAddFallBackServerNew(){
+		PostfixAddFallBackServer('');
+	}
+	
+	function PostfixAddFallBackServer(Routingdomain){
+		if(!Routingdomain){Routingdomain='';}
+		YahooWin6(430,'$page?PostfixAddFallBackServer=yes&t=$t&hostname={$_GET["hostname"]}&domainName='+Routingdomain,'$add_server')
 	}
 	
 	var x_PostfixAddFallBackerserverDelete=function(obj){
     	var tempvalue=trim(obj.responseText);
 	  	if(tempvalue.length>3){alert(tempvalue);}
-		RefreshFailBackServers();
-		}		
+		$('#flexRT$t').flexReload();
+	}		
 	
 	function PostfixAddFallBackerserverDelete(index){
 		var XHR = new XHRConnection();	
 		XHR.appendData('PostfixAddFallBackerserverDelete',index);
 		XHR.appendData('hostname','{$_GET["hostname"]}');
-		AnimateDiv('table_list_$time');
 		XHR.sendAndLoad('$page', 'POST',x_PostfixAddFallBackerserverDelete);
-			
+	}	
+
+	var x_PostfixAddFallBackServerMove=function(obj){
+    	var tempvalue=trim(obj.responseText);
+	  	if(tempvalue.length>3){alert(tempvalue);}
+		RefreshFailBackServers();
 		}	
+
+
+	function PostfixAddFallBackServerMove(num,move){
+		var XHR = new XHRConnection();	
+		XHR.appendData('PostfixAddFallBackServerMove',num);
+		XHR.appendData('move',num);
+		XHR.appendData('hostname','{$_GET["hostname"]}');			
+		XHR.sendAndLoad('$page', 'GET',x_PostfixAddFallBackServerMove);	
+				
+	}	
 	
-	RefreshFailBackServers();
-</script>
+	function DansGuardianEditGroup(ID,rname){
+	YahooWin3('712','dansguardian2.edit.group.php?ID='+ID+'&t=$t','$group::'+ID+'::'+rname);
+	
+	}
+	
+	var x_DansGuardianDelGroup= function (obj) {
+	var res=obj.responseText;
+	if (res.length>3){alert(res);}
+	$('#row'+rowid).remove();
+	}
+	
+	function DansGuardianDelGroup(ID){
+	if(confirm('$do_you_want_to_delete_this_group ?')){
+	rowid=ID;
+	var XHR = new XHRConnection();
+	XHR.appendData('Delete-Group', ID);
+	XHR.sendAndLoad('$page', 'POST',x_DansGuardianDelGroup);
+	}
+	}
+	
+	</script>
+	";
+	
+	echo $html;
+	
+	}
+function about(){
+$page=CurrentPageName();
+$tpl=new Templates();
+$time=time();
+
+$html="
+<div class=explain style='font-size:14px'>{smtp_fallback_relay_tiny}<br>{smtp_fallback_relay_text}</div>
 
 ";
 
@@ -93,6 +199,7 @@ echo $tpl->_ENGINE_parse_body($html);
 function PostfixAddFallBackServer(){
 	$ldap=new clladp();
 	$page=CurrentPageName();
+	$t=$_GET["t"];
 	if($_GET["domainName"]<>null){
 		$main=new main_cf();
 		$tool=new DomainsTools();
@@ -127,7 +234,7 @@ function PostfixAddFallBackServer(){
 	</tr>
 
 	<tr>
-	<td align='right' colspan=2><hr>". button("{add}","XHRPostfixAddFallBackerserverSave()")."</td>
+	<td align='right' colspan=2><hr>". button("{add}","XHRPostfixAddFallBackerserverSave()",16)."</td>
 	</tr>		
 	<tr>
 	<td align='left' colspan=2><div class=explain>{MX_lookups}</strong><br>{MX_lookups_text}</div></td>
@@ -140,7 +247,7 @@ function PostfixAddFallBackServer(){
     	var tempvalue=trim(obj.responseText);
 	  	if(tempvalue.length>3){alert(tempvalue);}
 		document.getElementById('PostfixAddFallBackerserverSaveID').innerHTML='';
-		RefreshFailBackServers();
+		$('#flexRT$t').flexReload();
 		}	
 	
 		function XHRPostfixAddFallBackerserverSave(){
@@ -204,66 +311,42 @@ function PostfixAddFallBackerserverSave(){
 function PostfixAddFallBackerserverList(){
 	$main=new maincf_multi($_GET["hostname"]);
 	$tpl=new templates();
-	$page=CurrentPageName();
+	$Mypage=CurrentPageName();
 	$add=imgtootltip("plus-24.png","{add_server_domain}","PostfixAddFallBackServer()");
 	$hash=explode(',',$main->GET_BIGDATA("smtp_fallback_relay"));
 	$tool=new DomainsTools();
-	
-	$html="<center>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th width=1%>$add</th>
-		<th>{relay_address}</th>
-		<th>{smtp_port}</th>
-		<th>{MX_lookups}</th>
-		<th colspan=3>&nbsp;</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";	
-	
 
+	$data = array();
+	$data['page'] = 1;
+	$data['total'] = count($hash);
+	$data['rows'] = array();	
+	$search=string_to_flexregex();
+	$c=0;
 	if(is_array($hash)){
 		while (list ($index, $ligne) = each ($hash) ){
-				if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-				if($ligne<>null){
-				$cell_up="<td width=1%>" . imgtootltip('arrow_up.gif','{up}',"PostfixAddFallBackServerMove('$index','up')") ."</td>";
-				$cell_down="<td width=1%>" . imgtootltip('arrow_down.gif','{down}',"PostfixAddFallBackServerMove('$index','down')") ."</td>";			
+				
+				if($ligne==null){continue;}
+				
 				$arr=$tool->transport_maps_explode("smtp:$ligne");
-				$html=$html . "<tr>
-			
-				<td colspan=2><code style='font-size:14px'><a href=\"javascript:PostfixAddFallBackServer('$index');\">{$arr[1]}</a></code></td>
-				<td align='center' style='font-size:14px' ><code>{$arr[2]}</code></td>
-				<td align='center'style='font-size:14px'><code>{$arr[3]}</code></td>
-				$cell_up
-				$cell_down
-				<td align='center' width=1%>" . imgtootltip("delete-32.png",'{delete}',"PostfixAddFallBackerserverDelete('$index')")."</td>
-				</tr>";
-				}
+				if($search<>null){if(!preg_match("#$search#", $arr[1])){continue;}}
+				$cell_up="<td width=1%>" . imgsimple('arrow_up.gif','{up}',"PostfixAddFallBackServerMove('$index','up')") ."</td>";
+				$cell_down="<td width=1%>" . imgsimple('arrow_down.gif','{down}',"PostfixAddFallBackServerMove('$index','down')") ."</td>";	
+
+				$data['rows'][] = array(
+						'id' => $ligne['ID'],
+						'cell' => array(
+								"<code style='font-size:14px'><a href=\"javascript:PostfixAddFallBackServer('$index');\">{$arr[1]}</a></code>",
+								"<span style='font-size:14px;color:$color;'>{$arr[2]}</span>",
+								"<span style='font-size:14px;color:$color;'>{$arr[3]}</span>",
+								"<span style='font-size:14px;color:$color;'><table><tr>$cell_up$cell_down</tr></table></span>",
+								imgsimple("delete-32.png",'{delete}',"PostfixAddFallBackerserverDelete('$index')")
+						)
+						);				
+				$c++;
 			}
-}
-$html=$html . "</tbody></table></center>
-<script>
-	var x_PostfixAddFallBackServerMove=function(obj){
-    	var tempvalue=trim(obj.responseText);
-	  	if(tempvalue.length>3){alert(tempvalue);}
-		RefreshFailBackServers();
-		}	
-
-
-function PostfixAddFallBackServerMove(num,move){
-	var XHR = new XHRConnection();	
-	XHR.appendData('PostfixAddFallBackServerMove',num);
-	XHR.appendData('move',num);
-	XHR.appendData('hostname','{$_GET["hostname"]}');			
-	XHR.sendAndLoad('$page', 'GET',x_PostfixAddFallBackServerMove);	
-			
-}
-
-</script>
-";
-
-return $tpl->_ENGINE_parse_body($html);		
+	}
+	$data['total'] = $c;
+	echo json_encode($data);	
 }
 function PostfixAddFallBackerserverDelete(){
 	$main=new maincf_multi($_POST["hostname"]);

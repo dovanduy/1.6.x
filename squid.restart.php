@@ -23,49 +23,47 @@
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["start"])){restart();exit;}
 	if(isset($_GET["logs"])){logs();exit;}
+	if(isset($_POST["Filllogs"])){Filllogs();exit;}
 js();
 
 
 function js(){
-	
+	$t=time();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{restart_all_services}");
 	if(isset($_GET["onlySquid"])){
 		$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{restart_service}");
 		$onlySquid="&onlySquid=yes";
 	}
+	
+	if(isset($_GET["onlyreload"])){
+		$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{reload_service}");
+		$onlySquid="&onlyreload=yes";
+	}	
+	
+	if(isset($_GET["CheckCaches"])){
+		$onlySquid="&CheckCaches=yes";
+		$warn=$tpl->javascript_parse_text("{check_caches_warning}");
+		$warn="if(!confirm('$warn')){return;}";
+		$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{check_caches}");
+		
+	}
+	
 	$page=CurrentPageName();
 	$html="
 	
-var tantS=0;
-
-
-	function demarreSsquid(){
-	
-	   tantS = tantS+1;
-	   if(!YahooWin3Open()){return;}
-		if (tantS < 10 ) {                           
-	     setTimeout(\"demarreSsquid()\",1000);
-	      } else {
-	               tantS = 0;
-	               SquidChargeLogs();
-	               demarreSsquid();
-	   }
-	}
-	
-		function squid_restart_proxy_load(){
-			YahooWin3('700','$page?popup=yes$onlySquid','$title');
+	function squid_restart_proxy_load$t(){
+			$warn
+			YahooWin3('998','$page?popup=yes$onlySquid&t=$t','$title');
 		
 		}
 		
-	function SquidChargeLogs(){
-		LoadAjax('squid-restart','$page?logs=yes');
-		if(document.getElementById('squid-services')){
-			LoadAjax('squid-services','squid.main.quicklinks.php?squid-services=yes');
-		}
+	function GetLogs$t(){
+		Loadjs('$page?logs=yes&t=$t');
+		
 	}
 		
-	squid_restart_proxy_load();";
+	squid_restart_proxy_load$t();";
 	
 	echo $html;
 }
@@ -73,20 +71,29 @@ var tantS=0;
 
 function popup(){
 	$page=CurrentPageName();
-	
-	
+	$t=$_GET["t"];
+	$title="{PLEASE_WAIT_RESTARTING_ALL_SERVICES}";
 	if(isset($_GET["onlySquid"])){
-
 		$onlySquid="&onlySquid=yes";
 	}	
 	
+	if(isset($_GET["onlyreload"])){
+		$onlySquid="&onlyreload=yes";
+		$title="{PLEASE_WAIT_RELOADING_SERVICE}";
+	}
+
+	if(isset($_GET["CheckCaches"])){
+		$onlySquid="&CheckCaches=yes";
+		$title="{please_wait_check_caches}";
+	}	
+	
 	$html="
-	<div style='font-size:16px'>{PLEASE_WAIT_RESTARTING_ALL_SERVICES}</div>
-	<div style='margin:5px;padding:3px;border:1px solid #CCCCCC;width:95%;height:450px;overflow:auto' id='squid-restart'>
+	<center style='font-size:16px;margin:10px'><div id='title-$t'>$title</div></center>
+	<div style='margin:5px;padding:3px;border:1px solid #CCCCCC;width:97%;height:450px;overflow:auto' id='squid-restart'>
 	</div>
 	
 	<script>
-		LoadAjax('squid-restart','$page?start=yes$onlySquid');
+		LoadAjax('squid-restart','$page?start=yes$onlySquid&t=$t');
 	</script>
 	";
 	$tpl=new templates();
@@ -97,7 +104,7 @@ function popup(){
 function restart(){
 	
 	$sock=new sockets();
-	
+	$t=$_GET["t"];
 	$users=new usersMenus();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
@@ -111,51 +118,106 @@ function restart(){
 		$cmd="cmd.php?force-restart-squidonly=yes";
 	}
 	
+	if(isset($_GET["onlyreload"])){
+		$cmd="squid.php?squid-k-reconfigure=yes";
+		
+	}
+	
+	if(isset($_GET["CheckCaches"])){
+		$cmd="squid.php?squid-z-reconfigure=yes";
+	}
+	
 	if($EnableWebProxyStatsAppliance==1){
 		$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
 		$tpl=new templates();
 		
 		echo $tpl->_ENGINE_parse_body("
-		<center style='font-size:18px'>{proxy_clients_was_notified}</center>");
+		<center style='font-size:18px;width:100%'><div>{proxy_clients_was_notified}</div></center>");
 		return;
 	}
 	
 	$sock->getFrameWork($cmd);
 	
 	echo "
-	<center><img src=\"img/wait_verybig.gif\"></center>
-	<script>demarreSsquid();</script>";
+	<center id='animate-$t'>
+				<img src=\"img/wait_verybig.gif\">
+	</center>
+	<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:100%;height:446px;border:5px solid #8E8E8E;
+	overflow:auto;font-size:11px' id='textToParseCats-$t'></textarea>
+	<script>
+			setTimeout(\"GetLogs$t()\",1000);
+	</script>";
 	
 	
 }
 
+function Filllogs(){
+	$datas=explode("\n",@file_get_contents("ressources/logs/web/restart.squid"));
+	krsort($datas);
+	echo @implode("\n", $datas);
+}
+
 function logs(){
-	
-$html="<center>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:99%'>
-<thead class='thead'>
-	<tr>
-		
-		<th width=99% colspan=2>&nbsp;</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";	
-	
-	$f=explode("\n", @file_get_contents("ressources/logs/web/restart.squid"));
-	while (list ($num, $val) = each ($f) ){
-		if(trim($val)==null){continue;}
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		
-		$html=$html."
-		<tr class=$classtr>
-			<td width=99% style='font-size:13px'>$val</td>
-		</tr>
-		";		
+	$page=CurrentPageName();
+	$t=$_GET["t"];
+	$tt=time();
+	$datas=@file_get_contents("ressources/logs/web/restart.squid");
+	if(strlen($datas)<10){
+		echo "Loadjs('$page?logs=yes&t=$t');";
+		return;
 	}
-	
-	$html=$html."</tbody></table>
-	";
-	echo $html;
+	$strlenOrg=$_GET["strlen"];
+	if(!is_numeric($strlenOrg)){$strlenOrg=0;}
+	$strlen=strlen($datas);
+	if($strlenOrg<>$strlen){
+		echo "
+				
+			function Refresh$tt(){
+				if(!YahooWin3Open()){return;}
+				Loadjs('$page?logs=yes&t=$t&strlen=$strlen');
+			
+			}
+		
+		
+			var x_Fill$tt= function (obj) {
+				var res=obj.responseText;
+				if (res.length>3){
+					document.getElementById('textToParseCats-$t').value=res;
+						if(document.getElementById('squid-services')){
+							LoadAjax('squid-services','squid.main.quicklinks.php?squid-services=yes');
+						}
+					
+					}
+					
+				
+			}				
+		
+		
+			function Fill$tt(){
+				if(!YahooWin3Open()){return;}
+				document.getElementById('title-$t').innerHTML='';
+				document.getElementById('animate-$t').innerHTML='';
+				var XHR = new XHRConnection();
+		   	 	XHR.appendData('Filllogs', 'yes');
+			    XHR.sendAndLoad('$page', 'POST',x_Fill$tt); 
+				setTimeout(\"Refresh$tt()\",5000);
+			}
+				
+			Fill$tt();	
+		";
+	}else{
+
+		echo "function Refresh$tt(){
+				if(!YahooWin3Open()){return;}
+				Loadjs('$page?logs=yes&t=$t&strlen=$strlen');
+			
+			}
+			
+			setTimeout(\"Refresh$tt()\",3000);";
+		
+		
+	}
 }
 
 

@@ -20,6 +20,7 @@ if($argv[1]=="--ufdbcheck"){CoherenceRepertoiresUfdb();die();}
 if($argv[1]=="--mysqlcheck"){CoherenceBase();die();}
 if($argv[1]=="--localcheck"){CoherenceOffiels();die();}
 if($argv[1]=="--compile"){compile();die();}
+if($argv[1]=="--status"){BuildDatabaseStatus();die();}
 
 
 
@@ -27,30 +28,37 @@ Execute();
 
 function Execute(){
 	if(!ifMustBeExecuted()){
-		ufdbguard_admin_events("No make sense to execute this script...",__FUNCTION__,__FILE__,__LINE__,"update");
+		ufdbguard_admin_events("No make sense to execute this script...",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 		WriteMyLogs("No make sense to execute this script...",__FUNCTION__,__FILE__,__LINE__);
 		if($GLOBALS["VERBOSE"]){echo "No make sense to execute this script...\n";}die();
 	}
 	$unix=new unix();
+	$BASE_URI="ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib";
 	$myFile=basename(__FILE__);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".{$GLOBALS["SCHEDULE_ID"]}.time";
 	$unix=new unix();	
 	$ufdbGenTable=$unix->find_program("ufdbGenTable");
+	$kill=$unix->find_program("kill");
 	$pid=@file_get_contents($pidfile);
 	$getmypid=$GLOBALS["MYPID"];
 	if(!$GLOBALS["FORCE"]){
 		if($unix->process_exists($pid,$myFile)){
 			$timePid=$unix->PROCCESS_TIME_MIN($pid);
-			ufdbguard_admin_events("Already executed PID:$pid, since {$timePid}Mn die() ",__FUNCTION__,__FILE__,__LINE__,"update");
-			die();
+			if($timePid<60){
+				ufdbguard_admin_events("Already executed PID:$pid, since {$timePid}Mn die() ",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+				die();
+			}else{
+				ufdbguard_admin_events("Killed PID:$pid, since {$timePid}Mn (exceed 60mn)",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+				shell_exec("$kill -9 $pid 2>&1");
+			}
 		}
 		
 	}
 	@file_put_contents($pidfile,$getmypid);
 	
-	echo "Executed pid $getmypid\n";
-	echo "ufdbGenTable:$ufdbGenTable\n";
+	if($GLOBALS["VERBOSE"]){echo "Executed pid $getmypid\n";}
+	if($GLOBALS["VERBOSE"]){echo "ufdbGenTable:$ufdbGenTable\n";}
 	$sock=new sockets();
 	$SquidDatabasesUtlseEnable=$sock->GET_INFO("SquidDatabasesUtlseEnable");
 	if(!is_numeric($SquidDatabasesUtlseEnable)){$SquidDatabasesUtlseEnable=1;}	
@@ -61,6 +69,8 @@ function Execute(){
 	if(!$GLOBALS["FORCE"]){
 		$time=$unix->file_time_min($cachetime);
 		if($time<120){
+			$q=new mysql_squid_builder();
+			if($q->COUNT_ROWS("univtlse1fr")==0){BuildDatabaseStatus();}
 			echo "$cachetime: {$time}Mn need 120Mn\n";
 			die();
 		}
@@ -78,7 +88,7 @@ function Execute(){
 	
 	
 	if(!$q->ok){
-		ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"update");
+		ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 		WriteMyLogs("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
 		die();
 	}
@@ -97,19 +107,82 @@ function Execute(){
 		if($ARRAYSUM_LOCALE[$filename]<>$md5){update_remote_file($BASE_URI,$filename,$md5);}
 	}
 	
+	
+	CoherenceOffiels();
+	CoherenceRepertoiresUfdb();
+	BuildDatabaseStatus();
+	remove_bad_files();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$ufdbConvertDB=$unix->find_program("ufdbConvertDB");
+	if(is_file($ufdbConvertDB)){
+		shell_exec("$ufdbConvertDB /var/lib/ftpunivtlse1fr");
+	}
+	
 	if(is_dir("/var/lib/ftpunivtlse1fr")){
 		$chown=$unix->find_program("chown");
 		shell_exec("$chown squid:squid /var/lib/ftpunivtlse1fr");
 		shell_exec("$chown -R squid:squid /var/lib/ftpunivtlse1fr/");
-		
-	}
-	CoherenceOffiels();
-	CoherenceRepertoiresUfdb();
 	
+	}
+
+	
+	shell_exec("$php5 /usr/share/artica-postfix/exec.squidguard.php --disks");
 	
 	
 	
 }
+
+function BuildDatabaseStatus(){
+	$q=new mysql_squid_builder();
+	$unix=new unix();
+	$dirs=$unix->dirdir("/var/lib/ftpunivtlse1fr");
+	
+	$TLSE_CONVERTION=$q->TLSE_CONVERTION();
+	while (list ($directory, $line) = each ($dirs) ){
+		
+		$catzname=$TLSE_CONVERTION[basename($directory)];
+		if($catzname==null){continue;}
+		if(!is_file("$directory/domains")){
+			if($GLOBALS["VERBOSE"]){echo "$catzname=0\n";}
+			$f[$catzname]["F"]=0;
+			$f[$catzname]["D"]="0000-00-00 00:00:00";
+			$f[$catzname]["FF"]="$directory/domains";
+		}else{
+			$f[$catzname]["F"]=$unix->COUNT_LINES_OF_FILE("$directory/domains");
+			if($GLOBALS["VERBOSE"]){echo "$catzname={$f[$catzname]["F"]}\n";}
+			$f[$catzname]["D"]=date("Y-m-d H:i:s",filemtime("$directory/domains"));
+			$f[$catzname]["FF"]="$directory/domains";
+		}
+		
+		
+		
+	}
+	
+	$c=0;
+	while (list ($cat, $array) = each ($f) ){
+		$count=$array["F"];
+		$date=$array["D"];
+		$c=$c+$count;
+		$sql[]="('$cat','$count','$date')";
+	}
+	
+	if(count($sql)>0){
+		$q->QUERY_SQL("TRUNCATE TABLE univtlse1fr");
+		$q->QUERY_SQL("INSERT IGNORE INTO univtlse1fr (category,websitesnum,zDate) VALUES ".@implode(",", $sql));
+		if(!$q->ok){
+			ufdbguard_admin_events("Fatal $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+			return;
+		}
+		ufdbguard_admin_events("Toulouse University status: $c items in database",__FUNCTION__,__FILE__,__LINE__);
+		
+	}
+	//univtlse1fr
+	
+	
+	
+}
+
+
 
 function GET_MD5S_REMOTE(){
 	$unix=new unix();
@@ -121,7 +194,7 @@ function GET_MD5S_REMOTE(){
 	$curl->Timeout=320;
 	if(!$curl->GetFile($cache_temp)){
 		WriteMyLogs("Fatal error downloading $indexuri $curl->error",__FUNCTION__,__FILE__,__LINE__);
-		ufdbguard_admin_events("Fatal: unable to download index file $indexuri `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"update");
+		ufdbguard_admin_events("Fatal: unable to download index file $indexuri `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 		die();
 	}
 	$f=explode("\n",@file_get_contents($cache_temp));
@@ -155,9 +228,13 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	echo "Downloading $indexuri\n";
 	$cache_temp="/tmp/$filename";
 	if(!$curl->GetFile($cache_temp)){echo "Fatal error downloading $indexuri $curl->error\n";
-		ufdbguard_admin_events("Fatal: unable to download index file $indexuri `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"update");
+		ufdbguard_admin_events("Fatal: unable to download index file $indexuri `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 		return;
 	}
+	
+	$filesize=$unix->file_size($cache_temp);
+	ufdbguard_admin_events("$filename ($filesize bytes)",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+	
 	
 	@mkdir("/var/lib/ftpunivtlse1fr",755,true);
 	$categoryname=str_replace(".tar.gz", "", $filename);
@@ -166,18 +243,18 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	$categoryDISK=str_replace("/", "_", $categoryDISK);
 	
 	
-	ufdbguard_admin_events("Extracting $filename for category $categoryname",__FUNCTION__,__FILE__,__LINE__,"update");
+	ufdbguard_admin_events("Extracting $filename for category $categoryname",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 	if(is_dir("/var/lib/ftpunivtlse1fr/$categoryname")){shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");}
 	@mkdir("/var/lib/ftpunivtlse1fr/$categoryname",0755,true);
 	shell_exec("$tar -xf $cache_temp -C /var/lib/ftpunivtlse1fr/");
 	if(!is_file("/var/lib/ftpunivtlse1fr/$categoryname/domains")){
-		ufdbguard_admin_events("/var/lib/ftpunivtlse1fr/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__,"update");
+		ufdbguard_admin_events("/var/lib/ftpunivtlse1fr/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 		return;
 	}
 	$CountDeSitesFile=CountDeSitesFile("/var/lib/ftpunivtlse1fr/$categoryname/domains");
 	if($GLOBALS["VERBOSE"]){echo "/var/lib/ftpunivtlse1fr/$categoryname/domains -> $CountDeSitesFile websites\n";}
 	if($CountDeSitesFile==0){
-		ufdbguard_admin_events("/var/lib/ftpunivtlse1fr/$categoryname/domains corrupted, no website",__FUNCTION__,__FILE__,__LINE__,"update");
+		ufdbguard_admin_events("/var/lib/ftpunivtlse1fr/$categoryname/domains corrupted, no website",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 		shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");
 		return;		
 	}
@@ -189,17 +266,40 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	
 	WriteMyLogs("DELETE FROM ftpunivtlse1fr WHERE filename='$filename'",__FUNCTION__,__FILE__,__LINE__);
 	$q->QUERY_SQL("DELETE FROM ftpunivtlse1fr WHERE filename='$filename'");
-	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"update");return;}
+	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
 	$q->QUERY_SQL("INSERT INTO ftpunivtlse1fr (`filename`,`zmd5`,`websitesnum`) VALUES ('$filename','$md5','$CountDeSitesFile')");
-	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"update");return;}
-	ufdbguard_admin_events("Success updating category `$categoryname` with $CountDeSitesFile websites",__FUNCTION__,__FILE__,__LINE__,"update");
+	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
+	ufdbguard_admin_events("Success updating category `$categoryname` with $CountDeSitesFile websites",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 	if($GLOBALS["VERBOSE"]){echo "ufdbGenTable=$ufdbGenTable\n";}
+	
+
+	
+	
+	
+	
 	if(is_file($ufdbGenTable)){
 		$t=time();
 		$ufdb->UfdbGenTable("/var/lib/ftpunivtlse1fr/$categoryname",$categoryname);
 	}
 	
 	
+}
+
+function remove_bad_files(){
+
+	$unix=new unix();
+
+	$dirs=$unix->dirdir("/var/lib/ftpunivtlse1fr");
+	while (list ($directory, $b) = each ($dirs)){
+		$dirname=basename($directory);
+		if(is_link("$directory/$dirname")){
+			echo "Starting......: UfdBguard removing $dirname/$dirname bad file\n";
+			@unlink("$directory/$dirname");
+		}
+	}
+
+
+	echo "Starting......: UfdBguard removing bad files done...\n";
 }
 
 function compile(){
@@ -220,7 +320,7 @@ function compile(){
 	if(!$GLOBALS["FORCE"]){
 		if($unix->process_exists($pid,$myFile)){
 			$timePid=$unix->PROCCESS_TIME_MIN($pid);
-			ufdbguard_admin_events("Already executed PID:$pid, since {$timePid}Mn die() ",__FUNCTION__,__FILE__,__LINE__,"update");
+			ufdbguard_admin_events("Already executed PID:$pid, since {$timePid}Mn die() ",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 			die();
 		}
 	}	
@@ -235,7 +335,7 @@ function compile(){
 		$unix->chown_func("squid", "squid","$workdir/$directory");
 	}
 	
-	ufdbguard_admin_events("Compiling $c databases done, took:".$unix->distanceOfTimeInWords($t,time(),true),__FUNCTION__,__FILE__,__LINE__,"update");
+	ufdbguard_admin_events("Compiling $c databases done, took:".$unix->distanceOfTimeInWords($t,time(),true),__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	shell_exec("$php5 /usr/share/artica-postfix/exec.squidguard.php --build schedule-id={$GLOBALS["SCHEDULE_ID"]}");
@@ -272,14 +372,14 @@ function CoherenceOffiels(){
 	$unix=new unix();
 	$BASE_URI="ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib";
 	$q=new mysql_squid_builder();
-	$table=$q->TLSE_CONVERTION();
+	$table=$q->TLSE_CONVERTION(true);
 	$ARRAYSUM_REMOTE=GET_MD5S_REMOTE();
 	while (list ($database, $articacat) = each ($table) ){
 		$directory=str_replace("/", "_", $articacat);
 		$targetdir=$workdir."/$database";
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":: Checking $targetdir/domains\n";}
 		if(!is_file("$targetdir/domains")){
-			ufdbguard_admin_events("$database is not in disk... download it..",__FUNCTION__,__FILE__,__LINE__,"update");
+			ufdbguard_admin_events("$database is not in disk... download it..",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 			update_remote_file($BASE_URI,"$database.tar.gz",$ARRAYSUM_REMOTE["$database.tar.gz"]);
 		}
 	}
@@ -317,7 +417,7 @@ function CoherenceBase(){
 	$unix=new unix();
 	$results=$q->QUERY_SQL("SELECT * FROM ftpunivtlse1fr");
 	if(!$q->ok){if(strpos($q->mysql_error, "doesn't exist")>0){$q->CheckTables();$results=$q->QUERY_SQL("SELECT * FROM ftpunivtlse1fr");}}
-	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"update");die();}
+	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");die();}
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){if($GLOBALS["VERBOSE"]){echo "ftpunivtlse1fr: {$ligne["filename"]} -> {$ligne["zmd5"]}\n";}$ARRAYSUM_LOCALE[$ligne["filename"]]=$ligne["zmd5"];}
 	
 	$dirs=$unix->dirdir("/var/lib/ftpunivtlse1fr");

@@ -49,7 +49,7 @@ Les ordinateurs rapides n'ont pas besoin de cette option.</createlistcachefiles_
 <danseguardian_simple_intro>DansGuardian est con&ccedil;u pour &ecirc;tre compl&egrave;tement flexible et vous permet de fa&ccedil;onner le filtrage web &agrave; vos besoins.[br]
 [br]DansGuardian est un vrai filtre de contenu Web.</danseguardian_simple_intro>
 <dansguardian_status>&Eacute;tat du service DansGuardian</dansguardian_status>
-<dansguardian_tables_error>Erreurs dans les Tables mysql pour Dansguardian</dansguardian_tables_error>
+<dansguardian_tables_error>Erreurs dans les Tables MySQL pour Dansguardian</dansguardian_tables_error>
 <dansguardian_tables_error_text>Il semble que Artica ne puisse pas atteindre les tables de base de donn&eacute;es n&eacute;c&eacute;ssaires pour stocker les donn&eacute;es.[br]Vous devez corriger cette erreur pour utiliser le filtrage web</dansguardian_tables_error_text>
 <dans_add_rule_text>Indiquez le nom de votre nouvelle r&egrave;gle</dans_add_rule_text>
 <dating>Sites de rencontres pour c&eacute;libataires</dating>

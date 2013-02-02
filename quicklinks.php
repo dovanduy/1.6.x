@@ -38,6 +38,8 @@ $EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 $SambaEnabled=$sock->GET_INFO("SambaEnabled");
 $EnableFetchmail=$sock->GET_INFO("EnableFetchmail");
+$ejabberdEnabled=$sock->GET_INFO("ejabberdEnabled");
+if(!is_numeric($ejabberdEnabled)){$ejabberdEnabled=1;}
 if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
 if(!is_numeric($EnableFetchmail)){$EnableFetchmail=0;}
 if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
@@ -51,6 +53,16 @@ if(!is_numeric($DisableTimeCapsuleToolBox)){$DisableTimeCapsuleToolBox=0;}
 $OnlyWeb=false;
 if($users->PROXYTINY_APPLIANCE){$user->SQUID_APPLIANCE=true;}
 if($EnableWebProxyStatsAppliance==1){$users->WEBSTATS_APPLIANCE=true;}
+if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}
+if($ejabberdEnabled==0){$users->EJABBERD_INSTALLED=false;}
+
+
+if($users->PROXYTINY_APPLIANCE){$ASSQUID=true;}
+if($EnableWebProxyStatsAppliance==1){$ASSQUID=true;}
+if($users->WEBSTATS_APPLIANCE){$ASSQUID=true;}
+if($users->KASPERSKY_WEB_APPLIANCE){$ASSQUID=true;}
+if($user->SQUID_APPLIANCE){$ASSQUID=true;}
+
 
 if($SambaEnabled==1){
 	$samba=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-samba.png", "APP_SAMBA","fileshare_text", "QuickLinksSamba()"));
@@ -79,6 +91,19 @@ if($EnableRemoteStatisticsAppliance==0){
 		$squidStats=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "QuickLinkSystems('section_squid_stats')"));
 	}
 }
+
+if($ASSQUID){
+	if($users->AsDansGuardianAdministrator){
+		$SquidRules=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("web-filtering-48.png", "WEB_FILTERING","softwares_mangement_text", "QuickLinkSystems('section_webfiltering_dansguardian')"));
+	}
+	
+}
+
+
+
+
+
+
 $miltergrey=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-milter-greylist.png", "APP_MILTERGREYLIST","", "QuickLinkSystems('section_mgreylist')"));
 
 $postfix_multiple=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("postfix-multi-48.png", "multiple_instances",null, "QuickLinkPostfixMulti()"));
@@ -98,8 +123,7 @@ if(!$users->POSTFIX_INSTALLED){$postfix=null;$postfix_multiple=null;$postfwd2=nu
 if($users->KASPERSKY_WEB_APPLIANCE){$samba=null;$postfix_multiple=null;$postfwd2=null;$postfix_events=null;}
 if(!$users->AsSquidAdministrator){$squid=null;}
 if(!$users->AsSystemAdministrator){$network=null;}
-if(!$users->AsPostfixAdministrator){$postfix=null;$postfix_multiple=null;$postfwd2=null;$postfix_events=null;}
-if($users->ZARAFA_APPLIANCE){$postfix=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("zarafa-logo-48.png", "APP_ZARAFA",null, "QuickLinkPostfix()"));}
+if($users->ZARAFA_APPLIANCE){$zarafa=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("zarafa-logo-48.png", "APP_ZARAFA",null, "QuickLinkSystems('section_zarafa')"));}
 if(!$users->AsWebStatisticsAdministrator){$squidStats=null;}
 if(!$users->MILTERGREYLIST_INSTALLED){$miltergrey=null;}
 
@@ -109,6 +133,7 @@ if($OnlyWeb){$samba=null;}
 if(!$users->ZARAFA_APPLIANCE){
 	if($users->ZARAFA_INSTALLED){
 		$zarafa=quicklinks_paragraphe("zarafa-logo-48.png", "APP_ZARAFA",null, "QuickLinkSystems('section_zarafa')");
+		$samba=null;
 	}
 	
 }
@@ -143,12 +168,16 @@ if($FreeWebLeftMenu==0){$freewebs=null;}
 $tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("server-48.png", "manage_your_server","system_information_text", "QuickLinkSystems('section_start')"));
 $tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-computer.png", "system_information","system_information_text", "QuickLinkSystems('section_computers_infos')"));
 
-if($GLOBALS["VERBOSE"]){echo "$page:DNSMASQ = ".strlen($dnsmasq)."\n";}
+
+if(!$users->AsPostfixAdministrator){$postfix=null;$postfix_multiple=null;$postfwd2=null;$postfix_events=null;}
+if(!$users->AsMailBoxAdministrator){$zarafa=null;}
 
 $tr[]=$network;
 $tr[]=$samba;
+$tr[]=$zarafa;
 $tr[]=$postfix;
 $tr[]=$squid;
+$tr[]=$SquidRules;
 
 
 if($users->POSTFIX_INSTALLED){
@@ -163,11 +192,23 @@ if($users->POSTFIX_INSTALLED){
 
 while (list ($key, $line) = each ($tr) ){if($line==null){continue;}$tr2[]=$line;}
 
-
+$freeWebAdded=false;
+$ejjaberdadded=false;
 if(count($tr2)<7){if($postfix_events<>null){$tr2[]=$postfix_events;}}
 if(count($tr2)<7){if($squidStats<>null){$tr2[]=$squidStats;}}
 if(count($tr2)<7){if($squidStatsTasks<>null){$tr2[]=$squidStatsTasks;}}
 if(count($tr2)<7){if($postfix_multiple<>null){$tr2[]=$postfix_multiple;}}
+if($users->ZARAFA_INSTALLED){
+	if(count($tr2)<7){if($freewebs<>null){$tr2[]=$freewebs;$freeWebAdded=true;}}
+	if(count($tr2)<7){
+		if($users->EJABBERD_INSTALLED){
+			$ejjaberdadded=true;
+			$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("jabberd-48.png", "INSTANT_MESSAGING","INSTANT_MESSAGING_EJABBERD",
+					"QuickLinkSystems('section_jabberd')"));
+		}
+	}	
+}
+
 if(count($tr2)<7){if($postfwd2<>null){$tr2[]=$postfwd2;}}
 if(count($tr2)<7){if($fetchmail<>null){$tr2[]=$fetchmail;}}
 if(count($tr2)<7){if($crossroads<>null){$tr2[]=$crossroads;}}
@@ -181,15 +222,19 @@ if(!$OnlyWeb){
 	if(count($tr2)<7){
 		if($SambaEnabled==1){
 			if($users->SAMBA_INSTALLED){
-				$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("folder-granted-48.png", "shared_folders","system_information_text", "QuickLinkSystems('section_shared_folders')"));
+				if(!$users->WEBSTATS_APPLIANCE){
+					$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("folder-granted-48.png", "shared_folders","system_information_text", "QuickLinkSystems('section_shared_folders')"));
+				}
 			}
 		}
 	}
 	
 	if(count($tr2)<7){
-		if($users->EJABBERD_INSTALLED){
-			$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("jabberd-48.png", "INSTANT_MESSAGING","INSTANT_MESSAGING_EJABBERD", 
-			"QuickLinkSystems('section_jabberd')"));
+		if(!$ejjaberdadded){
+			if($users->EJABBERD_INSTALLED){
+				$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("jabberd-48.png", "INSTANT_MESSAGING","INSTANT_MESSAGING_EJABBERD", 
+				"QuickLinkSystems('section_jabberd')"));
+			}
 		}
 	}	
 	
@@ -207,7 +252,9 @@ if(!$OnlyWeb){
 		}
 	}
 }
-
+$tr=array();
+while (list ($key, $line) = each ($tr2) ){if($line==null){continue;}$tr[]=$line;}
+$tr2=$tr;
 
 
 
@@ -227,11 +274,8 @@ if(!$OnlyWeb){
 				}
 			}
 			
-			
-			
-			
-			if(($users->SQUID_APPLIANCE) OR ($users->WEBSTATS_APPLIANCE)){
-					if($users->AsDansGuardianAdministrator){
+			if(($users->SQUID_APPLIANCE) OR ($users->WEBSTATS_APPLIANCE) OR ($users->KASPERSKY_WEB_APPLIANCE)){
+					if($users->AsSquidAdministrator){
 						$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-logs.png", "PROXY_EVENTS","PROXY_EVENTS", "QuickLinkSystems('section_squid_rtmm')"));
 					}
 				}
@@ -244,7 +288,7 @@ if(!$OnlyWeb){
 
 if($GLOBALS["VERBOSE"]){echo "$page:ITEMS = ".count($tr2)." ". __LINE__."\n";}
 if(count($tr2)<7){if($dnsmasq<>null){if($GLOBALS["VERBOSE"]){echo "$page:ADD DNSMASQ ITEM ". __LINE__."\n";}$tr2[]=$dnsmasq;}}
-if(count($tr2)<7){$tr2[]=$freewebs;}
+if(count($tr2)<7){if(!$freeWebAdded){$tr2[]=$freewebs;}}
 if(count($tr2)<7){if($powerdns<>null){$tr2[]=$powerdns;}}
 
 $count=1;
@@ -510,7 +554,7 @@ function section_pdns(){echo "<script>LoadAjax('BodyContent','pdns.php?tabs=yes&
 
 function section_kav4proxy(){echo "<div id='QuicklinksKav4proxy'></div><script>LoadAjax('QuicklinksKav4proxy','kav4proxy.php?inline=yes');QuickLinkShow('quicklinks-APP_CYRUS');</script>";}
 function section_webfiltering_dansguardian(){echo "<script>LoadAjax('BodyContent','squid.main.quicklinks.php?function=section_webfiltering_dansguardian');QuickLinkShow('quicklinks-WEB_FILTERING');</script>";}
-function section_zarafa(){echo "<div id='zarafa-inline-config'></div><script>Loadjs('zarafa.web.php?in-line=yes');QuickLinkShow('quicklinks-APP_ZARAFA');</script>";}
+function section_zarafa(){echo "<script>$('#BodyContent').load('zarafa.index.php?popup=yes&font-size=16&tabwith=920');QuickLinkShow('quicklinks-APP_ZARAFA');</script>";}
 function section_mgreylist(){echo "<script>javascript:AnimateDiv('BodyContent');Loadjs('milter.greylist.index.php?js=yes&in-front-ajax=yes&newinterface=yes');QuickLinkShow('quicklinks-APP_MILTERGREYLIST');</script>";}
 function section_squid_tasks(){echo "<script>LoadAjax('BodyContent','squid.statistics.tasks.php');QuickLinkShow('quicklinks-tasks');</script>";}
 function section_fetchmail(){echo "<script>LoadAjax('BodyContent','fetchmail.index.php?quicklinks=yes');QuickLinkShow('quicklinks-APP_FETCHMAIL');</script>";}
@@ -771,15 +815,22 @@ function section_computers_infos_OS(){
 function section_computers_infos_OS_2(){
 	$page=CurrentPageName();
 	if(CACHE_SESSION_GET( __FUNCTION__,__FILE__,120)){return;}
+	$users=new usersMenus();
 	$syslog=Paragraphe("syslog-64.png","{system_log}","{system_log_text}","javascript:Loadjs('syslog.engine.php?windows=yes');");
 	$dmesg=Paragraphe("syslog-64.png","{kernel_infos}","{kernel_infos_text}","javascript:Loadjs('syslog.dmesg.php?windows=yes');");
 	
 	$clock=Paragraphe("clock-gold-64.png","{server_time2}","{server_time2_text}","javascript:Loadjs('index.time.php?settings=yes');");
 	
+	if($users->autofs_installed){
+		$automount=Paragraphe("magneto-64.png","{automount_center}","{automount_center_text}","javascript:Loadjs('autofs.php?windows=yes');");
+	}
+	
+	
 	$tr[]=sysinfos();
 	$tr[]=icon_system();
 	$tr[]=icon_memory();
 	$tr[]=icon_harddrive();
+	$tr[]=$automount;
 	$tr[]=$clock;
 	$tr[]=icon_terminal();
 	$tr[]=$syslog;

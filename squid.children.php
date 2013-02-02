@@ -38,7 +38,13 @@ function js(){
 function popup(){
 	$tpl=new templates();
 	$sock=new sockets();
-	$ENABLED=trim($sock->getFrameWork("squid.php?follow-xforwarded-for-enabled=yes"));
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
+	if($EnableWebProxyStatsAppliance==1){$ENABLED="TRUE";}else{
+		$ENABLED=trim($sock->getFrameWork("squid.php?follow-xforwarded-for-enabled=yes"));
+	}
+	
 	if($ENABLED<>"TRUE"){
 		$html="
 		<table style='width:95%' class=form>

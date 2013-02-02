@@ -266,6 +266,7 @@ function MiltergreyList(){
 		$countDeFiles++;
 		$content=@file_get_contents($targetFile);
 		if(!preg_match("#MGREYSTATS:(.+?),(.+?),(.*?),(.*?),(.*?),(.*?),(.*?),(.*?)#", $content,$re)){
+			events("MiltergreyList():: bad content `$content`",__FILE__);
 			@unlink($targetFile);
 			continue;
 		}

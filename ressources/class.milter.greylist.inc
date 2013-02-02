@@ -411,6 +411,12 @@ function BuildConfig(){
 					}
 						
 					$ligne["pattern"]=$this->is_regex($ligne["pattern"]);
+					
+					if($ligne["type"]=="domain"){
+						$TransformtoRcpt=str_replace(".", "\.", $ligne["pattern"]);
+						$this->acl[]="acl {$ligne["method"]} from /.*@$TransformtoRcpt/ #ID:{$ligne["ID"]} Transformed from domain {$ligne["pattern"]}";
+					}
+					
 					if(trim($ligne["pattern"])==null){if($GLOBALS["VERBOSE"]){echo "Warning BuildConfig() pattern is null for {$ligne["pattern"]} in line ".__LINE__."\n";}}
 					$this->acl[]="acl {$ligne["method"]} {$ligne["type"]} {$ligne["pattern"]} #ID:{$ligne["ID"]} {$ligne["description"]}";
 				}
@@ -418,17 +424,41 @@ function BuildConfig(){
 			}
 		
 			
-			$sql="SELECT *  FROM contacts_whitelist";
+			$sql="SELECT *  FROM contacts_whitelist where `enabled`=1";
 			$q=new mysql();
 			$results = $q->QUERY_SQL($sql,"artica_backup");	
 			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 				if(trim($ligne["sender"])==null){continue;}
 				if(isset($already[$ligne["sender"]])){continue;}
-				$this->acl[]="acl whitelist from {$ligne["sender"]}";
 				$already[$ligne["sender"]]=true;
+				
+				if(strpos("*", $ligne["sender"])>0){
+					$pattern=string_to_regex($ligne["sender"]);
+					$this->acl[]="acl whitelist from /$pattern/ #From {$ligne["uid"]}";
+					continue;
+				}
+				
+				$this->acl[]="acl whitelist from {$ligne["sender"]}";
+				
 			}	
 			
+			$sql="SELECT *  FROM contacts_blacklist where `enabled`=1";
+			$q=new mysql();
+			$results = $q->QUERY_SQL($sql,"artica_backup");
+			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+				if(trim($ligne["sender"])==null){continue;}
+				if(isset($already[$ligne["sender"]])){continue;}
+				$already[$ligne["sender"]]=true;
 			
+				if(strpos("*", $ligne["sender"])>0){
+					$pattern=string_to_regex($ligne["sender"]);
+					$this->acl[]="acl blacklist from /$pattern/ #From {$ligne["uid"]}";
+					continue;
+				}
+			
+				$this->acl[]="acl blacklist from {$ligne["sender"]}";
+			
+			}			
 			
 			
 			

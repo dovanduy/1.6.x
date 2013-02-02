@@ -1811,11 +1811,10 @@ function events($text,$function,$line=0){
 function ParseMysqlEventsQueue(){
 	$q=new mysql();
 	foreach (glob("/var/log/artica-postfix/sql-events-queue/*.sql") as $filename) {
-			$sql=@file_get_contents($filename);
+			$sql=trim(@file_get_contents($filename));
+			if($sql==null){@unlink($filename);continue;}
 			$q->QUERY_SQL($sql,"artica_events");
-			if($q->ok){
-				@unlink($filename);
-			}
+			if($q->ok){@unlink($filename);}
 		}	
 	}
 ?>

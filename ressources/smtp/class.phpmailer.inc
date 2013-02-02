@@ -773,6 +773,7 @@ class PHPMailer {
   public function SmtpConnect() {
     if(is_null($this->smtp)) {
       $this->smtp = new SMTPMailer();
+      if($GLOBALS["VERBOSE"]){$this->smtp->do_debug=10;}
     }
 
     $this->smtp->do_debug = $this->SMTPDebug;
@@ -872,7 +873,8 @@ class PHPMailer {
       'smtp_error' => 'SMTP server error: ',
       'empty_message' => 'Message body empty',
       'invalid_address' => 'Invalid address',
-      'variable_set' => 'Cannot set or reset variable: '
+      'variable_set' => 'Cannot set or reset variable: ',
+      'tls'=>'TLS issue ?'
     );
     //Overwrite language-specific strings. This way we'll never have missing translations - no more "language string failed to load"!
     $l = true;
@@ -1964,6 +1966,10 @@ class PHPMailer {
       $this->SetLanguage('en'); // set the default language
     }
 
+     if(!isset($this->language[$key])) {
+     	$this->SetLanguage('en');
+     }
+    
     if(isset($this->language[$key])) {
       return $this->language[$key];
     } else {

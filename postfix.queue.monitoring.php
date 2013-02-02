@@ -14,7 +14,7 @@
 	
 
 $usersmenus=new usersMenus();
-if($usersmenus->AsMailBoxAdministrator==false){header('location:users.index.php');exit;}
+if($usersmenus->AsPostfixAdministrator==false){echo "alert('NO RIGHTS');";die();}
 if(isset($_GET["PostfixLoadeMailsQueue"])){echo PostfixLoadeMailsQueue();exit;}
 if(isset($_GET["MailID"])){MailID();exit;}
 if(isset($_GET["PostQueueF"])){PostQueueF();exit();}

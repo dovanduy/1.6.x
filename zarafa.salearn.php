@@ -19,7 +19,7 @@
 	
 	
 	
-	if(isset($_POST["ZarafaSaLearnSchedule"])){ZarafaSaLearnScheduleSave();exit;}	
+	if(isset($_POST["EnableZarafaSalearnSchedule"])){ZarafaSaLearnScheduleSave();exit;}	
 	if(isset($_GET["popup"])){popup();exit;}
 	
 	
@@ -41,14 +41,23 @@ function js(){
 function popup(){
 	$sock=new sockets();
 	$page=CurrentPageName();
-	$ZarafaSalearnSchedule=$sock->GET_INFO("ZarafaSaLearnSchedule");
+	$EnableZarafaSalearnSchedule=$sock->GET_INFO("EnableZarafaSalearnSchedule");
+	if(!is_numeric($EnableZarafaSalearnSchedule)){$EnableZarafaSalearnSchedule=0;}
+	
+	$p=Paragraphe_switch_img("{salearnschedule}", "{salearnschedule_text}<br>{ZARAFA_JUNK_EXPLAIN}","EnableZarafaSalearnSchedule",$EnableZarafaSalearnSchedule,null,400);
+	
+	
+	$help="<a href=\"javascript:blur();\" OnClick=\"javascript:s_PopUpFull('http://mail-appliance.org/index.php?cID=390','1024','900');\"
+	style='font-size:14px;font-weight:bold;text-decoration:underline'>{online_help}</a>";
+	
 	$html="
-	<div class=explain style='font-size:16px'>{salearnschedule_text}<br>{ZARAFA_JUNK_EXPLAIN}</div>
+	
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend>{schedule}:</td>
-		<td>". Field_text("ZarafaSaLearnSchedule",$ZarafaSalearnSchedule,"font-size:18px;border:3px solid #848484;width:280px")."</td>
-		<td>".button("{browse}","Loadjs('cron.php?field=ZarafaSaLearnSchedule')",12)."</td>
+		<td colspan=3 align='right'>$help</td>
+	</tr>	
+	<tr>
+		<td colspan=3 align='left'>$p</td>
 	</tr>
 	<tr>
 		<td colspan=3 align='right'>
@@ -66,7 +75,7 @@ function popup(){
 	
 	function ZarafaSaLearnScheduleSave(){
 		var XHR = new XHRConnection();
-		XHR.appendData('ZarafaSaLearnSchedule',document.getElementById('ZarafaSaLearnSchedule').value);
+		XHR.appendData('EnableZarafaSalearnSchedule',document.getElementById('EnableZarafaSalearnSchedule').value);
 		XHR.sendAndLoad('$page', 'POST',x_ZarafaSaLearnScheduleSave);
 		}
 	</script>	
@@ -80,8 +89,8 @@ function popup(){
 
 function ZarafaSaLearnScheduleSave(){
 	$sock=new sockets();
-	$sock->SET_INFO("ZarafaSaLearnSchedule", $_POST["ZarafaSaLearnSchedule"]);
-	$sock->getFrameWork("services.php?restart-framework=yes");
+	$sock->SET_INFO("EnableZarafaSalearnSchedule", $_POST["EnableZarafaSalearnSchedule"]);
+	
 	
 }
 

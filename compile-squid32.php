@@ -7,6 +7,7 @@ include_once(dirname(__FILE__) . '/ressources/class.user.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ini.inc');
 include_once(dirname(__FILE__) . '/ressources/class.mysql.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
+include_once(dirname(__FILE__) . '/ressources/class.ccurl.inc');
 
 $unix=new unix();
 $GLOBALS["SHOW_COMPILE_ONLY"]=false;
@@ -55,6 +56,7 @@ if(!$GLOBALS["FORCE"]){
 if(is_dir("/root/squid-builder")){shell_exec("$rm -rf /root/squid-builder");}
 chdir("/root");
 if(!$GLOBALS["NO_COMPILE"]){
+	
 	if(is_dir("/root/$dirsrc")){shell_exec("/bin/rm -rf /root/$dirsrc");}
 	@mkdir("/root/$dirsrc");
 	if(!is_file("/root/$v")){
@@ -109,6 +111,7 @@ $cmds[]="--enable-wccpv2";
 $cmds[]="--enable-eui"; 
 $cmds[]="--enable-auth";
 $cmds[]="--enable-auth-basic"; 
+$cmds[]="--enable-snmp";
 $cmds[]="--enable-icmp"; 
 $cmds[]="--enable-auth-digest"; 
 $cmds[]="--enable-log-daemon-helpers";
@@ -122,6 +125,7 @@ $cmds[]="--enable-epoll";
 $cmds[]="--enable-async-io";
 $cmds[]="--enable-delay-pools";
 $cmds[]="--enable-http-violations";
+$cmds[]="--enable-url-maps";
 //$cmds[]="--enable-ecap";
 $cmds[]="--enable-ssl"; 
 $cmds[]="--enable-ssl-crtd";
@@ -304,8 +308,12 @@ function squid_version(){
 
 function latests(){
 	$unix=new unix();
-	$wget=$unix->find_program("wget");
-	shell_exec("$wget http://www.squid-cache.org/Versions/v3/3.2/ -O /tmp/index.html");
+	
+	$curl=new ccurl("http://www.squid-cache.org/Versions/v3/3.2/");
+	if(!$curl->GetFile("/tmp/index.html")){
+		echo "$curl->error\n";
+		return 0;
+	}
 	$f=explode("\n",@file_get_contents("/tmp/index.html"));
 	while (list ($num, $line) = each ($f)){
 		if(preg_match("#<a href=\"squid-(.+?)\.tar\.gz#", $line,$re)){

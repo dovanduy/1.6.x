@@ -92,6 +92,7 @@ function database_table_list(){
 	$tables=$tpl->javascript_parse_text("{tables}");
 	$rescan=$tpl->_ENGINE_parse_body("{rescan}");
 	$privileges=$tpl->_ENGINE_parse_body("{privileges}");
+	$restore=$tpl->_ENGINE_parse_body("{restore}");
 	$t=time();
 	$bt_default_www="{name: '$add_default_www', bclass: 'add', onpress : FreeWebAddDefaultVirtualHost},";
 	$bt_webdav="{name: '$WebDavPerUser', bclass: 'add', onpress : FreeWebWebDavPerUsers},";
@@ -109,6 +110,7 @@ function database_table_list(){
 	buttons : [
 		{name: '<b>$rescan</b>', bclass: 'Reload', onpress : Rescan$t},
 		{name: '<b>$privileges</b>', bclass: 'Group', onpress : Privileges$t},
+		{name: '<b>$restore</b>', bclass: 'Restore', onpress : DB{$_GET["instance-id"]}Restore },
 	],";
 	
 	$html="
@@ -125,8 +127,8 @@ $('#mysql-table-$t').flexigrid({
 		{display: '$table', name : 'tablename', width : 238, sortable : true, align: 'left'},
 		{display: '$table_size', name : 'tablesize', width :113, sortable : true, align: 'left'},
 		{display: '$rows_number', name : 'tableRows', width :133, sortable : true, align: 'right'},
-		{display: 'Mysqlcheck', name : 'none1', width : 31, sortable : false, align: 'left'},
-		{display: '$empty', name : 'none2', width : 31, sortable : false, align: 'left'},
+		{display: 'Mysqlcheck', name : 'none1', width : 31, sortable : false, align: 'center'},
+		{display: '$empty', name : 'none2', width : 31, sortable : false, align: 'center'},
 		
 		
 		
@@ -162,6 +164,11 @@ $('#mysql-table-$t').flexigrid({
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue);}	
 		$('#mysql-table-$t').flexReload();
+	}
+
+	
+	function DB{$_GET["instance-id"]}Restore(){
+		Loadjs('mysql.restoredb.php?instance-id={$_GET["instance-id"]}&database={$_GET["database"]}');
 	}	
 
 	function Rescan$t(){
@@ -245,6 +252,7 @@ function popup(){
 	//$bt_rebuild="{name: '$rebuild_items', bclass: 'Reconf', onpress : RebuildFreeweb},";
 	$bt_config=",{name: '$config_file', bclass: 'Search', onpress : config_file}";	
 	$tables_size=$tpl->_ENGINE_parse_body("{tables_size}");
+	$backup=$tpl->_ENGINE_parse_body("{backup}");
 	if($_GET["instance-id"]>0){
 		$q2=new mysql_multi($_GET["instance-id"]);
 		$mmultiTitle="$q2->MyServer&raquo;";
@@ -252,12 +260,16 @@ function popup(){
 	
 	$title=$tpl->_ENGINE_parse_body("$mmultiTitle{browse_mysql_server_text}");
 	
+	$restore=$tpl->_ENGINE_parse_body("{restore}");
 			
 
 	$buttons="
 	buttons : [
 		{name: '<b>$new_database</b>', bclass: 'add', onpress : Add{$_GET["instance-id"]}Database },
 		{name: '<b>$tables_size</b>', bclass: 'Db', onpress : DB{$_GET["instance-id"]}Sizes },
+		
+		
+		
 	
 		],";
 	
@@ -270,10 +282,11 @@ $('#mysql-table-$t').flexigrid({
 	url: '$page?databases-list=yes&t=$t&instance-id={$_GET["instance-id"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$database', name : 'databasename', width : 283, sortable : true, align: 'left'},
+		{display: '$database', name : 'databasename', width : 259, sortable : true, align: 'left'},
 		{display: '$tables_number', name : 'TableCount', width :113, sortable : true, align: 'center'},
-		{display: '$database_size', name : 'dbsize', width :133, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'none1', width : 31, sortable : false, align: 'left'},
+		{display: '$database_size', name : 'dbsize', width :96, sortable : true, align: 'left'},
+		{display: '$backup', name : 'back', width  :39, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'none1', width : 37, sortable : false, align: 'center'},
 	],
 	
 	$buttons
@@ -322,9 +335,15 @@ function DatabaseDelete$t(db,md){
 		$('#mysql-table-$t').flexReload();
 		setTimeout('RefreshTableau$t()',6000);
 	}
+
 	
 	function DB{$_GET["instance-id"]}Sizes(){
 		Loadjs('mysql.browsesize.php?instance-id={$_GET["instance-id"]}');
+	}
+	
+	function MysqlDBBackup(database){
+		Loadjs('mysql.db.backup.php?instance-id={$_GET["instance-id"]}&database='+database);
+	
 	}
 
 
@@ -499,7 +518,7 @@ function databases_list_json(){
 		
 		$spanStyle1="<span style='font-size:13px;font-weight:bold;color:#5F5656;'>";
 		$dbsize=FormatBytes($dbsize/1024);
-		
+		$mysqlbackup=imgsimple("32-backup.png","MySQL check","MysqlDBBackup('{$ligne["databasename"]}')");
 		
 		
 		$delete="<a href=\"javascript:blur();\" OnClick=\"javascript:DatabaseDelete$t('{$ligne["databasename"]}','$md5S');\"><img src='img/delete-24.png'></a>";
@@ -514,6 +533,7 @@ function databases_list_json(){
 					"<strong style='font-size:14px;style='color:$color'>$href$databasename</a></strong>",
 					"$spanStyle1$TableCount</span>",
 					"$spanStyle$dbsize</span>",
+					$mysqlbackup,
 					$delete
 					)
 				);		
@@ -619,6 +639,7 @@ function database_table_list_json(){
 		$spanStyle1="<span style='font-size:13px;font-weight:bold;color:#5F5656;'>";
 		$dbsize=FormatBytes($dbsize/1024);
 		$mysqlcheck=imgtootltip("tables-failed-22.png","MySQL check","MysqlCheck('$tablename','{$_GET["databasename"]}')");
+
 		$TableCount=FormatNumber($TableCount,0,'.',' ',3);
 		$databasename=$_GET["databasename"];
 		$delete="<a href=\"javascript:blur();\" OnClick=\"javascript:TableEmpty$t('$tablename','{$_GET["databasename"]}');\"><img src='img/table-delete-24.png'></a>";

@@ -58,6 +58,8 @@ public
     function     APP_HAPROXY_VERSION():string;
     function     ARKEIA_VERSION():string;
     function     MIMEDEFANG_VERSION():string;
+    function     APP_PYAUTHENNTLM():string;
+    function     PyAuthenNTLM2_EGG():string;
 END;
 
 implementation
@@ -1400,5 +1402,42 @@ SYS.SET_CACHE_VERSION('APP_SPREED',result);
 logs.Debuglogs('APP_SPREED:: -> ' + result);
 end;
 //##############################################################################
+function ttoolsversions.PyAuthenNTLM2_EGG():string;
+begin
+     result:=SYS.LOCATE_PYTHON_PACKAGE('PyAuthenNTLM2-2.2.egg-info');
+end;
+//##############################################################################
+function ttoolsversions.APP_PYAUTHENNTLM():string;
+var
+   l:Tstringlist;
+   tmpstr,binpath:string;
+   RegExpr:TRegExpr;
+   i:integer;
+   D:boolean;
+   fileToCheck:string;
+begin
+fileToCheck:=PyAuthenNTLM2_EGG();
+if not FileExists(fileToCheck) then exit;
+result:=SYS.GET_CACHE_VERSION('APP_PYAUTHENNTLM');
+if length(result)>2 then exit;
+l:=Tstringlist.Create;
+l.LoadFromFile(fileToCheck);
+RegExpr:=TRegExpr.Create;
+if D then writeln('Lines:',l.Count);
+RegExpr.Expression:='^Version:\s+([0-9\.]+)';
+for i:=0 to l.Count-1 do begin
+    if RegExpr.Exec(trim(l.Strings[i])) then begin
+       result:=RegExpr.Match[1];
+       break;
+    end;
+end;
+SYS.SET_CACHE_VERSION('APP_PYAUTHENNTLM',result);
+l.free;
+RegExpr.free;
+SYS.SET_CACHE_VERSION('APP_PYAUTHENNTLM',result);
+logs.Debuglogs('APP_PYAUTHENNTLM:: -> ' + result);
+end;
+
+
 
 end.

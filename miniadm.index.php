@@ -1,12 +1,16 @@
 <?php
 session_start();
-if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
-if($_SESSION["uid"]=="-100"){header("location:logoff.php");}
+
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
+include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 
 
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
+BuildSessionAuth();
+if($_SESSION["uid"]=="-100"){die("<H1>The SuperMaster cannot login</H1>");}
 
 if(isset($_GET["upload-pic-js"])){upload_pic_js();exit;}
 if(isset($_GET["upload-pic-popup"])){upload_pic_popup();exit;}
@@ -33,9 +37,6 @@ if(isset($_GET["choose-language"])){choose_language();exit;}
 if(isset($_POST["miniconfig-POST-lang"])){choose_language_save();exit();}
 
 
-
-
-
 function main_page(){
 	$tplfile="ressources/templates/endusers/index.html";
 	if(!is_file($tplfile)){echo "$tplfile no such file";die();}
@@ -47,6 +48,7 @@ function main_page(){
 }
 
 function headNav(){
+	if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
 	$page=CurrentPageName();
 	$ct=new user($_SESSION["uid"]);
 	if($ct->DisplayName==null){$ct->DisplayName=$_SESSION["uid"];}	
@@ -103,13 +105,30 @@ setTimeout('ChangeHTMLTitleEndUsersPerform()',500);
 ";	
 
 $tpl=new templates();
-echo $tpl->_ENGINE_parse_body($html);
+$html=$tpl->_ENGINE_parse_body($html);
+$_SESSION[__FILE__][__FUNCTION__]=$html;
+echo $html;
 	
 	
 }
 
 function left(){
+	if(!$GLOBALS["VERBOSE"]){
+		if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
+	}
 	$users=new usersMenus();
+	$sock=new sockets();
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$tpl=new templates();
+	if(is_array($_SESSION["privs"])){
+		$r=$_SESSION["privs"];
+		while (list ($key, $val) = each ($r) ){
+			$_SESSION[$key]=$val;
+		}
+	}	
+	
+	
 	if($users->AsOrgAdmin){
 		$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("users_and_groups",
 		"manage_users_and_groups_ou_explain",
@@ -122,18 +141,74 @@ function left(){
 		"miniadmin.hotspot.php");		
 		
 	}
-	
-	if($users->AsWebStatisticsAdministrator){
-		$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("web_statistics",
-		"web_statistics_member_text",
-		"miniadm.webstats.php");			
+	$mini=new miniadm();
+	if($mini->IFItsProxy()){
+		if($users->AsSquidAdministrator){
+			$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("APP_PROXY",
+					"APP_PROXY_TEXT",
+					"miniadmin.proxy.php");		
+		}
+		
+		
+		$mini->squid_load_dynamic_acls();
+		if(count($_SESSION["SQUID_DYNAMIC_ACLS"])>0){
+			$dynamic_acls_newbee_explain=str_replace("%s", count($_SESSION["SQUID_DYNAMIC_ACLS"]), $tpl->_ENGINE_parse_body("{dynamic_acls_newbee_explain}"));
+			$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("dynamic_acls_newbee",
+					"noacc:$dynamic_acls_newbee_explain",
+					"miniadmin.proxy.dynamic.acls.php");
+			
+			
+		}	
+		
+		
 	}
 	
-	if(count($tr)==0){return;}
-	$tpl=new templates();
-	$html="<div class=\"BodyContent\"><table style='widh:100%'> ".@implode("", $tr)."</table></div>";
-	echo $tpl->_ENGINE_parse_body($html);
 	
+	
+	
+	
+	if($_SESSION["AsWebStatisticsAdministrator"]){
+		if($EnableRemoteStatisticsAppliance==0){
+			$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("web_statistics",
+			"web_statistics_member_text",
+			"miniadm.webstats-start.php");			
+		}
+	}
+	
+
+	if(($_SESSION["ASDCHPAdmin"]) OR ($_SESSION["AsOrgDNSAdmin"]) OR ($_SESSION["AllowChangeDomains"])  ) {
+		$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("network_services",
+				"network_services_text","miniadm.network.php");
+	}	
+
+	
+
+	if($users->SAMBA_INSTALLED){
+		$EnableSambaVirtualsServers=$sock->GET_INFO("EnableSambaVirtualsServers");
+		if(!is_numeric($EnableSambaVirtualsServers)){$EnableSambaVirtualsServers=0;}
+	}
+	
+	if($EnableSambaVirtualsServers==1){
+		if(count($_SESSION["VIRTUALS_SERVERS"])>0){	
+			if(count($_SESSION["VIRTUALS_SERVERS"])>1){
+				$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("file_sharing_services",
+						"file_sharing_services_text","miniadm.samba-multiple.php");				
+				
+			}
+			
+		}
+	}
+	
+	
+	
+	if(count($tr)==0){return;}
+	
+	$html="<div class=\"BodyContent\"><table style='widh:100%'> ".@implode("", $tr)."</table></div>";
+	$html=$tpl->_ENGINE_parse_body($html);
+	
+	$_SESSION[__FILE__][__FUNCTION__]=$html;
+	echo $html;
+		
 	
 }
 
@@ -162,6 +237,8 @@ function content_start(){
 	}else{
 		writelogs("$base/background-{$uid}.loc no such file...",__FUNCTION__,__FILE__,__LINE__);
 	}
+	
+	if($_SESSION["ou"]==null){BuildSession($_SESSION["uid"]);}
 	
 	
 	
@@ -203,7 +280,7 @@ function content_start(){
 		</div>
 			
 		</div>
-			<h2><a href=\"miniadm.profile.php\">$ct->DisplayName</a></h2>
+			<h2><a href=\"miniadm.profile.php\">{$_SESSION["ou"]}::$ct->DisplayName</a></h2>
 		</div>
 	</div>
 </div>
@@ -231,10 +308,11 @@ function content_start(){
 	
 
 ";
+	//$user=new user($_SESSION["uid"]);
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($html);
-	
-	
+	$html=$tpl->_ENGINE_parse_body($html);
+	$html=str_replace("%ORGA ", $_SESSION["ou"], $html);
+	echo $html;
 }
 
 
@@ -268,7 +346,8 @@ function accordion_content_messaging($return=false){
 			"{quarantine_manager}",
 			"{quarantine_manager_text}","");
 		}
-	
+		
+
 		
 		
 	$html=$transport.$quarantine_admin;
@@ -553,6 +632,9 @@ function choose_language_save(){
 }
 
 function right(){
+	if(!$GLOBALS["VERBOSE"]){
+		if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
+	}
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$tpl=new templates();
@@ -651,7 +733,9 @@ function right(){
 	</script>
 	
 	";
-	echo $tpl->_ENGINE_parse_body($html);
+	$html=$tpl->_ENGINE_parse_body($html);
+	$_SESSION[__FILE__][__FUNCTION__]=$html;
+	echo $html;
 }
 
 function info_messaging(){
@@ -869,5 +953,9 @@ if(!is_file("$content_dir$fileName")){
 	return;
 		
 }
+
+
+
+
 
 ?>

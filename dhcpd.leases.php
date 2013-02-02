@@ -6,7 +6,7 @@ include_once('ressources/class.users.menus.inc');
 include_once('ressources/class.dhcpd.inc');
 include_once('ressources/class.computers.inc');
 $users=new usersMenus();
-if(!$users->AsSystemAdministrator){		
+if(!GetRights()){		
 	$tpl=new templates();
 	echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 	die();exit();
@@ -20,6 +20,13 @@ if(!$users->AsSystemAdministrator){
 	if(isset($_GET["action-rescan"])){action_rescan_js();exit;}
 	if(isset($_POST["DCHP_LEASE_RESCAN"])){DCHP_LEASE_RESCAN();exit;}
 page();
+
+function GetRights(){
+	$users=new usersMenus();
+	if($users->AsSystemAdministrator){return true;}
+	if($users->ASDCHPAdmin){return true;}
+}
+
 
 
 function action_rescan_js(){

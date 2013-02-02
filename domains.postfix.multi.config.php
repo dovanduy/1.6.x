@@ -463,6 +463,11 @@ function popup_transport(){
 	"32-restore-mailbox.png");		
 	
 	
+	$tr[]=LocalParagraphe("SMTP_BANNER",
+			"SMTP_BANNER_TEXT",
+			"javascript:Loadjs('postfix.banner.php?ou={$_GET["ou"]}&hostname={$_GET["hostname"]}')",
+			"banner-loupe-32.png");	
+	
 	$tr[]=LocalParagraphe("TEST_SMTP_CONNECTION",
 	"TEST_SMTP_CONNECTION_TEXT",
 	"javascript:Loadjs('postfix.smtp-tests.php?ou={$_GET["ou"]}&hostname={$_GET["hostname"]}')",

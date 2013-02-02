@@ -19,7 +19,19 @@ class autofs{
 	private function CreateBranchs(){
 	if(!function_exists("ldap_connect")){return array();}
 	$ldap=new clladp();
+	if(!$ldap->ldap_perform_connection()){
+		echo "<H3>Connection to LDAP server failed</H3>";
+		return;
+	}
 	$mustrestart=false;
+	if(!$ldap->ExistsDN($ldap->suffix)){
+		echo "<H3>Something strange... &laquo;$ldap->suffix&raquo; does not exists in LDAP database...</H3>";
+		$sock=new sockets();
+		$sock->getFrameWork("services.php?restart-ldap=yes");
+		return;
+	}
+	
+	
 	$dn="ou=mounts,$ldap->suffix";
 	$upd=array();
 		if(!$ldap->ExistsDN($dn)){

@@ -1321,7 +1321,7 @@ function transparent_popup(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$KERNEL_CONFIG=unserialize(base64_decode($sock->getFrameWork("services.php?KERNEL_CONFIG=yes")));
-	
+	$users=new usersMenus();
 	$CONFIG_NETFILTER_TPROXY=$KERNEL_CONFIG["CONFIG_NETFILTER_TPROXY"];
 	if(!is_numeric($CONFIG_NETFILTER_TPROXY)){$CONFIG_NETFILTER_TPROXY=0;}
 	$UseTProxyMode=$sock->GET_INFO("UseTProxyMode");
@@ -1334,6 +1334,29 @@ function transparent_popup(){
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	
+	$arpoisonning="
+		<tr>
+			<td width=1%><img src='img/arrow-right-16-grey.png'></td>
+			<td><a href=\"javascript:blur();\" OnClick=\"javascript:blur()\"
+			style='font-size:14px;text-decoration:underline;color:#949494'>ARP Poisonning</a>
+			</td>
+		</tr>			
+			
+		";
+	
+	if($users->ETTERCAP_INSTALLED){
+		$arpoisonning="
+		<tr>
+			<td width=1%><img src='img/arrow-right-16.png'></td>
+			<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('arp.spoof.php?js=yes')\"
+			style='font-size:14px;text-decoration:underline;'>ARP Poisoning</a>
+			</td>
+		</tr>
+		
+		";		
+		
+	}
+	
 	if($squid->hasProxyTransparent==1){
 		$seeiptables="
 		<tr>
@@ -1345,9 +1368,11 @@ function transparent_popup(){
 			style='font-size:14px;text-decoration:underline'>{display_fw_rules}</a>
 			</td>
 		</tr>
+				$arpoisonning
 		</table>
 		</td>
 		</tr>
+				
 		";
 		
 	}

@@ -55,11 +55,20 @@ function tabs(){
 	$squid=new squidbee();
 	$sock=new sockets();
 	$page=CurrentPageName();
+	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
+	$users=new usersMenus();
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
+	
 	$array["caches"]='{caches}';
-	$array["parameters"]='{parameters}';
-	$array["cache_control"]='{cache_control}';
-	$array["cache_websites"]='{cache_control}:{websites}';
-	$array["main_parameters"]='{main_parameters}';
+	if($DisableAnyCache==0){
+		$array["parameters"]='{parameters}';
+		$array["cache_control"]='{cache_control}';
+		$array["cache_websites"]='{cache_control}:{websites}';
+		$array["main_parameters"]='{main_parameters}';
+	}
 	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
 	$width="700px";
 	
@@ -76,10 +85,20 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="caches"){
+			if($EnableWebProxyStatsAppliance==1){
+				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.cache-central.php?uuid=$squid->uuid\" $fontsize><span>$ligne</span></a></li>\n");
+				continue;				
+				
+			}
+			
+			
 			if($squid->IS_32){
 				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches32.php?uuid=$squid->uuid\" $fontsize><span>$ligne</span></a></li>\n");
 				continue;
 			}
+			
+			
+			
 		}
 		
 		if($num=="cache_websites"){
@@ -350,7 +369,7 @@ function cache_edit(){
 	
 	$s=new squidbee();
 	if($s->cache_list[$cache]["cache_size"]==null){$s->cache_list[$cache]["cache_size"]="2000";}
-	if($s->cache_list[$cache]["cache_type"]==null){$s->cache_list[$cache]["cache_type"]="ufs";}	
+	if($s->cache_list[$cache]["cache_type"]==null){$s->cache_list[$cache]["cache_type"]="aufs";}	
 	if($s->cache_list[$cache]["cache_dir_level1"]==null){$s->cache_list[$cache]["cache_dir_level1"]="16";}	
 	if($s->cache_list[$cache]["cache_dir_level2"]==null){$s->cache_list[$cache]["cache_dir_level2"]="256";}			
 	

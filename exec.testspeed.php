@@ -14,6 +14,9 @@
 		if(preg_match("#--noreload#",implode(" ",$argv))){$GLOBALS["NO_HTTPD_RELOAD"]=true;}
 		if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 	}
+	
+	if($argv[1]=="--instances"){GetInstances();die();}
+	
 runProc();
 	
 function runProc($norestart=false){
@@ -25,6 +28,11 @@ function runProc($norestart=false){
 	
 	$EnableBandwithCalculation=$sock->GET_INFO("EnableBandwithCalculation");
 	if(!is_numeric($EnableBandwithCalculation)){$EnableBandwithCalculation=1;}	
+	$GetInstances=GetInstances();
+	if($GetInstances>0){
+		system_admin_events("$GetInstances instance(s) already running.. aborting...", __FUNCTION__, __FILE__, __LINE__, "testspeed");
+		return ;
+	}
 	
 	if($EnableBandwithCalculation==0){
 		system_admin_events("Feature disabled trough the Interface (EnableBandwithCalculation) you have to disable the schedule too...", __FUNCTION__, __FILE__, __LINE__, "testspeed");
@@ -133,5 +141,25 @@ function install_lxml(){
 		$run=true;	
 	}
 	if($run){runProc(true);}
+	
+}
+
+function GetInstances(){
+	$unix=new unix();
+	$pidsARR=array();
+	$kill=$unix->find_program("kill");
+	$pgrep=$unix->find_program("pgrep");
+	exec("$pgrep -l -f \"python.*?tespeed\.py\" 2>&1",$results);
+	while (list ($index, $line) = each ($results) ){
+		if(!preg_match("#([0-9]+)\s+(.*?)#", $line,$re)){continue;}
+		$pid=$re[1];
+		$cmdline=trim($re[2]);
+		if(preg_match("#^sh\s+#", $cmdline)){continue;}
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($time>15){shell_exec("$kill -9 $pid >/dev/null 2>&1");continue;}
+		$pidsARR[$pid]=true;
+	}
+	if($GLOBALS["VERBOSE"]){echo "-> ".count($pidsARR)." instances..\n";}
+	return count($pidsARR);
 	
 }

@@ -30,7 +30,7 @@ function js(){
 	$html="
 		$js_add
 		function loadAdduser(){
-			YahooUser(670,'$page?index=yes&ou=$ou_encoded&gpid={$_GET["gpid"]}&flexRT={$_GET["flexRT"]}','$title');
+			YahooUser(962,'$page?index=yes&ou=$ou_encoded&gpid={$_GET["gpid"]}&flexRT={$_GET["flexRT"]}','$title');
 		
 		}
 		

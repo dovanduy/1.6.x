@@ -35,6 +35,7 @@ public
     function    PID_PATH():string;
     function    JAVA_HOME_GET():string;
     function    ROOT_DIR():string;
+    function    DEB_VERSION():string;
 
 END;
 
@@ -48,7 +49,7 @@ begin
        binpath:=BIN_PATH();
        if not TryStrToInt(SYS.GET_INFO('TomcatEnable'),TomcatEnable) then TomcatEnable:=1;
        if not TryStrToInt(SYS.GET_INFO('OpenEMMEnable'),OpenEMMEnable) then OpenEMMEnable:=1;
-       if FileExists('/home/openemm/bin/openemm.sh') then begin if OpenEMMEnable=1 then TomcatEnable:=0;
+       if FileExists('/home/openemm/bin/openemm.sh') then if OpenEMMEnable=1 then TomcatEnable:=0;
 
 
 end;
@@ -282,6 +283,52 @@ begin
          end;
     end;
  SYS.SET_CACHE_VERSION('APP_TOMCAT',result);
+l.free;
+RegExpr.free;
+end;
+//#########################################################################################
+ function ttomcat.DEB_VERSION():string;
+var
+   l:TstringList;
+   i:integer;
+   RegExpr:TRegExpr;
+   tmpstr:string;
+   env:string;
+   java:string;
+   cmd,sbinpath:string;
+begin
+    sbinpath:='/usr/share/tomcat6/bin/version.sh'
+    if length(sbinpath)=0 then exit;
+    if Not Fileexists(sbinpath) then exit;
+    result:=SYS.GET_CACHE_VERSION('APP_TOMCAT6');
+     if length(result)>2 then exit;
+     if not FileExists(sbinpath) then begin
+        if SYS.verbosed then writeln(sbinpath,' no such file');
+         exit;
+     end;
+
+
+    tmpstr:=logs.FILE_TEMP();
+
+    cmd:=sbinpath+' >'+tmpstr +' 2>&1';
+    if SYS.verbosed then writeln(cmd);
+    fpsystem(cmd);
+    if not FileExists(tmpstr) then exit;
+    l:=TstringList.Create;
+    l.LoadFromFile(tmpstr);
+    logs.DeleteFile(tmpstr);
+
+    RegExpr:=TRegExpr.Create;
+    RegExpr.Expression:='Apache Tomcat.+?([0-9\.]+)';
+    for i:=0 to l.Count-1 do begin
+         if RegExpr.Exec(l.Strings[i]) then begin
+            result:=RegExpr.Match[1];
+            break;
+         end else begin
+             if sys.verbosed  then writeln(l.Strings[i],' no match');
+         end;
+    end;
+ SYS.SET_CACHE_VERSION('APP_TOMCAT6',result);
 l.free;
 RegExpr.free;
 end;

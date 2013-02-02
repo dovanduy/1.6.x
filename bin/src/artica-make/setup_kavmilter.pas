@@ -302,12 +302,21 @@ end;
 
    l.clear;
    L.Add('EULA_AGREED=yes');
+   l.add('KSN_AGREED=yes');
    L.Add('INSTALL_KEY=no');
+   l.Add('WEB_PASSWORD=admin');
+   l.Add('USE_UI=yes');
+   l.add('MTA=postfix');
+   l.Add('POSTFIX_INTEGRATION_TYPE=milter');
+   l.SaveToFile('/usr/share/artica-postfix/bin/install/klms.setup');
+
 
    fpsystem('/bin/chmod 0755 /tmp/env.csh');
    fpsystem('/tmp/env.csh');
    fpsystem('/usr/bin/env ENV_AUTO_INSTALL_FILE=/usr/share/artica-postfix/bin/install/klms.setup');
    writeln('getenv',fpgetenv('ENV_AUTO_INSTALL_FILE'));
+   fpsystem('/opt/kaspersky/klms/bin/klms-setup.pl --auto-install=/usr/share/artica-postfix/bin/install/klms.setup');
+
 
 end;
 

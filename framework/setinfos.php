@@ -4,7 +4,8 @@ include_once(dirname(__FILE__)."/frame.class.inc");
 
 if(isset($_GET["cluster-key"])){CLUSTER_KEY();exit;}
 if(!isset($_GET["key"])){die();}
-
+session_start();
+unset($_SESSION[$_GET["key"]]);
 
 sys_events(basename(__FILE__)."::{$_SERVER['REMOTE_ADDR']}:: Save key {$_GET["key"]} (". strlen($_GET["value"]).") bytes length()");
 

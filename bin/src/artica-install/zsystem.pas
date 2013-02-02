@@ -339,6 +339,7 @@ public
        function LOCATE_GENERIC_BIN(StrProgram:string):string;
        function LOCATE_ZABBIX_SERVER():string;
        function LOCATE_ZABBIX_AGENT():string;
+       function LOCATE_PYTHON_PACKAGE(BasePath:string):string;
        function ISMemoryHiger1G():boolean;
        function LOCATE_APC_SO():string;
        function MEM_FREE():integer;
@@ -1559,6 +1560,46 @@ begin
 result:=LOCATE_GENERIC_BIN('zabbix_agentd');
 end;
 //##############################################################################
+
+
+function Tsystem.LOCATE_PYTHON_PACKAGE(BasePath:string):string;
+var
+   l:Tstringlist;
+   i:integer;
+   D:boolean;
+begin
+   BasePath:=trim(BasePath);
+    l:=Tstringlist.Create;
+
+    l.Add('/usr/local/lib/python2.5/dist-packages');
+    l.Add('/usr/lib/python2.5/dist-packages');
+
+    l.Add('/usr/local/lib/python2.6/dist-packages');
+    l.Add('/usr/lib/python2.6/dist-packages');
+
+    l.Add('/usr/local/lib/python2.7/dist-packages');
+    l.Add('/usr/lib/python2.7/dist-packages');
+
+    l.Add('/usr/local/lib/python2.8/dist-packages');
+    l.Add('/usr/lib/python2.8/dist-packages');
+
+    l.Add('/usr/local/lib/python2.9/dist-packages');
+    l.Add('/usr/lib/python2.9/dist-packages');
+
+    for i:=0 to l.Count-1 do begin
+       if FIleExists(l.Strings[i]+'/'+BasePath)  then begin
+          result:=l.Strings[i]+'/'+BasePath;
+          if DEBUG then writeln('LOCATE_PYTHON_PACKAGE:: '+result+' -> TRUE');
+       end else begin
+           if DEBUG then writeln('LOCATE_PYTHON_PACKAGE:: '+result+' -> FALSE');
+       end;
+    end;
+   l.free;
+
+end;
+//##############################################################################
+
+
 
 function Tsystem.APACHE_STANDARD_PORT():string;
 var

@@ -1,5 +1,11 @@
 <?php
 session_start();
+
+if(isset($_GET["verbose"])){
+	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+	$GLOBALS["VERBOSE"]=true;
+}
+
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
@@ -12,7 +18,7 @@ if(isset($_GET["upload-pic-popup"])){upload_pic_popup();exit;}
 if(isset($_GET["content"])){content();exit;}
 if(isset($_POST["displayName"])){save();exit;}
 if( isset($_GET['TargetpathUploaded']) ){upload_form_perform();exit();}
-
+if(isset($_GET["privileges"])){privileges();exit;}
 
 main_page();
 
@@ -31,6 +37,8 @@ function content(){
 	$users=new usersMenus();
 	$ct=new user($_SESSION["uid"]);
 	$t=time();
+	$ActiveDirectory=0;
+	if($ct->AsActiveDirectoryMember){$ActiveDirectory=1;}
 	
 	if($users->AllowChangeUserPassword){
 		$password="
@@ -60,13 +68,16 @@ function content(){
 		<td valign='top'>
 		<H1>{myaccount}</H1>
 		<p>{myaccount_text}</p>
+		<div style='text-align:right'>
+		<a href=\"javascript:blur();\" OnClick=\"YahooWin3(500,'$page?privileges=yes','{my_privileges}');\">
+		{my_privileges}</a></div>
 		</td>
 		</tr>
 		</table>
 	</div>
 	<div class=BodyContent>
 		<div id='anim-$t'></div>
-		<table style='width:100%'>
+		<table style='width:100%' id='$t-table'>
 		<tr>
 			<td class=legend>{displayName}:</td>
 			<td>". Field_text("displayName-$t",$ct->DisplayName)."</td>
@@ -108,6 +119,8 @@ function content(){
 		}		
 		
 		function SaveAccount$t(){
+			var ActiveDirectory=$ActiveDirectory;
+			if(ActiveDirectory==1){return;}
 			var XHR = new XHRConnection();
 			if(document.getElementById('password-$t')){
 				var pp=encodeURIComponent(document.getElementById('password-$t').value);
@@ -123,6 +136,16 @@ function content(){
 			XHR.sendAndLoad('$page', 'POST',x_SaveAccount$t);			
 		
 		}
+		
+		function ActiveDirectory(){
+			var ActiveDirectory=$ActiveDirectory;
+			if(ActiveDirectory==1){
+				DisableFieldsFromId('$t-table');
+				}
+		}
+		
+		ActiveDirectory();
+		
 </script>	
 	
 	
@@ -275,4 +298,65 @@ if(!is_file("$content_dir$fileName")){
 	echo htmlspecialchars(json_encode($result), ENT_NOQUOTES);
 	return;
 		
+}
+
+function privileges(){
+	$tpl=new templates();
+	$sock=new sockets();
+	if($GLOBALS["VERBOSE"]){echo "<H1>".__FUNCTION__ ."(line ".__LINE__.")</H1>\n";}
+	$EnableSambaVirtualsServers=0;
+	include_once(dirname(__FILE__)."/ressources/class.translate.rights.inc");
+	$cr=new TranslateRights(null, null);
+	$r=$cr->GetPrivsArray();
+	$ldap=new clladp();
+	$ht=array();
+	$ht[]="<table style='width:99%' class=form>";
+	if($ldap->IsKerbAuth()){
+		if($GLOBALS["VERBOSE"]){echo "<li><strong>IsKerbAuth = TRUE (line ".__LINE__.")</strong></li>\n";}
+		include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+		$ht[]="<div style='font-size:18px;font-weight:bold'>{my_microsoft_groups}</div>";
+		$ad=new external_ad_search();
+		$groups=$ad->GroupsOfMember($_SESSION["uid"]);
+		
+		while (list ($dn, $name) = each ($groups) ){
+			
+			
+				$ht[]="<tr>
+					<td width=1% valign='top'><img src='img/arrow-right-16.png'></td>
+					<td><span style='font-size:14px;font-weight:bold'>$name</span>
+						<br><span style='font-size:10px'>&nbsp;($dn)</span></td>
+				</tr>";
+			
+		}	
+		
+	}
+	
+	
+	
+	
+	
+	while (list ($key, $val) = each ($r) ){
+		if(!isset($_SESSION[$key])){continue;}
+		if($_SESSION[$key]){
+			$ht[]="<tr><td width=1%><img src='img/arrow-right-16.png'></td><td><span style='font-size:14px'>{{$key}}</span></td></tr>";
+		}
+	}
+	
+	$users=new usersMenus();
+	if($users->SAMBA_INSTALLED){
+		$EnableSambaVirtualsServers=$sock->GET_INFO("EnableSambaVirtualsServers");
+		if(!is_numeric($EnableSambaVirtualsServers)){$EnableSambaVirtualsServers=0;}
+	}
+	
+	if($EnableSambaVirtualsServers==1){
+		if(count($_SESSION["VIRTUALS_SERVERS"])>0){
+			$ht[]="<tr><td colspan=2 style='font-size:16px;font-weight:bolder'>{virtual_servers}</td></tr>";
+			while (list ($key, $val) = each ($_SESSION["VIRTUALS_SERVERS"]) ){
+				$ht[]="<tr><td width=1%><img src='img/arrow-right-16.png'></td><td><span style='font-size:14px'>$key</span></td></tr>";
+			}
+		}
+	}
+	
+	$ht[]="</table>";
+	echo $tpl->_ENGINE_parse_body(@implode("\n", $ht));
 }

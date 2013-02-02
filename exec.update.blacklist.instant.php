@@ -33,6 +33,9 @@ if($argv[1]=="--CleanDB"){CleanDBZ();die();}
 
 
 
+
+
+
 if(!ifMustBeExecuted()){WriteMyLogs("Die() ifMustBeExecuted -> FALSE",__FUNCTION__,__FILE__,__LINE__);die();}
 WriteMyLogs("-> ExecuteMD5()...","MAIN",__FILE__,__LINE__);
 ExecuteMD5();
@@ -45,7 +48,8 @@ function DumpDb($num){
 	$data_temp_file=$unix->FILE_TEMP();
 	$url_temp_file="$BASE_URI/$num.dat";	
 	$curl=new ccurl($url_temp_file);
-	if(!$curl->GetFile($data_temp_file)){echo "Fatal error downloading $data_temp_file\n";ufdbguard_admin_events("Fatal: unable to download data file $data_temp_file",__FUNCTION__,__FILE__,__LINE__,"update");die();}
+	if(!$curl->GetFile($data_temp_file)){echo "Fatal error downloading $data_temp_file\n";
+	ufdbguard_admin_events("Fatal: unable to download data file $data_temp_file",__FUNCTION__,__FILE__,__LINE__,"update");die();}
 	$prefix="INSERT IGNORE INTO $table (zmd5,zDate,category,pattern,uuid,sended) VALUES ";
 	$array=unserialize(base64_decode(@file_get_contents($data_temp_file)));
 	while (list ($table, $TableDatas) = each ($array["BLKS"]) ){
@@ -123,8 +127,40 @@ function Execute(){
 		$sock->SET_INFO("DisableArticaProxyStatistics",1);
 	}	
 	WriteMyLogs("Execute()...",__FUNCTION__,__FILE__,__LINE__);
+	
+	$unix=new unix();
+	$BASE_URI="http://www.artica.fr/instant-blks";
+	
+
+	$CACHE=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/instantBlackList.cache")));
+	
+	WriteMyLogs("Downloading $indexuri",__FUNCTION__,__FILE__,__LINE__);
+	$data_temp_file=$unix->FILE_TEMP();
+	$curl=new ccurl($indexuri);
+	if(!$curl->GetFile($data_temp_file)){echo "Fatal error downloading $data_temp_file\n";return;}
+	$array=unserialize(base64_decode(@file_get_contents($data_temp_file)));	
+	
+	
+	
+	while (list ($file, $none) = each ($array) ){
+		if(isset($CACHE[$file])){continue;}
+		echo "Must downloaded: $file\n";
+		
+	}
+	
+	return;
+	$data_temp_file=$unix->FILE_TEMP();
+	$url_temp_file="$BASE_URI/$num.dat";	
+	$curl=new ccurl($url_temp_file);
+	if(!$curl->GetFile($data_temp_file)){echo "Fatal error downloading $data_temp_file\n";ufdbguard_admin_events("Fatal: unable to download data file $data_temp_file",__FUNCTION__,__FILE__,__LINE__,"update");die();}
+	$prefix="INSERT IGNORE INTO $table (zmd5,zDate,category,pattern,uuid,sended) VALUES ";
+	$array=unserialize(base64_decode(@file_get_contents($data_temp_file)));	
+	print_r($array);
 
 }
+
+
+
 
 
 function inject($data_temp_file){
@@ -141,7 +177,7 @@ function inject($data_temp_file){
 	while (list ($table, $TableDatas) = each ($array["BLKS"]) ){
 		if($table==null){echo "!! corrupted table is null \n";return;}
 		if($table=="category_teans"){$table="category_teens";}
-		if(!$q->TABLE_EXISTS("$table")){$q->CreateCategoryTable(null,$table);}
+		if(!$q->TABLE_EXISTS("$table")){return true;}
 		$prefix="INSERT IGNORE INTO $table (zmd5,zDate,category,pattern,uuid,sended) VALUES ";
 		
 		

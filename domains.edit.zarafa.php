@@ -29,7 +29,7 @@ $ou_decrypted=base64_decode($_GET["ou"]);
 $html="
 
 function ZARAFA_OU_LOAD(){
-	YahooWin3('610','$page?popup=yes&ou=$ou_decrypted','$title');
+	YahooWin3('610','$page?popup=yes&ou=$ou_decrypted&t={$_GET["t"]}','$title');
 	
 	}
 	
@@ -54,7 +54,9 @@ function popup(){
 	$languages=unserialize(base64_decode($sock->getFrameWork("zarafa.php?locales=yes")));
 	$langbox[null]="{select}";
 	while (list ($index, $data) = each ($languages) ){$langbox[$data]=$data;}	
-	$t=time();
+	
+	$t=$_GET["t"];
+	if(!is_numeric($t)){$t=time();}
 	$oumd5=md5(strtolower(trim($_GET["ou"])));
 	$OuDefaultLang=$sock->GET_INFO("zarafaMBXLang$oumd5");
 	$OuZarafaDeleteADM=$sock->GET_INFO("OuZarafaDeleteADM$oumd5");
@@ -123,6 +125,7 @@ function popup(){
 var X_ENABLE_ZARAFA_COMPANY= function (obj) {
 	var results=obj.responseText;
 	if(results.length>3){alert(results);}
+	$('#table-$t').flexReload();
 	if(document.getElementById('organization-find')){SearchOrgs();YahooWin3Hide();return;}
 	ZARAFA_OU_LOAD();
 	

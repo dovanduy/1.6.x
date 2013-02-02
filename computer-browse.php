@@ -7,10 +7,10 @@ include_once(dirname(__FILE__).'/ressources/class.computers.inc');
 
 if(posix_getuid()<>0){
 	$users=new usersMenus();
-	if((!$users->AsSambaAdministrator) OR (!$users->AsSystemAdministrator)){
+	if(!GetRights()){
 		$tpl=new templates();
 		$error=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
-		echo "alert('$error')";
+		echo "alert('GetRights::$error')";
 		die();
 	}
 }
@@ -31,6 +31,10 @@ if(isset($_GET["browse-computers"])){index();exit;}
 if(isset($_GET["browse-computer-list"])){computer_list();exit;}
 
 if(isset($_GET["browse-networks"])){networks();exit;}
+if(isset($_GET["browse-networks-list"])){networks_items();exit;}
+
+
+
 if(isset($_GET["browse-networks-add"])){networks_add();exit;}
 
 if(isset($_GET["network-scanner-execute"])){network_scanner_execute();exit;}
@@ -64,6 +68,15 @@ if(isset($_POST["ipban"])){ipban_save();exit;}
 
 if(posix_getuid()<>0){js();}
 
+
+function GetRights(){
+	$users=new usersMenus();
+	if($users->AsSystemAdministrator){return true;}
+	if($users->ASDCHPAdmin){return true;}
+	if($users->AsSambaAdministrator){return true;}
+	
+	return false;
+}
 
 
 function ComputersAllowDHCPLeasesSave(){
@@ -292,7 +305,7 @@ buttons : [
 });
 
 function NewComputer$t(){
-	YahooUser(870,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&t=$t','New computer');
+	YahooUser(962,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&t=$t','New computer');
 }
 
 </script>
@@ -367,7 +380,7 @@ for($i=0;$i<$hash["count"];$i++){
 function js($nostartReturn=false){
 	
 	$users=new usersMenus();
-	if(!$users->AsSambaAdministrator){die("alert('no privileges')");}
+	if(!GetRights()){die("alert('no privileges')");}
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{browse_computers}');
@@ -558,7 +571,7 @@ function index(){
 
 	
 	
-	$add_computer_js="javascript:YahooUser(780,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
+	$add_computer_js="javascript:YahooUser(962,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
 
 	
 	$EnableScanComputersNet=$sock->GET_INFO("EnableScanComputersNet");
@@ -981,7 +994,7 @@ function menus_right(){
 	$users=new usersMenus();
 	$findcomputer=Paragraphe("64-samba-find.png","{scan_your_network}",'{scan_your_network_text}',"javascript:Loadjs('computer-browse.php?scan-nets-js=yes')","scan_your_network",210);
 	$networs=Paragraphe("64-win-nic-loupe.png","{edit_networks}",'{edit_networks_text}',"javascript:ViewNetwork()","edit_networks",210);
-	$add_computer_js="javascript:YahooUser(780,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
+	$add_computer_js="javascript:YahooUser(962,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
 	$add_computer=Paragraphe("64-add-computer.png","{ADD_COMPUTER}","{ADD_COMPUTER_TEXT}",$add_computer_js);
 	
 	$EnableScanComputersNet=$sock->GET_INFO("EnableScanComputersNet");
@@ -1068,9 +1081,11 @@ $html="<div style='width:100%;height:230px;overflow:auto'>$html</div>";
 	
 }
 
+
 function networks(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$t=time();
 	$networsplus=Paragraphe("64-win-nic-plus.png","{add_network}",'{add_network_text}',"javascript:AddNetwork()","add_network",210);
 	$importArtica=Paragraphe("64-samba-get.png","{import_artica_computers}",'{import_artica_computers_text}',"javascript:ImportComputers('')","import_artica_computers",210);
 	$importList=Paragraphe("64-samba-get.png","{import_artica_computers}",'{import_artica_computers_list_text}',"javascript:ImportListComputers()","import_artica_computers_list_text",210);
@@ -1125,10 +1140,8 @@ function networks(){
 	<table style='width:100%'>
 	<tr>
 		<td valign='top' width=70%>
-			<div style='width:100%;height:265px;overflow:auto'>
 				<div id='netlist'></div>
 				
-			</div>
 			$autoscan_form
 			<br>
 			<div style='width:100%;height:{$height_artica}px;overflow:auto'>
@@ -1146,7 +1159,7 @@ function networks(){
 	
 	<script>
 		function AddNetwork(){
-			YahooWin3(450,'$page?browse-networks-add=yes','$networks');
+			YahooWin3(450,'$page?browse-networks-add=yes&t=$t','$networks');
 		}
 		
 		function ImportComputers(ip){
@@ -1182,7 +1195,7 @@ function networks(){
 		}
 		
 		function RefreshNetworklist(){
-			LoadAjax('netlist','$page?networkslist=yes');
+			LoadAjax('netlist','$page?networkslist=yes&t=$t');
 		}
 		
 	function BrowsComputersRefresh(){
@@ -1229,6 +1242,7 @@ function networks_enable(){
 function networks_add(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$t=$_GET["t"];
 	$html="<span style='font-size:16px;margin:10px'>{add_network}</span>
 	<div id='networks_add'>
 		<table style='width:99%' class=form>
@@ -1452,8 +1466,198 @@ function artica_importlist_perform(){
 
 }
 
-	
 function networkslist($noecho=1){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$ipaddr=$tpl->_ENGINE_parse_body("{ipaddr}");
+	$mac=$tpl->_ENGINE_parse_body("{ComputerMacAddress}");
+	$nic=$tpl->_ENGINE_parse_body("{nic}");
+	$networks=$tpl->_ENGINE_parse_body("{networks}");
+	$new_network=$tpl->_ENGINE_parse_body("{add_network}");
+	$delete=$tpl->_ENGINE_parse_body("{delete}");
+	$sock=new sockets();
+	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
+	$settings=$tpl->_ENGINE_parse_body("{parameters}");
+	$enabled=$tpl->_ENGINE_parse_body("{enabled}");
+	
+	$t=$_GET["t"];
+	$html="
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
+	<script>
+	$(document).ready(function(){
+	$('#flexRT$t').flexigrid({
+	url: '$page?browse-networks-list=yes&t=$t',
+	dataType: 'json',
+	colModel : [
+	{display: '&nbsp;', name : 'none', width :40, sortable : true, align: 'center'},
+	{display: '$networks', name : 'mac', width :336, sortable : true, align: 'left'},
+	{display: '$enabled', name : 'enabled', width :80, sortable : true, align: 'center'},
+	{display: 'IpBand Stats', name : 'enabled', width :80, sortable : true, align: 'center'},
+	],
+	
+	buttons : [
+	{name: '$new_network', bclass: 'add', onpress : NewNetwork$t},
+	{separator: true},
+	
+	],
+	
+	
+	searchitems : [
+	{display: '$networks', name : 'network'},
+	],
+	sortname: 'ipaddr',
+	sortorder: 'asc',
+	usepager: true,
+	title: '$networks',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: true,
+	width: 600,
+	height: 400,
+	singleSelect: true
+	
+	});
+	});
+	
+	function NewNetwork$t(){
+		AddNetwork();
+	}
+	
+var x_NetWorksDisable$t= function (obj) {
+		$('#flexRT$t').flexReload();
+	}	
+	
+	function NetWorksDisable$t(mask){
+			var XHR = new XHRConnection();
+			XHR.appendData('NetWorksDisable',mask);
+			XHR.sendAndLoad('$page', 'GET',x_NetWorksDisable); 
+	} 
+	
+	function NetWorksEnable$t(mask){
+			var XHR = new XHRConnection();
+			XHR.appendData('NetWorksEnable',mask);
+			XHR.sendAndLoad('$page', 'GET',x_NetWorksDisable); 
+	} 	
+	var x_NetworkDelete= function (obj) {
+		if(document.getElementById('main_config_snort')){RefreshTab('main_config_snort');}
+		RefreshNetworklist();
+	}	
+	
+	var x_IPBanSelect= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+	}		
+	
+	function IPBanSelect(md,net){
+		var XHR = new XHRConnection();
+		XHR.appendData('ipban',net);
+		if(document.getElementById(md).checked){XHR.appendData('mode',1);}else{XHR.appendData('mode',0);}
+		XHR.sendAndLoad('$page', 'POST',x_IPBanSelect);  
+	}
+	
+	
+	function NetworkDelete$t(md){
+		var XHR = new XHRConnection();
+		XHR.appendData('NetworkDelete',md);
+		XHR.sendAndLoad('$page', 'GET',x_NetworkDelete);  	
+	
+	}	
+	</script>";
+	
+	echo $html;	
+	
+	
+	
+	
+}
+
+function networks_items(){
+	
+	$q=new mysql();
+	$net=new networkscanner();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	
+	$sock=new sockets();
+	$ipBandEnabled=$sock->GET_INFO("ipBandEnabled");
+	if(!is_numeric($ipBandEnabled)){$ipBandEnabled=0;}	
+	if($ipBandEnabled){
+		$q->QUERY_SQL("TRUNCATE TABLE ipband","artica_events");
+	}
+	
+	if(!is_array($net->networklist)){json_error_show("No item...");}
+	$t=$_GET["t"];
+	while (list ($num, $maks) = each ($net->networklist)){
+		if(trim($maks)==null){continue;}
+		$hash[$maks]=$maks;
+	}	
+	
+	if(!$q->TABLE_EXISTS("ipban", "artica_backup")){$q->BuildTables();}
+	$search=string_to_regex($_POST["query"]);
+	$data = array();
+	$data['page'] = 1;
+	$data['total'] = $total;
+	$data['rows'] = array();
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	$divstart="<span style='font-size:14px;font-weight:bold'>";
+	$divstop="</div>";
+	while (list ($num, $maks) = each ($hash)){
+		if(trim($maks)==null){continue;}
+		$ipban=0;
+		if($search<>null){if(!preg_match("#$search#", $maks)){continue;}}
+		$md5=md5($maks);
+		
+		$delete=imgtootltip('delete-32.png','{delete}',"NetworkDelete$t('" . md5($num)."')");
+		$sql="SELECT netinfos FROM networks_infos WHERE ipaddr='$maks'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$ligne["netinfos"]=htmlspecialchars($ligne["netinfos"]);
+		$ligne["netinfos"]=nl2br($ligne["netinfos"]);
+		if($ligne["netinfos"]==null){$ligne["netinfos"]="{no_info}";}
+		
+		$sql="SELECT network FROM ipban WHERE network='$maks'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		if($ligne["network"]<>null){$ipban=1;}
+		
+		$ipbanopt=Field_checkbox("ipban-$md5", 1,$ipban,"IPBanSelect('ipban-$md5','$maks')");
+		if(!$users->IPBAN_INSTALLED){$jsIpabn[]="document.getElementById('ipban-$md5').disabled=true;";}
+		
+		
+		$infos="<div><a href=\"javascript:blur();\"
+		OnClick=\"javascript:GlobalSystemNetInfos('$maks')\"
+		style='font-size:9px;text-decoration:underline'><i>{$ligne["netinfos"]}</i></a></div>";
+		
+		if($net->DefaultNetworkList[$maks]){
+			if(!$net->Networks_disabled[$maks]){
+				$delete=Field_checkbox("net-$md5", 1,1,"NetWorksDisable$t('$maks');");
+			}else{
+			$delete=Field_checkbox("net-$md5", 1,0,"NetWorksEnable$t('$maks');");
+					
+			}
+		
+		}	
+		
+		if($ipBandEnabled==0){
+			$ipbanopt=Field_checkbox("ipban-$md5", 1,$ipban,"IPBanSelect('ipban-$md5','$maks')",null,true);
+			
+		}
+		
+			$c++;
+	
+		$data['rows'][] = array(
+				'id' => md5($maks),
+		'cell' => array(
+				"<img src='img/folder-network-32.png'>",
+				"<div style='font-size:18px'>$maks$infos</div>",$delete, $ipbanopt
+				)
+		);
+	}
+	$data['total'] = $c;
+	
+	echo json_encode($data);
+}
+
+	
+function networkslist_old($noecho=1){
 	$q=new mysql();
 	$net=new networkscanner();
 	$page=CurrentPageName();

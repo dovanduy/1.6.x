@@ -27,7 +27,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{$_GET["hostname"]}::{POSTFIX_DEBUG}");
-	$html="YahooWin5('501','$page?popup=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$title')";
+	$html="YahooWin5('560','$page?popup=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$title')";
 	echo $html;
 }
 

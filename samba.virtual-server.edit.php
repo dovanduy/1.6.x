@@ -26,6 +26,7 @@ function js(){
 function tabs(){
 		$page=CurrentPageName();
 		$tpl=new templates();
+		$t=$_GET["t"];
 		$array["settings"]='{main_settings}';
 		if($_GET["hostname"]<>null){
 			$array["shares"]='{shared_folders}';
@@ -36,24 +37,24 @@ function tabs(){
 		}
 		while (list ($num, $ligne) = each ($array) ){
 			if($num=="shares"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"samba.virtual-server.folders.php?hostname={$_GET["hostname"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"samba.virtual-server.folders.php?hostname={$_GET["hostname"]}&t=$t\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 				continue;
 			}
 			
 			if($num=="fsopt"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"samba.options.php?tabs=yes&hostname={$_GET["hostname"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"samba.options.php?tabs=yes&hostname={$_GET["hostname"]}&t=$t\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 				continue;
 			}			
 			
 			
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}&t=$t\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 			
 			
 		}
 	
 	
 	echo "
-	<div id=main_config_virtsamba style='width:100%;height:550px;overflow:auto'>
+	<div id=main_config_virtsamba style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -67,6 +68,7 @@ function tabs(){
 function main_settings(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
+	$t=$_GET["t"];
 	$hostname=$_GET["hostname"];
 	$smb=new samba_aliases($hostname);
 	$must_choose_ipaddr=$tpl->javascript_parse_text("{must_choose_ipaddr}");
@@ -128,7 +130,7 @@ function main_settings(){
 		    var hostname='$hostname';
 			var results=obj.responseText;
 			if(results.length>2){alert(results);}			
-			if(document.getElementById('browse-samba-list')){BrowseSambaSearch();}
+			$('#flexRT$t').flexReload();
 			if(hostname.length==0){YahooWin3Hide();return;}
 			RefreshTab('main_config_virtsamba');
 		}

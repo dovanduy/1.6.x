@@ -418,8 +418,14 @@ begin
 end;
 //#########################################################################################
 function Tsamba.smbpasswd_path():string;
+var binpath:string;
 begin
+ binpath:=SYS.LOCATE_GENERIC_BIN('smbpasswd');
+ if FileExists(binpath) then exit(binpath);
  if FileExists('/usr/bin/smbpasswd') then exit('/usr/bin/smbpasswd');
+ if FileExists('/usr/bin/apt-get') then begin
+    fpsystem('DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get -o Dpkg::Options::="--force-confnew" --force-yes install samba-common-bin >/dev/null 2>&1');
+ end;
 end;
 //##############################################################################
 function Tsamba.smbconf_path():string;
@@ -497,19 +503,21 @@ var
    i:integer;
 begin
 
-    logs.Debuglogs('Starting......: Samba enabled='+IntTostr(SambaEnabled));
+
     if SambaEnabled=0 then begin
            logs.Debuglogs('Starting......: Samba is disabled by artica');
            SAMBA_STOP();
            exit;
+    end else begin
+        logs.Debuglogs('Starting......: Samba is Enabled...');
     end;
-
     ForceDirectories('/var/log/samba');
     ForceDirectories('/var/run/samba');
 
 
     aa_complain:=SYS.LOCATE_GENERIC_BIN('aa-complain');
     if FIleExists('aa_complain') then begin
+           logs.Debuglogs('Starting......: Samba add to aa_complain');
            tmpstr:=SYS.LOCATE_GENERIC_BIN('smbd');
            if FIleExists(tmpstr) then fpsystem(aa_complain+' '+tmpstr);
 
@@ -556,8 +564,15 @@ var
    i:integer;
 begin
 
-if not FileExists(SMBD_PATH()) then exit;
-if not FileExists(smbpasswd_path()) then exit;
+if not FileExists(SMBD_PATH()) then begin
+   logs.Debuglogs('Starting......: SMBD no such binary...');
+   exit;
+end;
+
+if not FileExists(smbpasswd_path()) then begin
+   logs.Debuglogs('Starting......: smbpasswd no such binary...');
+   exit;
+end;
 
    logs.Debuglogs('###################### SAMBA ######################');
 
@@ -603,6 +618,7 @@ end;
 
 
    fpsystem(SMBD_PATH() + ' --daemon --piddir=/var/run/samba');
+   logs.Debuglogs('Starting......: SMBD...');
    pid:=SMBD_PID();
    count:=0;
 
@@ -610,7 +626,7 @@ end;
         sleep(100);
         inc(count);
         if count>20 then begin
-           logs.DebugLogs('Starting......: Smbd (time-out)');
+           logs.DebugLogs('Starting......: SMBD (time-out)');
            break;
         end;
   end;
@@ -618,6 +634,7 @@ end;
 
 
      if not SYS.PROCESS_EXIST(SMBD_PID()) then begin
+          logs.DebugLogs('Starting......: SMBD Faild with "'+SMBD_PATH() + ' --daemon --piddir=/var/run/samba'+'"');
         logs.Debuglogs('SAMBA_START:: Failed to start samba with error ' + err);
         exit;
      end;
@@ -633,69 +650,7 @@ var
    count:integer;
    winbinddpath:string;
 begin
-   winbinddpath:=WINBIND_BIN_PATH();
-   if not FileExists(winbinddpath) then begin
-      logs.Debuglogs('Starting......: WINBIND not installed..');
-      exit;
-   end;
-
-
-if EnableKerbAuth=1 then DisableWinbindd:=0;
-pid:=WINBIND_PID();
-
-if SYS.PROCESS_EXIST(pid) then begin
-   logs.Debuglogs('Starting......: WINBIND Already running PID ' + pid);
-   if SambaEnabled=0 then begin
-      logs.Debuglogs('Starting......: Samba is not enabled, shutdown process ' + pid);
-      exit;
-   end;
-
-   if DisableWinbindd=1 then begin
-      logs.Debuglogs('Starting......: Winbindd is not enabled, shutdown process ' + pid);
-      exit;
-   end;
- exit;
-end;
-    if EnableKerbAuth=1 then begin
-       logs.Debuglogs('Starting......: WINBIND is enabled ( EnableKerbAuth = 1)');
-    end;
-   if SambaEnabled=0  then begin
-      logs.Debuglogs('Starting......: WINBIND is disabled.. ( SambaEnabled = 0 )');
-      exit;
-   end;
-
-   if DisableWinbindd=1 then begin
-      logs.Debuglogs('Starting......: WINBIND is disabled.. ( DisableWinbindd = 1 )');
-      exit;
-   end;
-
-if DirectoryExists('/var/cache/samba') then logs.OutputCmd('/bin/chown -R root:root /var/cache/samba');
-logs.Syslogs('Starting Winbindd...."'+winbinddpath+' -D"');
-logs.OutputCmd(winbinddpath+' -D');
-
-   pid:=WINBIND_PID();
-   count:=0;
-
- while not SYS.PROCESS_EXIST(pid) do begin
-        sleep(100);
-        inc(count);
-        if count>20 then begin
-           logs.DebugLogs('Starting......: WINBIND (time-out)');
-           break;
-        end;
-        pid:=WINBIND_PID();
-  end;
-
-
-
-     pid:=WINBIND_PID();
-     if not SYS.PROCESS_EXIST(pid) then begin
-        logs.Debuglogs('Starting......: Failed to start WINBIND');
-        exit;
-     end;
-
-  logs.Debuglogs('Starting......: WINBIND success running with PID ' + pid);
-
+fpsystem(SYS.LOCATE_PHP5_BIN()+'/usr/share/artica-postfix/exec.winbind.php --start');
 end;
 //##############################################################################
 procedure Tsamba.SAMBA_NMBD_START();
@@ -884,9 +839,17 @@ var
    count:Integer;
    FORCE:boolean;
    smbcontrol:string;
+   php5:string;
 begin
 
 if not FileExists(WINBIND_BIN_PATH()) then exit;
+ php5:=SYS.LOCATE_PHP5_BIN();
+     if FileExists(SYS.LOCATE_GENERIC_BIN('update-rc.d')) then begin
+       logs.Syslogs('Artica: Task requested to stop winbindd...');
+       fpsystem(php5+' /usr/share/artica-postfix/exec.winbindd.php');
+       fpsystem('/etc/init.d/winbind stop');
+       exit;
+    end;
 
 if not TryStrToInt(SYS.GET_INFO('EnableKerbAuth'),EnableKerbAuth) then EnableKerbAuth:=0;
 pid:=WINBIND_PID();
@@ -1188,10 +1151,16 @@ logs.DeleteFile(pidpath);
 end;
 //#########################################################################################
 procedure Tsamba.WINBIND_START();
-var pid:string;
+var pid,php5:string;
 begin
+    php5:=SYS.LOCATE_PHP5_BIN();
     if not FileExists(WINBIND_BIN_PATH()) then exit;
-    if not FileExists(INITD_WINBIND_PATH()) then exit;
+    if FileExists(SYS.LOCATE_GENERIC_BIN('update-rc.d')) then begin
+       fpsystem(php5+' /usr/share/artica-postfix/exec.winbindd.php');
+       fpsystem('/etc/init.d/winbind start');
+       exit;
+    end;
+
     pid:=WINBIND_PID();
     
  if SYS.PROCESS_EXIST(pid) then begin
@@ -1199,6 +1168,7 @@ begin
    exit;
 end;
  logs.Syslogs('Artica: artica-install process start to start winbindd');
+ fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.winbindd.php');
   fpsystem(WINBIND_BIN_PATH()+' -D');
     
  pid:=WINBIND_PID();

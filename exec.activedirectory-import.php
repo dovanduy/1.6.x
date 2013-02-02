@@ -65,7 +65,7 @@ if(!$q->ok){
 
 
 $q->QUERY_SQL("TRUNCATE TABLE `activedirectory_groups`","artica_backup");
-$q->QUERY_SQL("TRUNCATE TABLE `activedirectory_groupsNames`","artica_backup");
+
 
 $sql="SELECT ou,dn,enabled,OnlyBranch FROM activedirectory_orgs ORDER BY ou";
 $results=$q->QUERY_SQL($sql,"artica_backup");	

@@ -585,9 +585,17 @@ function SERVICES_STATUS(){
 		<th nowrap >{uptime}</td>
 		</tr>";
 
+	if(!is_file("ressources/logs/global.status.ini")){
+		
+	}
 	$inifile=dirname(__FILE__)."/ressources/logs/global.status.ini";
-	$ini->loadFile($inifile);
 	
+	$ini->loadFile($inifile);
+	if(!isset($ini->_params["ARTICA"])){
+		$sock->getFrameWork("cmd.php?Global-Applications-Status=yes");
+		sleep(5);
+		$ini->loadFile($inifile);
+	}
 	
 	if($_GET["section"]=="artica_services"){
 			$html="

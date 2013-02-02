@@ -22,6 +22,8 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 
 
 if(isset($_GET["rule"])){rule_edit();exit;}
+
+if(isset($_GET["js-blacklist-list"])){blacklist_js_load();exit;}
 if(isset($_GET["blacklist"])){blacklist();exit;}
 if(isset($_GET["blacklist-list"])){blacklist_list();exit;}
 if(isset($_GET["blacklist-js"])){blacklist_js();exit;}
@@ -39,6 +41,9 @@ if(isset($_GET["whitelist"])){whitelist();exit;}
 if(isset($_POST["groupname"])){rule_edit_save();exit;}
 if(isset($_POST["blacklist"])){blacklist_save();exit;}
 if(isset($_POST["whitelist"])){whitelist_save();exit;}
+
+
+if(isset($_GET["js-groups"])){groups_js();exit;}
 if(isset($_GET["groups"])){groups();exit;}
 if(isset($_GET["groups-search"])){groups_list();exit;}
 if(isset($_GET["choose-group"])){groups_choose();exit;}
@@ -64,7 +69,31 @@ if(isset($_POST["bannedextensionlist-add"])){bannedextensionlist_add();exit;}
 while (list ($num, $ligne) = each ($_REQUEST) ){writelogs("item: $num","MAIN",__FILE__,__LINE__);}
 tabs();
 
-
+function blacklist_js_load(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$ID=$_GET["RULEID"];
+	$name="{default}";
+	$white=$tpl->_ENGINE_parse_body("{blacklist}");
+	if($_GET["modeblk"]==1){$white=$tpl->_ENGINE_parse_body("{whitelist}");}
+	if($ID>0){
+		$q=new mysql_squid_builder();
+		$sql="SELECT groupname FROM webfilter_rules WHERE ID=$ID";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$name=utf8_encode($ligne["groupname"]);
+	}
+	
+	$title=$tpl->_ENGINE_parse_body("{rule}&nbsp;|&nbsp;$name&nbsp;|&nbsp;$white");
+	
+	$url="$page?blacklist=yes&RULEID=$ID&ID=$ID&modeblk={$_GET["modeblk"]}&t={$_GET["t"]}";
+	
+	$html="YahooWin2('920','$url','$title');
+	if(document.getElementById('anim-img-$ID')){document.getElementById('anim-img-$ID').innerHTML='';}
+	";
+	echo $html;	
+	
+}
 
 function tabs(){
 	$sock=new sockets();
@@ -150,7 +179,7 @@ function tabs(){
 	
 	
 	
-	echo "$menus
+	echo "
 	<div id=main_filter_rule_edit style='width:100%;overflow:auto'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
@@ -187,8 +216,8 @@ function content_filter_tab(){
 	}
 
 	
-	echo "$menus
-	<div id=main_content_rule_edittabs style='width:100%;overflow:auto'>
+	echo "
+	<div id=main_content_rule_edittabs style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -298,7 +327,21 @@ function blacklist(){
 	
 	$sql="SELECT master_category FROM webfilters_categories_caches GROUP BY master_category";
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><code style='font-size:11px'>$sql</code>";}	
+	if(!$q->ok){
+		if(preg_match("#does.*?exist#", $q->mysql_error)){
+			$q->create_webfilters_categories_caches();
+			if(!$q->ok){$create_webfilters_categories_caches="webfilters_categories_caches error while creating the table $q->mysql_error<br>";}
+			$results=$q->QUERY_SQL($sql);
+			$create_webfilters_categories_caches="$create_webfilters_categories_caches after webfilters_categories_caches created...<br>";
+			if(class_exists("dansguardian_rules")){
+				$dans=new dansguardian_rules();
+				$dans->CategoriesTableCache();
+			}
+		}
+	}
+	
+	
+	if(!$q->ok){echo "<H2>$q->mysql_error</H2><code style='font-size:11px'>$create_webfilters_categories_caches$sql</code>";}	
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$catsz=$ligne["master_category"];
@@ -1108,6 +1151,7 @@ function blacklist_save(){
 function rule_edit(){
 	$ID=$_GET["rule"];
 	$tpl=new templates();
+	$users=new usersMenus();
 	$page=CurrentPageName();
 	$q=new mysql_squid_builder();
 	$t=time();	
@@ -1418,6 +1462,24 @@ function rule_edit_save(){
 	
 }
 
+function groups_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$ID=$_GET["ID"];
+	$q=new mysql_squid_builder();
+	$sql="SELECT groupname FROM webfilter_rules WHERE ID=$ID";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$title=utf8_encode($ligne["groupname"]);
+	$html="YahooWin2('920','$page?groups=$ID&ID=$ID&t={$_GET["t"]}','$title');
+	if(document.getElementById('anim-img-$ID')){
+		document.getElementById('anim-img-$ID').innerHTML='';
+	}
+	";
+	echo $html;
+	
+}
+
 function groups(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
@@ -1489,6 +1551,28 @@ echo $tpl->_ENGINE_parse_body($html);
 
 }
 
+function isDynamic($ruleid){
+	$sql="SELECT webfilter_group.localldap FROM webfilter_group,webfilter_assoc_groups
+	WHERE webfilter_assoc_groups.group_id=webfilter_group.ID
+	AND webfilter_assoc_groups.webfilter_id=$ruleid
+	AND webfilter_group.enabled=1";
+	$c=0;
+	$q=new mysql_squid_builder();
+	$results=$q->QUERY_SQL($sql);
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		if($ligne["localldap"]==0){
+			$c++;
+		}
+		
+		if($ligne["localldap"]==2){
+			$c++;
+		}
+	}
+
+		if($c>0){return true;}
+return false;
+}
+
 function groups_list(){
 	
 	$search=$_POST["query"];
@@ -1522,6 +1606,12 @@ function groups_list(){
 			$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";
 		}
 	}	
+	
+	$localldap[0]="{ldap_group}";
+	$localldap[1]="{virtual_group}";
+	$localldap[2]="{active_directory_group}";
+	
+	$isDynamic=isDynamic($_GET["rule-id"]);
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
@@ -1557,7 +1647,8 @@ function groups_list(){
 		$delete="<a href=\"javascript:blur();\" OnClick=\"javascript:UnlinkFilterGroup('{$ligne["ID"]}')\"><img src='img/delete-24.png' style='border:0px'></a>";
 		$color="black";
 		$CountDeMembers="??";
-		if($ligne["enabled"]==0){$color="#CCCCCC";}
+		$Textdynamic=null;
+		
 		if($ligne["localldap"]==0){
 			$gp=new groups($ligne["gpid"]);
 			$groupadd_text="(".$gp->groupName.")";
@@ -1568,8 +1659,15 @@ function groups_list(){
 			$sql="SELECT COUNT(ID) as tcount FROM webfilter_members WHERE `groupid`='$KEY_ID_GROUP'";
 			$COUNLIGNE=mysql_fetch_array($q->QUERY_SQL($sql));
 			$CountDeMembers=$COUNLIGNE["tcount"];
+			if($isDynamic){
+				$color="#9A9A9A";
+				$Textdynamic=$tpl->_ENGINE_parse_body("<div style='font-weight:bold;color:#E40F0F'>{ufdb_no_dynamic_group}</div>");
+			}
+			
 		}
-
+		
+		
+		if($ligne["enabled"]==0){$color="#9A9A9A";}
 		if($ligne["localldap"]==2){
 		if(preg_match("#AD:(.*?):(.+)#", $ligne["webfilter_group_dn"],$re)){
 				$dnEnc=$re[2];
@@ -1578,7 +1676,7 @@ function groups_list(){
 				if($ad->UseDynamicGroupsAcls==1){
 					if(preg_match("#^CN=(.+?),.*#i", base64_decode($dnEnc),$re)){
 					$groupname=_ActiveDirectoryToName($re[1]);
-					$textExplainGroup=checksADGroup($groupname);
+					//$textExplainGroup=checksADGroup($groupname);
 					$CountDeMembers='-';
 					}
 				}else{
@@ -1595,10 +1693,13 @@ function groups_list(){
 		$imgGP="win7groups-32.png";
 		if($ligne["localldap"]<2){$imgGP="group-32.png";}
 		
+		if($Textdynamic<>null){$imgGP="warning-panneau-32.png";}
 		
-
 		
-		$jsSelect="YahooWin4('712','dansguardian2.edit.group.php?ID=$KEY_ID_GROUP&t=$t&YahooWin=4','$group::$KEY_ID_GROUP::{$ligne['groupname']}');";
+		$TextGroupType=$tpl->_ENGINE_parse_body($localldap[$ligne["localldap"]]);
+		
+		
+		$jsSelect="YahooWin4('712','dansguardian2.edit.group.php?ID=$KEY_ID_GROUP&t=$t&YahooWin=4','$KEY_ID_GROUP::{$ligne['groupname']}');";
 		
 		$data['rows'][] = array(
 				'id' => "group{$ligne["ID"]}",
@@ -1606,8 +1707,8 @@ function groups_list(){
 				"<img src='img/$imgGP'>",
 				"<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:$jsSelect\" 
-				style='font-size:16px;text-decoration:underline'>{$ligne['groupname']}</span></a>$groupadd_text<div style='font-size:10px'>$textExplainGroup<i>&laquo;{$ligne["description"]}&raquo;</i>",
-				"<span style='font-size:16px;'>$CountDeMembers</span>",$delete
+				style='font-size:16px;text-decoration:underline;color:$color'>{$ligne['groupname']}</span></a>$groupadd_text$Textdynamic<div style='font-size:10px'>$textExplainGroup<i>&laquo;{$ligne["description"]} <i>$TextGroupType</i>&raquo;</i>",
+				"<span style='font-size:16px;color:$color'>$CountDeMembers</span>",$delete
 				)
 		);		
 		
@@ -1721,7 +1822,7 @@ $('#flexRT$t').flexigrid({
 		}
 		
 		function DansGuardianEditGroup$t(ID,rname){
-			LoadWinORG('712','dansguardian2.edit.group.php?ID='+ID+'&t=$t&yahoo=LoadWinORG','$group::$ID::');
+			LoadWinORG('712','dansguardian2.edit.group.php?ID='+ID+'&t=$t&tt=$tt&yahoo=LoadWinORG','$group::$ID::');
 		
 		}		
 		
@@ -1962,13 +2063,24 @@ function bannedextensionlist_delete(md5){
 echo $tpl->_ENGINE_parse_body($html);
 }
 
+function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){ 
+	$tmp1 = round((float) $number, $decimals);
+  while (($tmp2 = preg_replace('/(\d+)(\d\d\d)/', '\1 \2', $tmp1)) != $tmp1)
+    $tmp1 = $tmp2;
+  return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));
+} 
+
 function blacklist_list(){
 	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
 	if(!is_numeric($_GET["TimeID"])){$_GET["TimeID"]=0;}
-	
+	$users=new usersMenus();
+	$text_license=null;
+	if(!$users->CORP_LICENSE){
+		$text_license=$tpl->_ENGINE_parse_body("({category_no_license_explain})");
+	}
 	$search='%';
 	$table="webfilters_categories_caches";
 	$tableProd="webfilter_blks";
@@ -1999,16 +2111,8 @@ function blacklist_list(){
 	if(!$q->ok){json_error_show("$q->mysql_error",1);}
 	
 	
-		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-			$cats[$ligne["category"]]=true;
-		}
-		
-
-	if(isset($_POST["sortname"])){
-		if($_POST["sortname"]<>null){
-			$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";
-		}
-	}	
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){$cats[$ligne["category"]]=true;}
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
@@ -2036,11 +2140,6 @@ function blacklist_list(){
 		$total = $ligne["TCOUNT"];
 	}
 	
-	
-	
-
-	
-
 	if($OnlyEnabled){$limitSql=null;}
 	$sql="SELECT *  FROM `webfilters_categories_caches` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
@@ -2055,8 +2154,49 @@ function blacklist_list(){
 	$data['rows'] = array();
 	if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
 	
+	$items=$tpl->_ENGINE_parse_body("{items}");
+	$compile=$tpl->_ENGINE_parse_body("{compile}");
+	$catz=new mysql_catz();
+	
+	
+	
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		if($ligne["picture"]==null){$ligne["picture"]="20-categories-personnal.png";}
+		$category_table="category_".$q->category_transform_name($ligne['categorykey']);
+		$category_table_elements=$q->COUNT_ROWS($category_table);
+		$DBTXT=array();
+		$database_items=null;
+		if($category_table_elements>0){
+			$category_table_elements=FormatNumber($category_table_elements);
+			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('squid.categories.php?category=".urlencode($ligne['categorykey'])."')\" 
+			style='font-size:11px;font-weight:bold;text-decoration:underline'>$category_table_elements</a> $items";
+			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('ufdbguard.compile.category.php?category=".urlencode($ligne['categorykey'])."')\" 
+			style='font-size:11px;font-weight:bold;text-decoration:underline'>$compile</a>";
+			
+		}
+
+		
+		$ligneTLS=mysql_fetch_array($q->QUERY_SQL("SELECT websitesnum FROM univtlse1fr WHERE category='{$ligne['categorykey']}'"));
+		$category_table_elements_tlse=$ligneTLS["websitesnum"];
+		if($category_table_elements_tlse>0){
+			$category_table_elements_tlse=FormatNumber($category_table_elements_tlse);
+			$DBTXT[]="$category_table_elements_tlse Toulouse University $items";
+		}		
+		
+		$catz=new mysql_catz();
+		$category_table_elements_artica=$catz->COUNT_ROWS($category_table);
+		if($category_table_elements_artica>0){
+			$category_table_elements_artica=FormatNumber($category_table_elements_artica);
+			$DBTXT[]="$category_table_elements_artica Artica $items <i style='font-size:10px;font-weight:normal'>$text_license</i>";
+		}
+		
+		
+		
+		if(count($DBTXT)>0){
+			$database_items="<span style='font-size:11px;font-weight:bold'>".@implode("&nbsp;|&nbsp;", $DBTXT)."</span>";
+		}
+		
 		$img="img/{$ligne["picture"]}";
 		$val=0;
 		if($cats[$ligne['categorykey']]){$val=1;}
@@ -2067,7 +2207,7 @@ function blacklist_list(){
 		
 	$data['rows'][] = array(
 		'id' => $ligne['categorykey'],
-		'cell' => array("<img src='$img'>","$js{$ligne['categorykey']}</a>", $ligne['description'],$disable)
+		'cell' => array("<img src='$img'>","$js{$ligne['categorykey']}</a>", $ligne['description']."<br>$database_items",$disable)
 		);
 	}
 	

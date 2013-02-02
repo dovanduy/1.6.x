@@ -19,7 +19,7 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 	if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 	$user=new usersMenus();
 	if(!$user->spamassassin_installed){
-		write_syslog("want to change spamassassin settings but not installed",__FILE__);
+		writelogs("want to change spamassassin settings but not installed",__FUNCTION__,__FILE__,__LINE__);
 		die();
 	}
 	if($argv[1]=='--sa-update'){sa_update();die();}

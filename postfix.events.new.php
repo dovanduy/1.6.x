@@ -62,6 +62,14 @@ function page(){
 	if($_GET["mimedefang-filter"]=="yes"){
 		$title=$tpl->_ENGINE_parse_body("{APP_MIMEDEFANG}::{events}");
 	}
+	
+	$table_width=900;
+	$events_wdht=546;
+	if(isset($_GET["miniadm"])){
+		$table_width=955;
+		$events_wdht=601;
+	}
+	
 $html="
 $form
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
@@ -79,7 +87,7 @@ $('#flexRT$t').flexigrid({
 		{display: '$service', name : 'host', width : 58, sortable : true, align: 'left'},
 		{display: 'PID', name : 'host', width : 43, sortable : true, align: 'left'},
 		{display: '&nbsp;', name : 'none', width : 31, sortable : false, align: 'left'},
-		{display: '$events', name : 'events', width :546, sortable : true, align: 'left'},
+		{display: '$events', name : 'events', width :$events_wdht, sortable : true, align: 'left'},
 		],
 	$buttons
 	searchitems : [
@@ -92,7 +100,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 900,
+	width: $table_width,
 	height: 600,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]

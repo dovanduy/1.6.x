@@ -114,7 +114,7 @@ while (list ($num, $ligne) = each ($array) ){
 function today_zoom_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();			
-	$html="YahooWin2(918,'$page?today-zoom-popup=yes&type={$_GET["type"]}&familysite={$_GET["familysite"]}&day={$_GET["day"]}','{$_GET["familysite"]}')";
+	$html="YahooWin2(1073,'$page?today-zoom-popup=yes&type={$_GET["type"]}&familysite={$_GET["familysite"]}&day={$_GET["day"]}','{$_GET["familysite"]}')";
 	echo $html;
 }
 
@@ -323,7 +323,9 @@ function today_zoom_popup_members(){
 	
 	
 $html="
+<center>		
 $title$image
+</center>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 <script>
 $(document).ready(function(){
@@ -347,7 +349,7 @@ $('#flexRT$t').flexigrid({
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 828,
+	width: 971,
 	height: 280,
 	singleSelect: true
 	
@@ -444,7 +446,7 @@ $('#flexRT$t').flexigrid({
 	url: '$page?today-zoom-popup-history-list=yes&day={$_GET["day"]}&type={$_GET["type"]}&familysite={$_GET["familysite"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$member', name : 'uid', width :53, sortable : true, align: 'left'},
+		{display: '$member', name : 'uid', width :86, sortable : true, align: 'left'},
 		{display: 'MAC', name : 'MAC', width : 107, sortable : false, align: 'left'},
 		{display: 'IP', name : 'client', width : 85, sortable : false, align: 'left'},
 		{display: '$sitename', name : 'sitename', width : 326, sortable : false, align: 'left'},
@@ -462,7 +464,7 @@ $('#flexRT$t').flexigrid({
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 940,
+	width: 971,
 	height: 400,
 	singleSelect: true
 	

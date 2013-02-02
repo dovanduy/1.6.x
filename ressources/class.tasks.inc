@@ -80,6 +80,11 @@ class system_tasks{
 			$this->tasks_array[56]="{syslog_engine}";
 			$this->tasks_array[57]="{ps_mem}";
 			$this->tasks_array[58]="{tests_speed}";
+			$this->tasks_array[59]="{backup_mysql_databases}";
+			$this->tasks_array[60]="{mailsync_mailboxes_rules}";
+			$this->tasks_array[61]="{clean_mysql_events}";
+			$this->tasks_array[62]="{salearnschedule}";
+			
 			
 			
 			$this->tasks_explain_array[1]="{reboot_system_explain}";
@@ -142,7 +147,10 @@ class system_tasks{
 			$this->tasks_explain_array[56]="{syslog_engine_explain}";
 			$this->tasks_explain_array[57]="{ps_mem_explain}";
 			$this->tasks_explain_array[58]="{tests_speed_explain}";
-			
+			$this->tasks_explain_array[59]="{backup_mysql_databases_explain}";
+			$this->tasks_explain_array[60]="{mailsync_mailboxes_rules_explain}";
+			$this->tasks_explain_array[61]="{clean_mysql_events_explain}";
+			$this->tasks_explain_array[62]="{salearnschedule_text}";
 			
 			
 			
@@ -209,6 +217,13 @@ class system_tasks{
 			$this->tasks_processes[56]="exec.syslog-engine.php";
 			$this->tasks_processes[57]="exec.syslog-engine.php --psmem";
 			$this->tasks_processes[58]="exec.testspeed.php";
+			$this->tasks_processes[59]="exec.mysql.backup.php";
+			$this->tasks_processes[60]="exec.mailsync.php --alltasks";
+			$this->tasks_processes[61]="exec.clean.logs.php --cleandb";
+			$this->tasks_processes[62]="exec.zarafa.learn.php";
+			
+			
+			
 			
 			
 			$this->DisableTasks();
@@ -221,6 +236,8 @@ private function DisableTasks(){
 	$q=new mysql();
 	$EnableSnort=$sock->GET_INFO("EnableSnort");
 	$LXCEnabled=$sock->GET_INFO("LXCEnabled");
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}	
 	if(!is_numeric($EnableSnort)){$EnableSnort=0;}
 	if(!is_numeric($LXCEnabled)){$LXCEnabled=0;}
 	if(!$users->SNORT_INSTALLED){$EnableSnort=0;}
@@ -232,6 +249,8 @@ private function DisableTasks(){
 	if(!is_numeric($ActAsASyslogClient)){$ActAsASyslogClient=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if($EnableRemoteStatisticsAppliance==1){$ActAsASyslogClient=1;}
+	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}
+	
 	
 	if($ActAsASyslogServer==1){
 		$EnableSnort=1;
@@ -243,7 +262,7 @@ private function DisableTasks(){
 		$users->POSTFIX_INSTALLED=false;
 	}
 	
-	if($EnableSnort=0){$this->task_disabled[53]=true;}
+	if($EnableSnort==0){$this->task_disabled[53]=true;}
 	
 	if($EnableRemoteStatisticsAppliance==0){
 		$this->task_disabled[9]=true;
@@ -263,11 +282,13 @@ private function DisableTasks(){
 		$this->task_disabled[49]=true;
 		$this->task_disabled[37]=true;
 		$this->task_disabled[35]=true;
+		$this->task_disabled[60]=true;
 	}
 	
 	if(!$users->ZARAFA_INSTALLED){
 		$this->task_disabled[31]=true;
 		$this->task_disabled[34]=true;
+		$this->task_disabled[62]=true;
 	}
 	
 	
@@ -335,6 +356,7 @@ public function CheckDefaultSchedules(){
 		$array[56]=array("TimeText"=>"5,20,35 * * * *","TimeDescription"=>"Each 15mn");
 		$array[57]=array("TimeText"=>"7,22,37 * * * *","TimeDescription"=>"Each 15mn");
 		$array[58]=array("TimeText"=>"12 * * * *","TimeDescription"=>"Bandwidth Checker Each hour +12mn");
+		$array[61]=array("TimeText"=>"30 8 * * *","TimeDescription"=>"Clean tasks events each day at 08h30");
 			
 		$c=0;
 		while (list ($TaskType, $content) = each ($array) ){

@@ -166,19 +166,10 @@ function keyTableVerifyFiles($dir){
 
 function WhitelistHosts(){  
 		
-	$q=new mysql();
-	$sql="SELECT * FROM postfix_whitelist_con";
-	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo "$q->mysql_error\n";}
-	
-	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$f[]=$ligne["ipaddr"];
-		$f[]=$ligne["hostname"];
-		
-	}	
-	@mkdir("/etc/mail/dkim",null,true);
- 	@file_put_contents("/etc/mail/dkim/trusted-hosts",@implode("\n",$f));
- 	echo "Starting......: opendkim generating trusted hosts ". count($f)." entries done...\n";
+$unix=new unix();
+$php5=$unix->LOCATE_PHP5_BIN();
+$dirname=dirname(__FILE__);
+shell_exec("$php5 $dirname/exec.dkim-milter.php --whitelist");
 }
 
 function MyNetworks($trust=0){

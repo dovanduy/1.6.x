@@ -36,7 +36,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{computers}");
-	$html="YahooWin4('562.6','$page?popup=yes','$title');";
+	$html="YahooWin4('592.6','$page?popup=yes&filterby={$_GET["filterby"]}&fieldname={$_GET["fieldname"]}','$title');";
 	echo $html;
 }
 
@@ -297,18 +297,16 @@ function popup(){
 	$add=$tpl->_ENGINE_parse_body("{add}:{extension}");
 	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
 	$new_category=$tpl->_ENGINE_parse_body("{new_category}");
-	$TB_WIDTH=550;
+	$TB_WIDTH=570;
 	$t=time();
 	
 	$html="
-	<center>
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
-	</center>
 <script>
 
 $(document).ready(function(){
 $('#$t').flexigrid({
-	url: '$page?list=yes',
+	url: '$page?list=yes&filterby={$_GET["filterby"]}&fieldname={$_GET["fieldname"]}&t=$t',
 	dataType: 'json',
 	colModel : [
 		{display: '$ComputerMacAddress', name : 'MAC', width : 147, sortable : true, align: 'left'},
@@ -334,6 +332,15 @@ $('#$t').flexigrid({
 	});
 });
 
+function SelectUser$t(val){
+	if(!document.getElementById('{$_GET["fieldname"]}')){
+		alert('id: {$_GET["fieldname"]} no such item');
+		return;
+	}
+	document.getElementById('{$_GET["fieldname"]}').value=val;
+	
+}
+
 function RefreshNodesSquidTbl(){
 	$('#$t').flexReload();
 }
@@ -347,6 +354,10 @@ function nodes_list(){
 	$q=new mysql_squid_builder();
 	$defaultday=$q->HIER();
 	$TableActive=date('Ymd',strtotime($defaultday." 00:00:00"))."_hour";
+	$t=$_GET["t"];
+	
+	$filterby=$_GET["filterby"];
+	$fieldname=$_GET["fieldname"];
 	
 	$search='%';
 	$table="webfilters_nodes";
@@ -443,20 +454,57 @@ function nodes_list(){
 		
 		
 		while ($ligne2 = mysql_fetch_assoc($results2)) {
+			$link=null;
 			if(trim($ligne2["hostname"])==null){continue;}
-			if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $ligne2["hostname"])){$tt[]=$ligne2["hostname"];continue;}
-			if(strpos($ligne2["hostname"], ".")>0){$ss=explode(".", $ligne2["hostname"]);$hostname=$ss[0];}else{$hostname=$ligne2["hostname"];}
-			$tt[]=$hostname;
+			if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $ligne2["hostname"])){
+				if($filterby=="ipaddr"){
+					$link="<a href=\"javascript:blur();\" 
+					OnClick=\"javascript:SelectUser$t('{$ligne2["hostname"]}');\" 
+					style='text-decoration:underline'>";
+				}
+				$tt[]="$link{$ligne2["hostname"]}</a>";
+				continue;
+			}
+			if(strpos($ligne2["hostname"], ".")>0){
+				$ss=explode(".", $ligne2["hostname"]);
+				$hostname=$ss[0];}
+				else{$hostname=$ligne2["hostname"];}
+				
+				if($filterby=="hostname"){
+					$link="<a href=\"javascript:blur();\" 
+					OnClick=\"javascript:SelectUser$t('$hostname');\" 
+					style='text-decoration:underline'>";
+				}				
+				
+			$tt[]="$link{$hostname}</a>";
+		}
+		
+		$maclink="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:16px;text-decoration:underline'>";
+		
+		if($filterby<>null){
+			
+			if($filterby=="MAC"){
+				$maclink="<a href=\"javascript:blur();\" 
+				OnClick=\"javascript:SelectUser$t('{$ligne["MAC"]}');\" 
+				style='font-size:16px;text-decoration:underline'>";
+			}
+			
+			
+			if($filterby=="uid"){
+				$uidlink="<a href=\"javascript:blur();\" 
+				OnClick=\"javascript:SelectUser$t('{$ligne["uid"]}');\" 
+				style='font-size:16px;text-decoration:underline'>";
+			}			
+			
 		}
 		
 		
 	$data['rows'][] = array(
 		'id' => $md5,
 		'cell' => array(
-			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" 
-			style='font-size:16px;text-decoration:underline'>{$ligne["MAC"]}</span>",
+			"$maclink{$ligne["MAC"]}</a></span>",
 			"<span style='font-size:11px'>". @implode(", " , $tt)."</span>$textToAdd",
-			"<span style='font-size:16px'>{$ligne["uid"]}</span>",
+			"<span style='font-size:16px'>$uidlink{$ligne["uid"]}</a></span>",
 			$img_active)
 		);
 	}

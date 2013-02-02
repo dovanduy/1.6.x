@@ -5,7 +5,7 @@ include_once('ressources/class.users.menus.inc');
 include_once('ressources/class.dhcpd.inc');
 
 		$usersmenus=new usersMenus();
-		if(!$usersmenus->AsPostfixAdministrator){
+		if(!$GetRights()){
 			$tpl=new templates();
 			echo "alert('".$tpl->javascript_parse_text('{ERROR_NO_PRIVS}')."');";
 			die();
@@ -16,6 +16,11 @@ include_once('ressources/class.dhcpd.inc');
 		if(isset($_GET["delip"])){popup_delete();exit;}
 js();
 
+function GetRights(){
+	$users=new usersMenus();
+	if($users->AsSystemAdministrator){return true;}
+	if($users->ASDCHPAdmin){return true;}
+}
 
 function js(){
 	

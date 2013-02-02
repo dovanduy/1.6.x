@@ -858,7 +858,8 @@ function balancer_settings(){
 	
 	$algo[null]="{none}";
 	$algo["source"]="{strict-hashed-ip}";
-	$algo["roundrobin"]="{round-robin}";		
+	$algo["roundrobin"]="{round-robin}";	
+	$algo["leastconn"]="{leastconn}";	
 	
 	$t=time();
 	$html="
@@ -884,6 +885,11 @@ function balancer_settings(){
 				<td width=99%>". Field_array_Hash($mode,"mode-$t",$hap->loadbalancetype,"MethodChk$t()",null,0,"font-size:16px;padding:3px")."</td>
 				<td><span id='mode-options-$t'></span></td>
 			</tr>	
+			<tr>
+				<td class=legend style='font-size:16px' nowrap>{tunnel_mode}:</td>
+				<td width=99%>". Field_checkbox("tunnel_mode-$t",1,$hap->tunnel_mode,"tunnel_modeChk$t()")."</td>
+				<td><span id='mode-tunnel_mode-$t'></span></td>
+			</tr>				
 			<tr>
 				<td class=legend style='font-size:16px' nowrap>{dispatch_method}:</td>
 				<td width=99%>". Field_array_Hash($algo,"dispatch_mode-$t",$hap->dispatch_mode,"style:font-size:16px;padding:3px")."</td>
@@ -975,18 +981,24 @@ function balancer_settings(){
 			RefreshTab('main_config_haservice');
 		}	
 		
-		function SaveHaProxyService(){
-			if( document.getElementById('transparent-$t').checked){
-				var port1=document.getElementById('listen_port-$t').value;
-				var port2=document.getElementById('transparentsrcport-$t').value;
-				if(port1==port2){
-					alert('$havp_transparent_not_same_port');
-					return;	
-				}
-			
+		
+		function tunnel_modeChk$t(){
+			if( document.getElementById('tunnel_mode-$t').checked){
+				document.getElementById('dispatch_mode-$t').disabled=true;
+				document.getElementById('UseCookies-$t').disabled=true;
+			}else{
+				document.getElementById('dispatch_mode-$t').disabled=false;
+				document.getElementById('UseCookies-$t').disabled=false;			
 			}
 		
+		}		
 		
+		function SaveHaProxyService(){
+			if( document.getElementById('transparent-$t').checked ){
+				var port1=document.getElementById('listen_port-$t').value;
+				var port2=document.getElementById('transparentsrcport-$t').value;
+				if(port1==port2){alert('$havp_transparent_not_same_port');return;	}
+			}
 			var XHR = new XHRConnection();
 			XHR.appendData('balancer-save','yes');
     		XHR.appendData('servicename',document.getElementById('servicename-$t').value);
@@ -1006,7 +1018,7 @@ function balancer_settings(){
     		if( document.getElementById('UseSMTPProto-$t').checked){XHR.appendData('UseSMTPProto',1);}else{XHR.appendData('UseSMTPProto',0);}
     		if( document.getElementById('transparent-$t').checked){XHR.appendData('transparent',1);}else{XHR.appendData('transparent',0);}
     		if( document.getElementById('UseCookies-$t').checked){XHR.appendData('UseCookies',1);}else{XHR.appendData('UseCookies',0);}
-    		
+    		if( document.getElementById('tunnel_mode-$t').checked){XHR.appendData('tunnel_mode',1);}else{XHR.appendData('tunnel_mode',0);}
     		
     		
     		
@@ -1068,6 +1080,7 @@ MethodChk$t();
 UseSMTPProtoChk$t();
 transparentCheck$t();	
 contimeout$t()
+tunnel_modeChk$t();
 		
 </script>";	
 echo $tpl->_ENGINE_parse_body($html);	
@@ -1087,8 +1100,7 @@ function balancer_save(){
 	$hap->MainConfig["clitimeout"]=$_POST["clitimeout"];
 	$hap->MainConfig["retries"]=$_POST["retries"];
 	$hap->MainConfig["UseCookies"]=$_POST["UseCookies"];
-	
-	
+	$hap->tunnel_mode=$_POST["tunnel_mode"];
 	$hap->transparent=$_POST["transparent"];
 	$hap->transparentsrcport=$_POST["transparentsrcport"];
 	$hap->save();

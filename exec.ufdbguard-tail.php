@@ -4,6 +4,7 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["CLASS_UNIX"]=new unix();
+$GLOBALS["CLASS_SOCKET"]=new sockets();
 
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
 $pid=getmypid();
@@ -22,6 +23,8 @@ $GLOBALS["PHP5_BIN"]=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
 $GLOBALS["SBIN_ARP"]=$GLOBALS["CLASS_UNIX"]->find_program("arp");
 $GLOBALS["SBIN_ARPING"]=$GLOBALS["CLASS_UNIX"]->find_program("arping");
 
+
+if(!isset($GLOBALS["UfdbguardSMTPNotifs"]["ENABLED"])){$GLOBALS["UfdbguardSMTPNotifs"]["ENABLED"]=0;}
 
 $GLOBALS["RELOADCMD"]="{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} ".dirname(__FILE__)."/exec.squidguard.php --reload-ufdb";
 if($argv[1]=='--date'){echo date("Y-m-d H:i:s")."\n";}
@@ -265,7 +268,7 @@ if(preg_match("#\] REDIR\s+#", $buffer)){return;}
 		$category=CategoryCodeToCatName($category);
 		if($user=="-"){$user=null;}
 		$MAC=xGetMacFromIP($local_ip);
-		
+		$time=time();
 		if(!is_dir("/var/log/artica-postfix/pagepeeker")){@mkdir("/var/log/artica-postfix/pagepeeker",600,true);}
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){$public_ip=$www;$www=IpToHostname($www);}
 		$Clienthostname=IpToHostname($local_ip);
@@ -282,8 +285,8 @@ if(preg_match("#\] REDIR\s+#", $buffer)){return;}
 		$array["website"]=$www;
 		$array["client"]=$local_ip;
 		$serialize=serialize($array);
-		$md5=md5($serialize);		
-		
+		$md5=md5($serialize);
+
 		
 		
 		@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql",$serialize);

@@ -172,6 +172,12 @@ function downloadFile($url,$hostname)  {
    	
    	$myFile=dirname(__FILE__).'/conf/'.$myFile;
    	@file_put_contents($myFile,$stringData);
+   	
+   	if(!is_file($myFile)){
+   		$this->getFrameWork("services.php?chown-medir=".base64_encode(dirname(__FILE__).'/conf'));
+   		@file_put_contents($myFile,$stringData);
+   	}
+   	
    	if(!is_file($myFile)){
    		if(function_exists("writelogs")){
 		writelogs("Writing $myFile ". strlen($stringData)." bytes failed",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
@@ -232,9 +238,7 @@ function downloadFile($url,$hostname)  {
    		if(isset($GLOBALS["GET_INFO"][$key])){return $GLOBALS["GET_INFO"][$key];}
    		$X=$this->MEMCACHE_GET($key);
 		if(!empty($X)){return $X;}
-   	
-   	
-   		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=posix_getuid();}
+		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=posix_getuid();}
 
      			
    	
@@ -349,7 +353,6 @@ function downloadFile($url,$hostname)  {
    	
    	if(posix_getuid()==0){return $this->GET_MYSQL_ROOT($key);}
    	$answer=$this->getfile("MSQLINFOS:$key");
-   	if($answer==null){$answer='!nil';}
    	$GLOBALS["MYSQL_INFO"][$key]=$answer;
    	return $answer;
    	}
@@ -413,19 +416,33 @@ private function fopen_framework($uri){
 		
 }
 private function mem_getusage(){
-	$mem=round(memory_get_usage(true)/1024)."Ko";
-	return $mem;
+		$unit="KB";
+		$time=0;
+		$mem=round(memory_get_usage(true)/1024);
+		if($mem>1024){$mem=round($mem/1000,2);$unit="MB";}
+    	$xtime=microtime(true);
+    	if(!isset($GLOBALS["VERBOSE_MICROTIME"])){
+    		$GLOBALS["VERBOSE_MICROTIME"]=$xtime;
+    	}else{
+    		$time = $xtime - $GLOBALS["VERBOSE_MICROTIME"];
+    		$GLOBALS["VERBOSE_MICROTIME"]=$xtime;
+    		$time=round($time,2);
+    	}
+		return $time."s ".$mem.$unit;
 }
 
 private function fopen_curl($uri){
+	if(isset($GLOBALS[__CLASS__][__FUNCTION__][$uri])){return $GLOBALS[__CLASS__][__FUNCTION__][$uri];}
 	$CURLOPT_TIMEOUT=10;
 	if(preg_match("#MyCURLTIMEOUT=([0-9]+)#", $uri,$re)){
 		$CURLOPT_TIMEOUT=$re[1];
 	}
 	$errno=0;
-	if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] -> $uri curl_init() ".__FUNCTION__." Line:".__LINE__."<br>\n";}
+	
 	$ch = curl_init();
-	curl_setopt($ch, CURLOPT_INTERFACE,"127.0.0.1");
+	if(!$GLOBALS["AS_ROOT"]){
+		curl_setopt($ch, CURLOPT_INTERFACE,"127.0.0.1");
+	}
 	curl_setopt($ch, CURLOPT_URL, "http://127.0.0.1:47980/$uri");
 	curl_setopt($ch, CURLOPT_HEADER, 0);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -446,15 +463,16 @@ private function fopen_curl($uri){
 		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] -> $uri: ". strlen($data)." bytes length Err.$errno".__FUNCTION__." Line:".__LINE__."<br>\n";}
 		include_once(dirname(__FILE__)."/class.ccurl.inc");
 		$cc=new ccurl();
-		$errstr=$cc->ParseError($error);
+		$cc->ParseError($errno);
+		$errstr=$cc->error;
 		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] ERROR: unable to open remote file http://127.0.0.1:47980/$uri $errno $errstr<br>\n";}
-		error_log("ERROR: unable to open remote file http://127.0.0.1:47980/$uri $errno $errstr ".__FUNCTION__." Line:".__LINE__);
+		error_log("ERROR: unable to open remote file http://127.0.0.1:47980/$uri Error Number $errno `$errstr` ".__FUNCTION__." Line:".__LINE__);
 		if(function_exists("writelogs")){writelogs("ERROR: unable to open remote file http://127.0.0.1:47980/$uri",
-		__CLASS__ . "=>" . __FUNCTION__,__FILE__);}
+		__CLASS__ . "/" . __FUNCTION__,__FILE__);}
 			$this->error=true;
 		return null;
 	}
-	
+	$GLOBALS[__CLASS__][__FUNCTION__][$uri]=$data;
 	return $data;
 
 }
@@ -501,6 +519,32 @@ function GET_MYSQL_ROOT($key){
 			
 		}
 		
+		
+		if($uri=="services.php?GetMyHostId=yes"){
+			if($GLOBALS["AS_ROOT"]){
+				$unix=new unix();
+				return $unix->GetMyHostId();
+			}
+			
+		}
+		
+		if($uri=="squid.php?full-version=yes"){
+			if($GLOBALS["AS_ROOT"]){
+				$unix=new unix();
+				$squidbin=$unix->find_program("squid");
+				if($squidbin==null){$squidbin=$unix->find_program("squid3");}
+				exec("$squidbin -v 2>&1",$results);
+				while (list ($num, $val) = each ($results)){
+					if(preg_match("#Squid Cache: Version.*?([0-9\.\-a-z]+)#", $val,$re)){return trim($re[1]);}
+				}
+			}
+			
+		}
+		
+		
+		
+		
+		
 		if($uri=="cmd.php?ifconfig-all-ips=yes"){
 			if($GLOBALS["AS_ROOT"]){
 				if(!isset($GLOBALS["ifconfig_all_ips"])){$unix=new unix();$GLOBALS["ifconfig_all_ips"]=base64_encode(serialize($unix->ifconfig_all_ips()));}
@@ -532,8 +576,6 @@ function GET_MYSQL_ROOT($key){
 		
 		
 			
-		if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."]  http://127.0.0.1:47980/$uri<br>\n";}
-		if($GLOBALS["AS_ROOT"]){writelogs("http://127.0.0.1:47980/$uri",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		
 		$line=$this->fopen_framework($uri);
 
@@ -691,6 +733,8 @@ function GET_MYSQL_ROOT($key){
 				$memcache->close();
 				return $ARRAY;
 			}
+		}else{
+			if($GLOBALS["DEBUG"]){echo "LANGUAGE_DUMP \"Memcache\" doesn't exists\n";}
 		}		
 		
 		
@@ -701,13 +745,25 @@ function GET_MYSQL_ROOT($key){
 				$data=$shm->GET($lang);
 				$shm->CLOSE();
 			}
+		}else{
+			if($GLOBALS["DEBUG"]){echo "LANGUAGE_DUMP SYSTEMV5_ENABLED = False\n";}
 		}
 		
 		if($GLOBALS["DEBUG"]){echo "LANGUAGE_DUMP Memory store ". count($data)." rows\n";}
+		$filepath=dirname(__FILE__)."/language/$lang.db";
+		
+		
 		
 		if(count($data)<100){
-			writelogs("[$lang]:: now enough row for language $lang",__CLASS__."/".__FUNCTION__,__FILE__);
-			$filepath=dirname(__FILE__)."/language/$lang.db";
+			if(!is_file($filepath)){
+				if($lang=="pt"){
+					if($GLOBALS["DEBUG"]){echo "LANGUAGE_DUMP switch to br.db instead, $filepath no such file\n";}
+					$lang="br";
+					$filepath=dirname(__FILE__)."/language/br.db";
+				}
+			}
+			
+			
 			if(!is_file("$filepath")){
 				if($GLOBALS["posix_getuid"]>0){
 					$file=base64_decode($this->getFrameWork("cmd.php?GetLangagueFile=$lang"));
@@ -717,6 +773,7 @@ function GET_MYSQL_ROOT($key){
 						}
 					}
 				}else{
+					
 					$file=@file_get_contents(dirname(__FILE__)."/language/$lang.db");
 					if($GLOBALS["DEBUG"]){echo "LANGUAGE_DUMP File: $filepath ". strlen($file)." bytes\n";}					
 				}
@@ -726,11 +783,11 @@ function GET_MYSQL_ROOT($key){
 				writelogs("[$lang]:: Get language file from framework Not an array !",__CLASS__."/".__FUNCTION__,__FILE__);
 			}
 			
-			
+			if($GLOBALS["DEBUG"]){echo "LANGUAGE_DUMP: $lang:". count($data). " items\n";}
 			if(count($data)<500){
 				writelogs("[$lang]:: Get language file from framework Not an array !",__CLASS__."/".__FUNCTION__,__FILE__);
 			}
-			if($GLOBALS["DEBUG"]){echo "LANGUAGE_DUMP Serialised=". count($data)." rows\n";}
+			if($GLOBALS["DEBUG"]){echo "LANGUAGE_DUMP serialized=". count($data)." rows ->LANGUAGE_CACHE_IMPORT($lang,...)\n";}
 			$this->LANGUAGE_CACHE_IMPORT($lang,$data);
 		}
 		return $data;

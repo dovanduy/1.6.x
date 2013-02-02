@@ -87,14 +87,18 @@ if($argv[1]=="--drupal-schedules"){drupal_schedules();die();exit;}
 if($argv[1]=="--status"){mod_status($argv[2]);die();exit;}
 if($argv[1]=="--listwebs"){listwebs();die();exit;}
 if($argv[1]=="--reconfigure-all"){reconfigure_all_websites();die();exit;}
+if($argv[1]=="--reconfigure-webapp"){reconfigure_all_webapp();die();exit;}
 if($argv[1]=="--rouncube-plugins"){roundcube_plugins($argv[2]);die();exit;}
 if($argv[1]=="--monit"){build_monit();die();exit;}
-if($argv[1]=="--watchdog"){watchdog($direction);die();exit;}
+if($argv[1]=="--watchdog"){watchdog($argv[2]);die();exit;}
 if($argv[1]=="--start"){startApache();die();exit;}
 if($argv[1]=="--stop"){StopApache();die();exit;}
 if($argv[1]=="--reload"){ReloadApache();die();exit;}
 if($argv[1]=="--backupsite"){backupsite($argv[2]);die();exit;}
 if($argv[1]=="--ScanSize"){ScanSize();die();exit;}
+if($argv[1]=="--remove-disabled"){remove_disabled();die();exit;}
+
+
 
 
 
@@ -152,7 +156,7 @@ function create_cron_task(){
 
 
 function reconfigure_all_websites(){
-	$sql="SELECT * FROM freeweb ORDER BY servername";
+	$sql="SELECT * FROM freeweb WHERE enabled=1 ORDER BY servername";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,'artica_backup');	
 	$count=mysql_num_rows($results);
@@ -163,10 +167,75 @@ function reconfigure_all_websites(){
 	}
 }
 
+function remove_disabled(){
+	$workdir="/etc/apache2/sites-enabled";
+	$sql="SELECT * FROM freeweb WHERE enabled=0 ORDER BY servername";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	$count=mysql_num_rows($results);
+	$reload=false;
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$hostname=$ligne["servername"];
+		if(is_file("$workdir/artica-$hostname.conf")){
+			@unlink("$workdir/artica-$hostname.conf");
+			$reload=true;
+		}
+	}
+	
+	if($reload){reload_apache();}
+}
+
+function check_enabled(){
+	$workdir="/etc/apache2/sites-enabled";
+	$sql="SELECT * FROM freeweb WHERE enabled=1 ORDER BY servername";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	$count=mysql_num_rows($results);
+	$reload=false;
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$hostname=$ligne["servername"];
+		if(!is_file("$workdir/artica-$hostname.conf")){
+			buildHost(null,$hostname);
+			$reload=true;
+		}
+	}
+
+	if($reload){reload_apache();}
+	
+}
+
+function reconfigure_all_webapp(){
+	$unix=new unix();
+	@mkdir("/etc/artica-postfix/pids",0755,true);
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "Already instance executed pid $oldpid\n";
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	
+	$sql="SELECT servername FROM freeweb WHERE groupware='WEBAPP' AND enabled=1";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	$count=mysql_num_rows($results);
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$hostname=$ligne["servername"];
+		install_groupware($hostname);
+		buildHost(null,$hostname);
+	}	
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php /usr/share/artica-postfix/exec.ejabberd.php --zarafa >/dev/null 2>&1");
+	reload_apache();
+	
+}
+
 
 function listwebs(){
 	$unix=new unix();
-	$sql="SELECT * FROM freeweb ORDER BY servername";
+	$sql="SELECT * FROM freeweb WHERE enabled=1 ORDER BY servername";
 	$httpdconf=$unix->LOCATE_APACHE_CONF_PATH();
 	$apacheusername=$unix->APACHE_SRC_ACCOUNT();
 	$GLOBALS["apacheusername"]=$apacheusername;
@@ -334,6 +403,15 @@ function ReloadApache($nocheck=false){
 
 
 function startApache($withoutkill=false){
+	if(!isset($GLOBALS["startApacheCount"])){$GLOBALS["startApacheCount"]=0;}
+	$GLOBALS["startApacheCount"]=$GLOBALS["startApacheCount"]+1;
+	
+	echo "Starting......: Apache {$GLOBALS["startApacheCount"]} time(s)\n";
+	
+	if($GLOBALS["startApacheCount"]>3){
+		echo "Starting......: Apache failed, too many start:{$GLOBALS["startApacheCount"]}...\n";
+		return;
+	}
 	$apache2ctl=$GLOBALS["CLASS_UNIX"]->find_program("apache2ctl");
 	if(!is_file($apache2ctl)){return;}
 	$LOCATE_APACHE_CONF_PATH=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_CONF_PATH();
@@ -351,6 +429,15 @@ function startApache($withoutkill=false){
 			CheckHttpdConf();
 			continue;
 		}
+		
+		
+		if(preg_match("#Error retrieving pid file\s+(.+)#", $ligne,$re)){
+			$re[1]=trim($re[1]);
+			echo "Starting......: Apache, removing {$re[1]}\n";
+			@unlink(trim($re[1]));
+			startApache(true);
+			return;
+		}
 			
 		if(preg_match("#httpd.+?pid\s+([0-9]+)\) already running#",$ligne,$re)){
 			if(!$withoutkill){
@@ -358,7 +445,7 @@ function startApache($withoutkill=false){
 				shell_exec("$kill -9 {$re[1]}");
 				KillApacheProcesses();
 				startApache(true);
-				continue;
+				return;
 			}else{
 				echo "Starting......: Apache restart\n";
 				shell_exec("$apache2ctl restart");
@@ -372,7 +459,7 @@ function startApache($withoutkill=false){
 			if(!$withoutkill){
 				KillApacheProcesses($re[1]);
 				startApache(true);
-				continue;
+				return;
 				
 			}
 		}
@@ -663,6 +750,8 @@ function CheckHttpdConf(){
 	$toremove[]="status.conf";
 	$toremove[]="fcgid.load";
 	$toremove[]="fcgid.conf";
+	$toremove[]="fastcgi.load";
+	$toremove[]="fastcgi.conf";
 	$toremove[]="log_sql.load";
 	$toremove[]="log_sql_mysql.load";
 	$toremove[]="geoip.conf";
@@ -679,7 +768,7 @@ function CheckHttpdConf(){
 	
 	if(is_file("/etc/apache2/sites-enabled/000-default")){@unlink("/etc/apache2/sites-enabled/000-default");}
 	if(is_file("/etc/apache2/conf.d/other-vhosts-access-log")){@unlink("/etc/apache2/conf.d/other-vhosts-access-log");}
-	
+	@mkdir("/etc/apache2/htdocs",0755,true);
 	
 	if(is_file("/etc/apache2/sites-available/default")){@unlink("/etc/apache2/sites-available/default");}
 	if(is_file("/etc/apache2/conf.d/zarafa-webaccess.conf")){@unlink("/etc/apache2/conf.d/zarafa-webaccess.conf");}
@@ -730,6 +819,17 @@ function CheckHttpdConf(){
 	$conf[]="<IfModule mod_fcgid.c>";
 	$conf[]="\tPHP_Fix_Pathinfo_Enable 1";
 	$conf[]="</IfModule>";
+	
+	if($users->APACHE_MOD_STATUS){
+		$hosnenc=md5($users->hostname);
+		$conf[]="<Location /$hosnenc/$hosnenc-status>";
+		$conf[]="\tSetHandler server-status";
+		$conf[]="\tOrder deny,allow";
+		$conf[]="\tDeny from all";
+		$conf[]="\tAllow from 127.0.0.1";
+		$conf[]="\tSatisfy Any";
+		$conf[]="</Location>";		
+	}
 	
 	$conf[]="";
 	if(!is_dir("$DAEMON_PATH/sites-available")){@mkdir("$DAEMON_PATH/sites-available",666,true);}
@@ -1002,7 +1102,7 @@ unset($f);
 	@unlink("/etc/libapache2-mod-jk/workers.properties");
 	@unlink("/etc/apache2/workers.properties");	
 	@unlink("$DAEMON_PATH/conf.d/jk.conf");
-	
+	$free=new freeweb();
 	
 	$array["php5_module"]="libphp5.so";
 	//$array["access_module"]="mod_access.so";
@@ -1013,7 +1113,7 @@ unset($f);
 	$array["mem_cache_module"]="mod_mem_cache.so";
 	$array["expires_module"]="mod_expires.so";
 	$array["status_module"]="mod_status.so";
-	if(is_file("/usr/share/GeoIP/GeoIP.dat")){
+	if(is_file($free->locate_geoip_db())){
 		$array["geoip_module"]="mod_geoip.so";
 	}
 	$array["info_module"]="mod_info.so";
@@ -1031,6 +1131,9 @@ unset($f);
 	$array["auth_basic_module"]="mod_auth_basic.so";
 	$array["authn_file_module"]="mod_authn_file.so";
 	$array["vhost_alias_module"]="mod_vhost_alias.so";
+	$array["python_module"]="mod_python.so";
+	
+	
 	$array["ssl_module"]="mod_ssl.so";
 	if($FreeWebEnableSQLLog==1){
 		$array["log_sql_module"]="mod_log_sql.so";
@@ -1039,7 +1142,7 @@ unset($f);
 	$array["bw_module"]="mod_bw.so";
 	$array["expires_module"]="mod_expires.so";
 	$array["include_module"]="mod_include.so";
-
+	
 	 
 	
 	
@@ -1430,7 +1533,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		$mod_bw=$freeweb->mod_bw();
 		$mpm_itk_module=$freeweb->mpm_itk_module();
 		$ErrorDocument=$freeweb->ErrorDocument();
-		
+		$Apache2_AuthenNTLM=$freeweb->Apache2_AuthenNTLM();
 		
 		if($APACHE_MOD_PAGESPEED){$mod_pagespedd=$freeweb->mod_pagespeed();}
 		$conf[]="\tServerAdmin $ServerAdmin";
@@ -1456,6 +1559,10 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 			if($freeweb->groupware=="ZARAFA"){
 				$ZarafaWebNTLM=$sock->GET_INFO("ZarafaWebNTLM");	
 				if(!is_numeric($ZarafaWebNTLM)){$ZarafaWebNTLM=0;}
+				$PARAMS=$freeweb->Params["ZARAFAWEB_PARAMS"];
+				if(!isset($PARAMS["ZarafaWebNTLM"])){$PARAMS["ZarafaWebNTLM"]=$ZarafaWebNTLM;}
+				if(!is_numeric($PARAMS["ZarafaWebNTLM"])){$PARAMS["ZarafaWebNTLM"]=$ZarafaWebNTLM;}
+				$ZarafaWebNTLM=$PARAMS["ZarafaWebNTLM"];				
 				if($ZarafaWebNTLM==1){$AuthLDAP=1;}
 			}		
 		
@@ -1503,7 +1610,9 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		$Indexes=" Indexes";
 		if($freeweb->Params["SECURITY"]["FreeWebsDisableBrowsing"]==1){$Indexes=" -Indexes";}
 		$conf[]="\n\t<Directory \"$freeweb->WORKING_DIRECTORY/\">";
-		
+		if($Apache2_AuthenNTLM<>null){
+			$conf[]=$Apache2_AuthenNTLM;
+		}
 		if($DirectoryContent==null){
 			$DirectoryIndex=$freeweb->DirectoryIndex();
 			$conf[]="\t\tDirectoryIndex $DirectoryIndex";
@@ -1563,6 +1672,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	}
 	$conf[]=$freeweb->FilesRestrictions();	
 	$conf[]=$freeweb->mod_security();
+	
 	
 	$ScriptAliases=$freeweb->ScriptAliases();
 	if(!is_dir("/var/log/apache2/$hostname")){@mkdir("/var/log/apache2/$hostname",0755,true);}

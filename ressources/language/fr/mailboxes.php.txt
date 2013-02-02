@@ -22,9 +22,9 @@ Les alias produits pour ce domaine seront enlev&eacute;s &eacute;galement</ERROR
 <js_expand_domain>&Eacute;tendez ce domaine pour voir les param&egrave;tres</js_expand_domain>
 <PAGE_TEXT>Cette section est con&ccedil;ue pour g&eacute;rer les domaines internet de votre r&eacute;seau. Ces domaines servent principalement &agrave; la messagerie.</PAGE_TEXT>
 <title>G&eacute;rer les bo&icirc;tes aux lettres et les domaines</title>
-<xdelete_alias_text>&Ecirc;tes-vous s&ucirc;rs de vouloir enlever cette r&egrave;gle d'alias?
+<xdelete_alias_text>Enlever cette r&egrave;gle d'alias?
 La bo&icirc;te aux lettres ne sera pas supprim&eacute;e mais le syst&egrave;me de courrier Postfix ne sera pas capable de transf&eacute;rer les courriers &eacute;lectroniques  pour cet alias</xdelete_alias_text>
-<xdelete_domain_text>Etes-vous s&ucirc;r de vouloir  enlever ce domaine ?
+<xdelete_domain_text>Enlever ce domaine ?
 Les alias et-ou le transport produit pour ce domaine seront enlev&eacute;s.
 Les bo&icirc;tes aux lettres ne seront pas supprim&eacute;s</xdelete_domain_text>
-<xdelete_transport_text>&ecirc;tes-vous s&ucirc;r de supprimer cette r&egrave;gle de transfert Les aliases enregistr&eacute;s pour ce domaine seront aussi supprim&eacute;s.</xdelete_transport_text>
+<xdelete_transport_text>Supprimer cette r&egrave;gle de transfert ? Les aliases enregistr&eacute;s pour ce domaine seront aussi supprim&eacute;s.</xdelete_transport_text>

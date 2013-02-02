@@ -1,20 +1,12 @@
 <?php
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
-require("/usr/share/php/mapi/mapi.util.php");
-require("/usr/share/php/mapi/mapidefs.php");
-require("/usr/share/php/mapi/mapicode.php");
-require("/usr/share/php/mapi/mapitags.php");
-require("/usr/share/php/mapi/mapiguid.php");
-include_once(dirname(__FILE__).'/ressources/class.templates.inc');
-include_once(dirname(__FILE__).'/ressources/class.ini.inc');
-include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
-include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
-include_once(dirname(__FILE__).'/ressources/class.user.inc');
+include_once(dirname(__FILE__).'/ressources/class.mapi-zarafa.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 
 
+if($argv[1]=="--sent"){inject_blacklists($argv[2]);die();}
 
 start();
 
@@ -22,7 +14,11 @@ start();
 function start(){
 	$sock=new sockets();
 	$ZarafaAdbksWhiteTask=$sock->GET_INFO("ZarafaAdbksWhiteTask");
+	$ZarafaWhiteSentItems=$sock->GET_INFO("ZarafaWhiteSentItems");
+	$ZarafaJunkItems=$sock->GET_INFO("ZarafaJunkItems");
 	if(!is_numeric($ZarafaAdbksWhiteTask)){$ZarafaAdbksWhiteTask=0;}
+	if(!is_numeric($ZarafaWhiteSentItems)){$ZarafaWhiteSentItems=1;}
+	if(!is_numeric($ZarafaJunkItems)){$ZarafaJunkItems=1;}
 	if($ZarafaAdbksWhiteTask==0){return;}
 	$q=new mysql();
 	$q->BuildTables();
@@ -53,7 +49,8 @@ function start(){
 		while (list ($uid, $none2) = each ($users) ){
 			if(trim($uid)==null){continue;}
 			import_contacts($uid,$ZarafaServerListenIP);
-			
+			if($ZarafaWhiteSentItems==1){import_sentitems($uid);}
+			if($ZarafaJunkItems==1){inject_blacklists($uid);}
 		}
 		
 	}
@@ -75,34 +72,109 @@ function start(){
 }
 
 function import_contacts($uid,$listenip){
-	$ct=new user($uid);
-	$username = $uid;
-	$password = $ct->password;
-	
-	$zarafaServer = "http://$listenip:236/zarafa";
-	$session = mapi_logon_zarafa($username, $password, $zarafaServer);
-	if($GLOBALS["VERBOSE"]){echo "import_contacts($uid,$listenip) -> $username:$password -> `$zarafaServer`\n";}
-	
-	$storetable = mapi_getmsgstorestable($session);
-	if($GLOBALS["VERBOSE"]){echo "to logon to $zarafaServer `$session` $storetable\n";}
-	$storeslist = mapi_table_queryallrows($storetable, array(PR_ENTRYID, PR_MDB_PROVIDER));
-	$publicstore = mapi_openmsgstore($session, $storeslist[1][PR_ENTRYID]);
-	$defaultstore = mapi_openmsgstore($session, $storeslist[1][PR_ENTRYID]);
+	$zarafa=new mapizarafa();
+	if(!$zarafa->Connect($uid)){
+		system_user_events($uid, $zarafa->error, __FUNCTION__, __FILE__, __LINE__, "contacts");
+		return;
+	}
+	inject_contacts($uid,$zarafa->HashGetContacts());
 	
 	
-	$contacts=getPrivateContactFolders($session,$defaultstore);
-	if(isset($contacts[0]["contacts"])){
-		
-		inject_contacts($uid,$contacts[0]["contacts"]);
-	}else{
-		if($GLOBALS["VERBOSE"]){echo "import_contacts($uid,...) -> Not an array...\n";}
+	
+	
+	
+	//	print_r(getPublicContactFolders($session,$publicstore));
+
+}
+
+function import_sentitems($uid){
+	$zarafa=new mapizarafa();
+	if(!$zarafa->Connect($uid)){
+		system_user_events($uid, $zarafa->error, __FUNCTION__, __FILE__, __LINE__, "contacts");
+		return;
+	}
+	
+	$array=$zarafa->GetRecipientsFromFolder("Sent Items");
+	if(count($array)>0){
+		inject_sentitems($uid,$array);
 	}
 	
 	
-	
-	
-//	print_r(getPublicContactFolders($session,$publicstore));
+}
+function inject_sentitems($uid,$array){
 
+	while (list ($index, $emailAddress_str) = each ($array) ){
+
+
+		$md5=md5("$emailAddress_str$uid");
+		$f[]="('$emailAddress_str','$uid','1','$md5','1')";
+
+		
+	}
+
+	if(count($f)>0){
+		$q=new mysql();
+		system_user_events($uid,count($f)." are added to the whitelist database from sent items..", __FUNCTION__, __FILE__, __LINE__, "whitelist");
+		$sql="INSERT IGNORE INTO contacts_whitelist (`sender`,`uid`,`manual`,`md5`,`enabled`) VALUES ".@implode(",", $f);
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){
+			system_admin_events("Fatal: $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "zarafa");
+			return;
+		}
+			
+		$GLOBALS["ITEMSC"]=$GLOBALS["ITEMSC"]+count($f);
+	}
+
+}
+
+function inject_blacklists($uid){
+	
+	
+	$zarafa=new mapizarafa();
+	
+	if(!$zarafa->Connect($uid)){
+		system_user_events($uid, $zarafa->error, __FUNCTION__, __FILE__, __LINE__, "contacts");
+		return;
+	}	
+	
+	$array=$zarafa->GetSendersFromFolder("Junk E-mail");
+	if(count($array)>0){
+		inject_blacklists_tomysql($uid,$array);
+	}	
+	
+}
+
+function inject_blacklists_tomysql($uid,$contacts){
+	
+	$q=new mysql();
+	
+	while (list ($emailAddress_str, $none) = each ($contacts) ){
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT uid FROM `contacts_whitelist` WHERE sender='$emailAddress_str'","artica_backup"));
+		if($ligne2["uid"]<>null){continue;}
+		
+		$md5=md5("$emailAddress_str$uid");
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT uid FROM `contacts_blacklist` WHERE md5='$md5'","artica_backup"));
+		if($ligne2["uid"]<>null){
+			if($GLOBALS["VERBOSE"]){echo "$md5 $emailAddress_str Already added in contacts_blacklist for [{$ligne2["uid"]}]\n";}
+			continue;}
+		
+		$f[]="('$emailAddress_str','$uid','$md5','1')";
+		if($GLOBALS["VERBOSE"]){echo "$uid -> $emailAddress_str $md5\n";}
+	}
+	
+	if(count($f)>0){
+		system_user_events($uid,count($f)." are added to the blacklist database..", __FUNCTION__, __FILE__, __LINE__, "blacklist");
+		$sql="INSERT IGNORE INTO contacts_blacklist (`sender`,`uid`,`md5`,`enabled`) VALUES ".@implode(",", $f);
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){
+			if($GLOBALS["VERBOSE"]){echo "$q->mysql_error\n";}
+			system_admin_events("Fatal: $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "zarafa");
+			return;
+		}
+			
+		$GLOBALS["ITEMSC"]=$GLOBALS["ITEMSC"]+count($f);
+	}	
+	
 }
 
 
@@ -117,8 +189,8 @@ function inject_contacts($uid,$contacts){
 			if($GLOBALS["VERBOSE"]){echo "inject_contacts($uid,...) -> ValidateMail($emailAddress_str) -> `FALSE`\n";}
 			continue;
 		}
-		
-		$f[]="('$emailAddress_str','$uid')";
+		$md5=md5("$emailAddress_str$uid");
+		$f[]="('$emailAddress_str','$uid','$md5','1')";
 		
 		$emailAddress_str=$array["email2address"];
 		$emailAddress_str=trim(strtolower($emailAddress_str));
@@ -128,7 +200,8 @@ function inject_contacts($uid,$contacts){
 			continue;
 		}
 		
-		$f[]="('$emailAddress_str','$uid')";
+		$md5=md5("$emailAddress_str$uid");
+		$f[]="('$emailAddress_str','$uid','$md5','1')";
 
 		$emailAddress_str=$array["email3address"];
 		$emailAddress_str=trim(strtolower($emailAddress_str));
@@ -138,20 +211,24 @@ function inject_contacts($uid,$contacts){
 			continue;
 		}
 		
-		$f[]="('$emailAddress_str','$uid')";
+		$md5=md5("$emailAddress_str$uid");
+		$f[]="('$emailAddress_str','$uid','$md5','1')";
 		}
 		
-		$sql="DELETE FROM `contacts_whitelist` WHERE uid='$uid'";
-		$q=new mysql();
-		$q->QUERY_SQL($sql,"artica_backup");
-		$sql="INSERT IGNORE INTO contacts_whitelist (`sender`,`uid`) VALUES ".@implode(",", $f);
-		$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){
-			system_admin_events("Fatal: $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "zarafa");
-			return;
+		if(count($f)>0){
+			$sql="DELETE FROM `contacts_whitelist` WHERE uid='$uid' AND manual=0 AND enabled=1";
+			$q=new mysql();
+			$q->QUERY_SQL($sql,"artica_backup");
+			system_user_events($uid,count($f)." are added to the whitelist database..", __FUNCTION__, __FILE__, __LINE__, "whitelist");
+			$sql="INSERT IGNORE INTO contacts_whitelist (`sender`,`uid`,`md5`,`enabled`) VALUES ".@implode(",", $f);
+			$q->QUERY_SQL($sql,"artica_backup");
+			if(!$q->ok){
+				system_admin_events("Fatal: $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "zarafa");
+				return;
+			}
+			
+			$GLOBALS["ITEMSC"]=$GLOBALS["ITEMSC"]+count($f);
 		}
-		
-		$GLOBALS["ITEMSC"]=$GLOBALS["ITEMSC"]+count($f);
 		
 }
 

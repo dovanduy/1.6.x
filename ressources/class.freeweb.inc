@@ -13,53 +13,55 @@
 	
 	
 	class freeweb{
-		var $servername;
-		var $groupware='';
-		var $APACHE_DIR_SITES_ENABLED='';
-		var $SSL_enabled=false;
-		var $AS_ROOT=false;
-		var $WORKING_DIRECTORY='';
-		var $SQUID_CACHMGR='';
-		var $APACHE_RUN_USER='';
-		var $APACHE_RUN_GROUP='';
-		var $LimitByIp=0;
-		var $Params=array();
-		var $mod_rewrite='';
-		var $lvm_size=0;
-		var $lvm_vg="";
-		var $UseLoopDisk=0;
-		var $LoopMounts="";
-		var $useMysql=0;
-		var $mysql_database;
-		var $mysql_password;
-		var $mysql_username;
-		var $ftpuser;
-		var $ftppassword;
-		var $useSSL=0;
-		var $uid;
-		var $useFTP=0;
-		var $ou;
-		var $error;
-		var $www_dir;
-		var $ServerPort=0;
-		var $UseReverseProxy=0;
-		var $ProxyPass;
-		var $Forwarder=0;
-		var $ForwardTo=0;
-		var $APACHE_MOD_TOMCAT=false;
-		var $COUNTRIES_ISO=array("AALAND ISLANDS"=>"AX","AFGHANISTAN"=>"AF","ALBANIA"=>"AL","ALGERIA"=>"DZ","AMERICAN SAMOA"=>"AS","ANDORRA"=>"AD","ANGOLA"=>"AO","ANGUILLA"=>"AI","ANTARCTICA"=>"AQ","ANTIGUA AND BARBUDA"=>"AG","ARGENTINA"=>"AR","ARMENIA"=>"AM","ARUBA"=>"AW","AUSTRALIA"=>"AU","AUSTRIA"=>"AT","AZERBAIJAN"=>"AZ","BAHAMAS"=>"BS","BAHRAIN"=>"BH","BANGLADESH"=>"BD","BARBADOS"=>"BB","BELARUS"=>"BY","BELGIUM"=>"BE","BELIZE"=>"BZ","BENIN"=>"BJ","BERMUDA"=>"BM","BHUTAN"=>"BT","BOLIVIA"=>"BO","BOSNIA AND HERZEGOWINA"=>"BA","BOTSWANA"=>"BW","BOUVET ISLAND"=>"BV","BRAZIL"=>"BR","BRITISH INDIAN OCEAN TERRITORY"=>"IO","BRUNEI DARUSSALAM"=>"BN","BULGARIA"=>"BG","BURKINA FASO"=>"BF","BURUNDI"=>"BI","CAMBODIA"=>"KH","CAMEROON"=>"CM","CANADA"=>"CA","CAPE VERDE"=>"CV","CAYMAN ISLANDS"=>"KY","CENTRAL AFRICAN REPUBLIC"=>"CF","CHAD"=>"TD","CHILE"=>"CL","CHINA"=>"CN","CHRISTMAS ISLAND"=>"CX","COCOS (KEELING) ISLANDS"=>"CC","COLOMBIA"=>"CO","COMOROS"=>"KM","CONGO, Democratic Republic of (was Zaire)"=>"CD","CONGO, Republic of"=>"CG","COOK ISLANDS"=>"CK","COSTA RICA"=>"CR","COTE D'IVOIRE"=>"CI","CROATIA"=>"HR","CUBA"=>"CU","CYPRUS"=>"CY","CZECH REPUBLIC"=>"CZ","DENMARK"=>"DK","DJIBOUTI"=>"DJ","DOMINICA"=>"DM","DOMINICAN REPUBLIC"=>"DO","ECUADOR"=>"EC","EGYPT"=>"EG","EL SALVADOR"=>"SV","EQUATORIAL GUINEA"=>"GQ","ERITREA"=>"ER","ESTONIA"=>"EE","ETHIOPIA"=>"ET","FALKLAND ISLANDS"=>"FK","FAROE ISLANDS"=>"FO","FIJI"=>"FJ","FINLAND"=>"FI","FRANCE"=>"FR","FRENCH GUIANA"=>"GF","FRENCH POLYNESIA"=>"PF","FRENCH SOUTHERN TERRITORIES"=>"TF","GABON"=>"GA","GAMBIA"=>"GM","GEORGIA"=>"GE","GERMANY"=>"DE","GHANA"=>"GH","GIBRALTAR"=>"GI","GREECE"=>"GR","GREENLAND"=>"GL","GRENADA"=>"GD","GUADELOUPE"=>"GP","GUAM"=>"GU","GUATEMALA"=>"GT","GUINEA"=>"GN","GUINEA-BISSAU"=>"GW","GUYANA"=>"GY","HAITI"=>"HT","HEARD AND MC DONALD ISLANDS"=>"HM","HONDURAS"=>"HN","HONG KONG"=>"HK","HUNGARY"=>"HU","ICELAND"=>"IS","INDIA"=>"IN","INDONESIA"=>"ID","IRAN (ISLAMIC REPUBLIC OF)"=>"IR","IRAQ"=>"IQ","IRELAND"=>"IE","ISRAEL"=>"IL","ITALY"=>"IT","JAMAICA"=>"JM","JAPAN"=>"JP","JORDAN"=>"JO","KAZAKHSTAN"=>"KZ","KENYA"=>"KE","KIRIBATI"=>"KI","KOREA, DEMOCRATIC PEOPLE'S REPUBLIC OF"=>"KP","KOREA, REPUBLIC OF"=>"KR","KUWAIT"=>"KW","KYRGYZSTAN"=>"KG","LAO PEOPLE'S DEMOCRATIC REPUBLIC"=>"LA","LATVIA"=>"LV","LEBANON"=>"LB","LESOTHO"=>"LS","LIBERIA"=>"LR","LIBYAN ARAB JAMAHIRIYA"=>"LY","LIECHTENSTEIN"=>"LI","LITHUANIA"=>"LT","LUXEMBOURG"=>"LU","MACAU"=>"MO","MACEDONIA, THE FORMER YUGOSLAV REPUBLIC OF"=>"MK","MADAGASCAR"=>"MG","MALAWI"=>"MW","MALAYSIA"=>"MY","MALDIVES"=>"MV","MALI"=>"ML","MALTA"=>"MT","MARSHALL ISLANDS"=>"MH","MARTINIQUE"=>"MQ","MAURITANIA"=>"MR","MAURITIUS"=>"MU","MAYOTTE"=>"YT","MEXICO"=>"MX","MICRONESIA, FEDERATED STATES OF"=>"FM","MOLDOVA, REPUBLIC OF"=>"MD","MONACO"=>"MC","MONGOLIA"=>"MN","MONTSERRAT"=>"MS","MOROCCO"=>"MA","MOZAMBIQUE"=>"MZ","MYANMAR"=>"MM","NAMIBIA"=>"NA","NAURU"=>"NR","NEPAL"=>"NP","NETHERLANDS"=>"NL","NETHERLANDS ANTILLES"=>"AN","NEW CALEDONIA"=>"NC","NEW ZEALAND"=>"NZ","NICARAGUA"=>"NI","NIGER"=>"NE","NIGERIA"=>"NG","NIUE"=>"NU","NORFOLK ISLAND"=>"NF","NORTHERN MARIANA ISLANDS"=>"MP","NORWAY"=>"NO","OMAN"=>"OM","PAKISTAN"=>"PK","PALAU"=>"PW","PALESTINIAN TERRITORY, Occupied"=>"PS","PANAMA"=>"PA","PAPUA NEW GUINEA"=>"PG","PARAGUAY"=>"PY","PERU"=>"PE","PHILIPPINES"=>"PH","PITCAIRN"=>"PN","POLAND"=>"PL","PORTUGAL"=>"PT","PUERTO RICO"=>"PR","QATAR"=>"QA","REUNION"=>"RE","ROMANIA"=>"RO","RUSSIAN FEDERATION"=>"RU","RWANDA"=>"RW","SAINT HELENA"=>"SH","SAINT KITTS AND NEVIS"=>"KN","SAINT LUCIA"=>"LC","SAINT PIERRE AND MIQUELON"=>"PM","SAINT VINCENT AND THE GRENADINES"=>"VC","SAMOA"=>"WS","SAN MARINO"=>"SM","SAO TOME AND PRINCIPE"=>"ST","SAUDI ARABIA"=>"SA","SENEGAL"=>"SN","SERBIA AND MONTENEGRO"=>"CS","SEYCHELLES"=>"SC","SIERRA LEONE"=>"SL","SINGAPORE"=>"SG","SLOVAKIA"=>"SK","SLOVENIA"=>"SI","SOLOMON ISLANDS"=>"SB","SOMALIA"=>"SO","SOUTH AFRICA"=>"ZA","SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS"=>"GS","SPAIN"=>"ES","SRI LANKA"=>"LK","SUDAN"=>"SD","SURINAME"=>"SR","SVALBARD AND JAN MAYEN ISLANDS"=>"SJ","SWAZILAND"=>"SZ","SWEDEN"=>"SE","SWITZERLAND"=>"CH","SYRIAN ARAB REPUBLIC"=>"SY","TAIWAN"=>"TW","TAJIKISTAN"=>"TJ","TANZANIA, UNITED REPUBLIC OF"=>"TZ","THAILAND"=>"TH","TIMOR-LESTE"=>"TL","TOGO"=>"TG","TOKELAU"=>"TK","TONGA"=>"TO","TRINIDAD AND TOBAGO"=>"TT","TUNISIA"=>"TN","TURKEY"=>"TR","TURKMENISTAN"=>"TM","TURKS AND CAICOS ISLANDS"=>"TC","TUVALU"=>"TV","UGANDA"=>"UG","UKRAINE"=>"UA","UNITED ARAB EMIRATES"=>"AE","UNITED KINGDOM"=>"GB","UNITED STATES"=>"US","UNITED STATES MINOR OUTLYING ISLANDS"=>"UM","URUGUAY"=>"UY","UZBEKISTAN"=>"UZ","VANUATU"=>"VU","VATICAN CITY STATE (HOLY SEE)"=>"VA","VENEZUELA"=>"VE","VIET NAM"=>"VN","VIRGIN ISLANDS (BRITISH)"=>"VG","VIRGIN ISLANDS (U.S.)"=>"VI","WALLIS AND FUTUNA ISLANDS"=>"WF","WESTERN SAHARA"=>"EH","YEMEN"=>"YE","ZAMBIA"=>"ZM","ZIMBABWE"=>"ZW");
-		var $APACHE_MOD_INFO=false;
-		var $APACHE_MOD_STATUS=false;
-		var $phpcgi=null;
-		var $ForceInstanceZarafaID=0;
-		var $mysql_instance_id=0;
-		var $ServerIP=null;
-		var $gpid=0;
-		var $groupware_version=null;
-		var $WebCopyID=0;
-		var $loading_error=false;
-		var $loading_error_text=null;
-		var $sslcertificate=null;
+		public $servername;
+		public $groupware='';
+		public $APACHE_DIR_SITES_ENABLED='';
+		public $SSL_enabled=false;
+		public $AS_ROOT=false;
+		public $WORKING_DIRECTORY='';
+		public $SQUID_CACHMGR='';
+		public $APACHE_RUN_USER='';
+		public $APACHE_RUN_GROUP='';
+		public $LimitByIp=0;
+		public $Params=array();
+		public $mod_rewrite='';
+		public $lvm_size=0;
+		public $lvm_vg="";
+		public $UseLoopDisk=0;
+		public $LoopMounts="";
+		public $useMysql=0;
+		public $mysql_database;
+		public $mysql_password;
+		public $mysql_username;
+		public $ftpuser;
+		public $ftppassword;
+		public $useSSL=0;
+		public $uid;
+		public $useFTP=0;
+		public $ou;
+		public $error;
+		public $www_dir;
+		public $ServerPort=0;
+		public $UseReverseProxy=0;
+		public $ProxyPass;
+		public $Forwarder=0;
+		public $ForwardTo=0;
+		public $APACHE_MOD_TOMCAT=false;
+		public $COUNTRIES_ISO=array("AALAND ISLANDS"=>"AX","AFGHANISTAN"=>"AF","ALBANIA"=>"AL","ALGERIA"=>"DZ","AMERICAN SAMOA"=>"AS","ANDORRA"=>"AD","ANGOLA"=>"AO","ANGUILLA"=>"AI","ANTARCTICA"=>"AQ","ANTIGUA AND BARBUDA"=>"AG","ARGENTINA"=>"AR","ARMENIA"=>"AM","ARUBA"=>"AW","AUSTRALIA"=>"AU","AUSTRIA"=>"AT","AZERBAIJAN"=>"AZ","BAHAMAS"=>"BS","BAHRAIN"=>"BH","BANGLADESH"=>"BD","BARBADOS"=>"BB","BELARUS"=>"BY","BELGIUM"=>"BE","BELIZE"=>"BZ","BENIN"=>"BJ","BERMUDA"=>"BM","BHUTAN"=>"BT","BOLIVIA"=>"BO","BOSNIA AND HERZEGOWINA"=>"BA","BOTSWANA"=>"BW","BOUVET ISLAND"=>"BV","BRAZIL"=>"BR","BRITISH INDIAN OCEAN TERRITORY"=>"IO","BRUNEI DARUSSALAM"=>"BN","BULGARIA"=>"BG","BURKINA FASO"=>"BF","BURUNDI"=>"BI","CAMBODIA"=>"KH","CAMEROON"=>"CM","CANADA"=>"CA","CAPE VERDE"=>"CV","CAYMAN ISLANDS"=>"KY","CENTRAL AFRICAN REPUBLIC"=>"CF","CHAD"=>"TD","CHILE"=>"CL","CHINA"=>"CN","CHRISTMAS ISLAND"=>"CX","COCOS (KEELING) ISLANDS"=>"CC","COLOMBIA"=>"CO","COMOROS"=>"KM","CONGO, Democratic Republic of (was Zaire)"=>"CD","CONGO, Republic of"=>"CG","COOK ISLANDS"=>"CK","COSTA RICA"=>"CR","COTE D'IVOIRE"=>"CI","CROATIA"=>"HR","CUBA"=>"CU","CYPRUS"=>"CY","CZECH REPUBLIC"=>"CZ","DENMARK"=>"DK","DJIBOUTI"=>"DJ","DOMINICA"=>"DM","DOMINICAN REPUBLIC"=>"DO","ECUADOR"=>"EC","EGYPT"=>"EG","EL SALVADOR"=>"SV","EQUATORIAL GUINEA"=>"GQ","ERITREA"=>"ER","ESTONIA"=>"EE","ETHIOPIA"=>"ET","FALKLAND ISLANDS"=>"FK","FAROE ISLANDS"=>"FO","FIJI"=>"FJ","FINLAND"=>"FI","FRANCE"=>"FR","FRENCH GUIANA"=>"GF","FRENCH POLYNESIA"=>"PF","FRENCH SOUTHERN TERRITORIES"=>"TF","GABON"=>"GA","GAMBIA"=>"GM","GEORGIA"=>"GE","GERMANY"=>"DE","GHANA"=>"GH","GIBRALTAR"=>"GI","GREECE"=>"GR","GREENLAND"=>"GL","GRENADA"=>"GD","GUADELOUPE"=>"GP","GUAM"=>"GU","GUATEMALA"=>"GT","GUINEA"=>"GN","GUINEA-BISSAU"=>"GW","GUYANA"=>"GY","HAITI"=>"HT","HEARD AND MC DONALD ISLANDS"=>"HM","HONDURAS"=>"HN","HONG KONG"=>"HK","HUNGARY"=>"HU","ICELAND"=>"IS","INDIA"=>"IN","INDONESIA"=>"ID","IRAN (ISLAMIC REPUBLIC OF)"=>"IR","IRAQ"=>"IQ","IRELAND"=>"IE","ISRAEL"=>"IL","ITALY"=>"IT","JAMAICA"=>"JM","JAPAN"=>"JP","JORDAN"=>"JO","KAZAKHSTAN"=>"KZ","KENYA"=>"KE","KIRIBATI"=>"KI","KOREA, DEMOCRATIC PEOPLE'S REPUBLIC OF"=>"KP","KOREA, REPUBLIC OF"=>"KR","KUWAIT"=>"KW","KYRGYZSTAN"=>"KG","LAO PEOPLE'S DEMOCRATIC REPUBLIC"=>"LA","LATVIA"=>"LV","LEBANON"=>"LB","LESOTHO"=>"LS","LIBERIA"=>"LR","LIBYAN ARAB JAMAHIRIYA"=>"LY","LIECHTENSTEIN"=>"LI","LITHUANIA"=>"LT","LUXEMBOURG"=>"LU","MACAU"=>"MO","MACEDONIA, THE FORMER YUGOSLAV REPUBLIC OF"=>"MK","MADAGASCAR"=>"MG","MALAWI"=>"MW","MALAYSIA"=>"MY","MALDIVES"=>"MV","MALI"=>"ML","MALTA"=>"MT","MARSHALL ISLANDS"=>"MH","MARTINIQUE"=>"MQ","MAURITANIA"=>"MR","MAURITIUS"=>"MU","MAYOTTE"=>"YT","MEXICO"=>"MX","MICRONESIA, FEDERATED STATES OF"=>"FM","MOLDOVA, REPUBLIC OF"=>"MD","MONACO"=>"MC","MONGOLIA"=>"MN","MONTSERRAT"=>"MS","MOROCCO"=>"MA","MOZAMBIQUE"=>"MZ","MYANMAR"=>"MM","NAMIBIA"=>"NA","NAURU"=>"NR","NEPAL"=>"NP","NETHERLANDS"=>"NL","NETHERLANDS ANTILLES"=>"AN","NEW CALEDONIA"=>"NC","NEW ZEALAND"=>"NZ","NICARAGUA"=>"NI","NIGER"=>"NE","NIGERIA"=>"NG","NIUE"=>"NU","NORFOLK ISLAND"=>"NF","NORTHERN MARIANA ISLANDS"=>"MP","NORWAY"=>"NO","OMAN"=>"OM","PAKISTAN"=>"PK","PALAU"=>"PW","PALESTINIAN TERRITORY, Occupied"=>"PS","PANAMA"=>"PA","PAPUA NEW GUINEA"=>"PG","PARAGUAY"=>"PY","PERU"=>"PE","PHILIPPINES"=>"PH","PITCAIRN"=>"PN","POLAND"=>"PL","PORTUGAL"=>"PT","PUERTO RICO"=>"PR","QATAR"=>"QA","REUNION"=>"RE","ROMANIA"=>"RO","RUSSIAN FEDERATION"=>"RU","RWANDA"=>"RW","SAINT HELENA"=>"SH","SAINT KITTS AND NEVIS"=>"KN","SAINT LUCIA"=>"LC","SAINT PIERRE AND MIQUELON"=>"PM","SAINT VINCENT AND THE GRENADINES"=>"VC","SAMOA"=>"WS","SAN MARINO"=>"SM","SAO TOME AND PRINCIPE"=>"ST","SAUDI ARABIA"=>"SA","SENEGAL"=>"SN","SERBIA AND MONTENEGRO"=>"CS","SEYCHELLES"=>"SC","SIERRA LEONE"=>"SL","SINGAPORE"=>"SG","SLOVAKIA"=>"SK","SLOVENIA"=>"SI","SOLOMON ISLANDS"=>"SB","SOMALIA"=>"SO","SOUTH AFRICA"=>"ZA","SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS"=>"GS","SPAIN"=>"ES","SRI LANKA"=>"LK","SUDAN"=>"SD","SURINAME"=>"SR","SVALBARD AND JAN MAYEN ISLANDS"=>"SJ","SWAZILAND"=>"SZ","SWEDEN"=>"SE","SWITZERLAND"=>"CH","SYRIAN ARAB REPUBLIC"=>"SY","TAIWAN"=>"TW","TAJIKISTAN"=>"TJ","TANZANIA, UNITED REPUBLIC OF"=>"TZ","THAILAND"=>"TH","TIMOR-LESTE"=>"TL","TOGO"=>"TG","TOKELAU"=>"TK","TONGA"=>"TO","TRINIDAD AND TOBAGO"=>"TT","TUNISIA"=>"TN","TURKEY"=>"TR","TURKMENISTAN"=>"TM","TURKS AND CAICOS ISLANDS"=>"TC","TUVALU"=>"TV","UGANDA"=>"UG","UKRAINE"=>"UA","UNITED ARAB EMIRATES"=>"AE","UNITED KINGDOM"=>"GB","UNITED STATES"=>"US","UNITED STATES MINOR OUTLYING ISLANDS"=>"UM","URUGUAY"=>"UY","UZBEKISTAN"=>"UZ","VANUATU"=>"VU","VATICAN CITY STATE (HOLY SEE)"=>"VA","VENEZUELA"=>"VE","VIET NAM"=>"VN","VIRGIN ISLANDS (BRITISH)"=>"VG","VIRGIN ISLANDS (U.S.)"=>"VI","WALLIS AND FUTUNA ISLANDS"=>"WF","WESTERN SAHARA"=>"EH","YEMEN"=>"YE","ZAMBIA"=>"ZM","ZIMBABWE"=>"ZW");
+		public $APACHE_MOD_INFO=false;
+		public $APACHE_MOD_STATUS=false;
+		public $phpcgi=null;
+		public $ForceInstanceZarafaID=0;
+		public $mysql_instance_id=0;
+		public $ServerIP=null;
+		public $gpid=0;
+		public $groupware_version=null;
+		public $WebCopyID=0;
+		public $loading_error=false;
+		public $loading_error_text=null;
+		public $sslcertificate=null;
+		public $PERL_AUTHNTLM=false;
+		public $enabled=1;
 		
 		function freeweb($servername=null){
 			$users=new usersMenus();
@@ -71,6 +73,7 @@
 			$this->SQUID_CACHMGR=$users->SQUID_CACHMGR;
 			$this->phpcgi=$users->phpcgi;
 			$this->APACHE_MOD_TOMCAT=$users->APACHE_MOD_TOMCAT;
+			$this->PERL_AUTHNTLM=$users->APP_PYAUTHENNTLM;
 			
 			if($servername<>null){
 				$this->WORKING_DIRECTORY="/var/www/$servername";
@@ -122,6 +125,7 @@
 				return;
 			}
 			$this->groupware=$ligne["groupware"];
+			if($this->AS_ROOT){writelogs("Starting......: Apache \"$this->servername\" Groupware `$this->groupware`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			$this->servername=$ligne["servername"];
 			if(strlen($ligne["Params"])>5){$this->Params=@unserialize(base64_decode($ligne["Params"]));}
 			$this->lvm_size=$ligne["lvm_size"];
@@ -157,7 +161,7 @@
 			if(!isset($ligne["WebCopyID"])){$ligne["WebCopyID"]=0;}
 			$this->WebCopyID=$ligne["WebCopyID"];
 			$this->sslcertificate=$ligne["sslcertificate"];
-	
+			$this->enabled=$ligne["enabled"];
 			
 			$this->HasDefaults();
 			if(!$this->AS_ROOT){return;}
@@ -251,8 +255,24 @@
 			
 		}
 		
+		private function mod_status_allow_from(){
+			if(isset($GLOBALS["MYINTERFACESAllowFROM"])){return;}
+			include_once(dirname(__FILE__)."/class.system.network.inc");
+			$tcp=new networking();
+			if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}else{$sock=$GLOBALS["CLASS_SOCKETS"];}
+			$ips=$tcp->ALL_IPS_GET_ARRAY();
+			while (list ($ip, $line) = each ($ips) ){$GLOBALS["MYINTERFACESAllowFROM"][]="\t\tAllow from $ip";}
+			$hash=unserialize(base64_decode($sock->GET_INFO("FreeWedMoStatusAllowFrom")));
+			if(isset($hash)){if(is_array($hash)){while (list ($ip, $line) = each ($hash) ){$GLOBALS["MYINTERFACESAllowFROM"][]="\t\tAllow from $ip";}}}
+						
+			
+		}
+		
 		
 		public function DirectorySecond(){
+			
+			$this->mod_status_allow_from();
+			
 			if($this->groupware=="KLMS"){
 				$f[]="\t<Directory \"/opt/kaspersky/klmsui/share/htdocs/resources\">";
 				$f[]="\t\tOptions +Indexes";
@@ -263,7 +283,23 @@
 				$f[]="\t\tAddOutputFilter INCLUDES .json .js";
 				$f[]="\t\tOrder allow,deny";
 				$f[]="\t\tAllow from all";
-				$f[]="\r</Directory>";			
+				$f[]="\r</Directory>";	
+
+
+				
+				if($this->APACHE_MOD_INFO){
+					if($this->APACHE_MOD_STATUS){
+						$f[]="\t<Location /opt/kaspersky/klmsui/share/htdocs/server-status>";
+						$f[]="\t\tSetHandler server-status";
+						$f[]="\t\tOrder deny,allow";
+						$f[]="\t\tDeny from all";
+						$f[]=@implode("\n", $GLOBALS["MYINTERFACESAllowFROM"]);
+						$f[]="\t\tSatisfy Any";
+						$f[]="\t</Location>";
+					}
+				}				
+				
+				
 				return @implode("\n", $f);
 			}
 			
@@ -287,6 +323,19 @@
 			}
 			
 		}
+		
+		public function EnableDisableSwitch(){
+			$value=0;
+			if($this->enabled==0){$value=1;}
+			$sql="UPDATE freeweb SET enabled='$value' WHERE servername='$this->servername'";
+			$q=new mysql();
+			$q->QUERY_SQL($sql,"artica_backup");
+			if(!$q->ok){echo $q->mysql_error;return;}
+			$sock=new sockets();
+			$sock->getFrameWork("freeweb.php?remove-disabled=yes");	
+			
+		}
+		
 		
 		public function CreateSite(){
 			include_once(dirname(__FILE__)."/class.user.inc");
@@ -371,7 +420,7 @@
 			$this->SaveParams();
 		}
 		
-		private function locate_geoip_db(){
+		public function locate_geoip_db(){
 			$f[]="/usr/share/GeoIP/GeoIP.dat";
 			$f[]="/usr/local/share/GeoIP/GeoIP.dat";
 			$f[]="/root/.mldonkey/web_infos/GeoIP.dat";
@@ -605,20 +654,13 @@
 				echo "Starting......: Apache \"$this->servername\" AUTH: No members set\n";
 				return null;
 			}
-			$users=$this->Params["LDAP"]["members"];
+			$users=$this->Hash_ldap_users();
 			echo "Starting......: Apache \"$this->servername\" AUTH: ".count($users)." member(s)\n";
+			
 			if(count($users)==0){return null;}
 			while (list ($num, $ligne) = each ($users) ){
 				if($num==null){continue;}
-				if(preg_match("#^group:@(.+?):([0-9]+)#",$num,$re)){
-					$gid=$re[2];
-					$group=new groups($gid);
-					$f[]="\t\tRequire ldap-group $group->dn";
-				}
-				
-				if(preg_match("#^user:(.+)#",$num,$re)){
-					$f[]="\t\tRequire ldap-user {$re[1]}";
-				}				
+				$f[]=$ligne;	
 			}
 			echo "Starting......: Apache \"$this->servername\" AUTH: ".count($f)." member(s) compiled\n";
 			if(count($f)==0){
@@ -664,6 +706,150 @@
 			return $mod_status;
 			
 		}
+		
+		public function Apache2_AuthenNTLM(){
+			if(!$this->PERL_AUTHNTLM){
+				echo "Starting......: Apache \"$this->servername\" Not NTLM compliance\n";
+				return null;
+			}
+			$Params=$this->Params;
+			if(!isset($Params["NTLM"]["enabled"])){$Params["NTLM"]["enabled"]=0;}
+			if(!is_numeric($Params["NTLM"]["enabled"])){$Params["NTLM"]["enabled"]=0;}
+			echo "Starting......: Apache \"$this->servername\" is NTLM ? = {$Params["NTLM"]["enabled"]}\n";
+			if($Params["NTLM"]["enabled"]==0){return null;}
+			$RESULTS=$this->ActiveDirectoryInformations();
+			
+			if(strlen($RESULTS["ADNETIPADDR"])>7){
+				$adname=$RESULTS["ADNETIPADDR"];
+			}
+			
+			if($adname==null){
+				if($RESULTS["WINDOWS_DNS_SUFFIX"]<>null){
+					$adname=strtolower("{$RESULTS["WINDOWS_SERVER_NETBIOSNAME"]}.{$RESULTS["WINDOWS_DNS_SUFFIX"]}");
+				}else{
+					$adname=$RESULTS["WINDOWS_SERVER_NETBIOSNAME"];
+				}
+			}
+			
+			if($RESULTS["LDAP_SUFFIX"]<>null){
+				$adname="ldap://$adname/{$RESULTS["LDAP_SUFFIX"]}";
+			}
+			
+
+			$workgroup=$RESULTS["ADNETBIOSDOMAIN"];
+			echo "Starting......: Apache \"$this->servername\" NTLM  = $workgroup@$adname\n";
+			$tabs="\t\t";
+			$conf[]="{$tabs}PythonAuthenHandler pyntlm";
+			$conf[]="{$tabs}AuthType NTLM";
+			$conf[]="{$tabs}AuthName $workgroup";
+			$conf[]="{$tabs}PythonOption Domain $workgroup";
+			$conf[]="{$tabs}PythonOption PDC $adname";
+			$conf[]="{$tabs}require valid-user";
+			$array=$this->Hash_ldap_users();
+			if(count($array)>0){$conf[]=@implode("\n", $array);}
+			return @implode("\n", $conf);
+		}
+		
+		public function Hash_ldap_users(){
+			$array=$this->Params["LDAP"]["members"];
+			if(!is_array($array)){return array();}
+			if(count($array)==0){return array();}
+			$f=array();
+			$c=0;
+			$tabs="\t\t";
+			while (list ($member, $ligne) = each ($array) ){
+				if($member==null){continue;}
+					
+          		if(preg_match("#^@(.+):([0-9]+)$#",$member,$re)){
+          			$groups=new groups($re[2]);
+          			$c++;
+          			$f[]="{$tabs}Require group $groups->groupName";
+          			continue;
+          		}
+          		
+          		if(preg_match("#^group:@(.+?):([0-9]+)#",$member,$re)){
+          			$groupName=$re[1];
+          			$f[]="{$tabs}Require group $groupName";
+          			continue;
+          		}
+          		
+          		
+          		if(preg_match("#^group:@(.+?)$#",$member,$re)){
+          			$groupName=$re[1];
+          			$f[]="{$tabs}Require group $groupName";
+          			continue;
+          		}
+          		
+          		if(preg_match("#^user:(.+)#",$member,$re)){
+          			$member=$re[1];
+          			$f[]="{$tabs}Require user $member";
+          			continue; 
+          		}
+ 
+			}
+			
+			return $f;
+		}
+		
+		
+		private function ActiveDirectoryInformations(){
+			if(isset($GLOBALS["ActiveDirectoryInformations"])){return $GLOBALS["ActiveDirectoryInformations"];}
+			$sock=new sockets();
+			$RESULTS=array();
+			$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+			if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+			$EnableSambaActiveDirectory=$sock->GET_INFO("EnableSambaActiveDirectory");
+			if(!is_numeric($EnableSambaActiveDirectory)){$EnableSambaActiveDirectory=0;}
+			$RESULTS["LDAP_SUFFIX"]=null;
+			if($EnableKerbAuth==1){
+				echo "Starting......: Apache \"$this->servername\" is NTLM ? = Loading KerbAuthInfos\n";
+				$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
+				$RESULTS["WINDOWS_DNS_SUFFIX"]=$array["WINDOWS_DNS_SUFFIX"];
+				$RESULTS["WINDOWS_SERVER_NETBIOSNAME"]=$array["WINDOWS_SERVER_NETBIOSNAME"];
+				$RESULTS["ADNETBIOSDOMAIN"]=$array["ADNETBIOSDOMAIN"];
+				$RESULTS["ADNETIPADDR"]=$array["ADNETIPADDR"];
+				$RESULTS["WINDOWS_SERVER_ADMIN"]=$array["WINDOWS_SERVER_ADMIN"];
+				$RESULTS["WINDOWS_SERVER_PASS"]=$array["WINDOWS_SERVER_PASS"];
+				$RESULTS["LDAP_SUFFIX"]=$array["LDAP_SUFFIX"];
+			}
+			if($EnableSambaActiveDirectory==1){
+				$array=unserialize(base64_decode($sock->GET_INFO("SambaAdInfos")));
+				echo "Starting......: Apache \"$this->servername\" is NTLM ? = Loading SambaAdInfos\n";
+				$RESULTS["WINDOWS_SERVER_NETBIOSNAME"]=$array["ADSERVER"];
+				$RESULTS["WINDOWS_DNS_SUFFIX"]=$array["ADDOMAIN"];
+				$RESULTS["ADNETBIOSDOMAIN"]=$array["WORKGROUP"];
+				$RESULTS["WINDOWS_SERVER_ADMIN"]=$array["ADADMIN"];
+				$RESULTS["WINDOWS_SERVER_PASS"]=$array["PASSWORD"];
+				$RESULTS["ADNETIPADDR"]=$array["ADSERVER_IP"];
+				
+			}
+			
+			if($RESULTS["LDAP_SUFFIX"]==null){
+				$this->SAMBA_GetNetAdsInfos();
+				$RESULTS["LDAP_SUFFIX"]=$GLOBALS["CACHE_NETADS"]["Bind Path"];
+			}
+			
+			if($RESULTS["ADNETIPADDR"]==null){
+				$this->SAMBA_GetNetAdsInfos();
+				$RESULTS["ADNETIPADDR"]=$GLOBALS["CACHE_NETADS"]["KDC server"];
+			}
+			
+			if(!isset($RESULTS["ADNETBIOSDOMAIN"])){$RESULTS["ADNETBIOSDOMAIN"]=null;}
+			if(!isset($RESULTS["WINDOWS_SERVER_NETBIOSNAME"])){$RESULTS["WINDOWS_SERVER_NETBIOSNAME"]=null;}
+			if(!isset($RESULTS["WINDOWS_DNS_SUFFIX"])){$RESULTS["WINDOWS_DNS_SUFFIX"]=null;}
+			if(!isset($RESULTS["WINDOWS_SERVER_ADMIN"])){$RESULTS["WINDOWS_SERVER_ADMIN"]=null;}
+			if(!isset($RESULTS["WINDOWS_SERVER_PASS"])){$RESULTS["WINDOWS_SERVER_PASS"]=null;}
+			$GLOBALS["ActiveDirectoryInformations"]=$RESULTS;
+			return $RESULTS;
+			
+		}
+		
+		private function SAMBA_GetNetAdsInfos(){
+			$sock=new sockets();
+			if(isset($GLOBALS["CACHE_NETADS"])){return $GLOBALS["CACHE_NETADS"];}
+			$GLOBALS["CACHE_NETADS"]=unserialize(base64_decode($sock->getFrameWork("samba.php?GetNetAdsInfos=yes")));
+		}
+		
 		
 		public function RewriteEngine(){
 			if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" is forwarder ? ($this->Forwarder) groupware=$this->groupware\n";}
@@ -1063,6 +1249,8 @@
 			if($this->groupware=="ANDROWEB"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			if($this->groupware=="MAILHOSTING"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			if($this->groupware=="SPLASHSQUID"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
+			if($this->groupware=="ARTICA_PRXYLOGS"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
+			if($this->groupware=="ERRSQUID"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			
 			
 			
@@ -1332,8 +1520,10 @@
 			if(($this->groupware=="ZARAFA") OR ($this->groupware=="WEBAPP") ) {
 				if($this->Params["ZARAFAWEB_PARAMS"]["zPushInside"]==1){
 					$f[]="Alias /Microsoft-Server-ActiveSync $this->WORKING_DIRECTORY/mobile/index.php";
+					$f[]="Alias /AutoDiscover/AutoDiscover.xml \"$this->WORKING_DIRECTORY/Autodiscover/Autodiscover.php\"";
 					if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" Alias /Microsoft-Server-ActiveSync $this->WORKING_DIRECTORY/mobile/index.php\n";}
 					$already["/Microsoft-Server-ActiveSync"]=true;
+					$already["/AutoDiscover/AutoDiscover.xml"]=true;
 				}else{
 					if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" zPushInside is FALSE\n";}
 				}
@@ -1342,7 +1532,9 @@
 			
 			if($this->groupware=="Z-PUSH"){
 				$f[]="Alias /Microsoft-Server-ActiveSync $this->WORKING_DIRECTORY/index.php";
+				$f[]="Alias /AutoDiscover/AutoDiscover.xml \"$this->WORKING_DIRECTORY/Autodiscover/Autodiscover.php\"";
 				$already["/Microsoft-Server-ActiveSync"]=true;
+				$already["/AutoDiscover/AutoDiscover.xml"]=true;
 			}
 			
 			$sql="SELECT * FROM freewebs_aliases WHERE servername='$this->servername' ORDER BY alias";
@@ -1767,8 +1959,12 @@
 			if($this->groupware=="ARTICA_ADMPRXY"){return "squid.users.logon.php";}
 			if($this->groupware=="MAILHOSTING"){return "mailattach.php";}
 			if($this->groupware=="SPLASHSQUID"){return "splashproxy.php";}
+			if($this->groupware=="ARTICA_PRXYLOGS"){return "prxy.monitor.php";}
+			if($this->groupware=="ERRSQUID"){return "public.squid.error.php";}
 			
-			if($this->groupware=="KLMS"){if(is_file("/etc/apache2/conf.d/klmsui.conf")){@unlink("/etc/apache2/conf.d/klmsui.conf");}return "index.shtml";}			
+			
+			
+			if($this->groupware=="KLMS"){if(is_file("/etc/apache2/conf.d/klmsui.conf")){@unlink("/etc/apache2/conf.d/klmsui.conf");}return null;}			
 			return "index.php index.html";
 			
 		}
@@ -1807,11 +2003,11 @@
 		
 		function DirectoryContent(){
 			if($this->groupware=="KLMS"){
-				$f[]="\t\tDirectoryIndex index.shtml";
-				$f[]="\t\tOptions Indexes +FollowSymLinks MultiViews";
-				$f[]="\t\tAllowOverride all";
+				$f[]="\t\tOptions FollowSymLinks +Includes";
+				$f[]="\t\tAllowOverride None";
 				$f[]="\t\tOrder allow,deny";
-				$f[]="\t\tallow from all";	
+				$f[]="\t\tAllow from all";
+				
 				return @implode("\n",$f);
 			}
 			
@@ -1852,6 +2048,16 @@
 				$array=$this->ParseArticaDirectory("^android\.");
 				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" restrictions on ". count($array). " files\n";}
 			}
+			if($this->groupware=="ARTICA_PRXYLOGS"){
+				$array=$this->ParseArticaDirectory();
+				unset($array["prxy.monitor.php"]);
+				unset($array["squid.perf.logrotate.php"]);
+				unset($array["squid.compile.progress.php"]);
+				unset($array["squid.squidclient.clientlist.php"]);
+				unset($array["squid.squidclient.info.php"]);
+				unset($array["squid.restart.php"]);
+			}
+			
 			
 			
 			
@@ -1875,7 +2081,12 @@
 			if( $this->groupware=="SPLASHSQUID"){
 				$array=$this->ParseArticaDirectory();
 				unset($array["splashproxy.php"]);
-			}			
+			}	
+			if( $this->groupware=="ERRSQUID"){
+				$array=$this->ParseArticaDirectory();
+				unset($array["public.squid.error.php"]);
+			}
+			
 
 			
 			
@@ -1885,10 +2096,10 @@
 			
 			if(is_array($array)){
 				while (list ($num, $file) = each ($array) ){
-					$f[]="<Files \"$file\">";
-					$f[]="\tOrder allow,deny";
-					$f[]="\tDeny from all";
-					$f[]="</Files>";
+					$f[]="\t\t<Files \"$file\">";
+					$f[]="\t\t\tOrder allow,deny";
+					$f[]="\t\t\tDeny from all";
+					$f[]="\t\t</Files>";
 				}
 			}
 			return @implode("\n",$f);
@@ -2123,18 +2334,21 @@
           	$f[]="AuthLDAPGroupAttribute memberUid";
           	if(!is_array($this->Params["WEBDAV"]["MEMBERS"])){
           		if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" Authentication for ". count($this->Params["WEBDAV"]["MEMBERS"])." items\n";}
+          		$c=0;
           		while (list ($member, $asnull) = each ($this->Params["WEBDAV"]["MEMBERS"]) ){
           			if($member==null){continue;}
           			if(preg_match("#@(.+):([0-9]+)$#",$member,$re)){
           				$groups=new groups($re[2]);
-          				$f[]="Require group $groups->dn";
+          				$c++;
+          				$f[]="Require group \"$groups->dn\"";
           			}else{
-          				$f[]="Require user $member";
+          				$c++;
+          				$f[]="Require user \"$member\"";
           			}
           		}
           		
           	}
-			$f[]="Require valid-user";		
+			if($c==0){$f[]="Require valid-user";}		
 			return @implode("\n",$f);
 			
 		}
@@ -2288,13 +2502,61 @@
 			if(!$this->AS_ROOT){return;}
 			if($this->groupware<>"WEBAPP"){return null;}
 			$users=new usersMenus();
+			$sock=new sockets();
 			if(!$users->EJABBERD_INSTALLED){echo "Starting......: Apache $this->servername ejabberd not installed, aborting reverse Proxy\n";return;}
-			$ejb=new ejabberd($this->servername);
-			if($ejb->enabled==0){echo "Starting......: Apache $this->servername ejabberd domain not enabled, aborting reverse Proxy\n";return;}
-			$f[]="ProxyPass /http-bind http://localhost:5280/http-bind/";
-			$f[]="ProxyPassReverse /http-bind http://localhost:5280/http-bind/";
-			echo "Starting......: Apache \"$this->servername\" ejabberd	-> http://localhost:5280 Proxy\n";
+			$ejabberdInsideZarafa=$sock->GET_INFO("ejabberdInsideZarafa");
+			if(!is_numeric($ejabberdInsideZarafa)){$ejabberdInsideZarafa=0;}
+			if($ejabberdInsideZarafa==0){return;}
+			$f[]="\t<IfModule mod_proxy_http.c>";
+			$f[]="\t\tProxyPass /http-bind http://127.0.0.1:5280/http-bind/";
+			$f[]="\t\tProxyPassReverse /http-bind http://127.0.0.1:5280/http-bind/";
+			//$f[]="\t\t<Proxy http://127.0.0.1:5280/>";
+			//$f[]="\t\t\tOrder Allow,Deny";
+			//$f[]="\t\t\tAllow from localhost";
+			//$f[]="\t\t</Proxy>";
+			$f[]="\t</IfModule>";
+			echo "Starting......: Apache \"$this->servername\" ejabberd	-> http://127.0.0.1:5280 Proxy\n";
 			return @implode("\n", $f);
+		}
+		
+		
+		private function Autodiscover(){
+			$unix=new unix();
+			$PARAMS=$this->Params["ZARAFAWEB_PARAMS"];
+			$AutoDiscoverUri=$PARAMS["AutoDiscoverUri"];
+			if($AutoDiscoverUri==null){
+				$prefix="http://";
+				if($this->SSL_enabled==1){$prefix="https://";}
+				$AutoDiscoverUri="$prefix$this->servername";
+			}
+			$f[]="<?php";
+			$f[]="   //get raw POST data so we can extract the email address";
+			$f[]="   \$data = file_get_contents(\"php://input\");";
+			$f[]="   preg_match(\"/\<EMailAddress\>(.*?)\<\/EMailAddress\>/\", \$data, \$matches);";
+			$f[]="   //set Content-Typeheader(\"Content-Type: application/xml\");?>";
+			$f[]="<?php echo '<?xml version=\"1.0\" encoding=\"utf-8\" ?>'; ?>";
+			$f[]="<Autodiscover xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns=\"http://schemas.microsoft.com/exchange/autodiscover/responseschema/2006\">";
+			$f[]="<Response xmlns=\"http://schemas.microsoft.com/exchange/autodiscover/mobilesync/responseschema/2006\">";
+			$f[]="<Culture>en:en</Culture>";
+			$f[]="<User>";
+			$f[]="<DisplayName><?php echo \$matches[1]; ?></DisplayName>";
+			$f[]="<EMailAddress><?php echo \$matches[1]; ?></EMailAddress>";
+			$f[]="</User>";
+			$f[]="<Action>";
+			$f[]="<Settings>";
+			$f[]="<Server>";
+			$f[]="<Type>MobileSync</Type>";
+			$f[]="<Url>$AutoDiscoverUri/Microsoft-Server-ActiveSync</Url>";
+			$f[]="<Name>$AutoDiscoverUri/Microsoft-Server-ActiveSync</Name>";
+			$f[]="</Server>";
+			$f[]="</Settings>";
+			$f[]="</Action>";
+			$f[]="</Response>";
+			$f[]="</Autodiscover>";
+			@mkdir("$this->WORKING_DIRECTORY/Autodiscover",0755,true);			
+			@file_put_contents("$this->WORKING_DIRECTORY/Autodiscover/Autodiscover.php",@implode("\n",$f));
+			$unix->chown_func($this->APACHE_RUN_USER, $this->APACHE_RUN_GROUP,"$this->WORKING_DIRECTORY/Autodiscover/*");
+			
 		}
 		
 		
@@ -2362,6 +2624,7 @@
 				@file_put_contents($indexPath, @implode("\n", $f));
 				$unix=new unix();
 				$unix->chown_func($this->APACHE_RUN_USER, $this->APACHE_RUN_GROUP,"$Directory/*");
+				$this->Autodiscover();
 			
 			
 		}
@@ -2369,6 +2632,7 @@
 		
 		private function InstallZarafaMobileConfigPHP(){
 				if(!$this->AS_ROOT){return;}
+				$users=new usersMenus();
 				if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}else{$sock=$GLOBALS["CLASS_SOCKETS"];}
 				$PARAMS=$this->Params["ZARAFAWEB_PARAMS"];
 				if(!isset($PARAMS["ZarafaWebNTLM"])){$PARAMS["ZarafaWebNTLM"]=$sock->GET_INFO("ZarafaWebNTLM");}
@@ -2650,18 +2914,22 @@
 		
 		private function ZarafaPluginJabberd(){
 			if(!$this->AS_ROOT){return;}
-			$users=new usersMenus();
-			if(!$users->EJABBERD_INSTALLED){writelogs("[$this->servername]: eJabberd is not installed....",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);return;}
-			$ejb=new ejabberd($this->servername);
-			if($ejb->enabled==0){writelogs("[$this->servername]: eJabberd domain $this->servername is not enabled here....",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);return;}
+			
 			if(!is_file("$this->WORKING_DIRECTORY/plugins/xmpp/config.php")){writelogs("[$this->servername]: $this->WORKING_DIRECTORY/plugins/xmpp/config.php no such file",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);return;}
+			$PARAMS=$this->Params["ZARAFAWEB_PARAMS"];
+			$ZarafaXMPPDomain=$PARAMS["ZarafaXMPPDomain"];
+			if($ZarafaXMPPDomain==null){
+				writelogs("[$this->servername]: ZarafaXMPPDomain not configured",__CLASS__.
+				"/".__FUNCTION__,__FILE__,__LINE__);
+				return ;
+			}
+			
 			$f[]="<?php";
 			$f[]="define('PLUGIN_XMPP_ENABLE', true);";
-			$f[]="// Define the server to connect to";
-			$f[]="define('PLUGIN_XMPP_CONNECT_DOMAIN', '$this->servername');";
-			$f[]="// Define the name of the client that is being used";
+			$f[]="define('PLUGIN_XMPP_USER_DEFAULT_ENABLE',true);";
+			$f[]="define('PLUGIN_XMPP_CONNECT_DOMAIN', '$ZarafaXMPPDomain');";
 			$f[]="define('PLUGIN_XMPP_CONNECT_RESOURCE', 'zarafa-webaccess');";
-			$f[]="define('PLUGIN_XMPP_CONNECT_HTTPBASE', '/http-bind/');";
+			$f[]="define('PLUGIN_XMPP_CONNECT_HTTPBASE', '/http-bind');";
 			$f[]="?>";
 			@file_put_contents("$this->WORKING_DIRECTORY/plugins/xmpp/config.php", @implode("\n", $f));
 		}

@@ -33,6 +33,9 @@ $user=new usersMenus();
 	if(isset($_GET["events"])){events();exit;}
 	if(isset($_GET["sshd-events"])){events_list();exit;}
 	
+	if(isset($_GET["banner-js"])){banner_js();exit;}
+	if(isset($_GET["banner"])){banner_popup();exit;}
+	if(isset($_POST["banner"])){banner_save();exit;}
 	
 	
 js();	
@@ -42,6 +45,61 @@ function events_js(){
 	
 	echo "$('#BodyContent').load('$page?events=yes');";
 	
+}
+
+function banner_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{banner}");
+	echo "YahooWin3('997','$page?banner=yes','$title')";
+	
+}
+
+function banner_popup(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$SSHDBanner=$sock->GET_INFO("SSHDBanner");
+	if(strlen($SSHDBanner)<5){
+		$SSHDBanner="|--------------------------------------------------------------------------------------|\n| This system is for the use of authorized users only.                                 |\n| Individuals using this computer system without authority, or in                      |\n| excess of their authority, are subject to having all of their                        |\n| activities on this system monitored and recorded by system personnel.                |\n|                                                                                      |\n|                                                                                      |\n| In the course of monitoring individuals improperly using this                        |\n| system, or in the course of system maintenance, the activities                       |\n| of authorized users may also be monitored.                                           |\n|                                                                                      |\n|                                                                                      |\n| Anyone using this system expressly consents to such monitoring                       |\n| and is advised that if such monitoring reveals possible                              |\n| evidence of criminal activity, system personnel may provide the                      |\n| evidence of such monitoring to law enforcement officials.                            |\n|--------------------------------------------------------------------------------------|";
+	}
+	
+	$t=time();
+	$html="
+	<div id='$t'>
+	<textarea id='txt-$t' style='margin-top:5px;font-family:Courier New;font-weight:bold;width:100%;height:350px;
+	border:5px solid #8E8E8E;overflow:auto;font-size:16px'>$SSHDBanner</textarea>
+	<center>". button("{apply}","Save$t()",18)."</center>
+	<script>
+	var x_Save$t= function (obj) {
+			var tempvalue=obj.responseText;
+			document.getElementById('$t').innerHTML='';
+			if(tempvalue.length>3){alert(tempvalue)};
+			YahooWin3Hide();
+			
+		 }		
+		
+		
+	function Save$t(){
+			var XHR = new XHRConnection();
+			XHR.appendData('banner',document.getElementById('txt-$t').value);
+			AnimateDiv('$t');
+			XHR.sendAndLoad('$page', 'POST',x_Save$t);
+		}	
+	</script>	
+	
+	";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function banner_save(){
+	$sock=new sockets();
+	$_POST["banner"]=url_decode_special_tool(trim($_POST["banner"]));
+	$sock->SET_INFO("SSHDBanner", $_POST["banner"]."\n");
+	$sshd=new openssh();
+	$sshd->save();
+		
 }
 
 
@@ -435,6 +493,14 @@ function parameters(){
 		<td width=1%>". help_icon("{PermitRootLogin_text}")."</td>
 	</tr>
 	<tr>
+		<td valign='top' class=legend style='font-size:14px'>{UseBanner}:</td>
+		<td style='font-size:14px'>". Field_checkbox("Banner",1,$sshd->main_array["Banner"])."</td>
+		<td width=1%><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?banner-js=yes');\" 
+		style='font-size:14px;text-decoration:underline'>{banner}</a></td>
+	</tr>	
+	
+	
+	<tr>
 		<td valign='top' class=legend style='font-size:14px'>{UsePAM}:</td>
 		<td style='font-size:14px'>". Field_checkbox("UsePAM","yes",$sshd->main_array["UsePAM"])."</td>
 		<td width=1%>". help_icon("{UsePAM_TEXT}")."</td>
@@ -532,6 +598,7 @@ function parameters(){
 			if(document.getElementById('PasswordAuthentication').checked){XHR.appendData('PasswordAuthentication','yes');}else{XHR.appendData('PasswordAuthentication','no');}
 			if(document.getElementById('PubkeyAuthentication').checked){XHR.appendData('PubkeyAuthentication','yes');}else{XHR.appendData('PubkeyAuthentication','no');}
 			if(document.getElementById('StrictModes').checked){XHR.appendData('StrictModes','yes');}else{XHR.appendData('StrictModes','no');}
+			if(document.getElementById('Banner').checked){XHR.appendData('Banner','1');}else{XHR.appendData('Banner','0');}
 			
 			
 			

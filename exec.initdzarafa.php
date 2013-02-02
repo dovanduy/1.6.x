@@ -109,7 +109,7 @@ $f[]="";
 $f[]="exit 0";
 @file_put_contents("/etc/init.d/zarafa-monitor", @implode("\n", $f));
 @chmod("/etc/init.d/zarafa-monitor", 0755);
-shell_exec("$debianbin -f zarafa-monitor defaults >/dev/null 2>&1");
+shell_exec("$servicebin -f zarafa-monitor defaults >/dev/null 2>&1");
 echo "Zarafa monitor init.d debian mode done\n";
 
 $f=array();
@@ -193,7 +193,7 @@ $f[]="exit 0";
 
 @file_put_contents("/etc/init.d/zarafa-gateway", @implode("\n", $f));
 @chmod("/etc/init.d/zarafa-gateway", 0755);
-shell_exec("$debianbin -f zarafa-gateway defaults >/dev/null 2>&1");
+shell_exec("$servicebin -f zarafa-gateway defaults >/dev/null 2>&1");
 echo "Zarafa Gateway init.d debian mode done\n";
 
 
@@ -463,7 +463,7 @@ function ZarafaInit(){
 	if(is_file($redhatbin)){
 		echo "Zarafa updating RedHat mode\n";
 		zarafa_monitor_redhat();
-		
+		zarafa_server_redhat();
 		ZarafaSearch_redhat();
 		zarafa_dagent_redhat();
 	}
@@ -473,6 +473,7 @@ function ZarafaInit(){
 		zarafa_monitor_debian();
 		ZarafaSearch_debian();
 		zarafa_dagent_debian();
+		zarafa_server_debian();
 	}
 }
 function ZarafaSearch_debian(){
@@ -480,7 +481,7 @@ function ZarafaSearch_debian(){
 	$sock=new sockets();
 	$page=CurrentPageName();
 	$EnableZarafaSearch=$sock->GET_INFO("EnableZarafaSearch");
-	if(!is_numeric($EnableZarafaSearch)){$EnableZarafaSearch=0;}
+	if(!is_numeric($EnableZarafaSearch)){$EnableZarafaSearch=1;}
 	$SEARCH_ENABLED="no";
 	if($EnableZarafaSearch==1){$SEARCH_ENABLED="yes";}
 	$unix=new unix();
@@ -562,7 +563,7 @@ function ZarafaSearch_debian(){
 		$f[]="exit 0";	
 		@file_put_contents("/etc/init.d/zarafa-search", @implode("\n", $f));
 		@chmod("/etc/init.d/zarafa-search", 0755);
-		shell_exec("$debianbin -f zarafa-search defaults >/dev/null 2>&1");
+		shell_exec("$servicebin -f zarafa-search defaults >/dev/null 2>&1");
 		echo "Zarafa Search init.d debian mode done\n";	
 }
 
@@ -704,6 +705,7 @@ function zarafa_dagent_debian(){
 	$sock=new sockets();
 	$unix=new unix();
 	$servicebin=$unix->find_program("update-rc.d");
+	$php5=$unix->LOCATE_PHP5_BIN();
 	
 	$f[]="#! /bin/sh";
 	$f[]="#";
@@ -755,6 +757,7 @@ function zarafa_dagent_debian(){
 	$f[]="  stop)";
 	$f[]="	log_begin_msg \"Stopping \$DESC: \$NAME\"";
 	$f[]="	start-stop-daemon --stop \$QUIETDAEMON --pidfile \$PIDFILE --retry TERM/15/KILL --exec \$DAGENT";
+	$f[]="	$php5 ".dirname(__FILE__)."/exec.zarafa-dagent.php --stop";
 	$f[]="	RETVAL=\$?";
 	$f[]="	rm -f \$PIDFILE";
 	$f[]="	log_end_msg \$RETVAL";
@@ -787,6 +790,8 @@ function zarafa_dagent_debian(){
 }
 
 function zarafa_dagent_redhat(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
 $f[]="#!/bin/bash";
 $f[]="#";
 $f[]="# zarafa-dagent Zarafa Collaboration Platform's Delivery Agent";
@@ -849,10 +854,12 @@ $f[]="}";
 $f[]="";
 $f[]="stop() {";
 $f[]="	echo -n \$\"Stopping \$dagent: \"";
+$f[]="	$php5 ".dirname(__FILE__)."/exec.zarafa-dagent.php --stop";
 $f[]="	killproc \$DAGENTPROGRAM";
 $f[]="	RETVAL=\$?";
 $f[]="	echo";
 $f[]="	[ \$RETVAL -eq 0 ] && rm -f \$lockfile \$pidfile";
+
 $f[]="";
 $f[]="	return \$RETVAL";
 $f[]="}";
@@ -907,6 +914,298 @@ $f[]="exit \$RETVAL";
 	if(is_file($servicebin)){shell_exec("$servicebin --add zarafa-dagent >/dev/null 2>&1");
 	shell_exec("$redhatbin --level 2345 zarafa-dagent on >/dev/null 2>&1");}	
 	echo "Zarafa dagent init.d RedHat mode done\n";	
+	
+}
+
+function zarafa_server_options(){
+	$sock=new sockets();
+	$ZarafaStoreOutside=$sock->GET_INFO("ZarafaStoreOutside");
+	if(!is_numeric($ZarafaStoreOutside)){$ZarafaStoreOutside=0;}
+	$options[]="-c /etc/zarafa/server.cfg";
+	if($ZarafaStoreOutside==1){$options[]="--ignore-attachment-storage-conflict";}
+	if(is_file("/etc/artica-postfix/zarafa-ignore-database-version-conflict")){$options[]="--ignore-database-version-conflict";}
+	
+	return @implode(" ", $options);	
+}
+
+function zarafa_server_redhat(){	
+	$unix=new unix();
+	$sock=new sockets();
+	$php5=$unix->LOCATE_PHP5_BIN();	
+	$binary=$unix->find_program("zarafa-server");
+	$servicebin=$unix->find_program("chkconfig");
+	if(!is_file($binary)){return;}	
+	if(!is_file($servicebin)){return;}
+	$options=zarafa_server_options();	
+	
+	$f[]="#!/bin/bash";
+	$f[]="#";
+	$f[]="# zarafa-server Zarafa Collaboration Platform's Storage Server";
+	$f[]="#";
+	$f[]="# chkconfig: 345 85 25";
+	$f[]="# description: The Zarafa Server takes MAPI calls in SOAP over HTTP(S) or \ ";
+	$f[]="#              the unix socket. It authenticates users using one of three \ ";
+	$f[]="#              authentication backends (unix/pam, db, ldap). It stores the data \ ";
+	$f[]="#              in a MySQL instance, and optionally stores the attachments directly \ ";
+	$f[]="#              on the filesystem.";
+	$f[]="# processname: /usr/bin/zarafa-server";
+	$f[]="# config: /etc/zarafa/server.cfg";
+	$f[]="# pidfile: /var/run/zarafa-server.pid";
+	$f[]="";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides: zarafa-server";
+	$f[]="# Required-Start: \$local_fs \$network \$remote_fs \$syslog";
+	$f[]="# Required-Stop: \$local_fs \$network \$remote_fs \$syslog";
+	$f[]="# Should-Start: mysqld";
+	$f[]="# Should-Stop: mysqld";
+	$f[]="# Short-Description: Zarafa Collaboration Platform's Storage Server";
+	$f[]="# Description: The Zarafa Server takes MAPI calls in SOAP over HTTP(S) or";
+	$f[]="#              the unix socket. It authenticates users using one of three";
+	$f[]="#              authentication backends (unix/pam, db, ldap). It stores the data";
+	$f[]="#              in a MySQL instance, and optionally stores the attachments directly";
+	$f[]="#              on the filesystem.";
+	$f[]="### END INIT INFO";
+	$f[]="";
+	$f[]="SERVERCONFIG=/etc/zarafa/server.cfg";
+	$f[]="SERVERPROGRAM=$binary";
+	$f[]="";
+	$f[]="# Sanity checks.";
+	$f[]="[ -x \$SERVERPROGRAM ] || exit 0";
+	$f[]="";
+	$f[]="SERVERCONFIG_OPT=\"$options\"";
+	$f[]="";
+	$f[]="# Source function library.";
+	$f[]=". /etc/rc.d/init.d/functions";
+	$f[]="if [ -z \"\$ZARAFA_LOCALE\" ]; then";
+	$f[]="	ZARAFA_LOCALE=\"C\"";
+	$f[]="fi";
+	$f[]="";
+	$f[]="RETVAL=0";
+	$f[]="server=`basename \$SERVERPROGRAM`";
+	$f[]="lockfile=/var/lock/subsys/\$server";
+	$f[]="pidfile=/var/run/\$server.pid";
+	$f[]="";
+	$f[]="start() {";
+	$f[]="	# Start in background, always succeeds";
+	$f[]="	/usr/share/artica-postfix/bin/artica-install --zarafa-reconfigure";
+	$f[]="	echo -n \$\"Starting \$server: \"";
+	$f[]="	export LC_ALL=\$ZARAFA_LOCALE";
+	$f[]="	export LANG=\$ZARAFA_LOCALE";
+	$f[]="	daemon \$SERVERPROGRAM \$SERVERCONFIG_OPT";
+	$f[]="	RETVAL=\$?";
+	$f[]="	unset LC_ALL LANG";
+	$f[]="	echo";
+	$f[]="	[ \$RETVAL -eq 0 ] && touch \$lockfile";
+	$f[]="";
+	$f[]="	return \$RETVAL";
+	$f[]="}";
+	$f[]="";
+	$f[]="stop() {";
+	$f[]="	if [ -f /tmp/zarafa-upgrade-lock ]; then";
+	$f[]="		echo";
+	$f[]="		echo \"Zarafa Server database upgrade is taking place.\"";
+	$f[]="		echo \"Do not stop this process bacause it may render your database unusable.\"";
+	$f[]="		echo";
+	$f[]="		exit 1";
+	$f[]="	fi";
+	$f[]="	# Cannot use killproc, because it has no timeout feature;";
+	$f[]="	# zarafa-server may take up to 60 seconds to shutdown.";
+	$f[]="	ZARAFAPID=`cat /var/run/zarafa-server.pid 2>/dev/null`";
+	$f[]="	if [ -z \"\$ZARAFAPID\" -o ! -n \"\$ZARAFAPID\" ]; then";
+	$f[]="		echo -n \"Program ID of \$server not found, trying to stop anyway: \"";
+	$f[]="		killall \$SERVERPROGRAM >/dev/null 2>&1";
+	$f[]="		RETVAL=\$?";
+	$f[]="		echo";
+	$f[]="		if [ \$RETVAL -eq 0 ]; then";
+	$f[]="			failure \$\"Stopping \$server: \"";
+	$f[]="		else";
+	$f[]="			success \$\"Stopping \$server: \"";
+	$f[]="		fi";
+	$f[]="		RETVAL=0";
+	$f[]="	else";
+	$f[]="		echo -n \$\"Stopping \$server: \"";
+	$f[]="		TIMEOUT=65";
+	$f[]="		/bin/kill \$ZARAFAPID >/dev/null 2>&1";
+	$f[]="		if [ \$? -eq 0 ]; then";
+	$f[]="			while [ \$TIMEOUT -gt 0 ]; do";
+	$f[]="				/bin/kill -0 \$ZARAFAPID >/dev/null 2>&1 || break";
+	$f[]="				sleep 1";
+	$f[]="				TIMEOUT=\$[\${TIMEOUT}-1]";
+	$f[]="			done";
+	$f[]="			if [ \$TIMEOUT -eq 0 ]; then";
+	$f[]="				failure \$\"Timeout on stopping \$server\"";
+	$f[]="				RETVAL=1";
+	$f[]="			else";
+	$f[]="				success \$\"Stopping \$server: \"";
+	$f[]="				RETVAL=0";
+	$f[]="			fi";
+	$f[]="		else";
+	$f[]="			failure \$\"Stopping \$server: \"";
+	$f[]="		fi";
+	$f[]="		echo";
+	$f[]="	fi";
+	$f[]="	[ \$RETVAL -eq 0 ] && rm -f \$lockfile \$pidfile";
+	$f[]="";
+	$f[]="	return \$RETVAL";
+	$f[]="}";
+	$f[]="";
+	$f[]="restart() {";
+	$f[]="	stop";
+	$f[]="	start";
+	$f[]="}";
+	$f[]="";
+	$f[]="reload() {";
+	$f[]="	echo -n \$\"Restarting \$server: \"";
+	$f[]="	/usr/share/artica-postfix/bin/artica-install --zarafa-reconfigure";
+	$f[]="	killproc \$SERVERPROGRAM -SIGHUP";
+	$f[]="	RETVAL=\$?";
+	$f[]="	echo";
+	$f[]="";
+	$f[]="	return \$RETVAL";
+	$f[]="}";
+	$f[]="";
+	$f[]="# See how we were called.";
+	$f[]="case \"\$1\" in";
+	$f[]="    start)";
+	$f[]="		start";
+	$f[]="		;;";
+	$f[]="    stop)";
+	$f[]="		stop";
+	$f[]="		;;";
+	$f[]="    status)";
+	$f[]="		status \$server";
+	$f[]="		RETVAL=\$?";
+	$f[]="		;;";
+	$f[]="    restart|force-reload)";
+	$f[]="		restart";
+	$f[]="		;;";
+	$f[]="    condrestart|try-restart)";
+	$f[]="		if [ -f \${pidfile} ]; then";
+	$f[]="			stop";
+	$f[]="			start";
+	$f[]="		fi";
+	$f[]="		;;";
+	$f[]="    reload)";
+	$f[]="		reload";
+	$f[]="		;;";
+	$f[]="    *)";
+	$f[]="		echo \$\"Usage: \$server {start|stop|status|reload|restart|condrestart|force-reload|try-restart}\"";
+	$f[]="		RETVAL=1";
+	$f[]="		;;";
+	$f[]="esac";
+	$f[]="";
+	$f[]="exit \$RETVAL\n";	
+
+
+	@file_put_contents("/etc/init.d/zarafa-server", @implode("\n", $f));
+	@chmod("/etc/init.d/zarafa-server", 0755);
+	if(is_file($servicebin)){shell_exec("$servicebin --add zarafa-server >/dev/null 2>&1");
+	shell_exec("$redhatbin --level 2345 zarafa-server on >/dev/null 2>&1");}	
+	echo "Zarafa Server init.d RedHat mode done\n";	
+	
+}
+
+function zarafa_server_debian(){
+	$unix=new unix();
+	$sock=new sockets();
+	$php5=$unix->LOCATE_PHP5_BIN();	
+	$binary=$unix->find_program("zarafa-server");
+	if(!is_file($binary)){return;}	
+	$servicebin=$unix->find_program("update-rc.d");
+	if(!is_file($servicebin)){return;}
+	$options=zarafa_server_options();
+	
+	$f[]="#! /bin/sh";
+	$f[]="#";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          zarafa-server";
+	$f[]="# Required-Start:    \$syslog \$network \$remote_fs";
+	$f[]="# Required-Stop:     \$syslog \$network \$remote_fs";
+	$f[]="# Should-Start:      mysql";
+	$f[]="# Should-Stop:       mysql";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: Zarafa Collaboration Platform's Storage Server";
+	$f[]="# Description:       The Zarafa Server takes MAPI calls in SOAP over HTTP(S) or";
+	$f[]="#                    the unix socket. It authenticates users using one of three";
+	$f[]="#                    authentication backends (unix/pam, db, ldap). It stores the data";
+	$f[]="#                    in a MySQL instance, and optionally stores the attachments directly";
+	$f[]="#                    on the filesystem.";
+	$f[]="### END INIT INFO";
+	$f[]="";
+	$f[]="PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin";
+	$f[]="SERVER=$binary";
+	$f[]="DESC=\"Zarafa server\"";
+	$f[]="NAME=`basename \$SERVER`";
+	$f[]="#QUIETDAEMON=--quiet";
+	$f[]="PIDFILE=/var/run/\$NAME.pid";
+	$f[]="";
+	$f[]="test -x \$SERVER || exit 0";
+	
+	$f[]="if [ -z \"\$ZARAFA_LOCALE\" ]; then";
+	$f[]="	ZARAFA_LOCALE=\"C\"";
+	$f[]="fi";
+	$f[]="";
+	$f[]="SERVER_OPTS=\"$options\"";
+	$f[]="SERVER_ENABLED=\"yes\"";
+	$f[]="#set -e";
+	$f[]="";
+	$f[]=". /lib/lsb/init-functions";
+	$f[]="";
+	$f[]="case \"\$1\" in";
+	$f[]="  start)";
+	$f[]="	if [ \"\$SERVER_ENABLED\" = \"no\" ]; then";
+	$f[]="		log_warning_msg \"Zarafa Server daemon not enabled in /etc/default/zarafa ... not starting\"";
+	$f[]="		exit 0";
+	$f[]="	fi";
+	$f[]="	/usr/share/artica-postfix/bin/artica-install --zarafa-reconfigure";
+	$f[]="	log_begin_msg \"Starting \$DESC: \$NAME\"";
+	$f[]="	export LC_ALL=\$ZARAFA_LOCALE";
+	$f[]="	export LANG=\$ZARAFA_LOCALE";
+	$f[]="	start-stop-daemon --start \$QUIETDAEMON --pidfile \$PIDFILE --exec \$SERVER -- \$SERVER_OPTS";
+	$f[]="	log_end_msg \$?";
+	$f[]="	unset LC_ALL LANG";
+	$f[]="	;;";
+	$f[]="  stop)";
+	$f[]="	if [ -f /tmp/zarafa-upgrade-lock ]; then";
+	$f[]="		echo";
+	$f[]="		echo \"Zarafa database upgrade is taking place.\"";
+	$f[]="		echo \"Do not stop this process bacause it may render your database unusable.\"";
+	$f[]="		echo";
+	$f[]="		exit 1";
+	$f[]="	fi";
+	$f[]="	# the server may take up to 60 seconds to exit, so we wait a bit longer than that";
+	$f[]="	log_begin_msg \"Stopping \$DESC: \$NAME\"";
+	$f[]="	start-stop-daemon --stop \$QUIETDAEMON --pidfile \$PIDFILE --retry TERM/65 --exec \$SERVER";
+	$f[]="	RETVAL=\$?";
+	$f[]="	rm -f \$PIDFILE";
+	$f[]="	log_end_msg \$RETVAL";
+	$f[]="	;;";
+	$f[]="  restart)";
+	$f[]="	\$0 stop";
+	$f[]="	\$0 start";
+	$f[]="	;;";
+	$f[]="  status)";
+	$f[]="	status_of_proc \"\$SERVER\" \"\$NAME\" && exit 0 || exit \$?";
+	$f[]="	;;";
+	$f[]="  reload|force-reload)";
+	$f[]="	log_begin_msg \"Reloading \$DESC: \$NAME\"";
+	$f[]="	/usr/share/artica-postfix/bin/artica-install --zarafa-reconfigure";
+	$f[]="	start-stop-daemon --stop \$QUIETDAEMON --signal HUP --pidfile \$PIDFILE --exec \$SERVER";
+	$f[]="	log_end_msg \$?";
+	$f[]="	;;";
+	$f[]="  *)";
+	$f[]="	N=/etc/init.d/\$NAME";
+	$f[]="	echo \"Usage: \$N {start|stop|restart|reload|force-reload|status}\" >&2";
+	$f[]="	exit 1";
+	$f[]="	;;";
+	$f[]="esac";
+	$f[]="";
+	$f[]="exit 0\n";	
+	@file_put_contents("/etc/init.d/zarafa-server", @implode("\n", $f));
+	@chmod("/etc/init.d/zarafa-dagent", 0755);
+	shell_exec("$debianbin -f zarafa-server defaults >/dev/null 2>&1");
+	echo "Zarafa Server init.d debian mode done\n";			
 	
 }
 

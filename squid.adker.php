@@ -33,6 +33,7 @@
 	if(isset($_POST["SambeReconnectAD"])){SambeReconnectAD();exit;}
 	if(isset($_GET["kerbchkconf"])){kerbchkconf();exit;}
 	if(isset($_GET["test-popup"])){test_popup();exit;}
+	if(isset($_GET["test-nettestjoin"])){test_testjoin();exit;}
 	if(isset($_GET["test-netadsinfo"])){test_netadsinfo();exit;}
 	if(isset($_GET["test-netrpcinfo"])){test_netrpcinfo();exit;}
 	if(isset($_GET["test-wbinfoalldom"])){test_wbinfoalldom();exit;}
@@ -153,12 +154,13 @@ function status_kerb(){
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	$tpl=new templates();
-
+	$t=time();
 
 	if($EnableKerbAuth==0){return;}
 	writelogs("squid.php?ping-kdc=yes",__FUNCTION__,__FILE__,__LINE__);
 	$sock->getFrameWork("squid.php?ping-kdc=yes");
 	$datas=unserialize(@file_get_contents("ressources/logs/kinit.array"));
+	
 	if(count($datas)==0){
 		echo "
 		<script>LoadAjaxTiny('{$_GET["t"]}','squid.adker.php?status=yes&t=$t');</script>";
@@ -169,13 +171,17 @@ function status_kerb(){
 	$img="img/error-24.png";
 	$textcolor="#8A0D0D";
 	$text=$datas["INFO"];
-	if($datas["RESULTS"]){$img="img/ok24.png";$textcolor="black";}
+	if(preg_match("#Authenticated to#is", $text)){
+		$img="img/ok24.png";$textcolor="black";
+	}
 	
+	
+	if(trim($text)<>null){$text=": $text";}
 	$html="<table style='width:99%' class=form>
 	<tbody>
 	<tr>
-		<td width=1%><img src='$img'></td>
-		<td nowrap style='font-size:13px'><strong style='color:$textcolor'>Active Directory: $text</strong></td>
+		<td width=1% valign='top'><img src='$img'></td>
+		<td nowrap style='font-size:13px' valign='top'><strong style='color:$textcolor'>Active Directory $text</strong></td>
 		<td width=1%>".imgtootltip("refresh-24.png","{refresh}","LoadAjaxTiny('{$_GET["t"]}','squid.adker.php?status=yes&t=$t');")."</td>
 	</tr>
 	</tbody>
@@ -218,6 +224,10 @@ function test_popup(){
 	<div id='main-$t'>
 	<table style='width:99%' class=form>
 	<tr>
+		<td valign='top' style='font-size:13px' nowrap class=legend>{is_connected}?:</td>
+		<td width=99%><div id='$t-nettestjoin'></div></td>
+	</tr>
+	<tr>
 		<td valign='top' style='font-size:13px' nowrap class=legend>Active Directory Infos:</td>
 		<td width=99%><div id='$t-netadsinfo'></div></td>
 	</tr>
@@ -246,7 +256,7 @@ function test_popup(){
 	</div>
 	<script>
 		function StartAgain(){
-			LoadAjaxTiny('$t-netadsinfo','$page?test-netadsinfo=yes&time=$t$viaSmamba');
+			LoadAjaxTiny('$t-nettestjoin','$page?test-nettestjoin=yes&time=$t$viaSmamba');
 		}
 		
 	var x_SambeReconnectAD= function (obj) {
@@ -297,6 +307,22 @@ function test_netadsinfo(){
 	</script>";
 	
 	echo $tpl->_ENGINE_parse_body($html);
+}
+function test_testjoin(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	if(isset($_GET["via-samba"])){$viaSmamba="&via-samba=yes";}
+	$datas=unserialize(base64_decode($sock->getFrameWork("samba.php?netrpctestjoin=yes")));
+	$html="<hr>";
+	$html=$html.test_results($datas);
+	$html=$html."
+	<script>
+	LoadAjaxTiny('{$_GET["time"]}-netadsinfo','$page?test-netadsinfo=yes&time={$_GET["time"]}$viaSmamba');
+	</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);	
+	
 }
 
 function test_netrpcinfo(){
@@ -425,7 +451,7 @@ function test_results($array){
 		if($ligne==null){continue;}
 		$color="black";
 		
-		
+		if(preg_match("#is OK#", $ligne)){$color="#009809;font-weight:bold";}
 		if(preg_match("#online#", $ligne)){$color="#009809";}
 		if(preg_match("#Could not authenticate user\s+.+?\%(.+?)\s+with plaintext#i",$ligne,$re)){$ligne=str_replace($re[1], "*****", $ligne);}
 		if(preg_match("#Could not#i", $ligne)){$color="#D30F0F";}
@@ -567,10 +593,7 @@ function settings(){
 	$samba36=0;
 	if(preg_match("#^3\.6\.#", $samba_version)){$samba36=1;}
 	
-	
-	
-	
-	$sock=new sockets();
+
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 	$configADSamba=unserialize(base64_decode($sock->GET_INFO("SambaAdInfos")));
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
@@ -579,20 +602,25 @@ function settings(){
 	$KerbAuthDisableNsswitch=$sock->GET_INFO("KerbAuthDisableNsswitch");
 	$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
 	$KerbAuthDisableNormalizeName=$sock->GET_INFO("KerbAuthDisableNormalizeName");
+	$KerbAuthMapUntrustedDomain=$sock->GET_INFO("KerbAuthMapUntrustedDomain");
+	$KerbAuthTrusted=$sock->GET_INFO("KerbAuthTrusted");
+	
 	
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}		
 	
-	
+	if(!is_numeric($KerbAuthTrusted)){$KerbAuthTrusted=1;}
 	if(!is_numeric($KerbAuthDisableNsswitch)){$KerbAuthDisableNsswitch=0;}
 	if(!is_numeric($KerbAuthDisableGroupListing)){$KerbAuthDisableGroupListing=0;}
 	if(!is_numeric($KerbAuthDisableNormalizeName)){$KerbAuthDisableNormalizeName=1;}
+	if(!is_numeric($KerbAuthMapUntrustedDomain)){$KerbAuthMapUntrustedDomain=1;}
 	
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
 	if(!is_numeric("$LockKerberosAuthentication")){$LockKerberosAuthentication=1;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$samba_installed=1;
 	if(!$users->SAMBA_INSTALLED){$samba_installed=0;}
 	
@@ -646,7 +674,7 @@ function settings(){
 			<td width=1%><img src='img/arrow-right-24.png'></td>
 			<td nowrap>		
 				<a href=\"javascript:blur();\" 
-					OnClick=\"javascript:YahooSearchUser('650','$page?ldap-params=yes','$ldap_parameters');\" 
+					OnClick=\"javascript:YahooSearchUser('702','$page?ldap-params=yes','$ldap_parameters');\" 
 					style='font-size:14px;text-decoration:underline'>$ldap_parameters</a>
 				</td>
 		</tr>
@@ -675,6 +703,11 @@ function settings(){
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
+		<td class=legend style='font-size:14px'>{KerbAuthTrusted}:</td>
+		<td>". Field_checkbox("KerbAuthTrusted",1,"$KerbAuthTrusted")."</td>
+		<td>&nbsp;</td>
+	</tr>				
+	<tr>
 		<td class=legend style='font-size:14px'>{KerbAuthDisableGroupListing}:</td>
 		<td>". Field_checkbox("KerbAuthDisableGroupListing",1,"$KerbAuthDisableGroupListing")."</td>
 		<td>&nbsp;</td>
@@ -684,6 +717,11 @@ function settings(){
 		<td>". Field_checkbox("KerbAuthDisableNormalizeName",1,"$KerbAuthDisableNormalizeName")."</td>
 		<td>&nbsp;</td>
 	</tr>	
+	<tr>
+		<td class=legend style='font-size:14px'>{map_untrusted_to_domain}:</td>
+		<td>". Field_checkbox("KerbAuthMapUntrustedDomain",1,"$KerbAuthMapUntrustedDomain")."</td>
+		<td>&nbsp;</td>
+	</tr>				
 	<tr>
 		<td class=legend style='font-size:14px'>{authenticate_from_kerberos}:</td>
 		<td>". Field_checkbox("EnableKerberosAuthentication",1,"$EnableKerberosAuthentication","EnableKerbAuthCheck()")."</td>
@@ -746,6 +784,7 @@ function settings(){
 			var EnableKerbAuth=0;
 			var EnableKerberosAuthentication=$EnableKerberosAuthentication;
 			var LockKerberosAuthentication=$LockKerberosAuthentication;
+			var EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance;
 			
 			var samba_installed=$samba_installed;
 			document.getElementById('WINDOWS_DNS_SUFFIX').disabled=true;
@@ -760,70 +799,86 @@ function settings(){
 			document.getElementById('KerbAuthDisableNsswitch').disabled=true;
 			document.getElementById('KerbAuthDisableGroupListing').disabled=true;
 			document.getElementById('KerbAuthDisableNormalizeName').disabled=true;
+			document.getElementById('KerbAuthMapUntrustedDomain').disabled=true;
 			
-			
-			
+			document.getElementById('KerbAuthTrusted').disabled=true;
 			if(document.getElementById('EnableKerbAuth').checked){EnableKerbAuth=1;}
+			
+			
 			if(LockKerberosAuthentication==0){
-			if(document.getElementById('EnableKerberosAuthentication').checked){
-				EnableKerbAuth=1;
-				EnableKerberosAuthentication=1;
-				
-			}}
+				if(document.getElementById('EnableKerberosAuthentication').checked){
+					EnableKerbAuth=1;
+					EnableKerberosAuthentication=1;
+				}
+			}
+			
+			
+			if(EnableRemoteStatisticsAppliance==1){
+				document.getElementById('EnableKerbAuth').disabled=true;
+			}
 			
 			if(EnableKerbAuth==1){
-				document.getElementById('WINDOWS_DNS_SUFFIX').disabled=false;
-				document.getElementById('WINDOWS_SERVER_NETBIOSNAME').disabled=false;
-				document.getElementById('WINDOWS_SERVER_TYPE').disabled=false;
-				document.getElementById('WINDOWS_SERVER_ADMIN').disabled=false;
-				document.getElementById('WINDOWS_SERVER_PASS').disabled=false;							
-				document.getElementById('ADNETBIOSDOMAIN').disabled=false;
-				document.getElementById('ADNETIPADDR').disabled=false;
-				document.getElementById('SAMBA_BACKEND').disabled=false;
-				document.getElementById('COMPUTER_BRANCH').disabled=false;
-				document.getElementById('KerbAuthDisableNsswitch').disabled=false;
-				document.getElementById('KerbAuthDisableGroupListing').disabled=false;
-				document.getElementById('KerbAuthDisableNormalizeName').disabled=false;
-				
-				
-				if(document.getElementById('EnableKerberosAuthentication').checked){
-					document.getElementById('EnableKerbAuth').checked=false
-					document.getElementById('EnableKerbAuth').disabled=true;
-					document.getElementById('SAMBA_BACKEND').disabled=true;
-				}else{
-					document.getElementById('EnableKerbAuth').disabled=false;
+				if(EnableRemoteStatisticsAppliance==0){
+					document.getElementById('WINDOWS_DNS_SUFFIX').disabled=false;
+					document.getElementById('WINDOWS_SERVER_NETBIOSNAME').disabled=false;
+					document.getElementById('WINDOWS_SERVER_TYPE').disabled=false;
+					document.getElementById('WINDOWS_SERVER_ADMIN').disabled=false;
+					document.getElementById('WINDOWS_SERVER_PASS').disabled=false;							
+					document.getElementById('ADNETBIOSDOMAIN').disabled=false;
+					document.getElementById('ADNETIPADDR').disabled=false;
 					document.getElementById('SAMBA_BACKEND').disabled=false;
-				}
-				if(document.getElementById('EnableKerbAuth').checked){
-					document.getElementById('EnableKerberosAuthentication').checked=false;
-					document.getElementById('EnableKerberosAuthentication').disabled=true;
-					document.getElementById('SAMBA_BACKEND').disabled=false;
-				}else{
-					document.getElementById('EnableKerberosAuthentication').disabled=false;
-				}
-				
-				
+					document.getElementById('COMPUTER_BRANCH').disabled=false;
+					document.getElementById('KerbAuthDisableNsswitch').disabled=false;
+					document.getElementById('KerbAuthDisableGroupListing').disabled=false;
+					document.getElementById('KerbAuthDisableNormalizeName').disabled=false;
+					document.getElementById('KerbAuthMapUntrustedDomain').disabled=false;
+					document.getElementById('KerbAuthTrusted').disabled=false;
+					
+					if(document.getElementById('EnableKerberosAuthentication').checked){
+						document.getElementById('EnableKerbAuth').checked=false
+						document.getElementById('EnableKerbAuth').disabled=true;
+						document.getElementById('SAMBA_BACKEND').disabled=true;
+					}else{
+						document.getElementById('EnableKerbAuth').disabled=false;
+						document.getElementById('SAMBA_BACKEND').disabled=false;
+					}
+					if(document.getElementById('EnableKerbAuth').checked){
+						document.getElementById('EnableKerberosAuthentication').checked=false;
+						document.getElementById('EnableKerberosAuthentication').disabled=true;
+						document.getElementById('SAMBA_BACKEND').disabled=false;
+					}else{
+						document.getElementById('EnableKerberosAuthentication').disabled=false;
+					}
+				}			
 			}
 			
 			if(document.getElementById('EnableKerbAuth').checked){
 				if(samba_installed==1){
-					document.getElementById('ADNETBIOSDOMAIN').disabled=false;
+					if(EnableRemoteStatisticsAppliance==0){
+						document.getElementById('ADNETBIOSDOMAIN').disabled=false;
+					}
 				}
 			}
 			
 			if(!document.getElementById('EnableKerberosAuthentication').checked){
-				document.getElementById('EnableKerbAuth').disabled=false;
-				document.getElementById('SAMBA_BACKEND').disabled=false;
+				if(EnableRemoteStatisticsAppliance==0){
+					document.getElementById('EnableKerbAuth').disabled=false;
+					document.getElementById('SAMBA_BACKEND').disabled=false;
+				}
 				
 			}
 			if(document.getElementById('EnableKerbAuth').checked){
-				document.getElementById('EnableKerberosAuthentication').disabled=false;
-				document.getElementById('SAMBA_BACKEND').disabled=false;
+				if(EnableRemoteStatisticsAppliance==0){
+					document.getElementById('EnableKerberosAuthentication').disabled=false;
+					document.getElementById('SAMBA_BACKEND').disabled=false;
+				}
 			}
 			
 			if(samba_installed==0){
-				document.getElementById('SAMBA_BACKEND').disabled=true;
-				document.getElementById('EnableKerbAuth').disabled=true;
+				if(EnableRemoteStatisticsAppliance==0){
+					document.getElementById('SAMBA_BACKEND').disabled=true;
+					document.getElementById('EnableKerbAuth').disabled=true;
+				}
 			}
 			
 			if(LockKerberosAuthentication==1){
@@ -847,6 +902,8 @@ function settings(){
 	}		
 	
 		function SaveKERBProxy(){
+			var EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance;
+			if(EnableRemoteStatisticsAppliance==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}
 			var pp=encodeURIComponent(document.getElementById('WINDOWS_SERVER_PASS').value);
 			var XHR = new XHRConnection();
 			if(document.getElementById('EnableKerbAuth').checked){XHR.appendData('EnableKerbAuth',1);}else{XHR.appendData('EnableKerbAuth',0);}
@@ -854,9 +911,8 @@ function settings(){
 			if(document.getElementById('KerbAuthDisableNsswitch').checked){XHR.appendData('KerbAuthDisableNsswitch',1);}else{XHR.appendData('KerbAuthDisableNsswitch',0);}
 			if(document.getElementById('KerbAuthDisableGroupListing').checked){XHR.appendData('KerbAuthDisableGroupListing',1);}else{XHR.appendData('KerbAuthDisableGroupListing',0);}
 			if(document.getElementById('KerbAuthDisableNormalizeName').checked){XHR.appendData('KerbAuthDisableNormalizeName',1);}else{XHR.appendData('KerbAuthDisableNormalizeName',0);}
-			
-			
-			
+			if(document.getElementById('KerbAuthTrusted').checked){XHR.appendData('KerbAuthTrusted',1);}else{XHR.appendData('KerbAuthTrusted',0);}
+			if(document.getElementById('KerbAuthMapUntrustedDomain').checked){XHR.appendData('KerbAuthMapUntrustedDomain',1);}else{XHR.appendData('KerbAuthMapUntrustedDomain',0);}
 			
 			XHR.appendData('COMPUTER_BRANCH',document.getElementById('COMPUTER_BRANCH').value);
 			XHR.appendData('SAMBA_BACKEND',document.getElementById('SAMBA_BACKEND').value);
@@ -890,6 +946,10 @@ function ldap_params(){
 	$sock=new sockets();
 	$UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
 	if(!is_numeric($UseDynamicGroupsAcls)){$UseDynamicGroupsAcls=0;}
+	$DynamicGroupsAclsTTL=$sock->GET_INFO("DynamicGroupsAclsTTL");
+	if(!is_numeric($UseDynamicGroupsAcls)){$UseDynamicGroupsAcls=0;}
+	if(!is_numeric($DynamicGroupsAclsTTL)){$DynamicGroupsAclsTTL=3600;}
+	if($DynamicGroupsAclsTTL<5){$DynamicGroupsAclsTTL=5;}	
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));	
 	$t=time();
 	if($array["LDAP_DN"]==null){$array["LDAP_DN"]=$active->ldap_dn_user;}
@@ -904,8 +964,13 @@ function ldap_params(){
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{use_dynamic_groups_acls}:</td>
-		<td>". Field_checkbox("UseDynamicGroupsAcls",1,$UseDynamicGroupsAcls)."</td>
-	</tr>	
+		<td>". Field_checkbox("UseDynamicGroupsAcls",1,$UseDynamicGroupsAcls,"UseDynamicGroupsAclsCheck()")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{TTL_CACHE}:</td>
+		<td style='font-size:14px'>". Field_text("DynamicGroupsAclsTTL",$DynamicGroupsAclsTTL,"font-size:14px;padding:3px;width:90px")."&nbsp;{seconds}</td>
+	</tr>
+				
 	<tr>
 		<td class=legend style='font-size:14px'>{non_ntlm_domain}:</td>
 		<td>". Field_text("LDAP_NONTLM_DOMAIN",$array["LDAP_NONTLM_DOMAIN"],"font-size:14px;padding:3px;width:190px")."</td>
@@ -955,6 +1020,8 @@ function ldap_params(){
 			var XHR = new XHRConnection();
 			if(document.getElementById('UseDynamicGroupsAcls').checked){UseDynamicGroupsAcls=1;}
 			XHR.appendData('UseDynamicGroupsAcls',UseDynamicGroupsAcls);
+			XHR.appendData('DynamicGroupsAclsTTL',document.getElementById('DynamicGroupsAclsTTL').value);
+			
 			XHR.appendData('LDAP_NONTLM_DOMAIN',document.getElementById('LDAP_NONTLM_DOMAIN').value);
 			XHR.appendData('LDAP_SERVER',document.getElementById('LDAP_SERVER').value);
 			XHR.appendData('LDAP_PORT',document.getElementById('LDAP_PORT').value);
@@ -966,6 +1033,14 @@ function ldap_params(){
 			XHR.sendAndLoad('$page', 'POST',x_SaveLDAPADker);
 		
 		}
+		
+		function UseDynamicGroupsAclsCheck(){
+			document.getElementById('DynamicGroupsAclsTTL').disabled=true;
+			if(document.getElementById('UseDynamicGroupsAcls').checked){
+				document.getElementById('DynamicGroupsAclsTTL').disabled=false;
+			}
+		}
+		UseDynamicGroupsAclsCheck();
 	</script>	
 	";
 	
@@ -975,13 +1050,37 @@ function ldap_params(){
 
 function ldap_params_save(){
 	$sock=new sockets();
-	$sock->SET_INFO("UseDynamicGroupsAcls", $_POST["UseDynamicGroupsAcls"]);
+	$tpl=new templates();
+	$sock->SET_INFO("DynamicGroupsAclsTTL", $_POST["DynamicGroupsAclsTTL"]);
 	$_POST["LDAP_PASSWORD"]=url_decode_special_tool($_POST["LDAP_PASSWORD"]);
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($_POST["UseDynamicGroupsAcls"]==1){
+		if($_POST["LDAP_SERVER"]==null){echo $tpl->javascript_parse_text("LDAP: {hostname} Not set\n");return;}
+		if(!is_numeric($_POST["LDAP_PORT"])){echo $tpl->javascript_parse_text("LDAP: {ldap_port} Not set\n");return;}			
+		if($_POST["LDAP_SUFFIX"]==null){echo $tpl->javascript_parse_text("LDAP: {suffix} Not set\n");return;}
+		if($_POST["LDAP_DN"]==null){echo $tpl->javascript_parse_text("LDAP: {bind_dn} Not set\n");return;}
+		if($_POST["LDAP_PASSWORD"]==null){echo $tpl->javascript_parse_text("LDAP: {password} Not set\n");return;}		
+		
+	}
+	
+	$sock->SET_INFO("UseDynamicGroupsAcls", $_POST["UseDynamicGroupsAcls"]);
+	
+	
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 	while (list ($num, $ligne) = each ($_POST) ){
 		$array[$num]=$ligne;
 	}
 	$sock->SaveConfigFile(base64_encode(serialize($array)), "KerbAuthInfos");
+	
+	if($EnableWebProxyStatsAppliance==1){
+		include_once("ressources/class.blackboxes.inc");
+		$blk=new blackboxes();
+		$blk->NotifyAll("BUILDCONF");
+		return;
+	}
+	
+	
 	$sock->getFrameWork("squid.php?squid-reconfigure=yes");
 }
 
@@ -1004,7 +1103,7 @@ function settingsSave(){
 	$MyDomain=strtolower(@implode(".", $MyhostnameTR));
 	if($MyDomain<>$_POST["WINDOWS_DNS_SUFFIX"]){
 		$tpl=new templates();
-		$sock->SET_INFO("EnableKerbAuth", 0);
+		if($EnableWebProxyStatsAppliance==0){$sock->SET_INFO("EnableKerbAuth", 0);}
 		$sock->SET_INFO("EnableKerberosAuthentication", 0);
 		$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
 		echo $tpl->javascript_parse_text("{error}: {WINDOWS_DNS_SUFFIX} {$_POST["WINDOWS_DNS_SUFFIX"]}\n{is_not_a_part_of} $Myhostname ($MyDomain)",1);
@@ -1015,7 +1114,7 @@ function settingsSave(){
 	$resolved=gethostbyname($adhost);
 	if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $resolved)){
 		$tpl=new templates();
-		$sock->SET_INFO("EnableKerbAuth", 0);
+		if($EnableWebProxyStatsAppliance==0){$sock->SET_INFO("EnableKerbAuth", 0);}
 		$sock->SET_INFO("EnableKerberosAuthentication", 0);
 		$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
 		echo $tpl->javascript_parse_text("{error}: {unable_to_resolve} $adhost",1);
@@ -1028,12 +1127,16 @@ function settingsSave(){
 	$sock->SET_INFO("EnableKerberosAuthentication", $_POST["EnableKerberosAuthentication"]);
 	$sock->SET_INFO("KerbAuthDisableNsswitch", $_POST["KerbAuthDisableNsswitch"]);
 	$sock->SET_INFO("KerbAuthDisableGroupListing", $_POST["KerbAuthDisableGroupListing"]);
+	$sock->SET_INFO("KerbAuthTrusted", $_POST["KerbAuthTrusted"]);
+	$sock->SET_INFO("KerbAuthMapUntrustedDomain", $_POST["KerbAuthMapUntrustedDomain"]);
 	
 	
 	
 	if($_POST["EnableKerberosAuthentication"]==1){$sock->SET_INFO("EnableKerbAuth", 0);}
 	
-	$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
+	$ArrayKerbAuthInfos=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
+	while (list ($num, $ligne) = each ($_POST) ){$ArrayKerbAuthInfos[$num]=$ligne;}	
+	$sock->SaveConfigFile(base64_encode(serialize($ArrayKerbAuthInfos)), "KerbAuthInfos");
 	
 	if(strpos($_POST["ADNETBIOSDOMAIN"], ".")>0){
 		echo "The netbios domain \"{$_POST["ADNETBIOSDOMAIN"]}\" is invalid.\n";
@@ -1053,8 +1156,9 @@ function settingsSave(){
 	}
 	
 	if($EnableWebProxyStatsAppliance==1){
-		$sock=new sockets();
-		$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
+		include_once("ressources/class.blackboxes.inc");
+		$blk=new blackboxes();
+		$blk->NotifyAll("WINBIND_RECONFIGURE");
 	}
 }
 
@@ -1076,8 +1180,9 @@ function SambeReconnectAD(){
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}	
 
 	if($EnableWebProxyStatsAppliance==1){
-		$sock=new sockets();
-		$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
+		include_once("ressources/class.blackboxes.inc");
+		$blk=new blackboxes();
+		$blk->NotifyAll("WINBIND_RECONFIGURE");
 	}	
 	
 }

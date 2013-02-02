@@ -28,6 +28,8 @@
 	if(isset($_GET["move-category-popup"])){MoveCategory_popup();exit;}
 	if(isset($_POST["MoveCategorizedWebsite"])){MoveCategorizedWebsite();exit;}
 	if(isset($_POST["MoveCategorizedWebsitePattern"])){MoveCategorizedWebsiteAll();exit;}
+	if(isset($_GET["RemoveDisabled-popup"])){removedisabled_popup();exit;}
+	if(isset($_POST["RemoveDisabled"])){removedisabled_perform();exit;}
 js();	
 	
 function js(){
@@ -69,6 +71,7 @@ function tabs(){
 	$array["list"]='{categories}';
 	$array["popup"]='{manage_your_items}';
 	$array["size"]='{compiled_categories}';
+	$array["squidlogs"]='{statistics_database}';
 	
 	if($_GET["category"]<>null){
 		unset($array["list"]);
@@ -96,6 +99,11 @@ while (list ($num, $ligne) = each ($array) ){
 		if($num=="size"){
 			$html[]= "<li><a href=\"dansguardian2.databases.compiled.php?status=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
 			continue;
+		}	
+
+		if($num=="squidlogs"){
+			$html[]= "<li><a href=\"squidlogs.php\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+			continue;
 		}		
 	
 	
@@ -114,6 +122,63 @@ while (list ($num, $ligne) = each ($array) ){
 			
 			});
 		</script>");		
+	
+	
+}
+
+function removedisabled_popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();	
+	$removedisabled=$tpl->_ENGINE_parse_body("{remove_disabled_items}");
+	$removedisabled_warn=$tpl->javascript_parse_text("{remove_disabled_items_warn}");	
+	$t=$_GET["t"];
+
+		if($q->COUNT_ROWS("webfilters_categories_caches")==0){
+			$dans=new dansguardian_rules();
+			$dans->CategoriesTableCache();
+			
+		}
+		$sql="SELECT categorykey FROM webfilters_categories_caches ORDER BY categorykey";
+		$results = $q->QUERY_SQL($sql);
+		
+		$s[null]="{select}";
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$s[$ligne["categorykey"]]=$ligne["categorykey"];
+		}	
+	
+		
+	$html="
+	<table style='width:99%' class=form>
+	<tr>
+		<td class=legend style='font-size:16px'>{category}</td>
+		<td>". Field_array_Hash($s,"removedisabled-$t",null,null,null,0,"font-size:16px")."</td>
+	</tr>
+	
+	<td colspan=2 align='right'><hr>". button("$removedisabled","RemoveItems$t()",18)."</td>
+	</tr>
+	<script>
+		var x_RemoveItems$t= function (obj) {
+			var results=obj.responseText;
+			if(results.length>0){alert(results);return;}
+			FlexReloadWebsiteCategoriesManage();
+			YahooWin5Hide();
+		}		
+	
+	function RemoveItems$t(){
+		var categoryZ = document.getElementById('removedisabled-$t').value;
+		if(confirm('$removedisabled_warn:'+categoryZ)){
+			var XHR = new XHRConnection();
+			XHR.appendData('RemoveDisabled',categoryZ);
+			XHR.sendAndLoad('$page', 'POST',x_RemoveItems$t);
+		}
+	}	
+	
+	</script>
+	";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
 	
 	
 }
@@ -152,6 +217,8 @@ function popup(){
 	$table="category_".$q->category_transform_name($category);	
 	$searchitem=null;
 	$category_text=$tpl->_ENGINE_parse_body("{category}");
+	$removedisabled=$tpl->_ENGINE_parse_body("{remove_disabled_items}");
+	$removedisabled_warn=$tpl->javascript_parse_text("{remove_disabled_items_warn}");
 	if($category==null){
 		
 		if($q->COUNT_ROWS("webfilters_categories_caches")==0){
@@ -173,12 +240,21 @@ function popup(){
 		
 		
 	}
+	
+	$RemoveEnabled="{name: '$removedisabled', bclass: 'Delz', onpress : RemoveDisabled$t},";
+		$buttons="buttons : [
+			$RemoveEnabled
+				],	";	
+			
+
+	
 if($_GET["middlesize"]=="yes"){$TB_WIDTH=830;}
 		if($_GET["category"]<>null){
 			$table_title="$category_text::$category";
 		$buttons="buttons : [
 			{name: '$add_websites', bclass: 'Add', onpress : AddWebSites$t},
-				],	";
+			$RemoveEnabled
+				],";
 		
 		$searchitem="	searchitems : [
 		{display: '$website', name : 'pattern'}
@@ -245,7 +321,30 @@ $searchitem
 	function MoveAllCategorizedWebsite2(category,table,search){
 		YahooWin5(550,'$page?move-category-popup=yes&website=&zmd5=&category-source='+category+'&table-source='+table+'&bysearch='+search+'&t=$t','$movetext::'+search);
 		
-	}	
+	}
+
+		var x_RemoveDisabled$t= function (obj) {
+			var results=obj.responseText;
+			if(results.length>0){alert(results);return;}
+			FlexReloadWebsiteCategoriesManage();
+			
+		}		
+	
+	function RemoveDisabled$t(){
+		var categoryZ = '{$_GET["category"]}'
+		
+		
+		
+		if(categoryZ.length==0){
+			YahooWin5('550','$page?RemoveDisabled-popup=yes','$removedisabled');
+			return;
+		}
+		if(confirm('$removedisabled_warn:'+categoryZ)){
+			var XHR = new XHRConnection();
+			XHR.appendData('RemoveDisabled',categoryZ);
+			XHR.sendAndLoad('$page', 'POST',x_RemoveDisabled$t);
+		}
+	}
 	
 	
 		var x_DeleteCategorizedWebsite= function (obj) {
@@ -279,6 +378,18 @@ function AddCatz(){
 }
 </script>
 ";	
+}
+
+function removedisabled_perform(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$category=$_POST["RemoveDisabled"];
+	$table="category_".$q->category_transform_name($category);
+	$sql="DELETE FROM `$table` WHERE `enabled`=0";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;}
+	$q->QUERY_SQL("OPTIMIZE TABLE `$table`");
 }
 
 function query(){

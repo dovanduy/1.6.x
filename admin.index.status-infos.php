@@ -126,11 +126,18 @@ $t=time();
 $OnlySMTP=false;
 if($users->SMTP_APPLIANCE){$OnlySMTP=true;}
 if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
+$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+$SambaJS="QuickLinksSamba()";
+if($SambaEnabled==0){$SambaJS="only:Loadjs('samba.disable.php')";}
+$IsPostfixlockedInt=0;
+$IsPostfixlocked=base64_decode($sock->getFrameWork("postfix.php?islocked=yes"));
+if($IsPostfixlocked=="TRUE"){$IsPostfixlockedInt=1;}
 
 	if(!$users->SQUID_INSTALLED){
 		if(!$users->POSTFIX_INSTALLED){
 			if($users->SAMBA_INSTALLED){
-				$ONLY_SAMBA=true;
+				if($SambaEnabled==1){$ONLY_SAMBA=true;}
 			}
 		}
 	}
@@ -144,7 +151,9 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 	if($DisableFrontBrowseComputers==0){	
 		if($ONLY_SAMBA){
 			if($users->AsSambaAdministrator){
-				$computers=left_menus_format("browse_computers","32-win-nic-browse.png","Loadjs('computer-browse.php');","browse_computers_text");
+				if($SambaEnabled==1){
+					$computers=left_menus_format("browse_computers","32-win-nic-browse.png","Loadjs('computer-browse.php');","browse_computers_text");
+				}
 				
 			}
 		}
@@ -164,7 +173,7 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 		Paragraphe("statistics2-64.png", "{SQUID_STATS}", "{SQUID_STATS_TEXT}","javascript:$js");
 		$squid_stats="
 			<tr>
-				<td width=1%>". imgtootltip("statistics2-32.png","{SQUID_STATS_TEXT}","SeTimeOutIMG32('{$t}0');SquidQuickLinks()",null,"{$t}0")."</td>
+				<td width=1%>". imgtootltip("statistics2-32.png","{SQUID_STATS_TEXT}","SeTimeOutIMG32('{$t}0');SquidQuickLinksStatistics()",null,"{$t}0")."</td>
 				<td style='font-size:11px' nowrap><a href=\"javascript:blur();\" 
 						OnClick=\"javascript:$js\" 
 						style='font-size:11px;text-decoration:underline'>{SQUID_STATS1}</a></td>
@@ -174,11 +183,15 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 		";
 	}}
 	
+
+	
+	
 	if(!$users->KASPERSKY_WEB_APPLIANCE){
 		if(!$users->SQUID_APPLIANCE){
 			if($users->AsSambaAdministrator){
 				if($users->SAMBA_INSTALLED){
-					$samba=left_menus_format("APP_SAMBA","32-samba.png","QuickLinksSamba();");
+					
+					$samba=left_menus_format("APP_SAMBA","32-samba.png",$SambaJS);
 				}
 			}
 			
@@ -201,7 +214,7 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 						Paragraphe("statistics2-64.png", "{SQUID_STATS}", "{SQUID_STATS_TEXT}","javascript:$js");	
 						$squid_stats="
 							<tr>
-								<td width=1%>". imgtootltip("statistics2-32.png","{SQUID_STATS_TEXT}","SeTimeOutIMG32('{$t}1');SquidQuickLinks()",null,"{$t}1")."</td>
+								<td width=1%>". imgtootltip("statistics2-32.png","{SQUID_STATS_TEXT}","SeTimeOutIMG32('{$t}1');SquidQuickLinksStatistics()",null,"{$t}1")."</td>
 								<td style='font-size:11px' nowrap><a href=\"javascript:blur();\" 
 										OnClick=\"javascript:$js;\" 
 										style='font-size:11px;text-decoration:underline'>{SQUID_STATS1}</a></td>
@@ -232,9 +245,7 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 	
 	if($users->APACHE_INSTALLED){
 		if($users->AsAnAdministratorGeneric){
-		 if($EnableRemoteStatisticsAppliance==0){
-				
-				$freewebs="
+			$freewebs="
 					<tr>
 						<td width=1%>". imgtootltip("free-web-32.png","FreeWebs","QuickLinkSystems('section_freeweb');",null,"{$t}3")."</td>
 						<td style='font-size:11px' nowrap><a href=\"javascript:blur();\" 
@@ -244,7 +255,7 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 					";			
 			}
 		}
-	}
+	
 
 	if($users->EJABBERD_INSTALLED){
 		if($users->AsPostfixAdministrator){
@@ -307,6 +318,7 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 			$openvpn=left_menus_format("APP_OPENVPN","32-openvpn.png","Loadjs('index.openvpn.php?infront=yes')");
 		}
 	}
+
 	
 	if($users->AsSystemAdministrator){	
 		if($users->crossroads_installed){
@@ -318,53 +330,55 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 		}
 		
 	}
-
+	if($users->POSTFIX_INSTALLED){
 	if($users->AsPostfixAdministrator){
 		
-		if($users->MILTERGREYLIST_INSTALLED){
-			$miltergreylist=left_menus_format('APP_MILTERGREYLIST','32-milter-greylist.png',"QuickLinkSystems('section_mgreylist')","APP_MILTERGREYLIST");
-			
-		}
 		
-		if($users->MIMEDEFANG_INSTALLED){
-			$mimedefang=left_menus_format('APP_MIMEDEFANG','mimedefang-32.png',"only:Loadjs('mimedefang.php?in-front-ajax=yes')","APP_MIMEDEFANG");
-			
-		}
-		
-		
-		
-		if($users->MAILMAN_INSTALLED){
-			if(!$users->LIGHT_INSTALL){
-				$mailman=left_menus_format('mailman','mailman-32.png',"only:Loadjs('mailman.php?script=yes')","manage_distribution_lists");
-			}
-		}
-		if($users->fetchmail_installed){
-			$fetchmail=left_menus_format("APP_FETCHMAIL","fetchmail-rule-32.png","LoadAjax('BodyContent','fetchmail.index.php?quicklinks=yes');QuickLinkShow('quicklinks-APP_FETCHMAIL');");
-		}
-		
-	}
-	
-	
-	$INSTANCEBKM=unserialize(stripslashes($_COOKIE["INSTANCEBKM"]));
-	if(is_array($INSTANCEBKM)){
-		if(count($INSTANCEBKM)>0){
-			$bookmarks="<table style='width:99%' class=form><tbody>";
-			while (list ($instances,$arr) = each ($INSTANCEBKM) ){
-				$tb=explode(".", $instances);
-				$js="Loadjs('domains.postfix.multi.config.php?in-front-ajax=yes&hostname=$instances&ou={$arr["ou"]}')";
+				if($users->MILTERGREYLIST_INSTALLED){
+					$miltergreylist=left_menus_format('APP_MILTERGREYLIST','32-milter-greylist.png',"QuickLinkSystems('section_mgreylist')","APP_MILTERGREYLIST");
+					
+				}
 				
-			$bookmarks=$bookmarks."<tr>
-			<td width=1%>". imgtootltip("32-network-server.png","{$tb[0]}","SeTimeOutIMG32('{$t}7');$js",null,"{$t}7")."</td>
-			<td style='font-size:11px' nowrap><a href=\"javascript:blur();\" 
-				OnClick=\"javascript:SeTimeOutIMG32('{$t}7');AnimateDiv('BodyContent');$js;\" 
-				style='font-size:11px;text-decoration:underline'>{$tb[0]}</a></td>
-			</tr>";
+				if($users->MIMEDEFANG_INSTALLED){
+					$mimedefang=left_menus_format('APP_MIMEDEFANG','mimedefang-32.png',"only:Loadjs('mimedefang.php?in-front-ajax=yes')","APP_MIMEDEFANG");
+					
+				}
+		
+		
+		
+				if($users->MAILMAN_INSTALLED){
+					if(!$users->LIGHT_INSTALL){
+						$mailman=left_menus_format('mailman','mailman-32.png',"only:Loadjs('mailman.php?script=yes')","manage_distribution_lists");
+					}
+				}
+				if($users->fetchmail_installed){
+					$fetchmail=left_menus_format("APP_FETCHMAIL","fetchmail-rule-32.png","LoadAjax('BodyContent','fetchmail.index.php?quicklinks=yes');QuickLinkShow('quicklinks-APP_FETCHMAIL');");
+				}
+		
 			}
-			
-			$bookmarks=$bookmarks."</tbody></table>";
-		}
-	}
+		
 	
+
+		$INSTANCEBKM=unserialize(stripslashes($_COOKIE["INSTANCEBKM"]));
+		if(is_array($INSTANCEBKM)){
+			if(count($INSTANCEBKM)>0){
+				$bookmarks="<table style='width:99%' class=form><tbody>";
+				while (list ($instances,$arr) = each ($INSTANCEBKM) ){
+					$tb=explode(".", $instances);
+					$js="Loadjs('domains.postfix.multi.config.php?in-front-ajax=yes&hostname=$instances&ou={$arr["ou"]}')";
+					
+				$bookmarks=$bookmarks."<tr>
+				<td width=1%>". imgtootltip("32-network-server.png","{$tb[0]}","SeTimeOutIMG32('{$t}7');$js",null,"{$t}7")."</td>
+				<td style='font-size:11px' nowrap><a href=\"javascript:blur();\" 
+					OnClick=\"javascript:SeTimeOutIMG32('{$t}7');AnimateDiv('BodyContent');$js;\" 
+					style='font-size:11px;text-decoration:underline'>{$tb[0]}</a></td>
+				</tr>";
+				}
+				
+				$bookmarks=$bookmarks."</tbody></table>";
+			}
+		}
+	}	
 	
 	if($users->WEBSTATS_APPLIANCE){
 		$squid_stats=null;
@@ -375,8 +389,10 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 	}	
 	
 	if($users->AsSambaAdministrator){
-		if($users->DROPBOX_INSTALLED){
-			$dropbox=left_menus_format("APP_DROPBOX","dropbox-32.png","only:Loadjs('samba.dropbox.php')");
+		if($SambaEnabled==1){
+			if($users->DROPBOX_INSTALLED){
+				$dropbox=left_menus_format("APP_DROPBOX","dropbox-32.png","only:Loadjs('samba.dropbox.php')");
+			}
 		}
 	}
 	
@@ -396,6 +412,12 @@ if($users->KASPERSKY_SMTP_APPLIANCE){$OnlySMTP=true;}
 	
 	if($users->APP_UFDBGUARD_INSTALLED){
 		$license=left_menus_format("artica_license","32-key.png","only:Loadjs('artica.license.php')");
+	}
+	
+	if($IsPostfixlockedInt==1){
+		if($users->AsSystemAdministrator){
+			$postfix=left_menus_format("APP_POSTFIX","mass-mailing-postfix-32.png","only:Loadjs('postfix.remove.php?master=yes&hostname=yes')");
+		}
 	}
 	
 	if($OnlySMTP){
@@ -528,7 +550,7 @@ if(!$users->PROXYTINY_APPLIANCE){
 	if($users->AsAnAdministratorGeneric){
 		if(!$OnlySMTP){$f[]=left_menus_format("explorer","explorer-32.png","only:Loadjs('tree.php');",'SHARE_FOLDER_TEXT');}
 		$f[]=left_menus_format("add_user","member-add-32.png","only:Loadjs('create-user.php')","add user explain");
-		if(!$OnlySMTP){$f[]=left_menus_format("ADD_COMPUTER","computer-32-add.png","only:YahooUser(870,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');","ADD_COMPUTER_TEXT");}
+		if(!$OnlySMTP){$f[]=left_menus_format("ADD_COMPUTER","computer-32-add.png","only:YahooUser(962,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');","ADD_COMPUTER_TEXT");}
 		if($users->POWER_DNS_INSTALLED){
 			$DisablePowerDnsManagement=$sock->GET_INFO("DisablePowerDnsManagement");
 			$EnablePDNS=$sock->GET_INFO("EnablePDNS");
@@ -538,9 +560,9 @@ if(!$users->PROXYTINY_APPLIANCE){
 			if(!is_numeric($DisablePowerDnsManagement)){$DisablePowerDnsManagement=0;}	
 			if($DisablePowerDnsManagement==0){
 				if($EnablePDNS==1){
-					if($PowerDNSMySQLEngine==1){
+					
 						$f[]=left_menus_format("new_dns_entry","filter-add-32.png","only:YahooWin5('550','pdns.mysql.php?item-id=0&t=$t','PowerDNS');","new_dns_entry");
-					}
+					
 				}	
 
 			}

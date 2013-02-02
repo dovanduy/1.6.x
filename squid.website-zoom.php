@@ -31,7 +31,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$www=$_GET["sitename"];
-	$html="RTMMail(1000,'$page?sitename=$www&xtime={$_GET["xtime"]}','ZOOM:$www')";
+	$html="RTMMail(1090,'$page?sitename=$www&xtime={$_GET["xtime"]}&week={$_GET["week"]}&year={$_GET["year"]}','ZOOM:$www')";
 	echo $html;
 	
 	
@@ -50,6 +50,13 @@ function tab(){
 		$array["day"]="{websites}";
 		$array["members"]="{members}";
 	}
+	
+	if(is_numeric($_GET["week"])){
+		$dateT="{week} {$_GET["week"]}";
+		$array["week"]=$familysite.":{websites}";
+		$array["members-week"]="{members}";
+	}
+	
 	$array["popup"]="{status} $dateT";
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="day"){
@@ -61,11 +68,19 @@ function tab(){
 			$day=date("Y-m-d",$_GET["xtime"]);
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.traffic.statistics.days.php?today-zoom-popup-members=yes&day=$day&type=size&familysite=$familysite\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 			continue;
+		}	
+
+		if($num=="week"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.week.familysite.php?week={$_GET["week"]}&year={$_GET["year"]}&familysite=$familysite\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		if($num=="members-week"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.week.familysite.php?members-week=yes&week={$_GET["week"]}&year={$_GET["year"]}&familysite=$familysite\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
 		}		
-		
 	
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&sitename={$_GET["sitename"]}&xtime={$_GET["xtime"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&sitename={$_GET["sitename"]}&xtime={$_GET["xtime"]}&week={$_GET["week"]}&year={$_GET["year"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 	}
 	
 
@@ -97,7 +112,7 @@ function page(){
 	
 	<script>
 		$('#startpoint-$md5').remove();
-		LoadAjax('$t$md5','squid.www-ident.php?www=$www');
+		LoadAjax('$t$md5','squid.www-ident.php?www=$www&xtime={$_GET["xtime"]}&week={$_GET["week"]}&year={$_GET["year"]}&month={$_GET["month"]}');
 	</script>
 		";
 	

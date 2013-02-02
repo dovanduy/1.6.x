@@ -43,6 +43,7 @@ function LoadGroupSettings(index){
 	var group_id='';
 	var index_uri;
 	var ou='';
+	var dnt='';
 	mem_edit_group_timeout=mem_edit_group_timeout+1;
 	if(mem_edit_group_timeout>10){
 		alert('timeout');
@@ -55,6 +56,11 @@ function LoadGroupSettings(index){
 	}
 	mem_edit_group_timeout=0;
 	if(document.getElementById('SelectGroupList')){group_id=document.getElementById('SelectGroupList').value;}
+	if(document.getElementById('OuDN')){dnt=encodeURIComponent(document.getElementById('OuDN').value);}
+	
+	
+	
+	
 	
 	
 	if(group_id.length==0){
@@ -88,8 +94,8 @@ function LoadGroupSettings(index){
 		ou=document.getElementById('ou').value;
 	}
 	
-	if (index){index_uri='&tab='+index}else{index_uri='';}
-	LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings='+ group_id + '&ou='+ou+index_uri);
+	if (index){index_uri='&tab='+index;}else{index_uri='';}
+	LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings='+ group_id + '&ou='+ou+index_uri+dnt);
 	if(document.getElementById('MembersList')){document.getElementById('MembersList').innerHTML='';}
 	}
 

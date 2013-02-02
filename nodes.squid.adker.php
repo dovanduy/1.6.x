@@ -491,6 +491,10 @@ function settingsSave(){
 	$sock=new sockets();
 	$users=new usersMenus();
 	include_once(dirname(__FILE__)."/class.html.tools.inc");
+	
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}	
 	$_POST["WINDOWS_SERVER_PASS"]=url_decode_special_tool($_POST["WINDOWS_SERVER_PASS"]);
 	
 	
@@ -501,7 +505,7 @@ function settingsSave(){
 	$MyDomain=strtolower(@implode(".", $MyhostnameTR));
 	if($MyDomain<>$_POST["WINDOWS_DNS_SUFFIX"]){
 		$tpl=new templates();
-		$sock->SET_INFO("EnableKerbAuth", 0);
+		if($EnableWebProxyStatsAppliance==0){$sock->SET_INFO("EnableKerbAuth", 0);}
 		$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
 		echo $tpl->javascript_parse_text("{error}: {WINDOWS_DNS_SUFFIX} {$_POST["WINDOWS_DNS_SUFFIX"]}\n{is_not_a_part_of} $Myhostname ($MyDomain)",1);
 		return;
@@ -511,7 +515,7 @@ function settingsSave(){
 	$resolved=gethostbyname($adhost);
 	if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $resolved)){
 		$tpl=new templates();
-		$sock->SET_INFO("EnableKerbAuth", 0);
+		if($EnableWebProxyStatsAppliance==0){$sock->SET_INFO("EnableKerbAuth", 0);}
 		$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
 		echo $tpl->javascript_parse_text("{error}: {unable_to_resolve} $adhost",1);
 		return;	

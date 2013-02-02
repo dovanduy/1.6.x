@@ -30,6 +30,7 @@ events("SQUID ENGINE: EnableRemoteStatisticsAppliance = $EnableRemoteSyslogStats
 if(is_file("/etc/artica-postfix/auth-tail-debug")){$GLOBALS["VERBOSE"]=true;}
 if($GLOBALS["VERBOSE"]){events("waiting event in VERBOSE MODE....");}
 @mkdir("/var/log/artica-postfix/squid-users",0755,true);
+@mkdir("/var/log/artica-postfix/squid-brut",0755,true);
 @mkdir("/var/log/artica-postfix/youtube",0755,true);
 @mkdir('/var/log/artica-postfix/squid-userAgent');
 $pipe = fopen("php://stdin", "r");
@@ -67,22 +68,18 @@ function Parseline($buffer){
 	if($auth->ParseLog($buffer)){return;}
 	
 	if(strpos($buffer," squid[")>0){
-		if($GLOBALS["VERBOSE"]){events(" - > ". __LINE__);}
-		$squid=new squid_tail();
-		if($GLOBALS["VERBOSE"]){events(" - > ". __LINE__);}
-		if($GLOBALS["EnableRemoteSyslogStatsAppliance"]==1){return;}
-		try {
-			if($GLOBALS["VERBOSE"]){events(" - > ". __LINE__);}
-			if($squid->parse_tail($buffer)){
-				if($GLOBALS["VERBOSE"]){events(" - > ". __LINE__);}
-				return;
-			}
-		
-		} catch (Exception $e) {events("Fatal error squid->parse_tail() ". $e->getMessage());}
-		
+		@file_put_contents("/var/log/artica-postfix/squid-brut/".md5($buffer), $buffer);
+		return;
 	}
+	
+	
+	if(strpos($buffer," (squid-")>0){
+		@file_put_contents("/var/log/artica-postfix/squid-brut/".md5($buffer), $buffer);
+		return;
+	}
+	
 
-events("Not Filtered \"$buffer\"");
+events("Not Filtered \"$buffer\" Line:".__LINE__);
 
 }
 

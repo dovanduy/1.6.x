@@ -290,7 +290,7 @@ var
     RegExpr:TRegExpr;
 
 begin
-result:=SYS.GET_CACHE_VERSION('APP_POSTFIX');
+   result:=SYS.GET_CACHE_VERSION('APP_POSTFIX');
    if length(result)>0 then exit;
    tmp:=logs.FILE_TEMP();
    RegExpr:=TRegExpr.Create;
@@ -1273,9 +1273,9 @@ if EnablePostfix=0 then exit;
  if not SYS.PROCESS_EXIST(pid) then begin
     tmpstr:='Parm[1]='+ParamStr(1)+',Parm[2]='+ParamStr(2);
     logs.NOTIFICATION('Postfix will be started by artica','The postfix SMTP MTA main system will be started by artica by ['+tmpstr+']','system');
-ForceDirectories('/var/spool/postfix/var');
-fpsystem(SYS.LOCATE_GENERIC_BIN('rm')+' -rf /var/spool/postfix/var/run');
-fpsystem(SYS.LOCATE_GENERIC_BIN('ln')+' -s --force /var/run /var/spool/postfix/var/run');
+    ForceDirectories('/var/spool/postfix/var');
+    fpsystem(SYS.LOCATE_GENERIC_BIN('rm')+' -rf /var/spool/postfix/var/run');
+    fpsystem(SYS.LOCATE_GENERIC_BIN('ln')+' -s --force /var/run /var/spool/postfix/var/run');
     fpsystem(SYS.LOCATE_GENERIC_BIN('postfix')+' start >/dev/null 2>&1');
     pid:=POSTFIX_PID();
     if not SYS.PROCESS_EXIST(pid) then begin
@@ -1661,9 +1661,13 @@ begin
 end;
 //##############################################################################
 function tpostfix.POSFTIX_POSTCONF_PATH:string;
+var strstr:string;
 begin
+    if FileExists('/etc/artica-postfix/DO_NOT_DETECT_POSTFIX') then exit;
     if FileExists('/etc/artica-postfix/OPENVPN_APPLIANCE') then exit;
     if FileExists('/usr/sbin/postconf') then exit('/usr/sbin/postconf');
+    strstr:=SYS.LOCATE_GENERIC_BIN('postconf');
+    if FileExists(strstr) then result:=strstr;
 end;
 //##############################################################################
 function tpostfix.POSFTIX_MASTER_CF_PATH:string;

@@ -15,7 +15,7 @@ if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 
 
-
+if($argv[1]=="--remove-database"){remove_database();exit;}
 if($argv[1]=="--relink-to"){relinkto($argv[2],$argv[3]);exit;}
 if(system_is_overloaded(basename(__FILE__))){echo "Overloaded, die()";die();}
 if($argv[1]=="--orphans"){orphans();die();}
@@ -25,7 +25,7 @@ if($argv[1]=="--view-hash"){view_hash();die();}
 if($argv[1]=="--config"){config();die();}
 if($argv[1]=="--ldap-config"){ldap_config();die();}
 if($argv[1]=="--exoprhs"){export_orphans();die();}
-if($argv[1]=="--remove-database"){remove_database();exit;}
+
 if($argv[1]=="--yaffas"){yaffas();exit;}
 if($argv[1]=="--users-status"){user_status_table();exit;}
 
@@ -155,9 +155,39 @@ if(!$GLOBALS["NOMAIL"]){
 
 
 function orphans(){
-$unix=new unix();
-$zarafaadmin=$unix->find_program("zarafa-admin");
-if(!is_file($zarafaadmin)){return ;}
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$unix=new unix();
+	$zarafaadmin=$unix->find_program("zarafa-admin");
+	if(!is_file($zarafaadmin)){return ;}
+	
+	
+	
+		$mns=$unix->file_time_min($timefile);
+		if(!$GLOBALS["FORCE"]){
+			if(system_is_overloaded(basename(__FILE__))){
+				system_admin_events("Overloaded system, aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
+				return;
+			}
+			
+			$oldpid=$unix->get_pid_from_file($pidfile);
+			if($unix->process_exists($oldpid,basename(__FILE__))){
+				$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
+				system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
+				if($timeProcess<15){
+					return;
+				}
+				
+				$kill=$unix->find_program("kill");
+				shell_exec("$kill -9 $oldpid >/dev/null");
+				system_admin_events("$oldpid, killed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
+			}		
+			
+		}
+
+@file_put_contents($pidfile, getmypid());
+
+
+
 exec("$zarafaadmin --list-orphans 2>&1",$array);
 $users=array();
 $ff=false;
@@ -557,6 +587,13 @@ function remove_database(){
 		echo "Failed to locate $MYSQL_DATA_DIR\n";
 		return;
 	}
+	if(is_file("/etc/artica-postfix/ZARFA_FIRST_INSTALL")){@unlink("/etc/artica-postfix/ZARFA_FIRST_INSTALL");}
+	$kill=$unix->find_program("kill");
+	$pidof=$unix->find_program("pidof");
+	$zarafa_server=$unix->find_program("zarafa-server");
+	shell_exec("$kill -9 `$pidof $zarafa_server` >/dev/null 2>&1");
+	
+	
 	echo "Starting zarafa..............: remove $MYSQL_DATA_DIR/ib_logfile*\n";
 	shell_exec("/bin/rm -f $MYSQL_DATA_DIR/ib_logfile*");
 	shell_exec("/bin/rm -f $MYSQL_DATA_DIR/ibdata*");
@@ -637,14 +674,36 @@ function relinkto($from,$to){
 function user_status_table(){
 	$unix=new unix();
 	$timefile="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	
+
+	
 	$mns=$unix->file_time_min($timefile);
 	if(!$GLOBALS["FORCE"]){
+		if(system_is_overloaded(basename(__FILE__))){
+			system_admin_events("Overload system, aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
+			return;
+		}
 		if($mns<180){return;}
 		@unlink($timefile);
 		@file_put_contents($timefile, time());
+		
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
+			system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
+			if($timeProcess<15){
+				return;
+			}
+			
+			$kill=$unix->find_program("kill");
+			shell_exec("$kill -9 $oldpid >/dev/null");
+			system_admin_events("$oldpid, killed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
+		}		
+		
 	}
 	
-
+	@file_put_contents($pidfile, getmypid());
 	
 	
 	$zarafaadmin=$unix->find_program("zarafa-admin");	

@@ -5,9 +5,10 @@ include_once(dirname(__FILE__)."/class.mysql.dump.inc");
 
 
 class squid_stats_appliance{
-	var $URI=null;
-	var $workdir=null;
-	var $ASROOT=false;
+	public $URI=null;
+	public $workdir=null;
+	private $ASROOT=false;
+	private $uuid=null;
 	
 	function squid_stats_appliance(){
 		if(posix_getuid()==0){$this->ASROOT=true;}
@@ -18,7 +19,7 @@ class squid_stats_appliance{
 		$EnableRemoteSyslogStatsAppliance=$sock->GET_INFO("EnableRemoteSyslogStatsAppliance");
 		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 		if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
-	
+		$this->uuid=$sock->getFrameWork("services.php?GetMyHostId=yes");
 	}
 	
 	
@@ -42,35 +43,71 @@ class squid_stats_appliance{
 		return "$refix://$REMOTE_SSERVER:$REMOTE_SPORT";		
 		
 	}
+	
+	private function file_size_human($path){
+		if(!class_exists("unix")){return;}
+		$unix=new unix();
+		exec($unix->find_program("du")." -h $path ",$results);
+		while (list ($num, $line) = each ($results)){
+			if(preg_match("#^([0-9A-Z,]+)\s+#",$line,$re)){
+				return $re[1];break;
+			}
+		}
+		return 0;
+	}	
 
 	
 	public function Replicate(){
 		$unix=new unix();
 		$curl=new ccurl("$this->URI/squid.stats.listener.php");
+		if($this->ASROOT){echo "Starting......: [SERV]: Get tables indexes...\n";}
 		$curl->parms["SQUID_TABLES_INDEX"]="yes";
 		if(!$curl->get()){
+			if($this->ASROOT){echo "Starting......: [SERV]: Get tables indexes failed with error: $curl->error...\n";}
 			ufdbguard_admin_events("Check $this->URI failed with error: $curl->error", __FUNCTION__, __FILE__, __LINE__, "squidstats");
 			return;
 		}
 		
-		if(preg_match("#<ERROR>(.*?)</ERROR>#is", $curl->data,$re)){ufdbguard_admin_events("Error from central server: {$re[1]}", __FUNCTION__, __FILE__, __LINE__, "squidstats");return;}
+		if(preg_match("#<ERROR>(.*?)</ERROR>#is", $curl->data,$re)){
+				ufdbguard_admin_events("Error from central server: {$re[1]}", __FUNCTION__, __FILE__, __LINE__, "squidstats");
+				if($this->ASROOT){echo "Starting......: [SERV]: Error from central server: Protocol error\n";}
+				return;
+		}
 		if(!preg_match("#<SUCCESS>(.*?)</SUCCESS>#is", $curl->data,$re)){
 			if($GLOBALS["VERBOSE"]){echo $curl->data."\n";}
+			if($this->ASROOT){echo "Starting......: [SERV]: Error from central server: Protocol error\n";}
 			ufdbguard_admin_events("Error from central server: Protocol error", 
 			__FUNCTION__, __FILE__, __LINE__, "squidstats");return;
 		}
 		$array=unserialize(base64_decode($re[1]));
-		if(!is_array($array)){ufdbguard_admin_events("Error from central server: Protocol error (not an array)",__FUNCTION__, __FILE__, __LINE__, "squidstats");return;}
-		if(count($array)==0){ufdbguard_admin_events("Error from central server: Protocol error no item",__FUNCTION__, __FILE__, __LINE__, "squidstats");return;}
+		if(!is_array($array)){
+			ufdbguard_admin_events("Error from central server: Protocol error (not an array)",__FUNCTION__, __FILE__, __LINE__, "squidstats");
+			if($this->ASROOT){echo "Starting......: [SERV]: Error from central server: Protocol error (not an array)\n";}
+			return;
+		}
+			
+		if(count($array)==0){
+			ufdbguard_admin_events("Error from central server: Protocol error no item",__FUNCTION__, __FILE__, __LINE__, "squidstats");
+			if($this->ASROOT){echo "Starting......: [SERV]: Error from central server: Protocol error no item\n";}
+			return;
+		}
+		
+		
+		
 		if(!is_dir($this->workdir)){@mkdir($this->workdir,0775,true);}
 		
 		
 		while (list ($filename, $none) = each ($array) ){
 			$curl=new ccurl("$this->URI/$filename");
 			$target="$this->workdir/".basename($filename);
-			if(!is_file($target)){@unlink($target);}
+			if($GLOBALS["VERBOSE"]){echo "Replicate():: TARGET::: `$target`\n";}
+			if($this->ASROOT){echo "Starting......: [SERV]: downloading `$filename`\n";}
+			if(!is_file($target)){if($GLOBALS["VERBOSE"]){echo "Replicate():: TARGET::: `$target` NO SUCH FILE....\n";}}
 			$TARGETS[]="$this->workdir/".basename($filename);
+			if($GLOBALS["VERBOSE"]){echo "Replicate():: TARGET::: DOWNLOADING `$target`....\n";}
 			if(!$curl->GetFile($target)){
+				if($this->ASROOT){echo "Starting......: [SERV]: downloading `$filename` failed\n";}
+				if($GLOBALS["VERBOSE"]){echo "Replicate():: TARGET::: DOWNLOADING $this->URI/$filename failed....\n";}
 				ufdbguard_admin_events("Check $this->URI/$filename failed with error: $curl->error", __FUNCTION__, __FILE__, __LINE__, "squidstats");
 				return;
 			}
@@ -84,30 +121,77 @@ class squid_stats_appliance{
 		$cmdline="$mysqlbin --batch --force --user=$q->mysql_admin$password $servcmd";
 		$c=0;
 		while (list ($index, $sourcefile) = each ($TARGETS) ){
+			
 			$destinationfile=$sourcefile.".sql";
+			$localdatabase=basename($sourcefile);
+			
+			if($this->ASROOT){echo "Starting......: [SERV]: extracting `$sourcefile`\n";}
 			if(!$unix->uncompress($sourcefile, "$destinationfile")){
-				if($this->ASROOT){echo "Starting......: Replicate $localdatabase MySQL failed (uncompress $sourcefile) failed..\n";}
+				if($this->ASROOT){echo "Starting......: [SERV]: Replicate $localdatabase MySQL failed (uncompress $sourcefile) failed..\n";}
 				ufdbguard_admin_events("replication failed uncompress $sourcefile", 
 				__FUNCTION__, __FILE__, __LINE__, "squidstats");
 				continue;
 			}
-			$localdatabase=basename($sourcefile);
+			if($this->ASROOT){echo "Starting......: [SERV]: importing `$localdatabase` (". $this->file_size_human($destinationfile).")\n";}
 			$localdatabase=str_replace(".gz", "", $localdatabase);
-			if($this->ASROOT){echo "Starting......: Replicate ". basename($destinationfile)."\n";}
 			$cmd="$cmdline --database=$localdatabase <$destinationfile 2>&1";
 			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 			
 			exec($cmd,$results);
 			@unlink($destinationfile);
 			if($q->IS_ERROR_DUMP_CMDLINE($results)){
-				if($this->ASROOT){echo "Starting......: Replicate $localdatabase MySQL tables failed..\n";}
+				if($this->ASROOT){echo "Starting......: [SERV]: Replicate $localdatabase MySQL tables failed..\n";}
 				ufdbguard_admin_events("replication failed restoring $localdatabase with $destinationfile with error $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "squidstats");
 				continue;
 			}
 			$c++;
 			ufdbguard_admin_events("replication success restoring database $localdatabase", __FUNCTION__, __FILE__, __LINE__, "squidstats");
 		} 
-		if($this->ASROOT){echo "Starting......: Replicate $c MySQL tables done..\n";}
+		if($this->ASROOT){echo "Starting......: [SERV]: Replicate $c MySQL tables done..\n";}
+		
+		
+		if($this->ASROOT){echo "Starting......: [SERV]: Replicate specifics tokens for this node...\n";}
+		$array=$this->GetSquidDefinedSettings();
+		
+		if(!is_array($array)){if($this->ASROOT){echo "Starting......: [SERV]: Replicate `squid_nodes_settings` is empty for me `$this->uuid` ask to main datas\n";}}
+			
+			
+		if(is_array($array)){	
+			$sock=new sockets();
+			while (list ($key, $val) = each ($array) ){
+				if($key=="uuid"){continue;}
+				if($this->ASROOT){echo "Starting......: [SERV]: Replicate $key = `$val`\n";}
+				$sock->SET_INFO($key, $val);
+				
+			}
+		}
+		
+	}
+	
+	public function GetSquidDefinedSettings(){
+		$curl=new ccurl("$this->URI/squid.stats.listener.php");
+		$curl->parms["squid_nodes_settings"]=$this->uuid;
+		
+		if(!$curl->get()){
+			ufdbguard_admin_events("Check $this->URI failed for squid_nodes_settings table with error: $curl->error", __FUNCTION__, __FILE__, __LINE__, "squidstats");
+			return;
+		}
+
+		if(preg_match("#<ERROR>(.*?)</ERROR>#is", $curl->data,$re)){
+			ufdbguard_admin_events("Error from central server: {$re[1]}", __FUNCTION__, __FILE__, __LINE__, "squidstats");
+			return;
+		}
+		
+		if(!preg_match("#<CONTENT>(.*?)</CONTENT>#is", $curl->data,$re)){
+			
+			ufdbguard_admin_events("Failed to parse returned value for table content squid_nodes_settings", __FUNCTION__, __FILE__, __LINE__, "squidstats");
+		}
+		$content=$re[1];
+		$q=new mysql();
+		$q->QUERY_SQL("TRUNCATE TABLE squid_nodes_settings","artica_backup");
+		$q->QUERY_SQL("INSERT INTO squid_nodes_settings (uuid,content) VALUES ('$this->uuid','$content')","artica_backup");
+		$array=unserialize(base64_decode($content));
+		return $array;
 		
 	}
 	
@@ -143,6 +227,7 @@ class squid_stats_appliance{
 		$array["SquidAutoblock"]=true;	
 		$array["SquidDisableAllFilters"]=true;	
 		$array["UseDynamicGroupsAcls"]=true;
+		$array["DynamicGroupsAclsTTL"]=true;
 		$array["KerbAuthInfos"]=true;
 		$array["EnableKerbAuth"]=true;
 		$array["SquidQuotasParams"]=true;
@@ -150,6 +235,7 @@ class squid_stats_appliance{
 		$array["SquidBoosterMemK"]=true;
 		$array["SquidBoosterOnly"]=true;
 		$array["EnableSplashScreen"]=true;
+		$array["SquidSafePortsList"]=true;
 		$array["SplashScreenURI"]=true;	
 		$array["HotSpotConfig"]=true;
 		$array["CicapEnabled"]=true;
@@ -160,6 +246,10 @@ class squid_stats_appliance{
 		$array["LockKerberosAuthentication"]=true; 
 		$array["KerbAuthDisableGroupListing"]=true;
 		$array["KerbAuthDisableNormalizeName"]=true;
+		$array["DisableAnyCache"]=true;
+		$array["DisableGoogleSSL"]=true;
+		$array["AclsOptions"]=true;
+		$array["UfdbguardSMTPNotifs"]=true;
 		return $array;
 	}
 	
@@ -171,14 +261,27 @@ class squid_stats_appliance{
 		$desttemp=$unix->FILE_TEMP().".art";
 		$curl=new ccurl("$this->URI/ressources/squid-export/settingsHD.gz");
 		
-		
-		if(!$curl->GetFile($filetemp)){ufdbguard_admin_events("Check $this->URI/ressources/squid-export/settingsHD.gz failed with error: $curl->error", __FUNCTION__, __FILE__, __LINE__, "squidstats");return;}
+		if($this->ASROOT){echo "Starting......: [SERV]: Replicate $this->URI [settingsHD.gz]...\n";}
+		if(!$curl->GetFile($filetemp)){
+			ufdbguard_admin_events("Check $this->URI/ressources/squid-export/settingsHD.gz failed with error: $curl->error", 
+			__FUNCTION__, __FILE__, __LINE__, "squidstats");
+			if($this->ASROOT){echo "Starting......: [SERV]: Replicate FAILED with error: $curl->error...\n";}
+			return;
+		}
 		if(!is_file($filetemp)){ufdbguard_admin_events("Check $filetemp no such file...", __FUNCTION__, __FILE__, __LINE__, "squidstats");}
-		if(!$unix->uncompress($filetemp, $desttemp)){ufdbguard_admin_events("Uncompress $filetemp error", __FUNCTION__, __FILE__, __LINE__, "squidstats");return;}
-		@unlink($filetemp);
-		$array=unserialize(base64_decode(@file_get_contents($desttemp)));
-		$c=0;
-		if(!is_array($array)){ufdbguard_admin_events("$desttemp not an array....", __FUNCTION__, __FILE__, __LINE__, "squidstats");return;}
+		if(!$unix->uncompress($filetemp, $desttemp)){
+			if($this->ASROOT){echo "Starting......: [SERV]: Replicate FAILED with error: Uncompress $filetemp error\n";}
+			ufdbguard_admin_events("Uncompress $filetemp error", __FUNCTION__, __FILE__, __LINE__, "squidstats");return;}
+			@unlink($filetemp);
+			$array=unserialize(base64_decode(@file_get_contents($desttemp)));
+			$c=0;
+			
+		if(!is_array($array)){
+			if($this->ASROOT){echo "Starting......: [SERV]: Replicate FAILED with error: $desttemp not an array\n";}
+			ufdbguard_admin_events("$desttemp not an array....", __FUNCTION__, __FILE__, __LINE__, "squidstats");
+			return;
+		}
+		
 		$TOKENS=$this->GET_REPLICATED_TOKENS();
 		
 		while (list ($key, $value) = each ($array) ){
@@ -187,12 +290,20 @@ class squid_stats_appliance{
 			$sock->SET_INFO($key, $value);
 			$c++;
 		}
-		if($this->ASROOT){echo "Starting......: Replicate $c parameters done..\n";}
+		if($this->ASROOT){echo "Starting......: [SERV]: Replicate $c parameters done..\n";}
 		ufdbguard_admin_events("Success applied  $c parameters", __FUNCTION__, __FILE__, __LINE__, "squidstats");
 		
 	}
 	
 	private function export_artica_conf(){
+		
+		if($GLOBALS["AS_ROOT"]){
+			$unix=new unix();
+			$php5=$unix->LOCATE_PHP5_BIN();
+			shell_exec("$php5 /usr/share/artica-postfix/exec.export-artica-settings.php");
+			return;
+		}
+		
 		$sock=new sockets();
 		$sock->getFrameWork("services.php?export-etc-artica=yes&MyCURLTIMEOUT=120");
 	}
@@ -215,7 +326,9 @@ class squid_stats_appliance{
 		$artica_backup["dansguardian_files"]=true;
 		$artica_backup["squid_white"]=true;
 		$artica_backup["hostsusers"]=true;
-
+		$artica_backup["sslcertificates"]=true;
+		$artica_backup["squid_nodes_settings"]=true;
+		
 		  
 		
 		$databases["artica_backup"]=$artica_backup;
@@ -225,6 +338,7 @@ class squid_stats_appliance{
 		
 		$q=new mysql_squid_builder();
 		$q->BD_CONNECT();
+		$squidlogs["cacheconfig"]=true;
 		$squidlogs["webfilters_sqacls"]=true;
 		$squidlogs["webfilters_sqaclaccess"]=true;
 		$squidlogs["webfilters_sqgroups"]=true;
@@ -235,6 +349,7 @@ class squid_stats_appliance{
 		$squidlogs["webfilters_usersasks"]=true;
 		$squidlogs["webfilters_quotas"]=true;
 		$squidlogs["webfilter_avwhitedoms"]=true;
+		$squidlogs["webfilter_aclsdynamic"]=true;
 		$squidlogs["squidtpls"]=true;
 		
 		

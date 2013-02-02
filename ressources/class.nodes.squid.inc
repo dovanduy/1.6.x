@@ -662,8 +662,7 @@ class squidnodes{
 				$conf[]="http_access allow CONNECT clients_ftp";
 			}			
 
-			$conf[]="http_access deny !Safe_ports";
-			$conf[]="http_access deny CONNECT !SSL_ports";
+
 			$conf[]="http_access allow localhost";
 			$conf[]="http_access allow purge localhost";
 			$conf[]="http_access deny purge";			
@@ -676,6 +675,8 @@ class squidnodes{
 			if(isset($GLOBALS["HTTP_ACCESS"]["LDAP_GROUP"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["LDAP_GROUP"];}		
 			$acls_rules=$GLOBALS["aclGen"]->build_http_access();
 			if(count($acls_rules)>0){$conf[]=@implode("\n", $acls_rules);}
+			$conf[]="http_access deny !Safe_ports";
+			$conf[]="http_access deny CONNECT !SSL_ports";
 			if(isset($GLOBALS["HTTP_ACCESS"]["OFFICE_NETWORK"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["OFFICE_NETWORK"];}
 			$conf[]="http_access deny all";
 			while (list ($num, $val) = each ($conf) ){if(trim($val)==null){continue;}$f[]=$val;}

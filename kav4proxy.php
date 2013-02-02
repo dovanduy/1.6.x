@@ -86,6 +86,21 @@ function kav4proxy_status(){
 		$pattern_date="$year/$month/$day $H:$M:00";	
 	}
 	
+	$q=new mysql();
+	$sql="SELECT *  FROM kav4proxy_license ORDER BY expiredate DESC LIMIT 0,1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if(trim($ligne["serial"])<>null){
+		$license_text="<a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('Kav4Proxy.License-infos.php');\"
+			style='font-size:11px;font-weight:bold;color:black;text-decoration:underline'>{expire_in}:{$ligne["lifespan"]} {days}</strong>";		
+	}else{
+	$licenseerror=base64_decode($sock->getFrameWork("squid.php?kav4proxy-license-error=yes"));
+		if($licenseerror<>null){
+			$license_text="<a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('Kav4Proxy.License.php');\"
+			style='font-size:11px;font-weight:bold;color:#C61010;text-decoration:underline'>$licenseerror</strong>";
+		}
+	}
 	
 	
 	
@@ -122,6 +137,7 @@ function kav4proxy_status(){
 	if(is_array($status)){$status_text=@implode("\n", $status);}
 	
 	$html="$kav$Keep
+<center>
 <table style='width:50%' class=form>
 <tbody>
 <tr>
@@ -130,21 +146,29 @@ function kav4proxy_status(){
 	<td width=1%>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
 </tr>
 </tbody>
-</table>	
+</table>
+</center>
+
+
 	<div style='text-align:right'>". imgtootltip("refresh-24.png","{refresh}","Kav4ProxyStatus()")."</div>
 	<br>
 	<table class=form>
 	<tbody>
 		<tr>
-			<td class=legend>{pattern_date}:</td>
+			<td class=legend nowrap>{pattern_date}:</td>
 			<td style='font-size:14px' colspan=2>$pattern_date</td>
 		</tr>
+	
 			<tr>
 				<td width=1% align='right'><img src='img/arrow-right-16.png'>
 				<td nowrap><a href=\"javascript:blur();\" 
 				OnClick=\"javascript:UpdateKav4Proxy$t();\" 
 				style='font-size:12px;text-decoration:underline'>{TASK_UPDATE_ANTIVIRUS}</a></td>
-			</tr>			
+			</tr>	
+		<tr>
+			<td class=legend>{license2}:</td>
+			<td style='font-size:14px' colspan=2>$license_text</td>
+		</tr>						
 		$status_text
 	</tbody>
 	</table>
@@ -250,8 +274,8 @@ function status(){
 					<div style='width:100%;text-align:right'>". button("{apply}","kavicapserverEnabledSave$t()",14)."</div>
 				</div>
 			
-				<center><img src=img/kaspersky-logo-250.png></center>
-				<div class=explain>{kav4proxy_about}</div></td>
+				<center style='margin-top:20px'><img src=img/kaspersky-logo-250.png></center>
+				<div class=explain style='font-size:14px'>{kav4proxy_about}</div></td>
 			</div>
 		</tr>
 	</tbody>
@@ -323,14 +347,14 @@ function tabs(){
 		$array["events"]='{events}';
 		$array["icapserver_engine_options"]='{icapserver_1}';
 		
+		
+		
+		$array["ExcludeMimeType"]='{exclude}:{ExcludeMimeType}';
+		$array["groups"]='{groups}';
+		
 		if($users->UPDATE_UTILITYV2_INSTALLED){
 			$array["updateutility"]='UpdateUtility';
 		}		
-		
-		
-		$array["groups"]='{groups}';
-		$array["ExcludeMimeType"]='{exclude}:{ExcludeMimeType}';
-		
 
 		
 		if($SQUIDEnable==0){	
@@ -444,29 +468,10 @@ $html="
 		if(!checkEnter(e)){return;}
 		ExcludeMimeTypeAdd();
 	}
-var x_ExcludeMimeTypeAdd= function (obj) {
-	var tempvalue=obj.responseText;
-	if(tempvalue.length>3){alert(tempvalue)};
-    ExcludeMimeTypeRefreshList();  
-	}	
-
-function ExcludeMimeTypeAdd(){
-		var XHR = new XHRConnection();
-		XHR.appendData('MimeTypeToAdd',document.getElementById('MimeTypeToAdd').value);
-		document.getElementById('ExcludeMimeTypediv').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
-		XHR.sendAndLoad('$page', 'GET',x_ExcludeMimeTypeAdd);
-}
-
-
 
       
 
-function KavProxyDeleteExcludeMimeType(id){
-		var XHR = new XHRConnection();
-		XHR.appendData('KavProxyDeleteLine',id);
-		document.getElementById('ExcludeMimeTypediv').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
-		XHR.sendAndLoad('$page', 'GET',x_ExcludeMimeTypeAdd);
-}
+
 
 function ExcludeMimeTypeRefreshList(){
 	LoadAjax('ExcludeMimeTypediv','$page?MimeTypeList=yes');
@@ -501,30 +506,97 @@ echo $tpl->_ENGINE_parse_body($html,"kav4proxy.index.php");
 	
 	
 }
+
 function ExcludeMimeType(){
-	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$ComputerMacAddress=$tpl->_ENGINE_parse_body("{ComputerMacAddress}");
+	$groups=$tpl->_ENGINE_parse_body("{groups}:{ComputerMacAddress}");
+	$delete=$tpl->_ENGINE_parse_body("{delete}");
+	$size=$tpl->_ENGINE_parse_body("{size}");
+	$time=$tpl->_ENGINE_parse_body("{time}");
+	$member=$tpl->_ENGINE_parse_body("{member}");
+	$country=$tpl->_ENGINE_parse_body("{country}");
+	$url=$tpl->_ENGINE_parse_body("{url}");
+	$ipaddr=$tpl->_ENGINE_parse_body("{ipaddr}");
+	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
+	$title=$tpl->_ENGINE_parse_body("{today}: {requests} {since} ".date("H")."h");
+	$mimetype=$tpl->_ENGINE_parse_body("{ExcludeMimeType}");
+	$add_mime=$tpl->javascript_parse_text("{add}: {ExcludeMimeType}");
+	$t=time();
 	$html="
-	<div class=explain>{ExcludeMimeTypeKavExplain}</div>
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+<script>
+var md$t='';
+$(document).ready(function(){
+$('#flexRT$t').flexigrid({
+	url: '$page?MimeTypeList=yes',
+	dataType: 'json',
+	colModel : [
+		{display: '$mimetype', name : 'data', width :758, sortable : true, align: 'left'},
+		{display: '$delete', name : 'country', width : 70, sortable : false, align: 'center'},
+		
+
+		],
+		
+buttons : [
+		{name: '$mimetype', bclass: 'add', onpress : NewMimeType},
+		],			
 	
-	<table style='width:100%'>
-	<tbody>
-	<tr>
-		<td class=legend>{add}: {ExcludeMimeType}</td>
-		<td>". Field_text("MimeTypeToAdd",null,"font-size:13px;width:250px",null,null,null,false,"ExcludeMimeTypeAddEnter(event)")."</td>
-	</tr>
-	</tbody>
-	</table>
+	searchitems : [
+		{display: '$mimetype', name : 'data'},
+		],
+	sortname: 'data',
+	sortorder: 'asc',
+	usepager: true,
+	title: '',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: 877,
+	height: 420,
+	singleSelect: true,
+	rpOptions: [10, 20, 30, 50,100,200]
 	
-	<div id='ExcludeMimeTypediv' style='height:350px;overflow:auto'></div>
+	});   
+});
+
+
+	var x_ExcludeMimeTypeAdd=function (obj) {
+		var tempvalue=obj.responseText;
+		if(tempvalue.length>3){alert(tempvalue)};
+    	$('#flexRT$t').flexReload();	
+	}
+
+function NewMimeType(){
+	var mime=prompt('$add_mime');
+	if(!mime){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('MimeTypeToAdd',mime);
+	XHR.sendAndLoad('$page', 'GET',x_ExcludeMimeTypeAdd);	
 	
-	<script>
-		ExcludeMimeTypeRefreshList();
-	</script>
-	";
-$tpl=new templates();
-echo $tpl->_ENGINE_parse_body($html);	
+	
 }
 
+var x_KavProxyDeleteExcludeMimeType=function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return;};
+    $('#row'+md$t).remove();	
+}
+
+function KavProxyDeleteExcludeMimeType(id,md){
+	md$t=md;
+	var XHR = new XHRConnection();
+	XHR.appendData('KavProxyDeleteLine',id);
+	XHR.sendAndLoad('$page', 'GET',x_KavProxyDeleteExcludeMimeType);
+}
+</script>
+	
+	
+	";
+	
+	echo $html;
+}
 
 function ExcludeMimeType_add(){
 	$kav=new Kav4Proxy();
@@ -549,36 +621,84 @@ function KavProxyDeleteLine(){
 
 if(isset($_GET["KavProxyDeleteLine"])){KavProxyDeleteLine();exit;}
 
-function ExcludeMimeType_list(){
-	$kav=new Kav4Proxy();
-	$sql="SELECT ID,data FROM kav4Proxy WHERE `key`='icapserver.filter' AND `value`='ExcludeMimeType'";
-	$html="
-	
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th width=1% colspan=2>&nbsp;</th>
-		
-	</tr>
-</thead>
-<tbody class='tbody'>";
 
-		$results=$kav->q->QUERY_SQL($sql,"artica_backup");
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-			$html=$html."<tr class=$classtr>
-			<td><strong style='font-size:14px'>{$ligne["data"]}</strong></td>
-			<td width=1%>". imgtootltip("delete-32.png","{delete}","KavProxyDeleteExcludeMimeType({$ligne["ID"]})")."</td>
-			</tr>
-			";
-		}
+
+
+function ExcludeMimeType_list(){
 	
-	$html=$html."
-	</tbody>
-	</table>
-	";
-$tpl=new templates();
-echo $tpl->_ENGINE_parse_body($html);		
+	$Mypage=CurrentPageName();
+	$tpl=new templates();
+	$database="artica_backup";		
+	$q=new mysql();	
+	$t=time();
+	$fontsize=13;
+	$table="(SELECT ID,data FROM kav4Proxy WHERE `key`='icapserver.filter' AND `value`='ExcludeMimeType') as t";
+	$search='%';
+	$page=1;
+	$ORDER="ORDER BY ID DESC";
+	$FORCE_FILTER=null;
+	
+	
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
+	if(isset($_POST['page'])) {$page = $_POST['page'];}	
+	if(isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	
+	$QUERY=string_to_flexquery($_POST["query"]);
+
+	if($QUERY<>null){
+		$search=$QUERY;
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $search $FORCE_FILTER";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+		
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER ";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+	}	
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	
+	$sql="SELECT * FROM $table WHERE 1 $QUERY $FORCE_FILTER $ORDER $limitSql";
+	$results=$q->QUERY_SQL($sql,$database);
+	
+	$data = array();
+	$data['page'] = 0;
+	$data['total'] = $total;
+	$data['rows'] = array();	
+	
+
+	if(!$q->ok){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"$q->mysql_error", "",""));echo json_encode($data);return;}	
+	if(mysql_num_rows($results)==0){array('id' => $ligne[time()],'cell' => array(null,"", "",""));echo json_encode($data);return;}
+	
+	$data['total'] = mysql_num_rows($results);
+	$style="style='font-size:16px'";
+	
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$id=md5($ligne["ID"]);
+		$enabled=0;
+ 		$sql="SELECT ID FROM webfilters_sqitems WHERE `pattern`='{$_GET["MAC"]}' AND enabled=1 AND gpid='{$ligne["ID"]}'";
+ 		$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+		if($ligne2>0){$enabled=1;}
+		$delete=imgsimple("delete-32.png","{delete}","KavProxyDeleteExcludeMimeType({$ligne["ID"]},'$id')");
+		
+		$data['rows'][] = array(
+			'id' => $id,
+			'cell' => array(
+			"<span $style>{$ligne["data"]}</span>",
+			"<span $style>$delete</span>",
+
+			)
+			);		
+		
+		
+	}
+
+echo json_encode($data);	
+		
 }
 
 function icapserver_engine_options(){

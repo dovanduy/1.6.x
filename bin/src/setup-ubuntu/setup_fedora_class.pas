@@ -345,7 +345,7 @@ l.Add('strace');
 l.Add('sysfsutils');
 l.Add('tcsh');
 l.Add('time');
-l.Add('eject');
+if Major<18 then l.Add('eject');
 l.add('zlib');
 
 if ArchStruct=64 then begin
@@ -498,7 +498,7 @@ l.add('vconfig');
 
 
 l.Add('perl-Inline');
-l.add('db4-devel');
+if Major<18 then l.add('db4-devel');
 l.Add('libcdio');
 l.Add('libconfuse-devel');
 l.add('krb5-devel');

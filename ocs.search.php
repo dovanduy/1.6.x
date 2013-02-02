@@ -7,7 +7,7 @@ include_once(dirname(__FILE__).'/ressources/class.computers.inc');
 
 if(posix_getuid()<>0){
 	$users=new usersMenus();
-	if((!$users->AsSambaAdministrator) OR (!$users->AsSystemAdministrator)){
+	if(!GetRights()){
 		$tpl=new templates();
 		$error=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
 		echo "alert('$error')";
@@ -23,7 +23,14 @@ if(isset($_GET["js-in-front-popup"])){js_in_front_popup();exit;}
 if(isset($_GET["js-ASPopUp"])){js_ASPopUp();exit;}
 page();
 
+function GetRights(){
+	$users=new usersMenus();
+	if($users->AsSystemAdministrator){return true;}
+	if($users->ASDCHPAdmin){return true;}
+	if($users->AsSambaAdministrator){return true;}
 
+	return false;
+}
 function js_in_front(){
 	$tpl=new templates();
 	$page=CurrentPageName();
@@ -149,7 +156,7 @@ $('#flexRT$t').flexigrid({
 });
 
 function AddComputer$t(){
-	YahooUser(780,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');
+	YahooUser(962,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');
 }
 
 function lastest_scan$t(){

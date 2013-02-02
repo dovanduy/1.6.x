@@ -43,15 +43,25 @@ class haproxy{
 			$options=array();
 			$transparent_text=null;
 			$transparent=$ligne["transparent"];
+			$tunnel_mode=$ligne["tunnel_mode"];
+			$dispatch_mode=$ligne["dispatch_mode"];
 			if(!is_numeric($transparent)){$transparent=0;}
+			if(!is_numeric($tunnel_mode)){$tunnel_mode=0;}
+			if($tunnel_mode==1){
+					$dispatch_mode="leastconn";
+					//$ligne["loadbalancetype"]=0;
+			}
 			$MainConfig=unserialize(base64_decode($ligne["MainConfig"]));
 			if(!is_numeric($MainConfig["UseCookies"])){$MainConfig["UseCookies"]=0;}
 			if($ligne["loadbalancetype"]==0){$options[]="\toption\ttcplog";$MainConfig["UseCookies"]=0;}
 			$backends=$this->build_backends($ligne["servicename"],$MainConfig["UseCookies"]);
 			if($backends==null){continue;}
+			$loadbalancetype=$ligne["loadbalancetype"];
+			
 			if(!is_numeric($MainConfig["http-use-proxy-header"])){$MainConfig["http-use-proxy-header"]=1;}
 			if(!is_numeric($MainConfig["forwardfor"])){$MainConfig["forwardfor"]=1;}
 			if(!is_numeric($MainConfig["originalto"])){$MainConfig["originalto"]=1;}
+			
 			
 			
 			
@@ -71,12 +81,22 @@ class haproxy{
 			if($transparent==1){$ligne["listen_ip"]="127.0.0.1";}
 			$f[]="listen {$ligne["servicename"]} {$ligne["listen_ip"]}:{$ligne["listen_port"]}";
 			$f[]="\tmode ". $this->mode[$ligne["loadbalancetype"]];
+			$options[]="\toption\thttplog";
+			if($dispatch_mode<>null){
+				$f[]="\tbalance $dispatch_mode";
+			}
 			
 			$Cookies_options="nocache";
 			
-			if($ligne["loadbalancetype"]==1){
-				$options[]="\toption\thttplog";
-				$options[]="\toption\thttp-server-close";
+			if($loadbalancetype==1){
+				
+				if($tunnel_mode==0){
+					
+					$options[]="\toption\thttp-server-close";
+					
+				}else{
+					
+				}
 				if($MainConfig["http-use-proxy-header"]==1){$options[]="\toption\thttp-use-proxy-header";}
 				if($MainConfig["forwardfor"]==1){$options[]="\toption\tforwardfor";}
 				if($MainConfig["originalto"]==1){$options[]="\toption\toriginalto";}
@@ -157,6 +177,7 @@ class haproxy_multi{
 	var $enabled=0;
 	var $transparent=0;
 	var $transparentsrcport=0;
+	var $tunnel_mode=0;
 	function haproxy_multi($servicename){
 		
 		if($servicename<>null){
@@ -178,6 +199,8 @@ class haproxy_multi{
 		$this->transparent=$ligne["transparent"];
 		$this->transparentsrcport=$ligne["transparentsrcport"];
 		$this->MainConfig=unserialize(base64_decode($ligne["MainConfig"]));
+		$this->tunnel_mode=$ligne["tunnel_mode"];
+		if(!is_numeric($this->tunnel_mode)){$this->tunnel_mode=0;}
 	}
 	
 	
@@ -190,10 +213,18 @@ class haproxy_multi{
 		$sql="SELECT servicename from haproxy WHERE servicename='$this->servicename'";
 		$MainConfig=base64_encode(serialize($this->MainConfig));
 		$q=new mysql();
+		
+		if(!$q->FIELD_EXISTS("haproxy", "tunnel_mode", "artica_backup")){		
+			$sql2="ALTER TABLE `haproxy` ADD `tunnel_mode` SMALLINT( 1 ) NOT NULL DEFAULT '0',ADD INDEX (`tunnel_mode`)"; 
+			$q->QUERY_SQL($sql,"artica_backup");
+			if(!$q->ok){writelogs("$q->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}			
+		}
+		
+		
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(trim($ligne["servicename"])==null){
-			$sql="INSERT IGNORE INTO haproxy (servicename,listen_ip,listen_port,ipaddrport,loadbalancetype,dispatch_mode,transparent,transparentsrcport) 
-			VALUES ('$this->servicename','$this->listen_ip','$this->listen_port','$listenaddrport','$this->loadbalancetype','$this->dispatch_mode','$this->transparent','$this->transparentsrcport')";
+			$sql="INSERT IGNORE INTO haproxy (servicename,listen_ip,listen_port,ipaddrport,loadbalancetype,dispatch_mode,transparent,transparentsrcport,tunnel_mode) 
+			VALUES ('$this->servicename','$this->listen_ip','$this->listen_port','$listenaddrport','$this->loadbalancetype','$this->dispatch_mode','$this->transparent','$this->transparentsrcport','$this->tunnel_mode')";
 			
 		}else{
 			$sql="UPDATE haproxy SET 
@@ -204,6 +235,7 @@ class haproxy_multi{
 				loadbalancetype='$this->loadbalancetype',
 				dispatch_mode='$this->dispatch_mode',
 				transparent='$this->transparent',
+				tunnel_mode=$this->tunnel_mode,
 				transparentsrcport='$this->transparentsrcport',
 				MainConfig='$MainConfig'
 				WHERE servicename='$this->servicename'

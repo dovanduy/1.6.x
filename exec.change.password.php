@@ -6,6 +6,8 @@ include_once(dirname(__FILE__).'/ressources/class.main_cf.inc');
 include_once(dirname(__FILE__).'/ressources/class.amavis.inc');
 include_once(dirname(__FILE__).'/ressources/class.samba.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');
+include_once(dirname(__FILE__).'/framework/class.unix.inc');
+include_once(dirname(__FILE__).'/framework/frame.class.inc');
 
 $amavis=new amavis();
 $amavis->Save();
@@ -18,8 +20,9 @@ $squid=new squidbee();
 $squid->SaveToLdap();
 $squid->SaveToServer();
 
+
+
 system('/etc/init.d/artica-postfix restart postfix');
-system('/etc/init.d/artica-postfix restart squid');
 system('/etc/init.d/artica-postfix restart samba');
 system('/usr/share/artica-postfix/bin/artica-install --cyrus-checkconfig');
 system('/etc/init.d/artica-postfix restart imap');

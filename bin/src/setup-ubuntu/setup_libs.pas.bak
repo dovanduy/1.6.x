@@ -2304,7 +2304,7 @@ end;
 
   if length(trim(base))=0 then begin
    if length(postfix)=0 then begin
-         ZARAFA_INSTALL_MENU();
+       if not FileExists('/etc/artica-postfix/LIGHT_INSTALL') then ZARAFA_INSTALL_MENU();
          if Not FileExists('/usr/bin/zarafa-server') then begin
             if length(cyrus)>0 then begin
                plistCyrus:=explode(',', cyrus);

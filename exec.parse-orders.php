@@ -3,7 +3,7 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__) .'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__)."/framework/class.unix.inc");
-include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
+include_once(dirname(__FILE__)."/framework/class.settings.inc");
 
 $GLOBALS["EXEC_PID_FILE"]="/etc/artica-postfix/".basename(__FILE__).".damon.pid";
 
@@ -90,7 +90,7 @@ $pid=pcntl_fork();
 	events("Started pid $childpid",__FUNCTION__,__LINE__);
 	
 	while ($stop_server==false) {
-		sleep(3);
+		sleep(10);
 		ParseLocalQueue();
 		if($reload){
 			$reload=false;
@@ -117,7 +117,7 @@ function FillMemory(){
 	
 	include_once(dirname(__FILE__).'/ressources/class.sockets.inc');
 	$GLOBALS["CLASS_SOCKETS"]=new sockets();
-	$GLOBALS["CLASS_USERS"]=new usersMenus();
+	$GLOBALS["CLASS_USERS"]=new settings_inc();
 	$GLOBALS["CLASS_UNIX"]=new unix();	
 	$GLOBALS["TOTAL_MEMORY_MB"]=$GLOBALS["CLASS_UNIX"]->TOTAL_MEMORY_MB();	
 	$GLOBALS["NICE"]=$GLOBALS["CLASS_UNIX"]->EXEC_NICE();
@@ -313,7 +313,7 @@ if(!is_file($pgrep)){return;}
 }
 
 function ParseLocalQueue(){
-		if(systemMaxOverloaded()){events("[OVERLOAD]:: running in max overload mode, aborting queue");return;}
+		if(system_is_overloaded()){events("[OVERLOAD]:: running in max overload mode, aborting queue");return;}
 		$EnableArticaBackground=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableArticaBackground");
 		if(!is_numeric($EnableArticaBackground)){$EnableArticaBackground=1;}	
 	
@@ -424,18 +424,15 @@ if(is_file("/etc/artica-postfix/background")){
 	events("Orders:$orders_number Loaded instances:$MemoryInstances Max to order:$count_max");
 	
 	while (list ($num, $cmd) = each ($orders) ){
+		usleep(2000);
 		if(trim($cmd)==null){continue;}
 		
 		$devnull=" >/dev/null 2>&1";
 		if(strpos($cmd,">")>0){$devnull=null;}
 
 		if(system_is_overloaded(__FILE__)){
-			if($count>=$count_max){break;}
-			unset($orders[$num]);
-			events("[OVERLOAD]:: running in overload mode $nice$cmd$devnull");
-			shell_exec("$nice$cmd$devnull");
-			events("[OVERLOAD]:: $cmd was successfully executed, parse next");
-			$count++;
+			events("Overloaded system, sleep 5s");
+			sleep(5);
 			continue;
 		}
 		$count++;

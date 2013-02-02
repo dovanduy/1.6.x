@@ -102,7 +102,7 @@ fpsystem('date +%m%d%H >'+dir+'/date.txt');
 J:=TStringList.Create;
 J.LoadFromFile(dir+'/date.txt');
 txt:=trim(J.Strings[0]);
-result:='1.6.'+txt;
+result:='1.7.'+txt;
 fpsystem('/bin/rm '+dir+'/date.txt');
 
 end;
@@ -458,6 +458,8 @@ Execute ('rm -f ' + BasePath + '/bin/stpLqWwo');
 Execute ('rm -f ' + BasePath + '/bin/stq74yeJ');
 Execute ('rm -f ' + BasePath + '/bin/stQGqqBv');
 Execute ('rm -f ' + BasePath + '/bin/stS7fSvN');
+Execute ('rm -f ' + BasePath + '/bin/stLXlU7G');
+Execute ('rm -f ' + BasePath + '/bin/stHa9F8C');
 Execute ('rm -f ' + BasePath + '/bin/stuheP33');
 Execute ('rm -f ' + BasePath + '/bin/stWmx0VR');
 Execute ('rm -f ' + BasePath + '/bin/st1UEWR6');
@@ -1713,7 +1715,12 @@ if CurrentUser='root' then dir:='/root' else dir:='/home/'+CurrentUser;
 
     logs:=tlogs.Create;
     version:=trim(logs.ReadFromFile('/usr/share/artica-postfix/VERSION'));
-
+    fpsystem('git rm --cached ressources/class.categorize.externals.inc');
+    fpsystem('git rm --cached exec.cleancloudcatz.php');
+    fpsystem('git rm --cached internal.proxyloadcatz.php');
+    fpsystem('git rm --cached tests.php');
+    fpsystem('git rm --cached exec.squid.checkscatz.php');
+    fpsystem('git rm --cached exec.squid.cloud.compile.php');
     fpsystem('git commit -m "'+version+'"');
     fpsystem('git push origin master');
 

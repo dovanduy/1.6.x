@@ -41,8 +41,8 @@ if(count($argv)>0){
 	if(preg_match("#--force#",$imploded)){$GLOBALS["FORCE"]=true;}
 	if(preg_match("#--shalla#",$imploded)){$GLOBALS["SHALLA"]=true;}
 	if(preg_match("#--catto=(.+?)\s+#",$imploded,$re)){$GLOBALS["CATTO"]=$re[1];}
-	
-	
+	if($argv[1]=="--disks"){DisksStatus();exit;}
+	if($argv[1]=="--version"){checksVersion();exit;}
 	
 	
 	$argvs=$argv;
@@ -59,13 +59,15 @@ if(count($argv)>0){
 	if($argv[1]=="--ufdbguard-recompile-dbs"){echo UFDBGUARD_COMPILE_ALL_CATEGORIES();exit;}
 	if($argv[1]=="--phraselists"){echo CompileCategoryWords();exit;}
 	if($argv[1]=="--fix1"){echo FIX_1_CATEGORY_CHECKED();exit;}
+	if($argv[1]=="--bads"){echo remove_bad_files();exit;}
+	
 	
 	
 	$GLOBALS["EXECUTEDCMDLINE"]=@implode(" ", $argvs);
 	ufdbguard_admin_events("receive ".$GLOBALS["EXECUTEDCMDLINE"],"MAIN",__FILE__,__LINE__,"config");
 	if($GLOBALS["VERBOSE"]){echo "Execute ".@implode(" ", $argv)."\n";}
 	
-	if($argv[1]=="--inject"){echo inject($argv[2],$argv[3]);exit;}
+	if($argv[1]=="--inject"){echo inject($argv[2],$argv[3]);exit;} // category filepath
 	if($argv[1]=="--parse"){echo inject($argv[2],$argv[3],$argv[4]);exit;}
 	if($argv[1]=="--conf"){echo build();exit;}
 	if($argv[1]=="--ufdb-monit"){echo ufdbguard_watchdog();exit;}
@@ -92,7 +94,17 @@ if(count($argv)>0){
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
 $pid=@file_get_contents($pidfile);
-if($unix->process_exists($pid,basename(__FILE__))){writelogs(basename(__FILE__).":Already executed.. aborting the process",basename(__FILE__),__FILE__,__LINE__);die();}
+if($unix->process_exists($pid,basename(__FILE__))){
+	$timefile=$unix->PROCCESS_TIME_MIN($pid);
+	if($timefile<10){
+		writelogs(basename(__FILE__).":Already executed since {$timefile}mn.. aborting the process",
+		basename(__FILE__),__FILE__,__LINE__);
+		die();
+	}else{
+		$kill=$unix->find_program("kill");
+		shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	}
+}
 @file_put_contents($pidfile, getmypid());
 if($GLOBALS["VERBOSE"]){echo "New PID ".getmypid()." [1]={$argv[1]}\n";}
 
@@ -139,6 +151,7 @@ function build_ufdbguard_smooth(){
 function build_ufdbguard_HUP(){
 	$unix=new unix();
 	$sock=new sockets();$forceTXT=null;
+	$GLOBALS["FORCE"]=true;
 	$ufdbguardReloadTTL=$sock->GET_INFO("ufdbguardReloadTTL");
 	if(!is_numeric($ufdbguardReloadTTL)){$ufdbguardReloadTTL=10;}
 	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
@@ -146,7 +159,7 @@ function build_ufdbguard_HUP(){
 	if(!$GLOBALS["FORCE"]){
 		if($TIMEZ<$ufdbguardReloadTTL){
 			ufdbguard_admin_events("Asking to reload ufdbguard but TTL not reached ({$ufdbguardReloadTTL}mn) current {$TIMEZ}mn",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
-			echo "Starting......: ufdbGuard reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn PID:$pid\n";
+			echo "Starting......: ufdbGuard reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn\n";
 			return;
 		}
 	}else{
@@ -166,9 +179,7 @@ function build_ufdbguard_HUP(){
 		WriteToSyslogMail("Asking to reload ufdbguard PID:$pid",basename(__FILE__));
 		$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 		ufdbguard_admin_events("Asking to reload ufdbguard$forceTXT - $called - cmdline:{$GLOBALS["EXECUTEDCMDLINE"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
-		posix_kill(intval($pid),1);
-		
-		if(is_file($squidbin)){shell_exec("$squidbin -k reconfigure >/dev/null 2>&1");}
+		shell_exec("/etc/init.d/ufdb reconfig");
 		return;
 	}
 	echo "Starting......: UfdbGuard reloading service no pid is found, Starting service...\n";
@@ -228,8 +239,44 @@ function ufdbguard_start(){
 	
 }
 
+function checksVersion(){
+	$unix=new unix();
+	$ufdbguardd=$unix->find_program("ufdbguardd");
+	if(!is_file($ufdbguardd)){return;}
+	$mustcompile=false;
+	exec("ufdbguardd -v 2>&1",$results);
+	while (list ($a, $line) = each ($results)){
+		
+		if(preg_match("#ufdbguardd:\s+([0-9\.]+)#", $line,$re)){
+			$version=$re[1];
+			$version=str_replace(".", "", $version);
+			break;
+		}
+	}
+	
+	echo "Starting......: Starting UfdGuard binary version $version\n";
+	if($version<130){$mustcompile=true;}
+	
+	
+	if(!$mustcompile){
+		$binadate=filemtime($ufdbguardd);
+		$fileatime=fileatime($ufdbguardd);
+		echo "Starting......: Starting UfdGuard version date $binadate (".date("Y-m-d",$binadate).")\n";
+		if($binadate<1358240994){
+			$mustcompile=true;
+		}
+	}
+	
+	if($mustcompile){
+		echo "Starting......: Starting UfdGuard must be updated !!\n";
+		shell_exec("/usr/share/artica-postfix/bin/artica-make APP_UFDBGUARD");
+	}
+	
+}
+
 
 function build_ufdbguard_config(){
+	checksVersion();
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
@@ -246,19 +293,22 @@ function build_ufdbguard_config(){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	$users=new usersMenus();
-
+	
+	@mkdir("/var/tmp",0775,true);
+	@mkdir("/etc/ufdbguard",0777,true);
+	@mkdir("/etc/squid3",0755,true);
+	@mkdir("/var/log/squid",0755,true);
+	@mkdir("/var/lib/ufdbartica",0755,true);
+	@unlink("/etc/ufdbguard/ufdbGuard.conf");
+	@unlink("/etc/squid3/ufdbGuard.conf");	
+	remove_bad_files();
 	$ufdb=new compile_ufdbguard();
 	$datas=$ufdb->buildConfig();	
 	
 	if($EnableWebProxyStatsAppliance==1){
 		@file_put_contents("/usr/share/artica-postfix/ressources/databases/ufdbGuard.conf",$datas);
 	}
-	@mkdir("/var/tmp",0775,true);
-	@mkdir("/etc/ufdbguard",0777,true);
-	@mkdir("/etc/squid3",0755,true);
-	@mkdir("/var/log/squid",0755,true);
-	@unlink("/etc/ufdbguard/ufdbGuard.conf");
-	@unlink("/etc/squid3/ufdbGuard.conf");	
+
 	
 	@file_put_contents("/etc/ufdbguard/ufdbGuard.conf",$datas);
 	@file_put_contents("/etc/squid3/ufdbGuard.conf",$datas);
@@ -270,6 +320,7 @@ function build_ufdbguard_config(){
 	shell_exec("chown -R squid:squid /etc/ufdbguard");
 	shell_exec("chown -R squid:squid /var/log/squid");
 	shell_exec("chown -R squid:squid /etc/squid3");
+	shell_exec("chown -R squid:squid /var/lib/ufdbartica");
 	
 	
 }
@@ -302,6 +353,7 @@ function conf(){
 		}
 	}
 	@mkdir("/etc/ufdbguard",0755,true);
+	
 	build_ufdbguard_config();
 	buildDans();
 	ufdbguard_schedule();
@@ -336,6 +388,23 @@ function buildDans(){
 		echo "TO DEV -> Send to stats appliance !\n";
 		return;
 	}		
+}
+
+function remove_bad_files(){
+	
+	$unix=new unix();
+	
+	$dirs=$unix->dirdir("/var/lib/ftpunivtlse1fr");
+	while (list ($directory, $b) = each ($dirs)){
+		$dirname=basename($directory);
+		if(is_link("$directory/$dirname")){
+			echo "Starting......: UfdBguard removing $dirname/$dirname bad file\n";
+			@unlink("$directory/$dirname");
+		}
+	}
+	
+	
+	echo "Starting......: UfdBguard removing bad files done...\n";
 }
 
 
@@ -546,7 +615,7 @@ function CheckPermissions(){
 	shell_exec("$chown squid:squid /var/run/dansguardian");
 	if(is_file("/usr/sbin/ufdbguardd")){if(!is_file("/usr/bin/ufdbguardd")){$unix=new unix();$ln=$unix->find_program("ln");shell_exec("$ln -s /usr/sbin/ufdbguardd /usr/bin/ufdbguardd");}}
 	if(!is_dir("/var/lib/ftpunivtlse1fr")){@mkdir("/var/lib/ftpunivtlse1fr",0755,true);}
-	
+	if(!is_dir("/var/lib/squidguard/checked")){@mkdir("/var/lib/squidguard/checked",0755,true);@chown("/var/lib/squidguard/checked","squid");}
 	
 	if(!is_file("/squid/log/squid/squidGuard.log")){
 		@mkdir("/squid/log/squid",0755,true);
@@ -561,23 +630,25 @@ function CheckPermissions(){
 	}
 	if(is_file("/usr/sbin/ufdbguardd")){if(!is_file("/usr/bin/ufdbguardd")){shell_exec("$ln -s /usr/sbin/ufdbguardd /usr/bin/ufdbguardd");}}
 	@mkdir("/etc/ufdbguard",0755,true);
+	@mkdir("/var/lib/ufdbartica",0755,true);
 	shell_exec("$chown $user /var/lib/squidguard");
 	shell_exec("$chown $user /var/lib/ftpunivtlse1fr");
-	shell_exec("$chown -R $user /var/lib/squidguard/");
+	shell_exec("$chown -R $user /var/lib/squidguard");
 	shell_exec("$chown -R $user /etc/dansguardian");
 	shell_exec("$chown -R $user /var/log/squid");
 	shell_exec("$chown -R $user /var/log/squid/");
 	shell_exec("$chown -R $user /etc/ufdbguard");
-	shell_exec("$chown -R $user /etc/ufdbguard/*");
-	shell_exec("$chown -R $user /var/lib/ftpunivtlse1fr/");
+	shell_exec("$chown -R $user /etc/ufdbguard");
+	shell_exec("$chown -R $user /var/lib/ftpunivtlse1fr");
 	shell_exec("$chmod -R ug+x /var/lib/squidguard/");
-	shell_exec("$chown -R $user /var/lib/squidguard/*");
+	shell_exec("$chown -R $user /var/lib/squidguard");
 	shell_exec("$chown -R $user /var/lib/ufdbartica");
-	shell_exec("$chown -R $user /var/lib/ufdbartica/*");		
-	shell_exec("$chown -R $user /var/log/squid/*");
-	shell_exec("$chmod -R 755 /var/lib/squidguard/*");
-	shell_exec("$chmod -R 755 /var/lib/ufdbartica/*");	
-	shell_exec("$chmod -R ug+x /var/lib/squidguard/*");	
+	shell_exec("$chown -R $user /var/lib/ufdbartica");		
+	shell_exec("$chown -R $user /var/log/squid");
+	shell_exec("$chmod -R 755 /var/lib/squidguard");
+	shell_exec("$chmod -R 755 /var/lib/ufdbartica");	
+	shell_exec("$chmod -R ug+x /var/lib/squidguard");
+	@chown("/var/lib/squidguard/checked","squid");
 	if(!is_file("/var/log/ufdbguard/ufdbguardd.log")){@mkdir("/var/log/ufdbguard",0755,true);@file_put_contents("/var/log/ufdbguard/ufdbguardd.log", "see /var/log/squid/ufdbguardd.log\n");}
 	shell_exec("chmod 755 /var/log/ufdbguard/ufdbguardd.log");	
 	@link(dirname(__FILE__)."/ressources/logs/squid-template.log", "/var/log/squid/squid-template.log");
@@ -1719,15 +1790,52 @@ function sourceCategoryToArticaCategory($category){
 // exec.squidguard.php --inject porn /root/blablabl/domains
 function inject($category,$table=null,$file=null){
 	include_once(dirname(__FILE__)."/ressources/class.dansguardian.inc");
-	
-	if(!is_file($table)){echo "`$table` No such file\n";}
-	
-	if(is_file($table)){$file=$table;$table=null;}
-	
+	$unix=new unix();
 	$q=new mysql_squid_builder();
+	
+	
+	
+	if(is_file($category)){
+		$file=$category;
+		$category_name=basename($file);
+		echo "$file -> $category_name\n";
+		if(preg_match("#(.+?)\.gz$#", $category_name)){
+			echo "$category_name -> gunzip\n";
+			$new_category_name=str_replace(".gz", "", $category_name);
+			$gunzip=$unix->find_program("gunzip");
+			$target_file=dirname($file)."/$new_category_name";
+			$cmd="/bin/gunzip -d -c \"$file\" >$target_file 2>&1";
+			echo "$cmd\n";
+			shell_exec($cmd);
+			if(!is_file($target_file)){echo "Uncompress failed\n";return;}
+			$file=$target_file;
+			$table=$new_category_name;
+			$category=$q->tablename_tocat($table);
+			echo "$new_category_name -> $table\n";
+			
+			
+			
+		}else{
+			$table=$category_name;
+			echo "$new_category_name -> $table\n";
+			$category=$q->tablename_tocat($table);
+		}
+		
+		echo "Table: $table\nSource File:$file\nCategory: $category\n";
+		
+		
+	}
+	
+	
+	if(!is_file($file)){
+		if(!is_file($table)){echo "`$table` No such file\n";}
+		if(is_file($table)){$file=$table;$table=null;}
+	}
+	
+	
 	if($table==null){
 		$table="category_".$q->category_transform_name($category);
-		echo "Table is null\n";
+		echo "Table will be $table\n";
 	}
 	
 	if(!$q->TABLE_EXISTS($table)){
@@ -1785,6 +1893,11 @@ function inject($category,$table=null,$file=null){
 		if(preg_match("#(.+?)\s+(.+)#", $www,$re)){$www=$re[1];}
 		
 		if(strpos($www, "#")>0){echo "FALSE: $www\n";continue;}
+		if(strpos($www, "'")>0){echo "FALSE: $www\n";continue;}
+		if(strpos($www, "{")>0){echo "FALSE: $www\n";continue;}
+		if(strpos($www, "(")>0){echo "FALSE: $www\n";continue;}
+		if(strpos($www, ")")>0){echo "FALSE: $www\n";continue;}
+		
 		$md5=md5($www.$category);
 		$n[]="('$md5',NOW(),'$category','$www','$uuid')";
 		
@@ -1993,6 +2106,70 @@ function UFDBGUARD_STATUS(){
 	chmod("/usr/share/artica-postfix/ressources/logs/ufdbguard.db.size.txt",777);
 	
 	return $Narray;
+}
+
+
+function DisksStatus(){
+	$q=new mysql_squid_builder();
+	
+	
+	if(!$q->TABLE_EXISTS('webfilters_dbstats')){
+			
+		$sql="CREATE TABLE IF NOT EXISTS `webfilters_dbstats` (
+				  `category` varchar(128) NOT NULL PRIMARY KEY,
+				  `articasize` BIGINT(100) NOT NULL,
+				  `unitoulouse` BIGINT(100) NOT NULL,
+				  `persosize` bigint(100)  NOT NULL,
+				  KEY `articasize` (`articasize`),KEY `unitoulouse` (`unitoulouse`), KEY `persosize` (`persosize`) )  ENGINE = MYISAM;"; $q->QUERY_SQL($sql);
+			
+	}	
+	
+	
+	$unix=new unix();
+	if($GLOBALS["VERBOSE"]){echo "-> /var/lib/ftpunivtlse1fr\n";}
+	$dirs=$unix->dirdir("/var/lib/ftpunivtlse1fr");
+	while (list ($a, $dir) = each ($dirs)){
+		if(!is_file("$dir/domains.ufdb")){continue;}
+		$size=filesize("$dir/domains.ufdb");
+		$category=basename($dir);
+		$category=$q->filaname_tocat($category);
+		$array[$category]["UNIV"]=$size;
+		
+		
+		
+	}
+	$dirs=$unix->dirdir("/var/lib/squidguard");
+	while (list ($a, $dir) = each ($dirs)){
+		if(!is_file("$dir/domains.ufdb")){continue;}
+		$size=filesize("$dir/domains.ufdb");
+		$category=basename($dir);
+		$category=$q->filaname_tocat($category);
+		$array[$category]["PERSO"]=$size;
+	}	
+	
+	$dirs=$unix->dirdir("/var/lib/ufdbartica");
+	while (list ($a, $dir) = each ($dirs)){
+		if(!is_file("$dir/domains.ufdb")){continue;}
+		$size=filesize("$dir/domains.ufdb");
+		$category=basename($dir);
+		$category=$q->filaname_tocat($category);
+		$array[$category]["ARTICA"]=$size;
+	}	
+	
+	while (list ($category, $sizes) = each ($array)){
+		if(!isset($sizes["UNIV"])){$sizes["UNIV"]=0;}
+		if(!isset($sizes["ARTICA"])){$sizes["ARTICA"]=0;}
+		if(!isset($sizes["PERSO"])){$sizes["PERSO"]=0;}
+		$f[]="('$category','{$sizes["ARTICA"]}','{$sizes["UNIV"]}','{$sizes["PERSO"]}')";
+		
+	}
+	
+	if(count($f)>0){
+		$q->QUERY_SQL("TRUNCATE TABLE webfilters_dbstats");
+		$q->QUERY_SQL("INSERT INTO webfilters_dbstats (category,articasize,unitoulouse,persosize) VALUES ".@implode(",", $f));
+		
+	}
+	
 }
 
 

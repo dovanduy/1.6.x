@@ -1,3 +1,4 @@
+
 <?php
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -15,7 +16,11 @@ if(!$usersmenus->AsSquidAdministrator){
 
 if(isset($_GET["popup"])){popup();exit;}
 if(isset($_POST["watchdog"])){Save();exit;}
-
+if(isset($_GET["tabs"])){tabs();exit;}
+if(isset($_GET["events"])){events_table();exit;}
+if(isset($_GET["rows-table"])){rows_table();exit;}
+if(isset($_GET["notifs"])){smtp_notifs();exit;}
+if(isset($_POST["ENABLED_SQUID_WATCHDOG"])){save_watchdog_notif();exit;}
 js();
 
 
@@ -33,8 +38,180 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{squid_watchdog}");
-	$html="YahooWin3('445','$page?popup=yes','$title')";
+	$html="YahooWin3('850','$page?tabs=yes','$title')";
 	echo $html;
+}
+
+function tabs(){
+	
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$array["popup"]="{parameters}";
+	$array["notifs"]="{smtp_notifications}";
+	$array["events"]="{events}";
+
+
+
+
+
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+		
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+	}
+
+
+
+	echo "
+	<div id='watchdogsquid'>
+	<ul>". implode("\n",$html)."</ul>
+	</div>
+	<script>
+	$(document).ready(function(){
+	$('#watchdogsquid').tabs();
+});
+</script>";
+
+}
+function smtp_notifs(){
+	$users=new usersMenus();
+	$ini=new Bs_IniHandler();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$ini->loadString($sock->getFrameWork("cmd.php?SmtpNotificationConfigRead=yes"));
+	if($ini->_params["SMTP"]["smtp_server_port"]==null){$ini->_params["SMTP"]["smtp_server_port"]=25;}
+	if($ini->_params["SMTP"]["smtp_sender"]==null){$users=new usersMenus();$ini->_params["SMTP"]["smtp_sender"]="artica@$users->fqdn";}
+	$t=time();
+	$UfdbguardSMTPNotifs=unserialize(base64_decode($sock->GET_INFO("UfdbguardSMTPNotifs")));
+	
+	if(!isset($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"])){$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]=0;}
+	if(!is_numeric($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"])){$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]=0;}
+	
+	
+	if(!isset($UfdbguardSMTPNotifs["smtp_server_name"])){$UfdbguardSMTPNotifs["smtp_server_name"]=$ini->_params["SMTP"]["smtp_server_name"];}
+	if(!isset($UfdbguardSMTPNotifs["smtp_server_port"])){$UfdbguardSMTPNotifs["smtp_server_port"]=$ini->_params["SMTP"]["smtp_server_port"];}
+	if(!isset($UfdbguardSMTPNotifs["smtp_sender"])){$UfdbguardSMTPNotifs["smtp_server_port"]=$ini->_params["SMTP"]["smtp_sender"];}
+	if(!isset($UfdbguardSMTPNotifs["smtp_dest"])){$UfdbguardSMTPNotifs["smtp_dest"]=$ini->_params["SMTP"]["smtp_dest"];}
+	if(!isset($UfdbguardSMTPNotifs["smtp_auth_user"])){$UfdbguardSMTPNotifs["smtp_dest"]=$ini->_params["SMTP"]["smtp_auth_user"];}
+	if(!isset($UfdbguardSMTPNotifs["smtp_auth_passwd"])){$UfdbguardSMTPNotifs["smtp_auth_passwd"]=$ini->_params["SMTP"]["smtp_auth_passwd"];}
+	if(!isset($UfdbguardSMTPNotifs["tls_enabled"])){$UfdbguardSMTPNotifs["tls_enabled"]=$ini->_params["SMTP"]["tls_enabled"];}
+	if(!isset($UfdbguardSMTPNotifs["ssl_enabled"])){$UfdbguardSMTPNotifs["ssl_enabled"]=$ini->_params["SMTP"]["ssl_enabled"];}
+	
+	if(!is_numeric($UfdbguardSMTPNotifs["smtp_server_port"])){$UfdbguardSMTPNotifs["smtp_server_port"]=25;}
+	//Switchdiv
+	
+	$html="
+	<div id='notif1-$t'></div>
+	
+	<table style='width:99%' class=form>
+	<tr>
+	<td nowrap class=legend style='font-size:14px'>{smtp_enabled}:</strong></td>
+	<td>" . Field_checkbox("ENABLED_SQUID_WATCHDOG",1,$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"],"SMTPNotifArticaEnableSwitch$t()")."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:14px'>{smtp_server_name}:</strong></td>
+		<td>" . Field_text('smtp_server_name',trim($UfdbguardSMTPNotifs["smtp_server_name"]),'font-size:14px;padding:3px;width:250px')."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:14px'>{smtp_server_port}:</strong></td>
+		<td>" . Field_text('smtp_server_port',trim($UfdbguardSMTPNotifs["smtp_server_port"]),'font-size:14px;padding:3px;width:40px')."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:14px'>{smtp_sender}:</strong></td>
+		<td>" . Field_text('smtp_sender',trim($UfdbguardSMTPNotifs["smtp_sender"]),'font-size:14px;padding:3px;width:290px')."</td>
+			</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:14px'>{smtp_dest}:</strong></td>
+		<td>" . Field_text('smtp_dest',trim($UfdbguardSMTPNotifs["smtp_dest"]),'font-size:14px;padding:3px;width:290px')."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:14px'>{smtp_auth_user}:</strong></td>
+		<td>" . Field_text('smtp_auth_user',trim($UfdbguardSMTPNotifs["smtp_auth_user"]),'font-size:14px;padding:3px;width:200px')."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:14px'>{smtp_auth_passwd}:</strong></td>
+		<td>" . Field_password("smtp_auth_passwd-$t",trim($UfdbguardSMTPNotifs["smtp_auth_passwd"]),'font-size:14px;padding:3px;width:200px')."</td>
+			</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:14px'>{tls_enabled}:</strong></td>
+		<td>" . Field_checkbox("tls_enabled",1,$UfdbguardSMTPNotifs["tls_enabled"])."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:14px'>{UseSSL}:</strong></td>
+		<td>" . Field_checkbox("ssl_enabled",1,$UfdbguardSMTPNotifs["ssl_enabled"])."</td>
+	</tr>
+	<tr>
+		<td align='right' colspan=2>".button('{apply}',"javascript:SaveArticaSMTPNotifValues$t();",16)."</td>
+	</tr>
+	
+			</tr>
+			</table>
+			<script>
+			var x_SaveArticaSMTPNotifValues$t= function (obj) {
+			var results=obj.responseText;
+			document.getElementById('notif1-$t').innerHTML='';
+			if(results.length>3){alert(results);}
+			RefreshTab('watchdogsquid');
+	}
+	
+	function SaveArticaSMTPNotifValues$t(){
+	var XHR = new XHRConnection();
+	var pp=encodeURIComponent(document.getElementById('smtp_auth_passwd-$t').value);
+	if(document.getElementById('ENABLED_SQUID_WATCHDOG').checked){XHR.appendData('ENABLED_SQUID_WATCHDOG',1);}else {XHR.appendData('ENABLED_SQUID_WATCHDOG',0);}
+	if(document.getElementById('tls_enabled').checked){XHR.appendData('tls_enabled',1);}else {XHR.appendData('tls_enabled',0);}
+	if(document.getElementById('ssl_enabled').checked){XHR.appendData('ssl_enabled',1);}else {XHR.appendData('ssl_enabled',0);}
+	XHR.appendData('smtp_server_name',document.getElementById('smtp_server_name').value);
+	XHR.appendData('smtp_server_port',document.getElementById('smtp_server_port').value);
+	XHR.appendData('smtp_sender',document.getElementById('smtp_sender').value);
+	XHR.appendData('smtp_dest',document.getElementById('smtp_dest').value);
+	XHR.appendData('smtp_auth_user',document.getElementById('smtp_auth_user').value);
+	XHR.appendData('smtp_auth_passwd',pp);
+	XHR.appendData('smtp_notifications','yes');
+	AnimateDiv('notif1-$t');
+	XHR.sendAndLoad('$page', 'POST',x_SaveArticaSMTPNotifValues$t);
+	}
+	
+	function SMTPNotifArticaEnableSwitch$t(){
+	document.getElementById('smtp_auth_passwd-$t').disabled=true;
+	document.getElementById('smtp_auth_user').disabled=true;
+	document.getElementById('smtp_dest').disabled=true;
+	document.getElementById('smtp_sender').disabled=true;
+	document.getElementById('smtp_server_port').disabled=true;
+	document.getElementById('smtp_server_name').disabled=true;
+	document.getElementById('tls_enabled').disabled=true;
+	document.getElementById('ssl_enabled').disabled=true;
+	
+	
+	
+	if(!document.getElementById('ENABLED_SQUID_WATCHDOG').checked){return;}
+	
+	document.getElementById('smtp_auth_passwd-$t').disabled=false;
+	document.getElementById('smtp_auth_user').disabled=false;
+	document.getElementById('smtp_dest').disabled=false;
+	document.getElementById('smtp_sender').disabled=false;
+	document.getElementById('smtp_server_port').disabled=false;
+	document.getElementById('smtp_server_name').disabled=false;
+	document.getElementById('tls_enabled').disabled=false;
+	document.getElementById('ssl_enabled').disabled=false;
+	
+	}
+	SMTPNotifArticaEnableSwitch$t();
+	</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+	}	
+	
+function save_watchdog_notif(){
+	$sock=new sockets();
+	$_POST["smtp_auth_passwd"]=url_decode_special_tool($_POST["smtp_auth_passwd"]);
+	$UfdbguardSMTPNotifs=unserialize(base64_decode($sock->GET_INFO("UfdbguardSMTPNotifs")));
+	while (list ($num, $ligne) = each ($_POST) ){
+		$UfdbguardSMTPNotifs[$num]=$ligne;
+	}
+	$sock->SaveConfigFile(base64_encode(serialize($UfdbguardSMTPNotifs)), "UfdbguardSMTPNotifs");
+	$sock->getFrameWork("squid.php?tests-smtp-watchfog=yes");
 }
 
 
@@ -48,6 +225,16 @@ function popup(){
 	if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
 	if(!is_numeric($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
 	if(!is_numeric($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
+	
+	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=10;}
+	if(!is_numeric($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=10;}
+	if($MonitConfig["MgrInfosMaxTimeOut"]<5){$MonitConfig["MgrInfosMaxTimeOut"]=5;}
+	$MgrInfosMaxTimeOut=$MonitConfig["MgrInfosMaxTimeOut"];	
+	
+	if(!isset($MonitConfig["ExternalPageToCheck"])){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}
+	if($MonitConfig["ExternalPageToCheck"]==null){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}	
+	$ExternalPageToCheck=$MonitConfig["ExternalPageToCheck"];
+	
 	$MONIT_INSTALLED=0;
 	$users=new usersMenus();
 	if($users->MONIT_INSTALLED){$MONIT_INSTALLED=1;}
@@ -77,7 +264,19 @@ function popup(){
 				<td class=legend style='font-size:14px'>{minimum_reload_interval}:</td>
 				<td style='font-size:14px'>". Field_text("$t-SquidCacheReloadTTL", $SquidCacheReloadTTL,"font-size:14px;width:60px")."&nbsp;{minutes}</td>
 				<td>&nbsp;</td>
-			</tr>			
+			</tr>
+			<tr>
+				<td class=legend style='font-size:14px'>{tests_timeout}:</td>
+				<td style='font-size:14px'>". Field_text("$t-MgrInfosMaxTimeOut", $MgrInfosMaxTimeOut,"font-size:14px;width:60px")."&nbsp;{seconds}</td>
+				<td>&nbsp;</td>
+			</tr>		
+			<tr>
+				<td class=legend style='font-size:14px'>{page_to_check}:</td>
+				<td style='font-size:14px'>". Field_text("$t-ExternalPageToCheck", $ExternalPageToCheck,"font-size:14px;width:260px")."&nbsp;{url}</td>
+				<td>&nbsp;</td>
+			</tr>
+						
+						
 			<tr>
 				<td colspan=3 align='right'><hr>". button("{apply}", "SaveWatchdog{$t}()",16)."</td>
 			</tr>	
@@ -108,6 +307,8 @@ function popup(){
 		if(document.getElementById('$t-watchdog').checked){XHR.appendData('watchdog',1);}else{XHR.appendData('watchdog',0);}
 		XHR.appendData('watchdogMEM',document.getElementById('$t-watchdogMEM').value);
 		XHR.appendData('watchdogCPU',document.getElementById('$t-watchdogCPU').value);
+		XHR.appendData('ExternalPageToCheck',document.getElementById('$t-ExternalPageToCheck').value);
+		XHR.appendData('MgrInfosMaxTimeOut',document.getElementById('$t-MgrInfosMaxTimeOut').value);
 		XHR.appendData('SquidCacheReloadTTL',document.getElementById('$t-SquidCacheReloadTTL').value);
 		AnimateDiv('$t');
 		XHR.sendAndLoad('$page', 'POST',x_{$t}_SaveInstance);
@@ -118,4 +319,115 @@ function popup(){
 	
 echo $tpl->_ENGINE_parse_body($html);
 	
+}
+function events_table(){
+
+	$page=CurrentPageName();
+	$tpl=new templates();
+
+	$description=$tpl->_ENGINE_parse_body("{description}");
+	$zDate=$tpl->_ENGINE_parse_body("{zDate}");
+	$TB_HEIGHT=450;
+	$TABLE_WIDTH=800;
+	$TB2_WIDTH=400;
+	$ROW1_WIDTH=157;
+	$ROW2_WIDTH=607;
+
+
+	$t=time();
+
+	$buttons="
+	buttons : [
+	{name: '$empty', bclass: 'Delz', onpress : EmptyEvents},
+
+	],	";
+	$html="
+	<table class='node-table-$t' style='display: none' id='node-table-$t' style='width:99%'></table>
+	<script>
+
+	$(document).ready(function(){
+	$('#node-table-$t').flexigrid({
+	url: '$page?rows-table=yes&nodeid={$_GET["nodeid"]}',
+	dataType: 'json',
+	colModel : [
+	{display: '$zDate', name : 'zDate', width :118, sortable : true, align: 'left'},
+	{display: 'PID', name : 'zDate', width :42, sortable : true, align: 'center'},
+	{display: '$description', name : 'line', width :583, sortable : true, align: 'left'},
+	],
+
+	searchitems : [
+	{display: '$description', name : 'line'},
+	],
+
+	sortname: 'zDate',
+	sortorder: 'desc',
+	usepager: true,
+	title: '',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: $TABLE_WIDTH,
+	height: $TB_HEIGHT,
+	singleSelect: true
+
+});
+});
+
+
+
+</script>";
+
+echo $html;
+
+}
+function rows_table(){
+	$tpl=new templates();
+	$MyPage=CurrentPageName();
+	$sock=new sockets();
+	
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
+
+
+	$search=string_to_flexregex();
+
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+
+	
+	$content=unserialize(base64_decode($sock->getFrameWork("squid.php?watchdog-logs=yes&rp=$rp")));
+	
+	$c=0;
+	
+	$data = array();
+	$data['page'] = 1;
+	$data['total'] = 0;
+	$data['rows'] = array();	
+	krsort($content);
+	while (list ($num, $ligne) = each ($content) ){
+		$color="black";
+		
+		if(preg_match("#^(.+?)\s+(.*?)\s+\[([0-9]+)\](.*?)$#", $ligne,$re)){
+			$date=$re[1]." ".$re[2];
+			$pid=$re[3];
+			$ligne=$re[4];
+		}
+		$ligne=str_replace("\n", "<br>", $ligne);
+		
+		if($search<>null){if(!preg_match("#$search#i", $ligne)){continue;}}
+			$c++;
+		$data['rows'][] = array(
+				'id' => md5($ligne),
+				'cell' => array(
+						"<span style='font-size:12px;color:$color'>$date</span>",
+						"<span style='font-size:12px;color:$color'>$pid</span>",
+						"<span style='font-size:12px;color:$color'>$ligne</span>",
+							
+
+				)
+		);
+	}
+
+	$data['total'] =$c;
+	echo json_encode($data);
+
 }

@@ -218,7 +218,7 @@ end;
 if Paramstr(1)='--zarafa-reconfigure' then begin
    zZarafa:=tzarafa_server.CReate(SYS);
    zZarafa.server_cfg();
-   if Paramstr(2)='--start-daemon' then fpsyste('/etc/init.d/zarafa-server start');
+   if Paramstr(2)='--start-daemon' then fpsystem('/etc/init.d/zarafa-server start');
    halt(0);
 end;
  if Paramstr(1)='--zarafa-ssl' then begin
@@ -545,6 +545,18 @@ if ParamStr(1)='--pdns-version' then begin
    writeln(zpdns.VERSION());
    exit;
 end;
+if ParamStr(1)='--pdns-reconfigure' then begin
+   zpdns:=tpdns.Create(SYS);
+   zpdns.CONFIG_DEFAULT();
+   zpdns.RELOAD();
+end;
+if ParamStr(1)='--pdns-reload' then begin
+   zpdns:=tpdns.Create(SYS);
+   zpdns.CONFIG_DEFAULT();
+   zpdns.RELOAD();
+end;
+
+
 if ParamStr(1)='--poweradmin-version' then begin
    ztoolsversions:=ttoolsversions.Create(SYS);
    writeln(ztoolsversions.POWERADMIN_VERSION());

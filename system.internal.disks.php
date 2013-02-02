@@ -167,7 +167,7 @@ function js(){
 	var mem_vggroup='';
 	
 		function hdload(){
-			YahooWin3('890','$page?display=yes','$title');
+			YahooWin3('895','$page?display=yes','$title');
 		}
 		
 		
@@ -186,7 +186,7 @@ function js(){
 		
 		function PartInfos(dev){
 			mem_dev=dev;
-			YahooWin4('800','$page?partinfos='+dev,dev);
+			YahooWin4('895','$page?partinfos='+dev,dev);
 			
 		}
 		
@@ -482,7 +482,7 @@ function ParseHDline($dev,$array){
 		
 		if($part_number>0){
 			while (list ($num, $line) = each ($array["PARTITIONS"])){
-				if($line["ID_FS_LABEL"]<>null){$ID_FS_LABEL[]=$line["ID_FS_LABEL"];}
+				if($line["ID_FS_LABEL"]<>null){$ID_FS_LABEL[]="<li>{$line["ID_FS_LABEL"]}</li>";}
 			}
 			
 			
@@ -525,8 +525,8 @@ function ParseHDline($dev,$array){
 			<td><strong>$part_number</strong></td>
 		</tr>
 		<tr>
-			<td class=legend nowrap>{label}:</td>
-			<td><strong>". @implode(",",$ID_FS_LABEL)."</strong></td>
+			<td class=legend nowrap valign='top'>{label}:</td>
+			<td><strong>". @implode("",$ID_FS_LABEL)."</strong></td>
 		</tr>				
 							
 		</table>
@@ -958,7 +958,8 @@ $page=CurrentPageName();
 if($ID_FS_LABEL==null){$ID_FS_LABEL=$dev;}
 
 $title="
-<div style='font-size:16px;font-weight:bold'>{partitions}:$ID_FS_LABEL ($SIZE) <i style='font-size:12px'>{model}:$ID_BUS:: $ID_MODEL ($ID_VENDOR)</i></div>
+<div style='float:right'>". imgtootltip("refresh-24.png","{refresh}","RefreshTab('partinfosdiv')")."</div><div style='font-size:16px;font-weight:bold'>{partitions}:$ID_FS_LABEL ($SIZE) <i style='font-size:12px'>{model}:$ID_BUS:: $ID_MODEL ($ID_VENDOR)</i></div>
+
 <div id='partitions'>$partitions</div>
 ";
 $html="$title";
@@ -1439,7 +1440,7 @@ function BuildBigPartition(){
 	$sock=new sockets();
 	
 	//--format-b-part
-	$datas=base64_decode($sock->getFrameWork("cmd.php?fdisk-build-big-partitions=yes&dev=$dev&label=$label"));
+	$datas=base64_decode($sock->getFrameWork("cmd.php?fdisk-build-big-partitions=yes&dev=$dev&label=$label&MyCURLTIMEOUT=240"));
 	file_put_contents("ressources/logs/BuildUniquePartition_".md5($dev),$datas);
 	}
 	

@@ -10,7 +10,7 @@ include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.calendar.inc");
-$users=new usersMenus();if(!$users->AsWebStatisticsAdministrator){header("location:miniadm.index.php");die();}
+if(!$_SESSION["AsWebStatisticsAdministrator"]){header("location:miniadm.index.php");die();}
 	
 
 if(isset($_GET["content"])){content();exit;}
@@ -65,6 +65,11 @@ function content(){
 		$_GET["day"]=date("d",$_GET["xtime"]);	
 	}
 	
+	$js_uid="LoadAjax('webstats-middle-$ff','$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=uid');";
+	$js_ipaddr="LoadAjax('webstats-middle-$ff','$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=ipaddr');";
+	$js_MAC="LoadAjax('webstats-middle-$ff','$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=MAC');";
+	$js_hostname="LoadAjax('webstats-middle-$ff','$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=hostname');";
+	
 	$html="
 	<div class=BodyContent>
 		<div style='font-size:14px'>
@@ -73,12 +78,19 @@ function content(){
 		</div>
 		<H1>". @implode(", ", $H1)."</H1>
 		<p>$dateT: {display_members_for_this_day}</p>
+	</div>
+	<div style='font-size:16px;' class=BodyContent>
+	<center>
+		<a href=\"javascript:$js_uid\" style='font-size:16px;text-decoration:underline'>{members}</a>&nbsp;|&nbsp;
+		<a href=\"javascript:$js_ipaddr\" style='font-size:16px;text-decoration:underline'>{ipaddr}</a>&nbsp;|&nbsp;
+		<a href=\"javascript:$js_MAC\" style='font-size:16px;text-decoration:underline'>{MAC}</a>&nbsp;|&nbsp;
+		<a href=\"javascript:$js_hostname\" style='font-size:16px;text-decoration:underline'>{hostname}</a>
+	</center>
 	</div>	
 	<div id='webstats-middle-$ff'></div>
 	
 	<script>
 		LoadAjax('webstats-middle-$ff','$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}');
-		$jsadd
 	</script>
 	";
 	echo $tpl->_ENGINE_parse_body($html);
@@ -96,13 +108,39 @@ function webstats_middle(){
 	
 	
 	<script>
-		LoadAjax('graph-$ff','$page?graph=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}');
-		LoadAjax('table-$ff','$page?webstats_middle_table=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}');
+		LoadAjax('graph-$ff','$page?graph=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER={$_GET["FILTER"]}');
+		LoadAjax('table-$ff','$page?webstats_middle_table=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER={$_GET["FILTER"]}');
 	</script>
 	";
 	
 	echo $html;
 	
+	
+}
+
+
+function which_filter($tablename){
+	$q=new mysql_squid_builder();
+	$sql="SELECT uid FROM `$tablename` GROUP BY uid HAVING LENGTH(uid)>0";
+	$results=$q->QUERY_SQL($sql);
+	$count=mysql_num_rows($results);
+	if($count>1){return "uid";}
+	
+	$sql="SELECT MAC FROM `$tablename` GROUP BY MAC HAVING LENGTH(MAC)>0";
+	$results=$q->QUERY_SQL($sql);
+	$count=mysql_num_rows($results);
+	if($count>1){return "MAC";}
+	
+	
+	$sql="SELECT COUNT(ipaddr) as tcount FROM $tablename WHERE LENGTH(ipaddr)>0";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$count=mysql_num_rows($results);
+	if($count>1){return "ipaddr";}
+	
+	$sql="SELECT COUNT(hostname) as tcount FROM $tablename WHERE LENGTH(hostname)>0";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$count=mysql_num_rows($results);
+	if($count>1){return "hostname";}
 	
 }
 
@@ -138,7 +176,9 @@ function webstats_middle_table(){
 	$familysite=$tpl->javascript_parse_text("{familysite}");
 	$MAC=$tpl->_ENGINE_parse_body("{MAC}");
 	
-	
+	$tablename_members="UserSizeD_".date("Ymd",$_GET["xtime"]);
+	if($_GET["FILTER"]==null){$_GET["FILTER"]=which_filter($tablename_members);}	
+	$FILTER=$tpl->_ENGINE_parse_body("{{$_GET["FILTER"]}}");
 	
 	$buttons="
 	buttons : [
@@ -154,25 +194,21 @@ function webstats_middle_table(){
 var mem$t='';
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?items=yes&t=$t&uid=$uid&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}',
+	url: '$page?items=yes&t=$t&uid=$uid&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER={$_GET["FILTER"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$client', name : 'client', width :102, sortable : true, align: 'left'},
-		{display: '$hostname', name : 'hostname', width :214, sortable : true, align: 'left'},
-		{display: '$account', name : 'uid', width :185, sortable : true, align: 'left'},	
-		{display: '$MAC', name : 'MAC', width :122, sortable : true, align: 'left'},		
-		{display: '$size', name : 'size', width :107, sortable : true, align: 'left'},
-		{display: '$hits', name : 'hits', width :88, sortable : true, align: 'left'},
+		{display: '$FILTER', name : '{$_GET["FILTER"]}', width :538, sortable : true, align: 'left'},
+		{display: '$hits', name : 'hits', width :149, sortable : true, align: 'right'},
+		{display: '$size', name : 'size', width :149, sortable : true, align: 'right'},
+		
 		
 	
 	],
 	$buttons
 
 	searchitems : [
-		{display: '$client', name : 'client'},
-		{display: '$hostname', name : 'hostname'},
-		{display: '$account', name : 'uid'},
-		{display: '$MAC', name : 'MAC'},
+		{display: '$FILTER', name : '{$_GET["FILTER"]}'},
+
 		
 
 	],
@@ -212,18 +248,22 @@ function webstats_middle_table_items(){
 	$users=new usersMenus();
 	$sock=new sockets();
 	$xtime=$_GET["xtime"];
-	$tablename_members=date("Ymd",$xtime)."_members";
-	$tablename=$_GET["tablename"];
-	$subtable="( SELECT client,hostname,uid,MAC, SUM(size) as size, SUM(hits) as hits FROM `$tablename_members` GROUP BY client,hostname,uid,MAC) as t";
+	$database="squidlogs";
+	$tablename_members="UserSizeD_".date("Ymd",$xtime);
+	if($_GET["FILTER"]==null){$_GET["FILTER"]=which_filter($tablename_members);}
+	
+	
+	$subtable="( SELECT {$_GET["FILTER"]},SUM(size) as size, SUM(hits) as hits FROM `$tablename_members` 
+	GROUP BY {$_GET["FILTER"]} HAVING LENGTH({$_GET["FILTER"]})>0) as t";
 	$search='%';
 	$table=$subtable;
 	
 	$page=1;
 	$FORCE_FILTER=null;
-	
+	$dansguardian_events=date("Ymd",$xtime)."_hour";
 	
 	if(!$q->TABLE_EXISTS($tablename_members, $database)){json_error_show("$table doesn't exists...");}
-	if(!$q->COUNT_ROWS($tablename_members, $database)){json_error_show("No data");}
+	if($q->COUNT_ROWS($tablename_members, $database)==0){json_error_show("No data");}
 
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
@@ -265,55 +305,35 @@ function webstats_middle_table_items(){
 	
 	
 	//familysite 	size 	hits
-	
-
+	$colorsize="black";
+	$sizeorg=$ligne["size"];
 	
 	$ligne["hits"]=numberFormat($ligne["hits"],0,""," ");
 	$ligne["size"]=FormatBytes($ligne["size"]/1024);
-	if($ligne["uid"]=="-"){$ligne["uid"]=null;}
+	
+	if($sizeorg>102400000){
+		$colorsize="#4E0000";
+	}
+	
+	if($sizeorg>512000000){
+		$colorsize="#9A0000";
+	}
+	
+
 	
 	// https://192.168.1.106:9000/
-	$urljs=null;
-	if($ligne["uid"]<>null){
 	$urljs="<a href=\"javascript:blur();\" 
-	OnClick=\"javascript:Loadjs('squid.members.zoom.php?table=$tablename&field=uid&value={$ligne["uid"]}')\"
-	style='font-size:14px;text-decoration:underline;color:$color'>";		
-	}
+	OnClick=\"javascript:Loadjs('squid.members.zoom.php?table=$dansguardian_events&field={$_GET["FILTER"]}&value={$ligne["{$_GET["FILTER"]}"]}')\"
+	style='font-size:18px;text-decoration:underline;color:$color'>";		
 	
-	if($urljs==null){
-		if($ligne["MAC"]<>null){
-			$urljs="<a href=\"javascript:blur();\" 
-			OnClick=\"javascript:Loadjs('squid.members.zoom.php?table=$tablename&field=MAC&value={$ligne["MAC"]}')\"
-			style='font-size:14px;text-decoration:underline;color:$color'>";				
-		}
-	}
-	
-	if($urljs==null){
-		if($ligne["hostname"]<>null){
-			$urljs="<a href=\"javascript:blur();\" 
-			OnClick=\"javascript:Loadjs('squid.members.zoom.php?table=$tablename&field=hostname&value={$ligne["hostname"]}')\"
-			style='font-size:14px;text-decoration:underline;color:$color'>";				
-		}
-	}
-
-	if($urljs==null){
-		if($ligne["client"]<>null){
-			$urljs="<a href=\"javascript:blur();\" 
-			OnClick=\"javascript:Loadjs('squid.members.zoom.php?table=$tablename&field=client&value={$ligne["client"]}')\"
-			style='font-size:14px;text-decoration:underline;color:$color'>";				
-		}
-	}	
 	
 	
 	$data['rows'][] = array(
 		'id' => "$zmd5",
 		'cell' => array(
-			"<span style='font-size:14px;color:$color'>$urljs{$ligne["client"]}</a></span>",
-			"<span style='font-size:14px;color:$color'>$urljs{$ligne["hostname"]}</span>",
-			"<span style='font-size:14px;color:$color'>$urljs{$ligne["uid"]}</span>",
-			"<span style='font-size:14px;color:$color'>$urljs{$ligne["MAC"]}</span>",
-			"<span style='font-size:14px;color:$color'>{$ligne["hits"]}</span>",
-			"<span style='font-size:14px;color:$color'>{$ligne["size"]}</span>",
+			"<span style='font-size:18px;color:$color'>$urljs{$ligne["{$_GET["FILTER"]}"]}</a></span>",
+			"<span style='font-size:18px;color:$color'>{$ligne["hits"]}</span>",
+			"<span style='font-size:18px;color:$colorsize'>{$ligne["size"]}</span>",
 			)
 		);
 	}
@@ -333,13 +353,18 @@ function generate_graph(){
 	$tpl=new templates();
 	$t=$_GET["t"];
 	$ff=time();
-	$tablename=$_GET["tablename"];
 	$xtime=$_GET["xtime"];
-	$tablename=date("Ymd",$xtime)."_members";
-	$sql="SELECT COUNT(client) as tcount, hour FROM $tablename GROUP BY hour ORDER BY hour";
+	$tablename="UserSizeD_".date("Ymd",$_GET["xtime"]);
+	if($_GET["FILTER"]==null){$_GET["FILTER"]=which_filter($tablename);}
+	$FILTER=$tpl->_ENGINE_parse_body("{{$_GET["FILTER"]}}");	
 	
 	
 	
+	
+	$sql="SELECT COUNT({$_GET["FILTER"]}) as tcount, hour FROM $tablename GROUP BY hour ORDER BY hour";
+	
+	
+
 	$c=0;
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
@@ -374,7 +399,7 @@ function generate_graph(){
 			
 		if(is_file($targetedfile)){
 			echo "<center>
-			<div style='font-size:18px;margin-bottom:10px'>".$tpl->_ENGINE_parse_body("{members}/{hours}")."</div>
+			<div style='font-size:18px;margin-bottom:10px'>".$tpl->_ENGINE_parse_body("$FILTER/{hours}")."</div>
 			<img src='$targetedfile'></center>";
 		}
 	

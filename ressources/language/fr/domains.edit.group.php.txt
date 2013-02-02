@@ -24,14 +24,14 @@
 <computers_text>Cherchez et ajoutez des ordinateurs dans ce groupe</computers_text>
 <dansguardian_rules>Filtrage d'Url</dansguardian_rules>
 <dansguardian_rules_text>Dansguardian affecte une r&egrave;gle &agrave; ce groupe afin de d&eacute;finir l'acc&egrave;s &agrave; Internet</dansguardian_rules_text>
-<delete_members_confirm>&Ecirc;tes-vous s&ucirc;r de supprimer tous les membres de ce groupe ?</delete_members_confirm>
+<delete_members_confirm>Supprimer tous les membres de ce groupe ?</delete_members_confirm>
 <delete_selected_members>S&eacute;lectionnez Supprimer &amp; supprimer des membres</delete_selected_members>
 <FindInGroup_text>Cette fonctionnalit&eacute; recherche des utilisateurs dans ce groupe, le motif &laquo;*&raquo; est autoris&eacute;, afin de trouver vos utilisateurs</FindInGroup_text>
 <find_computer>Chercher un ordinateur</find_computer>
 <group_default_password>Mot de passe par d&eacute;faut</group_default_password>
 <group_default_password_change>Si vous passez au vert, les mots de passe des utilisateurs de ce groupe seront chang&eacute;s en mot de passe par d&eacute;faut</group_default_password_change>
 <group_default_password_text>D&eacute;finissez un mot de passe par d&eacute;faut pour l'importation massive et la cr&eacute;ation d'utilisateur</group_default_password_text>
-<group_delete_text>&Ecirc;tes-vous s&ucirc;r de vouloir supprimer ce groupe?
+<group_delete_text>Supprimer ce groupe?
 si oui, tous les utilisateurs seront
 automatiquement d&eacute;plac&eacute; au groupe &quot;nogroup&quot;</group_delete_text>
 <group_settings>Configuration g&eacute;n&eacute;rale</group_settings>
@@ -52,8 +52,8 @@ Chaque ligne est s&eacute;par&eacute;e par un retour chariot et une ligne doit &
 <quarantine_manager>Gestionnaire de Quarantaines</quarantine_manager>
 <rebuild_shared>Reconstruire les liens</rebuild_shared>
 <rebuild_shared_text>Cette op&eacute;ration va reconstruire les liens pour tous les utilisateurs du groupe</rebuild_shared_text>
-<RemoveMailingList_text>&Ecirc;tes-vous s&ucirc;r de vouloir supprimer cette liste?</RemoveMailingList_text>
-<RemoveSharedsFolders>&Ecirc;tes-vous s&ucirc;r de vouloir supprimer tous les dossiers mont&eacute;s sur votre syst&egrave;me?
+<RemoveMailingList_text>Supprimer cette liste?</RemoveMailingList_text>
+<RemoveSharedsFolders>Supprimer tous les dossiers mont&eacute;s sur votre syst&egrave;me?
 Cette op&eacute;ration va d&eacute;connecter tous les dossiers mont&eacute;s.
 Mais, tous les dossiers sauvegard&eacute;s dans vos param&egrave;tres seront automatiquement re-mont&eacute;</RemoveSharedsFolders>
 <remove_shared_folder>Retirer li&eacute;es</remove_shared_folder>
@@ -76,9 +76,9 @@ Dans ce cas, lorsque vous mettez &agrave; jour/ajoutez un utilisateur, Artica aj
 <sieve_auto_script_text>Ajoutez des scripts qui vont automatiquement placer les spam dans les courriers ind&eacute;sirables des utilisateurs</sieve_auto_script_text>
 <smbg_typ>groupe local</smbg_typ>
 <smbg_typ2>groupe du domaine (groupe global)</smbg_typ2>
-<sure_to_delete_selected_user>&Ecirc;tes-vous s&ucirc;r de vouloir supprimer tous les utilisateurs s&eacute;lectionn&eacute;s ?</sure_to_delete_selected_user>
+<sure_to_delete_selected_user>Supprimer tous les utilisateurs s&eacute;lectionn&eacute;s ?</sure_to_delete_selected_user>
 <view_member>Modifier les attributs de membre</view_member>
-<warning_delete_all_users>&Ecirc;tes-vous s&ucirc;r d'effectuer cette op&eacute;ration?
+<warning_delete_all_users>Effectuer cette op&eacute;ration?
 Tous les membres seront d&eacute;connect&eacute;es de ce groupe et seront transf&eacute;r&eacute; au groupe &quot;nogroup&quot;</warning_delete_all_users>
 <YahooSelectedFolders_ask>Ajouter Ce dossier &agrave; partag&eacute; pour ce groupe?</YahooSelectedFolders_ask>
 <yes_group_samba>Ce groupe est un groupe SAMBA</yes_group_samba>

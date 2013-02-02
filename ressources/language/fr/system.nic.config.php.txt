@@ -3,7 +3,7 @@
 <apply_network_text>Sauver vos param&egrave;tres et appliquer cette configuration &agrave; votre serveur</apply_network_text>
 <change>Changer les param&egrave;tres</change>
 <ChangeHostName>Renseigner le nom complet de votre serveur</ChangeHostName>
-<DeleteDNS>&Ecirc;tes-vous s&ucirc;r d'effacer ce serveur DNS ?</DeleteDNS>
+<DeleteDNS>Effacer ce serveur DNS ?</DeleteDNS>
 <nameserver>Serveur DNS</nameserver>
 <network_about>Cette zone vous aide &agrave; la configuration r&eacute;seau et comment configurer les services r&eacute;seau[br]C'est ici que vous configurez la connectivit&eacute; de votre syst&egrave;me sur le r&eacute;seau</network_about>
 <network_style>Syst&egrave;me r&eacute;seau</network_style>

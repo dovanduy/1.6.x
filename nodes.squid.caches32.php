@@ -39,47 +39,11 @@ function page(){
 		$rebuild_caches_warn=$tpl->javascript_parse_text("{rebuild_caches_warn}");
 		$t=time();
 	$html="
-	<table style='width:100%'>
-	<tbody>
-	<tr>
-		<td valign='top' width=50%>
-	
-	<div class=explain>{squid32_caches_explain}</div>
-	<div id='caches-32-div'>
-		<table style='width:99%' class=form>
-		<tr>
-			<td class=legend nowrap>{cache_directory}:</td>
-			<td>". Field_text("cachesDirectory",$cachesDirectory,"font-size:16px;width:250px")."</td>
-		</tr>
-		<tr>
-			<td class=legend nowrap>{number_of_daemons}:</td>
-			<td><strong style='font-size:16px'>$CPUS</strong></td>
-		</tr>	
-		<tr>
-			<td class=legend nowrap>{cache_size_by_daemon}:</td>
-			<td style='font-size:16px;'>". Field_text("globalCachesize",$globalCachesize,"font-size:16px;width:60px")."&nbsp;MB&nbsp;($globalCachesize_text)</td>
-		</tr>	
-		<tr>
-			<td colspan=2 align=right><hr>". button("{apply}", "SaveSquid32Caches$t()",16)."</td>
-		</tr>
-		</table>
-		</div>
-		
-		<table style='width:99%' class=form>
-		<tr>
-			<td class=legend>{rebuild_caches}:</td>
-			<td>". button("{perform_operation}", "RebuildAllCaches$t()",16)."</td>
-		</tr>
-		</table>
-		</div>		
-		
-	</td>
-	<td valign='top'><div id='squid-caches-status$t'></div></td>
-	</tr>
-	</tbody>
-	</table>
+	<div style='font-size:18px'>{$squid->visible_hostname}::Caches</div>
+	<div class=explain style='font-size:14px'>{squid32_caches_explain}</div>
+	<div id='squid-caches-status$t'></div>
 	<script>
-		LoadAjax('squid-caches-status$t','$page?squid-caches-status=yes&nodeid={$_GET["nodeid"]}&t=$t');
+		LoadAjax('squid-caches-status$t','$page?squid-caches-status=yes&nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}&t=$t');
 		
 	var x_SaveSquid32Caches$t= function (obj) {
 			var results=obj.responseText;
@@ -147,11 +111,36 @@ function squid_cache_status(){
 		$t=$_GET["t"];
 		$sql="SELECT * FROM cachestatus WHERE nodeid='{$_GET["nodeid"]}'";
 		$results=$q->QUERY_SQL($sql);
-		if(!$q->ok){echo "<H3>Error: $this->mysql_error</H3>";return;}
+		if(!$q->ok){echo "<H3>Error: $q->mysql_error</H3>";return;}
+		//$squid->
+		
+		$tr[]="
+			<table style='width:99%' class=form>
+			<tbody>
+			<tr>
+				<td width=1%><img src='img/parameters2-64.png'></td>
+				<td valign='top'>
+					<table style='width:100%'>
+					<tbody>
+					<tr>
+						<td valign=top><strong style='font-size:14px'>
+							<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('nodes.squid.caches32.parms.php?hostid={$_GET["hostid"]}&nodeid={$_GET["nodeid"]}');\"
+							style='font-size:14px;text-decoration:underline;font-weight:bold'>
+							{caches_parameters}</a></td>
+					</tr>
+					<tr>
+						<td valign='top'><span style='font-size:14px'>{cache_parameters_node_explain}</span></td>
+					</tr>
+					</tbody>
+					</table>
+				</td>
+			</tr>
+			</tbody>
+			</table>";		
 		
 		
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
-			$html=$html."
+			$tr[]="
 			<table style='width:99%' class=form>
 			<tbody>
 			<tr>
@@ -176,6 +165,7 @@ function squid_cache_status(){
 			</table>";
 	}
 
+	$html=CompileTr2($tr);
 	$html=$html."<div style='width:100%;text-align:right'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('squid-caches-status$t','$page?squid-caches-status=yes&nodeid={$_GET["nodeid"]}');")."</div>";
 	echo $tpl->_ENGINE_parse_body($html);
 	

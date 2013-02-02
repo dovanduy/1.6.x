@@ -31,20 +31,18 @@ events("Params: " .@implode(" ",$argv));
 $sock=new sockets();
 if($argv[1]=='--clean-catz-cache'){$GLOBALS["Q"]->QUERY_SQL("TRUNCATE TABLE webfilters_categories_caches");die();}
 
-if(!is_dir("/var/log/artica-postfix/artica-squid-events")){
-	@mkdir("/var/log/artica-postfix/artica-squid-events",644,true);
-	die();
-}
+if(!is_dir("/var/log/artica-postfix/artica-squid-events")){@mkdir("/var/log/artica-postfix/artica-squid-events",644,true);die();}
+if(is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){$DisableArticaProxyStatistics=1;$sock->SET_INFO("DisableArticaProxyStatistics", 1);}
+$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 $squidEnableRemoteStatistics=$sock->GET_INFO("squidEnableRemoteStatistics");
 $DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 if(!is_numeric($squidEnableRemoteStatistics)){$squidEnableRemoteStatistics=0;}
-if(is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){
-	$DisableArticaProxyStatistics=1;
-	$sock->SET_INFO("DisableArticaProxyStatistics", 1);
-}
+if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 
-if($squidEnableRemoteStatistics==1){events("this server is not in charge of statistics...");die();}
+
+if($EnableRemoteStatisticsAppliance==1){if($GLOBALS["VERBOSE"]){echo "This server is not in charge of statistics... EnableRemoteStatisticsAppliance=1\n";}die();}
+if($squidEnableRemoteStatistics==1){events("This server is not in charge of statistics...");die();}
 if($DisableArticaProxyStatistics==1){ufdbguard_admin_events("Statistics are disabled in this configuration (DisableArticaProxyStatistics)","MAIN",__FILE__,__LINE__);die();}
 
 
@@ -67,13 +65,15 @@ if($argv[1]=='--thumbs-alexa'){thumbnail_alexa($argv[2],$argv[3]);exit;}
 if($argv[1]=='--thumbs-parse'){thumbnail_parse();exit;}
 
 
-
+if($argv[1]=='--searchwords-hour'){hour_SearchWordTEMP();die();}
 if($argv[1]=='--youtube-days'){youtube_days();die();}
 if($argv[1]=='--users-size'){users_size_hour();die();}
 if($argv[1]=='--scan-hours'){scan_hours();die();}
 if($argv[1]=='--scan-months'){scan_months();die();}
 if($argv[1]=='--tables-days'){table_days();die();}
 if($argv[1]=='--summarize-days'){summarize_days();die();}
+if($argv[1]=='--isCompressed'){IsCompressed($argv[2]);die();}
+if($argv[1]=='--Uncompress'){Uncompress($argv[2]);die();}
 
 
 
@@ -81,7 +81,7 @@ if($argv[1]=='--tables-hours'){table_hours();die();}
 if($argv[1]=='--block-days'){block_days();die();}
 if($argv[1]=='--block-week'){week_uris_blocked();die();}
 if($argv[1]=='--hours'){clients_hours();die();}
-if($argv[1]=="--week"){week_uris(true);week_uris_blocked();die(true);}
+if($argv[1]=="--week"){week_uris(true);week_uris_blocked();youtube_week();die(true);}
 if($argv[1]=="--not-cat"){not_categorized_day_scan();exit;}
 if($argv[1]=="--nodes-scan"){nodes_scan();exit;}
 if($argv[1]=='--flow-month'){flow_month();die();}
@@ -97,7 +97,7 @@ if($argv[1]=='--visited-sites2'){visited_sites();exit;}
 if($argv[1]=='--sync-categories'){sync_categories();exit;}
 if($argv[1]=='--re-categorize'){re_categorize();exit;}
 if($argv[1]=='--re-categorize-day'){recategorize_singleday($argv[2]);exit;}
-if($argv[1]=='--re-categorize-week'){recategorize_singleday($argv[2]);exit;}
+if($argv[1]=='--re-categorize-week'){recategorize_week($argv[2]);exit;}
 if($argv[1]=='--whois'){visited_sites_whois();exit;}
 if($argv[1]=='--calculate-not-categorized'){not_categorized_day_resync();exit;}
 if($argv[1]=='--optimize'){optimize_tables();exit;}
@@ -111,6 +111,10 @@ if($argv[1]=='--members-central-grouped'){members_central_grouped();exit;}
 if($argv[1]=='--compress-tablesdays'){compress_tablesdays();exit;}
 if($argv[1]=='--summarize-daysingle'){_summarize_days($argv[2],$argv[3]);exit;}
 if($argv[1]=='--youtube-dayz'){youtube_dayz();exit;}
+if($argv[1]=='--weekdaynum'){WeekDaysNums();exit;}
+if($argv[1]=='--youtubeweek'){youtube_week();exit;}
+
+
 
 
 
@@ -130,6 +134,12 @@ ufdbguard_admin_events("ERROR: UNABLE TO UNDERSTAND: '{$argv[1]}'","MAIN",__FILE
 
 
 function nodes_scan(){
+	
+	if(system_is_overloaded(basename(__FILE__))){
+		writelogs_squid("Overloaded system, aborting",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}
+	
 	if(!ifMustBeExecuted()){
 		ufdbguard_admin_events("Not necessary to execute this task...",__FUNCTION__,__FILE__,__LINE__,"stats");
 		return;
@@ -299,6 +309,56 @@ function re_categorize($nopid=false){
 	
 }
 
+function recategorize_week($tablename,$nopid=false,$nochilds=false){
+	
+	$unix=new unix();
+	if(!$nopid){
+		
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+		$oldpid=@file_get_contents($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+	}	
+	
+	$q=new mysql_squid_builder();
+	if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=$q;}
+	$time=$q->TIME_FROM_WEEK_TABLE($tablename);
+	$week=date("W",$time);
+	$year=date("Y",$time);
+	$month=date("m",$time);
+	
+	
+	$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') as prefix FROM `tables_day` WHERE WEEK(zDate)=$week AND YEAR(zDate)='$year'";
+		$results=$q->QUERY_SQL($sql);
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$table="{$ligne["prefix"]}_hour";
+			if($q->TABLE_EXISTS($table)){
+				$TABLES[$table]=true;
+			}	
+		}
+
+	$monthtable="$year{$month}_day";
+	$sql="SELECT sitename,category FROM `$tablename` GROUP BY sitename HAVING LENGTH(category)=0";
+	$results=$q->QUERY_SQL($sql);
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$website=trim($ligne["sitename"]);
+		$category=$GLOBALS["Q"]->GET_CATEGORIES($website);
+		if($category==null){continue;}
+		reset($TABLES);
+		
+		$q->QUERY_SQL("UPDATE $tablename SET category='$category' WHERE sitename='$website'");
+		if(!$nochilds){
+			while (list ($tablenameH,$none) = each ($TABLES) ){
+				$q->QUERY_SQL("UPDATE $tablenameH SET category='$category' WHERE sitename='$website'");
+			}
+		}
+		if($q->TABLE_EXISTS($monthtable)){
+			$q->QUERY_SQL("UPDATE $monthtable SET category='$category' WHERE sitename='$website'");
+		}
+		
+	}
+	
+}
+
 function recategorize_singleday($day,$nopid=false,$tablename=null){
 	$unix=new unix();
 	if(!$nopid){
@@ -378,6 +438,7 @@ function recategorize_singleday($day,$nopid=false,$tablename=null){
 		$GLOBALS["Q"]->QUERY_SQL("UPDATE $table_blocked SET category='$category' WHERE website='$website'");
 		if(!$GLOBALS["Q"]->ok){writelogs_squid("Re-categorized table $table_blocked failed {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"categorize");}
 
+		if($GLOBALS["Q"]->CreateWeekBlockedTable($table_week_blocked));
 		$GLOBALS["Q"]->QUERY_SQL("UPDATE $table_week_blocked SET category='$category' WHERE website='$website'");
 		if(!$GLOBALS["Q"]->ok){writelogs_squid("Re-categorized table $table_week_blocked failed {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"categorize");}		
 		
@@ -477,7 +538,7 @@ function __re_categorize_subtables($oldT1=0){
 function scan_hours($nopid=false){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/scan_hours.time";	
-	
+	$unix=new unix();
 	if(!$GLOBALS["FORCE"]){
 		if(system_is_overloaded(basename(__FILE__))){
 			$oldpid=@file_get_contents($pidfile);
@@ -496,7 +557,7 @@ function scan_hours($nopid=false){
 	
 	if(!$nopid){
 		$oldpid=@file_get_contents($pidfile);
-		$unix=new unix();
+		
 		if($unix->process_exists($oldpid)){
 			$ttl=$unix->PROCCESS_TIME_MIN($oldpid);
 			if($ttl>120){
@@ -510,6 +571,15 @@ function scan_hours($nopid=false){
 		}
 	}
 	
+	if(!$GLOBALS["FORCE"]){
+		$timetook=$unix->file_time_min($timefile);
+		if($timefile<50){
+			writelogs_squid("50mn minimum to run this task current={$timefile}Mn, aborting",__FUNCTION__,__FILE__,__LINE__);
+			retrun;
+		}
+	}
+	
+	
 	@file_put_contents($timefile, time());
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
@@ -518,6 +588,7 @@ function scan_hours($nopid=false){
 	$GLOBALS["Q"]->FixTables();
 	
 	nodes_scan();
+
 	table_hours();
 	table_days();
 	summarize_days();
@@ -526,6 +597,12 @@ function scan_hours($nopid=false){
 	members_hours(true);
 	week_uris();
 	week_uris_blocked();
+	WeekDaysNums();
+	
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 /usr/share/artica-postfix/exec.squid-users-rttsize.php");
+	
 }
 
 function scan_months(){
@@ -922,75 +999,19 @@ function members_hours($nopid=false){
 }
 
 function _members_hours_perfom($tabledata,$nexttable){
-	$filter_hour=null;	
-	$filter_hour_1=null;
-	$filter_hour_2=null;
-	$GLOBALS["Q"]->CreateMembersDayTable($nexttable);
-	$todaytable=date('Ymd')."_members";
-	$CloseTable=true;
-	$output_rows=false;
 	
-	
-	if($nexttable==$todaytable){
-		$filter_hour_1="AND HOUR < HOUR( NOW())";
-		$CloseTable=false;
-	}
-
-	$sql="SELECT hour FROM $nexttable ORDER BY hour DESC LIMIT 0,1";
-	$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL($sql));
-	if(!is_numeric($ligne["hour"])){$ligne["hour"]=-1;}
-	events_tail("processing  $tabledata Last hour >{$ligne["hour"]}h");
-	$filter_hour_2=" AND HOUR>{$ligne["hour"]}";
-	
-	
-	$sql="SELECT SUM( QuerySize ) AS QuerySize, SUM(hits) as hits,cached, HOUR( zDate ) AS HOUR , CLIENT, uid,MAC,hostname,account
-	FROM $tabledata
-	GROUP BY cached, HOUR( zDate ) , CLIENT, uid,MAC,hostname,account
-	HAVING QuerySize>0  $filter_hour_1$filter_hour_2";
-	
-	
-	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
-	$num_rows=mysql_num_rows($results);
-	events_tail("Processing $tabledata -> $nexttable CLOSE:$CloseTable (today is $todaytable) filter:'$filter_hour_2' $num_rows  rows in line ".__LINE__);
-	if($num_rows<10){$output_rows=true;}
-
-	if($num_rows==0){
-		events_tail("$tabledata no rows...CloseTable=$CloseTable");
-		if($CloseTable){
-			events_tail("$tabledata -> Close table");
-			$sql="UPDATE tables_day SET members=1 WHERE tablename='$tabledata'";
-			$GLOBALS["Q"]->QUERY_SQL($sql);
-		}
-		return true;
-	}
-
-	$prefix="INSERT IGNORE INTO $nexttable (zMD5,client,hour,size,hits,uid,cached,MAC,hostname,account) VALUES ";
-	
-	$f=array();
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$client=addslashes(trim(strtolower($ligne["CLIENT"])));
-		$uid=addslashes(trim(strtolower($ligne["uid"])));
-	
-		$md5=md5("{$ligne["CLIENT"]}{$ligne["HOUR"]}{$ligne["uid"]}{$ligne["QuerySize"]}{$ligne["hits"]}");
-		$sql_line="('$md5','$client','{$ligne["HOUR"]}','{$ligne["QuerySize"]}','{$ligne["hits"]}','$uid','{$ligne["cached"]}','{$ligne["MAC"]}','{$ligne["hostname"]}','{$ligne["account"]}')";
-		$f[]=$sql_line;
-		
-		if($output_rows){if($GLOBALS["VERBOSE"]){echo "$sql_line\n";}}	
-		
-		if(count($f)>500){
-			$GLOBALS["Q"]->QUERY_SQL("$prefix" .@implode(",", $f));
-			if(!$GLOBALS["Q"]->ok){events_tail("Failed to process query to $next_table {$GLOBALS["Q"]->mysql_error}");return;}
-			$f=array();
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$phpfile=dirname(__FILE__)."/exec.squid.stats.members.hours.php";
+	exec("$php $phpfile $tabledata $nexttable schedule-id={$GLOBALS["SCHEDULE_ID"]} 2>&1",$results);
+	while (list ($index, $ligne) = each ($results)){
+		if(preg_match("#SUCCESS#", $ligne)){
+			return true;
 		}
 		
 	}
-
-	if(count($f)>0){
-		$GLOBALS["Q"]->QUERY_SQL("$prefix" .@implode(",", $f));
-		events_tail("Processing ". count($f)." rows");
-		if(!$GLOBALS["Q"]->ok){events_tail("Failed to process query to $next_table {$GLOBALS["Q"]->mysql_error}");return;}
-	}
-	return true;
+	
+	return false;
 }
 
 
@@ -1066,14 +1087,10 @@ if(!$CloseTable){
 	if($GLOBALS["VERBOSE"]){echo "Ordered to not close table `$nexttable` == `$todaytable`...\n";}
 }
 
-$sql="SELECT hour FROM $nexttable ORDER BY hour DESC LIMIT 0,1";
-$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL($sql));
-if(!is_numeric($ligne["hour"])){$ligne["hour"]=-1;}
-events_tail("processing  $tabledata Last hour >{$ligne["hour"]}h");
-$filter_hour_2=null;
 
 
-events_tail("Processing $tabledata -> $nexttable  (today is $todaytable) filter:'$filter_hour_2' in line ".__LINE__);
+
+events_tail("Processing $tabledata -> $nexttable  (today is $todaytable) filter:'$filter_hour_1' in line ".__LINE__);
 if(!$GLOBALS["Q"]->TABLE_EXISTS($tabledata)){
 	events_tail("Create $tabledata in line ".__LINE__);
 	$GLOBALS["Q"]->CheckTables($tabledata);
@@ -1331,7 +1348,7 @@ function COUNT_REQUESTS($tablename){
 }
 
 function not_categorized_day_resync(){
-	$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') AS `tprefix`, `tablename`  FROM tables_day WHERE `not_categorized`>0 ORDER BY zDate DESC";
+	$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') AS `tprefix`, DATE_FORMAT(zDate,'%Y%u') AS `tprefixW`, `tablename`  FROM tables_day WHERE `not_categorized`>0 ORDER BY zDate DESC";
 	if($GLOBALS["VERBOSE"]){echo "not_categorized_day_resync\n";}
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	if(!$GLOBALS["Q"]->ok){
@@ -1347,6 +1364,12 @@ function not_categorized_day_resync(){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$tablename=$ligne["tablename"];
 		$table_day="{$ligne["tprefix"]}_hour";
+		$table_week="{$ligne["tprefixW"]}_week";
+		
+		if($GLOBALS["Q"]->TABLE_EXISTS("$table_week")){
+			$WEEKZ[$table_week]=true;
+		}
+		
 		if(!$GLOBALS["Q"]->TABLE_EXISTS("$table_day")){
 			if($GLOBALS["VERBOSE"]){echo "$table_day no such table\n";}
 			$GLOBALS["Q"]->QUERY_SQL("UPDATE tables_day SET not_categorized=0 WHERE tablename='$tablename'");
@@ -1366,6 +1389,11 @@ function not_categorized_day_resync(){
 		if($GLOBALS["VERBOSE"]){echo "$table_day $NotCategorized Websites...\n";}
 		$GLOBALS["Q"]->QUERY_SQL("UPDATE tables_day SET not_categorized=$NotCategorized WHERE tablename='$tablename'");
 	}
+	while (list ($tableweek, $ligne) = each ($WEEKZ)){
+		recategorize_week($tableweek,true,true);
+	}
+	
+	
 }
 
 
@@ -1593,6 +1621,7 @@ function members_central($aspid=false){
 	
 	
 	members_central_grouped();
+	youtube_week();
 }
 
 function _members_central_perform($tablesource,$date){
@@ -1679,7 +1708,13 @@ function _members_central_perform($tablesource,$date){
 
 
 function table_days(){
-	events_tail("Executed table_days in line ".__LINE__);
+	
+	if(system_is_overloaded(basename(__FILE__))){
+		writelogs_squid("Overloaded system, aborting",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}
+	
+	writelogs_squid("Executed table_days",__FUNCTION__,__FILE__,__LINE__);
 	$tables=$GLOBALS["Q"]->LIST_TABLES_QUERIES();
 	if(count($tables)==0){events_tail("No working tables ? in line ".__LINE__);return;}
 	$today=date('Y-m-d');
@@ -1717,7 +1752,7 @@ function table_days(){
 				}
 			}
 		}
-		
+		WeekDaysNums();
 	
 }
 
@@ -1895,6 +1930,7 @@ function visited_sites(){
 	$took=$unix->distanceOfTimeInWords($t1,time());
 	ufdbguard_admin_events("Scanned $num_rows visisted websites $took",__FUNCTION__,__FILE__,__LINE__,"visited");
 	visited_sites_whois();
+	WeekDaysNums();
 }
 
 function _visited_sites_calculate($sitename){
@@ -2041,6 +2077,23 @@ return true;
 	
 }
 
+
+function hour_SearchWordTEMP(){
+	$prefix=date("YmdH");
+	$unix=new unix();
+	$CurrentTableDay="searchwordsD_".date("Ymd");
+	$q=new mysql_squid_builder();
+	if(!$q->TABLE_EXISTS($CurrentTableDay)){
+		if($GLOBALS["VERBOSE"]){echo "$CurrentTableDay, no such table\n";}
+		return;}
+	$sql="SELECT `words` FROM $CurrentTableDay GROUP BY `words`";
+	$results=$q->QUERY_SQL($sql);
+	$SourceTable=mysql_num_rows($results);
+	$currentdate=date("Y-m-d");
+	$q->QUERY_SQL("UPDATE tables_day SET SearchWordTEMP=$SourceTable WHERE `zDate`='$currentdate'");
+	ufdbguard_admin_events("$SourceTable searched words",__FUNCTION__,__FILE__,__LINE__,"stats");
+}
+
 function table_hours(){
 	$prefix=date("YmdH");
 	$unix=new unix();
@@ -2053,9 +2106,32 @@ function table_hours(){
 			$took=$unix->distanceOfTimeInWords($t,time());
 			$GLOBALS["Q"]->QUERY_SQL("DROP TABLE `$tablename`");
 			writelogs_squid("success analyze $tablename in $took",__FUNCTION__,__FILE__,__LINE__,"stats");
+			
+			if(systemMaxOverloaded()){
+				ufdbguard_admin_events("Fatal: VERY Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} aborting function",__FUNCTION__,__FILE__,__LINE__,"stats");
+				return true;
+			}
+			
+			if(system_is_overloaded()){
+				ufdbguard_admin_events("Fatal: Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} sleeping 10s",__FUNCTION__,__FILE__,__LINE__,"stats");
+				sleep(10);
+			}
+			
+			if(system_is_overloaded()){
+				ufdbguard_admin_events("Fatal: Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} sleeping stopping function",__FUNCTION__,__FILE__,__LINE__,"stats");
+				return true;
+			}			
+			
+			
 		}
 	}
 	youtube_days();
+	searchwords_hour(true);
+	hour_SearchWordTEMP();
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 /usr/share/artica-postfix/exec.squid-users-rttsize.php");
+		
 	$scan_hour_timefile="/etc/artica-postfix/pids/scan_hours.time";
 	$time=$unix->file_time_min($scan_hour_timefile);
 	if($time>119){
@@ -2071,10 +2147,13 @@ function _table_hours_perform($tablename){
 	$year=substr($hour,0,4);
 	$month=substr($hour,4,2);
 	$day=substr($hour,6,2);
-	
+	$compressed=false;
 	$f=array();
 	$dansguardian_table="dansguardian_events_$year$month$day";
 	$accounts=$GLOBALS["Q"]->ACCOUNTS_ISP();
+	
+	
+
 	
 	$GLOBALS["Q"]->CheckTables($dansguardian_table);
 	$sql="SELECT COUNT(ID) as hits,SUM(QuerySize) as QuerySize,DATE_FORMAT(zDate,'%Y-%m-%d %H:00:00') as zDate,sitename,uri,TYPE,REASON,CLIENT,uid,remote_ip,country,cached,MAC,hostname FROM $tablename GROUP BY sitename,uri,TYPE,REASON,CLIENT,uid,remote_ip,country,cached,MAC,zDate,hostname";
@@ -2087,9 +2166,17 @@ function _table_hours_perform($tablename){
 			$q1->REPAIR_TABLE("squidlogs",$tablename);
 			writelogs_squid(@implode("\n",$GLOBALS["REPAIR_MYSQL_TABLE"]),__FUNCTION__,__FILE__,__LINE__,"stats");
 		}
+		
 		return false;
 	}
+	
+	
+	
+	
 	$prefix="INSERT IGNORE INTO $dansguardian_table (sitename,uri,TYPE,REASON,CLIENT,MAC,zDate,zMD5,uid,remote_ip,country,QuerySize,hits,cached,hostname,account) VALUES ";
+	
+	
+	
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$zmd=array();
@@ -2105,22 +2192,38 @@ function _table_hours_perform($tablename){
 		$f[]="('{$ligne["sitename"]}','{$ligne["uri"]}','{$ligne["TYPE"]}','{$ligne["REASON"]}','{$ligne["CLIENT"]}',
 		'{$ligne["MAC"]}','{$ligne["zDate"]}','$zMD5','{$ligne["uid"]}','{$ligne["remote_ip"]}','{$ligne["country"]}','{$ligne["QuerySize"]}',
 		'{$ligne["hits"]}','{$ligne["cached"]}','{$ligne["hostname"]}','$accountclient')";
-		if(count($f)>500){
+		if(count($f)>500){		
+			$GLOBALS["Q"]->UncompressTable($dansguardian_table);
 			$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
 			$f=array();
-			if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+			if(!$GLOBALS["Q"]->ok){
+				writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FUNCTION__,
+				__FILE__,__LINE__,"stats");
+				
+				return;
+			}
 		}	
 		
 	}
 	
-	if(count($f)>0){
+	if(count($f)>0){	
+		$GLOBALS["Q"]->UncompressTable($dansguardian_table);
 		$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
-		if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+		if(!$GLOBALS["Q"]->ok){
+			writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FUNCTION__,
+		__FILE__,__LINE__,"stats");
+			
+		return;
+		}
 	}
 	
 	
 	$sql="SELECT uid,MAC FROM webfilters_nodes";
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	if(mysql_num_rows($results)>0){
+			$GLOBALS["Q"]->UncompressTable($dansguardian_table);
+	}
+	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if(strlen($ligne["uid"])>1){
 			$GLOBALS["Q"]->QUERY_SQL("UPDATE $dansguardian_table SET uid='{$ligne["uid"]}' WHERE MAC='{$ligne["MAC"]}' AND LENGTH(uid)<2");
@@ -2151,7 +2254,17 @@ function week_uris($asPid=false){
 			ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
 			return;
 		}
-	}	
+		
+		@file_put_contents($pidfile, getmypid());
+	}
+
+	if(system_is_overloaded(basename(__FILE__))){
+		ufdbguard_admin_events("Overloaded system, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return;
+	}
+	
+	
+	
 	visited_websites_by_day(true);
 	if($GLOBALS["VERBOSE"]){echo "Search tables sources in tables_day\n";}
 	$sql="SELECT tablename,DATE_FORMAT( zDate, '%Y%m%d' ) AS tablesource, 
@@ -2192,6 +2305,10 @@ function week_uris($asPid=false){
 		
 	}
 	members_central();
+	WeekDaysNums();
+	youtube_week();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 /usr/share/artica-postfix/exec.squid-searchwords.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}");
 	
 }
 
@@ -2247,6 +2364,116 @@ function _week_uris_perform($tablesource,$week_table,$DAYOFWEEK){
 	}	
 	
 	return true;	
+	
+}
+
+function youtube_week($asPid=false){
+	if(isset($GLOBALS["youtube_week_executed"])){return;}
+	$GLOBALS["youtube_week_executed"]=true;
+	$unix=new unix();
+	
+
+	
+	if($asPid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=@file_get_contents($pidfile);
+		$myfile=basename(__FILE__);
+		if($unix->process_exists($oldpid,$myfile)){
+			ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}
+	}
+
+	$GLOBALS["Q"]->CheckTables();
+	$sql="SELECT YEAR(zDate) as year,zDate,WeekDay,WeekNum,DATE_FORMAT(zDate,'%Y%m%d') as prefix FROM 
+	tables_day WHERE zDate<DATE_SUB(NOW(),INTERVAL 1 DAY) AND YEAR(zDate)>1970 AND youtube_week=0";
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	if(!$GLOBALS["Q"]->ok){ufdbguard_admin_events("Fatal: {$GLOBALS["Q"]->mysql_error} on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+	$q=new mysql_squid_builder();
+	
+	$c=0;
+	$FailedTables=0;
+	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." rows\n";}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if($ligne["WeekNum"]==0){continue;}
+		$tableweek="youtubeweek_{$ligne["year"]}{$ligne["WeekNum"]}";
+		if(!$GLOBALS["Q"]->TABLE_EXISTS($tableweek)){
+			_youtube_week($ligne["year"],$ligne["WeekNum"]);
+		}
+	}
+
+	$sql="SELECT WEEK(NOW()) as `WeekNum`, YEAR(NOW()) as `year`";
+	$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL($sql));
+	if(!$GLOBALS["Q"]->ok){ufdbguard_admin_events("Fatal: {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+	_youtube_week($ligne["year"],$ligne["WeekNum"]);
+	
+	
+}
+
+function _youtube_week($year,$WeekNum){
+	if(isset($GLOBALS["ALREADYyoutube_week$year$WeekNum"])){return;}
+	$tableweek="youtubeweek_{$year}{$WeekNum}";
+	$GLOBALS["ALREADYyoutube_week$year$WeekNum"]=true;
+	$sql="SELECT tablename,YEAR(zDate) as year,zDate,WeekDay,WeekNum,DATE_FORMAT(zDate,'%Y%m%d') as prefix FROM tables_day 
+	WHERE zDate<DATE_SUB(NOW(),INTERVAL 1 DAY) AND WeekNum=$WeekNum AND YEAR(zDate)=$year AND youtube_week=0";
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	if(!$GLOBALS["Q"]->ok){ufdbguard_admin_events("Fatal: {$GLOBALS["Q"]->mysql_error} on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+	
+	
+	$c=0;
+	$FailedTables=0;
+	if($GLOBALS["VERBOSE"]){echo "youtubeweek_{$year}{$WeekNum} -> ".mysql_num_rows($results)." rows\n";}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+		$tablesource="youtubeday_{$ligne["prefix"]}";
+		if(!$GLOBALS["Q"]->TABLE_EXISTS($tablesource)){
+			if($GLOBALS["VERBOSE"]){echo "$tablesource -> No such table\n";}
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE tables_day SET youtube_week=1 WHERE tablename='{$ligne["tablename"]}'");
+			continue;}
+		if(!$GLOBALS["Q"]->createWeekYoutubeTable($tableweek)){
+			if($GLOBALS["VERBOSE"]){echo "$tableweek -> Failed to create...\n";}
+			return;}
+		if($GLOBALS["VERBOSE"]){echo "$tablesource -> $tableweek -> _youtube_week_perform()\n";}
+		if(_youtube_week_perform($tableweek,$tablesource)){
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE tables_day SET youtube_week=1 WHERE tablename='{$ligne["tablename"]}'");
+		}
+		
+	}
+}
+
+function _youtube_week_perform($tableweek,$tablesource){
+	
+	$sql="SELECT WEEKDAY(zDate) as `day`,ipaddr,hostname,uid,MAC,account,youtubeid,SUM(hits) as hits FROM $tablesource GROUP BY `day`,ipaddr,hostname,uid,MAC,account,youtubeid";
+	
+	$prefix="INSERT IGNORE INTO `$tableweek`(zmd5,`day`,ipaddr,hostname,uid,MAC,account,youtubeid,hits) VALUES ";
+	$f[]=array();
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	if(!$GLOBALS["Q"]->ok){ufdbguard_admin_events("Fatal: {$GLOBALS["Q"]->mysql_error} on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$zmd5=md5(serialize($ligne));
+		$day=$ligne["day"];
+		$hits=$ligne["hits"];
+		$ipaddr=addslashes($ligne["ipaddr"]);
+		$hostname=addslashes($ligne["hostname"]);
+		$MAC=addslashes($ligne["MAC"]);
+		$uid=addslashes($ligne["uid"]);
+		$account=addslashes($ligne["account"]);
+		$youtubeid=addslashes($ligne["youtubeid"]);
+		$f[]="('$zmd5','$day','$ipaddr','$hostname','$uid','$MAC','$account','$youtubeid','$hits')";
+		
+	}	
+	
+	if($GLOBALS["VERBOSE"]){echo "$tablesource -> $tableweek -> ".count($f)." rows\n";}
+	if(count($f)>0){
+		
+		$sql="$prefix".@implode(",", $f);
+		$GLOBALS["Q"]->QUERY_SQL($sql);
+		if(!$GLOBALS["Q"]->ok){
+			ufdbguard_admin_events("Fatal: {$GLOBALS["Q"]->mysql_error} on `$tableweek`",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return false;
+		}
+	}
+	
+	return true;
 	
 }
 
@@ -2386,6 +2613,22 @@ function _week_uris_blocked_perform($tablesource,$week_table,$DAYOFWEEK){
 	
 	ufdbguard_admin_events("Success: added $t1 rows on `$week_table`",__FUNCTION__,__FILE__,__LINE__,"stats");
 	return true;	
+	
+}
+
+
+function WeekDaysNums(){
+	if(isset($GLOBALS["ALREADYWeekDaysNums"])){return;}
+	$GLOBALS["ALREADYWeekDaysNums"]=true;
+	$q=new mysql_squid_builder();
+	$sql="SELECT tablename,DAYOFWEEK(zDate) as DayNumber,WEEK( zDate ) as WeekNumber FROM tables_day WHERE WeekNum=0";
+	$results=$q->QUERY_SQL($sql);
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$q->QUERY_SQL("UPDATE tables_day SET WeekDay={$ligne["DayNumber"]},WeekNum={$ligne["WeekNumber"]} 
+		WHERE tablename='{$ligne["tablename"]}'");
+		
+	}
+	
 	
 }
 
@@ -2761,9 +3004,8 @@ function RepairCategoriesBases(){
 }
 
 function thumbnail_parse(){
-	
+		$unix=new unix();
 		if(system_is_overloaded(basename(__FILE__))){
-			$took=$unix->distanceOfTimeInWords($t,time());
 			ufdbguard_admin_events("Fatal: Overloaded aborting task",__FUNCTION__,__FILE__,__LINE__,"stats");
 			return;	
 		}	
@@ -2785,6 +3027,7 @@ function thumbnail_parse(){
 	if(!is_dir("/var/log/artica-postfix/pagepeeker")){return ;}
 	if (!$handle = opendir("/var/log/artica-postfix/pagepeeker")) {return;}
 	$unix=new unix();
+	$c=0;
 	while (false !== ($filename = readdir($handle))) {
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}	
@@ -2794,9 +3037,9 @@ function thumbnail_parse(){
 		$sitename=@file_get_contents($targetFile);
 		thumbnail_site($sitename);
 		@unlink($targetFile);
+		$c++;
+		if($c>100){$c=0;if(system_is_overloaded(basename(__FILE__))){ufdbguard_admin_events("Fatal: Overloaded aborting task",__FUNCTION__,__FILE__,__LINE__,"stats");return;}}
 	}	
-	
-	
 }
 
 
@@ -2971,6 +3214,7 @@ function thumbnail_alexa($path,$max){
 	if(!is_numeric($max)){$max=500;}
 	if(!is_file($path)){echo "$path no such file\n";return;}
 	$f=file($path);
+	$c=0;
 	while (list ($index, $line) = each ($f) ){
 		$line=str_replace("\r", "", $line);
 		$line=str_replace("\r\n", "", $line);
@@ -2990,6 +3234,7 @@ function thumbnail_alexa($path,$max){
 
 function users_size_hour(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidlock="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$oldpid=@file_get_contents($pidfile);
 	if($oldpid<100){$oldpid=null;}
 	$unix=new unix();
@@ -3006,71 +3251,34 @@ function users_size_hour(){
 		
 	}
 	
-	$mypid=getmypid();
-	@file_put_contents($pidfile,$mypid);
-	$q=new mysql_squid_builder();
-	$numrows_0=$q->COUNT_ROWS("UserSizeRTT");
-	$UsersAgents=array();
-	ufdbguard_admin_events("Starting PID $mypid, table store $numrows_0 rows", __FUNCTION__, __FILE__, __LINE__, "stats");
-	$sql="SELECT DATE_FORMAT(zdate,'%Y%m%d') as tablesuffix,
-	DATE_FORMAT(zdate,'%Y-%m-%d') as tday,
-	COUNT(zMD5) as thits,
-	SUM(size) as size,HOUR(zdate) as zhour,
-	uid,ipaddr,hostname,account,MAC,UserAgent
-	FROM (SELECT * FROM UserSizeRTT WHERE zdate<DATE_SUB(NOW(),INTERVAL 1 HOUR)) as t
-	GROUP BY tablesuffix,zhour,uid,ipaddr,hostname,account,MAC,UserAgent";
 	
-	$results=$q->QUERY_SQL($sql);
-	
-	if(!$q->ok){ufdbguard_admin_events("Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
-	$t=time();
-	if(mysql_num_rows($results)==0){return;}	
-	$c=0;
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
-		$zMD5=md5(serialize($ligne));
-		if($ligne["tday"]=="1970-01-01"){continue;}
-		$ligne["UserAgent"]=addslashes($ligne["UserAgent"]);
-		$ligne["uid"]=addslashes($ligne["uid"]);
-		if($ligne["uid"]=="-"){$ligne["uid"]=null;}
-		$f[$ligne["tablesuffix"]][]="('$zMD5','{$ligne["uid"]}','{$ligne["tday"]}','{$ligne["ipaddr"]}','{$ligne["hostname"]}','{$ligne["account"]}','{$ligne["MAC"]}','{$ligne["UserAgent"]}','{$ligne["size"]}','{$ligne["thits"]}','{$ligne["zhour"]}')";
-		if(trim($ligne["UserAgent"])<>null){
-			$UsersAgents[]="('".addslashes($ligne["UserAgent"])."')";
-		}
+	if(system_is_overloaded(__FILE__)){
+		ufdbguard_admin_events("Overloaded system, aborting task", __FUNCTION__, __FILE__, __LINE__, "stats");
+		return;
 	}	
 	
-	if(count($f)>0){
-		while (list ($tablesuffix, $rows) = each ($f) ){
-			$tablename="UserSizeD_$tablesuffix";
-			if(!$q->CreateUserSizeRTT_day($tablename)){ufdbguard_admin_events("$tablename: Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
-			$sql="INSERT IGNORE INTO `$tablename` (`zMD5`,`uid`,`zdate`,`ipaddr`,`hostname`,`account`,`MAC`,`UserAgent`,`size`,`hits`,`hour`) VALUES ".@implode(",", $rows);
-			$q->QUERY_SQL($sql);
-			if(!$q->ok){ufdbguard_admin_events("$tablename: Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
-			
-		}
-		
-		$sql="DELETE FROM UserSizeRTT WHERE zdate<DATE_SUB(NOW(),INTERVAL 1 HOUR)";
-		$q->QUERY_SQL($sql);
-		if(!$q->ok){ufdbguard_admin_events("$tablename: Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
-		$q->QUERY_SQL("OPTIMIZE TABLE UserSizeRTT");
-		$numrows_1=$q->COUNT_ROWS("UserSizeRTT");
-		$total=$numrows_0-$numrows_1;
-		ufdbguard_admin_events(count($f). " new injected table and $total new row(s)",__FUNCTION__,__FILE__,__LINE__,"stats");
+	$pidtime=$unix->file_time_min($pidlock);
+	if($pidtime<59){
+		ufdbguard_admin_events("Must run each 60Mn, current={$pidtime}Mn, aborting", __FUNCTION__, __FILE__, __LINE__, "stats");
+		return;
 	}
 	
-	if(count($UsersAgents)>0){
-		$q->QUERY_SQL("INSERT IGNORE INTO UserAgents (`pattern`) VALUES ". @implode(",", $UsersAgents));
-	}
+	@unlink($pidlock);
+	@file_put_contents($pidlock, time());
 	
-	if($q->COUNT_ROWS("UserAgents")==0){
-		$sql="SELECT UserAgent FROM UserSizeD_".date("Ymd")." GROUP BY UserAgent";
-		$results=$q->QUERY_SQL($sql);
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
-			if(trim($ligne["UserAgent"])<>null){$UsersAgents[]="('".addslashes($ligne["UserAgent"])."')";}
-		}
-		$q->QUERY_SQL("INSERT IGNORE INTO UserAgents (`pattern`) VALUES ". @implode(",", $UsersAgents));
+	if(system_is_overloaded(__FILE__)){
+		ufdbguard_admin_events("Overloaded system, aborting task", __FUNCTION__, __FILE__, __LINE__, "stats");
+		return;
 	}
+	$tA=time();
+	$mypid=getmypid();
+	@file_put_contents($pidfile,$mypid);
 	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 /usr/share/artica-postfix/exec.squid-users-rttsize.php schedule-id={$GLOBALS["SCHEDULE_ID"]}");
+	shell_exec("$php5 /usr/share/artica-postfix/exec.squid-users-rttsize.php --main-table schedule-id={$GLOBALS["SCHEDULE_ID"]}");
 	scan_hours(true);
+	
 	
 }
 
@@ -3082,6 +3290,7 @@ function repair_hours(){
 	if($GLOBALS["VERBOSE"]){echo "Find hours tables...\n";}
 	$tables=$q->LIST_TABLES_HOURS_TEMP();
 	$c=0;
+	$t=time();
 	if($GLOBALS["VERBOSE"]){echo "Find hours tables done ". count($tables)." table(s)...\n";}
 	while (list ($table, $none) = each ($tables) ){
 		if($table==$CurrentHourTable){if($GLOBALS["VERBOSE"]){echo "SKIP `$table`\n";}continue;}
@@ -3358,7 +3567,7 @@ function compress_tablesdays(){
 		shell_exec("$myisamchk -cFU $MYSQL_DATA_DIR/$tablename.MYI");	
 		shell_exec("$myisampack -f $MYSQL_DATA_DIR/$tablename.MYI");
 		shell_exec("$myisamchk -raqS $MYSQL_DATA_DIR/$tablename.MYI");
-		$q->QUERY_SQL("FLUSH TABLE $category_table");
+		$q->QUERY_SQL("FLUSH TABLE $tablename");
 		$q->QUERY_SQL("UPDATE tables_day SET `compressed`=1 WHERE `tablename`='$tablename'");
 		$size2=$unix->file_size("$MYSQL_DATA_DIR/$tablename.MYI");
 
@@ -3440,6 +3649,12 @@ function _youtube_dayz($sourcetable){
 function summarize_days(){
 	if(isset($GLOBALS["summarize_days_executed"])){return;}
 	$GLOBALS["summarize_days_executed"]=true;
+	
+	
+	if(system_is_overloaded(basename(__FILE__))){
+		writelogs_squid("Overloaded system, aborting",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}	
 		
 	$unix=new unix();
 	if(!$GLOBALS["VERBOSE"]){
@@ -3489,12 +3704,11 @@ function _summarize_days($dpref,$tablename){
 		$SumSize=$ligne2["tsize"];
 		$SumHits=$ligne2["thits"];		
 		
-		
-		if($q->TABLE_EXISTS($tablename_members)){
-			$sql="SELECT count( * ) AS tcount FROM ( SELECT client, hostname, MAC, uid FROM $tablename_members GROUP BY client, hostname, MAC, uid ) AS t";
-			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
-			if(!$q->ok){echo $q->mysql_error."\n";return;}
-			$MembersCount=$ligne2["tcount"];	
+		if($q->TABLE_EXISTS("UserSizeD_{$dpref}")){
+			$MembersCount=which_filter("UserSizeD_{$dpref}");
+			if($GLOBALS["VERBOSE"]){echo "Number of members of UserSizeD_{$dpref} is $MembersCount\n";}
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> UserSizeD_{$dpref} no such table\n";}
 		}
 		
 		if($q->TABLE_EXISTS($tablename_blocked)){$BlockedCount=$q->COUNT_ROWS($tablename_blocked);}	
@@ -3506,6 +3720,13 @@ function _summarize_days($dpref,$tablename){
 			$YouTubeHits=$ligne2["tcount"];		
 			
 		}
+		if(!is_numeric($SumSize)){$SumSize=0;}
+		if(!is_numeric($SumHits)){$SumHits=0;}
+		if(!is_numeric($BlockedCount)){$BlockedCount=0;}
+		if(!is_numeric($MembersCount)){$MembersCount=0;}
+		if(!is_numeric($NotCategorized)){$NotCategorized=0;}
+		if(!is_numeric($YouTubeHits)){$YouTubeHits=0;}
+		
 		
 		if($GLOBALS["VERBOSE"]){echo "totalBlocked=$BlockedCount,MembersCount=$MembersCount, requests=$SumHits, totalsize=$SumSize, not_categorized=$NotCategorized, YouTubeHits=$YouTubeHits\n";}
 		
@@ -3518,10 +3739,157 @@ function _summarize_days($dpref,$tablename){
 		YouTubeHits=$YouTubeHits
 		WHERE tablename='$tablename'";
 		$q->QUERY_SQL($sql);
+		if(!$q->ok){
+			if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!: $q->mysql_error</strong>\n";} 
+		}
+	}
+function which_filter($tablename){
+		$q=new mysql_squid_builder();
+		$sql="SELECT uid FROM `$tablename` GROUP BY uid HAVING LENGTH(uid)>0";
+		$results=$q->QUERY_SQL($sql);
+		$count=mysql_num_rows($results);
+		if($count>1){
+			if($GLOBALS["VERBOSE"]){echo "Number of members uid key for $count items\n";}
+			return $count;}
+	
+		$sql="SELECT MAC FROM `$tablename` GROUP BY MAC HAVING LENGTH(MAC)>0";
+		$results=$q->QUERY_SQL($sql);
+		$count=mysql_num_rows($results);
+		if($count>1){
+			if($GLOBALS["VERBOSE"]){echo "Number of members MAC key for $count items\n";}
+			return $count;}
+	
+	
+		$sql="SELECT COUNT(ipaddr) as tcount FROM $tablename WHERE LENGTH(ipaddr)>0";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$count=mysql_num_rows($results);
+		if($count>1){
+			if($GLOBALS["VERBOSE"]){echo "Number of members ipaddr key for $count items\n";}
+			return $count;}
+	
+		$sql="SELECT COUNT(hostname) as tcount FROM $tablename WHERE LENGTH(hostname)>0";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$count=mysql_num_rows($results);
+		if($count>1){
+			if($GLOBALS["VERBOSE"]){echo "Number of members hostname key for $count items\n";}
+			return $count;}
+	
 	}
 
+function searchwords_hour($aspid=false){
+	if(isset($GLOBALS["searchwords_hour_executed"])){return true;}
+	$GLOBALS["searchwords_hour_executed"]=true;
+	$unix=new unix();
+	
+	if(!ifMustBeExecuted()){ufdbguard_admin_events("Not necessary to execute this task...",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+	
+	if(systemMaxOverloaded()){
+		ufdbguard_admin_events("VERY Overloaded system ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}) aborting function",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return;
+	}	
+	
+	if(!$aspid){	
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=@file_get_contents($pidfile);
+		$myfile=basename(__FILE__);
+		if($unix->process_exists($oldpid,$myfile)){
+			ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}	
 
+	
+	
+	$currenttable="searchwords_".date("YmdH");
+	if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
+	$LIST_TABLES_SEARCHWORDS_HOURS=$GLOBALS["Q"]->LIST_TABLES_SEARCHWORDS_HOURS();
+	while (list ($num, $tablename) = each ($LIST_TABLES_SEARCHWORDS_HOURS) ){
+		if($tablename==$currenttable){continue;}
+		if(searchwords_hour_to_day($tablename)){
+			$GLOBALS["Q"]->QUERY_SQL("DROP TABLE $tablename");
+		}
+	}
+}
 
+function searchwords_hour_to_day($sourcetable){
+	
+	$sql="SELECT COUNT(zmd5) as hits,DATE_FORMAT(zDate,'%Y%m%d') as prefix,DATE_FORMAT(zDate,'%Y-%m-%d') as `newdate`,HOUR(zDate) as thour,
+	`sitename`,`ipaddr`,`hostname`,`uid`,`MAC`,`account`,`familysite`,`words` FROM `$sourcetable` 
+	 GROUP BY prefix,thour,sitename,ipaddr,hostname,uid,MAC,account,familysite,words,newdate HAVING LENGTH(words)>1";
+	
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$sourcetable`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+		
+	$f=array();	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+		$zmd5=md5(serialize($ligne));
+		$sitename=$ligne["sitename"];
+		if(preg_match("#^www\.(.+)#", $sitename,$re)){$sitename=$re[1];}
+		$words=addslashes(utf8_encode($ligne["words"]));
+		
+		$s="('$zmd5','{$ligne["hits"]}','$sitename','{$ligne["newdate"]}','{$ligne["thour"]}','{$ligne["ipaddr"]}',
+		'{$ligne["hostname"]}','{$ligne["uid"]}','{$ligne["MAC"]}','{$ligne["account"]}','{$ligne["familysite"]}','$words')";
+		$f[$ligne["prefix"]][]=$s;
+		
+		
+	}	
+	
+	if(count($f)>0){		
+		while (list ($index_table, $rows) = each ($f) ){
+			$newtable="searchwordsD_$index_table";
+			if(!$GLOBALS["Q"]->check_SearchWords_day($index_table)){writelogs_squid("Fatal: Creating $newtable {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+			$sql="INSERT IGNORE INTO $newtable (`zmd5`,`hits`,`sitename`,`zDate`,`hour`,`ipaddr`,`hostname`,`uid`,`MAC`,`account`,`familysite`,`words`) VALUES ".@implode(",", $rows);
+			$GLOBALS["Q"]->QUERY_SQL($sql);
+			if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$newtable`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}	
+		}
+		
+	}
+	return true;	
+	
+	
+}
+
+function IsCompressed($tablename){
+	$q=new mysql_squid_builder();
+	if($q->isTableCompressed($tablename)){echo "OK $tablename is compressed\n";}
+	
+}
+
+function Uncompress($tablename){
+	$unix=new unix();
+	$sock=new sockets();
+	$myisamchk=$unix->find_program("myisamchk");
+	$myisampack=$unix->find_program("myisampack");
+	$MYSQL_DATA_DIR=$sock->GET_INFO("ChangeMysqlDir");
+	if($MYSQL_DATA_DIR==null){$MYSQL_DATA_DIR="/var/lib/mysql";}
+	shell_exec("$myisamchk --unpack $MYSQL_DATA_DIR/$tablename.MYD");
+}
+function CompressTable($tablename){
+	$unix=new unix();
+	$sock=new sockets();
+	$myisamchk=$unix->find_program("myisamchk");
+	$myisampack=$unix->find_program("myisampack");
+	$MYSQL_DATA_DIR=$sock->GET_INFO("ChangeMysqlDir");
+	if($MYSQL_DATA_DIR==null){$MYSQL_DATA_DIR="/var/lib/mysql";}
+	$q=new mysql_squid_builder();	
+	$q->QUERY_SQL("OPTIMIZE TABLE $tablename");
+	$q->QUERY_SQL("LOCK TABLE $tablename WRITE");
+	$q->QUERY_SQL("FLUSH TABLE $tablename");
+	if(!is_file("$MYSQL_DATA_DIR/$tablename.MYI")){
+		if($GLOBALS["VERBOSE"]){echo "Skip $MYSQL_DATA_DIR/$tablename.MYI (did not exists)\n";}
+		$fL[]="Skip $MYSQL_DATA_DIR/$tablename.MYI (did not exists)";
+		return;
+	}
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "$myisamchk -cFU $MYSQL_DATA_DIR/$tablename.MYI\n";}
+	shell_exec("$myisamchk -cFU $MYSQL_DATA_DIR/$tablename.MYI");
+	shell_exec("$myisampack -f $MYSQL_DATA_DIR/$tablename.MYI");
+	shell_exec("$myisamchk -raqS $MYSQL_DATA_DIR/$tablename.MYI");
+	$q->QUERY_SQL("FLUSH TABLE $tablename");
+	$q->QUERY_SQL("UPDATE tables_day SET `compressed`=1 WHERE `tablename`='$tablename'");
+}
 
 
 ?>

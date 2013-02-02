@@ -20,13 +20,17 @@ if($argv[1]=='--parse'){print_r(parseReport($argv[2]));exit;}
 if($argv[1]=='--tomysql'){parsereports();exit;}
 if($argv[1]=='--status'){status();exit;}
 if($argv[1]=='--parseresolv'){ParseResolvConf();exit;}
+if($argv[1]=='--sum'){sumof();exit;}
 
 
 function status(){
 	$GLOBALS["CLASS_UNIX"]=new unix();
 	$ipband=$GLOBALS["CLASS_UNIX"]->find_program("ipband");
 	if(strlen($ipband)<5){return;}
-	
+	$sock=new sockets();
+	$ipBandEnabled=$sock->GET_INFO("ipBandEnabled");
+	if(!is_numeric($ipBandEnabled)){$ipBandEnabled=0;}
+	if($ipBandEnabled==0){return;}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$me=basename(__FILE__);
 	$oldpid=@file_get_contents($pidfile);
@@ -57,10 +61,40 @@ function status(){
 	
 }
 
+function sumof(){
+	$q=new mysql();
+	$rows=$q->COUNT_ROWS("ipband", "artica_events");	
+	$sock=new sockets();
+	$ipBandEnabled=$sock->GET_INFO("ipBandEnabled");
+	if(!is_numeric($ipBandEnabled)){$ipBandEnabled=0;}
+	if($ipBandEnabled==0){
+		if($rows>1){
+			system_admin_events("$rows in table, too much rows, remove the table and re-create it",__FUNCTION__,__FILE__,__LINE__,"ipband");
+			$q->QUERY_SQL("DROP TABLE `ipband`","artica_events");
+			$q->BuildTables();			
+		}
+	}
+	
+
+	if($rows>1000000){
+		system_admin_events("$rows in table, too much rows, remove the table and re-create it",__FUNCTION__,__FILE__,__LINE__,"ipband");
+		$q->QUERY_SQL("DROP TABLE `ipband`","artica_events");
+		$q->BuildTables();
+		
+	}
+	
+}
+
+
 function restart(){
 	$GLOBALS["CLASS_UNIX"]=new unix();
 	$ipband=$GLOBALS["CLASS_UNIX"]->find_program("ipband");
 	if(strlen($ipband)<5){return;}
+	
+	$sock=new sockets();
+	$ipBandEnabled=$sock->GET_INFO("ipBandEnabled");
+	if(!is_numeric($ipBandEnabled)){$ipBandEnabled=0;}	
+	if($ipBandEnabled==0){stopall();return;}
 	stopall();
 	stop();
 	start();
@@ -113,7 +147,10 @@ function parsereports(){
 
 function parseReport($filename){
 	$c=0;
-	
+	$sock=new sockets();
+	$ipBandEnabled=$sock->GET_INFO("ipBandEnabled");
+	if(!is_numeric($ipBandEnabled)){$ipBandEnabled=0;}
+	if($ipBandEnabled==0){return;}	
 	$filesize=$GLOBALS["CLASS_UNIX"]->file_size($filename);
 	$filesize=round($filesize/1024)/1000;
 	WriteMyLogs("$filename -> $filesize M",__FUNCTION__,__FILE__,__LINE__,"ipband");
@@ -162,7 +199,7 @@ function parseReport($filename){
 
 function sendtomysql($array){
 	$q=new mysql();
-	
+	sumof();
 	$prefix="INSERT INTO ipband (`zDate`,`IP_FROM`,`PORT_FROM`,`IP_TO`,`PORT_TO`,`size`,`proto`) VALUES ";
 	if(!$q->TABLE_EXISTS("ipband", "artica_events")){$q->BuildTables();}
 	if(!$q->TABLE_EXISTS("ipband", "artica_events")){
@@ -232,6 +269,7 @@ function ParseResolvConf(){
 	@file_put_contents($pidfile, getmypid());	
 	$t=time();
 	$c=0;
+	sumof();
 	$q=new mysql();
 	$sql="SELECT IP_TO_HOST,IP_TO FROM ipband GROUP BY IP_TO_HOST,IP_TO HAVING IP_TO_HOST IS NULL";
 	$results=$q->QUERY_SQL($sql,"artica_events");
@@ -265,6 +303,12 @@ function ParseResolvConf(){
 
 
 function start(){
+	
+	$sock=new sockets();
+	$ipBandEnabled=$sock->GET_INFO("ipBandEnabled");
+	if(!is_numeric($ipBandEnabled)){$ipBandEnabled=0;}
+	if($ipBandEnabled==0){return;}	
+	
 	$GLOBALS["CLASS_UNIX"]=new unix();
 	$q=new mysql();
 	$sql="SELECT network FROM ipban";

@@ -14,6 +14,7 @@ include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 
 if(isset($_GET["popup"])){popup();exit;}
 if(isset($_POST["new-password"])){SaveAccount();exit;}
+if(isset($_GET["privs"])){privileges();exit;}
 page();
 
 
@@ -67,6 +68,7 @@ function popup(){
 	<td colspan=2 align='right'><hr>". button("{apply}","SaveMyAccount()",18)."</td>
 	</tr>
 	</table>
+	<div id='privs-$t'></div>
 	<script>
 	
 	var X_SaveMyAccount=function(obj){
@@ -82,7 +84,9 @@ function popup(){
 		XHR.appendData('email',document.getElementById('email-$t').value);
 	    XHR.appendData('new-password',MD5(trim(document.getElementById('register-password').value)));
 		XHR.sendAndLoad('$page', 'POST',X_SaveMyAccount);    		
-	}		
+	}
+
+	LoadAjax('privs-$t','$page?privs=yes');
 	</script>
 	
 	";
@@ -97,4 +101,47 @@ function SaveAccount(){
 	$tpl=new templates();
 	echo $tpl->javascript_parse_text("{success}");
 	
+}
+function privileges(){
+	$tpl=new templates();
+	$sock=new sockets();
+	$EnableSambaVirtualsServers=0;
+	include_once(dirname(__FILE__)."/ressources/class.translate.rights.inc");
+	$cr=new TranslateRights(null, null);
+	$r=$cr->GetPrivsArray();
+
+
+
+
+	$ht=array();
+
+	$ht[]=$tpl->_ENGINE_parse_body("<H2>{$_SESSION["uid"]}::{privileges}</H2>");
+
+	$ht[]="
+			<center>
+			<table style='width:80%' class=form>";
+	while (list ($key, $val) = each ($r) ){
+		if(!isset($_SESSION["privileges_array"][$key])){continue;}
+		if($_SESSION["privileges_array"][$key]){
+			$ht[]="<tr><td width=1%><img src='img/arrow-right-16.png'></td><td><span style='font-size:14px'>{{$key}}</span></td></tr>";
+		}
+	}
+
+	$users=new usersMenus();
+	if($users->SAMBA_INSTALLED){
+		$EnableSambaVirtualsServers=$sock->GET_INFO("EnableSambaVirtualsServers");
+		if(!is_numeric($EnableSambaVirtualsServers)){$EnableSambaVirtualsServers=0;}
+	}
+
+	if($EnableSambaVirtualsServers==1){
+		if(count($_SESSION["VIRTUALS_SERVERS"])>0){
+			$ht[]="<tr><td colspan=2 style='font-size:16px;font-weight:bolder'>{virtual_servers}</td></tr>";
+			while (list ($key, $val) = each ($_SESSION["VIRTUALS_SERVERS"]) ){
+				$ht[]="<tr><td width=1%><img src='img/arrow-right-16.png'></td><td><span style='font-size:14px'>$key</span></td></tr>";
+			}
+		}
+	}
+
+	$ht[]="</table></center>";
+	echo $tpl->_ENGINE_parse_body(@implode("\n", $ht));
 }

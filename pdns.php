@@ -7,13 +7,14 @@ include_once(dirname(__FILE__) . "/ressources/class.pdns.inc");
 
 if(posix_getuid()<>0){
 	$user=new usersMenus();
-	if($user->AsDnsAdministrator==false){
+	if(!GetRights()){
 		$tpl=new templates();
 		echo $tpl->_ENGINE_parse_body("alert('{ERROR_NO_PRIVS}');");
 		die();exit();
 	}
 }
-
+if(isset($_GET["service-cmds"])){service_cmds_js();exit;}
+if(isset($_GET["service-cmds-peform"])){service_cmds_perform();exit;}
 if(isset($_GET["digg"])){digg();exit;}
 if(isset($_GET["diggC"])){diggC();exit;}
 if(isset($_GET["popup"])){popup();exit;}
@@ -21,15 +22,12 @@ if(isset($_GET["tabs"])){tabs();exit;}
 
 
 if(isset($_GET["config"])){config();exit;}
-if(isset($_GET["network-pdns-table"])){listen_ip_list();exit;}
+
 
 if(isset($_POST["RebuildPDNSDB"])){RebuildPDNSDB();exit;}
 if(isset($_POST["RestartPDNS"])){RestartPDNS();exit;}
 if(isset($_POST["SaveEnablePowerDNS"])){SaveEnablePowerDNS();exit;}
-
-
-if(isset($_POST["RemoteAddAddr"])){listen_ip_add();exit;}
-if(isset($_POST["RemoteDelAddr"])){listen_ip_del();exit;}
+if(isset($_GET["config-service"])){config_service();exit;}
 
 
 
@@ -68,6 +66,64 @@ if(isset($_GET["infos"])){pdns_infos();exit;}
 if(isset($_GET["pdns-infos-query"])){pdns_infos_query();exit;}
 
 js();
+function GetRights(){
+	$users=new usersMenus();
+	if($users->AsSystemAdministrator){return true;}
+	if($users->AsDnsAdministrator){return true;}
+	
+}
+function service_cmds_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$cmd=$_GET["service-cmds"];
+	$mailman=$tpl->_ENGINE_parse_body("{APP_PDNS}");
+	$title=$tpl->javascript_parse_text("$mailman::{{$cmd}}");
+	$html="YahooWin4('650','$page?service-cmds-peform=$cmd','$title');";
+	echo $html;
+}
+function service_cmds_perform(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$datas=unserialize(base64_decode($sock->getFrameWork("pdns.php?service-cmds={$_GET["service-cmds-peform"]}")));
+
+	$html="
+<div style='width:100%;height:350px;overflow:auto'>
+<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
+<thead class='thead'>
+	<tr>
+	<th>{events}</th>
+	</tr>
+</thead>
+<tbody class='tbody'>";
+
+	while (list ($key, $val) = each ($datas) ){
+		if(trim($val)==null){continue;}
+		if(trim($val=="->")){continue;}
+		if(isset($alread[trim($val)])){continue;}
+		$alread[trim($val)]=true;
+		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
+		$val=htmlentities($val);
+		$html=$html."
+		<tr class=$classtr>
+		<td width=99%><code style='font-size:12px'>$val</code></td>
+		</tr>
+		";
+
+
+	}
+
+	$html=$html."
+	</tbody>
+	</table>
+	</div>
+	<script>
+	RefreshPDNSStatus();
+	</script>
+
+	";
+	echo $tpl->_ENGINE_parse_body($html);
+}
 
 function AddPointerDc(){
 	$dn=$_GET["AddAssociatedDomain"];
@@ -177,6 +233,38 @@ function popup_dn_tabs(){
 }
 
 function config(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	
+	$array["config-service"]='{global_parameters}';
+	$array["forward-zones"]='{forward_zones}';
+	
+	
+	
+	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="forward-zones"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.forward-zone.php\"><span>$ligne</span></a></li>\n");
+			continue;
+			
+		}
+		
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&dn-entry=$dn\"><span>$ligne</span></a></li>\n");
+	}
+	
+	
+	echo "
+	<div id=main_config_pdns_general style='width:100%;'>
+	<ul style='font-size:16px'>". implode("\n",$html)."</ul>
+	</div>
+	<script>
+	$(document).ready(function() {
+	$(\"#main_config_pdns_general\").tabs();});
+	</script>";	
+}
+
+
+function config_service(){
 $page=CurrentPageName();
 	$user=new usersMenus();
 	$sock=new sockets();
@@ -186,7 +274,7 @@ $page=CurrentPageName();
 	$PDNSRestartIfUpToMB=$sock->GET_INFO("PDNSRestartIfUpToMB");
 	$DisablePowerDnsManagement=$sock->GET_INFO("DisablePowerDnsManagement");
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
-	$PowerDNSMySQLEngine=$sock->GET_INFO("PowerDNSMySQLEngine");
+	
 	$PowerUseGreenSQL=$sock->GET_INFO("PowerUseGreenSQL");
 	$PowerDisableDisplayVersion=$sock->GET_INFO("PowerDisableDisplayVersion");
 	$PowerActHasMaster=$sock->GET_INFO("PowerActHasMaster");
@@ -198,7 +286,7 @@ $page=CurrentPageName();
 	$PowerSkipCname=$sock->GET_INFO("PowerSkipCname");
 	
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
-	if(!is_numeric($PowerDNSMySQLEngine)){$PowerDNSMySQLEngine=1;}
+	$PowerDNSMySQLEngine=1;
 	if(!is_numeric($PowerActHasMaster)){$PowerActHasMaster=0;}
 	if(!is_numeric($PDNSRestartIfUpToMB)){$PDNSRestartIfUpToMB=700;}
 	if(!is_numeric($DisablePowerDnsManagement)){$DisablePowerDnsManagement=0;}
@@ -295,12 +383,7 @@ $page=CurrentPageName();
 				<tr><td colspan=2 align='right'><hr>". button("{apply}","SavePDNSWatchdog()","18px")."</td></tr>							
 			</table>
 			</div>
-<hr>
-<div class=explain style='font-size:14px'>{pdns_listen_ip_explain}</div>
-
-<div id='network-pdns-table'></div>
-
-			
+	
 <script>
 
 		
@@ -398,29 +481,13 @@ $page=CurrentPageName();
 		
 		
 		
-		function RefreshPDNSNetworkTable(){LoadAjax('network-pdns-table','$page?network-pdns-table=yes');}
 		
-		function PdnsRemoteAddAddr(){
-			var ip=prompt('$listen_ip');
-			if(ip){
-				var XHR = new XHRConnection();
-				XHR.appendData('RemoteAddAddr',ip);
-				AnimateDiv('network-pdns-table');
-				XHR.sendAndLoad('$page', 'POST',x_EnablePowerDNSMySQLEngineCheck);
-			}
-		}
 		
-	function PdnsRemoteDelAddr(ip){
-		var XHR = new XHRConnection();
-		XHR.appendData('RemoteDelAddr',ip);
-		AnimateDiv('network-pdns-table');
-		XHR.sendAndLoad('$page', 'POST',x_EnablePowerDNSMySQLEngineCheck);
-	
-	}
+
 	
 	
 	CheckDNSMysql();
-	RefreshPDNSNetworkTable();
+	
 		
 </script>
 ";
@@ -447,61 +514,11 @@ function PDNSRestartIfUpToMB(){
 
 }
 
-function listen_ip_add(){
-	$sock=new sockets();
-	$datas=explode("\n",$sock->GET_INFO("PowerDNSListenAddr"));
-	while (list ($index, $ipmask) = each ($datas) ){$array[$ipmask]=$ipmask;}
-	$array[$_POST["RemoteAddAddr"]]=$_POST["RemoteAddAddr"];
-	while (list ($index, $ipmask) = each ($array) ){$f[]=$ipmask;}
-	$sock->SaveConfigFile(@implode("\n",$f), "PowerDNSListenAddr");
-	$sock->getFrameWork("cmd.php?pdns-restart=yes");
-}
 
-function listen_ip_del(){
-	$sock=new sockets();
-	$datas=explode("\n",$sock->GET_INFO("PowerDNSListenAddr"));
-	while (list ($index, $ipmask) = each ($datas) ){$array[$ipmask]=$ipmask;}
-	unset($array[$_POST["RemoteDelAddr"]]);
-	while (list ($index, $ipmask) = each ($array) ){$f[]=$ipmask;}
-	$sock->SaveConfigFile(@implode("\n",$f), "PowerDNSListenAddr");	
-	$sock->getFrameWork("cmd.php?pdns-restart=yes");
-}
 
-function listen_ip_list(){
-	$page=CurrentPageName();
-	$user=new usersMenus();
-	$sock=new sockets();
-	$tpl=new templates();	
-	$add=imgtootltip("plus-24.png","{add}","PdnsRemoteAddAddr()");
-	$html="<center>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th width=1%>$add</th>
-		<th colspan=4>{listen_ip}</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";	
-	
-	$datas=explode("\n",$sock->GET_INFO("PowerDNSListenAddr"));
-	if(is_array($datas)){
-		while (list ($index, $ipmask) = each ($datas) ){
-			if(trim($ipmask)==null){continue;}
-			$delete=imgtootltip("delete-32.png","{delete}","PdnsRemoteDelAddr('$ipmask')");
-			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-			$html=$html."
-				<tr class=$classtr>
-					<td width=1%><img src='img/folder-network-32.png'></td>
-					<td style='font-size:16px;font-weight:bold;color:$color'>$ipmask</td>
-					<td width=1%>$delete</td>
-				</tr>
-				";					
-			}
-		}
 
-	echo $tpl->_ENGINE_parse_body($html);	
-		
-	}
+
+
 	
 function js_common(){
 	$page=CurrentPageName();
@@ -652,12 +669,17 @@ function tabs(){
 	$sock=new sockets();
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$users=new usersMenus();
 	$PowerDNSDisableLDAP=$sock->GET_INFO("PowerDNSDisableLDAP");
 	if(!is_numeric($PowerDNSDisableLDAP)){$PowerDNSDisableLDAP=1;}
 	$PowerDNSMySQLEngine=$sock->GET_INFO("PowerDNSDisableLDAP");
-	if(!is_numeric($PowerDNSMySQLEngine)){$PowerDNSMySQLEngine=1;}
-	$array["status"]='{status}';
-	$array["config"]='{parameters}';
+	$PowerDNSMySQLEngine=1;
+	if($users->AsDnsAdministrator){$array["status"]='{status}';}
+	if($users->AsDnsAdministrator){$array["config"]='{parameters}';}
+	if($users->AsDnsAdministrator){$array["listen_ip"]='{listen_ip}';}
+	
+	
+	
 	if($PowerDNSDisableLDAP==0){$array["popup"]='{dns_entries} LDAP';}
 	if($PowerDNSMySQLEngine==1){
 		$array["popup-mysql"]='{dns_entries} MySQL';
@@ -666,9 +688,9 @@ function tabs(){
 	
 	}
 	
-	$array["popup-replic"]='{replication}';
-	$array["infos"]='{infos}';
-	$array["logs"]='{events}';
+	if($users->AsDnsAdministrator){$array["popup-replic"]='{replication}';}
+	if($users->AsDnsAdministrator){$array["infos"]='{infos}';}
+	if($users->AsDnsAdministrator){$array["logs"]='{events}';}
 	
 	
 	
@@ -685,6 +707,11 @@ function tabs(){
 		if($num=="popup-replic"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.replic.php\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
+		}	
+
+		if($num=="listen_ip"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.listen-ip.php\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
 		}		
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span $fontsize>$ligne</span></a></li>\n");
@@ -692,7 +719,7 @@ function tabs(){
 	
 	
 	echo "
-	<div id=main_config_pdns style='width:100%;overflow:auto'>
+	<div id=main_config_pdns style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -722,7 +749,7 @@ function status_section(){
 	if(!is_numeric($PDNSRestartIfUpToMB)){$PDNSRestartIfUpToMB=700;}
 	if(!is_numeric($DisablePowerDnsManagement)){$DisablePowerDnsManagement=0;}
 	if(!is_numeric($PowerDNSDisableLDAP)){$PowerDNSDisableLDAP=1;}
-	
+	$PowerDNSMySQLEngine=1;
 	
 	
 	$DisablePowerDnsManagement_text=$tpl->javascript_parse_text("{DisablePowerDnsManagement_text}");
@@ -766,12 +793,53 @@ function status_section(){
 		$repair_database=Paragraphe("database-error-64.png", "{recreate_database}", "{recreate_database_text}","javascript:RebuildPDNSDB();");
 	}
 	
+	if($user->APP_UFDBGUARD_INSTALLED){
+		$dns_filter=Paragraphe("Firewall-Secure-64.png", "{dns_filter}", "{dns_filters_ufdb_text}",
+		"javascript:Loadjs('pdns.ufdb.php')");
+	}
+	
 	
 	$help=Paragraphe("help-64.png","{help}","{online_help}","javascript:s_PopUpFull('http://nas-appliance.org/index.php?cID=177','1024','900');");
 	
 	$POWER_DNS_MYSQL=1;
-	if(!$user->POWER_DNS_MYSQL){$POWER_DNS_MYSQL=0;$PowerDNSMySQLEngine=0;}
+	//if(!$user->POWER_DNS_MYSQL){$POWER_DNS_MYSQL=0;$PowerDNSMySQLEngine=0;}
 	$t=time();
+	$time=time();
+	
+	$ttr[]=$dns_filter;
+	$ttr[]=$add;
+	$ttr[]=$repair_database;
+	$ttr[]=$help;
+	$ttr[]=$tests;
+	$buttons=CompileTr2($ttr,"form");
+	
+	if($EnablePDNS==1){
+		$q=new mysql();
+		if(!$q->TABLE_EXISTS("records", "powerdns")){
+			
+			$errordb=$tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{error_missing_tables_click_to_repair}",true)."
+					<hr>
+					<center id='$t'>". button("{repair}", "RepairPDNSTables()","22px")."</center>
+					<p>&nbsp;</p>
+					<script>
+						var x_RepairPDNSTables=function (obj) {
+							var results=obj.responseText;
+							if(results.length>0){alert(results);}
+							RefreshTab('main_config_pdns');
+						}
+						function RepairPDNSTables(){
+							var XHR = new XHRConnection();
+							XHR.appendData('RepairPDNSTables','yes');
+							AnimateDiv('$t');
+							XHR.sendAndLoad('pdns.mysql.php', 'POST',x_RepairPDNSTables);
+						}
+					</script>
+		
+					");
+					
+		
+				}	
+		}
 	
 	
 	$html="
@@ -787,26 +855,14 @@ function status_section(){
 			<table style='width:99%' class=form>
 			<tr>
 				<td colspan=2>
+					$errordb
 					". Paragraphe_switch_img("{EnablePDNS}", "{pdns_explain}","EnablePDNS$t",$EnablePDNS,null,450)."
 					<hr>
 					<div style='width:100%;text-align:right;margin-bottom:15px'>". button("{apply}","SaveEnablePowerDNS()","18px")."</div>
 				</td>
 			</tr>
-			
-			
-			<tr>
-				<td>$restart</td>
-				<td>$add</td>
-			</tr>
-			<tr>
-				<td>$repair_database</td>
-				<td>$help</td>
-			</tr>	
-			<tr>
-				<td>$tests</td>
-				<td>&nbsp;</td>
-			</tr>		
 			</table>
+$buttons
 			
 	</tr>
 	</table>
@@ -1206,7 +1262,7 @@ echo $tpl->_ENGINE_parse_body($html);
 function PDNSStatus(){
 	$tpl=new templates();
 	$sock=new sockets();
-	
+	$page=CurrentPageName();
 	
 	$datas=base64_decode($sock->getFrameWork("services.php?pdns-status=yes"));
 	$ini=new Bs_IniHandler();
@@ -1217,6 +1273,17 @@ function PDNSStatus(){
 	$status2=DAEMON_STATUS_ROUND("APP_PDNS_INSTANCE",$ini,null);
 	$status3=DAEMON_STATUS_ROUND("PDNS_RECURSOR",$ini,null);
 	
+	$cmds="<center style='margin-top:10px;margin-bottom:10px;width:95%' class=form>
+		<table style='width:70%'>
+		<tbody>
+		<tr>
+			<td width=10% align='center;'>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?service-cmds=stop')")."</td>
+			<td width=10% align='center'>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?service-cmds=restart')")."</td>
+			<td width=10% align='center'>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
+		</tr>
+		</tbody>
+		</table>
+		</center>";
 	
 	
 	$status="<table style='width:99%' class=form>
@@ -1229,7 +1296,8 @@ function PDNSStatus(){
 	<tr>
 	<td>$status3</td>
 	</tr>
-	</table>	
+	</table>
+	$cmds	
 	";
 	
 	
@@ -1721,7 +1789,8 @@ function RebuildPDNSDB(){
 function SaveEnablePowerDNS(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnablePDNS", $_POST["SaveEnablePowerDNS"]);
-	$sock->getFrameWork("cmd.php?pdns-restart=yes");	
+	$sock->getFrameWork("cmd.php?pdns-restart=yes");
+	$sock->getFrameWork("cmd.php?restart-artica-status=yes");	
 }
 
 if(isset($_POST["SaveEnablePowerDNS"])){SaveEnablePowerDNS();exit;}

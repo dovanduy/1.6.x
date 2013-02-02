@@ -173,10 +173,20 @@ source_folder:=libs.COMPILE_GENERIC_APPS('webapp');
      install.INSTALL_STATUS(CODE_NAME,110);
      exit;
    end;
-     writeln('Install WebApp success...');
-     install.INSTALL_PROGRESS(CODE_NAME,'{success}');
-     install.INSTALL_STATUS(CODE_NAME,100);
-     fpsystem('/bin/rm -rf '+source_folder);
+source_folder:=libs.COMPILE_GENERIC_APPS('webapp-plugins');
+  if not DirectoryExists(source_folder) then begin
+     writeln('Install WebAPP Pugins failed...');
+     writeln(source_folder+' No such directory');
+  end else begin
+      ForceDirectories('/usr/share/zarafa-webapp/plugins');
+      fpsystem('/bin/cp -rfv '+source_folder+'/* /usr/share/zarafa-webapp/plugins/');
+  end;
+  writeln('Install WebApp success...');
+   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.freeweb.php --reconfigure-webapp');
+  install.INSTALL_PROGRESS(CODE_NAME,'{success}');
+  install.INSTALL_STATUS(CODE_NAME,100);
+  fpsystem('/bin/rm -rf '+source_folder);
+
 end;
 //#########################################################################################
 

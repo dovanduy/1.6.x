@@ -1,4 +1,6 @@
 <?php
+$GLOBALS["VERBOSE"]=false;
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 $GLOBALS["ICON_FAMILY"]="organizations";
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -8,7 +10,7 @@ $GLOBALS["ICON_FAMILY"]="organizations";
 	include_once('ressources/class.apache.inc');
 	include_once('ressources/class.lvm.org.inc');
 	include_once('ressources/class.user.inc');
-
+	include_once('ressources/class.external.ad.inc');
 
 	
 	if(!VerifyRights()){
@@ -55,25 +57,33 @@ function js(){
 	if(GET_CACHED(__FILE__,__FUNCTION__,"js:$ou_encoded")){return;}
 	$tpl=new templates();
 	$user=new usersMenus();
+	$ldap=new clladp();
+	$ADTEXT=null;
+	if($GLOBALS["VERBOSE"]){echo "ldap->IsOUUnderActiveDirectory($ou)<br>\n";}
+	if($ldap->IsOUUnderActiveDirectory($ou)){
+		$ADTEXT="::[Active Directory]";
+	}
+	$_GET["dn"]=urlencode($_GET["dn"]);
+	
 	if($user->ZARAFA_APPLIANCE){$userPrefix="{APP_ZARAFA}&raquo;";}
-	$title=$tpl->_ENGINE_parse_body("$userPrefix{organization}&raquo;{$_GET["ou"]}");
+	$title=$tpl->_ENGINE_parse_body("$userPrefix{organization}&raquo;{$_GET["ou"]}$ADTEXT");
 	$page=CurrentPageName();
 	$prefix=str_replace(".","_",$page);
 	$js1=file_get_contents("js/artica_organizations.js");
 	$js2=file_get_contents("js/artica_domains.js");
 	
-	$LoadSingleOrg="LoadWinORG2('870','$page?js-pop=yes&ou=$ou_encoded','$title');";
+	$LoadSingleOrg="LoadWinORG2('870','$page?js-pop=yes&ou=$ou_encoded&dn={$_GET["dn"]}','$title');";
 	
 	if(isset($_GET["in-front-ajax"])){
 		$LoadSingleOrg="
 		document.getElementById('BodyContent').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
-		$('#BodyContent').load('$page?js-pop=yes&ou=$ou_encoded');";	
+		$('#BodyContent').load('$page?js-pop=yes&ou=$ou_encoded&dn={$_GET["dn"]}');";	
 	}
 	
 	if(isset($_GET["groupwares-in-front-ajax"])){
 		$LoadSingleOrg="
 		document.getElementById('BodyContent').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
-		$('#BodyContent').load('$page?org_section=groupwares&SwitchOrgTabs={$_GET["ou"]}&ou={$_GET["ou"]}&mem=yes');";
+		$('#BodyContent').load('$page?org_section=groupwares&SwitchOrgTabs={$_GET["ou"]}&ou={$_GET["ou"]}&mem=yes&dn={$_GET["dn"]}');";
 	}
 	
 	$start_function="LoadSingleOrg()";
@@ -91,7 +101,7 @@ function js(){
 	}
 	
 	function LoadPanel(){
-		LoadAjax('main-org-panel','$page?js-pop=yes&ou=$ou_encoded');
+		LoadAjax('main-org-panel','$page?js-pop=yes&ou=$ou_encoded&dn={$_GET["dn"]}');
 	}	
 	$js1
 	$js2
@@ -132,9 +142,12 @@ function organization_users_find_member_js(){
 
 function groups_section_starter(){
 	$t=time();
-	$html="<div id='$t' style='width:100%;margin-top:-10px;margin-left:-10px'></div>
+	$dn=urlencode($_GET["dn"]);
+	$html="
+	<input type='hidden' id='OuDN' value='{$_GET["dn"]}'>	
+	<div id='$t' style='width:100%;margin-top:-10px;margin-left:-10px'></div>
 	<script>
-		Loadjs('domains.edit.group.php?js=yes&InsideTab=$t&ou={$_GET["ou"]}');
+		Loadjs('domains.edit.group.php?js=yes&InsideTab=$t&ou={$_GET["ou"]}&dn=$dn');
 	</script>
 	
 	";
@@ -454,6 +467,7 @@ function DeleteOU(){
 
 function popup_tabs(){
 	$_GET["ou"]=base64_decode($_GET["ou"]);
+	$_GET["dn"]=urlencode($_GET["dn"]);
 	if(GET_CACHED(__FILE__,__FUNCTION__,"js:{$_GET["ou"]}")){return null;}
 	$sock=new sockets();
 	$EnableGroupWareScreen=$sock->GET_INFO("EnableGroupWareScreen");
@@ -463,7 +477,7 @@ function popup_tabs(){
 	$usersmenus=new usersMenus();
 	$user=$usersmenus;	
 	$ldap=new clladp();
-	
+	$dn=urlencode($_GET["dn"]);
 	
 	if(!isset($_GET["ou"])){
 		if(isset($_COOKIE["SwitchOrgTabs"])){$_GET["SwitchOrgTabs"]=$_COOKIE["SwitchOrgTabs"];}
@@ -509,6 +523,9 @@ function popup_tabs(){
 	}
 	
 	$ou_encrypted=base64_encode("{$_GET["ou"]}");
+
+	
+	
 	
 	if($usersmenus->EnableManageUsersTroughActiveDirectory){
 		unset($array["groupwares"]);
@@ -518,26 +535,26 @@ function popup_tabs(){
 	}
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="postfix-multi"){
-			$a[]="<li><a href=\"domains.postfix.multi.php?org={$_GET["ou"]}&ou={$_GET["ou"]}\"><span $fontsize>$ligne</span></a></li>\n";	
+			$a[]="<li><a href=\"domains.postfix.multi.php?org={$_GET["ou"]}&ou={$_GET["ou"]}&dn=$dn\"><span $fontsize>$ligne</span></a></li>\n";	
 			continue;
 		}
 		
 		if($num=="groups"){
-			$a[]="<li><a href=\"$page?group-section=yes&ou={$_GET["ou"]}\"><span $fontsize>$ligne</span></a></li>\n";	
+			$a[]="<li><a href=\"$page?group-section=yes&ou={$_GET["ou"]}&dn=$dn\"><span $fontsize>$ligne</span></a></li>\n";	
 			continue;
 		}		
 		
 		if($num=="emailings"){
-			$a[]="<li><a href=\"domains.emailings.php?popup=yes&ou=$ou_encrypted\"><span $fontsize>$ligne</span></a></li>\n";	
+			$a[]="<li><a href=\"domains.emailings.php?popup=yes&ou=$ou_encrypted&dn=$dn\"><span $fontsize>$ligne</span></a></li>\n";	
 			continue;
 		}	
 
 		if($num=="users"){
-			$a[]="<li><a href=\"$page?org_section=$num&SwitchOrgTabs=$ou_encrypted&ou=$ou_encrypted&mem=yes\"><span $fontsize>$ligne</span></a></li>\n";	
+			$a[]="<li><a href=\"$page?org_section=$num&SwitchOrgTabs=$ou_encrypted&ou=$ou_encrypted&mem=yes&dn=$dn\"><span $fontsize>$ligne</span></a></li>\n";	
 			continue;
 		}		
 		
-		$a[]="<li><a href=\"$page?org_section=$num&SwitchOrgTabs={$_GET["ou"]}&ou={$_GET["ou"]}&mem=yes\"><span $fontsize>$ligne</span></a></li>\n";
+		$a[]="<li><a href=\"$page?org_section=$num&SwitchOrgTabs={$_GET["ou"]}&ou={$_GET["ou"]}&mem=yes&dn=$dn\"><span $fontsize>$ligne</span></a></li>\n";
 			
 		}	
 	
@@ -562,7 +579,7 @@ function popup_tabs(){
 			
 			});
 			
-			LoadAjaxHidden('count-user-$time','$page?count-de-users={$_GET["ou"]}&ou={$_GET["ou"]}');
+			LoadAjaxHidden('count-user-$time','$page?count-de-users={$_GET["ou"]}&ou={$_GET["ou"]}&dn=$dn');
 			
 		</script>
 	
@@ -577,13 +594,23 @@ function popup_tabs(){
 
 function COUNT_DE_USERS(){
 		$sock=new sockets();
-	$EnableManageUsersTroughActiveDirectory=$sock->GET_INFO("EnableManageUsersTroughActiveDirectory");
-	if(!is_numeric($EnableManageUsersTroughActiveDirectory)){$EnableManageUsersTroughActiveDirectory=0;}	
+		$ldap=new clladp();
+		$_GET["dn"]=urldecode($_GET["dn"]);
+		if($ldap->IsKerbAuth()){
+			$ad=new external_ad_search();
+			echo $ad->CountDeUSerOu($_GET["count-de-users"],$_GET["dn"]);
+			
+		}
+		
+		
+		
+		$EnableManageUsersTroughActiveDirectory=$sock->GET_INFO("EnableManageUsersTroughActiveDirectory");
+		if(!is_numeric($EnableManageUsersTroughActiveDirectory)){$EnableManageUsersTroughActiveDirectory=0;}	
 	
-	if($EnableManageUsersTroughActiveDirectory==1){
-		$ldap=new ldapAD();
-		echo $ldap->CountDeUSerOu($_GET["count-de-users"]);
-		return;
+		if($EnableManageUsersTroughActiveDirectory==1){
+			$ldap=new ldapAD();
+			echo $ldap->CountDeUSerOu($_GET["count-de-users"],$_GET["dn"]);
+			return;
 		
 	}	
 	
@@ -780,6 +807,7 @@ $table=CompileTr3($tr);
 function organization_management(){
 	$ou=$_GET["ou"];
 	$ou_encoded=base64_encode($ou);
+	$ldap=new clladp();
 	$sock=new sockets();
 	if(trim($ou==null)){
 		if(isset($_COOKIE["SwitchOrgTabsOu"])){$_GET["ou"]=$_COOKIE["SwitchOrgTabsOu"];}
@@ -804,7 +832,7 @@ function organization_management(){
 	
 	
 if($usersmenus->AsOrgAdmin){
-	$ldap=new clladp();
+	
 	$img=$ldap->get_organization_picture($ou,64);
 	$ad_import=Paragraphe('folder-import-ad-64.png','{ad_import}','{ad_import_text}',"javascript:Loadjs('domains.ad.import.php?ou=$ou')",null,210,0,0,true);
 	$ldap_import=Paragraphe('database-restore-64.png','{ldap_importation}','{ldap_importation_text}',"javascript:Loadjs('domains.ldap.import.php?ou=$ou')",null,210,0,0,true);
@@ -822,7 +850,7 @@ if($usersmenus->ARTICA_META_ENABLED){
 }
 if($usersmenus->POSTFIX_INSTALLED){$transport=null;	}
 
-if($usersmenus->EnableManageUsersTroughActiveDirectory){
+if(($usersmenus->EnableManageUsersTroughActiveDirectory) OR ($ldap->IsOUUnderActiveDirectory($ou))){
 	$ad_import=Paragraphe('folder-import-ad-64-grey.png','{ad_import}','{ad_import_text}');
 	$orgsduplicate=Paragraphe('org-duplicate-64-grey.png','{EXPORT_ORG}','{duplicate_to_remote_server}');
 	$delete=Paragraphe('64-cancel-grey.png','{delete_ou}','{delete_ou_text}');
@@ -830,6 +858,8 @@ if($usersmenus->EnableManageUsersTroughActiveDirectory){
 	$orgsettings=Paragraphe('64-org-settings-grey.png','{ORG_SETTINGS}','{ORG_SETTINGS_TEXT}');
 	$ldap_import=Paragraphe('database-restore-64-grey.png','{ldap_importation}','{ldap_importation_text}');
 }
+
+
 
 $tr[]=$add_user ;
 $tr[]=$groups; 
@@ -1476,7 +1506,7 @@ function organization_users_list(){
 	<input type='hidden' id='org_user_list_ou' value='{$_GET["ou"]}'>
 	<div id='$t'></div>
 	<script>
-		LoadAjax('$t','domains.manage.org.findusers.php?ou={$_GET["ou"]}');
+		LoadAjax('$t','domains.manage.org.findusers.php?ou={$_GET["ou"]}&dn={$_GET["dn"]}');
 	</script>";
 
 	echo $html;return;
@@ -1492,7 +1522,7 @@ function organization_users_list(){
 	<script>
 		function FindUserCheckEnter(e){
 			if(checkEnter(e)){
-				LoadAjax('org_user_list','$page?finduser='+document.getElementById('searchstring').value+'&ou={$_GET["ou"]}');
+				LoadAjax('org_user_list','$page?finduser='+document.getElementById('searchstring').value+'&ou={$_GET["ou"]}&dn={$_GET["dn"]}');
 			}
 		}
 	

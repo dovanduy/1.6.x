@@ -23,6 +23,7 @@
 function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$ldap=new clladp();
 	$t=time();
 	$new_member=$tpl->_ENGINE_parse_body("{new_member}");
 	$email=$tpl->_ENGINE_parse_body("{email}");
@@ -41,13 +42,15 @@ function page(){
 		$groups=Paragraphe('folder-group-64.png','{manage_groups}','{manage_groups_text}',"javascript:Loadjs('domains.edit.group.php?ou=$ou_encoded&js=yes')",null,210,100,0,true);
 		$delete_all_users=Paragraphe('member-64-delete.png','{delete_all_users}','{delete_all_users_text}',"javascript:DeleteAllusers()",null,210,100,0,true);	
 	
+		$bt_add="{name: '<b>$new_member</b>', bclass: 'Add', onpress : NewMemberOU},";
+		if($ldap->IsKerbAuth()){$bt_add=null;}
 	$buttons="
 	buttons : [
-	{name: '<b>$new_member</b>', bclass: 'Add', onpress : NewMemberOU},
+	$bt_add
 	{name: '<b>$manage_groups</b>', bclass: 'Groups', onpress : ManageGroupsOU},$bt_enable
 	],";	
 	
-	$width=810;
+	$width=820;
 	$height=380;
 	$emailTR=252;
 	if(isset($_GET["end-user-interface"])){
@@ -69,7 +72,7 @@ $div<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100
 row_id='';
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?users-list=yes&ou={$_GET["ou"]}&t=$t',
+	url: '$page?users-list=yes&ou={$_GET["ou"]}&t=$t&dn={$_GET["dn"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'website_name', width : 31, sortable : false, align: 'left'},
@@ -124,6 +127,7 @@ function users_list(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
 	$ldap=new clladp();
+	if($ldap->IsKerbAuth()){users_list_active_directory();return;}
 	$database="artica_backup";	
 	$search='%';
 	$table="squid_ssl";
@@ -142,16 +146,23 @@ function users_list(){
 	$filter="(&(objectClass=userAccount)(|(cn=$tofind)(mail=$tofind)(displayName=$tofind)(uid=$tofind) (givenname=$tofind)))";
 	$attrs=array("displayName","uid","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber","sAMAccountName");
 		
-		
-	if($EnableManageUsersTroughActiveDirectory==1){
+	if(!$ldap->IsOUUnderActiveDirectory($ou)){
+		if($EnableManageUsersTroughActiveDirectory==1){
 		$cc=new ldapAD();
 		$hash=$cc->find_users($ou,$tofind);
+		}else{
+			$ldap=new clladp();
+			$dn="ou=$ou,dc=organizations,$ldap->suffix";
+			$hash=$ldap->Ldap_search($dn,$filter,$attrs,150);
+		}
 	}else{
-		$ldap=new clladp();
-		$dn="ou=$ou,dc=organizations,$ldap->suffix";
-		$hash=$ldap->Ldap_search($dn,$filter,$attrs,150);
-		
+		$EnableManageUsersTroughActiveDirectory=1;
+		include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+		$ad=new external_ad_search();
+		$hash=$ad->find_users($ou, $tofind);
 	}
+	
+	
 
 	$users=new user();
 	
@@ -207,6 +218,91 @@ function users_list(){
 echo json_encode($data);		
 
 }
+
+function users_list_active_directory(){
+	$database="artica_backup";
+	$search='%';
+	$table="squid_ssl";
+	$page=1;
+	$FORCE_FILTER="AND `type`='ssl-bump-wl'";
+	$t=$_GET["t"];
+	$dn=urldecode($_GET["dn"]);
+	$sock=new sockets();
+	
+	
+	if($_POST["query"]<>null){$tofind=$_POST["query"];}
+	
+	if($tofind==null){$tofind='*';}else{$tofind="*$tofind*";}
+	
+	if(strpos($dn, ",")>0){$ou=$dn;}
+	
+	include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+	$ad=new external_ad_search();
+	$hash=$ad->find_users($ou, $tofind,$_POST['rp']);
+	$number=$hash["count"];
+	if(!is_numeric($number)){$number=0;}
+	
+	$data = array();
+	$data['page'] = 1;
+	$data['total'] = $number;
+	$data['rows'] = array();
+	
+	
+	for($i=0;$i<$number;$i++){
+		$userARR=$hash[$i];
+		$dn=null;
+		$uid=$userARR["uid"][0];
+		
+		if(isset($userARR["samaccountname"][0])){
+			$uid=$userARR["samaccountname"][0];
+		}
+		
+		
+		if(isset($userARR["distinguishedname"][0])){
+			$dn=$userARR["distinguishedname"][0];
+		}
+	
+		if($uid=="squidinternalauth"){continue;}
+		$js=MEMBER_JS($uid,1,1,$dn);
+	
+		if(($userARR["sn"][0]==null) && ($userARR["givenname"][0]==null)){$userARR["sn"][0]=$uid;}
+	
+		$sn=$userARR["sn"][0];
+		$givenname=$userARR["givenname"][0];
+		$title=$userARR["title"][0];
+		$mail=$userARR["mail"][0];
+		$telephonenumber=$userARR["telephonenumber"][0];
+		if($userARR["telephonenumber"][0]==null){$userARR["telephonenumber"][0]="&nbsp;";}
+		if($userARR["mail"][0]==null){$userARR["mail"][0]="&nbsp;";}
+	
+		$img=imgsimple("contact-24.png",null,$js);
+		$href="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='text-decoration:underline'>";
+		
+		
+		$dele="&nbsp;";
+	
+		$data['rows'][] = array(
+				'id' => $uid,
+				'cell' => array(
+						$img,
+						"<span style='font-size:14px;color:$color'>$href{$userARR["sn"][0]} {$userARR["givenname"][0]}</a><div><i>{$userARR["title"][0]}</i></span>",
+						"<span style='font-size:14px;color:$color'>{$userARR["telephonenumber"][0]}</span>",
+						"<span style='font-size:14px;color:$color'>$href{$userARR["mail"][0]}</a></span>",
+						$dele
+	
+				)
+		);
+	
+	
+	}
+	
+	
+	
+	echo json_encode($data);
+	
+	
+}
+
 function VerifyRights(){
 	$usersmenus=new usersMenus();
 	if(!$usersmenus->AsSystemAdministrator){$_GET["ou"]=$_SESSION["ou"];}

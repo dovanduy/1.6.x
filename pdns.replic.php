@@ -312,14 +312,21 @@ function item_save(){
 	
 }
 function item_delete(){
-	$id=$_POST["item-delete"];
+	$id=$_POST["delete-item"];
 	$q=new mysql();
 	$sql="SELECT * FROM pdns_replic WHERE ID=$id";
-	
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if(!$q->ok){echo $q->mysql_error;return;}
+	if($ligne["hostname"]==null){echo "$id -> No hostname\n";return;}
+	
 	$sql="DELETE FROM records WHERE articasrv='{$ligne["hostname"]}'";
-	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo $q->mysql_error;}
+	$q->QUERY_SQL($sql,"powerdns");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	
+	$sql="DELETE FROM records WHERE articasrv='{$ligne["hostname"]}:{$ligne["host_port"]}'";
+	$q->QUERY_SQL($sql,"powerdns");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	
 	$sql="DELETE FROM pdns_replic WHERE ID='$id'";
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;}	

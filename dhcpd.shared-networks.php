@@ -5,7 +5,7 @@ include_once('ressources/class.templates.inc');
 include_once('ressources/class.users.menus.inc');
 include_once('ressources/class.dhcpd.inc');
 $users=new usersMenus();
-if(!$users->AsSystemAdministrator){		
+if(!GetRights()){		
 	$tpl=new templates();
 	echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 	die();exit();
@@ -18,7 +18,11 @@ if(!$users->AsSystemAdministrator){
 	if(isset($_POST["SharedNetsApply"])){shared_apply();exit;}
 page();
 
-
+function GetRights(){
+	$users=new usersMenus();
+	if($users->AsSystemAdministrator){return true;}
+	if($users->ASDCHPAdmin){return true;}
+}
 
 function page(){
 	$tpl=new templates();

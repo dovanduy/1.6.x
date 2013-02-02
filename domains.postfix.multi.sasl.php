@@ -25,7 +25,7 @@ function js(){
 	$html=
 	"
 	function SASL_MULTI_START(){	
-		YahooWin3(700,'$page?popup=yes&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}','$title');
+		YahooWin3(790,'$page?popup=yes&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}','$title');
 	} 
 	
 var x_postfix_multi_enable_auth= function (obj) {

@@ -14,7 +14,7 @@
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
 	}
-	
+	if(isset($_GET["template-settings-js"])){template_settings_js();exit;}
 	if(isset($_POST["newtemplate"])){TEMPLATE_ADD_SAVE();exit;}
 	if(isset($_POST["template_body"])){ZOOM_SAVE();exit;}
 	if(isset($_POST["TEMPLATE_DATA"])){TEMPLATE_SAVE();}
@@ -135,24 +135,42 @@ function HEADERS_POPUP(){
 	echo $tpl->_ENGINE_parse_body($html);		
 	
 }
+
+function template_settings_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=$_GET["t"];
+	if(!is_numeric($t)){$t=time();}
+	echo "YahooWin5('600','$page?new-template=yes&t=$t&templateid={$_GET["zmd5"]}','{$_GET["zmd5"]}');";
+	
+}
 	
 function ZOOM_POPUP(){
 	$q=new mysql_squid_builder();
 	$page=CurrentPageName();
-	$t=time();
+	$t=$_GET["t"];
+	if(!is_numeric($t)){$t=time();}
 	$sql="SELECT template_body,template_title FROM squidtpls WHERE `zmd5`='{$_GET["zmd5"]}'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$headers_text=$tpl->_ENGINE_parse_body("{headers}");
+	$parameters=$tpl->_ENGINE_parse_body("{parameters}");
 	$ligne["template_body"]=trim($ligne["template_body"]);	
 	if($ligne["template_body"]==null){
 		$ligne["template_body"]="<table class=\"w100 h100\"><tr><td class=\"c m\"><table style=\"margin:0 auto;border:solid 1px #560000\"><tr><td class=\"l\" style=\"padding:1px\"><div style=\"width:346px;background:#E33630\"><div style=\"padding:3px\"><div style=\"background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF\"><div style=\"background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF\"><h1>ERROR: The requested URL could not be retrieved</h1></div><div class=\"c\" style=\"font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0\">Proxy Error</div><div style=\"background:#F7F7F7;padding:20px 28px 36px\"> <div id=\"titles\"> <h1>ERROR</h1> <h2>The requested URL could not be retrieved</h2> </div> <hr>  <div id=\"content\"> <p>The following error was encountered while trying to retrieve the URL: <a href=\"%U\">%U</a></p>  <blockquote id=\"error\"> <p><b>Access Denied.</b></p> </blockquote>  <p>Access control configuration prevents your request from being allowed at this time. Please contact your service provider if you feel this is incorrect.</p>  <p>Your cache administrator is <a href=\"mailto:%w%W\">%w</a>.</p> <br> </div>  <hr> <div id=\"footer\"> <p>Generated %T by %h (%s)</p> <!-- %c --> </div> </div></div></div></td></tr></table></td></tr></table>";
 	}
 	$html="
 	<table style='width:99%' class=form>
+	
+	
+	
 	<tr>
 	<td width=99%>&nbsp;</td>
+		<td nowrap width=1%><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?template-settings-js=yes&zmd5={$_GET["zmd5"]}&t=$t');\"
+		style='font-size:14px;font-weight:bold;text-decoration:underline'>$parameters</a>
+	</td>
+	
 	<td nowrap width=1%><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?headers-js=yes&zmd5={$_GET["zmd5"]}');\"
 		style='font-size:14px;font-weight:bold;text-decoration:underline'>$headers_text</a>
 	</td>
@@ -245,6 +263,8 @@ function TEMPLATE_AFFECT(){
 }
 
 
+
+
 function TEMPLATE_ADD(){
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -252,39 +272,87 @@ function TEMPLATE_ADD(){
 	$sql="SELECT lang FROM squidtpls GROUP BY lang ORDER BY lang";
 	$results=$q->QUERY_SQL($sql);
 	$t=time();
+	$btname="{add}";
 	$lang[]="{select}";
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$txt=$ligne["lang"];
 		if(is_numeric($txt)){continue;}
 		if($ligne["lang"]==null){continue;}
 		$lang[$ligne["lang"]]=$txt;
-	}		
-	$field=Field_array_Hash($lang, "lang1-$t",$tpl->language,null,null,0,"font-size:16px");
+	}
+
+	
+	if(strlen($_GET["templateid"])>5){
+		$sql="SELECT * FROM squidtpls WHERE `zmd5`='{$_GET["templateid"]}'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$btname="{apply}";
+	}
+
+	$statusCode=$q->LoadStatusCodes();
+	if($ligne["lang"]==null){$ligne["lang"]=$tpl->language;}
+	
+	if(preg_match("#([0-9]+):(.+)#", $ligne["template_uri"],$re)){
+		$ligne["template_uri"]=$re[2];
+		$status_code=$re[1];
+		if(strpos($ligne["template_uri"], "%FREEWEBS%")>1){
+			$freewebs_compliance=1;
+			$ligne["template_uri"]=str_replace("%FREEWEBS%", "", $ligne["template_uri"]);
+		}
+	}
+	
+	if(!is_numeric($status_code)){$status_code=303;}
+	if(!is_numeric($freewebs_compliance)){$freewebs_compliance=0;}
+	
+	
+	$q=new mysql();
+	$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(*) as tcount FROM freeweb WHERE `groupware`='ERRSQUID'","artica_backup"));
+	if($ligne2["tcount"]>0){
+		$freewebsButton="<input type='button' OnClick=\"javascript:Loadjs('BrowseFreeWebs.php?groupware=ERRSQUID&field=template_uri-$t&withhttp=1');\"
+		value='{browse}...'>";
+	}
+	
+	
+	$field=Field_array_Hash($lang, "lang1-$t",$ligne["lang"],null,null,0,"font-size:16px");
 	$html="<div id='$t'></div>
 		<table style='width:100%;margin-top:20px;margin-bottom:8px' class=form>
 		<tbody>
 			<tr>
 				<td class=legend style='font-size:16px'>{template_name}:</td>
-				<td>". Field_text("tplname-$t",null,"font-size:16px;width:95%")."</td>
+				<td>". Field_text("tplname-$t",$ligne["template_name"],"font-size:16px;width:95%")."</td>
+				<td>&nbsp;</td>
 			</tr>	
 			<tr>
 				<td class=legend style='font-size:16px'>{subject}:</td>
-				<td>". Field_text("template_title-$t",null,"font-size:16px;width:95%")."</td>
+				<td>". Field_text("template_title-$t",$ligne["template_title"],"font-size:16px;width:95%")."</td>
+				<td>&nbsp;</td>
 			</tr>	
 			<tr>
 				<td class=legend style='font-size:16px'>{language}:</td>
 				<td>$field</td>
+				<td>&nbsp;</td>
 			</tr>			
 			<tr>
 				<td class=legend style='font-size:16px'>{UseALink}:</td>
-				<td>". Field_checkbox("template_link-$t",1,0,"UseALink$t()")."</td>
-			</tr>			
-			<tr>
-				<td class=legend style='font-size:16px'>{url}:</td>
-				<td>". Field_text("template_uri-$t",null,"font-size:16px;width:95%")."</td>
+				<td>". Field_checkbox("template_link-$t",1,$ligne["template_link"],"UseALink$t()")."</td>
+				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td colspan=2 align='right'><hr>". button("{add}","SaveNewTemplate$t()",16)."</td>*
+				<td class=legend style='font-size:16px'>{http_status_code}:</td>
+				<td>". Field_array_Hash($statusCode, "status_code-$t",303,null,null,0,"font-size:16px;")."</td>
+				<td>&nbsp;</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:16px'>{freewebs_compliance}:</td>
+				<td>". Field_checkbox("freewebs_compliance-$t",1,$freewebs_compliance)."</td>
+				<td>&nbsp;</td>
+			</tr>								
+			<tr>
+				<td class=legend style='font-size:16px'>{url}:</td>
+				<td>". Field_text("template_uri-$t",$ligne["template_uri"],"font-size:16px;width:95%")."</td>
+				<td>$freewebsButton</td>
+			</tr>
+			<tr>
+				<td colspan=3 align='right'><hr>". button($btname,"SaveNewTemplate$t()",16)."</td>
 			</tR>
 		</tbody>
 		</table>
@@ -301,11 +369,14 @@ function TEMPLATE_ADD(){
 			}	
 		function SaveNewTemplate$t(){
 				var template_link=0;
+				var freewebs_compliance=0;
 				var lang=document.getElementById('lang1-$t').value;
 				var tplname=document.getElementById('tplname-$t').value;
 				var tplTitle=document.getElementById('template_title-$t').value;
+				var status_code=document.getElementById('status_code-$t').value;
 				template_uri=document.getElementById('template_uri-$t').value;
 				if(document.getElementById('template_link-$t').checked){template_link=1;}
+				if(document.getElementById('freewebs_compliance-$t').checked){freewebs_compliance=1;}
 				
 				if(template_link==0){
 					if(lang.length==0){alert('Please select a language..');return;}
@@ -321,27 +392,22 @@ function TEMPLATE_ADD(){
 		      	XHR.appendData('template_title',tplTitle);
 		      	XHR.appendData('template_link',template_link);
 		      	XHR.appendData('template_uri',template_uri);
+		      	XHR.appendData('status_code',status_code);
+		      	XHR.appendData('freewebs_compliance',freewebs_compliance);
 		      	XHR.appendData('lang',lang);
+		      	XHR.appendData('templateid','{$_GET["templateid"]}');
+		      	
+		      	
+		      	
+		      	
 		      	AnimateDiv('$t');
 		      	XHR.sendAndLoad('$page', 'POST',x_SaveNewTemplate$t);   				
 				
 				
 			}
 			
-			function UseALink$t(){
-				var UseALink=0;
-				if(document.getElementById('template_link-$t').checked){UseALink=1;}
-				if(UseALink==1){
-					document.getElementById('lang1-$t').disabled=true;
-					document.getElementById('template_title-$t').disabled=true;
-				}else{
-					document.getElementById('lang1-$t').disabled=false;
-					document.getElementById('template_title-$t').disabled=false;				
-				}
-				
-				
-			
-			}
+		function UseALink$t(){}
+		
 			
 		</script>
 		";
@@ -350,6 +416,24 @@ function TEMPLATE_ADD(){
 }
 
 function TEMPLATE_ADD_SAVE(){
+	
+	
+	if($_POST["template_uri"]<>null){
+		if(!preg_match("#^http#", $_POST["template_uri"])){
+			$_POST["template_uri"]="http://". $_POST["template_uri"];
+		}
+	}
+	
+	
+	if($_POST["status_code"]<>null){
+		if($_POST["status_code"]>0){
+			$_POST["template_uri"]="{$_POST["status_code"]}:{$_POST["template_uri"]}";
+		}
+	}
+		
+	if($_POST["freewebs_compliance"]==1){
+		$_POST["template_uri"]=$_POST["template_uri"]."%FREEWEBS%";
+	}
 	
 	$tpl_name=$_POST["template_name"];
 	$tpl_name=replace_accents($tpl_name);
@@ -385,6 +469,19 @@ function TEMPLATE_ADD_SAVE(){
 	$sql="INSERT IGNORE INTO squidtpls (zmd5,template_name,template_title,lang,template_body,template_link,template_uri) 
 	VALUES ('$md5','{$_POST["template_name"]}','{$_POST["template_title"]}','{$_POST["lang"]}',
 	'{$_POST["template_body"]}','{$_POST["template_link"]}','{$_POST["template_uri"]}')";
+	
+	if(strlen($_POST["templateid"])>5){
+		$sql="UPDATE squidtpls SET 
+				template_name='{$_POST["template_name"]}',
+				template_title='{$_POST["template_title"]}',
+				lang='{$_POST["lang"]}',
+				template_link='{$_POST["template_link"]}',
+				template_uri='{$_POST["template_uri"]}'
+				WHERE zmd5='{$_POST["templateid"]}'";
+		
+	}
+	
+	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$q=new mysql_squid_builder();
 	$q->CheckTables();
@@ -446,7 +543,7 @@ function popup(){
 	$lang=$tpl->_ENGINE_parse_body("{language}");
 	$rule=$tpl->_ENGINE_parse_body("{rule}");
 	$title=$tpl->_ENGINE_parse_body("{subject}");
-	$new_template=$tpl->_ENGINE_parse_body("{new_template}");
+	$new_template=$tpl->javascript_parse_text("{new_template}");
 	$ask_remove_template=$tpl->javascript_parse_text("{ask_remove_template}");
 	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
 	$date=$tpl->_ENGINE_parse_body("{zDate}");
@@ -483,7 +580,7 @@ $('#SquidTemplateErrorsTable').flexigrid({
 	],
 	
 	buttons : [
-		{name: '$new_template', bclass: 'add', onpress : NewTemplate},
+		{name: '$new_template', bclass: 'add', onpress : NewTemplateNew},
 		{name: '$lang', bclass: 'Search', onpress : SearchLanguage},
 		{separator: true},
 		{name: '$online_help', bclass: 'Help', onpress : help$t},
@@ -512,7 +609,7 @@ $('#SquidTemplateErrorsTable').flexigrid({
 });
 
 function help$t(){
-	s_PopUpFull('http://proxy-appliance.org/index.php?cID=282','1024','900');
+	s_PopUpFull('http://proxy-appliance.org/index.php?cID=385','1024','900');
 }
 
 
@@ -520,8 +617,20 @@ function help$t(){
 	function SearchLanguage(){
 		YahooWin5(350,'$page?Select-lang=yes&choose-acl={$_GET["choose-acl"]}','$lang');
 	}
-	function NewTemplate(){
-		YahooWin5('550','$page?new-template=yes&t=$t','$new_template');
+	
+	function NewTemplateNew(){
+		YahooWin5('600','$page?new-template=yes&t=$t','$new_template');
+	}
+	
+	function NewTemplate(templateid){
+		var title='$new_template';
+		if(!templateid){templateid='';}else{title=templateid;}
+		if(templateid.length<20){
+			title='$new_template';
+			templateid='';
+		}
+		
+		YahooWin5('600','$page?new-template=yes&t=$t&templateid='+templateid,title);
 	}
 	
 	var x_RebuidSquidTplDefault=function(obj){
@@ -647,17 +756,24 @@ function view_table(){
 	$data['rows'] = array();
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show("$q->mysql_error",2);}
+	$statuscodes=$q->LoadStatusCodes();
 	$span="<span style='font-size:12px'>";
 	while ($ligne = mysql_fetch_assoc($results)) {
-		
+		$zmd5=$ligne["zmd5"];
 		$title=base64_encode($ligne["template_title"]);
 		$linkZoom="<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$Mypage?Zoom-js={$ligne['zmd5']}&subject=$title');\" style='font-size:12px;text-decoration:underline'>";
 	
 		
 		if($ligne["template_link"]==1){
-			$ligne['lang']="-";
+			$ligne['lang']=imgsimple("24-parameters.png",null,"NewTemplate('$zmd5')");
+			
+			if(preg_match("#^([0-9]+):(.+)#", $ligne["template_uri"],$ri)){
+				$ligne["template_uri"]=$ri[2];
+				$ligne["template_uri"]=str_replace("%FREEWEBS%", "<div>+FreeWebs</div>", $ligne["template_uri"]);
+				$ligne["template_uri"]=$ligne["template_uri"]."<div>".$statuscodes[$ri[1]]."</div>";
+			}
 			$ligne["template_title"]=$ligne["template_uri"];
-			$linkZoom=null;
+			
 		}
 		
 		$cell=array();

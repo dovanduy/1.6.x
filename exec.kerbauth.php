@@ -8,13 +8,16 @@ include_once(dirname(__FILE__)."/framework/class.settings.inc");
 $GLOBALS["CHECKS"]=false;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["JUST_PING"]=false;
+$GLOBALS["OUTPUT"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;echo "VERBOSED !!! \n";}
+if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(preg_match("#--checks#",implode(" ",$argv))){$GLOBALS["CHECKS"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 $GLOBALS["EXEC_PID_FILE"]="/etc/artica-postfix/".basename(__FILE__).".pid";
 $unix=new unix();
+if($argv[1]=='--fstab'){winbindisacl();die();}
 
 if($argv[1]=="--klist"){ping_klist();die();}
 if($argv[1]=='--winbinddpriv'){winbind_priv_perform(true);die();}
@@ -24,6 +27,8 @@ if($argv[1]=="--build"){build();die();}
 if($argv[1]=="--ping"){$GLOBALS["JUST_PING"]=true;ping_kdc();die();}
 if($argv[1]=="--samba-proxy"){SAMBA_PROXY();die();}
 if($argv[1]=='--winbindfix'){winbindfix();die();}
+
+
 if($argv[1]=='--winbindacls'){winbindd_set_acls_mainpart();die();}
 if($argv[1]=='--winbinddmonit'){winbindd_monit();die();}
 if($argv[1]=='--join'){JOIN_ACTIVEDIRECTORY();die();}
@@ -94,6 +99,7 @@ function refresh_ticket($nopid=false){
 function build_kerberos(){
 	$unix=new unix();
 	$sock=new sockets();
+	$function=__FUNCTION__;
 	if(is_file("/etc/monit/conf.d/winbindd.monitrc")){@unlink("/etc/monit/conf.d/winbindd.monitrc");}
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
@@ -311,13 +317,15 @@ function krb5conf(){
 	@file_put_contents("/usr/share/krb5-kdc/kadm.acl"," ");
 	@file_put_contents("/etc/krb5kdc/kadm5.acl"," ");
 	echo "Starting......: $function, /etc/kadm.acl done\n";	
-	RunKinit($array["WINDOWS_SERVER_ADMIN"],$array["WINDOWS_SERVER_PASS"]);
+	RunKinit("{$array["WINDOWS_SERVER_ADMIN"]}@$domainUp",$array["WINDOWS_SERVER_PASS"]);
 	
 }
 
 function check_msktutil(){
 	$unix=new unix();
 	$msktutil=$unix->find_program("msktutil");
+	$nohup=$unix->find_program("nohup");
+	$tar=$unix->find_program("tar");
 	$function=__FUNCTION__;
 	if(is_file($msktutil)){return $msktutil;}
 	echo "Starting......: Kerberos, msktutil no such binary\n";
@@ -399,7 +407,12 @@ function run_msktutils(){
 	
 	$f[]="$msktutil -c -b \"{$array["COMPUTER_BRANCH"]}\"";
 	$f[]="-s HTTP/$myFullHostname -h $myFullHostname -k /etc/krb5.keytab";
-	$f[]="--computer-name $myNetBiosName --upn HTTP/$myFullHostname --server $domain_controller --verbose$enctypes";
+	$f[]="--computer-name $myNetBiosName --upn HTTP/$myFullHostname --server $domain_controller $enctypes";
+	$f[]="--verbose";
+	if($msktutil_version==4){
+		//$f[]="--user-creds-only";
+	}
+	
 	
 	$cmdline=@implode(" ", $f);
 	echo "Starting......: $function,`$cmdline`\n";
@@ -420,13 +433,15 @@ function run_msktutils(){
 function build(){
 	$unix=new unix();
 	$sock=new sockets();
+	$function=__FUNCTION__;
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
 	if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	if($EnableKerberosAuthentication==1){
 		echo "Starting......: Kerberos, disabled\n";
-		build_kerberos();return;}
+		build_kerberos();
+		return;}
 	if($EnableKerbAuth==0){
 		echo "Starting......: Auth Winbindd, disabled\n";
 		if(is_file("/etc/monit/conf.d/winbindd.monitrc")){@unlink("/etc/monit/conf.d/winbindd.monitrc");}
@@ -437,6 +452,7 @@ function build(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$timeExec=intval($unix->PROCCESS_TIME_MIN($oldpid));
+		if($GLOBALS["OUTPUT"]){echo "Process $oldpid already exists since {$timeExec}Mn\n";}
 		writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
 		if($timeExec>5){
 			$kill=$unix->find_program("kill");
@@ -449,7 +465,11 @@ function build(){
 	
 	
 	$time=$unix->file_time_min($timefile);
-	if($time<2){writelogs("2mn minimal to run this script currently ({$time}Mn)",__FUNCTION__,__FILE__,__LINE__);return;}
+	if($time<2){
+		if($GLOBALS["OUTPUT"]){echo "2mn minimal to run this script currently ({$time}Mn)\n";}
+		writelogs("2mn minimal to run this script currently ({$time}Mn)",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}
 	
 	$mypid=getmypid();
 	@file_put_contents($pidfile, $mypid);
@@ -494,6 +514,7 @@ function build(){
 	$kinitpassword=$array["WINDOWS_SERVER_PASS"];
 	$kinitpassword=str_replace("'","",escapeshellarg($kinitpassword));
 	$kinitpassword=str_replace('$', '\$', $kinitpassword);
+	$kinitpassword=str_replace('!', '\!', $kinitpassword);
 	$ipaddr=trim($array["ADNETIPADDR"]);
 	
 	sync_time();
@@ -530,7 +551,8 @@ function build(){
 	}
 	winbind_priv();
 	winbindd_monit();
-	if(is_file("/etc/init.d/winbind")){shell_exec("/etc/init.d/artica-postfix restart winbindd --force");}
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 /usr/share/artica-postfix/exec.winbind.php --start");
 
 
 
@@ -540,6 +562,7 @@ function JOIN_ACTIVEDIRECTORY(){
 	$unix=new unix();	
 	$user=new settings_inc();
 	$netbin=$unix->LOCATE_NET_BIN_PATH();
+	$nohup=$unix->find_program("nohup");
 	$function=__FUNCTION__;
 	if(!is_file($netbin)){echo "Starting......:  net, no such binary\n";return;}
 	if(!$user->SAMBA_INSTALLED){echo "Starting......:  Samba, no such software\n";return;}
@@ -553,6 +576,7 @@ function JOIN_ACTIVEDIRECTORY(){
 	$adminpassword=escapeshellarg($adminpassword);
 	$adminpassword=str_replace("'", "", $adminpassword);
 	$adminpassword=str_replace('$', '\$', $adminpassword);
+	$adminpassword=str_replace('!', '\!', $adminpassword);
 	$adminname=$array["WINDOWS_SERVER_ADMIN"];
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];
 	$workgroup=$array["ADNETBIOSDOMAIN"];
@@ -560,8 +584,13 @@ function JOIN_ACTIVEDIRECTORY(){
 	$myNetbiosname=$unix->hostname_simple();
 	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Trying to relink this server with Active Directory $ad_server.$domain_lower server", basename(__FILE__));}
 	$A2=array();
+	$JOINEDRES=false;
+	@unlink("/etc/squid3/NET_ADS_INFOS");
 	
-	
+	if(!is_file("/etc/artica-postfix/PyAuthenNTLM2_launched")){
+		shell_exec("$nohup /usr/share/artica-postfix/bin/artica-make APP_PYAUTHENNTLM >/dev/null 2>&1 &");
+		@file_put_contents("/etc/artica-postfix/PyAuthenNTLM2_launched", time());
+	}
 	
 	echo "Starting......: [$function::".__LINE__."], Administrator `$adminname`\n";
 	echo "Starting......: [$function::".__LINE__."], Workgroup `$workgroup`\n";
@@ -585,9 +614,47 @@ function JOIN_ACTIVEDIRECTORY(){
 			if($KDC_SERVER==null){echo "Starting......:  $function, [$adminname]: unable to join the domain $domain_lower (KDC server is null)\n";}
 			break;
 		}
+		if(preg_match("#Unable to find a suitable server for domain#i", $line)){
+			echo "Starting......: [$function::".__LINE__."], [$adminname 0]: **** FATAL ****\n";
+			echo "Starting......: [$function::".__LINE__."], [$adminname 0]: $line\n";
+			echo "Starting......: [$function::".__LINE__."], [$adminname 0]: ***************\n";
+			continue;
+		}
+		
 		echo "Starting......: [$function::".__LINE__."], [$adminname 0]: $line\n";
 			
 	}
+	
+	if(!$JOINEDRES){
+		echo "Starting......:  [$function::".__LINE__."], [$adminname]: Try to connect in ads mode with $ad_server.$domain_lower\n";
+		if($ipaddr<>null){
+			echo "Starting......:  [$function::".__LINE__."], [$adminname]: Try to connect in ads mode with ip address $ipaddr too\n";
+			$ipcmdline=" -I $ipaddr ";
+		}
+		$cmd="$netbin ads join -S $ad_server.$domain_lower{$ipcmdline}-U $adminname%$adminpassword 2>&1";
+		$cmdOutput=str_replace($adminpassword, "****", $cmd);
+		echo "Starting......:  [$function::".__LINE__."], $cmdOutput\n";
+		$results=array();
+		exec("$cmd",$results);
+		while (list ($index, $line) = each ($results) ){
+			if(preg_match("#Joined#", $line)){
+				echo "Starting......:  [$function::".__LINE__."], [$adminname]: join for $workgroup in ads mode with $ad_server.$domain_lower success\n";
+				$cmd="$netbin rpc join -S $ad_server.$domain_lower{$ipcmdline}-U $adminname%$adminpassword 2>&1";
+				$cmdOutput=str_replace($adminpassword, "****", $cmd);
+				echo "Starting......:  [$function::".__LINE__."], $cmdOutput\n";
+				exec("$cmd",$results2);
+				while (list ($index, $line) = each ($results2) ){echo "Starting......:  [$function::".__LINE__."], [$adminname]:$line\n";}
+				
+				$JOINEDRES=true;
+				break;
+			}
+			
+			SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);
+		}
+	}	
+	
+	
+	
 	
 
 if(!$JOINEDRES){
@@ -816,8 +883,12 @@ function SAMBA_PROXY(){
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];
 	$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
 	$KerbAuthDisableNormalizeName=$sock->GET_INFO("KerbAuthDisableNormalizeName");
+	$KerbAuthMapUntrustedDomain=$sock->GET_INFO("KerbAuthMapUntrustedDomain");
+	$KerbAuthTrusted=$sock->GET_INFO("KerbAuthTrusted");
 	if(!is_numeric($KerbAuthDisableGroupListing)){$KerbAuthDisableGroupListing=0;}
 	if(!is_numeric($KerbAuthDisableNormalizeName)){$KerbAuthDisableNormalizeName=1;}
+	if(!is_numeric($KerbAuthMapUntrustedDomain)){$KerbAuthMapUntrustedDomain=1;}
+	if(!is_numeric($KerbAuthTrusted)){$KerbAuthTrusted=1;}
 	
 	
 	$workgroup=$array["ADNETBIOSDOMAIN"];
@@ -850,6 +921,7 @@ function SAMBA_PROXY(){
 	//$f[]="\tkerberos method = system keytab";
 	$f[]="\trealm = $realm";
 	$f[]="\tsecurity = ads";
+	//$f[]="\tsecurity = domain";
 	if($KerbAuthDisableGroupListing==0){
 		$f[]="\twinbind enum groups = Yes";
 		$f[]="\twinbind enum users = Yes";	
@@ -894,9 +966,16 @@ function SAMBA_PROXY(){
             
  		}
 		
+ 		
+ 		if($KerbAuthMapUntrustedDomain==1){
+ 			$f[]="\tmap untrusted to domain = Yes";
+ 		}else{
+ 			$f[]="\tmap untrusted to domain = No";
+ 		}
 		
 		$f[]="\tclient ntlmv2 auth = Yes";
 		$f[]="\tclient lanman auth = No";
+		
 		if($KerbAuthDisableNormalizeName==1){
 			$f[]="\twinbind normalize names = No";
 		}else{
@@ -910,13 +989,18 @@ function SAMBA_PROXY(){
 		$f[]="\twinbind offline logon = true";
 		$f[]="\twinbind cache time = 1800";
 		$f[]="\twinbind refresh tickets = true";
-		$f[]="\tallow trusted domains = Yes";
+		if($KerbAuthTrusted==1){
+			$f[]="\tallow trusted domains = Yes";
+		}else{
+			$f[]="\tallow trusted domains = No";
+		}
 		$f[]="\tserver signing = auto";
 		$f[]="\tclient signing = auto";
 		$f[]="\tlm announce = No";
 		$f[]="\tntlm auth = No";
 		$f[]="\tlanman auth = No";
 		$f[]="\tpreferred master = No";	
+		$f[]="\twins support = No";
 		
 	
 	
@@ -936,7 +1020,19 @@ function SAMBA_PROXY(){
 	shell_exec("$net cache flush");
 	shell_exec("$net cache stabilize");
 	shell_exec("/usr/share/artica-postfix/bin/artica-install --nsswitch");
-	shell_exec("/etc/init.d/artica-postfix restart samba");	
+	$smbcontrol=$unix->find_program("smbcontrol");
+	if(!is_file($smbcontrol)){
+		echo "Starting......:  Samba, [$adminname]: Restarting Samba...\n";
+		shell_exec("/etc/init.d/artica-postfix restart samba");
+	}else{
+		echo "Starting......:  Samba, [$adminname]: Reloading Samba...\n";
+		shell_exec("$smbcontrol smbd reload-config");
+	}
+	
+	echo "Starting......:  Samba, [$adminname]: Restarting Winbind...\n";
+	shell_exec("/etc/init.d/winbind stop");
+	shell_exec("/etc/init.d/winbind start");
+	
 	shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.ad.import.php --by=". basename(__FILE__)." &");
 	
 }
@@ -959,37 +1055,40 @@ function ping_klist(){
 }
 
 function RunKinit($username,$password){
-$unix=new unix();
-$kinit=$unix->find_program("kinit");
-$klist=$unix->find_program("klist");
-$echo=$unix->find_program("echo");
-$function=__FUNCTION__;
-if(!is_file($kinit)){echo2("Unable to stat kinit");return;}
-resolve_kdc();
-sync_time();
-exec("$klist 2>&1",$res);
-$line=@implode("",$res);
+	$unix=new unix();
+	$kinit=$unix->find_program("kinit");
+	$klist=$unix->find_program("klist");
+	$echo=$unix->find_program("echo");
+	$function=__FUNCTION__;
+	if(!is_file($kinit)){echo2("Unable to stat kinit");return;}
+	resolve_kdc();
+	sync_time();
+	exec("$klist 2>&1",$res);
+	$line=@implode("",$res);
 
 
-if(strpos($line,"No credentials cache found")>0){
-	unset($res);
-	echo2($line." -> initialize..");
-	$password=escapeshellarg($password);
-	$password=str_replace("'", "", $password);
-	$cmd="$echo \"$password\"|$kinit {$username} 2>&1";
-	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-	exec("$echo \"$password\"|$kinit {$username} 2>&1",$res);
-	while (list ($num, $a) = each ($res) ){	
-		if(preg_match("#Password for#",$a,$re)){unset($res[$num]);}
-	}	
-	$line=@implode("",$res);	
-	if(strlen(trim($line))>0){
-		echo2($line." -> Failed..");
-		return;
+	if(strpos($line,"No credentials cache found")>0){
+		unset($res);
+		echo2($line." -> initialize..");
+		$password=escapeshellarg($password);
+		$password=str_replace("'", "", $password);
+		$password=str_replace("$", "\$", $password);
+		$password=str_replace("!", "\!", $password);
+		$cmd="$echo \"$password\"|$kinit {$username} 2>&1";
+		if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
+		echo "Starting......: $function, kinit `$username`\n";
+		exec("$echo \"$password\"|$kinit {$username} 2>&1",$res);
+		while (list ($num, $a) = each ($res) ){	
+			if(preg_match("#Password for#",$a,$re)){unset($res[$num]);}
+		}	
+		$line=@implode("",$res);	
+		if(strlen(trim($line))>0){
+			echo2($line." -> Failed..");
+			return;
+		}
+		unset($res);
+		exec("$klist 2>&1",$res);	
 	}
-	unset($res);
-	exec("$klist 2>&1",$res);	
-}
 
 while (list ($num, $a) = each ($res) ){	if(preg_match("#Default principal:(.+)#",$a,$re)){echo2(trim($re[1])." -> success");break;}}	
 	
@@ -1009,16 +1108,26 @@ function ping_kdc(){
 	$users=new settings_inc();
 	$chmod=$unix->find_program("chmod");
 	$filetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
+	
+	$oldpid=@file_get_contents($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$ttime=$unix->PROCCESS_TIME_MIN($oldpid);
+		echo "Starting......: [PING]: Already executed pid $oldpid since {$ttime}Mn\n";
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	
 	if($EnableKerbAuth==0){echo "Starting......: [PING]: Kerberos, disabled\n";return;}
 	if(!checkParams()){echo "Starting......: [PING]: Kerberos, misconfiguration failed\n";return;}
-	
+	$array["RESULTS"]=false;
 	
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));	
 	$time=$unix->file_time_min($filetime);
 	if(!$GLOBALS["FORCE"]){
-		if($time<120){
+		if($time<10){
 			if(!$GLOBALS["VERBOSE"]){return;}
 			echo "$filetime ({$time}Mn)\n";
 		}
@@ -1028,12 +1137,13 @@ function ping_kdc(){
 	$net=$unix->LOCATE_NET_BIN_PATH();
 	$wbinfo=$unix->find_program("wbinfo");
 	$chmod=$unix->find_program("chmod");
-
+	$nohup=$unix->find_program("nohup");
 	$domain=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
 	$domain_lower=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 	$ad_server=strtolower($array["WINDOWS_SERVER_NETBIOSNAME"]);
 	$kinitpassword=$array["WINDOWS_SERVER_PASS"];
 	$kinitpassword=escapeshellarg($kinitpassword);
+	$php5=$unix->LOCATE_PHP5_BIN();
 	
 	$clock_explain="The clock on you system (Linux/UNIX) is too far off from the correct time.\nYour machine needs to be within 5 minutes of the Kerberos servers in order to get any tickets.\nYou will need to run ntp, or a similar service to keep your clock within the five minute window";
 	
@@ -1074,6 +1184,40 @@ function ping_kdc(){
 		}
 	}*/
 	
+	$TestJoin=true;
+	
+	if($array["RESULTS"]==true){
+		exec("$net ads testjoin 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			
+			if(preg_match("#Unable to find#", $ligne)){
+				$array["RESULTS"]=false;
+				$array["INFO"]=$array["INFO"]."<div><i style='font-size:11px;color:#B3B3B3'>$ligne</i></div>";
+				$TestJoin=false;
+				continue;
+			}
+			if(preg_match("#is not valid:#", $ligne)){
+				$array["RESULTS"]=false;
+				$array["INFO"]=$array["INFO"]."<div><i style='font-size:11px;color:#B3B3B3'>$ligne</i></div>";
+				$TestJoin=false;
+				continue;
+			}
+		}
+		
+		if(preg_match("#OK#", $ligne)){
+			$array["INFO"]=$array["INFO"]."<div><i style='font-size:11px;color:#B3B3B3'>$ligne</i></div>";
+			$array["RESULTS"]=true;
+		}
+		
+	}
+	
+	if(!$TestJoin){
+		shell_exec("$nohup $php5 ". __FILE__." --join >/dev/null 2>&1 &");
+		
+	}
+	
+	
+	
 	
 	@unlink($filetime);
 	@file_put_contents($filetime, time());
@@ -1081,7 +1225,7 @@ function ping_kdc(){
 	@chmod(0777,"/usr/share/artica-postfix/ressources/logs/kinit.array");
 	if($users->SQUID_INSTALLED){
 		if(!$GLOBALS["JUST_PING"]){winbind_priv();}
-		if(!is_dir("/var/lib/samba/smb_krb5")){@mkir("/var/lib/samba/smb_krb5",0777,true);}
+		if(!is_dir("/var/lib/samba/smb_krb5")){@mkdir("/var/lib/samba/smb_krb5",0777,true);}
 		shell_exec("$chmod 1775 /var/lib/samba/smb_krb5 >/dev/null 2>&1");
 		shell_exec("$chmod 1775 /var/lib/samba >/dev/null 2>&1");
 	}
@@ -1138,6 +1282,7 @@ function SAMBA_OUTPUT_ERRORS($prefix,$line){
 
 function winbind_priv($reloadservs=false){
 	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
 	echo "starting......: winbindd_priv...\n";
 	if(!winbind_priv_is_group()){
 		xsyslog("winbindd_priv group did not exists...create it");
@@ -1145,10 +1290,11 @@ function winbind_priv($reloadservs=false){
 		$cmd="$groupadd winbindd_priv >/dev/null 2>&1";
 	}
 	
-	if(!is_dir("/var/lib/samba/smb_krb5")){@mkir("/var/lib/samba/smb_krb5",0777,true);}
+	if(!is_dir("/var/lib/samba/smb_krb5")){@mkdir("/var/lib/samba/smb_krb5",0777,true);}
 	
 	$unix=new unix();
 	$gpass=$unix->find_program('gpass');
+	$usermod=$unix->find_program("usermod");
 	if(is_file($gpass)){
 		echo "starting......: winbindd_priv group exists, add squid a member of winbindd_priv\n";
 		$cmdline="$gpass -a squid winbindd_priv";
@@ -1156,7 +1302,13 @@ function winbind_priv($reloadservs=false){
 		exec("$cmdline",$kinit_results);
 		while (list ($num, $ligne) = each ($kinit_results) ){echo "starting......: winbindd_priv: $ligne\n";}
 	}else{
-		echo "starting......: winbindd_priv gpass, no such binary\n";
+		if(is_file($usermod)){
+			$cmdline="$usermod -a -G winbindd_priv squid";
+			if($GLOBALS["VERBOSE"]){echo "$cmdline\n";}
+			exec("$cmdline",$kinit_results);
+			while (list ($num, $ligne) = each ($kinit_results) ){echo "starting......: winbindd_priv: $ligne\n";}
+		}
+
 	}
 	
 	
@@ -1165,21 +1317,27 @@ function winbind_priv($reloadservs=false){
 	
 	$pid_path=$unix->LOCATE_WINBINDD_PID();
 	$pid=$unix->get_pid_from_file($pid_path);
-	echo "starting......: winbindd_priv does not exists\n";
+	$res=array();
 	echo "starting......: winbindd_priv checks Samba Winbind Daemon pid: $pid ($pid_path)...\n";
 	if(!$unix->process_exists($pid)){
+		echo "starting......: winbindd_priv checks Samba Winbind configuring winbind init...\n";
+		shell_exec("$php5 /usr/share/artica-postfix/exec.winbindd.php 2>&1",$res);
+		while (list ($num, $ligne) = each ($res) ){echo "starting......: winbindd $ligne\n";}
 		echo "starting......: winbindd_priv checks Samba Winbind Daemon stopped, start it...\n";
 		start_winbind();
 		
 	}else{
-		if($reloadservs){
-			echo "starting......: winbindd_priv running.. reload it\n";
-			stop_winbind();
-			start_winbind();
-		}
+		echo "starting......: winbindd_priv checks Samba Winbind configuring winbind init...\n";
+		shell_exec("$php5 /usr/share/artica-postfix/exec.winbindd.php 2>&1",$res);
+		while (list ($num, $ligne) = each ($res) ){echo "starting......: winbindd $ligne\n";}		
+		echo "starting......: winbindd already running pid $pid.. reload it\n";
+		$res=array();
+		exec("$php5 /usr/share/artica-postfix/exec.winbindd.php --restart 2>&1",$res);
+		while (list ($num, $ligne) = each ($res) ){echo "starting......: winbindd $ligne\n";}
+		
 	}
 	
-	winbind_priv_perform();
+	
 	winbindd_monit();
 	
 	
@@ -1200,6 +1358,7 @@ function winbind_priv_perform($withpid=false){
 	// /lib/libnss_winbind.so.2 /lib/libnss_winbind.so
 	$possibleDirs[]="/var/run/samba/winbindd_privileged";
 	$possibleDirs[]="/var/lib/samba/winbindd_privileged";
+
 	$setfacl=$unix->find_program("setfacl");
 	
 	if($withpid){
@@ -1212,15 +1371,13 @@ function winbind_priv_perform($withpid=false){
 		
 	}
 	
-	
+	winbindd_set_acls_is_xattr_var();
 	if(strlen($setfacl)>5){winbindd_set_acls_mainpart();}
 	
 	
 	while (list ($num, $Directory) = each ($possibleDirs) ){
 			if(is_dir($Directory)){
 				if(strlen($setfacl)>5){shell_exec("$setfacl -m u:squid:rwx $Directory");}
-				@chmod($Directory,0750);
-				chgrp($Directory, "winbindd_priv");
 			}
 			
 			if(file_exists("$Directory/pipe")){
@@ -1231,6 +1388,20 @@ function winbind_priv_perform($withpid=false){
 			
 						
 		}
+		
+		$possibleDirsACLS[]="/var/lib/samba/smb_krb5";
+		$possibleDirsACLS[]="/var/lib/samba";
+		
+		while (list ($num, $Directory) = each ($possibleDirsACLS) ){
+			if(is_dir($Directory)){
+				if(strlen($setfacl)>5){
+					shell_exec("$setfacl -R -m u:squid:rwx $Directory >/dev/null 2>&1");
+					shell_exec("$setfacl -R -m g:squid:rwx $Directory >/dev/null 2>&1");
+				}
+			}
+			
+		}
+		
 		
 	if(!$withpid){	
 		$squidbin=$unix->find_program("squid");
@@ -1249,8 +1420,17 @@ function stop_winbind(){
 	system("/etc/init.d/artica-postfix stop winbindd");
 }
 function start_winbind(){
+	
 	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting winbindd", basename(__FILE__));}
-	system("/etc/init.d/artica-postfix start winbindd");
+	exec("/etc/init.d/winbind start 2>&1",$res);
+	while (list ($num, $ligne) = each ($res) ){
+		echo "starting......: winbindd $ligne\n";
+	}
+}
+
+function winbindisacl(){
+	if($GLOBALS["VERBOSE"]){echo "winbindisacl() -> winbindd_set_acls_mainpart()\n";}
+	winbindd_set_acls_mainpart();
 }
 
 
@@ -1271,9 +1451,80 @@ function winbindd_set_acls_is_xattr(){
 	
 	return false;
 }
+function winbindd_set_acls_is_xattr_var(){
+	if(isset($GLOBALS["winbindd_set_acls_is_xattr_var_exectued"])){return;}
+	$GLOBALS["winbindd_set_acls_is_xattr_var_exectued"]=true;
+	$unix=new unix();
+	$mount=$unix->find_program("mount");	
+	$f=explode("\n",@file_get_contents("/etc/fstab"));
+	$mustchange=false;
+	$remountSlash=false;
+	if($GLOBALS["VERBOSE"]){echo "/etc/fstab -> ".count($f)." rows\n";}
+	while (list ($num, $ligne) = each ($f) ){
+		$options=array();
+		$optionsR=array();
+		
+		if(preg_match("#^(.*?)\/var\s+(.+)\s+(.+?)\s+([0-9]+)\s+([0-9]+)#",$ligne,$re)){
+			echo "starting......: /var partition exists with options `{$re[3]}`...\n";
+			$options=explode(",",$re[3]);
+			while (list ($a, $b) = each ($options) ){
+				if(is_numeric($b)){continue;}
+				if(trim($b)==null){continue;}
+				$optionsR[trim($b)]=true;
+				
+			}
+			if(!isset($optionsR["acl"])){
+				$mustchange=true;
+				$options[]="acl";
+				$options[]="user_xattr";
+				$re[3]=@implode(",", $options);
+				echo "starting......: ACLS found {$re[1]} main partition `/var` was not extended attribute, fix it: `".@implode(",", $options)."`...\n";
+				$f[$num]=trim($re[1])."\t/var\t".$re[2]."\t".$re[3]."\t".$re[4]."\t".$re[5];
+			}
+		}
+		
+		
+		if(preg_match("#^(.*?)\/\s+(.+)\s+(.+?)\s+([0-9]+)\s+([0-9]+)#",$ligne,$re)){
+			echo "starting......: / partition exists with options `{$re[3]}`...\n";
+			$options=explode(",",$re[3]);
+			while (list ($a, $b) = each ($options) ){
+				if(is_numeric($b)){continue;}
+				if(trim($b)==null){continue;}
+				$optionsR[trim($b)]=true;
+			
+			}
+			if(!isset($optionsR["acl"])){
+				$mustchange=true;
+				$options[]="acl";
+				$options[]="user_xattr";
+				$re[3]=@implode(",", $options);
+				echo "starting......: ACLS found {$re[1]} main partition `/` was not extended attribute, fix it: `".@implode(",", $options)."`...\n";
+				$f[$num]=trim($re[1])."\t/\t".$re[2]."\t".$re[3]."\t".$re[4]."\t".$re[5];
+				$remountSlash=true;
+			}			
+			
+		}
+	}
+	
+	if($mustchange){
+		@file_put_contents("/etc/fstab", @implode("\n", $f)."\n");
+		shell_exec("$mount -o remount /var");
+		if($remountSlash){
+			shell_exec("$mount -o remount /");
+		}
+	}
+	
+	
+}
+
+
 
 function winbindd_set_acls_mainpart(){
-	if(winbindd_set_acls_is_xattr()){return;}
+	if(winbindd_set_acls_is_xattr()){
+		if($GLOBALS["VERBOSE"]){echo "winbindd_set_acls_is_xattr() -> winbindd_set_acls_is_xattr_var()\n";}
+		winbindd_set_acls_is_xattr_var();
+		return;
+	}
 	$unix=new unix();
 	$setfacl=$unix->find_program("setfacl");
 	$mount=$unix->find_program("mount");
@@ -1290,9 +1541,9 @@ function winbindd_set_acls_mainpart(){
 	
 	
 	$mustchange=false;
-	$f=file("/etc/fstab");
+	$f=explode("\n",@file_get_contents("/etc/fstab"));
 	while (list ($num, $ligne) = each ($f) ){
-		if(preg_match("#^(.*)\s+\/\s+(.*?)\s+(.*?)\s+([0-9]+)\s+([0-9]+)#", $ligne,$re)){
+		if(preg_match("#^(.*?)\s+\/\s+(.*?)\s+(.*?)\s+([0-9]+)\s+([0-9]+)#", $ligne,$re)){
 			$options=explode(",",$re[3]);
 			while (list ($a, $b) = each ($options) ){
 				$b=trim(strtolower($b));
@@ -1309,13 +1560,15 @@ function winbindd_set_acls_mainpart(){
 				reset($f);
 				while (list ($c, $d) = each ($f) ){if(trim($d)==null){continue;}$cc[]=$d;}
 				if(count($cc)>1){
-					@file_put_contents("/etc/fstab", @implode("\n", $cc));
+					@file_put_contents("/etc/fstab", @implode("\n", $cc)."\n");
 					xsyslog("starting......: winbindd_priv remount system partition...");
 					shell_exec("$mount -o remount /");
 				}
 			}
 		}
 	}
+	if($GLOBALS["VERBOSE"]){echo "winbindd_set_acls_is_xattr() -> winbindd_set_acls_is_xattr_var()\n";}
+	winbindd_set_acls_is_xattr_var();
 }
 
 
@@ -1386,7 +1639,7 @@ function disconnect(){
 	exec("$netbin ads leave -U $adminname%$adminpassword 2>&1",$results);
 	exec("$kdestroy 2>&1",$results);
 	
-	
+	$unix->send_email_events("Active directory disconnected", "An order as been sent to disconnect Active Directory", "activedirectory");
 	$sock->SET_INFO("EnableKerbAuth", 0);
 	exec("/usr/share/artica-postfix/bin/artica-install --nsswitch 2>&1",$results);
 	exec("/etc/init.d/artica-postfix restart samba 2>&1",$results);	
@@ -1394,7 +1647,8 @@ function disconnect(){
 		echo "Leave......: $ligne\n";
 	}	
 	
-	shell_exec("$nohup /etc/init.d/artica-postfix restart squid-cache >/dev/null 2>&1 &");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
 }
 
 

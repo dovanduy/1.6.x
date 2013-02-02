@@ -1781,11 +1781,11 @@ function listen_port_js(){
 	$title=$tpl->_ENGINE_parse_body("{listen_port}");
 	$t=time();
 		echo "
-		YahooWin2(350,'$page?content=listen_port&t=$t','$title');
+		YahooWin2(450,'$page?content=listen_port&t=$t','$title');
 		
 		var x_listenport= function (obj) {
 			var results=obj.responseText;
-			alert(results);
+			if(results.length>3){alert(results);}
 			YahooWin2Hide();
 			if(document.getElementById('main_squid_quicklinks_tabs')){RefreshTab('main_squid_quicklinks_tabs');}
 		}
@@ -1795,7 +1795,10 @@ function listen_port_js(){
 			XHR.appendData('listenport',document.getElementById('listen_port').value);
 			XHR.appendData('second_listen_port',document.getElementById('second_listen_port').value);
 			XHR.appendData('icp_port',document.getElementById('icp_port').value);
-			XHR.appendData('ssl_port',document.getElementById('ssl_port-$t').value);		
+			XHR.appendData('htcp_port',document.getElementById('htcp_port').value);
+			
+			XHR.appendData('ssl_port',document.getElementById('ssl_port-$t').value);
+			XHR.appendData('certificate_center',document.getElementById('certificate-$t').value);		
 			XHR.sendAndLoad('$page', 'GET',x_listenport);	
 		}		
 		";	
@@ -1863,14 +1866,24 @@ $squid=new squidbee();
 }
 
 function listen_port_popup(){
-	
+	$q=new mysql();
 	$squid=new squidbee();
 	if(!is_numeric($squid->second_listen_port)){$squid->second_listen_port=0;}
 	if(!is_numeric($squid->ssl_port)){$squid->ssl_port=0;}
+	
 	$sock=new sockets();
 	$arrayParams=unserialize(base64_decode($sock->getFrameWork("squid.php?compile-list=yes")));
 	$SSL=1;
 	if(!isset($arrayParams["--enable-ssl"])){$SSL=0;}
+	
+	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
+	$q=new mysql();
+	$sslcertificates[null]="{select}";
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
+	}	
+	
 	$t=$_GET["t"];
 	
 $form="
@@ -1890,14 +1903,24 @@ $form="
 				<td class=legend nowrap style='font-size:16px;'>{icp_port}:</td>
 				<td>" . Field_text('icp_port',$squid->ICP_PORT,'width:95px;font-size:16px;padding:5px')."</td>
 				<td width=1%>". help_icon("{icp_port_explain}")."</td>
-			</tr>			
+			</tr>	
+			<tr>
+				<td class=legend nowrap style='font-size:16px;'>{htcp_port}:</td>
+				<td>" . Field_text('htcp_port',$squid->HTCP_PORT,'width:95px;font-size:16px;padding:5px')."</td>
+				<td width=1%>". help_icon("{htcp_port_explain}")."</td>
+			</tr>									
 			<tr>
 				<td class=legend nowrap style='font-size:16px;'>{ssl_port}:</td>
 				<td>" . Field_text("ssl_port-$t",$squid->ssl_port,'width:95px;font-size:16px;padding:5px')."</td>
 				<td width=1%>". help_icon("{squid_ssl_port_explain}")."</td>
-			</tr>			
+			</tr>
 			<tr>
-			<td colspan=2 align='right'><hr>". button("{edit}","listenport()",16)."</td>
+				<td class=legend nowrap style='font-size:16px;'>{certificate}:</td>
+				<td colspan=2>". Field_array_Hash($sslcertificates, "certificate-$t",$squid->certificate_center,null,null,0,"font-size:16px")."</td>
+			</tr>	
+			
+			<tr>
+			<td colspan=3 align='right'><hr>". button("{edit}","listenport()",16)."</td>
 			</tr>
 		</table>
 
@@ -1906,6 +1929,7 @@ $form="
 				var SSL='$SSL';
 				if(SSL==0){
 					document.getElementById('ssl_port-$t').disabled=true;
+					document.getElementById('certificate-$t').disabled=true;
 					document.getElementById('ssl_port-$t').value=0;
 				}	
 							
@@ -2019,21 +2043,31 @@ return false;
 function listen_port_save(){
 		if(!is_numeric($_GET["listenport"])){return null;}
 		if(CheckTomcatPort($_GET["listenport"])){echo "Apache Tomcat use 8080 port try other port eg:3128 !";return;	}
-
+		$sock=new sockets();
+		$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+		if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 		
 		$squid=new squidbee();
 		$squid->listen_port=$_GET["listenport"];
 		$squid->second_listen_port=$_GET["second_listen_port"];
 		$squid->ICP_PORT=$_GET["icp_port"];
+		$squid->HTCP_PORT=$_GET["htcp_port"];
 		$squid->ssl_port=$_GET["ssl_port"];
+		$squid->certificate_center=$_GET["certificate_center"];
 		if(!$squid->SaveToLdap()){
 			echo $squid->ldap_error;
 			exit;
 		}else{
 			$tpl=new templates();
-			echo $tpl->_ENGINE_parse_body("{listen_port}:{$_GET["listenport"]}\n");
-			echo $tpl->_ENGINE_parse_body("{ssl_port}:{$_GET["ssl_port"]}\n");
-			echo $tpl->_ENGINE_parse_body("{success}\n");
+			echo $tpl->javascript_parse_text("{listen_port}:{$_GET["listenport"]}\n",1);
+			echo $tpl->javascript_parse_text("{ssl_port}:{$_GET["ssl_port"]}\n",1);
+			echo $tpl->javascript_parse_text("{icp_port}:{$_GET["icp_port"]}\n",1);
+			echo $tpl->javascript_parse_text("{htcp_port}:{$_GET["htcp_port"]}\n",1);
+			if($EnableWebProxyStatsAppliance==1){
+				echo $tpl->javascript_parse_text("{proxy_clients_was_notified}\n",1);
+			}
+			
+			echo $tpl->javascript_parse_text("{success}\n",1);
 		}		
 		
 	}

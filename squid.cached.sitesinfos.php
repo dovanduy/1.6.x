@@ -47,6 +47,16 @@ function cache_control(){
 function AddCachedSitelist_js(){
 	$tpl=new templates();
 	$add_new_cached_web_site=$tpl->_ENGINE_parse_body('{add_new_cached_web_site}');
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
+		$content="alert('$onlycorpavailable')";
+		echo $content;	
+		return;
+	}		
+	
+	
 	$page=CurrentPageName();
 	$html="
 		function AddCachedSitelistStart(){
@@ -105,6 +115,15 @@ function WEBSITES_DELETE_ALL(){
 
 
 function AddCachedSitelist_save(){
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
+		$content="alert('$onlycorpavailable')";
+		echo $onlycorpavailable;	
+		return;
+	}		
+	
 	$_POST["refresh_pattern_site"]=url_decode_special_tool($_POST["refresh_pattern_site"]);
 	$pattern=$_GET["refresh_pattern_site"];
 	$pattern=str_replace(".","\.",$pattern);
@@ -275,6 +294,8 @@ $t=time();
 $page=CurrentPageName();
 $tpl=new templates();
 $sock=new sockets();
+$users=new usersMenus();
+$CORP=0;
 $website=$tpl->_ENGINE_parse_body("{website}");
 $expire_time=$tpl->_ENGINE_parse_body("{expire_time}");
 $limit=$tpl->_ENGINE_parse_body("{limit}");
@@ -283,7 +304,10 @@ $add_default_settings=$tpl->_ENGINE_parse_body("{add_default_settings}");
 $refresh_pattern_intro=$tpl->_ENGINE_parse_body("{refresh_pattern_intro}");
 $delete_all=$tpl->javascript_parse_text("{delete_all}");	
 $EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+if($_SESSION["CORP"]){$CORP=1;}
+$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
+
 
 $buttons="
 {name: '$add_new_cached_web_site', bclass: 'add', onpress : AddNewCachedWebsite},
@@ -292,6 +316,7 @@ $buttons="
 ";
 
 if($EnableRemoteStatisticsAppliance==1){$buttons=null;}
+
 
 $html="
 <div class=explain>$refresh_pattern_intro</div>
@@ -339,12 +364,14 @@ buttons : [
 
 
 function AddNewCachedWebsite(){
+	var CORP=$CORP;
+	if(CORP==0){alert('$onlycorpavailable');return;}	
 	Loadjs('$page?AddCachedSitelist-js=yes&t=$t')
 }
 
 
 
-		var x_add_default_settings= function (obj) {
+		var x_add_default_settings= function (obj) {	
 			var results=obj.responseText;
 			if(results.length>0){alert(results);}
 			$('#flexRT$t').flexReload();			
@@ -352,6 +379,8 @@ function AddNewCachedWebsite(){
 		}		
 		
 		function add_default_settings(){
+			var CORP=$CORP;
+			if(CORP==0){alert('$onlycorpavailable');return;}
 		 	var XHR = new XHRConnection();
 			XHR.appendData('add_default_settings','yes');
 			XHR.sendAndLoad('$page', 'POST',x_add_default_settings);

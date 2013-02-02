@@ -45,7 +45,7 @@ function popup(){
 	if($ZarafaBackupParams["DEST"]==null){$ZarafaBackupParams["DEST"]="/home/zarafa-backup";}
 	if(!is_numeric($ZarafaBackupParams["DELETE_OLD_BACKUPS"])){$ZarafaBackupParams["DELETE_OLD_BACKUPS"]=1;}
 	if(!is_numeric($ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"])){
-		$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]=10;}
+	$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]=10;}
 	
 	
 	

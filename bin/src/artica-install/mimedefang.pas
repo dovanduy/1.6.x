@@ -109,13 +109,14 @@ end;
 //##############################################################################
 procedure tmimedefang.MIMEDEFANG_STOP();
 begin
-
+     writeln('Starting mimedefang: running configurator...');
      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/bin/exec.mimedefang.php');
      fpsystem('/etc/init.d/mimedefang stop');
 end;
 //##############################################################################
 procedure tmimedefang.MIMEDEFANG_START();
 begin
+     writeln('Starting mimedefang: running configurator...');
      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/bin/exec.mimedefang.php');
      fpsystem('/etc/init.d/mimedefang start');
     

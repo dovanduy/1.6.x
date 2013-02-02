@@ -545,6 +545,17 @@ if ParamStr(1)='--pdns-version' then begin
    writeln(zpdns.VERSION());
    exit;
 end;
+if ParamStr(1)='--pdns-reconfigure' then begin
+   zpdns:=tpdns.Create(SYS);
+   zpdns.CONFIG_DEFAULT();
+   zpdns.RELOAD();
+end;
+if ParamStr(1)='--pdns-reload' then begin
+   zpdns:=tpdns.Create(SYS);
+   zpdns.RELOAD();
+end;
+
+
 if ParamStr(1)='--poweradmin-version' then begin
    ztoolsversions:=ttoolsversions.Create(SYS);
    writeln(ztoolsversions.POWERADMIN_VERSION());

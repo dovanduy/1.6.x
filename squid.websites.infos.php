@@ -26,6 +26,7 @@
 	
 	if(isset($_GET["events"])){logsuris();exit;}
 	if(isset($_GET["events-day"])){logsuris_day();exit;}
+	if(isset($_GET["events-week"])){logsuris_week();exit;}
 	
 js();
 
@@ -33,7 +34,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{website}:{$_GET["www"]}");
-	$html="YahooWin6('650','$page?tabs=yes&www={$_GET["www"]}&day={$_GET["day"]}','$title');";
+	$html="YahooWin6('650','$page?tabs=yes&www={$_GET["www"]}&day={$_GET["day"]}&year={$_GET["year"]}&week={$_GET["week"]}','$title');";
 	echo $html;
 	
 }
@@ -41,17 +42,22 @@ function tabs(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$users=new usersMenus();
-	$array["events-day"]="{events}:{day} ({$_GET["day"]})";
-	$array["visited"]='{visited_websites}';
-	$array["events"]='{events}:{week}';
+	if(!is_numeric($_GET["year"])){$_GET["year"]=date("Y");}
+	if($_GET["day"]<>null){
+		$array["events-day"]="{events}:{day} ({$_GET["day"]})";
+	}
 	
+	if(is_numeric($_GET["week"])){
+		$array["events-week"]='{events}:{week}';
+	}		
+	$array["visited"]='{visited_websites}';
 
 	
 
 	
 	while (list ($num, $ligne) = each ($array) ){
 				
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&day={$_GET["day"]}&www={$_GET["www"]}\"><span>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&day={$_GET["day"]}&year={$_GET["year"]}&week={$_GET["week"]}&www={$_GET["www"]}\"><span>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -204,6 +210,139 @@ echo json_encode($data);
 	
 }
 
+function logsuris_week(){
+	$tpl=new templates();
+	$page=CurrentPageName();	
+	$q=new mysql_squid_builder();	
+	$week=$_GET["week"];
+	$year=$_GET["year"];
+	if(!is_numeric($year)){$year=date('Y');}
+	$table="{$year}{$week}_week";
+	
+	$title=$q->WEEK_TITLE($week, $year);
+	$time=$q->WEEK_TIME_FROM_TABLENAME($table);
+	
+	$month=date("m",$time);
+	
+	$sql="SELECT sitename,`day` ,SUM(hits) AS hits,SUM(size) as size FROM 	$table 
+	GROUP BY sitename,`day` HAVING sitename='{$_GET["www"]}' ORDER BY `day`";
+	$results=$q->QUERY_SQL($sql);
+	if(mysql_num_rows($results)>1){
+		if(!$q->ok){echo $q->mysql_error;}
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$xdata[]=$ligne["day"];
+			$ydata[]=$ligne["hits"];
+		}	
+		
+		$targetedfile="ressources/logs/".md5(basename(__FILE__).".".__FUNCTION__).".{$_GET["www"]}.hits.png";
+		$gp=new artica_graphs();
+		$gp->width=550;
+		$gp->height=220;
+		$gp->filename="$targetedfile";
+		$gp->xdata=$xdata;
+		$gp->ydata=$ydata;
+		$gp->y_title=null;
+		$gp->x_title=$tpl->_ENGINE_parse_body("{hours}");
+		$gp->title=null;
+		$gp->margin0=true;
+		$gp->Fillcolor="blue@0.9";
+		$gp->color="146497";
+		$gp->line_green();
+		
+		$image="<center style='margin-top:5px'><img src='$targetedfile'></center>";	
+		
+	}else{
+		$ligne=mysql_fetch_array($results);	
+		$ligne["size"]=FormatBytes($ligne["size"]/1024);
+		if(strlen($ligne["day"])==1){$ligne["day"]="0{$ligne["day"]}";}
+		$image="<div style='font-size:14px;margin:5px'>{$ligne["day"]}, {$ligne["hits"]} {requests} {$ligne["size"]}</div>";
+	}
+	
+	
+	
+	
+	$html="
+	
+$image
+<div style='font-size:14px'>$title</div>
+<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
+<thead class='thead'>
+	<tr>
+	<th>{date}&nbsp;</th>
+	<th>{client}</th>
+	<th>{sitename}</th>
+	<th>{hits}</th>
+	<th>{size}</th>
+	</tr>
+</thead>
+<tbody class='tbody'>";	
+	$sql="SELECT client,hostname,MAC,uid,sitename,`day` as zDate,`size` as QuerySize,hits  FROM $table WHERE sitename='{$_GET["www"]}' ORDER BY `day` asc";
+	$results2=$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		echo "<hr>$q->mysql_error<hr>";
+	}
+	
+	$HASH_DAYS=$q->WEEK_TOTIMEHASH_FROM_TABLENAME($table);
+	while($ligne2=mysql_fetch_array($results2,MYSQL_ASSOC)){
+		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
+		$QuerySize=$ligne2["QuerySize"]/1024;
+		$QuerySize=FormatBytes($QuerySize);
+		$timeQ=$HASH_DAYS[$ligne2["zDate"]];
+		$table_zoom="dansguardian_events_". date("Ymd",$timeQ);		
+		$dateT=date("{l} {F} d",$timeQ);
+		if($tpl->language=="fr"){$dateT=date("{l} d {F} ",$timeQ);}
+		$user=array();
+		if($q->TABLE_EXISTS("$table_zoom")){
+			
+			$urlDEF="squid.dansguardian_events.php?table=$table_zoom&sitename={$ligne2["sitename"]}";
+		
+			if($ligne2["MAC"]<>null){
+				$url="squid.dansguardian_events.php?table=$table_zoom&field=MAC&value={$ligne2["MAC"]}&sitename={$ligne2["sitename"]}";
+				$user[]="<a href=\"javascript:blur();\" Onclick=\"javascript:Loadjs('$url');\" style='font-size:12px;text-decoration:underline'>{$ligne2["MAC"]}</a>";
+			}
+	
+			if($ligne2["client"]<>null){
+				$url="squid.dansguardian_events.php?table=$table_zoom&field=CLIENT&value={$ligne2["client"]}&sitename={$ligne2["sitename"]}";
+				$user[]="<a href=\"javascript:blur();\" Onclick=\"javascript:Loadjs('$url');\" style='font-size:12px;text-decoration:underline'>{$ligne2["client"]}</a>";
+			}
+	
+			if($ligne2["uid"]<>null){
+				$url="squid.dansguardian_events.php?table=$table_zoom&field=uid&value={$ligne2["uid"]}&sitename={$ligne2["sitename"]}";
+				$user[]="<a href=\"javascript:blur();\" Onclick=\"javascript:Loadjs('$url');\" style='font-size:12px;text-decoration:underline'>{$ligne2["uid"]}</a>";
+			}
+	
+			if($ligne2["hostname"]<>null){
+				$url="squid.dansguardian_events.php?table=$table_zoom&field=hostname&value={$ligne2["hostname"]}&sitename={$ligne2["sitename"]}";
+				$user[]="<a href=\"javascript:blur();\" Onclick=\"javascript:Loadjs('$url');\" style='font-size:12px;text-decoration:underline'>{$ligne2["hostname"]}</a>";
+			}		
+		
+		}else{
+			$user[]="$table_zoom no such table";
+		}
+		
+		$html=$html."
+			<tr class=$classtr>
+				
+				<td width=1% nowrap valign='top'><strong style='font-size:12px'>$dateT</td>
+				<td width=1% valign='top'><strong style='font-size:12px'>". @implode("<br>", $user)."</td>
+				<td width=99% valign='top' align='left nowrap'>
+				
+				<a href=\"javascript:blur();\" Onclick=\"javascript:Loadjs('$urlDEF');\" 
+				style='font-size:12px;text-decoration:underline;font-weight:bold'>{$ligne2["sitename"]}</a></td>
+				<td width=1% valign='top'><strong style='font-size:12px'>{$ligne2["hits"]}</td>
+				<td width=1% valign='top'><strong style='font-size:12px'>$QuerySize</td>
+			</tr>
+			";		
+				
+			}
+			
+
+	$html=$html."</tbody></table>";
+	echo $tpl->_ENGINE_parse_body($html);	
+	
+	
+}
+
 
 
 function logsuris_day(){
@@ -214,7 +353,7 @@ function logsuris_day(){
 	$table="dansguardian_events_".date('Ymd',$time);
 	$table_hour=date('Ymd',$time)."_hour";
 	
-	$sql="SELECT sitename,hour ,SUM(hits) AS hits,SUM(size) as size FROM 	$table_hour GROUP BY sitename,hour HAVING sitename='{$_GET["www"]}' ORDER BY Hour";
+	$sql="SELECT sitename,hour ,SUM(hits) AS hits,SUM(size) as size FROM $table_hour GROUP BY sitename,hour HAVING sitename='{$_GET["www"]}' ORDER BY Hour";
 	$results=$q->QUERY_SQL($sql);
 	if(mysql_num_rows($results)>1){
 		if(!$q->ok){echo $q->mysql_error;}
@@ -256,6 +395,7 @@ $image
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 <thead class='thead'>
 	<tr>
+	
 	<th>{date}&nbsp;</th>
 	<th>{client}</th>
 	<th>{url}</th>
@@ -267,7 +407,7 @@ $image
 	$results2=$q->QUERY_SQL($sql);
 	while($ligne2=mysql_fetch_array($results2,MYSQL_ASSOC)){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$QuerySize=$ligne["QuerySize"]/1024;
+		$QuerySize=$ligne2["QuerySize"]/1024;
 		$QuerySize=FormatBytes($QuerySize);
 		$html=$html."
 			<tr class=$classtr>

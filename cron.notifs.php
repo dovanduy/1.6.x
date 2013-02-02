@@ -160,7 +160,12 @@ $mysql=new mysql();
         $subject=str_replace("'", "`", $subject);
         $text=addslashes($text);
         $subject=addslashes($subject);
-        if(strlen($text)<5){writelogs("Warning New notification: $subject content seems to be empty ! \"$text\"",__FUNCTION__,__FILE__,__LINE__);}
+        if(strlen($subject)<5){
+        	writelogs("Warning New notification: Subject seems to be empty ! \"$text\"",__FUNCTION__,__FILE__,__LINE__);
+        	@unlink("$path.'/'.$file");
+        	continue;
+        }
+        if(strlen($text)<5){$text="No content body as been added for this notification";}
         $sql="INSERT IGNORE INTO events (zDate,hostname,process,text,context,content,attached_files,recipient,event_id) VALUES(
         	'$date',
         	'$users->hostname',
@@ -290,6 +295,15 @@ while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			
 	
 			$attached_files=unserialize(base64_decode($ligne["attached_files"]));
+			if(trim($ligne["content"])==null){
+				$q->QUERY_SQL("DELETE FROM events WHERE ID={$ligne["ID"]}","artica_events");
+				continue;
+			}
+			if(trim($ligne["text"])==null){
+				$q->QUERY_SQL("DELETE FROM events WHERE ID={$ligne["ID"]}","artica_events");
+				continue;
+			}			
+			
 			$context=$ligne["context"];
 			$ligne["content"]=str_replace('[br]',"\n",$ligne["content"]);
 			events("New event: {$ligne["text"]}, context=$context");

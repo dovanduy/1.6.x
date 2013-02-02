@@ -61,9 +61,10 @@ class groups{
 		$sock=new sockets();
 		
 		if($this->SAMBA_INSTALLED){
+			$this->SAMBA_ENABLED=true;
 			$SambaEnabled=trim($sock->GET_INFO("SambaEnabled"));
-			if(strlen($SambaEnabled)==0){$SambaEnabled=1;}
-			if($SambaEnabled<>1){$this->SAMBA_ENABLED=false;}
+			if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+			if($SambaEnabled==0){$this->SAMBA_ENABLED=false;}
 		}else{
 			$this->SAMBA_ENABLED=false;
 		}		
@@ -403,7 +404,7 @@ private function seems_utf8($Str) {
 			$this->SharedFolderPrefix=$res["SharedFolderPrefix"];
 			$res["members"]=$users;
 			$priv=array();
-			if(isset($attrs["ArticaGroupPrivileges"][0])){if(preg_match_all('#\[([a-zA-Z]+)\]="([a-z0-9]+)"#is',$attrs["ArticaGroupPrivileges"][0],$reg)){while (list ($num, $ligne) = each ($reg[1]) ){$priv[$ligne]=$reg[2][$num];}}}
+			if(isset($attrs["ArticaGroupPrivileges"][0])){if(preg_match_all('#\[([a-zA-Z]+)\]="([a-zA-Z\.0-9]+)"#is',$attrs["ArticaGroupPrivileges"][0],$reg)){while (list ($num, $ligne) = each ($reg[1]) ){$priv[$ligne]=$reg[2][$num];}}}
 			$res["ArticaGroupPrivileges"]=$priv;
 			$this->Privileges_array=$priv;
 			
@@ -952,6 +953,10 @@ function EditSambaGroups(){
  			$u=array();
 	 		$users=new usersMenus();
 	 		$ldap=new clladp();
+	 		$sock=new sockets();
+	 		$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	 		if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+	 		if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}
 	 		
 	 		$dn="dc=samba,dc=organizations,$ldap->suffix";
 	 		

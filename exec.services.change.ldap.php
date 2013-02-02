@@ -36,7 +36,7 @@ if($users->SQUID_INSTALLED){
 	$squid=new squidbee();
 	$squid->SaveToLdap();
 	$squid->SaveToServer();
-	system('/etc/init.d/artica-postfix restart squid &');
+	
 }
 
 if($users->SAMBA_INSTALLED){

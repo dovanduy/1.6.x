@@ -803,7 +803,12 @@ $cpulimit_f=Field_array_Hash($cpulimit_array,'cpulimit',$cpulimit);
 
 	$arrp_mysql=array(null=>"{default}",0=>"{ISP_MODE}",1=>"{high}",2=>"{medium}",3=>"{low}",4=>'{very_low}');
 	$mysql_nice=Field_array_Hash($arrp_mysql,'MysqlNice',$ini->_params["PERFORMANCES"]["MysqlNice"]);
-
+	$mysql_nice="		<tr>
+			<td nowrap width=1% align='right' class=legend>{mysql_server_consumption}:</td>
+			<td>$mysql_nice</td>
+			<td>" . help_icon("{mysql_server_text}")."</td>
+		</tr>";
+	$mysql_nice="<input type='hidden' id='MysqlNice' name='MysqlNice' value=''>";
 
 
 if($ini->_params["PERFORMANCES"]["NoBootWithoutIP"]==null){$ini->_params["PERFORMANCES"]["NoBootWithoutIP"]=0;}
@@ -867,12 +872,8 @@ $html="
 			<td nowrap>". Field_text("systemForkProcessesNumber",$systemForkProcessesNumber,"width:60px;font-size:13px;padding:3px")."&nbsp;{processes}</td>
 			<td>" . help_icon("{systemForkProcessesNumber_explain}")."</td>
 		</tr>		
-		
-		<tr>
-			<td nowrap width=1% align='right' class=legend>{mysql_server_consumption}:</td>
-			<td>$mysql_nice</td>
-			<td>" . help_icon("{mysql_server_text}")."</td>
-		</tr>
+		$mysql_nice
+
 		
 		<tr>
 			<td nowrap width=1% align='right' class=legend>{SystemV5CacheEnabled}:</td>
@@ -1257,6 +1258,7 @@ function main_status(){
 function save_process(){
 $sock=new sockets();	
 $ini=new Bs_IniHandler();
+unset($_POST["MysqlNice"]);
 $ini->loadString($sock->GET_INFO("ArticaPerformancesSettings"));
 if(isset($_POST["cpuLimitEnabled"])){$sock->SET_INFO('cpuLimitEnabled',$_POST["cpuLimitEnabled"]);}
 if(isset($_POST["systemMaxOverloaded"])){$sock->SET_INFO('systemMaxOverloaded',$_POST["systemMaxOverloaded"]);}
@@ -1267,7 +1269,7 @@ if(isset($_POST["ArticaCgroup"])){$sock->SET_INFO('ArticaCgroup',$_POST["ArticaC
 if(isset($_POST["ArticaInCgroups"])){$sock->SET_INFO('ArticaInCgroups',$_POST["ArticaInCgroups"]);}
 if(isset($_POST["DisableLoadAVGQueue"])){$sock->SET_INFO('DisableLoadAVGQueue',$_POST["DisableLoadAVGQueue"]);}
 if(isset($_POST["SystemLoadNotif"])){$sock->SET_INFO('SystemLoadNotif',$_POST["SystemLoadNotif"]);}
-if(isset($_GET["EnableBandwithCalculation"])){$sock->SET_INFO('EnableBandwithCalculation',$_POST["EnableBandwithCalculation"]);}
+if(isset($_POST["EnableBandwithCalculation"])){$sock->SET_INFO('EnableBandwithCalculation',$_POST["EnableBandwithCalculation"]);}
 
 
 
@@ -1286,11 +1288,7 @@ $sock->getFrameWork('cmd.php?RestartDaemon=yes');
 $sock->getFrameWork('services.php?restart-monit=yes');
 
 
-if(isset($_POST["MysqlNice"])){
-	$sock=new sockets();
-	$sock->getFrameWork('cmd.php?restart-mysql=yes');
-	
-}
+
 
 /*SyslogNgPref	4
 syslogng_log_fifo_size	2048

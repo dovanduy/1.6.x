@@ -1,32 +1,47 @@
+#!/usr/bin/php -q
 <?php
 $GLOBALS["FORCE"]=false;
 $GLOBALS["VERBOSE"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
-if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+
+
 include_once(dirname(__FILE__) . '/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__) . '/ressources/class.dhcpd.inc');
 include_once(dirname(__FILE__) . '/ressources/class.computers.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 
-$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-$unix=new unix();
+if($argv[1]=="--parse-leases"){parseLeases();die();}
 
-if($unix->process_exists(@file_get_contents($pidfile,basename(__FILE__)))){
-	if($GLOBALS["VERBOSE"]){echo " --> Already executed.. ". @file_get_contents($pidfile). " aborting the process\n";}
-	writelogs(basename(__FILE__).":Already executed.. aborting the process",basename(__FILE__),__FILE__,__LINE__);
-	die();
+if($argv[1]=="commit"){
+	update_commit($argv[2],$argv[3],$argv[4]);
+	die(0);
 }
-@file_put_contents($pidfile, getmypid());
+	if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$unix=new unix();
+	
+	if($unix->process_exists(@file_get_contents($pidfile,basename(__FILE__)))){
+		if($GLOBALS["VERBOSE"]){echo " --> Already executed.. ". @file_get_contents($pidfile). " aborting the process\n";}
+		die();
+	}
+	@file_put_contents($pidfile, getmypid());
+
+
+
+
+
+
 $GLOBALS["nmblookup"]=$unix->find_program("nmblookup");
 
 if($argv[1]=="lookup"){echo "{$argv[2]}:".nmblookup($argv[2],$argv[3])."\n";die();}
 
 if($argv[1]=='--single-computer'){
+	return;
 	writelogs("update_computer({$argv[2]},{$argv[3]},{$argv[4]}) " ,basename(__FILE__),__FILE__,__LINE__);
-	update_computer($argv[2],$argv[3],$argv[4]);die();
+	
 
 }
 if($GLOBALS["VERBOSE"]){
@@ -252,13 +267,10 @@ function CleanFile(){
 }
 
 function update_computer($ip,$mac,$name){
-$sock=new sockets();	
-$ComputersAllowDHCPLeases=$sock->GET_INFO("ComputersAllowDHCPLeases");
-if($ComputersAllowDHCPLeases==null){$ComputersAllowDHCPLeases=1;}
-if($ComputersAllowDHCPLeases==0){
-	writelogs("ComputersAllowDHCPLeases is disabled, aborting...","update_computer",__FILE__,__LINE__);
-	die();
-}	
+	$sock=new sockets();	
+	$ComputersAllowDHCPLeases=$sock->GET_INFO("ComputersAllowDHCPLeases");
+	if($ComputersAllowDHCPLeases==null){$ComputersAllowDHCPLeases=1;}
+	if($ComputersAllowDHCPLeases==0){localsyslog("`ComputersAllowDHCPLeases` Aborting updating the LDAP database");return;}	
 	
 	$mac=trim($mac);
 	$name=trim(strtolower($name));
@@ -266,16 +278,31 @@ if($ComputersAllowDHCPLeases==0){
 	if($ip==null){return;}
 	if($mac==null){return;}
 	if($name==null){return;}
+	if(preg_match("^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $name)){localsyslog("`$name` is a TCP IP address, aborting updating the LDAP database");return;}
+	
 	
 	$ip=nmblookup($name,$ip);
-	$unix=new unix();
-	$unix->add_EtcHosts($name,$ip);
-	
 	$dhcp=new dhcpd();
 	$GLOBALS["domain"]=$dhcp->ddns_domainname;	
 	
 	$comp=new computers();
 	$uid=$comp->ComputerIDFromMAC($mac);
+	if(preg_match("#^(.+?)\.(.+?)$#", $name,$re)){
+		$name=$re[1];
+		$GLOBALS["domain"]=$re[2];
+	}
+	
+	
+	
+	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $uid)){
+		$comp=new computers($uid);
+		localsyslog("Removing computer ($uid) $mac");
+		$comp->DeleteComputer();
+		$uid=null;
+		$uid=$comp->ComputerIDFromMAC($mac);
+	}
+	localsyslog("$mac -> uid:`$uid`");
+	
 	if($uid==null){
 		$add=true;
 		$uid="$name$";
@@ -285,15 +312,17 @@ if($ComputersAllowDHCPLeases==0){
 		$comp->ComputerIP=$ip;
 		$comp->DnsZoneName=$GLOBALS["domain"];
 		$comp->uid=$uid;
-		$ComputerRealName=$HOST;
+		$ComputerRealName=$name;
+		localsyslog("Adding new computer $name[$ip] ($uid) $mac in domain $comp->DnsZoneName");
 		$comp->Add();
 
 	}else{
 		$comp=new computers($uid);
-		if($comp->ComputerRealName==null){$ComputerRealName=$name;}
+		if($comp->ComputerRealName==null){$comp->ComputerRealName=$name;}
 		if(preg_match("#[0-9]+\.[0-9]+\.#",$comp->ComputerRealName)){$comp->ComputerRealName=$name;}
 		$comp->ComputerIP=$ip;
 		$comp->DnsZoneName=$GLOBALS["domain"];
+		localsyslog("Editing computer $comp->ComputerRealName[$ip] ($uid) $mac in domain $comp->DnsZoneName");
 		$comp->Edit();
 		
 	}
@@ -317,7 +346,7 @@ function nmblookup($hostname,$ip){
 		if($GLOBALS["VERBOSE"]){echo " nmblookup:: --> Could not found binary\n";}
 		return $ip;
 	}
-	if(preg_match("#([0-9]+)\.([0-9]+).([0-9]+)\.([0-9]+)#",$hostname)){
+	if(preg_match("#^[0-9]+\.[0-9]+.[0-9]+\.[0-9]+$#",$hostname)){
 		if($GLOBALS["VERBOSE"]){echo " nmblookup:: --> hostname match IP string, aborting\n";}
 		return $ip;
 	}
@@ -345,7 +374,61 @@ function nmblookup($hostname,$ip){
 }
 
 
+function localsyslog($text){
+	if(!function_exists("syslog")){return;}
+	openlog(basename(__FILE__), LOG_PID , LOG_SYSLOG);
+	syslog(LOG_INFO, $text);
+	closelog();	
+	
+}
 
+function update_commit($ip,$mac,$hostname){
+	if(!preg_match("#([0-9]+)\.([0-9]+).([0-9]+)\.([0-9]+)#",$ip,$re)){
+		localsyslog("Commit: IP:`$ip` invalid...");
+		return;
+	}
+	
+	
+	
+	$macZ=explode(":",$mac);
+	while (list ($num, $ligne) = each ($macZ) ){
+		if(strlen($ligne)==1){$macZ[$num]="0$ligne";}
+		
+	}
+	$mac=@implode(":", $macZ);
+	if(preg_match("#^(.+?)\.#", $hostname,$re)){$hostname=$re[1];}
+	localsyslog("Commit: IP:$ip,$mac,$hostname");
+	$md5=md5(time()."ip,$mac,$hostname");
+	@mkdir("/var/log/artica-postfix/DHCP-LEASES");
+	$array["IP"]=$ip;
+	$array["MAC"]=$mac;
+	$array["hostname"]=$hostname;
+	@file_put_contents("/var/log/artica-postfix/DHCP-LEASES/$md5", serialize($array));
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	
+	shell_exec("$nohup $php5 ".__FILE__." --parse-leases >/dev/null 2>&1 &");
+	
+	
+	
+	
+	
+}
+function parseLeases(){
+	foreach (glob("/var/log/artica-postfix/DHCP-LEASES/*") as $filename) {
+		$array=unserialize(@file_get_contents($filename));
+		@unlink($filename);
+		if(!is_array($array)){continue;}
+		$ip=$array["IP"];
+		$mac=$array["MAC"];
+		$hostname=$array["hostname"];
+		if($ip==null){continue;}	
+		update_computer($ip,$mac,$hostname);
+	}
+	
+	
+}
 
 
 

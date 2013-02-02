@@ -18,12 +18,52 @@ if(isset($_GET["dumpwebdb"])){mysql_dump_database();exit;}
 if(isset($_GET["convert-innodb-file-persize"])){mysql_convert_innodb();exit;}
 if(isset($_GET["getramtmpfs"])){getramtmpfs();exit;}
 if(isset($_GET["mysql-upgrade"])){mysql_upgrade();exit;}
-
-
+if(isset($_GET["restore-db"])){mysql_restore_database();exit;}
+if(isset($_GET["restore-exists"])){restore_exists();exit;}
+if(isset($_GET["mysql-fnfound"])){REPAIR_TABLE_FILE_NOT_FOUND();exit;}
+if(isset($_GET["empty-database"])){EMPTY_DATABASE();exit;}
+if(isset($_GET["database-path"])){database_path();exit; }
+if(isset($_GET["movedb"])){database_move();exit;}
 reset($_GET);
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
 die();
+
+
+function restore_exists(){
+	$unix=new unix();
+	$database=$_GET["restore-exists"];
+	$pgrep=$unix->find_program(pgrep);
+	$cmd="$pgrep -l -f \"mysql.*?--max_allowed_packet.*?$database\" 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	while (list ($num, $line) = each ($results)){
+		if(preg_match("#pgrep#", $line)){continue;}
+		if(preg_match("#^[0-9]+.*?sh\s+#", $line)){continue;}
+		
+		if(preg_match("#^([0-9]+)\s+.*?mysql#", $line,$re)){
+			$pid=$re[1];
+			writelogs_framework("$pid unix->PROCESS_UPTIME($pid)",__FUNCTION__,__FILE__,__LINE__);
+			$time=$unix->PROCESS_UPTIME($pid);
+			writelogs_framework("$pid ($time)",__FUNCTION__,__FILE__,__LINE__);
+			echo "<articadatascgi>". base64_encode($time)."</articadatascgi>";
+		}
+		
+	}
+	
+}
+
+function mysql_restore_database(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();		
+	$nohup=$unix->find_program("nohup");
+	$database=$_GET["restore-db"];
+	$sourcefile=base64_decode($_GET["source"]);
+	$instance_id=$_GET["instance-id"];
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.mysql.backup.php --restore $instance_id $database \"$sourcefile\" >/dev/null 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
 
 function instance_status(){
 	$instance_id=$_GET["instance_id"];
@@ -324,6 +364,56 @@ function mysql_upgrade(){
 	shell_exec($cmd);	
 }	
 
+function REPAIR_TABLE_FILE_NOT_FOUND(){
+	$file=base64_decode($_GET["mysql-fnfound"]);
+	if(!is_file($file)){
+		@file_put_contents($file, "");
+		@chmod($file, 0755);
+		@chown($file, "mysql");
+		@chgrp($file, "mysql");
+		echo "<articadatascgi>$file created done...</articadatascgi>";
+		return;
+	}
+	
+	@chmod($file, 0755);
+	@chown($file, "mysql");
+	@chgrp($file, "mysql");
+	echo "<articadatascgi>$file apply permissions done...</articadatascgi>";
+	return true;	
+}
+function EMPTY_DATABASE(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$db=$_GET["empty-database"];
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.mysql.emptydb.php --db $db >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function database_path(){
+	$unix=new unix();
+	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
+	
+	$database=base64_decode($_GET["database-path"]);
+	if(!is_link("$MYSQL_DATA_DIR/$database")){
+		echo "<articadatascgi>". base64_encode("$MYSQL_DATA_DIR/$database")."</articadatascgi>";
+		return;
+	}
 
+	echo  "<articadatascgi>". base64_encode(readlink("$MYSQL_DATA_DIR/$database"))."</articadatascgi>";
+
+}
+function database_move(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$db=$_GET["movedb"];
+	$path=$_GET["path"];
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.mysql.mvdb.php --db $db $path >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
 
 

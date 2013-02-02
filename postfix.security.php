@@ -46,12 +46,16 @@ function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$filters_settings=$tpl->_ENGINE_parse_body('{antispam_filters}');
-	$array["status"]='{status}';
-	$array["antispam"]=$filters_settings;
+	$array["synthesis"]='{synthesis}';
+	$array["postfix"]='{mta_policies}';
+	$array["status"]='{mailplugins}';
+	
+	
 	$array["antispam-content"]="{content_filtering}";
 	$array["filters-connect"]="{filters_connect}";
 	$array["antivirus"]="antivirus";
-	$array["status-pattern"]="{patterns_versions}";
+	//$array["status-pattern"]="{patterns_versions}";
+	$hostname=$_GET["hostname"];
 	$height="850px";
 	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";$height="100%";}
 
@@ -63,6 +67,16 @@ function tabs(){
 		
 		if($num=="filters-connect"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.index.php?main=filters-connect\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+
+		if($num=="postfix"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.index.php?main=security_settings&hostname=master\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="synthesis"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.synthesis.php?hostname=$hostname\"><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
@@ -579,7 +593,34 @@ function section_content_filtering(){
 	$sa_rules_disabled=Paragraphe("script-64-grey.png","{SPAMASSASSIN_RULES}","{SPAMASSASSIN_RULES_TEXT}","",null,210,null,0,true);
 	
 	
+	$spamassassin=Paragraphe('folder-64-spamassassin.png','{APP_SPAMASSASSIN}','{SPAMASSASSIN_TEXT}',"javascript:Loadjs('spamassassin.index.php')",null,210,null,0,true);
+	$spamassassin_disabled=Paragraphe('folder-64-spamassassin-64.png','{APP_SPAMASSASSIN}','{SPAMASSASSIN_TEXT}',"javascript:blur()",null,210,null,0,true);
 	
+	
+	$kas3=Paragraphe('folder-caterpillar.png','{APP_KAS3}','{KAS3_TEXT}','javascript:Loadjs("kas.group.rules.php?ajax=yes")',null,210,null,0,true);
+	$kas3_disabled=Paragraphe('folder-caterpillar-grey.png','{APP_KAS3}','{KAS3_TEXT}','javascript:blur()',null,210,null,0,true);
+	
+	
+	
+	$amavis=Paragraphe('64-amavis.png','{APP_AMAVISD_NEW}','{APP_AMAVISD_NEW_ICON_TEXT}',"javascript:Loadjs('amavis.index.php?ajax=yes')",null,210,100,0,true);
+	
+	$amavis_disabled=Paragraphe('64-amavis-grey.png','{APP_AMAVISD_NEW}','{feature_not_installed}',"",null,210,100,0,true);
+	
+	
+	$mimedefang=Paragraphe('folder-64-mimedefang.png','{APP_MIMEDEFANG}','{MIMEDEFANG_TEXT}','mimedefang.index.php',null,210,100,0,true);
+	$mailspy=Paragraphe('64-milterspy.png','{APP_MAILSPY}','{APP_MAILSPY_TEXT}','mailspy.index.php',null,210,100,0,true);
+	$install=Buildicon64("DEF_ICO_CONTROLCENTER");
+	$milter_script=Paragraphe('64-milter-behavior.png','{plugins_behavior}','{plugins_behavior_text}',"javascript:Loadjs('postfix.index.php?script=milterbehavior')",null,210,100,0,true);
+	$plugins_activate=Paragraphe('folder-lego.png','{postfix_plugins}','{postfix_plugins_text}',"javascript:Loadjs('postfix.plugins.php?js=yes')",null,210,100,0,true);
+	$wbl=Buildicon64('DEF_ICO_MAIL_WBL');
+	$quarantine=Paragraphe('folder-quarantine-0-64.png','{quarantine_and_backup_storage}','{quarantine_and_backup_storage_text}',"javascript:Loadjs('quarantine.php?script=quarantine')",null,210,100,0,true);
+	$apply=applysettings_postfix(true) ;
+	$assp=Buildicon64("DEF_ICO_ASSP");
+	$quarantine_admin=Paragraphe("biohazard-64.png","{all_quarantines}","{all_quarantines_text}","javascript:Loadjs('domains.quarantine.php?js=yes&Master=yes')",null,210,100,0,true);
+	$quarantine_report=Paragraphe("biohazard-settings-64.png","{quarantine_reports}","{quarantine_reports_text}","javascript:Loadjs('domains.quarantine.php?js=yes&MailSettings=yes')",null,210,100,0,true);
+	
+	$quarantine_policies=Paragraphe("script-64.png","{quarantine_policies}","{quarantine_policies_text}",
+			"javascript:Loadjs('quarantine.policies.php')",null,210,null,0,true);	
 	
 	
 	
@@ -625,15 +666,102 @@ function section_content_filtering(){
 		$message_analyze=null;
 	}	
 	
+
+	
+	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+	$SpamAssMilterEnabled=$sock->GET_INFO("SpamAssMilterEnabled");
+	
+	$users=new usersMenus();
+	$users->LoadModulesEnabled();
+	if($users->KASPERSKY_SMTP_APPLIANCE){return filters_section_kaspersky();}
+	if(!$users->ASSP_INSTALLED){$assp=null;}
+	
+	if($users->EnableAmavisDaemon==0){$amavis=$amavis_disabled;}
+	if(!$users->AMAVIS_INSTALLED){$amavis=$amavis_disabled;}
+	if(!$users->spamassassin_installed){$spamassassin=$spamassassin_disabled;}
+	if(!$users->MEM_HIGER_1G){$spamassassin=$spamassassin_disabled;}
+	if($users->KasxFilterEnabled<>1){$kas3=$kas3_disabled;}
+	if($users->kas_installed<>1){$kas3=$kas3_disabled;}
+	if(!$users->KAV_MILTER_INSTALLED){$kasper=$kas3_disabled;}
+	if($users->KAVMILTER_ENABLED<>1){$kasper=$kas3_disabled;}
+	if($users->EnableAmavisDaemon==0){$amavis=$amavis_disabled;}
+	if(!$users->MEM_HIGER_1G){$amavis=$amavis_disabled;}
+	if(!$users->AMAVIS_INSTALLED){$amavis=$amavis_disabled;}
+	if($EnablePostfixMultiInstance==1){$amavis=$amavis_disabled;}
+	if($users->MimeDefangEnabled<>1){$mimedefang=null;}
+	if(!$users->MIMEDEFANG_INSTALLED){$mimedefang=null;}
+	if(!$users->spamassassin_installed){$spamassassin=$spamassassin_disabled;}
+	if(!$users->spamassassin_installed){$spamassassin=$spamassassin_disabled;}
+	if($users->KasxFilterEnabled<>1){$kas3=$kas3_disabled;}
+	if($users->kas_installed<>1){$kas3=$kas3_disabled;}
+	if($users->ClamavMilterEnabled<>1){$clamav=null;}
+	if(!$users->CLAMAV_MILTER_INSTALLED){$clamav=null;}
+	if($EnablePostfixMultiInstance==1){$clamav=null;}
+	if($users->MilterGreyListEnabled<>1){$mg=null;}
+	if(!$users->MILTERGREYLIST_INSTALLED){$mg=null;}
+	if($EnablePostfixMultiInstance==1){$mg=null;}
+	if($users->EnableMilterSpyDaemon<>1){$mailspy=null;}
+	if(!$users->MILTER_SPY_INSTALLED){$mailspy=null;}
+	
+	
+	if($spamassassin<>null){
+		if(!$users->AMAVIS_INSTALLED){
+			if($users->SPAMASS_MILTER_INSTALLED){
+				if($SpamAssMilterEnabled<>1){
+					$spamassassin=$spamassassin_disabled;
+				}
+			}else{
+				$spamassassin=$spamassassin_disabled;
+	
+			}
+		}
+	
+		if($users->AMAVIS_INSTALLED){
+			if($users->EnableAmavisDaemon<>1){
+				if($users->SPAMASS_MILTER_INSTALLED){
+					if($SpamAssMilterEnabled<>1){
+						$spamassassin=$spamassassin_disabled;
+	
+					}
+				}else{
+					$spamassassin=$spamassassin_disabled;
+						
+				}
+			}
+	
+		}
+	}
+	
+	if($users->KASPERSKY_SMTP_APPLIANCE){
+		$spamassassin=null;
+		$keywords=null;
+	}
+	
+	
 	$tr[]=$keywords;
 	$tr[]=$global_smtp_rules;
 	$tr[]=$extensions_block;
 	$tr[]=$message_analyze;
+	$tr[]=$spamassassin;
 	$tr[]=$sa_rules;
 	$tr[]=$sa_update;
 	
+	$tr[]=$amavis;
+	$tr[]=$assp;
+	$tr[]=$kas3;
 	
-$tables[]="<table style='width:70%' class=form><tr>";
+	
+	$tr[]=$keywords;
+	$tr[]=$quarantine_policies;
+	$tr[]=$quarantine;
+	$tr[]=$quarantine_admin;
+	$tr[]=$quarantine_report;
+	$tr[]=$wbl;
+	$tr[]=$clamav;
+	$tr[]=$mailspy;	
+	
+	
+$tables[]="<table style='width:99%' class=form><tr>";
 $t=0;
 while (list ($key, $line) = each ($tr) ){
 		$line=trim($line);
@@ -648,10 +776,14 @@ if($t<3){
 		$tables[]="<td valign='top'>&nbsp;</td>";				
 	}
 }
-				
+	$t=time();			
 $tables[]="</table>";	
 $html=implode("\n",$tables);	
-$html="<center>$html</center>";	
+$html="<center><div style='width:700px'>$html</div>
+
+
+</center>
+";	
 $tpl=new templates();
 $datas=$tpl->_ENGINE_parse_body($html);		
 echo $datas;	
@@ -748,7 +880,88 @@ function section_pattern(){
 	
 	
 }
+function filters_section_kaspersky(){
 
+	if(posix_getuid()==0){return null;}
+
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+	$users=new usersMenus();
+	$users->LoadModulesEnabled();
+
+
+
+	$kas3=Paragraphe('folder-caterpillar.png','{APP_KAS3}','{KAS3_TEXT}','javascript:Loadjs("kas.group.rules.php?ajax=yes")',null,210,null,0,true);
+	$kasper=Paragraphe('icon-antivirus-64.png','{APP_KAVMILTER}','{APP_KAVMILTER_TEXT}',"javascript:Loadjs('milter.index.php?ajax=yes')",null,210,null,0,true);
+	$activate=Paragraphe('64-folder-install.png','{AS_ACTIVATE}','{AS_ACTIVATE_TEXT}',"javascript:Loadjs('$page?script=antispam')",null,210,null,0,true);
+	$mailspy=Paragraphe('64-milterspy.png','{APP_MAILSPY}','{APP_MAILSPY_TEXT}','mailspy.index.php',null,210,100,0,true);
+	$install=Buildicon64("DEF_ICO_CONTROLCENTER");
+	$milter_script=Paragraphe('64-milter-behavior.png','{plugins_behavior}','{plugins_behavior_text}',"javascript:Loadjs('$page?script=milterbehavior')",null,210,100,0,true);
+	$wbl=Buildicon64('DEF_ICO_MAIL_WBL');
+	$quarantine=Paragraphe('folder-quarantine-0-64.png','{quarantine_and_backup_storage}','{quarantine_and_backup_storage_text}',"javascript:Loadjs('quarantine.php?script=quarantine')",null,210,100,0,true);
+	$apply=applysettings_postfix(true) ;
+	$assp=Buildicon64("DEF_ICO_ASSP");
+	$quarantine_admin=Paragraphe("biohazard-64.png","{all_quarantines}","{all_quarantines_text}","javascript:Loadjs('domains.quarantine.php?js=yes&Master=yes')",null,210,100,0,true);
+	$quarantine_report=Paragraphe("64-administrative-tools.png","{quarantine_reports}","{quarantine_reports_text}","javascript:Loadjs('domains.quarantine.php?js=yes&MailSettings=yes')",null,210,100,0,true);
+	$quarantine_policies=Paragraphe("script-64.png","{quanrantine_policies}","{quanrantine_policies_text}",
+			"javascript:Loadjs('quarantine.policies.php')",null,210,null,0,true);
+
+	if($users->KasxFilterEnabled<>1){$kas3=null;}
+	if($users->kas_installed<>1){$kas3=null;}
+	if(!$users->KAV_MILTER_INSTALLED){$kasper=null;}
+	if($users->KAVMILTER_ENABLED<>1){$kasper=null;}
+	if($users->KasxFilterEnabled<>1){$kas3=null;}
+	if($users->kas_installed<>1){$kas3=null;}
+	if($users->KAVMILTER_ENABLED<>1){$kav=null;}
+	if(!$users->KAV_MILTER_INSTALLED){$kav=null;}
+	if($users->MilterGreyListEnabled<>1){$mg=nul;}
+	if(!$users->MILTERGREYLIST_INSTALLED){$mg=null;}
+	if($EnablePostfixMultiInstance==1){$mg=null;}
+	if($users->EnableMilterSpyDaemon<>1){$mailspy=null;}
+	if(!$users->MILTER_SPY_INSTALLED){$mailspy=null;}
+
+
+	$tr[]=$apply;
+	$tr[]=$activate;
+	$tr[]=$milter_script;
+	$tr[]=$kas3;
+	$tr[]=$assp;
+	$tr[]=$kasper;
+	$tr[]=$quarantine_policies;
+	$tr[]=$quarantine;
+	$tr[]=$quarantine_admin;
+	$tr[]=$quarantine_report;
+	$tr[]=$wbl;
+	$tr[]=$mailspy;
+
+
+	$tables[]="<table style='width:70%' class=form><tr>";
+	$t=0;
+	while (list ($key, $line) = each ($tr) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		$t=$t+1;
+		$tables[]="<td valign='top'>$line</td>";
+		if($t==3){$t=0;$tables[]="</tr><tr>";}
+
+	}
+	if($t<3){
+		for($i=0;$i<=$t;$i++){
+			$tables[]="<td valign='top'>&nbsp;</td>";
+		}
+	}
+
+	$tables[]="</table>";
+
+	$html=implode("\n",$tables);
+
+
+
+	$tpl=new templates();
+	$datas=$tpl->_ENGINE_parse_body($html,"postfix.plugins.php,domain.manage.org.index.php,domains.quarantine.php");
+	return $datas;
+}
 
 function KavAVPatterns(){
 	$icon="datasource-32.png";

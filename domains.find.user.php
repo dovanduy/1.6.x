@@ -76,6 +76,9 @@ $email=$tpl->_ENGINE_parse_body("{email}");
 $phone=$tpl->_ENGINE_parse_body("{phone}");	
 $new_member=$tpl->_ENGINE_parse_body("{new_member}");
 $t=time();
+$ldap=new clladp();
+$ou=$_GET["ou"];
+if(is_base64_encoded($ou)){$ou=base64_decode($ou);}
 
 
 	$buttons="
@@ -84,7 +87,7 @@ $t=time();
 	
 	
 	],";	
-
+	if($ldap->IsOUUnderActiveDirectory($ou)){$buttons=null;}
 $html="
 <span id='DomainsUsersFindPopupDiv'></span>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
@@ -160,19 +163,28 @@ function find_member(){
 	writelogs("FIND $tofind IN OU \"$ou\"",__FUNCTION__,__FILE__,__LINE__);
 	
 
+	$ldap=new clladp();
 	
-	if($EnableManageUsersTroughActiveDirectory==1){
-		$cc=new ldapAD();
-		$hash=$cc->find_users($ou,$tofind);
-		
+	
+	if(!$ldap->IsOUUnderActiveDirectory($ou)){
+		if($EnableManageUsersTroughActiveDirectory==1){
+			$cc=new ldapAD();
+			$hash=$cc->find_users($ou,$tofind);
+			
+		}else{
+			$ldap=new clladp();
+			$filter="(&(objectClass=userAccount)(|(cn=$tofind)(mail=$tofind)(displayName=$tofind)(uid=$tofind) (givenname=$tofind) ))";
+			$attrs=array("displayName","uid","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber","sAMAccountName");
+			$dn="ou=$ou,dc=organizations,$ldap->suffix";		
+			$hash=$ldap->Ldap_search($dn,$filter,$attrs,20);
+		}
 	}else{
-		$ldap=new clladp();
-		$filter="(&(objectClass=userAccount)(|(cn=$tofind)(mail=$tofind)(displayName=$tofind)(uid=$tofind) (givenname=$tofind) ))";
-		$attrs=array("displayName","uid","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber","sAMAccountName");
-		$dn="ou=$ou,dc=organizations,$ldap->suffix";		
-		$hash=$ldap->Ldap_search($dn,$filter,$attrs,20);
+		include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+		$p=new external_ad_search();
+		$hash=$p->find_users($ou,$tofind);
+		$ldap->EnableManageUsersTroughActiveDirectory=true;
 	}
-	
+		
 	
 	
 	$users=new user();
@@ -222,7 +234,10 @@ function formatUser($hash,$EnableManageUsersTroughActiveDirectory=false){
 	
 
 	$js=MEMBER_JS($uid,1);
-	$delete=imgtootltip("delete-24.png", "$uid<hr>{delete_this_user_text}", "Loadjs('domains.delete.user.php?uid=$uid')");
+	$delete=imgsimple("delete-24.png", "$uid<hr>{delete_this_user_text}", "Loadjs('domains.delete.user.php?uid=$uid')");
+	if($EnableManageUsersTroughActiveDirectory){
+		$delete=imgtootltip("delete-24-grey.png", "$uid<hr>{delete_this_user_text}", "");
+	}
 	
 	return 		array(
 		'id' => $uid,

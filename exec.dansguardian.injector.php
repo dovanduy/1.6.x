@@ -14,6 +14,8 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if($argv[1]=="--import"){include_tpl_file($argv[2],$argv[3]);die();}
 if($argv[1]=="--sites-infos"){ParseSitesInfos();die();}
 if($argv[1]=="--streamget"){streamget();die();}
+if($argv[1]=="--notifs"){ufdguard_send_notifications();die();}
+
 
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
 $oldpid=@file_get_contents($pidfile);
@@ -35,9 +37,13 @@ $t1=time();
 file_put_contents($pidfile,$pid);
 events(basename(__FILE__).": running $pid");
 events_tail("running $pid");	
-
+$nohup=$unix->find_program("nohup");
 if(!is_dir("/var/log/artica-postfix/dansguardian-stats4")){@mkdir("/var/log/artica-postfix/dansguardian-stats4",660,true);}
 if(!is_dir("/var/log/artica-postfix/dansguardian-stats4-failed")){@mkdir("/var/log/artica-postfix/dansguardian-stats4-failed",660,true);}
+
+$cmdline=$nohup." ".$unix->LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.squid-tail-injector.php --brut >/dev/null 2>&1 &";
+events_tail($cmdline);
+shell_exec($cmdline);
 ParseLogs();
 ParseLogsNew();
 ParseSitesInfos();
@@ -263,6 +269,8 @@ function PaseUdfdbGuardnew(){
 	@mkdir("/var/log/artica-postfix/ufdbguard-blocks",0777,true);
 	@mkdir("/var/log/artica-postfix/ufdbguard-blocks-errors",0777,true);
 	$GLOBALS["EnableRemoteStatisticsAppliance"]=$EnableRemoteStatisticsAppliance;
+	
+	
 	$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
 	if(!isset($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=null;}
 	if(!isset($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=null;}
@@ -285,7 +293,7 @@ function PaseUdfdbGuardnew(){
 		events_tail("PaseUdfdbGuardnew:: -> glob failed in Line: /var/log/artica-postfix/ufdbguard-blocks ".__LINE__);
 		return ;
 	}
-
+	$smtp_notifications_body=array();
 	//$sql="INSERT INTO `$table` (`client`,`website`,`category`,`rulename`,`public_ip`,`why`,`blocktype`,`hostname`,`uid`,`MAC`) VALUES";
 	
 	$c=0;
@@ -314,13 +322,32 @@ function PaseUdfdbGuardnew(){
 		$www=$array["website"];
 		$local_ip=$array["client"];		
 		$table=date('Ymd',$time)."_blocked";
+		
+		
+		$textBody="\r\n***************************************\r\n";
+		if($www<>null){$textBody=$textBody."Blocked on: ".date("Y-m-d H:i:s",$time)."\r\n";}
+		if($www<>null){$textBody=$textBody."Web site name: $www [$public_ip]\r\n";}
+		$textBody=$textBody."Rule: $rulename - $blocktype ($why) \r\n";
+		if($category<>null){$textBody=$textBody."Category: $category\r\n";}
+		if($uri<>null){$textBody=$textBody."URL: $uri\r\n";}
+		if($uid<>null){$textBody=$textBody."User: $uid\r\n";}
+		if($Clienthostname<>null){$textBody=$textBody."Hostname: $Clienthostname\r\n";}
+		if($MAC<>null){$textBody=$textBody."MAC Address: $MAC\r\n";}
+		$smtp_notifications_body[]=$textBody;
+				
+		
+		
 		$sql="('$local_ip','$www','$category','$rulename','$public_ip','$why','$blocktype','$Clienthostname','$uid','$MAC','$uri')";	
 		if(!isset($checked[$table])){
 			if(!$q->CheckTablesBlocked_day(0,$table)){
 				events_tail("PaseUdfdbGuard:: Fatal CheckTablesBlocked_day($table)...");
+				$smtp_notifications_body[]="Notice: An error as been occured $q->mysql_error while adding the event in $table table\r\n";
+				ufdguard_send_notifications($smtp_notifications_body);
 				return;
 			}
 		}
+		
+
 		
 		$BIGARRAY[$table][]=$sql;
 		@unlink($targetFile);
@@ -342,7 +369,53 @@ function PaseUdfdbGuardnew(){
 		$ev=$ev+count($queries);
 	}
 	
+	if(count($smtp_notifications_body)>0){
+		ufdguard_send_notifications($smtp_notifications_body);
+	}
 	events_tail("PaseUdfdbGuardnew:: $ev events done");
+}
+
+function ufdguard_send_notifications($array=array()){
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."\n";}
+	if(count($array)==0){$array[]="This is a test notification from UfdBguard parser...\r\n";}
+	$sock=new sockets();
+	
+	$UfdbguardSMTPNotifs=unserialize(base64_decode($sock->GET_INFO("UfdbguardSMTPNotifs")));
+	if(!is_numeric($UfdbguardSMTPNotifs["ENABLED"])){$UfdbguardSMTPNotifs["ENABLED"]=0;}
+	if($UfdbguardSMTPNotifs["ENABLED"]==0){return;}
+	include_once(dirname(__FILE__) . '/ressources/class.mail.inc');
+	include_once(dirname(__FILE__)."/ressources/smtp/class.phpmailer.inc");	
+	$users=new usersMenus();
+	$smtp_dest=$UfdbguardSMTPNotifs["smtp_dest"];
+	$smtp_sender=$UfdbguardSMTPNotifs["smtp_sender"];
+	if($smtp_dest==null){return;}
+	if($smtp_sender==null){$smtp_sender="root@artica.localhost.localdomain";}
+	
+	$subject="[$users->hostname]: Web filtering ". count($array)." event(s)";
+	$text=@implode("\r\n", $array);
+	$mail = new PHPMailer(true);
+	$mail->IsSMTP();
+	$mail->AddAddress($smtp_dest,$smtp_dest);
+	$mail->AddReplyTo($smtp_sender,$smtp_sender);
+	$mail->From=$smtp_sender;
+	$mail->Subject=$subject;
+	$mail->Body=$text;
+	$mail->Host=$UfdbguardSMTPNotifs["smtp_server_name"];
+	$mail->Port=$UfdbguardSMTPNotifs["smtp_server_port"];
+	
+	if(($UfdbguardSMTPNotifs["smtp_auth_user"]<>null) && ($UfdbguardSMTPNotifs["smtp_auth_passwd"]<>null)){
+		$mail->SMTPAuth=true;
+		$mail->Username=$UfdbguardSMTPNotifs["smtp_auth_user"];
+		$mail->Password=$UfdbguardSMTPNotifs["smtp_auth_passwd"];
+		if($UfdbguardSMTPNotifs["tls_enabled"]==1){$mail->SMTPSecure = 'tls';}
+		if($UfdbguardSMTPNotifs["ssl_enabled"]==1){$mail->SMTPSecure = 'ssl';}
+		
+		
+	}
+	
+	$mail->Send();
+	
+	
 }
 
 

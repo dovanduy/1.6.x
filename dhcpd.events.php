@@ -3,10 +3,17 @@ include_once('ressources/class.templates.inc');
 include_once('ressources/class.users.menus.inc');
 include_once('ressources/class.dhcpd.inc');
 $users=new usersMenus();
-if(!$users->AsSystemAdministrator){die("alert('no access');");}
+if(!GetRights()){die("alert('no access');");}
 if(isset($_GET["popup"])){popup();exit;}
 if(isset($_GET["ev"])){echo events();exit;}
 
+
+
+function GetRights(){
+	$users=new usersMenus();
+	if($users->AsSystemAdministrator){return true;}
+	if($users->ASDCHPAdmin){return true;}
+}
 js();
 function js(){
 	

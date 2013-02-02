@@ -97,8 +97,8 @@ function generate_graph(){
 				
 			$c++;
 		$table=$table."<tr>
-			<td style='font-size:14px' width=99%><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.visited.php?day={$ligne["zDate"]}&onlyNot=yes');\" style='font-size:14px;text-decoration:underline'>{$ligne["zDate"]}</a></td>
-			<td style='font-size:14px' width=1%><strong>{$ligne["not_categorized"]}</strong></td>
+			<td style='font-size:14px' width=99% nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.visited.php?day={$ligne["zDate"]}&onlyNot=yes');\" style='font-size:14px;text-decoration:underline'>{$ligne["zDate"]}</a></td>
+			<td style='font-size:14px' width=1% nowrap><strong>{$ligne["not_categorized"]}</strong></td>
 		</tr>
 		";
 		if($c>10){$c=0;$tr[]="<table style='width:20%' class=form><tbody>$table</tbody></table>";$table=null;}

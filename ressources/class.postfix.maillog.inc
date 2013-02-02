@@ -6,17 +6,61 @@ class postfix_maillog_buffer{
 	
 	function postfix_maillog_buffer($buffer){
 		$this->buffer=$buffer;
+		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 		if(!isset($GLOBALS["maillog_tools"])){$GLOBALS["maillog_tools"]=new maillog_tools();}
+		if(!isset($GLOBALS["POSTCONF_BIN"])){$GLOBALS["POSTCONF_BIN"]=$GLOBALS["CLASS_UNIX"]->find_program('postconf');}
+		if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();}
+		
+		if(!isset($GLOBALS["EnablePostfixMultiInstance"])){$GLOBALS["EnablePostfixMultiInstance"]=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnablePostfixMultiInstance");}
+		if(!is_numeric($GLOBALS["EnablePostfixMultiInstance"])){$GLOBALS["EnablePostfixMultiInstance"]=0;}
 	}
 	
 	public function parse(){
 		$buffer=$this->buffer;
-		
+		if(preg_match("#refreshing the Postfix mail system#i", $buffer)){return true;}
+		if(preg_match("#reload -- version .*?, configuration#i", $buffer)){return true;}
 		
 		if(preg_match("#klms-milter:.+?started,\s+pid.*?([0-9]+).*?scanner.*?=(.*)#",$buffer,$re )){
 			$this->email_events("Kaspersky Mail security Milter started pid {$re[1]} on {$re[2]}",$buffer,'klms');
 			return true;
 		}
+		
+		if(preg_match("#postfix\[.*?fatal:\s+chdir\((.+?)\):\s+No such file or directory#",$buffer,$re )){
+			$dir=$re[1];
+			$timefile="/etc/artica-postfix/croned.1/chdir-".md5($dir);
+			$TimeMin=$this->file_time_min($timefile);
+			$this->events("$dir such dir",__LINE__);
+			if($TimeMin>5){
+				if(preg_match("#\/var\/spool\/postfix-(.+)", $dir,$re)){
+					$cmd="{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix-multi.php --instance-reconfigure {$re[1]} >/dev/null 2>&1 &";
+					$this->events("$cmd",__LINE__);
+					shell_exec($cmd);
+					@unlink($timefile);
+					@file_put_contents($timefile,time());					
+					return;
+				}
+				@mkdir($dir);
+				@chgrp($dir, "postfix");
+				@chown($dir, "postfix");
+				@unlink($timefile);
+				@file_put_contents($timefile,time());				
+				return;
+			}
+		}
+		
+		if(preg_match("#postfix\[.+?: fatal: bad string length 0 < 1: inet_interfaces#", $buffer,$re)){
+			$timefile="/etc/artica-postfix/croned.1/master-fatal-".md5("fatal: bad string length 0 < 1: inet_interfaces");
+			$TimeMin=$this->file_time_min($timefile);
+			$this->events("Master instance bad string length 0 < 1: inet_interfaces",__LINE__);
+			if($GLOBALS["EnablePostfixMultiInstance"]==1){
+				$cmd="{$GLOBALS["POSTCONF_BIN"]} -c /etc/postfix -e 'inet_interfaces=127.0.0.1'";
+				$this->events("EnablePostfixMultiInstance:: $cmd",__LINE__);
+				shell_exec($cmd);
+				@unlink($timefile);
+				@file_put_contents($timefile,time());
+			}
+		}
+		
 		
 		if(preg_match("#smtpd\[.+?warning.*?SASL authentication failure: cannot connect to saslauthd server: Permission denied#i",$buffer,$re)){
 			$this->events("SASL authentication failure !!",__LINE__);
@@ -31,8 +75,25 @@ class postfix_maillog_buffer{
 		 		@unlink($timefile);
 				@file_put_contents($timefile,time());				
 			}	
-			
+			return true;
 		}
+		
+		if(preg_match("#\/lmtp\[.+?127\.0\.0\.1\[127\.0\.0\.1\]:2003.+?deferred \(conversation.+?timed out while receiving the initial server greeting#", $buffer)){
+			$this->events("LMTP timedout (Zarafa ?)",__LINE__);
+			$timefile="/etc/artica-postfix/croned.1/127.0.0.1.2003.timedout";
+			$TimeMin=$this->file_time_min($timefile);
+			if($TimeMin>3){
+				if($GLOBALS["ZARAFA_INSTALLED"]){
+					$this->email_events("zarafa-dagent timed out...","Postfix claim: $buffer\nZarafa-dagent will be restarted","postfix");
+					$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/zarafa-dagent restart restart >/dev/null 2>&1 &";
+					$this->events($cmd);
+					shell_exec($cmd);
+			 		@unlink($timefile);
+					@file_put_contents($timefile,time());				
+				}			
+			}
+		}
+		
 		
 		if(preg_match("#relay=none,\s+delay=.+?status=deferred.+?suspended:\s+connect to.+?\.0\.0\.1\]:10024:\s+Connection refused#",$buffer,$re )){
 			$this->events("restart amavis !!",__LINE__);
@@ -64,6 +125,27 @@ class postfix_maillog_buffer{
 			$cmd="{$GLOBALS["POSTMAP_PATH"]} hash:$file >/dev/null 2>&1";
 			$this->events($cmd,__LINE__);
 			shell_exec($cmd);
+			return true;
+		}
+		
+		
+		if(preg_match("#postfix\/smtpd.*?warning: connect to Milter service unix:.*?\/MIMEDefang\/mimedefang\.sock#",$buffer,$re )){
+			$sock=new sockets();
+			$MimeDefangEnabled=trim($sock->GET_INFO("MimeDefangEnabled",true));
+			if(!is_numeric($MimeDefangEnabled)){$MimeDefangEnabled=0;}
+			if($MimeDefangEnabled==0){
+				$this->events("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.maincf.php --milters >/dev/null 2>&1 &");
+				shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.maincf.php --milters >/dev/null 2>&1 &");
+			}
+			return true;
+		}
+		
+		if(preg_match("#postfix\/postfix-script.?warning: not set-gid or not owner\+group\+world executable:\s+(.*)#",$buffer,$re )){
+			$unix=new unix();
+			$chmod=$unix->find_program("chmod");
+			shell_exec("$chmod g+s {$re[1]} >/dev/null 2>&1");
+			$this->events("$chmod g+s {$re[1]} >/dev/null 2>&1");
+			return true;
 		}
 		
 		
@@ -72,6 +154,29 @@ class postfix_maillog_buffer{
 			$this->events("chown root {$re[1]}",__LINE__);
 			@chown(trim($re[1]),"root");
 			return true;
+		}
+		
+		
+		if(preg_match("#postfix-(.*?)\/smtpd\[.+?warning: connect to Milter service\s+unix:(.*?):.*?Permission denied#i",$buffer,$re )){
+			$unix=new unix();
+			$file=$re[2];
+			
+			if(preg_match("#milter-greylist#", $file)){
+				if(!is_file($file)){
+					@chown("/var/spool/postfix/var/run/milter-greylist", "postfix");
+					@chgrp("/var/spool/postfix/var/run/milter-greylist", "postfix");
+					@chmod("/var/spool/postfix/var/run/milter-greylist",0755);					
+					$this->events("Milter-greylist:[{$re[1]}] $file, no such file -> start it",__LINE__);
+					shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.milter-greylist.php --start --hostname={$re[1]} >/dev/null 2>&1");
+					$this->email_events("instance: {$re[1]} $file no such file","Postfix claim $buffer,\nArtica will start the milter-greylist instance",'postfix');
+				}
+			}
+			$this->events("{$re[1]} permission denied on $file",__LINE__);
+			$unix->chown_func("postfix","postfix", $file);
+			$unix->chown_func("postfix","postfix", dirname($file));
+			$unix->chmod_func(0777, $file);
+			$this->email_events("instance: {$re[1]} permission $file issue","Postfix claim $buffer,\nArtica will chown this file and chmod it...",'postfix');
+			return true;	
 		}
 		
 		if(preg_match("#\/postfix-script\[.+?warning: not owned by group\s+(.+?):\s+(.+)#",$buffer,$re )){
@@ -93,6 +198,9 @@ class postfix_maillog_buffer{
 			$timefile="/etc/artica-postfix/croned.1/restart-mgreylist-{$re[1]}";
 			$TimeMin=$this->file_time_min($timefile);
 			if($TimeMin>5){
+				@chown("/var/spool/postfix/var/run/milter-greylist", "postfix");
+				@chgrp("/var/spool/postfix/var/run/milter-greylist", "postfix");
+				@chmod("/var/spool/postfix/var/run/milter-greylist",0755);				
 				$cmd="{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.milter-greylist.php --start --hostname={$re[1]} >/dev/null 2>&1 &";
 				$this->events($cmd);
 				shell_exec($cmd);
@@ -118,6 +226,7 @@ class postfix_maillog_buffer{
 					@file_put_contents($timefile,"#");	
 					$this->email_events("alias database unavailable","Postfix claim $buffer,\naliases database will be ordered to be generated",'postfix');							
 				}
+			return true;
 		}
 		
 		

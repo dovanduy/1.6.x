@@ -80,13 +80,21 @@ function popup_inside_tabs(){
 
 function popup(){
 	if(GET_CACHED(__FILE__, __FUNCTION__,__FUNCTION__)){return;}
-	$users=new usersMenus();	
+	$users=new usersMenus();
+	$userClasse=new usersMenus();
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
 	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
-	
+	$t=time();
 	$ZarafaField="{display: '&nbsp;', name : 'Zarafa', width :31, sortable : false, align: 'center'},";
+	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
+	
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($EnableWebProxyStatsAppliance==1){$userClasse->WEBSTATS_APPLIANCE=true;}	
+	if($userClasse->WEBSTATS_APPLIANCE){$userClasse->SQUID_INSTALLED=true;}
+	
 	
 	if($users->ZARAFA_INSTALLED){
 			$ZarafaEnableServer=$sock->GET_INFO("ZarafaEnableServer");
@@ -95,6 +103,7 @@ function popup(){
 					if($users->AsMailBoxAdministrator){
 						$ZarafaField="{display: 'Zarafa', name : 'Zarafa', width :31, sortable : false, align: 'center'},";
 						$ZarafaUri="&zarafaF=1";
+						$help="{name: '$online_help', bclass: 'Help', onpress : Zhelp$t},";
 					}
 				}
 			}
@@ -122,7 +131,7 @@ function popup(){
 	$domains=$tpl->_ENGINE_parse_body("{domains}");	
 	$actions=$tpl->_ENGINE_parse_body("{actions}");	
 	$add_new_organisation_text=$tpl->javascript_parse_text("{add_new_organisation_text}");
-	$t=time();
+	$update=$tpl->_ENGINE_parse_body("{update2}");
 	if($users->AsArticaAdministrator){$parametersBT="{name: '<b>$organizations_parameters</b>', bclass: 'Reconf', onpress : organizations_parameters},";}
 	if(butadm()<>null){
 		
@@ -135,10 +144,28 @@ function popup(){
 	$bb="<input type='hidden' name='add_new_organisation_text' id='add_new_organisation_text' value='". $tpl->javascript_parse_text("{add_new_organisation_text}")."'>";
 	if(isset($_GET["ajaxmenu"])){$bc="&ajaxmenu=yes";}
 	
+	$bt_add_new="{name: '<b>$add_new_organisation</b>', bclass: 'add', onpress : $jsadd},";
+	
+	
+	
+	if($userClasse->SQUID_INSTALLED){
+		if($userClasse->SAMBA_INSTALLED){
+			$bt_activedirectory="{name: '<b>Active Directory</b>', bclass: 'Settings', onpress : ActiveDirectorySquid$t},
+			{name: '<b>$update</b>', bclass: 'Reload', onpress : ActiveDirectoryUpdate$t},
+			";
+		}
+	}
+	
+	$ldap=new clladp();
+	if($ldap->IsKerbAuth()){
+		$bt_add_new=null;
+		$Totalusers=$tpl->_ENGINE_parse_body("{my_organizations}");
+	}
+	
 	
 	$buttons="
 	buttons : [
-	{name: '<b>$add_new_organisation</b>', bclass: 'add', onpress : $jsadd},$parametersBT
+	$bt_add_new$bt_activedirectory$parametersBT$help
 		],";
 	$html="
 	$bb
@@ -179,6 +206,14 @@ $('#table-$t').flexigrid({
 	});   
 });
 
+function Zhelp$t(){
+	s_PopUpFull('http://www.mail-appliance.org/index.php?cID=202','1024','900');
+}
+
+function ActiveDirectorySquid$t(){
+	Loadjs('squid.adker.php');
+}
+
 	var x_TreeAddNewOrganisation$t= function (obj) {
 		var response=obj.responseText;
 		if(response){alert(response);}
@@ -198,6 +233,10 @@ $('#table-$t').flexigrid({
 		function organizations_parameters(){
 			Loadjs('domains.organizations.parameters.php');
 			
+		}
+		
+		function ActiveDirectoryUpdate$t(){
+			Loadjs('domains.activedirectory.update.php?flexigrid=table-$t');
 		}
 		
 		function  nothingtodo(){
@@ -247,10 +286,152 @@ function ORGANISTATION_FROM_USER(){
 	
 }
 
+function ORGANISATIONS_LIST_ACTIVE_DIRECTORY(){
+	$t=$_GET["t"];
+	include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+	$Mypage=CurrentPageName();
+	$users=new usersMenus();
+	$sock=new sockets();
+	$table="activedirectory_ou";
+	$database="artica_backup";
+	$page=1;
+	$q=new mysql();
+	if($_POST["sortname"]=="ou"){$_POST["sortname"]="name";}
+	if($_POST["qtype"]=="ou"){$_POST["qtype"]="name";}
+	
+	
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
+	
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		if(!$q->ok){json_error_show($q->mysql_error);}
+		$total = $ligne["TCOUNT"];
+	
+	}else{
+		$total = $q->COUNT_ROWS($table, $database);
+	}
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	
+	
+	
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $ORDER $limitSql";
+	
+	$results = $q->QUERY_SQL($sql,$database);
+	
+	if(!$q->ok){json_error_show($q->mysql_error);}
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
+	
+	
+	
+	
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+	
+	if(isset($_GET["ajaxmenu"])){$ajax=true;}
+	$pic="32-environement.png";
+	$style="style='font-size:16px;'";
+	$c=0;
+	$ldap2=new clladp();
+		$ou=$ligne["name"];
+		$ou_encoded=base64_encode($ou);
+		$md=md5(serialize($ligne).time());
+		$md5S=$md;
+		if(is_numeric($ligne["dn"])){continue;}
+		$DN=urlencode($ligne["dn"]);
+		$uri="javascript:Loadjs('domains.manage.org.index.php?js=yes&ou=$ou&dn=$DN');";
+		if($ajax){$uri="javascript:Loadjs('$Mypage?LoadOrgPopup=$ou');";}
+		$IsOUUnderActiveDirectory=$ldap2->IsOUUnderActiveDirectory($ou);
+		$GroupsNB=$ligne["CountDeGroups"];
+		$usersNB=$ligne["CountDeUsers"];
+		$array=array();
+	
+		
+		$DomainsNB=0;
+		
+		$select=imgsimple("domain-32.png","{manage_organisations_text}",$uri);
+		$SearchUser=imgsimple("loupe-32.png","$ou<hr><b>{search}</b>:<i>{members}</i>","Loadjs('domains.find.user.php?ou=$ou_encoded&encoded=yes&dn=$DN');");
+		$SearchGroup=imgsimple("loupe-32.png","$ou<hr><b>{search}</b>:<i>{groups}</i>","Loadjs('domains.find.groups.php?ou=$ou_encoded&encoded=yes&t=$t&dn=$DN');");
+		$searchDomain=imgsimple("loupe-32.png",
+		"$ou<hr><b>{localdomains}</b>:<i>{localdomains_text}</i>",
+		"Loadjs('domains.edit.domains.php?js=yes&ou=$ou&master-t=$t&dn=$DN');");
+	
+
+		$delete=imgtootltip("delete-24-grey.png", "", "");
+		$adduser=imgsimple("folder-useradd-32-grey.png");
+		$addgroup=imgsimple("32-folder-group-add-grey.png");
+		
+	
+	
+		$actions="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
+			<td width=1% style=border:0px>$adduser</td><td width=1% style='border:0px'>$addgroup</td></tr></tbody></table>";
+			
+			$array[]="<a href=\"javascript:blur();\" OnClick=\"$uri\" style='font-size:16px;font-weight:bolder;text-transform:capitalize;text-decoration:underline'>$ou</strong></a>";
+	
+			if($_GET["zarafaF"]==1){
+			
+			$zarafaEnabled="zarafa-logo-32.png";
+				$array[]=imgsimple($zarafaEnabled,"<b>$ou:{APP_ZARAFA}</b><br>{ZARAFA_OU_ICON_TEXT}","Loadjs('domains.edit.zarafa.php?ou=$ou_encoded&t=$t')");
+			}else{
+				$array[]="&nbsp;";
+							
+			}
+	
+	
+		$usersNB="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
+		<td width=1% style=border:0px>$usersNB</td><td width=1% style=border:0px>$SearchUser</td></tr></tbody></table>";
+	
+		$GroupsNB="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
+		<td width=1% style=border:0px>$GroupsNB</td><td width=1% style=border:0px>$SearchGroup</td></tr></tbody></table>";
+	
+		$DomainsNB="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
+		<td width=1% style=border:0px>$DomainsNB</td><td width=1% style=border:0px>$searchDomain</td></tr></tbody></table>";
+	
+	
+	
+		$array[]="<strong style='font-size:16px'>$usersNB</strong>";
+		$array[]="<strong style='font-size:16px'>$GroupsNB</strong>";
+		$array[]="<strong style='font-size:16px'>$DomainsNB</strong>";
+		$array[]="<strong style='font-size:16px'>$actions</strong>";
+		$array[]="<strong style='font-size:16px'>$delete</strong>";
+		$c++;
+		$data['rows'][] = array('id' => $md5S,'cell' => $array);
+	
+	
+	}
+	
+	
+	$total =$c;
+	$data['page'] = 1;
+	$data['total'] = $total;
+	echo json_encode($data);	
+	
+}
+
+
 function ORGANISATIONS_LIST(){
+	
+	$ldap=new clladp();
+	if($ldap->IsKerbAuth()){
+		return ORGANISATIONS_LIST_ACTIVE_DIRECTORY();
+	}
+	
+	
+	include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
 	$Mypage=CurrentPageName();	
 	$users=new usersMenus();
 	$sock=new sockets();
+	
+	$t=$_GET["t"];
 	$EnableManageUsersTroughActiveDirectory=$sock->GET_INFO("EnableManageUsersTroughActiveDirectory");
 	if(!is_numeric($EnableManageUsersTroughActiveDirectory)){$EnableManageUsersTroughActiveDirectory=0;}	
 	$AllowInternetUsersCreateOrg=$sock->GET_INFO("AllowInternetUsersCreateOrg");
@@ -279,6 +460,7 @@ function ORGANISATIONS_LIST(){
 	$pic="32-environement.png";
 	$style="style='font-size:16px;'";
 	$c=0;
+	$ldap2=new clladp();
 	while (list ($num, $ligne) = each ($hash) ){
 		$ou=$ligne;
 		$ou_encoded=base64_encode($ou);
@@ -286,18 +468,28 @@ function ORGANISATIONS_LIST(){
 		$md=md5(serialize($hash).time());
 		$md5S=$md;
 		$uri="javascript:Loadjs('domains.manage.org.index.php?js=yes&ou=$ligne');";
-		if($ajax){$uri="javascript:Loadjs('$page?LoadOrgPopup=$ligne');";}
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		Paragraphe($img,"{manage} $ligne","<strong>$ligne:$usersNB<br></strong>{manage_organisations_text}",$uri,null);
+		if($ajax){$uri="javascript:Loadjs('$Mypage?LoadOrgPopup=$ligne');";}
+		$IsOUUnderActiveDirectory=$ldap2->IsOUUnderActiveDirectory($ou);
+		$GroupsNB=0;
+		
 
 		if($EnableManageUsersTroughActiveDirectory==0){
 			$img=$ldap->get_organization_picture($ligne,32);
+			writelogs("ldap->CountDeUSerOu($ligne)",__FUNCTION__,__FILE__,__LINE__);
 			$usersNB=$ldap->CountDeUSerOu($ligne);
 			$usersNB="$usersNB";			
 		}else{
 			$img=$pic;
-			$usersNB=$ldap->CountDeUSerOu($ligne);
-			$usersNB="$usersNB";
+			if($IsOUUnderActiveDirectory){
+				$ad=new external_ad_search();
+				writelogs("ldap->CountDeUSerOu($ligne)",__FUNCTION__,__FILE__,__LINE__);
+				$usersNB=$ad->CountDeUSerOu($ligne);
+				
+			}else{
+				writelogs("ldap->CountDeUSerOu($ligne)",__FUNCTION__,__FILE__,__LINE__);
+				$usersNB=$ldap->CountDeUSerOu($ligne);
+				$usersNB="$usersNB";
+			}
 		}
 		
 		$delete=imgtootltip("delete-32-grey.png","<b>{delete_ou} $ligne</b><br><i>{delete_ou_text}</i>");	
@@ -310,7 +502,16 @@ function ORGANISATIONS_LIST(){
 		
 		
 		$DomainsNB=$ldap->CountDeDomainsOU($ligne);
-		$GroupsNB=$ldap->CountDeGroups($ou);
+		if($GroupsNB==0){
+			if($IsOUUnderActiveDirectory){
+				$ad=new external_ad_search();
+				writelogs("->CountDeGroups($ou)",__FUNCTION__,__FILE__,__LINE__);
+				$GroupsNB=$ad->CountDeGroups($ou);
+			}else{
+				writelogs("->CountDeGroups($ou)",__FUNCTION__,__FILE__,__LINE__);
+				$GroupsNB=$ldap->CountDeGroups($ou);
+			}
+		}
 		Paragraphe('folder-useradd-64.png','{create_user}','{create_user_text}',"javascript:Loadjs('domains.add.user.php?ou=$ou')",null,210,null,0,true);
 		Paragraphe('64-folder-group-add.png','{create_user}','{create_user_text}',"javascript:Loadjs('domains.add.user.php?ou=$ou')",null,210,null,0,true);
 		Paragraphe("64-folder-group-add.png","$ou:{add_group}","{add_a_new_group_in_this_org}:<b>$ou</b>","javascript:Loadjs('domains.edit.group.php?popup-add-group=yes&ou=$ou&t=$t')");
@@ -320,11 +521,16 @@ function ORGANISATIONS_LIST(){
 		$adduser=imgsimple("folder-useradd-32.png","$ou<hr><b>{create_user}</b><br><i>{create_user_text}</i>","Loadjs('domains.add.user.php?ou=$ou_encoded&encoded=yes');");
 		$addgroup=imgsimple("32-folder-group-add.png","$ou<hr><b>{add_group}</b><br><i>{add_a_new_group_in_this_org}</i>","Loadjs('domains.edit.group.php?popup-add-group=yes&ou=$ou&t=$t');");
 		$SearchUser=imgsimple("loupe-32.png","$ou<hr><b>{search}</b>:<i>{members}</i>","Loadjs('domains.find.user.php?ou=$ou_encoded&encoded=yes');");
-		$SearchGroup=imgsimple("loupe-32.png","$ou<hr><b>{search}</b>:<i>{groups}</i>","Loadjs('domains.find.groups.php?ou=$ou_encoded&encoded=yes');");
+		$SearchGroup=imgsimple("loupe-32.png","$ou<hr><b>{search}</b>:<i>{groups}</i>","Loadjs('domains.find.groups.php?ou=$ou_encoded&encoded=yes&t=$t');");
 		$searchDomain=imgsimple("loupe-32.png",
 		"$ou<hr><b>{localdomains}</b>:<i>{localdomains_text}</i>",
-		"Loadjs('domains.edit.domains.php?js=yes&ou=$ou');");
+		"Loadjs('domains.edit.domains.php?js=yes&ou=$ou&master-t=$t');");
 
+		if($IsOUUnderActiveDirectory){
+			$delete=imgtootltip("delete-24-grey.png", "", "");
+			$adduser=imgsimple("folder-useradd-32-grey.png");
+			$addgroup=imgsimple("32-folder-group-add-grey.png");
+		}
 	
 				
 		$actions="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
@@ -336,7 +542,7 @@ function ORGANISATIONS_LIST(){
 			$info=$ldap->OUDatas($ou);
 			$zarafaEnabled="zarafa-logo-32.png";			
 			if(!$info["objectClass"]["zarafa-company"]){$zarafaEnabled="zarafa-logo-32-grey.png";}	
-			$array[]=imgsimple($zarafaEnabled,"<b>$ou:{APP_ZARAFA}</b><br>{ZARAFA_OU_ICON_TEXT}","Loadjs('domains.edit.zarafa.php?ou=$ou_encoded')");
+			$array[]=imgsimple($zarafaEnabled,"<b>$ou:{APP_ZARAFA}</b><br>{ZARAFA_OU_ICON_TEXT}","Loadjs('domains.edit.zarafa.php?ou=$ou_encoded&t=$t')");
 		}else{
 			$array[]="&nbsp;";
 			
@@ -350,7 +556,9 @@ function ORGANISATIONS_LIST(){
 		<td width=1% style=border:0px>$GroupsNB</td><td width=1% style=border:0px>$SearchGroup</td></tr></tbody></table>";
 
 		$DomainsNB="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
-		<td width=1% style=border:0px>$DomainsNB</td><td width=1% style=border:0px>$searchDomain</td></tr></tbody></table>";		
+		<td width=1% style=border:0px>$DomainsNB</td><td width=1% style=border:0px>$searchDomain</td></tr></tbody></table>";	
+
+
 		
 		$array[]="<strong style='font-size:16px'>$usersNB</strong>";
 		$array[]="<strong style='font-size:16px'>$GroupsNB</strong>";
@@ -367,7 +575,7 @@ function ORGANISATIONS_LIST(){
 	$total =$c;
 	$data['page'] = 1;
 	$data['total'] = $total;		
-echo json_encode($data);	
+	echo json_encode($data);	
 }
 
 function LoadOrgPopup(){

@@ -13,6 +13,7 @@
 	if(isset($_POST["INSCRIPTION"])){INSCRIPTION();exit;}
 	if(isset($_POST["CHANGE_CONFIG"])){CHANGE_CONFIG();exit;}
 	if(isset($_POST["SQUID_TABLES_INDEX"])){export_tables();exit;}
+	if(isset($_POST["squid_nodes_settings"])){squid_nodes_settings();exit;}
 	
 
 
@@ -68,6 +69,28 @@ function STATS_LINE(){
 	echo "<ANSWER>OK</ANSWER>\n";
 	
 	
+}
+
+function squid_nodes_settings(){
+	$q=new mysql();
+	$uuid=$_POST["squid_nodes_settings"];
+	if($uuid==null){
+		echo "<ERROR>No uuid set...</ERROR>";
+		return;
+	}
+	
+	$sql="SELECT `content` FROM squid_nodes_settings WHERE uuid='$uuid'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if(!$q->ok){
+		echo "<ERROR>$q->mysql_error</ERROR>";
+		return;
+	}
+	if(strlen($ligne["content"])<10){
+		echo "<ERROR>No data for uuid  `$uuid`...</ERROR>";
+		return;
+	}
+	
+	echo "<CONTENT>{$ligne["content"]}</CONTENT>";
 }
 
 function CHANGE_CONFIG(){

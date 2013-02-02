@@ -22,6 +22,13 @@ if(isset($_GET["restore-site"])){restore_site();exit;}
 if(isset($_GET["ScanSize"])){ScanSize();exit;}
 if(isset($_GET["roudce-replic-host"])){roundcube_replic_single();exit;}
 if(isset($_GET["display-config"])){display_config();exit;}
+if(isset($_GET["reconfigure-webapp"])){reconfigure_webapp();exit;}
+if(isset($_GET["query-logs"])){query_logs();exit;}
+if(isset($_GET["remove-disabled"])){remove_disabled();exit;}
+if(isset($_GET["status"])){freewebs_status();exit;}
+
+
+
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 
@@ -42,6 +49,14 @@ function force_resolv(){
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);		
 	
+}
+function reconfigure_webapp(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.freeweb.php --reconfigure-webapp >/dev/null 2>&1 &");
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
 }
 
 function apache_watchdog(){
@@ -204,7 +219,7 @@ function roundcube_replic_single(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
-	$cmd=trim("$nohup $php /usr/share/artica-postfix/xec.freeweb.rdcube-replic.php --host $serv >/dev/null 2>&1 &");
+	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.freeweb.rdcube-replic.php --host $serv >/dev/null 2>&1 &");
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 }
@@ -219,4 +234,65 @@ function display_config(){
 	
 }
 
+function remove_disabled(){
+	$serv=$_GET["servername"];
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.freeweb.php --remove-disabled >/dev/null 2>&1 &");
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+	
+}
+
+function query_logs(){
+	$unix=new unix();
+	$tail=$unix->find_program("tail");
+	$grep=$unix->find_program("grep");
+	$servername=$_GET["servername"];
+	$filter=base64_decode($_GET["filter"]);
+	$type=$_GET["type"];
+	if($type=="errors"){
+		$logfile="/var/log/apache2/$servername/error.log";
+		
+	}else{
+		$logfile="/var/log/apache2/$servername/access.log";
+	}
+	$rp=$_GET["rp"];
+	
+	
+	
+	if($filter<>null){
+		$cmd="$grep -E \"$filter\" $logfile|$tail -n $rp";
+	}else{
+		$cmd="$tail -n $rp $logfile";
+		}		
+			
+	$cmd="$cmd 2>&1";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	krsort($results);
+	echo "<articadatascgi>".base64_encode(@implode("\n",$results))."</articadatascgi>";
+}
+function freewebs_status(){
+	$hostname=$_GET["hostname"];
+	$hosnenc=md5($hostname);
+	
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_INTERFACE,"127.0.0.1");
+	curl_setopt($ch, CURLOPT_URL, "http://127.0.0.1/$hosnenc/$hosnenc-status");
+	curl_setopt($ch, CURLOPT_HEADER, 0);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+	curl_setopt($ch, CURLOPT_POST, 0);
+	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
+	$datas=curl_exec($ch);
+	
+	$error=curl_errno($ch);
+	if($error>0){
+		writelogs_framework("error number $error http://127.0.0.1/$hosnenc/$hosnenc-status",__FUNCTION__,__FILE__,__LINE__);
+	}
+	curl_close($ch);	
+	echo "<articadatascgi>".base64_encode($datas)."</articadatascgi>";
+}
 ?>

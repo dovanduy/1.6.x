@@ -55,7 +55,18 @@ function build(){
 	$unix=new unix();
 	$squidbin=$unix->LOCATE_SQUID_BIN();
 	$unix->SystemCreateUser("clamav","clamav");
-	echo "Starting......: c-icap squid binary is `$squidbin`\n";
+	if(!$unix->SystemUserExists("squid")){
+		echo "Starting......: c-icap creating user `squid`\n";
+		$unix->SystemCreateUser("squid","squid");
+	}else{
+		echo "Starting......: c-icap user `squid` exists...\n";
+	}
+	
+	
+	if(is_file($squidbin)){
+		echo "Starting......: c-icap squid binary is `$squidbin`\n";
+	}
+	
 	if(is_file($squidbin)){
 		$squid=new squidbee();
 		$conf=$squid->BuildSquidConf();

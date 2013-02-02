@@ -25,22 +25,44 @@ if(isset($_GET["architecture-users"])){section_architecture_users();exit;}
 if(isset($_GET["plugins"])){section_plugins();exit;}
 if(isset($_POST["EnableUfdbGuard"])){save_plugins();exit;}
 if(isset($_POST["EnableCicap"])){save_plugins();exit;}
-
+if(isset($_GET["filters"])){filters_for_node();exit;}
+if(isset($_POST["filters"])){filters_for_node_save();exit;}
 tabs();
 
 function tabs(){
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$sock=new sockets();
 	$array["node-status"]='{status}';
 	$array["caches"]='{caches}';
+	$array["filters"]='{filters}';
 	//$array["architecture-users"]='{users_interactions}';
 	//$array["architecture-adv"]='{advanced_options}';
 	//$array["plugins"]='{proxy_plugins}';
 	$array["events"]='Proxy:{service_events}';
 	$array["ufdbgclient"]='{webfilter_events}';
 	
+	$blackbox=new blackboxes($_GET["hostid"]);
+	$t=time();
+	$DnsFilterCentral=$blackbox->GET_SQUID_INFO('DnsFilterCentral');
+	$UfdbEnabledCentral=$blackbox->GET_SQUID_INFO('UfdbEnabledCentral');
+	$AntivirusEnabledCentral=$blackbox->GET_SQUID_INFO('AntivirusEnabledCentral');
+	$EnableMacAddressFilterCentral=$blackbox->GET_SQUID_INFO('EnableMacAddressFilterCentral');
+	$EnableKerbAuth=$blackbox->GET_SQUID_INFO('EnableKerbAuth');
+	$EnableKerbAuthCentral=$sock->GET_INFO($EnableKerbAuth);
+	if(!is_numeric($UfdbEnabledCentral)){$UfdbEnabledCentral=1;}
+	if(!is_numeric($AntivirusEnabledCentral)){$AntivirusEnabledCentral=1;}
+	if(!is_numeric($DnsFilterCentral)){$DnsFilterCentral=0;}
+	if($UfdbEnabledCentral==0){$DnsFilterCentral=0;}
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=$EnableKerbAuthCentral;}
+	if(!is_numeric($EnableMacAddressFilterCentral)){$EnableMacAddressFilterCentral=1;}	
 	
-
+	
+	
+	
+	if($UfdbEnabledCentral==0){
+		unset($array["ufdbgclient"]);	
+	}
 
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
@@ -68,7 +90,7 @@ function tabs(){
 			continue;
 		}		
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time&nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -332,4 +354,95 @@ function section_architecture_users(){
 	echo $tpl->_ENGINE_parse_body($html);
 	
 }
+function filters_for_node(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$hostid=$_GET["hostid"];
+	$sock=new sockets();
+	$uuid=$hostid;
+	$blackbox=new blackboxes($hostid);
+	$t=time();
+	$DnsFilterCentral=$blackbox->GET_SQUID_INFO('DnsFilterCentral');
+	$UfdbEnabledCentral=$blackbox->GET_SQUID_INFO('UfdbEnabledCentral');
+	$AntivirusEnabledCentral=$blackbox->GET_SQUID_INFO('AntivirusEnabledCentral');
+	$EnableMacAddressFilterCentral=$blackbox->GET_SQUID_INFO('EnableMacAddressFilterCentral');
+	$EnableKerbAuth=$blackbox->GET_SQUID_INFO('EnableKerbAuth');
+	$EnableKerbAuthCentral=$sock->GET_INFO($EnableKerbAuth);
+	if(!is_numeric($UfdbEnabledCentral)){$UfdbEnabledCentral=1;}
+	if(!is_numeric($AntivirusEnabledCentral)){$AntivirusEnabledCentral=1;}
+	if(!is_numeric($DnsFilterCentral)){$DnsFilterCentral=0;}
+	if($UfdbEnabledCentral==0){$DnsFilterCentral=0;}
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=$EnableKerbAuthCentral;}
+	if(!is_numeric($EnableMacAddressFilterCentral)){$EnableMacAddressFilterCentral=1;}
+	
+	
 
+	$tr[]=Paragraphe_switch_img("{enable_webfilter_engine}", "{enable_webfilter_engine_stats}","UfdbEnabledCentral",$UfdbEnabledCentral,null,400);
+	$tr[]=Paragraphe_switch_img("{activate_pdnsinufdb}", "{activate_pdnsinufdb_explain}","DnsFilterCentral",$DnsFilterCentral,null,400);
+	$tr[]=Paragraphe_switch_img("{enable_antivirus_checking}", "{enable_antivirus_checking_stats}","AntivirusEnabledCentral",$AntivirusEnabledCentral,null,400);
+	$tr[]=Paragraphe_switch_img("{enable_activedirectory}", "{enable_activedirectory_stats}","EnableKerbAuth",$EnableKerbAuth,null,400);
+	$tr[]=Paragraphe_switch_img("{enable_mac_squid_filters}", "{enable_mac_squid_filters_explain}","EnableMacAddressFilterCentral",$EnableMacAddressFilterCentral,null,400);
+
+	$table=CompileTr2($tr);
+
+	$html="$table
+	<div style='margin:5px;text-align:right'><hr>". button("{apply}", "Save$t()","18")."</div>
+	
+	<script>
+	var X_Save$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		RefreshTab('main_squid_quicklinks_tabs{$_GET["nodeid"]}');
+	}	
+	
+	function Save$t(){
+		var XHR = new XHRConnection();
+	
+		if(document.getElementById('UfdbEnabledCentral')){
+			XHR.appendData('UfdbEnabledCentral',document.getElementById('UfdbEnabledCentral').value);
+			document.getElementById('img_UfdbEnabledCentral').src='img/wait_verybig.gif';
+			
+		}
+		
+		if(document.getElementById('DnsFilterCentral')){
+			XHR.appendData('DnsFilterCentral',document.getElementById('DnsFilterCentral').value);
+			document.getElementById('img_DnsFilterCentral').src='img/wait_verybig.gif';
+		}	
+		
+		if(document.getElementById('AntivirusEnabledCentral')){
+			XHR.appendData('AntivirusEnabledCentral',document.getElementById('AntivirusEnabledCentral').value);
+			document.getElementById('img_AntivirusEnabledCentral').src='img/wait_verybig.gif';
+		}
+		
+		if(document.getElementById('EnableKerbAuth')){
+			XHR.appendData('EnableKerbAuth',document.getElementById('EnableKerbAuth').value);
+			document.getElementById('img_EnableKerbAuth').src='img/wait_verybig.gif';
+		}
+
+		if(document.getElementById('EnableMacAddressFilterCentral')){
+			XHR.appendData('EnableMacAddressFilterCentral',document.getElementById('EnableMacAddressFilterCentral').value);
+			document.getElementById('img_EnableMacAddressFilterCentral').src='img/wait_verybig.gif';
+		}			
+		
+		XHR.appendData('filters','$uuid');	
+		XHR.appendData('uuid','$uuid');	
+		XHR.sendAndLoad('$page', 'POST',X_Save$t);	
+		
+	
+	}		
+	
+	</script>
+	
+	";
+
+	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function filters_for_node_save(){
+	$uuid=$_POST["uuid"];
+	unset($_POST["uuid"]);
+	unset($_POST["filters"]);
+	$blackbox=new blackboxes($uuid);
+	$blackbox->SET_SQUID_POST_INFO($_POST);
+	
+}

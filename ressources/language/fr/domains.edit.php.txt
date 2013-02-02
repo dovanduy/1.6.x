@@ -28,7 +28,7 @@
 <goback>Retourner &agrave; la liste des domaines</goback>
 <Infected>Infect&eacute;</Infected>
 <js_antivirus_settings>&Eacute;diter les r&eacute;glages de l'antivirus pour ce domaine</js_antivirus_settings>
-<js_delete_alias_text>&Ecirc;tes-vous s&ucirc;r de supprimer cet alias ?</js_delete_alias_text>
+<js_delete_alias_text>Supprimer cet alias ?</js_delete_alias_text>
 <label_add_transport>Ajouter un serveur relais pour ce domaine</label_add_transport>
 <label_email_from>Adresse eMail</label_email_from>
 <label_email_to>Adresse cible</label_email_to>

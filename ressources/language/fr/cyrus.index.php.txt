@@ -28,7 +28,7 @@ Le quota de l'utilisateur est fix&eacute; par une valeur positive, dans le cas c
 <defaultdomain>Domaine par d&eacute;faut</defaultdomain>
 <defaultdomain_text>Le domaine par d&eacute;faut pour les domaines virtuels de soutien.[br] Il est pr&eacute;f&eacute;rable de penser &agrave; tous les utilisateurs existants dans un domaine.[br] 
 Sans r&eacute;serve des utilisateurs sont techniquement &agrave; l'int&eacute;rieur du domaine que vous fix&eacute; ici</defaultdomain_text>
-<deletemailbox_infos>Etes-vous s&ucirc;r de vouloir effacer cette bo&icirc;te aux lettres ? Tout les messages seront supprim&eacute;s.</deletemailbox_infos>
+<deletemailbox_infos>Effacer cette bo&icirc;te aux lettres ? Tout les messages seront supprim&eacute;s.</deletemailbox_infos>
 <duplicatesuppression>Double suppression</duplicatesuppression>
 <duplicatesuppression_text>Si activ&eacute;, Cyrus arr&ecirc;tera la livraison d'un message &agrave; une bo&icirc;te aux lettres si un message avec la m&ecirc;me ID (ou ID d'exp&eacute;dition) est inscrit comme &eacute;tant d&eacute;j&agrave; livr&eacute; &agrave; cette m&ecirc;me bo&icirc;te aux lettres.
 Enregistre la bo&icirc;te aux lettres et l'ID du message/ID d'exp&eacute;dition de toutes les livraisons r&eacute;ussie.</duplicatesuppression_text>

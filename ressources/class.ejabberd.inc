@@ -43,7 +43,7 @@ class ejabberd{
 		$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){echo $q->mysql_error;return false;}
 		$sock=new sockets();
-		$sock->getFrameWork("services.php?reconfig-jabberd=yes");		
+		$sock->getFrameWork("services.php?restart-instant-messaging=yes");		
 		return true;
 		
 	}
@@ -55,7 +55,7 @@ class ejabberd{
 		$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){echo $q->mysql_error;return false;}
 		$sock=new sockets();
-		$sock->getFrameWork("services.php?reconfig-jabberd=yes");
+		$sock->getFrameWork("services.php?restart-instant-messaging=yes");
 		return true;	
 	}
 	
@@ -115,40 +115,54 @@ class ejabberd{
 		$PYMSNT=unserialize(base64_decode($sock->GET_INFO("PYMSNT")));
 		$PYICQT=unserialize(base64_decode($sock->GET_INFO("PYICQT")));		
 		if(!isset($PYMSNT["MSN_GATEWAY"])){$PYMSNT["MSN_GATEWAY"]=null;}
-		if(!isset($PYICQT["ICQ_GATEWAY"])){$PYICQT["ICQ_GATEWAY"]=null;}			
+		if(!isset($PYICQT["ICQ_GATEWAY"])){$PYICQT["ICQ_GATEWAY"]=null;}	
+		$ejabberdInsideZarafa=$sock->GET_INFO("ejabberdInsideZarafa");
+		if(!is_numeric($ejabberdInsideZarafa)){$ejabberdInsideZarafa=0;}
+		$auth_method="[ldap]";
+		
+		if($ejabberdInsideZarafa==1){
+			$auth_method="[external]";
+			$external_bin="\t{extauth_program, \"/usr/share/artica-postfix/jabberauth.php\"},\n\t{mod_http_bind, []},";
+		}
+		
 		$myhostname=$users->hostname;
-			//$f[]="{extauth_program, \"/usr/share/artica-postfix/ejabberd-extauth.php\"}.";
-			$f[]="{host_config, \"$myhostname\", [";
-			$f[]="\t{auth_method,   ldap},";
-            $f[]="\t{ldap_servers,  [\"$ldap->ldap_host\"]},";
-            $f[]="\t{ldap_uids, [{\"uid\", \"%u\"}]},";
-           	$f[]="\t{ldap_filter, \"(mail=*)\"},";
-            $f[]="\t{ldap_uidattr, \"uid\"},";
-            $f[]="\t{ldap_base, \"dc=organizations,$ldap->suffix\"},";
-            $f[]="\t{ldap_rootdn,   \"cn=$ldap->ldap_admin,$ldap->suffix\"},";
-            $f[]="\t{ldap_password, \"$ldap->ldap_password\"}";
-            $f[]="]";
-            $f[]="}.\n";
+			
+		$f[]="{host_config, \"$myhostname\", [";
+		if($ejabberdInsideZarafa==1){$f[]=$external_bin;}
+		$f[]="\t{auth_method,  $auth_method}";
+		if($ejabberdInsideZarafa==0){
+       	 	$f[]="\t,{ldap_servers,  [\"$ldap->ldap_host\"]},";
+        	$f[]="\t{ldap_uids, [{\"uid\", \"%u\"}]},";
+        	$f[]="\t{ldap_filter, \"(mail=*)\"},";
+        	$f[]="\t{ldap_uidattr, \"uid\"},";
+        	$f[]="\t{ldap_base, \"dc=organizations,$ldap->suffix\"},";
+        	$f[]="\t{ldap_rootdn,   \"cn=$ldap->ldap_admin,$ldap->suffix\"},";
+        	$f[]="\t{ldap_password, \"$ldap->ldap_password\"}";
+		}
+		$f[]="]";
+        $f[]="}.\n";
 
             
         if($PYMSNT["MSN_GATEWAY"]<>null){
         	$f[]="{host_config, \"{$PYMSNT["MSN_GATEWAY"]}\", [";
-			$f[]="\t{auth_method,   ldap},";
-            $f[]="\t{ldap_servers,  [\"$ldap->ldap_host\"]},";
-           // $f[]="\t{ldap_uids, [{\"uid\", \"%u\"}]},";
-           	//$f[]="\t{ldap_filter, \"(mail=*)\"},";
-            $f[]="\t{ldap_uidattr, \"uid\"},";
-            $f[]="\t{ldap_base, \"dc=organizations,$ldap->suffix\"},";
-            $f[]="\t{ldap_rootdn,   \"cn=$ldap->ldap_admin,$ldap->suffix\"},";
-            $f[]="\t{ldap_password, \"$ldap->ldap_password\"}";
-            $f[]="]";
+			$f[]="\t{auth_method,   $auth_method },";
+	        $f[]="\t{ldap_servers,  [\"$ldap->ldap_host\"]},";
+	         // $f[]="\t{ldap_uids, [{\"uid\", \"%u\"}]},";
+	        //$f[]="\t{ldap_filter, \"(mail=*)\"},";
+	         $f[]="\t{ldap_uidattr, \"uid\"},";
+	         $f[]="\t{ldap_base, \"dc=organizations,$ldap->suffix\"},";
+	         $f[]="\t{ldap_rootdn,   \"cn=$ldap->ldap_admin,$ldap->suffix\"},";
+	         $f[]="\t{ldap_password, \"$ldap->ldap_password\"}";
+	         $f[]="]";
+			
             $f[]="}.\n";
         	
         }
         
 	    if($PYMSNT["ICQ_GATEWAY"]<>null){
         	$f[]="{host_config, \"{$PYMSNT["ICQ_GATEWAY"]}\", [";
-			$f[]="\t{auth_method,   ldap},";
+        	if($ejabberdInsideZarafa==1){$f[]=$external_bin;}
+			$f[]="\t{auth_method,   $auth_method },";
             $f[]="\t{ldap_servers,  [\"$ldap->ldap_host\"]},";
            // $f[]="\t{ldap_uids, [{\"uid\", \"%u\"}]},";
            	//$f[]="\t{ldap_filter, \"(mail=*)\"},";
@@ -156,7 +170,7 @@ class ejabberd{
             $f[]="\t{ldap_base, \"dc=organizations,$ldap->suffix\"},";
             $f[]="\t{ldap_rootdn,   \"cn=$ldap->ldap_admin,$ldap->suffix\"},";
             $f[]="\t{ldap_password, \"$ldap->ldap_password\"}";
-            $f[]="]";
+           	$f[]="]";
             $f[]="}.\n";
 		}        
 		
@@ -181,14 +195,17 @@ class ejabberd{
 			
 			$f[]="";
 			$f[]="{host_config, \"{$ligne["hostname"]}\", [";
-			$f[]="\t{auth_method,   ldap},";
-            $f[]="\t{ldap_servers,  [\"$ldap->ldap_host\"]},";
-            $f[]="\t{ldap_uidattr, \"uid\"},";
-           	$f[]="\t{ldap_uids, [{\"uid\", \"%u\"}]},";
-           	$f[]="\t{ldap_filter, \"(mail=*)\"},";
-            $f[]="\t{ldap_base, \"$dn\"},";
-            $f[]="\t{ldap_rootdn,   \"cn=$ldap->ldap_admin,$ldap->suffix\"},";
-            $f[]="\t{ldap_password, \"$ldap->ldap_password\"}";
+			if($ejabberdInsideZarafa==1){$f[]=$external_bin;}
+			$f[]="\t{auth_method,   $auth_method }";
+			if($ejabberdInsideZarafa==0){
+	            $f[]="\t,{ldap_servers,  [\"$ldap->ldap_host\"]},";
+	            $f[]="\t{ldap_uidattr, \"uid\"},";
+	           	$f[]="\t{ldap_uids, [{\"uid\", \"%u\"}]},";
+	           	$f[]="\t{ldap_filter, \"(mail=*)\"},";
+	            $f[]="\t{ldap_base, \"$dn\"},";
+	            $f[]="\t{ldap_rootdn,   \"cn=$ldap->ldap_admin,$ldap->suffix\"},";
+	            $f[]="\t{ldap_password, \"$ldap->ldap_password\"}";
+			}
             if($ligne["uid"]<>null){
 				$f[]="\t,{acl, admins, {user, \"{$ligne["uid"]}\", \"{$ligne["hostname"]}\"}},";
 				$f[]="\t{access, configure, [{allow, admins}]}";
@@ -574,7 +591,7 @@ class ejabberd{
 		$f[]="{max_fsm_queue, 1000}.";
 		$f[]="{s2s_use_starttls, true}.";
 		$f[]="{s2s_certfile, \"/etc/ejabberd/ejabberd.pem\"}.	";	
-		$f[]="{auth_method, ldap}.";
+		//$f[]="{auth_method, ldap}.";
 		$f[]="{shaper, normal, {maxrate, 1000}}.";
 		$f[]="{shaper, fast, {maxrate, 50000}}.";
 		$f[]="{acl, local, {user_regexp, \"\"}}.";

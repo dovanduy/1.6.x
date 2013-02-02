@@ -95,6 +95,8 @@ $ArticaFileTemp="/tmp/$Lastest/$Lastest.tgz";
 @mkdir("/tmp/$Lastest",0755,true);
 $curl=new ccurl($uri);
 $curl->Timeout=2400;
+$curl->WriteProgress=true;
+$curl->ProgressFunction="nightly_progress";
 $t=time();
 if(!$curl->GetFile($ArticaFileTemp)){
 	system_admin_events("Unable to download latest nightly build with error $curl->error", __FUNCTION__, __FILE__, __LINE__, "artica-update");
@@ -136,6 +138,22 @@ shell_exec("$nohup /usr/share/artica-postfix/bin/process1 -perm >/dev/null 2>&1 
 shell_exec("$nohup /usr/share/artica-postfix/bin/artica-make --empty-cache >/dev/null 2>&1 &");
 echo "Starting......: nightly builds done....\n";	
 }
+
+function nightly_progress( $download_size, $downloaded_size, $upload_size, $uploaded_size ){
+	if(!isset($GLOBALS["previousProgress"])){$GLOBALS["previousProgress"]= 0;}
+    
+    if ( $download_size == 0 ){
+        $progress = 0;
+    }else{
+        $progress = round( $downloaded_size * 100 / $download_size );
+    }
+       
+    if ( $progress > $GLOBALS["previousProgress"]){
+    	echo "Downloading: ". $progress."%, please wait...\n";
+    	$GLOBALS["previousProgress"]=$progress;
+    }
+}
+
 function GetCurrentVersion(){
 
    $result=0;

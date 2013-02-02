@@ -40,6 +40,12 @@ td.legend {
 td.legend:first-letter {
   text-transform: uppercase;
 }
+
+
+.FieldIpv4 input{
+	width:42px !important;
+	
+}
 	
 .BodyContent{
 	border-top:1px solid #CCCCCC;
@@ -305,7 +311,7 @@ body.MainCenter1.permalinkBody #globalContainer{margin-top:40px;width:889px;min-
 .BodyContent input{
 	padding: 7px 9px 8px;
 	font-size: 16px !important;
-	width:90% !important;
+	width:90%;
  	border-color: #C4CDE0;
  	color:#979797;
     border-image: none;

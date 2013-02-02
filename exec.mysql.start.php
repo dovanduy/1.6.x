@@ -16,6 +16,7 @@ if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 
 if($argv[1]=="--start"){SERVICE_START();die(0);}
 if($argv[1]=="--stop"){SERVICE_STOP();die(0);}
+if($argv[1]=="--recovery"){restart_reco();die();}
 
 
 
@@ -43,6 +44,50 @@ function PID_NUM(){
 	return $pid;
 	
 }
+
+function restart_reco(){
+	$unix=new unix();
+	$kill=$unix->find_program("kill");
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=@file_get_contents($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			echo "Starting......: MySQL this script is already executed PID: $oldpid since {$time}Mn\n";
+			if($time<10){if(!$GLOBALS["FORCE"]){return;}}
+			shell_exec("$kill -9 $oldpid");
+		}
+		@file_put_contents($pidfile, getmypid());	
+	
+$MYSQL_DIR=$unix->MYSQL_DATA_DIR();	
+$zarafa_server=$unix->find_program("zarafa-server");
+$GLOBALS["RECOVERY"]=3;
+echo "Stopping MySQL...............: RECOVERY MODE\n";
+SERVICE_STOP();
+
+
+if(is_file($zarafa_server)){
+	echo "Starting......: Removing frm files.\n";
+	shell_exec("/bin/rm -f $MYSQL_DIR/zarafa/*.frm");
+}
+
+echo "Starting......: MySQL RECOVERY MODE\n";
+SERVICE_START();
+echo "Starting......: Sleeping 10 seconds\n";
+sleep(10);
+echo "Stopping MySQL...............: RECOVERY MODE\n";
+SERVICE_STOP();
+$GLOBALS["RECOVERY"]=0;
+echo "Starting......: MySQL Normal mode\n";
+SERVICE_START();
+
+if(is_file($zarafa_server)){
+	echo "Starting......: Restarting Zarafa-server\n";
+	shell_exec("/etc/init.d/artica-postfix restart zarafa-server");
+}
+
+	
+}
+
 
 function SERVICE_STOP(){
 	$unix=new unix();
@@ -145,24 +190,28 @@ function SERVICE_STOP(){
 	
 }
 
-function SERVICE_START($nochecks=false){
+function SERVICE_START($nochecks=false,$nopid=false){
 
 	$unix=new unix();
 	$sock=new sockets();
-	
-	
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
 	$kill=$unix->find_program("kill");
 	
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "Starting......: MySQL this script is already executed PID: $oldpid since {$time}Mn\n";
-		if($time<5){if(!$GLOBALS["FORCE"]){return;}}
-		shell_exec("$kill -9 $oldpid");
+	if(!$nopid){
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=@file_get_contents($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			echo "Starting......: MySQL this script is already executed PID: $oldpid since {$time}Mn\n";
+			if($time<5){if(!$GLOBALS["FORCE"]){return;}}
+			shell_exec("$kill -9 $oldpid");
+		}
+		@file_put_contents($pidfile, getmypid());
 	}
-	@file_put_contents($pidfile, getmypid());		
+	
+	
+		
+		
 	
 	if(is_file("/etc/artica-postfix/mysql.stop")){echo "Starting......: MySQL locked, exiting\n";return;}
 	
@@ -182,6 +231,8 @@ function SERVICE_START($nochecks=false){
 	$MySQLTMPMEMSIZE=$sock->GET_INFO('MySQLTMPMEMSIZE');
 	$MysqlTooManyConnections=$sock->GET_INFO("MysqlTooManyConnections");
 	$MysqlRemoveidbLogs=$sock->GET_INFO("MysqlRemoveidbLogs");
+	$innodb_force_recovery=$sock->GET_INFO("innodb_force_recovery");
+	if(!is_numeric($innodb_force_recovery)){$innodb_force_recovery=0;}
 	
 	if(!is_numeric($MysqlRemoveidbLogs)){$MysqlRemoveidbLogs=0;}
 	if(!is_numeric($MysqlBinAllAdresses)){$MysqlBinAllAdresses=0;}
@@ -200,7 +251,7 @@ function SERVICE_START($nochecks=false){
 	if($MySQLLOgErrorPath==null){$MySQLLOgErrorPath=$datadir.'/mysqld.err';}
 
 	if($MysqlTooManyConnections==1){echo "Starting......: MySQL MysqlTooManyConnections=1, abort\n";return;}
-
+	if(isset($GLOBALS["RECOVERY"])){$innodb_force_recovery=$GLOBALS["RECOVERY"];}
 
 if(strlen($MySqlTmpDir)>3){
         echo "Starting......: MySQL tempdir : $MySqlTmpDir\n";
@@ -233,15 +284,19 @@ if($EnableMysqlFeatures==0){
 	      $bind_address=' --bind-address=0.0.0.0';
 	  }
 
-   echo "Starting......: MySQL Pid path......:$pid_file\n";
-   echo "Starting......: datadir.............:$datadir\n";
-   echo "Starting......: Log error...........:$MySQLLOgErrorPath\n";
-   echo "Starting......: socket..............:$socket\n";
-   echo "Starting......: user................:$mysql_user\n";
-   echo "Starting......: LOGS ENABLED........:$EnableMysqlLog\n";
-   echo "Starting......: Daemon..............:$mysqlbin\n";
-   echo "Starting......: Bind address........:$bind_address2\n";
-   echo "Starting......: Temp Dir............:$MySqlTmpDir\n";
+   echo "Starting......: MySQL Pid path.......:$pid_file\n";
+   echo "Starting......: datadir..............:$datadir\n";
+   echo "Starting......: Log error............:$MySQLLOgErrorPath\n";
+   echo "Starting......: socket...............:$socket\n";
+   echo "Starting......: user.................:$mysql_user\n";
+   echo "Starting......: LOGS ENABLED.........:$EnableMysqlLog\n";
+   echo "Starting......: Daemon...............:$mysqlbin\n";
+   echo "Starting......: Bind address.........:$bind_address2\n";
+   echo "Starting......: Temp Dir.............:$MySqlTmpDir\n";
+   echo "Starting......: innodb_force_recovery:$innodb_force_recovery\n";
+   
+   
+   
    echo "Starting......: Change init.d script...\n";
    shell_exec("$php5 /usr/share/artica-postfix/exec.initd-mysql.php >/dev/null 2>&1");
    
@@ -294,6 +349,9 @@ if($EnableMysqlFeatures==0){
 	$cmds[]=$MySqlTmpDirCMD;
 	$cmds[]="--socket=$socket";
 	$cmds[]="--datadir=\"$datadir\"";
+	if($innodb_force_recovery>0){
+		$cmds[]="--innodb-force-recovery=$innodb_force_recovery";
+	}
 	$cmds[]=">/dev/null 2>&1 &";
 	if(is_file('/usr/sbin/aa-complain')){
         echo "Starting......: Mysql adding mysql in apparamor complain mode...\n";

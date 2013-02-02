@@ -53,6 +53,7 @@ if($argv[1]=='--aliases'){build_all_aliases();die();}
 if($argv[1]=='--instance-memory'){reconfigure_instance_tmpfs($argv[2],$argv[3]);die();}
 if($argv[1]=='--instance-memory-kill'){reconfigure_instance_tmpfs_umount($argv[2]);die();}
 if($argv[1]=='--destroy'){DestroyInstance($argv[2]);die();}
+if($argv[1]=='--instance-start'){_start_instance($argv[2]);die();}
 
 
 
@@ -497,6 +498,8 @@ function _start_instance($hostname){
 	$main=new maincf_multi($hostname);
 	$PostFixEnableQueueInMemory=$main->GET("PostFixEnableQueueInMemory");
 	$PostFixQueueInMemory=$main->GET("PostFixQueueInMemory");
+	$ifconfig=$unix->find_program("ifconfig");
+	$route=$unix->find_program("route");
 	$directory="/var/spool/postfix-$hostname";
 	$postfixbin=$unix->find_program("postfix");
 	if($PostFixEnableQueueInMemory==1){
@@ -520,6 +523,20 @@ function _start_instance($hostname){
 	$pid=$unix->get_pid_from_file($pidfile);
 	
 	writelogs("$hostname:: Checking directories IP address=$main->ip_addr",__FUNCTION__,__FILE__,__LINE__);
+	$q=new mysql();
+	$sql="SELECT * FROM nics_virtuals WHERE ipaddr='$main->ip_addr'";
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	echo "Starting......: Postfix \"$hostname\" $main->ip_addr on {$ligne["nic"]}:{$ligne["ID"]}\n";
+	
+	if($ligne["ipv6"]==0){
+		if($ligne["ID"]>0){
+			shell_exec("$ifconfig {$ligne["nic"]}:{$ligne["ID"]} $main->ip_addr >/dev/null 2>&1");
+			shell_exec("$route add -host $main->ip_addr dev {$ligne["nic"]}:{$ligne["ID"]} >/dev/null 2>&1");
+		}
+	}
+	
+	
 	$main->CheckDirectories($hostname);
 	writelogs("$hostname:: $pidfile=$pid",__FUNCTION__,__FILE__,__LINE__);
 	
@@ -528,6 +545,7 @@ function _start_instance($hostname){
 		writelogs("$hostname::reloading postfix {$GLOBALS["postmulti"]} -i postfix-$hostname -p reload",__FUNCTION__,__FILE__,__LINE__);
 		exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -p reload 2>&1",$results);
 		while (list ($num, $line) = each ($results) ){
+			if(preg_match("#unused parameter#", $line)){continue;}
 			writelogs("$line",__FUNCTION__,__FILE__,__LINE__);
 			echo "Starting......: Postfix \"$hostname\" $line\n";
 			

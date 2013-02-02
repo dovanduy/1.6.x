@@ -42,7 +42,7 @@ class phpMyDumper {
 	function phpMyDumper($db=null, $connection=null, $filepath='dump.sql', $compress=false,$tablename=null) {
 		$this->connection = $connection;
 		$this->compress = $compress;
-
+		$this->database=$db;
 		$this->hexValue = false;
 		$this->dropTable = true;
 		$this->createTable = true;
@@ -57,8 +57,9 @@ class phpMyDumper {
 			//if filepath is null, then we want stream
 			return false;
 		}
-
-		return $this->setDatabase($db);
+		if($db<>null){
+			return $this->setDatabase($db);
+		}
 	}
 
 	/**
@@ -66,9 +67,13 @@ class phpMyDumper {
 	* @param string $db The database name
 	*/
 	function setDatabase($db){
+		if(trim($db)==null){
+			if($this->database==null){
+				return true;}else{$db=$this->database;}
+		}
 		$this->database = $db;
-		if ( !@mysql_select_db($this->database) ){
-			if($GLOBALS["VERBOSE"]){echo "mysql_select_db($this->database) -> False...\n";}
+		if ( !@mysql_select_db($this->database,$this->connection) ){
+			if($GLOBALS["VERBOSE"]){echo "$db::mysql_select_db($db) -> False...\n";}
 			return false;}
 		return true;
   	}
@@ -82,6 +87,12 @@ class phpMyDumper {
 			return false;
 		}
 		if($GLOBALS["VERBOSE"]){echo "Creating file '".$filepath."': ";}
+		@mkdir(dirname($filepath),0777);
+		if(!is_dir(dirname($filepath))){
+			echo "Creating file '".dirname($filepath)." no such directory': ";
+			return false;
+		}
+		
 		$this->filename = $filepath;
 		$this->file = $this->openFile($this->filename);
 		if($GLOBALS["VERBOSE"]){echo " DONE!\n";}
@@ -261,7 +272,9 @@ class phpMyDumper {
 	function getDatabaseStructureData($hexValue = true){
 		if($GLOBALS["VERBOSE"]){echo "getDatabaseStructureData($hexValue)\n";}
 		$records = @mysql_query('SHOW TABLES',$this->connection);
-		if ( @mysql_num_rows($records) == 0 ){return false;}
+		if ( @mysql_num_rows($records) == 0 ){
+			if($GLOBALS["VERBOSE"]){echo "getDatabaseStructureData($hexValue) return 0 records!<br>\n";}
+			return false;}
 		while ( $record = @mysql_fetch_row($records) ) {
 			
 			if(!$this->TablesSelector($record[0])){continue;}
@@ -280,6 +293,9 @@ class phpMyDumper {
 	* Writes the selected database to file 
 	*/
 	function doDump() {		
+		
+		if($GLOBALS["VERBOSE"]){echo "Database:'$this->database'<br>\n";}
+		
 		if ( !$this->setDatabase($this->database) ){
 			if($GLOBALS["VERBOSE"]){echo "setDatabase($this->database) return false...\n";}
 			return false;

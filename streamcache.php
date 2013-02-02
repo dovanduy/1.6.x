@@ -46,6 +46,7 @@ while ( $input = @fgets(STDIN) ) {
   // Split the output (space delimited) from squid into an array.
  
   $Source=$input;
+  
   $KEY=md5(trim($Source));
   
   $GLOBALS["COUNTLOGS"]=$GLOBALS["COUNTLOGS"]+1;

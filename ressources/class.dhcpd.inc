@@ -10,14 +10,14 @@ include_once(dirname(__FILE__) .'/class.mysql.inc');
 
 
 class dhcpd_hosts{
-	var $uid;
-	var $dn;
-	var $dhcpHWAddress;
-	var $dhcpStatements;
-	var $dds_domain;
-	var $hostname;
-	var $IP;
-	var $MAC;
+	public $uid;
+	public $dn;
+	public $dhcpHWAddress;
+	public $dhcpStatements;
+	public $dds_domain;
+	public $hostname;
+	public $IP;
+	public $MAC;
 	
 	function dhcpd_hosts($uid=null){
 		if(!isset($GLOBALS["ASROOT"])){$GLOBALS["ASROOT"]=false;}
@@ -186,44 +186,52 @@ function LDAPBranch(){
 
 
 class dhcpd{
-	var $ddns_domainname="";
-	var $max_lease_time;
-	var $array_tcp;
-	var $listen_nic;
-	var $netmask;
-	var $range2;
-	var $range1;
-	var $DNS_1;
-	var $DNS_2;
-	var $EnableArticaAsGateway=0;
-	var $EnableArticaAsDNSFirst=0;
-	var $gateway;
-	var $pxe_enable=0;
-	var $pxe_server=null;
-	var $pxe_file=null;
-	var $conf;
-	var $routes=array();
-	var $ntp_server=null;
-	var $OnlySetGateway=0;
-	var $subnet;
-	var $broadcast=null;
-	var $WINS=null;
-	var $noload=0;
-	var $authoritative=0;
-	var $ping_check=0;
-	var $noloadFixed=0;
-	var $local_pac_server=0;
+	public $ddns_domainname="";
+	public $max_lease_time;
+	public $array_tcp;
+	public $listen_nic;
+	public $netmask;
+	public $range2;
+	public $range1;
+	public $DNS_1;
+	public $DNS_2;
+	public $EnableArticaAsGateway=0;
+	public $EnableArticaAsDNSFirst=0;
+	public $gateway;
+	public $pxe_enable=0;
+	public $pxe_server=null;
+	public $pxe_file=null;
+	public $conf;
+	public $routes=array();
+	public $ntp_server=null;
+	public $OnlySetGateway=0;
+	public $subnet;
+	public $broadcast=null;
+	public $WINS=null;
+	public $noload=0;
+	public $authoritative=0;
+	public $ping_check=0;
+	public $noloadFixed=0;
+	public $local_pac_server=0;
+	public $get_lease_hostnames=0;
 	
 	function dhcpd($noload=0,$noloadFixed=0){
 		if($noload<>0){$this->noload=$noload;return ;}
 		$this->noloadFixed=$noloadFixed;
 		$sock=new sockets();
 		$ini=new Bs_IniHandler();
-		
+		$ipClass=new IP();
 
 		
 		$this->EnableArticaAsGateway=$sock->GET_INFO("EnableArticaAsGateway");
-		$ini->loadString($sock->GET_INFO('ArticaDHCPSettings'));
+		$ArticaDHCPSettings=$sock->GET_INFO('ArticaDHCPSettings');
+		if($ArticaDHCPSettings==null){
+			$ArticaDHCPSettings="
+			[SET]get_lease_hostnames=\n\nddns_domainname=\nmax_lease_time=\nnetmask=\nrange1=\nlisten_nic=\nrange1=\nrange2=\nEnableArticaAsDNSFirst=\ngateway=\nDNS_1=\nDNS_2=\nping_check=\n";
+			
+		}
+		$ini->loadString($ArticaDHCPSettings);
+		if(!is_array($ini->_params["SET"])){$ini->_params["SET"]=array();}
 		if($GLOBALS["VERBOSE"]){while (list ($num, $ligne) = each ($ini->_params["SET"]) ){echo "Starting......: DHCP server DEBUG: loading $num = $ligne\n";}}		
 		
 		$this->ddns_domainname=$ini->_params["SET"]["ddns_domainname"];
@@ -245,9 +253,34 @@ class dhcpd{
 		$this->WINS=$ini->_params["SET"]["WINS"];
 		$this->authoritative=$ini->_params["SET"]["authoritative"];
 		$this->local_pac_server=$ini->_params["SET"]["local_pac_server"];
+		$this->get_lease_hostnames=$ini->_params["SET"]["get_lease_hostnames"];
+		
+		if($this->listen_nic==null){$this->GetDefaultNic();}
+		
+		if(trim($this->subnet)==null){
+			if($ipClass->isIPv4($this->gateway)){
+				if(preg_match('#^([0-9]+)\.([0-9]+)\.([0-9]+)#',trim($this->gateway),$re)){
+					$this->subnet="{$re[1]}.{$re[2]}.{$re[3]}.0";
+					if(trim($this->range1)==null){$this->range1="{$re[1]}.{$re[2]}.{$re[3]}.50";}
+					if(trim($this->range2)==null){$this->range2="{$re[1]}.{$re[2]}.{$re[3]}.254";}
+				}
+			}
+		}
+		
+		if(!$ipClass->isIPv4($this->range1)){
+			if(preg_match('#^([0-9]+)\.([0-9]+)\.([0-9]+)#',trim($this->subnet),$re)){
+				$this->range1="{$re[1]}.{$re[2]}.{$re[3]}.50";
+			}
+		}
+		if(!$ipClass->isIPv4($this->range2)){
+			if(preg_match('#^([0-9]+)\.([0-9]+)\.([0-9]+)#',trim($this->subnet),$re)){
+				$this->range2="{$re[1]}.{$re[2]}.{$re[3]}.254";
+			}			
+		}
 		
 		$this->ping_check=$ini->_params["SET"]["ping_check"];
 		if(!is_numeric($this->authoritative)){$this->authoritative=0;}
+		if(!is_numeric($this->get_lease_hostnames)){$this->get_lease_hostnames=0;}
 		if(!is_numeric($this->ping_check)){$this->ping_check=1;}
 		
 		$this->OnlySetGateway=$sock->GET_INFO("DHCPOnlySetGateway");
@@ -302,6 +335,7 @@ class dhcpd{
 		$ini=$ini."authoritative=$this->authoritative\n";
 		$ini=$ini."ping_check=$this->ping_check\n";
 		$ini=$ini."local_pac_server=$this->local_pac_server\n";
+		$ini=$ini."get_lease_hostnames=$this->get_lease_hostnames\n";
 		
 		
 		
@@ -389,7 +423,7 @@ private function SaveRoutes(){
 
 private function GetMyDNS(){
 		$ip=new networking();
-		if($this->listen_nic==null){return null;}
+		if($this->listen_nic==null){$this->GetDefaultNic();}
 		$mip=$ip->GetNicInfos($this->listen_nic);	
 		$eth_IP=$mip["IPADDR"];
 		if($eth_IP=="0.0.0.0"){$eth_IP=$ip->default_network();}
@@ -471,13 +505,17 @@ private function DomainNameServers(){
 	private function GetDefaultNic(){
 		$sock=new sockets();
 		$devs=unserialize(base64_decode($sock->getFrameWork("cmd.php?list-nics")));
-		if(!is_array($devs)){return null;}
+		if(!is_array($devs)){
+			if($GLOBALS["VERBOSE"]){echo "WARN!!: \$dev not an array\n";}
+			return null;}
+			if($GLOBALS["VERBOSE"]){echo "DEBUG:: GetDefaultNic() -> {$devs[0]}\n";}
+			$this->listen_nic=$devs[0];
 		return $devs[0];
 	}
 	
 	
 	function BuildConf(){
-		
+		$gateway_array=array();
 		if(function_exists("debug_backtrace")){
 					try {
 						$trace=@debug_backtrace();
@@ -501,6 +539,14 @@ private function DomainNameServers(){
 		$eth_IP=$mip["IPADDR"];
 		if(!is_numeric($this->pxe_enable)){$this->pxe_enable=0;}
 		$conf=$conf."include \"/var/lib/dhcp3/dhcpd.other\";\n";
+		
+		if($this->broadcast==null){
+			if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP broadcast =>  eth_IP = $eth_IP\n";}
+			preg_match("#^([0-9\.]+)\.([0-9]+)$#", $eth_IP,$re);
+			$this->broadcast="{$re[1]}.255";
+			
+		}
+		
 		if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP broadcast =  $this->broadcast\n";}
 		
 		if($this->ddns_domainname<>null){
@@ -535,16 +581,21 @@ private function DomainNameServers(){
 		}
 		$conf=$conf."max-lease-time $this->max_lease_time;\n";
 		$conf=$conf."default-lease-time $this->max_lease_time;\n";
-		$conf=$conf."get-lease-hostnames true;\n";
+		
+		
+		if($this->get_lease_hostnames==1){
+			$conf=$conf."get-lease-hostnames true;\n";
+		}else{
+			$conf=$conf."get-lease-hostnames false;\n";
+		}
+		
 		
 		if($this->ping_check==1){
 			$conf=$conf."ping-check = 1;\n";
 		}else{
 			$conf=$conf."ping-check = 0;\n";
 		}
-		
-		
-
+		//$conf=$conf."ddns-hostname = pick (option fqdn.hostname,option host-name,concat (\"dhcp-\", binary-to-ascii (10, 8, \"-\", leased-address)));";
 		
 		if($this->gateway<>null){
 			if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP DEBUG: gateway [". count($gateway_array)."] = $this->gateway set by admin\n";}
@@ -581,8 +632,8 @@ private function DomainNameServers(){
 		
 		
 		if(!preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->subnet,$re)){
-			if(!preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->range1,$re)){
-				preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->broadcast,$re);
+			if(!preg_match('#^([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->range1,$re)){
+				preg_match('#^([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->broadcast,$re);
 			}
 		}
 			
@@ -597,9 +648,25 @@ private function DomainNameServers(){
 		
 		$conf=$conf."\n";
 		$conf=$conf."subnet {$re[1]}.{$re[2]}.{$re[3]}.$range_suffix netmask $this->netmask {\n";
-		if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->range1,$re)){
+		if(preg_match('#^([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->range1,$re)){
 			$conf=$conf."\trange $this->range1 $this->range2;\n";
 		}
+		
+		
+		
+			$conf=$conf."\n\ton commit {\n";
+			$conf=$conf."\t\tset clip = binary-to-ascii(10, 8, \".\", leased-address);\n";
+			$conf=$conf."\t\tset clhw = binary-to-ascii(16, 8, \":\", substring(hardware, 1, 6));\n";
+			$conf=$conf."\t\tset ClientName = pick-first-value(option fqdn.hostname,option host-name,config-option host-name, noname);\n";
+			$conf=$conf."\t\texecute(\"/usr/share/artica-postfix/exec.dhcpd-leases.php\", \"commit\", clip, clhw, ClientName);\n";
+			$conf=$conf."\t}\n";		
+			$conf=$conf."\n\ton release {\n";
+			$conf=$conf."\t\tset clip = binary-to-ascii(10, 8, \".\", leased-address);\n";
+			$conf=$conf."\t\tset clhw = binary-to-ascii(16, 8, \":\", substring(hardware, 1, 6));\n";
+			$conf=$conf."\t\tset ClientName = pick-first-value(option fqdn.hostname,option host-name,config-option host-name, noname);\n";
+			$conf=$conf."\t\texecute(\"/usr/share/artica-postfix/exec.dhcpd-leases.php\", \"release\", clip, clhw, ClientName);\n";
+			$conf=$conf."\t}\n";		
+		
 		
 		
 		if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->broadcast,$re)){
@@ -693,6 +760,7 @@ private function DomainNameServers(){
 	function LoadfixedAddresses(){
 		if(isset($GLOBALS[__CLASS__][__FUNCTION__])){return $GLOBALS[__CLASS__][__FUNCTION__];}
 		if($this->noloadFixed==1){return;}
+		$ARR=array();
 		$sql="SELECT * FROM dhcpd_fixed";
 		$q=new mysql();
 		$results = $q->QUERY_SQL($sql,"artica_backup");
@@ -846,6 +914,7 @@ private function DomainNameServers(){
 	}
 	
 	private function RemoteVPN(){
+			if($this->listen_nic==null){$this->GetDefaultNic();}
 			$ip=new networking();
 			$array=$ip->array_TCP;
 			

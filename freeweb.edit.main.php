@@ -41,6 +41,7 @@ function tabs(){
 		if($free->groupware=="KLMS"){$remove_sql=true;$OnlyWebSite=true;}		
 		if($free->groupware=="MAILMAN"){$remove_sql=true;$OnlyWebSite=true;}
 		if($free->groupware=="ARTICA_MINIADM"){$remove_sql=true;$OnlyWebSite=true;}
+		if($free->groupware=="ARTICA_PRXYLOGS"){$remove_sql=true;$OnlyWebSite=true;}
 		if($free->groupware=="MAILHOSTING"){$remove_sql=true;$OnlyWebSite=true;}			
 		if($apache->noneeduser_mysql[$free->groupware]){$remove_sql=true;}	
 	}

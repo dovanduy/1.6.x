@@ -43,19 +43,29 @@ function popup(){
 	if($SquidBoosterMem==0){$SquidBoosterMemText="&nbsp;$disabled";}
 	$warn_squid_restart=$tpl->javascript_parse_text("{warn_squid_restart}");
 	
+	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
+	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}	
+	
+	
 	$t=time();
 	$maxMem=500;
-	
+	$CPUS=0;
 	$currentMem=intval($sock->getFrameWork("cmd.php?GetTotalMemMB=yes"));
 	
 	if($currentMem>0){
 		$maxMem=$currentMem-500;
 	}
 	
+	if($DisableSquidSNMPMode==0){
+		$users=new usersMenus();
+		$CPUS=$users->CPU_NUMBER;
+		
+		}
 	
 	$html="
 
-	<div class=explain style='font-size:14px' id='$t-div'>{squid_booster_text}</div>
+	<div class=explain style='font-size:14px;' id='$t-div'>{squid_booster_text}</div>
+	<div style='font-size:16px;font-weight:bold;text-align:center;color:#E71010' id='$t-multi'></div>
 	
 	<table style='width:99%' class=form>
 	<tr>
@@ -112,9 +122,22 @@ function popup(){
 		
 		function ChangeSlideField$t(val){
 			var disabled='';
+			var cpus=$CPUS;
+			var DisableSquidSNMPMode=$DisableSquidSNMPMode;
 			if(val==0){disabled='&nbsp;$disabled';}
 			document.getElementById('$t-value').innerHTML=val+'M/{$currentMem}M'+disabled;
-			document.getElementById('$t-mem').value=val
+			document.getElementById('$t-mem').value=val;
+			if(DisableSquidSNMPMode==0){
+				if(cpus>1){
+					var selected_mem=val;
+					var newval=selected_mem/cpus;
+					newval=newval-10;
+					if(newval>0){
+						document.getElementById('$t-multi').innerHTML=newval-10+'M / CPU';
+						}
+					}
+			}
+			
 		}
 		function ChangeSlideFieldK$t(val){
 			if(val<10){
@@ -142,7 +165,7 @@ function popup(){
 		}
 	
 	}		
-		
+	ChangeSlideField$t($SquidBoosterMem);
 	</script>
 	";
 	echo $tpl->_ENGINE_parse_body($html);

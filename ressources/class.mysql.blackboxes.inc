@@ -72,7 +72,7 @@ class mysql_blackbox{
 		return $this->ClassSQL->DATABASE_EXISTS($database);
 	}
 	
-	private function FIELD_EXISTS($table,$field,$database=null){
+	public function FIELD_EXISTS($table,$field,$database=null){
 		if($database<>$this->database){$database=$this->database;}
 		return $this->ClassSQL->FIELD_EXISTS($table,$field,$database);
 	}
@@ -143,8 +143,8 @@ class mysql_blackbox{
 	
 	
 	public function CheckTables(){
+		if(!$this->DATABASE_EXISTS($this->database)){$this->CREATE_DATABASE($this->database);}
 		
-		if(!$this->TABLE_EXISTS("nodes")){
 			$sql="CREATE TABLE IF NOT EXISTS `nodes` (
 			  `nodeid` int(11) NOT NULL AUTO_INCREMENT,
 			  `hostid` varchar(90) NOT NULL,
@@ -176,7 +176,7 @@ class mysql_blackbox{
 			)";
 		
 			$this->QUERY_SQL($sql);
-			}
+			
 			
 			if(!$this->FIELD_EXISTS("nodes", "prodstatus")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `prodstatus` TEXT");}
 			if(!$this->FIELD_EXISTS("nodes", "articaver")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `articaver` varchar(40) NOT NULL");}
@@ -188,19 +188,19 @@ class mysql_blackbox{
 			if(!$this->FIELD_EXISTS("nodes", "UfdbClientLogs")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `UfdbClientLogs` TEXT NOT NULL");}
 			if(!$this->FIELD_EXISTS("nodes", "ssl")){$this->QUERY_SQL("ALTER TABLE `nodes` ADD `ssl` smallint(1) NOT NULL");}
 			
-			if(!$this->TABLE_EXISTS("squidconf")){
+			
 			$sql="CREATE TABLE IF NOT EXISTS `squidconf` (
 			  `nodeid` int(11) NOT NULL,
 			  `key` varchar(50) NOT NULL,
 			  `value` TINYTEXT NOT NULL,
 			  INDEX ( `nodeid` , `key` )
-			  )";
+			  )  ENGINE=MYISAM;";
 		
 			$this->QUERY_SQL($sql);
-			}	
+				
 
-		if(!$this->TABLE_EXISTS('cachestatus',$this->database)){	
-			$sql="CREATE TABLE `cachestatus` (
+		
+			$sql="CREATE TABLE IF NOT EXISTS `cachestatus` (
 					`nodeid` int(11) NOT NULL,
 					`cachedir` VARCHAR( 255 ) NOT NULL ,
 					`maxsize` BIGINT( 100 ) NOT NULL ,
@@ -209,10 +209,9 @@ class mysql_blackbox{
 					INDEX ( `maxsize` , `currentsize` , `pourc` ),
 					KEY `nodeid` (`nodeid`),
 					KEY `cachedir` (`cachedir`)
-					) ";
+					)  ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,$this->database);
-		}	
-
+		
 		
 		if(!$this->TABLE_EXISTS('poolorders',$this->database)){	
 			$sql="CREATE TABLE `poolorders` (
@@ -223,7 +222,7 @@ class mysql_blackbox{
 					 PRIMARY KEY (`orderid`),
 					KEY `hostid` (`hostid`),
 					KEY `nodeid` (`nodeid`)
-					) ";
+					)  ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,$this->database);
 		}
 
@@ -231,21 +230,23 @@ class mysql_blackbox{
 	
 	
 	
-	if(!$this->TABLE_EXISTS("softwares")){
-			$sql="CREATE TABLE `blackboxes`.`softwares` (
-			`nodeid` TINYINT( 5 ) NOT NULL ,
-			`software` VARCHAR( 255 ) NOT NULL ,
-			`version` VARCHAR( 20 ) NOT NULL ,
-			INDEX ( `nodeid` , `version` ),
-			KEY `software` (`software`)
-			)";
-			$this->QUERY_SQL($sql);
-			}
+	
+	$sql="CREATE TABLE IF NOT EXISTS `softwares` (
+		`nodeid` TINYINT( 5 ) NOT NULL ,
+		`software` VARCHAR( 255 ) NOT NULL ,
+		`version` VARCHAR( 20 ) NOT NULL ,
+		INDEX ( `nodeid` , `version` ),
+		KEY `software` (`software`)
+	)   ENGINE=MYISAM;";
+	$this->QUERY_SQL($sql);
+	if(!$this->ok){echo $q->mysql_error."\n";}
+	
 
-	if(!$this->TABLE_EXISTS("nics")){
-			$sql="CREATE TABLE IF NOT EXISTS `nics` (
-			  `nodeid` int(10) NOT NULL,
-			  `nic` varchar(20)  NOT NULL,
+	
+	$sql="CREATE TABLE IF NOT EXISTS `nics` (
+		  `nodeid` int(10) NOT NULL,
+		  `nic` varchar(20)  NOT NULL,
+			  `hostid` varchar(90)  NOT NULL,
 			  `ipaddr` varchar(50)  NOT NULL,
 			  `netmask` varchar(50)  NOT NULL,
 			  `gateway` varchar(50)  NOT NULL,
@@ -254,10 +255,11 @@ class mysql_blackbox{
 			  `DNS2` varchar(50)  NOT NULL,
 			  `mac` varchar(60)  NOT NULL,
 			  UNIQUE KEY `mac` (`mac`),
-			  KEY `nodeid` (`nodeid`,`nic`,`ipaddr`,`netmask`,`gateway`,`broadcast`)
-			)";		
+			  KEY `nodeid` (`nodeid`,`nic`,`ipaddr`,`netmask`,`gateway`,`broadcast`,`hostid`)
+			) ENGINE=MYISAM;";		
 			$this->QUERY_SQL($sql);
-			}
+			if(!$this->ok){echo $q->mysql_error."\n";}
+			if(!$this->FIELD_EXISTS("nics", "hostid")){$this->QUERY_SQL("ALTER TABLE `nics` ADD `hostid` varchar(90) NOT NULL,ADD INDEX (`hostid`)");}
 	
 	
 	
@@ -279,8 +281,9 @@ class mysql_blackbox{
 		KEY `master_cached_memory` (`master_cached_memory`),
 		KEY `running` (`running`),
 		KEY `installed` (`installed`)
-		)";
+		) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql);
+		if(!$this->ok){echo $q->mysql_error."\n";}
 	}
 	
 	if(!$this->TABLE_EXISTS("harddrives")){
@@ -296,8 +299,9 @@ class mysql_blackbox{
 		 KEY `nodeid` (`nodeid`),
 		 KEY `path` (`path`),
 		 KEY `size` (`size`)
-		 )";
+		 ) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql);
+		if(!$this->ok){echo $q->mysql_error."\n";}
 		
 	}
 	

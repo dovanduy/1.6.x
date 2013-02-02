@@ -30,8 +30,14 @@ if(isset($_GET["mailbox-transport-maps"])){mailbox_transport_maps();exit;}
 if(isset($_GET["milters"])){build_milters();exit;}
 if(isset($_GET["restart-mailarchiver"])){restart_mailarchiver();exit;}
 if(isset($_GET["mailarchiver-status"])){mailarchiver_status();exit;}
+if(isset($_GET["varspool"])){checks_varspool();exit;}
+if(isset($_GET["changeSpool"])){changeSpool();exit;}
+if(isset($_GET["stats-var-spool"])){stats_var_spool();exit;}
 
 
+if(isset($_GET["islocked"])){islocked();exit;}
+if(isset($_GET["RemovePostfixInterface"])){islocked_enable();exit;}
+if(isset($_GET["EnablePostfixInterface"])){islocked_disable();exit;}
 if(isset($_GET["happroxy"])){happroxy();exit;}
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
@@ -445,6 +451,73 @@ function mailbox_transport_maps(){
 			writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}	
+}
+function checks_varspool(){
+	if(!is_link("/var/spool")){
+		echo "<articadatascgi>". base64_encode("/var/spool")."</articadatascgi>";
+		return;
+	}
+	
+	echo  "<articadatascgi>". base64_encode(readlink("/var/spool"))."</articadatascgi>";
+	
+}
+
+function stats_var_spool(){
+	$unix=new unix();
+	$df=$unix->find_program("df");
+	if(!is_link("/var/spool")){
+		$dir="/var/spool";
+	}else{
+		$dir=readlink("/var/spool");
+	}
+	
+	exec("$df -h $dir 2>&1",$results);
+	while (list ($num, $line) = each ($results)){
+		if(!preg_match("#(.+?)\s+([0-9A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9\.]+)%#", $line,$re)){continue;}
+		$array["DEV"]=$re[1];
+		$array["SIZE"]=$re[2];
+		$array["OC"]=$re[3];
+		$array["DISP"]=$re[4];
+		$array["POURC"]=$re[5];
+		
+	}
+	
+	exec("$df -i $dir 2>&1",$results);
+	while (list ($num, $line) = each ($results)){
+		if(!preg_match("#(.+?)\s+([0-9A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9\.]+)%#", $line,$re)){continue;}
+		$array["INODES"]=$re[2];
+		$array["IUSED"]=$re[3];
+		$array["IDISP"]=$re[4];
+		$array["IPOURC"]=$re[5];
+	
+	}	
+	echo  "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
+	
+}
+
+function changeSpool(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();	
+	$dir=$_GET["dir"];
+	$cmd="$nohup $php /usr/share/artica-postfix/exec.postfix.change-spool.php $dir >/dev/null 2>&1";
+	shell_exec($cmd);
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
+}
+function islocked(){
+	if(is_file("/etc/artica-postfix/DO_NOT_DETECT_POSTFIX")){
+		echo  "<articadatascgi>". base64_encode("TRUE")."</articadatascgi>";
+		return;
+	}
+	echo  "<articadatascgi>". base64_encode("FALSE")."</articadatascgi>";
+}
+function islocked_enable(){
+	@file_put_contents("/etc/artica-postfix/DO_NOT_DETECT_POSTFIX", time());
+	shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose --".time());
+}
+function islocked_disable(){
+	@unlink("/etc/artica-postfix/DO_NOT_DETECT_POSTFIX");
+	shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose --".time());
 }
 
 die();

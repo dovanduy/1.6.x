@@ -1,59 +1,107 @@
 <?php
+if(!isset($priv["AsVirtualBoxManager"])){$priv["AsVirtualBoxManager"]="no";}
+if(!isset($priv["AsSquidAdministrator"])){$priv["AsSquidAdministrator"]="no";}
+if(!isset($priv["AsJoomlaWebMaster"])){$priv["AsJoomlaWebMaster"]="no";}
+if(!isset($priv["AseMailCampaignsAdmin"])){$priv["AseMailCampaignsAdmin"]="no";}
+if(!isset($priv["AsInventoryAdmin"])){$priv["AsInventoryAdmin"]="no";}
+if(!isset($priv["AsOrgAdmin"])){$priv["AsOrgAdmin"]="no";}
+if(!isset($priv["AsMessagingOrg"])){$priv["AsMessagingOrg"]="no";}
+if(!isset($priv["AsDansGuardianGroupRule"])){$priv["AsDansGuardianGroupRule"]="no";}
+if(!isset($priv["AsOrgPostfixAdministrator"])){$priv["AsOrgPostfixAdministrator"]="no";}
+if(!isset($priv["AllowManageOwnComputers"])){$priv["AllowManageOwnComputers"]="no";}
+if(!isset($priv["AsOrgStorageAdministrator"])){$priv["AsOrgStorageAdministrator"]="no";}
+if(!isset($priv["AsMailManAdministrator"])){$priv["AsMailManAdministrator"]="no";}
+if(!isset($priv["AllowXapianDownload"])){$priv["AllowXapianDownload"]="no";}
+if(!isset($priv["AllowChangeMailBoxRules"])){$priv["AllowChangeMailBoxRules"]="no";}
+if(!isset($priv["AllowDansGuardianBanned"])){$priv["AllowDansGuardianBanned"]="no";}
+if(!isset($priv["AllowOpenVPN"])){$priv["AllowOpenVPN"]="no";}
+if(!isset($priv["AllowEmailing"])){$priv["AllowEmailing"]="no";}
+if(!isset($priv["AsQuarantineAdministrator"])){$priv["AsQuarantineAdministrator"]="no";}
+if(!isset($priv["AsDnsAdministrator"])){$priv["AsDnsAdministrator"]="no";}
+if(!isset($priv["AsSambaAdministrator"])){$priv["AsSambaAdministrator"]="no";}
+if(!isset($priv["AllowEditOuSecurity"])){$priv["AllowEditOuSecurity"]="no";}
+if(!isset($priv["AllowChangeAntiSpamSettings"])){$priv["AllowChangeAntiSpamSettings"]="no";}
+if(!isset($priv["AllowViewStatistics"])){$priv["AllowViewStatistics"]="no";}
+if(!isset($priv["AllowChangeUserKas"])){$priv["AllowChangeUserKas"]="no";}
+if(!isset($priv["AllowSenderCanonical"])){$priv["AllowSenderCanonical"]="no";}
+if(!isset($priv["AsMailBoxAdministrator"])){$priv["AsMailBoxAdministrator"]="no";}
+if(!isset($priv["AllowFetchMails"])){$priv["AllowFetchMails"]="no";}
+if(!isset($priv["AllowChangeDomains"])){$priv["AllowChangeDomains"]="no";}
+if(!isset($priv["AllowEditAliases"])){$priv["AllowEditAliases"]="no";}
+if(!isset($priv["AllowAddGroup"])){$priv["AllowAddGroup"]="no";}
+if(!isset($priv["AsSystemAdministrator"])){$priv["AsSystemAdministrator"]="no";}
+if(!isset($priv["AllowChangeKav"])){$priv["AllowChangeKav"]="no";}
+if(!isset($priv["AllowChangeUserPassword"])){$priv["AllowChangeUserPassword"]="no";}
+if(!isset($priv["AllowChangeKas"])){$priv["AllowChangeKas"]="no";}
+if(!isset($priv["AllowAddUsers"])){$priv["AllowAddUsers"]="no";}
+if(!isset($priv["AllowEditAsWbl"])){$priv["AllowEditAsWbl"]="no";}
+if(!isset($priv["AsArticaAdministrator"])){$priv["AsArticaAdministrator"]="no";}
+if(!isset($priv["AsWebMaster"])){$priv["AsWebMaster"]="no";}
+if(!isset($priv["RestrictNabToGroups"])){$priv["RestrictNabToGroups"]="no";}
+if(!isset($priv["AsDansGuardianAdministrator"])){$priv["AsDansGuardianAdministrator"]="no";}
+if(!isset($priv["AsWebFilterRepository"])){$priv["AsWebFilterRepository"]="no";}
+if(!isset($priv["AsWebStatisticsAdministrator"])){$priv["AsWebStatisticsAdministrator"]="no";}
+if(!isset($priv["AllowUserMaillog"])){$priv["AllowUserMaillog"]="no";}
+if(!isset($priv["AsHotSpotManager"])){$priv["AsHotSpotManager"]="no";}
+if(!isset($priv["AsOwnMailBoxBackup"])){$priv["AsOwnMailBoxBackup"]="no";}
+if(!isset($priv["AsOrgDNSAdmin"])){$priv["AsOrgDNSAdmin"]="no";}
+if(!isset($priv["ASDCHPAdmin"])){$priv["ASDCHPAdmin"]="no";}
+$priv["AllowUserMaillog"]=true;
+$priv["AsAnAdministratorGeneric"]=true;
+$priv["AsSystemAdministrator"]=true;
+$priv["AsMailBoxAdministrator"]=true;
+$priv["AsPostfixAdministrator"]=true;
+$priv["AllowChangeKav"]=true;
+$priv["AllowChangeKas"]=true;
+$priv["AllowAddUsers"]=true;
+$priv["AsOrgAdmin"]=true;
+$priv["AseMailCampaignsAdmin"]=true;
+$priv["AllowViewStatistics"]=true;
+$priv["AllowEditOuSecurity"]=true;
+$priv["AsSquidAdministrator"]=true;
+$priv["AsSambaAdministrator"]=true;
+$priv["AsDnsAdministrator"]=true;
+$priv["AsQuarantineAdministrator"]=true;
+$priv["AsDansGuardianAdministrator"]=true;
+$priv["AllowDansGuardianBanned"]=true;
+$priv["AllowFetchMails"]=true;
+$priv["AllowChangeAntiSpamSettings"]=true;
+$priv["AllowSenderCanonical"]=true;
+$priv["AsMailManAdministrator"]=true;
+$priv["AsOrgStorageAdministrator"]=true;
+$priv["AllowManageOwnComputers"]=true;
+$priv["AsOrgPostfixAdministrator"]=true;
+$priv["AsDansGuardianGroupRule"]=true;
+$priv["AsMessagingOrg"]=true;
+$priv["AsInventoryAdmin"]=true;
+$priv["AsJoomlaWebMaster"]=true;
+$priv["AsVirtualBoxManager"]=true;
+$priv["AllowChangeDomains"]=true;
+$priv["OverWriteRestrictedDomains"]=true;
+$priv["AsWebMaster"]=true;
+$priv["AllowChangeAntiSpamSettings"]=true;
+$priv["AllowChangeUserPassword"]=true;
+$priv["AllowFetchMails"]=true;
+$priv["AllowChangeUserKas"]=true;
+$priv["AllowEditAliases"]=true;
+$priv["AllowChangeMailBoxRules"]=true;
+$priv["AllowSenderCanonical"]=true;
+$priv["AllowOpenVPN"]=true;
+$priv["AllowDansGuardianBanned"]=true;
+$priv["AllowXapianDownload"]=true;
+$priv["AllowManageOwnComputers"]=true;
+$priv["AllowEditAliases"]=true;
+$priv["AsWebFilterRepository"]=true;
+$priv["AsWebStatisticsAdministrator"]=true;
+$priv["AsMessagingOrg"]=true;
+$priv["AllowEditOuSecurity"]=true;
+$priv["AsHotSpotManager"]=true;
+$priv["AsOwnMailBoxBackup"]=true;
 
 
-
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/13083198/dir/opensuse_11.x/com/librdmacm-1.0.8-10.2.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/13082810/dir/opensuse_11.x/com/libibcommon-devel-1.1.2_20081020-6.2.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/13082811/dir/opensuse_11.x/com/libibcommon1-1.1.2_20081020-6.2.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/13082815/dir/opensuse_11.x/com/libibumad1-1.2.3_20081118-3.2.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/11097915/dir/opensuse_11.x/com/mpi-selector-1.0.2-4.12.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/13080739/dir/opensuse_11.x/com/compat-dapl-1.2.12-3.2.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/13082814/dir/opensuse_11.x/com/libibumad-devel-1.2.3_20081118-3.2.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/13082816/dir/opensuse_11.x/com/libibverbs-1.1.2-9.2.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/13082817/dir/opensuse_11.x/com/libibverbs-devel-1.1.2-9.2.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/13083921/dir/opensuse_11.x/com/openmpi-1.2.8-7.5.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/13083922/dir/opensuse_11.x/com/openmpi-devel-1.2.8-7.5.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613847/dir/opensuse_11.x/com/libboost_graph1_44_0-1.44.0-5.1.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613848/dir/opensuse_11.x/com/libboost_iostreams1_44_0-1.44.0-5.1.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613849/dir/opensuse_11.x/com/libboost_math1_44_0-1.44.0-5.1.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613858/dir/opensuse_11.x/com/libboost_test1_44_0-1.44.0-5.1.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613851/dir/opensuse_11.x/com/libboost_program_options1_44_0-1.44.0-5.1.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613852/dir/opensuse_11.x/com/libboost_python1_44_0-1.44.0-5.1.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613856/dir/opensuse_11.x/com/libboost_signals1_44_0-1.44.0-5.1.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613857/dir/opensuse_11.x/com/libboost_system1_44_0-1.44.0-5.1.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613859/dir/opensuse_11.x/com/libboost_thread1_44_0-1.44.0-5.1.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613860/dir/opensuse_11.x/com/libboost_wave1_44_0-1.44.0-5.1.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613854/dir/opensuse_11.x/com/libboost_regex1_44_0-1.44.0-5.1.i586.rpm.html";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613853/dir/opensuse_11.x/com/libboost_random1_44_0-1.44.0-5.1.i586.rpm.html	";
-$f[]="http://rpm.pbone.net/index.php3/stat/4/idpl/15613850/dir/opensuse_11.x/com/libboost_mpi1_44_0-1.44.0-5.1.i586.rpm.html";
-    
-while (list ($num, $ligne) = each ($f) ){
-	if(preg_match("#com\/(.*?)\.html#",$ligne,$re)){
-		echo "<a href=\"$ligne\" target=_new>{$re[1]}</a><br>\n";
-		
-	}
+while (list ($num, $ligne) = each ($priv) ){
+	echo "\$f['$num']=true;\n";
 	
 }
-
-return ;
-
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
-if(preg_match("#--includes#",implode(" ",$argv))){$GLOBALS["DEBUG_INCLUDES"]=true;}
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::class.templates.inc\n";}
-include_once(dirname(__FILE__).'/ressources/class.templates.inc');
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::class.ini.inc\n";}
-include_once(dirname(__FILE__).'/ressources/class.ini.inc');
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::class.squid.inc\n";}
-include_once(dirname(__FILE__).'/ressources/class.squid.inc');
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::framework/class.unix.inc\n";}
-include_once(dirname(__FILE__).'/framework/class.unix.inc');
-if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::frame.class.inc\n";}
-include_once(dirname(__FILE__).'/framework/frame.class.inc');
-include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
-include_once(dirname(__FILE__).'/class.categorize.externals.inc');
-
-$u=new unix();
-print_r($u->KERNEL_CONFIG());
-
 
 ?>

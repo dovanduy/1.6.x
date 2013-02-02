@@ -22,6 +22,8 @@
 	if(isset($_POST["enable_host"])){enable_host();exit;}
 	if(isset($_GET["softwares-client"])){softwares_client();exit;}
 	if(isset($_GET["config-file"])){main_config_ejabberdfile();exit;}
+	if(isset($_GET["global-parameters"])){global_parameters_popup();exit;}
+	if(isset($_POST["ejabberdEnabled"])){global_parameters_save();exit;}
 tabs();
 
 
@@ -74,6 +76,7 @@ function hosts(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$tpl=new templates();
+	$t=time();
 	$date=$tpl->_ENGINE_parse_body("{zDate}");
 	$description=$tpl->_ENGINE_parse_body("{description}");
 	$context=$tpl->_ENGINE_parse_body("{context}");	
@@ -92,13 +95,14 @@ function hosts(){
 	$rebuild_items=$tpl->_ENGINE_parse_body("{rebuild_items}");
 	$config_file=$tpl->_ENGINE_parse_body("{config_file}");
 	$choose_your_zarafa_webserver_type=$tpl->_ENGINE_parse_body("{choose_your_zarafa_webserver_type}");
-	
+	$parameters=$tpl->_ENGINE_parse_body("{global_parameters}");
 	$bt_default_www="{name: '$add_default_www', bclass: 'add', onpress : FreeWebAddDefaultVirtualHost},";
 	$bt_webdav="{name: '$WebDavPerUser', bclass: 'add', onpress : FreeWebWebDavPerUsers},";
 	//$bt_rebuild="{name: '$rebuild_items', bclass: 'Reconf', onpress : RebuildFreeweb},";
-	$bt_config=",{name: '$config_file', bclass: 'Search', onpress : config_file}";					
-	
-	
+	$bt_config=",{name: '$config_file', bclass: 'Script', onpress : config_file}";					
+	$bt_parameters=",{name: '$parameters', bclass: 'Settings', onpress : ParametersMain$t}";	
+	$member=$tpl->javascript_parse_text("{member}");
+	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
 	$tablewidth=874;
 	$servername_size=409;
 	$bt_function_add="AddNewejabberServer";
@@ -122,11 +126,12 @@ function hosts(){
 	$bt_msn=null;
 	$bt_icq=null;
 		
-	$t=time();
+	
 	
 	$buttons="
 	buttons : [
-	{name: '<b>$add_domain</b>', bclass: 'add', onpress : $bt_function_add}$bt_msn$bt_icq$bt_config
+	{name: '<b>$add_domain</b>', bclass: 'add', onpress : $bt_function_add}$bt_msn$bt_icq$bt_config$bt_parameters
+	,{name: '$online_help', bclass: 'Help', onpress : ItemHelp$t},
 	
 		],";
 	$html="
@@ -163,6 +168,9 @@ $('#jabberd-table-$t').flexigrid({
 	
 	});   
 });
+function ItemHelp$t(){
+	s_PopUpFull('http://mail-appliance.org/index.php?cID=375','1024','900');
+}
 
 	function HelpSection(){
 		LoadHelp('freewebs_explain','',false);
@@ -174,6 +182,10 @@ $('#jabberd-table-$t').flexigrid({
 
 	function AddNewejabberServer(){
 		 Loadjs('DomainsBrowse.php?callback=AddNewJabberDomain')
+	}
+	
+	function ParametersMain$t(){
+		YahooWin2(650,'$page?global-parameters=yes&t=$t','$parameters');
 	}
 	
 	function MyMSN(){
@@ -287,6 +299,74 @@ $('#jabberd-table-$t').flexigrid({
 	
 }
 
+function global_parameters_save(){
+	$sock=new sockets();
+	if(isset($_POST["ejabberdInsideZarafa"])){
+		if($_POST["ejabberdEnabled"]==0){$_POST["ejabberdInsideZarafa"]=0;}
+		$sock->SET_INFO("ejabberdInsideZarafa", $_POST["ejabberdInsideZarafa"]);
+	}
+	$sock->SET_INFO("ejabberdEnabled", $_POST["ejabberdEnabled"]);
+	$sock->getFrameWork("services.php?restart-artica-status=yes");
+	$sock->getFrameWork("services.php?restart-instant-messaging=yes");
+	if(isset($_POST["ejabberdInsideZarafa"])){
+		$sock->getFrameWork("freeweb.php?reconfigure-webapp=yes");
+	}
+	
+}
+
+function global_parameters_popup(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();	
+	$users=new usersMenus();
+	$t=$_GET["t"];
+	$ejabberdEnabled=$sock->GET_INFO("ejabberdEnabled");
+	$ejabberdInsideZarafa=$sock->GET_INFO("ejabberdInsideZarafa");
+	if(!is_numeric($ejabberdEnabled)){$ejabberdEnabled=1;}
+	if(!is_numeric($ejabberdInsideZarafa)){$ejabberdInsideZarafa=0;}
+	
+	$paragraph=Paragraphe_switch_img("{activate_instant_messaging}","{APP_EJABBERD_ABOUT}","ejabberdEnabled-$t",$ejabberdEnabled,null,550);
+	
+	$paragraph2=Paragraphe_switch_img("{activate_instant_messaging_Zarafa}","{activate_instant_messaging_Zarafa_explain}","ejabberdInsideZarafa-$t",$ejabberdInsideZarafa,null,550);
+	
+	if(!$users->ZARAFA_INSTALLED){
+		$paragraph2=Paragraphe_switch_disable("{activate_instant_messaging_Zarafa}","{activate_instant_messaging_Zarafa_explain}",null,550);	}
+	
+	$html="
+		<div id='$t-div'></div>
+		$paragraph<hr>
+		$paragraph2
+		<hr>
+		<div style='text-align:right'>". button("{apply}","SaveejabberdEnabled()",18)."</div>
+				
+<script>
+	var x_SaveejabberdEnabled= function (obj) {
+		document.getElementById('$t-div').innerHTML='';
+		var res=obj.responseText;
+		if (res.length>3){alert(res);return;}
+		$('#jabberd-table-$t').flexReload();
+		YahooWin2Hide();
+	}			
+		
+	function SaveejabberdEnabled(){
+		var valuz=document.getElementById('ejabberdEnabled-$t').value;
+		var XHR = new XHRConnection();
+		XHR.appendData('ejabberdEnabled',valuz);
+		if(document.getElementById('ejabberdInsideZarafa-$t')){
+			XHR.appendData('ejabberdInsideZarafa',document.getElementById('ejabberdInsideZarafa-$t').value);
+		}
+		AnimateDiv('$t-div');
+		XHR.sendAndLoad('$page', 'POST',x_SaveejabberdEnabled);	
+	}	
+</script>			
+	";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+}
+
+
 function servers_list(){
 	$search=$_GET["search"];
 	$MyPage=CurrentPageName();
@@ -344,7 +424,7 @@ function servers_list(){
 	$ldap=new clladp();
 	while ($ligne = mysql_fetch_assoc($results)) {
 
-		
+		$color=black;
 		$groupware=$tpl->_ENGINE_parse_body($groupware);
 		$forward_text=$tpl->_ENGINE_parse_body($forward_text);
 		$servername_text=$tpl->_ENGINE_parse_body($servername_text);

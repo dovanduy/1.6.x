@@ -15,6 +15,7 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.tasks.inc');
 include_once(dirname(__FILE__).'/ressources/class.process.inc');
 include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
+include_once(dirname(__FILE__)."/ressources/class.os.system.tools.inc");
 if($GLOBALS["VERBOSE"]){$GLOBALS["OUTPUT"]=true;$GLOBALS["WITHOUT_RESTART"]=true;ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if($argv[1]=="--run-schedules"){run_schedules($argv[2]);die();}
 
@@ -172,7 +173,18 @@ function execute_task($ID){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$GLOBALS["SCHEDULE_ID"]=$ID;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.pid";
+	$lockfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.lck";
 	$oldpid=$unix->get_pid_from_file($pidfile);
+	
+	if(is_file($lockfile)){
+		$locktime=$unix->file_time_min($lockfile);
+		if($locktime<5){
+			system_admin_events("Task is $ID (since {$locktime}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+			return;
+		}
+		@unlink($lockfile);
+	}
+	
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
 		system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
@@ -186,6 +198,7 @@ function execute_task($ID){
 	}	
 
 	@unlink($pidfile);
+	@file_put_contents($lockfile, "#");
 	@file_put_contents($pidfile, getmypid());
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];	
@@ -195,33 +208,58 @@ function execute_task($ID){
 		$TaskType=$TASKS_CACHE[$ID]["TaskType"];
 		if(isset($task->task_disabled[$TaskType])){
 			writelogs("Task $ID is disabled",__FUNCTION__,__FILE__,__LINE__);
+			@unlink($lockfile);
 			return;
 		}
 	}
 	
 	
 	
-	writelogs("Task $ID Load:$internal_load cmdline `{$GLOBALS["CMDLINES"]}`",__FUNCTION__,__FILE__,__LINE__);	
+	writelogs("Task $ID Load:$internal_load cmdline `{$GLOBALS["CMDLINES"]}` lock:$lockfile ({$locktime}Mn)",__FUNCTION__,__FILE__,__LINE__);
+
+	if(systemMaxOverloaded()){
+		writelogs("Task $ID Load:$internal_load too much overloaded, aborting",__FUNCTION__,__FILE__,__LINE__);
+		system_admin_events("Task $ID Load:$internal_load too much overloaded, aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
+		@unlink($lockfile);
+		return;		
+	}
+	
 	
 	if(isMaxInstances()){
 		system_admin_events("Too Many instances running, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
+		@unlink($lockfile);
 		return;
 	}
 	
 	if(system_is_overloaded(basename(__FILE__))){
 		OverloadedCheckBadProcesses();
-		for($i=0;$i<20;$i++){
+		
+		$os=new os_system();
+		$hash_mem=$os->realMemory();
+		if($hash_mem["ram"]["percent"]>70){
+			writelogs("Task $ID Over memory system {$hash_mem["ram"]["percent"]}%, aborting task",__FUNCTION__,__FILE__,__LINE__);
+			system_admin_events("Over memory system {$hash_mem["ram"]["percent"]}%, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+			$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
+			return;
+		}
+		
+		for($i=0;$i<6;$i++){
 			if(system_is_overloaded(basename(__FILE__))){
-				writelogs("Task $ID -> overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} `{$tasks->tasks_processes[$TaskType]}`, wait 1s",__FUNCTION__,__FILE__,__LINE__);
-				sleep(1);
+				writelogs("Task $ID -> overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} `{$tasks->tasks_processes[$TaskType]}`, wait 10s",__FUNCTION__,__FILE__,__LINE__);
+				sleep(10);
+
 			}
+			
 			if(!system_is_overloaded(basename(__FILE__))){break;}
 		}
 	}
 	
 	if(system_is_overloaded(basename(__FILE__))){
-		system_admin_events("Overloaded system after 20 secondes, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		system_admin_events("Overloaded system after 60 secondes, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
+		@unlink($lockfile);
 		return;
 	}
 
@@ -232,9 +270,9 @@ function execute_task($ID){
 		$TASKS_CACHE[$ID]["TaskType"]=$ligne["TaskType"];
 		@file_put_contents("/etc/artica-postfix/TASKS_CACHE.DB", serialize($TASKS_CACHE));
 	}	
-	if($TaskType==0){return;}
+	if($TaskType==0){return;@unlink($lockfile);}
 	if(!isset($tasks->tasks_processes[$TaskType])){system_admin_events("Unable to understand task type `$TaskType` For this task" , __FUNCTION__, __FILE__, __LINE__, "tasks");return;}
-	if(isset($task->task_disabled[$TaskType])){return;}
+	if(isset($task->task_disabled[$TaskType])){return;@unlink($lockfile);}
 	$script=$tasks->tasks_processes[$TaskType];
 	$nice=$unix->EXEC_NICE();
 	$nohup=$unix->find_program("nohup");
@@ -247,6 +285,7 @@ function execute_task($ID){
 	shell_exec($cmd);	
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
 	system_admin_events("Task is executed took $took" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+	@unlink($lockfile);
 }
 
 function events($text,$function,$line){
@@ -304,11 +343,14 @@ function execute_task_squid($ID){
 		return;
 	}
 	
-	if(system_is_overloaded(basename(__FILE__))){
-		ufdbguard_admin_events("Very overloaded system {$internal_load}, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-		die();	
-	}
+	if(systemMaxOverloaded()){
+		writelogs("Task $ID Load:$internal_load too much overloaded, aborting",__FUNCTION__,__FILE__,__LINE__);
+		ufdbguard_admin_events("Task $ID Load:$internal_load too much overloaded, aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
+		return;
+	}	
 	
+		
 	$TASKS_CACHE=unserialize(@file_get_contents("/etc/artica-postfix/TASKS_SQUID_CACHE.DB"));
 	if(isset($TASKS_CACHE[$ID])){
 		$TaskType=$TASKS_CACHE[$ID]["TaskType"];
@@ -328,25 +370,32 @@ function execute_task_squid($ID){
 	$GLOBALS["SCHEDULE_ID"]=$ID;
 	if(isMaxInstances()){
 		ufdbguard_admin_events("Too much instances loaded, aborting task...", __FUNCTION__, __FILE__, __LINE__, "scheduler",$ID);
+		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
 		return;
 	}
 	
 	
 	if(system_is_overloaded(basename(__FILE__))){
+		
+		$os=new os_system();
+		$hash_mem=$os->realMemory();
+		if($hash_mem["ram"]["percent"]>70){
+			ufdbguard_admin_events("Over memory system {$hash_mem["ram"]["percent"]}%, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+			$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
+			return;
+		}		
+		
 		OverloadedCheckBadProcesses();
 		for($i=0;$i<20;$i++){
 			if(system_is_overloaded(basename(__FILE__))){
-				writelogs("Task $ID -> overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, wait 1s",__FUNCTION__,__FILE__,__LINE__);
-				sleep(1);
+				writelogs("Task $ID -> overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, wait 5s",__FUNCTION__,__FILE__,__LINE__);
+				sleep(5);
 			}
-			if(!system_is_overloaded(basename(__FILE__))){
-				ufdbguard_admin_events("Overloaded system, aborting task...", __FUNCTION__, __FILE__, __LINE__, "scheduler");
-				break;}
 		}
 	}
 	
 	if(system_is_overloaded(basename(__FILE__))){
-		ufdbguard_admin_events("Overloaded system after 20 secondes ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		ufdbguard_admin_events("Overloaded system after 20x5 secondes ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
 		return;
 	}

@@ -725,6 +725,25 @@ private function build_default_my_networks(){
 	function FillDefaults(){
 		
 		if(!isset($this->main_array["smtpd_client_event_limit_exceptions"])){$this->main_array["smtpd_client_event_limit_exceptions"]=null;}
+		if(!isset($this->main_array["smtpd_authorized_xforward_hosts"])){$this->main_array["smtpd_authorized_xforward_hosts"]=null;}
+		if(!isset($this->main_array["bounce_service_name"])){$this->main_array["bounce_service_name"]=null;}
+		if(!isset($this->main_array["bounce_size_limit"])){$this->main_array["bounce_size_limit"]=null;}
+		if(!isset($this->main_array["bounce_notice_recipient"])){$this->main_array["bounce_notice_recipient"]=null;}
+		if(!isset($this->main_array["header_address_token_limit"])){$this->main_array["header_address_token_limit"]=null;}
+		if(!isset($this->main_array["smtpd_reject_unlisted_recipient"])){$this->main_array["smtpd_reject_unlisted_recipient"]=null;}
+		if(!isset($this->main_array["qmgr_message_recipient_minimum"])){$this->main_array["qmgr_message_recipient_minimum"]=null;}
+		if(!isset($this->main_array["smtpd_timeout"])){$this->main_array["smtpd_timeout"]=null;}
+		if(!isset($this->main_array["enable_original_recipient"])){$this->main_array["enable_original_recipient"]=null;}
+		if(!isset($this->main_array["smtpd_tls_ask_ccert"])){$this->main_array["smtpd_tls_ask_ccert"]=null;}
+		if(!isset($this->main_array["smtpd_tls_req_ccert"])){$this->main_array["smtpd_tls_req_ccert"]=null;}
+		if(!isset($this->main_array["undisclosed_recipients_header"])){$this->main_array["undisclosed_recipients_header"]=null;}
+		if(!isset($this->main_array["smtp_tls_mandatory_protocols"])){$this->main_array["smtp_tls_mandatory_protocols"]=null;}
+		if(!isset($this->main_array["smtp_send_xforward_command"])){$this->main_array["smtp_send_xforward_command"]=null;}
+		if(!isset($this->main_array["smtpd_sasl_path"])){$this->main_array["smtpd_sasl_path"]=null;}
+		if(!isset($this->main_array["smtpd_tls_session_cache_timeout"])){$this->main_array["smtpd_tls_session_cache_timeout"]=null;}
+		if(!isset($this->main_array["virtual_uid_maps"])){$this->main_array["virtual_uid_maps"]=null;}
+		if(!isset($this->main_array["virtual_uid_maps"])){$this->main_array["virtual_uid_maps"]=null;}
+		if(!isset($this->main_array["relayhost"])){$this->main_array["relayhost"]=null;}
 		
 		if($this->main_array["bounce_service_name"]==null){$this->main_array["bounce_service_name"]='bounce';}
 		if($this->main_array["bounce_size_limit"]==null){$this->main_array["bounce_size_limit"]='50000';}
@@ -1220,7 +1239,7 @@ public	function BuildMilters($asarray=false){
 		$FORCE_PROTO3=false;
 		if(!$user->ASSP_INSTALLED){$EnableASSP=0;}
 		$artica=new artica_general();
-		$milter_protcol=0;
+		$milter_protcol=3;
 		$postfix_version=$user->POSTFIX_VERSION;
 		$MailArchiverEnabled=$sock->GET_INFO("MailArchiverEnabled");
 		if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
@@ -1229,6 +1248,7 @@ public	function BuildMilters($asarray=false){
 		$milter_mail_macros = "i {auth_type} {auth_authen} {auth_ssf} {auth_author} {mail_mailer} {mail_host} {mail_addr} {client_addr} {if_addr}";
 		$milter_rcpt_macros = "{rcpt_mailer} {rcpt_host} {rcpt_addr} {client_addr} {if_addr}";		
 		
+	
 		
 		if(!is_numeric($EnablePostfixKLMS)){$EnablePostfixKLMS=0;}
 		if(!is_numeric($EnableKlms)){$EnableKlms=1;}
@@ -1236,15 +1256,15 @@ public	function BuildMilters($asarray=false){
 		
 		
 		$array_final["smtpd_milters"]=null;
-		$array_final["milter_connect_macros"]=null;
-		$array_final["milter_helo_macros"]=null;
-		$array_final["milter_mail_macros"]=null;
-		$array_final["milter_rcpt_macros"]=null;
-		$array_final["milter_default_action"]=null;
-		$array_final["milter_protocol"]=null;
-		$array_final["milter_connect_timeout"]=null;
-		$array_final["milter_command_timeout"]=null;
-		$array_final["milter_content_timeout"]=null;		
+		$array_final["milter_connect_macros"]=$milter_connect_macros;
+		$array_final["milter_helo_macros"]=$milter_helo_macros;
+		$array_final["milter_mail_macros"]=$milter_mail_macros;
+		$array_final["milter_rcpt_macros"]=$milter_rcpt_macros;
+		$array_final["milter_default_action"]="accept";
+		$array_final["milter_protocol"]=3;
+		$array_final["milter_connect_timeout"]=180;
+		$array_final["milter_command_timeout"]=180;
+		$array_final["milter_content_timeout"]=600;	
 		
 		if(preg_match('#([0-9]+)\.([0-9]+)#',$postfix_version,$re)){
 			$postfix_version=$re[1].$re[2];
@@ -1408,6 +1428,7 @@ public	function BuildMilters($asarray=false){
 					$array_final["milter_rcpt_macros"]=$milter_rcpt_macros;
 					$array_final["milter_default_action"]=$milter_default_action;
 					$array_final["milter_protocol"]=$milter_protcol;
+					if(!is_numeric($array_final["milter_protocol"])){$array_final["milter_protocol"]=3;}
 					
 					$array_final["milter_connect_timeout"]=180;
 					$array_final["milter_command_timeout"]=180;
@@ -1430,8 +1451,7 @@ public	function BuildMilters($asarray=false){
 					}
 	
 			}	
-	
-			
+
 			if($asarray){return $array_final;}
 			$t=array();
 			while (list ($key, $value) = each ($array_final) ){
@@ -1442,7 +1462,7 @@ public	function BuildMilters($asarray=false){
 				return @implode("\n", $t)."\n";
 			}
 			
-			return $conf;
+			
 					
 	}
 	

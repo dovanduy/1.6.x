@@ -287,7 +287,7 @@ function server_list(){
 			$server_text="{WARN_QUEUE_FREEZE}";
 		}
 		
-		$servername=$ligne["value"].strlen($ligne["value"]);
+		$servername=$ligne["value"];
 		if(strlen($servername)>17){$servername=substr($servername,0,14)."...";}
 		
 		$js="PostfixMultiServerParamsSection('{$ligne["value"]}')";

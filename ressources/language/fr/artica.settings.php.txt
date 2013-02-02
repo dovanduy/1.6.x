@@ -32,9 +32,9 @@ D&eacute;sactive l'augmentation de performances du flux SMTP mais r&eacute;duit 
 <EnableSyslogMysql_text>Cette option permet &agrave; artica de faire l'analyse syntaxique de syslog et d'ins&eacute;rer tous les &eacute;v&eacute;nements dans la base de donn&eacute;es Mysql.[br] 
 Cette fonction active la section de recherche au sein de syslog dans la page d'index de l'administrateur.</EnableSyslogMysql_text>
 <events_table_count>Nombre de lignes[br]
-des &eacute;v&egrave;nements Mysql</events_table_count>
+des &eacute;v&egrave;nements MySQL</events_table_count>
 <global_admin_account>Compte administrateur principal</global_admin_account>
-<global_admin_confirm>Etes-vous s&ucirc;r de vouloir changer le compte administrateur, cette op&eacute;ration changera le super utilisateur de serveur LDAP et appliquera tous les changements selon l'acc&egrave;s de LDAP &agrave; tous les modules</global_admin_confirm>
+<global_admin_confirm>Changer le compte administrateur ? Cette op&eacute;ration changera le super utilisateur de serveur LDAP et appliquera tous les changements selon l'acc&egrave;s de LDAP &agrave; tous les modules</global_admin_confirm>
 <global_paths>Chemin d'acces globaux</global_paths>
 <global_proxy>Configuration du proxy global</global_proxy>
 <https_port>Port d'&eacute;coute HTTPS</https_port>

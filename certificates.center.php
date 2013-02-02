@@ -16,11 +16,18 @@
 
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["items"])){items();exit;}
+	if(isset($_GET["certificate-js"])){certificate_single_js();exit;}
 	if(isset($_GET["certificate-popup"])){certificate_infos();exit;}
 	if(isset($_GET["certificate-tabs"])){certificate_tabs();exit;}
 	if(isset($_POST["commonName"])){certificate_save();exit;}
 	if(isset($_GET["PrivateKey"])){PrivateKey();exit;}
 	if(isset($_GET["csr"])){csr();exit;}
+	if(isset($_GET["squidTabs"])){squidTabs();exit;}
+	if(isset($_GET["Squidkey"])){Squidkey();exit;}
+	if(isset($_GET["SquidCert"])){SquidCert();exit;}
+	if(isset($_GET["SquidValidate"])){SquidValidate();exit;}
+	if(isset($_GET["SquidValidatePerform"])){SquidValidatePerform();exit;}
+	
 	if(isset($_POST["generate-key"])){generate_key();exit;}
 	if(isset($_GET["generate-x509"])){generate_x509();exit;}
 	if(isset($_GET["crt"])){crt();exit;}
@@ -28,9 +35,22 @@
 	if(isset($_GET["tools"])){tools();exit;}
 	if(isset($_GET["x509-js"])){x509_js();exit;}
 	if(isset($_POST["save-crt"])){save_crt();exit;}
+	if(isset($_POST["save-Squidkey"])){save_Squidkey();exit;}
+	if(isset($_POST["save-SquidCert"])){save_SquidCert();exit;}
+	
+	
+	
 	if(isset($_POST["save-bundle"])){save_bundle();exit;}
 	js();
 	
+function certificate_single_js(){
+	$CommonName=$_GET["CommonName"];
+	$page=CurrentPageName();
+	$YahooWin3="YahooWin3";
+	if(isset($_GET["YahooWin"])){$YahooWin3=$_GET["YahooWin"];}
+	echo "$YahooWin3('895','$page?certificate-tabs=yes&t=$t&CommonName=$CommonName&YahooWin=$YahooWin3','$CommonName');";	
+	
+}	
 	
 function js(){
 	$page=CurrentPageName();
@@ -49,7 +69,7 @@ function x509_js(){
 	$html="
 	function Gen$t(){
 		if(confirm('$warn_gen_x509')){
-			YahooWin2('750','$page?generate-x509=$CommonName','$title');
+			YahooWin4('750','$page?generate-x509=$CommonName','$title');
 			}
 		}	
 		Gen$t();
@@ -121,7 +141,7 @@ function new_certificate$t(){
 	YahooWin3('700','$page?certificate-tabs=yes&t=$t&CommonName=&YahooWin=YahooWin3','$new_certificate');
 }
 function certificate$t(CommonName){
-	YahooWin3('700','$page?certificate-tabs=yes&t=$t&CommonName='+CommonName+'&YahooWin=YahooWin3',CommonName);
+	YahooWin3('895','$page?certificate-tabs=yes&t=$t&CommonName='+CommonName+'&YahooWin=YahooWin3',CommonName);
 }
 </script>
 ";
@@ -205,19 +225,59 @@ echo json_encode($data);
 	
 }
 
+function squidTabs(){
+	$tpl=new templates();
+	$page=CurrentPageName();	
+	$CommonName=$_GET["CommonName"];
+	$YahooWin=$_GET["YahooWin"];	
+	$array["Squidkey"]='{private_key}';
+	$array["SquidCert"]="{certificate}";
+	//$array["SquidValidate"]="{validate}";
+	
+	while (list ($num, $ligne) = each ($array) ){
+	
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&CommonName=$CommonName&YahooWin={$_GET["YahooWin"]}&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+	}
+	
+	echo "
+	<div id=main_config_certificate_proxy style='width:100%'>
+		<ul>". implode("\n",$html)."</ul>
+	</div>
+		<script>
+				$(document).ready(function(){
+					$('#main_config_certificate_proxy').tabs();
+		
+		
+			});
+		</script>";	
+	
+}
+
 function certificate_tabs(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$t=time();
-	
+	$sock=new sockets();
 	$CommonName=$_GET["CommonName"];
 	$YahooWin=$_GET["YahooWin"];
 	$array["certificate-popup"]='{parameters}';
+	$squid=false;
+	$users=new usersMenus();
+	if($users->SQUID_INSTALLED){$squid=true;}
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
+	if($EnableWebProxyStatsAppliance==1){$squid=true;}
+	
 	if($CommonName<>null){
 		$array["PrivateKey"]='{private_key}';
 		$array["csr"]='CSR';
 		$array["crt"]='{certificate}';
 		$array["bundle"]='{certificate_chain}';
+		if($squid){
+			$array["squidTabs"]="Proxy:{certificate}";
+			
+		}
 		$array["tools"]="{tools}";
 		
 	}
@@ -485,6 +545,115 @@ function csr(){
 	
 }
 
+function SquidCert(){
+		$t=$_GET["t"];
+		$CommonName=$_GET["CommonName"];
+		$page=CurrentPageName();
+		$tpl=new templates();
+		$sock=new sockets();
+		$users=new usersMenus();
+		$q=new mysql();
+		$tt=time();
+		$sql="SELECT SquidCert  FROM sslcertificates WHERE CommonName='$CommonName'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
+		$warn_gen_x50=$tpl->javascript_parse_text("{warn_gen_x509}");
+	$html="
+		<div class=explain style='font-size:14px' id='$tt-adddis'>{public_key_ssl_explain}</div>
+		<textarea style='margin-top:5px;font-family:Courier New;
+		font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px' 
+		id='crt$tt'>{$ligne["SquidCert"]}</textarea>
+		<center style='margin:10px'>". button("{apply}","SaveCRT$tt()","18px")."</center>
+		<script>
+		var x_SaveCRT$tt=function (obj) {
+			var results=obj.responseText;	
+			document.getElementById('$tt-adddis').innerHTML='';
+			if (results.length>3){alert(results);return;}
+			RefreshTab('main_config_certificate_proxy');
+			$('#flexRT$t').flexReload();
+		}	
+		function SaveCRT$tt(){
+			if(confirm('$warn_gen_x50')){
+				var XHR = new XHRConnection();  
+				var pp=encodeURIComponent(document.getElementById('crt$tt').value);
+				XHR.appendData('save-SquidCert',pp);
+				XHR.appendData('CommonName','$CommonName');
+				AnimateDiv('$tt-adddis');
+				XHR.sendAndLoad('$page', 'POST',x_SaveCRT$tt);
+			}
+		}
+		</script>
+		
+		";
+	
+	echo $tpl->_ENGINE_parse_body($html);	
+}
+
+function Squidkey(){
+		$t=$_GET["t"];
+		$CommonName=$_GET["CommonName"];
+		$page=CurrentPageName();
+		$tpl=new templates();
+		$sock=new sockets();
+		$users=new usersMenus();
+		$q=new mysql();
+		$tt=time();
+		$sql="SELECT Squidkey,keyPassword  FROM sslcertificates WHERE CommonName='$CommonName'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
+		$warn_gen_x50=$tpl->javascript_parse_text("{warn_gen_x509}");
+	$html="
+		<div class=explain style='font-size:14px' id='$tt-adddis'>{public_key_ssl_explain}</div>
+		
+		<table style='width:99%' class=form>
+		<tr>
+			<td class=legend style='font-size:14px'>{certificate_password}:</td>
+			<td>". Field_password("keyPassword-$tt",$ligne["keyPassword"],"font-size:14px;width:350px")."</td>
+		</tr>
+		<tr>
+			<td colspan=2 align='right'>
+				". button("{apply}","SaveCRT$tt()","18px")."</td>
+		</tr>		
+		<tr>
+			<td colspan=2 align='center'>
+		
+		<textarea style='margin-top:5px;font-family:Courier New;
+		font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px' 
+		id='crt$tt'>{$ligne["Squidkey"]}</textarea>
+		
+		</td>
+		</tr>
+		<tr>
+			<td colspan=2 align='right'>
+				". button("{apply}","SaveCRT$tt()","18px")."</td>
+		</tr>
+		</table>
+		<script>
+		var x_SaveCRT$tt=function (obj) {
+			var results=obj.responseText;	
+			document.getElementById('$tt-adddis').innerHTML='';
+			if (results.length>3){alert(results);return;}
+			RefreshTab('main_config_certificate_proxy');
+			$('#flexRT$t').flexReload();
+		}	
+		function SaveCRT$tt(){
+			if(confirm('$warn_gen_x50')){
+				var XHR = new XHRConnection();  
+				var pp=encodeURIComponent(document.getElementById('crt$tt').value);
+				var p1=encodeURIComponent(document.getElementById('keyPassword-$tt').value);
+				XHR.appendData('save-Squidkey',pp);
+				XHR.appendData('save-Squidkey-password',p1);
+				XHR.appendData('CommonName','$CommonName');
+				AnimateDiv('$tt-adddis');
+				XHR.sendAndLoad('$page', 'POST',x_SaveCRT$tt);
+			}
+		}
+		</script>
+		
+		";
+	
+	echo $tpl->_ENGINE_parse_body($html);		
+	
+}
+
 function crt(){
 		$t=$_GET["t"];
 		$CommonName=$_GET["CommonName"];
@@ -514,7 +683,8 @@ function crt(){
 		function SaveCRT$tt(){
 			if(confirm('$warn_gen_x50')){
 				var XHR = new XHRConnection();  
-				XHR.appendData('save-crt',document.getElementById('crt$tt').value);
+				var pp=encodeURIComponent(document.getElementById('crt$tt').value);
+				XHR.appendData('save-crt',pp);
 				XHR.appendData('CommonName','$CommonName');
 				AnimateDiv('$tt-adddis');
 				XHR.sendAndLoad('$page', 'POST',x_SaveCRT$tt);
@@ -529,8 +699,27 @@ function crt(){
 	
 }
 
+function save_Squidkey(){
+	$data=url_decode_special_tool($_POST["save-Squidkey"]);
+	$password=addslashes(url_decode_special_tool($_POST["save-Squidkey-password"]));
+	
+	$CommonName=$_POST["CommonName"];
+	$sql="UPDATE sslcertificates SET `Squidkey`='$data',`keyPassword`='$password' WHERE `CommonName`='$CommonName'";
+	$q=new mysql();
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo $q->mysql_error;return;}	
+}
+function save_SquidCert(){
+	$data=url_decode_special_tool($_POST["save-SquidCert"]);
+	$CommonName=$_POST["CommonName"];
+	$sql="UPDATE sslcertificates SET `SquidCert`='$data' WHERE `CommonName`='$CommonName'";
+	$q=new mysql();
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo $q->mysql_error;return;}	
+}
+
 function save_crt(){
-	$data=$_POST["save-crt"];
+	$data=url_decode_special_tool($_POST["save-crt"]);
 	$CommonName=$_POST["CommonName"];
 	$sql="UPDATE sslcertificates SET `crt`='$data' WHERE `CommonName`='$CommonName'";
 	$q=new mysql();
@@ -542,7 +731,7 @@ function save_crt(){
 	
 }
 function save_bundle(){
-	$data=$_POST["save-bundle"];
+	$data=url_decode_special_tool($_POST["save-bundle"]);
 	$CommonName=$_POST["CommonName"];
 	$sql="UPDATE sslcertificates SET `bundle`='$data' WHERE `CommonName`='$CommonName'";
 	$q=new mysql();
@@ -581,7 +770,8 @@ function bundle(){
 		function SaveBundle$tt(){
 			if(confirm('$warn_gen_x50')){
 				var XHR = new XHRConnection();  
-				XHR.appendData('save-bundle',document.getElementById('bundl$tt').value);
+				var pp=encodeURIComponent(document.getElementById('bundl$t').value);
+				XHR.appendData('save-bundle',pp);
 				XHR.appendData('CommonName','$CommonName');
 				AnimateDiv('$tt-adddis');
 				XHR.sendAndLoad('$page', 'POST',x_SaveBundle$tt);
@@ -650,5 +840,29 @@ function tools(){
 	</script>";
 	
 	echo $tpl->_ENGINE_parse_body($html);	
+}
+
+function SquidValidate(){
+	$page=CurrentPageName();
+	$tpl=new templates();	
+	$CommonName=$_GET["CommonName"];
+	$t=time();
+	$html="<center style='font-size:18px'>{please_wait_validate_your_certitificate}...</center>
+	<div id='$t'></div>
+
+	<script>
+		LoadAjax('$t','$page?SquidValidatePerform=yes&CommonName=$CommonName');
+	</script>
+			
+	";
+}
+function SquidValidatePerform(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$CommonName=$_GET["CommonName"];	
+	$sock=new sockets();
+	$sock->getFrameWork("openssl.php?squid-validate=yes&CommonName=$CommonName");
+	
+	
 }
 

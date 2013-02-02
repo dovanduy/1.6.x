@@ -9,8 +9,20 @@
 	$users=new usersMenus();
 	if(!$users->AsSquidAdministrator){die();}	
 	if(isset($_GET["events"])){popup_list();exit;}
-	
+	if(isset($_POST["unlock"])){unlock();exit;}
+	if(isset($_GET["js"])){js();exit;}
 BlockedSites2();	
+
+
+function js(){
+	header("content-type: application/x-javascript");
+	$t=$_GET["t"];
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{blocked_requests}");
+	echo "YahooWin4('705','$page?popup=yes&t=$t&noreduce=yes','$title')";
+
+}
 
 function BlockedSites2(){
 	
@@ -26,26 +38,32 @@ function BlockedSites2(){
 	$ipaddr=$tpl->_ENGINE_parse_body("{ipaddr}");
 	$category=$tpl->_ENGINE_parse_body("{category}");
 	$rule=$tpl->_ENGINE_parse_body("{rule}");
+	$title=$tpl->_ENGINE_parse_body(date("{l} d {F}")." {blocked_requests}");
+	$unblock=$tpl->javascript_parse_text("{unblock}");
+	$UnBlockWebSiteExplain=$tpl->javascript_parse_text("{UnBlockWebSiteExplain}");
 	
-	
+	$divstart="<div style='margin:-10px;margin-left:-15px;margin-right:-15px'>";
+	$divend="</div>";
+	if(isset($_GET["noreduce"])){$divstart=null;$divend=null;}
 	
 	$t=time();
 	$html="
-	<div style='margin:-10px;margin-left:-15px;margin-right:-15px'>
+	$divstart
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-	</div>
+	$divend
 	
 <script>
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?events=yes',
+	url: '$page?events=yes&t=$t',
 	dataType: 'json',
 	colModel : [
 		{display: '$time', name : 'zDate', width :94, sortable : true, align: 'left'},
 		{display: '$member', name : 'client', width : 92, sortable : true, align: 'left'},
-		{display: '$webservers', name : 'website', width : 244, sortable : true, align: 'left'},
+		{display: '$webservers', name : 'website', width : 208, sortable : true, align: 'left'},
 		{display: '$category', name : 'category', width : 89, sortable : true, align: 'left'},
 		{display: '$rule', name : 'rulename', width : 89, sortable : true, align: 'left'},
+		{display: '$unblock', name : 'unblock', width : 31, sortable : true, align: 'center'},
 		
 		],
 		
@@ -60,15 +78,31 @@ $('#flexRT$t').flexigrid({
 	sortorder: 'desc',
 	usepager: true,
 	useRp: true,
+	title: '<span style=\"font-size:14px\">$title</span>',
 	rp: 50,
 	showTableToggleBtn: false,
 	width: 689,
-	height: 420,
+	height: 600,
 	singleSelect: true,
-	rpOptions: [10, 20, 30, 50,100,200]
+	rpOptions: [10, 20, 30, 50,100,200,500,1000,1500]
 	
 	});   
 });
+
+	var x_UnBlockWebSite$t=function(obj){
+	      var tempvalue=obj.responseText;
+	      if(tempvalue.length>3){alert(tempvalue);}
+	      $('#flexRT$t').flexReload();
+	}	
+
+function UnBlockWebSite$t(domain){
+	if(confirm('$UnBlockWebSiteExplain:'+domain+' ?')){
+		var XHR = new XHRConnection();
+		XHR.appendData('unlock',domain);
+		XHR.sendAndLoad('$page', 'POST',x_UnBlockWebSite$t);
+	}
+
+}
 
 </script>
 	
@@ -82,17 +116,17 @@ function popup_list(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
-		
+	$t=$_GET["t"];
 	
 	$search='%';
 	$table=date('Ymd')."_blocked";	
 	$page=1;
 	$FORCE_FILTER="";
-	
+	if(!$q->TABLE_EXISTS("$table")){json_error_show("$table No such table");}
 	if($q->COUNT_ROWS("$table",'artica_events')==0){json_error_show("No data");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
-	
+	$q2=new mysql();
 
 	if($_POST["query"]<>null){
 		$_POST["query"]="*".$_POST["query"]."*";
@@ -133,16 +167,35 @@ function popup_list(){
 	$ligne["zDate"]=str_replace($today,"{today}",$ligne["zDate"]);
 	if(preg_match("#plus-(.+?)-artica#",$ligne["category"],$re)){$ligne["category"]=$re[1];}
 	$ligne["zDate"]=$tpl->_ENGINE_parse_body("{$ligne["zDate"]}");
+	$id=md5(serialize($ligne));
+	
+	
+	$member=$ligne["client"];
+	if($ligne["hostname"]<>null){$member=$ligne["hostname"];}
+	if($ligne["uid"]<>null){$member=$ligne["uid"];}
 		
+	$unblock=imgsimple("whitelist-24.png",null,"UnBlockWebSite$t('{$ligne["website"]}')");
+	
+	$ligne3=mysql_fetch_array($q2->QUERY_SQL("SELECT items FROM urlrewriteaccessdeny WHERE items='{$ligne["website"]}'","artica_backup"));
+	if(!$q->ok){
+		$unblock="<img src='img/icon_err.gif'><br>$q->mysql_error";
+	}else{
+		if($ligne3["items"]<>null){
+		$unblock=imgsimple("20-check.png",null,null);
+		}
+	}
+	
+	
 	$data['rows'][] = array(
 		'id' => $id,
 		'cell' => array(
 			"<span style='font-size:12px;'>{$ligne["zDate"]}</span>",
-			"<span style='font-size:12px;'>{$ligne["client"]}</a></span>",
+			"<span style='font-size:12px;'>$member</a></span>",
 			"<span style='font-size:12px;'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$ligne["category"]}&website={$ligne["website"]}')\" 
 			style='font-weight:bold;text-decoration:underline;font-size:13px'>{$ligne["website"]}</a></span>",
 			"<span style='font-size:12px;'>{$ligne["category"]}</a></span>",
 			"<span style='font-size:12px;'>{$ligne["rulename"]}</a></span>",
+			$unblock
 			)
 		);
 	}
@@ -153,55 +206,16 @@ echo json_encode($data);
 
 }
 
-
-
-function BlockedSites(){
-$page=CurrentPageName();
-$tpl=new templates();		
-$tableblock=date('Ymd')."_blocked";	
-$q=new mysql_squid_builder();
-$sql="SELECT * FROM $tableblock ORDER BY ID DESC LIMIT 0,150";
-
-
-
-$results=$q->QUERY_SQL($sql,"artica_events");
-if(!$q->ok){
-	echo "<H2>$q->mysql_error</H2>";	
+function unlock(){
 	
-}	
-	$html="<center>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView'>
-<thead class='thead'>
-	<tr>
-	<th width=1%>{date}</th>
-	<th>{member}</th>
-	<th>{website}</th>
-	<th>{category}</th>
-	<th>{rule}</th>
-	</tr>
-</thead>
-<tbody>";	
+	$table="urlrewriteaccessdeny";
+	$q=new mysql();
+	$q->QUERY_SQL("INSERT IGNORE INTO urlrewriteaccessdeny (items) VALUES ('{$_POST["unlock"]}')","artica_backup");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	if(isset($_POST["noreload"])){return;}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?build-whitelist=yes");
+}
 
 
-$today=date('Y-m-d');
-$d+0;
-while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-	if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-	$ligne["zDate"]=str_replace($today,"{today}",$ligne["zDate"]);
-	if(preg_match("#plus-(.+?)-artica#",$ligne["category"],$re)){$ligne["category"]=$re[1];}
-	$html=$html."
-	<tr class=$classtr>
-		<td style='font-size:13px' nowrap width=1%>{$ligne["zDate"]}</td>
-		<td style='font-size:13px' width=1%>{$ligne["client"]}</td>
-		<td style='font-size:13px' width=99%><strong><code>
-		<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$ligne["category"]}&website={$ligne["website"]}')\" 
-		style='font-weight:bold;text-decoration:underline;font-size:13px'>{$ligne["website"]}</a></code></strong></td>
-		<td style='font-size:13px' width=1% align='center'>{$ligne["category"]}</td>
-		<td style='font-size:13px' width=1% align='center'>{$ligne["rulename"]}</td>
-	</tr>
-	";
-	
-}
-$html=$html."</tbody></table>";
-echo $tpl->_ENGINE_parse_body($html);
-}
+

@@ -144,10 +144,16 @@ function FillMemory(){
 	$EnableArticaExecutor=$sock->GET_INFO("EnableArticaExecutor");
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableArticaBackground=$sock->GET_INFO("EnableArticaBackground");
+
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}	
+	
 	if(!is_numeric($DisableArticaStatusService)){$DisableArticaStatusService=0;}
 	if(!is_numeric($EnableArticaExecutor)){$EnableArticaExecutor=1;}
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=1;}
 	if(!is_numeric($EnableArticaBackground)){$EnableArticaBackground=1;}
+	
 	$GLOBALS["KAV4PROXY_INSTALLED"]=false;
 	$GLOBALS["AS_WEB_STATISTICS_APPLIANCE"]=$EnableWebProxyStatsAppliance;
 	$GLOBALS["EnableArticaBackground"]=true;

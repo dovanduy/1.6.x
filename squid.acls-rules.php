@@ -6,6 +6,7 @@
 	include_once('ressources/class.mysql.inc');
 	include_once('ressources/class.dansguardian.inc');
 	include_once('ressources/class.squid.inc');
+	include_once('ressources/class.system.network.inc');
 
 	$usersmenus=new usersMenus();
 	if(!$usersmenus->AsDansGuardianAdministrator){
@@ -26,6 +27,7 @@
 	if(isset($_POST["acl-rule-order"])){acl_rule_order();exit;}
 	if(isset($_POST["aclrulename"])){acl_main_rule_edit();exit;}
 	if(isset($_POST["ApplySquid"])){squid_compile();exit;}
+	if(isset($_GET["csv"])){output_scv();exit;}
 	page();
 	
 	
@@ -34,6 +36,7 @@ function acl_js(){
 	$tpl=new templates();
 	$q=new mysql_squid_builder();
 	$ID=$_GET["ID"];
+	if(!is_numeric($ID)){$ID=-1;}
 	if($ID<1){
 		$title=$tpl->javascript_parse_text("{new_rule}");
 	}else{
@@ -41,38 +44,31 @@ function acl_js(){
 		$title=utf8_encode($ligne["aclname"]);
 	}
 	$t=time();
-	$html="
-	var ID$t=$ID;
-	var x_aclCallBack= function (obj) {
+	$html="var x_aclCallBack= function (obj) {
 		var res=obj.responseText;
 		if(res.length>3){alert(res);return;}
 		$('#table-{$_GET["t"]}').flexReload();
 	}	
 	
 	
-	function acl$t(){
-		var aclname=prompt('$title');
-		if(aclname){
-		      var XHR = new XHRConnection();
-		      XHR.appendData('aclname-save', aclname);
-		      XHR.appendData('ID', '$ID');		      
-		      XHR.sendAndLoad('$page', 'POST',x_aclCallBack);  			
-		
-		}
-	
+	function AclCreateNewAclRule(){
+		var aclname=prompt('$title','New Rule...');
+		if(!aclname){return;}
+		var XHR = new XHRConnection();
+		XHR.appendData('aclname-save', aclname);
+		XHR.appendData('ID', '$ID');		      
+		XHR.sendAndLoad('$page', 'POST',x_aclCallBack);  			
 	}
 	
-	function aclShow$t(){
-	
-	
-	}
-	
-	if(ID$t<0){acl$t();}else{
+	function aclShowMainStart(){
+		var ID=$ID;
+		if( ID<0 ){ AclCreateNewAclRule(); return; }
 		YahooWin2(650,'$page?acl-rule-tabs=yes&ID=$ID&t={$_GET["t"]}','$title');
-	}		
 	
+	}
+	aclShowMainStart();
 	";
-	
+	header("content-type: application/javascript");
 	echo $html;
 	
 	
@@ -148,6 +144,15 @@ function acl_rule_settings(){
 	$access_allow=$ligne["httpaccess_value"];
 	if(!is_numeric($access_allow)){$access_allow=0;}	
 	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='snmp_access_allow'"));
+	$snmp_access_allow=$ligne["httpaccess_value"];
+	if(!is_numeric($snmp_access_allow)){$snmp_access_allow=0;}	
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='log_access'"));
+	$log_access=$ligne["httpaccess_value"];
+	if(!is_numeric($log_access)){$log_access=0;}
+	
+	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='deny_access_except'"));
 	$deny_access_except=$ligne["httpaccess_value"];
 	if(!is_numeric($deny_access_except)){$deny_access_except=0;}
@@ -160,11 +165,16 @@ function acl_rule_settings(){
 	
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='delay_access'"));
-	
 	$delay_access=$ligne["httpaccess_value"];
 	$delay_access_id=$ligne["httpaccess_data"];
 	if(!is_numeric($delay_access)){$delay_access=0;}	
-	if(!is_numeric($delay_access_id)){$delay_access_id=0;}		
+	if(!is_numeric($delay_access_id)){$delay_access_id=0;}
+
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='tcp_outgoing_address'"));
+	$tcp_outgoing_address=$ligne["httpaccess_value"];
+	$tcp_outgoing_address_value=$ligne["httpaccess_data"];
+	if(!is_numeric($tcp_outgoing_address)){$tcp_outgoing_address=0;}	
+	
 	
 	
 	if($acltpl==null){$acltpl="{default}";}
@@ -187,7 +197,8 @@ function acl_rule_settings(){
 		$delay_access_id_text=$ligne["rulename"];
 	}
 	
-	
+	$ipz=new networking();
+	$ipss=$ipz->ALL_IPS_GET_ARRAY();
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	$html="
@@ -221,9 +232,19 @@ function acl_rule_settings(){
 		<td>". Field_checkbox("adaptation_access_deny",1,$adaptation_access_deny,"adaptation_access_deny_check()")."</td>
 	</tr>	
 	<tr>
+		<td class=legend style='font-size:14px'>{allow_snmp_access}:</td>
+		<td>". Field_checkbox("snmp_access_allow",1,$snmp_access_allow,"snmp_access_allow_check()")."</td>
+	</tr>	
+	
+	<tr>
 		<td class=legend style='font-size:14px'>{do_not_cache}:</td>
 		<td>". Field_checkbox("cache_deny",1,$cache_deny,"cache_deny_check()")."</td>
-	</tr>	
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{log_to_csv}:</td>
+		<td>". Field_checkbox("log_access",1,$log_access,"log_access_check()")."</td>
+	</tr>
+				
 	</table>
 	
 	<table style='width:99%' class=form>
@@ -252,6 +273,19 @@ function acl_rule_settings(){
 	</tr>	
 	</table>
 	
+	<table style='width:99%' class=form>	
+	<tr>
+		<td class=legend style='font-size:14px'>{acl_tcp_outgoing_address}:</td>
+		<td>". Field_checkbox("tcp_outgoing_address-$t",1,$tcp_outgoing_address,"tcp_outgoing_address_check$t()")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{ipaddr}:</td>
+		<td>". Field_array_Hash($ipss,"tcp_outgoing_address_value",$tcp_outgoing_address_value,null,null,0,"font-size:14px")."</td>
+	</tr>	
+	</table>	
+	
+	
+	
 	<table style='width:99%' class=form>
 	<tr>
 		<td colspan=2 align='right'><hr>". button("{apply}", "SaveAclRule$ID()",16)."</td>
@@ -274,7 +308,7 @@ function acl_rule_settings(){
 			var XHR = new XHRConnection();
 			XHR.appendData('aclrulename', document.getElementById('aclrulename').value);
 			XHR.appendData('tcp_outgoing_tos_value', document.getElementById('tcp_outgoing_tos_value').value);
-			
+			XHR.appendData('tcp_outgoing_address_value', document.getElementById('tcp_outgoing_address_value').value);
 			var delay_access_id=document.getElementById('delay_access_id').value;
 			
 			if(document.getElementById('delay_access').checked){
@@ -293,6 +327,12 @@ function acl_rule_settings(){
 			if(document.getElementById('adaptation_access_deny').checked){XHR.appendData('adaptation_access_deny', '1');}else{XHR.appendData('adaptation_access_deny', '0');}
 			if(document.getElementById('cache_deny').checked){XHR.appendData('cache_deny', '1');}else{XHR.appendData('cache_deny', '0');}
 			if(document.getElementById('delay_access').checked){XHR.appendData('delay_access', '1');}else{XHR.appendData('delay_access', '0');}
+			if(document.getElementById('tcp_outgoing_address-$t').checked){XHR.appendData('tcp_outgoing_address', '1');}else{XHR.appendData('tcp_outgoing_address', '0');}
+			if(document.getElementById('snmp_access_allow').checked){XHR.appendData('snmp_access_allow', '1');}else{XHR.appendData('snmp_access_allow', '0');}
+			if(document.getElementById('log_access').checked){XHR.appendData('log_access', '1');}else{XHR.appendData('log_access', '0');}
+			
+			
+			
 			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',x_SaveAclRule$ID);  		
 		
@@ -370,9 +410,34 @@ function acl_rule_settings(){
 	function url_rewrite_access_deny_check(){
 		if(document.getElementById('url_rewrite_access_deny').checked){DisableAllInstead('url_rewrite_access_deny');}else{CheckAll();}
 	}
+	
+	function snmp_access_allow_check(){
+		if(document.getElementById('snmp_access_allow').checked){DisableAllInstead('snmp_access_allow');}else{CheckAll();}
+	}
+	
+	function log_access_check(){
+		if(document.getElementById('log_access').checked){DisableAllInstead('log_access');}else{CheckAll();}
+	}
+	
+	
+	function tcp_outgoing_address_check$t(){
+		//alert(document.getElementById('tcp_outgoing_address-$t').checked);
+		if(document.getElementById('tcp_outgoing_address-$t').checked){
+		
+			
+			DisableAllInstead('tcp_outgoing_address');
+			document.getElementById('tcp_outgoing_address_value').disabled=false;
+			document.getElementById('tcp_outgoing_address-$t').checked=true;
+			document.getElementById('tcp_outgoing_address-$t').disabled=false;
+		}else{
+			document.getElementById('tcp_outgoing_address_value').disabled=true;
+			CheckAll();
+		}
+	}	
+	
 
 	function tcp_outgoing_tosCheck(){
-		document.getElementById('tcp_outgoing_tos_value').disabled=true;
+		
 		if(document.getElementById('tcp_outgoing_tos').checked){
 			DisableAllInstead('tcp_outgoing_tos');
 			document.getElementById('tcp_outgoing_tos_value').disabled=false;
@@ -393,6 +458,9 @@ function acl_rule_settings(){
 	cache_deny_check();
 	adaptation_access_deny_check();
 	url_rewrite_access_deny_check();
+	tcp_outgoing_address_check$t();
+	snmp_access_allow_check();
+	log_access_check();
 	</script>
 	
 	
@@ -406,6 +474,7 @@ function acl_rule_settings(){
 function acl_main_rule_edit(){
 	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
 	if(!isset($_POST["tcp_outgoing_tos_value"])){$_POST["tcp_outgoing_tos_value"]=null;}
+	if(!isset($_POST["tcp_outgoing_address_value"])){$_POST["tcp_outgoing_address_value"]=null;}
 	try {
 		
 		$q=new mysql_squid_builder();
@@ -422,7 +491,14 @@ function acl_main_rule_edit(){
 		if(!$acl->aclrule_edittype($ID,"cache_deny",$_POST["cache_deny"])){return;}
 		if(!$acl->aclrule_edittype($ID,"deny_access_except",$_POST["deny_access_except"])){return;}
 		if(!$acl->aclrule_edittype($ID,"tcp_outgoing_tos",$_POST["tcp_outgoing_tos"],$_POST["tcp_outgoing_tos_value"])){return;}
-		if(!$acl->aclrule_edittype($ID,"delay_access",$_POST["delay_access"],$_POST["delay_access_id"])){return;}								
+		if(!$acl->aclrule_edittype($ID,"tcp_outgoing_address",$_POST["tcp_outgoing_address"],$_POST["tcp_outgoing_address_value"])){return;}
+		if(!$acl->aclrule_edittype($ID,"delay_access",$_POST["delay_access"],$_POST["delay_access_id"])){return;}
+		if(!$acl->aclrule_edittype($ID,"snmp_access_allow",$_POST["snmp_access_allow"],$_POST["snmp_access_allow"])){return;}
+		if(!$acl->aclrule_edittype($ID,"log_access",$_POST["log_access"],$_POST["log_access"])){return;}
+		
+		
+		
+										
 	} catch (Exception $e) {
 		echo $e->getMessage();
 		return ;
@@ -569,7 +645,8 @@ function page(){
 	$new_rule=$tpl->_ENGINE_parse_body("{new_rule}");
 	$groups=$tpl->_ENGINE_parse_body("{proxy_objects}");
 	$delete_rule_ask=$tpl->javascript_parse_text("{delete_rule_ask}");
-	$apply_params=$tpl->_ENGINE_parse_body("{apply_parameters}");
+	$apply_params=$tpl->_ENGINE_parse_body("{apply}");
+	$options=$tpl->_ENGINE_parse_body("{options}");
 	$t=time();
 	$order=$tpl->javascript_parse_text("{order}");
 	$squid_templates_error=$tpl->javascript_parse_text("{squid_templates_error}");
@@ -597,6 +674,8 @@ buttons : [
 	{name: '$bandwith', bclass: 'Network', onpress : BandwithSection$t},
 	{separator: true},
 	{name: '$squid_templates_error', bclass: 'Script', onpress : SquidTemplatesErrors$t},
+	{separator: true},
+	{name: '$options', bclass: 'Settings', onpress : AclOptions$t},
 	{separator: true},
 	{name: '$apply_params', bclass: 'Reload', onpress : SquidBuildNow$t},
 		],	
@@ -628,6 +707,10 @@ function GroupsSection$t(){
 function BandwithSection$t(){
 	Loadjs('squid.bandwith.php?by-acls-js=yes&t=$t');
 
+}
+
+function AclOptions$t(){
+	Loadjs('squid.acls.options.php?t=$t');
 }
 
 	var x_EnableDisableAclRule= function (obj) {
@@ -728,8 +811,9 @@ function acl_list(){
 	$search='%';
 	$table="webfilters_sqacls";
 	$page=1;
+	$data = array();
+	$data['rows'] = array();
 
-	if($q->COUNT_ROWS($table)==0){json_error_show("No rules....");}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -751,7 +835,22 @@ function acl_list(){
 	}else{
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		$total = $ligne["TCOUNT"];
+		$total = $ligne["TCOUNT"]+1;
+		$default=$tpl->_ENGINE_parse_body("{default}");
+		$q2=new mysql();
+		$items=$q2->COUNT_ROWS("urlrewriteaccessdeny", "artica_backup");
+		$explain=$tpl->_ENGINE_parse_body("{urlrewriteaccessdeny_explain} <strong>$items {items}</strong>");
+		$data['rows'][] = array(
+				'id' => "acl{$ligne['ID']}",
+				'cell' => array("<a href=\"javascript:blur();\"  
+				OnClick=\"javascript:Loadjs('squid.urlrewriteaccessdeny.php?t={$_GET["t"]}');\"
+				style='font-size:16px;text-decoration:underline;color:black'>$default</span></A>
+				",
+				"<span style='font-size:12px;color:black'>$explain</span>",
+				"&nbsp;","&nbsp;","&nbsp;","&nbsp;")
+		);		
+		
+		
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
@@ -767,11 +866,11 @@ function acl_list(){
 	if(!$q->ok){json_error_show("$q->mysql_error");}
 	
 	
-	$data = array();
+	
 	$data['page'] = $page;
 	$data['total'] = $total;
-	$data['rows'] = array();
-	if(mysql_num_rows($results)==0){json_error_show("No rules....");}
+	
+	
 	
 	$acls=new squid_acls_groups();
 	$order=$tpl->_ENGINE_parse_body("{order}:");
@@ -803,4 +902,26 @@ function acl_list(){
 	
 	
 	echo json_encode($data);	
+}
+function output_scv(){
+	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	$aclid=$_GET["csv"];
+	$path=dirname(__FILE__)."/ressources/logs/web/access_acl_$aclid.csv";
+	$file=basename($path);
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?link-csv=$aclid");
+	
+	header('Content-type: application/vnd.ms-excel');
+	header('Content-Transfer-Encoding: binary');
+	header("Content-Disposition: attachment; filename=\"$file\"");
+	header("Pragma: public");
+	header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+	header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Date dans le passé */
+	$fsize = filesize($path);
+	header("Content-Length: ".$fsize);
+	ob_clean();
+	flush();
+	readfile($path);
+	@unlink($path);
+	
 }

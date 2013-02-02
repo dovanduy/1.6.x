@@ -78,7 +78,10 @@ class compile_ufdbguard{
 		$EnableGoogleSafeSearch=$sock->GET_INFO("EnableGoogleSafeSearch");
 		$YoutubeForSchoolsID=$sock->GET_INFO("YoutubeForSchoolsID");
 		if(!is_numeric($EnableYoutubeForSchools)){$EnableYoutubeForSchools=0;}
-		if(!is_numeric($EnableGoogleSafeSearch)){$EnableGoogleSafeSearch=1;}			
+		if(!is_numeric($EnableGoogleSafeSearch)){$EnableGoogleSafeSearch=1;}		
+		$unix=new unix();
+		$major=$unix->UFDBGUARDD_MAJOR();
+		$minor=$unix->UFDBGUARDD_MINOR();			
 		
 		if($this->SquidGuardWebUseExternalUri==0){
 			if(!preg_match("#squidguard\.php#",$this->SquidGuardIPWeb)){$this->SquidGuardIPWeb=$this->SquidGuardIPWeb."/exec.squidguard.php?";}
@@ -96,6 +99,7 @@ class compile_ufdbguard{
 		if(!isset($ufdbguardConfig["url-lookup-result-when-fatal-error"])){$ufdbguardConfig["url-lookup-result-when-fatal-error"]=1;}
 		if(!isset($ufdbguardConfig["check-proxy-tunnel"])){$ufdbguardConfig["check-proxy-tunnel"]=1;}
 		if(!isset($ufdbguardConfig["strip-domain-from-username"])){$ufdbguardConfig["strip-domain-from-username"]=0;}
+		if(!isset($ufdbguardConfig["refreshuserlist"])){$ufdbguardConfig["refreshuserlist"]=15;}
 		
 		if($ufdbguardConfig["enforce-https-with-hostname"]==null){$ufdbguardConfig["enforce-https-with-hostname"]=0;}
 		if($ufdbguardConfig["enforce-https-official-certificate"]==null){$ufdbguardConfig["enforce-https-official-certificate"]=0;}
@@ -104,6 +108,9 @@ class compile_ufdbguard{
 		if(!is_numeric($ufdbguardConfig["url-lookup-result-when-fatal-error"])){$ufdbguardConfig["url-lookup-result-when-fatal-error"]=1;}				
 		if(!is_numeric($ufdbguardConfig["check-proxy-tunnel"])){$ufdbguardConfig["check-proxy-tunnel"]=1;}
 		if(!is_numeric($ufdbguardConfig["strip-domain-from-username"])){$ufdbguardConfig["strip-domain-from-username"]=0;}
+		if(!is_numeric($ufdbguardConfig["refreshuserlist"])){$ufdbguardConfig["refreshuserlist"]=15;}
+		
+		if($ufdbguardConfig["refreshuserlist"]<5){$ufdbguardConfig["refreshuserlist"]=5;}
 		
 		if(!isset($datas["listen_addr"])){$datas["listen_addr"]="127.0.0.1";}
 		if(!isset($datas["listen_port"])){$datas["listen_port"]="3977";}
@@ -120,9 +127,7 @@ class compile_ufdbguard{
 			}
 		}
 
-		$unix=new unix();
-		$major=$unix->UFDBGUARDD_MAJOR();
-		$minor=$unix->UFDBGUARDD_MINOR();
+
 		
 		
 		if($major>0){if($minor>26){$datas["tcpsockets"]=1;}}
@@ -169,10 +174,12 @@ class compile_ufdbguard{
 		$conf[]="logblock on";
 		$conf[]="logall {$ufdbguardConfig["DebugAll"]}";
 		$conf[]="ufdb-debug-filter {$ufdbguardConfig["DebugAll"]}";
+		$conf[]="ufdb-debug-external-scripts {$ufdbguardConfig["DebugAll"]}";
 		if($ufdbguardConfig["strip-domain-from-username"]=="on"){$conf[]="strip-domain-from-username on";}
 		$conf[]="max-logfile-size  20000000";
 		$conf[]="analyse-uncategorised-urls off";
 		$conf[]="ufdb-show-url-details on";
+		$conf[]="refreshuserlist {$ufdbguardConfig["refreshuserlist"]}";
 		
 		if($EnableGoogleSafeSearch==1){$conf[]="safe-search on";}else{$conf[]="safe-search off";}
 		if($datas["tcpsockets"]==1){
@@ -316,17 +323,25 @@ class compile_ufdbguard{
 		$results=$q->QUERY_SQL($sql);
 		$banned=array();
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$ligne["ext"]=trim($ligne["ext"]);
 			if(trim($ligne["ext"])==null){continue;}
 			$ligne["ext"]=str_replace(".", "", $ligne["ext"]);
 			$ligne["ext"]=str_replace("*", "", $ligne["ext"]);
 			$banned[$ligne["ruleid"]][]=$ligne["ext"];
+			
 			$this->BANNED_FILES_RULES[$ligne["ruleid"]]="FileBlock{$ligne["ruleid"]}";
 		}
 		$f=array();
 		while (list ($ruleid, $exts) = each ($banned)){
 			@mkdir("$main_path/FileBlock{$ligne["ruleid"]}",0755,true);
-			$pattern=@implode("|", $exts);
-			@file_put_contents("$main_path/FileBlock{$ligne["ruleid"]}/expressions", "(.*\/.*\.($pattern))$");
+			$FINAL=array();
+			while (list ($a, $b) = each ($exts) ){
+				if(trim($b)==null){continue;}
+				$FINAL[]=".*?\/.*\.{$b}$";
+			}
+			
+			
+			@file_put_contents("$main_path/FileBlock{$ligne["ruleid"]}/expressions",@implode("\n", $FINAL));
 			$f[]="category \"FileBlock{$ruleid}\"{";
 			$f[]="expressionlist	\"$main_path/FileBlock{$ligne["ruleid"]}/expressions\"";
 			$f[]="}";
@@ -513,6 +528,29 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 	}
 	
 	
+	public function isDynamic($ruleid){
+		$sql="SELECT webfilter_group.* FROM webfilter_group,webfilter_assoc_groups
+		WHERE webfilter_assoc_groups.group_id=webfilter_group.ID
+		AND webfilter_assoc_groups.webfilter_id=$ruleid
+		AND webfilter_group.enabled=1";		
+		$c=0;
+		$q=new mysql_squid_builder();
+		$results=$q->QUERY_SQL($sql);
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			if($ligne["localldap"]==0){
+				$c++;
+			}
+			
+			if($ligne["localldap"]==2){
+				$c++;
+			}
+		}
+		
+		if($c>0){return true;}
+		
+	}
+	
+	
 	private function build_membersrule($ruleid){
 		$UseDynamicGroupsAcls=$this->UseDynamicGroupsAcls;
 		if($this->KerbAuthDisableNsswitch==1){$UseDynamicGroupsAcls=0;}
@@ -524,59 +562,66 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 		$q=new mysql_squid_builder();
 		$results=$q->QUERY_SQL($sql);
+		$arrayGROUPS=array();
+		if($GLOBALS["VERBOSE"]){writelogs("$ruleid] has ".mysql_num_rows($results)." groups",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		if(isset($GLOBALS["PHP5_BIN"])){
+			$unix=new unix();
+			$GLOBALS["PHP5_BIN"]=$unix->LOCATE_PHP5_BIN();
+		}
 		
-		if($GLOBALS["VERBOSE"]){writelogs("$ruleid has ".mysql_num_rows($results)." groups",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-		
+		$isDynamic=$this->isDynamic($ruleid);
+		if($isDynamic){
+			if($GLOBALS["VERBOSE"]){echo "Starting......: $ruleid] store dynamic groups\n";}
+		}
 		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-			$groupname=$ligne["groupname"];
-			if($GLOBALS["VERBOSE"]){writelogs("$groupname LDAP?={$ligne["localldap"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			if($ligne["localldap"]==0){
-				$gp=new groups($ligne["gpid"]);
-				while (list ($num, $member) = each ($gp->members)){
-					if(trim($member)==null){continue;}
-					if(strpos($member, "$")>0){continue;}
-					$array[]="\tuser\t\"$member\"";
-					
+				$groupname=$ligne["groupname"];
+				if($GLOBALS["VERBOSE"]){writelogs("$ruleid]LDAP :Type:{$ligne["localldap"]}: $groupname LDAP?={$ligne["localldap"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+				if($ligne["localldap"]==0){
+					$arrayGROUPS["LDAP"][]=$ligne["gpid"];
+					continue;
+				}
+			
+			if($ligne["localldap"]==2){
+				if(preg_match("#AD:[0-9]+:(.+)#", $ligne["dn"],$re)){
+					if($GLOBALS["VERBOSE"]){writelogs("$ruleid] Type:{$ligne["localldap"]}: $groupname ACTIVE DIRECTORY={$ligne["localldap"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+					$arrayGROUPS["AD"][]=$re[1];
+					continue;
+				}
+			
+
+				if($GLOBALS["VERBOSE"]){writelogs("$ruleid] Type:{$ligne["localldap"]}:$groupname Is an ACTIVE DIRECTORY group -> `{$ligne["dn"]}` ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+				$DN=base64_encode($ligne["dn"]);
+				$arrayGROUPS["AD"][]=$DN;
+				continue;
+			}
+		
+			if($GLOBALS["VERBOSE"]){writelogs("$ruleid] Type:{$ligne["localldap"]}: $groupname Is an ACTIVE DIRECTORY group -> `{$ligne["dn"]}` ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			
+			
+		
+			if(!$isDynamic){
+				$sql="SELECT * FROM webfilter_members WHERE enabled=1 AND groupid={$ligne["ID"]}";
+				$results2=$q->QUERY_SQL($sql);
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ufdbGuard $groupname({$ligne["ID"]}) webfilter_members = ". mysql_num_rows($results2)." items\n";}
+				while($ligne2=mysql_fetch_array($results2,MYSQL_ASSOC)){
+					if(trim($ligne2["pattern"])==null){continue;}
+					if($GLOBALS["VERBOSE"]){writelogs("$groupname {$ligne2["pattern"]}={$ligne2["membertype"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+					if($ligne2["membertype"]==0){$array[]="\tip\t{$ligne2["pattern"]}";continue;}
+					if($ligne2["membertype"]==2){$array[]="\tip\t{$ligne2["pattern"]}";continue;}
+					if($ligne2["membertype"]==1){$array[]="\tuser\t\"{$ligne2["pattern"]}\"";continue;}			
 				}
 			}
-			
-		if($ligne["localldap"]==2){
-			if(preg_match("#AD:[0-9]+:(.+)#", $ligne["dn"],$re)){
-				$FULLDN=base64_decode($re[1]);
-			}
-			
-			if($UseDynamicGroupsAcls==1){
-				if(preg_match("#^CN=(.+?),.*#i", $FULLDN,$re)){
-					$groupname=$this->ActiveDirectoryToName($re[1]);
-					if($groupname<>null){
-						$array[]="\tunix group\t\"$groupname\"";
-						if($GLOBALS["VERBOSE"]){writelogs("{$re[1]} -> $groupname Is an Active Directory group -> `{$re[1]}` ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-						continue;
-					}
-				}
-			}
-			if($GLOBALS["VERBOSE"]){writelogs("$groupname Is an Active Directory group -> `$FULLDN` ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			$array[]=$this->members_from_activedirectory($ligne["dn"]);
+		
+		
 		}
 		
-					
-			
-		$sql="SELECT * FROM webfilter_members WHERE enabled=1 AND groupid={$ligne["ID"]}";
-		$results2=$q->QUERY_SQL($sql);
-		if($GLOBALS["VERBOSE"]){echo "Starting......: ufdbGuard $groupname({$ligne["ID"]}) webfilter_members = ". mysql_num_rows($results2)." items\n";}
-		while($ligne2=mysql_fetch_array($results2,MYSQL_ASSOC)){
-			if(trim($ligne2["pattern"])==null){continue;}
-			if($GLOBALS["VERBOSE"]){writelogs("$groupname {$ligne2["pattern"]}={$ligne2["membertype"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			if($ligne2["membertype"]==0){$array[]="\tip\t{$ligne2["pattern"]}";}
-			if($ligne2["membertype"]==2){$array[]="\tip\t{$ligne2["pattern"]}";}
-			if($ligne2["membertype"]==1){$array[]="\tuser\t\"{$ligne2["pattern"]}\"";}			
+		if($isDynamic){
+			if(count($arrayGROUPS)>0){
+			@file_put_contents("/etc/squid3/ufdb.groups.$ruleid.db", serialize($arrayGROUPS));
 			}
-			
-			
-			
+			$array[]="\texecuserlist\t\"/usr/share/artica-postfix/external_acl_squid_ldap.php --db $ruleid\"";
 		}
-		
 		if(count($array)>0){return @implode("\n", $array);}
 		
 	}
@@ -1404,7 +1449,8 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$compiledbs_took=$unix->distanceOfTimeInWords($t1,time(),true);
 		ufdbguard_admin_events("Compilation done SQL took:$mysqlquerry_took\nWrite to disk took:$writetodisk_took\nUFDB Compilation took:$compiledbs_took",__FUNCTION__,__FILE__,__LINE__,"$categorySource");
 		ufdbguard_admin_events("$category compilation done\nSQL took:$mysqlquerry_took\nWrite to disk took:$writetodisk_took\nUFDB Compilation took:$compiledbs_took",__FUNCTION__,__FILE__,__LINE__,"compile");
-		
+		$php5=$unix->LOCATE_PHP5_BIN();
+		shell_exec("$php5 /usr/share/artica-postfix/exec.squidguard.php --disks");
 				
 	}
 	

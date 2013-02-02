@@ -37,8 +37,11 @@ session_start();
 		}
 		
 
-			
-	
+		if(isset($_GET["chgperms-js"])){chgperms_js();exit;}
+		if(isset($_POST["chgperms-file"])){chgperms_file();exit;}
+		
+		if(isset($_GET["remove-file-js"])){remove_file_js();exit;}
+		if(isset($_POST["remove-file"])){remove_file();exit;}
 		if(isset($_GET["popup"])){popup();exit;}
 		if(isset($_GET["browse-folder"])){browse_folder();exit;}
 		if(isset($_GET["folder-infos"])){folder_infos();exit;}
@@ -52,6 +55,8 @@ session_start();
 		if(isset($_GET["upload-file"])){upload_file_popup();exit;}
 		if(isset($_GET["form-upload"])){upload_file_iframe();exit;}
 		if( isset($_GET['TargetpathUploaded']) ){upload_form_perform();exit();}
+		if(isset($_GET["loupe-js"])){loupe_js();exit;}
+		if(isset($_GET["loupe-popup"])){loupe_popup();exit;}
 		js();
 		
 		
@@ -97,6 +102,16 @@ function isAnUser(){
 		if($users->AsSystemAdministrator){return false;}
 		return true;	
 }
+
+function loupe_popup(){
+	$ldap=new clladp();
+	$sock=new sockets();
+	$cr=new SimpleCrypt($ldap->ldap_password);
+	$path=$cr->decrypt(base64_decode($_GET["loupe-popup"]));
+	$path=base64_encode($path);		
+	$content=base64_decode($sock->getFrameWork("cmd.php?readfile=$path"));
+	echo "<textarea style='margin-top:5px;font-family:Courier New;font-weight:bold;width:100%;height:450px;border:5px solid #8E8E8E;overflow:auto;font-size:13px' id='textToParseCats$t'>$content</textarea>";
+}
 		
 function js(){
 	$tpl=new templates();
@@ -106,7 +121,7 @@ function js(){
 	$unshare_this=$tpl->javascript_parse_text("{unshare_this} ?","fileshares.index.php");
 	if(trim($_GET["mount-point"])==null){$_GET["mount-point"]=IsPriv();}
 	$upload_a_file=$tpl->_ENGINE_parse_body("{upload_a_file}");
-	
+	$_GET["mount-point"]=urlencode($_GET["mount-point"]);
 	$page=CurrentPageName();
 	$html="
 		var mem_id='';
@@ -115,7 +130,7 @@ function js(){
 		var mem_parent_id;
 		var mem_parent;
 		function start(){
-			YahooWinBrowse(900,'$page?popup=yes&select-dir={$_GET["select-dir"]}&mount-point={$_GET["mount-point"]}&select-file={$_GET["select-file"]}&target-form={$_GET["target-form"]}','$title');
+			YahooWinBrowse(900,'$page?popup=yes&select-dir={$_GET["select-dir"]}&mount-point={$_GET["mount-point"]}&select-file={$_GET["select-file"]}&target-dir={$_GET["target-dir"]}&target-form={$_GET["target-form"]}','$title');
 			Loadjs('js/samba.js');
 		}
 		
@@ -178,7 +193,7 @@ function js(){
 	}
 	
 	function FileUpload(path,id){
-		YahooWin2(580,'$page?upload-file='+path+'&id='+id+'&select-dir={$_GET["select-dir"]}&select-file={$_GET["select-file"]}&target-form={$_GET["target-form"]}','$upload_a_file');
+		YahooWin2(580,'$page?upload-file='+path+'&id='+id+'&select-dir={$_GET["select-dir"]}&select-file={$_GET["select-file"]}&target-dir={$_GET["target-dir"]}&target-form={$_GET["target-form"]}','$upload_a_file');
 	}
 		
 		
@@ -189,7 +204,7 @@ function js(){
 			XHR.appendData('select-file','{$_GET["select-file"]}');
 			XHR.appendData('target-form','{$_GET["target-form"]}');
 			XHR.appendData('select-dir','{$_GET["select-dir"]}');
-		
+			XHR.appendData('target-dir','{$_GET["target-dir"]}');
 			AnimateDiv('browser-infos');		
 			XHR.sendAndLoad('$page', 'GET',X_BrowserInfos);
 		}
@@ -199,8 +214,14 @@ function js(){
 			XHR.appendData('top-bar',path);
 			XHR.appendData('select-file','{$_GET["select-file"]}');
 			XHR.appendData('target-form','{$_GET["target-form"]}');		
-			XHR.appendData('select-dir','{$_GET["select-dir"]}');			
+			XHR.appendData('select-dir','{$_GET["select-dir"]}');
+			XHR.appendData('target-dir','{$_GET["target-dir"]}');				
 			XHR.sendAndLoad('$page', 'GET',X_top_bar);
+		}
+		
+		function TreeChooseFolderForm(filepath){
+			document.getElementById('{$_GET["target-dir"]}').value=filepath;
+			YahooWinBrowseHide();
 		}
 		
 		
@@ -732,6 +753,21 @@ $html="
 return $html;
 }
 
+function is_selected_file($ext){
+	if(!isset($_GET["select-file"])){return true;}
+	if($_GET["select-file"]==null){return true;}
+	if($_GET["select-file"]=="*"){return true;}
+	if(strpos($_GET["select-file"], ",")>0){
+		$tr=explode(",", $_GET["select-file"]);
+		while (list ($num, $val) = each ($tr) ){if($ext==$val){return true;}}
+		return false;
+	}
+	if($_GET["select-file"]==$ext){return true;}
+	
+	return false;
+	
+}
+
 function folder_infos(){
 		$_GET["folder-infos"]=str_replace("../","",$_GET["folder-infos"]);
 		$_GET["folder-infos"]=str_replace("//","/",$_GET["folder-infos"]);
@@ -756,6 +792,25 @@ function folder_infos(){
 			}
 		}else{
 			writelogs("{$_SESSION["uid"]} is not a single user",__FUNCTION__,__FILE__,__LINE__);
+		}
+		
+		
+		if(strlen($_GET["target-dir"])>3){
+			$html="
+	<table style='width:100%'>
+	<tr>
+		<td valign='top' align='center'>
+			<div style='width:130px;height:544px;background-image:url(img/bg_tree1.png);background-position:bottom center;background-repeat:no-repeat'>
+			". item_infos($dir,$datas)."</div>
+		</td>
+		<td valign='top' width=350px><center><hr>". button("{choose_this_folder}","TreeChooseFolderForm('$dir')",18)."<hr></center></td>
+	</tr>
+	</table>					
+			";
+			echo $tpl->_ENGINE_parse_body($html);
+			return;
+				
+				
 		}
 		
 		
@@ -802,11 +857,8 @@ function folder_infos(){
 				if(date('Y-m-d',$array["time"]["mtime"])==date('Y-m-d')){$modified="{today} ".date('H:i:s',$array["time"]["mtime"]);}
 				$size=$array["size"]["size"];
 				$ext=Get_extension($num);
-				if($_GET["select-file"]<>null){
-					if($_GET["select-file"]<>'*'){
-						if($ext<>$_GET["select-file"]){continue;}
-					}
-				}
+				if(!is_selected_file($ext)){continue;}
+
 				$img="img/ext/def_small.gif";
 				if($ext<>null){
 					if(isset($GLOBALS[$ext])){$img="img/ext/{$ext}_small.gif";}else{
@@ -956,20 +1008,28 @@ if(preg_match("#symbolic link#", $type)){
 if(is_file("img/ext/sym.jpg")){$img="img/ext/sym.jpg";}
 if(is_file("img/ext/sym.png")){$img="img/ext/sym.png";}	
 }
+$pathText2=basename($pathText);
 
+if(preg_match("#ASCII.*?text#i", $type)){
+	$loupe="<hr>".imgtootltip("loupe-64.png","{display}","Loadjs('$page?loupe-js=$path_encrypted')");
+}
 
-$html="<div><a href=\"$page?download-file=$path_encrypted\" style='font-size:16px;text-decoration:underline;font-weight:bolder;color:#C30B0B'>$pathText <i style='text-decoration:none;font-size:12px'>({click_to_download})</i></a></div>
-<div style='font-size:12px;margin-top:3px;padding-top:5px;text-align:right;'><i>$ext- $type</i></div>
+$html="<div><a href=\"$page?download-file=$path_encrypted\" 
+	style='font-size:16px;text-decoration:underline;font-weight:bolder;color:#C30B0B'>$pathText2 <i style='text-decoration:none;font-size:12px'>({click_to_download})</i></a></div>
+<div style='font-size:12px;margin-top:3px;padding-top:5px;text-align:right;'><i>$ext - $type</i></div>
 <table style='width:99%' class=form>
 <tr>
 <td width=1% valign='top'>
 	<img src='$img' style='margin:15px;padding:3px;border:2px solid #CCCCCC'>
+	<br>
+	<center>". imgtootltip("delete-48.png","{remove}","Loadjs('$page?remove-file-js=$path_encrypted')")."$loupe</center>
 </td>
 <td valign='top'>
 	<table >
 		<tr>
 			<td class=legend style='font-size:14px'>{permission}:</td>
-			<td><strong style='font-size:14px'>$permissions $permissions_g ($permissions_dec)</td>
+			<td><strong style='font-size:14px'>$permissions $permissions_g (<a href=\"javascript:Loadjs('$page?chgperms-js=".base64_encode($path)."&default=$permissions_dec')\" 
+			style='font-size:14px;text-decoration:underline;font-weight:bolder'>$permissions_dec</a>)</td>
 		</tr>
 		<tr>
 			<td class=legend style='font-size:14px'>{accessed}:</td>
@@ -997,6 +1057,107 @@ $html="<div><a href=\"$page?download-file=$path_encrypted\" style='font-size:16p
 $tpl=new templates();	
 echo $tpl->_ENGINE_parse_body($html);
 }
+
+function loupe_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$ldap=new clladp();
+	$cr=new SimpleCrypt($ldap->ldap_password);
+	$path=$cr->decrypt(base64_decode($_GET["loupe-js"]));	
+	$filepathtx=str_replace("'", "`", $path);
+	echo "YahooWinT(800,'$page?loupe-popup={$_GET["loupe-js"]}','$filepathtx')";
+	
+}
+
+function remove_file_js(){
+	$ldap=new clladp();
+	$page=CurrentPageName();
+	$cr=new SimpleCrypt($ldap->ldap_password);
+	$path=$cr->decrypt(base64_decode($_GET["remove-file-js"]));	
+	$tpl=new templates();
+	$remove=$tpl->javascript_parse_text("{remove}");
+	$t=time();
+	$folder=dirname($path);
+	$html="
+	
+	var x_Remove$t= function (obj) {
+	 		text=obj.responseText;
+	 		if(text.length>3){alert(text);return;}
+	 		YahooWin2Hide();
+	 		if(document.getElementById('RefreshSambaTreeFolderHidden_id')){
+	 			RefreshFolder('$folder',document.getElementById('RefreshSambaTreeFolderHidden_id').value);
+	 		}
+		}	
+	
+	function Remove$t(){
+		if(confirm('$remove\\n$path ?')){
+			var XHR = new XHRConnection();
+			XHR.appendData('remove-file','{$_GET["remove-file-js"]}');	
+			XHR.sendAndLoad('$page', 'POST',x_Remove$t);
+		}
+	
+	}
+	Remove$t();
+	";
+	echo $html;
+}
+
+function chgperms_js(){
+	$ldap=new clladp();
+	$cr=new SimpleCrypt($ldap->ldap_password);
+		
+	$page=CurrentPageName();
+	$filepath=$_GET["chgperms-js"];
+	$path=base64_decode($filepath);	
+	$dir=dirname($path);
+	$default=$_GET["default"];
+	$tpl=new templates();
+	$permissions=$tpl->javascript_parse_text("{permissions}");
+	$t=time();	
+	
+	$html="
+	
+	var x_Permz$t= function (obj) {
+	 		text=obj.responseText;
+	 		if(text.length>3){alert(text);}
+	 		YahooWin2Hide();
+	 		if(document.getElementById('RefreshSambaTreeFolderHidden_id')){RefreshFolder('$dir',document.getElementById('RefreshSambaTreeFolderHidden_id').value);}
+		}	
+	
+	function szPermz$t(){
+		
+		var perms=prompt('$permissions','$default');
+		if(perms){
+			var XHR = new XHRConnection();
+			XHR.appendData('chgperms-file','$filepath');
+			XHR.appendData('byte',perms);		
+			XHR.sendAndLoad('$page', 'POST',x_Permz$t);
+		}
+	
+	}
+	
+	
+	szPermz$t();
+	";
+	echo $html;	
+	
+}
+
+function chgperms_file(){
+	$path=$_POST["chgperms-file"];
+	$num=base64_encode($_POST["byte"]);
+	$sock=new sockets();
+	echo base64_decode($sock->getFrameWork("cmd.php?chmod=$path&num=$num"));
+}
+
+function remove_file(){
+	$ldap=new clladp();
+	$cr=new SimpleCrypt($ldap->ldap_password);
+	$path=$cr->decrypt(base64_decode($_POST["remove-file"]));		
+	$sock=new sockets();
+	$sock->getFrameWork("cmd.php?file-remove=".base64_encode($path));
+}
+
 function download_file(){
 	$ldap=new clladp();
 	$cr=new SimpleCrypt($ldap->ldap_password);
@@ -1006,9 +1167,11 @@ function download_file(){
 	
 	$content_type=base64_decode($sock->getFrameWork("cmd.php?mime-type=".base64_encode($path)));
 	header('Content-type: '.$content_type);
+	
 	header('Content-Transfer-Encoding: binary');
 	header("Content-Disposition: attachment; filename=\"$file\"");	
-	header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+	header("Pragma: public");
+	header("Cache-Control: must-revalidate, post-check=0, pre-check=0");	
 	header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Date dans le passé	
 	$fsize = filesize($path); 
 	header("Content-Length: ".$fsize); 
@@ -1099,6 +1262,15 @@ function upload_file_popup(){
 			$allowedExtensions="'{$_GET["select-file"]}'";
 		}
 	}
+	if(strpos($_GET["select-file"], ",")>0){
+		$tr=explode(",", $_GET["select-file"]);
+		while (list ($num, $val) = each ($tr) ){
+			$EXTZ[]="'$val'";
+		}
+		$allowedExtensions=@implode(",", $EXTZ);
+	}
+	
+	
 	$targetpath=base64_decode($_GET["upload-file"]);
 	if($allowedExtensions<>null){
 		$allowedExtensions="allowedExtensions: [$allowedExtensions],"; 

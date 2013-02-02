@@ -5,6 +5,7 @@ include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
+if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 
 if(preg_match("#--verbose#",implode(" ",$argv))){
 	$GLOBALS["VERBOSE"]=true;
@@ -16,6 +17,7 @@ if(preg_match("#--show#",implode(" ",$argv))){$GLOBALS["SHOW"]=true;}
 if($argv[1]=="--sync"){sync($argv[2]);exit;}
 if($argv[1]=="--cron"){cron();exit;}
 if($argv[1]=="--stop"){cron($argv[2]);exit;}
+if($argv[1]=="--alltasks"){cronAll();exit;}
 
 
 
@@ -43,25 +45,31 @@ $sql="SELECT * FROM imapsync WHERE ID='$id'";
 	shell_exec("/bin/kill -9 $pid_org");
 }
 
-function sync($id){
+function sync($id,$nopid=false){
 	$unix=new unix();
 	$users=new usersMenus();
-	write_syslog("Mail synchronization: Running task $id",basename(__FILE__));
+	system_admin_events("Mail synchronization: Running task $id",__FUNCTION__,__FILE__,__LINE__);
 	$GLOBALS["unique_id"]=$id;
 	$ASOfflineImap=false;
 	$sql="SELECT * FROM imapsync WHERE ID='$id'";
 	$q=new mysql();
+	$took1=time();
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	if(!$q->ok){
-		write_syslog("Mysql error $q->mysql_error",__FILE__);
+		system_admin_events("Mysql error $q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
 		die();
 	}
 	$pid=$ligne["pid"];
-	if($unix->process_exists($pid)){die();}
+	if(!$nopid){
+		if($unix->process_exists($pid)){return;}
+	}
 	update_pid(getmypid());
+	
 	if(!is_file($unix->find_program("imapsync"))){
-		update_status(-1,"Could not find imapsync program");
-		return;
+		if(!is_file($unix->find_program("offlineimap"))){
+			update_status(-1,"Could not find imapsync/offlineimap program");
+			return;
+		}
 	}
 	update_status(1,"Executed");
 	include_once(dirname(__FILE__).'/ressources/class.user.inc');
@@ -73,31 +81,31 @@ function sync($id){
 	if($parameters["maxage"]==null){$parameters["maxage"]=0;}
 	if($parameters["UseOfflineImap"]==1){$ASOfflineImap=true;}
 	
-$offlineImapConf[]="[general]";
-$offlineImapConf[]="metadata = /var/lib/offlineimap/{$ligne["uid"]}";
-if($ASOfflineImap){@mkdir("/var/lib/offlineimap/{$ligne["uid"]}",null,true);}
-$offlineImapConf[]="accounts = Myaccount";
-$offlineImapConf[]="maxsyncaccounts = 1";
-$offlineImapConf[]="ui =Noninteractive.Basic, Noninteractive.Quiet";
-$offlineImapConf[]="ignore-readonly = no";
-$offlineImapConf[]="socktimeout = 60";
-$offlineImapConf[]="fsync = true";
-$offlineImapConf[]="";
-$offlineImapConf[]="[ui.Curses.Blinkenlights]";
-$offlineImapConf[]="statuschar = .";
-$offlineImapConf[]="";
-$offlineImapConf[]="[Account Myaccount]";
-$offlineImapConf[]="localrepository = TargetServer";
-$offlineImapConf[]="remoterepository = SourceServer";
-$offlineImapConf[]="# autorefresh = 5";
-$offlineImapConf[]="# quick = 10";
-$offlineImapConf[]="# presynchook = imapfilter";
-$offlineImapConf[]="# postsynchook = notifysync.sh";
-$offlineImapConf[]="# presynchook = imapfilter -c someotherconfig.lua";
-$offlineImapConf[]="# maxsize = 2000000";
-if($parameters["maxage"]>0){
-	$offlineImapConf[]="maxage = {$parameters["maxage"]}";
-}	
+	$offlineImapConf[]="[general]";
+	$offlineImapConf[]="metadata = /var/lib/offlineimap/{$ligne["uid"]}";
+	if($ASOfflineImap){@mkdir("/var/lib/offlineimap/{$ligne["uid"]}",null,true);}
+	$offlineImapConf[]="accounts = Myaccount";
+	$offlineImapConf[]="maxsyncaccounts = 1";
+	$offlineImapConf[]="ui =Noninteractive.Basic, Noninteractive.Quiet";
+	$offlineImapConf[]="ignore-readonly = no";
+	$offlineImapConf[]="socktimeout = 60";
+	$offlineImapConf[]="fsync = true";
+	$offlineImapConf[]="";
+	$offlineImapConf[]="[ui.Curses.Blinkenlights]";
+	$offlineImapConf[]="statuschar = .";
+	$offlineImapConf[]="";
+	$offlineImapConf[]="[Account Myaccount]";
+	$offlineImapConf[]="localrepository = TargetServer";
+	$offlineImapConf[]="remoterepository = SourceServer";
+	$offlineImapConf[]="# autorefresh = 5";
+	$offlineImapConf[]="# quick = 10";
+	$offlineImapConf[]="# presynchook = imapfilter";
+	$offlineImapConf[]="# postsynchook = notifysync.sh";
+	$offlineImapConf[]="# presynchook = imapfilter -c someotherconfig.lua";
+	$offlineImapConf[]="# maxsize = 2000000";
+	if($parameters["maxage"]>0){
+		$offlineImapConf[]="maxage = {$parameters["maxage"]}";
+	}	
 	
 	
 	$array_folders=unserialize(base64_decode($ligne["folders"]));
@@ -245,70 +253,66 @@ if($parameters["maxage"]>0){
 		
 		
 	}
+	$offlineImapConf[]="";
+	$offlineImapConf[]="[Repository SourceServer]";
+	$offlineImapConf[]="type = IMAP";
+	$offlineImapConf[]="remotehost = $host1";
+	$offlineImapConf[]="ssl = $offlineImapUseSSL1";
+	$offlineImapConf[]="remoteport = $offlineImapUseSSL1port";
+	$offlineImapConf[]="remoteuser = $user1";
+	$offlineImapConf[]="remotepass = $password1";
+	$offlineImapConf[]="# reference = Mail";
+	$offlineImapConf[]="maxconnections = 1";
+	$offlineImapConf[]="holdconnectionopen = no";
+	$offlineImapConf[]="# keepalive = 60";
+	$offlineImapConf[]="expunge = $expunge1";
+	$offlineImapConf[]="subscribedonly = no";
+	if($parameters["useSep1"]==1){
+		$offlineImapConf[]="sep = {$parameters["sep"]}";
+	}
+	$offlineImapConf[]="nametrans = lambda foldername: re.sub('^INBOX\.*', '.', foldername)";	
+	if(count($offlineImapFolders)>0){
+	$offlineImapConf[]="folderincludes = [". @implode(",",$offlineImapFolders)."]";
+	}
+		
+	$offlineImapConf[]="";
+	$offlineImapConf[]="[Repository TargetServer]";
+	$offlineImapConf[]="type = IMAP";
+	$offlineImapConf[]="remotehost = $host2";
+	$offlineImapConf[]="ssl = $offlineImapUseSSL2";
+	$offlineImapConf[]="remoteport = $offlineImapUseSSL2port";
+	$offlineImapConf[]="remoteuser = $user2";
+	$offlineImapConf[]="remotepass = $password2";
+	$offlineImapConf[]="# reference = Mail";
+	$offlineImapConf[]="maxconnections = 1";
+	$offlineImapConf[]="holdconnectionopen = no";
+	$offlineImapConf[]="# keepalive = 60";
+	$offlineImapConf[]="expunge = no";
+	$offlineImapConf[]="subscribedonly = no";	
+	if($parameters["useSep2"]==1){
+		$offlineImapConf[]="sep = {$parameters["sep2"]}";
+	}
+	$offlineImapConf[]="nametrans = lambda foldername: re.sub('^INBOX\.*', '.', foldername)";	
+	if(count($offlineImapFolders)>0){
+	$offlineImapConf[]="folderincludes = [". @implode(",",$offlineImapFolders)."]";
+	}	
 	
 	
 
-	
-	
-	
-
-	
-	
-$offlineImapConf[]="";
-$offlineImapConf[]="[Repository SourceServer]";
-$offlineImapConf[]="type = IMAP";
-$offlineImapConf[]="remotehost = $host1";
-$offlineImapConf[]="ssl = $offlineImapUseSSL1";
-$offlineImapConf[]="remoteport = $offlineImapUseSSL1port";
-$offlineImapConf[]="remoteuser = $user1";
-$offlineImapConf[]="remotepass = $password1";
-$offlineImapConf[]="# reference = Mail";
-$offlineImapConf[]="maxconnections = 1";
-$offlineImapConf[]="holdconnectionopen = no";
-$offlineImapConf[]="# keepalive = 60";
-$offlineImapConf[]="expunge = $expunge1";
-$offlineImapConf[]="subscribedonly = no";
-if($parameters["useSep1"]==1){
-	$offlineImapConf[]="sep = {$parameters["sep"]}";
-}
-$offlineImapConf[]="nametrans = lambda foldername: re.sub('^INBOX\.*', '.', foldername)";	
-if(count($offlineImapFolders)>0){
-$offlineImapConf[]="folderincludes = [". @implode(",",$offlineImapFolders)."]";
-}
-	
-$offlineImapConf[]="";
-$offlineImapConf[]="[Repository TargetServer]";
-$offlineImapConf[]="type = IMAP";
-$offlineImapConf[]="remotehost = $host2";
-$offlineImapConf[]="ssl = $offlineImapUseSSL2";
-$offlineImapConf[]="remoteport = $offlineImapUseSSL2port";
-$offlineImapConf[]="remoteuser = $user2";
-$offlineImapConf[]="remotepass = $password2";
-$offlineImapConf[]="# reference = Mail";
-$offlineImapConf[]="maxconnections = 1";
-$offlineImapConf[]="holdconnectionopen = no";
-$offlineImapConf[]="# keepalive = 60";
-$offlineImapConf[]="expunge = no";
-$offlineImapConf[]="subscribedonly = no";	
-if($parameters["useSep2"]==1){
-	$offlineImapConf[]="sep = {$parameters["sep2"]}";
-}
-$offlineImapConf[]="nametrans = lambda foldername: re.sub('^INBOX\.*', '.', foldername)";	
-if(count($offlineImapFolders)>0){
-$offlineImapConf[]="folderincludes = [". @implode(",",$offlineImapFolders)."]";
-}	
-	
-	
-	
 	$file_temp="/usr/share/artica-postfix/ressources/logs/imapsync.$id.logs";
-	$cmd=$unix->find_program("imapsync")." --buffersize 8192000$nosyncacls --subscribe$syncinternaldates";
+	
+	$imapsyncbin=$unix->find_program("imapsync");
+	$offlineimap=$unix->find_program("offlineimap");
+	
+	$cmd="$imapsyncbin --buffersize 8192000$nosyncacls --subscribe$syncinternaldates";
 	$cmd=$cmd." --host1 $host1 --user1 \"$user1\" --password1 \"$password1\"$ssl1$prefix1$sep --host2 $host2 --user2 \"$user2\"";
 	$cmd=$cmd." --password2 \"$password2\"$ssl2$prefix2$sep2$folders_replicate$delete$noauthmd5$allowsizemismatch$skipsize$nofoldersizes$maxage >$file_temp 2>&1";
 	
 	
 	if($ASOfflineImap){
 		if(is_file($file_temp)){@unlink($file_temp);}
-		$cmd=$unix->find_program("offlineimap")." -o -u Noninteractive.Basic -c /tmp/offlineimap-{$ligne["uid"]} -l $file_temp";
+		if(!is_file($offlineimap)){update_status(-1,"Could not find offlineimap program");return;}
+		$cmd="$offlineimap -o -u Noninteractive.Basic -c /tmp/offlineimap-{$ligne["uid"]} -l $file_temp";
 		@file_put_contents("/tmp/offlineimap-{$ligne["uid"]}",@implode("\n",$offlineImapConf));
 		if($GLOBALS["VERBOSE"]){
 			$cmd_show=$cmd."\n";
@@ -319,6 +323,8 @@ $offlineImapConf[]="folderincludes = [". @implode(",",$offlineImapFolders)."]";
 			return;
 		}
 		
+	}else{
+		if(!is_file($imapsyncbin)){update_status(-1,"Could not find imapsunc program");return;}
 	}
 	
 	
@@ -331,9 +337,11 @@ $offlineImapConf[]="folderincludes = [". @implode(",",$offlineImapFolders)."]";
 	}
 	
 	
+	
 	shell_exec($cmd);
 	update_status(0,addslashes(@file_get_contents($file_temp)));
-	
+	$took=$unix->distanceOfTimeInWords($took1,time(),true);
+	system_admin_events("Task id $id done took $took",__FUNCTION__,__FILE__,__LINE__);
 	
 }
 
@@ -351,23 +359,44 @@ function update_status($int,$text){
 	$q->QUERY_SQL($sql,"artica_backup");
 }
 
+function cronAll(){
+	
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$timefile=$unix->file_time_min($pidfile);
+		system_admin_events(basename(__FILE__).": Already executed pid $oldpid since $timefile minutes.. aborting the process",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}
+	@unlink($pidfile);
+	@file_put_contents($pidfile, getmypid());	
+	
+	foreach (glob("/etc/cron.d/imapsync-*") as $filename) {@unlink($filename);}
+	$sql="SELECT ID FROM imapsync";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		sync($ligne["ID"],true);
+		
+	}
+	
+	
+}
+
 
 function cron(){
 	$unix=new unix();
-	
+	$q=new mysql();
 	foreach (glob("/etc/cron.d/imapsync-*") as $filename) {@unlink($filename);}
 	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM system_schedules WHERE TaskType=60 LIMIT 0,1","artica_backup"));
+	if($ligne["ID"]>0){return;}
+	
 	$sql="SELECT CronSchedule,ID FROM imapsync";
-	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){return null;}
 	
-	
-	
-	
-	$sql="SELECT CronSchedule,ID FROM imapsync";
-	$q=new mysql();
-	$results=$q->QUERY_SQL($sql,"artica_backup");
 	$php5=LOCATE_PHP5_BIN2();
  	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
  		if(trim($ligne["CronSchedule"]==null)){continue;}

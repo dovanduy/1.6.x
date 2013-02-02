@@ -80,11 +80,18 @@ if($globsvls["innodb_file_per_table"]=="OFF"){
 		$zarafaSearch=Paragraphe("loupe-64.png", "Zarafa Search", "{zarafa_search_text}",
 		"javascript:Loadjs('zarafa.search.php');");
 	}
-
+	
+	$recover=Paragraphe("database-error-64.png", "{zarafa_database_recovery}", "{zarafa_database_recovery_text}",
+		"javascript:Loadjs('zarafa.recover.php');");
+	
+	
+	$DisableAccountLessThan4Caracters=Paragraphe("contact-blue-settings.png", "{uid_length_protection}", "{uid_length_protection_text}",
+			"javascript:Loadjs('zarafa.DisableAccountLessThan4Caracters.php');");
 
 	$tr[]=$ical;
 	$tr[]=$dagent;
 	$tr[]=$zarafaSearch;
+	$tr[]=$DisableAccountLessThan4Caracters;
 	$tr[]=$junkmove;
 	$tr[]=$innodb_file_per_table;
 	$tr[]=$multipledomaines;
@@ -96,27 +103,13 @@ if($globsvls["innodb_file_per_table"]=="OFF"){
 	$tr[]=$trash;
 	$tr[]=$zarafabackup;
 	
-$tables[]="<table style='width:100%'><tr>";
-$t=0;
-while (list ($key, $line) = each ($tr) ){
-		$line=trim($line);
-		if($line==null){continue;}
-		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
-		if($t==3){$t=0;$tables[]="</tr><tr>";}
-		}
-
-if($t<3){
-	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
-	}
-}	
-	
-	
+	$compile=CompileTr3($tr);
 $time=time();
 $html="
 <div id='$time'></div>
-<div style='width:700px'>". implode("\n",$tables)."</div>	
+<center>
+<div style='width:700px'>$compile</div>	
+</center>
 	
 	
 <script>	

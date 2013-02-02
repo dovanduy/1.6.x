@@ -20,6 +20,7 @@ if(isset($_GET["params"])){params();exit;}
 if(isset($_GET["items"])){items();exit;}
 if(isset($_POST["RunBackup"])){runbackup();exit;}
 if(isset($_POST["RunScan"])){RunScan();exit;}
+if(isset($_POST["RunClean"])){RunClean();exit;}
 popup();
 	
 	
@@ -28,6 +29,7 @@ function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$users=new usersMenus();
+	$sock=new sockets();
 	$TB_HEIGHT=500;
 	$TB_WIDTH=710;
 	$from=$tpl->_ENGINE_parse_body("{sender}");
@@ -39,14 +41,31 @@ function popup(){
 	$time=$tpl->_ENGINE_parse_body("{duration}");
 	$scan_dir=$tpl->_ENGINE_parse_body("{scan_dir}");
 	$run_backup=$tpl->_ENGINE_parse_body("{run_backup}");
-	$title=$tpl->_ENGINE_parse_body("{APP_ZARAFA}::{backups}");
+	
+	
+	$q=new mysql();
+	$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(filesize) as tsize FROM zarafa_backup","artica_backup"));	
+	$size=FormatBytes($ligne2["tsize"]/1024);
+	
+	$title=$tpl->_ENGINE_parse_body("{APP_ZARAFA}::{backups}::$size");
+	$clean=$tpl->_ENGINE_parse_body("{clean}");
 	$run_backup_confirm=$tpl->javascript_parse_text("{run_backup_confirm}");
 	$parms="{name: '$parameters', bclass: 'Settings', onpress : Params$t},";
 	$run="{name: '$run_backup', bclass: 'Down', onpress : Run$t},";
 	$scan="{name: '$scan_dir', bclass: 'Reload', onpress : Scan$t},";
+	$clean="{name: '$clean', bclass: 'Delz', onpress : Clean$t},";
+	$you_have_set_no_deletion=$tpl->javascript_parse_text("{you_have_set_no_deletion}");
+	$delete_ask_params=$tpl->javascript_parse_text("{delete_ask_params}");
+	
+	$ZarafaBackupParams=unserialize(base64_decode($sock->GET_INFO("ZarafaBackupParams")));
+	if($ZarafaBackupParams["DEST"]==null){$ZarafaBackupParams["DEST"]="/home/zarafa-backup";}
+	if(!is_numeric($ZarafaBackupParams["DELETE_OLD_BACKUPS"])){$ZarafaBackupParams["DELETE_OLD_BACKUPS"]=1;}
+	if(!is_numeric($ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"])){
+	$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]=10;}	
+	$delete_ask_params=str_replace("%s", $ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"], $delete_ask_params);
 	
 $buttons="buttons : [
-		$parms$run$scan
+		$parms$run$scan$clean
 			],	";		
 	$html="
 	<div id='query-explain-$t'></div>
@@ -88,6 +107,21 @@ $('#flexRT$t').flexigrid({
 
 function Params$t(){
 	Loadjs('zarafa.backup-params.php');
+
+}
+
+function Clean$t(){
+	var deletebackup={$ZarafaBackupParams["DELETE_OLD_BACKUPS"]};
+	if(deletebackup==0){
+		alert('$you_have_set_no_deletion');
+		return;
+	}
+	
+	if(confirm('$delete_ask_params')){
+		var XHR = new XHRConnection();
+		XHR.appendData('RunClean','yes');
+		XHR.sendAndLoad('$page', 'POST',x_Run$t);	
+	}
 
 }
 
@@ -207,6 +241,12 @@ function RunScan(){
 	$sock=new sockets();
 	$datas=unserialize(base64_decode($sock->getFrameWork("zarafa.php?backup-scan-dirs=yes&MyCURLTIMEOUT=120")));
 	echo @implode("\n", $datas);
-	
+}
+
+function RunClean(){
+	$sock=new sockets();
+	$datas=unserialize(base64_decode($sock->getFrameWork("zarafa.php?backup-remove-dirs=yes&MyCURLTIMEOUT=120")));
+	echo @implode("\n", $datas);	
 	
 }
+

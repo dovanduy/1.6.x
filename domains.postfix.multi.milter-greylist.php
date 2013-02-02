@@ -67,7 +67,7 @@ function js(){
 		
 		
 		function PostfixMultiMilterGreyListLoad(){
-			YahooWin3('820','$page?popup=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','{$_GET["hostname"]}::$title');
+			YahooWin3('861','$page?popup=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','{$_GET["hostname"]}::$title');
 			}
 			
 
@@ -263,7 +263,7 @@ $style="style='font-size:14px'";
 	
 	
 	echo "
-	<div id=main_config_mgreylist_multi style='width:100%;height:590px;overflow:auto'>
+	<div id=main_config_mgreylist_multi style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -573,6 +573,7 @@ function greylist_config($noecho=0){
 	
 	function MilterGreyListConfigGeneSave$t(){
 		 var XHR = new XHRConnection();
+		 var MiltergreyListAddDefaultNets=0;
 		 XHR.appendData('hostname','$hostname');
 		 XHR.appendData('ou','{$_GET["ou"]}');
 		 XHR.appendData('SaveGeneralSettings','yes');
@@ -582,6 +583,8 @@ function greylist_config($noecho=0){
 		 XHR.appendData('greylist_TIME',document.getElementById('$t-greylist_TIME').value);
 		 XHR.appendData('autowhite',document.getElementById('$t-autowhite').value);
 		 XHR.appendData('autowhite_TIME',document.getElementById('$t-autowhite_TIME').value);
+		 if(document.getElementById('$t-MiltergreyListAddDefaultNets').checked){MiltergreyListAddDefaultNets=1;}
+		 XHR.appendData('MiltergreyListAddDefaultNets',MiltergreyListAddDefaultNets);
 		 if(document.getElementById('$t-lazyaw').checked){XHR.appendData('lazyaw',1);}else{XHR.appendData('lazyaw',0);}	
 		AnimateDiv('MilterGreyListConfigGeneSaveID');
 		 XHR.sendAndLoad('$page', 'GET',x_MilterGreyListConfigGeneSave$t);

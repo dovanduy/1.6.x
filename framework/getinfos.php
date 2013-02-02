@@ -5,13 +5,17 @@ include_once(dirname(__FILE__)."/frame.class.inc");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");
 if(isset($_GET["cluster-key"])){CLUSTER_KEY();exit;}
+session_start();
+
+
 
 $key=$_GET["key"];
 $uid=$_GET["uid"];
 
-
+if(isset($_SESSION[$key])){echo "<articadatascgi>{$_SESSION[$key]}</articadatascgi>";return;}
 
 $datas=@file_get_contents("/etc/artica-postfix/settings/Daemons/$key");
+$_SESSION[$key]=$datas;
 echo "<articadatascgi>$datas</articadatascgi>";
 
 

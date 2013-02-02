@@ -1,4 +1,5 @@
 <?php
+	if(isset($_GET["verbose"])){echo __LINE__." verbose OK<br>\n";$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -18,6 +19,7 @@
 		exit;
 		
 	}
+	
 	
 	if(isset($_GET["websites-test"])){websitelist();exit;}
 	if(isset($_POST["websites-add"])){websites_save();exit;}

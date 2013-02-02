@@ -21,7 +21,7 @@ class privileges{
 		
 		if($GLOBALS["VERBOSE"]){$this->SearchPrivileges();}
 		if(!isset($_SESSION["privileges_array"])){$this->SearchPrivileges();}
-		
+		if(!isset($_SESSION["privileges_array"])){$_SESSION["privileges_array"]=array();}
 		
 			if(count($_SESSION["privileges_array"])==0){
 				$this->ldap=new clladp();
@@ -31,7 +31,9 @@ class privileges{
 			
 			}
 		if(isset($_SESSION[__CLASS__][$uid]["CONTENT"])){$this->content=$_SESSION[__CLASS__][$uid]["CONTENT"];}
-		$this->privs=$_SESSION["privileges_array"];
+		if(isset($_SESSION["privileges_array"])){
+			$this->privs=$_SESSION["privileges_array"];
+		}
 		return;
 	}
 	private function DebugPrivs(){
@@ -110,17 +112,22 @@ $spec",1);
 	}
 	
 	public function SearchPrivileges(){
-			
-			if($this->uid<>-100){
-				if($GLOBALS["VERBOSE"]){echo "SearchPrivileges -> $this->uid\n";}
-				$this->ldap=new clladp();
-				$this->privileges_groups();	
-				$this->ParsePrivilegesOU();
-				$this->GetContent();
-				$this->SinglePrivileges();
-				$_SESSION["privileges_array"]=$this->privs;
-				$_SESSION[__CLASS__][$this->uid]["CONTENT"]=$this->content;
-			}	
+		if(trim($this->uid)==null){
+			if($GLOBALS["VERBOSE"]){echo "SearchPrivileges -> no uid, return<br>\n";}
+			return;
+		}	
+		
+		
+		if($this->uid<>-100){
+			if($GLOBALS["VERBOSE"]){echo "SearchPrivileges -> uid=`$this->uid`\n";}
+			$this->ldap=new clladp();
+			$this->privileges_groups();	
+			$this->ParsePrivilegesOU();
+			$this->GetContent();
+			$this->SinglePrivileges();
+			$_SESSION["privileges_array"]=$this->privs;
+			$_SESSION[__CLASS__][$this->uid]["CONTENT"]=$this->content;
+		}	
 		
 	}
 	
@@ -128,15 +135,51 @@ $spec",1);
 	public function EmptyCache(){
 		unset($_SESSION[__CLASS__][$this->uid]);
 		unset($_SESSION["privileges_array"]);
-		unset($_SESSION[__CLASS__][$this->uid]["CONTENT"]);
+		unset($_SESSION[__CLASS__][$this->uid]);
 		
+	}
+	
+	private function privileges_groups_AD(){
+		if(isset($GLOBALS["privileges_groups_AD$this->uid"])){return;}
+		include_once(dirname(__FILE__))."/class.external.ad.inc";
+		$gp=new external_ad_search();
+		$attrs=$gp->LoadMember($this->uid);
+		if(!isset($attrs["distinguishedName"][0])){
+			if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] distinguishedName = NULL<br>\n";}
+			return false;}
+		$dn=$attrs["distinguishedName"][0];
+		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] ->GroupsOfMember($dn)<br>\n";}
+		$Groups=$gp->GroupsOfMember($dn);
+		if(!is_array($Groups)){
+			if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] GroupsOfMember = Not an array<br>\n";}
+			return false;
+		}
+		while (list ($dnGroup, $GroupName) = each ($Groups) ){
+			$hash=$gp->LoadGroupDataByDN($dnGroup);
+			if(strlen($hash["ArticaGroupPrivileges"])>0){
+				if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] ArticaGroupPrivileges:". strlen($hash["ArticaGroupPrivileges"])." bytes for $GroupName -> `$dnGroup`<br>\n";}
+				$this->ParsePrivileges($hash["ArticaGroupPrivileges"]);
+			}
+		}
+		$GLOBALS["privileges_groups_AD$this->uid"]=true;
+		return true;
 	}
 	
 	
 	private function privileges_groups(){
-			
+			if(isset($GLOBALS["privileges_groups_executed$this->uid"])){return;}
+			$GLOBALS["privileges_groups_executed"]=true;
 			
 			$ldap=new clladp();
+			if($ldap->IsKerbAuth()){
+				if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] IsKerbAuth() -> `TRUE`<br>\n";}
+				if($this->privileges_groups_AD()){return;}
+			}else{
+					if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] IsKerbAuth() -> `FALSE`<br>\n";}
+			}
+			
+			
+			
 			$filters=array("gidNumber","ArticaGroupPrivileges","cn");
 			$dr =@ldap_search($ldap->ldap_connection,$ldap->suffix,"(&(objectClass=posixGroup)(memberUid=$this->uid))",$filters);	
 			if(!$dr){
@@ -164,13 +207,34 @@ $spec",1);
 
 	
 	private function ParsePrivileges($content=null){
+		
 		if(preg_match_all('#\[([a-zA-Z]+)\]="(.+?)"#is',$content,$reg)){
 				while (list ($num, $ligne) = each ($reg[1]) ){
+						if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] PRIV:$ligne={$reg[2][$num]}<br>\n";}
 						if($this->webpage=="logon.php"){writelogs("PRIV:$ligne={$reg[2][$num]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 						if($ligne=="ForceLanguageUsers"){$this->privs[$ligne]=$ligne;}
+						if($ligne=="VirtualSambaServer"){$this->privs["VIRTUALS_SERVERS"][$reg[2][$num]]=true;}
+						if($ligne=="PostfixInstance"){$this->privs["POSTFIX_SERVERS"][$reg[2][$num]]=true;}
 						$this->privs[$ligne]=$reg[2][$num];
 					}
 			}
+	}
+	
+	private function mem_getusage(){
+		$time=0;
+		$unit="KB";
+		$mem=round(memory_get_usage(true)/1024);
+		if($mem>1024){$mem=round($mem/1000,2);$unit="MB";}
+   		
+    	$xtime=microtime(true);
+    	if(!isset($GLOBALS["VERBOSE_MICROTIME"])){
+    		$GLOBALS["VERBOSE_MICROTIME"]=$xtime;
+    	}else{
+    		$time = $xtime - $GLOBALS["VERBOSE_MICROTIME"];
+    		$GLOBALS["VERBOSE_MICROTIME"]=$xtime;
+    		$time=round($time,2);
+    	}
+		return $time."s ".$mem.$unit;
 	}
 
 	private function ParsePrivilegesOU(){
@@ -212,6 +276,7 @@ $spec",1);
 	private function UserPrivs(){
 		if($GLOBALS["AS_ROOT"]){return null;}
 		$ldap=new clladp();
+		if($ldap->IsKerbAuth()){return null;}
 		$searchdn="dc=organizations,$ldap->suffix";
 		$sr =@ldap_search($ldap->ldap_connection,$searchdn,"(uid=$this->uid)");
 		if(!$sr){
@@ -225,6 +290,7 @@ $spec",1);
 			return null;
 		}
 		$attrs = ldap_get_attributes($ldap->ldap_connection, $entry_id);
+		if(!isset($attrs["ArticaGroupPrivileges"][0])){$attrs["ArticaGroupPrivileges"][0]=null;}
 		if($GLOBALS["VERBOSE"]){echo "[PRIVS]:[$this->uid] {$attrs["ArticaGroupPrivileges"][0]}\n";}	
 		if(isset($attrs["ArticaGroupPrivileges"][0])){	
 			return $attrs["ArticaGroupPrivileges"][0];

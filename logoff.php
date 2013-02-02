@@ -89,7 +89,7 @@ var x_turnoff= function (obj) {
 function menus(){
 	include_once('ressources/class.templates.inc');
 	$tpl=new templates();
-	$restart_computer_and_defrag_warn=$tpl->javascript_parse_text("{restart_computer_and_defrag_warn}",1);
+	$restart_computer_and_defrag_warn=$tpl->javascript_parse_text("{restart_computer_and_defrag_warn}");
 	$page=CurrentPageName();
 	
 	$users=new usersMenus();

@@ -1,6 +1,7 @@
 <?php
 include_once(dirname(__FILE__)."/class.mysql.inc");
 include_once(dirname(__FILE__)."/class.postfix.externaldbs.inc");
+include_once(dirname(__FILE__)."/class.tcpip.inc");
 
 class maincf_multi{
 	var $uuid;
@@ -9,8 +10,10 @@ class maincf_multi{
 	var $myhostname;
 	var $q;
 	var $AS_ROOT=false;
+	var $EnableipV6=0;
 	
 	function maincf_multi($servername=null,$ou=null,$ip_addr=null){
+			$sock=new sockets();
 			$this->AS_ROOT=$GLOBALS["AS_ROOT"];
 			$this->ou=$ou;
 			$this->ip_addr=$ip_addr;
@@ -19,7 +22,7 @@ class maincf_multi{
 			$stlen=strlen($servername)+strlen($ou)+strlen($ip_addr);
 			if(!isset($GLOBALS["SYSTEM_UUID"])){$GLOBALS["SYSTEM_UUID"]=null;}
 			if($stlen>0){
-				$sock=new sockets();
+				
 				if($GLOBALS["SYSTEM_UUID"]==null){
 					$this->uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
 					$GLOBALS["SYSTEM_UUID"]=$this->uuid;
@@ -27,6 +30,9 @@ class maincf_multi{
 				
 				$this->CheckRequiredValues();
 			}
+			
+		$this->EnableipV6=$sock->GET_INFO("EnableipV6");
+		if(!is_numeric($this->EnableipV6)){$this->EnableipV6=0;}				
 	}
 	
 	public function remove_instance(){
@@ -239,7 +245,7 @@ public function SET_BIGDATA($key,$value){
 			$RestrictToInternalDomains=$restrictions["RestrictToInternalDomains"];
 			$EnablePostfixInternalDomainsCheck=$restrictions["EnablePostfixInternalDomainsCheck"];
 			$smtpd_sender_restrictions_black=$this->Blacklist_generic();
-	
+			$smtpd_sender_restrictions=array();
 			if($RestrictToInternalDomains==1){
 				echo "Starting......: Postfix \"$this->myhostname\" set to restrict sender domain to only known domains\n";
 				$this->BuildAllWhitelistedServer();
@@ -261,7 +267,7 @@ public function SET_BIGDATA($key,$value){
 		}
 		
 	
-		if(!is_array($smtpd_sender_restrictions)){return @implode("\n",$final);}
+		if(count($smtpd_sender_restrictions)==0){return @implode("\n",$final);}
 		$final[]="smtpd_sender_restrictions = ".@implode(",",$smtpd_sender_restrictions);
 		return @implode("\n",$final);
 	}
@@ -525,6 +531,8 @@ private function restrict_relay_domains(){
 		$EnableArticaPolicyFilter=$sock->GET_INFO("EnableArticaPolicyFilter");
 		$EnableArticaPolicyFilter=0;
 		$EnableCluebringer=$sock->GET_INFO("EnableCluebringer");
+		$smtpd_end_of_data_restrictions=array();
+		
 		$array_filters=unserialize(base64_decode($this->GET_BIGDATA("PluginsEnabled")));
 		if($array_filters["APP_POSTFWD2"]==1){
 			$sql="SELECT count(*) as tcount FROM postfwd2 WHERE enabled=1 AND instance='$this->myhostname'";
@@ -547,7 +555,7 @@ private function restrict_relay_domains(){
 			}
 		}		
 			
-		if(!is_array($smtpd_end_of_data_restrictions)){return;}
+		if(count($smtpd_end_of_data_restrictions)==0){return;}
 		$final=@implode(",",$smtpd_end_of_data_restrictions);
 		return "smtpd_end_of_data_restrictions = $final";	
 	}	
@@ -1961,7 +1969,7 @@ private function smtp_sasl_password_map(){
 		if($smtpd_recipient_limit==null){$smtpd_recipient_limit=1000;}
 		if($mime_nesting_limit==null){$mime_nesting_limit=100;}
 		if($header_address_token_limit==null){$header_address_token_limit=10240;}
-			
+		$nets=array();	
 			$f[]="$ssl_path/ca.csr";
 			$f[]="$ssl_path/ca.crt";
 			$f[]="$ssl_path/ca.key";
@@ -2041,7 +2049,10 @@ private function smtp_sasl_password_map(){
 			$mynetworkfinal=str_replace(",,", ",", $mynetworkfinal);
 			if(substr($mynetworkfinal, strlen($mynetworkfinal),1)==','){$mynetworkfinal=substr($mynetworkfinal, 0,strlen($mynetworkfinal)-1);}
 			
-			$conf[]="smtpd_banner=\$myhostname ESMTP \$mail_name";
+			$smtpd_banner=$this->GET("smtpd_banner");
+			if($smtpd_banner==null){$smtpd_banner="\$myhostname ESMTP \$mail_name"; }
+			
+			$conf[]="smtpd_banner=$smtpd_banner";
 			
 			$haproxy_compliance=$this->haproxy_compliance();
 			if($haproxy_compliance<>null){$conf[]=$haproxy_compliance;}
@@ -2053,11 +2064,30 @@ private function smtp_sasl_password_map(){
 			if($this->ip_addr==null){echo "Starting......: Postfix $myhostname warning inet_interfaces is null !\n";}
 			
 			$myorigin=$this->GET("myorigin");
-			echo "Starting......: Postfix myorigin = `$myorigin` or default = \$mydomain\n";
+			echo "Starting......: Postfix \"$this->myhostname\" myorigin = `$myorigin` or default = \$mydomain\n";
 			if($myorigin==null){$myorigin="\$mydomain";}
 			
-			$conf[]="inet_interfaces = $this->ip_addr";
+			$ipClass=new IP();
+			
 			$conf[]="mynetworks=$mynetworkfinal";
+			if($this->EnableipV6==1){
+				if($ipClass->isIPv6($this->ip_addr)){
+					echo "Starting......: Postfix \"$this->myhostname\" activate ipv6 only\n";
+					$conf[]="smtp_bind_address6 = $this->ip_addr";
+					$conf[]="inet_protocols = ipv6";
+					$this->checkipv6($this->ip_addr);
+				}else{
+					$conf[]="inet_interfaces = $this->ip_addr";
+					$conf[]="smtp_bind_address = $this->ip_addr";
+					$conf[]="inet_protocols = ipv4";
+				}
+				
+			}else{
+				$conf[]="inet_interfaces = $this->ip_addr";
+				$conf[]="smtp_bind_address = $this->ip_addr";
+				$conf[]="inet_protocols = ipv4";
+			}
+	
 			$conf[]="myorigin=$myorigin";
 			$conf[]="";
 			$conf[]="append_dot_mydomain=no";
@@ -2440,7 +2470,33 @@ private function smtp_sasl_password_map(){
 				$GLOBALS["LDAPDBS"][$array["database_type"]][]="ldap:$targeted_file";
 			}	
 		}
-	}	
+	}
+
+	
+	private function checkipv6($ip=null){
+		if($ip==null){
+			echo "Starting......: Postfix \"$this->myhostname\" IPV6: Checks ipv6 no ip set\n";
+			return;}
+		if(!$this->AS_ROOT){return;}
+		$unix=new unix();
+		$ipbin=$unix->find_program("ip");
+		$sql="SELECT * FROM  nics_virtuals WHERE ipaddr='$ip' AND ipv6=1";	
+		$ligne=mysql_fetch_array($this->q->QUERY_SQL($sql,"artica_backup"));
+		if(!$this->q->ok){
+			echo "Starting......: Postfix \"$this->myhostname\" IPV6: $ip {$this->q->mysql_error}\n";
+		}	
+		if(!is_numeric($ligne["ID"])){$ligne["ID"]=0;}
+		if($ligne["ID"]==0){
+			echo "Starting......: Postfix \"$this->myhostname\" IPV6: $ip not a virtual interface\n";
+			return;}
+		$netmask=$ligne["netmask"];
+		$gateway=$ligne["gateway"];
+		$eth=$ligne["nic"];
+		$cmd="$ipbin addr add dev $eth $ip/$netmask";
+		echo "Starting......: Postfix \"$this->myhostname\" IPV6:  Checks ipv6 $ip/$netmask on $eth\n";
+		shell_exec($cmd);
+		
+	}
 	
 	private function milters($onlymilter_config=false){
 		$users=new usersMenus();
@@ -2577,7 +2633,7 @@ private function smtp_sasl_password_map(){
 		
 		while (list ($num, $dir) = each ($queues) ){
 			if(!is_dir("/var/spool/postfix-$hostname/$dir")){
-				echo "Starting......: Postfix $hostname Create directory $dir\n";
+				echo "Starting......: Postfix \"$hostname\" Create directory $dir\n";
 				@mkdir("/var/spool/postfix-$hostname/$dir",0600,true);
 			}
 		}
@@ -2634,13 +2690,15 @@ private function smtp_sasl_password_map(){
 	$postfix=$unix->find_program("postfix");
 	
 	$resultsPerms=array();
-	echo "Starting......: Postfix $hostname ask to $postfix to set permissions...\n";
-	exec("$postfix -c /etc/postfix-$hostname set-permissions 2>&1",$resultsPerms);
-	while (list ($num, $line) = each ($resultsPerms) ){
-		if(preg_match("#unused parameter:#", $line)){continue;}
-		echo "Starting......: Postfix $hostname $line\n";
+	if(!isset($GLOBALS["Perms$hostname"])){
+		$GLOBALS["Perms$hostname"]=true;
+		echo "Starting......: Postfix \"$hostname\" ask to $postfix to set permissions...\n";
+		exec("$postfix -c /etc/postfix-$hostname set-permissions 2>&1",$resultsPerms);
+		while (list ($num, $line) = each ($resultsPerms) ){
+			if(preg_match("#unused parameter:#", $line)){continue;}
+			echo "Starting......: Postfix $hostname $line\n";
+		}
 	}
-	
 
 }	
 
@@ -3709,13 +3767,25 @@ private function certificate_openssl_conf(){
 
 function PostFixMultiVerifyRights(){
 	if($_REQUEST["hostname"]=="master"){$_REQUEST["ou"]="master";}
+	if(!isset($_REQUEST["ou"])){if(isset($_SESSION["ou"])){$_REQUEST["ou"]=$_SESSION["ou"];}}
+	
+	if($_REQUEST["ou"]==null){unset($_REQUEST["ou"]);}
+	
+	if(!isset($_REQUEST["ou"])){
+		if($_REQUEST["hostname"]<>"master"){
+			if($_REQUEST["hostname"]<>null){
+				$main=new maincf_multi($_REQUEST["hostname"]);$_REQUEST["ou"]=$main->ou;$_POST["ou"]=$main->ou;$_GET["ou"]=$main->ou;
+			}
+		}
+	}
+
 	if(!isset($_REQUEST["ou"])){echo "NO OU\n";return false;}
 	$ou=$_REQUEST["ou"];
 	if(is_base64_encoded($ou)){$ou=base64_decode($ou);}
+	if(isset($_SESSION["POSTFIX_SERVERS"][$_REQUEST["hostname"]])){return true;}
 	
 	$usersmenus=new usersMenus();
 	if($usersmenus->AsPostfixAdministrator){return true;}
-	
 	
 	if($usersmenus->AsOrgPostfixAdministrator){
 		if($_SESSION["ou"]<>$ou){return false;}

@@ -32,6 +32,28 @@ if(function_exists("apc_clear_cache")){
 		
 	}
 	
+	foreach (glob("/usr/share/artica-postfix/ressources/logs/web/cache/{$_SESSION["uid"]}.*") as $filename) {
+		@unlink($filename);
+		
+	}
+	
+	
+	
+	if(class_exists("Memcache")){
+		$memcache = new Memcache();
+		$memcache->connect('unix:///var/run/memcached.sock', 0);
+		$ARRAY=unserialize($memcache->get('ARTICACACHEARRAY'));
+		$memcacheBytes=strlen(serialize($ARRAY));
+		$memcache->set('ARTICACACHEARRAY', serialize(array()), 0, 300); 
+		if($memcacheBytes>1024){
+			$memcacheBytes=$memcacheBytes/1024;
+			$memcacheBytes=FormatBytes($memcacheBytes/1024);
+		}else{
+			$memcacheBytes=$memcacheBytes." bytes";
+		}
+
+	}
+	
 	
 	
 	while (list ($num, $val) = each ($GLOBALS["langs"]) ){
@@ -57,6 +79,8 @@ if(function_exists("apc_clear_cache")){
 			$text=$text."Language Cache....................: ".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."/". str_replace("&nbsp;"," ",FormatBytes($sock->semaphore_memory/1024))."\n";
 			$text=$text.implode("\n",$tt)."\n";
 			$text=$text."Console Cache.....................: ".str_replace("&nbsp;"," ",FormatBytes(REMOVE_CACHED()))."\n";
+			$text=$text."Mem Cached........................: ".str_replace("&nbsp;"," ",$memcacheBytes)."\n";
+			
 			
 			
 			$text=$text."\n\n{cache_cleaned}\n";
@@ -106,5 +130,8 @@ if(function_exists("apc_clear_cache")){
 			$html=$tpl->javascript_parse_text($text,1);
 			$html=str_replace("\n", "<br>", $html);
 			echo "<div class=explain style='font-size:14px'>".$html."</div>";
+			
+			
+		
 
 ?>

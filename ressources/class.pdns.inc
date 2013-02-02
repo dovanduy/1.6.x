@@ -22,6 +22,7 @@ class pdns{
 		$this->PowerDNSMySQLEngine=$sock->GET_INFO("PowerDNSMySQLEngine");
 		if(!is_numeric($this->PowerDNSDisableLDAP)){$this->PowerDNSDisableLDAP=1;}
 		if(!is_numeric($this->PowerDNSMySQLEngine)){$this->PowerDNSMySQLEngine=1;}
+		$this->PowerDNSMySQLEngine=1;
 		if(!isset($GLOBALS["DisablePowerDnsManagement"])){
 			
 			$this->DisablePowerDnsManagement=$sock->GET_INFO("DisablePowerDnsManagement");
@@ -40,8 +41,53 @@ class pdns{
 		
 	}
 	
+	function AddDomain($domainname){
+		if(class_exists("usersMenus")){
+			$LOCAL_MDA=false;
+			$users=new usersMenus();
+			if(!$users->POWER_DNS_INSTALLED){return true;}
+		}		
+		
+		$domainname=trim(strtolower($domainname));
+		$q=new mysql();
+		if(!$q->DATABASE_EXISTS("powerdns",true)){return;}
+		$sql="SELECT id FROM domains WHERE `name`='$domainname'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));
+		if($ligne["id"]>0){return true;}
+		$time=date("YmdH");
+		$q->QUERY_SQL("INSERT IGNORE INTO domains (name,`type`) VALUE('$domainname','MASTER')","powerdns");
+		$nextid=$q->last_id;
+		if($nextid>0){
+		$q->QUERY_SQL("INSERT IGNORE INTO `records` (`domain_id`, `name`, `type`, `content`, `ttl`, `prio`, `change_date`, `ordername`, `auth`)
+				VALUES ($nextid, '$domainname', 'SOA', 'ns1.$domainname hostmaster.$domainname $time 28800 7200 604800 86400', 86400, 0, 1343065389, NULL, NULL)","powerdns");
+		}
+				
+	}
+	
+	function DelDomain($domainname){
+		if(class_exists("usersMenus")){
+			$LOCAL_MDA=false;
+			$users=new usersMenus();
+			if(!$users->POWER_DNS_INSTALLED){return true;}
+		}
+		
+		$domainname=trim(strtolower($domainname));
+		$q=new mysql();
+		if(!$q->DATABASE_EXISTS("powerdns",true)){return;}
+		$sql="SELECT id FROM domains WHERE `name`='$domainname'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));
+		if(!is_numeric($ligne["id"])){$ligne["id"]=0;}
+		if($ligne["id"]==0){return true;}
+		$q->QUERY_SQL("DELETE FROM records WHERE domain_id={$ligne["id"]}","powerdns");
+		if(!$q->ok){return;}
+		$q->QUERY_SQL("DELETE FROM domains WHERE id={$ligne["id"]}","powerdns");
+		if(!$q->ok){return;}
+		return true;
+	}
+	
 //------------------------------------------------------------------------------------------------------------------------------
 	private function mysql_checkMasterDefaulZone(){
+		$q=new mysql();
 		$sql="SELECT name FROM domains WHERE id=1";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));
 		$this->domainname=$ligne["name"];
@@ -52,7 +98,7 @@ class pdns{
 	
 //------------------------------------------------------------------------------------------------------------------------------
 	private function mysql_checkMasterZone(){
-		if($this->PowerDNSMySQLEngine==0){return;}
+		
 		if($this->domainname==null){$this->mysql_checkMasterDefaulZone();}
 		$q=new mysql();
 		$sql="SELECT id FROM domains WHERE name='$this->domainname'";
@@ -74,7 +120,7 @@ class pdns{
 	}
 	
 	private function mysql_checkin_addr_arpa(){
-		if($this->PowerDNSMySQLEngine==0){return;}
+		
 		$q=new mysql();
 		$sql="SELECT id FROM domains WHERE name='in-addr.arpa'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));
@@ -99,8 +145,8 @@ class pdns{
 	
 	
 	private function BuildBranch(){
-		writelogs("PowerDNSMySQLEngine=$this->PowerDNSMySQLEngine PowerDNSDisableLDAP=$this->PowerDNSDisableLDAP DisablePowerDnsManagement=$this->DisablePowerDnsManagement",__CLASS__.'/'.__FUNCTION__,__FILE__);
-		if($this->PowerDNSMySQLEngine==1){$this->mysql_checkMasterZone();}
+		writelogs("owerDNSDisableLDAP=$this->PowerDNSDisableLDAP DisablePowerDnsManagement=$this->DisablePowerDnsManagement",__CLASS__.'/'.__FUNCTION__,__FILE__);
+		$this->mysql_checkMasterZone();
 		if($this->PowerDNSDisableLDAP==1){return;}
 		if($this->DisablePowerDnsManagement==1){return;}
 		
@@ -307,7 +353,7 @@ class pdns{
 	
 //------------------------------------------------------------------------------------------------------------------------------	
 	public function EditIPName($computername,$IP,$DnsType,$macaddress=null){
-			if($this->PowerDNSMySQLEngine==1){if(!$this->mysql_EditIPName($computername,$IP,$DnsType,$macaddress)){return false;}}
+			if(!$this->mysql_EditIPName($computername,$IP,$DnsType,$macaddress)){return false;}
 			if($this->PowerDNSDisableLDAP==1){return true;}
 			if($this->DisablePowerDnsManagement==1){return true;}
 			if(trim($computername)==null){return false;}
@@ -424,9 +470,9 @@ class pdns{
 	}
 		
 	public function GetIp($servername){
-			if($this->PowerDNSMySQLEngine==1){
+			
 				return $this->mysql_GetIP($servername);
-			}
+			
 			//if($this->DisablePowerDnsManagement==1){return null;}
 			$ldap=new clladp();
 			$user=new usersMenus();
@@ -455,7 +501,7 @@ class pdns{
 	}
 		
 	public function DelHostname($hostname_full){
-		if($this->PowerDNSMySQLEngine==1){return $this->mysql_DelHostname($hostname_full);}
+		return $this->mysql_DelHostname($hostname_full);
 		if(trim($hostname_full)==null){return;}
 		$dn=$this->GetIp($hostname_full);
 		if(strlen($dn)<10){return null;}
@@ -469,7 +515,7 @@ class pdns{
 	
 		
 	public function GetIpDN($servername){
-			if($this->PowerDNSMySQLEngine==1){return $this->mysql_GetIP($servername);}
+			return $this->mysql_GetIP($servername);
 			$ldap=new clladp();
 			$user=new usersMenus();
 			$filter="(&(Objectclass=dNSDomain2)(associatedDomain=$servername))";
@@ -490,7 +536,7 @@ class pdns{
 	
 		
 	public function IpToHosts($ip){
-		if($this->PowerDNSMySQLEngine==1){return $this->mysql_IpToHosts($ip);}
+		return $this->mysql_IpToHosts($ip);
 		if($this->DisablePowerDnsManagement==1){return null;}
 		$ldap=new clladp();
 		

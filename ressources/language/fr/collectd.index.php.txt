@@ -10,7 +10,7 @@
 <interface>Interface R&eacute;seau</interface>
 <irq>Int&eacute;rruptions</irq>
 <load>Moyenne de charge</load>
-<mysql>Base de donn&eacute;es Mysql</mysql>
+<mysql>Base de donn&eacute;es MySQL</mysql>
 <netlink>Liaison r&eacute;seau</netlink>
 <ntpd>D&eacute;mon de Temps de R&eacute;seau</ntpd>
 <plugin>Service</plugin>

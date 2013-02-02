@@ -39,8 +39,7 @@ public
     function    Graphdefang_path():string;
     function    MULTIPLEXOR_PATH():string;
     function    CONF_PATH():string;
-    function    ETC_DEFAULT_PATH():string;
-    function    READ_CONF(key:string):string;
+
 END;
 
 implementation
@@ -110,13 +109,14 @@ end;
 //##############################################################################
 procedure tmimedefang.MIMEDEFANG_STOP();
 begin
-
+     writeln('Starting mimedefang: running configurator...');
      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/bin/exec.mimedefang.php');
      fpsystem('/etc/init.d/mimedefang stop');
 end;
 //##############################################################################
 procedure tmimedefang.MIMEDEFANG_START();
 begin
+
      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/bin/exec.mimedefang.php');
      fpsystem('/etc/init.d/mimedefang start');
     

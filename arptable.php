@@ -352,6 +352,7 @@ function ARPD_OPTIONS_JS(){
 function ARPD_OPTIONS_POPUP(){
 	$tpl=new templates();
 	$sock=new sockets();
+	$page=CurrentPageName();
 	$ArpdKernelLevel=$sock->GET_INFO("ArpdKernelLevel");
 	if(!is_numeric($ArpdKernelLevel)){$ArpdKernelLevel=0;}
 	$array[0]="{arpd_no_kernel_replacement}";

@@ -16,6 +16,7 @@ if(isset($_GET["trash-delete"])){trash_delete();exit;}
 if(isset($_GET["SmblientBrowse"])){SmblientBrowse();exit;}
 if(isset($_GET["SAMBA-HAVE-POSIX-ACLS"])){SAMBA_HAVE_POSIX_ACLS();exit;}
 if(isset($_GET["netadsinfo"])){netadsinfo();exit;}
+if(isset($_GET["netrpctestjoin"])){netrpctestjoin();exit;}
 if(isset($_GET["netrpcinfo"])){netrpcinfo();exit;}
 if(isset($_GET["wbinfoalldom"])){wbinfo_alldomains();exit;}
 if(isset($_GET["wbinfomoinst"])){wbinfo_checksecret();exit;}
@@ -28,14 +29,24 @@ if(isset($_GET["dsgetdcname"])){dsgetdcname();exit;}
 if(isset($_GET["dcinfo"])){dcinfo();exit;}
 if(isset($_GET["smb-logon-scripts-user"])){login_script_user();exit;}
 if(isset($_GET["watchdog-config"])){watchdog_monit();exit;}
-
+if(isset($_GET["winbindd-logs"])){winbind_logs();exit;}
 if(isset($_GET["joint"])){join_ad();exit;}
+if(isset($_GET["GetNetAdsInfos"])){GetNetAdsInfos();exit;}
 
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
 die();
+
+
+function winbind_logs(){
+	$unix=new unix();
+	$tail=$unix->find_program("tail");
+	if(!isset($_GET["rp"])){$rp=50;}else{$rp=$_GET["rp"];}
+	exec("$tail -n $rp /var/log/samba/log.winbindd 2>&1",$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
 
 
 function trash_restore(){
@@ -299,6 +310,30 @@ function netadsinfo(){
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
 	
 }
+function netrpctestjoin(){
+	$unix=new unix();
+	$net=$unix->find_program("net");
+	$results[]="<strong><i>Active Directory Mode:</i></strong>";
+	if(is_file($net)){
+		$cmd="$net ads testjoin 2>&1";
+		exec($cmd,$results);
+	}else{
+		$results[]="Failed: net no such binary !";
+	}	
+	
+	$results[]="<br><strong><i>NT4 Mode (optional):</i></strong>";
+	if(is_file($net)){
+		$cmd="$net rpc testjoin 2>&1";
+		exec($cmd,$results);
+	}else{
+		$results[]="Failed: net no such binary !";
+	}
+	
+	
+	
+	writelogs_framework("$cmd = " . count($results)." rows",__FUNCTION__,__FILE__,__LINE__);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
+}
 
 function netrpcinfo(){
 	$unix=new unix();
@@ -517,4 +552,29 @@ function watchdog_monit(){
 	$cmd="$nohup $php /usr/share/artica-postfix/exec.samba.php --monit >/dev/null 2>&1 &";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);		
+}
+function GetNetAdsInfos(){
+	$unix=new unix();
+	@mkdir("/etc/squid3",0755,true);
+	if(is_file("/etc/squid3/NET_ADS_INFOS")){
+		$array=unserialize(@file_get_contents("/etc/squid3/NET_ADS_INFOS"));
+		if(count($array)>5){
+			echo "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
+			return;
+		}
+	}
+	
+	$net=$unix->LOCATE_NET_BIN_PATH();
+	if(!is_file($net)){return array();}
+	exec("$net ads info 2>&1",$results);
+	while (list ($index, $line) = each ($results) ){
+		if(preg_match("#^(.+?):(.+)#",trim($line),$re)){
+			$array[trim($re[1])]=trim($re[2]);
+		}
+	}
+	
+	if(!isset($array["KDC server"])){$array["KDC server"]=null;}
+	@file_put_contents("/etc/squid3/NET_ADS_INFOS", serialize($array));
+	echo "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
+	
 }

@@ -391,8 +391,10 @@ var
    openemm              :topenemm;
    openldap_admin,openldap_password,openldap_server,corp:string;
    crossroads          :tcrossroads;
+   POSTFIX_INSTALLED:boolean;
 begin
        verbosed:=false;
+       POSTFIX_INSTALLED:=false;
        if ParamStr(1)='--verbose' then verbosed:=true;
        if ParamStr(2)='--verbose' then verbosed:=true;
        if ParamStr(3)='--verbose' then verbosed:=true;
@@ -428,6 +430,8 @@ begin
        ddar:=trdiffbackup.Create;
        openvpn:=topenvpn.Create(SYS);
        sshd:=tsshd.Create(SYS);
+       tomcat:=ttomcat.Create(SYS);
+
        toolsversions:=ttoolsversions.Create(SYS);
         if verbosed then writeln('web_settings:: -> SYS.LOCATE_APACHE_MODULES_PATH()');
        LOCATE_APACHE_MODULES_PATH:=SYS.LOCATE_APACHE_MODULES_PATH();
@@ -481,7 +485,14 @@ begin
    if FileExists('/proc/user_beancounters') then list.Add('$_GLOBAL["VPS_OPENVZ"]=True;') else list.Add('$_GLOBAL["VPS_OPENVZ"]=false;');
    if FileExists('/etc/artica-postfix/LIGHT_INSTALL') then list.Add('$_GLOBAL["LIGHT_INSTALL"]=True;') else list.Add('$_GLOBAL["LIGHT_INSTALL"]=false;');
    if FileExists('/etc/artica-postfix/PROXYTINY_APPLIANCE') then list.Add('$_GLOBAL["PROXYTINY_APPLIANCE"]=True;') else list.Add('$_GLOBAL["PROXYTINY_APPLIANCE"]=false;');
-
+   if FileExists('/usr/share/tomcat6/bin/bootstrap.jar') then begin
+      list.Add('$_GLOBAL["APP_TOMCAT6_INSTALLED"]=True;');
+      list.Add('$_GLOBAL["APP_TOMCAT6_VERSION"]="'+tomcat.DEB_VERSION()+'";');
+   end
+      else begin
+           list.Add('$_GLOBAL["APP_TOMCAT6_INSTALLED"]=false;');
+           list.Add('$_GLOBAL["APP_TOMCAT6_VERSION"]="";');
+      end;
 
    if FileExists('/usr/share/z-push/version.php') then list.Add('$_GLOBAL["Z_PUSH_INSTALLED"]=True;') else list.Add('$_GLOBAL["Z_PUSH_INSTALLED"]=false;');
    if FileExists('/etc/artica-postfix/INNODB_FILE_PER_TABLE_INSTALL') then list.Add('$_GLOBAL["INNODB_FILE_PER_TABLE_INSTALL"]=True;') else list.Add('$_GLOBAL["INNODB_FILE_PER_TABLE_INSTALL"]=false;');
@@ -507,7 +518,10 @@ begin
    if FIleExists(SYS.LOCATE_GENERIC_BIN('httrack')) then list.Add('$_GLOBAL["HTTRACK_INSTALLED"]=True;') else list.Add('$_GLOBAL["HTTRACK_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('mimedefang')) then list.Add('$_GLOBAL["MIMEDEFANG_INSTALLED"]=True;') else list.Add('$_GLOBAL["MIMEDEFANG_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('suricata')) then list.Add('$_GLOBAL["SURICATA_INSTALLED"]=True;') else list.Add('$_GLOBAL["SURICATA_INSTALLED"]=False;');
-
+   if FileExists(SYS.LOCATE_GENERIC_BIN('wsgate')) then list.Add('$_GLOBAL["WSGATE_INSTALLED"]=True;') else list.Add('$_GLOBAL["WSGATE_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('urlsnarf')) then list.Add('$_GLOBAL["URLSNARF_INSTALLED"]=True;') else list.Add('$_GLOBAL["URLSNARF_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('ettercap')) then list.Add('$_GLOBAL["ETTERCAP_INSTALLED"]=True;') else list.Add('$_GLOBAL["ETTERCAP_INSTALLED"]=False;');
+   if FileExists('/usr/lib/perl5/Apache2/AuthenNTLM.pm') then list.Add('$_GLOBAL["PERL_AUTHNTLM"]=True;') else list.Add('$_GLOBAL["PERL_AUTHNTLM"]=False;');
 
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_authnz_ldap.so') then list.Add('$_GLOBAL["APACHE_MOD_AUTHNZ_LDAP"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_AUTHNZ_LDAP"]=False;');
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_qos.so') then list.Add('$_GLOBAL["APACHE_MOD_QOS"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_QOS"]=False;');
@@ -522,6 +536,9 @@ begin
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_fcgid.so') then list.Add('$_GLOBAL["APACHE_MOD_FCGID"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_FCGID"]=False;');
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_log_sql_mysql.so') then list.Add('$_GLOBAL["APACHE_MOD_LOGSSQL"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_LOGSSQL"]=False;');
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_bw.so') then list.Add('$_GLOBAL["APACHE_MOD_BW"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_BW"]=False;');
+   if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_python.so') then list.Add('$_GLOBAL["APACHE_MOD_PYTHON"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_PYTHON"]=False;');
+   if FIleExists(SYS.LOCATE_PYTHON_PACKAGE('pyntlm.py')) then list.Add('$_GLOBAL["APP_PYAUTHENNTLM"]=True;') else list.Add('$_GLOBAL["APP_PYAUTHENNTLM"]=False;');
+
 
 
 
@@ -557,6 +574,7 @@ begin
    if FileExists('/usr/share/pymsnt/PyMSNt.py') then  list.Add('$_GLOBAL["PYMSNT_INSTALLED"]=True;') else list.Add('$_GLOBAL["PYMSNT_INSTALLED"]=False;');
    if FileExists('/usr/share/pyicqt/src/main.py') then  list.Add('$_GLOBAL["PYICQT_INSTALLED"]=True;') else list.Add('$_GLOBAL["PYICQT_INSTALLED"]=False;');
    if FileExists('/opt/arkeia/bin/arkboot') then list.Add('$_GLOBAL["APP_ARKEIA_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_ARKEIA_INSTALLED"]=False;');
+   if FileExists('/usr/lib/jvm/default-java/bin/keytool') then list.Add('$_GLOBAL["APP_JAVA_JDK_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_JAVA_JDK_INSTALLED"]=False;');
 
    if FileExists('/home/openemm/bin/openemm.sh') then begin
       list.Add('$_GLOBAL["OPENEMM_INSTALLED"]=True;');
@@ -573,7 +591,7 @@ begin
    end;
 
 
-   tomcat:=ttomcat.Create(SYS);
+
    if FIleExists(tomcat.BIN_PATH()) then begin
       list.Add('$_GLOBAL["TOMCAT_INSTALLED"]=True;');
       list.add('$_GLOBAL["TOMCAT_VERSION"]="'+tomcat.VERSION()+'";');
@@ -1237,8 +1255,9 @@ begin
 
 //*********************************** POSTFIX **********************************
 logs.Debuglogs('Tprocess1.web_settings():: ############# CHECKING POSTFIX #######################');
-
-if FileExists(SYS.LOCATE_GENERIC_BIN('postconf')) then begin
+if FileExists(SYS.LOCATE_GENERIC_BIN('postconf')) then POSTFIX_INSTALLED:=true;
+if FileExists('/etc/artica-postfix/DO_NOT_DETECT_POSTFIX') then POSTFIX_INSTALLED:=false;
+if POSTFIX_INSTALLED then begin
         list.Add('$_GLOBAL["POSTFIX_INSTALLED"]=True;');
         if FileExists(SYS.LOCATE_POSTSCREEN()) then list.Add('$_GLOBAL["POSTSCREEN_INSTALLED"]=True;') else list.Add('$_GLOBAL["POSTSCREEN_INSTALLED"]=False;');
 

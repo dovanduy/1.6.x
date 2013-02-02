@@ -26,6 +26,8 @@ function writelogs($text=null,$function=null,$file_source=null,$line=null){
 		}
 	}
 	
+
+	
 	if(preg_match("#netagent#", $file_source)){
 		WriteToSyslogMail("[$function::$line]: $text","netagent");
 	}
@@ -59,6 +61,8 @@ function writelogs($text=null,$function=null,$file_source=null,$line=null){
 	$text=date('H:i:s')." [$pid] $prefix::$name:$function:: $text in $file_source$line";
 	writeOtherlogs(dirname(__FILE__)."/logs/web/interface.debug",$text2);
 	if(isset($GLOBALS["ADDLOG"])){writeOtherlogs($GLOBALS["ADDLOG"],$text2);}
+	if(isset($GLOBALS["AS_NET_AGENT"])){writeOtherlogs("/var/log/artica-netagent.log",$text2);}
+	
 	phpxlog("$text");
 	if(basename($file_source)=="exec.backup.php"){writeOtherlogs("/var/log/artica-postfix/exec.backup.".date("Y-m-d").".log",$text);}
 	$arr=explode("/",$function);

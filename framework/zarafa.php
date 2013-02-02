@@ -4,7 +4,7 @@ include_once(dirname(__FILE__)."/class.unix.inc");
 include_once(dirname(__FILE__)."/class.postfix.inc");
 
 
-
+if(isset($_GET["audit-log"])){audit_log();exit;}
 if(isset($_GET["locales"])){locales();exit;}
 if(isset($_GET["foldersnames"])){foldersnames();exit;}
 if(isset($_GET["zarafa-user-create-store"])){zarafa_user_create_store();exit;}
@@ -33,7 +33,10 @@ if(isset($_GET["restart-server"])){restart_zarafaserver();exit;}
 if(isset($_GET["restart-gateway"])){restart_zarafagateway();exit;}
 if(isset($_GET["run-backup"])){run_backup();exit;}
 if(isset($_GET["backup-scan-dirs"])){run_backup_scandirs();exit;}
+if(isset($_GET["backup-remove-dirs"])){run_backup_remove_dirs();exit;}
 if(isset($_GET["reload-mailboxes-force"])){mailboxes_scan_all();exit;}
+if(isset($_GET["recover-last"])){recover_last();exit;}
+if(isset($_GET["import-contacts"])){import_csv_contacts();exit;}
 
 while (list ($num, $ligne) = each ($_GET) ){$a[]="$num=$ligne";}
 writelogs_framework("unable to unserstand ".@implode("&",$a),__FUNCTION__,__FILE__,__LINE__);
@@ -97,6 +100,15 @@ function run_backup_scandirs(){
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
 	exec($cmd,$results);	
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+function run_backup_remove_dirs(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php5 /usr/share/artica-postfix/exec.zarafa-backup.php --remove-dirs --verbose 2>&1";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
+	exec($cmd,$results);	
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
+	
 }
 
 function softdelete(){
@@ -298,6 +310,14 @@ function mailboxes_scan_all(){
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);		
 }
+function recover_last(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.mysql.start.php --recover >/dev/null 2>&1 &");
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);		
+}
 
 
 function CopyToPublic(){
@@ -383,6 +403,46 @@ function restart_search(){
 	shell_exec("/usr/share/artica-postfix/bin/artica-install --zarafa-reconfigure");
 	shell_exec("/etc/init.d/zarafa-search restart >/dev/null 2>&1");
 	shell_exec("$nohup /etc/init.d/artica-postfix restart zarafa-server >/dev/null 2>&1 &");	
+}
+function import_csv_contacts(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$uid=base64_decode($_GET["uid"]);
+	$filename=base64_decode($_GET["filename"]);
+	if(!is_file($filename)){echo "<articadatascgi>".basename($filename)." No such file</articadatascgi>";return;}
+	$cmd="$nohup $php /usr/share/artica-postfix/exec.csv2contacts.php \"$uid\" \"$filename\" >/dev/null 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	echo "<articadatascgi><div style='font-size:16px'><strong>{success}:".basename($filename)."</strong> {has_been_sent_to_import_task}</div></articadatascgi>";
+}
+function audit_log(){
+	$unix=new unix();
+	$grep=$unix->find_program("grep");
+	$tail=$unix->find_program("tail");
+	$search=trim(base64_decode($_GET["filter"]));
+	$maillog="/var/log/auth.log";
+	$prefix="$grep -i -E '\s+zarafa\-(spooler|server|gateway|dagent|license)\[' $maillog|";
+	$max=500;
+	if(isset($_GET["rp"])){$max=$_GET["rp"];}
+	
+	if($search<>null){
+		$search=str_replace(".","\.",$search);
+		$search=str_replace("*",".*?",$search);
+		$search=str_replace("(","\(",$search);
+		$search=str_replace(")","\)",$search);
+		$search=str_replace("[","\[",$search);
+		$search=str_replace("]","\]",$search);
+		$cmd="$prefix$grep -i -E '$search' |$tail -n $max 2>&1";
+	
+	}else{
+		$cmd="$prefix$tail -n $max 2>&1";
+	}
+	
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
+	
 }
 
 

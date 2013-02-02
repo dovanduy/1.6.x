@@ -65,8 +65,8 @@ function kav4proxy_license_popup(){
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-	<td width=100%>".imgtootltip("delete-32.png","{delete}","Kav4ProxyDeleteKey()")."</td>
-	<td align='center'><a href=\"javascript:blur();\" 
+	<td width=1%>".imgtootltip("delete-32.png","{delete}","Kav4ProxyDeleteKey()")."</td>
+	<td align='center' width=100%><a href=\"javascript:blur();\" 
 	OnClick=\"javascript:s_PopUp('http://proxy-appliance.org/index.php/about/kaspersky-trial/',1024,900,true);\"
 	style=\"font-size:16px;font-weight:bold;text-decoration:underline\">
 	{get_free_license_trial}</a>

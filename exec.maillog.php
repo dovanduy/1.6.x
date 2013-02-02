@@ -1,7 +1,6 @@
 <?php
 $GLOBALS["DEBUG_MEM"]=true;
 $GLOBALS["DEBUG_MEM_FILE"]="/var/log/artica-postfix/postfix-logger.debug";
-
 events("Memory: START AT ".round(((memory_get_usage()/1024)/1000),2) ." line:".__LINE__);
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after includes class.ini.inc line:".__LINE__);
@@ -41,6 +40,7 @@ events("running $pid ");
 file_put_contents($pidfile,$pid);
 events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after unix() declaration line: ".__LINE__);
 $sock=new sockets();
+$GLOBALS["CLASS_SOCKETS"]=$sock;
 $GlobalIptablesEnabled=$sock->GET_INFO("GlobalIptablesEnabled");
 if(!is_numeric($GlobalIptablesEnabled)){$GlobalIptablesEnabled=1;}
 events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after sockets() declaration line: ".__LINE__);
@@ -131,6 +131,7 @@ if(strpos($buffer,") Passed CLEAN, AM.PDP-SOCK [")>0){return;}
 if(strpos($buffer,") inspect_dsn: is a DSN")>0){return;}
 if(strpos($buffer,": decided action=DUNNO NULL")>0){return;} 
 if(strpos($buffer,"Mail::SpamAssassin::Plugin::Check")>0){return;} 
+if(strpos($buffer,"vnStat daemon")>0){return;} 
 if(strpos($buffer,": decided action=PREPEND X-policyd-weight: using cached result;")>0){return;} 
 if(strpos($buffer," mode select: verifying")>0){return;} 
 //if(strpos($buffer,") SPAM-TAG, <")>0){return;} 
@@ -153,6 +154,18 @@ if(strpos($buffer,"Passed CLEAN {RelayedOutbound}")>0){return;}
 if(strpos($buffer,"greylist: mi_stop=1")>0){return;} 
 if(strpos($buffer,"smfi_main() returned 0")>0){return;} 
 if(strpos($buffer,"Final database dump")>0){return;}
+if(strpos($buffer,"refreshing the Postfix")>0){return;}
+if(strpos($buffer,"class.auth.tail.inc")>0){return;}
+
+// ************************ DKIM DUTSBIN
+if(strpos($buffer,"no signing domain match for")>0){return;}
+if(strpos($buffer,"no signing subdomain match for")>0){return;}
+if(strpos($buffer,"no signing keylist match for")>0){return;}
+if(strpos($buffer,": no signature data")>0){return;}
+
+// ************************ ZARAFA DUTSBIN
+if(strpos($buffer,"]: Still waiting for 1 threads to exit")>0){return;}
+if(preg_match("#zarafa-dagent\[.*?Delivered message to#")){return;}
 
 //if(strpos($buffer,") p00")>0){return;}  
 //if(strpos($buffer,") TIMING [total")>0){return;} 
@@ -1619,6 +1632,20 @@ if(preg_match("#amavis\[.+?TROUBLE.+?in child_init_hook: BDB can't connect db en
 	}
 	return;	
 }
+if(preg_match("#amavis\[.*?\]:.*?DIE.*?BDB\s+can't connect db.*?\/var(.+?): No such file or directory#",$buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/amavis.BDB.error";
+	events("amavis BDB ERROR");
+	if(file_time_min($file)>5){
+		email_events("AMAVIS BDB Error","amavis claim\n$buffer\nArtica will restart amavis service","postfix");
+		if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
+			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart amavis");
+		}
+		@unlink($file);
+		file_put_contents($file,"#");
+	}
+	return;
+}
+
 
 
 if(preg_match("#amavis\[.+?custom checks error:\s+Insecure dependency in connect while running with -T switch at .+?/IO/Socket\.pm line 114#",$buffer,$re)){

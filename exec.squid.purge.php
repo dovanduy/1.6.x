@@ -21,43 +21,89 @@ if($argv[1]=="--scan"){scan_stored_items();die();}
 if($argv[1]=="--inject"){inject_stored_items();die();}	
 	
 function scan_stored_items($nopid=true){
-	
 	$unix=new unix();
+	if(system_is_overloaded(basename(__FILE__))){
+		$php=$unix->LOCATE_PHP5_BIN();
+		ufdbguard_admin_events("Overloaded system... ask to run this task later...",__FUNCTION__,__FILE__,__LINE__,"proxy");
+		$unix->THREAD_COMMAND_SET("$php ".__FILE__." --scan");
+	}
+	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	if($nopid){
 		$oldpid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
 		if($unix->process_exists($oldpid,$myfile)){
-			ufdbguard_admin_events("Task already running PID: $oldpid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"stats");
+			ufdbguard_admin_events("Task already running PID: $oldpid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"proxy");
 			return;
 		}
 	}
+	
+	$TimePid=$unix->file_time_min($pidTime);
+	if($TimePid<1440){
+		ufdbguard_admin_events("Task cannot be used less than 14h currently ({$TimePid}Mn)",__FUNCTION__,__FILE__,__LINE__,"proxy");
+		return;
+	}
+	
+	if(ScanPurgeexc()){
+		ufdbguard_admin_events("Already Executed...",__FUNCTION__,__FILE__,__LINE__,"proxy");
+		return;
+	}	
+	
+	@unlink($pidTime);
+	@file_put_contents($pidTime, time());
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 
 	$purge=$unix->find_program("purge");
 	if(strlen($purge)<5){
-		ufdbguard_admin_events("purge no such file, aborting task",__FUNCTION__,__FILE__,__LINE__,"stats");
+		ufdbguard_admin_events("purge no such file, aborting task",__FUNCTION__,__FILE__,__LINE__,"proxy");
 		return;
 	}
 	$nice=EXEC_NICE();
-	$cmd="$nice$purge -c /etc/squid3/squid.conf -e \".\" -P 0 >/var/cache/purge.calculated.db 2>&1";
+	$cmd="$nice$purge -c /etc/squid3/squid.conf -e \".\" -P 0 -n >/var/cache/purge.calculated.db 2>&1";
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 	$t1=time();
 	shell_exec(trim($cmd));
 	$took =$unix->distanceOfTimeInWords($t1,time());
 	if($GLOBALS["VERBOSE"]){echo "done $took\n";}
-	ufdbguard_admin_events("Extracting items information from cache done took:$took",__FUNCTION__,__FILE__,__LINE__,"stats");
-	inject_stored_items();
+	ufdbguard_admin_events("Extracting items information from cache done took:$took",__FUNCTION__,__FILE__,__LINE__,"proxy");
+	inject_stored_items(true);
 	
 }	
+
+function ScanPurgeexc(){
+	$unix=new unix();
+	$purge=$unix->find_program("purge");
+	$pidof=$unix->find_program("pidof");
+	$kill=$unix->find_program("kill");
+	exec("$pidof $purge 2>&1",$results);
+	$pp=array();
+	$pids=explode(" ",@implode("", $results));
+	while (list ($index, $pid) = each ($pids)){
+		if(!is_numeric(trim($pid))){continue;}
+		$pp[]=$pid;
+	}
+	
+	$count=count($pp);
+	if($count>1){
+		unset($pp[0]);
+		while (list ($index, $pid) = each ($pp)){
+			shell_exec("$kill -9 $pid >/dev/null");
+		}
+	}
+	
+	$count=count($pp);
+	return $count;
+	
+}
 
 function inject_stored_array(){
 $file="/var/cache/purge.calculated.db";
 	$handle = @fopen($file, "r"); 
 	if (!$handle) {echo "Failed to open file\n";return;}
 	$q=new mysql_squid_builder();
-	
+	$c=0;
 	while (!feof($handle)){
 		$c++;
 		$line =trim(fgets($handle, 4096));	
@@ -87,7 +133,32 @@ $file="/var/cache/purge.calculated.db";
 	
 }
 
-function inject_stored_items(){
+function inject_stored_items($nopid=false){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	
+	
+	if(system_is_overloaded(basename(__FILE__))){
+		$php=$unix->LOCATE_PHP5_BIN();
+		ufdbguard_admin_events("Overloaded system... ask to run this task later...",__FUNCTION__,__FILE__,__LINE__,"proxy");
+		$unix->THREAD_COMMAND_SET("$php ".__FILE__." --inject");
+	}
+	
+	
+	
+	if(!$nopid){
+		$oldpid=@file_get_contents($pidfile);
+		$myfile=basename(__FILE__);
+		if($unix->process_exists($oldpid,$myfile)){
+			ufdbguard_admin_events("Task already running PID: $oldpid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"proxy");
+			return;
+		}
+	}
+	$mypid=getmypid();
+	@file_put_contents($pidfile,$mypid);
+	
+	
+	
 	$file="/var/cache/purge.calculated.db";
 	if(!is_file($file)){echo "$file no such file\n";return;}
 	$q=new mysql_blackbox();
@@ -102,14 +173,14 @@ function inject_stored_items(){
 		$f[]="('$sitename','{$array["FAMILY"]}','{$array["SIZE"]}','{$array["ITEMS"]}')";
 		if(count($f)>500){
 			$q->QUERY_SQL($prefix.@implode(",", $f));
-			if(!$q->ok){ufdbguard_admin_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+			if(!$q->ok){ufdbguard_admin_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"proxy");return;}
 		}
 	}
 	
 	if(count($f)>0){
 		$q->QUERY_SQL($prefix.@implode(",", $f));
-		if(!$q->ok){ufdbguard_admin_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+		if(!$q->ok){ufdbguard_admin_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"proxy");return;}
 	}	
-	ufdbguard_admin_events("Sucess adding $c cached websites",__FUNCTION__,__FILE__,__LINE__,"stats");
+	ufdbguard_admin_events("Sucess adding $c cached websites",__FUNCTION__,__FILE__,__LINE__,"proxy");
 	@unlink($file);
 }

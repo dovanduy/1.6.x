@@ -27,6 +27,8 @@ class icap{
 	var $RemoteApplianceServer=null;
 	var $CicapEnabled=0;
 	var $IcapServerAddress="127.0.0.1";
+	private $AntivirusEnabledCentral=1;
+	private $Kav4ProxyEnabledCentral=0;
 	
 	function icap(){
 		$users=new usersMenus();
@@ -41,6 +43,8 @@ class icap{
 		$this->enable_kavproxy=$sock->GET_INFO('kavicapserverEnabled');
 		$this->enable_squidguard=$sock->GET_INFO('squidGuardEnabled');
 		$this->EnableRemoteStatisticsAppliance=$sock->GET_INFO('EnableRemoteStatisticsAppliance');
+		$this->AntivirusEnabledCentral=$sock->GET_INFO("AntivirusEnabledCentral");
+		$this->Kav4ProxyEnabledCentral=$sock->GET_INFO("Kav4ProxyEnabledCentral");
 		
 		$this->EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
 		$this->EnableSquidGuardInCiCAP=$sock->GET_INFO("EnableSquidGuardInCiCAP");
@@ -50,9 +54,11 @@ class icap{
 		$this->enable_metascanner=$sock->GET_INFO("KavMetascannerEnable");
 		
 		if($this->KavICAPRemoteAddr==null){$this->EnableKavICAPRemote=0;}
+		if(!is_numeric($this->AntivirusEnabledCentral)){$this->AntivirusEnabledCentral=1;}
 		if(!is_numeric($this->KavICAPRemotePort)){$this->EnableKavICAPRemote=0;}
 		if(!is_numeric($this->enable_kavproxy)){$this->enable_kavproxy=0;}
 		if(!is_numeric($this->EnableKavICAPRemote)){$this->EnableKavICAPRemote=0;}
+		if(!is_numeric($this->Kav4ProxyEnabledCentral)){$this->Kav4ProxyEnabledCentral=0;}
 		if(!is_numeric($this->enable_metascanner)){$this->enable_metascanner=0;}			
 		if(!is_numeric($this->EnableClamavInCiCap)){$this->EnableClamavInCiCap=1;}
 		if(!is_numeric($this->EnableRemoteStatisticsAppliance)){$this->EnableRemoteStatisticsAppliance=0;}
@@ -60,9 +66,6 @@ class icap{
 		
 		
 		
-		echo "Starting......: [ICAP]: ClamAV in ICAP:$this->EnableClamavInCiCap\n";
-		echo "Starting......: [ICAP]: squidGuard in ICAP:$this->EnableSquidGuardInCiCAP\n";
-		echo "Starting......: [ICAP]: Remote Kaspersky ICAP Server:$this->EnableKavICAPRemote ($this->KavICAPRemoteAddr:$this->KavICAPRemotePort)\n";  
 		
 		if(posix_getuid()==0){$this->ASROOT=true;}
 		if(isset($GLOBALS["AS_ROOT"])){if($GLOBALS["AS_ROOT"]){$this->ASROOT=true;}}
@@ -88,8 +91,22 @@ class icap{
 			$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
 			$this->RemoteApplianceServer=$RemoteStatisticsApplianceSettings["SERVER"];
 			$this->IcapServerAddress=$this->RemoteApplianceServer;
-			if($this->ASROOT){echo "Starting......: [ICAP]: Using remote appliance {$this->RemoteApplianceServer} as Web Antivirus engine\n";}
-		}			
+			$this->CicapEnabled=$this->AntivirusEnabledCentral;
+			$this->enable_cicap=$this->AntivirusEnabledCentral;
+			$this->enable_kavproxy=$this->Kav4ProxyEnabledCentral;
+			$this->EnableKavICAPRemote=$this->Kav4ProxyEnabledCentral;
+			
+			if( ($this->CicapEnabled==1) OR ($this->enable_kavproxy==1)){
+				if($this->ASROOT){echo "Starting......: [ICAP]: Using remote appliance {$this->RemoteApplianceServer} as Web Antivirus engine\n";}
+			}
+		}
+
+		
+		if($this->ASROOT){echo "Starting......: [ICAP]: ClamAV in ICAP:$this->EnableClamavInCiCap\n";}
+		if($this->ASROOT){echo "Starting......: [ICAP]: squidGuard in ICAP:$this->EnableSquidGuardInCiCAP\n";}
+		if($this->EnableKavICAPRemote==1){
+			if($this->ASROOT){echo "Starting......: [ICAP]: Remote Kaspersky ICAP Server:$this->EnableKavICAPRemote ($this->KavICAPRemoteAddr:$this->KavICAPRemotePort)\n";}
+		}
 		
 		
 		$this->buildCicapConfig();

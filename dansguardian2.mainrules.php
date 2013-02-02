@@ -162,6 +162,7 @@ function CompileUfdbGuardRules_check(){
 
 
 function tabs(){
+	if(GET_CACHED(__FILE__, __FUNCTION__)){return;}
 	$squid=new squidbee();
 	$tpl=new templates();
 	$users=new usersMenus();
@@ -178,15 +179,8 @@ function tabs(){
 	//$array["section_basic_filters-bandwith"]='{bandwith_limitation_full}';
 	//$array["section_basic_filters-time"]='{connection_time}';
 	$array["section_basic_filters-terms"]='{terms_groups}';
-	
-	
-	
-	if($users->C_ICAP_INSTALLED){
-		if($users->C_ICAP_DNSBL){
-			//$array["c-icap-dnsbl"]='{CICAP_DNSBL}';
-		}
-	}	
-	
+	$array["categories"]="{categories}";
+
 	$array["ufdbguard-status"]="{service_status}";
 	$fontsize=14;
 	if(count($array)>5){$fontsize=11.5;}
@@ -197,6 +191,11 @@ function tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.rewrite.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="categories"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.php?categories=yes&maximize=yes\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 		
 			
 		if($num=="quotas"){
@@ -237,7 +236,7 @@ function tabs(){
 	
 	
 	
-	echo "
+	$html= "
 	<center><div id='rules-toolbox'></div></center>
 	<div id=main_dansguardian_mainrules style='width:100%;overflow:auto'>
 		<ul>". implode("\n",$html)."</ul>
@@ -247,6 +246,9 @@ function tabs(){
 				$('#main_dansguardian_mainrules').tabs();
 			});
 		</script>";	
+	
+	SET_CACHED(__FILE__, __FUNCTION__, null, $html);
+	echo $html;
 
 }
 
@@ -352,8 +354,10 @@ function rules_toolbox_left(){
 	$q=new mysql_squid_builder();
 	$page=CurrentPageName();
 	$tpl=new templates();	
+	$users=new usersMenus();
 	$mouse="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\"";
-	
+	$t=$_GET["t"];
+	if(!is_numeric($t)){$t=time();}
 	$Computers=$q->COUNT_ROWS("webfilters_nodes");
 	$Computers=numberFormat($Computers,0,""," ");
 
@@ -361,6 +365,12 @@ function rules_toolbox_left(){
 
 	$tablescat=$q->LIST_TABLES_CATEGORIES();
 	$CountDeCategories=numberFormat(count($tablescat),0,""," ");
+	
+	$todayblocked=date("Ymd")."_blocked_days";
+	$CountDeBlocked=$sql=$q->COUNT_ROWS($todayblocked);
+	$CountDeBlocked=numberFormat(count($CountDeBlocked),0,""," ");
+	
+	
 	
 	
 	$html="
@@ -390,6 +400,20 @@ function rules_toolbox_left(){
 			</table>
 		</td>
 	</tr>
+	<tr>
+		<td valign='top' width=1%><img src='img/members-32.png'></td>
+		<td valign='top' width=99%>
+			<table style='width:100%'>
+			<tr>
+				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
+				OnClick=\"javascript:Loadjs('squid.blocked.events.php?js=yes')\" nowrap><b>$CountDeBlocked</b> {blocked_requests}</td>
+			</tr>
+			</table>
+		</td>
+	</tr>	
+	
+	
 
 	<tr>
 		<td valign='top' width=1%><img src='img/service-restart-32.png'></td>
@@ -440,7 +464,18 @@ function rules_toolbox_left(){
 			</table>
 		</td>
 	</tr>		
-	
+	<tr>
+		<td valign='top' width=1%><img src='img/delete-32.png'></td>
+		<td valign='top' width=99%>
+			<table style='width:100%'>
+			<tr>
+				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
+				OnClick=\"javascript:Loadjs('ufdbguard.hide.php');\" nowrap>{hide}</td>
+			</tr>
+			</table>
+		</td>
+	</tr>	
 	</table> 
 	
 	
@@ -458,9 +493,9 @@ function rules_toolbox_left(){
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	if($EnableWebProxyStatsAppliance==1){$EnableUfdbGuard=1;}
-
 	
-	$users=new usersMenus();
+	
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
 	if(!$users->APP_UFDBGUARD_INSTALLED){$EnableUfdbGuard=0;}
 	
 	
@@ -490,7 +525,33 @@ function rules_toolbox_left(){
 			
 		}
 		
+		if($EnableWebProxyStatsAppliance==0){
+		if(trim($sock->getFrameWork("squid.php?isufdbguard-squidconf=yes"))<>"OK"){
+			echo $tpl->_ENGINE_parse_body("
+					<div id='$t-2'>
+					<table style='width:95%;margin-bottom:20px' class=form>
+					<tr>
+					<td valign='top' width=99%>
+					<div style='font-size:14px;color:#CC0A0A'>
+					<img src='img/info-48.png' style='float:left;margin:3px'>
+					<span style='font-size:11px'>{warn_ufdbguard_not_squidconf}</span>
+					<table style='width:100%'>
+					<tr>
+					<td width=1%><img src='img/arrow-right-16.png'></td>
+					<td width=99%><a href=\"javascript:blur();\" 
+		OnClick=\"javascript:Loadjs('squid.compile.progress.php');\"
+		style='font-size:12px;text-decoration:underline'>{APP_SQUID}:{reconfigure}</a></td>
+					</tr>
+					</table>
+					</div>
+					</td>
+					</tr>
+					</table>
+					</div>");			
+			
+		}
 		
+		}
 		
 	}
 	
@@ -763,17 +824,26 @@ function rules_table_list(){
 	
 	
 	$js="DansGuardianEditRule('0','default')";
+	$jsblack="<a href=\"javascript:blur();\"
+	OnClick=\"javascript:document.getElementById('anim-img-0').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-blacklist-list=yes&RULEID=0&modeblk=0&group=&TimeID=&t=$t');\"
+	style='text-decoration:underline;font-weight:bold'>";
+
+	
+	$jswhite="<a href=\"javascript:blur();\"
+	OnClick=\"javascript:document.getElementById('anim-img-0').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-blacklist-list=yes&RULEID=0&modeblk=1&group=&TimeID=&t=$t');\"
+	style='text-decoration:underline;font-weight:bold'>";	
+	
 	$delete="&nbsp;";
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
-			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;text-decoration:underline'>Default</a>
+			"<span id='anim-img-0'></span><a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;text-decoration:underline'>Default</a>
 			<i style='font-size:10px'>$TimeSpace</i>". rules_dans_time_rule(0)."
 			
 			",
 			"<span style='font-size:14px'>-</span>",
-			"<span style='font-size:14px'>". COUNTDEGBLKS(0)."</span>",
-			"<span style='font-size:14px'>". COUNTDEGBWLS(0)."</span>",
+			"<span style='font-size:14px'>&laquo;&nbsp;$jsblack". COUNTDEGBLKS(0)."</a>&nbsp;&raquo;</span>",
+			"<span style='font-size:14px'>&laquo;&nbsp;$jswhite". COUNTDEGBWLS(0)."</a>&nbsp;&raquo;</span>",
 			"&nbsp;",
 			$delete )
 		);
@@ -795,16 +865,28 @@ while ($ligne = mysql_fetch_assoc($results)) {
 			$warn="<div style='float:right'><img src='img/stop-24.png'></div>";
 		}		
 		$duplicate=imgsimple("duplicate-24.png",null,"Loadjs('dansguardian2.duplicate.php?from={$ligne['ID']}&t=$t')");
+		$jsGroups="<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:document.getElementById('anim-img-{$ligne["ID"]}').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-groups={$ligne["ID"]}&ID={$ligne["ID"]}&t=$t');\"
+		style='text-decoration:underline;font-weight:bold'>";
+		
+		$jsblack="<a href=\"javascript:blur();\"
+	OnClick=\"javascript:document.getElementById('anim-img-{$ligne['ID']}').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-blacklist-list=yes&RULEID={$ligne['ID']}&modeblk=0&group=&TimeID=&t=$t');\"
+	style='text-decoration:underline;font-weight:bold'>";
+		
+		
+		$jswhite="<a href=\"javascript:blur();\"
+	OnClick=\"javascript:document.getElementById('anim-img-{$ligne['ID']}').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-blacklist-list=yes&RULEID={$ligne['ID']}&modeblk=1&group=&TimeID=&t=$t');\"
+	style='text-decoration:underline;font-weight:bold'>";		
 		
 
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
-			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;color:$color;text-decoration:underline'>{$ligne["groupname"]}</a>
+			"<span id='anim-img-{$ligne["ID"]}'></span><a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;color:$color;text-decoration:underline'>{$ligne["groupname"]}</a>
 			<i style='font-size:10px'>$TimeSpace</i>$rules_dans_time_rule",
-			"<span style='font-size:14px;color:$color;'>". COUNTDEGROUPES($ligne["ID"])."</span>",
-			"<span style='font-size:14px;color:$color;'>". COUNTDEGBLKS($ligne["ID"])."</span>",
-			"<span style='font-size:14px;color:$color;'>". COUNTDEGBWLS($ligne["ID"])."</span>",
+			"<span style='font-size:14px;color:$color;'>$jsGroups&laquo;&nbsp;". COUNTDEGROUPES($ligne["ID"])."&nbsp;&raquo;</a></span>",
+			"<span style='font-size:14px;color:$color;'>&laquo;&nbsp;$jsblack". COUNTDEGBLKS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
+			"<span style='font-size:14px;color:$color;'>&laquo;&nbsp;$jswhite". COUNTDEGBWLS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
 			$duplicate,
 			$delete )
 		);

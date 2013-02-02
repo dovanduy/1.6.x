@@ -93,7 +93,7 @@ begin
 
    RegExpr.Free;
    logs.DeleteFile(tmp);
-   SYS.SET_CACHE_VERSION('APP_DANSGUARDIAN',result);
+   SYS.SET_CACHE_VERSION('APP_EJABBERD',result);
 end;
 //#############################################################################
 procedure tejabberd.START();
@@ -130,13 +130,16 @@ begin
       logs.DebugLogs('Starting......: ejabberd daemon is already running using PID ' + pid + '...');
       exit;
    end;
-
+   logs.DebugLogs('Starting......: ejabberd daemon configuring....');
+   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.ejabberd.php --reconfigure');
+   logs.DebugLogs('Starting......: ejabberd daemon launching daemon....');
    fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' '+INITD+' start >/dev/null 2>&1 &');
 
 
   while not SYS.PROCESS_EXIST(PID_NUM()) do begin
         sleep(500);
         count:=count+1;
+        logs.syslogs('Starting......: ejabberd daemon '+intToStr(count)+'/80');
         logs.DebugLogs('tejabberd.START(): wait sequence ' + intToStr(count));
         if count>80 then begin
             logs.syslogs('Starting......: ejabberd daemon timeout..');
@@ -176,6 +179,7 @@ end;
   while SYS.PROCESS_EXIST(PID_NUM()) do begin
         sleep(300);
         count:=count+1;
+        writeln('Stopping ejabberd............: timeout...');
         if count>80 then begin
             writeln('Stopping ejabberd............: timeout...');
             fpsystem('/bin/kill -9 ' + pid);

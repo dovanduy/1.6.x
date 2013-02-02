@@ -191,7 +191,7 @@ if($users->AsSystemAdministrator){
 	$browseServer="
 	<tr>
 		<td class=legend style='font-size:16px'>{webserver}:</td>
-		<td>". Field_array_Hash($browseWebservers, "FromWebServer-$t",null,null,null,0,"font-size:16px")."</td>
+		<td>". Field_array_Hash($browseWebservers, "FromWebServer-$t",$_GET["servername"],null,null,0,"font-size:16px")."</td>
 	</tr>	
 	
 	";
@@ -209,7 +209,7 @@ $html="
 	</tr>
 	<tr>
 		<td class=legend style='font-size:16px'>{directory}:</td>
-		<td>". Field_text("alias_dir-$t",null,"font-size:16px;padding:3px;width:320px",null,null,null,false,"FreeWebAddAliasCheck(event)").
+		<td>". Field_text("alias_dir-$t",null,"font-size:16px;padding:3px;width:320px",null,null,null,false,"FreeWebAddAliasCheck$t(event)").
 		"&nbsp;<input type='button' OnClick=\"javascript:Loadjs('browse-disk.php?start-root=$direnc&field=alias_dir-$t&replace-start-root=1');\" style='font-size:16px' value='{browse}...'></td>
 	</tr>
 	$browseServer	
@@ -224,7 +224,12 @@ $html="
 			if(results.length>0){alert(results);}	
 			document.getElementById('alias-animate-$t').innerHTML='';
 			$('#flexRT$t').flexReload();
-		}			
+		}
+
+		function FreeWebAddAliasCheck$t(e){
+			if(checkEnter(e)){FreeWebAddAlias$t();}
+		
+		}
 		
 
 		function FreeWebAddAlias$t(){
@@ -281,7 +286,7 @@ function alias_del(){
 
 function browseWebserversdirs(){
 	$q=new mysql();
-	$H[null]="{select}";
+	$H[null]="{none}";
 	$sql="SELECT servername FROM freeweb ORDER BY servername";
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -304,7 +309,7 @@ function alias_list(){
 	$page=1;
 	$FORCE_FILTER=" servername='{$_GET["servername"]}'";
 	
-	if($q->COUNT_ROWS("backup_events",'artica_events')==0){json_error_show("No data");}
+	if($q->COUNT_ROWS("freewebs_aliases",'artica_backup')==0){json_error_show("No data");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	

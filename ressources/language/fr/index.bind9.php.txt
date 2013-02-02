@@ -58,4 +58,4 @@ Cet usage n'est pas recommand&eacute; pour les nouvelles configurations et BIND 
 <ttl>P&eacute;riode de validit&eacute;</ttl>
 <ttl_text>Le temps de Libe d&eacute;crit combien de temps un dossier peut &ecirc;tre mis en cache avant d'&ecirc;tre jet&eacute;.</ttl_text>
 <zone>zone</zone>
-<ZoneDeleteWarning>Etes-vous s&ucirc;r et certain de vouloir effacer cette zone ?</ZoneDeleteWarning>
+<ZoneDeleteWarning>Effacer cette zone ?</ZoneDeleteWarning>

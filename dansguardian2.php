@@ -51,6 +51,8 @@ function EnableMalWarePatrol(){
 
 
 function tabs(){
+	if(GET_CACHED(__FILE__, __FUNCTION__,null)){return ;}
+	
 	$squid=new squidbee();
 	$tpl=new templates();
 	$users=new usersMenus();
@@ -61,24 +63,40 @@ function tabs(){
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$enable_streamcache=$sock->GET_INFO("SquidEnableStreamCache");
+	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+	$UfdbGuardHide=$sock->GET_INFO("UfdbGuardHide");
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
+	
+	if(!is_numeric($UfdbGuardHide)){$UfdbGuardHide=0;}	
 
 	if($users->SQUID_INSTALLED){
-		if($DisableArticaProxyStatistics==0){
-			$StatsPerfsSquidAnswered=$sock->GET_INFO("StatsPerfsSquidAnswered");
-			if(!is_numeric($StatsPerfsSquidAnswered)){$StatsPerfsSquidAnswered=0;}
-			if(!$users->WEBSTATS_APPLIANCE){if($StatsPerfsSquidAnswered==0){$CPU=$users->CPU_NUMBER;$MEM=$users->MEM_TOTAL_INSTALLEE;if(($CPU<4) AND (($MEM<3096088))){WARN_SQUID_STATS();die();}}}
+		if(!$users->PROXYTINY_APPLIANCE){
+			if($DisableArticaProxyStatistics==0){
+				$StatsPerfsSquidAnswered=$sock->GET_INFO("StatsPerfsSquidAnswered");
+				if(!is_numeric($StatsPerfsSquidAnswered)){$StatsPerfsSquidAnswered=0;}
+				if(!$users->WEBSTATS_APPLIANCE){if($StatsPerfsSquidAnswered==0){$CPU=$users->CPU_NUMBER;$MEM=$users->MEM_TOTAL_INSTALLEE;if(($CPU<4) AND (($MEM<3096088))){WARN_SQUID_STATS();die();}}}
+			}
 		}
 	}
 
 
 
 
+
 	if($EnableWebProxyStatsAppliance==1){$users->APP_UFDBGUARD_INSTALLED=true;$squid->enable_UfdbGuard=1;}
 
-	if($EnableRemoteStatisticsAppliance==0){$array["rules"]='{webfilter}';$array["acls"]='{acls}';}
+	if($EnableRemoteStatisticsAppliance==0){$array["rules"]='{webfilter}';
+
+	
+	
+	$array["acls"]='{acls}';
+	
+	}
 	$array["ufdbguard"]='{service_parameters}';
+	
+	
 
 	if($EnableRemoteStatisticsAppliance==0){
 		$array["groups"]='{groups2}';
@@ -90,6 +108,17 @@ function tabs(){
 		unset($array["ufdbguard"]);
 		unset($array["rules"]);
 		unset($array["databases"]);
+	}
+	
+	if($SquidActHasReverse==1){
+		unset($array["ufdbguard"]);
+		unset($array["rules"]);
+		unset($array["databases"]);		
+	}
+	
+	if($UfdbGuardHide==1){
+
+		unset($array["rules"]);
 	}
 
 
@@ -105,6 +134,12 @@ function tabs(){
 			continue;
 				
 		}
+		
+		if($num=="pdns"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.filters.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}		
 
 		if($num=="acls"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.acls-rules.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
@@ -121,19 +156,12 @@ function tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.streamcache.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 			continue;
 		}
-
-
-
-
-
-
-
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+	$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 	}
 
 
 
-	echo "
+	$html="
 	<div id=main_dansguardian_tabs style='width:99%;overflow:auto'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
@@ -142,6 +170,9 @@ function tabs(){
 				$('#main_dansguardian_tabs').tabs();
 			});
 		</script>";	
+	
+	SET_CACHED(__FILE__, __FUNCTION__, null, $html);
+	echo $html;
 
 }
 
@@ -182,7 +213,7 @@ function groups(){
 
 
 
-	echo "$menus
+	echo "
 	<div id=main_dansguardiangroups_tabs style='width:99%;overflow:auto'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
@@ -451,13 +482,47 @@ function dansguardian_status(){
 	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
 	$SquidDisableAllFilters=$sock->GET_INFO("SquidDisableAllFilters");
 	$SquideCapAVEnabled=$sock->GET_INFO("SquideCapAVEnabled");
+	$kavicapserverEnabled=$sock->GET_INFO("kavicapserverEnabled");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
 	$EnableMalwarePatrol=$sock->GET_INFO("EnableMalwarePatrol");
+	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
+	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+	$UfdbEnabledCentral=$sock->GET_INFO('UfdbEnabledCentral');
+	$AntivirusEnabledCentral=$sock->GET_INFO('AntivirusEnabledCentral');
+	$EnableKerbAuthCentral=$sock->GET_INFO('EnableKerbAuthCentral');
+	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$DnsFilterCentral=$sock->GET_INFO('DnsFilterCentral');
+	$PDSNInUfdb=$sock->GET_INFO("PDSNInUfdb");
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
+	if(!is_numeric($SquideCapAVEnabled)){$SquideCapAVEnabled=0;}	
 	if(!is_numeric($EnableMalwarePatrol)){$EnableMalwarePatrol=0;}
 	if(!is_numeric($SquidDisableAllFilters)){$SquidDisableAllFilters=0;}
 	if(!is_numeric($EnableSplashScreen)){$EnableSplashScreen=0;}
+	if(!is_numeric($AsSquidLoadBalancer)){$AsSquidLoadBalancer=0;}
+	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
+	if(!is_numeric($kavicapserverEnabled)){$kavicapserverEnabled=0;}
+	if(!is_numeric($PDSNInUfdb)){$PDSNInUfdb=0;}
+	
+	
+	if(!is_numeric($DnsFilterCentral)){$DnsFilterCentral=0;}
+	
+	if($EnableRemoteStatisticsAppliance==1){
+		if(is_numeric($EnableKerbAuthCentral)){$EnableKerbAuth=$EnableKerbAuthCentral;}
+		if(is_numeric($DnsFilterCentral)){$PDSNInUfdb=$DnsFilterCentral;}
+		if(is_numeric($UfdbEnabledCentral)){$EnableUfdbGuard=$UfdbEnabledCentral;}
+		
+		if(is_numeric($AntivirusEnabledCentral)){
+				$SquideCapAVEnabled=$AntivirusEnabledCentral;
+				$kavicapserverEnabled=$AntivirusEnabledCentral;
+		}
+	}
+	
+	
+	
 	if($SquidGuardIPWeb==null){$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");if(!is_numeric($SquidGuardApachePort)){$SquidGuardApachePort=9020;}$fulluri="http://".$_SERVER['SERVER_ADDR'].':'.$SquidGuardApachePort."/exec.squidguard.php";$sock->SET_INFO("SquidGuardIPWeb", $fulluri);}
 	if($SquidGuardServerName==null){$sock->SET_INFO("SquidGuardServerName",$_SERVER['SERVER_ADDR']);}
 	$eCapClam=null;
@@ -473,9 +538,7 @@ function dansguardian_status(){
 		OnClick=\"javascript:Loadjs('squid.webauth.php');\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
 
-	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
-	if(!is_numeric($SquideCapAVEnabled)){$SquideCapAVEnabled=0;}
+
 
 
 	if($EnableKerbAuth==1){
@@ -500,6 +563,54 @@ function dansguardian_status(){
 				<td><div style='font-size:12px' nowrap>$EnableActiveDirectoryText</td>
 				</tr>";		
 
+	
+	if($AsSquidLoadBalancer==1){
+		$AsSquidLoadBalancerText="<a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('squid.loadbalancer.main.php?js=yes');\" 
+		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";	
+		$AsSquidLoadBalancerText="<tr>
+				<td width=1%><span id='AdSquidStatusLeft3'><img src='img/status_ok.gif'></span></td>
+				<td class=legend>Load-balancer:</td>
+				<td><div style='font-size:12px' nowrap>$AsSquidLoadBalancerText</td>
+				</tr>";		
+		
+	}
+	
+	$EnableRemoteStatisticsAppliancePic="status_ok-grey.gif";
+	$EnableRemoteStatisticsApplianceText="{disabled}";
+	if($EnableRemoteStatisticsAppliance==1){
+		$EnableRemoteStatisticsAppliancePic="status_ok.gif";
+		$EnableRemoteStatisticsApplianceText="{enabled}";
+	}
+	
+	
+	$EnableRemoteStatisticsApplianceTextTR="<tr>
+				<td width=1%><span id='AdSquidStatusLeft3'><img src='img/$EnableRemoteStatisticsAppliancePic'></span></td>
+				<td class=legend>Stats Appliance:</td>
+				<td><div style='font-size:12px' nowrap>
+				<a href=\"javascript:blur();\"
+				OnClick=\"javascript:Loadjs('squid.stats-appliance.php');\" 
+				style='font-size:12px;font-weight:bold;text-decoration:underline'>$EnableRemoteStatisticsApplianceText</a></td>
+				</tr>";		
+	
+	
+	
+	
+	
+	if($SquidActHasReverse==1){
+		$AsSquidLoadBalancerText="<a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('squid.reverse.websites.php');\" 
+		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";	
+		$AsSquidLoadBalancerText="<tr>
+				<td width=1%><span id='AdSquidStatusLeft2'><img src='img/status_ok.gif'></span></td>
+				<td class=legend>{squid_reverse_proxy}:</td>
+				<td><div style='font-size:12px' nowrap>$AsSquidLoadBalancerText</td>
+				</tr>";			
+		
+	}
+	
+	
+	
 	$ufdb=null;$dansgu=null;
 	$t=0;
 	$time=time();
@@ -509,7 +620,7 @@ function dansguardian_status(){
 		$users->APP_UFDBGUARD_INSTALLED=true;
 		$UseRemoteUfdbguardService=$datas["UseRemoteUfdbguardService"];
 		if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
-		$EnableUfdbGuard=$EnableUfdbGuard;
+		
 	}	
 	
 	
@@ -523,7 +634,7 @@ function dansguardian_status(){
 		OnClick=\"javascript:EnableUfdbGuard(1);\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
 
-		$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+		
 		if($EnableUfdbGuard==1){
 			$pic="status_ok.gif";
 			$EnableUfdbGuardText="<a href=\"javascript:blur();\"
@@ -538,7 +649,35 @@ function dansguardian_status(){
 			<td width=1%><span id='ufd-$time'><img src='img/$pic'></span></td>
 			<td class=legend nowrap>{APP_UFDBGUARD}:</td>
 			<td><div style='font-size:12px' nowrap><span id='ufd-$time'>$EnableUfdbGuardText</span></td>
-		</tr>";			
+		</tr>";	
+
+		if($users->POWER_DNS_INSTALLED){
+			if($EnableUfdbGuard==0){$PDSNInUfdb=0;}
+			
+			$pic="status_ok-grey.gif";
+			$EnableUfdbPDNSText="<a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('pdns.ufdb.php');\"
+			style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";			
+			
+			if($EnableUfdbGuard==1){
+				if($PDSNInUfdb==1){
+					$pic="status_ok.gif";
+					$EnableUfdbPDNSText="<a href=\"javascript:blur();\"
+					OnClick=\"javascript:Loadjs('pdns.ufdb.php');\"
+					style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";
+				}
+			}			
+			
+		}
+		
+		$ufdbPDNS="
+		<tr>
+			<td width=1%><span id='ufdPDNS-$time'><img src='img/$pic'></span></td>
+			<td class=legend nowrap>{dns_filter}:</td>
+			<td><div style='font-size:12px' nowrap><span id='ufd-$time'>$EnableUfdbPDNSText</span></td>
+		</tr>";	
+		
+		
 
 	}
 	
@@ -617,7 +756,7 @@ function dansguardian_status(){
 		$kavicapserverEnabledText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:EnableKav4Proxy(1);\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
-		$kavicapserverEnabled=$sock->GET_INFO("kavicapserverEnabled");
+		
 		$pic="status_ok-grey.gif";
 
 		if($kavicapserverEnabled==1){
@@ -735,7 +874,8 @@ function dansguardian_status(){
 				<td class=legend>{StreamSquidCache}:</td>
 				<td><div style='font-size:12px' nowrap>$SquidEnableStreamCacheText</td>
 			</tr>";
-
+	$StreamCache=null;
+	
 	//-------------------------- MALWARE PATROL --------------------------------------
 
 	$pic="status_ok-grey.gif";
@@ -759,7 +899,7 @@ function dansguardian_status(){
 			</tr>";	
 
 	//-----------------------------------------------------------------------------------
-
+	$MalWarePatrol=null;
 
 	$SquidDisableAllFiltersText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:JSDisableAllFilters(1);\" 
@@ -783,6 +923,13 @@ function dansguardian_status(){
 
 
 	$eCapClam=null;
+	
+	if($SquidActHasReverse==1){
+		$ufdb=null;$ufdbPDNS=null;
+		$MalWarePatrol=null;
+		
+		
+	}
 
 	if(!$users->APP_KHSE_INSTALLED){
 		$kavMeta=null;
@@ -791,8 +938,10 @@ function dansguardian_status(){
 	if($t>0){
 		$table="<table style='width:99%' class=form><tbody>
 		$EnableActiveDirectoryTextTR
+		$EnableRemoteStatisticsApplianceTextTR
+		$AsSquidLoadBalancerText
 		$SplashScreenFinal
-		$ufdb$eCapClam$dansgu$cicap$kav$kavMeta$MalWarePatrol$StreamCache$DisableAllFilters</tbody></table>";
+		$ufdb$ufdbPDNS$eCapClam$dansgu$cicap$kav$kavMeta$MalWarePatrol$StreamCache$DisableAllFilters</tbody></table>";
 
 	}
 
@@ -1011,7 +1160,7 @@ function ufdbguard_service_options(){
 
 	$cicap=Paragraphe('c-icap-64-grey.png','{APP_C_ICAP}','{feature_not_installed}',"");
 
-
+	$hide=Paragraphe("delete-64.png", "{hide}", "{hide_webfiltering_section}","javascript:Loadjs('ufdbguard.hide.php')");
 
 	$youtubeSchools=Paragraphe('YoutubeSchools-64.png','Youtube For Schools','{YoutubeForSchoolsExplainT}',"javascript:Loadjs('squid.youtube-schools.php')");
 
@@ -1035,6 +1184,7 @@ function ufdbguard_service_options(){
 			$squidguardweb=null;
 			$ufdbguard_settings=null;
 			$ufdbguard_conf=null;
+			$hide=null;
 				
 		}
 
@@ -1069,9 +1219,13 @@ function ufdbguard_service_options(){
 	$tr[]=$PagePeeker;
 	$tr[]=$recompile_all_database;
 	$tr[]=$compile_schedule;
+	$tr[]=$hide;
 
 
-	$html="<center><div style='width:$width'>".CompileTr3($tr)."</div></center>";
+	$html="
+	<div class=explain style='font-size:14px'>{ufdbguard_options_explain}</div>		
+	
+	<center><div style='width:$width'>".CompileTr3($tr)."</div></center>";
 	$tpl=new templates();
 	$html= $tpl->_ENGINE_parse_body($html,'squid.index.php');
 	echo $html;

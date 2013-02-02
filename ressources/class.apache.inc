@@ -52,6 +52,10 @@ class vhosts{
 	"MAILHOSTING"=>"attach-document-128.png",
 	"OWNCLOUD"=>"owncloud-128.png",
 	"SPLASHSQUID"=>"webfilter-128.png",
+	"ARTICA_PRXYLOGS"=>"log-monitor-128",
+	"ERRSQUID"=>"128-banned.png",
+			
+			
 //	
 	);
 	
@@ -76,6 +80,7 @@ class vhosts{
 	"SQUID_STATS"=>"64-bg_user.png",
 	"ARTICA_ADM"=>"64-bg_user.png",
 	"ARTICA_ADMPRXY"=>"64-bg_user.png",
+	"ARTICA_PRXYLOGS"=>"log-monitor-64.png",
 	
 	"ARTICA_REGISTER_OU"=>"www_register-64.png",
 	"ARTICA_MINIADM"=>"miniadm-64.png",
@@ -96,6 +101,7 @@ class vhosts{
 	"MAILHOSTING"=>"attach-document-64.png",
 	"OWNCLOUD"=>"owncloud-64.png",
 	"SPLASHSQUID"=>"webfilter-64.png",
+	"ERRSQUID"=>"64-banned.png",
 	);
 
 	
@@ -104,12 +110,11 @@ class vhosts{
 	
 	
 	var $noneeduser=array("JOOMLA"=>true,"ROUNDCUBE"=>true,"ARTICA_USR"=>true,"ZARAFA_MOBILE"=>true,"ZARAFA"=>true,"DRUPAL"=>true,
-	'WEBDAV'=>true,"BACKUPPC"=>true,"SQUID_STATS"=>true,"ARKEIA"=>true,"XAPIAN"=>true,"SPLASHSQUID"=>true);
+	'WEBDAV'=>true,"BACKUPPC"=>true,"SQUID_STATS"=>true,"ARKEIA"=>true,"XAPIAN"=>true,"SPLASHSQUID"=>true,"ARTICA_PRXYLOGS"=>true);
 	var $noneeduser_mysql=array("ARTICA_USR"=>true,"ZARAFA_MOBILE"=>true,"ZARAFA"=>true,"DRUPAL"=>true,"WEBDAV"=>true,"BACKUPPC"=>true,"SQUID_STATS"=>true,
-	"ARKEIA"=>true,"SARG"=>true,"XAPIAN"=>true,"SPLASHSQUID"=>true);
+	"ARKEIA"=>true,"SARG"=>true,"XAPIAN"=>true,"SPLASHSQUID"=>true,"ARTICA_PRXYLOGS"=>true,"ERRSQUID"=>true);
 	
-	
-	
+
 	
 	var $TEXT_ARRAY=array(
 	"LMB"=>array("TITLE"=>"APP_LMB","TEXT"=>"APP_LMB_TEXT"),
@@ -151,6 +156,11 @@ class vhosts{
 	"MAILHOSTING"=>array("TITLE"=>"WWW_MAILHOSTING","TEXT"=>"WWW_MAILHOSTING_TEXT"),
 	"OWNCLOUD"=>array("TITLE"=>"APP_OWNCLOUD","TEXT"=>"APP_OWNCLOUD_TEXT"),
 	"SPLASHSQUID"=>array("TITLE"=>"APP_SPLASHSQUID","TEXT"=>"APP_SPLASHSQUID_TEXT"),
+	"ARTICA_PRXYLOGS"=>array("TITLE"=>"APP_ARTICA_PRXYLOGS","TEXT"=>"APP_ARTICA_PRXYLOGS_TEXT"),
+	"ERRSQUID"=>array("TITLE"=>"APP_ERRSQUID","TEXT"=>"APP_ERRSQUID_TEXT")
+			
+			
+	
 	
 	
 	);
@@ -215,7 +225,7 @@ function listOfAvailableServices($freeweb=false){
 		$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 		if($EnableWebProxyStatsAppliance==1){$array["ANDROWEB"]="WebStats Tablet";}
 		if($user->SQUID_INSTALLED){
-			
+			$array["ARTICA_PRXYLOGS"]="{APP_ARTICA_PRXYLOGS}";
 			$array["ANDROWEB"]="WebStats Tablet";
 			$SquidEnableISPMode=$sock->GET_INFO("SquidEnableISPMode");
 			$EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
@@ -235,6 +245,7 @@ function listOfAvailableServices($freeweb=false){
 		if($user->PIWIGO_INSTALLED){$array["PIWIGO"]="{APP_PIWIGO}";}
 		if($user->OWNCLOUD_INSTALLED){$array["OWNCLOUD"]="{APP_OWNCLOUD}";}
 		$array["SPLASHSQUID"]="{APP_SPLASHSQUID}";
+		$array["ERRSQUID"]="{APP_ERRSQUID}";
 		
 		
 		

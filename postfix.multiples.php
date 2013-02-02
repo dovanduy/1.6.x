@@ -8,6 +8,8 @@
 	include_once('ressources/class.tcpip.inc');
 	include_once('ressources/class.system.nics.inc');
 	include_once('ressources/class.maincf.multi.inc');
+	include_once('ressources/class.tcpip.inc');
+	
 	
 	
 	$user=new usersMenus();
@@ -486,6 +488,7 @@ function instances_search(){
 	$MyPage=CurrentPageName();
 	$page=1;
 	$sock=new sockets();
+	$ipClass=new IP();
 	$DisableNetworksManagement=$sock->GET_INFO("DisableNetworksManagement");
 	if(!is_numeric($DisableNetworksManagement)){$DisableNetworksManagement=0;}
 	$GLOBALS["interfaces_LIST"]=unserialize(base64_decode($sock->getFrameWork("cmd.php?ifconfig-interfaces=yes")));
@@ -557,7 +560,11 @@ function instances_search(){
 		OnClick=\"javascript:YahooWin('650','domains.postfix.multi.config.php?ou={$ligne["ou"]}&hostname={$ligne["value"]}','{$ligne["value"]}');\" 
 		style='font-size:16px;text-decoration:underline;color:$fontcolor'>";
 		$md=md5($ligne["value"]);
-		$interface_img=InterfaceStatus($ligne["ip_address"]);
+		if(!$ipClass->isIPv6($ligne["ip_address"])){
+			$interface_img=InterfaceStatus($ligne["ip_address"]);
+		}else{
+			$interface_img="22-win-nic.png";
+		}
 		
 		$interface_text="
 		<table>

@@ -17,6 +17,8 @@ include_once(dirname(__FILE__)."/ressources/class.maincf.multi.inc");
 
 
 $GLOBALS["ROOT"]=true;
+$GLOBALS["FORCE"]=false;
+if(preg_match("#--verbose#",@implode(" ", $argv))){$GLOBALS["FORCE"]=true;}
 $GLOBALS["WHOPROCESS"]="daemon";
 
 parsecmdlines($argv);
@@ -25,6 +27,9 @@ $sock=new sockets();
 $_GLOBAL["miltergreylist_bin"]=$unix->find_program("milter-greylist");
 if(!is_file($_GLOBAL["miltergreylist_bin"])){if($GLOBALS["VERBOSE"]){echo "Not installed !!\n";}die();}
 $EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+
+if($argv[1]=="--startall"){if($EnablePostfixMultiInstance==1){$GLOBALS["START_ONLY"]==1;MultiplesInstancesFound(true,true);die();}}
+
 if($EnablePostfixMultiInstance==1){
 	
 	if($GLOBALS["STATUS"]){	MultiplesInstances_status();die();}
@@ -155,6 +160,10 @@ function SingleInstance(){
 	
 	TestConfigFile($conf_path);
 	
+	@mkdir("/var/spool/postfix/var/run/milter-greylist",0755,true);
+	@chown("/var/spool/postfix/var/run/milter-greylist", "postfix");
+	@chgrp("/var/spool/postfix/var/run/milter-greylist", "postfix");
+	@chmod("/var/spool/postfix/var/run/milter-greylist",0755);	
 	
 	
 	$unix->send_email_events("Milter-greylist has been reconfigured", "By {$GLOBALS["WHOPROCESS"]}\nSettings:\n".@implode("\n",$newf), "postfix");
@@ -202,9 +211,9 @@ function parse_multi_databases(){
 }
 
 function MultiplesInstances($hostname=null,$ou=null){
-	
+	echo "Starting......: milter-greylist: MultiplesInstances() `$hostname` and ou `$ou`\n";
 	if(($ou==null) && ($hostname==null)){MultiplesInstancesFound();return;}
-	if($ou==null){echo __FUNCTION__." unable to get ou name\n";return;}
+	
 	if($hostname==null){echo __FUNCTION__." unable to get hostname name\n";return;}	
 	$mg=new milter_greylist(false,$hostname,$ou);
 	$datas=$mg->BuildConfig();
@@ -218,11 +227,11 @@ function MultiplesInstances($hostname=null,$ou=null){
 			$newf[]=$ligne;
 		}
 		$newf[]="";
-		echo "Starting......: writing /etc/milter-greylist/$hostname/greylist.conf\n";
+		echo "Starting......: milter-greylist $hostname: writing /etc/milter-greylist/$hostname/greylist.conf\n";
 		$datas=@implode("\n",$newf);	
 	
 	@file_put_contents("/etc/milter-greylist/$hostname/greylist.conf",$datas);
-	echo "Starting......: milter-greylist $hostname or=$ou START_ONLY={$GLOBALS["START_ONLY"]},STOP_ONLY={$GLOBALS["STOP_ONLY"]}\n";
+	echo "Starting......: milter-greylist $hostname: or=$ou START_ONLY={$GLOBALS["START_ONLY"]},STOP_ONLY={$GLOBALS["STOP_ONLY"]}\n";
 	if($GLOBALS["STOP_ONLY"]==1){MultiplesInstances_stop($hostname,$ou);}
 	if($GLOBALS["START_ONLY"]==1){MultiplesInstances_start($hostname,$ou);}
 
@@ -243,10 +252,35 @@ function MultiplesInstancesGetmyhostname($ip_address){
 }
 
 
-function MultiplesInstancesFound(){
+function MultiplesInstancesFound($pid=false,$onlystart=false){
 	
-		$sock=new sockets();
-		$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
+	$unix=new unix();
+	
+	if(!$GLOBALS["FORCE"]){
+		if($pid){
+			if($unix->file_time_min($pidtime)<2){
+				if($GLOBALS["VERBOSE"]){echo "Minimal 2mn\n";}
+				return;}
+			$oldpid=$unix->get_pid_from_file($pidfile);
+			if($unix->process_exists($oldpid,basename(__FILE__))){
+				$processtime=$unix->PROCCESS_TIME_MIN($oldpid);
+				if($GLOBALS["VERBOSE"]){echo "Already running pid $oldpid\n";}
+				if($processtime<5){return;}
+				$kill=$unix->find_program("kill");
+				shell_exec("$kill -9 $oldpid >/dev/null");
+			}
+		}
+	}
+	if(!$GLOBALS["FORCE"]){
+		@unlink($pidtime);
+		@file_put_contents($pidtime, time());
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	$sock=new sockets();
+	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));	
 	
 	$sql="SELECT ValueTEXT,ip_address,ou FROM postfix_multi WHERE `key`='PluginsEnabled' AND uuid='$uuid'";
 	if($GLOBALS["DEBUG"]){echo "$sql\n";}
@@ -264,6 +298,7 @@ function MultiplesInstancesFound(){
 		$ou=$ligne["ou"];
 		if($GLOBALS["DEBUG"]){echo "$hostname -> $ou\n";}
 		$GLOBALS["hostnames"][$hostname]=$ou;
+		if($onlystart){MultiplesInstances_start($hostname,$ou);continue;}
 		MultiplesInstances($hostname,$ou);
 		
 	}
@@ -275,9 +310,14 @@ function MultiplesInstancesFound(){
 
 function MultiplesInstances_start($hostname,$ou){
 	$hostname=trim($hostname);
-	if($hostname==null){if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist (".__FUNCTION__.") return -> hostname is null\n";return;}}
+	if($hostname==null){
+		if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist (".__FUNCTION__.") return -> hostname is null\n";}
+		return;
+	}
+	
+	
 	$unix=new unix();
-	echo "Starting......: milter-greylist hostname:$hostname OU:($ou)\n";
+	echo "Starting......: milter-greylist hostname:$hostname OU:($ou) line: ".__LINE__."\n";
 	$main=new maincf_multi($hostname,$ou);
 	
 	$array_filters=unserialize(base64_decode($main->GET_BIGDATA("PluginsEnabled")));
@@ -287,7 +327,7 @@ function MultiplesInstances_start($hostname,$ou){
 	if($unix->process_exists($pid)){echo "Starting......: milter-greylist $hostname already running PID $pid\n";
 		return;
 	}
-	echo "Starting......: milter-greylist hostname \"$hostname\"\n";
+	echo "Starting......: milter-greylist hostname \"$hostname\" line: ".__LINE__."\n";
 	$bin_path=$unix->find_program("milter-greylist");
 	
 	@mkdir("/var/spool/postfix/var/run/milter-greylist/$hostname",0755,true);
@@ -325,8 +365,20 @@ function MultiplesInstances_start($hostname,$ou){
 			$main->ConfigureMilters();	
 		}
 		
+	for($i=0;$i<10;$i++){
+		if(is_file("/var/spool/postfix/var/run/milter-greylist/$hostname/greylist.sock")){break;}
+		echo "Starting......: milter-greylist waiting greylist.sock ($i/10)\n";
+		sleep(1);
+	}	
+	
+	@chown("/var/spool/postfix/var/run/milter-greylist", "postfix");
+	@chgrp("/var/spool/postfix/var/run/milter-greylist", "postfix");
+	@chown("/var/spool/postfix/var/run/milter-greylist/$hostname/greylist.sock", "postfix");
+	@chmod("/var/spool/postfix/var/run/milter-greylist/$hostname/greylist.sock",0777);	
+	@chmod("/var/spool/postfix/var/run/milter-greylist",0755);	
 	$unix->chown_func("postfix","postfix","/var/spool/postfix/var/run/milter-greylist/*");
-	$unix->chown_func("postfix","postfix","/var/spool/postfix/var/run/milter-greylist/$hostname/*");
+	$unix->chown_func("postfix","postfix","/var/spool/postfix/var/run/milter-greylist/$hostname");
+	$unix->chown_func("postfix","postfix","/var/spool/postfix/var/run/milter-greylist/$hostname/greylist.sock");
 	
 }
 

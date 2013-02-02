@@ -20,7 +20,10 @@ if(isset($_GET["ou-ldap-import-execute"])){LDAP_IMPORT_EXEC();exit;}
 if(isset($_GET["sys-sync-paquages"])){SysSyncPaquages();exit;}
 if(isset($_GET["GetTotalMemMB"])){GetTotalMemMB();exit;}
 if(isset($_GET["process-ttl"])){process_timeexec();exit;}
-
+if(isset($_GET["myisamchk"])){myisamchk();exit;}
+if(isset($_GET["filesize"])){_filesize();exit;}
+if(isset($_GET["chmod"])){_chmod();exit;}
+if(isset($_GET["readfile"])){_readfile();exit;}
 
 if(isset($_GET["LaunchRemoteInstall"])){LaunchRemoteInstall();exit;}
 if(isset($_GET["restart-web-server"])){RestartWebServer();exit;}
@@ -1208,6 +1211,24 @@ function SMTP_WHITELIST(){
 	NOHUP_EXEC( LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.spamassassin.php --whitelist");
 }
 
+function _filesize(){
+	$size=filesize(base64_decode($_GET["filesize"]));
+	echo "<articadatascgi>$size</articadatascgi>";
+}
+function _chmod(){
+	$filepath=base64_decode($_GET["chmod"]);
+	$unix=new unix();
+	$num=base64_decode($_GET["num"]);
+	$chmod=$unix->find_program("chmod");
+	$cmd="$chmod $num \"$filepath\" 2>&1";
+	if(!is_file("$filepath")){$results[]="No such file...\n";}
+	if(is_file($filepath)){
+		$results[]=$cmd;
+		exec("$chmod $num \"$filepath\"",$results);
+	}
+	echo "<articadatascgi>".base64_encode(@implode("\n", $results))."</articadatascgi>";	
+}
+
 function artica_update_query_fileslogs(){
 	$unix=new unix();
 	$array=$unix->DirFiles("/var/log/artica-postfix");
@@ -1217,6 +1238,10 @@ function artica_update_query_logs(){
 	$_GET["file"]=str_replace("../","",$_GET["file"]);
 	$array=explode("\n",@file_get_contents("/var/log/artica-postfix/{$_GET["file"]}"));
 	echo "<articadatascgi>".base64_encode(serialize($array))."</articadatascgi>";	
+}
+function _readfile(){
+	$filrepath=base64_decode($_GET["readfile"]);
+	echo "<articadatascgi>".base64_encode(@file_get_contents($filrepath))."</articadatascgi>";
 }
 
 
@@ -1890,7 +1915,7 @@ function Global_Applications_Status(){
 		$unix=new unix();
 		
 		$nohup=$unix->find_program("nohup");
-		$cmd=$nohup." " .  $unix->LOCATE_PHP5_BIN().' /usr/share/artica-postfix/exec.status.php --all >/dev/null 2>&1 &';
+		$cmd=$nohup." " .  $unix->LOCATE_PHP5_BIN().' /usr/share/artica-postfix/exec.status.php --all --nowachdog >/dev/null 2>&1 &';
 		shell_exec(trim($cmd));
 		
 		if(isset($_GET["status-forced"])){
@@ -2141,13 +2166,13 @@ function samba_password(){
 }
 
 function samba_status(){
-	exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.status.php --samba",$results);
+	exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.status.php --samba --nowachdog",$results);
 	$datas=implode("\n",$results);
 	echo "<articadatascgi>$datas</articadatascgi>";	
 	
 }
 function dropbox_status(){
-	exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.status.php --dropbox",$results);
+	exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.status.php --dropbox --nowachdog",$results);
 	$datas=implode("\n",$results);
 	echo "<articadatascgi>$datas</articadatascgi>";	
 	}
@@ -2284,7 +2309,14 @@ function RestartMailGraphService(){
 	NOHUP_EXEC("/etc/init.d/artica-postfix restart mailgraph");		
 }
 function RestartDaemon(){
-	NOHUP_EXEC("/etc/init.d/artica-postfix restart daemon");
+	$unix=new unix();
+	$unix->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart artica-status");
+	$unix->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart postfix-logger");
+	$unix->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart sysloger");
+	$unix->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart artica-exec");
+	$unix->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart artica-back");
+	$unix->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart framework");
+	
 }
 function RestartFetchmail(){
 	NOHUP_EXEC("/etc/init.d/artica-postfix restart fetchmail");
@@ -2729,7 +2761,6 @@ function postfix_stat(){
 	
 	$version=$unix->POSTFIX_VERSION();
 	if($version==null){
-		$pid=$pid;
 		$array[0]=-2;
 		$array[1]=$version;
 		$array[2]=$pid;
@@ -2740,7 +2771,6 @@ function postfix_stat(){
 	
 	
 	if(is_file($path)){
-		$pid=$pid;
 		$array[0]=1;
 		$array[1]=$version;
 		$array[2]=$pid;
@@ -3176,8 +3206,9 @@ function disks_get_label(){
 	$unix=new unix();
 	$e2label=$unix->find_program("e2label");
 	if($e2label==null){return;}
-	exec("$e2label $dev",$array);
+	exec("$e2label $dev 2>&1",$array);
 	$data=trim(@implode(" ",$array));
+	if(preg_match("#Operation not permitted#is", $data)){return;}
 	echo "<articadatascgi>". base64_encode($data)."</articadatascgi>";
 	
 }
@@ -4125,8 +4156,12 @@ function kav4proxy_upload_license(){
 	$f=$_GET["Kav4ProxyUploadLicense"];
 	$type=$_GET["type"];
 	@unlink("/etc/artica-postfix/kav4proxy-licensemanager");
-	$cmd="/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager";
+	$cmd="/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -c /etc/opt/kaspersky/kav4proxy.conf";
+	
+	$update="/opt/kaspersky/kav4proxy/bin/kav4proxy-keepup2date -c /etc/opt/kaspersky/kav4proxy.conf";
+	
 	if($type=="milter"){
+		$update=null;
 		if(is_file("/opt/kav/5.6/kavmilter/bin/licensemanager")){
 			$cmd="/opt/kav/5.6/kavmilter/bin/licensemanager";
 			
@@ -4144,12 +4179,13 @@ function kav4proxy_upload_license(){
 	
 	$unix=new unix();
 	$tmpf=$unix->FILE_TEMP();
-	$cmd="$cmd -a $f >$tmpf 2>&1";
+	$cmd="$cmd -a $f 2>&1";
 	shell_exec($cmd);
 	$results=explode("\n",@file_get_contents($tmpf));
 	@unlink($tmpf);
 	$results[]="--------------------------------------------------------------";
 	$results[]="$cmd";
+	exec($cmd,$results);
 	$results[]="--------------------------------------------------------------";
 	echo "<articadatascgi>". base64_encode(implode("\n",$results))."</articadatascgi>";		
 	
@@ -5532,7 +5568,11 @@ function postfix_multi_perform_restart(){
 	$hostname=$_GET["postfix-multi-perform-restart"];
 	$postmulti=$unix->find_program("postmulti");
 	shell_exec("$postmulti -i postfix-$hostname -p stop");
-	shell_exec("$postmulti -i postfix-$hostname -p start");
+	writelogs_framework("$postmulti -i postfix-$hostname -p stop",__FUNCTION__,__FILE__,__LINE__);
+	$cmdline=LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.postfix-multi.php --instance-start $hostname";
+	//shell_exec("$postmulti -i postfix-$hostname -p start");
+	writelogs_framework($cmdline,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmdline);
 	}
 function postfix_multi_perform_flush(){
 	$unix=new unix();
@@ -5543,7 +5583,9 @@ function postfix_multi_perform_flush(){
 function postfix_multi_perform_reconfigure(){
 	$unix=new unix();
 	$hostname=$_GET["postfix-multi-perform-reconfigure"];
-	shell_exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.postfix-multi.php --instance-reconfigure $hostname");
+	$cmd=LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.postfix-multi.php --instance-reconfigure $hostname";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 	}	
 	
 
@@ -8051,15 +8093,10 @@ function myisamchk(){
 	$db=$_GET["database"];
 	$table=$_GET["table"];
 	$unix=new unix();
-	$MYSQL_DATADIR=$unix->MYSQL_DATADIR();
-	
-	if(!is_file("$MYSQL_DATADIR/$db/$table.MYI")){
-		return;
-		
-	}
-	$myisamchk=$unix->find_program("myisamchk");
+	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
-	shell_exec("$nohup $myisamchk --safe-recover $MYSQL_DATADIR/$db/$table.MYI >/dev/null 2>&1 &");	
+	exec("$nohup $php5 /usr/share/artica-postfix/exec.myisamchk.php $db $table >/dev/null 2>&1 &");
+	return;
 	
 }
 

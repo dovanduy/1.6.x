@@ -16,7 +16,7 @@
 		die();exit();
 	}
 
-
+if(isset($_GET["cram-md5"])){sasl_popup_auth_save();exit;}
 if(isset($_POST["reconfigure-postfix"])){reconfigure_postfix();exit;}	
 if(isset($_GET["postfix-status"])){POSTFIX_STATUS();exit;}	
 if(isset($_GET["use-my-isp"])){isp_js();exit;}	
@@ -53,6 +53,7 @@ if(isset($_GET["enable_milter"])){milter_behavior_save();exit;}
 if(isset($_GET["popup-auth"])){sasl_popup();exit();}
 if(isset($_GET["popup-auth-status"])){sasl_popup_status();exit();}
 if(isset($_GET["popup-auth-mech"])){sasl_popup_auth();exit();}
+
 
 
 
@@ -343,8 +344,8 @@ function main_tabs(){
 	$array["mailbox"]='{mailbox_settings}';
 	$array["transport_settings"]='{transport_settings}';
 	$array["transport_table"]="{transport_table}";
-	$array["security_settings"]='{security_settings}';
-	$array["synthesis"]='{synthesis}';
+	
+	
 	//$array["filters"]=$filters_settings;
 	//$array["filters-connect"]="{filters_connect}";
 	

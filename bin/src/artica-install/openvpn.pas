@@ -105,7 +105,7 @@ var
    IP_START:string;
    IP_START_NETMASK:string;
    articaconfig:string;
-
+   nohup:string;
 
 begin
   pid:=PID_NUM();
@@ -216,8 +216,8 @@ end;
   if SYS.PROCESS_EXIST(pid) then begin
       logs.DebugLogs('Starting......: OpenVPN Success with PID number '+ pid);
       logs.NOTIFICATION('OpenVPN server was successfully started PID '+pid,'','VPN');
-
-      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.openvpn.php --iptables-server');
+      nohup:=SYS.LOCATE_NOHUP();
+      fpsystem(nohup+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.openvpn.php --iptables-server --wait >/dev/null 2>&1 &');
   end else begin
       if not noinvestigate then begin
          logs.DebugLogs('Starting......: OpenVPN Failed,try to investigate');

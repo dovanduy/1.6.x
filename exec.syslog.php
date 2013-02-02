@@ -100,7 +100,8 @@ function Parseline($buffer){
 	if(strpos($buffer,"]: Startup: Initialized")>0){return true;}	
 	if(strpos($buffer,"]: Warning: empty ACL")>0){return true;}	
 	if(strpos($buffer,"]: Accepting HTTP Socket connections")>0){return true;}	
-
+	if(strpos($buffer," RELEASE ")>0){return true;}	
+	if(strpos($buffer," SWAPOUT ")>0){return true;}	
 //Postfix dustbin
 
 	if(preg_match("#Do you need to run.+?sa-update#",$buffer)){amavis_sa_update($buffer);return;}
@@ -1613,6 +1614,10 @@ function dhcpd($buffer){
 	if(strpos($buffer,"circumstances send")>0){return true;}
 	if(strpos($buffer,"bug reports")>0){return true;}
 	if(strpos($buffer,"Copyright")>0){return true;}
+	if(strpos($buffer,"dhcpd: DHCPREQUEST")>0){return true;}
+	if(strpos($buffer,"dhcpd: DHCPOFFER")>0){return true;}
+	if(strpos($buffer,"dhcpd: execute_statement")>0){return true;}
+	if(strpos($buffer,"dhcpd: execute: bad arg")>0){return true;}
 	
 	if(preg_match("#dhcpd:\s+(.+)#",$buffer,$re)){
 		$day=date('Y-m-d H:i:s');
@@ -1681,7 +1686,7 @@ if(preg_match("#dhcpd: DHCPREQUEST for (.+?)\s+from\s+(.+?)\s+\((.+?)\)\s+via#",
 		$GLOBALS["DHCPREQUEST"]["$md"]=true;
 		events("DHCPD: IP:{$re[1]} MAC:({$re[2]}) computer name={$re[3]}-> exec.dhcpd-leases.php");
 		if(preg_match("#([0-9\.]+)\s+\(#", $re[1],$ri)){$re[1]=$ri[1];}
-		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("{$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.dhcpd-leases.php --single-computer {$re[1]} {$re[2]} {$re[3]}");
+		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("{$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.dhcpd-leases.php");
 	}
 	return true;
 }	
@@ -1696,7 +1701,19 @@ function squid_parser($buffer){
 	if(strpos($buffer,"Target number of buckets")>0){return;}
 	
 	
-	if(preg_match("#squid\[.+?:\s+(.+?):\s+\(2\)\s+No such file or directory#i",$buffer)){
+	if(preg_match("#squid.*?swap directories, Check cache.*?squid -z#")){
+		events("Squid Must reconfigure squid caches");
+		$file="/etc/artica-postfix/croned.1/squid-caches-failed-1";
+		if(IfFileTime($file,5)){
+			email_events("Squid failed to load (error swap directories)","Squid claim \"$buffer\"\nArtica will try to repair caches",'proxy');
+			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.squid.php --caches >/dev/null 2>&1 &");
+			WriteFileCache($file);
+		}else{events("Squid Must reconfigure squid caches (but timed out)");}
+		return;			
+	}
+	
+	
+	if(preg_match("#squid\[.+?:\s+(.+?):\s+\(2\)\s+No such file or directory#i",$buffer,$re)){
 		events("--> Repair squid dir '{$re[1]}'...");
 		@mkdir($re[1],0755,true);@chmod($re[1],0755);@chown($re[1], "squid");@chgrp($re[1], "squid");
 		if(strlen($GLOBALS["SQUIDBIN"])>3){shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["SQUIDBIN"]} -z >/dev/null 2>&1 &");}
@@ -1729,9 +1746,9 @@ if(preg_match("#squid.*?Failed to verify one of the swap directories, Check cach
 		events("Squid Must reconfigure squid caches");
 		$file="/etc/artica-postfix/croned.1/squid-caches-failed";
 		if(IfFileTime($file,5)){
-		email_events("Squid failed to load (error swap directories)","Squid claim \"$buffer\"\nArtica will try to repair caches",'proxy');
-		shell_exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.squid.php --caches &");
-		WriteFileCache($file);
+			email_events("Squid failed to load (error swap directories)","Squid claim \"$buffer\"\nArtica will try to repair caches",'proxy');
+			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.squid.php --caches >/dev/null 2>&1 &");
+			WriteFileCache($file);
 		}else{events("Squid Must reconfigure squid caches (but timed out)");}
 		return;	
 	}	
@@ -1777,6 +1794,22 @@ if(preg_match("#httpAccept: FD [0-9]+: accept failure: \([0-9]+\) Invalid argume
 			events("FD 83: accept failure SQUID");
 			return;
 		}	
+}
+
+if(preg_match("#create_local_private_krb5_conf_for_domain.*?smb_mkstemp failed.*?for file\s+(.+?)\s+#", $buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/create_local_private_krb5_conf_for_domain.smb_mkstemp";
+	if(IfFileTime($file)){
+			$directory=basename($re[1]);
+			events("create_local_private_krb5_conf_for_domain : smb_mkstemp dir:$directory");
+			email_events("Squid File System error (permission denied)","SQUID claim \"$buffer\" The $directory directory access will be granted",'proxy');
+			shell_exec("{$GLOBALS["CHMOD_BIN"]} 1777 $directory");
+			
+			WriteFileCache($file);
+			return;
+		}else{
+			events("create_local_private_krb5_conf_for_domain : smb_mkstemp dir:$directory (timeout)");
+			return;
+		}		
 }
 
 if(preg_match("#NetfilterInterception.+?failed on FD.+?No such file or directory#",$buffer)){

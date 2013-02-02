@@ -5,8 +5,20 @@
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.milter.greylist.inc');
 	include_once('ressources/class.artica.graphs.inc');
+	include_once('ressources/class.maincf.multi.inc');
 	$user=new usersMenus();
-	if($user->AsPostfixAdministrator==false){header('location:users.index.php');exit();}
+	
+	if(isset($_GET["hostname"])){if(trim($_GET["hostname"])==null){unset($_GET["hostname"]);}}
+	
+	if(!isset($_GET["hostname"])){
+		if($user->AsPostfixAdministrator==false){header('location:users.index.php');exit();}
+	}else{
+		if(!PostFixMultiVerifyRights()){
+			$tpl=new templates();
+			echo "alert('". $tpl->javascript_parse_text("{$_GET["hostname"]}::{ERROR_NO_PRIVS}")."');";
+			die();exit();
+		}
+	}
 
 	
 	if(isset($_GET["search"])){popup_list();exit;}

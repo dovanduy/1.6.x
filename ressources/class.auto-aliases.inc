@@ -23,12 +23,12 @@ class AutoAliases{
 	function loadAutoAliases(){
 		$ldap=new clladp();
 		$this->dn="ou=$this->ou,dc=organizations,$ldap->suffix";
-		writelogs($dn,__FUNCTION__,__FILE__);
+		writelogs($this->dn,__FUNCTION__,__FILE__);
 		$search =@ldap_read($ldap->ldap_connection,$this->dn,'(objectClass=*)');
 		if (!$search){return null;}
 		$entry_id = ldap_first_entry($ldap->ldap_connection,$search);
 		$attrs = ldap_get_attributes($ldap->ldap_connection,$entry_id);
-		
+		if(!isset($attrs["AutoDomainAliases"])){$attrs["AutoDomainAliases"][0]=null;}
 		$Autoaliases=$attrs["AutoDomainAliases"][0];
 		if($Autoaliases==null){return null;};
 		$arr=explode(";",$Autoaliases);

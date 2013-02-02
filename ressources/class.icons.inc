@@ -1135,7 +1135,7 @@ function network(){
 	
 $array["DEF_ICO_ADDCOMP"]=array(
 			"IMG"=>"64-add-computer.png",
-			 "JS"=>"YahooUser(870,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');",
+			 "JS"=>"YahooUser(962,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');",
 			 "TITLE"=>"ADD_COMPUTER",
 			 "TEXT"=>"ADD_COMPUTER_TEXT",
 			 "CLASS"=>"NETWORK"

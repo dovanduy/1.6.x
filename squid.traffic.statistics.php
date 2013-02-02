@@ -400,6 +400,9 @@ function general_status(){
 }
 
 function squid_status_stats(){
+	
+	if(!$GLOBALS["AS_ROOT"]){if(CACHE_SESSION_GET(__FUNCTION__,__FILE__)){return;}}
+	
 	if(!$GLOBALS["AS_ROOT"]){
 		$cachefile="/usr/share/artica-postfix/ressources/logs/web/traffic.statistics.html";
 		if(is_file($cachefile)){$tpl=new templates();
@@ -411,25 +414,35 @@ function squid_status_stats(){
 		}
 	}
 	
+	
 	$sock=new sockets();
+	$users=new usersMenus();
+	
+	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}	
 	if($EnableRemoteStatisticsAppliance==1){return;}
 	$users=new usersMenus();
 	$sock=new sockets();
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}	
 	$MalwarePatrolDatabasesCount=$sock->getFrameWork("cmd.php?MalwarePatrolDatabasesCount=yes");
+	$mouse="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\"";
 	
 	
-	if(!$GLOBALS["AS_ROOT"]){if(CACHE_SESSION_GET(__FUNCTION__,__FILE__)){return;}}
+	
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$q=new mysql_squid_builder();
 	$users=new usersMenus();
+	
+	if($users->PROXYTINY_APPLIANCE){$DisableArticaProxyStatistics=1;}
+	
+	
 	if($DisableArticaProxyStatistics==0){
 		$websitesnums=$q->COUNT_ROWS("visited_sites");
 		$websitesnums=numberFormat($websitesnums,0,""," ");	
-
 		$sql="DELETE FROM categorize WHERE LENGTH(pattern)=0";
 		$q->QUERY_SQL($sql);
 		$export=$q->COUNT_ROWS("categorize");
@@ -497,10 +510,50 @@ function squid_status_stats(){
 		</tr>
 		";
 		
-	}		
+	}	
+
+	if($SquidActHasReverse==1){$TR_CAT_NUMBER=null;}	
+	$TR_CAT_NUMBER="
+	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.php')\"><b>$categories</b> {websites_categorized}$license_inactive</td>
+	</tr>
+	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.php')\">{youritems}: <b>$YourItems</b></td>
+	</tr>";
+
+	
+	$TR_CATZ="	
+	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td width=99% valign='top' style='font-size:12px;text-decoration:underline' $mouse OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?js=yes')\"><b>$DAYSNumbers</b> {daysOfStatistics}</td>
+	</tr>
+	
+	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' style='font-size:12px'><b>$requests</b> {requests}</td>
+	</tr>
+	
+	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.nodes.php')\"><b>$Computers</b> {computers}</td>
+	</tr>		
+	$TR_CAT_NUMBER
+";
+	
+	$TR_YOUTUBE="	<tr>
+		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
+		OnClick=\"javascript:Loadjs('miniadm.webstats.youtube.php?js=yes')\"><b>$youtube_objects</b> Youtube {objects}</td>
+	</tr>";
 	
 	
-	$mouse="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\"";
+	
+		if($DisableArticaProxyStatistics==1){$TR_YOUTUBE=null;$TR_CATZ=null;}
+		if($SquidActHasReverse==1){$TR_YOUTUBE=null;}	
+	
+	
 	
 	$submenu="	
 	
@@ -517,43 +570,9 @@ function squid_status_stats(){
 	$cachePerfText";
 	
 	
-	$main_table="<tr>
-		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td width=99% valign='top' style='font-size:12px;text-decoration:underline' $mouse OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?js=yes')\"><b>$DAYSNumbers</b> {daysOfStatistics}</td>
-	</tr>
-	
-	<tr>
-		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td valign='top' style='font-size:12px'><b>$requests</b> {requests}</td>
-	</tr>
-	
-	<tr>
-		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.nodes.php')\"><b>$Computers</b> {computers}</td>
-	</tr>	
-		
-	<tr>
-		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
-		OnClick=\"javascript:Loadjs('squid.visited.php')\"><b>$websitesnums</b> {visited_websites}</td>
-	</tr>	
-	
-	<tr>
-		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
-		OnClick=\"javascript:Loadjs('miniadm.webstats.youtube.php?js=yes')\"><b>$youtube_objects</b> Youtube {objects}</td>
-	</tr>	
-	
-	
-	
-	<tr>
-		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.php')\"><b>$categories</b> {websites_categorized}$license_inactive</td>
-	</tr>
-	<tr>
-		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.categories.php')\">{youritems}: <b>$YourItems</b></td>
-	</tr>	
+	$main_table="
+		$TR_CATZ
+		$TR_YOUTUBE	
 	<tr>
 		<td width=1%><img src='img/arrow-right-16.png'></td>
 		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"blur()\"><b>$PhishingURIS</b> {phishing_uris}</td>
@@ -585,7 +604,7 @@ function squid_status_stats(){
 	</tr>";
 	
 	}	
-	
+
 	if($DisableArticaProxyStatistics==1){	
 		$main_table="	
 			
@@ -607,12 +626,14 @@ function squid_status_stats(){
 		
 	}
 	
-	$addwebsites="			<tr>
-				<td width=1%><img src='img/plus-16.png'></td>
-				<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('squid.visited.php?add-www=yes')\"><b>{categorize_websites}</b></td>
-			</tr>	";
-	if($users->PROXYTINY_APPLIANCE ){$addwebsites=null;}
+	$addwebsites="
+		<tr>
+			<td width=1%><img src='img/plus-16.png'></td>
+			<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
+			OnClick=\"javascript:Loadjs('squid.visited.php?add-www=yes')\"><b>{categorize_websites}</b></td>
+		</tr>	";
+	
+	if($users->PROXYTINY_APPLIANCE ){$addwebsites=null;$submenu=null;}
 $html="
 <table style='width:100%'>
 	<tbody>
@@ -622,8 +643,10 @@ $html="
 	</tbody>
 	</table>
 ";
-
-CACHE_SESSION_SET(__FUNCTION__, __FILE__,$tpl->_ENGINE_parse_body($html));
+if(!$GLOBALS["AS_ROOT"]){
+	CACHE_SESSION_SET(__FUNCTION__, __FILE__,$tpl->_ENGINE_parse_body($html));
+}
+echo $html;
 	
 }
 

@@ -704,6 +704,7 @@ $ldap=new clladp();
 function Add(){
 	$this->ComputerIP=str_replace("$",'',$this->ComputerIP);
 	if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$this->ComputerIP)){$this->ComputerIP=null;}
+	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$this->uid)){writelogs("$this->uid wrong computername",__CLASS__.'/'.__FUNCTION__,__FILE__);return;}
 	$this->uid=str_replace(" ","",$this->uid);
 	if($this->ComputerMacAddress<>null){
 		if($this->ComputerMacAddress<>"Unknown"){
@@ -772,7 +773,7 @@ function Add(){
 		if($this->DnsZoneName<>null){$upd["DnsZoneName"][]=$this->DnsZoneName;}
 		if($this->DnsType<>null){$upd["DnsType"][]=$this->DnsType;}
 		
-		writelogs("adding computer $this->dn",__CLASS__.'/'.__FUNCTION__,__FILE__);
+		writelogs("Adding New computer $this->dn",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		$res=$ldap->ldap_add($this->dn,$upd);
 		if(!$res){
 			writelogs("adding computer $this->dn failed",__CLASS__.'/'.__FUNCTION__,__FILE__);
@@ -807,6 +808,11 @@ function Add(){
 		$ocs->ComputerIP=$this->ComputerIP;
 		$ocs->ComputerOS=$this->ComputerOS;
 		$ocs->ComputerName=$this->ComputerRealName;
+		if($this->DnsZoneName<>null){
+			$this->ComputerRealName=str_replace(".$this->DnsZoneName", "", $this->ComputerRealName);
+			$this->ComputerRealName=$this->ComputerRealName.".$this->DnsZoneName";
+			$ocs->ComputerName=$this->ComputerRealName;
+		}
 		$ocs->EditComputer();
 	}
 	

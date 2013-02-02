@@ -454,7 +454,7 @@ function main_config_antispam(){
 
 function main_config_antivirus(){
 	
-
+	$page=CurrentPageName();
 	$spamass=true;
 	$clamav=true;
 	$mime=new mimedefang();

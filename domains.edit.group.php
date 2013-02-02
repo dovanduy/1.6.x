@@ -8,6 +8,7 @@
 	include_once('ressources/class.groups.inc');
 	include_once('ressources/class.user.inc');
 	include_once('ressources/class.samba.inc');
+	include_once('ressources/class.external.ad.inc');
 	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;}
 	//if(count($_POST)>0)
 	$usersmenus=new usersMenus();
@@ -19,7 +20,7 @@
 			echo $tpl->_ENGINE_parse_body("alert('$error')");
 			die();
 		}
-		header("location:domains.manage.org.index.php?ou={$_GET["ou"]}");
+		header("location:domains.manage.org.index.php?ou={$_GET["ou"]}&dn=".urlencode($_GET["dn"]));
 		}
 	
 		
@@ -124,18 +125,22 @@ if(is_base64_encoded($_GET["ou"])){$_GET["ou"]=base64_decode($_GET["ou"]);}
 $ou_encrypted=base64_encode($_GET["ou"]);
 $page=CurrentPageName();
 $tpl=new templates();
+$dn=urlencode($_GET["dn"]);
 $title=$tpl->javascript_parse_text("{group name}");
 $t=$_GET["t"];
+$tt=$_GET["tt"];
 $html="
 
 	var x_addgroup= function (obj) {
 			var tempvalue=obj.responseText;
 			if(tempvalue.length>3){alert(tempvalue)};
 			if(document.getElementById('GroupSettings')){
-				LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings=&ou=$ou_encrypted&encoded=yes')
+				LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings=&ou=$ou_encrypted&encoded=yes&dn=$dn&t=$t&tt=$tt')
 			}
 			if(document.getElementById('organization-find')){SearchOrgs();}
 			$('#table-$t').flexReload();
+			$('#flexRT$t').flexReload();
+			$('#flexRT$tt').flexReload();
 		}
 
 
@@ -160,6 +165,7 @@ echo $html;
 
 
 function js(){
+$dn=urlencode($_GET["dn"]);
 if(is_base64_encoded($_GET["ou"])){$_GET["ou"]=base64_decode($_GET["ou"]);}
 $ou=$_GET["ou"];	
 $t=$_GET["t"];
@@ -178,7 +184,10 @@ $page=CurrentPageName();
 $prefix=str_replace('.','_',$page);
 $t=time();
 if(isset($_GET["group-id"])){
-	$loadgp="LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings={$_GET["group-id"]}&ou=$ou_encrypted&encoded=yes')";
+	if(strpos($_GET["group-id"], ",")>0){$title=$_GET["group-id"];}
+	$_GET["group-id"]=urlencode($_GET["group-id"]);
+	
+	$loadgp="LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings={$_GET["group-id"]}&ou=$ou_encrypted&encoded=yes&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn')";
 }
 
 while (list ($num, $ligne) = each ($cfg) ){
@@ -207,14 +216,14 @@ function LoadGroupAjaxSettingsInFront(){
 	$('#GroupSettings').remove();
 	$('#MembersList').remove();
 	$('#groupprivileges').remove();
-	$('#BodyContent').load('$page?popup=yes&ou=$ou_encrypted&crypted=yes&group-id={$_GET["group-id"]}');
+	$('#BodyContent').load('$page?popup=yes&ou=$ou_encrypted&crypted=yes&group-id={$_GET["group-id"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn');
 }
 function LoadGroupAjaxInsideTab(){
 	$('#ou').remove();
 	$('#GroupSettings').remove();
 	$('#MembersList').remove();
 	$('#groupprivileges').remove();
-	$('#{$_GET["InsideTab"]}').load('$page?popup=yes&ou=$ou_encrypted&crypted=yes&group-id={$_GET["group-id"]}');
+	$('#{$_GET["InsideTab"]}').load('$page?popup=yes&ou=$ou_encrypted&crypted=yes&group-id={$_GET["group-id"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn');
 }
 
 function LoadGroupAjaxSettingsPage$t(){
@@ -222,7 +231,7 @@ function LoadGroupAjaxSettingsPage$t(){
 	$('#GroupSettings').remove();
 	$('#MembersList').remove();
 	$('#groupprivileges').remove();
-	YahooWinS('816','$page?popup=yes&ou=$ou_encrypted&crypted=yes&group-id={$_GET["group-id"]}','$title');
+	YahooWinS('816','$page?popup=yes&ou=$ou_encrypted&crypted=yes&group-id={$_GET["group-id"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn','$title');
 	}
 	
 	function DomainEditGroupPressKey(e){
@@ -267,7 +276,7 @@ function DisplayDivs(){
 		if(!document.getElementById('grouplist')){
 			setTimeout('DisplayDivs()',900);
 		}
-		LoadAjax('grouplist','$page?LoadGroupList=$ou_encrypted&encoded=yes');
+		LoadAjax('grouplist','$page?LoadGroupList=$ou_encrypted&encoded=yes&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn');
 		LoadGroupSettings();
 		{$prefix}timeout=0;
 		$loadgp
@@ -286,6 +295,7 @@ function popup(){
 	$ou_encrypted=$_GET["ou"];
 	if($ou==null){$ou=ORGANISTATION_FROM_USER();}
 	$page=CurrentPageName();
+	$dn=urlencode($_GET["dn"]);
 	$title=$ou . ":&nbsp;{groups}";
 
 	$html="
@@ -299,7 +309,7 @@ function popup(){
 	
 	
 	<script>
-		LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings={$_GET["group-id"]}&ou=$ou_encrypted&encoded=yes')
+		LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings={$_GET["group-id"]}&ou=$ou_encrypted&encoded=yes&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn')
 	</script>
 	
 	";
@@ -315,6 +325,7 @@ function INDEX(){
 	$page=CurrentPageName();
 	$title=$ou . ":&nbsp;{groups}";
 	$ou_encoded=base64_encode($ou);
+	$dn=urlencode($_GET["dn"]);
 	$html="
 	<input type='hidden' id='inputbox delete' value=\"{are_you_sure_to_delete}\">
 	<input type='hidden' id='ou' value='$ou_encoded'>
@@ -325,7 +336,7 @@ function INDEX(){
 	<div id='MembersList'></div>
 	<div id='groupprivileges'></div>	
 	
-	<script>LoadAjax('grouplist','$page?LoadGroupList=$ou');</script>
+	<script>LoadAjax('grouplist','$page?LoadGroupList=$ou&dn=$dn');</script>
 	<script>LoadGroupSettings();</script>
 	
 	";
@@ -353,17 +364,17 @@ function GROUP_SIEVE_JS(){
 	$gp=new groups($gid);
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("$gp->ou::$gp->groupName::{sieve_auto_script}");
-	
+	$dn=urlencode($_GET["dn"]);
 	$html="
 		function SieveGroupOptions(){
-			YahooWin2(500,'$page?sieve-index=$gid','$title');
+			YahooWin2(500,'$page?sieve-index=$gid&dn=$dn','$title');
 			}
 			
 		function x_SieveSaveArticaFilters(obj){
 				var tempvalue=obj.responseText;
 				if(tempvalue.length>3){alert(tempvalue);}
 				SieveGroupOptions();
-				YahooWin3(500,'$page?sieve-update-users=$gid','$title');
+				YahooWin3(500,'$page?sieve-update-users=$gid&dn=$dn','$title');
 				}			
 			
 		function SieveSaveArticaFilters(){
@@ -451,7 +462,7 @@ function LIST_GROUPS_FROM_OU(){
 	$EnableManageUsersTroughActiveDirectory=$sock->GET_INFO("EnableManageUsersTroughActiveDirectory");
 	if(!is_numeric($EnableManageUsersTroughActiveDirectory)){$EnableManageUsersTroughActiveDirectory=0;}
 	$new_group=$tpl->_ENGINE_parse_body("{new_group}");
-
+	$dn=urlencode($_GET["dn"]);
 	$buttons="
 	buttons : [
 		{name: '$new_group', bclass: 'Add', onpress : AddGroupLink},
@@ -465,7 +476,7 @@ $html="
 var rowid$t='';
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?groups-area-search=yes&ou={$_GET["ou"]}&t=$t',
+	url: '$page?groups-area-search=yes&ou={$_GET["ou"]}&t=$t&dn=$dn',
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'xxx', width : 31, sortable : false, align: 'center'},	
@@ -481,7 +492,7 @@ $('#flexRT$t').flexigrid({
 	sortorder: 'desc',
 	usepager: true,
 	title: '$title',
-	useRp: false,
+	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
 	width: 770,
@@ -495,7 +506,7 @@ $('#flexRT$t').flexigrid({
 function AddGroupLink(){
 	var EnableManageUsersTroughActiveDirectory=$EnableManageUsersTroughActiveDirectory;
 	if(EnableManageUsersTroughActiveDirectory==1){return;}
-	Loadjs('$page?popup-add-group=yes&ou={$_GET["ou"]}');
+	Loadjs('$page?popup-add-group=yes&ou={$_GET["ou"]}&dn=$dn');
 }
 
 
@@ -505,10 +516,104 @@ function AddGroupLink(){
 	
 	
 }
+function LIST_GROUPS_FROM_OU_search_ActiveDirectory(){
+	if($_POST["query"]<>null){$search=$_POST["query"];}
+	$GLOBALS["NOUSERSCOUNT"]=false;
+	$ou=base64_decode($_GET["ou"]);
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	if($_POST["qtype"]=="group"){$_POST["qtype"]="groupname";}
+	if($_POST["sortname"]=="group"){$_POST["sortname"]="groupname";}
+	$error="No dn";
+	if(strlen($_GET["dn"])>0){
+		$table="activedirectory_groupsNames";
+		$database="artica_backup";
+		$_GET["dn"]=urldecode($_GET["dn"]);
+		$FORCE_FILTER="AND oudn='{$_GET["dn"]}'";
+		$error=null;
+	}
+	
+	
+	
+	$q=new mysql();
+	
+	if($q->COUNT_ROWS($table,$database)==0){json_error_show("$table: No item $error",1);}
+	
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
+	
+	$searchstring=string_to_flexquery();
+	if($search<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+	
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+	}
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	
+	
+	
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	
+	
+	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	$results = $q->QUERY_SQL($sql,$database);	
+	if(!$q->ok){json_error_show("$q->mysql_error<br>\n$sql",1);}
+	if(mysql_num_rows($results)==0){
+		json_error_show("No item: $sql",1);
+	}
+	
+	$data = array();
+	$data['page'] = 1;
+	$data['total'] = $total;
+	$data['rows'] = array();
+	
+	
+	
 
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$color="black";
+		$dn=urlencode($ligne["dn"]);
+		$js="javascript:LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings=$num&ou={$_GET["ou"]}&encoded=yes&dn={$_GET["dn"]}')";
+		$text=$tpl->_ENGINE_parse_body("{manage_this_group}");
+		$members=$ligne["UsersCount"];
+		if($ligne["description"]<>null){$text=$tpl->_ENGINE_parse_body($ligne["description"]);}
+			$data['rows'][] = array(
+						'id' => md5($ligne["dn"]),
+						'cell' => array(
+								"<span style='font-size:14px;color:$color;'><img src='img/group-24.png'></span>",
+								"<a href=\"javascript:blur();\" OnClick=\"$js\" style='font-size:14px;color:$color;text-decoration:underline'>{$ligne["groupname"]}</span>",
+								"<span style='font-size:14px;color:$color;'>$members</span>",
+								"<span style='font-size:14px;color:$color;'>$text</span>",
+						)
+				);
+	
+
+	}
+	
+	
+	
+	echo json_encode($data);	
+	
+}
 
 
 function LIST_GROUPS_FROM_OU_search(){
+	
+	$ldap=new clladp();
+	if($ldap->IsKerbAuth()){
+		LIST_GROUPS_FROM_OU_search_ActiveDirectory();
+		return;
+	}
 	if($_POST["query"]<>null){$search=$_POST["query"];}
 	$GLOBALS["NOUSERSCOUNT"]=false;
 	$ou=base64_decode($_GET["ou"]);
@@ -526,16 +631,23 @@ function LIST_GROUPS_FROM_OU_search(){
 	
 	writelogs("[$search]: EnableManageUsersTroughActiveDirectory = $EnableManageUsersTroughActiveDirectory ",__FUNCTION__,__FILE__);
 	
-
-	if($EnableManageUsersTroughActiveDirectory==1){
+	$ldap=new clladp();
+	if(!$ldap->IsOUUnderActiveDirectory($ou)){
+		if($EnableManageUsersTroughActiveDirectory==1){
 			$GLOBALS["NOUSERSCOUNT"]=true;
 			$ldap=new ldapAD();
 			writelogs("[$search]: ->hash_get_groups_from_ou_mysql($ou,$search) ",__FUNCTION__,__FILE__);
 			$hash=$ldap->hash_get_groups_from_ou_mysql($ou,$search,true);
+		}else{
+			$ldap=new clladp();
+			$hash=$ldap->hash_groups($ou,1);
+		}
 	}else{
-		$ldap=new clladp();
-		$hash=$ldap->hash_groups($ou,1);
-		
+		$GLOBALS["NOUSERSCOUNT"]=true;
+		$EnableManageUsersTroughActiveDirectory=1;
+		include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+		$ad=new external_ad_search();
+		$hash=$ad->hash_groups($ou);
 	}	
 	
 	
@@ -549,9 +661,11 @@ function LIST_GROUPS_FROM_OU_search(){
 			while (list ($num, $line) = each ($hash)){
 				if(strtolower($line)=='default_group'){continue;}
 				if(strlen($search)>2){if(!preg_match("#$search#",$line)){continue;}}
-				
+				$color="black";
 				
 				$js="javascript:LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings=$num&ou={$_GET["ou"]}&encoded=yes')";
+				
+				
 				if(!$GLOBALS["NOUSERSCOUNT"]){
 					$gp=new groups($num);
 					$members=count($gp->members_array);	
@@ -615,12 +729,7 @@ function GROUPS_LIST($OU){
 	$page=CurrentPageName();
 	$ou=$OU;
 	if(is_base64_encoded($ou)){$ou=base64_decode($ou);}
-	
-	
-	
 	writelogs("Encoded ou ? =\"$ou\" {$_SESSION["uid"]}",__FUNCTION__,__FILE__);
-	
-	
 	$ldap=new clladp();
 	$users=new usersMenus();
 	
@@ -743,6 +852,7 @@ function GROUP_SETTINGS_PAGE_ACTIVE_DIRECTORY(){
 	if(isset($_GET["tab"])){GROUP_SETTINGS_PAGE_CONTENT();exit;}
 	$users=new usersMenus();
 	$tpl=new templates();
+	$dn=urlencode($_GET["dn"]);
 	$no_priv = $tpl->javascript_parse_text ("{ERROR_NO_PRIVS}" );
 	$page=CurrentPageName();	
 	if($users->AsOrgAdmin){$users->AllowAddUsers=true;}
@@ -756,22 +866,30 @@ function GROUP_SETTINGS_PAGE_ACTIVE_DIRECTORY(){
 	}
 	$array["members"]='{members}';
 	$array["groups"]='{groups2} '.base64_decode($_GET["ou"]);
+	if(strpos($_GET["LoadGroupSettings"], ",")>0){unset($array["groups"]);}
+	$array["privs"]="{privileges}";
+
 	
 	$_GET["LoadGroupSettings"]=urlencode($_GET["LoadGroupSettings"]);
 	while (list ($num, $ligne) = each ($array) ){
 		$ligne=$tpl->_ENGINE_parse_body($ligne);
 		
 		if($num=="members"){
-			$html[]= "<li><a href=\"$page?MembersList={$_GET["LoadGroupSettings"]}&ou={$_GET["ou"]}\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li><a href=\"$page?MembersList={$_GET["LoadGroupSettings"]}&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 		
-		$html[]= "<li><a href=\"$page?LoadGroupSettings={$_GET["LoadGroupSettings"]}&tab=$num&ou={$_GET["ou"]}\"><span>$ligne</span></a></li>\n";
+		if($num=="privs"){
+			$html[]= "<li><a href=\"$page?GroupPriv={$_GET["LoadGroupSettings"]}&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&start=yes&dn=$dn\"><span>$ligne</span></a></li>\n";
+			continue;			
+		}
+		
+		$html[]= "<li><a href=\"$page?LoadGroupSettings={$_GET["LoadGroupSettings"]}&tab=$num&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn\"><span>$ligne</span></a></li>\n";
 	}
 	
 	
 	echo "
-	<div id=main_group_config style='width:100%;'>
+	<div id=main_group_config style='width:100%;font-size:14px'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -790,10 +908,18 @@ function GROUP_SETTINGS_PAGE_ACTIVE_DIRECTORY(){
 
 function GROUP_SETTINGS_PAGE(){
 	$ldap=new clladp();
+	writelogs("{$_GET["LoadGroupSettings"]}",__FUNCTION__,__FILE__,__LINE__);
+	
 	if($ldap->EnableManageUsersTroughActiveDirectory){
 		writelogs("Loading tabs for Active Directory",__FUNCTION__,__FILE__,__LINE__);
 		GROUP_SETTINGS_PAGE_ACTIVE_DIRECTORY();
 		return;
+	}
+	
+	if(strpos( $_GET["LoadGroupSettings"],",")>0){
+		writelogs("Loading tabs for Active Directory",__FUNCTION__,__FILE__,__LINE__);
+		GROUP_SETTINGS_PAGE_ACTIVE_DIRECTORY();
+		return;		
 	}
 	
 	
@@ -802,7 +928,7 @@ function GROUP_SETTINGS_PAGE(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$no_priv = $tpl->javascript_parse_text ("{ERROR_NO_PRIVS}" );
-	
+	$dn=urlencode($_GET["dn"]);
 	
 	
 	
@@ -841,11 +967,11 @@ function GROUP_SETTINGS_PAGE(){
 		$ligne=$tpl->_ENGINE_parse_body($ligne);
 		
 		if($num=="members"){
-			$html[]= "<li><a href=\"$page?MembersList={$_GET["LoadGroupSettings"]}&ou={$_GET["ou"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			$html[]= "<li><a href=\"$page?MembersList={$_GET["LoadGroupSettings"]}&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
 		}
 		
-		$html[]= "<li><a href=\"$page?LoadGroupSettings={$_GET["LoadGroupSettings"]}&tab=$num&ou={$_GET["ou"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+		$html[]= "<li><a href=\"$page?LoadGroupSettings={$_GET["LoadGroupSettings"]}&tab=$num&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 	}
 	
 	
@@ -904,6 +1030,11 @@ function GROUP_SETTINGS_PAGE_CONTENT(){
 	$text_disbaled="{ERROR_NO_PRIVILEGES_OR_PLUGIN_DISABLED}";
 	$user=new usersMenus();
 	$user->LoadModulesEnabled();
+	$sock=new sockets();
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}	
+	if($SambaEnabled==0){$user->SAMBA_INSTALLED=false;}
+	
 	
 	$SAMBA_GROUP=Paragraphe('64-group-samba-grey.png','{MK_SAMBA_GROUP}',$text_disbaled,'');
 	$mailing_list=Paragraphe('64-mailinglist-grey.png',"{mailing_list}","$text_disbaled");
@@ -1145,11 +1276,11 @@ function MEMBERS_LIST($gid){
 	$group=new groups($gid);
 	$t=time();
 	$members=$tpl->_ENGINE_parse_body("{members}");
-	$js_addmember="Loadjs('domains.add.user.php?ou=$group->ou&gpid=$gid&t=$t')";
-	$js_impotmember="Loadjs('domains.import.user.php?ou=". base64_encode($group->ou)."&gpid=$gid&t=$t')";
+	$js_addmember="Loadjs('domains.add.user.php?ou=$group->ou&gpid=$gid&t=$t&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&flexRT=$t')";
+	$js_impotmember="Loadjs('domains.import.user.php?ou=". base64_encode($group->ou)."&gpid=$gid&t=$t&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}')";
 	$add_member=imgtootltip('member-add-64.png','{add_member}',$js_addmember);
 	$import_member=imgtootltip('64-import-member.png','{add_already_member}',$js_impotmember);
-	$import_members=imgtootltip('member-64-import.png','{import}',"Loadjs('domains.import.members.php?gid=$gid&t=$t')");
+	$import_members=imgtootltip('member-64-import.png','{import}',"Loadjs('domains.import.members.php?gid=$gid&t=$t&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}')");
 	$delete_members=imgtootltip('member-64-delete.png','{delete_members}',"DeleteMembersGroup($gid)");
 	$sure_to_delete_selected_user=$tpl->javascript_parse_text("{disconnect_from_this_group}");	
 	if($users->ARTICA_META_ENABLED){
@@ -1157,16 +1288,23 @@ function MEMBERS_LIST($gid){
 			$add_member=null;
 		}
 	}
+	
+	if(strpos($gid, ",")>0){
+		$users->EnableManageUsersTroughActiveDirectory=true;
+	}
+	
 	$GLOBALS["EnableManageUsersTroughActiveDirectory"]=$users->EnableManageUsersTroughActiveDirectory;
 	if($GLOBALS["EnableManageUsersTroughActiveDirectory"]){
 		$js_addmember=null;
 		$js_impotmember=null;
-		$import_member=null;
-		$import_members=null;
-		$delete_members=null;
+		$import_member=imgsimple("64-import-member-grey.png");
+		$import_members=imgsimple("member-64-import-grey.png");
+		$delete_members=imgsimple("member-64-delete-grey.png");
 		$add_member=imgtootltip('member-add-64-grey.png','{add_member}');
 		
 	}
+	
+	
 	
 //".(MEMBERS_LIST_LIST($gid)) ."	
 	
@@ -1220,8 +1358,8 @@ var MemUidG$t='';
 			sortorder: 'desc',
 			usepager: true,
 			title: '',
-			useRp: false,
-			rp: 100,
+			useRp: true,
+			rp: 50,
 			rpOptions: [10, 20, 30, 50,100,200,500],
 			showTableToggleBtn: false,
 			width: 573,
@@ -1267,10 +1405,29 @@ function MEMBERS_LIST_LIST($gid=0){
 	$priv=new usersMenus();
 	if($_POST["query"]<>null){$search=$_POST["query"];}	
 	
-	writelogs("-> groups($gid,$search)",__FUNCTION__,__FILE__,__LINE__);
-	$group=new groups($gid,$search);
-	writelogs("-> groups($gid,$search) END",__FUNCTION__,__FILE__,__LINE__);	
-	$members=$group->members;
+	
+	
+	if(strpos($gid, ',')>0){
+		writelogs("-> HashUsersFromGroupDN($gid)",__FUNCTION__,__FILE__,__LINE__);
+		$p=new external_ad_search();
+		$members=$p->HashUsersFromGroupDN($gid);
+		$count=count($members);
+		writelogs("found $count members for DN ($gid)",__FUNCTION__,__FILE__,__LINE__);
+		$EnableManageUsersTroughActiveDirectory=true;
+		
+	}else{
+		writelogs("-> groups($gid,$search)",__FUNCTION__,__FILE__,__LINE__);
+		$group=new groups($gid,$search);
+		writelogs("-> groups($gid,$search) END",__FUNCTION__,__FILE__,__LINE__);
+		$members=$group->members;
+		$count=count($members);
+		$EnableManageUsersTroughActiveDirectory=$group->EnableManageUsersTroughActiveDirectory;
+		writelogs("found $count members for (gidnumber=$gid)",__FUNCTION__,__FILE__,__LINE__);
+	}
+	
+	
+		
+	
 	$search=str_replace(".",'\.',$search);
 	$search=str_replace("*",".*?",$search);
 	
@@ -1279,7 +1436,7 @@ function MEMBERS_LIST_LIST($gid=0){
 	
 	
 	
-	writelogs("found $count members for (gidnumber=$gid)",__FUNCTION__,__FILE__,__LINE__);
+	
 	if(!is_array($members)){json_error_show("No Members $search...");}
 	$user_img="user-32.png";
 	$computer_img="computer-32.png";
@@ -1288,21 +1445,32 @@ function MEMBERS_LIST_LIST($gid=0){
 	$already=array();
 	
 	$data = array();
-	$data['page'] = 1;
+	$data['page'] = $_POST["page"];
 	$data['total'] = $number_of_users;
 	$data['rows'] = array();		
 	$c=0;	
+	$Page=$_POST["page"];
+	if(!is_numeric($Page)){$Page=1;}
+	$start=0;
+	$stop=$_POST["rp"];
+	$Page=$Page-1;
 	
-	writelogs("groups: starting table ",__FUNCTION__,__FILE__,__LINE__);
-	for($i=0;$i<=$number_of_users;$i++){
+	if($Page>0){
+		$start=$Page*$_POST["rp"];
+		$stop=$start+$_POST["rp"];
+	}
+	if(!is_numeric($stop)){$stop=50;}
+	
+	writelogs("groups: starting table i=$start to $stop",__FUNCTION__,__FILE__,__LINE__);
+	for($i=$start;$i<=$stop;$i++){
 		$uid=$members[$i];
 		if(trim($uid)==null){continue;}
 		$color="black";
 		if(substr($uid,strlen($uid)-1,1)=='$'){$img=$computer_img;}else{$img=$user_img;}		
 		$md=md5($uid);
 		if(isset($already[$uid])){continue;}
-		$delete=imgtootltip('delete-24.png','{disconnect_from_this_group}',"DeleteUserFromGroup('$uid','$md')");
-		if($group->EnableManageUsersTroughActiveDirectory){$delete=imgtootltip('delete-24-grey.png','{disconnect_from_this_group}',"");}
+		$delete=imgsimple('delete-24.png','{disconnect_from_this_group}',"DeleteUserFromGroup('$uid','$md')");
+		if($EnableManageUsersTroughActiveDirectory){$delete=imgsimple('delete-24-grey.png','{disconnect_from_this_group}',"");}
 		$already[$uid]=true;
 		
 		if(strlen($search)>0){if(!preg_match("#$search#",$uid)){continue;}}
@@ -1804,7 +1972,7 @@ function GROUP_PRIVILEGES_TABS($gid){
 	if($gid==-2){$addon="&userid={$_GET["userid"]}";}
 	$time=time();
 	$array["U"]='{users_allow}';
-	
+	$gid=urlencode($gid);
 	if($users->AllowEditOuSecurity){
 		$array["G"]='{groups_allow}';
 		$array["O"]='{organization_allow}';
@@ -1833,7 +2001,7 @@ $html="
 				    }
 				});
 			
-			$('#{$gid}_priv').tabs('option', 'fx', { opacity: 'toggle' });
+			$('#{$time}_priv').tabs('option', 'fx', { opacity: 'toggle' });
 			});
 		</script>
 	
@@ -1852,7 +2020,14 @@ $html="
     	
 function GROUP_PRIVILEGES($gid){
 	    $usr=new usersMenus();
-	    
+	    $sock=new sockets();
+	    $SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	    $EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+	    if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+	    if($SambaEnabled==0){$usr->SAMBA_INSTALLED=false;}	
+	    $EnableSambaVirtualsServers=$sock->GET_INFO("EnableSambaVirtualsServers");    
+	    if(!is_numeric($EnableSambaVirtualsServers)){$EnableSambaVirtualsServers=0;}
+	    if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=0;}
     	if(!isset($_GET["tab"])){
     		echo GROUP_PRIVILEGES_TABS($gid);
     		return;
@@ -1897,7 +2072,19 @@ function GROUP_PRIVILEGES($gid){
 			$organization_hidden="<input type='hidden' name='userid' value='{$_GET["userid"]}'>";
 			$title_form="{member}: &laquo;{$_GET["userid"]}";
 			$warn="<div class=explain>{privileges_users_warning}</div>";
-		} 		
+		} 
+
+		if(strpos($gid, ",")>0){
+			include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+			$gp=new external_ad_search();
+			$ldap=new clladp();
+			$hash=$gp->LoadGroupDataByDN($gid);
+			$privs=$hash["ArticaGroupPrivileges"];
+			$HashPrivieleges=$ldap->_ParsePrivieleges($privs,array());
+			$title_form="{group}: &laquo;{$hash["samaccountname"][0]}<div style='font-size:11px;padding:left:50px;margin-bottom:10px;float:right'>$gid</div>";
+			
+			
+		}
     	
     	
     	$priv= new usersMenus();
@@ -1939,7 +2126,58 @@ function GROUP_PRIVILEGES($gid){
     	$AllowEditOuSecurity=Field_yesno_checkbox('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);
     	$AsHotSpotManager=Field_yesno_checkbox('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);
     	$AsOwnMailBoxBackup=Field_yesno_checkbox('AsOwnMailBoxBackup',$HashPrivieleges["AsOwnMailBoxBackup"]);
+    	$AsOrgDNSAdmin=Field_yesno_checkbox('AsOrgDNSAdmin',$HashPrivieleges["AsOrgDNSAdmin"]);
+    	$ASDCHPAdmin=Field_yesno_checkbox('ASDCHPAdmin',$HashPrivieleges["ASDCHPAdmin"]);
     	
+    	
+    	if($priv->SAMBA_INSTALLED){
+    		$VirtualSambaServerColor="#B3B3B3";
+    		$VirtualSambaServerHidden="<input type='hidden' id='VirtualSambaServer', value='{$HashPrivieleges["VirtualSambaServer"]}'><span style='font-size:13.5px'>{$HashPrivieleges["VirtualSambaServer"]}</span>";
+    		$VirtualSambaServer=$VirtualSambaServerHidden;
+    		if($EnableSambaVirtualsServers==1){
+    			$q=new mysql();
+    			$sql="SELECT hostname FROM samba_hosts WHERE ou='$ou'";
+    			$results = $q->QUERY_SQL($sql,"artica_backup");
+    			if(mysql_num_rows($results)==0){
+    				$VirtualSambaServerError="{no_server_for_this_ou}:$ou";
+    			}
+    			if(!$q->ok){$VirtualSambaServerError=$q->mysql_error;}
+    			$SAMBAHOSTS[null]="{select}";
+    			while ($ligne = mysql_fetch_assoc($results)) {$SAMBAHOSTS[$ligne["hostname"]]=$ligne["hostname"];}
+    			$VirtualSambaServerField=Field_array_Hash($SAMBAHOSTS, "VirtualSambaServer",$HashPrivieleges["VirtualSambaServer"],null,null,0,"font-size:11px");
+    		}
+    	
+    	}
+    	
+    	if($priv->POSTFIX_INSTALLED){
+    		if($EnablePostfixMultiInstance==1){
+    			$q=new mysql();
+    			if(!class_exists("maincf_multi")){include_once(dirname(__FILE__)."/ressources/class.maincf.multi.inc");}
+    			$sql="SELECT `value`,ip_address FROM postfix_multi WHERE `ou`='$ou' AND `key`='myhostname'";
+    			$results=$q->QUERY_SQL($sql,"artica_backup");
+    			if(!$q->ok){$VirtualPostfixError=$q->mysql_error;}
+    			$PostfixInstances[null]="{select}";
+    			if(mysql_num_rows($results)>0){
+	    			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+	    				$main=new maincf_multi($ligne["value"],$ou);
+	    				$servername=$ligne["value"];
+	    				$VirtualHostNameToChange=$main->GET("VirtualHostNameToChange");
+	    				$servernameTEXT=$servername;
+	    				if($VirtualHostNameToChange<>null){$servernameTEXT=$VirtualHostNameToChange;}
+	    				$PostfixInstances[$servername]=$servernameTEXT;
+	    			}
+	    			$VirtualPostfixFieldColor="#B3B3B3";
+	    			$VirtualPostfixHidden="<input type='hidden' id='PostfixInstance', value='{$HashPrivieleges["PostfixInstance"]}'><span style='font-size:13.5px'>{$HashPrivieleges["PostfixInstance"]}</span>";
+	    			$VirtualPostfixField=Field_array_Hash($PostfixInstances, "PostfixInstance",$HashPrivieleges["PostfixInstance"],null,null,0,"font-size:11px");
+	    			$VirtualPostfix=$VirtualPostfixHidden;
+    			}else{
+    				$VirtualPostfixError="{no_instance}:$ou";
+    			}
+    			
+    		}else{
+    			$VirtualPostfixError="{feature_disabled}";
+    		}
+    	}
     	
     	
     	if($priv->AllowAddUsers==false){
@@ -1976,12 +2214,14 @@ function GROUP_PRIVILEGES($gid){
 			$AllowViewStatistics="<img src='img/status_critical.gif'>".Field_hidden('AllowViewStatistics',$HashPrivieleges["AllowViewStatistics"]);
     		$AllowEditOuSecurity="<img src='img/status_critical.gif'>".Field_hidden('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);
     		$AsHotSpotManager="<img src='img/status_critical.gif'>".Field_hidden('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);
+    		$ASDCHPAdmin="<img src='img/status_critical.gif'>".Field_hidden('ASDCHPAdmin',$HashPrivieleges["ASDCHPAdmin"]);
     		
 			
     		
 		}
 		
 		if(!$priv->AsOrgAdmin){
+			
 			$AsWebMaster="<img src='img/status_critical.gif'>".Field_hidden('AsWebMaster',$HashPrivieleges["AsWebMaster"]);
 		}
     		
@@ -2027,11 +2267,17 @@ function GROUP_PRIVILEGES($gid){
 		if($priv->AsOrgStorageAdministrator==false){$AsOrgStorageAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsOrgStorageAdministrator',$HashPrivieleges["AsOrgStorageAdministrator"]);}
 		if($priv->OverWriteRestrictedDomains==false){$OverWriteRestrictedDomains="<img src='img/status_critical.gif'>".Field_hidden('OverWriteRestrictedDomains',$HashPrivieleges["OverWriteRestrictedDomains"]);}
 		if($priv->AsHotSpotManager==false){$AsHotSpotManager="<img src='img/status_critical.gif'>".Field_hidden('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);}
+		if($priv->AsOrgDNSAdmin==false){$AsOrgDNSAdmin="<img src='img/status_critical.gif'>".Field_hidden('AsOrgDNSAdmin',$HashPrivieleges["AsOrgDNSAdmin"]);}
+		if($priv->ASDCHPAdmin==false){$ASDCHPAdmin="<img src='img/status_critical.gif'>".Field_hidden('ASDCHPAdmin',$HashPrivieleges["ASDCHPAdmin"]);}
 		
-		 
-		
-		
-    	
+		if($priv->AsOrgAdmin){
+			$VirtualSambaServerColor="black";
+			$VirtualSambaServer=$VirtualSambaServerField;
+			
+			$VirtualPostfix=$VirtualPostfixField;
+			$VirtualPostfixFieldColor="black";
+		} 
+   	
     	
     	
 $group_allow="&nbsp;{groups_allow}</H3><br>
@@ -2149,7 +2395,17 @@ $org_allow="&nbsp;{organization_allow}</H3><br>
 		<td align='right' nowrap><span style='font-size:13.5px'>{AsWebMaster}:</span></td>
 		<td>$AsWebMaster</td>
 	</tr>
-		
+	<tr>
+		<td align='right' nowrap><span style='font-size:13.5px;color:$VirtualSambaServerColor'>{file_sharing_server}:</span></td>
+		<td>$VirtualSambaServer<div>$VirtualSambaServerError</div></td>
+	</tr>	
+	<tr>
+		<td align='right' nowrap><span style='font-size:13.5px;color:$VirtualPostfixFieldColor'>{postfix_instance}:</span></td>
+		<td>$VirtualPostfix<div><div>$VirtualPostfixError</div></td>
+	</tr>	
+	<tr>
+		<td align='right'><span style='font-size:13.5px'>{AsOrgDNSAdmin}:</span></td><td>$AsOrgDNSAdmin</td>
+	</tr>			
 	<tr>
 		<td align='right'><span style='font-size:13.5px'>{AllowChangeDomains}:</span></td><td>$AllowChangeDomains</td>
 	</tr>	
@@ -2179,7 +2435,12 @@ $admin_allow="&nbsp;{administrators_allow}</H3><br>
 						<tr>
 							<td align='right' nowrap><span style='font-size:13.5px'>{AsSambaAdministrator}:</span></td>
 							<td>$AsSambaAdministrator</td>
-						</tr>						
+						</tr>	
+						<tr>
+							<td align='right' nowrap><span style='font-size:13.5px'>{ASDCHPAdmin}:</span></td>
+							<td>$ASDCHPAdmin</td>
+						</tr>	
+						
 											
 						<tr>
 							<td align='right' nowrap><span style='font-size:13.5px'>{AsArticaAdministrator}:</span></td>
@@ -2236,13 +2497,14 @@ switch ($_GET["tab"]) {
 	default:$g=$user_allow;break;
 }
 
-
+$t=time();
 $page=CurrentPageName();
+
 $html="
 	$div1
 	$warn
-	<div style='padding:20px'>
-	$tabs
+	<div id='$t-div'></div>
+	<div style='padding:20px' >
 	<form name='{$sufform}_priv'>
 		$organization_hidden
 		<input type='hidden' name='PrivilegesGroup' value='$gid'><br>
@@ -2255,10 +2517,20 @@ $html="
 		</div>$div2
 
 		<script>
-		function EditGroupPrivileges(){
-			ParseForm('{$sufform}_priv','$page',true);
-			if(document.getElementById('groupprivileges')){document.getElementById('groupprivileges').innerHTML='';}
-		}
+		
+var x_EditGroupPrivileges$t= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);}
+	document.getElementById('$t-div').innerHTML='';
+	}
+		
+	function EditGroupPrivileges(){
+		
+		var XHR=ParseForm('{$sufform}_priv','$page',true,false,true);
+		if(document.getElementById('groupprivileges')){document.getElementById('groupprivileges').innerHTML='';}
+		AnimateDiv('$t-div');
+		XHR.sendAndLoad('$page', 'GET',x_EditGroupPrivileges$t);
+	}
 		
 		function CheckHasOrgAdmin(){
 			CheckAsMessagingOrg();	
@@ -2329,6 +2601,8 @@ function EditGroup(){
 	    $Hash=$ldap->GroupDatas($gid);
 	}
 	
+
+	
 		
 	if(!is_array($Hash["ArticaGroupPrivileges"])){
 		writelogs("ldap->_ParsePrivieleges(...)",__FUNCTION__,__FILE__,__LINE__);
@@ -2358,14 +2632,22 @@ function EditGroup(){
 	}
 
 	$values=@implode($GroupPrivilegeNew, "\n");
+
 	if($gid==-2){
 		writelogs("ArticaGroupPrivileges -> $gid -> user->SavePrivileges() values=$values",__FUNCTION__,__FILE__,__LINE__);
 		$user->SavePrivileges($values);
 		return;
 	}
+	
+	if(strpos($gid, ",")>0){
+		$gp=new external_ad_search();
+		$gp->SaveGroupPrivileges($values,$gid);
+		return;
+	}
 
 	$update_array["ArticaGroupPrivileges"][0]=$values;
-	writelogs("Modify: {$Hash["dn"]}",__FUNCTION__,__FILE__,__LINE__);
+	writelogs("ArticaGroupPrivileges ->  {$Hash["dn"]} -> group->SavePrivileges() values=$values",__FUNCTION__,__FILE__,__LINE__);
+	
 	if(!$ldap->Ldap_modify($Hash["dn"],$update_array)){
 		echo basename(__FILE__)."\nline: ".__LINE__."\n".$ldap->ldap_last_error;
 	}
@@ -2439,7 +2721,7 @@ function COMPUTERS_LIST(){
 	<tr>
 		<td valign='top' width=60% style='padding:5px'>$computer_list</td>
 		<td valign='top'>". RoundedLightGrey(Paragraphe("computer-search-add-64.png","{find_computer}","{addfind_computer_text}","javascript:addComputer($gpid)")).
-	"<br>".RoundedLightGrey(Paragraphe("computer-64-add.png","{add_computer}","{add_computer_text}","javascript:YahooUser(670,\"domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&gpid=$gpid\",\"windows: New {add_computer}\");"))."</td>
+	"<br>".RoundedLightGrey(Paragraphe("computer-64-add.png","{add_computer}","{add_computer_text}","javascript:YahooUser(962,\"domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&gpid=$gpid\",\"windows: New {add_computer}\");"))."</td>
 	</tr>	
 	</table>
 	";

@@ -90,6 +90,8 @@ class SMTPMailer {
     $this->helo_rply = null;
 
     $this->do_debug = 0;
+    if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] OK\n";}
+    if($GLOBALS["VERBOSE"]){$this->do_debug=10;}
   }
 
   /////////////////////////////////////////////////
@@ -125,6 +127,7 @@ class SMTPMailer {
     }
 
     // connect to the smtp server
+  	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] fsockopen($host,$port)\n";}
     $this->smtp_conn = @fsockopen($host,    // the host of the server
                                  $port,    // the port to use
                                  $errno,   // error number if any
@@ -132,6 +135,7 @@ class SMTPMailer {
                                  $tval);   // give up after ? secs
     // verify we connected properly
     if(empty($this->smtp_conn)) {
+    	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] Failed to connect to server err:$errno $errstr\n";}
       $this->error = array("error" => "Failed to connect to server",
                            "errno" => $errno,
                            "errstr" => $errstr);
@@ -147,12 +151,13 @@ class SMTPMailer {
      socket_set_timeout($this->smtp_conn, $tval, 0);
 
     // get any announcement
+    if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] get_lines()\n";}
     $announce = $this->get_lines();
 
     if($this->do_debug >= 2) {
       echo "SMTP -> FROM SERVER:" . $announce . $this->CRLF . '<br />';
     }
-
+    if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] $announce true\n";}
     return true;
   }
 
@@ -167,12 +172,13 @@ class SMTPMailer {
    */
   public function StartTLS() {
     $this->error = null; # to avoid confusion
-
+    if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] OK\n";}
     if(!$this->connected()) {
+    	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] Called StartTLS() without being connected\n";}
       $this->error = array("error" => "Called StartTLS() without being connected");
       return false;
     }
-
+    if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] STARTTLS\n";}
     fputs($this->smtp_conn,"STARTTLS" . $this->CRLF);
 
     $rply = $this->get_lines();
@@ -183,6 +189,7 @@ class SMTPMailer {
     }
 
     if($code != 220) {
+    	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] STARTTLS not accepted from server\n";}
       $this->error =
          array("error"     => "STARTTLS not accepted from server",
                "smtp_code" => $code,
@@ -195,6 +202,7 @@ class SMTPMailer {
 
     // Begin encrypted connection
     if(!stream_socket_enable_crypto($this->smtp_conn, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+    	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] stream_socket_enable_crypto() return false\n";}
       return false;
     }
 
@@ -209,8 +217,10 @@ class SMTPMailer {
    */
   public function Authenticate($username, $password) {
     // Start authentication
+  	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] AUTH LOGIN \"$username\":\"$password\"\n";}
     fputs($this->smtp_conn,"AUTH LOGIN" . $this->CRLF);
-
+    $username=trim($username);
+    $password=trim($password);
     $rply = $this->get_lines();
     $code = substr($rply,0,3);
 
@@ -270,9 +280,14 @@ class SMTPMailer {
   public function Connected() {
     if(!empty($this->smtp_conn)) {
       $sock_status = socket_get_status($this->smtp_conn);
+      
+      if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] \n";}
+      
       if($sock_status["eof"]) {
+      	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] EOF caught while checking if connected\n";}
         // the socket is valid but we are not connected
         if($this->do_debug >= 1) {
+        	
             echo "SMTP -> NOTICE:" . $this->CRLF . "EOF caught while checking if connected";
         }
         $this->Close();
@@ -795,6 +810,8 @@ class SMTPMailer {
   private function get_lines() {
     $data = "";
     while($str = @fgets($this->smtp_conn,515)) {
+    	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] \$data was \"$data\"\n";}
+    	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] \$str is \"$str\"\n";}
       if($this->do_debug >= 4) {
         echo "SMTP -> get_lines(): \$data was \"$data\"" . $this->CRLF . '<br />';
         echo "SMTP -> get_lines(): \$str is \"$str\"" . $this->CRLF . '<br />';
@@ -806,6 +823,7 @@ class SMTPMailer {
       // if 4th character is a space, we are done reading, break the loop
       if(substr($str,3,1) == " ") { break; }
     }
+    if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] return ". strlen($data)."\n";}
     return $data;
   }
 

@@ -37,15 +37,18 @@ tabs();
 
 
 function tabs(){
-	$t=time();
+	$tt=$_GET["tt"];
+	$t=$_GET["t"];
+	
+	$ttt=time();
 	$page=CurrentPageName();
 	
 	$html="
-	<div id='$t'></div>
+	<div id='$ttt'></div>
 	
 	<script>
 		$('#main_filter_rule_edit_group').remove();
-		LoadAjax('$t','$page?tabs=yes&ID={$_GET["ID"]}&t={$_GET["t"]}&yahoo={$_GET["yahoo"]}');
+		LoadAjax('$ttt','$page?tabs=yes&ID={$_GET["ID"]}&t={$_GET["t"]}&tt=$tt&yahoo={$_GET["yahoo"]}');
 	</script>
 	
 	";echo $html;
@@ -56,6 +59,8 @@ function tabs(){
 
 function tabs2(){
 	$t=$_GET["t"];
+	$tt=$_GET["tt"];
+	
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$array["group"]='{group}';
@@ -73,17 +78,18 @@ function tabs2(){
 	}
 
 	$gpid=$ligne["gpid"];
-	$t=$_GET["t"];
+	
 	if(!is_numeric($t)){$t=time();}
+	if(!is_numeric($tt)){$tt=time();}
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="members-ad"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.group.membersad.php?dn=$dn&yahoo={$_GET["yahoo"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.group.membersad.php?dn=$dn&yahoo={$_GET["yahoo"]}&t=$t&tt=$tt\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 			continue;
 			
 		}
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&ID={$_GET["ID"]}&t=$t&yahoo={$_GET["yahoo"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&ID={$_GET["ID"]}&t=$t&tt=$tt&yahoo={$_GET["yahoo"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -115,6 +121,7 @@ function group_edit(){
 	$adgroup=false;
 	$q2=new mysql();
 	$t=$_GET["t"];
+	$tt=$_GET["tt"];
 	if($q2->COUNT_ROWS("adusers", "artica_backup")>0){$adgroup=true;}
 	
 	$Yahoo=$_GET["yahoo"];
@@ -165,7 +172,7 @@ function group_edit(){
 	$bt_browse="<input type='button' value='{browse}...' OnClick=\"javascript:MemberBrowsePopup();\" style='font-size:13px'>";
 	if($ID>1){if($ligne["localldap"]==2){$bt_bt=null;$bt_browse=null;}}
 	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}
-	$t=time();
+	
 	$html="
 	<div id='dansguardinMainGroupDiv'>
 	<table style='width:99%' class=form>
@@ -247,6 +254,8 @@ function group_edit(){
 		var res=obj.responseText;
 		var ID='$ID';
 		var t=$t;
+		$('#flexRT$t').flexReload(); 
+		$('#flexRT$tt').flexReload(); 
 		if (res.length>3){alert(res);}
 		if(ID<0){ $closeYahoo;}else{RefreshTab('main_filter_rule_edit_group');}
 		if(t>0){
@@ -346,6 +355,18 @@ function group_edit_save(){
 			$array=$ACtiveDir->ObjectProperty(base64_decode($dnEnc));
 			$_POST["groupname"]=$array["cn"];
 		}
+		
+		if($_POST["localldap"]==0){
+			
+			if($_POST["groupname"]==null){
+				$gp=new groups($_POST["gpid"]);
+				if($gp->groupName==null){echo $tpl->javascript_parse_text("{unable_to_resolve}:Group ID:{$_POST["gpid"]}");return;}
+				$_POST["groupname"]=$gp->groupName;
+			}
+			
+		}
+		
+		
 		if($_POST["groupname"]==null){
 			echo $tpl->javascript_parse_text("{unable_to_resolve}:".base64_decode($dnEnc));
 			return;

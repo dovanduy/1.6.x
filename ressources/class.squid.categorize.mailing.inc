@@ -759,8 +759,6 @@ class categorize_mailling{
 	if(preg_match("#\.monshowroom\.com$#", $www)){return "mailing";}
 	if(preg_match("#\.monsieur-georges\.fr$#", $www)){return "mailing";}
 	if(preg_match("#\.monsirh\.com$#", $www)){return "mailing";}
-	if(preg_match("#\.monster\.com$#", $www)){return "mailing";}
-	if(preg_match("#\.monster\.fr$#", $www)){return "mailing";}
 	if(preg_match("#\.moteur-ecoleau\.fr$#", $www)){return "mailing";}
 	if(preg_match("#\.motherporter\.com$#", $www)){return "mailing";}
 	if(preg_match("#\.moveworldwide\.net$#", $www)){return "mailing";}
@@ -1213,7 +1211,6 @@ class categorize_mailling{
 	if(preg_match("#\.webhitkp\.com$#", $www)){return "mailing";}
 	if(preg_match("#\.webmarketing\.com$#", $www)){return "mailing";}
 	if(preg_match("#\.webnet\.fr$#", $www)){return "mailing";}
-	if(preg_match("#\.weborama\.fr$#", $www)){return "mailing";}
 	if(preg_match("#\.webpicksdaily\.com$#", $www)){return "mailing";}
 	if(preg_match("#\.websurprizekp\.com$#", $www)){return "mailing";}
 	if(preg_match("#\.weekendesk\.fr$#", $www)){return "mailing";}

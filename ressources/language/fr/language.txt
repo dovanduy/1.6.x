@@ -506,8 +506,8 @@ Si vous utilisez les produits Kaspersky sur ce serveur (antivirus de messagerie,
 Vous pouvez modifier les param&egrave;tres afin de d&eacute;finir &agrave; quel moment vous allez &ecirc;tre notifi&eacute; d'un dysfonctionnement.</APP_MONIT_EXPLAIN>
 <APP_MSMTP>msmtp (client SMTP)</APP_MSMTP>
 <APP_MSMTP_NOT_INSTALLED>Vous avez besoin d'installer la nouvelle version du moteur SMTP afin d'utiliser les fonctionnalit&eacute;s d'authentification</APP_MSMTP_NOT_INSTALLED>
-<APP_MYSQL>Serveur de base de donnees Mysql</APP_MYSQL>
-<APP_MYSQL_ARTICA>Mysql pour Artica</APP_MYSQL_ARTICA>
+<APP_MYSQL>Serveur de base de donn&eacute;es MySQL</APP_MYSQL>
+<APP_MYSQL_ARTICA>MySQL pour Artica</APP_MYSQL_ARTICA>
 <APP_MYSQL_CLUSTER_MGMT>Manageur de Cluster Mysql</APP_MYSQL_CLUSTER_MGMT>
 <APP_MYSQL_CLUSTER_REPLICA>R&eacute;pliqua Cluster Mysql</APP_MYSQL_CLUSTER_REPLICA>
 <APP_NFS>Syst&egrave;me de fichiers sur r&eacute;seau (NFS)</APP_NFS>
@@ -546,7 +546,7 @@ Vous pouvez modifier les param&egrave;tres afin de d&eacute;finir &agrave; quel 
 <APP_PHPLDAPADMIN>phpLDAPadmin</APP_PHPLDAPADMIN>
 <APP_PHPLDAPADMIN_TEXT>Parcourez le serveur LDAP en utilisant le panel phpLDAPAdmin</APP_PHPLDAPADMIN_TEXT>
 <APP_PHPMYADMIN>PhpMyAdmin</APP_PHPMYADMIN>
-<APP_PHPMYADMIN_TEXT>Administrez, affichez et parcourez vos bases de donn&eacute;es Mysql</APP_PHPMYADMIN_TEXT>
+<APP_PHPMYADMIN_TEXT>Administrez, affichez et parcours de vos bases de donn&eacute;es MySQL</APP_PHPMYADMIN_TEXT>
 <APP_PHP_APC>Alternative PHP Cache</APP_PHP_APC>
 <APP_POLICYD_WEIGHT>Policy Daemon pour Postfix</APP_POLICYD_WEIGHT>
 <APP_POLICYD_WEIGHT_EXPLAIN>policyd-weight est un d&eacute;mon pour  le MTA Postfix qui a pour but d'&eacute;liminer de faux exp&eacute;diteurs enveloppes (c. &agrave; d. dans mails bidons). [br]
@@ -652,7 +652,7 @@ Squid optimise donc de fa&ccedil;on cons&eacute;quente le flux de donn&eacute;es
 <APT_GET_RUNNING>Mise &agrave; jour syst&egrave;me</APT_GET_RUNNING>
 <APT_GET_RUNNING_TEXT>Artica effectue actuellement une mise &agrave; jour syst&egrave;me.</APT_GET_RUNNING_TEXT>
 <architecture>architecture</architecture>
-<are_you_sure_to_delete>&Ecirc;tes-vous s&ucirc;r de vouloir supprimer</are_you_sure_to_delete>
+<are_you_sure_to_delete>Supprimer cet enregistrement ?</are_you_sure_to_delete>
 <ARRAY_ALIASES>Email Aliases</ARRAY_ALIASES>
 <ARRAY_TITLE>Liste de Domaines</ARRAY_TITLE>
 <ARRAY_TITLE_AV>Antivirus</ARRAY_TITLE_AV>
@@ -787,7 +787,7 @@ Si un chemin d'acc&egrave;s est fix&eacute; artica ex&eacute;cute r&eacute;guli&
 <backuped_mails>Mails sauvegard&eacute;s</backuped_mails>
 <backupTaskRunAsk>Voulez-vous lancer cette t&acirc;che de sauvegarde ?</backupTaskRunAsk>
 <backup_agent_dir_explain>Sauvegardez ce r&eacute;pertoire en utilisant le mode &quot;incr&eacute;mental&quot;[br]Cette op&eacute;ration va sauvegarder uniquement les nouveaux fichiers ou les fichiers modifi&eacute;s[br]C'est la raison pour laquelle vous pouvez d&eacute;finir une fr&eacute;quence de balayage de l'Agent Artica</backup_agent_dir_explain>
-<BACKUP_ALL_MEANS>Donn&eacute;es SQL, base LDAP, bo&icirc;tes aux lettres, param&egrave;tres Artica</BACKUP_ALL_MEANS>
+<BACKUP_ALL_MEANS>Donn&eacute;es MySQL, base LDAP, bo&icirc;tes aux lettres, param&egrave;tres Artica</BACKUP_ALL_MEANS>
 <backup_artica_agent_text>Sauvegardez ce r&eacute;pertoire en utilisant l'agent R&eacute;seau Artica</backup_artica_agent_text>
 <backup_a_folder>sauvegarder un r&eacute;pertoire</backup_a_folder>
 <BACKUP_COMPUTER_TEXT>Sauvegardez des fichiers sur cet ordinateur</BACKUP_COMPUTER_TEXT>
@@ -1276,7 +1276,7 @@ Les spammeurs on donc modifi&eacute; leur comportement en utilisant des services
 <delete_rule>Supprimer la r&egrave;gle</delete_rule>
 <delete_thisuser>Supprimer cet utilisateur</delete_thisuser>
 <delete_this_user>Supprimer cet utilisateur</delete_this_user>
-<delete_this_user_text>&Ecirc;tes-vous sur de vouloir supprimer cet utilisateur ?</delete_this_user_text>
+<delete_this_user_text>Supprimer cet utilisateur ?</delete_this_user_text>
 <delete_users>supprimer les utilisateurs</delete_users>
 <deliver_imap>d&eacute;livrer les mails vers le serveur de messagerie</deliver_imap>
 <denied>Interdit</denied>
@@ -1466,7 +1466,7 @@ prend en charge l'extension DSN.[/b]</EHLOsupportDSN_text>
 <empty_list>Vider la liste</empty_list>
 <empty_quarantine>Vider votre quarantaine</empty_quarantine>
 <empty_quarantine_text>Vider la totalit&eacute; de votre zone de quarantaine</empty_quarantine_text>
-<empty_quarantine_text_mesgbox>Etes-vous s&ucirc;r de vider votre zone de quarantaine? Tous les mails seront supprim&eacute;s</empty_quarantine_text_mesgbox>
+<empty_quarantine_text_mesgbox>Vider votre zone de quarantaine? Tous les mails seront supprim&eacute;s</empty_quarantine_text_mesgbox>
 <empty_swap>vider le fichier de pagination et la m&eacute;moire</empty_swap>
 <empty_table_confirm>Cette op&eacute;ration va supprimer toutes les entr&eacute;es SQL? Effectuer cette op&eacute;ration ?</empty_table_confirm>
 <empty_this_mailbox>Vider cette bo&icirc;te aux lettres</empty_this_mailbox>
@@ -1643,8 +1643,8 @@ Cette fonctionnalit&eacute; ne sera pas disponible</error_blkid_not_installed>
 <error_module_not_enabled>Ce module n'est pas activ&eacute;</error_module_not_enabled>
 <error_module_not_installed>Ce module n'est pas install&eacute;</error_module_not_installed>
 <error_must_be_ip_address>Erreur cela doit &ecirc;tre une adresse TCP/IP</error_must_be_ip_address>
-<ERROR_MYSQL_CONNECTION>Echec de connection Mysql</ERROR_MYSQL_CONNECTION>
-<error_mysql_user>Erreur sur le compte MYSQL</error_mysql_user>
+<ERROR_MYSQL_CONNECTION>Echec de connection MySQL</ERROR_MYSQL_CONNECTION>
+<error_mysql_user>Erreur sur le compte MySQL</error_mysql_user>
 <error_mysql_user_text>Il semble que le compte Mysql n'est pas indiqu&eacute; or en &eacute;chec. D&eacute;finissez-le dans les Param&egrave;tres Globaux, Base de donn&eacute;es Mysql</error_mysql_user_text>
 <error_need_smbmount_feature>Pour activer cette fonctionnalit&eacute;, vous devez avoir l'application smbmount</error_need_smbmount_feature>
 <ERROR_NEED_TO_SAVEAPPLY>Vous devez lancer l'application des param&egrave;tres sur le serveur pour passer en mode de production.</ERROR_NEED_TO_SAVEAPPLY>
@@ -1706,7 +1706,7 @@ L'op&eacute;ration d'affichage est annul&eacute;e.</error_no_datas>
 <error_waiting_sync>Erreur, en attente de synchronisation</error_waiting_sync>
 <error_want_operation>Voulez-vous effectuer cette op&eacute;ration?</error_want_operation>
 <error_wrong_artica_version>Erreur, mauvaise version d'Artica</error_wrong_artica_version>
-<ERR_MYSQL_IS_REMOTE>Erreur: Mysql &agrave; &eacute;t&eacute; d&eacute;fini comme un serveur distant. Cette fonctionnalit&eacute; ne peut pas &ecirc;tre mise en place.</ERR_MYSQL_IS_REMOTE>
+<ERR_MYSQL_IS_REMOTE>Erreur: MySQL &agrave; &eacute;t&eacute; d&eacute;fini comme un serveur distant. Cette fonctionnalit&eacute; ne peut pas &ecirc;tre mise en place.</ERR_MYSQL_IS_REMOTE>
 <ERR_NO_DOC_FOUND>Aucun document ne r&eacute;pond &agrave; votre requ&ecirc;te</ERR_NO_DOC_FOUND>
 <ERR_NO_PASS>Erreur: svp entr&eacute; le mot de passe avant de soumettre</ERR_NO_PASS>
 <ERR_NO_PASS_MATCH>Erreur: les mots de passe sont diff&eacute;rents.</ERR_NO_PASS_MATCH>
@@ -2241,7 +2241,7 @@ Avec la valeur limite par d&eacute;faut de 100 processus serveur SMTP, &quot;un 
 <js_add_domain>Ajouter un nouveau domaine</js_add_domain>
 <js_add_entity>Ajouter une nouvelle identit&eacute;</js_add_entity>
 <js_antivirus_settings>Modifier les param&egrave;tres antivirus pour ce domaine</js_antivirus_settings>
-<js_delete_alias_text>Etes-vous sur de vouloir supprimer cet alias ?</js_delete_alias_text>
+<js_delete_alias_text>Supprimer cet alias ?</js_delete_alias_text>
 <js_del_domain>Supprimer ce domaine et tous les alias</js_del_domain>
 <js_expand_domain>G&eacute;rer les alias et relais</js_expand_domain>
 <js_kav_delete_licence>Supprimer ce domaine de la licence</js_kav_delete_licence>
@@ -2647,7 +2647,7 @@ Exemples[ul]
 <myorigin_text>Ce param&egrave;tre sp&eacute;cifie le domaine de messagerie qui va appara&icirc;tre dans les messages qui on &eacute;t&eacute;s post&eacute;s depuis le serveur.[br]
 La valeur par d&eacute;faut est d'utiliser le nom du serveur.[br]Si vous &ecirc;tes dans une organisation dont le nom du serveur n'est pas un domaine valide, vous devriez modifier cette entr&eacute;e.[br]Cette valeur sert aussi pour ajouter un domaine de fa&ccedil;on automatique lorsque dans les adresses de destination aucun domaine n'a &eacute;t&eacute; ajout&eacute;</myorigin_text>
 <myorigin_title>Nom de domaine &agrave; utiliser dans le courrier sortant?</myorigin_title>
-<MYSQL_CLUSTER>Cluster Mysql</MYSQL_CLUSTER>
+<MYSQL_CLUSTER>Cluster MySQL</MYSQL_CLUSTER>
 <MYSQL_CLUSTER_TEXT>Augmentez la disponibilit&eacute; de vos bases de donn&eacute;es gr&acirc;ce &agrave; la construction d'un ensemble de ressources cluster.</MYSQL_CLUSTER_TEXT>
 <mysql_username>Utilisateur Mysql</mysql_username>
 <mywebsites_explain>Cette section vous permet d'ajouter ou supprimer des services Web.[br]Chaque site web ajout&eacute; sera alors stock&eacute; dans votre r&eacute;pertoire utilisateur sur le serveur.</mywebsites_explain>
@@ -3186,7 +3186,7 @@ Les bo&icirc;tes aux lettres d&eacute;j&agrave; cr&eacute;es ne seront pas impac
 <recommend_update_kaspersky>Vous devez mettre &agrave; jour des bases antivirus Kaspersky, la version actuelle n'est plus &agrave; jour [br] Kaspersky recommande de mettre &agrave; jour la base de donn&eacute;es chaque heure</recommend_update_kaspersky>
 <reconnect_vpn_clients>Reconnecter tous les connexions VPN</reconnect_vpn_clients>
 <reconstruct_queue>Reconstruire la file d'attente</reconstruct_queue>
-<reconstruct_queue_confirm>&ecirc;tes-vous sur de vouloir reconstruire la file d'attente ?</reconstruct_queue_confirm>
+<reconstruct_queue_confirm>Reconstruire la file d'attente ?</reconstruct_queue_confirm>
 <reconstruct_queue_text>Supprimer le message enregistr&eacute; et le reconstruire dans la file d'attente</reconstruct_queue_text>
 <reconstruct_virtual_ips>Reconstruire les cartes virtuelles</reconstruct_virtual_ips>
 <recreation_humor>Tout ce qui concerne l'humour ou les histoires dr&ocirc;les</recreation_humor>
@@ -3336,7 +3336,7 @@ Cette fonctionnalit&eacute; est d&eacute;sactiv&eacute;e par d&eacute;faut.</rel
 <remove_license>Supprimer la licence</remove_license>
 <remove_mailgraph>supprime l'application mailgraph</remove_mailgraph>
 <remove_mailqueue>Supprime tous les mails en file d'attente</remove_mailqueue>
-<remove_mailqueue_text>&Ecirc;tes-vous s&ucirc;r de vouloir supprimer cette file d'attente de messagerie? 
+<remove_mailqueue_text>Supprimer cette file d'attente de messagerie? 
 Tous les messages seront supprim&eacute;s et ne pourrons pas &ecirc;tre restaurer...</remove_mailqueue_text>
 <remove_path_in_cluster>Supprimer le dossier de l'environnement cluster</remove_path_in_cluster>
 <remove_queuegraph>Supprime l'application QueueGraph</remove_queuegraph>
@@ -4635,7 +4635,7 @@ Pendant la sauvegarde, le serveur risque d'&ecirc;tre occup&eacute;.[br]Il est i
 <xapian_packages>Moteurs de recherche</xapian_packages>
 <xapian_processing>Indexation de vos stockages (moteur de recherche)</xapian_processing>
 <xapian_processing_text>omindex est actuellement en cours d'analyse de vos r&eacute;pertoires afin d'am&eacute;liorer la recherche des documents sur votre serveur[br]Pendant ce temps, il est possible que votre serveur soit occup&eacute;.</xapian_processing_text>
-<xdelete_domain_text>&Ecirc;tes-vous s&ucirc;r de vouloir supprimer ce nom de domaine?
+<xdelete_domain_text>Supprimer ce nom de domaine?
 Les bo&icirc;tes aux lettres, alias... de ce domaine vont &eacute;galement &ecirc;tre supprim&eacute;s</xdelete_domain_text>
 <xmozillanickname>surnom</xmozillanickname>
 <xr_check_explain>V&eacute;rification de chaque serveur interne afin de savoir si ils sont &agrave; l'&eacute;coute.[br]Si le serveur interne accepte la connexion, alors le service de r&eacute;partition de charge le marquera comme actif.[br]En utilisant ce param&egrave;tre une v&eacute;rification r&eacute;seau simple est mise en %u0153uvre.[br]0 indique que la fonction est d&eacute;sactiv&eacute;e.</xr_check_explain>

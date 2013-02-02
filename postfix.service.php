@@ -27,7 +27,14 @@ $maincf=Paragraphe('folder-script-64.png','{main.cf}','{main.cf_explain}',"javas
 $maincfedit=Paragraphe('folder-maincf-64.png','{main.cf_edit}','{main.cfedit_explain}',"javascript:Loadjs('postfix.main.cf.edit.php?js=yes')",90);
 $other=Paragraphe('folder-tools2-64.png','{other_settings}','{other_settings_text}',"javascript:Loadjs('postfix.other.php')",90);
 $RemoteSyslog=Paragraphe("syslog-64-client.png","{RemoteSMTPSyslog}","{RemoteSMTPSyslogText}","javascript:Loadjs('syslog.smtp-client.php');");
-$HaProxy=Paragraphe("64-computer-alias.png","{load_balancing_compatibility}","{load_balancing_compatibility_text}","javascript:Loadjs('postfix.haproxy.php?hostname=master&ou=master');");
+$HaProxy=Paragraphe("64-computer-alias.png","{load_balancing_compatibility}","{load_balancing_compatibility_text}",
+		"javascript:Loadjs('postfix.haproxy.php?hostname=master&ou=master');");
+$varspool=Paragraphe("folder-64-fetchmail.png","{move_the_spooldir}","{move_the_spooldir_text}",
+		"javascript:Loadjs('postfix.varspool.php?hostname=master&ou=master');");
+
+$removePostfix=Paragraphe("software-remove-64.png","{remove_postfix_section}","{remove_postfix_section_text}",
+		"javascript:Loadjs('postfix.remove.php');");
+
 
 $mailbox_cmd=Paragraphe("64-restore-mailbox.png","{mailbox_agent}","{mailbox_agent_text}",
 "javascript:Loadjs('postfix.mailbox_transport.php?hostname=master&ou=master');");
@@ -37,10 +44,15 @@ if($user->MAILMAN_INSTALLED){
 	$mailman=Paragraphe('mailman-64.png','{APP_MAILMAN}','{manage_distribution_lists}',"javascript:Loadjs('mailman.php?script=yes')");
 }
 
+$banner=Paragraphe('banner-loupe-64.png','{SMTP_BANNER}','{SMTP_BANNER_TEXT}',
+		"javascript:Loadjs('postfix.banner.php?hostname=master&ou=master')");
+
+
 
 $tr[]=$postfixStop;
 $tr[]=$debug;
 $tr[]=$artica_stats;
+$tr[]=$banner;
 $tr[]=$RemoteSyslog;
 $tr[]=$HaProxy;
 $tr[]=$mailman;
@@ -48,7 +60,10 @@ $tr[]=$mailbox_cmd;
 $tr[]=$mastercf;
 $tr[]=$maincf;
 $tr[]=$maincfedit;
+$tr[]=$performances;
+$tr[]=$varspool;
 $tr[]=$other;
+$tr[]=$removePostfix;
 
 $icons=CompileTr3($tr);
 

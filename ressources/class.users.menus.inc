@@ -20,528 +20,538 @@ if(function_exists("debug_mem")){debug_mem();}
 
 
 class usersMenus {
-	var $AS_KIMSUFFI=false;
-	var $TreePage=array("domains.edit.group.php"=>true,"samba.index.php"=>true);
-	var $squid_kerb_auth_path=null;
-	var $ArchStruct=0;
-	var $menus;
-	var $main_left_menus=array();
-	var $menusright;
-	var $toplinks;
-	var $priv;
-	var $MAIN_CONSOLE_PORT=9000;
-	var $EnablePerUserRemoteAddressBook=0;
-	var $dhcp_installed=false;
-	var $AllowChangeDomains=false;
-	var $AsSystemAdministrator=false;
-	var $AsDansGuardianAdministrator=false;
-	var $AsWebFilterRepository=false;	
-	var $AsOrgStorageAdministrator=false;
-	var $AllowXapianDownload=false;
-	var $AllowAddGroup=false;
-	var $AllowUserMaillog=false;
-	var $AllowChangeKav=false;
-	var $AllowChangeKas=false;
-	var $AllowEditAsWbl=false;
-	var $AllowEditOuSecurity=false;	
-	var $RestrictNabToGroups=false;
-	var $AsArticaAdministrator=false;
-	var $AsSambaAdministrator=false;
-	var $AsMailManAdministrator=false;
-	var $AsPostfixAdministrator=false;
-	var $AsSquidAdministrator=false;
-	var $AsMailBoxAdministrator=false;
-	var $AsDansGuardianGroupRule=false;
-	var $AsWebStatisticsAdministrator=false;
-	var $AsWebMaster=false;
-	var $AsDnsAdministrator=false;
-	var $AsQuarantineAdministrator=false;
-	var $AllowFetchMails=false;
-	var $AllowSenderCanonical=false;
-	var $AllowChangeUserPassword=false;
-	var $AllowDansGuardianBanned=false;
-	var $AllowChangeUserKas=false;
-	var $AllowEditAliases=false;
-	var $AllowEmailing=false;
-	var $AllowOpenVPN=false;
-	var $AsAnAdministratorGeneric=false;
-	var $AllowAddUsers=false;
-	var $AllowViewStatistics=false;
-	var $AllowChangeAntiSpamSettings=false;
-	var $AsOrgAdmin=false;
-	var $AsInventoryAdmin=false;
-	var $AseMailCampaignsAdmin=false;
-	var $NETATALK_INSTALLED=false;
-	var $SAMBA_APPLIANCE=false;
-	var $CROSSROADS_VERSION="";
-	var $MPM_ITK_MODULE=false;
-	var $APACHE_MOD_BW=false;
-	var $uid=null;
-	var $groupid=-900;
-	var $IptablesEnabled;
-	var $KAVMILTER_ENABLED;
-	var $lighttpd_installed;
-	var $spamassassin_installed=false;
-	var $spamassassin_version=0;
-	var $fetchmail_configured=false;
-	var $LOCAL_SID;
-	var $EnableFetchmail=0;
-	var $EnableFDMFetch=0;
-	var $P3ScanEnabled=0;
-	var $RoundCubeHTTPEngineEnabled=0;
-	var $roundcube_intversion=0;
-	var $roundcube_plugins=null;
-	var $template_users_menus_h;
-	var $template_user_addr;
-	var $PasswdPolicy=array();
-	var $disks_size=null;
-	var $cpumhz=null;
-	var $preload_installed=false;
-	var $smbmount_installed=false;
-	var $collectd_installed=false;
-	var $EnableVirtualDomainsInMailBoxes=false;
-	var $SIMPLE_GROUPEWARE_INSTALLED=false;
-	var $MEMCACHED_INSTALLED=false;
-	var $APP_ATOPENMAIL_INSTALLED=false;
-	var $CLAMD_DATABASE_PATH="";
-	var $APP_ATOPENMAIL_VERSION="";
-	var $COLLECTD_RRD=array();
-	var $LoadModulesEnabledParsed=false;
-	var $dar_installed=false;
-	var $GNARWL_INSTALLED=false;
-	var $AllowChangeMailBoxRules=false;
-	var $cyrus_ldap_admin_password="";
-	var $CLAMD_CONF_PATH="";
-	var $PFLOGSUMM_INSTALLED=false;
-	var $maillog_path;
-	var $spamassassin_ipcountry=false;
-	var $CUPS_INSTALLED=false;
-	var $OBM2_INSTALLED=false;
-	var $SARG_INSTALLED=false;
-	var $OPENGOO_INSTALLED=false;
-	var $APACHE_GROUPWARE_INSTALLED=false;
-	var $POSTFIX_QUEUE=array();
-	var $LinuxDistriCode=null;
-	var $LinuxDistriFullName=null;
-	var $APACHE_INSTALLED=false;
-	var $cyrus_sync_installed=false;
-	var $AllowManageOwnComputers=false;
-	var $POLICYD_WEIGHT_PORT;
-	var $CRYPTSETUP_INSTALLED=false;
-	var $ZABBIX_INSTALLED=true;
-	var $HAMACHI_INSTALLED=true;
-	var $phpldapadmin_installed=false;
-	var $phpmyadmin_installed=false;
-	var $HOSTAPD_INSTALLED=false;
-	var $HOSTAPD_BINVER=0;
-	var $POSTMULTI=false;
-	var $MLDONKEY_INSTALLED=false;
-	var $KAV4PROXY_LICENSE_ERROR=false;
-	var $KAV4PROXY_LICENSE_ERROR_TEXT="";
-	var $VIRTUALBOX_HOST=false;
-	var $APP_VBOXADDINTION_INSTALLED=false;
-	var $MHONARC_VERSION="";
-	var $FETCHMAIL_STATUS="";
-	var $kavmilter_installed=false;
-	var $APACHE_MOD_AUTHNZ_LDAP=false;
-	var $OverWriteRestrictedDomains=false;
-	var $AsHotSpotManager=false;
+	public $AS_KIMSUFFI=false;
+	public $TreePage=array("domains.edit.group.php"=>true,"samba.index.php"=>true);
+	public $squid_kerb_auth_path=null;
+	public $ArchStruct=0;
+	public $menus;
+	public $main_left_menus=array();
+	public $menusright;
+	public $toplinks;
+	public $priv;
+	public $MAIN_CONSOLE_PORT=9000;
+	public $EnablePerUserRemoteAddressBook=0;
+	public $dhcp_installed=false;
+	public $AllowChangeDomains=false;
+	public $AsSystemAdministrator=false;
+	public $AsDansGuardianAdministrator=false;
+	public $AsWebFilterRepository=false;	
+	public $AsOrgStorageAdministrator=false;
+	public $AllowXapianDownload=false;
+	public $AllowAddGroup=false;
+	public $AllowUserMaillog=false;
+	public $AllowChangeKav=false;
+	public $AllowChangeKas=false;
+	public $AllowEditAsWbl=false;
+	public $AllowEditOuSecurity=false;	
+	public $RestrictNabToGroups=false;
+	public $AsArticaAdministrator=false;
+	public $AsSambaAdministrator=false;
+	public $AsMailManAdministrator=false;
+	public $AsPostfixAdministrator=false;
+	public $AsSquidAdministrator=false;
+	public $AsMailBoxAdministrator=false;
+	public $AsDansGuardianGroupRule=false;
+	public $AsWebStatisticsAdministrator=false;
+	public $AsWebMaster=false;
+	public $AsDnsAdministrator=false;
+	public $AsQuarantineAdministrator=false;
+	public $AllowFetchMails=false;
+	public $AllowSenderCanonical=false;
+	public $AllowChangeUserPassword=false;
+	public $AllowDansGuardianBanned=false;
+	public $AllowChangeUserKas=false;
+	public $AllowEditAliases=false;
+	public $AllowEmailing=false;
+	public $AllowOpenVPN=false;
+	public $AsAnAdministratorGeneric=false;
+	public $AllowAddUsers=false;
+	public $AllowViewStatistics=false;
+	public $AllowChangeAntiSpamSettings=false;
+	public $AsOrgAdmin=false;
+	public $AsInventoryAdmin=false;
+	public $AseMailCampaignsAdmin=false;
+	public $NETATALK_INSTALLED=false;
+	public $SAMBA_APPLIANCE=false;
+	public $CROSSROADS_VERSION="";
+	public $MPM_ITK_MODULE=false;
+	public $APACHE_MOD_BW=false;
+	public $uid=null;
+	public $groupid=-900;
+	public $IptablesEnabled;
+	public $KAVMILTER_ENABLED;
+	public $lighttpd_installed;
+	public $spamassassin_installed=false;
+	public $spamassassin_version=0;
+	public $fetchmail_configured=false;
+	public $LOCAL_SID;
+	public $EnableFetchmail=0;
+	public $EnableFDMFetch=0;
+	public $P3ScanEnabled=0;
+	public $RoundCubeHTTPEngineEnabled=0;
+	public $roundcube_intversion=0;
+	public $roundcube_plugins=null;
+	public $template_users_menus_h;
+	public $template_user_addr;
+	public $PasswdPolicy=array();
+	public $disks_size=null;
+	public $cpumhz=null;
+	public $preload_installed=false;
+	public $smbmount_installed=false;
+	public $collectd_installed=false;
+	public $EnableVirtualDomainsInMailBoxes=false;
+	public $SIMPLE_GROUPEWARE_INSTALLED=false;
+	public $MEMCACHED_INSTALLED=false;
+	public $APP_ATOPENMAIL_INSTALLED=false;
+	public $CLAMD_DATABASE_PATH="";
+	public $APP_ATOPENMAIL_VERSION="";
+	public $COLLECTD_RRD=array();
+	public $LoadModulesEnabledParsed=false;
+	public $dar_installed=false;
+	public $GNARWL_INSTALLED=false;
+	public $AllowChangeMailBoxRules=false;
+	public $cyrus_ldap_admin_password="";
+	public $CLAMD_CONF_PATH="";
+	public $PFLOGSUMM_INSTALLED=false;
+	public $maillog_path;
+	public $spamassassin_ipcountry=false;
+	public $CUPS_INSTALLED=false;
+	public $OBM2_INSTALLED=false;
+	public $SARG_INSTALLED=false;
+	public $OPENGOO_INSTALLED=false;
+	public $APACHE_GROUPWARE_INSTALLED=false;
+	public $POSTFIX_QUEUE=array();
+	public $LinuxDistriCode=null;
+	public $LinuxDistriFullName=null;
+	public $APACHE_INSTALLED=false;
+	public $cyrus_sync_installed=false;
+	public $AllowManageOwnComputers=false;
+	public $POLICYD_WEIGHT_PORT;
+	public $CRYPTSETUP_INSTALLED=false;
+	public $ZABBIX_INSTALLED=true;
+	public $HAMACHI_INSTALLED=true;
+	public $phpldapadmin_installed=false;
+	public $phpmyadmin_installed=false;
+	public $HOSTAPD_INSTALLED=false;
+	public $HOSTAPD_BINVER=0;
+	public $POSTMULTI=false;
+	public $MLDONKEY_INSTALLED=false;
+	public $KAV4PROXY_LICENSE_ERROR=false;
+	public $KAV4PROXY_LICENSE_ERROR_TEXT="";
+	public $VIRTUALBOX_HOST=false;
+	public $APP_VBOXADDINTION_INSTALLED=false;
+	public $MHONARC_VERSION="";
+	public $FETCHMAIL_STATUS="";
+	public $kavmilter_installed=false;
+	public $APACHE_MOD_AUTHNZ_LDAP=false;
+	public $OverWriteRestrictedDomains=false;
+	public $AsHotSpotManager=false;
+	public $AsOrgDNSAdmin=false;
+	public $ASDCHPAdmin=false;
 	/* This licence must be used Only with Artica-for postfix */
-	var $ChartLicence="D1XFWGMEW9L.HSK5T4Q79KLYCK07EK";
+	public $ChartLicence="D1XFWGMEW9L.HSK5T4Q79KLYCK07EK";
 	/*you cannot use it without any authorizations of maani.us.
 	this licence is Copyright 2004-2007, maani.us
 	For more information, see
 	http://www.maani.us/xml_charts/index.php?menu=License
 	*/
-	var $WEBSTATS_APPLIANCE=null;
-	var $ChangeAutoInterface=null;
-	var $KASPERSKY_WEB_APPLIANCE=false;
-	var $mysql_password='';
-	var $mysql_admin='root';
-	var $mysql_server='127.0.0.1';
-	var $ARTICA_FILTER_QUEUE_PATH;
-	var $ARTICA_FILTER_MAXSUBQUEUE;
-	var $POSTFIX_MAILDROP_PATH;
-	var $GLOBAL_CONFIG;
-	var $AutomaticConfig=false;
-	var $fetchmail_installed=false;
-	var $cyrus_imapd_installed=false;
-	var $cyrus_lmtp_path='/var/run/cyrus/socket/lmtp';
-	var $kas_installed=false;
-	var $aveserver_installed;
-	var $rrdtool_installed;
-	var $procmail_installed=false;	
-	var $dnsmasq_installed=false;
-	var $mysql_installed=false;
-	var $mailgraph_installed=false;
-	var $mailgraph_virus_database;
-	var $mailgraph_postfix_database;
-	var $queuegraph_installed=false;
-	var $yorel_installed=false;
-	var $LOCATE_AUTHLOG_PATH="";
-	var $FRESHCLAM_INSTALLED=false;
-	var $QUOTA_INSTALLED=false;
-	var $roundcube_installed=false;
-	var $awstats_installed=false;
-	var $mysql_enabled=true;
-	var $aveserver_pattern_date="00000000;0000";
-	var $POSTIFX_STATUS="-1;0.0.0;";
-	var $KAS_STATUS="-1;0.0.0;";
-	var $CYRUS_STATUS="-1;0.0.0;";
-	var $KAV_STATUS="-1;0.0.0;";
-	var $FETHMAIL_STATUS="-1;0.0.0;";
-	var $ARTICA_ROOT_PATH;
-	var $ARTICA_VERSION;
-	var $ARTICA_FILTER_STATUS=false;
-	var $ARTICA_POLICY_STATUS=false;
-	var $EMAILRELAY_STATUS=false;
-	var $EMAILRELAY_INSTALLED=false;
-	var $BOGOFILTER_INSTALLED=false;
-	var $KAV_MILTER_INSTALLED=false;
-	var $MAILMAN_INSTALLED=false;
-	var $POSTFIX_INSTALLED=false;
-	var $POSTFIX_VERSION="0.0.0";
-	var $crossroads_installed=true;
-	var $fetchmail_daemon_logs="";
-	var $KAVMILTER_PID;
-	var $hotwayd_installed;
-	var $SQUID_INSTALLED=false;
-	var $SQUID_BIN_PATH="";
-	var $VMWARE_HOST=false;
-	var $HAPROXY_INSTALLED=false;
-	var $KAV4PROXY_INSTALLED=false;	
-	var $KAV4PROXY_PID;
-	var $KAV4PROXY_MEMORY=0;
-	var $KAV4PROXY_PATTERN="";
-	var $KAV4PROXY_VERSION="0.0.0";
-	var $DANSGUARDIAN_INSTALLED=false;
-	var $AMAVIS_INSTALLED=false;
-	var $AMAVISD_VERSION=null;
-	var $DANSGUARDIAN_VERSION=null;
-	var $PUREFTP_INSTALLED=false;
-	var $PUREFTP_USERS=false;
-	var $MILTERGREYLIST_INSTALLED=false;
-	var $MAILFROMD_INSTALLED=false;
-	var $SQUID_PID;	
-	var $fqdn;
-	var $hostname;
-	var $mysql_port;
-	var $SMTP_LEVEL;
-	var $ArticaFilterEnabled;
-	var $AmavisFilterEnabled;
-	var $MilterGreyListEnabled;
-	var $EnableMilterSpyDaemon=0;
-	var $SQLGreyEnabled;
-	var $KasxFilterEnabled;
-	var $OBM_INSTALLED;
-	var $OBMEnabled;
-	var $NTPD_INSTALLED;
-	var $NTPDEnabled;
-	var $MailFromdEnabled;
-	var $IPTABLES_INSTALLED;
-	var $ApacheArticaEnabled;
-	var $SAMBA_INSTALLED;
-	var $WINBINDD_INSTALLED;
-	var $SAMBA_VERSION;
-	var $GeoIPDat_Path;
-	var $BadMysqlPassword=0;
-	var $POSTFIX_LDAP_COMPLIANCE=false;
-	var $MAILFROMD_SOCKET="";
-	var $CLAMAV_INSTALLED=false;
-	var $CLAMD_INSTALLED=false;
-	var $CLAMSCAN_INSTALLED=false;
-	var $CLAMAV_SOCKET="";
-	var $ClamavMilterEnabled=0;
-	var $CLAMAV_MILTER_SOCKET;
-	var $CLAMAV_MILTER_INSTALLED=false;
-	var $SpamAssMilterEnabled=0;
-	var $SPAMASS_MILTER_INSTALLED=false;
-	var $SPAMASS_MILTER_SOCKET="";
-	var $roundcube_folder="";
-	var $phpcgi;
-	var $razor_installed=false;
-	var $pyzor_installed=false;
-	var $razor_config="";
-	var $spfmilterEnabled=0;
-	var $spfmilter_installed=false;
-	var $MIMEDEFANG_INSTALLED=false;
-	var $netbiosname;
-	var $MIMEDEFANG_SOCKET="";
-	var $MimeDefangEnabled;
-	var $GRAPHDEFANG_INSTALLED=false;
-	var $MHONARC_INSTALLED=alse;
-	var $SQUID_VERSION;
-	var $SQUID_LDAP_AUTH;
-	var $SQUID_NTLM_AUTH;
-	var $SQUID_BIN_VERSION=0;
-	var $stunnel4_installed=false;
-	var $DkimFilterEnabled=0;
-	var $DKIMFILTER_INSTALLED=false;
-	var $DKIMFILTER_SOCKET="";
-	var $blkid_installed=false;
-	var $nmap_installed=false;
-	var $usb_list=array();
-	var $roundcube_mysql_sources;
-	var $roundcube_web_folder;
-	var $KAV4SAMBA_INSTALLED=false;
-	var $KAV4SAMBA_VFS="";
-	var $SAMBA_MYSQL_AUDIT=false;
-	var $awstats_www_path="";
-	var $SQUID_ICAP_ENABLED=false;
-	var $LIGHTTPD_LDAP_AUTH=false;
-	var $BIND9_INSTALLED=false;
-	var $bindrrd_installed=false;
-	var $fdm_installed=false;
-	var $fdm_cache=false;
-	var $p3scan_installed=false;
-	var $syslogng_installed=false;
-	var $AsDebianSystem=false;
-	var $sTunnel4enabled=0;
-	var $MailArchiverEnabled=0;
-	var $roundcube_version="0.0.0";
-	var $EnableMilterBogom=0;
-	var $openldap_installed=false;
-	var $EnableMysqlFeatures=1;
-	var $MILTER_SPY_INSTALLED=false;
-	var $EnableCollectdDaemon=0;
-	var $EnableAmavisDaemon=0;
-	var $imapsync_installed=false;
-	var $mailsync_installed=false;
-	var $ISOQLOG_INSTALLED=false;
-	var $DOTCLEAR_INSTALLED=false;
-	var $JCHECKMAIL_INSTALLED=false;
-	var $zip_installed=false;
-	var $JCheckMailEnabled=0;
-	var $JCHECKMAIL_SOCKET;
-	var $EnableAmavisBackup=0;
-	var $OPENLDAP_DYNLIST=false;
-	var $EnableRemoteAddressBook=0;
-	var $SLPAD_LOCKED=false;
-	var $ALTERMIME_INSTALLED=false;
-	var $POMMO_INSTALLED=false;
-	var $C_ICAP_INSTALLED=false;
-	var $C_ICAP_DNSBL=false;
-	var $MILTERGREYLIST_SOCKET="";
-	var $OPENVPN_INSTALLED=false;
-	var $spamassassin_conf_path="";
-	var $EnableNonEncryptedLdapSession=1;
-	var $SMARTMONTOOLS_INSTALLED=false;
-	var $XAPIAN_PHP_INSTALLED=false;
-	var $INSTANSEARCH_ENABLE=false;
-	var $JOOMLA_INSTALLED=false;
-	var $DSTAT_INSTALLED=false;
-	var $SUGARCRM_INSTALLED=false;
-	var $GNUPLOT_PNG=false;
-	var $IOSTAT_INSTALLED=false;
-	var $IOSTAT_ARRAY=array();
-	var $PHP_BIN_PATH=null;	
-	var $EXEC_NICE=null;
-	var $spamassassin_bin_path=null;
-	var $cyr_partition_default=null;
-	var $cyr_config_directory=null;
-	var $smbclient_installed=false;
-	var $cyrus_murder_installed=false;
-	var $FETCHMAIL_VERSION=null;
-	var $cyrus_sync_client_path=null;
-	var $ctl_mboxlist=null;
-	var $CURL_PATH=null;
-	var $NMAP_PATH=null;
-	var $msmtp_installed=false;
-	var $nmap_version=null;
-	var $autofs_installed=false;
-	var $APACHE_PORT=null;
-	var $NFS_SERVER_INSTALLED=false;
-	var $LVM_INSTALLED=false;
-	var $MYSQL_NDB_MGMD_INSTALLED=false;
-	var $CPU_NUMBER=0;
-	var $LOAD_AVERAGE=0;
-	var $winexe_installed=false;
-	var $OCSI_INSTALLED=false;
-	var $ASSP_INSTALLED=false;
-	var $MEM_HIGER_1G=true;
-	var $LMB_LUNDIMATIN_INSTALLED=false;
-	var $APACHE_MODE_VHOSTS_LDAP=false;
-	var $TCP_ARRAY=array();
-	var $POWER_DNS_INSTALLED=false;
-	var $mysqld_version=0;
-	var $GLUSTER_INSTALLED=false;
-	var $SLAPD_CONF_PATH;
-	var $cyrus_squatter_exists=false;
-	var $cyrus_ipurge_exists=false;
-	var $SCANNED_ONLY_INSTALLED=false;
-	var $GROUPOFFICE_INSTALLED=false;
-	var $POSTFIX_MULTI=false;
-	var $AsOrgPostfixAdministrator=false;
-	var $AsMessagingOrg=false;
-	var $ASSP_VERSION=0;
-	var $MEM_TOTAL_INSTALLEE=0;
-	var $KASPERSKY_SMTP_APPLIANCE=false;
-	var $POSTFILTER_INSTALLED=false;
-	var $VMWARE_TOOLS_INSTALLED=false;
-	var $SQUID_NTLM_ENABLED=false;
-	var $ZARAFA_INSTALLED=false;
-	var $SQUIDGUARD_INSTALLED=false;
-	var $SQUIDGUARD_BINVER=0;
-	var $SQUIDGUARD_BIN_PATH="";
-	var $RSYNC_INSTALLED=false;
-	var $ZARAFA_APPLIANCE=false;
-	var $mysqld_datadir;
-	var $DRUPAL_INSTALLED=false;
-	var $MAIL_DKIM_VERSION=null;
-	var $HDPARM_INSTALLED=false;
-	var $APACHE_MODE_WEBDAV=false;
-	var $BACKUPPC_INSTALLED=false;
-	var $KAV4FS_INSTALLED=false;
-	var $OCS_LNX_AGENT_INSTALLED=false;
-	var $POSTFIX_PCRE_COMPLIANCE=false;
-	var $AsJoomlaWebMaster=false;
-	var $APP_AUDITD_INSTALLED=false;
-	var $DKFILTER_INSTALLED=false;
-	var $OPENDKIM_INSTALLED=false;
-	var $DB_RECOVER_INSTALLED=false;
-	var $APP_UFDBGUARD_INSTALLED=false;
-	var $ufdbgclient_path=null;
-	var $roundcube_subscriptions_option=false;
-	var $ADZAPPER_INSTALLED=false;
-	var $KINIT_INSTALLED=false;
-	var $DKIMPROXY_INSTALLED=false;
-	var $MILTER_DKIM_INSTALLED=false;
-	var $DROPBOX_INSTALLED=false;
-	var $VIRTUALBOX_INSTALLED=false;
-	var $AsVirtualBoxManager=false;
-	var $TFTPD_INSTALLED=false;
-	var $offlineimap_installed=false;
-	var $THINSTATION_INSTALLED=false;
-	var $OPENSSH_VER=0;
-	var $cyrus_syncserver_installed=false;
-	var $APP_SQUIDCLAMAV_INSTALLED=false;
-	var $squidclamav_path="";
-	var $PEAR_PACKAGES=array();
-	var $RACOON_INSTALLED=false;
-	var $IPSEC_INSTALLED=false;
-	var $PPTPD_INSTALLED=false;
-	var $PPTP_INSTALLED=false;
-	var $SQUID_ARP_ACL_ENABLED=false;
-	var $APT_MIRROR_INSTALLED=false;
-	var $CLUEBRINGER_INSTALLED=false;
-	var $qos_tools_installed=false;
-	var $tc_version=0;
-	var $LDAP_SYNCPROV=false;
-	var $ARTICA_META_ENABLED=false;
-	var $PIWIGO_INSTALLED=false;
-	var $APP_SABNZBDPLUS_INSTALLED=false;
-	var $POSTSCREEN_INSTALLED=false;
-	var $KASPERSKY_UPDATE_UTILITY_INSTALLED=false;
-	var $deduplication_installed=false;
-	var $APP_VNSTAT_INSTALLED=false;
-	var $IPSET_INSTALLED=false;
-	var $EnableManageUsersTroughActiveDirectory=false;
-	var $ActiveDirectoryCredentials;
-	var $ASPELL_INSTALLED=false;
-	var $MUNIN_CLIENT_INSTALLED=false;
-	var $CURLFTPFS_INSTALLED=false;
-	var $CIFS_INSTALLED=false;
-	var $GREYHOLE_INSTALLED=false;
-	var $SQUID_CACHMGR=false;
-	var $APACHE_DIR_SITES_ENABLED='';
-	var $APACHE_RUN_USER='';
-	var $APACHE_MODULES_PATH='';
-	var $DAVFS_INSTALLED=false;
-	var $APACHE_MOD_QOS=false;
-	var $ISCSI_INSTALLED=false;
-	var $ISCSI_CLIENT_INSTALLED=false;
-	var $ldapClass;
-	var $LXC_INSTALLED=false;
-	var $AS_VPS_CLIENT=false;
-	var $AS_DEBIAN_FAMILY=false;
-	var $VLAN_INSTALLED=false;
-	var $disks_inodes="";
-	var $LOSETUP_INSTALLED;
-	var $SNORT_INSTALLED=false;
-	var $APP_EYEOS_INSTALLED=false;
-	var $EYEOS_VERSION;
-	var $APACHE_MOD_SECURITY=false;
-	var $APACHE_MOD_EVASIVE=false;
-	var $OPENVPN_APPLIANCE=false;
-	var $SIEVE_PORT=0;
-	var $Z_PUSH_INSTALLED=false;
-	var $APACHE_PROXY_MODE=false;
-	var $APP_GREENSQL_INSTALLED=false;
-	var $IPTABLES_ACCOUNTING_EXISTS=false;
-	var $POWER_DNS_MYSQL=false;
-	var $POWERADMIN_INSTALLED=false;
-	var $APACHE_MOD_CACHE=false;
-	var $APP_AMANDA_INSTALLED=false;
-	var $PDNSSEC_INSTALLED=false;
-	var $NSCD_INSTALLED=false;
-	var $DRUPAL7_INSTALLED=false;
-	var $TOMCAT_VERSION=false;
-	var $TOMCAT_INSTALLED=false;
-	var $TOMCAT_JAVA="";
-	var $TOMCAT_DIR="";
-	var $APACHE_MOD_TOMCAT=false;
-	var $OPENEMM_INSTALLED=false;
-	var $MSKTUTIL_INSTALLED=false;
-	var $OPENEMM_SENDMAIL_INSTALLED=false;
-	var $OPENEMM_SENDMAIL_VERSION=false;
-	var $PIWIK_INSTALLED=false;
-	var $JOOMLA17_INSTALLED=false;
-	var $APACHE_MOD_GEOIP=false;
-	var $FROM_ISO=false;
-	var $APACHE_MOD_PAGESPEED=false;
-	var $WORDPRESS_INSTALLED=false;
-	var $APACHE_MOD_INFO=false;
-	var $APACHE_MOD_STATUS=false;
-	var $APACHE_APPLIANCE=false;
-	var $APACHE_MOD_SUEXEC=false;
-	var $APACHE_MOD_FCGID=false;
-	var $CGROUPS_INSTALLED=false;	
-	var $APACHE_MOD_LOGSSQL=false;
-	var $MYCOSI_APPLIANCE=false;
-	var $LOAD_BALANCE_APPLIANCE=false;
-	var $ARPD_INSTALLED=false;
-	var $YAFFAS_INSTALLED=false;
-	var $SQUID_APPLIANCE=false;
-	var $PROXYTINY_APPLIANCE=false;
-	var $APP_KHSE_INSTALLED=false;
-	var $MYSQLD_MULTI_INSTALLED=false;
-	var $MONIT_INSTALLED=false;
-	var $CONCRETE5_INSTALLED=false;
-	var $ECAPAV_INSTALLED=false;
-	var $UPDATE_UTILITYV2_INSTALLED=false;
-	var $IPBAN_INSTALLED=false;
-	var $SQUID_PURGE_INSTALLED=false;
-	var $squid_ext_session_acl=null;
-	var $ZARAFA_WEBAPP_INSTALLED=false;
-	var $EJABBERD_INSTALLED=false;
-	var $PYMSNT_INSTALLED=false;
-	var $PYICQT_INSTALLED=false;
-	var $SSHFS_INSTALLED=false;
-	var $BTRFS_INSTALLED=false;
-	var $APP_ARKEIA_INSTALLED=false;
-	var $SAMBA_CLUSTER_SUPPORT=false;
-	var $HAPRROXY_APPLIANCE=false;
-	var $SMTP_APPLIANCE=false;
-	var $FULL_APPLIANCE=false;
-	var $FROM_SETUP=false;
-	var $KLMS_WEB_INSTALLED=false;
-	var $KLMS_INSTALLED=false;
-	var $HTTRACK_INSTALLED=false;
-	var $INNODB_FILE_PER_TABLE_INSTALL=false;
-	var $LDAP_BACKMETA=false;
-	var $LDAP_BACKLDAP=false;
-	var $LDAP_RWM=false;
-	var $LDAP_BACKRELAY=false;
-	var $CYRUS_APPLIANCE=false;
-	var $VPS_OPENVZ=false;
-	var $ZARAFA_SEARCH_INSTALLED=false;
-	var $OWNCLOUD_INSTALLED=false;
-	var $LIGHT_INSTALL=false;
-	var $CORP_LICENSE=false;
-	var $AsOwnMailBoxBackup=false;
-	var $ARTICADB_INSTALLED=false;
-	var $SURICATA_INSTALLED=false;
-	var $ZARAFA_INDEXER_INSTALLED=false;
+	public $WEBSTATS_APPLIANCE=null;
+	public $ChangeAutoInterface=null;
+	public $KASPERSKY_WEB_APPLIANCE=false;
+	public $mysql_password='';
+	public $mysql_admin='root';
+	public $mysql_server='127.0.0.1';
+	public $ARTICA_FILTER_QUEUE_PATH;
+	public $ARTICA_FILTER_MAXSUBQUEUE;
+	public $POSTFIX_MAILDROP_PATH;
+	public $GLOBAL_CONFIG;
+	public $AutomaticConfig=false;
+	public $fetchmail_installed=false;
+	public $cyrus_imapd_installed=false;
+	public $cyrus_lmtp_path='/var/run/cyrus/socket/lmtp';
+	public $kas_installed=false;
+	public $aveserver_installed;
+	public $rrdtool_installed;
+	public $procmail_installed=false;	
+	public $dnsmasq_installed=false;
+	public $mysql_installed=false;
+	public $mailgraph_installed=false;
+	public $mailgraph_virus_database;
+	public $mailgraph_postfix_database;
+	public $queuegraph_installed=false;
+	public $yorel_installed=false;
+	public $LOCATE_AUTHLOG_PATH="";
+	public $FRESHCLAM_INSTALLED=false;
+	public $QUOTA_INSTALLED=false;
+	public $roundcube_installed=false;
+	public $awstats_installed=false;
+	public $mysql_enabled=true;
+	public $aveserver_pattern_date="00000000;0000";
+	public $POSTIFX_STATUS="-1;0.0.0;";
+	public $KAS_STATUS="-1;0.0.0;";
+	public $CYRUS_STATUS="-1;0.0.0;";
+	public $KAV_STATUS="-1;0.0.0;";
+	public $FETHMAIL_STATUS="-1;0.0.0;";
+	public $ARTICA_ROOT_PATH;
+	public $ARTICA_VERSION;
+	public $ARTICA_FILTER_STATUS=false;
+	public $ARTICA_POLICY_STATUS=false;
+	public $EMAILRELAY_STATUS=false;
+	public $EMAILRELAY_INSTALLED=false;
+	public $BOGOFILTER_INSTALLED=false;
+	public $KAV_MILTER_INSTALLED=false;
+	public $MAILMAN_INSTALLED=false;
+	public $POSTFIX_INSTALLED=false;
+	public $POSTFIX_VERSION="0.0.0";
+	public $crossroads_installed=true;
+	public $fetchmail_daemon_logs="";
+	public $KAVMILTER_PID;
+	public $hotwayd_installed;
+	public $SQUID_INSTALLED=false;
+	public $SQUID_BIN_PATH="";
+	public $VMWARE_HOST=false;
+	public $HAPROXY_INSTALLED=false;
+	public $KAV4PROXY_INSTALLED=false;	
+	public $KAV4PROXY_PID;
+	public $KAV4PROXY_MEMORY=0;
+	public $KAV4PROXY_PATTERN="";
+	public $KAV4PROXY_VERSION="0.0.0";
+	public $DANSGUARDIAN_INSTALLED=false;
+	public $AMAVIS_INSTALLED=false;
+	public $AMAVISD_VERSION=null;
+	public $DANSGUARDIAN_VERSION=null;
+	public $PUREFTP_INSTALLED=false;
+	public $PUREFTP_USERS=false;
+	public $MILTERGREYLIST_INSTALLED=false;
+	public $MAILFROMD_INSTALLED=false;
+	public $SQUID_PID;	
+	public $fqdn;
+	public $hostname;
+	public $mysql_port;
+	public $SMTP_LEVEL;
+	public $ArticaFilterEnabled;
+	public $AmavisFilterEnabled;
+	public $MilterGreyListEnabled;
+	public $EnableMilterSpyDaemon=0;
+	public $SQLGreyEnabled;
+	public $KasxFilterEnabled;
+	public $OBM_INSTALLED;
+	public $OBMEnabled;
+	public $NTPD_INSTALLED;
+	public $NTPDEnabled;
+	public $MailFromdEnabled;
+	public $IPTABLES_INSTALLED;
+	public $ApacheArticaEnabled;
+	public $SAMBA_INSTALLED;
+	public $WINBINDD_INSTALLED;
+	public $SAMBA_VERSION;
+	public $GeoIPDat_Path;
+	public $BadMysqlPassword=0;
+	public $POSTFIX_LDAP_COMPLIANCE=false;
+	public $MAILFROMD_SOCKET="";
+	public $CLAMAV_INSTALLED=false;
+	public $CLAMD_INSTALLED=false;
+	public $CLAMSCAN_INSTALLED=false;
+	public $CLAMAV_SOCKET="";
+	public $ClamavMilterEnabled=0;
+	public $CLAMAV_MILTER_SOCKET;
+	public $CLAMAV_MILTER_INSTALLED=false;
+	public $SpamAssMilterEnabled=0;
+	public $SPAMASS_MILTER_INSTALLED=false;
+	public $SPAMASS_MILTER_SOCKET="";
+	public $roundcube_folder="";
+	public $phpcgi;
+	public $razor_installed=false;
+	public $pyzor_installed=false;
+	public $razor_config="";
+	public $spfmilterEnabled=0;
+	public $spfmilter_installed=false;
+	public $MIMEDEFANG_INSTALLED=false;
+	public $netbiosname;
+	public $MIMEDEFANG_SOCKET="";
+	public $MimeDefangEnabled;
+	public $GRAPHDEFANG_INSTALLED=false;
+	public $MHONARC_INSTALLED=alse;
+	public $SQUID_VERSION;
+	public $SQUID_LDAP_AUTH;
+	public $SQUID_NTLM_AUTH;
+	public $SQUID_BIN_VERSION=0;
+	public $stunnel4_installed=false;
+	public $DkimFilterEnabled=0;
+	public $DKIMFILTER_INSTALLED=false;
+	public $DKIMFILTER_SOCKET="";
+	public $blkid_installed=false;
+	public $nmap_installed=false;
+	public $usb_list=array();
+	public $roundcube_mysql_sources;
+	public $roundcube_web_folder;
+	public $KAV4SAMBA_INSTALLED=false;
+	public $KAV4SAMBA_VFS="";
+	public $SAMBA_MYSQL_AUDIT=false;
+	public $awstats_www_path="";
+	public $SQUID_ICAP_ENABLED=false;
+	public $LIGHTTPD_LDAP_AUTH=false;
+	public $BIND9_INSTALLED=false;
+	public $bindrrd_installed=false;
+	public $fdm_installed=false;
+	public $fdm_cache=false;
+	public $p3scan_installed=false;
+	public $syslogng_installed=false;
+	public $AsDebianSystem=false;
+	public $sTunnel4enabled=0;
+	public $MailArchiverEnabled=0;
+	public $roundcube_version="0.0.0";
+	public $EnableMilterBogom=0;
+	public $openldap_installed=false;
+	public $EnableMysqlFeatures=1;
+	public $MILTER_SPY_INSTALLED=false;
+	public $EnableCollectdDaemon=0;
+	public $EnableAmavisDaemon=0;
+	public $imapsync_installed=false;
+	public $mailsync_installed=false;
+	public $ISOQLOG_INSTALLED=false;
+	public $DOTCLEAR_INSTALLED=false;
+	public $JCHECKMAIL_INSTALLED=false;
+	public $zip_installed=false;
+	public $JCheckMailEnabled=0;
+	public $JCHECKMAIL_SOCKET;
+	public $EnableAmavisBackup=0;
+	public $OPENLDAP_DYNLIST=false;
+	public $EnableRemoteAddressBook=0;
+	public $SLPAD_LOCKED=false;
+	public $ALTERMIME_INSTALLED=false;
+	public $POMMO_INSTALLED=false;
+	public $C_ICAP_INSTALLED=false;
+	public $C_ICAP_DNSBL=false;
+	public $MILTERGREYLIST_SOCKET="";
+	public $OPENVPN_INSTALLED=false;
+	public $spamassassin_conf_path="";
+	public $EnableNonEncryptedLdapSession=1;
+	public $SMARTMONTOOLS_INSTALLED=false;
+	public $XAPIAN_PHP_INSTALLED=false;
+	public $INSTANSEARCH_ENABLE=false;
+	public $JOOMLA_INSTALLED=false;
+	public $DSTAT_INSTALLED=false;
+	public $SUGARCRM_INSTALLED=false;
+	public $GNUPLOT_PNG=false;
+	public $IOSTAT_INSTALLED=false;
+	public $IOSTAT_ARRAY=array();
+	public $PHP_BIN_PATH=null;	
+	public $EXEC_NICE=null;
+	public $spamassassin_bin_path=null;
+	public $cyr_partition_default=null;
+	public $cyr_config_directory=null;
+	public $smbclient_installed=false;
+	public $cyrus_murder_installed=false;
+	public $FETCHMAIL_VERSION=null;
+	public $cyrus_sync_client_path=null;
+	public $ctl_mboxlist=null;
+	public $CURL_PATH=null;
+	public $NMAP_PATH=null;
+	public $msmtp_installed=false;
+	public $nmap_version=null;
+	public $autofs_installed=false;
+	public $APACHE_PORT=null;
+	public $NFS_SERVER_INSTALLED=false;
+	public $LVM_INSTALLED=false;
+	public $MYSQL_NDB_MGMD_INSTALLED=false;
+	public $CPU_NUMBER=0;
+	public $LOAD_AVERAGE=0;
+	public $winexe_installed=false;
+	public $OCSI_INSTALLED=false;
+	public $ASSP_INSTALLED=false;
+	public $MEM_HIGER_1G=true;
+	public $LMB_LUNDIMATIN_INSTALLED=false;
+	public $APACHE_MODE_VHOSTS_LDAP=false;
+	public $TCP_ARRAY=array();
+	public $POWER_DNS_INSTALLED=false;
+	public $mysqld_version=0;
+	public $GLUSTER_INSTALLED=false;
+	public $SLAPD_CONF_PATH;
+	public $cyrus_squatter_exists=false;
+	public $cyrus_ipurge_exists=false;
+	public $SCANNED_ONLY_INSTALLED=false;
+	public $GROUPOFFICE_INSTALLED=false;
+	public $POSTFIX_MULTI=false;
+	public $AsOrgPostfixAdministrator=false;
+	public $AsMessagingOrg=false;
+	public $ASSP_VERSION=0;
+	public $MEM_TOTAL_INSTALLEE=0;
+	public $KASPERSKY_SMTP_APPLIANCE=false;
+	public $POSTFILTER_INSTALLED=false;
+	public $VMWARE_TOOLS_INSTALLED=false;
+	public $SQUID_NTLM_ENABLED=false;
+	public $ZARAFA_INSTALLED=false;
+	public $SQUIDGUARD_INSTALLED=false;
+	public $SQUIDGUARD_BINVER=0;
+	public $SQUIDGUARD_BIN_PATH="";
+	public $RSYNC_INSTALLED=false;
+	public $ZARAFA_APPLIANCE=false;
+	public $mysqld_datadir;
+	public $DRUPAL_INSTALLED=false;
+	public $MAIL_DKIM_VERSION=null;
+	public $HDPARM_INSTALLED=false;
+	public $APACHE_MODE_WEBDAV=false;
+	public $BACKUPPC_INSTALLED=false;
+	public $KAV4FS_INSTALLED=false;
+	public $OCS_LNX_AGENT_INSTALLED=false;
+	public $POSTFIX_PCRE_COMPLIANCE=false;
+	public $AsJoomlaWebMaster=false;
+	public $APP_AUDITD_INSTALLED=false;
+	public $DKFILTER_INSTALLED=false;
+	public $OPENDKIM_INSTALLED=false;
+	public $DB_RECOVER_INSTALLED=false;
+	public $APP_UFDBGUARD_INSTALLED=false;
+	public $ufdbgclient_path=null;
+	public $roundcube_subscriptions_option=false;
+	public $ADZAPPER_INSTALLED=false;
+	public $KINIT_INSTALLED=false;
+	public $DKIMPROXY_INSTALLED=false;
+	public $MILTER_DKIM_INSTALLED=false;
+	public $DROPBOX_INSTALLED=false;
+	public $VIRTUALBOX_INSTALLED=false;
+	public $AsVirtualBoxManager=false;
+	public $TFTPD_INSTALLED=false;
+	public $offlineimap_installed=false;
+	public $THINSTATION_INSTALLED=false;
+	public $OPENSSH_VER=0;
+	public $cyrus_syncserver_installed=false;
+	public $APP_SQUIDCLAMAV_INSTALLED=false;
+	public $squidclamav_path="";
+	public $PEAR_PACKAGES=array();
+	public $RACOON_INSTALLED=false;
+	public $IPSEC_INSTALLED=false;
+	public $PPTPD_INSTALLED=false;
+	public $PPTP_INSTALLED=false;
+	public $SQUID_ARP_ACL_ENABLED=false;
+	public $APT_MIRROR_INSTALLED=false;
+	public $CLUEBRINGER_INSTALLED=false;
+	public $qos_tools_installed=false;
+	public $tc_version=0;
+	public $LDAP_SYNCPROV=false;
+	public $ARTICA_META_ENABLED=false;
+	public $PIWIGO_INSTALLED=false;
+	public $APP_SABNZBDPLUS_INSTALLED=false;
+	public $POSTSCREEN_INSTALLED=false;
+	public $KASPERSKY_UPDATE_UTILITY_INSTALLED=false;
+	public $deduplication_installed=false;
+	public $APP_VNSTAT_INSTALLED=false;
+	public $IPSET_INSTALLED=false;
+	public $EnableManageUsersTroughActiveDirectory=false;
+	public $ActiveDirectoryCredentials;
+	public $ASPELL_INSTALLED=false;
+	public $MUNIN_CLIENT_INSTALLED=false;
+	public $CURLFTPFS_INSTALLED=false;
+	public $CIFS_INSTALLED=false;
+	public $GREYHOLE_INSTALLED=false;
+	public $SQUID_CACHMGR=false;
+	public $APACHE_DIR_SITES_ENABLED='';
+	public $APACHE_RUN_USER='';
+	public $APACHE_MODULES_PATH='';
+	public $DAVFS_INSTALLED=false;
+	public $APACHE_MOD_QOS=false;
+	public $ISCSI_INSTALLED=false;
+	public $ISCSI_CLIENT_INSTALLED=false;
+	public $ldapClass;
+	public $LXC_INSTALLED=false;
+	public $AS_VPS_CLIENT=false;
+	public $AS_DEBIAN_FAMILY=false;
+	public $VLAN_INSTALLED=false;
+	public $disks_inodes="";
+	public $LOSETUP_INSTALLED;
+	public $SNORT_INSTALLED=false;
+	public $APP_EYEOS_INSTALLED=false;
+	public $EYEOS_VERSION;
+	public $APACHE_MOD_SECURITY=false;
+	public $APACHE_MOD_EVASIVE=false;
+	public $OPENVPN_APPLIANCE=false;
+	public $SIEVE_PORT=0;
+	public $Z_PUSH_INSTALLED=false;
+	public $APACHE_PROXY_MODE=false;
+	public $APP_GREENSQL_INSTALLED=false;
+	public $IPTABLES_ACCOUNTING_EXISTS=false;
+	public $POWER_DNS_MYSQL=false;
+	public $POWERADMIN_INSTALLED=false;
+	public $APACHE_MOD_CACHE=false;
+	public $APP_AMANDA_INSTALLED=false;
+	public $PDNSSEC_INSTALLED=false;
+	public $NSCD_INSTALLED=false;
+	public $DRUPAL7_INSTALLED=false;
+	public $TOMCAT_VERSION=false;
+	public $TOMCAT_INSTALLED=false;
+	public $TOMCAT_JAVA="";
+	public $TOMCAT_DIR="";
+	public $APACHE_MOD_TOMCAT=false;
+	public $OPENEMM_INSTALLED=false;
+	public $MSKTUTIL_INSTALLED=false;
+	public $OPENEMM_SENDMAIL_INSTALLED=false;
+	public $OPENEMM_SENDMAIL_VERSION=false;
+	public $PIWIK_INSTALLED=false;
+	public $JOOMLA17_INSTALLED=false;
+	public $APACHE_MOD_GEOIP=false;
+	public $FROM_ISO=false;
+	public $APACHE_MOD_PAGESPEED=false;
+	public $WORDPRESS_INSTALLED=false;
+	public $APACHE_MOD_INFO=false;
+	public $APACHE_MOD_STATUS=false;
+	public $APACHE_APPLIANCE=false;
+	public $APACHE_MOD_SUEXEC=false;
+	public $APACHE_MOD_FCGID=false;
+	public $CGROUPS_INSTALLED=false;	
+	public $APACHE_MOD_LOGSSQL=false;
+	public $MYCOSI_APPLIANCE=false;
+	public $LOAD_BALANCE_APPLIANCE=false;
+	public $ARPD_INSTALLED=false;
+	public $YAFFAS_INSTALLED=false;
+	public $SQUID_APPLIANCE=false;
+	public $PROXYTINY_APPLIANCE=false;
+	public $APP_KHSE_INSTALLED=false;
+	public $MYSQLD_MULTI_INSTALLED=false;
+	public $MONIT_INSTALLED=false;
+	public $CONCRETE5_INSTALLED=false;
+	public $ECAPAV_INSTALLED=false;
+	public $UPDATE_UTILITYV2_INSTALLED=false;
+	public $IPBAN_INSTALLED=false;
+	public $SQUID_PURGE_INSTALLED=false;
+	public $squid_ext_session_acl=null;
+	public $ZARAFA_WEBAPP_INSTALLED=false;
+	public $EJABBERD_INSTALLED=false;
+	public $PYMSNT_INSTALLED=false;
+	public $PYICQT_INSTALLED=false;
+	public $SSHFS_INSTALLED=false;
+	public $BTRFS_INSTALLED=false;
+	public $APP_ARKEIA_INSTALLED=false;
+	public $SAMBA_CLUSTER_SUPPORT=false;
+	public $HAPRROXY_APPLIANCE=false;
+	public $SMTP_APPLIANCE=false;
+	public $FULL_APPLIANCE=false;
+	public $FROM_SETUP=false;
+	public $KLMS_WEB_INSTALLED=false;
+	public $KLMS_INSTALLED=false;
+	public $HTTRACK_INSTALLED=false;
+	public $INNODB_FILE_PER_TABLE_INSTALL=false;
+	public $LDAP_BACKMETA=false;
+	public $LDAP_BACKLDAP=false;
+	public $LDAP_RWM=false;
+	public $LDAP_BACKRELAY=false;
+	public $CYRUS_APPLIANCE=false;
+	public $VPS_OPENVZ=false;
+	public $ZARAFA_SEARCH_INSTALLED=false;
+	public $OWNCLOUD_INSTALLED=false;
+	public $LIGHT_INSTALL=false;
+	public $CORP_LICENSE=false;
+	public $AsOwnMailBoxBackup=false;
+	public $ARTICADB_INSTALLED=false;
+	public $SURICATA_INSTALLED=false;
+	public $ZARAFA_INDEXER_INSTALLED=false;
+	public $APP_TOMCAT6_INSTALLED=false;
+	public $APP_JAVA_JDK_INSTALLED=false;
+	public $WSGATE_INSTALLED=false;
+	public $URLSNARF_INSTALLED=false;
+	public $ETTERCAP_INSTALLED=false;	
+	public $PERL_AUTHNTLM=false;
+	public $APACHE_MOD_PYTHON=false;
+	public $APP_PYAUTHENNTLM=false;	
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -550,8 +560,6 @@ class usersMenus {
 		}
 		
 		return $_GLOBAL;
-		
-		
 	}
 	
 	
@@ -675,21 +683,25 @@ class usersMenus {
 			if(isset($_GLOBAL["VPS_OPENVZ"])){$this->VPS_OPENVZ=$_GLOBAL["VPS_OPENVZ"];}
 			if(isset($_GLOBAL["ZARAFA_SEARCH_INSTALLED"])){$this->ZARAFA_SEARCH_INSTALLED=$_GLOBAL["ZARAFA_SEARCH_INSTALLED"];}
 			if(isset($_GLOBAL["ZARAFA_INDEXER_INSTALLED"])){$this->ZARAFA_INDEXER_INSTALLED=$_GLOBAL["ZARAFA_INDEXER_INSTALLED"];}
-			
-			
-			
+			if(isset($_GLOBAL["APP_TOMCAT6_INSTALLED"])){$this->APP_TOMCAT6_INSTALLED=$_GLOBAL["APP_TOMCAT6_INSTALLED"];}
 			if(isset($_GLOBAL["OWNCLOUD_INSTALLED"])){$this->OWNCLOUD_INSTALLED=$_GLOBAL["OWNCLOUD_INSTALLED"];}
 			if(isset($_GLOBAL["LIGHT_INSTALL"])){$this->LIGHT_INSTALL=$_GLOBAL["LIGHT_INSTALL"];}
 			if(isset($_GLOBAL["SURICATA_INSTALLED"])){$this->SURICATA_INSTALLED=$_GLOBAL["SURICATA_INSTALLED"];}
+			if(isset($_GLOBAL["WSGATE_INSTALLED"])){$this->WSGATE_INSTALLED=$_GLOBAL["WSGATE_INSTALLED"];}
+			if(isset($_GLOBAL["URLSNARF_INSTALLED"])){$this->URLSNARF_INSTALLED=$_GLOBAL["URLSNARF_INSTALLED"];}
+			if(isset($_GLOBAL["ETTERCAP_INSTALLED"])){$this->ETTERCAP_INSTALLED=$_GLOBAL["ETTERCAP_INSTALLED"];}
+			if(isset($_GLOBAL["PERL_AUTHNTLM"])){$this->PERL_AUTHNTLM=$_GLOBAL["PERL_AUTHNTLM"];}
+			
+			if(isset($_GLOBAL["APACHE_MOD_PYTHON"])){$this->APACHE_MOD_PYTHON=$_GLOBAL["APACHE_MOD_PYTHON"];}
+			if(isset($_GLOBAL["APP_PYAUTHENNTLM"])){$this->APP_PYAUTHENNTLM=$_GLOBAL["APP_PYAUTHENNTLM"];}
+	
+			
+			
 			
 			
 			//Are you sure to do that !!!, breaking the license turn you to a pirate...
 			if(isset($_GLOBAL["CORP_LICENSE"])){$this->CORP_LICENSE=$_GLOBAL["CORP_LICENSE"];}
-			
-			
-			
-			
-			
+	
 			$this->hostname=$_GLOBAL["fixed_hostname"];
 			$this->fqdn=$_GLOBAL["fqdn_hostname"];
 			if(isset($_GLOBAL["ARTICADB_INSTALLED"])){$this->ARTICADB_INSTALLED=$_GLOBAL["ARTICADB_INSTALLED"];;}
@@ -786,6 +798,7 @@ class usersMenus {
 			if(isset($_GLOBAL["LDAP_BACKRELAY"])){$this->LDAP_BACKLDAP=$_GLOBAL["LDAP_BACKRELAY"];}
 			if(isset($_GLOBAL["LDAP_RWM"])){$this->LDAP_RWM=$_GLOBAL["LDAP_RWM"];}
 			if(isset($_GLOBAL["FROM_ISO"])){$this->FROM_ISO=$_GLOBAL["FROM_ISO"];}
+			if(isset($_GLOBAL["APP_JAVA_JDK_INSTALLED"])){$this->APP_JAVA_JDK_INSTALLED=$_GLOBAL["APP_JAVA_JDK_INSTALLED"];}
 
 			
 			$this->bindrrd_installed=$_GLOBAL["bindrrd_installed"];
@@ -1026,9 +1039,6 @@ class usersMenus {
 			if($this->LinuxDistriCode=="DEBIAN"){$this->AS_DEBIAN_FAMILY=true;}
 			if($this->LinuxDistriCode=="UBUNTU"){$this->AS_DEBIAN_FAMILY=true;}
 			
-			
-			
-			
 			if(isset($_GLOBAL["deduplication_installed"])){$this->deduplication_installed=$_GLOBAL["deduplication_installed"];}
 			$this->EnableManageUsersTroughActiveDirectory=$_GLOBAL["EnableManageUsersTroughActiveDirectory"];
 			$this->ActiveDirectoryCredentials=$_GLOBAL["ActiveDirectoryCredentials"];
@@ -1037,6 +1047,17 @@ class usersMenus {
 			$ArticaMetaEnabled=trim($sock->GET_INFO("ArticaMetaEnabled"));
 			if($ArticaMetaEnabled==null){$sock->SET_INFO("ArticaMetaEnabled","0");}
 			if($ArticaMetaEnabled==1){$this->ARTICA_META_ENABLED=true;}
+			$EnableMacAddressFilter=$sock->GET_INFO("EnableMacAddressFilter");
+			if(!is_numeric($EnableMacAddressFilter)){$EnableMacAddressFilter=1;}
+			$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+			if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+			if($EnableRemoteStatisticsAppliance==1){
+				$EnableMacAddressFilterCentral=$sock->GET_INFO("EnableMacAddressFilterCentral");
+				if(!is_numeric($EnableMacAddressFilterCentral)){$EnableMacAddressFilterCentral=1;}
+				$EnableMacAddressFilter=$EnableMacAddressFilterCentral;
+			}
+			
+			if($this->SQUID_ARP_ACL_ENABLED){if($EnableMacAddressFilter==0){$this->SQUID_ARP_ACL_ENABLED=false;}}
 			
 			$pear=explode(";",$_GLOBAL["PEAR_PACKAGES"]);
 			if(is_array($pear)){
@@ -1046,7 +1067,7 @@ class usersMenus {
 				}
 			}
 			
-			
+			if(!$this->APACHE_MOD_PYTHON){$this->APP_PYAUTHENNTLM=false;}
 			
 			$this->CPU_NUMBER=$_GLOBAL["CPU_NUMBER"];
 			$this->LOAD_AVERAGE=$_GLOBAL["LOAD_AVERAGE"];
@@ -2272,361 +2293,26 @@ private function MAILBOXES_MENUS($array=array()){
 		}
 	}
 
-	private function Allrights(){
-			$this->AllowUserMaillog=true;
-			$this->AsAnAdministratorGeneric=true;
-			$this->AsSystemAdministrator=true;
-			$this->AsMailBoxAdministrator=true;
-			$this->AsPostfixAdministrator=true;
-			$this->AllowChangeKav=true;
-			$this->AllowChangeKas=true;
-			$this->AllowAddUsers=true;
-			$this->AsOrgAdmin=true;
-			$this->AseMailCampaignsAdmin=true;
-			$this->AllowViewStatistics=true;
-			$this->AllowEditOuSecurity=true;
-			$this->AsSquidAdministrator=true;
-			$this->AsSambaAdministrator=true;
-			$this->AsDnsAdministrator=true;
-			$this->AsQuarantineAdministrator=true;
-			$this->AsDansGuardianAdministrator=true;
-			$this->AllowDansGuardianBanned=true;
-			$this->AllowFetchMails=true;
-			$this->AllowChangeAntiSpamSettings=true;
-			$this->AllowSenderCanonical=true;
-			$this->AsMailManAdministrator=true;
-			$this->AsOrgStorageAdministrator=true;
-			$this->AllowManageOwnComputers=true;
-			$this->AsOrgPostfixAdministrator=true;
-			$this->AsDansGuardianGroupRule=true;
-			$this->AsMessagingOrg=true;
-			$this->AsInventoryAdmin=true;
-			$this->AsJoomlaWebMaster=true;
-			$this->AsVirtualBoxManager=true;
-			$this->AllowChangeDomains=true;
-			$this->OverWriteRestrictedDomains=true;
-			$this->AsWebMaster=true;
-			$this->AllowChangeAntiSpamSettings=true;
-			$this->AllowChangeUserPassword=true;
-			$this->AllowFetchMails=true;
-			$this->AllowChangeUserKas=true;
-			$this->AllowEditAliases=true;
-			$this->AllowChangeMailBoxRules=true;
-			$this->AllowSenderCanonical=true;
-			$this->AllowOpenVPN=true;
-			$this->AllowDansGuardianBanned=true;
-			$this->AllowXapianDownload=true;
-			$this->AllowManageOwnComputers=true;
-			$this->AllowEditAliases=true;	
-			$this->AsWebFilterRepository=true;		
-			$this->AsWebStatisticsAdministrator=true;
-			$this->AsMessagingOrg=true;
-			$this->AllowEditOuSecurity=true;
-			$this->AsHotSpotManager=true;
-			$this->AsOwnMailBoxBackup=true;			
-	}
+
 	
 	function _TranslateRights($priv,$log=false){
-		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=1000;if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();}}
-		if(!is_array($priv)){
-			if($GLOBALS["posix_getuid"]<>0){
-				if($GLOBALS["VERBOSE"]){echo "No privileges set\n";}
-				writelogs("No privileges set",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		if(isset($GLOBALS["_TranslateRights"])){
+			reset($GLOBALS["_TranslateRights"]);
+			while (list ($num, $ligne) = each ($GLOBALS["_TranslateRights"]) ){$this->$num=$ligne;}
 			return;
 		}
-		if($GLOBALS["posix_getuid"]==0){
-			$this->AsMailBoxAdministrator=true;
-			$this->AsArticaAdministrator=true;
-			$this->AsArticaAdministrator=true;
-			$this->Allrights();
-			return;
-		}
-		$this->AsArticaAdministrator=false;
-		$this->AsSystemAdministrator=false;
-		if(isset($GLOBALS["DEBUG_PRIVS"])){if($GLOBALS["DEBUG_PRIVS"]){$log=true;}}
-		if($log){writelogs("logon: Receive array of ". count($priv)." privileges",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-		if($log){
-			while (list ($num, $ligne) = each ($priv) ){
-				writelogs("logon: $num = $ligne",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			}
-		
-		if(!isset($priv["AsVirtualBoxManager"])){$priv["AsVirtualBoxManager"]="no";}
-		if(!isset($priv["AsSquidAdministrator"])){$priv["AsSquidAdministrator"]="no";}
-		if(!isset($priv["AsJoomlaWebMaster"])){$priv["AsJoomlaWebMaster"]="no";}
-		if(!isset($priv["AseMailCampaignsAdmin"])){$priv["AseMailCampaignsAdmin"]="no";}
-		if(!isset($priv["AsInventoryAdmin"])){$priv["AsInventoryAdmin"]="no";}
-		if(!isset($priv["AsOrgAdmin"])){$priv["AsOrgAdmin"]="no";}
-		if(!isset($priv["AsMessagingOrg"])){$priv["AsMessagingOrg"]="no";}
-		if(!isset($priv["AsDansGuardianGroupRule"])){$priv["AsDansGuardianGroupRule"]="no";}
-		if(!isset($priv["AsOrgPostfixAdministrator"])){$priv["AsOrgPostfixAdministrator"]="no";}
-		if(!isset($priv["AllowManageOwnComputers"])){$priv["AllowManageOwnComputers"]="no";}
-		if(!isset($priv["AsOrgStorageAdministrator"])){$priv["AsOrgStorageAdministrator"]="no";}
-		if(!isset($priv["AsMailManAdministrator"])){$priv["AsMailManAdministrator"]="no";}
-		if(!isset($priv["AllowXapianDownload"])){$priv["AllowXapianDownload"]="no";}
-		if(!isset($priv["AllowChangeMailBoxRules"])){$priv["AllowChangeMailBoxRules"]="no";}
-		if(!isset($priv["AllowDansGuardianBanned"])){$priv["AllowDansGuardianBanned"]="no";}
-		if(!isset($priv["AllowOpenVPN"])){$priv["AllowOpenVPN"]="no";}
-		if(!isset($priv["AllowEmailing"])){$priv["AllowEmailing"]="no";}
-		if(!isset($priv["AsQuarantineAdministrator"])){$priv["AsQuarantineAdministrator"]="no";}
-		if(!isset($priv["AsDnsAdministrator"])){$priv["AsDnsAdministrator"]="no";}
-		if(!isset($priv["AsSambaAdministrator"])){$priv["AsSambaAdministrator"]="no";}
-		if(!isset($priv["AllowEditOuSecurity"])){$priv["AllowEditOuSecurity"]="no";}
-		if(!isset($priv["AllowChangeAntiSpamSettings"])){$priv["AllowChangeAntiSpamSettings"]="no";}
-		if(!isset($priv["AllowViewStatistics"])){$priv["AllowViewStatistics"]="no";}
-		if(!isset($priv["AllowChangeUserKas"])){$priv["AllowChangeUserKas"]="no";}
-		if(!isset($priv["AllowSenderCanonical"])){$priv["AllowSenderCanonical"]="no";}
-		if(!isset($priv["AsMailBoxAdministrator"])){$priv["AsMailBoxAdministrator"]="no";}
-		if(!isset($priv["AllowFetchMails"])){$priv["AllowFetchMails"]="no";}
-		if(!isset($priv["AllowChangeDomains"])){$priv["AllowChangeDomains"]="no";}
-		if(!isset($priv["AllowEditAliases"])){$priv["AllowEditAliases"]="no";}
-		if(!isset($priv["AllowAddGroup"])){$priv["AllowAddGroup"]="no";}
-		if(!isset($priv["AsSystemAdministrator"])){$priv["AsSystemAdministrator"]="no";}
-		if(!isset($priv["AllowChangeKav"])){$priv["AllowChangeKav"]="no";}
-		if(!isset($priv["AllowChangeUserPassword"])){$priv["AllowChangeUserPassword"]="no";}
-		if(!isset($priv["AllowChangeKas"])){$priv["AllowChangeKas"]="no";}
-		if(!isset($priv["AllowAddUsers"])){$priv["AllowAddUsers"]="no";}
-		if(!isset($priv["AllowEditAsWbl"])){$priv["AllowEditAsWbl"]="no";}
-		if(!isset($priv["AsArticaAdministrator"])){$priv["AsArticaAdministrator"]="no";}
-		if(!isset($priv["AsWebMaster"])){$priv["AsWebMaster"]="no";}
-		if(!isset($priv["RestrictNabToGroups"])){$priv["RestrictNabToGroups"]="no";}
-		if(!isset($priv["AsDansGuardianAdministrator"])){$priv["AsDansGuardianAdministrator"]="no";}
-		if(!isset($priv["AsWebFilterRepository"])){$priv["AsWebFilterRepository"]="no";}
-		if(!isset($priv["AsWebStatisticsAdministrator"])){$priv["AsWebStatisticsAdministrator"]="no";}
-		if(!isset($priv["AllowUserMaillog"])){$priv["AllowUserMaillog"]="no";}
-		if(!isset($priv["AsHotSpotManager"])){$priv["AsHotSpotManager"]="no";}
-		if(!isset($priv["AsOwnMailBoxBackup"])){$priv["AsOwnMailBoxBackup"]="no";}
 		
 		
-		
-		if($priv["AllowUserMaillog"]=='yes'){$this->AllowUserMaillog=true;}
-		if($priv["AllowChangeDomains"]=='yes'){$this->AllowChangeDomains=true;}
-		if($priv["AllowAddGroup"]=="yes"){$this->AllowAddGroup=true;}
-		if($priv["AsSystemAdministrator"]=='yes'){$this->AsSystemAdministrator=true;}
-		if($priv["AsArticaAdministrator"]=='yes'){$this->AsArticaAdministrator=true;}
-		if($priv["AllowFetchMails"]=='yes'){$this->AllowFetchMails=true;}
-		if($priv["AsMailBoxAdministrator"]=='yes'){$this->AsMailBoxAdministrator=true;}
-		if($priv["AllowChangeKav"]=='yes'){$this->AllowChangeKav=true;}
-		if($priv["AllowSenderCanonical"]=='yes'){$this->AllowSenderCanonical=true;}
-		if($priv["AllowChangeUserPassword"]=='yes'){$this->AllowChangeUserPassword=true;}
-		if($priv["AllowChangeKas"]=='yes'){$this->AllowChangeKas=true;}
-		if($priv["AllowChangeUserKas"]=='yes'){$this->AllowChangeUserKas=true;}
-		if($priv["AllowAddUsers"]=='yes'){$this->AllowAddUsers=true;}
-		if($priv["AllowViewStatistics"]=='yes'){$this->AllowViewStatistics=true;}
-		if($priv["AllowEditAsWbl"]=='yes'){$this->AllowEditAsWbl=true;}
-		if($priv["AllowChangeAntiSpamSettings"]=='yes'){$this->AllowChangeAntiSpamSettings=true;}
-		if($priv["AllowEditOuSecurity"]=='yes'){$this->AllowEditOuSecurity=true;}
-		if($priv["AsSambaAdministrator"]=='yes'){$this->AsSambaAdministrator=true;}
-		if($priv["AsDnsAdministrator"]=='yes'){$this->AsDnsAdministrator=true;}
-		if($priv["AsQuarantineAdministrator"]=='yes'){$this->AsQuarantineAdministrator=true;}
-		if($priv["AllowEditAliases"]=='yes'){$this->AllowEditAliases=true;}
-		if($priv["AllowEmailing"]=='yes'){$this->AllowEmailing=true;}
-		if($priv["AllowOpenVPN"]=='yes'){$this->AllowOpenVPN=true;}
-		if($priv["AllowDansGuardianBanned"]=='yes'){$this->AllowDansGuardianBanned=true;}
-		if($priv["AllowChangeMailBoxRules"]=='yes'){$this->AllowChangeMailBoxRules=true;}
-		if($priv["AllowXapianDownload"]=='yes'){$this->AllowXapianDownload=true;}
-		if($priv["AsMailManAdministrator"]=='yes'){$this->AsMailManAdministrator=true;}
-		if($priv["AsOrgStorageAdministrator"]=='yes'){$this->AsOrgStorageAdministrator=true;}
-		if($priv["AllowManageOwnComputers"]=='yes'){$this->AllowManageOwnComputers=true;}
-		if($priv["AsOrgPostfixAdministrator"]=='yes'){$this->AsOrgPostfixAdministrator=true;}
-		if($priv["AsDansGuardianGroupRule"]=='yes'){$this->AsDansGuardianGroupRule=true;}
-		if($priv["AsMessagingOrg"]=='yes'){$this->AsMessagingOrg=true;}
-		if($priv["AsHotSpotManager"]=='yes'){$this->AsHotSpotManager=true;}
-		
-		if($priv["AsOrgAdmin"]=='yes'){$this->AsOrgAdmin=true;}
-		if($priv["AsInventoryAdmin"]=='yes'){$this->AsInventoryAdmin=true;}
-		if($priv["AseMailCampaignsAdmin"]=='yes'){$this->AseMailCampaignsAdmin=true;}
-		if($priv["AsJoomlaWebMaster"]=='yes'){$this->AsJoomlaWebMaster=true;}
-		if($priv["AsSquidAdministrator"]=='yes'){$this->AsSquidAdministrator=true;}
-		if($priv["AsVirtualBoxManager"]=='yes'){$this->AsVirtualBoxManager=true;}
-		if(isset($priv["OverWriteRestrictedDomains"])){
-			if($priv["OverWriteRestrictedDomains"]=='yes'){$this->OverWriteRestrictedDomains=true;}
-		}
-		if($priv["AsWebMaster"]=='yes'){$this->AsWebMaster=true;}
-		if($priv["RestrictNabToGroups"]=='yes'){$this->RestrictNabToGroups=true;}
-		if($priv["AsDansGuardianAdministrator"]=='yes'){$this->AsDansGuardianAdministrator=true;}
-		if($priv["AsWebFilterRepository"]=='yes'){$this->AsWebFilterRepository=true;}
-		if($priv["AsWebStatisticsAdministrator"]=='yes'){$this->AsWebStatisticsAdministrator=true;}
-		if($priv["AsOwnMailBoxBackup"]=='yes'){$this->AsOwnMailBoxBackup=true;}
-		
-		
-		
-	
-		if($_SESSION["uid"]==-100){
-			$this->AsArticaAdministrator=true;
-			$this->AllowEditOuSecurity=true;
-			$this->AsSquidAdministrator=true;
-			$this->AsSystemAdministrator=true;
-			$this->AsMessagingOrg=true;
-			$this->AsHotSpotManager=true;
+		if(!class_exists("TranslateRights")){
+			include_once(dirname(__FILE__)."/class.translate.rights.inc");
 		}
 		
-		if(isset($priv["PasswdPolicy"])){
-			if($priv["PasswdPolicy"]<>null){$this->PasswdPolicy=unserialize(base64_decode($priv["PasswdPolicy"]));}
-		}
-		
-		if($log){
-			if(is_array($priv)){
-			while (list ($key, $val) = each ($priv) ){
-				if($val=="yes"){
-					writelogs("$key=$val",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				}
-			}}
-		}		
-		
-		
-		if($this->AllowEditOuSecurity==true){
-			if($log){writelogs("{$_SESSION["uid"]}: AllowEditOuSecurity: TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			$this->AllowChangeAntiSpamSettings=true;
-			$this->AllowDansGuardianBanned=true;
-			$this->AllowManageOwnComputers=true;
-			$this->AsDansGuardianGroupRule=true;
-			$this->AseMailCampaignsAdmin=true;
-			$this->AllowChangeAntiSpamSettings=true;
-			$this->AllowChangeUserPassword=true;
-			$this->AllowFetchMails=true;
-			$this->AllowChangeUserKas=true;
-			$this->AllowEditAliases=true;
-			$this->AllowChangeMailBoxRules=true;
-			$this->AllowSenderCanonical=true;
-			$this->AllowOpenVPN=true;
-			$this->AllowDansGuardianBanned=true;
-			$this->AllowXapianDownload=true;
-			$this->AllowManageOwnComputers=true;	
-			$this->AllowEditAliases=true;	
-					
-		}
-		
-
-		
-		
-		if($this->IsGlobalAdmin($log)==true){
-			$this->AllowChangeDomains=true;
-			$this->AllowAddGroup=true;
-			$this->AllowChangeOrg=true;
-			$this->AsPostfixAdministrator=true;
-			$this->AllowChangeKav=true;
-			$this->AllowChangeKas=true;
-			$this->AllowViewStatistics=true;
-			$this->AllowEditOuSecurity=true;
-			$this->AllowAddUsers=true;
-			$this->AsSquidAdministrator=true;
-			$this->AsSambaAdministrator=true;
-			$this->AsDnsAdministrator=true;
-			$this->AsQuarantineAdministrator=true;
-			$this->AllowDansGuardianBanned=true;
-			$this->AllowChangeAntiSpamSettings=true;
-			$this->AllowViewStatistics=true;
-			$this->AllowSenderCanonical=true;
-			$this->AsOrgStorageAdministrator=true;
-			$this->AllowManageOwnComputers=true;
-			$this->AsDansGuardianGroupRule=true;
-			$this->AsMessagingOrg=true;
-			$this->AsHotSpotManager=true;
-			
-			}
-		
-		if($this->AsArticaAdministrator==true){
-			$this->Allrights();
-			}
-			
-			if($this->AsSquidAdministrator){
-				$this->AsAnAdministratorGeneric=true;
-				$this->AsWebFilterRepository=true;
-				$this->AsDansGuardianGroupRule=true;
-				$this->AsDansGuardianAdministrator=true;
-				$this->AsWebStatisticsAdministrator=true;
-				$this->AsHotSpotManager=true;
-			}
-			
-			if($this->AsDansGuardianAdministrator){
-				$this->AsDansGuardianGroupRule=true;
-				$this->AsWebStatisticsAdministrator=true;
-				$this->AsHotSpotManager=true;
-			}
-			
-		if($this->AsPostfixAdministrator){
-			$this->AllowUserMaillog=true;
-			$this->AsAnAdministratorGeneric=true;
-			$this->OverWriteRestrictedDomains=true;
-		}
-			
-		if($this->AsSystemAdministrator){
-			$this->AllowUserMaillog=true;
-			$this->AsAnAdministratorGeneric=true;
-			$this->AsSambaAdministrator=true;
-			$this->AsDnsAdministrator=true;
-			$this->AsVirtualBoxManager=true;
-			$this->OverWriteRestrictedDomains=true;
-			$this->AsWebMaster=true;
-			$this->AllowEditAliases=true;
-			
-			
-		}
-		if($this->AsMessagingOrg){
-			if($log){writelogs("{$_SESSION["uid"]}: AsMessagingOrg: TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			$this->AllowSenderCanonical=true;
-			$this->AllowAddUsers=true;
-			$this->AllowAddGroup=true;
-			$this->AllowChangeDomains=true;
-			$this->AllowEditAliases=true;
-		}
-		
-		if($this->AllowAddUsers){
-			$this->AllowChangeUserPassword=true;
-		}
-		
-		if($this->AllowChangeDomains==true){
-			$this->AllowSenderCanonical=true;
-		}
-		
-		if($this->AllowEditOuSecurity==true){
-			if($log){writelogs("{$_SESSION["uid"]}: AllowEditOuSecurity: TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-				$this->AsOrgAdmin=true;
-				$this->AllowAddGroup=true;
-				$this->AllowSenderCanonical=true;
-				$this->AsJoomlaWebMaster=true;
-				$this->AllowChangeUserPassword=true;
-				$this->AllowChangeAntiSpamSettings=true;
-				$this->AllowChangeUserPassword=true;
-				$this->AllowFetchMails=true;
-				$this->AllowChangeUserKas=true;
-				$this->AllowEditAliases=true;
-				$this->AllowChangeMailBoxRules=true;
-				$this->AllowSenderCanonical=true;
-				$this->AllowOpenVPN=true;
-				$this->AllowDansGuardianBanned=true;
-				$this->AllowXapianDownload=true;
-				$this->AllowManageOwnComputers=true;
-				$this->AllowEditAliases=true;				
-		}
-		if($this->AsDnsAdministrator==true){$this->AsOrgAdmin=true;$this->AllowAddGroup=true;}
-		if($this->AsOrgAdmin==true){
-			$this->AllowSenderCanonical=true;
-			$this->AllowAddUsers=true;
-			$this->AllowAddGroup=true;
-			$this->AllowChangeUserPassword=true;
-			$this->AsJoomlaWebMaster=true;
-			$this->AllowChangeAntiSpamSettings=true;
-			$this->AllowChangeUserPassword=true;
-			$this->AllowFetchMails=true;
-			$this->AllowChangeUserKas=true;
-			$this->AllowEditAliases=true;
-			$this->AllowChangeMailBoxRules=true;
-			$this->AllowOpenVPN=true;
-			$this->AllowDansGuardianBanned=true;
-			$this->AllowXapianDownload=true;
-			$this->AllowManageOwnComputers=true;
-			$this->AllowEditAliases=true;
-		}
-		if($this->AsQuarantineAdministrator==true){$this->AsMessagingOrg=true;$this->AllowUserMaillog=true;}
-		
-		if($this->AsInventoryAdmin){
-			$this->AllowManageOwnComputers=true;
-		}
-		
-		if($this->AsWebStatisticsAdministrator){
-			$this->AsAnAdministratorGeneric=true;
-		}
+		$cr=new TranslateRights($priv,$this->uid);
+		$cr->ParseRights();
+		$TTR=$cr->FINAL_PRIVS;
+		if(!is_array($TTR)){return;}
+		$GLOBALS["_TranslateRights"]=$TTR;
+		while (list ($num, $ligne) = each ($GLOBALS["_TranslateRights"]) ){$this->$num=$ligne;}
 		
 	}
 	
@@ -2774,12 +2460,21 @@ function url_decode_special($path){
 }
 
 function GetRights_aliases() {
-	$usersprivs = new usersMenus ( );
+	$usersprivs = new usersMenus();
 	if ($usersprivs->AsAnAdministratorGeneric) {return 1;}
+	$GLOBALS["ERRORS_PRIVS"][]="{AsAnAdministratorGeneric}: {no}";
 	if ($usersprivs->AllowEditOuSecurity) {return 1;}
+	$GLOBALS["ERRORS_PRIVS"][]="{AllowEditOuSecurity}: {no}";
 	if ($usersprivs->AsMessagingOrg) {return 1;}
+	$GLOBALS["ERRORS_PRIVS"][]="{AsMessagingOrg}: {no}";
 	if ($usersprivs->AllowEditAliases) {return 1;}
+	$GLOBALS["ERRORS_PRIVS"][]="{AllowEditAliases}: {no}";
 	if($usersprivs->AsInventoryAdmin){return 1;}
+	$GLOBALS["ERRORS_PRIVS"][]="{AsInventoryAdmin}: {no}";
+	if($usersprivs->AsOrgDNSAdmin){return 1;}
+	$GLOBALS["ERRORS_PRIVS"][]="{AsOrgDNSAdmin}: {no}";
+	if($usersprivs->ASDCHPAdmin){return 1;}
+	$GLOBALS["ERRORS_PRIVS"][]="{ASDCHPAdmin}: {no}";
 	return 0;
 }
 

@@ -1,10 +1,10 @@
 <?php
 function DAEMON_STATUS_ROUND($key,$bsini,$textoadd=null,$noenable=0,$newInterface=0){
 	$ADD_ID_DIV=false;
-	if(preg_match("#ID:(.+)#",$key, $re)){$ADD_ID_DIV=true;$key=$re[1];}
+	if(preg_match("#^ID:(.+)#",$key, $re)){$ADD_ID_DIV=true;$key=$re[1];}
 	$version=null;$license_error=null;$icap=null;$pattern=null;$textoadd2=null;$disabled=null;
-	if(!isset($bsini->_params["$key"]["service_name"])){return null;}
-	if($bsini->_params["$key"]["service_name"]==null){return null;}
+	if(!isset($bsini->_params[$key]["service_name"])){if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::FAILED::service_name for $key<br>\n".print_r($bsini->_params[$key])."<br>\n";}return null;}
+	if($bsini->_params["$key"]["service_name"]==null){if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::FAILED<br>\n";}return null;}
 	if($bsini->_params["$key"]["service_disabled"]==null){$bsini->_params["$key"]["service_disabled"]=-1;}
 	$app=$bsini->_params["$key"]["service_name"];
 	if(isset($bsini->_params["$key"]["monit"])){$monit=$bsini->_params["$key"]["monit"];}else{$monit=0;}
@@ -423,6 +423,8 @@ function url_decode_special_tool($path){
 	$path=str_replace("%E2","â",$path);
 	$path=str_replace("%FB","û",$path);
 	$path=str_replace("%u20AC","€",$path);
+	$path=str_replace("%u2014","–",$path);
+	$path=str_replace("%u2013","—",$path);
 	$path=str_replace("%24","$",$path);
 	$path=str_replace("%21","!",$path);
 	$path=str_replace("%23","#",$path);

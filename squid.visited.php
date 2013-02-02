@@ -23,6 +23,7 @@
 	if(isset($_GET["rescan-js"])){rescan_js();exit;}
 	if(isset($_POST["ResCanVisited"])){rescan_perform();exit;}
 	if(isset($_POST["rescan_perform"])){rescan_perform();exit;}
+	if(isset($_POST["ResCanWeek"])){rescan_week_perform();exit;}
 	
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["visited"])){visited();exit;}
@@ -63,7 +64,7 @@ js();
 
 function CategorizeAll_js(){
 	$tpl=new templates();
-	
+	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{visited_websites}");
 	$categorize_this_query=$tpl->_ENGINE_parse_body("{categorize_this_query}");
 	$page=CurrentPageName();
@@ -85,6 +86,16 @@ function recategorize_day_perform(){
 	$sock->getFrameWork("squid.php?recategorize-day={$_POST["recategorize-day-perform"]}");
 	$tpl=new templates();
 	$text=$tpl->javascript_parse_text("{success}"); 
+	echo $text;
+}
+
+function rescan_week_perform(){
+	$sock=new sockets();
+	if(!is_numeric($_POST["year"])){$_POST["year"]=date("Y");}
+	$tablename="{$_POST["year"]}{$_POST["week"]}_week";
+	$sock->getFrameWork("squid.php?recategorize_week=$tablename");
+	$tpl=new templates();
+	$text=$tpl->javascript_parse_text("{success}")."\n****\n$tablename\n****\n";
 	echo $text;
 }
 
@@ -477,7 +488,19 @@ function free_refresh_catgorized(){
 function free_catgorized_explain(){
 	$dans=new dansguardian_rules();
 	$cats=$dans->LoadBlackListes();
-	echo $cats[$_GET["free-cat-explain"]];
+	if(!isset($cats[$_GET["free-cat-explain"]])){$cats[$_GET["free-cat-explain"]]=null;}
+	if($cats[$_GET["free-cat-explain"]]==null){
+		$q=new mysql_squid_builder();
+		$sql="SELECT category_description FROM personal_categories WHERE category='{$_GET["free-cat-explain"]}'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));		
+		$content=$ligne["category_description"];
+		$content=utf8_encode($content);
+	}else{
+		$content=$cats[$_GET["free-cat-explain"]];
+	}
+	
+	echo $content;
+	
 }
 
 function already_Cats($www){
@@ -502,7 +525,10 @@ function QuickCategorize(){
 	
 	$www=$_POST["sitename"];
 	$day=$_POST["day"];
+	$week=$_POST["week"];
+	$year=$_POST["year"];
 	$category=$_POST["category"];
+	if(!is_numeric($year)){$year=date("Y");}
 
 	$category_table="category_".$q->category_transform_name($category);
 	if(!$q->TABLE_EXISTS($category_table)){
@@ -515,14 +541,32 @@ function QuickCategorize(){
 	if(!$q->ok){echo "categorize $www failed $q->mysql_error line ". __LINE__ ." in file ".__FILE__."\n";return;}
 	
 	$q->QUERY_SQL("INSERT IGNORE INTO categorize (zmd5,zDate,category,pattern,uuid) VALUES('$md5',NOW(),'$category','$www','$uuid')");
-	if($day<>null){
+	
+	
+	if(is_numeric($day)){
 		$timeday=strtotime("$day 00:00:00");
 		$table=date("Ymd",$timeday)."_hour";
-		$sql=$q->QUERY_SQL("UPDATE $table SET category='$category' WHERE sitename='$www'");
-		if(!$q->ok){echo "categorize $www failed $q->mysql_error line ". __LINE__ ." in file ".__FILE__."\n";return;}
+		if($q->TABLE_EXISTS($table)){
+			$q->QUERY_SQL("UPDATE $table SET category='$category' WHERE sitename='$www'");
+			if(!$q->ok){echo "categorize $www failed $q->mysql_error line ". __LINE__ ." in file ".__FILE__."\n";return;}
+		}
 	}
 	
-	
+	if(is_numeric($week)){
+		if($q->TABLE_EXISTS("{$year}{$week}_week")){
+			$q->QUERY_SQL("UPDATE {$year}{$week}_week SET category='$category' WHERE `sitename`='$www'");
+		}
+		
+		$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') as prefix FROM `tables_day` WHERE WEEK(zDate)=$week AND YEAR(zDate)='$year'";
+		$results=$q->QUERY_SQL($sql);
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$table="{$ligne["prefix"]}_hour";
+			if($q->TABLE_EXISTS($table)){
+				$q->QUERY_SQL("UPDATE $table SET category='$category' WHERE sitename='$www'");
+			}
+		}
+		
+	}
 	$sock=new sockets();
 	$sock->getFrameWork("cmd.php?export-community-categories=yes");	
 	$sock->getFrameWork("squid.php?NoCategorizedAnalyze=yes");
@@ -542,6 +586,8 @@ function free_catgorized_save(){
 		if(trim($ligne)==null){continue;}
 		$ligne=strtolower($ligne);
 		$ligne=str_replace("(whois)", "", $ligne);
+		$ligne=str_replace("||", "", $ligne);
+		$ligne=str_replace("^", "", $ligne);
 		$ligne=trim($ligne);
 		if(preg_match("#[0-9]+\.[0-9]+.[0-9]+.[0-9]+:[0-9]+#", $ligne)){continue;}
 		if(strpos(" $ligne", "http")==0){$ligne="http://$ligne";}
@@ -568,6 +614,8 @@ function free_catgorized_save(){
 	while (list ($num, $www) = each ($f) ){
 		writelogs("Scanning $www",__FUNCTION__,__FILE__,__LINE__);
 		$www=str_replace("(whois)", "", $www);
+		$www=str_replace("||", "", $www);
+		$www=str_replace("^", "", $www);		
 		$www=trim($www);		
 		$www=trim(strtolower($www));
 		if($www==null){continue;}
@@ -583,10 +631,18 @@ function free_catgorized_save(){
 		$www=str_replace("<a href=", "", $www);
 		$www=str_replace("<img src=", "", $www);
 		$www=str_replace("title=", "", $www);
-		if(strpos($www, "/")>0){$www=substr($www, 0,strpos($www, "/"));}
+		if(preg_match("#^(.*?)\/#", $www,$re)){$www=$re[1];}
 		if(preg_match("#\.php$#", $www,$re)){echo "$www php script...\n";continue;}
-		if(!preg_match("#\.[a-z0-9]+$#",$www,$re)){continue;}
+		$www=str_replace("/", "", $www);
+		$www=trim($www);
+		if(!preg_match("#\.([a-z0-9]+)$#",$www,$re)){continue;}
+		if(strlen($re[1])<2){
+			echo "$www bad extension `.{$re[1]}` \n";
+			continue;
+		}
 		$www=str_replace('"', "", $www);
+		
+		
 		writelogs("Success pass $www",__FUNCTION__,__FILE__,__LINE__);
 		$websitesToscan[]=$www;
 	}
@@ -680,6 +736,7 @@ $country=$tpl->_ENGINE_parse_body("{country}");
 $website=$tpl->_ENGINE_parse_body("{website}");
 $hits=$tpl->_ENGINE_parse_body("{hits}");
 $t=time();
+if(!is_numeric($_GET["year"])){$_GET["year"]=date('Y');}
 $rescan=$tpl->javascript_parse_text("{rescan}");
 
 	$table="visited_sites";
@@ -692,10 +749,14 @@ $rescan=$tpl->javascript_parse_text("{rescan}");
 	}	
 	
 	$week=trim($_GET["week"]);
-	if($week<>null){
-		$qDay=$week;
-		$time=strtotime("{$_GET["week"]} 00:00:00");
-		$table=date("YW",$time)."_week";
+	if(is_numeric($week)){
+		$table="{$_GET["year"]}{$week}_week";
+		$buttons="
+		buttons : [
+		
+		{name: '$rescan', bclass: 'Reload', onpress : ResCanWeek$t},
+		
+		],	";		
 		
 	}
 
@@ -707,12 +768,12 @@ $rescan=$tpl->javascript_parse_text("{rescan}");
 	}
 
 	if($table=="visited_sites"){
-	$buttons="
-	buttons : [
-	
-	{name: '$rescan', bclass: 'Reload', onpress : ResCanVisited$t},
-	
-	],	";
+		$buttons="
+		buttons : [
+		
+		{name: '$rescan', bclass: 'Reload', onpress : ResCanVisited$t},
+		
+		],	";
 	
 	}
 
@@ -724,7 +785,7 @@ $html="
 var mem$t;
 $(document).ready(function(){
 $('#table-$t').flexigrid({
-	url: '$page?no-cat-list=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}',
+	url: '$page?no-cat-list=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}&year={$_GET["year"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '$country', name : 'country', width :25, sortable : false, align: 'center'},
@@ -771,9 +832,17 @@ $buttons
 	}
 
 	function ResCanVisited$t(){
-			var XHR = new XHRConnection();
-			XHR.appendData('ResCanVisited','yes');
-			XHR.sendAndLoad('$page', 'POST',x_ResCanVisited$t);		
+		var XHR = new XHRConnection();
+		XHR.appendData('ResCanVisited','yes');
+		XHR.sendAndLoad('$page', 'POST',x_ResCanVisited$t);		
+	}
+	
+	function ResCanWeek$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('ResCanWeek','yes');
+		XHR.appendData('week','{$_GET["week"]}');
+		XHR.appendData('year','{$_GET["year"]}');		
+		XHR.sendAndLoad('$page', 'POST',x_ResCanVisited$t);		
 	}
 	
 	
@@ -785,6 +854,9 @@ $buttons
 			var category=document.getElementById('dropdown-'+id).value;
 			XHR.appendData('category',category);
 			XHR.appendData('day','{$_GET["day"]}');
+			XHR.appendData('week','{$_GET["week"]}');
+			XHR.appendData('month','{$_GET["month"]}');
+			XHR.appendData('year','{$_GET["year"]}');
 			if(category.length==0){return;}
 			XHR.sendAndLoad('$page', 'POST',x_QuickCategorize);		
 	
@@ -796,9 +868,9 @@ $buttons
 		var value=document.getElementById('not-cat-search').value;
 		value=trim(value);
 		Set_Cookie('SQUID_NOT_CAT_SEARCH',value, '3600', '/', '', '');
-		LoadAjax('not_categorized_sites','$page?no-cat-list=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}');
+		LoadAjax('not_categorized_sites','$page?no-cat-list=yes&day={$_GET["day"]}&year={$_GET["year"]}&week={$_GET["week"]}&month={$_GET["month"]}');
 	}
-	LoadAjax('not_categorized_sites','$page?no-cat-list=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}');
+	LoadAjax('not_categorized_sites','$page?no-cat-list=yes&day={$_GET["day"]}&year={$_GET["year"]}&week={$_GET["week"]}&month={$_GET["month"]}');
 	
 </script>
 ";
@@ -812,7 +884,7 @@ function not_categorized_list(){
 	$q=new mysql_squid_builder();
 	$categorize_all=null;
 	$day=trim($_GET["day"]);
-	
+	if(!is_numeric($_GET["year"])){$_GET["year"]=date('Y');}
 	$table="visited_sites";
 	$country_select=null;
 	if($day<>null){
@@ -823,18 +895,15 @@ function not_categorized_list(){
 	}	
 	
 	$week=trim($_GET["week"]);
-	if($week<>null){
-		$qDay=$week;
-		$time=strtotime("{$_GET["week"]} 00:00:00");
-		$table=date("YW",$time)."_week";
+	if(is_numeric($week)){
+		$table=date("{$_GET["year"]}$week",$time)."_week";
 		
 	}
 
 	$month=trim($_GET["month"]);
-	if($month<>null){
+	if(is_numeric($month)){
 		$qDay=$month;
-		$time=strtotime("{$_GET["month"]} 00:00:00");
-		$table=date("Ym",$time)."_day";
+		$table="{$_GET["year"]}{$month}_day";
 	}	
 	
 	
@@ -842,7 +911,7 @@ function not_categorized_list(){
 	$page=1;
 	
 	
-	if($q->COUNT_ROWS($table)==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table)==0){echo json_error_show("$table no data");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
@@ -939,7 +1008,7 @@ function not_categorized_list(){
 			$categorize=imgtootltip("add-database-32.png","{categorize} {$ligne["sitename"]}","$catjs");
 		
 			$sitename="<a href=\"javascript:blur();\" 
-			OnClick=\"javascript:Loadjs('squid.websites.infos.php?www={$ligne["sitename"]}&day=$qDay');\"
+			OnClick=\"javascript:Loadjs('squid.websites.infos.php?www={$ligne["sitename"]}&day=$qDay&week={$_GET["week"]}&year={$_GET["year"]}');\"
 			style='font-size:14px;text-decoration:underline'>{$ligne["sitename"]}</a>";
 			
 			$id=md5($ligne['sitename']);

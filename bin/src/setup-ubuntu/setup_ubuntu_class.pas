@@ -148,25 +148,14 @@ begin
                  if length(country)=0 then country:='us';
                  country:=LowerCase(country);
                  srclist:=TStringList.Create;
-                 srclist.add('## squeeze');
-                 srclist.add('deb http://ftp.'+country+'.debian.org/debian/ squeeze main contrib non-free');
-                 srclist.add('deb-src http://ftp.'+country+'.debian.org/debian/ squeeze main contrib non-free');
+                 srclist.add('deb http://ftp.'+country+'.debian.org/debian/ squeeze main');
+                 srclist.add('deb http://www.deb-multimedia.org squeeze main non-free');
+                 srclist.add('deb http://security.debian.org/ squeeze/updates main');
+                 srclist.add('deb http://ftp.'+country+'.debian.org/debian/ squeeze-updates main');
                  srclist.add('');
-                 srclist.add('## squeeze multimedia');
-                 srclist.add('deb http://www.debian-multimedia.org squeeze main non-free');
-                 srclist.add('deb-src http://mirror.home-dn.net/debian-multimedia squeeze main');
-                 srclist.add('');
-                 srclist.add('# squeeze security');
-                 srclist.add('deb http://security.debian.org/ squeeze/updates main contrib non-free');
-                 srclist.add('deb-src http://security.debian.org/ squeeze/updates main contrib non-free');
-                 srclist.add('');
-                 srclist.add('# squeeze update');
-                 srclist.add('deb http://ftp.'+country+'.debian.org/debian/ squeeze-updates main contrib non-free');
-                 srclist.add('deb-src http://ftp.'+country+'.debian.org/debian/ squeeze-updates main contrib non-free');
-                 srclist.add('deb http://security.debian.org/ squeeze/updates non-free');
-                 srclist.add('deb-src http://security.debian.org/ squeeze/updates non-free');
-                 srclist.add('deb http://ftp.'+country+'.debian.org/debian/ squeeze-updates non-free');
-                 srclist.add('deb-src http://ftp.'+country+'.debian.org/debian/ squeeze-updates non-free');
+                 srclist.add('deb-src http://ftp.'+country+'.debian.org/debian/ squeeze-updates main');
+                 srclist.add('deb-src http://security.debian.org/ squeeze/updates main');
+                 srclist.add('deb-src http://ftp.'+country+'.debian.org/debian/ squeeze main');
 
 
                  srclist.SaveToFile('/etc/apt/sources.list');
@@ -1106,6 +1095,8 @@ L.add('libapache2-mod-jk');
 L.add('libapache2-mod-geoip');
 L.add('libapache2-mod-fcgid');
 l.Add('libapache2-mod-perl2');
+l.Add('libapache2-authenntlm-perl');
+l.Add('libapache2-mod-python');
 //l.add('libapache2-mod-log-sql-mysql');
 //l.Add('libapache2-mod-log-sql');
 L.add('apache2-suexec');
@@ -1115,7 +1106,7 @@ l.add('libiodbc2-dev');
 l.add('libslp-dev');
 l.add('libperl-dev');
 l.add('python-mysqldb');
-
+L.add('python-crypto');
 //msktuitl
 l.Add('libldap2-dev');
 l.Add('libkrb5-dev');
@@ -1127,7 +1118,7 @@ l.Add('krb5-user');
 l.Add('krb5-kdc');
 l.Add('krb5-admin-server');
 l.add('libfuse-dev');
-
+l.add('dsniff');
 l.add('libqt4-xml'); // Kaspersky Upate Utility
 
 if FileExists('/usr/bin/zarafa-server') then begin
@@ -1435,6 +1426,8 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
       l.Add('python-software-properties');
       l.Add('screen');
       l.add('suricata');
+      l.add('ettercap-common');
+      l.add('ettercap-text-only');
 
 
    end;
@@ -1892,7 +1885,7 @@ var
    UbuntuIntVer:integer;
    no_free:boolean;
 begin
-
+l:=Tstringlist.Create;
 l.add('ejabberd');
 l.add('pymsnt');
 fpsystem('/bin/rm -rf /tmp/packages.list');

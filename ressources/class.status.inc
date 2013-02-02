@@ -763,6 +763,91 @@ function Samba_status(){
 	
 }	
 
+private function squid_categorized_websites(){
+	if(!$this->is_squid_statistics()){return "<!-- ". date('Y-m-d H:is')." is_squid_statistics FALSE -->";}
+	$pointers="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" ";
+	$q=new mysql_catz();
+	$categories=$q->COUNT_CATEGORIES();
+	if($categories==0){return "<!-- ". date('Y-m-d H:is')." categories = 0 -->";}
+	$categories=numberFormat($categories,0,""," ");
+	$categorized_websites="<div style='font-size:12px;text-align:right;width:220px' 
+	$pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><!-- ". date('Y-m-d H:is')." -->
+	<i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i>
+	</div>";
+	return $categorized_websites;	
+	
+}
+
+public function squid_get_current_users_count(){
+	$sock=new sockets();
+	$count=0;
+	$RTTSIZEARRAY=unserialize(base64_decode($sock->getFrameWork("squid.php?currentusersize=yes")));
+	if(count($RTTSIZEARRAY["UID"])>0){
+		return count($RTTSIZEARRAY["UID"]);
+	}
+	
+	if($count==0){
+		if(count($RTTSIZEARRAY["IP"])>0){
+			return count($RTTSIZEARRAY["IP"]);
+		}
+	}
+	if($count==0){
+		return 0;
+	}
+	
+}
+
+
+private function squid_get_current_users(){
+	if(!$this->is_squid_statistics()){return "<!-- ". date('Y-m-d H:is')." is_squid_statistics FALSE -->";}
+	$pointers="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" ";
+	$sock=new sockets();
+	$count=$this->squid_get_current_users_count();
+	
+	if($count==0){
+		return "<!-- squid_get_current_users()::". date('Y-m-d H:is')." COUNT = 0 -->";
+	}
+		
+		$categorized_websites="<div style='font-size:12px;text-align:right;width:220px'
+		$pointers OnClick=\"javascript:Loadjs('squid.members-rtt.php?js=yes')\"><!-- ". date('Y-m-d H:is')." -->
+		<i><strong style='text-decoration:underline'>$count {members} (". date('H')."h)</strong></i>
+		</div>";
+		return $categorized_websites;
+		
+	
+}
+
+
+private function is_squid_statistics(){
+	if(isset($GLOBALS["is_squid_statistics"])){return $GLOBALS["is_squid_statistics"];}
+	$sock=new sockets();
+	$users=new usersMenus();
+	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	$EnableRemoteSyslogStatsAppliance=$sock->GET_INFO("EnableRemoteSyslogStatsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+	
+
+	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
+	if(!$users->ARTICADB_INSTALLED){$DisableArticaProxyStatistics=1;}
+	if($users->PROXYTINY_APPLIANCE){$DisableArticaProxyStatistics=1;}
+	if($EnableRemoteStatisticsAppliance==1){$DisableArticaProxyStatistics=1;}
+	if($SquidActHasReverse==1){$DisableArticaProxyStatistics=1;}
+	if($users->WEBSTATS_APPLIANCE){$DisableArticaProxyStatistics=0;}
+	
+	
+	if($DisableArticaProxyStatistics==1){
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:red>NOT AS STATS FOR SQUID</span><br>\n";}
+		$GLOBALS["is_squid_statistics"]=false;
+		return $GLOBALS["is_squid_statistics"];
+	}
+	$GLOBALS["is_squid_statistics"]=true;
+	return $GLOBALS["is_squid_statistics"];
+}
+
 function kav4proxy_status(){
 	if(!function_exists("mysql_connect")){
 		return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";
@@ -776,6 +861,9 @@ function kav4proxy_status(){
 	$master_version=$ini->_params["KAV4PROXY"]["master_version"];
 	$master_pid=$ini->_params["KAV4PROXY"]["master_pid"];	
 	$img="status_kas_bg_ok.png";
+	
+	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}		
 	
 	$table="Kav4Proxy_".date("Ym");
 	if($ini->_params["KAV4PROXY"]["running"]==0){
@@ -796,8 +884,8 @@ function kav4proxy_status(){
 	$blocked_today=numberFormat($ligneW["tcount"],0,""," ")." {infected_websites} {this_month}";	
 	
 	$qSquid=new mysql_squid_builder();
-	$categories=$qSquid->COUNT_ROWS("dansguardian_community_categories","artica_backup");
-	$categories=numberFormat($categories,0,""," ");		
+	$categorized_websites=$this->squid_categorized_websites();
+
 
 	$websitesnums=$qSquid->COUNT_ROWS("dansguardian_sitesinfos","artica_backup");
 	$websitesnums=numberFormat($websitesnums,0,""," ");
@@ -814,17 +902,22 @@ function kav4proxy_status(){
 	}
 	
 		$blkbx=new mysql_blackbox();
-		if($blkbx->TABLE_EXISTS("cacheitems_localhost")){
-			$sql="SELECT SUM(size) as tsize, SUM(items) as tiems FROM cacheitems_localhost";
-			$ligne=mysql_fetch_array($blkbx->QUERY_SQL($sql));
-			$size=FormatBytes($ligne["tsize"]/1024);
-			$itemcount=$ligne["tiems"];
-			$itemscaches="<div style='font-size:12px;text-align:right;width:220px' 
-			$pointers OnClick=\"javascript:Loadjs('squid.categories.php')\">
-			<i><strong style='text-decoration:underline'>$itemcount {cached_items} ($size) </strong></i></div>";
+		if($DisableAnyCache==0){
+			if($blkbx->TABLE_EXISTS("cacheitems_localhost")){
+				$sql="SELECT SUM(size) as tsize, SUM(items) as tiems FROM cacheitems_localhost";
+				$ligne=mysql_fetch_array($blkbx->QUERY_SQL($sql));
+				$size=FormatBytes($ligne["tsize"]/1024);
+				$itemcount=$ligne["tiems"];
+				$itemscaches="<div style='font-size:12px;text-align:right;width:220px' 
+				$pointers OnClick=\"javascript:Loadjs('squid.categories.php')\">
+				<i><strong style='text-decoration:underline'>$itemcount {cached_items} ($size) </strong></i></div>";
+			}
 		}
 	
 	$text=$text."<div><i style='font-size:11px'>{pattern_ver}:$pattern_date</i></div>";
+	
+	
+	
 	
 	$design="
 	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:200px'>
@@ -834,7 +927,7 @@ function kav4proxy_status(){
 			<br>
 			<div style='font-size:12px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'><i><strong>$requests {requests}</strong></i></div>
 			$itemscaches
-			<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:none'>$categories {websites_categorized}</strong></i></div>
+			$categorized_websites
 			<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:none'>$websitesnums {visited_websites}</strong></i></div>
 			<div style='font-size:10px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:none'>$blocked_today</strong></i></div>
 			
@@ -887,7 +980,7 @@ function haproxy_status(){
 	if(preg_match("#2\.6.*#",$master_version)){$img='status_postfix_bg_ok26.png';}			
 	if(preg_match("#2\.8.*#",$master_version)){$img='status_postfix_bg_ok28.png';}
 	if(preg_match("#2\.9.*#",$master_version)){$img='status_postfix_bg_ok29.png';}
-	if(preg_match("#2\.10.*#",$stat[1])){$img='status_postfix_bg_ok210.png';}
+	if(preg_match("#2\.10.*#",$master_version)){$img='status_postfix_bg_ok210.png';}
 	if(preg_match("#3\.0.*#",$master_version)){$img='status_postfix_bg_ok30.png';}
 	if(preg_match("#3\.1.*#",$master_version)){$img='status_postfix_bg_ok31.png';}
 	if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
@@ -964,6 +1057,7 @@ function xr_status(){
 }
 	
 function Squid_status(){
+	if($GLOBALS["VERBOSE"]){echo "<strong>function:".__FUNCTION__." Line:".__LINE__."</strong><br>\n";}
 	if(!function_exists("mysql_connect")){
 		return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";
 	}
@@ -1011,11 +1105,23 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	
 	
 }
-
+	if($GLOBALS["VERBOSE"]){echo "<strong>WEBSTATS STATUS LINE:".__LINE__."</strong><br>\n";}
 	$EnableKavICAPRemote=$sock->GET_INFO("EnableKavICAPRemote");
 	$KavICAPRemoteAddr=$sock->GET_INFO("KavICAPRemoteAddr");
 	$KavICAPRemotePort=$sock->GET_INFO("KavICAPRemotePort");	
+	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	$EnableRemoteSyslogStatsAppliance=$sock->GET_INFO("EnableRemoteSyslogStatsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+	if($users->PROXYTINY_APPLIANCE){$DisableArticaProxyStatistics=1;}	
+	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}		
 	if(!is_numeric($EnableKavICAPRemote)){$EnableKavICAPRemote=0;}
+	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
+	
 	
 	if($EnableKavICAPRemote==1){
 		$fp=@fsockopen($KavICAPRemoteAddr, $KavICAPRemotePort, $errno, $errstr, 1);
@@ -1042,22 +1148,25 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	$cicap=DAEMON_STATUS_LINE("C-ICAP",$ini,null,1,"220px");
 	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_LINE("APP_SQUIDGUARD_HTTP",$ini,null,1,"220px",true,1,"Loadjs('squidguardweb.php')");
 	$APP_UFDBGUARD=DAEMON_STATUS_LINE("APP_UFDBGUARD",$ini,null,1,"220px",true,1,"Loadjs('dansguardian2.php?js-ufdbguard=yes')");
-	$APP_ARTICADB=DAEMON_STATUS_LINE("APP_ARTICADB",$ini,null,1,"220px",true,1,"Loadjs('squid.categories.php')");
+	if(!$users->PROXYTINY_APPLIANCE){
+		if($EnableRemoteStatisticsAppliance==0){
+			if($SquidActHasReverse==0){
+				$APP_ARTICADB=DAEMON_STATUS_LINE("APP_ARTICADB",$ini,null,1,"220px",true,1,"Loadjs('squid.categories.php')");
+			}
+		}
+	}
 
 	$pointers="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" ";
-	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+
 	
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-	if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}	
-	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
-	if($users->PROXYTINY_APPLIANCE){$DisableArticaProxyStatistics=1;}
+	if($EnableRemoteStatisticsAppliance==1){$APP_ARTICADB=null;}
 
 	if($EnableRemoteStatisticsAppliance==1){
 		$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
 		if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
 		if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
-		
+		$APP_UFDBGUARD=null;
+		$APP_ARTICADB=null;
 		$connectedApps="<div style='font-size:12px;text-align:right;width:220px' 
 		$pointers 
 		OnClick=\"javascript:Loadjs('squid.stats-appliance.php');\">
@@ -1073,9 +1182,10 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	
 	
 	
-	if($DisableArticaProxyStatistics==0){	
+	if($DisableArticaProxyStatistics==0){
+		if($GLOBALS["VERBOSE"]){echo "<strong>WEBSTATS STATUS LINE:".__LINE__."</strong><br>\n";}	
 		if($EnableRemoteStatisticsAppliance==0){
-			
+				if($GLOBALS["VERBOSE"]){echo "<strong>WEBSTATS STATUS LINE:".__LINE__."</strong><br>\n";}
 				$q=new mysql_squid_builder();
 				$requests=$q->EVENTS_SUM();
 				if($requests>0){
@@ -1105,10 +1215,10 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 				$categories=$catz->COUNT_CATEGORIES();
 				if($categories<500){$sock->getFrameWork("squid.php?update-blacklist=yes");}
 				
-				if($categories>0){
-					$categories=numberFormat($categories,0,""," ");		
-					$categories_text="<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i></div>";
-				}
+				
+				if($GLOBALS["VERBOSE"]){echo "<strong>WEBSTATS STATUS LINE:".__LINE__."</strong><br>\n";}
+				$categories_text=$this->squid_categorized_websites();
+				
 				
 				$persoCatz=$q->COUNT_CATEGORIES();
 				if($persoCatz>0){
@@ -1120,34 +1230,38 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 					
 				}
 				
-				
-				$CachePermformance=$q->CachePerfHour();
-				if($CachePermformance>-1){
-					$color="#E01313";
-					if($CachePermformance>20){$color="#6DBB6A";}
-					$cachePerfText="<div style='font-size:12px;text-align:right;width:220px' 
-					$pointers OnClick=\"javascript:Loadjs('squid.visited.php')\">
-					<i><strong style='text-decoration:underline;color:$color'>{$CachePermformance}% {cache_performance}</strong></i></div>";
-				}
-		
-				$blkbx=new mysql_blackbox();
-				if($blkbx->TABLE_EXISTS("cacheitems_localhost")){
-					$sql="SELECT SUM(size) as tsize, SUM(items) as tiems FROM cacheitems_localhost";
-					$ligne=mysql_fetch_array($blkbx->QUERY_SQL($sql));
-					$size=FormatBytes($ligne["tsize"]/1024);
-					$itemcount=$ligne["tiems"];
-					if($itemcount>0){
-						$itemscaches="<div style='font-size:12px;text-align:right;width:220px' 
-						$pointers OnClick=\"javascript:Loadjs('squid.categories.php')\">
-						<i><strong style='text-decoration:underline'>$itemcount {cached_items} ($size)</strong></i></div>";
+				if($DisableAnyCache==0){	
+					$CachePermformance=$q->CachePerfHour();
+					if($CachePermformance>-1){
+						$color="#E01313";
+						if($CachePermformance>20){$color="#6DBB6A";}
+						$cachePerfText="<div style='font-size:12px;text-align:right;width:220px' 
+						$pointers OnClick=\"javascript:Loadjs('squid.visited.php')\">
+						<i><strong style='text-decoration:underline;color:$color'>{$CachePermformance}% {cache_performance}</strong></i></div>";
 					}
 				}
 				
+				$blkbx=new mysql_blackbox();
+				if($DisableAnyCache==0){
+					if($blkbx->TABLE_EXISTS("cacheitems_localhost")){
+						$sql="SELECT SUM(size) as tsize, SUM(items) as tiems FROM cacheitems_localhost";
+						$ligne=mysql_fetch_array($blkbx->QUERY_SQL($sql));
+						$size=FormatBytes($ligne["tsize"]/1024);
+						$itemcount=$ligne["tiems"];
+						if($itemcount>0){
+							$itemscaches="<div style='font-size:12px;text-align:right;width:220px' 
+							$pointers OnClick=\"javascript:Loadjs('squid.categories.php')\">
+							<i><strong style='text-decoration:underline'>$itemcount {cached_items} ($size)</strong></i></div>";
+						}
+					}
+				}
 				
+				$squid_get_current_users=$this->squid_get_current_users();
 				
 				$stats_paragraphe="
 				<!-- requests_text -->
 				$requests_text
+				$squid_get_current_users
 				<!-- cachePerfText -->
 				$cachePerfText
 				<!-- itemscaches -->
@@ -1165,6 +1279,7 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 			}
 	}
 	
+	if($GLOBALS["VERBOSE"]){echo "<strong>WEBSTATS STATUS LINE:".__LINE__."</strong><br>\n";}
 	if($DisableArticaProxyStatistics==1){	
 		$catz=new mysql_catz();
 		$categories=numberFormat($catz->COUNT_CATEGORIES(),0,""," ");
@@ -1185,7 +1300,8 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	
 	$jsDesign="OnClick=\"javascript:s_PopUp('squid.accesslogs.php?external=yes',1024,768);\"
 	OnMouseOver=\"this.style.cursor='pointer';\" OnMouseOut=\"this.style.cursor='auto'\"";
-		
+	if($users->PROXYTINY_APPLIANCE){$APP_ARTICADB=null;}
+	if($EnableRemoteStatisticsAppliance==1){$APP_ARTICADB=null;}
 	
 	$design="
 	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:200px'>
@@ -1309,6 +1425,7 @@ return $design;
 }
 
 function WEBSTATS(){
+		if($GLOBALS["VERBOSE"]){echo "<strong>function:".__FUNCTION__." Line:".__LINE__."</strong><br>\n";}
 		include_once(dirname(__FILE__)."/class.mysql.blackboxes.inc");
 		$tpl=new templates();
 		$ini=new Bs_IniHandler();
@@ -1316,6 +1433,8 @@ function WEBSTATS(){
 		$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?squid-ini-status=yes")));		
 		$q=new mysql_squid_builder();
 		$pointers="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" ";
+		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 		
 		
 		$sqlblackbox=new mysql_blackbox();
@@ -1324,7 +1443,9 @@ function WEBSTATS(){
 		
 		$cicap=DAEMON_STATUS_LINE("C-ICAP",$ini,null,0,"220px",true,0,"Loadjs('c-icap.index.php')");
 		$APP_UFDBGUARD=DAEMON_STATUS_LINE("APP_UFDBGUARD",$ini,null,0,"220px",true,0,"Loadjs('dansguardian2.php?js-ufdbguard=yes')");
-	
+		$APP_ARTICADB=DAEMON_STATUS_LINE("APP_ARTICADB",$ini,null,1,"220px",true,1,"Loadjs('squid.categories.php')");
+		
+		if($EnableRemoteStatisticsAppliance==1){$APP_ARTICADB=null;}
 		
 		$requests=$q->EVENTS_SUM();
 		$requests=numberFormat($requests,0,""," ");
@@ -1339,14 +1460,15 @@ function WEBSTATS(){
 			$cachePerfText="<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:underline;color:$color'>{$CachePermformance}% {cache_performance}</strong></i></div>";
 		}
 		
-		
-		$categories=$q->COUNT_CATEGORIES();
-		$categories=numberFormat($categories,0,""," ");			
+		if($GLOBALS["VERBOSE"]){echo "<strong>function:".__FUNCTION__." Line:".__LINE__."</strong><br>\n";}
+		$categories=$this->squid_categorized_websites();
+		$squid_get_current_users=$this->squid_get_current_users();		
 		
 		$img='status_postfix_bg_ok32.png';
 		$stats_paragraphe="
 		<div style='font-size:12px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'><i><strong>$requests {requests}</strong></i></div>
-		<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php')\"><i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i></div>
+		$squid_get_current_users
+		$categories
 		<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.visited.php')\"><i><strong style='text-decoration:underline'>$websitesnums {visited_websites}</strong></i></div>
 		$cachePerfText
 		<div style='font-size:10px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('nodes.popup.php')\"><i><strong style='text-decoration:underline'>$nodes_number</strong></i></div>";
@@ -1355,7 +1477,7 @@ $design="
 	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:200px'>
 		<div style='padding-left:155px;min-height:250px'>
 			<h3 style='font-size:16px;font-weight:bold;'>{APP_STATISTICS_APPLIANCE}</h3>
-			<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>$text</i>$start$icap
+			<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>$text</i>$start$APP_ARTICADB$icap
 			$status_dansguardian$status_kav4proxy$cicap$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD</span>
 			$stats_paragraphe
 			
@@ -1373,7 +1495,39 @@ function ZARAFA(){
 	return $this->Postfix_satus(true);
 }
 
+private function postfix_stat_asroot(){
+	$unix=new unix();
+	$pid=$unix->POSTFIX_PID();
+	$path="/proc/$pid/exe";
+	writelogs("POSTFIX_PID->$pid",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 
+
+	$version=$unix->POSTFIX_VERSION();
+	if($version==null){
+		$array[0]=-2;
+		$array[1]=$version;
+		$array[2]=$pid;
+		$array[3]=$path;
+		return base64_encode(serialize($array));
+	}
+
+
+	if(is_file($path)){
+		$array[0]=1;
+		$array[1]=$version;
+		$array[2]=$pid;
+		$array[3]=$path;
+	}else{
+		$pid=null;
+		$array[0]=0;
+		$array[1]=$version;
+		$array[2]=null;
+		$array[3]=$path;
+	}
+	return base64_encode(serialize($array));
+
+
+}
 
 
 function Postfix_satus($asZarafa=false,$nochache=false){
@@ -1412,6 +1566,7 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 	$stat=explode(';',$stat);
 	$this->_postfix_status=$stat[0];
 	$textFONTStyle="font-size:11px";
+	$cyrus_imapd_status=null;
 	
 	//KLMS8
 	if($usersmenus->KLMS_INSTALLED){
@@ -1426,7 +1581,17 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 		}
 	}
 	
+	if($usersmenus->cyrus_imapd_installed){
+		$ini_stats=new Bs_IniHandler();
+		$ini_stats->loadString(base64_decode($sock->getFrameWork('cmd.php?cyrus-imap-status=yes')));
+		$cyrus_imapd_status=DAEMON_STATUS_LINE("CYRUSIMAP",$ini_stats,null,0,null,true);
+	}
 	
+	if($usersmenus->MILTERGREYLIST_INSTALLED){
+		$ini_stats=new Bs_IniHandler();
+		$ini_stats->loadString(base64_decode($sock->getFrameWork('cmd.php?milter-greylist-ini-status=yes')));
+		$milter_greylist_status=DAEMON_STATUS_LINE("MILTER_GREYLIST",$ini_stats,null,0,null,true);
+	}	
 	
 	$link="Loadjs('postfix.queue.monitoring.php?js')";
 	$logs="javascript:s_PopUp('postfix.events.php?pop=true',450,400);";
@@ -1434,9 +1599,15 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 	if($EnablePostfixMultiInstance==1){
 		$this->events("EnablePostfixMultiInstance=1 $time=".strlen($_SESSION[md5(__CLASS__.__FUNCTION__)][$time])." bytes",__FUNCTION__,__LINE__);
 		$ini_stats=new Bs_IniHandler();
-		$this->events("cmd.php?postfix-single-status=yes",__FUNCTION__,__LINE__);
-		$ini_stats->loadString(base64_decode($sock->getFrameWork("cmd.php?postfix-single-status=yes")));
-		$this->events("cmd.php?postfix-single-status -> DONE",__FUNCTION__,__LINE__);
+		if(!$GLOBALS["AS_ROOT"]){
+			$this->events("cmd.php?postfix-single-status=yes",__FUNCTION__,__LINE__);
+			$ini_stats->loadString(base64_decode($sock->getFrameWork("cmd.php?postfix-single-status=yes")));
+			$this->events("cmd.php?postfix-single-status -> DONE",__FUNCTION__,__LINE__);
+		}else{
+			$unix=new unix();
+			exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.status.php --postfix --nowachdog",$resultsPS);
+			$ini_stats->loadString(@implode("\n", $resultsPS));
+		}
 		$c=0;
 		while (list ($key, $array) = each ($ini_stats->_params) ){
 				$this->events("$key",__FUNCTION__,__LINE__);
@@ -1466,10 +1637,18 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 	if($asZarafa=true){
 		$multis=array();
 		$ini=new Bs_IniHandler();
-		$ini->loadString(base64_decode($sock->getFrameWork("zarafa.php?status=yes")));
-		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA",$ini,null,1,"220px",true,1,"Loadjs('quicklinks.postfix.php?js=yes')");
-		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA_GATEWAY",$ini,null,1,"220px",true,1,"Loadjs('quicklinks.postfix.php?js=yes')");
-		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA_WEB",$ini,null,1,"220px",true,1,"Loadjs('quicklinks.postfix.php?js=yes')");
+		if(!$GLOBALS["AS_ROOT"]){
+			$ini->loadString(base64_decode($sock->getFrameWork("zarafa.php?status=yes")));
+		}else{
+			$unix=new unix();
+			$php5=$unix->LOCATE_PHP5_BIN();
+			$cmd="$php5 /usr/share/artica-postfix/exec.status.php --zarafa --nowachdog";
+			exec($cmd,$resultsZ);
+			$ini->loadString(@implode("\n", $resultsZ));
+		}
+		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA",$ini,null,1,"220px",true,1,"$('#BodyContent').load('zarafa.index.php?popup=yes&font-size=16&tabwith=920');");
+		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA_GATEWAY",$ini,null,1,"220px",true,1,"$('#BodyContent').load('zarafa.index.php?popup=yes&font-size=16&tabwith=920');");
+		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA_WEB",$ini,null,1,"220px",true,1,"$('#BodyContent').load('zarafa.index.php?popup=yes&font-size=16&tabwith=920');");
 	}
 	
 	if($MailArchiverEnabled==1){
@@ -1658,12 +1837,29 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 	";
 
 	$sock=new sockets();
-	$stat=unserialize(base64_decode($sock->getFrameWork("cmd.php?postfix-stat=yes")));
+	if(!$GLOBALS["AS_ROOT"]){
+		$stat=unserialize(base64_decode($sock->getFrameWork("cmd.php?postfix-stat=yes")));
+	}else{
+		$stat=unserialize(base64_decode($this->postfix_stat_asroot()));
+	}
 	$EnablePostfixAutoBlock=$sock->GET_INFO("EnablePostfixAutoBlock");
+	
 	if($stat[0]==0){
 		$ini=new Bs_IniHandler();
 		$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?postfix-single-status=yes")));
 	}
+	
+	if($GLOBALS["AS_ROOT"]){
+		$unix=new unix();
+		$postconf=$unix->find_program("postconf");
+		exec("$postconf -h mail_version 2>&1",$postconf1);
+		while (list ($index, $line) = each ($postconf1)){
+			$line=trim($line);if(!preg_match("#^([0-9\.\-]+)#", $line,$re)){continue;}
+			$stat[1]=$re[1];
+		}
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo "\n\nPOSTFIX START::: {$stat[0]} VERSION: {$stat[1]}\n\n";}
 	
 	switch ($stat[0]) {
 		
@@ -1711,8 +1907,11 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 			<span style='font-size:11px;font-weight:bold'>
 				<i style='color:black;font-size:11px'>$text</i>$textStopped$start
 				$status_queues
+				$milter_greylist_status
 				$klmstxt
+				$cyrus_imapd_status
 				$multiples_instances
+				
 				</span>
 				<div style='text-align:right'>
 					<i style='font-size:9px'>{status}:{time} $time</i>

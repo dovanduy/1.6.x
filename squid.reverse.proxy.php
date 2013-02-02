@@ -70,7 +70,7 @@ function popup(){
 	$fiedld=Paragraphe_switch_img("{enable_squid_reverse}","{enable_squid_reverse_text}","SquidActHasReverse",$SquidActHasReverse,null,500);
 	
 	$html="
-	<center style='width:100%' id='reversid'>
+	<center style='width:95%' id='reversid' class=form>
 	<table>
 	<tr>
 	<td colspan=2>$fiedld</td>
@@ -81,7 +81,8 @@ function popup(){
 	</tr>
 	</table>
 	</center>
-	<div style='width:100%;text-align:right'>". button("{apply}","squid_reverse_proxy_save()")."</div>
+	<hr>
+	<div style='width:100%;text-align:right'>". button("{apply}","squid_reverse_proxy_save()",18)."</div>
 	";
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);

@@ -11,14 +11,14 @@
 
 if(isset($_GET["popup"])){popup();exit;}
 if(isset($_GET["ApplyUfdbguard"])){compile_ufdb();exit;}
+if(isset($_GET["ApplyWhiteList"])){compile_whitelist();exit;}
 if(isset($_GET["compile-cicap"])){compile_cicap();exit;}
 if(isset($_GET["compile-squid"])){compile_squid();exit;}
+if(isset($_GET["compile-pdns"])){compile_pdns();exit;}
 if(isset($_GET["compile-end-1"])){compile_end_1();exit;}
 if(isset($_GET["compile-end-2"])){compile_end_2();exit;}
 if(isset($_GET["compile-end"])){compile_end();exit;}
 if(isset($_GET["Status"])){echo Status($_GET["Status"]);exit;}
-
-
 js();
 
 
@@ -33,8 +33,24 @@ function js(){
 		die();
 	}
 	
+	$sock=new sockets();
+	$users=new usersMenus();
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
+
+	if($EnableWebProxyStatsAppliance==1){
+		echo "Loadjs('squid.compile.php')";
+		return;
+	}
+	
+	if(isset($_GET["onlywhitelist"])){
+		$extension="&onlywhitelist=yes";
+	}
+	
 	$title=$tpl->_ENGINE_parse_body('{proxy_parameters_compilation}');
-	$html="RTMMail(500,'$page?popup=yes','$title');";
+	$html="RTMMail(500,'$page?popup=yes$extension','$title');";
 	echo $html;
 	}
 	
@@ -43,12 +59,22 @@ function popup(){
 	$users=new usersMenus();
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$t=time();
 	if(!$users->AsSquidAdministrator){
 		$error=$tpl->_ENGINE_parse_body("{ERROR_NO_PRIVS}");
 		echo "<H3>$error<H3>";
 		die();
 	}
-	$t=time();
+	$start="StartCompileSquid$t();";
+	if(isset($_GET["onlywhitelist"])){
+		$extension="&onlywhitelist=yes";
+		$start="StartCompileWhitelist$t();";
+	}	
+	
+	
+	
+	
+	
 	$pourc=0;
 	$table=Status(0);
 	$color="#5DD13D";
@@ -94,6 +120,7 @@ function popup(){
 		if(document.getElementById('squid-status')){LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');}
 		if(document.getElementById('squid_hotspot')){RefreshTab('squid_hotspot');;}
 		if(document.getElementById('squid_main_svc')){RefreshTab('squid_main_svc');}
+		if(document.getElementById('main_dansguardian_mainrules')){RefreshTab('main_dansguardian_mainrules');}
 		RTMMailHide();
 	}
 	
@@ -102,7 +129,15 @@ function popup(){
 		LoadAjaxSilent('textlogs','$page?ApplyUfdbguard=yes&t=$t');
 		}
 		
+	function ApplyWhiteList(){
+		ChangeStatusSQUID(50);
+		LoadAjaxSilent('textlogs','$page?ApplyWhiteList=yes&t=$t');
+		}		
+		
 
+	function StartCompileWhitelist$t(){
+		setTimeout('ApplyWhiteList()',1000);
+	}
 		
 	var x_ChangeStatusSQUID= function (obj) {
 		var tempvalue=obj.responseText;
@@ -119,7 +154,7 @@ function popup(){
 	}
 
 	
-	StartCompileSquid$t();
+	$start
 	</script>
 	";
 	
@@ -138,6 +173,23 @@ return $html;
 	
 }
 
+function compile_whitelist(){
+	$tpl=new templates();
+	$sock=new sockets();
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	$t=$_GET["t"];
+	
+	$script="
+	<div id='compile_ufdb'></div>
+	<script>
+	finish$t();
+	</script>";	
+	
+	echo $tpl->_ENGINE_parse_body("<div><strong>{APP_UFDBGUARD}:{please_wait_compiling_database}:</strong></div>").$script;
+	$sock->getFrameWork("squid.php?build-whitelist-tenir=yes&MyCURLTIMEOUT=300");
+}
+
 
 function compile_ufdb(){
 	$tpl=new templates();
@@ -146,7 +198,12 @@ function compile_ufdb(){
 	$page=CurrentPageName();
 	$t=$_GET["t"];
 	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
+	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
+	if($SquidActHasReverse==1){$EnableUfdbGuard=0;}
+	
+	
 	$script="
 	<div id='compile_ufdb'></div>
 	<script>
@@ -217,7 +274,7 @@ function compile_squid(){
 	
 	$text="{apply config}&nbsp;{success}";
 	if($EnableWebProxyStatsAppliance==0){
-		$cmd="squid.php?recompile-debug=yes&MyCURLTIMEOUT=300";
+		$cmd="squid.php?build-smooth-tenir=yes&MyCURLTIMEOUT=300";
 		$sock->getFrameWork($cmd);	
 	}
 	
@@ -229,16 +286,57 @@ function compile_squid(){
 	}
 	
 	$script="
-	<div id='compile_end'></div>
+	<div id='compile_pdns'></div>
 	<script>
-		ChangeStatusSQUID(90);
-		LoadAjaxSilent('compile_end','$page?compile-end-1=yes&t=$t');
+		ChangeStatusSQUID(85);	
+		LoadAjaxSilent('compile_pdns','$page?compile-pdns=yes&t=$t');
 	</script>
 	";	
 	
 	echo $tpl->_ENGINE_parse_body("<div><strong>{APP_SQUID}:$text</strong></div>").$script;
 
 	
+}
+function compile_pdns(){
+	$tpl=new templates();
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$t=$_GET["t"];
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
+	
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
+
+	if($users->POWER_DNS_INSTALLED){
+		if($EnablePDNS==1){
+			$text="{apply config}&nbsp;{success}";
+			$cmd="pdns.php?build-smooth-tenir=yes&MyCURLTIMEOUT=300";
+			$sock->getFrameWork($cmd);
+		}else{
+			$text="{powerdns_not_enabled}";
+		}
+	}else{
+		$text="{powerdns_not_installed}";
+	}
+	
+	
+
+	$script="
+	<div id='compile_end'></div>
+	<script>
+	ChangeStatusSQUID(90);
+	LoadAjaxSilent('compile_end','$page?compile-end-1=yes&t=$t');
+	</script>
+	";
+
+	echo $tpl->_ENGINE_parse_body("<div><strong>{APP_PDNS}:$text</strong></div>").$script;
+
+
 }
 
 function compile_end_1(){

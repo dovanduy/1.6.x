@@ -5,8 +5,11 @@ include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 
 
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+if(!isset($_SESSION["uid"])){if(isset($_SERVER["PHP_AUTH_USER"])){BuildSession($_SERVER["PHP_AUTH_USER"]);}}
 
+
+//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+if(isset($_SESSION["uid"])){header('location:miniadm.index.php');die();}
 if(isset($_POST["username"])){checklogon();exit;}
 if(isset($_GET["credentials"])){checklogonCreds();exit;}
 if(isset($_GET["js"])){js();exit;}
@@ -86,16 +89,21 @@ function checklogonCreds(){
 	$privs->SearchPrivileges();
 	$privileges_array=$privs->privs;
 	$_SESSION["privileges_array"]=$privs->privs;
+	if(!isset($privileges_array["VIRTUALS_SERVERS"])){$privileges_array["VIRTUALS_SERVERS"]=array();}
 	$_SESSION["privs"]=$privileges_array;
 	if(isset($privileges_array["ForceLanguageUsers"])){$_SESSION["OU_LANG"]=$privileges_array["ForceLanguageUsers"];}
 	$_SESSION["uid"]=$username;
 	$_SESSION["privileges"]["ArticaGroupPrivileges"]=$privs->content;
+	$_SESSION["VIRTUALS_SERVERS"]=$privileges_array["VIRTUALS_SERVERS"];
+	$_SESSION["POSTFIX_SERVERS"]=$privileges_array["POSTFIX_SERVERS"];
+	
 	$_SESSION["groupid"]=$ldap->UserGetGroups($_POST["username"],1);
 	$_SESSION["DotClearUserEnabled"]=$u->DotClearUserEnabled;
 	$_SESSION["MailboxActive"]=$u->MailboxActive;
 	$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
 	$_SESSION["ou"]=$u->ou;
 	$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
+	$_SESSION["AsWebStatisticsAdministrator"]=$users->AsWebStatisticsAdministrator;
 	if(!isset($_SESSION["OU_LANG"])){$_SESSION["OU_LANG"]=null;}
 	
 			if(trim($_SESSION["OU_LANG"])<>null){
@@ -106,6 +114,20 @@ function checklogonCreds(){
 				$_SESSION["detected_lang"]=$lang->get_languages();
 			}
 			if(trim($FixedLanguage)<>null){$_SESSION["detected_lang"]=$FixedLanguage;}	
+			
+			include_once(dirname(__FILE__)."/ressources/class.translate.rights.inc");
+			$cr=new TranslateRights(null, null);
+			$r=$cr->GetPrivsArray();
+			while (list ($key, $val) = each ($r) ){if($users->$key){$_SESSION[$key]=$users->$key;}}
+				
+			if(is_array($_SESSION["privs"])){
+				$r=$_SESSION["privs"];
+				while (list ($key, $val) = each ($r) ){
+					$_SESSION[$key]=$val;
+				}
+			}			
+			
+			
 	header("location:miniadm.index.php");
 }
 
@@ -153,7 +175,25 @@ function checklogon(){
 			$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
 			$_SESSION["ou"]=$u->ou;
 			$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
+			include_once(dirname(__FILE__)."/ressources/class.translate.rights.inc");
+			$cr=new TranslateRights(null, null);
+			$r=$cr->GetPrivsArray();
+			while (list ($key, $val) = each ($r) ){
+				
+				if($users->$key){$_SESSION[$key]=$users->$key;}}
+			
+			if(is_array($_SESSION["privs"])){
+				$r=$_SESSION["privs"];
+				while (list ($key, $val) = each ($r) ){
+					$t[$key]=$val;
+					$_SESSION[$key]=$val;
+				}
+			}
+			
+			
+			
 			if(!isset($_SESSION["OU_LANG"])){$_SESSION["OU_LANG"]=null;}
+			if(!isset($_SESSION["ASDCHPAdmin"])){$_SESSION["ASDCHPAdmin"]=false;}
 			
 		
 			if(trim($_SESSION["OU_LANG"])<>null){

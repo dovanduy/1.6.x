@@ -61,7 +61,7 @@ private
        function LOCATE_PHP5_EXTENSION_DIR_GW():string;
        function PROCESS_MEMORY_SINGLE(PID:string):integer;
        function LIST_PID_BY_PIDFATHER(PPID:string):TstringList;
-       function GIDFromName(group_name:string):Integer;
+
        function UIDFromName(username:string):Integer;
        function DirectoryListTstring(path:string):TstringList;
        function PidByProcessPath_PPID(pid:string):string;
@@ -89,6 +89,7 @@ public
       PLISTPID:TstringList;
       DirListFiles:TstringList;
       constructor Create();
+      function GIDFromName(group_name:string):Integer;
       function Load_DisableFollowServiceHigerThan1G():integer;
       function CHECK_PERL_MODULES_VER(ModulesToCheck:string):string;
       function GET_LANGUAGE_LOCAL():string;
@@ -105,7 +106,7 @@ public
        function  IsGroupExists(groupname:string):boolean;
        function  IsUserINGroup(groupname:string;user:string):boolean;
        procedure cpulimit(pid:string='');
-
+       function  SYSTEM_GET_MYPID():string;
        function  SystemUserID(username:string):string;
        function  SystemGroupID(group_name:string):string;
        function  DirectoryGroupOwner(path:string):string;
@@ -338,6 +339,7 @@ public
        function LOCATE_GENERIC_BIN(StrProgram:string):string;
        function LOCATE_ZABBIX_SERVER():string;
        function LOCATE_ZABBIX_AGENT():string;
+       function LOCATE_PYTHON_PACKAGE(BasePath:string):string;
        function ISMemoryHiger1G():boolean;
        function LOCATE_APC_SO():string;
        function MEM_FREE():integer;
@@ -456,6 +458,7 @@ public
         function DISTRIBUTION_CODE():string;
         function txt_ip_agents():string;
         function txt_ip_agents_line():string;
+        function txt_ip_agents_line_port(port:string):string;
 END;
 
 implementation
@@ -1558,6 +1561,47 @@ result:=LOCATE_GENERIC_BIN('zabbix_agentd');
 end;
 //##############################################################################
 
+
+function Tsystem.LOCATE_PYTHON_PACKAGE(BasePath:string):string;
+var
+   l:Tstringlist;
+   i:integer;
+   D:boolean;
+begin
+   BasePath:=trim(BasePath);
+    l:=Tstringlist.Create;
+
+    l.Add('/usr/local/lib/python2.5/dist-packages');
+    l.Add('/usr/lib/python2.5/dist-packages');
+
+    l.Add('/usr/local/lib/python2.6/dist-packages');
+    l.Add('/usr/lib/python2.6/dist-packages');
+
+    l.Add('/usr/local/lib/python2.7/dist-packages');
+    l.Add('/usr/lib/python2.7/dist-packages');
+
+    l.Add('/usr/local/lib/python2.8/dist-packages');
+    l.Add('/usr/lib/python2.8/dist-packages');
+
+    l.Add('/usr/local/lib/python2.9/dist-packages');
+    l.Add('/usr/lib/python2.9/dist-packages');
+
+    for i:=0 to l.Count-1 do begin
+       if FIleExists(l.Strings[i]+'/'+BasePath)  then begin
+
+          result:=l.Strings[i]+'/'+BasePath;
+          if DEBUG then writeln('LOCATE_PYTHON_PACKAGE:: '+result+' -> TRUE');
+       end else begin
+           if DEBUG then writeln('LOCATE_PYTHON_PACKAGE:: '+result+' -> FALSE');
+       end;
+    end;
+   l.free;
+
+end;
+//##############################################################################
+
+
+
 function Tsystem.APACHE_STANDARD_PORT():string;
 var
    l:TstringList;
@@ -2016,7 +2060,7 @@ begin
            logs.Debuglogs('Tsystem.AddUserToGroup()::Creating new ' +username);
            if length(xshell)>0 then   cmd:=cmd + ' -s ' + xshell+ ' ';
            if length(sHome)>0 then   cmd:=cmd + '-d ' + sHome+ ' ';
-           if IsGroupExists(groupname) then cmd:=cmd + '-g ' + username+ ' ';
+           if IsGroupExists(groupname) then cmd:=cmd + '-g ' + groupname+ ' ';
            cmd:='/usr/sbin/useradd ' + username + cmd;
             if verbosed then writeln('AddUserToGroup()::',cmd);
            logs.Debuglogs(cmd);
@@ -3039,6 +3083,11 @@ Begin
  result:=Mres;
 end;
 //#########################################################################################
+function Tsystem.SYSTEM_GET_MYPID():string;
+begin
+     result:=IntToStr(fpgetpid);
+end;
+
 function Tsystem.PidByPatternInPath(pattern:string):string;
 var
    l:TstringList;
@@ -3844,7 +3893,7 @@ begin
               if PidDetected=mypid then begin
                    if verbosed then xjklogs.Debuglogs('PIDOF_PATTERN('+pattern+'):: '+PidDetected+' my pid is '+mypid+' ->Continue');
                    PidDetected:='';
-
+                   continue;
               end;
               if verbosed then xjklogs.Debuglogs('PIDOF_PATTERN('+pattern+'):: Executed :'+PidDetected+' "'+org_cmdline+'"');
               result:=PidDetected;
@@ -4820,7 +4869,10 @@ end;
 end;
 //#############################################################################
 function Tsystem.LOCATE_MYSQL_ADMIN():string;
+var ss:string;
 begin
+ss:=LOCATE_GENERIC_BIN('mysqladmin');
+if FileExists(ss) then exit(ss);
 if FileExists('/usr/bin/mysqladmin') then exit('/usr/bin/mysqladmin');
 end;
 //#############################################################################
@@ -5156,7 +5208,7 @@ begin
     for i:=0 to t.Count-1 do begin
         ip:=ini.ReadString(t.Strings[i],'ip','0.0.0.0');
         if ip<>'0.0.0.0' then begin
-           s.Add('IP address:'+ip);
+           if ip<>'127.0.0.1' then s.Add('IP address:'+ip);
         end;
     end;
     s.Add('');
@@ -5180,7 +5232,28 @@ begin
     for i:=0 to t.Count-1 do begin
         ip:=ini.ReadString(t.Strings[i],'ip','0.0.0.0');
         if ip<>'0.0.0.0' then begin
-          result:=result+ip+','
+          if ip<>'127.0.0.1' then result:=result+ip+','
+        end;
+    end;
+    t.free;
+    ini.free;
+end;
+function Tsystem.txt_ip_agents_line_port(port:string):string;
+var
+   t:TstringList;
+   ini:TiniFile;
+   i:integer;
+   ip:string;
+begin
+    ifconfig('/tmp/ifconfig.conf');
+    if not FileExists('/tmp/ifconfig.conf') then exit;
+    t:=TstringList.Create;
+    ini:=TiniFile.Create('/tmp/ifconfig.conf');
+    ini.ReadSections(t);
+    for i:=0 to t.Count-1 do begin
+        ip:=ini.ReadString(t.Strings[i],'ip','0.0.0.0');
+        if ip<>'0.0.0.0' then begin
+          if ip<>'127.0.0.1' then result:=result+ip+':'+port+','
         end;
     end;
     t.free;
@@ -5220,8 +5293,6 @@ end;
     t:=TstringList.Create;
     ini:=TiniFile.Create('/etc/artica-postfix/ifconfig.conf');
     ini.ReadSections(t);
-    s.Add('Artica web addresses');
-    s.Add('*********************************************');
     for i:=0 to t.Count-1 do begin
         ip:=ini.ReadString(t.Strings[i],'ip','0.0.0.0');
         if ip<>'0.0.0.0' then begin

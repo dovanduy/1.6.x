@@ -350,7 +350,6 @@ function Tracker($www){
 				if(preg_match("#\.rlcdn\.com$#", $www)){return "tracker";}
 				if(preg_match("#rl\.heise\.de$#", $www)){return "tracker";}
 				if(preg_match("#r\.movad\.de$#", $www)){return "tracker";}
-				if(preg_match("#r\.msn\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.roia\.biz$#", $www)){return "tracker";}
 				if(preg_match("#\.roi-pro\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.roiservice\.com$#", $www)){return "tracker";}
@@ -1013,7 +1012,7 @@ function Tracker($www){
 				if(preg_match("#videostat-new\.index\.hu$#", $www)){return "tracker";}
 				if(preg_match("#video-stats\.video\.google\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.viewar\.org$#", $www)){return "tracker";}
-				if(preg_match("#\.viglink\.com$#", $www)){return "tracker";}
+				
 				if(preg_match("#\.vira\.ru$#", $www)){return "tracker";}
 				if(preg_match("#virtualnet\.co\.uk$#", $www)){return "tracker";}
 				if(preg_match("#\.visibility-stats\.com$#", $www)){return "tracker";}
@@ -1555,8 +1554,6 @@ function Tracker($www){
 				if(preg_match("#\.dedicatedmedia\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.dedicatednetworks\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.demandbase\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.demdex\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.demdex\.net$#", $www)){return "tracker";}
 				if(preg_match("#\.dianomi\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.didit\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.digitize\.ie$#", $www)){return "tracker";}
@@ -1598,7 +1595,7 @@ function Tracker($www){
 				if(preg_match("#\.evolvemediacorp\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.evolvemediametrics\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.excitad\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.exelator\.com$#", $www)){return "tracker";}
+				
 				if(preg_match("#\.exoclick\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.experian\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.exponential\.com$#", $www)){return "tracker";}
@@ -1613,8 +1610,7 @@ function Tracker($www){
 				if(preg_match("#\.factortg\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.fairfax\.com\.au$#", $www)){return "tracker";}
 				if(preg_match("#\.faithadnet\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.fastclick\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.fastclick\.net$#", $www)){return "tracker";}
+
 				if(preg_match("#\.fetchback\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.fiksu\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.fimserve\.com$#", $www)){return "tracker";}
@@ -1704,7 +1700,7 @@ function Tracker($www){
 				if(preg_match("#\.intermarkets\.net$#", $www)){return "tracker";}
 				if(preg_match("#\.interpolls\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.inuvo\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.invitemedia\.com$#", $www)){return "tracker";}
+				
 				if(preg_match("#\.iperceptions\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.ipromote\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.ivdopia\.com$#", $www)){return "tracker";}
@@ -1894,7 +1890,7 @@ function Tracker($www){
 				if(preg_match("#\.proximic\.net$#", $www)){return "tracker";}
 				if(preg_match("#\.pswec\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.publicidees\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.pubmatic\.com$#", $www)){return "tracker";}
+				
 				if(preg_match("#\.pulse360\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.pulsemgr\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.qjex\.net$#", $www)){return "tracker";}
@@ -1904,7 +1900,7 @@ function Tracker($www){
 				if(preg_match("#\.quadrantone\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.quantcast\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.quantserve\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.questionmarket\.com$#", $www)){return "tracker";}
+				
 				if(preg_match("#\.quicknoodles\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.quinstreet\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.quisma\.com$#", $www)){return "tracker";}
@@ -1961,7 +1957,7 @@ function Tracker($www){
 				if(preg_match("#\.sensisdata\.com\.au$#", $www)){return "tracker";}
 				if(preg_match("#\.sensisdigitalmedia\.com\.au$#", $www)){return "tracker";}
 				if(preg_match("#\.servedbyopenx\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.sharethis\.com$#", $www)){return "tracker";}
+				
 				if(preg_match("#\.shorttailmedia\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.silver-path\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.simpli\.fi$#", $www)){return "tracker";}
@@ -2074,7 +2070,7 @@ function Tracker($www){
 				if(preg_match("#\.veremedia\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.veruta\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.vibrantmedia\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.viglink\.com$#", $www)){return "tracker";}
+				
 				if(preg_match("#\.vindicosuite\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.visbrands\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.visiblemeasures\.com$#", $www)){return "tracker";}

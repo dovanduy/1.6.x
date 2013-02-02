@@ -5,7 +5,7 @@ include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 
 
-
+$_SESSION=array();
 unset($_SESSION["uid"]);
 unset($_SESSION["privileges"]);
 unset($_SESSION["qaliases"]);
@@ -25,7 +25,8 @@ $_COOKIE["password"]="";
 while (list ($num, $ligne) = each ($_SESSION) ){
 	unset($_SESSION[$num]);
 }
-
+unset($_SESSION);
+session_destroy();
 $mini=new miniadmin();
 $mini->content="
 <script>

@@ -8,1385 +8,316 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 if($argv[1]=="syslog-deb"){checkDebSyslog();die();}
 if($argv[1]=="dnsmasq"){dnsmasq_init_debian();die();}
 if($argv[1]=="nscd"){nscd_init_debian();die();}
+if($argv[1]=="--rsyslogd-init"){rsyslogd_init();exit;}
+if($argv[1]=="--start"){start_ldap();exit;}
+if($argv[1]=="--stop"){stop_ldap();exit;}
 
 buildscript();
 MONIT();
 checkDebSyslog();
 dnsmasq_init_debian();
 nscd_init_debian();
+wsgate_init_debian();
 
 
+function start_ldap(){
+	$sock=new sockets();
+	$ldaps=array();
+	$unix=new unix();
+	$slapd=$unix->find_program("slapd");
+	$SLAPD_PID_FILE=$unix->SLAPD_PID_PATH();
+	
+	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+	if($unix->process_exists($oldpid)){
+		$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
+		echo "slapd: [INFO] slapd Already running pid $oldpid since {$pidtime}mn\n";
+		return;
+	}
+	
+	$oldpid=$unix->PIDOF($slapd);
+	if($unix->process_exists($oldpid)){
+		$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
+		echo "slapd: [INFO] slapd Already running pid $oldpid since {$pidtime}mn\n";
+		return;
+	}	
+	
+	echo "slapd: [INFO] slapd loading required values...\n";
+	if(!is_file($slapd)){if(is_file('/usr/lib/openldap/slapd')){$slapd='/usr/lib/openldap/slapd';}}
+	$OpenLDAPLogLevel=$sock->GET_INFO("OpenLDAPLogLevel");
+	$OpenLDAPDisableSSL=$sock->GET_INFO("OpenLDAPDisableSSL");
+	$EnableNonEncryptedLdapSession=$sock->GET_INFO("EnableNonEncryptedLdapSession");
+	$EnableipV6=$sock->GET_INFO("EnableipV6");
+	if(!is_numeric($EnableipV6)){$EnableipV6=0;}	
+	if(!is_numeric($EnableNonEncryptedLdapSession)){$EnableNonEncryptedLdapSession=1;}
+	$phpldapadmin=null;
+	if(!is_numeric($OpenLDAPDisableSSL)){$OpenLDAPDisableSSL=0;}
+	$ZARAFA_INSTALLED=0;
+	if($GLOBALS["VERBOSE"]){echo "users=new usersMenus();\n";}
+	$users=new usersMenus();
+	if($GLOBALS["VERBOSE"]){echo "users=new usersMenus() done...;\n";}
+	if(!is_dir("/var/lib/ldap")){@mkdir("/var/lib/ldap",0755,true);}
+	if(!is_dir("/var/run/slapd")){@mkdir("/var/run/slapd",0755,true);}
+	if(!is_numeric($OpenLDAPLogLevel)){$OpenLDAPLogLevel=0;}
+	if($OpenLDAPLogLevel<>0){$OpenLDAPLogLevelCmdline=" -d $OpenLDAPLogLevel";}
+	
+	if(!$unix->IS_IPADDR_EXISTS("127.0.0.1")){
+		shell_exec($unix->find_program("ifconfig")." lo 127.0.0.1 netmask 255.0.0.0 up >/dev/null 2>&1");
+	}
+
+	$ldap[]="ldap://127.0.0.1:389/";
+	if(is_file("/etc/artica-postfix/settings/Daemons/LdapListenIPAddr")){
+		$LdapListenIPAddr=explode("\n",@file_get_contents("/etc/artica-postfix/settings/Daemons/LdapListenIPAddr"));
+		while (list ($num, $ipaddr) = each ($LdapListenIPAddr)){
+			$ipaddr=trim($ipaddr);
+			if($ipaddr==null){continue;}
+			echo "slapd: [INFO] slapd listen `$ipaddr`n";
+			if($EnableNonEncryptedLdapSession==0){$ldaps[]="ldaps://$ipaddr/";}
+			$ldap[]="ldap://$ipaddr:389/";
+		}
+	}
+
+	if(count($ldaps)>0){$SLAPD_SERVICESSSL=" ".@implode(" ", $ldaps);}
+	
+	$SLAPD_SERVICES=@implode(" ", $ldap).$SLAPD_SERVICESSSL;
+	if($users->ZARAFA_INSTALLED){$ZARAFA_INSTALLED=1;}
+	$DB_RECOVER_BIN=$unix->LOCATE_DB_RECOVER();
+	$DB_ARCHIVE_BIN=$unix->LOCATE_DB_ARCHIVE();
+	$LDAP_SCHEMA_PATH=$unix->LDAP_SCHEMA_PATH();
+	$rm=$unix->find_program("rm");
+	$SLAPD_CONF=$unix->SLAPD_CONF_PATH();
+	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$tar=$unix->find_program("tar");
+	$pidofbin=$unix->find_program("pidof");
+	$ulimit=$unix->find_program("ulimit");
+	$mebin=__FILE__;
+	$suffix=@trim(@file_get_contents("/etc/artica-postfix/ldap_settings/suffix"));
+	
+	
+	
+	
+	echo "slapd: [INFO] slapd `$slapd`\n";
+	echo "slapd: [INFO] db_recover `$DB_RECOVER_BIN`\n";
+	echo "slapd: [INFO] db_archive `$DB_ARCHIVE_BIN`\n";
+	echo "slapd: [INFO] config `$SLAPD_CONF`\n";
+	echo "slapd: [INFO] pid `$SLAPD_PID_FILE`\n";
+	echo "slapd: [INFO] services `$SLAPD_SERVICES`\n";
+	echo "slapd: [INFO] pidof `$pidofbin`\n";
+	if($EnableipV6==0){
+		echo "slapd: [INFO] ipv4 only...\n";
+		$v4=" -4";
+	}
+	
+	
+	$kernel_tuning="$php5 ".dirname(__FILE__)."/exec.kernel-tuning.php >/dev/null 2>&1";
+	if($GLOBALS["VERBOSE"]){echo "-> ARRAY;\n";}
+	
+	$shemas[]="core.schema";
+	$shemas[]="cosine.schema";
+	$shemas[]="mod_vhost_ldap.schema";
+	$shemas[]="nis.schema";
+	$shemas[]="inetorgperson.schema";
+	$shemas[]="evolutionperson.schema";
+	$shemas[]="postfix.schema";
+	$shemas[]="dhcp.schema";
+	$shemas[]="samba.schema";
+	$shemas[]="ISPEnv.schema";
+	$shemas[]="mozilla-thunderbird.schema";
+	$shemas[]="officeperson.schema";
+	$shemas[]="pureftpd.schema";
+	$shemas[]="joomla.schema";
+	$shemas[]="autofs.schema";
+	$shemas[]="dnsdomain2.schema";
+	$shemas[]="zarafa.schema";
+	 
+	while (list ($num, $file) = each ($shemas) ){
+		if(is_file("/usr/share/artica-postfix/bin/install/$file")){
+			if(is_file("$LDAP_SCHEMA_PATH/$file")){@unlink("$LDAP_SCHEMA_PATH/$file");}
+			@copy("/usr/share/artica-postfix/bin/install/$file", "$LDAP_SCHEMA_PATH/$file");
+			echo "slapd: [INFO] installing `$file` schema\n";
+			$unix->chmod_func(0777,"$LDAP_SCHEMA_PATH/$file");
+		}
+	}
+		 
+
+	echo "slapd: [INFO] please wait, Tuning the kernel... \n";
+	shell_exec($kernel_tuning);
+	if(file_exists($ulimit)){
+		shell_exec("$ulimit -HSd unlimited");
+	}
+	
+	
+	if(is_dir("/usr/share/phpldapadmin/config")){
+		$phpldapadmin="$php5 ".dirname(__FILE__)."/exec.phpldapadmin.php --build >/dev/null 2>&1";
+		echo "slapd: [INFO] please wait, configuring PHPLdapAdminservice... \n";
+		shell_exec($phpldapadmin);
+	}	
+	
+	echo "slapd: [INFO] please wait, configuring the daemon...\n";
+	shell_exec("/usr/share/artica-postfix/bin/artica-install --slapdconf");
+	
+	echo "slapd: [INFO] please wait, building the start script...\n";
+	buildscript();
+		
+	echo "slapd: [INFO] please wait, Launching the daemon...\n";
+	$cdmline="$slapd$v4 -h \"$SLAPD_SERVICES\" -f $SLAPD_CONF -u root -g root -l local4$OpenLDAPLogLevelCmdline";
+	shell_exec($cdmline);
+	sleep(1);
+	
+	for($i=0;$i<5;$i++){
+		$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+		if($unix->process_exists($oldpid)){
+			$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
+			echo "slapd: [INFO] slapd success Running pid $oldpid\n";
+			if($users->ZARAFA_INSTALLED){start_zarafa();}
+			return;
+		}
+			
+		$oldpid=$unix->PIDOF($slapd);
+		if($unix->process_exists($oldpid)){
+			$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
+			echo "slapd: [INFO] slapd success Running pid $oldpid\n";
+			if($users->ZARAFA_INSTALLED){start_zarafa();}
+			return;
+		}
+		echo "slapd: [INFO] please wait, waiting service to start...\n";
+		sleep(1);
+				
+	}
+	
+	echo "slapd: [ERR ] Failed to start the service with `$cdmline`\n";
+	
+}
+
+
+function stop_ldap(){
+	$sock=new sockets();
+	$users=new usersMenus();
+	$ldaps=array();
+	$unix=new unix();
+	$kill=$unix->find_program("kill");
+	$slapd=$unix->find_program("slapd");
+	$SLAPD_PID_FILE=$unix->SLAPD_PID_PATH();
+	
+	if($users->ZARAFA_INSTALLED){stop_zarafa();}
+	
+	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+	if($unix->process_exists($oldpid)){
+		echo "slapd: [INFO] slapd shutdown ldap server PID:$oldpid...\n";
+		shell_exec("$kill $oldpid >/dev/null 2>&1");
+	}else{
+		$oldpid=$unix->PIDOF($slapd);
+		if($unix->process_exists($oldpid)){
+			echo "slapd: [INFO] slapd shutdown ldap server PID:$oldpid...\n";
+			shell_exec("$kill $oldpid >/dev/null 2>&1");
+		}
+	}
+	
+	for($i=0;$i<10;$i++){
+		$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+		if($unix->process_exists($oldpid)){
+			echo "slapd: [INFO] slapd waiting the server to stop PID:$oldpid...\n";
+			sleep(1);
+			continue;
+		}
+		
+		$oldpid=$unix->PIDOF($slapd);
+		if($unix->process_exists($oldpid)){
+			echo "slapd: [INFO] slapd waiting the server to stop PID:$oldpid...\n";
+			sleep(1);
+			continue;
+		}		
+		
+	}
+	
+	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+	if($unix->process_exists($oldpid)){
+		echo "slapd: [INFO] slapd PID:$oldpid still exists, kill it...\n";
+		shell_exec("$kill -9 $oldpid >/dev/null 2>&1");
+	}
+	
+	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+	if($unix->process_exists($oldpid)){
+		echo "slapd: [INFO] slapd PID:$oldpid still exists, failed\n";
+		return;
+	}	
+	
+	$oldpid=$unix->PIDOF($slapd);
+	if($unix->process_exists($oldpid)){
+		echo "slapd: [INFO] slapd PID:$oldpid still exists, kill it...\n";
+		shell_exec("$kill -9 $oldpid >/dev/null 2>&1");
+		return;
+	}
+
+	$oldpid=$unix->PIDOF($slapd);
+	if($unix->process_exists($oldpid)){
+		echo "slapd: [INFO] slapd PID:$oldpid still exists, failed\n";
+		return;
+	}
+
+	
+	echo "slapd: [INFO] slapd stopped, success...\n";
+	
+}
+
+function start_zarafa(){
+	shell_exec("/etc/init.d/zarafa-server start");
+}
+function stop_zarafa(){
+	shell_exec("/etc/init.d/zarafa-server stop");
+}
 
 function buildscript(){
-if($GLOBALS["VERBOSE"]){echo "starting init.d config...\n";}
-$sock=new sockets();
-$LockLdapConfig=$sock->GET_INFO("LockLdapConfig");
-if(!is_numeric($LockLdapConfig)){$LockLdapConfig=0;}
-$OpenLDAPLogLevelCmdline=null;
-if($LockLdapConfig==1){
-	echo "slapd: [INFO] LockLdapConfig is set to 1, aborting..\n";
-	return;
-}
-$ldaps=array();
 $unix=new unix();
-$slapd=$unix->find_program("slapd");
-if(!is_file($slapd)){if(is_file('/usr/lib/openldap/slapd')){$slapd='/usr/lib/openldap/slapd';}} 
-
-$slapadd=$unix->find_program("slapadd");
-$slapcat=$unix->find_program("slapcat");
-$slapindex=$unix->find_program("slapindex");
-$slaptest=$unix->find_program("slaptest");
-$OpenLDAPLogLevel=$sock->GET_INFO("OpenLDAPLogLevel");
-$EnableNonEncryptedLdapSession=$sock->GET_INFO("EnableNonEncryptedLdapSession");
-$OpenLDAPDisableSSL=$sock->GET_INFO("OpenLDAPDisableSSL");
-if(!is_numeric($EnableNonEncryptedLdapSession)){$EnableNonEncryptedLdapSession=1;}
-$phpldapadmin=null;
-if(!is_numeric($OpenLDAPDisableSSL)){$OpenLDAPDisableSSL=0;}
-$ZARAFA_INSTALLED=0;
-if($GLOBALS["VERBOSE"]){echo "users=new usersMenus();\n";}
-$users=new usersMenus();
-if($GLOBALS["VERBOSE"]){echo "users=new usersMenus() done...;\n";}
-if(!is_dir("/var/lib/ldap")){@mkdir("/var/lib/ldap",0755,true);}
-if(!is_dir("/var/run/slapd")){@mkdir("/var/run/slapd",0755,true);}
-
-if(!is_numeric($OpenLDAPLogLevel)){$OpenLDAPLogLevel=0;}
-if($OpenLDAPLogLevel<>0){
-	$OpenLDAPLogLevelCmdline=" -d $OpenLDAPLogLevel";
-}
-
-if(!$unix->IS_IPADDR_EXISTS("127.0.0.1")){
-	shell_exec($unix->find_program("ifconfig")." lo 127.0.0.1 netmask 255.0.0.0 up >/dev/null 2>&1");
-}
-$ldap[]="ldap://127.0.0.1:389/";
-if(is_file("/etc/artica-postfix/settings/Daemons/LdapListenIPAddr")){
-	$LdapListenIPAddr=explode("\n",@file_get_contents("/etc/artica-postfix/settings/Daemons/LdapListenIPAddr"));
-	 while (list ($num, $ipaddr) = each ($LdapListenIPAddr)){
-	 	$ipaddr=trim($ipaddr);
-	 	if($ipaddr==null){continue;}
-	 	echo "slapd: [INFO] slapd listen `$ipaddr`n";
-	 	if($EnableNonEncryptedLdapSession==0){$ldaps[]="ldaps://$ipaddr/";}
-	 	$ldap[]="ldap://$ipaddr:389/";  
-	 }
-	
-	
-	
-}
-if(count($ldaps)>0){
-	$SLAPD_SERVICESSSL=" ".@implode(" ", $ldaps);
-}
-$SLAPD_SERVICES=@implode(" ", $ldap).$SLAPD_SERVICESSSL;
-if($users->ZARAFA_INSTALLED){$ZARAFA_INSTALLED=1;}
-$DB_RECOVER_BIN=$unix->LOCATE_DB_RECOVER();
-$DB_ARCHIVE_BIN=$unix->LOCATE_DB_ARCHIVE();
-$LDAP_SCHEMA_PATH=$unix->LDAP_SCHEMA_PATH();
-$rm=$unix->find_program("rm");
-$SLAPD_CONF=$unix->SLAPD_CONF_PATH();
-$SLAPD_PID_FILE=$unix->SLAPD_PID_PATH();
-$php5=$unix->LOCATE_PHP5_BIN();
-$tar=$unix->find_program("tar");
-$pidofbin=$unix->find_program("pidof");
-$mebin=__FILE__;
-$suffix=@trim(@file_get_contents("/etc/artica-postfix/ldap_settings/suffix"));
-echo "slapd: [INFO] slapd `$slapd`\n";
-echo "slapd: [INFO] db_recover `$DB_RECOVER_BIN`\n";
-echo "slapd: [INFO] db_archive `$DB_ARCHIVE_BIN`\n";
-echo "slapd: [INFO] config `$SLAPD_CONF`\n";
-echo "slapd: [INFO] pid `$SLAPD_PID_FILE`\n";
-echo "slapd: [INFO] services `$SLAPD_SERVICES`\n";
-echo "slapd: [INFO] pidof `$pidofbin`\n";
-
-if(is_dir("/usr/share/phpldapadmin/config")){
-	$phpldapadmin="	$php5 ".dirname(__FILE__)."/exec.phpldapadmin.php --build >/dev/null 2>&1";
-}
-
-$kernel_tuning="$php5 ".dirname(__FILE__)."/exec.kernel-tuning.php >/dev/null 2>&1";
-
-if($GLOBALS["VERBOSE"]){echo "-> ARRAY;\n";}
-
-   $shemas[]="core.schema";
-   $shemas[]="cosine.schema";
-   $shemas[]="mod_vhost_ldap.schema";
-   $shemas[]="nis.schema";
-   $shemas[]="inetorgperson.schema";
-   $shemas[]="evolutionperson.schema";
-   $shemas[]="postfix.schema";
-   $shemas[]="dhcp.schema";
-   $shemas[]="samba.schema";
-   $shemas[]="ISPEnv.schema";
-   $shemas[]="mozilla-thunderbird.schema";
-   $shemas[]="officeperson.schema";
-   $shemas[]="pureftpd.schema";
-   $shemas[]="joomla.schema";
-   $shemas[]="autofs.schema";
-   $shemas[]="dnsdomain2.schema";
-   $shemas[]="zarafa.schema";
-   
-   while (list ($num, $file) = each ($shemas) ){
-   	if(is_file("/usr/share/artica-postfix/bin/install/$file")){
-   		if(is_file("$LDAP_SCHEMA_PATH/$file")){@unlink("$LDAP_SCHEMA_PATH/$file");}
-   		@copy("/usr/share/artica-postfix/bin/install/$file", "$LDAP_SCHEMA_PATH/$file");
-   		echo "slapd: [INFO] installing `$file` schema\n";
-   		$unix->chmod_func(0777,"$LDAP_SCHEMA_PATH/$file");
-   	}
-   }
-   
-   
-   
+$php=$unix->LOCATE_PHP5_BIN();
 
 $f[]="#!/bin/sh";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# Start/stop script for OpenLDAP (2.2 minimum)";
-$f[]="# (http://www.openldap.org).";
-$f[]="# Use BerkeleyDB utilities and save data in LDIF format.";
-$f[]="# ";
-$f[]="# chkconfig: 2345 27 73";
-$f[]="# description: OpenLDAP";
-$f[]="#";
 $f[]="### BEGIN INIT INFO";
-$f[]="# Provides:          slapd";
-$f[]="# Required-Start:    \$remote_fs \$syslog";
-$f[]="# Required-Stop:     \$remote_fs \$syslog";
-$f[]="# Should-Start:      \$network \$time";
-$f[]="# Should-Stop:       \$network \$time";
+$f[]="# Provides:          OpenLDAP service";
+$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
+$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
+$f[]="# Should-Start:";
+$f[]="# Should-Stop:";
 $f[]="# Default-Start:     2 3 4 5";
 $f[]="# Default-Stop:      0 1 6";
-$f[]="# Short-Description: OpenLDAP";
-$f[]="# Description:       OpenLDAP init script provided by LTB-project.org";
+$f[]="# Short-Description: Start OpenLDAP server";
+$f[]="# chkconfig: 2345 11 89";
+$f[]="# description: OpenLDAP Daemon";
 $f[]="### END INIT INFO";
-$f[]="#";
-$f[]="# Copyright (C) 2008 Jonathan CLARKE";
-$f[]="# Copyright (C) 2007 Olivier LI-KIANG-CHEONG";
-$f[]="# Copyright (C) 2007 Thomas CHEMINEAU";
-$f[]="# Copyright (C) 2005 Sebastien BAHLOUL ";
-$f[]="# Copyright (C) 2005 Raphael OUAZANA ";
-$f[]="# Copyright (C) 2005 Clement OUDOT";
-$f[]="# Copyright (C) 2010 LTB-project.org";
-$f[]="#";
-$f[]="# This program is free software; you can redistribute it and/or";
-$f[]="# modify it under the terms of the GNU General Public License";
-$f[]="# as published by the Free Software Foundation; either version 2";
-$f[]="# of the License, or (at your option) any later version.";
-$f[]="#";
-$f[]="# This program is distributed in the hope that it will be useful,";
-$f[]="# but WITHOUT ANY WARRANTY; without even the implied warranty of";
-$f[]="# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the";
-$f[]="# GNU General Public License for more details.";
-$f[]="#";
-$f[]="# GPL License: http://www.gnu.org/licenses/gpl.txt";
-$f[]="#";
-$f[]="#====================================================================";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# Version";
-$f[]="#====================================================================";
-$f[]="VERSION=\"1.8\"";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# Default parameters (if /etc/default/{script_name} is not present)";
-$f[]="#====================================================================";
-$f[]="# IP and port to listen (use wildcard * in IP to listen on all interfaces)";
-$f[]="IP=\"*\"";
-$f[]="SSLIP=\"*\"";
-$f[]="PORT=\"389\"";
-$f[]="SSLPORT=\"636\"";
-$f[]="";
-$f[]="# OpenLDAP directory and files";
-$f[]="SLAPD_PATH=\"/usr/local/openldap\"";
-$f[]="SLAPD_PID_FILE=\"$SLAPD_PID_FILE\"";
-$f[]="SLAPD_CONF=\"$SLAPD_CONF\"";
-$f[]="SLAPD_CONF_DIR=\"\"";
-$f[]="SLAPD_SERVICES=\"$SLAPD_SERVICES\"";
-$f[]="SLAPD_PARAMS=\"\"";
-$f[]="SLAPD_BIN=\"$slapd\"";
-$f[]="SLAPD_USER=\"root\"";
-$f[]="SLAPD_GROUP=\"root\"";
-$f[]="SLAPD_SYSLOG_LOCAL_USER=\"local4\"";
-$f[]="";
-$f[]="DATA_PATH=\"/var/lib/ldap\"";
-$f[]="";
-$f[]="SLAPADD_BIN=\"$slapadd\"";
-$f[]="SLAPCAT_BIN=\"$slapcat\"";
-$f[]="SLAPINDEX_BIN=\"$slapindex\"";
-$f[]="SLAPTEST_BIN=\"$slaptest\"";
-$f[]="PIDOF_BIN=\"$pidofbin\"";
-$f[]="";
-$f[]="SLURPD_ACTIVATE=\"0\"";
-$f[]="SLURPD_PID_FILE=\"\$SLAPD_PATH/var/run/slurpd.pid\"";
-$f[]="SLURPD_PARAMS=\"\"";
-$f[]="SLURPD_BIN=\"\$SLAPD_PATH/libexec/slurpd\"";
-$f[]="";
-$f[]="# BerkeleyDB directory and files";
-$f[]="BDB_PATH=\"/usr/local/berkeleydb\"";
-$f[]="DB_ARCHIVE_BIN=\"$DB_ARCHIVE_BIN\"";
-$f[]="DB_RECOVER_BIN=\"$DB_RECOVER_BIN\"";
-$f[]="RECOVER_AT_STARTUP=\"0\" # 0 for OpenLDAP 2.3.x";
-$f[]="";
-$f[]="# Backup";
-$f[]="BACKUP_AT_SHUTDOWN=\"0\"";
-
-$f[]="BACKUP_PATH=\"/opt/artica/ldap-backup\"";
-$f[]="BACKUP_SUFFIX=\"`date +%Y-%m-%d-%H`.ldif\"";
-$f[]="BACKUP_CONTAINER=\"`date +%Y-%m-%d-%H`.tar.gz\"";
-$f[]="BACKUP_COMPRESS_EXT=\"tar.gz\" # gz, bz2, ...";
-$f[]="BACKUP_COMPRESS_BIN=\"$tar\" # /bin/gzip, /bin/bzip2, ...";
-$f[]="BACKUP_UNCOMPRESS_BIN=\"echo\" # /bin/gunzip, /bin/bunzip2, ...";
-$f[]="";
-$f[]="# Other";
-$f[]="TIMEOUT=\"60\"      # Max time to stop process";
-$f[]="FD_LIMIT=\"2048\"   # Max file descriptor";
-$f[]="DEBUG_LEVEL=\"$OpenLDAPLogLevel\" # Debug loglevel";
-$f[]="SPECIAL_QUOTE=\"1\" # Quote some command line parameters (eg: LDAP filters)";
-$f[]="ZARAFA_INSTALLED=\"$ZARAFA_INSTALLED\"";
-$f[]="";
-$f[]="# Script specific";
-$f[]="PROG_NAME=`basename \$0 | sed 's/^[KS][0-9][0-9]//'` # For nice messages";
-$f[]="OS=`uname -s`   # To adapt message printing";
-$f[]="MYUID=`id -u`     # For UNIX compatibility => modify this command";
-$f[]="MYGID=`id -g`     # For UNIX compatibility => modify this command";
-$f[]="PS_COMMAND=\"ps -efww\"	# This ensures full width for ps output but doesn't work on Solaris - use \"ps -ef\"";
-$f[]="";
-$f[]="# Return functions' value";
-$f[]="RETVAL=\"\"";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# Message function";
-$f[]="#====================================================================";
-$f[]="message() {";
-$f[]="	# \$1: syslog level";
-$f[]="	# \$2: message";
-$f[]="";
-$f[]="	# Log to syslog";
-$f[]="	logger -p \"\$SLAPD_SYSLOG_LOCAL_USER.\$1\" -t \$PROG_NAME -i \"\$2\"";
-$f[]="";
-$f[]="	# Output to console";
-$f[]="	if [ \"\$1\" = \"alert\" ]";
-$f[]="	then";
-$f[]="		echo \"\$PROG_NAME: \$2\">&2";
-$f[]="	else";
-$f[]="		echo \"\$PROG_NAME: \$2\">&1";
-$f[]="	fi";
-$f[]="}";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# Specific functions";
-$f[]="#====================================================================";
-$f[]="";
-$f[]="get_confvalues() {";
-$f[]="	# \$1: parameter";
-$f[]="	# \$RETVAL: list of values";
-$f[]="";
-$f[]="        # Search in conffile or backconfig";
-$f[]="	if [ -n \"\$SLAPD_CONF_DIR\" ]; then";
-$f[]="        case \$1 in";
-$f[]="	directory)";
-$f[]="		backconfig_get_values \"olcDbDirectory\"";
-$f[]="	;;";
-$f[]="	suffix)";
-$f[]="		backconfig_get_values \"olcSuffix\" \"(|(objectclass=olcBdbConfig)(objectclass=olcHdbConfig)(objectclass=olcMdbConfig))\"";
-$f[]="	;;";
-$f[]="        *)";
-$f[]="		RETVAL=\"\"";
-$f[]="	;;";
-$f[]="	esac";
-$f[]="        else";
-$f[]="		conffile_get_values \$1";
-$f[]="	fi";
-$f[]="}";
-$f[]="";
-$f[]="conffile_get_values() {";
-$f[]="	# \$1: parameter in slapd.conf";
-$f[]="	# \$RETVAL: list of values";
-$f[]="";
-$f[]="	list=`sed \"s/\r//\" \$SLAPD_CONF | grep \"^\$1[[:space:]]\" | grep -v '^#' | sed \"s/\$1[[:space:]]*//\" | sed \"s/ /#20/g\"| sed -e 's/\"//g'`";
-$f[]="";
-$f[]="	if [ \"\$list\" ]; then";
-$f[]="		RETVAL=\"\$list\"";
-$f[]="	else";
-$f[]="		RETVAL=\"\"";
-$f[]="	fi";
-$f[]="}";
-$f[]="";
-$f[]="backconfig_get_values() {";
-$f[]="	# \$1: parameter";
-$f[]="	# \$2: LDAP filter (optional)";
-$f[]="	# \$RETVAL: list of returned values";
-$f[]="";
-$f[]="	if [ -z \"\$SLAPD_CONF_DIR\" -o ! -d \"\$SLAPD_CONF_DIR\" ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] Could not parse configuration directory\"";
-$f[]="		RETVAL=\"\"";
-$f[]="		return";
-$f[]="	fi";
-$f[]="";
-$f[]="	slapcat_cmd=\"\$SLAPCAT_BIN -F \$SLAPD_CONF_DIR -b cn=config\"";
-$f[]="	if [ -n \"\$2\" ]";
-$f[]="	then";
-$f[]="		if [ \$SPECIAL_QUOTE -eq 1 ]; then";
-$f[]="			slapcat_cmd=\"\$slapcat_cmd -a '\$2'\"";
-$f[]="		else";
-$f[]="			slapcat_cmd=\"\$slapcat_cmd -a \$2\"";
-$f[]="		fi";
-$f[]="	fi";
-$f[]="	if [ -z \"\$SU\" ]";
-$f[]="	then";
-$f[]="		list=`\$slapcat_cmd | perl -p0e 's/\n //g' | grep \"^\$1:\" | sed \"s/\$1: //\" | sed \"s/ /#20/g\"`";
-$f[]="	else";
-$f[]="		list=`\$SU \"\$slapcat_cmd\" | perl -p0e 's/\n //g' | grep \"^\$1:\" | sed \"s/\$1: //\" | sed \"s/ /#20/g\"`";
-$f[]="	fi";
-$f[]="";
-$f[]="	if [ -n \"\$list\" ]; then";
-$f[]="		RETVAL=\"\$list\"";
-$f[]="	else";
-$f[]="		RETVAL=\"\"";
-$f[]="	fi";
-$f[]="}";
-$f[]="";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# Load specific parameters";
-$f[]="#====================================================================";
-$f[]="if [ -f /etc/default/\$PROG_NAME ]";
-$f[]="then";
-$f[]="$rm /etc/default/\$PROG_NAME";
-$f[]="fi";
-$f[]="if [ -f /etc/default/\$PROG_NAME ]";
-$f[]="then";
-$f[]="	. /etc/default/\$PROG_NAME";
-$f[]="	message \"info\" \"[INFO] Using /etc/default/\$PROG_NAME for configuration\"";
-$f[]="else";
-$f[]="	message \"info\" \"[INFO] Using built-in configuration\"";
-$f[]="fi";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# Initiate 'su' command";
-$f[]="#====================================================================";
-$f[]="if [ \"\$SLAPD_USER\" -a \$MYUID -eq 0 ]";
-$f[]="then";
-$f[]="	SU=\"su -s /bin/bash - \$SLAPD_USER -c \"";
-$f[]="fi";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# Initial checks";
-$f[]="#====================================================================";
-$f[]="";
-$f[]="# Make sure the pidfile directory exists with correct permissions";
-$f[]="piddir=`dirname \"\$SLAPD_PID_FILE\"`";
-$f[]="if [ ! -d \"\$piddir\" ]; then";
-$f[]="	mkdir -p \"\$piddir\"";
-$f[]="	[ -z \"\$SLAPD_USER\" ] || chown -R \"\$SLAPD_USER\" \"\$piddir\"";
-$f[]="	[ -z \"\$SLAPD_GROUP\" ] || chgrp -R \"\$SLAPD_GROUP\" \"\$piddir\"";
-$f[]="fi";
-$f[]="";
-$f[]="# Rights to execute binaries";
-$f[]="for i in \"\$SLAPD_BIN\" \"\$SLAPCAT_BIN\" \"\$SLAPINDEX_BIN\" \"\$SLAPTEST_BIN\"";
-$f[]="do";
-$f[]="	if [ ! -x \$i ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] Can't execute \$i\"";
-$f[]="		exit 1";
-$f[]="	fi";
-$f[]="done";
-$f[]="";
-$f[]="# Rights to read configuration";
-
-$f[]="if [ \"\$SLAPD_CONF\" -a ! -r \"\$SLAPD_CONF\" ]";
-$f[]="then";
-$f[]="	/usr/share/artica-postfix/bin/artica-install --slapdconf";
-$f[]="fi";
-$f[]="";
-$f[]="if [ \"\$SLAPD_CONF\" -a ! -r \"\$SLAPD_CONF\" ]";
-$f[]="then";
-$f[]="	message \"alert\" \"[ALERT] Can't read \$SLAPD_CONF\"";
-$f[]="	exit 1";
-$f[]="fi";
-$f[]="";
-$f[]="# Activate slurpd? (get from configuration file)";
-$f[]="if [ -n \"\$SLAPD_CONF\" -a ! -d \"\$SLAPD_CONF_DIR\" ]; then";
-$f[]="	SLURPD_ACTIVATE=`grep \"^replica\" \$SLAPD_CONF | wc -l`";
-$f[]="fi";
-$f[]="";
-$f[]="# Right to execute slurpd, if used";
-$f[]="if [ \$SLURPD_ACTIVATE -ne 0 -a ! -x \"\$SLURPD_BIN\" ]";
-$f[]="then";
-$f[]="	message \"alert\" \"[ALERT] Can't execute \$SLURPD_BIN\"";
-$f[]="	exit 1";
-$f[]="fi";
-$f[]="";
-$f[]="# Is there a configuration directory ?";
-$f[]="if [ \"\$SLAPD_CONF_DIR\" -a ! -w \"\$SLAPD_CONF_DIR\" ]";
-$f[]="then";
-$f[]="	message \"alert\" \"[ALERT] Can't write to configuration directory \$SLAPD_CONF_DIR\"";
-$f[]="	exit 1";
-$f[]="fi";
-$f[]="";
-$f[]="# Are you root (for port < 1024)?";
-$f[]="if [ \$PORT -lt 1024 -a \$MYUID -ne 0 ]";
-$f[]="then";
-$f[]="	message \"alert\" \"[ALERT] Only root can launch OpenLDAP on port \$PORT\"";
-$f[]="	exit 1";
-$f[]="fi";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# Functions";
-$f[]="#====================================================================";
-$f[]="start_slapd() {";
-$f[]="";
-$f[]="	# \$1: debug level";
-$f[]="	";
-$f[]="	if [ -f /etc/artica-postfix/STOP-LDAP ]";
-$f[]="	then";
-$f[]="		message \"info\" \"[ALERT] OpenLDAP /etc/artica-postfix/STOP-LDAP exists, stopping\"";
-$f[]="		exit 0";
-$f[]="	fi   ";
-$f[]="	# Exit 0 if slapd is already running";
-$f[]="	# LSB compliance";
-$f[]="	slapd_status";
-$f[]="	";
-$f[]="	if [ \$? -eq 0 ]";
-$f[]="	then ";
-$f[]="		message \"info\" \"[ OK ] OpenLDAP is already running\"";
-$f[]="		exit 0";
-$f[]="	fi   ";
-$f[]="";
-$f[]="	# Check if db_recover is required";
-$f[]="	if [ \$RECOVER_AT_STARTUP -eq 1 ]";
-$f[]="	then";
-$f[]="		db_recover";
-$f[]="	else";
-$f[]="		message \"info\" \"[INFO] No db_recover done\"	";
-$f[]="	fi";
-$f[]="";
-$f[]="	# Start message";
-$f[]="	message \"info\" \"[INFO] Tuning the kernel...\"";
-$f[]="$kernel_tuning";
-if($phpldapadmin<>null){
-	$f[]="	message \"info\" \"[INFO] Configuring phpldapadmin...\"";	
-	$f[]=$phpldapadmin;
-}
-
-$f[]="	message \"info\" \"[INFO] setup nsswitch\"";	
-$f[]="	/usr/share/artica-postfix/bin/artica-install --nsswitch >/dev/null 2>&1 &";
-$f[]="	message \"info\" \"[INFO] setup slapd\"";
-$f[]="	/usr/share/artica-postfix/bin/artica-install --slapdconf";
-$f[]="	message \"info\" \"[INFO] setup init.d\"";
-$f[]="	$php5 $mebin";
-$f[]="	message \"info\" \"[INFO] Launching OpenLDAP...\"";
-$f[]="";
-$f[]="	# File descriptor limit, only for root";
-$f[]="	if [ \$MYUID -eq 0 ]";
-$f[]="	then";
-$f[]="		ulimit -HSd unlimited";
-$f[]="		if [ \$? -eq 0 ]";
-$f[]="		then";
-$f[]="			message \"info\" \"[ OK ] File descriptor limit set to unlimited\"";
-$f[]="		else";
-$f[]="			message \"warning\" \"[WARNING] Fail to set file descriptor limit to \$FD_LIMIT, going to next step\"";
-$f[]="		fi";
-$f[]="	else";
-$f[]="		message \"info\" \"[INFO] File descriptor limit not modified (require root privileges)\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	# Parameters";
-$f[]="	if [ \"\$SLAPD_CONF_DIR\" ]";
-$f[]="	then";
-$f[]="		SLAPD_PARAMS=\"\$SLAPD_PARAMS -F \$SLAPD_CONF_DIR\"";
-$f[]="	elif [ \"\$SLAPD_CONF\" ]";
-$f[]="	then";
-$f[]="		SLAPD_PARAMS=\"\$SLAPD_PARAMS -f \$SLAPD_CONF\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	if [  \"\$SLAPD_USER\" -a \$MYUID -eq 0 ]";
-$f[]="	then";
-$f[]="		SLAPD_PARAMS=\"\$SLAPD_PARAMS -u \$SLAPD_USER\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	if [ \"\$SLAPD_GROUP\" -a \$MYGID -eq 0 ]";
-$f[]="	then";
-$f[]="		SLAPD_PARAMS=\"\$SLAPD_PARAMS -g \$SLAPD_GROUP\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	if [ \"\$SLAPD_SYSLOG_LOCAL_USER\" ]";
-$f[]="	then";
-$f[]="		SLAPD_PARAMS=\"\$SLAPD_PARAMS -l \$SLAPD_SYSLOG_LOCAL_USER\" ";
-$f[]="	fi";
-$f[]="";
-$f[]="	# It's time to start slapd";
-$f[]="";
-$f[]="	if [ -n \"\$1\" ]; then";
-$f[]="		message \"info\" \"[ OK ] \$SLAPD_BIN -h \$SLAPD_SERVICES \$SLAPD_PARAMS\"";
-$f[]="		\$SLAPD_BIN -h \"\$SLAPD_SERVICES\" \$SLAPD_PARAMS -d \$1";
-$f[]="	else";
-$f[]="		message \"info\" \"[ OK ] \$SLAPD_BIN -h \$SLAPD_SERVICES \$SLAPD_PARAMS\"";
-$f[]="		\$SLAPD_BIN -h \"\$SLAPD_SERVICES\" \$SLAPD_PARAMS";
-$f[]="		sleep 1";
-$f[]="";
-$f[]="		# Presence of PID file";
-$f[]="		if [ ! -r \$SLAPD_PID_FILE ]";
-$f[]="		then";
-$f[]="			message \"alert\" \"[ALERT] No PID file for OpenLDAP\"";
-$f[]="			message \"alert\" \"[ALERT] run the command with -d 16383 to see why...\"";
-$f[]="			exit 1";
-$f[]="		fi";
-$f[]="";
-$f[]="		# Is slapd launched?";
-$f[]="		PID=`cat \$SLAPD_PID_FILE`";
-$f[]="		if [ ! -e /proc/\$PID ]";
-$f[]="		then";
-$f[]="			message \"alert\" \"[ALERT] OpenLDAP not running\"";
-$f[]="			message \"alert\" \"[ALERT] run this command `\$SLAPD_BIN -d 16383` to see why...\"";
-$f[]="			exit 1";
-$f[]="		else";
-$f[]="			message \"info\" \"[ OK ] OpenLDAP started\"";
-$f[]="			if [ \$ZARAFA_INSTALLED -eq 1 ]";
-$f[]="				then";
-$f[]="					message \"info\" \"[ OK ] Start Zarafa server\"";
-$f[]="					/etc/init.d/artica-postfix start zarafa";
-$f[]="			fi";
-$f[]="		fi";
-$f[]="	fi";
-$f[]="}";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# start_slurpd";
-$f[]="#====================================================================";
-$f[]="start_slurpd() {";
-$f[]="	if [ \$SLURPD_ACTIVATE -eq 0 ]";
-$f[]="	then";
-$f[]="		return 1";
-$f[]="	fi";
-$f[]="";
-$f[]="	# Start message";
-$f[]="	message \"info\" \"[INFO] Launching OpenLDAP replication...\"";
-$f[]="";
-$f[]="	# Parameters";
-$f[]="	if [ \"\$SLAPD_CONF_DIR\" ]";
-$f[]="	then";
-$f[]="		SLAPD_PARAMS=\"\$SLAPD_PARAMS -F \$SLAPD_CONF_DIR\"";
-$f[]="	elif [ \"\$SLAPD_CONF\" ]";
-$f[]="	then";
-$f[]="		SLAPD_PARAMS=\"\$SLAPD_PARAMS -f \$SLAPD_CONF\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	# It's time to start slurpd";
-$f[]="	if [ -z \"\$SU\" ]";
-$f[]="	then";
-$f[]="		\$SLURPD_BIN \$SLURPD_PARAMS";
-$f[]="	else";
-$f[]="		\$SU \"\$SLURPD_BIN \$SLURPD_PARAMS\"";
-$f[]="	fi";
-$f[]="	sleep 1";
-$f[]="";
-$f[]="	# Presence of PID file";
-$f[]="	if [ ! -r \$SLURPD_PID_FILE ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] No PID file for slurpd\"";
-$f[]="		exit 1";
-$f[]="	fi";
-$f[]="";
-$f[]="	# Is slurpd launched?";
-$f[]="	PID=`cat \$SLURPD_PID_FILE`";
-$f[]="	if [ ! -e /proc/\$PID ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] slurpd not running\"";
-$f[]="		exit 1";
-$f[]="	else";
-$f[]="		message \"info\" \"[ OK ] OpenLDAP replication started\"";
-$f[]="	fi";
-$f[]="}";
-$f[]="";
-$f[]="stop_slapd() {";
-$f[]="	# Stop message";
-$f[]="	message \"info\" \"[INFO] Halting OpenLDAP...\"";
-$f[]="";
-$f[]="	# Presence of PID file";
-$f[]="	if [ ! -r \$SLAPD_PID_FILE ]";
-$f[]="	then";
-$f[]="		message \"info\" \"[INFO] Can't read PID file, to stop OpenLDAP try: \$0 forcestop\"";
-$f[]="		return 1";
-$f[]="	else";
-$f[]="		if [ \$ZARAFA_INSTALLED -eq 1 ]";
-$f[]="		then";
-$f[]="			message \"info\" \"[INFO] Stop Zarafa server\"";
-$f[]="			/etc/init.d/artica-postfix stop zarafa";
-$f[]="		fi";
-$f[]="		PID=`cat \$SLAPD_PID_FILE`";
-$f[]="		kill -INT \$PID";
-$f[]="";
-$f[]="		# Waiting loop";
-$f[]="		i=0";
-$f[]="		while [ -e /proc/\$PID ]";
-$f[]="		do";
-$f[]="			if [ \$i -eq \$TIMEOUT ]";
-$f[]="			then";
-$f[]="				# Timeout";
-$f[]="				message \"alert\" \"[ALERT] OpenLDAP still running (PID \$PID), trying: \$0 forcestop\"";
-$f[]="				forcestop";
-$f[]="				exit 1";
-$f[]="			fi";
-$f[]="			i=`expr \$i + 1`";
-$f[]="			sleep 1";
-$f[]="		done";
-$f[]="";
-$f[]="		message \"info\" \"[ OK ] OpenLDAP stopped after \$i seconds\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	# Backup if necessary";
-$f[]="	if [ \$BACKUP_AT_SHUTDOWN -eq 1 ]";
-$f[]="	then";
-$f[]="		backup";
-$f[]="	else";
-$f[]="		message \"info\" \"[INFO] No data backup done\"";
-$f[]="	fi";
-$f[]="}";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# stop_slurpd";
-$f[]="#====================================================================";
-$f[]="stop_slurpd() {";
-$f[]="	# Desactivate slurpd?";
-$f[]="	if [ \$SLURPD_ACTIVATE -eq 0 ]";
-$f[]="	then";
-$f[]="		return 1";
-$f[]="	fi";
-$f[]="";
-$f[]="	# Stop message";
-$f[]="	message \"info\" \"[INFO] Halting OpenLDAP replication...\"";
-$f[]="";
-$f[]="	# Presence of PID file";
-$f[]="	if [ ! -r \$SLURPD_PID_FILE ]";
-$f[]="	then";
-$f[]="		message \"warning\" \"[WARNING] Can't read PID file, to stop slurpd try: \$0 forcestop\"";
-$f[]="	else";
-$f[]="		PID=`cat \$SLURPD_PID_FILE`";
-$f[]="		kill -INT \$PID";
-$f[]="";
-$f[]="		# Waiting loop";
-$f[]="		i=0";
-$f[]="		while [ -e /proc/\$PID ]";
-$f[]="		do";
-$f[]="			if [ \$i -eq \$TIMEOUT ]";
-$f[]="			then";
-$f[]="				# Timeout, need to kill";
-$f[]="				message \"alert\" \"[ALERT] slurpd still running (PID \$PID), try: \$0 forcestop\"";
-$f[]="				return 1";
-$f[]="			fi";
-$f[]="			i=`expr \$i + 1`";
-$f[]="			sleep 1";
-$f[]="		done";
-$f[]="";
-$f[]="		message \"info\" \"[ OK ] OpenLDAP replication stopped after \$i seconds\"";
-$f[]="	fi";
-$f[]="}";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# forcestop";
-$f[]="#====================================================================";
-$f[]="forcestop() {";
-$f[]="	# Stop message";
-$f[]="	message \"info\" \"[INFO] Killing OpenLDAP with force...\"";
-$f[]="";
-$f[]="	# Presence of PID file";
-$f[]="	if [ ! -r \$SLAPD_PID_FILE ]";
-$f[]="	then";
-$f[]="		# Escape special characters into \$SLAPD_SERVICES";
-$f[]="		slapd_services=\"`echo \"\$SLAPD_SERVICES\" | sed 's/\*/\\\*/g'`\"";
-$f[]="";
-$f[]="		# Check if any slapd process are running";
-$f[]="		if [ `\$PS_COMMAND | grep \$SLAPD_BIN | grep \"\$slapd_services\" | grep -v grep | wc -l` -eq 0 ]";
-$f[]="		then";
-$f[]="			message \"info\" \"[INFO] Found no OpenLDAP process running with \$SLAPD_SERVICES\"";
-$f[]="		else";
-$f[]="			# Try a killall";
-$f[]="			/usr/bin/killall -KILL \$SLAPD_BIN";
-$f[]="";
-$f[]="			if [ \$? -eq 0 ]";
-$f[]="			then";
-$f[]="				message \"info\" \"[ OK ] All OpenLDAP process killed with force\"";
-$f[]="			else";
-$f[]="				message \"alert\" \"[ALERT] Unable to kill OpenLDAP with force\"";
-$f[]="				exit 1";
-$f[]="			fi";
-$f[]="		fi";
-$f[]="	else";
-$f[]="		PID=`cat \$SLAPD_PID_FILE`";
-$f[]="		kill -KILL \$PID";
-$f[]="";
-$f[]="		if [ \$? -eq 0 ]";
-$f[]="		then";
-$f[]="			message \"info\" \"[ OK ] OpenLDAP process killed with force (PID \$PID)\"";
-$f[]="		else";
-$f[]="			message \"alert\" \"[ALERT] Unable to kill OpenLDAP with force (PID \$PID)\"";
-$f[]="			exit 1";
-$f[]="		fi";
-$f[]="	fi";
-$f[]="";
-$f[]="	# Stop message";
-$f[]="	message \"info\" \"[INFO] Killing OpenLDAP replication with force...\"";
-$f[]="";
-$f[]="	# Presence of PID file";
-$f[]="	if [ ! -r \$SLURPD_PID_FILE ]";
-$f[]="	then";
-$f[]="		# Check if any slapd process are running";
-$f[]="		if [ `\$PS_COMMAND | grep \$SLURPD_BIN | grep -v grep | wc -l` -eq 0 ]";
-$f[]="		then";
-$f[]="			message \"info\" \"[INFO] Found no slurpd process running\"";
-$f[]="		else";
-$f[]="			# Try a killall";
-$f[]="			/usr/bin/killall -KILL \$SLURPD_BIN";
-$f[]="";
-$f[]="			if [ \$? -eq 0 ]";
-$f[]="			then";
-$f[]="				message \"info\" \"[ OK ] slurpd process killed with force\"";
-$f[]="			else";
-$f[]="				message \"alert\" \"[ALERT] Unable to kill slurpd with force\"";
-$f[]="				exit 1";
-$f[]="			fi";
-$f[]="		fi";
-$f[]="	else";
-$f[]="		PID=`cat \$SLURPD_PID_FILE`";
-$f[]="		kill -KILL \$PID";
-$f[]="";
-$f[]="		if [ \$? -eq 0 ]";
-$f[]="		then";
-$f[]="			message \"info\" \"[ OK ] slurpd process killed with force (PID \$PID)\"";
-$f[]="		else";
-$f[]="			message \"alert\" \"[ALERT] Unable to kill slurpd with force (PID \$PID)\"";
-$f[]="			exit 1";
-$f[]="		fi";
-$f[]="	fi";
-$f[]="}";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# slapd_status";
-$f[]="#====================================================================";
-$f[]="slapd_status() {";
-$f[]="	# Return 0 if slapd is running, 1 if slapd is stopped, 2 if we can't say";
-$f[]="	if [ ! -r \$SLAPD_PID_FILE ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] \$SLAPD_PID_FILE no such file\"";
-$f[]="		PID=`$pidofbin \$SLAPD_BIN`";
-$f[]="		message \"info\" \"[INFO] pidof:\$PID\"";
-$f[]="	else";
-$f[]="		PID=`cat \$SLAPD_PID_FILE`";
-$f[]="		message \"info\" \"[INFO] \$SLAPD_PID_FILE PID:\$PID\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	if [ ! -e /proc/\$PID ]";
-$f[]="	then";
-$f[]="		PID=`$pidofbin \$SLAPD_BIN`";
-$f[]="		message \"info\" \"[INFO] pidof:\$PID\"";
-$f[]="	fi";
-
-$f[]="LEN=\${#PID}";
-$f[]="if [ \$LEN -eq 0 ]";
-$f[]="		then";
-$f[]="		message \"info\" \"[INFO] slapd not running PID is null\"";
-$f[]="		return 1";
-$f[]="	fi";
-$f[]="";
-$f[]="	if [ ! -e /proc/\$PID ]";
-
-$f[]="	then";
-$f[]="		message \"info\" \"[INFO] slapd not running\"";
-$f[]="		return 1";
-$f[]="	else";
-$f[]="		message \"info\" \"[INFO] slapd running PID:\$PID\"";
-$f[]="		return 0";
-$f[]="	fi";
-$f[]="	message \"info\" \"[INFO] slapd not running\"";
-$f[]="	return 1";
-$f[]="}";
-$f[]="";
-$f[]="display_status() {";
-$f[]="";
-$f[]="	# Print script version";
-$f[]="	message \"info\" \"[INFO] LDAP Tool Box OpenLDAP init script version \$VERSION\" ";
-$f[]="";
-$f[]="	# Get status";
-$f[]="	slapd_status";
-$f[]="";
-$f[]="	status=\$?";
-$f[]="";
-$f[]="	if [ \$status -eq 0 ]";
-$f[]="	then";
-$f[]="		message \"info\" \"[INFO] Process OpenLDAP is running\"";
-$f[]="		message \"info\" \"[INFO] Listening to services \$SLAPD_SERVICES\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	if [ \$status -eq 1 ]";
-$f[]="	then";
-$f[]="		message \"info\" \"[INFO] Process OpenLDAP is not running\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	if [ \$status -eq 2 ]";
-$f[]="	then";
-$f[]="		message \"info\" \"[INFO] Unable to determine OpenLDAP status\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	# Get detected suffix";
-$f[]="	get_confvalues \"directory\"";
-$f[]="	dbdirs=\$RETVAL";
-$f[]="	get_confvalues \"suffix\"";
-$f[]="	dbsufs=\$RETVAL";
-$f[]="";
-$f[]="	if [ ! -z \"\$dbdirs\" -o ! -z \"\$dbsufs\" ]";
-$f[]="	then";
-$f[]="		i=1";
-$f[]="		for dbdir in \$dbdirs";
-$f[]="		do";
-$f[]="			# Table is not allowed, so we use awk";
-$f[]="			suf=`echo \$dbsufs | awk -v j=\"\$i\" 'BEGIN{OFS=\" \"} {print \$j}'`";
-$f[]="			sufprint=`echo \$suf | sed \"s/#20/ /\"`";
-$f[]="			if [ ! -z \$suf ]";
-$f[]="			then";
-$f[]="				message \"info\" \"[INFO] Detected suffix: \$sufprint\"";
-$f[]="			fi";
-$f[]="			i=`expr \$i + 1`";
-$f[]="		done";
-$f[]="	fi";
-$f[]="";
-$f[]="	exit \$status";
-$f[]="}";
-$f[]="";
-$f[]="configtest() {";
-$f[]="	# Start message";
-$f[]="	message \"info\" \"[INFO] Configuring slpad.conf...\"";
-$f[]="	/usr/share/artica-postfix/bin/artica-install --slapdconf";
-$f[]=" exit 1";	
-$f[]="}";
-$f[]="";
-$f[]="db_recover() {";
-$f[]="	# Start message";
-$f[]="	message \"info\" \"[INFO] Launching OpenLDAP database recovery...\"";
-$f[]="";
-$f[]="	if [ ! -x \$DB_RECOVER_BIN ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] Cannot execute \$DB_RECOVER_BIN, aborting database recovery\"";
-$f[]="		exit 1";
-$f[]="	fi";
-$f[]="";
-$f[]="	# slapd must be stopped";
-$f[]="	slapd_status";
-$f[]="";
-$f[]="	if [ \$? -ne 1 ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] OpenLDAP is running or was not correctly shut down, aborting database recovery\"";
-$f[]="		exit 1";
-$f[]="	fi";
-$f[]="";
-$f[]="	dbdirs=\"\$DATA_PATH\"";
-$f[]="";
-$f[]="	if [ \"\$DATA_PATH\" = \"auto\" ]";
-$f[]="	then";
-$f[]="		get_confvalues \"directory\"";
-$f[]="		dbdirs=\$RETVAL";
-$f[]="";
-$f[]="		if [ -z \"\$dbdirs\" ]";
-$f[]="		then";
-$f[]="			message \"alert\" \"[ALERT] No database directories found\"";
-$f[]="			exit 1";
-$f[]="		fi";
-$f[]="	fi";
-$f[]="";
-$f[]="	for dbdir in \$dbdirs";
-$f[]="	do";
-$f[]="";
-$f[]="		# db_recover";
-$f[]="		if [ -z \"\$SU\" ]";
-$f[]="		then";
-$f[]="			\$DB_RECOVER_BIN -h \"\$dbdir\"";
-$f[]="		else";
-$f[]="			\$SU \"\$DB_RECOVER_BIN -h \\\"\$dbdir\\\"\"";
-$f[]="		fi";
-$f[]="";
-$f[]="		if [ \$? -eq 0 ]";
-$f[]="		then";
-$f[]="			message \"info\" \"[ OK ] OpenLDAP \$dbdir database recovery successful\"";
-$f[]="		else";
-$f[]="			message \"alert\" \"[ALERT] OpenLDAP \$dbdir database recovery failed\"";
-$f[]="			exit 1";
-$f[]="		fi";
-$f[]="";
-$f[]="	done";
-$f[]="}";
-$f[]="";
-$f[]="reindex() {";
-$f[]="	# Start message";
-$f[]="	message \"info\" \"[INFO] Launching OpenLDAP database reindexing...\"";
-$f[]="";
-$f[]="	if [ \"\$SLAPD_CONF_DIR\" ]";
-$f[]="	then";
-$f[]="		SLAPINDEX_PARAMS=\"-F \$SLAPD_CONF_DIR\"";
-$f[]="	elif [ \"\$SLAPD_CONF\" ]";
-$f[]="	then";
-$f[]="		SLAPINDEX_PARAMS=\"-f \$SLAPD_CONF\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	# slapd must be stopped";
-$f[]="	slapd_status";
-$f[]="";
-$f[]="	if [ \$? -ne 1 ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] OpenLDAP is running or was not correctly shut down, aborting reindexing\"";
-$f[]="		exit 1";
-$f[]="	else";
-$f[]="		# slapindex";
-$f[]="		if [ -z \"\$SU\" ]";
-$f[]="		then";
-$f[]="			\$SLAPINDEX_BIN \$SLAPINDEX_PARAMS";
-$f[]="		else";
-$f[]="			\$SU \"\$SLAPINDEX_BIN \$SLAPINDEX_PARAMS\"";
-$f[]="		fi";
-$f[]="";
-$f[]="		if [ \$? -eq 0 ]";
-$f[]="		then";
-$f[]="			message \"info\" \"[ OK ] OpenLDAP database reindexing successful\"";
-$f[]="		else";
-$f[]="			message \"alert\" \"[ALERT] OpenLDAP database reindexing failed\"";
-$f[]="			exit 1";
-$f[]="		fi";
-$f[]="	fi";
-$f[]="}";
-$f[]="";
-$f[]="removelogs() {";
-$f[]="	# Start message";
-$f[]="	message \"info\" \"[INFO] Launching OpenLDAP database logs archiving...\"";
-$f[]="";
-$f[]="	if [ ! -x \$DB_ARCHIVE_BIN ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] Can't execute \$DB_ARCHIVE_BIN, aborting database archiving\"";
-$f[]="		exit 1";
-$f[]="	fi";
-$f[]="";
-$f[]="";
-$f[]="	# slapd must be stopped";
-$f[]="	slapd_status";
-$f[]="";
-$f[]="	if [ \$? -ne 1 ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] OpenLDAP is running or was not correctly shut down, aborting archiving\"";
-$f[]="		exit 1";
-$f[]="	fi";
-$f[]="";
-$f[]="	dbdirs=\"\$DATA_PATH\"";
-$f[]="";
-$f[]="	if [ \"\$DATA_PATH\" = \"auto\" ]";
-$f[]="	then";
-$f[]="		get_confvalues \"directory\"";
-$f[]="		dbdirs=\$RETVAL";
-$f[]="";
-$f[]="		if [ -z \"\$dbdirs\" ]";
-$f[]="		then";
-$f[]="			message \"alert\" \"[ALERT] No database directories found\"";
-$f[]="			exit 1";
-$f[]="		fi";
-$f[]="	fi";
-$f[]="";
-$f[]="	for dbdir in \$dbdirs";
-$f[]="	do";
-$f[]="";
-$f[]="		# db_archive";
-$f[]="		if [ -z \"\$SU\" ]";
-$f[]="		then";
-$f[]="			\$DB_ARCHIVE_BIN -h \"\$dbdir\" -d";
-$f[]="		else";
-$f[]="			\$SU \"\$DB_ARCHIVE_BIN -h \\\"\$dbdir\\\" -d\"";
-$f[]="		fi";
-$f[]="";
-$f[]="		if [ \$? -eq 0 ]";
-$f[]="		then";
-$f[]="			message \"info\" \"[ OK ] OpenLDAP \$dbdir database logs archiving successful\"";
-$f[]="		else";
-$f[]="			message \"alert\" \"[ALERT] OpenLDAP \$dbdir database logs archiving failed\"";
-$f[]="			exit 1";
-$f[]="		fi";
-$f[]="";
-$f[]="	done";
-$f[]="}";
-$f[]="";
-$f[]="backup() {";
-$f[]="	# Start message";
-$f[]="	message \"info\" \"[INFO] Launching OpenLDAP database backup...\"";
-$f[]="";
-$f[]="	# Backup directory";
-$f[]="	mkdir -p \"\$BACKUP_PATH\"";
-$f[]="";
-$f[]="	if [ \"\$SLAPD_CONF_DIR\" ]";
-$f[]="	then";
-$f[]="		SLAPCAT_PARAMS=\"-F \$SLAPD_CONF_DIR\"";
-$f[]="	elif [ \"\$SLAPD_CONF\" ]";
-$f[]="	then";
-$f[]="		SLAPCAT_PARAMS=\"-f \$SLAPD_CONF\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	# Do backup for all databases";
-$f[]="	dbdirs=\"\$DATA_PATH\"";
-$f[]="	dbsufs=\"\"";
-$f[]="";
-$f[]="	if [ \"\$DATA_PATH\" = \"auto\" ]";
-$f[]="	then";
-$f[]="		get_confvalues \"directory\"";
-$f[]="		dbdirs=\$RETVAL";
-$f[]="		get_confvalues \"suffix\"";
-$f[]="		dbsufs=\$RETVAL";
-$f[]="";
-$f[]="		if [ -z \"\$dbdirs\" -o -z \"\$dbsufs\" ]";
-$f[]="		then";
-$f[]="			message \"alert\" \"[ALERT] No database directories found\"";
-$f[]="			exit 1";
-$f[]="		fi";
-$f[]="	fi";
-$f[]="";
-$f[]="	i=1";
-$f[]="	for dbdir in \$dbdirs";
-$f[]="	do";
-$f[]="		# Table is not allowed, so we use awk";
-$f[]="		suf=\"$suffix\"";
-$f[]="";
-$f[]="		if [ -z \$suf ]; then";
-$f[]="			message \"info\" \"[INFO] No suffix for \$dbdir\"";
-$f[]="		else";
-$f[]="			sufprint=`echo \$suf | sed \"s/#20/ /\"`";
-$f[]="			dir=`basename \$dbdir`";
-$f[]="			file=\"\$BACKUP_PATH/\$BACKUP_SUFFIX\"";
-
-$f[]="";
-$f[]="			# slapcat";
-$f[]="			if [ -z \"\$SU\" ]";
-$f[]="			then";
-$f[]="				message \"info\" \"[ OK ] \$SLAPCAT_BIN -b \"\$sufprint\" \$SLAPCAT_PARAMS -l \"\$file\"\"";
-$f[]="				\$SLAPCAT_BIN -b \"\$sufprint\" \$SLAPCAT_PARAMS -l \"\$file\"";
-$f[]="			else";
-$f[]="				\$SU \"\$SLAPCAT_BIN -b \\\"\$sufprint\\\" \$SLAPCAT_PARAMS\" > \"\$file\"";
-$f[]="				chown \$SLAPD_USER:\$SLAPD_GROUP \$file";
-$f[]="			fi";
-$f[]="";
-$f[]="			# alert";
-$f[]="			if [ \$? -ne 0 ]";
-$f[]="			then";
-$f[]="				message \"alert\" \"[ALERT] OpenLDAP database backup failed\"";
-$f[]="				exit 1";
-$f[]="			fi";
-$f[]="";
-$f[]="			# compress";
-$f[]="			if [ -z \$BACKUP_COMPRESS_EXT ]";
-$f[]="			then";
-$f[]="				message \"info\" \"[ OK ] data saved in \$file\"";
-$f[]="			else";
-$f[]="				if [ -z \"\$SU\" ]";
-$f[]="				then";
-$f[]="					\$BACKUP_COMPRESS_BIN -czf \"\$BACKUP_PATH/\$BACKUP_CONTAINER\" \"\$file\"";
-$f[]="				else";				
-$f[]="					\$SU \"\$BACKUP_COMPRESS_BIN -czf \$BACKUP_PATH/\$BACKUP_CONTAINER \$file\"";
-$f[]="				fi";
-$f[]="";
-$f[]="				# alert";
-$f[]="				if [ \$? -ne 0 ]";
-$f[]="				then";
-$f[]="					message \"alert\" \"[ALERT] OpenLDAP database backup compression failed\"";
-$f[]="					exit 1";
-$f[]="				fi";
-$f[]="				message \"info\" \"[ OK ] Data saved in \$BACKUP_PATH/\$BACKUP_CONTAINER\"";
-$f[]="			fi";
-$f[]="		fi";
-$f[]="";
-$f[]="		i=`expr \$i + 1`";
-$f[]="	done";
-$f[]="";
-$f[]="}";
-$f[]="";
-$f[]="backupconfig() {";
-$f[]="	# Start message";
-$f[]="	message \"info\" \"[INFO] Launching OpenLDAP configuration backup...\"";
-$f[]="";
-$f[]="	# Backup directory";
-$f[]="	mkdir -p \"\$BACKUP_PATH\"";
-$f[]="";
-$f[]="	file=\"\"";
-$f[]="";
-$f[]="	if [ \"\$SLAPD_CONF_DIR\" ]";
-$f[]="	then";
-$f[]="		file=\"\$BACKUP_PATH/config-\$BACKUP_SUFFIX\"";
-$f[]="";
-$f[]="		# slapcat";
-$f[]="		if [ -z \"\$SU\" ]";
-$f[]="		then";
-$f[]="			\$SLAPCAT_BIN -n0 -F \$SLAPD_CONF_DIR -l \"\$file\"";
-$f[]="		else";
-$f[]="			\$SU \"\$SLAPCAT_BIN -n0 -F \$SLAPD_CONF_DIR\" > \"\$file\"";
-$f[]="			chown \$SLAPD_USER:\$SLAPD_GROUP \$file";
-$f[]="		fi";
-$f[]="";
-$f[]="	elif [ \"\$SLAPD_CONF\" ]";
-$f[]="	then";
-$f[]="		file=\"\$BACKUP_PATH/slapd-`date +%Y%m%d%H%M%S`.conf\"";
-$f[]="		cp \$SLAPD_CONF \$file";
-$f[]="	fi";
-$f[]="";
-$f[]="	# alert";
-$f[]="	if [ \$? -ne 0 ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] OpenLDAP configuration backup failed\"";
-$f[]="		exit 1";
-$f[]="	fi";
-$f[]="";
-$f[]="	message \"info\" \"[ OK ] Configuration saved in \$file\"";
-$f[]="";
-$f[]="}";
-$f[]="";
-$f[]="restore() {";
-$f[]="	# Start message";
-$f[]="	message \"info\" \"[INFO] Launching OpenLDAP database restore...\"";
-$f[]="";
-$f[]="	if [ \"\$SLAPD_CONF_DIR\" ]";
-$f[]="	then";
-$f[]="		SLAPADD_PARAMS=\"-F \$SLAPD_CONF_DIR\"";
-$f[]="	elif [ \"\$SLAPD_CONF\" ]";
-$f[]="	then";
-$f[]="		SLAPADD_PARAMS=\"-f \$SLAPD_CONF\"";
-$f[]="	fi";
-$f[]="";
-$f[]="	# Do restore for all databases";
-$f[]="	dbdirs=\"\$DATA_PATH\"";
-$f[]="	dbsufs=\"\"";
-$f[]="";
-$f[]="	if [ \"\$DATA_PATH\" = \"auto\" ]";
-$f[]="	then";
-$f[]="		get_confvalues \"directory\"";
-$f[]="		dbdirs=\$RETVAL";
-$f[]="		get_confvalues \"suffix\"";
-$f[]="		dbsufs=\$RETVAL";
-$f[]="";
-$f[]="		if [ -z \"\$dbdirs\" -o -z \"\$dbsufs\" ]";
-$f[]="		then";
-$f[]="			message \"alert\" \"[ALERT] No database directories found\"";
-$f[]="			exit 1";
-$f[]="		fi";
-$f[]="	fi";
-$f[]="";
-$f[]="	i=1";
-$f[]="	for dbdir in \$dbdirs";
-$f[]="	do";
-$f[]="		# Table is not allowed, so we use awk";
-$f[]="		suf=`echo \$dbsufs | awk -v j=\"\$i\" 'BEGIN{OFS=\" \"} {print \$j}'`";
-$f[]="";
-$f[]="		if [ -z \$suf ]; then";
-$f[]="			message \"info\" \"[INFO] No suffix for \$dbdir\"";
-$f[]="		else";
-$f[]="			sufprint=`echo \$suf | sed \"s/#20/ /\"`";
-$f[]="			dir=`basename \$dbdir`";
-$f[]="";
-$f[]="			# Get the most recent backup for this database";
-$f[]="			file=`ls -1t \"\$BACKUP_PATH/\$dir-\"* 2>/dev/null | head -1`";
-$f[]="			";
-$f[]="			if [ -z \$file ]; then";
-$f[]="				message \"info\" \"[INFO] No backup file for \$sufprint, skipping...\"";
-$f[]="			else";
-$f[]="				message \"info\" \"[INFO] Restore file \$file for \$sufprint\"";
-$f[]="";
-$f[]="				# uncompress";
-$f[]="				if [ \"\$BACKUP_COMPRESS_EXT\" ]";
-$f[]="				then";
-$f[]="					if [ -z \"\$SU\" ]";
-$f[]="					then";
-$f[]="						\$BACKUP_UNCOMPRESS_BIN \"\$file\"";
-$f[]="					else";
-$f[]="						\$SU \"\$BACKUP_UNCOMPRESS_BIN \$file\"";
-$f[]="					fi";
-$f[]="";
-$f[]="					# alert";
-$f[]="					if [ \$? -ne 0 ]";
-$f[]="					then";
-$f[]="						message \"alert\" \"[ALERT] OpenLDAP database backup uncompression failed\"";
-$f[]="						exit 1";
-$f[]="					fi";
-$f[]="";
-$f[]="					file=\${file%\.*}";
-$f[]="				fi";
-$f[]="";
-$f[]="				SLAPADD_PARAMS=\"\$SLAPADD_PARAMS -l \$file\"";
-$f[]="";
-$f[]="				# Delete current data";
-$f[]="				if [ -z \"\$SU\" ]";
-$f[]="				then";
-$f[]="					rm -rf \"\$dbdir/\"*";
-$f[]="				else";
-$f[]="					\$SU \"rm -rf \$dbdir/\"*";
-$f[]="				fi";
-$f[]="";
-$f[]="				# Import backup";
-$f[]="				if [ -z \"\$SU\" ]";
-$f[]="				then";
-$f[]="					\$SLAPADD_BIN -b \"\$sufprint\" \$SLAPADD_PARAMS";
-$f[]="				else";
-$f[]="					\$SU \"\$SLAPADD_BIN -b \\\"\$sufprint\\\" \$SLAPADD_PARAMS\"";
-$f[]="				fi";
-$f[]="				";
-$f[]="				# alert";
-$f[]="				if [ \$? -ne 0 ]";
-$f[]="				then";
-$f[]="					message \"alert\" \"[ALERT] OpenLDAP database restore failed for \$sufprint\"";
-$f[]="					exit 1";
-$f[]="				fi";
-$f[]="				message \"info\" \"[ OK ] Data restored for \$sufprint\"";
-$f[]="";
-$f[]="				# compress backup again if needed";
-$f[]="				if [ \"\$BACKUP_COMPRESS_EXT\" ]";
-$f[]="				then";
-$f[]="					if [ -z \"\$SU\" ]";
-$f[]="					then";
-$f[]="						\$BACKUP_COMPRESS_BIN \"\$file\"";
-$f[]="					else";
-$f[]="						\$SU \"\$BACKUP_COMPRESS_BIN \$file\"";
-$f[]="					fi";
-$f[]="";
-$f[]="					# alert";
-$f[]="					if [ \$? -ne 0 ]";
-$f[]="						then";
-$f[]="						message \"alert\" \"[ALERT] OpenLDAP database backup compression failed\"";
-$f[]="						exit 1";
-$f[]="					fi";
-$f[]="				fi";
-$f[]="			fi";
-$f[]="		fi";
-$f[]="		i=`expr \$i + 1`";
-$f[]="	done";
-$f[]="";
-$f[]="}";
-$f[]="";
-$f[]="restoreconfig() {";
-$f[]="	# Start message";
-$f[]="	message \"info\" \"[INFO] Launching OpenLDAP configuration restore...\"";
-$f[]="";
-$f[]="	if [ \"\$SLAPD_CONF_DIR\" ]";
-$f[]="	then";
-$f[]="		# Get the most recent backup of cn=config";
-$f[]="		file=`ls -1t \"\$BACKUP_PATH/config-\"* 2>/dev/null | head -1`";
-$f[]="";
-$f[]="		if [ -z \$file ]; then";
-$f[]="			message \"info\" \"[INFO] No configuration backup found, skipping...\"";
-$f[]="		else";
-$f[]="			message \"info\" \"[INFO] Restore configuration file \$file\"";
-$f[]="";
-$f[]="			# Delete current data";
-$f[]="			if [ -z \"\$SU\" ]";
-$f[]="			then";
-$f[]="				rm -rf \"\$SLAPD_CONF_DIR/\"*";
-$f[]="			else";
-$f[]="				\$SU \"rm -rf \$SLAPD_CONF_DIR/\"*";
-$f[]="			fi";
-$f[]="";
-$f[]="			# Import backup";
-$f[]="			if [ -z \"\$SU\" ]";
-$f[]="			then";
-$f[]="				\$SLAPADD_BIN -n0 -F \$SLAPD_CONF_DIR -l \$file";
-$f[]="			else";
-$f[]="				\$SU \"\$SLAPADD_BIN -n0 -F \$SLAPD_CONF_DIR -l \$file\"";
-$f[]="			fi";
-$f[]="		fi";
-$f[]="";
-$f[]="	elif [ \"\$SLAPD_CONF\" ]";
-$f[]="	then";
-$f[]="		# Get the most recent backup of slapd.conf";
-$f[]="		file=`ls -1t \"\$BACKUP_PATH/slapd-\"*.conf 2>/dev/null | head -1`";
-$f[]="";
-$f[]="		if [ -z \$file ]; then";
-$f[]="			message \"info\" \"[INFO] No configuration backup found, skipping...\"";
-$f[]="		else";
-$f[]="			message \"info\" \"[INFO] Restore configuration file \$file\"";
-$f[]="			cp -f \$file \$SLAPD_CONF		";
-$f[]="		fi";
-$f[]="	fi";
-$f[]="";
-$f[]="	# alert";
-$f[]="	if [ \$? -ne 0 ]";
-$f[]="	then";
-$f[]="		message \"alert\" \"[ALERT] OpenLDAP configuration restore failed\"";
-$f[]="		exit 1";
-$f[]="	fi";
-$f[]="	message \"info\" \"[ OK ] Configuration restored\"";
-$f[]="}";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# Action switch";
-$f[]="#====================================================================";
-$f[]="case \$1 in";
-$f[]="	start)";
-$f[]="	start_slurpd";
-$f[]="	start_slapd";
-$f[]="	;;";
-$f[]="	stop)";
-$f[]="	stop_slapd";
-$f[]="	stop_slurpd";
-$f[]="	;;";
-$f[]="	forcestop)";
-$f[]="	forcestop";
-$f[]="	;;";
-$f[]="	restart)";
-$f[]="	stop_slapd";
-$f[]="	stop_slurpd";
-$f[]="	start_slurpd";
-$f[]="	start_slapd";
-$f[]="	;;";
-$f[]="	debug)";
-$f[]="	stop_slapd";
-$f[]="	stop_slurpd";
-$f[]="	start_slurpd";
-$f[]="	start_slapd \$DEBUG_LEVEL";
-$f[]="	;;";
-$f[]="	force-reload)";
-$f[]="	forcestop";
-$f[]="	start_slurpd";
-$f[]="	start_slapd";
-$f[]="	;;";
-$f[]="	status)";
-$f[]="	display_status";
-$f[]="	;;";
-$f[]="	db_recover)";
-$f[]="	db_recover";
-$f[]="	;;";
-$f[]="	reindex)";
-$f[]="	reindex";
-$f[]="	;;";
-$f[]="	removelogs)";
-$f[]="	removelogs";
-$f[]="	;;";
-$f[]="	backup)";
-$f[]="	backup";
-$f[]="	;;";
-$f[]="	restore)";
-$f[]="	stop_slapd";
-$f[]="	stop_slurpd";
-$f[]="	restore";
-$f[]="	start_slurpd";
-$f[]="	start_slapd";
-$f[]="	;;";
-$f[]="	backupconfig)";
-$f[]="	backupconfig";
-$f[]="	;;";
-$f[]="	restoreconfig)";
-$f[]="	stop_slapd";
-$f[]="	stop_slurpd";
-$f[]="	restoreconfig";
-$f[]="	configtest";
-$f[]="	start_slurpd";
-$f[]="	start_slapd";
-$f[]="	;;";
-$f[]="	*)";
-$f[]="	echo \"Usage: \$0 {start|stop|forcestop|restart|debug|force-reload|status|configtest|db_recover|reindex|removelogs|backup|restore|backupconfig|restoreconfig}\"";
-$f[]="	exit 1";
-$f[]="	;;";
+$f[]="case \"\$1\" in";
+$f[]=" start)";
+$f[]="    $php ". __FILE__." --start --byinitd \$2 \$3";
+$f[]="    ;;";
+$f[]="";
+$f[]="  stop)";
+$f[]="    $php ". __FILE__." --stop --byinitd --force \$2 \$3";
+$f[]="    ;;";
+$f[]="";
+$f[]=" restart)";
+$f[]="    $php ". __FILE__." --restart --byinitd --force \$2 \$3";
+$f[]="    ;;";
+$f[]="";
+$f[]="  *)";
+$f[]="    echo \"Usage: \$0 {start|stop|restart} {ldap|} (+ 'debug' for more infos)\"";
+$f[]="    exit 1";
+$f[]="    ;;";
 $f[]="esac";
-$f[]="";
-$f[]="#====================================================================";
-$f[]="# Exit";
-$f[]="#====================================================================";
-$f[]="exit 0";
-$f[]="";
+$f[]="exit 0\n";
+
 $INITD_PATH=$unix->SLAPD_INITD_PATH();
 echo "slapd: [INFO] Writing $INITD_PATH with new config\n";
 @file_put_contents($INITD_PATH, @implode("\n", $f));
+
+@chmod($INITD_PATH,0755);
+
+if(is_file('/usr/sbin/update-rc.d')){
+	shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+}
+
+if(is_file('/sbin/chkconfig')){
+	shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+	shell_exec("/sbin/chkconfig --level 2345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+}
 
 }
 
@@ -1468,6 +399,17 @@ function rsyslogd_init(){
 	$unix=new unix();
 	$sock=new sockets();
 	$servicebin=$unix->find_program("update-rc.d");
+	if(!is_file($servicebin)){
+		echo "syslog: [ERR] update-rc.d no such file....\n";
+		return;
+	}
+	
+	$rsyslogd=$unix->find_program("rsyslogd");
+	if(!is_file($rsyslogd)){
+		echo "syslog: [ERR] rsyslogd no such file....\n";
+		return;
+	}
+		
 	$users=new usersMenus();
 	$mydir=dirname(__FILE__);
 	if(!is_file("/etc/init.d/syslog")){return;}
@@ -1476,6 +418,8 @@ function rsyslogd_init(){
 	$stopmaillog="/etc/init.d/artica-postfix stop postfix-logger";
 	$startmaillog="/etc/init.d/artica-postfix start postfix-logger";
 	$restartmaillog="/etc/init.d/artica-postfix restart postfix-logger";
+	$reconfigure=$unix->LOCATE_PHP5_BIN()." ".__FILE__." --rsyslogd-init";
+	
 	if(!$users->POSTFIX_INSTALLED){$stopmaillog=null;$startmaillog=null;$restartmaillog=null;}
 	if($users->WEBSTATS_APPLIANCE){
 		echo "syslog: [INFO] syslog path Act as Syslog server...\n";
@@ -1497,6 +441,7 @@ function rsyslogd_init(){
 	$f[]="# Description:       Rsyslog is an enhanced multi-threaded syslogd.";
 	$f[]="#                    It is quite compatible to stock sysklogd and can be ";
 	$f[]="#                    used as a drop-in replacement.";
+	$f[]="#                    Written by Artica on ".date("Y-m-d H:i:s");
 	$f[]="### END INIT INFO";
 	$f[]="";
 	$f[]="#";
@@ -1509,7 +454,7 @@ function rsyslogd_init(){
 	$f[]="NAME=rsyslog";
 	$f[]="";
 	$f[]="RSYSLOGD=rsyslogd";
-	$f[]="RSYSLOGD_BIN=/usr/sbin/rsyslogd";
+	$f[]="RSYSLOGD_BIN=$rsyslogd";
 	$f[]="RSYSLOGD_OPTIONS=\"-c4\"";
 	$f[]="RSYSLOGD_PIDFILE=/var/run/rsyslogd.pid";
 	$f[]="";
@@ -1540,6 +485,7 @@ function rsyslogd_init(){
 	$f[]="  /etc/init.d/artica-postfix start sysloger";
 	if($startmaillog<>null){$f[]="  $startmaillog";}
 	$f[]="  $schedules";
+	$f[]="  $reconfigure";
 	$f[]="}";
 	$f[]="";
 	$f[]="do_stop()";
@@ -1564,7 +510,7 @@ function rsyslogd_init(){
 	$f[]="do_reload() {";
 	$f[]="	NAME=\"\$RSYSLOGD\"";
 	$f[]="	PIDFILE=\"\$RSYSLOGD_PIDFILE\"";
-	$f[]="";
+	$f[]="	$reconfigure";
 	$f[]="	start-stop-daemon --stop --signal HUP --quiet --pidfile \$PIDFILE --name \$NAME";
 	$f[]="  /etc/init.d/artica-postfix restart auth-logger";
 	$f[]="  /etc/init.d/artica-postfix restart sysloger";
@@ -1637,7 +583,13 @@ function rsyslogd_init(){
 	$f[]=":";
 	$f[]="";
 	@file_put_contents("/etc/init.d/syslog", @implode("\n", $f));
+	if(!is_file("/etc/init.d/rsyslog")){@file_put_contents("/etc/init.d/rsyslog", @implode("\n", $f));}
 	echo "syslog: [INFO] syslog path `/etc/init.d/syslog` done\n";
+}
+
+function check_init_rsyslogd(){
+	if(!is_file("/etc/init.d/rsyslog")){return true;}
+	
 }
 
 function dnsmasq_init_debian(){
@@ -2069,6 +1021,180 @@ function nscd_init_debian(){
 	$f[]="esac";	
 	@file_put_contents("/etc/init.d/nscd", @implode("\n", $f));
 	echo "nscd: [INFO] nscd path `/etc/init.d/nscd` done\n";		
+}
+
+function wsgate_init_debian(){
+$unix=new unix();
+$wsgate_bin=$unix->find_program("wsgate");
+$php5=$unix->LOCATE_PHP5_BIN();	
+	
+$f[]="#!/bin/sh";
+$f[]="### BEGIN INIT INFO";
+$f[]="# Provides:          wsgate";
+$f[]="# Required-Start:    \$network \$local_fs";
+$f[]="# Required-Stop:";
+$f[]="# Default-Start:     2 3 4 5";
+$f[]="# Default-Stop:      0 1 6";
+$f[]="# Short-Description: WebSocket gateway for FreeRDP-WebConnect";
+$f[]="# Description:       The WebSockets gateway for FreeRDP-WebConnect allws you";
+$f[]="#                    to provide browser-based RDP sessions.";
+$f[]="### END INIT INFO";
+$f[]="";
+$f[]="# Author: Fritz Elfert <wsgate@fritz-elfert.de>";
+$f[]="";
+$f[]="# PATH should only include /usr/ if it runs after the mountnfs.sh script";
+$f[]="PATH=/sbin:/usr/sbin:/bin:/usr/bin";
+$f[]="DESC=wsgate             # Introduce a short description here";
+$f[]="NAME=wsgate             # Introduce the short server's name here";
+$f[]="DAEMON=\"$wsgate_bin\" # Introduce the server's location here";
+$f[]="DAEMON_ARGS=\"\"             # Arguments to run the daemon with";
+$f[]="PIDFILE=/var/run/wsgate/\$NAME.pid";
+$f[]="SCRIPTNAME=/etc/init.d/\$NAME";
+$f[]="";
+$f[]="# Exit if the package is not installed";
+$f[]="[ -x \$DAEMON ] || exit 0";
+$f[]="";
+$f[]="# Read configuration variable file if it is present";
+$f[]="[ -r /etc/default/\$NAME ] && . /etc/default/\$NAME";
+$f[]="";
+$f[]="# Load the VERBOSE setting and other rcS variables";
+$f[]=". /lib/init/vars.sh";
+$f[]="";
+$f[]="# Define LSB log_* functions.";
+$f[]="# Depend on lsb-base (>= 3.0-6) to ensure that this file is present.";
+$f[]=". /lib/lsb/init-functions";
+$f[]="";
+$f[]="#";
+$f[]="# Function that starts the daemon/service";
+$f[]="#";
+$f[]="do_start()";
+$f[]="{";
+$f[]="    # Make shure, that bindhelper has correct permissions";
+$f[]="    chown root.wsgate /usr/lib/wsgate/wsgate/bindhelper";
+$f[]="    chmod 04754 /usr/lib/wsgate/wsgate/bindhelper";
+$f[]="    # Create /var/run/wsgate";
+$f[]="    mkdir -p /var/run/wsgate";
+$f[]="    chown wsgate.wsgate /var/run/wsgate";
+$f[]="    # Generate cert if necessary";
+$f[]="    /usr/lib/wsgate/wsgate/keygen.sh";
+$f[]="";
+$f[]="    # Return";
+$f[]="    #   0 if daemon has been started";
+$f[]="    #   1 if daemon was already running";
+$f[]="    #   2 if daemon could not be started";
+$f[]="    start-stop-daemon --start --quiet --chuid wsgate:wsgate --pidfile \$PIDFILE --exec \$DAEMON --test > /dev/null \ ";
+$f[]="        || return 1";
+$f[]="    start-stop-daemon --start --quiet --chuid wsgate:wsgate --pidfile \$PIDFILE --exec \$DAEMON -- \ ";
+$f[]="        -c /etc/wsgate.ini \$DAEMON_ARGS \ ";
+$f[]="        || return 2";
+$f[]="    # Add code here, if necessary, that waits for the process to be ready";
+$f[]="    # to handle requests from services started subsequently which depend";
+$f[]="    # on this one.  As a last resort, sleep for some time.";
+$f[]="}";
+$f[]="";
+$f[]="#";
+$f[]="# Function that stops the daemon/service";
+$f[]="#";
+$f[]="do_stop()";
+$f[]="{";
+$f[]="    # Return";
+$f[]="    #   0 if daemon has been stopped";
+$f[]="    #   1 if daemon was already stopped";
+$f[]="    #   2 if daemon could not be stopped";
+$f[]="    #   other if a failure occurred";
+$f[]="    start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile \$PIDFILE --name \$NAME";
+$f[]="    RETVAL=\"\$?\"";
+$f[]="    [ \"\$RETVAL\" = 2 ] && return 2";
+$f[]="    # Wait for children to finish too if this is a daemon that forks";
+$f[]="    # and if the daemon is only ever run from this initscript.";
+$f[]="    # If the above conditions are not satisfied then add some other code";
+$f[]="    # that waits for the process to drop all resources that could be";
+$f[]="    # needed by services started subsequently.  A last resort is to";
+$f[]="    # sleep for some time.";
+$f[]="    start-stop-daemon --stop --quiet --oknodo --retry=0/30/KILL/5 --exec \$DAEMON";
+$f[]="    [ \"\$?\" = 2 ] && return 2";
+$f[]="    # Many daemons don't delete their pidfiles when they exit.";
+$f[]="    rm -f \$PIDFILE";
+$f[]="    return \"\$RETVAL\"";
+$f[]="}";
+$f[]="";
+$f[]="#";
+$f[]="# Function that sends a SIGHUP to the daemon/service";
+$f[]="#";
+$f[]="do_reload() {";
+$f[]="    #";
+$f[]="    # If the daemon can reload its configuration without";
+$f[]="    # restarting (for example, when it is sent a SIGHUP),";
+$f[]="    # then implement that here.";
+$f[]="    #";
+$f[]="    start-stop-daemon --stop --signal 1 --quiet --pidfile \$PIDFILE --name \$NAME";
+$f[]="    return 0";
+$f[]="}";
+$f[]="";
+$f[]="case \"\$1\" in";
+$f[]="    start)";
+$f[]="        [ \"\$VERBOSE\" != no ] && log_daemon_msg \"Starting \$DESC \" \"\$NAME\"";
+$f[]="        do_start";
+$f[]="        case \"\$?\" in";
+$f[]="            0|1) [ \"\$VERBOSE\" != no ] && log_end_msg 0 ;;";
+$f[]="        2) [ \"\$VERBOSE\" != no ] && log_end_msg 1 ;;";
+$f[]="    esac";
+$f[]="    ;;";
+$f[]="stop)";
+$f[]="    [ \"\$VERBOSE\" != no ] && log_daemon_msg \"Stopping \$DESC\" \"\$NAME\"";
+$f[]="    do_stop";
+$f[]="    case \"\$?\" in";
+$f[]="        0|1) [ \"\$VERBOSE\" != no ] && log_end_msg 0 ;;";
+$f[]="    2) [ \"\$VERBOSE\" != no ] && log_end_msg 1 ;;";
+$f[]="esac";
+$f[]=";;";
+$f[]="  status)";
+$f[]="      status_of_proc \"\$DAEMON\" \"\$NAME\" && exit 0 || exit \$?";
+$f[]="      ;;";
+$f[]="  #reload|force-reload)";
+$f[]="      #";
+$f[]="      # If do_reload() is not implemented then leave this commented out";
+$f[]="      # and leave 'force-reload' as an alias for 'restart'.";
+$f[]="      #";
+$f[]="      #log_daemon_msg \"Reloading \$DESC\" \"\$NAME\"";
+$f[]="      #do_reload";
+$f[]="      #log_end_msg \$?";
+$f[]="      #;;";
+$f[]="  restart|force-reload)";
+$f[]="      #";
+$f[]="      # If the \"reload\" option is implemented then remove the";
+$f[]="      # 'force-reload' alias";
+$f[]="      #";
+$f[]="      log_daemon_msg \"Restarting \$DESC\" \"\$NAME\"";
+$f[]="      do_stop";
+$f[]="      case \"\$?\" in";
+$f[]="          0|1)";
+$f[]="              do_start";
+$f[]="              case \"\$?\" in";
+$f[]="                  0) log_end_msg 0 ;;";
+$f[]="              1) log_end_msg 1 ;; # Old process is still running";
+$f[]="          *) log_end_msg 1 ;; # Failed to start";
+$f[]="      esac";
+$f[]="      ;;";
+$f[]="  *)";
+$f[]="      # Failed to stop";
+$f[]="      log_end_msg 1";
+$f[]="      ;;";
+$f[]="    esac";
+$f[]="    ;;";
+$f[]="*)";
+$f[]="    #echo \"Usage: \$SCRIPTNAME {start|stop|restart|reload|force-reload}\" >&2";
+$f[]="    echo \"Usage: \$SCRIPTNAME {start|stop|status|restart|force-reload}\" >&2";
+$f[]="    exit 3";
+$f[]="    ;;";
+$f[]="esac";
+$f[]="";
+$f[]=":";
+$f[]="";	
+
+@file_put_contents("/etc/init.d/wsgate", @implode("\n", $f));
+echo "wsgate: [INFO] wsgate path `/etc/init.d/wsgate` done\n";		
+
 }
 
 

@@ -106,6 +106,9 @@ function checkMysql($nollop=false){
 		echo "Starting......: PowerDNS need at least 1mn, aborting\n";
 		return;
 	}
+	
+	
+	
 	@unlink($timefile);
 	@file_put_contents($timefile, time());
 	
@@ -118,6 +121,8 @@ function checkMysql($nollop=false){
 		return;
 	}
 	
+	forward_zones();
+	
 	
 	if(!$q->DATABASE_EXISTS("powerdns")){
 		echo "Starting......: PowerDNS creating 'powerdns' database\n";
@@ -126,37 +131,54 @@ function checkMysql($nollop=false){
 
 	echo "Starting......: PowerDNS 'powerdns' database OK\n";
 
-	$f[]="poweradmin-mysql-db-structure.sql";
-	$f[]="powerdns-mysql-db-structure.sql";
-	$f[]="poweradmin-mysql-update-to-2.1.5.sql";
-	$f[]="poweradmin-mysql-update-to-2.1.6.sql";
-	$f[]="poweradmin-mysql-update-to-2.1.7.sql";
-
-	if($q->mysql_password<>null){$passwdcmdline=" -p$q->mysql_password";}
-
-
-while (list ($num, $filename) = each ($f) ){
-	if(is_file("/usr/share/poweradmin/sql/$filename")){
-		$cmd="$mysql -B -u $q->mysql_admin$passwdcmdline --database=powerdns -E < /usr/share/poweradmin/sql/$filename >/dev/null 2>&1";
-		if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-		shell_exec($cmd);
-		
-	}else{
-		if(is_file("/usr/share/poweradmin/doc/$filename")){
-			$cmd="$mysql -B -u $q->mysql_admin$passwdcmdline --database=powerdns -E < /usr/share/poweradmin/doc/$filename >/dev/null 2>&1";
-			if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-			shell_exec($cmd);	
-		}else{		
-			echo "Starting......: PowerDNS $filename no such file\n";
-		}
-	}
-	
+$f["cryptokeys"]=true;
+$f["domainmetadata"]=true;
+$f["domains"]=true;
+$f["perm_items"]=true;
+$f["perm_templ"]=true;
+$f["perm_templ_items"]=true;
+$f["records"]=true;
+$f["supermasters"]=true;
+$f["tsigkeys"]=true;
+$f["users"]=true;
+$f["zones"]=true;
+$f["zone_templ"]=true;
+$f["zone_templ_records"]=true;
+$resultTables=true;
+while (list ($tablename, $line2) = each ($f) ){
+	if(!$q->TABLE_EXISTS($tablename, "powerdns")){echo "Starting......: PowerDNS Table `$tablename` failed...\n";$resultTables=false;continue;}
+	echo "Starting......: PowerDNS Table `$tablename` OK...\n";
 }
+
+if($resultTables){
+	echo "Starting......: PowerDNS pass tests Success...\n";
+	return true;
+}
+$dumpfile="/usr/share/artica-postfix/bin/install/pdns/powerdns.sql";
+if(!is_file($dumpfile)){
+	echo "Starting......: PowerDNS /usr/share/artica-postfix/bin/install/pdns/powerdns.sql no such file...\n";
+	return;
+}
+
+echo "Starting......: PowerDNS installing database...\n";
+if($q->mysql_password<>null){$passwdcmdline=" -p$q->mysql_password";}
+$cmd="$mysql -B -u $q->mysql_admin$passwdcmdline --database=powerdns -E < $dumpfile >/dev/null 2>&1";
+shell_exec($cmd);
+reset($f);
+
+$resultTables=true;
+while (list ($tablename, $line2) = each ($f) ){
+	if(!$q->TABLE_EXISTS($tablename, "powerdns")){echo "Starting......: PowerDNS Table `$tablename` failed...\n";$resultTables=false;continue;}
+	echo "Starting......: PowerDNS Table `$tablename` OK...\n";
+}
+if($resultTables){echo "Starting......: PowerDNS Success...\n";return true;}
+
+
 
 
 	if(!$q->TABLE_EXISTS("domains", "powerdns")){
 		echo "Starting......: PowerDNS creating 'domains' table\n";
-		$sql="create table domains (
+		$sql="CREATE TABLE IF NOT EXISTS domains (
 			 id		 INT auto_increment,
 			 name		 VARCHAR(255) NOT NULL,
 			 master		 VARCHAR(128) DEFAULT NULL,
@@ -178,7 +200,7 @@ while (list ($num, $filename) = each ($f) ){
 
 	if(!$q->TABLE_EXISTS("records", "powerdns")){
 		echo "Starting......: PowerDNS creating 'records' table\n";
-		$sql="CREATE TABLE records (
+		$sql="CREATE TABLE IF NOT EXISTS records (
 			  id              INT auto_increment,
 			  domain_id       INT DEFAULT NULL,
 			  name            VARCHAR(255) DEFAULT NULL,
@@ -214,7 +236,7 @@ while (list ($num, $filename) = each ($f) ){
 
 	if(!$q->TABLE_EXISTS("supermasters", "powerdns")){
 		echo "Starting......: PowerDNS creating 'supermasters' table\n";
-		$sql="create table supermasters (
+		$sql="CREATE TABLE IF NOT EXISTS supermasters (
 				  ip VARCHAR(25) NOT NULL, 
 				  nameserver VARCHAR(255) NOT NULL, 
 				  account VARCHAR(40) DEFAULT NULL
@@ -237,7 +259,7 @@ while (list ($num, $filename) = each ($f) ){
 	
 	if(!$q->TABLE_EXISTS("domainmetadata", "powerdns")){
 		echo "Starting......: PowerDNS creating 'domainmetadata' table\n";
-		$sql="create table domainmetadata (
+		$sql="CREATE TABLE IF NOT EXISTS domainmetadata (
 			 id              INT auto_increment,
 			 domain_id       INT NOT NULL,
 			 kind            VARCHAR(16),
@@ -260,7 +282,7 @@ while (list ($num, $filename) = each ($f) ){
 	
 	if(!$q->TABLE_EXISTS("cryptokeys", "powerdns")){
 		echo "Starting......: PowerDNS creating 'cryptokeys' table\n";
-		$sql="create table cryptokeys (
+		$sql="CREATE TABLE IF NOT EXISTS cryptokeys (
 			 id             INT auto_increment,
 			 domain_id      INT NOT NULL,
 			 flags          INT NOT NULL,
@@ -284,7 +306,7 @@ while (list ($num, $filename) = each ($f) ){
 
 	if(!$q->TABLE_EXISTS("tsigkeys", "powerdns")){
 		echo "Starting......: PowerDNS creating 'tsigkeys' table\n";
-		$sql="create table tsigkeys (
+		$sql="CREATE TABLE IF NOT EXISTS tsigkeys (
 			 id             INT auto_increment,
 			 name           VARCHAR(255), 
 			 algorithm      VARCHAR(255),
@@ -995,6 +1017,54 @@ function replic_artica_servers_perform($host,$username,$password){
 	system_admin_events("Success update ". count($datas) . " records from $host took:$took", __FUNCTION__, __FILE__, __LINE__, "pdns");
 	
 
+}
+
+function forward_zones(){
+	$q=new mysql();
+	$sql="SELECT * FROM pdns_fwzones";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){return;}	
+	
+	
+	@unlink("/etc/powerdns/forward-zones-file");
+	@unlink("/etc/powerdns/forward-zones-recurse");
+
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$hostname=$ligne["hostname"].":".$ligne["port"];
+		$zone=$ligne["zone"];
+		$recursive=$ligne["recursive"];
+		if($recursive==1){
+			$ZONES_RECUSRIVE[$zone][$hostname]=true;
+			continue;
+		}
+		$ZONES[$zone][$hostname]=true;
+		
+	}
+	
+	
+	if(count($ZONES)>0){
+		$t=array();
+		while (list ($zone, $array) = each ($ZONES) ){
+			$z=array();
+			while (list ($hostname, $none) = each ($array) ){$z[]=$hostname;}
+			echo "Starting......: PowerDNS Forward zone $zone -> ".@implode(",",$z)."\n";
+			$t[]="$zone=".@implode(",",$z);
+		}
+
+		@file_put_contents("/etc/powerdns/forward-zones-file", @implode("\n", $t));
+	}
+	
+	if(count($ZONES_RECUSRIVE)>0){
+		$t=array();
+		while (list ($zone, $array) = each ($ZONES_RECUSRIVE) ){
+			$z=array();
+			while (list ($hostname, $none) = each ($array) ){$z[]=$hostname;}
+			echo "Starting......: PowerDNS Forward recursive zone $zone -> ".@implode(",",$z)."\n";
+			$t[]="$zone=".@implode(",",$z);
+		}
+	
+		@file_put_contents("/etc/powerdns/forward-zones-file", @implode(";", $t));
+	}	
 }
 
 

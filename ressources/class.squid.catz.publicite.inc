@@ -48,7 +48,6 @@ class squid_catz_publicite{
 		if(preg_match("#\.tradeads\.eu$#", $www)){return "publicite";}
 		if(preg_match("#\.ivwbox\.de$#", $www)){return "publicite";}
 		if(preg_match("#adsyndication\.msn\.com$#", $www)){return "publicite";}
-		if(preg_match("#rad\.msn\.com$#", $www)){return "publicite";}
 		if(preg_match("#\.visualdna\.com$#", $www)){return "publicite";}
 		if(preg_match("#\.yx8\.us$#", $www)){return "publicite";}
 		if(preg_match("#\.paperg\.com$#", $www)){return "publicite";}

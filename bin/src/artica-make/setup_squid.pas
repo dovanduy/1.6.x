@@ -177,6 +177,7 @@ begin
       fpsystem('/etc/init.d/artica-postfix start squid-cache');
       install.INSTALL_STATUS(CODE_NAME,100);
       install.INSTALL_PROGRESS(CODE_NAME,'{success}');
+        fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.php --build --force');
 
 end;
 //#########################################################################################
@@ -544,6 +545,7 @@ begin
  if LocalBinVersion>=320000000000 then begin
     writeln('Local version is a 3.2x this command will return back to 3.1x branch');
     LocalBinVersion:=300000000000;
+    PCKG_NAME:='APP_SQUID31';
  end;
 
 
@@ -625,6 +627,7 @@ begin
   logs.DeleteFile('/etc/artica-postfix/versions.cache');
   install.INSTALL_STATUS(PCKG_NAME,90);
   fpsystem('/usr/share/artica-postfix/bin/process1 --force');
+  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.php --build --force');
   fpsystem('/etc/init.d/artica-postfix restart squid');
   install.INSTALL_STATUS(PCKG_NAME,100);
   install.INSTALL_PROGRESS(PCKG_NAME,'{installed}');

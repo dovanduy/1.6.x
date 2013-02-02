@@ -14,7 +14,9 @@ $GLOBALS["server-conf"]=false;
 $GLOBALS["IPTABLES_ETH"]=null;
 $GLOBALS["CLASS_SOCKETS"]=new sockets();
 
-if(is_array($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["DEBUG"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}}
+if(is_array($argv)){
+		if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["DEBUG"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}}
+		if(preg_match("#--wait#",implode(" ",$argv))){$GLOBALS["WAIT"]=true;}
 if($GLOBALS["VERBOSE"]){echo "Debug mode TRUE for {$argv[1]}\n";}
 $users=new usersMenus();
 if($users->KASPERSKY_WEB_APPLIANCE){die();}
@@ -66,6 +68,7 @@ writelogs("Starting......: OpenVPN Unable to understand this command-line (" .im
 	
 
 function BuildIpTablesServer(){
+	if($GLOBALS["WAIT"]){sleep(5);}
 	iptables_delete_rules();
 	$IPTABLES_ETH=$GLOBALS["IPTABLES_ETH"];
 

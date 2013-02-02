@@ -1,4 +1,5 @@
 <?php
+	$GLOBALS["STOP_SESSION_JS"]=true;
 	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -392,6 +393,16 @@ function serverlist(){
 			$hostnameTR=explode(".",$hostname);
 			$hostname=$hostnameTR[0];
 		}
+		$ipZ=array();$ipsT=null;
+		$results2=$q->QUERY_SQL("SELECT ipaddr  FROM `nics` WHERE nodeid=$nodeid");
+		while($ligne2=mysql_fetch_array($results2,MYSQL_ASSOC)){
+			if($ligne2["ipaddr"]=="127.0.0.1"){continue;}
+			$ipZ[]=$ligne2["ipaddr"];
+		}
+		if(count($ipZ)>0){
+			$ipsT="<div style='font-size:11px'><i>".@implode(", ", $ipZ)."</i></div>";
+		}
+		
 		$hostTXT=$hostname;
 		$NODES[]=
 		"<table style='width:90%' class=form>
@@ -403,7 +414,7 @@ function serverlist(){
 					<a href=\"javascript:blur();\"
 					style='font-size:14px;text-decoration:underline'
 					OnClick=\"javascript:Loadjs('nodes.php?nodeid=$nodeid')\"
-					>$hostTXT</a></strong>
+					>$hostTXT</a></strong>$ipsT
 				$perftext
 			</td>
 		</tr>

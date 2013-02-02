@@ -11,7 +11,7 @@ function MemoryInstances(){
 			return 0;}
 		
 		
-		
+		$Toremove["exec.squid.blacklists.php"]=true;
 		$Toremove["exec.parse-orders.php"]=true;
 		$Toremove["exec.syslog.php"]=true;
 		$Toremove["exec.maillog.php"]=true;
@@ -31,9 +31,11 @@ function MemoryInstances(){
 		$Toremove["external_acl_squid.php"]=true;
 		$Toremove["exec.offlineimap.php"]=true;
 		$Toremove["exec.mailbox.migration.php"]=true;
+		$Toremove["exec.pdns.pipe.php"]=true;
+		
 		
 		$arrayK["exec.hamachi.php"]=5;
-		$arrayK["exec.squid-tail-injector.php"]=20;
+		$arrayK["exec.squid-tail-injector.php"]=320;
 		$arrayK["exec.virtuals-ip.php"]=10;
 		$arrayK["exec.watchdog.php"]=3;
 		$arrayK["exec.test-connection.php"]=5;
@@ -43,24 +45,33 @@ function MemoryInstances(){
 		$arrayK["exec.mysql.build.php"]=30;
 		$arrayK["exec.smtp-hack.export.php"]=10;
 		$arrayK["exec.postfix-logger.php"]=10;	
-		$arrayK["exec.openvpn.php"]=5;						
-		
+		$arrayK["exec.openvpn.php"]=5;
+		$arrayK["exec.setup-center.php"]=30;
+		$arrayK["exec.ipband.php"]=60;					
+		$arrayK["exec.testspeed.php"]=15;
+		$arrayK["exec.syslog-engine.php"]=30;
+			
 		$array=array();
 		$cmd="$pgrep -l -f \"artica-postfix/exec\..*?\.php\" 2>&1";
 		
 		exec("$cmd",$results);
 		if($GLOBALS["VERBOSE"]){echo "$cmd -> ". count($results)." items\n";}
 		$GLOBALS["INSTANCES_EXECUTED"]=array();
+		$ALRED=array();
 		while (list ($num, $ligne) = each ($results) ){
 			
 			if(preg_match("#bin\/openvpn#",$ligne)){continue;}
-			
+			if(strpos($ligne,"sh -c")>0){continue;}
 			
 			if(preg_match("#^([0-9]+)\s+.+?\s+\/usr\/share\/artica-postfix\/(.+?)\.php.*?$#",$ligne,$re)){
+				
 				$filename=trim($re[2]).".php";
 				if($GLOBALS["VERBOSE"]){echo "[{$re[1]}]: `$filename`\n";}
 				if(isset($Toremove[$filename])){continue;}
 				if(!is_numeric($re[1])){continue;}
+				if(isset($ALRED[$re[1]])){continue;}
+				
+				$ALRED[$re[1]]=true;
 				if(!$GLOBALS["CLASS_UNIX"]->process_exists($re[1])){continue;}
 				if($GLOBALS["CLASS_UNIX"]->PID_IS_CHROOTED($re[1])){continue;}
 				$time=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($re[1]);
@@ -78,7 +89,7 @@ function MemoryInstances(){
 				}
 				
 			 $GLOBALS["INSTANCES_EXECUTED"][]="\"$filename\" {$time}Mn";	
-			 $this->events("PROCESS IN MEMORY: [{$re[1]}] \"$filename\" {$time}Mn");
+			 if($time>0){$this->events("PROCESS IN MEMORY: [PID:{$re[1]}] \"$filename\" `$ligne` {$time}Mn");}
 			 $array[]="[{$re[1]}] $filename ({$time}Mn)";
 			}
 		}

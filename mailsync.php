@@ -78,6 +78,13 @@ function js(){
 	$schedule=$tpl->_ENGINE_parse_body("{schedule}");
 	$apply_upgrade_help=$tpl->javascript_parse_text("{apply_upgrade_help}");
 	$command_lines_view=$tpl->_ENGINE_parse_body("{command_lines_view}");
+	$already_global_schedule=$tpl->javascript_parse_text("{warn_already_global_scheduled}");
+	$globSchedule=0;
+	$q=new mysql();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM system_schedules WHERE TaskType=60 LIMIT 0,1","artica_backup"));
+	if($ligne["ID"]>0){
+		$globSchedule=1;
+	}
 	$page=CurrentPageName();
 	$uid=$_GET["uid"];
 	
@@ -111,6 +118,8 @@ function js(){
 	}
 	
 	function imapSyncSchedule(id){
+		var globSchedule=$globSchedule;
+		if(globSchedule==1){alert('$already_global_schedule');return;}
 		YahooWin6(245,'$page?schedule=yes&uid=$uid&id='+id,'$schedule');
 	}
 	
@@ -919,7 +928,7 @@ function schedule(){
 		$retour[$line]=$index;
 	}
 	
-$sql="SELECT CronSchedule FROM imapsync WHERE ID='{$_GET["id"]}'";
+	$sql="SELECT CronSchedule FROM imapsync WHERE ID='{$_GET["id"]}'";
 	$q=new mysql();
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
 	

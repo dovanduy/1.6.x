@@ -24,7 +24,7 @@ function js(){
 	$ENABLE_SMTPS=$tpl->_ENGINE_parse_body('{ENABLE_SMTPS}');
 	$html="
 	function LoadMasterMultiCFSSL(){
-		YahooWin3(498,'$page?popup=yes&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}','master.cf (SSL)','$ENABLE_SMTPS'); 
+		YahooWin3(600,'$page?popup=yes&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}','master.cf (SSL)','$ENABLE_SMTPS'); 
 	}
 	
 var x_SaveMasterMultiCFSSL= function (obj) {

@@ -1,5 +1,6 @@
 <?php
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(isset($_GET["force"])){$GLOBALS["FORCE"]=true;}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -75,7 +76,7 @@ if($users->KAV4PROXY_INSTALLED){
 }
 	if($EnableRemoteStatisticsAppliance==0){
 		if($DisableArticaProxyStatistics==0){
-			$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "SquidQuickLinks()"));
+			$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "SquidQuickLinksStatistics()"));
 			$statisticsAdded=true;
 		}
 	}
@@ -106,6 +107,8 @@ while (list ($key, $line) = each ($GLOBALS["QUICKLINKS-ITEMS"]) ){
 	
 	$jsitems[]="\tif(document.getElementById('$line')){document.getElementById('$line').className='QuickLinkTable';}";
 }
+
+
 
 $start="		
 LoadQuickTaskBar();
@@ -353,6 +356,7 @@ function section_architecture_tabs(){
 	$page=CurrentPageName();
 	$array["architecture-content"]='{main_parameters}';
 	$array["architecture-users"]='{users_interactions}';
+	$array["caches"]='{caches}';
 	$array["architecture-adv"]='{advanced_options}';
 	
 	$t=time();
@@ -416,7 +420,8 @@ function section_architecture_advanced(){
     $file_descriptors=Paragraphe("64-filetype.png", "{file_descriptors}", "{file_descriptors_squid_explain}",
     "javascript:Loadjs('squid.file_desc.php')");
     
-    
+     $snmp=Paragraphe("64-snmp.png", "SNMP", "{squid_snmp_explain}",
+    "javascript:Loadjs('squid.snmp.php')");
     
     
     $tr[]=$file_descriptors;
@@ -430,6 +435,7 @@ function section_architecture_advanced(){
     $tr[]=$anonym;
     $tr[]=$syslog;
     $tr[]=$disable_stats;
+    $tr[]=$snmp;
     $tr[]=$sarg;
     $tr[]=$csvstats;
     $tr[]=$squid_parent_proxy;
@@ -530,26 +536,32 @@ $users=new usersMenus();
 	$ftp_user=Paragraphe('ftp-user-64.png','{squid_ftp_user}','{squid_ftp_user_text}',"javascript:Loadjs('squid.ftp.user.php')");
 	$messengers=Paragraphe('messengers-64.png','{instant_messengers}','{squid_instant_messengers_text}',"javascript:Loadjs('squid.messengers.php')");	
 		
-	$enable_squid_service=Paragraphe('bg-server-settings-64.png','{enable_squid_service}','{enable_squid_service_text}',"javascript:Loadjs('squid.newbee.php?js_enable_disable_squid=yes')");
+	
 	$watchdog=Paragraphe('service-check-64.png','{squid_watchdog}','{squid_watchdog_text}',"javascript:Loadjs('squid.watchdog.php')");
  	$booster=Paragraphe('perfs-64.png','{squid_booster}','{squid_booster_text}',"javascript:Loadjs('squid.booster.php')");
  	
-
+	$googlenossl=Paragraphe('google-64.png','{disable_google_ssl}','{disable_google_ssl_text}',"javascript:Loadjs('squid.google.ssl.php')");
  	
+	$forwarded_for=Paragraphe("icon-html-64.png", "x-Forwarded-For", "{x-Forwarded-For_explain}",
+			"javascript:Loadjs('squid.forwarded_for.php')");
+	
+    $timeouts=Paragraphe("clock-gold-64.png", "{timeouts}", "{timeouts_squid_parameters}",
+    "javascript:Loadjs('squid.timeouts.php')");
 
 	$tr=array();
 	$tr[]=$watchdog;
 	$tr[]=$listen_port;
 	$tr[]=$listen_addr;
-	$tr[]=$visible_hostname;
+	$tr[]=$timeouts;
+	$tr[]=$forwarded_for;
 	$tr[]=$transparent_mode;
 	$tr[]=$your_network;
 	$tr[]=$booster;
-	$tr[]=$stat_appliance;
 	$tr[]=$ftp_user;
 	$tr[]=$messengers;
 	$tr[]=$sslbump;
-	$tr[]=$enable_squid_service;
+	$tr[]=$googlenossl;
+	
 	
 
 	$html=CompileTr3($tr);

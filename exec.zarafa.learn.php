@@ -1,4 +1,6 @@
 <?php
+$GLOBALS["SCHEDULE_ID"]=0;
+if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
@@ -17,8 +19,18 @@ function run(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pid=@file_get_contents($pidfile);
+	$EnableZarafaSalearnSchedule=$sock->GET_INFO("EnableZarafaSalearnSchedule");
+	if(!is_numeric($EnableZarafaSalearnSchedule)){$EnableZarafaSalearnSchedule=0;}
+	
+	if($EnableZarafaSalearnSchedule==0){
+		system_admin_events("Leanring SPAM is disabled, aborting", __FUNCTION__, __FILE__, __LINE__, "mailbox");
+		return;
+	}
+	
 	if($unix->process_exists($pid)){
-		send_email_events("[sa-learn]: Could not start task, process $pid already running","","sa-learn");
+		$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+		system_admin_events("Could not start task, process $pid already running since {$pidtime}Mn", __FUNCTION__, __FILE__, __LINE__, "mailbox");
+		return;
 	}
 	$t1=time();
 	$ZarafaIMAPEnable=$sock->GET_INFO("ZarafaIMAPEnable");
@@ -28,17 +40,17 @@ function run(){
 	$ZarafaGatewayBind=$sock->GET_INFO("ZarafaGatewayBind");
 	if(trim($ZarafaGatewayBind)==null){$ZarafaGatewayBind="localhost";}
 	
-	
+	system_admin_events("sa-learn starting to $ZarafaGatewayBind:$ZarafaIMAPPort server...", __FUNCTION__, __FILE__, __LINE__, "mailbox");
 	
 	@file_put_contents($pidfile, getmypid());
 	@file_put_contents($pidtime, time());
 	
 	if($ZarafaIMAPEnable==0){
-		$unix->send_email_events(basename(__FILE__)." [sa-learn] aborting task",
-		"sa-learn has been canceled due to disabled IMAP service (ZarafaIMAPEnable)", "sa-learn");
+		system_admin_events("sa-learn has been canceled due to disabled IMAP service (ZarafaIMAPEnable)", __FUNCTION__, __FILE__, __LINE__, "mailbox");
 		return;	
 	}
-	
+	$t1=time();
+	$c=0;
 	$ldap=new clladp();
 	$suffix=$ldap->suffix;	
 	$arr=array("uid");
@@ -47,12 +59,18 @@ function run(){
 			$hash=ldap_get_entries($ldap->ldap_connection,$sr);
 			for($i=0;$i<$hash["count"];$i++){
 				$user=new user($hash[$i]["uid"][0]);
+				$c++;
 				buildPerlScript($hash[$i]["uid"][0],$user->password,$ZarafaGatewayBind,$ZarafaIMAPPort);
-				if(system_is_overloaded(dirname(__FILE__))){$unix->send_email_events(basename(__FILE__)." Overloaded aborting task",
-				 "sa-learn has been canceled due to overloaded system", "sa-learn");return;}					
+				if(system_is_overloaded(dirname(__FILE__))){
+					system_admin_events("sa-learn has been canceled due to overloaded system", __FUNCTION__, __FILE__, __LINE__, "mailbox");
+					return;
+				}
 				sleep(1);
 			}
 		}
+		
+	$took=$unix->distanceOfTimeInWords($t1,time());
+	system_admin_events("sa-learn on $c mailboxe(s) done took $took", __FUNCTION__, __FILE__, __LINE__, "mailbox");
 }
 
 
@@ -60,6 +78,7 @@ function run(){
 
 function buildPerlScript($username,$password,$imap,$port){
 	$unix=new unix();
+	$sock=new sockets();
 	$ZarafaLearnDebug=$sock->GET_INFO("ZarafaLearnDebug");
 	if(!is_numeric($ZarafaLearnDebug)){$ZarafaLearnDebug=0;}
 	$salearnbin=$unix->find_program("sa-learn");
@@ -143,7 +162,7 @@ function buildPerlScript($username,$password,$imap,$port){
 	exec("/tmp/sa-learn.$t1.pl 2>&1",$results);
 	@unlink("/tmp/sa-learn.$t1.pl");
 	$took=$unix->distanceOfTimeInWords($t1,time());
-	$unix->send_email_events("[sa-learn]: $username executed ($took)",@implode("\n",$results), "sa-learn");
+	system_admin_events("$username mailbox executed ($took)\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "mailbox");
 	return true;		
 	
 	

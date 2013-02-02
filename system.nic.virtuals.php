@@ -29,7 +29,9 @@ function page(){
 	$empty_events_text_ask=$tpl->javascript_parse_text("{empty_events_text_ask}");	
 	$sock=new sockets();
 	$DisableNetworksManagement=$sock->GET_INFO("DisableNetworksManagement");
-	if($DisableNetworksManagement==null){$DisableNetworksManagement=0;}		
+	if($DisableNetworksManagement==null){$DisableNetworksManagement=0;}	
+	$EnableipV6=$sock->GET_INFO("EnableipV6");
+	if(!is_numeric($EnableipV6)){$EnableipV6=0;}			
 	
 	$nic=$tpl->_ENGINE_parse_body("{nic}");
 	$netmask=$tpl->_ENGINE_parse_body("{netmask}");
@@ -53,9 +55,14 @@ function page(){
 	
 	$t=time();
 	
+	if($EnableipV6==1){
+		$v4=" (v4)";
+		$new_virtual_ipv6="{name: '<b>$new_virtual_ip (v6)</b>', bclass: 'add', onpress : VirtualIPAddv6$t},";
+	}
+	
 	$buttons="
 	buttons : [
-	{name: '<b>$new_virtual_ip</b>', bclass: 'add', onpress : VirtualIPAdd$t},
+	{name: '<b>$new_virtual_ip$v4</b>', bclass: 'add', onpress : VirtualIPAdd$t},$new_virtual_ipv6
 	{name: '<b>$apply_network_configuration</b>', bclass: 'Reconf', onpress : BuildNetConf$t},
 	],";
 	$html="
@@ -110,9 +117,17 @@ $('#table-$t').flexigrid({
 		
 		}
 		
+		function VirtualIPAddv6$t(){
+			YahooWin2(windows_size,'system.nic.config.php?virtual-popup-addv6=yes&default-datas={$_GET["default-datas"]}&t=$t&function-after={$_GET["function-after"]}','$virtual_interfaces ipV6');
+		}
+		
 		function VirtualsEdit$t(ID){
 			YahooWin2(500,'system.nic.config.php?virtual-popup-add=yes&t=$t&ID='+ID,'$virtual_interfaces');
 		}
+		
+		function VirtualsEdit6$t(ID){
+			YahooWin2(500,'system.nic.config.php?virtual-popup-addv6=yes&t=$t&ID='+ID,'$virtual_interfaces');
+		}		
 
 		var X_VirtualIPAddSave$t=function (obj) {
 			var results=obj.responseText;
@@ -268,6 +283,11 @@ function nics_list(){
 			$color="black";
 		}
 		
+		if($ligne["ipv6"]==1){
+			$img="22-win-nic.png";
+			$color="black";			
+		}
+		
 		$ligne["org"]=str_replace("LXC-INTERFACES","{APP_LXC}",$ligne["org"]);
 		
 		if(trim($ligne["org"])==null){
@@ -287,6 +307,12 @@ function nics_list(){
 		
 		$edit="<a href=\"javascript:blur();\" OnClick=\"javascript:VirtualsEdit$t({$ligne["ID"]})\" style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
 		$delete="<a href=\"javascript:blur();\" OnClick=\"javascript:VirtualsDelete$t({$ligne["ID"]})\" style='font-size:14px;text-decoration:underline'><img src='img/delete-24.png'></a>";
+		
+		if($ligne["ipv6"]==1){
+			$edit="<a href=\"javascript:blur();\" OnClick=\"javascript:VirtualsEdit6$t({$ligne["ID"]})\" style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
+			$ligne["netmask"]="/{$ligne["netmask"]}";
+		}
+		
 		
 	$data['rows'][] = array(
 		'id' => "VirtualNic{$ligne['ID']}",

@@ -164,6 +164,8 @@ function cron(){
 }
 
 function upgradeTo7(){
+	return;
+	if(is_file("/etc/artica-postfix/NO_ZARAFA_UPGRADE_TO_7")){return;}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
 	$pid=@file_get_contents($pidfile);

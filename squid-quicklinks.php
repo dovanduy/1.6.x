@@ -27,6 +27,9 @@ if(!is_numeric($StatsPerfsSquidAnswered)){$StatsPerfsSquidAnswered=0;}
 $DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 
+$memory_js=null;
+
+
 if($_GET["stats"]){
 	
 	
@@ -40,6 +43,7 @@ if($_GET["stats"]){
     
 
 	if($DisableArticaProxyStatistics==0){	
+		$memory_js="traffic_statistics";
 		$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("perf-stats-48.png", "traffic_statistics","squid_traffic_statistics_text", "QuickLinkSystems('traffic_statistics')"));
 		$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("members-48.png", "members","section_security_text", "QuickLinkSystems('members_statistics')"));
 		$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("bandwith-limit-del-48.png", "blocked_websites","section_blocked_websites_text", "QuickLinkSystems('blocked_statistics')"));
@@ -47,7 +51,7 @@ if($_GET["stats"]){
 	if($users->AsSquidAdministrator){$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-tasks.png", "tasks","", "QuickLinkSystems('section_tasks')"));}
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
-	
+	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
 	
 	if(($users->AsSquidAdministrator) OR ($users->AsDansGuardianAdministrator)){
 		if($users->SQUID_INSTALLED){
@@ -142,6 +146,13 @@ while (list ($key, $line) = each ($GLOBALS["QUICKLINKS-ITEMS"]) ){
 		
 		function QuickLinkMemory(){
 			var memorized=Get_Cookie('QuickLinkCache');
+			var forced='$memory_js'
+			
+			if(forced.length>0){
+				QuickLinkSystems('$memory_js');
+				return;
+			}
+			
 			if(!memorized){
 				QuickLinkSystems('traffic_statistics');
 				return;

@@ -207,6 +207,9 @@ div.pGroup{float:left;background:none;height:24px;margin:0 5px}
 .flexigrid div.fbutton .Down {
   background: url("/img/arrow-down-18.png") no-repeat scroll left center transparent;
 }
+.flexigrid div.fbutton .Up {
+  background: url("/img/arrow-up-18.png") no-repeat scroll left center transparent;
+}
 .flexigrid div.fbutton .ScanNet {
   background: url("/img/20-samba-find.png") no-repeat scroll left center transparent;
 }

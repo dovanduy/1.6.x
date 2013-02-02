@@ -413,7 +413,14 @@ function page(){
 	$q=new mysql();
 	$tasks=$tpl->_ENGINE_parse_body("{tasks}");
 	$CountTasks=$q->COUNT_ROWS("system_schedules", "artica_backup");
-	$CountEvents=$q->COUNT_ROWS("system_admin_events", "artica_events");
+	
+	$LIST_TABLES_EVENTS_SYSTEM=$q->LIST_TABLES_EVENTS_SYSTEM();
+	$CountEvents=0;
+	while (list ($tablename, $rows) = each ($LIST_TABLES_EVENTS_SYSTEM) ){
+		$CountEvents=$CountEvents +$q->COUNT_ROWS($tablename, "artica_events");
+	}
+	
+	$CountEvents=numberFormat($CountEvents, 0 , '.' , ' ');
 	$events=$tpl->_ENGINE_parse_body("{events}");
 	$t=time();
 	$html="
@@ -461,7 +468,7 @@ buttons : [
 	});   
 });	
 	function AllEvents$t(){
-		Loadjs('squid.update.events.php?table=system_admin_events')
+		Loadjs('squid.update.events.php?table=Taskev0')
 	
 	}
 	
@@ -563,6 +570,8 @@ function search(){
 	if(!is_numeric($DisableSquidDefaultSchedule)){$DisableSquidDefaultSchedule=0;}	
 	$schedules=new system_tasks();
 	$total=0;
+	$sock->getFrameWork("services.php?sysev=yes");
+	
 	if($q->COUNT_ROWS($table,"artica_backup")==0){
 		json_error_show("No data",1);
 	}
@@ -625,16 +634,20 @@ function search(){
 		
 		
 		if($ligne["enabled"]==0){$color="#A0A0A0";}
+		$tablename="Taskev{$ligne['ID']}";
 		
+		if(!$q->TABLE_EXISTS($tablename, "artica_events")){
+			$events=imgsimple("delete_disabled.png");
+		}else{
 		
-		$ligne2=mysql_fetch_array($q2->QUERY_SQL("SELECT COUNT(TASKID) as tcount FROM 
-		system_admin_events WHERE TASKID='{$ligne['ID']}'","artica_events"));
+			$evs=$q2->COUNT_ROWS($tablename,  "artica_events");
+			
+			
+			if($evs>0){
+				$events=imgsimple("events-24.png","{events} {$ligne['ID']}","Loadjs('squid.update.events.php?taskid={$ligne['ID']}&table=$tablename')");
+			}
 		
-		
-		if($ligne2["tcount"]>0){
-			$events=imgtootltip("events-24.png","{events} {$ligne['ID']}","Loadjs('squid.update.events.php?taskid={$ligne['ID']}&table=system_admin_events')");
 		}
-		
 		$explainTXT=$tpl->_ENGINE_parse_body($schedules->tasks_explain_array[$TaskType]);
 		
 		

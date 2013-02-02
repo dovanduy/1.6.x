@@ -1,7 +1,7 @@
 <?php
 $GLOBALS["AS_ROOT"]=false;
 if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
-
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 $GLOBALS["ICON_FAMILY"]="SYSTEM";
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if($GLOBALS["VERBOSE"]){echo "Memory:(".__LINE__.") " .round(memory_get_usage(true)/1024)."Ko<br>\n";}
@@ -26,9 +26,9 @@ if($GLOBALS["AS_ROOT"]){
 if(isset($_GET["HideTips"])){HideTips();exit;}
 
 $users=new usersMenus();
-if(!$users->AsAnAdministratorGeneric){
-	error_log("Redirect to miniadm.php in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
-	writelogs("Redirect to miniadm.php",__FUNCTION__,__FILE__,__LINE__);header('location:miniadm.php');
+if(!$users->AsSystemAdministrator){
+	error_log("[{$_SESSION["uid"]}]::Redirect to miniadm.php in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
+	writelogs("[{$_SESSION["uid"]}]Redirect to miniadm.php",__FUNCTION__,__FILE__,__LINE__);header('location:miniadm.php');
 	exit;
 }
 if(isset($_GET["admin-index-status-mysql"])){echo status_mysql();exit;}
@@ -140,9 +140,9 @@ function StartStopService_perform(){
 	$apps=base64_decode($_GET["apps"]);
 	$sock=new sockets();
 	if($typ==1){
-		$datas=$sock->getFrameWork("cmd.php?start-service-name=$cmd");
+		$datas=$sock->getFrameWork("cmd.php?start-service-name=$cmd&MyCURLTIMEOUT=300");
 	}else{
-		$datas=$sock->getFrameWork("cmd.php?stop-service-name=$cmd");
+		$datas=$sock->getFrameWork("cmd.php?stop-service-name=$cmd&MyCURLTIMEOUT=300");
 	}
 	
 	$tbl=unserialize(base64_decode($datas));
@@ -755,14 +755,19 @@ function status_right_image(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$tpl=new templates();
-	if(!$GLOBALS["AS_ROOT"]){	
-		if(!isset($_GET["status_right_image"])){if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,false,2)){return null;}}
-		include_once(dirname(__FILE__)."/ressources/class.browser.detection.inc");
+	if(!$GLOBALS["VERBOSE"]){
+		if(!$GLOBALS["AS_ROOT"]){	
+			if(!isset($_GET["status_right_image"])){if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,false,2)){return null;}}
+			include_once(dirname(__FILE__)."/ressources/class.browser.detection.inc");
+		}
 	}
 	$users=new usersMenus();
 	$tpl=new templates();
 	$newfrontend=false;
 	$sock=new sockets();
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
+	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}
 	
 	$script="
 	<script>
@@ -773,6 +778,7 @@ function status_right_image(){
 
 	if($users->WEBSTATS_APPLIANCE){
 			$status=new status();
+			if($GLOBALS["VERBOSE"]){echo "<strong>status->WEBSTATS()</strong><br>\n";}
 			$html=$tpl->_ENGINE_parse_body($status->WEBSTATS()).$script;
 			echo $html."</div>";
 			SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
@@ -781,6 +787,7 @@ function status_right_image(){
 	
 	
 	if($users->ZARAFA_APPLIANCE){
+		if($GLOBALS["VERBOSE"]){echo "*** status->ZARAFA() ***\n";}
 		$status=new status();
 		$html=$tpl->_ENGINE_parse_body($status->ZARAFA()).$script;
 		SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
@@ -835,7 +842,9 @@ function status_right_image(){
 			
 		}
 		
-		if($users->KASPERSKY_WEB_APPLIANCE){echo status_squid_kav().$script;return;}
+		if($users->KASPERSKY_WEB_APPLIANCE){
+			if($GLOBALS["VERBOSE"]){echo "<strong>status->status_squid_kav()</strong><br>\n";}
+			echo status_squid_kav().$script;return;}
 		$html=status_squid();
 		SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
 		echo $html;				
@@ -871,11 +880,14 @@ function status_right(){
 	$page=CurrentPageName();
 	if(isset($_GET["newfrontend"])){$newfrontend=true;}
 	if($GLOBALS["AS_ROOT"]){$newfrontend=true;}
+	$tpl=new templates();
 	if(!$GLOBALS["AS_ROOT"]){
 		if(is_file("/usr/share/artica-postfix/ressources/logs/web/admin.index.status.html")){
-			$tpl=new templates();
-			echo $tpl->_ENGINE_parse_body(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.status.html"));
-			return;
+			$time=file_time_min_Web("/usr/share/artica-postfix/ressources/logs/web/admin.index.status.html");
+			if($time<5){
+				echo $tpl->_ENGINE_parse_body(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.status.html"));
+				return;
+			}
 		}
 		$sock=new sockets();
 		$sock->getFrameWork('cmd.php?ForceRefreshRight=yes');
@@ -1188,6 +1200,9 @@ function artica_meta(){
 	$DisableFrontArticaMeta=$sock->GET_INFO("EnableArticaMeta");
 	if(!is_numeric($DisableFrontArticaMeta)){$DisableFrontArticaMeta=0;}
 	$EnableArtica=$sock->GET_INFO("EnableArticaMeta");
+	$sock=new sockets();
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}	
 	
 	$ArticaMetaRemoveIndex=$sock->GET_INFO("ArticaMetaRemoveIndex");
 	$DisableArticaMetaAgentInformations=$sock->GET_INFO("DisableArticaMetaAgentInformations");
@@ -1200,9 +1215,11 @@ function artica_meta(){
 	
 	if($DisableArticaMetaAgentInformations==1){$p=null;}
 	if($users->SAMBA_INSTALLED){
-		$count=$q->COUNT_ROWS("smbstatus_users", "artica_events");
-		if($count>0){
-			$p1=ParagrapheTEXT("user-group-32.png", "$count {members_connected}", "{members_connected_samba_text}","javascript:Loadjs('samba.smbstatus.php')",null,300);
+		if($SambaEnabled==1){
+			$count=$q->COUNT_ROWS("smbstatus_users", "artica_events");
+			if($count>0){
+				$p1=ParagrapheTEXT("user-group-32.png", "$count {members_connected}", "{members_connected_samba_text}","javascript:Loadjs('samba.smbstatus.php')",null,300);
+			}
 		}
 	}
 	

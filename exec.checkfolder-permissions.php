@@ -62,10 +62,11 @@ $sock=new sockets();
   $f[]='ressources/conf/kasDatas';
   $f[]='ressources/logs';
   $f[]='ressources/profiles';
+  $f[]='ressources/profiles/icons';
   $f[]='ressources/sessions/SessionData';
   $f[]='computers/ressources/sessions/SessionData';
   $f[]='computers/ressources/logs';
-  
+  $f[]='ressources/conf/upload';
   $f[]='computers/ressources/profiles';
   $f[]='ressources/conf/upload';
   
@@ -77,6 +78,10 @@ $sock=new sockets();
   	$LighttpdUserAndGroup=str_replace('www-data:www-data:www-data','www-data:www-data',$LighttpdUserAndGroup);   
 	if(!preg_match("#(.+?):(.+)#", $LighttpdUserAndGroup,$re)){$username="www-data";$groupname="www-data";}
   }
+  
+  $unix->chmod_func(0755, "$artica_path/*");
+  $unix->chmod_func(0777, "$artica_path/ressources/conf/upload");
+  $unix->chmod_func(0777, "$artica_path/ressources/conf/upload/*");
   
   if($username==null){$username="www-data";}
   if($groupname==null){$groupname="www-data";}
@@ -203,7 +208,21 @@ if(is_dir("/usr/share/pommo")){
   $unix->chown_func($username,$groupname, "/var/lib/php/session/*");
   $unix->chown_func($username,$groupname, "/var/lib/php5/*");
   $unix->chown_func($username,$groupname, "/var/lighttpd/upload");
-
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/apachelogs/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/artica_backup/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/artica_events/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/blackboxes/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/ocsweb/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/policyd/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/postfilter/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/postfixlog/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/powerdns/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/roundcubemail/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/snort/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/squidlogs/*");
+  $unix->chown_func("mysql","mysql", "/var/lib/mysql/sugarcrm/*");
+   
 $postconf=$unix->find_program("postconf");
 $ln=$unix->find_program("ln");
 

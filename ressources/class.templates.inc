@@ -273,6 +273,10 @@ class templates{
 	
 	
 	function _ENGINE_parse_body($content=null,$currpage=null){
+		if(is_array($content)){return ;}
+		if(!isset($content)){return;}
+		if(empty($content)){return;}
+		if(trim($content)==null){return;}
 		if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 		if(!isset($GLOBALS["FIXED_LANGUAGE"])){$GLOBALS["FIXED_LANGUAGE"]=$sock->GET_INFO("FixedLanguage");}
 		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=1000;if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();}}
@@ -725,14 +729,15 @@ $tpl=new templates();
 		if($no_float>0){$myfloat=null;}
 		if($additional_langfile==null){$additional_langfile=CurrentPageName();}
 	$img="
-		<input type='hidden' id='Text_$id' value='$help<br><hr><div style=text-align:right><a href=\"javascript:Blurz();\" OnClick=javascript($(\"$id\").qtip(\"toggle\", false); style=\"font-size:11px\">{close}</a></div>'>
+		<input type='hidden' id='Text_$id' value='$help<br><hr><div style=text-align:right><a href=\"javascript:Blurz();\" 
+		OnClick=javascript($(\"$id\").qtip(\"toggle\", false); style=\"font-size:11px\">{close}</a></div>'>
 		<div style='$myfloat;margin-top:-5px'>
 		<img src='img/help.png'  id='$id'
 		onMouseOver=\"lightup(this, 100);\" 
 		OnMouseOut=\"lightup(this, 50);\" 
 		style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\" 
 		style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\" 
-		OnClick=\"javascript:LoadHelp('$help_source','$additional_langfile',false);\">
+		OnClick=\"javascript:Loadjs('admin.help.php?text=$help_source');\">
 		</div>	
 	<script>
 	function qtyp_{$id}(){
@@ -804,13 +809,13 @@ function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=
 $html="
 <table width=10%>
 <tr>
-	<td width=1% nowrap>" . Field_text($field_name.'_0',$re[1],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
+	<td width=1% nowrap class='FieldIpv4'>" . Field_text($field_name.'_0',$re[1],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
 	<td style='font-size:13px;padding:0px;margin:0px;height:auto;width:auto' width=1% nowrap>.</td>
-	<td width=1% nowrap>" . Field_text($field_name.'_1',$re[2],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
+	<td width=1% nowrap class='FieldIpv4'>" . Field_text($field_name.'_1',$re[2],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
 	<td style='font-size:13px;padding:0px;margin:0px;height:auto;width:auto' width=1% nowrap>.</td>
-	<td width=1% nowrap>" . Field_text($field_name.'_2',$re[3],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
+	<td width=1% nowrap class='FieldIpv4'>" . Field_text($field_name.'_2',$re[3],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
 	<td style='font-size:13px;padding:0px;margin:0px;height:auto;width:auto' width=1% nowrap>.</td>
-	<td width=1% nowrap>" . Field_text($field_name.'_3',$re[4],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
+	<td width=1% nowrap class='FieldIpv4'>" . Field_text($field_name.'_3',$re[4],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
 	<td width=1% nowrap><span id='ico-ipv4-$field_name'><img src=img/icon_ok.gif></span></td>
 	
 </tr>
@@ -1276,6 +1281,12 @@ function string_to_sql_search($pattern){
 	$pattern=str_replace("**", "*", $pattern);
 	$pattern=str_replace("*", "%", $pattern);
 	return $pattern;
+}
+
+function string_to_flexregex(){
+	if(!isset($_POST["query"])){return;}
+	if($_POST["query"]==null){return;}
+	return string_to_regex($_POST["query"]);
 }
 
 function string_to_flexquery(){
@@ -1961,6 +1972,9 @@ function statusLogs($line){
 	"server pid"=>"ST",
 	"process\s+[0-9]+\s+exited"=>"SS",
 	"server successfully"=>"SR",
+	"Startup"=>"SR",
+	"Starting"=>"SR",
+	"Listening for"=>"NET",
 	"server successfully spawned"=>"SR",
 	"prefork: child states"=>"ST",
 	"server started"=>"S",
@@ -2022,7 +2036,11 @@ function statusLogs($line){
 	"Starting slave"=>"S",
 	"accepted connection"=>"NET",
 	"refreshing the Postfix"=>"S",
+	"authenticate failed"=>"C",
+	"access denied"=>"W",
 	"reload.+?version"=>"S",
+	"1.1\" 40[2-9]"=>"UK",
+	"check failed of .*? in groups"=>"UK",
 	"_DIE"=>"W",
 	"TROUBLE in"=>"W",
 	);
@@ -2035,8 +2053,8 @@ function statusLogs($line){
 	switch ($img) {
 		case "AR":return 'img/cab_small.gif';break;
 		case "BC":return 'img/status_bad_config.jpg';break;
-		case "UK":return 'img/status_unknow_user.jpg';break;
-		case "PERM":return 'img/status_permission.jpg';break;
+		case "UK":return 'img/status_unknow_user.png';break;
+		case "PERM":return 'img/status_permission.gif';break;
 		case "STAT":return 'img/status_statistics.jpg';break;
 		case "SR":return 'img/status_service_run.png';break;
 		case "S":return 'img/status_service_run.png';break;
@@ -2574,7 +2592,7 @@ $id=md5('Paragraphe_switch_img'.$field_name.$text.$title);
 	
 	
 	
-	$html="<div style='width:{$width}px;' >
+	$html="<div style='width:{$width}px;' class=BodyContent>
 	<table style='width:100%'>
 	<tr>
 	<td width=1% valign='top' style='background-image:url(img/bg_pic-2.png);background-position:top center;background-repeat:no-repeat'><div style='min-height: 120px;'>$img</a></div></td>
@@ -2585,7 +2603,7 @@ $id=md5('Paragraphe_switch_img'.$field_name.$text.$title);
 	</table>
 	
 	</div>";
-	return RoundedLightWhite($html);	
+	return $htm;	
 	
 }
 	
@@ -2674,7 +2692,7 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 	$fontsize_title=14;
 	if($width>400){$fontsize=14;$fontsize_title=16;}
 	
-	$html="<div style='width:{$width}px;' >
+	$html="<div style='width:{$width}px;' class=BodyContent>
 	<table style='width:100%;'>
 	<tr>
 	<td width=1% valign='top'><div style='min-height: 120px;'>$img</a></div></td>
@@ -3276,7 +3294,11 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 	$tips=str_replace("'","",$tips);
 	$tips=str_replace("	","",$tips);
 	$min_height=";min-height:112px";
-	if(is_numeric($height)){$min_height="min-height:{$height}px;";}
+	if(is_numeric($height)){
+		if($height>112){
+			$min_height="min-height:{$height}px;";
+		}
+	}
 	
 	
 	
@@ -3633,14 +3655,40 @@ function iframe($content,$refresh=20,$bodywidth=null){
 
 
 function BuildSessionAuth(){
-	error_log("BuildSessionAuth.. in".__FUNCTION__." line ".__LINE__);
-	if(!isset($_SERVER['PHP_AUTH_USER'])){return false;}
-	if(!function_exists('ldap_connect')){
-		$ldap=new clladp();
-		$hash=$ldap->UserFromAuth($_SERVER['PHP_AUTH_USER']);
+	$debug=false;
+	$page=CurrentPageName();
+	
+	if($page=="miniadm.index.php"){
+		if($GLOBALS["VERBOSE"]){
+			$debug=true;
+			if($GLOBALS["VERBOSE"]){echo "Page:$page -> DEBUG\n";}
+		}
 	}
+	error_log("BuildSessionAuth.. in".__FUNCTION__." line ".__LINE__);
+	if(!isset($_SERVER['PHP_AUTH_USER'])){
+		if($debug){echo "<li>Verify ->PHP_AUTH_USER'] -> FALSE</li>\n";}
+		return false;
+	}
+	if(!function_exists('ldap_connect')){
+		if($debug){echo "<li>ldap_connect -> FALSE</li>\n";}
+		return;
+		
+	}
+	$ldap=new clladp();
+	if($debug){echo "<li>Verify ->ldap->UserFromAuth({$_SERVER['PHP_AUTH_USER']}) line:".__LINE__."</li>\n";}
+	$GLOBALS["UserFromAuth_debug"]=true;
+	if($ldap->IsKerbAuth()){
+		BuildSession($_SERVER['PHP_AUTH_USER']);
+		return;
+	}
+	
+	$hash=$ldap->UserFromAuth($_SERVER['PHP_AUTH_USER']);
+	
 	if($hash[0]["uid"][0]==null){$hash[0]["uid"][0]=$hash[0]["cn"][0];}
 	$uid=$hash[0]["uid"][0];
+	
+	if($debug){echo "<li>uid:$uid line:".__LINE__."</li>\n";}
+	
 	if(trim(strtolower($uid))==trim(strtolower($ldap->ldap_admin))){
 		if($_SERVER["PHP_AUTH_PW"]==$ldap->ldap_password){	
 		$uid="-100";
@@ -3648,6 +3696,7 @@ function BuildSessionAuth(){
 		}
 	}
 	if(trim($uid)<>null){
+		if($debug){echo "<li>uid -> $uid</li>\n";}
 		$_SESSION["uid"]=$uid;
 		$_SESSION["passwd"]=$_SERVER["PHP_AUTH_PW"];
 		return true;
@@ -3670,9 +3719,81 @@ ini_set("session.gc_probability", "1");
 ini_set("session.cookie_lifetime", "0");
 
 }
+
+function BuildSession($uid){
+	writelogs("Building session",__FUNCTION__,__FILE__,__LINE__);
+	if(isset($GLOBALS[__FILE__][__FUNCTION__])){return;}
+	$GLOBALS[__FILE__][__FUNCTION__]=true;
+	if($uid==null){
+		if($GLOBALS["VERBOSE"]){
+			echo "<strong>BuildSession() UID is null, aborting...</strong><br>\n";
+			return;
+		}
+	}
+	if(!class_exists("user")){include_once(dirname(__FILE__)."/class.user.inc");}
+	if($GLOBALS["VERBOSE"]){echo "<strong>BuildSession() -> `$uid`</strong><br>\n";}
+	$ldap=new clladp();
+	$users=new usersMenus();
+	$privs=new privileges($uid);
+	
+	$u=new user($uid);
+	$sock=new sockets();
+	if(!class_exists("articaLang")){include_once(dirname(__FILE__)."/class.langages.inc");}
+	$FixedLanguage=$sock->GET_INFO("FixedLanguage");
+	$privileges_array=$privs->privs;
+	setcookie("mem-logon-user", $_POST["artica_username"], time()+172800);
+	$_SESSION["privileges_array"]=$privs->privs;
+	$_SESSION["privs"]=$privileges_array;
+	$_SESSION["OU_LANG"]=$privileges_array["ForceLanguageUsers"];
+	$_SESSION["uid"]=$uid;
+	if(isset($_POST["artica_password"])){
+		$_SESSION["passwd"]=$_POST["artica_password"];
+	}
+	$_SESSION["privileges"]["ArticaGroupPrivileges"]=$privs->content;
+	$_SESSION["groupid"]=$ldap->UserGetGroups($uid,1);
+	$_SESSION["DotClearUserEnabled"]=$u->DotClearUserEnabled;
+	$_SESSION["MailboxActive"]=$u->MailboxActive;
+	$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
+	$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
+	$_SESSION["CORP"]=$users->CORP_LICENSE;
+	$_SESSION["privileges"]["ArticaGroupPrivileges"]=$privs->content;
+	$_SESSION["VIRTUALS_SERVERS"]=$privileges_array["VIRTUALS_SERVERS"];
+	$_SESSION["POSTFIX_SERVERS"]=$privileges_array["POSTFIX_SERVERS"];
+	
+	
+	
+	$_SESSION["groupid"]=$ldap->UserGetGroups($_POST["username"],1);
+	$_SESSION["DotClearUserEnabled"]=$u->DotClearUserEnabled;
+	$_SESSION["MailboxActive"]=$u->MailboxActive;
+	$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
+	$_SESSION["ou"]=$u->ou;
+	$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
+	$_SESSION["AsWebStatisticsAdministrator"]=$users->AsWebStatisticsAdministrator;
+	if($_SESSION["OU_LANG"]==null){
+		if($FixedLanguage<>null){
+			$_SESSION["OU_LANG"]=$FixedLanguage;
+		}
+	}
+	
+	$lang=new articaLang();
+	writelogs("[{$_POST["artica_username"]}]: Default organization language={$_SESSION["OU_LANG"]}",__FUNCTION__,__FILE__);
+	if(trim($_SESSION["OU_LANG"])<>null){
+		$_SESSION["detected_lang"]=$_SESSION["OU_LANG"];
+		setcookie("artica-language", $_SESSION["OU_LANG"], time()+172800);
+	}else{
+		setcookie("artica-language", $_POST["lang"], time()+172800);
+		$_SESSION["detected_lang"]=$lang->get_languages();
+	}	
+	
+}
 	
 function CheckSessions(){
-		if($GLOBALS["EXECUTED_AS_ROOT"]){return true;}
+	if($GLOBALS["EXECUTED_AS_ROOT"]){return true;}
+	if(!isset($_SESSION["uid"])){$_SESSION["uid"]=null;}
+
+	
+	
+		
 		$page=CurrentPageName();
 		
 
@@ -3682,7 +3803,7 @@ function CheckSessions(){
 			error_log("$page:{$getmypid}CheckSessions() language=\"{$_SESSION["detected_lang"]}\" $called function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);
 		}
 		if($page=="exec.squidguard.php"){error_log("$page:CheckSessions()=>".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
-		if(!isset($_SESSION["uid"])){$_SESSION["uid"]=null;}
+		
 		if($_SESSION["uid"]==null){
 			if(isset($_GET["session"])){
 				if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/class.user.inc\n";}
@@ -3730,6 +3851,37 @@ function CheckSessions(){
 		$noback["fonts.css.php"]=true;
 		$noback["mailattach.php"]=true;
 		$noback["splashproxy.php"]=true;
+		$noback["admin.help.php"]=true;
+		$noback["jabberauth.php"]=true;
+		$noback["public.squid.error.php"]=true;
+		$noback["exec.squid.sslpassword_program.php"]=true;
+		$noback["external_acl_dynamic.php"]=true;
+		if(preg_match('#^exec\..+\.php$#',$page)){$noback[$page]=true;}
+		if(preg_match('#listener\.php$#',$page)){$noback[$page]= true;}		
+		if(preg_match("#^prxy\..*?\.php$#", $page)){$noback[$page]=true;}
+		
+		
+		if($noback[CurrentPageName()]){return true;}
+		
+		
+		
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::`{$_SESSION["uid"]}`<br>\n";}
+		if($_SESSION["uid"]==null){
+			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::PHP_AUTH_USER -> `{$_SERVER["PHP_AUTH_USER"]}`<br>\n";}
+			if(isset($_SERVER["PHP_AUTH_USER"])){
+				BuildSession($_SERVER["PHP_AUTH_USER"]);
+		
+			}
+		}
+		
+		if($_SESSION["uid"]<>-100){
+			if(!isset($_SESSION["privileges_array"])){
+				if($_SESSION["uid"]<>null){
+					BuildSession($_SESSION["uid"]);
+					if(!isset($_SESSION["privileges_array"])){$_SESSION["privileges_array"]=null;}
+				}
+			}}		
+		
 		
 		if(!class_exists("usersMenus")){
 			writelogs("Unable to stat class usersMenus include ".dirname(__FILE__)."/class.users.menus.inc",__CLASS__.'/'.__FUNCTION__,__FILE__);
@@ -3749,10 +3901,9 @@ function CheckSessions(){
 			}
 		}
 		
-		if(preg_match('#^exec\..+\.php$#',$page)){return true;}
-		if(preg_match('#listener\.php$#',$page)){return true;}
+
 		
-		if($noback[CurrentPageName()]){return true;}
+		
 
 		
 		$currentdir=basename(dirname($_SERVER['SCRIPT_FILENAME']));
@@ -3767,6 +3918,8 @@ function CheckSessions(){
 		
 			if(!isset($_SESSION["uid"])){
 					if(!$noback[$page]){
+						if($page=="nodes.popup.php"){echo "document.location.href='logoff.php'";die();}
+						if(isset($GLOBALS["STOP_SESSION_JS"])){echo "document.location.href='logoff.php'";die();}
 						if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/logs.inc\n";}
 						include_once(dirname(__FILE__).'/logs.inc');
 						error_log("$page is not allowed, no session, die.. in ".__FILE__." line ". __LINE__);
@@ -3774,11 +3927,7 @@ function CheckSessions(){
 						
 						if(preg_match("#^android\.#", $page)){$suffixLogoff="android.";}
 						
-						echo "
-						<html>
-						<head>
-						<META HTTP-EQUIV=\"Refresh\" CONTENT=\"0; URL=logoff.php\"> 
-						</head>
+						echo "<html><!-- $page  --><head><META HTTP-EQUIV=\"Refresh\" CONTENT=\"0; URL=logoff.php\"> </head>
 						<body>
 						<script>document.location.href='{$suffixLogoff}logoff.php';</script>
 						</body>
@@ -3894,10 +4043,13 @@ function browserTree($target_field){
 }
 
 function DAEMON_STATUS_IS_OK($key,$bsini){
-	if($bsini->_params["$key"]["service_name"]==null){return true;}
+	
 	if($bsini->_params["$key"]["service_disabled"]==null){$bsini->_params["$key"]["service_disabled"]=-1;}
 	if($bsini->_params["$key"]["service_disabled"]==0){return true;}
 	if($bsini->_params[$key]["running"]==0){return false;}
+	$master_pid=$bsini->_params[$key]["master_pid"];
+	if(!is_numeric($master_pid)){$master_pid=0;}
+	if($master_pid==0){return false;}
 	return true;
 }
 
@@ -4296,10 +4448,11 @@ function URL_COMPUTER($uid,$win){
 function MEMBER_JS($uid,$noclik=0,$nojavascript=0,$dn=null,$t=null){
 	$uid_text=str_replace("$","",$uid);
 	$uid=trim($uid);
+	$uid=urlencode($uid);
 	if($dn<>null){$dn=urlencode(base64_encode($dn));}
 	$java="javascript:";
 	if($nojavascript==1){$java=null;}
-	$js="{$java}YahooUser(870,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn&t=$t','$uid_text');";
+	$js="{$java}YahooUser(962,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn&t=$t','$uid_text');";
 	if($noclik==0){
 		return "OnClick=\"$js\"";
 	}
@@ -4311,7 +4464,7 @@ function COMPUTER_JS($uid,$noclik=0,$nojavascript=0,$dn=null){
 	if($dn<>null){$dn=urlencode(base64_encode($dn));}
 	$java="javascript:";
 	if($nojavascript==1){$java=null;}
-	$js="{$java}RTMMail(870,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn','$uid_text');";
+	$js="{$java}YahooUser(961,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn','$uid_text');";
 	if($noclik==0){
 		return "OnClick=\"$js\"";
 	}
@@ -4815,6 +4968,7 @@ function pourcentage($pourc){
 }
 
 function GET_CACHED($file,$function,$token=null,$return=false,$maxmin=0){
+	if($GLOBALS["VERBOSE"]){return;}
 	$browser=md5($_SERVER['HTTP_USER_AGENT']);
 	if(trim($token)==null){$token=$function;}
 	$file=basename($file);
@@ -4930,6 +5084,9 @@ FUNCTION REMOVE_CACHED($file=null){
 function finduser_format($array,$faltomde=false){
 	$tpl=new templates();
 	$organization=$tpl->_ENGINE_parse_body("{organization}");
+	if(strpos($array["sn"], ',')>0){$array["sn"]=null;}
+	
+	
 	$disp="{$array["givenname"]} {$array["sn"]}";
 	if(trim($disp)=="{unknown}"){$disp=null;}
 	
@@ -5408,20 +5565,47 @@ function numberFormat  ($number  , $decimals = 2 , $dec_point = '.' , $sep = ','
     $num = join($dec_point[0],$num);
    
     return $num;
+}
+function CompileTr4($array,$noform=false,$title=null,$center=false){
+	if(!is_array($array)){return null;}
+	if(count($array)==0){return null;}
+	$tdcenter=null;
+	if(!$noform){$classform="class=form";}
+	if($center){$tdcenter=" align='center' ";}
+	$tables[]="<table style='width:99%' $classform><tr>";
+	if($title<>null){$tables[]="<tr><td colspan=3>$title</td></tr>";}
+	$t=0;
+	while (list ($key, $line) = each ($array) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		$t=$t+1;
+		$tables[]="<td width=25% valign='top'$tdcenter>$line</td>";
+		if($t==4){$t=0;$tables[]="</tr><tr>";}
+
+	}
+	if($t<4){
+		for($i=0;$i<=$t;$i++){
+			$tables[]="<td width=25% valign='top'$tdcenter>&nbsp;</td>";
+		}
+	}
+
+	$tables[]="</tr></table>";
+	return implode("\n",$tables);
 }	
-function CompileTr3($array,$noform=false,$title=null){
+function CompileTr3($array,$noform=false,$title=null,$center=false){
 	if(!is_array($array)){return null;}
 	if(count($array)==0){return null;}
 	if(!$noform){$classform="class=form";}
-	
+	$tdcenter=null;
+	if($center){$tdcenter=" align='center' ";}
 $tables[]="<table style='width:99%' $classform><tr>";
-if($title<>null){$tables[]="<tr><td colspan=3>$title</td></tr>";}
+if($title<>null){$tables[]="<tr><td colspan= $tdcenter>$title</td></tr>";}
 $t=0;
 while (list ($key, $line) = each ($array) ){
 		$line=trim($line);
 		if($line==null){continue;}
 		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
+		$tables[]="<td valign='top' $tdcenter>$line</td>";
 		if($t==3){$t=0;$tables[]="</tr><tr>";}
 		
 }
@@ -5527,7 +5711,7 @@ function quicklinks_paragraphe($img,$title,$text,$link){
 }
 
 function CACHE_SESSION_GET($function,$file,$maxtimeMin=30){
-	if(!isset($_SESSION[$file][$function])){return false;}
+	if(!isset($_SESSION[$file][$function])){return CACHE_SESSION_GETF();}
 	$time=$_SESSION[$file][$function]["time"];
 	$datas=$_SESSION[$file][$function]["datas"];
 	if(!is_numeric($time)){return;}
@@ -5539,6 +5723,15 @@ function CACHE_SESSION_GET($function,$file,$maxtimeMin=30){
 	return true;
 	
 }
+			function CACHE_SESSION_GETF($function,$file,$maxtimeMin=30){
+				$md5=md5("$file$function{$_SESSION["uid"]}");
+				$cachefile="/usr/share/artica-postfix/ressources/logs/web/cache/{$_SESSION["uid"]}.$md5.cache";
+				if(!is_file($cachefile)){return false;}
+				if(file_get_time_min($cachefile)>$maxtimeMin){@unlink($cachefile);return false;}
+				$datas=@file_get_contents($cachefile);
+				if(strlen($datas)<5){return false;}
+				echo $datas;return true;
+			}	
 
 function table_error_showZoom($error,$underline=1){
 	$full=base64_encode($error);
@@ -5580,6 +5773,8 @@ function json_error_show($error,$indexColumn=0,$full=false){
 function CACHE_SESSION_SET($function,$file,$datas){
 	$_SESSION[$file][$function]["time"]=time();
 	$_SESSION[$file][$function]["datas"]=$datas;
+	$md5=md5("$file$function{$_SESSION["uid"]}");
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/cache/$md5.cache", $datas);
 	echo $datas;
 }
 
@@ -5633,11 +5828,13 @@ function SimpleXMLElementToArray(SimpleXMLElement $xml) {
         return $array;
     }
     
-function FATAL_ERROR_SHOW_128($text){
+function FATAL_ERROR_SHOW_128($text,$noform=false){
 	$tpl=new templates();
+	$classform="class=form";
+	if($noform){$classform=null;}
 	$html="
 	<center style='margin:30px'>
-	<table style='width:99%' class=form>
+	<table style='width:99%' $classform>
 	<tr>
 		<td valign='top' style='width:1%'>
 			<img src='img/error-128.png'>
@@ -5651,6 +5848,27 @@ function FATAL_ERROR_SHOW_128($text){
 	
 	
 }
+
+function FATAL_WARNING_SHOW_128($text){
+	$tpl=new templates();
+	$html="
+	<center style='margin:30px'>
+	<table style='width:99%' class=form>
+	<tr>
+	<td valign='top' style='width:1%'>
+	<img src='img/light-bulb-warning-128.png'>
+	</td>
+	<td><div style='font-size:18px;color:#E41717'>$text</div></td>
+	</tr>
+	</table>
+	</center>
+	";
+	return $tpl->_ENGINE_parse_body($html);
+
+
+}
+
+
 function SIMPLE_PARAGRAPHE_BLUE_ARROWTR($title,$text,$js,$img="arrow-blue-left-24.png"){
 	$link="javascript:blur()";
 	if(strpos("  $js", "javasc")==0){
@@ -5661,7 +5879,9 @@ function SIMPLE_PARAGRAPHE_BLUE_ARROWTR($title,$text,$js,$img="arrow-blue-left-2
 	}
 	
 	$tpl=new templates();
+	if(preg_match("#noacc:(.+)#", $text,$re)){$text=$re[1];}else{
 	$text=$tpl->_ENGINE_parse_body("{{$text}}");
+	}
 	$text=str_replace("%ou", $_SESSION["ou"], $text);
 	
 	return "		<tr>

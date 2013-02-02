@@ -486,6 +486,18 @@ private function distanceOfTimeInWords($fromTime, $toTime = 0, $showLessThanAMin
 	       
 	        return 'over ' . round(floatval($distanceInMinutes) / 525600) . ' years';
 	}
+	
+	function disks_get_label_asroot($dev){
+		
+		$unix=new unix();
+		$e2label=$unix->find_program("e2label");
+		if($e2label==null){return;}
+		exec("$e2label $dev 2>&1",$array);
+		$data=trim(@implode(" ",$array));
+		if(preg_match("#Operation not permitted#is", $data)){return;}
+		return $data;
+	
+	}	
   
 
 function html_Memory_usage(){
@@ -557,7 +569,11 @@ function html_Memory_usage(){
 					$occ=$values[2];
 					$disp=$values[3];
 					$pourc=$values[4];
-					$label=base64_decode($sock->getFrameWork("cmd.php?disk-get-label=/dev/$disk_name"));
+					if(!$GLOBALS["AS_ROOT"]){
+						$label=base64_decode($sock->getFrameWork("cmd.php?disk-get-label=/dev/$disk_name"));
+					}else{
+						$this->disks_get_label_asroot("/dev/$disk_name");
+					}
 									
 					
 					if(!$array_dup[$disk]){$array_dup[$disk]=true;}else{continue;}

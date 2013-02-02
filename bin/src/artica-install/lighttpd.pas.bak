@@ -81,7 +81,6 @@ public
     function    IS_AUTH_LDAP():boolean;
     FUNCTION    IS_IPTABLES_INPUT_RULES():boolean;
     procedure   CreateWebFolders();
-    procedure   PHPMYADMIN();
     function    MON():string;
 
 
@@ -2224,7 +2223,7 @@ l.Add('alias.url += ("/artica-agent"=> "/usr/share/artica-postfix/ressources/art
 if DenyMiniWebFromStandardPort=1 then begin
    l.Add('$HTTP["url"] =~ "^/miniadm.*|/computers|/user-backup" { url.access-deny = ( "" )}');
 end;
-
+   l.Add('$HTTP["url"] =~ "^/prxy.*\.php" { url.access-deny = ( "" )}');
 if DirectoryExists(awstats.AWSTATS_www_root()) then l.Add('alias.url += ( "/awstats" => "'+awstats.AWSTATS_www_root()+'" )');
 if FileExists('/usr/share/poweradmin/index.php') then begin
    l.Add('alias.url += ( "/powerdns" => "/usr/share/poweradmin" )');

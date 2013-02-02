@@ -89,6 +89,13 @@ function popup(){
 		$buttons="buttons : [".@implode("\n", $bts)." ],";
 	}
 	
+	$q=new mysql();
+	if($q->COUNT_ROWS("ufdbguard_admin_events", "artica_events")>0){$q->QUERY_SQL("TRUNCATE TABLE ufdbguard_admin_events","artica_events");}
+	if($q->COUNT_ROWS("system_admin_events", "artica_events")>0){$q->QUERY_SQL("TRUNCATE TABLE system_admin_events","artica_events");}	
+	$CountEvents=$q->COUNT_ROWS($tablejs, "artica_events");
+	$CountEvents=numberFormat($CountEvents, 0 , '.' , ' ');	
+	$title=$tpl->_ENGINE_parse_body("$CountEvents {events}");
+	
 	$html="
 	<div style='margin-left:5px'>
 	<table class='ufdbguard-events-$t' style='display: none' id='ufdbguard-events-$t' style='width:99%'></table>
@@ -108,7 +115,7 @@ $('#ufdbguard-events-$t').flexigrid({
 	sortname: 'zDate',
 	sortorder: 'desc',
 	usepager: true,
-	title: '',
+	title: '$title',
 	useRp: true,
 	rp: 25,
 	showTableToggleBtn: false,
@@ -149,10 +156,12 @@ function EmptyTask$t(){
 
 function EmptyTask(){
 	$q=new mysql();
-	if($_POST["Table"]==null){$_POST["Table"]="ufdbguard_admin_events";}
-	$q->QUERY_SQL("DELETE FROM `{$_POST["Table"]}` WHERE `TASKID`='{$_POST["EmptyTask"]}'","artica_events");
-	
-	writelogs("DELETE FROM `{$_POST["Table"]}` WHERE `TASKID`='{$_POST["EmptyTask"]}' = $q->affected_rows",__FUNCTION__,__FILE__,__LINE__);
+	if($_POST["Table"]==null){
+		$_POST["Table"]="ufdbguard_admin_events";
+		$q->QUERY_SQL("DELETE FROM `{$_POST["Table"]}` WHERE `TASKID`='{$_POST["EmptyTask"]}'","artica_events");
+	}
+	$q->QUERY_SQL("TRUNCATE TABLE `{$_POST["Table"]}`","artica_events");
+	writelogs("TRUNCATE TABLE `{$_POST["Table"]}` $q->affected_rows",__FUNCTION__,__FILE__,__LINE__);
 	if(!$q->ok){echo $q->mysql_error;}
 	
 }
@@ -229,10 +238,13 @@ function search(){
 	$sock=new sockets();
 	$q=new mysql();	
 	$WHERE="category = 'update'";
-	$table="ufdbguard_admin_events";
+	$table="webfilter_updateev";
 	if($_GET["table"]<>null){$table=$_GET["table"];$WHERE=1;}
 	$search='%';
 	$page=1;
+	
+	$sock=new sockets();
+	$sock->getFrameWork("services.php?sysev=yes");
 	
 	
 	if($_GET["category"]<>null){
@@ -242,7 +254,12 @@ function search(){
 	if($_GET["filename"]<>null){$ADD2=" AND filename='{$_GET["filename"]}'";}
 	if(!is_numeric($_GET["taskid"])){$_GET["taskid"]=0;}
 	
-	if($_GET["taskid"]>0){$ADD2=$ADD2." AND TASKID='{$_GET["taskid"]}'";$WHERE=1;}
+	if($_GET["taskid"]>0){
+		if(!preg_match("#Task.*?[0-9]+#", $table)){
+			$ADD2=$ADD2." AND TASKID='{$_GET["taskid"]}'";
+			$WHERE=1;
+		}
+	}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){

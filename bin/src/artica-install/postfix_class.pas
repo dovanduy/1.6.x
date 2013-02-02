@@ -122,6 +122,7 @@ begin
        if EnableStopPostfix=0 then EnablePostfix:=1;
 
        if FileExists('/etc/artica-postfix/OPENVPN_APPLIANCE') then EnablePostfix:=0;
+       if FileExists('/etc/artica-postfix/DO_NOT_DETECT_POSTFIX') then EnablePostfix:=0;
 
 
        if not DirectoryExists('/usr/share/artica-postfix') then begin
@@ -1661,9 +1662,13 @@ begin
 end;
 //##############################################################################
 function tpostfix.POSFTIX_POSTCONF_PATH:string;
+var strstr:string;
 begin
+    if FileExists('/etc/artica-postfix/DO_NOT_DETECT_POSTFIX') then exit;
     if FileExists('/etc/artica-postfix/OPENVPN_APPLIANCE') then exit;
     if FileExists('/usr/sbin/postconf') then exit('/usr/sbin/postconf');
+    strstr:=SYS.LOCATE_GENERIC_BIN('postconf');
+    if FileExists(strstr) then result:=strstr;
 end;
 //##############################################################################
 function tpostfix.POSFTIX_MASTER_CF_PATH:string;

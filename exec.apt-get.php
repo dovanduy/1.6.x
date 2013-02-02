@@ -1,7 +1,7 @@
 <?php
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.system.network.inc");
 include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
@@ -13,7 +13,12 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 
 $_GET["APT-GET"]="/usr/bin/apt-get";
 
+if($GLOBALS["VERBOSE"]){echo "Checks {$argv[1]}\n";}
+
 if($argv[1]=='--sources-list'){CheckSourcesList();die();}
+if($argv[1]=='--wsgate'){wsgate_debian();die();}
+
+
 
 if(system_is_overloaded(basename(__FILE__))){
 	system_admin_events("This system is too many overloaded, die()",__FUNCTION__,__FILE__,__LINE__,"system-update");
@@ -56,62 +61,57 @@ function clean_upgrade(){
 }
 
 function GetUpdates(){
-if(system_is_overloaded(basename(__FILE__))){
-	system_admin_events("This system is too many overloaded, die()",__FUNCTION__,__FILE__,__LINE__,"system-update");
-	die();
-}	
-	
-@mkdir("/usr/share/artica-postfix/ressources/logs/web",0755,true);
-@unlink("/usr/share/artica-postfix/ressources/logs/web/debian.update.html");
+	if(system_is_overloaded(basename(__FILE__))){system_admin_events("This system is too many overloaded, die()",__FUNCTION__,__FILE__,__LINE__,"system-update");die();}	
+	@mkdir("/usr/share/artica-postfix/ressources/logs/web",0755,true);
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/debian.update.html");
 
-$unix=new unix();
-$tmpf=$unix->FILE_TEMP();
-CheckSourcesList();
-$sock=new sockets();	
-$ini=new Bs_IniHandler();
-$users=new usersMenus();
-$configDisk=trim($sock->GET_INFO('ArticaAutoUpdateConfig'));	
-$ini->loadString($configDisk);	
-$AUTOUPDATE=$ini->_params["AUTOUPDATE"];
-$EXEC_NICE=EXEC_NICE();
-$nohup=$unix->find_program("nohup");
-if(trim($AUTOUPDATE["auto_apt"])==null){$AUTOUPDATE["auto_apt"]="no";}
-$q=new mysql();
-if($GLOBALS["VERBOSE"]){system_admin_events("Running apt-check",__FUNCTION__,__FILE__,__LINE__,"system-update");}
-exec("{$_GET["APT-GET"]} check 2>&1",$results);
-if($GLOBALS["VERBOSE"]){system_admin_events("Running apt-check -> " . count($results) . " items",__FUNCTION__,__FILE__,__LINE__,"system-update");}
+	$unix=new unix();
+	$tmpf=$unix->FILE_TEMP();
+	CheckSourcesList();
+	wsgate_debian();
+	$sock=new sockets();	
+	$ini=new Bs_IniHandler();
+	$users=new usersMenus();
+	$configDisk=trim($sock->GET_INFO('ArticaAutoUpdateConfig'));	
+	$ini->loadString($configDisk);	
+	$AUTOUPDATE=$ini->_params["AUTOUPDATE"];
+	$EXEC_NICE=EXEC_NICE();
+	$nohup=$unix->find_program("nohup");
+	if(trim($AUTOUPDATE["auto_apt"])==null){$AUTOUPDATE["auto_apt"]="no";}
+	$q=new mysql();
+	if($GLOBALS["VERBOSE"]){system_admin_events("Running apt-check",__FUNCTION__,__FILE__,__LINE__,"system-update");}
+	exec("{$_GET["APT-GET"]} check 2>&1",$results);
+	if($GLOBALS["VERBOSE"]){system_admin_events("Running apt-check -> " . count($results) . " items",__FUNCTION__,__FILE__,__LINE__,"system-update");}
 
-while (list ($num, $line) = each ($results) ){
-		if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: $line",__FUNCTION__,__FILE__,__LINE__,"system-update");}
-		if(preg_match("#dpkg --configure -a#", $line)){
-				$cmd="DEBIAN_FRONTEND=noninteractive dpkg --configure -a --force-confold 2>&1";
-				if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: Executing $cmd",__FUNCTION__,__FILE__,__LINE__,"system-update");}					
-				exec("$cmd",$results1);
-				while (list ($num1, $line1) = each ($results1) ){
-					if(preg_match("#hardlink between a file in.+?backuppc#", $line1)){
-						if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: remove backuppc",__FUNCTION__,__FILE__,__LINE__,"system-update");}
-						shell_exec("{$_GET["APT-GET"]} -y remove backuppc --force-yes ");
+	while (list ($num, $line) = each ($results) ){
+			if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: $line",__FUNCTION__,__FILE__,__LINE__,"system-update");}
+			if(preg_match("#dpkg --configure -a#", $line)){
+					$cmd="DEBIAN_FRONTEND=noninteractive dpkg --configure -a --force-confold 2>&1";
+					if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: Executing $cmd",__FUNCTION__,__FILE__,__LINE__,"system-update");}					
+					exec("$cmd",$results1);
+					while (list ($num1, $line1) = each ($results1) ){
+						if(preg_match("#hardlink between a file in.+?backuppc#", $line1)){
+							if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: remove backuppc",__FUNCTION__,__FILE__,__LINE__,"system-update");}
+							shell_exec("{$_GET["APT-GET"]} -y remove backuppc --force-yes ");
+						}
+						
 					}
 					
+					
+					system_admin_events("dpkg was interrupted\nReconfigure has been performed\n".@implode("\n",$results1),__FUNCTION__,__FILE__,__LINE__,"system-update","system-update");
+					if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: reconfigure:\n".@implode("\n",$results1),__FUNCTION__,__FILE__,__LINE__,"system-update");}
+					return ;
 				}
-				
-				
-				system_admin_events("dpkg was interrupted\nReconfigure has been performed\n".@implode("\n",$results1),__FUNCTION__,__FILE__,__LINE__,"system-update","system-update");
-				if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: reconfigure:\n".@implode("\n",$results1),__FUNCTION__,__FILE__,__LINE__,"system-update");}
-				return ;
-			}
-				
-}
+					
+	}
 
 	
 
 
-exec("{$_GET["APT-GET"]} update 2>&1",$results);
-while (list ($num, $line) = each ($results) ){
-	
-	if($GLOBALS["VERBOSE"]){system_admin_events("update: $line",__FUNCTION__,__FILE__,__LINE__,"system-update");}
-	
-}
+	exec("{$_GET["APT-GET"]} update 2>&1",$results);
+	while (list ($num, $line) = each ($results) ){
+		if($GLOBALS["VERBOSE"]){system_admin_events("update: $line",__FUNCTION__,__FILE__,__LINE__,"system-update");}
+	}
 
 $results=array();
 exec("{$_GET["APT-GET"]} -f install --force-yes 2>&1",$results);
@@ -440,6 +440,9 @@ if($Major==6){
 		$f[]="deb-src http://security.debian.org/ squeeze/updates main";
 		$f[]="deb http://ftp.fr.debian.org/debian/ squeeze-updates main";
 		$f[]="deb-src http://ftp.fr.debian.org/debian/ squeeze-updates main";
+		$f[]="deb http://ftp.debian.org/debian/ squeeze main non-free";
+		$f[]="deb-src http://ftp.debian.org/debian/ squeeze main non-free";
+		$f[]="deb http://ftp.debian.org/debian squeeze main";
 		@file_put_contents("/etc/apt/sources.list",@implode("\n",$f));
 		echo "CheckSourcesList:  /etc/apt/sources.list configured, done...\n";	
 }
@@ -465,6 +468,80 @@ function CheckYum(){
 	}
 	
 }
+
+function wsgate_debian(){
+	if($GLOBALS["VERBOSE"]){echo "Load unix class...\n";}
+	$unix=new unix();
+	
+	if($GLOBALS["VERBOSE"]){echo "Load unix class done..\n";}
+	if(!is_dir("/etc/apt/sources.list.d")){
+		if($GLOBALS["VERBOSE"]){echo "/etc/apt/sources.list.d, no such directory\n";}
+		return;
+	}
+	
+	if(is_file("/etc/apt/sources.list.d/freerdp.list")){@unlink("/etc/apt/sources.list.d/freerdp.list");}
+	
+	if(is_file("/etc/apt/sources.list.d/freerdp1.list")){
+		if($GLOBALS["VERBOSE"]){echo "/etc/apt/sources.list.d/freerdp1.list already set\n";}
+		return;			
+	}	
+	
+
+	
+	$sourcelist=null;
+	$LINUX_CODE_NAME=$unix->LINUX_CODE_NAME();
+	$LINUXVER=$unix->LINUX_VERS();
+	
+	if($GLOBALS["VERBOSE"]){echo "$LINUX_CODE_NAME {$LINUXVER[0]}.{$LINUXVER[1]}\n";}
+	
+	if($LINUX_CODE_NAME=="DEBIAN"){
+		if($LINUXVER[0]>5){
+			$sourcelist="deb http://download.opensuse.org/repositories/home:/felfert/Debian_6.0 ./";
+		}
+	}
+	
+	if($LINUX_CODE_NAME=="UBUNTU"){
+		if($LINUXVER[0]>9){
+			if($LINUXVER[1]>9){
+				$sourcelist="deb http://download.opensuse.org/repositories/home:/felfert/xUbuntu_10.10 ./";
+			}
+		}
+		
+		if($LINUXVER[0]>10){
+			if($LINUXVER[1]>9){
+				$sourcelist="deb http://download.opensuse.org/repositories/home:/felfert/xUbuntu_11.10 ./";
+			}
+		}
+
+		if($LINUXVER[0]>11){
+			if($LINUXVER[1]>3){
+				$sourcelist="deb http://download.opensuse.org/repositories/home:/felfert/xUbuntu_12.04 ./";
+			}			
+		}
+		
+	}
+	if($sourcelist==null){if($GLOBALS["VERBOSE"]){echo "sourcelist is null\n";}return;}
+	
+	$wget=$unix->find_program("wget");
+	$aptkey=$unix->find_program("apt-key");
+	$aptget=$unix->find_program("apt-get");
+	
+	$cmd="$wget -O - http://download.opensuse.org/repositories/home:/felfert/Debian_6.0/Release.key | $aptkey add -";
+	shell_exec($cmd);
+	@file_put_contents("/etc/apt/sources.list.d/freerdp1.list", $sourcelist);
+	
+	$cmd="DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes update 2>&1";
+	exec($cmd,$results);
+	system_admin_events($cmd."\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"system-update");
+	shell_exec($cmd);	
+	$cmd="DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes install wsgate 2>&1";
+	exec($cmd,$results);
+	system_admin_events($cmd."\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"system-update");
+	shell_exec($cmd);		
+	
+}
+
+
 
 
 

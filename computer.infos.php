@@ -304,6 +304,7 @@ function IsRight(){
 	if($users->AllowAddUsers){return true;}
 	if($users->AllowManageOwnComputers){return true;}
 	if($users->AsInventoryAdmin){return true;}
+	if($users->ASDCHPAdmin){return true;}
 	return false;
 	}
 	
@@ -1041,7 +1042,7 @@ function popup_services(){
 	}
 	
 	if($users->AllowAddUsers){
-		$js="javascript:YahooUser(870,'domains.edit.user.php?userid=$uid&ajaxmode=yes','$uid');";
+		$js="javascript:YahooUser(962,'domains.edit.user.php?userid=$uid&ajaxmode=yes','$uid');";
 		$network=Paragraphe("64-computers-parameters.png","{COMPUTER_NETWORK}","{COMPUTER_NETWORK_TEXT}",$js);
 	}
 	

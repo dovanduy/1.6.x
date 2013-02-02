@@ -30,6 +30,7 @@ class wad{
 	var $enable_schedule=0;
 	var $ImportDistributionsList=0;
 	var $EngineByOu=0;
+	var $default_domain=null;
 	
 	function wad($ou){
 		$this->ou=$ou;
@@ -423,15 +424,23 @@ class wad{
 				$ldap=new clladp();
 				$domainz=$ldap->hash_get_domains_ou($this->ou);
 				while (list ($num, $ligne) = each ($domainz) ){if(trim($ligne==null)){continue;}$ou_domains[]=$ligne;}
-				$default_domain=$ou_domains[0];	
+				$this->default_domain=$ou_domains[0];	
 				$GLOBALS["ACTIVEDIRECTORY_DEFAULT_DOMAIN"]=$default_domain;
 			}else{
-				$default_domain=$GLOBALS["ACTIVEDIRECTORY_DEFAULT_DOMAIN"];
+				$this->default_domain=$GLOBALS["ACTIVEDIRECTORY_DEFAULT_DOMAIN"];
 			}		
 			
 		for($i=0;$i<$hash["count"];$i++){
-					print_r($hash[$i]);
+					//print_r($hash[$i]);
 				    $cn=$hash[$i]["cn"][0];
+				    if(!isset($hash[$i]["mail"])){$hash[$i]["mail"][0]=null;}
+				    if(!isset($hash[$i][strtolower("userPrincipalName")])){$hash[$i][strtolower("userPrincipalName")][0]=null;}
+					if(!isset($hash[$i][strtolower("displayName")])){$hash[$i][strtolower("displayName")][0]=null;}
+					if(!isset($hash[$i][strtolower("mailNickname")])){$hash[$i][strtolower("mailNickname")][0]=null;}
+					if(!isset($hash[$i][strtolower("telephonenumber")])){$hash[$i][strtolower("telephonenumber")][0]=null;}
+					if(!isset($hash[$i][strtolower("homephone")])){$hash[$i][strtolower("homephone")][0]=null;}
+					if(!isset($hash[$i][strtolower("mobile")])){$hash[$i][strtolower("mobile")][0]=null;}
+
 				    if($hash[$i]["mail"][0]==null){$hash[$i]["mail"][0]=$hash[$i][strtolower("userPrincipalName")][0];}
 					$mail=$hash[$i]["mail"][0];
 				    $givenName=$hash[$i][strtolower("givenName")][0];
@@ -439,9 +448,9 @@ class wad{
 				    $mailNickname=$hash[$i][strtolower("mailNickname")][0];
 				    $sAMAccountName=$hash[$i][strtolower("sAMAccountName")][0];
 					if($sAMAccountName==null){$sAMAccountName=$mailNickname;}
-					$telephonenumber=$hash["telephonenumber"][0];
-					$homephone=$hash["homephone"][0];
-					$mobile=$hash["mobile"][0];					
+					$telephonenumber=$hash[$i]["telephonenumber"][0];
+					$homephone=$hash[$i]["homephone"][0];
+					$mobile=$hash[$i]["mobile"][0];					
 					
 					
 					

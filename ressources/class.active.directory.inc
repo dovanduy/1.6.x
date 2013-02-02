@@ -1,5 +1,6 @@
 <?php
 include_once(dirname(__FILE__).'/class.mysql.inc');
+include_once(dirname(__FILE__).'/class.external.ad.inc');
 class ldapAD{
 	
 	var $ldapbind;
@@ -206,7 +207,9 @@ class ldapAD{
 	}	
 	
 	function CountDeGroups($ou){
-		return count($this->hash_get_groups_from_ou_mysql($ou));
+		$ad=new external_ad_search();
+		return $ad->CountDeGroups($ou);
+		
 		
 	}
 		
@@ -258,7 +261,7 @@ function hash_get_ou($has_key=false){
 			$dn="$cc->suffix";
 			
 			$filter="(&(objectClass=user)(|(cn=$tofind)(mail=$tofind)(displayName=$tofind)(sAMAccountName=$tofind) (givenname=$tofind)))";
-			$attrs=array("displayName","samaccountname","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber");
+			$attrs=array("displayName","sAMAccountName","mail","givenName","telephoneNumber","title","sn","userPrincipalName","distinguishedName");
 			if(trim($ou)=="Domain Controllers"){$dn="CN=Users,$cc->suffix";}
 			writelogs("search $tofind in $dn ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$hash=$cc->Ldap_search($dn,$filter,$attrs,150);	
@@ -382,7 +385,31 @@ public function COUNT_DE_USERS(){
 }
 
 
-public function CountDeUSerOu($ou){
+public function CountDeUSerOu($ou,$dn){
+	$ou=utf8_encode($ou);
+	if(!$GLOBALS["AS_ROOT"]){
+		$q=new mysql();
+		if($q->COUNT_ROWS("activedirectory_ou", "artica_backup")>0){
+			
+			if($dn<>null){
+				$sql="SELECT CountDeUsers FROM activedirectory_ou WHERE `dn`='$dn'";
+				$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+				if($q->ok){return $ligne["CountDeUsers"];}				
+				
+			}
+			
+			
+			$sql="SELECT CountDeUsers FROM activedirectory_ou WHERE `name`='$ou' AND CountDeUsers>0";
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+			if($q->ok){return $ligne["CountDeUsers"];}
+		}else{
+			writelogs("No rows in activedirectory_ou for $ou",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		}
+			
+	}
+	
+	
+		writelogs("CountDeUSerOu($ou)",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$ou=utf8_encode($ou);
 		$sql="SELECT COUNT(samaccountname) as tcount FROM activedirectory_users WHERE ou='$ou'";
 		$q=new mysql();

@@ -15,7 +15,8 @@ function left_infos_1(){
 	$ldap=new clladp();
 	if(!$users->AsArticaAdministrator){die("<H2 style='color:red'>permission denied</H2>");}
 	$page=CurrentPageName();	
-	
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}	
 	$DisablePurchaseInfo=$sock->GET_INFO("DisablePurchaseInfo");
 	if(!is_numeric($DisablePurchaseInfo)){$DisablePurchaseInfo=0;}
 	if($DisablePurchaseInfo==0){
@@ -65,8 +66,10 @@ function left_infos_1(){
 	if(!$users->KASPERSKY_WEB_APPLIANCE){
 		if(!$users->SQUID_APPLIANCE){
 			if($users->SAMBA_INSTALLED){
-				if(!$users->OCSI_INSTALLED){
-					if($sock->GET_INFO("DisableOCSPub")<>1){echo ParagrapheTEXT("48-install-soft.png","{INSTALL_OCS}",'{INSTALL_OCS_TEXT}',"javascript:Loadjs('ocs.install.php');",null,330);	}
+				if($SambaEnabled==1){
+					if(!$users->OCSI_INSTALLED){
+						if($sock->GET_INFO("DisableOCSPub")<>1){echo ParagrapheTEXT("48-install-soft.png","{INSTALL_OCS}",'{INSTALL_OCS_TEXT}',"javascript:Loadjs('ocs.install.php');",null,330);	}
+					}
 				}
 			}
 		}

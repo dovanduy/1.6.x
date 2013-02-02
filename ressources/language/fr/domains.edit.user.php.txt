@@ -4,7 +4,7 @@
 <add_mailing_address>Ajouter un destinataire</add_mailing_address>
 <add_new_alias>Ajouter un nouvel alias</add_new_alias>
 <add_new_alias_text>Ajouter une nouvelle adresse e-mail dans votre base de donn&eacute;es des alias</add_new_alias_text>
-<ADD_USER_GROUP_ASK>&Ecirc;tes-vous s&ucirc;rs d'Ajouter ce membre &agrave; ce groupe ?</ADD_USER_GROUP_ASK>
+<ADD_USER_GROUP_ASK>Ajouter ce membre &agrave; ce groupe ?</ADD_USER_GROUP_ASK>
 <ADD_USER_GROUP_TEXT>Ajouter ce membre &agrave; un groupe existant</ADD_USER_GROUP_TEXT>
 <aliases_mailing_text>Cette section va transformer cet utilisateur en liste de distribution.Toutes les adresses e-Mail ajout&eacute;s dans la liste recevront le m&ecirc;me message destin&eacute; &agrave; cet utilisateur.
 [br] Cette fonctionnalit&eacute; reproduit le m&ecirc;me principe qu'une &quot;mailing list&quot; sans fonctionnalit&eacute;s additionnelles.</aliases_mailing_text>

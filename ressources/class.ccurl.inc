@@ -20,7 +20,10 @@ class ccurl{
 	var $Timeout=120;
 	var $error_num=0;
 	var $WriteProgress=false;
+	var $DebugProgress=true;
 	var $ProgressFile=null;
+	var $ProgressFunction=null;
+	var $x_www_form_urlencoded=true;
 	
 	// CURLOPT_INTERFACE
 	
@@ -76,7 +79,11 @@ class ccurl{
 		
 	}
 	
-	
+	private function OutPutlogs($text){
+		if($GLOBALS["VERBOSE"]){echo "$text\n";}
+		if(!isset($GLOBALS["CURLDEBUG"])){$GLOBALS["CURLDEBUG"]=array();}
+		$GLOBALS["CURLDEBUG"][]=$text;
+	}
 	
 	function get(){
 		if (!extension_loaded('curl')) {
@@ -94,12 +101,12 @@ class ccurl{
 				
 			$ch = curl_init();
 			if($this->interface<>null){
-				if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE $this->interface\n";}
+				$this->OutPutlogs("CURLOPT_INTERFACE $this->interface");
 				curl_setopt($ch, CURLOPT_INTERFACE,$this->interface);}
 			else{
 				
 				if($this->WgetBindIpAddress<>null){
-					if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE $this->WgetBindIpAddress\n";}
+					$this->OutPutlogs("CURLOPT_INTERFACE $this->WgetBindIpAddress");
 					curl_setopt($ch, CURLOPT_INTERFACE,$this->WgetBindIpAddress);
 				}
 			}
@@ -134,16 +141,20 @@ class ccurl{
 				//if($GLOBALS["VERBOSE"]){writelogs("no website authentication has enabled",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			}
 			
+			curl_setopt ($ch, CURLOPT_TIMEOUT, $this->Timeout);
+			
 			if($this->ArticaProxyServerEnabled=="yes"){
+				$this->OutPutlogs("Using proxy $this->ArticaProxyServerName:$this->ArticaProxyServerPort");
 				//if($GLOBALS["VERBOSE"]){echo "Loading proxy settings...\n";}
 				//curl_setopt ($ch, CURLOPT_RETURNTRANSFER, 1);
 				curl_setopt($ch,CURLOPT_HTTPPROXYTUNNEL,FALSE); 
 				curl_setopt ($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
 				//if($GLOBALS["VERBOSE"]){echo "setting proxy for $this->ArticaProxyServerName:$this->ArticaProxyServerPort\n";}
 				curl_setopt ($ch, CURLOPT_PROXY,"$this->ArticaProxyServerName:$this->ArticaProxyServerPort");
-				curl_setopt ($ch, CURLOPT_TIMEOUT, $this->Timeout);
+				
 				//curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_BASIC | CURLAUTH_NTLM);
 				if($this->ArticaProxyServerUsername<>null){
+					$this->OutPutlogs("Using proxy with authentication");
 					curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_BASIC);
 					curl_setopt($ch, CURLOPT_PROXYUSERPWD, $this->ArticaProxyServerUsername.':'.$this->ArticaProxyServerUserPassword);
 				}
@@ -152,19 +163,22 @@ class ccurl{
 			
 			
 			if($curlPost<>null){
-				if($GLOBALS["VERBOSE"]){echo "Add posts datas....\n";}
+				$this->OutPutlogs("Add posts datas....");
 				curl_setopt($ch, CURLOPT_POSTFIELDS, $curlPost);
 			}	
 			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
 			$this->data=curl_exec($ch);
 			$error=curl_errno($ch);		
 			if($error>0){
-				writelogs("datas: $this->uri (". strlen($this->data)." bytes) error:$error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$this->OutPutlogs("Error:$error: datas: $this->uri (". strlen($this->data)." bytes) ");
 			}
 			curl_close($ch);
 			
 			
-			if(!$this->ParseTextError()){return false;}
+			if(!$this->ParseTextError()){
+				$this->OutPutlogs("Return False....");
+				return false;
+			}
 			
 			
 			return $this->ParseError($error);
@@ -243,12 +257,24 @@ class ccurl{
 				$this->error="{CURLE_RECV_ERROR}";
 				return false;
 			}
+			if($error==52){
+				writelogs("Curl:: error 52 Nothing was returned from the server. ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$this->error="{CURLE_52_ERROR}";
+				return false;
+			}
+			
 
 			if($error==28){
 				writelogs("Curl:: error 28 Operation timeout. The specified time-out period was reached according to the conditions. ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$this->error="{CURLE_OPERATION_TIMEDOUT}";
 				return false;
 			}
+			
+			if($error==18){
+				writelogs("Curl:: error 18 Partial file. ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$this->error="{CURLE_CURLE_PARTIAL_FILE}";
+				return false;
+			}			
 			
 		return true;
 		
@@ -289,9 +315,14 @@ class ccurl{
 			curl_setopt($ch, CURLOPT_TIMEOUT, $this->Timeout);
 			
 			if($this->WriteProgress){
-				$GLOBALS["CurlprogressCallbackFile"]=$this->ProgressFile;
+				if($this->ProgressFile<>null){
+					$callBack="CurlprogressCallback";
+					$GLOBALS["CurlprogressCallbackFile"]=$this->ProgressFile;
+				}
+				if($this->ProgressFunction<>null){$callBack=$this->ProgressFunction;}
+				
 				curl_setopt( $ch, CURLOPT_NOPROGRESS, false );
-				curl_setopt( $ch, CURLOPT_PROGRESSFUNCTION, 'CurlprogressCallback' );
+				curl_setopt( $ch, CURLOPT_PROGRESSFUNCTION, $callBack);
 			}
 			
 			//$this->ArticaProxyServerEnabled=null;
@@ -348,44 +379,96 @@ class ccurl{
 	
 	
 	function postFile($fieldname,$filepath,$array_fields=array()){
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "$this->uri");
-    curl_setopt($ch, CURLOPT_HEADER, 0);
-    curl_setopt($ch, CURLOPT_VERBOSE, 0);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/4.0 (compatible;)");
-    curl_setopt($ch, CURLOPT_POST, true);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
-	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));   
-    // same as <input type="file" name="file_box">
-    $post[$fieldname]="@$filepath";
-    if(count($array_fields)>0){while (list ($num, $line) = each ($array_fields) ){$post[$num]=$line;}}
-    
-    
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $post); 
-    writelogs("Executing posting $fieldname/$filepath",__CLASS__.'/'.__FUNCTION__,__FILE__);
-    $this->data = curl_exec($ch);
-
-	$error=curl_errno($ch);		
-			writelogs("datas: $this->uri (". strlen($this->data)." bytes) error:$error",__CLASS__.'/'.__FUNCTION__,__FILE__);
-			
-			if($error==6){
-				writelogs("error 6 ($this->uri) in protocol",__CLASS__.'/'.__FUNCTION__,__FILE__);
-				curl_close($ch);
-				return false;
+	    $ch = curl_init();
+	    curl_setopt($ch, CURLOPT_URL, "$this->uri");
+	    
+	    if($GLOBALS["VERBOSE"]){
+	    	curl_setopt($ch, CURLOPT_HEADER, 1);
+	    	curl_setopt($ch, CURLOPT_VERBOSE, 1);
+	    }else{
+	    	curl_setopt($ch, CURLOPT_HEADER, 0);
+	    	curl_setopt($ch, CURLOPT_VERBOSE, 0);
+	    }
+	    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+	    curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/4.0 (compatible;)");
+	    curl_setopt($ch, CURLOPT_POST, 1);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0); 
+		
+		curl_setopt($ch, CURLOPT_TIMEOUT, $this->Timeout);
+		
+		if($this->interface<>null){
+			if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE: $this->interface\n";}
+			curl_setopt($ch, CURLOPT_INTERFACE,$this->interface);}
+		else{
+			if($this->WgetBindIpAddress<>null){
+				if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE: $this->WgetBindIpAddress\n";}
+				curl_setopt($ch, CURLOPT_INTERFACE,$this->WgetBindIpAddress);
 			}
+		}
+		
 			
-			
+	    // same as <input type="file" name="file_box">
+		if(count($array_fields)>0){while (list ($num, $line) = each ($array_fields) ){$post[$num]=$line;}}
+		if($this->x_www_form_urlencoded){
+			$post[$fieldname]=base64_encode(@file_get_contents($filepath));
+		}else{
+			$post[$fieldname]="@$filepath";
+		}
+	   
+		if($this->x_www_form_urlencoded){
+	    	curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post,"","&"));
+		}else{
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
+		}
+	    curl_setopt($ch,CURLOPT_HTTPHEADER,array("Expect:"));
+	    
+	    
+	    if($this->DebugProgress){
+	    	curl_setopt( $ch, CURLOPT_NOPROGRESS, 0 );
+	    	curl_setopt( $ch, CURLOPT_PROGRESSFUNCTION, "CurlprogressCallbackDebug");
+	    }	    
+	    
+	    
+	    
+	    $size=@filesize("$filepath");
+	    $size=$size/1024;
+	    $UNIT="KB";
+	    if($size>1000){$UNIT="MB";$size=$size/1024;}
+	    $size=round($size,2);
+	    if($GLOBALS["VERBOSE"]){echo "CURLOPT_TIMEOUT: {$this->Timeout}s\n";}
+	    
+	    writelogs("$this->uri: Executing posting _FILE(S)[$fieldname] $filepath ($size $UNIT)",__CLASS__.'/'.__FUNCTION__,__FILE__);
+	    $this->data = curl_exec($ch);
+	    if($GLOBALS["VERBOSE"]){
+	    	print_r(curl_getinfo($ch));
+	    }
+		$error=curl_errno($ch);	
+		writelogs("Returned datas: $this->uri (". strlen($this->data)." bytes) error:$error",__CLASS__.'/'.__FUNCTION__,__FILE__);
+		if(!$this->ParseError($error)){
+			writelogs("Returned datas: $this->uri (". strlen($this->data)." bytes) error:$error",__CLASS__.'/'.__FUNCTION__,__FILE__);
 			curl_close($ch);
-			return true;    
-    
-    
+			return false;
+		}
+		
+		curl_close($ch);
+		return true;
+}
+
+}
+function CurlprogressCallbackDebug( $download_size, $downloaded_size, $upload_size, $uploaded_size ){
+	if(!isset($GLOBALS["previousProgress"])){$GLOBALS["previousProgress"]=0;}
+
+	if ( $download_size == 0 )
+		$progress = 0;
+	else
+		$progress = round( $downloaded_size * 100 / $download_size );
+	 
+
+	if ( $progress > $GLOBALS["previousProgress"]){
+		echo $progress."%\n";
+		$GLOBALS["previousProgress"] = $progress;
 	}
-	
-	
-	
-	
 }
 
 function CurlprogressCallback( $download_size, $downloaded_size, $upload_size, $uploaded_size ){

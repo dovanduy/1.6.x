@@ -1268,7 +1268,9 @@ function CleanMyHostname(){
 		$myhostname=$myhostname2;
 	}
 	
-	echo "Starting......: Hostname \"$myhostname\"\n";
+
+	echo "Starting......: Hostname=$myhostname\n";
+	
 	postconf("myhostname",$myhostname);
 	
 }
@@ -1381,6 +1383,8 @@ function OthersValues(){
 	$disable_dns_lookups=$mainmulti->GET("disable_dns_lookups");
 	if(!is_numeric($ignore_mx_lookup_error)){$ignore_mx_lookup_error=0;}
 	if(!is_numeric($disable_dns_lookups)){$disable_dns_lookups=0;}
+	$smtpd_banner=$main->GET('smtpd_banner');
+		
 	
 
 	if($ignore_mx_lookup_error==0){$ignore_mx_lookup_error="no";}else{$ignore_mx_lookup_error="yes";}
@@ -1433,6 +1437,7 @@ function OthersValues(){
 	if($maximal_backoff_time==null){$maximal_backoff_time="4000s";}
 	if($minimal_backoff_time==null){$minimal_backoff_time="300s";}
 	if($queue_run_delay==null){$queue_run_delay="300s";}	
+	if($smtpd_banner==null){$smtpd_banner="\$myhostname ESMTP \$mail_name";}
 
 	if($address_verify_negative_cache==1){$address_verify_negative_cache="yes";}else{$address_verify_negative_cache="no";}
 	
@@ -1460,8 +1465,9 @@ function OthersValues(){
 	echo "Starting......: bounce_queue_lifetime=$bounce_queue_lifetime\n";
 	echo "Starting......: ignore_mx_lookup_error=$ignore_mx_lookup_error\n";
 	echo "Starting......: disable_dns_lookups=$disable_dns_lookups\n";
+	echo "Starting......: smtpd_banner=$smtpd_banner\n";
 	
-
+	
 	
 	
 	if($minimal_backoff_time==null){$minimal_backoff_time="300s";}
@@ -1522,6 +1528,9 @@ function OthersValues(){
 	postconf("smtp_fallback_relay",$smtp_fallback_relay);
 	postconf("ignore_mx_lookup_error",$ignore_mx_lookup_error);
 	postconf("disable_dns_lookups",$disable_dns_lookups);
+	postconf("smtpd_banner",$smtpd_banner);
+	
+	
 
 	
 	

@@ -37,7 +37,7 @@ function js(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{check_recipients}/{check_message_content}");
-	$html="YahooWinBrowse('650','$page?tabs=yes&t={$_GET["t"]}','$title')";
+	$html="YahooWinBrowse('700','$page?tabs=yes&t={$_GET["t"]}','$title')";
 	echo $html;
 }
 

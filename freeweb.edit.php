@@ -96,7 +96,7 @@ function FreeWebsCheck(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$t=time();	
-	$html="<div id='$t' style='width:100%;height:500px;overflow:auto'></div>
+	$html="<div id='$t'></div>
 	<script>
 		LoadAjax('$t','$page?FreeWebsCheck-perform=yes&servername={$_GET["servername"]}');
 	</script>
@@ -107,32 +107,15 @@ function FreeWebsCheck(){
 function FreeWebsCheck_perform(){
 
 	$page=CurrentPageName();
-	$tpl=new templates();		
-	$html="
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-	<th>&nbsp;</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";		
-	
-	
+	$tpl=new templates();	
 	$sock=new sockets();
 	$array= unserialize(base64_decode($sock->getFrameWork("freeweb.php?checks-site=yes&sitename={$_GET["servername"]}")));
-	while (list ($num, $ligne) = each ($array) ){
-		if(trim($ligne)==null){continue;}
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$ligne=htmlentities($ligne);
-			$html=$html."
-			<tr class=$classtr>
-			<td width=99%><code>$ligne</code></td>
-			</tr>
-			";
-		}
-		
-	$html=$html."</tbody></table>";
 	
+	$html="<textarea 
+	style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:100%;height:470px;border:5px solid #8E8E8E;
+	overflow:auto;font-size:14px' id='textToParseCats$t'>".@implode("\n", $array)."</textarea>
+	";		
 	echo $tpl->_ENGINE_parse_body($html);
 	
 }
@@ -368,17 +351,11 @@ function popup_tabs(){
 	
 	
 	
-	
-	
-	
 	if($_GET["servername"]<>null){
-		$table_name=$q->APACHE_TABLE_NAME($_GET["servername"]);
-		if($q->TABLE_EXISTS($table_name, "apachelogs")){$array["statistics"]='{statistics}';}
-		$table_name="apache_stats_".date('Ym');
-		$sql="SELECT COUNT(servername) as tcount FROM $table_name WHERE servername='{$_GET["servername"]}'";
-		if($q->mysql_error){if(!preg_match("#doesn.+?t exist#", $q->mysql_error)){echo "<H2>$q->mysql_error</H2>";}}else{$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));}
-		if($ligne["tcount"]>0){$array["status"]='{status}';}
+		$array["status"]='{status}';
 	}
+	
+
 	
 	//http://jmatrix.net/dao/case/case.jsp?case=7F000001-1C888D9-111189408B9-80
 	
@@ -550,7 +527,7 @@ function popup_tabs(){
 	
 	
 	echo "
-	<div id=main_config_freewebedit style='width:100%;height:695px;overflow:auto'>
+	<div id=main_config_freewebedit style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -1681,7 +1658,7 @@ function popup(){
 	
 	
 	function FreeWebsCheckGroupware(){
-		LoadWinORG2('650','$page?FreeWebsCheck=yes&servername={$ligne["servername"]}','{$check_configuration}::{$ligne["servername"]}');
+		LoadWinORG2('850','$page?FreeWebsCheck=yes&servername={$ligne["servername"]}','{$check_configuration}::{$ligne["servername"]}');
 	
 	}
 	
@@ -1931,6 +1908,7 @@ function Save(){
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
+	$sock->getFrameWork("system.php?dns-linker=yes");
 	
 	if($_GET["useFTP"]==1){
 		if($users->PUREFTP_INSTALLED){

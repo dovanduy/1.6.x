@@ -2,6 +2,7 @@
 	include_once(dirname(__FILE__).'/class.mysql.inc');
 	include_once(dirname(__FILE__).'/class.sockets.inc');
 	include_once(dirname(__FILE__).'/class.resolv.conf.inc');
+	include_once(dirname(__FILE__).'/class.tcpip.inc');
 
 class system_nic{
 	var $eth;
@@ -17,14 +18,26 @@ class system_nic{
 	var $unconfigured=true;
 	var $enabled=0;
 	var $NoReboot=false;
-	
+	var $EnableipV6=0;
+	var $ipv6=0;
+	var $ipv6mask=0;
+	var $ipv6addr=null;
+	var $ipv6gw=null;
 	function system_nic($eth=null){
+		
+		$sock=new sockets();
+		$this->EnableipV6=$sock->GET_INFO("EnableipV6");
+		if(!is_numeric($this->EnableipV6)){$this->EnableipV6=0;}		
+		
 		if($eth<>null){
+			writelogs("init nic infos from $eth",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->eth=$eth;
 			$this->loadEthConfig();
 		}
-		
+
 		$this->CheckUnconfigured();
+		
+		
 		
 	}
 	
@@ -37,19 +50,51 @@ class system_nic{
 		return false;
 	}
 	
+	public function SaveIpv6(){
+		$q=new mysql();
+		$sql="SELECT `Interface` FROM `nics` WHERE `Interface`='$this->eth'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		if(!$q->ok){
+			echo $q->mysql_error;
+			writelogs("$q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
+		
+		if($ligne["Interface"]==null){
+			echo "You must save network configuration first...\n";
+			return;
+		}
+		
+		if(!$q->FIELD_EXISTS("nics","ipv6","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6` smallint( 1 ) NOT NULL DEFAULT '0'",'artica_backup');
+			if(!$q->ok){echo $q->mysql_error;return;}
+		}	
+
+		
+		if(!$q->FIELD_EXISTS("nics","ipv6mask","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6mask` INT( 2 ) NOT NULL DEFAULT '0'",'artica_backup');
+		}
+		
+		$q->QUERY_SQL("UPDATE `nics` SET ipv6=$this->ipv6 WHERE `Interface`='$this->eth'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+	
 	private function loadEthConfig(){
 		$q=new mysql();
 		
 		$sql="SELECT * FROM `nics` WHERE `Interface`='$this->eth'";
-		writelogs("SaveNic: Loading nic infos from `$this->eth` '$sql'",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "$sql<br>\n";}
+		writelogs("loadEthConfig: Loading nic infos from `$this->eth` `$sql`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(!$q->ok){
+			echo $q->mysql_error;
 			writelogs("$q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		}
 		$this->dhcp=0;
 		if($ligne["Interface"]==null){
 			$ip=new networking();
 			$ligne=$ip->GetNicInfos($this->eth);
+			if(!isset($ligne["ROUTES"])){$ligne["ROUTES"]=null;}
 			$this->ROUTES=$ligne["ROUTES"];
 			if(($ligne["BOOTPROTO"]=='dhcp') OR ($ligne["BOOTPROTO"]==null)){$this->dhcp=1;}
 			$ligne["enabled"]=1;
@@ -60,6 +105,14 @@ class system_nic{
 			$this->ROUTES=unserialize($ligne["routes"]);
 		}
 		
+		if(!isset($ligne["DNS1"])){$ligne["DNS1"]=null;}
+		if(!isset($ligne["DNS2"])){$ligne["DNS2"]=null;}
+		if(!isset($ligne["NETWORK"])){$ligne["NETWORK"]=null;}
+		if(!isset($ligne["ipv6mask"])){$ligne["ipv6mask"]=null;}
+		if(!isset($ligne["ipv6addr"])){$ligne["ipv6addr"]=null;}
+		if(!isset($ligne["ipv6gw"])){$ligne["ipv6gw"]=null;}
+		
+		$this->ipv6=$ligne["ipv6"];
 		$this->NETMASK=$ligne["NETMASK"];
 		$this->GATEWAY=$ligne["GATEWAY"];
 		$this->BROADCAST=$ligne["BROADCAST"];
@@ -68,12 +121,35 @@ class system_nic{
 		$this->DNS2=trim($ligne["DNS2"]);
 		$this->NETWORK=$ligne["NETWORK"];
 		$this->enabled=$ligne["enabled"];
+		$this->ipv6mask=$ligne["ipv6mask"];
+		$this->ipv6addr=$ligne["ipv6addr"];
+		$this->ipv6gw=$ligne["ipv6gw"];
+		
+		if($this->ipv6addr==null){
+			$ip=new IP();
+			$this->ipv6addr=$ip->IPv4To6($this->IPADDR);
+		}
+		
+		if($this->ipv6gw==null){
+			$ip=new IP();
+			$this->ipv6gw=$ip->IPv4To6($this->GATEWAY);
+		}		
+		
 		if($this->DNS1==null){
 			$resolv=new resolv_conf();
 			$this->DNS1=$resolv->MainArray["DNS1"];
 			$this->DNS2=$resolv->MainArray["DNS2"];
 		}
+		if($this->EnableipV6==0){
+				$this->ipv6=0;
+
+		}
 		
+		if($this->ipv6==0){
+				$this->ipv6addr=null;
+				$this->ipv6mask=0;
+				$this->ipv6gw=null;			
+		}
 
 	}
 	
@@ -88,9 +164,10 @@ class system_nic{
 		$routes=addslashes(serialize($this->ROUTES));
 		
 		$sql_add="
-		INSERT INTO `nics` (`Interface`,`IPADDR`,`NETMASK`,`GATEWAY`,`BROADCAST`,`DNS1`,`DNS2`,`dhcp`,`ROUTES`,`NETWORK`,`enabled`)
+		INSERT INTO `nics` (`Interface`,`IPADDR`,`NETMASK`,`GATEWAY`,`BROADCAST`,`DNS1`,`DNS2`,
+		`dhcp`,`ROUTES`,`NETWORK`,`enabled`,`ipv6`,`ipv6mask`,`ipv6gw`,`ipv6addr`)
 		VALUES('$this->eth','$this->IPADDR','$this->NETMASK','$this->GATEWAY','$this->BROADCAST','$this->DNS_1',
-		'$this->DNS_2','$this->dhcp','$routes','$this->NETWORK',1);
+		'$this->DNS_2','$this->dhcp','$routes','$this->NETWORK',1,'$this->ipv6','$this->ipv6mask','$this->ipv6gw','$this->ipv6addr');
 		";
 	
 		$sql_upd="UPDATE `nics` SET 
@@ -103,21 +180,45 @@ class system_nic{
 		`DNS2`='$this->DNS2',
 		`dhcp`='$this->dhcp',
 		`enabled`='$this->enabled',
+		`ipv6`='$this->ipv6',
+		`ipv6mask`='$this->ipv6mask',
+		`ipv6gw`='$this->ipv6gw',
+		`ipv6addr`='$this->ipv6addr',
 		`ROUTES`='$routes'
 		 WHERE `Interface`='$this->eth'";
 		
-		writelogs("save nic infos : NIC:`$this->eth`;$this->IPADDR;$this->NETMASK;$this->GATEWAY;$this->dhcp;$this->BROADCAST",__CLASS__."/".__FUNCTION__,__FILE__);
+		writelogs("save nic infos : NIC:ipv6=$this->ipv6; `$this->eth`;$this->IPADDR;$this->NETMASK;$this->GATEWAY;$this->dhcp;$this->BROADCAST",__CLASS__."/".__FUNCTION__,__FILE__);
 		
 		$q=new mysql();
 		$q->check_networks_tables();
+		
+		if(!$q->FIELD_EXISTS("nics","ipv6","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6` smallint( 1 ) NOT NULL DEFAULT '0'",'artica_backup');
+			if(!$q->ok){echo $q->mysql_error;return;}
+		}	
+
+		
+		if(!$q->FIELD_EXISTS("nics","ipv6mask","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6mask` INT( 2 ) NOT NULL DEFAULT '0'",'artica_backup');
+		}	
+		if(!$q->FIELD_EXISTS("nics","ipv6addr","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6addr` VARCHAR( 50 ) NOT NULL",'artica_backup');
+		}	
+		if(!$q->FIELD_EXISTS("nics","ipv6gw","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6gw` VARCHAR( 50 ) NOT NULL",'artica_backup');
+		}			
+		
+		
+		
 		$sql="SELECT Interface FROM `nics` WHERE `Interface`='$this->eth'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$sql=$sql_add;
-		writelogs("save nic infos : $sql = > `{$ligne["Interface"]}`",__FUNCTION__,__FILE__);
+		
 		if($ligne["Interface"]<>null){
 			writelogs("save nic infos : UPDATE `{$ligne["Interface"]}`",__FUNCTION__,__FILE__);
 			$sql=	$sql_upd;}
 		
+		writelogs("save nic infos : $sql = > `{$ligne["Interface"]}`",__FUNCTION__,__FILE__);
 		$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){echo $q->mysql_error."\n\nsql command:\n\n$sql\n\n";return false;}
 		
@@ -402,13 +503,108 @@ class system_nic{
 		$f[]="";
 		return @implode("\n", $f);
 	}
+	
+	public function root_build_debian_config_ipv6($eth){
+		$q=new mysql();
+		$unix=new unix();
+		$ipbin=$unix->find_program("ip");
+		$sock=new sockets();
+		$php5=$unix->LOCATE_PHP5_BIN();
+		$OVHNetConfig=$sock->GET_INFO("OVHNetConfig");
+		if(!is_numeric($OVHNetConfig)){$OVHNetConfig=0;}
+		$sysctl=$unix->find_program("sysctl");
+		$ip=new IP();		
+		if($GLOBALS["VERBOSE"]){echo "Starting......: Main interface `$eth`";}
+		$echo=$unix->find_program("echo");
+		$nic=new system_nic($eth);
+		$route=$unix->find_program("route");
+		$servicebin=$unix->find_program("update-rc.d");
+		
+		if($nic->dhcp==1){return "iface $eth inet6 dhcp";}
+		if($OVHNetConfig==1){$ligne["GATEWAY"]=null;}
+		echo "Starting......: Main interface `$eth` enable ipv6 ($sysctl net.ipv6.conf.$eth.disable_ipv6)\n";
+		shell_exec("$sysctl -w net.ipv6.conf.$eth.disable_ipv6=0 >/dev/null 2>&1");
+		
+		$ipv6mask=$nic->ipv6mask;
+		$ipv6addr=$nic->ipv6addr;
+		$ipv6Gwaddr=$nic->ipv6gw;
+		if($ipv6mask==0){
+			echo "Starting......: Main interface `$eth` [$ipv6addr] ipv6mask is not a numeric value...\n"; 
+			return "#[$eth] $ipv6addr: ipv6mask is not a numeric...\n";}
+		$f[]="iface $eth inet6 static";
+		$f[]="\taddress $ipv6addr";
+		$f[]="\tgateway $ipv6Gwaddr";
+		$f[]="\tnetmask $ipv6mask";
+		$f[]="\tpre-up $sysctl -w net.ipv6.conf.$eth.disable_ipv6=0 >/dev/null 2>&1";
+		$f[]="\tpost-up /etc/init.d/$eth-up start >/dev/null 2>&1";	
+		if($ipv6Gwaddr<>null){
+			$f[]="pre-down $route -A inet6 del default gw $ipv6Gwaddr dev $eth";
+		}			
+		
+		$sh[]="#! /bin/sh";
+		$sh[]="#";
+		$sh[]="### BEGIN INIT INFO";
+		$sh[]="# Provides:          $eth-up";
+		$sh[]="# Required-Start:    \$network";
+		$sh[]="# Required-Stop:     $syslog $network $remote_fs";
+		$sh[]="# Should-Start:      ";
+		$sh[]="# Should-Stop:       ";
+		$sh[]="# Default-Start:     2 3 4 5";
+		$sh[]="# Default-Stop:      0 1 6";
+		$sh[]="# Short-Description: $eth-up";
+		$sh[]="# Description:       $eth-up";
+		$sh[]="#";                    
+		$sh[]="#";                    
+		$sh[]="### END INIT INFO";
+		$sh[]="PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin";
+		$sh[]="case \"\$1\" in";
+		$sh[]="  start)";		
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/disable_ipv6";		
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/autoconf";
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/accept_ra";
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/accept_ra_defrtr";
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/accept_ra_pinfo";
+		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/accept_ra_rtr_pref";	
+
+		if($ipv6Gwaddr<>null){
+			$sh[]="$route -A inet6 add default gw $ipv6Gwaddr dev $eth";
+		}		
+		
+		$sql="SELECT * FROM nics_virtuals WHERE ipv6=1 AND nic='$eth' ORDER BY ID DESC";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+			$ipv6addr=$ligne["ipaddr"];
+			$netmask=$ligne["netmask"];
+			if(!is_numeric($netmask)){$netmask=0;}
+			if($netmask==0){continue;}
+			if(!$ip->isIPv6($ipv6addr)){continue;}
+  		    $sh[]="$ipbin addr add dev $eth $ipv6addr/$netmask";
+  		    $f[]="\tpre-down $ipbin addr del dev $eth $ipv6addr/$netmask";
+			shell_exec("$ipbin addr add dev $eth $ipv6addr/$netmask >/dev/null 2>&1");	
+		}
+		
+		$sh[]=";;";		
+		$sh[]="esac";	
+		$sh[]="exit 0";	
+		$f[]="";
+		$sh[]="";
+		echo "Starting......: Building Ipv6 virtuals IP for `$eth` creating `/etc/init.d/$eth-up`\n";
+		@file_put_contents("/etc/init.d/$eth-up", @implode("\n", $sh));
+		$unix->chmod_func(0755, "/etc/init.d/$eth-up");
+		shell_exec("$servicebin -f $eth-up defaults >/dev/null 2>&1");
+		return @implode("\n", $f);
+	}
 
 	
 	public function root_build_debian_config(){
 		$sock=new sockets();
+		$unix=new unix();
+		$servicebin=$unix->find_program("update-rc.d");
 		$NetWorkBroadCastAsIpAddr=$sock->GET_INFO("NetWorkBroadCastAsIpAddr");
+		$EnableipV6=$sock->GET_INFO("EnableipV6");
 		$OVHNetConfig=$sock->GET_INFO("OVHNetConfig");
 		if(!is_numeric($OVHNetConfig)){$OVHNetConfig=0;}
+		if(!is_numeric($EnableipV6)){$EnableipV6=0;}
 		$REMOVE_GATEWAY=false;
 		if($OVHNetConfig==1){$NetWorkBroadCastAsIpAddr;}
 		if($GLOBALS["AS_ROOT"]){
@@ -429,9 +625,11 @@ class system_nic{
 		$f[]="";
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 			$eth=$ligne["Interface"];
+			$ipv6=$ligne["ipv6"];
+			if($EnableipV6==0){$ipv6=0;}
 			if(trim($eth)==null){echo "Starting......: no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
 			$GLOBALS["SAVED_INTERFACES"][]=$eth;
-			
+
 			if($count==0){echo "Starting......: $eth \"{$ligne["IPADDR"]}\"\n";return;}
 			$dns=array();
 			$f[]="";
@@ -531,6 +729,17 @@ class system_nic{
 	        	}
 			}
 		}
+		
+			if($ipv6==1){
+				$f[]="\n\n# Ipv6 config for $eth";
+				$f[]=$this->root_build_debian_config_ipv6($eth);
+			}else{
+				if(is_file("/etc/init.d/$eth-up")){
+					shell_exec("$servicebin -f $eth-up remove >/dev/null 2>&1");
+					@unlink("/etc/init.d/$eth-up");
+				}				
+			}
+		
 	        $f[]="";
 	        $f[]="";
 		
@@ -550,6 +759,7 @@ class system_nic{
 			$f[]="#Virtual interfaces...\n";
 		}
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+			if($ligne["ipv6"]==1){continue;}
 			$arr=explode(".",$ligne["ipaddr"]);
 			$arr[3]="255";
 			$brd=implode(".",$arr);			
@@ -678,8 +888,16 @@ class system_nic{
 	
 	
 	private function auto_eth_virts($eth){
-		$sql="SELECT ID FROM nics_virtuals WHERE `nic`='$eth' ORDER BY ID DESC";
 		$q=new mysql();
+		if(!$q->FIELD_EXISTS("nics_virtuals","ipv6","artica_backup")){
+			$sql="ALTER TABLE `nics_virtuals` ADD `ipv6` TINYINT( 1 ) NOT NULL";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}		
+		
+		$sql="SELECT ID FROM nics_virtuals WHERE `nic`='$eth' AND ipv6=0 ORDER BY ID DESC";
+		
+		
+		
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 			$f[]="$eth:{$ligne["ID"]}";

@@ -6,7 +6,7 @@
 <current_connections>Connexions courantes</current_connections>
 <current_connections_text>Afficher les informations &agrave; propos de qui est connect&eacute; et ce qui se produit sur le flux FTP</current_connections_text>
 <delete_share>Supprimer le partage de ce dossier</delete_share>
-<del_folder_name>Etes-vous sure de vouloir supprimer ce dossier ??</del_folder_name>
+<del_folder_name>Supprimer ce dossier ??</del_folder_name>
 <del_sub_folder>Supprimer ce dossier</del_sub_folder>
 <enable_roaming>Activer les profils itin&eacute;rants</enable_roaming>
 <enable_roaming_text>Si vous tournez cet ic&ocirc;ne en vert, le serveur se transformera en mode PDC et va autoriser les clients Windows &agrave; sauvegarder et r&eacute;cup&eacute;rer les donn&eacute;es locales depuis ce serveur &agrave; partir de n'importe quel ordinateur connect&eacute; au domaine.</enable_roaming_text>

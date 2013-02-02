@@ -132,7 +132,8 @@ function page_js(){
 	function EnableModule(page){
 		tab_selected_plugins_postfix=document.getElementById('tab_selected').value;
 		var XHR = new XHRConnection();
-		document.getElementById('postfix_plugins_main').innerHTML=\"<center style='width:100%'><img src='img/wait_verybig.gif'></center>\";
+		AnimateDiv('postfix_plugins_main');
+		
 		XHR.sendAndLoad(page, 'GET',x_EnableModule);
 	
 	}

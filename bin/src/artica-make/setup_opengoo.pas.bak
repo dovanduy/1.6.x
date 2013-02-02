@@ -48,6 +48,7 @@ public
       function APP_AMACHI_INSTALL():boolean;
       procedure MOD_QOS();
       procedure MOD_PAGESPEED();
+      function PYAUTHENNTLM():boolean;
 END;
 
 implementation
@@ -157,6 +158,62 @@ begin
 end;
 //#########################################################################################
 
+
+function setupopengoo.PYAUTHENNTLM():boolean;
+var
+   CODE_NAME:string;
+   cmd:string;
+   pythonBin:string;
+   ppackage:string;
+begin
+
+result:=false;
+CODE_NAME:='APP_PYAUTHENNTLM';
+if length(source_folder)=0 then source_folder:=libs.COMPILE_GENERIC_APPS('PyAuthenNTLM2');
+  if not DirectoryExists(source_folder) then begin
+     writeln('Install PyAuthenNTLM failed...');
+     exit;
+  end;
+  install.INSTALL_STATUS(CODE_NAME,40);
+  install.INSTALL_PROGRESS(CODE_NAME,'{compiling}');
+  writeln('Install PyAuthenNTLM extracted on "'+source_folder+'"');
+
+  pythonBin:=SYS.LOCATE_GENERIC_BIN('python');
+  if not FileExists(pythonBin) then begin
+     install.INSTALL_STATUS(CODE_NAME,110);
+     writeln('python no such binary...');
+     install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
+     result:=true;
+     exit;
+  end;
+
+  if not FileExists(source_folder+'/setup.py') then begin
+     install.INSTALL_STATUS(CODE_NAME,110);
+     writeln(source_folder+'/setup.py no such file...');
+     install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
+     result:=true;
+     exit;
+  end;
+   SetCurrentDir(source_folder);
+  cmd:=pythonBin+' setup.py install -f';
+  fpsystem(cmd);
+  ppackage:=SYS.LOCATE_PYTHON_PACKAGE('pyntlm.py');
+  SetCurrentDir('/root');
+  writeln(ppackage);
+
+  if FileExists(ppackage) then begin
+     install.INSTALL_STATUS(CODE_NAME,100);
+     install.INSTALL_PROGRESS(CODE_NAME,'{installed}');
+     result:=true;
+  end else begin
+     install.INSTALL_STATUS(CODE_NAME,110);
+     install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
+     result:=true;
+end;
+SetCurrentDir('/root');
+
+end;
+//#########################################################################################
 function setupopengoo.apacheinstall():boolean;
 var
    CODE_NAME:string;
@@ -516,11 +573,11 @@ if not FileExists(filepath) then begin
 end;
 
      if distri.DISTRINAME_CODE='UBUNTU' then cmd:=SYS.LOCATE_GENERIC_BIN('dpkg')+' -i '+filepath;
-   if distri.DISTRINAME_CODE='DEBIAN' then indexDownmload:=SYS.LOCATE_GENERIC_BIN('dpkg')+' -i '+filepath;
-   if distri.DISTRINAME_CODE='CENTOS' then indexDownmload:=SYS.LOCATE_GENERIC_BIN('rpm')+' -i '+filepath;
-   if distri.DISTRINAME_CODE='SUSE' then indexDownmload:=SYS.LOCATE_GENERIC_BIN('rpm')+' -i '+filepath;
-   if distri.DISTRINAME_CODE='FEDORA' then indexDownmload:=SYS.LOCATE_GENERIC_BIN('rpm')+' -i '+filepath;
-   if distri.DISTRINAME_CODE='MANDRAKE' then indexDownmload:=SYS.LOCATE_GENERIC_BIN('rpm')+' -i '+filepath;
+   if distri.DISTRINAME_CODE='DEBIAN' then cmd:=SYS.LOCATE_GENERIC_BIN('dpkg')+' -i '+filepath;
+   if distri.DISTRINAME_CODE='CENTOS' then cmd:=SYS.LOCATE_GENERIC_BIN('rpm')+' -i '+filepath;
+   if distri.DISTRINAME_CODE='SUSE' then cmd:=SYS.LOCATE_GENERIC_BIN('rpm')+' -i '+filepath;
+   if distri.DISTRINAME_CODE='FEDORA' then cmd:=SYS.LOCATE_GENERIC_BIN('rpm')+' -i '+filepath;
+   if distri.DISTRINAME_CODE='MANDRAKE' then cmd:=SYS.LOCATE_GENERIC_BIN('rpm')+' -i '+filepath;
 
     install.INSTALL_STATUS(CODE_NAME,80);
     install.INSTALL_PROGRESS(CODE_NAME,'{installing}');

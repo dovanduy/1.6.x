@@ -20,12 +20,13 @@
 	
 	if(isset($_GET["servers-list"])){servers_list();exit;}
 	if(isset($_GET["freeweb-zarafa-choose"])){FreeWebsPopupZarafa();exit;}
+	if(isset($_POST["FreeWebsEnableSite"])){FreeWebsEnableSite();exit;}
 	
 page();
 
 
 function page(){
-	
+	$users=new usersMenus();
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$date=$tpl->_ENGINE_parse_body("{zDate}");
@@ -48,17 +49,20 @@ function page(){
 	$size=$tpl->_ENGINE_parse_body("{size}");
 	$help=$tpl->_ENGINE_parse_body("{help}");
 	$restore=$tpl->_ENGINE_parse_body("{restore}");
+	$status=$tpl->javascript_parse_text("{status}");
 	$reset_admin_password=$tpl->javascript_parse_text("{reset_admin_password}");
 	$choose_your_zarafa_webserver_type=$tpl->_ENGINE_parse_body("{choose_your_zarafa_webserver_type}");
-	
+	$freeweb_compile_background=$tpl->javascript_parse_text("{freeweb_compile_background}");
+	$enable=$tpl->javascript_parse_text("{enable}");
 	$bt_default_www="{name: '$add_default_www', bclass: 'add', onpress : FreeWebAddDefaultVirtualHost},";
 	$bt_webdav="{name: '$WebDavPerUser', bclass: 'add', onpress : FreeWebWebDavPerUsers},";
 	$bt_rebuild="{name: '$rebuild_items', bclass: 'Reconf', onpress : RebuildFreeweb},";
 	$bt_help="{name: '$help', bclass: 'Help', onpress : HelpSection},";					
-	$bt_restore="{name: '$restore', bclass: 'Restore', onpress : RestoreSite},";	
+	$bt_restore="{name: '$restore', bclass: 'Restore', onpress : RestoreSite},";
+	$bt_stats="{name: '$status', bclass: 'Network', onpress : ApacheAllstatus},";
 	
 	$tablewidth=874;
-	$servername_size=337;
+	$servername_size=241;
 	$bt_function_add="AddNewFreeWebServer";
 	
 	
@@ -72,7 +76,7 @@ function page(){
 	}	
 	if($_GET["tabzarafa"]=="yes"){
 		$tablewidth=690;
-		$servername_size=160;
+		$servername_size=64;
 		$bt_webdav=null;
 		$bt_default_www=null;
 		$bt_function_add="AddNewFreeWebServerZarafa";
@@ -87,12 +91,17 @@ function page(){
 		
 	}
 	
+	if(!$users->APACHE_MOD_STATUS){
+		$bt_stats=null;
+		
+	}
+	
 	
 	$t=time();
 	
 	$buttons="
 	buttons : [
-	{name: '<b>$new_server</b>', bclass: 'add', onpress : $bt_function_add},$bt_default_www$bt_webdav$bt_rebuild$bt_restore$bt_klms_reset_pwd$bt_help
+	{name: '<b>$new_server</b>', bclass: 'add', onpress : $bt_function_add},$bt_default_www$bt_webdav$bt_rebuild$bt_restore$bt_klms_reset_pwd$bt_help$bt_stats
 	
 		],";
 	$html="
@@ -106,6 +115,8 @@ $('#freewebs-table-$t').flexigrid({
 	colModel : [
 		{display: '&nbsp;', name : 'icon', width : 31, sortable : false, align: 'center'},
 		{display: '$joomlaservername', name : 'servername', width :$servername_size, sortable : true, align: 'left'},
+		{display: 'compile', name : 'compile', width :40, sortable : false, align: 'center'},
+		{display: '$enable', name : 'enabled', width :31, sortable : true, align: 'center'},
 		{display: '$size', name : 'DirectorySize', width :60, sortable : true, align: 'center'},
 		{display: '$memory', name : 'memory', width :80, sortable : false, align: 'center'},
 		{display: '$requests', name : 'requests', width : 72, sortable : false, align: 'center'},
@@ -147,6 +158,10 @@ $('#freewebs-table-$t').flexigrid({
 	}
 	
 	
+	function ApacheAllstatus(){
+		Loadjs('freeweb.status.php');
+	}
+	
 	
 	function FreeWebWebDavPerUsers(){
 		Loadjs('freeweb.webdavusr.php?t=$t')
@@ -169,6 +184,15 @@ $('#freewebs-table-$t').flexigrid({
 		// $('#fgAllPatients').flexOptions({ query: 'blah=qweqweqwe' }).flexReload();
 		
 	}	
+	
+	var x_FreeWebsRebuildvHostsTable= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);return;}
+		alert('$freeweb_compile_background');
+		$('#freewebs-table-$t').flexReload();
+		//$('#grid_list').flexOptions({url: 'newurl/'}); 
+		// $('#fgAllPatients').flexOptions({ query: 'blah=qweqweqwe' }).flexReload();
+		}
 
 	
 	var x_klmsresetwebpassword$t= function (obj) {
@@ -232,6 +256,18 @@ $('#freewebs-table-$t').flexigrid({
     			XHR.sendAndLoad('klms.php', 'POST',x_klmsresetwebpassword$t);
     		}		
 		}
+		
+	function FreeWebsRebuildvHostsTable(servername){
+		var XHR = new XHRConnection();
+		XHR.appendData('FreeWebsRebuildvHosts',servername);
+		XHR.sendAndLoad('freeweb.edit.php', 'POST',x_FreeWebsRebuildvHostsTable);
+	}
+
+	function FreeWebsEnableSite(servername){
+		var XHR = new XHRConnection();
+		XHR.appendData('FreeWebsEnableSite',servername);
+		XHR.sendAndLoad('$page', 'POST',x_FreeWebRefresh);	
+	}
 		
 	
 </script>";
@@ -326,6 +362,8 @@ function servers_list(){
 					"&nbsp;",
 					"&nbsp;",
 					"&nbsp;",
+					"&nbsp;",
+					"&nbsp;",
 					)
 				);
 				
@@ -360,7 +398,7 @@ function servers_list(){
 	$total =$countDeRows;
 	$data['page'] = $page;
 	$data['total'] = $total;	
-	
+	$members_text=$tpl->_ENGINE_parse_body("{members}");
 	
 	if(!isset($_SESSION["CheckTableWebsites"])){$q->BuildTables();$_SESSION["CheckTableWebsites"]=true;}
 	$sql="SELECT * FROM freeweb WHERE 1 $whereOU$query_groupware_single $ORDER $limitSql";
@@ -377,6 +415,7 @@ function servers_list(){
 		$WebCopyID=$ligne["WebCopyID"];
 		$statistics="&nbsp;";
 		$exec_statistics="&nbsp;";
+		$Members=null;
 		$groupware=null;
 		$forward_text=null;
 		$checkDNS="<img src='img/20-check-grey.png'>";
@@ -417,16 +456,16 @@ function servers_list(){
 		}
 		$ServerPort=$ligne["ServerPort"];
 		if($ServerPort>0){$added_port=":$ServerPort";}
-		if($ligne["groupware"]<>null){$groupware=div_groupware("({{$vhosts->TEXT_ARRAY[$ligne["groupware"]]["TITLE"]}})");}
+		if($ligne["groupware"]<>null){$groupware=div_groupware("({{$vhosts->TEXT_ARRAY[$ligne["groupware"]]["TITLE"]}})",$ligne["enabled"]);}
 		
-		if($ligne["Forwarder"]==1){$forward_text=div_groupware("{www_forward} <b>{$ligne["ForwardTo"]}</b>");}
+		if($ligne["Forwarder"]==1){$forward_text=div_groupware("{www_forward} <b>{$ligne["ForwardTo"]}</b>",$ligne["enabled"]);}
 		$js_edit="Loadjs('freeweb.edit.php?hostname={$ligne["servername"]}&t={$_GET["t"]}')";
 		
 		
 		$servername_text=$ligne["servername"];
 		if($servername_text=="_default_"){
 			$servername_text="{all}";
-			$groupware=div_groupware("({default_website})");
+			$groupware=div_groupware("({default_website})",$ligne["enabled"]);
 		}else{
 			$checkResolv="<img src='img/20-check.png'>";
 				
@@ -437,10 +476,12 @@ function servers_list(){
 		
 			
 	}
+		$colorhref=null;
+		if($ligne["enabled"]==0){$colorhref="color:#8C8C8C";}
 		
 		$href="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('freeweb.edit.php?hostname={$ligne["servername"]}&t={$_GET["t"]}')\"
-		style='font-size:13px;text-decoration:underline;font-weight:bold'>";
+		style='font-size:13px;text-decoration:underline;font-weight:bold;$colorhref'>";
 		$color="black";
 		$md5S=md5($ligne["servername"]);
 		$delete=icon_href("delete-24.png","FreeWebDelete('{$ligne["servername"]}',$JSDNS,'$md5S')");
@@ -458,9 +499,27 @@ function servers_list(){
 			$edit=icon_href("folder-tasks-32.png","Loadjs('freeweb.edit.php?hostname={$ligne["servername"]}')");
 			$color="#CCCCCC";
 			$delete=icon_href("delete-32-grey.png");
-			$groupware=div_groupware("({installing} {{$vhosts->TEXT_ARRAY[$ligne["groupware"]]["TITLE"]}})");
+			$groupware=div_groupware("({installing} {{$vhosts->TEXT_ARRAY[$ligne["groupware"]]["TITLE"]}})",$ligne["enabled"]);
 			
-		}	
+		}
+		
+		
+
+		
+		$Params=@unserialize(base64_decode($ligne["Params"]));
+		$IsAuthen=false;
+		if($Params["LDAP"]["enabled"]==1){$IsAuthen=true;}
+		if($Params["NTLM"]["enabled"]==1){$IsAuthen=true;}
+		
+		$color_orange="#B64B13";
+		if($ligne["enabled"]==0){$color_orange="#8C8C8C";}
+		
+		if($IsAuthen){
+			$Members="<span style='font-size:11px;font-weight:bold;color:$color_orange;'>&nbsp;&laquo;<a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('freeweb.edit.ldap.users.php?servername={$ligne["servername"]}');\"
+			style='font-size:11px;font-weight:bold;color:$color_orange;text-decoration:underline;font-style:italic'>$members_text</a>
+			&nbsp;&raquo;</span>";
+		}
 
 		$memory="-";$requests_second="-";$traffic_second="-";$uptime=null;
 		$table_name_stats="apache_stats_".date('Ym');
@@ -470,7 +529,7 @@ function servers_list(){
 			$memory=FormatBytes($ligneStats["total_memory"]/1024);
 			$requests_second="{$ligneStats["requests_second"]}/s";
 			$traffic_second=FormatBytes($ligneStats["traffic_second"]/1024)."/s";
-			$uptime=div_groupware("{uptime}:{$ligneStats["UPTIME"]}");
+			$uptime=div_groupware("{uptime}:{$ligneStats["UPTIME"]}",$ligne["enabled"]);
 			
 		}
 		
@@ -488,8 +547,19 @@ function servers_list(){
 		$delete=$tpl->_ENGINE_parse_body($delete);
 		if($WebCopyID>0){
 			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT sitename FROM httrack_sites WHERE ID=$WebCopyID","artica_backup"));
-			$groupware=div_groupware("WebCopy: {$ligne2["sitename"]}");
+			$groupware=div_groupware("WebCopy: {$ligne2["sitename"]}",$ligne["enabled"]);
 		}
+		
+		$color_span="#5F5656";
+		if($ligne["enabled"]==0){$color_span="#8C8C8C";}
+		$compile=imgsimple("refresh-32.png",null,"FreeWebsRebuildvHostsTable('{$ligne["servername"]}')");
+		$enable=Field_checkbox("enable_$md5S", 1,$ligne["enabled"],"FreeWebsEnableSite('{$ligne["servername"]}')");
+		
+		if($ligne["enabled"]==0){
+			$requests_second="-";
+			$traffic_second="-";
+			$memory="-";
+			$color="#8C8C8C";$color_span=$color;$icon="status_disabled.gif";$compile="&nbsp;";}
 		
 		$spanStyle1="<span style='font-size:11px;font-weight:bold;color:#5F5656;'>";
 		
@@ -498,7 +568,8 @@ function servers_list(){
 				'cell' => array(
 					"<img src='img/$icon'>", 
 					"<strong style='font-size:13px;style='color:$color'>$href$servername_text</a>$groupware$forward_text
-					$added_port$sizevg</strong></span>$ServerAlias$uptime",
+					$added_port$Members$sizevg</strong></span>$ServerAlias$uptime",
+					$compile,$enable,	
 					"$spanStyle1$DirectorySize</span>",
 					"$spanStyle1$memory</span>",
 					"$spanStyle1$requests_second&nbsp;|&nbsp;$traffic_second</span>",
@@ -564,8 +635,16 @@ function FreeWebsPopupZarafa(){
 
 
 
-function div_groupware($text){
-	return $GLOBALS["CLASS_TPL"]->_ENGINE_parse_body("<div style=\"font-size:11px;font-weight:bold;font-style:italic;color:#B64B13;margin:0px;padding:0px\">$text</div>");
+function div_groupware($text,$enabled){
+	$color_orange="#B64B13";
+	if($enabled==0){$color_orange="#8C8C8C";}
+	
+	return $GLOBALS["CLASS_TPL"]->_ENGINE_parse_body("<div style=\"font-size:11px;font-weight:bold;font-style:italic;color:$color_orange;margin:0px;padding:0px\">$text</div>");
 	}
 
-
+function FreeWebsEnableSite(){
+	$servername=$_POST["FreeWebsEnableSite"];
+	$frr=new freeweb($servername);
+	$frr->EnableDisableSwitch();
+	
+}

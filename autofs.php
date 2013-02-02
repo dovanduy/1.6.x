@@ -15,6 +15,9 @@ if(posix_getuid()<>0){
 	}
 }
 
+if(isset($_GET["service-cmds"])){service_cmds_js();exit;}
+if(isset($_GET["service-cmds-peform"])){service_cmds_perform();exit;}
+
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["status"])){status();exit;}
 if(isset($_GET["autofs-status"])){status_service();exit;}
@@ -51,7 +54,57 @@ function form_add_js(){
 	echo "YahooWin4('650','$page?form-add-popup=yes&dn={$_GET["dn"]}&t={$_GET["t"]}','$title');";
 	
 }
+function service_cmds_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$cmd=$_GET["service-cmds"];
+	$mailman=$tpl->_ENGINE_parse_body("{automount_center}");
+	$html="YahooWin4('650','$page?service-cmds-peform=$cmd','$mailman::$cmd');";
+	echo $html;
+}
+function service_cmds_perform(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$datas=unserialize(base64_decode($sock->getFrameWork("autofs.php?service-cmds={$_GET["service-cmds-peform"]}&MyCURLTIMEOUT=120")));
 
+	$html="
+<div style='width:100%;height:350px;overflow:auto'>
+<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
+<thead class='thead'>
+	<tr>
+	<th>{events}</th>
+	</tr>
+</thead>
+<tbody class='tbody'>";
+
+	while (list ($key, $val) = each ($datas) ){
+		if(trim($val)==null){continue;}
+		if(trim($val=="->")){continue;}
+		if(isset($alread[trim($val)])){continue;}
+		$alread[trim($val)]=true;
+		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
+		$val=htmlentities($val);
+		$html=$html."
+		<tr class=$classtr>
+		<td width=99%><code style='font-size:12px'>$val</code></td>
+		</tr>
+		";
+
+
+	}
+
+	$html=$html."
+	</tbody>
+</table>
+</div>
+<script>
+	RefreshTab('main_config_autofs');
+</script>
+
+";
+	echo $tpl->_ENGINE_parse_body($html);
+}
 
 function form_add_popup(){
 	$users=new usersMenus();
@@ -402,12 +455,16 @@ function form_add_details_CIFS(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$tpl=new templates();	
-
+	$sock=new sockets();
+	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
 	
 	if($users->SAMBA_INSTALLED){
-		$button_browes="<input type='button' 
-		OnClick=\"javascript:Loadjs('samba.smbtree.php?server-field=CIFS_SERVER&folder-field=CIFS_FOLDER')\" 
-		value=\"{browse}&nbsp;&raquo;&raquo\" style='font-size:14px'>";
+		if($SambaEnabled==1){
+			$button_browes="<input type='button' 
+			OnClick=\"javascript:Loadjs('samba.smbtree.php?server-field=CIFS_SERVER&folder-field=CIFS_FOLDER')\" 
+			value=\"{browse}&nbsp;&raquo;&raquo\" style='font-size:14px'>";
+		}
 	}
 	
 	$html="
@@ -449,8 +506,8 @@ var x_SaveAutoFsCIFS= function (obj) {
 	var results=obj.responseText;
 	if(results.length>0){alert(results);return;}
 	YahooWin4Hide();
-	
 	if(document.getElementById('BackupTaskAutoFSMountedList')){RefreshAutoMountsBackup();}
+	if(document.getElementById('main_config_autofs')){RefreshTab('main_config_autofs');}
 	$('#flexRT{$_GET["t"]}').flexReload();
 	}	
 		
@@ -669,7 +726,7 @@ function js(){
 		if(isset($_GET["windows"])){$jsstart="AutofsConfigLoadPopup()";}
 		$page=CurrentPageName();
 		$tpl=new templates();
-		$title=$tpl->_ENGINE_parse_body("{system_log}");
+		$title=$tpl->_ENGINE_parse_body("{automount_center}");
 		$html="
 		
 		
@@ -678,7 +735,7 @@ function js(){
 			}
 			
 		function AutofsConfigLoadPopup(){
-			YahooWin4(600,'$page?tabs=yes','$title');
+			YahooWin3(921,'$page?tabs=yes','$title');
 			}					
 			
 		$jsstart;
@@ -775,7 +832,25 @@ function status_service(){
 	
 	
 	$status=DAEMON_STATUS_ROUND("APP_AUTOFS",$ini,null,0);
-	echo $tpl->_ENGINE_parse_body($status);		
+	
+	$html="		<center style='margin-top:10px;margin-bottom:10px;width:95%' class=form>
+		<table style='width:70%'>
+		<tbody>
+		<tr>
+			<td width=10% align='center;'>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?service-cmds=stop')")."</td>
+			<td width=10% align='center'>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?service-cmds=restart')")."</td>
+			<td width=10% align='center'>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
+		</tr>
+		</tbody>
+		</table>
+	
+		</center>
+		<center style='padding-left:10px'>$status</center>	
+						
+		";
+	
+	
+	echo $tpl->_ENGINE_parse_body($html);		
 	
 }
 

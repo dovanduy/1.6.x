@@ -167,7 +167,7 @@ class SMTP {
    */
   public function StartTLS() {
     $this->error = null; # to avoid confusion
-
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.'['.__LINE__."] OK\n";}
     if(!$this->connected()) {
       $this->error = array("error" => "Called StartTLS() without being connected");
       return false;
