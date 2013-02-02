@@ -1867,6 +1867,8 @@ function mysql_real_escape_string2($query){
 		
 	}
 	
+
+	
 	
 	function FIELD_TYPE($table,$field,$database){
 		if(isset($GLOBALS["__FIELD_TYPE"])){

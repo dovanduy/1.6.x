@@ -78,6 +78,15 @@ class mysql_builder{
 				writelogs("Fatal: $this->mysql_error Adding field $field in $table/$database $type($size) $sql",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			}	
 			
+		}else{
+			$Filedtype=$this->FIELD_TYPE($table,$field,$database);
+			if($size>0){$size_text="($size)";}
+			$MyType=strtolower("$type$size_text");
+			if($MyType<>$Filedtype){
+				$sql="ALTER TABLE `$table` CHANGE `$field` `$field` $type$size_text";
+				$this->QUERY_SQL($sql,$database);
+			}
+			
 		}
 	}
 	
@@ -4903,7 +4912,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  `nic` varchar(20) NOT NULL,
 				  `ID` int(11) NOT NULL AUTO_INCREMENT,
 				  `org` varchar(255) NOT NULL,
-				  `ipaddr` varchar(25) NOT NULL,
+				  `ipaddr` varchar(128) NOT NULL,
 				  `netmask` varchar(25) NOT NULL,
 				  `cdir` varchar(30) NOT NULL,
 				  `gateway` varchar(30) NOT NULL,
@@ -4917,7 +4926,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 			$this->QUERY_SQL($sql,'artica_backup');
 			}
 			
-			 
+			$this->FIELD_CHECKS("nics_virtuals", "ipaddr", "artica_backup", "varchar", 128);
 			
 			if(!$this->FIELD_EXISTS("nics_virtuals","gateway","artica_backup")){
 				$sql="ALTER TABLE `nics_virtuals` ADD `gateway` VARCHAR( 30 ) NOT NULL";
@@ -7091,7 +7100,7 @@ function check_networks_tables(){
 			  `DNS_SEARCH` varchar(128) NOT NULL,
 			  `VLAN_ROW_DEVICE` varchar(40) NOT NULL,
 			  `MTU` int(2) NOT NULL,
-			  `IPADDR` varchar(55) NOT NULL,
+			  `IPADDR` varchar(128) NOT NULL,
 			  `NETMASK` varchar(55) NOT NULL,
 			  `BOOTPROTO` varchar(10) NOT NULL,
 			  `GATEWAY` varchar(55) NOT NULL,
@@ -7157,7 +7166,9 @@ function check_networks_tables(){
 	if(!$this->FIELD_EXISTS("nics","BridgedTo","artica_backup")){
 		$sql="ALTER TABLE `nics` ADD `BridgedTo` VARCHAR( 50 ) NOT NULL ,ADD INDEX ( `BridgedTo` )";
 		$this->QUERY_SQL($sql,'artica_backup');
-	}	
+	}
+
+	$this->FIELD_CHECKS("nics", "IPADDR", "artica_backup", "VARCHAR",128);
 
 	
 	if(!$this->TABLE_EXISTS('crossroads_smtp','artica_backup')){		
