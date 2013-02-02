@@ -708,6 +708,14 @@ function ChangeSID($sid){
 		if(is_array($n)){return "\tremote announce = ". @implode(" ",$n)."\n";}
 		
 	}
+	
+private function SAMBA_VERSION_UNIX(){
+	if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}
+	$unix=new unix();
+	$winbind=$unix->find_program("winbindd");
+	exec("$winbind -V 2>&1",$results);
+	if(preg_match("#Version\s+([0-9\.]+)#i", @implode("", $results),$re)){return $re[1];}
+}
 
 private function WINBINDD_PARAMS(){
 	
@@ -752,27 +760,13 @@ private function WINBINDD_PARAMS(){
 	
 	
 	if($this->EnableKerbAuth==1){
-		$kerbArray=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
-		$domainUp=strtoupper($kerbArray["WINDOWS_DNS_SUFFIX"]);
-		$conf[]="\tsecurity = ADS";
-		$conf[]="\tpassword server=*";
-		$conf[]="\trealm = $domainUp";
-		$conf[]="\tkerberos method = system keytab";
-		$conf[]="\tidmap config $domainUp : backend = ad";
-		$conf[]="\tidmap config $domainUp : readonly = Yes";
-		$conf[]="#\tidmap config $domainUp : schema_mode = rfc2307";
-		$conf[]="\tidmap config $domainUp : range = 1000-4000000000";
-		$conf[]="\tidmap uid = 1000-4000000000";
-		$conf[]="\tidmap gid = 1000-4000000000";
-		$conf[]="\tclient use spnego = Yes";
-		$conf[]="\tencrypt passwords = Yes";
-		$conf[]="\twinbind separator = +";				
-		$conf[]="\twinbind use default domain = $SambaWinbindUseDefaultDomain";		
-		$conf[]="\twinbind enum users = Yes";
-		$conf[]="\twinbind enum groups = Yes";
-		$conf[]="\twinbind rpc only	= $SambaWinbindRpcOnly";
-		$conf[]="\tallow trusted domains = $SambaAllowTrustedDomains";		
-		return @implode("\n", $conf);
+		include_once(dirname(__FILE__)."/class.samba.kerb.inc");
+		
+		$smbkerb=new samba_kerb();
+		if($GLOBALS["AS_ROOT"]){
+			shell_exec("/usr/share/artica-postfix/bin/artica-install --nsswitch");
+		}
+		return $smbkerb->buildPart();
 	}	
 	
 	
@@ -838,8 +832,7 @@ private function WINBINDD_PARAMS(){
 			$conf[]="\tidmap config * : base_rid = 0";
 			$conf[]="\tidmap config $WORKGROUP : range = 20000 - 20000000";
 			$conf[]="\tidmap config $WORKGROUP : default = yes";
-			$conf[]="\tidmap config $WORKGROUP : backend = rid";  			
-			$conf[]="\tidmap config $WORKGROUP : base_rid = 20000";  			
+			$conf[]="\tidmap config $WORKGROUP : backend = tbd";  				
 			$conf[]="\tclient use spnego	= No";
         	$conf[]="\tclient use spnego principal	= No";
         	$conf[]="\tmap untrusted to domain = Yes";

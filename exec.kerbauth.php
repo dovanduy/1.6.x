@@ -4,11 +4,13 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
+include_once(dirname(__FILE__).'/ressources/class.samba.kerb.inc');
 include_once(dirname(__FILE__)."/framework/class.settings.inc");
 $GLOBALS["CHECKS"]=false;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["JUST_PING"]=false;
 $GLOBALS["OUTPUT"]=false;
+$GLOBALS["AS_ROOT"]=true;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;echo "VERBOSED !!! \n";}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
@@ -915,105 +917,11 @@ function SAMBA_PROXY(){
 	
 	
 	$f[]="[global]";
-	$f[]="\tworkgroup = $workgroup";
-	$f[]="\tkerberos method = dedicated keytab";
-	$f[]="\tdedicated keytab file = /etc/krb5.keytab";
-	//$f[]="\tkerberos method = system keytab";
-	$f[]="\trealm = $realm";
-	$f[]="\tsecurity = ads";
-	//$f[]="\tsecurity = domain";
-	if($KerbAuthDisableGroupListing==0){
-		$f[]="\twinbind enum groups = Yes";
-		$f[]="\twinbind enum users = Yes";	
-	}else{
-		$f[]="\twinbind enum groups = No";
-		$f[]="\twinbind enum users = No";			
-	}
-	$f[]="\tidmap config * : range = 10000 - 20000";			
-	$f[]="\tidmap config * : backend = tdb";	
-	
-	$arrayBCK["autorid"]="autorid";
-	$arrayBCK["rid"]="rid";
-	$arrayBCK["tdb"]="tdb";
-	
-	  switch ($array["SAMBA_BACKEND"]) {
-            case 'autorid':
-          		$f[]="\tidmap config $workgroup: backend = autorid";
-				$f[]="\tidmap config $workgroup: range = 100000-1499999";
-            break;
-            case 'rid':
-				$f[]="\tidmap config $workgroup :backend	= rid";
-				$f[]="\tidmap config $workgroup :range	= 50000001-5999999";
-				$f[]="\tidmap config $workgroup :base_rid	= 0";
-            break;	
-            case 'tdb':
-				$f[]="\tidmap config $workgroup : backend = tdb";
-            	$f[]="\tidmap config $workgroup : range = 20000 - 20000000";			
-            break;	
-			case 'ad':
-        		$f[]="\tidmap config $workgroup : backend  = ad";
-        		$f[]="\tidmap config $workgroup : range = 20000-20000000	";			
-            break;	            
-
-
-
-
-            default:
-				$f[]="\tidmap config $workgroup : range = 20000 - 20000000";
-				$f[]="\tidmap config $workgroup : backend = tdb";            	
-			break;
-            
-            
- 		}
-		
- 		
- 		if($KerbAuthMapUntrustedDomain==1){
- 			$f[]="\tmap untrusted to domain = Yes";
- 		}else{
- 			$f[]="\tmap untrusted to domain = No";
- 		}
-		
-		$f[]="\tclient ntlmv2 auth = Yes";
-		$f[]="\tclient lanman auth = No";
-		
-		if($KerbAuthDisableNormalizeName==1){
-			$f[]="\twinbind normalize names = No";
-		}else{
-			$f[]="\twinbind normalize names = Yes"; # bug 9226
-		}
-		$f[]="\twinbind separator = /";
-		$f[]="\twinbind use default domain = yes";
-		$f[]="\twinbind nested groups = Yes";
-		$f[]="\twinbind nss info = rfc2307";
-		$f[]="\twinbind reconnect delay = 30";
-		$f[]="\twinbind offline logon = true";
-		$f[]="\twinbind cache time = 1800";
-		$f[]="\twinbind refresh tickets = true";
-		if($KerbAuthTrusted==1){
-			$f[]="\tallow trusted domains = Yes";
-		}else{
-			$f[]="\tallow trusted domains = No";
-		}
-		$f[]="\tserver signing = auto";
-		$f[]="\tclient signing = auto";
-		$f[]="\tlm announce = No";
-		$f[]="\tntlm auth = No";
-		$f[]="\tlanman auth = No";
-		$f[]="\tpreferred master = No";	
-		$f[]="\twins support = No";
-		
+	$smbkerb=new samba_kerb();
+	$f[]=$smbkerb->buildPart();
 	
 	
-	$f[]="\tencrypt passwords = yes";
-	//$f[]="\tpassword server = *";
-	$f[]="\tpassword server = $password_server";	
-	//$f[]="\twinbind use default domain = yes";
-	$f[]="\tprinting = bsd";
-	$f[]="\tload printers = no";
-	$f[]="\tsocket options = TCP_NODELAY SO_RCVBUF=8192 SO_SNDBUF=8192";
-	//$f[]="\tinterfaces = 127.0.0.0/255.0.0.0";
-	//$f[]="\tbind interfaces only = yes";
-	$f[]="";
+	
 	@file_put_contents("/etc/samba/smb.conf", @implode("\n", $f));
 	echo "Starting......:  Samba, [$adminname]: SMB.CONF DONE, restarting services\n";
 	$net=$unix->find_program("net");
