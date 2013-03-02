@@ -91,7 +91,6 @@ function remove_disk_table_all($table,$database){
 function remove_disk_table($table,$database){
 	$unix=new unix();
 	$sock=new sockets();
-	
 	$MYSQL_DATA_DIR=$sock->GET_INFO("ChangeMysqlDir");
 	if($MYSQL_DATA_DIR==null){$MYSQL_DATA_DIR="/var/lib/mysql";}
 	ouputz("Remove $MYSQL_DATA_DIR/$database/$table.MYD(*)",__LINE__);

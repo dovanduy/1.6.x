@@ -88,7 +88,7 @@ function CompileUfdbGuardRules_perform(){
 	$sock=new sockets();
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$sock->getFrameWork("squid.php?ufdbguard-compile-smooth-tenir=yes");
+	$sock->getFrameWork("squid.php?ufdbguard-compile-smooth-tenir=yes&MyCURLTIMEOUT=300");
 	$t=time();
 	$html="
 	<input type='hidden' value='0' id='stop-refresh-$t'>
@@ -183,46 +183,46 @@ function tabs(){
 
 	$array["ufdbguard-status"]="{service_status}";
 	$fontsize=14;
-	if(count($array)>5){$fontsize=11.5;}
+	if(count($array)>6){$fontsize=11.5;}
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="rewrite-rules"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.rewrite.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"ufdbguard.rewrite.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="categories"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.php?categories=yes&maximize=yes\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"dansguardian2.databases.php?categories=yes&maximize=yes\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 			
 		if($num=="quotas"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.helpers.quotas.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.helpers.quotas.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 		if($num=="section_basic_filters-bandwith"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.bandwith.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.bandwith.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
 			
 		}	
 
 		if($num=="section_basic_filters-time"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.connection-time.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.connection-time.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
 			
 		}
 		
 		if($num=="section_basic_filters-terms"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.terms.groups.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.terms.groups.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
 			
 		}		
 
 		if($num=="c-icap-dnsbl"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"c-icap.dnsbl2.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"c-icap.dnsbl2.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 				
@@ -366,9 +366,29 @@ function rules_toolbox_left(){
 	$tablescat=$q->LIST_TABLES_CATEGORIES();
 	$CountDeCategories=numberFormat(count($tablescat),0,""," ");
 	
-	$todayblocked=date("Ymd")."_blocked_days";
+	$todayblocked=date("Ymd")."_blocked";
 	$CountDeBlocked=$sql=$q->COUNT_ROWS($todayblocked);
 	$CountDeBlocked=numberFormat(count($CountDeBlocked),0,""," ");
+	
+	
+	if($users->UPDATE_UTILITYV2_INSTALLED){
+		$updateutility="	<tr>
+		<td valign='top' width=1%><img src='img/kaspersky-update-32.png'></td>
+		<td valign='top' width=99%>
+			<table style='width:100%'>
+			<tr>
+				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
+				OnClick=\"javascript:Loadjs('ufdbguard.UpdateUtility.php')\" nowrap>UpdateUtility</td>
+			</tr>
+			</table>
+		</td>
+	</tr>";
+		
+	}
+	
+	
+	
 	
 	
 	
@@ -463,7 +483,8 @@ function rules_toolbox_left(){
 			</tr>
 			</table>
 		</td>
-	</tr>		
+	</tr>	
+	$updateutility	
 	<tr>
 		<td valign='top' width=1%><img src='img/delete-32.png'></td>
 		<td valign='top' width=99%>

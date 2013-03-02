@@ -162,7 +162,10 @@ begin
    end;
 
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.klms.php --setup');
-
+   if FileExists('/var/opt/kaspersky/klms/postgresql/postmaster.pid') then begin
+         logs.DebugLogs('Starting......: Kaspersky Mail security database removing postmaster.pid');
+         logs.DeleteFile('/var/opt/kaspersky/klms/postgresql/postmaster.pid');
+   end;
    cmd:='/etc/init.d/klmsdb start';
    logs.DebugLogs('Starting......: Kaspersky Mail security database '+ cmd);
    fpsystem(cmd);
@@ -217,9 +220,11 @@ begin
        logs.DebugLogs('Starting......: Kaspersky Mail security Suite /etc/init.d/klms no such file');
        exit;
    end;
-
+   logs.DebugLogs('Starting......: Kaspersky Mail security Suite reconfiguring....');
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.klms.php --setup');
-
+   logs.DebugLogs('Starting......: Kaspersky Mail security checking database daemon....');
+   DBSTART();
+   logs.DebugLogs('Starting......: Kaspersky Mail security starting service...');
    cmd:='/etc/init.d/klms start';
    logs.DebugLogs('Starting......: Kaspersky Mail security Suite '+ cmd);
    fpsystem(cmd);

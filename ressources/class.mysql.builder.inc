@@ -1265,6 +1265,11 @@ public function check_storage_table(){
 		)";
 		$this->QUERY_SQL($sql,"artica_backup");
 	}	
+	$sql="CREATE TABLE IF NOT EXISTS `relay_domains_restricted` (`domainname` varchar(255) NOT NULL,
+	`hostname` varchar(255) NOT NULL,
+	`zmd5` varchar(90) NOT NULL,
+	PRIMARY KEY (`zmd5`) )";
+	$this->QUERY_SQL($sql,"artica_backup");
 	
 	
 	if(!$this->TABLE_EXISTS('mbxs_backup','artica_backup')){		
@@ -1363,6 +1368,14 @@ public function check_storage_table(){
 		)";
 		$this->QUERY_SQL($sql,"artica_backup");
 	}	
+	
+	
+	$sql="CREATE TABLE IF NOT EXISTS `ntpd_servers` (
+		  `ntp_servers` varchar(255) NOT NULL PRIMARY KEY,
+		  `order` smallint(1) NOT NULL,
+		  KEY `order` (`order`)
+		)";
+		$this->QUERY_SQL($sql,"artica_backup");
 	
 	
 
@@ -1607,7 +1620,7 @@ public function check_storage_table(){
 			)";
 		$this->QUERY_SQL($sql,"artica_backup");	
 	
-		if(!$this->FIELD_EXISTS("recursive","pdns_fwzones","artica_backup")){
+		if(!$this->FIELD_EXISTS("pdns_fwzones","recursive","artica_backup")){
 			$sql="ALTER TABLE `pdns_fwzones` ADD `recursive` smallint(1) NOT NULL";
 			$this->QUERY_SQL($sql,"artica_backup");
 		}	
@@ -4902,7 +4915,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  KEY (`filepath`),
 				  KEY `filesize` (`filesize`),
 				  KEY `zDate` (`zDate`)
-				)";
+				) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,'artica_backup');
 			}		
 
@@ -4922,7 +4935,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  KEY `nic` (`nic`),
 				  KEY `org` (`org`,`ipaddr`,`netmask`),
 				  KEY `cdir` (`cdir`)
-				)";
+				) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,'artica_backup');
 			}
 			
@@ -4963,7 +4976,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				`IPPARAM` VARCHAR( 255 ) NOT NULL ,
 				INDEX ( `IPPARAM` ) ,
 				UNIQUE (`stime`)
-				)";			
+				) ENGINE=MYISAM;";			
 				$this->QUERY_SQL($sql,'artica_events');	
 				if(!$this->ok){
 					writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
@@ -4987,7 +5000,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  KEY `hostname` (`hostname`),
 				  KEY `Country` (`Country`)
 				  
-				  )";
+				  ) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,'artica_events');
 		}
 		
@@ -5007,7 +5020,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  KEY `InterfaceType` (`InterfaceType`),
 				  KEY `hostname` (`hostname`),
 				  KEY `uid` (`uid`)
-				) ";
+				) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,'artica_events');
 		}		
 		
@@ -5038,9 +5051,66 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  PRIMARY KEY (`ID`),
 				  KEY `zDate` (`zDate`,`event_id`,`event_type`,`process`,`hostname`),
 				  KEY `context` (`context`),
-				  KEY `sended` (`sended`))";
+				  KEY `sended` (`sended`)) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,'artica_events');
 		}
+		
+		$sql="CREATE TABLE IF NOT EXISTS `updateutilityev` (
+				  `zDate` datetime NOT NULL,
+				  `filesize` int(100) NOT NULL,
+				  `filesnum` int(11) NOT NULL,
+				  `isSuccess` smallint(1) NOT NULL,
+				 `details` TEXT NOT NULL,
+				  PRIMARY KEY (`zDate`),
+				  KEY `filesize` (`filesize`),
+				  KEY `filesnum` (`filesnum`),
+				  KEY `isSuccess` (`isSuccess`)
+				  ) ENGINE=MYISAM;";
+		$this->QUERY_SQL($sql,'artica_events');	
+
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS `ext_time_quota_acl` (
+				  `ID` BIGINT(100) NOT NULL AUTO_INCREMENT,
+				  `QuotaName` VARCHAR(255) NOT NULL,
+				  `QuotaType` VARCHAR(60) NOT NULL,
+				  `TTL` int(10) NOT NULL DEFAULT 60,
+				  `enabled` smallint(1) NOT NULL DEFAULT 1,
+				  `details` TEXT NOT NULL,
+				  PRIMARY KEY (`ID`),
+				  KEY `QuotaName` (`QuotaName`),
+				  KEY `QuotaType` (`QuotaType`),
+				  KEY `enabled` (`enabled`)
+				  ) ENGINE=MYISAM;";
+			$this->QUERY_SQL($sql,'artica_backup');			
+
+			$sql="CREATE TABLE IF NOT EXISTS `ext_time_quota_acl_rules` (
+				  `ID` BIGINT(100) NOT NULL AUTO_INCREMENT,
+				  `ruleid` BIGINT(100) NOT NULL,
+				  `rulename` VARCHAR(255) NOT NULL,
+				  `budget` VARCHAR(60) NOT NULL,
+				  `period` VARCHAR(60) NOT NULL,
+				  `enabled` smallint(1) NOT NULL DEFAULT 1,
+				  PRIMARY KEY (`ID`),
+				  KEY `rulename` (`rulename`),
+				  KEY `ruleid` (`ruleid`),
+				  KEY `budget` (`budget`),
+				  KEY `enabled` (`enabled`)
+				  ) ENGINE=MYISAM;";
+			$this->QUERY_SQL($sql,'artica_backup');
+		
+			$sql="CREATE TABLE IF NOT EXISTS `ext_time_quota_acl_link` (
+				  `zmd5` VARCHAR(100) NOT NULL,
+				  `ruleid` BIGINT(100) NOT NULL,
+				  `groupid` BIGINT(100) NOT NULL,
+				  `enabled` smallint(1) NOT NULL DEFAULT 1,
+				  PRIMARY KEY (`zmd5`),
+				  KEY `ruleid` (`ruleid`),
+				  KEY `groupid` (`groupid`),
+				  KEY `enabled` (`enabled`)
+				  ) ENGINE=MYISAM;";
+			$this->QUERY_SQL($sql,'artica_backup');
+					
 		
 			if(!$this->TABLE_EXISTS('avgreports','artica_events')){	
 			$sql="CREATE TABLE IF NOT EXISTS `avgreports` (
@@ -5057,7 +5127,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  KEY `cpur` (`cpur`),
 				  KEY `memr` (`memr`)
 				  
-				  )";
+				  ) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,'artica_events');
 		}		
 		
@@ -6322,10 +6392,38 @@ public function CheckTables_openvpn(){
 			`items` VARCHAR( 255 ) NOT NULL PRIMARY KEY
 			) ENGINE=MYISAM;
 		";
+		
+		$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`kav4proxy_templates` (`template` VARCHAR( 50 ) NOT NULL PRIMARY KEY,`content` TEXT NOT NULL) ENGINE=MYISAM;";		
+		
+		
 		$this->QUERY_SQL($sql,"artica_backup");
 		
+		$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`squid_caches32` (
+			`cacheid` VARCHAR( 90 ) NOT NULL PRIMARY KEY,
+			`uuid` VARCHAR( 255 ) NOT NULL ,	
+			`cache_directory` VARCHAR( 255 ) NOT NULL ,
+			`cpunum` smallint( 2 ) NOT NULL ,
+			`cache_maxsize` smallint( 5 ) NOT NULL ,
+			`cache_type` VARCHAR( 20 ) NOT NULL ,	
+			`size` smallint( 5 ) NOT NULL ,	
+			`cache_dir_level1` smallint( 5 ) NOT NULL ,	
+			`cache_dir_level2` smallint( 5 ) NOT NULL ,
+			`enabled` smallint( 1 ) NOT NULL DEFAULT 1,
+			`ToDelete` smallint( 1 ) NOT NULL DEFAULT 0,
+			`Building` smallint( 1 ) NOT NULL DEFAULT 0,				
+			KEY `cache_directory` (`cache_directory`),
+			KEY `uuid` (`uuid`),
+			KEY `cpunum` (`cpunum`),
+			KEY `ToDelete` (`ToDelete`),
+			KEY `Building` (`Building`),
+			KEY `enabled` (`enabled`)
+			)ENGINE=MYISAM;	
+			
+		";
+		$this->QUERY_SQL($sql,"artica_backup");		
 		
 		
+
 		
 			$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`squid_accel` (
 			`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
@@ -6347,8 +6445,6 @@ public function CheckTables_openvpn(){
 			$this->QUERY_SQL($sql,"artica_backup");
 		
 			
-			
-		
 		
 		if(!$this->FIELD_EXISTS("squid_accel","enabled","artica_backup")){
 			$this->QUERY_SQL("ALTER TABLE `squid_accel` ADD `enabled` smallint( 1 ) NOT NULL DEFAULT '1',ADD INDEX ( `enabled` )","artica_backup");
@@ -6428,7 +6524,20 @@ public function CheckTables_openvpn(){
 			$this->QUERY_SQL($sql,"artica_backup");
 		}		
 		
-			//
+		$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`cache_peer_domain` (
+				`md5` VARCHAR( 90 ) NOT NULL PRIMARY KEY ,
+				`servername` VARCHAR( 255 ) NOT NULL ,
+				`domain` VARCHAR( 255) NOT NULL,
+				`reverse` smallint( 1) NOT NULL,
+				`enabled` smallint( 1 ) NOT NULL DEFAULT '1',
+				KEY  `servername` ( `servername` ),
+				KEY  `domain` ( `domain` ),
+				KEY  `reverse` ( `reverse` ),
+				KEY `enabled` (`enabled`)
+				) ENGINE=MYISAM;";
+			$this->QUERY_SQL($sql,"artica_backup");
+		
+		
 			$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`squid_parents` (
 				`ID` INT( 3 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
 				`servername` VARCHAR( 255 ) NOT NULL ,

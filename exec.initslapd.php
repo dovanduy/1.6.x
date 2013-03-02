@@ -12,6 +12,11 @@ if($argv[1]=="--rsyslogd-init"){rsyslogd_init();exit;}
 if($argv[1]=="--start"){start_ldap();exit;}
 if($argv[1]=="--stop"){stop_ldap();exit;}
 
+$unix=new unix();
+$PID_FILE="/etc/artica-postfix/pids/".basename(__FILE__);
+$oldpid=$unix->get_pid_from_file($PID_FILE);
+if($unix->process_exists($oldpid)){echo "slapd: [INFO] Already executed pid $oldpid\n";die();}
+@file_put_contents($PID_FILE, getmypid());
 buildscript();
 MONIT();
 checkDebSyslog();
@@ -197,6 +202,7 @@ function stop_ldap(){
 	$unix=new unix();
 	$kill=$unix->find_program("kill");
 	$slapd=$unix->find_program("slapd");
+	$pgrep=$unix->find_program("pgrep");
 	$SLAPD_PID_FILE=$unix->SLAPD_PID_PATH();
 	
 	if($users->ZARAFA_INSTALLED){stop_zarafa();}
@@ -238,8 +244,7 @@ function stop_ldap(){
 	
 	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
 	if($unix->process_exists($oldpid)){
-		echo "slapd: [INFO] slapd PID:$oldpid still exists, failed\n";
-		return;
+		echo "slapd: [INFO] slapd PID:$oldpid still exists, start the force kill procedure...\n";
 	}	
 	
 	$oldpid=$unix->PIDOF($slapd);
@@ -249,12 +254,17 @@ function stop_ldap(){
 		return;
 	}
 
-	$oldpid=$unix->PIDOF($slapd);
-	if($unix->process_exists($oldpid)){
-		echo "slapd: [INFO] slapd PID:$oldpid still exists, failed\n";
-		return;
+	exec("$pgrep -l -f $slapd 2>&1",$results);
+	while (list ($num, $line) = each ($results) ){
+		if(preg_match("#pgrep#", $line)){continue;}
+		if(preg_match("^([0-9]+)\s+", $line,$re)){
+			echo "slapd: [INFO] slapd PID:{$re[1]} still exists, kill it\n";
+			shell_exec("$kill -9 {$re[1]} >/dev/null 2>&1");
+		}
+		
 	}
-
+	
+	
 	
 	echo "slapd: [INFO] slapd stopped, success...\n";
 	
@@ -318,6 +328,9 @@ if(is_file('/sbin/chkconfig')){
 	shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
 	shell_exec("/sbin/chkconfig --level 2345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
 }
+
+
+shell_exec("$php ". dirname(__FILE__)."/exec.initd-swap.php");
 
 }
 
@@ -389,8 +402,7 @@ function checkDebSyslog(){
 	$f[]="start program = \"/etc/init.d/syslog start\"";
 	$f[]="stop program = \"/etc/init.d/syslog stop\"";
 	$f[]="if 5 restarts within 5 cycles then timeout";
-	$f[]="check file syslogd_file with path $syslogpath";
-	$f[]="if timestamp > 10 minutes then restart";	
+
 	@file_put_contents("/etc/monit/conf.d/APP_RSYSLOGD.monitrc", @implode("\n", $f));	
 	if(file_exists("/usr/sbin/rsyslogd")){rsyslogd_init();}
 }

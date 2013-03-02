@@ -173,7 +173,9 @@ function events_search(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 	$zmd5=md5(serialize($ligne));
 	$color="black";
-	
+	$color="black";
+	$date=null;
+	$letter=null;	
 	
 	
 	//familysite 	size 	hits
@@ -186,8 +188,13 @@ function events_search(){
 	OnClick=\"javascript:Loadjs('miniadm.MembersTrack.category.php?ID=$ID&category=".urlencode($ligne["category"])."');\"
 	style='font-size:12px;text-decoration:underline;color:$color'>";	
 	
-	
-	
+	if(preg_match("#\[(.+?)\s+([A-Z]+)\]\s+(.+)#", $ligne["subject"],$re)){
+		$ligne["zDate"]=$re[1];
+		$letter=$re[2];
+		$ligne["subject"]=$re[3];
+	}	
+	if($letter=="E"){$color="#DA1111";}
+	if($letter=="F"){$color="#DA1111";}	
 	
 	$data['rows'][] = array(
 		'id' => "$zmd5",

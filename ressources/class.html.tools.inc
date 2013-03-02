@@ -108,7 +108,7 @@ if($bsini->_params[$key]["pattern_date"]<>null){
 
 if($bsini->_params["$key"]["service_disabled"]=="0"){	
 	$img="warning42.png";
-	$js_service="StartStopService('".$bsini->_params["$key"]["service_cmd"]."','1','$title');";
+	//$js_service="StartStopService('".$bsini->_params["$key"]["service_cmd"]."','1','$title');";
 	$disabled="<tr><td colspan=2 align='right'><strong style='font-size:11px;line-height:auto'><i>{service_disabled}</i></strong></td></tr>";
 	$disabled_mini="<i>{service_disabled}</i>";
 }
@@ -205,11 +205,32 @@ $version="
 	}
 	
 	
+	if($bsini->_params["$key"]["service_cmd"]<>null){
+		if($bsini->_params["$key"]["service_disabled"]=="1"){
+			
+			$idIMG=md5("{$bsini->_params["$key"]["service_name"]}_icon".time());
+			$cmdline="
+				<tr>
+				<td>&nbsp;</td>
+				<td>
+				<table style='width:5%'>
+					<tr>
+						<td width=1%>". imgtootltip("16-run.png","{start}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=start&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>
+						<td width=1%>". imgtootltip("restart-16.png","{restart}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=restart&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>
+						<td width=1%>". imgtootltip("16-stop.png","{stop}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=stop&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>		
+					</tr>		
+				</table>
+				</td>
+			</tr>
+			";
+		}
+	}
+	
 $html="
 
 <table style='width:100%;background-color:#D5EED9;font-size:11px;line-height:auto' class=TableRemove>
 <tr>
-<td width=1% valign='top' style='background-color:#D5EED9;font-size:11px;line-height:auto'>" . imgtootltip($img,'{start_stop}',$js_service)."</td>
+<td width=1% valign='top' style='background-color:#D5EED9;font-size:11px;line-height:auto'><img src='img/$img' id='$idIMG'></td>
 <td style='background-color:#D5EED9;font-size:11px;border:0px;line-height:auto'>
 	<table style='width:100%;background:transparent;border:0px;padding:0px;background-color:#D5EED9;font-size:11px;line-height:auto' class=TableRemove>
 		<tr>
@@ -222,10 +243,15 @@ $html="
 		$emailqueue
 		$license_error
 		$version
-		$icap$pattern$textoadd2$disabled
+		$icap
+		$pattern
+		$cmdline
+		$textoadd2$disabled
+		
 	</table>
 	</td>
 	</tR>
+	
 </table>
 $textoadd";		
 if($ADD_ID_DIV){	

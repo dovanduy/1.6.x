@@ -172,7 +172,7 @@ if EnableUfdbGuard=0 then begin
 end;
 
 if EnableRemoteStatisticsAppliance=1 then begin
-   logs.DebugLogs('Starting......:  ufdbguardd is disabled: using statistics appliance...");
+   logs.DebugLogs('Starting......:  ufdbguardd is disabled: using statistics appliance...');
    STOP();
    exit;
 end;

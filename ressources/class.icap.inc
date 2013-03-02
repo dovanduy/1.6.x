@@ -12,6 +12,7 @@ class icap{
 	var $IS_30=false;
 	var $IS_31=false;
 	var $IS_32=false;
+	var $IS_33=false;
 	var $ICAP_SERVICES_COUNT=0;
 	var $enable_kavproxy=0;
 	var $enable_cicap=0;
@@ -76,6 +77,7 @@ class icap{
 			$this->IS_30=true;
 			if($re[2]==1){$this->IS_31=true;}
 			if($re[2]>=2){$this->IS_32=true;$this->IS_31=true;}
+			if($re[2]>=3){$this->IS_33=true;$this->IS_32=true;$this->IS_31=true;}
 			}
 		}
 		

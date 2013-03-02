@@ -89,69 +89,78 @@ function popup(){
 		}
 	}
 	
+	$objectClass_array=$ct->objectClass_array;
 	
-	
-	
+	$obj[]="<table style='width:99%' class=form>";
+	while (list ($num, $mounted) = each ($objectClass_array) ){
+		$obj[]="<tr><td style='font-size:16px' class=legend>ObjectClass:</td>";
+		$obj[]="<td style='font-size:16px' ><strong>$num</strong></td>
+		</tr>";
+		
+	}
+	$obj[]="</table>";
 	$loginShell_hidden=Field_hidden('loginShell',$us->loginShell).Field_hidden('uidNumber',$us->uidNumber);
 	$loginShell="<tr>
-					<td align='right' nowrap class=legend $styleTDRight>{loginShell}:</strong>
+					<td align='right' nowrap class=legend style='font-size:14px' $styleTDRight>{loginShell}:</strong>
 					<td $styleTDLeft>
 							<table style='width:100%;margin-left:-4px;'>
 							<tr>
-							<td align=left width=1%>" . Field_text('loginShell',$us->loginShell,'width:90px')."</td>
+							<td align=left width=1%>" . Field_text('loginShell',$us->loginShell,'width:120px;font-size:16px')."</td>
 							<td align=left>" . help_icon('{loginShellText}',true)."</td>
 							<td class=legend nowrap>{UidNumber}:</td>
-							<td align=left width=1%>" . Field_text('uidNumber',$us->uidNumber,'width:90px')."</td>
+							<td align=left width=1%>" . Field_text('uidNumber',$us->uidNumber,'width:120px;font-size:16px')."</td>
 							</tr>
 							</table>
 					</td>
 					</tr>";	
 							
 	$dotclear="<tr>
-		<td class=legend nowrap>{DotClearUserEnabled}:</td>
+		<td class=legend nowrap style='font-size:16px'>{DotClearUserEnabled}:</td>
 		<td align=left width=1%>" . Field_numeric_checkbox_img('DotClearUserEnabled',$us->DotClearUserEnabled) ."</td>
 		<td align=left>" . help_icon('{DotClearUserEnabledText}',true)."</td>
 	</tr>";				
 	
 	$form=Field_hidden('USER_SYSTEM_INFOS_UID',$ct->uid). "
-	<div style='text-align:right;margin-top:-5px;margin-bottom:9px;'><code>{home}:$ct->homeDirectory</code></div>
+	<div style='text-align:right;margin-top:-5px;margin-bottom:9px;'><code style='font-size:16px'>{home}:$ct->homeDirectory</code></div>
 	<div id='ChangeUserPasswordID'>
 	<table style='width:100%'>
 	
 	<tr>
-		<td class=legend nowrap>{loginShell}:</td>
-		<td align=left width=1%>" . Field_text('loginShell',$ct->loginShell,'width:190px')."</td>
+		<td class=legend nowrap style='font-size:16px'>{loginShell}:</td>
+		<td align=left width=1%>" . Field_text('loginShell',$ct->loginShell,'width:190px;font-size:16px')."</td>
 		<td align=left>" . help_icon('{loginShellText}',true)."</td>
 	</tr>
 	<tr>
-		<td class=legend nowrap>{homeDirectory}:</td>
-		<td align=left width=1%>" . Field_array_Hash($paths,'homeDirectory',$ct->homeDirectory)."</td>
+		<td class=legend nowrap style='font-size:16px'>{homeDirectory}:</td>
+		<td align=left width=1%>" . Field_array_Hash($paths,'homeDirectory',$ct->homeDirectory,null,null,0,"font-size:16px")."</td>
 		<td align=left>" . help_icon('{homeDirectoryText}',true)."</td>
 	</tr>		
 	<tr>
-		<td class=legend nowrap>{UidNumber}:</td>
-		<td align=left width=1%>" . Field_text('UidNumber',$ct->uidNumber,'width:90px')."</td>
+		<td class=legend nowrap style='font-size:16px'>{UidNumber}:</td>
+		<td align=left width=1%>" . Field_text('UidNumber',$ct->uidNumber,'width:120px;font-size:18px;font-weight:bold')."</td>
 		<td align=left>" . help_icon('{UidNumberText}',true)."</td>
 	</tr>
 		
 		
 	<tr><td colspan=3><hr></td></tr>
 	<tr>
-		<td colspan=3 align='right'>".button("{edit}","UserSystemInfosSave()")."
+		<td colspan=3 align='right'>".button("{edit}","UserSystemInfosSave()","18")."
 	</tr>
 	</table>
 	</div>
+				
+				
 	";
 	
-	$form=RoundedLightWhite($form);
+	
 	$safebox=Paragraphe("safe-box-64.png","{coffrefort}","{coffrefort_create_user}","javascript:Loadjs('domains.edit.user.safebox.php?uid=$ct->uid')");
 	if(!$priv->CRYPTSETUP_INSTALLED){$safebox=null;}
-	$html="<H1>{UserSystemInfos}</H1>
+	$html="
 	<div style='margin-top:-35px;text-align:right;margin-bottom:30px;width:95%'>
 		<i style='font-size:16px;font-weight:bold;padding-bottom:4px;color:white'>$ct->DisplayName</i>
 	</div>
 	<div id='UserSystemInfosSave'>
-	<table style='width:100%'>
+	<table style='width:99%' class=form>
 	<tr>
 		<td valign='top'>
 			$safebox
@@ -162,7 +171,7 @@ function popup(){
 	</tr>
 	</table>
 	
-	</div>";
+	</div>".@implode("\n", $obj);
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);	
 	

@@ -375,6 +375,7 @@ function status(){
 	
 	$sock=new sockets();
 	$EnablePostfixAutoBlock=$sock->GET_INFO("EnablePostfixAutoBlock");
+	if(!is_numeric($EnablePostfixAutoBlock)){$EnablePostfixAutoBlock=1;}
 	$InstantIpTablesInLeftMenu=$sock->GET_INFO("InstantIpTablesInLeftMenu");
 	if($InstantIpTablesInLeftMenu==null){$InstantIpTablesInLeftMenu=1;}	
 	$InstantIptablesEventAll=$sock->GET_INFO("InstantIptablesEventAll");

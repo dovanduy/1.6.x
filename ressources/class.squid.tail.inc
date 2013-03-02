@@ -46,7 +46,7 @@ class squid_tail{
 			$buffer=trim($buffer);
 			if(preg_match("#GET cache_object#",$buffer)){$this->events("[SQUID]: cache_object abort".__LINE__);return true;}
 			if(preg_match("#^.+?squid\[[0-9]+\]:#", $buffer,$re)){$buffer=str_replace($re[0], "",$buffer);}
-			
+			if(strpos($buffer, "HTTP/0.0")>0){$this->events("[SQUID]: HTTP/0.0 detected in \"$buffer\" -> abort in line:".__LINE__);return true;}
 			
 			
 			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(PROPFIND|GET|POST|LOCK|PUT|CONNECT|NONE|HEAD|OPTIONS)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
@@ -232,6 +232,7 @@ private function CACHEDORNOT($SquidCode){
 		$md5=md5("$user$ip$mac$userAgent");
 		if(is_file("/var/log/artica-postfix/squid-users/$md5.sql")){return;}
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $ip)){$computername=$this->GetComputerName($ip);}else{$computername=$ip;}
+		
 		$array=array(
 			"USER"=>$user,
 			"IP"=>$ip,
@@ -355,6 +356,7 @@ private function CACHEDORNOT($SquidCode){
 	$CLIENT=trim($CLIENT);
 	$date=date('Y-m-d')." ". $time;
 	if($xtime>0){$date=date('Y-m-d H:i:s',$xtime);}
+	$dateDir=date("Y-m-d-h");
 	if($size==null){$size=0;}
 	
 	$zMD5=md5("$uri$date$CLIENT$username$TYPE$Country$site_IP");
@@ -362,7 +364,8 @@ private function CACHEDORNOT($SquidCode){
 	
 	if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitename)){$sitename=gethostbyaddr($sitename);}	
 	if(!is_dir("/var/log/artica-postfix/pagepeeker")){@mkdir("/var/log/artica-postfix/pagepeeker",600,true);}
-	if(!is_dir("/var/log/artica-postfix/dansguardian-stats2")){@mkdir("/var/log/artica-postfix/dansguardian-stats2",600,true);}
+	if(!is_dir("/var/log/artica-postfix/dansguardian-stats2/$dateDir")){@mkdir("/var/log/artica-postfix/dansguardian-stats2/$dateDir",600,true);}
+	if(!$this->IsPhysicalAddress($mac)){$mac=null;}
 	
 		
 	if(trim($mac)<>null){
@@ -462,16 +465,37 @@ private function CACHEDORNOT($SquidCode){
 	}
 	
 	
-	if($GLOBALS["VERBOSE"]){echo " /var/log/artica-postfix/dansguardian-stats2/$zMD5.sql ";}
+	if($GLOBALS["VERBOSE"]){echo " /var/log/artica-postfix/dansguardian-stats2/$dateDir/$zMD5.sql ";}
 	
 	//$this->events("[SQUID]: dansguardian-stats2: ".$sql."  (".__LINE__.")" );
-	@file_put_contents("/var/log/artica-postfix/dansguardian-stats2/$zMD5.sql",serialize($FINAL_ARRAY));	
+	@file_put_contents("/var/log/artica-postfix/dansguardian-stats2/$dateDir/$zMD5.sql",serialize($FINAL_ARRAY));	
 	if(count($GLOBALS["RTIME"])>500){unset($GLOBALS["RTIME"]);}
 	$GLOBALS["RTIME"][]=array($sitename,$uri,$TYPE,$REASON,$CLIENT,$date,$zMD5,$site_IP,$Country,$size,$username,$mac);
 	@file_put_contents("/etc/artica-postfix/squid-realtime.cache",base64_encode(serialize($GLOBALS["RTIME"])));
 	
 	
   
+}
+
+public function IsPhysicalAddress($address){
+	$address=strtoupper(trim($address));
+	if($address=="UNKNOWN"){return null;}
+	$address=str_replace(":","-",$address);
+	If(strlen($address) > 18){return false;}
+	If($address == ""){return false;}
+	If(!preg_match("#^[0-9A-Z]+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)$#i",$address)){
+		
+		return false;
+	}
+	$Array=explode("-",$address);
+	If(strlen($Array[0]) != 2){return false;}
+	If(strlen($Array[1]) != 2){return false;}
+	If(strlen($Array[2]) != 2){return false;}
+	If(strlen($Array[3]) != 2){return false;}
+	If(strlen($Array[4]) != 2){return false;}
+	If(strlen($Array[5]) != 2){return false;}
+	
+	return true;
 }
 
 public function GetIpFromName($sitename){
@@ -532,8 +556,10 @@ public function GetCountry($sitename){
 			exec($cmd,$results);
 			while (list ($num, $line) = each ($results)){
 				if(preg_match("#^([0-9a-zA-Z\:]+)#", $line,$re)){
-					$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
-					return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+					if($this->IsPhysicalAddress($re[1])){
+						$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+						return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+					}
 				}
 			}
 		}
@@ -554,8 +580,10 @@ public function GetCountry($sitename){
 		while (list ($num, $line) = each ($results)){
 			if(preg_match("#^[0-9\.]+\s+.+?\s+([0-9a-z\:]+)#", $line,$re)){
 				if($re[1]=="no"){continue;}
-				$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
-				return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+				if($this->IsPhysicalAddress($re[1])){
+					$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+					return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+				}
 			}
 			
 		}
@@ -584,11 +612,16 @@ public function GetCountry($sitename){
 			}
 			
 	public function GetComputerName($ip){
-		if($GLOBALS["resvip"][$ip]<>null){return $GLOBALS["resvip"][$ip];}
+		if(isset($GLOBALS["resvip"][$ip])){
+			if(strlen($GLOBALS["resvip"][$ip])>3){
+					return $GLOBALS["resvip"][$ip];
+			}
+		}
+		
 		$name=gethostbyaddr($ip);
 		$GLOBALS["resvip"][$ip]=$name;
 		return $name;
-		}
+	}
 	
 	private function GeoIPavailable(){
 		if(!function_exists("geoip_db_filename")){

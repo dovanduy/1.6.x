@@ -30,10 +30,12 @@
 function js(){
 	if(!is_numeric($_GET["ADID"])){$_GET["ADID"]=0;}
 	if(!is_numeric($_GET["OnlyGroups"])){$_GET["OnlyGroups"]=1;}
+	if(!is_numeric($_GET["OnlyUsers"])){$_GET["OnlyUsers"]=0;}
+	
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{browse_active_directory_members}");
-	$html="YahooSearchUser('650','$page?popup=yes&field-user={$_GET["field-user"]}&OnlyGroups={$_GET["OnlyGroups"]}&ADID={$_GET["ADID"]}','$title');";
+	$html="YahooSearchUser('650','$page?popup=yes&field-user={$_GET["field-user"]}&OnlyGroups={$_GET["OnlyGroups"]}&ADID={$_GET["ADID"]}&OnlyUsers={$_GET["OnlyUsers"]}','$title');";
 	echo $html;
 	
 }
@@ -458,13 +460,19 @@ function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$OnlyGroups=$_GET["OnlyGroups"];
+	if(!is_numeric($_GET["OnlyUsers"])){$_GET["OnlyUsers"]=0;}
+	$OnlyUsers=$_GET["OnlyUsers"];
 	$groups=$tpl->_ENGINE_parse_body("{adgroups}");
 	$members=$tpl->_ENGINE_parse_body("{members}");
 	$title=$tpl->_ENGINE_parse_body("{browse_active_directory_members}");
 	$field=$_GET["field-user"];
+	$groupsSearch="{display: '$groups', name : 'adgroups'},";
 	$memberssearch="{display: '$members', name : 'members'},";
 	if($OnlyGroups==1){$memberssearch=null;}
+	if($OnlyUsers==1){$groupsSearch=null;}
 	if(!isset($_GET["OnlyGroups"])){$_GET["OnlyGroups"]=1;}
+
+	
 	
 	$html="
 	<div style='margin-right:-10px;margin-left:-15px'>
@@ -473,7 +481,7 @@ function popup(){
 	<script>
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?users-list=yes&ADID={$_GET["ADID"]}&OnlyGroups={$_GET["OnlyGroups"]}&t=$t',
+	url: '$page?users-list=yes&ADID={$_GET["ADID"]}&OnlyGroups={$_GET["OnlyGroups"]}&OnlyUsers={$_GET["OnlyUsers"]}&field-user={$_GET["field-user"]}&t=$t',
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'zDate', width :31, sortable : false, align: 'left'},
@@ -482,7 +490,7 @@ $('#flexRT$t').flexigrid({
 		],
 	
 	searchitems : [
-		{display: '$groups', name : 'adgroups'},
+		$groupsSearch
 		$memberssearch
 		
 		],
@@ -508,6 +516,18 @@ $('#flexRT$t').flexigrid({
 			YahooSearchUserHide();
 			YahooLogWatcherHide();
 		}
+	
+	}
+	
+	
+	function SelectAdUser$t(uid){
+		var field='$field';
+		if(field.length==0){return;}
+		if(document.getElementById('$field')){
+			document.getElementById('$field').value=uid;
+			YahooSearchUserHide();
+			YahooLogWatcherHide();
+		}	
 	
 	}
 
@@ -542,13 +562,26 @@ function users_list(){
 	$tpl=new templates();
 	$CurPage=CurrentPageName();
 	$search=$_POST["query"];
-	$OnlyGroups=$_GET["OnlyGroups"];
+	
 	$t=$_GET["t"];
 	$ad=new ActiveDirectory();
-	if($OnlyGroups==1){
+	if(!is_numeric($_GET["OnlyUsers"])){$_GET["OnlyUsers"]=0;}
+	
+	
+	
+	if($_GET["OnlyUsers"]==0){
+		$OnlyGroups=1;
 		$icon="win7groups-32.png";
 		$Array=$ad->search_groups($search,$_POST["rp"]);
 		if($ad->ldap_last_error<>null){json_error_show($ad->ldap_last_error,1);}
+	}else{
+		$OnlyUsers=1;
+		$OnlyGroups=0;
+		writelogs("->UserSearch(null,$search,{$_POST["rp"]}",__FUNCTION__,__FILE__,__LINE__);
+		$icon="user7-32.png";
+		$Array=$ad->UserSearch_formated(null,$search,$_POST["rp"]);
+		if($ad->ldap_last_error<>null){json_error_show($ad->ldap_last_error,1);}
+		
 	}
 	
 	$data = array();
@@ -559,14 +592,17 @@ function users_list(){
 	
 	while (list ($dn, $GPARR) = each ($Array) ){
 		$dnEnc=base64_encode($dn);
+		$GroupxSourceName=$GPARR[0];
 		$GroupxName=$GPARR[0];
 		$GroupxName=replace_accents($GroupxName);
 		$GPARR[0]=htmlentities($GPARR[0]);
 		$GPARR[0]=str_replace("'", "`", $GPARR[0]);
 		$GroupxName=str_replace("'", "`", $GroupxName);
-		$addtitile=null;
 		$GPARR[1]=htmlentities($GPARR[1]);
-		$GPARR[1]=str_replace("'", "`", $GPARR[1]);		
+		$GPARR[1]=str_replace("'", "`", $GPARR[1]);	
+		$link="<span style='font-size:14px;'>";
+		$addtitile=null;
+		$select=null;			
 		
 		if($OnlyGroups==1){
 			$js="Loadjs('$CurPage?UsersGroup-js=yes&GroupName=$GroupxName&dn=$dnEnc&ADID={$_GET["ADID"]}')";	
@@ -583,7 +619,35 @@ function users_list(){
 			
 			
 		}
+		
 		$image=imgsimple($icon,null,"Loadjs('$CurPage?var-export-js=$dnEnc&cn=$cn&ADID={$_GET["ADID"]}')");
+		
+		if($OnlyUsers==1){
+			$icon="user7-32.png";
+			
+			
+			$select=imgtootltip("arrow-right-24.png",null,"SelectAdUser$t('$GroupxSourceName')");
+			$image=imgsimple($icon);
+			$link="<a href=\"javascript:blur();\" Onclick=\"javascript:SelectAdUser$t('$GroupxSourceName')\" 
+			style='font-size:16px;text-decoration:underline;font-weight:bold'>";
+			if($GPARR[1]<>null){
+				$addtitile=" <span style='font-size:14px'><i>{$GPARR[1]}</i></span>";
+			}
+			$substr=substr($GroupxSourceName, strlen($GroupxSourceName)-1,1);
+			if($substr=="$"){
+				$GPARR[0]=str_replace("$", "", $GPARR[0]);
+				$icon="computer-32.png";
+				$image=imgsimple($icon);
+				$link="<span style='font-size:16px;font-weight:bold'>";
+				$addtitile=null;
+				$select="&nbsp;";
+			}
+			$GPARR[1]=null;
+			
+		}
+		
+		
+		
 		
 
 		

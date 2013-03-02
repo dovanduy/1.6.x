@@ -131,6 +131,7 @@ class mysql_syslog{
 		$f[]="('/var/log/lighttpd/*',1,'daily','100',5,'/etc/init.d/artica-postfix restart apache','Lighttpd',1)";
 		$f[]="('/var/log/apt/*',1,'daily','100',5,'/etc/init.d/artica-postfix restart apache','apt-get',1)";
 		$f[]="('/var/log/snort',1,'daily','50',5,'/etc/init.d/snort restart','snort',1)";
+		$f[]="('/var/log/auth.log',1,'daily','100',5,'/etc/init.d/syslog restart','snort',1)";
 		
 		
 		while (list ($num, $path) = each ($t) ){		
@@ -151,7 +152,6 @@ class mysql_syslog{
 		$f[]="/var/log/mail.log";
 		$f[]="/var/log/daemon.log";
 		$f[]="/var/log/kern.log";
-		$f[]="/var/log/auth.log";
 		$f[]="/var/log/user.log";
 		$f[]="/var/log/lpr.log";
 		$f[]="/var/log/cron.log";

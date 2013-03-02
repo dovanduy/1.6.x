@@ -31,6 +31,14 @@ echo $content;
 function js(){
 	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
+	$ldap=new clladp();
+	
+	$password="var password=MD5(document.getElementById('artica_password').value);";
+	
+	if($ldap->IsKerbAuth()){
+		$password="var password=encodeURIComponent(document.getElementById('artica_password').value);";
+	}
+	
 	$t=time();
 
 	$html="
@@ -43,7 +51,7 @@ var x_SendLogonButton$t = function (obj) {
 
 function SendLogonButton$t(){
 	var username=document.getElementById('artica_username').value;
-	var password=MD5(document.getElementById('artica_password').value);
+	$password
 	var XHR = new XHRConnection();
 	XHR.appendData('username',username);
 	XHR.appendData('password',password);
@@ -75,6 +83,29 @@ function checklogonCreds(){
 	
 	$username=$array["USERNAME"];
 	$password=$array["PASSWORD"];
+	
+	
+	
+	$ldap=new clladp();
+	
+	if($ldap->IsKerbAuth()){
+		$external_ad_search=new external_ad_search();
+		if($external_ad_search->CheckUserAuth($username,$password)){
+			$users=new usersMenus();
+			$privs=new privileges($_POST["username-logon"]);
+			$privileges_array=$privs->privs;
+			$_SESSION["InterfaceType"]="{ARTICA_MINIADM}";
+			setcookie("mem-logon-user", $_POST["username-logon"], time()+172800);
+			$_SESSION["privileges_array"]=$privs->privs;
+			$_SESSION["uid"]=$_POST["username-logon"];
+			$_SESSION["passwd"]=$_POST["username-logon"];
+			$_SESSION["privileges"]["ArticaGroupPrivileges"]=$privs->content;			
+			BuildSession($username);
+			header("location:miniadm.index.php");
+		}
+	}	
+	
+	
 	
 	$u=new user($username);
 	$tpl=new templates();
@@ -136,6 +167,36 @@ function checklogon(){
 	$FixedLanguage=null;
 	$username=$_POST["username"];
 	$password=$_POST["password"];
+	
+	
+	
+	$ldap=new clladp();
+	
+	if($ldap->IsKerbAuth()){
+		$password=url_decode_special_tool($password);
+		$external_ad_search=new external_ad_search();
+		if($external_ad_search->CheckUserAuth($username,$password)){
+			$users=new usersMenus();
+			$privs=new privileges($_POST["username-logon"]);
+			$privileges_array=$privs->privs;
+			$_SESSION["InterfaceType"]="{ARTICA_MINIADM}";
+			setcookie("mem-logon-user", $_POST["username-logon"], time()+172800);
+			$_SESSION["privileges_array"]=$privs->privs;
+			$_SESSION["uid"]=$_POST["username-logon"];
+			$_SESSION["passwd"]=$_POST["username-logon"];
+			$_SESSION["privileges"]["ArticaGroupPrivileges"]=$privs->content;
+			BuildSession($username);
+			return;
+		}else{
+			echo $external_ad_search->error;
+			
+		}
+		
+		return;
+	}	
+	
+	
+	
 	$u=new user($username);
 	$tpl=new templates();
 	

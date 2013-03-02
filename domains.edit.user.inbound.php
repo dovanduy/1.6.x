@@ -325,11 +325,11 @@ if($ArticaFilterRedirectExternalSQL==1){
 }
 
 function SAVE(){
-	$RecipientToAdd=trim($_GET["RecipientToAdd"]);
+	$RecipientToAdd=trim(strtolower($_GET["RecipientToAdd"]));
 	$MailAlternateAddress=trim($_GET["MailAlternateAddress"]);
 	
 	$ct=new user($_GET["uid"]);
-	if($email==null){$ct->del_all_bcc();}
+	if($RecipientToAdd==null){$ct->del_all_bcc();}
 	
 	
 	if($_GET["redirect_messages_to"]<>null){
@@ -339,15 +339,22 @@ function SAVE(){
 	
 	if($RecipientToAdd<>null){
 		if(!preg_match("#(.+?)@(.+)#",$RecipientToAdd)){
-		$tpl=new templates();
-		echo $tpl->_ENGINE_parse_body('{ERROR_INVALID_EMAIL_ADDR}:'.$RecipientToAdd);
-		exit;
+			$tpl=new templates();
+			echo $tpl->_ENGINE_parse_body('{ERROR_INVALID_EMAIL_ADDR}:'.$RecipientToAdd);
+			exit;
 		}
+		
 		$ct=new user($_GET["uid"]);
 		$ct->add_bcc($_GET["RecipientToAdd"]);
 	}
 	
 	if($MailAlternateAddress<>null){
+		if(preg_match("#^(.+?)@(.+?);#",$MailAlternateAddress,$re)){
+			$MailAlternateAddress=$re[1];
+			
+		}	
+		
+		
 	if(!preg_match("#(.+?)@(.+)#",$MailAlternateAddress)){
 		$tpl=new templates();
 		echo $tpl->_ENGINE_parse_body('{ERROR_INVALID_EMAIL_ADDR}:'.$MailAlternateAddress);

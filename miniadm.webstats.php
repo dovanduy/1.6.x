@@ -1,8 +1,8 @@
 <?php
 session_start();
 
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
-ini_set('error_append_string',null);
+//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
+//ini_set('error_append_string',null);
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
@@ -285,7 +285,7 @@ function build_calendar(){
 	
 	$month=$_GET["month"];
 	if(strlen($month)==1){$month="0$month";}
-	
+	$tpl=new templates();
 	
 	$ERR=array();
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
@@ -294,24 +294,32 @@ function build_calendar(){
 		$ligne["size"]=round($ligne["size"]/1024);
 		if(strlen($ligne["tday"])==1){$ligne["tday"]="0".$ligne["tday"];}
 		$tr[]="{$_GET["year"]}-$month-{$ligne["tday"]} - size:{$ligne["size"]}";
+		$TableTime=strtotime("{$_GET["year"]}-$month-{$ligne["tday"]} 00:00:00");
 		if(!$q->TABLE_EXISTS($table_work)){
-			$ERR[]="$table_work no such table";
+			$REPAIR[]=$tpl->_ENGINE_parse_body("
+					<tr>
+					<td width=1%><img src='img/arrow-right-16.png'></td>
+					<td><a href=\"javascript:blur();\" 
+						OnClick=\"javascript:Loadjs('squid.stats.repair.day.php?time=$TableTime');\">{repair}: {$_GET["year"]}-$month-{$ligne["tday"]}</td>
+					</td>
+					
+					");
 			continue;}
 		$obj_cal->ajouteEvenement("{$_GET["year"]}-$month-{$ligne["tday"]}","Downloaded size:{$ligne["size"]}M&nbsp;|&nbsp;Hits Number: {$ligne["hits"]}");
 	}
 	
-
 	$obj_cal->setFormatLienMois("javascript:Blurz();\" OnClick=\"javascript:NavCalendar$t('%s','%s');");
+	
 	$calendar=$obj_cal->makeCalendrier($_GET["year"],$_GET["month"]);
-	if(count($ERR)>0){$err=@implode("<br>", $ERR);}
+	if(count($REPAIR)>0){$REPAIRTR="<table style='width:95%' class=form>".@implode("\n", $REPAIR)."</table>";}
 	if(isset($_GET["build-calendar"])){echo 
-		$calendar.$err
+		$calendar.$REPAIRTR
 		."<script>LoadAjaxTiny('statistics-$t','$page?webstats-stats=yes&month=$month&year={$_GET["year"]}');</script>";
 		return;}
 	
 	$html="
 	<div id='calendar-$t' class=form style='width:95%'>
-	$calendar$err
+	$calendar$REPAIRTR
 	</div>
 	
 	<script>

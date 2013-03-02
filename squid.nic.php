@@ -56,6 +56,7 @@ function popup(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$SquidBinIpaddr=$sock->GET_INFO("SquidBinIpaddr");
+	if($SquidBinIpaddr=="0.0.0.0"){$SquidBinIpaddr=null;}
 	$squid=new squidbee();
 	$tcp_outgoing_address=$squid->global_conf_array["tcp_outgoing_address"];
 	$ip=new networking();

@@ -100,6 +100,9 @@ $sock=new sockets();
   	
   }
   
+  @mkdir("/var/log/artica-postfix/ufdbguard-blocks",0777,true);
+  @chmod("/var/log/artica-postfix/ufdbguard-blocks", 0777);  
+  
   @mkdir("/opt/artica/var/rrd/yorel",0755,true);
   @chown("/opt/artica/var/rrd/yorel", $username);
   @chgrp("/opt/artica/var/rrd/yorel", $groupname);  

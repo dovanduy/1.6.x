@@ -17,12 +17,12 @@
 	if(isset($_GET["products"])){products_tabs();exit;}
 	if(isset($_GET["product-section"])){product_section();exit;}
 	if(isset($_POST["ProductSubKey"])){product_section_save();exit;}
-	if(isset($_POST["UpdateUtilityEnableHTTP"])){UpdateUtilitySave();exit;}
+	if(isset($_POST["UpdateUtilityAllProducts"])){UpdateUtilitySave();exit;}
 	if(isset($_GET["status"])){status();exit;}
 	if(isset($_POST["UpdateUtilityStartTask"])){UpdateUtilityStartTask();exit;}
 	if(isset($_GET["webevents"])){webevents_table();exit;}
 	if(isset($_GET["web-events"])){webevents_list();exit;}
-	
+	if(isset($_GET["dbsize"])){dbsize();exit;}
 	
 	
 	
@@ -45,10 +45,13 @@ function status(){
 		<td width=1%>". imgtootltip("refresh-24.png","{refresh}","UpdateUtilityStatus()")."</td>
 		<td width=1%>". imgtootltip("24-run.png","{run}","UpdateUtilityStartTask()")."</td>
 	</tr>
+				
 	</table>
 	</center>
-	
-	
+	<div id='dbsize' style=width:300px></div>
+	<script>
+		LoadAjaxTiny('dbsize','$page?dbsize=yes&refresh=dbsize');
+	</script>	
 	";
 	echo $tpl->_ENGINE_parse_body($status);
 
@@ -143,11 +146,19 @@ function settings(){
 	$UpdateUtilityHTTPIP=$sock->GET_INFO("UpdateUtilityHTTPIP");
 	$UpdateUtilityAllProducts=$sock->GET_INFO("UpdateUtilityAllProducts");
 	$UpdateUtilityRedirectEnable=$sock->GET_INFO("UpdateUtilityRedirectEnable");
+	$UpdateUtilityStorePath=$sock->GET_INFO("UpdateUtilityStorePath");
+	
+	$users=new usersMenus();
+	$APP_UFDBGUARD_INSTALLED=0;
+	if($users->APP_UFDBGUARD_INSTALLED){
+		$APP_UFDBGUARD_INSTALLED=1;
+	}
 	
 	if(!is_numeric($UpdateUtilityRedirectEnable)){$UpdateUtilityRedirectEnable=0;}
 	if(!is_numeric($UpdateUtilityEnableHTTP)){$UpdateUtilityEnableHTTP=0;}
 	if(!is_numeric($UpdateUtilityAllProducts)){$UpdateUtilityAllProducts=1;}
 	if(!is_numeric($UpdateUtilityHTTPPort)){$UpdateUtilityHTTPPort=9222;}
+	if($UpdateUtilityStorePath==null){$UpdateUtilityStorePath="/home/kaspersky/UpdateUtility";}
 	$run_update_task_now=$tpl->javascript_parse_text("{run_update_task_now}");
 	$ip=new networking();
 	$hash=$ip->ALL_IPS_GET_ARRAY();
@@ -165,25 +176,23 @@ function settings(){
 		<tr>
 			<td class=legend style='font-size:14px'>{update_for_all_products}:</td>
 			<td>". Field_checkbox("UpdateUtilityAllProducts", 1,$UpdateUtilityAllProducts)."</td>
+			<td>&nbsp;</td>
 		</tr>	
 		<tr>
-			<td class=legend style='font-size:14px'>{enable_http_service}:</td>
-			<td>". Field_checkbox("UpdateUtilityEnableHTTP", 1,$UpdateUtilityEnableHTTP,"CheckEnable$t()")."</td>
+			<td class=legend style='font-size:14px'>{directory}:</td>
+			<td>". Field_text("UpdateUtilityStorePath", $UpdateUtilityStorePath,"font-size:14px;width:250px")."</td>
+			<td>". button("{browse}", "Loadjs('SambaBrowse.php?field=UpdateUtilityStorePath&no-shares=yes');","12px")."</td>
+		</tr>					
+		<tr>
+			<td colspan=3 align='right'>
+					<div style='margin-top:10px'>
+					<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('ufdbguard.UpdateUtility.php');\"
+					 style='font-size:14px;text-decoration:underline'>{enable_filter_redirection}</a>
+			</div>		
+			</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px'>{enable_filter_redirection}:</td>
-			<td>". Field_checkbox("UpdateUtilityRedirectEnable", 1,$UpdateUtilityRedirectEnable)."</td>
-		</tr>		
-		<tr>
-			<td class=legend style='font-size:14px'>{listen_address}:</td>
-			<td>". Field_array_Hash($hash,"UpdateUtilityHTTPIP",$UpdateUtilityHTTPIP,"style:font-size:14px")."</td>
-		</tr>		
-		<tr>
-			<td class=legend style='font-size:14px'>{listen_port}:</td>
-			<td>". Field_text("UpdateUtilityHTTPPort", $UpdateUtilityHTTPPort,"font-size:14px;width:90px")."</td>
-		</tr>
-		<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}","SaveUpdateUtilityConf()",16)."</td>
+			<td colspan=3 align='right'><hr>". button("{apply}","SaveUpdateUtilityConf()",16)."</td>
 		</tr>	
 	</tbody>
 	</table>
@@ -196,18 +205,8 @@ function settings(){
 			LoadAjax('status-$t','$page?status=yes');
 		}
 	
-	
-	
-		function CheckEnable$t(){
-			document.getElementById('UpdateUtilityHTTPIP').disabled=true;
-			document.getElementById('UpdateUtilityHTTPPort').disabled=true;
-			document.getElementById('UpdateUtilityRedirectEnable').disabled=true;
-			if(document.getElementById('UpdateUtilityEnableHTTP').checked){
-				document.getElementById('UpdateUtilityHTTPIP').disabled=false;
-				document.getElementById('UpdateUtilityHTTPPort').disabled=false;
-				document.getElementById('UpdateUtilityRedirectEnable').disabled=false;					
-			}
-		}
+		
+
 		
 	var x_SaveUpdateUtilityConf= function (obj) {
 	      var results=obj.responseText;
@@ -217,29 +216,10 @@ function settings(){
 
 	function SaveUpdateUtilityConf(){
 			var XHR = new XHRConnection();
-			if(document.getElementById('UpdateUtilityEnableHTTP').checked){
-				XHR.appendData('UpdateUtilityEnableHTTP','1');
-			}else{
-				XHR.appendData('UpdateUtilityEnableHTTP','0');
-			}
-			if(document.getElementById('UpdateUtilityAllProducts').checked){
-				XHR.appendData('UpdateUtilityAllProducts','1');
-			}else{
-				XHR.appendData('UpdateUtilityAllProducts','0');
-			}
-			if(document.getElementById('UpdateUtilityRedirectEnable').checked){
-				XHR.appendData('UpdateUtilityRedirectEnable','1');
-			}else{
-				XHR.appendData('UpdateUtilityRedirectEnable','0');
-			}
-			
-			
-			
-			
-			XHR.appendData('UpdateUtilityHTTPIP',document.getElementById('UpdateUtilityHTTPIP').value);
-			XHR.appendData('UpdateUtilityHTTPPort',document.getElementById('UpdateUtilityHTTPPort').value);
+			if(document.getElementById('UpdateUtilityAllProducts').checked){XHR.appendData('UpdateUtilityAllProducts','1');}else{XHR.appendData('UpdateUtilityAllProducts','0');}
+			XHR.appendData('UpdateUtilityStorePath',document.getElementById('UpdateUtilityStorePath').value);
 			XHR.sendAndLoad('$page', 'POST',x_SaveUpdateUtilityConf);	
-	}		
+		}		
 	
 	function UpdateUtilityStartTask(){
 		if(confirm('$run_update_task_now ?')){
@@ -252,7 +232,7 @@ function settings(){
 	
 	
 	UpdateUtilityStatus();		
-	CheckEnable$t();
+
 
 	</script>
 	
@@ -264,14 +244,73 @@ function settings(){
 
 function UpdateUtilitySave(){
 	$sock=new sockets();
-	$sock->SET_INFO("UpdateUtilityEnableHTTP", $_POST["UpdateUtilityEnableHTTP"]);
-	$sock->SET_INFO("UpdateUtilityHTTPIP", $_POST["UpdateUtilityHTTPIP"]);
-	$sock->SET_INFO("UpdateUtilityHTTPPort", $_POST["UpdateUtilityHTTPPort"]);
 	$sock->SET_INFO("UpdateUtilityAllProducts", $_POST["UpdateUtilityAllProducts"]);
 	$sock->SET_INFO("UpdateUtilityRedirectEnable", $_POST["UpdateUtilityRedirectEnable"]);
+	$sock->SET_INFO("UpdateUtilityStorePath", $_POST["UpdateUtilityStorePath"]);
 	$sock->getFrameWork("services.php?restart-updateutility=yes");
 	$sock->getFrameWork("squid.php?rebuild-filters=yes");	
+	$sock->getFrameWork("services.php?UpdateUtility-dbsize=yes");
 	
+}
+
+function dbsize(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$refresh=$_GET["refresh"];
+	$arrayfile="/usr/share/artica-postfix/ressources/logs/web/UpdateUtilitySize.size.db";
+	$array=unserialize(@file_get_contents($arrayfile));
+	if(!is_array($array)){
+		$sock->getFrameWork("services.php?UpdateUtility-dbsize=yes");
+		echo "<script>LoadAjaxTiny('$refresh','$page?dbsize=yes&refresh=$refresh')</script>";
+		return;
+
+	}
+
+	if(isset($_GET["recalc"])){
+		$sock->getFrameWork("services.php?UpdateUtility-dbsize=yes");
+		$array=unserialize(@file_get_contents($arrayfile));
+	}
+
+	$t=time();
+	$color="black";
+	if($array["IPOURC"]>99){$color="red";}
+	if($array["POURC"]>99){$color="red";}
+	
+	$html="
+
+	<table style='width:95%;margin-top:20px' class=form>
+	<tr>
+		<td class=legend>{current_size}:</td>
+		<td nowrap style='font-weight:bold;font-size:13px'>". FormatBytes($array["DBSIZE"])."</td>
+	</tr>
+	<tr>
+		<td class=legend>{hard_drive}:</td>
+		<td nowrap style='font-weight:bold;font-size:13px'>". FormatBytes($array["SIZE"])."</td>
+	</tr>
+	<tr>
+		<td class=legend>{used}:</td>
+		<td nowrap style='font-weight:bold;font-size:13px'>". FormatBytes($array["USED"])."</td>
+	</tr>
+	<tr>
+		<td class=legend>{free}:</td>
+		<td nowrap style='font-weight:bold;font-size:13px;color:$color'>". FormatBytes($array["AIVA"])." {$array["POURC"]}%</td>
+	</tr>
+	<tr>
+		<td class=legend>inodes:</td>
+		<td nowrap style='font-weight:bold;font-size:13px;color:$color'>{$array["IUSED"]}/{$array["ISIZE"]} ({$array["IPOURC"]}%)</td>
+	</tr>	
+	
+	<tr>
+		<td colspan=2 align='right'>". imgtootltip("20-refresh.png","{refresh}","LoadAjax('$refresh','$page?dbsize=yes&recalc=yes&refresh=$refresh')")."</td>
+	</tr>
+	</table>
+
+	";
+
+
+	echo $tpl->_ENGINE_parse_body($html);
+
 }
 
 function product_section(){

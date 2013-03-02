@@ -1133,7 +1133,7 @@ while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 	}
 	
 	$familysite=$GLOBALS["Q"]->GetFamilySites($sitename);
-	
+	$ligne["Country"]=mysql_escape_string($ligne["Country"]);
 	$SQLSITESVS[]="('$sitename','$category','{$ligne["Country"]}','$familysite')";
 	
 	
@@ -1400,7 +1400,7 @@ function not_categorized_day_resync(){
 function not_categorized_day_scan(){
 	
 
-
+	
 	not_categorized_day_resync();
 	
 	
@@ -3666,7 +3666,7 @@ function summarize_days(){
 	
 	$q=new mysql_squid_builder();
 	$q->CheckTables();
-	$sql="SELECT tablename,DATE_FORMAT(zDate,'%Y%m%d') as dpref FROM tables_day";
+	$sql="SELECT tablename,zDate,DATE_FORMAT(zDate,'%Y%m%d') as dpref FROM tables_day";
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){writelogs_squid("Fatal: $q->mysql_error on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
 	
@@ -3674,13 +3674,13 @@ function summarize_days(){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 		$dpref=$ligne["dpref"];
 		if($GLOBALS["VERBOSE"]){echo "Scanning: {$ligne["tablename"]}\n";}
-		_summarize_days($dpref,$ligne["tablename"]);
+		_summarize_days($dpref,$ligne["tablename"],$ligne["zDate"]);
 	}
 	writelogs_squid("Success Summarize ".mysql_num_rows($results)." day tables",__FUNCTION__,__FILE__,__LINE__,"stats");	
 	
 }
 
-function _summarize_days($dpref,$tablename){
+function _summarize_days($dpref,$tablename,$zDate=null){
 		$q=new mysql_squid_builder();
 		$tablename_members="{$dpref}_members";
 		$tablename_blocked="{$dpref}_blocked";
@@ -3692,6 +3692,12 @@ function _summarize_days($dpref,$tablename){
 		$SumSize=0;
 		$NotCategorized=0;
 		$YouTubeHits=0;
+		if($zDate==null){
+			$Cyear=substr($dpref, 0,4);
+			$CMonth=substr($dpref,4,2);
+			$CDay=substr($dpref,6,2);
+			$zDate="$Cyear-$CMonth-$CDay";
+		}
 		if(!$q->TABLE_EXISTS("$tablename_hour")){return;}
 		$sql="SELECT COUNT(zMD5) as tcount FROM $tablename_hour WHERE LENGTH(category)=0";
 		$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
@@ -3702,11 +3708,24 @@ function _summarize_days($dpref,$tablename){
 		$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));	
 		if(!$q->ok){echo $q->mysql_error."\n";return;}
 		$SumSize=$ligne2["tsize"];
-		$SumHits=$ligne2["thits"];		
+		$SumHits=$ligne2["thits"];	
+
+		if(!$q->TABLE_EXISTS("UserSizeD_{$dpref}")){
+			if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> UserSizeD_{$dpref} no such table\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong>Try to repair the table for `$zDate`</strong>\n";}
+			UserSizeD_REPAIR($zDate);
+		}
+		$countrows=$q->COUNT_ROWS("UserSizeD_{$dpref}");
+		if($countrows==0){
+			if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> UserSizeD_{$dpref} no row\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong>Try to repair the table for `$zDate`</strong>\n";}
+			UserSizeD_REPAIR($zDate);
+			
+		}
 		
 		if($q->TABLE_EXISTS("UserSizeD_{$dpref}")){
 			$MembersCount=which_filter("UserSizeD_{$dpref}");
-			if($GLOBALS["VERBOSE"]){echo "Number of members of UserSizeD_{$dpref} is $MembersCount\n";}
+			if($GLOBALS["VERBOSE"]){echo "Number of members of UserSizeD_{$dpref} ($countrows row(s))is $MembersCount\n";}
 		}else{
 			if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> UserSizeD_{$dpref} no such table\n";}
 		}
@@ -3742,7 +3761,68 @@ function _summarize_days($dpref,$tablename){
 		if(!$q->ok){
 			if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!: $q->mysql_error</strong>\n";} 
 		}
+		
+		if($GLOBALS["VERBOSE"]){echo "<hr><strong style='font-size:16px'>Please Refresh this web page to update icons</strong><hr>\n";} 
 	}
+	
+function UserSizeD_REPAIR($day){
+	$time=strtotime("$day 00:00:00");
+	$sourcetable=date("Ymd",$time)."_hour";
+	$q=new mysql_squid_builder();
+	if(!$q->TABLE_EXISTS($sourcetable)){
+		if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> $sourcetable no such table\n";}
+		return;
+	}
+	
+	$tablename="UserSizeD_".date("Ymd",$time);
+	
+	if(!$q->CreateUserSizeRTT_day($tablename)){
+		
+		if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:$tablename</strong> Query failed {$q->mysql_error}\n";}
+		ufdbguard_admin_events("$tablename: Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+	$prefix="INSERT IGNORE INTO `$tablename` (`zMD5`,`uid`,`zdate`,
+	`ipaddr`,`hostname`,`account`,`MAC`,`UserAgent`,`size`,`hits`,`hour`) VALUES ";
+	
+	
+	$sql="SELECT client,hostname,account,hour,MAC,SUM(size) as size,SUM(hits) as hits,uid FROM $sourcetable
+	GROUP BY client,hostname,account,hour,MAC,uid";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> $q->mysql_error\n";}
+		return;
+	}	
+	if(mysql_num_rows($results)==0){
+		if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> No row for $sourcetable\n";}
+	}
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		
+		$zMD5=md5(serialize($ligne));
+		$uid=addslashes($ligne["uid"]);
+		$hostname=addslashes($ligne["hostname"]);
+		$f[]="('$zMD5','$uid','$day','{$ligne["client"]}','$hostname','{$ligne["account"]}','{$ligne["MAC"]}','','{$ligne["size"]}','{$ligne["hits"]}','{$ligne["hour"]}')";
+		if(count($f)>500){
+			if($GLOBALS["VERBOSE"]){echo "<strong>Injecting 500 lines</strong>\n";}
+			$q->QUERY_SQL($prefix.@implode(",", $f));
+			if(!$q->ok){
+				if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> $q->mysql_error\n";}
+				return;
+			}
+			$f=array();
+		}
+	}
+	
+	if(count($f)>0){
+		$q->QUERY_SQL($prefix.@implode(",", $f));
+		if(!$q->ok){
+			if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> $q->mysql_error\n";}
+			return;
+		}
+		$f=array();
+	}
+	if($GLOBALS["VERBOSE"]){echo "<strong>SUCCESS: $tablename</strong>\n";}
+}
+	
 function which_filter($tablename){
 		$q=new mysql_squid_builder();
 		$sql="SELECT uid FROM `$tablename` GROUP BY uid HAVING LENGTH(uid)>0";

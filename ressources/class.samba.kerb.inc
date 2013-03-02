@@ -11,6 +11,7 @@ class samba_kerb{
 	
 
 	public function buildPart(){
+		if(!$GLOBALS["AS_ROOT"]){return;}
 		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Reconfigure Samba for proxy compliance", basename(__FILE__));}
 		if($GLOBALS["VERBOSE"]){"SAMBA_SPECIFIC_PROXY() start... in line ".__LINE__."\n";}
 		$IsAppliance=false;

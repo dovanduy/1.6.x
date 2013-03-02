@@ -56,6 +56,9 @@ function start(){
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	if($EnableRemoteStatisticsAppliance==1){$AsSquid=false;}
 	if($EnableWebProxyStatsAppliance==1){$AsSquid=true;}
 	

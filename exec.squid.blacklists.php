@@ -424,7 +424,7 @@ function updatev2(){
 		ufdbtables(true); 
 		schedulemaintenance();
 		EXECUTE_BLACK_INSTANCE();
-		updatev2_progress(100,date("H:i")." {failed} MD5 Local:$LOCAL_MD5 <> remote:&laquo;$REMOTE_MD&raquo; corrupted download after $took");
+		updatev2_progress(100,date("H:i")." {failed} MD5 Local:$LOCAL_MD5 <> remote:&laquo;$REMOTE_MD5&raquo; corrupted download after $took");
 		return;				
 	}
 	
@@ -458,6 +458,10 @@ function updatev2(){
 	updatev2_progress(100,"{done}");
 	
 	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.visited.sites.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
+	shell_exec($cmd);	
+	
 	shell_exec($nohup." ".$unix->LOCATE_PHP5_BIN()." ".__FILE__." --support >/dev/null 2>&1 &");
 }
 

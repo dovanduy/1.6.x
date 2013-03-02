@@ -210,11 +210,11 @@ if($IsPostfixlocked=="TRUE"){$IsPostfixlockedInt=1;}
 					if($DisableArticaProxyStatistics==0){
 					if($SQUIDEnable==1){
 						$GLOBALS["ICON_FAMILY"]="STATISTICS";
-						$js="SquidQuickLinks()";
+						$js="QuickLinkSystems('section_squid_stats')";
 						Paragraphe("statistics2-64.png", "{SQUID_STATS}", "{SQUID_STATS_TEXT}","javascript:$js");	
 						$squid_stats="
 							<tr>
-								<td width=1%>". imgtootltip("statistics2-32.png","{SQUID_STATS_TEXT}","SeTimeOutIMG32('{$t}1');SquidQuickLinksStatistics()",null,"{$t}1")."</td>
+								<td width=1%>". imgtootltip("statistics2-32.png","{SQUID_STATS_TEXT}","SeTimeOutIMG32('{$t}1');QuickLinkSystems('section_squid_stats')",null,"{$t}1")."</td>
 								<td style='font-size:11px' nowrap><a href=\"javascript:blur();\" 
 										OnClick=\"javascript:$js;\" 
 										style='font-size:11px;text-decoration:underline'>{SQUID_STATS1}</a></td>
@@ -274,6 +274,11 @@ if($IsPostfixlocked=="TRUE"){$IsPostfixlockedInt=1;}
 	if($users->POWER_DNS_INSTALLED){
 		$pdns=left_menus_format("APP_PDNS","dns-32.png","LoadAjax('BodyContent','pdns.php?tabs=yes&expand=yes');QuickLinkShow('quicklinks-APP_PDNS');");
 		
+	}
+	
+	if($users->UPDATE_UTILITYV2_INSTALLED){
+		$updateutility=left_menus_format("UpdateUtility","kaspersky-update-32.png",
+				"LoadAjax('BodyContent','UpdateUtility.php');");
 	}
 	
 	
@@ -454,6 +459,7 @@ if($IsPostfixlocked=="TRUE"){$IsPostfixlockedInt=1;}
 		$mysql
 		$logrotate
 		$vmware
+		$updateutility
 		</tbody>
 		</table>
 		

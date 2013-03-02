@@ -58,7 +58,10 @@ function tabs(){
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$DNSMasqUseStatsAppliance=$sock->GET_INFO("DNSMasqUseStatsAppliance");
-	if(!is_numeric($DNSMasqUseStatsAppliance)){$DNSMasqUseStatsAppliance=0;}		
+	if(!is_numeric($DNSMasqUseStatsAppliance)){$DNSMasqUseStatsAppliance=0;}	
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}		
 	
 	$page=CurrentPageName();
 	$tpl=new templates();

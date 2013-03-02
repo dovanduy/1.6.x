@@ -730,7 +730,7 @@ private function build_default_my_networks(){
 		if(!isset($this->main_array["bounce_size_limit"])){$this->main_array["bounce_size_limit"]=null;}
 		if(!isset($this->main_array["bounce_notice_recipient"])){$this->main_array["bounce_notice_recipient"]=null;}
 		if(!isset($this->main_array["header_address_token_limit"])){$this->main_array["header_address_token_limit"]=null;}
-		if(!isset($this->main_array["smtpd_reject_unlisted_recipient"])){$this->main_array["smtpd_reject_unlisted_recipient"]=null;}
+	
 		if(!isset($this->main_array["qmgr_message_recipient_minimum"])){$this->main_array["qmgr_message_recipient_minimum"]=null;}
 		if(!isset($this->main_array["smtpd_timeout"])){$this->main_array["smtpd_timeout"]=null;}
 		if(!isset($this->main_array["enable_original_recipient"])){$this->main_array["enable_original_recipient"]=null;}
@@ -752,7 +752,7 @@ private function build_default_my_networks(){
 		if($this->main_array["message_size_limit"]==null){$this->main_array["message_size_limit"]='10240000';}
 		if($this->main_array["mime_nesting_limit"]==null){$this->main_array["mime_nesting_limit"]='100';}
 		if($this->main_array["header_address_token_limit"]==null){$this->main_array["header_address_token_limit"]='10240';}
-		if($this->main_array["smtpd_reject_unlisted_recipient"]==null){$this->main_array["smtpd_reject_unlisted_recipient"]="yes";}
+		
 		if($this->main_array["smtp_connection_cache_on_demand"]==null){$this->main_array["smtp_connection_cache_on_demand"]="yes";}
 		if($this->main_array["smtp_connection_cache_time_limit"]==null){$this->main_array["smtp_connection_cache_time_limit"]="2s";}
 		if($this->main_array["smtp_connection_reuse_time_limit"]==null){$this->main_array["smtp_connection_reuse_time_limit"]="300s";}

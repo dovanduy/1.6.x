@@ -283,7 +283,8 @@ return $html;
 function POSTFIX_STATUS(){
 	$users=new usersMenus();
 	$tpl=new templates();
-	
+	$page=CurrentPageName();
+	$sock=new sockets();
 	$script="
 		
 			<script>
@@ -314,12 +315,67 @@ function POSTFIX_STATUS(){
 			if(!is_file("ressources/logs/postfix.status.html")){
 				include_once(dirname(__FILE__)."/ressources/class.status.inc");
 				$status=new status();
-				echo $tpl->_ENGINE_parse_body($status->Postfix_satus())."$script";exit;
+				$status= $tpl->_ENGINE_parse_body($status->Postfix_satus())."$script";;
 			}else{
 				if($GLOBALS["VERBOSE"]){echo "Return content of ressources/logs/postfix.status.html<br>\n";}
-				echo $tpl->_ENGINE_parse_body(@file_get_contents("ressources/logs/postfix.status.html")).$script;exit;
+				$status= $tpl->_ENGINE_parse_body(@file_get_contents("ressources/logs/postfix.status.html")).$script;;
 			}
+	}
+
+	$TrustMyNetwork=$sock->GET_INFO("TrustMyNetwork");
+	$PostfixEnableSubmission=$sock->GET_INFO("PostfixEnableSubmission");
+	if(!is_numeric($TrustMyNetwork)){$TrustMyNetwork=1;}
+	$PostFixSmtpSaslEnable=$sock->GET_INFO("PostFixSmtpSaslEnable");
+	if(!is_numeric($PostFixSmtpSaslEnable)){$PostFixSmtpSaslEnable=0;}
+	
+	
+	$TrustMyNetworkIcon="warning24.png";
+	$PostfixEnableSubmissionIcon="ok24-grey.png";
+	$PostFixSmtpSaslEnableIcon="ok24-grey.png";
+	if($TrustMyNetwork==1){
+		$TrustMyNetworkIcon="ok24.png";
+	}
+
+	if($PostfixEnableSubmission==1){
+		$PostfixEnableSubmissionIcon="ok24.png";
 	}	
+	
+	if($PostfixEnableSubmission==1){
+		$PostFixSmtpSaslEnableIcon="ok24.png";
+	}	
+	
+	$ahref="<a href⁼\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?script=auth');\"
+	style='font-size:14px;text-decoration:underline'>";
+	
+	$html="
+	<table style='width:99%' class=form>
+	<tr><td>$status</td></tr></table>		
+	<table style='width:99%' class=form>
+	<tr>
+		<td class=legend style='font-size:14px'>$ahref{sasl_title}</a>:</td>
+		<td width=1%><img src='img/$PostFixSmtpSaslEnableIcon'></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>$ahref{PostfixEnableSubmission}</a>:</td>
+		<td width=1%><img src='img/$PostfixEnableSubmissionIcon'></td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:14px'>$ahref{TrustMyNetwork}</a>:</td>
+		<td width=1%><img src='img/$TrustMyNetworkIcon'></td>
+	</tr>
+	</table>";
+	
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+	
+	
+	
+	
+	
+	
+	
 }
 
 
@@ -381,7 +437,7 @@ function main_tabs(){
 	
 	
 	return "
-	<div id=main_config_postfix style='width:100%;height:$height;overflow:auto;$fontsize'>
+	<div id=main_config_postfix style='width:930px;$fontsize'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -875,6 +931,7 @@ $html="
 		var results=trim(obj.responseText);
 		if(results.length>0){alert(results);}
 		RefreshTab('main_popup_sasl_auth');
+		RefreshTab('main_config_postfix');
 	}	
 	
 		function SaveSMTPAuthMech(){

@@ -515,6 +515,7 @@ class usersMenus {
 	public $SQUID_PURGE_INSTALLED=false;
 	public $squid_ext_session_acl=null;
 	public $ZARAFA_WEBAPP_INSTALLED=false;
+	public $ZARAFA_WEBACCESS_MOBILE_INSTALLED=false;
 	public $EJABBERD_INSTALLED=false;
 	public $PYMSNT_INSTALLED=false;
 	public $PYICQT_INSTALLED=false;
@@ -552,6 +553,7 @@ class usersMenus {
 	public $PERL_AUTHNTLM=false;
 	public $APACHE_MOD_PYTHON=false;
 	public $APP_PYAUTHENNTLM=false;	
+	public $APP_ZARAFADB_INSTALLED=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -663,6 +665,7 @@ class usersMenus {
 			if(isset($_GLOBAL["SQUID_PURGE_INSTALLED"])){$this->SQUID_PURGE_INSTALLED=$_GLOBAL["SQUID_PURGE_INSTALLED"];;}
 			if(isset($_GLOBAL["squid_ext_session_acl"])){$this->squid_ext_session_acl=$_GLOBAL["squid_ext_session_acl"];;}
 			if(isset($_GLOBAL["ZARAFA_WEBAPP_INSTALLED"])){$this->ZARAFA_WEBAPP_INSTALLED=$_GLOBAL["ZARAFA_WEBAPP_INSTALLED"];;}
+			if(isset($_GLOBAL["ZARAFA_WEBACCESS_MOBILE_INSTALLED"])){$this->ZARAFA_WEBACCESS_MOBILE_INSTALLED=$_GLOBAL["ZARAFA_WEBACCESS_MOBILE_INSTALLED"];;}
 			if(isset($_GLOBAL["EJABBERD_INSTALLED"])){$this->EJABBERD_INSTALLED=$_GLOBAL["EJABBERD_INSTALLED"];;}
 			if(isset($_GLOBAL["PYMSNT_INSTALLED"])){$this->PYMSNT_INSTALLED=$_GLOBAL["PYMSNT_INSTALLED"];;}
 			if(isset($_GLOBAL["PYICQT_INSTALLED"])){$this->PYICQT_INSTALLED=$_GLOBAL["PYICQT_INSTALLED"];;}
@@ -694,6 +697,7 @@ class usersMenus {
 			
 			if(isset($_GLOBAL["APACHE_MOD_PYTHON"])){$this->APACHE_MOD_PYTHON=$_GLOBAL["APACHE_MOD_PYTHON"];}
 			if(isset($_GLOBAL["APP_PYAUTHENNTLM"])){$this->APP_PYAUTHENNTLM=$_GLOBAL["APP_PYAUTHENNTLM"];}
+			if(isset($_GLOBAL["APP_ZARAFADB_INSTALLED"])){$this->APP_ZARAFADB_INSTALLED=$_GLOBAL["APP_ZARAFADB_INSTALLED"];}
 	
 			
 			
@@ -1047,10 +1051,16 @@ class usersMenus {
 			$ArticaMetaEnabled=trim($sock->GET_INFO("ArticaMetaEnabled"));
 			if($ArticaMetaEnabled==null){$sock->SET_INFO("ArticaMetaEnabled","0");}
 			if($ArticaMetaEnabled==1){$this->ARTICA_META_ENABLED=true;}
+
 			$EnableMacAddressFilter=$sock->GET_INFO("EnableMacAddressFilter");
-			if(!is_numeric($EnableMacAddressFilter)){$EnableMacAddressFilter=1;}
 			$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+			$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+			
+			if(!is_numeric($EnableMacAddressFilter)){$EnableMacAddressFilter=1;}
 			if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+			if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+
+			if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}			
 			if($EnableRemoteStatisticsAppliance==1){
 				$EnableMacAddressFilterCentral=$sock->GET_INFO("EnableMacAddressFilterCentral");
 				if(!is_numeric($EnableMacAddressFilterCentral)){$EnableMacAddressFilterCentral=1;}

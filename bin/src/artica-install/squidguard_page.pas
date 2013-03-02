@@ -105,6 +105,7 @@ procedure tsquidguard_page.START();
 var
   pid:string;
   count:integer;
+  chmodstring:string;
 begin
 
 
@@ -124,15 +125,19 @@ end;
     if FileExists('/var/log/artica-postfix/squidguard-lighttpd.log') then logs.DeleteFile('/var/log/artica-postfix/squidguard-lighttpd.log');
 
    pid:=LIGHTTPD_PID();
-
+   chmodstring:=SYS.LOCATE_GENERIC_BIN('chmod');
 
    if SYS.PROCESS_EXIST(pid) then begin
       logs.Debuglogs('Starting......: squidguard-lighttpd daemon is already running using PID ' + LIGHTTPD_PID() + '...');
       logs.Debuglogs('START():: squidguard-lighttpd already running with PID number ' + pid);
       exit();
    end;
+   forceDirectories('/var/run/lighttpd');
+   logs.Debuglogs('Starting......: squidguard-lighttpd apply permission on /var/run/lighttpd');
+   fpsystem(chmodstring+' 0777 /var/run/lighttpd');
 
     DEFAULT_CONF();
+
     logs.OutputCmd(LIGHTTPD_BIN_PATH()+ ' -f /etc/artica-postfix/squidguard-lighttpd.conf');
     mem_pid:='';
 

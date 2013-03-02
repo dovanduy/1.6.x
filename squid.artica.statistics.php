@@ -100,6 +100,8 @@ function params(){
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue)};
 		RefreshTab('artica_stats_tabs');
+		CacheOff();
+		ConfigureYourserver();
 	}
 
 		
@@ -125,6 +127,7 @@ function Save(){
 	$sock->SET_INFO("DisableArticaProxyStatistics", $_POST["DisableArticaProxyStatistics"]);
 	$sock->SET_INFO("CleanArticaSquidDatabases", $_POST["CleanArticaSquidDatabases"]);
 	$sock->getFrameWork("squid.php?clean-mysql-stats=yes");
+	$sock->getFrameWork('cmd.php?restart-artica-status=yes');
 	
 	
 }

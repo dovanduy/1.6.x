@@ -84,6 +84,9 @@ class system_tasks{
 			$this->tasks_array[60]="{mailsync_mailboxes_rules}";
 			$this->tasks_array[61]="{clean_mysql_events}";
 			$this->tasks_array[62]="{salearnschedule}";
+			$this->tasks_array[63]="{kaspersky_updateutility}";
+			$this->tasks_array[64]="{milter_greylist_tables}";
+			$this->tasks_array[65]="{purge_mysql_logrotate}";
 			
 			
 			
@@ -151,6 +154,9 @@ class system_tasks{
 			$this->tasks_explain_array[60]="{mailsync_mailboxes_rules_explain}";
 			$this->tasks_explain_array[61]="{clean_mysql_events_explain}";
 			$this->tasks_explain_array[62]="{salearnschedule_text}";
+			$this->tasks_explain_array[63]="{kaspersky_updateutility_text}";
+			$this->tasks_explain_array[64]="{milter_greylist_tables_text}";
+			$this->tasks_explain_array[65]="{purge_mysql_logrotate_explain}";
 			
 			
 			
@@ -221,6 +227,9 @@ class system_tasks{
 			$this->tasks_processes[60]="exec.mailsync.php --alltasks";
 			$this->tasks_processes[61]="exec.clean.logs.php --cleandb";
 			$this->tasks_processes[62]="exec.zarafa.learn.php";
+			$this->tasks_processes[63]="exec.keepup2date.php --UpdateUtility";
+			$this->tasks_processes[64]="exec.postfix.miltergrey.stats.php";
+			$this->tasks_processes[65]="exec.logrotate.php --clean";
 			
 			
 			
@@ -283,6 +292,7 @@ private function DisableTasks(){
 		$this->task_disabled[37]=true;
 		$this->task_disabled[35]=true;
 		$this->task_disabled[60]=true;
+		$this->task_disabled[64]=true;
 	}
 	
 	if(!$users->ZARAFA_INSTALLED){
@@ -301,6 +311,9 @@ private function DisableTasks(){
 		$this->task_disabled[53]=true;
 	}
 	
+	if(!$users->MILTERGREYLIST_INSTALLED){
+		$this->task_disabled[64]=true;
+	}
 	
 	
 }
@@ -357,7 +370,8 @@ public function CheckDefaultSchedules(){
 		$array[57]=array("TimeText"=>"7,22,37 * * * *","TimeDescription"=>"Each 15mn");
 		$array[58]=array("TimeText"=>"12 * * * *","TimeDescription"=>"Bandwidth Checker Each hour +12mn");
 		$array[61]=array("TimeText"=>"30 8 * * *","TimeDescription"=>"Clean tasks events each day at 08h30");
-			
+		$array[64]=array("TimeText"=>"30 7 * * *","TimeDescription"=>"Miltergrey list stats each day at 07h30");
+		$array[65]=array("TimeText"=>"30 18 * * 0","TimeDescription"=>"Purge logs storage MySQL database each Sunday at 18h30");
 		$c=0;
 		while (list ($TaskType, $content) = each ($array) ){
 			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID,TimeText FROM system_schedules WHERE TaskType=$TaskType LIMIT 0,1","artica_backup"));

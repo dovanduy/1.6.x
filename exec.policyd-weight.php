@@ -96,7 +96,9 @@ if(!is_file("/etc/postfix/whitelist_connections")){exec("/bin/touch /etc/postfix
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$finalwhitelist[]=$ligne["ipaddr"]."\tOK";
-		$finalwhitelist[]=$ligne["hostname"]."\tOK";
+		if(strpos($ligne["hostname"], "*")==0){
+			$finalwhitelist[]=$ligne["hostname"]."\tOK";
+		}
 		
 	}
 

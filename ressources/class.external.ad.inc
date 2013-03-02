@@ -3,6 +3,8 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 class external_ad_search{
 	private $ldap_connection;
 	public $ou;
+	public $error;
+	public $suffix=null;
 	function external_ad_search(){
 		if(!isset($GLOBALS["AS_ROOT"])){
 			if(posix_geteuid()>0){$GLOBALS["AS_ROOT"]=false;}else{$GLOBALS["AS_ROOT"]=true;}
@@ -11,6 +13,37 @@ class external_ad_search{
 		$this->BuildDefault();
 		
 	}
+	
+	
+	function CheckUserAuth($username,$password){
+		if($this->KerbAuthInfos["LDAP_SERVER"]==null){
+			$this->error="Failed to connect to DC Could not obtain `LDAP_SERVER`";
+			writelogs("$this->error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
+	
+		$this->ldap_connection=@ldap_connect($this->KerbAuthInfos["LDAP_SERVER"],$this->KerbAuthInfos["LDAP_PORT"]);
+		if(!$this->ldap_connection){
+			$this->error="Failed to connect to DC {$this->KerbAuthInfos["LDAP_SERVER"]}";
+			writelogs("$this->error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			@ldap_close();
+			return false;
+		}
+		
+		ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
+		ldap_set_option($this->ldap_connection, LDAP_OPT_REFERRALS, 0);
+		$bind=ldap_bind($this->ldap_connection, "$username@{$this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"]}",
+		 $password);
+		if(!$bind){
+			$error=ldap_err2str($this->ldap_connection);
+			$this->error="Failed to login to DC {$this->KerbAuthInfos["LDAP_SERVER"]} - $username@{$this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"]} `$error`";
+			writelogs($this->error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			return false;
+		}
+		return true;
+		
+		
+		}
 	
 
 	
@@ -44,9 +77,26 @@ class external_ad_search{
 			if(!$q->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		}
 		
-		
+		$this->suffix=$this->KerbAuthInfos["LDAP_SUFFIX"];
 	
 	}
+	
+	function Ldap_search($dn,$filter,$attrs,$maxRow=0){
+		if(!$this->connect()){return array();}
+
+		if(!is_array($attrs)){
+			$sr =@ldap_search($this->ldap_connection,$dn,$filter,array(),0,$maxRow);
+		}else{$sr =@ldap_search($this->ldap_connection,$dn,$filter,$attrs,0,$maxRow);}
+		if (!$sr) {
+			$this->ldap_last_error='Error LDAP search number ' . ldap_errno($this->ldap_connection) . "\nAction:LDAP search\ndn:$dn\n$filter\n" . ldap_err2str(ldap_errno($this->ldap_connection));
+			writelogs("ERROR Ldap_search : $filter in $dn" . ldap_err2str(ldap_errno($this->ldap_connection)),__CLASS__ . "/" . __FUNCTION__,__FILE__);
+			return array();
+		}
+		
+		return ldap_get_entries($this->ldap_connection,$sr);
+		
+	}	
+	
 	
 	public function GroupsOfMember($dn){
 		
@@ -208,10 +258,14 @@ class external_ad_search{
 		if(!isset($hash[0]["member"]["count"])){$hash[0]["member"]["count"]=0;}
 		
 		$MembersCount=$hash[0]["member"]["count"];
+		writelogs("MembersCount:$MembersCount in `$dn`",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+		
+		
 		if($GLOBALS["VERBOSE"]){echo "MembersCount:$MembersCount in `$dn` line ". __LINE__."\n";}
 		for($i=0;$i<$MembersCount;$i++){
 			$MemberName=$this->MemberInfoByDN($hash[0]["member"][$i]);
-			if($MemberName==null){writelogs("{$hash[0]["member"][$i]} NO NAME!",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);continue;}
+			if($GLOBALS["VERBOSE"]){echo "{$hash[0]["member"][$i]} => $MemberName line ". __LINE__."\n";}
+			if($MemberName==null){continue;}
 			if(is_array($MemberName)){
 				while (list ($a, $b) = each ($MemberName) ){
 					if(trim($b)==null){continue;}
@@ -387,7 +441,7 @@ class external_ad_search{
 	
 	function LoadGroupDataByDN($dn){
 		$dn=trim($dn);
-		if(isset($_SESSION[__CLASS__][__FUNCTION__][$dn])){return $_SESSION[__CLASS__][__FUNCTION__][$dn];}
+		
 		
 		$q=new mysql();
 		$sql="SELECT `content` FROM adgroupsprivs WHERE `DN`='$dn'";
@@ -786,11 +840,6 @@ class external_ad_search{
 		}	
 
 	public function searchGroup($pattern,$array,$maxitems=0){
-		
-		
-		
-		
-		
 		if(!$this->connect()){return $array;}
 		if($pattern==null){$pattern="*";}
 		$searchFilter="(&(objectClass=group)(sAMAccountName=$pattern))";
@@ -819,6 +868,27 @@ class external_ad_search{
 		return $array;		
 		
 	}
+	
+	public function GetGroupDN($groupname){
+		$maxitems=null;
+		if(!$this->connect()){return null;}
+		$searchFilter="(&(objectClass=group)(sAMAccountName=$groupname))";
+		$filter=array("samaccountname","dn");
+		$sr =@ldap_search($this->ldap_connection,$this->KerbAuthInfos["LDAP_SUFFIX"],"$searchFilter",$filter,null, $maxitems, 20);
+		if (!$sr) {
+			if(is_numeric(ldap_errno($this->ldap_connection))){
+				$error=ldap_errno($this->ldap_connection);$errstr=@ldap_err2str($error);
+				writelogs("Error:`$error` ($errstr) suffix:{$this->KerbAuthInfos["LDAP_SUFFIX"]} $searchFilter",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			}
+			return null;
+		}	
+		$hash=ldap_get_entries($this->ldap_connection,$sr);
+		if(!is_array($hash)){return null;}
+		return $hash[0]["dn"];
+		
+	}
+	
+	
 		
 	public function searchUser($pattern,$array){
 		if(!$this->connect()){return $array;}

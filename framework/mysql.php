@@ -365,20 +365,11 @@ function mysql_upgrade(){
 }	
 
 function REPAIR_TABLE_FILE_NOT_FOUND(){
+	$unix=new unix();
 	$file=base64_decode($_GET["mysql-fnfound"]);
-	if(!is_file($file)){
-		@file_put_contents($file, "");
-		@chmod($file, 0755);
-		@chown($file, "mysql");
-		@chgrp($file, "mysql");
-		echo "<articadatascgi>$file created done...</articadatascgi>";
-		return;
-	}
-	
-	@chmod($file, 0755);
-	@chown($file, "mysql");
-	@chgrp($file, "mysql");
-	echo "<articadatascgi>$file apply permissions done...</articadatascgi>";
+	$db=$_GET["db"];
+	$table=$_GET["table"];
+	echo "<articadatascgi>".$unix->MYSQL_REPAIR_TABLE_FILE_NOT_FOUND($file,$db,$table)."</articadatascgi>";
 	return true;	
 }
 function EMPTY_DATABASE(){

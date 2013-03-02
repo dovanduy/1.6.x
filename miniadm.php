@@ -95,7 +95,33 @@ function auth_popup(){
 
 function auth_verif(){
 	$tpl=new templates();
-$u=new user($_POST["username-logon"]);
+	$ldap=new clladp();
+	
+	if($ldap->IsKerbAuth()){
+		$external_ad_search=new external_ad_search();
+		if(!$external_ad_search->CheckUserAuth($_POST["username-logon"],$_POST["username-password"])){
+			echo $tpl->_ENGINE_parse_body("<center><H2 style='color:red'>{unknown_user}</H2></center>");
+			return null;
+		}
+		
+		$users=new usersMenus();
+		$privs=new privileges($_POST["username-logon"]);
+		$privileges_array=$privs->privs;
+		$_SESSION["InterfaceType"]="{ARTICA_MINIADM}";
+		setcookie("mem-logon-user", $_POST["username-logon"], time()+172800);
+		$_SESSION["privileges_array"]=$privs->privs;		
+		$_SESSION["uid"]=$_POST["username-logon"];
+		$_SESSION["passwd"]=$_POST["username-logon"];		
+		$_SESSION["privileges"]["ArticaGroupPrivileges"]=$privs->content;
+		BuildSession($_POST["username-logon"]);
+		echo "<script>YahooWinHide();LoadAjax('BodyContent','miniadm.index.php');</script>
+		";
+		return;		
+	}
+	
+	
+	
+	$u=new user($_POST["username-logon"]);
 	$userPassword=$u->password;
 	if(trim($u->uidNumber)==null){
 		writelogs('Unable to get user infos abort',__FUNCTION__,__FILE__);

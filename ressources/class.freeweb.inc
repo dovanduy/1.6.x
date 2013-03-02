@@ -253,6 +253,13 @@
 				return @implode("\n", $f);
 			}
 			
+			if($this->groupware=="WPAD"){
+				$f[]="\t\tAddType application/x-ns-proxy-autoconfig .dat";
+				$f[]="\t\tAddType application/x-ns-proxy-autoconfig .pac";
+				$f[]="\t\tRedirect permanent /wpad.dat /proxy.pac";
+				
+			}
+			
 		}
 		
 		private function mod_status_allow_from(){
@@ -430,6 +437,11 @@
 		}
 		
 		public function ServerAlias(){
+			
+			if($this->groupware=="WPAD"){
+				$this->Params["ServerAlias"]["wpad"]=true;
+			}
+			
 			if(!isset($this->Params["ServerAlias"])){return;}
 			if(count($this->Params["ServerAlias"])==0){return;}
 			$f=array();
@@ -1096,6 +1108,11 @@
 				$this->WORKING_DIRECTORY="/opt/kaspersky/klmsui/share/htdocs";
 				return;
 			}
+			if($this->groupware=="WPAD"){
+				$this->WORKING_DIRECTORY="/usr/share/proxy.pac";
+				return;
+			}			
+			
 			
 			if($this->groupware=="ZARAFA"){
 				$this->WORKING_DIRECTORY="/var/www/$this->servername";
@@ -1125,11 +1142,11 @@
 			}			
 			
 			if($this->groupware=="Z-PUSH"){
-				$this->WORKING_DIRECTORY="/usr/share/z-push";
-				@mkdir("/usr/share/z-push/state",0777,true);
-				@chmod("/usr/share/z-push/state",0777);
-				@mkdir("/usr/share/z-push/log",0777,true);
-				@chmod("/usr/share/z-push/log",0777);
+				$this->WORKING_DIRECTORY="/var/www/$this->servername";
+				@mkdir("$this->WORKING_DIRECTORY/state",0777,true);
+				@chmod("$this->WORKING_DIRECTORY/state",0777);
+				@mkdir("$this->WORKING_DIRECTORY/log",0777,true);
+				@chmod("$this->WORKING_DIRECTORY/log",0777);
 				$this->InstallZarafaZpush();
 				return;
 			}
@@ -1251,6 +1268,11 @@
 			if($this->groupware=="SPLASHSQUID"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			if($this->groupware=="ARTICA_PRXYLOGS"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			if($this->groupware=="ERRSQUID"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
+			if($this->groupware=="UPDATEUTILITY"){
+				$sock=new sockets();
+				$UpdateUtilityStorePath=$sock->GET_INFO("UpdateUtilityStorePath");
+				if($UpdateUtilityStorePath==null){$UpdateUtilityStorePath="/home/kaspersky/UpdateUtility";}
+				$this->WORKING_DIRECTORY="$UpdateUtilityStorePath/databases/Updates";return false;}
 			
 			
 			
@@ -1300,6 +1322,9 @@
 		if(!$this->AS_ROOT){return;}
 		if($this->IsGroupWareFromArtica()){return;}
 		if($this->Params["DisableIndexPHPPage"]==1){return;}
+		if($this->groupware=="Z-PUSH"){return;}
+		
+		
 		$wel[]="<?php";
 		$wel[]="echo \"<H1>It Works!</H1>\";";
 		$wel[]="while (list(\$index,\$line)=each(\$_SERVER)){";
@@ -1310,6 +1335,7 @@
 		if($this->groupware=="cachemgr"){$index_php="<?php echo header('location:cgi-bin/cachemgr.cgi');die();?>";}
 			
 			if(!is_file("$this->WORKING_DIRECTORY/index.php")){
+				echo "Starting......: Apache \"$this->servername\" CheckDefaultPage -> $this->WORKING_DIRECTORY/index.php (L.".__LINE__.")\n";
 				@file_put_contents("$this->WORKING_DIRECTORY/index.php",$index_php);
 			}			
 			
@@ -1961,6 +1987,8 @@
 			if($this->groupware=="SPLASHSQUID"){return "splashproxy.php";}
 			if($this->groupware=="ARTICA_PRXYLOGS"){return "prxy.monitor.php";}
 			if($this->groupware=="ERRSQUID"){return "public.squid.error.php";}
+			if($this->groupware=="UPDATEUTILITY"){return "index.php";}
+			if($this->groupware=="WPAD"){return "proxy.pac";}
 			
 			
 			
@@ -2129,6 +2157,13 @@
 		
 		
 		public function IndexIgnores(){
+			
+			if($this->IsGroupWareFromArtica()){
+				$this->Params["IndexIgnores"]["*"]=true;
+				
+			}
+			
+			
 			if(!isset($this->Params["IndexIgnores"])){return null;}
 			while (list ($IndexIgnores, $ligne) = each ($this->Params["IndexIgnores"]) ){
 				if(trim($IndexIgnores)==null){return;}
@@ -2523,6 +2558,7 @@
 		private function Autodiscover(){
 			$unix=new unix();
 			$PARAMS=$this->Params["ZARAFAWEB_PARAMS"];
+			if(!isset($PARAMS["AutoDiscoverUri"])){$PARAMS["AutoDiscoverUri"]=null;}
 			$AutoDiscoverUri=$PARAMS["AutoDiscoverUri"];
 			if($AutoDiscoverUri==null){
 				$prefix="http://";
@@ -2561,15 +2597,31 @@
 		
 		
 		private function InstallZarafaZpush($indexPath=null){
-				$Directory="/usr/share/z-push";
+				if(!$this->AS_ROOT){return;}
+				$DirectorySrc="/usr/share/z-push";
+				$unix=new unix();
+				$cp=$unix->find_program("cp");
+				
+				
+				
+				
+				
 				if($indexPath<>null){$Directory=dirname($indexPath);
-					if(basename($indexPath)<>"config.php"){
-						if($this->AS_ROOT){echo "Starting......: Apache  `$indexPath`: ". basename($indexPath). " is not config.php, aborting...\n";}	
+				
+				
+				if(basename($indexPath)<>"config.php"){
+						if($this->AS_ROOT){echo "Starting......: Apache InstallZarafaZpush():: `$indexPath`: ". basename($indexPath). " is not config.php, aborting...\n";}	
 						return ;
 					}
+				}else{
+					$Directory=$this->WORKING_DIRECTORY;
 				}
-				if(!$this->AS_ROOT){return;}
-				echo "Starting......: Apache  $indexPath...\n";
+				
+				if($this->AS_ROOT){echo "Starting......: Apache InstallZarafaZpush():: \"$this->servername\" install to `$Directory`\n";}
+				shell_exec("$cp -rf $DirectorySrc/* $Directory/");
+				
+				
+				echo "Starting......: Apache \"$this->servername\" InstallZarafaZpush():: index path: $indexPath...\n";
 				$f[]="<?php";
 				$f[]="    define('TIMEZONE', '');";
 				$f[]="    define('BASE_PATH', dirname(\$_SERVER['SCRIPT_FILENAME']). '/');";
@@ -2608,6 +2660,19 @@
 				$f[]="    \$additionalFolders = array(";
 				$f[]="        // demo entry for the synchronization of contacts from the public folder.";
 				$f[]="        // uncomment (remove '/*' '*/') and fill in the folderid";
+				
+				if(isset($this->Params["ZPUSH"]["STORES"])){
+					$params=$this->Params["ZPUSH"]["STORES"];
+					while (list ($ID, $folder) = each ($params) ){
+						echo "Starting......: Apache \"$this->servername\" InstallZarafaZpush():: Public folder:{$folder["U"]}:{$folder["F"]}\n";
+						$f[]="        array(";
+						$f[]="            'store'     => \"{$folder["U"]}\",";
+						$f[]="            'folderid'  => \"$ID\",";
+						$f[]="            'name'      => \"{$folder["F"]}\",";
+						$f[]="            'type'      => {$folder["T"]},";
+						$f[]="        ),";						
+					}
+				}
 				$f[]="/*";
 				$f[]="        array(";
 				$f[]="            'store'     => \"SYSTEM\",";
@@ -2619,14 +2684,13 @@
 				$f[]="    );";
 				$f[]="";
 				$f[]="?>";
-				if($indexPath==null){$indexPath="/usr/share/z-push/config.php";}
-				echo "Starting......: Apache  creating `$indexPath` configuration file\n";
+				if($indexPath==null){$indexPath="$this->WORKING_DIRECTORY/config.php";}
+				echo "Starting......: Apache  InstallZarafaZpush():: creating `$indexPath` configuration file\n";
 				@file_put_contents($indexPath, @implode("\n", $f));
 				$unix=new unix();
-				$unix->chown_func($this->APACHE_RUN_USER, $this->APACHE_RUN_GROUP,"$Directory/*");
+				$unix->chown_func($this->APACHE_RUN_USER, $this->APACHE_RUN_GROUP,"$this->WORKING_DIRECTORY/*");
+				echo "Starting......: Apache \"$this->servername\" InstallZarafaZpush():: Check Autodiscover...\n";
 				$this->Autodiscover();
-			
-			
 		}
 		
 		

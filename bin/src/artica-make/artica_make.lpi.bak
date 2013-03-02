@@ -12,7 +12,7 @@
       <MainUnit Value="0"/>
       <TargetFileExt Value=""/>
       <Title Value="Artica make"/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <ActiveEditorIndexAtStart Value="2"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -34,8 +34,8 @@
         <Filename Value="artica_make.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="artica_make"/>
-        <CursorPos X="10" Y="1079"/>
-        <TopLine Value="1038"/>
+        <CursorPos X="24" Y="745"/>
+        <TopLine Value="718"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
@@ -75,7 +75,7 @@
         <UnitName Value="install_generic"/>
         <CursorPos X="93" Y="83"/>
         <TopLine Value="69"/>
-        <EditorIndex Value="14"/>
+        <EditorIndex Value="15"/>
         <UsageCount Value="102"/>
         <Loaded Value="True"/>
       </Unit5>
@@ -84,7 +84,7 @@
         <UnitName Value="lighttpd"/>
         <CursorPos X="163" Y="9"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="9"/>
+        <EditorIndex Value="10"/>
         <UsageCount Value="100"/>
         <Loaded Value="True"/>
       </Unit6>
@@ -139,7 +139,7 @@
         <UnitName Value="setup_libs"/>
         <CursorPos X="93" Y="1085"/>
         <TopLine Value="1042"/>
-        <EditorIndex Value="13"/>
+        <EditorIndex Value="14"/>
         <UsageCount Value="101"/>
         <Loaded Value="True"/>
       </Unit13>
@@ -165,7 +165,7 @@
         <UnitName Value="setup_amavisdmilter"/>
         <CursorPos X="1" Y="266"/>
         <TopLine Value="217"/>
-        <EditorIndex Value="10"/>
+        <EditorIndex Value="11"/>
         <UsageCount Value="204"/>
         <Loaded Value="True"/>
       </Unit16>
@@ -221,7 +221,7 @@
         <UnitName Value="zsystem"/>
         <CursorPos X="39" Y="1565"/>
         <TopLine Value="1538"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="6"/>
         <UsageCount Value="130"/>
         <Loaded Value="True"/>
       </Unit23>
@@ -231,7 +231,7 @@
         <UnitName Value="setup_kavmilter"/>
         <CursorPos X="95" Y="230"/>
         <TopLine Value="206"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="5"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit24>
@@ -239,9 +239,9 @@
         <Filename Value="setup_squid.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="setup_squid"/>
-        <CursorPos X="101" Y="180"/>
-        <TopLine Value="141"/>
-        <EditorIndex Value="1"/>
+        <CursorPos X="1" Y="177"/>
+        <TopLine Value="153"/>
+        <EditorIndex Value="2"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit25>
@@ -290,7 +290,7 @@
         <UnitName Value="setup_cicap"/>
         <CursorPos X="116" Y="84"/>
         <TopLine Value="55"/>
-        <EditorIndex Value="11"/>
+        <EditorIndex Value="12"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit31>
@@ -316,7 +316,7 @@
         <UnitName Value="setup_postfix"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="8"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit34>
@@ -398,7 +398,7 @@
         <UnitName Value="setup_samba"/>
         <CursorPos X="25" Y="58"/>
         <TopLine Value="29"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="7"/>
         <UsageCount Value="201"/>
         <Loaded Value="True"/>
       </Unit44>
@@ -422,7 +422,7 @@
         <UnitName Value="setup_opengoo"/>
         <CursorPos X="43" Y="186"/>
         <TopLine Value="169"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="9"/>
         <UsageCount Value="208"/>
         <Loaded Value="True"/>
       </Unit47>
@@ -544,7 +544,7 @@
         <UnitName Value="setup_glusterfs"/>
         <CursorPos X="61" Y="126"/>
         <TopLine Value="99"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="4"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit62>
@@ -576,9 +576,11 @@
         <Filename Value="setup_zarafa.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="setup_zarafa"/>
-        <CursorPos X="1" Y="1"/>
-        <TopLine Value="1"/>
+        <CursorPos X="120" Y="135"/>
+        <TopLine Value="95"/>
+        <EditorIndex Value="1"/>
         <UsageCount Value="200"/>
+        <Loaded Value="True"/>
       </Unit66>
       <Unit67>
         <Filename Value="setup_cpulimit.pas"/>
@@ -666,7 +668,7 @@
         <UnitName Value="setup_dropbox"/>
         <CursorPos X="47" Y="81"/>
         <TopLine Value="43"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="3"/>
         <UsageCount Value="270"/>
         <Loaded Value="True"/>
       </Unit77>
@@ -816,7 +818,7 @@
         <UnitName Value="setup_haproxy"/>
         <CursorPos X="1" Y="63"/>
         <TopLine Value="51"/>
-        <EditorIndex Value="12"/>
+        <EditorIndex Value="13"/>
         <UsageCount Value="177"/>
         <Loaded Value="True"/>
       </Unit96>
@@ -858,123 +860,123 @@
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="786" Column="69" TopLine="767"/>
       </Position1>
       <Position2>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="579" Column="29" TopLine="544"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position2>
       <Position3>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="580" Column="25" TopLine="544"/>
+        <Caret Line="198" Column="61" TopLine="171"/>
       </Position3>
       <Position4>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="559" Column="70" TopLine="544"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position4>
       <Position5>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="1573" Column="22" TopLine="1538"/>
+        <Caret Line="198" Column="61" TopLine="171"/>
       </Position5>
       <Position6>
-        <Filename Value="setup_samba.pas"/>
-        <Caret Line="196" Column="37" TopLine="162"/>
+        <Filename Value="artica_make.pas"/>
+        <Caret Line="206" Column="61" TopLine="171"/>
       </Position6>
       <Position7>
-        <Filename Value="setup_libs.pas"/>
-        <Caret Line="54" Column="36" TopLine="27"/>
+        <Filename Value="artica_make.pas"/>
+        <Caret Line="1068" Column="27" TopLine="1038"/>
       </Position7>
       <Position8>
-        <Filename Value="artica_make.pas"/>
-        <Caret Line="1588" Column="31" TopLine="1557"/>
+        <Filename Value="setup_opengoo.pas"/>
+        <Caret Line="179" Column="30" TopLine="156"/>
       </Position8>
       <Position9>
-        <Filename Value="setup_samba.pas"/>
-        <Caret Line="191" Column="3" TopLine="149"/>
+        <Filename Value="zsystem.pas"/>
+        <Caret Line="339" Column="35" TopLine="312"/>
       </Position9>
       <Position10>
-        <Filename Value="setup_samba.pas"/>
-        <Caret Line="170" Column="10" TopLine="143"/>
+        <Filename Value="zsystem.pas"/>
+        <Caret Line="479" Column="32" TopLine="452"/>
       </Position10>
       <Position11>
-        <Filename Value="setup_samba.pas"/>
-        <Caret Line="138" Column="35" TopLine="128"/>
+        <Filename Value="zsystem.pas"/>
+        <Caret Line="500" Column="31" TopLine="452"/>
       </Position11>
       <Position12>
-        <Filename Value="artica_make.pas"/>
-        <Caret Line="1560" Column="26" TopLine="1557"/>
+        <Filename Value="zsystem.pas"/>
+        <Caret Line="1564" Column="1" TopLine="1549"/>
       </Position12>
       <Position13>
-        <Filename Value="artica_make.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Filename Value="setup_opengoo.pas"/>
+        <Caret Line="199" Column="30" TopLine="156"/>
       </Position13>
       <Position14>
-        <Filename Value="artica_make.pas"/>
-        <Caret Line="797" Column="21" TopLine="767"/>
+        <Filename Value="zsystem.pas"/>
+        <Caret Line="342" Column="38" TopLine="315"/>
       </Position14>
       <Position15>
-        <Filename Value="setup_squid.pas"/>
-        <Caret Line="27" Column="25" TopLine="1"/>
+        <Filename Value="lighttpd.pas"/>
+        <Caret Line="9" Column="163" TopLine="1"/>
       </Position15>
       <Position16>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="786" Column="69" TopLine="767"/>
+        <Caret Line="1052" Column="53" TopLine="1038"/>
       </Position16>
       <Position17>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="28" Column="24" TopLine="1"/>
       </Position17>
       <Position18>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="198" Column="61" TopLine="171"/>
+        <Caret Line="602" Column="21" TopLine="573"/>
       </Position18>
       <Position19>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="691" Column="22" TopLine="657"/>
       </Position19>
       <Position20>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="198" Column="61" TopLine="171"/>
+        <Caret Line="692" Column="21" TopLine="657"/>
       </Position20>
       <Position21>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="206" Column="61" TopLine="171"/>
+        <Caret Line="668" Column="78" TopLine="657"/>
       </Position21>
       <Position22>
         <Filename Value="artica_make.pas"/>
-        <Caret Line="1068" Column="27" TopLine="1038"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position22>
       <Position23>
-        <Filename Value="setup_opengoo.pas"/>
-        <Caret Line="179" Column="30" TopLine="156"/>
+        <Filename Value="artica_make.pas"/>
+        <Caret Line="1410" Column="40" TopLine="1403"/>
       </Position23>
       <Position24>
-        <Filename Value="zsystem.pas"/>
-        <Caret Line="339" Column="35" TopLine="312"/>
+        <Filename Value="artica_make.pas"/>
+        <Caret Line="1731" Column="30" TopLine="1702"/>
       </Position24>
       <Position25>
-        <Filename Value="zsystem.pas"/>
-        <Caret Line="479" Column="32" TopLine="452"/>
+        <Filename Value="setup_squid.pas"/>
+        <Caret Line="30" Column="41" TopLine="3"/>
       </Position25>
       <Position26>
-        <Filename Value="zsystem.pas"/>
-        <Caret Line="500" Column="31" TopLine="452"/>
+        <Filename Value="artica_make.pas"/>
+        <Caret Line="1713" Column="55" TopLine="1702"/>
       </Position26>
       <Position27>
-        <Filename Value="zsystem.pas"/>
-        <Caret Line="1564" Column="1" TopLine="1549"/>
+        <Filename Value="artica_make.pas"/>
+        <Caret Line="2147" Column="24" TopLine="2120"/>
       </Position27>
       <Position28>
-        <Filename Value="setup_opengoo.pas"/>
-        <Caret Line="199" Column="30" TopLine="156"/>
+        <Filename Value="artica_make.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position28>
       <Position29>
-        <Filename Value="zsystem.pas"/>
-        <Caret Line="342" Column="38" TopLine="315"/>
+        <Filename Value="artica_make.pas"/>
+        <Caret Line="745" Column="24" TopLine="718"/>
       </Position29>
       <Position30>
-        <Filename Value="lighttpd.pas"/>
-        <Caret Line="9" Column="163" TopLine="1"/>
+        <Filename Value="setup_squid.pas"/>
+        <Caret Line="36" Column="24" TopLine="23"/>
       </Position30>
     </JumpHistory>
   </ProjectOptions>

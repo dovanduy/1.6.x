@@ -15,6 +15,38 @@
 	if(isset($_GET["websites-search"])){WEBSITES_SEARCH();exit;}
 	if(isset($_POST["DELETE"])){DELETE_DOM();exit;}
 	if(isset($_POST["delete_all"])){DELETE_ALL();exit;}
+	if(isset($_GET["addjs-silent"])){addjs();exit;}
+	
+	
+	
+function addjs(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$error_no_licence=$tpl->javascript_parse_text("{error_no_licence}");
+		echo "alert('$error_no_licence');";
+		return;
+	}
+	
+	
+	$website=$_GET["website"];
+	$add_new_cached_web_site=$tpl->javascript_parse_text("{add_new_cached_web_site}:$website");
+	$t=time();
+	$html="
+
+	function cache$t(){
+		if(!confirm('$add_new_cached_web_site')){return;}
+		Loadjs('squid.miniwebsite.tasks.php?cache-params-js=yes&sitename=$website&with-enable=yes');
+		
+		
+	}
+			
+	cache$t();		
+	";
+	echo $html;
+}
+	
 page();
 
 function page(){
@@ -24,6 +56,9 @@ $tpl=new templates();
 $sock=new sockets();
 $EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}
 $website=$tpl->_ENGINE_parse_body("{website}");
 $expire_time=$tpl->_ENGINE_parse_body("{expire_time}");
 $limit=$tpl->_ENGINE_parse_body("{limit}");
@@ -194,19 +229,19 @@ if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsApplian
 	}	
 	
 	//sitename,MIN_AGE,MAX_AGE,PERCENT,options
-	
+	$tpl=new templates();
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=md5($ligne["sitename"]);
 		$delete=imgtootltip("delete-24.png","{delete}","DeleteWebsiteCached{$_GET["t"]}('{$ligne["sitename"]}','$ID')");
 		$select="Loadjs('squid.miniwebsite.tasks.php?cache-params-js=yes&sitename={$ligne["sitename"]}&table-t={$_GET["t"]}');";
 		
 		$ligne["MIN_AGE"]=$ligne["MIN_AGE"];
-		$ligne["MIN_AGE"]=distanceOfTimeInWords(time(),mktime()+($ligne["MIN_AGE"]*60),true);
-		$ligne["MIN_AGE"]=str_replace("about","",$ligne["MIN_AGE"]);
+		$ligne["MIN_AGE"]=$tpl->javascript_parse_text(distanceOfTimeInWords(time(),mktime()+($ligne["MIN_AGE"]*60),true));
+		
 		
 		$ligne["MAX_AGE"]=$ligne["MAX_AGE"];
-		$ligne["MAX_AGE"]=distanceOfTimeInWords(time(),mktime()+($ligne["MAX_AGE"]*60),true);
-		$ligne["MAX_AGE"]=str_replace("about","",$ligne["MAX_AGE"]);		
+		$ligne["MAX_AGE"]=$tpl->javascript_parse_text(distanceOfTimeInWords(time(),mktime()+($ligne["MAX_AGE"]*60),true));
+			
 		$link="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:$select\" 
 		style='font-size:14x;text-decoration:underline'>";

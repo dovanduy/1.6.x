@@ -75,6 +75,7 @@ function save(){
 	$sock->SET_INFO("php5MemoryLimit",$_POST["php5MemoryLimit"]);
 	$sock->SET_INFO("timezones",$_POST["timezones"]);
 	$sock->SET_INFO("EnableRRDGraphFunction", $_POST["EnableRRDGraphFunction"]);
+	$sock->getFrameWork("system.php?zoneinfo-set=".base64_encode("{$_POST["timezones"]}"));
 	sleep(1);
 	$sock->getFrameWork("cmd.php?php-rewrite=yes");
 	$sock->getFrameWork("cmd.php?restart-web-server=yes");

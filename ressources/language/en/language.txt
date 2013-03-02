@@ -2433,7 +2433,7 @@ in a SASL password LDAP, and if a username/password is found, it will use that u
 <SectionSecurityRulesExplain>This section allows you to manage security settings when email go trought your server.
 [br]These rules are translated when email agents send data on the postfix in order to recieve emails or send emails.[br]
 [h3]Content rules[/h3]
-These rules allows postfix to parse keywords directly in datas sended to the postfix port.[br]
+These rules allows postfix to parse keywords directly in datas sent to the postfix port.[br]
 you can block mails according specific content in the header part of mails.[br]
 [h3]Clients rules[/h3]
 These rules check the TCP/IP address of the remote servers/clients that send mails to this server in [b]RCPT TO[/b]
@@ -2446,7 +2446,7 @@ You can enable RBL RHSBL features in order to prevent spams</SectionSecurityRule
 <security_classes>security restrictions classes</security_classes>
 <SECURITY_MODULES>Security modules</SECURITY_MODULES>
 <security_rules>security rules</security_rules>
-<security_rules_explain>This area show you all rules enabled when mails pass trought Postfix before sended to the storage mail system</security_rules_explain>
+<security_rules_explain>This area show you all rules enabled when mails pass trought Postfix before sent to the storage mail system</security_rules_explain>
 <security_rules_text>Edit your synthesis's [strong]SMTP rules[/strong] in one single page in order to view the scanning flow.</security_rules_text>
 <see_conf>View generated config</see_conf>
 <see_config>View the generated file</see_config>
@@ -2464,7 +2464,7 @@ You can enable RBL RHSBL features in order to prevent spams</SectionSecurityRule
 <selfmx>Self MX</selfmx>
 <selfmx_text>Return an MX record pointing to itself for all local machines</selfmx_text>
 <send>send</send>
-<sended>sended</sended>
+<sended>Sent</sended>
 <Sender>Sender</Sender>
 <senderm>sender</senderm>
 <senders>Senders</senders>
@@ -3387,7 +3387,7 @@ Click on the button below in ordre to perform this operation</SQUID_NOT_COMPILED
 <authenticate_users_ntlm>SAMBA/Windows Authentication</authenticate_users_ntlm>
 <authenticate_users_ntlm_explain>SAMBA/Windows (as NTLM) allow to the proxy to authenticate users trough Windows NT Domain (SAMBA).
 [br]This feature display an authentication popup if user is not linked to a windows Domain.[br]
-If users are connected to the Domain, the authentication is sended silently to the proxy</authenticate_users_ntlm_explain>
+If users are connected to the Domain, the authentication is sent silently to the proxy</authenticate_users_ntlm_explain>
 <winbindd_installed>Winbind daemon installed</winbindd_installed>
 <network_information>Network information</network_information>
 <dns_information>DNS information</dns_information>
@@ -4934,7 +4934,7 @@ Dropbox works on both Mac and Windows.[br]
 <EnableMONITSmtpNotif>Enable Service monitor notifications</EnableMONITSmtpNotif>
 <quotas_policies>Quotas Policies</quotas_policies>
 <quotas_policies_sender_text>Define rules about emails quotas when this user send mails</quotas_policies_sender_text> 
-<quotas_policies_emailOnlyNotify_explain>If enabled, mails are not blocked, an SMTP notification is sended with all SMTP transactions sent by this user</quotas_policies_emailOnlyNotify_explain>
+<quotas_policies_emailOnlyNotify_explain>If enabled, mails are not blocked, an SMTP notification is sent with all SMTP transactions sent by this user</quotas_policies_emailOnlyNotify_explain>
 <MaxMailsDay>Max messages by day</MaxMailsDay>
 <MaxMailDaySize>Max size by day</MaxMailDaySize>
 <enable_artica_policy>Enable Artica-Policy filter</enable_artica_policy>

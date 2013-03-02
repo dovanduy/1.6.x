@@ -121,6 +121,33 @@ function central_information(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$users=new usersMenus();
+	$TRPTEXT=null;
+	$sock=new sockets();
+	$processes=unserialize(base64_decode($sock->getFrameWork("squidstats.php?processes-queue=yes")));
+	
+	if(is_array($processes)){
+		$TRP[]="<table style='width:99%' class=form>";
+		while (list ($index, $ligne) = each ($processes) ){
+			$TTL=$ligne["TTL"];
+			$PID=$ligne["PID"];
+			$day=$ligne["day"];
+			
+		
+			$TRP[]="<tr>
+				<td width=1%><img src='img/preloader.gif'></td>
+				<td style='font-weight:bold'>{processing} $day PID:$PID {since} $TTL</td>
+				</tr>";
+			
+		}
+		$TRP[]="</table>";
+		$TRPTEXT=@implode("\n", $TRP);
+	}
+	
+
+	
+	
+	
+	
 	
 	if(!$users->PROXYTINY_APPLIANCE){
 	//$tr[]=Paragraphe32("old_statistics_interface", "old_statistics_interface_text", "SquidQuickLinksStatistics();", "status_statistics-22.png");
@@ -130,6 +157,11 @@ function central_information(){
 	$tr[]=Paragraphe32("proxy_statistics_interface", "proxy_statistics_interface_text", 
 		"document.location.href='logoff.php?goto=miniadm.logon.php';",
 		 "link-32.png");
+	
+	
+	
+	$tr[]=Paragraphe32('enable_disable_statistics','ARTICA_STATISTICS_TEXT'
+			,"Loadjs('squid.artica.statistics.php')","statistics-32.png");
 	
 	if(!$users->CORP_LICENSE){
 		$more_features="<div class=explain style='font-size:14px;'>{squid_stats_nolicence_explain}</div>";
@@ -154,6 +186,7 @@ function central_information(){
 	
 	$html="
 	<div style='font-size:18px'>{SQUID_STATS}</div>
+	$TRPTEXT
 	$more_features
 	<div id='graph1-$t'></div>
 	<center>

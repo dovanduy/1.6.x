@@ -525,13 +525,10 @@ function settingsSave(){
 	
 	$sock->SET_INFO("EnableKerbAuth", $_POST["EnableKerbAuth"]);
 	$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
+	$sock=new sockets();
 	$sock->getFrameWork("services.php?kerbauth=yes");
-	if($users->SQUID_INSTALLED){$sock->getFrameWork("cmd.php?squid-rebuild=yes");}
-	
-	if($users->SAMBA_INSTALLED){
-		$sock->getFrameWork("services.php?nsswitch=yes");
-		$sock->getFrameWork("cmd.php?samba-reconfigure=yes");
-	}
+	$sock->getFrameWork("services.php?nsswitch=yes");
+	$sock->getFrameWork("cmd.php?samba-reconfigure=yes");
 }
 
 

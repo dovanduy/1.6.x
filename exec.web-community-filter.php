@@ -135,7 +135,7 @@ function register_lic(){
 	if($EnableRemoteStatisticsAppliance==1){
 		$cmdADD="$nohup ".$unix->LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.netagent.php >/dev/null 2>&1 &";
 	}
-	
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
 	
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
 	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
@@ -153,6 +153,7 @@ function register_lic(){
 	@mkdir("/usr/local/share/artica",640,true);
 	
 	$curl->parms["REGISTER-LIC"]=base64_encode(serialize($LicenseInfos));
+	$curl->parms["REGISTER-OLD"]=base64_encode(serialize($WizardSavedSettings));
 	$curl->get();
 	
 	if(preg_match("#REGISTRATION_OK:\[(.+?)\]#s", $curl->data,$re)){

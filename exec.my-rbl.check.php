@@ -26,6 +26,14 @@ if($argv[1]=="--pear"){InstallPear();}
 
 
 function CheckCMDLine(){
+	
+	$unix=new unix();
+	$PID_FILE="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$oldpid=$unix->get_pid_from_file($PID_FILE);
+	if($unix->process_exists($oldpid)){return;}
+	@file_put_contents($PID_FILE, getmypid());
+	
+	
 	$sock=new sockets();
 	$ips=unserialize(base64_decode($sock->GET_INFO("RBLCheckIPList")));
 	

@@ -510,8 +510,10 @@ function QueryDNSForm(){
 	$main=new main_cf(0);
 	$page=CurrentPageName();
 	$ldap=new clladp();
+	$tpl=new templates();
 	$domains=$ldap->hash_get_all_domains();
 	$myhostname=$sock->GET_INFO("myhostname");
+	$warn_disable_dns_lookups=$tpl->javascript_parse_text("{warn_disable_dns_lookups}");
 	
 	$main=new maincf_multi("master","master");
 	$domains["\$mydomain"]="\$mydomain";
@@ -536,13 +538,13 @@ $html="<div id='QueryDNSFormSaveid'>
 	<td valign='top' width=1% $styleadd>".help_icon('{myorigin_text}')."</td>
 	<tr>	
 	<td align='right' valign='top' nowrap class=legend $styleadd>{ignore_mx_lookup_error}&nbsp;:</strong></td>
-	<td align='left' width=1% $styleadd>" . Field_checkbox('ignore_mx_lookup_error','yes',$main->GET("ignore_mx_lookup_error")) ."</td>
+	<td align='left' width=1% $styleadd>" . Field_checkbox('ignore_mx_lookup_error','1',$main->GET("ignore_mx_lookup_error")) ."</td>
 	<td valign='top' width=1% $styleadd>".help_icon('{ignore_mx_lookup_error_text}')."</td>
 	</tr>
 	<tr>
 		<tr>
 	<td align='right' valign='top' nowrap class=legend $styleadd>{disable_dns_lookups}&nbsp;:</strong></td>
-	<td align='left'  width=1% $styleadd>" . Field_checkbox('disable_dns_lookups','yes',$main->GET("disable_dns_lookups")) ."</td>
+	<td align='left'  width=1% $styleadd>" . Field_checkbox('disable_dns_lookups','1',$main->GET("disable_dns_lookups")) ."</td>
 	<td valign='top' width=1% $styleadd>".help_icon('{disable_dns_lookups_text}')."</td>
 	</tr>
 	<tr><td colspan=3 align='right'><hr>". button("{edit}","QueryDNSFormSave()",16)."</td></tr>
@@ -562,11 +564,15 @@ $html="<div id='QueryDNSFormSaveid'>
 		function QueryDNSFormSave(){
 			var XHR = new XHRConnection();
 			XHR.appendData('myhostname',document.getElementById('myhostname').value);
+			
+			
 			if(document.getElementById('ignore_mx_lookup_error').checked){XHR.appendData('ignore_mx_lookup_error','1');}else{
 				XHR.appendData('ignore_mx_lookup_error','0');
 			}
 			
-			if(document.getElementById('disable_dns_lookups').checked){XHR.appendData('disable_dns_lookups','1');}else{
+			if(document.getElementById('disable_dns_lookups').checked){
+				if(!confirm('$warn_disable_dns_lookups')){return;}
+				XHR.appendData('disable_dns_lookups','1');}else{
 				XHR.appendData('disable_dns_lookups','0');
 			}			
 			AnimateDiv('QueryDNSFormSaveid');
@@ -578,7 +584,7 @@ $html="<div id='QueryDNSFormSaveid'>
 	";
 
 
-$tpl=new templates();
+
 echo $tpl->_ENGINE_parse_body($html);	
 	
 }
@@ -931,9 +937,6 @@ function PostfixDeleteInterface(){
 function SaveDNSSettings(){
 	$main=new maincf_multi("master","master");	
 	$sock=new sockets();
-	if($_GET["ignore_mx_lookup_error"]=="no"){$_GET["ignore_mx_lookup_error"]=0;}else{$_GET["ignore_mx_lookup_error"]=1;}
-	if($_GET["disable_dns_lookups"]=="no"){$_GET["disable_dns_lookups"]=0;}else{$_GET["disable_dns_lookups"]=1;}
-	
 	$sock->SET_INFO("myhostname",$_GET["myhostname"]);
 	$main->SET_VALUE("ignore_mx_lookup_error",$_GET["ignore_mx_lookup_error"]);
 	$main->SET_VALUE("disable_dns_lookups",$_GET["disable_dns_lookups"]);

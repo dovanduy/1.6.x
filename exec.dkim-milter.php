@@ -243,10 +243,12 @@ function WhitelistHosts(){
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if(isset($already[$ligne["ipaddr"]])){continue;}
 		if(isset($already[$ligne["hostname"]])){continue;}
+		
 		echo "Starting......: milter-dkim Trusted Host \"{$ligne["ipaddr"]}\" FROM postfix_whitelist_con\n";
 		echo "Starting......: milter-dkim Trusted Host \"{$ligne["hostname"]}\" FROM postfix_whitelist_con\n";
 		$f[]=$ligne["ipaddr"];
-		$f[]=$ligne["hostname"];
+		if(strpos($ligne["hostname"], "*")==0){$f[]=$ligne["hostname"];}
+		
 		$already[$ligne["hostname"]]=true;
 		$already[$ligne["ipaddr"]]=true;
 		

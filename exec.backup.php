@@ -779,6 +779,9 @@ function mount_smb($pattern,$ID,$testwrite=true){
 	$backup=new backup_protocols();
 	$unix=new unix();
 	$rsync=$unix->find_program("rsync");
+	if($GLOBALS["VERBOSE"]){
+		backup_events($ID,"initialization","INFO, Extract protocol: `$pattern`",__LINE__);
+	}
 	$array=$backup->extract_smb_protocol($pattern);
 	
 	
@@ -794,7 +797,7 @@ function mount_smb($pattern,$ID,$testwrite=true){
 	backup_events($ID,"initialization","INFO, mount({$GLOBALS["ADDLOG"]})",__LINE__);
 	$mount=new mount($GLOBALS["ADDLOG"]);
 	if(!$mount->ismounted($mount_path)){
-		backup_events($ID,"initialization","INFO, local mount point $mount_path not mounted (mount_smb())",__LINE__);
+		backup_events($ID,"initialization","INFO, local mount point $mount_path not mounted creating mount point `$mount_path`",__LINE__);
 		@mkdir($mount_path,null,true);
 	}
 

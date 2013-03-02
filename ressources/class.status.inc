@@ -829,8 +829,9 @@ private function is_squid_statistics(){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
-	
-
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}	
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 	if(!$users->ARTICADB_INSTALLED){$DisableArticaProxyStatistics=1;}
 	if($users->PROXYTINY_APPLIANCE){$DisableArticaProxyStatistics=1;}
@@ -1121,6 +1122,9 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}		
 	if(!is_numeric($EnableKavICAPRemote)){$EnableKavICAPRemote=0;}
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	
 	
 	if($EnableKavICAPRemote==1){
@@ -1557,7 +1561,9 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 	$EnableArticaSMTPStatistics=$sock->GET_INFO("EnableArticaSMTPStatistics");
 	$MailArchiverEnabled=$sock->GET_INFO("MailArchiverEnabled");
 	if(!is_numeric($EnableArticaSMTPStatistics)){$EnableArticaSMTPStatistics=1;}
+	$MilterGreyListEnabled=$sock->GET_INFO('MilterGreyListEnabled');
 	if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
+	if(!is_numeric($MilterGreyListEnabled)){$MilterGreyListEnabled=0;}
 	$ini_notifs=new Bs_IniHandler();
 	$this->events("cmd.php?SmtpNotificationConfigRead=yes",__FUNCTION__,__LINE__);
 	$ini_notifs->loadString($sock->getFrameWork("cmd.php?SmtpNotificationConfigRead=yes"));	
@@ -1588,9 +1594,11 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 	}
 	
 	if($usersmenus->MILTERGREYLIST_INSTALLED){
-		$ini_stats=new Bs_IniHandler();
-		$ini_stats->loadString(base64_decode($sock->getFrameWork('cmd.php?milter-greylist-ini-status=yes')));
-		$milter_greylist_status=DAEMON_STATUS_LINE("MILTER_GREYLIST",$ini_stats,null,0,null,true);
+		if($MilterGreyListEnabled==1){
+			$ini_stats=new Bs_IniHandler();
+			$ini_stats->loadString(base64_decode($sock->getFrameWork('cmd.php?milter-greylist-ini-status=yes')));
+			$milter_greylist_status=DAEMON_STATUS_LINE("MILTER_GREYLIST",$ini_stats,null,0,null,true);
+		}
 	}	
 	
 	$link="Loadjs('postfix.queue.monitoring.php?js')";

@@ -134,6 +134,7 @@ shell_exec("$php /usr/share/artica-postfix/exec.initslapd.php >/dev/null 2>&1");
 echo "Starting......: nightly builds purge and clean....\n";
 shell_exec("$nohup /etc/init.d/artica-postfix start ldap >/dev/null 2>&1 &");
 shell_exec("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
+shell_exec("$nohup /etc/init.d/artica-postfix restart auth-logger >/dev/null 2>&1 &");
 shell_exec("$nohup /usr/share/artica-postfix/bin/process1 -perm >/dev/null 2>&1 &");
 shell_exec("$nohup /usr/share/artica-postfix/bin/artica-make --empty-cache >/dev/null 2>&1 &");
 echo "Starting......: nightly builds done....\n";	

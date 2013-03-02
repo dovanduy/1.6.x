@@ -2,6 +2,7 @@
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if($GLOBALS["VERBOSE"]){echo "DEBUG::: ".@implode(" ", $argv)."\n";}
 $GLOBALS["AS_ROOT"]=true;
+$GLOBALS["NOLOCK"]=true;
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.system.network.inc");
@@ -14,6 +15,7 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 $GLOBALS["LOGFILE"]="/var/log/artica-postfix/dansguardian-logger.debug";
 if(preg_match("#--simulate#",implode(" ",$argv))){$GLOBALS["SIMULATE"]=true;}
+if(preg_match("#--nolock#",implode(" ",$argv))){$GLOBALS["NOLOCK"]=true;}
 
 if($argv[1]=="--words"){WordScanners(true);die();}
 if($argv[1]=="--unveiltech"){unveiltech();die();}
@@ -23,7 +25,11 @@ if($argv[1]=="--users-size"){ParseUsersSize();die();}
 if($argv[1]=="--squid"){ParseSquidLogMain();die();}
 if($argv[1]=="--nudity"){nudityScan();die();}
 if($argv[1]=="--brut"){ParseSquidLogBrut(true);die();}
+if($argv[1]=="--squid-brut-proc"){ParseSquidLogBrutProcess($argv[2],true);die();}
+if($argv[1]=="--squid-sql-proc"){ParseSquidLogMainProcess($argv[2],true);die();}
+if($argv[1]=="--users-auth"){ParseUserAuth(true);die();}
 if($argv[1]=="--main"){ParseSquidLogMain(true);die();}
+
 
 
 
@@ -128,6 +134,7 @@ function ParseUsersSize(){
 				if($uid=="-"){$uid=null;}
 				$ipaddr=$array["IP"];
 				$MAC=$array["MAC"];
+				if(!__IsPhysicalAddress($MAC)){$MAC=null;}
 				$hostname=$array["HOSTNAME"];
 				$UserAgent=$array["UGNT"];
 				if(strlen($UserAgent)<2){$UserAgent=null;}
@@ -146,6 +153,7 @@ function ParseUsersSize(){
 			$q->QUERY_SQL("$prefix ".@implode(",", $f));
 			shell_exec("$php5 /usr/share/artica-postfix/exec.squid.quotasbuild.php");
 			if(!$q->ok){
+				events("Fatal:$hostname $q->mysql_error");
 				ufdbguard_admin_events("Fatal:$hostname $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"stats");
 			}		
 		}
@@ -196,6 +204,7 @@ function nudityScan(){
 				$uid=addslashes($array["LOGIN"]);
 				$ipaddr=$array["IPADDR"];
 				$MAC=addslashes($array["MAC"]);
+				if(!__IsPhysicalAddress($MAC)){$MAC=null;}
 				$hostname=addslashes($array["HOST"]);
 				$uri=addslashes($array["URI"]);
 				$servername=addslashes($array["RHOST"]);
@@ -298,53 +307,101 @@ function WordScanners(){
 	
 
 
-function ParseUserAuth(){
+function ParseUserAuth($checkpid=false){
+	$unix=new unix();
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	
+	if($checkpid){
+		$oldpid=@file_get_contents($pidfile);
+		if($oldpid<100){$oldpid=null;}
+		
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			writelogs_squid("Already executed pid $oldpid since {$time}mn-> DIE");
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+			die();
+		}
+		
+		@file_put_contents($pidfile, getmypid());
+
+	}
+	
+	
+	$sock=new sockets();
+	$EnableMacAddressFilter=$sock->GET_INFO("EnableMacAddressFilter");
+	if(!is_numeric($EnableMacAddressFilter)){$EnableMacAddressFilter=1;}
+	
+	$hostname=$unix->hostname_g();
+	$MustContinue=false;
 	
 	if(function_exists("system_is_overloaded")){
-		if(system_is_overloaded()){
-			writelogs_squid("Fatal:$hostname Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
-			return;
+		
+		$COUNT_FILES=$unix->COUNT_FILES("/var/log/artica-postfix/squid-users");
+		if($COUNT_FILES<1000){
+			if(system_is_overloaded()){
+				writelogs_squid("Fatal:$hostname Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
+				return;
+			}
+		}else{
+			writelogs_squid("Warning:$hostname Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, but too many files stored in queue ($COUNT_FILES), i continue anyway",__FUNCTION__,__FILE__,__LINE__,"stats");
+			$MustContinue=true;
 		}	
 	}
 	
-		$unix=new unix();
-		$hostname=$unix->hostname_g();	
+
 		
 		$php5=$unix->LOCATE_PHP5_BIN();
 		$nohup=$unix->find_program("nohup");
 		$cmdNmap="$nohup $php5 ".dirname(__FILE__)."/exec.nmapscan.php --scan-squid >/dev/null 2>&1 &";		
-		
+		$countDeFiles=0;
 		if (!$handle = opendir("/var/log/artica-postfix/squid-users")) {@mkdir("/var/log/artica-postfix/squid-users",0755,true);die();}
-		
-			if(systemMaxOverloaded()){
-				events("Fatal:$hostname VERY Overloaded system ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), die(); on Line: ".__LINE__);
-				writelogs_squid("Fatal:$hostname VERY Overloaded system ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), die();",__FUNCTION__,__FILE__,__LINE__,"stats");
-				shell_exec($cmdNmap);
-				return;
+			if(!$MustContinue){
+				if(systemMaxOverloaded()){
+					events("Fatal:$hostname VERY Overloaded system ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), die(); on Line: ".__LINE__);
+					writelogs_squid("Fatal:$hostname VERY Overloaded system ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), die();",__FUNCTION__,__FILE__,__LINE__,"stats");
+					shell_exec($cmdNmap);
+					return;
+				}
 			}
-	$countDeFiles=0;
+			
 	
-	
-	$prefix="INSERT IGNORE INTO UserAutDB (zmd5,MAC,ipaddr,uid,hostname,UserAgent) VALUES ";
-	$f=array();
-	while (false !== ($filename = readdir($handle))) {
+		$countDeFiles=0;
+		$prefix="INSERT IGNORE INTO UserAutDB (zmd5,MAC,ipaddr,uid,hostname,UserAgent) VALUES ";
+		$f=array();
+		while (false !== ($filename = readdir($handle))) {
 				if($filename=="."){continue;}
 				if($filename==".."){continue;}
+				
 				$targetFile="/var/log/artica-postfix/squid-users/$filename";
 				$countDeFiles++;
-				$array=unserialize(@file_get_contents($targetFile));
-				while (list ($key, $value) = each ($array) ){
-					$value=str_replace("'", "`", $value);
-					$array[$key]=addslashes(trim($value));
+				$content=@file_get_contents($targetFile);
+				$array=unserialize($content);
+				$hostname=trim($array["HOSTNAME"]);
+				$hostname=str_replace("$", "", $hostname);
+				
+				if(strlen($array["IP"])<4){continue;}
+				if(strlen($hostname)<3){continue;}
+				$MAC=trim($array["MAC"]);
+				if(!__IsPhysicalAddress($MAC)){$MAC=null;}
+				
+				if($MAC==null){
+					if($EnableMacAddressFilter==1){
+						$array["MAC"]=GetMacFromIP($array["IP"]);
+					}
 				}
-				if(trim($array["MAC"])==null){$array["MAC"]=GetMacFromIP($array["IP"]);$array["MD5"]=md5("'{$array["MD5"]}','{$array["MAC"]}','{$array["IP"]}','{$array["USER"]}','{$array["HOSTNAME"]}','{$array["USERAGENT"]}'");}
+				
+				$array["HOSTNAME"]=$hostname;
+				$array["MD5"]=md5(serialize($array));
+				while (list ($key, $value) = each ($array) ){$value=str_replace("'", "`", $value);$array[$key]=addslashes(trim($value));}
+				
 				$f[]="('{$array["MD5"]}','{$array["MAC"]}','{$array["IP"]}','{$array["USER"]}','{$array["HOSTNAME"]}','{$array["USERAGENT"]}')";
 				@unlink($targetFile);
 		}
 	
 
-	shell_exec($cmdNmap);
-	if(count($f)>0){$q=new mysql_squid_builder();$q->QUERY_SQL($prefix.@implode(",", $f));}
+		shell_exec($cmdNmap);
+		if(count($f)>0){$q=new mysql_squid_builder();$q->QUERY_SQL($prefix.@implode(",", $f));}
 }
 
 function useragents(){
@@ -415,7 +472,7 @@ function ParseSquidLogMain_sql_toarray($filename){
 	if($cached>1){return $data;}
 	if(strlen($username)<3){$username=null;}
 	
-	
+	if(!__IsPhysicalAddress($mac)){$mac=null;}
 	if($mac=="00:00:00:00:00:00"){$mac=null;}
 	if($mac==null){$mac=GetMacFromIP($CLIENT);}
 	if($username=="-"){$username=null;}
@@ -451,17 +508,121 @@ function ParseSquidLogMain_sql_toarray($filename){
 }
 
 function ParseSquidLogBrut($nopid=false){
+	
+	@mkdir("/var/log/artica-postfix/squid-brut",0777,true);
+	@chmod("/var/log/artica-postfix/squid-brut",0777);
+	
 	$unix=new unix();
-	$lockfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".lck";
+	$lockfile="/etc/artica-postfix/pids/".basename(__FILE__).".0.".__FUNCTION__.".lck";
 	if($nopid){
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".0.".__FUNCTION__.".pid";
+		$oldpid=@file_get_contents($pidfile);
+		if($oldpid<100){$oldpid=null;}
+	
+	
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			events_brut("ParseSquidLogBrut:: Already executed pid $oldpid since {$time}mn-> DIE",__LINE__);
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+			die();
+		}
+		$mypid=getmypid();
+		@file_put_contents($pidfile,$mypid);
+	
+	}
+	if(!$GLOBALS["NOLOCK"]){
+		if(is_file($lockfile)){
+			$timelock=$unix->file_time_min($lockfile);
+			if($timelock<60){
+				events_brut("ParseSquidLogBrut:: $lockfile exists, aborting",__LINE__);
+				return;
+			}
+		}
+		@unlink($lockfile);
+	}
+
+	$dirs=$unix->dirdir("/var/log/artica-postfix/squid-brut");
+	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nice=EXEC_NICE();
+	$nohup=$unix->find_program("nohup");
+	while (list ($dir, $val) = each ($dirs) ){
+		$basename=basename($dir);
+		
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".$basename.".ParseSquidLogBrutProcess.pid";
+		$oldpid=@file_get_contents($pidfile);
+		$filesCount=$unix->COUNT_FILES($dir);
+		events_brut("Found dir $basename $filesCount files, [$pidfile] PID:$oldpid");
+		
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
+			events_brut("$basename: Already process running pid: $oldpid since {$MNS}mn");
+			continue;
+		}
+		
+		$Procs=ParseSquidLogMainProcessCount("squid-brut-proc",$basename);
+		if($Procs>0){
+			$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
+			events_brut("$Procs processe(s) Already process running");
+			continue;			
+		}
+		
+		$cmd="$nohup $php5 ".__FILE__." --squid-brut-proc $basename >/dev/null 2>&1 &";
+		events_brut("ParseSquidLogBrut:: $cmd",__LINE__);
+		shell_exec($cmd);
+		
+	}
+	
+	
+	
+	$filesCount=$unix->COUNT_FILES("/var/log/artica-postfix/squid-brut");
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".ParseSquidLogBrutProcess.pid";
+	$oldpid=@file_get_contents($pidfile);
+	
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
+		events_brut("ParseSquidLogBrut:: NULL: $filesCount files Already process running pid: $oldpid since {$MNS}mn");
+		
+	}else{	
+	
+		$cmd="$nohup $php5 ".__FILE__." --squid-brut-proc >/dev/null 2>&1 &";
+		events_brut("ParseSquidLogBrut:: $filesCount files $cmd",__LINE__);
+		shell_exec($cmd);
+	}
+	
+	$cmd="$nohup $php5 ".__FILE__." --squid >/dev/null 2>&1 &";
+	events_brut("ParseSquidLogMain:: $cmd",__LINE__);
+	shell_exec($cmd);
+	
+}
+
+
+
+function ParseSquidLogBrutProcess($dir=null,$nopid=false){
+	
+	if($dir<>null){
+		if(!is_dir("/var/log/artica-postfix/squid-brut/$dir")){
+			events_brut("ParseSquidLogBrutProcess:: /var/log/artica-postfix/squid-brut/$dir, no such directory, assume no dir extension",__LINE__);
+			$dir=null;
+		}
+	}
+	
+	
+	
+	$unix=new unix();
+	$sep=".";
+	if($dir<>null){$sep=".$dir.";}
+	
+	$lockfile="/etc/artica-postfix/pids/".basename(__FILE__).$sep.__FUNCTION__.".lck";
+	if($nopid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).$sep.__FUNCTION__.".pid";
 		$oldpid=@file_get_contents($pidfile);
 		if($oldpid<100){$oldpid=null;}
 		
 		
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			events("ParseSquidLogBrut:: Already executed pid $oldpid since {$time}mn-> DIE",__LINE__);
+			events("ParseSquidLogBrutProcess:: Already executed pid $oldpid since {$time}mn-> DIE",__LINE__);
 			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
 			die();
 		}
@@ -470,15 +631,19 @@ function ParseSquidLogBrut($nopid=false){
 		
 	}
 	
+	
+	
+	if(!$GLOBALS["NOLOCK"]){
 	if(is_file($lockfile)){
 		$timelock=$unix->file_time_min($lockfile);
 		if($timelock<60){
-			events("ParseSquidLogBrut:: $lockfile exists, aborting",__LINE__);
+			events("ParseSquidLogBrutProcess:: $lockfile exists, aborting",__LINE__);
 			return;
 		}
 	}
+		@unlink($lockfile);
+	}
 	
-	@unlink($lockfile);
 	@file_put_contents($lockfile, time());
 	
 	
@@ -492,6 +657,7 @@ function ParseSquidLogBrut($nopid=false){
 	
 	
 	$workingDir="/var/log/artica-postfix/squid-brut";
+	if($dir<>null){$workingDir="/var/log/artica-postfix/squid-brut/$dir";}
 	events("Open $workingDir");
 	$squidtail=new squid_tail();
 	$timeStart=time();
@@ -501,7 +667,7 @@ function ParseSquidLogBrut($nopid=false){
 	$h=0;
 	$size=0;
 	
-	events("ParseSquidLogBrut():: starting loop on $workingDir",__LINE__);
+	events("ParseSquidLogBrutProcess()::$dir starting loop on $workingDir",__LINE__);
 	
 	if (!$handle = opendir($workingDir)) {
 		@mkdir($workingDir,0755,true);
@@ -519,17 +685,17 @@ function ParseSquidLogBrut($nopid=false){
 		usleep(100);
 		if($d>500){
 			if(system_is_overloaded(basename(__FILE__))){
-				events("ParseSquidLogBrut()::Overloaded: wait 10s",__LINE__);
+				events("ParseSquidLogBrutProcess()::$dir::Overloaded: wait 10s",__LINE__);
 				sleep(10);
 			}
 			$array_load=sys_getloadavg();
 			$internal_load=$array_load[0];
-			events("ParseSquidLogBrut()::[$h]::Load: $internal_load",__LINE__);
+			events("ParseSquidLogBrutProcess()::$dir::[$h]::Load: $internal_load",__LINE__);
 			
 			sleep(1);
 			
 			if(systemMaxOverloaded()){
-				events("ParseSquidLogBrut()::[$h]::System is too overloaded, die",__LINE__);
+				events("ParseSquidLogBrutProcess()::$dir::[$h]::System is too overloaded, die",__LINE__);
 				@unlink($lockfile);
 				return;
 			}
@@ -539,7 +705,7 @@ function ParseSquidLogBrut($nopid=false){
 		
 		
 		if($EnableRemoteSyslogStatsAppliance==1){
-			events("ParseSquidLogBrut()::[$h]::EnableRemoteSyslogStatsAppliance:$EnableRemoteSyslogStatsAppliance removing $targetFile",__LINE__);
+			events("ParseSquidLogBrutProcess()::$dir::[$h]::EnableRemoteSyslogStatsAppliance:$EnableRemoteSyslogStatsAppliance removing $targetFile",__LINE__);
 			@unlink($targetFile);
 			continue;
 		}
@@ -551,55 +717,206 @@ function ParseSquidLogBrut($nopid=false){
 		if($strlen==0){
 			if(!is_file($targetFile)){continue;}
 			$timefile=$unix->file_time_min($targetFile);
-			events("ParseSquidLogBrut()::[$h]::Removing[NODATA]::{$timefile}mn:: $targetFile",__LINE__);
+			events("ParseSquidLogBrutProcess()::$dir::[$h]::Removing[NODATA]::{$timefile}mn:: $targetFile",__LINE__);
 			@unlink($targetFile);
 			continue;
 		}
 		
 		if(!$squidtail->parse_tail($data,$time)){
-			events("ParseSquidLogBrut():: parse_tail(): unable to parse: $targetFile $squidtail->error",__LINE__);
+			events("ParseSquidLogBrutProcess()::$dir::[$h]:: parse_tail(): unable to parse: $targetFile $squidtail->error",__LINE__);
 			$f++;
 			if($squidtail->ToRemove){
 				$timefile=$unix->file_time_min($targetFile);
-				events("ParseSquidLogBrut()::[$h]::Removing[PARSED]::{$timefile}mn:: $targetFile",__LINE__);
+				events("ParseSquidLogBrutProcess()::$dir::[$h]::Removing[PARSED]::{$timefile}mn:: $targetFile",__LINE__);
 				@unlink($targetFile);
 			}
 			continue;
 		}
 		$timefile=$unix->file_time_min($targetFile);
-		events("ParseSquidLogBrut()::[$h]::Removing[success]::{$timefile}mn:: $targetFile",__LINE__);
+		events("ParseSquidLogBrutProcess()::$dir::[$h]::Removing[success]::{$timefile}mn:: $targetFile",__LINE__);
 		@unlink($targetFile);
 		$c++;
 		$size=$strlen+$size;
 		
 	}
 	$size=round(($size/1024),2);
-	events("ParseSquidLogBrut():: $c:parsed $f failed, $h total in ".$unix->distanceOfTimeInWords($timeStart,time() ." size={$size}Ko").__LINE__);
+	events("ParseSquidLogBrutProcess()::$dir:: $c:parsed $f failed, $h total in ".$unix->distanceOfTimeInWords($timeStart,time() ." size={$size}Ko").__LINE__);
 	@unlink($lockfile);
-	ParseSquidLogMain();
+	if($h==0){
+			if($dir<>null){
+				@rmdir($workingDir);
+		}
+	}
+	
+	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nice=EXEC_NICE();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 ".__FILE__." --squid >/dev/null 2>&1 &";
+	events("ParseSquidLogBrutProcess()::$cmd");
+	shell_exec($cmd);
+	
 }
 
 
 function ParseSquidLogMain(){
-$lockfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".lck";
-$sock=new sockets();
-$unix=new unix();
-$q=new mysql_squid_builder();
-@mkdir("/var/log/artica-postfix/squid-RTTSize",0755,true);
+	
+	
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=@file_get_contents($pidfile);
+	if($oldpid<100){$oldpid=null;}
+	
+	
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		events("ParseSquidLogBrutProcess:: Already executed pid $oldpid since {$time}mn-> DIE",__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+		die();
+	}	
+	
+	$WORKDIR="/var/log/artica-postfix/dansguardian-stats2";
+	$dirs=$unix->dirdir($WORKDIR);
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nice=EXEC_NICE();
+	$nohup=$unix->find_program("nohup");
+	while (list ($dir, $val) = each ($dirs) ){
+		
+		$basename=basename($dir);
+		$pidfile="/etc/artica-postfix/pids/squidMysqllogs.$basename.lock.pid";
+		$oldpid=@file_get_contents($pidfile);
+		$filesCount=$unix->COUNT_FILES($dir);
+		events_brut("ParseSquidLogMain:: $filesCount files, $basename: $pidfile PID:$oldpid ");
+		
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
+			events_brut("ParseSquidLogMain:: $basename: $filesCount files, Already process running pid: $oldpid since {$MNS}mn");
+			continue;
+		}		
+		
+		$Procs=ParseSquidLogMainProcessCount("squid-sql-proc",$basename);
+		if($Procs>0){
+			$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
+			events_brut("ParseSquidLogMain:: $Procs processe(s) already in memory");
+			continue;			
+		}
+		
+		$cmd="$nohup $php5 ".__FILE__." --squid-sql-proc $basename >/dev/null 2>&1 &";
+		events_brut("ParseSquidLogMain:: $filesCount files Fork for $basename sub-dir",__LINE__);
+		shell_exec($cmd);
+	
+	}
+	
+	
+	$filesCount=$unix->COUNT_FILES($WORKDIR);
+	$pidfile="/etc/artica-postfix/pids/squidMysqllogs.lock.pid";
+	$oldpid=@file_get_contents($pidfile);
+	
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
+		events_brut("ParseSquidLogMain:: NULL: $filesCount files Already process running pid: $oldpid since {$MNS}mn");
+		
+	}else{
+		$cmd="$nohup $php5 ".__FILE__." --squid-sql-proc >/dev/null 2>&1 &";
+		events_brut("ParseSquidLogMain:: $filesCount files, Fork for NULL DIR",__LINE__);
+		shell_exec($cmd);
+	}
 
-$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-$GLOBALS["EnableRemoteStatisticsAppliance"]=$EnableRemoteStatisticsAppliance;
-$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
-if(!isset($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
-if(!isset($RemoteStatisticsApplianceSettings["SERVER"])){$RemoteStatisticsApplianceSettings["SERVER"]=null;}
-if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
-if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
-$GLOBALS["REMOTE_SSERVER"]=$RemoteStatisticsApplianceSettings["SERVER"];
-$GLOBALS["REMOTE_SPORT"]=$RemoteStatisticsApplianceSettings["PORT"];
-$GLOBALS["REMOTE_SSL"]=$RemoteStatisticsApplianceSettings["SSL"];
-$GLOBALS["USERSCACHE"]=array();
-if(!is_dir("/etc/squid3")){@mkdir("/etc/squid3",0755,true);}
+	
+
+
+}
+
+function ParseSquidLogMainProcessCount($token,$dir=null){
+	$unix=new unix();
+	$getmypid=getmypid();
+	$f=array();
+	$pend=null;
+	if($dir==null){$pend="$";}
+	$pgrep=$unix->find_program("pgrep");
+	
+	$cmd="$pgrep -l -f \"injector.php.*?$token.*?$dir\" 2>&1";
+	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+	exec($cmd,$results);
+	while (list ($key, $val) = each ($results) ){
+		if(preg_match("#pgrep#", $val)){continue;}
+		if($GLOBALS["VERBOSE"]){echo "Found $val\n";}
+		if($dir==null){if(preg_match("#[0-9]+-[0-9]+-[0-9]+-[0-9]+#", $val)){continue;}}
+		if(preg_match("#^([0-9]+)\s+#", $val,$re)){
+			$pid=$re[1];
+			if($pid==$getmypid){continue;}
+			
+			events_brut("ParseSquidLogMainProcessCount:: (token:$token/ dir:$dir) Found pid $pid",__LINE__);
+			$f[]=$pid;
+		}
+	}
+	return count($f);
+}
+
+
+ 
+
+
+function ParseSquidLogMainProcess($dir=null){
+	
+	if(trim($dir)=="--verbose"){$dir=null;}
+	if(preg_match("#schedule-id#",$dir)){$dir=null;}
+	
+	if($dir<>null){
+		if(!is_dir("/var/log/artica-postfix/dansguardian-stats2/$dir")){
+			events_brut("ParseSquidLogMainProcess:: /var/log/artica-postfix/dansguardian-stats2/$dir, no such directory, assume no dir extension",__LINE__);
+			$dir=null;
+		}
+	}
+	
+	if($dir<>null){
+		
+		$lockfile="/etc/artica-postfix/pids/squidMysqllogs.$dir.lock.lck";
+		$pidfile="/etc/artica-postfix/pids/squidMysqllogs.$dir.lock.pid";
+		
+	}else{
+		$lockfile="/etc/artica-postfix/pids/squidMysqllogs.lock.lck";
+		$pidfile="/etc/artica-postfix/pids/squidMysqllogs.lock.pid";		
+		
+	}
+	
+	
+	$oldpid=@file_get_contents($pidfile);
+	if($oldpid<100){$oldpid=null;}
+	
+	$unix=new unix();
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		events_brut("ParseSquidLogMainProcess:: ($dir) Already executed pid $oldpid since {$time}mn-> DIE",__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+		die();
+	}
+
+	events_brut("ParseSquidLogMainProcess:: ($dir) writing $pidfile for ".getmypid());
+	@file_put_contents($pidfile, getmypid());
+	
+	
+	$WORKDIR="/var/log/artica-postfix/dansguardian-stats2";
+	if($dir<>null){$WORKDIR="/var/log/artica-postfix/dansguardian-stats2/$dir";}
+	
+	$sock=new sockets();
+	
+	$q=new mysql_squid_builder();
+	@mkdir("/var/log/artica-postfix/squid-RTTSize",0755,true);
+	
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$GLOBALS["EnableRemoteStatisticsAppliance"]=$EnableRemoteStatisticsAppliance;
+	$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
+	if(!isset($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
+	if(!isset($RemoteStatisticsApplianceSettings["SERVER"])){$RemoteStatisticsApplianceSettings["SERVER"]=null;}
+	if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
+	if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
+	$GLOBALS["REMOTE_SSERVER"]=$RemoteStatisticsApplianceSettings["SERVER"];
+	$GLOBALS["REMOTE_SPORT"]=$RemoteStatisticsApplianceSettings["PORT"];
+	$GLOBALS["REMOTE_SSL"]=$RemoteStatisticsApplianceSettings["SSL"];
+	$GLOBALS["USERSCACHE"]=array();
+	if(!is_dir("/etc/squid3")){@mkdir("/etc/squid3",0755,true);}
 
 if(is_file("/etc/squid3/USERSCACHE.DB")){
 	if($unix->file_time_min("/etc/squid3/USERSCACHE.DB")<60){
@@ -616,21 +933,29 @@ $GLOBALS["EnableRemoteSyslogStatsAppliance"]=$EnableRemoteSyslogStatsAppliance;
 $GLOBALS["DisableArticaProxyStatistics"]=$DisableArticaProxyStatistics;
 
 $hostname=$unix->hostname_g();
-$WORKDIR="/var/log/artica-postfix/dansguardian-stats2";
-
+$CountProcs=ParseSquidLogMainProcessCount("squid-sql-proc",$dir);
+events_brut("ParseSquidLogMainProcess:: ($dir)  $CountProcs processe(s) in memory...");
 if(is_file($lockfile)){
-	$timelock=$unix->file_time_min($lockfile);
-	if($timelock<60){
-		events("ParseSquidLogMain:: $lockfile exists, aborting since {$timelock}mn",__LINE__);
-		return;
+	if($CountProcs>0){
+		$timelock=$unix->file_time_min($lockfile);
+		if($timelock<60){
+			events_brut("ParseSquidLogMainProcess:: ($dir) $lockfile exists, aborting since {$timelock}mn",__LINE__);
+			return;
+		}
 	}
 }
 
+if($CountProcs>0){
+	events_brut("ParseSquidLogMainProcess:: ($dir) Found $CountProcs processe(s) running... aborting");
+	return;
+}
+
+
 @unlink($lockfile);
-@file_put_contents($lockfile, time());
+@file_put_contents($lockfile, getmypid());
 
 
-events("Open $WORKDIR");
+events_brut("Open $WORKDIR");
 
 if (!$handle = opendir($WORKDIR)) {@mkdir($WORKDIR,0755,true);
 	events("Fatal opendir() $WORKDIR ".__LINE__);
@@ -707,7 +1032,7 @@ while (false !== ($filename = readdir($handle))) {
 		while (list ($key, $val) = each ($FINAL_ARRAY) ){
 			$val=str_replace("'", "`", $val);
 			$val=stripslashes($val);
-			$FINAL_ARRAY[$key]=addslashes($val);
+			$FINAL_ARRAY[$key]=mysql_escape_string($val);
 		}
 		
 		
@@ -726,7 +1051,7 @@ while (false !== ($filename = readdir($handle))) {
 		$mac=$FINAL_ARRAY["mac"];
 		$hostname=$FINAL_ARRAY["hostname"];	
 
-		
+		if(!__IsPhysicalAddress($mac)){$mac=null;}
 		if($mac=="00:00:00:00:00:00"){$mac=null;}
 		if($mac==null){$mac=GetMacFromIP($CLIENT);}
 		if($username=="-"){$username=null;}
@@ -802,7 +1127,7 @@ while (false !== ($filename = readdir($handle))) {
 		inject_array($array["TABLES"]);
 	}
 	
-	events("Closing... /var/log/artica-postfix/dansguardian-stats2 ($countDeFiles files scanned)");
+	events_brut("Closing... /var/log/artica-postfix/dansguardian-stats2 ($dir) ($countDeFiles files scanned)");
 	@file_put_contents("/etc/squid3/USERSCACHE.DB", serialize($GLOBALS["USERSCACHE"]));
 	@unlink($lockfile);
 
@@ -828,6 +1153,7 @@ function GetCountry($sitename){
 			$record = @geoip_record_by_name($site_IP);
 			if ($record) {
 				$Country=$record["country_name"];
+				$Country=str_replace("'", "`", $Country);
 				$GLOBALS["COUNTRIES"][$site_IP]=$Country;
 			}
 		}else{
@@ -836,7 +1162,7 @@ function GetCountry($sitename){
 	}else{
 		$Country=$GLOBALS["COUNTRIES"][$site_IP];
 	}
-
+	$Country=str_replace("'", "`", $Country);
 	return $Country;
 	
 }
@@ -897,7 +1223,7 @@ function youtube(){
 		$hostname=$array["hostname"];
 		if($username=="-"){$username=null;}
 		if(strlen($username)<3){$username=null;}	
-		
+		if(!__IsPhysicalAddress($mac)){$mac=null;}
 		
 		
 		if($mac==null){$mac=GetMacFromIP($clientip);}
@@ -927,8 +1253,10 @@ function youtube(){
 			
 			$q->QUERY_SQL($sql);
 			if(!$q->ok){
+				if($GLOBALS["VERBOSE"]){echo "**** $q->mysql_error **** \n";}
 				ufdbguard_admin_events("$q->mysql_error", __FUNCTION__, __FILE__, __LINE__, 'youtube');
 				@file_put_contents("/var/log/artica-postfix/youtube-errors/".md5($sql), $sql);
+				return;
 			}
 		}
 		
@@ -941,14 +1269,29 @@ function youtube_infos($VIDEOID){
 	$uri="https://gdata.youtube.com/feeds/api/videos/$VIDEOID?v=2&alt=jsonc";
 	if($GLOBALS["VERBOSE"]){echo "$VIDEOID:: $uri -> \n";}	
 	$curl=new ccurl($uri);
-	
+	$error=null;
 	if(!$curl->GetFile("/tmp/jsonc.inc")){return false;}
 	$infox=@file_get_contents("/tmp/jsonc.inc");
 	$infos=json_decode($infox);
 	$uploaded=$infos->data->uploaded;
 	$title=$infos->data->title;	
-	if($title==null){return false;}
+	if($title==null){
+		$error=$infos->error->message;
+		if($error==null){
+			if($GLOBALS["VERBOSE"]){echo "data->title NULL ($error)\n";var_dump($infos);}
+			return false;
+		}else{
+			$title=$error;
+		}
+	}
 	$category=$infos->data->category;
+	if($category==null){
+		if($error<>null){
+			$category=$error;
+		}
+	}
+	
+	
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT `youtubeid` FROM youtube_objects WHERE `youtubeid`='$VIDEOID'"));
 	
@@ -957,6 +1300,8 @@ function youtube_infos($VIDEOID){
 			
 			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT `youtubeid` FROM youtube_objects WHERE `youtubeid`='$VIDEOID'"));
 		}
+		if($GLOBALS["VERBOSE"]){echo "$q->mysql_error\n";}
+		return;
 	}
 	
 	if($ligne["youtubeid"]<>null){
@@ -998,7 +1343,9 @@ function youtube_infos($VIDEOID){
 			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT `youtubeid` FROM youtube_objects WHERE `youtubeid`='$VIDEOID'"));
 		}
 	}	
-	if(!$q->ok){return false;}
+	if(!$q->ok){
+		if($GLOBALS["VERBOSE"]){echo "$q->mysql_error\n";}
+		return false;}
 	return true;
 	
 	
@@ -1051,6 +1398,17 @@ function unveiltech_SendSite($www){
 }
 
 function GetMacFromIP($ipaddr){
+	
+	if(!isset($GLOBALS["EnableMacAddressFilter"])){
+		$sock=new sockets();
+		$GLOBALS["EnableMacAddressFilter"]=$sock->GET_INFO("EnableMacAddressFilter");
+		if(!is_numeric($GLOBALS["EnableMacAddressFilter"])){$GLOBALS["EnableMacAddressFilter"]=1;}
+		
+	}
+	
+	if($GLOBALS["EnableMacAddressFilter"]==0){return;}
+	
+	
 		$ipaddr=trim($ipaddr);
 		$ttl=date('YmdH');
 		if(count($GLOBALS["CACHEARP"])>3){unset($GLOBALS["CACHEARP"]);}
@@ -1067,8 +1425,10 @@ function GetMacFromIP($ipaddr){
 		while (list ($num, $line) = each ($results)){
 			if(preg_match("#^[0-9\.]+\s+.+?\s+([0-9a-z\:]+)#", $line,$re)){
 				if($re[1]=="no"){continue;}
-				$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
-				return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+				if(__IsPhysicalAddress($re[1])){
+					$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+					return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+				}
 			}
 			
 		}
@@ -1081,7 +1441,29 @@ function GetMacFromIP($ipaddr){
 		$GLOBALS["CACHEARP"][$ttl][$ipaddr]=null;
 	}
 
-
+   function __IsPhysicalAddress($address){
+   	
+		$address=strtoupper(trim($address));
+		if($address=="UNKNOWN"){return null;}
+		if($address=="00:00:00:00:00:00"){return false;}
+		$address=str_replace(":","-",$address);
+		
+		If(strlen($address) > 18){return false;}
+		If($address == ""){return false;}
+		If(!preg_match("#^[0-9A-Z]+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)$#i",$address)){
+	
+			return false;
+		}
+		$Array=explode("-",$address);
+		If(strlen($Array[0]) != 2){return false;}
+		If(strlen($Array[1]) != 2){return false;}
+		If(strlen($Array[2]) != 2){return false;}
+		If(strlen($Array[3]) != 2){return false;}
+		If(strlen($Array[4]) != 2){return false;}
+		If(strlen($Array[5]) != 2){return false;}
+	
+		return true;
+	}
 
 function inject_array($array){
 	
@@ -1174,3 +1556,23 @@ function events_tail($text){
 		@fwrite($f, "$pid ".basename(__FILE__)." $date $text\n");
 		@fclose($f);	
 		}	
+function events_brut($text){
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+			//if($GLOBALS["VERBOSE"]){echo "$text\n";}
+			$pid=@getmypid();
+			$date=@date("h:i:s");
+			$logFile="/var/log/artica-postfix/squid-brut.debug";
+			$size=@filesize($logFile);
+			if($size>1000000){@unlink($logFile);}
+			$f = @fopen($logFile, 'a');
+			$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)." $date $text");
+			@fwrite($f, "$pid ".basename(__FILE__)." $date $text\n");
+			@fclose($f);
+		}	
+
+		
+function tables_status(){
+	$q=new mysql_squid_builder();
+	print_r($q->TABLE_STATUS("UserAutDB"));
+	
+}

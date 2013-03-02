@@ -63,7 +63,7 @@ class mysql_squid_builder{
 		if(!is_numeric($UseDynamicGroupsAcls)){$UseDynamicGroupsAcls=0;}
 	
 		
-		
+		$this->acl_GroupType["all"]="{all}";
 		$this->acl_GroupType["src"]="{addr}";
 		$this->acl_GroupType["arp"]="{ComputerMacAddress}";
 		$this->acl_GroupType["dstdomain"]="{dstdomain}";
@@ -77,6 +77,10 @@ class mysql_squid_builder{
 		$this->acl_GroupType["ext_user"]="{ext_user}";
 		$this->acl_GroupType["method"]="{connection_method}";
 		$this->acl_GroupType["dynamic_acls"]="{dynamic_acls}";
+		$this->acl_GroupType["req_mime_type"]="{req_mime_type}";
+		$this->acl_GroupType["url_regex"]="{url_regex_acl2}";
+		
+		
 		
 		
 		$this->acl_GroupTypeDynamic[0]="{mac}";
@@ -86,7 +90,7 @@ class mysql_squid_builder{
 		$this->acl_GroupTypeDynamic[4]="{webserver}";
 		
 		
-		
+		$this->AVAILABLE_METHOD["GET"]=true;
 		$this->AVAILABLE_METHOD["PUT"]=true;
 		$this->AVAILABLE_METHOD["POST"]=true;
 		$this->AVAILABLE_METHOD["HEAD"]=true;
@@ -252,7 +256,8 @@ class mysql_squid_builder{
 			$this->tasks_array[42]="{compile_tlse_database}";
 			$this->tasks_array[43]="{squid_check_lost_tables}";
 			$this->tasks_array[44]="{build_reports}";
-			
+			$this->tasks_array[45]="{rebuild_caches}";
+			$this->tasks_array[46]="{fill_squid_client_table}";
 			
 			
 			
@@ -303,6 +308,8 @@ class mysql_squid_builder{
 			$this->tasks_explain_array[42]="{compile_tlse_database_explain}";
 			$this->tasks_explain_array[43]="{squid_check_lost_tables_explain}";
 			$this->tasks_explain_array[44]="{build_reports_explain}";
+			$this->tasks_explain_array[45]="{rebuild_caches_explain}";
+			$this->tasks_explain_array[46]="{fill_squid_client_table_explain}";
 			
 			
 
@@ -350,7 +357,12 @@ class mysql_squid_builder{
 			$this->tasks_processes[42]="exec.update.squid.tlse.php --compile";
 			$this->tasks_processes[43]="exec.squid.stats.php --repair-hours";
 			$this->tasks_processes[44]="exec.squid.reports.php --all";
-	
+			$this->tasks_processes[45]="exec.squid.rebuild.caches.php";
+			$this->tasks_processes[46]="exec.squid-tail-injector.php --users-auth";
+			
+			
+			
+			$this->tasks_remote_appliance["46"]=true;
 			$this->tasks_remote_appliance["44"]=true;
 			$this->tasks_remote_appliance["43"]=true;
 			$this->tasks_remote_appliance["42"]=true;
@@ -499,6 +511,7 @@ class mysql_squid_builder{
 			$array[41]=array("TimeText"=>"3,6,9,11,13,16,19,21,26,29,31,36,39,41,46,49,51,56,59 * * * *","TimeDescription"=>"Generate Graphs each 3M");
 			$array[42]=array("TimeText"=>"30 4 * * *","TimeDescription"=>"Compile Toulouse databases tables Each day at 04h30");
 			$array[43]=array("TimeText"=>"30 3 * * *","TimeDescription"=>"Lost tables Each day at 03h30");
+			$array[46]=array("TimeText"=>"7,22,37,52 * * * *","TimeDescription"=>"each 15mn");
 			
 			
 
@@ -523,6 +536,7 @@ class mysql_squid_builder{
 		if(!function_exists("mysql_connect")){return 0;}
 		if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL table $this->database/$table was deleted $called" , __FUNCTION__, __FILE__, __LINE__, "mysql-delete");}
 		$this->QUERY_SQL("DROP TABLE `$table`",$this->database);
+		$this->QUERY_SQL("FLUSH TABLES",$this->database);
 	}		
 	
 	
@@ -552,6 +566,12 @@ class mysql_squid_builder{
 	public function TABLE_SIZE($table,$database=null){
 		if($database<>$this->database){$database=$this->database;}
 		return $this->ClassSQL->TABLE_SIZE($table,$database);		
+	}
+	
+	public function TABLE_STATUS($table,$database=null){
+		if($database<>$this->database){$database=$this->database;}
+		return $this->ClassSQL->TABLE_STATUS($table,$database);		
+		
 	}
 	
 	public function TABLE_EXISTS($table,$database=null){
@@ -601,7 +621,7 @@ class mysql_squid_builder{
 		return $results;
 	}
 	
-	private function FIELD_TYPE($table,$field,$database){
+	public function FIELD_TYPE($table,$field,$database){
 		if($database<>$this->database){$database=$this->database;}
 		return $this->ClassSQL->FIELD_TYPE($table,$field,$database);
 	}
@@ -624,7 +644,6 @@ class mysql_squid_builder{
 		$sql="SELECT SUM(TABLE_ROWS) as tsum FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'dansguardian_events_%'";
 		$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
 		if(!$this->ok){writelogs("$q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-		if($GLOBALS["VERBOSE"]){writelogs(mysql_num_rows($results)." events for $sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		writelogs("{$ligne["tsum"]} : $sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		return $ligne["tsum"];
 		
@@ -1495,9 +1514,10 @@ public function CheckTablesBlocked_day($time=0,$tableblock=null){
 	}
 
 	
-	if(!$this->TABLE_EXISTS($tableblock,'artica_events')){		
+	
 			$sql="CREATE TABLE IF NOT EXISTS `$tableblock` (
 			  `ID` bigint(100) NOT NULL AUTO_INCREMENT,
+			  `zmd5` varchar(90) NOT NULL,
 			  `zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			  `client` varchar(90) NOT NULL,
 			  `uid` varchar(90) NOT NULL,
@@ -1514,6 +1534,7 @@ public function CheckTablesBlocked_day($time=0,$tableblock=null){
 			  `explain` text NOT NULL,
 			  `blocktype` varchar(255) NOT NULL,
 			  PRIMARY KEY (`ID`),
+			  UNIQUE KEY `zmd5` (`zmd5`),
 			  KEY `zDate` (`zDate`),
 			  KEY `uid` (`uid`),
 			  KEY `client` (`client`),
@@ -1533,8 +1554,13 @@ public function CheckTablesBlocked_day($time=0,$tableblock=null){
 			$this->mysql_error=$this->mysql_error."\n$sql";
 			return false;
 		}
-
+		
+		if(!$this->FIELD_EXISTS("$tableblock", "zmd5")){
+			$this->QUERY_SQL("ALTER IGNORE TABLE `$tableblock` ADD `zmd5` 
+			VARCHAR( 90 ) NOT NULL ,ADD UNIQUE KEY( `zmd5` )");
 		}
+
+		
 		
 	$this->RepairTableBLock($tableblock);	
 	return true;
@@ -2109,7 +2135,7 @@ public function CheckTables($table=null){
 			`aclid` BIGINT( 100 ) NOT NULL ,
 			`httpaccess` VARCHAR( 60 ) NOT NULL ,
 			`httpaccess_value`  SMALLINT( 1 ) NOT NULL,
-			`httpaccess_data`  VARCHAR(255) NOT NULL,
+			`httpaccess_data`  TEXT NOT NULL,
 			INDEX ( `aclid` ,`httpaccess_value`),
 			KEY `httpaccess`(`httpaccess`)
 			)  ENGINE = MYISAM;";	
@@ -3368,7 +3394,7 @@ public function CheckTables($table=null){
 	
 	
 	public function GetFamilySites($sitename){
-		
+		if(isset($GLOBALS["GetFamilySites"][$sitename])){return $GLOBALS["GetFamilySites"][$sitename];}
 		if(!isset($GLOBALS["DEBUGFAM"])){$GLOBALS["DEBUGFAM"]=false;}
 		if(function_exists("debug_mem")){debug_mem();}
 		include_once(dirname(__FILE__).'/effectiveTLDs.inc.php');
@@ -3383,14 +3409,21 @@ public function CheckTables($table=null){
 			$tt=$this->GetFamilySitestt(null,true);
 			if($GLOBALS["DEBUGFAM"]){echo "getRegisteredDomain($sitename)=\"$tmp\"<>\"$tt\"\n";}
 			if($tmp<>null){
-				if(isset($tt[$tmp])){return $sitename;}
+				if(isset($tt[$tmp])){
+					$GLOBALS["GetFamilySites"][$sitename]=$sitename;
+					return $sitename;
+				}
+				$GLOBALS["GetFamilySites"][$sitename]=$tmp;
 				return $tmp;
 			}
 		}
 		
 		$tmp=$this->GetFamilySitestt($sitename);
 		if($GLOBALS["DEBUGFAM"]){echo "GetFamilySitestt($sitename)=$tmp";}
-		if(strpos($tmp, ".")>0){return $tmp;}
+		if(strpos($tmp, ".")>0){
+			$GLOBALS["GetFamilySites"][$sitename]=$tmp;
+			return $tmp;
+		}
 		
 		writelogs("Fatal unable to find familysite for $sitename",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		
@@ -3405,6 +3438,7 @@ public function CheckTables($table=null){
     			$url=$bits[($idz+1)].'.'.$bits[($idz+2)];
    			 }
     if(substr($url, 0,1)=="."){$url=substr($url, 1,strlen($url));}
+    $GLOBALS["GetFamilySites"][$sitename]=$url;
     return $url;
     }
 
@@ -4450,6 +4484,16 @@ private function CategoriesFamily($www){
 
 	public function TIME_FROM_DANSGUARDIAN_EVENTS_TABLE($tablename){
 		preg_match("#dansguardian_events_([0-9]+)#", $tablename,$re);
+		$intval=$re[1];
+		$Cyear=substr($intval, 0,4);
+		$CMonth=substr($intval,4,2);
+		$CDay=substr($intval,6,2);
+		$CDay=str_replace("_", "", $CDay);
+		return strtotime("$Cyear-$CMonth-$CDay 00:00:00");
+	}	
+	
+	public function TIME_FROM_HOUR_TABLE($tablename){
+		preg_match("#([0-9]+)_hour$#", $tablename,$re);
 		$intval=$re[1];
 		$Cyear=substr($intval, 0,4);
 		$CMonth=substr($intval,4,2);

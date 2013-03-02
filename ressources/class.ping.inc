@@ -5,6 +5,7 @@ class ping{
 	
 	public function ping($ip){
 		$this->ip=$ip;
+		$this->ip=str_replace("@", "", $this->ip);
 	}
 	
 	public function Isping(){

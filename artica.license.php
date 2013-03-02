@@ -61,10 +61,14 @@ function popup(){
 	if($LicenseInfos["license_status"]==null){
 		$LicenseInfos["license_status"]="{waiting_registration}";
 		$star="{explain_license_free}";
-		$button_text="{request_a_quote}";
+		$button_text="{request_a_quote}/{refresh}";
 	}else{
 		$button_text="{update_the_request}";
 		$star="{explain_license_order}";
+	}	
+	
+	if($LicenseInfos["license_status"]=="{license_active}"){
+		$users->CORP_LICENSE=true;
 	}	
 	
 	if($users->CORP_LICENSE){$star=null;}
@@ -78,6 +82,18 @@ function popup(){
 	}
 	
 	$t=time();
+	$CORP_LICENSE=0;
+	$textcolor="black";
+	$bt="<hr>".button($button_text,"RegisterSave$t()",18);
+	if($users->CORP_LICENSE){
+			$CORP_LICENSE=1;$bt=null;
+			$textcolor="#23A83E";
+	
+	}
+
+	
+	
+	
 	$html="
 	$explain
 	$quotation
@@ -106,13 +122,13 @@ function popup(){
 	</tr>
 	<tr>
 		<td class=legend style='font-size:16px'>{license_status}:</td>
-		<td style='font-size:16px'>{$LicenseInfos["license_status"]}</td>
+		<td style='font-size:16px;color:$textcolor'>{$LicenseInfos["license_status"]}</td>
 	</tr>			
 	<tr>
-		<td colspan=2 align='right'><hr>". button($button_text,"RegisterSave$t()",18)."</td>
+		<td colspan=2 align='right'>$bt</td>
 	</tr>	
 	</table>
-	<div style='margin-top:15px'><i style='font-size:12px'>*&nbsp;$star</i></div>
+	<div style='margin-top:15px'><i style='font-size:14px;font-weight:bold;color:#D91515'>*&nbsp;$star</i></div>
 	<script>
 	var x_RegisterSave$t= function (obj) {
 		var tempvalue=obj.responseText;
@@ -131,7 +147,18 @@ function popup(){
 			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',x_RegisterSave$t);
 		}
-	
+		
+		function CheckCorpLic(){
+			var lic=$CORP_LICENSE;
+			if(lic==1){
+				document.getElementById('COMPANY-$t').disabled=true;
+				document.getElementById('EMAIL-$t').disabled=true;
+				document.getElementById('EMPLOYEES-$t').disabled=true;
+				
+				
+			}
+		}
+	CheckCorpLic();
 	</script>
 	";
 	

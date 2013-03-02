@@ -253,37 +253,29 @@ class compile_ufdbguard{
 		$q=new mysql_squid_builder();
 		
 		if($this->UpdateUtilityRedirectEnable==1){
-				$sock=new sockets();
-				$UpdateUtilityEnableHTTP=$sock->GET_INFO("UpdateUtilityEnableHTTP");
-				$UpdateUtilityHTTPPort=$sock->GET_INFO("UpdateUtilityHTTPPort");
-				$UpdateUtilityHTTPIP=$sock->GET_INFO("UpdateUtilityHTTPIP");
-				if(!is_numeric($UpdateUtilityEnableHTTP)){$UpdateUtilityEnableHTTP=0;}
-				if(!is_numeric($UpdateUtilityAllProducts)){$UpdateUtilityAllProducts=1;}
-				if(!is_numeric($UpdateUtilityHTTPPort)){$UpdateUtilityHTTPPort=9222;}
+			$sock=new sockets();
+			$UpdateUtilityExternWbsrv=$sock->GET_INFO("UpdateUtilityExternWbsrv");
+			$UpdateUtilityHTTPSRV=$sock->GET_INFO("UpdateUtilityHTTPSRV");
+			$UpdateUtilityExternWbsrvAddr=$sock->GET_INFO("UpdateUtilityExternWbsrvAddr");
+			if(!is_numeric($UpdateUtilityExternWbsrv)){$UpdateUtilityExternWbsrv=0;}	
+			if($UpdateUtilityExternWbsrv==1){$UpdateUtilityHTTPSRV=$UpdateUtilityExternWbsrvAddr;}		
+			
+				if($GLOBALS["AS_ROOT"]){echo "Starting......: ufdbGuard UpdateUtility is enabled\n";}
 				
-				if($UpdateUtilityEnableHTTP==1){
-					$sql="SELECT pattern  FROM `category_updatesites` WHERE (`pattern` LIKE '%.geo.kaspersky.com' and enabled=1) OR (`pattern` LIKE '%.kaspersky-labs.com')";
-					$results=$q->QUERY_SQL($sql);
+				
+				if($UpdateUtilityHTTPSRV<>null){
+					if($GLOBALS["AS_ROOT"]){echo "Starting......: ufdbGuard UpdateUtility redirect to `$UpdateUtilityHTTPSRV`\n";}
 					$f[]="rewrite ReWriteKasper{";
-					while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-						if(preg_match("#^(ksn|imag|util|beta|prod|new|trial)#", $ligne["pattern"])){continue;}				
-						$f[]="\ts@{$ligne["pattern"]}@$UpdateUtilityHTTPIP:$UpdateUtilityHTTPPort@i";
-					
-					}
-					$sql="SELECT pattern  FROM `category_science_computing` WHERE (`pattern` LIKE '%.geo.kaspersky.com' and enabled=1) OR (`pattern` LIKE '%.kaspersky-labs.com')";
-					$results=$q->QUERY_SQL($sql);
-					while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-						if(preg_match("#^(ksn|imag|util|beta|prod|new|trial)#", $ligne["pattern"])){continue;}		
-						$f[]="\ts@{$ligne["pattern"]}@$UpdateUtilityHTTPIP:$UpdateUtilityHTTPPort@i";
-					
-					}					
-					
-					
-				$f[]="}";
+					include_once(dirname(__FILE__)."/class.updateutility-list.inc");
+					while (list ($sitenum, $cat) = each ($UPDATEUTILITY_SITES) ){$f[]="\ts@$sitenum@$UpdateUtilityHTTPSRV@i";}
+					$f[]="}";
 				
 			}else{
 				$this->UpdateUtilityRedirectEnable==0;
+				if($GLOBALS["AS_ROOT"]){echo "Starting......: ufdbGuard UpdateUtility no webserver set...\n";}
 			}
+		}else{
+			if($GLOBALS["AS_ROOT"]){echo "Starting......: ufdbGuard UpdateUtility is not enabled\n";}
 		}
 		
 		
@@ -363,7 +355,7 @@ class compile_ufdbguard{
 			if(trim($ligne["ext"])==null){continue;}
 			$ligne["ext"]=str_replace(".", "", $ligne["ext"]);
 			$ligne["ext"]=str_replace("*", "", $ligne["ext"]);
-			$banned[$ligne["ruleid"]][]="([0-9a-z\-\_]+\.{$ligne["ext"]})";
+			$banned[$ligne["ruleid"]][]="([0-9a-z\-\_]+\.{$ligne["ext"]})$";
 			$this->BANNED_EXTDOMS_RULES[$ligne["ruleid"]]="DomExtBlock{$ligne["ruleid"]}";
 		}
 		$f=array();
@@ -1515,7 +1507,9 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$unix=new unix();
 		$sock=new sockets();
 		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
+		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+		$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+		if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}				
 		if($EnableRemoteStatisticsAppliance==1){return;}		
 		
 		

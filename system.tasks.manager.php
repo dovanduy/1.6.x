@@ -414,10 +414,6 @@ if(preg_match_all("#([0-9]+)\s+([0-9\.]+)\s+([0-9\.]+)\s+([0-9\:]+)\S+(.+)#",$da
 }
 $data['total'] = $c;
 echo json_encode($data);		
-
-
-
-	
 }
 
 function getLoad(){

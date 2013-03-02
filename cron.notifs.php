@@ -160,9 +160,15 @@ $mysql=new mysql();
         $subject=str_replace("'", "`", $subject);
         $text=addslashes($text);
         $subject=addslashes($subject);
+        if(strlen($text)>5){
+        	if(strpos($text, "\n")==0){$subject=$text;}else{
+        		$subject=substr($text, 0,75)."...";
+        		
+        	}
+        }
         if(strlen($subject)<5){
-        	writelogs("Warning New notification: Subject seems to be empty ! \"$text\"",__FUNCTION__,__FILE__,__LINE__);
-        	@unlink("$path.'/'.$file");
+        	writelogs("Warning New notification: Subject seems to be empty ! \"$text\" removing $path/$file",__FUNCTION__,__FILE__,__LINE__);
+        	@unlink("$path/$file");
         	continue;
         }
         if(strlen($text)<5){$text="No content body as been added for this notification";}

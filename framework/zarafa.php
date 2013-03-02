@@ -37,6 +37,16 @@ if(isset($_GET["backup-remove-dirs"])){run_backup_remove_dirs();exit;}
 if(isset($_GET["reload-mailboxes-force"])){mailboxes_scan_all();exit;}
 if(isset($_GET["recover-last"])){recover_last();exit;}
 if(isset($_GET["import-contacts"])){import_csv_contacts();exit;}
+if(isset($_GET["ChangeMysqlDir-zarafa"])){ChangeMysqlDir_zarafa();exit;}
+if(isset($_GET["ChangeMysqlDir-articadb"])){ChangeMysqlDir_zarafadb();exit;}
+if(isset($_GET["zarafadb-restore"])){zarafadb_restore();exit;}
+if(isset($_GET["zarafadb-processlist"])){zarafadb_processlist();exit;}
+if(isset($_GET["artica-dbsize"])){zarafadb_getsize();exit;}
+if(isset($_GET["zarafadb-killthread"])){zarafadb_killthread();exit;}
+
+
+
+
 
 while (list ($num, $ligne) = each ($_GET) ){$a[]="$num=$ligne";}
 writelogs_framework("unable to unserstand ".@implode("&",$a),__FUNCTION__,__FILE__,__LINE__);
@@ -444,5 +454,77 @@ function audit_log(){
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
 	
 }
+function ChangeMysqlDir_zarafa(){
+	$default="/opt/zarafa-db/data";
+	if(is_link($default)){
+		$default=trim(@readlink($default));
+		writelogs_framework("/opt/zarafa-db/data -> `$default`",__FUNCTION__,__FILE__,__LINE__);
+		echo  "<articadatascgi>". trim(base64_encode($default))."</articadatascgi>";
+		return;
+	}
+	
+	echo  "<articadatascgi>". base64_encode($default)."</articadatascgi>";
+	
+	
+}
 
+function ChangeMysqlDir_zarafadb(){
+	$unix=new unix();
+	$dir=base64_decode($_GET["dir"]);
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$dir=$unix->shellEscapeChars($dir);
+	$cmd="$nohup $php /usr/share/artica-postfix/exec.zarafa-db.php --changemysqldir $dir >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
 
+function zarafadb_restore(){
+	$unix=new unix();
+	$logfile="/usr/share/artica-postfix/ressources/logs/web/zarafa_restore_task.log";
+	$dir=base64_decode($_GET["zarafadb-restore"]);
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$dir=$unix->shellEscapeChars($dir);
+	@unlink($logfile);
+	@file_put_contents($logfile, "Please, wait, task will running...\n");
+	@chmod("$logfile",0775);
+	$cmd="$nohup $php /usr/share/artica-postfix/exec.zarafa-db.php --restorefrom $dir >>$logfile 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function zarafadb_getsize(){
+	$unix=new unix();
+	$dir=base64_decode($_GET["dir"]);
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.zarafa-db.php --databasesize --force 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+function zarafadb_processlist(){
+	$unix=new unix();
+	$mysqladmin=$unix->find_program("mysqladmin");
+	$cmd="$mysqladmin --socket /var/run/mysqld/zarafa-db.sock -u root processlist 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	
+	while (list ($num, $ligne) = each ($results) ){
+		if(!preg_match("#^\|\s+([0-9]+)\s+\|(.*?)\|(.*?)\|(.*?)\|(.*?)\|(.*?)\|(.*?)\|(.*?)\|#", $ligne,$re)){continue;}
+		if(preg_match("#show processlist#", $re[8])){continue;}
+		$array[$re[1]]=array("USER"=>trim($re[2]),"HOST"=>trim($re[3]),"DB"=>trim($re[4]),"COMMAND"=>trim($re[5]),"TIME"=>trim($re[6]),"STATE"=>trim($re[7]),"INFO"=>trim($re[8]),);
+
+	}
+	echo  "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
+	
+}
+function zarafadb_killthread(){
+	$pid=$_GET["zarafadb-killthread"];
+	if(!is_numeric($pid)){return;}
+	$unix=new unix();
+	$mysqladmin=$unix->find_program("mysqladmin");
+	$cmd="$mysqladmin --socket /var/run/mysqld/zarafa-db.sock -u root kill $pid 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	shell_exec($cmd);
+}

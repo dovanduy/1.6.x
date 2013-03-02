@@ -1036,11 +1036,7 @@ begin
           end;
       end;
 
-      ZarafaSaLearnSchedule:=SYS.GET_INFO('ZarafaSaLearnSchedule');
-      if length(ZarafaSaLearnSchedule)>5 then begin
-            logs.DebugLogs('Starting......: artica-postfix watchdog (fcron) Activate Zarafa sa-learn schedule');
-           l.Add('&'+Nicet+' '+ZarafaSaLearnSchedule+' '+SYS.LOCATE_PHP5_BIN() + ' ' + artica_path+'/exec.zarafa.learn.php');
-      end;
+
 
 
      //  ########## SQUID

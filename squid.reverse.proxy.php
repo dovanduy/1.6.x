@@ -94,7 +94,22 @@ function Save(){
 	$sock=new sockets();
 	$sock->SET_INFO("SquidActHasReverse",$_GET["SquidActHasReverse"]);
 	$sock->SET_INFO("SquidActHasReverseListenPort",$_GET["listen_port"]);
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");	
+	
+	if($_GET["SquidActHasReverse"]==1){
+		$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
+		$FreeWebListen=$sock->GET_INFO("FreeWebListen");
+		if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
+		if(!is_numeric($FreeWebListen)){$FreeWebListen=80;}
+	
+		if($_GET["listen_port"]==$FreeWebListen){
+			$FreeWebListen=$sock->SET_INFO("FreeWebListen",$_GET["listen_port"]+1);
+		}
+		$sock->getFrameWork("cmd.php?restart-apache-src=yes");
+	}
+	
+	$sock->getFrameWork("squid.php.php?restart-squid=yes");
+	
+	
 }
 
 

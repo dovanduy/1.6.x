@@ -230,7 +230,7 @@ begin
      end;
 
 
-     result:=SYS.GET_CACHE_VERSION('APP_FETCHMAIL');
+     result:=trim(SYS.GET_CACHE_VERSION('APP_FETCHMAIL'));
      if nocache then result:='';
      if ParamStr(1)='--fetchmail-status' then  result:='' ;
 
@@ -244,8 +244,9 @@ begin
      RegExpr:=TRegExpr.Create;
     fpsystem(path+' -V >'+ tmpstr + ' 2>&1');
     FileData.LoadFromFile(tmpstr);
- RegExpr.Expression:='fetchmail,.+?([0-9\.]+)';
+
   for i:=0 to FileData.Count -1 do begin
+         RegExpr.Expression:='fetchmail,.+?([0-9\.]+)';
           if RegExpr.Exec(FileData.Strings[i]) then  begin
             result:=RegExpr.Match[1];
             if length(result)>1 then begin
@@ -254,6 +255,18 @@ begin
                RegExpr.Free;
                exit;
             end;
+            end;
+
+
+            RegExpr.Expression:='fetchmail release\s+([0-9\.]+)';
+            if RegExpr.Exec(FileData.Strings[i]) then  begin
+               result:=RegExpr.Match[1];
+               if length(result)>1 then begin
+                  SYS.SET_CACHE_VERSION('APP_FETCHMAIL',result);
+                  FileData.Free;
+                  RegExpr.Free;
+                  exit;
+               end;
             end;
           end;
 
@@ -283,6 +296,7 @@ begin
          logs.DebugLogs('Starting......: FetchMail is turned to scheduler mode `EnableFetchmailScheduler`, stopping daemon mode...');
          fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.fetchmail.php');
          if SYS.PROCESS_EXIST(fetchmailpid) then FETCHMAIL_DAEMON_STOP(true);
+         FETCHMAIL_LOGGER_START();
          exit;
      end;
 

@@ -52,33 +52,22 @@ function popup(){
 		die();
 	}
 	$pourc=0;
-	$table=Status(0);
+	$t=time();
+
 	$color="#5DD13D";
 	$html="
 	<div class=explain>{APPLY_SETTINGS_POSTFIX}</div>
 	<table style='width:100%'>
 	<tr>
-		<td width=1%><div id='wait_image'><img src='img/wait.gif'></div>
+		<td width=1%><div id='wait_image'><img src='img/wait.gif' style='font-size:13px'></div>
 		</td>
 		<td width=99%>
-			<table style='width:100%'>
-			<tr>
-			<td>
-				<div style='width:100%;background-color:white;padding-left:0px;border:1px solid $color'>
-					<div id='progression_postfix_compile'>
-						<div style='width:{$pourc}%;text-align:center;color:white;padding-top:3px;padding-bottom:3px;background-color:$color'>
-							<strong style='color:#BCF3D6;font-size:12px;font-weight:bold'>{$pourc}%</strong></center>
-						</div>
-					</div>
-				</div>
-			</td>
-			</tr>
-			</table>		
+				<div id='Status$t' style='font-size:13px'></div>
 		</td>
 	</tr>
 	</table>
 	<br>
-	<div id='textlogs' style='width:99%;height:120px;overflow:auto'></div>
+	<div id='textlogs' style='width:99%;height:120px;overflow:auto' style='font-size:13px'></div>
 	
 	<script>
 	function StartCompilePostfix(){
@@ -100,40 +89,20 @@ function popup(){
 		ChangeStatus(10);
 		LoadAjaxSilent('textlogs','$page?ApplyAmavis=yes');
 		}
-		
 
-		
-	var x_ChangeStatus= function (obj) {
-		var tempvalue=obj.responseText;
-		document.getElementById('progression_postfix_compile').innerHTML=tempvalue;
-	}		
-		
 		
 	function ChangeStatus(number){
-		var XHR = new XHRConnection();
-		XHR.appendData('Status',number);
-		XHR.sendAndLoad('$page', 'GET',x_ChangeStatus);	
+		$('#Status$t').progressbar({ value: number });
 	}
 
-	
+	$('#Status$t').progressbar({ value: 2 });
 	StartCompilePostfix();
 	</script>
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html,"postfix.index.php");
 }
-function Status($pourc){
-$color="#5DD13D";	
-$html="
-	<div style='width:{$pourc}%;text-align:center;color:white;padding-top:3px;padding-bottom:3px;background-color:$color'>
-		<strong style='color:#BCF3D6;font-size:12px;font-weight:bold'>{$pourc}%</strong></center>
-	</div>
-";	
 
-
-return $html;
-	
-}
 
 
 function compile_amavis(){
@@ -146,7 +115,7 @@ function compile_amavis(){
 	$page=CurrentPageName();
 	
 	$script="
-	<div id='compile_amavis'></div>
+	<div id='compile_amavis' style='font-size:13px'></div>
 	<script>
 		ChangeStatus(15);
 		LoadAjaxSilent('compile_amavis','$page?compile_kavmilter=yes');
@@ -179,7 +148,7 @@ function compile_kavmilter(){
 	$page=CurrentPageName();
 	
 	$script="
-	<div id='compile_miltergreylist'></div>
+	<div id='compile_miltergreylist' style='font-size:13px'></div>
 	<script>
 		ChangeStatus(35);
 		LoadAjaxSilent('compile_miltergreylist','$page?compile_miltergreylist=yes');
@@ -209,7 +178,7 @@ function compile_kasmilter(){
 	$page=CurrentPageName();
 	
 	$script="
-	<div id='compile_kasmilter'></div>
+	<div id='compile_kasmilter' style='font-size:13px'></div>
 	<script>
 		ChangeStatus(30);
 		LoadAjaxSilent('compile_kasmilter','$page?compile_kavmilter=yes');
@@ -234,7 +203,7 @@ function compile_postfix_save(){
 	$page=CurrentPageName();
 	
 	$script="
-	<div id='compile_postfix_save'></div>
+	<div id='compile_postfix_save' style='font-size:13px'></div>
 	<script>
 		ChangeStatus(50);
 		LoadAjaxSilent('compile_postfix_save','$page?compile_postfix_server=yes');
@@ -248,7 +217,7 @@ function compile_postfix_server(){
 	$page=CurrentPageName();
 	
 	$script="
-	<div id='compile_postfix_server'></div>
+	<div id='compile_postfix_server' style='font-size:13px'></div>
 	<script>
 		ChangeStatus(55);
 		LoadAjaxSilent('compile_postfix_server','$page?compile_header_check=yes');
@@ -263,7 +232,7 @@ function compile_header_check(){
 		$page=CurrentPageName();	
 		
 	$script="
-	<div id='compile_header_check'></div>
+	<div id='compile_header_check' style='font-size:13px'></div>
 	<script>
 		ChangeStatus(70);
 		LoadAjaxSilent('compile_header_check','$page?check_sender_access=yes');
@@ -281,12 +250,8 @@ function check_sender_access(){
 		finish();
 	</script>
 	";		
-	
-	if($u>0){
-		echo $tpl->_ENGINE_parse_body("\n{ENABLE_INTERNET_DENY} {success} {$u} {users} {enabled}","postfix.index.php").$script;
-}	else{
+
 		echo $script;
-	}
 	
 	$sock=new sockets();
 	$sock->getFrameWork("services.php?restart-postfix-all=yes");
@@ -303,7 +268,7 @@ function compile_miltergreylist(){
 	$policy->SaveConf();
 	
 	$script="
-	<div id='compile_miltergreylist'></div>
+	<div id='compile_miltergreylist' style='font-size:13px'></div>
 	<script>
 		ChangeStatus(45);
 		LoadAjaxSilent('compile_miltergreylist','$page?compile_postfix_save=yes');

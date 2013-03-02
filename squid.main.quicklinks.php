@@ -27,13 +27,8 @@ if(isset($_GET["architecture-adv"])){section_architecture_advanced();exit;}
 if(isset($_GET["architecture-users"])){section_architecture_users();exit;}
 if(isset($_GET["architecture-filters"])){section_architecture_filters();exit;}
 if(isset($_GET["ptx-status"])){ptx_status();exit;}
-
-
-
 if(isset($_GET["members-status"])){section_members_status();exit;}
 if(isset($_GET["members-content"])){section_members_content();exit;}
-if(isset($_GET["basic_filters-content"])){section_basic_filters_content();exit;}
-if(isset($_GET["basic_filters-tabs"])){section_basic_filters_tabs();exit;}
 
 
 
@@ -710,62 +705,27 @@ QuickLinkShow('quicklinks-services_status');
 
 function status_squid_left(){
 	
-	if(GET_CACHED(__FILE__, __FUNCTION__)){return;}
+	
 	
 	
 	$tpl=new templates();
 	$page=CurrentPageName();	
 	include_once(dirname(__FILE__)."/ressources/class.status.inc");
-	$status=new status();
-	$squid_status=$status->Squid_status();
-	
-	$q=new mysql();
-	$ini=new Bs_IniHandler();
 	$sock=new sockets();
-	$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?squid-ini-status=yes")));
-	$master_version=$ini->_params["SQUID"]["master_version"];
-	$master_pid=$ini->_params["SQUID"]["master_pid"];
-	$users=new usersMenus();
 	$squid=new squidbee();
+	$q=new mysql();
+	$master_version=$squid->SQUID_VERSION;
+	$users=new usersMenus();
 	
-	
-	
-	
-if($ini->_params["SQUID"]["running"]==0){
-		$img="status_postfix_bg_failed.png";
-		$status="{stopped}";
-		$start="<hr><div style='text-align:right'>".button("{start}","Loadjs('StartStopServices.php?APP=APP_SQUID&cmd=squid-cache&action=start')")."</div>";
-	}else{
-			if(preg_match("#2\.3.*#",$master_version)){$img='status_postfix_bg_ok23.png';}
-			if(preg_match("#2\.5.*#",$master_version)){$img='status_postfix_bg_ok25.png';}
-			if(preg_match("#2\.7.*#",$master_version)){$img='status_postfix_bg_ok27.png';}
-			if(preg_match("#2\.6.*#",$master_version)){$img='status_postfix_bg_ok26.png';}			
-			if(preg_match("#2\.8.*#",$master_version)){$img='status_postfix_bg_ok28.png';}
-			if(preg_match("#2\.9.*#",$master_version)){$img='status_postfix_bg_ok29.png';}
-			if(preg_match("#3\.0.*#",$master_version)){$img='status_postfix_bg_ok30.png';}
-			if(preg_match("#3\.1.*#",$master_version)){$img='status_postfix_bg_ok31.png';}
-			if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
-			if(preg_match("#3\.3.*#",$master_version)){$img='status_postfix_bg_ok33.png';}
-			$text="{service_running}<br>{using_version} $master_version {pid} $master_pid";
-	}
+	$As32=false;
+	if(!isset($_GET["uuid"])){$_GET["uuid"]=$sock->getframework("cmd.php?system-unique-id=yes");}
 
-if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
-	
-	$icap="<table style='width:100%;margin:0px;' " .CellRollOver($js_service).">
-		<tr>
-			<td width=1%><img src='img/danger16.png'></td>
-			<td align='left' nowrap><strong style='color:#D01A1A;font-size:11px'>{no_icap_support}</td>
-			<td width=1% align='right'>&nbsp;</td>
-		</tr>
-	</table>";
-	
-	
-}
 
 	$EnableKavICAPRemote=$sock->GET_INFO("EnableKavICAPRemote");
 	$KavICAPRemoteAddr=$sock->GET_INFO("KavICAPRemoteAddr");
 	$KavICAPRemotePort=$sock->GET_INFO("KavICAPRemotePort");	
 	if(!is_numeric($EnableKavICAPRemote)){$EnableKavICAPRemote=0;}
+	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
 	
 	if($EnableKavICAPRemote==1){
 		$fp=@fsockopen($KavICAPRemoteAddr, $KavICAPRemotePort, $errno, $errstr, 1);
@@ -808,11 +768,56 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	$sock->SET_INFO("squidStatsWebSitesNum",$websitesnums);
 	$sock->SET_INFO("squidStatsBlockedToday",$blocked_today);
 	$sock->SET_INFO("squidStatsRequestNumber",$requests);
-	
+	$styleText="font-size:12px;font-weight:bold";
 	$migration_pid=unserialize(base64_decode($sock->getFrameWork("squid.php?migration-stats=yes")));
 	if(is_array($migration_pid)){
 		$text_script="<span style='color:#B80000;font-size:13px'>{migration_script_run_text} PID:{$migration_pid[0]} {since}:{$migration_pid[1]}Mn</span>";
 	}	
+	
+	
+	$DisableSquidSNMPModeText="{disabled}";
+	$DisableSquidSNMPModeCK="20-check-grey.png";
+	if(preg_match("#^([0-9]+)\.([0-9]+)#", $master_version,$re)){
+		$MAJOR=$re[1];
+		$MINOR=$re[2];
+		if($MAJOR>2){if($MINOR>1){$As32=true;}}
+		$master_version_text="$MAJOR.$MINOR";
+	}	
+	
+	if(preg_match("#^([0-9]+)\.([0-9]+)\.([0-9]+)#", $master_version,$re)){
+		$MAJOR=$re[1];
+		$MINOR=$re[2];
+		$REV=$re[3];
+		$master_version_text="$MAJOR.$MINOR.$REV";
+	}
+	
+	
+
+	
+	
+	
+	if($As32){
+		if($CPU_NUMBER>1){
+			$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
+			if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
+
+			if($DisableSquidSNMPMode==0){
+				$DisableSquidSNMPModeText="{enabled}";
+				$DisableSquidSNMPModeCK="20-check.png";
+			}
+			
+			$smptr="		
+			<tr>
+			<td width=1%><img src='img/$DisableSquidSNMPModeCK'></td>
+			<td class=legend nowrap>SMP:</td>
+			<td style='font-size:14px'>
+			<a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('squid.caches32.php?smp-js=yes&uuid={$_GET["uuid"]}');\"
+			style='$styleText;text-decoration:underline'>$DisableSquidSNMPModeText</a> <span style='font-size:10px'>($CPU_NUMBER cpu(s))</span></td>
+			</tr>";			
+			
+		}
+	}
 	
 	
 	$squidversion="	
@@ -820,24 +825,24 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	<table style='width:250px;margin-top:10px;' class=form>
 	<tbody>
 		<tr>
-			<td>&nbsp;</td>
+			<td width=1%><img src='img/20-check.png'></td>
 			<td class=legend nowrap>Proxy {version}:</td>
-			<td style='font-size:14px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.compilation.status.php');\" style='font-size:14px;text-decoration:underline'>$master_version</a></td>
+			<td style='$styleText'><a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('squid.compilation.status.php');\" 
+			style='$styleText;text-decoration:underline'>$master_version_text</a></td>
 		</tr>
 		<tr>
-			<td>&nbsp;</td>
-			<td class=legend>PID:</td>
-			<td style='font-size:14px'>{$master_pid}</td>
-		</tr>
-		<tr>
-			<td>&nbsp;</td>
+			<td width=1%><img src='img/20-check.png'></td>
 			<td class=legend nowrap>{listen_port}:</td>
-			<td style='font-size:14px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.popups.php?script=listen_port');\" 
-			style='font-size:14px;text-decoration:underline'>$squid->listen_port</a></td>
-		</tr>		
+			<td style='font-size:14px'><a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('squid.popups.php?script=listen_port');\" 
+			style='$styleText;text-decoration:underline'>$squid->listen_port</a></td>
+		</tr>
+		$smptr
 		</tbody>
 	</table>
-	</center>";
+	</center>
+	";
 	
 	if($users->WEBSTATS_APPLIANCE){$squidversion=null;}
 	
@@ -847,7 +852,10 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	$text_kavicap_error
 	$squidversion
 	<div id='squid-plugins-activated'></div>
-	<div style='width:100%;text-align:right'>". imgtootltip("refresh-24.png","{refresh}","LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');")."</div>
+	<div style='width:100%;text-align:right'>". 
+	imgtootltip("refresh-24.png","{refresh}",
+			"LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');")."
+	</div>
 	
 	";
 	
@@ -855,6 +863,11 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
+	
+	
 	if($EnableRemoteStatisticsAppliance==1){$classform=null;}	
 	
 	$html="
@@ -999,6 +1012,9 @@ function section_architecture_status(){
 	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	
 	$js1="Loadjs('squid.popups.php?script=listen_port')";
 	$js2="Loadjs('squid.popups.php?script=visible_hostname')";
@@ -1022,8 +1038,11 @@ function section_architecture_status(){
 	
 	if(strlen($visible_hostname)>10){$visible_hostname=substr($visible_hostname, 0,7)."...";}
 	
+	$VER=$squid->SQUID_VERSION;
+	if(preg_match("#([0-9\.]+)#", $VER,$re)){$VER=$re[1];}
+	
 	$squid_version_text="<td class=legend nowrap>{version}:</td>
-		<td>".texthref($squid->SQUID_VERSION,"Loadjs('squid.compilation.status.php');")."</td>
+		<td>".texthref($VER,"Loadjs('squid.compilation.status.php');")."</td>
 		<td style='font-size:14px;font-weight:bold'>&nbsp;|&nbsp;</td>";
 	
 	$visible_hostname_text="		<td class=legend nowrap>{visible_hostname}:</td>
@@ -1127,7 +1146,7 @@ function section_status(){
 			
 		}
 	echo "
-	<div id=squid_main_svc style='width:100%;100%;overflow:auto'>
+	<div id=squid_main_svc style='width:105%;overflow:auto'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -1177,9 +1196,12 @@ function all_status(){
 	$ini2=new Bs_IniHandler();
 	$tpl=new templates();
 	$users=new usersMenus();
+	
 
+	
 	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?squid-ini-status=yes')));
 	$ini2->loadString(base64_decode($sock->getFrameWork('cmd.php?cicap-ini-status=yes')));
+	if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
 	
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
@@ -1191,12 +1213,16 @@ function all_status(){
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	$SquidBoosterMem=$sock->GET_INFO("SquidBoosterMem");
 	
+	
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	if(!is_numeric($SquidBoosterMem)){$SquidBoosterMem=0;}
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}	
 	if(!is_numeric($AsSquidLoadBalancer)){$AsSquidLoadBalancer=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	
 	$squid_status=DAEMON_STATUS_ROUND("SQUID",$ini,null,1);
 	$dansguardian_status=DAEMON_STATUS_ROUND("DANSGUARDIAN",$ini,null,1);

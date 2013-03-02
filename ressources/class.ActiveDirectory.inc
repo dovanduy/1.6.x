@@ -94,13 +94,14 @@ class ActiveDirectory{
 
 		
 		$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
-		if(  (!isset($array["LDAP_SUFFIX"])) OR (strlen(trim($array["LDAP_SUFFIX"]))<3)   ){
+		if(  (!isset($array["LDAP_SUFFIX"]) ) OR (strlen(trim($array["LDAP_SUFFIX"]))<3) OR (strlen(trim($array["WINDOWS_DNS_SUFFIX"]))<3)  ){
 			
 			$INFOS=$this->NetAdsInfo();
 			if($GLOBALS["VERBOSE"]){writelogs("Found LDAP_SUFFIX={$INFOS["SUFFIX"]}, server={$INFOS["SERVER_IP"]}", __CLASS__ . "/" . __FUNCTION__,__FILE__,__LINE__);}
 			$array["LDAP_SUFFIX"]=$INFOS["SUFFIX"];
 			$array["LDAP_PORT"]=$INFOS["LDAP_PORT"];
 			$array["LDAP_SERVER"]=$INFOS["SERVER_IP"];
+			$array["WINDOWS_DNS_SUFFIX"]=$INFOS["SERVER_IP"];
 			$sock->SaveConfigFile(base64_encode(serialize($array)), "KerbAuthInfos");
 		}
 		//cn=$this->ldap_admin,cn=Users,
@@ -121,14 +122,24 @@ class ActiveDirectory{
 		$this->LDAP_RECURSIVE=$array["LDAP_RECURSIVE"];
 		
 		if($array["LDAP_DN"]==null){
-			$this->ldap_dn_user="cn={$array["WINDOWS_SERVER_ADMIN"]},cn=Users,$this->suffix";
+			$this->ldap_dn_user="{$array["WINDOWS_SERVER_ADMIN"]}@{$array["WINDOWS_DNS_SUFFIX"]}";
 		}else{
+			
+			if(!preg_match("#(.+?)@(.+)#", $array["LDAP_DN"])){
+					if(preg_match("#^CN=(.+?),#i", $array["LDAP_DN"],$re)){
+						$array["LDAP_DN"]="{$re[1]}@{$array["WINDOWS_DNS_SUFFIX"]}";
+					}
+				}
 			$this->ldap_dn_user=$array["LDAP_DN"];
-		}	
 		
-		
-		
+		}
+				
+			
+			
 	}
+	
+	
+	
 	
 	public function DumpDN($dn){
 		$res=@ldap_read($this->ldap_connection,$dn,"(objectClass=*)",array(),null,null,20);
@@ -150,7 +161,7 @@ class ActiveDirectory{
 			if(preg_match("#LDAP server:\s+(.+)#i", $ligne,$re)){$array["SERVER_IP"]=trim($re[1]);continue;}
 			if(preg_match("#Bind Path:\s+(.+)#i", $ligne,$re)){$array["SUFFIX"]=trim($re[1]);continue;}	
 			if(preg_match("#LDAP port:\s+(.+)#i", $ligne,$re)){$array["LDAP_PORT"]=trim($re[1]);continue;}			
-			
+			if(preg_match("#Realm:\s+(.+)#i", $ligne,$re)){$array["WINDOWS_DNS_SUFFIX"]=trim(strtolower($re[1]));continue;}	
 		}
 	
 		return $array;
@@ -189,16 +200,41 @@ class ActiveDirectory{
 		}else{
 			$this->ldap_last_error='Error LDAP search number ' . ldap_errno($this->ldap_connection) . "\nAction:LDAP search\ndn:$dn\n$filter\n" . ldap_err2str(ldap_errno($this->ldap_connection));
    			writelogs("ERROR Ldap_search : $filter in $dn" . ldap_err2str(ldap_errno($this->ldap_connection)),__CLASS__ . "/" . __FUNCTION__,__FILE__);return false;}
-		return array();}		
-	
-	function UserSearch($ou=null,$tofind){
+		return array();}
+
+		
+		function UserSearch_formated($ou=null,$tofind,$maxRow=null){	
 			$uid=$_SESSION["uid"];
 			if($tofind==null){$tofind='*';}else{$tofind="$tofind*";}
 			$filter="(&(objectClass=user)(|(cn=$tofind)(mail=$tofind)(displayName=$tofind)(samaccountname=$tofind) (givenname=$tofind)))";
 			$attrs=array("displayName","samaccountname","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber");
 			if($ou==null){$dn=$this->suffix;}else{$dn="ou=$ou,$this->suffix";}
 			//writelogs("Ldap_search : $filter in $dn", __CLASS__ . "/" . __FUNCTION__,__FILE__);
-			$hash=$this->find_users($ou,$tofind);
+			$hash=$this->find_users($ou,$tofind,$maxRow);
+			
+			for($i=0;$i<$hash["count"];$i++){
+				$GroupName=utf8_decode($hash[$i]["samaccountname"][0]);
+				writelogs("{$hash[$i]["samaccountname"][0]} = `$GroupName`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$dn=$hash[$i]["dn"];
+				$description=utf8_decode($hash[$i]["displayname"][0]);
+				$FINAL[$dn]=array($GroupName,$description,0);
+			
+			
+			}			
+			return $FINAL;
+			
+		}
+
+		
+	
+	function UserSearch($ou=null,$tofind,$maxRow=null){
+			$uid=$_SESSION["uid"];
+			if($tofind==null){$tofind='*';}else{$tofind="$tofind*";}
+			$filter="(&(objectClass=user)(|(cn=$tofind)(mail=$tofind)(displayName=$tofind)(samaccountname=$tofind) (givenname=$tofind)))";
+			$attrs=array("displayName","samaccountname","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber");
+			if($ou==null){$dn=$this->suffix;}else{$dn="ou=$ou,$this->suffix";}
+			//writelogs("Ldap_search : $filter in $dn", __CLASS__ . "/" . __FUNCTION__,__FILE__);
+			$hash=$this->find_users($ou,$tofind,$maxRow);
 			
 			$hash2=array();	
 			return array($hash,$hash2);
@@ -286,6 +322,14 @@ class ActiveDirectory{
 		return count($this->hash_get_groups_from_ou_mysql($ou));
 		
 	}
+	
+	
+	function search_users($pattern,$entriesNumber=50){
+		
+		
+		
+	}
+	
 	
 	function search_groups($pattern,$entriesNumber=50){
 		$this->ldap_last_error=null;
@@ -444,28 +488,28 @@ function hash_get_ou($has_key=false){
 		
 	}		
 		
-	public function find_users($ou,$tofind){
+	public function find_users($ou,$tofind,$maxRow=null){
 			$hash=$this->find_users_mysql($ou,$tofind);
-			writelogs("search $tofind in $dn Mysql return {$hash["count"]} elements ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			writelogs("search $tofind in ou:$ou Mysql return {$hash["count"]} elements ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			if($hash["count"]>0){return $hash;}
-		
 			$tofind=str_replace("***", "*", $tofind);
 			$tofind=str_replace("**", "*", $tofind);
-			$cc=new ldapAD();
+			$cc=new external_ad_search();
 			$dn="$cc->suffix";
-			
+			if($maxRow==null){$maxRow=150;}
 			$filter="(&(objectClass=user)(|(cn=$tofind)(mail=$tofind)(displayName=$tofind)(sAMAccountName=$tofind) (givenname=$tofind)))";
 			$attrs=array("displayName","samaccountname","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber");
 			if(trim($ou)=="Domain Controllers"){$dn="CN=Users,$cc->suffix";}
-			writelogs("search $tofind in $dn ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			$hash=$cc->Ldap_search($dn,$filter,$attrs,150);	
+			
+			$hash=$cc->Ldap_search($dn,$filter,$attrs,$maxRow);	
+			writelogs("search $tofind in `$dn` {$hash["count"]} element(s)...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			if(!is_array($hash)){return array();}
 			return $hash;
 			
 		}
 		
 	private function find_users_mysql($ou,$tofind){
-		if($tofind=="*"){$tofind=null;}
+		if($tofind==null){$tofind="*";}
 		$tofind=str_replace("*", "%", $tofind);
 		if($ou<>null){$sql_ou=" AND ou='$ou'";}
 		

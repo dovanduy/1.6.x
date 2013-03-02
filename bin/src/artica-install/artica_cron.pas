@@ -611,7 +611,7 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
 
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 3  ' +cmdnice+artica_path+'/bin/process1');
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.rsync.events.php');
-      l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 11 ' +cmdnice+ ' ' +artica_path+'/artica-install --usb-scan-write');
+      l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 11 ' +cmdnice+ ' ' +artica_path+'/bin/artica-install --usb-scan-write');
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 15 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.ipband.php --status');
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 7 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.dnsmasq.php --varrun');
       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 4 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.watchdog.php --monit');

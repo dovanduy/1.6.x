@@ -1092,7 +1092,7 @@ function item_popup(){
 
 	while(list( $num, $ligne ) = each ($arr)){
 		$ligne=$tpl->_ENGINE_parse_body($ligne);
-		$toolbox [] = "<li><a href=\"$page?$num=yes&item-id=$id&t=$t\"><span $styleText>$ligne</span></a></li>";
+		$toolbox [] = "<li><a href=\"$page?$num=yes&item-id=$id&t=$t\"><span style='$styleText'>$ligne</span></a></li>";
 	}
 	
 	$html ="<div id='pdnsmysql-item-tabs' style='width:99%;margin:0px;background-color:white'>

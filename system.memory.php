@@ -10,7 +10,7 @@
 
 if(isset($_GET["js"])){echo js();exit;}
 if(isset($_GET["popup"])){popup();exit;}
-if(isset($_GET["SwapEnabled"])){SaveSwapAuto();exit;}
+if(isset($_POST["SwapEnabled"])){SaveSwapAuto();exit;}
 
 
 function js(){
@@ -18,7 +18,7 @@ function js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{memory_info}');
 	$html="
-	 YahooWin5('600','$page?popup=yes','$title');
+	 YahooWin5('650','$page?popup=yes','$title');
 	 
 	
 	
@@ -31,8 +31,8 @@ function SaveSwapAuto(){
 	$sock=new sockets();
 	
 	$SwapOffOn=unserialize(base64_decode($sock->GET_INFO("SwapOffOn")));
-	
-	while (list ($num, $line) = each ($_GET) ){
+	$sock->SET_INFO("DisableSWAPP", $_POST["DisableSWAPP"]);
+	while (list ($num, $line) = each ($_POST) ){
 		$SwapOffOn[$num]=$line;
 	}
 	
@@ -41,6 +41,7 @@ function SaveSwapAuto(){
 	if(!is_numeric($SwapOffOn["SwapMaxMB"])){$SwapOffOn["SwapMaxMB"]=0;}	
 	$sock->SaveConfigFile(base64_encode(serialize($SwapOffOn)),"SwapOffOn");
 	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
+	$sock->getFrameWork("system.php?swap-init=yes");
 	
 	
 }
@@ -51,11 +52,11 @@ function popup(){
 	$sock=new sockets();
 	
 	$SwapOffOn=unserialize(base64_decode($sock->GET_INFO("SwapOffOn")));
-	
+	$DisableSWAPP=$sock->GET_INFO("DisableSWAPP");
 	if(!is_numeric($SwapOffOn["SwapEnabled"])){$SwapOffOn["SwapEnabled"]=1;}
 	if(!is_numeric($SwapOffOn["SwapMaxPourc"])){$SwapOffOn["SwapMaxPourc"]=20;}
 	if(!is_numeric($SwapOffOn["SwapMaxMB"])){$SwapOffOn["SwapMaxMB"]=0;}
-	
+	if(!is_numeric($DisableSWAPP)){$DisableSWAPP=0;}
 
 	$table_swap="
 	
@@ -65,8 +66,12 @@ function popup(){
 	<div id='AutoSwapDiv'>
 	<table style='width:99%' class=form>
 	<tr>
+		<td class=legend>{DisableSWAPP}:</td>
+		<td>". Field_checkbox("DisableSWAPP",1,$DisableSWAPP,"CheckSwap()")."</td>
+	</tr>			
+	<tr>
 		<td class=legend>{enable}:</td>
-		<td>". Field_checkbox("SwapEnabled",1,$SwapOffOn["SwapEnabled"])."</td>
+		<td>". Field_checkbox("SwapEnabled",1,$SwapOffOn["SwapEnabled"],"CheckSwap()")."</td>
 	</tr>
 	<tr>
 		<td class=legend>{MaxDiskUsage}:</td>
@@ -77,7 +82,7 @@ function popup(){
 		<td>". Field_text("SwapMaxMB",$SwapOffOn["SwapMaxMB"],"font-size:13px;padding:3px;width:60px")."&nbsp;<strong style='font-size:13px'>MB</td>
 	</tr>		
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","SaveSwapAuto()")."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}","SaveSwapAuto()",16)."</td>
 	</tr>
 	</table>
 	</div>";	
@@ -100,14 +105,36 @@ function popup(){
 		
 	}		
 	
-		function SaveSwapAuto(){
-			var XHR=XHRParseElements('AutoSwapDiv');
-			document.getElementById('AutoSwapDiv').innerHTML='<center><img src=img/wait_verybig.gif></center>';
-			XHR.sendAndLoad('$page', 'GET',x_SaveSwapAuto);	
+	function SaveSwapAuto(){
+		var XHR=XHRParseElements('AutoSwapDiv');
+		DisableSWAPP=0;
+		SwapEnabled=0;
+		if(document.getElementById('SwapEnabled').checked){SwapEnabled=1;}
+		if(document.getElementById('DisableSWAPP').checked){DisableSWAPP=1;}
+		var XHR = new XHRConnection();
+		XHR.appendData('SwapMaxPourc',document.getElementById('SwapMaxPourc').value);
+		XHR.appendData('SwapMaxMB',document.getElementById('SwapMaxMB').value);
+		XHR.appendData('SwapEnabled',SwapEnabled);
+		XHR.appendData('DisableSWAPP',DisableSWAPP);
+		AnimateDiv('AutoSwapDiv');
+		XHR.sendAndLoad('$page', 'POST',x_SaveSwapAuto);	
 		
-		}
+	}
 	
+	function CheckSwap(){
+		document.getElementById('SwapEnabled').disabled=true;
+		document.getElementById('SwapMaxPourc').disabled=true;
+		document.getElementById('SwapMaxMB').disabled=true;
+		
+		if(document.getElementById('DisableSWAPP').checked){return;}
+		document.getElementById('SwapEnabled').disabled=false;
+		if(!document.getElementById('SwapEnabled').checked){return;}
+		document.getElementById('SwapMaxPourc').disabled=false;
+		document.getElementById('SwapMaxMB').disabled=false;		
 	
+	}
+	
+	CheckSwap();
 	</script>";
 	
 	$tpl=new templates();

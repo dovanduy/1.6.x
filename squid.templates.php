@@ -141,7 +141,7 @@ function template_settings_js(){
 	$tpl=new templates();
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
-	echo "YahooWin5('600','$page?new-template=yes&t=$t&templateid={$_GET["zmd5"]}','{$_GET["zmd5"]}');";
+	echo "YahooWin5('655','$page?new-template=yes&t=$t&templateid={$_GET["zmd5"]}','{$_GET["zmd5"]}');";
 	
 }
 	
@@ -406,8 +406,17 @@ function TEMPLATE_ADD(){
 				
 			}
 			
-		function UseALink$t(){}
-		
+		function UseALink$t(){
+			document.getElementById('status_code-$t').disabled=true;
+			document.getElementById('freewebs_compliance-$t').disabled=true;
+			document.getElementById('template_uri-$t').disabled=true;
+			if(document.getElementById('template_link-$t').checked){
+				document.getElementById('status_code-$t').disabled=false;
+				document.getElementById('freewebs_compliance-$t').disabled=false;
+				document.getElementById('template_uri-$t').disabled=false;		
+			}
+		}
+		 UseALink$t();
 			
 		</script>
 		";
@@ -619,7 +628,7 @@ function help$t(){
 	}
 	
 	function NewTemplateNew(){
-		YahooWin5('600','$page?new-template=yes&t=$t','$new_template');
+		YahooWin5('650','$page?new-template=yes&t=$t','$new_template');
 	}
 	
 	function NewTemplate(templateid){
@@ -630,7 +639,7 @@ function help$t(){
 			templateid='';
 		}
 		
-		YahooWin5('600','$page?new-template=yes&t=$t&templateid='+templateid,title);
+		YahooWin5('650','$page?new-template=yes&t=$t&templateid='+templateid,title);
 	}
 	
 	var x_RebuidSquidTplDefault=function(obj){

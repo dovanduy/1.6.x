@@ -159,7 +159,7 @@ function BuildIcons($imageoff,$imageon,$help,$js){
 			$help=str_replace("\n","",$help);
 			$help=str_replace("\r\n","",$help);
 			$help=str_replace("\r","",$help);	
-	
+			
 	$md5=md5($imageoff);
 	
 	$bullon="AffBulle('$help');this.style.cursor='pointer';";

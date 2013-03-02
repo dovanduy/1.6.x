@@ -587,7 +587,6 @@ function AddRelayDomain(){
 	XHR.appendData('AddNewRelayDomainIP',document.getElementById('AddNewRelayDomainIP').value);
 	XHR.appendData('AddNewRelayDomainPort',document.getElementById('AddNewRelayDomainPort').value);
 	XHR.appendData('AddNewRelayDomainName',document.getElementById('AddNewRelayDomainName').value);
-	XHR.appendData('trusted_smtp_domain',document.getElementById('trusted_smtp_domain').value);
 	XHR.appendData('MX',document.getElementById('MX').value);
 	memory_ou=document.getElementById('ou').value;
 	XHR.appendData('ou','$ou');
@@ -602,7 +601,6 @@ function EditRelayDomain(domain_name){
 	XHR.appendData('EditRelayDomainName',domain_name);
 	XHR.appendData('MX',document.getElementById(domain_name+'_MX').value);
 	XHR.appendData('autoaliases',document.getElementById(domain_name+'_autoaliases').value);
-	XHR.appendData('trusted_smtp_domain',document.getElementById('trusted_smtp_domain').value);
 	XHR.appendData('ou','$ou');
 	AnimateDiv('remote_domain_popup');
 	XHR.sendAndLoad(\"domains.edit.domains.php\", 'GET',x_AddRelayDomain);	

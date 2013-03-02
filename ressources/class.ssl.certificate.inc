@@ -38,7 +38,7 @@ class ssl_certificate{
 		writelogs("PostfixSSLCert=".strlen($this->ini_sources),__CLASS__.'/'.__FUNCTION__,__FILE__);
 		
 		if(trim($this->ini_sources)==null){
-			$this->ini_sources=$sock->getfile("CertificateConfigFile");
+			$this->ini_sources=$sock->getFrameWork("postfix.php?CertificateConfigFile=yes");
 		}
 		$ini=new Bs_IniHandler();
 		if($this->ini_sources==null){

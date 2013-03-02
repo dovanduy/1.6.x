@@ -420,7 +420,7 @@ begin
    daemon:=LOGS.COMMANDLINE_PARAMETERS('--daemon');
    if not TryStrToInt(SYS.GET_INFO('LighttpdArticaDisabled'),LighttpdArticaDisabled) then LighttpdArticaDisabled:=0;
    if not TryStrToInt(SYS.GET_INFO('SessionPathInMemory'),SessionPathInMemory) then SessionPathInMemory:=0;
-
+   nohup:=SYS.LOCATE_GENERIC_BIN('nohup');
 
 
 logs.Debuglogs('###################### LIGHTTPD #####################');
@@ -454,7 +454,7 @@ logs.Debuglogs('###################### LIGHTTPD #####################');
 
    if not SYS.isoverloaded() then begin
       logs.Debuglogs('Starting......: lighttpd: lighttpd launching process1 for writing settings');
-      fpsystem(SYS.EXEC_NICE()+SYS.LOCATE_GENERIC_BIN('nohup') +' /usr/share/artica-postfix/bin/process1 --force >/dev/null 2>&1 &');
+      fpsystem(SYS.EXEC_NICE()+nohup+' /usr/share/artica-postfix/bin/process1 --force >/dev/null 2>&1 &');
    end;
    logs.DeleteFile('/var/log/lighttpd/error.log');
 
@@ -490,23 +490,22 @@ logs.Debuglogs('###################### LIGHTTPD #####################');
        if not SYS.PROCESS_EXIST(pid) then begin
           logs.Debuglogs('Starting......: lighttpd: -> verif configuration');
           if not SYS.isoverloaded() then LIGHTTPD_VERIF_CONFIG();
-          nohup:=SYS.LOCATE_GENERIC_BIN('nohup');
           SessionPath:= SYS.LOCATE_PHP5_SESSION_PATH();
-          logs.Debuglogs('Starting......: lighttpd: user.........:'+user);
-          logs.Debuglogs('Starting......: lighttpd: group........:'+group);
-          logs.Debuglogs('Starting......: lighttpd: pid..........:'+pid);
+          logs.Debuglogs('Starting......: lighttpd: User.........:'+user);
+          logs.Debuglogs('Starting......: lighttpd: Group........:'+group);
+          logs.Debuglogs('Starting......: lighttpd: Pid..........:'+pid);
           logs.Debuglogs('Starting......: lighttpd: Port.........:' + LIGHTTPD_LISTEN_PORT());
-          logs.Debuglogs('Starting......: lighttpd: logs path....:'+LIGHTTPD_LOG_PATH());
+          logs.Debuglogs('Starting......: lighttpd: Logs path....:'+LIGHTTPD_LOG_PATH());
           logs.Debuglogs('Starting......: lighttpd: Socket path..:'+LIGHTTPD_SOCKET_PATH());
-          logs.Debuglogs('Starting......: lighttpd: php5-cgi path:'+PHP5_CGI_BIN_PATH());
-          logs.Debuglogs('Starting......: lighttpd: php client...:' + SYS.LOCATE_PHP5_BIN());
-          logs.Debuglogs('Starting......: lighttpd: certificate..:'+LIGHTTPD_CERTIFICATE_PATH());
-          logs.Debuglogs('Starting......: lighttpd: php ext dir..:' + SYS.LOCATE_PHP5_EXTENSION_DIR());
-          logs.Debuglogs('Starting......: lighttpd: php ext conf.:' + SYS.LOCATE_PHP5_EXTCONF_DIR());
-          logs.Debuglogs('Starting......: lighttpd: php session.:' + SessionPath);
+          logs.Debuglogs('Starting......: lighttpd: Php5-cgi path:'+PHP5_CGI_BIN_PATH());
+          logs.Debuglogs('Starting......: lighttpd: PHP client...:' + SYS.LOCATE_PHP5_BIN());
+          logs.Debuglogs('Starting......: lighttpd: Certificate..:'+LIGHTTPD_CERTIFICATE_PATH());
+          logs.Debuglogs('Starting......: lighttpd: PHP ext dir..:' + SYS.LOCATE_PHP5_EXTENSION_DIR());
+          logs.Debuglogs('Starting......: lighttpd: PHP ext conf.:' + SYS.LOCATE_PHP5_EXTCONF_DIR());
+          logs.Debuglogs('Starting......: lighttpd: PHP session.:' + SessionPath);
           logs.Debuglogs('Starting......: lighttpd: Mem session.:' + IntTostr(SessionPathInMemory)+'M');
 
-          fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.shm.php --SessionMem "'+SessionPath+'"');
+          fpsystem(nohup+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.shm.php --SessionMem "'+SessionPath+'" >/dev/null 2>&1 &');
           logs.OutputCmd(LIGHTTPD_BIN_PATH()+ ' -f /etc/lighttpd/lighttpd.conf');
           fpsystem(nohup+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.shm.php --service-up >/dev/null 2>&1 &');
 

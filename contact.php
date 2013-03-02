@@ -170,7 +170,9 @@ function js(){
 		function ContactDelete(dn){
 			var XHR = new XHRConnection();
 			XHR.appendData('delete-contact',dn);
-			document.getElementById('contact_section').innerHTML='<img src=\"img/wait_verybig.gif\">';
+			if(document.getElementById('contact_section')){
+				AnimateDiv('contact_section');
+			}
 			XHR.sendAndLoad('$page', 'GET',x_ContactDelete);	
 		
 		}
@@ -742,19 +744,20 @@ function CONTACT_DELETE(){
 		$employeeNumber=$_GET["delete-contact"];
 		$ct=new contacts($_SESSION["uid"],$employeeNumber);
 	
-if($_SESSION["uid"]<>-100){
+	if($_SESSION["uid"]<>-100){
 		$ldap=new clladp();
 		$user=new user($_SESSION["uid"]);
 		$dn="cn=$ct->sn $ct->givenName,ou=$user->uid,ou=People,dc=$user->ou,dc=NAB,$ldap->suffix";
 		if($dn==$ct->dn){
 			$ldap->ldap_delete($ct->dn,true);
-			$sock=new sockets();
-			$sock->getfile("OBMContactDelete:$ct->uidNumber");
-			
 		}else{
 			$tpl=new templates();
 			echo $tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
 		}
+		
+	}else{
+		$ldap=new clladp();
+		$ldap->ldap_delete($ct->dn,true);
 		
 	}	
 	

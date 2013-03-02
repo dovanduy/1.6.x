@@ -600,7 +600,7 @@ begin
    if ParamStr(1)='APP_Z_PUSH' then begin
          zarafa:=tzarafa.Create;
          zarafa.zpush();
-          zinstall.EMPTY_CACHE();
+         zinstall.EMPTY_CACHE();
          halt(0);
    end;
 
@@ -1428,6 +1428,8 @@ begin
 
 
    if ParamStr(1)='APP_CYRUS_IMAP' then begin
+         writeln('Operation not supported... use the system installer instead...');
+         halt(0);
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          zcyrus:=tcyrus_install.Create;
          zcyrus.install_cyrus();

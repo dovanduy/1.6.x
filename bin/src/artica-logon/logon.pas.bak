@@ -171,12 +171,12 @@ if not  ArticaAgent then writeln('[C]..... Synchronize settings & remove cache')
 if ARTICA_VERSION<>ARTICA_NIGHTLY_VERSION then writeln('[D]..... Upgrade to a nightly build (',ARTICA_NIGHTLY_VERSION,')');
 if FileExists('/usr/bin/htop') then writeln('[E]..... Process Monitor');
 if FileExists(squidbin) then writeln('[F]..... Register to a Statistics Appliance');
-
+if FileExists(htop_bin) then writeln('[H]..... Tasks Manager');
 writeln('[L]..... Configure languages');
 writeln('[M]..... Modify DNS');
 writeln('[N]..... Modify eth0 interface');
 writeln('[P]..... Modify root password');
-if FileExists(htop_bin) then writeln('[H]..... Tasks Manager');
+
 writeln('[R]..... Reboot');
 writeln('[S]..... Shutdown');
 if not  ArticaAgent then writeln('[U]..... Global Administrator Username  & password');

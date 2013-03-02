@@ -85,12 +85,23 @@ class mount{
 	
 	public function smb_mount($mountpoint,$server,$username,$password,$path){
 		
+		
 		if(preg_match("#(.+?)@(.+)#", $server,$re)){$username=$re[1];$server=$re[2];}
+		$server=str_replace("@", "", $server);
 		
 		if($this->ismounted($mountpoint)){
-			$this->events("smb_mount() already mounted");
+			$this->events("smb_mount() already mounted Line::".__LINE__);
 			return true;
 		}
+		
+		if($GLOBALS["VERBOSE"]){
+			$this->events("smb_mount() Username:$username Line::".__LINE__);
+			$this->events("smb_mount() Password:$password Line::".__LINE__);
+			$this->events("smb_mount() server..:$server Line::".__LINE__);
+			$this->events("smb_mount() path....:$path Line::".__LINE__);
+		}
+		
+		$password=$this->shellEscapeChars($password);
 		
 		if($username<>null){
 			if(trim($password)==null){$this->events("smb_mount() WARNING no password passed to the protocol...assume password null");}
@@ -147,6 +158,29 @@ class mount{
 			
 			
 	}
+	
+	private function shellEscapeChars($path){
+		$path=str_replace(" ","\ ",$path);
+		$path=str_replace('$','\$',$path);
+		$path=str_replace("&","\&",$path);
+		$path=str_replace("?","\?",$path);
+		$path=str_replace("#","\#",$path);
+		$path=str_replace("[","\[",$path);
+		$path=str_replace("]","\]",$path);
+		$path=str_replace("{","\{",$path);
+		$path=str_replace("}","\}",$path);
+		$path=str_replace("*","\*",$path);
+		$path=str_replace('"','\\"',$path);
+		$path=str_replace("'","\\'",$path);
+		$path=str_replace("(","\(",$path);
+		$path=str_replace(")","\)",$path);
+		$path=str_replace("<","\<",$path);
+		$path=str_replace(">","\>",$path);
+		$path=str_replace("!","\!",$path);
+		$path=str_replace("+","\+",$path);
+		$path=str_replace(";","\;",$path);
+		return $path;
+	}	
 	
 	
 public function MountComputerRemote($computername,$ip,$username,$password){

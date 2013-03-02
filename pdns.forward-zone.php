@@ -253,7 +253,7 @@ function items(){
 	if(mysql_num_rows($results)==0){
 		json_error_show("No item");
 	}
-
+	$tpl=new templates();
 	$sock=new sockets();
 	$aliases=$tpl->_ENGINE_parse_body("{aliases}");
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -263,9 +263,11 @@ function items(){
 		
 		$jshost="NewPDNSEntry$t($id);";
 		$hostname=$ligne["hostname"].":".$ligne["port"];
-		$zone=$ligne["zone"];
+		$zone=trim($ligne["zone"]);
 		$recursive=$ligne["recursive"];
 		if($recursive==1){$text_recursive=$tpl->_ENGINE_parse_body("&nbsp;<i>({recursive})</i>");}
+		if($zone=="*"){$zone=$tpl->_ENGINE_parse_body("{all} (*)");}
+		if($zone=="."){$zone=$tpl->_ENGINE_parse_body("{all} (*)");}
 		
 	$data['rows'][] = array(
 		'id' => $id,

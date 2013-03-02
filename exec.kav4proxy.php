@@ -1,7 +1,9 @@
 <?php
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["AS_ROOT"]=true;
+$GLOBALS["FORCE"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
@@ -12,6 +14,7 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 if($argv[1]=="--reload"){BuilAndReload();die();}
 if($argv[1]=="--umount"){umountfs();die();}
 if($argv[1]=="--license"){license_infos();die();}
+if($argv[1]=="--templates"){templates();die();}
 
 
 
@@ -27,6 +30,9 @@ function build(){
 	@chmod("/tmp/Kav4proxy", 0777);
 	@chown("/tmp/Kav4Proxy", "kluser");
 	@chgrp("/tmp/Kav4Proxy", "kluser");
+	@mkdir("/var/log/artica-postfix/ufdbguard-blocks",0777,true);
+	@chmod("/var/log/artica-postfix/ufdbguard-blocks", 0777);
+	templates();
 	}
 	
 	
@@ -76,9 +82,11 @@ function license_infos($nopid=false){
 	
 	$q->QUERY_SQL($sql,"artica_backup");	
 	$time=$unix->file_time_min("/etc/artica-postfix/KAV4PROXY_LICENSE_INFO");
+	if($GLOBALS["FORCE"]){$time=100000;}
 	if($time>2880){
 		shell_exec("/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -s -c /etc/opt/kaspersky/kav4proxy.conf >/etc/artica-postfix/KAV4PROXY_LICENSE_INFO 2>&1");
 	}
+	
 	
 	$results=explode("\n", @file_get_contents("/etc/artica-postfix/KAV4PROXY_LICENSE_INFO"));
 	
@@ -118,6 +126,16 @@ function license_infos($nopid=false){
 		
 	}
 	
+	
+}
+
+function templates(){
+	$kav=new Kav4Proxy();
+	while (list ($templateName, $val) = each ($kav->templates_data) ){
+		@file_put_contents("/opt/kaspersky/kav4proxy/share/notify/$templateName", $val);
+		@chmod("/opt/kaspersky/kav4proxy/share/notify/$templateName",0755);
+		@chown("/opt/kaspersky/kav4proxy/share/notify/$templateName","kluser");
+	}
 	
 }
 

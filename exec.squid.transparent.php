@@ -41,6 +41,7 @@ function enable_transparent(){
 	$unix=new unix();
 	$sock=new sockets();
 	$SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));
+	if($SquidBinIpaddr==null){$SquidBinIpaddr="0.0.0.0";}
 	$UseTProxyMode=$sock->GET_INFO("UseTProxyMode");
 	if(!is_numeric($UseTProxyMode)){$UseTProxyMode=0;}		
 	$ssl_port=$squid->get_ssl_port();
@@ -70,7 +71,7 @@ function enable_transparent(){
 	
 	
 	iptables_delete_all();
-	
+	if($SquidBinIpaddr=="0.0.0.0"){$SquidBinIpaddr=null;}
 	if($SquidBinIpaddr<>null){$ips=array();$ips["eth0"]=$SquidBinIpaddr;}
 	
 	if($UseTProxyMode==1){

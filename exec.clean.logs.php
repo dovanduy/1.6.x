@@ -36,6 +36,7 @@ if($argv[1]=='--zarafa-locks'){ZarafaLocks();die();}
 if($argv[1]=='--squid-caches'){CleanCacheStores();die();}
 if($argv[1]=='--rotate'){CleanRotatedFiles();die();}
 if($argv[1]=='--squid'){clean_squid_users_size();die();}
+if($argv[1]=='--artica-logs'){artica_logs();die();}
 
 
 
@@ -63,6 +64,7 @@ function init(){
 function CleanCacheStores(){
 	$unix=new unix();
 	$users=new usersMenus();
+	return;
 	if(!$users->SQUID_INSTALLED){return;}
 	$rm=$unix->find_program("rm");
 	$f=file("/etc/squid3/squid.conf");
@@ -82,6 +84,7 @@ function CleanCacheStores(){
 			if($GLOBALS["VERBOSE"]){echo "Found dir `$dirname`\n";}
 			$unix->send_email_events("Old squid cache directory $dirname will be deleted", "", "logs_cleaning");
 			system_admin_events("Old squid cache directory $dirname will be deleted", __FUNCTION__, __FILE__, __LINE__, "clean");
+			squid_admin_notifs("Old squid cache directory $dirname will be deleted", __FUNCTION__, __FILE__, __LINE__, "clean");
 			shell_exec("$rm -rf $directory >/dev/null 2>&1");
 		}
 	}
@@ -153,6 +156,73 @@ function maillog(){
 
 }
 
+function artica_logs(){
+	$unix=new unix();
+	$Dir="/var/log/artica-postfix";
+	if ($handle = opendir($Dir)) {
+		while (false !== ($file = readdir($handle))) {
+			if ($file != "." && $file != "..") {
+				$path="$Dir/$file";
+				if(!is_file($path)){if($GLOBALS["VERBOSE"]){echo "$path, no file...\n";}continue;}
+					if(preg_match("#artica-update-[0-9\-]+\.debug#", $file)){
+						$timefile=$unix->file_time_min($path);
+						if($timefile>2880){
+							$size=@filesize($path)/1024;
+							$GLOBALS["DELETED_SIZE"]=$GLOBALS["DELETED_SIZE"]+$size;
+							$GLOBALS["DELETED_FILES"]=$GLOBALS["DELETED_FILES"]+1;
+							@unlink($path);
+							continue;
+							
+						}
+					}
+					
+					
+					if(preg_match("#backup-starter-[0-9\-]+\.log#", $file)){
+						$timefile=$unix->file_time_min($path);
+						if($timefile>2880){
+							$size=@filesize($path)/1024;
+							$GLOBALS["DELETED_SIZE"]=$GLOBALS["DELETED_SIZE"]+$size;
+							$GLOBALS["DELETED_FILES"]=$GLOBALS["DELETED_FILES"]+1;
+							@unlink($path);
+							continue;
+							
+						}
+					}
+					
+					
+					if(preg_match("#exec..*?\.[0-9\-]+\.log#", $file)){
+						$timefile=$unix->file_time_min($path);
+						if($timefile>2880){
+							$size=@filesize($path)/1024;
+							$GLOBALS["DELETED_SIZE"]=$GLOBALS["DELETED_SIZE"]+$size;
+							$GLOBALS["DELETED_FILES"]=$GLOBALS["DELETED_FILES"]+1;
+							@unlink($path);
+							continue;
+							
+						}
+					}
+					if(preg_match("#(process1|artica).*?\.(debug|log)#", $file)){
+						$timefile=$unix->file_time_min($path);
+						if($timefile>2880){
+							$size=@filesize($path)/1024;
+							$GLOBALS["DELETED_SIZE"]=$GLOBALS["DELETED_SIZE"]+$size;
+							$GLOBALS["DELETED_FILES"]=$GLOBALS["DELETED_FILES"]+1;
+							@unlink($path);
+							continue;
+								
+						}
+					}					
+					
+					
+					
+					
+				}
+			}
+	
+	}	
+	
+}
+
 function Clean_tmp_path($aspid=false){
 	$unix=new unix();
 	if($aspid){
@@ -175,7 +245,7 @@ function Clean_tmp_path($aspid=false){
 	if($EnableRemoteSyslogStatsAppliance==1){$EnableRemoteSyslogStatsAppliance=1;}
 	if($EnableRemoteSyslogStatsAppliance==1){clean_squid_users_size(true);}
 	
-	
+
 	
 	
 	
@@ -244,6 +314,7 @@ function Clean_tmp_path($aspid=false){
 	sessions_clean();
 	clean_artica_workfiles("/var/log/artica-postfix/Postfix-sql-error");
 	clean_squid_users_size(true);
+	artica_logs();
 }
 
 function Cleanbin(){
@@ -376,6 +447,7 @@ function clean_squid_users_size($nopid=false){
 			if ($file != "." && $file != "..") {
 				$c++;
 				$size=$size+@filesize("$Directory/$file");
+				events_tail_squid("WARNING! DELETING $Directory/$file");
 				@unlink("$Directory/$file");
 				}
 			}
@@ -389,6 +461,20 @@ function clean_squid_users_size($nopid=false){
 		$size=round($size/1000,2);
 		system_admin_events("$c deleted files ({$size}MB cleaned)",__FUNCTION__,__FILE__,__LINE__,"clean-logs");
 	}
+}
+
+function events_tail_squid($text){
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	//if($GLOBALS["VERBOSE"]){echo "$text\n";}
+	$pid=@getmypid();
+	$date=@date("h:i:s");
+	$logFile="/var/log/artica-postfix/auth-tail.debug";
+	$size=@filesize($logFile);
+	if($size>1000000){@unlink($logFile);}
+	$f = @fopen($logFile, 'a');
+	$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)." $date $text");
+	@fwrite($f, "$pid ".basename(__FILE__)." $date $text\n");
+	@fclose($f);
 }
 
 

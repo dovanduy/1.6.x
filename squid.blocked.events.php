@@ -5,12 +5,15 @@
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.status.inc');
 	include_once('ressources/class.artica.graphs.inc');
-	
+	include_once('ressources/class.calendar.inc');
 	$users=new usersMenus();
 	if(!$users->AsSquidAdministrator){die();}	
 	if(isset($_GET["events"])){popup_list();exit;}
 	if(isset($_POST["unlock"])){unlock();exit;}
 	if(isset($_GET["js"])){js();exit;}
+	if(isset($_GET["calendar"])){calendar();exit;}
+	if(isset($_GET["title-zday"])){calendar_title();exit;}
+	if(isset($_GET["build-calendar"])){calendar_build();exit;}
 BlockedSites2();	
 
 
@@ -22,6 +25,12 @@ function js(){
 	$title=$tpl->javascript_parse_text("{blocked_requests}");
 	echo "YahooWin4('705','$page?popup=yes&t=$t&noreduce=yes','$title')";
 
+}
+
+function calendar_title() {
+	$dt=strtotime("{$_GET["title-zday"]} 00:00:00");
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body(date("{l} d {F}",$dt)." {blocked_requests}");
 }
 
 function BlockedSites2(){
@@ -41,12 +50,22 @@ function BlockedSites2(){
 	$title=$tpl->_ENGINE_parse_body(date("{l} d {F}")." {blocked_requests}");
 	$unblock=$tpl->javascript_parse_text("{unblock}");
 	$UnBlockWebSiteExplain=$tpl->javascript_parse_text("{UnBlockWebSiteExplain}");
+	$smtp_notifications=$tpl->javascript_parse_text("{smtp_notifications}");
 	
 	$divstart="<div style='margin:-10px;margin-left:-15px;margin-right:-15px'>";
 	$divend="</div>";
 	if(isset($_GET["noreduce"])){$divstart=null;$divend=null;}
-	
+	$days=$tpl->javascript_parse_text("{days}");
 	$t=time();
+	
+	$buttons="
+	buttons : [
+	{name: '<b>$days</b>', bclass: 'Calendar', onpress : ChooseDays$t},
+	{name: '<b>$smtp_notifications</b>', bclass: 'eMail', onpress : NotifsParams$t},
+	
+	],";	
+	
+	
 	$html="
 	$divstart
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
@@ -60,13 +79,13 @@ $('#flexRT$t').flexigrid({
 	colModel : [
 		{display: '$time', name : 'zDate', width :94, sortable : true, align: 'left'},
 		{display: '$member', name : 'client', width : 92, sortable : true, align: 'left'},
-		{display: '$webservers', name : 'website', width : 208, sortable : true, align: 'left'},
+		{display: '$webservers', name : 'website', width : 200, sortable : true, align: 'left'},
 		{display: '$category', name : 'category', width : 89, sortable : true, align: 'left'},
 		{display: '$rule', name : 'rulename', width : 89, sortable : true, align: 'left'},
 		{display: '$unblock', name : 'unblock', width : 31, sortable : true, align: 'center'},
 		
 		],
-		
+		$buttons
 	searchitems : [
 		{display: '$member', name : 'client'},
 		{display: '$webservers', name : 'website'},
@@ -78,7 +97,7 @@ $('#flexRT$t').flexigrid({
 	sortorder: 'desc',
 	usepager: true,
 	useRp: true,
-	title: '<span style=\"font-size:14px\">$title</span>',
+	title: '<span style=\"font-size:14px\" id=\"title-$t\">$title</span>',
 	rp: 50,
 	showTableToggleBtn: false,
 	width: 689,
@@ -104,6 +123,15 @@ function UnBlockWebSite$t(domain){
 
 }
 
+function ChooseDays$t(){
+	YahooWin5('500','$page?calendar=yes&t=$t','Calendar...');
+
+}
+
+function NotifsParams$t(){
+	Loadjs('ufdbguard.smtp.notif.php?js=yes');
+}
+
 </script>
 	
 	
@@ -117,9 +145,13 @@ function popup_list(){
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
 	$t=$_GET["t"];
-	
+	$zday=date('Ymd');
+	if(isset($_GET["zday"])){
+		$dt=strtotime("{$_GET["zday"]} 00:00:00");
+		$zday=date('Ymd',$dt);
+	}
 	$search='%';
-	$table=date('Ymd')."_blocked";	
+	$table=$zday."_blocked";	
 	$page=1;
 	$FORCE_FILTER="";
 	if(!$q->TABLE_EXISTS("$table")){json_error_show("$table No such table");}
@@ -168,7 +200,7 @@ function popup_list(){
 	if(preg_match("#plus-(.+?)-artica#",$ligne["category"],$re)){$ligne["category"]=$re[1];}
 	$ligne["zDate"]=$tpl->_ENGINE_parse_body("{$ligne["zDate"]}");
 	$id=md5(serialize($ligne));
-	
+	$blocktype=null;
 	
 	$member=$ligne["client"];
 	if($ligne["hostname"]<>null){$member=$ligne["hostname"];}
@@ -184,7 +216,9 @@ function popup_list(){
 		$unblock=imgsimple("20-check.png",null,null);
 		}
 	}
-	
+	if($ligne["blocktype"]<>null){
+	$blocktype="<div><i style='font-size:10px'>{$ligne["blocktype"]}</i></div>";
+	}
 	
 	$data['rows'][] = array(
 		'id' => $id,
@@ -192,7 +226,7 @@ function popup_list(){
 			"<span style='font-size:12px;'>{$ligne["zDate"]}</span>",
 			"<span style='font-size:12px;'>$member</a></span>",
 			"<span style='font-size:12px;'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$ligne["category"]}&website={$ligne["website"]}')\" 
-			style='font-weight:bold;text-decoration:underline;font-size:13px'>{$ligne["website"]}</a></span>",
+			style='font-weight:bold;text-decoration:underline;font-size:13px'>{$ligne["website"]}</a></span>$blocktype",
 			"<span style='font-size:12px;'>{$ligne["category"]}</a></span>",
 			"<span style='font-size:12px;'>{$ligne["rulename"]}</a></span>",
 			$unblock
@@ -217,5 +251,90 @@ function unlock(){
 	$sock->getFrameWork("squid.php?build-whitelist=yes");
 }
 
+function calendar(){
+	$t=time();
+	$tt=$_GET["t"];
+	$page=CurrentPageName();
+	$html="<div id='calendar$t'></div>
+	<script>
+		
+				
+		function NavCalendar$t(year,month){
+			LoadAjax('calendar$t','$page?build-calendar=yes&year='+year+'&month='+month+'&t=$t');
+		
+		}
+		
+		function NavCalendarJ$t(year,month,day){
+			var zday=year+'-'+month+'-'+day;
+			LoadAjaxTiny('title-$tt','$page?title-zday='+zday);
+			
+			$('#flexRT$tt').flexOptions({url: '$page?events=yes&t=$tt&zday='+zday}).flexReload(); 
+		}
+		
+		NavCalendar$t(".date("Y").",".date("m").")
+	</script>";
+	
+	echo $html;
+	
+	
+}
+
+function calendar_build(){
+	$t=$_GET["t"];
+	$obj_cal = new classe_calendrier("calendar-$t");
+	$obj_cal->USLink=true;
+	$obj_cal->afficheMois();
+	$obj_cal->afficheSemaines(false);
+	$obj_cal->afficheJours(true);
+	$obj_cal->afficheNavigMois(true);
+	$obj_cal->activeJoursPasses();
+	$obj_cal->activeJourPresent();
+	
+	
+	$obj_cal->activeJoursEvenements();	
+	
+	$obj_cal->setFormatLienMois("javascript:Blurz();\" OnClick=\"javascript:NavCalendar$t('%s','%s');");
+	$obj_cal->setFormatLienJours("javascript:Blurz();\" OnClick=\"javascript:NavCalendarJ$t('%s','%s','%s');");
+
+	
+	
+	
+	
+	$q=new mysql_squid_builder();
+	if(isset($_SESSION["LIST_TABLES_BLOCKED"])){$hash=$_SESSION["LIST_TABLES_BLOCKED"];}else{
+	$hash=$q->LIST_TABLES_BLOCKED();
+	$_SESSION["LIST_TABLES_BLOCKED"]=$q->LIST_TABLES_BLOCKED();
+	}
+	
+	if(!isset($_SESSION["LIST_TABLES_BLOCKED_EV"])){
+	while (list ($tablename,$none ) = each ($hash) ){
+		$ct=$q->COUNT_ROWS($tablename);
+		if($ct==0){continue;}
+		if(!preg_match("#^([0-9]+)_blocked$#", $tablename,$re)){continue;}
+		
+		$intval=$re[1];
+		$Cyear=substr($intval, 0,4);
+		$CMonth=substr($intval,4,2);
+		$CDay=substr($intval,6,2);
+		$CDay=str_replace("_", "", $CDay);
+		$time=strtotime("$Cyear-$CMonth-$CDay 00:00:00");		
+		$year=date("Y",$time);
+		$month=date("m",$time);
+		$day=date("d",$time);
+		$_SESSION["LIST_TABLES_BLOCKED_EV"]["$year-$month-$day"]="$ct Hits";
+		
+		$obj_cal->ajouteEvenement("$year-$month-$day","$ct Hits");
+	}
+	}else{
+		$hash=$_SESSION["LIST_TABLES_BLOCKED_EV"];
+		while (list ($d,$h ) = each ($hash) ){
+			$obj_cal->ajouteEvenement($d,$h);
+		}
+	}
+	
+	$calendar=$obj_cal->makeCalendrier($_GET["year"],$_GET["month"]);
+	echo $calendar;
+	
+}
 
 

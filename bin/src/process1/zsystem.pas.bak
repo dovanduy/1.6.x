@@ -1164,17 +1164,30 @@ var
    cpunum:integer;
    ziulogs:Tlogs;
    fileconf:string;
+   catbin:string;
+   grepbin:string;
+   wcbin:string;
+   cutbin:string;
 begin
     result:=0;
     cpunum:=0;
+    catbin:=LOCATE_GENERIC_BIN('cat');
+    grepbin:=LOCATE_GENERIC_BIN('grep');
+    wcbin:=LOCATE_GENERIC_BIN('wc');
+    cutbin:LOCATE_CUT();
     fileconf:='/etc/artica-postfix/settings/Daemons/SystemCpuNumber';
     if FileExists(fileconf) then begin
        if FILE_TIME_BETWEEN_MIN(fileconf)>500 then fpsystem('/bin/rm -f '+ fileconf);
     end;
+    if not TryStrToInt(GET_INFO('SystemCpuNumber'),cpunum) then cpunum:=0;
 
-    if not TryStrToInt(GET_INFO('SystemCpuNumber'),cpunum) then begin
-         fpsystem('/bin/cat /proc/cpuinfo |/bin/grep "model name" | '+LOCATE_CUT()+' -d: -f2|/usr/bin/wc -l >'+fileconf+' 2>&1');
+
+    if cpunum=0 then begin
+         fpsystem(catbin+' /proc/cpuinfo |'+grepbin+' "model name" | '+cutbin+' -d: -f2|'+wcbin+' -l >'+fileconf+' 2>&1');
          if not TryStrToInt(GET_INFO('SystemCpuNumber'),cpunum) then begin
+              sleep(2);
+              fpsystem(catbin+' /proc/cpuinfo |'+grepbin+' "model name" | '+cutbin+' -d: -f2|'+wcbin+' -l >'+fileconf+' 2>&1');
+              TryStrToInt(GET_INFO('SystemCpuNumber'),cpunum);
               ziulogs:=Tlogs.Create;
               ziulogs.Syslogs('Tsystem.CPU_NUMBER():: unable to determine cpu number on this system');
               ziulogs.free;
@@ -1588,7 +1601,6 @@ begin
 
     for i:=0 to l.Count-1 do begin
        if FIleExists(l.Strings[i]+'/'+BasePath)  then begin
-
           result:=l.Strings[i]+'/'+BasePath;
           if DEBUG then writeln('LOCATE_PYTHON_PACKAGE:: '+result+' -> TRUE');
        end else begin

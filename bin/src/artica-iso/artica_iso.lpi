@@ -34,10 +34,10 @@
         <Filename Value="artica_iso.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="artica_iso"/>
-        <CursorPos X="110" Y="204"/>
-        <TopLine Value="187"/>
+        <CursorPos X="32" Y="66"/>
+        <TopLine Value="30"/>
         <EditorIndex Value="0"/>
-        <UsageCount Value="50"/>
+        <UsageCount Value="141"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
@@ -46,7 +46,7 @@
         <CursorPos X="119" Y="9"/>
         <TopLine Value="1"/>
         <EditorIndex Value="2"/>
-        <UsageCount Value="21"/>
+        <UsageCount Value="66"/>
         <Loaded Value="True"/>
       </Unit1>
       <Unit2>
@@ -55,7 +55,7 @@
         <CursorPos X="104" Y="159"/>
         <TopLine Value="143"/>
         <EditorIndex Value="3"/>
-        <UsageCount Value="21"/>
+        <UsageCount Value="66"/>
         <Loaded Value="True"/>
       </Unit2>
       <Unit3>
@@ -63,7 +63,7 @@
         <UnitName Value="postfix_class"/>
         <CursorPos X="115" Y="9"/>
         <TopLine Value="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="1"/>
       </Unit3>
       <Unit4>
         <Filename Value="../artica-install/global_conf.pas"/>
@@ -71,11 +71,11 @@
         <CursorPos X="38" Y="11859"/>
         <TopLine Value="11843"/>
         <EditorIndex Value="1"/>
-        <UsageCount Value="19"/>
+        <UsageCount Value="64"/>
         <Loaded Value="True"/>
       </Unit4>
     </Units>
-    <JumpHistory Count="10" HistoryIndex="9">
+    <JumpHistory Count="11" HistoryIndex="10">
       <Position1>
         <Filename Value="artica_iso.pas"/>
         <Caret Line="9" Column="15" TopLine="1"/>
@@ -116,6 +116,10 @@
         <Filename Value="artica_iso.pas"/>
         <Caret Line="14" Column="52" TopLine="1"/>
       </Position10>
+      <Position11>
+        <Filename Value="artica_iso.pas"/>
+        <Caret Line="207" Column="96" TopLine="164"/>
+      </Position11>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>

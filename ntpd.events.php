@@ -63,12 +63,12 @@ function demar1(){
    }
 }
 </script>	
-	
+	<div style='text-align:right'>". imgtootltip("refresh-32.png","{refresh}","LoadAjax2('postlogs','$page?post=1');")."</div>
 	<div id=wait style='margin:5px;font-weight:bold;font-size:12px;text-align:right'></div>
 	<div id=postlogs></div>
 	
 	<script>LoadAjax2('postlogs','$page?post=1');</script>
-	<script>demarre();</script>
+	
 	";
 	
  echo iframe($html,0);

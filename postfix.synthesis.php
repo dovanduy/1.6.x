@@ -203,7 +203,7 @@ function security_postfix(){
 	$js_regex="Loadjs('domains.postfix.multi.regex.php?ou=$ou&hostname=$hostname');";
 	
 	$EnablePostfixAutoBlock=$sock->GET_INFO("EnablePostfixAutoBlock");
-	if(!is_numeric($EnablePostfixAutoBlock)){$EnablePostfixAutoBlock=0;}
+	if(!is_numeric($EnablePostfixAutoBlock)){$EnablePostfixAutoBlock=1;}
 	$EnablePostfixAutoBlock_text="{disabled}";
 	if($EnablePostfixAutoBlock==1){$EnablePostfixAutoBlock_text="{enabled}";}	
 	$sql="SELECT COUNT(*) AS tcount FROM iptables WHERE local_port=25 AND flux='INPUT' AND disable=0";

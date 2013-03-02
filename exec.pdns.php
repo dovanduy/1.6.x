@@ -1032,6 +1032,7 @@ function forward_zones(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$hostname=$ligne["hostname"].":".$ligne["port"];
 		$zone=$ligne["zone"];
+		if($zone=="*"){$zone=".";}
 		$recursive=$ligne["recursive"];
 		if($recursive==1){
 			$ZONES_RECUSRIVE[$zone][$hostname]=true;

@@ -233,39 +233,45 @@ class ccurl{
 	
 	
 	public function ParseError($error){
+		
+			
+		
 		if($error>0){
 			if($GLOBALS["VERBOSE"]){echo "ccurl/ParseError($error)\n";}
+			$trace=@debug_backtrace();if(isset($trace[1])){
+			$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+			}
 		}
 			if($error==6){
-				writelogs("error 6 Couldn't resolve host. The given remote host was not resolved",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				writelogs("error 6 Couldn't resolve host. The given remote host was not resolved $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$this->error="{CURLE_COULDNT_RESOLVE_HOST}";
 				return false;
 			}
 			
 			if($error==7){
-				writelogs("error 7 Failed to connect() to host or proxy",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				writelogs("error 7 Failed to connect() to host or proxy $trace",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$this->error="{CURLE_COULDNT_CONNECT}";
 				return false;
 			}
 			if($error==26){
-				writelogs("Curl:: error 26 There was a problem reading a local file or an error returned by the read callback.",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				writelogs("Curl:: error 26 There was a problem reading a local file or an error returned by the read callback. $trace",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$this->error="{CURLE_READ_ERROR}";
 				return false;
 			}
 			if($error==56){
-				writelogs("Curl:: error 56 Failure with receiving network data. ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				writelogs("Curl:: error 56 Failure with receiving network data. $trace",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$this->error="{CURLE_RECV_ERROR}";
 				return false;
 			}
 			if($error==52){
-				writelogs("Curl:: error 52 Nothing was returned from the server. ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				writelogs("Curl:: error 52 Nothing was returned from the server. $trace",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$this->error="{CURLE_52_ERROR}";
 				return false;
 			}
 			
 
 			if($error==28){
-				writelogs("Curl:: error 28 Operation timeout. The specified time-out period was reached according to the conditions. ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				writelogs("Curl:: error 28 Operation timeout. The specified time-out period was reached according to the conditions. $trace",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$this->error="{CURLE_OPERATION_TIMEDOUT}";
 				return false;
 			}

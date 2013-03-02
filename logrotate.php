@@ -258,7 +258,7 @@ function settings_save(){
 
 function storage_delete(){
 	$q=new mysql_syslog();
-	
+	$sock=new sockets();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SavedInDisk,FileStorePath FROM store WHERE filename = '{$_POST["filename"]}'"));
 	if($ligne["SavedInDisk"]==1){
 		$array["FileDest"]="$mydir/ressources/logs/$newtFile";
@@ -281,16 +281,21 @@ function settings_popup(){
 	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
 	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
+	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
+	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
 	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
 	
 	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
 	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
+	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
 	if(!is_numeric($LogRotatePath)){$LogRotatePath="/home/logrotate";}
+	if(!is_numeric($BackupMaxDaysDir)){$BackupMaxDaysDir="/home/logrotate_backup";}
 	
 	$html="<table style='width:100%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{compress_files}:</td>
 		<td>". Field_checkbox("LogRotateCompress", 1,$LogRotateCompress)."</td>
+		<td>&nbsp;</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{insert_in_mysql}:</td>
@@ -299,13 +304,26 @@ function settings_popup(){
 	<tr>
 		<td class=legend style='font-size:14px'>{storage_files_path}:</td>
 		<td>". Field_text("LogRotatePath",$LogRotatePath,"font-size:14px;width:220px")."</td>
+		<td>". button("{browse}..","Loadjs('SambaBrowse.php?no-shares=yes&field=LogRotatePath')",12)."</td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:14px'>{system_logs_path}:</td>
 		<td>". Field_text("SystemLogsPath",$SystemLogsPath,"font-size:14px;width:220px")."</td>
-	</tr>	
+		<td>". button("{browse}..","Loadjs('SambaBrowse.php?no-shares=yes&field=SystemLogsPath')",12)."</td>
+	</tr>
 	<tr>
-		<td colspan=2 align=right><hr>". button("{apply}", "SaveRotateOptions()",16)."</td>
+		<td class=legend style='font-size:14px'>{max_day_in_database}:</td>
+		<td style='font-size:14px;'>". Field_text("BackupMaxDays",$BackupMaxDays,"font-size:14px;width:90px")."&nbsp;{days}</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{backup_folder}:</td>
+		<td style='font-size:14px;'>". Field_text("BackupMaxDaysDir",$BackupMaxDaysDir,"font-size:14px;width:220px")."</td>
+		<td>". button("{browse}..","Loadjs('SambaBrowse.php?no-shares=yes&field=BackupMaxDaysDir')",12)."</td>
+	</tr>				
+				
+	<tr>
+		<td colspan=3 align=right><hr>". button("{apply}", "SaveRotateOptions()",16)."</td>
 	</tr>
 	</table>
 	
@@ -321,8 +339,12 @@ function settings_popup(){
 
 	function LogRotateMysqlCheck(){
 		document.getElementById('LogRotatePath').disabled=false;
+		document.getElementById('BackupMaxDays').disabled=true;
+		document.getElementById('BackupMaxDaysDir').disabled=true;
 		if(document.getElementById('LogRotateMysql').checked){
 			document.getElementById('LogRotatePath').disabled=true;
+			document.getElementById('BackupMaxDays').disabled=false;
+			document.getElementById('BackupMaxDaysDir').disabled=false;			
 		}
 			
 	}
@@ -336,6 +358,8 @@ function settings_popup(){
 	  	else{XHR.appendData('LogRotateMysql',0);}	  	
 	  	XHR.appendData('LogRotatePath',document.getElementById('LogRotatePath').value);
 	  	XHR.appendData('SystemLogsPath',document.getElementById('SystemLogsPath').value);
+	  	XHR.appendData('BackupMaxDays',document.getElementById('BackupMaxDays').value);
+	  	XHR.appendData('BackupMaxDaysDir',document.getElementById('BackupMaxDaysDir').value);
 	  	XHR.sendAndLoad('$page', 'POST',x_SaveSettsLogRotate);	
 	}	
 	LogRotateMysqlCheck();";
@@ -344,7 +368,12 @@ function settings_popup(){
 	
 	
 }
-
+function FormatNumberX($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){
+	$tmp1 = round((float) $number, $decimals);
+	while (($tmp2 = preg_replace('/(\d+)(\d\d\d)/', '\1 \2', $tmp1)) != $tmp1)
+		$tmp1 = $tmp2;
+	return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));
+}
 
 function storage(){
 	$page=CurrentPageName();
@@ -360,11 +389,17 @@ function storage(){
 	$explain=$tpl->_ENGINE_parse_body("{explain_squid_tasks}");
 	$run=$tpl->_ENGINE_parse_body("{run}");
 	$task=$tpl->_ENGINE_parse_body("{task}");
-	$size=$tpl->_ENGINE_parse_body("{size}");
+	$sizeT=$tpl->_ENGINE_parse_body("{size}");
 	$filename=$tpl->_ENGINE_parse_body("{filename}");
 	$empty=$tpl->_ENGINE_parse_body("{empty}");
 	$askdelete=$tpl->javascript_parse_text("{empty_store} ?");
+	$zdate=$tpl->javascript_parse_text("{date}");
+	$action=$tpl->javascript_parse_text("{action}");
 	
+	$q=new mysql_syslog();
+	$files=$q->COUNT_ROWS("store");
+	$size=$q->TABLE_SIZE("store");
+	$title=$tpl->_ENGINE_parse_body("{files}:".FormatNumberX($files,0)." (".FormatBytes($size/1024).")");
 	$t=time();
 	$html="
 	<div style='margin-left:-15px'>
@@ -379,8 +414,9 @@ $('#$t').flexigrid({
 	colModel : [
 		{display: '$zdate', name : 'filetime', width : 158, sortable : true, align: 'left'},
 		{display: '$filename', name : 'filename', width : 336, sortable : true, align: 'left'},
-		{display: '$size', name : 'filesize', width : 95, sortable : true, align: 'left'},
+		{display: '$sizeT', name : 'filesize', width : 95, sortable : true, align: 'left'},
 		{display: '$task', name : 'taskid', width : 40, sortable : true, align: 'center'},
+		{display: '$action', name : 'action', width : 40, sortable : false, align: 'center'},
 		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'center'}
 	],
 buttons : [
@@ -395,7 +431,7 @@ buttons : [
 	sortname: 'filetime',
 	sortorder: 'desc',
 	usepager: true,
-	title: '',
+	title: '<strong>$title</strong>',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
@@ -535,7 +571,7 @@ buttons : [
 	}
 	
 	function LogRotateSettings(){
-		YahooWin5('550','$page?settings-popup=yes','$settings');
+		YahooWin5('675','$page?settings-popup=yes','$settings');
 	}
 	
 	function EmptyRules(){
@@ -645,7 +681,7 @@ function search(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,$database);
@@ -725,7 +761,7 @@ function storage_view_search(){
 	exec($cmdline,$datas);
 	
 	$data = array();
-	$data['page'] = $page;
+	$data['page'] = 1;
 	$data['total'] = count($datas);
 	$data['rows'] = array();	
 	$c=0;
@@ -763,20 +799,18 @@ function search_store(){
 	$sock=new sockets();
 	$t=$_GET["t"];
 	if(!$q->TABLE_EXISTS($table)){$q->CheckTables();}
+	$database="syslogstore";
 	
 	$total=0;
 	if($q->COUNT_ROWS($table,$database)==0){json_error_show("No data...");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
+	
+	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
 		$total = $ligne["TCOUNT"];
@@ -793,15 +827,15 @@ function search_store(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT `filename`,`taskid`,`filesize`,`filetime` FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
 	$results=$q->QUERY_SQL($sql);
 	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$data = array();$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();	
 	if(!$q->ok){
-		writelogs($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));echo json_encode($data);return;}	
+		json_error_show($q->mysql_error,1);
+	}	
 	
 
 	
@@ -824,13 +858,20 @@ function search_store(){
 		$ligne["filesize"]=FormatBytes($ligne["filesize"]/1024);
 		if($ligne['taskid']==0){$jstask=null;}
 		
+		$action=null;
+		if(preg_match("#auth\.log-.*?#", $ligne["filename"])){
+			$action=imgsimple("service-restart-32.png",null,"Loadjs('squid.restoreSource.php?filename={$ligne["filename"]}')");
+			
+		}
+		
+		
 		//rowSquidTask
 	$data['rows'][] = array(
 		'id' => $md5,
 		'cell' => array("$span{$ligne['filetime']}</a></span>",
 		"$span$view{$ligne["filename"]}</a></span>",
 		"$span{$ligne["filesize"]}</a></span>",
-		"$span$jstask{$ligne["taskid"]}</a></span>",
+		"$span$jstask{$ligne["taskid"]}</a></span>",$action,
 		$delete )
 		);
 	}
@@ -985,6 +1026,9 @@ function storage_view_extract(){
 	@unlink("$mydir/ressources/logs/$newtFile");
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SavedInDisk,FileStorePath FROM store WHERE filename = '$newtFile'"));
+	
+	writelogs("SavedInDisk = {$ligne["SavedInDisk"]}",__FUNCTION__,__FILE__,__LINE__);
+	
 	if($ligne["SavedInDisk"]==1){
 		$array["FROM"]=$ligne["FileStorePath"];
 		$array["TO"]="$mydir/ressources/logs/$newtFile";
@@ -994,12 +1038,42 @@ function storage_view_extract(){
 	
 	
 	
-	$sql="SELECT filedata INTO DUMPFILE '$mydir/ressources/logs/$newtFile' 
-	FROM store WHERE filename = '$newtFile'";
+	$sql="SELECT filedata INTO DUMPFILE '$mydir/ressources/logs/$newtFile' FROM store WHERE filename = '$newtFile'";
+	writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
 	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error;return;}
-	shell_exec("bzip2 -d \"$mydir/ressources/logs/$newtFile\" -c >\"$mydir/ressources/logs/$newtFile.log\"");
+	
+	
+	if(!$q->ok){
+		writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+		echo $q->mysql_error;return;
+	}
+	
+	$ext=file_extension($newtFile);
+	writelogs("$mydir/ressources/logs/$newtFile -> ".@filesize("$mydir/ressources/logs/$newtFile")." bytes...",__FUNCTION__,__FILE__,__LINE__);
+	$cmdline="cp -f $mydir/ressources/logs/$newtFile $mydir/ressources/logs/$newtFile.log";
+	
+	
+	
+	if($ext=="bz2"){
+		$cmdline="bzip2 -d \"$mydir/ressources/logs/$newtFile\" -c >\"$mydir/ressources/logs/$newtFile.log\" 2>&1";
+		exec($cmdline,$results);
+	}
+	if($ext=="gz"){
+		$cmdline="gunzip -d \"$mydir/ressources/logs/$newtFile\" -c >\"$mydir/ressources/logs/$newtFile.log\"";
+	}
+	if($cmdline<>null){
+		writelogs("$cmdline",__FUNCTION__,__FILE__,__LINE__);
+		exec($cmdline,$results);
+		while (list ($key, $line) = each ($results) ){
+			writelogs("$line",__FUNCTION__,__FILE__,__LINE__);		
+		}
+	}
+	
 	@unlink("$mydir/ressources/logs/$newtFile");
+	writelogs(@filesize("$mydir/ressources/logs/$newtFile.log")." bytes...",__FUNCTION__,__FILE__,__LINE__);
 	
 }
 
+function file_extension($filename){
+	return pathinfo($filename, PATHINFO_EXTENSION);
+}

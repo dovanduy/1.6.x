@@ -298,7 +298,7 @@ function search(){
 		$description=str_replace("<br><br>","<br>",$description);
 		$ttim=strtotime($ligne['zDate']);
 		$dateD=date('Y-m-d',$ttim);
-		
+		$description=$tpl->_ENGINE_parse_body("$description");
 		$function="<div style='margin-top:-4px;margin-left:-5px'><i style='font-size:11px'>{$ligne["filename"]}:{$ligne["function"]}() $line {$ligne["line"]}</i></div>";
 		if(preg_match("#(.+?)\s+thumbnail#", $description,$re)){
 			$description=str_replace($re[1], "<a href=\"javascript:blur();\" 

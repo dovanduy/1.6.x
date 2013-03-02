@@ -54,6 +54,8 @@ class vhosts{
 	"SPLASHSQUID"=>"webfilter-128.png",
 	"ARTICA_PRXYLOGS"=>"log-monitor-128",
 	"ERRSQUID"=>"128-banned.png",
+	"WPAD"=>"script-128.png",
+	"UPDATEUTILITY"=>"kaspersky-logo-128.png",
 			
 			
 //	
@@ -102,6 +104,9 @@ class vhosts{
 	"OWNCLOUD"=>"owncloud-64.png",
 	"SPLASHSQUID"=>"webfilter-64.png",
 	"ERRSQUID"=>"64-banned.png",
+	"WPAD"=>"script-64.png",
+	"UPDATEUTILITY"=>"kaspersky-update-64.png",
+			
 	);
 
 	
@@ -157,7 +162,9 @@ class vhosts{
 	"OWNCLOUD"=>array("TITLE"=>"APP_OWNCLOUD","TEXT"=>"APP_OWNCLOUD_TEXT"),
 	"SPLASHSQUID"=>array("TITLE"=>"APP_SPLASHSQUID","TEXT"=>"APP_SPLASHSQUID_TEXT"),
 	"ARTICA_PRXYLOGS"=>array("TITLE"=>"APP_ARTICA_PRXYLOGS","TEXT"=>"APP_ARTICA_PRXYLOGS_TEXT"),
-	"ERRSQUID"=>array("TITLE"=>"APP_ERRSQUID","TEXT"=>"APP_ERRSQUID_TEXT")
+	"ERRSQUID"=>array("TITLE"=>"APP_ERRSQUID","TEXT"=>"APP_ERRSQUID_TEXT"),
+	"WPAD"=>array("TITLE"=>"APP_WPAD","TEXT"=>"APP_WPAD_TEXT"),
+	"UPDATEUTILITY"=>array("TITLE"=>"UpdateUtility","TEXT"=>"UpdateUtilityWWText"),
 			
 			
 	
@@ -200,7 +207,7 @@ function listOfAvailableServices($freeweb=false){
 	}else{
 		if($user->ZARAFA_INSTALLED){
 			$array["ZARAFA"]="{APP_ZARAFA}";
-			$array["ZARAFA_MOBILE"]="{APP_ZARAFA_MOBILE_ACCESS}";
+			if($user->ZARAFA_WEBACCESS_MOBILE_INSTALLED){$array["ZARAFA_MOBILE"]="{APP_ZARAFA_MOBILE_ACCESS}";}
 			if($user->Z_PUSH_INSTALLED){$array["Z-PUSH"]="{APP_Z_PUSH}";}
 			if($user->ZARAFA_WEBAPP_INSTALLED){$array["WEBAPP"]="{APP_ZARAFA_WEBAPP}";}
 		}
@@ -226,6 +233,7 @@ function listOfAvailableServices($freeweb=false){
 		if($EnableWebProxyStatsAppliance==1){$array["ANDROWEB"]="WebStats Tablet";}
 		if($user->SQUID_INSTALLED){
 			$array["ARTICA_PRXYLOGS"]="{APP_ARTICA_PRXYLOGS}";
+			$array["WPAD"]="{APP_WPAD}";
 			$array["ANDROWEB"]="WebStats Tablet";
 			$SquidEnableISPMode=$sock->GET_INFO("SquidEnableISPMode");
 			$EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
@@ -246,6 +254,7 @@ function listOfAvailableServices($freeweb=false){
 		if($user->OWNCLOUD_INSTALLED){$array["OWNCLOUD"]="{APP_OWNCLOUD}";}
 		$array["SPLASHSQUID"]="{APP_SPLASHSQUID}";
 		$array["ERRSQUID"]="{APP_ERRSQUID}";
+		if($user->UPDATE_UTILITYV2_INSTALLED){$array["UPDATEUTILITY"]="UpdateUtility";}
 		
 		
 		

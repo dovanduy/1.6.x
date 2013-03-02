@@ -164,8 +164,7 @@ function AddCachedSitelist_save(){
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo "$sql\n$q->mysql_error";return;}
 	
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");
+
 	
 }
 
@@ -307,12 +306,23 @@ $EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsApplianc
 if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 if($_SESSION["CORP"]){$CORP=1;}
 $onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
+$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}
+$apply_params=$tpl->_ENGINE_parse_body("{apply}");
+$options=$tpl->javascript_parse_text("{options}");
+$restart=$tpl->javascript_parse_text("{restart}");
 
 
 $buttons="
 {name: '$add_new_cached_web_site', bclass: 'add', onpress : AddNewCachedWebsite},
 		{name: '$add_default_settings', bclass: 'add', onpress : add_default_settings},
 		{name: '$delete_all', bclass: 'Delz', onpress : delete_all},
+	{separator: true},
+	{name: '$options', bclass: 'Settings', onpress : CacheOptions$t},		
+	{separator: true},
+	{name: '$apply_params', bclass: 'Reload', onpress : SquidBuildNow$t},
+	{name: '$restart', bclass: 'Reload', onpress : SquidRestartNow$t},		
 ";
 
 if($EnableRemoteStatisticsAppliance==1){$buttons=null;}
@@ -361,7 +371,13 @@ buttons : [
 	});   
 });
 
-
+	function SquidBuildNow$t(){
+		Loadjs('squid.compile.php');
+	}
+	
+	function SquidRestartNow$t(){
+		Loadjs('squid.restart.php&onlySquid=yes&ApplyConfToo=yes');
+	}
 
 function AddNewCachedWebsite(){
 	var CORP=$CORP;
@@ -369,6 +385,10 @@ function AddNewCachedWebsite(){
 	Loadjs('$page?AddCachedSitelist-js=yes&t=$t')
 }
 
+
+function CacheOptions$t(){
+	Loadjs('squid.cache_replacement_policy.php');
+}
 
 
 		var x_add_default_settings= function (obj) {	
@@ -407,6 +427,11 @@ function WEBSITES_SEARCH(){
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
+	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}	
 	$search='%';
 	$table="squid_speed";
 	$page=1;
@@ -467,19 +492,22 @@ function WEBSITES_SEARCH(){
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=md5($ligne["domain"].$ligne["ID"]);
+		$color="black";
+		if($DisableAnyCache==1){$color="#9C9C9C";}
 		$delete=imgtootltip("delete-24.png","{delete}","Loadjs('$MyPage?AddCachedSitelist-delete={$ligne["ID"]}&t={$_GET["t"]}&IDROW={$ID}')");
 		$select="Loadjs('$MyPage?AddCachedSitelist-js=yes&id={$ligne["ID"]}&t={$_GET["t"]}');";
 		
 		$ligne["refresh_pattern_min"]=$ligne["refresh_pattern_min"];
 		$ligne["refresh_pattern_min"]=distanceOfTimeInWords(time(),mktime()+($ligne["refresh_pattern_min"]*60),true);
-		$ligne["refresh_pattern_min"]=str_replace("about","",$ligne["refresh_pattern_min"]);
+		$ligne["refresh_pattern_min"]=$tpl->javascript_parse_text($ligne["refresh_pattern_min"]);
 		
 		$ligne["refresh_pattern_max"]=$ligne["refresh_pattern_max"];
 		$ligne["refresh_pattern_max"]=distanceOfTimeInWords(time(),mktime()+($ligne["refresh_pattern_max"]*60),true);
-		$ligne["refresh_pattern_max"]=str_replace("about","",$ligne["refresh_pattern_max"]);		
+		$ligne["refresh_pattern_max"]=$tpl->javascript_parse_text($ligne["refresh_pattern_max"]);
+		
 		$link="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:$select\" 
-		style='font-size:12px;text-decoration:underline'>";
+		style='font-size:12px;text-decoration:underline;color:$color'>";
 		if(trim($ligne["domain"])=='.'){$ligne["domain"]=$tpl->_ENGINE_parse_body("{all}");}
 		
 		$set=imgsimple("24-parameters.png",null,$select);
@@ -490,10 +518,10 @@ function WEBSITES_SEARCH(){
 		'id' => $ID,
 		'cell' => array(
 		$set,
-		"<span style='font-size:14px'>$link{$ligne["domain"]}</a></span>"
-		,"<span style='font-size:12px'>{$ligne["refresh_pattern_min"]}</a></span>",
-		"<span style='font-size:12px'>{$ligne["refresh_pattern_perc"]}%</a></span>",
-		"<span style='font-size:12px'>{$ligne["refresh_pattern_max"]}</a></span>",$delete )
+		"<span style='font-size:14px;color:$color'>$link{$ligne["domain"]}</a></span>"
+		,"<span style='font-size:12px;color:$color'>{$ligne["refresh_pattern_min"]}</a></span>",
+		"<span style='font-size:12px;color:$color'>{$ligne["refresh_pattern_perc"]}%</a></span>",
+		"<span style='font-size:12px;color:$color'>{$ligne["refresh_pattern_max"]}</a></span>",$delete )
 		);
 	}
 	
@@ -750,10 +778,7 @@ $q=new mysql();
 while (list ($num, $val) = each ($t)){
 	$q->QUERY_SQL($val,"artica_backup");
 }
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");
 
-	
 }
 
 ?>

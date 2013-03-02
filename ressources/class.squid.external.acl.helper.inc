@@ -134,44 +134,58 @@ class externhelper{
 			if(count($GLOBALS["resvip"])>5){unset($GLOBALS["resvip"]);}
 			if(isset($GLOBALS["resvip"][$time][$ip])){return $GLOBALS["resvip"][$time][$ip];}
 			$name=@gethostbyaddr($ip);
-			$GLOBALS["resvip"][$time]=$name;
+			$GLOBALS["resvip"][$time][$ip]=$name;
 			return $name;
 			}
 
 	private function GetMacFromIP($ipaddr){
-			$ipaddr=trim($ipaddr);
-			$ttl=date('YmdH');
-			if(count($GLOBALS["CACHEARP"])>3){unset($GLOBALS["CACHEARP"]);}
-			if(isset($GLOBALS["CACHEARP"][$ttl][$ipaddr])){return $GLOBALS["CACHEARP"][$ttl][$ipaddr];}
-			if(!isset($GLOBALS["SBIN_ARP"])){$GLOBALS["SBIN_ARP"]=$this->find_program("arp");}
-			if(!isset($GLOBALS["SBIN_ARPING"])){$GLOBALS["SBIN_ARPING"]=$this->find_program("arping");}
+		
+		if(!isset($GLOBALS["EnableMacAddressFilter"])){
+			$sock=new sockets();
+			$GLOBALS["EnableMacAddressFilter"]=$sock->GET_INFO("EnableMacAddressFilter");
+			if(!is_numeric($GLOBALS["EnableMacAddressFilter"])){$GLOBALS["EnableMacAddressFilter"]=1;}
+		
+		}
+		
+		if($GLOBALS["EnableMacAddressFilter"]==0){return;}
+		
+		$ipaddr=trim($ipaddr);
+		$ttl=date('YmdH');
+		if(count($GLOBALS["CACHEARP"])>3){unset($GLOBALS["CACHEARP"]);}
+		if(isset($GLOBALS["CACHEARP"][$ttl][$ipaddr])){return $GLOBALS["CACHEARP"][$ttl][$ipaddr];}
+		if(!isset($GLOBALS["SBIN_ARP"])){$GLOBALS["SBIN_ARP"]=$this->find_program("arp");}
+		if(!isset($GLOBALS["SBIN_ARPING"])){$GLOBALS["SBIN_ARPING"]=$this->find_program("arping");}
 			
-			if(strlen($GLOBALS["SBIN_ARPING"])>3){
-				$cmd="{$GLOBALS["SBIN_ARPING"]} $ipaddr -c 1 -r 2>&1";
-				exec($cmd,$results);
-				while (list ($num, $line) = each ($results)){
-					if(preg_match("#^([0-9a-zA-Z\:]+)#", $line,$re)){
+		if(strlen($GLOBALS["SBIN_ARPING"])>3){
+			$cmd="{$GLOBALS["SBIN_ARPING"]} $ipaddr -c 1 -r 2>&1";
+			exec($cmd,$results);
+			while (list ($num, $line) = each ($results)){
+				if(preg_match("#^([0-9a-zA-Z\:]+)#", $line,$re)){
+					if($this->IsPhysicalAddress($re[1])){
 						$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
 						return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
 					}
 				}
 			}
+		}
 			
 			
-			$results=array();
+		$results=array();
 				
-			if(strlen($GLOBALS["SBIN_ARP"])<4){return;}
-			if(!isset($GLOBALS["SBIN_PING"])){$GLOBALS["SBIN_PING"]=$this->find_program("ping");}
-			if(!isset($GLOBALS["SBIN_NOHUP"])){$GLOBALS["SBIN_NOHUP"]=$this->find_program("nohup");}
+		if(strlen($GLOBALS["SBIN_ARP"])<4){return;}
+		if(!isset($GLOBALS["SBIN_PING"])){$GLOBALS["SBIN_PING"]=$this->find_program("ping");}
+		if(!isset($GLOBALS["SBIN_NOHUP"])){$GLOBALS["SBIN_NOHUP"]=$this->find_program("nohup");}
 			
-			$cmd="{$GLOBALS["SBIN_ARP"]} -n \"$ipaddr\" 2>&1";
-			$this->events($cmd);
-			exec($cmd,$results);
-			while (list ($num, $line) = each ($results)){
+		$cmd="{$GLOBALS["SBIN_ARP"]} -n \"$ipaddr\" 2>&1";
+		$this->events($cmd);
+		exec($cmd,$results);
+		while (list ($num, $line) = each ($results)){
 				if(preg_match("#^[0-9\.]+\s+.+?\s+([0-9a-z\:]+)#", $line,$re)){
 					if($re[1]=="no"){continue;}
-					$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
-					return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+					if($this->IsPhysicalAddress($re[1])){
+						$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+						return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+					}
 				}
 				
 			}
@@ -183,6 +197,28 @@ class externhelper{
 				
 			
 		}
+		
+		private function IsPhysicalAddress($address){
+			$address=strtoupper(trim($address));
+			if($address=="UNKNOWN"){return null;}
+			$address=str_replace(":","-",$address);
+			If(strlen($address) > 18){return false;}
+			If($address == ""){return false;}
+			If(!preg_match("#^[0-9A-Z]+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)$#i",$address)){
+		
+				return false;
+			}
+			$Array=explode("-",$address);
+			If(strlen($Array[0]) != 2){return false;}
+			If(strlen($Array[1]) != 2){return false;}
+			If(strlen($Array[2]) != 2){return false;}
+			If(strlen($Array[3]) != 2){return false;}
+			If(strlen($Array[4]) != 2){return false;}
+			If(strlen($Array[5]) != 2){return false;}
+		
+			return true;
+		}		
+		
 
 	public function WLOG($text=null){
 		$trace=@debug_backtrace();

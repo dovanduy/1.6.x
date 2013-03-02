@@ -225,7 +225,7 @@ end;
 
 
 if a='B' then begin
-   fpsystem('/opt/kaspersky/klms/bin/klms-control --reset-web-admin-password');
+   fpsystem('/opt/kaspersky/klms/bin/klms-control --set-web-admin-password');
    writeln('[Enter] key to Exit');
    readln();
    Menu();

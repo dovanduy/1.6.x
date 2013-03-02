@@ -149,11 +149,35 @@ $Toremove["exec.ufdbguard-tail.php"]=true;
 $Toremove["exec.squid-tail.php"]=true;
 $Toremove["exec.fetmaillog.php"]=true;
 $Toremove["exec.dansguardian-tail.php"]=true;	
-$Toremove["exec.auth-tail.php"]=true;	
+$Toremove["exec.cache-logs.php"]=true;
+$Toremove["exec.auth-tail.php"]=true;
 $Toremove["exec.artica-filter-daemon.php"]=true;	
 $Toremove["exec.postfix-logger.php"]=true;
 $Toremove["exec.squid2.logger.php"]=true;
-$Toremove["exec.openvpn.php"]=true;		
+$Toremove["exec.openvpn.php"]=true;	
+$Toremove["exec.squid.blacklists.php"]=true;
+$Toremove["exec.parse-orders.php"]=true;
+$Toremove["exec.syslog.php"]=true;
+$Toremove["exec.maillog.php"]=true;
+$Toremove["exec.status.php"]=true;
+$Toremove["exec.executor.php"]=true;
+$Toremove["exec.ufdbguard-tail.php"]=true;
+$Toremove["exec.squid-tail.php"]=true;
+$Toremove["exec.fetmaillog.php"]=true;
+$Toremove["exec.dansguardian-tail.php"]=true;
+$Toremove["exec.auth-tail.php"]=true;
+$Toremove["exec.logfile_daemon.php"]=true;
+$Toremove["exec.cache-logs.php"]=true;
+$Toremove["exec.artica-filter-daemon.php"]=true;
+$Toremove["exec.postfix-logger.php"]=true;
+$Toremove["exec.squid2.logger.php"]=true;
+$Toremove["exec.openvpn.php"]=true;
+$Toremove["exec.schedules.php"]=true;
+$Toremove["exec.smtp-senderadv.php"]=true;
+$Toremove["external_acl_squid.php"]=true;
+$Toremove["exec.offlineimap.php"]=true;
+$Toremove["exec.mailbox.migration.php"]=true;
+$Toremove["exec.pdns.pipe.php"]=true;	
 if(!is_file($pgrep)){return;}
 	
 	

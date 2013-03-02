@@ -65,6 +65,7 @@ function page(){
 	$Compressedsize=$tpl->_ENGINE_parse_body("{compressed_size}");
 	$realsize=$tpl->_ENGINE_parse_body("{realsize}");
 	$delete_file=$tpl->javascript_parse_text("{delete_file}");
+	$rotate_logs=$tpl->javascript_parse_text("{rotate_logs}");
 	$table_size=855;
 	$url_row=400;
 	$member_row=233;
@@ -98,6 +99,8 @@ function page(){
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(Compressedsize) as tsize FROM squid_storelogs"));
 		$title_table_storage="$logs_container $countContainers $files (".FormatBytes($ligne["tsize"]/1024).")";
 	}
+	
+	$button3="{name: '<strong id=container-log-$t>$rotate_logs</stong>', bclass: 'Reload', onpress : SquidRotate$t},";
 
 	$html="
 	<div style='margin:{$margin}px;margin-left:{$margin_left}px' id='$t-main-form'>
@@ -124,7 +127,7 @@ function StartLogsSquidTable$t(){
 			],
 			
 	buttons : [
-			$button1$button2
+			$button1$button2$button3
 			],
 			
 		
@@ -235,6 +238,10 @@ function StartRefresh$t(){
 
 function LogsContainer$t(){
 	StartLogsContainer$t()
+}
+
+function SquidRotate$t(){
+	Loadjs('squid.perf.logrotate.php?tabs=squid_main_svc');
 }
 
 var x_LogsCsvDelte$t = function (obj) {
@@ -566,7 +573,7 @@ function container_list(){
 				$img="ext/{$ligne["fileext"]}_small.gif";
 		}
 		
-		
+		$distance=$tpl->javascript_parse_text($distance);
 		
 	$data['rows'][] = array(
 		'id' => $md5,

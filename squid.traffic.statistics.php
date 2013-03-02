@@ -401,17 +401,18 @@ function general_status(){
 
 function squid_status_stats(){
 	
-	if(!$GLOBALS["AS_ROOT"]){if(CACHE_SESSION_GET(__FUNCTION__,__FILE__)){return;}}
+	
 	
 	if(!$GLOBALS["AS_ROOT"]){
 		$cachefile="/usr/share/artica-postfix/ressources/logs/web/traffic.statistics.html";
-		if(is_file($cachefile)){$tpl=new templates();
-		$cacheContent=@file_get_contents($cachefile);
-		if(strlen($cacheContent)>20){
-			echo $tpl->_ENGINE_parse_body(@file_get_contents($cachefile));
-			return;
+		if(is_file($cachefile)){
+			$tpl=new templates();
+			$cacheContent=@file_get_contents($cachefile);
+			if(strlen($cacheContent)>20){
+				echo $tpl->_ENGINE_parse_body(@file_get_contents($cachefile));
+				return;
+				}
 			}
-		}
 	}
 	
 	
@@ -429,7 +430,9 @@ function squid_status_stats(){
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}	
 	$MalwarePatrolDatabasesCount=$sock->getFrameWork("cmd.php?MalwarePatrolDatabasesCount=yes");
 	$mouse="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\"";
-	
+	$sock=new sockets();
+	$EnableMacAddressFilter=$sock->GET_INFO("EnableMacAddressFilter");
+	if(!is_numeric($EnableMacAddressFilter)){$EnableMacAddressFilter=1;}
 	
 	
 	$page=CurrentPageName();
@@ -475,42 +478,63 @@ function squid_status_stats(){
 	$MalwaresURIS=$q->COUNT_ROWS("uris_malwares");
 	$MalwaresURIS=numberFormat($MalwaresURIS,0,""," ");		
 	if($DisableArticaProxyStatistics==0){
-		$Computers=$q->COUNT_ROWS("webfilters_nodes");
-		$Computers=numberFormat($Computers,0,""," ");
-	
-	
-		
-	if(!$users->CORP_LICENSE){
-		$license_inactive="<br><strong style='font-size:11px;font-weight:bolder;color:#BA1010'>{license_inactive}</strong>";
-		
-	}
-	
-	$DAYSNumbers=$q->COUNT_ROWS("tables_day");
-	
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(totalsize) as tsize FROM tables_day"));
-	$totalsize=FormatBytes($ligne["tsize"]/1024);
-	
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT AVG(cache_perfs) as pourc FROM tables_day"));
-	$pref=round($ligne["pourc"]);	
-	
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(sitename) as tcount FROM visited_sites WHERE LENGTH(category)=0"));
-	$websitesnumsNot=numberFormat($ligne["tcount"],0,""," ");
 
-	$youtube_objects=$q->COUNT_ROWS("youtube_objects");
-	$youtube_objects=numberFormat($youtube_objects,0,""," ");
 	
-	$CachePermformance=$q->CachePerfHour();
-	if($CachePermformance>-1){
-		$color="#E01313";
-		if($CachePermformance>20){$color="#6DBB6A";}
-		$cachePerfText="
-		<tr>
-		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td valign='top' style='font-size:12px;'><b style='color:$color'>$CachePermformance%</b> {cache_performance} ({now})</td>
-		</tr>
-		";
+		if($EnableMacAddressFilter==1){
+			$Computers=$q->COUNT_ROWS("webfilters_nodes");
+			$Computers=numberFormat($Computers,0,""," ");
+			$nodes="
+			<tr>
+				<td width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.nodes.php')\"><b>$Computers</b> {computers}</td>
+			</tr>";
 		
-	}	
+		}else{
+			$Computers=$q->COUNT_ROWS("UserAutDB");
+			$Computers=numberFormat($Computers,0,""," ");
+			
+			$nodes="
+			<tr>
+			<td width=1%><img src='img/arrow-right-16.png'></td>
+			<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.UserAutDB.php')\"><b>$Computers</b> {clients}</td>
+			</tr>";			
+			
+		}	
+		
+		if(!$users->CORP_LICENSE){
+			$license_inactive="<br><strong style='font-size:11px;font-weight:bolder;color:#BA1010'>{license_inactive}</strong>";
+			
+		}
+	
+		$DAYSNumbers=$q->COUNT_ROWS("tables_day");
+		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(totalsize) as tsize FROM tables_day"));
+		$totalsize=FormatBytes($ligne["tsize"]/1024);
+		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT AVG(cache_perfs) as pourc FROM tables_day"));
+		$pref=round($ligne["pourc"]);	
+		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(sitename) as tcount FROM visited_sites WHERE LENGTH(category)=0"));
+		$websitesnumsNot=numberFormat($ligne["tcount"],0,""," ");
+	
+		$youtube_objects=$q->COUNT_ROWS("youtube_objects");
+		$youtube_objects=numberFormat($youtube_objects,0,""," ");
+		
+		$CachePermformance=$q->CachePerfHour();
+		if($CachePermformance>-1){
+			$color="#E01313";
+			if($CachePermformance>20){$color="#6DBB6A";}
+			$cachePerfText="
+			<tr>
+			<td width=1%><img src='img/arrow-right-16.png'></td>
+			<td valign='top' style='font-size:12px;'><b style='color:$color'>$CachePermformance%</b> {cache_performance} ({now})</td>
+			</tr>
+			";
+			
+		}	
+	
+	
+
 
 	if($SquidActHasReverse==1){$TR_CAT_NUMBER=null;}	
 	$TR_CAT_NUMBER="
@@ -534,18 +558,14 @@ function squid_status_stats(){
 		<td width=1%><img src='img/arrow-right-16.png'></td>
 		<td valign='top' style='font-size:12px'><b>$requests</b> {requests}</td>
 	</tr>
-	
-	<tr>
-		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.nodes.php')\"><b>$Computers</b> {computers}</td>
-	</tr>		
+	$nodes
+		
 	$TR_CAT_NUMBER
 ";
 	
 	$TR_YOUTUBE="	<tr>
 		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
-		OnClick=\"javascript:Loadjs('miniadm.webstats.youtube.php?js=yes')\"><b>$youtube_objects</b> Youtube {objects}</td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline'><b>$youtube_objects</b> Youtube {objects}</td>
 	</tr>";
 	
 	
@@ -634,6 +654,7 @@ function squid_status_stats(){
 		</tr>	";
 	
 	if($users->PROXYTINY_APPLIANCE ){$addwebsites=null;$submenu=null;}
+	
 $html="
 <table style='width:100%'>
 	<tbody>

@@ -55,12 +55,18 @@ function js() {
 
 function popup(){
 	$page=CurrentPageName();
+	$tpl=new templates();
 	$array["parameters"]='{global_parameters}';
 	$array["whitelist"]='{whitelist}';
+	$array["http-safe-ports-ssl"]=$tpl->_ENGINE_parse_body('{http_safe_ports} (SSL)');
 	//$array["popup-bandwith"]='{bandwith}';
-	$tpl=new templates();
+	
 
 	while (list ($num, $ligne) = each ($array) ){
+		if($num=="http-safe-ports-ssl"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.advParameters.php?http-safe-ports-ssl=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}
 		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 	}
 	
@@ -115,7 +121,10 @@ if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsApplian
 	</tr>
 	<tr>
 		<td style='font-size:14px' class=legend>{ssl_port}:</td>
-		<td>". Field_text("ssl_port-$t",$squid->ssl_port,"font-size:14px;width:99px")."</td>
+		<td><a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('squid.popups.php?script=listen_port')\"
+			style='font-size:14px;font-weight:bold;text-decoration:underline'>
+			$squid->ssl_port</td>
 	</tr>
 	<tr>
 		<td style='font-size:14px' class=legend>{whitelist_all_domains}:</td>
@@ -131,6 +140,7 @@ if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsApplian
      	 var tempvalue=obj.responseText;
       	if(tempvalue.length>3){alert(tempvalue);}
      	document.getElementById('sslbumpdiv$t').innerHTML='';
+     	Loadjs('squid.restart.php?onlySquid=yes');
      	RefreshTab('main_config_sslbump');
 	 }	
 
@@ -138,7 +148,6 @@ if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsApplian
 		var XHR = new XHRConnection();
 		if(!document.getElementById('EnableSSLBump-$t')){return;}
 		XHR.appendData('EnableSSLBump',document.getElementById('EnableSSLBump-$t').value);
-		XHR.appendData('ssl_port',document.getElementById('ssl_port-$t').value);
 		if(document.getElementById('SSL_BUMP_WHITE_LIST-$t').checked){XHR.appendData('SSL_BUMP_WHITE_LIST',1);}else{XHR.appendData('SSL_BUMP_WHITE_LIST',0);}
 		AnimateDiv('sslbumpdiv$t');
 		XHR.sendAndLoad('$page', 'GET',x_SaveEnableSSLDump);		
@@ -154,17 +163,19 @@ if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsApplian
 function parameters_enable_save(){
 	$squid=new squidbee();
 	$tpl=new templates();
-	if($squid->ssl_port==443){
-		echo $tpl->javascript_parse_text("443: {wrong_value}");
-		return;
-	}
+
 	
 	$squid->SSL_BUMP=$_GET["EnableSSLBump"];
-	$squid->ssl_port=$_GET["ssl_port"];
+	if($_GET["EnableSSLBump"]==1){
+		if(!is_numeric($squid->ssl_port)){$squid->ssl_port=$squid->listen_port+10;}
+		if($squid->ssl_port==443){$squid->ssl_port=$squid->listen_port+10;}	
+	
+	}
+	
+	
 	$squid->SSL_BUMP_WHITE_LIST=$_GET["SSL_BUMP_WHITE_LIST"];
-	$squid->SaveToLdap();
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?squid-iptables=yes");
+	$squid->SaveToLdap(true);
+
 	
 }
 
@@ -299,8 +310,9 @@ function whitelist_enabled(){
 
 function whitelist_add(){
 	$_GET["website_ssl_wl"]=str_replace("https://","",$_GET["website_ssl_wl"]);
-	$sql="INSERT INTO squid_ssl(website_name,enabled,`type`) 
-	VALUES('{$_GET["website_ssl_wl"]}',1,'ssl-bump-wl');";	
+	if(preg_match("#^www\.(.+)#", $_GET["website_ssl_wl"],$re)){$_GET["website_ssl_wl"]=".".$re[1];}
+	if(substr($_GET["website_ssl_wl"], 0,1)<>"."){$_GET["website_ssl_wl"]=".".$_GET["website_ssl_wl"];}
+	$sql="INSERT INTO squid_ssl(website_name,enabled,`type`) VALUES('{$_GET["website_ssl_wl"]}',1,'ssl-bump-wl');";	
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}

@@ -12,8 +12,9 @@
 $usersmenus=new usersMenus();
 if(!$usersmenus->AsDansGuardianAdministrator){
 	$tpl=new templates();
+	header("content-type: application/javascript");
 	$alert=$tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
-	echo "<H2>$alert</H2>";
+	echo "alert('$alert');";
 	die();	
 }
 
@@ -25,6 +26,7 @@ js();
 function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	header("content-type: application/javascript");
 	$title=$tpl->_ENGINE_parse_body("{options}");
 	echo "YahooWin(650,'$page?popup=yes&t={$_GET["t"]}','$title');";
 }
@@ -47,10 +49,23 @@ function popup(){
 	if(!is_numeric($UseDynamicGroupsAcls)){$UseDynamicGroupsAcls=0;}
 	if(!is_numeric($DynamicGroupsAclsTTL)){$DynamicGroupsAclsTTL=3600;}
 	if($DynamicGroupsAclsTTL<5){$DynamicGroupsAclsTTL=5;}	
+	$SquidDebugAcls=$sock->GET_INFO("SquidDebugAcls");
+	if(!is_numeric($SquidDebugAcls)){$SquidDebugAcls=0;}	
 	
 	for($i=0;$i<6;$i++){$DYN_LOG_LEVEL[$i]=$i;	}
 	
+	$export=Paragraphe("64-export.png", "{export_rules}", "{export_acl_rules_explain}",
+			"javascript:Loadjs('squid.acls.export.php')");
+	
+	$import=Paragraphe("64-import.png", "{import_rules}", "{import_acl_rules_explain}",
+			"javascript:Loadjs('squid.acls.import.php')");	
 	$html="
+	<table style='width:99%' class=form>
+	<tr>
+		<td align='center'>$export</td>
+		<td align='center'>$import</td>
+	</tr>
+	</table>
 	<div id='serverkerb-$t'></div>
 	<table style='width:99%' class=form>
 	<tr>
@@ -81,7 +96,16 @@ function popup(){
 	<tr>
 		<td class=legend style='font-size:14px'>{TTL_CACHE}:</td>
 		<td style='font-size:14px'>". Field_text("DynamicGroupsAclsTTL-$t",$DynamicGroupsAclsTTL,"font-size:14px;padding:3px;width:90px")."&nbsp;{seconds}</td>
+	</tr>	
+
+	<tr>
+		<td colspan=2 style='font-size:16px'>{service_options}:<hr style='border-top:1px solid;margin:5px 0'></td>
+	<tr>				
+	<tr>
+		<td class=legend style='font-size:14px'>{debug_acls}:</td>
+		<td>". Field_checkbox("SquidDebugAcls-$t",1,$SquidDebugAcls)."</td>
 	</tr>				
+				
 	<tr>
 		<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",16)."</td>
 	</tr>
@@ -97,8 +121,11 @@ function popup(){
 	function Save$t(){
 	var XHR = new XHRConnection();
 	var UseDynamicGroupsAcls=0;
+	var SquidDebugAcls=0;
 	if(document.getElementById('UseDynamicGroupsAcls-$t').checked){UseDynamicGroupsAcls=1;}
+	if(document.getElementById('SquidDebugAcls-$t').checked){SquidDebugAcls=1;}
 	XHR.appendData('UseDynamicGroupsAcls',UseDynamicGroupsAcls);
+	XHR.appendData('SquidDebugAcls',SquidDebugAcls);
 	XHR.appendData('DynamicGroupsAclsTTL',document.getElementById('DynamicGroupsAclsTTL-$t').value);
 	
 	XHR.appendData('DYN_TTL',document.getElementById('DYN_TTL').value);
@@ -128,6 +155,10 @@ function save(){
 	$sock=new sockets();
 	$sock->SET_INFO("UseDynamicGroupsAcls", $_POST["UseDynamicGroupsAcls"]);
 	$sock->SET_INFO("DynamicGroupsAclsTTL", $_POST["DynamicGroupsAclsTTL"]);
+	$sock->SET_INFO("SquidDebugAcls", $_POST["SquidDebugAcls"]);
+	
+	
+	unset($_POST["SquidDebugAcls"]);
 	unset($_POST["UseDynamicGroupsAcls"]);
 	unset($_POST["DynamicGroupsAclsTTL"]);
 	

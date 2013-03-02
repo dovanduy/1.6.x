@@ -92,7 +92,9 @@ function Parseline($buffer){
 	if($dust->MailDustbin($buffer)){return;}
 	
 	//squid dustbin
-	if(strpos($buffer,"]: WARNING: ")>0){return true;}	 
+	if(strpos($buffer,"exec.postfix-logger.php")>0){return true;}
+	if(strpos($buffer,"]: WARNING: ")>0){return true;}
+	if(strpos($buffer," epmd running")>0){return true;}
 	if(strpos($buffer,"#]: Startup: Initializing")>0){return true;}	
 	if(strpos($buffer,"]: Reconfiguring Squid Cache")>0){return true;}	
 	if(strpos($buffer,"]: Closing HTTP port")>0){return true;}	
@@ -124,6 +126,21 @@ function Parseline($buffer){
 	if(preg_match("#CRON\[.+?\(root\).+CMD#",$buffer)){return true;}
 	if(preg_match("#winbindd\[.+?winbindd_listen_fde_handler#",$buffer)){return true;}
 	if(strpos($buffer,"class.cronldap.inc")>0){return true;}
+	
+	//Zarafa dustbin
+	if(strpos($buffer,": End of session (logoff)")>0){return true;}
+	if(strpos($buffer," receives session ")>0){return true;}
+	if(strpos($buffer,": Disconnecting client")>0){return true;}
+	if(strpos($buffer,"  thread exiting")>0){return true;}
+	if(strpos($buffer,": Accepted connection from")>0){return true;}
+	if(strpos($buffer,": Not authorized for command: CAPA")>0){return true;}
+	if(strpos($buffer,": Starting worker process for")>0){return true;}
+	
+	// **************** peut être utilisé ???
+	if(strpos($buffer,"User supplied password using program zarafa-gateway")>0){return true;}
+	if(strpos($buffer,"authenticated through User supplied password using program")>0){return true;}
+	if(strpos($buffer,"authenticated through Pipe socket using program")>0){return true;}
+
 	
 	if(preg_match("#slapd.+?conn=[0-9]+\s+fd=.+?closed#",$buffer)){return true;}
 	if(strpos($buffer,"msmtp: ")>0){return true;}
@@ -1023,8 +1040,25 @@ if(preg_match("#zarafa-server.+?INNODB engine is disabled#",$buffer)){
 }
 
 
-if(preg_match("#zarafa-spooler\[.+?Unable to open admin session. Error ([0-9a-zA-Z]+)#",$buffer,$re)){
-	email_events("zarafa Spooler service error connecting to zarafa server ({$re[1]})","Zarafa claim \"$buffer\" ",'system');
+if(preg_match("#zarafa-spooler\[.+?Unable to open admin session.*?Error ([0-9a-zA-Z]+)#",$buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/zarafa.Unable.to.open.admin.session";
+	events("Unable to open admin session `{$re[1]}` line:".__LINE__);
+	
+	if(IfFileTime($file,3)){
+		$restartZarafa=false;
+		if(preg_match("#0x80040115#",$buffer)){
+			events("{$re[1]}: Restart required...");
+			$restartZarafa=true;$restartaction="\nServer will be restarted...\n";
+		}else{
+			events("{$re[1]}: Restart NOT required...");
+		}
+		email_events("zarafa Spooler service error connecting to zarafa server ({$re[1]})","Zarafa claim \"$buffer\"$restartaction ",'system');
+		WriteFileCache($file);
+		if($restartZarafa){
+			events("\"{$GLOBALS["nohup"]} /etc/init.d/zarafa-server restart >/dev/null 2>&1 &\" line:".__LINE__);
+			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/zarafa-server restart >/dev/null 2>&1 &");
+		}
+	}
 	return;
 }
 

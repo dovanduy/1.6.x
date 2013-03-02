@@ -41,7 +41,10 @@ function popup(){
 	if(!is_numeric($squid->max_filedesc)){$squid->max_filedesc=8192;}
 	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+
+	$file_max=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("fs.file-max"));
+	
 	
 	$html="
 	<div id='$t' class=explain>{file_descriptors_squid_explain}</div>
@@ -50,7 +53,10 @@ function popup(){
 			<td class=legend style='font-size:16px'>{file_descriptors}:</td>
 			<td>". Field_text("max_filedesc",$squid->max_filedesc,"font-size:16px;width:95px")."</td>
 		</tr>
-	
+		<tr>
+			<td class=legend style='font-size:16px'>{NumberOfMaximumFiles}:</td>
+			<td style='font-size:16px'>". Field_text("fs_filemax",$file_max,"font-size:16px;width:95px")."&nbsp;{files}</td>
+		</tr>	
 	
 	<tr>
 		<td align='right' colspan=2><hr>". button("{apply}", "SaveCSVGen$t()","18px")."</td>
@@ -70,6 +76,7 @@ function popup(){
 		if(lock==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}	
 		var XHR = new XHRConnection();
 		XHR.appendData('max_filedesc',document.getElementById('max_filedesc').value);
+		XHR.appendData('fs_filemax',document.getElementById('fs_filemax').value);
 		AnimateDiv('$t'); 
 		XHR.sendAndLoad('$page', 'POST',x_SaveCSVGen$t);	
 		
@@ -87,5 +94,11 @@ function max_filedesc(){
 	if($_POST["max_filedesc"]<1024){$_POST["max_filedesc"]=1024;}
 	$squid->max_filedesc=$_POST["max_filedesc"];
 	$squid->SaveToLdap();
+	$sock=new sockets();
+	
+	$key=base64_encode("fs.file-max");
+	$sock->getFrameWork("cmd.php?sysctl-setvalue={$_POST["fs_filemax"]}&key=$key");
+	
+	
 	
 }

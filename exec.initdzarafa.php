@@ -697,7 +697,7 @@ function ZarafaSearch_redhat(){
 	@file_put_contents("/etc/init.d/zarafa-search", @implode("\n", $f));
 	@chmod("/etc/init.d/zarafa-search", 0755);
 	if(is_file($servicebin)){shell_exec("$servicebin --add zarafa-search >/dev/null 2>&1");
-	shell_exec("$redhatbin --level 2345 zarafa-search on >/dev/null 2>&1");}	
+	shell_exec("$servicebin --level 2345 zarafa-search on >/dev/null 2>&1");}	
 	echo "Zarafa Search init.d RedHat mode done\n";
 }
 
@@ -785,13 +785,14 @@ function zarafa_dagent_debian(){
 	
 	@file_put_contents("/etc/init.d/zarafa-dagent", @implode("\n", $f));
 	@chmod("/etc/init.d/zarafa-dagent", 0755);
-	shell_exec("$debianbin -f zarafa-dagent defaults >/dev/null 2>&1");
+	shell_exec("$servicebin -f zarafa-dagent defaults >/dev/null 2>&1");
 	echo "Zarafa agent init.d debian mode done\n";		
 }
 
 function zarafa_dagent_redhat(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
+	$servicebin=$unix->find_program("chkconfig");
 $f[]="#!/bin/bash";
 $f[]="#";
 $f[]="# zarafa-dagent Zarafa Collaboration Platform's Delivery Agent";
@@ -912,7 +913,7 @@ $f[]="exit \$RETVAL";
 	@file_put_contents("/etc/init.d/zarafa-dagent", @implode("\n", $f));
 	@chmod("/etc/init.d/zarafa-dagent", 0755);
 	if(is_file($servicebin)){shell_exec("$servicebin --add zarafa-dagent >/dev/null 2>&1");
-	shell_exec("$redhatbin --level 2345 zarafa-dagent on >/dev/null 2>&1");}	
+	shell_exec("$servicebin --level 2345 zarafa-dagent on >/dev/null 2>&1");}	
 	echo "Zarafa dagent init.d RedHat mode done\n";	
 	
 }
@@ -1100,7 +1101,7 @@ function zarafa_server_redhat(){
 	@file_put_contents("/etc/init.d/zarafa-server", @implode("\n", $f));
 	@chmod("/etc/init.d/zarafa-server", 0755);
 	if(is_file($servicebin)){shell_exec("$servicebin --add zarafa-server >/dev/null 2>&1");
-	shell_exec("$redhatbin --level 2345 zarafa-server on >/dev/null 2>&1");}	
+	shell_exec("$servicebin --level 2345 zarafa-server on >/dev/null 2>&1");}	
 	echo "Zarafa Server init.d RedHat mode done\n";	
 	
 }
@@ -1204,7 +1205,7 @@ function zarafa_server_debian(){
 	$f[]="exit 0\n";	
 	@file_put_contents("/etc/init.d/zarafa-server", @implode("\n", $f));
 	@chmod("/etc/init.d/zarafa-dagent", 0755);
-	shell_exec("$debianbin -f zarafa-server defaults >/dev/null 2>&1");
+	shell_exec("$servicebin -f zarafa-server defaults >/dev/null 2>&1");
 	echo "Zarafa Server init.d debian mode done\n";			
 	
 }

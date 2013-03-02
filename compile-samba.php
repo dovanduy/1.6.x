@@ -548,8 +548,9 @@ function latests(){
 			$ve=$re[1];
 			
 			if(preg_match("#^([0-9]+)\.([0-9]+)\.([0-9]+)#", $ve,$ri)){
-				if(strlen($ri[2])==1){$ri[2]="{$ri[2]}0";}
-				if(strlen($ri[3])==1){$ri[3]="{$ri[3]}0";}
+				if($ri[1]>3){continue;}
+				if(strlen($ri[2])==1){$ri[2]="0{$ri[2]}";}
+				if(strlen($ri[3])==1){$ri[3]="0{$ri[3]}";}
 				$ve="{$ri[1]}.{$ri[2]}.{$ri[3]}";
 				
 			}

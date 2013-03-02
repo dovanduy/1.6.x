@@ -120,6 +120,10 @@ function today_zoom_js(){
 
 
 function right_users(){
+	$time=strtotime($_GET["day"]."00:00:00");
+	$buttonRepair=button("{rescan_database}","Loadjs('squid.stats.repair.day.php?time=$time')",18);
+
+	
 	$page=CurrentPageName();
 	$tpl=new templates();		
 	$q=new mysql_squid_builder();	
@@ -128,7 +132,10 @@ function right_users(){
 	
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
-	if(mysql_num_rows($results)==0){echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2>$sql</center>");return;}
+	if(mysql_num_rows($results)==0){
+		echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2>$sql<p>$buttonRepair</p></center>");
+		return;
+	}
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if(trim($ligne["hostname"])==null){$ligne["hostname"]=$ligne["client"];}
@@ -169,12 +176,14 @@ function right_category(){
 	$page=CurrentPageName();
 	$tpl=new templates();		
 	$q=new mysql_squid_builder();	
+	$time=strtotime($_GET["day"]."00:00:00");
+	$buttonRepair=button("{rescan_database}","Loadjs('squid.stats.repair.day.php?time=$time')",18);	
 	$hour_table=date('Ymd',strtotime($_GET["day"]))."_hour";
 	$sql="SELECT COUNT( sitename ) as thits , category FROM $hour_table GROUP BY category ORDER BY thits DESC LIMIT 0 , 10";
 
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
-	if(mysql_num_rows($results)==0){echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2>$sql</center>");return;}
+	if(mysql_num_rows($results)==0){echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2>$sql<p>$buttonRepair</p></center>");return;}
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($ligne["category"]==null){$ligne["category"]=$tpl->javascript_parse_text("{unknown}");}
@@ -731,14 +740,25 @@ function right(){
 	if($_GET["type"]==null){$_GET["type"]="size";}
 	$type=$_GET["type"];
 	$field_query="size";
+	$today=date("Y-m-d");
+	if($_GET["day"]==$today){$_GET["day"]=$q->HIER();}
 	
-
+	$time=strtotime($_GET["day"]."00:00:00");
+	$buttonRepair=button("{rescan_database}","Loadjs('squid.stats.repair.day.php?time=$time')",18);
 	
 	$hour_table=date('Ymd',strtotime($_GET["day"]))."_hour";
+	$sourcetable="dansguardian_events_".date('Ymd',strtotime($_GET["day"]));
+	
 	if($GLOBALS["VERBOSE"]){echo "Table=$hour_table<br>\n";}
 	
 	$title="<div style='font-size:16px;width:100%;font-weight:bold'>{statistics}:&nbsp;". strtolower(date('{l} d {F} Y',strtotime($_GET["day"])))." ({$GLOBALS["title_array"][$type]})</div>";
-	if(!$q->TABLE_EXISTS($hour_table)){echo $tpl->_ENGINE_parse_body("<input type='hidden' id='squid-stats-day-hide-type' value='{$_GET["type"]}'>$title<center style='margin:50px'><H2>{error_no_datas}</H2></center>");return;}
+	if(!$q->TABLE_EXISTS($hour_table)){
+		if($q->TABLE_EXISTS($sourcetable)){
+			$button="<hr>".button("{repair}","RepairTableDay('$sourcetable')",16);
+		}else{
+			$button="<div style='font-size:10px'>$sourcetable no such table...$buttonRepair</div>";
+		}
+		echo $tpl->_ENGINE_parse_body("<input type='hidden' id='squid-stats-day-hide-type' value='{$_GET["type"]}'>$title<center style='margin:50px'><H2>{error_no_datas}</H2><div style='font-size:10px'>$hour_table no such table..</div>$button</center>");return;}
 	
 	
 	if($type=="req"){$field_query="hits";}
@@ -750,7 +770,7 @@ function right(){
 	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." rows<br>\n";}
 	
 	if(mysql_num_rows($results)==0){
-		echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2></center>");
+		echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2><p>$buttonRepair</p></center>");
 	}else{
 	
 	
@@ -774,25 +794,19 @@ function right(){
 	$gp->color="146497";
 
 	$gp->line_green();
-	if(!is_file($targetedfile)){writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);}	
+	if(!is_file($targetedfile)){
+		writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);
+		}	
 	
 	}
+	
+	
+	
 	$sql="SELECT SUM($field_query) as totalsize,familysite FROM $hour_table GROUP BY familysite ORDER BY totalsize DESC LIMIT 0,10";
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
-	if(mysql_num_rows($results)==0){echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2></center>");return;}	
-	
-	$table="
-	<input type='hidden' id='squid-stats-day-hide-type' value='{$_GET["type"]}'>
-	<center>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:350px'>
-<thead class='thead'>
-	<tr>
-	<th width=1%>{size}</th>
-	<th>{website}</th>
-	</tr>
-</thead>
-<tbody>";
+	if(mysql_num_rows($results)==0){echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2><p>$buttonRepair</p></center>");return;}	
+
 	$xdata=array();
 	$ydata=array();
 	
@@ -803,19 +817,12 @@ function right(){
 		$size_text=FormatBytes(($ligne["totalsize"]/1024));
 		}else{$size=$ligne["totalsize"];$size_text=$size;}
 		if($_GET["type"]=="size"){$xdata[]=round(($ligne["totalsize"]/1024));}else{$xdata[]=$ligne["totalsize"];}
-		
-	if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-$table=$table.
-		"
-		<tr class=$classtr>
-			
-			<td width=1%  style='font-size:14px' nowrap><strong>$size_text</strong></td>
-			<td  style='font-size:14px' nowrap width=99%><strong><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?today-zoom=yes&type={$_GET["type"]}&familysite={$ligne["familysite"]}&day={$_GET["day"]}')\" style='font-size:14px;font-weight:bold;text-decoration:underline'>{$ligne["familysite"]}</a></strong></td>
-		</tr>
-		";		
-		
 	}	
-$table=$table."</tbody></table>";
+
+$t=time();
+$table="<div id='$t'></div>";
+
+
 	$targetedfile2="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".day.top.10.websites.$hour_table.$type.png";
 	$gp=new artica_graphs($targetedfile2);	
 	$gp->xdata=$xdata;
@@ -833,6 +840,7 @@ $table=$table."</tbody></table>";
 	<center style='margin:10px'><img src='$targetedfile2'></center>
 	$table
 	<script>
+		LoadAjax('$t','squid.traffic.statistics.days.table.php?field_query=$field_query&hour_table=$hour_table');
 		LoadAjax('statistics-days-left-status','$page?statistics-days-left-status=yes&day={$_GET["day"]}');
 	</script>
 	
@@ -993,9 +1001,26 @@ function left_status(){
 			<td class=legend>{visited}:</td>
 			<td style='font-size:14px;font-weight:bold'>$visited</td>
 			<td width=1%>$err2</td>
-		</tr>			
+		</tr>
+
+
+		
 		</tbody>
 		</table>
+		
+		<table style='width:97%' class=form>
+		<tbody>
+			<tr>
+				<td width=1%><img src='img/arrow-right-16.png'></td>
+				<td style='font-size:14px;font-weight:bold'>
+						<a href=\"javascript:blur();\" 
+						OnClick=\"javascript:Loadjs('squid.stats.repair.day.php?time=$time');\" 
+						style='font-size:14px;font-weight:bold;text-decoration:underline'>{rescan_database}</a>
+				</td>
+			</tr>
+		</tbody>
+		</table>
+		
 		";
 		
 	}

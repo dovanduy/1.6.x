@@ -138,6 +138,10 @@ function tasks(){
 	$btrfs_convert=Paragraphe("disk-64.png","{BTRFS_CONVERT}","{APP_BTRFS_CONVERT_EXPLAIN}","javascript:BTRFS_CONVERT()");
 	$btrfs_convert_disabled=Paragraphe("disk-64-grey.png","{BTRFS_CONVERT}","{APP_BTRFS_CONVERT_EXPLAIN}");
 	
+     $inodes=Paragraphe("64-filetype.png", "Inodes", "{Inodes_change_explain}",
+    "javascript:Loadjs('system.internal.partition.inodes.php?dev=$dev')");
+	
+	
 	if(!isset($array["ID_FS_TYPE"])){if($blkidArray["TYPE"]<>null){$array["ID_FS_TYPE"]=$blkidArray["TYPE"];}}	
 	
 	$automount=Paragraphe("magneto-64.png","{automount_center}","{partition_automount_center_text}",
@@ -168,6 +172,7 @@ function tasks(){
 		$automount=$automount_disabled;	
 	}
 	
+	$tr[]=$inodes;
 	$tr[]="$btrfs_convert";
 	$tr[]="$automount";
 	$tr[]=$connect_partitions;

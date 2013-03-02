@@ -3,7 +3,7 @@
 $_GET["filelogs"]="/var/log/artica-postfix/iptables.debug";
 $_GET["filetime"]="/etc/artica-postfix/croned.1/".basename(__FILE__).".time";
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;}
-if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__) . '/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__) . '/ressources/class.mysql.inc');
@@ -17,7 +17,8 @@ include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 
 $sock=new sockets();
 $GLOBALS["EnablePostfixAutoBlock"]=trim($sock->GET_INFO("EnablePostfixAutoBlock"));
-if($GLOBALS["EnablePostfixAutoBlock"]==null){$GLOBALS["EnablePostfixAutoBlock"]=0;}
+if(!is_numeric($GLOBALS["EnablePostfixAutoBlock"])){$GLOBALS["EnablePostfixAutoBlock"]=1;}
+if($GLOBALS["VERBOSE"]){echo "EnablePostfixAutoBlock:: {$GLOBALS["EnablePostfixAutoBlock"]}\n";}
 
 if($argv[1]=='--compile'){Compile_rules();die();}
 if($argv[1]=='--parse-queue'){parsequeue();die();}
@@ -337,6 +338,8 @@ function Compile_rules_whitelist(){
 		$cmd[]="$iptables -A INPUT -s $ip -p tcp --destination-port 25 -j ACCEPT -m comment --comment \"ArticaInstantPostfix\"";
 		$cmd[]="$iptables -A INPUT -s $ip -p tcp --destination-port 587 -j ACCEPT -m comment --comment \"ArticaInstantPostfix\"";
 		$cmd[]="$iptables -A INPUT -s $ip -p tcp --destination-port 465 -j ACCEPT -m comment --comment \"ArticaInstantPostfix\"";
+		$cmd[]="$iptables -A INPUT -s $ip -p tcp --destination-port 80 -j ACCEPT -m comment --comment \"ArticaInstantPostfix\"";
+		$cmd[]="$iptables -A INPUT -s $ip -p tcp --destination-port 443 -j ACCEPT -m comment --comment \"ArticaInstantPostfix\"";
 		
 	}	
 	
@@ -377,30 +380,39 @@ function Compile_rules_whitelist(){
 	 "$c items has been accepted to pass trough 25,587,465 ports", "postfix");
 	progress(90,"Building rules done...");
 	progress(100,"Building rules done...");	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." done....\n";}
 	
 }
 
 
 function Compile_rules($NoPersoRules=false){
 	progress(5,"Cleaning rules");
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}
 	iptables_delete_all();
 	$sock=new sockets();
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}
 	$EnablePostfixAutoBlockWhiteListed=$sock->GET_INFO("EnablePostfixAutoBlockWhiteListed");
 	if(!is_numeric($EnablePostfixAutoBlockWhiteListed)){$EnablePostfixAutoBlockWhiteListed=0;}
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}
 	$GlobalIptablesEnabled=$sock->GET_INFO("GlobalIptablesEnabled");
-	if(!is_numeric($GlobalIptablesEnabled)){$GlobalIptablesEnabled=1;}		
-	if($GlobalIptablesEnabled<>1){return;}
+	if(!is_numeric($GlobalIptablesEnabled)){$GlobalIptablesEnabled=1;}
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}		
+	if($GlobalIptablesEnabled<>1){
+		if($GLOBALS["VERBOSE"]){echo "GlobalIptablesEnabled <> 1, aborting...\n";}
+		return;}
 	if(!$NoPersoRules){perso(true);}
 	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}
 	if($EnablePostfixAutoBlockWhiteListed==1){
 		Compile_rules_whitelist();
-		return;
 	}
 	
 	$unix=new unix();
 	$iptables=$unix->find_program("iptables");
 	$sock=new sockets();
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}
 	$iptablesClass=new iptables_chains();
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}
 	$InstantIptablesEventAll=$sock->GET_INFO("InstantIptablesEventAll");
 	if(!is_numeric($InstantIptablesEventAll)){$InstantIptablesEventAll=1;}
 	if($GLOBALS["VERBOSE"]){echo "InstantIptablesEventAll=$InstantIptablesEventAll\n";}
@@ -411,6 +423,7 @@ function Compile_rules($NoPersoRules=false){
 	progress(10,"Query rules");
 	progress(25,"Building logging rules");
 	$sql="SELECT * FROM iptables WHERE disable=0 AND flux='INPUT' and log=1 AND allow=0 AND local_port=25";
+	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	
@@ -419,7 +432,9 @@ function Compile_rules($NoPersoRules=false){
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$ip=$ligne["serverip"];
-		if($iptablesClass->isWhiteListed($ip)){continue;}
+		if($iptablesClass->isWhiteListed($ip)){
+			if($GLOBALS["VERBOSE"]){echo "$ip is whitelisted\n";}
+			continue;}
 		events("LOG {$ligne["serverip"]} REJECT INBOUND PORT 25");
 		progress(35,"Building logging rules for $ip");
 		$cmd="$iptables -A INPUT -s $ip -p tcp --destination-port 25 -j LOG --log-prefix \"SMTP DROP: \" -m comment --comment \"ArticaInstantPostfix\"";
@@ -434,6 +449,8 @@ function Compile_rules($NoPersoRules=false){
 	progress(40,"Building rules...");
 	$c=0;
 	$sql="SELECT * FROM iptables WHERE disable=0 AND flux='INPUT' AND allow=0 AND local_port=25";
+	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
+	
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	progress(55,"Building rules...");
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){

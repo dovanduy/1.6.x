@@ -908,6 +908,7 @@ l.add('e2fsprogs');
 if ArchStruct=64 then begin
    l.add('libc6-i386');
    l.add('lib32stdc++6');
+   l.add('ia32-libs-gtk');
    //l.add('ia32-libs');
 end;
 
@@ -1093,7 +1094,7 @@ l.add('libapache2-mod-evasive');
 L.add('libapache2-mod-proxy-html');
 L.add('libapache2-mod-jk');
 L.add('libapache2-mod-geoip');
-L.add('libapache2-mod-fcgid');
+//L.add('libapache2-mod-fcgid');
 l.Add('libapache2-mod-perl2');
 l.Add('libapache2-authenntlm-perl');
 l.Add('libapache2-mod-python');

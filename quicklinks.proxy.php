@@ -91,6 +91,9 @@ function section_services(){
 	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}
 	
 	if($EnableRemoteStatisticsAppliance==1){
 		$visible_hostname=Paragraphe('64-work-station-linux-grey.png','{visible_hostname}','{visible_hostname_intro}',"");

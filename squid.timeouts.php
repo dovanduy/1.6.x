@@ -123,8 +123,9 @@ function popup(){
 	<script>
 	var x_SaveSNMP$t=function (obj) {
 		var tempvalue=obj.responseText;
-		if(tempvalue.length>3){alert(tempvalue);}
 		document.getElementById('$t').innerHTML='';
+		if(tempvalue.length>3){alert(tempvalue);return;}
+		Loadjs('squid.restart.php?prepare-js=yes');
 		YahooWin3Hide();
 	}	
 	
@@ -158,7 +159,6 @@ function popup(){
 function save(){
 	$squid=new squidbee();
 	while (list ($index, $line) = each ($_POST)){
-		echo "squid->$index = $line\n";
 		$squid->$index=$line;
 		
 	}

@@ -7,7 +7,7 @@ URLs are most generally used in web sites but can also be included as part of an
 
 SURBLs differ from most other RBLs in that they are used to detect spam based on message body URIs.[br]
 Unlike most other RBLs, SURBLs are not used to block spam senders.[br] Instead they allow you to block messages that have spam hosts (e.g. web servers, domains, web sites) which are mentioned in message bodies. [br]
-This module use pourcent method to judge if a mail is sended by a black web or spamer computer.[br]
+This module use pourcent method to judge if a mail is sent by a black web or spamer computer.[br]
 In the table below, you must reach 1OO% with a list of surbl servers database.[br]to increase the detection rate, you may exceed 100% of results[br]For example you can set[br]
 [ul]
 [li]rhsbl.ahbl.org as 20%[/li]

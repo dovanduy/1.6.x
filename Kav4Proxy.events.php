@@ -174,10 +174,15 @@ function service_search(){
 		$color="black";
 		$date=null;
 		$letter=null;
-		if($tr=="class=oddrow"){$tr=null;}else{$tr="class=oddrow";}
-		if(preg_match("#\[(.+?)\s+([A-Z]+)\]\s+(.+)#", $line,$re)){$date=$re[1];$letter=$re[2];$line=$re[3];}
+		
+		if(preg_match("#\[(.+?)\s+([A-Z]+)\]\s+(.+)#", $line,$re)){
+				$date=$re[1];
+				$letter=$re[2];
+				$line=$re[3];
+		}
 		
 		if($letter=="E"){$color="#DA1111";}
+		if($letter=="F"){$color="#DA1111";}
 		
 		$c++;
 $data['rows'][] = array(

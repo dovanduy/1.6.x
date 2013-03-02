@@ -184,7 +184,7 @@ function parent_delete(){
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");
+
 	
 }
 
@@ -211,7 +211,7 @@ function parent_save(){
 		return;
 	}
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");
+
 	
 }
 
@@ -227,6 +227,7 @@ function popup(){
 	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
 	$add_a_parent_proxy=$tpl->_ENGINE_parse_body("{add_a_parent_proxy}");
 	$enable_squid_parent=$tpl->_ENGINE_parse_body("{enable_squid_parent}");
+	$apply_params=$tpl->_ENGINE_parse_body("{apply}");
 	$t=$_GET["t"];
 $html="
 
@@ -267,6 +268,7 @@ $('#flexRT$t').flexigrid({
 		
 buttons : [
 		{name: '$add_a_parent_proxy', bclass: 'add', onpress : add_a_parent_proxy},
+		{name: '$apply_params', bclass: 'Reload', onpress : SquidBuildNow$t},
 		],			
 	
 	searchitems : [
@@ -286,7 +288,9 @@ buttons : [
 	
 	});   
 });
-
+	function SquidBuildNow$t(){
+		Loadjs('squid.compile.php');
+	}
 
 function add_a_parent_proxy(){
 	EditSquidParent(0);
@@ -298,7 +302,8 @@ EnableParentProxyCheck();
 }
 
 function popup_list(){
-$tpl=new templates();
+	$tpl=new templates();
+	$t=$_GET["t"];
 	$MyPage=CurrentPageName();
 	$q=new mysql();
 	$squid=new squidbee();
@@ -360,7 +365,8 @@ $tpl=new templates();
 	}	
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
-	
+	$domains=$tpl->_ENGINE_parse_body("{domains}");
+	$all=$tpl->_ENGINE_parse_body("{all}");
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
 		if($squid->EnableParentProxy==0){$color="#CACACA";}
@@ -377,10 +383,15 @@ $tpl=new templates();
 		
 		if($ligne["icp_port"]>0){$ligne["server_port"]=$ligne["server_port"]."/".$ligne["icp_port"];}
 		
+		$ligne3=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(md5) as tcount FROM cache_peer_domain WHERE `servername`='{$ligne["servername"]}'","artica_backup"));
+		$countDeDomains=$ligne3["tcount"];
+		if($countDeDomains==0){$countDeDomains=$all;}
+		
 	$data['rows'][] = array(
 		'id' =>"PPROXY-". $ligne['ID'],
 		'cell' => array(
-				"$ahref{$ligne["servername"]}</a>",
+				"$ahref{$ligne["servername"]}</a> <a href=\"javascript:Loadjs('squid.cache_peer_domain.php?servername={$ligne["servername"]}&t=$t')\" 
+				style='font-weight:bold;color:$color;text-decoration:underline;font-size:14px'>($countDeDomains $domains)</a>",
 				"$ahref{$ligne["server_port"]}</a>",
 				"$ahref{$ligne["server_type"]}</a>",
 				$delete )
@@ -696,8 +707,7 @@ function construct_options(){
 	$NewOptions=base64_encode(serialize($f));
 	$q->QUERY_SQL("UPDATE squid_parents SET options='$NewOptions' WHERE ID='$ID'","artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}	
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");	
+
 	
 }
 
@@ -723,7 +733,7 @@ function delete_options(){
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");
+	
 }
 
 function EnableParentProxy(){
@@ -733,7 +743,7 @@ function EnableParentProxy(){
 	$ini->loadString($ArticaSquidParameters);
 	$ini->_params["NETWORK"]["EnableParentProxy"]=$_GET["EnableParentProxy"];
 	$sock->SET_INFO("ArticaSquidParameters",$ini->toString());
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");
+
 	
 }
 function prefer_direct(){
@@ -751,7 +761,7 @@ function prefer_direct(){
 	$ini->loadString($ArticaSquidParameters);
 	$ini->_params["NETWORK"]["nonhierarchical_direct"]=$_GET["nonhierarchical_direct"];
 	$sock->SET_INFO("ArticaSquidParameters",$ini->toString());
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");	
+
 }
 
 

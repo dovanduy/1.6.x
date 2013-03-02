@@ -323,7 +323,7 @@ count:=0;
        pid:=TAIL_PID_NUM();
        ufdb_admin_events('ufdbguardd-tail started pid '+pid,'TAIL_START','286');
        logs.DebugLogs('Starting......: ufdbguardd-tail started with new PID '+pid);
-
+       SYS.THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart squidcache-tail');
        if not noufdbg  then begin
           ufdb_admin_events('Reloading UfdbGuard daemon','TAIL_START','294');
           fpsystem('/etc/init.d/ufdb reconfig');

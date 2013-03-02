@@ -221,13 +221,20 @@ function Tcyrus.POSTFIX_QUEUE_DIRECTORY():string;
 var
     ver:string;
     tmp:string;
+    l:Tstringlist;
+    postconf:string;
 begin
-   if not FileExists('/usr/sbin/postconf') then exit;
+   postconf:=SYS.LOCATE_GENERIC_BIN('postconf');
+   if not FileExists(postconf) then exit;
    tmp:=logs.FILE_TEMP();
-   fpsystem('/usr/sbin/postconf -h queue_directory >'+tmp+' 2>&1');
+   fpsystem(postconf+' -h queue_directory >'+tmp+' 2>&1');
    if not FileExists(tmp) then exit;
-   ver:=logs.ReadFromFile(tmp);
+   l:=Tstringlist.Create;
+   l.LoadFromFile(tmp);
+   ver:=trim(l.Strings[0]);
+   l.free;
    logs.DeleteFile(tmp);
+   if ver='' then ver:='/var/spool/postfix';
    exit(trim(ver));
 
 end;
@@ -2168,9 +2175,9 @@ begin
 
 
      forceDirectories('/var/spool/postfix/var/run/cyrus/socket');
-     lmtpsocket:=IMAPD_GET('lmtpsocket');
+     lmtpsocket:=trim(IMAPD_GET('lmtpsocket'));
      logs.DebugLogs('Starting......: cyrus-imapd lmtpsocket:'+lmtpsocket);
-
+     if lmtpsocket='/var/spool/postfix' then lmtpsocket:='/var/spool/postfix/var/run/cyrus/socket/lmtp';
 
      if lmtpsocket<>'/var/spool/postfix/var/run/cyrus/socket/lmtp' then begin
         logs.DebugLogs('Starting......: Linking lmtp socket');
@@ -2481,7 +2488,7 @@ end;
    list2.Add('');
    list2.Add('idlesocket: /var/run/cyrus/socket/idle');
    list2.Add('notifysocket: /var/run/cyrus/socket/notify');
-   list2.Add('lmtpsocket: '+ POSTFIX_QUEUE_DIRECTORY()+'/var/run/cyrus/socket/lmtp');
+   list2.Add('lmtpsocket: '+ trim(POSTFIX_QUEUE_DIRECTORY())+'/var/run/cyrus/socket/lmtp');
    list2.Add('sasl_saslauthd_path:/var/run/saslauthd/mux');
    list2.Add('');
    list2.Add('');

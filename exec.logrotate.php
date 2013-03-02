@@ -1,5 +1,6 @@
 <?php
 $GLOBALS["COMMANDLINE"]=implode(" ",$argv);if(strpos($GLOBALS["COMMANDLINE"],"--verbose")>0){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["DEBUG"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__)."/ressources/class.system.network.inc");
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
@@ -25,6 +26,7 @@ if($argv[1]=="--reconfigure"){reconfigure();die();}
 if($argv[1]=="--run"){run();die();}
 if($argv[1]=="--mysql"){InstertIntoMysql();die();}
 if($argv[1]=="--var"){CheckLogStorageDir($argv[2]);die();}
+if($argv[1]=="--clean"){CleanMysqlDatabase();die();}
 
 
 
@@ -122,7 +124,7 @@ function InstertIntoMysql(){
 	if(!is_numeric($ApacheLogRotate)){$ApacheLogRotate=1;}
 	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
 	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
-	if(!is_numeric($LogRotatePath)){$LogRotatePath="/home/logrotate";}	
+	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}	
 	
 	$paths=array();
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -390,6 +392,103 @@ function CheckLogStorageDir($DirPath=null){
 	shell_exec("$rm -rf $tmpdir 2>&1");
 	
 	
+}
+
+function CleanMysqlDatabase(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+	$timefile="/etc/artica-postfix/pids/logrotate.". __FUNCTION__.".time";
+	$pid=@file_get_contents("$pidfile");
+	if($unix->process_exists($pid,basename(__FILE__))){system_admin_events("Already executed PID $pid",__FUNCTION__,__FILE__,__LINE__,"logrotate");die();}
+	@file_put_contents($pidfile, getmypid());
+	$time=$unix->file_time_min($timefile);
+	if($time<15){system_admin_events("No less than 15mn or delete $timefile file",__FUNCTION__,__FILE__,__LINE__,"logrotate");die();}
+	@unlink($timefile);
+	@file_put_contents($timefile, time());	
+	
+	$sock=new sockets();
+	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
+	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
+	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
+	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
+	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
+	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
+	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
+	
+	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
+	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
+	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
+	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
+	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}	
+	
+	
+	@mkdir("$BackupMaxDaysDir",0755);
+	if(!is_dir($BackupMaxDaysDir)){
+		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
+		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		return false;
+	}
+$t=time();
+	@file_put_contents("$BackupMaxDaysDir/$t", time());
+	if(!is_file("$BackupMaxDaysDir/$t")){
+		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
+		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		return false;		
+	}
+	@unlink("$BackupMaxDaysDir/$t");
+	
+	$q=new mysql_syslog();
+	$sql="SELECT `filename`,`taskid`,`filesize`,`filetime` FROM `store` WHERE filetime<DATE_SUB(NOW(),INTERVAL 30 DAY)";
+	$results=$q->QUERY_SQL($sql);
+	
+	if($GLOBALS["VERBOSE"]){echo "$sql ($q->mysql_error) ". mysql_num_rows($results)." file(s)\n";}
+	
+	if(!$q->ok){
+		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}
+	
+	while ($ligne = mysql_fetch_assoc($results)) {	
+		if($GLOBALS["VERBOSE"]){echo "Processing {$ligne["filename"]}\n";}
+		if(!ExtractFileFromDatabase($ligne["filename"],$BackupMaxDaysDir)){return false;}
+	}
+	
+	
+}
+
+function ExtractFileFromDatabase($filename,$nextDir){
+	$q=new mysql_syslog();
+	$unix=new unix();
+	$TempDir="/home/artica-extract-temp";
+	@mkdir("/home/artica-extract-temp",0777);
+	@chown("/home/artica-extract-temp", "mysql");
+	@chdir("/home/artica-extract-temp", "mysql");
+	$filebase=basename($filename);
+
+	
+	$q->QUERY_SQL("SELECT filedata INTO DUMPFILE '$TempDir/$filebase' FROM store WHERE filename = '$filename'");
+	if(!$q->ok){
+		if($GLOBALS["VERBOSE"]){echo "FATAL ($q->mysql_error)\n";}
+		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		return false;
+	}
+	
+	if(!@copy("$TempDir/$filebase", "$nextDir/$filebase")){
+		if($GLOBALS["VERBOSE"]){echo "FATAL $nextDir/$filebase permission denied\n";}
+		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		return false;		
+	}
+	
+	@unlink("$TempDir/$filebase");
+	
+	$q->QUERY_SQL("DELETE FROM store WHERE filename = '$filename'");
+	if(!$q->ok){
+		if($GLOBALS["VERBOSE"]){echo "FATAL ($q->mysql_error)\n";}
+		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		return false;
+	}
+	system_admin_events("Success Extract log file $filebase to $nextDir",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+	return true;
 }
 
 

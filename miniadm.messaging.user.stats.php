@@ -15,8 +15,14 @@ if(isset($_GET["messaging-stats"])){messaging_stats();exit;}
 if(isset($_GET["today"])){today();exit;}
 if(isset($_GET["today-calc"])){today_calc();exit;}
 if(isset($_GET["today-items"])){today_items();exit;}
+
+
 if(isset($_GET["greylisth"])){greylisth_table();exit;}
 if(isset($_GET["greylisth-items"])){greylisth_items();exit;}
+
+if(isset($_GET["greylistm"])){greylistm_table();exit;}
+if(isset($_GET["greylistm-items"])){greylistm_items();exit;}
+
 
 
 main_page();
@@ -58,6 +64,7 @@ function messaging_tabs(){
 	
 	$q=new mysql_postfix_builder();
 	$tablegrey="mgreyh_".date('Ymdh');
+	$tablegreyM="mgreym_".date('Ym');
 	
 	if($q->TABLE_EXISTS("$tablegrey")){
 		$ct=new user($_SESSION["uid"]);
@@ -65,11 +72,23 @@ function messaging_tabs(){
 		while (list ($index, $message) = each ($mails) ){$q1[]=" (`mailto`='$message')";}	
 		$FORCE_FILTER=" AND (".@implode("OR", $q1).")";	
 		$sql="SELECT COUNT(zmd5) as tcount from $tablegrey WHERE 1$FORCE_FILTER";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
 		if($ligne["tcount"]>0){
 			$array["greylisth"]=date("H")."h {greylist}";
 		}
 	}
+	
+	if($q->TABLE_EXISTS("$tablegreyM")){
+		$ct=new user($_SESSION["uid"]);
+		$mails=$ct->HASH_ALL_MAILS;
+		while (list ($index, $message) = each ($mails) ){$q1[]=" (`mailto`='$message')";}
+		$FORCE_FILTER=" AND (".@implode("OR", $q1).")";
+		$sql="SELECT COUNT(zmd5) as tcount from $tablegreyM WHERE 1$FORCE_FILTER";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
+		if($ligne["tcount"]>0){
+			$array["greylistm"]=$tpl->_ENGINE_parse_body("{".date("F")."} {greylist}");
+		}
+	}	
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -449,4 +468,173 @@ function today_items(){
 	
 echo json_encode($data);	
 	
+}
+
+
+function greylistm_table(){
+	
+	$t=time();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$TB_HEIGHT=400;
+	$TB_WIDTH=710;
+
+	$ct=new user($_SESSION["uid"]);
+	$mails=$ct->HASH_ALL_MAILS;
+	while (list ($index, $message) = each ($mails) ){$q1[]="`$message`";}
+	$TTIME=date("{F}");
+	$new_entry=$tpl->_ENGINE_parse_body("{new_rule}");
+	$filename=$tpl->_ENGINE_parse_body("{filename}");
+	$date=$tpl->_ENGINE_parse_body("{days}");
+	$title=$tpl->_ENGINE_parse_body("{greylisting} {received_messages} $TTIME")." <span style=font-size:10px>".@implode(",", $q1)."</span>";
+	$from=$tpl->_ENGINE_parse_body("{sender}");
+	$size=$tpl->javascript_parse_text("{size}");
+	$enable=$tpl->_ENGINE_parse_body("{enable}");
+	$compile_rules=$tpl->_ENGINE_parse_body("{compile_rules}");
+	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
+	$options=$tpl->_ENGINE_parse_body("{options}");
+	$items=$tpl->_ENGINE_parse_body("{items}");
+	$hits=$tpl->_ENGINE_parse_body("{hits}");
+
+
+
+	$buttons="
+	buttons : [
+	{name: '$new_entry', bclass: 'Add', onpress : NewGItem$t},
+	{name: '$compile_rules', bclass: 'Reconf', onpress : MimeDefangCompileRules},
+	{name: '$options', bclass: 'Settings', onpress : Options$t},
+	{name: '$items', bclass: 'Db', onpress : ShowTable$t},
+	{name: '$online_help', bclass: 'Help', onpress : ItemHelp$t},
+
+	],	";
+
+	$buttons=null;
+
+	//zday 	zhour 	mailfrom 	instancename 	mailto 	domainfrom 	domainto 	senderhost 	recipienthost 	mailsize 	smtpcode
+	$html="
+
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
+	<script>
+	var mem$t='';
+	$(document).ready(function(){
+	$('#flexRT$t').flexigrid({
+	url: '$page?greylistm-items=yes&t=$t',
+	dataType: 'json',
+	colModel : [
+	{display: '$date', name : 'zday', width :103, sortable : true, align: 'left'},
+	{display: '$hits', name : 'hits', width :68, sortable : true, align: 'left'},
+	{display: '$from', name : 'mailfrom', width :592, sortable : true, align: 'left'},
+	{display: 'Grey', name : 'failed', width :103, sortable : true, align: 'left'},
+	],
+	$buttons
+
+	searchitems : [
+	{display: '$from', name : 'mailfrom'},
+
+	],
+	sortname: 'zday',
+	sortorder: 'desc',
+	usepager: true,
+	title: '$title',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: 940,
+	height: $TB_HEIGHT,
+	singleSelect: true,
+	rpOptions: [10, 20, 30, 50,100,200,500]
+
+});
+});
+</script>";
+
+echo $html;
+}
+
+function greylistm_items(){
+	$month=$_GET["month"];
+	$t=$_GET["t"];
+	if(!is_numeric($month)){$month=date("Ym");}
+	$tpl=new templates();
+	$MyPage=CurrentPageName();
+	$q=new mysql_postfix_builder();
+
+	
+	$ct=new user($_SESSION["uid"]);
+	$mails=$ct->HASH_ALL_MAILS;
+	while (list ($index, $message) = each ($mails) ){
+		$q1[]=" (`mailto`='$message')";
+	}
+
+	$search='%';
+	$table="mgreym_$month";
+	$database="artica_backup";
+	$page=1;
+	$FORCE_FILTER=" AND (".@implode("OR", $q1).")";
+	if(!$q->TABLE_EXISTS($table)){
+		json_error_show("$table: No such table",0,true);
+	}
+
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
+
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+	}
+
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+
+
+
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	$results = $q->QUERY_SQL($sql,$database);
+
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
+
+	if(!$q->ok){json_error_show($q->mysql_error);}
+
+
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$zmd5=md5($ligne["filename"]);
+		$color="#D90505";
+		$res=strtolower(trim($ligne["failed"]));
+		if($res=="accept"){$color="#00922B";}
+			
+		$delete=imgsimple("delete-24.png","","DeleteFileNameHosting$t('{$ligne["filename"]}','$zmd5')");
+			
+			
+		$ztime=strtotime($ligne["zday"]." 00:00:00");
+		$zday=$tpl->_ENGINE_parse_body(date("{l} d",$ztime));
+		$ligne["failed"]=$tpl->_ENGINE_parse_body("{{$ligne["failed"]}}");
+			
+		$data['rows'][] = array(
+				'id' => "D$zmd5",
+				'cell' => array(
+						"<span style='font-size:14px;color:black'>$zday</a></span>",
+						"<span style='font-size:14px;color:black'>{$ligne["hits"]}</a></span>",
+						"<span style='font-size:14px;color:black'>$urljs{$ligne["mailfrom"]}</a></span>",
+						"<span style='font-size:14px;color:$color'>$urljs{$ligne["failed"]}</a></span>",
+							
+				)
+		);
+	}
+
+
+	echo json_encode($data);
 }

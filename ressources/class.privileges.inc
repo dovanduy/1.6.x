@@ -143,10 +143,12 @@ $spec",1);
 		if(isset($GLOBALS["privileges_groups_AD$this->uid"])){return;}
 		include_once(dirname(__FILE__))."/class.external.ad.inc";
 		$gp=new external_ad_search();
+		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] ->LoadMember($this->uid)<br>\n";}
 		$attrs=$gp->LoadMember($this->uid);
 		if(!isset($attrs["distinguishedName"][0])){
 			if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] distinguishedName = NULL<br>\n";}
-			return false;}
+			return false;
+		}
 		$dn=$attrs["distinguishedName"][0];
 		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] ->GroupsOfMember($dn)<br>\n";}
 		$Groups=$gp->GroupsOfMember($dn);
@@ -154,6 +156,9 @@ $spec",1);
 			if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] GroupsOfMember = Not an array<br>\n";}
 			return false;
 		}
+		
+		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] ->GroupsOfMember(".count($Groups).") items<br>\n";}
+		
 		while (list ($dnGroup, $GroupName) = each ($Groups) ){
 			$hash=$gp->LoadGroupDataByDN($dnGroup);
 			if(strlen($hash["ArticaGroupPrivileges"])>0){
@@ -172,10 +177,10 @@ $spec",1);
 			
 			$ldap=new clladp();
 			if($ldap->IsKerbAuth()){
-				if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] IsKerbAuth() -> `TRUE`<br>\n";}
+				if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] IsKerbAuth() -> `TRUE` -> privileges_groups_AD()<br>\n";}
 				if($this->privileges_groups_AD()){return;}
 			}else{
-					if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] IsKerbAuth() -> `FALSE`<br>\n";}
+				if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] IsKerbAuth() -> `FALSE`<br>\n";}
 			}
 			
 			

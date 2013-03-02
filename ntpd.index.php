@@ -1,4 +1,5 @@
 <?php
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -18,7 +19,7 @@
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["enable-ntpd-switch"])){ntpd_switch();exit;}
 	if(isset($_GET["list"])){echo main_server_list();exit;}
-	if(isset($_GET["country"])){ntpdAddCountry();exit;}
+	if(isset($_POST["country"])){ntpdAddCountry();exit;}
 	if(isset($_GET["ntpd-server"])){ntpd_server_mode();exit;}
 	js();
 	
@@ -149,19 +150,12 @@ function main_tabs(){
 		}
 	
 	return "
-	<div id=ntpd_main_config style='width:100%;overflow:auto'>
+	<div id=ntpd_main_config style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
 				$(document).ready(function(){
-					$('#ntpd_main_config').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
+					$('#ntpd_main_config').tabs();
 			
 		
 			});
@@ -285,8 +279,11 @@ function main_status(){
 
 function ntpd_main_config(){
 $ntp=new ntpd(true);
+$sock=new sockets();
 $array=$ntp->ServersList();
-
+$arrayTimzone=$ntp->timezonearray();
+$timezone_def=trim($sock->GET_INFO('timezones'));
+$t=time();
 while (list ($num, $val) = each ($array) ){
 	$i[$num]=$num;
 }
@@ -296,11 +293,24 @@ $choose=Field_array_Hash($i,'ntpd_servers_choosen',null,null,null,0,'font-size:1
 
 	 $page=CurrentPageName();
 	 $form="
-	 <table style='width:100%'>
+	 <table style='width:99%' class=form>
 	 <tr>
+	 	<td valign='middle' class=legend nowrap style='font-size:14px'>{servers}:</td>
 	 	<td valign='top' style='width:2%;padding-top:5px'>$choose</td>
-	 	<td style='width:100%;padding-top:3px' align='left' valign='top'>". button('{apply}',"ntpd_choose_server()",14)."</td>
+	 	
 	 </tr>
+	<tr>
+		<td valign='middle' class=legend nowrap style='font-size:14px'>{timezone}:</td>
+		<td valign='top'>".Field_array_Hash($arrayTimzone,"timezones$t",$timezone_def,null,null,"style:font-size:14px;padding:3px")."</td>
+		
+	</tr> 
+	<tr>
+		<td colspan=2 align='right'>
+				<div style='font-size:11px;text-align:right'><i>{today}: ". date("{l} d {F} Y H:i:s")."</i></div>
+				<hr>". button('{apply}',"ntpd_choose_server()",14)."</td>
+	</tr>
+				
+				
 	 </table>
 	 <div class=explain>{how_to_find_timeserver}</div><hr>
 
@@ -316,8 +326,9 @@ $choose=Field_array_Hash($i,'ntpd_servers_choosen',null,null,null,0,'font-size:1
 	 		function ntpd_choose_server(){
 				var XHR = new XHRConnection();
 	      		XHR.appendData('country',document.getElementById('ntpd_servers_choosen').value);
-	      		document.getElementById('serverlist').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
-	      		XHR.sendAndLoad('$page', 'GET',X_ntpd_choose_server);    
+	      		XHR.appendData('timezones',document.getElementById('timezones$t').value);
+	      		AnimateDiv('serverlist');
+	      		XHR.sendAndLoad('$page', 'POST',X_ntpd_choose_server);    
 			}
 	 		
 		var X_ntpd_choose_server= function (obj) {
@@ -339,7 +350,7 @@ $choose=Field_array_Hash($i,'ntpd_servers_choosen',null,null,null,0,'font-size:1
 
 function main_server_list(){
 	$ntp=new ntpd();
-	if(!is_array($ntp->servers)){return null;}
+	$q=new mysql();
 	
 	$html="
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%;margin-top:10px'>
@@ -351,13 +362,21 @@ function main_server_list(){
 </thead>
 <tbody class='tbody'>";	
 	
-	while (list ($num, $val) = each ($ntp->servers) ){
-	if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
+	$sql="SELECT * FROM ntpd_servers ORDER BY `ntpd_servers`.`order` ASC";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	if(mysql_num_rows($results)==0){
+		$ntp->builddefaults_servers();
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+	}
+	if(!$q->ok){echo "$q->mysql_error<br>";}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
+		$order=$ligne["order"];
 		$html=$html . "<tr class=$classtr>
-		<td nowrap><strong><code style='font-size:14px'>$val</code></strong></td>
-		<td width=1% valign='middle'>" . imgtootltip('arrow-down-32.png','{down}',"ntpdservermove('$num','down')")."</TD>
-		<td width=1% valign='middle'>" . imgtootltip('arrow-up-32.png','{up}',"ntpdservermove('$num','up')")."</TD>
-		<td width=1% valign='middle'>" . imgtootltip('delete-32.png','{delete}',"ntpdserverdelete('$num')")."</TD>		
+		<td nowrap><strong><code style='font-size:14px'>[$order]&nbsp;{$ligne["ntp_servers"]}</code></strong></td>
+		<td width=1% valign='middle'>" . imgtootltip('arrow-down-32.png','{down}',"ntpdservermove('{$ligne["ntp_servers"]}','down')")."</TD>
+		<td width=1% valign='middle'>" . imgtootltip('arrow-up-32.png','{up}',"ntpdservermove('{$ligne["ntp_servers"]}','up')")."</TD>
+		<td width=1% valign='middle'>" . imgtootltip('delete-32.png','{delete}',"ntpdserverdelete('{$ligne["ntp_servers"]}')")."</TD>		
 		</tr>
 		";
 		
@@ -475,38 +494,52 @@ function main_switch_op(){
 function main_logs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$html="<iframe src='ntpd.events.php' style='width:100%;height:500px;border:0px'></iframe>";
+	$html="<iframe src='ntpd.events.php' style='width:100%;height:700px;border:0px'></iframe>";
 	echo $tpl->_ENGINE_parse_body($html);
 	}
 
 	
 function ntpdAddCountry(){
+	$sock=new sockets();
+	$sock->SET_INFO("timezones",$_POST["timezones"]);
+	$sock->getFrameWork("system.php?zoneinfo-set=".base64_encode($_POST["timezones"]));
+	
 	$ntp=new ntpd();
 	$countries=$ntp->ServersList();
-	unset($ntp->servers);
-	while (list ($num, $server) = each ($countries[$_GET["country"]]) ){
-		$ntp->servers[]=$server;
+	$q=new mysql();
+	$array=$countries[$_POST["country"]];
+	writelogs("{$_POST["country"]}! TRUNCATE TABLE ntpd_servers",__FUNCTION__,__FILE__,__LINE__);
+	$q->QUERY_SQL("TRUNCATE TABLE ntpd_servers","artica_backup");
+	
+	
+	while (list ($num, $server) = each ($array) ){
+		$added[]=$server;
+		$sql="INSERT IGNORE INTO ntpd_servers (`ntp_servers`,`ntpd_servers`.`order`) VALUES ('$server','$num')";
+		writelogs("{$_POST["country"]}! $sql",__FUNCTION__,__FILE__,__LINE__);
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){$q->mysql_error;}
 		
 	}
 	$ntp->SaveToLdap();
-	
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("{added}\n".@implode("\n", $array),1);
 	
 }
 	
 function ntpdAdd(){
 	$ntp=new ntpd();
-	$ntp->servers[]=$_GET["ntpdAdd"];
-	$ntp->SaveToLdap();
+	$ntp->AddServer($_GET["ntpdAdd"]);
+	
 	}
 function ntpdservermove(){
 	$ntp=new ntpd();
-	$ntp->servers=array_move_element($ntp->servers,$ntp->servers[$_GET["ntpdservermove"]],$_GET["direction"]);
-	$ntp->SaveToLdap();
+	$servername=$_GET["ntpdservermove"];
+	$direction=$_GET["direction"];
+	$ntp->MoveServer($servername,$direction);
 	}
 function ntpdserverdelete(){
 	$ntp=new ntpd();
-	unset($ntp->servers[$_GET["ntpdserverdelete"]]);
-	$ntp->SaveToLdap();
+	$ntp->DeleteServer($_GET["ntpdservermove"]);
 	}
 function NTPDEnabled(){
 	$sock=new sockets();

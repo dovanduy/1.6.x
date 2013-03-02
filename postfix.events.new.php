@@ -18,7 +18,7 @@
 	
 	if(isset($_GET["table-list"])){events_list();exit;}
 	if(isset($_GET["js-zarafa"])){js_zarafa();exit;}
-	
+	if(isset($_GET["ZoomEvents"])){ZoomEvents();exit;}
 	
 page();
 
@@ -108,6 +108,10 @@ $('#flexRT$t').flexigrid({
 	});   
 });
 
+function ZoomEvents(content){
+	RTMMail(650,'$page?ZoomEvents='+content);
+}
+
 </script>
 ";
 	
@@ -127,7 +131,7 @@ function events_list(){
 	if($_POST["sortorder"]=="desc"){krsort($array);}else{ksort($array);}
 	
 	while (list ($index, $line) = each ($array) ){
-	
+		$lineenc=base64_encode($line);
 		if(preg_match("#^[a-zA-Z]+\s+[0-9]+\s+([0-9\:]+)\s+(.+?)\s+(.+?)\[([0-9]+)\]:(.+)#", $line,$re)){
 			$date="{$re[1]}";
 			$host=$re[2];
@@ -140,6 +144,8 @@ function events_list(){
 		
 		$img=statusLogs($line);
 		
+		$loupejs="ZoomEvents('$lineenc')";
+		$line="<a href=\"javascript:blur();\"OnClick=\"javascript:$loupejs\"><img src='img/tree_loupe.gif' align='right'><span style='font-size:12px'>$line</span></a>";
 	
 	$data['rows'][] = array(
 				'id' => "dom$m5",
@@ -157,6 +163,13 @@ function events_list(){
 	$data['page'] = 1;
 	$data['total'] =count($array);
 	echo json_encode($data);		
+	
+}
+
+function ZoomEvents(){
+	
+	$ev=base64_decode($_GET["ZoomEvents"]);
+	echo "<div style='font-size:14px;width:95%' class=form>$ev</div>";
 	
 }
 

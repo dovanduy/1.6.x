@@ -15,7 +15,7 @@ If a log file exceed this size, artica process will delete it automatically to n
 <ArticaProxyServerUsername>Username</ArticaProxyServerUsername>
 <ArticaProxyServerUserPassword>Password</ArticaProxyServerUserPassword>
 <ArticaWebRootURI>Link to artica web site</ArticaWebRootURI>
-<ArticaWebRootURI_text>This link will be used for reports sended to yours users in order to provide release mails features from SMTP notifications</ArticaWebRootURI_text>
+<ArticaWebRootURI_text>This link will be used for reports sent to yours users in order to provide release mails features from SMTP notifications</ArticaWebRootURI_text>
 <ARTICA_FILTER_MAXSUBQUEUE>Max queue processes</ARTICA_FILTER_MAXSUBQUEUE>
 <ARTICA_FILTER_MAXSUBQUEUE_TEXT>To check and release all mails into the artica-filter queue, and depends of your server load, you 
 can increase or decrease the number of process that check files into the queue[br][b]each process will release 10 mails before die.[/b]</ARTICA_FILTER_MAXSUBQUEUE_TEXT>

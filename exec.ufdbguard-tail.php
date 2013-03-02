@@ -267,11 +267,11 @@ if(preg_match("#\] REDIR\s+#", $buffer)){return;}
 		$table=date('Ymd')."_blocked";
 		$category=CategoryCodeToCatName($category);
 		if($user=="-"){$user=null;}
-		$MAC=xGetMacFromIP($local_ip);
+		$MAC=$GLOBALS["CLASS_UNIX"]->IpToMac($local_ip);
 		$time=time();
 		if(!is_dir("/var/log/artica-postfix/pagepeeker")){@mkdir("/var/log/artica-postfix/pagepeeker",600,true);}
-		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){$public_ip=$www;$www=IpToHostname($www);}
-		$Clienthostname=IpToHostname($local_ip);
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){$public_ip=$www;$www=$GLOBALS["CLASS_UNIX"]->IpToHostname($www);}
+		$Clienthostname=$GLOBALS["CLASS_UNIX"]->IpToHostname($local_ip);
 		
 		$array["uid"]=$user;
 		$array["MAC"]=$MAC;
@@ -311,10 +311,10 @@ if(preg_match("#\] REDIR\s+#", $buffer)){return;}
 		$www=$array["host"];
 		if(strpos($www, ":")>0){$t=explode(":", $www);$www=$t[0];}
 		$category=CategoryCodeToCatName($category);
-		$MAC=xGetMacFromIP($local_ip);
-		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){$public_ip=$www;$www=IpToHostname($www);}else{$public_ip=HostnameToIp($www);}
+		$MAC=$GLOBALS["CLASS_UNIX"]->IpToMac($local_ip);
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){$public_ip=$www;$www=$GLOBALS["CLASS_UNIX"]->IpToHostname($www);}else{$public_ip=HostnameToIp($www);}
 		if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}
-		$Clienthostname=IpToHostname($local_ip);
+		$Clienthostname=$GLOBALS["CLASS_UNIX"]->IpToHostname($local_ip);
 		if($user=="-"){$user=null;}
 		$md5=md5("$date,$local_ip,$rulename,$category,$www,$public_ip$MAC$user");
 		
@@ -353,18 +353,7 @@ function HostnameToIp($hostname){
 	return $GLOBALS["IPNAMES2"][$hostname];
 }
 
-function IpToHostname($ipaddr){
-	if(isset($GLOBALS["IPNAMES"][$ipaddr])){return $GLOBALS["IPNAMES"][$ipaddr];}
-	
-	if(count($GLOBALS["IPNAMES"])>1500){$GLOBALS["IPNAMES"]=array();}
-	$hostres=gethostbyaddr($ipaddr);
-	if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $hostres)){
-		$GLOBALS["IPNAMES"][$ipaddr]=$hostres;
-		return $hostres;
-	}
-	$GLOBALS["IPNAMES"][$ipaddr]=$ipaddr;
-	return $ipaddr;
-}
+
 
 
 function CategoryCodeToCatName($category){
@@ -428,55 +417,7 @@ function xsyslog($text){
 	
 }
 
-	function xGetMacFromIP($ipaddr){
-		$ipaddr=trim($ipaddr);
-		$ttl=date('YmdH');
-		if(count($GLOBALS["CACHEARP"])>3){unset($GLOBALS["CACHEARP"]);}
-		if(isset($GLOBALS["CACHEARP"][$ttl][$ipaddr])){return $GLOBALS["CACHEARP"][$ttl][$ipaddr];}
-		
-		if(!isset($GLOBALS["SBIN_ARP"])){$unix=new unix();$GLOBALS["SBIN_ARP"]=$unix->find_program("arp");}
-		if(!isset($GLOBALS["SBIN_ARPING"])){$unix=new unix();$GLOBALS["SBIN_ARPING"]=$unix->find_program("arping");}
-		
-		if(strlen($GLOBALS["SBIN_ARPING"])>3){
-			$cmd="{$GLOBALS["SBIN_ARPING"]} $ipaddr -c 1 -r 2>&1";
-			exec($cmd,$results);
-			while (list ($num, $line) = each ($results)){
-				if(preg_match("#^([0-9a-zA-Z\:]+)#", $line,$re)){
-					$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
-					return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
-				}
-			}
-		}
-		
-		
-		$results=array();
-			
-		if(strlen($GLOBALS["SBIN_ARP"])<4){return;}
-		if(!isset($GLOBALS["SBIN_PING"])){$unix=new unix();$GLOBALS["SBIN_PING"]=$unix->find_program("ping");}
-		if(!isset($GLOBALS["SBIN_NOHUP"])){$unix=new unix();$GLOBALS["SBIN_NOHUP"]=$unix->find_program("nohup");}
-		
-		
-		
-		
-		$cmd="{$GLOBALS["SBIN_ARP"]} -n \"$ipaddr\" 2>&1";
-		
-		exec($cmd,$results);
-		while (list ($num, $line) = each ($results)){
-			if(preg_match("#^[0-9\.]+\s+.+?\s+([0-9a-z\:]+)#", $line,$re)){
-				if($re[1]=="no"){continue;}
-				$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
-				return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
-			}
-			
-		}
-		
-		if(!isset($GLOBALS["PINGEDHOSTS"][$ipaddr])){
-			shell_exec("{$GLOBALS["SBIN_NOHUP"]} {$GLOBALS["SBIN_PING"]} $ipaddr -c 3 >/dev/null 2>&1 &");
-			$GLOBALS["PINGEDHOSTS"][$ipaddr]=true;
-		}
-			
-		
-	}
+
 
 
 ?>

@@ -21,7 +21,9 @@ function MemoryInstances(){
 		$Toremove["exec.squid-tail.php"]=true;
 		$Toremove["exec.fetmaillog.php"]=true;
 		$Toremove["exec.dansguardian-tail.php"]=true;	
-		$Toremove["exec.auth-tail.php"]=true;	
+		$Toremove["exec.auth-tail.php"]=true;
+		$Toremove["exec.logfile_daemon.php"]=true;
+		$Toremove["exec.cache-logs.php"]=true;
 		$Toremove["exec.artica-filter-daemon.php"]=true;	
 		$Toremove["exec.postfix-logger.php"]=true;
 		$Toremove["exec.squid2.logger.php"]=true;
@@ -31,6 +33,7 @@ function MemoryInstances(){
 		$Toremove["external_acl_squid.php"]=true;
 		$Toremove["exec.offlineimap.php"]=true;
 		$Toremove["exec.mailbox.migration.php"]=true;
+		$Toremove["exec.logfile_daemon.php"]=true;
 		$Toremove["exec.pdns.pipe.php"]=true;
 		
 		
@@ -50,6 +53,7 @@ function MemoryInstances(){
 		$arrayK["exec.ipband.php"]=60;					
 		$arrayK["exec.testspeed.php"]=15;
 		$arrayK["exec.syslog-engine.php"]=30;
+		$arrayK["exec.my-rbl.check.php"]=15;
 			
 		$array=array();
 		$cmd="$pgrep -l -f \"artica-postfix/exec\..*?\.php\" 2>&1";

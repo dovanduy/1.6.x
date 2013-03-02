@@ -297,7 +297,7 @@ class squidnodes{
 			$conf[]="#--------- LOGS --";
 			$conf[]="coredump_dir	/var/squid/cache";
 			$conf[]="cache_log	stdio:/var/log/squid/cache.log";
-			$conf[]="pid_filename	/var/run/squid.pid";
+			$conf[]="pid_filename	/var/run/squid/squid.pid";
 			$conf[]="error_directory /usr/share/squid-langpack/en";
 			$conf[]="logformat common MAC:%>eui %>a %[ui %[un [%tl] \"%rm %ru HTTP/%rv\" %>Hs %<st %Ss:%Sh UserAgent:\"%{User-Agent}>h\"";
 			$conf[]="cache_store_log	stdio:/var/log/squid/store.log";
@@ -409,7 +409,7 @@ class squidnodes{
 	
 	private function ObjectLimits(){
 		$squid=$GLOBALS["CLASS_SQUIDBEE"];
-			if(preg_match("#([0-9+])#",$squid->global_conf_array["request_header_max_size"],$re)){
+			if(preg_match("#([0-9]+)#",$squid->global_conf_array["request_header_max_size"],$re)){
 				$request_header_max_size=$re[1];
 				if(!is_numeric($request_header_max_size)){$request_header_max_size=0;}
 				if($request_header_max_size>0){
@@ -418,7 +418,7 @@ class squidnodes{
 				}
 		}
 		
-		if(preg_match("#([0-9+])#",$squid->global_conf_array["client_request_buffer_max_size"],$re)){
+		if(preg_match("#([0-9]+)#",$squid->global_conf_array["client_request_buffer_max_size"],$re)){
 				$client_request_buffer_max_size=$re[1];
 				if(!is_numeric($client_request_buffer_max_size)){$client_request_buffer_max_size=512;}
 				if($client_request_buffer_max_size>0){
@@ -426,25 +426,25 @@ class squidnodes{
 				}
 		}	
 
-		if(preg_match("#([0-9+])#",$squid->global_conf_array["reply_body_max_size"],$re)){
+		if(preg_match("#([0-9]+)#",$squid->global_conf_array["reply_body_max_size"],$re)){
 				$reply_body_max_size=$re[1];
 				if($request_header_max_size==0){$reply_body_max_size=0;}
 				if(!is_numeric($reply_body_max_size)){$reply_body_max_size=0;}
 				if($reply_body_max_size<$request_header_max_size){$reply_body_max_size=$reply_body_max_size*2;}
 			}
 		
-		if(preg_match("#([0-9+])#",$squid->global_conf_array["request_body_max_size"],$re)){
+		if(preg_match("#([0-9]+)#",$squid->global_conf_array["request_body_max_size"],$re)){
 			$request_body_max_size=$re[1];
 			if(!is_numeric($request_body_max_size)){$request_body_max_size=0;}			
 		}
 		
-		if(preg_match("#([0-9+])#",$squid->global_conf_array["reply_header_max_size"],$re)){
+		if(preg_match("#([0-9]+)#",$squid->global_conf_array["reply_header_max_size"],$re)){
 			$reply_header_max_size=$re[1];
 			if(!is_numeric($reply_header_max_size)){$reply_header_max_size=64;}			
 		}
 		
 		
-		if(preg_match("#([0-9+])#",$squid->global_conf_array["maximum_object_size_in_memory"],$re)){
+		if(preg_match("#([0-9]+)#",$squid->global_conf_array["maximum_object_size_in_memory"],$re)){
 			$maximum_object_size_in_memory=$re[1];
 			if(preg_match("#([A-Z]+)#",$squid->global_conf_array["maximum_object_size_in_memory"],$re)){$maximum_object_size_in_memory_unit=$re[1];}
 			if($maximum_object_size_in_memory_unit==null){$maximum_object_size_in_memory_unit="KB";}
@@ -453,7 +453,7 @@ class squidnodes{
 			}
 		}
 		
-		if(preg_match("#([0-9+])#",$squid->global_conf_array["minimum_object_size"],$re)){
+		if(preg_match("#([0-9]+)#",$squid->global_conf_array["minimum_object_size"],$re)){
 			$minimum_object_size=$re[1];
 			if(preg_match("#([A-Z]+)#",$squid->global_conf_array["minimum_object_size"],$re)){$minimum_object_size_unit=$re[1];}
 			if($minimum_object_size_unit==null){$minimum_object_size_unit="KB";}
@@ -462,7 +462,7 @@ class squidnodes{
 		
 		
 		
-		if(preg_match("#([0-9+])#",$squid->global_conf_array["maximum_object_size"],$re)){
+		if(preg_match("#([0-9]+)#",$squid->global_conf_array["maximum_object_size"],$re)){
 			$maximum_object_size=$re[1];
 			if(preg_match("#([A-Z]+)#",$squid->global_conf_array["maximum_object_size"],$re)){$maximum_object_size_unit=$re[1];}
 			if($maximum_object_size_unit==null){$maximum_object_size_unit="KB";}
@@ -536,7 +536,7 @@ class squidnodes{
 		if(count($conf)==0){return null;}
 		return @implode("\n", $conf);		
 	}
-	
+
 		function SAFE_PORTS(){
 			$sock=new sockets();
 			$squid=$GLOBALS["CLASS_SQUIDBEE"];

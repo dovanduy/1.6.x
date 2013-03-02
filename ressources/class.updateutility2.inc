@@ -19,6 +19,9 @@ var $ALL_PKEYS=array();
 	
 	
 	private function default_settings_string(){
+			$sock=new sockets();
+			$UpdateUtilityStorePath=$sock->GET_INFO("UpdateUtilityStorePath");
+			if($UpdateUtilityStorePath==null){$UpdateUtilityStorePath="/home/kaspersky/UpdateUtility";}
 			$f[]="[ConnectionSettings]";
 			$f[]="TimeoutConnection=60";
 			$f[]="UsePassiveFtpMode=true";
@@ -41,6 +44,7 @@ var $ALL_PKEYS=array();
 			$f[]="LanguagesBox=0";
 			$f[]="ReturnCodeDesc=";
 			$f[]="";
+		
 			$f[]="[ReportSettings]";
 			$f[]="DisplayReportsOnScreen=false";
 			$f[]="SaveReportsToFile=true";
@@ -55,8 +59,8 @@ var $ALL_PKEYS=array();
 			$f[]="[DirectoriesSettings]";
 			$f[]="MoveToCurrentFolder=false";
 			$f[]="MoveToCustomFolder=true";
-			$f[]="UpdatesFolder=/var/db/kaspersky/databases";
-			$f[]="TempFolder=/var/db/kaspersky/databases/tmp";
+			$f[]="UpdatesFolder=$UpdateUtilityStorePath/databases";
+			$f[]="TempFolder=$UpdateUtilityStorePath/TempFolder";
 			$f[]="ClearTempFolder=true";
 			$f[]="";
 			$f[]="[UpdatesSourceSettings]";

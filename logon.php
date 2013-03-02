@@ -958,6 +958,7 @@ function lang(){
 
 
 function buildPage(){
+	if($GLOBALS["VERBOSE"]){echo "<H1>buildPage() function line ".__LINE__."</H1>";}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.user.inc');
@@ -971,9 +972,10 @@ function buildPage(){
 	$users=new usersMenus();
 	unset($_SESSION);
 	$GLOBALS["DEBUG_TEMPLATE"]=true;
-	
+	if($GLOBALS["VERBOSE"]){echo "<H1>articaLang() function line ".__LINE__."</H1>";}
 	$langAutodetect=new articaLang();
 	$DetectedLanguage=$langAutodetect->get_languages();
+	if($GLOBALS["VERBOSE"]){echo "<H1>DetectedLanguage = $DetectedLanguage line ".__LINE__."</H1>";}
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;	
 	$TEMPLATE_INDEX="logon.html";
 	
@@ -1036,17 +1038,18 @@ function buildPage(){
 	}
 	
 	if($users->SAMBA_APPLIANCE){$template="Samba";}
-	
+	if(trim($template)==null){if($users->SQUID_INSTALLED){$template="Squid";}}
 	if(trim($template)==null){if($users->SAMBA_INSTALLED){$template="Samba";}}
 	if(trim($template)==null){if($users->APACHE_INSTALLED){$template="Apache";}}
 
-if($GLOBALS["VERBOSE"]){echo "<H1>template=$template line ".__LINE__."</H1>";}
+	if($GLOBALS["VERBOSE"]){echo "<H1>template=$template line ".__LINE__."</H1>";}
 	
 	
 	if($template<>null){
 		$jquery=null;
 		
 		include_once(dirname(__FILE__)."/ressources/class.page.builder.inc");
+		if($GLOBALS["VERBOSE"]){echo "new pagebuilder() line ".__LINE__."</H1>";}
 		$p=new pagebuilder();
 		if(is_file("ressources/templates/$template/$TEMPLATE_INDEX"));
 		$tpl=@file_get_contents("ressources/templates/$template/$TEMPLATE_INDEX");
@@ -1058,7 +1061,7 @@ if($GLOBALS["VERBOSE"]){echo "<H1>template=$template line ".__LINE__."</H1>";}
 		}	
 		$log[]="<!-- TEMPLATE_INDEX:$TEMPLATE_INDEX -->";
 		
-
+		if($GLOBALS["VERBOSE"]){echo "Scanning ressources/templates/$template/js/*.js".__LINE__."<br>\n";}
 		foreach (glob("ressources/templates/$template/js/*.js") as $filename) {
 			$filename=basename($filename);
 			
@@ -1086,6 +1089,7 @@ if($GLOBALS["VERBOSE"]){echo "<H1>template=$template line ".__LINE__."</H1>";}
 		$sock=new sockets();
 		$TITLE_RESSOURCE="ressources/templates/$template/TITLE";
 		$favicon=$p->favicon($template);
+		if($GLOBALS["VERBOSE"]){echo "replace tokens line:".__LINE__."<br>\n";}
 		if(is_file($TITLE_RESSOURCE)){$title=@file_get_contents($TITLE_RESSOURCE);$title=str_replace("%server", $users->hostname, $title);}else{$title=$users->hostname;}
 		$tpl=str_replace("{COPYRIGHT}","Copyright 2006 - ". date('Y').$lang2Link,$tpl);
 		$tpl=str_replace("{copy-right}","Copyright 2006 - ". date('Y').$lang2Link,$tpl);
@@ -1100,7 +1104,7 @@ if($GLOBALS["VERBOSE"]){echo "<H1>template=$template line ".__LINE__."</H1>";}
 		
 		
 		
-	
+		if($GLOBALS["VERBOSE"]){echo "p->YahooBody() line:".__LINE__."<br>\n";}
 		$tpl=str_replace("{TEMPLATE_BODY_YAHOO}",$p->YahooBody(),$tpl);
 		if(trim($FixedLanguage)==null){
 			$tpl=str_replace("{TEMPLATE_LANG_LINK}","<span id='llang-select'></span><script>LoadAjaxTiny('llang-select','$page?TEMPLATE_LANG_LINK=yes')</script>",$tpl);
@@ -1122,15 +1126,16 @@ if($GLOBALS["VERBOSE"]){echo "<H1>template=$template line ".__LINE__."</H1>";}
 			$tpl=str_replace("{ZARAFA_VERSION}",$sock->getFrameWork("zarafa.php?getversion=yes"),$tpl);
 			
 		}
+		if($GLOBALS["VERBOSE"]){echo "new templates() line:".__LINE__."<br>\n";}
 		$tpl2=new templates();
 		if(trim($FixedLanguage)==null){$tpl2->language=$DetectedLanguage;}
-		
+		if($GLOBALS["VERBOSE"]){echo "Langage $tpl2->language line:".__LINE__."<br>\n";}
 		
 		$tpl=str_replace("User name",$tpl2->_ENGINE_parse_body("{username2}"),$tpl);
 		$tpl=str_replace("Password",$tpl2->_ENGINE_parse_body("{password}"),$tpl);
 	
 		
-		
+		if($GLOBALS["VERBOSE"]){echo "Success return form ". strlen($tpl)." bytes lenght<br>\n";}
 		return $tpl2->_ENGINE_parse_body($tpl);
 		
 	}
@@ -1327,7 +1332,7 @@ Loadjs('logon.php?start=yes');</script>
 		<div id=\"SearchUser\" style='width:0;height:0'></div>
 </body>
 </html>";	
-
+if($GLOBALS["VERBOSE"]){echo "Success return complete page line ".__LINE__."<br>\n";}
 return $html;
 
 }

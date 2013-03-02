@@ -250,6 +250,18 @@ class squid_stats_appliance{
 		$array["DisableGoogleSSL"]=true;
 		$array["AclsOptions"]=true;
 		$array["UfdbguardSMTPNotifs"]=true;
+		$array["SquidDebugAcls"]=true;
+		$array["CacheReplacementPolicy"]=true;
+		$array["SquidDebugCacheProc"]=true;
+		$array["SquidSafePortsList"]=true;
+		$array["SquidSafePortsSSLList"]=true;
+		
+		
+		$array["UpdateUtilityRedirectEnable"]=true;
+		$array["UpdateUtilityHTTPSRV"]=true;
+		$array["UpdateUtilityExternWbsrvAddr"]=true;
+		$array["UpdateUtilityExternWbsrv"]=true;		
+		
 		return $array;
 	}
 	
@@ -328,6 +340,14 @@ class squid_stats_appliance{
 		$artica_backup["hostsusers"]=true;
 		$artica_backup["sslcertificates"]=true;
 		$artica_backup["squid_nodes_settings"]=true;
+		$artica_backup["urlrewriteaccessdeny"]=true;
+		$artica_backup["cache_peer_domain"]=true;
+		$artica_backup["kav4proxy_templates"]=true;
+		$artica_backup["kav4Proxy"]=true;
+		$artica_backup["Kav4Proxy_groups"]=true;
+		$artica_backup["ext_time_quota_acl"]=true;
+		$artica_backup["ext_time_quota_acl_rules"]=true;
+		$artica_backup["ext_time_quota_acl_link"]=true;
 		
 		  
 		

@@ -38,6 +38,9 @@ function popup(){
 	$display_dns_items=$tpl->javascript_parse_text("{display_dns_items}");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	$t=time();
 	
 	$button=button("{apply}","DisableGoogleSSLSave$t()",18);

@@ -1,5 +1,6 @@
 <?php
-	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}	
+	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');$GLOBALS["VERBOSE"]=true;}	
+	if(isset($_GET["verbose"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');$GLOBALS["VERBOSE"]=true;}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -54,7 +55,7 @@ function js(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{proxy_objects}");
-	$html="YahooWin('750','$page?table-width=730&table-heigth=450&GroupName-width=360&GroupType-width=169&table-org={$_GET["toexplainorg"]}','$title')";
+	$html="YahooWin('750','$page?table-width=730&table-heigth=450&GroupName-width=360&GroupType-width=169&table-org={$_GET["toexplainorg"]}&ACLType={$_GET["ACLType"]}','$title')";
 	echo $html;
 	
 }
@@ -71,7 +72,7 @@ function item_popup_js(){
 	
 	if($ID<0){$title="{new_item}";}
 	$title=$tpl->_ENGINE_parse_body($title);
-	$html="YahooWin5(450,'$page?AddItem-tab=yes&item-id=$ID&ID={$_GET["ID"]}&table-t={$_GET["table-t"]}&table-org={$_GET["table-org"]}','$title')";
+	$html="YahooWin5(450,'$page?AddItem-tab=yes&item-id=$ID&ID={$_GET["ID"]}&table-t={$_GET["table-t"]}&table-org={$_GET["table-org"]}&ACLType={$_GET["ACLType"]}','$title')";
 	echo $html;
 }
 
@@ -90,7 +91,7 @@ function AddGroup_js(){
 	
 	if($ID<0){$title="{new_item}";}
 	$title=$tpl->_ENGINE_parse_body($title);
-	$html="YahooWin4(546,'$page?EditGroup-popup=yes&ID=$ID&link-acl={$_GET["link-acl"]}&table-acls-t={$_GET["table-acls-t"]}&table-org={$_GET["table-org"]}','$title')";
+	$html="YahooWinT(546,'$page?EditGroup-popup=yes&ID=$ID&link-acl={$_GET["link-acl"]}&table-acls-t={$_GET["table-acls-t"]}&table-org={$_GET["table-org"]}&FilterType={$_GET["FilterType"]}&ACLType={$_GET["ACLType"]}','$title')";
 	echo $html;	
 	
 }
@@ -127,9 +128,62 @@ function EditGroup_popup(){
 	
 	
 	$t=time();
-	$GroupType=$q->acl_GroupType;
-
 	$tt=time();
+	$GroupType=$q->acl_GroupType;
+	
+	$GroupeTypeField=Field_array_Hash($GroupType,"GroupType-$tt",$ligne["GroupType"],"TypeAddButton$tt()",null,0,"font-size:14px");
+	
+	
+	if($GLOBALS["VERBOSE"]){
+		echo "FilterType={$_GET["FilterType"]}<br>\n";
+	}
+	
+	if($_GET["FilterType"]<>null){
+		switch ($_GET["FilterType"]) {
+			case "src":
+				$GroupeTypeField="<input type='hidden' name='GroupType-$tt' id='GroupType-$tt' value='src'>
+				{$GroupType["src"]}";
+				$ScriptAdd="TypeAddButton$tt()";
+				break;
+			
+			case "MAC":
+				$GroupeTypeField="<input type='hidden' name='GroupType-$tt' id='GroupType-$tt' value='arp'>
+				{$GroupType["arp"]}";
+				$ScriptAdd="TypeAddButton$tt()";
+				break;
+				
+				
+			case "uid":
+				$GroupType=array();
+				$GroupType["ext_user"]=$q->acl_GroupType["ext_user"];
+				$GroupType["proxy_auth_ads"]=$q->acl_GroupType["proxy_auth_ads"];
+				$GroupType["proxy_auth"]=$q->acl_GroupType["proxy_auth"];
+				$GroupeTypeField=Field_array_Hash($GroupType,"GroupType-$tt",$ligne["GroupType"],"TypeAddButton$tt()",null,0,"font-size:14px");
+				break;
+				
+			case "ADMBR":
+				$GroupType=array();
+				$GroupType["proxy_auth_ads"]=$q->acl_GroupType["proxy_auth_ads"];
+				$GroupType["proxy_auth"]=$q->acl_GroupType["proxy_auth"];	
+				$GroupeTypeField=Field_array_Hash($GroupType,"GroupType-$tt",$ligne["GroupType"],"TypeAddButton$tt()",null,0,"font-size:14px");
+				$ScriptAdd="TypeAddButton$tt()";
+				break;
+
+			case "EXT_USER":
+				$GroupeTypeField="<input type='hidden' name='GroupType-$tt' id='GroupType-$tt' value='ext_user'>
+				{$GroupType["ext_user"]}";
+				$ScriptAdd="TypeAddButton$tt()";
+				break;
+				
+				
+			default:$GroupeTypeField=null;break;
+		}
+	}
+	
+	
+	
+
+	
 	
 	
 	$html="
@@ -142,7 +196,7 @@ function EditGroup_popup(){
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px' nowrap>{group_type}:</td>
-		<td>". Field_array_Hash($GroupType,"GroupType-$tt",$ligne["GroupType"],"TypeAddButton$t()",null,0,"font-size:14px")."</td>
+		<td style='font-size:14px;font-weight:bold'>$GroupeTypeField</td>
 	</tr>
 	<tr>
 	<td colspan=2 align='right'><span id='group-add-f-$t'></span></td>
@@ -168,13 +222,16 @@ function EditGroup_popup(){
 	</tr>
 	</table>
 	<div id='$tt-infos'></div>
+	
+	
 	<script>
 	var x_SaveAclGroupMode= function (obj) {
 		var res=obj.responseText;
 		var ID=$ID;
 		document.getElementById('$t').innerHTML='';
 		if(res.length>3){alert(res);return;}
-		if(ID==0){document.getElementById('GroupName-$tt').value='';}
+		if(ID==0){YahooWinTHide();}
+		if(ID==-1){YahooWinTHide();}
 		if(document.getElementById('formulaire-choix-groupe-proxy')){RefreshFormulaireChoixGroupeProxy();}
 		var tableaclt='{$_GET["table-acls-t"]}';
 		var tableorg='{$_GET["table-org"]}';
@@ -187,30 +244,46 @@ function EditGroup_popup(){
 		if(checkEnter(e)){SaveAclGroupMode();}
 	}
 	
-	function TypeAddButton$t(){
-		var mGroupName='GroupName';
+	function TypeAddButton$tt(){
+		var mGroupName='GroupName-$tt';
+		document.getElementById('GroupName-$tt').disabled=false;
 		var GroupType=document.getElementById('GroupType-$tt').value;
-		LoadAjaxTiny('group-add-f-$t','$page?GroupType-button=yes&GroupName='+mGroupName+'&t=$t&GroupType='+GroupType);
+		if(GroupType=='proxy_auth_ads'){
+			document.getElementById('GroupName-$tt').disabled=true;
+		}
+		LoadAjaxTiny('group-add-f-$t','$page?GroupType-button=yes&GroupName='+mGroupName+'&t=$t&GroupType='+GroupType+'&tt=$tt');
 	}
 	
 	function SaveAclGroupMode(){
 		      var XHR = new XHRConnection();
+		      if(!document.getElementById('GroupName-$tt')){
+		      	alert('Group name: GroupName-$tt; no such id');
+		      	return;
+		      }
+		      if(!document.getElementById('GroupType-$tt')){
+		      	alert('Group name: GroupType-$tt; no such id');
+		      	return;
+		      }		      
+		      
 		      XHR.appendData('GroupName', document.getElementById('GroupName-$tt').value);
 		      XHR.appendData('GroupType', document.getElementById('GroupType-$tt').value);
-		      XHR.appendData('ID', '$ID');
+		      XHR.appendData('ACLType', '{$_GET["ACLType"]}');
+			  XHR.appendData('ID', '$ID');
 		      XHR.appendData('link-acl', '{$_GET["link-acl"]}');
-		       AnimateDiv('$t');
+		      AnimateDiv('$t');
 		      XHR.sendAndLoad('$page', 'POST',x_SaveAclGroupMode);  		
 		}	
 		
 	function CheckGrouform$t(){
 		var id=$ID;
-		if(id>0){document.getElementById('GroupType-$tt').disabled=true;}
-		
+		var GroupType=document.getElementById('GroupType-$tt').value;
+		if(id>0){document.getElementById('GroupType-$tt').disabled=true;return;}
+		if(GroupType=='proxy_auth_ads'){document.getElementById('GroupName-$tt').disabled=true;}
 		
 	}
 CheckGrouform$t();
 LoadAjax('$tt-infos','$page?dynamic-acls-infos=yes&ID=$ID');
+$ScriptAdd;
 	</script>
 	
 	";
@@ -222,10 +295,8 @@ function GroupType_button(){
 	$GroupName=$_GET["GroupName"];
 	$tpl=new templates();
 	if($GroupType=="proxy_auth_ads"){
-		
-		echo $tpl->_ENGINE_parse_body("<input type='button' 
-			OnClick=\"javascript:Loadjs('MembersBrowse.php?OnlyGroups=1&field-user=$GroupName&prepend-guid=0&prepend=0&OnlyGUID=0&OnlyName=1')\"
-			value='{browse}...'>");
+		$js="Loadjs('MembersBrowse.php?OnlyGroups=1&field-user=$GroupName&OnlyAD=1&prepend-guid=0&prepend=0&OnlyGUID=0&OnlyName=1')";
+		echo $tpl->_ENGINE_parse_body(button("{browse}..",$js,"12"));
 	}	
 }
 
@@ -269,6 +340,10 @@ function EditGroup_save(){
 		echo "`{$_POST["GroupName"]} Wrong group name\n";
 		return;
 	}
+	
+	
+	
+	
 		
 	$sqladd="INSERT INTO webfilters_sqgroups (GroupName,GroupType,enabled) 
 	VALUES ('{$_POST["GroupName"]}','{$_POST["GroupType"]}','1');";
@@ -287,6 +362,12 @@ function EditGroup_save(){
 			$md5=md5($aclid.$gpid);
 			$sql="INSERT IGNORE INTO webfilters_sqacllinks (zmd5,aclid,gpid) VALUES('$md5','$aclid','$gpid')";
 			$q=new mysql_squid_builder();
+			
+			if($_POST["ACLType"]=="session-time"){
+				$q=new mysql();
+				$sql="INSERT IGNORE INTO ext_time_quota_acl_link (zmd5,ruleid,groupid,enabled) VALUES('$md5','$aclid','$gpid',1)";
+			}
+			
 			$q->QUERY_SQL($sql);
 			if(!$q->ok){echo $q->mysql_error;}
 		}
@@ -492,6 +573,7 @@ function EditGroup_tabs(){
 	
 	
 	if($ligne["GroupType"]=="proxy_auth_ads"){unset($array["items"]);}
+	if($ligne["GroupType"]=="all"){unset($array["items"]);}
 	if($ligne["GroupType"]=="NudityScan"){
 		unset($array["items"]);
 		$array["NudityParams"]="{global_parameters}";
@@ -812,13 +894,15 @@ function item_form_import(){
 	if($GroupType=="dstdomain"){$explain="{squid_ask_domain}";}
 	if($GroupType=="port"){$explain="{acl_squid_remote_ports_explain}";}
 	if($GroupType=="dst"){$explain="{acl_squid_dst_explain}";}
+	if($GroupType=="url_regex"){$explain="{acl_squid_url_regex_explain}";}
 	if($GroupType=="proxy_auth"){
 		
 		if($EnableKerbAuth==1){
 			$browse="<input type='button' value='{browse}...' 
 			OnClick=\"javascript:Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=1&OnlyAD=1&OnlyGUID=1');\" style='font-size:12px'>";
 		}
-		$explain="{acl_proxy_auth_explain}";}
+		$explain="{acl_proxy_auth_explain}";
+	}
 	
 	
 
@@ -910,7 +994,7 @@ function item_form(){
 	if($GroupType=="maxconn"){$explain="{squid_aclmax_connections_explain}";}
 	if($GroupType=="port"){$explain="{acl_squid_remote_ports_explain}";}
 	if($GroupType=="ext_user"){$explain="{acl_squid_ext_user_explain}";}
-	
+	if($GroupType=="req_mime_type"){$explain="{req_mime_type_explain}";}
 	
 	
 	
@@ -922,7 +1006,7 @@ function item_form(){
 	if($GroupType=="method"){$explain="{acl_squid_method_explain}";}
 	
 	if($GroupType=="proxy_auth"){
-		if($EnableKerbAuth==1){$browse="<input type='button' value='{browse}...' OnClick=\"javascript:Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=1&OnlyAD=1&OnlyGUID=1');\" style='font-size:12px'>";}
+		if($EnableKerbAuth==1){$browse="<input type='button' value='{browse}...' OnClick=\"javascript:Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=0&OnlyUsers=1&OnlyAD=1&OnlyGUID=1');\" style='font-size:12px'>";}
 		$explain="{acl_proxy_auth_explain}";
 	}
 	
@@ -930,7 +1014,6 @@ function item_form(){
 		$explain="{acl_squid_ext_dynamic_acls_explain}";
 		if($EnableKerbAuth==1){$browse="<input type='button' value='{browse}...' OnClick=\"javascript:Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=1&OnlyAD=1&OnlyGUID=1');\" style='font-size:12px'>";}
 	}
-	
 	
 
 	$html="
@@ -1087,6 +1170,11 @@ function group_list(){
 		if($ligne2['tcount']==0){
 			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}'"));
 		}
+		if($ligne["GroupType"]=="all"){
+			$ligne2['tcount']="*";
+		}
+		
+		
 	$data['rows'][] = array(
 		'id' => "group{$ligne['ID']}",
 		'cell' => array("<a href=\"javascript:blur();\" 

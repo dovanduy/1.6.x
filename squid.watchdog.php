@@ -299,7 +299,11 @@ function popup(){
 	
 	
 	var x_{$t}_SaveInstance= function (obj) {
-			YahooWin3Hide();
+			if(document.getElementById('squid-status')){
+				LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');;
+			}
+		
+			RefreshTab('watchdogsquid');
 		}	
 	
 	function SaveWatchdog{$t}(){
@@ -412,7 +416,7 @@ function rows_table(){
 			$ligne=$re[4];
 		}
 		$ligne=str_replace("\n", "<br>", $ligne);
-		
+		$ligne=$tpl->javascript_parse_text("$ligne");
 		if($search<>null){if(!preg_match("#$search#i", $ligne)){continue;}}
 			$c++;
 		$data['rows'][] = array(

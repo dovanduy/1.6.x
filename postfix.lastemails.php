@@ -191,6 +191,9 @@ function list_table(){
 			
 			if($mailfrom==null){$mailfrom="$unknown";}
 			if($rcpt==null){$rcpt="$unknown";}
+			
+			if($bounce_error=="Sended"){$bounce_error=$tpl->javascript_parse_text("{sended}");}
+			
 			$js="Loadjs('$MyPage?zoom-js=yes&id={$line["id"]}&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}')";
 			$md=md5(serialize($ligne));
 			$cells=array();
@@ -198,7 +201,7 @@ function list_table(){
 			$cells[]="<span style='font-size:11px;'>$time</span>";
 			$cells[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:11px;text-decoration:underline'>$mailfrom</a>";
 			$cells[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:11px;text-decoration:underline'>$rcpt</a>";
-			$cells[]="<span style='font-size:11px;'><div style='$bg_color'>$bounce_error</div></span>";
+			$cells[]="<span style='font-size:11px;'><div style='$bg_color;text-transform:capitalize;'>$bounce_error</div></span>";
 			
 			
 			
@@ -250,7 +253,17 @@ function GetColor(){
 	if($ini->_params["non-delivery"]["text_color"]==null){$ini->_params["non-delivery"]["text_color"]="#000000";}		
 
 	if($ini->_params["No_mailbox"]["row_color"]==null){$ini->_params["No_mailbox"]["row_color"]="#FFECEC";}
-	if($ini->_params["No_mailbox"]["text_color"]==null){$ini->_params["No_mailbox"]["text_color"]="#000000";}	
+	if($ini->_params["No_mailbox"]["text_color"]==null){$ini->_params["No_mailbox"]["text_color"]="#000000";}
+
+	if($ini->_params["Mailbox_Unavailable"]["row_color"]==null){$ini->_params["Mailbox_Unavailable"]["row_color"]=$ini->_params["No_mailbox"]["row_color"];}
+	if($ini->_params["Mailbox_Unavailable"]["text_color"]==null){$ini->_params["Mailbox_Unavailable"]["text_color"]=$ini->_params["No_mailbox"]["text_color"];}	
+
+	if($ini->_params["Mailbox_unknown"]["row_color"]==null){$ini->_params["Mailbox_unknown"]["row_color"]=$ini->_params["No_mailbox"]["row_color"];}
+	if($ini->_params["Mailbox_unknown"]["text_color"]==null){$ini->_params["Mailbox_unknown"]["text_color"]=$ini->_params["No_mailbox"]["text_color"];}
+		
+	
+	
+	
 	
 		
 	if($ini->_params["Domain_not_found"]["row_color"]==null){$ini->_params["Domain_not_found"]["row_color"]="#FFECEC";}
@@ -305,22 +318,53 @@ function zoom_status(){
 	$q=new mysql();
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
 	
-	$html="<table style='width:99%' class=form>";
+	$whitelist=$tpl->javascript_parse_text("{whitelist}");
 	
+	
+	$html="<table style='width:99%' class=form>";
+	$t=time();
 	while (list ($key, $value) = each ($ligne) ){
 		if(is_numeric($key)){continue;}
 		if($key=="transaction"){continue;}
+		$icon=null;
+		if($key=="sender_user"){
+			if(preg_match("#(.+?)@#", $value)){
+				$icon=$tpl->_ENGINE_parse_body(imgtootltip("whitelist-24.png","$whitelist $value",
+						"GlobalWhiteSave$t('$value')"));
+			}
+		}
 		$html=$html."
 		<tr>
 			<td class=legend style='font-size:16px'>$key</td>
 			<td style='font-size:14px;font-weight:bold'>$value</td>
+			<td style='font-size:14px;font-weight:bold' width=1%>$icon</td>
 		</tr>
 		";
 		
 		
 		
 	}
-		$html=$html."</table>";
+		$html=$html."</table>
+	<script>
+		var x_GlobalWhiteSave$t= function (obj) {
+		var tempvalue=obj.responseText;
+		if(tempvalue.length>3){alert(tempvalue);return;};
+		alert('OK'); 
+	}			
+		
+	function GlobalWhiteSave$t(email){
+		if(confirm('$whitelist '+email+' ?')){
+			var XHR = new XHRConnection();
+			XHR.appendData('popup-global-white-save',email);
+			XHR.appendData('hostname','master');
+			XHR.appendData('ou','master');
+			XHR.sendAndLoad('whitelists.admin.php', 'POST',x_GlobalWhiteSave$t);		
+		}			
+		
+	}
+				
+				
+	</script>";
 		
 		echo $tpl->_ENGINE_parse_body($html);
 }

@@ -63,7 +63,8 @@ function getDiskList(){
 					$disp=$values[3];
 					$pourc=$values[4];
 					$path=$this->Get_mounted_path($disk,$_GLOBAL["usb_list"]);
-					$arrayDisks[$disk]=array("POURC"=>$pourc,"SIZE"=>$size,"MOUNTED"=>$path);
+					$label=$this->Get_ID_FS_LABEL($disk,$_GLOBAL["usb_list"]);
+					$arrayDisks[$disk]=array("POURC"=>$pourc,"SIZE"=>$size,"MOUNTED"=>$path,"DISK"=>$disk,"LABEL"=>$label);
 					}
 			}
 		}
@@ -109,6 +110,18 @@ while (list ($num, $val) = each ($array) ){
 	}	
 	
 }}
+
+private function Get_ID_FS_LABEL($dev,$array){
+	$regex_pattern="#\/dev\/$dev#";
+	if(is_array($array)){
+		while (list ($num, $val) = each ($array) ){
+			if(preg_match($regex_pattern,$val["PATH"])){
+				return $val["ID_FS_LABEL"];
+				break;
+			}
+		}
+
+	}}
 
 function Folders_interdis(){
 	$spool=false;

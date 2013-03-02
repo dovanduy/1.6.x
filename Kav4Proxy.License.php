@@ -197,8 +197,14 @@ function kav4proxy_license_upload(){
 	while (list ($num, $val) = each ($tp)){
 		if(trim($val)==null){continue;}
 		$val=htmlspecialchars($val);
-		if(preg_match("#Error#i", $val)){$color="red;font-weight:bold";}else{$color="black";}
+		$color="black";
+		if(preg_match("#Error#i", $val)){$color="red;font-weight:bold";}
+		if(preg_match("#successfully#i", $val)){$color="#55BE5D;font-weight:bold";}
 		$html=$html . "<div style='text-align:left'><code style='color:$color'>$val</code></div>";
+		
+		
+		
+		
 		}
   	
 	echo "<center><div style='width:95%' class=form>$html</div></center>";	

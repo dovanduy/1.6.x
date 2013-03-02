@@ -542,7 +542,12 @@ function GET_MYSQL_ROOT($key){
 		}
 		
 		
-		
+		if($uri=="system.php?restart-ldap=yes"){
+			if($GLOBALS["AS_ROOT"]){
+				shell_exec("/etc/init.d/artica-postfix restart ldap >/dev/null 2>&1");
+				die();
+			}
+		}
 		
 		
 		if($uri=="cmd.php?ifconfig-all-ips=yes"){
@@ -588,6 +593,13 @@ function GET_MYSQL_ROOT($key){
 			return $results;
 		}
 		
+		if(preg_match("#500 - Internal Server Error#is", $line)){
+			if($GLOBALS["AS_ROOT"]){
+				writelogs("Restarting framwork !!! 500 - Internal Server Error");
+				shell_exec("/etc/init.d/artica-postfix restart framework",__FUNCTION__,__FILE__,__LINE__);
+				die();
+			}
+		}
 		
 		if(preg_match('#<articadatascgi>(.+)</\s+articadatascgi>#s',$line,$regs)){$results=trim($regs[1]);return $results;}			
 		if(preg_match('#<articadatascgi>(.+)</articadat#s',$line,$regs)){$results=trim($regs[1]);return $results;}

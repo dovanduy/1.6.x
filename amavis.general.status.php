@@ -33,7 +33,7 @@ function compile_rules_js(){
 
 function compile_rules_perform(){
 	$sock=new sockets();
-	$datas=base64_decode($sock->getFrameWork("amavis.php?reload-tenir=yes"));
+	$datas=base64_decode($sock->getFrameWork("amavis.php?reload-tenir=yes&MyCURLTIMEOUT=300"));
 	echo "
 	<textarea style='margin-top:5px;font-family:Courier New;font-weight:bold;width:100%;height:450px;border:5px solid #8E8E8E;overflow:auto;font-size:13px' id='textToParseCats$t'>$datas</textarea>
 <script>

@@ -777,6 +777,7 @@ class assp{
 	var $MaxNoBayesFileAge="30";
 	var $MaxKeepDeleted="0";
 	var $MaxCorrectedDays="1000";
+	var $allowRelayCon="127.0.0.1";
 	
 	
 	function assp(){
@@ -943,7 +944,7 @@ class assp{
 		$conf=$conf."LocalFrequencyOnly:=\n";
 		$conf=$conf."NoLocalFrequency:=\n";
 		$conf=$conf."defaultLocalHost:=\n";
-		$conf=$conf."localDomainsFile:=\n";
+		$conf=$conf."localDomainsFile:=files/localdomains.txt\n";
 		$conf=$conf."LocalAddresses_Flat:=\n";
 		$conf=$conf."LocalAddresses_Flat_Domains:=\n";
 		$conf=$conf."LocalAddressesNP:=\n";

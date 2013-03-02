@@ -64,7 +64,7 @@ function allow_squid_localhost_save(){
 	$squid=new squidbee();
 	$squid->allow_squid_localhost=$_GET["allow_squid_localhost"];
 	$squid->ignore_expect_100=$_GET["ignore_expect_100"];
-	$squid->SaveToLdap();
+	$squid->SaveToLdap(true);
 }
 
 function sizelimit_save(){
@@ -73,7 +73,7 @@ function sizelimit_save(){
 	$squid->global_conf_array["request_body_max_size"]=$_GET["request_body_max_size"];
 	$squid->global_conf_array["reply_body_max_size"]=$_GET["reply_body_max_size"];
 	$squid->EnableChangeRequestSize=$_GET["EnableChangeRequestSize"];
-	$squid->SaveToLdap();
+	$squid->SaveToLdap(true);
 	
 }
 
@@ -190,11 +190,8 @@ function sizelimit_popup(){
 <script>
 var X_SquidAVParamSave= function (obj) {
 	var results=obj.responseText;
-	if(results.length>0){
-		alert(results);
-		document.getElementById('SquidAVParamID').innerHTML='';
-		
-	}
+	if(results.length>3){alert(results);document.getElementById('SquidAVParamID').innerHTML='';return;}
+	Loadjs('squid.restart.php?prepare-js=yes');
 	RefreshTab('main_squid_adv');
 	}
 
@@ -342,10 +339,8 @@ $html="
 	
 var X_SquidWccp2ParamSave= function (obj) {
 	var results=obj.responseText;
-	if(results.length>0){
-		alert(results);
-		document.getElementById('SquidAVParamWCCP').innerHTML='';
-		}
+	if(results.length>3){alert(results);document.getElementById('SquidAVParamWCCP').innerHTML='';}
+	Loadjs('squid.restart.php?prepare-js=yes');
 	RefreshTab('main_squid_adv');
 	}
 		

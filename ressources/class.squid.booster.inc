@@ -17,6 +17,18 @@ class squidbooster{
 	}
 	
 	
+	private function CPU_NUMBERUX(){
+		$unix=new unix();
+		$cat=$unix->find_program("cat");
+		$grep=$unix->find_program("grep");
+		$cut=$unix->find_program("cut");
+		$wc=$unix->find_program("wc");
+		$cmd="$cat /proc/cpuinfo |$grep \"model name\" |$cut -d: -f2|$wc -l 2>&1";
+		$CPUNUM=exec($cmd);
+		return $CPUNUM;
+	}	
+	
+	
 	private function FillSettings(){
 		$sock=new sockets();
 		$this->uuid=$sock->getFrameWork("services.php?GetMyHostId=yes");
@@ -33,11 +45,10 @@ class squidbooster{
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		
 		$this->CPU_NUMBER=$ligne["workers"];
-		if($this->CPU_NUMBER==0){$this->CPU_NUMBER=null;}
-		if(!is_numeric($this->CPU_NUMBER)){
-			$users=new usersMenus();
-			$this->CPU_NUMBER=$users->CPU_NUMBER;
-		}		
+		if($this->CPU_NUMBER==0){$this->CPU_NUMBER=$this->CPU_NUMBERUX();}
+		if(!is_numeric($this->CPU_NUMBER)){$this->CPU_NUMBER=$this->CPU_NUMBERUX();}
+		
+	
 	
 		if($this->EnableRemoteStatisticsAppliance==1){
 			if($this->ASROOT){echo "Starting......: [BOOST] Using remote statistics appliance parameters...\n";}
@@ -123,8 +134,12 @@ class squidbooster{
 	public function cache_booster_SMP($procnum){
 		if(!$this->ASROOT){return;}
 		if($this->DisableSquidSNMPMode==1){return;}
+		if($this->CPU_NUMBER==0){$this->CPU_NUMBER=$this->CPU_NUMBERUX();}
 		$minmalvalue=10*$this->CPU_NUMBER;
 		if($this->SquidBoosterMem<$minmalvalue){echo "Starting......: Cache Booster[$procnum]:: {$this->SquidBoosterMem}M < $minmalvalue, aborting...\n";return;}
+		
+		echo "Starting......: Cache Booster[$procnum]:: $this->SquidBoosterMem CPUs:$this->CPU_NUMBER\n";
+		
 		$MemPerCPU=round($this->SquidBoosterMem/$this->CPU_NUMBER)-10;
 		if($MemPerCPU<10){return;}
 		$mountedram=$this->cache_booster_ram_SMP($procnum);

@@ -344,6 +344,13 @@ if RegExpr.Exec(data) then begin
    result:=32;
    exit;
 end;
+ RegExpr.Expression:='686-bigmem ';
+if RegExpr.Exec(data) then begin
+   RegExpr.free;
+   result:=32;
+   exit;
+end;
+
 
 RegExpr.Expression:='x86_64';
 if RegExpr.Exec(data) then begin
@@ -379,7 +386,7 @@ var
    tmpstr:string;
    kernelversion:string;
 begin
-
+// -o Acquire::http::Proxy="http://192.168.1.245:3140/"
 kernelversion:=KERNEL_VERSION();
 writeln('Checking kernel sources for '+kernelversion);
 if length(kernelversion)=0 then begin

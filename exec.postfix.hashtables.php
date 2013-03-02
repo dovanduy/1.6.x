@@ -37,7 +37,8 @@ if(!is_file($GLOBALS["postfix"])){die();}
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $pid=$unix->get_pid_from_file($pidfile);
 if($unix->process_exists($pid,basename(__FILE__))){
-	echo "Starting......: Already executed pid:$pid\n";
+	$time=$unix->PROCCESS_TIME_MIN($pid);
+	echo "Starting......: Already executed pid:$pid since {$time}Mn\n";
 	$unix->send_email_events("Postfix user databases aborted (instance executed)", "Already instance pid $pid is executed", "postfix");
 	die();
 }
@@ -635,7 +636,11 @@ function aliases_users(){
 	if(!$q->ok){echo "$q->mysql_error\n";}	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 		$GLOBALS["virtual_alias_maps"][$ligne["email"]]="{$ligne["email"]}\t{$ligne["email"]}";
-	}*/		
+	}
+	
+	* see trusted_smtp_domain
+		DOMAIN_TRUSTED_NO_USERDB_TEXT
+	*/		
 	
 	
 	$GLOBALS["alias_maps"][]="postmaster:$PostfixPostmaster";
@@ -739,6 +744,7 @@ function build_virtual_alias_maps(){
 		$li=array();
 		$results=$q->QUERY_SQL($sql,"artica_backup");	
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+			$ligne["alias"]=strtolower($ligne["alias"]);
 			$aliases=str_replace(".","\.",$ligne["alias"]);
 			$domain=$ligne["domain"];
 			$li[]="/^(.*)@$aliases$/\t$pre@$domain";
@@ -750,7 +756,7 @@ function build_virtual_alias_maps(){
 		if(is_array($virtual_mailing_addr)){
 			while (list ($num, $ligne) = each ($virtual_mailing_addr) ){
 				if($ligne==null){continue;}
-				$final[]=$ligne;
+				$final[]=strtolower($ligne);
 			}
 		}
 	
@@ -1224,23 +1230,23 @@ function recipient_canonical_maps(){
 }
 
 function restrict_relay_domains(){
+	@file_put_contents("/etc/postfix/relay_domains_restricted","\n");
 	$ldap=new clladp();
+	$q=new mysql();
 	$f=array();
-	$dn="dc=organizations,$ldap->suffix";
-	$attr=array("cn");
-	$pattern="(&(objectclass=PostfixRelayRecipientMaps)(cn=@*))";
-	$sr =@ldap_search($ldap->ldap_connection,$dn,$pattern,$attr);
-	$hash=ldap_get_entries($ldap->ldap_connection,$sr);
 	$relaysdomains=$ldap->hash_get_relay_domains();
+	$main=new maincf_multi("master","master");
+	$relay_domains_restricted=$main->relay_domains_restricted();
+	echo "Starting......: Postfix ".count($relay_domains_restricted)." restricted defined domains\n";
 	
-	for($i=0;$i<$hash["count"];$i++){
-		$domain=$hash[$i]["cn"][0];
-		if(preg_match("#^@(.+)#",$domain,$re)){$domain=$re[1];}
-		unset($relaysdomains[$domain]);
+	if(count($relaysdomains)>0){
+		while (list ($domain, $ligne) = each ($relaysdomains) ){
+			if(preg_match("#^@(.+)#",$domain,$re)){$domain=$re[1];}
+			if(!isset($relay_domains_restricted[$domain])){continue;}
+			$f[]="$domain\tartica_restrict_relay_domains";
+			echo "Starting......: Postfix `$domain` will be restricted\n";
+		}
 	}
-	
-	unset($relaysdomains["localhost.localdomain"]);
-	if(count($relaysdomains)>0){while (list ($num, $ligne) = each ($relaysdomains) ){$f[]="$num\tartica_restrict_relay_domains";}}
 	echo "Starting......: Postfix ". count($f)." restricted relayed domains\n"; 
 	@file_put_contents("/etc/postfix/relay_domains_restricted",implode("\n",$f));
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/relay_domains_restricted >/dev/null 2>&1");

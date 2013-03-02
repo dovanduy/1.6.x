@@ -534,9 +534,6 @@ function lvremove(){
 		
 }
 
-function lvremove(){
-	
-}
 
 
 function affectvg(){

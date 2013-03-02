@@ -45,6 +45,7 @@ function tabs(){
 	
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$users=new usersMenus();
 	$filters_settings=$tpl->_ENGINE_parse_body('{antispam_filters}');
 	$array["synthesis"]='{synthesis}';
 	$array["postfix"]='{mta_policies}';
@@ -53,7 +54,8 @@ function tabs(){
 	
 	$array["antispam-content"]="{content_filtering}";
 	$array["filters-connect"]="{filters_connect}";
-	$array["antivirus"]="antivirus";
+	
+	if(!$users->KLMS_INSTALLED){$array["antivirus"]="antivirus";}
 	//$array["status-pattern"]="{patterns_versions}";
 	$hostname=$_GET["hostname"];
 	$height="850px";
@@ -673,7 +675,7 @@ function section_content_filtering(){
 	
 	$users=new usersMenus();
 	$users->LoadModulesEnabled();
-	if($users->KASPERSKY_SMTP_APPLIANCE){return filters_section_kaspersky();}
+	
 	if(!$users->ASSP_INSTALLED){$assp=null;}
 	
 	if($users->EnableAmavisDaemon==0){$amavis=$amavis_disabled;}
@@ -738,6 +740,7 @@ function section_content_filtering(){
 	}
 	
 	
+	
 	$tr[]=$keywords;
 	$tr[]=$global_smtp_rules;
 	$tr[]=$extensions_block;
@@ -747,8 +750,10 @@ function section_content_filtering(){
 	$tr[]=$sa_update;
 	
 	$tr[]=$amavis;
+	if(!$users->KLMS_INSTALLED){
 	$tr[]=$assp;
 	$tr[]=$kas3;
+	}
 	
 	
 	$tr[]=$keywords;
@@ -760,25 +765,7 @@ function section_content_filtering(){
 	$tr[]=$clamav;
 	$tr[]=$mailspy;	
 	
-	
-$tables[]="<table style='width:99%' class=form><tr>";
-$t=0;
-while (list ($key, $line) = each ($tr) ){
-		$line=trim($line);
-		if($line==null){continue;}
-		$t=$t+1;
-		$tables[]="<td valign='middle' align='center'>$line</td>";
-		if($t==3){$t=0;$tables[]="</tr><tr>";}
-		}
-
-if($t<3){
-	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
-	}
-}
-	$t=time();			
-$tables[]="</table>";	
-$html=implode("\n",$tables);	
+$html=CompileTr3($tr);
 $html="<center><div style='width:700px'>$html</div>
 
 

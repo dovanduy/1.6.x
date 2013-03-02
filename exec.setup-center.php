@@ -295,6 +295,15 @@ $products[]=array(
 	"SUBFAMILY"=>"PLUGIN",
 	"ABOUT"=>"SPREED_ABOUT"
 	);
+
+$products[]=array(
+		"PRODUCT_CODE"=>"APP_KAVUTILITY2",
+		"REPO_CODE"=>"kavupdater2",
+		"FAMILY"=>"NETWORK",
+		"SUBFAMILY"=>"SECURITY",
+		
+);
+
 	
 $products[]=array(
 	"PRODUCT_CODE"=>"APP_ZARAFA6",

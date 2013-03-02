@@ -22,8 +22,10 @@ if($argv[1]=="--watchdog-klms8db"){watchdog_klms8db($argv[2]);exit;}
 if($argv[1]=="--setup"){setup();exit;}
 if($argv[1]=="--InfoToSyslog"){InfoToSyslog();exit;}
 if($argv[1]=="--build"){buildConf();exit;}
-if($argv[1]=="--resetpwd"){resetpwd();exit;}
+if($argv[1]=="--resetpwd"){exit;}
 if($argv[1]=="--build-restart"){build_restart();exit;}
+if($argv[1]=="--ldap"){ldap_cnx();exit;}
+if($argv[1]=="--whitelist"){default_outgoing_rule();exit;}
 
 function InfoToSyslog(){
 $f[]="<root>";
@@ -116,7 +118,9 @@ $f[]="integration=prequeue";
 @file_put_contents("/etc/opt/kaspersky/klms/klms_filters.conf", @implode("\n", $f));	
 echo "Starting......: klms8 klms_filters.conf done\n";	
 ChecksPermissions();
+echo "Starting......: klms8 Check permissions done\n";
 ldap_cnx();
+echo "Starting......: klms8 Check LDAP settings done\n";
 }
 
 
@@ -176,7 +180,7 @@ function watchdog(){
   			$f[]="if totalmem > $SystemWatchMemoryUsage MB for 5 cycles then alert";
    		}
    		if($EnableWatchCPUsage==1){
-   			$f[]="if cpu >$SystemWatchCPUSystem% for 5 cycles then alert";
+   			$f[]="if cpu > $SystemWatchCPUSystem% for 5 cycles then alert";
    		}
 	   $f[]="if 5 restarts within 5 cycles then timeout";
 	   
@@ -210,7 +214,7 @@ function watchdog(){
   			$f[]="if totalmem > $SystemWatchMemoryUsage MB for 5 cycles then alert";
    		}
    		if($EnableWatchCPUsage==1){
-   			$f[]="if cpu >$SystemWatchCPUSystem% for 5 cycles then alert";
+   			$f[]="if cpu > $SystemWatchCPUSystem% for 5 cycles then alert";
    		}
 	   $f[]="if 5 restarts within 5 cycles then timeout";
 	   
@@ -348,34 +352,7 @@ function setup(){
 	buildConf();
 	
 }
-function resetpwd(){
-	
-	$unix=new unix();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "Kaspersky Mail security Suite $oldpid already exists in memory\n";
-		return;
-	}
-	
-	
-	if(!is_file("/usr/share/artica-postfix/bin/install/klms.db.password")){
-		echo "Kaspersky Mail security Suite `klms.db.password` no such file\n";
-		return;
-	}
-	echo "Starting......: Kaspersky Mail security Suite remove ..klms/db/password\n";
-	@unlink("/var/opt/kaspersky/klms/db/password");
-	echo "Starting......: Kaspersky Mail security Suite set default password\n";
-	@copy("/usr/share/artica-postfix/bin/install/klms.db.password","/var/opt/kaspersky/klms/db/password");
-	echo "Starting......: Kaspersky Mail security Suite set permissions\n";
-	@chown("kluser","/var/opt/kaspersky/klms/db/password");
-	@chgrp("klusers","/var/opt/kaspersky/klms/db/password");
-	@chmod("/var/opt/kaspersky/klms/db/password",0644);
-	echo "Starting......: Kaspersky Mail security Suite restart service\n";
-	shell_exec("/etc/init.d/klms restart");
-	echo "Starting......: Kaspersky Mail security Suite done...\n";
-	ldap_cnx();
-}
+
 function ldap_cnx(){
 	$users=new usersMenus();
 	if(!$users->KLMS_INSTALLED){return;}
@@ -385,6 +362,7 @@ function ldap_cnx(){
 	$f[]="\t<externalEncoding>utf-8</externalEncoding>";
 	$f[]="\t<processPool>";
 	$f[]="\t\t<processNumber>1</processNumber>";
+	$f[]="\t\t<binPath></binPath>";
 	$f[]="\t\t<maxAttemptToReadCommand>5</maxAttemptToReadCommand>";
 	$f[]="\t\t<communicationIoTimeoutInMilliseconds>5000</communicationIoTimeoutInMilliseconds>";
 	$f[]="\t</processPool>";
@@ -433,6 +411,441 @@ function ldap_cnx(){
 	@file_put_contents($filetemp, @implode("\n", $f));
 	if($GLOBALS["VERBOSE"]){echo "/opt/kaspersky/klms/bin/klms-control --set-settings 1 -f $filetemp\n";}
 	shell_exec("/opt/kaspersky/klms/bin/klms-control --set-settings 1 -f $filetemp");
+	
+}
+
+function ruleslist(){
+	exec("/opt/kaspersky/klms/bin/klms-control --get-rule-list 2>&1",$results);
+	while (list ($key, $val) = each ($results) ){
+		if(preg_match("#Name:\s+(.*)#", $val,$re)){$Name=$re[1];continue;}
+		if(preg_match("#ID:\s+([0-9]+)#", $val,$re)){$ARRAY[$Name]=$re[1];continue;}
+	}
+
+	return $ARRAY;
+	
+}
+
+function default_outgoing_rule(){
+	if(!is_file("/opt/kaspersky/klms/bin/klms-control")){
+		echo "Starting......: Kaspersky Mail security Suite `klms-control` no such binary\n";
+		return;
+	}
+	
+	$unix=new unix();
+	$ruleslist=ruleslist();
+	
+	$ID=$ruleslist["From Local Network"];
+	if(!is_numeric($ID)){$ID=0;}
+	echo "Starting......: Kaspersky Mail security Suite default rule ID:$ID\n";
+	$sock=new sockets();
+	$MynetworksInISPMode=$sock->GET_INFO("MynetworksInISPMode");
+	$PostfixBadNettr=unserialize(base64_decode($sock->GET_INFO("PostfixBadNettr")));
+	if(!is_numeric($MynetworksInISPMode)){$MynetworksInISPMode=0;}
+	$ldap=new clladp();
+	$NEWAR["127.0.0.1"]=true;
+	if($MynetworksInISPMode==0){
+		$array=$ldap->load_mynetworks();
+		while (list ($key, $IP) = each ($array) ){
+			if(isset($PostfixBadNettr[$IP])){if($PostfixBadNettr[$IP]==1){continue;}}
+			$NEWAR[$IP]=true;
+			
+		}
+	}
+	$tools=new DomainsTools();
+	$HashDomains=$ldap->Hash_relay_domains();
+	if(is_array($HashDomains)){
+		while (list ($num, $ligne) = each ($HashDomains) ){
+			$arr=$tools->transport_maps_explode($ligne);
+			$NEWAR[$arr[1]]=true;
+		}
+	}
+	
+	$q=new mysql();
+	$sql="SELECT ipaddr FROM postfix_whitelist_con";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){$NEWAR[$ligne["ipaddr"]]=true;}
+	$f=array();
+	$f[]="<root>";
+	$f[]="    <belongingCriteria>";
+	$f[]="        <sender>";
+	
+	while (list ($key, $none) = each ($NEWAR) ){
+		if($key==null){continue;}
+		$f[]="            <item>";
+		$f[]="                <type>CIDR</type>";
+		$f[]="                <value>$key</value>";
+		$f[]="            </item>";
+	}
+	
+	
+	$f[]="        </sender>";
+	$f[]="        <recipient>";
+	$f[]="            <item>";
+	$f[]="                <type>EMailMask</type>";
+	$f[]="                <value>*</value>";
+	$f[]="            </item>";
+	$f[]="        </recipient>";
+	$f[]="    </belongingCriteria>";
+	$f[]="    <scanSettings>";
+	$f[]="        <ruleDescription>Local networks will be not scanned for outgoing connexions...</ruleDescription>";
+	$f[]="        <active>1</active>";
+	$f[]="        <ruleAction>Scan</ruleAction>";
+	$f[]="        <avScanSettings>";
+	$f[]="            <engineSettings>";
+	$f[]="                <enableScan>1</enableScan>";
+	$f[]="                <maxSizeLimit>0</maxSizeLimit>";
+	$f[]="                <excludedNames />";
+	$f[]="                <excludedFormats>";
+	$f[]="                    <executableCategory>";
+	$f[]="                        <executableWin>0</executableWin>";
+	$f[]="                        <executableMsi>0</executableMsi>";
+	$f[]="                        <executableJava>0</executableJava>";
+	$f[]="                        <executableElf>0</executableElf>";
+	$f[]="                        <executableDeb>0</executableDeb>";
+	$f[]="                        <executableRpm>0</executableRpm>";
+	$f[]="                    </executableCategory>";
+	$f[]="                    <officeCategory>";
+	$f[]="                        <documentSubcategory>";
+	$f[]="                            <msOfficeDoc>0</msOfficeDoc>";
+	$f[]="                            <msOfficeDocx>0</msOfficeDocx>";
+	$f[]="                            <msOfficeDocm>0</msOfficeDocm>";
+	$f[]="                            <msOfficeDot>0</msOfficeDot>";
+	$f[]="                            <msOfficeDotx>0</msOfficeDotx>";
+	$f[]="                            <msOfficeDotm>0</msOfficeDotm>";
+	$f[]="                            <officePdf>0</officePdf>";
+	$f[]="                            <officeXps>0</officeXps>";
+	$f[]="                            <officeRtf>0</officeRtf>";
+	$f[]="                            <officeOdt>0</officeOdt>";
+	$f[]="                            <officeSxw>0</officeSxw>";
+	$f[]="                        </documentSubcategory>";
+	$f[]="                        <spreadsheetSubcategory>";
+	$f[]="                            <msOfficeXls>0</msOfficeXls>";
+	$f[]="                            <msOfficeXlsx>0</msOfficeXlsx>";
+	$f[]="                            <msOfficeXlsm>0</msOfficeXlsm>";
+	$f[]="                            <msOfficeXlsb>0</msOfficeXlsb>";
+	$f[]="                            <msOfficeXltx>0</msOfficeXltx>";
+	$f[]="                            <msOfficeXltm>0</msOfficeXltm>";
+	$f[]="                            <msOfficeXlam>0</msOfficeXlam>";
+	$f[]="                            <officeOds>0</officeOds>";
+	$f[]="                        </spreadsheetSubcategory>";
+	$f[]="                        <presentationSubcategory>";
+	$f[]="                            <msOfficePpt>0</msOfficePpt>";
+	$f[]="                            <msOfficePptx>0</msOfficePptx>";
+	$f[]="                            <msOfficePptm>0</msOfficePptm>";
+	$f[]="                            <msOfficePotx>0</msOfficePotx>";
+	$f[]="                            <msOfficePotm>0</msOfficePotm>";
+	$f[]="                            <msOfficePpsx>0</msOfficePpsx>";
+	$f[]="                            <msOfficePpsm>0</msOfficePpsm>";
+	$f[]="                            <officeOdp>0</officeOdp>";
+	$f[]="                        </presentationSubcategory>";
+	$f[]="                        <specializedSubcategory>";
+	$f[]="                            <officeMsg>0</officeMsg>";
+	$f[]="                            <officeOne>0</officeOne>";
+	$f[]="                            <officeOnepkg>0</officeOnepkg>";
+	$f[]="                            <officeVsd>0</officeVsd>";
+	$f[]="                            <officeVdx>0</officeVdx>";
+	$f[]="                            <officeXsn>0</officeXsn>";
+	$f[]="                            <msOfficePub>0</msOfficePub>";
+	$f[]="                        </specializedSubcategory>";
+	$f[]="                    </officeCategory>";
+	$f[]="                    <multimediaCategory>";
+	$f[]="                        <videoSubcategory>";
+	$f[]="                            <videoFlv>0</videoFlv>";
+	$f[]="                            <videoF4v>0</videoF4v>";
+	$f[]="                            <videoAvi>0</videoAvi>";
+	$f[]="                            <video3gpp>0</video3gpp>";
+	$f[]="                            <videoDivx>0</videoDivx>";
+	$f[]="                            <videoMkv>0</videoMkv>";
+	$f[]="                            <videoMov>0</videoMov>";
+	$f[]="                            <videoAsf>0</videoAsf>";
+	$f[]="                            <videoRm>0</videoRm>";
+	$f[]="                            <videoVob>0</videoVob>";
+	$f[]="                            <videoBik>0</videoBik>";
+	$f[]="                        </videoSubcategory>";
+	$f[]="                        <audioSubcategory>";
+	$f[]="                            <audioMp3>0</audioMp3>";
+	$f[]="                            <audioFlac>0</audioFlac>";
+	$f[]="                            <audioApe>0</audioApe>";
+	$f[]="                            <audioOgg>0</audioOgg>";
+	$f[]="                            <audioAac>0</audioAac>";
+	$f[]="                            <audioWma>0</audioWma>";
+	$f[]="                            <audioAc3>0</audioAc3>";
+	$f[]="                            <audioWav>0</audioWav>";
+	$f[]="                            <audioMka>0</audioMka>";
+	$f[]="                            <audioRa>0</audioRa>";
+	$f[]="                            <audioMidi>0</audioMidi>";
+	$f[]="                            <audioCda>0</audioCda>";
+	$f[]="                        </audioSubcategory>";
+	$f[]="                    </multimediaCategory>";
+	$f[]="                    <imageCategory>";
+	$f[]="                        <bitmapSubcategory>";
+	$f[]="                            <imageJpeg>0</imageJpeg>";
+	$f[]="                            <imageGif>0</imageGif>";
+	$f[]="                            <imagePng>0</imagePng>";
+	$f[]="                            <imageBmp>0</imageBmp>";
+	$f[]="                            <imageTiff>0</imageTiff>";
+	$f[]="                        </bitmapSubcategory>";
+	$f[]="                        <vectorSubcategory>";
+	$f[]="                            <imageEmf>0</imageEmf>";
+	$f[]="                            <imageEps>0</imageEps>";
+	$f[]="                            <imagePsd>0</imagePsd>";
+	$f[]="                            <imageCdr>0</imageCdr>";
+	$f[]="                        </vectorSubcategory>";
+	$f[]="                        <animationSubcategory>";
+	$f[]="                            <multimediaSwf>0</multimediaSwf>";
+	$f[]="                        </animationSubcategory>";
+	$f[]="                    </imageCategory>";
+	$f[]="                    <archiveCategory>";
+	$f[]="                        <archiveZip>0</archiveZip>";
+	$f[]="                        <archive7z>0</archive7z>";
+	$f[]="                        <archiveRar>0</archiveRar>";
+	$f[]="                        <archiveIso>0</archiveIso>";
+	$f[]="                        <archiveCab>0</archiveCab>";
+	$f[]="                        <archiveJar>0</archiveJar>";
+	$f[]="                        <archiveBzip2>0</archiveBzip2>";
+	$f[]="                        <archiveGzip>0</archiveGzip>";
+	$f[]="                        <archiveArj>0</archiveArj>";
+	$f[]="                    </archiveCategory>";
+	$f[]="                    <databaseCategory>";
+	$f[]="                        <databaseAccdb>0</databaseAccdb>";
+	$f[]="                        <databaseAccdc>0</databaseAccdc>";
+	$f[]="                        <databaseMdb>0</databaseMdb>";
+	$f[]="                    </databaseCategory>";
+	$f[]="                    <miscellaneousCategory>";
+	$f[]="                        <generalTxt>0</generalTxt>";
+	$f[]="                        <textChm>0</textChm>";
+	$f[]="                        <generalHtml>0</generalHtml>";
+	$f[]="                    </miscellaneousCategory>";
+	$f[]="                </excludedFormats>";
+	$f[]="                <scanArchived>1</scanArchived>";
+	$f[]="            </engineSettings>";
+	$f[]="            <intrusionThreatAction>Reject</intrusionThreatAction>";
+	$f[]="            <infectedFirstAction>Cure</infectedFirstAction>";
+	$f[]="            <infectedSecondAction>DeleteAttachment</infectedSecondAction>";
+	$f[]="            <suspiciousAction>DeleteAttachment</suspiciousAction>";
+	$f[]="            <corruptedAction>Skip</corruptedAction>";
+	$f[]="            <encryptedAction>Skip</encryptedAction>";
+	$f[]="            <intrusionThreatMark>[Intrusion Threat]</intrusionThreatMark>";
+	$f[]="            <infectedMark>[Infected]</infectedMark>";
+	$f[]="            <suspiciousMark>[Suspicious]</suspiciousMark>";
+	$f[]="            <disinfectedMark>[Cured]</disinfectedMark>";
+	$f[]="            <encryptedMark></encryptedMark>";
+	$f[]="            <corruptedMark></corruptedMark>";
+	$f[]="        </avScanSettings>";
+	$f[]="        <asScanSettings>";
+	$f[]="            <engineSettings>";
+	$f[]="                <enableScan>0</enableScan>";
+	$f[]="                <maxSizeLimit>1572864</maxSizeLimit>";
+	$f[]="                <spamRateLimit>Standard</spamRateLimit>";
+	$f[]="                <externalServices>";
+	$f[]="                    <useDns>1</useDns>";
+	$f[]="                    <useSpf>1</useSpf>";
+	$f[]="                    <useSurbl>1</useSurbl>";
+	$f[]="                    <useSurblDefaultList>1</useSurblDefaultList>";
+	$f[]="                    <useDnsbl>1</useDnsbl>";
+	$f[]="                    <useDnsblDefaultList>1</useDnsblDefaultList>";
+	$f[]="                    <dnsHostInDns>1</dnsHostInDns>";
+	$f[]="                    <dnsDynamicResolvedFrom>0</dnsDynamicResolvedFrom>";
+	$f[]="                </externalServices>";
+	$f[]="                <advancedOptions>";
+	$f[]="                    <parseRtf>0</parseRtf>";
+	$f[]="                    <useGsg>1</useGsg>";
+	$f[]="                    <disableLangChinese>0</disableLangChinese>";
+	$f[]="                    <disableLangKorean>0</disableLangKorean>";
+	$f[]="                    <disableLangThai>0</disableLangThai>";
+	$f[]="                    <disableLangJapanese>0</disableLangJapanese>";
+	$f[]="                </advancedOptions>";
+	$f[]="            </engineSettings>";
+	$f[]="            <backupSpam>0</backupSpam>";
+	$f[]="            <backupProbableSpam>0</backupProbableSpam>";
+	$f[]="            <backupBlacklisted>0</backupBlacklisted>";
+	$f[]="            <spamAction>Skip</spamAction>";
+	$f[]="            <probableSpamAction>Skip</probableSpamAction>";
+	$f[]="            <blacklistedAction>Skip</blacklistedAction>";
+	$f[]="            <spamMark>[Spam]</spamMark>";
+	$f[]="            <probableSpamMark>[Probable spam]</probableSpamMark>";
+	$f[]="            <blacklistedMark>[Blacklisted]</blacklistedMark>";
+	$f[]="        </asScanSettings>";
+	$f[]="        <cfScanSettings>";
+	$f[]="            <sizeExceededAction>Reject</sizeExceededAction>";
+	$f[]="            <bannedFileNameAction>Reject</bannedFileNameAction>";
+	$f[]="            <bannedFileFormatAction>Reject</bannedFileFormatAction>";
+	$f[]="            <backupSizeExceeded>0</backupSizeExceeded>";
+	$f[]="            <backupBannedFileName>0</backupBannedFileName>";
+	$f[]="            <backupBannedFileFormat>0</backupBannedFileFormat>";
+	$f[]="            <engineSettings>";
+	$f[]="                <enableScan>0</enableScan>";
+	$f[]="                <maxAllowedSize>0</maxAllowedSize>";
+	$f[]="                <bannedFileNames />";
+	$f[]="                <bannedFileFormats>";
+	$f[]="                    <executableCategory>";
+	$f[]="                        <executableWin>0</executableWin>";
+	$f[]="                        <executableMsi>0</executableMsi>";
+	$f[]="                        <executableJava>0</executableJava>";
+	$f[]="                        <executableElf>0</executableElf>";
+	$f[]="                        <executableDeb>0</executableDeb>";
+	$f[]="                        <executableRpm>0</executableRpm>";
+	$f[]="                    </executableCategory>";
+	$f[]="                    <officeCategory>";
+	$f[]="                        <documentSubcategory>";
+	$f[]="                            <msOfficeDoc>0</msOfficeDoc>";
+	$f[]="                            <msOfficeDocx>0</msOfficeDocx>";
+	$f[]="                            <msOfficeDocm>0</msOfficeDocm>";
+	$f[]="                            <msOfficeDot>0</msOfficeDot>";
+	$f[]="                            <msOfficeDotx>0</msOfficeDotx>";
+	$f[]="                            <msOfficeDotm>0</msOfficeDotm>";
+	$f[]="                            <officePdf>0</officePdf>";
+	$f[]="                            <officeXps>0</officeXps>";
+	$f[]="                            <officeRtf>0</officeRtf>";
+	$f[]="                            <officeOdt>0</officeOdt>";
+	$f[]="                            <officeSxw>0</officeSxw>";
+	$f[]="                        </documentSubcategory>";
+	$f[]="                        <spreadsheetSubcategory>";
+	$f[]="                            <msOfficeXls>0</msOfficeXls>";
+	$f[]="                            <msOfficeXlsx>0</msOfficeXlsx>";
+	$f[]="                            <msOfficeXlsm>0</msOfficeXlsm>";
+	$f[]="                            <msOfficeXlsb>0</msOfficeXlsb>";
+	$f[]="                            <msOfficeXltx>0</msOfficeXltx>";
+	$f[]="                            <msOfficeXltm>0</msOfficeXltm>";
+	$f[]="                            <msOfficeXlam>0</msOfficeXlam>";
+	$f[]="                            <officeOds>0</officeOds>";
+	$f[]="                        </spreadsheetSubcategory>";
+	$f[]="                        <presentationSubcategory>";
+	$f[]="                            <msOfficePpt>0</msOfficePpt>";
+	$f[]="                            <msOfficePptx>0</msOfficePptx>";
+	$f[]="                            <msOfficePptm>0</msOfficePptm>";
+	$f[]="                            <msOfficePotx>0</msOfficePotx>";
+	$f[]="                            <msOfficePotm>0</msOfficePotm>";
+	$f[]="                            <msOfficePpsx>0</msOfficePpsx>";
+	$f[]="                            <msOfficePpsm>0</msOfficePpsm>";
+	$f[]="                            <officeOdp>0</officeOdp>";
+	$f[]="                        </presentationSubcategory>";
+	$f[]="                        <specializedSubcategory>";
+	$f[]="                            <officeMsg>0</officeMsg>";
+	$f[]="                            <officeOne>0</officeOne>";
+	$f[]="                            <officeOnepkg>0</officeOnepkg>";
+	$f[]="                            <officeVsd>0</officeVsd>";
+	$f[]="                            <officeVdx>0</officeVdx>";
+	$f[]="                            <officeXsn>0</officeXsn>";
+	$f[]="                            <msOfficePub>0</msOfficePub>";
+	$f[]="                        </specializedSubcategory>";
+	$f[]="                    </officeCategory>";
+	$f[]="                    <multimediaCategory>";
+	$f[]="                        <videoSubcategory>";
+	$f[]="                            <videoFlv>0</videoFlv>";
+	$f[]="                            <videoF4v>0</videoF4v>";
+	$f[]="                            <videoAvi>0</videoAvi>";
+	$f[]="                            <video3gpp>0</video3gpp>";
+	$f[]="                            <videoDivx>0</videoDivx>";
+	$f[]="                            <videoMkv>0</videoMkv>";
+	$f[]="                            <videoMov>0</videoMov>";
+	$f[]="                            <videoAsf>0</videoAsf>";
+	$f[]="                            <videoRm>0</videoRm>";
+	$f[]="                            <videoVob>0</videoVob>";
+	$f[]="                            <videoBik>0</videoBik>";
+	$f[]="                        </videoSubcategory>";
+	$f[]="                        <audioSubcategory>";
+	$f[]="                            <audioMp3>0</audioMp3>";
+	$f[]="                            <audioFlac>0</audioFlac>";
+	$f[]="                            <audioApe>0</audioApe>";
+	$f[]="                            <audioOgg>0</audioOgg>";
+	$f[]="                            <audioAac>0</audioAac>";
+	$f[]="                            <audioWma>0</audioWma>";
+	$f[]="                            <audioAc3>0</audioAc3>";
+	$f[]="                            <audioWav>0</audioWav>";
+	$f[]="                            <audioMka>0</audioMka>";
+	$f[]="                            <audioRa>0</audioRa>";
+	$f[]="                            <audioMidi>0</audioMidi>";
+	$f[]="                            <audioCda>0</audioCda>";
+	$f[]="                        </audioSubcategory>";
+	$f[]="                    </multimediaCategory>";
+	$f[]="                    <imageCategory>";
+	$f[]="                        <bitmapSubcategory>";
+	$f[]="                            <imageJpeg>0</imageJpeg>";
+	$f[]="                            <imageGif>0</imageGif>";
+	$f[]="                            <imagePng>0</imagePng>";
+	$f[]="                            <imageBmp>0</imageBmp>";
+	$f[]="                            <imageTiff>0</imageTiff>";
+	$f[]="                        </bitmapSubcategory>";
+	$f[]="                        <vectorSubcategory>";
+	$f[]="                            <imageEmf>0</imageEmf>";
+	$f[]="                            <imageEps>0</imageEps>";
+	$f[]="                            <imagePsd>0</imagePsd>";
+	$f[]="                            <imageCdr>0</imageCdr>";
+	$f[]="                        </vectorSubcategory>";
+	$f[]="                        <animationSubcategory>";
+	$f[]="                            <multimediaSwf>0</multimediaSwf>";
+	$f[]="                        </animationSubcategory>";
+	$f[]="                    </imageCategory>";
+	$f[]="                    <archiveCategory>";
+	$f[]="                        <archiveZip>0</archiveZip>";
+	$f[]="                        <archive7z>0</archive7z>";
+	$f[]="                        <archiveRar>0</archiveRar>";
+	$f[]="                        <archiveIso>0</archiveIso>";
+	$f[]="                        <archiveCab>0</archiveCab>";
+	$f[]="                        <archiveJar>0</archiveJar>";
+	$f[]="                        <archiveBzip2>0</archiveBzip2>";
+	$f[]="                        <archiveGzip>0</archiveGzip>";
+	$f[]="                        <archiveArj>0</archiveArj>";
+	$f[]="                    </archiveCategory>";
+	$f[]="                    <databaseCategory>";
+	$f[]="                        <databaseAccdb>0</databaseAccdb>";
+	$f[]="                        <databaseAccdc>0</databaseAccdc>";
+	$f[]="                        <databaseMdb>0</databaseMdb>";
+	$f[]="                    </databaseCategory>";
+	$f[]="                    <miscellaneousCategory>";
+	$f[]="                        <generalTxt>0</generalTxt>";
+	$f[]="                        <textChm>0</textChm>";
+	$f[]="                        <generalHtml>0</generalHtml>";
+	$f[]="                    </miscellaneousCategory>";
+	$f[]="                </bannedFileFormats>";
+	$f[]="            </engineSettings>";
+	$f[]="        </cfScanSettings>";
+	$f[]="        <notificationSettings>";
+	$f[]="            <admin>";
+	$f[]="                <enableInfected>1</enableInfected>";
+	$f[]="                <enableCorrupted>0</enableCorrupted>";
+	$f[]="                <enableEncrypted>0</enableEncrypted>";
+	$f[]="                <enableCFFail>1</enableCFFail>";
+	$f[]="            </admin>";
+	$f[]="            <sender>";
+	$f[]="                <enableInfected>1</enableInfected>";
+	$f[]="                <enableCorrupted>0</enableCorrupted>";
+	$f[]="                <enableEncrypted>0</enableEncrypted>";
+	$f[]="                <enableCFFail>1</enableCFFail>";
+	$f[]="            </sender>";
+	$f[]="            <recipient>";
+	$f[]="                <enableInfected>0</enableInfected>";
+	$f[]="                <enableCorrupted>0</enableCorrupted>";
+	$f[]="                <enableEncrypted>0</enableEncrypted>";
+	$f[]="                <enableCFFail>0</enableCFFail>";
+	$f[]="            </recipient>";
+	$f[]="            <additional>";
+	$f[]="                <options>";
+	$f[]="                    <enableInfected>0</enableInfected>";
+	$f[]="                    <enableCorrupted>0</enableCorrupted>";
+	$f[]="                    <enableEncrypted>0</enableEncrypted>";
+	$f[]="                    <enableCFFail>0</enableCFFail>";
+	$f[]="                </options>";
+	$f[]="                <emailListInfected />";
+	$f[]="                <emailListCorrupted />";
+	$f[]="                <emailListEncrypted />";
+	$f[]="                <emailListCFFail />";
+	$f[]="            </additional>";
+	$f[]="        </notificationSettings>";
+	$f[]="    </scanSettings>";
+	$f[]="</root>";	
+	
+	$filetemp=$unix->FILE_TEMP();
+	@file_put_contents($filetemp, @implode("\n", $f));
+	$cmd="/opt/kaspersky/klms/bin/klms-control --create-rule \"From Local Network\" -f $filetemp";
+	if($ID>0){$cmd="/opt/kaspersky/klms/bin/klms-control --set-rule-settings $ID -f $filetemp";}
+	
+	echo "Starting......: Kaspersky Mail security Suite `$cmd`\n";
+	exec($cmd,$results);
+	while (list ($key, $line) = each ($results) ){
+		echo "Starting......: Kaspersky Mail security Suite \"$line\"\n";
+	}
 	
 }
 

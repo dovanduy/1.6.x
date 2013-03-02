@@ -88,6 +88,7 @@ if($argv[1]=="--status"){mod_status($argv[2]);die();exit;}
 if($argv[1]=="--listwebs"){listwebs();die();exit;}
 if($argv[1]=="--reconfigure-all"){reconfigure_all_websites();die();exit;}
 if($argv[1]=="--reconfigure-webapp"){reconfigure_all_webapp();die();exit;}
+if($argv[1]=="--reconfigure-zpush"){reconfigure_all_zpush();die();exit;}
 if($argv[1]=="--rouncube-plugins"){roundcube_plugins($argv[2]);die();exit;}
 if($argv[1]=="--monit"){build_monit();die();exit;}
 if($argv[1]=="--watchdog"){watchdog($argv[2]);die();exit;}
@@ -201,6 +202,33 @@ function check_enabled(){
 	}
 
 	if($reload){reload_apache();}
+	
+}
+
+function reconfigure_all_zpush(){
+	$unix=new unix();
+	@mkdir("/etc/artica-postfix/pids",0755,true);
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "Already instance executed pid $oldpid\n";
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	
+	$sql="SELECT servername FROM freeweb WHERE groupware='Z-PUSH' AND enabled=1";
+	$q=new mysql();
+		$results=$q->QUERY_SQL($sql,'artica_backup');
+	$count=mysql_num_rows($results);
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$hostname=$ligne["servername"];
+		install_groupware($hostname);
+			buildHost(null,$hostname);
+	}
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	reload_apache();	
 	
 }
 
@@ -606,6 +634,9 @@ function SSL_DEFAULT_VIRTUAL_HOST(){
 	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
 	if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
 	
+	
+	
+	
 	$f[]="<IfModule mod_ssl.c>";
 	$f[]="    <VirtualHost _default_:443>";
 	$f[]="            ServerAdmin webmaster@$hostname";
@@ -1006,8 +1037,15 @@ unset($f);
 	
 	@unlink("$DAEMON_PATH/mods-enabled/klms.FastCgiExternalServer.conf");
 	if($users->KLMS_WEB_INSTALLED){
-		if(is_file("/opt/kaspersky/klmsui/share/htdocs/cgi-bin/klwi")){
-			@file_put_contents("$DAEMON_PATH/mods-enabled/klms.FastCgiExternalServer.conf", "FastCgiExternalServer /opt/kaspersky/klmsui/share/htdocs/cgi-bin/klwi -host 127.0.0.1:2711\n");
+		$sql="SELECT COUNT(*) as tcount FROM freeweb WHERE groupware='KLMS'";
+		$q=new mysql();
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$CountDeGroupware=$ligne["tcount"];
+		echo "Starting......: $CountDeGroupware KLMS Groupware(s)\n";
+		if($CountDeGroupware>0){
+			if(is_file("/opt/kaspersky/klmsui/share/htdocs/cgi-bin/klwi")){
+				@file_put_contents("$DAEMON_PATH/mods-enabled/klms.FastCgiExternalServer.conf", "FastCgiExternalServer /opt/kaspersky/klmsui/share/htdocs/cgi-bin/klwi -host 127.0.0.1:2711\n");
+			}
 		}
 	}
 	
@@ -1607,6 +1645,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	if($mod_fcgid<>null){$OptionExecCGI=" +ExecCGI";}
 	$DirectoryContent=$freeweb->DirectoryContent();
 	
+	
 		$Indexes=" Indexes";
 		if($freeweb->Params["SECURITY"]["FreeWebsDisableBrowsing"]==1){$Indexes=" -Indexes";}
 		$conf[]="\n\t<Directory \"$freeweb->WORKING_DIRECTORY/\">";
@@ -1757,9 +1796,9 @@ function remove_host($hostname){
 	$mysql_database=$freeweb->mysql_database;
 	$q=new mysql();
 	if($q->DATABASE_EXISTS($mysql_database)){$q->DELETE_DATABASE($mysql_database);}
-	if($freeweb->groupware=="Z-PUSH"){$freeweb->delete();return;}
 	if($freeweb->groupware=="POWERADMIN"){$freeweb->delete();return;}
 	if($freeweb->groupware=="ARKEIA"){$freeweb->delete();return;}
+	if($freeweb->groupware=="UPDATEUTILITY"){$freeweb->delete();return;}
 	if($freeweb->groupware=="SARG"){$freeweb->delete();return;}
 	if($hostname=="_default_"){$freeweb->delete();return;}
 	if($freeweb->Forwarder==0){$freeweb->delete();return;}

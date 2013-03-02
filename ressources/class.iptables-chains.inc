@@ -258,6 +258,22 @@ function LoadWhiteLists(){
 	
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		
+		if(preg_match("#(.+?)\/#",$ligne["ipaddr"],$re)){
+			$ip=trim($re[1]);
+			if(!preg_match("#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#",$ip,$re)){continue;}
+			$GLOBALS["WHITELISTED_REGEX"][]="{$re[1]}\.{$re[2]}\.{$re[3]}";
+			$already_added_regex["{$re[1]}\.{$re[2]}\.{$re[3]}"]=true;
+			continue;
+		}
+		
+		if(strpos($ligne["hostname"], "*")>0){
+			$ligne["hostname"]=str_replace(".", "\.", $ligne["hostname"]);
+			$ligne["hostname"]=str_replace("*", ".*?", $ligne["hostname"]);
+			$GLOBALS["WHITELISTED_REGEX"][]=$ligne["hostname"];
+			continue;
+		}
+		
 		$WHITELISTED[$ligne["ipaddr"]]=true;
 		$WHITELISTED[$ligne["hostname"]]=true;
 		

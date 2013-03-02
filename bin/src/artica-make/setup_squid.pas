@@ -174,10 +174,11 @@ begin
       fpsystem('/bin/cp -rfd '+source_folder+'* /');
       install.INSTALL_STATUS(CODE_NAME,90);
       install.INSTALL_PROGRESS(CODE_NAME,'{reconfigure}');
+      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.php --build --force');
       fpsystem('/etc/init.d/artica-postfix start squid-cache');
       install.INSTALL_STATUS(CODE_NAME,100);
       install.INSTALL_PROGRESS(CODE_NAME,'{success}');
-        fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.php --build --force');
+
 
 end;
 //#########################################################################################

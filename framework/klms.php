@@ -23,7 +23,7 @@ if(isset($_GET["apply-config"])){apply_config();exit;}
 if(isset($_GET["setup"])){setup();exit;}
 if(isset($_GET["get-task-logs"])){task_logs_list();exit;}
 if(isset($_GET["get-task-events"])){task_logs_events();exit;}
-
+if(isset($_GET["reset-password"])){reset_password();exit;}
 
 
 
@@ -252,6 +252,16 @@ function task_logs_events(){
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 	
 	
+}
+
+function reset_password(){
+	$password=base64_decode($_GET["reset-password"]);
+	$unix=new unix();
+	$password=$unix->shellEscapeChars($password);
+	$cmd="/opt/kaspersky/klms/bin/klms-control --set-web-admin-password $password 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec("$cmd 2>&1",$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 }
 
 ?>

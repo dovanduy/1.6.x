@@ -4,7 +4,7 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');
-
+if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(is_array($argv)){
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 	if(preg_match("#--old#",implode(" ",$argv))){$GLOBALS["OLD"]=true;}
@@ -15,7 +15,6 @@ if(is_array($argv)){
 }
 
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
-
 if($argv[1]=="--reindex"){reindex_caches();die();}
 if($argv[1]=="--default"){rebuild_default_cache();die();}
 
@@ -251,6 +250,8 @@ function rebuildcaches(){
 
 
 
+
+
 function ListCaches(){
 	$f=file("/etc/squid3/squid.conf");
 	while (list ($num, $ligne) = each ($f) ){
@@ -261,6 +262,13 @@ function ListCaches(){
 	return $array;
 }
 function ouputz($text,$line){
+	
+	if($GLOBALS["SCHEDULE_ID"]>1){
+		if(function_exists("debug_backtrace")){$trace=@debug_backtrace();}		
+		ufdbguard_admin_events($text, $trace[1]["function"], __FILE__, $line, "proxy");
+	}
+	
+	
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 	//if($GLOBALS["VERBOSE"]){echo "$text\n";}
 	$pid=@getmypid();

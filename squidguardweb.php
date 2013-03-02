@@ -8,7 +8,7 @@
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");	
 	$user=new usersMenus();
-	if(!$user->AsSquidAdministrator){
+	if(!$user->AsDansGuardianAdministrator){
 		$tpl=new templates();
 		echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}").");";
 		exit;
@@ -26,7 +26,7 @@ function js(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{banned_page_webservice}");
-	
+	header("content-type: application/x-javascript");
 	$html="
 		YahooWin5('650','$page?tabs=yes','$title');
 	";
@@ -202,11 +202,18 @@ function tabs(){
 	$tpl=new templates();
 	$array["popup"]='{default_webrule}';
 	$array["per-categories"]='{per_category}';
+	$array["service"]='{status}';
 	$page=CurrentPageName();
 	$tpl=new templates();
 
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="service"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squidguardweb.service.php\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 	}
 	

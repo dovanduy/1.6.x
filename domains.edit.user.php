@@ -50,7 +50,7 @@ if(isset($_GET["zarafaQuotaWarn"])){ZARAFA_MAILBOX_SAVE ();exit ();}
 if(isset($_POST["user_zarafa_enable_pop3"])){ZARAFA_DISABLE_FEATURES_SAVE();exit;}
 if(isset($_POST["zarafaSharedStoreOnly"])){zarafaSharedStoreOnly();exit;}
 if(isset($_POST["zarafaHidden"])){zarafaHidden();exit;}
-
+if(isset($_GET["generate-newuid-js"])){generate_newuid_js();exit;}
 
 
 if(isset($_GET["AJAX_COMPUTER_NETBIOS_LINK"])){AJAX_COMPUTER_NETBIOS_LINK();exit;}
@@ -1230,12 +1230,89 @@ function AJAX_COMPUTER_NETBIOS_LINK(){
 
 
 function AJAX_USER_WARNING(){
+	$f=array();	
 	$userid=$_GET["userid"];
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$sock=new sockets();
 	$user = new user ( $userid );
-	$f=array();
+	if($users->ZARAFA_INSTALLED){
+		if(isset($user->objectClass_array["zarafa-user"])){
+			include_once(dirname(__FILE__)."/ressources/class.mapi-zarafa.inc");
+			$mapi=new mapizarafa();
+			if(!$mapi->Connect($userid,$user->password)){
+				$f[]="
+					<tr>
+						<td width=1% valign='top'><img src='img/warning-panneau-24.png'></td>
+						<td style='font-size:13px;color:#D45D17'>
+							<strong>{mailbox_error}</strong><br>
+							<i style='font-size:9px;color:#D45D17'>$mapi->error</i>
+						</td>
+					</tr>
+					";			
+			}else{
+					$storesize=$mapi->storesize;
+	
+					$size=FormatBytes($storesize/1024);
+					$f[]="
+					<tr>
+					<td width=1% valign='top'><img src='img/info-24.png'></td>
+					<td style='font-size:13px;color:#D45D17'>
+						<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('domains.edit.user.zarafa.store.size.php?uid=$userid')\"
+						style='text-decoration:underline;font-weight:bold'>{mailbox_size}:&nbsp;$size</a>
+						
+						</td>
+					</tr>
+					";				
+					
+				
+			}
+		}
+	}
+	
+	
+	
+
+	
+	$uidNumber=$user->uidNumber;
+	$ldap=new clladp();
+	$sr =@ldap_search($ldap->ldap_connection,$ldap->suffix,"(uidNumber=$uidNumber)",array('uid','dn'));
+	if($sr){
+		$hash=ldap_get_entries($ldap->ldap_connection,$sr);
+		if($hash["count"]>0){
+			for($i=0;$i<$hash["count"];$i++){
+				$uids[$hash[$i]["uid"][0]]=$hash[$i]["dn"];	
+			}
+
+			if(count($uids)>1){
+				
+				while (list ($uid, $dn) = each ($uids) ){
+					$uiderr[]="<li>$uid ($dn)</li>";
+				}
+				
+				$f[]="
+				<tr>
+					<td width=1% valign='top'><img src='img/warning-panneau-24.png'></td>
+					<td style='font-size:13px;color:#D45D17'>
+						<strong>{duplicate_uidNumber}</strong><br>
+						<i style='font-size:9px;color:#D45D17'>".@implode("\n", $uiderr)."</i>
+					</td>
+				</tr>
+				<tr>
+					<td colspan=2 align='right'>
+					". button("{generate_new_uid}&nbsp;&raquo;&raquo;", "Loadjs('$page?generate-newuid-js&userid=$userid')")."
+					</td>
+				</tr>
+				";
+				
+			}
+			
+		}
+		
+	}
+	
+	
+	
 	
 	
 	
@@ -5817,6 +5894,7 @@ function zarafaHidden(){
 function ZARAFA_DISABLE_FEATURES_SAVE(){
 	$zarafaEnabledFeatures=null;
 	$zarafaDisabledFeatures=null;
+	$array=array();
 	if($_POST["user_zarafa_enable_imap"]==1){$zarafaEnabledFeatures="imap";}
 	if($_POST["user_zarafa_enable_pop3"]==1){$zarafaEnabledFeatures=$zarafaEnabledFeatures." pop3";}
 
@@ -5846,6 +5924,39 @@ function ZARAFA_DISABLE_FEATURES_SAVE(){
 	
 	
 }
+function generate_newuid_js(){
+	
+	$tpl=new templates();
+	header("content-type: application/x-javascript");	
+	$LastUidNumber=LastUidNumber();
+	$uid=$_GET["userid"];
+	$user=new user($uid);
+	$user->uidNumber=$LastUidNumber;
+	if(!$user->edit_system()){echo "alert('".$tpl->javascript_parse_text("{failed}")."')";return;}
+	echo "alert('".$tpl->javascript_parse_text("{succes}: N: $LastUidNumber")."');\nRefreshTab('container-users-tabs');";
+	
+	
+}
+function LastUidNumber(){
+	$ldap=new clladp();
+	$r =@ldap_search($ldap->ldap_connection, $ldap->suffix, '(uidnumber=*)',array("uidnumber","uid"));
+	if (!$r){die();}
+	ldap_sort($ldap->ldap_connection, $r, "uidNumber");
+	$result = ldap_get_entries($ldap->ldap_connection, $r);
+	$count = $result['count'];
+	if($GLOBALS["VERBOSE"]){echo "LastUidNumber:$count items\n";}
+	for($i=0;$i<$count;$i++){
+		$id=$result[$i]['uidnumber'][0];
+		if($id<2000){continue;}
+		$hash[$id]=true;
+	}
 
 
+	if(count($hash)==0){return 2001;}
+	krsort($hash);
+	$f=array();
+	while (list ($num, $ligne) = each ($hash) ){$f[]=$num;}
+	$final=$f[0];
+	return $final+1;
+}
 ?>

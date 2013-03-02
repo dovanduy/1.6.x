@@ -338,6 +338,7 @@ if(isset($_GET["Kas3DbVer"])){Kas3DbVer();exit;}
 
 if(isset($_GET["kaspersky-status"])){kaspersky_status();exit;}
 if(isset($_GET["kav4proxy-reconfigure"])){kav4proxy_reload();exit;}
+if(isset($_GET["kav4proxy-reconfigure-tenir"])){kav4proxy_reload_tenir();exit;}
 if(isset($_GET["kav4proxy-pattern-date"])){kav4ProxyPatternDate();exit;}
 if(isset($_GET["UpdateUtility-pattern-date"])){UpdateUtilityPatternDate();exit;}
 
@@ -1209,6 +1210,8 @@ function SMTP_WHITELIST(){
 	NOHUP_EXEC( LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/postfix.whitelist.php");
 	NOHUP_EXEC( LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.opendkim.php --whitelist");
 	NOHUP_EXEC( LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.spamassassin.php --whitelist");
+	NOHUP_EXEC( LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.klms.php --whitelist");
+	NOHUP_EXEC( LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.postfix.iptables.php --compile");
 }
 
 function _filesize(){
@@ -1380,13 +1383,17 @@ echo "<articadatascgi>". @file_get_contents("/usr/share/artica-postfix/ressource
 
 function StartServiceCMD(){
 	$cmd=$_GET["start-service-name"];
+	$cmdline="/etc/init.d/artica-postfix start $cmd 2>&1";
+	writelogs_framework($cmdline,__FUNCTION__,__FILE__,__LINE__);
 	exec("/etc/init.d/artica-postfix start $cmd",$results);
 	$datas=base64_encode(serialize($results));
 	echo "<articadatascgi>$datas</articadatascgi>";	
 }
 function StopServiceCMD(){
 	$cmd=$_GET["stop-service-name"];
-	exec("/etc/init.d/artica-postfix stop $cmd",$results);
+	$cmdline="/etc/init.d/artica-postfix stop $cmd 2>&1";
+	writelogs_framework($cmdline,__FUNCTION__,__FILE__,__LINE__);
+	exec($cmdline,$results);
 	$datas=base64_encode(serialize($results));
 	echo "<articadatascgi>$datas</articadatascgi>";	
 }
@@ -4156,11 +4163,15 @@ function kav4proxy_upload_license(){
 	$f=$_GET["Kav4ProxyUploadLicense"];
 	$type=$_GET["type"];
 	@unlink("/etc/artica-postfix/kav4proxy-licensemanager");
+	
+	
+	
 	$cmd="/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -c /etc/opt/kaspersky/kav4proxy.conf";
 	
 	$update="/opt/kaspersky/kav4proxy/bin/kav4proxy-keepup2date -c /etc/opt/kaspersky/kav4proxy.conf";
 	
 	if($type=="milter"){
+		$noproxy=true;
 		$update=null;
 		if(is_file("/opt/kav/5.6/kavmilter/bin/licensemanager")){
 			$cmd="/opt/kav/5.6/kavmilter/bin/licensemanager";
@@ -4174,8 +4185,10 @@ function kav4proxy_upload_license(){
 	}
 	
 	
-	if($type=="kas"){$cmd="/usr/local/ap-mailfilter3/bin/licensemanager -c /usr/local/ap-mailfilter3/etc/keepup2date.conf";}
-	
+	if($type=="kas"){$noproxy=true;$cmd="/usr/local/ap-mailfilter3/bin/licensemanager -c /usr/local/ap-mailfilter3/etc/keepup2date.conf";}
+	if(!$noproxy){
+		shell_exec("/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -d a >/dev/null 2>&1");
+	}
 	
 	$unix=new unix();
 	$tmpf=$unix->FILE_TEMP();
@@ -4191,9 +4204,13 @@ function kav4proxy_upload_license(){
 	
 }
 function kav4proxy_reload(){
-	NOHUP_EXEC("/usr/share/artica-postfix/bin/artica-install --reload-kav4proxy");
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	NOHUP_EXEC("$php5 /usr/share/artica-postfix/exec.kav4proxy.php --reload");
 }
-
+function kav4proxy_reload_tenir(){
+	kav4proxy_reload();
+}
 
 function kav4proxy_delete_license(){
 	@unlink("/etc/artica-postfix/kav4proxy-licensemanager");
@@ -4710,9 +4727,11 @@ function cyr_restore_mailbox(){
 	NOHUP_EXEC(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.backup.php --restore-mbx $datas");
 }
 function disk_format_big_partition(){
-	exec("/usr/share/artica-postfix/bin/artica-install --format-b-part {$_GET["dev"]} {$_GET["label"]}",$datas);
-	$r=implode("\n",$datas);
-	echo "<articadatascgi>". base64_encode($r)."</articadatascgi>";			
+	
+	$filelogs="/usr/share/artica-postfix/ressources/logs/web/".md5($_GET["dev"]);
+	NOHUP_EXEC(LOCATE_PHP5_BIN2() ." /usr/share/artica-postfix/exec.system.build-partition.php --full \"{$_GET["dev"]}\" \"{$_GET["label"]}\"",$datas);
+	
+		
 	
 }
 function RestartRsyncServer(){
@@ -6204,11 +6223,25 @@ function IP_CALC_CDIR(){
 
 function kav4ProxyPatternDatePath(){
 $unix=new unix();
-	$base=$unix->KAV4PROXY_GET_VALUE("path","BasesPath");	
+$rm=$unix->find_program("rm");
+$ln=$unix->find_program("ln");
+
+	if(!is_file("/var/opt/kaspersky/kav4proxy/bases/base001.avc")){
+		shell_exec("$rm -rf /var/opt/kaspersky/kav4proxy/bases");
+		shell_exec("$ln -s /var/db/kav/databases /var/opt/kaspersky/kav4proxy/bases");
+	}
+
+
+	$base="/var/db/kav/databases";
 	if(is_file("$base/u0607g.xml")){return "$base/u0607g.xml";}	
 	if(is_file("$base/master.xml")){return "$base/master.xml";}
 	if(is_file("$base/masterv2.xml")){return "$base/master.xml";}
 	if(is_file("$base/av-i386-0607g.xml")){return "$base/av-i386-0607g.xml";}
+	if(is_file("$base/u0607g.xml")){return "$base/u0607g.xml";}
+	if(is_file("$base/master.xml")){return "$base/master.xml";}
+	if(is_file("$base/masterv2.xml")){return "$base/master.xml";}
+	if(is_file("$base/av-i386-0607g.xml")){return "$base/av-i386-0607g.xml";}	
+	
 	return "$base/master.xml";
 }
 function UpdateUtilityPatternDatePath(){
@@ -6224,7 +6257,7 @@ function UpdateUtilityPatternDatePath(){
 function kav4ProxyPatternDate(){
 	$unix=new unix();
 	$base=kav4ProxyPatternDatePath();
-	writelogs_framework("Found $base",__FUNCTION__,__FILE__,__LINE__);
+	writelogs_framework("Detected `$base`",__FUNCTION__,__FILE__,__LINE__);
 	if(!is_file($base)){
 		writelogs_framework("$base no such file",__FUNCTION__,__FILE__,__LINE__);
 		return;}
@@ -6478,6 +6511,13 @@ function SQUID_RESTART_ONLY(){
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/restart.squid");
 	shell_exec("/bin/touch /usr/share/artica-postfix/ressources/logs/web/restart.squid");
 	shell_exec("/bin/chmod 777 /usr/share/artica-postfix/ressources/logs/web/restart.squid");
+	
+	if(isset($_GET["ApplyConfToo"])){
+		$cmd=LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/squid.php --build >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1";
+		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+		shell_exec($cmd);
+	}
+	
 	shell_exec("/etc/init.d/artica-postfix restart squid-cache >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1 &");	
 }
 
@@ -6964,6 +7004,9 @@ function KERNEL_SYSCTL_SET_VALUE(){
 	$cmd="sysctl -w $key=$value";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
+	if(isset($_GET["write"])){
+		$unix->sysctl("$key",$value);
+	}
 	
 }
 
@@ -8043,11 +8086,11 @@ function ChangeMysqlParams(){
 	$basePath="/etc/artica-postfix/settings/Mysql";
 	$arrayMysqlinfos=unserialize(base64_decode($_GET["change-mysql-params"]));
 	$user=$arrayMysqlinfos["USER"];
-	$password=$arrayMysqlinfos["PASSWORD"];
+	$password=trim($arrayMysqlinfos["PASSWORD"]);
 	$server=$arrayMysqlinfos["SERVER"];
 	writelogs_framework("Change mysql parameters to $user:$password@$server",__FUNCTION__,__FILE__,__LINE__);
 	@file_put_contents("$basePath/database_admin",$user);
-	@file_put_contents("$basePath/database_password",$password);
+	if($password==null){@unlink("$basePath/database_password");}else{@file_put_contents("$basePath/database_password",$password);}
 	@file_put_contents("$basePath/mysql_server",$server);
 	shell_exec("/usr/share/artica-postfix/bin/process1 --force ".time());
 	$unix=new unix();
@@ -8487,6 +8530,17 @@ function DNSMASQ_RESTART(){
 }
 function USB_SCAN_WRITE(){
 	$unix=new unix();
+	
+	if(isset($_GET["tenir"])){
+		$cmd="/usr/share/artica-postfix/bin/artica-install --usb-scan-write --verbose 2>&1";
+		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+		exec($cmd,$results);
+		writelogs_framework("Lines -> ".count($results),__FUNCTION__,__FILE__,__LINE__);
+		krsort($results);
+		echo "<articadatascgi>". base64_encode(@implode("\n", $results))."</articadatascgi>";
+		return;
+		
+	}
 	
 	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$Time=$unix->file_time_min($timeFile);

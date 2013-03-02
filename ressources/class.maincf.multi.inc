@@ -62,9 +62,16 @@ class maincf_multi{
 				//if($this->ou==null){echo "OU=NULL\n$sql\n";}
 			}
 		}
-
-
-		
+	}
+	
+	public function postfix_version(){
+		$unix=new unix();
+		$postconf=$unix->find_program("postconf");
+		exec("$postconf -h mail_version 2>&1",$postconf1);
+		while (list ($index, $line) = each ($postconf1)){
+			$line=trim($line);if(!preg_match("#^([0-9\.]+)#", $line,$re)){continue;}
+			return $re[1];
+		}
 	}
 	
 	public function CheckRequiredValues(){
@@ -195,8 +202,18 @@ public function SET_BIGDATA($key,$value){
 				return "check_client_access hash:$target_file";
 			}
 		}
+	}
+	
+	public function relay_domains_restricted(){
+		$q=new mysql();
+		$sql="SELECT domainname FROM relay_domains_restricted WHERE `hostname`='$this->myhostname'";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(trim($ligne["domainname"])==null){continue;}
+			$array[$ligne["domainname"]]=$ligne["domainname"];
+		}
 		
-		
+		return $array;
 	}
 	
 	public function Blacklist_generic(){
@@ -338,7 +355,10 @@ public function SET_BIGDATA($key,$value){
 		$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){echo "$q->mysql_error\n";}
 	
-		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){		
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+				if(strpos($ligne["ipaddr"], "*")>0){continue;}
+				
+			
 				if($ligne["ipaddr"]<>null){
 					$f[]="{$ligne["ipaddr"]}\tOK";
 				}
@@ -357,28 +377,20 @@ public function SET_BIGDATA($key,$value){
 
 private function restrict_relay_domains(){
 	@file_put_contents("/etc/postfix-$this->myhostname/relay_domains_restricted","\n");
-	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/relay_domains_restricted >/dev/null 2>&1");
 	$ldap=new clladp();
-	$dn="ou=$this->ou,dc=organizations,$ldap->suffix";
-	if(trim($this->ou)==null){$dn="dc=organizations,$ldap->suffix";}
-	$attr=array("cn");
-	$pattern="(&(objectclass=PostfixRelayRecipientMaps)(cn=@*))";
-	$sr =@ldap_search($ldap->ldap_connection,$dn,$pattern,$attr);
-	$hash=ldap_get_entries($ldap->ldap_connection,$sr);
+	$q=new mysql();
 	$relaysdomains=$ldap->hash_get_relay_domains();
+	$relay_domains_restricted=$this->relay_domains_restricted();
+	$f=array();
 	
-	for($i=0;$i<$hash["count"];$i++){
-		$domain=$hash[$i]["cn"][0];
-		if(preg_match("#^@(.+)#",$domain,$re)){$domain=$re[1];}
-		unset($relaysdomains[$domain]);
-	}
-	
-	unset($relaysdomains["localhost.localdomain"]);
-	if(is_array($relaysdomains)){
-		while (list ($num, $ligne) = each ($relaysdomains) ){
-			$f[]="$num\tartica_restrict_relay_domains";
+	if(count($relaysdomains)>0){
+		while (list ($domain, $ligne) = each ($relaysdomains) ){
+			if(preg_match("#^@(.+)#",$domain,$re)){$domain=$re[1];}
+			if(!isset($relay_domains_restricted[$domain])){continue;}
+			$f[]="$domain\tartica_restrict_relay_domains";
 		}
 	}
+
 	echo "Starting......: Postfix \"$this->myhostname\"". count($f)." restricted relayed domains\n"; 
 	@file_put_contents("/etc/postfix-$this->myhostname/relay_domains_restricted",implode("\n",$f));
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/relay_domains_restricted >/dev/null 2>&1");
@@ -488,7 +500,7 @@ private function restrict_relay_domains(){
 				$smtpd_client_restrictions[]="reject_rbl_client sbl.spamhaus.org";
 				$smtpd_client_restrictions[]="reject_rbl_client cbl.abuseat.org";
 		}
-
+		$smtpd_recipient_restrictions[]="permit_auth_destination";
 		$smtpd_recipient_restrictions[]="reject_unauth_destination";
 		
 		$smtpd_client_restrictions[]="permit";
@@ -1752,6 +1764,7 @@ private function smtp_sasl_password_map(){
 	$conf[]="postscreen_dnsbl_sites=$final_dnsbl";
 	
 	$sock=new sockets();
+	$ipClass=new IP();
 	
 	
 		$q=new mysql();
@@ -1774,7 +1787,7 @@ private function smtp_sasl_password_map(){
 	if(is_array($networks)){
 		while (list ($num, $ligne) = each ($networks) ){
 			if($ligne==null){continue;}
-			if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$ligne)){
+			if(!$ipClass->isIPAddress($ligne)){
 				$hostsname[]="$ligne\tOK";
 			}else{
 				$nets[]="$ligne\tdunno";
@@ -1787,7 +1800,7 @@ private function smtp_sasl_password_map(){
 		while (list ($num, $ligne) = each ($networks) ){
 			$ligne=trim($ligne);
 			if($ligne==null){continue;}
-			if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$ligne)){
+			if(!$ipClass->isIPAddress($ligne)){
 				$hostsname[]="$ligne\tOK";
 			}else{
 				$nets[]="$ligne\tdunno";
@@ -1801,7 +1814,9 @@ private function smtp_sasl_password_map(){
 		while (list ($num, $ligne) = each ($networks) ){
 			$num=trim($num);
 			if($num==null){continue;}
-			if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$num)){
+			
+			
+			if(!$ipClass->isIPAddress($num)){
 				$hostsname[]="$num\tOK";
 			}else{
 				$nets[]="$num\tdunno";
@@ -1813,14 +1828,14 @@ private function smtp_sasl_password_map(){
 	
 	
 	
-	if(is_array($hostsname)){@file_put_contents("/etc/postfix-$this->myhostname/postscreen_access.hosts",@implode("\n",$hostsname));
+	if(count($hostsname)>0){@file_put_contents("/etc/postfix-$this->myhostname/postscreen_access.hosts",@implode("\n",$hostsname));
 	$postscreen_access=",hash:/etc/postfix-$this->myhostname/postscreen_access.hosts";}
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/postscreen_access.hosts");
 	
 	
 	
 	if($TrustMyNetwork==1){$permit_mynetworks="permit_mynetworks,";}
-	if(is_array($nets)){@file_put_contents("/etc/postfix-$this->myhostname/postscreen_access.cidr",@implode("\n",$nets));}
+	if(count($nets)>0){@file_put_contents("/etc/postfix-$this->myhostname/postscreen_access.cidr",@implode("\n",$nets));}
 	$conf[]="postscreen_access_list={$permit_mynetworks}cidr:/etc/postfix-$this->myhostname/postscreen_access.cidr$postscreen_access";
 	return @implode("\n",$conf);	
 		
@@ -1945,6 +1960,10 @@ private function smtp_sasl_password_map(){
 	
 	public function buildconf(){
 		$sock=new sockets();
+		$postfix_ver=$this->postfix_version();
+		if(preg_match("#^([0-9]+)\.([0-9]+)#", $postfix_ver,$re)){$MAJOR=$re[1];$MINOR=$re[2];}
+		
+		
 		$PostfixMultiCreateBubble=$sock->GET_INFO("PostfixMultiCreateBubble");
 		$PostfixMultiTrustAllInstances=$sock->GET_INFO("PostfixMultiTrustAllInstances");
 		if(!is_numeric($PostfixMultiCreateBubble)){$PostfixMultiCreateBubble=0;}
@@ -2174,8 +2193,13 @@ private function smtp_sasl_password_map(){
 			$qmgr_message_active_limit=$this->GET("qmgr_message_active_limit");
 			$qmgr_message_recipient_minimum=$this->GET("qmgr_message_recipient_minimum");		
 			$smtp_fallback_relay=$this->GET("smtp_fallback_relay");
-	
 			
+			$smtpd_reject_unlisted_recipient=$this->GET("smtpd_reject_unlisted_recipient");
+			if(!is_numeric($smtpd_reject_unlisted_recipient)){$smtpd_reject_unlisted_recipient=1;}
+			
+			$smtpd_reject_unlisted_sender=$this->GET("smtpd_reject_unlisted_sender");
+			if(!is_numeric($smtpd_reject_unlisted_sender)){$smtpd_reject_unlisted_sender=0;}			
+
 			if(!is_numeric($qmgr_message_active_limit)){$qmgr_message_active_limit=20000;}
 			if(!is_numeric($qmgr_message_recipient_limit)){$qmgr_message_recipient_limit=20000;}
 			if(!is_numeric($qmgr_message_recipient_minimum)){$qmgr_message_recipient_minimum=10;}				
@@ -2367,7 +2391,18 @@ private function smtp_sasl_password_map(){
 			
 			$conf[]="";
 			$conf[]="#  DATABASES ---------------------------------";
-			$conf[]="smtpd_reject_unlisted_recipient=yes";
+			
+			
+			
+			
+			if($MAJOR>1){
+				if($MINOR>9){
+					$conf[]="smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination";
+				}
+			}
+			$conf[]="smtpd_reject_unlisted_recipient=" .$this->YesNo($smtpd_reject_unlisted_recipient);
+			$conf[]="smtpd_reject_unlisted_sender=" .$this->YesNo($smtpd_reject_unlisted_sender);
+			
 			$conf[]="artica_destination_recipient_limit = 1";
 			$conf[]="artica-filter_destination_recipient_limit = 1";
 			$this->LoadLDAPDBs();
@@ -2472,6 +2507,13 @@ private function smtp_sasl_password_map(){
 		}
 	}
 
+	public function YesNo($value){
+		if($value==1){return "yes";}
+		if($value==0){return "no";}
+		if(is_bool($value)){
+			if($value){return "yes";}else{return "no";}
+		}
+	}
 	
 	private function checkipv6($ip=null){
 		if($ip==null){

@@ -359,7 +359,7 @@ function popup_tabs(){
 	
 	//http://jmatrix.net/dao/case/case.jsp?case=7F000001-1C888D9-111189408B9-80
 	
-	$array["popup"]='{website}';
+	$array["popup"]="{website}";
 	
 
 	
@@ -446,11 +446,19 @@ function popup_tabs(){
 		
 		if($apache->WebCopyID>0){unset($array["groupwares"]);}		
 		
+		if($apache->groupware=="Z-PUSH"){
+			$array["zpush"]="{APP_Z_PUSH}";
+		}		
+		
 		$users=new usersMenus();
 		if($users->awstats_installed){
 			//$array["awstats"]='{APP_AWSTATS}';
 		}
 	}
+	
+
+	
+	
 	
 	if(count($array)<10){$fontsize="style='font-size:14px'";}
 	
@@ -463,6 +471,11 @@ function popup_tabs(){
 		
 		if($num=="status"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.status.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+		}
+
+		if($num=="zpush"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.zpush.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
@@ -674,9 +687,6 @@ $html="
 			if(document.getElementById('PageSpeed').checked){XHR.appendData('PageSpeed',1);}else{XHR.appendData('PageSpeed',0);}
 			if(document.getElementById('ModeBw').checked){XHR.appendData('ModeBw',1);}else{XHR.appendData('ModeBw',0);}
 			if(document.getElementById('DisableIndexPHPPage').checked){XHR.appendData('DisableIndexPHPPage',1);}else{XHR.appendData('DisableIndexPHPPage',0);}
-			
-			
-			
 			XHR.appendData('servername','{$_GET["servername"]}');
     		XHR.sendAndLoad('$page', 'POST',x_ApacheOthersValuesSave);
 		} 

@@ -1780,14 +1780,17 @@ function listen_port_js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{listen_port}");
 	$t=time();
+	header("content-type: application/x-javascript");
 		echo "
-		YahooWin2(450,'$page?content=listen_port&t=$t','$title');
+		LoadWinORG(450,'$page?content=listen_port&t=$t','$title');
 		
 		var x_listenport= function (obj) {
 			var results=obj.responseText;
 			if(results.length>3){alert(results);}
-			YahooWin2Hide();
+			WinORGHide();
 			if(document.getElementById('main_squid_quicklinks_tabs')){RefreshTab('main_squid_quicklinks_tabs');}
+			if(document.getElementById('main_config_sslbump')){RefreshTab('main_config_sslbump');}
+			
 		}
 		
 		function listenport(){
@@ -2047,6 +2050,16 @@ function listen_port_save(){
 		$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 		if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 		
+		
+			$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
+			$FreeWebListen=$sock->GET_INFO("FreeWebListen");
+			if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
+			if(!is_numeric($FreeWebListen)){$FreeWebListen=80;}
+		
+			if($_GET["listenport"]==$FreeWebListen){$sock->SET_INFO("FreeWebListen",$_GET["listenport"]+1);}	
+			if($_GET["ssl_port"]==$FreeWebListenSSLPort){$sock->SET_INFO("FreeWebListenSSLPort",$_GET["ssl_port"]+1);}
+				
+		
 		$squid=new squidbee();
 		$squid->listen_port=$_GET["listenport"];
 		$squid->second_listen_port=$_GET["second_listen_port"];
@@ -2068,7 +2081,12 @@ function listen_port_save(){
 			}
 			
 			echo $tpl->javascript_parse_text("{success}\n",1);
-		}		
+		}
+
+		
+		$sock->getFrameWork("squid.php.php?restart-squid=yes");
+		$sock->getFrameWork("cmd.php?restart-apache-src=yes");		
+		
 		
 	}
 	

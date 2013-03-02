@@ -1,15 +1,15 @@
 <?php
 if(isset($_GET["verbose"])){echo __LINE__." verbose OK<br>\n";$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
-
+$GLOBALS["AS_ROOT"]=false;
+if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
 
 include_once('ressources/class.templates.inc');
-session_start();
 include_once('ressources/class.html.pages.inc');
 include_once('ressources/class.mysql.inc');
 include_once('ressources/class.artica.graphs.inc');
 include_once('ressources/class.rrd.inc');
 $users=new usersMenus();
-if(!$users->AsSystemAdministrator){die();}
+if(!$GLOBALS["AS_ROOT"]){if(!$users->AsSystemAdministrator){die();}}
 if(isset($_GET["all"])){js();exit;}
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["hour"])){hour();exit;}

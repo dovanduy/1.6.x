@@ -1276,6 +1276,8 @@ function string_to_regex($pattern){
 }
 
 function string_to_sql_search($pattern){
+	$pattern=trim($pattern);
+	if(is_numeric($pattern)){return $pattern;}
 	$pattern="*$pattern*";
 	$pattern=str_replace("**", "*", $pattern);
 	$pattern=str_replace("**", "*", $pattern);
@@ -4684,58 +4686,59 @@ function distanceMinStrings($lastSeen){
 
 
 function distanceOfTimeInWords($fromTime, $toTime = 0, $showLessThanAMinute = true) {
-    $distanceInSeconds = round(abs($toTime - $fromTime));
-    $distanceInMinutes = round($distanceInSeconds / 60);
-       
-        if ( $distanceInMinutes <= 1 ) {
-            if ( !$showLessThanAMinute ) {
-                return ($distanceInMinutes == 0) ? 'less than a minute' : '1 minute';
-            } else {
-                if ( $distanceInSeconds < 5 ) {
-                    return 'less than 5 seconds ('.$distanceInSeconds.'s)';
-                }
-                if ( $distanceInSeconds < 10 ) {
-                    return 'less than 10 seconds ('.$distanceInSeconds.'s)';
-                }
-                if ( $distanceInSeconds < 20 ) {
-                    return 'less than 20 seconds ('.$distanceInSeconds.'s) ';
-                }
-                if ( $distanceInSeconds < 40 ) {
-                    return 'about half a minute ('.$distanceInSeconds.'s)';
-                }
-                if ( $distanceInSeconds < 60 ) {
-                    return 'less than a minute';
-                }
-               
-                return '1 minute';
-            }
-        }
-        if ( $distanceInMinutes < 45 ) {
-            return $distanceInMinutes . ' minutes';
-        }
-        if ( $distanceInMinutes < 90 ) {
-            return 'about 1 hour';
-        }
-        if ( $distanceInMinutes < 1440 ) {
-            return 'about ' . round(floatval($distanceInMinutes) / 60.0) . ' hours';
-        }
-        if ( $distanceInMinutes < 2880 ) {
-            return '1 day';
-        }
-        if ( $distanceInMinutes < 43200 ) {
-            return 'about ' . round(floatval($distanceInMinutes) / 1440) . ' days';
-        }
-        if ( $distanceInMinutes < 86400 ) {
-            return 'about 1 month';
-        }
-        if ( $distanceInMinutes < 525600 ) {
-            return round(floatval($distanceInMinutes) / 43200) . ' months';
-        }
-        if ( $distanceInMinutes < 1051199 ) {
-            return 'about 1 year';
-        }
-       
-        return 'over ' . round(floatval($distanceInMinutes) / 525600) . ' years';
+	    $distanceInSeconds = round(abs($toTime - $fromTime));
+	    $distanceInMinutes = round($distanceInSeconds / 60);
+	       
+	        if ( $distanceInMinutes <= 1 ) {
+	            if ( !$showLessThanAMinute ) {
+	                return ($distanceInMinutes == 0) ? 'less than a minute' : '1 {minute}';
+	            } else {
+	                if ( $distanceInSeconds < 5 ) {
+	                    return '{lessthan} 5 {seconds} ('.$distanceInSeconds.'s)';
+	                }
+	                if ( $distanceInSeconds < 10 ) {
+	                    return '{lessthan} 10 {seconds} ('.$distanceInSeconds.'s)';
+	                }
+	                if ( $distanceInSeconds < 20 ) {
+	                    return '{lessthan} 20 {seconds} ('.$distanceInSeconds.'s) ';
+	                }
+	                if ( $distanceInSeconds < 40 ) {
+	                    return '{abouttime} {halfaminute} ('.$distanceInSeconds.'s)';
+	                }
+	                if ( $distanceInSeconds < 60 ) {
+	                    return '{lessthanaminute}';
+	                }
+	               
+	                return '1 minute';
+	            }
+	        }
+	        if ( $distanceInMinutes < 45 ) {
+	            return $distanceInMinutes . ' {minutes}';
+	        }
+	        if ( $distanceInMinutes < 90 ) {
+	            return '{abouttime} 1 {hour}';
+	        }
+	        if ( $distanceInMinutes < 1440 ) {
+	            return '{abouttime} ' . round(floatval($distanceInMinutes) / 60.0) . ' {hours}';
+	        }
+	        if ( $distanceInMinutes < 2880 ) {
+	            return '1 {day}';
+	        }
+	        if ( $distanceInMinutes < 43200 ) {
+	            return '{abouttime} ' . round(floatval($distanceInMinutes) / 1440) . ' {days}';
+	        }
+	        if ( $distanceInMinutes < 86400 ) {
+	            return '{abouttime} 1 {month}';
+	        }
+	        if ( $distanceInMinutes < 525600 ) {
+	            return round(floatval($distanceInMinutes) / 43200) . ' {months}';
+	        }
+	        if ( $distanceInMinutes < 1051199 ) {
+	            return '{abouttime} 1 {year}';
+	        }
+	       
+	        return 'over ' . round(floatval($distanceInMinutes) / 525600) . ' {years}';
+	        
 }
 
 function file_ext($filename)
@@ -5383,7 +5386,9 @@ function getChr($car){
 function IsPhysicalAddress($address){
 	$address=strtoupper(trim($address));
 	if($address=="UNKNOWN"){return null;}
+	if($address=="00:00:00:00:00:00"){return false;}
 	$address=str_replace(":","-",$address);
+	
 	If(strlen($address) > 18){
 		writelogs("$address too many caracters, exceed 18 ",__FUNCTION__,__FILE__,__LINE__);
 		return false;

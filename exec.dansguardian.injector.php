@@ -15,24 +15,28 @@ if($argv[1]=="--import"){include_tpl_file($argv[2],$argv[3]);die();}
 if($argv[1]=="--sites-infos"){ParseSitesInfos();die();}
 if($argv[1]=="--streamget"){streamget();die();}
 if($argv[1]=="--notifs"){ufdguard_send_notifications();die();}
+if($argv[1]=="--blocked"){PaseUdfdbGuardnew();die();}
 
 
+$pid=getmypid();
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
 $oldpid=@file_get_contents($pidfile);
 $unix=new unix();
 $GLOBALS["CLASS_UNIX"]=$unix;
 if($unix->process_exists($oldpid)){
-	$time=$unix->PROCCESS_TIME_MIN($oldpid);
-	events(basename(__FILE__).": Already executed $oldpid (since {$time}Mn).. aborting the process (line:  Line: ".__LINE__.")");
-	events_tail("Already executed $oldpid (since {$time}Mn). aborting the process (line:  Line: ".__LINE__.")");
-	if($time>120){
-		events(basename(__FILE__).": killing $oldpid  (line:  Line: ".__LINE__.")");
-		shell_exec("/bin/kill -9 $oldpid");
-	}else{	
-		die();
+	if($pid<>$oldpid){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		events(basename(__FILE__).": Already executed $oldpid (since {$time}Mn).. aborting the process (line:  Line: ".__LINE__.")");
+		events_tail("Already executed $oldpid (since {$time}Mn). aborting the process (line:  Line: ".__LINE__.")");
+		if($time>120){
+			events(basename(__FILE__).": killing $oldpid  (line:  Line: ".__LINE__.")");
+			shell_exec("/bin/kill -9 $oldpid");
+		}else{	
+			die();
+		}
 	}
 }
-$pid=getmypid();
+
 $t1=time();
 file_put_contents($pidfile,$pid);
 events(basename(__FILE__).": running $pid");
@@ -114,7 +118,7 @@ function streamget(){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	$hostname=$unix->FULL_HOSTNAME();
 	$PREFIX="INSERT IGNORE INTO `youtubecache`(`filename`,`filesize`,`urlsrc`,`zDate`,`zMD5`,`proxyname`) VALUES ";
-	
+	$q=new mysql_squid_builder();
 	if (!$handle = opendir($SquidGuardStorageDir)) {
 		events_tail("streamget:: -> glob failed $SquidGuardStorageDir in Line: ".__LINE__);
 		return;
@@ -170,6 +174,9 @@ function ParseLogsNew(){
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	
 	$GLOBALS["EnableRemoteStatisticsAppliance"]=$EnableRemoteStatisticsAppliance;
 
@@ -334,10 +341,10 @@ function PaseUdfdbGuardnew(){
 		if($Clienthostname<>null){$textBody=$textBody."Hostname: $Clienthostname\r\n";}
 		if($MAC<>null){$textBody=$textBody."MAC Address: $MAC\r\n";}
 		$smtp_notifications_body[]=$textBody;
-				
+		$zDate=date("Y-m-d H:i:s",$time);
 		
-		
-		$sql="('$local_ip','$www','$category','$rulename','$public_ip','$why','$blocktype','$Clienthostname','$uid','$MAC','$uri')";	
+		$zmd5=md5("$zDate$local_ip$uri$category$rulename$public_ip");
+		$sql="('$zmd5','$local_ip','$www','$category','$rulename','$public_ip','$why','$blocktype','$Clienthostname','$uid','$MAC','$uri','$zDate')";	
 		if(!isset($checked[$table])){
 			if(!$q->CheckTablesBlocked_day(0,$table)){
 				events_tail("PaseUdfdbGuard:: Fatal CheckTablesBlocked_day($table)...");
@@ -360,7 +367,7 @@ function PaseUdfdbGuardnew(){
 	$ev=0;
 	while (list ($tablename, $queries) = each ($BIGARRAY) ){
 		$q->CheckTablesBlocked_day(0,$tablename);
-		$prefix="INSERT INTO `$tablename` (`client`,`website`,`category`,`rulename`,`public_ip`,`why`,`blocktype`,`hostname`,`uid`,`MAC`,`uri`) VALUES ";
+		$prefix="INSERT INTO `$tablename` (`zmd5`,`client`,`website`,`category`,`rulename`,`public_ip`,`why`,`blocktype`,`hostname`,`uid`,`MAC`,`uri`,`zDate`) VALUES ";
 		if(!$q->QUERY_SQL($prefix.@implode(",", $queries))){
 			events_tail("PaseUdfdbGuardnew:: Fatal $q->mysql_error");
 			@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks-errors/$tablename.".time(), serialize($queries));
@@ -423,6 +430,9 @@ function PaseUdfdbGuard(){
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	
 	@mkdir("/var/log/artica-postfix/ufdbguard-queue",0777,true);
 	shell_exec("/bin/chmod 777 /var/log/artica-postfix/ufdbguard-queue");
@@ -501,6 +511,9 @@ function ParseUdfdbGuard_failed(){
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	$GLOBALS["EnableRemoteStatisticsAppliance"]=$EnableRemoteStatisticsAppliance;
 	$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
 	if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}

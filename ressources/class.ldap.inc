@@ -235,13 +235,13 @@ class clladp{
 		
 		if(!$this->ldap_perform_connection($ldapport)){
 			if(!function_exists("ldap_err2str")){return false;}
-			writelogs(PHP_VERSION." php version) Unable to connect to ldap server {$this->ldap_host}:$ldapport ".ldap_err2str($this->ldap_connection),__CLASS__.'/'.__FUNCTION__,__FILE__);
+			writelogs(PHP_VERSION." php version) Unable to connect to ldap server {$this->ldap_host}:$ldapport Error=`".ldap_err2str($this->ldap_connection)."`",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		 	$this->ldapFailed=true;
 		 	return null;
 		}
 		$GLOBALS["LDAP_COUNT_FAILED"]=0;
 		$GLOBALS["VERIFLDAPTRUE"]=true;
-		
+
 		if(!$this->ldapbind){
 				
 				ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3); // on passe le LDAP en version 3, necessaire pour travailler avec le AD
@@ -254,8 +254,9 @@ class clladp{
 						$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";	
 						if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldapbind -> cn=$this->ldap_admin,$this->suffix",__CLASS__.'/'.__FUNCTION__,__FILE__);}
 						$errornumber= ldap_errno($this->ldap_connection);
-						$error= "ERROR number : $errornumber\nWarning\n unable to connect with following\n cn=$this->ldap_admin,$this->suffix ($this->ldap_password) \n";
-						writelogs("Fatal: unable to connect to ldap server ldap://{$this->ldap_host}:{$this->ldap_port} right username cn=$this->ldap_admin,$this->suffix $called"
+						$error_text=ldap_err2str($this->ldap_connection);
+						$error= "[$errornumber] `$error_text`";
+						writelogs("Fatal: unable to connect to ldap server ldap://{$this->ldap_host}:{$this->ldap_port} (cn=$this->ldap_admin,$this->suffix) $error $called"
 						,__CLASS__."/" .__FUNCTION__,__FILE__);	
 						
 				switch (ldap_errno($this->ldap_connection)) {
@@ -268,7 +269,14 @@ class clladp{
 						case 81:
 							$error=$error . "\nUnable to connect to the LDAP server\n
 							$this->ldap_host:$ldapport\nplease,\nverify if ldap daemon is running\n or the ldap server address";
-							break;						
+							break;	
+
+						case 34:
+							$error=$error . "\nInvalid DN syntax\nLDAP server will be restarted...\n";
+							$sock=new sockets();
+							$sock->getFrameWork("system.php?restart-ldap=yes");
+							break;
+							
 						case -1:
 							
 							break;
@@ -1598,22 +1606,25 @@ function Hash_GetALLUsers(){
 	
 	public function IsKerbAuth() {
 		$EnableKerbAuth=0;
-		if(!isset($_SESSION["EnableKerbAuth"])){
+		$time=date("YmdHm");
+		if(!isset($_SESSION["EnableKerbAuth"][$time])){
 			$sock=new sockets();
 			$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 			if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
-			$_SESSION["EnableKerbAuth"]=$EnableKerbAuth;
+			unset($_SESSION["EnableKerbAuth"]);
+			$_SESSION["EnableKerbAuth"][$time]=$EnableKerbAuth;
 		}
 		
-		if(!isset($_SESSION["EnableSambaActiveDirectory"])){
+		if(!isset($_SESSION["EnableSambaActiveDirectory"][$time])){
 			$sock=new sockets();
 			$EnableSambaActiveDirectory=$sock->GET_INFO("EnableSambaActiveDirectory");
 			if(!is_numeric($EnableSambaActiveDirectory)){$EnableSambaActiveDirectory=0;}
-			$_SESSION["EnableSambaActiveDirectory"]=$EnableSambaActiveDirectory;
+			unset($_SESSION["EnableSambaActiveDirectory"]);
+			$_SESSION["EnableSambaActiveDirectory"][$time]=$EnableSambaActiveDirectory;
 		}
 		
-		if($_SESSION["EnableKerbAuth"]==1){$EnableKerbAuth=1;}
-		if($_SESSION["EnableSambaActiveDirectory"]==1){$EnableKerbAuth=1;}	
+		if($_SESSION["EnableKerbAuth"][$time]==1){$EnableKerbAuth=1;}
+		if($_SESSION["EnableSambaActiveDirectory"][$time]==1){$EnableKerbAuth=1;}	
 		return $EnableKerbAuth;	
 		
 	}
@@ -1684,9 +1695,11 @@ function Hash_GetALLUsers(){
 		}
 		
 		if(!isset($attrs["cn"])){
-			unset($res);
+			
 			$res["cn"]=$ou;
-			if(!$this->Ldap_add_mod($dn, $res)){
+			$res["dn"]=$dn;
+			$updER["cn"]=$ou;
+			if(!$this->Ldap_add_mod($dn, $updER)){
 				writelogs("Failed cn=$ou -> $this->ldap_last_error",__CLASS__,__FUNCTION__,__FILE__,__LINE__);
 			}
 		}
@@ -2649,6 +2662,7 @@ function HashMembersFromOU($ou){
 		}
 		
 		function UserFromAuth($name){
+			if($this->IsKerbAuth()){return;}
 			$filter="(&(objectClass=UserArticaClass)(ArticaInterfaceLogon=$name))";
 			$attrs=array("displayName","uid","mail","cn","Phone");
 			$dn="dc=organizations,$this->suffix";
@@ -3293,19 +3307,19 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 	}
 	
 	
-	function ou_add_relay_domain($ou,$domain_name,$relayIP,$relayPort,$mx="no",$trusted_smtp_domain=0){
+function ou_add_relay_domain($ou,$domain_name,$relayIP,$relayPort,$mx="no",$trusted_smtp_domain=0){
 		$tpl=new templates();
 		$trusted_smtp_domain=$_GET["trusted_smtp_domain"];
 		$upd=array();
 	
-	$dn="cn=relay_domains,ou=$ou,dc=organizations,$this->suffix";
-	if(!$this->ExistsDN($dn)){
-		$upd['cn'][0]="relay_domains";
-		$upd['objectClass'][0]='PostFixStructuralClass';
-		$upd['objectClass'][1]='top';
-		$this->ldap_add($dn,$upd);
-		unset($upd);		
-		}
+		$dn="cn=relay_domains,ou=$ou,dc=organizations,$this->suffix";
+		if(!$this->ExistsDN($dn)){
+			$upd['cn'][0]="relay_domains";
+			$upd['objectClass'][0]='PostFixStructuralClass';
+			$upd['objectClass'][1]='top';
+			$this->ldap_add($dn,$upd);
+			unset($upd);		
+			}
 	
 		$hashdoms=$this->hash_get_all_domains();
 		if($hashdoms[$domain_name]<>null){
@@ -3322,23 +3336,6 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 		$upd['objectClass'][1]='top';
 		$this->ldap_add($dn,$upd);	
 	
-		$dn="cn=relay_recipient_maps,ou=$ou,dc=organizations,$this->suffix";
-		if(!$this->ExistsDN($dn)){
-			$upd['cn'][0]="relay_recipient_maps";
-			$upd['objectClass'][0]='PostFixStructuralClass';
-			$upd['objectClass'][1]='top';
-			$this->ldap_add($dn,$upd);
-			unset($upd);		
-			}	
-	
-		if($trusted_smtp_domain==0){	
-			$dn="cn=@$domain_name,cn=relay_recipient_maps,ou=$ou,dc=organizations,$ldap->suffix";
-			$upd['cn'][0]="@$domain_name";
-			$upd['objectClass'][0]='PostfixRelayRecipientMaps';
-			$upd['objectClass'][1]='top';
-			$this->ldap_add($dn,$upd);
-		}		
-	
 		$dn="cn=transport_map,ou=$ou,dc=organizations,$ldap->suffix";
 		if(!$this->ExistsDN($dn)){
 			$upd['cn'][0]="transport_map";
@@ -3347,6 +3344,8 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 			$this->ldap_add($dn,$upd);
 			unset($upd);		
 			}	
+			
+			
 	if($relayIP<>null){
 		if($mx=="no"){$relayIP="[$relayIP]";}
 		$dn="cn=$domain_name,cn=transport_map,ou=$ou,dc=organizations,$ldap->suffix";
@@ -4079,17 +4078,23 @@ function getobjectDNClass($dn,$fulldn=0){
 		$res=@ldap_mod_add($this->ldap_connection,$this->dn_escape($cn),$update_array);
 		
   		if(!$res){
+  			
+  			if(function_exists("debug_backtrace")){
+  				$trace=debug_backtrace();
+  				if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["class"]}/{$trace[1]["function"]}() line {$trace[1]["line"]}";}
+  			}
+  			
 			$nolog=false;
 			if(ldap_errno($this->ldap_connection)=="0"){return true;}
    			if(ldap_errno($this->ldap_connection)<>0){
    				switch (ldap_errno($this->ldap_connection)) {
    					case 20:$nolog=true;break;
-   					case 21:$nolog=true;$this->__WriteLdapLogs($update_array,__FUNCTION__,$cn);return true;break;
+   					case 21:$nolog=true;$this->__WriteLdapLogs($update_array,__FUNCTION__,$cn,$called);return true;break;
    					case 0:$nolog=true;return true;break;
    					default:$nolog=false;break;
    				}
    			}
-   			if($nolog==false){$this->__WriteLdapLogs($update_array,__FUNCTION__,$cn);return false;}
+   			if($nolog==false){$this->__WriteLdapLogs($update_array,__FUNCTION__,$cn,$called);return false;}
    			
    		return true;
   		
@@ -4098,16 +4103,26 @@ function getobjectDNClass($dn,$fulldn=0){
    		}
    		
    		
-   	function __WriteLdapLogs($update_array,$function,$dn=null){
-   		$this->ldap_last_error='events ' . ldap_errno($this->ldap_connection) . "\nAction:LDAP add mod\ndn:$dn\n" . ldap_err2str(ldap_errno($this->ldap_connection));
+   	function __WriteLdapLogs($update_array,$function,$dn=null,$called=null){
+   		
+   		if(is_array($update_array)){
+   			while (list ($num, $ligne) = each ($update_array) ){
+   				writelogs("LDAP ERROR $num=$ligne",__CLASS__ . "/" . __FUNCTION__,__FILE__);
+   				$TT[]="Key:$num for value `$ligne`";
+   			}
+   		}
+   		
+   		
+   		$this->ldap_last_error='events ' . ldap_errno($this->ldap_connection) . 
+   		"\nAction:LDAP add mod\ndn:$dn\n" . ldap_err2str(ldap_errno($this->ldap_connection))
+   		."\nCalled: $called\n--------------\n".@implode("\n", $TT);
+   		
+   		
+   		
    		writelogs("LDAP ERROR Number " . ldap_errno($this->ldap_connection) . " Ldap_add_mod  \"dn=$dn\" :  " 
    		. ldap_err2str(ldap_errno($this->ldap_connection)),__CLASS__ . "/" . $function,__FILE__);
    		
-			if(is_array($update_array)){
-   				 	while (list ($num, $ligne) = each ($update_array) ){
-	   					writelogs("LDAP ERROR $num=$ligne",__CLASS__ . "/" . __FUNCTION__,__FILE__);
-	   					}
-	   			 }   		
+   		
    		}
    		
    		

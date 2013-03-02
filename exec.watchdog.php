@@ -47,6 +47,9 @@ function startprocess($APP_NAME,$cmd){
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){writelogs("Already process $pid exists",__FUNCTION__,__FILE__,__LINE__);return;}
 	@file_put_contents($pidfile, getmypid());
+	
+	writelogs("RUNNING: $cmd",__FUNCTION__,__FILE__,__LINE__);
+	
 	exec("/etc/init.d/artica-postfix start $cmd 2>&1",$results);
 	if($GLOBALS["VERBOSE"]){echo "\n".@implode("\n",$results)."\n";return;}
 	$unix->send_email_events("$APP_NAME stopped","Artica tried to start it:\n".@implode("\n",$results),"system");

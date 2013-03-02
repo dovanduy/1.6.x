@@ -22,7 +22,7 @@
 	if(isset($_GET["config-local"])){config_local();exit;}
 	if(isset($_GET["EditLocalDomain"])){config_local_edit();exit;}
 	
-	if(isset($_GET["trusted_smtp_domain"])){trusted_smtp_domain_save();exit;}
+	
 	if(isset($_GET["remote"])){save_routage();exit;}
 	
 	
@@ -304,10 +304,7 @@ function config(){
 	$arr=$tools->transport_maps_explode($routage);
 	
 	$dn="cn=@{$_GET["domain"]},cn=relay_recipient_maps,ou=$ou,dc=organizations,$ldap->suffix";
-	if($ldap->ExistsDN($dn)){
-		$trusted_smtp_domain=1;
-	}
-	
+
 
 	$html="
 	<div style='font-size:16px'>{$_GET["domain"]}</div>
@@ -325,26 +322,12 @@ function config(){
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{trusted_smtp_domain}:</td>
-		<td style='font-size:16px'>". Field_checkbox("trusted_smtp_domain",1,$trusted_smtp_domain,"trusted_smtp_domain_save()")."</td>
-		<td>". help_icon("{trusted_smtp_domain_text}")."</td>
-	</tr>	
-	
-	
-	<tr>
 		<td colspan=3 align='right'><hr>". button("{apply}","SaveRelayDomainNew()")."</td>
 	</tr>
 	</table>
 	
 	
 	<script>
-		var x_trusted_smtp_domain_save= function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue)};
-			if(IsFunctionExists('FlexReloadRemoteDomainList')){FlexReloadRemoteDomainList();}
-			RefreshTab('main_config_relay_domain');
-		}
-		
 		
 		var x_SaveRelayDomainNew= function (obj) {
 			var tempvalue=obj.responseText;
@@ -367,17 +350,6 @@ function config(){
 	
 	}
 
-	function trusted_smtp_domain_save(num){
-			var XHR = new XHRConnection();
-			if (document.getElementById('trusted_smtp_domain').checked){
-			XHR.appendData('trusted_smtp_domain',1);}else{
-			XHR.appendData('trusted_smtp_domain',0);}
-			XHR.appendData('ou','$ou');
-			XHR.appendData('domain','$domain');
-			XHR.sendAndLoad('$page', 'GET',x_trusted_smtp_domain_save);	
-			
-		}	
-	
 	</script>
 	";
 	
@@ -386,38 +358,7 @@ function config(){
 	
 }
 
-function trusted_smtp_domain_save(){
-	$ldap=new clladp();
-	$domain_name=$_GET["domain"];
-	$ou=$_GET["ou"];
-	$upd=array();
-	$trusted_smtp_domain=$_GET["trusted_smtp_domain"];
 
-	
-	$dn="cn=relay_recipient_maps,ou=$ou,dc=organizations,$ldap->suffix";
-	if(!$ldap->ExistsDN($dn)){
-		$upd['cn'][0]="relay_recipient_maps";
-		$upd['objectClass'][0]='PostFixStructuralClass';
-		$upd['objectClass'][1]='top';
-		if(!$ldap->ldap_add($dn,$upd)){echo $ldap->ldap_last_error;return;}
-		unset($upd);		
-		}	
-
-	$dn="cn=@$domain_name,cn=relay_recipient_maps,ou=$ou,dc=organizations,$ldap->suffix";
-	$ldap->ldap_delete($dn);		
-	
-	if($trusted_smtp_domain==1){	
-		$upd['cn'][0]="@$domain_name";
-		$upd['objectClass'][0]='PostfixRelayRecipientMaps';
-		$upd['objectClass'][1]='top';
-		if(!$ldap->ldap_add($dn,$upd)){echo $ldap->ldap_last_error;return;}
-	}
-
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-transport-maps=yes");
-	
-	
-}
 
 function save_routage(){
 	$relayPort=$_GET["port"];
@@ -640,7 +581,7 @@ $html="
 	$html=$html."</table>\n";
 
 
-echo $tpl->_ENGINE_parse_body($html);return;
+	echo $tpl->_ENGINE_parse_body($html);return;
 		
 	
 }

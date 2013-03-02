@@ -156,8 +156,9 @@ function popup(){
 	
 	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
-	
-	
+	$LICENSE=0;
+	if($users->CORP_LICENSE){$LICENSE=1;}
+	$this_feature_is_disabled_corp_license=$tpl->javascript_parse_text("{this_feature_is_disabled_corp_license}");
 	
 	$t=time();
 	$html="
@@ -173,26 +174,12 @@ function popup(){
 			<td class=legend>{DisableAnyCache}:</td>
 			<td>". Field_checkbox("DisableAnyCache",1,$DisableAnyCache,"CheckDisableAnyCache()")."</td>
 		</tr>
-	
-	
-			<tr>
-			<td class=legend>{cache_directory}:</td>
-			<td>". Field_text("cachesDirectory",$cachesDirectory,"font-size:12.5px;width:180px")."</td>
-		</tr>
 		<tr>
-						<td class=legend>{number_of_daemons}:</td>
-			<td>". Field_text("workers",$CPUS,"font-size:16px;width:60px")."</td>
-		</tr>
-		<tr>
-						<td class=legend>{cache_size_by_daemon}:</td>
-			<td style='font-size:16px;'>". Field_text("globalCachesize",$globalCachesize,"font-size:16px;width:60px")."&nbsp;MB&nbsp;($globalCachesize_text)</td>
-				</tr>
-				<tr>
-				<td colspan=2 align=right><hr>". button("{apply}", "SaveSquid32Caches()",16)."</td>
+			<td colspan=2 align=right><hr>". button("{apply}", "SaveSquid32Caches()",16)."</td>
 		</tr>
 		</table>
 		</div>
-<div class=explain style='margin-top:10px'>{squid32_caches_explain}</div>
+
 	
 			
 <script>
@@ -206,11 +193,10 @@ function popup(){
 	function SaveSquid32Caches(){
 	if(confirm('$warning_rebuild_squid_caches')){
 		var XHR = new XHRConnection();
+		var LICENSE=$LICENSE;
+		if(LICENSE==0){alert('$this_feature_is_disabled_corp_license');return;}
 		if(document.getElementById('DisableSquidSNMPMode').checked){XHR.appendData('DisableSquidSNMPMode','1');}else{XHR.appendData('DisableSquidSNMPMode','0');}
 		XHR.appendData('uuid','$uuid');
-		XHR.appendData('cachesDirectory',document.getElementById('cachesDirectory').value);
-		XHR.appendData('workers',document.getElementById('workers').value);
-		XHR.appendData('globalCachesize',document.getElementById('globalCachesize').value);
 		AnimateDiv('caches-32-div');
 		XHR.sendAndLoad('$page', 'POST',x_SaveSquid32Caches);
 		}
@@ -285,10 +271,6 @@ function popup(){
 	
 	
 	function CheckSNMPMode(){
-		
-		document.getElementById('workers').disabled=true;
-		document.getElementById('cachesDirectory').disabled=true;
-		document.getElementById('globalCachesize').disabled=true;
 		var CORP=$CORP;
 		if(CORP==0){
 			document.getElementById('DisableSquidSNMPMode').checked=true;
@@ -297,23 +279,14 @@ function popup(){
 		}
 					
 				
-		if(!document.getElementById('DisableSquidSNMPMode').checked){
-			document.getElementById('workers').disabled=false;
-			
-			document.getElementById('cachesDirectory').disabled=false;
-			document.getElementById('globalCachesize').disabled=false;
-		}
-	
-	}
+}
 	
 	function CheckSquidVer(){
 		var SQUID32=$SQUID32;
 		if(SQUID32==0){
-			document.getElementById('workers').disabled=true;
 			document.getElementById('DisableAnyCache').disabled=true;
 			document.getElementById('DisableSquidSNMPMode').disabled=true;
-			document.getElementById('cachesDirectory').disabled=true;
-			document.getElementById('globalCachesize').disabled=true;		
+
 		}
 		
 	}
@@ -338,21 +311,8 @@ function Save(){
 
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("DELETE FROM cachestatus WHERE uuid='$uuid'");
-	
-	$sql="SELECT uuid FROM cacheconfig WHERE `uuid`='$uuid'";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));	
-	
-	$sql="UPDATE cacheconfig SET `workers`='{$_POST["workers"]}',
-	cachesDirectory='{$_POST["cachesDirectory"]}',
-	globalCachesize='{$_POST["globalCachesize"]}' WHERE uuid='$uuid'";	
-	
-	if(strlen($ligne["uuid"])<2){
-		$sql="INSERT IGNORE INTO cacheconfig (uuid,`workers`,cachesDirectory,globalCachesize) 
-		VALUES('$uuid','{$_POST["workers"]}','{$_POST["cachesDirectory"]}','{$_POST["globalCachesize"]}')";
-	}
-
-
 	$q->QUERY_SQL($sql);
+
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$blackboxes->reconfigure_squid();
 }

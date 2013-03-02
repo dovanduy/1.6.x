@@ -93,6 +93,7 @@ function database_table_list(){
 	$rescan=$tpl->_ENGINE_parse_body("{rescan}");
 	$privileges=$tpl->_ENGINE_parse_body("{privileges}");
 	$restore=$tpl->_ENGINE_parse_body("{restore}");
+	$delete=$tpl->_ENGINE_parse_body("{delete}");
 	$t=time();
 	$bt_default_www="{name: '$add_default_www', bclass: 'add', onpress : FreeWebAddDefaultVirtualHost},";
 	$bt_webdav="{name: '$WebDavPerUser', bclass: 'add', onpress : FreeWebWebDavPerUsers},";
@@ -120,15 +121,16 @@ function database_table_list(){
 memedb='';
 $(document).ready(function(){
 $('#mysql-table-$t').flexigrid({
-	url: '$page?tables-list=yes&t=$t&databasename={$_GET["database"]}&instance-id={$_GET["instance-id"]}',
+	url: '$page?tables-list=yes&t=$t&databasename={$_GET["database"]}&instance-id={$_GET["instance-id"]}&t=$t',
 	dataType: 'json',
 
 	colModel : [
 		{display: '$table', name : 'tablename', width : 238, sortable : true, align: 'left'},
 		{display: '$table_size', name : 'tablesize', width :113, sortable : true, align: 'left'},
-		{display: '$rows_number', name : 'tableRows', width :133, sortable : true, align: 'right'},
+		{display: '$rows_number', name : 'tableRows', width :89, sortable : true, align: 'right'},
 		{display: 'Mysqlcheck', name : 'none1', width : 31, sortable : false, align: 'center'},
 		{display: '$empty', name : 'none2', width : 31, sortable : false, align: 'center'},
+		{display: '$delete', name : 'none2', width : 31, sortable : false, align: 'center'},
 		
 		
 		
@@ -450,6 +452,7 @@ function databases_list_json(){
 	$sock=new sockets();	
 	$q=new mysql();
 	$table="mysqldbs";
+	$t=$_GET["t"];
 	$FORCE_FILTER=1;
 	if($_GET["instance-id"]>0){
 		$table="mysqldbsmulti";
@@ -563,7 +566,7 @@ function database_table_list_json(){
 	$q=new mysql();
 	$table="mysqldbtables";
 	$database="artica_backup";
-	
+	$t=$_GET["t"];
 	$FORCE_FILTER=null;
 	if($_GET["instance-id"]>0){
 		$table="mysqldbtablesmulti";
@@ -638,14 +641,16 @@ function database_table_list_json(){
 		
 		$spanStyle1="<span style='font-size:13px;font-weight:bold;color:#5F5656;'>";
 		$dbsize=FormatBytes($dbsize/1024);
-		$mysqlcheck=imgtootltip("tables-failed-22.png","MySQL check","MysqlCheck('$tablename','{$_GET["databasename"]}')");
+		$mysqlcheck=imgsimple("tables-failed-22.png","MySQL check","MysqlCheck('$tablename','{$_GET["databasename"]}')");
+		
+		$delete=imgsimple("delete-24.png","MySQL check","Loadjs('system.mysql.table.crashed.php?database={$_GET["databasename"]}&table=$tablename&t=$t')");
 
 		$TableCount=FormatNumber($TableCount,0,'.',' ',3);
 		$databasename=$_GET["databasename"];
-		$delete="<a href=\"javascript:blur();\" OnClick=\"javascript:TableEmpty$t('$tablename','{$_GET["databasename"]}');\"><img src='img/table-delete-24.png'></a>";
+		$empty="<a href=\"javascript:blur();\" OnClick=\"javascript:TableEmpty$t('$tablename','{$_GET["databasename"]}');\"><img src='img/table-delete-24.png'></a>";
 		$mysqlcheck="<a href=\"javascript:blur();\" OnClick=\"javascript:MysqlCheck('$tablename','{$_GET["databasename"]}');\"><img src='img/tables-failed-22.png'></a>";
-		if($databasename=="artica_backup"){$delete="&nbsp;";}
-		if($databasename=="mysql"){$delete="&nbsp;";}
+		if($databasename=="artica_backup"){$empty="&nbsp;";}
+		if($databasename=="mysql"){$empty="&nbsp;";}
 		$href="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('mysql.browse.table.php?table=$tablename&database={$_GET["databasename"]}&instance-id={$_GET["instance-id"]}')\" style='text-decoration:underline'>";
 		
 		
@@ -657,6 +662,7 @@ function database_table_list_json(){
 					"<span style='font-size:14px'>$spanStyle1$TableCount</span>",
 					
 					$mysqlcheck,
+					$empty,
 					$delete
 					)
 				);		

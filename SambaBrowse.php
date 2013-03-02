@@ -3,6 +3,7 @@
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -52,7 +53,7 @@ var x_DeleteHiddenDisk= function (obj) {
 	}
 
 	function Browse(){
-		LoadWinORG(740,'$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}','$title');
+		LoadWinORG(766,'$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}','$title');
 
 	}
 	
@@ -100,12 +101,18 @@ function main_disks_discover(){
 	if(is_array($arrayDisks)){
 	$count=0;$tr=null;
 	while (list ($disk, $ARRAY_FINAL) = each ($arrayDisks) ){
-								
+					$content=null;		
+					
 					$path=$ARRAY_FINAL["MOUNTED"];
+					if($path=="/boot"){continue;}
+					if($path=="/opt/articatech"){continue;}
+					if($path=="/usr/share/artica-postfix"){continue;}
+					
 					if(isset($already[$path])){continue;}
 					if($path==null){continue;}
 					$already[$path]=true;
 					$size=$ARRAY_FINAL["SIZE"];
+					$label=$ARRAY_FINAL["LABEL"];
 					if($size==null){continue;}
 					$pourc=$ARRAY_FINAL["POURC"];
 					$js="Loadjs('SambaBrowse.php?jdisk=$disk&mounted=$path&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}')";
@@ -113,6 +120,8 @@ function main_disks_discover(){
 					if(preg_match("#mapper\/.+?\-(.+)#",$disk_name,$re)){
 						$disk_name=$re[1];
 					}
+					
+					$dirname=basename($path);
 					
 					
 					$count=$count+1;
@@ -123,38 +132,25 @@ function main_disks_discover(){
 						$tr=null;
 					}
 					
+					$content="($size - $pourc% {used})<br><strong>$path</strong><br><strong>$label</strong>";
 					
-					$html=$html . "
-					$tr
-					<td width=50% valign='top'>".Paragraphe32("noacco:$disk_name","($size - $pourc% {used})",$js,"48-hd.png")."</td>
-					";
+					
+					$FINALDISKS[]=Paragraphe32("noacco:$disk_name","$content",$js,"48-hd.png");
+
 	}}
 	
 	if(is_array($added_disks_array)){
 		while (list ($disk, $path) = each ($added_disks_array) ){
 			$js="Loadjs('SambaBrowse.php?jdisk=$disk&mounted=$path&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}')";
 			$delete=imgtootltip("ed_delete.gif","{delete} $disk...","DeleteHiddenDisk('$disk')");
-			
-			$count=$count+1;
-			if($count==2){$tr="</tr><tr>";$count=0;}else{$tr=null;}	
-				$html=$html . "
-					$tr
-					<td width=50% valign='top'>
-						<table style='width:150px'>
-						<tr>
-						<td align='right' valign='top' width=1%>$delete</td>
-						<td>
-							".Paragraphe32("noacco:$disk","$disk<br>",$js,"48-hd.png",150)."</td>
-						
-						</tr>
-						</table>
-						</td>";			
+			$FINALDISKS[]=Paragraphe32("noacco:$disk","$disk<br>",$js,"48-hd.png",150);
+	
 	
 		}
 	}
 		
 	
-
+	$finalfinal=CompileTr3($FINALDISKS);
 
 	$add_disk=Paragraphe("64-hd-plus.png","{invisible_disk}","{add_invisible_disk_text}","javascript:Loadjs('$page?hidden-add=yes')");
 	
@@ -172,11 +168,7 @@ function main_disks_discover(){
 	</td>
 	</tr>
 	</table>
-
-		<table style='width:99%' class=form>
-				$html
-			</tr>
-		</table>
+$finalfinal
 	
 	
 	";
@@ -374,8 +366,7 @@ function SmbAddSubFolder(){
       mem_branch_id=document.getElementById('BranchID').value;
       var newfolder=prompt(text + '\"'+base+'\"','New folder');
       if(newfolder){
- 		
- 		 document.getElementById('TreeRightInfos').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';  
+ 		 AnimateDiv('TreeRightInfos');
         var XHR = new XHRConnection();
         mem_item=base + '/'+newfolder;
         XHR.appendData('mkdirp',base + '/'+newfolder);
@@ -398,7 +389,8 @@ function SmbDelSubFolder(){
       if(confirm(text)){
         var XHR = new XHRConnection();
         mem_item=base;
-        document.getElementById('TreeRightInfos').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
+         AnimateDiv('TreeRightInfos');
+        
         XHR.appendData('rmdirp',base);
         XHR.sendAndLoad('$page', 'GET',x_SmbDelSubFolder);
         }              
@@ -424,7 +416,7 @@ function SmbShare(){
       var text=document.getElementById('share_this').value+'\\n'+base;
       mem_item=base;
  	if(confirm(text)){
-	 		document.getElementById('TreeRightInfos').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
+	 		 AnimateDiv('TreeRightInfos');
 	        var XHR = new XHRConnection();
 	        XHR.appendData('AddTreeFolders',base);
 	        XHR.sendAndLoad('samba.index.php', 'GET',x_SmbShare);
@@ -445,7 +437,7 @@ function UnShare(head){
         var XHR = new XHRConnection();
         mem_item=base;
         XHR.appendData('FolderDelete',head);
-        document.getElementById('TreeRightInfos').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
+        AnimateDiv('TreeRightInfos');
         XHR.sendAndLoad('samba.index.php', 'GET',x_SmbShare);
         }          
  }
@@ -514,23 +506,26 @@ function json_root($path=null){
 	$samba=new samba();
 	$nfs=new nfs();
 	$tpl=new templates();
-	$settings=html_entity_decode($tpl->_ENGINE_parse_body('{settings}'));
+	$settings=html_entity_decode($tpl->_ENGINE_parse_body('{select_this_item}'));
 	$directory=html_entity_decode($tpl->_ENGINE_parse_body('{directory}'));
-	
+	$datas=null;
 	$path=$_POST["dir"];
 	echo "<ul class=\"jqueryFileTree\" style=\"display: none;\">";
 	$page=CurrentPageName();
+	
 	$sock=new sockets();
 	if($path==null){
-		$datas=$sock->getfile('dirdir:/');}
+		$datas=$sock->getFrameWork("system.php?dirdir=".base64_encode("/"));}
 	else{
-		$datas=$sock->getfile('dirdir:'.$path);	
+		$datas=$sock->getFrameWork("system.php?dirdir=".base64_encode($path));
+		
 	}
-	$tbl=explode("\n",$datas);
+	$tbl=unserialize(base64_decode($datas));
 	if(!is_array($tbl)){return null;}
 	echo "<li class=\"file ext_settings\"><a href=\"#\" rel=\"" . htmlentities($_POST['dir']) . "\">". htmlentities("$directory ".basename($_POST['dir'])." - $settings")."</a></li>";
 	while (list($num,$val)=each($tbl)){
 		if(trim($val)==null){continue;}
+			$val=basename($val);
 			$newpath="$path/$val";
 			$newpathsmb=str_replace('//','/',$newpath);
 			if(trim($_GET["no-hidden"])<>'yes'){if(Folders_interdis($newpathsmb)){continue;}}

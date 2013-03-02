@@ -128,10 +128,18 @@ if(strpos($buffer,") Connecting to LDAP server")>0){return;}
 if(strpos($buffer,") connect_to_ldap: connected")>0){return;} 
 if(strpos($buffer,") connect_to_ldap: bind")>0){return;} 
 if(strpos($buffer,") Passed CLEAN, AM.PDP-SOCK [")>0){return;} 
+if(strpos($buffer,"mode select: signing")>0){return;} 
+if(strpos($buffer,"Starting worker process for POP3 request")>0){return;} 
+if(strpos($buffer,": Accepted connection from")>0){return;} 
+if(strpos($buffer,"]: Not authorized for command:")>0){return;} 
+if(strpos($buffer,"milter-greylist: GeoIP failed to lookup ip")>0){return;} 
+if(strpos($buffer,": Number of messages in the queue")>0){return;} 
 if(strpos($buffer,") inspect_dsn: is a DSN")>0){return;}
 if(strpos($buffer,": decided action=DUNNO NULL")>0){return;} 
 if(strpos($buffer,"Mail::SpamAssassin::Plugin::Check")>0){return;} 
 if(strpos($buffer,"vnStat daemon")>0){return;} 
+if(strpos($buffer,"aliases.db: duplicate entry")>0){return;} 
+if(strpos($buffer,"DKIM-Signature\" header added")>0){return;} 
 if(strpos($buffer,": decided action=PREPEND X-policyd-weight: using cached result;")>0){return;} 
 if(strpos($buffer," mode select: verifying")>0){return;} 
 //if(strpos($buffer,") SPAM-TAG, <")>0){return;} 
@@ -156,16 +164,21 @@ if(strpos($buffer,"smfi_main() returned 0")>0){return;}
 if(strpos($buffer,"Final database dump")>0){return;}
 if(strpos($buffer,"refreshing the Postfix")>0){return;}
 if(strpos($buffer,"class.auth.tail.inc")>0){return;}
+if(strpos($buffer,"authenticated, bypassing greylisting")>0){return;}
 
 // ************************ DKIM DUTSBIN
 if(strpos($buffer,"no signing domain match for")>0){return;}
 if(strpos($buffer,"no signing subdomain match for")>0){return;}
 if(strpos($buffer,"no signing keylist match for")>0){return;}
 if(strpos($buffer,": no signature data")>0){return;}
+if(strpos($buffer," not internal")>0){return;}
+if(strpos($buffer," not authenticated")>0){return;}
 
 // ************************ ZARAFA DUTSBIN
 if(strpos($buffer,"]: Still waiting for 1 threads to exit")>0){return;}
 if(preg_match("#zarafa-dagent\[.*?Delivered message to#")){return;}
+if(strpos($buffer,": Disconnecting client.")>0){return;}
+if(strpos($buffer,"thread exiting")>0){return;}
 
 //if(strpos($buffer,") p00")>0){return;}  
 //if(strpos($buffer,") TIMING [total")>0){return;} 
@@ -175,6 +188,10 @@ if(strpos($buffer,"]: policy protocol:")>0){return;}
 if(strpos($buffer,") run_av (ClamAV-clamd)")>0){return;}
 if(strpos($buffer,"Net::Server: Process Backgrounded")>0){return;}
 if(strpos($buffer,"Net::Server:")>0){return;}
+if(strpos($buffer,": No ext program for")>0){return;}
+if(strpos($buffer,": SA info: zoom: able to use")>0){return;}
+if(strpos($buffer,": warm restart on HUP [")>0){return;}
+if(strpos($buffer,": starting. (warm)")>0){return;}
 if(strpos($buffer,"user=postfix, EUID:")>0){return;}
 if(strpos($buffer,"No \$altermime,")>0){return;}
 if(strpos($buffer,"starting. /usr/local/sbin/amavisd")>0){return;}
@@ -211,6 +228,7 @@ if(strpos($buffer,"lost connection after RCPT")>0){return null;}
 if(strpos($buffer,"created decompress buffer of")>0){return null;}
 if(strpos($buffer,"created compress buffer of")>0){return null;}
 if(strpos($buffer,"SQUAT returned")>0){return null;}
+if(strpos($buffer,": lmtp connection preauth")>0){return null;}
 if(strpos($buffer,"indexing mailbox user")>0){return null;}
 if(strpos($buffer,"mystore: starting txn")>0){return null;}
 if(strpos($buffer,"duplicate_mark:")>0){return null;}
@@ -404,10 +422,11 @@ if(preg_match("#idle for too long, closing connection#",$buffer)){return null;}
 if(preg_match("#amavis\[.+?Found#",$buffer)){return null;}
 if(preg_match("#amavis\[.+?Module\s+#",$buffer)){return null;}
 if(preg_match("#amavis\[.+?\s+loaded$#",trim($buffer))){return null;}
+
 if(preg_match("#amavis\[.+?\s+Internal decoder#",trim($buffer))){return null;}
 if(preg_match("#amavis\[.+?\s+Creating db#",trim($buffer))){return null;}
 if(preg_match("#smtpd\[.+? warning:.+?address not listed for hostname#",$buffer)){return null;}
-
+if(preg_match("#zarafa-dagent\[.+?Delivered message to#",$buffer)){return null;}
 if(preg_match("#postfix\/policyd-weight\[.+?SPAM#",$buffer)){return null;}
 if(preg_match("#postfix\/policyd-weight\[.+?decided action=550#",$buffer)){return null;}
 if(preg_match("#qmgr\[.+?: removed#",$buffer)){return null;}
@@ -530,6 +549,8 @@ if(preg_match("#(.+?)\/smtpd\[.+?fatal:\s+config variable inet_interfaces#", $bu
 	
 	
 	if(preg_match("#postfix-(.+?)\/smtpd\[[0-9]+\]:\s+warning:\s+connect to Milter service unix:(.+?):\s+Connection refused#", $buffer,$re)){
+		
+		events("Postfix: {$re[2]} socket issue Connection refused... (line ".__LINE__.")");
 		$file="/etc/artica-postfix/croned.1/postfix.{$re[1]}.". md5($re[2]).".sock.No.such.file.or.directory";
 		$timefile=file_time_min($file);
 		if($timefile>5){
@@ -543,13 +564,22 @@ if(preg_match("#(.+?)\/smtpd\[.+?fatal:\s+config variable inet_interfaces#", $bu
 	if(preg_match("#smtpd\[.+?warning:\s+connect to Milter service unix:\/var\/spool\/postfix\/var\/run\/amavisd-milter\/amavisd-milter\.sock: No such file or directory#", $buffer,$re)){
 		$file="/etc/artica-postfix/croned.1/postfix.amavisd-milter.sock.No.such.file.or.directory";
 		$timefile=file_time_min($file);
-		if($timefile>10){
+		events("Postfix: Amavisd socket issue... (line ".__LINE__.")");
+		if($timefile>5){
 			
-			if(strlen($amavis)<5){
+			if(!is_file("/usr/local/sbin/amavisd-milter")){
 				email_events("Postfix: amavisd-milter is not installed !, change the postfix method",
-				"postfix claim \n$buffer\nit seems that amavisd-milte is not installed\nYou should re-install amavis or just\nChange amavis hooking to after-queue in order to use amavis main daemon.","postfix");
+				"postfix claim \n$buffer\nit seems that amavisd-milter is not installed\nArtica will re-install amavisd-milter or just\nChange amavis hooking to after-queue in order to use amavis main daemon.","postfix");
 				@file_put_contents($file,"#");
+				$cmd=trim("{$GLOBALS["NOHUP_PATH"]} /usr/share/artica-postfix/bin/artica-make APP_AMAVISD_MILTER >/dev/null 2>&1 &");
+				shell_exec_maillog($cmd);
+				return;
 			}
+			
+			$cmd=trim("{$GLOBALS["NOHUP_PATH"]} /etc/init.d/artica-postfix start amavis >/dev/null 2>&1 &");
+			shell_exec_maillog($cmd);
+			return;			
+			
 		}
 		return;
 	}
@@ -3004,7 +3034,13 @@ if(preg_match("#250 Message.+?accepted by#",$bounce_error)){
 		$status="Deliver";
 		$delivery_success="yes";
 		$bounce_error="Sended";
-	};		
+	};	
+
+if(preg_match("#250 Message.*?received#",$bounce_error)){
+	$status="Deliver";
+	$delivery_success="yes";
+	$bounce_error="Sended";	
+}
 	
 	
 if(preg_match("#Connection timed out#",$bounce_error)){
@@ -3030,6 +3066,22 @@ if(preg_match("#connect\s+to.+?Connection refused#",$bounce_error)){
 		$status="Error";
 		$delivery_success="no";
 		$bounce_error="Connection refused";		
+}
+
+if(preg_match("#127\.0\.0\.1.*?said:\s+450\s+[0-9\.]+\s+(.+?)\s+Mailbox Temporarily Unavailable#", $bounce_error,$re)){
+	$file="/etc/artica-postfix/croned.1/postfix.lmtp.127.0.0.1:{$re[1]}.Temporarily.Unavailable";
+	if(file_time_min($file)>5){
+		email_events("Postfix:MailBox issue on {$re[1]} Temporarily Unavailable","Postfix\n$buffer\nChecks is {$re[1]} is a realy account..","postfix");
+		//$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/artica-postfix start zarafa >/dev/null 2>&1 &";
+		//shell_exec_maillog(trim($cmd));
+		@unlink($file);
+		file_put_contents($file,"#");
+		return;
+	}
+	$status="Error";
+	$delivery_success="no";
+	$bounce_error="Mailbox Unavailable";	
+	
 }
 
 if(preg_match("#temporary failure.+?artica-msmtp:\s+recipient address\s+(.+?)\s+not accepted by the server artica-msmtp#",$bounce_error)){

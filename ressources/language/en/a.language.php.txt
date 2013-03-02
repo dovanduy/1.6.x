@@ -160,7 +160,7 @@ In this case messages tagged as SPAM are detected by anti-spam content filtering
 Enable this feature will inform you about:[br]
 [ul]
 [li]When messages from or to listed members are stored in queue.[/li]
-[li]Send reports about blocked mails, sended mails for or to listed members[/li]
+[li]Send reports about blocked mails, sent mails for or to listed members[/li]
 [/ul]
 In this case, you can react if some of members encounter troubles in messaging routing process
 </viptrack_explain>
@@ -2644,7 +2644,7 @@ This operation will consume server performances.[br]This section define the task
 <STATISTICS_APPLIANCE>Use statistics Appliance</STATISTICS_APPLIANCE>
 <STATISTICS_APPLIANCE_TEXT>The Artica statistics Appliance is a dedicated server used for generating statistics and handle Web filtering categories and rules.</STATISTICS_APPLIANCE_TEXT>
 <STATISTICS_APPLIANCE_EXPLAIN>To use a statistics Appliance, you need an Artica remote server enabled has a statistics Appliance.[br]
-In this case, all events are sended to this computer.[br]
+In this case, all events are sent to this computer.[br]
 This remote server is in charge of statistics calculation and able to manage web filtering rules/Proxy settings.[br]
 This architecture will safe performances because this server will not consume hardware to perform these tasks.[br]
 Define the target Artica Web SSL/HTTP console port (usually 9000) and the remote server address.[br]

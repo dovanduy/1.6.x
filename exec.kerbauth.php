@@ -554,10 +554,20 @@ function build(){
 	winbind_priv();
 	winbindd_monit();
 	$php5=$unix->LOCATE_PHP5_BIN();
-	shell_exec("$php5 /usr/share/artica-postfix/exec.winbind.php --start");
+	shell_exec("/etc/init.d/winbind start");
 
 
 
+}
+
+function winbindd_version(){
+	$unix=new unix();
+	$winbindd=$unix->find_program("winbindd");
+	if(!is_file($winbindd)){return;}
+	exec("$winbindd -V 2>&1",$results);
+	if(preg_match("#Version\s+([0-9\.]+)#", @implode("", $results),$re)){
+		return $re[1];
+	}
 }
 
 function JOIN_ACTIVEDIRECTORY(){
@@ -565,9 +575,33 @@ function JOIN_ACTIVEDIRECTORY(){
 	$user=new settings_inc();
 	$netbin=$unix->LOCATE_NET_BIN_PATH();
 	$nohup=$unix->find_program("nohup");
+	$tar=$unix->find_program("tar");
 	$function=__FUNCTION__;
-	if(!is_file($netbin)){echo "Starting......:  net, no such binary\n";return;}
-	if(!$user->SAMBA_INSTALLED){echo "Starting......:  Samba, no such software\n";return;}
+	if(!is_file($netbin)){echo "Starting......: [$function::".__LINE__."], net, no such binary\n";return;}
+	if(!$user->SAMBA_INSTALLED){echo "Starting......: [$function::".__LINE__."], Samba, no such software\n";return;}
+	
+	
+	$winbindd_version=winbindd_version();
+	echo "Starting......: [$function::".__LINE__."], Version $winbindd_version\n";
+	if(preg_match("#^([0-9]+)\.([0-9]+)#", $winbindd_version,$re)){
+		echo "Starting......: [$function::".__LINE__."], Major:{$re[1]}, minor:{$re[2]}\n";
+		$MAJOR=$re[1];
+		$MINOR=$re[2];
+	}
+	
+	if(is_file("/home/artica/packages/samba.tar.gz.old")){
+		echo "Starting......: [$function::".__LINE__."], This is a proxy appliance...\n";
+		if($MAJOR>2){
+			if($MINOR<6){
+				echo "Starting......: [$function::".__LINE__."], Bad samba version, was updated by the system, return back\n";
+				shell_exec("$tar -xvf /home/artica/packages/samba.tar.gz.old -C /");
+				$winbindd_version=winbindd_version();
+				echo "Starting......: [$function::".__LINE__."], Version is now `$winbindd_version`\n";
+			}
+		}
+	}
+	
+	
 	$NetADSINFOS=$unix->SAMBA_GetNetAdsInfos();
 	$KDC_SERVER=$NetADSINFOS["KDC server"];
 	$sock=new sockets();

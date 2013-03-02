@@ -424,50 +424,17 @@ function popup_switch(){
 function popup_hosts(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$PostfixAutoBlockDenyAddWhiteList_explain=$tpl->javascript_parse_text('{PostfixAutoBlockDenyAddWhiteList_explain}');
-	$html="
-	<table style='width:100%'>
-	<tr>
-	<td valign='top'>
-	<div class=explain>{PostfixAutoBlockDenyAddWhiteList_explain}</div>
-	</td>
-	<td style='padding-left:10px' align='right'>". imgtootltip("cluster-replica-add.png","{add}","AddHostWhite()")."</td>
-	</tr>
-	</table>
 	
-	<div id='white-hosts' style='height:350px;overflow:auto'></div>
+	$t=time();
 	
 	
+	echo "<div id='$t'></div>
 	<script>
-	var x_AddHostWhite=function(obj){
-    	var tempvalue=obj.responseText;
-      	if(tempvalue.length>3){alert(tempvalue);}
- 	  	LoadAjax('white-hosts','$page?white-hosts=yes');
-      }	
-	
-	
-	function AddHostWhite(){
-		var server=prompt('$PostfixAutoBlockDenyAddWhiteList_explain');
-		if(server){
-			var XHR = new XHRConnection();
-			XHR.appendData('white-list-host',server);
-			XHR.sendAndLoad('$page', 'GET',x_AddHostWhite);
-			}
-		}
-		
-	function DelHostWhite(server){
-			var XHR = new XHRConnection();
-			XHR.appendData('white-list-host-del',server);
-			XHR.sendAndLoad('$page', 'GET',x_AddHostWhite);
-		}
-		
-	
-		LoadAjax('white-hosts','$page?white-hosts=yes');
+	LoadAjax('$t','fw.whitehosts.php');
 	</script>
+	
 	";
-	
-	echo $tpl->_ENGINE_parse_body($html);
-	
+	return;	
 }
 
 function hosts_WhiteList_add(){
@@ -520,6 +487,9 @@ function hosts_WhiteList_del(){
 
 
 function hosts_WhiteList(){
+
+	
+	
 	$page=CurrentPageName();
 	$tpl=new templates();
 

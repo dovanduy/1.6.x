@@ -1,5 +1,6 @@
 <?php
 include_once(dirname(__FILE__)."/class.ActiveDirectory.inc");
+include_once(dirname(__FILE__)."/class.tcpip.inc");
 class squid_acls{
 	public $acls_array=array();
 	public $availableGroups=array();
@@ -40,6 +41,23 @@ class squid_acls{
 		$this->Build_Acls_time();
 	}
 	
+	private function isDynamicAcls(){
+		$q=new mysql_squid_builder();
+		$sql="SELECT COUNT( * ) AS TCOUNT FROM (
+				SELECT webfilters_sqaclaccess.aclid, webfilters_sqacllinks.gpid, webfilters_sqgroups.ID
+				FROM webfilters_sqaclaccess, webfilters_sqacllinks, webfilters_sqgroups
+				WHERE webfilters_sqaclaccess.aclid = webfilters_sqacllinks.aclid
+				AND webfilters_sqacllinks.gpid = webfilters_sqgroups.ID
+				AND webfilters_sqgroups.GroupType = 'dynamic_acls'
+				AND webfilters_sqgroups.enabled = 1
+		) AS t";		
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		
+		if($ligne["TCOUNT"]==0){return false;}
+		return true;
+		
+	}
+	
 	
 	private function Build_Acls_Groups(){
 		if(isset($GLOBALS["BUILD_ACLS_EXECUTED"])){
@@ -47,6 +65,8 @@ class squid_acls{
 			$this->availableGroups=$GLOBALS["BUILD_ACLS_EXECUTED"]["availableGroups"];
 			return;
 		}
+		
+		$isDynamicAcls=$this->isDynamicAcls();
 		
 		$q=new mysql_squid_builder();
 		@mkdir("/etc/squid3/acls",0755,true);
@@ -89,15 +109,22 @@ class squid_acls{
 			
 			
 			if($ligne["GroupType"]=="dynamic_acls"){
+				if(!$isDynamicAcls){
+					echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:dynamic_acls No dynamic acl available\n";
+					continue;
+				}
 				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:dynamic_acls $acls_name is available\n";
 				$this->availableGroups[$ligne["ID"]]=true;
 				$this->acls_array[]="acl $acls_name external DynamicAcls ID{$ligne["ID"]}";
 				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
-							if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
-							continue;
-				}			
+				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
+				continue;
+				
+			}		
 			
 			
+			
+				
 			
 			
 			if($ligne["GroupType"]=="NudityScan"){
@@ -138,9 +165,22 @@ class squid_acls{
 				$ligne["GroupType"]="browser -i";
 			}
 			
+			if($ligne["GroupType"]=="req_mime_type"){
+				$ligne["GroupType"]="req_mime_type -i";
+			}
 			
-			
+			if($ligne["GroupType"]=="url_regex"){
+				$ligne["GroupType"]="url_regex -i";
+			}			
+				
 			$AclsItemsCount=$this->buildItems($ligne["ID"],$ReturnFirstValue);
+			
+			if($ligne["GroupType"]=="all"){
+				$this->availableGroups[$ligne["ID"]]=true;
+				continue;
+			}
+							
+			
 			echo "Starting......: [ACLS]: ACL Engine Group: $acls_name `{$ligne["GroupName"]}` `$AclsItemsCount` item(s)\n";	
 			
 			
@@ -273,6 +313,23 @@ class squid_acls{
 		
 	}
 	
+	private function string_to_regex($pattern){
+		$pattern=str_replace(".", "\.", $pattern);
+		$pattern=str_replace("(", "\(", $pattern);
+		$pattern=str_replace(")", "\)", $pattern);
+		$pattern=str_replace("+", "\+", $pattern);
+		$pattern=str_replace("|", "\|", $pattern);
+		$pattern=str_replace("{", "\{", $pattern);
+		$pattern=str_replace("}", "\}", $pattern);
+		$pattern=str_replace("?", "\?", $pattern);
+		$pattern=str_replace("*", ".*?", $pattern);
+		$pattern=str_replace("http://", "^http://", $pattern);
+		$pattern=str_replace("https://", "^https://", $pattern);
+		$pattern=str_replace("ftp://", "^ftp://", $pattern);
+		$pattern=str_replace("ftps://", "^ftps://", $pattern);
+		return $pattern;
+	}
+	
 	public function GetItems($gpid,$required=null){
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType,enabled FROM webfilters_sqgroups WHERE ID='$gpid'"));
@@ -289,6 +346,8 @@ class squid_acls{
 		$MASTERDOMAINAL=array();
 		$results = $q->QUERY_SQL($sql);
 		while ($ligne = mysql_fetch_assoc($results)) {
+			$ligne["pattern"]=trim($ligne["pattern"]);
+			if($ligne["pattern"]==null){continue;}
 			if(trim($ligne["pattern"])==null){if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: ACL Engine Group: $gpid pattern is null, skip..\n";}continue;}
 			
 			if($GroupeType=="dstdomain"){
@@ -306,7 +365,15 @@ class squid_acls{
 				if(trim($ligne["pattern"])=="0.0.0.0"){$ligne["pattern"]="all";}
 			}
 			
-			
+			if($GroupeType=="req_mime_type"){
+				$ligne["pattern"]=="^{$ligne["pattern"]}$";
+			}
+
+			if($GroupeType=="url_regex"){
+				$ligne["pattern"]=$this->string_to_regex($ligne["pattern"]);
+				
+				
+			}
 			
 			if(isset($already[$ligne["pattern"]])){continue;}
 			$already[$ligne["pattern"]]=true;

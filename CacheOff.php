@@ -37,7 +37,7 @@ if(function_exists("apc_clear_cache")){
 		
 	}
 	
-	
+	$sock->getFrameWork("system.php?process1=yes");
 	
 	if(class_exists("Memcache")){
 		$memcache = new Memcache();

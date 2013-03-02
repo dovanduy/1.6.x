@@ -33,6 +33,9 @@ function popup(){
 	if(!is_numeric($EnableMacAddressFilter)){$EnableMacAddressFilter=1;}
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	if($EnableRemoteStatisticsAppliance==1){
 		$EnableMacAddressFilterCentral=$sock->GET_INFO("EnableMacAddressFilterCentral");
 		if(!is_numeric($EnableMacAddressFilterCentral)){$EnableMacAddressFilterCentral=1;}
@@ -57,6 +60,8 @@ function popup(){
 	<script>
 		var x_Save$t= function (obj) {
 			document.getElementById('$t').innerHTML='';
+			var res=obj.responseText;
+			if (res.length>3){alert(res);}			
 			YahooWin2Hide();
 		}
 	
@@ -83,6 +88,8 @@ echo $tpl->_ENGINE_parse_body($html);
 function save(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableMacAddressFilter", $_POST["EnableMacAddressFilter"]);
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");	
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("{need_restart_reconfigure_proxy}",1);
+		
 }
 

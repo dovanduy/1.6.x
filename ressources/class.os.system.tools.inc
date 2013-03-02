@@ -331,27 +331,29 @@ function MinimalStatus(){
 	$SessionPathInMemory=$sock->GET_INFO("SessionPathInMemory");
 	if(!is_numeric($SessionPathInMemory)){$SessionPathInMemory=0;}
 	writelogs("SessionPathInMemory: {$SessionPathInMemory}M",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-	
+	$DisableSWAPP=$sock->GET_INFO("DisableSWAPP");
+	if(!is_numeric($DisableSWAPP)){$DisableSWAPP=0;}
 	$this->html_load_usage();
 	$mem_used_p=$hash_mem["ram"]["percent"];
 	$mem_used_kb=FormatBytes($hash_mem["ram"]["used"]);
 	$total=FormatBytes($hash_mem["ram"]["total"]);
-	$swapar=$this->swap();
-
 	
-if(is_array($swapar)){
-		$swap_color="rgb(93, 209, 61)";
-		$swap_text="<br><span style='font-size:9px'>swap: {$swapar[0]}% {used}</span>";
-		if($swapar[0]>30){
-			$swap_color="#F59C44";
-		}
-		if($swapar[0]>50){
-			$swap_color="#D32D2D";
-		}	
-		
-		$swap="<div style=\"border: 1px solid $swap_color; width: 100px; background-color: white; padding-left: 0px; margin-top: 3px;\" ". CellRollOver($swap_js).">
-				<div style=\"width: {$swapar[0]}px; text-align: center; color: white; padding-top: 3px; padding-bottom: 3px; background-color:$swap_color;\"> </div>
-		</div>";
+	if($DisableSWAPP==0){
+		$swapar=$this->swap();
+		if(is_array($swapar)){
+				$swap_color="rgb(93, 209, 61)";
+				$swap_text="<br><span style='font-size:9px'>swap: {$swapar[0]}% {used}</span>";
+				if($swapar[0]>30){
+					$swap_color="#F59C44";
+				}
+				if($swapar[0]>50){
+					$swap_color="#D32D2D";
+				}	
+				
+				$swap="<div style=\"border: 1px solid $swap_color; width: 100px; background-color: white; padding-left: 0px; margin-top: 3px;\" ". CellRollOver($swap_js).">
+						<div style=\"width: {$swapar[0]}px; text-align: center; color: white; padding-top: 3px; padding-bottom: 3px; background-color:$swap_color;\"> </div>
+				</div>";
+			}
 	}
 
 	if($SessionPathInMemory>0){
@@ -506,7 +508,8 @@ function html_Memory_usage(){
 	$SessionPathInMemory=$sock->GET_INFO("SessionPathInMemory");
 	if(!is_numeric($SessionPathInMemory)){$SessionPathInMemory=0;}
 	writelogs("SessionPathInMemory: {$SessionPathInMemory}M",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);	
-	
+	$DisableSWAPP=$sock->GET_INFO("DisableSWAPP");
+	if(!is_numeric($DisableSWAPP)){$DisableSWAPP=0;}	
 	$hash_mem=$this->realMemory();
 	$this->html_load_usage();
 	$mem_used_p=$hash_mem["ram"]["percent"];
@@ -518,7 +521,6 @@ function html_Memory_usage(){
 	$this->meta_array["MEM"]["TOTAL"]=$hash_mem["ram"]["total"];
 	
 	
-	$sock=new sockets();
 	$hdparms=unserialize(base64_decode($sock->GET_INFO("HdparmInfos")));
 	$EnableBandwithCalculation=$sock->GET_INFO("EnableBandwithCalculation");
 	if(!is_numeric($EnableBandwithCalculation)){$EnableBandwithCalculation=1;}
@@ -734,24 +736,29 @@ function html_Memory_usage(){
 	}else{
 		$mem_js="LoadTaskManager();";
 	}
-	
-	$swap_js="Loadjs('swap.status.php');";
-	$swapar=$this->swap();
-	if(is_array($swapar)){
-		$swap_color="rgb(93, 209, 61)";
-		$swap_text="<br><span style='font-size:9px'>swap: {$swapar[0]}% {used}</span>";
-		if($swapar[0]>30){
-			$swap_color="#F59C44";
+	if($DisableSWAPP==0){
+		$swap_js="Loadjs('swap.status.php');";
+		$swapar=$this->swap();
+		if(is_array($swapar)){
+			$swap_color="rgb(93, 209, 61)";
+			$swap_text="<br><span style='font-size:9px'>swap: {$swapar[0]}% {used}</span>";
+			if($swapar[0]>30){
+				$swap_color="#F59C44";
+			}
+			if($swapar[0]>50){
+				$swap_color="#D32D2D";
+			}	
+			$this->meta_array["SWAP_POURC"]=$swapar[0];
+			$this->meta_array["SWAP_COLOR"]=$swap_color;
+			
+			$swap="<div style=\"border: 1px solid $swap_color; width: 100px; background-color: white; padding-left: 0px; margin-top: 3px;\" ". CellRollOver($swap_js).">
+					<div style=\"width: {$swapar[0]}px; text-align: center; color: white; padding-top: 3px; padding-bottom: 3px; background-color:$swap_color;\"> </div>
+			</div>";
+		}else{
+			$swap=null;
 		}
-		if($swapar[0]>50){
-			$swap_color="#D32D2D";
-		}	
-		$this->meta_array["SWAP_POURC"]=$swapar[0];
-		$this->meta_array["SWAP_COLOR"]=$swap_color;
-		
-		$swap="<div style=\"border: 1px solid $swap_color; width: 100px; background-color: white; padding-left: 0px; margin-top: 3px;\" ". CellRollOver($swap_js).">
-				<div style=\"width: {$swapar[0]}px; text-align: center; color: white; padding-top: 3px; padding-bottom: 3px; background-color:$swap_color;\"> </div>
-		</div>";
+	}else{
+		$swap=null;
 	}
 	
 	

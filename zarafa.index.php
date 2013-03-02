@@ -68,6 +68,11 @@ function popup(){
 	
 	$array["popup-status"]="{status}";
 	$array["popup-www"]="{parameters}";
+	
+	if($users->APP_ZARAFADB_INSTALLED){
+		$array["popup-zarafadb"]="{database}";
+	}
+	
 	if($q->COUNT_ROWS("zarafa_orphaned", "artica_backup")>0){
 		$array["popup-orphans"]="{orphans}";
 	}
@@ -80,9 +85,16 @@ function popup(){
 	$array["tools"]="{tools}";
 	$array["backup"]="{backup}";
 	
-	if(count($array)>6){$fontsize="font-size:12px"; }
+	if(count($array)>7){$fontsize="font-size:12px"; }
 	
 	while (list ($num, $ligne) = each ($array) ){
+		
+		
+		if($num=="popup-zarafadb"){
+			$html[]="<li><a href=\"zarafa.database.php$adduri2\"><span>$ligne</span></a></li>\n";
+			continue;
+		}		
+		
 	
 		if($num=="popup-multi"){
 			$html[]="<li><a href=\"zarafa.multi.php$adduri2\"><span>$ligne</span></a></li>\n";
@@ -205,6 +217,7 @@ function services_status(){
 
 	
 	$array[]="APP_ZARAFA";
+	$array[]="APP_ZARAFA_DB";
 	$array[]="APP_ZARAFA_GATEWAY";
 	$array[]="APP_ZARAFA_SPOOLER";
 	$array[]="APP_ZARAFA_WEB";

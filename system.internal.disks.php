@@ -37,6 +37,7 @@
 	if(isset($_GET["VGlinkDisk"])){lvm_link_disk();exit;}
 	if(isset($_GET["vgextend"])){lvm_vgextend_popup();exit;}
 	if(isset($_GET["hdparm-infos"])){hdparm_infos();exit;}	
+	if(isset($_POST["RedLogs"])){RedLogs();exit;}
 js();
 
 function tabs(){
@@ -127,7 +128,7 @@ function tabs(){
 	
 	
 	echo "
-	<div id=main_config_internal_disks style='width:100%;height:750px;overflow:auto'>
+	<div id=main_config_internal_disks style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -171,11 +172,7 @@ function js(){
 		}
 		
 		
-		function ResCanHDs(){
-			LoadAjax('hd-display','$page?hd-display=yes&rescan=yes')
-			
-		}		
-			
+
 		function hdload2(){
 			$('#BodyContent').load('$page?display=yes');	
 		}		
@@ -446,19 +443,19 @@ while (list ($num, $line) = each ($d)){
 
 
 $html="
-<center style='margin-top:25px'>
-<table style='width:59%'>";
+<center style='margin-top:25px'><div style='width:80%'>";
 $count=0;
 	while (list ($num, $line) = each ($_GLOBAL["disks_list"])){
 		if($num=="size (logical/physical)"){continue;}
-		if($count==2){$tr="</tr><tr>";$count=0;}else{$tr=null;}
-		$html=$html . "$tr<td valign='top'>". ParseHDline($num,$line)."</td>";
-		$count=$count+1;
+		$DD[]=ParseHDline($num,$line);
+
 		
 		
 	}
 
-	$html=$html . "</table></center>";
+	$html=$html.CompileTr2($DD);
+	
+	$html=$html . "</div></center>";
 	return $html;
 	
 }
@@ -533,10 +530,10 @@ function ParseHDline($dev,$array){
 		
 		";
 		
-		
+		$novchange=false;
 		$image_icon="64-hd.png";
-		if($ID_MODEL=="VIRTUAL-DISK"){$image_icon="64-hd-iscsi.png";}
-		if($ID_USB_DRIVER=="usb-storage"){$image_icon="usb-64.png";}
+		if($ID_MODEL=="VIRTUAL-DISK"){$image_icon="64-hd-iscsi.png";$novchange=true;}
+		if($ID_USB_DRIVER=="usb-storage"){$image_icon="usb-64.png";$novchange=true;}
 		
 		$link="javascript:PartInfos('$dev')";
 		return ParagrapheSimple($image_icon,$title,$tableau,$link,null,290,null,1);
@@ -555,7 +552,7 @@ function hd_index(){
 	$tpl=new templates();
 	$p=CurrentPageName();
 	$iscsi=imgtootltip("net-disk-add-32.png","{add_iscsi_disk}","Loadjs('system.iscsi.client.php?add=yes')");
-	$rescan=imgtootltip("disk-infos-scan-32.png","{rescan-disk-system}","ResCanHDs()");
+	$rescan=imgtootltip("disk-infos-scan-32.png","{rescan-disk-system}","Loadjs('system.rescanhds.php');");
 	
 	
 	$users=new usersMenus();
@@ -570,7 +567,7 @@ function hd_index(){
 		<td style='border-left:2px solid #CCCCCC;padding:5px'>". imgtootltip("32-usb-refresh.png","{refresh}","LoadAjax('hd-display','$p?hd-display=yes')")."</td>
 	</tr>
 	</table>
-	<div style='width:95%;height:550px;overflow:auto;' id='hd-display' class=form></div>
+	<div style='width:95%;' id='hd-display' class=form></div>
 	
 	<script>
 		LoadAjax('hd-display','$p?hd-index-list=yes');
@@ -619,19 +616,12 @@ function hd_partinfos(){
 	
 	
 	echo $tpl->_parse_body("
-	<div id=partinfosdiv style='width:100%;height:700px;overflow:auto'>
+	<div id=partinfosdiv style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
 				$(document).ready(function(){
-					$('#partinfosdiv').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
+					$('#partinfosdiv').tabs();
 			
 			
 			});
@@ -862,16 +852,43 @@ if(is_array($array)){
 		<th width=1%>&nbsp;</th>
 		<th><strong style='font-size:12px'>{partition}</th>
 		<th><strong style='font-size:12px' valign='middle'>&nbsp;</th>
-		<th><strong style='font-size:12px' width=1% nowrap>{used}</th>
-		<th><strong style='font-size:12px' width=1% nowrap>{size}</th>
-		<th width=1% nowrap><strong style='font-size:12px' >{mounted}</th>
-		<th><strong style='font-size:12px' width=1% nowrap>{type}</th>
+		
 		</tr>";
 	
 	while (list ($num, $line) = each ($array)){
 		if($num==null){continue;}
 		$label=null;
-		$perc=pourcentage($line["POURC"]);
+		
+		
+		
+		
+		$perc="
+		<table style='width:100%'>
+		<tr>
+			<td style='font-size:12px'>". pourcentage($line["POURC"])."
+			<div style='font-size:12px;font-weight:bold;text-transform:capitalize'>{used}: {$line["USED"]}/{$line["SIZE"]}</div>		
+					
+			</td>
+			
+		</tr>
+		
+		</table>
+		";
+		
+		$arrayPART=unserialize(base64_decode($sock->getFrameWork("system.php?tune2fs-values=".base64_encode($num))));
+		
+		
+		$INODES="
+		<table style='width:100%'>
+		<tr>
+			<td style='font-size:12px'>". pourcentage($arrayPART["INODES_POURC"]	)."
+			<div style='font-size:12px;font-weight:bold;text-transform:capitalize'>{used}:<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('system.internal.partition.inodes.php?dev=$num');\" style='text-decoration:underline;font-weight:bold'>{$arrayPART["INODES_USED"]}/{$arrayPART["INODES_MAX"]}&nbsp;{files}</a></div>		
+			
+		</tr>
+
+		</table>
+		";
+		
 		
 		$MOUNTED=$line["MOUNTED"];
 		if($line["USED"]==null){$line["USED"]=0;}
@@ -929,11 +946,15 @@ if(is_array($array)){
 		<tr>
 		<td width=1%>$icon</td>
 		<td><strong style='font-size:12px'>". basename($num)."&nbsp;$label</td>
-		<td valign='middle'><strong style='font-size:12px' >$perc</td>
-		<td width=1%  nowrap align='right'><strong style='font-size:12px' >{$line["USED"]}</td>
-		<td width=1% nowrap align='right'><strong style='font-size:12px' >{$line["SIZE"]}</td>
-		<td width=1% nowrap align='$mounted_align'><strong style='font-size:12px' >$MOUNTED</td>
-		<td width=1% nowrap><strong style='font-size:12px' >{$usb->getPartypename($line["TYPE"])} ({$line["TYPE"]})</td>
+		<td valign='middle'><strong style='font-size:14px' >{mounted}: &laquo;$MOUNTED&raquo;
+		<div style='text-align:right;float:right'>
+			<i style='font-size:11px'>{$usb->getPartypename($line["TYPE"])} ({$line["TYPE"]})</i></div>
+	
+				$perc
+				$INODES
+		</strong></td>
+		
+		
 		</tr>
 		<tr>
 			<td colspan=7><hr></td>
@@ -958,7 +979,7 @@ $page=CurrentPageName();
 if($ID_FS_LABEL==null){$ID_FS_LABEL=$dev;}
 
 $title="
-<div style='float:right'>". imgtootltip("refresh-24.png","{refresh}","RefreshTab('partinfosdiv')")."</div><div style='font-size:16px;font-weight:bold'>{partitions}:$ID_FS_LABEL ($SIZE) <i style='font-size:12px'>{model}:$ID_BUS:: $ID_MODEL ($ID_VENDOR)</i></div>
+<div style='float:right;margin-bottom:15px'>". imgtootltip("refresh-24.png","{refresh}","RefreshTab('partinfosdiv')")."</div><div style='font-size:16px;font-weight:bold'>{partitions}:$ID_FS_LABEL ($SIZE) <i style='font-size:12px'>{model}:$ID_BUS:: $ID_MODEL ($ID_VENDOR)</i></div>
 
 <div id='partitions'>$partitions</div>
 ";
@@ -1101,13 +1122,10 @@ function partitions_scan($array){
 	include_once("ressources/class.os.system.tools.inc");
 	$os=new os_system();
 	$users=new usersMenus();
+	$sock=new sockets();
 	$disk_type_array=$os->disk_type_array();
-	
-if(!is_file('ressources/usb.scan.inc')){
-		$sock=new sockets();
-		$sock->getFrameWork("cmd.php?usb-scan-write=yes");
-	}
-	include('ressources/usb.scan.inc');	
+	if(!is_file('ressources/usb.scan.inc')){$sock->getFrameWork("cmd.php?usb-scan-write=yes");}
+	include('ressources/usb.scan.inc');
 	
 	
 	
@@ -1440,23 +1458,60 @@ function BuildBigPartition(){
 	$sock=new sockets();
 	
 	//--format-b-part
+	$dev=urlencode($dev);
+	$label=urlencode($label);
 	$datas=base64_decode($sock->getFrameWork("cmd.php?fdisk-build-big-partitions=yes&dev=$dev&label=$label&MyCURLTIMEOUT=240"));
-	file_put_contents("ressources/logs/BuildUniquePartition_".md5($dev),$datas);
+	
 	}
 	
 function Lastlogs(){
 	$dev=$_GET["Lastlogs"];
-	$datas=file_get_contents("ressources/logs/BuildUniquePartition_". md5($dev));
-	$datas=htmlspecialchars($datas);
-		$datas=str_replace("\n\n","<br>",$datas);
-	
+	$t=time();
+	$page=CurrentPageName();
 	$html="
-	<H1>$dev {events}</H1>
-	".RoundedLightWhite("
-	<div style='width:100%;height:300px;overflow:auto'>$datas</div>");
+	<div style='font-size:18px'>$dev {events}</div>
+		<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:100%;height:446px;border:5px solid #8E8E8E;
+	overflow:auto;font-size:11px' id='$t'></textarea>
+	<script>
+	var x_time$t= function (obj) {
+			var res=obj.responseText;
+			if(!YahooWin5Open()){return;}
+			if (res.length>3){document.getElementById('$t').value=res;}
+			setTimeout(\"time$t()\",1000);
+	}
+	
+	
+	
+		function time$t(){
+			var XHR = new XHRConnection();
+			XHR.appendData('RedLogs','$dev');
+			XHR.appendData('t','$t');
+			XHR.sendAndLoad('$page', 'POST',x_time$t);			
+		
+		}
+		
+		
+	
+	setTimeout(\"time$t()\",1000);
+	</script>
+	";
 	
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+function RedLogs(){
+	$dev=$_POST["RedLogs"];
+	$filelogs="/usr/share/artica-postfix/ressources/logs/web/".md5($dev);
+	if(!is_file($filelogs)){
+		echo "Please wait... (". basename($filelogs).")\n";
+		return;
+	}
+	$t=explode("\n", @file_get_contents($filelogs));
+	krsort($t);
+	echo @implode("\n", $t);
 	
 }
 

@@ -48,7 +48,8 @@ function SendTest($Key){
 	if($datas["smtp_auth"]==1){	$TargetHostname=$datas["relay"];}
 	if($datas["smtp_local"]==1){
 		$TargetHostname=inet_interfaces();
-		smtp::events("Local, instance $servername: $TargetHostname",__FUNCTION__,__FILE__,__LINE__);
+		if(preg_match("#all#is", $TargetHostname)){$TargetHostname="127.0.0.1";}
+		smtp::events("Local, instance $servername: Sock to `$TargetHostname`",__FUNCTION__,__FILE__,__LINE__);
 		if($servername<>"master"){
 			smtp::events("Local, instance $servername: changed to inet_interfaces()::$TargetHostname",__FUNCTION__,__FILE__,__LINE__);
 			$TargetHostname=$listen_addr;
@@ -141,6 +142,11 @@ function inet_interfaces(){
 			$re[1]=trim($re[1]);
 			if($GLOBALS["VERBOSE"]){echo "F:$line -> `{$re[1]}`\n";}
 			$inet_interfaces=trim($re[1]);
+			$inet_interfaces=str_replace("\r\n", "", $inet_interfaces);
+			$inet_interfaces=str_replace("\r", "", $inet_interfaces);
+			$inet_interfaces=str_replace("\n", "", $inet_interfaces);			
+			
+			
 			if(strpos($inet_interfaces, ",")>0){
 				$tr=explode(",",$inet_interfaces);
 				if(trim($tr[0])=="all"){$tr[0]="127.0.0.1";}
@@ -151,6 +157,7 @@ function inet_interfaces(){
 			if(strpos($inet_interfaces, " ")>0){
 				$tr=explode(" ",$inet_interfaces);
 				if(trim($tr[0])=="all"){$tr[0]="127.0.0.1";}
+				
 				if($GLOBALS["VERBOSE"]){echo "F:$line -> `{$tr[0]}`\n";}
 				return $tr[0];
 			}

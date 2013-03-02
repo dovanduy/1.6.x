@@ -65,7 +65,7 @@ function service_cmds_perform(){
 	$sock=new sockets();
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$datas=unserialize(base64_decode($sock->getFrameWork("mimedefang.php?service-cmds={$_GET["service-cmds-peform"]}")));
+	$datas=unserialize(base64_decode($sock->getFrameWork("mimedefang.php?service-cmds={$_GET["service-cmds-peform"]}&MyCURLTIMEOUT=120")));
 	
 		$html="
 <div style='width:100%;height:350px;overflow:auto'>

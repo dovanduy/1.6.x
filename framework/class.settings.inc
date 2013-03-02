@@ -122,6 +122,7 @@ class settings_inc {
 	public $HAPROXY_INSTALLED=false;
 	public $APP_TOMCAT6_INSTALLED=false;
 	public $URLSNARF_INSTALLED=false;
+	public $APP_ZARAFADB_INSTALLED=false;
 	/* This licence must be used Only with Artica-for postfix */
 	public $ChartLicence="D1XFWGMEW9L.HSK5T4Q79KLYCK07EK";
 	/*you cannot use it without any authorizations of maani.us.
@@ -597,6 +598,7 @@ class settings_inc {
 			if(isset($_GLOBAL["WSGATE_INSTALLED"])){$this->WSGATE_INSTALLED=$_GLOBAL["WSGATE_INSTALLED"];}
 			if(isset($_GLOBAL["URLSNARF_INSTALLED"])){$this->URLSNARF_INSTALLED=$_GLOBAL["URLSNARF_INSTALLED"];}
 			if(isset($_GLOBAL["ETTERCAP_INSTALLED"])){$this->ETTERCAP_INSTALLED=$_GLOBAL["ETTERCAP_INSTALLED"];}
+			if(isset($_GLOBAL["APP_ZARAFADB_INSTALLED"])){$this->APP_ZARAFADB_INSTALLED=$_GLOBAL["APP_ZARAFADB_INSTALLED"];}
 
 			
 			

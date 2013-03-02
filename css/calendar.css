@@ -71,3 +71,71 @@ version: 2.7.0
 .yui-skin-sam .yui-calcontainer .yui-cal-nav .yui-cal-nav-btn button{padding:0 8px;font-size:93%;line-height:2;*line-height:1.7;min-height:2em;*min-height:auto;color:#000;}
 .yui-skin-sam .yui-calcontainer .yui-cal-nav .yui-cal-nav-btn.yui-default{border:1px solid #304369;background-color:#426fd9;background:url(http://yui.yahooapis.com/2.7.0/build/assets/skins/sam/sprite.png) repeat-x 0 -1400px;}
 .yui-skin-sam .yui-calcontainer .yui-cal-nav .yui-cal-nav-btn.yui-default button{color:#fff;}
+
+#calendrier {
+	width:99%;
+}
+#calendrier table{
+	border-collapse:collapse;
+	width:100%;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-o-border-radius: 5px;		
+}
+#calendrier th{
+	font-size:16px;
+	border-top:1px solid;
+	border-bottom:1px solid #000000;
+	background:#929292;
+}
+#calendrier th.mois{
+	font-size:18px;
+	padding:3px;
+}
+
+#calendrier th.mois a{
+	font-size:22px;
+	padding:5px;
+}
+
+#calendrier th.semaine{
+	width:20px;
+	border-bottom:1px solid #929292;
+}
+
+#calendrier th.jour{
+	font-size:16px;
+}
+#calendrier td{
+	font-size:18px;
+	text-align:center;
+	border-top:1px solid #929292;
+	border-bottom:1px solid #929292;
+	padding:12px;
+	font-weight:bold;
+}
+#calendrier td.today{
+	background-color:#2682AF;
+	color:white;
+}
+#calendrier td.inactif{
+	font-style:italic;
+	color:#999999;
+}
+#calendrier td.event{
+	background-color:#1595D3;
+	color:white;
+}
+#calendrier_events{
+	font-size:18px;
+	background-color:#FFFF99;
+}
+#calendrier_events .event{
+	margin:2px;
+	padding:2px;
+}
+#calendrier td.event a {
+    font-size: 18px;
+    border-bottom: 6px solid;
+    text-decoration: none;
+}

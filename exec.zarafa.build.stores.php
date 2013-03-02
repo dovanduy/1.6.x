@@ -391,6 +391,11 @@ function ldap_config(){
 	$prefix="dc=organizations,";
 	$ldap_user_type_attribute_value="posixAccount";
 	$ldap_user_search_filter="(objectClass=userAccount)";
+	
+	$ldap_user_search_filter="(objectClass=zarafa-user)";
+	
+	
+	
 	$ldap_user_unique_attribute="uidNumber";
 	$ldap_user_unique_attribute_type = "text";
 	$ldap=new clladp();
@@ -409,6 +414,7 @@ function ldap_config(){
 	$ldap_groupmembers_relation_attribute="uid";
 	$ldap_emailaliases_attribute="mailAlias";
 	$ldap_user_sendas_relation_attribute="uidNumber";
+	$prefixAddresses="dc=NAB,";
 	
 	if($CyrusToAD==1){
 		$ldap=new ldapAD();
@@ -431,6 +437,7 @@ function ldap_config(){
 		$ldap_groupmembers_attribute_type="dn";
 		$ldap_groupmembers_relation_attribute=null;
 		$ldap_emailaliases_attribute ="otherMailbox";
+		$prefixAddresses=null;
 		
 	}
 	
@@ -550,13 +557,16 @@ $f[]="ldap_user_fax_attribute = facsimileTelephoneNumber";
 $f[]="ldap_last_modification_attribute = modifyTimestamp";
 $f[]="ldap_object_search_filter =(|(mail=%s*)(uid=%s*)(cn=*%s*)(sAMAccountName=*%s*)(fullname=*%s*)(givenname=*%s*)(lastname=*%s*)(sn=*%s*)) ";
 $f[]="ldap_filter_cutoff_elements = 1000";
-$f[]="ldap_addresslist_search_base = $prefix$ldap->suffix";
+$f[]="ldap_addresslist_search_base = $prefixAddresses$ldap->suffix";
 $f[]="ldap_addresslist_scope = sub";
 $f[]="ldap_addresslist_search_filter = $ldap_addresslist_search_filter";
 $f[]="ldap_addresslist_unique_attribute = cn";
 $f[]="ldap_addresslist_unique_attribute_type = text";
 $f[]="ldap_addresslist_filter_attribute = zarafaFilter";
 $f[]="ldap_addresslist_name_attribute = cn";
+
+
+
 
 if(is_file('/etc/zarafa/ldap.propmap.cfg')){
 	$f[]="";

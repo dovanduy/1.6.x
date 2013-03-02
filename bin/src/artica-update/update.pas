@@ -959,6 +959,7 @@ begin
 fpsystem('/usr/share/artica-postfix/bin/artica-make --empty-cache &');
 fpsystem('/usr/share/artica-postfix/bin/artica-make APP_MONIT');
 fpsystem('/etc/init.d/artica-postfix restart artica-status');
+fpsystem('/etc/init.d/artica-postfix restart auth-logger');
 fpsystem('/usr/share/artica-postfix/bin/process1 -perm');
 
  if RebootAfterArticaUpgrade=1 then begin

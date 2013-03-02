@@ -1849,6 +1849,28 @@ function inject($category,$table=null,$file=null){
 	if(!$q->TABLE_EXISTS($table)){	
 		echo "`$category` -> no such table \"$table\"\n";return;
 	}
+	
+	
+	$sql="SELECT COUNT(*) AS TCOUNT FROM $table";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		echo $q->mysql_error."\n";
+		if(preg_match("#is marked as crashed and last#", $q->mysql_error)){
+			echo "`$table` -> crashed, remove \"$table\"\n";
+			$q->QUERY_SQL("DROP TABLE $table");
+			$q->QUERY_SQL("flush tables");
+			$q=new mysql_squid_builder();
+			echo "`$table` -> Create category \"$category\"\n";
+			$q->CreateCategoryTable($category);
+			$q->CreateCategoryTable($category);
+			$q=new mysql_squid_builder();
+		}
+		
+		if(!$q->TABLE_EXISTS($table)){
+			echo "`$category` -> no such table \"$table\"\n";
+			return;
+		}		
+	}
 		
 		
 	if($file==null){

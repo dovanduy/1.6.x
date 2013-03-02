@@ -5,6 +5,7 @@ include_once(dirname(__FILE__)."/class.unix.inc");
 
 if(isset($_GET["service-cmds"])){service_cmds();exit;}
 if(isset($_GET["reload-tenir"])){reload_tenir();exit;}
+if(isset($_GET["reload"])){reload();exit;}
 if(isset($_GET["rebuild-database"])){rebuild_database();exit;}
 if(isset($_GET["replic"])){replic_artica_servers();exit;}
 if(isset($_GET["digg"])){digg();exit;}
@@ -39,7 +40,12 @@ function reload_tenir(){
 	exec("/usr/share/artica-postfix/bin/artica-install --pdns-reload 2>&1",$results);
 	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";
 }
-
+function reload(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");	
+	shell_exec("$nohup /usr/share/artica-postfix/bin/artica-install --pdns-reload >/dev/null 2>&1 &");
+	
+}
 function reconfigure(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");

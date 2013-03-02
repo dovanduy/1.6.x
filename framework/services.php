@@ -3,6 +3,8 @@
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
+if(isset($_GET["restart-winbind-tenir"])){restart_winbind_tenir();exit;}
+if(isset($_GET["CPU-NUMBER"])){CPU_NUMBER();exit;}
 if(isset($_GET["activedirectory-update"])){activedirectory_update();exit;}
 if(isset($_GET["realMemory"])){realMemory();exit;}
 if(isset($_GET["nodes-export-tables"])){nodes_export_tables();exit;}
@@ -16,6 +18,9 @@ if(isset($_GET["syslogger"])){syslogger();exit;}
 if(isset($_GET["openvpn"])){openvpn();exit;}
 if(isset($_GET["postfix-single"])){postfix_single();exit;}
 if(isset($_GET["nsswitch"])){nsswitch();exit;}
+if(isset($_GET["nsswitch-tenir"])){nsswitch_tenir();exit;}
+
+
 if(isset($_GET["changeRootPasswd"])){changeRootPasswd();exit;}
 if(isset($_GET["process1"])){process1();exit;}
 if(isset($_GET["mysql-status"])){mysql_status();exit;}
@@ -69,7 +74,7 @@ if(isset($_GET["restart-postfix-all"])){restart_postfix_all();exit;}
 if(isset($_GET["restart-apache-groupware"])){restart_apache_groupware();exit;}
 if(isset($_GET["restart-artica-status"])){restart_artica_status();exit;}
 if(isset($_GET["restart-instant-messaging"])){restart_instant_messaging();exit;}
-
+if(isset($_GET["UpdateUtility-dbsize"])){UpdateUtilityDBSize();exit;}
 
 
 if(isset($_GET["stop-nscd"])){stop_nscd();exit;}
@@ -113,6 +118,7 @@ if(isset($_GET["mysqld-perso-save"])){mysqld_perso_save();exit;}
 if(isset($_GET["openemm-status"])){openemm_status();exit;}
 if(isset($_GET["restart-openemm"])){openemm_restart();exit;}
 if(isset($_GET["kerbauth"])){kerbauth();exit;}
+if(isset($_GET["kerbauth-tenir"])){kerbauth_tenir();exit;}
 if(isset($_GET["reload-pure-ftpd"])){pureftpd_reload();exit;}
 if(isset($_GET["restart-ftp"])){pureftpd_restart();exit;}
 if(isset($_GET["dmicode"])){dmicode();exit;}
@@ -670,6 +676,15 @@ function kerbauth(){
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	}
+	
+function kerbauth_tenir(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim($unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.kerbauth.php --build >/dev/null 2>&1");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	
+}
 
 function artica_patchs(){
 	$unix=new unix();
@@ -717,7 +732,12 @@ function nsswitch(){
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	}
 }
-
+function nsswitch_tenir(){
+	$unix=new unix();
+	$cmd=trim("/usr/share/artica-postfix/bin/artica-install --nsswitch >/dev/null 2>&1");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+}
 function process1(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
@@ -1703,4 +1723,33 @@ function activedirectory_update(){
 	shell_exec($cmd);	
 }
 
+function restart_winbind_tenir(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.winbindd.php --restart --force >/dev/null 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
 
+function CPU_NUMBER(){
+	$unix=new unix();
+	$cat=$unix->find_program("cat");
+	$grep=$unix->find_program("grep");
+	$cut=$unix->find_program("cut");
+	$wc=$unix->find_program("wc");
+	$cmd="$cat /proc/cpuinfo |$grep \"model name\" |$cut -d: -f2|$wc -l 2>&1";
+	$CPUNUM=exec($cmd);
+	writelogs_framework("$cmd ->$CPUNUM",__FUNCTION__,__FILE__,__LINE__);
+	echo "<articadatascgi>$CPUNUM</articadatascgi>";
+}
+function UpdateUtilityDBSize(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.keepup2date.php --UpdateUtility-size --force >/dev/null 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+
+?>

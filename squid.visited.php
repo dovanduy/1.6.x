@@ -18,7 +18,7 @@
 		
 	}
 	
-	
+	if(isset($_GET["progressDefaultRescanVisited"])){progressDefaultRescanVisited();exit;}
 	if(isset($_POST["QuickCategorize"])){QuickCategorize();exit;}
 	if(isset($_GET["rescan-js"])){rescan_js();exit;}
 	if(isset($_POST["ResCanVisited"])){rescan_perform();exit;}
@@ -256,15 +256,16 @@ function popup(){
 		unset($array["free-cat"]);
 		
 	}
-
+	$font=null;
+	if(count($array)<6){$font="style='font-size:16px'";}
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="webalyzer"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.webalyzer.php\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li $font><a href=\"squid.webalyzer.php\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}\"><span>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li $font><a href=\"$page?$num=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}\"><span>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -738,6 +739,7 @@ $hits=$tpl->_ENGINE_parse_body("{hits}");
 $t=time();
 if(!is_numeric($_GET["year"])){$_GET["year"]=date('Y');}
 $rescan=$tpl->javascript_parse_text("{rescan}");
+$day=$_GET["day"];
 
 	$table="visited_sites";
 	$country_select=null;
@@ -768,6 +770,10 @@ $rescan=$tpl->javascript_parse_text("{rescan}");
 	}
 
 	if($table=="visited_sites"){
+		$divAdd="<div id='progressDefaultRescanVisited' style='min-height:59px;margin:3px'></div>";
+		$jsADD="LoadAjaxTiny('progressDefaultRescanVisited','$page?progressDefaultRescanVisited=yes')";
+		
+		
 		$buttons="
 		buttons : [
 		
@@ -779,6 +785,7 @@ $rescan=$tpl->javascript_parse_text("{rescan}");
 
 
 $html="
+$divAdd
 <span id='SQUIDNOCATREFRESHTABLEID'></span>
 <table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
@@ -871,7 +878,7 @@ $buttons
 		LoadAjax('not_categorized_sites','$page?no-cat-list=yes&day={$_GET["day"]}&year={$_GET["year"]}&week={$_GET["week"]}&month={$_GET["month"]}');
 	}
 	LoadAjax('not_categorized_sites','$page?no-cat-list=yes&day={$_GET["day"]}&year={$_GET["year"]}&week={$_GET["week"]}&month={$_GET["month"]}');
-	
+	$jsADD
 </script>
 ";
 $tpl=new templates();
@@ -950,7 +957,7 @@ function not_categorized_list(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT SUM(hits) as HitsNumber,sitename,category$country_select 
 	FROM $table GROUP BY sitename,category$country_select HAVING LENGTH(category)=0 $searchstring $ORDER $limitSql";
 	
@@ -1393,5 +1400,38 @@ function CategorizeAll_perform(){
 	$sock=new sockets();
 	$sock->getFrameWork("cmd.php?export-community-categories=yes");	
 	
+}
+
+function progressDefaultRescanVisited(){
+	$t=time();
+	$page=CurrentPageName();
+	$array=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/squid_visited_progress"));
+	if(!is_numeric($array["POURC"])){$array["POURC"]=0;}
+	if($array["POURC"]>0){
+		if($array["POURC"]<100){
+			$table="<table style='width:80%' class=form>
+			<tr>
+				<td width=1% nowrap>". pourcentage($array["POURC"])."</td>
+				<td width=99% nowrap style='font-size:14px'>{$array["TEXT"]}</td>
+			</tr>
+			</table>
+			";
+			
+		}
+		
+	}
+
+	$html="$table
+	<script>
+		function Refresh$t(){
+			if(!YahooWin3Open()){return;}
+			LoadAjaxTiny('progressDefaultRescanVisited','$page?progressDefaultRescanVisited=yes')
+		
+		}
+	setTimeout(\"Refresh$t()\",5000);
+	</script>
+	";
+	
+	echo $html;
 }
 

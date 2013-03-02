@@ -8,9 +8,16 @@ include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 
 
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
-if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
+if(!isset($_SESSION["uid"])){
+	writelogs("Redirecto to miniadm.logon.php...","NULL",__FILE__,__LINE__);
+	header("location:miniadm.logon.php");}
 BuildSessionAuth();
-if($_SESSION["uid"]=="-100"){die("<H1>The SuperMaster cannot login</H1>");}
+if($_SESSION["uid"]=="-100"){
+	writelogs("Redirecto to location:admin.index.php...","NULL",__FILE__,__LINE__);
+	header("location:admin.index.php");
+	die();
+	
+}
 
 if(isset($_GET["upload-pic-js"])){upload_pic_js();exit;}
 if(isset($_GET["upload-pic-popup"])){upload_pic_popup();exit;}

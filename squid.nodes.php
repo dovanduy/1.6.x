@@ -434,7 +434,7 @@ function nodes_list(){
 		$enabled=0;
 		$textToAdd=null;
 		$js="Loadjs('$MyPage?node-infos-js=yes&MAC={$ligne["MAC"]}');";
-		$results2=$q->QUERY_SQL("SELECT hostname FROM (SELECT hostname FROM  UserAutDB WHERE MAC='{$ligne["MAC"]}') as t GROUP BY hostname");
+		$results2=$q->QUERY_SQL("SELECT hostname FROM (SELECT hostname FROM UserAutDB WHERE MAC='{$ligne["MAC"]}') as t GROUP BY hostname");
 		if(!$q->ok){$tt[]=$q->mysql_error;}
 		$tt=array();
 		$ArrayNMap=array();

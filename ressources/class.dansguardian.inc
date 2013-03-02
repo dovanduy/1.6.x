@@ -1345,7 +1345,10 @@ class dansguardian_rules{
 		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 		$UfdbEnabledCentral=$sock->GET_INFO("UfdbEnabledCentral");
 		$AntivirusEnabledCentral=$sock->GET_INFO("AntivirusEnabledCentral");
-				
+		$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+		if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}		
+		if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}
+		
 		if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 		if(!is_numeric($AntivirusEnabledCentral)){$AntivirusEnabledCentral=1;}

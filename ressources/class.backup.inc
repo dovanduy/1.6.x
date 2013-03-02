@@ -166,7 +166,7 @@ if($servername==null){return null;}
 	}
 	
 	function extract_smb_protocol($pattern){
-	if(preg_match("#smb:\/\/(.+?):(.+?)@(.+?)\/(.+)$#",$pattern,$re)){
+	if(preg_match("#smb:\/\/(.+?):(.+?)@([a-z0-9\-\.\_]+)\/(.+)$#",$pattern,$re)){
 			return array(
 				"USER"=>$re[1],
 				"PASSWORD"=>$re[2],
@@ -189,7 +189,7 @@ if($servername==null){return null;}
 	}
 	
 	function extract_ssh_protocol($pattern){
-		if(preg_match("#ssh:\/\/(.+?)@(.+?)\/(.+)$#",$pattern,$re)){
+		if(preg_match("#ssh:\/\/(.+?)@([a-z0-9\-\.\_]+)\/(.+)$#",$pattern,$re)){
 		return array(
 				"USER"=>$re[1],
 				"PASSWORD"=>null,
@@ -202,7 +202,7 @@ if($servername==null){return null;}
 	
 	
 	function extract_rsync_protocol($pattern){
-	if(preg_match("#rsync:\/\/(.+?):(.+?)@(.+?)\/(.+)$#",$pattern,$re)){
+	if(preg_match("#rsync:\/\/(.+?):(.+?)@([a-z0-9\-\.\_]+)\/(.+)$#",$pattern,$re)){
 			return array(
 				"USER"=>$re[1],
 				"PASSWORD"=>$re[2],

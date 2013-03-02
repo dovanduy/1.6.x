@@ -210,11 +210,14 @@ function items(){
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
-
+	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ligne["filesize"]=FormatBytes($ligne["filesize"]/1024);
 		$ligne["filepath"]=basename($ligne["filepath"]);
+		$ligne["ztime"]=$tpl->_ENGINE_parse_body("{$ligne["ztime"]}");
+		
+		
 		$data['rows'][] = array(
 				'id' => $ligne["ID"],
 				'cell' => array(
@@ -229,8 +232,7 @@ function items(){
 				);
 			}
 	
-	
-echo json_encode($data);	
+	echo json_encode($data);	
 	
 }
 

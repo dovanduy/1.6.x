@@ -171,8 +171,7 @@ function GetGroupsFromMember($member){
 			
 		}
 	}
-	//WLOG("Search done");
-	
+
 	return $array;
 	
 }
@@ -225,7 +224,7 @@ function MemberInfoByDN($dn){
 }
 
 function TestConnectToLDAP(){
-	if(!isset($GLOBALS["BIND"])){ConnectToLDAP();}
+	ConnectToLDAP();
 	if(!$GLOBALS["BIND"]){
 		WLOG("[QUERY]: <strong style='color:red'>Error: BIND is broken -> reconnect</strong>");
 		ConnectToLDAP();
@@ -243,7 +242,7 @@ function TestConnectToLDAP(){
 	
 }
 function TestConnectToPureLDAP(){
-	if(!isset($GLOBALS["BIND_LDAP"])){ConnectToPureLDAP();}
+	ConnectToPureLDAP();
 	if(!$GLOBALS["BIND_LDAP"]){
 		WLOG("[QUERY]: <strong style='color:red'>Error: BIND is broken -> reconnect</strong>");
 		ConnectToPureLDAP();
@@ -418,7 +417,7 @@ function ConnectToLDAP(){
 	if(!isset($array["LDAP_SUFFIX"])){WLOG("LDAP_SUFFIX not set");return;}
 	
 	$GLOBALS["SUFFIX"]=$array["LDAP_SUFFIX"];
-	$GLOBALS["CONNECTION"]=ldap_connect($array["LDAP_SERVER"],$array["LDAP_PORT"]);
+	$GLOBALS["CONNECTION"]=@ldap_connect($array["LDAP_SERVER"],$array["LDAP_PORT"]);
 	WLOG("[LDAP]: Connecting to LDAP server `{$array["LDAP_SERVER"]}:{$array["LDAP_PORT"]}`");
 	if(!$GLOBALS["CONNECTION"]){
 		WLOG("[LDAP]: <strong style='color:red'>Fatal: ldap_connect({$array["LDAP_SERVER"]},{$array["LDAP_PORT"]} )");
@@ -427,12 +426,13 @@ function ConnectToLDAP(){
 	}	
 	
 	WLOG("[LDAP]: Connecting to LDAP server {$array["LDAP_SERVER"]} <span style='font-weight:bold;color:#00B218'>success</span> with suffix:&laquo;{$GLOBALS["SUFFIX"]}&raquo;");
-	ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_PROTOCOL_VERSION, 3);
-	ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_REFERRALS, 0);	
-	ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_PROTOCOL_VERSION, 3); // on passe le LDAP en version 3, necessaire pour travailler avec le AD
-	ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_REFERRALS, 0);
+	@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_PROTOCOL_VERSION, 3);
+	@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_REFERRALS, 0);	
+	@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_PROTOCOL_VERSION, 3); // on passe le LDAP en version 3, necessaire pour travailler avec le AD
+	@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_REFERRALS, 0);
 	
-	
+	if(preg_match("#^(.+?)\/(.+?)$#", $array["WINDOWS_SERVER_ADMIN"],$re)){$array["WINDOWS_SERVER_ADMIN"]=$re[1];}
+	if(preg_match("#^(.+?)\\\\(.+?)$#", $array["WINDOWS_SERVER_ADMIN"],$re)){$array["WINDOWS_SERVER_ADMIN"]=$re[1];}
 	
 	//$GLOBALS["BIND"]=ldap_bind($GLOBALS["CONNECTION"], $array["LDAP_DN"], $array["LDAP_PASSWORD"]);
 	$GLOBALS["BIND"]=@ldap_bind($GLOBALS["CONNECTION"], "{$array["WINDOWS_SERVER_ADMIN"]}@{$array["WINDOWS_DNS_SUFFIX"]}", $array["WINDOWS_SERVER_PASS"]);

@@ -46,15 +46,10 @@ function start($database,$table){
 	
 	$MYSQL_DATADIR=$unix->MYSQL_DATADIR();
 	
-	if(is_file("$MYSQL_DATADIR/$database/$table.TMD")){
-		WriteIsamLogs("remove $MYSQL_DATADIR/$database/$table.TMD");
-		@unlink("$MYSQL_DATADIR/$database/$table.TMD");
-	}
-	
+
 	if(!is_file("$MYSQL_DATADIR/$database/$table.MYD")){
-		
-		WriteIsamLogs("$touch $MYSQL_DATADIR/$database/$table.MYD");
-		shell_exec("$touch $MYSQL_DATADIR/$database/$table.MYD");
+		WriteIsamLogs("unable to stat $MYSQL_DATADIR/$database/$table.MYD");
+		return;
 	
 	}
 	
@@ -64,8 +59,8 @@ function start($database,$table){
 	
 	}
 	$results=array();
-	WriteIsamLogs("$myisamchk --safe-recover $MYSQL_DATADIR/$database/$table.MYI");
-	exec("$myisamchk --safe-recover $MYSQL_DATADIR/$database/$table.MYI 2>&1",$results);
+	WriteIsamLogs("$myisamchk --safe-recover --backup $MYSQL_DATADIR/$database/$table.MYI");
+	exec("$myisamchk --safe-recover --backup $MYSQL_DATADIR/$database/$table.MYI 2>&1",$results);
 	while (list ($index, $line) = each ($results) ){
 		WriteIsamLogs("$line");
 	}

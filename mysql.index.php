@@ -13,7 +13,7 @@ if(isset($_GET["mysqlstatus"])){echo mysql_status();exit;}
 if(isset($_GET["main"])){echo mysql_main_switch();exit;}
 if(isset($_GET["mysqlenable"])){echo mysql_enable();exit;}
 if(isset($_GET["changemysqlenable"])){mysql_action_enable_change();exit;}
-if(isset($_GET["mysql_account"])){testsMysql();exit;}
+if(isset($_POST["mysqlroot"])){testsMysql();exit;}
 if($_GET["script"]=="mysql_enabled"){echo js_mysql_enabled();exit;}
 if($_GET["script"]=="mysql_save_account"){echo js_mysql_save_account();exit;}
 if(isset($_GET["databases_status"])){Database_Status();exit;}
@@ -98,7 +98,7 @@ function mystatus(){
 }
 
 function popup(){
-	
+	$page=CurrentPageName();
 $html="
 	<span id='scripts'><script type=\"text/javascript\" src=\"$page?script=load_functions\"></script></span>
 	<table style='width:100%'>
@@ -283,7 +283,7 @@ function mysql_settings_js(){
 
 
 function mysql_settings($notitle=false){
-	
+	$page=CurrentPageName();
 	$user=new usersMenus();
 	if(!$user->AsArticaAdministrator){
 		if(!$user->AsSystemAdministrator){
@@ -293,45 +293,41 @@ function mysql_settings($notitle=false){
 			echo "alert('$text');";
 			exit;
 	}}
-	
-		$artica=new artica_general();
-	    $page=CurrentPageName();
-		if(preg_match('#(.+?):(.*)#',$artica->MysqlAdminAccount,$re)){
-			$rootm=$re[1];
-			$pwd=$re[2];
-		}	
-		
-		$servername=$artica->MysqlServerName;
+	$mysql=new mysql();
+	$rootm=$mysql->mysql_admin;
+	$pwd=$mysql->mysql_password;
+	$servername=$mysql->mysql_server;
 		
 		$sock=new sockets();
 		$UseSamePHPMysqlCredentials=$sock->GET_INFO("UseSamePHPMysqlCredentials");
 		if(!is_numeric($UseSamePHPMysqlCredentials)){$UseSamePHPMysqlCredentials=1;}
 		
-		
+		$t=time();
 	$html="
-	
+	<div id='animate-$t'></div>
 	<table style='width:99%' class=form>
 	
 		<tr>
-			<td align='right' nowrap class=legend>{mysqlserver}:</strong></td>
-			<td align='left'>" . Field_text('mysqlserver',$servername,'width:110px;padding:3px;font-size:14px',null,null,'')."</td>
+			<td align='right' nowrap class=legend style='font-size:16px'>{mysqlserver}:</strong></td>
+			<td align='left'>" . Field_text('mysqlserver',$servername,'width:85%;padding:3px;font-size:16px',null,null,'')."</td>
 		</tr>	
 		<tr>
-			<td align='right' nowrap class=legend>{mysqlroot}:</strong></td>
-			<td align='left'>" . Field_text('mysqlroot',$rootm,'width:110px;padding:3px;font-size:14px',null,null,'{mysqlroot_text}')."</td>
+			<td align='right' nowrap class=legend style='font-size:16px'>{mysqlroot}:</strong></td>
+			<td align='left'>" . Field_text('mysqlroot',$rootm,'width:85%;padding:3px;font-size:16px',null,null,'{mysqlroot_text}')."</td>
 		</tr>
 		<tr>
-			<td align='right' nowrap class=legend>{mysqlpass}:</strong></td>
-			<td align='left'>" . Field_password("mysqlpass",$pwd,"width:110px;padding:3px;font-size:14px")."</td>
+			<td align='right' nowrap class=legend style='font-size:16px'>{mysqlpass}:</strong></td>
+			<td align='left'>" . Field_password("mysqlpass",$pwd,'width:85%;padding:3px;font-size:16px')."</td>
 		</tr>
 		<tr>
 			<td colspan=2 align='right'>
-				<hr>". button("{apply}","Loadjs('$page?script=mysql_save_account')")."
+					
+				<hr>". button("{apply}","Loadjs('$page?script=mysql_save_account&animate=animate-$t')",18)."
 			</td>
 		</tr>	
 	</table>
 	
-	<div class=explain>{mysqldefault_php_text}</div>
+	<div class=explain style='font-size:14px'>{mysqldefault_php_text}</div>
 <table style='width:99%' class=form>	
 		<tr>
 			<td align='right' nowrap class=legend>{UseSamePHPMysqlCredentials}:</strong></td>
@@ -419,29 +415,56 @@ function mysql_php_save(){
 
 function js_mysql_save_account(){
 	$page=CurrentPageName();
+	$t=time();
+	$animate=$_GET["animate-$t"];
 	$html="
-	var mysqlserver=document.getElementById('mysqlserver').value;
-	var mysqlroot=escape(document.getElementById('mysqlroot').value);
-	var mysqlpass=escape(base64_encode(document.getElementById('mysqlpass').value));
-	YahooWin4(400,'$page?mysql_account='+mysqlroot+'&mysqlpass='+mysqlpass+'&mysqlserver='+mysqlserver);
+			
+	var x_TestsMySQL$t= function (obj) {
+		if(document.getElementById('$animate')){document.getElementById('$animate').innerHTML='';}
+		var results=obj.responseText;
+		if(results.length>1){alert(results);}	
+		
+		}	
+			
+	function TestsMySQL$t(){
+		var mysqlserver=encodeURIComponent(document.getElementById('mysqlserver').value);
+		var mysqlroot=encodeURIComponent(document.getElementById('mysqlroot').value);
+		var mysqlpass=encodeURIComponent(document.getElementById('mysqlpass').value);		
+	
+		var XHR = new XHRConnection();
+		XHR.appendData('mysqlserver',mysqlserver);
+		XHR.appendData('mysqlroot',mysqlroot);
+		XHR.appendData('mysqlpass',mysqlpass);
+		AnimateDiv('$animate');
+		XHR.sendAndLoad('$page', 'POST',x_TestsMySQL$t);	
+	}
+	
+	TestsMySQL$t();
+	
 	";
 	echo $html;
 }
 
 
 function testsMysql(){
-	$_GET["mysqlpass"]=trim(base64_decode($_GET["mysqlpass"]));
+	$sock=new sockets();
+	while (list ($num, $ligne) = each ($_POST) ){
+		
+		$_POST[$num]=url_decode_special_tool($ligne);
+	}
+	
+	
 	$method="";
-	writelogs("testing {$_GET["mysqlserver"]}:3306 with user {$_GET["mysql_account"]} and password \"{$_GET["mysqlpass"]}\"",__FUNCTION__,__FILE__,__LINE__);
+	writelogs("testing {$_POST["mysqlserver"]}:3306 with user {$_POST["mysqlroot"]} and password \"{$_POST["mysqlpass"]}\"",__FUNCTION__,__FILE__,__LINE__);
 	
 	//$bd=@mysql_connect("{$_GET["mysqlserver"]}:3306",$_GET["mysql_account"],$_GET["mysqlpass"]);
 	
-		if(($_GET["mysqlserver"]=="localhost") OR ($_GET["mysqlserver"]=="127.0.0.1")){
+		if(($_POST["mysqlserver"]=="localhost") OR ($_POST["mysqlserver"]=="127.0.0.1")){
 			$method=":/var/run/mysqld/mysqld.sock";
-			$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$_GET["mysql_account"],$_GET["mysqlpass"]);
+			$bd=@mysql_connect(":/var/run/mysqld/mysqld.sock",$_POST["mysqlroot"],$_POST["mysqlpass"]);
 		}else{
 			$method="{$_GET["mysqlserver"]}:3306";
-			$bd=@mysql_connect("{$_GET["mysqlserver"]}:3306",$_GET["mysql_account"],$_GET["mysqlpass"]);
+			$bd=@mysql_connect("{$_POST["mysqlserver"]}:3306",$_POST["mysqlroot"],$_POST["mysqlpass"]);
 		}	
 	
 	
@@ -452,39 +475,36 @@ function testsMysql(){
 	if(!$bd){
 			$errnum=mysql_errno();
     		$des=mysql_error();
-    		echo "<div style='font-size:12px;color:red;font-weight:bold'>
-    				<div style='font-size:16px;color:#AD0000'><center><hr>ERR N.$errnum<br>$des<hr><code>$method</code></center></div>
-    			</div>";
+    		echo "ERR N.$errnum\n$des\n$method";
     		exit;
 			}
 			
 	$results=@mysql_query("CREATE DATABASE $database");
 	if(!$bd){
-		$errnum=mysql_errno();
+			$errnum=mysql_errno();
     		$des=mysql_error();
-    		echo RoundedLightWhite("<div style='font-size:12px;color:red;font-weight:bold'>
-    				<div style='font-size:16px;color:#AD0000'>{privileges}:ERR N.$errnum<br> $des</div>
-    			</div>");
+			echo "CREATE DATABASE $database\nERR N.$errnum\n$des\n$method";
     		exit;
 	}
 	$results=@mysql_query("DROP DATABASE $database");
 	
-	$artica=new artica_general();
-	$artica->MysqlAdminAccount="{$_GET["mysql_account"]}:{$_GET["mysqlpass"]}";
-	$artica->MysqlServerName=$_GET["mysqlserver"];
-	$artica->SaveMysqlSettings();
+	$arrayMysqlinfos=array("USER"=>$_POST["mysqlroot"],"PASSWORD"=>$_POST["mysqlpass"],"SERVER"=>$_POST["mysqlserver"]);
+	$cmd=base64_encode(serialize($arrayMysqlinfos));
+	$sock->getFrameWork("cmd.php?change-mysql-params=$cmd");	
+	
+	
 	unset($_SESSION["MYSQL_PARAMETERS"]);
 	unset($GLOBALS["MYSQL_PARAMETERS"]);
 	$mysql=new mysql();
-	$mysql->mysql_server=$_GET["mysqlserver"];
-	$mysql->mysql_admin=$_GET["mysql_account"];
-	$mysql->mysql_password=$_GET["mysqlpass"];
-	$mysql->hostname=$_GET["mysqlserver"];
+	$mysql->mysql_server=$_POST["mysqlserver"];
+	$mysql->mysql_admin=$_POST["mysql_account"];
+	$mysql->mysql_password=$_POST["mysqlpass"];
+	$mysql->hostname=$_POST["mysqlserver"];
 	$mysql->BuildTables();
 	
 	
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("<div style='font-size:16px;color:#AD0000'><center>{success}<hr> {edit} {mysql_account}<hr></center></div>");
+	echo $tpl->javascript_parse_text("{success}: {edit} {mysql_account}");
 
 	
 	

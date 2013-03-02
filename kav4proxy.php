@@ -61,6 +61,7 @@ function kav_cmds_js(){
 
 function kav4proxy_status(){
 	$ini=new Bs_IniHandler();
+	$t=time();
 	$sock=new sockets();
 	$tpl=new templates();
 	$page=CurrentPageName();	
@@ -68,6 +69,9 @@ function kav4proxy_status(){
 	//   DAEMON_STATUS_ROUND($key,$bsini,$textoadd=null,$noenable=0,$newInterface=0)
 	$kav=DAEMON_STATUS_ROUND("KAV4PROXY",$ini,null,0);
 	$Keep=DAEMON_STATUS_ROUND("KAV4PROXY_KEEPUP2DATE",$ini,null,0);
+	
+
+	
 	$Kav4ProxyLicenseRead=$sock->GET_INFO("Kav4ProxyLicenseRead");
 	if(!is_numeric($Kav4ProxyLicenseRead)){$Kav4ProxyLicenseRead=0;}
 	
@@ -86,15 +90,30 @@ function kav4proxy_status(){
 		$pattern_date="$year/$month/$day $H:$M:00";	
 	}
 	
+	
+	$iconupdate="arrow-right-16.png";
+	$updatejs="<a href=\"javascript:blur();\"
+	OnClick=\"javascript:UpdateKav4Proxy$t();\"
+	style='font-size:12px;text-decoration:underline'>";
+	
+	if($ini->_params["KAV4PROXY_KEEPUP2DATE"]["running"]==1){
+		$iconupdate="preloader.gif";
+		$updatejs="<span style='font-size:12px;'>";
+		$pattern_date="{downloading}";
+	}	
+	
 	$q=new mysql();
 	$sql="SELECT *  FROM kav4proxy_license ORDER BY expiredate DESC LIMIT 0,1";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	if(trim($ligne["serial"])<>null){
+		
+		
 		$license_text="<a href=\"javascript:blur();\"
 			OnClick=\"javascript:Loadjs('Kav4Proxy.License-infos.php');\"
 			style='font-size:11px;font-weight:bold;color:black;text-decoration:underline'>{expire_in}:{$ligne["lifespan"]} {days}</strong>";		
 	}else{
-	$licenseerror=base64_decode($sock->getFrameWork("squid.php?kav4proxy-license-error=yes"));
+		$sock->getFrameWork("squid.php?kav4proxy-license-generate=yes");
+		$licenseerror=base64_decode($sock->getFrameWork("squid.php?kav4proxy-license-error=yes"));
 		if($licenseerror<>null){
 			$license_text="<a href=\"javascript:blur();\"
 			OnClick=\"javascript:Loadjs('Kav4Proxy.License.php');\"
@@ -120,14 +139,32 @@ function kav4proxy_status(){
 	$fields[]="total_connections";
 	$fields[]="total_processes";
 	$fields[]="idle_processes";
-	$t=time();
+
+	$link["infected_requests"]=true;
+	$link["error_requests"]=true;
+	$link["protected_requests"]=true;
+	$link["error_requests"]=true;
+	
+	
 	if($ligne_query["zDate"]<>null){
 		
 		while (list ($num, $ligne) = each ($fields) ){
+			
+			$jsa=null;
+			$jsb=null;
+			
+			if($link[$ligne]){
+				$jsa="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.blocked.events.php?js=yes')\"
+				style='font-size:14px;text-decoration:underline'>";
+				$jsb="</a>";
+			}
+			
+			
+			
 		$status[]="
 		<tr>
 			<td class=legend nowrap>{kav4_$ligne}:</td>
-			<td style='font-size:14px'>{$ligne_query[$ligne]}</td>
+			<td style='font-size:14px'>$jsa{$ligne_query[$ligne]}$jsb</td>
 			<td width=1%>". help_icon("{kav4_{$ligne}_text}")."</td>
 		</tr>";	 	 	 	 	 	 	 	 	 	 	 	
 		}
@@ -160,10 +197,8 @@ function kav4proxy_status(){
 		</tr>
 	
 			<tr>
-				<td width=1% align='right'><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" 
-				OnClick=\"javascript:UpdateKav4Proxy$t();\" 
-				style='font-size:12px;text-decoration:underline'>{TASK_UPDATE_ANTIVIRUS}</a></td>
+				<td width=1% align='right'><img src='img/$iconupdate'>
+				<td nowrap>$updatejs{TASK_UPDATE_ANTIVIRUS}</a></span></td>
 			</tr>	
 		<tr>
 			<td class=legend>{license2}:</td>
@@ -328,6 +363,7 @@ function kavicapserverEnabledSave(){
 	}
 	
 	$sock->getFrameWork("squid.php?build-smooth=yes");
+	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
 	
 }
 
@@ -718,6 +754,9 @@ if(preg_match("#(.+?):[0-9]+#", $kav4->main_array["ListenAddress"],$re)){$kav4->
 	$license=Paragraphe("64-kav-license.png", "{license_info}", "{license_info_text}","javascript:Loadjs('Kav4Proxy.License.php')");
 	$update_kaspersky=Paragraphe('kaspersky-update-64.png','{TASK_UPDATE_ANTIVIRUS}','{APP_KAV4PROXY}<br>{UPDATE_ANTIVIRUS_TEXT}',
 	"javascript:UpdateKav4Proxy()");
+	
+	$templates=Paragraphe('squid-templates-64.png','{squid_templates_error}','{APP_KAV4PROXY_TEMPLATES}',"javascript:Loadjs('kav4proxy.templates.php')");
+	
 
 
 
@@ -729,7 +768,7 @@ $html="
 <td width=1% valign='top'>
 $license
 $update_kaspersky
-$update_events
+$templates
 </td>
 <td width=99% valign='top'>
 				<table style='width:99%' class=form>
@@ -832,6 +871,7 @@ function icapserver_engine_options_save(){
 	var x_UpdateKav4Proxy= function (obj) {
 	      var results=obj.responseText;
 	      alert(results);
+	      LoadAjax('kav4proxy-status','$page?kav4proxy-status=yes');
 	}	
 
 	function UpdateKav4Proxy(){

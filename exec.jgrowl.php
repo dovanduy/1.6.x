@@ -1404,12 +1404,4 @@ function events($text,$function,$file=null,$line=0){
 		@fclose($f);	
 		}	
 
-
-//$.jGrowl('<table style=\"width: 100%;\">	<tbody><tr>	<td valign=\"top\" width=\"1%\"><img src=\"img/danger64.png\" 
-//onmouseover=\"javascript:AffBulle(\'Start this service in debug mode\');lightup(this, 100);\" 
-//onmouseout=\"javascript:HideBulle();lightup(this, 50);\" style=\"border: 0px none ; opacity: 0.5;\" 
-//id=\"img_cb4c90b8112c438a03f89c473bb28335\"></td>	<td valign=\"top\">
-//<h3 style=\"height: 36px;\">DansGuardian</h3><div id=\"text_cb4c90b8112c438a03f89c473bb28335\" 
-//style=\"height: 70px; font-size: 11px;\"><span style=\"color: rgb(211, 45, 45);\">
-//Stopped</span>.&nbsp;&nbsp;.&nbsp;</div></td>	</tr>	</tbody></table>	', { header: 'Dansguardian is stopped', sticky: true });
 ?>

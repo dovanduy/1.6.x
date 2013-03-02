@@ -81,8 +81,8 @@ function format_line($line){
 	if(trim($mailfrom)==null && trim($rcpt)==null){return null;}
 	
 	if(preg_match('#User unknown#',$bounce_error)){$bounce_error="User unknown";}
-	if(preg_match('#250.+?[OokK]+#',$bounce_error)){$bounce_error="Sended";}
-	if(preg_match('#delivered via#',$bounce_error)){$bounce_error="Sended";}
+	if(preg_match('#250.+?[OokK]+#',$bounce_error)){$bounce_error="Sent";}
+	if(preg_match('#delivered via#',$bounce_error)){$bounce_error="Sent";}
 	if(preg_match('#Command died with status\s+#',$bounce_error)){$bounce_error="Command died";}
 	
 	
@@ -101,7 +101,7 @@ function format_line($line){
 	}
 	
 	
-	if(trim($bounce_error)==null){$bounce_error="Sended";}
+	if(trim($bounce_error)==null){$bounce_error="Sent";}
 	if(preg_match("#(.+?)\s+(.+)#",$time,$re)){
 		$time=texttooltip($re[2],"<strong style=font-size:14px>$time</strong>",null);
 	}else{

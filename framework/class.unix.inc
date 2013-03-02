@@ -6,6 +6,17 @@ include_once("/usr/share/artica-postfix/ressources/class.ini.inc");
 $GLOBALS["SSLKEY_PATH"]="/etc/ssl/certs/apache";
 $GLOBALS["MAX_RECUSIVE_DIRS"]=400;
 $GLOBALS["RECURSVIVE_INC"]=0;
+define( 'RE_IP_BYTE', '(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|0?[0-9]?[0-9])');
+define( 'RE_IP_ADD' , RE_IP_BYTE . '\.' . RE_IP_BYTE . '\.' . RE_IP_BYTE . '\.' . RE_IP_BYTE );
+define( 'RE_IP_PREFIX', '(3[0-2]|[12]?\d)');
+define( 'RE_IP_BLOCK', RE_IP_ADD . '\/' . RE_IP_PREFIX);
+define( 'RE_IPV6_WORD', '([0-9A-Fa-f]{1,4})' );
+define( 'RE_IPV6_GAP', ':(?:0+:)*(?::(?:0+:)*)?' );
+define( 'RE_IPV6_V4_PREFIX', '0*' . RE_IPV6_GAP . '(?:ffff:)?' );
+define( 'RE_IPV6_PREFIX', '(12[0-8]|1[01][0-9]|[1-9]?\d)');
+define( 'RE_IPV6_ADD', '(:(:' . RE_IPV6_WORD . '){1,7}|' . RE_IPV6_WORD . '(:{1,2}' . RE_IPV6_WORD . '|::$){1,7})' );
+define( 'RE_IPV6_BLOCK', RE_IPV6_ADD . '\/' . RE_IPV6_PREFIX );
+define( 'IP_ADDRESS_STRING','(?:' .RE_IP_ADD . '(\/' . RE_IP_PREFIX . '|)'.'|'.RE_IPV6_ADD . '(\/' . RE_IPV6_PREFIX . '|)' .')' );
 class unix {
 	
 	var $proc_status;
@@ -125,6 +136,20 @@ public function LOCATE_VBoxHeadless(){
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --reload-squid >/dev/null 2>&1");
 		
 	}
+	
+	public function isDirInFsTab($directory){
+		$directoryRegex=$directory;
+		$directoryRegex=str_replace("/", "\/", $directoryRegex);
+		$directoryRegex=str_replace(".", "\.", $directoryRegex);
+		$f=explode("\n", @file_get_contents("/etc/fstab"));
+		while (list ($index, $val) = each ($f) ){
+			if(preg_match("#^(.+)\s+$directoryRegex#", $val,$re)){
+				if($GLOBALS["VERBOSE"]){echo "$directory must be mounted on {$re[1]}\n";}
+				return $re[1];
+			}
+			}
+			return null;
+	}	
 	
 	
 	public function CreateUnixUser($username,$groupname=null,$displayname=null){
@@ -288,6 +313,46 @@ public function LOCATE_VBoxHeadless(){
 		
 	}
 	
+	public function MYSQL_REPAIR_TABLE_FILE_NOT_FOUND($file,$db,$table){
+		$Dir=dirname($file);
+		if($table==null){return;}
+		$FF=array();
+		$files=$this->DirFiles("$Dir","$table-[0-9]+\.BAK$");
+		while (list ($filename, $f) = each ($files) ){
+			if(!preg_match("#$table-([0-9]+)\.BAK$#", $filename,$re)){continue;}
+			$FF[$re[1]]=$filename;
+		}
+		
+		krsort($FF);
+		while (list ($index, $filename) = each ($FF) ){$tt[]=$filename;}
+		$lastfile=$tt[0];
+		$L[]="last backuped file=\"$lastfile\"<br>\n";
+		
+		
+		if(!is_file($file)){
+			if($lastfile<>null){
+				$L[]="replace backuped file=$Dir/$lastfile to $file<br>\n";
+				@copy("$Dir/$lastfile", $file);
+			}
+		}
+		if(is_file($file)){
+			@chmod($file, 0755);
+			@chown($file, "mysql");
+			@chgrp($file, "mysql");
+			$L[]="$file apply permissions done...<br>\n";
+		}else{
+			$fileTMD=str_replace(".MYD", ".TMD", $file);
+			if(is_file($fileTMD)){@copy($fileTMD,$file);@chown($file, "mysql");@chgrp($file, "mysql");}else{
+			$L[]="$file no such file....<br>\n";
+			}
+		}		
+		return @implode("", $L);
+		
+	}
+	
+	
+	
+	
 	public function JAVA_HOME_SET($dir){
 		$f=explode("\n", @file_get_contents("/etc/environment"));
 		while (list ($num, $val) = each ($f) ){
@@ -401,10 +466,42 @@ public function LOCATE_VBoxHeadless(){
 		$http_port=$this->squid_get_alternate_port();
 		$interface="127.0.0.1";
 		if(preg_match("#([0-9\.]+):([0-9]+)#",$http_port,$re)){$interface=$re[1];$http_port=$re[2];}
-		$cmd="$squidclient -h 127.0.0.1 -p $http_port$auth mgr";
+		if($interface=="0.0.0.0"){$interface="127.0.0.1";}
+		$cmd="$squidclient -h $interface -p $http_port mgr";
 		writelogs_framework("$cmd",__FUNCTION__,__LINE__);
 		return $cmd;
 	}	
+	
+	public function tune2fs_values($dev){
+		$tune2fs=$this->find_program("tune2fs");
+		$cmd="$tune2fs -l $dev 2>&1";
+		exec($cmd,$results);
+		$array=array();
+		
+		while (list ($num, $line) = each ($results)){
+			if(!preg_match("#^(.+?):\s+(.+)#i",$line,$re)){continue;}
+			$key=trim(strtoupper($re[1]));
+			$key=str_replace(" ", "_", $key);
+			$value=$re[2];
+			$array[$key]=$value;
+		}
+		
+		$results=array();
+		$df=$this->find_program("df");
+		exec("df -i $dev 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			if(preg_match("#^.*?\s+([0-9A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9\.]+)%\s+(.+)#", $ligne,$re)){
+				$array["INODES_MAX"]=$re[1];
+				$array["INODES_USED"]=$re[2];
+				$array["INODES_AVAILABLE"]=$re[3];
+				$array["INODES_POURC"]=$re[4];
+				break;
+			}
+		}
+		
+		
+		return $array;
+	}
 	
 
 
@@ -1018,6 +1115,16 @@ function KERNEL_CONFIG(){
 	
 	return $Array;
 	
+}
+
+function KERNEL_ARCH(){
+	$uname=$this->find_program("uname");
+	if($GLOBALS["VERBOSE"]){echo __CLASS__."/".__FUNCTION__."/".__LINE__." uname= $uname\n";}
+	$results=exec("$uname -r 2>&1");
+	if($GLOBALS["VERBOSE"]){echo __CLASS__."/".__FUNCTION__."/".__LINE__." $results\n";}	
+	if(preg_match("#i[0-9]86#", $results)){return 32;}
+	if(preg_match("#686-bigmem#", $results)){return 32;}
+	if(preg_match("#x86_64#", $results)){return 64;}
 }
 
 function RESTART_SYSLOG($onlysyslog=false){
@@ -2062,6 +2169,21 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 	}
 	
 	
+	function chmod_alldirs($bit,$dir){
+		$dirz=explode("/",$dir);
+		$dirStart="/{$dirz[0]}";
+		if($dirStart=="/"){$dirStart=null;}
+		for($i=1;$i<count($dirz);$i++){
+			$dirStart=$dirStart."/".$dirz[$i];
+			if(!is_dir($dirStart)){@mkdir($dirStart,$bit,true);continue;}
+			@chmod($dirStart, $bit);
+		
+		}
+		
+		
+	}
+	
+	
 	function chown_func($user,$group=null,$dir){
 		if(isset($GLOBALS["chown_func"][md5("$user$group$dir")])){return;}
 		$dir=trim($dir);
@@ -2115,6 +2237,10 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		$GLOBALS["chown_func"][md5("$user$group$dir")]=true;
 		
 	}
+	
+	
+	
+	
 	
 	function chmod_func($bit,$dir){
 		if(isset($GLOBALS["chmod_func"][md5("$bit$dir")])){return;}
@@ -2454,6 +2580,18 @@ public function uncompress($srcName, $dstName) {
 	    
 } 
 
+function squid_version(){
+	$squidbin=$this->LOCATE_SQUID_BIN();
+	if(!is_file($squidbin)){return "0.0.0";}
+	exec("$squidbin -v 2>&1",$results);
+	while (list ($num, $val) = each ($results)){
+		if(preg_match("#Squid Cache: Version\s+(.+)#", $val,$re)){
+			return trim($re[1]);
+		}
+	}
+
+}
+
 public function _syslog($text,$file,$error=false){
 	if(!function_exists("syslog")){return;}
 	$file=basename($file);
@@ -2772,24 +2910,95 @@ public function alt_stat($file) {
 		}		
 		
 	}
+	public function IpToHostname($ipaddr){
+		$ipaddr=trim($ipaddr);
+		if(!$this->isIPAddress($ipaddr)){return;}		
+		if(isset($GLOBALS["IPNAMES"][$ipaddr])){return $GLOBALS["IPNAMES"][$ipaddr];}
 	
-	
-	
-	public function IpToMac($ip){
-		$arp=$this->find_program("arp");
-		if($arp==null){return;}
-		writelogs_framework("arp=$arp",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-		exec("$arp $ip",$ri);
-		while (list ($num, $line) = each ($ri)){
-			writelogs_framework("$line",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-			if(!preg_match("#.+?\s+.+?\s+(.+?)\s+#",$line,$re)){continue;}
-			$arp_mac=strtolower(trim($re[1]));
-			if(strtolower($arp_mac)==strtolower("HWaddress")){continue;}
-			break;
-		
+		if(count($GLOBALS["IPNAMES"])>1500){$GLOBALS["IPNAMES"]=array();}
+		$hostres=gethostbyaddr($ipaddr);
+		if(!$this->isIPAddress($hostres)){
+			$GLOBALS["IPNAMES"][$ipaddr]=$hostres;
+			return $hostres;
 		}
-		return $arp_mac;
+		$GLOBALS["IPNAMES"][$ipaddr]=$ipaddr;
+		return $ipaddr;
+	}	
+	
+	
+	public function IpToMac($ipaddr){
+		$ipaddr=trim($ipaddr);
+		if(!$this->isIPAddress($ipaddr)){return;}
+		
+		$ttl=date('YmdH');
+		if(count($GLOBALS["CACHEARP"])>3){unset($GLOBALS["CACHEARP"]);}
+		if(isset($GLOBALS["CACHEARP"][$ttl][$ipaddr])){return $GLOBALS["CACHEARP"][$ttl][$ipaddr];}
+		
+		if(!isset($GLOBALS["SBIN_ARP"])){$GLOBALS["SBIN_ARP"]=$this->find_program("arp");}
+		if(!isset($GLOBALS["SBIN_ARPING"])){$GLOBALS["SBIN_ARPING"]=$this->find_program("arping");}
+		
+		if(strlen($GLOBALS["SBIN_ARPING"])>3){
+			$cmd="{$GLOBALS["SBIN_ARPING"]} $ipaddr -c 1 -r 2>&1";
+			exec($cmd,$results);
+			while (list ($num, $line) = each ($results)){
+				if(preg_match("#^([0-9a-zA-Z\:]+)#", $line,$re)){
+					if(!$this->IsvalidMAC($re[1])){continue;}
+					$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+					return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+				}
+			}
+		}
+		
+		
+		$results=array();
+			
+		if(strlen($GLOBALS["SBIN_ARP"])<4){return;}
+		if(!isset($GLOBALS["SBIN_PING"])){$GLOBALS["SBIN_PING"]=$this->find_program("ping");}
+		if(!isset($GLOBALS["SBIN_NOHUP"])){$GLOBALS["SBIN_NOHUP"]=$this->find_program("nohup");}
+		
+		$cmd="{$GLOBALS["SBIN_ARP"]} -n \"$ipaddr\" 2>&1";
+		
+		exec($cmd,$results);
+		while (list ($num, $line) = each ($results)){
+			if(preg_match("#^[0-9\.]+\s+.+?\s+([0-9a-z\:]+)#", $line,$re)){
+				if($re[1]=="no"){continue;}
+				if(!$this->IsvalidMAC($re[1])){continue;}
+				$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+				return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
+			}
+			
+		}
+		
+		if(!isset($GLOBALS["PINGEDHOSTS"][$ipaddr])){
+			shell_exec("{$GLOBALS["SBIN_NOHUP"]} {$GLOBALS["SBIN_PING"]} $ipaddr -c 3 >/dev/null 2>&1 &");
+			$GLOBALS["PINGEDHOSTS"][$ipaddr]=true;
+		}
+			
+		
 	}
+	
+	public static function isIPAddress( $ip ) {
+		if ( !$ip ) return false;
+		if ( is_array( $ip ) ) {
+			return;
+		}
+		// IPv6 IPs with two "::" strings are ambiguous and thus invalid
+		return preg_match( '/^' . IP_ADDRESS_STRING . '$/', $ip) && ( substr_count($ip, '::') < 2 );
+	}	
+	private static function IsvalidMAC($MAC){
+		$MAC=str_replace(":", "-", $MAC);
+		If(strlen($MAC) > 17) return false;
+		If($MAC == "") return false;
+		If (!preg_match("#^[0-9A-Z]+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)$#i",$MAC)) return false;
+		$Array=explode("-",$MAC);
+		If(strlen($Array[0]) != 2) return false;
+		If(strlen($Array[1]) != 2) return false;
+		If(strlen($Array[2]) != 2) return false;
+		If(strlen($Array[3]) != 2) return false;
+		If(strlen($Array[4]) != 2) return false;
+		If(strlen($Array[5]) != 2) return false;
+		return true;
+	}	
 	
 	
 	public function AddFSTab($dev,$mount){
@@ -3698,6 +3907,7 @@ public function IsProtectedDirectory($folder){
 
 	public function DIRSIZE_BYTES($directory){
 		$nice=$this->EXEC_NICE();
+		$directory=$this->shellEscapeChars($directory);
 		$cmd=$nice.$this->find_program("du")." -s -b $directory 2>&1";
 		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 		
@@ -4256,6 +4466,18 @@ public function LOCATE_STUNNEL_BIN(){
 		return $array;
 	}
 	
+	
+	public function COUNT_FILES($directory){
+		if (!$handle = opendir($directory)) {return 0;}
+		$c=0;
+		while (false !== ($filename = readdir($handle))) {
+			if($filename=="."){continue;}
+			if($filename==".."){continue;}
+			$c++;
+		}	
+		return $c;
+	}
+	
 public	function getDirectories($directory){
 	$GLOBALS["RECURSVIVE_INC"]=$GLOBALS["RECURSVIVE_INC"]+1;
 	if($GLOBALS["MAX_RECUSIVE_DIRS"]<50){$GLOBALS["MAX_RECUSIVE_DIRS"]=400;}
@@ -4361,7 +4583,23 @@ function DirFiles($path,$regexsearch=null){
 	    return $files;
 		}
 
-
+public function LOCATE_SQUID_PID(){
+	$pid_filename=null;
+	if(is_file("/var/run/squid/squid.pid")){return "/var/run/squid/squid.pid";}
+	$f=explode("\n",@file_get_contents($this->SQUID_CONFIG_PATH()));
+	while (list ($num, $ligne) = each ($f) ){
+		if(preg_match("#pid_filename\s+(.+)#",$ligne,$re)){
+			$pid_filename=trim($re[1]);
+		}
+	}
+	
+	if($pid_filename<>null){
+		if(!is_file($pid_filename)){
+			if(is_file("/var/run/squid.pid")){return "/var/run/squid.pid";}
+		}
+	}
+	
+}
 
 
 	public function PIDOF($binpath,$noppid=false){
@@ -4401,12 +4639,11 @@ function DirFiles($path,$regexsearch=null){
 	
 	public function PIDOF_PATTERN($pattern){
 		$pattern=str_replace("/","\/",$pattern);
-		$pattern=$this->find_program('pgrep')." -l -f \"$pattern\"";
-		exec($pattern,$re);
-		
-		if(preg_match("#pgrep -l#",$re[0])){$re[0]=$re[1];}
-		if(preg_match("#^([0-9]+)\s+#",$re[0],$i)){
-			if(!$this->PID_IS_CHROOTED($i[1])){return $i[1];}
+		$pattern=$this->find_program('pgrep')." -l -f \"$pattern\" 2>&1";
+		exec($pattern,$results);
+		while (list ($num, $ligne) = each ($results) ){
+			if(preg_match("#pgrep\s+#",$ligne)){continue;}
+			if(preg_match("#^([0-9]+)\s+#",$ligne,$re)){return $re[1];}
 		}
 		
 	}	
@@ -4459,6 +4696,13 @@ function DirFiles($path,$regexsearch=null){
 		if($squidclient==null){
 			writelogs_framework("Unable to stat squidclient !!",__FUNCTION__,__LINE__);;return;}
 			$http_port=$this->squid_get_alternate_port();
+			
+			$SquidBinIpaddr="127.0.0.1";
+			if(preg_match("#(.+?):([0-9]+)#", $http_port,$re)){
+				$SquidBinIpaddr=$re[1];
+				if($SquidBinIpaddr=="0.0.0.0"){$SquidBinIpaddr="127.0.0.1";}
+				$http_port=$re[2];
+			}
 		
 			$ini=new iniFrameWork("/etc/artica-postfix/settings/Daemons/ArticaSquidParameters");
 			if($ini->_params["NETWORK"]["LDAP_AUTH"]==1){
@@ -4466,7 +4710,7 @@ function DirFiles($path,$regexsearch=null){
 				$auth=" -u squidinternalauth -w $ldappassword ";
 			}
 		
-			$cmd="$squidclient -h 127.0.0.1 -p $http_port$auth mgr:info";
+			$cmd="$squidclient -h $SquidBinIpaddr -p $http_port$auth mgr:info";
 			writelogs_framework("$cmd",__FUNCTION__,__LINE__);;
 		
 		
@@ -4509,6 +4753,12 @@ function DirFiles($path,$regexsearch=null){
 		if($squidclient==null){
 		writelogs_framework("Unable to stat squidclient !!",__FUNCTION__,__LINE__);;return;}
 		$http_port=$this->squid_get_alternate_port();
+		$SquidBinIpaddr="127.0.0.1";
+		if(preg_match("#(.+?):([0-9]+)#", $http_port,$re)){
+			$SquidBinIpaddr=$re[1];
+			if($SquidBinIpaddr=="0.0.0.0"){$SquidBinIpaddr="127.0.0.1";}
+			$http_port=$re[2];
+		}
 	
 		$ini=new iniFrameWork("/etc/artica-postfix/settings/Daemons/ArticaSquidParameters");
 		if($ini->_params["NETWORK"]["LDAP_AUTH"]==1){
@@ -4516,7 +4766,7 @@ function DirFiles($path,$regexsearch=null){
 			$auth=" -u squidinternalauth -w $ldappassword ";
 		}
 	
-		$cmd="$squidclient -h 127.0.0.1 -p $http_port$auth mgr:storedir";
+		$cmd="$squidclient -h $SquidBinIpaddr -p $http_port$auth mgr:storedir";
 		writelogs_framework("$cmd",__FUNCTION__,__LINE__);;
 	
 	
@@ -4730,53 +4980,53 @@ function distanceOfTimeInWords($fromTime, $toTime = 0, $showLessThanAMinute = tr
 	       
 	        if ( $distanceInMinutes <= 1 ) {
 	            if ( !$showLessThanAMinute ) {
-	                return ($distanceInMinutes == 0) ? 'less than a minute' : '1 minute';
+	                return ($distanceInMinutes == 0) ? 'less than a minute' : '1 {minute}';
 	            } else {
 	                if ( $distanceInSeconds < 5 ) {
-	                    return 'less than 5 seconds ('.$distanceInSeconds.'s)';
+	                    return '{lessthan} 5 {seconds} ('.$distanceInSeconds.'s)';
 	                }
 	                if ( $distanceInSeconds < 10 ) {
-	                    return 'less than 10 seconds ('.$distanceInSeconds.'s)';
+	                    return '{lessthan} 10 {seconds} ('.$distanceInSeconds.'s)';
 	                }
 	                if ( $distanceInSeconds < 20 ) {
-	                    return 'less than 20 seconds ('.$distanceInSeconds.'s) ';
+	                    return '{lessthan} 20 {seconds} ('.$distanceInSeconds.'s) ';
 	                }
 	                if ( $distanceInSeconds < 40 ) {
-	                    return 'about half a minute ('.$distanceInSeconds.'s)';
+	                    return '{abouttime} {halfaminute} ('.$distanceInSeconds.'s)';
 	                }
 	                if ( $distanceInSeconds < 60 ) {
-	                    return 'less than a minute';
+	                    return '{lessthanaminute}';
 	                }
 	               
 	                return '1 minute';
 	            }
 	        }
 	        if ( $distanceInMinutes < 45 ) {
-	            return $distanceInMinutes . ' minutes';
+	            return $distanceInMinutes . ' {minutes}';
 	        }
 	        if ( $distanceInMinutes < 90 ) {
-	            return 'about 1 hour';
+	            return '{abouttime} 1 {hour}';
 	        }
 	        if ( $distanceInMinutes < 1440 ) {
-	            return 'about ' . round(floatval($distanceInMinutes) / 60.0) . ' hours';
+	            return '{abouttime} ' . round(floatval($distanceInMinutes) / 60.0) . ' {hours}';
 	        }
 	        if ( $distanceInMinutes < 2880 ) {
-	            return '1 day';
+	            return '1 {day}';
 	        }
 	        if ( $distanceInMinutes < 43200 ) {
-	            return 'about ' . round(floatval($distanceInMinutes) / 1440) . ' days';
+	            return '{abouttime} ' . round(floatval($distanceInMinutes) / 1440) . ' {days}';
 	        }
 	        if ( $distanceInMinutes < 86400 ) {
-	            return 'about 1 month';
+	            return '{abouttime} 1 {month}';
 	        }
 	        if ( $distanceInMinutes < 525600 ) {
-	            return round(floatval($distanceInMinutes) / 43200) . ' months';
+	            return round(floatval($distanceInMinutes) / 43200) . ' {months}';
 	        }
 	        if ( $distanceInMinutes < 1051199 ) {
-	            return 'about 1 year';
+	            return '{abouttime} 1 {year}';
 	        }
 	       
-	        return 'over ' . round(floatval($distanceInMinutes) / 525600) . ' years';
+	        return 'over ' . round(floatval($distanceInMinutes) / 525600) . ' {years}';
 	}	
 	
 	

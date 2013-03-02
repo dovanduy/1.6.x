@@ -72,7 +72,7 @@ $page=CurrentPageName();
 	$array["what"]='{what} ?';
 	
 	$field=$_GET["field"];
-	$value=$_GET["value"];	
+	$value=urlencode($_GET["value"]);	
 	if(isset($_GET["table"])){
 		$array["blocked"]='{blocked} ?';
 		$tablejs="&table={$_GET["table"]}";}
@@ -174,7 +174,7 @@ function status(){
 	</table>
 	
 	<script>
-		LoadAjax('alsoknown-$t','$page?alsoknown=yes&field={$_GET["field"]}&value={$_GET["value"]}$tablejs');
+		LoadAjax('alsoknown-$t','$page?alsoknown=yes&field={$_GET["field"]}&value=".urlencode($_GET["value"])."$tablejs');
 	</script>
 	
 	";
@@ -188,7 +188,7 @@ function history_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();		
 	$field=$_GET["field"];
-	$value=$_GET["value"];	
+	$value=urlencode($_GET["value"]);	
 	if(isset($_GET["table"])){$tablejs="&table={$_GET["table"]}";}	
 $t=time();	
 $html="
@@ -397,7 +397,7 @@ function alsoknown(){
 				
 						$jsMAC="
 		<a href=\"javascript:blur();\"
-		OnClick=\"javascript:Loadjs('squid.members.zoom.php?field=$type&value=$a$tablejs')\"
+		OnClick=\"javascript:Loadjs('squid.members.zoom.php?field=$type&value=".urlencode($a)."$tablejs')\"
 		style='font-size:13px;text-decoration:underline'>";	
 				
 				
@@ -487,7 +487,7 @@ function blocked_popup(){
 
 $(document).ready(function(){
 $('#$t').flexigrid({
-	url: '$page?blocked-search=yes&field=$field&value=$value&table=$nexttable',
+	url: '$page?blocked-search=yes&field=$field&value=".urlencode($value)."&table=$nexttable',
 	dataType: 'json',
 	colModel : [
 		{display: '$sitename', name : 'website', width : 472, sortable : true, align: 'left'},
@@ -583,7 +583,7 @@ function blocked_search(){
 		
 		$jsuid="
 		<a href=\"javascript:blur();\"
-		OnClick=\"javascript:Loadjs('squid.members.sitename.php?field={$_GET["field"]}&value={$_GET["value"]}$tablejs&familysite={$ligne["familysite"]}')\"
+		OnClick=\"javascript:Loadjs('squid.members.sitename.php?field={$_GET["field"]}&value=".urlencode($_GET["value"])."$tablejs&familysite={$ligne["familysite"]}')\"
 		style='font-size:16px;text-decoration:underline'>";
 		$jsuid=null;
 	
@@ -673,7 +673,7 @@ function where_popup(){
 
 $(document).ready(function(){
 $('#$t').flexigrid({
-	url: '$page?where-content=yes&field=$field&value=$value&table=$MyTableMonth',
+	url: '$page?where-content=yes&field=$field&value=".urlencode($value)."&table=$MyTableMonth',
 	dataType: 'json',
 	colModel : [
 		{display: '$sitename', name : 'familysite', width : 181, sortable : true, align: 'left'},
@@ -768,7 +768,8 @@ function where_search(){
 		
 		$jsuid="
 		<a href=\"javascript:blur();\"
-		OnClick=\"javascript:Loadjs('squid.members.sitename.php?field={$_GET["field"]}&value={$_GET["value"]}$tablejs&familysite={$ligne["familysite"]}')\"
+		OnClick=\"javascript:Loadjs('squid.members.sitename.php?field={$_GET["field"]}&value=".
+		urlencode($_GET["value"])."$tablejs&familysite={$ligne["familysite"]}')\"
 		style='font-size:16px;text-decoration:underline'>";
 		
 	

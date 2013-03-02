@@ -55,6 +55,10 @@ $GLOBALS["postconf"]=$unix->find_program("postconf");
 $GLOBALS["postmap"]=$unix->find_program("postmap");
 $GLOBALS["postfix"]=$unix->find_program("postfix");
 if($argv[1]=='--loadbalance'){haproxy_compliance();ReloadPostfix(true);die();}
+if($argv[1]=='--ScanLibexec'){ScanLibexec();die();}
+
+
+
 if($argv[1]=='--networks'){mynetworks();MailBoxTransport();ReloadPostfix(true);die();}
 if($argv[1]=='--headers-check'){headers_check();die();}
 if($argv[1]=='--headers-checks'){headers_check();die();}
@@ -515,6 +519,7 @@ function ReloadPostfix($nohastables=false){
 	echo "Starting......: Postfix Reloading ASSP\n"; 
 	system("/usr/share/artica-postfix/bin/artica-install --reload-assp");
 	echo "Starting......: Postfix reloading postfix master with \"$postfix\"\n";
+	ScanLibexec();
 	if(is_file($postfix)){shell_exec("$postfix reload >/dev/null 2>&1");return;}
 	
 	
@@ -892,32 +897,9 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 }
 
 function restrict_relay_domains(){
-	$ldap=new clladp();
-	$f=array();
-	$dn="dc=organizations,$ldap->suffix";
-	$attr=array("cn");
-	$pattern="(&(objectclass=PostfixRelayRecipientMaps)(cn=@*))";
-	$sr =@ldap_search($ldap->ldap_connection,$dn,$pattern,$attr);
-	$hash=ldap_get_entries($ldap->ldap_connection,$sr);
-	$relaysdomains=$ldap->hash_get_relay_domains();
-	if($GLOBALS["postmap"]==null){$unix=new unix();$GLOBALS["postmap"]=$unix->find_program("postmap");}
-	
-	for($i=0;$i<$hash["count"];$i++){
-		$domain=$hash[$i]["cn"][0];
-		if(preg_match("#^@(.+)#",$domain,$re)){$domain=$re[1];}
-		unset($relaysdomains[$domain]);
-	}
-	
-	unset($relaysdomains["localhost.localdomain"]);
-	if(is_array($relaysdomains)){
-		while (list ($num, $ligne) = each ($relaysdomains) ){
-			$f[]="$num\tartica_restrict_relay_domains";
-			}
-	}
-	
-	echo "Starting......: Postfix ". count($f)." restricted relayed domains\n"; 
-	@file_put_contents("/etc/postfix/relay_domains_restricted",implode("\n",$f));
-	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/relay_domains_restricted >/dev/null 2>&1");
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	system("$php5 /usr/share/artica-postfix/exec.postfix.hashtables.php --restricted-relais");
 		
 	
 }
@@ -986,11 +968,14 @@ function smtpd_recipient_restrictions(){
 	if(!is_numeric($MynetworksInISPMode)){$MynetworksInISPMode=0;}		
 	if($TrustMyNetwork==0 && $MynetworksInISPMode==1){$TrustMyNetwork=1;}
 	
-	if($TrustMyNetwork==1){$smtpd_recipient_restrictions[]="permit_mynetworks";}
+	if($TrustMyNetwork==1){$smtpd_recipient_restrictions[]="permit_mynetworks";}else{
+		echo "Starting......: **** TrustMyNetwork is disabled, outgoing messages should be not allowed... **** \n";
+		
+	}
 	$smtpd_recipient_restrictions[]="permit_sasl_authenticated";
 	$smtpd_recipient_restrictions[]="check_recipient_access hash:/etc/postfix/relay_domains_restricted";
 	$smtpd_recipient_restrictions[]="check_recipient_access hash:/etc/postfix/amavis_bypass_rcpt";
-	
+	$smtpd_recipient_restrictions[]="permit_auth_destination";
 	
 	
 	amavis_bypass_byrecipients();
@@ -1035,7 +1020,7 @@ function smtpd_recipient_restrictions(){
 
 	
 	$smtpd_recipient_restrictions[]="reject_unauth_destination";
-	
+	$smtpd_recipient_restrictions[]="permit";
 
 
 	if($GLOBALS["EnableBlockUsersTroughInternet"]==1){
@@ -1227,7 +1212,7 @@ function RestrictedForInternet($reload=false){
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/unrestricted_senders");
 		echo "Starting......: Compiling local domains\n";
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/local_domains");
-		if($reload){shell_exec("{$GLOBALS["postfix"]} reload");}
+		if($reload){shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");}
 		return true;
 		}
 	return false;
@@ -1378,12 +1363,18 @@ function OthersValues(){
 	$qmgr_message_recipient_limit =$mainmulti->GET("qmgr_message_recipient_limit");
 	$default_process_limit=$mainmulti->GET("default_process_limit");	
 	$smtp_fallback_relay=$mainmulti->GET("smtp_fallback_relay");
+	$smtpd_reject_unlisted_recipient=$mainmulti->GET("smtpd_reject_unlisted_recipient");
+	$smtpd_reject_unlisted_sender=$mainmulti->GET("smtpd_reject_unlisted_sender");
 
 	$ignore_mx_lookup_error=$mainmulti->GET("ignore_mx_lookup_error");
 	$disable_dns_lookups=$mainmulti->GET("disable_dns_lookups");
+	$smtpd_banner=$mainmulti->GET('smtpd_banner');
+	
 	if(!is_numeric($ignore_mx_lookup_error)){$ignore_mx_lookup_error=0;}
 	if(!is_numeric($disable_dns_lookups)){$disable_dns_lookups=0;}
-	$smtpd_banner=$main->GET('smtpd_banner');
+	if(!is_numeric($smtpd_reject_unlisted_recipient)){$smtpd_reject_unlisted_recipient=1;}
+	if(!is_numeric($smtpd_reject_unlisted_sender)){$smtpd_reject_unlisted_sender=0;}
+	
 		
 	
 
@@ -1438,8 +1429,13 @@ function OthersValues(){
 	if($minimal_backoff_time==null){$minimal_backoff_time="300s";}
 	if($queue_run_delay==null){$queue_run_delay="300s";}	
 	if($smtpd_banner==null){$smtpd_banner="\$myhostname ESMTP \$mail_name";}
-
-	if($address_verify_negative_cache==1){$address_verify_negative_cache="yes";}else{$address_verify_negative_cache="no";}
+	
+	
+	
+	
+	$address_verify_negative_cache=$mainmulti->YesNo($address_verify_negative_cache);
+	$smtpd_reject_unlisted_sender=$mainmulti->YesNo($smtpd_reject_unlisted_sender);
+	$smtpd_reject_unlisted_recipient=$mainmulti->YesNo($smtpd_reject_unlisted_recipient);
 	
 	$main->main_array["default_destination_recipient_limit"]=$sock->GET_INFO("default_destination_recipient_limit");
 	$main->main_array["smtpd_recipient_limit"]=$sock->GET_INFO("smtpd_recipient_limit");
@@ -1473,8 +1469,19 @@ function OthersValues(){
 	if($minimal_backoff_time==null){$minimal_backoff_time="300s";}
 	if($maximal_backoff_time==null){$maximal_backoff_time="4000s";}
 	if($bounce_queue_lifetime==null){$bounce_queue_lifetime="5d";}
-	if($maximal_queue_lifetime==null){$maximal_queue_lifetime="5d";}		
-	
+	if($maximal_queue_lifetime==null){$maximal_queue_lifetime="5d";}
+
+	$postfix_ver=$mainmulti->postfix_version();
+	if(preg_match("#^([0-9]+)\.([0-9]+)#", $postfix_ver,$re)){$MAJOR=$re[1];$MINOR=$re[2];}
+	if($MAJOR>1){
+		if($MINOR>9){
+			postconf("smtpd_relay_restrictions","permit_mynetworks, reject_unauth_destination");
+		}
+	}
+
+
+	postconf("smtpd_reject_unlisted_sender","$smtpd_reject_unlisted_sender");
+	postconf("smtpd_reject_unlisted_recipient","$smtpd_reject_unlisted_recipient");
 	postconf("address_verify_map","$address_verify_map");
 	postconf("address_verify_negative_cache","$address_verify_negative_cache");
 	postconf("address_verify_poll_count","$address_verify_poll_count");
@@ -1699,7 +1706,7 @@ function disable_smtp_sasl(){
 function perso_settings(){
 	$main=new main_perso();
 	$main->replace_conf("/etc/postfix/main.cf");
-	if($GLOBALS["RELOAD"]){exec("{$GLOBALS["postfix"]} reload");}
+	if($GLOBALS["RELOAD"]){exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");}
 	
 }
 
@@ -1714,7 +1721,7 @@ function luser_relay(){
 	echo "Starting......: Postfix Unknown user set to $luser_relay\n";
 	postconf("luser_relay",$luser_relay);
 	postconf("local_recipient_maps",null);
-	if($GLOBALS["RELOAD"]){shell_exec("{$GLOBALS["postfix"]} reload");}
+	if($GLOBALS["RELOAD"]){shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");}
 	
 }
 function smtpd_sender_restrictions(){
@@ -1963,21 +1970,34 @@ function postscreen($hostname=null){
 	$sql="SELECT * FROM postfix_whitelist_con";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo "$q->mysql_error\n";}
+	$nets=array();
+	$hostsname=array();
+	$ldap=new clladp();
+	$ipClass=new IP();	
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){	
-		$nets[]="{$ligne["ipaddr"]}\tdunno";
-		$hostsname[]="{$ligne["hostname"]}\tOK";
 		
+		if(!$ipClass->isIPAddress($ligne["hostname"])){
+			$hostsname[]="{$ligne["hostname"]}\tOK";
+		}else{
+			$nets[]="{$ligne["hostname"]}\tdunno";
+		}
+		
+		if(!$ipClass->isIPAddress($ligne["ipaddr"])){
+			$hostsname[]="{$ligne["ipaddr"]}\tOK";
+		}else{
+			$nets[]="{$ligne["ipaddr"]}\tdunno";
+		}		
 		
 	}		
 
 	
-	$ldap=new clladp();
+
 	$networks=$ldap->load_mynetworks();	
 	if(is_array($networks)){
 		while (list ($num, $ligne) = each ($networks) ){
 			if($ligne==null){continue;}
-			if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$ligne)){
+			if(!$ipClass->isIPAddress($ligne)){
 				$hostsname[]="$ligne\tOK";
 			}else{
 				$nets[]="$ligne\tdunno";
@@ -1985,13 +2005,18 @@ function postscreen($hostname=null){
 		}
 	}
 	
-	if(isset($hostsname)){if(is_array($hostsname)){@file_put_contents("/etc/postfix/postscreen_access.hosts",@implode("\n",$hostsname));}
-	$postscreen_access=",hash:/etc/postfix/postscreen_access.hosts";}
+	@unlink("/etc/postfix/postscreen_access.hosts");
+	@unlink("/etc/postfix/postscreen_access.cidr");
+	
+	if(count($hostsname)>0){
+		@file_put_contents("/etc/postfix/postscreen_access.hosts",@implode("\n",$hostsname));
+		$postscreen_access=",hash:/etc/postfix/postscreen_access.hosts";
+	}
 	if(!is_file("/etc/postfix/postscreen_access.hosts")){@file_put_contents("/etc/postfix/postscreen_access.hosts", "\n");}
 	
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/postscreen_access.hosts >/dev/null 2>&1");
 	
-	if(is_array($nets)){@file_put_contents("/etc/postfix/postscreen_access.cidr",@implode("\n",$nets));}
+	if(count($nets)>0){@file_put_contents("/etc/postfix/postscreen_access.cidr",@implode("\n",$nets));}
 	postconf("postscreen_access_list","permit_mynetworks,cidr:/etc/postfix/postscreen_access.cidr$postscreen_access");
 	
 	MasterCFBuilder();
@@ -2155,7 +2180,28 @@ function haproxy_compliance(){
 }
 
 
-
+function ScanLibexec(){
+	if(!is_dir("/usr/lib/postfix")){return;}
+	if(!is_dir("/usr/libexec/postfix")){return;}
+	$unix=new unix();
+	$ln=$unix->find_program("ln");
+	
+	$files=$unix->DirFiles("/usr/libexec/postfix");
+	while (list ($filename, $MFARRY) = each ($files) ){
+		if(!is_link("/usr/lib/postfix/$filename")){
+			if(!is_link("/usr/libexec/postfix/$filename")){
+				@unlink("/usr/lib/postfix/$filename");
+				echo "Starting......: linking $filename\n";
+				shell_exec("$ln -sf /usr/libexec/postfix/$filename /usr/lib/postfix/$filename");
+			}
+		}
+		
+	}
+	
+	
+	
+	
+}
 
 
 function MasterCFBuilder($restart_service=false){
@@ -2476,7 +2522,7 @@ $conf[]="";
 $conf[]="";
 @file_put_contents("/etc/postfix/master.cf",@implode("\n",$conf));
 echo "Starting......: master.cf done\n";
-if($GLOBALS["RELOAD"]){shell_exec("/usr/sbin/postfix reload");}	
+if($GLOBALS["RELOAD"]){shell_exec("/usr/sbin/postfix reload >/dev/null 2>&1");}	
 
 if($restart_service){
 	shell_exec("{$GLOBALS["postfix"]} stop");

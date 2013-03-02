@@ -168,6 +168,63 @@ class mysql_postfix_builder{
 		
 	}	
 	
+	public function milter_BuildDayTable($tablename){
+		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+		`zmd5` varchar(90) NOT NULL,
+		`hits` INT(10) NOT NULL,
+		`zhour` tinyint(2) NOT NULL,
+		`mailfrom` varchar(255) NOT NULL,
+		`instancename` varchar(255) NOT NULL,
+		`mailto` varchar(255) NOT NULL,
+		`domainfrom` varchar(128) NOT NULL,
+		`domainto` varchar(128) NOT NULL,
+		`senderhost` varchar(128) NOT NULL,
+		`failed` varchar(15) NOT NULL,
+		PRIMARY KEY (`zmd5`),
+		KEY `hits` (`hits`),
+		KEY `zhour` (`zhour`),
+		KEY `mailfrom` (`mailfrom`),
+		KEY `mailto` (`mailto`),
+		KEY `domainfrom` (`domainfrom`),
+		KEY `domainto` (`domainto`),
+		KEY `senderhost` (`senderhost`),
+		KEY `instancename` (`instancename`),
+		KEY `failed` (`failed`)
+		)";
+	
+		if(!$this->QUERY_SQL($sql)){return false;}
+		return true;
+	
+	}	
+	public function milter_BuildMonthTable($tablename){
+		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+		`zmd5` varchar(90) NOT NULL,
+		`hits` INT(10) NOT NULL,
+		`zday` date NOT NULL,
+		`mailfrom` varchar(255) NOT NULL,
+		`instancename` varchar(255) NOT NULL,
+		`mailto` varchar(255) NOT NULL,
+		`domainfrom` varchar(128) NOT NULL,
+		`domainto` varchar(128) NOT NULL,
+		`senderhost` varchar(128) NOT NULL,
+		`failed` varchar(15) NOT NULL,
+		PRIMARY KEY (`zmd5`),
+		KEY `hits` (`hits`),
+		KEY `zday` (`zday`),
+		KEY `mailfrom` (`mailfrom`),
+		KEY `mailto` (`mailto`),
+		KEY `domainfrom` (`domainfrom`),
+		KEY `domainto` (`domainto`),
+		KEY `senderhost` (`senderhost`),
+		KEY `instancename` (`instancename`),
+		KEY `failed` (`failed`)
+		)";
+	
+		if(!$this->QUERY_SQL($sql)){return false;}
+		return true;
+	
+		}	
+	
 	public function BuildDayTable($tablename){
 		if($this->TABLE_EXISTS($tablename)){return true;}
 		
@@ -283,5 +340,54 @@ class mysql_postfix_builder{
 		
 	}
 	
+	
+	public function LIST_MILTERGREYLIST_HOUR_TABLES(){
+		if(isset($GLOBALS["LIST_MILTERGREYLIST_HOUR_TABLES"])){return $GLOBALS["LIST_MILTERGREYLIST_HOUR_TABLES"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$this->database' AND table_name LIKE 'mgreyh_%'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+		$thishour=date("YmdH");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#mgreyh_([0-9]+)#", $ligne["c"],$re)){
+				if($re[1]==$thishour){continue;}
+				$number=$re[1];
+				$year=substr($number, 0,4);
+				$month=substr($number, 4,2);
+				$day=substr($number, 6,2);
+				$hour=substr($number, 8,2);
+				$GLOBALS["LIST_MILTERGREYLIST_HOUR_TABLES"][$ligne["c"]]=strtotime("$year-$month-$day $hour:00:00");
+				$array[$ligne["c"]]=$ligne["c"];
+			}
+		}
+		return $GLOBALS["LIST_MILTERGREYLIST_HOUR_TABLES"];
+	
+	
+	}	
+	
+	public function LIST_MILTERGREYLIST_DAY_TABLES(){
+		if(isset($GLOBALS["LIST_MILTERGREYLIST_DAY_TABLES"])){return $GLOBALS["LIST_MILTERGREYLIST_DAY_TABLES"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$this->database' AND table_name LIKE 'mgreyd_%'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+		$thishour=date("YmdH");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#mgreyd_([0-9]+)#", $ligne["c"],$re)){
+				if($re[1]==$thishour){continue;}
+				$number=$re[1];
+				$year=substr($number, 0,4);
+				$month=substr($number, 4,2);
+				$day=substr($number, 6,2);
+				$GLOBALS["LIST_MILTERGREYLIST_DAY_TABLES"][$ligne["c"]]=strtotime("$year-$month-$day 00:00:00");
+				$array[$ligne["c"]]=$ligne["c"];
+			}
+		}
+		return $GLOBALS["LIST_MILTERGREYLIST_DAY_TABLES"];
+	
+	
+	}	
 	
 }

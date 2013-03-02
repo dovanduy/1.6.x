@@ -19,10 +19,18 @@
 	}	
 	
 	if(isset($_POST["ENABLED"])){Save();exit;}
-	
+	if(isset($_GET["js"])){js();exit;}
 	
 	page();
+	function js(){
+		header("content-type: application/x-javascript");
+		$t=$_GET["t"];
+		$page=CurrentPageName();
+		$tpl=new templates();
+		$title=$tpl->javascript_parse_text("{smtp_notifications}");
+		echo "LoadWinORG2('705','$page','$title')";
 	
+	}	
 	
 function page(){
 

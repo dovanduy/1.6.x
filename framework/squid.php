@@ -2,12 +2,17 @@
 
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
+if(isset($_GET["prepare-build"])){prepare_build();exit;}
+if(isset($_GET["prepare-build-tests"])){prepare_build_tests();exit;}
+
+if(isset($_GET["logrotate-tenir"])){logrotate_tenir();exit;}
+if(isset($_GET["import-acls"])){import_acls();exit;}
 if(isset($_GET["link-csv"])){link_csv();exit;}
 if(isset($_GET["build-whitelist"])){build_whitelist();exit;}
 if(isset($_GET["build-whitelist-tenir"])){build_whitelist_tenir();exit;}
-
-
-
+if(isset($_GET["kav4proxy-templates"])){kav4_proxy_templates();exit;}
+if(isset($_GET["restart-squid"])){restart_squid();exit;}
+if(isset($_GET["caches-smp-create"])){caches_smp_create();exit;}
 if(isset($_GET["tests-smtp-watchfog"])){test_smtp_watchdog();exit;}
 if(isset($_GET["currentusersize"])){currentusersize_array();exit;}
 if(isset($_GET["exec_squid_rebuild_cache_mem"])){exec_squid_rebuild_cache_mem();exit;}
@@ -36,6 +41,7 @@ if(isset($_GET["compil-params"])){compile_params();exit();}
 if(isset($_GET["migration-stats"])){migration_stats();exit();}
 if(isset($_GET["re-categorize"])){re_categorize();exit();}
 if(isset($_GET["kav4proxy-license-error"])){kav4proxy_license_error();exit();}
+if(isset($_GET["kav4proxy-license-generate"])){kav4proxy_license_generate();exit();}
 if(isset($_GET["kav4proxy-pattern-date"])){kav4proxy_pattern_date();exit();}
 if(isset($_GET["kav4proxy-configure"])){kav4proxy_configure();exit();}
 if(isset($_GET["squid-realtime-cache"])){squid_realtime_cache();exit();}
@@ -56,6 +62,7 @@ if(isset($_GET["recategorize-week"])){recategorize_week();exit;}
 if(isset($_GET["cron-tail-injector-plus"])){cron_tail_injector_plus();exit;}
 if(isset($_GET["cron-tail-injector-moins"])){cron_tail_injector_moins();exit;}
 if(isset($_GET["cachelogs"])){cachelogs();exit;}
+if(isset($_GET["cache-smtp-logs"])){cache_smp_logs();exit;}
 if(isset($_GET["clean-catz-cache"])){clean_catz_cache();exit;}
 if(isset($_GET["build-default-tpls"])){build_default_tpls();exit;}
 if(isset($_GET["build-templates"])){build_templates();exit;}
@@ -84,6 +91,7 @@ if(isset($_GET["weekdaynum"])){statistics_weekdaynum();exit;}
 
 if(isset($_GET["summarize-day"])){summarize_day();exit;}
 if(isset($_GET["mib"])){mib();exit;}
+if(isset($_GET["rotate-restore"])){rotate_restore();exit;}
 
 
 if(isset($_GET["refresh-caches-infos"])){refresh_cache_infos();exit;}
@@ -541,7 +549,15 @@ function kav4proxy_pattern_date(){
 	writelogs_framework("Not found in $base",__FUNCTION__,__FILE__,__LINE__);
 }
 
-
+function kav4proxy_license_generate(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.kav4proxy.php --license --force >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	
+}
 
 function kav4proxy_license_error(){
 	$unix=new unix();
@@ -566,7 +582,7 @@ function visited_sites(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.stats.php --visited-sites >/dev/null 2>&1 &");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.visited.sites.php >/dev/null 2>&1 &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	
@@ -731,6 +747,38 @@ function cachelogs(){
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 
 }
+
+function cache_smp_logs(){
+	$search=trim(base64_decode($_GET["cachelogs"]));
+	$unix=new unix();
+	$tail=$unix->find_program("tail");
+	$grep=$unix->find_program("grep");
+	$rp=500;
+	if(is_numeric($_GET["rp"])){$rp=$_GET["rp"];}
+	
+	if($search==null){
+	
+		$cmd="$tail -n $rp /var/log/squid/artica-caches32.log 2>&1";
+		writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+		exec("$tail -n $rp /var/log/squid/artica-caches32.log 2>&1",$results);
+		echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+		return;
+	}
+	
+	$search=str_replace(".","\.",$search);
+	$search=str_replace("*",".*?",$search);
+	$search=str_replace("(","\(",$search);
+	$search=str_replace(")","\)",$search);
+	$search=str_replace("[","\[",$search);
+	$search=str_replace("]","\]",$search);
+	
+	$cmd="$grep -E '$search' /var/log/squid/artica-caches32.log 2>&1|$tail -n $rp 2>&1";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	exec("$cmd",$results);
+	
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
+	
+}
 function accesslogs(){
 	$search=trim(base64_decode($_GET["accesslogs"]));
 	$OnlyIpAddr=$_GET["OnlyIpAddr"];
@@ -857,6 +905,9 @@ function refresh_cache_infos(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
+	
+	
+	
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --cache-infos --force >/dev/null &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
@@ -1321,6 +1372,23 @@ function logrotate(){
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
 }
+function logrotate_tenir(){
+	writelogs_framework("logrotate_tenir()...",__FUNCTION__,__FILE__,__LINE__);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$target_file="/usr/share/artica-postfix/ressources/logs/web/squidrotate.txt";
+	@unlink($target_file);
+	@file_put_contents("$target_file", "Please wait.....\n");
+	@chmod($target_file,0777);
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --rotate --verbose >>$target_file 2>&1");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	
+}
+
+
+
 function update_blacklist(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -1729,5 +1797,68 @@ function build_whitelist_tenir(){
 	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --build-whitelists 2>&1");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	exec($cmd,$results);
+}
+
+function caches_smp_create(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.smp.php --caches 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+function restart_squid(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.watchdog.php --restart --force --reconfigure 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function kav4_proxy_templates(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.kav4proxy.php --templates 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+function prepare_build(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --build --noapply 2>&1");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function prepare_build_tests(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --check-temp 2>&1");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+
+}
+function import_acls(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$file=$_GET["import-acls"];
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --import-acls \"$file\" 2>&1");	
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);	
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+
+function rotate_restore(){
+	$unix=new unix();
+	$filename=$_GET["rotate-restore"];
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");	
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.restoresrc.php --restore $filename >/dev/null 2>&1 &");
 }
 ?>

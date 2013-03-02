@@ -516,7 +516,7 @@ begin
   if D then debgustr:=' --verbose';
   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.nightly.php'+forcestr+debgustr);
 
-  NightlyBuild();
+
 
 end;
 //#############################################################################

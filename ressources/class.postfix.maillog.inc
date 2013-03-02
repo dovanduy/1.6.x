@@ -48,6 +48,22 @@ class postfix_maillog_buffer{
 			}
 		}
 		
+		
+		if(preg_match("#postfix\/local.+?status=deferred\s+\(.*?alias database unavailable#",$buffer,$re )){
+			$this->events("Master instance Alias database unavailable",__LINE__);
+			$timefile="/etc/artica-postfix/croned.1/postfix-alias-database-unavailable";
+			$TimeMin=$this->file_time_min($timefile);
+			if($TimeMin>5){
+				$cmd="{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.hashtables.php --aliases >/dev/null 2>&1 &";
+				$this->events($cmd);
+				shell_exec($cmd);
+				@unlink($timefile);
+				@file_put_contents($timefile,"#");
+				$this->email_events("alias database unavailable","Postfix claim $buffer,\naliases database will be ordered to be generated",'postfix');
+			}
+			return true;
+		}		
+		
 		if(preg_match("#postfix\[.+?: fatal: bad string length 0 < 1: inet_interfaces#", $buffer,$re)){
 			$timefile="/etc/artica-postfix/croned.1/master-fatal-".md5("fatal: bad string length 0 < 1: inet_interfaces");
 			$TimeMin=$this->file_time_min($timefile);
@@ -214,20 +230,7 @@ class postfix_maillog_buffer{
 		}
 		
 		
-		if(preg_match("#postfix\/local.+?status=deferred\s+\(.*?alias database unavailable#",$buffer,$re )){
-				$this->events("Master instance Alias database unavailable",__LINE__);
-				$timefile="/etc/artica-postfix/croned.1/postfix-alias-database-unavailable";
-				$TimeMin=$this->file_time_min($timefile);
-				if($TimeMin>5){
-					$cmd="{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.hashtables.php --aliases >/dev/null 2>&1 &";
-					$this->events($cmd);	
-					shell_exec($cmd);
-		 			@unlink($timefile);
-					@file_put_contents($timefile,"#");	
-					$this->email_events("alias database unavailable","Postfix claim $buffer,\naliases database will be ordered to be generated",'postfix');							
-				}
-			return true;
-		}
+
 		
 		
 		if(preg_match('#postfix(.*?)\/smtpd\[.+?:\s+fatal: non-null host address bits in "(.+?)", perhaps you should use "(.+?)" instead#',$buffer,$re)){

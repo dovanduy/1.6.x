@@ -56,6 +56,8 @@ function content(){
 	$tpl=new templates();
 	$t=time();
 	
+	$users=new usersMenus();
+	
 	if(count($_SESSION["SQUID_DYNAMIC_ACLS"])>0){
 		$dynamic_acls_newbee="&nbsp;|&nbsp;<a href=\"miniadmin.proxy.dynamic.acls.php\"><strong>{dynamic_acls_newbee}</strong></a>";
 		
@@ -63,18 +65,32 @@ function content(){
 			
 	}	
 	
+	$start="LoadAjax('left-$t','$page?left=yes');";
+	
+	if(!$users->AsSquidAdministrator){
+		$start="LoadAjax('left-$t','$page?web-filtering=yes');";
+	}
+	
+	
 	$html="
 	<div class=BodyContent>
 		<div style='font-size:14px'><a href=\"miniadm.index.php\">{myaccount}</a>
+	";
+	if($users->AsSquidAdministrator){$html=$html."
 		&nbsp;|&nbsp;<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:LoadAjax('left-$t','$page?left=yes');\"><strong>{APP_PROXY}</strong></a>
 		&nbsp;|&nbsp;<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:LoadAjax('left-$t','$page?proxy-settings=yes');\"><strong>{proxy_main_settings}</strong></a>
+		";
+	}
+	$html=$html."&nbsp;|&nbsp;<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:LoadAjax('left-$t','$page?web-filtering=yes');\"><strong>{WEB_FILTERING}</strong></a>";	
+		
+	if($users->AsSquidAdministrator){$html=$html."
 		&nbsp;|&nbsp;<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:LoadAjax('left-$t','$page?web-filtering=yes');\"><strong>{WEB_FILTERING}</strong></a>		
-		&nbsp;|&nbsp;<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:LoadAjax('left-$t','$page?tasks=yes');\"><strong>{tasks}</strong></a>			
-		&nbsp;|&nbsp;<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:LoadAjax('left-$t','$page?tasks=yes');\"><strong>{tasks}</strong></a>";
+		}			
+	$html=$html."&nbsp;|&nbsp;<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:LoadAjax('left-$t','$page?monitor=yes');\"><strong>{monitor}</strong></a>			
 		$dynamic_acls_newbee
 		
@@ -88,7 +104,7 @@ function content(){
 	<div id='left-$t' class=BodyContent></div>
 	
 	<script>
-		LoadAjax('left-$t','$page?left=yes');
+		$start
 	</script>
 	";
 	echo $tpl->_ENGINE_parse_body($html);

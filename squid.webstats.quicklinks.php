@@ -423,6 +423,7 @@ function section_architecture_advanced(){
      $snmp=Paragraphe("64-snmp.png", "SNMP", "{squid_snmp_explain}",
     "javascript:Loadjs('squid.snmp.php')");
     
+     $syslogMAC=Paragraphe("syslog-64.png", "{ComputerMacAddress}", "{squid_ComputerMacAddress_text}","javascript:Loadjs('squid.macaddr.php')");
     
     $tr[]=$file_descriptors;
     $tr[]=$squid_advanced_parameters;
@@ -434,6 +435,7 @@ function section_architecture_advanced(){
     $tr[]=$denywebistes;
     $tr[]=$anonym;
     $tr[]=$syslog;
+    $tr[]=$syslogMAC;
     $tr[]=$disable_stats;
     $tr[]=$snmp;
     $tr[]=$sarg;

@@ -225,7 +225,9 @@ div.pGroup{float:left;background:none;height:24px;margin:0 5px}
 .flexigrid div.fbutton .Groups {
   background: url("/img/wingroup.png") no-repeat scroll left center transparent;
 }
-
+.flexigrid div.fbutton .clock {
+  background: url("/img/clock-18.png") no-repeat scroll left center transparent;
+}
 
 
 

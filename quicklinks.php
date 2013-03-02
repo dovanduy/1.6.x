@@ -62,6 +62,7 @@ if($EnableWebProxyStatsAppliance==1){$ASSQUID=true;}
 if($users->WEBSTATS_APPLIANCE){$ASSQUID=true;}
 if($users->KASPERSKY_WEB_APPLIANCE){$ASSQUID=true;}
 if($user->SQUID_APPLIANCE){$ASSQUID=true;}
+if($users->SQUID_INSTALLED){$ASSQUID=true;}
 
 
 if($SambaEnabled==1){
@@ -279,12 +280,11 @@ $tr2=$tr;
 						$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-logs.png", "PROXY_EVENTS","PROXY_EVENTS", "QuickLinkSystems('section_squid_rtmm')"));
 					}
 				}
-			
-			
-			
-			
-			
 		}
+		
+		while (list ($key, $line) = each ($tr2) ){$CLEAN[$line]=$line;}	
+		$tr2=array();
+		while (list ($key, $line) = each ($CLEAN) ){$tr2[]=$line;}	
 
 if($GLOBALS["VERBOSE"]){echo "$page:ITEMS = ".count($tr2)." ". __LINE__."\n";}
 if(count($tr2)<7){if($dnsmasq<>null){if($GLOBALS["VERBOSE"]){echo "$page:ADD DNSMASQ ITEM ". __LINE__."\n";}$tr2[]=$dnsmasq;}}
@@ -294,7 +294,11 @@ if(count($tr2)<7){if($powerdns<>null){$tr2[]=$powerdns;}}
 $count=1;
 
 
-while (list ($key, $line) = each ($tr2) ){
+
+$CLEAN=array();
+while (list ($key, $line) = each ($tr2) ){$CLEAN[$line]=$line;}
+
+while (list ($key, $line) = each ($CLEAN) ){
 	if($line==null){continue;}
 	$f[]="<li id='kwick1'>$line</li>";
 	$count++;

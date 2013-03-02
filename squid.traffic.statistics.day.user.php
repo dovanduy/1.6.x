@@ -192,7 +192,7 @@ function tabs(){
 		
 			
 		}
-	echo "<div id='$id' style='width:100%;height:700px;overflow:auto;background-color:white;'>
+	echo "<div id='$id' style='width:100%;'>
 				<ul>". implode("\n",$html)."</ul>
 		</div>
 		<script>
@@ -210,24 +210,21 @@ function users_form(){
 	$table=$_GET["table"];
 	$page=CurrentPageName();
 	$tpl=new templates();		
-	$html="<center>
-			". Field_text("member-$t-search",null,"font-size:16px;width:220px",null,null,null,false,"DayMembersSearchCheck$t(event)")."
-		</center>
-	<div id='member-$t-list' style='margin-top:10px'></div>
+	$html="
+			<div id='member-$t-list'></div>
 	<script>
-		function DayMembersSearchCheck$t(e){
-			if(checkEnter(e)){WeekMembersSearch();}
-		}
+
 	
 	
 		function DayMembersSearch(){
-			var search=escape(document.getElementById('member-$t-search').value);
+			var search='';
 			LoadAjaxTiny('member-$t-list','$page?users-search=yes&table=$table&user={$_GET["user"]}&field={$_GET["field"]}&query='+search);
 		}
 		
 		DayMembersSearch();
 	
 	</script>";
+	
 	
 	echo $tpl->_ENGINE_parse_body($html);
 		
@@ -272,63 +269,8 @@ function users_search(){
 	$field=$_GET["field"];	
 	$page=CurrentPageName();
 	$tpl=new templates();		
-	$q=new mysql_squid_builder();
-	$query=$_GET["query"];
-	$query="$query*";
-	$query=str_replace("**", "*", $query);
-	$query=str_replace("**", "*", $query);
-	$query=str_replace("*", "%", $query);	
-
-	$t=$_GET["divkey"];	
-	if(!isset($_SESSION["SQUIDSTATS"]["WEEK"][$table])){
-		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(client) as tcount,client,hostname,uid,MAC 
-		FROM $table GROUP BY client,hostname,uid,MAC ORDER BY uid,MAC,hostname,client"));
-		$_SESSION["SQUIDSTATS"]["WEEK"][$table]=$ligne["tcount"];
-	}	
 	
-	$title="<div style='font-size:12px;'>
-		<strong>{$_SESSION["SQUIDSTATS"]["WEEK"][$table]}</strong> {others_users_have_browsed_internet_too}</div>";
-	
-	
-	$sql="SELECT client,hostname,uid,$field,MAC from $table GROUP BY client,hostname,uid,$field,MAC
-	HAVING `$field` LIKE '$query'
-	ORDER BY client,hostname,uid,$field,MAC LIMIT 0,25";
-	$results=$q->QUERY_SQL($sql);
-	
-	$rows[]="<table style='width:99%' class=form>
-	<tr>
-		<td colspan=2>$title</td>
-	</tr>";
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$q="uid";
-		$q2="hostname";
-		
-		if($ligne[$field]<>null){
-			$ligne["uid"]=$ligne[$field];
-			
-		}
-		$ligne["uid"]=trim($ligne["uid"]);
-		if(trim($ligne["hostname"])==null){$ligne["hostname"]=$ligne["client"];$q2="client";}
-		if($ligne["uid"]=="-"){$ligne["uid"]=$ligne["hostname"];$q=$q2;}
-		if(trim($ligne["uid"])==null){$ligne["uid"]=$ligne["hostname"];$q=$q2;}
-		if(trim($ligne["uid"])==null){$ligne["uid"]=$ligne["client"];$q=$q2;}
-		if(trim($ligne["uid"])==null){$ligne["uid"]=$ligne["MAC"];$q=$q2;}		
-		
-		
-		$usertext=$ligne["uid"];
-		$eght=strlen($usertext);
-		if($eght>25){$usertext=substr($usertext,0,22)."...";}
-		
-		$rows[]="<tr>
-		<td width=1% valign='top'><IMG SRC='img/winuser.png'></TD>
-		<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.traffic.statistics.day.user.php?user={$ligne["uid"]}&field=$q&table=$table')\" style='font-weight:bold;font-size:12px;text-decoration:underline'>$usertext</a>
-		
-		</td></tr>";
-		
-	}
-	
-	$html=$html.@implode("\n", $rows)."</tbody></table>
+	$html="
 	<script>
 		function LoadUserReport1(){
 			LoadAjaxTiny('paragraphe1','$page?paragraphe1=yes&table=$table&user=$user&field=$field');
@@ -558,7 +500,7 @@ function synthesis(){
 	$dayTitle=date('{l}, {F} Y',$time);
 	
 	
-	$TITLE_PAGE=">$user ({{$field}}) <br>$dayTitle";
+	$TITLE_PAGE="&laquo;$user&raquo; ({{$field}}) <br>$dayTitle";
 	
 	if($field=="MAC"){
 		$userText=$q->UID_FROM_MAC($user);

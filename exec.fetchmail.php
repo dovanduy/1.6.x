@@ -146,11 +146,38 @@ function BuildRules_schedule(){
 			@chgrp("/etc/fetchmail-rules","root");		
 	
 }
+function fetchmail_version(){
+	if(isset($GLOBALS["fetchmail_version"])){return $GLOBALS["fetchmail_version"];}
+	$unix=new unix();
+	$fetchmail=$unix->find_program("fetchmail");
+	if(!is_file($fetchmail)){return "0.0.0";}
+	exec("$fetchmail -V 2>&1",$results);
+
+	while (list ($md, $line) = each ($results) ){
+		if(preg_match("#release\s+([0-9\.]+)#", $line,$re)){
+			$GLOBALS["fetchmail_version"]=$re[1];
+			return $re[1];
+		}
+
+	}
+
+	return "0.0.0";
+
+
+}
 
 function build_line($ligne){
 		$sock=new sockets();
+		$unix=new unix();
 		$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
-	
+		$fetchmail_version=fetchmail_version();
+		if(preg_match("#^([0-9]+)\.([0-9]+)\.([0-9]+)#", $fetchmail_version,$re)){
+			$MAJOR=$re[1];
+			$MINOR=$re[2];
+			$REV=$re[3];
+		}
+		
+		
 			$ID=$ligne["ID"];
 			writelogs("Building fetchmail rule for ID: {$ligne["ID"]} user:{$ligne["uid"]}",__FUNCTION__,__FILE__,__LINE__);
 			
@@ -253,9 +280,16 @@ function build_line($ligne){
 				$smtphost="\n\tsmtphost ".multi_get_smtp_ip($ligne["smtp_host"]);
 			}
 			
+			echo "Starting......: fetchmail poll {$ligne["poll"]} - version $MAJOR.$MINOR.$REV\n";
+			if($MAJOR<7){
+				if($MINOR<4){
+					if($REV<21){
+						if(trim($ssl)==null){$ssl="\n\tsslproto ssl23\n\tno ssl";}
+					}
+				}
+			}
 			
-			if(trim($ssl)==null){$ssl="\n\tsslproto ssl23\n\tno ssl";}
-			$pattern="poll {$ligne["poll"]}$tracepolls\n\tproto {$ligne["proto"]} $port$interval$timeout\n\tuser \"{$ligne["user"]}\"\n\tpass {$ligne["pass"]}\n\tis {$ligne["is"]}$dropdelivered$aka$folder$ssl$fetchall$keep$multidrop$sslfingerprint$sslcertck$smtphost$limit$smtp\n\n";
+			$pattern="poll {$ligne["poll"]}$tracepolls\n\tproto {$ligne["proto"]} $port$interval$timeout$aka\n\tuser \"{$ligne["user"]}\"\n\tpass {$ligne["pass"]}\n\tis {$ligne["is"]}$dropdelivered$folder$ssl$fetchall$keep$multidrop$sslfingerprint$sslcertck$smtphost$limit$smtp\n\n";
 			if($GLOBALS["DEBUG"]){echo "$pattern\n";}
 
 			$GLOBALS["multi_smtp"][$ligne["smtp_host"]][]=$pattern;

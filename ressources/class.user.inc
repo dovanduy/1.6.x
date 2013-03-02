@@ -156,9 +156,10 @@ class user{
 	function user($uid=null,$dn=null){
 		if(function_exists("debug_backtrace")){
 			$trace=debug_backtrace();
+			if(!isset($trace[1]["class"])){$trace[1]["class"]=null;}
 			if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["class"]}/{$trace[1]["function"]}() line {$trace[1]["line"]}";}
 		}
-		writelogs("Loading $uid, $dn $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "Loading $uid, $dn $called<br>\n";}
 		if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
 		$users=new usersMenus();
 		$this->cyrus_imapd_installed=$users->cyrus_imapd_installed;
@@ -557,8 +558,23 @@ class user{
 			
 			
 	private function LoadUserDatas($userdn=null){
+		if($GLOBALS["VERBOSE"]){echo "class.user.inc::LoadUserDatas($userdn)<br>\n";}
 		$daemon_uid=posix_getuid();
 		$ldap=new clladp();
+		if($ldap->IsKerbAuth()){
+			$this->LoadFromActiveDirectory($this->uid,true);
+			if($this->AsActiveDirectoryMember){
+				include_once(dirname(__FILE__)."/class.privileges.inc");
+				if($this->ArticaGroupPrivileges==null){$this->ArticaGroupPrivileges="#";}
+				$privs=new privileges($this->uid,$this->ArticaGroupPrivileges);
+				$privilegesDatas=$privs->content;
+				$this->privileges_array=$privs->privs;				
+				return;
+			}
+			
+			if($GLOBALS["VERBOSE"]){echo "class.user.inc::AsActiveDirectoryMember ->FALSE<br>\n";}
+		}
+		
 		include_once(dirname(__FILE__)."/class.privileges.inc");
 		if($this->ArticaGroupPrivileges==null){$this->ArticaGroupPrivileges="#";}
 		$privs=new privileges($this->uid,$this->ArticaGroupPrivileges);
@@ -771,7 +787,7 @@ class user{
 
 		if($this->FinalDateToLive==null){$this->FinalDateToLive=0;}
 		
-		if($GLOBALS["VERBOSE"]){echo "$this->uid = uidNumber:$this->uidNumber\n";}
+		if($GLOBALS["VERBOSE"]){echo "$this->uid = uidNumber:$this->uidNumber<br>\n";}
 		if($daemon_uid>0){writelogs("($this->uid):: $this->uid = uidNumber:$this->uidNumber ;CryptedHome=\"$this->CryptedHome\",Vacation Enable=\"$this->vacationEnabled\"; vacationActive=\"$this->vacationActive\" EnableUserSpamLearning={$attrs["EnableUserSpamLearning"][0]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		
 		//uidNumber
@@ -1261,6 +1277,7 @@ class user{
 	
 	function add_alias($mail){
 		$dn=$this->dn;
+		if($dn==null){return true;}
 		$ldap=new clladp();
 		$mail=trim($mail);
 		$updatearray=array();
@@ -2356,59 +2373,29 @@ function joomla(){
 	
 	
 	function LastUidNumber(){
-		$sock=new sockets();
-		if(isset($GLOBALS["LastUidNumber"])){
-			$GLOBALS["LastUidNumber"]=$GLOBALS["LastUidNumber"]+1;
-			if($GLOBALS["VERBOSE"]){echo __LINE__.":LastUidNumber: Return {$GLOBALS["LastUidNumber"]}\n";}
-			$sock->SET_INFO("LastUidNumber", $GLOBALS["LastUidNumber"]);
-			return $GLOBALS["LastUidNumber"];
-		}
-
 		$ldap=new clladp();
-		writelogs("Search the last uid number",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-      	$r =@ldap_search($ldap->ldap_connection, $ldap->suffix, '(uidnumber=*)',array("uidnumber"));
-      	$biguid=2000;
-      		if ($r){
-         			ldap_sort($ldap->ldap_connection, $r, "uidNumber");
-            		$result = ldap_get_entries($ldap->ldap_connection, $r);
-					$count = $result['count'];
-         			if($GLOBALS["VERBOSE"]){echo "LastUidNumber:$count items\n";}
-         			for($i=0;$i<$count;$i++){
-         				$id=$result[$i]['uidnumber'][0];
-         				if($id>$biguid){$biguid=$id;}
-         			}
-         			
-         			writelogs("biguid=$biguid",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-         			$biguid=$biguid+1;
-      		}else{
-      			$biguid=2000;
-      		}
-      		if($biguid<2000){$biguid=2000;}
-      	if($biguid==2000){	
-			$GLOBALS["LastUidNumber"]=trim($sock->GET_INFO("LastUidNumber",true));
-			if(is_numeric($GLOBALS["LastUidNumber"])){
-				if($GLOBALS["VERBOSE"]){echo __LINE__.":LastUidNumber:{$GLOBALS["LastUidNumber"]} is_numeric... OK\n";}
-				if($GLOBALS["LastUidNumber"]>2000){
-					if($GLOBALS["VERBOSE"]){echo __LINE__.":LastUidNumber:{$GLOBALS["LastUidNumber"]} >2000 OK\n";}
-					$GLOBALS["LastUidNumber"]=$GLOBALS["LastUidNumber"]+1;
-					$sock->SET_INFO("LastUidNumber", $GLOBALS["LastUidNumber"]);
-					if($GLOBALS["VERBOSE"]){echo __LINE__.":LastUidNumber: Return {$GLOBALS["LastUidNumber"]} OK\n";}
-					return $GLOBALS["LastUidNumber"];
-				}
+		$r =@ldap_search($ldap->ldap_connection, $ldap->suffix, '(uidnumber=*)',array("uidnumber","uid"));
+		if ($r){
+			ldap_sort($ldap->ldap_connection, $r, "uidNumber");
+			$result = ldap_get_entries($ldap->ldap_connection, $r);
+			$count = $result['count'];
+			if($GLOBALS["VERBOSE"]){echo "LastUidNumber:$count items\n";}
+			for($i=0;$i<$count;$i++){
+				$id=$result[$i]['uidnumber'][0];
+				if($id<2000){continue;}
+				$hash[$id]=true;
 			}
-      	} 
-
-      	$uidtemp=$sock->GET_INFO("LastUidNumber",true);
-      	if(is_numeric($uidtemp)){
-      		if($uidtemp>$biguid){$biguid=$uidtemp+1;}
-      	}
-      		
-      	$GLOBALS["LastUidNumber"]=$biguid;
-		if($GLOBALS["VERBOSE"]){echo "LastUidNumber:$biguid\n";}
-      	$sock->SET_INFO("LastUidNumber", $biguid);
-      	return $biguid;
-      		
+		
+		}
+		if(count($hash)==0){return 2001;}
+		krsort($hash);
+		$f=array();
+		while (list ($num, $ligne) = each ($hash) ){$f[]=$num;}
+		$final=$f[0];
+		return $final+1;
 	}
+      		
+	
 	
 	function CountUidNumbers(){
 			$ldap=new clladp();
@@ -3562,6 +3549,9 @@ function UsersInterfaceDatasDelete(){
 			$this->zarafaSaveInfos();
 		}
 		
+		
+		$sock->getFrameWork("system.php?uidNumber=yes");
+		
 		if(!$GLOBALS["NO_COMPILE_POSTFIX"]){
 			$sock->getFrameWork("cmd.php?rsync-reconfigure=yes");
 			$sock->getFrameWork("cmd.php?roundcube-sync=yes&ou=$this->ou");
@@ -3585,7 +3575,10 @@ function UsersInterfaceDatasDelete(){
 		}
 		
 		
-		if(posix_getuid()<>0){$sock->getFrameWork("cmd.php?home-single-user=". base64_encode($this->uid));}
+		if(posix_getuid()<>0){
+				$sock->getFrameWork("cmd.php?home-single-user=". base64_encode($this->uid));
+		
+			}
 		}
 		
 		

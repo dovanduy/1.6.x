@@ -65,10 +65,11 @@ function tabs(){
 	$enable_streamcache=$sock->GET_INFO("SquidEnableStreamCache");
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	$UfdbGuardHide=$sock->GET_INFO("UfdbGuardHide");
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
-	
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}	
 	if(!is_numeric($UfdbGuardHide)){$UfdbGuardHide=0;}	
 
 	if($users->SQUID_INSTALLED){
@@ -81,17 +82,15 @@ function tabs(){
 		}
 	}
 
-
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}
 
 
 
 	if($EnableWebProxyStatsAppliance==1){$users->APP_UFDBGUARD_INSTALLED=true;$squid->enable_UfdbGuard=1;}
 
-	if($EnableRemoteStatisticsAppliance==0){$array["rules"]='{webfilter}';
-
-	
-	
-	$array["acls"]='{acls}';
+	if($EnableRemoteStatisticsAppliance==0){
+		$array["rules"]='{webfilter}';
+		$array["acls"]='{acls}';
 	
 	}
 	$array["ufdbguard"]='{service_parameters}';
@@ -99,6 +98,7 @@ function tabs(){
 	
 
 	if($EnableRemoteStatisticsAppliance==0){
+		
 		$array["groups"]='{groups2}';
 		$array["databases"]='{webfilter_databases}';
 		if($enable_streamcache==1){$array["streamcache"]='{streamcache_status}';}
@@ -494,6 +494,12 @@ function dansguardian_status(){
 	$EnableKerbAuthCentral=$sock->GET_INFO('EnableKerbAuthCentral');
 	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
 	$DnsFilterCentral=$sock->GET_INFO('DnsFilterCentral');
+	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
+	$Watchdog=$MonitConfig["watchdog"];
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
+	
 	$PDSNInUfdb=$sock->GET_INFO("PDSNInUfdb");
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
@@ -506,6 +512,7 @@ function dansguardian_status(){
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 	if(!is_numeric($kavicapserverEnabled)){$kavicapserverEnabled=0;}
 	if(!is_numeric($PDSNInUfdb)){$PDSNInUfdb=0;}
+	if(!is_numeric($Watchdog)){$Watchdog=1;}
 	
 	
 	if(!is_numeric($DnsFilterCentral)){$DnsFilterCentral=0;}
@@ -575,7 +582,7 @@ function dansguardian_status(){
 				</tr>";		
 		
 	}
-	
+	// ----------------------------------------------------------------------------------------------------------------	
 	$EnableRemoteStatisticsAppliancePic="status_ok-grey.gif";
 	$EnableRemoteStatisticsApplianceText="{disabled}";
 	if($EnableRemoteStatisticsAppliance==1){
@@ -593,10 +600,25 @@ function dansguardian_status(){
 				style='font-size:12px;font-weight:bold;text-decoration:underline'>$EnableRemoteStatisticsApplianceText</a></td>
 				</tr>";		
 	
+	// ----------------------------------------------------------------------------------------------------------------	
+	$EnableWatchdogPic="status_ok-grey.gif";
+	$EnableWatchdogText="{disabled}";
+	if($Watchdog==1){
+		$EnableWatchdogPic="status_ok.gif";
+		$EnableWatchdogText="{enabled}";
+	}	
 	
 	
-	
-	
+	$EnableWatchdogTextTR="<tr>
+	<td width=1%><span id='AdSquidStatusLeft3'><img src='img/$EnableWatchdogPic'></span></td>
+	<td class=legend nowrap>{squid_watchdog_mini}:</td>
+	<td><div style='font-size:12px' nowrap>
+	<a href=\"javascript:blur();\"
+	OnClick=\"javascript:Loadjs('squid.watchdog.php');\"
+	style='font-size:12px;font-weight:bold;text-decoration:underline'>$EnableWatchdogText</a></td>
+	</tr>";	
+		
+// ----------------------------------------------------------------------------------------------------------------	
 	if($SquidActHasReverse==1){
 		$AsSquidLoadBalancerText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('squid.reverse.websites.php');\" 
@@ -609,7 +631,7 @@ function dansguardian_status(){
 		
 	}
 	
-	
+	// ----------------------------------------------------------------------------------------------------------------	
 	
 	$ufdb=null;$dansgu=null;
 	$t=0;
@@ -927,8 +949,9 @@ function dansguardian_status(){
 	if($SquidActHasReverse==1){
 		$ufdb=null;$ufdbPDNS=null;
 		$MalWarePatrol=null;
-		
-		
+		$StreamCache=null;
+		$dansgu=null;
+		$SplashScreenFinal=null;
 	}
 
 	if(!$users->APP_KHSE_INSTALLED){
@@ -937,6 +960,7 @@ function dansguardian_status(){
 
 	if($t>0){
 		$table="<table style='width:99%' class=form><tbody>
+		$EnableWatchdogTextTR
 		$EnableActiveDirectoryTextTR
 		$EnableRemoteStatisticsApplianceTextTR
 		$AsSquidLoadBalancerText
@@ -1091,13 +1115,18 @@ function ufdbguard_service_section(){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	
+	
 	$array["ufdbguard-options"]='{service_parameters}';
 	
 
 	if($EnableRemoteStatisticsAppliance==0){
-		$array["ufdbguard-blocked"]='{blocked_websites}';
-		$array["ufdbguard-events"]='{service_events}';
+		if($UnlockWebStats==0){
+			$array["ufdbguard-blocked"]='{blocked_websites}';
+			$array["ufdbguard-events"]='{service_events}';
+		}
 	}
 
 
@@ -1140,9 +1169,10 @@ function ufdbguard_service_options(){
 	$users=new usersMenus();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-	
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}	
 	
 	$width="650px";
 	if(isset($_GET["width"])){$width="{$_GET["width"]}";}
@@ -1197,14 +1227,16 @@ function ufdbguard_service_options(){
 	if(!$users->SQUID_INSTALLED){$streamCacheGet=$streamCacheGet_disabled;}	
 	
 	if($EnableRemoteStatisticsAppliance==1){
-		$ufdbguard_conf=null;
-		$squidguardweb=null;
-		$youtubeSchools=null;
-		$streamCacheGet=null;
-		$PagePeeker=null;
-		$recompile_all_database=null;
-		$compile_schedule=null;
-		
+		if($UnlockWebStats==0){
+			$ufdbguard_conf=null;
+			$squidguardweb=null;
+			$youtubeSchools=null;
+			$streamCacheGet=null;
+			$PagePeeker=null;
+			$recompile_all_database=null;
+			$compile_schedule=null;
+		}
+		$unlock=Paragraphe("tables-lock-64.png","{lock_unlock}","{unlock_webstats_explain}","javascript:Loadjs('squid.webstats.unlock.php')");
 	}
 
 
@@ -1220,6 +1252,7 @@ function ufdbguard_service_options(){
 	$tr[]=$recompile_all_database;
 	$tr[]=$compile_schedule;
 	$tr[]=$hide;
+	$tr[]=$unlock;
 
 
 	$html="

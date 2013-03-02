@@ -360,25 +360,21 @@ $tpl=new templates();
 	$page=1;
 	
 	
+	
 	if($q->COUNT_ROWS($table,"artica_backup")==0){writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
+	$table="(SELECT * FROM `$table` WHERE hostname='{$_GET["hostname"]}' AND headers={$_GET["headers-query"]} ) as t";
 	
-		$searchstring=" AND (`{$_POST["qtype"]}` LIKE '$search')";
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE hostname='{$_GET["hostname"]}' AND headers={$_GET["headers-query"]} $searchstring";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$total = $ligne["TCOUNT"];
 		
 	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE hostname='{$_GET["hostname"]}' AND headers={$_GET["headers-query"]}";
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$total = $ligne["TCOUNT"];
 	}
@@ -388,7 +384,10 @@ $tpl=new templates();
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	
-	$sql="SELECT *  FROM `$table` WHERE hostname='{$_GET["hostname"]}' AND headers={$_GET["headers-query"]} $searchstring $ORDER $limitSql";	
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $ORDER $limitSql";
+
+	
+	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	

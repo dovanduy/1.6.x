@@ -87,6 +87,7 @@ function setup_2(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$sock=new sockets();
+	$users=new usersMenus();
 	
 	$netbiosname_field=$tpl->javascript_parse_text("{netbiosname}");
 	$domain_field=$tpl->javascript_parse_text("{domain}");
@@ -139,6 +140,20 @@ function setup_2(){
 		$arrayNameServers[1]=$savedsettings["DNS2"];
 	}
 	
+	if($users->SQUID_INSTALLED){
+		$arrayPP["3128"]=3128;
+		$arrayPP["8080"]=8080;
+		$arrayPP["9090"]=9090;
+		
+		$proxy="	<tr>
+		<td class=legend style='font-size:14px'>{proxy_listen_port}:</td>
+		<td>". Field_array_Hash($arrayPP,"proxy_listen_port",$savedsettings["proxy_listen_port"],null,null,0,"font-size:14px")."</td>
+		</tr>";
+		
+		
+	}
+	
+	
 	//FIRST_WIZARD_NIC2 -> fini -> demande de reboot
 	
 	$FORM="
@@ -169,7 +184,11 @@ function setup_2(){
 		<td class=legend style='font-size:14px'>{secondary_dns}:</td>
 		<td>". field_ipv4("DNS2", $arrayNameServers[1],"font-size:14px")."</td>
 	</tr>	
-	
+	<tr>
+		<td colspan=2 style='font-size:16px;font-weight:bolder'>&nbsp;</td>
+	</tr>	
+	$proxy			
+				
 	<tr>
 		<td colspan=2 style='font-size:16px;font-weight:bolder'><div style='text-align:right'><hr>". button("{next}","ChangeQuickHostname()","18px")."</div></td>
 	</tr>
@@ -195,6 +214,10 @@ function setup_2(){
 			if(netbios.length==0){alert('$netbiosname_field (Null!)');return;}
 			if(dom.length==0){alert('$domain_field (Null!)');return;}
 			if(dom=='localhost.localdomain'){alert('localhost.localdomain wrong domain...');return;}
+			
+			if(document.getElementById('proxy_listen_port')){
+				XHR.appendData('proxy_listen_port',document.getElementById('proxy_listen_port').value);
+			}
 			
 			XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
 			XHR.appendData('DNS1',document.getElementById('DNS1').value);
@@ -389,7 +412,7 @@ function setup_3(){
 	<script>
 		var X_ChangeCompanySettings= function (obj) {
 			var results=obj.responseText;
-			LoadAjax('setup-content','$page?setup-4=yes&savedsettings='+results)
+			LoadAjax('setup-content','$page?setup-4=yes&savedsettings='+results);
 		
 			}
 		
@@ -459,6 +482,8 @@ function setup_4(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
+	$users=new usersMenus();
+	
 	
 	$resolv=new resolv_conf();
 	$arrayNameServers[0]=$savedsettings["DNS1"];
@@ -470,23 +495,44 @@ function setup_4(){
 	sleep(1);
 	
 	
-	if(!check_email_address($savedsettings["mail"])){
-		$warn_email_invalid_wizard=$tpl->_ENGINE_parse_body("{warn_email_invalid_wizard}");
-		$warn_email_invalid_wizard=str_replace("%s", $savedsettings["mail"], $warn_email_invalid_wizard);
-		$html="
-		<table style='width:99%' class=form>
-		<tr>
-			<td valign='top'><img src='img/error-64.png'></td>
-			<td style='padding-left:15px'><strong style='font-size:18px'>$warn_email_invalid_wizard</strong>
-			<center>". button("{back}","LoadAjax('setup-content','$page?setup-3=yes&savedsettings={$_GET["savedsettings"]}')","22px")."</center>
-		</td>
-		</tr>
-		</table>";
-		echo $tpl->_ENGINE_parse_body($html);
-		return;
+	if($users->SQUID_INSTALLED){
+		include_once(dirname(__FILE__)."/ressources/class.squid.inc");
+		$squid=new squidbee();
+		if(is_numeric($savedsettings["proxy_listen_port"])){
+			$squid->listen_port=$savedsettings["proxy_listen_port"];
+			
+		}
+		$squid->SaveToLdap();
 		
 	}
 	
+	
+	
+	
+	if(!isset($_GET["bypass"])){
+		if(!check_email_address($savedsettings["mail"])){
+			$warn_email_invalid_wizard=$tpl->_ENGINE_parse_body("{warn_email_invalid_wizard}");
+			$warn_email_invalid_wizard=str_replace("%s", $savedsettings["mail"], $warn_email_invalid_wizard);
+			$html="
+			<table style='width:99%' class=form>
+			<tr>
+				<td valign='top'><img src='img/error-64.png'></td>
+				<td style='padding-left:15px'><strong style='font-size:18px'>$warn_email_invalid_wizard</strong>
+				<center>". button("{back}","LoadAjax('setup-content','$page?setup-3=yes&savedsettings={$_GET["savedsettings"]}')","22px")."</center>
+			</td>
+			</tr>
+			<tr>
+			</table>
+			<div style='text-align:right;margin-top:10px'><a href=\"javascript:blur();\" 
+			OnClick=\"javascript:LoadAjax('setup-content','$page?setup-4=yes&bypass=yes&savedsettings={$_GET["savedsettings"]}');\"
+			style='font-size:14px;text-decoration:underline'>{i_understand_continue}...</a></div>						
+						
+						";
+			echo $tpl->_ENGINE_parse_body($html);
+			return;
+			
+		}
+	}
 	
 	$html="
 	<div id='settings-final'>
@@ -612,7 +658,6 @@ $html="
 	 
 	
 }
-	
 function final_show(){
 	$GLOBALS["DEBUG_TEMPLATE"]=true;
 	include_once(dirname(__FILE__)."/ressources/class.langages.inc");

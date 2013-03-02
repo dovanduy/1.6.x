@@ -24,8 +24,17 @@ page();
 function cache_params_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$users=new usersMenus();
+	
+	header("content-type: application/x-javascript");
+	if(!$users->CORP_LICENSE){
+		$error_no_licence=$tpl->javascript_parse_text("{error_no_licence}");
+		echo "alert('$error_no_licence');";
+		return;
+	}	
+	
 	$title=$tpl->_ENGINE_parse_body("{cache_parameters}::{$_GET["sitename"]}");
-	$html="YahooWin5('550','$page?cache-params-popup=yes&sitename={$_GET["sitename"]}&t={$_GET["t"]}&table-t={$_GET["table-t"]}&TasksCallBacks={$_GET["TasksCallBacks"]}','$title')";
+	$html="YahooWin5('550','$page?cache-params-popup=yes&sitename={$_GET["sitename"]}&t={$_GET["t"]}&table-t={$_GET["table-t"]}&TasksCallBacks={$_GET["TasksCallBacks"]}&with-enable={$_GET["with-enable"]}','$title')";
 	echo $html;	
 	
 }
@@ -191,7 +200,7 @@ if($_GET["TasksCallBacks"]<>null){$TasksCallBacks="{$_GET["TasksCallBacks"]}();"
 	// 1 -> ignore-no-cache ignore-no-store ignore-private refresh-ims
 	// 2 -> override-expire ignore-no-cache ignore-no-store ignore-private override-lastmod ignore-auth ignore-reload
 	
-
+if($_GET["with-enable"]=="yes"){$enabled=1;}
 	
 	// see http://archive09.linux.com/feature/153221.html
 	$html="

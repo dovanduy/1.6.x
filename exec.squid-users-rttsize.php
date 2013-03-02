@@ -34,33 +34,48 @@ function UsersSizeByHour(){
 	$oldpid=@file_get_contents($pidfile);
 	
 	$unix=new unix();
+	$mypid=getmypid();
 	
 	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		events("Already executed pid $oldpid since {$time}mn-> DIE");
+		if($oldpid<>$mypid){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			events("Already executed pid $oldpid since {$time}mn-> DIE");
 			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
-		die();
+			die();
+		}
 	}
-	$mypid=getmypid();
+	
+	
+	events("Starting pid [$mypid]...");
 	@file_put_contents($pidfile,$mypid);
 	
-	$timefile=$unix->file_time_min($pidfile);
-	if($GLOBALS["VERBOSE"]){echo "Timelock:$timefile Mn\n";}
+	$timefile=$unix->file_time_min($pidtime);
+	events("Timelock:$timefile Mn");
 	
 	if(!$GLOBALS["VERBOSE"]){
-		if($timefile<10){if($GLOBALS["VERBOSE"]){echo "Only each 10mn\n";}return;}
+		if($timefile<10){
+			events("Only each 10mn :current {$timefile}Mn");
+			if($GLOBALS["VERBOSE"]){echo "Only each 10mn\n";}
+			return;
+		}
 	}
-	@unlink($pidfile);
-	@file_put_contents($pidfile, time());
+	@unlink($pidtime);
+	@file_put_contents($pidtime, time());
 	
 	$classParse=new squid_tail();
 	$RTTSIZEPATH="/var/log/artica-postfix/squid-RTTSize/".date("YmdH");
 	
-	if(!is_file($RTTSIZEPATH)){return;}
+	if(!is_file($RTTSIZEPATH)){
+		events("$RTTSIZEPATH no such file...");
+		UserSizeRTT_oldfiles();
+		main_table();
+		return;
+	}
 	
 	$q=new mysql_squid_builder();
 	$q->CreateUserSizeRTTTable();
 	if(!$q->TABLE_EXISTS("UserSizeRTT")){
+		events("Fatal UserSizeRTT no such table, die()");
 		ufdbguard_admin_events("Fatal UserSizeRTT no such table, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
 		return;
 	}	
@@ -381,7 +396,8 @@ function events($text){
 	}
 
 
-	events_tail($text);}
+	events_tail($text);
+}
 
 	function events_tail($text){
 		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}

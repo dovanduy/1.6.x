@@ -33,6 +33,7 @@ if(isset($_GET["mailarchiver-status"])){mailarchiver_status();exit;}
 if(isset($_GET["varspool"])){checks_varspool();exit;}
 if(isset($_GET["changeSpool"])){changeSpool();exit;}
 if(isset($_GET["stats-var-spool"])){stats_var_spool();exit;}
+if(isset($_GET["CertificateConfigFile"])){CertificateConfigFile();exit;}
 
 
 if(isset($_GET["islocked"])){islocked();exit;}
@@ -518,6 +519,17 @@ function islocked_enable(){
 function islocked_disable(){
 	@unlink("/etc/artica-postfix/DO_NOT_DETECT_POSTFIX");
 	shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose --".time());
+}
+function CertificateConfigFile(){
+	if(is_file('/etc/artica-postfix/ssl.certificate.conf')){
+		echo  "<articadatascgi>".@file_get_contents("/etc/artica-postfix/ssl.certificate.conf")."</articadatascgi>";
+		return;
+	}
+	if(is_file('/usr/share/artica-postfix/ressources/databases/DEFAULT-CERTIFICATE-DB.txt')){
+		echo  "<articadatascgi>".@file_get_contents("/usr/share/artica-postfix/ressources/databases/DEFAULT-CERTIFICATE-DB.txt")."</articadatascgi>";
+		return;
+	}
+
 }
 
 die();

@@ -88,7 +88,9 @@ $html="
 	<div class=\"title-box\" style='margin-top:-30px'>
 	<table style='width:100%'>
 	<tr>
+		
 		<td valign='top' style='padding-right:15px'>
+		<div style='float:left;margin-right:5px;margin-top:40px'><a href=\"http://www.youtube.com/articaproject\"><img src='http://www.artica.fr/images/youtube_channel.png'></a></div>
 		<div style='margin-top:10px;font-size:12px;text-align:right;font-weight:bold;font-size:16px;'>How to build a Mail/Proxy/File server easily?</div>
 		<p style=\"text-align: justify;font-size:13px\">
 		<div style=font-size:16px;'><strong>Artica, a web based management console:</strong></div>

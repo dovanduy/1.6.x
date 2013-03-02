@@ -1756,8 +1756,7 @@ L'op&eacute;ration d'affichage est annul&eacute;e.</error_no_datas>
 <feature_disabled>Cette fonction est actuellement d&eacute;sactiv&eacute;e</feature_disabled>
 <feature_disabled_multiple_postfix_instances_enabled>La fonctionnalit&eacute; est d&eacute;sactiv&eacute;e car le multiple Instance de Postfix est activ&eacute;</feature_disabled_multiple_postfix_instances_enabled>
 <feature_not_installed>Cette fonction n'est pas install&eacute;e</feature_not_installed>
-<february>F&eacute;vrier&lt;february&gt;
-&lt;march&gt;Mars</february>
+<february>F&eacute;vrier</february>
 <fetch>serveur de r&eacute;cup&eacute;ration</fetch>
 <fetchmail>fetchmail</fetchmail>
 <fetchmail_about>Fetchmail est une solution permettant de rappatrier les emails sur des machines UNIX.Il peut collecter les messages &agrave; travers diff&eacute;rents protocoles dont le POP3 ou IMAP[br]

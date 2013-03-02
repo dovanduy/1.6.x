@@ -34,6 +34,7 @@ function js(){
 	if(isset($_GET["security"])){$_GET["security"]=null;}
 	if(!isset($_GET["OnlyName"])){$_GET["OnlyName"]=0;}
 	if(!isset($_GET["OnlyCheckAD"])){$_GET["OnlyCheckAD"]=0;}
+	if(!isset($_GET["OnlyLDAP"])){$_GET["OnlyLDAP"]=0;}
 	
 	
 	
@@ -55,10 +56,12 @@ function popup(){
 	$OnlyAD=$_GET["OnlyAD"];
 	$OnlyName=$_GET["OnlyName"];
 	$OnlyCheckAD=$_GET["OnlyCheckAD"];
+	$OnlyLDAP=$_GET["OnlyLDAP"];
 	if(!is_numeric($OnlyName)){$OnlyName=0;}
 	if(!is_numeric($OnlyGUID)){$OnlyGUID=0;}
 	if(!is_numeric($OnlyAD)){$OnlyAD=0;}
 	if(!is_numeric($OnlyCheckAD)){$OnlyCheckAD=0;}
+	if(!is_numeric($OnlyLDAP)){$OnlyLDAP=0;}
 	
 	if($_GET["callback"]<>null){$callback="{$_GET["callback"]}(id,prependText,guid);YahooUserHide();return;";}	
 	
@@ -82,8 +85,13 @@ function popup(){
 	$SUFFIX[]="&prepend={$_GET["prepend"]}&field-user={$_GET["field-user"]}&prepend-guid={$_GET["prepend-guid"]}";
 	$SUFFIX[]="&OnlyUsers={$_GET["OnlyUsers"]}&OnlyGUID={$_GET["OnlyGUID"]}&organization={$_GET["organization"]}";
 	$SUFFIX[]="&OnlyGroups={$_GET["OnlyGroups"]}&callback={$_GET["callback"]}&NOComputers={$_GET["NOComputers"]}";
-	$SUFFIX[]="&Zarafa={$_GET["Zarafa"]}&OnlyAD=$OnlyAD&t=$t&security={$_GET["security"]}&OnlyName=$OnlyName&OnlyCheckAD=$OnlyCheckAD";
+	$SUFFIX[]="&Zarafa={$_GET["Zarafa"]}&OnlyAD=$OnlyAD&t=$t&security={$_GET["security"]}&OnlyName=$OnlyName&OnlyCheckAD=$OnlyCheckAD&OnlyLDAP=$OnlyLDAP";
 	$SUFFIX_FORMATTED=@implode("", $SUFFIX);
+	
+	
+	$member_query="{display: '$members', name : 'members'},";
+	if($_GET["OnlyGroups"]==1){$member_query=null;}
+	
 	$buttons="
 	buttons : [
 	{name: '$filter', bclass: 'Search', onpress : SambaAclBrowseFilter$t},$BrowsAD
@@ -107,7 +115,7 @@ $('#flexRT$t').flexigrid({
 		],
 	$buttons
 	searchitems : [
-		{display: '$members', name : 'members'},
+		$member_query
 		{display: '$groups', name : 'groups'},
 		],
 	sortname: 'groupname',
@@ -173,11 +181,13 @@ function SambaAclBrowseFilter(){
 	$OnlyUsers=$_GET["OnlyUsers"];
 	$NOComputers=$_GET["NOComputers"];
 	$OnlyName=$_GET["OnlyName"];
+	$OnlyLDAP=$_GET["OnlyLDAP"];
 	if(!is_numeric($OnlyAD)){$OnlyAD=0;}
 	if(!is_numeric($OnlyGUID)){$OnlyGUID=0;}
 	if(!is_numeric($OnlyUsers)){$OnlyUsers=0;}
 	if(!is_numeric($NOComputers)){$NOComputers=1;}
 	if(!is_numeric($OnlyName)){$OnlyName=0;}
+	if(!is_numeric($OnlyLDAP)){$OnlyLDAP=0;}
 	if($NOComputers==0){$NOComputers=1;}
 	
 	
@@ -241,81 +251,6 @@ function SambaAclBrowseFilter(){
 	
 }
 
-
-function popup_old(){
-	$page=CurrentPageName();
-	$tpl=new templates();		
-	if($_GET["prepend"]==null){$_GET["prepend"]=0;}
-	if($_GET["prepend-guid"]==null){$_GET["prepend-guid"]=0;}
-	$OnlyGUID=$_GET["OnlyGUID"];
-	$OnlyAD=$_GET["OnlyAD"];
-	if(!is_numeric($OnlyGUID)){$OnlyGUID=0;}
-	if(!is_numeric($OnlyAD)){$OnlyAD=0;}
-	if($_GET["callback"]<>null){$callback="{$_GET["callback"]}(id,prependText,guid);YahooUserHide();return;";}
-	
-	$html="
-	<center>
-	<table class=form>
-		<tr>
-		<td>" . Field_text('BrowseUserQuery',null,'width:100%;font-size:14px;padding:3px',null,null,null,null,"BrowseFindUserGroupClick(event);")."</td>
-		<td align='right'><input type='button' OnClick=\"javascript:BrowseFindUserGroup();\" value='{search}&nbsp;&raquo;'></td>
-		</tR>
-	</table>
-	</center>
-	<br>
-	<div style='padding:5px;height:350px;overflow:auto' id='finduserandgroupsidBrwse'></div>
-	<script>
-	function BrowseFindUserGroupClick(e){
-		if(checkEnter(e)){BrowseFindUserGroup();}
-	}
-	
-	var x_BrowseFindUserGroup=function (obj) {
-		tempvalue=obj.responseText;
-		document.getElementById('finduserandgroupsidBrwse').innerHTML=tempvalue;
-	}
-
-
-	function BrowseFindUserGroup(){
-		LoadAjax('finduserandgroupsidBrwse','$page?query='+escape(document.getElementById('BrowseUserQuery').value)+'&prepend={$_GET["prepend"]}&field-user={$_GET["field-user"]}&prepend-guid={$_GET["prepend-guid"]}&OnlyUsers={$_GET["OnlyUsers"]}&OnlyGUID={$_GET["OnlyGUID"]}&organization={$_GET["organization"]}&OnlyGroups={$_GET["OnlyGroups"]}&callback={$_GET["callback"]}&NOComputers={$_GET["NOComputers"]}&Zarafa={$_GET["Zarafa"]}&OnlyAD=$OnlyAD');
-	
-	}	
-	
-	
-	function SambaBrowseSelect(id,prependText,guid){
-			$callback
-			var prepend={$_GET["prepend"]};
-			var prepend_gid={$_GET["prepend-guid"]};
-			var OnlyGUID=$OnlyGUID;
-			if(document.getElementById('{$_GET["field-user"]}')){
-				var selected=id;
-				if(OnlyGUID==1){
-					document.getElementById('{$_GET["field-user"]}').value=guid;
-					YahooUserHide();
-					return;
-				}
-				
-				if(prepend==1){selected=prependText+id;}
-				if(prepend_gid==1){
-					if(guid>1){
-						selected=prependText+id+':'+guid;
-					}
-				}
-				document.getElementById('{$_GET["field-user"]}').value=selected;
-				YahooUserHide();
-			}
-		}
-
-		BrowseFindUserGroup();
-	
-</script>	
-	
-	";
-	
-	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($html);
-	
-	
-}
 function query_group(){
 	if($_GET["OnlyUsers"]=="yes"){$_GET["OnlyUsers"]=1;}
 	$users=new user();
@@ -423,15 +358,21 @@ function query(){
 	$OnlyGUID=$_GET["OnlyGUID"];
 	$OnlyName=$_GET["OnlyName"];
 	$OnlyCheckAD=$_GET["OnlyCheckAD"];
+	$OnlyLDAP=$_GET["OnlyLDAP"];
 	$Zarafa=$_GET["Zarafa"];
+	$OnlyAD=$_GET["OnlyAD"];
 	
 	if(!is_numeric($OnlyGUID)){$OnlyGUID=0;}
 	if(!is_numeric($OnlyUsers)){$OnlyUsers=0;}
 	if(!is_numeric($OnlyName)){$OnlyName=0;}
 	if(!is_numeric($OnlyCheckAD)){$OnlyCheckAD=0;}	
+	if(!is_numeric($OnlyLDAP)){$OnlyLDAP=0;}
+	if(!is_numeric($OnlyAD)){$OnlyAD=0;}
 	
-	
+	if($OnlyLDAP==1){$_GET["OnlyAD"]=0;}
 	$ObjectZarafa=false;
+	
+	if($OnlyAD==1){$OnlyCheckAD=1;}
 	
 	if($Zarafa==1){$nogetent=true;$ObjectZarafa=true;}
 	$hash=array();

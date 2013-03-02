@@ -785,6 +785,12 @@ private function multinets(){
 		if(!$q->ok){echo "$q->mysql_error\n";}
 	
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\/[0-9]+#",$ligne["ipaddr"])){
+				$this->acl[]="acl whitelist addr {$ligne["ipaddr"]} #postfix_whitelist_con";
+				continue;
+			}
+			
+			
 			if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$ligne["ipaddr"])){continue;}
 			$this->acl[]="acl whitelist addr {$ligne["ipaddr"]} #multinets (postfix_whitelist_con)";
 			

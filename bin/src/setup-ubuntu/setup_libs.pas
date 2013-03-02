@@ -344,6 +344,13 @@ if RegExpr.Exec(data) then begin
    result:=32;
    exit;
 end;
+ RegExpr.Expression:='686-bigmem';
+if RegExpr.Exec(data) then begin
+   RegExpr.free;
+   result:=32;
+   exit;
+end;
+
 
 RegExpr.Expression:='x86_64';
 if RegExpr.Exec(data) then begin

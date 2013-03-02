@@ -899,6 +899,7 @@ function settings(){
 		document.getElementById('serverkerb-animated').innerHTML='';
 		if(document.getElementById('AdSquidStatusLeft')){RefreshDansguardianMainService();}
 		if(document.getElementById('squid-status')){LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');}
+		Loadjs('squid.ad.progress.php');
 	}		
 	
 		function SaveKERBProxy(){
@@ -1089,6 +1090,7 @@ function settingsSave(){
 	$users=new usersMenus();
 	include_once(dirname(__FILE__)."/class.html.tools.inc");
 	$_POST["WINDOWS_SERVER_PASS"]=url_decode_special_tool($_POST["WINDOWS_SERVER_PASS"]);
+	unset($_SESSION["EnableKerbAuth"]);
 	
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
@@ -1145,21 +1147,7 @@ function settingsSave(){
 	}
 	
 	$sock->SET_INFO("EnableKerbAuth", $_POST["EnableKerbAuth"]);
-	$sock->getFrameWork("services.php?kerbauth=yes");
-	if($users->SQUID_INSTALLED){$sock->getFrameWork("cmd.php?squid-rebuild=yes");}
 	
-	if($users->SAMBA_INSTALLED){
-		if($_POST["EnableKerberosAuthentication"]==0){
-			$sock->getFrameWork("services.php?nsswitch=yes");
-			$sock->getFrameWork("cmd.php?samba-reconfigure=yes");
-		}
-	}
-	
-	if($EnableWebProxyStatsAppliance==1){
-		include_once("ressources/class.blackboxes.inc");
-		$blk=new blackboxes();
-		$blk->NotifyAll("WINBIND_RECONFIGURE");
-	}
 }
 
 
@@ -1194,6 +1182,7 @@ function test_auth(){
 	$tpl=new templates();
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 	$SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));
+	if($SquidBinIpaddr=="0.0.0.0"){$SquidBinIpaddr=null;}
 	$squid=new squidbee();
 	$port=$squid->listen_port;
 	$t=time();
@@ -1258,6 +1247,7 @@ function test_auth_perform(){
 	$tpl=new templates();
 	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 	$SquidBinIpaddr=$_POST["TESTPROXYIP"];
+	if($SquidBinIpaddr=="0.0.0.0"){$SquidBinIpaddr="127.0.0.1";}
 	$port=$_POST["TESTPROXYPORT"];
 	$TESTAUTHPASS=url_decode_special_tool($_POST["TESTAUTHPASS"]);
 	$TESTAUTHUSER=stripslashes($_POST["TESTAUTHUSER"]);

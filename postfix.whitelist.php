@@ -145,6 +145,11 @@ function AutoBlockDenyAddWhiteList(){
 		$hostname=gethostbyaddr($_GET["AutoBlockDenyAddWhiteList"]);
 	}
 	
+	if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$ipaddr)){
+		echo "$ipaddr/$hostname Invalid\n";
+		return;
+	}
+	
 	$sql="INSERT IGNORE INTO postfix_whitelist_con (ipaddr,hostname) VALUES('$ipaddr','$hostname')";
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");

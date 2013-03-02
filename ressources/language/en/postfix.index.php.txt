@@ -124,7 +124,7 @@ If you set for example 2 days, the process will calculate events from 2 days ago
 <PostfixEnableSubmission>Enable Submission port</PostfixEnableSubmission>
 <PostfixEnableSubmission_text>This feature enable a new port [b]587[/b][br]
 This is the port for mail submission (as in: MUA) as opposed to port 25, which was meant for MTA-to-MTA communication.
-[br]It is dedicated for mails sended directly by your users.[br]
+[br]It is dedicated for mails sent directly by your users.[br]
 You'll need to open port 587 in your firewall.[br]
 In other case if you enable Authentication and set this option to red,your users will use 465 port (SSL) or 25 to authenticate trough postfix.</PostfixEnableSubmission_text>
 <postfix_autoblock>Postfix Instant IpTables</postfix_autoblock>

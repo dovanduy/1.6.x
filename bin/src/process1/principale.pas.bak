@@ -435,7 +435,7 @@ begin
        toolsversions:=ttoolsversions.Create(SYS);
         if verbosed then writeln('web_settings:: -> SYS.LOCATE_APACHE_MODULES_PATH()');
        LOCATE_APACHE_MODULES_PATH:=SYS.LOCATE_APACHE_MODULES_PATH();
-
+       if not FileExists('/etc/init.d/artica-swap') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initd-swap.php >/dev/null 2>&1');
 
        WifiCardOk:=0;
        kas3:=Tkas3.Create(SYS);
@@ -570,11 +570,14 @@ begin
    if FileExists('/usr/share/concrete5/concrete/config/version.php') then list.Add('$_GLOBAL["CONCRETE5_INSTALLED"]=True;') else list.Add('$_GLOBAL["CONCRETE5_INSTALLED"]=False;');
    if FileExists('/usr/libexec/squid/ecap_adapter_av.so') then list.Add('$_GLOBAL["ECAPAV_INSTALLED"]=True;') else list.Add('$_GLOBAL["ECAPAV_INSTALLED"]=False;');
    if FileExists('/usr/share/zarafa-webapp/index.php') then list.Add('$_GLOBAL["ZARAFA_WEBAPP_INSTALLED"]=True;') else list.Add('$_GLOBAL["ZARAFA_WEBAPP_INSTALLED"]=False;');
+   if FileExists('/usr/share/zarafa-webaccess-mobile/index.php') then list.Add('$_GLOBAL["ZARAFA_WEBACCESS_MOBILE_INSTALLED"]=True;') else list.Add('$_GLOBAL["ZARAFA_WEBACCESS_MOBILE_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('ejabberd')) then list.Add('$_GLOBAL["EJABBERD_INSTALLED"]=True;') else list.Add('$_GLOBAL["EJABBERD_INSTALLED"]=False;');
    if FileExists('/usr/share/pymsnt/PyMSNt.py') then  list.Add('$_GLOBAL["PYMSNT_INSTALLED"]=True;') else list.Add('$_GLOBAL["PYMSNT_INSTALLED"]=False;');
    if FileExists('/usr/share/pyicqt/src/main.py') then  list.Add('$_GLOBAL["PYICQT_INSTALLED"]=True;') else list.Add('$_GLOBAL["PYICQT_INSTALLED"]=False;');
    if FileExists('/opt/arkeia/bin/arkboot') then list.Add('$_GLOBAL["APP_ARKEIA_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_ARKEIA_INSTALLED"]=False;');
    if FileExists('/usr/lib/jvm/default-java/bin/keytool') then list.Add('$_GLOBAL["APP_JAVA_JDK_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_JAVA_JDK_INSTALLED"]=False;');
+   if FileExists('/opt/zarafa-db/bin/mysqld') then list.Add('$_GLOBAL["APP_JAVA_JDK_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_JAVA_JDK_INSTALLED"]=False;');
+
 
    if FileExists('/home/openemm/bin/openemm.sh') then begin
       list.Add('$_GLOBAL["OPENEMM_INSTALLED"]=True;');
@@ -1255,7 +1258,7 @@ begin
 
 //*********************************** POSTFIX **********************************
 logs.Debuglogs('Tprocess1.web_settings():: ############# CHECKING POSTFIX #######################');
-if SYS.LOCATE_GENERIC_BIN('postconf') then POSTFIX_INSTALLED:=true;
+if FileExists(SYS.LOCATE_GENERIC_BIN('postconf')) then POSTFIX_INSTALLED:=true;
 if FileExists('/etc/artica-postfix/DO_NOT_DETECT_POSTFIX') then POSTFIX_INSTALLED:=false;
 if POSTFIX_INSTALLED then begin
         list.Add('$_GLOBAL["POSTFIX_INSTALLED"]=True;');

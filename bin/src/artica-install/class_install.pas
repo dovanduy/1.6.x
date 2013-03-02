@@ -816,6 +816,21 @@ begin
                exit();
             end;
 
+          if ParamStr(2)='zarfadb' then begin
+               fpsystem('/etc/init.d/zarafa-db stop');
+               exit();
+            end;
+
+          if ParamStr(2)='zarafa-db' then begin
+               fpsystem('/etc/init.d/zarafa-db stop');
+               exit();
+            end;
+
+          if ParamStr(2)='zarafadb' then begin
+               fpsystem('/etc/init.d/zarafa-db stop');
+               exit();
+            end;
+
            if ParamStr(2)='klms' then begin
                klms:=tklms.Create(GLOBAL_INI.SYS);
                klms.STOP();
@@ -1556,6 +1571,11 @@ begin
                zsquid.TAIL_STOP();
                halt(0);
             end;
+            if ParamStr(2)='squidcache-tail' then begin
+               zsquid.TAIL_CACHE_STOP();
+               halt(0);
+            end;
+
 
             if ParamStr(2)='squid-tail-sock' then begin
                writeln('squid-tail-sock is depreciated, turned to syslog features');
@@ -1813,6 +1833,7 @@ begin
                writeln('|tftpd|crossroads|artica-status|artica-exec|artica-back|pptpd|pptpd-clients|apt-mirror|squidclamav-tail|ddclient|cluebringer|apachesrc');
                writeln('|sabnzbdplus|fcron|fuse|vnstat|winbindd|munin|greyhole|amavis-milter|iscsi|auth-logger|snort|greensql|amanda|zarafa-lmtp|tomcat|openemm');
                writeln('|sendmail-openemm|fuppes|cgroups|arpd|yaffas|netatalk|loadbalance|memcached|UpdateUtility|ejabberd|haproxy|arkeia|klms|klmsdb|articadb|suricata');
+               writeln('|squidcache-tail');
                exit();
             end;
 
@@ -2237,6 +2258,12 @@ begin
                    framework.START();
                    exit();
               end;
+              if ParamStr(2)='squidcache-tail' then begin
+                   zsquid.TAIL_CACHE_START();
+                   exit();
+              end;
+
+
               if ParamStr(2)='virtualbox-web' then begin
                    SYS:=Tsystem.Create;
                    virtualbox:=tvirtualbox.Create(SYS);
@@ -2360,7 +2387,20 @@ begin
                exit();
             end;
 
+           if ParamStr(2)='zarfadb' then begin
+               fpsystem('/etc/init.d/zarafa-db start');
+               exit();
+            end;
 
+          if ParamStr(2)='zarafa-db' then begin
+               fpsystem('/etc/init.d/zarafa-db start');
+               exit();
+            end;
+
+          if ParamStr(2)='zarafadb' then begin
+               fpsystem('/etc/init.d/zarafa-db start');
+               exit();
+            end;
 
            if ParamStr(2)='klmsdb' then begin
                klms:=tklms.Create(GLOBAL_INI.SYS);
@@ -2810,6 +2850,11 @@ begin
                  zsquid.TAIL_STOP();
                  exit();
               end;
+              if ParamStr(2)='squidcache-tail ' then begin
+                 zsquid.TAIL_CACHE_START();
+                 exit();
+              end;
+
 
             if ParamStr(2)='squid-tail-sock' then begin
                writeln('squid-tail-sock is depreciated, turned to syslog features');
@@ -3156,6 +3201,7 @@ begin
                writeln('|tftpd|crossroads|artica-status|artica-exec|artica-back|pptpd|pptpd-clients|apt-mirror|squidclamav-tail|ddclient|cluebringer|apachesrc');
                writeln('|sabnzbdplus|fcron|fuse|vnstat|winbindd|munin|greyhole|amavis-milter|iscsi|auth-logger|snort|greensql|amanda|zarafa-lmtp|tomcat|openemm');
                writeln('|sendmail-openemm|fuppes|cgroups|arpd|yaffas|netatalk|loadbalance|memcached|UpdateUtility|ejabberd|haproxy|arkeia|klms|klmsdb|articadb|suricata');
+               writeln('|squidcache-tail');
                exit();
             end;
 

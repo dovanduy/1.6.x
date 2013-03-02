@@ -1,8 +1,10 @@
 #!/usr/bin/php -q
 <?php
 $GLOBALS["VERBOSE"]=false;
+$GLOBALS["FORCE"]=false;
 $GLOBALS["WITHOUT-RELOAD"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
@@ -124,7 +126,7 @@ function WINBIND_PID(){
 		$winbindbin=$unix->find_program("winbindd");
 		$pid=$unix->PIDOF($winbindbin);
 	}
-	
+	return $pid;
 }
 
 function Winbindd_events($text,$sourcefunction=null,$sourceline=null){
@@ -147,14 +149,18 @@ function start($nopid=false){
 	}
 	
 	if(is_run()){
+		echo "Starting......: WINBIND already running....\n";
 		Winbindd_events("Winbindd ask to start But already running",__FUNCTION__,__LINE__);
+		echo "Starting......: WINBIND check privileges...\n";
 		DirsPrivileges();
 		return;
 	}
 	
 	
 	$winbindd=$unix->find_program("winbindd");
-	echo "Starting......: WINBIND (start) not running, start it...\n";
+	echo "Starting......: WINBIND $winbindd....\n";
+	
+	
 	
 	$pidof=$unix->find_program("pidof");
 	exec("$pidof $winbindd 2>&1",$pidofr);
@@ -170,7 +176,7 @@ function start($nopid=false){
 		$rr[$pid]=true;
 	}
 	if(count($rr)>0){
-		Winbindd_events("Winbindd ask to start But already running ".count($rr)." instance(s)",__FUNCTION__,__LINE__);
+		Winbindd_events("Winbindd ask to start but already running ".count($rr)." instance(s)",__FUNCTION__,__LINE__);
 		DirsPrivileges();
 		return;
 	}
@@ -210,20 +216,20 @@ function restart(){
 	$time=$unix->file_time_min($filetime);
 	
 	Winbindd_events("Winbindd ask to restart since {$time}Mn",__FUNCTION__,__LINE__);
-	
-	if($time<59){
-		
-		$pid=WINBIND_PID();
-		if($unix->process_exists($pid)){
-			$timepid=$unix->PROCESS_TTL($pid);
-			Winbindd_events("Winbindd ask to restart need to wait 60Mn pid:$pid $timepid",__FUNCTION__,__LINE__);
-			return;
-		}else{
-			echo "Starting......: WINBIND (restart) not running, start it...\n";
-			shell_exec("$php5 /usr/share/artica-postfix/exec.winbind.php --start");
+	if(!$GLOBALS["FORCE"]){
+		if($time<59){
+			
+			$pid=WINBIND_PID();
+			if($unix->process_exists($pid)){
+				$timepid=$unix->PROCESS_TTL($pid);
+				Winbindd_events("Winbindd ask to restart need to wait 60Mn pid:$pid $timepid",__FUNCTION__,__LINE__);
+				return;
+			}else{
+				echo "Starting......: WINBIND (restart) not running, start it...\n";
+				shell_exec("$php5 /usr/share/artica-postfix/exec.winbindd.php --start");
+			}
 		}
 	}
-	
 	@unlink($filetime);
 	@file_put_contents($filetime, time());
 	
@@ -233,14 +239,16 @@ function restart(){
 	$settings=new settings_inc();
 	DirsPrivileges();	
 
-	if(is_file($smbcontrol)){
-		Winbindd_events("Winbindd reloading",__FUNCTION__,__LINE__);
-		echo "Starting......: WINBIND reloading...\n";
-		shell_exec("$smbcontrol winbindd reload-config");
-		shell_exec("$smbcontrol winbindd offline");
-		shell_exec("$smbcontrol winbindd online");
-		setfacl_squid();
-		return;
+	if(!$GLOBALS["FORCE"]){
+		if(is_file($smbcontrol)){
+			Winbindd_events("Winbindd reloading",__FUNCTION__,__LINE__);
+			echo "Starting......: WINBIND reloading...\n";
+			shell_exec("$smbcontrol winbindd reload-config");
+			shell_exec("$smbcontrol winbindd offline");
+			shell_exec("$smbcontrol winbindd online");
+			setfacl_squid();
+			return;
+		}
 	}
 	Winbindd_events("Winbindd stop",__FUNCTION__,__LINE__);
 	stop();

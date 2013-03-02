@@ -49,7 +49,7 @@ function js(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{proxy_objects}");
-	$html="YahooWinBrowse('600','$page?popup=yes&callback={$_GET["callback"]}','$title')";
+	$html="YahooWinBrowse('600','$page?popup=yes&callback={$_GET["callback"]}&FilterType={$_GET["FilterType"]}','$title')";
 	echo $html;
 	}
 
@@ -84,7 +84,7 @@ function AddGroup_js(){
 	
 	if($ID<0){$title="{new_item}";}
 	$title=$tpl->_ENGINE_parse_body($title);
-	$html="YahooWin2(450,'$page?EditGroup-popup=yes&ID=$ID','$title')";
+	$html="YahooWinT(450,'$page?EditGroup-popup=yes&ID=$ID&FilterType={$_GET["FilterType"]}','$title')";
 	echo $html;	
 	
 }
@@ -128,7 +128,7 @@ function EditGroup_popup(){
 	<script>
 	var x_SaveAclGroupMode= function (obj) {
 		var res=obj.responseText;
-		YahooWin2Hide();
+		YahooWinTHide();
 		if(document.getElementById('formulaire-choix-groupe-proxy')){RefreshFormulaireChoixGroupeProxy();}
 		RefreshSquidGroupTable();
 	}
@@ -367,7 +367,7 @@ function page(){
 var DeleteSquidAclGroupTemp=0;
 $(document).ready(function(){
 $('#table-$t').flexigrid({
-	url: '$page?groups-list=yes&callback={$_GET["callback"]}&t=$t',
+	url: '$page?groups-list=yes&callback={$_GET["callback"]}&t=$t&FilterType={$_GET["FilterType"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '$description', name : 'GroupName', width : 277, sortable : true, align: 'left'},
@@ -394,7 +394,7 @@ $('#table-$t').flexigrid({
 	});   
 });
 function AddGroup$t() {
-	Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID=-1&table-acls-t=$t');
+	Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID=-1&table-acls-t=$t&FilterType={$_GET["FilterType"]}');
 	
 }	
 
@@ -552,12 +552,32 @@ function group_list(){
 	$q=new mysql_squid_builder();
 	$RULEID=$_GET["RULEID"];
 	$t=$_GET["t"];
-	
+	$FORCE_FILTER=null;
 	$search='%';
 	$table="webfilters_sqgroups";
 	$page=1;
+	
+	if($_GET["FilterType"]<>null){
+			switch ($_GET["FilterType"]) {
+			case "src":
+				$FORCE_FILTER="AND GroupType='src'";
+				break;
+			case "MAC":
+				$FORCE_FILTER="AND GroupType='arp'";
+				break;
+			case "uid":
+				$FORCE_FILTER="AND ( GroupType='ext_user' OR GroupType='proxy_auth_ads' OR GroupType='proxy_auth')";
+				break;
+			case "ADMBR":
+				$FORCE_FILTER="AND ( GroupType='proxy_auth_ads' OR GroupType='proxy_auth')";
+				break;				
+		}
+	}
 
-	if($q->COUNT_ROWS($table)==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table)==0){
+		json_error_show("No data");
+		
+	}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -566,12 +586,10 @@ function group_list(){
 	}	
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
-	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
@@ -588,18 +606,22 @@ function group_list(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
+	
+	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
-	if(!$q->ok){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($q->mysql_error,"", "",""));json_encode($data);return;}
+	if(!$q->ok){json_error_show($q->mysql_error."\n".$sql);}
 	
 	
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
-	if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));json_encode($data);return;}
+	if(mysql_num_rows($results)==0){
+		json_error_show("Query return no item...$sql");
+	}
 	
 
 	$aclss=new squid_acls_groups();
@@ -621,6 +643,7 @@ function group_list(){
 		if($ligne["GroupType"]=="proxy_auth_ads"){$CountDeMembers="-";}
 		if($ligne["GroupType"]=="NudityScan"){$CountDeMembers="-";}
 		if($ligne["GroupType"]=="dynamic_acls"){$CountDeMembers="-";}
+		if($ligne["GroupType"]=="all"){$CountDeMembers="*";}
 		
 		
 	$data['rows'][] = array(

@@ -162,8 +162,6 @@ function items_negation(){
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();	
-	$sock->getFrameWork("squid.php?build-smooth=yes");		
 }
 
 function items_unlink(){
@@ -172,8 +170,6 @@ function items_unlink(){
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();	
-	$sock->getFrameWork("squid.php?build-smooth=yes");	
 	
 }
 
@@ -185,8 +181,7 @@ function items_link(){
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();	
-	$sock->getFrameWork("squid.php?build-smooth=yes");	
+
 }
 
 
@@ -250,38 +245,20 @@ function items_list(){
 	$data['rows'] = array();
 	if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));json_encode($data);return;}
 	$rules=$tpl->_ENGINE_parse_body("{rules}");
+	$acl=new squid_acls_groups();
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$val=0;
 		$mkey=$ligne["mkey"];
-		$GroupName=utf8_encode($ligne["GroupName"]);
-		$GroupType=$ligne["GroupType"];
-		$additional_text=null;
-		$items=null;
-		$GroupTypeName=$tpl->_ENGINE_parse_body($q->acl_GroupType[$GroupType]);
-		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}'"));
-		$items=$ligne2["tcount"];
-		if($GroupType=="proxy_auth_ads"){$items="-";}
-		if($GroupType=="dynamic_acls"){
-			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilter_aclsdynamic WHERE gpid='{$ligne['ID']}'"));
-			$items="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('miniadmin.proxy.dynamic.acls.php?ByJs={$ligne['ID']}');\"
-			style='font-size:14px;font-weight:bold;text-decoration:underline'>{$ligne2["tcount"]}</a>";
-			$additional_text="&nbsp;&nbsp;<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('miniadmin.proxy.dynamic.acls.php?ByJs={$ligne['ID']}');\"
-			style='font-size:14px;font-weight:bold;text-decoration:underline'>[$rules]</a>";
-		}
-		if($GroupType=="NudityScan"){$items="-";}
-		
-$href="<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID={$ligne['ID']}&table-org=table-items-$t0');\" 
-		style='font-size:14px;ont-weight:bold;text-decoration:underline'>";	
-		
+		$arrayF=$acl->FlexArray($ligne['ID']);
 		$delete=imgsimple("delete-24.png",null,"DeleteObjectLinks('$mkey')");
 		$negation=Field_checkbox("negation-$mkey", 1,$ligne["negation"],"ChangeNegation('$mkey')");
 		
 		
 	$data['rows'][] = array(
 		'id' => "$mkey",
-		'cell' => array("$href$GroupName </a><span style='font-size:12px'>&nbsp;($GroupTypeName)</span>$additional_text",
-		$negation,"<span style='font-size:14px;font-weight:bold'>$items</span>",
+		'cell' => array($arrayF["ROW"],
+		$negation,"<span style='font-size:14px;font-weight:bold'>{$arrayF["ITEMS"]}</span>",
 		$delete)
 		);
 	}

@@ -53,7 +53,9 @@ $DNSMasqUseStatsAppliance=$sock->GET_INFO("DNSMasqUseStatsAppliance");
 if(!is_numeric($DNSMasqUseStatsAppliance)){$DNSMasqUseStatsAppliance=0;}	
 $EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 if(is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
-
+$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}
 
 
 if($EnableRemoteStatisticsAppliance==1){

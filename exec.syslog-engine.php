@@ -73,7 +73,7 @@ if($argv[1]=='--sessions'){sessions_logs();system_admin_events();die();}
 if($argv[1]=='--loadavg'){loadavg_logs();clamd_mem();crossroads();system_admin_events_checks();die();}
 if($argv[1]=='--ipblocks'){ipblocks();system_admin_events_checks();die();}
 if($argv[1]=='--adminlogs'){admin_logs();crossroads();udfbguard_admin_events();dhcpd_logs();die();}
-if($argv[1]=='--psmem'){ps_mem(true);crossroads();udfbguard_admin_events();system_admin_events_checks();dhcpd_logs();die();}
+if($argv[1]=='--psmem'){ps_mem(true);crossroads();dhcpd_logs();die();}
 if($argv[1]=='--squid-tasks'){die();}
 if($argv[1]=='--update-events-check'){update_events_check(true);system_admin_events_checks();squid_admin_notifs_check();die();}
 if($argv[1]=='--squidsys'){build_local6_squid();die();}
@@ -1275,7 +1275,14 @@ function ps_mem($nopid=false){
 		$pid=@file_get_contents($pidfile);
 		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}	
 		$t=0;		
+		@unlink($pidfile);
 		@file_put_contents($pidfile, getmypid());
+	}
+	
+	$timefile=$unix->file_time_min($pidfile);
+	if($timefile<5){
+		writelogs("Minimal time = 5mn, current = $timefile",__FUNCTION__,__FILE__,__LINE__);
+		return;
 	}
 	
 	

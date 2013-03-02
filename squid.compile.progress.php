@@ -1,4 +1,9 @@
 <?php
+if(isset($_GET["verbose"])){
+	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
+	ini_set('error_append_string',null);
+}
+
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -13,12 +18,14 @@ if(isset($_GET["popup"])){popup();exit;}
 if(isset($_GET["ApplyUfdbguard"])){compile_ufdb();exit;}
 if(isset($_GET["ApplyWhiteList"])){compile_whitelist();exit;}
 if(isset($_GET["compile-cicap"])){compile_cicap();exit;}
+if(isset($_GET["compile-kav"])){compile_kav();exit;}
 if(isset($_GET["compile-squid"])){compile_squid();exit;}
 if(isset($_GET["compile-pdns"])){compile_pdns();exit;}
 if(isset($_GET["compile-end-1"])){compile_end_1();exit;}
 if(isset($_GET["compile-end-2"])){compile_end_2();exit;}
+if(isset($_GET["compile-end-finish"])){compile_end_finish();exit;}
 if(isset($_GET["compile-end"])){compile_end();exit;}
-if(isset($_GET["Status"])){echo Status($_GET["Status"]);exit;}
+
 js();
 
 
@@ -76,28 +83,14 @@ function popup(){
 	
 	
 	$pourc=0;
-	$table=Status(0);
 	$color="#5DD13D";
 	$html="
 	<div class=explain>{APPLY_SETTINGS_SQUID}</div>
 	<table style='width:100%'>
 	<tr>
-		<td width=1%><div id='wait_image'><img src='img/wait.gif'></div>
-		</td>
+		<td width=1%><div id='wait_image'><img src='img/wait.gif'></div></td>
 		<td width=99%>
-			<table style='width:100%'>
-			<tr>
-			<td>
-				<div style='width:100%;background-color:white;padding-left:0px;border:1px solid $color'>
-					<div id='progression_postfix_compile'>
-						<div style='width:{$pourc}%;text-align:center;color:white;padding-top:3px;padding-bottom:3px;background-color:$color'>
-							<strong style='color:#BCF3D6;font-size:12px;font-weight:bold'>{$pourc}%</strong></center>
-						</div>
-					</div>
-				</div>
-			</td>
-			</tr>
-			</table>		
+			<div id='Status'></div>	
 		</td>
 	</tr>
 	</table>
@@ -130,7 +123,7 @@ function popup(){
 		}
 		
 	function ApplyWhiteList(){
-		ChangeStatusSQUID(50);
+		ChangeStatusSQUID(52);
 		LoadAjaxSilent('textlogs','$page?ApplyWhiteList=yes&t=$t');
 		}		
 		
@@ -148,30 +141,17 @@ function popup(){
 		
 		
 	function ChangeStatusSQUID(number){
-		var XHR = new XHRConnection();
-		XHR.appendData('Status',number);
-		XHR.sendAndLoad('$page', 'GET',x_ChangeStatusSQUID);	
+		$('#Status').progressbar({ value: number });
 	}
 
-	
+	$('#Status').progressbar({ value: 2 });
 	$start
 	</script>
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html,"postfix.index.php");
 }
-function Status($pourc){
-$color="#5DD13D";	
-$html="
-	<div style='width:{$pourc}%;text-align:center;color:white;padding-top:3px;padding-bottom:3px;background-color:$color'>
-		<strong style='color:#BCF3D6;font-size:12px;font-weight:bold'>{$pourc}%</strong></center>
-	</div>
-";	
 
-
-return $html;
-	
-}
 
 function compile_whitelist(){
 	$tpl=new templates();
@@ -239,10 +219,10 @@ function compile_cicap(){
 	if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
 	$t=$_GET["t"];
 	$script="
-	<div id='compile_squid'></div>
+	<div id='compile_kav'></div>
 	<script>
-		ChangeStatusSQUID(45);
-		LoadAjaxSilent('compile_squid','$page?compile-squid=yes&t=$t');
+		ChangeStatusSQUID(50);
+		LoadAjaxSilent('compile_kav','$page?compile-kav=yes&t=$t');
 	</script>
 	";	
 	
@@ -259,6 +239,37 @@ function compile_cicap(){
 	$sock->getFrameWork("cmd.php?cicap-reconfigure=yes&tenir=yes&MyCURLTIMEOUT=300");
 
 }
+function compile_kav(){
+	$tpl=new templates();
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$kavicapserverEnabled=$sock->GET_INFO('kavicapserverEnabled');
+	if(!is_numeric($kavicapserverEnabled)){$kavicapserverEnabled=0;}
+	$t=$_GET["t"];
+	$script="
+	<div id='compile_kav'></div>
+	<script>
+	ChangeStatusSQUID(55);
+	LoadAjaxSilent('compile_kav','$page?compile-squid=yes&t=$t');
+	</script>
+	";
+
+	if(!$users->KAV4PROXY_INSTALLED){
+		echo $tpl->_ENGINE_parse_body("<div><strong>{APP_KAV4PROXY}:</strong> {error_module_not_installed}</div>").$script;
+		die();
+	}
+
+	if($kavicapserverEnabled==0){
+		echo $tpl->_ENGINE_parse_body("<div><strong>{APP_KAV4PROXY}:</strong> {error_module_not_enabled})</div>").$script;
+		die();
+	}
+	echo $tpl->_ENGINE_parse_body("<div><strong>{APP_KAV4PROXY}:{please_wait_configuring_the_module}:</strong></div>").$script;
+	$sock->getFrameWork("cmd.php?kav4proxy-reconfigure-tenir=yes&MyCURLTIMEOUT=300");
+
+}
+
+
 function compile_squid(){
 	$tpl=new templates();
 	$users=new usersMenus();
@@ -315,7 +326,7 @@ function compile_pdns(){
 	if($users->POWER_DNS_INSTALLED){
 		if($EnablePDNS==1){
 			$text="{apply config}&nbsp;{success}";
-			$cmd="pdns.php?build-smooth-tenir=yes&MyCURLTIMEOUT=300";
+			$cmd="pdns.php?reload=yes&MyCURLTIMEOUT=300";
 			$sock->getFrameWork($cmd);
 		}else{
 			$text="{powerdns_not_enabled}";
@@ -348,8 +359,8 @@ function compile_end_1(){
 	$script="
 	<div id='compile_end-2$t'>$text</div>
 	<script>
-		CacheOff();
-		ChangeStatusSQUID(95);
+		
+		ChangeStatusSQUID(92);
 		LoadAjaxSilent('compile_end-2$t','$page?compile-end-2=yes&t=$t');
 	</script>
 	";	
@@ -357,8 +368,28 @@ function compile_end_1(){
 	echo $script;	
 	
 }
-
 function compile_end_2(){
+	$tpl=new templates();
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$t=$_GET["t"];
+	$text=$tpl->_ENGINE_parse_body("{please_wait_restarting_artica_status}....");
+	$script="
+	<div id='compile_end-3$t'>$text</div>
+	<script>
+		ChangeStatusSQUID(92);
+		LoadAjaxSilent('compile_end-3$t','$page?compile-end-finish=yes&t=$t');
+	</script>
+	";
+
+	echo $script;
+	$sock->getFrameWork("cmd.php?restart-artica-status");
+	sleep(1);
+}
+
+
+function compile_end_finish(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$page=CurrentPageName();	
@@ -367,7 +398,7 @@ function compile_end_2(){
 	$script="
 	<div id='compile_end-2$t'>$text</div>
 	<script>
-		
+		CacheOff();
 		finish$t();
 	</script>
 	";	

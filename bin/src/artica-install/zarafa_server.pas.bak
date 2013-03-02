@@ -790,12 +790,14 @@ if length(trim(ZarafaServerListenIP))=0 then ZarafaServerListenIP:='127.0.0.1';
 if length(trim(ZarafaGatewayBind))=0 then ZarafaGatewayBind:='0.0.0.0';
 
 if(ZarafaServerListenIP<>'127.0.0.1') then begin
+
+if(ZarafaServerListenIP<>'0.0.0.0') then begin
    if not ifIpAddrAvailable(trim(ZarafaServerListenIP)) then begin
       logs.DebugLogs('Starting zarafa..............: Zarafa-server '+ZarafaServerListenIP+' is not available, switch to 127.0.0.1');
       ZarafaServerListenIP:='127.0.0.1';
     end;
 end;
-
+end;
 
 forceDirectories('/var/log/zarafa');
 
@@ -1267,16 +1269,16 @@ begin
  ifconfig:=SYS.LOCATE_GENERIC_BIN('ifconfig');
  if not FileExists(ifconfig) then exit;
  l:=TstringList.Create;
-     ipadr:=AnsiReplaceText(ipadr,'.','\.');
-     fpsystem(ifconfig +' -a 2>&1 >/tmp/artica-ifIpAddrAvailable'+ipadr+'.tmp');
-     if not FileExists('/tmp/artica-ifIpAddrAvailable.tmp') then exit;
-     datas:= ReadFileIntoString('/opt/artica/logs/ifconfig_' + if_name);
-     l.LoadFromFile('/tmp/artica-ifIpAddrAvailable.tmp');
 
+     fpsystem(ifconfig +' -a 2>&1 >/tmp/artica-ifIpAddrAvailable'+ipadr+'.tmp');
+     if not FileExists('/tmp/artica-ifIpAddrAvailable'+ipadr+'.tmp') then exit;
+     l.LoadFromFile('/tmp/artica-ifIpAddrAvailable'+ipadr+'.tmp');
+     ipadr:=AnsiReplaceText(ipadr,'.','\.');
      RegExpr:=TRegExpr.create;
      RegExpr.expression:=ipadr;
      for i:=0 to l.Count-1 do begin;
          if RegExpr.Exec(l.Strings[i]) then begin
+            logs.DebugLogs('Starting zarafa..............:  '+l.Strings[i]+' IP available');
             RegExpr.Free;
             Result:=True;
             exit;

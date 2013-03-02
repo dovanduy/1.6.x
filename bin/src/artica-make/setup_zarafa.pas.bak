@@ -91,6 +91,12 @@ CODE_NAME:='APP_Z_PUSH';
 install.INSTALL_PROGRESS(CODE_NAME,'{downloading}');
 install.INSTALL_STATUS(CODE_NAME,35);
 
+install.INSTALL_PROGRESS(CODE_NAME,'{downloading}');
+install.INSTALL_STATUS('APP_Z_PUSH_WEB',35);
+
+
+
+
 if length(source_folder)=0 then source_folder:=libs.COMPILE_GENERIC_APPS('z-push');
   if not DirectoryExists(source_folder) then begin
      writeln('Install z-push failed...');
@@ -98,6 +104,10 @@ if length(source_folder)=0 then source_folder:=libs.COMPILE_GENERIC_APPS('z-push
      install.INSTALL_STATUS(CODE_NAME,110);
      exit;
   end;
+
+install.INSTALL_PROGRESS(CODE_NAME,'{installing}');
+install.INSTALL_STATUS('APP_Z_PUSH_WEB',70);
+
    SetCurrentDir(source_folder);
    install.INSTALL_PROGRESS(CODE_NAME,'{installing}');
    install.INSTALL_STATUS(CODE_NAME,70);
@@ -107,12 +117,17 @@ if length(source_folder)=0 then source_folder:=libs.COMPILE_GENERIC_APPS('z-push
    if FileExists('/usr/share/z-push/index.php') then begin
       install.INSTALL_PROGRESS(CODE_NAME,'{success}');
       install.INSTALL_STATUS(CODE_NAME,100);
+      install.INSTALL_PROGRESS(CODE_NAME,'{success}');
+      install.INSTALL_STATUS('APP_Z_PUSH_WEB',100);
+      writeln('Install WebApp success...');
+      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.freeweb.php --reconfigure-webapp');
       exit;
    end;
 
       install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
       install.INSTALL_STATUS(CODE_NAME,110);
-
+      install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
+      install.INSTALL_STATUS('APP_Z_PUSH_WEB',110);
 end;
 //#########################################################################################
 
@@ -182,10 +197,11 @@ source_folder:=libs.COMPILE_GENERIC_APPS('webapp-plugins');
       fpsystem('/bin/cp -rfv '+source_folder+'/* /usr/share/zarafa-webapp/plugins/');
   end;
   writeln('Install WebApp success...');
+   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.freeweb.php --reconfigure-webapp');
   install.INSTALL_PROGRESS(CODE_NAME,'{success}');
   install.INSTALL_STATUS(CODE_NAME,100);
   fpsystem('/bin/rm -rf '+source_folder);
-  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.freeweb.php --reconfigure-webapp');
+
 end;
 //#########################################################################################
 

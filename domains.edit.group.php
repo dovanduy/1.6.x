@@ -2075,9 +2075,11 @@ function GROUP_PRIVILEGES($gid){
 		} 
 
 		if(strpos($gid, ",")>0){
+			writelogs("GID is dn = $gid",__FUNCTION__,__FILE__,__LINE__);
 			include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
 			$gp=new external_ad_search();
 			$ldap=new clladp();
+			writelogs("->LoadGroupDataByDN($gid)",__FUNCTION__,__FILE__,__LINE__);
 			$hash=$gp->LoadGroupDataByDN($gid);
 			$privs=$hash["ArticaGroupPrivileges"];
 			$HashPrivieleges=$ldap->_ParsePrivieleges($privs,array());
@@ -2588,6 +2590,8 @@ function EditGroup(){
 		$loadGPID=false;
 		$Hash=$ldap->OUDatas($_GET["ou"]);
 		writelogs("Loading ou datas of \"{$_GET["ou"]}\" ArticaGroupPrivileges=". strlen($Hash["ArticaGroupPrivileges"]) ." bytes",__FUNCTION__,__FILE__,__LINE__);
+		$dn=$Hash["dn"];
+		
 	}
 	
 	if($gid==-2){

@@ -154,10 +154,10 @@ function services_toolbox(){
 	
 	$tr[]=Paragraphe32("watchdog", "watchdog_klms8_text", "Loadjs('klms8.watchdog.php')", "watchdog-32.png");
 	$tr[]=Paragraphe32("tasks", "tasks_klms8_text", "Loadjs('klms.tasks.php')", "folder-tasks-32.png");
-	$tr[]=Paragraphe32("license_info", "license_info_text", "Loadjs('klms.license.php')", "32-key.png");
+	$tr[]=Paragraphe32("license_info", "license_info_text", "Loadjs('klms.license.php')", "kl-license-32.png");
 	$tr[]=Paragraphe32("mta_link", "mta_link_text", "Loadjs('klms.mta.php')", "comut-32.png");
 	$tr[]=Paragraphe32("apply_config", "apply_klms_config_text", "ApplyConfigKLMS()", "32-settings-refresh.png");
-	
+	$tr[]=Paragraphe32("reset_admin_password", "reset_admin_password_text", "Loadjs('klms.password.php')", "32-key.png");
 	
 	
 	

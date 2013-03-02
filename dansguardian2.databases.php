@@ -155,6 +155,13 @@ function statusDB(){
 					<td colspan=2><div style='font-size:14px'>{{$ligne["Variable_name"]}}:&nbsp;{$ligne["Value"]}</a></div></td>
 				</tr>";
 		}
+		
+		$tt[]="<tr>
+		<td width=1%><img src='img/arrow-right-16.png'>
+		<td nowrap><a href=\"javascript:blur();\" 
+		OnClick=\"javascript:Loadjs('squid.update.logs.php?filename=exec.squid.blacklists.php');\" 
+		style='font-size:14px;text-decoration:underline;'>{display_update_events}</a></td>
+		</tr>";	
 	
 	$arrayV=unserialize(base64_decode($sock->getFrameWork("squid.php?articadb-nextversion=yes")));
 	$REMOTE_VERSION=$arrayV["ARTICATECH"]["VERSION"];
@@ -182,6 +189,8 @@ function statusDB(){
 		<td colspan=2><div style='font-size:16px'>{last_check}:&nbsp;$nextcheckTimeText</div></td>
 	</tr>";		
 	}
+	
+	
 	
 	$dbsize=$sock->getFrameWork("squid.php?articadbsize=yes");
 	$items=numberFormat($q->COUNT_CATEGORIES(),0,""," ");
