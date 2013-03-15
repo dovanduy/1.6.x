@@ -316,9 +316,21 @@ function loopcheck(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
+
 	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.loopdisks.php >/dev/null &");
+	if(isset($_GET["output"])){$cmd="$php /usr/share/artica-postfix/exec.loopdisks.php --verbose 2>&1";}
+	
+	if(!isset($_GET["output"])){
+		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+		shell_exec($cmd);
+		return;
+	}
+	
+	
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
-	shell_exec($cmd);	
+	if(isset($_GET["output"])){exec($cmd,$results);}	
+	writelogs_framework(count($results)." line(s)...",__FUNCTION__,__FILE__,__LINE__);
+	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";
 }
 
 

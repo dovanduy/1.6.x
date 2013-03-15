@@ -110,7 +110,7 @@ but for better performances you need to define a maximum number of rows stored i
 <mysqlpass>Mysql account password</mysqlpass>
 <mysqlroot>Mysql account</mysqlroot>
 <mysqlroot_text>Can create database, insert, update, reach root account...</mysqlroot_text>
-<mysql_settings>Mysql settings</mysql_settings>
+<mysql_settings>MySQL settings</mysql_settings>
 <mysql_settings_text>Change the Mysql password, define the behavior of mysql database storage & max events</mysql_settings_text>
 <nothing_to_change>Nothing to change</nothing_to_change>
 <notification_context>Define here which notification you want to be receive</notification_context>

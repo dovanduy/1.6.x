@@ -1094,7 +1094,7 @@ l.add('libapache2-mod-evasive');
 L.add('libapache2-mod-proxy-html');
 L.add('libapache2-mod-jk');
 L.add('libapache2-mod-geoip');
-L.add('libapache2-mod-fcgid');
+//L.add('libapache2-mod-fcgid');
 l.Add('libapache2-mod-perl2');
 l.Add('libapache2-authenntlm-perl');
 l.Add('libapache2-mod-python');
@@ -1318,8 +1318,10 @@ if not LIGHT_INSTALL then l.add('libicu38');
         l.add('virt-what');
         l.add('suricata'); ///usr/bin/suricata
 //        if not AsKimSuffi then if not isVPSDetected() then l.add('cgroup-bin');
-
-
+        l.add('freeradius');
+        l.add('freeradius-ldap');
+        l.add('freeradius-mysql');
+        l.add('freeradius-krb5');
 
         if FileExists('/sbin/udevd')  then begin
            if not LIGHT_INSTALL then l.add('open-iscsi');

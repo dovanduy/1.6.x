@@ -131,7 +131,7 @@ function tabs(){
 		}		
 		
 		if($num=="popup-mysql"){
-			$html[]="<li><a href=\"zarafa.mysql.php\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.mysqlparams.php\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 
@@ -240,8 +240,12 @@ function popup(){
 	$q=new mysql();
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$users=new usersMenus();
 	$array["popup-webmail"]="{WEBMAIL}";
 	$array["popup-server"]="{APP_ZARAFA_SERVER}";
+	if($users->APP_ZARAFADB_INSTALLED){
+		$array["server2"]="{second_instance}";
+	}
 	$array["popup-imap"]="IMAP/POP3";
 	
 	
@@ -249,7 +253,10 @@ function popup(){
 
 	
 	while (list ($num, $ligne) = each ($array) ){
-		
+		if($num=="server2"){
+			$html[]="<li><a href=\"zarafa.second.php\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
 			
 		
 		$html[]="<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n";

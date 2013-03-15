@@ -85,6 +85,8 @@
 	if(isset($_GET["squid-net-loupe-popup"])){net_control_center_popup();exit;}
 	if(isset($_GET["squid-transparent-js"])){transparent_js();exit;}
 	if(isset($_GET["squid-transparent-popup"])){transparent_popup();exit;}
+	if(isset($_GET["squid-transparent-http"])){transparent_HTTP();exit;}
+	
 	if(isset($_GET["squid_transparent"])){transparent_save();exit;}
 	
 	
@@ -1279,7 +1281,7 @@ $page=CurrentPageName();
 	
 
 	function TransparentIndex(){
-		YahooWin(500,'$page?squid-transparent-popup=yes','$title');
+		YahooWin(684,'$page?squid-transparent-popup=yes','$title');
 	
 	}
 	
@@ -1317,6 +1319,42 @@ function transparent_save(){
 }
 
 function transparent_popup(){
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$array["squid-transparent-http"]='HTTP';
+	$array["transparent-ssl"]='SSL';
+	
+	
+	while (list ($num, $ligne) = each ($array) ){
+		
+	
+		if($num=="transparent-ssl"){
+			$html[]= "<li><a href=\"squid.sslbump.php?parameters=yes\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
+	
+	
+		$html[]= "<li><a href=\"$page?$num=yes&hostname=$hostname\"><span>$ligne</span></a></li>\n";
+		//$html=$html . "<li><a href=\"javascript:LoadAjax('squid_main_config','$page?main=$num&hostname={$_GET["hostname"]}')\" $class>$ligne</a></li>\n";
+			
+	}
+	echo "
+	<div id=squid_main_transparent_config style='width:100%;font-size:16px'>
+		<ul>". implode("\n",$html)."</ul>
+	</div>
+		<script>
+				$(document).ready(function(){
+					$('#squid_main_transparent_config').tabs();
+		
+		
+			});
+		</script>";
+		
+	
+}
+
+
+function transparent_HTTP(){
 	
 	$page=CurrentPageName();
 	$sock=new sockets();
@@ -1336,9 +1374,9 @@ function transparent_popup(){
 	
 	$arpoisonning="
 		<tr>
-			<td width=1%><img src='img/arrow-right-16-grey.png'></td>
+			<td width=1%><img src='img/arrow-right-24-grey.png'></td>
 			<td><a href=\"javascript:blur();\" OnClick=\"javascript:blur()\"
-			style='font-size:14px;text-decoration:underline;color:#949494'>ARP Poisonning</a>
+			style='font-size:16px;text-decoration:underline;color:#949494'>ARP Poisonning</a>
 			</td>
 		</tr>			
 			
@@ -1347,9 +1385,9 @@ function transparent_popup(){
 	if($users->ETTERCAP_INSTALLED){
 		$arpoisonning="
 		<tr>
-			<td width=1%><img src='img/arrow-right-16.png'></td>
+			<td width=1%><img src='img/arrow-right-24.png'></td>
 			<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('arp.spoof.php?js=yes')\"
-			style='font-size:14px;text-decoration:underline;'>ARP Poisoning</a>
+			style='font-size:16px;text-decoration:underline;'>ARP Poisoning</a>
 			</td>
 		</tr>
 		
@@ -1357,18 +1395,32 @@ function transparent_popup(){
 		
 	}
 	
+	
+	$recompile="
+		<tr>
+			<td width=1%><img src='img/arrow-right-24.png'></td>
+			<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.restart.php?firewall=yes')\"
+			style='font-size:16px;text-decoration:underline;'>{reconfigure_transparent_rules}</a>
+			</td>
+		</tr>
+		
+		";	
+	
+	
+	
 	if($squid->hasProxyTransparent==1){
 		$seeiptables="
 		<tr>
 		<td colspan=2>
 		<table>
 		<tr>
-			<td width=1%><img src='img/arrow-right-16.png'></td>
+			<td width=1%><img src='img/arrow-right-24.png'></td>
 			<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.transparent.iptables.php');\"
-			style='font-size:14px;text-decoration:underline'>{display_fw_rules}</a>
+			style='font-size:16px;text-decoration:underline'>{display_fw_rules}</a>
 			</td>
 		</tr>
 				$arpoisonning
+				$recompile
 		</table>
 		</td>
 		</tr>
@@ -1377,7 +1429,8 @@ function transparent_popup(){
 		
 	}
 	
-	$field=Paragraphe_switch_img('{transparent_mode}','{transparent_mode_text}','squid_transparent',$squid->hasProxyTransparent,null,350);
+	$field=Paragraphe_switch_img('{transparent_mode}','{transparent_mode_text}',
+			'squid_transparent',$squid->hasProxyTransparent,null,450);
 	$html="
 	
 	<div id='squid_transparentdiv'>
@@ -1409,6 +1462,7 @@ function transparent_popup(){
 		if(tempvalue.length>3){alert(tempvalue)};
 		TransparentIndex();
 		if(document.getElementById('main_squid_quicklinks_tabs')){RefreshTab('main_squid_quicklinks_tabs');}
+		Loadjs('squid.restart.php?onlySquid=yes&ask=yes');
 	}	
 	
 	function SaveTransparentProxy(){

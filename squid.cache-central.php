@@ -747,7 +747,7 @@ function add_new_disk_popup(){
 	
 	$DefaultmaxCacheSize=round($maxCacheSize/4,1);
 	$NextCache=count($squid->cache_list)+1;
-	$defaultCachedir="/var/cache/squid0{$NextCache}";
+	$defaultCachedir="/home/squid/cache/squid0{$NextCache}";
 	
 	$cachedirtext="
 		<tr>

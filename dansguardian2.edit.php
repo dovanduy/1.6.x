@@ -20,7 +20,7 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 
 
 
-
+if(isset($_GET["add-freeweb-js"])){add_freeweb_js();exit;}
 if(isset($_GET["rule"])){rule_edit();exit;}
 
 if(isset($_GET["js-blacklist-list"])){blacklist_js_load();exit;}
@@ -68,6 +68,52 @@ if(isset($_GET["bannedextensionlist-add-popup"])){bannedextensionlist_add_popup(
 if(isset($_POST["bannedextensionlist-add"])){bannedextensionlist_add();exit;}
 while (list ($num, $ligne) = each ($_REQUEST) ){writelogs("item: $num","MAIN",__FILE__,__LINE__);}
 tabs();
+
+function add_freeweb_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$addfree=$tpl->javascript_parse_text("{add_freeweb_explain}");
+	$t=$_GET["t"];
+	$html="
+		
+var x_AddNewFreeWeb$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		RefreshTab('main_filter_rule_edit');
+}
+
+function AddNewFreeWeb$t(){
+	var servername=prompt('$addfree');
+	if(!servername){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('ADD_DNS_ENTRY','');
+	XHR.appendData('ForceInstanceZarafaID','');
+	XHR.appendData('ForwardTo','');
+	XHR.appendData('Forwarder','0');
+	XHR.appendData('SAVE_FREEWEB_MAIN','yes');
+	XHR.appendData('ServerIP','');
+	XHR.appendData('UseDefaultPort','0');
+	XHR.appendData('UseReverseProxy','0');
+	XHR.appendData('gpid','');
+	XHR.appendData('lvm_vg','');
+	XHR.appendData('servername',servername);
+	XHR.appendData('sslcertificate','');
+	XHR.appendData('uid','');
+	XHR.appendData('useSSL','0');
+	XHR.appendData('force-groupware','UFDBGUARD');
+	AnimateDiv('status-$t');
+	XHR.sendAndLoad('freeweb.edit.main.php', 'POST',x_AddNewFreeWeb$t);
+}
+
+
+AddNewFreeWeb$t();
+
+";
+echo $html;
+
+}
 
 function blacklist_js_load(){
 	header("content-type: application/x-javascript");
@@ -1123,7 +1169,12 @@ function blacklist_save(){
 	
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	if(($_POST["enabled"]==1) && ($ligne["ID"]==0)){
+	
+	
+	
+	
+	
+	if($ligne["ID"]==0){
 		$sql="INSERT IGNORE INTO $table (webfilter_id,category,modeblk) 
 		VALUES ('{$_POST["RULEID"]}','{$_POST["categorykey"]}','{$_POST["modeblk"]}')";
 		writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
@@ -1131,8 +1182,9 @@ function blacklist_save(){
 		if(!$q->ok){echo $q->mysql_error;return;} 
 	}
 	
-	if(($_POST["enabled"]==0) && ($ligne["ID"]>0)){
+	if($ligne["ID"]>0){
 		$q->QUERY_SQL("DELETE FROM $table WHERE ID={$ligne["ID"]}");
+		writelogs("DELETE FROM $table WHERE ID={$ligne["ID"]}",__FUNCTION__,__FILE__,__LINE__);
 		if(!$q->ok){echo $q->mysql_error;return;} 
 	}
 	
@@ -1205,7 +1257,7 @@ function rule_edit(){
 	if(!is_numeric($ligne["embeddedurlweight"])){$ligne["embeddedurlweight"]=0;}
 	if(!is_numeric($ligne["GoogleSafeSearch"])){$ligne["GoogleSafeSearch"]=0;}
 	if(!is_numeric($ligne["UseExternalWebPage"])){$ligne["UseExternalWebPage"]=0;}
-
+	if(!isset($ligne["freeweb"])){$ligne["freeweb"]=null;}
 	
 	
 	if($EnableGoogleSafeSearch==0){
@@ -1224,8 +1276,23 @@ function rule_edit(){
 		$stop=Paragraphe32("navigation_banned", "navigation_banned_text", "", "stop-32.png");
 	}
 	
-
+	$qq=new mysql();
+	$sql="SELECT servername FROM freeweb WHERE groupware='UFDBGUARD'";
+	$results = $qq->QUERY_SQL($sql,"artica_backup");
+	$freewebs[null]="{select}";
+	while ($ligneq = mysql_fetch_assoc($results)) {
+		$freewebs[$ligneq["servername"]]=$ligneq["servername"];
+	}
 	
+	if($ligne["freeweb"]<>null){
+		$freeweburi="
+				<tr>
+				<td width=1%><img src='img/arrow-right-16.png'>
+				<td><a href=\"javascript:blur();\" 
+				OnClick=\"javascript:Loadjs('freeweb.edit.php?hostname={$ligne["freeweb"]}');\" 
+				style=\"font-size:14px;text-decoration:underline\">http://{$ligne["freeweb"]}</a></td>
+				</tr>";
+	}
 	
 	if(!$users->DANSGUARDIAN_INSTALLED){$bypass=null;}
 	if($ID<0){$bypass=null;}
@@ -1306,6 +1373,24 @@ function rule_edit(){
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
+	<td colspan=3><hr></td>
+	<tr>
+		<td class=legend style='font-size:16px'>{dedicated_website_error_page}:</td>
+		<td style='font-size:16px'>". Field_array_Hash($freewebs,"freeweb-$t",$ligne["freeweb"],"style:font-size:16px;")."</td>
+		<td>&nbsp;</td>
+	</tr>	
+	<td colspan=3 align='right'><table style='width:5%'>
+				<tr><td width=1%><img src='img/plus-big.png'></td>
+				<td width=99% nowrap>
+							<a href=\"javascript:blur();\" 
+							OnClick=\"javascript:Loadjs('$page?add-freeweb-js=yes&t=$t');\"
+					 		style=\"font-size:14px;text-decoration:underline\">{add_a_web_service}</a>
+						</td>
+				</tr>
+	$freeweburi</table></td>			
+				
+				
+	<tr>
 		<td class=legend style='font-size:16px'>{external_uri}:</td>
 		<td>". Field_checkbox("UseExternalWebPage",1,$ligne["UseExternalWebPage"],"UseExternalWebPageCheck()")."</td>
 		<td>&nbsp;</td>
@@ -1356,6 +1441,7 @@ $EnableGoogleSafeSearchField
 		      if(document.getElementById('searchtermlimit')){ XHR.appendData('searchtermlimit', document.getElementById('searchtermlimit').value);}
 		      if(document.getElementById('endofrule')){ XHR.appendData('endofrule', document.getElementById('endofrule').value);}
 		      if(document.getElementById('ExternalWebPage')){ XHR.appendData('ExternalWebPage', document.getElementById('ExternalWebPage').value);}
+		      if(document.getElementById('freeweb-$t')){ XHR.appendData('freeweb', document.getElementById('freeweb-$t').value);}
 		      
 		      
 		      
@@ -1676,8 +1762,9 @@ function groups_list(){
 				if($ad->UseDynamicGroupsAcls==1){
 					if(preg_match("#^CN=(.+?),.*#i", base64_decode($dnEnc),$re)){
 					$groupname=_ActiveDirectoryToName($re[1]);
-					//$textExplainGroup=checksADGroup($groupname);
 					$CountDeMembers='-';
+					$Debug="&nbsp;<a href=\"javascript:Loadjs('dansguardian2.explodeadgroup.php?rule-id={$_GET["rule-id"]}');\"
+					style=\"text-decoration:underline\">{dump_group}</a>";
 					}
 				}else{
 					$tty=$ad->ObjectProperty(base64_decode($dnEnc));
@@ -1707,7 +1794,7 @@ function groups_list(){
 				"<img src='img/$imgGP'>",
 				"<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:$jsSelect\" 
-				style='font-size:16px;text-decoration:underline;color:$color'>{$ligne['groupname']}</span></a>$groupadd_text$Textdynamic<div style='font-size:10px'>$textExplainGroup<i>&laquo;{$ligne["description"]} <i>$TextGroupType</i>&raquo;</i>",
+				style='font-size:16px;text-decoration:underline;color:$color'>{$ligne['groupname']}</span></a>$groupadd_text$Textdynamic<div style='font-size:10px'>$textExplainGroup<i>&laquo;{$ligne["description"]} <i>$TextGroupType</i>&raquo;</i>$Debug",
 				"<span style='font-size:16px;color:$color'>$CountDeMembers</span>",$delete
 				)
 		);		

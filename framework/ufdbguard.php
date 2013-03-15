@@ -10,6 +10,7 @@ if(isset($_GET["recompile-all"])){recompile_all();exit;}
 if(isset($_GET["db-status"])){db_status();exit;}
 if(isset($_GET["recompile-dbs"])){recompile_all();exit;}
 if(isset($_GET["service-cmds"])){service_cmds();exit;}
+if(isset($_GET["ad-dump"])){ad_dump();exit;}
 
 
 
@@ -66,4 +67,14 @@ function service_cmds(){
 	$results[]="/etc/init.d/ufdb $action 2>&1";
 	exec("/etc/init.d/ufdb $action 2>&1",$results);
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+function ad_dump(){
+	$ruleid=$_GET["ad-dump"];
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squidguard.php --dump-adrules $ruleid >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	
 }

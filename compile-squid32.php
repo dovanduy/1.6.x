@@ -9,7 +9,14 @@ include_once(dirname(__FILE__) . '/ressources/class.mysql.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ccurl.inc');
 
+unset($argv[0]);
 $unix=new unix();
+$php5=$unix->LOCATE_PHP5_BIN();
+shell_exec("$php5 ".dirname(__FILE__)."/compile-squid33.php ".@implode(" ",$argv));
+die();
+
+
+
 $GLOBALS["SHOW_COMPILE_ONLY"]=false;
 $GLOBALS["NO_COMPILE"]=false;
 $GLOBALS["REPOS"]=false;

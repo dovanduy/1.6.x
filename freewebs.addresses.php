@@ -127,9 +127,9 @@ FreeWebDisableSSLCheck$t();
 function defaults_save(){
 	$sock=new sockets();
 	$sock->SET_INFO("FreeWebListen",$_POST["FreeWebListen-default"]);
-	$sock->SET_INFO("FreeWebListenPort",$_GET["FreeWebListenPort"]);
-	$sock->SET_INFO("FreeWebListenSSLPort",$_GET["FreeWebListenPort-default"]);
-	$sock->SET_INFO("FreeWebDisableSSL", $_GET["FreeWebDisableSSL"]);
+	$sock->SET_INFO("FreeWebListenPort",$_POST["FreeWebListenPort"]);
+	$sock->SET_INFO("FreeWebListenSSLPort",$_POST["FreeWebListenPort-default"]);
+	$sock->SET_INFO("FreeWebDisableSSL", $_POST["FreeWebDisableSSL"]);
 	$sock->getFrameWork("cmd.php?freeweb-restart=yes");
 	$sock->getFrameWork("cmd.php?pure-ftpd-restart=yes");
 	}
@@ -387,6 +387,7 @@ function Query(){
 	$FreeWebListen=$sock->GET_INFO("FreeWebListen");
 	$FreeWebLeftMenu=$sock->GET_INFO("FreeWebLeftMenu");
 	$FreeWebDisableSSL=$sock->GET_INFO("FreeWebDisableSSL");
+	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
 	if($FreeWebListen==null){$FreeWebListen="*";}
 	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
 	if(!is_numeric($FreeWebDisableSSL)){$FreeWebDisableSSL=0;}

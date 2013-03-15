@@ -14,6 +14,7 @@ td.legend{
 	font-weight:normal;
 	text-align:right;
 	white-space: no-wrap;
+	text-transform: capitalize;
 }
 
 div.search{

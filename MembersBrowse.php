@@ -128,7 +128,7 @@ $('#flexRT$t').flexigrid({
 	width: 524,
 	height: 350,
 	singleSelect: true,
-	rpOptions: [10, 20, 30, 50,100,200]
+	rpOptions: [50,100,200,500,1000]
 	
 	});   
 });

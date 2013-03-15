@@ -55,6 +55,7 @@ public
    function webapp():boolean;
    procedure netatalk();
    procedure arkeia();
+   procedure zarafadb();
    function webapp_svn():boolean;
 END;
 
@@ -250,7 +251,49 @@ if length(source_folder)=0 then source_folder:=libs.COMPILE_GENERIC_APPS(repos);
 
 end;
 //#########################################################################################
+procedure tzarafa.zarafadb();
+var
+   Arch:integer;
+   repos:string;
+begin
 
+source_folder:='';
+CODE_NAME:='APP_ZARAFADB';
+install.INSTALL_PROGRESS(CODE_NAME,'{downloading}');
+install.INSTALL_STATUS(CODE_NAME,35);
+Arch:=libs.ArchStruct();
+if Arch=32 then repos:='zarafa-db-i386';
+if Arch=64 then repos:='zarafa-db-amd64';
+
+   writeln('checking source................: ',repos);
+
+      source_folder:=libs.COMPILE_GENERIC_APPS(repos);
+
+      if not DirectoryExists(source_folder) then begin
+         install.INSTALL_STATUS(CODE_NAME,110);
+         install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
+         exit;
+      end;
+      source_folder:=extractFilePath(source_folder);
+      writeln('source.................: ',source_folder);
+      install.INSTALL_STATUS(CODE_NAME,50);
+      install.INSTALL_PROGRESS(CODE_NAME,'{installing}');
+      ForceDirectories('/opt/zarafa-db');
+
+      fpsystem('/bin/cp -rfd '+source_folder+'* /opt/zarafa-db/');
+
+      if FileExists('/opt/zarafa-db/bin/mysqld') then begin
+         fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.zarafa-db.php --init >/dev/null 2>&1');
+         libs.NOTIFICATION('Success install zarafa','Artica make has successfully installed Zarafa dedicated MySQL service','mailbox');
+         install.INSTALL_STATUS(CODE_NAME,100);
+         install.INSTALL_PROGRESS(CODE_NAME,'{success}');
+      end else begin
+         install.INSTALL_STATUS(CODE_NAME,110);
+         install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
+      end;
+
+end;
+//#########################################################################################
 
 
 

@@ -18,8 +18,7 @@ if($argv[1]=="--dnsseck"){dnsseck();exit;}
 if($argv[1]=="--reload"){reload_service();exit;}
 if($argv[1]=="--rebuild-database"){rebuild_database();exit;}
 if($argv[1]=="--replic-artica"){replic_artica_servers();exit;}
-
-
+if($argv[1]=="--allow-recursion"){allow_recursion();exit;}
 
 
 function poweradmin(){
@@ -209,6 +208,7 @@ if($resultTables){echo "Starting......: PowerDNS Success...\n";return true;}
 			  ttl             INT DEFAULT NULL,
 			  prio            INT DEFAULT NULL,
 			  change_date     INT DEFAULT NULL,
+			  explainthis     VARCHAR(255) DEFAULT NULL,
 			  primary key(id)
 			)Engine=InnoDB;";
 			$q->QUERY_SQL($sql,"powerdns");
@@ -1066,6 +1066,23 @@ function forward_zones(){
 	
 		@file_put_contents("/etc/powerdns/forward-zones-file", @implode(";", $t));
 	}	
+}
+
+function allow_recursion(){
+	$q=new mysql();
+	@unlink("/etc/powerdns/allow_recursion.txt");
+	$sql="SELECT * FROM pdns_restricts";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$addr=trim($ligne["address"]);
+		if($addr==null){continue;}
+		$f[]=$addr;
+	}
+	
+	if(count($f)>0){
+		@file_put_contents("/etc/powerdns/allow_recursion.txt", @implode(",", $f));
+	}
+	
 }
 
 

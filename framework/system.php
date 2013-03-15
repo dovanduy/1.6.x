@@ -18,6 +18,8 @@ if(isset($_GET["zoneinfo-set"])){zone_info_set();exit;}
 if(isset($_GET["uidNumber"])){uidNumber();exit;}
 if(isset($_GET["tune2fs-values"])){tune2fs_values();exit;}
 if(isset($_GET["INODES_MAX"])){INODES_MAX();exit;}
+if(isset($_GET["HardDriveDiskSizeMB"])){HardDriveDiskSizeMB();exit;}
+if(isset($_GET["TOTAL_MEMORY_MB"])){TOTAL_MEMORY_MB();exit;}
 
 
 
@@ -25,7 +27,10 @@ while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
 die();
 
-
+function TOTAL_MEMORY_MB(){
+	$unix=new unix();
+	echo "<articadatascgi>". $unix->TOTAL_MEMORY_MB()."</articadatascgi>";
+}
 
 function dns_linker(){
 	$unix=new unix();
@@ -158,8 +163,13 @@ function uidNumber(){
 }
 
 function tune2fs_values(){
-	$dev=base64_decode($_GET["tune2fs-values"]);
 	$unix=new unix();
+	if(isset($_GET["dirscan"])){
+		$dirscan=base64_decode($_GET["dirscan"]);
+		$unix->dirdir($dirscan);
+	}
+	$dev=base64_decode($_GET["tune2fs-values"]);
+	
 	echo "<articadatascgi>". base64_encode(serialize($unix->tune2fs_values($dev)))."</articadatascgi>";
 }
 
@@ -175,4 +185,28 @@ function INODES_MAX(){
 	exec("$mke2fs -I $INODE_SIZE -N $INODES_MAX $dev 2>&1",$results);
 	exec("$mount $dev 2>&1",$results);
 	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";
+}
+
+function HardDriveDiskSizeMB(){
+	$unix=new unix();
+	$path=$unix->shellEscapeChars(base64_decode($_GET["HardDriveDiskSizeMB"]));
+	$df=$unix->find_program("df");
+	$cmd="$df -B 1000000 $path 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec("$cmd",$results);
+	while (list ($num, $line) = each ($results)){
+		$line=trim($line);
+		if($line==null){continue;}
+		if(!preg_match("#^(.*?)([0-9\.]+)\s+([0-9\.]+)\s+([0-9\.]+)\s+([0-9\.]+)%\s+(.+)#",$line,$re)){
+			writelogs_framework("No match `$line`",__FUNCTION__,__FILE__,__LINE__);
+			continue;}
+		$array["DEV"]=trim($re[1]);
+		$array["SIZE"]=trim($re[2]);
+		$array["USED"]=trim($re[3]);
+		$array["AVAILABLE"]=trim($re[4]);
+		$array["POURC"]=trim($re[5]);
+		echo "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
+		return;
+	}
+		
 }

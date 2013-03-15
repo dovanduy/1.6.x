@@ -18,7 +18,7 @@ if(preg_match("#--verbose#", @implode(" ", $argv))){
   $GLOBALS["TIMELOG"]=0;
   $GLOBALS["QUERIES_NUMBER"]=0;
   $GLOBALS["TIMELOG_TIME"]=time();
-
+	if(preg_match("#--output#", @implode(" ", $argv))){$GLOBALS["output"]=true;}
   if($argv[1]=="--db"){ufdbguard_checks($argv[2]);	die(0);}
   LoadSettings();
 
@@ -260,6 +260,44 @@ function TestConnectToPureLDAP(){
 
 }
 
+function HashUsersFromFullDN($dn){
+	TestConnectToLDAP();
+	if(isset($GLOBALS["HashUsersFromFullDN($dn)"])){return $GLOBALS["HashUsersFromFullDN($dn)"];}
+	$searchFilter="(&(objectClass=user)(sAMAccountName=*))";
+	$attrs=array("samaccountname");
+
+	
+	$sr =@ldap_search($GLOBALS["CONNECTION"],$dn,$searchFilter,$attrs);
+	
+	if (!$sr) {
+		if($GLOBALS["output"]){echo "Bad search $dn / $searchFilter\n";}
+		WLOG("[QUERY]: Bad search $dn / $searchFilter");
+		return array();
+	}
+	
+	
+	
+	
+	$hash=@ldap_get_entries($GLOBALS["CONNECTION"],$sr);
+	$MembersCount=$hash["count"];
+	if($GLOBALS["output"]){echo "return $MembersCount entries\n";}
+	for($i=0;$i<$MembersCount;$i++){
+		
+		$member=$hash[$i]["samaccountname"][0];
+		$f[$member]=$member;
+		
+	}
+	
+	while (list ($a, $b) = each ($f) ){
+		if(trim($b)==null){continue;}
+		$Tosend[]=$b;
+	}
+	
+	return $Tosend;
+	
+}
+
+
 function HashUsersFromGroupDN($dn){
 	$ORGDN=$dn;
 	TestConnectToLDAP();
@@ -431,6 +469,10 @@ function ConnectToLDAP(){
 	@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_PROTOCOL_VERSION, 3); // on passe le LDAP en version 3, necessaire pour travailler avec le AD
 	@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_REFERRALS, 0);
 	
+
+	
+	
+	
 	if(preg_match("#^(.+?)\/(.+?)$#", $array["WINDOWS_SERVER_ADMIN"],$re)){$array["WINDOWS_SERVER_ADMIN"]=$re[1];}
 	if(preg_match("#^(.+?)\\\\(.+?)$#", $array["WINDOWS_SERVER_ADMIN"],$re)){$array["WINDOWS_SERVER_ADMIN"]=$re[1];}
 	
@@ -554,7 +596,50 @@ function ufdbguard_checks($id){
 	if(isset($arrayGROUPS["AD"])){
 		while (list ($index, $DNenc) = each ($arrayGROUPS["AD"]) ){
 			$DN=base64_decode($DNenc);
+			
+			if(preg_match("#CN=Users,CN=Builtin,(.+)#",$DN,$re)){
+				$DN2="CN=Users,{$re[1]}";
+				if($GLOBALS["output"]){echo "\n\nExtract users from Branch $DN2\n---------------------------------------\n";}
+				$Hash=HashUsersFromFullDN($DN2);
+				if($GLOBALS["output"]){echo "return ". count($Hash)." users\n";}
+				
+				if(count($Hash)==1000){
+					if($GLOBALS["output"]){
+						echo "# # # # # # # # # # # # # # # # # # # # # #\n# #Notice # #\n# # # # # # # # # # # # # # # # # # # # # #\n*********************\na LDAP application queries the members of a group,\nthe Windows Server 2008 R2 or Windows Server 2008 domain controller only returns only 1000 members,\nwhile the Windows Server 2003 domain controllers returns many more members.\nsee the kb http://support.microsoft.com/kb/2009267\nin order to increase the items returned by the Active Directory\n*********************\n";
+					}
+				}
+				
+				while (list ($a, $b) = each ($Hash) ){if($GLOBALS["VERBOSE"]){echo "USER= $b\n";}$FINAL[]=$b;}
+			}
+			
+			if(preg_match("#CN=Utilisa\. du domaine,CN=Users,(.+)#",$DN,$re)){
+				$DN2="CN=Users,{$re[1]}";
+				if($GLOBALS["output"]){echo "\n\nExtract users from Branch $DN2\n---------------------------------------\n";}
+				$Hash=HashUsersFromFullDN($DN2);
+				if($GLOBALS["output"]){echo "return ". count($Hash)." users\n";}
+				
+				if(count($Hash)==1000){
+					if($GLOBALS["output"]){
+						echo "# # # # # # # # # # # # # # # # # # # # # #\n# #Notice # #\n# # # # # # # # # # # # # # # # # # # # # #\n*********************\na LDAP application queries the members of a group,\nthe Windows Server 2008 R2 or Windows Server 2008 domain controller only returns only 1000 members,\nwhile the Windows Server 2003 domain controllers returns many more members.\nsee the kb http://support.microsoft.com/kb/2009267\nin order to increase the items returned by the Active Directory\n*********************\n";
+					}
+				}
+				
+				while (list ($a, $b) = each ($Hash) ){if($GLOBALS["VERBOSE"]){echo "USER= $b\n";}$FINAL[]=$b;}
+			}
+			
+			
+			
+			
+			
+			if($GLOBALS["output"]){echo "\n\nExtract users from $DN\n---------------------------------------\n";}
 			$Hash=HashUsersFromGroupDN($DN);
+			if($GLOBALS["output"]){echo "return ". count($Hash)." users\n";}
+			if(count($Hash)==1000){
+				if($GLOBALS["output"]){
+					echo "# # # # # # # # # # # # # # # # # # # # # #\n# #Notice # #\n# # # # # # # # # # # # # # # # # # # # # #\n*********************\na LDAP application queries the members of a group,\nthe Windows Server 2008 R2 or Windows Server 2008 domain controller only returns only 1000 members,\nwhile the Windows Server 2003 domain controllers returns many more members.\nsee the kb http://http://support.microsoft.com/kb/2009267\nin order to increase the items returned by the Active Directory\n*********************\n";
+				}
+			}
+			
 			if(count($Hash)==0){WLOG("[QUERY]: ufdbguard_checks($id) $DN store no user...");continue;}
 			while (list ($a, $b) = each ($Hash) ){if($GLOBALS["VERBOSE"]){echo "USER= $b\n";}$FINAL[]=$b;}
 		}
@@ -573,7 +658,7 @@ function ufdbguard_checks($id){
 	}
 	
 	
-	
+	if($GLOBALS["output"]){echo "\nResults\n**********************************\n# # # # # # # # # # # # # # # # # # # # # #\n". count($FINAL)." item(s)\n# # # # # # # # # # # # # # # # # # # # # #\n";}
 	
 	if(count($FINAL)==0){
 		WLOG("[QUERY]: ufdbguard_checks($id) no user...");

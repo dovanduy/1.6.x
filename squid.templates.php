@@ -717,9 +717,11 @@ function view_table(){
 	$q=new mysql_squid_builder();
 	$Mypage=CurrentPageName();
 	$tpl=new templates();	
+	$sock=new sockets();
 	$search='%';
 	$table="squidtpls";
 	$page=1;
+	$searchstring=null;
 	if($_GET["lang"]<>null){$FORCEQ=" AND lang='{$_GET["lang"]}'";}
 	$choose_generic=$_GET["choose-generic"];
 	if(!$q->FIELD_EXISTS($table, "template_time")){$q->CheckTables();}
@@ -751,7 +753,47 @@ function view_table(){
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
+	$data = array();
+	$data['rows'] = array();
 	
+	$span="<span style='font-size:12px'>";
+	$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
+	$EnableSplashScreenAsObject=$sock->GET_INFO("EnableSplashScreenAsObject");
+	if(!is_numeric($EnableSplashScreen)){$EnableSplashScreen=0;}
+	if(!is_numeric($EnableSplashScreenAsObject)){$EnableSplashScreenAsObject=0;}
+	$SplashScreenURI=$sock->GET_INFO("SplashScreenURI");
+	if(trim($SplashScreenURI)==null){$EnableSplashScreen=0;}
+	$URLAR=parse_url($SplashScreenURI);
+	if(isset($URLAR["host"])){$SplashScreenURI="http://$SplashScreenURI";}
+	if(!preg_match("^http.*", $SplashScreenURI)){$SplashScreenURI="http://$SplashScreenURI";}
+	if($searchstring==null){
+		if($EnableSplashScreen==1){
+			if($EnableSplashScreenAsObject==1){
+				$linkZoom=null;
+				$cell=array();
+				$delete="&nbsp;";
+				$cell[]=$tpl->_ENGINE_parse_body("{all}</span>");
+				$cell[]="<span style='font-size:12px;font-weight:bold'>$linkZoom$SplashScreenURI</a></span>";
+				$cell[]=$tpl->_ENGINE_parse_body("<span style='font-size:12px;fonct-weight:bold'>$linkZoom{hotspot_auth}</a></span>");
+				$cell[]="&nbsp;</span>";
+				if($_GET["choose-acl"]>0){
+					$cell[]=imgsimple("arrow-right-24.png",null,"ChooseAclsTplSquid('{$_GET["choose-acl"]}','ARTICA_SLASH_SCREEN')");
+						
+				}
+				
+				if(strlen($choose_generic)>3){
+					$cell[]=imgsimple("arrow-right-24.png",null,"ChooseGenericTemplate('ARTICA_SLASH_SCREEN')");
+				}			
+				$cell[]=$delete;
+				$data['rows'][] = array(
+						'id' => "SplashScreen",
+						'cell' =>$cell
+				);
+				$total++;
+			}
+			
+		}
+	}
 
 	
 	$pageStart = ($page-1)*$rp;
@@ -759,14 +801,14 @@ function view_table(){
 	$sql="SELECT *  FROM `$table` WHERE 1 $FORCEQ$searchstring $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 
-	$data = array();
+	
 	$data['page'] = $page;
 	$data['total'] = $total;
-	$data['rows'] = array();
+	
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show("$q->mysql_error",2);}
 	$statuscodes=$q->LoadStatusCodes();
-	$span="<span style='font-size:12px'>";
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$zmd5=$ligne["zmd5"];
 		$title=base64_encode($ligne["template_title"]);

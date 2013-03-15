@@ -21,9 +21,16 @@ while(!feof($pipe)){
 		$buffer=substr($buffer, 1,strlen($buffer));
 		$keydate=date("lF");
 		$prefix=date("M")." ".date("d")." ".date("H:i:s")." localhost (squid-1): ";
-		$TargetFile="/var/log/artica-postfix/squid-brut/".md5($buffer);
+		$subdir=date("Y-m-d-h");
+		@mkdir("/var/log/artica-postfix/squid-brut/$subdir");
+		if(is_dir("/var/log/artica-postfix/squid-brut/$subdir")){
+			$TargetFile="/var/log/artica-postfix/squid-brut/$subdir/".md5($buffer);
+		}else{
+			$TargetFile="/var/log/artica-postfix/squid-brut/".md5($buffer);
+		}
+		
 		@file_put_contents($TargetFile, $prefix.$buffer);
-		if(!is_file($TargetFile)){events("/var/log/artica-postfix/squid-brut permission denied");}
+		if(!is_file($TargetFile)){events(dirname($TargetFile)." permission denied");}
 		$GLOBALS["MEMLOGS"][$keydate][]=$prefix.$buffer;
 		if(count($GLOBALS["MEMLOGS"])>2){flushlogs();}
 		if(count($GLOBALS["MEMLOGS"][$keydate])){flushlogs();}

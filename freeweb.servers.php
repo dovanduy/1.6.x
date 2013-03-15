@@ -550,6 +550,10 @@ function servers_list(){
 			$groupware=div_groupware("WebCopy: {$ligne2["sitename"]}",$ligne["enabled"]);
 		}
 		
+		if($ligne["groupware"]=="UPDATEUTILITY"){
+			$iconPlus="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('UpdateUtility.php?js=yes');\"><img src='img/settings-15.png' align='left'></a>";
+		}
+		
 		$color_span="#5F5656";
 		if($ligne["enabled"]==0){$color_span="#8C8C8C";}
 		$compile=imgsimple("refresh-32.png",null,"FreeWebsRebuildvHostsTable('{$ligne["servername"]}')");
@@ -567,7 +571,7 @@ function servers_list(){
 				'id' => $md5S,
 				'cell' => array(
 					"<img src='img/$icon'>", 
-					"<strong style='font-size:13px;style='color:$color'>$href$servername_text</a>$groupware$forward_text
+					"<strong style='font-size:13px;style='color:$color'>$href$servername_text</a>$iconPlus$groupware$forward_text
 					$added_port$Members$sizevg</strong></span>$ServerAlias$uptime",
 					$compile,$enable,	
 					"$spanStyle1$DirectorySize</span>",

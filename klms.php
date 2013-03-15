@@ -63,7 +63,7 @@ function tabs(){
 	
 
 	$html="
-		<div id='main_klms_tabs' style='background-color:white;margin-top:10px'>
+		<div id='main_klms_tabs' style='background-color:white;margin-top:10px;width:910px'>
 		<ul>
 		". implode("\n",$tab). "
 		</ul>
@@ -149,7 +149,18 @@ function services_toolbox(){
 	$tpl=new templates();
 	$ini=new Bs_IniHandler();
 	$page=CurrentPageName();	
-
+	$EnableKlms=$sock->GET_INFO("EnableKlms");
+	if(!is_numeric($EnableKlms)){$EnableKlms=1;}
+	
+	
+	$TOTAL_MEMORY_MB=$sock->getFrameWork("system.php?TOTAL_MEMORY_MB=yes");
+	if($TOTAL_MEMORY_MB<1500){
+		$EnableKlms=0;
+		$p=FATAL_ERROR_SHOW_128("{NO_ENOUGH_MEMORY_FOR_THIS_SECTION}<br><strong style='font-size:18px'>{require}:1500MB</strong>",false,true);
+	}else{
+		
+		$p=Paragraphe_switch_img("{activate_klms}","{activate_klms_explain}","EnableKlms",$EnableKlms,null,550);
+	}
 	
 	
 	$tr[]=Paragraphe32("watchdog", "watchdog_klms8_text", "Loadjs('klms8.watchdog.php')", "watchdog-32.png");
@@ -165,6 +176,7 @@ function services_toolbox(){
 	$table=CompileTr2($tr,"form");
 	
 	$html="
+	$p<hr>
 	$table
 	<script>
 		var X_applycf= function (obj) {

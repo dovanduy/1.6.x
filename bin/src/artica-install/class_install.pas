@@ -821,6 +821,16 @@ begin
                exit();
             end;
 
+          if ParamStr(2)='zarafa2' then begin
+               fpsystem('/etc/init.d/zarafa-server2 stop');
+               exit();
+            end;
+
+          if ParamStr(2)='freeradius' then begin
+             fpsystem('/etc/init.d/freeradius stop');
+             exit();
+          end;
+
           if ParamStr(2)='zarafa-db' then begin
                fpsystem('/etc/init.d/zarafa-db stop');
                exit();
@@ -2143,10 +2153,20 @@ begin
                  exit();
               end;
 
+              if ParamStr(2)='freeradius' then begin
+                 fpsystem('/etc/init.d/freeradius start');
+                 exit();
+              end;
+
               if ParamStr(2)='zarafa' then begin
                  zarafa:=tzarafa_server.Create(SYS);
                  zarafa.START();
                  exit();
+              end;
+
+              if ParamStr(2)='zarafa2' then begin
+               fpsystem('/etc/init.d/zarafa-server2 start');
+               exit();
               end;
 
               if ParamStr(2)='zarafa-ical' then begin

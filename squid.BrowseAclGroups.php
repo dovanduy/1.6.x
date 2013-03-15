@@ -640,9 +640,7 @@ function group_list(){
 		
 		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}'"));
 		$CountDeMembers=$ligne2["tcount"];
-		if($ligne["GroupType"]=="proxy_auth_ads"){$CountDeMembers="-";}
-		if($ligne["GroupType"]=="NudityScan"){$CountDeMembers="-";}
-		if($ligne["GroupType"]=="dynamic_acls"){$CountDeMembers="-";}
+		if(isset($aclss->ARRAY_NO_ITEM[$ligne["GroupType"]])){$CountDeMembers="-";}
 		if($ligne["GroupType"]=="all"){$CountDeMembers="*";}
 		
 		

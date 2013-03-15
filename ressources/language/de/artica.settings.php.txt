@@ -107,7 +107,7 @@ but for better performances you need to define a maximum number of rows stored i
 <mysqlpass>Mysql account password</mysqlpass>
 <mysqlroot>Mysql account</mysqlroot>
 <mysqlroot_text>Can create database, insert, update, reach root account...</mysqlroot_text>
-<mysql_settings>Mysql settings</mysql_settings>
+<mysql_settings>MySQL settings</mysql_settings>
 <mysql_settings_text>Change the Mysql password, define the behavior of mysql database storage & max events</mysql_settings_text>
 <nothing_to_change>Nothing to change</nothing_to_change>
 <notification_context>Define here which notification you want to be receive</notification_context>
@@ -138,7 +138,7 @@ do not use artica server has the main mail server[br]If it's not working you wil
 <smtp_sender>sender mail address</smtp_sender>
 <smtp_server_name>Mail server name</smtp_server_name>
 <smtp_server_port>Mail server port</smtp_server_port>
-<sql_database>Mysql Database</sql_database>
+<sql_database>MySQL Database</sql_database>
 <SystemCPUAlarmPourc>when reach % cpu used</SystemCPUAlarmPourc>
 <tls_enabled>Enable TLS support</tls_enabled>
 <UseDNSMasq>Recommended to use Dnsmasq</UseDNSMasq>

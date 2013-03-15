@@ -20,6 +20,7 @@ if(isset($_GET["tabs"])){tabs2();exit;}
 if(isset($_GET["group"])){group_edit();exit;}
 if(isset($_GET["members"])){members();exit;}
 if(isset($_GET["members-search"])){members_search();exit;}
+if(isset($_POST["SaveDansGUardianGroupRuleMinim"])){group_edit_save_minimal();exit;}
 if(isset($_POST["groupname"])){group_edit_save();exit;}
 
 if(isset($_GET["member-edit"])){members_edit();exit;}
@@ -169,8 +170,10 @@ function group_edit(){
 	}
 	
 	$bt_bt=button($button_name,"SaveDansGUardianGroupRule()",16);
+	$bt_bt2=button("{apply}","SaveDansGUardianGroupRuleMinim()",16);
+	$LaunchBTBrowse=1;
 	$bt_browse="<input type='button' value='{browse}...' OnClick=\"javascript:MemberBrowsePopup();\" style='font-size:13px'>";
-	if($ID>1){if($ligne["localldap"]==2){$bt_bt=null;$bt_browse=null;}}
+	if($ID>1){if($ligne["localldap"]==2){$bt_bt=$bt_bt2;$bt_browse=null;$LaunchBTBrowse=0;}}
 	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}
 	
 	$html="
@@ -231,7 +234,7 @@ function group_edit(){
 		}
 		var localldap=document.getElementById('localldap').value;
 		if(ID>-1){document.getElementById('localldap').disabled=true;}
-		LoadAjax('explain-$t','$page?explain-group-type=yes&type='+localldap+'&t=$t&ID=$ID');
+		LoadAjax('explain-$t','$page?explain-group-type=yes&type='+localldap+'&t=$t&ID=$ID&LaunchBTBrowse=$LaunchBTBrowse');
 		
 		
 		
@@ -280,6 +283,18 @@ function group_edit(){
 		      XHR.sendAndLoad('$page', 'POST',x_SaveDansGUardianGroupRule);  		
 		}
 		
+		function SaveDansGUardianGroupRuleMinim(){
+		 	var XHR = new XHRConnection();
+		 	XHR.appendData('ID','$ID');
+			XHR.appendData('SaveDansGUardianGroupRuleMinim', document.getElementById('gpid').value);
+			XHR.appendData('description', document.getElementById('description').value);
+			XHR.appendData('gpid', document.getElementById('gpid').value);
+			if(document.getElementById('enabled').checked){ XHR.appendData('enabled',1);}else{ XHR.appendData('enabled',0);}
+		    AnimateDiv('dansguardinMainGroupDiv');
+		    XHR.sendAndLoad('$page', 'POST',x_SaveDansGUardianGroupRule);  			
+		
+		} 
+		
 		function CheckFieldsWhenStarts(){
 			var ID=$ID;
 			if(ID<0){return;}
@@ -305,10 +320,17 @@ function group_edit(){
 function group_explain_type(){
 	$t=$_GET["t"];
 	$type=$_GET["type"];
+	$ID=$_GET["ID"];
+	$LaunchBTBrowse=$_GET["LaunchBTBrowse"];
 	$page=CurrentPageName();
 	$html="<div class=explain style='font-size:14px'>{group_explain_proxy_acls_type_{$type}}</div>
 	<script>
-		LoadAjax('button-$t','$page?explain-group-button=yes&ID=$ID&type=$type');
+		function LaunchBTBrowse$t(){
+			var LaunchBTBrowse=$LaunchBTBrowse;
+			if(LaunchBTBrowse==0){return;}
+			LoadAjax('button-$t','$page?explain-group-button=yes&ID=$ID&type=$type');
+			}
+			LaunchBTBrowse$t();
 	</script>
 	
 	";
@@ -393,6 +415,19 @@ function group_edit_save(){
 	 
 	if(!$q->ok){echo $q->mysql_error."\n$s\n";return;}
 	
+	
+}
+
+
+function group_edit_save_minimal(){
+	$ID=$_POST["ID"];
+	$q=new mysql_squid_builder();
+	$_POST["description"]=mysql_escape_string($_POST["description"]);
+	$sql_edit="UPDATE webfilter_group SET description='{$_POST["description"]}' 
+	,enabled='{$_POST["enabled"]}' WHERE ID=$ID";
+	$q->QUERY_SQL($sql_edit);
+	
+	if(!$q->ok){echo $q->mysql_error."\n$sql_edit\n";return;}
 	
 }
 

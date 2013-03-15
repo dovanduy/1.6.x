@@ -5,7 +5,7 @@
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.squid.accesslogs.inc');
-	
+	include_once('ressources/class.tcpip.inc');
 	
 $usersmenus=new usersMenus();
 if(!$usersmenus->AsSquidAdministrator){

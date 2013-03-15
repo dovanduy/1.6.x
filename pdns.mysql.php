@@ -424,10 +424,13 @@ function table(){
 	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
 	$controllers=$tpl->_ENGINE_parse_body("{controllers}");
 	$records=$tpl->_ENGINE_parse_body("{records}");
+	$import=$tpl->_ENGINE_parse_body("{import}");
 	$buttons="
 	buttons : [
 	{name: '$new_entry', bclass: 'Add', onpress : NewPDNSEntry2$t},
 	{name: '$new_domain_controller', bclass: 'Add', onpress : NewDomainController$t},
+	{name: '$import', bclass: 'Down', onpress : Import$t},
+	
 	
 	{name: '$domains', bclass: 'Search', onpress : FilterDomain$t},
 	{name: '$controllers', bclass: 'Search', onpress : ChoosePDC$t},
@@ -522,6 +525,10 @@ function ChooseRecords$t(){
 	var domain=document.getElementById('domain-choose-$t').value;
 	$('#flexRT$t').flexOptions({url: '$page?items=yes&t=$t&record-type=A&domain='+domain}).flexReload(); 
 		
+}
+
+function Import$t(){
+	Loadjs('pdns.import.php?t=$t');
 }
 	
 </script>";
@@ -1028,6 +1035,7 @@ function items(){
 	$aliases=$tpl->_ENGINE_parse_body("{aliases}");
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$id=$ligne["id"];
+		$explainthis=null;
 		$articasrv=null;
 		$aliases_text=null;
 		$delete=imgsimple("delete-24.png",null,"PdnsRecordDelete$t('$id')");
@@ -1055,11 +1063,20 @@ function items(){
 			
 		}
 		
+		$explainthisH="<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:explainthis('$id');\"
+		style=\"text-decoration:normal\">
+		";
+		if($ligne["explainthis"]<>null){
+			$explainthis="&nbsp;&nbsp;<i style='font-weight:bold;font-size:11px'>(".$ligne["explainthis"].")</i>";
+		}
+		
 	$data['rows'][] = array(
 		'id' => $id,
 		'cell' => array(
-		"<a href=\"javascript:blur();\" OnClick=\"javascript:$jshost;\" style='font-size:16px;text-decoration:underline'>
-		{$ligne["name"]}</a>$articasrv$aliases_text",
+		"<a href=\"javascript:blur();\" 
+				OnClick=\"javascript:$jshost;\" 
+				style=\"font-size:16px;text-decoration:underline\">{$ligne["name"]}</a>$explainthis$articasrv$aliases_text",
 		"<span style='font-size:16px;'>{$ligne["content"]}</span>",
 		"<span style='font-size:16px;'>{$ligne["ttl"]}</span>",
 		"<span style='font-size:16px;'>{$ligne["prio"]}</span>",
@@ -1132,11 +1149,11 @@ function item_config(){
 		$ComputerIP=$ligne["content"];
 		$ttl=$ligne["ttl"];
 		$prio=$ligne["prio"];
-		$explian=null;
+		$explainthis=$ligne["explainthis"];
 		$domain_id=$ligne["domain_id"];
 		$ligneZ=mysql_fetch_array($q->QUERY_SQL("SELECT name FROM domains WHERE id=$domain_id","powerdns"));
 		$DnsZoneName=$ligneZ["name"];		
-		$DnsZoneName="<span style='font-size:14px;font-weight:bold'>$DnsZoneName</span>";
+		
 	}
 	
 	if(!is_numeric($domain_id)){$domain_id=0;}
@@ -1155,11 +1172,12 @@ function item_config(){
 	}
 	
 	
-	if(count($domains)>0){
+	if($domain_id>0){
 		$field_domains="
 	<tr>
 		<td class=legend style='font-size:14px' nowrap>{DnsZoneName}:</strong></td>
-		<td align=left style='font-size:14px;font-weight:bolder'><span id='DnsZoneName-$t'>$DnsZoneName</span></td>
+		<td align=left style='font-size:14px;font-weight:bolder'>
+				".Field_text("DnsZoneName-$t",$DnsZoneName,"width:220px;font-size:14px;color:white",null,null,null,false,null,true,null)."</td>
 		<td>$addDomain</td>
 	</tr>";
 		
@@ -1167,7 +1185,8 @@ function item_config(){
 	$field_domains="	
 		<tr>
 			<td class=legend style='font-size:14px' nowrap>{DnsZoneName}:</strong></td>
-			<td align=left><span id='DnsZoneName-$t'>$DnsZoneName</span></strong></strong></td>
+			<td align=left style='font-size:14px;font-weight:bolder'>
+			<span id='DnsZoneNameSpan-$t'></span>
 			<td>$addDomain</td>
 		</tr>";		
 	}
@@ -1203,6 +1222,12 @@ $field_domains
 	<td align=left>". Field_text("PRIO-$t",$prio,"width:90px;font-size:14px","script:SaveDNSEntryCheck(event)","FillDNSNAME()")."</strong></td>
 	<td>&nbsp;</td>
 </tr>
+<tr>
+	<td class=legend style='font-size:14px' nowrap>{explain}:</strong></td>
+	<td align=left>". Field_text("explainthis-$t",$explainthis,"width:300px;font-size:12px;font-style:italic","script:SaveDNSEntryCheck(event)","FillDNSNAME()")."</strong></td>
+	<td>&nbsp;</td>
+</tr>			
+			
 
 <tr>	
 	<td colspan=3 align='right'><hr>". button("$bname","SaveDNSEntry$t();","18px")."</td>
@@ -1224,7 +1249,7 @@ $field_domains
 		
 		function FillDNSNAME(){
 			var computername=document.getElementById('computername-$t').value;
-			var DnsZoneName=document.getElementById('DnsZoneName').value;
+			var DnsZoneName=document.getElementById('DnsZoneName-$t').value;
 			if(computername.length==0){return;}
 			if(DnsZoneName.length==0){return;}
 			document.getElementById('GiveHereComputerName').innerHTML=computername+'.'+DnsZoneName;
@@ -1243,20 +1268,24 @@ $field_domains
 		function SaveDNSEntry$t(){
 			var ok=1;
 			var computername=document.getElementById('computername-$t').value;
-			var DnsZoneName=document.getElementById('DnsZoneName').value;
-			var ComputerIP=document.getElementById('ComputerIP-$t').value;		
-			if(DnsZoneName.length==0){ok=0;}
+			
+			var ComputerIP=document.getElementById('ComputerIP-$t').value;	
+			var explainthis=encodeURIComponent(document.getElementById('explainthis-$t').value);	
+			
 			if(ComputerIP.length==0){ok=0;}
 			if(ok==0){alert('$ERROR_VALUE_MISSING_PLEASE_FILL_THE_FORM');return;}
 			var XHR = new XHRConnection();
 			XHR.appendData('id','$id');
 			XHR.appendData('computername',computername);
-			if(document.getElementById('DnsZoneName')){
+			if(document.getElementById('DnsZoneName-$t')){
+				var DnsZoneName=document.getElementById('DnsZoneName-$t').value;
+				if(DnsZoneName.length==0){alert('$ERROR_VALUE_MISSING_PLEASE_FILL_THE_FORM: Domain');return;}
 				XHR.appendData('DnsZoneName',DnsZoneName);
 			}
 			XHR.appendData('ComputerIP',ComputerIP);
 			XHR.appendData('TTL',document.getElementById('TTL-$t').value);
 			XHR.appendData('PRIO',document.getElementById('PRIO-$t').value);
+			XHR.appendData('explainthis',explainthis);
 			AnimateDiv('anime-$t');
 			XHR.sendAndLoad('$page', 'POST',x_SaveDNSEntry$t);
 		
@@ -1265,7 +1294,7 @@ $field_domains
 		function RefreshFieldDomain$t(){
 			var domain_id=$domain_id;
 			if(domain_id==0){
-				LoadAjaxTiny('DnsZoneName-$t','$page?DnsDomain-Field=yes&id=$id&t=$t&EnCryptedFunction=$EnCryptedFunction');
+				LoadAjaxTiny('DnsZoneNameSpan-$t','$page?DnsDomain-Field=yes&id=$id&t=$t&EnCryptedFunction=$EnCryptedFunction');
 			}
 			
 		}
@@ -1275,6 +1304,7 @@ $field_domains
 		}
 		RefreshFieldDomain$t();
 		SaveDNSCheckFields();
+		FillDNSNAME();
 </script>
 
 ";	
@@ -1285,6 +1315,7 @@ $field_domains
 
 function item_save(){
 	$id=$_POST["id"];
+	$_POST["explainthis"]=url_decode_special_tool($_POST["explainthis"]);
 	if(!isset($_POST["DnsZoneName"])){
 		if($id==0){echo "DnsZoneName not set\n";return;}
 		$q=new mysql();
@@ -1300,7 +1331,7 @@ function item_save(){
 	$pdns->ttl=$_POST["TTL"];
 	$pdns->prio=$_POST["prio"];
 	
-	$pdns->EditIPName($_POST["computername"], $_POST["ComputerIP"], "A",$id);
+	$pdns->EditIPName($_POST["computername"], $_POST["ComputerIP"], "A",$id,$_POST["explainthis"]);
 	
 }
 function item_delete(){
@@ -1349,6 +1380,6 @@ function DnsDomainField(){
 
 	}	
 	
-	$DnsZoneName=Field_array_Hash($domains,"DnsZoneName",$DnsZoneNameV,null,null,0,"font-size:14px").$add;
+	$DnsZoneName=Field_array_Hash($domains,"DnsZoneName-$t",$DnsZoneNameV,null,null,0,"font-size:14px").$add;
 	echo $DnsZoneName;
 }

@@ -70,7 +70,7 @@ function vhosts_users_ou($array){
 	$d_path=$unix->APACHE_DIR_SITES_ENABLED();
 
 	if($ApacheGroupware==0){
-		$ApacheGroupwareListenIP=$sock->GET_INFO("FreeWebListen");
+		$ApacheGroupwareListenIP=$unix->APACHE_ListenDefaultAddress();
 		$ApacheGroupWarePort=$sock->GET_INFO("FreeWebListenPort");
 		$ApacheGroupWarePortSSL=$sock->GET_INFO("FreeWebListenSSLPort");
 		echo "Starting......: Apache Webdav switch to Apache source\n";

@@ -339,6 +339,7 @@ public
        function LOCATE_GENERIC_BIN(StrProgram:string):string;
        function LOCATE_ZABBIX_SERVER():string;
        function LOCATE_ZABBIX_AGENT():string;
+       function LOCATE_PYTHON_PACKAGE(BasePath:string):string;
        function ISMemoryHiger1G():boolean;
        function LOCATE_APC_SO():string;
        function MEM_FREE():integer;
@@ -1163,17 +1164,30 @@ var
    cpunum:integer;
    ziulogs:Tlogs;
    fileconf:string;
+   catbin:string;
+   grepbin:string;
+   wcbin:string;
+   cutbin:string;
 begin
     result:=0;
     cpunum:=0;
+    catbin:=LOCATE_GENERIC_BIN('cat');
+    grepbin:=LOCATE_GENERIC_BIN('grep');
+    wcbin:=LOCATE_GENERIC_BIN('wc');
+    cutbin:=LOCATE_CUT();
     fileconf:='/etc/artica-postfix/settings/Daemons/SystemCpuNumber';
     if FileExists(fileconf) then begin
        if FILE_TIME_BETWEEN_MIN(fileconf)>500 then fpsystem('/bin/rm -f '+ fileconf);
     end;
+    if not TryStrToInt(GET_INFO('SystemCpuNumber'),cpunum) then cpunum:=0;
 
-    if not TryStrToInt(GET_INFO('SystemCpuNumber'),cpunum) then begin
-         fpsystem('/bin/cat /proc/cpuinfo |/bin/grep "model name" | '+LOCATE_CUT()+' -d: -f2|/usr/bin/wc -l >'+fileconf+' 2>&1');
+
+    if cpunum=0 then begin
+         fpsystem(catbin+' /proc/cpuinfo |'+grepbin+' "model name" | '+cutbin+' -d: -f2|'+wcbin+' -l >'+fileconf+' 2>&1');
          if not TryStrToInt(GET_INFO('SystemCpuNumber'),cpunum) then begin
+              sleep(2);
+              fpsystem(catbin+' /proc/cpuinfo |'+grepbin+' "model name" | '+cutbin+' -d: -f2|'+wcbin+' -l >'+fileconf+' 2>&1');
+              TryStrToInt(GET_INFO('SystemCpuNumber'),cpunum);
               ziulogs:=Tlogs.Create;
               ziulogs.Syslogs('Tsystem.CPU_NUMBER():: unable to determine cpu number on this system');
               ziulogs.free;
@@ -1559,6 +1573,46 @@ begin
 result:=LOCATE_GENERIC_BIN('zabbix_agentd');
 end;
 //##############################################################################
+
+
+function Tsystem.LOCATE_PYTHON_PACKAGE(BasePath:string):string;
+var
+   l:Tstringlist;
+   i:integer;
+   D:boolean;
+begin
+   BasePath:=trim(BasePath);
+    l:=Tstringlist.Create;
+
+    l.Add('/usr/local/lib/python2.5/dist-packages');
+    l.Add('/usr/lib/python2.5/dist-packages');
+
+    l.Add('/usr/local/lib/python2.6/dist-packages');
+    l.Add('/usr/lib/python2.6/dist-packages');
+
+    l.Add('/usr/local/lib/python2.7/dist-packages');
+    l.Add('/usr/lib/python2.7/dist-packages');
+
+    l.Add('/usr/local/lib/python2.8/dist-packages');
+    l.Add('/usr/lib/python2.8/dist-packages');
+
+    l.Add('/usr/local/lib/python2.9/dist-packages');
+    l.Add('/usr/lib/python2.9/dist-packages');
+
+    for i:=0 to l.Count-1 do begin
+       if FIleExists(l.Strings[i]+'/'+BasePath)  then begin
+          result:=l.Strings[i]+'/'+BasePath;
+          if DEBUG then writeln('LOCATE_PYTHON_PACKAGE:: '+result+' -> TRUE');
+       end else begin
+           if DEBUG then writeln('LOCATE_PYTHON_PACKAGE:: '+result+' -> FALSE');
+       end;
+    end;
+   l.free;
+
+end;
+//##############################################################################
+
+
 
 function Tsystem.APACHE_STANDARD_PORT():string;
 var
@@ -4829,7 +4883,7 @@ end;
 function Tsystem.LOCATE_MYSQL_ADMIN():string;
 var ss:string;
 begin
-ss=:=LOCATE_GENERIC_BIN('mysqladmin');
+ss:=LOCATE_GENERIC_BIN('mysqladmin');
 if FileExists(ss) then exit(ss);
 if FileExists('/usr/bin/mysqladmin') then exit('/usr/bin/mysqladmin');
 end;
@@ -6514,11 +6568,13 @@ function Tsystem.LOCATE_MKFIFO():string;
 begin
    if FileExists('/usr/bin/mkfifo') then exit('/usr/bin/mkfifo');
    if FileExists('/bin/mkfifo') then exit('/bin/mkfifo');
+   exit(LOCATE_GENERIC_BIN('mkfifo'));
 end;
 //##############################################################################
 //##############################################################################
 function Tsystem.LOCATE_PHP5_BIN():string;
 begin
+  if FileExists('/opt/articatech/bin/php') then exit('/opt/articatech/bin/php');
   if FileExists('/usr/bin/php5') then exit('/usr/bin/php5');
   if FIleExists('/usr/bin/php') then exit('/usr/bin/php');
   if FIleExists('/usr/local/apache-groupware/php5/bin/php') then exit('/usr/local/apache-groupware/php5/bin/php');
@@ -6530,6 +6586,7 @@ function Tsystem.LOCATE_PHP5_CONFIG_BIN():string;
 begin
   if FileExists('/usr/bin/php-config5') then exit('/usr/bin/php-config5');
   if FIleExists('/usr/bin/php-config') then exit('/usr/bin/php-config');
+  if FileExists('/opt/articatech/bin/php-config') then exit('/opt/articatech/bin/php-config');
   if FileExists('/opt/artica-agent/bin/php-config') then exit('/opt/artica-agent/bin/php-config');
 end;
 //##############################################################################
@@ -6538,6 +6595,7 @@ begin
    if FileExists('/usr/bin/php-cgi') then exit('/usr/bin/php-cgi');
    if FileExists('/opt/artica/lighttpd/bin/php-cgi') then exit('/opt/artica/lighttpd/bin/php-cgi');
    if FileExists('/usr/local/bin/php-cgi') then exit('/usr/local/bin/php-cgi');
+   if FileExists('/opt/artica-agent/bin/php-cgi') then exit('/opt/artica-agent/bin/php-cgi');
    if FileExists('/opt/artica-agent/bin/php-cgi') then exit('/opt/artica-agent/bin/php-cgi');
 end;
 //##############################################################################

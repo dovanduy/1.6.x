@@ -22,6 +22,8 @@ if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if($argv[1]=='--updtev'){udfbguard_update_events();die();}
 if($argv[1]=='--rsylogd'){rsyslog_check_includes();die();}
 if($argv[1]=='--sysev'){sysev();die();}
+if($argv[1]=='--admin-evs'){system_admin_events_checks(true);die();}
+
 
 
 if(!$GLOBALS["FORCE"]){
@@ -818,7 +820,7 @@ function system_admin_events_checks($nopid=false){
 		$pid=@file_get_contents($pidfile);
 		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}	
 		$t=0;		
-		
+		@file_put_contents($pidfile, getmypid());
 	}	
 	
 	// removed : foreach (glob("/var/log/artica-postfix/system_admin_events/*") as $filename) {
@@ -856,9 +858,18 @@ function system_admin_events_checks($nopid=false){
 		
 		$array["text"]=mysql_escape_string($array["text"]);
 		$array["text"]=str_replace("'", "`", $array["text"]);
-		
-		WriteMyLogs("system_admin_events:{$array["function"]}/{$array["file"]}: Task  `{$array["TASKID"]}` ". strlen("{$array["text"]}")."bytes",__FUNCTION__,__FILE__,__LINE__);
+		WriteMyLogs(substr($array["text"],0,128),__FUNCTION__,__FILE__,__LINE__);
+		WriteMyLogs("system_admin_events:{$array["function"]}/{$array["file"]}: Task  `{$array["TASKID"]}` ". strlen("{$array["text"]}")." bytes",__FUNCTION__,__FILE__,__LINE__);
 		$f[$tableName][]="('{$array["zdate"]}','{$array["function"]}','{$array["file"]}','{$array["line"]}','{$array["text"]}','{$array["category"]}')";
+		if(count($f[$tableName])>1500){
+			system_admin_events_inject($f,true);
+			$f=array();
+		}
+		if(count($f)>10){
+			system_admin_events_inject($f,true);
+			$f=array();
+		}
+		
 		@unlink($targetFile);
 	}
 	
@@ -866,7 +877,7 @@ function system_admin_events_checks($nopid=false){
 	
 }
 
-function system_admin_events_inject($f){
+function system_admin_events_inject($f,$nooptimize=false){
 	if(count($f)==0){return;}	
 	$tq=new mysql_builder();
 	$sock=new sockets();
@@ -908,7 +919,7 @@ function system_admin_events_inject($f){
 					}
 				if(!$q->ok){writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);}
 			}else{
-				$q->QUERY_SQL("OPTIMIZE TABLE `$tablename`","artica_events");
+				if(!$nooptimize){$q->QUERY_SQL("OPTIMIZE TABLE `$tablename`","artica_events");}
 				}
 			}	
 		}

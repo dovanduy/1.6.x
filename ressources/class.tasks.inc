@@ -18,6 +18,70 @@ class system_tasks{
 	}
 	
 	
+	public function PatternToHuman($pattern,$nobr=false){
+		if(!preg_match("#(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+(.+?)#", $pattern,$re)){return "{corrupted}...";}
+		$min=$re[1];
+		$hour=$re[2];
+		$DayOfMonth=$re[3];
+		$MonthOfYear=$re[4];
+		$DayOfWeek=$re[5];
+		
+		$MM=array();
+		$HH=array();
+		if($min=="*"){$mins="{all_minutes}";$MM[]="{all_minutes}";}
+		if($hour=="*"){$hours="{all_hours}";$HH[]="{all_hours}";}
+		if($DayOfWeek=="*"){$days="{all_days}";$DD[]="{all_days}";}else{$days=$DayOfWeek;}
+		
+		$array_day_of_week=array(
+				"0"=>"{Sunday}",
+				"1"=>"{Monday}",
+				"2"=>"{Tuesday}",
+				"3"=>"{Wednesday}",
+				"4"=>"{Thursday}",
+				"5"=>"{Friday}",
+				"6"=>"{Saturday}");		
+		
+		if(count($HH)==0){
+			if(strpos($hour, ",")){$HH=explode(",",$hour);}else{$HH[]=$hour;}
+		}
+		
+		if(count($MM)==0){
+			if(strpos($min, ",")){$MM=explode(",",$min);}else{$MM[]=$min;}
+		}
+		if(count($DD)==0){
+			if(strpos($DayOfWeek, ",")){$DD=explode(",",$DayOfWeek);}else{$DD[]=$DayOfWeek;}
+		}		
+		
+
+		$f=array();
+		while (list ($index, $DAY_X) = each ($DD) ){
+			//echo "Day: $DAY_X\n";
+			if(isset($array_day_of_week[$DAY_X])){
+				$f[]="{$array_day_of_week[$DAY_X]}";
+			}else{
+				$f[]="$DAY_X, ";
+			}
+			reset($HH);
+			while (list ($index, $hour_x) = each ($HH) ){
+				if(is_numeric($hour_x)){if(strlen($hour_x)==1){$hour_x="0$hour_x";}}
+				//echo "Hour: $hour_x\n";
+				reset($MM);
+				while (list ($index, $min_x) = each ($MM) ){
+					if(is_numeric($min_x)){if(strlen($min_x)==1){$min_x="0$min_x";}}
+					//echo "$hour_x:$min_x\n";
+					$t[]="$hour_x:$min_x";
+				}
+			}
+			
+		}
+		if(!$nobr){$br="<br>";}
+		
+		$final=@implode(", ",$f)."$br {at} ".@implode(", ", $t);
+	//	echo $final."\n";
+		return $final;
+	}
+	
+	
 	private function fill_task_array(){
 			$this->tasks_array[0]="{select}";
 			$this->tasks_array[1]="{reboot_system}";

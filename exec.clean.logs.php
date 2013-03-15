@@ -1,5 +1,9 @@
 <?php
+if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
@@ -7,10 +11,12 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
-if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
-if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+if(!$GLOBALS["VERBOSE"]){
+	echo "starting ".@implode("; ", $argv)."\n";
+}
+if($argv[1]=='--urgency'){UrgencyChecks();exit;}
+if($argv[1]=='--logrotatelogs'){logrotatelogs(true);die();}
 if($argv[1]=='--squid-store-logs'){CleanSquidStoreLogs();die();}
 if($argv[1]=='--used-space'){used_space();die();}
 if($argv[1]=='--cleandb'){CleanLogsDatabases(true);die();}
@@ -22,10 +28,10 @@ if(!$GLOBALS["FORCE"]){
 }
 
 
-if($argv[1]=='--clean-logs'){Clean_tmp_path(true);CleanLogs();die();}
-if($argv[1]=='--clean-tmp2'){Clean_tmp_path(true);die();}
-if($argv[1]=='--clean-tmp'){CleanLogs();die();}
-if($argv[1]=='--clean-sessions'){sessions_clean();die();}
+if($argv[1]=='--clean-logs'){Clean_tmp_path(true);CleanLogs();logrotatelogs(true);die();}
+if($argv[1]=='--clean-tmp2'){Clean_tmp_path(true);logrotatelogs(true);die();}
+if($argv[1]=='--clean-tmp'){CleanLogs();logrotatelogs(true);die();}
+if($argv[1]=='--clean-sessions'){sessions_clean();logrotatelogs(true);die();}
 if($argv[1]=='--clean-install'){CleanOldInstall();die();}
 if($argv[1]=='--paths-status'){PathsStatus();die();}
 if($argv[1]=='--maillog'){maillog();die();}
@@ -41,6 +47,7 @@ if($argv[1]=='--artica-logs'){artica_logs();die();}
 
 
 
+echo "Could not understand your query ???\n";
 
 
 if(systemMaxOverloaded()){
@@ -627,6 +634,151 @@ function CleanRotatedFiles(){
 	
 }
 
+function UrgencyChecks(){
+	$unix=new unix();
+	$sock=new sockets();
+	
+	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=@file_get_contents($pidpath);
+	if($unix->process_exists($oldpid)){
+		$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
+		$unix->events("UrgencyChecks():: ".__FUNCTION__." Already process $oldpid running since $pidtime Mn.. Aborting");
+		return;
+	}
+	@file_put_contents($pidpath, getmypid());
+	$echo=$unix->find_program("echo");
+	$LogsRotateDeleteSize=$sock->GET_INFO("LogsRotateDeleteSize");
+	if(!is_numeric($LogsRotateDeleteSize)){$LogsRotateDeleteSize=5000;}
+	
+	
+	$f=$unix->DirFiles("/var/log");
+	$f[]="syslog";
+	$f[]="messages";
+	$f[]="user.log";
+			
+	while (list ($num, $filename) = each ($f) ){
+		$filepath="/var/log/$filename";
+		if(!is_file($filepath)){continue;}
+		$size=$unix->file_size($filepath);
+		$size=$size/1024;
+		$size=round($size/1000,2);
+		$unix->events("UrgencyChecks():: $filepath {$size}M");
+		$ARRAY[$filepath]=$size;
+	}
+	
+	$restart=false;
+	
+	while (list ($filepath, $sizeM) = each ($ARRAY) ){
+		if($sizeM>$LogsRotateDeleteSize){
+			shell_exec("$echo \"\" >$filepath");
+			$restart=true;
+			$unix->send_email_events("$filepath was cleaned ({$sizeM}M)", "It exceed maximal size {$LogsRotateDeleteSize}M", "system");
+			$size=$unix->file_size($filepath);$size=$size/1024;$size=round($size/1000,2);
+			$unix->events("UrgencyChecks():: $filepath {$sizeM}M > {$LogsRotateDeleteSize}M `$echo \"\" >$filepath` = {$size}M");
+		}
+	}
+	
+	if($restart){
+		shell_exec("/etc/init.d/syslog restart");
+		shell_exec("/etc/init.d/artica-postfix restart sysloger");
+		shell_exec("/etc/init.d/artica-postfix restart auth-logger");
+		shell_exec("/etc/init.d/artica-postfix restart postfix-logger");
+	}	
+
+	
+}
+
+
+function logrotatelogs($nopid=false){
+	$unix=new unix();
+	$sock=new sockets();
+	
+	if($nopid){
+		$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=@file_get_contents($pidpath);
+		if($unix->process_exists($oldpid)){
+			$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
+			system_admin_events(basename(__FILE__).":: ".__FUNCTION__." Already process $oldpid running since $pidtime Mn.. Aborting",__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
+		@file_put_contents($pidpath, getmypid());
+	}	
+	
+	
+	$echo=$unix->find_program("echo");
+	$LogsRotateDeleteSize=$sock->GET_INFO("LogsRotateDeleteSize");
+	if(!is_numeric($LogsRotateDeleteSize)){$LogsRotateDeleteSize=5000;}
+	include_once(dirname(__FILE__)."/ressources/class.mysql.syslog.inc");
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}
+	$q=new mysql_syslog();
+	if($q->COUNT_ROWS("logrotate")==0){
+		$q->CheckDefaults();
+	}
+	$sql="SELECT RotateFiles FROM logrotate WHERE enabled=1";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;}
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$filepath=$ligne["RotateFiles"];
+		if(strpos($filepath, "*")>0){
+			if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":: Scanning $filepath line:".__LINE__."\n";}
+			foreach (glob($filepath) as $filename) {
+				$size=$unix->file_size($filename);
+				$size=$size/1024;
+				$size=round($size/1000,2);
+				$ARRAY[$filename]=$size;
+				
+				
+			}
+			
+		}else{
+			if(is_file($filepath)){
+				$size=$unix->file_size($filepath);
+				$size=$size/1024;
+				$size=round($size/1000,2);
+				$ARRAY[$filepath]=$size;
+			}
+			if(is_dir($filepath)){
+				while (list ($num, $filename) = each ($f) ){
+					$filepath="/var/log/$filename";
+					$f=$unix->DirFiles("$filepath");
+					$size=$unix->file_size($filepath);
+					$size=$size/1024;
+					$size=round($size/1000,2);
+					$ARRAY[$filepath]=$size;
+				}
+			}
+						
+		}
+		
+	}
+	$f=$unix->DirFiles("/var/log");
+	while (list ($num, $filename) = each ($f) ){
+		$filepath="/var/log/$filename";
+		$size=$unix->file_size($filepath);
+		$size=$size/1024;
+		$size=round($size/1000,2);
+		$ARRAY[$filepath]=$size;		
+	}
+	
+	$restart=false;
+	
+	while (list ($filepath, $sizeM) = each ($ARRAY) ){
+		if($sizeM>$LogsRotateDeleteSize){
+			shell_exec("$echo \"\" >$filepath");
+			$restart=true;
+			$unix->send_email_events("$filepath was cleaned ({$sizeM}M)", "It exceed maximal size {$LogsRotateDeleteSize}M", "system");
+		}
+	}
+	
+	if($restart){
+		shell_exec("/etc/init.d/syslog restart");
+		shell_exec("/etc/init.d/artica-postfix restart sysloger");
+		shell_exec("/etc/init.d/artica-postfix restart auth-logger");
+		shell_exec("/etc/init.d/artica-postfix restart postfix-logger");
+	}
+	
+}
+
 
 function CleanLogs(){
 	maillog();
@@ -652,7 +804,7 @@ function CleanLogs(){
 	}
 	
 	$phplog=$unix->file_size("/var/log/php.log");
-	$sizePHP=round(unix_file_size("$filepath")/1024);
+	$sizePHP=round(unix_file_size("/var/log/php.log")/1024);
 	writelogs("/var/log/php.log = $sizePHP Ko",__FUNCTION__,__FILE__,__LINE__);
 	if($sizePHP>11200000){
 		$GLOBALS["DELETED_SIZE"]=$GLOBALS["DELETED_SIZE"]+$sizePHP;

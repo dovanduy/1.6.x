@@ -608,8 +608,10 @@ var
    iplistV6:string;
    RecursoriplistV6:string;
    RecursoripAllowFrom:string;
-   database_admin:string;
+   database_admin,database_password,AllowedRecursions:string;
    EnableUfdbGuard:integer;
+   PowerDNSMySQLType,PowerDNSMySQLRemotePort,EnablePDNSRecurseRestrict:integer;
+   PowerDNSMySQLRemoteServer,PowerDNSMySQLRemoteAdmin,PowerDNSMySQLRemotePassw:string;
 begin
 if DisablePowerDnsManagement=1 then exit;
 
@@ -633,7 +635,13 @@ if not TryStrToInt(SYS.GET_INFO('PowerSkipCname'),PowerSkipCname) then PowerSkip
 if not TryStrToInt(SYS.GET_INFO('PDSNInUfdb'),PDSNInUfdb) then PDSNInUfdb:=0;
 if not TryStrToInt(SYS.GET_INFO('SquidActHasReverse'),SquidActHasReverse) then SquidActHasReverse:=0;
 if not TryStrToInt(SYS.GET_INFO('EnableUfdbGuard'),EnableUfdbGuard) then EnableUfdbGuard:=0;
+if not TryStrToInt(SYS.GET_INFO('PowerDNSMySQLType'),PowerDNSMySQLType) then PowerDNSMySQLType:=1;
+if not TryStrToInt(SYS.GET_INFO('PowerDNSMySQLRemotePort'),PowerDNSMySQLRemotePort) then PowerDNSMySQLRemotePort:=3306;
+if not TryStrToInt(SYS.GET_INFO('EnablePDNSRecurseRestrict'),EnablePDNSRecurseRestrict) then EnablePDNSRecurseRestrict:=0;
 
+PowerDNSMySQLRemoteServer:=SYS.GET_INFO('PowerDNSMySQLRemoteServer');
+PowerDNSMySQLRemoteAdmin:=SYS.GET_INFO('PowerDNSMySQLRemoteAdmin');
+PowerDNSMySQLRemotePassw:=SYS.GET_INFO('PowerDNSMySQLRemotePassw');
 
 
 if SquidActHasReverse=1 then PDSNInUfdb:=0;
@@ -641,6 +649,7 @@ if EnableUfdbGuard=0 then PDSNInUfdb:=0;
 if not FileExists('/usr/bin/ufdbgclient') then PDSNInUfdb:=0;
 
 database_admin:=SYS.GET_MYSQL('database_admin');
+database_password:=trim(SYS.GET_MYSQL('database_password'));
 if length(database_admin)=0 then database_admin:='root';
 pipe:='';
 if PDSNInUfdb=1 then pipe:='pipe,';
@@ -728,7 +737,12 @@ logs.DebugLogs('Starting......: PowerDNS PowerDNSMySQLEngine='+IntToStr(PowerDNS
 
 
 //if ldapserver='127.0.0.1' then ldapserver:='localhost';
-if PowerDNSPublicMode=0 then l.add('allow-recursion='+cdirlist);
+if EnablePDNSRecurseRestrict=1 then begin
+    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pdns.php --allow-recursion >/dev/null 2>&1');
+    AllowedRecursions:=trim(logs.ReadFromFile('/etc/powerdns/allow_recursion.txt'));
+    if length(AllowedRecursions)>0 then l.add('allow-recursion='+AllowedRecursions);
+end;
+
 l.add('#allow-recursion=0.0.0.0/0 ');
 l.add('#allow-recursion-override=on');
 l.add('cache-ttl=20');
@@ -823,22 +837,44 @@ l.add('# wildcards=');
 if PowerDisableDisplayVersion=0 then l.add('version-string=powerdns') else l.add('version-string=nope');
 
 
-
-fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.greensql.php --sets');
-mysql_server:=SYS.GET_MYSQL('mysql_server');
-if not TryStrToInt(SYS.GET_MYSQL('port'),mysql_port) then mysql_port:=3306;
-
-if PowerUseGreenSQL=1 then begin
-    mysql_server:=SYS.GET_MYSQL('GreenIP');
-    if not TryStrToInt(SYS.GET_MYSQL('GreenPort'),mysql_port) then mysql_port:=3305;
+if PowerDNSMySQLType=1 then begin
+   logs.DebugLogs('Starting......: PowerDNS MySQL /var/run/mysqld/mysqld.sock@'+database_admin);
+   l.add('gmysql-socket=/var/run/mysqld/mysqld.sock');
+   l.add('gmysql-user='+database_admin);
+   if length(database_password)>0 then l.add('gmysql-password='+database_password);
+   l.add('gmysql-dbname=powerdns');
+   logs.DebugLogs('Starting......: PowerDNS checks MySQL table and database...');
+   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pdns.php --mysql');
 end;
-if length(mysql_server)=0 then mysql_server:='127.0.0.1';
-logs.DebugLogs('Starting......: PowerDNS MySQL backend is enabled ['+mysql_server+':'+IntTostr(mysql_port)+']');
-l.add('gmysql-host='+mysql_server);
-l.add('gmysql-user='+database_admin);
-l.add('gmysql-password='+SYS.GET_MYSQL('database_password'));
-l.add('gmysql-port='+IntTostr(mysql_port));
-l.add('gmysql-dbname=powerdns');
+
+if PowerDNSMySQLType=2 then begin
+   logs.DebugLogs('Starting......: PowerDNS MySQL '+PowerDNSMySQLRemoteServer+'@'+PowerDNSMySQLRemoteAdmin);
+   l.add('gmysql-host='+PowerDNSMySQLRemoteServer);
+   l.add('gmysql-port='+IntTostr(PowerDNSMySQLRemotePort));
+   l.add('gmysql-user='+PowerDNSMySQLRemoteAdmin);
+   if length(PowerDNSMySQLRemotePassw)>0 then l.add('gmysql-password='+PowerDNSMySQLRemotePassw);
+   l.add('gmysql-dbname=powerdns');
+end;
+
+if PowerDNSMySQLType=3 then begin
+   mysql_server:=SYS.GET_MYSQL('mysql_server');
+   if mysql_server='localhost' then mysql_server:='127.0.0.1';
+   if not TryStrToInt(SYS.GET_MYSQL('port'),mysql_port) then mysql_port:=3306;
+
+   if PowerUseGreenSQL=1 then begin
+      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.greensql.php --sets');
+      mysql_server:=SYS.GET_MYSQL('GreenIP');
+      if not TryStrToInt(SYS.GET_MYSQL('GreenPort'),mysql_port) then mysql_port:=3305;
+   end;
+
+   logs.DebugLogs('Starting......: PowerDNS MySQL '+mysql_server+':'+IntTostr(mysql_port)+'@'+database_admin);
+   l.add('gmysql-host='+PowerDNSMySQLRemoteServer);
+   l.add('gmysql-port='+IntTostr(mysql_port));
+   l.add('gmysql-user='+database_admin);
+   if length(database_password)>0 then l.add('gmysql-password='+database_password);
+   l.add('gmysql-dbname=powerdns');
+end;
+
 if PowerDNSDNSSEC=1 then begin
     l.add('gmysql-dnssec');
     logs.DebugLogs('Starting......: PowerDNS DNSSEC is enabled...');
@@ -886,14 +922,36 @@ end;
 l.add('recursor=127.0.0.1:1553');
 
 
-l.add('gmysql-host='+mysql_server);
-l.add('gmysql-port='+IntTostr(mysql_port));
-l.add('gmysql-user='+database_admin);
-l.add('gmysql-password='+SYS.GET_MYSQL('database_password'));
-l.add('gmysql-dbname=powerdns');
-logs.DebugLogs('Starting......: PowerDNS checks MySQL table and database...');
-fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pdns.php --mysql');
+if PowerDNSMySQLType=1 then begin
+   l.add('gmysql-socket=/var/run/mysqld/mysqld.sock');
+   l.add('gmysql-user='+database_admin);
+   l.add('gmysql-password='+SYS.GET_MYSQL('database_password'));
+   l.add('gmysql-dbname=powerdns');
+end;
 
+if PowerDNSMySQLType=2 then begin
+   l.add('gmysql-host='+PowerDNSMySQLRemoteServer);
+   l.add('gmysql-port='+IntTostr(PowerDNSMySQLRemotePort));
+   l.add('gmysql-user='+PowerDNSMySQLRemoteAdmin);
+   l.add('gmysql-password='+PowerDNSMySQLRemotePassw);
+   l.add('gmysql-dbname=powerdns');
+end;
+
+if PowerDNSMySQLType=3 then begin
+   mysql_server:=SYS.GET_MYSQL('mysql_server');
+   if mysql_server='localhost' then mysql_server:='127.0.0.1';
+   if not TryStrToInt(SYS.GET_MYSQL('port'),mysql_port) then mysql_port:=3306;
+
+   if PowerUseGreenSQL=1 then begin
+      mysql_server:=SYS.GET_MYSQL('GreenIP');
+      if not TryStrToInt(SYS.GET_MYSQL('GreenPort'),mysql_port) then mysql_port:=3305;
+   end;
+   l.add('gmysql-host='+PowerDNSMySQLRemoteServer);
+   l.add('gmysql-port='+IntTostr(mysql_port));
+   l.add('gmysql-user='+database_admin);
+   if length(database_password)>0 then l.add('gmysql-password='+database_password);
+   l.add('gmysql-dbname=powerdns');
+end;
 
 
 

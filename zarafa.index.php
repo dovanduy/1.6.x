@@ -29,6 +29,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	if(isset($_GET["popup-license"])){popup_license();exit;}
 	if(isset($_POST["ZarafaHashRebuild"])){popup_mailbox_rebuild();exit;}
 	if(isset($_POST["zlicense"])){save_license();exit;}
+	if(isset($_GET["zarafa-box"])){ZarafaBox();exit;}
 js();
 function js(){
 	$page=CurrentPageName();
@@ -171,28 +172,38 @@ function popup_status(){
 		$ini->loadString($datas);
 	}
 	
+
+	
+	
 	$html="
 	<table style='width:100%'>
 	<tr>
-		<td valign='top' width=1%><img src='img/zarafa-box-256.png'></td>
+		<td valign='top' width=1%><span id='zarafa-box'></span></td>
 		<td valign='top' width=99%>
-		<H3>{APP_ZARAFA} v{$ini->_params["APP_ZARAFA"]["master_version"]}</H3>
-		<div class=explain>{APP_ZARAFA_TEXT}</div>$yaffas
-		<table style='width:100%'>
-		<tr>
-			<td width=1%><img src='img/arrow-right-24.png'></td>
-			<td nowrap><a href=\"javascript:blur();\" 
-			OnClick=\"javascript:Loadjs('postfix.events.new.php?js-zarafa=yes');\" 
-			style='font-size:13px;text-decoration:underline'>{APP_ZARAFA}:{events}</a></td>
-		</tr>
-		<tr>
-			<td width=1%><img src='img/arrow-right-24.png'></td>
-			<td nowrap><a href=\"javascript:blur();\" 
-			OnClick=\"javascript:Loadjs('zarafa.audit.logs.php');\" 
-			style='font-size:13px;text-decoration:underline'>{APP_ZARAFA}:{audit}</a></td>
-		</tr>		
-		
+			<H3 style='font-size:22px;font-weight:bold'>{APP_ZARAFA} v{$ini->_params["APP_ZARAFA"]["master_version"]}</H3>
+			<div id='zarafa-error' style='color:#FB0808;font-weight:bold;font-size:14px'></div>
+			<div class=explain>{APP_ZARAFA_TEXT}</div>$yaffas
+			<table style='width:100%'>
+			<tr>
+				<td width=1%><img src='img/arrow-right-24.png'></td>
+				<td nowrap>
+					<a href=\"javascript:blur();\" 
+					OnClick=\"javascript:Loadjs('postfix.events.new.php?js-zarafa=yes');\" 
+					style='font-size:13px;text-decoration:underline'>{APP_ZARAFA}:{events}</a>
+				</td>
+			</tr>
+			<tr>
+				<td width=1%><img src='img/arrow-right-24.png'></td>
+				<td nowrap><a href=\"javascript:blur();\" 
+				OnClick=\"javascript:Loadjs('zarafa.audit.logs.php');\" 
+				style='font-size:13px;text-decoration:underline'>{APP_ZARAFA}:{audit}</a></td>
+			</tr>	
+			<tr>
+				<td width=1%><span id='mysql-dedie-img'></span></td>
+				<td nowrap><span id='mysql-dedie-text' style='font-size:13px;text-decoration:underline'></span></td>
+			</tr>				
 		</table>
+		</td>
 	</tr>
 	</table>
 	<div id='zarafa-services-status' style='width:100%;'></div>
@@ -200,11 +211,55 @@ function popup_status(){
 	
 	<script>
 		LoadAjax('zarafa-services-status','$page?services-status=yes');
+		LoadAjaxTiny('zarafa-box','$page?zarafa-box=yes');
 	</script>
 	";
 	$html=$tpl->_ENGINE_parse_body($html);
 	SET_CACHED(__FILE__, __FUNCTION__, null, $html);
 	echo $html;
+}
+
+function ZarafaBox(){
+	$sock=new sockets();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$mysqldimg="ok24-grey.png";
+	$mysqltext=$mysqltext. "{APP_ZARAFA_DB} {not_installed}";
+	$ZarafaRemoteMySQLServer=$sock->GET_INFO("ZarafaRemoteMySQLServer");
+	if($users->APP_ZARAFADB_INSTALLED){
+		$mysqltext="{APP_ZARAFADB} {installed}";
+		if($ZarafaRemoteMySQLServer<>3){
+			$mysqldimg="warning24.png";
+			$mysqltext=$mysqltext. "({not_used})";
+		}
+		
+	}
+	
+	
+	$mysqltext=$tpl->javascript_parse_text($mysqltext);
+	
+	
+	$zarafabox="zarafa-box-256.png";
+	
+	$USERSARR=unserialize(base64_decode($sock->getFrameWork("zarafa.php?users-count=yes")));
+	if(!$USERSARR["STATUS"]){
+		$zarafabox="zarafa-box-red-256.png";
+		$zarafaerror=$tpl->javascript_parse_text($USERSARR["ERROR"]);
+		$zarafaerror=" document.getElementById('zarafa-error').innerHTML='$zarafaerror';";
+	}else{
+		$zarafaerror=$tpl->javascript_parse_text("{license2}: {$USERSARR["ACTIVE"]["USED"]}/{$USERSARR["ACTIVE"]["ALLOWED"]}");
+		$zarafaerror=" document.getElementById('zarafa-error').innerHTML='<span style=\"color:black\">$zarafaerror</span>';";
+		
+	}
+	
+	echo "<img src='img/$zarafabox'>
+	<script>
+	document.getElementById('mysql-dedie-img').innerHTML='<img src=img/$mysqldimg>';
+	document.getElementById('mysql-dedie-text').innerHTML='$mysqltext';
+		 $zarafaerror
+	</script>
+	";
+	
 }
 
 function services_status(){
@@ -213,10 +268,8 @@ function services_status(){
 	$sock=new sockets();
 	$users=new usersMenus();
 	
-	
-
-	
 	$array[]="APP_ZARAFA";
+	$array[]="APP_ZARAFA_SERVER2";
 	$array[]="APP_ZARAFA_DB";
 	$array[]="APP_ZARAFA_GATEWAY";
 	$array[]="APP_ZARAFA_SPOOLER";

@@ -39,9 +39,9 @@ function AddNewSchedule_js(){
 	$ID=$_GET["ID"];
 	$tpl=new templates();
 	$page=CurrentPageName();
-	
+	$YahooWin=2;
 	$title="{new_schedule}";
-	
+	if(isset($_GET["YahooWin"])){$YahooWin=$_GET["YahooWin"];$YahooWinet="&YahooWin={$_GET["YahooWin"]}";};
 	if($ID>0){
 		$q=new mysql();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM system_schedules WHERE ID=$ID"));
@@ -49,7 +49,7 @@ function AddNewSchedule_js(){
 	}
 	
 	$title=$tpl->_ENGINE_parse_body($title);
-	echo "YahooWin2('650','$page?AddNewSchedule-popup=yes&ID=$ID','$title')";
+	echo "YahooWin{$YahooWin}('650','$page?AddNewSchedule-popup=yes&ID=$ID$YahooWinet','$title')";
 	
 }
 
@@ -64,6 +64,7 @@ function schedules_params_popup(){
 	$sock=new sockets();
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$schedules=new system_tasks();
 	$t=time();
 	$settings=unserialize(base64_decode($sock->GET_INFO("FcronSchedulesParams")));
 	if(!is_numeric($settings["max_load_avg5"])){$settings["max_load_avg5"]="2.5";}
@@ -93,7 +94,9 @@ function schedules_params_popup(){
 		<td style='font-size:16px'>". Field_text("max_events",$settings["max_events"],"font-size:16px;width:90px")."&nbsp;</td>
 	</tr>			
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}", "SaveCronSets()",16)."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}", "SaveCronSets()",16)."
+		
+		</td>
 	</tr>	
 	</table>
 	
@@ -164,8 +167,18 @@ function AddNewSchedule_popup(){
 		$taskz[$TaskType]="[{$TaskType}] ".$tpl->_ENGINE_parse_body($content);
 		
 	}
+	if(isset($_GET["ForceType"])){
+		unset($taskz);
+		$taskz[$_GET["ForceType"]]=$tpl->_ENGINE_parse_body($task_type[$_GET["ForceType"]]);
+	}
+	if(isset($_GET["t"])){$t=$_GET["t"];}else{
+		$t=time();
+	}
 	
-	$t=time();
+	$YahooWinHide="YahooWin2Hide()";
+	if(isset($_GET["YahooWin"])){
+		$YahooWinHide="YahooWin{$_GET["YahooWin"]}Hide()";
+	}
 	
 	$html="
 	<div id='div-$t'>
@@ -188,7 +201,10 @@ function AddNewSchedule_popup(){
 		". button("{browse}...","Loadjs('cron.php?field=TimeText-$t')",12)."</td>
 	</tr>	
 	<tr>
-		<td colspan=2 align='right'><hr>". button($buttontext,"SaveTaskSystem$t()",16)."</td>
+		<td colspan=2 align='right'><hr>". button($buttontext,"SaveTaskSystem$t()",16)."
+		<div style='font-size:11px;margin-top:15px'>{schedule}:". $tasks->PatternToHuman($ligne["TimeText"],true)	."</i></div>			
+				
+		</td>
 	</tr>
 	</table>
 	</div>
@@ -202,8 +218,9 @@ function AddNewSchedule_popup(){
 		var ID='{$_GET["ID"]}';
 		var results=obj.responseText;
 		if(results.length>0){alert(results);}		
-		YahooWin2Hide();
-		SystemCrontaskUpdateTable();
+		$YahooWinHide;
+		if(document.getElementById('main_upateutility_config')){RefreshTab('main_upateutility_config');}
+		ifFnExistsCallIt('SystemCrontaskUpdateTable');
 	}	
 
 
@@ -625,7 +642,7 @@ function search(){
 		$TaskType=$ligne["TaskType"];
 		$jstaskexplain=$tpl->javascript_parse_text($schedules->tasks_array[$ligne["TaskType"]]);
 		$ligne["TaskType"]=$tpl->_ENGINE_parse_body($schedules->tasks_array[$ligne["TaskType"]]);
-		
+		$TimeDescription=$ligne["TimeDescription"];
 		
 		$enable=Field_checkbox($md5, 1,$ligne["enabled"],"SystemTaskEnable('$md5',{$ligne['ID']})");
 		$delete=imgtootltip("delete-24.png","{delete} {$ligne['ID']}","SquidTaskDelete('{$ligne['ID']}')");
@@ -650,6 +667,9 @@ function search(){
 		}
 		$explainTXT=$tpl->_ENGINE_parse_body($schedules->tasks_explain_array[$TaskType]);
 		
+		$TimeText=$tpl->_ENGINE_parse_body($schedules->PatternToHuman($ligne["TimeText"]));
+		$TimeText=str_replace("<br>", "", $TimeText);
+		if(preg_match("#(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+(.+?)#", $TimeDescription,$re)){$TimeDescription=$TimeText;$TimeText=null;}
 		
 		
 		
@@ -663,7 +683,7 @@ function search(){
 	$data['rows'][] = array(
 		'id' => "SquidTask".$ligne['ID'],
 		'cell' => array("$span{$ligne['ID']}</a>",
-		"$span{$ligne["TaskType"]}</a>","$span{$ligne["TimeDescription"]}</a>
+		"$span{$ligne["TaskType"]}</a>","$span$TimeDescription</a>
 		<div style='font-size:11px'><i>$explainTXT</i></div>",$run,$events,
 		
 		"<div style='margin-top:5px'>$enable</div>",$delete )

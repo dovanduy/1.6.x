@@ -463,7 +463,6 @@ function ZarafaInit(){
 	if(is_file($redhatbin)){
 		echo "Zarafa updating RedHat mode\n";
 		zarafa_monitor_redhat();
-		zarafa_server_redhat();
 		ZarafaSearch_redhat();
 		zarafa_dagent_redhat();
 	}
@@ -473,8 +472,10 @@ function ZarafaInit(){
 		zarafa_monitor_debian();
 		ZarafaSearch_debian();
 		zarafa_dagent_debian();
-		zarafa_server_debian();
+	
 	}
+	
+	zarafa_server_all();
 }
 function ZarafaSearch_debian(){
 	if(!is_file("/usr/bin/zarafa-search")){return;}
@@ -528,6 +529,7 @@ function ZarafaSearch_debian(){
 		$f[]="		exit 0";
 		$f[]="	fi";
 		$f[]="	log_begin_msg \"Starting \$DESC: \$NAME\"";
+		$f[]=" 	mkdir -p /var/lib/zarafa/index";
 		$f[]="	export LC_ALL=\$ZARAFA_LOCALE";
 		$f[]="	export LANG=\$ZARAFA_LOCALE";
 		$f[]="	start-stop-daemon --start \$QUIETDAEMON --pidfile \$PIDFILE --exec \$SEARCH -- \$SEARCH_OPTS";
@@ -1105,6 +1107,64 @@ function zarafa_server_redhat(){
 	echo "Zarafa Server init.d RedHat mode done\n";	
 	
 }
+
+function zarafa_server_all(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$f=array();
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          Zarafa-server Main";
+	$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
+	$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: Zarafa-server Main";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: Zarafa-server Main";
+	$f[]="### END INIT INFO";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-server.php --start --byinitd \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-server.php --stop --byinitd --force \$2 \$3";
+	$f[]="    ;;";
+	$f[]="  reload)";
+	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-server.php --reload --byinitd --force \$2 \$3";
+	$f[]="    ;;";	
+	$f[]="";
+	$f[]=" restart)";
+	
+	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-server.php --stop --byinitd --force \$2 \$3";
+	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-server.php --start --byinitd \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart} {ldap|} (+ 'debug' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+	
+	@file_put_contents("/etc/init.d/zarafa-server", @implode("\n", $f));
+	@chmod("/etc/init.d/zarafa-server",0755);
+	
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec('/usr/sbin/update-rc.d -f zarafa-server defaults >/dev/null 2>&1');
+		shell_exec('/usr/sbin/update-rc.d -f zarafa-server2 defaults >/dev/null 2>&1');
+	}
+	
+	if(is_file('/sbin/chkconfig')){
+		shell_exec('/sbin/chkconfig --add zarafa-server >/dev/null 2>&1');
+		shell_exec('/sbin/chkconfig --level 2345 zarafa-server on >/dev/null 2>&1');
+	}
+}	
+	
+
 
 function zarafa_server_debian(){
 	$unix=new unix();

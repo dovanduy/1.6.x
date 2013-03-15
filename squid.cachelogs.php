@@ -40,7 +40,7 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$zdate', name : 'zDate', width :120, sortable : true, align: 'left'},
-		{display: '$events', name : 'events', width : 691, sortable : false, align: 'left'},
+		{display: '$events', name : 'events', width : 778, sortable : false, align: 'left'},
 		],
 	
 	searchitems : [
@@ -53,7 +53,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 855,
+	width: 942,
 	height: 420,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]

@@ -26,6 +26,9 @@ if(isset($_GET["reconfigure-webapp"])){reconfigure_webapp();exit;}
 if(isset($_GET["query-logs"])){query_logs();exit;}
 if(isset($_GET["remove-disabled"])){remove_disabled();exit;}
 if(isset($_GET["status"])){freewebs_status();exit;}
+if(isset($_GET["reconfigure-updateutility"])){updateutility();exit;}
+if(isset($_GET["reconfigure-wpad"])){wpad();exit;}
+
 
 
 
@@ -58,6 +61,24 @@ function reconfigure_webapp(){
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 }
+function updateutility(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.freeweb.php --reconfigure-updateutility >/dev/null 2>&1 &");
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+
+function wpad(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.freeweb.php --reconfigure-wpad >/dev/null 2>&1 &");
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+
 
 function apache_watchdog(){
 	$unix=new unix();
@@ -84,7 +105,8 @@ function rebuild_vhost(){
 	$servername=$_GET["servername"];
 	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.freeweb.php --sitename $servername >/dev/null 2>&1 &");
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
-	shell_exec($cmd);		
+	shell_exec($cmd);
+	$unix->THREAD_COMMAND_SET("$php /usr/share/artica-postfix/exec.freeweb.php --sitename $servername");
 	
 }
 

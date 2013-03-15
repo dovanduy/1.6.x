@@ -63,7 +63,7 @@ The default value of 2 is probably too low; we suggest 10 instead;
 <mysql_performance_level_text>Ajustes y consejos para ajustar su servidor MySQL</mysql_performance_level_text>
 <mysql_repair_text>Reparaci&oacute;n de bases de datos easly ...</mysql_repair_text>
 <mysql_server_consumption>Consumo del servidor Mysql</mysql_server_consumption>
-<mysql_server_text>The Mysql database server store many informations used by Artica (include events logs, RouncCube cache,statistics...) the mysql server process should take CPU times and memory while this service
+<mysql_server_text>The MySQL database server store many informations used by Artica (include events logs, RouncCube cache,statistics...) the mysql server process should take CPU times and memory while this service
 is just a cosmetic service.[br]
 you can drive here the mysql server consumption
 </mysql_server_text>
@@ -100,7 +100,7 @@ Increasing this number gently, say to 10 or 20, will hold that number of message
 </syslogng_sync_text>
 <syslog_server_consumption>Syslog-ng inyeccion</syslog_server_consumption>
 <syslog_server_consumption_text>You using syslog-ng and Artica automatically set it to force sending events to mysql in order to display them.[br]
-Mysql injection increase mysql processes and need some performances.[br]
+Mysql injection increase MySQL processes and need some performances.[br]
 This parameter allow you to totally disable this feature or to specify wich logs you want to send to mysql.</syslog_server_consumption_text>
 <tune_title>Artica Performances</tune_title>
 <useIonice>Abilitar I/O prioridades</useIonice>

@@ -19,7 +19,7 @@ Procmail is also a complete drop-in replacement for your MDA. (If this doesn't m
 <account_already_exists>Account esistente</account_already_exists>
 <account_name>Impostazioni dell'account</account_name>
 <ACLS>Access Control Lists</ACLS>
-<acls_directory>Manage Access Control list of this directory</acls_directory>
+<acls_directory>Gestisce l'Access contro list (ACL) di questa directory</acls_directory>
 <acls_get_error>Unable to obtain ACL information, check that your disk have ACLs enabled or getfacl/setfacl tools are correctly installed on your system</acls_get_error>
 <ACLS_SUPPORT>ACLs support</ACLS_SUPPORT>
 <ACLS_SUPPORT_EXPLAIN>These parameters will define ACL defaults behaviours when adding a new shared folder.[br]You can set ACL parameters directly on shared folder properties</ACLS_SUPPORT_EXPLAIN>

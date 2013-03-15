@@ -24,7 +24,7 @@
 <mysql_not_root_configured>Error Mysql Access</mysql_not_root_configured>
 <mysql_not_root_configured_text>Artica report Access denied, you need to set the right account for mysql in order to get full artica features
 Go to Global settings/Mysql database to set this account</mysql_not_root_configured_text>
-<mysql_too_any_connections>Mysql server reports that there  are too many connections on Mysql server[br]you have to restart Mysql or to reboot your server</mysql_too_any_connections>
+<mysql_too_any_connections>MySQL server reports that there  are too many connections on Mysql server[br]you have to restart Mysql or to reboot your server</mysql_too_any_connections>
 <notification>Error detected</notification>
 <postfix_mynet_not_conf>Postfix Networks</postfix_mynet_not_conf>
 <postfix_mynet_not_conf_text>You need to set your networks in order to place Postfix in production mode.[br]

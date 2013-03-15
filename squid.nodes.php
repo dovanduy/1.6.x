@@ -44,10 +44,17 @@ function node_infos_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$computer=new computers();
-	$uid=$computer->ComputerIDFromMAC($_GET["MAC"]);
-	$title=$tpl->_ENGINE_parse_body("{status}::{computer}:{$_GET["MAC"]}::$uid");
+	if($_GET["MAC"]<>null){
+		$uid=$computer->ComputerIDFromMAC($_GET["MAC"]);
+		$title=$tpl->_ENGINE_parse_body("{status}::{computer}:{$_GET["MAC"]}::$uid");
+		$html="YahooWin5('748','$page?node-infos-tabs=yes&MAC={$_GET["MAC"]}','$title');";
+	}
 	
-	$html="YahooWin5('748','$page?node-infos-tabs=yes&MAC={$_GET["MAC"]}','$title');";
+	if($_GET["ipaddr"]<>null){
+		$title=$tpl->_ENGINE_parse_body("{status}::{computer}:{$_GET["ipaddr"]}");
+		$html="YahooWin5('748','$page?node-infos-tabs=yes&ipaddr={$_GET["ipaddr"]}','$title');";
+	}	
+	
 	echo $html;	
 	
 }
@@ -135,28 +142,32 @@ function node_infos_tabs(){
 		unset($array["node-infos-RULES"]);
 	}
 	
+	if($_GET["MAC"]==null){
+		unset($array["node-infos-IPADDRS"]);
+	}
+	
 	$textsize="13px";
 
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 		
 	if($num=="node-infos-WEBACCESS"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.access.php?MAC={$_GET["MAC"]}\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.access.php?MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 	if($num=="node-infos-GROUPS"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.groups.php?MAC={$_GET["MAC"]}\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.groups.php?MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}\"><span>$ligne</span></a></li>\n");
 			continue;
 	}		
 
 	if($num=="node-infos-RULES"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.accessrules.php?MAC={$_GET["MAC"]}\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.accessrules.php?MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}\"><span>$ligne</span></a></li>\n");
 			continue;
 		}			
 		
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"$page?$num=yes&MAC={$_GET["MAC"]}\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"$page?$num=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}\"><span>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -538,14 +549,12 @@ function node_infos_UserAgents(){
 	}
 	
 	$html="
-	<center>
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
-	</center>
 <script>
 
 $(document).ready(function(){
 $('#$t').flexigrid({
-	url: '$page?node-infos-UserAgents-list=yes&MAC={$_GET["MAC"]}$listAdd',
+	url: '$page?node-infos-UserAgents-list=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}$listAdd',
 	dataType: 'json',
 	colModel : [
 		{display: '$UserAgents', name : '$UserAgentsF', width : 573, sortable : true, align: 'left'},
@@ -577,20 +586,27 @@ function node_infos_UserAgents_list(){
 	$UserAgent="UserAgent";
 	$search='%';
 	$table="UserAutDB";
+	$Select="MAC";
 	$page=1;
 	$FORCE_FILTER="AND MAC='{$_GET["MAC"]}' AND LENGTH(UserAgent)>0";
 	if(isset($_GET["ipaddr"])){
 		$FORCE_FILTER="AND MAC='{$_GET["MAC"]}' AND LENGTH(ipaddr)>0";
 		$UserAgent="ipaddr";
 	}
+	
+	if($_GET["MAC"]==null){
+		if($_GET["ipaddr"]<>null){
+			$FORCE_FILTER="AND ipaddr='{$_GET["ipaddr"]}' AND LENGTH(ipaddr)>0";
+			$UserAgent="UserAgent";
+			$Select="ipaddr";
+		}
+		
+	}
+	
+	
 	$total=0;
 	
-	if($q->COUNT_ROWS($table)==0){
-		writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
-		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
-		echo json_encode($data);
-		return ;
-	}
+	if($q->COUNT_ROWS($table)==0){json_error_show("Empty table...");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
@@ -619,7 +635,7 @@ function node_infos_UserAgents_list(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT MAC,$UserAgent FROM `$table` GROUP BY MAC,$UserAgent HAVING 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+	$sql="SELECT $Select,$UserAgent FROM `$table` GROUP BY $Select,$UserAgent HAVING 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	$results = $q->QUERY_SQL($sql);
 	
 	
@@ -630,12 +646,14 @@ function node_infos_UserAgents_list(){
 	$data['rows'] = array();
 	
 	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
+		json_error_show("$q->mysql_error");
 	}	
 
+	
+	if(mysql_num_rows($results)==0){
+		json_error_show("Query return no item");
+	}
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=$ligne[$UserAgent];
 		$md5=md5($ligne[$UserAgent]);

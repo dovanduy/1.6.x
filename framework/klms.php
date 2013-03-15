@@ -26,7 +26,6 @@ if(isset($_GET["get-task-events"])){task_logs_events();exit;}
 if(isset($_GET["reset-password"])){reset_password();exit;}
 
 
-
 reset($_GET);
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 
@@ -263,5 +262,6 @@ function reset_password(){
 	exec("$cmd 2>&1",$results);
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 }
+
 
 ?>

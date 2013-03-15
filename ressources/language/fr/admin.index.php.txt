@@ -19,7 +19,7 @@
 <mysql_not_root_configured>Erreur d'acc&egrave;s &agrave; la base de donn&eacute;es MYSQL</mysql_not_root_configured>
 <mysql_not_root_configured_text>Artica indique une erreur d'acc&egrave;s, vous devez indiquer le compte correct pour mysql afin de disposer de toutes les fonctionnalit&eacute;s.[br]
 Allez dans &quot;Param&egrave;tres Globaux &gt; Base de donn&eacute;es Mysql afin de modifier le compte.</mysql_not_root_configured_text>
-<mysql_too_any_connections>Mysql indique qu'il y &agrave; trop de connections[br]red&eacute;marrez Mysql ou votre serveur.</mysql_too_any_connections>
+<mysql_too_any_connections>MySQL indique qu'il y &agrave; trop de connections[br]red&eacute;marrez Mysql ou votre serveur.</mysql_too_any_connections>
 <notification>Erreur d&eacute;tect&eacute;e</notification>
 <postfix_mynet_not_conf>R&eacute;glages r&eacute;seaux de Postfix</postfix_mynet_not_conf>
 <postfix_mynet_not_conf_text>Vous devez indiquer vos r&eacute;glages r&eacute;seaux pour que Postfix soit op&eacute;rationnel.[br]

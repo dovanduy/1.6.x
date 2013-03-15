@@ -23,10 +23,16 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 
 if($argv[1]=="--main-table"){main_table();exit;}
-if($argv[1]=="--now"){UsersSizeByHour();}
+if($argv[1]=="--now"){UsersSizeByHour();ParseQueue();}
 
 
 UsersSizeByHour();
+ParseQueue();
+UserRTT_SIZE_DAY();
+UserSizeRTT_oldfiles();
+main_table();
+
+
 function UsersSizeByHour(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
@@ -62,7 +68,10 @@ function UsersSizeByHour(){
 	@unlink($pidtime);
 	@file_put_contents($pidtime, time());
 	
-	$classParse=new squid_tail();
+	
+	
+	// VF /var/log/artica-postfix/squid/queues/RTTSize;
+	
 	$RTTSIZEPATH="/var/log/artica-postfix/squid-RTTSize/".date("YmdH");
 	
 	if(!is_file($RTTSIZEPATH)){
@@ -81,23 +90,109 @@ function UsersSizeByHour(){
 	}	
 	
 	$RTTSIZEARRAY=unserialize(@file_get_contents($RTTSIZEPATH));
-	$date=date('Y-m-d H:00:00');
+	RTTSizeArray($RTTSIZEARRAY);
+
 	
-	$sql="DELETE FROM UserSizeRTT WHERE zdate='$date'";
-	$q->QUERY_SQL($sql);
+	//$prefix="INSERT IGNORE INTO UserSizeRTT (`zMD5`,`uid`,`zdate`,`ipaddr`,`hostname`,`account`,`MAC`,`UserAgent`,`size`) VALUES";
+	//if($mac==null){$mac=$this->GetMacFromIP($ip);}
+	
+	
+}
+
+function ParseQueue(){
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".ParseQueue.pid";
+	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".ParseQueue.time";
+	$oldpid=@file_get_contents($pidfile);
+	
+	$unix=new unix();
+	$mypid=getmypid();
+	
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		if($oldpid<>$mypid){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			events("Already executed pid $oldpid since {$time}mn-> DIE");
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+			die();
+		}
+	}
+	
+	
+	events("ParseQueue(): Starting pid [$mypid]...");
+	@file_put_contents($pidfile,$mypid);
+	
+	
+	$dirs=$unix->dirdir("/var/log/artica-postfix/squid/queues");
+	while (list ($directory,$array) = each ($dirs) ){
+		$dirs2=$unix->dirdir($directory);if(count($dirs2)==0){@rmdir($directory);continue;}
+		if(is_dir("$directory/RTTSize")){ParseRTTSizeDir("$directory/RTTSize");}
+		
+	}
+	
+	
+}
+
+function ParseRTTSizeDir($dir){
+	
+	
+	$unix=new unix();
+	$countDefile=$unix->COUNT_FILES($dir);
+	events("$dir  $countDefile files on Line: ".__LINE__);
+	if($countDefile==0){
+		events("ParseRTTSizeDir():: $dir:  remove... on Line: ".__LINE__);
+		@rmdir($dir);
+		return;
+	}
+	
+	
+	$q=new mysql_squid_builder();
+	$q->CreateUserSizeRTTTable();
+	if(!$q->TABLE_EXISTS("UserSizeRTT")){
+		events("ParseRTTSizeDir():: Fatal UserSizeRTT no such table, die()");
+		ufdbguard_admin_events("Fatal UserSizeRTT no such table, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return;
+	}
+	
+	if (!$handle = opendir($dir)) {
+		ufdbguard_admin_events("Fatal: $dir no such directory",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return;
+	}	
+	$c=0;
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$dir/$filename";
+		$arrayFile=unserialize(@file_get_contents($targetFile));
+		if(!is_array($arrayFile)){@unlink($targetFile);continue;}
+		while (list ($index,$RTTSIZEARRAY) = each ($arrayFile) ){
+			RTTSizeArray($RTTSIZEARRAY);
+			
+		}
+		$c++;
+		@unlink($targetFile);
+		
+	}
+			
+	if($c>0){events("ParseRTTSizeDir():: $c deleted files...");}
+	
+}
+
+function RTTSizeArray($RTTSIZEARRAY){
+	$q=new mysql_squid_builder();
+	$classParse=new squid_tail();
 	
 	if(count($RTTSIZEARRAY["UID"])>0){
 		$f=array();
 		$prefix="INSERT IGNORE INTO UserSizeRTT (`zMD5`,`zdate`,`uid`,`size`,`hits`) VALUES ";
 		while (list ($username,$array) = each ($RTTSIZEARRAY["UID"]) ){
-			
+			$time=$array["xtime"];$date=date("Y-m-d H:i:s");
 			$hits=$array["HITS"];
 			$size=$array["SIZE"];
 			$md5=md5($username.$date);
 			echo $username." HITS:$hits SIZE:$size\n";
 			$f[]="('$md5','$date','$username','$size','$hits')";
 		}
-		
+	
 		if(count($f)>0){
 			$q->QUERY_SQL($prefix.@implode(",", $f));
 			if(!$q->ok){
@@ -105,13 +200,14 @@ function UsersSizeByHour(){
 				return;
 			}
 		}
-		
+	
 	}
 	
 	if(count($RTTSIZEARRAY["IP"])>0){
 		$f=array();
 		$prefix="INSERT IGNORE INTO UserSizeRTT (`zMD5`,`zdate`,`ipaddr`,`hostname`,`size`,`hits`) VALUES ";
 		while (list ($ip,$array) = each ($RTTSIZEARRAY["IP"]) ){
+			$time=$array["xtime"];$date=date("Y-m-d H:i:s");
 			$hits=$array["HITS"];
 			$size=$array["SIZE"];
 			$md5=md5($ip.$date);
@@ -129,38 +225,34 @@ function UsersSizeByHour(){
 		}
 	
 	}
-
+	
 	if(count($RTTSIZEARRAY["MAC"])>0){
 		$f=array();
 		$prefix="INSERT IGNORE INTO UserSizeRTT (`zMD5`,`zdate`,`MAC`,`size`,`hits`) VALUES ";
 		while (list ($mac,$array) = each ($RTTSIZEARRAY["MAC"]) ){
-	
+			$time=$array["xtime"];$date=date("Y-m-d H:i:s");
 			$hits=$array["HITS"];
 			$size=$array["SIZE"];
 			$md5=md5($ip.$date);
-			
+				
 			echo "$mac HITS:$hits SIZE:$size\n";
 			$f[]="('$md5','$date','$mac','$size','$hits')";
 		}
 	
 		if(count($f)>0){
-			$q->QUERY_SQL($prefix.@implode(",", $f));
-			if(!$q->ok){
+		$q->QUERY_SQL($prefix.@implode(",", $f));
+				if(!$q->ok){
 				ufdbguard_admin_events("Fatal: $q->mysql_error\n",__FUNCTION__,__FILE__,__LINE__,"stats");
 				return;
-			}
+		}
 		}
 	
-	}	
-	UserRTT_SIZE_DAY();
-	UserSizeRTT_oldfiles();
-	main_table();
-	
-	//$prefix="INSERT IGNORE INTO UserSizeRTT (`zMD5`,`uid`,`zdate`,`ipaddr`,`hostname`,`account`,`MAC`,`UserAgent`,`size`) VALUES";
-	//if($mac==null){$mac=$this->GetMacFromIP($ip);}
+		}
 	
 	
 }
+
+
 
 function UserRTT_SIZE_DAY(){
 	

@@ -565,6 +565,7 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('memcached')) then list.Add('$_GLOBAL["MEMCACHED_INSTALLED"]=True;') else list.Add('$_GLOBAL["MEMCACHED_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('freshclam')) then list.Add('$_GLOBAL["FRESHCLAM_INSTALLED"]=True;') else list.Add('$_GLOBAL["FRESHCLAM_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('UpdateUtility-Console')) then list.Add('$_GLOBAL["UPDATE_UTILITYV2_INSTALLED"]=True;') else list.Add('$_GLOBAL["UPDATE_UTILITYV2_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('freeradius')) then list.Add('$_GLOBAL["FREERADIUS_INSTALLED"]=True;') else list.Add('$_GLOBAL["FREERADIUS_INSTALLED"]=False;');
 
    if FileExists('/usr/local/share/artica/joomla17_src/includes/version.php') then list.Add('$_GLOBAL["JOOMLA17_INSTALLED"]=True;') else list.Add('$_GLOBAL["JOOMLA17_INSTALLED"]=False;');
    if FileExists('/usr/share/concrete5/concrete/config/version.php') then list.Add('$_GLOBAL["CONCRETE5_INSTALLED"]=True;') else list.Add('$_GLOBAL["CONCRETE5_INSTALLED"]=False;');
@@ -1781,7 +1782,7 @@ logs.Debuglogs('web_settings() -> 75%');
 
     list.Free;;
     if verbosed then writeln('web_settings:: 100%');
-
+    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.tests-settings.php >/dev/null 2>&1 &');
     if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix start framework');
 
 

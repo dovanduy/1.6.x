@@ -5,6 +5,7 @@
 	header("Cache-Control: no-cache, must-revalidate");
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
+	include_once('ressources/class.tcpip.inc');
 
 	
 	

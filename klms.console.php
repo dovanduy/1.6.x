@@ -40,6 +40,17 @@ function popup_enable_freeweb(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$t=time();
+	$sock=new sockets();
+	
+	$TOTAL_MEMORY_MB=$sock->getFrameWork("system.php?TOTAL_MEMORY_MB=yes");
+	if($TOTAL_MEMORY_MB<550){
+		$EnableFreeWeb=0;
+		$p=FATAL_ERROR_SHOW_128("{NO_ENOUGH_MEMORY_FOR_THIS_SECTION}<br><strong style='font-size:18px'>{require}:550MB</strong>",true,true);
+		echo $tpl->_ENGINE_parse_body($p);
+		return;
+	}
+	
+	
 	$html="
 	<center style='margin-top:30px' id='div-$t'>
 	<table style='width:75%' class=form>

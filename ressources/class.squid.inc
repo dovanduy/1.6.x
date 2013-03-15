@@ -818,7 +818,7 @@ class squidbee{
 		if($this->enable_kavproxy==null){$this->enable_kavproxy=0;}
 		if($this->enable_dansguardian==null){$this->enable_dansguardian=0;}
 		if($this->CACHE_SIZE==null){$this->CACHE_SIZE=2000;}
-		if($this->CACHE_PATH==null){$this->CACHE_PATH="/var/cache/squid";}
+		if($this->CACHE_PATH==null){$this->CACHE_PATH="/home/squid/cache-default";}
 		if($this->CACHE_TYPE==null){$this->CACHE_TYPE="aufs";}
 		if($this->SSL_BUMP==null){$this->SSL_BUMP=0;}
 		
@@ -1159,17 +1159,19 @@ class squidbee{
 		$sock=new sockets();
 		$unix=new unix();
 		$array=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));
+		$EnableSplashScreenAsObject=$sock->GET_INFO("EnableSplashScreenAsObject");
+		if(!is_numeric($EnableSplashScreenAsObject)){$EnableSplashScreenAsObject=0;}
 		$SplashScreenURI=$sock->GET_INFO("SplashScreenURI");
 		if(trim($SplashScreenURI)==null){return;}
-		if(!preg_match("#http.*?:#", $SplashScreenURI)){return;}
+		
 		if(!is_numeric($array["CACHE_TIME"])){$array["CACHE_TIME"]=120;}
 		if($this->is_auth()){$L[]="%LOGIN";}
 		$L[]="%SRC";
 		if($this->ACL_ARP_ENABLED){$L[]="%SRCEUI48";}
 		$L[]="%>{X-Forwarded-For}";
 		$URLAR=parse_url($SplashScreenURI);
-		if(isset($URLAR["host"])){$sitename=$URLAR["host"];}
-		if(preg_match("#^www\.(.*?)#", $sitename,$re)){$sitename=$re[1];}
+		if(isset($URLAR["host"])){$sitename=$URLAR["host"];}else{$sitename=$SplashScreenURI;}
+		if(preg_match("#^www\.(.*?)$#", $sitename,$re)){$sitename=$re[1];}
 		if($this->IS_32){$ipv4=" ipv4";}	
 
 		$acl_SplashPage="acl SplashPage dstdomain .$sitename";
@@ -1177,6 +1179,9 @@ class squidbee{
 			$acl_SplashPage="acl SplashPage dst $sitename";
 		}
 		
+		if(!preg_match("#^http.*#", $SplashScreenURI)){
+			$SplashScreenURI="http://$SplashScreenURI";
+		}
 	
 		@mkdir("/var/lib/squid/SplashScreenSessions",0755,true);
 		$unix->chown_func("squid","squid", "/var/lib/squid/SplashScreenSessions/*");
@@ -1189,19 +1194,23 @@ class squidbee{
 		$f[]="external_acl_type SplashScreenAuthDef  ttl={$array["CACHE_TIME"]} negative_ttl=0 children-startup=5 children-idle=5$ipv4 ".@implode(" ", $L)." %URI /usr/share/artica-postfix/external_acl_squid.php --splash session-time={$array["CACHE_TIME"]}";
 		$f[]="acl SplashScreenAuthAcl external SplashScreenAuthDef";
 		$f[]="$acl_SplashPage";
-		$f[]="deny_info $SplashScreenURI?request=%o SplashScreenAuthAcl";
+		$f[]="deny_info 303:$SplashScreenURI?request=%o SplashScreenAuthAcl";
 		$f[]="#-----------------------------------------------------------------\n";
-		$accesses[]="# ------ SplashScreen Rules ------";
-		//$accesses[]="http_access allow SplashPage";
-		$accesses[]="http_access deny !SplashScreenAuthAcl CONNECT";
-		$accesses[]="http_access deny !SplashPage !SplashScreenAuthAcl";
-		$accesses[]="#\n";
+		
+		if($EnableSplashScreenAsObject==0){
+			$accesses[]="# ------ SplashScreen Rules ------";
+			//$accesses[]="http_access allow SplashPage";
+			$accesses[]="http_access deny !SplashScreenAuthAcl CONNECT";
+			$accesses[]="http_access deny !SplashPage !SplashScreenAuthAcl";
+			$accesses[]="#\n";
+		}
 		
 		$GLOBALS["HTTP_ACCESS"]["SPLASH"]=@implode("\n", $accesses);
 		return @implode("\n", $f);
 	}
 	
 	private function external_acl_dynamic_helper(){
+		
 		$q=new mysql_squid_builder();
 		$logprepend="[ACLS]";
 		if($GLOBALS["VERBOSE"]){$logprepend="[DYNAACLS]";}
@@ -1630,12 +1639,22 @@ function SaveToLdap($norestart=false){
 			
 			return $array;
 			
-		}	
+		}
 
+		
 		public function is_auth(){
+			if(isset($GLOBALS["squid_is_auth"])){return $GLOBALS["squid_is_auth"];}
+			$GLOBALS["squid_is_auth"]=$this->_is_auth();
+			
+		}
+
+		private function _is_auth(){
+			if($this->hasProxyTransparent==1){return false;}
 			if($this->LDAP_AUTH==1){return true;}
 			if($this->LDAP_EXTERNAL_AUTH==1){return true;}
 			if($this->EnableKerbAuth==1){return true;}
+			$acl=new squid_acls();
+			if($acl->IsObjectAuth()){return true;}
 			return false;
 		}
 		
@@ -2229,6 +2248,29 @@ function SaveToLdap($norestart=false){
 			return null;
 		}
 		
+	private function ACL_HOTSPOT_URIS(){
+		if(!$this->ASROOT){return;}
+		$acls=array();
+		if(isset($GLOBALS[__CLASS__][__FUNCTION__])){return @implode("\n",$GLOBALS[__CLASS__][__FUNCTION__]);}
+				
+		$sql="SELECT servername FROM freeweb WHERE groupware='SPLASHSQUID'";
+		
+		$q=new mysql();
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$servername=$ligne["servername"];
+			$acls[]=".$servername";
+		}
+		if(count($acls)==0){$GLOBALS[__CLASS__][__FUNCTION__]=null;return;}
+		@file_put_contents("/etc/squid3/acls/SplashScreens.txt", @implode("\n", $acls));
+		$results="acl SplashScreens dstdomain \"/etc/squid3/acls/SplashScreens.txt\"\n";
+		$GLOBALS["HTTP_ACCESS_ALLOW_SPLASHS"]="http_access allow SplashScreens";
+		$GLOBALS[__CLASS__][__FUNCTION__]=$results;
+		return $results;
+		
+	}
+		
 	private function ACL_TEMPLATES_URIS(){
 		if(!$this->ASROOT){return;}
 		if(isset($GLOBALS[__CLASS__][__FUNCTION__])){return @implode("\n",$GLOBALS[__CLASS__][__FUNCTION__]);}
@@ -2366,6 +2408,7 @@ function SaveToLdap($norestart=false){
 		}
 		
 		private function krb_auth_conf(){
+			if($this->hasProxyTransparent==1){return null;}
 			if(!$this->ASROOT){return;}
 			$unix=new unix();
 			$hostname_bin=$unix->find_program("hostname");
@@ -2432,6 +2475,7 @@ function SaveToLdap($norestart=false){
 		
 		
 		private function ntlm_auth_conf(){
+			if($this->hasProxyTransparent==1){return;}
 			if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 			$users=$GLOBALS["CLASS_USERS"];
 			$sock=new sockets();
@@ -2493,11 +2537,7 @@ function SaveToLdap($norestart=false){
 				$conf[]= "auth_param ntlm max_challenge_lifetime 10 minutes";
 			}
 			$conf[]= "";
-			$conf[]= "#Basic authentication for other browser that did not supports NTLM:";
-			$conf[]= "auth_param basic program $users->SQUID_NTLM_AUTH --helper-protocol=squid-2.5-basic";
-			$conf[]= "auth_param basic children 30$auth_param_child";
-			$conf[]= "auth_param basic realm $WINDOWS_DNS_SUFFIX";
-			$conf[]= "auth_param basic credentialsttl 2 hours";
+			$conf[]=$this->auth_param_basic();
 			$conf[]= "";
 			$conf[]= "#Dynamic ACLs groups Enabled: [$UseDynamicGroupsAcls]";
 			if($UseDynamicGroupsAcls==1){
@@ -2526,6 +2566,66 @@ function SaveToLdap($norestart=false){
 
 			}
 		}
+		
+	private function auth_param_basic($direct=false){
+		if($this->hasProxyTransparent==1){$this->NTLM_AUTH=0;return;}
+		echo "Starting......: [AUTH]: Basic: get definitions\n";
+		if($this->IS_32){$auth_param_child=" startup=10 idle=5";}
+		if($this->IS_33){$auth_param_child=" startup=10 idle=5";}
+		$Multiple=false;
+		if($this->NTLM_AUTH==1){
+			if(!$direct){
+				$conf[]= "#Basic authentication for other browser that did not supports NTLM:";
+				$conf[]= "auth_param basic program $users->SQUID_NTLM_AUTH --helper-protocol=squid-2.5-basic";
+				$conf[]= "auth_param basic children 30$auth_param_child";
+				$conf[]= "auth_param basic realm Basic Identification";
+				$conf[]= "auth_param basic credentialsttl 2 hours";
+			}
+		}
+		
+		$acl=new squid_acls();
+		if($acl->IsObjectAuth()){
+			echo "Starting......: [AUTH]: Basic: Objects authentication enabled\n";
+			$Multiple=true;
+		}else{
+			echo "Starting......: [AUTH]: Basic: Objects authentication is disabled\n";
+		}
+		if($this->LDAP_AUTH==1){return ;}
+		if($this->LDAP_EXTERNAL_AUTH==1){return ;}
+		
+		if($Multiple){
+			unset($conf);
+			echo "Starting......: [AUTH]: Basic: multiple authentication methods enabled\n";
+			if(!is_numeric($array["CACHE_TIME"])){$array["CACHE_TIME"]=120;}
+			$basic_fake_auth=$this->locate_generic_bin("basic_fake_auth");
+			if($this->NTLM_AUTH==1){$conf[]= "#Basic authentication for other browsers that did not supports NTLM:";}
+			if($this->NTLM_AUTH==0){$conf[]= "#Basic authentication for other browsers";}
+			$conf[]= "auth_param basic program $basic_fake_auth";
+			$conf[]= "auth_param basic children 30$auth_param_child";
+			$conf[]= "auth_param basic realm Basic Identification";
+			$conf[]= "auth_param basic credentialsttl 2 hours";		
+			$conf[]= "external_acl_type BasicFakeAuth ttl={$array["CACHE_TIME"]} negative_ttl=0 children-startup=5 children-idle=5 %SRC %LOGIN %{Proxy-Authorization} /usr/share/artica-postfix/external_acl_basic_auth.php";
+		}
+		
+		echo "Starting......: [AUTH]: Basic: ".count($conf)." rows\n";
+		
+		return @implode("\n", $conf)."\n";
+		
+	}
+	
+	private function locate_generic_bin($program){
+		$possibleDirs[]="/lib/squid3";
+		$possibleDirs[]="/lib64/squid3";
+		$possibleDirs[]="/lib/squid";
+		$possibleDirs[]="/lib64/squid";
+		$possibleDirs[]="/usr/lib/squid";
+		$possibleDirs[]="/usr/lib64/squid";
+		$possibleDirs[]="/usr/local/squid/libexec";
+		while (list ($num, $directory) = each ($possibleDirs) ){
+			if(is_file("$directory/$program")){return "$directory/$program";}
+		}
+	
+	}	
 			
 			
 	private function ISFiltersEnabled(){
@@ -3289,14 +3389,24 @@ function BuildSquidConf(){
 			$acl_blocked_sites="acl blockedsites url_regex \"/etc/squid3/squid-block.acl\"\n";
 		}
 			
-		if($this->hasProxyTransparent==1){$this->LDAP_AUTH=0;$this->NTLM_AUTH=0;}
+
+		if($this->hasProxyTransparent==1){
+			$this->EnableKerbAuth=0;
+			$this->NTLM_AUTH=0;
+			$this->EnableKerbAuth=0;
+			$this->LDAP_AUTH=0;
+			$this->SQUID_LDAP_AUTH=0;
+		}
+		
+		
 		$squid_sessions_builder=$this->squid_sessions_builder();
 	
-		
+		$conf=$conf . "#--------- Authentication methods\n";
 		$conf=$conf . $this->ntlm_auth_conf();
 		$conf=$conf . $this->ldap_auth_conf();
 		$conf=$conf . $this->krb_auth_conf();
-		$conf=$conf.  $this->external_acl_helper_MacToUid();
+		$conf=$conf . $this->auth_param_basic(true);
+		$conf=$conf . $this->external_acl_helper_MacToUid();
 		$conf=$conf.  $this->external_acl_helper_splash_screen();
 		$conf=$conf.  $this->external_acl_helper_nudity_scanner();
 		$conf=$conf.  $this->external_acl_dynamic_helper();
@@ -3339,6 +3449,7 @@ function BuildSquidConf(){
 		
 		$ACLS_USERS_ASKS=$this->ACLS_USERS_ASKS();
 		if($ACLS_USERS_ASKS<>null){$conf=$conf. $ACLS_USERS_ASKS."\n";}
+
 		
 		
 		
@@ -3420,6 +3531,7 @@ function BuildSquidConf(){
 				$office_network=null;			
 		}
 		
+
 		
 		if($SquidActHasReverse<>1){
 			if($this->enable_dansguardian==1){
@@ -3536,11 +3648,13 @@ function BuildSquidConf(){
 			$conf=$conf ."\nacl whitelisted_mac_computers arp \"/etc/squid3/whitelisted-computers-by-mac.acl\n";
 		}
 		$ACL_TEMPLATES_URIS=$this->ACL_TEMPLATES_URIS();
+		$ACL_HOTSPOT_URIS=$this->ACL_HOTSPOT_URIS();
 		$ACL_WHITELISTED_FOR_ANTIVIRUS=$this->ACL_WHITELISTED_FOR_ANTIVIRUS();
 		$ACL_WHITELISTED_MIMETYPES=$this->ACL_WHITELISTED_MIMETYPES();
 		if($ACL_WHITELISTED_MIMETYPES<>null){$conf=$conf ."\n$ACL_WHITELISTED_MIMETYPES\n";}
 		if($ACL_WHITELISTED_FOR_ANTIVIRUS<>null){$conf=$conf ."\n$ACL_WHITELISTED_FOR_ANTIVIRUS\n";}
-		if($ACL_TEMPLATES_URIS<>null){$conf=$conf ."\n$ACL_TEMPLATES_URIS\n";}		
+		if($ACL_TEMPLATES_URIS<>null){$conf=$conf ."\n$ACL_TEMPLATES_URIS\n";}
+		if($ACL_HOTSPOT_URIS<>null){$conf=$conf ."\n$ACL_HOTSPOT_URIS\n";}		
 		
 		if($this->SquidDisableAllFilters==0){
 			$conf=$conf .$this->ACL_BANNED_COMPUTERS_IP();
@@ -3650,7 +3764,26 @@ function BuildSquidConf(){
 		}
 		
 	
+		$ssl_port_text=$this->ssl_bump_tranparent($listen_port);
 		
+		
+		
+		if($ssl_port_text==null){
+			$ssl_port_text=$this->https_port();
+		}
+		
+		if($GLOBALS["VERBOSE"]){
+			echo "\n\n ********************* SSL PORT (1) ********************\n";
+			echo "$ssl_port_text\n";
+			echo "************************************************************\n\n";
+		}
+		
+		if($ssl_port_text<>null){
+		$conf=$conf."\n";
+		$conf=$conf ."# --------- SSL Listen Port\n";
+			$conf=$conf ."$ssl_port_text\n";
+						
+		}	
 		
 		
 		if($this->ICP_PORT>10){
@@ -3664,9 +3797,8 @@ function BuildSquidConf(){
 			$conf=$conf."htcp_port $this->HTCP_PORT\n";
 		}		
 		
+
 		
-		$conf=$conf.$this->ssl_bump_tranparent($listen_port);
-		$conf=$conf.$this->https_port();
 		
 		if(!isset($this->global_conf_array["tcp_outgoing_address"])){$this->global_conf_array["tcp_outgoing_address"]=null;}
 		
@@ -4144,6 +4276,8 @@ function BuildSquidConf(){
 	
 		private function debug_options(){
 			$sock=new sockets();
+			$acldebg=null;
+			$SquidDebugCacheProcdbg=null;
 			//see http://wiki.squid-cache.org/KnowledgeBase/DebugSections
 			$SquidDebugAcls=$sock->GET_INFO("SquidDebugAcls");
 			$SquidDebugCacheProc=$sock->GET_INFO("SquidDebugCacheProc");
@@ -4211,6 +4345,9 @@ function BuildSquidConf(){
 			if($this->enable_dansguardian==1){$this->allow_squid_localhost=1;}
 			$this->allow_squid_localhost=1;
 			$ACL_MANAGER=$this->ACL_MANAGER();
+			$sock=new sockets();
+			$EnableSquidPortsRestrictions=$sock->GET_INFO("EnableSquidPortsRestrictions");
+			if(!is_numeric($EnableSquidPortsRestrictions)){$EnableSquidPortsRestrictions=0;}
 			if($ACL_MANAGER<>null){$conf[]=$ACL_MANAGER;}
 			
 			if(isset($GLOBALS["HTTP_ACCESS_ALLOW_TEMPLATES"])){
@@ -4219,6 +4356,16 @@ function BuildSquidConf(){
 					$conf[]=$GLOBALS["HTTP_ACCESS_ALLOW_TEMPLATES"];
 				}
 			}
+			
+			if(isset($GLOBALS["HTTP_ACCESS_ALLOW_SPLASHS"])){
+				if($GLOBALS["HTTP_ACCESS_ALLOW_SPLASHS"]<>null){
+					$conf[]="#--------- Allow Splash authentications websites for HotSpot...";
+					$conf[]=$GLOBALS["HTTP_ACCESS_ALLOW_SPLASHS"];
+				}
+			}
+							
+			
+			
 			
 	
 			
@@ -4315,8 +4462,10 @@ function BuildSquidConf(){
 			$conf[]="#--------- ACLS added by administrators";
 			$conf[]=$acls->buildacls_order();
 			$conf[]="#--------- Others mandatories ACLS";
-			$conf[]="http_access deny !Safe_ports";
-			$conf[]="http_access deny CONNECT !SSL_ports";
+			if($EnableSquidPortsRestrictions==1){
+				$conf[]="http_access deny !Safe_ports";
+				$conf[]="http_access deny CONNECT !SSL_ports";
+			}
 			if(isset($GLOBALS["HTTP_ACCESS"]["WHITELISTED_AUTH"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["WHITELISTED_AUTH"];}
 			if(isset($GLOBALS["HTTP_ACCESS"]["WHITELISTED_BROWSERS"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["WHITELISTED_BROWSERS"];}
 			if(isset($GLOBALS["HTTP_ACCESS"]["EXTERNAL_ARTICA_HELPER"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["EXTERNAL_ARTICA_HELPER"];}
@@ -4417,7 +4566,7 @@ function BuildSquidConf(){
 			
 			if($this->hasProxyTransparent==1){
 				$this->SSL_BUMP=1;
-				return $this->ssl_bump_tranparent($this->ssl_port);
+				return null;
 			}
 			$SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));
 			if($SquidBinIpaddr==null){$SquidBinIpaddr="0.0.0.0";}
@@ -4493,7 +4642,7 @@ function BuildSquidConf(){
 		
 		public function get_ssl_port(){
 			if($this->ssl_port>0){return $this->ssl_port;}
-			if($this->second_listen_portForTransparent>0){return 
+			if($this->second_listen_portForTransparent>0){ 
 				$this->ssl_port=$this->second_listen_portForTransparent+1;
 				$this->SaveToLdap();
 				return $this->ssl_port;
@@ -4501,7 +4650,7 @@ function BuildSquidConf(){
 			
 			if($this->ssl_port==0){
 				$this->ssl_port=$this->listen_port+2;
-				return $this->listen_port;
+				return $this->ssl_port;
 			}
 		}
 		

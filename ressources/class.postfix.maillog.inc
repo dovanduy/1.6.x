@@ -413,7 +413,13 @@ class postfix_maillog_buffer{
 			return true;
 		}
 
-		if(preg_match("#warning: connect to Milter service unix:(.+?)spamass.sock: No such file or directory#",$buffer,$re)){
+		if(preg_match("#warning: connect to Milter service unix:(.+?)\/spamass.sock: No such file or directory#",$buffer,$re)){
+				$this->events("{$re[1]}/spamass.sock Error ",__LINE__);	
+				$this->MilterSpamAssassinError($buffer,"$re[1]/spamass.sock");
+				return true;
+		}
+		
+		if(preg_match("#SpamAssassin: Unable to bind to port\s+(.+?)\/spamass\.sock: Permission denied#",$buffer,$re)){
 				$this->events("{$re[1]}/spamass.sock Error ",__LINE__);	
 				$this->MilterSpamAssassinError($buffer,"$re[1]/spamass.sock");
 				return true;
@@ -451,10 +457,34 @@ class postfix_maillog_buffer{
 		if($this->file_time_min($file)<15){
 			$this->events("Must wait 15mn",__LINE__);
 		}	
+	
+		if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();}
+		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+		if(class_exists("usersMenus")){
+			if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
+			$AMAVIS_INSTALLED=$GLOBALS["CLASS_USERS"]->AMAVIS_INSTALLED;
+		}
+		$SpamAssMilterEnabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("SpamAssMilterEnabled");
+		if(!is_numeric($SpamAssMilterEnabled)){$SpamAssMilterEnabled=0;}
+		$mem=$GLOBALS["CLASS_UNIX"]->TOTAL_MEMORY_MB();
+		
+		if($AMAVIS_INSTALLED){
+			$EnableAmavisDaemon=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableAmavisDaemon");
+			if($EnableAmavisDaemon==1){$SpamAssMilterEnabled=0;}
+		}
+
+		if($mem<1500){$SpamAssMilterEnabled=0;}
+		
 		$this->email_events("spamassin-milter socket error: $socket","Postfix claim \"$buffer\", Artica will reload Postfix and compile new Postfix settings",'postfix');
-		$cmd="{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.policyd-weight.php --spamass-milter >/dev/null 2>&1 &";
+		if($SpamAssMilterEnabled==1){
+			$cmd="{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.policyd-weight.php --spamass-milter >/dev/null 2>&1 &";
+			$this->events($cmd,__LINE__);
+			shell_exec($cmd);			
+		}
+		$cmd="{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.initslapd.php --spamass-milter >/dev/null 2>&1 &";
 		$this->events($cmd,__LINE__);
-		shell_exec($cmd);
+		shell_exec($cmd);		
+		
 		@unlink($file);
 		@file_put_contents($file,"#");	
 	}

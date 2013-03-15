@@ -383,7 +383,6 @@ function updatev2(){
 	if($LOCAL_VERSION==$REMOTE_VERSION){
 		updatev2_progress(100,"$LOCAL_VERSION == $REMOTE_VERSION");
 		if($GLOBALS["VERBOSE"]){echo "Noting to do : $LOCAL_VERSION\n";}
-		ufdbguard_admin_events("Up-to-date $LOCAL_VERSION against $REMOTE_VERSION",__FUNCTION__,__FILE__,__LINE__,"update");
 		schedulemaintenance();
 		EXECUTE_BLACK_INSTANCE();
 		return;		

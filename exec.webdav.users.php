@@ -46,6 +46,7 @@ buildUsers();
 
 function buildUsers(){
 	$users=new usersMenus();
+	$unix=new unix();
 	$sock=new sockets();
 	$q=new mysql();
 	$sql="SELECT * FROM webdavusers";
@@ -72,7 +73,7 @@ function buildUsers(){
 	if($WebDavSuffix==null){if($GLOBALS["VERBOSE"]){echo "WebDavSuffix is not set\n";}return;}
 	
 	
-	$FreeWebListen=$sock->GET_INFO("FreeWebListen");
+	$FreeWebListen=$unix->APACHE_ListenDefaultAddress();
 	$FreeWebListenPort=$sock->GET_INFO("FreeWebListenPort");
 	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
 	$FreeWebsDisableSSLv2=$sock->GET_INFO("FreeWebsDisableSSLv2");

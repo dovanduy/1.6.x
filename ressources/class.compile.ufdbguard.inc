@@ -320,22 +320,22 @@ class compile_ufdbguard{
 			$ligne["ext"]=str_replace(".", "", $ligne["ext"]);
 			$ligne["ext"]=str_replace("*", "", $ligne["ext"]);
 			$banned[$ligne["ruleid"]][]=$ligne["ext"];
-			
 			$this->BANNED_FILES_RULES[$ligne["ruleid"]]="FileBlock{$ligne["ruleid"]}";
 		}
 		$f=array();
 		while (list ($ruleid, $exts) = each ($banned)){
-			@mkdir("$main_path/FileBlock{$ligne["ruleid"]}",0755,true);
+			@mkdir("$main_path/FileBlock$ruleid",0755,true);
 			$FINAL=array();
+			
 			while (list ($a, $b) = each ($exts) ){
 				if(trim($b)==null){continue;}
 				$FINAL[]=".*?\/.*\.{$b}$";
 			}
 			
 			
-			@file_put_contents("$main_path/FileBlock{$ligne["ruleid"]}/expressions",@implode("\n", $FINAL));
+			@file_put_contents("$main_path/FileBlock{$ruleid}/expressions",@implode("\n", $FINAL));
 			$f[]="category \"FileBlock{$ruleid}\"{";
-			$f[]="expressionlist	\"$main_path/FileBlock{$ligne["ruleid"]}/expressions\"";
+			$f[]="expressionlist	\"$main_path/FileBlock{$ruleid}/expressions\"";
 			$f[]="}";
 			$f[]="";
 			
@@ -360,11 +360,11 @@ class compile_ufdbguard{
 		}
 		$f=array();
 		while (list ($ruleid, $exts) = each ($banned)){
-			@mkdir("$main_path/DomExtBlock{$ligne["ruleid"]}",0755,true);
+			@mkdir("$main_path/DomExtBlock{$ruleid}",0755,true);
 			$pattern=@implode("\n", $exts);
-			@file_put_contents("$main_path/DomExtBlock{$ligne["ruleid"]}/expressions", $pattern);
+			@file_put_contents("$main_path/DomExtBlock{$ruleid}/expressions", $pattern);
 			$f[]="category \"DomExtBlock{$ruleid}\"{";
-			$f[]="expressionlist	\"$main_path/DomExtBlock{$ligne["ruleid"]}/expressions\"";
+			$f[]="expressionlist	\"$main_path/DomExtBlock{$ruleid}/expressions\"";
 			$f[]="}";
 			$f[]="";
 		}
@@ -543,7 +543,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 	}
 	
 	
-	private function build_membersrule($ruleid){
+	public function build_membersrule($ruleid){
 		$UseDynamicGroupsAcls=$this->UseDynamicGroupsAcls;
 		if($this->KerbAuthDisableNsswitch==1){$UseDynamicGroupsAcls=0;}
 		$array=array();
@@ -915,11 +915,28 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 	
 	private function build_acls_uriFromRuleID($ID){
 		$RedirectUriDEF="$this->SquidGuardIPWeb";
+		$redirect_pattern="?rule-id=$ID&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
+		if($this->DansGuardianDefaultMainRule["UseExternalWebPage"]==1){
+			if(preg_match("#^http.*?:#", $this->DansGuardianDefaultMainRule["ExternalWebPage"])){
+				$RedirectUriDEF=$this->DansGuardianDefaultMainRule["ExternalWebPage"];
+			}
+		}
+		
+		if($this->DansGuardianDefaultMainRule["freeweb"]<>null){
+			$RedirectUriDEF="http://{$this->DansGuardianDefaultMainRule["freeweb"]}";
+		}		
+		
 		$q=new mysql_squid_builder();
-		$sql="SELECT ExternalWebPage,UseExternalWebPage FROM webfilter_rules WHERE ID=$ID";
+		$sql="SELECT freeweb,ExternalWebPage,UseExternalWebPage FROM webfilter_rules WHERE ID=$ID";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		if($ligne["UseExternalWebPage"]==0){return $RedirectUriDEF;}
-		if(trim($ligne["ExternalWebPage"])==null){return $RedirectUriDEF;}
+		if($ligne["UseExternalWebPage"]==0){
+			if($ligne["freeweb"]<>null){return "http://{$ligne["freeweb"]}$redirect_pattern";}
+			return $RedirectUriDEF.$redirect_pattern;
+		}
+		if(trim($ligne["ExternalWebPage"])==null){
+			if($ligne["freeweb"]<>null){return "http://{$ligne["freeweb"]}$redirect_pattern";}
+			return $RedirectUriDEF.$redirect_pattern;
+		}
 		if(!preg_match("#^http.*?:#",$ligne["ExternalWebPage"])){return $RedirectUriDEF;}
 		return $ligne["ExternalWebPage"];
 	}
@@ -961,7 +978,11 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 			if(preg_match("#^http.*?:#", $this->DansGuardianDefaultMainRule["ExternalWebPage"])){
 				$RedirectUriDEF=$this->DansGuardianDefaultMainRule["ExternalWebPage"];
 			}
-		}		
+		}
+
+		if($this->DansGuardianDefaultMainRule["freeweb"]<>null){
+			$RedirectUriDEF="http://{$this->DansGuardianDefaultMainRule["freeweb"]}";
+		}
 		
 		
 		$array[]="acl{";

@@ -42,7 +42,7 @@ class auth_tail{
 			if($this->IfFileTime($filename,5)){
 				$GLOBALS["CLASS_UNIX"]->send_email_events("Error, system cannot access to LDAP database", "pam_ldap claim $buffer\nArtica will try to reconfigure pam and restart LDAP server", "security");
 				$this->WriteFileCache($filename);
-				shell_exec(trim("$nohup /usr/share/artica-postfix/bin/artica-install --nsswitch --start >/dev/null 2>&1 &"));
+				shell_exec(trim("{$GLOBALS["nohup"]} /usr/share/artica-postfix/bin/artica-install --nsswitch --start >/dev/null 2>&1 &"));
 				return true;
 			}
 		}

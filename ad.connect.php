@@ -25,7 +25,7 @@
 js();
 
 function js(){
-	
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{APP_AD_CONNECT}");
 	$page=CurrentPageName();

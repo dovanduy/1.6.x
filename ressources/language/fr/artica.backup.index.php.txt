@@ -1,5 +1,5 @@
 <about>Toutes les informations sont stock&eacute;es dans deux bases de donn&eacute;es utilis&eacute;es par Artica[br]
-LDAP est utilis&eacute; pour l'ensemble des param&egrave;tres et comptes utilisateurs. Mysql est utilis&eacute; pour les &eacute;v&egrave;nements des services[br]Artica peut sauvegarder ces param&egrave;tres afin de les restaurer si le serveur est en panne</about>
+LDAP est utilis&eacute; pour l'ensemble des param&egrave;tres et comptes utilisateurs. MySQL est utilis&eacute; pour les &eacute;v&egrave;nements des services[br]Artica peut sauvegarder ces param&egrave;tres afin de les restaurer si le serveur est en panne</about>
 <add_folder>Ajouter un nouveau dossier</add_folder>
 <add_has_backup>Ajouter ce disque comme syst&egrave;me de sauvegarde</add_has_backup>
 <add_share_folder>Ajouter un nouveau dossier partag&eacute; distant</add_share_folder>

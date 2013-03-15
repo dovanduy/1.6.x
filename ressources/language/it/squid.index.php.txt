@@ -16,7 +16,7 @@ You have to be careful not to place a deny statement in the list that blocks a s
 You can configure Squid to set filters for various entities and at different granularities (e.g. filters for specific protocols,
 filters for certain types of commands, filters for specific routers, filters for specified domains, etc).[br]
 </acls_text>
-<acl_arp>Ethernet Address (unix only)</acl_arp>
+<acl_arp>Indirizzi Ethernet (solo unix)</acl_arp>
 <acl_arp_text>This option only works for clients on the same local subnet, and only for certain platforms.[br]
 Linux, Solaris, and some BSD variants are the supported operating systems for this type of ACL.[br]
 This ACL can provide a somewhat secure method of access control, because MAC addresses are usually harder to spoof than IP addresses,

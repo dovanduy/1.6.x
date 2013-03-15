@@ -304,7 +304,7 @@ function rules_ufdb_not_installed(){
 		<center>
 		<table style='width:80%' class=form>
 		<tr>
-			<td valign='top' width=1%><img src='img/software-remove-128.png'></td>
+			<td valign='middle' width=1%><img src='img/software-remove-128.png'></td>
 			<td valign='top' width=99%><div style='font-size:18px'>{ERROR_UFDBGUARD_NOTINSTALLED}</div>
 			<div style='float:right'>". imgtootltip("48-refresh.png","{refresh}","RefreshTab('main_dansguardian_mainrules');")."</div>
 			<p style='font-size:14px'>{ufdbguard_simple_intro}
@@ -360,6 +360,7 @@ function rules_toolbox_left(){
 	if(!is_numeric($t)){$t=time();}
 	$Computers=$q->COUNT_ROWS("webfilters_nodes");
 	$Computers=numberFormat($Computers,0,""," ");
+	$sock=new sockets();
 
 	$UsersRequests=$q->COUNT_ROWS("webfilters_usersasks");
 
@@ -368,16 +369,18 @@ function rules_toolbox_left(){
 	
 	$todayblocked=date("Ymd")."_blocked";
 	$CountDeBlocked=$sql=$q->COUNT_ROWS($todayblocked);
-	$CountDeBlocked=numberFormat(count($CountDeBlocked),0,""," ");
+	$CountDeBlocked=numberFormat($CountDeBlocked,0,""," ");
 	
+	$datasUFDB=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+	if(!is_numeric($datasUFDB["DebugAll"])){$datasUFDB["DebugAll"]=0;}
 	
 	if($users->UPDATE_UTILITYV2_INSTALLED){
 		$updateutility="	<tr>
-		<td valign='top' width=1%><img src='img/kaspersky-update-32.png'></td>
-		<td valign='top' width=99%>
+		<td valign='middle' width=1%><img src='img/kaspersky-update-32.png'></td>
+		<td valign='middle' width=99%>
 			<table style='width:100%'>
 			<tr>
-				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
 				OnClick=\"javascript:Loadjs('ufdbguard.UpdateUtility.php')\" nowrap>UpdateUtility</td>
 			</tr>
@@ -387,21 +390,26 @@ function rules_toolbox_left(){
 		
 	}
 	
+	$ufdbgverb_icon="ok24-grey.png";
+	$ufdbgverb_txt="OFF";
 	
 	
-	
+	if($datasUFDB["DebugAll"]==1){
+		$ufdbgverb_icon="ok32.png";
+		$ufdbgverb_txt="ON";
+	}
 	
 	
 	
 	$html="
 	<table style='width:95%' class=form>
 	<tr>
-	<td valign='top' width=1%><img src='img/computer-32.png'></td>
-	<td valign='top' width=99%>
+	<td valign='middle' width=1%><img src='img/computer-32.png'></td>
+	<td valign='middle' width=99%>
 		<table style='width:100%'>
 		<tr>
-			<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
-			<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
+			<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
+			<td valign='middle' $mouse style='font-size:13px;text-decoration:underline' 
 			OnClick=\"javascript:Loadjs('squid.nodes.php')\" nowrap><b>$Computers</b> {computers}</td>
 		</tr>
 		</table>
@@ -409,11 +417,11 @@ function rules_toolbox_left(){
 	</tr>
 	
 	<tr>
-		<td valign='top' width=1%><img src='img/members-32.png'></td>
-		<td valign='top' width=99%>
+		<td valign='middle' width=1%><img src='img/members-32.png'></td>
+		<td valign='middle' width=99%>
 			<table style='width:100%'>
 			<tr>
-				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
 				OnClick=\"javascript:Loadjs('squidguardweb.unblock.console.php')\" nowrap><b>$UsersRequests</b> {unblocks}</td>
 			</tr>
@@ -421,11 +429,11 @@ function rules_toolbox_left(){
 		</td>
 	</tr>
 	<tr>
-		<td valign='top' width=1%><img src='img/members-32.png'></td>
-		<td valign='top' width=99%>
+		<td valign='middle' width=1%><img src='img/members-32.png'></td>
+		<td valign='middle' width=99%>
 			<table style='width:100%'>
 			<tr>
-				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
 				OnClick=\"javascript:Loadjs('squid.blocked.events.php?js=yes')\" nowrap><b>$CountDeBlocked</b> {blocked_requests}</td>
 			</tr>
@@ -436,35 +444,47 @@ function rules_toolbox_left(){
 	
 
 	<tr>
-		<td valign='top' width=1%><img src='img/service-restart-32.png'></td>
-		<td valign='top' width=99%>
+		<td valign='middle' width=1%><img src='img/service-restart-32.png'></td>
+		<td valign='middle' width=99%>
 			<table style='width:100%'>
 			<tr>
-				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
 				OnClick=\"javascript:Loadjs('ufdbguard.php?force-reload-js=yes')\" nowrap>{reload_service}</td>
 			</tr>
 			</table>
 		</td>
-	</tr>	
+	</tr>
 	<tr>
-		<td valign='top' width=1%><img src='img/events-32.png'></td>
-		<td valign='top' width=99%>
+		<td valign='middle' width=1%><img src='img/events-32.png'></td>
+		<td valign='middle' width=99%>
 			<table style='width:100%'>
 			<tr>
-				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
 				OnClick=\"javascript:Loadjs('ufdbguard.sevents.php?js=yes')\" nowrap>{service_events}</td>
 			</tr>
 			</table>
 		</td>
-	</tr>		
+	</tr>			
 	<tr>
-		<td valign='top' width=1%><img src='img/32-categories.png'></td>
-		<td valign='top' width=99%>
+		<td valign='middle' width=1%><img src='img/$ufdbgverb_icon'></td>
+		<td valign='middle' width=99%>
 			<table style='width:100%'>
 			<tr>
-				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='top' $mouse style='font-size:13px;text-decoration:underline;text-transform:capitalize' 
+				OnClick=\"javascript:Loadjs('ufdbguard.debug.php')\" nowrap>{debug} [$ufdbgverb_txt]</td>
+			</tr>
+			</table>
+		</td>
+	</tr>		
+	<tr>
+		<td valign='middle' width=1%><img src='img/32-categories.png'></td>
+		<td valign='middle' width=99%>
+			<table style='width:100%'>
+			<tr>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
 				OnClick=\"javascript:Loadjs('squid.categories.php')\" nowrap><strong>$CountDeCategories&nbsp;{categories}</td>
 			</tr>
@@ -473,11 +493,11 @@ function rules_toolbox_left(){
 	</tr>	
 	
 	<tr>
-		<td valign='top' width=1%><img src='img/script-32.png'></td>
-		<td valign='top' width=99%>
+		<td valign='middle' width=1%><img src='img/script-32.png'></td>
+		<td valign='middle' width=99%>
 			<table style='width:100%'>
 			<tr>
-				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
 				OnClick=\"javascript:Loadjs('ufdbguard.databases.php?scripts=config-file');\" nowrap>{config_file_tiny}</td>
 			</tr>
@@ -486,11 +506,11 @@ function rules_toolbox_left(){
 	</tr>	
 	$updateutility	
 	<tr>
-		<td valign='top' width=1%><img src='img/delete-32.png'></td>
-		<td valign='top' width=99%>
+		<td valign='middle' width=1%><img src='img/delete-32.png'></td>
+		<td valign='middle' width=99%>
 			<table style='width:100%'>
 			<tr>
-				<td valign='top' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
 				OnClick=\"javascript:Loadjs('ufdbguard.hide.php');\" nowrap>{hide}</td>
 			</tr>
@@ -836,12 +856,7 @@ function rules_table_list(){
 	$data['total'] = $total+1;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}		
+	if(!$q->ok){json_error_show("$q->mysql_error");}		
 	
 	
 	$js="DansGuardianEditRule('0','default')";
@@ -855,6 +870,8 @@ function rules_table_list(){
 	style='text-decoration:underline;font-weight:bold'>";	
 	
 	$delete="&nbsp;";
+	$duplicate=imgsimple("duplicate-24.png",null,"Loadjs('dansguardian2.duplicate.php?default-rule=yes&t=$t')");
+	
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
@@ -865,7 +882,7 @@ function rules_table_list(){
 			"<span style='font-size:14px'>-</span>",
 			"<span style='font-size:14px'>&laquo;&nbsp;$jsblack". COUNTDEGBLKS(0)."</a>&nbsp;&raquo;</span>",
 			"<span style='font-size:14px'>&laquo;&nbsp;$jswhite". COUNTDEGBWLS(0)."</a>&nbsp;&raquo;</span>",
-			"&nbsp;",
+			"$duplicate",
 			$delete )
 		);
 	

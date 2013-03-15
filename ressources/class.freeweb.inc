@@ -160,8 +160,9 @@
 			$this->groupware_version=$ligne["groupware_version"];
 			if(!isset($ligne["WebCopyID"])){$ligne["WebCopyID"]=0;}
 			$this->WebCopyID=$ligne["WebCopyID"];
-			$this->sslcertificate=$ligne["sslcertificate"];
-			$this->enabled=$ligne["enabled"];
+			
+			if(isset($ligne["sslcertificate"])){$this->sslcertificate=$ligne["sslcertificate"];}
+			if(isset($ligne["enabled"])){$this->enabled=$ligne["enabled"];}
 			
 			$this->HasDefaults();
 			if(!$this->AS_ROOT){return;}
@@ -259,6 +260,31 @@
 				$f[]="\t\tRedirect permanent /wpad.dat /proxy.pac";
 				
 			}
+			if($this->groupware=="UPDATEUTILITY"){
+				$f[]="\t\tAddType application/octet-stream .klz";
+				$f[]="\t\tAddType application/octet-stream .kdz";
+				$f[]="\t\tAddType application/octet-stream .kdl";
+				$f[]="\t\tAddType application/octet-stream .dif";
+				$f[]="\t\tAddType application/octet-stream .xml";
+				$f[]="\t\tAddType application/octet-stream .stt";
+				$f[]="\t\tAddType application/octet-stream .set";
+				$f[]="\t\tAddType application/octet-stream .avc";
+				$f[]="\t\tAddType application/octet-stream .xms";
+				$f[]="\t\tAddType application/octet-stream .keb";
+				$f[]="\t\tAddType application/octet-stream .ppl";
+				$f[]="\t\tAddType application/octet-stream .loc";
+				$f[]="\t\tAddType application/octet-stream .dtd";
+				$f[]="\t\tAddType application/octet-stream .rdf";
+				$f[]="\t\tAddType application/octet-stream .prg";
+				$f[]="\t\tAddType application/octet-stream .lt";
+				$f[]="\t\tAddType application/octet-stream .qml";
+				$f[]="\t\tAddType application/octet-stream .xpt";
+				$f[]="\t\tAddType application/octet-stream .cat";
+				$f[]="\t\tAddType application/octet-stream .manifest";
+				$f[]="\t\tAddType application/octet-stream .dat";
+			}
+			
+			return @implode("\n", $f);
 			
 		}
 		
@@ -713,6 +739,16 @@
 			$f[]=@implode("\n", $GLOBALS["MYINTERFACESAllowFROM"]);
 			$f[]="\t\tSatisfy Any";
 			$f[]="\t</Location>";
+			$f[]="\t<Location /server-status/?auto>";
+			$f[]="\t\tSetHandler server-status";
+			$f[]="\t\tOrder deny,allow";
+			$f[]="\t\tDeny from all";
+			$f[]=@implode("\n", $GLOBALS["MYINTERFACESAllowFROM"]);
+			$f[]="\t\tSatisfy Any";
+			$f[]="\t</Location>";			
+			
+			
+			
 			$mod_status=@implode("\n",$f);
 			$GLOBALS["HTTPD_CONF_MOD_STATUS"]=$mod_status;
 			return $mod_status;
@@ -1268,10 +1304,17 @@
 			if($this->groupware=="SPLASHSQUID"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			if($this->groupware=="ARTICA_PRXYLOGS"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			if($this->groupware=="ERRSQUID"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
+			if($this->groupware=="UFDBGUARD"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
+			
+			
+			
 			if($this->groupware=="UPDATEUTILITY"){
 				$sock=new sockets();
 				$UpdateUtilityStorePath=$sock->GET_INFO("UpdateUtilityStorePath");
 				if($UpdateUtilityStorePath==null){$UpdateUtilityStorePath="/home/kaspersky/UpdateUtility";}
+				$UpdateUtilityUseLoop=$sock->GET_INFO("UpdateUtilityUseLoop");
+				if(!is_numeric($UpdateUtilityUseLoop)){$UpdateUtilityUseLoop=0;}
+				if($UpdateUtilityUseLoop==1){$UpdateUtilityStorePath="/automounts/UpdateUtility";}
 				$this->WORKING_DIRECTORY="$UpdateUtilityStorePath/databases/Updates";return false;}
 			
 			
@@ -1436,6 +1479,7 @@
 		}
 		
 		public function WebdavHeader(){
+				if($this->groupware=="WEBDAVFREE"){$this->Params["WEBDAV"]["ENABLED"]=1;}
 				if(!isset($this->Params["WEBDAV"]["ENABLED"])){$this->Params["WEBDAV"]["ENABLED"]=0;}
 				if($this->Params["WEBDAV"]["ENABLED"]==0){return null;}
 				$conf[]="\tDavLockDB \"$this->WORKING_DIRECTORY/DavLock\"";
@@ -1449,6 +1493,9 @@
 				return @implode("\n",$conf);				
 			
 		}
+		
+		
+		
 		
 		public function open_basedir(){
 				
@@ -1541,12 +1588,15 @@
 			if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" checking aliases..\n";}
 			$already=array();
 
-			
+			if($this->groupware=="WPAD"){
+				$f[]="\tAlias /wpad.dat /proxy.pac";
+				$already["/wpad.dat"]=true;
+			}
 			
 			if(($this->groupware=="ZARAFA") OR ($this->groupware=="WEBAPP") ) {
 				if($this->Params["ZARAFAWEB_PARAMS"]["zPushInside"]==1){
-					$f[]="Alias /Microsoft-Server-ActiveSync $this->WORKING_DIRECTORY/mobile/index.php";
-					$f[]="Alias /AutoDiscover/AutoDiscover.xml \"$this->WORKING_DIRECTORY/Autodiscover/Autodiscover.php\"";
+					$f[]="\tAlias /Microsoft-Server-ActiveSync $this->WORKING_DIRECTORY/mobile/index.php";
+					$f[]="\tAlias /AutoDiscover/AutoDiscover.xml \"$this->WORKING_DIRECTORY/Autodiscover/Autodiscover.php\"";
 					if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" Alias /Microsoft-Server-ActiveSync $this->WORKING_DIRECTORY/mobile/index.php\n";}
 					$already["/Microsoft-Server-ActiveSync"]=true;
 					$already["/AutoDiscover/AutoDiscover.xml"]=true;
@@ -1557,8 +1607,8 @@
 			
 			
 			if($this->groupware=="Z-PUSH"){
-				$f[]="Alias /Microsoft-Server-ActiveSync $this->WORKING_DIRECTORY/index.php";
-				$f[]="Alias /AutoDiscover/AutoDiscover.xml \"$this->WORKING_DIRECTORY/Autodiscover/Autodiscover.php\"";
+				$f[]="\tAlias /Microsoft-Server-ActiveSync $this->WORKING_DIRECTORY/index.php";
+				$f[]="\tAlias /AutoDiscover/AutoDiscover.xml \"$this->WORKING_DIRECTORY/Autodiscover/Autodiscover.php\"";
 				$already["/Microsoft-Server-ActiveSync"]=true;
 				$already["/AutoDiscover/AutoDiscover.xml"]=true;
 			}
@@ -1987,6 +2037,8 @@
 			if($this->groupware=="SPLASHSQUID"){return "splashproxy.php";}
 			if($this->groupware=="ARTICA_PRXYLOGS"){return "prxy.monitor.php";}
 			if($this->groupware=="ERRSQUID"){return "public.squid.error.php";}
+			if($this->groupware=="UFDBGUARD"){return "exec.squidguard.php";}
+			if($this->groupware=="WEBDAVFREE"){return "index.html";}
 			if($this->groupware=="UPDATEUTILITY"){return "index.php";}
 			if($this->groupware=="WPAD"){return "proxy.pac";}
 			
@@ -2114,6 +2166,12 @@
 				$array=$this->ParseArticaDirectory();
 				unset($array["public.squid.error.php"]);
 			}
+			if( $this->groupware=="UFDBGUARD"){
+				$array=$this->ParseArticaDirectory();
+				unset($array["exec.squidguard.php"]);
+			}
+						
+			
 			
 
 			
@@ -2343,7 +2401,7 @@
 		
 		
 		public function WebDav(){
-			
+			if($this->groupware=="WEBDAVFREE"){return null;}
 			if(!isset($this->Params["WEBDAV"]["ENABLED"])){$this->Params["WEBDAV"]["ENABLED"]=0;}
 			if($this->Params["WEBDAV"]["ENABLED"]==0){
 				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" WebDAV is not enabled\n";}
@@ -2399,6 +2457,115 @@
 			return true;
 		}
 		
+		public function WebDavTable(){
+			if($this->groupware<>"WEBDAVFREE"){return null;}
+			$q=new mysql();
+			$results=$q->QUERY_SQL("SELECT * FROM freeweb_webdav WHERE servername='$this->servername'","artica_backup");
+			if(mysql_num_rows($results)==0){return null;}
+			
+			while ($ligne = mysql_fetch_assoc($results)) {
+				$directory=$ligne["directory"];
+				if(!is_dir($directory)){
+					if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" WebDav $directory no such directory\n";}
+					continue;
+				}
+				$params=unserialize(base64_decode($ligne["params"]));
+				
+				$Alias["/{$ligne["alias"]}"]=$directory;
+				$AliasN[$ligne["alias"]]=$ligne["alias"];
+				$locations[]="\t<Location /{$ligne["alias"]}>";
+				$locations[]="\t\tDAV On";
+				$locations[]="\t\tOrder deny,allow";
+				$locations[]="\t\tDeny from All";
+				$locations[]="\t\tAuthLDAPBindDN \"{$params["LDAP_DN"]}\"";
+				$locations[]="\t\tAuthLDAPBindPassword \"{$params["LDAP_PASSWORD"]}\"";
+				
+				$locations[]="\t\tAuthType Basic";	
+				$locations[]="\t\tAuthBasicProvider ldap";
+				$locations[]="\t\tAuthUserFile /dev/null";							
+				
+				
+				if($params["connectiontype"]=="ad"){
+					$locations[]="\t\tAuthLDAPURL \"ldap://{$params["LDAP_SERVER"]}:{$params["LDAP_PORT"]}/{$params["LDAP_SUFFIX"]}?sAMAccountName?sub?(objectClass=*)\"";
+					$locations[]="\t\tAuthName \"USE YOUR WINDOWS ACCOUNT\"";
+				}
+					
+				
+			
+				if($params["connectiontype"]=="ldap"){
+					$locations[]="\t\tAuthLDAPURL \"ldap://{$params["LDAP_SERVER"]}:{$params["LDAP_PORT"]}/{$params["LDAP_SUFFIX"]}?{$params["LDAP_FILTER"]}\"";
+					$locations[]="\t\tAuthName \"USE YOUR LDAP ACCOUNT\"";
+					$locations[]="\t\tAuthLDAPGroupAttribute {$params["GROUP_ATTRIBUTE"]}";
+					$locations[]="\t\tAuthLDAPGroupAttributeIsDN off";
+				}
+				
+				if(count($params["MEMBERS"])>0){
+					while (list ($dn, $itemname) = each ($params["MEMBERS"]) ){$locations[]="\t\tRequire ldap-dn $dn";}
+				}
+			
+				if($params["ADGROUP"]<>null){
+					$locations[]="\t\tRequire ldap-group {$params["ADGROUP"]}";
+				}else{
+					$locations[]="\t\trequire valid-user";
+				}
+			
+				$locations[]="\tSatisfy any";
+				$locations[]="\t</Location>";
+		
+			}
+			
+			while (list ($alias, $dir) = each ($Alias) ){$Aliaz[]="\tAlias $alias \"$dir\"";}
+			
+			if(count($Aliaz)==0){return null;}
+			$this->WebDavIndexPage($AliasN);
+			return @implode("\n", $Aliaz)."\n".@implode("\n", $locations)."\n";
+			
+		}
+		
+		private function WebDavIndexPage($array){
+			ksort($array);
+			$BckColor="4685BC";
+			$head="<html> <head> 	<meta http-equiv='content-type' content='text/html;charset=utf-8'> 	<title>Web Sharing $this->servername</title> 	<style type=\"text/css\"> 	html,body{height:100%} 	body{ 	width:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C; 	font-family:'Tahoma', 'Verdana'; 	font-size:11px; 	background:#FFF 	} 	form{margin:0} 	table,input,select{font:normal 100% tahoma} 	img{border:0;margin:0} 	table{border-collapse:collapse} 	a{color:#62707D} 	.t,tr.t td{vertical-align:top} 	.m{vertical-align:middle} 	.b,tr.b td{vertical-align:bottom} 	tr.t td td,tr.b td td{vertical-align:auto} 	.l{text-align:left} 	.c{text-align:center} 	.r{text-align:right} 	.nobr{white-space:nowrap} 	.rel{position:relative} 	.abs{position:absolute} 	.fl{float:left} 	.fr{float:right} 	.cl{clear:both} 	.w100{width:100%} 	.h100{height:100%} 	big,.big{font-size:125%} 	small,.small{font-size:95%} 	.micro{color:#DDD;font:normal 9px tahoma} 	h1{font:bold 20px arial; margin:0} 	h4{font:bold 12px arial; margin:0} 	p{text-align:justify;line-height:1.3;margin:0 0 0.5em 0} 	.z{border:1px solid red} 	.h1px{height:1px;font-size:1px;line-height:1px} 	ul{margin:6px 0 6px 20px;padding:0} 	ul li{margin:3px 0} </style> </head> <body>﻿ <table class=\"w100 h100\"> 	<tr> 		<td class=\"c m\"> 			<table style=\"margin:0 auto;border:solid 1px #560000\"> 				<tr> 					<td class=\"l\" style=\"padding:1px\"> 						<div style=\"width:346px;background:#$BckColor\"> 							<div style=\"padding:3px\">";
+			//E33630
+			
+			$f[]="<div style=\"background:#$BckColor;padding:8px;border:solid 1px #FFF;color:#FFF\">";
+			$f[]="<h4><SPAN STYLE='FONT-SIZE:11px'>$this->servername</span></h4>";
+			$f[]="<h1>Web shared folders list:</h1>";
+			$f[]="</div>";
+			$f[]="<div class=\"c\" 
+					style=\"font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0\">Click on one of these links</div>";
+			$f[]="<div style=\"background:#F7F7F7;padding:20px 28px 36px\">";
+			$f[]="<table>";
+			while (list ($alias, $dir) = each ($array) ){
+				$f[]="<tr>
+				<td width=1%><img src='/arrow.png'></td>
+				<td nowrap><a href=\"/$alias\" _target=new 
+				style=\"font-size:16px;font-weight:bold;text-decoration:underline\">$alias</a></td></tr>";
+				
+			}
+			$f[]="</table>";
+			$f[]="</div>";
+			$f[]="<div style=\"background:#F7F7F7;padding:0 2px 2px\">";
+			$f[]="<div style=\"background:#E9E9E9;padding:12px 30px 14px\">";
+			$f[]="<b><span style=\"font:normal 13px arial;\"><i>Index generated on ". date("Y l F d")."</i><br></div>";
+			$f[]="</div>";
+			$f[]="</div>";
+			$f[]="</div>";
+			$f[]="</td>";
+			$f[]="</tr>";
+			$f[]="</table>";
+			$f[]="</td>";
+			$f[]="</tr>";
+			$f[]="</table>";
+			$f[]="";
+			$f[]="";
+			$f[]="</body>";
+			$f[]="</html>";
+			@copy("/usr/share/artica-postfix/img/arrow-blue-left-32.png","$this->WORKING_DIRECTORY/arrow.png");
+			@file_put_contents($this->WORKING_DIRECTORY."/index.html", $head.@implode("\n", $f));
+			
+		}
+		
 		function delete(){
 			if(!$this->AS_ROOT){return;}
 			if(!$this->DeleteLVM()){
@@ -2451,7 +2618,15 @@
 
 			$sql="DELETE FROM freewebs_aliases WHERE `servername`='$this->servername'";
 			writelogs("$sql",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-			$q->QUERY_SQL($sql,"artica_backup");				
+			$q->QUERY_SQL($sql,"artica_backup");	
+
+			$sql="DELETE FROM freeweb_slashsquid WHERE servername='$this->servername'";
+			writelogs("$sql",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			$q->QUERY_SQL($sql,"artica_backup");	
+
+			$sql="DELETE FROM freeweb_webdav WHERE servername='$this->servername'";
+			writelogs("$sql",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			$q->QUERY_SQL($sql,"artica_backup");			
 			
 			
 			
@@ -2705,7 +2880,9 @@
 				if(!isset($PARAMS["EnableZarafaRemoteServer"])){$PARAMS["EnableZarafaRemoteServer"]=0;}
 				if(!isset($PARAMS["EnableZarafaRemoteServerAddr"])){$PARAMS["EnableZarafaRemoteServerAddr"]=null;}
 				if(!isset($PARAMS["EnableDebugMode"])){$PARAMS["EnableDebugMode"]=0;}
+				if(!isset($PARAMS["EnableZarafaSecondInstance"])){$PARAMS["EnableZarafaSecondInstance"]=0;}
 				
+				$EnableZarafaSecondInstance=$PARAMS["EnableZarafaSecondInstance"];
 				$ZarafaWebNTLM=$PARAMS["ZarafaWebNTLM"];
 				$ZarafaEnablePlugins=$PARAMS["ZarafaEnablePlugins"];
 				$ZarafaAspellEnabled=$PARAMS["ZarafaAspellEnabled"];
@@ -2718,18 +2895,19 @@
 				if(!is_numeric($ZarafaAspellEnabled)){$ZarafaAspellEnabled=0;}
 				if(!is_numeric($EnableZarafaRemoteServer)){$EnableZarafaRemoteServer=0;}				
 				if(!is_numeric($EnableDebugMode)){$EnableDebugMode=0;}
+				if(!is_numeric($EnableZarafaSecondInstance)){$EnableZarafaSecondInstance=0;}
+				
+				
 				if($EnableZarafaRemoteServerAddr==null){$EnableZarafaRemoteServer=0;}
+				if($EnableZarafaSecondInstance==1){
+					$this->ForceInstanceZarafaID=0;
+					$EnableZarafaRemoteServer=0;}
+				
 				if(!$users->ASPELL_INSTALLED){$ZarafaAspellEnabled=0;}
 
 				
-				$DEFAULT_SERVER="file:///var/run/zarafa";
-				if($EnableZarafaRemoteServer==1){$DEFAULT_SERVER="http://$EnableZarafaRemoteServerAddr:236/zarafa";}
-				
-				if($this->ForceInstanceZarafaID>0){
-					include_once(dirname(__FILE__)."/class.zarafa-multi.inc");
-					$ZF=new zarafamulti($this->ForceInstanceZarafaID);
-					$DEFAULT_SERVER=$ZF->DEFAULT_SERVER_SOCKET;
-				}
+				$DEFAULT_SERVER=$this->InstallZarafaCheckDefaultServer();
+	
 			
 			
 			$f[]="<?php";
@@ -3010,23 +3188,37 @@
 				if(!isset($PARAMS["EnableZarafaRemoteServer"])){$PARAMS["EnableZarafaRemoteServer"]=0;}
 				if(!isset($PARAMS["EnableZarafaRemoteServerAddr"])){$PARAMS["EnableZarafaRemoteServerAddr"]=null;}
 				if(!isset($PARAMS["EnableDebugMode"])){$PARAMS["EnableDebugMode"]=0;}
-				if(!isset($PARAMS["zPushInside"])){$PARAMS["zPushInside"]=0;}	
+				if(!isset($PARAMS["zPushInside"])){$PARAMS["zPushInside"]=0;}
+				if(!isset($PARAMS["EnableZarafaSecondInstance"])){$PARAMS["EnableZarafaSecondInstance"]=0;}	
 				$this->Params["ZARAFAWEB_PARAMS"]=$PARAMS;
 			}
 		
 		private function InstallZarafaCheckDefaultServer(){
 			if(!$this->AS_ROOT){return;}
 			$EnableZarafaRemoteServer=$this->Params["ZARAFAWEB_PARAMS"]["EnableZarafaRemoteServer"];
+			$EnableZarafaSecondInstance=$this->Params["ZARAFAWEB_PARAMS"]["EnableZarafaSecondInstance"];
+			$EnableZarafaRemoteServerAddr=$this->Params["ZARAFAWEB_PARAMS"]["EnableZarafaRemoteServerAddr"];
+			
+			if(!is_numeric($EnableZarafaSecondInstance)){$EnableZarafaSecondInstance=0;}
 			if(!is_numeric($EnableZarafaRemoteServer)){$EnableZarafaRemoteServer=0;}
 			$DEFAULT_SERVER="file:///var/run/zarafa";
-			if($EnableZarafaRemoteServer==1){$DEFAULT_SERVER="http://$EnableZarafaRemoteServerAddr:236/zarafa";}	
+			
+			if($EnableZarafaRemoteServer==1){
+				if($EnableZarafaRemoteServerAddr<>null){
+					$DEFAULT_SERVER="http://$EnableZarafaRemoteServerAddr:236/zarafa";
+				}
+			}
+			
+				
 			if($this->ForceInstanceZarafaID>0){
 					include_once(dirname(__FILE__)."/class.zarafa-multi.inc");
 					$ZF=new zarafamulti($this->ForceInstanceZarafaID);
-					$DEFAULT_SERVER=$ZF->DEFAULT_SERVER_SOCKET;
-					$info="// ForceInstanceZarafaID=$this->ForceInstanceZarafaID";
+					if($ZF->DEFAULT_SERVER_SOCKET<>null){
+						$DEFAULT_SERVER=$ZF->DEFAULT_SERVER_SOCKET;
+						$info="// ForceInstanceZarafaID=$this->ForceInstanceZarafaID";
+					}
 				}
-
+			if($EnableZarafaSecondInstance==1){$DEFAULT_SERVER="file:///var/run/zarafa2";}
 			return $DEFAULT_SERVER;
 				
 		}

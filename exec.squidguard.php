@@ -43,6 +43,7 @@ if(count($argv)>0){
 	if(preg_match("#--catto=(.+?)\s+#",$imploded,$re)){$GLOBALS["CATTO"]=$re[1];}
 	if($argv[1]=="--disks"){DisksStatus();exit;}
 	if($argv[1]=="--version"){checksVersion();exit;}
+	if($argv[1]=="--dump-adrules"){dump_adrules($argv[2]);exit;}
 	
 	
 	$argvs=$argv;
@@ -593,6 +594,21 @@ function ufdbguard_watchdog(){
 	   shell_exec("$nohup /usr/share/artica-postfix/bin/artica-install --monit-check >/dev/null 2>&1 &");
 }
 
+function dump_adrules($ruleid){
+	
+	$ufbd=new compile_ufdbguard();
+	$ufbd->build_membersrule($ruleid);
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/ufdb-dump-$ruleid.wt",0);
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/ufdb-dump-$ruleid.txt","\n");
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/ufdb-dump-$ruleid.wt",0777);
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/ufdb-dump-$ruleid.txt",0777);
+	if($GLOBALS["VERBOSE"]){echo "/usr/share/artica-postfix/external_acl_squid_ldap.php --db $ruleid\n";}
+	exec("/usr/share/artica-postfix/external_acl_squid_ldap.php --db $ruleid --output 2>&1", $results);
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/ufdb-dump-$ruleid.wt",1);
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/ufdb-dump-$ruleid.txt",@implode("\n", $results));
+	
+}
+
 
 function CheckPermissions(){
 	$unix=new unix();
@@ -1017,18 +1033,20 @@ function parseTemplate_extension_gif(){
     	header("Content-Length: ".$fsize);
     	ob_clean();
     	flush();
-    	readfile( $fsize );     	
+    	readfile( "img/1x1.gif" );     	
     	}
     	
 function parseTemplateLogs($text=null,$function,$file,$line){
-	
+	$time=date('m-d H:i:s');
+
+	if($GLOBALS["VERBOSE"]){echo "[$time]:$function:$text in line $line<br>\n";}
 	$logFile=dirname(__FILE__)."/ressources/logs/squid-template.log";
 	if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
    	if (is_file($logFile)) { 
    		$size=filesize($logFile);
    		if($size>1000000){unlink($logFile);}
    	}
-   	$time=date('m-d H:i:s');
+   
 	$logFile=str_replace("//","/",$logFile);
 	$f = @fopen($logFile, 'a');
 	@fwrite($f, "[$time]:$function:$text in line $line\n");
@@ -1347,6 +1365,7 @@ function parseTemplate_categoryname($category){
 
 function parseTemplate(){
 	session_start();
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;}
 	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
 	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
 	$sock=new sockets();
@@ -1459,12 +1478,29 @@ function parseTemplate(){
 	}
 
 	parseTemplateLogs("TemplateError: ".strlen($TemplateError)." bytes",__FUNCTION__,__FILE__,__LINE__);
+	
+	if($TemplateError==null){
+		$servername=$_SERVER["SERVER_NAME"];
+		parseTemplateLogs("freeweb_slashsquid: $servername",__FUNCTION__,__FILE__,__LINE__);
+		$sql="SELECT template_body,template_header FROM freeweb_slashsquid WHERE servername='$servername'";
+		$qTPL=new mysql();
+		$ligneTMPL=mysql_fetch_array($qTPL->QUERY_SQL($sql,"artica_backup"));
+		if($TemplateError==null){$TemplateError=trim($ligneTMPL["template_body"]);}
+		$TemplateErrorHeader=trim($ligneTMPL["template_header"]);
+		parseTemplateLogs("freeweb_slashsquid: ".strlen($TemplateError)." bytes",__FUNCTION__,__FILE__,__LINE__);
+	}
+	
+	
+	
 	if($TemplateError==null){
 		$template_default_file=dirname(__FILE__)."/ressources/databases/dansguard-template.html";
 		$TemplateError=@file_get_contents($template_default_file);
 		parseTemplateLogs("TemplateError: -> `$template_default_file` ".strlen($TemplateError)." bytes",__FUNCTION__,__FILE__,__LINE__);
-	}
-	$TemplateErrorHeader=@file_get_contents(dirname(__FILE__)."/ressources/databases/dansguard-template-header.html");
+	}	
+	
+	if($TemplateErrorHeader==null){$TemplateErrorHeader=@file_get_contents(dirname(__FILE__)."/ressources/databases/dansguard-template-header.html");}
+	
+	
 	$TemplateErrorFinal="$TemplateErrorHeader$TemplateError\n</body>\n</html>";	
 	
 	if(isset($_GET["fatalerror"])){
@@ -1514,7 +1550,15 @@ function parseTemplate(){
 	$TemplateErrorFinal=str_replace("-CATEGORIES-","$ruleNameText<div style='font-size:12px'>Category:&nbsp;{$_GET["targetgroup"]}$CATEGORY_PLUS_TXT</div>",$TemplateErrorFinal);
 	$TemplateErrorFinal=str_replace("-REASONLOGGED-","<strong>Rule:&nbsp;</strong>{$_GET["clientgroup"]}",$TemplateErrorFinal);
 	$TemplateErrorFinal=str_replace("-BYPASS-","javascript:$defaultjs",$TemplateErrorFinal);
-	
+	if(strpos($TemplateErrorFinal,"-JSPACK-")>0){
+		include_once(dirname(__FILE__)."/ressources/class.page.builder.inc");
+		include_once(dirname(__FILE__)."/ressources/class.templates.inc");
+		$tpl=new templates();
+		$pp=new pagebuilder();
+		$TemplateErrorFinal=str_replace("-JSPACK-","\n".$pp->jsArtica()."\n",$TemplateErrorFinal);
+		$ADD_JS_PACK=false;
+	}
+	$TemplateErrorFinal=str_replace("%uFEFF","",$TemplateErrorFinal);
 	
 	
 	
@@ -1537,9 +1581,7 @@ function parseTemplate(){
 	
 	
 
-	echo "
-$TemplateErrorFinal
-	";
+	echo "$TemplateErrorFinal";
 	
 	
 	
@@ -2188,7 +2230,7 @@ function DisksStatus(){
 	
 	if(count($f)>0){
 		$q->QUERY_SQL("TRUNCATE TABLE webfilters_dbstats");
-		$q->QUERY_SQL("INSERT INTO webfilters_dbstats (category,articasize,unitoulouse,persosize) VALUES ".@implode(",", $f));
+		$q->QUERY_SQL("INSERT IGNORE INTO webfilters_dbstats (category,articasize,unitoulouse,persosize) VALUES ".@implode(",", $f));
 		
 	}
 	

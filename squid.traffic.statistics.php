@@ -416,6 +416,9 @@ function squid_status_stats(){
 	}
 	
 	
+	if(CACHE_SESSION_GET(__FUNCTION__, __FILE__)){return;}
+	
+	
 	$sock=new sockets();
 	$users=new usersMenus();
 	
@@ -551,7 +554,7 @@ function squid_status_stats(){
 	$TR_CATZ="	
 	<tr>
 		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td width=99% valign='top' style='font-size:12px;text-decoration:underline' $mouse OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?js=yes')\"><b>$DAYSNumbers</b> {daysOfStatistics}</td>
+		<td width=99% valign='top' style='font-size:12px;text-decoration:underline' $mouse OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?js=yes&with-purge=yes')\"><b>$DAYSNumbers</b> {daysOfStatistics}</td>
 	</tr>
 	
 	<tr>
@@ -664,10 +667,12 @@ $html="
 	</tbody>
 	</table>
 ";
+
+$html=$tpl->_ENGINE_parse_body($html);
 if(!$GLOBALS["AS_ROOT"]){
 	CACHE_SESSION_SET(__FUNCTION__, __FILE__,$tpl->_ENGINE_parse_body($html));
 }
-echo $html;
+
 	
 }
 

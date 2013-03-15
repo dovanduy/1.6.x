@@ -25,6 +25,7 @@ if(isset($_POST["TimeDescription"])){AddNewSchedule_save();exit;}
 if(isset($_POST["schedule-enable"])){AddNewSchedule_enable();exit;}
 if(isset($_POST["schedule-delete"])){AddNewSchedule_delete();exit;}
 if(isset($_POST["schedule-run"])){AddNewSchedule_run();exit;}
+if(isset($_GET["schedule-run-js"])){task_run_js();exit;}
 
 if(isset($_POST["DisableSquidDefaultSchedule"])){DisableSquidDefaultSchedule();exit;}
 
@@ -36,12 +37,50 @@ if(isset($_GET["compile-settings-perform"])){compile_settings_perform();exit;}
 page();
 
 function compile_settings_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{compile_settings}");
 	echo "YahooWin6('905','$page?compile-settings-popup=yes','$title')";
 	
 }
+
+function task_run_js(){
+	$t=time();
+	$page=CurrentPageName();
+	$tpl=new templates();	
+	$run_this_task_now=$tpl->javascript_parse_text("{run_this_task_now} ?");
+	header("content-type: application/x-javascript");
+	$ID=$_GET["ID"];
+	$q=new mysql_squid_builder();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_schedules WHERE ID=$ID"));
+	$explain=$tpl->javascript_parse_text("{$q->tasks_explain_array[$ligne["TaskType"]]}");
+	
+$html="
+	var x_SquidTaskRun$t=function (obj) {
+		
+		var results=obj.responseText;
+		if(results.length>0){alert(results);}		
+	}
+
+	
+	function SquidTaskRun$t(ID){
+		if(confirm('$run_this_task_now: `$explain`')){
+			var XHR = new XHRConnection();
+			XHR.appendData('ID',ID);
+	  		XHR.appendData('schedule-run','yes');
+	  		XHR.appendData('output','yes');
+	  		XHR.sendAndLoad('$page', 'POST',x_SquidTaskRun$t);		
+		}
+	
+	}		
+	SquidTaskRun$t();
+";	
+echo $html;	
+	
+}
+
+
 function compile_settings_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
@@ -72,9 +111,9 @@ function AddNewSchedule_js(){
 	$ID=$_GET["ID"];
 	$tpl=new templates();
 	$page=CurrentPageName();
-	
+	$YahooWin=2;
 	$title="{new_schedule}";
-	
+	if(isset($_GET["YahooWin"])){$YahooWin=$_GET["YahooWin"];$YahooWinet="&YahooWin={$_GET["YahooWin"]}";};
 	if($ID>0){
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_schedules WHERE ID=$ID"));
@@ -82,7 +121,7 @@ function AddNewSchedule_js(){
 	}
 	
 	$title=$tpl->_ENGINE_parse_body($title);
-	echo "YahooWin2('550','$page?AddNewSchedule-popup=yes&ID=$ID','$title')";
+	echo "YahooWin{$YahooWin}('550','$page?AddNewSchedule-popup=yes&ID=$ID','$title')";
 	
 }
 
@@ -93,6 +132,8 @@ function AddNewSchedule_popup(){
 	$q=new mysql_squid_builder();
 	$no_schedule_set=$tpl->javascript_parse_text("{no_schedule_set}");
 	$buttontext="{add}";
+	$YahooWin=2;
+	if(isset($_GET["YahooWin"])){$YahooWin=$_GET["YahooWin"];}
 	$ID=$_GET["ID"];
 		if($ID>0){
 			$buttontext="{apply}";
@@ -112,7 +153,15 @@ function AddNewSchedule_popup(){
 	if(!$users->UPDATE_UTILITYV2_INSTALLED){
 		unset($task_type[13]);
 	}
+	
+	if(isset($_GET["ForceType"])){
+		unset($task_type);
+		$task_type[$_GET["ForceType"]]=$tpl->_ENGINE_parse_body($q->tasks_array[$_GET["ForceType"]]);
+	}	
 
+	if(isset($_GET["jsback"])){
+		$jsback="{$_GET["jsback"]}();";
+	}
 	
 	$t=time();
 	
@@ -151,8 +200,9 @@ function AddNewSchedule_popup(){
 		var ID='{$_GET["ID"]}';
 		var results=obj.responseText;
 		if(results.length>0){alert(results);}		
-		YahooWin2Hide();
+		YahooWin{$YahooWin}Hide();
 		SquidCrontaskUpdateTable();
+		$jsback
 	}	
 
 

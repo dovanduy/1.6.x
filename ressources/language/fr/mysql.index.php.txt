@@ -9,7 +9,7 @@ Cela d&eacute;pends des performances de votre ordinateur.[br]
 Plusieurs services et fonctions utilisent MySQL (Sauvegarde des messages, syslog injection ...) et consomment des processus et de la m&eacute;moire.</enable_mysql_text>
 <mysqlserver>Nom de l'h&ocirc;te MySQL</mysqlserver>
 <mysql_account>Profil de l'administrateur MySQL</mysql_account>
-<mysql_database>Moteur de base de donn&eacute;es Mysql</mysql_database>
+<mysql_database>Moteur de base de donn&eacute;es MySQL</mysql_database>
 <mysql_database_text>Options avanc&eacute;es de la base Mysql</mysql_database_text>
 <MYSQL_PASSWORD_USER>Nouveau compte utilisateur et mot de passe MYSQL</MYSQL_PASSWORD_USER>
 <MYSQL_PASSWORD_USER_TEXT>Changer le compte et le mot de passe administrateur MYSQL</MYSQL_PASSWORD_USER_TEXT>

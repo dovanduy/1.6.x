@@ -43,6 +43,8 @@ if(isset($_GET["zarafadb-restore"])){zarafadb_restore();exit;}
 if(isset($_GET["zarafadb-processlist"])){zarafadb_processlist();exit;}
 if(isset($_GET["artica-dbsize"])){zarafadb_getsize();exit;}
 if(isset($_GET["zarafadb-killthread"])){zarafadb_killthread();exit;}
+if(isset($_GET["users-count"])){zarafa_admin_userscount();exit;}
+if(isset($_GET["reload"])){zarafa_reload();exit;}
 
 
 
@@ -527,4 +529,46 @@ function zarafadb_killthread(){
 	$cmd="$mysqladmin --socket /var/run/mysqld/zarafa-db.sock -u root kill $pid 2>&1";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
+}
+
+function zarafa_admin_userscount(){
+	$unix=new unix();
+	$zarafa_admin=$unix->find_program("zarafa-admin");
+	$cmd="$zarafa_admin --user-count 2>&1";
+	exec($cmd,$results);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#is not running#", $ligne)){
+			$array["STATUS"]=false;
+			$array["ERROR"]=$ligne;
+			break;
+		}
+		
+		
+		if(preg_match("#\s+Active\s+([0-9a-z\s]+)\s+([0-9a-z\s]+)\s+([0-9a-z\s]+)#i",$ligne,$re)){
+			$array["ACTIVE"]["ALLOWED"]=$re[1];
+			$array["ACTIVE"]["USED"]=$re[2];
+			$array["ACTIVE"]["AVAILABLE"]=$re[3];
+			continue;
+		}
+		
+		
+		if(preg_match("#Total\s+([0-9]+)#", $ligne,$re)){
+			$array["STATUS"]=true;
+			$array["TOTAL"]=$re[1];
+			break;
+		}
+		
+	}
+	echo  "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
+	
+}
+
+function zarafa_reload(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$php5 /usr/share/artica-postfix/exec.initdzarafa.php");
+	shell_exec("$nohup /etc/init.d/zarafa-server reload >/dev/null 2>&1 &");
+	
 }

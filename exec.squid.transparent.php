@@ -72,6 +72,7 @@ function enable_transparent(){
 	
 	iptables_delete_all();
 	if($SquidBinIpaddr=="0.0.0.0"){$SquidBinIpaddr=null;}
+	if($SquidBinIpaddr=="127.0.0.1"){$SquidBinIpaddr=null;}
 	if($SquidBinIpaddr<>null){$ips=array();$ips["eth0"]=$SquidBinIpaddr;}
 	
 	if($UseTProxyMode==1){
@@ -94,17 +95,14 @@ $SQUIDPORT=$squid->listen_port;
 	while (list ($interface, $ip) = each ($ips) ){
 		$SQUIDIP=$ip;
 		if(preg_match("#^ham#", $interface)){
-			echo "Starting......: Squid Transparent mode: Squid Transparent mode: skipping $interface interface\n";
-			continue;}
-		echo "Starting......: Squid Transparent mode:$index Adding ipTables rules for $ip\n";
-		shell_exec2("$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 80 -j ACCEPT $MARKLOG");
-		//shell_exec2("$iptables -t nat -A PREROUTING -s $ip -p tcp --dport 80 -j ACCEPT );
-
-		if($SSL_BUMP==1){
-			 shell_exec2("$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 443 -j ACCEPT $MARKLOG");
-			//shell_exec2("$iptables -t nat -A PREROUTING -s $ip -p tcp --dport 443 -j ACCEPT -m comment --comment \"ArticaSquidTransparent\"");
+			echo "Starting......: Squid Transparent mode: Squid Transparent mode: skipping $interface interface\n";continue;}
+			echo "Starting......: Squid Transparent Interface:$interface Adding ipTables rules for $ip\n";
+			shell_exec2("$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 80 -j ACCEPT $MARKLOG");
 		
-		}
+
+			if($SSL_BUMP==1){
+			 shell_exec2("$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 443 -j ACCEPT $MARKLOG");
+			}
 		
 	}
 	

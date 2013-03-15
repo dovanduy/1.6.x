@@ -692,9 +692,16 @@ function index(){
 	$ips=$tcp->ALL_IPS_GET_ARRAY();
 	$ips["*"]="{all}";
 	
+	$TOTAL_MEMORY_MB=$sock->getFrameWork("system.php?TOTAL_MEMORY_MB=yes");
+	if($TOTAL_MEMORY_MB<1500){
+		$EnableFreeWeb=0;
+		$p=FATAL_ERROR_SHOW_128("{NO_ENOUGH_MEMORY_FOR_THIS_SECTION}<br><strong style='font-size:18px'>{require}:1500MB {current}:{$TOTAL_MEMORY_MB}MB</strong>",true,true);
+	}else{
+	
+		$p=Paragraphe_switch_img("{enable_freeweb}","{enable_freeweb_text}","EnableFreeWeb",$EnableFreeWeb,null,400);
+	}
 	
 	
-	$p=Paragraphe_switch_img("{enable_freeweb}","{enable_freeweb_text}","EnableFreeWeb",$EnableFreeWeb,null,400);
 
 	$html="
 	<table style='width:100%'>

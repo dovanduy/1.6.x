@@ -23,9 +23,54 @@
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["SquidEnableProxyPac"])){Save();exit;}
 	if(isset($_GET["pac-status"])){Pac_status();exit;}
+	if(isset($_GET["add-freeweb-js"])){add_freeweb_js();exit;}
 js();
 
+function add_freeweb_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$addfree=$tpl->javascript_parse_text("{add_freeweb_wpad_explain}");
+	$t=$_GET["t"];
+	$html="
+		
+	var x_AddNewFreeWeb$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);}
+	RefreshTab('main_config_proxypac');
+}
 
+function AddNewFreeWeb$t(){
+var servername=prompt('$addfree');
+if(!servername){return;}
+var XHR = new XHRConnection();
+XHR.appendData('ADD_DNS_ENTRY','');
+XHR.appendData('ForceInstanceZarafaID','');
+XHR.appendData('ForwardTo','');
+XHR.appendData('Forwarder','0');
+XHR.appendData('SAVE_FREEWEB_MAIN','yes');
+XHR.appendData('ServerIP','');
+XHR.appendData('UseDefaultPort','0');
+XHR.appendData('UseReverseProxy','0');
+XHR.appendData('gpid','');
+XHR.appendData('lvm_vg','');
+XHR.appendData('servername','wpad.'+servername);
+XHR.appendData('sslcertificate','');
+XHR.appendData('uid','');
+XHR.appendData('useSSL','0');
+XHR.appendData('force-groupware','WPAD');
+AnimateDiv('status-$t');
+XHR.sendAndLoad('freeweb.edit.main.php', 'POST',x_AddNewFreeWeb$t);
+}
+
+
+AddNewFreeWeb$t();
+
+";
+echo $html;
+
+}
 
 function js(){
 	
@@ -50,53 +95,33 @@ function js(){
 function popup(){
 	$page=CurrentPageName();
 	$sock=new sockets();
-	$SquidEnableProxyPac=$sock->GET_INFO("SquidEnableProxyPac");
-	$listen_port=$sock->GET_INFO("SquidProxyPacPort");
-	if($listen_port==null){$listen_port=8890;}
-	$fiedld=Paragraphe_switch_img("{enable_squid_proxy_pac}",
-	"{enable_squid_proxy_pac_text}","SquidEnableProxyPac",$SquidEnableProxyPac,null,350);
 	
-	$ip=new networking();
-	if(is_array($ip->array_TCP)){
-		while (list ($eth, $tcip) = each ($ip->array_TCP)){
-			if($tcip==null){continue;}
-			$uris=$uris."<li style='font-size:16px'>http://$tcip:$listen_port/proxy.pac</li>";
-			
-		}
-		
-	}	
 	
 	$t=time();
+	
+	$link="
+		<table style='width:99%' class=form>
+		<tr>
+						<td width=1%><img src='img/plus-24.png'></td>
+						
+						<td width=99%>
+							<a href=\"javascript:blur();\" 
+							OnClick=\"javascript:Loadjs('$page?add-freeweb-js=yes&t=$t');\"
+					 		style=\"font-size:14px;text-decoration:underline\">{add_a_web_service}</a>
+						</td>
+					</tr></table>";
 	
 	$html="
 	
 	
 	
 	<center style='width:100%' id='proxypacid'>
-	<table style='width:100%' >
-	<tr>
-	<td valign='top' width=1%><div id='pac-status'></div></td>
-	<td valign='top' width=100%>
-	<table style='width:99%' class=form>
-	<tr>
-	<td colspan=2>$fiedld</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:16px'>HTTP&nbsp;{listen_port}:</td>
-		<td>". Field_text("listen_port-$t",$listen_port,"font-size:16px;width:90px;padding:5px")."</td>
-	</tr>
-	<tr>
-		<td colspan=2 align='right'><div style='margin-top:15px'>". button("{apply}","squid_proxy_pac_save()",18)."</div></td>
-	</tr>
-	</table>
-	</td>
-	</tr>
-	</table>
+	$link
 	</center>
-	<hr>
-	<div style='font-size:18px'>{uri_add_in_browser}:</div>
-	<ul>$uris</ul>
-	<hr>
+	
+	<div style='font-size:18px;margin-bottom:10px'>{uri_add_in_browser}:</div>
+	<div id='pac-status'></div>
+	
 <script>
 		var x_squid_proxy_pac_save= function (obj) {
 			var results=obj.responseText;
@@ -130,16 +155,38 @@ function Pac_status(){
 	$ini=new Bs_IniHandler();
 	$tpl=new templates();
 	$sock=new sockets();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$q=new mysql();
+	$sql="SELECT * FROM freeweb WHERE groupware='WPAD'";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$servername=$ligne["servername"];
 	
-	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?squid-ini-status=yes')));
+		$tr[]="
+		<tr>
+		<td width=1%><img src=\"img/arrow-right-24.png\"></td>
+		<td width=99%>
+		<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('freeweb.edit.php?hostname=$servername');\" 
+		style=\"font-size:16px;text-decoration:underline\">http://$servername/proxy.pac</a>
+		</td>
+		</tr>
+		<tr>
+		<td width=1%><img src=\"img/arrow-right-24.png\"></td>
+		<td width=99%>
+		<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('freeweb.edit.php?hostname=$servername');\" 
+		style=\"font-size:16px;text-decoration:underline\">http://$servername/wpad.dat</a>
+		</td>
+		</tr>		
+		";
 	
-	$APP_PROXY_PAC=DAEMON_STATUS_ROUND("APP_PROXY_PAC",$ini,null,1);
+	}
 	
-	$script="
-	<div style='width:100%;text-align:right'>". imgtootltip("refresh-32.png","{refresh}","RefreshTab('main_config_proxypac')")."</div> 
-	";
-	
-	echo $tpl->_ENGINE_parse_body($APP_PROXY_PAC).$script;
+		$html="
+		
+			<table style=\"width:99%\" class=\"form\">".@implode("\n", $tr)."</table>";
+		
+		echo $tpl->_ENGINE_parse_body($html);
 }
 
 function Save(){

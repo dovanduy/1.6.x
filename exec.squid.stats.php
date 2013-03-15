@@ -55,7 +55,7 @@ if(!ifMustBeExecuted()){
 
 if($GLOBALS["VERBOSE"]){echo "LAUNCH: '{$argv[1]}'\n";}
 if($argv[1]=='--nocat-sync'){not_categorized_day_resync();exit;}
-if($argv[1]=='--repair-hours'){repair_hours();if($GLOBALS["VERBOSE"]){echo "END: '{$argv[1]}'\n";}exit;} # Recherche les tables squidhour_* et les réinjectes.
+if($argv[1]=='--repair-hours'){repair_hours(true);if($GLOBALS["VERBOSE"]){echo "END: '{$argv[1]}'\n";}exit;} # Recherche les tables squidhour_* et les réinjectes.
 if($argv[1]=='--defrag'){defragment_category_tables();exit;}
 if($argv[1]=='--defragtable'){defragment_category_table($argv[2]);exit;}
 if($argv[1]=='--rangetables'){rangetables();exit;}
@@ -1174,7 +1174,7 @@ if(count($f)>0){
 function events_tail($text){
 		$pid=@getmypid();
 		$date=@date("h:i:s");
-		$logFile="/var/log/artica-postfix/proxy-injector.debug";
+		$logFile="/var/log/artica-postfix/auth-tail.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}
 		$f = @fopen($logFile, 'a');
@@ -3005,12 +3005,7 @@ function RepairCategoriesBases(){
 
 function thumbnail_parse(){
 		$unix=new unix();
-		if(system_is_overloaded(basename(__FILE__))){
-			ufdbguard_admin_events("Fatal: Overloaded aborting task",__FUNCTION__,__FILE__,__LINE__,"stats");
-			return;	
-		}	
-	
-	
+		
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$oldpid=@file_get_contents($pidfile);
@@ -3039,12 +3034,66 @@ function thumbnail_parse(){
 		@unlink($targetFile);
 		$c++;
 		if($c>100){$c=0;if(system_is_overloaded(basename(__FILE__))){ufdbguard_admin_events("Fatal: Overloaded aborting task",__FUNCTION__,__FILE__,__LINE__,"stats");return;}}
-	}	
+	}
+
+	
+	thumbnail_parse_hours();
+	
 }
+
+function thumbnail_parse_hours(){
+	$unix=new unix();
+	$dirs=$unix->dirdir("/var/log/artica-postfix/squid/queues");
+	while (list ($directory,$array) = each ($dirs) ){
+		$dirs2=$unix->dirdir($directory);if(count($dirs2)==0){@rmdir($directory);continue;}
+		if(is_dir("$directory/PageKeeper")){thumbnail_parse_dir("$directory/PageKeeper");}
+	
+	}
+	
+	
+	
+	
+}
+
+function thumbnail_parse_dir($directory){
+	$unix=new unix();
+	$countDefile=$unix->COUNT_FILES($directory);
+	events_tail("$directory  $countDefile files on Line: ".__LINE__);
+	if($countDefile==0){
+		events("thumbnail_parse_dir():: $directory:  remove... on Line: ".__LINE__);
+		@rmdir($directory);
+		return;
+	}
+	
+	
+	if (!$handle = opendir($directory)) {
+		ufdbguard_admin_events("Fatal: $directory no such directory",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return;
+	}
+	$c=0;
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$directory/$filename";
+		$arrayFile=unserialize(@file_get_contents($targetFile));
+		if(!is_array($arrayFile)){@unlink($targetFile);continue;}
+		while (list ($sitename,$RTTSIZEARRAY) = each ($arrayFile) ){
+			thumbnail_site($sitename);
+				
+		}
+		$c++;
+		@unlink($targetFile);
+	
+	}
+		
+	
+}
+
 
 
 function thumbnail_query(){
 	$sock=new sockets();
+	$unix=new unix();
 	if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
 	$EnablePagePeeker=$sock->GET_INFO("EnablePagePeeker");
 	$PagePeekerMinRequests=$sock->GET_INFO("PagePeekerMinRequests");
@@ -3087,7 +3136,9 @@ function thumbnail_site($sitename){
 	if(isset($GLOBALS["ALREADY_THUMBS"][$sitename])){return false;}
 	$GLOBALS["ALREADY_THUMBS"][$sitename]=true;
 	$tmpName="/tmp/$sitename.gif";
-	$uriDomain="pagepeeker.com";
+	$uriDomain="free.pagepeeker.com/v2";
+	
+	
 	$familysite=$GLOBALS["Q"]->GetFamilySites($sitename);
 	$md=md5($sitename);
 	if(!isset($GLOBALS["PagePeekerID"])){
@@ -3282,8 +3333,35 @@ function users_size_hour(){
 	
 }
 
-function repair_hours(){
+function repair_hours($aspid=false){
 	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/squid_repair_hour_stats.pid";
+	
+	if($aspid){
+
+		$oldpid=@file_get_contents($pidfile);
+		if($oldpid<100){$oldpid=null;}
+		$unix=new unix();
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($pidtime>50){
+				ufdbguard_admin_events("Killing pid $oldpid, running since $pidtime mn", __FUNCTION__, __FILE__, __LINE__, "stats");
+				$kill=$unix->find_program("kill");
+				shell_exec("$kill -9 $oldpid");
+			}else{
+				ufdbguard_admin_events("pid already in memory $oldpid, running since $pidtime mn", __FUNCTION__, __FILE__, __LINE__, "stats");
+				return;
+			}
+		
+		}		
+		
+		@file_put_contents($pidfile, getmypid());
+		
+		
+	}
+	
+	
+	
 	if($GLOBALS["VERBOSE"]){echo "Starting ".__FUNCTION__."\n";}
 	$q=new mysql_squid_builder();
 	$CurrentHourTable="squidhour_".date("YmdH");

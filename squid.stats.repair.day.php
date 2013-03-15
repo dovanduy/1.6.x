@@ -33,9 +33,19 @@ function js(){
 	$tpl=new templates();
 	$day=$tpl->_ENGINE_parse_body(date("{l} {F} d Y",$t));
 	$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{repair}::$day");
+	$warn=$tpl->javascript_parse_text("{stats_repair_day_warn}");
 	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
-	$html="YahooWinBrowse('850','$page?popup=yes&t=$t','$title');";
+	$html="
+	function StartR$t(){		
+		if(confirm('$warn')){
+			YahooWinBrowse('850','$page?popup=yes&t=$t','$title');
+		}
+	
+	}
+	
+	StartR$t();";
+
 	echo $html;
 }
 

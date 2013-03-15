@@ -309,6 +309,7 @@ function member_popup(){
 	if(!is_numeric($HotSpotConfig["CACHE_AUTH"])){$HotSpotConfig["CACHE_AUTH"]=60;}
 	if(!is_numeric($HotSpotConfig["CACHE_TIME"])){$HotSpotConfig["CACHE_TIME"]=120;}
 	if(!is_numeric($HotSpotConfig["USETERMS"])){$HotSpotConfig["USETERMS"]=1;}
+	if(!is_numeric($HotSpotConfig["USERAD"])){$HotSpotConfig["USERAD"]=0;}
 	
 	$ttl="	<tr>
 		<td class=legend style='font-size:16px'>{ttl}:</td>
@@ -640,6 +641,7 @@ function members_items(){
 	if(!is_numeric($HotSpotConfig["CACHE_AUTH"])){$HotSpotConfig["CACHE_AUTH"]=60;}
 	if(!is_numeric($HotSpotConfig["CACHE_TIME"])){$HotSpotConfig["CACHE_TIME"]=120;}
 	if(!is_numeric($HotSpotConfig["USETERMS"])){$HotSpotConfig["USETERMS"]=1;}		
+	if(!is_numeric($HotSpotConfig["USERAD"])){$HotSpotConfig["USERAD"]=0;}
 	
 	if(strpos($table, ",")==0){
 		if(!$q->TABLE_EXISTS($table)){

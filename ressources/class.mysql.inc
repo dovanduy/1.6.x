@@ -1053,11 +1053,17 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 
 
 	function REPAIR_TABLE_FILE_NOT_FOUND($database,$table){
+		if($table=="icons_db"){
+			$this->QUERY_SQL("DROP TABLE icons_db",$database);
+			return;
+		}
+		
+		
 		$file="/var/lib/mysql/$database/$table.MYD";
 		if($GLOBALS["AS_ROOT"]){return $this->REPAIR_TABLE_NOFILE_FOUND_root($database,"$table.MYD");}
 		$sock=new sockets();
 		$result=$sock->getFrameWork("mysql.php?mysql-fnfound=".base64_encode($file)."&db=$database&table=$table");
-		if(!$GLOBALS["AS_ROOT"]){echo "$result<br>\n";}
+		if(!$GLOBALS["AS_ROOT"]){echo "<H2>Results:$result</H2><br>\n";}
 		$this->writeLogs($result,__CLASS__.'/'.__FUNCTION__,__LINE__);
 	}
 	

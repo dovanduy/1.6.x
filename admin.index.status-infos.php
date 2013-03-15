@@ -326,6 +326,12 @@ if($IsPostfixlocked=="TRUE"){$IsPostfixlockedInt=1;}
 
 	
 	if($users->AsSystemAdministrator){	
+		
+		if($users->FREERADIUS_INSTALLED){
+			$freeradius=left_menus_format("APP_FREERADIUS","radius-32.png","LoadAjax('BodyContent','freeradius.php');");
+			
+		}
+		
 		if($users->crossroads_installed){
 			$GLOBALS["ICON_FAMILY"]="NETWORK";
 			$crossreads=left_menus_format("load_balancing","load-balance-32.png","Loadjs('crossroads.index.php?newinterface=yes')");
@@ -447,6 +453,7 @@ if($IsPostfixlocked=="TRUE"){$IsPostfixlockedInt=1;}
 		$haProxy
 		$crossreads
 		$ssh	
+		$freeradius
 		$openvpn
 		$freewebs
 		$pdns

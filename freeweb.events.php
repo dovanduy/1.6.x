@@ -48,7 +48,7 @@ function page(){
 	if(isset($_GET["noform"])){$form="<div style='margin-left:-15px'>";}
 
 	$table_width=865;
-	$events_wdht=568;
+	$events_wdht=634;
 	if(isset($_GET["miniadm"])){
 		$table_width=955;
 		$events_wdht=601;
@@ -65,7 +65,7 @@ function page(){
 	url: '$page?table-list=yes&servername=$servername&t=$t&type={$_GET["type"]}',
 	dataType: 'json',
 	colModel : [
-	{display: '$zDate', name : 'zDate', width : 141, sortable : true, align: 'left'},
+	{display: '$zDate', name : 'zDate', width : 74, sortable : true, align: 'left'},
 	{display: '$service', name : 'host', width : 58, sortable : true, align: 'left'},
 	{display: '&nbsp;', name : 'none', width : 31, sortable : false, align: 'left'},
 	{display: '$events', name : 'events', width :$events_wdht, sortable : true, align: 'left'},
@@ -124,6 +124,12 @@ function events_list(){
 		
 		if(preg_match("#(.+?) - (.*?) \[(.+?)\]\s+(.+)#",$line,$re)){
 			$date="{$re[3]}";
+			$time=strtotime($date);
+			if(date('Y-m-d',$time)==date("Y-m-d")){
+				$dateText=date("H:i:s",$time);
+			}else{
+				$dateText=date("H:i:s - l d",$time);
+			}
 			$errortype=$re[2];
 			$line="[".$re[1]."] ".$re[4];			
 		}
@@ -137,7 +143,7 @@ function events_list(){
 		$data['rows'][] = array(
 				'id' => "dom$m5",
 				'cell' => array("
-						<span style='font-size:12px'>$date</span>",
+						<span style='font-size:12px'>$dateText</span>",
 						"<span style='font-size:12px'>$errortype</span>",
 						"<img src='$img'>",
 						"<span style='font-size:12px'>$line</span>")

@@ -430,6 +430,35 @@ function popup_tabs(){
 			unset($array["aliases"]);
 		}	
 		
+		if($apache->groupware=="SPLASHSQUID"){
+			unset($array["webdav"]);
+			unset($array["reverse"]);
+			unset($array["mod_cache"]);
+			unset($array["aliases"]);	
+			$array["SPLASHSQUID-DESIGN"]="{design}";
+			
+		}
+		
+		if($apache->groupware=="UFDBGUARD"){
+			unset($array["webdav"]);
+			unset($array["reverse"]);
+			unset($array["mod_cache"]);
+			unset($array["aliases"]);
+			$array["UFDBGUARD-DESIGN"]="{design}";
+				
+		}		
+		
+		if($apache->groupware=="WEBDAVFREE"){
+			unset($array["webdav"]);
+			if($users->APACHE_MODE_WEBDAV){
+				if($ApacheDisableModDavFS==0){
+				$array["WEBDAVFREE"]='{TAB_WEBDAV}';
+				}
+			}
+			unset($array["reverse"]);
+			
+		}
+		
 		if($apache->groupware=="MAILMAN"){
 			unset($array["webdav"]);
 			unset($array["reverse"]);
@@ -470,7 +499,7 @@ function popup_tabs(){
 		}		
 		
 		if($num=="status"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.status.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.status.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne </span></a></li>\n");
 			continue;
 		}
 
@@ -533,6 +562,21 @@ function popup_tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.groupoffice.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="SPLASHSQUID-DESIGN"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.splashsquid.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+		}	
+		if($num=="UFDBGUARD-DESIGN"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.ufdbguard.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+		}
+		if($num=="WEBDAVFREE"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.webdavfree.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		
 		
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}&force-groupware={$_GET["force-groupware"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");

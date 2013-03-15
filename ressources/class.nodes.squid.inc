@@ -371,7 +371,7 @@ class squidnodes{
 		if($CPUS==0){$CPUS=1;}
 		$cachesDirectory=$this->GET("caches_directory");
 		$globalCachesize=$this->GET("caches_size_global");
-		if($cachesDirectory==null){$cachesDirectory="/var/cache/squid";}
+		if($cachesDirectory==null){$cachesDirectory="/home/squid/cache-default";}
 		if(!is_numeric($globalCachesize)){$globalCachesize=5000;}
 		if($CPUS==1){
 			return "cache_dir	ufs $cachesDirectory-0 $globalCachesize 16 256";

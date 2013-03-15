@@ -145,6 +145,14 @@ function watchdog(){
 	$EnableWatchMemoryUsage=$config["EnableWatchMemoryUsage"];
 	$EnableWatchdog=$config["EnableWatchdog"];
 	$SystemWatchCPUSystem=$config["SystemWatchCPUSystem"];
+	
+	$EnableKlms=$sock->GET_INFO("EnableKlms");
+	if(!is_numeric($EnableKlms)){$EnableKlms=1;}
+	$mem=$GLOBALS["CLASS_UNIX"]->TOTAL_MEMORY_MB();
+	if($mem<1500){
+		$EnableKlms=0;
+	}	
+	
 	if(!is_numeric($SystemWatchMemoryUsage)){$SystemWatchMemoryUsage=350;}
 	if(!is_numeric($SystemWatchCPUUser)){$SystemWatchCPUUser=80;}
 	if(!is_numeric($SystemWatchCPUSystem)){$SystemWatchCPUSystem=80;}
@@ -154,6 +162,7 @@ function watchdog(){
 	$reloadmonit=false;
 	$monit_file="/etc/monit/conf.d/klms8.monitrc";
 	
+	if($EnableKlms==0){$EnableWatchdog=0;}
 	
 	if($EnableWatchdog==0){
 		echo "Starting......: klms8 Monit is not enabled ($EnableWatchdog)\n";

@@ -33,6 +33,7 @@ function popup(){
 	$array=unserialize(base64_decode($sock->getFrameWork("system.php?tune2fs-values=$devenc")));
 	$t=time();
 	$LAST_MOUNTED_ON=$array["LAST_MOUNTED_ON"];
+	$WARNING_LOOSE_DATA=$tpl->javascript_parse_text("{WARNING_LOOSE_DATA}");
 	
 	$INODES_SIZEZ[128]=128;
 	$INODES_SIZEZ[256]=256;
@@ -84,12 +85,14 @@ function popup(){
 		function Save$t(){
 			var LAST_MOUNTED_ON='$LAST_MOUNTED_ON';
 			if(LAST_MOUNTED_ON=='/'){return;}
-			var XHR = new XHRConnection();
-			XHR.appendData('dev','$devenc');
-			XHR.appendData('INODES_MAX',document.getElementById('INODES_MAX').value);
-			XHR.appendData('INODE_SIZE',document.getElementById('INODE_SIZE').value);
-			AnimateDiv('$t');
-			XHR.sendAndLoad('$page', 'POST',x_save$t);		
+			if(confirm('$WARNING_LOOSE_DATA')){
+				var XHR = new XHRConnection();
+				XHR.appendData('dev','$devenc');
+				XHR.appendData('INODES_MAX',document.getElementById('INODES_MAX').value);
+				XHR.appendData('INODE_SIZE',document.getElementById('INODE_SIZE').value);
+				AnimateDiv('$t');
+				XHR.sendAndLoad('$page', 'POST',x_save$t);
+			}		
 		}
 		
 		

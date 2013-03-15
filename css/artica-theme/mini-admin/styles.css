@@ -88,6 +88,7 @@ td.legend {
     font-size: 13px;
     font-weight: normal;
     text-align: right;
+	text-transform: capitalize;
 }
 	 
 	 

@@ -74,12 +74,13 @@ function page(){
 	$EnableZarafaRemoteServer=$PARAMS["EnableZarafaRemoteServer"];
 	$EnableZarafaRemoteServerAddr=$PARAMS["EnableZarafaRemoteServerAddr"];
 	$ZarafaEnablePluginPassword=$PARAMS["ZarafaEnablePluginPassword"];
+	$EnableZarafaSecondInstance=$PARAMS["EnableZarafaSecondInstance"];
 	$post_max_size=$PARAMS["post_max_size"];
 	$upload_max_filesize=$PARAMS["upload_max_filesize"];
 	$zPushInside=$PARAMS["zPushInside"];
 	$ZarafaXMPPDomain=$PARAMS["ZarafaXMPPDomain"];
 	$AutoDiscoverUri=$PARAMS["AutoDiscoverUri"];
-	
+	$t=time();
 	if(!is_numeric($ZarafaWebNTLM)){$ZarafaWebNTLM=0;}
 	if(!is_numeric($ZarafaEnablePlugins)){$ZarafaEnablePlugins=0;}
 	if(!is_numeric($ZarafaAspellEnabled)){$ZarafaAspellEnabled=0;}
@@ -89,7 +90,7 @@ function page(){
 	if(!is_numeric($upload_max_filesize)){$upload_max_filesize=50;}
 	if(!is_numeric($ZarafaEnablePluginPassword)){$ZarafaEnablePluginPassword=0;}
 	if(!is_numeric($zPushInside)){$zPushInside=1;}
-	
+	if(!is_numeric($EnableZarafaSecondInstance)){$EnableZarafaSecondInstance=0;}
 	$zPushInstalled=0;
 	if(!is_numeric($t)){$t=time();}
 	if($users->Z_PUSH_INSTALLED){$zPushInstalled=1;}
@@ -108,7 +109,7 @@ function page(){
 					$TT[$ligne["hostname"]]=$ligne["hostname"];
 				}
 				
-				$ejjaberd_field=Field_array_Hash($TT, "ZarafaXMPPDomain",$ZarafaXMPPDomain,null,null,0,"font-size:14px");
+				$ejjaberd_field=Field_array_Hash($TT, "ZarafaXMPPDomain-$t",$ZarafaXMPPDomain,null,null,0,"font-size:14px");
 				$ejjaberd_row="
 					<tr>
 						<td class=legend style='font-size:14px'>{InstantMessagingDomain}:</td>
@@ -123,18 +124,22 @@ function page(){
 	
 	
 	$sock=new sockets();
+	$ZarafaDBEnable2Instance=$sock->GET_INFO("ZarafaDBEnable2Instance");
+	if(!is_numeric($ZarafaDBEnable2Instance)){$ZarafaDBEnable2Instance=0;}
 		
-$html="<div style='width:100%' id='$t'>$groupware_text
+$html="<div style='width:100%' id='$t'></div>
+
+$groupware_text
 
 <table style='width:99%' class=form>
 <tbody>
 	<tr>
 		<td class=legend style='font-size:14px'>{EnableZpush}:</td>
-		<td>". Field_checkbox("zPushInside",1,$zPushInside,"zPushInsideCheck()")."</td>
+		<td>". Field_checkbox("zPushInside-$t",1,$zPushInside,"zPushInsideCheck$t()")."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px' valign='top'>{AutoDiscover_webserver}:</td>
-		<td>". Field_text("AutoDiscoverUri",$AutoDiscoverUri,"font-size:14px;width:98%;font-weight:bold")."
+		<td>". Field_text("AutoDiscoverUri-$t",$AutoDiscoverUri,"font-size:14px;width:98%;font-weight:bold")."
 		<div style='text-align:right'><a href=\"javascript:blur();\" 
 				OnClick=\"javascript:s_PopUpFull('http://mail-appliance.org/index.php?cID=387','1024','900');\"
 				style='font-size:11px;text-decoration:underline'>&laquo;{online_help}&raquo;</a></div>	
@@ -142,105 +147,128 @@ $html="<div style='width:100%' id='$t'>$groupware_text
 	</tr>				
 	<tr>
 		<td class=legend style='font-size:14px'>{debug_mode}:</td>
-		<td>". Field_checkbox("EnableDebugMode",1,$EnableDebugMode)."</td>
+		<td>". Field_checkbox("EnableDebugMode-$t",1,$EnableDebugMode)."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{ZarafaWebNTLM}:<div style='font-size:11px'>{ZarafaWebNTLM_explain}</div></td>
-		<td>". Field_checkbox("ZarafaWebNTLM",1,$ZarafaWebNTLM)."</td>
+		<td>". Field_checkbox("ZarafaWebNTLM-$t",1,$ZarafaWebNTLM)."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{ZarafaEnablePlugins}:</td>
-		<td>". Field_checkbox("ZarafaEnablePlugins",1,$ZarafaEnablePlugins)."</td>
+		<td>". Field_checkbox("ZarafaEnablePlugins-$t",1,$ZarafaEnablePlugins)."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{spell_checker}&nbsp;$ZarafaAspellInstalled_text&nbsp;:</td>
-		<td>". Field_checkbox("ZarafaAspellEnabled",1,$ZarafaAspellEnabled)."</td>
+		<td>". Field_checkbox("ZarafaAspellEnabled-$t",1,$ZarafaAspellEnabled)."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{UseRemoteServer}:</td>
-		<td>". Field_checkbox("EnableZarafaRemoteServer",1,$EnableZarafaRemoteServer,"EnableZarafaRemoteServerCheck()")."</td>
+		<td>". Field_checkbox("EnableZarafaRemoteServer-$t",1,$EnableZarafaRemoteServer,"EnableZarafaRemoteServerCheck$t()")."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{remote_server}:</td>
-		<td>". Field_text("EnableZarafaRemoteServerAddr",$EnableZarafaRemoteServerAddr,"font-size:14px;width:220px")."</td>
+		<td>". Field_text("EnableZarafaRemoteServerAddr-$t",$EnableZarafaRemoteServerAddr,"font-size:14px;width:220px")."</td>
 	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{use_second_instance}:</td>
+		<td>". Field_checkbox("EnableZarafaSecondInstance-$t",1,$EnableZarafaSecondInstance,"ZarafaDBEnable2InstanceCheck$t()")."</td>
+	</tr>	
 	$ejjaberd_row
 	<tr>
 		<td class=legend style='font-size:14px'>{post_max_size}:</td>
-		<td style='font-size:14px'>". Field_text("post_max_size",$post_max_size,"font-size:14px;width:60px")."&nbsp;M</td>
+		<td style='font-size:14px'>". Field_text("post_max_size-$t",$post_max_size,"font-size:14px;width:60px")."&nbsp;M</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{upload_max_filesize}:</td>
-		<td style='font-size:14px'>". Field_text("upload_max_filesize",$upload_max_filesize,"font-size:14px;width:60px")."&nbsp;M</td>
+		<td style='font-size:14px'>". Field_text("upload_max_filesize-$t",$upload_max_filesize,"font-size:14px;width:60px")."&nbsp;M</td>
 	</tr>
 	
 											
 </table>
 
-<div style='text-align:right'><hr>". button("{apply}","SaveZarafaWebFree()",18)."</div>
+<div style='text-align:right'><hr>". button("{apply}","SaveZarafaWebFree$t()",18)."</div>
 
 
 
-</div>
+
 	<script>
-		var x_SaveZarafaWebFree=function (obj) {
+		var x_SaveZarafaWebFree$t=function (obj) {
 			var results=obj.responseText;
 			if(results.length>3){alert(results);}
-
-			if(document.getElementById('main_config_freewebedit')){
-				RefreshTab('main_config_freewebedit');
-			}
-			
+			document.getElementById('$t').innerHTML='';
 		}	
 
-		function EnableZarafaRemoteServerCheck(){
+		function EnableZarafaRemoteServerCheck$t(){
 			var zPushInstalled=$zPushInstalled;
 			
-			document.getElementById('zPushInside').disabled=true;
-			document.getElementById('EnableZarafaRemoteServerAddr').disabled=true;
-			if(document.getElementById('EnableZarafaRemoteServer').checked){
-				document.getElementById('EnableZarafaRemoteServerAddr').disabled=false;
+			document.getElementById('zPushInside-$t').disabled=true;
+			document.getElementById('EnableZarafaRemoteServerAddr-$t').disabled=true;
+			if(!document.getElementById('EnableZarafaRemoteServer-$t').disabled){
+				if(document.getElementById('EnableZarafaRemoteServer-$t').checked){
+					document.getElementById('EnableZarafaRemoteServerAddr-$t').disabled=false;
+				}
+			}
+			if(zPushInstalled==1){
+				document.getElementById('zPushInside-$t').disabled=false;
+			}
+		
+		}
+		
+		
+		function zPushInsideCheck$t(){
+			document.getElementById('AutoDiscoverUri-$t').disabled=true;
+			if(document.getElementById('zPushInside-$t').checked){
+				document.getElementById('AutoDiscoverUri-$t').disabled=false;
+			}
+		
+		}
+		
+		function ZarafaDBEnable2InstanceCheck$t(){
+			var ZarafaDBEnable2Instance=$ZarafaDBEnable2Instance;
+			document.getElementById('EnableZarafaSecondInstance-$t').disabled=true;
+			document.getElementById('EnableZarafaRemoteServer-$t').disabled=true;
+			
+			if(ZarafaDBEnable2Instance==0){
+				document.getElementById('EnableZarafaRemoteServer-$t').disabled=false;
+				return;
+			}
+			document.getElementById('EnableZarafaSecondInstance-$t').disabled=false;
+			if(document.getElementById('EnableZarafaSecondInstance-$t').checked){
+				document.getElementById('EnableZarafaRemoteServer-$t').disabled=true;			
+			}else{
+				document.getElementById('EnableZarafaRemoteServer-$t').disabled=false;	
+			
 			}
 			
-			if(zPushInstalled==1){
-				document.getElementById('zPushInside').disabled=false;
-			}
-		
-		}
-		
-		
-		function zPushInsideCheck(){
-			document.getElementById('AutoDiscoverUri').disabled=true;
-			if(document.getElementById('zPushInside').checked){
-				document.getElementById('AutoDiscoverUri').disabled=false;
-			}
-		
+			EnableZarafaRemoteServerCheck$t();
+			
 		}
 		
 	
 	
-		function SaveZarafaWebFree(){
+		function SaveZarafaWebFree$t(){
 			var XHR = new XHRConnection();
 			XHR.appendData('servername','{$_GET["servername"]}');
 			ZarafaXMPPDomain='';
-			if(document.getElementById('EnableDebugMode').checked){XHR.appendData('EnableDebugMode',1);}else{XHR.appendData('EnableDebugMode',0);}
-			if(document.getElementById('EnableZarafaRemoteServer').checked){XHR.appendData('EnableZarafaRemoteServer',1);}else{XHR.appendData('EnableZarafaRemoteServer',0);}
-			if(document.getElementById('ZarafaWebNTLM').checked){XHR.appendData('ZarafaWebNTLM',1);}else{XHR.appendData('ZarafaWebNTLM',0);}
-			if(document.getElementById('ZarafaEnablePlugins').checked){XHR.appendData('ZarafaEnablePlugins',1);}else{XHR.appendData('ZarafaEnablePlugins',0);}
-			if(document.getElementById('ZarafaAspellEnabled').checked){XHR.appendData('ZarafaAspellEnabled',1);}else{XHR.appendData('ZarafaAspellEnabled',0);}
-			if(document.getElementById('zPushInside').checked){XHR.appendData('zPushInside',1);}else{XHR.appendData('zPushInside',0);}
-			XHR.appendData('EnableZarafaRemoteServerAddr',document.getElementById('EnableZarafaRemoteServerAddr').value);
+			if(document.getElementById('EnableDebugMode-$t').checked){XHR.appendData('EnableDebugMode',1);}else{XHR.appendData('EnableDebugMode',0);}
+			if(document.getElementById('EnableZarafaRemoteServer-$t').checked){XHR.appendData('EnableZarafaRemoteServer',1);}else{XHR.appendData('EnableZarafaRemoteServer',0);}
+			if(document.getElementById('ZarafaWebNTLM-$t').checked){XHR.appendData('ZarafaWebNTLM',1);}else{XHR.appendData('ZarafaWebNTLM',0);}
+			if(document.getElementById('ZarafaEnablePlugins-$t').checked){XHR.appendData('ZarafaEnablePlugins',1);}else{XHR.appendData('ZarafaEnablePlugins',0);}
+			if(document.getElementById('ZarafaAspellEnabled-$t').checked){XHR.appendData('ZarafaAspellEnabled',1);}else{XHR.appendData('ZarafaAspellEnabled',0);}
+			if(document.getElementById('zPushInside-$t').checked){XHR.appendData('zPushInside',1);}else{XHR.appendData('zPushInside',0);}
+			if(document.getElementById('EnableZarafaSecondInstance-$t').checked){XHR.appendData('EnableZarafaSecondInstance',1);}else{XHR.appendData('EnableZarafaSecondInstance',0);}
 			
-			if(document.getElementById('ZarafaXMPPDomain')){ZarafaXMPPDomain=document.getElementById('ZarafaXMPPDomain').value;}
+			XHR.appendData('EnableZarafaRemoteServerAddr',document.getElementById('EnableZarafaRemoteServerAddr-$t').value);
+			if(document.getElementById('ZarafaXMPPDomain')){ZarafaXMPPDomain=document.getElementById('ZarafaXMPPDomain-$t').value;}
 			XHR.appendData('ZarafaXMPPDomain',ZarafaXMPPDomain);
-			XHR.appendData('post_max_size',document.getElementById('post_max_size').value);
-			XHR.appendData('AutoDiscoverUri',document.getElementById('AutoDiscoverUri').value);
-			XHR.appendData('upload_max_filesize',document.getElementById('upload_max_filesize').value);
+			XHR.appendData('post_max_size',document.getElementById('post_max_size-$t').value);
+			XHR.appendData('AutoDiscoverUri',document.getElementById('AutoDiscoverUri-$t').value);
+			XHR.appendData('upload_max_filesize',document.getElementById('upload_max_filesize-$t').value);
 			AnimateDiv('$t');
-			XHR.sendAndLoad('$page', 'POST',x_SaveZarafaWebFree);
+			XHR.sendAndLoad('$page', 'POST',x_SaveZarafaWebFree$t);
 		}
-	
-		EnableZarafaRemoteServerCheck();
+		ZarafaDBEnable2InstanceCheck$t();
+		
 	</script>
 	
 	";

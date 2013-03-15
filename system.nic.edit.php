@@ -207,6 +207,7 @@ function ipconfig_nic(){
 	$DisableNetworksManagement=$sock->GET_INFO("DisableNetworksManagement");
 	if(!is_numeric($DisableNetworksManagement)){$DisableNetworksManagement=0;}	
 	$eth=$_GET["nic"];
+	
 	$nic=new system_nic($eth);
 	$users=new usersMenus();
 	if($users->SNORT_INSTALLED){
@@ -259,6 +260,10 @@ function ipconfig_nic(){
 			<td class=legend style='font-size:14px'>{gateway}:</td>
 			<td>" . field_ipv4("GATEWAY",$nic->GATEWAY,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{metric}:</td>
+			<td>" . field_text("metric-$t",$nic->metric,'padding:3px;font-size:18px;width:90px',null,null,null,false,null,$DISABLED)."</td>
+		</tr>					
 		<tr>
 			<td class=legend style='font-size:14px'>{broadcast}:</td>
 			<td>" . field_ipv4("BROADCAST",$nic->BROADCAST,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
@@ -314,6 +319,7 @@ function ipconfig_nic(){
 			XHR.appendData('DNS_1',document.getElementById('DNS_1').value);
 			XHR.appendData('DNS_2',document.getElementById('DNS_2').value);
 			XHR.appendData('BROADCAST',document.getElementById('BROADCAST').value);
+			XHR.appendData('metric',document.getElementById('metric-$t').value);
 			XHR.appendData('save_nic',document.getElementById('save_nic').value);
 			XHR.appendData('noreboot','{$_GET["noreboot"]}');
 			if(document.getElementById('zlistnic-info-$eth')){AnimateDiv('zlistnic-info-$eth');}
@@ -543,6 +549,7 @@ function save_nic(){
 	$nics->DNS1=$DNS_1;
 	$nics->DNS2=$DNS_2;
 	$nics->dhcp=$_GET["dhcp"];
+	$nics->metric=$_GET["metric"];
 	$nics->enabled=$_GET["enabled"];
 
 	 

@@ -109,10 +109,11 @@ class SugarCRM_install{
 		$f=file("$this->www_dir/config.php");
 		if(count($f)>20){return;}
 		
+		$unix=new unix();
 		$sock=new sockets();
 		
 		$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
-		$FreeWebListen=$sock->GET_INFO("FreeWebListen");
+		$FreeWebListen=$unix->APACHE_ListenDefaultAddress();
 		if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
 		if(!is_numeric($FreeWebListen)){$FreeWebListen=80;}
 		$listen=$FreeWebListen;

@@ -12,7 +12,7 @@ This temporary suspension will remain in effect until all violations have ceased
 Company also retains the right to discontinue service with 30 days’ prior written notice for repeated violation of the acceptable use policy.
 ";		
 	
-	
+	if(isset($_GET["getimage"])){getimage();exit;}
 	
 	if(isset($_GET["checks"])){checks();exit;}
 	if(isset($_GET["css-main"])){echo css();exit;}
@@ -59,7 +59,22 @@ function page(){
 		
 	}
 	
+	$page=CurrentPageName();
+	$q=new mysql();
+	$servername=$_SERVER["SERVER_NAME"];
+	$q=new mysql();
+	$t=time();
+	$sql="SELECT subtitle,params,debug_auth FROM freeweb_slashsquid WHERE servername='$servername'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$params=unserialize(base64_decode($ligne["params"]));
+	if($params["title"]==null){$params["title"]="HotSpot Authentication page";}	
+	$debug_auth=$ligne["debug_auth"];
 	
+	
+	$subtitle=$ligne["subtitle"];
+	if($subtitle==null){$subtitle=$squid_splash_logon_explain;}
+	
+	$js0="document.title='".$tpl->javascript_parse_text($params["title"])."';";
 	
 	$html="<!DOCTYPE html>
 <html lang=\"en\">
@@ -74,7 +89,7 @@ function page(){
 		<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/thickbox.css\" media=\"screen\"/>
 		<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/jquery.qtip.css\" />
 		<link href=\"$page?css-main=yes\" media=\"screen\" rel=\"stylesheet\" type=\"text/css\" >
-  <title>$request</title>
+  <title></title>
 <!-- HEAD TITLE: ressources/templates/Squid/TITLE -->
 <link rel=\"icon\" href=\"/ressources/templates/Squid/favicon.ico\" type=\"image/x-icon\" />
 <link rel=\"shortcut icon\" href=\"/ressources/templates/Squid/favicon.ico\" type=\"image/x-icon\" />
@@ -146,7 +161,7 @@ function page(){
     </div><!-- /#content -->
 
     <div class=\"footer\">
-    	<center style='font-size:13px;font-weight:bold;color:white'>$squid_splash_logon_explain</center>
+    	<center style='font-size:13px;font-weight:bold;color:white'>$subtitle</center>
     </div><!-- /#footer -->
   </div>
   
@@ -172,6 +187,7 @@ function page(){
  		XHR.appendData('username',user);
 		XHR.appendData('password',password);
 		XHR.appendData('md5key','$md5key');
+		XHR.appendData('debugAuth','$debug_auth');
 		XHR.appendData('request','{$_GET["request"]}');
 		if(document.getElementById('YouCanAnimateIt-$t')){
 			document.getElementById('YouCanAnimateIt-$t').innerHTML='<img src=\"/img/preloader.gif\">';
@@ -183,7 +199,7 @@ function page(){
  	 	if(!checkEnter(e)){return;}
  	 	SendLogonStart$t();
  	 }
- 	
+ 	 $js0
  </script>
  
   
@@ -221,7 +237,14 @@ function page(){
 
 function check_auth(){
 	$tpl=new templates();
-	//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+	if($_POST["debugAuth"]==1){
+		$GLOBALS["VERBOSE"]=true;
+		ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string',null);
+		ini_set('error_append_string',null);
+	
+		
+	}
 	$username=$_POST["username"];
 	$time=time();
 	if($username==null){
@@ -242,6 +265,8 @@ function check_auth(){
 	if(!isset($HotSpotConfig["CACHE_TIME"])){$HotSpotConfig["CACHE_TIME"]=120;}
 	if(!isset($HotSpotConfig["USEMYSQL"])){$HotSpotConfig["USEMYSQL"]=1;}
 	if(!isset($HotSpotConfig["USEAD"])){$HotSpotConfig["USEAD"]=0;}
+	if(!isset($HotSpotConfig["USERAD"])){$HotSpotConfig["USERAD"]=0;}
+	
 	
 	
 	
@@ -250,6 +275,7 @@ function check_auth(){
 	if(!is_numeric($HotSpotConfig["CACHE_AUTH"])){$HotSpotConfig["CACHE_AUTH"]=60;}
 	if(!is_numeric($HotSpotConfig["CACHE_TIME"])){$HotSpotConfig["CACHE_TIME"]=120;}
 	if(!is_numeric($HotSpotConfig["FINAL_TIME"])){$HotSpotConfig["FINAL_TIME"]=0;}
+	if(!is_numeric($HotSpotConfig["USERAD"])){$HotSpotConfig["USERAD"]=0;}
 	
 	if($EnableKerbAuth==0){$HotSpotConfig["USEAD"]=0;}
 	if(!$users->CORP_LICENSE){$HotSpotConfig["USEAD"]=0;}
@@ -277,6 +303,7 @@ function check_auth(){
 	$md5_session=$ligne["md5"];
 	
 	if($HotSpotConfig["USEAD"]==1){
+		if($GLOBALS["VERBOSE"]){echo "AUTH = FALSE continue IF AD... (".__LINE__.")\n";}
 		$creds["username"]=$username;
 		$creds["password"]=$password;
 		$results=trim(base64_decode($sock->GET_INFO("squid.php?pamlogon=".base64_encode(serialize($creds)))));
@@ -285,22 +312,49 @@ function check_auth(){
 	
 
 	if($HotSpotConfig["USELDAP"]==1){
-		$ct=new user($username);
-		if(md5($ct->password)==$password){$auth=true;}
+		if(!$auth){
+			if($GLOBALS["VERBOSE"]){echo "AUTH = FALSE continue IF LDAP... (".__LINE__.")\n";}
+			$ct=new user($username);
+			if(md5($ct->password)==$password){$auth=true;}
+		}
 		
 	}
-	$ASUID=false;
-	if($HotSpotConfig["USEMYSQL"]==1){
-		if(!$q->TABLE_EXISTS("hotspot_members")){$q->CheckTables();}
-		$sql="SELECT uid,password,ttl,sessiontime,enabled FROM hotspot_members WHERE uid='$username'";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		if($ligne["uid"]<>null){
-			$ASUID=true;
-			if($ligne["password"]==$password){$auth=true;}
-			if($ligne["sessiontime"]>0){$CACHE_AUTH=$ligne["sessiontime"];}
-			if($ligne["enabled"]==0){echo $tpl->javascript_parse_text("{access_to_internet_disabled} ({disabled})");die();}
-			if(intval($ligne["ttl"])>0){if($time>$ligne["ttl"]){echo $tpl->javascript_parse_text("{accesstime_to_internet_expired}");die();	}}
+	
+	
+	if($HotSpotConfig["USERAD"]==1){
+		if(!$auth){
+			if($GLOBALS["VERBOSE"]){echo "AUTH = FALSE continue IF RADIUS... (".__LINE__.")\n";}
+			$RAD_SERVER=$HotSpotConfig["RAD_SERVER"];
+			$RAD_PORT=$HotSpotConfig["RAD_PORT"];
+			$RAD_PASSWORD=$HotSpotConfig["RAD_PASSWORD"];
+			if(!is_numeric($RAD_PORT)){$RAD_PORT=1812;}
+			include_once("/usr/share/artica-postfix/ressources/class.radius.auth.inc");
+			if($GLOBALS["VERBOSE"]){echo "RADIUS_AUTHENTICATION -> With ($username,$password,$RAD_SERVER,$RAD_PORT) (".__LINE__.")\n";}
 			
+			$retval=RADIUS_AUTHENTICATION($username,$password,$RAD_SERVER,$RAD_PORT,$RAD_PASSWORD);
+			if($retval==2){
+				if($GLOBALS["VERBOSE"]){echo "AUTH = TRUE, continue next step...\n";}
+				$auth=true;
+			}
+		}
+	}
+	
+
+	$ASUID=false;
+	
+	if($HotSpotConfig["USEMYSQL"]==1){
+		if(!$auth){
+			if($GLOBALS["VERBOSE"]){echo "AUTH = FALSE continue IF MYSQL... (".__LINE__.")\n";}
+			if(!$q->TABLE_EXISTS("hotspot_members")){$q->CheckTables();}
+			$sql="SELECT uid,password,ttl,sessiontime,enabled FROM hotspot_members WHERE uid='$username'";
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+			if($ligne["uid"]<>null){
+				$ASUID=true;
+				if($ligne["password"]==$password){$auth=true;}
+				if($ligne["sessiontime"]>0){$CACHE_AUTH=$ligne["sessiontime"];}
+				if($ligne["enabled"]==0){echo $tpl->javascript_parse_text("{access_to_internet_disabled} ({disabled})");die();}
+				if(intval($ligne["ttl"])>0){if($time>$ligne["ttl"]){echo $tpl->javascript_parse_text("{accesstime_to_internet_expired}");die();	}}
+			}
 		}
 	}
 		
@@ -308,14 +362,13 @@ function check_auth(){
 	
 	
 if(!$auth){
+	if($GLOBALS["VERBOSE"]){echo "AUTH = FALSE , END (".__LINE__.")\n";}
 	echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 	return;
 }
 
 		$q=new mysql_squid_builder();
-		
 		if(!is_numeric($CACHE_AUTH)){$CACHE_AUTH=60;}
-		
 		$finaltime = strtotime("+$CACHE_AUTH minutes", $time);
 		
 		
@@ -351,12 +404,62 @@ if(!$auth){
 	
 }
 
+
+function getimage(){
+	$servername=$_GET["getimage"];
+	$q=new mysql();
+	$sql="SELECT logoimg,logoname FROM freeweb_slashsquid WHERE servername='$servername'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if(strlen($ligne["logoimg"])==0){
+		$fsize = filesize("ressources/templates/Squid/i/logo-captive.png");
+		header("Content-type: image/png");
+		header("Content-Disposition: attachment; filename=\"logo-captive.png\";" );
+		header("Content-Transfer-Encoding: binary");
+		header("Content-Length: ".$fsize);
+		readfile("ressources/templates/Squid/i/logo-captive.png");
+		ob_clean();
+		flush();
+		return;
+	}
+	$path_info = pathinfo($ligne["logoname"]);
+	$ext=$path_info['extension'];
+	header("Content-Type: image/$ext");
+	$fsize = strlen($ligne["logoimg"]);
+	header("Content-Disposition: attachment; filename=\"{$ligne["logoname"]}\";" );
+	header("Content-Transfer-Encoding: binary");
+	header("Content-Length: ".$fsize);
+	ob_clean();
+	flush();
+	echo $ligne["logoimg"];
+
+
+
+}
+
 function css(){
 	$WORK_IMAGES="/ressources/templates/Squid/i";
+	$page=CurrentPageName();
+	$servername=$_SERVER["SERVER_NAME"];
+	
+	$page=CurrentPageName();
+	$q=new mysql();
+	$servername=$_SERVER["SERVER_NAME"];
+	$q=new mysql();
+	$t=time();
+	$sql="SELECT params,backgroundcolor FROM freeweb_slashsquid WHERE servername='$servername'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$params=unserialize(base64_decode($ligne["params"]));
+	$backbg="#263849 url('$WORK_IMAGES/pattern.png');";
+	if($ligne["backgroundcolor"]<>null){
+		$backbg=$ligne["backgroundcolor"];
+		
+	}
+	
+	$t=time();
 $css="
 body{
 	font: 10pt Arial, Helvetica, sans-serif;
-	background: #263849 url('$WORK_IMAGES/pattern.png');
+	background: $backbg;
 }
 #sum{
 	width: 485px;
@@ -367,7 +470,7 @@ body{
 h1{
 	width: 401px;
 	height: 127px;
-	background: transparent url('$WORK_IMAGES/logo-captive.png') no-repeat;
+	background: transparent url('/$page?getimage=$servername&t=$t') no-repeat;
 	margin: 0 27px 21px;
 } 
 h1 span{

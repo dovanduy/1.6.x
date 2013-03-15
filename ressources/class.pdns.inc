@@ -98,8 +98,9 @@ class pdns{
 	
 //------------------------------------------------------------------------------------------------------------------------------
 	private function mysql_checkMasterZone(){
-		
+		if(isset($GLOBALS["mysql_checkMasterZone:$this->domainname"])){return $GLOBALS["mysql_checkMasterZone:$this->domainname"];}
 		if($this->domainname==null){$this->mysql_checkMasterDefaulZone();}
+		
 		$q=new mysql();
 		$sql="SELECT id FROM domains WHERE name='$this->domainname'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));
@@ -113,8 +114,9 @@ class pdns{
 		 	
 		}else{
 			$nextid=$ligne["id"];
+			
 		}
-		
+		$GLOBALS["mysql_checkMasterZone:$this->domainname"]=$nextid;
 		return $nextid;
 		
 	}
@@ -145,8 +147,10 @@ class pdns{
 	
 	
 	private function BuildBranch(){
+		if(isset($GLOBALS[__FILE__.__CLASS__.__FUNCTION__])){return;}
 		writelogs("owerDNSDisableLDAP=$this->PowerDNSDisableLDAP DisablePowerDnsManagement=$this->DisablePowerDnsManagement",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		$this->mysql_checkMasterZone();
+		$GLOBALS[__FILE__.__CLASS__.__FUNCTION__]=true;
 		if($this->PowerDNSDisableLDAP==1){return;}
 		if($this->DisablePowerDnsManagement==1){return;}
 		
@@ -276,11 +280,19 @@ class pdns{
 		}		
 	}
 	
-	private function mysql_EditIPName($computername,$IP,$DnsType,$id=0){
+	private function mysql_EditIPName($computername,$IP,$DnsType,$id=0,$obs=null){
 		if(!is_numeric($id)){$id=0;}
 		if(trim($computername)==null){return false;}
+		$articasrv_field=null;
+		$articasrv_data=null;
+		
 		$tr=array();
-		if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$computername)){writelogs("Cannot put in DNS an ip address as computer name",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return false;}
+		if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$computername)){
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]::Cannot put in DNS an ip address as computer name $computername\n";}
+			writelogs("Cannot put in DNS an ip address as computer name",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			return false;
+		}
+		
 		if(strpos($computername, ".")>0){
 			$tr=explode(".", $computername);
 			$computername=strtolower($tr[0]);
@@ -294,69 +306,153 @@ class pdns{
 		$computername=str_replace('$','',$computername);
 		$fqdn="$computername.$this->domainname";		
 		$fqdn=str_replace('..','.',$fqdn);	
+		
+		
+		
 		$domain_id=$this->mysql_checkMasterZone();
-		if($domain_id<1){return false;}
-		if(!is_numeric($this->ttl)){$this->ttl=	86400;}
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]::`$fqdn`:: domain:`$this->domainname` ID:[$domain_id] \n";}
+		if($domain_id<1){
+			$this->AddDomain($this->domainname);
+			$domain_id=$this->mysql_checkMasterZone();
+		}
+		
+		if($domain_id<1){
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]::`$fqdn`:: Failed unable to find domain_id for `$this->domainname` \n";}
+			return false;
+		}
+		
+		if(!is_numeric($this->ttl)){$this->ttl=86400;}
 		if(!is_numeric($this->prio)){$this->prio=0;}
 		if($this->ttl<500){$this->ttl=86400;}
 		$q=new mysql();
 		$zdate=time();
 		if($id==0){
-			$sql="SELECT id FROM records WHERE name='$fqdn'";
+			$sql="SELECT id FROM records WHERE name='$fqdn' AND `type`='$DnsType'";
 			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));
 			$id=$ligne["id"];
-		}
-		if($id>0){
-			$q->QUERY_SQL("UPDATE records SET content='$IP',
-			`change_date`='$zdate',
-			`ttl`='$this->ttl',`prio`='$this->prio' WHERE id='$id'","powerdns");
-			if(!$q->ok){
-				echo $q->mysql_error;
-				return false;}
-			
-		}else{
-			if($this->articasrv<>null){
-				$articasrv_field=",`articasrv`";
-				$articasrv_data=",'$this->articasrv'";
-			}
-			$q->QUERY_SQL("INSERT INTO records (`domain_id`,`name`,`type`,`content`,`ttl`,`prio`,`change_date`$articasrv_field)
-			VALUES($domain_id,'$fqdn','$DnsType','$IP','$this->ttl','$this->prio','$zdate'$articasrv_data)","powerdns");
-			if(!$q->ok){return false;}	
-		}
-		if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$IP,$re)){
-			$arpa_domain_id=$this->mysql_checkin_addr_arpa();
-			if($arpa_domain_id>0){
-				$arpa="{$re[4]}.{$re[3]}.{$re[2]}.{$re[1]}.in-addr.arpa";
-				$sql="SELECT id FROM records WHERE content='$fqdn'";
-				$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));
-				if($ligne["id"]>0){
-					$q->QUERY_SQL("UPDATE records SET `name`='$arpa',
-					`change_date`='$zdate',`ttl`='$this->ttl',`prio`='$this->prio' WHERE id='{$ligne["id"]}'","powerdns");
-					if(!$q->ok){return false;}
-				}else{
-					
-				if($this->articasrv<>null){
-					$articasrv_field=",`articasrv`";
-					$articasrv_data=",'$this->articasrv'";
-				}					
-					
-				$q->QUERY_SQL("INSERT INTO records (`domain_id`,`name`,`type`,`content`,`ttl`,`prio`,`change_date`$articasrv_field)
-				VALUES($arpa_domain_id,'$arpa','PTR','$fqdn','$this->ttl','$this->prio','$zdate'$articasrv_data)","powerdns");
-				if(!$q->ok){return false;}		
-				}
-			}
-				
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]::`$fqdn`::Type: `$DnsType` id:`$id` \n";}
 		}
 		
+		
+		if($id>0){
+			$obssql=null;
+			if($obs<>null){$obssql=",`explainthis`='".mysql_escape_string($obs)."'";}
+			$sql="UPDATE records SET content='$IP',`change_date`='$zdate',
+					`ttl`='$this->ttl',
+					`prio`='$this->prio'$obssql WHERE id='$id'";
+			$q->QUERY_SQL($sql,"powerdns");
+			if(!$q->ok){
+				if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]::`$fqdn`:: $q->mysql_error => FAILED \n$sql\n";}
+				return false;
+			}
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]::`$fqdn`:: CheckARPA($IP,$fqdn)\n";}
+			$this->CheckARPA($IP,$fqdn);
+			return true;
+		}
+		
+		
+		if($this->articasrv<>null){
+			$articasrv_field=",`articasrv`";
+			$articasrv_data=",'$this->articasrv'";
+		}
+		
+		
+		if($obs<>null){$obF=",`explainthis`";$obD=",'".mysql_escape_string($obs)."'";}		
+			
+		$idU=$this->GetHostnameFromIPAddr($IP,$fqdn);
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]::`$fqdn`::$IP => $idU \n";}
+			
+		if($idU<>null){
+			if(!$this->AddAliase($domain_id, $fqdn, $idU,$obs)){
+				if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]::`$fqdn`::AddAliase($domain_id, $fqdn, $idU,$obs) => FAILED \n";}
+				return false;}
+			$this->CheckARPA($IP,$fqdn);
+			return true;
+		}
+
+		$q->QUERY_SQL("INSERT INTO records 
+		(`domain_id`,`name`,`type`,`content`,`ttl`,`prio`,`change_date`$articasrv_field$obF) 
+		VALUES($domain_id,'$fqdn','$DnsType','$IP','$this->ttl','$this->prio','$zdate'$articasrv_data$obD)","powerdns");
+		if(!$q->ok){
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]::`$fqdn`:: $q->mysql_error => FAILED \n";}
+			return false;}	
+		$this->CheckARPA($IP,$fqdn);
+		return true;
+		
+	}
+	
+	private function AddAliase($domain_id,$alias,$hostname_src,$obs=null){
+		$q=new mysql();
+		$sql="SELECT id FROM records WHERE name='$alias' AND content='$hostname_src'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));
+		if($ligne["id"]>0){return true;}
+		
+		if(!is_numeric($this->ttl)){$this->ttl=86400;}
+		if(!is_numeric($this->prio)){$this->prio=0;}
+		if($this->ttl<500){$this->ttl=86400;}
+		$change_date=date("YmdH");
+		if($obs<>null){$obF=",`explainthis`";$obD=",'".mysql_escape_string($obs)."'";}
+		$sql="INSERT IGNORE INTO records (domain_id, name, type, content, ttl, prio, change_date$obF)
+		VALUES ($domain_id,'$alias','CNAME','$hostname_src','{$this->ttl}','{$this->prio}','$change_date'$obD)";
+		$q->QUERY_SQL($sql,"powerdns");
+		if(!$q->ok){return false;}
+		return true;
+	}
+	
+	private function CheckARPA($IP,$fqdn){
+		$q=new mysql();
+		$articasrv_field=null;$articasrv_data=null;
+		if(!preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$IP,$re)){return;}
+		$arpa_domain_id=$this->mysql_checkin_addr_arpa();
+		if($arpa_domain_id==0){return;}
+		$arpa="{$re[4]}.{$re[3]}.{$re[2]}.{$re[1]}.in-addr.arpa";
+		$sql="SELECT id FROM records WHERE content='$fqdn'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));
+		if(!is_numeric($this->ttl)){$this->ttl=86400;}
+		if(!is_numeric($this->prio)){$this->prio=0;}
+		if($this->ttl<500){$this->ttl=86400;}		
+		
+		$zdate=date("YmdH");
+		if($ligne["id"]>0){
+			$q->QUERY_SQL("UPDATE records SET `name`='$arpa',`change_date`='$zdate',`ttl`='$this->ttl',`prio`='$this->prio' WHERE id='{$ligne["id"]}'","powerdns");
+			if(!$q->ok){return false;}
+			return true;
+		}
+		
+		if($this->articasrv<>null){$articasrv_field=",`articasrv`";$articasrv_data=",'$this->articasrv'";}
+		$q->QUERY_SQL("INSERT INTO records (`domain_id`,`name`,`type`,`content`,`ttl`,`prio`,`change_date`$articasrv_field) VALUES($arpa_domain_id,'$arpa','PTR','$fqdn','$this->ttl','$this->prio','$zdate'$articasrv_data)","powerdns");
+		if(!$q->ok){return false;}		
+		return true;
+	}
+	
+	
+	private function GetHostnameFromIPAddr($IP,$hostname){
+		$q=new mysql();
+		$sql="SELECT id,name FROM records WHERE content='$IP'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));
+		$name=$ligne["name"];
+		if($name==$hostname){return null;}
+		return $name;
 	}
 	
 	
 //------------------------------------------------------------------------------------------------------------------------------	
-	public function EditIPName($computername,$IP,$DnsType,$macaddress=null){
-			if(!$this->mysql_EditIPName($computername,$IP,$DnsType,$macaddress)){return false;}
-			if($this->PowerDNSDisableLDAP==1){return true;}
-			if($this->DisablePowerDnsManagement==1){return true;}
+	public function EditIPName($computername,$IP,$DnsType,$macaddress=null,$obs=null){
+			$computername=trim(strtolower($computername));
 			if(trim($computername)==null){return false;}
+			$IP=trim($IP);
+			$this->domainname=trim(strtolower($this->domainname));
+			if(!$this->mysql_EditIPName($computername,$IP,$DnsType,$macaddress,$obs)){
+				if($GLOBALS["VERBOSE"]){echo "mysql_EditIPName($computername,$IP,$DnsType...) return false\n";}
+				return false;
+			}
+			if($this->PowerDNSDisableLDAP==1){
+				if($GLOBALS["VERBOSE"]){echo "PowerDNSDisableLDAP==1 return True\n";}
+				return true;}
+			if($this->DisablePowerDnsManagement==1){
+				if($GLOBALS["VERBOSE"]){echo "DisablePowerDnsManagement==1 return True\n";}
+				return true;}
+			if($GLOBALS["VERBOSE"]){echo "EditIPName -> check lDAP...\n";}
 			$ldap=new clladp();
 			$up=array();
 			

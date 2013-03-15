@@ -349,7 +349,7 @@ class ActiveDirectory{
 		
 		for($i=0;$i<$hash["count"];$i++){
 			$GroupName=utf8_decode($hash[$i]["cn"][0]);
-			writelogs("{$hash[$i]["cn"][0]} = `$GroupName`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			writelogs("{$hash[$i]["cn"][0]} = `$GroupName` Maxentries:$entriesNumber",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			
 			$dn=$hash[$i]["dn"];
 			$description=utf8_decode($hash[$i]["description"][0]);

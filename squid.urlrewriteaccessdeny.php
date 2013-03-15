@@ -136,6 +136,11 @@ function popup_list(){
 	$table="urlrewriteaccessdeny";
 	$page=1;
 	$FORCE_FILTER="";
+	if(!$q->TABLE_EXISTS("$table",'artica_backup')){
+		$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`urlrewriteaccessdeny` ( `items` VARCHAR( 255 ) NOT NULL PRIMARY KEY ) ENGINE=MYISAM;";
+		$q->QUERY_SQL($sql,'artica_backup');
+	}
+
 	if(!$q->TABLE_EXISTS("$table",'artica_backup')){json_error_show("$table No such table");}
 	if($q->COUNT_ROWS("$table",'artica_backup')==0){json_error_show("No data");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	

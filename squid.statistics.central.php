@@ -11,7 +11,80 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	if(isset($_GET["central-infos"])){central_information();exit;}
 	if(isset($_GET["panel"])){page();exit;}
 	if(isset($_GET["graphique_heure"])){graphique_heure();exit;}
+	
+	if(isset($_GET["rrd-js"])){rrd_js();exit;}
+	if(isset($_POST["rrd-perform"])){rrd_perform();exit;}
+	
+	if(isset($_GET["squidhour-js"])){squidhour_js();exit;}
+	if(isset($_POST["squidhour-perform"])){squidhour_perform();exit;}
 tabs();
+
+
+function rrd_js(){
+	$t=time();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$tpl=new templates();
+	$t=time();
+	header("content-type: application/x-javascript");
+	$confirm=$tpl->javascript_parse_text("{run_this_task_now} ?");
+
+	echo "
+
+	var xstart$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);}
+	RefreshTab('squid_stats_central');
+	RefreshTab('squid_main_svc');
+
+}
+
+
+function start$t(){
+if(!confirm('$confirm')){return;}
+var XHR = new XHRConnection();
+XHR.appendData('rrd-perform','yes');
+XHR.sendAndLoad('$page', 'POST',xstart$t);
+}
+	
+start$t();
+";
+
+}
+
+
+function squidhour_js(){
+	$t=time();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$tpl=new templates();	
+	$t=time();
+	header("content-type: application/x-javascript");
+	$confirm=$tpl->javascript_parse_text("{run_this_task_now} ?");
+	
+	echo "
+		
+	var xstart$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		RefreshTab('squid_stats_central');
+		
+	}		
+	
+	
+	function start$t(){
+		if(!confirm('$confirm')){return;}
+		var XHR = new XHRConnection();
+		XHR.appendData('squidhour-perform','yes');
+		XHR.sendAndLoad('$page', 'POST',xstart$t);
+	}
+			
+	start$t();		
+	";
+	
+}
+
+
 
 function tabs(){
 	$t=time();
@@ -23,8 +96,10 @@ function tabs(){
 	if(!$users->PROXYTINY_APPLIANCE){
 		$array["status"]='{status}';
 		//$array["panel-week"]='{this_week}';
+		$array["events-squidaccess"]='{realtime_requests}';
 		$array["days"]='{days}';
 		$array["users"]='{members}';
+		
 		$array["not_categorized"]='{not_categorized}';
 	}
 	
@@ -34,6 +109,11 @@ while (list ($num, $ligne) = each ($array) ){
 			$html[]= "<li><a href=\"squid.traffic.panel.php?$num\"><span>$ligne</span></a></li>\n";
 			continue;
 		}	
+		
+		if($num=="events-squidaccess"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.accesslogs.php?table-size=942&url-row=488\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}		
 		
 		if($num=="status"){
 			$html[]= "<li><a href=\"squid.traffic.statistics.php?status=yes\"><span>$ligne</span></a></li>\n";
@@ -79,7 +159,7 @@ while (list ($num, $ligne) = each ($array) ){
 	
 	
 	echo $tpl->_ENGINE_parse_body( "
-	<div id=squid_stats_central style='width:910px;font-size:14px'>
+	<div id=squid_stats_central style='width:950px;font-size:14px'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -124,6 +204,8 @@ function central_information(){
 	$TRPTEXT=null;
 	$sock=new sockets();
 	$processes=unserialize(base64_decode($sock->getFrameWork("squidstats.php?processes-queue=yes")));
+	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	
 	if(is_array($processes)){
 		$TRP[]="<table style='width:99%' class=form>";
@@ -159,9 +241,21 @@ function central_information(){
 		 "link-32.png");
 	
 	
-	
-	$tr[]=Paragraphe32('enable_disable_statistics','ARTICA_STATISTICS_TEXT'
+	if(!$users->PROXYTINY_APPLIANCE){
+		$tr[]=Paragraphe32('enable_disable_statistics','ARTICA_STATISTICS_TEXT'
 			,"Loadjs('squid.artica.statistics.php')","statistics-32.png");
+	
+	if($DisableArticaProxyStatistics==0){
+		$tr[]=Paragraphe32('purge_statistics_database','purge_statistics_database_explain'
+				,"Loadjs('squid.artica.statistics.purge.php')","table-delete-32.png");	
+		
+		
+		$tr[]=table_heures_enretard();
+		
+		
+		
+		}
+	}
 	
 	if(!$users->CORP_LICENSE){
 		$more_features="<div class=explain style='font-size:14px;'>{squid_stats_nolicence_explain}</div>";
@@ -200,6 +294,46 @@ function central_information(){
 	
 
 	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+
+function table_heures_enretard(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$q=new mysql_squid_builder();
+	$CurrentHourTable="squidhour_".date("YmdH");
+	if($GLOBALS["VERBOSE"]){echo "Find hours tables...\n";}
+	$tables=$q->LIST_TABLES_HOURS_TEMP();
+	$c=0;
+	$t=time();
+	
+	while (list ($table, $none) = each ($tables) ){
+		if($table==$CurrentHourTable){if($GLOBALS["VERBOSE"]){echo "SKIP `$table`\n";}continue;}
+		if(!preg_match("#squidhour_([0-9]+)#",$table,$re)){continue;}
+		$hour=$re[1];
+		$year=substr($hour,0,4);
+		$month=substr($hour,4,2);
+		$day=substr($hour,6,2);
+		$tt[$table]=true;
+	}
+	
+	
+	if(count($tt)>0){
+		$sock=new sockets();
+		$time=$sock->getFrameWork("squid.php?squidhour-repair-exec=yes");
+		if(is_numeric($time)){
+			$title=$tpl->javascript_parse_text("{squidhour_not_scanned} {running} {$time}Mn");
+			$title=str_replace("%s", count($tt), $title);
+			return Paragraphe32("noacco:$title ",'launch_squidhour_explain'
+					,"blur()","wait-clock.gif");			
+		}
+		
+		$title=$tpl->javascript_parse_text("{squidhour_not_scanned}");
+		$title=str_replace("%s", count($tt), $title);
+		return Paragraphe32("noacco:$title",'launch_squidhour_explain'
+				,"Loadjs('$page?squidhour-js=yes')","Database32-red.png");
+	}
 	
 }
 
@@ -254,4 +388,17 @@ function graphique_heure(){
 	}	
 	
 	
+}
+
+function squidhour_perform(){
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?squidhour-repair=yes");
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("{task_executed_in_background}");
+}
+function rrd_perform(){
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?rrd-perform=yes");
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("{task_executed_in_background}");	
 }

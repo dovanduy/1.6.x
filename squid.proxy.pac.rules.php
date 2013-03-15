@@ -416,6 +416,7 @@ function ProxyPacRemoveProxyListAtTheEnd(){
 	$sock=new sockets();
 	$sock->SET_INFO("ProxyPacRemoveProxyListAtTheEnd",$_POST["ProxyPacRemoveProxyListAtTheEnd"]);
 	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");
+	$sock->getFrameWork("freeweb.php?reconfigure-wpad=yes");
 }
 
 function popup_add_proxy_save(){
@@ -424,6 +425,7 @@ function popup_add_proxy_save(){
 	$datas["PROXYS"][]="{$_GET["proxy_addr"]}:{$_GET["listen_port"]}";
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ProxyPacDatas");
 	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");
+	$sock->getFrameWork("freeweb.php?reconfigure-wpad=yes");
 	
 }
 
@@ -432,7 +434,8 @@ function popup_add_final_proxy_save(){
 	$datas=unserialize(base64_decode($sock->GET_INFO("ProxyPacDatas")));
 	$datas["FINAL_PROXY"][]="{$_GET["final_proxy_addr"]}:{$_GET["listen_port"]}";	
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ProxyPacDatas");
-	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");	
+	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");
+	$sock->getFrameWork("freeweb.php?reconfigure-wpad=yes");
 }
 
 function popup_del_proxy_list(){
@@ -441,6 +444,7 @@ function popup_del_proxy_list(){
 	unset($datas["PROXYS"][$_GET["del_proxy_addr"]]);
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ProxyPacDatas");
 	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");
+	$sock->getFrameWork("freeweb.php?reconfigure-wpad=yes");
 }
 
 function popup_del_final_proxy_list(){
@@ -448,7 +452,8 @@ function popup_del_final_proxy_list(){
 	$datas=unserialize(base64_decode($sock->GET_INFO("ProxyPacDatas")));
 	unset($datas["FINAL_PROXY"][$_GET["del_proxy_final_addr"]]);
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ProxyPacDatas");
-	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");	
+	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");
+	$sock->getFrameWork("freeweb.php?reconfigure-wpad=yes");
 }
 
 function popup_localHostOrDomainIs_add(){
@@ -457,6 +462,7 @@ function popup_localHostOrDomainIs_add(){
 	$datas["localHostOrDomainIs"][]=$_GET["localHostOrDomainIs-add"];
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ProxyPacDatas");	
 	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");
+	$sock->getFrameWork("freeweb.php?reconfigure-wpad=yes");
 }
 function popup_localHostOrDomainIs_del(){
 	$sock=new sockets();
@@ -464,6 +470,7 @@ function popup_localHostOrDomainIs_del(){
 	unset($datas["localHostOrDomainIs"][$_GET["localHostOrDomainIs-del"]]);
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ProxyPacDatas");	
 	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");
+	$sock->getFrameWork("freeweb.php?reconfigure-wpad=yes");
 }
 
 function popup_isInNet_add(){
@@ -471,14 +478,16 @@ function popup_isInNet_add(){
 	$datas=unserialize(base64_decode($sock->GET_INFO("ProxyPacDatas")));
 	$datas["isInNet"][]=array($_GET["isInNet-add"],$_GET["isInNet-mask"]);
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ProxyPacDatas");
-	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");		
+	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");
+	$sock->getFrameWork("freeweb.php?reconfigure-wpad=yes");
 }
 function popup_isInNet_del(){
 	$sock=new sockets();
 	$datas=unserialize(base64_decode($sock->GET_INFO("ProxyPacDatas")));
 	unset($datas["isInNet"][$_GET["isInNet-del"]]);
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ProxyPacDatas");	
-	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");	
+	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");
+	$sock->getFrameWork("freeweb.php?reconfigure-wpad=yes");
 }
 
 function popup_localHostOrDomainIs_list(){
@@ -852,7 +861,8 @@ function popup_add_condition_add(){
 	
 	
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ProxyPacDatas");
-	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");	
+	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");
+	$sock->getFrameWork("freeweb.php?reconfigure-wpad=yes");
 }
 
 function popup_del_condition(){
@@ -860,7 +870,8 @@ function popup_del_condition(){
 	$datas=unserialize(base64_decode($sock->GET_INFO("ProxyPacDatas")));	
 	unset($datas["CONDITIONS"][$_GET["DeleteCondition"]][$_GET["DeleteConditionKey"]]);
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ProxyPacDatas");
-	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");					
+	$sock->getFrameWork("cmd.php?proxy-pac-build=yes");
+	$sock->getFrameWork("freeweb.php?reconfigure-wpad=yes");
 }
 
 function popup_script(){

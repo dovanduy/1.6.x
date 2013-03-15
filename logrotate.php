@@ -283,15 +283,22 @@ function settings_popup(){
 	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
 	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
+	$LogsRotateDeleteSize=$sock->GET_INFO("LogsRotateDeleteSize");
 	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
 	
 	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
 	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
 	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
-	if(!is_numeric($LogRotatePath)){$LogRotatePath="/home/logrotate";}
-	if(!is_numeric($BackupMaxDaysDir)){$BackupMaxDaysDir="/home/logrotate_backup";}
+	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
+	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}
+	if(!is_numeric($LogsRotateDeleteSize)){$LogsRotateDeleteSize=5000;}
 	
 	$html="<table style='width:100%' class=form>
+	<tr>
+		<td class=legend style='font-size:14px'>{delete_if_file_exceed}:</td>
+		<td style='font-size:14px'>". Field_text("LogsRotateDeleteSize",$LogsRotateDeleteSize,"font-size:14px;width:60px")."&nbsp;MB</td>
+		<td>&nbsp;</td>
+	</tr>			
 	<tr>
 		<td class=legend style='font-size:14px'>{compress_files}:</td>
 		<td>". Field_checkbox("LogRotateCompress", 1,$LogRotateCompress)."</td>
@@ -360,6 +367,7 @@ function settings_popup(){
 	  	XHR.appendData('SystemLogsPath',document.getElementById('SystemLogsPath').value);
 	  	XHR.appendData('BackupMaxDays',document.getElementById('BackupMaxDays').value);
 	  	XHR.appendData('BackupMaxDaysDir',document.getElementById('BackupMaxDaysDir').value);
+	  	XHR.appendData('LogsRotateDeleteSize',document.getElementById('LogsRotateDeleteSize').value);
 	  	XHR.sendAndLoad('$page', 'POST',x_SaveSettsLogRotate);	
 	}	
 	LogRotateMysqlCheck();";

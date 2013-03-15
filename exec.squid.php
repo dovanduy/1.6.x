@@ -378,9 +378,11 @@ function CheckFilesAndSecurity(){
 	$rm=$unix->find_program("rm");
 	if(!is_dir("/var/logs")){@mkdir("/var/logs",0755,true);}
 	
-	if(!is_dir("/var/cache/squid/00")){
-			@mkdir("/var/cache/squid",0644,true);
-			shell_exec("$chown $squid_user /var/cache/squid >/dev/null 2>&1");
+	if(!is_dir("/home/squid/cache/cache-default/00")){
+			@mkdir("/home/squid/cache/cache-default",0755,true);
+			shell_exec("$chown $squid_user /home/squid/cache/cache-default >/dev/null 2>&1");
+			shell_exec("$chown $squid_user /home/squid/cache/ >/dev/null 2>&1");
+			shell_exec("$chown $squid_user /home/squid >/dev/null 2>&1");
 			exec("{$GLOBALS["SQUIDBIN"]} -z 2>&1",$results);
 	}
 	@mkdir("/var/lib/squid/session",0755,true);
@@ -399,7 +401,11 @@ function CheckFilesAndSecurity(){
 	$unix->chown_func($squid_user, $squid_user,"/var/logs");
 	$unix->chown_func($squid_user, $squid_user,"/var/lib/ssl_db");
 	$unix->chown_func($squid_user, $squid_user,"/var/logs/cache.log");
+	$unix->chown_func($squid_user, $squid_user,"/home/squid/cache");
+	$unix->chown_func($squid_user, $squid_user,"/home/squid");
 	$unix->chmod_func(0755, "/var/run/squid");
+	$unix->chmod_func(0755, "/home/squid");
+	$unix->chmod_func(0755, "/home/squid/cache");
 	
 	if(is_file("/var/lib/samba/winbindd_privileged/pipe")){
 		shell_exec("$chmod 1777 /var/lib/samba/winbindd_privileged/pipe");
@@ -466,12 +472,22 @@ function watchdog($direction){
 
 
 function locate_ssl_crtd(){
-	if(is_file("/lib/squid3/ssl_crtd")){return "/lib/squid3/ssl_crtd";}
-	if(is_file("/lib64/squid3/ssl_crtd")){return "/lib64/squid3/ssl_crtd";}
-	if(is_file("/lib/squid/ssl_crtd")){return "/lib/squid/ssl_crtd";}
-	if(is_file("/lib64/squid/ssl_crtd")){return "/lib64/squid/ssl_crtd";}
-	if(is_file("/usr/lib/squid/ssl_crtd")){return "/usr/lib/squid/ssl_crtd";}
-	if(is_file("/usr/lib64/squid/ssl_crtd")){return "/usr/lib64/squid/ssl_crtd";}
+	return locate_generic_bin("ssl_crtd");
+
+	
+}
+
+function locate_generic_bin($program){
+	$possibleDirs[]="/lib/squid3";
+	$possibleDirs[]="/lib64/squid3";
+	$possibleDirs[]="/lib/squid";
+	$possibleDirs[]="/lib64/squid";
+	$possibleDirs[]="/usr/lib/squid";
+	$possibleDirs[]="/usr/lib64/squid";
+	$possibleDirs[]="/usr/local/squid/libexec";
+	while (list ($num, $directory) = each ($possibleDirs) ){
+		if(is_file("$directory/$program")){return "$directory/$program";}
+	}
 	
 }
 
@@ -1064,7 +1080,8 @@ function ApplyConfig($smooth=false){
 	@mkdir("/var/run/squid",0755,true);
 	$squidbin=$unix->find_program("squid");
 	if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
-
+	$DenySquidWriteConf=$sock->GET_INFO("DenySquidWriteConf");
+	if(!is_numeric($DenySquidWriteConf)){$DenySquidWriteConf=0;}
 
 	@mkdir("/var/log/squid/nudity",0755,true);
 	@copy("/etc/artica-postfix/settings/Daemons/SquidNudityScanParams","/etc/squid3/SquidNudityScanParams");
@@ -1085,86 +1102,83 @@ function ApplyConfig($smooth=false){
 	$SQUID_CONFIG_PATH=$unix->SQUID_CONFIG_PATH();
 	if(!is_file($SQUID_CONFIG_PATH)){writelogs("Unable to stat squid configuration file \"$SQUID_CONFIG_PATH\"",__FUNCTION__,__FILE__,__LINE__);return;}
 	echo "Starting......: Squid building main configuration done\n";
-	$conf=$squid->BuildSquidConf();
-	$conf=str_replace("\n\n", "\n", $conf);
-	
-	@file_put_contents("/tmp/squid.conf", $conf);
-	if($GLOBALS["NOAPPLY"]){return;}
-	echo "Starting......: [SYS]: Squid Check validity of the configuration file with /tmp/squid.conf...\n";
-	
-	exec("$squidbin -f /tmp/squid.conf -k parse 2>&1",$results);
-	while (list ($index, $ligne) = each ($results) ){
-		
-		if(strpos($ligne,"| WARNING:")>0){continue;}
-		
-		if(preg_match("#ERROR: Failed#", $ligne)){
-			echo "Starting......: [SYS]: Squid `$ligne`, aborting configuration, keep the old one...\n";
-			echo "<div style='font-size:16px;font-weight:bold;color:#E71010'>$ligne</div>";
-			$sock->TOP_NOTIFY("$ligne","error");
-			return;			
-		}
-		
-		
-		if(preg_match("#(unrecognized|FATAL|Bungled)#", $ligne)){
-			echo "Starting......: [SYS]: Squid `$ligne`, aborting configuration, keep the old one...\n";
-			echo "<div style='font-size:16px;font-weight:bold;color:#E71010'>$ligne</div>";
-			if(preg_match("#line ([0-9]+):#", $ligne,$ri)){
-				$Buggedline=$ri[1];
-				$tt=explode("\n",@file_get_contents("/tmp/squid.conf"));
-				echo "<HR>";
-				for($i=$Buggedline-2;$i<$Buggedline+2;$i++){
-					$lineNumber=$i+1;
-					$colorbugged="black";
-					if(trim($tt[$i])==null){continue;}
-					if($lineNumber==$Buggedline){$colorbugged="#E71010";}
-					echo "<div style='font-size:12px;font-weight:bold;color:$colorbugged'>[line:$lineNumber]: {$tt[$i]}</div>";}
+	if($DenySquidWriteConf==0){
+			$conf=$squid->BuildSquidConf();
+			$conf=str_replace("\n\n", "\n", $conf);
+			@file_put_contents("/tmp/squid.conf", $conf);
+			if($GLOBALS["NOAPPLY"]){return;}
+			echo "Starting......: [SYS]: Squid Check validity of the configuration file with /tmp/squid.conf...\n";
+			exec("$squidbin -f /tmp/squid.conf -k parse 2>&1",$results);
+			while (list ($index, $ligne) = each ($results) ){
+				if(strpos($ligne,"| WARNING:")>0){continue;}
+			
+				if(preg_match("#ERROR: Failed#", $ligne)){
+					echo "Starting......: [SYS]: Squid `$ligne`, aborting configuration, keep the old one...\n";
+					echo "<div style='font-size:16px;font-weight:bold;color:#E71010'>$ligne</div>";
+					$sock->TOP_NOTIFY("$ligne","error");
+					return;			
 				}
-				echo "<HR>";
-			$sock->TOP_NOTIFY("$ligne","error");
-			return;
-		}
-		
-		if(preg_match("#strtokFile:\s+(.+?)\s+not found#", $ligne,$re)){
-			$filename=trim($re[1]);
-			echo "Starting......: [SYS]: Squid missing $filename, create an empty one\n";
-			@mkdir(dirname($filename),0755,true);
-			@file_put_contents($filename ,"");
-			@chown($filename, "squid");
-			@chgrp($filename, "squid");
-			continue;
-		}
-		
-		if(preg_match("#Processing:\s+#", $ligne)){continue;}
-		if(preg_match("#Warning: empty ACL#", $ligne)){continue;}
-		if(preg_match("#searching predictable#", $ligne)){continue;}
-		if(preg_match("#is a subnetwork of#", $ligne)){continue;}
-		if(preg_match("#You should probably#", $ligne)){continue;}
-		if(preg_match("#Startup:\s+#", $ligne)){continue;}
-		echo "Starting......: [SYS]: $ligne\n";
-		
-	}
-		
-	
-	@file_put_contents("/etc/artica-postfix/settings/Daemons/GlobalSquidConf",$conf);
-	echo "Starting......: [SYS]: Squid Check validity OK...\n";
-	@file_put_contents($SQUID_CONFIG_PATH,$conf);
-	@mkdir("/etc/squid3",0755,true);
-	if($SQUID_CONFIG_PATH<>"/etc/squid3/squid.conf"){
-		@file_put_contents("/etc/squid3/squid.conf",$conf);
+				
+				if(preg_match("#Segmentation fault#", $ligne)){
+					echo "Starting......: [SYS]: Squid `$ligne`, aborting configuration, keep the old one...\n";
+					echo "<div style='font-size:16px;font-weight:bold;color:#E71010'>$ligne</div>";
+					$sock->TOP_NOTIFY("$ligne","error");
+					return;	
+				}				
+			
+			
+				if(preg_match("#(unrecognized|FATAL|Bungled)#", $ligne)){
+					echo "Starting......: [SYS]: Squid `$ligne`, aborting configuration, keep the old one...\n";
+					echo "<div style='font-size:16px;font-weight:bold;color:#E71010'>$ligne</div>";
+					if(preg_match("#line ([0-9]+):#", $ligne,$ri)){
+						$Buggedline=$ri[1];
+						$tt=explode("\n",@file_get_contents("/tmp/squid.conf"));
+						echo "<HR>";
+						for($i=$Buggedline-2;$i<$Buggedline+2;$i++){
+							$lineNumber=$i+1;
+							$colorbugged="black";
+							if(trim($tt[$i])==null){continue;}
+							if($lineNumber==$Buggedline){$colorbugged="#E71010";}
+							echo "<div style='font-size:12px;font-weight:bold;color:$colorbugged'>[line:$lineNumber]: {$tt[$i]}</div>";}
+						}
+						echo "<HR>";
+					$sock->TOP_NOTIFY("$ligne","error");
+					return;
+				}
+			
+				if(preg_match("#strtokFile:\s+(.+?)\s+not found#", $ligne,$re)){
+					$filename=trim($re[1]);
+					echo "Starting......: [SYS]: Squid missing $filename, create an empty one\n";
+					@mkdir(dirname($filename),0755,true);
+					@file_put_contents($filename ,"");
+					@chown($filename, "squid");
+					@chgrp($filename, "squid");
+					continue;
+				}
+			
+				if(preg_match("#Processing:\s+#", $ligne)){continue;}
+				if(preg_match("#Warning: empty ACL#", $ligne)){continue;}
+				if(preg_match("#searching predictable#", $ligne)){continue;}
+				if(preg_match("#is a subnetwork of#", $ligne)){continue;}
+				if(preg_match("#You should probably#", $ligne)){continue;}
+				if(preg_match("#Startup:\s+#", $ligne)){continue;}
+				echo "Starting......: [SYS]: $ligne\n";
+			
+			}
+			
+			@file_put_contents("/etc/artica-postfix/settings/Daemons/GlobalSquidConf",$conf);
+			echo "Starting......: [SYS]: Squid Check validity OK...\n";
+			@file_put_contents($SQUID_CONFIG_PATH,$conf);
+			@mkdir("/etc/squid3",0755,true);
+			if($SQUID_CONFIG_PATH<>"/etc/squid3/squid.conf"){@file_put_contents("/etc/squid3/squid.conf",$conf);}
+			$sock->TOP_NOTIFY("{squid_parameters_was_saved}","info");
+			$cmd=$unix->LOCATE_PHP5_BIN()." ".__FILE__." --templates --noreload";
+			$unix->THREAD_COMMAND_SET($cmd);			
 	}
 	
 	if(!$smooth){squidclamav();}
 	if(!$smooth){wrapzap();}
 	if(!$smooth){certificate_generate();}
-
-	$cmd=$unix->LOCATE_PHP5_BIN()." ".__FILE__." --templates --noreload";
-	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-	$unix->THREAD_COMMAND_SET($cmd);
-	
-	
-	
-	$sock->TOP_NOTIFY("{squid_parameters_was_saved}","info");
-	
 	$cmd=$nohup." ". $unix->LOCATE_PHP5_BIN()." ".__FILE__." --cache-infos --force >/dev/null 2>&1 &";
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	shell_exec($cmd);
@@ -1930,12 +1944,14 @@ function watchdog_config(){
 	}
 	echo "Starting......: [WATCH]: Squid Monit found port line:$http_port\n";
 	if($http_port<>null){
-		if(preg_match("#([0-9\.]+):([0-9]+)#", $http_port)){
+		if(preg_match("#([0-9\.]+):([0-9]+)#", $http_port,$re)){
 			$re[1]=str_replace("0.0.0.0", "127.0.0.1", $re[1]);
+			echo "Starting......: [WATCH]:[$http_port] -> host {$re[1]} port `{$re[2]}` on line ". __LINE__."\n";
 			$http_port2="if failed host {$re[1]} port {$re[2]}  then restart";
 		}
-		if(preg_match("#^([0-9]+)$#", $http_port)){
+		if(preg_match("#^([0-9]+)$#", $http_port,$re)){
 			$re[1]=str_replace("0.0.0.0", "127.0.0.1", $re[1]);
+			echo "Starting......: [WATCH]: if failed port {$re[1]} then  on line ". __LINE__."\n";
 			$http_port2="if failed port {$re[1]} then restart";
 		}		
 	}
@@ -2482,7 +2498,13 @@ function output_acls(){
 	
 	$acl=new squid_acls_quotas_time();
 	$squid_acls_quotas_time= $acl->build()."\n";
+	$acls=new squid_acls();
+	$acls->Build_Acls();
 	
+	if(count($acls->acls_array)>0){
+		$ACLS_TO_ADD=@implode("\n",$acls->acls_array);
+	}
+	echo "\nAcls\n-----------------\n".$ACLS_TO_ADD."\n-----------------\n\n";
 	echo "\nQuotas Time\n-----------------\n".$squid_acls_quotas_time."\n-----------------\n\n";
 	echo "\n\n-----------------\n".$acls->buildacls_order()."\n-----------------\n\n";
 	echo "\n\n-----------------\n".$refreshpattern."\n-----------------\n\n";

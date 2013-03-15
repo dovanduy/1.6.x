@@ -11,6 +11,10 @@ if($argv[1]=="nscd"){nscd_init_debian();die();}
 if($argv[1]=="--rsyslogd-init"){rsyslogd_init();exit;}
 if($argv[1]=="--start"){start_ldap();exit;}
 if($argv[1]=="--stop"){stop_ldap();exit;}
+if($argv[1]=="--spamass-milter"){buildscriptSpamass_milter();exit;}
+if($argv[1]=="--freeradius"){buildscriptFreeRadius();exit;}
+
+
 
 $unix=new unix();
 $PID_FILE="/etc/artica-postfix/pids/".basename(__FILE__);
@@ -23,7 +27,9 @@ checkDebSyslog();
 dnsmasq_init_debian();
 nscd_init_debian();
 wsgate_init_debian();
-
+buildscriptSpamass_milter();
+buildscriptLoopDisk();
+buildscriptFreeRadius();
 
 function start_ldap(){
 	$sock=new sockets();
@@ -95,11 +101,12 @@ function start_ldap(){
 	$tar=$unix->find_program("tar");
 	$pidofbin=$unix->find_program("pidof");
 	$ulimit=$unix->find_program("ulimit");
+	$nohup=$unix->find_program("nohup");
 	$mebin=__FILE__;
 	$suffix=@trim(@file_get_contents("/etc/artica-postfix/ldap_settings/suffix"));
 	
 	
-	
+	shell_exec("$nohup /usr/share/artica-postfix/exec.virtuals-ip.php --resolvconf >/dev/null 2>&1 &");
 	
 	echo "slapd: [INFO] slapd `$slapd`\n";
 	echo "slapd: [INFO] db_recover `$DB_RECOVER_BIN`\n";
@@ -276,6 +283,177 @@ function start_zarafa(){
 function stop_zarafa(){
 	shell_exec("/etc/init.d/zarafa-server stop");
 }
+
+function buildscriptFreeRadius(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$daemonbin=$unix->find_program("freeradius");
+	if(!is_file($daemonbin)){return;}
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          freeradius";
+	$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
+	$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: radius daemon";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: Extensible, configurable radius daemon";
+	$f[]="### END INIT INFO";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="   $php ".dirname(__FILE__)."/exec.freeradius.php --start \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="   $php ".dirname(__FILE__)."/exec.freeradius.php --stop \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	$f[]="   $php ".dirname(__FILE__)."/exec.freeradius.php --stop \$2 \$3";
+	$f[]="   $php ".dirname(__FILE__)."/exec.freeradius.php --start \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" reload)";
+	$f[]="   $php ".dirname(__FILE__)."/exec.freeradius.php --reload \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";	
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+
+	$INITD_PATH="/etc/init.d/freeradius";
+	echo "freeradius: [INFO] Writing $INITD_PATH with new config\n";
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+
+	@chmod($INITD_PATH,0755);
+
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 2345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+
+}
+
+function buildscriptSpamass_milter(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$daemonbin=$unix->find_program("spamass-milter");
+	if(!is_file($daemonbin)){return;}
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          spamass-milter";
+	$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
+	$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: Calls spamassassin to allow filtering out";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: Spamassassin Milter Edition";
+	$f[]="### END INIT INFO";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    /etc/init.d/artica-postfix start spamd \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    /etc/init.d/artica-postfix stop spamd \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	$f[]="    /etc/init.d/artica-postfix stop spamd \$2 \$3";
+	$f[]="    /etc/init.d/artica-postfix start spamd \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+
+	$INITD_PATH="/etc/init.d/spamass-milter";
+	echo "spamassin-milter: [INFO] Writing $INITD_PATH with new config\n";
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+
+	@chmod($INITD_PATH,0755);
+
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 2345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+
+}
+function buildscriptLoopDisk(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+
+	
+	$phpscr=dirname(__FILE__)."/exec.loopdisks.php";
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          Artica-loopdisk";
+	$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
+	$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: Calls spamassassin to allow filtering out";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: reconfigure loop disks after reboot";
+	$f[]="### END INIT INFO";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    $php $phpscr \$2 \$3";
+	$f[]="	  /etc/init.d/autofs reload";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+
+	$INITD_PATH="/etc/init.d/artica-loopd";
+	echo "artica-oopd: [INFO] Writing $INITD_PATH with new config\n";
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+
+	@chmod($INITD_PATH,0755);
+
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 2345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+}
+
+
 
 function buildscript(){
 $unix=new unix();
@@ -1170,6 +1348,7 @@ $f[]="      # and leave 'force-reload' as an alias for 'restart'.";
 $f[]="      #";
 $f[]="      #log_daemon_msg \"Reloading \$DESC\" \"\$NAME\"";
 $f[]="      #do_reload";
+
 $f[]="      #log_end_msg \$?";
 $f[]="      #;;";
 $f[]="  restart|force-reload)";

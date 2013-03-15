@@ -554,6 +554,7 @@ class usersMenus {
 	public $APACHE_MOD_PYTHON=false;
 	public $APP_PYAUTHENNTLM=false;	
 	public $APP_ZARAFADB_INSTALLED=false;
+	public $FREERADIUS_INSTALLED=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -933,6 +934,9 @@ class usersMenus {
 			if(isset($_GLOBAL["SQUID_BIN_PATH"])){$this->SQUID_BIN_PATH=$_GLOBAL["SQUID_BIN_PATH"];}
 			if(isset($_GLOBAL["HOSTAPD_INSTALLED"])){$this->HOSTAPD_INSTALLED=$_GLOBAL["HOSTAPD_INSTALLED"];}
 			if(isset($_GLOBAL["MEMCACHED_INSTALLED"])){$this->MEMCACHED_INSTALLED=$_GLOBAL["MEMCACHED_INSTALLED"];}
+			if(isset($_GLOBAL["FREERADIUS_INSTALLED"])){$this->FREERADIUS_INSTALLED=$_GLOBAL["FREERADIUS_INSTALLED"];}
+			
+			
 			
 			
 			$this->WPA_SUPPLIANT_INSTALLED=$_GLOBAL["WPA_SUPPLIANT_INSTALLED"];
@@ -1575,6 +1579,11 @@ private function build_user_left_menus(){
 				$array["system"]["SUB"]["{automount}"]="javascript:AnimateDiv('BodyContent');Loadjs('autofs.php')";
 			}
 			
+			if($this->UPDATE_UTILITYV2_INSTALLED){
+				$array["system"]["SUB"]["UpdateUtility"]="javascript:AnimateDiv('BodyContent');LoadAjax('BodyContent','UpdateUtility.php');";
+				
+			}
+			
 			$array["system"]["SUB"]["{left_menu_net_settings}"]="javascript:AnimateDiv('BodyContent');Loadjs('system.nic.config.php?js=yes&in-front-ajax=yes')";
 			$array["system"]["SUB"]["{mysql_settings}"]="javascript:AnimateDiv('BodyContent');Loadjs('system.mysql.php')";
 			
@@ -1603,7 +1612,11 @@ private function build_user_left_menus(){
 			
 			if($this->IPSEC_INSTALLED){
 				//$array["system"]["SUB"]["VPN IPSEC"]="javascript:AnimateDiv('BodyContent');Loadjs('ipsec.php?infront=yes')";
-				
+
+			}
+			
+			if($this->FREERADIUS_INSTALLED){
+				$array["system"]["SUB"]["{APP_FREERADIUS}"]="javascript:AnimateDiv('BodyContent');LoadAjax('BodyContent','freeradius.php');";
 			}
 			
 			if($this->AsDnsAdministrator){

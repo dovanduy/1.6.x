@@ -39,8 +39,9 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 		private $ajax = false;						// activation ajax
 		private $ajaxDiv = "";						// nom du div ajax
 		private $ajaxScript = "";					// ecriture du script ajax
-		var $USLink=false;
-
+		public $USLink=false;
+		private $LienJoursJS=null;
+		
 		
 	
 /*_______________________________________________________________________________________________________________	
@@ -131,7 +132,10 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 		}
 	
 
-
+		public function SetLienJoursJS($value){
+			$this->LienJoursJS=$value;
+			$this->lienJours=null;
+		}
 
 /**
 		* initialisation de l'url du lien sur le mois
@@ -568,26 +572,45 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 					$codeJourInactif = "<td class=\"inactif\">".sprintf("%02d",$jour)."</td>\n";
 
 					$codeJourActif = "<td class=\"actif\">";
-					if ($this->liensJoursActif) 
-						$codeJourActif .= "<a href=\"".$lienJour."\"".$this->targetLiens.">".sprintf("%02d",$jour)."</a>";
-					else
+					if ($this->liensJoursActif){ 
+						if($this->LienJoursJS<>null){
+							$lienJourJS="OnClick=\"javascript:$this->LienJoursJS('$lienJour')\" ";
+							$lienJour="javascript:blur();";
+						}
+						$codeJourActif .= "<a href=\"".$lienJour."\"$lienJourJS".$this->targetLiens.">".sprintf("%02d",$jour)."</a>";
+					}else{
 						$codeJourActif .= sprintf("%02d",$jour);
-					$codeJourActif .= "</td>\n";
+						$codeJourActif .= "</td>\n";
+					}
 
 					$codeJourActifToday = "<td class=\"today\">";
-					if ($this->liensJoursActif) 
-						$codeJourActifToday .= "<a href=\"".$lienJour."\"".$this->targetLiens.">".sprintf("%02d",$jour)."</a>";
-					else
+					if ($this->liensJoursActif){
+						
+						if($this->LienJoursJS<>null){
+							$lienJourJS="OnClick=\"javascript:$this->LienJoursJS('$lienJour')\" ";
+							$lienJour="javascript:blur();";
+						}
+						
+						$codeJourActifToday .= "<a href=\"".$lienJour."\"$lienJourJS".$this->targetLiens.">".sprintf("%02d",$jour)."</a>";
+					}else{
 						$codeJourActifToday .= sprintf("%02d",$jour);
-					$codeJourActifToday .= "</td>\n";
+						$codeJourActifToday .= "</td>\n";
+					}
 					
 					// jours avec �venements
+					
+					if($this->LienJoursJS<>null){
+						$lienJourJS="OnClick=\"javascript:$this->LienJoursJS('$lienJour')\" ";
+						$lienJour="javascript:blur();";
+					}
+					
+					
 					$codeEvenement = "<td class=\"event\">";
-					$codeEvenement .= "<a href=\"".$lienJour."\"".$onclick.$this->targetLiens.">".sprintf("%02d",$jour)."</a>";
+					$codeEvenement .= "<a href=\"".$lienJour."\"$lienJourJS".$onclick.$this->targetLiens.">".sprintf("%02d",$jour)."</a>";
 					$codeEvenement .= "</td>\n";
 
 					$codeEvenementToday = "<td class=\"today\">";
-					$codeEvenementToday .= "<a href=\"".$lienJour."\"".$onclick.$this->targetLiens.">".sprintf("%02d",$jour)."</a>";
+					$codeEvenementToday .= "<a href=\"".$lienJour."\"$lienJourJS".$onclick.$this->targetLiens.">".sprintf("%02d",$jour)."</a>";
 					$codeEvenementToday .= "</td>\n";
 					
 					$codeJourInactifToday = "<td class=\"today\">".sprintf("%02d",$jour)."</td>\n";

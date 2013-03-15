@@ -38,6 +38,29 @@ function vlans_start(){
 	</script>";
 	echo $tpl->_ENGINE_parse_body($html);	
 	}
+	
+	function lastmetric(){
+		$q=new mysql();
+		$sql="SELECT metric as tcount FROM `nics` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$hash[$ligne["metric"]]=$ligne["metric"];
+	
+		$sql="SELECT metric as tcount FROM `nics_vlan` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$hash[$ligne["metric"]]=$ligne["metric"];
+	
+		$sql="SELECT metric as tcount FROM `nic_virtuals` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$hash[$ligne["metric"]]=$ligne["metric"];
+	
+		krsort($hash[$ligne["metric"]]);
+		while (list ($a, $b) = each ($hash) ){
+			$f[]=$b;
+		}
+	
+		return $f[0]+1;
+	
+	}	
 
 function vlan_add(){
 	$sock=new sockets();
@@ -50,8 +73,9 @@ function vlan_add(){
 	
 	if(!is_numeric($_GET["vlanid"])){echo "Vlan ID must be a numeric value...\n";return;}
 	
-	$sql="INSERT INTO nics_vlan (nic,org,ipaddr,netmask,cdir,gateway,vlanid)
-		VALUES('{$_GET["nic"]}','{$_GET["org"]}','{$_GET["vlan-ipaddr"]}','{$_GET["netmask"]}','{$_GET["cdir"]}','{$_GET["gateway"]}',{$_GET["vlanid"]});
+	$sql="INSERT INTO nics_vlan (nic,org,ipaddr,netmask,cdir,gateway,vlanid,metric)
+		VALUES('{$_GET["nic"]}','{$_GET["org"]}','{$_GET["vlan-ipaddr"]}',
+		'{$_GET["netmask"]}','{$_GET["cdir"]}','{$_GET["gateway"]}',{$_GET["vlanid"]},{$_GET["metric"]});
 		";
 	
 	if($_GET["ID"]>0){
@@ -61,6 +85,7 @@ function vlan_add(){
 		netmask='{$_GET["netmask"]}',
 		cdir='{$_GET["cdir"]}',
 		vlanid='{$_GET["vlanid"]}',
+		metric='{$_GET["metric"]}',
 		gateway='{$_GET["gateway"]}' WHERE ID={$_GET["ID"]}";
 	}
 	writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
@@ -126,6 +151,10 @@ function vlan_add_form(){
 	
 	$nic_field=Field_array_Hash($nics_array,"nic",$ligne["nic"],null,null,0,"font-size:16px;padding:3px");
 	$ou_fields=Field_array_Hash($ous,"org",$ligne["org"],null,null,0,"font-size:16px;padding:3px");
+	
+	if(!is_numeric($ligne["metric"])){$ligne["metric"]=0;}
+	if($ligne["metric"]==0){$ligne["metric"]=lastmetric();}
+	
 	$html="
 	<div id='virtip-vlan-$t'></div>
 	". Field_hidden("ID","{$_GET["ID"]}")."
@@ -165,6 +194,10 @@ function vlan_add_form(){
 			<td class=legend style='font-size:16px'>{gateway}:</td>
 			<td>" . field_ipv4("gateway",$ligne["gateway"],"font-size:16px",null,null,null,false,null,$DISABLED)."</td>
 		</tr>	
+	<tr>
+		<td class=legend style='font-size:16px'>{metric}</td>
+		<td>". Field_text("metric-$t",$ligne["metric"],"font-size:16px;width:60px")."</td>
+	</tr>					
 	</table>
 
 	<div style='text-align:right'><hr>". button($title_button,"VLANSave$t()","18px")."</div>
@@ -180,6 +213,7 @@ function vlan_add_form(){
 			XHR.appendData('org',document.getElementById('org').value);
 			XHR.appendData('ID',document.getElementById('ID').value);
 			XHR.appendData('vlanid',document.getElementById('vlanid-$t').value);
+			XHR.appendData('metric',document.getElementById('metric-$t').value);
 			AnimateDiv('virtip-vlan-$t');
 			XHR.sendAndLoad('$page', 'GET',XVLANSave$t);
 		}	
@@ -478,8 +512,9 @@ function vlan_list_list(){
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		
-		
-		$eth="vlan{$ligne["ID"]}/{$ligne["nic"]}";
+		$ip=new IP();
+		$cdir=$ligne["cdir"];
+		$eth="{$ligne["nic"]}.{$ligne["ID"]}/{$ligne["nic"]}";
 		
 		if($ligne["cdir"]==null){
 			$ligne["cdir"]=$net->array_TCP[$ligne["nic"]];
@@ -487,7 +522,7 @@ function vlan_list_list(){
 		}
 		$img="22-win-nic-off.png";
 		
-		if($interfaces["vlan{$ligne["ID"]}"]<>null){
+		if($interfaces["{$ligne["nic"]}.{$ligne["ID"]}"]<>null){
 			$img="22-win-nic.png";
 		}
 		
@@ -503,6 +538,14 @@ function vlan_list_list(){
 			$delete="&nbsp;";
 		}
 		
+		$a=$ip->parseCIDR($cdir);
+		if($a[0]==0){
+			$img="warning-panneau-24.png";
+			$cdir="<span style='color:red'>$cdir</span>";
+		}
+		
+		
+		
 
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
@@ -512,7 +555,7 @@ function vlan_list_list(){
 		"<div style='font-size:14px;font-weight:normal'>{$ligne["org"]}</div>",
 		"<div style='font-size:14px;font-weight:normal'>$eth</div>",
 		"<div style='font-size:14px;font-weight:normal'>{$ligne["ipaddr"]}</div>",
-		"<div style='font-size:14px;font-weight:normal'>{$ligne["netmask"]}</div>"
+		"<div style='font-size:14px;font-weight:normal'>{$ligne["netmask"]}<div style='font-size:11px'>$cdir</div></div>"
 		,$edit
 		,$delete
 		)

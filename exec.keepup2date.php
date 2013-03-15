@@ -27,7 +27,7 @@ if($argv[1]=="--update"){StartUpdate();die();}
 if($argv[1]=="--buildconf"){buildConf();die();}
 if($argv[1]=="--update-utility-httpd"){UpdateUtilityHttpd();die();}
 if($argv[1]=="--UpdateUtility"){UpdateUtility();die();}
-if($argv[1]=="--UpdateUtility-logs"){ScanUpdateUtilityLogs();die();}
+if($argv[1]=="--UpdateUtility-logs"){ScanUpdateUtilityLogs($GLOBALS["FORCE"]);die();}
 if($argv[1]=="--UpdateUtility-size"){UpdateUtilitySize($GLOBALS["FORCE"]);die();}
 
 echo "--update............: Perform Kaspersky Update\n";
@@ -186,13 +186,26 @@ function UpdateUtilityHttpd(){
 	$UpdateUtilityEnableHTTP=$sock->GET_INFO("UpdateUtilityEnableHTTP");
 	$UpdateUtilityHTTPPort=$sock->GET_INFO("UpdateUtilityHTTPPort");
 	$UpdateUtilityHTTPIP=$sock->GET_INFO("UpdateUtilityHTTPIP");
+	$UpdateUtilityUseLoop=$sock->GET_INFO("UpdateUtilityUseLoop");
+	
 	if(!is_numeric($UpdateUtilityEnableHTTP)){$UpdateUtilityEnableHTTP=0;}
+	if(!is_numeric($UpdateUtilityUseLoop)){$UpdateUtilityUseLoop=0;}
 	if(!is_numeric($UpdateUtilityHTTPPort)){$UpdateUtilityHTTPPort=9222;}
 	$UpdateUtilityStorePath=$sock->GET_INFO("UpdateUtilityStorePath");
 	if($UpdateUtilityStorePath==null){$UpdateUtilityStorePath="/home/kaspersky/UpdateUtility";}	
+	
+	if($UpdateUtilityUseLoop==1){$UpdateUtilityStorePath="/automounts/UpdateUtility";}
+	
+	
 	@mkdir("/var/run/UpdateUtility",0755,true);
 	@mkdir("/var/log/UpdateUtility",0755,true);
 	@mkdir("$UpdateUtilityStorePath/databases/Updates",0755,true);
+	
+	if(!is_dir($UpdateUtilityStorePath)){
+		@file_put_contents("/var/log/artica-postfix/UpdateUtility-". time().".log", "Report finished at " .date("Y-m-d H:i:s")."\n$UpdateUtilityStorePath/databases/Updates permission denied!\n");
+		return;
+	}
+	
 	@mkdir("/etc/UpdateUtility",0755,true);
 	
 	$f[]="server.modules = (\"mod_alias\",\"mod_access\",\"mod_accesslog\",\"mod_compress\")";
@@ -328,9 +341,29 @@ function UpdateUtility(){
 	if($GLOBALS["VERBOSE"]){echo "Line: ".__LINE__.":: UpdateUtility_Console - $UpdateUtility_Console".__FUNCTION__."\n";}
 	@copy($UpdateUtility_Console, "/etc/UpdateUtility/UpdateUtility-Console");
 	$UpdateUtilityAllProducts=$sock->GET_INFO("UpdateUtilityAllProducts");
+	$UpdateUtilityUseLoop=$sock->GET_INFO("UpdateUtilityUseLoop");
 	if(!is_numeric($UpdateUtilityAllProducts)){$UpdateUtilityAllProducts=1;}
 	$UpdateUtilityStorePath=$sock->GET_INFO("UpdateUtilityStorePath");
 	if($UpdateUtilityStorePath==null){$UpdateUtilityStorePath="/home/kaspersky/UpdateUtility";}
+	if($UpdateUtilityUseLoop==1){
+		$UpdateUtilityStorePath="/automounts/UpdateUtility";
+		$dev=$unix->MOUNTED_DIR($UpdateUtilityStorePath);
+		if($dev==null){
+			if($GLOBALS["VERBOSE"]){echo "Line: ".__LINE__.":: $UpdateUtilityStorePath -> NOT MOUNTED ".__FUNCTION__."\n";}
+			@file_put_contents("/var/log/artica-postfix/UpdateUtility-report-". time().".log", "Report finished at " .date("Y-m-d H:i:s")."\n$UpdateUtilityStorePath not mounted!\n");
+			return;			
+		}
+		if($GLOBALS["VERBOSE"]){echo "Line: ".__LINE__.":: $UpdateUtilityStorePath -> $dev OK".__FUNCTION__."\n";}
+	}
+		
+		
+		
+	@mkdir("$UpdateUtilityStorePath/databases/Updates",0755,true);
+	
+	if(!is_dir($UpdateUtilityStorePath)){
+		@file_put_contents("/var/log/artica-postfix/UpdateUtility-report-". time().".log", "Report finished at " .date("Y-m-d H:i:s")."\n$UpdateUtilityStorePath/databases/Updates permission denied!\n");
+		return;
+	}	
 	
 	$updateutility=new updateutilityv2();
 	if($UpdateUtilityAllProducts==1){
@@ -400,7 +433,12 @@ function UpdateUtility(){
 	$timehuman=$unix->distanceOfTimeInWords($t,$t2);
 	$text=@implode("\n", $results);
 	system_admin_events("Executing UpdateUtility Success took $timehuman\n$text", __FUNCTION__, __FILE__, __LINE__, "update");
-	ScanUpdateUtilityLogs();
+	
+	
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$nohup $php ".dirname(__FILE__)."/exec.freeweb.php --reconfigure-updateutility >/dev/null 2>&1 &");
+	ScanUpdateUtilityLogs(true);
 	UpdateUtilitySize(true);
 }
 
@@ -419,12 +457,15 @@ function ScanUpdateUtilityLogs($force=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["VERBOSE"]){echo "Already process exists $oldpid\n";}
 			return;
 		}
 	
 		@file_put_contents($pidfile, getmypid());
 		$time=$unix->file_time_min($timefile);
-		if($timefile<10){return;}
+		if($timefile<10){
+			if($GLOBALS["VERBOSE"]){echo "Only each 10mn\n";}
+			return;}
 	}	
 	
 	@unlink($timefile);
@@ -432,9 +473,13 @@ function ScanUpdateUtilityLogs($force=false){
 	
 	
 	$UpdateUtilityStorePath=$sock->GET_INFO("UpdateUtilityStorePath");
-	if($UpdateUtilityStorePath==null){$UpdateUtilityStorePath="/home/kaspersky/UpdateUtility";}	
+	if($UpdateUtilityStorePath==null){$UpdateUtilityStorePath="/home/kaspersky/UpdateUtility";}
+
+	$UpdateUtilityUseLoop=$sock->GET_INFO("UpdateUtilityUseLoop");
+	if(!is_numeric($UpdateUtilityUseLoop)){$UpdateUtilityUseLoop=0;}
+	if($UpdateUtilityUseLoop==1){$UpdateUtilityStorePath="/automounts/UpdateUtility";}	
 	
-	
+	if($GLOBALS["VERBOSE"]){echo "Scanning /var/log/artica-postfix/UpdateUtility-*.log...\n";}
 	
 	foreach (glob("/var/log/artica-postfix/UpdateUtility-*.log") as $filename) {
 		$timefile=$unix->file_time_min($filename);
@@ -445,8 +490,11 @@ function ScanUpdateUtilityLogs($force=false){
 		$files=0;
 		$size=0;
 		$rp_finish=false;
+		if($timefile>1440){$rp_finish=true;}
+		
+		
 		while (list ($key, $line) = each ($f) ){
-			if(preg_match("#File downloaded '(.*?)'#", $line,$re)){
+			if(preg_match("#New file installed '(.*?)'#", $line,$re)){
 				$nextFile="$UpdateUtilityStorePath/databases/Updates/{$re[1]}";
 				if(!is_file($nextFile)){
 					if($GLOBALS["VERBOSE"]){
@@ -468,22 +516,28 @@ function ScanUpdateUtilityLogs($force=false){
 			if(preg_match("#Report finished at#", $line,$re)){$rp_finish=true;continue;}
 			if(preg_match("#Insufficient disk space#i", $line,$re)){$isSuccess=0;continue;}
 			if(preg_match("#Failed to#i", $line,$re)){$isSuccess=0;continue;}	
-			
+			if(preg_match("#not retranslated#i", $line,$re)){$isSuccess=0;continue;}	
+			if(preg_match("#Retranslation operation result 'Success'#i", $line,$re)){$isSuccess=1;continue;}
 		}
 	
 		if(!$rp_finish){
 			if($GLOBALS["VERBOSE"]){echo "Not finished $filename\n";}
 			continue;
 		}
-			$date=date("Y-m-d H:i:s");
-			echo "$date $files downloaded $size bytes\n";
-			$q=new mysql();
-			$details=mysql_escape_string($details);
-			$q->QUERY_SQL("INSERT INTO updateutilityev (`zDate`,`filesize`,`filesnum`,`details`,`isSuccess`) 
-					VALUES ('$date','$files','$size','$details','$isSuccess')","artica_events");
-			if(!$q->ok){continue;}
-			@unlink($filename);
-			continue;
+		
+		$date=date("Y-m-d H:i:s",$time);
+		if(preg_match("#UpdateUtility-.*?([0-9]+)\.log$#",basename($filename),$re)){
+			$date=date("Y-m-d H:i:s",$re[1]);
+		}
+		
+		echo "$date $files downloaded $size bytes\n";
+		$q=new mysql();
+		$details=mysql_escape_string($details);
+		$q->QUERY_SQL("INSERT INTO updateutilityev (`zDate`,`filesize`,`filesnum`,`details`,`isSuccess`) 
+				VALUES ('$date','$files','$size','$details','$isSuccess')","artica_events");
+		if(!$q->ok){continue;}
+		@unlink($filename);
+		continue;
 		
 	}	
 }
@@ -511,6 +565,11 @@ function UpdateUtilitySize($force=false){
 	$sock=new sockets();
 	$dir=$sock->GET_INFO("UpdateUtilityStorePath");
 	if($dir==null){$dir="/home/kaspersky/UpdateUtility";}
+	
+	$UpdateUtilityUseLoop=$sock->GET_INFO("UpdateUtilityUseLoop");
+	if(!is_numeric($UpdateUtilityUseLoop)){$UpdateUtilityUseLoop=0;}
+	if($UpdateUtilityUseLoop==1){$dir="/automounts/UpdateUtility";}	
+	
 	if(is_link($dir)){$dir=readlink($dir);}
 	$unix=new unix();
 	$sizbytes=$unix->DIRSIZE_BYTES($dir);

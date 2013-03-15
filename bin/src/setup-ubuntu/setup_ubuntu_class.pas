@@ -1318,8 +1318,11 @@ if not LIGHT_INSTALL then l.add('libicu38');
         l.add('virt-what');
         l.add('suricata'); ///usr/bin/suricata
 //        if not AsKimSuffi then if not isVPSDetected() then l.add('cgroup-bin');
-
-
+        l.add('freeradius');
+        l.add('freeradius-ldap');
+        l.add('freeradius-mysql');
+        l.add('freeradius-krb5');
+        l.add('php-radius-legacy');
 
         if FileExists('/sbin/udevd')  then begin
            if not LIGHT_INSTALL then l.add('open-iscsi');

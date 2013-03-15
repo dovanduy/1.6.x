@@ -513,7 +513,7 @@ function dansguardian_status(){
 	if(!is_numeric($kavicapserverEnabled)){$kavicapserverEnabled=0;}
 	if(!is_numeric($PDSNInUfdb)){$PDSNInUfdb=0;}
 	if(!is_numeric($Watchdog)){$Watchdog=1;}
-	
+	$t=1;
 	
 	if(!is_numeric($DnsFilterCentral)){$DnsFilterCentral=0;}
 	
@@ -572,6 +572,7 @@ function dansguardian_status(){
 
 	
 	if($AsSquidLoadBalancer==1){
+		$t++;
 		$AsSquidLoadBalancerText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('squid.loadbalancer.main.php?js=yes');\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";	
@@ -608,7 +609,7 @@ function dansguardian_status(){
 		$EnableWatchdogText="{enabled}";
 	}	
 	
-	
+	$t++;
 	$EnableWatchdogTextTR="<tr>
 	<td width=1%><span id='AdSquidStatusLeft3'><img src='img/$EnableWatchdogPic'></span></td>
 	<td class=legend nowrap>{squid_watchdog_mini}:</td>
@@ -620,6 +621,7 @@ function dansguardian_status(){
 		
 // ----------------------------------------------------------------------------------------------------------------	
 	if($SquidActHasReverse==1){
+		$t++;
 		$AsSquidLoadBalancerText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('squid.reverse.websites.php');\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";	
@@ -634,7 +636,7 @@ function dansguardian_status(){
 	// ----------------------------------------------------------------------------------------------------------------	
 	
 	$ufdb=null;$dansgu=null;
-	$t=0;
+	
 	$time=time();
 	
 	if($EnableRemoteStatisticsAppliance==1){
@@ -674,6 +676,7 @@ function dansguardian_status(){
 		</tr>";	
 
 		if($users->POWER_DNS_INSTALLED){
+			$t++;
 			if($EnableUfdbGuard==0){$PDSNInUfdb=0;}
 			
 			$pic="status_ok-grey.gif";

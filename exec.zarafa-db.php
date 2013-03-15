@@ -21,6 +21,7 @@ if($argv[1]=="--changemysqldir"){changemysqldir($argv[2]);die();}
 if($argv[1]=="--databasesize"){databasesize($GLOBALS["FORCE"]);die();}
 if($argv[1]=="--restorefrom"){RestoreFromBackup($argv[2]);die();}
 if($argv[1]=="--start-server"){zarafa_server2_start();die();}
+if($argv[1]=="--stop-server"){zarafa_server2_stop();die();}
 
 
 function get_memory(){
@@ -114,18 +115,22 @@ function start(){
 		$zarafa_innodb_log_buffer_size=$ZarafTuningParameters["zarafa_innodb_log_buffer_size"];
 		$zarafa_max_allowed_packet=$ZarafTuningParameters["zarafa_max_allowed_packet"];
 		$zarafa_max_connections=$ZarafTuningParameters["zarafa_max_connections"];
+		$zarafa_connect_timeout=$ZarafTuningParameters["zarafa_connect_timeout"];
+		$zarafa_interactive_timeout=$ZarafTuningParameters["zarafa_interactive_timeout"];
 	}
 	
 	
-	
-	
+	if(!is_numeric($zarafa_interactive_timeout)){$zarafa_interactive_timeout=57600;}
+	if(!is_numeric($zarafa_connect_timeout)){$zarafa_connect_timeout=60;}
 	if(!is_numeric($zarafa_max_connections)){$zarafa_max_connections=150;}
 	if(!is_numeric($zarafa_innodb_buffer_pool_size)){$zarafa_innodb_buffer_pool_size=round($memory/3);}
 	if(!is_numeric($zarafa_innodb_log_file_size)){$zarafa_innodb_log_file_size=round($zarafa_innodb_buffer_pool_size*0.25);}
 	if(!is_numeric($zarafa_innodb_log_buffer_size)){$zarafa_innodb_log_buffer_size=32;}
-	if(!is_numeric($zarafa_max_allowed_packet)){$zarafa_max_allowed_packet=80;}
+	if(!is_numeric($zarafa_max_allowed_packet)){$zarafa_max_allowed_packet=100;}
 	if(!is_numeric($zarafa_query_cache_size)){$zarafa_query_cache_size=8;}
 		
+	if($zarafa_max_allowed_packet<100){$zarafa_max_allowed_packet=100;}
+	
 	$KERNEL_ARCH=$unix->KERNEL_ARCH();
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Architecture: $KERNEL_ARCH bits\n";}
 	if($unix->KERNEL_ARCH()==32){
@@ -155,6 +160,10 @@ function start(){
 	$f[]="--innodb-log-file-size={$zarafa_innodb_log_file_size}M";
 	$f[]="--innodb-log-buffer-size={$zarafa_innodb_log_buffer_size}M";
 	$f[]="--max-connections={$zarafa_max_connections}";
+	$f[]="--connect_timeout={$zarafa_connect_timeout}";
+	$f[]="--interactive_timeout={$zarafa_interactive_timeout}";
+	$f[]="--innodb-fast-shutdown=0";
+	$f[]="--log-warnings=2";
 	$f[]="--innodb-file-per-table";
 	$f[]="--innodb=FORCE";
 	$f[]="--skip-networking";
@@ -577,12 +586,6 @@ function zarafa_server2_config(){
 	$f[]="user_plugin_config	= /etc/zarafa/ldap.openldap.cfg";
 	$f[]="# Multi-tenancy configurations";
 	$f[]="enable_hosted_zarafa	= yes";
-	$f[]="createuser_script		=	/etc/zarafa/userscripts/createuser";
-	$f[]="deleteuser_script		=	/etc/zarafa/userscripts/deleteuser";
-	$f[]="creategroup_script	=	/etc/zarafa/userscripts/creategroup";
-	$f[]="deletegroup_script	=	/etc/zarafa/userscripts/deletegroup";
-	$f[]="createcompany_script	=	/etc/zarafa/userscripts/createcompany";
-	$f[]="deletecompany_script	=	/etc/zarafa/userscripts/deletecompany";
 	$f[]="enable_distributed_zarafa = false";
 	$f[]="storename_format 		= %f";
 	$f[]="loginname_format 		= %u";
@@ -596,6 +599,56 @@ function zarafa_server2_config(){
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: `/etc/zarafa/server2.cfg` success...\n";}
 }
+
+function zarafa_server2_stop(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/zarafa-server2-stop.pid";
+		
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Task Already running PID $oldpid since {$time}mn\n";}
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	
+	$zarafaserver=$unix->find_program("zarafa-server");
+	if(!is_file($zarafaserver)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server (2) is not installed...\n";}
+		return;
+	}	
+	
+	$pid=ZARAFA_SERVER2_PID();
+
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server (2) already stopped\n";}
+		return;
+	}	
+	
+	$time=$unix->PROCCESS_TIME_MIN($pid);
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server (2) instance running since {$time}mn\n";}
+	$kill=$unix->find_program("kill");
+	shell_exec("$kill $pid");
+	for($i=1;$i<61;$i++){
+		sleep(1);
+		$pid=ZARAFA_SERVER2_PID();
+		if($unix->process_exists($pid)){
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server (2) waiting $i/60\n";}
+		}else{
+			break;
+		}
+		
+	}
+	
+	$pid=ZARAFA_SERVER2_PID();
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server (2) failed to stop pid:$pid\n";}
+		return;
+	}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server (2) success\n";}
+}
+
+
 function zarafa_server2_start(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/zarafa-server2-start.pid";

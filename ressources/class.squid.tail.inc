@@ -4,7 +4,11 @@
 class squid_tail{
 	public $error=null;
 	public $ToRemove=false;
-	
+	public $GLOBAL_QUEUE=array();
+	public $GLOBAL_PAGEKEEPER=array();
+	public $GLOBAL_YOUTUBE=array();
+	public $GLOBAL_RTTSIZE=array();
+	public $GLOBAL_SQUIDUSERS=array();
 	
 	function squid_tail(){
 		if(!isset($GLOBALS["USERSDB"])){
@@ -49,7 +53,7 @@ class squid_tail{
 			if(strpos($buffer, "HTTP/0.0")>0){$this->events("[SQUID]: HTTP/0.0 detected in \"$buffer\" -> abort in line:".__LINE__);return true;}
 			
 			
-			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(PROPFIND|GET|POST|LOCK|PUT|CONNECT|NONE|HEAD|OPTIONS)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
+			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|TEXT|HTML|PROPFIND|GET|POST|LOCK|PUT|CONNECT|NONE|HEAD|OPTIONS)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
 				    $cached=0;
 				    $mac=trim($re[1]);
 					$ip=trim($re[2]);
@@ -90,7 +94,7 @@ class squid_tail{
 
 			
 			
-			if(preg_match('#(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(PROPFIND|GET|POST|CONNECT|PUT|LOCK|NONE|HEAD|OPTIONS)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
+			if(preg_match('#(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|HTML|TEXT|PROPFIND|GET|POST|CONNECT|PUT|LOCK|NONE|HEAD|OPTIONS)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
 				    $cached=0;
 					$ip=$re[1];
 					$user=$re[2];
@@ -127,7 +131,7 @@ class squid_tail{
 						
 			}
 
-			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(PROPFIND|GET|POST|PUT|LOCK|CONNECT|NONE|HEAD|OPTIONS)\s+(.+?)$#',$buffer,$re)){
+			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|HTML|TEXT|PROPFIND|GET|POST|PUT|LOCK|CONNECT|NONE|HEAD|OPTIONS)\s+(.+?)$#',$buffer,$re)){
 					$cached=0;
 					$ip=$re[1];
 					$user=$re[2];
@@ -242,8 +246,8 @@ private function CACHEDORNOT($SquidCode){
 			"MD5"=>$md5
 		
 		);
+		$this->GLOBAL_SQUIDUSERS[]=$array;
 		
-		@file_put_contents("/var/log/artica-postfix/squid-users/$md5.sql", serialize($array));
 		
 		
 	}
@@ -388,10 +392,9 @@ private function CACHEDORNOT($SquidCode){
 				"mac"=>$mac,
 				"hostname"=>$hostname
 				);
-		$serialized=serialize($youtube);
-		if($GLOBALS["VERBOSE"]){echo "Youtube:$serialized\n";}
-		@file_put_contents("/var/log/artica-postfix/youtube/".md5($serialized).".ytube", $serialized);
-		$serialized=null;
+		
+		
+		$this->GLOBAL_YOUTUBE[]=$youtube;
 		$youtube=array();
 		//https://gdata.youtube.com/feeds/api/videos/EPldrIzZMkg?v=2&alt=jsonc
 		}	
@@ -401,12 +404,9 @@ private function CACHEDORNOT($SquidCode){
 	$Country=addslashes($Country);
 	$username=addslashes($username);
 	
+	$this->GLOBAL_PAGEKEEPER[$sitename]=$sitename;
 
 
-	if(!is_file("/var/log/artica-postfix/pagepeeker/".md5($sitename))){
-		
-		@file_put_contents("/var/log/artica-postfix/pagepeeker/".md5($sitename), $sitename);
-	}	
 	
 	if($mac=="00:00:00:00:00:00"){$mac=null;}
 	if(strpos($mac, ":")==0){$mac=null;}
@@ -431,7 +431,7 @@ private function CACHEDORNOT($SquidCode){
 	if(trim($username)=="-"){$username=null;}
 	// Realtime size.....
 	//-------------------------------------------------------------
-	$RTTSIZEPATH="/var/log/artica-postfix/squid-RTTSize/".date("YmdH",$xtime);
+	
 	$RTTSIZEARRAY=array();
 	$RTTSIZEARRAY=unserialize(@file_get_contents($RTTSIZEPATH));
 	$RTTSIZEARRAY["IP"][$CLIENT]["SIZE"]=$RTTSIZEARRAY["IP"][$CLIENT]["SIZE"]+$size;
@@ -446,8 +446,8 @@ private function CACHEDORNOT($SquidCode){
 		$RTTSIZEARRAY["UID"][$username]["HITS"]=$RTTSIZEARRAY["UID"][$username]["HITS"]+1;
 	}	
 
+	$this->GLOBAL_RTTSIZE[]=$RTTSIZEARRAY;
 	
-	@file_put_contents($RTTSIZEPATH, serialize($RTTSIZEARRAY));
 	//-------------------------------------------------------------
 	if(isset($searchWords["WORDS"])){
 		if(preg_match("#gstatic\.[a-z\.]+$#",$searchWords["SITENAME"])){if(preg_match("#^tbn:.*?#", $searchWords["WORDS"])){unset($searchWords["WORDS"]);}}
@@ -459,16 +459,10 @@ private function CACHEDORNOT($SquidCode){
 		$searchWords["uid"]=$username;
 		$searchWords["mac"]=$mac;
 		$searchWords["hostname"]=$hostname;
-		$searchWordsSer=serialize($searchWords);
-		if(!is_dir("/var/log/artica-postfix/searchwords")){@mkdir("/var/log/artica-postfix/searchwords",0755);}
-		@file_put_contents("/var/log/artica-postfix/searchwords/".md5($searchWordsSer),$searchWordsSer);
+		$this->GLOBAL_SEARCHWORDS[]=$searchWords;
 	}
 	
-	
-	if($GLOBALS["VERBOSE"]){echo " /var/log/artica-postfix/dansguardian-stats2/$dateDir/$zMD5.sql ";}
-	
-	//$this->events("[SQUID]: dansguardian-stats2: ".$sql."  (".__LINE__.")" );
-	@file_put_contents("/var/log/artica-postfix/dansguardian-stats2/$dateDir/$zMD5.sql",serialize($FINAL_ARRAY));	
+	$this->GLOBAL_QUEUE[]=$FINAL_ARRAY;
 	if(count($GLOBALS["RTIME"])>500){unset($GLOBALS["RTIME"]);}
 	$GLOBALS["RTIME"][]=array($sitename,$uri,$TYPE,$REASON,$CLIENT,$date,$zMD5,$site_IP,$Country,$size,$username,$mac);
 	@file_put_contents("/etc/artica-postfix/squid-realtime.cache",base64_encode(serialize($GLOBALS["RTIME"])));

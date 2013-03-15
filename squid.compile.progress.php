@@ -46,6 +46,9 @@ function js(){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
+	
+
+	
 
 	if($EnableWebProxyStatsAppliance==1){
 		echo "Loadjs('squid.compile.php')";
@@ -56,7 +59,17 @@ function js(){
 		$extension="&onlywhitelist=yes";
 	}
 	
+	
 	$title=$tpl->_ENGINE_parse_body('{proxy_parameters_compilation}');
+	if(isset($_GET["ask"])){
+		$compile_squid_ask=$tpl->javascript_parse_text("{compile_squid_ask}");
+		echo "if(!confirm('$compile_squid_ask')){
+				RTMMail(500,'$page?popup=yes$extension','$title');
+			}";
+		return;
+	}
+	
+	
 	$html="RTMMail(500,'$page?popup=yes$extension','$title');";
 	echo $html;
 	}

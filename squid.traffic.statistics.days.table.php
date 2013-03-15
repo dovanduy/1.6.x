@@ -104,6 +104,8 @@ function items(){
 	
 		$search='%';
 		$table=$_GET["hour_table"];
+		$time=$q->TIME_FROM_HOUR_TABLE($table);
+		$_GET["day"]=date("Y-m-d",$time);
 	
 		$page=1;
 		$FORCE_FILTER=null;
@@ -161,12 +163,12 @@ function items(){
 			$color="black";
 	
 			$date=strtotime($ligne["zDate"]);
-			$Hour=date("H:i");
-	
+			$Hour=date("H:i",$date);
+			$day=$_GET["day"];
 			//familysite 	size 	hits
 	
 			$urljsSIT="<a href=\"javascript:blur();\" 
-			OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?today-zoom=yes&type={$_GET["type"]}&familysite={$ligne["familysite"]}&day={$_GET["day"]}')\" 
+			OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?today-zoom=yes&type={$_GET["type"]}&familysite={$ligne["familysite"]}&day=$day')\" 
 			style='font-size:16px;font-weight:bold;text-decoration:underline'>";
 	
 			$urijs="s_PopUpFull('{$ligne["uri"]}','1024','900');";

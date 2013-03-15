@@ -37,6 +37,7 @@ class mysql_squid_builder{
 	public $SquidActHasReverse=0;
 	public $AVAILABLE_METHOD=array();
 	public $acl_GroupTypeDynamic=array();
+	public $SocketName="/var/run/mysqld/mysqld.sock";
 	
 	function mysql_squid_builder(){
 		if(!class_exists("sockets")){include_once(dirname(__FILE__)."/class.sockets.inc");}
@@ -79,6 +80,10 @@ class mysql_squid_builder{
 		$this->acl_GroupType["dynamic_acls"]="{dynamic_acls}";
 		$this->acl_GroupType["req_mime_type"]="{req_mime_type}";
 		$this->acl_GroupType["url_regex"]="{url_regex_acl2}";
+		$this->acl_GroupType["radius_auth"]="{radius_auth}";
+		$this->acl_GroupType["ad_auth"]="{basic_ad_auth}";
+		$this->acl_GroupType["ldap_auth"]="{basic_ldap_auth}";
+		$this->acl_GroupType["hotspot_auth"]="{hotspot_auth}";
 		
 		
 		
@@ -146,6 +151,7 @@ class mysql_squid_builder{
 				$this->tasks_disabled[31]=true;
 				$this->tasks_disabled[42]=true;
 				$this->tasks_disabled[44]=true;
+				$this->tasks_disabled[47]=true;
 				$this->DisableArticaProxyStatistics=1;
 			}
 			
@@ -183,6 +189,7 @@ class mysql_squid_builder{
 				$this->tasks_disabled[40]=true;
 				$this->tasks_disabled[43]=true;
 				$this->tasks_disabled[44]=true;
+				$this->tasks_disabled[47]=true;
 			}
 			
 			if(!$users->CORP_LICENSE){
@@ -258,6 +265,7 @@ class mysql_squid_builder{
 			$this->tasks_array[44]="{build_reports}";
 			$this->tasks_array[45]="{rebuild_caches}";
 			$this->tasks_array[46]="{fill_squid_client_table}";
+			$this->tasks_array[47]="{squid_logs_purge}";
 			
 			
 			
@@ -310,6 +318,7 @@ class mysql_squid_builder{
 			$this->tasks_explain_array[44]="{build_reports_explain}";
 			$this->tasks_explain_array[45]="{rebuild_caches_explain}";
 			$this->tasks_explain_array[46]="{fill_squid_client_table_explain}";
+			$this->tasks_explain_array[47]="{squid_logs_purge_explain}";
 			
 			
 
@@ -359,6 +368,9 @@ class mysql_squid_builder{
 			$this->tasks_processes[44]="exec.squid.reports.php --all";
 			$this->tasks_processes[45]="exec.squid.rebuild.caches.php";
 			$this->tasks_processes[46]="exec.squid-tail-injector.php --users-auth";
+			$this->tasks_processes[47]="exec.squidlogs.purge.php";
+			
+			
 			
 			
 			
@@ -512,6 +524,7 @@ class mysql_squid_builder{
 			$array[42]=array("TimeText"=>"30 4 * * *","TimeDescription"=>"Compile Toulouse databases tables Each day at 04h30");
 			$array[43]=array("TimeText"=>"30 3 * * *","TimeDescription"=>"Lost tables Each day at 03h30");
 			$array[46]=array("TimeText"=>"7,22,37,52 * * * *","TimeDescription"=>"each 15mn");
+			$array[47]=array("TimeText"=>"30 2 * * *","TimeDescription"=>"Daily Purge Statistics at 2h30");
 			
 			
 
@@ -536,7 +549,9 @@ class mysql_squid_builder{
 		if(!function_exists("mysql_connect")){return 0;}
 		if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL table $this->database/$table was deleted $called" , __FUNCTION__, __FILE__, __LINE__, "mysql-delete");}
 		$this->QUERY_SQL("DROP TABLE `$table`",$this->database);
+		if(!$this->ok){return false;}
 		$this->QUERY_SQL("FLUSH TABLES",$this->database);
+		return true;
 	}		
 	
 	
@@ -575,11 +590,14 @@ class mysql_squid_builder{
 	}
 	
 	public function TABLE_EXISTS($table,$database=null){
-		if($table=="category_teans"){$table="category_teens";}
+		$key=md5(__CLASS__.__FUNCTION__);
 		if($database==null){$database=$this->database;}
 		if($database<>$this->database){$database=$this->database;}
-		$a=$this->ClassSQL->TABLE_EXISTS($table,$database);
-		return $a;
+		
+		if(isset($GLOBALS[$key][$table.$database])){return $GLOBALS[$key][$table.$database];}
+		if($table=="category_teans"){$table="category_teens";}
+		$GLOBALS[$key][$table.$database]=$this->ClassSQL->TABLE_EXISTS($table,$database);
+		return $GLOBALS[$key][$table.$database];
 		
 	}
 	private function DATABASE_EXISTS($database){
@@ -948,6 +966,23 @@ class mysql_squid_builder{
 		}
 		return $array;		
 	}
+	// UserSizeD_20130212
+	public function LIST_TABLES_USERSIZED(){
+		if(isset($GLOBALS["LIST_TABLES_USERSIZED"])){return $GLOBALS["LIST_TABLES_USERSIZED"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'squidhour_%'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#UserSizeD_[0-9]+#", $ligne["c"])){
+				$GLOBALS["LIST_TABLES_USERSIZED"][$ligne["c"]]=$ligne["c"];
+				$array[$ligne["c"]]=$ligne["c"];
+			}
+		}
+		return $array;
+	}	
 
 	public FUNCTION TLSE_CONVERTION($officiels=false){
 			$f["agressif"]="aggressive";
@@ -1037,6 +1072,13 @@ class mysql_squid_builder{
 		}
 		if($GLOBALS["VERBOSE"]){echo "LIST_TABLES_DAYS count:". count($GLOBALS["SQUID_LIST_TABLES_DAYS"])."\n";}
 		return $array;		
+	}	
+	
+	public function COUNT_ALL_TABLES(){
+		
+			$sql="SELECT COUNT(*) as tcount, (SUM(`INDEX_LENGTH`)+ SUM(`DATA_LENGTH`)) as x FROM information_schema.tables WHERE table_schema = 'squidlogs'";
+			$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
+		return array($ligne["tcount"],$ligne["x"]);
 	}	
 	
 	public function LIST_TABLES_WEEKS(){
@@ -1742,7 +1784,8 @@ public function CheckTables($table=null){
 					bypass INT(1) NOT NULL DEFAULT '0' ,
 					deepurlanalysis  INT(1) NOT NULL DEFAULT '0' ,
 					UseExternalWebPage SMALLINT(1) NOT NULL DEFAULT '0' ,
-					ExternalWebPage VARCHAR(256) NOT NULL,
+					ExternalWebPage VARCHAR(255) NOT NULL,
+					freeweb VARCHAR(255) NOT NULL,
 					sslcertcheck INT(1) NOT NULL DEFAULT '0' ,
 					sslmitm INT(1) NOT NULL DEFAULT '0',
 					GoogleSafeSearch SMALLINT(1) NOT NULL DEFAULT '0',
@@ -1763,6 +1806,7 @@ public function CheckTables($table=null){
 		if(!$this->FIELD_EXISTS("webfilter_rules", "GoogleSafeSearch")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `GoogleSafeSearch` smallint(1) NOT NULL DEFAULT '0'");}
 		if(!$this->FIELD_EXISTS("webfilter_rules", "UseExternalWebPage")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `UseExternalWebPage` smallint(1) NOT NULL DEFAULT '0'");}
 		if(!$this->FIELD_EXISTS("webfilter_rules", "ExternalWebPage")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `ExternalWebPage` VARCHAR(255) NOT NULL");}
+		if(!$this->FIELD_EXISTS("webfilter_rules", "freeweb")){$this->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `freeweb` VARCHAR(255) NOT NULL");}
 		
 		
 		
@@ -2088,12 +2132,17 @@ public function CheckTables($table=null){
 			`GroupType` VARCHAR(50) NOT NULL ,
 			`acltpl` VARCHAR(90) NOT NULL ,
 			`enabled` SMALLINT( 1 ) NOT NULL ,
+			`params` LONGTEXT NOT NULL,
 			INDEX ( `GroupName` , `enabled`,`GroupType`),
 			KEY `acltpl`(`acltpl`)
 			)  ENGINE = MYISAM;";	
 
 			$this->QUERY_SQL($sql,$this->database);
 		}	
+		
+		if(!$this->FIELD_EXISTS("webfilters_sqgroups", "params")){
+			$this->QUERY_SQL("ALTER TABLE `webfilters_sqgroups` ADD `params` LONGTEXT NOT NULL");
+		}		
 
 		if(!$this->TABLE_EXISTS('webfilters_sqitems',$this->database)){	
 			$sql="CREATE TABLE `squidlogs`.`webfilters_sqitems` (
@@ -3250,6 +3299,7 @@ public function CheckTables($table=null){
 		while (list ($table, $none) = each ($tablescat) ){
 			if($table=="category_"){continue;}
 			if(preg_match("#bak$#", $table)){continue;}
+			if(!$this->TABLE_EXISTS($table)){continue;}
 			$sql="SELECT `pattern` FROM $table WHERE `pattern`='$sitename' AND enabled=1";
 			$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
 			if(!$this->ok){
@@ -4500,8 +4550,26 @@ private function CategoriesFamily($www){
 		$CDay=substr($intval,6,2);
 		$CDay=str_replace("_", "", $CDay);
 		return strtotime("$Cyear-$CMonth-$CDay 00:00:00");
+	}
+
+	public function TIME_FROM_YOUTUBE_DAY_TABLE($tablename){
+		preg_match("#youtubeday_([0-9]+)$#", $tablename,$re);
+		$intval=$re[1];
+		$Cyear=substr($intval, 0,4);
+		$CMonth=substr($intval,4,2);
+		$CDay=substr($intval,6,2);
+		$CDay=str_replace("_", "", $CDay);
+		return strtotime("$Cyear-$CMonth-$CDay 00:00:00");
 	}	
-	
+	public function TIME_FROM_USERSIZED_TABLE($tablename){
+		preg_match("# UserSizeD_([0-9]+)$#", $tablename,$re);
+		$intval=$re[1];
+		$Cyear=substr($intval, 0,4);
+		$CMonth=substr($intval,4,2);
+		$CDay=substr($intval,6,2);
+		$CDay=str_replace("_", "", $CDay);
+		return strtotime("$Cyear-$CMonth-$CDay 00:00:00");
+	}	
 	public function WEEK_TABLE_TO_MONTH($tablename){
 			$Cyear=substr($tablename, 0,4);
 			$Cweek=substr($tablename,4,2);

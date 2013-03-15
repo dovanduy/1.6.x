@@ -269,7 +269,7 @@ $('#flexRT$t').flexigrid({
 	width: 540,
 	height: 300,
 	singleSelect: true,
-	rpOptions: [10, 20, 30, 50,100,200]
+	rpOptions: [50,100,200,500,1000]
 	
 	});   
 });
@@ -280,6 +280,7 @@ $('#flexRT$t').flexigrid({
 function ParseUsersGroups($dn,$search){
 	$ad=new ActiveDirectory($_GET["ADID"]);
 	$Array=$ad->search_users_from_group($dn);
+	$CurPage=CurrentPageName();
 	if($ad->ldap_last_error<>null){json_error_show("$dn  $ad->ldap_last_error",1);}
 	if(count($Array)==0){return;}
 	while (list ($dn, $GPARR) = each ($Array) ){
@@ -614,7 +615,7 @@ function users_list(){
 			if($GPARR[2]==0){
 				$link="<span style='font-size:14px;'>";
 				$addtitile=null;
-				$select=null;
+				
 			}
 			
 			

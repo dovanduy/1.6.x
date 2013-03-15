@@ -83,7 +83,7 @@ class squidworkers{
 		$hostname=trim($sock->GET_INFO("myhostname"));
 		if($hostname==null){$hostname=$users->fqdn;}
 		$CPU=$this->CPU_NUMBER;
-		$cachesDirectory="/var/cache/squid2";
+		$cachesDirectory="/home/squid/cache/squid2";
 		$globalCachesize=5000;
 		$sql="INSERT IGNORE INTO cacheconfig (`uuid`,`workers`,`globalCachesize`,`cachesDirectory`,`hostname`)
 		VALUES('$this->uuid','$CPU','$globalCachesize','$cachesDirectory','$hostname')";
@@ -99,6 +99,8 @@ class squidworkers{
 		
 		$this->SquidBoosterOnly=$this->zcheck_squidbooster_value();
 		echo "Starting......: [SMP] Use only Booster:$this->SquidBoosterOnly\n";
+		echo "Starting......: [SMP] Disable SMP:$this->DisableSquidSNMPMode\n";
+		
 		
 	
 		$q=new mysql_squid_builder();
@@ -111,7 +113,9 @@ class squidworkers{
 
 		
 	
-		echo "Starting......: [SMP] $CPUS workers\n";
+		if($this->DisableSquidSNMPMode==0){echo "Starting......: [SMP] $CPUS workers\n";}
+		if($this->DisableSquidSNMPMode==1){$CPUS=1;echo "Starting......: [SMP] $CPUS workers\n";}
+		
 		if($this->ASROOT){
 			$unix=new unix();
 			echo "Starting......: [SMP] launch exec.squid.smp.php\n";
@@ -126,7 +130,7 @@ class squidworkers{
 		$boost=new squidbooster();
 		echo "Starting......: [SMP] is disabled ? `$this->DisableSquidSNMPMode`\n";
 		if($this->DisableSquidSNMPMode==1){
-			echo "Starting......: [SMP] is disabled ... aborting\n";
+			echo "Starting......: [SMP] is disabled ... turn to worker 1\n";
 			$f[]="#--------- Multiple cpus -- (disabled) is default cache";
 			$f[]="workers 1";
 			if($maincachedir<>null){$f[]=$maincachedir;}

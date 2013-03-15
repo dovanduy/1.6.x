@@ -712,6 +712,10 @@ function status_squid_left(){
 	$page=CurrentPageName();	
 	include_once(dirname(__FILE__)."/ressources/class.status.inc");
 	$sock=new sockets();
+	$SquidBinIpaddr=$sock->GET_INFO("SquidBinIpaddr");
+	if($SquidBinIpaddr==null){$SquidBinIpaddr="0.0.0.0";}
+	
+	
 	$squid=new squidbee();
 	$q=new mysql();
 	$master_version=$squid->SQUID_VERSION;
@@ -719,7 +723,7 @@ function status_squid_left(){
 	
 	$As32=false;
 	if(!isset($_GET["uuid"])){$_GET["uuid"]=$sock->getframework("cmd.php?system-unique-id=yes");}
-
+	
 
 	$EnableKavICAPRemote=$sock->GET_INFO("EnableKavICAPRemote");
 	$KavICAPRemoteAddr=$sock->GET_INFO("KavICAPRemoteAddr");
@@ -820,6 +824,35 @@ function status_squid_left(){
 	}
 	
 	
+	
+	
+	
+	$hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
+	if(!is_numeric($hasProxyTransparent)){$hasProxyTransparent=0;}
+	
+	$hasProxyTransparentText="{disabled}";
+	$hasProxyTransparentCheck="20-check-grey.png";
+	
+	
+	if($hasProxyTransparent==1){
+		$hasProxyTransparentText="{enabled}";
+		$hasProxyTransparentCheck="20-check.png";
+	}
+	
+	
+	$transparent_mode="
+		<tr>
+			<td width=1%><img src='img/$hasProxyTransparentCheck'></td>
+			<td class=legend nowrap>{transparent}:</td>
+			<td style='font-size:14px'>
+			<a href=\"javascript:blur();\"
+			OnClick=\"Loadjs('squid.newbee.php?squid-transparent-js=yes');\"
+			style='$styleText;text-decoration:underline'>$hasProxyTransparentText</a></td>
+		</tr>";	
+	
+	
+	
+	
 	$squidversion="	
 	<center>
 	<table style='width:250px;margin-top:10px;' class=form>
@@ -838,7 +871,15 @@ function status_squid_left(){
 			OnClick=\"javascript:Loadjs('squid.popups.php?script=listen_port');\" 
 			style='$styleText;text-decoration:underline'>$squid->listen_port</a></td>
 		</tr>
+		<tr>
+			<td width=1%><img src='img/20-check.png'></td>
+			<td class=legend nowrap>{listen_addr}:</td>
+			<td style='font-size:14px'><a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('squid.nic.php');\" 
+			style='$styleText;text-decoration:underline'>$SquidBinIpaddr</a></td>
+		</tr>		
 		$smptr
+		$transparent_mode
 		</tbody>
 	</table>
 	</center>
@@ -1120,7 +1161,7 @@ function section_status(){
 		}
 		
 		if($num=="events-squidaccess"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.accesslogs.php?table-size=898&url-row=433\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.accesslogs.php?table-size=942&url-row=488\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
@@ -1449,6 +1490,19 @@ $current_sessions="
 		style='font-size:12px;text-decoration:underline'>{display_current_sessions}</a></td>
 		</tr>	
 	";	
+
+$squidconf="
+			<tr>
+		<td width=1%><img src='img/script-32.png'></td>
+		<td nowrap><a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('squid.conf.php');\"
+		style='font-size:12px;text-decoration:underline'>{configuration_file}</a></td>
+		</tr>
+	";
+
+
+
+
 $performances="
 			<tr>
 		<td width=1%><img src='img/performance-tuning-32.png'></td>
@@ -1500,6 +1554,7 @@ if($users->WEBSTATS_APPLIANCE){
 	$performances=null;
 	$SquidBoosterMemText=null;
 	$supportpckg=null;
+	$squidconf=null;
 }
 
 if($DisableAnyCache==1){
@@ -1515,6 +1570,7 @@ if($DisableAnyCache==1){
 	<tr>
 	<td valign='top' width='50%'>
 		<table style='width:100%'>
+	$squidconf
 	$reconfigure
 	$restart_all_services
 	$restart_service_only

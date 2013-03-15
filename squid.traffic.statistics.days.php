@@ -48,8 +48,11 @@ page_de_garde();
 function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$size=950;
+	if(isset($_GET["with-purge"])){$purge="&with-purge=yes";$size=985;}
+	
 	$title=$tpl->_ENGINE_parse_body("{internet_access_per_day}");
-	$html="YahooWin('950','$page?byjs=yes','$title')";
+	$html="YahooWin('$size','$page?byjs=yes$purge','$title')";
 	echo $html;
 }
 
@@ -58,11 +61,14 @@ function right_tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	if(!isset($_GET["day"])){$_GET["day"]=$q->HIER();}	
+	if($_GET["day"]==date('Y-m-d')){$_GET["day"]=$q->HIER();}	
 	
 	$tablenameVisited=date('Ymd',strtotime("{$_GET["day"]} 00:00:00"))."_visited";
 	
 	
 	$tpl=new templates();
+	
+
 	
 	$array["day-right-infos"]='{panel}';
 	$array["day-right-category"]='{categories}';
@@ -76,7 +82,8 @@ function right_tabs(){
 	
 
 while (list ($num, $ligne) = each ($array) ){
-	
+
+
 		if($num=="day-right-websites"){
 			$html[]= "<li><a href=\"squid.statistics.visited.day.php?table=$tablenameVisited&day={$_GET["day"]}\"><span>$ligne</span></a></li>\n";
 			continue;
@@ -114,6 +121,8 @@ while (list ($num, $ligne) = each ($array) ){
 function today_zoom_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();			
+	$q=new mysql_squid_builder();
+	if($_GET["day"]==date('Y-m-d')){$_GET["day"]=$q->HIER();}
 	$html="YahooWin2(1073,'$page?today-zoom-popup=yes&type={$_GET["type"]}&familysite={$_GET["familysite"]}&day={$_GET["day"]}','{$_GET["familysite"]}')";
 	echo $html;
 }
@@ -220,16 +229,21 @@ function right_category(){
 function today_zoom_popup(){
 	
 	$page=CurrentPageName();
+	$q=new mysql_squid_builder();
 	$tpl=new templates();	
 	if(!isset($_GET["day"])){$_GET["day"]=$q->HIER();}	
 	$t=time();
-	
+	$today="{today}";
+	if($_GET["day"]<>date("Y-m-d")){
+		$time=strtotime("{$_GET["day"]} 00:00:00");
+		$today=date("{l} d {F}",$time);
+	}
 	
 	$tpl=new templates();
 	$array["website-zoom"]='{website}';
 	$array["website-catz"]='{categories}';
-	$array["today-zoom-popup-history"]='{history}:{today}';
-	$array["today-zoom-popup-members"]='{members}:{today}';
+	$array["today-zoom-popup-history"]="{history}:$today";
+	$array["today-zoom-popup-members"]="{members}:$today";
 
 	while (list ($num, $ligne) = each ($array) ){
 		
@@ -697,8 +711,53 @@ function left(){
 	echo $tpl->_ENGINE_parse_body($html);	
 }
 
+function page_de_garde_purge(){
+	$q=new mysql_squid_builder();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	
+		$array["purge"]='{database}';
+		$array["stats"]='{statistics_by_day}';
+	
+
+
+
+
+	while (list ($num, $ligne) = each ($array) ){
+
+		if($num=="purge"){
+			$html[]= "<li><a href=\"squid.artica.statistics.purge.php?popup=yes\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
+
+		if($num=="stats"){
+			$html[]= "<li><a href=\"$page?byjs=yes\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
+			
+
+		
+
+		$html[]= "<li><a href=\"$page?$num=yes&day={$_GET["day"]}\"><span>$ligne</span></a></li>\n";
+	}
+
+	$t=time();
+	echo $tpl->_ENGINE_parse_body( "
+			<div id=purge_stats style='width:97%;font-size:14px;margin-left:10px;margin-right:-15px;margin-top:-5px'>
+			<ul>". implode("\n",$html)."</ul>
+			</div>
+			<script>
+			$(document).ready(function(){
+			$('#purge_stats').tabs();
+				
+				
+});
+</script>");
+}
+
 
 function page_de_garde(){
+	if(isset($_GET["with-purge"])){page_de_garde_purge();return;}
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$styletable="style='width:105%;margin-left:-15px;padding-right:-15px;margin-right:-15px'";
@@ -1010,6 +1069,24 @@ function left_status(){
 		
 		<table style='width:97%' class=form>
 		<tbody>
+			<tr>
+				<td width=1%><img src='img/arrow-right-16.png'></td>
+				<td style='font-size:14px;font-weight:bold'>
+						<a href=\"javascript:blur();\" 
+						OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.calendar.php');\" 
+						style='font-size:14px;font-weight:bold;text-decoration:underline'>{calendar}</a>
+				</td>
+			</tr>		
+			<tr>
+				<td width=1%><img src='img/arrow-right-16.png'></td>
+				<td style='font-size:14px;font-weight:bold'>
+						<a href=\"javascript:blur();\" 
+						OnClick=\"javascript:Loadjs('squid.visited.php?recategorize-day-js={$_GET["day"]}');\" 
+						style='font-size:14px;font-weight:bold;text-decoration:underline'>{recategorize_schedule}</a>
+				</td>
+			</tr>		
+			
+			<tr><td colspan=2><hr></td></tr>
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'></td>
 				<td style='font-size:14px;font-weight:bold'>

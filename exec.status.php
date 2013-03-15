@@ -201,6 +201,7 @@ if($argv[1]=="--mimedefang"){echo mimedefang()."\n".mimedefangmx();die();}
 if($argv[1]=="--mailarchiver"){echo mailarchiver();die();}
 if($argv[1]=="--articadb"){echo articadb();die();}
 if($argv[1]=="--maillog"){echo maillog_watchdog();die();}
+if($argv[1]=="--freeradius"){echo freeradius();die();}
 
 
 
@@ -237,6 +238,7 @@ if($argv[1]=="--zarafa"){
 	$conf[]=zarafa_gateway();
 	$conf[]=zarafa_spooler();
 	$conf[]=zarafa_server();
+	$conf[]=zarafa_server2();
 	$conf[]=zarafa_licensed();
 	$conf[]=zarafa_db();
 	$conf[]=zarafa_indexer();
@@ -787,7 +789,6 @@ function CleanLogs(){
 		$size=$GLOBALS["CLASS_UNIX"]->file_size("/var/log/php.log");
 		$size=intval(round(($size/1024))/1000);
 		if($size>150){
-			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("CleanLogs:: Warning /var/log/php.log was deleted execeed 150M ({$size}M)", basename(__FILE__));}
 			@unlink("/var/log/php.log");
 			@file_put_contents("/var/log/php.log", "#");
 			@chmod("/var/log/php.log", 0777);
@@ -930,12 +931,12 @@ function launch_all_status($force=false){
 	"apache_ocsweb","web_download","ocs_agent","openssh","gluster","auditd","squidguardweb","opendkim","ufdbguardd","squidguard_logger","milter_dkim","dropbox",
 	"artica_policy","virtualbox_webserv","tftpd","dhcpd_server","crossroads","artica_status","artica_executor","artica_background","bandwith",
 	 "pptpd","pptp_clients","apt_mirror","squid_clamav_tail","ddclient","cluebringer","apachesrc","zarafa_web","zarafa_ical","zarafa_dagent","zarafa_indexer",
-	"zarafa_monitor","zarafa_gateway","zarafa_spooler","zarafa_server","assp","openvpn","vboxguest","sabnzbdplus","SwapWatchdog","artica_meta_scheduler",
+	"zarafa_monitor","zarafa_gateway","zarafa_spooler","zarafa_server","zarafa_server2","assp","openvpn","vboxguest","sabnzbdplus","SwapWatchdog","artica_meta_scheduler",
 	"OpenVPNClientsStatus","stunnel","meta_checks","zarafa_licensed","zarafa_db","avahi_daemon","CheckCurl","ufdbguardd_tail","vnstat","NetAdsWatchdog","munin","autofs","greyhole",
 	"dnsmasq","iscsi","watchdog_yorel","netatalk","postfwd2","vps_servers","smartd","crossroads_multiple","auth_tail","greyhole_watchdog","greensql","nscd","tomcat",
 	"openemm","openemm_sendmail","cgroups","ntpd_server","arpd","ps_mem","ipsec","yaffas","ifconfig_network","testingrrd","zarafa_multi","memcached","UpdateUtilityHTTP",
 	"udevd_daemon","dbus_daemon","ejabberd","pymsnt", "arkwsd", "arkeiad","haproxy","klms_status","klmsdb_status","klms_milter","CleanLogs","mimedefangmx","mimedefang",
-	"zarafa_search","snort","mailarchiver","articadb","checksyslog","maillog_watchdog","arp_spoof","caches_pages",
+	"zarafa_search","snort","mailarchiver","articadb","checksyslog","freeradius","maillog_watchdog","arp_spoof","caches_pages",
 	);
 	$data1=$GLOBALS["TIME_CLASS"];
 	$data2 = time();
@@ -1019,6 +1020,10 @@ function launch_all_status($force=false){
 		events($cmd);
 		shell_exec2($cmd);
 	}
+	
+	$cmd=trim("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.syslog-engine.php --admin-evs >/dev/null 2>&1 &");
+	events($cmd);
+	shell_exec2($cmd);
 	
 
 
@@ -2061,7 +2066,17 @@ function mimedefang(){
 	$l[]="pid_path=$pid_path";
 	$l[]="watchdog_features=1";
 	$l[]="family=postfix";
-	if($MimeDefangEnabled==0){return implode("\n",$l);return;}
+	
+	$mem=$GLOBALS["CLASS_UNIX"]->TOTAL_MEMORY_MB();
+	if($mem<1500){
+		$MimeDefangEnabled=0;
+		$GLOBALS["CLASS_SOCKETS"]->SET_INFO("MimeDefangEnabled","0");
+	}
+	
+	if($MimeDefangEnabled==0){
+		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/artica-postfix stop mimedefang");}
+		return implode("\n",$l);
+	}
 	 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		WATCHDOG("APP_MIMEDEFANG","mimedefang");
@@ -2087,7 +2102,7 @@ function mimedefangmx(){
 
 
 	}
-	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('MimeDefangEnabled');
+	$MimeDefangEnabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('MimeDefangEnabled');
 	if(!is_numeric($MimeDefangEnabled)){$MimeDefangEnabled=0;}
 
 	if($GLOBALS["VERBOSE"]){echo "DEBUG: MimeDefangEnabled..: $MimeDefangEnabled\n";}
@@ -2111,11 +2126,21 @@ function mimedefangmx(){
 	$l[]="service_name=APP_MIMEDEFANGX";
 	$l[]="master_version=".mimedefang_version();
 	$l[]="service_cmd=mimedefang";
-	$l[]="service_disabled=$enabled";
+	$l[]="service_disabled=$MimeDefangEnabled";
 	$l[]="pid_path=$pid_path";
 	$l[]="watchdog_features=1";
 	$l[]="family=postfix";
-	if($enabled==0){return implode("\n",$l);return;}
+	
+	$mem=$GLOBALS["CLASS_UNIX"]->TOTAL_MEMORY_MB();
+	if($mem<1500){
+		$MimeDefangEnabled=0;
+		$GLOBALS["CLASS_SOCKETS"]->SET_INFO("MimeDefangEnabled","0");
+	}
+	
+	if($MimeDefangEnabled==0){
+		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/artica-postfix stop mimedefang");}
+		return implode("\n",$l);
+	}
 	 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		WATCHDOG("APP_MIMEDEFANGX","mimedefang");
@@ -3738,6 +3763,20 @@ function spamassassin_milter(){
 	$l[]="service_disabled=$SpamAssMilterEnabled";
 	$l[]="pid_path=$pid_path";
 	$l[]="family=postfix";
+	
+	$mem=$GLOBALS["CLASS_UNIX"]->TOTAL_MEMORY_MB();
+	if($mem<1500){
+		$SpamAssMilterEnabled=0;
+		$GLOBALS["CLASS_SOCKETS"]->SET_INFO("SpamAssMilterEnabled","0");
+	}
+	
+	if($SpamAssMilterEnabled==0){
+		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/artica-postfix stop spamd");}
+		return implode("\n",$l);
+	}	
+	
+	
+	
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){$l[]="";return implode("\n",$l);return;}
 	$l[]=GetMemoriesOf($master_pid);
 	$l[]="";
@@ -4298,6 +4337,7 @@ function lms_version(){
 function klms_milter(){
 	
 	
+	
 	if(!$GLOBALS["CLASS_USERS"]->KLMS_INSTALLED){if($GLOBALS["VERBOSE"]){echo " Not installed...\n";}return;}
 	
 	$pid_path="/var/run/klms/klms-milter.pid";
@@ -4316,8 +4356,22 @@ function klms_milter(){
 	$l[]="pid_path=$pid_path";
 	$l[]="watchdog_features=1";
 	$l[]="family=smtp";
+	$mem=$GLOBALS["CLASS_UNIX"]->TOTAL_MEMORY_MB();
+	if($mem<1500){
+		$EnableKlms=0;
+		$GLOBALS["CLASS_SOCKETS"]->SET_INFO("EnableKlms","0");
+	}
 	 
-	if($EnableKlms==0){$l[]="";return implode("\n",$l);return;}	
+	if($EnableKlms==0){
+		$l[]="";return implode("\n",$l);
+		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/klms stop >/dev/null 2>&1 &");
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.klms.php --watchdog >/dev/null 2>&1 &");
+		}
+		return;
+	}	
+	
+	
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		$l[]="";
 		return implode("\n",$l);
@@ -4350,7 +4404,23 @@ function klms_status(){
 	$l[]="watchdog_features=1";
 	$l[]="family=smtp";
 	 
-	if($EnableKlms==0){$l[]="";return implode("\n",$l);return;}	
+	$mem=$GLOBALS["CLASS_UNIX"]->TOTAL_MEMORY_MB();
+	if($mem<1500){
+		$EnableKlms=0;
+		$GLOBALS["CLASS_SOCKETS"]->SET_INFO("EnableKlms","0");
+	}
+	
+	if($EnableKlms==0){
+		$l[]="";
+		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/klms stop >/dev/null 2>&1 &");
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.klms.php --watchdog >/dev/null 2>&1 &");
+		}
+		return implode("\n",$l);
+	}
+	
+	
+	
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		WATCHDOG("APP_KLMSS","klms");
 		$l[]="";
@@ -4380,7 +4450,22 @@ function klmsdb_status(){
 	$l[]="watchdog_features=1";
 	$l[]="family=smtp";
 	 
-	if($EnableKlms==0){$l[]="";return implode("\n",$l);return;}	
+	$mem=$GLOBALS["CLASS_UNIX"]->TOTAL_MEMORY_MB();
+	if($mem<1500){
+		$EnableKlms=0;
+		$GLOBALS["CLASS_SOCKETS"]->SET_INFO("EnableKlms","0");
+	}
+	
+	if($EnableKlms==0){
+		$l[]="";
+		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/klmsdb stop >/dev/null 2>&1 &");
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.klms.php --watchdog >/dev/null 2>&1 &");
+		}
+					
+		return implode("\n",$l);
+	}
+	
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		WATCHDOG("APP_KLMSDB","klmsdb");
 		$l[]="";
@@ -4651,7 +4736,7 @@ function apachesrc(){
 	$EnableRemoteStatisticsAppliance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 
-	
+	$TOTAL_MEMORY_MB=$GLOBALS["CLASS_UNIX"]->TOTAL_MEMORY_MB();
 
 	$l[]="[APP_APACHE_SRC]";
 	$l[]="service_name=APP_APACHE_SRC";
@@ -4664,7 +4749,12 @@ function apachesrc(){
 	
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF($binpath);
-	}	
+	}
+
+	if($TOTAL_MEMORY_MB<550){
+		$GLOBALS["CLASS_SOCKETS"]->SET_INFO("EnableFreeWeb",0);
+		$EnableFreeWeb=0;
+	}
 	
 	if($EnableFreeWeb==0){
 		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
@@ -7001,6 +7091,96 @@ function zarafa_watchdog(){
 
 	$GLOBALS["CLASS_UNIX"]->send_email_events("Zarafa watchdog report",@implode("\n",$text),"mailbox");
 
+}
+
+function freeradius_version(){
+	$unix=new unix();
+	$freeradius=$unix->find_program("freeradius");
+	exec("$freeradius -v 2>&1",$results);
+	while (list ($dir, $val) = each ($results) ){
+		if(!preg_match("#Version ([0-9\.]+)#", $val,$re)){continue;}
+		return $re[1];
+	}
+
+}
+
+function freeradius(){
+
+	if(!$GLOBALS["CLASS_USERS"]->FREERADIUS_INSTALLED){if($GLOBALS["VERBOSE"]){echo __FUNCTION__." not installed\n";}return null;}
+
+	$enabled=1;
+	$pid_path="/var/run/freeradius/freeradius.pid";
+	$master_pid=trim(@file_get_contents($pid_path));
+	$freeradius=$GLOBALS["CLASS_UNIX"]->find_program("freeradius");
+	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableFreeRadius");
+	if(!is_numeric($enabled)){$enabled=0;}
+
+	$l[]="[APP_FREERADIUS]";
+	$l[]="service_name=APP_FREERADIUS";
+	$l[]="master_version=".freeradius_version();
+	$l[]="service_cmd=freeradius";
+	$l[]="service_disabled=$enabled";
+	$l[]="pid_path=$pid_path";
+	$l[]="watchdog_features=1";
+	$l[]="family=system";
+
+	if($enabled==0){return implode("\n",$l);return;}
+	
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF($freeradius);
+	}
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		WATCHDOG("APP_FREERADIUS","freeradius");
+		$l[]="running=0\ninstalled=1";$l[]="";
+		return implode("\n",$l);return;
+	}
+
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+	return implode("\n",$l);return;
+
+
+
+}
+
+function zarafa_server2(){
+
+	if(!$GLOBALS["CLASS_USERS"]->ZARAFA_INSTALLED){if($GLOBALS["VERBOSE"]){echo __FUNCTION__." not installed\n";}return null;}
+
+	$enabled=1;
+	$pid_path="/var/run/zarafa-server2.pid";
+	$master_pid=trim(@file_get_contents($pid_path));
+
+	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("ZarafaDBEnable2Instance");
+	if(!is_numeric($enabled)){$enabled=0;}
+
+	$l[]="[APP_ZARAFA_SERVER2]";
+	$l[]="service_name=APP_ZARAFA_SERVER2";
+	$l[]="master_version=".$GLOBALS["CLASS_UNIX"]->ZARAFA_VERSION();
+	$l[]="service_cmd=zarafa2";
+	$l[]="service_disabled=$enabled";
+	$l[]="pid_path=$pid_path";
+	$l[]="remove_cmd=--zarafa-remove";
+	$l[]="watchdog_features=1";
+	$l[]="family=mailbox";
+
+	if($enabled==0){return implode("\n",$l);return;}
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		WATCHDOG("APP_ZARAFA_SERVER2","zarafa2");
+		$l[]="running=0\ninstalled=1";$l[]="";
+		return implode("\n",$l);return;
+	}
+	
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+	return implode("\n",$l);return;	
+	
+	
+	
 }
 
 function zarafa_server(){

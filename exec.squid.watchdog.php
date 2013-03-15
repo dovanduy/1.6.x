@@ -357,6 +357,7 @@ function start_squid($aspid=false){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$sock=new sockets();
+	$reconfigure=false;
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	$su_bin=$unix->find_program("su");
@@ -403,14 +404,33 @@ function start_squid($aspid=false){
 	if(!is_file("/etc/squid3/squid-block.acl")){@file_put_contents("/etc/squid3/squid-block.acl", "\n");}
 	
 	if(!is_file("/etc/squid3/squid.conf")){
-		exec("$php /usr/share/artica-postfix/exec.squid.php --build --withoutloading 2>&1",$GLOBALS["LOGS"]);
+		$reconfigure=true;
+		
 	}
+	
+	$EXPLODED=explode("\n", @file_get_contents("/etc/squid3/squid.conf"));
+	while (list ($index, $val) = each ($EXPLODED)){
+		if(preg_match("#INSERT YOUR OWN RULE#", $val)){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: squid must be reconfigured...\n";}
+			$reconfigure=true;
+		}
+	}
+	
+	if($reconfigure){
+		if($GLOBALS["OUTPUT"]){
+			system("$php /usr/share/artica-postfix/exec.squid.php --build --withoutloading");
+		}else{
+			exec("$php /usr/share/artica-postfix/exec.squid.php --build --withoutloading 2>&1",$GLOBALS["LOGS"]);
+		}
+		
+	}	
+	
 	
 	shell_exec("$php /usr/share/artica-postfix/exec.initd-squid.php >/dev/null 2>&1");
 	shell_exec("$php /usr/share/artica-postfix/exec.squid.php --watchdog-config >/dev/null 2>&1");
 	exec("$php /usr/share/artica-postfix/exec.squid.transparent.php",$GLOBALS["LOGS"]);
 	@mkdir("/var/log/squid",true,0750);
-	@mkdir("/var/cache/squid",true,0750);
+	@mkdir("/home/squid/cache",true,0750);
 	@mkdir("/etc/squid3",true,0750);
 	@mkdir("/var/lib/squidguard",true,0750);
 	@mkdir("/var/run/squid",true,0750);
@@ -418,7 +438,7 @@ function start_squid($aspid=false){
 	$unix->chmod_func(0755, "/var/run/squid/*");
 	$unix->chown_func("squid","squid", "/var/log/squid/*");
 	$unix->chown_func("squid","squid", "/etc/squid3/*");
-	$unix->chown_func("squid","squid", "/var/cache/squid");
+	$unix->chown_func("squid","squid", "/home/squid/cache");
 	$unix->chown_func("squid","squid", "/var/run/squid");
 	$pid=SQUID_PID();
 	

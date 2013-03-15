@@ -56,7 +56,7 @@ class vhosts{
 	"ERRSQUID"=>"128-banned.png",
 	"WPAD"=>"script-128.png",
 	"UPDATEUTILITY"=>"kaspersky-logo-128.png",
-			
+    "UFDBGUARD"=>"128-banned.png",
 			
 //	
 	);
@@ -104,8 +104,10 @@ class vhosts{
 	"OWNCLOUD"=>"owncloud-64.png",
 	"SPLASHSQUID"=>"webfilter-64.png",
 	"ERRSQUID"=>"64-banned.png",
+	"UFDBGUARD"=>"64-banned.png",
 	"WPAD"=>"script-64.png",
 	"UPDATEUTILITY"=>"kaspersky-update-64.png",
+	"WEBDAVFREE"=>"organisation-64.gif",
 			
 	);
 
@@ -117,7 +119,8 @@ class vhosts{
 	var $noneeduser=array("JOOMLA"=>true,"ROUNDCUBE"=>true,"ARTICA_USR"=>true,"ZARAFA_MOBILE"=>true,"ZARAFA"=>true,"DRUPAL"=>true,
 	'WEBDAV'=>true,"BACKUPPC"=>true,"SQUID_STATS"=>true,"ARKEIA"=>true,"XAPIAN"=>true,"SPLASHSQUID"=>true,"ARTICA_PRXYLOGS"=>true);
 	var $noneeduser_mysql=array("ARTICA_USR"=>true,"ZARAFA_MOBILE"=>true,"ZARAFA"=>true,"DRUPAL"=>true,"WEBDAV"=>true,"BACKUPPC"=>true,"SQUID_STATS"=>true,
-	"ARKEIA"=>true,"SARG"=>true,"XAPIAN"=>true,"SPLASHSQUID"=>true,"ARTICA_PRXYLOGS"=>true,"ERRSQUID"=>true);
+	"ARKEIA"=>true,"SARG"=>true,"XAPIAN"=>true,"SPLASHSQUID"=>true,"ARTICA_PRXYLOGS"=>true,
+	"ERRSQUID"=>true,"UFDBGUARD"=>true,"WEBDAVFREE"=>true);
 	
 
 	
@@ -165,7 +168,8 @@ class vhosts{
 	"ERRSQUID"=>array("TITLE"=>"APP_ERRSQUID","TEXT"=>"APP_ERRSQUID_TEXT"),
 	"WPAD"=>array("TITLE"=>"APP_WPAD","TEXT"=>"APP_WPAD_TEXT"),
 	"UPDATEUTILITY"=>array("TITLE"=>"UpdateUtility","TEXT"=>"UpdateUtilityWWText"),
-			
+	"UFDBGUARD"=>array("TITLE"=>"UFDBGUARD_FREEWEB","TEXT"=>"UFDBGUARD_FREEWEB_TEXT"),
+	"WEBDAVFREE"=>array("TITLE"=>"WEBDAVFREE","TEXT"=>"WEBDAVFREE_TEXT"),
 			
 	
 	
@@ -186,6 +190,10 @@ function listOfAvailableServices($freeweb=false){
 	$user=new usersMenus();
 	$sock=new sockets();
 	$AllowInternetUsersCreateOrg=$sock->GET_INFO("AllowInternetUsersCreateOrg");
+	$ApacheDisableModDavFS=$sock->GET_INFO("ApacheDisableModDavFS");
+	$FreeWebEnableModFcgid=$sock->GET_INFO("FreeWebEnableModFcgid");
+	if(!is_numeric($FreeWebEnableModFcgid)){$FreeWebEnableModFcgid=0;}
+	if(!is_numeric($ApacheDisableModDavFS)){$ApacheDisableModDavFS=0;}	
 	$array[]="{select}";
 	if(!$freeweb){
 		
@@ -255,7 +263,9 @@ function listOfAvailableServices($freeweb=false){
 		$array["SPLASHSQUID"]="{APP_SPLASHSQUID}";
 		$array["ERRSQUID"]="{APP_ERRSQUID}";
 		if($user->UPDATE_UTILITYV2_INSTALLED){$array["UPDATEUTILITY"]="UpdateUtility";}
-		
+		if($ApacheDisableModDavFS==0){
+			if($user->APACHE_MODE_WEBDAV){$array["WEBDAVFREE"]="{WEBDAVFREE}";}
+		}
 		
 		
 		

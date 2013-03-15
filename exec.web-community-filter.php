@@ -102,6 +102,17 @@ function register(){
 	if($WizardSavedSettingsSend==1){return;}
 	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
 	$WizardSavedSettings["UUID"]=$uuid;
+	$WizardSavedSettings["CPUS_NUMBER"]=XZCPU_NUMBER();
+	$WizardSavedSettings["MEMORY"]=$unix->SYSTEM_GET_MEMORY_MB()."MB";
+	
+	if(is_file("/etc/artica-postfix/dmidecode.cache.url")){
+		$final_array=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/dmidecode.cache.url")));
+		while (list ($a, $b) = each ($final_array)){
+			$WizardSavedSettings[$a]=$b;
+		}
+	}
+	
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/WizardSavedSettings", base64_encode(serialize($WizardSavedSettings)));
 	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
 	$curl->parms["REGISTER"]=base64_encode(serialize($WizardSavedSettings));
 	$curl->get();
@@ -113,6 +124,18 @@ function register(){
 	
 	
 }	
+
+function XZCPU_NUMBER(){
+	$unix=new unix();
+	$cat=$unix->find_program("cat");
+	$grep=$unix->find_program("grep");
+	$cut=$unix->find_program("cut");
+	$wc=$unix->find_program("wc");
+	$cmd="$cat /proc/cpuinfo |$grep \"model name\" |$cut -d: -f2|$wc -l 2>&1";
+	$CPUNUM=exec($cmd);
+	
+	return $CPUNUM;
+}
 
 function uuid_check(){
 	$sock=new sockets();

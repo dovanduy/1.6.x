@@ -125,6 +125,14 @@ function popup(){
 		"ok32.png");
 	}
 	
+	$TOTAL_MEMORY_MB=$sock->getFrameWork("system.php?TOTAL_MEMORY_MB=yes");
+	if($TOTAL_MEMORY_MB<1500){
+		
+		$p=FATAL_ERROR_SHOW_128("{NO_ENOUGH_MEMORY_FOR_THIS_SECTION}<br><strong style='font-size:18px'>{require}:1500MB</strong>",false,true);
+		
+		$EnableDaemonP=null;
+	}	
+	
 	
 	$tr[]=$EnableDaemonP;
 	$tr[]=Paragraphe32("service_options", "service_options_text", "Loadjs('mimedefang.service.php')", "32-parameters.png");
@@ -146,6 +154,7 @@ function popup(){
 		<td valign='top'>
 			<div style='font-size:18px;margin:bottom:10px;text-align:right'>{APP_MIMEDEFANG}</div>
 			<div style='font-size:13px' class=explain>{MIMEDEFANG_DEF}</div>
+			$p
 			<div id='explain-$t'>$table</div>
 		</td>
 	</tr>

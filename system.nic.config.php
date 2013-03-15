@@ -1403,6 +1403,7 @@ function virtual_add_form(){
 		}
 	}
 
+	if($ligne["metric"]==0){$ligne["metric"]=100+$_GET["ID"];}
 	
 	$styleOfFields="font-size:16px;padding:3px";
 	$ous=$ldap->hash_get_ou(true);
@@ -1459,6 +1460,10 @@ function virtual_add_form(){
 			<td class=legend style='font-size:16px'>{gateway}:</td>
 			<td>" . field_ipv4("gateway_virtual",$ligne["gateway"],$styleOfFields,false)."</td>
 		</tr>
+		<tr>
+			<td class=legend style='font-size:16px'>{metric}:</td>
+			<td>" . field_text("metric_virtual",$ligne["metric"],"$styleOfFields;width:90px",false)."</td>
+		</tr>					
 		<tr>
 			<td class=legend style='font-size:16px'>failover:</td>
 			<td>" . Field_checkbox("failover",1,$ligne["failover"],"FaileOverCheck()")."</td>
@@ -1521,6 +1526,10 @@ function virtual_add_form(){
 			XHR.appendData('virt-ipaddr',document.getElementById('ipaddr').value);
 			XHR.appendData('netmask',document.getElementById('netmask').value);
 			XHR.appendData('cdir',document.getElementById('cdir').value);
+			XHR.appendData('metric',document.getElementById('metric_virtual').value);
+			
+			
+			
 			if(NoGatewayForVirtualNetWork==0){XHR.appendData('gateway',document.getElementById('gateway_virtual').value);}
 			if(NoGatewayForVirtualNetWork==1){XHR.appendData('gateway','');}
 			XHR.appendData('nic',document.getElementById('nic').value);
@@ -1655,6 +1664,30 @@ function virtuals_addv6(){
 	
 }
 
+function lastmetric(){
+	$q=new mysql();
+	$sql="SELECT metric as tcount FROM `nics` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$hash[$ligne["metric"]]=$ligne["metric"];
+
+	$sql="SELECT metric as tcount FROM `nics_vlan` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$hash[$ligne["metric"]]=$ligne["metric"];
+
+	$sql="SELECT metric as tcount FROM `nic_virtuals` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$hash[$ligne["metric"]]=$ligne["metric"];
+
+	krsort($hash[$ligne["metric"]]);
+	while (list ($a, $b) = each ($hash) ){
+		$f[]=$b;
+	}
+
+	return $f[0]+1;
+
+}
+
+
 function virtuals_add(){
 	$sock=new sockets();
 	$tpl=new templates();
@@ -1679,6 +1712,8 @@ function virtuals_add(){
 		
 	}
 	
+	if($_GET["metric"]==0){$_GET["metric"]=lastmetric();}
+	
 	$NoGatewayForVirtualNetWork=$sock->GET_INFO("NoGatewayForVirtualNetWork");
 	if(!is_numeric($NoGatewayForVirtualNetWork)){$NoGatewayForVirtualNetWork=0;}	
 	
@@ -1687,8 +1722,9 @@ function virtuals_add(){
 	if(!$q->FIELD_EXISTS("nics_virtuals","ForceGateway","artica_backup")){$sql="ALTER TABLE `nics_virtuals` ADD `ForceGateway` TINYINT( 1 ) NOT NULL";$q->QUERY_SQL($sql,'artica_backup');if(!$q->ok){echo $q->mysql_error."\n$sql\n";return;}}		
 	if(!$q->FIELD_EXISTS("nics_virtuals","failover","artica_backup")){$sql="ALTER TABLE `nics_virtuals` ADD `failover` TINYINT( 1 ) NOT NULL,ADD INDEX ( `failover` )";$q->QUERY_SQL($sql,'artica_backup');if(!$q->ok){echo $q->mysql_error."\n$sql\n\n";return;}}
 	
-	$sql="INSERT INTO nics_virtuals (nic,org,ipaddr,netmask,cdir,gateway,ForceGateway,failover)
-	VALUES('{$_GET["nic"]}','{$_GET["org"]}','{$_GET["virt-ipaddr"]}','{$_GET["netmask"]}','{$_GET["cdir"]}','{$_GET["gateway"]}',{$_GET["ForceGateway"]},{$_GET["failover"]});
+	$sql="INSERT INTO nics_virtuals (nic,org,ipaddr,netmask,cdir,gateway,ForceGateway,failover,metric)
+	VALUES('{$_GET["nic"]}','{$_GET["org"]}','{$_GET["virt-ipaddr"]}','{$_GET["netmask"]}',
+	'{$_GET["cdir"]}','{$_GET["gateway"]}',{$_GET["ForceGateway"]},{$_GET["failover"]},{$_GET["metric"]});
 	";
 	
 	if($_GET["ID"]>0){
@@ -1699,7 +1735,8 @@ function virtuals_add(){
 		cdir='{$_GET["cdir"]}',
 		gateway='{$_GET["gateway"]}',
 		ForceGateway='{$_GET["ForceGateway"]}',
-		failover='{$_GET["failover"]}'
+		failover='{$_GET["failover"]}',
+		metric='{$_GET["metric"]}',
 		WHERE ID={$_GET["ID"]}";
 	}
 	writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);

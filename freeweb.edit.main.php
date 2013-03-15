@@ -38,6 +38,7 @@ function tabs(){
 		if($free->groupware =="ZARAFA"){$remove_sql=true;$OnlyWebSite=true;}
 		if($free->groupware=="Z-PUSH"){$remove_sql=true;$OnlyWebSite=true;}
 		if($free->groupware=="ZARAFA_MOBILE"){$remove_sql=true;$OnlyWebSite=true;}
+		if($free->groupware=="WEBAPP"){$remove_sql=true;$OnlyWebSite=true;}
 		if($free->groupware=="KLMS"){$remove_sql=true;$OnlyWebSite=true;}		
 		if($free->groupware=="MAILMAN"){$remove_sql=true;$OnlyWebSite=true;}
 		if($free->groupware=="ARTICA_MINIADM"){$remove_sql=true;$OnlyWebSite=true;}
@@ -46,7 +47,7 @@ function tabs(){
 		if($apache->noneeduser_mysql[$free->groupware]){$remove_sql=true;}	
 	}
 	
-	
+
 	
 	
 	
@@ -55,12 +56,23 @@ function tabs(){
 	
 	if($_GET["servername"]==null){unset($array["mysql"]);}
 	
+	
+	if( ($free->groupware=="ZARAFA") OR ($free->groupware=="WEBAPP")){
+		$array["ZARAFA"]='{APP_ZARAFA}';
+	}	
+	
+	
 	if(count($array)<10){$fontsize="style='font-size:14px'";}
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&force-groupware={$_GET["force-groupware"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+		if($num=="ZARAFA"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.zarafa.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+		}
+				
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&force-groupware={$_GET["force-groupware"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 		
 		
 	}
@@ -1106,14 +1118,30 @@ function SAVE_FREEWEB_MAIN(){
 	$ServerPort=0;
 	if(preg_match("#(.+?):([0-9]+)#", $ServerIP,$re)){$ServerIP=$re[1];$ServerPort=$re[2];}
 	
+	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
+	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
 	
-
+	
+	if($EnableFreeWeb==0){
+		$sock->SET_INFO("EnableFreeWeb",1);
+		$sock->SET_INFO("EnableApacheSystem",1);
+		$sock->getFrameWork("freeweb.php?changeinit-off=yes");
+		$sock->getFrameWork("cmd.php?restart-artica-status=yes");
+		$sock->getFrameWork("cmd.php?freeweb-restart=yes");
+	}
+	
 	if(!is_numeric($vg_size)){$vg_size=5000;}
 	$useSSL=$_POST["useSSL"];
+	
+	if($_POST["domainname"]==null){
+		$TDOM=explode(".",$_POST["domainname"]);
+		unset($TDOM[0]);
+		$_POST["domainname"]=@implode(".", $TDOM);
+	}
+	
 	if(!isset($_POST["WebCopyID"])){$_POST["WebCopyID"]=0;}
 	$sql="SELECT servername FROM freeweb WHERE servername='{$_POST["servername"]}'";
 	$q=new mysql();
-
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
 	if($ligne["servername"]<>null){
 		if($uid<>null){$u=new user($uid);$ou=$u->ou;}
@@ -1205,6 +1233,8 @@ function SAVE_FREEWEB_MAIN(){
 	$sock->getFrameWork("services.php?freeweb-start=yes");
 	sleep(2);
 	$sock->getFrameWork("cmd.php?freeweb-restart=yes");
+	$sock->getFrameWork("freeweb.php?rebuild-vhost=yes&servername=$servername");
+	
 	
 }	
 

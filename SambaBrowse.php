@@ -53,7 +53,7 @@ var x_DeleteHiddenDisk= function (obj) {
 	}
 
 	function Browse(){
-		LoadWinORG(766,'$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}','$title');
+		LoadWinORG(776,'$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}','$title');
 
 	}
 	
@@ -121,8 +121,17 @@ function main_disks_discover(){
 						$disk_name=$re[1];
 					}
 					
-					$dirname=basename($path);
+					if(preg_match("#([0-9]+)\s+MB#", $size,$re)){
+						$size=$size*1000;
+						
+						$size=FormatBytes($size);
+						$size=str_replace(" ", "&nbsp;", $size);
+					}
 					
+					$dirname=basename($path);
+					$bandwith_color="#5DD13D";
+					if($pourc>70){$bandwith_color="#F59C44";}
+					if($pourc>95){$bandwith_color="#D32D2D";}
 					
 					$count=$count+1;
 					if($count==2){
@@ -132,7 +141,8 @@ function main_disks_discover(){
 						$tr=null;
 					}
 					
-					$content="($size - $pourc% {used})<br><strong>$path</strong><br><strong>$label</strong>";
+					$content="($size - $pourc% {used})<br><strong>$path</strong><br><strong>$label</strong>
+					<br><div style='margin-top:-10px'>". pourcentage_basic($pourc, $bandwith_color, $size)."</div>";
 					
 					
 					$FINALDISKS[]=Paragraphe32("noacco:$disk_name","$content",$js,"48-hd.png");

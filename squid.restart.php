@@ -141,9 +141,19 @@ function js(){
 	$t=time();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{restart_all_services}");
+	$compile_squid_ask=$tpl->javascript_parse_text("{compile_squid_ask}");
+	if($_GET["ask"]=="yes"){
+		$warn="if(!confirm('$compile_squid_ask')){return;}";
+	}
 	if(isset($_GET["onlySquid"])){
 		$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{restart_service}");
 		$onlySquid="&onlySquid=yes";
+	}
+	
+	if(isset($_GET["firewall"])){
+		$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{reconfigure_transparent_rules}");
+		$onlySquid="&firewall=yes";
+		
 	}
 	
 	if(isset($_GET["ApplyConfToo"])){
@@ -205,6 +215,11 @@ function popup(){
 		$ApplyConfToo="&ApplyConfToo=yes";
 	}	
 	
+	if(isset($_GET["firewall"])){
+		$onlySquid="&firewall=yes";
+		$title="{please_wait}, {reconfigure_transparent_rules}";
+	}	
+	
 	$html="
 	<center style='font-size:16px;margin:10px'><div id='title-$t'>$title</div></center>
 	<div style='margin:5px;padding:3px;border:1px solid #CCCCCC;width:97%;height:450px;overflow:auto' id='squid-restart'>
@@ -249,6 +264,10 @@ function restart(){
 	if(isset($_GET["CheckCaches"])){
 		$cmd="squid.php?squid-z-reconfigure=yes";
 	}
+	
+	if(isset($_GET["firewall"])){
+		$cmd="squid.php?firewall=yes";
+	}	
 	
 	if($EnableWebProxyStatsAppliance==1){
 		$sock->getFrameWork("squid.php?notify-remote-proxy=yes");

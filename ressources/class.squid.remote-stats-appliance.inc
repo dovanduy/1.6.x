@@ -235,6 +235,7 @@ class squid_stats_appliance{
 		$array["SquidBoosterMemK"]=true;
 		$array["SquidBoosterOnly"]=true;
 		$array["EnableSplashScreen"]=true;
+		$array["EnableSplashScreenAsObject"]=true;
 		$array["SquidSafePortsList"]=true;
 		$array["SplashScreenURI"]=true;	
 		$array["HotSpotConfig"]=true;
@@ -255,6 +256,7 @@ class squid_stats_appliance{
 		$array["SquidDebugCacheProc"]=true;
 		$array["SquidSafePortsList"]=true;
 		$array["SquidSafePortsSSLList"]=true;
+		$array["EnableSquidPortsRestrictions"]=true;
 		
 		
 		$array["UpdateUtilityRedirectEnable"]=true;

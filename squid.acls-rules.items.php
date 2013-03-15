@@ -194,6 +194,8 @@ function items_list(){
 	$acl=new squid_acls();
 	$t0=$_GET["t"];
 	
+
+	
 	$search='%';
 	$table="(SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,webfilters_sqacllinks.zmd5 as mkey,
 	webfilters_sqgroups.* FROM webfilters_sqacllinks,webfilters_sqgroups 

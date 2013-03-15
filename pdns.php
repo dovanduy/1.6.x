@@ -238,6 +238,7 @@ function config(){
 	
 	$array["config-service"]='{global_parameters}';
 	$array["forward-zones"]='{forward_zones}';
+	$array["restricts"]='{restrictions}';
 	
 	
 	
@@ -248,6 +249,12 @@ function config(){
 			continue;
 			
 		}
+		if($num=="restricts"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.restricts.php\"><span>$ligne</span></a></li>\n");
+			continue;
+				
+		}		
+		
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&dn-entry=$dn\"><span>$ligne</span></a></li>\n");
 	}
@@ -300,12 +307,29 @@ $page=CurrentPageName();
 	if(!is_numeric($PowerSkipCname)){$PowerSkipCname=0;}
 	
 	
+	$PowerDNSMySQLType=$sock->GET_INFO("PowerDNSMySQLType");
+	$PowerDNSMySQLRemoteServer=$sock->GET_INFO("PowerDNSMySQLRemoteServer");
+	$PowerDNSMySQLRemotePort=$sock->GET_INFO("PowerDNSMySQLRemotePort");
+	$PowerDNSMySQLRemoteAdmin=$sock->GET_INFO("PowerDNSMySQLRemoteAdmin");
+	$PowerDNSMySQLRemotePassw=$sock->GET_INFO("PowerDNSMySQLRemotePassw");
+	if(!is_numeric($PowerDNSMySQLType)){$PowerDNSMySQLType=1;}
+	if(!is_numeric($PowerDNSMySQLRemotePort)){$PowerDNSMySQLRemotePort=3306;}
+	
+	$PowerDNSMySQLTypeA[1]="{main_mysql_server_2}";
+	$PowerDNSMySQLTypeA[2]="{main_mysql_server_4}";
+	$PowerDNSMySQLTypeA[3]="{main_mysql_server_5}";
+	
+	
+	
+	$PowerDNSMySQLTypeF=Field_array_Hash($PowerDNSMySQLTypeA,"PowerDNSMySQLType",$PowerDNSMySQLType,"PowerDNSMySQLTypeCK()",
+			null,0,"font-size:16px");
+	
 	
 	
 	$POWER_DNS_MYSQL=1;
 	$GREENSQL=1;
 	$DNSDNSSEC=1;
-	if(!$user->POWER_DNS_MYSQL){$POWER_DNS_MYSQL=0;$PowerDNSMySQLEngine=0;}	
+	
 	if(!$user->APP_GREENSQL_INSTALLED){$GREENSQL=0;$PowerUseGreenSQL=0;}
 	if(!$user->PDNSSEC_INSTALLED){$PowerDNSDNSSEC=0;$DNSDNSSEC=0;}
 	
@@ -319,7 +343,7 @@ $page=CurrentPageName();
 	$PowerDNSLogLevel=Field_array_Hash($loglevels, "PowerDNSLogLevel",$PowerDNSLogLevel,null,null,0,"font-size:16px");
 	
 	$old="				<tr>	
-					<td valign='top' class=legend style='font-size:14px' nowrap>{pdns-skip-cname}:</td>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{pdns-skip-cname}:</td>
 					<td width=1%>". Field_checkbox("PowerSkipCname",1,$PowerSkipCname)."</td>
 				</tr>";
 	
@@ -330,56 +354,85 @@ $page=CurrentPageName();
 	
 <table style='width:99%' class=form>
 				<tr>
-					<td valign='top' class=legend style='font-size:14px' nowrap>{DisablePowerDnsManagement}:</td>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{DisablePowerDnsManagement}:</td>
 					<td width=1%>". Field_checkbox("DisablePowerDnsManagement",1,$DisablePowerDnsManagement,"EnablePowerDNSMySQLEngineCheck()")."</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend style='font-size:14px' nowrap>{EnablePDNS}:</td>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{EnablePDNS}:</td>
 					<td width=1%>". Field_checkbox("EnablePDNS",1,$EnablePDNS,"EnablePDNSCheck()")."</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend style='font-size:14px' nowrap>{ActHasMaster}:</td>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{ActHasMaster}:</td>
 					<td width=1%>". Field_checkbox("PowerActHasMaster",1,$PowerActHasMaster)."</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend style='font-size:14px' nowrap>{ActHasSlave}:</td>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{ActHasSlave}:</td>
 					<td width=1%>". Field_checkbox("PowerActAsSlave",1,$PowerActAsSlave)."</td>
 				</tr>				
 				<tr>
-					<td valign='top' class=legend style='font-size:14px' nowrap>{DisableLDAPDatabase}:</td>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{DisableLDAPDatabase}:</td>
 					<td width=1%>". Field_checkbox("PowerDNSDisableLDAP",1,$PowerDNSDisableLDAP,"EnablePowerDNSMySQLEngineCheck()")."</td>
 				</tr>				
 						
 				<tr>
-					<td valign='top' class=legend style='font-size:14px' nowrap>{useMySQL}:</td>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{useMySQL}:</td>
 					<td width=1%>". Field_checkbox("PowerDNSMySQLEngine",1,$PowerDNSMySQLEngine,"EnablePowerDNSMySQLEngineCheck()")."</td>
 				</tr>
 				<tr>	
-					<td valign='top' class=legend style='font-size:14px' nowrap>DNSSEC:</td>
+					<td valign='top' class=legend style='font-size:16px' nowrap>DNSSEC:</td>
 					<td width=1%>". Field_checkbox("PowerDNSDNSSEC",1,$PowerDNSDNSSEC)."</td>
 				</tr>
 
 				
 				<tr>
-					<td valign='top' class=legend style='font-size:14px' nowrap>{useGreenSQL}:</td>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{useGreenSQL}:</td>
 					<td width=1%>". Field_checkbox("PowerUseGreenSQL",1,$PowerUseGreenSQL)."</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend style='font-size:14px' nowrap>{DisableDisplayVersion}:</td>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{DisableDisplayVersion}:</td>
 					<td width=1%>". Field_checkbox("PowerDisableDisplayVersion",1,$PowerDisableDisplayVersion)."</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend style='font-size:14px' nowrap>{chroot}:</td>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{chroot}:</td>
 					<td width=1%>". Field_checkbox("PowerChroot",1,$PowerChroot)."</td>
 				</tr>								
 				<tr>
-					<td class=legend style='font-size:14px' nowrap>{log level}:</td>
+					<td class=legend style='font-size:16px' nowrap>{log level}:</td>
 					<td style='font-size:16px;padding:3px;' nowrap>$PowerDNSLogLevel</td>
 				</tr>				
 				<tr>
-					<td class=legend style='font-size:14px' nowrap>{RestartServiceifReachMb}:</td>
+					<td class=legend style='font-size:16px' nowrap>{RestartServiceifReachMb}:</td>
 					<td style='font-size:16px;padding:3px;' nowrap>".Field_text("PDNSRestartIfUpToMB",$PDNSRestartIfUpToMB,"font-size:16px;padding:3px;width:60px")."&nbsp;MB</td>
 				</tr>
+				<tr>
+				<td colspan=2><hr></td>
+				</tr>
+				<tr>
+					<td class=legend style='font-size:16px' nowrap>{mysql_database}:</td>
+					<td style='font-size:16px;padding:3px;' nowrap>$PowerDNSMySQLTypeF</td>
+				</tr>							
+				<tr>
+					<td class=legend style='font-size:16px'>{remote_mysql_server}:</td>
+					<td style='font-size:16px'>". Field_text("PowerDNSMySQLRemoteServer",$PowerDNSMySQLRemoteServer,"font-size:16px;width:190px")."</td>
+					<td width=1%></td>
+				</tr>
+				<tr>
+					<td class=legend style='font-size:16px'>{mysql_server_port}:</td>
+					<td style='font-size:16px'>". Field_text("PowerDNSMySQLRemotePort",$PowerDNSMySQLRemotePort,"font-size:16px;width:90px")."</td>
+					<td width=1%></td>
+				</tr>				
+				<tr>
+					<td class=legend style='font-size:16px'>{mysql_admin}:</td>
+					<td style='font-size:16px'>". Field_text("PowerDNSMySQLRemoteAdmin",$PowerDNSMySQLRemoteAdmin,"font-size:16px;width:190px")."</td>
+					<td width=1%></td>
+				</tr>				
+				<tr>
+					<td class=legend style='font-size:16px'>{password}:</td>
+					<td style='font-size:16px'>". Field_password("PowerDNSMySQLRemotePassw",$PowerDNSMySQLRemotePassw,"font-size:16px;width:190px")."</td>
+					<td width=1%></td>
+				</tr>							
+							
+							
 				<tr><td colspan=2 align='right'><hr>". button("{apply}","SavePDNSWatchdog()","18px")."</td></tr>							
 			</table>
 			</div>
@@ -396,6 +449,34 @@ $page=CurrentPageName();
 		function EnablePowerDNSMySQLEngineCheck(){
 				CheckDNSMysql();
 		}
+		
+	function DisableAllInstead(zid){
+		$('input,select,hidden,textarea', '#PowerDNSMAsterConfigDiv').each(function() {
+		 	var \$t = $(this);
+		 	var id=\$t.attr('id');
+		 	if(zid==id){return;}
+		 	var value=\$t.attr('value');
+		 	var type=\$t.attr('type');
+		 	if(type=='checkbox'){
+		 		document.getElementById(id).disabled=true;
+		 	}
+		 	
+		});	
+	}
+
+	function EnableAllDiv(){
+		$('input,select,hidden,textarea', '#PowerDNSMAsterConfigDiv').each(function() {
+		 	var \$t = $(this);
+		 	var id=\$t.attr('id');
+		 	var value=\$t.attr('value');
+		 	var type=\$t.attr('type');
+		 	if(type=='checkbox'){
+		 		document.getElementById(id).disabled=false;
+		 	}
+		 	
+		});	
+	}	
+		
 		
 		function EnablePDNSCheck(){
 			var XHR = new XHRConnection();
@@ -425,14 +506,17 @@ $page=CurrentPageName();
 			
 			
 			
-			if(document.getElementById('PowerDNSDNSSEC').checked){
-				XHR.appendData('PowerDNSDNSSEC',1);
-				document.getElementById('PowerDNSDisableLDAP').checked=true;
-			}else{XHR.appendData('PowerDNSDNSSEC',0);}
+			if(document.getElementById('PowerDNSDNSSEC').checked){XHR.appendData('PowerDNSDNSSEC',1);document.getElementById('PowerDNSDisableLDAP').checked=true;}else{XHR.appendData('PowerDNSDNSSEC',0);}
 			if(document.getElementById('PowerDNSMySQLEngine').checked){XHR.appendData('PowerDNSMySQLEngine',1);}else{XHR.appendData('PowerDNSMySQLEngine',0);}
 			if(document.getElementById('PowerDNSDisableLDAP').checked){XHR.appendData('PowerDNSDisableLDAP',1);}else{XHR.appendData('PowerDNSDisableLDAP',0);}
 			if(document.getElementById('PowerChroot').checked){XHR.appendData('PowerChroot',1);}else{XHR.appendData('PowerChroot',0);}
+			XHR.appendData('PowerDNSMySQLType',document.getElementById('PowerDNSMySQLType').value);
+			XHR.appendData('PowerDNSMySQLRemoteServer',document.getElementById('PowerDNSMySQLRemoteServer').value);
+			XHR.appendData('PowerDNSMySQLRemotePort',document.getElementById('PowerDNSMySQLRemotePort').value);
+			XHR.appendData('PowerDNSMySQLRemoteAdmin',document.getElementById('PowerDNSMySQLRemoteAdmin').value);
 			
+			var pp=encodeURIComponent(document.getElementById('PowerDNSMySQLRemotePassw').value);
+			XHR.appendData('PowerDNSMySQLRemotePassw',pp);
 			
 			
 			if(document.getElementById('DisablePowerDnsManagement').checked){
@@ -446,6 +530,40 @@ $page=CurrentPageName();
 			AnimateDiv('PowerDNSMAsterConfigDiv');
 			XHR.sendAndLoad('$page', 'GET',x_EnablePowerDNSMySQLEngineCheck);	
 		}
+		
+		function PowerDNSMySQLTypeCK(){
+			var DisablePowerDnsManagement=$DisablePowerDnsManagement;
+			var EnablePDNS=1;
+			if(document.getElementById('DisablePowerDnsManagement').checked){DisablePowerDnsManagement=1;}
+			if(!document.getElementById('EnablePDNS').checked){EnablePDNS=0;}
+			
+			
+			document.getElementById('PowerDNSMySQLType').disabled=true;
+			document.getElementById('PowerUseGreenSQL').disabled=true;
+			document.getElementById('PowerDNSMySQLRemoteServer').disabled=true;
+			document.getElementById('PowerDNSMySQLRemotePort').disabled=true;
+			document.getElementById('PowerDNSMySQLRemoteAdmin').disabled=true;
+			document.getElementById('PowerDNSMySQLRemotePassw').disabled=true;			
+			if(DisablePowerDnsManagement==1){return;}
+			if(EnablePDNS==0){return;}
+			
+			if(!document.getElementById('PowerDNSMySQLEngine').checked){return;}
+			document.getElementById('PowerDNSMySQLType').disabled=false;
+			PowerDNSMySQLType=document.getElementById('PowerDNSMySQLType').value;	
+			
+			if(PowerDNSMySQLType==2){
+				document.getElementById('PowerDNSMySQLRemoteServer').disabled=false;
+				document.getElementById('PowerDNSMySQLRemotePort').disabled=false;
+				document.getElementById('PowerDNSMySQLRemoteAdmin').disabled=false;
+				document.getElementById('PowerDNSMySQLRemotePassw').disabled=false;			
+			
+			}
+			
+			if(PowerDNSMySQLType==3){
+				document.getElementById('PowerUseGreenSQL').disabled=false;
+			}
+		
+		}
 
 
 		
@@ -455,11 +573,27 @@ $page=CurrentPageName();
 			var EnablePDNS=$EnablePDNS;
 			var GREENSQL=$GREENSQL;
 			var DNSDNSSEC=$DNSDNSSEC;
+			if(document.getElementById('DisablePowerDnsManagement').checked){DisablePowerDnsManagement=1;}
+			if(!document.getElementById('EnablePDNS').checked){EnablePDNS=0;}
 			document.getElementById('PowerDNSMySQLEngine').disabled=true;
 			document.getElementById('PowerUseGreenSQL').disabled=true;
 			document.getElementById('PowerDNSDNSSEC').disabled=true;
-			if(DisablePowerDnsManagement==1){return;}
-			if(EnablePDNS==0){return;}
+			
+			DisableAllInstead('DisablePowerDnsManagement');
+			
+			if(DisablePowerDnsManagement==1){
+				PowerDNSMySQLTypeCK();
+				return;
+			}
+			
+			EnableAllDiv();
+			document.getElementById('EnablePDNS').disabled=false;
+			if(EnablePDNS==0){
+				DisableAllInstead('EnablePDNS');
+				PowerDNSMySQLTypeCK();
+				return;
+				
+			}
 			if(POWER_DNS_MYSQL==1){
 				document.getElementById('PowerDNSMySQLEngine').disabled=false;
 			}
@@ -477,6 +611,9 @@ $page=CurrentPageName();
 						}
 					}
 				}
+				
+			PowerDNSMySQLTypeCK();
+				
 			}
 		
 		
@@ -487,6 +624,7 @@ $page=CurrentPageName();
 	
 	
 	CheckDNSMysql();
+	PowerDNSMySQLTypeCK();
 	
 		
 </script>
@@ -497,6 +635,15 @@ $page=CurrentPageName();
 }
 function PDNSRestartIfUpToMB(){
 	$sock=new sockets();
+	$_GET["PowerDNSMySQLRemotePassw"]=url_decode_special_tool($_GET["PowerDNSMySQLRemotePassw"]);
+	
+	
+	$sock->SET_INFO("PowerDNSMySQLType",$_GET["PowerDNSMySQLType"]); 
+	$sock->SET_INFO("PowerDNSMySQLRemoteServer",$_GET["PowerDNSMySQLRemoteServer"]); 
+	$sock->SET_INFO("PowerDNSMySQLRemotePort",$_GET["PowerDNSMySQLRemotePort"]); 
+	$sock->SET_INFO("PowerDNSMySQLRemoteAdmin",$_GET["PowerDNSMySQLRemoteAdmin"]);
+	$sock->SET_INFO("PowerDNSMySQLRemotePassw",$_GET["PowerDNSMySQLRemotePassw"]);
+	
 	$sock->SET_INFO("PDNSRestartIfUpToMB",$_GET["PDNSRestartIfUpToMB"]);
 	$sock->SET_INFO("PowerUseGreenSQL",$_GET["PowerUseGreenSQL"]);
 	$sock->SET_INFO("PowerDisableDisplayVersion",$_GET["PowerDisableDisplayVersion"]);
@@ -694,7 +841,7 @@ function tabs(){
 	
 	
 	
-		$fontsize="style='font-size:14px'";
+		$fontsize="style='font-size:16px'";
 	
 
 	while (list ($num, $ligne) = each ($array) ){
@@ -1034,7 +1181,7 @@ function dnslist(){
 						$tt=$tt."
 							<tr style='background:transparent;'>
 							<td width=1% style='background:transparent;border:0px'><img src='img/fw_bold.gif'></td>
-							<td style='background:transparent;border:0px'><strong style='font-size:14px'>{$hash[$i]["associateddomain"][$z]}</strong></td>
+							<td style='background:transparent;border:0px'><strong style='font-size:16px'>{$hash[$i]["associateddomain"][$z]}</strong></td>
 							<td width=1% nowrap align='left' style='background:transparent;border:0px'><a href=\"javascript:blur();\" OnClick=\"javascript:EditMXEntry('$dn','$dnsdomainname');\" style='font-size:16px;text-decoration:underline' >$dnsdomainname</strong></td>
 							</tr>
 							";
@@ -1091,7 +1238,7 @@ function popup_adddns(){
 	$field_domains="	
 		<tr>
 			<td class=legend>{DnsZoneName}:</strong></td>
-			<td align=left>". Field_text('DnsZoneName',null,'width:220px;font-size:14px',"script:SaveDNSEntryCheck(event)")."</strong></strong></td>
+			<td align=left>". Field_text('DnsZoneName',null,'width:220px;font-size:16px',"script:SaveDNSEntryCheck(event)")."</strong></strong></td>
 		</tr>";		
 	}
 	
@@ -1103,12 +1250,12 @@ $html="
 <table style='width:99%' class=form>
 <tr>	
 	<td class=legend>{computer_ip}:</strong></td>
-	<td align=left>". Field_text('ComputerIP',$computer->ComputerIP,'width:220px;font-size:14px',"script:SaveDNSEntryCheck(event)")."</strong></td>
+	<td align=left>". Field_text('ComputerIP',$computer->ComputerIP,'width:220px;font-size:16px',"script:SaveDNSEntryCheck(event)")."</strong></td>
 <tr>
 $field_domains
 <tr>
 	<td class=legend>{computer_name}:</strong></td>
-	<td align=left>". Field_text("computername-pdns-entry",null,"width:220px;font-size:14px","script:SaveDNSEntryCheck(event)","FillDNSNAME()")."</strong></td>
+	<td align=left>". Field_text("computername-pdns-entry",null,"width:220px;font-size:16px","script:SaveDNSEntryCheck(event)","FillDNSNAME()")."</strong></td>
 </tr>
 
 
@@ -1214,7 +1361,7 @@ $associateddomain="
 		$associateddomain=$associateddomain.
 		"<tr class=$classtr>
 			<td width=1%><img src='img/dns-cp-22.png'></td>
-			<td><strong style='font-size:14px'>{$hash[0]["associateddomain"][$i]}</td>
+			<td><strong style='font-size:16px'>{$hash[0]["associateddomain"][$i]}</td>
 			<td width=1%>". imgtootltip('delete-24.png',"{delete}","DNSDeleteAssociatedDomain('$dn','{$hash[0]["associateddomain"][$i]}')")."</td>
 		</tr>";
 		
@@ -1228,11 +1375,11 @@ $associateddomain="
 		<table>
 		<tr>
 			<td valign='middle' class=legend>{servername}:</td>
-			<td valign='middle'><strong style='font-size:14px'>$dc</strong></td>
+			<td valign='middle'><strong style='font-size:16px'>$dc</strong></td>
 		</tr>
 		<tr>
 			<td valign='middle' class=legend>{ip_address}:</td>
-			<td valign='middle'><strong style='font-size:14px'>$arecord</strong></td>
+			<td valign='middle'><strong style='font-size:16px'>$arecord</strong></td>
 		</tr>
 		</table>
 	</td>
@@ -1343,7 +1490,7 @@ $html="
 		<table>
 		<tr>
 			<td valign='middle' class=legend>{zone}:</td>
-			<td valign='middle'><strong style='font-size:14px'>$zone</strong></td>
+			<td valign='middle'><strong style='font-size:16px'>$zone</strong></td>
 			<td>&nbsp;</td>
 		</tr>
 		<tr>
@@ -1352,7 +1499,7 @@ $html="
 			<td>&nbsp;</td>
 		</tr>
 		<tr>
-			<td valign='middle' class=legend style='font-size:14px' nowrap>{ipaddr}:</td>
+			<td valign='middle' class=legend style='font-size:16px' nowrap>{ipaddr}:</td>
 			<td valign='middle'>". Field_text("aRecord-soa",$arecord,"font-size:16px;padding:3px;width:130px;font-weight:bold")."</td>
 			<td>". button("{apply}","aRecordEdit()")."</td>
 		</tr>		
@@ -1506,7 +1653,7 @@ function popup_ns_list(){
    	 $html=$html . "
 		<tr  class=$classtr>
 		<td width=1%><img src='img/$icon'></td>
-		<td width=99% align='left'><strong style='font-size:14px'>$ns</strong></td>
+		<td width=99% align='left'><strong style='font-size:16px'>$ns</strong></td>
 		<td width=1%>$delete</td>
 		</td>
 		</tr>";
@@ -1561,8 +1708,8 @@ function popup_mx_records(){
    	 $html=$html . "
 		<tr  class=$classtr>
 		<td width=1%><img src='img/$icon'></td>
-		<td width=1% align='center'><strong style='font-size:14px'>{$re[1]}</strong></td>
-		<td width=99%><strong style='font-size:14px'>{$re[2]}</strong></td>
+		<td width=1% align='center'><strong style='font-size:16px'>{$re[1]}</strong></td>
+		<td width=99%><strong style='font-size:16px'>{$re[2]}</strong></td>
 		<td width=1%>$delete</td>
 		</td>
 		</tr>";

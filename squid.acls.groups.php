@@ -23,6 +23,9 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "<H2>$alert</H2>";
 	die();	
 }
+if(isset($_POST["RAD_SERVER"])){items_radius_save();exit;}
+if(isset($_POST["AD_LDAP_PORT"])){items_radius_save();exit;}
+if(isset($_POST["OPENLDAP_PASSWORD_ATTRIBUTE"])){items_radius_save();exit;}
 if(isset($_POST["TimeSave"])){item_date_save();exit;}
 if(isset($_GET["js"])){js();exit;}
 if(isset($_GET["groups-list"])){group_list();exit;}
@@ -113,6 +116,13 @@ function EditGroup_popup(){
 	style='font-weight:normal;text-decoration:underline;font-size:14px'>";
 	if($ID<1){$buttonname="{add}";$browse=null;$acltpl=null;}	
 	if($acltpl_md5<>null){
+			if($acltpl_md5=="ARTICA_SLASH_SCREEN"){
+				$jstpl="javascript:Loadjs('squid.webauth.php');";
+				$acltpl="<a href=\"javascript:blur();\" OnClick=\"$jstpl\" 
+				style='font-size:14px;text-decoration:underline'>HotSpot</a>";
+				
+				
+			}else{
 			$md5=$acltpl_md5;
 			$sql="SELECT template_name,template_link FROM squidtpls WHERE `zmd5`='{$acltpl_md5}'";
 			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
@@ -124,7 +134,9 @@ function EditGroup_popup(){
 			if($ligne2["template_link"]==1){
 				$acltpl="<span style='font-size:14px;'>$templatename</span>";
 			}
-		}	
+			
+		}
+	}	
 	
 	
 	$t=time();
@@ -182,9 +194,32 @@ function EditGroup_popup(){
 	
 	
 	
-
+$template_section="	<tr>
+		<td class=legend style='font-size:14px' valign='top'>{template}:</td>
+		<td>
+			<table style='width:99%'>
+			<tr>
+				<td width=1% valign='top'><img src='img/arrow-right-16.png'></td>
+				<td valign='top'><strong style='font-size:12px'><span id='acltplTxt'>$acltpl</span></a></td>
+			</tr>
+			<tr>
+				<td width=1% valign='top'><img src='img/arrow-right-16.png'></td>
+				<td valign='top'><span style='font-size:14px'>$browse<span id='acltplTxt'>{change_template}</span></a></td>
+			</tr>			
+		</table>
+		</td>
+	</tr>";
 	
+if($ligne["GroupType"]=="hotspot_auth"){
+	$template_section="
+		<tr>
+			<td colspan=2 align='right'><a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('squid.webauth.php?YahooWin=6');\"
+			style='font-size:16px;text-decoration:underline'>{hotspot_parameters}</a></td>
+		</tr>		
+	";
 	
+}	
 	
 	$html="
 	<div id='$t'></div>
@@ -201,21 +236,7 @@ function EditGroup_popup(){
 	<tr>
 	<td colspan=2 align='right'><span id='group-add-f-$t'></span></td>
 	</tr>	
-	<tr>
-		<td class=legend style='font-size:14px' valign='top'>{template}:</td>
-		<td>
-			<table style='width:99%'>
-			<tr>
-				<td width=1% valign='top'><img src='img/arrow-right-16.png'></td>
-				<td valign='top'><strong style='font-size:12px'><span id='acltplTxt'>$acltpl</span></a></td>
-			</tr>
-			<tr>
-				<td width=1% valign='top'><img src='img/arrow-right-16.png'></td>
-				<td valign='top'><span style='font-size:14px'>$browse<span id='acltplTxt'>{change_template}</span></a></td>
-			</tr>			
-		</table>
-		</td>
-	</tr>	
+	$template_section	
 	
 	<tr>
 	<td colspan=2 align='right'><hr>". button($buttonname, "SaveAclGroupMode()",16)."</td>
@@ -340,11 +361,6 @@ function EditGroup_save(){
 		echo "`{$_POST["GroupName"]} Wrong group name\n";
 		return;
 	}
-	
-	
-	
-	
-		
 	$sqladd="INSERT INTO webfilters_sqgroups (GroupName,GroupType,enabled) 
 	VALUES ('{$_POST["GroupName"]}','{$_POST["GroupType"]}','1');";
 	
@@ -579,6 +595,7 @@ function EditGroup_tabs(){
 		$array["NudityParams"]="{global_parameters}";
 	
 	}
+	if($ligne["GroupType"]=="hotspot_auth"){unset($array["items"]);}
 	
 	
 	
@@ -609,6 +626,217 @@ function EditGroup_tabs(){
 		</script>";	
 }
 
+function items_ad_auth(){
+	$ID=$_GET["ID"];
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT params FROM webfilters_sqgroups WHERE ID=$ID"));
+	$array=unserialize(base64_decode($ligne["params"]));
+	if(!is_numeric($array["AD_LDAP_PORT"])){$array["AD_LDAP_PORT"]=389;}
+	$tt=time();
+	$html="
+	<div id='$tt'></div>
+	<table style='width:99%' class=form>
+	<tr>
+	<td class=legend style='font-size:16px'>{activedirectory_server}:</td>
+	<td>". Field_text("AD_SERVER-$tt",$array["AD_SERVER"],"font-size:16px;padding:3px;width:190px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{listen_port}:</td>
+		<td>". Field_text("AD_LDAP_PORT-$tt",$array["AD_LDAP_PORT"],"font-size:16px;padding:3px;width:90px")."</td>
+	</tr>
+	<tr>
+		<td colspan=2 align='right'><hr>". button("{apply}","Save$tt()","18px")."</td>
+	</tr>
+	</table>
+<script>
+	var x_Save$tt= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);document.getElementById('$tt').innerHTML='';return;}
+		document.getElementById('$tt').innerHTML='';
+		RefreshTab('main_content_rule_editsquidgroup');
+	}
+	
+	function Save$tt(){
+		var XHR = new XHRConnection();
+		XHR.appendData('ID', '$ID');
+		XHR.appendData('AD_SERVER', document.getElementById('AD_SERVER-$tt').value);
+		XHR.appendData('AD_LDAP_PORT', document.getElementById('AD_LDAP_PORT-$tt').value);
+		AnimateDiv('$tt');
+		XHR.sendAndLoad('$page', 'POST',x_Save$tt);
+	}
+	</script>";
+	echo $tpl->_ENGINE_parse_body($html);
+		
+}
+
+function items_openldap_auth(){
+	$ID=$_GET["ID"];
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT params FROM webfilters_sqgroups WHERE ID=$ID"));
+	$array=unserialize(base64_decode($ligne["params"]));
+	$tt=time();
+
+
+	if($array["OPENLDAP_FILTER"]==null){$array["OPENLDAP_FILTER"]="(uid=%uid)";}
+	if($array["OPENLDAP_PASSWORD_ATTRIBUTE"]==null){$array["OPENLDAP_PASSWORD_ATTRIBUTE"]="userPassword";}
+	if(!is_numeric($array["OPENLDAP_PORT"])){$array["OPENLDAP_PORT"]=389;}
+	
+	$tt=time();
+	$html="
+	<div id='$tt'></div>
+	<div class=explain style='font-size:14px'>{ldap_cleartext_warn}</div>
+	<table style='width:99%' class=form>
+	<tr>
+		<td class=legend style='font-size:12px'>{hostname}:</td>
+		<td>". Field_text("OPENLDAP_SERVER-$tt",$array["OPENLDAP_SERVER"],"font-size:12px;padding:3px;width:190px")."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:12px'>{ldap_port}:</td>
+		<td>". Field_text("OPENLDAP_PORT-$tt",$array["OPENLDAP_PORT"],"font-size:12px;padding:3px;width:30px")."</td>
+	</tr>		
+	<tr>
+		<td class=legend style='font-size:12px'>{ldap_suffix}:</td>
+		<td>". Field_text("OPENLDAP_SUFFIX-$tt",$array["OPENLDAP_SUFFIX"],"font-size:12px;padding:3px;width:220px")."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:12px'>{bind_dn}:</td>
+		<td>". Field_text("OPENLDAP_DN-$tt",$array["OPENLDAP_DN"],"font-size:12px;padding:3px;width:220px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:12px'>{password}:</td>
+		<td>". Field_password("OPENLDAP_PASSWORD-$tt",$array["OPENLDAP_PASSWORD"],"font-size:12px;padding:3px;width:190px")."</td>
+	</tr>					
+	<tr>
+		<td class=legend style='font-size:12px'>{password_attribute}:</td>
+		<td>". Field_text("OPENLDAP_PASSWORD_ATTRIBUTE-$tt",$array["OPENLDAP_PASSWORD_ATTRIBUTE"],"font-size:12px;padding:3px;width:190px")."</td>
+	</tr>	
+				
+	<tr>
+		<td class=legend style='font-size:12px'>{ldap_filter}:</td>
+		<td>". Field_text("OPENLDAP_FILTER-$tt",$array["OPENLDAP_FILTER"],"font-size:12px;padding:3px;width:220px")."</td>
+	</tr>				
+	<tr>
+		<td colspan=2 align='right'>
+				<hr>". button("{apply}","Save$tt()","18px")."</td>
+	</tr>
+	</table>
+						
+						
+	<script>
+		var x_Save$tt= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);document.getElementById('$tt').innerHTML='';return;}
+		document.getElementById('$tt').innerHTML='';
+		RefreshTab('main_content_rule_editsquidgroup');
+	}	
+	
+	function Save$tt(){
+		var XHR = new XHRConnection();
+		XHR.appendData('ID', '$ID');
+		XHR.appendData('OPENLDAP_SERVER', document.getElementById('OPENLDAP_SERVER-$tt').value);
+		XHR.appendData('OPENLDAP_PORT', document.getElementById('OPENLDAP_PORT-$tt').value);
+		XHR.appendData('OPENLDAP_SUFFIX', document.getElementById('OPENLDAP_SUFFIX-$tt').value);
+		XHR.appendData('OPENLDAP_DN', document.getElementById('OPENLDAP_DN-$tt').value);
+		XHR.appendData('OPENLDAP_PASSWORD', encodeURIComponent(document.getElementById('OPENLDAP_PASSWORD-$tt').value));
+		XHR.appendData('OPENLDAP_PASSWORD_ATTRIBUTE', encodeURIComponent(document.getElementById('OPENLDAP_PASSWORD_ATTRIBUTE-$tt').value));
+		XHR.appendData('OPENLDAP_FILTER', encodeURIComponent(document.getElementById('OPENLDAP_FILTER-$tt').value));
+		AnimateDiv('$tt');
+		XHR.sendAndLoad('$page', 'POST',x_Save$tt);
+	}
+	
+		
+</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+	
+
+function items_radius(){
+	$ID=$_GET["ID"];
+	
+	$page=CurrentPageName();
+	$tpl=new templates();	
+	$q=new mysql_squid_builder();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT params FROM webfilters_sqgroups WHERE ID=$ID"));
+	$array=unserialize(base64_decode($ligne["params"]));
+	if(!is_numeric($array["RAD_PORT"])){$array["RAD_PORT"]=1812;}
+	$tt=time();
+	$html="
+	<div id='$tt'></div>
+	<table style='width:99%' class=form>
+	<tr>
+	<td class=legend style='font-size:16px'>{radius_server}:</td>
+	<td>". Field_text("RAD_SERVER-$tt",$array["RAD_SERVER"],"font-size:16px;padding:3px;width:190px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{listen_port}:</td>
+		<td>". Field_text("RAD_PORT-$tt",$array["RAD_PORT"],"font-size:16px;padding:3px;width:90px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{password}:</td>
+		<td>". Field_password("RAD_PASSWORD-$tt",$array["RAD_PASSWORD"],"font-size:16px;padding:3px;width:190px")."</td>
+	</tr>
+	<tr>
+		<td colspan=2 align='right'><hr>". button("{apply}","Save$tt()","18px")."</td>
+	</tr>
+	</table>
+	<script>
+		var x_Save$tt= function (obj) {
+			var results=obj.responseText;
+			if(results.length>3){alert(results);document.getElementById('$tt').innerHTML='';return;}
+			document.getElementById('$tt').innerHTML='';
+			RefreshTab('main_content_rule_editsquidgroup');
+		}
+	
+	function Save$tt(){
+		var XHR = new XHRConnection();
+		XHR.appendData('ID', '$ID');
+		XHR.appendData('RAD_SERVER', document.getElementById('RAD_SERVER-$tt').value);
+		XHR.appendData('RAD_PORT', document.getElementById('RAD_PORT-$tt').value);
+		XHR.appendData('RAD_PASSWORD', encodeURIComponent(document.getElementById('RAD_PASSWORD-$tt').value));
+		AnimateDiv('$tt');
+		XHR.sendAndLoad('$page', 'POST',x_Save$tt);
+	}
+</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);	
+	
+	
+}
+
+function items_radius_save(){
+	if(isset($_POST["RAD_PASSWORD"])){$_POST["RAD_PASSWORD"]=url_decode_special_tool($_POST["RAD_PASSWORD"]);}
+	if(isset($_POST["OPENLDAP_PASSWORD_ATTRIBUTE"])){$_POST["OPENLDAP_PASSWORD_ATTRIBUTE"]=url_decode_special_tool($_POST["OPENLDAP_PASSWORD_ATTRIBUTE"]);}
+	if(isset($_POST["OPENLDAP_FILTER"])){$_POST["OPENLDAP_FILTER"]=url_decode_special_tool($_POST["OPENLDAP_FILTER"]);}
+	if(isset($_POST["OPENLDAP_PASSWORD"])){$_POST["OPENLDAP_PASSWORD"]=url_decode_special_tool($_POST["OPENLDAP_PASSWORD"]);}
+	
+	
+	
+	
+	$params=base64_encode(serialize($_POST));
+	$sql="UPDATE webfilters_sqgroups SET `params`='$params' WHERE ID='{$_POST["ID"]}'";
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		if(preg_match("#Unknown column#", $q->mysql_error)){
+			$q->QUERY_SQL("ALTER TABLE `webfilters_sqgroups` ADD `params` LONGTEXT NOT NULL");
+			if(!$q->ok){echo $q->mysql_error;return;}
+			$q->QUERY_SQL($sql);
+			if(!$q->ok){echo $q->mysql_error;return;}
+		}else{
+			echo $q->mysql_error;
+		}
+	}
+}
+
+
+
 function items_js(){
 	$ID=$_GET["ID"];
 	$page=CurrentPageName();
@@ -617,6 +845,16 @@ function items_js(){
 	$items=$tpl->_ENGINE_parse_body("{items}");
 	$new_item=$tpl->_ENGINE_parse_body("{new_item}");
 	$t=time();		
+	
+	
+	$q=new mysql_squid_builder();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType FROM webfilters_sqgroups WHERE ID=$ID"));	
+	if($ligne["GroupType"]=="radius_auth"){items_radius();return;}
+	if($ligne["GroupType"]=="ad_auth"){items_ad_auth();return;}	
+	if($ligne["GroupType"]=="ldap_auth"){items_openldap_auth();return;}	
+	
+	
+	
 	$html="
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>

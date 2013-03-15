@@ -12,6 +12,7 @@ if(isset($_GET["digg"])){digg();exit;}
 if(isset($_GET["repair-tables"])){repair_tables();exit;}
 if(isset($_GET["build-smooth-tenir"])){reload_tenir();exit;}
 if(isset($_GET["reconfigure"])){reconfigure();exit;}
+if(isset($_GET["import-file"])){import_fromfile();exit;}
 
 writelogs_framework("Unable to understand the query ".@implode(" ",$_GET),__FUNCTION__,__FILE__,__LINE__);	
 
@@ -89,5 +90,17 @@ function digg(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	exec($cmd,$results);
 	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";
+	
+}
+function import_fromfile(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$file=$_GET["import-file"];
+	$domain=$_GET["domain"];
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.pdns.import.php --import $file $domain 2>&1");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo "<articadatascgi>".base64_encode(@implode("\n", $results))."</articadatascgi>";	
 	
 }

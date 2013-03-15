@@ -486,6 +486,7 @@ function url_decode_special_tool($path){
 	$path=str_replace("%7D","}",$path);
 	$path=str_replace("%2B","+",$path);
 	$path=str_replace("%40","@",$path);
+	$path=str_replace("%09","\t",$path);
 	return $path;
 }
 

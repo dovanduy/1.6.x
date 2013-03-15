@@ -1,4 +1,3 @@
-
 <?php
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');

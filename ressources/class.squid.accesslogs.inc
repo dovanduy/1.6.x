@@ -1,5 +1,5 @@
 <?php
-
+include_once(dirname(__FILE__).'/class.tcpip.inc');
 class accesslogs{
 	Public $stats=true;
 	
@@ -7,6 +7,7 @@ class accesslogs{
 	function accesslogs(){}
 	
 	public function Buildline($array){
+		$tcp=new IP();
 		$date=$array["DATE"];
 		$mac=$array["MAC"];
 		$user=$array["USER"];
@@ -24,6 +25,13 @@ class accesslogs{
 		if(preg_match('#Forwarded:"(.*?)"#', $line,$re)){
 			if($re[1]<>"-"){$ip=$re[1];}
 		}
+		
+		if(preg_match("#(TCP_DENIED|ERR_CONNECT_FAIL)#", $line)){
+			$color="#BA0000";
+			$return_code_text="<div style='color:$color;font-size:11px'><i>$proxy&laquo;($return_code) TCP_DENIED/ERR_CONNECT_FAIL&raquo;$line</i></div>";
+			}		
+		if($return_code>399){$color="#D60808";$return_code_text="<div style='color:$color;font-size:11px'><i>$proxy&laquo;{$http_status_codes[$return_code]}&raquo;</i></div>";}
+		
 		if(isset($array["PROXY"])){
 	
 	
@@ -36,18 +44,15 @@ class accesslogs{
 	
 			$proxy=$array["PROXY"]."[$ipprox]&nbsp;,";
 		}
-		$ident[]=$ip;
+		$ident[]="<a href=\"javascript:blur()\"
+				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$ip');\"
+				style='text-decoration:underline;color:$color'>$ip</a>";;
 	
 		if($user=="-"){$user=null;}
 		$http_status_codes=$this->http_status_codes();
 	
-		if(preg_match("#(TCP_DENIED|ERR_CONNECT_FAIL)#", $line)){
-	
-			$color="#BA0000";
-			$return_code_text="<div style='color:$color;font-size:11px'><i>$proxy&laquo;($return_code) TCP_DENIED/ERR_CONNECT_FAIL&raquo;$line</i></div>";
-	
-		}
-		if($return_code>399){$color="#D60808";$return_code_text="<div style='color:$color;font-size:11px'><i>$proxy&laquo;{$http_status_codes[$return_code]}&raquo;</i></div>";}
+
+		
 	
 		if($return_code<399){
 			if(isset($array["PROXY"])){
@@ -65,6 +70,7 @@ class accesslogs{
 			$GLOBALS["IPUSERS"][$ip]=$user;
 		}else{
 			if(isset($GLOBALS["IPUSERS"][$ip])){
+				
 				$ident[]="<i>{$GLOBALS["IPUSERS"][$ip]}</i>";
 			}
 		}
@@ -74,23 +80,35 @@ class accesslogs{
 		if($host=="cache_object"){return null;}
 	
 		if($this->stats){
-		$uri=str_replace($host, "<a href=\"javascript:blur()\"
+			$uri=str_replace($host, "<a href=\"javascript:blur()\"
 				OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?today-zoom=yes&type=req&familysite=$host&day=$today');\"
 				style='text-decoration:underline;color:$color'>$host</a>", $uri);
 		}
+		
 		$spanON="<span style='color:$color'>";
 		$spanOFF="</span>";
 		if($mac=="00:00:00:00:00:00"){$mac=null;}
 	
-		if($user<>null){$ident[]=$user;}
+		if($user<>null){
+			if($tcp->isValid($user)){
+				$ident[]="<a href=\"javascript:blur()\"
+				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$user');\"
+				style='text-decoration:underline;color:$color'>$user</a>";
+			}else{
+				$ident[]="<a href=\"javascript:blur()\"
+				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&uid=$user');\"
+				style='text-decoration:underline;color:$color'>$user</a>";
+			}
+		}
 	
 		if($mac<>null){
-			$ident[]=$mac;
-			$mac="<a href=\"javascript:blur()\"
+			$ident[]="<a href=\"javascript:blur()\"
 			OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&MAC=$mac');\"
 			style='text-decoration:underline;color:$color'>$mac</a>";
 				
 		}
+		
+		
 	
 		return array('id' => md5($line),
 				'cell' => array("$spanON$date$spanOFF", "$spanON$proto$spanOFF","$spanON$uri.$return_code_text$spanOFF","$spanON".@implode("&nbsp;|&nbsp;", $ident)."$spanOFF")

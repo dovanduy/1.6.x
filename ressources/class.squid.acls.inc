@@ -13,6 +13,7 @@ class squid_acls{
 	public $AUTH=0;
 	public $instancetime=null;
 	public $ASROOT=false;
+	private $hasProxyTransparent=0;
 
 	public function squid_acls(){
 		if(posix_getuid()==0){$this->ASROOT=true;}
@@ -20,14 +21,17 @@ class squid_acls{
 		$users=$GLOBALS["CLASS_USERS"];
 		$sock=new sockets();
 		$this->ACL_ARP_ENABLED=$users->SQUID_ARP_ACL_ENABLED;
+		$this->hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
 		$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
 		if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}
+		if(!is_numeric($this->hasProxyTransparent)){$this->hasProxyTransparent=0;}
 		$this->EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 		if(!is_numeric($this->EnableKerbAuth)){$this->EnableKerbAuth=0;}
 		$squid=new squidbee();
 		if($squid->LDAP_AUTH==1){$this->AUTH=1;}
 		if($squid->LDAP_EXTERNAL_AUTH==1){$this->AUTH=1;}
 		if($squid->EnableKerbAuth==1){$this->AUTH=1;}
+		if($this->hasProxyTransparent==1){$this->AUTH=0;$this->EnableKerbAuth=0;$this->UseDynamicGroupsAcls=0;}
 		$this->instancetime=time();
 		if(!isset($GLOBALS["COMPILE_SQUID_TOKENS"])){$this->compilation_params();}
 		if(count($GLOBALS["COMPILE_SQUID_TOKENS"])<3){$this->compilation_params();}
@@ -58,6 +62,70 @@ class squid_acls{
 		
 	}
 	
+	public function IsObjectAuth(){
+		if($this->isRADIUSAuth()){return true;}
+		if($this->isADAuth()){return true;}
+		if($this->isOpenLDAPAuth()){return true;}
+		return false;
+	}
+	
+	public function isRADIUSAuth(){
+		if(isset($GLOBALS["squid_acl_isRADIUSAuth"])){return $GLOBALS["squid_acl_isRADIUSAuth"];}
+		$q=new mysql_squid_builder();
+		$sql="SELECT COUNT( * ) AS TCOUNT FROM (
+				SELECT webfilters_sqaclaccess.aclid, webfilters_sqacllinks.gpid, webfilters_sqgroups.ID,webfilters_sqgroups.params
+				FROM webfilters_sqaclaccess, webfilters_sqacllinks, webfilters_sqgroups
+				WHERE webfilters_sqaclaccess.aclid = webfilters_sqacllinks.aclid
+				AND webfilters_sqacllinks.gpid = webfilters_sqgroups.ID
+				AND webfilters_sqgroups.GroupType = 'radius_auth'
+				AND webfilters_sqgroups.enabled = 1
+		) AS t";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		
+		if($ligne["TCOUNT"]==0){$GLOBALS["squid_acl_isRADIUSAuth"]=false;return $GLOBALS["squid_acl_isRADIUSAuth"];}
+		$GLOBALS["squid_acl_isRADIUSAuth"]=true;
+		return true;		
+		
+	}
+	
+	public function isADAuth(){
+		if(isset($GLOBALS["squid_acl_".__FUNCTION__])){return $GLOBALS["squid_acl_".__FUNCTION__];}
+		$q=new mysql_squid_builder();
+		$sql="SELECT COUNT( * ) AS TCOUNT FROM (
+				SELECT webfilters_sqaclaccess.aclid, webfilters_sqacllinks.gpid, webfilters_sqgroups.ID,webfilters_sqgroups.params
+				FROM webfilters_sqaclaccess, webfilters_sqacllinks, webfilters_sqgroups
+				WHERE webfilters_sqaclaccess.aclid = webfilters_sqacllinks.aclid
+				AND webfilters_sqacllinks.gpid = webfilters_sqgroups.ID
+				AND webfilters_sqgroups.GroupType = 'ad_auth'
+				AND webfilters_sqgroups.enabled = 1
+		) AS t";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	
+		if($ligne["TCOUNT"]==0){$GLOBALS["squid_acl_".__FUNCTION__]=false;return $GLOBALS["squid_acl_".__FUNCTION__];}
+		$GLOBALS["squid_acl_".__FUNCTION__]=true;
+		return true;
+	
+	}
+
+	public function isOpenLDAPAuth(){
+		if(isset($GLOBALS["squid_acl_".__FUNCTION__])){return $GLOBALS["squid_acl_".__FUNCTION__];}
+		$q=new mysql_squid_builder();
+		$sql="SELECT COUNT( * ) AS TCOUNT FROM (
+				SELECT webfilters_sqaclaccess.aclid, webfilters_sqacllinks.gpid, webfilters_sqgroups.ID,webfilters_sqgroups.params
+				FROM webfilters_sqaclaccess, webfilters_sqacllinks, webfilters_sqgroups
+				WHERE webfilters_sqaclaccess.aclid = webfilters_sqacllinks.aclid
+				AND webfilters_sqacllinks.gpid = webfilters_sqgroups.ID
+				AND webfilters_sqgroups.GroupType = 'ldap_auth'
+				AND webfilters_sqgroups.enabled = 1
+		) AS t";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	
+		if($ligne["TCOUNT"]==0){$GLOBALS["squid_acl_".__FUNCTION__]=false;return $GLOBALS["squid_acl_".__FUNCTION__];}
+		$GLOBALS["squid_acl_".__FUNCTION__]=true;
+		return true;
+	
+	}	
+	
 	
 	private function Build_Acls_Groups(){
 		if(isset($GLOBALS["BUILD_ACLS_EXECUTED"])){
@@ -65,12 +133,26 @@ class squid_acls{
 			$this->availableGroups=$GLOBALS["BUILD_ACLS_EXECUTED"]["availableGroups"];
 			return;
 		}
+		$sock=new sockets();
+		$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
+		$EnableSplashScreenAsObject=$sock->GET_INFO("EnableSplashScreenAsObject");
+		if(!is_numeric($EnableSplashScreen)){$EnableSplashScreen=0;}
+		if(!is_numeric($EnableSplashScreenAsObject)){$EnableSplashScreenAsObject=0;}
+		$SplashScreenURI=$sock->GET_INFO("SplashScreenURI");
+		if(trim($SplashScreenURI)==null){$EnableSplashScreen=0;}
+		$URLAR=parse_url($SplashScreenURI);
+		if(isset($URLAR["host"])){$SplashScreenURI="http://$SplashScreenURI";}
+		if(!preg_match("#^http.*#", $SplashScreenURI)){$SplashScreenURI="http://$SplashScreenURI";}
 		
 		$isDynamicAcls=$this->isDynamicAcls();
 		
+		$ARRAY_AUTH["radius_auth"]=true;
+		$ARRAY_AUTH["ad_auth"]=true;
+		$ARRAY_AUTH["ldap_auth"]=true;		
+		
 		$q=new mysql_squid_builder();
 		@mkdir("/etc/squid3/acls",0755,true);
-		$sql="SELECT ID,GroupName,GroupType FROM webfilters_sqgroups WHERE enabled=1";
+		$sql="SELECT ID,GroupName,GroupType,params FROM webfilters_sqgroups WHERE enabled=1";
 		$results = $q->QUERY_SQL($sql);
 		$ReturnFirstValue=false;
 		while ($ligne = mysql_fetch_assoc($results)) {
@@ -96,7 +178,7 @@ class squid_acls{
 			}			
 			
 			if($ligne["GroupType"]=="proxy_auth_ads"){
-				
+				if($this->hasProxyTransparent==1){continue;}
 				if($this->EnableKerbAuth==0){echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP EnableKerbAuth = 0\n";continue;}
 				if($this->UseDynamicGroupsAcls==0){echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP UseDynamicGroupsAcls = 0\n";continue;}
 				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:proxy_auth_ads $acls_name is available\n";
@@ -123,15 +205,26 @@ class squid_acls{
 			}		
 			
 			
+			if(isset($ARRAY_AUTH[$ligne["GroupType"]])){
+				if($this->hasProxyTransparent==1){continue;}
+				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:AUTH: {$ligne["GroupType"]} $acls_name is available\n";
+				if($this->IsObjectAuth()){
+					$this->availableGroups[$ligne["ID"]]=true;
+					$this->acls_array[]="acl $acls_name external BasicFakeAuth ID{$ligne["ID"]}";
+					$TEMPLATE=$this->acl_tpl($ligne["ID"]);
+					if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
+					@file_put_contents("/etc/squid3/AuthParams{$ligne[ID]}.conf", $ligne["params"]);
+				}
+				continue;
 			
-				
-			
+			}			
 			
 			if($ligne["GroupType"]=="NudityScan"){
 				if(!$GLOBALS["ArtcExtrnNudeScanner"]){
 					echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - ArtcExtrnNudeScanner is disabled !!! Why ???\n";
 					continue;
 				}
+				
 				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:NudityScan $acls_name is available\n";
 				$this->availableGroups[$ligne["ID"]]=true;
 				$this->acls_array[]="acl $acls_name external ArtcExtrnNudeScanner";
@@ -139,6 +232,27 @@ class squid_acls{
 				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
 				continue;								
 			}
+			
+			if($ligne["GroupType"]=="hotspot_auth"){
+					if($EnableSplashScreen==0){
+						echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - hotspot_auth is disabled !!! EnableSplashScreen =0 ???\n";
+						continue;
+					}
+					
+					if($EnableSplashScreenAsObject==0){
+						echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - hotspot_auth is disabled !!! EnableSplashScreenAsObject =0 ???\n";
+						continue;
+					}
+				
+					echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:NudityScan $acls_name is available\n";
+					$this->availableGroups[$ligne["ID"]]=true;
+					$this->acls_array[]="acl $acls_name external SplashScreenAuthDef";
+					$this->acls_array[]="deny_info 303:$SplashScreenURI?request=%o $acls_name";
+					continue;
+				}			
+			
+			
+			
 			
 			if($ligne["GroupType"]=="time"){
 					echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:NudityScan $acls_name is available\n";
@@ -155,6 +269,7 @@ class squid_acls{
 			}			
 			
 			if($ligne["GroupType"]=="proxy_auth"){
+				if($this->hasProxyTransparent==1){continue;}
 				if($this->AUTH==0){
 					echo "Starting......: [ACLS]: `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP AUTH = 0\n";
 					continue;
@@ -203,13 +318,33 @@ class squid_acls{
 	}
 	
 
-	
+
 	
 	private function acl_tpl($aclid){
+		
+		
+		
+		
 		$sql="SELECT acltpl FROM webfilters_sqgroups WHERE ID='$aclid'";
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if($ligne["acltpl"]==null){return;}
+		
+		if($ligne["acltpl"]=="ARTICA_SLASH_SCREEN"){
+			$sock=new sockets();
+			$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
+			$EnableSplashScreenAsObject=$sock->GET_INFO("EnableSplashScreenAsObject");
+			if(!is_numeric($EnableSplashScreen)){$EnableSplashScreen=0;}
+			if(!is_numeric($EnableSplashScreenAsObject)){$EnableSplashScreenAsObject=0;}
+			$SplashScreenURI=$sock->GET_INFO("SplashScreenURI");
+			if(trim($SplashScreenURI)==null){$EnableSplashScreen=0;}
+			$URLAR=parse_url($SplashScreenURI);
+			if(isset($URLAR["host"])){$SplashScreenURI="http://$SplashScreenURI";}
+			if(!preg_match("#^http.*#", $SplashScreenURI)){$SplashScreenURI="http://$SplashScreenURI";}			
+			return "303:$SplashScreenURI";
+		}
+		
+		
 		$acltpl=$ligne["acltpl"];
 		$sql="SELECT template_name,lang,template_link,template_uri FROM squidtpls WHERE `zmd5`='$acltpl'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));

@@ -6568,11 +6568,13 @@ function Tsystem.LOCATE_MKFIFO():string;
 begin
    if FileExists('/usr/bin/mkfifo') then exit('/usr/bin/mkfifo');
    if FileExists('/bin/mkfifo') then exit('/bin/mkfifo');
+   exit(LOCATE_GENERIC_BIN('mkfifo'));
 end;
 //##############################################################################
 //##############################################################################
 function Tsystem.LOCATE_PHP5_BIN():string;
 begin
+  if FileExists('/opt/articatech/bin/php') then exit('/opt/articatech/bin/php');
   if FileExists('/usr/bin/php5') then exit('/usr/bin/php5');
   if FIleExists('/usr/bin/php') then exit('/usr/bin/php');
   if FIleExists('/usr/local/apache-groupware/php5/bin/php') then exit('/usr/local/apache-groupware/php5/bin/php');
@@ -6584,6 +6586,7 @@ function Tsystem.LOCATE_PHP5_CONFIG_BIN():string;
 begin
   if FileExists('/usr/bin/php-config5') then exit('/usr/bin/php-config5');
   if FIleExists('/usr/bin/php-config') then exit('/usr/bin/php-config');
+  if FileExists('/opt/articatech/bin/php-config') then exit('/opt/articatech/bin/php-config');
   if FileExists('/opt/artica-agent/bin/php-config') then exit('/opt/artica-agent/bin/php-config');
 end;
 //##############################################################################
@@ -6592,6 +6595,7 @@ begin
    if FileExists('/usr/bin/php-cgi') then exit('/usr/bin/php-cgi');
    if FileExists('/opt/artica/lighttpd/bin/php-cgi') then exit('/opt/artica/lighttpd/bin/php-cgi');
    if FileExists('/usr/local/bin/php-cgi') then exit('/usr/local/bin/php-cgi');
+   if FileExists('/opt/articatech/bin/php-cgi') then exit('/opt/articatech/bin/php-cgi');
    if FileExists('/opt/artica-agent/bin/php-cgi') then exit('/opt/artica-agent/bin/php-cgi');
 end;
 //##############################################################################

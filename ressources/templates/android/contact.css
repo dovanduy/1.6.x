@@ -21,6 +21,7 @@ width:auto;
 }
 
 .contact .legend{
+  text-transform: capitalize;
   font-size:12px;
   font-weight:bolder;
 }

@@ -568,6 +568,13 @@ begin
          halt(0);
    end;
 
+   if ParamStr(1)='APP_ZARAFADB' then begin
+         zarafa:=tzarafa.Create;
+         zarafa.zarafadb();
+         zinstall.EMPTY_CACHE();
+         halt(0);
+   end;
+
    if ParamStr(1)='APP_ZARAFA_WEBAPP' then begin
          zarafa:=tzarafa.Create;
          zarafa.webapp();
@@ -1604,6 +1611,7 @@ begin
          writeln('STARTING INSTALL/COMPILE POWERDNS, PLEASE WAIT.....');
          zinstall.INSTALL_STATUS('APP_PDNS_STATIC',15);
          samba.pdnsinstall_static();
+         zinstall.INSTALL_STATUS('APP_POWERADMIN',100);
          zinstall.EMPTY_CACHE();
          halt(0);;
    end;

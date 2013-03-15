@@ -14,7 +14,7 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBA
 if(preg_match("#--sleep#",implode(" ",$argv))){$GLOBALS["SLEEP"]=true;}
 if($argv[1]=="--resolvconf"){resolvconf();exit;}
 if($argv[1]=="--interfaces"){interfaces_show();die();}
-if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded system,die()","MAIN",__FILE__,__LINE__);die();}
+//if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded system,die()","MAIN",__FILE__,__LINE__);die();}
 
 if($argv[1]=="--just-add"){routes();die();}
 if($argv[1]=="--ifconfig"){ifconfig_tests();exit;}
@@ -108,6 +108,11 @@ Checkipv6();
 	if($users->AS_DEBIAN_FAMILY){
 		echo "Starting......: Debian family\n";
 		BuildNetWorksDebian();
+		print_r($GLOBALS["SCRIPTS"]);
+		while (list ($index, $line) = each ($GLOBALS["SCRIPTS"]) ){
+			echo $line."\n";
+			
+		}
 	}else{
 		echo "Starting......: RedHat family\n";
 		BuildNetWorksRedhat();
@@ -170,6 +175,9 @@ function ifconfig_tests(){
 			$array[trim($re[1])]=trim($re[1]);
 		}
 	}
+	
+	
+	
 	print_r($array);
 	
 }

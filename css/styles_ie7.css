@@ -55,6 +55,7 @@ input.button{
    border-top-color: #CCCCCC;
    border-left-color: #CCCCCC;
    font-weight: bold;
+   text-transform: capitalize;
    filter:progid:DXImageTransform.Microsoft.Gradient(GradientType=0,StartColorStr='#ffffffff',EndColorStr='#dddbdb');
 }
 

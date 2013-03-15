@@ -1,4 +1,5 @@
 <?php
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
 	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}	
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -27,6 +28,7 @@
 	if(isset($_POST["aclrulename"])){acl_main_rule_edit();exit;}
 	if(isset($_POST["ApplySquid"])){squid_compile();exit;}
 	if(isset($_GET["csv"])){output_scv();exit;}
+	if(isset($_POST["EnableSquidPortsRestrictions"])){EnableSquidPortsRestrictions();exit;}
 	page();
 	
 	
@@ -657,6 +659,15 @@ function TemplateName($md5){
 	$jstpl="Loadjs('squid.templates.php?Zoom-js=$md5&subject=". base64_encode($ligne["template_title"])."');";
 	return $tpl->_ENGINE_parse_body("<br>{and_display_error_page}: <a href=\"javascript:blur();\" OnClick=\"$jstpl\" style='font-size:12px;text-decoration:underline'>{$ligne["template_title"]}</a>");
 	}
+	
+function EnableSquidPortsRestrictions(){
+	$sock=new sockets();
+	$EnableSquidPortsRestrictions=$sock->GET_INFO("EnableSquidPortsRestrictions");
+	if(!is_numeric($EnableSquidPortsRestrictions)){$EnableSquidPortsRestrictions=0;}
+	if($EnableSquidPortsRestrictions==0){$sock->SET_INFO("EnableSquidPortsRestrictions",1);}
+	if($EnableSquidPortsRestrictions==1){$sock->SET_INFO("EnableSquidPortsRestrictions",0);}
+	
+}
 
 
 
@@ -942,7 +953,11 @@ function SquidTemplatesErrors$t(){
 		XHR.sendAndLoad('$page', 'POST',x_EnableDisableAclRule$t);  		
 	}		
 	
-	
+	function EnableSquidPortsRestrictionsCK(){
+		var XHR = new XHRConnection();
+		XHR.appendData('EnableSquidPortsRestrictions', 'yes');
+	    XHR.sendAndLoad('$page', 'POST',x_EnableDisableAclRule$t);  
+	}
 
 	
 </script>
@@ -966,6 +981,9 @@ function acl_list(){
 	$page=1;
 	$data = array();
 	$data['rows'] = array();
+	$sock=new sockets();
+	$EnableSquidPortsRestrictions=$sock->GET_INFO("EnableSquidPortsRestrictions");
+	if(!is_numeric($EnableSquidPortsRestrictions)){$EnableSquidPortsRestrictions=0;}
 
 	
 	if(isset($_POST["sortname"])){
@@ -990,29 +1008,56 @@ function acl_list(){
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"]+1;
 		$default=$tpl->_ENGINE_parse_body("{default}");
+		$ports_restrictions=$tpl->_ENGINE_parse_body("{ports_restrictions}");
+		$http_safe_ports=$tpl->_ENGINE_parse_body("{http_safe_ports}");
+		$deny_ports_expect=$tpl->_ENGINE_parse_body("{deny_ports_expect}");
 		$q2=new mysql();
 		$items=$q2->COUNT_ROWS("urlrewriteaccessdeny", "artica_backup");
 		$explain=$tpl->_ENGINE_parse_body("{urlrewriteaccessdeny_explain} <strong>$items {items}</strong>");
 		$data['rows'][] = array(
-				'id' => "acl{$ligne['ID']}",
+				'id' => "aclNone1",
 				'cell' => array("<a href=\"javascript:blur();\"  
 				OnClick=\"javascript:Loadjs('squid.urlrewriteaccessdeny.php?t={$_GET["t"]}');\"
 				style='font-size:16px;text-decoration:underline;color:black'>$default</span></A>
 				",
 				"<span style='font-size:12px;color:black'>$explain</span>",
 				"&nbsp;","&nbsp;","&nbsp;","&nbsp;")
+		);	
+
+		$ports=unserialize(base64_decode($sock->GET_INFO("SquidSafePortsSSLList")));
+		if(is_array($ports)){while (list ($port, $explain) = each ($ports) ){$bbcSSL[]=$port;}}
+		$ports=unserialize(base64_decode($sock->GET_INFO("SquidSafePortsList")));
+		if(is_array($ports)){while (list ($port, $explain) = each ($ports) ){$bbcHTTP[]=$port;}}
+		
+		$color="black";
+		$colored="#A71A05";
+		if($EnableSquidPortsRestrictions==0){$color="#9C9C9C";$colored=$color;}
+		$sslp="$deny_ports_expect: $http_safe_ports SSL: ".@implode(", ", $bbcSSL);
+		$http="$deny_ports_expect: $http_safe_ports: ".@implode(", ", $bbcHTTP);
+		$enableSSL=Field_checkbox("EnableSquidPortsRestrictions", 1,$EnableSquidPortsRestrictions,
+				"EnableSquidPortsRestrictionsCK()");
+		
+		
+		$data['rows'][] = array(
+				'id' => "aclNone2",
+				'cell' => array("<a href=\"javascript:blur();\"
+						OnClick=\"javascript:Loadjs('squid.advParameters.php?t={$_GET["t"]}&OnLyPorts=yes');\"
+						style='font-size:16px;text-decoration:underline;color:$color'>$ports_restrictions</span></A>
+						",
+		"<span style='font-size:12px;color:$colored;font-weight:bold'><div>$sslp</div><div>$http</div></span>",
+		"&nbsp;","&nbsp;","$enableSSL","&nbsp;")
 		);		
 		
 		
 	}
-	
+	$rp=50;
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	
 
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);

@@ -886,7 +886,9 @@ function group120(){
 	$array2[]="artica-install --cups-drivers";
 	$array2[]="artica-update --spamassassin-bl";
 	$array2[]="artica-install -watchdog daemon";
-	$array2[]="artica-make APP_MOD_QOS";
+	if(!is_file("/usr/lib/apache2/modules/mod_qos.so")){
+		$array2[]="artica-make APP_MOD_QOS";
+	}
 	
 	if($GLOBALS["EnableArticaWatchDog"]==1){$array2[]="artica-install --urgency-start";}
 	

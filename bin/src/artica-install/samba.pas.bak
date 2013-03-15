@@ -651,9 +651,6 @@ var
    winbinddpath:string;
 begin
 fpsystem(SYS.LOCATE_PHP5_BIN()+'/usr/share/artica-postfix/exec.winbind.php --start');
-
-
-
 end;
 //##############################################################################
 procedure Tsamba.SAMBA_NMBD_START();

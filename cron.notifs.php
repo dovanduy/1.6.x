@@ -122,13 +122,12 @@ $mysql=new mysql();
 		$ini=new Bs_IniHandler();
 		if(preg_match("#<text>(.+?)</text>#is",$bigtext,$re)){
 			$text=$re[1];
-			if(strlen($text)>0){
-				$bigtext=str_replace($re[0],'',$bigtext);
-				$bigtext=str_replace("'", "`", $bigtext);
-			}
+			$bigtext=str_replace($re[0],'',$bigtext);
+			$bigtext=str_replace("'", "`", $bigtext);
 		}
 		
 		if(preg_match("#<attachedfiles>(.+?)</attachedfiles>#is",$bigtext,$re)){
+				$bigtext=str_replace($re[0],'',$bigtext);
 				$files_text=addslashes($re[1]);
 		}		
 		
@@ -160,12 +159,15 @@ $mysql=new mysql();
         $subject=str_replace("'", "`", $subject);
         $text=addslashes($text);
         $subject=addslashes($subject);
-        if(strlen($text)>5){
-        	if(strpos($text, "\n")==0){$subject=$text;}else{
-        		$subject=substr($text, 0,75)."...";
+        if($subject==null){
+       	 	if(strlen($text)>5){
+        		if(strpos($text, "\n")==0){$subject=$text;}else{
+        			$subject=substr($text, 0,75)."...";
         		
+        		}
         	}
         }
+        
         if(strlen($subject)<5){
         	writelogs("Warning New notification: Subject seems to be empty ! \"$text\" removing $path/$file",__FUNCTION__,__FILE__,__LINE__);
         	@unlink("$path/$file");

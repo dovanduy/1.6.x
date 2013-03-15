@@ -56,7 +56,7 @@ La valeur par d&eacute;faut de 2 est probablement trop basse, nous vous sugg&eac
 <mysql_performance_level_text>Astuces et param&egrave;tres pour affiner votre serveur Mysql</mysql_performance_level_text>
 <mysql_repair_text>R&eacute;parez vos bases Mysql facilement</mysql_repair_text>
 <mysql_server_consumption>Consommation du serveur Mysql</mysql_server_consumption>
-<mysql_server_text>Le serveur de base de donn&eacute;es Mysql stocke beaucoup d'informations utilis&eacute;es par Artica (y compris les journaux d'&eacute;v&egrave;nements, le cache de RouncCube, les statistiques ...), le processus du serveur mysql consomme du temps CPU et de la m&eacute;moire alors que ce service
+<mysql_server_text>Le serveur de base de donn&eacute;es MySQL stocke beaucoup d'informations utilis&eacute;es par Artica (y compris les journaux d'&eacute;v&egrave;nements, le cache de RouncCube, les statistiques ...), le processus du serveur mysql consomme du temps CPU et de la m&eacute;moire alors que ce service
 est un service &quot;cosm&eacute;tiques&quot;. [br]
 vous pouvez ajuster, ici, la consommation du serveur mysql</mysql_server_text>
 <NoBootWithoutIP>D&eacute;marrez les services uniquement avec le r&eacute;seau</NoBootWithoutIP>
@@ -87,7 +87,7 @@ Par d&eacute;faut, Flushing Buffers est mis &agrave; 0, ce qui &eacute;vacue imm
 L'augmentation de ce nombre en douceur, par exemple &agrave; 10 ou 20, gardera ce nombre de messages dans la m&eacute;moire tampon avant qu'ils ne soient &eacute;crits &agrave; leur destination.</syslogng_sync_text>
 <syslog_server_consumption>Injection Syslog-ng</syslog_server_consumption>
 <syslog_server_consumption_text>Vous utilisez syslog-ng et Artica le r&eacute;gle automatiquement pour forcer l'envoi des &eacute;v&egrave;nements &agrave; mysql pour qu'ils soient affich&eacute;s.[br]
-Les injections Mysql augmentent les processus mysql et n&eacute;cessite certaines performances.[br]
+Les injections MySQL augmentent les processus mysql et n&eacute;cessite certaines performances.[br]
 Ce param&egrave;tre vous permet de d&eacute;sactiver totalement cette fonctionnalit&eacute; ou de sp&eacute;cifier les journaux que vous souhaitez envoyer &agrave; mysql.</syslog_server_consumption_text>
 <tune_title>Performances d'Artica</tune_title>
 <useIonice>Activer le contr&ocirc;le des priorit&eacute;s I/O</useIonice>

@@ -177,7 +177,7 @@ $pattern=base64_encode($_GET["search"]);
 	if($_POST["sortname"]<>null){
 		if($_POST["sortorder"]=="desc"){krsort($array);}else{ksort($array);}
 	}
-	
+	$today=$tpl->_ENGINE_parse_body("{today}");
 	$c=0;
 	while (list ($key, $line) = each ($array) ){
 		if(trim($line)==null){continue;}
@@ -186,7 +186,7 @@ $pattern=base64_encode($_GET["search"]);
 			$service=null;
 			$pid=null;
 			$color="black";
-			if(preg_match("#(ERROR|WARN|FATAL|UNABLE)#i", $line)){$color="#D61010";}
+			if(preg_match("#(ERROR|WARN|FATAL|UNABLE|Failed|not found|denied)#i", $line)){$color="#D61010";}
 				
 			$style="<span style='color:$color'>";
 			$styleoff="</span>";
@@ -197,7 +197,12 @@ $pattern=base64_encode($_GET["search"]);
 			$service=$re[5];
 			$pid=$re[6];
 			$line=$re[7];
-			$date=date('m-d H:i:s',strtotime($date));
+			$strtotime=strtotime($date);
+			if(date("Y-m-d",$strtotime)==date("Y-m-d")){
+				$date=$today." ".date('H:i:s',strtotime($date));
+			}else{
+				$date=date('m-d H:i:s',strtotime($date));
+			}
 			if($_GET["prefix"]=="haproxy"){$line=Parse_haproxy($line);}
 			
 			$lines=array();
@@ -216,7 +221,12 @@ $pattern=base64_encode($_GET["search"]);
 			$service=$re[5];
 			$pid=null;
 			$line=$re[6];
-			$date=date('m-d H:i:s',strtotime($date));
+			$strtotime=strtotime($date);
+			if(date("Y-m-d",$strtotime)==date("Y-m-d")){
+				$date=$today." ".date('H:i:s',strtotime($date));
+			}else{
+				$date=date('m-d H:i:s',strtotime($date));
+			}
 			if($_GET["prefix"]=="haproxy"){$line=Parse_haproxy($line);}
 			$lines=array();
 			$lines[]="$style$date$styleoff";

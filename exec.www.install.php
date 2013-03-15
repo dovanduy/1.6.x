@@ -718,7 +718,7 @@ $FreeWebsDisableSSLv2=$sock->GET_INFO("FreeWebsDisableSSLv2");
 $d_path=$unix->APACHE_DIR_SITES_ENABLED();
 
 if($ApacheGroupware==0){
-	$ApacheGroupwareListenIP=$sock->GET_INFO("FreeWebListen");
+	$ApacheGroupwareListenIP=$unix->APACHE_ListenDefaultAddress();
 	$ApacheGroupWarePort=$sock->GET_INFO("FreeWebListenPort");
 	$ApacheGroupWarePortSSL=$sock->GET_INFO("FreeWebListenSSLPort");
 	echo "Starting......: Apache Groupware switch to Apache source\n";
@@ -1581,6 +1581,7 @@ function events($text){
 function mailmanhosts(){
 	$ldap=new clladp();
 	$sock=new sockets();
+	$unix=new unix();
 	$ApacheGroupware=$sock->GET_INFO("ApacheGroupware");
 	if($ApacheGroupware==null){$ApacheGroupware=1;}
 	$ApacheGroupwareListenIP=$sock->GET_INFO("ApacheGroupwareListenIP");
@@ -1590,7 +1591,7 @@ function mailmanhosts(){
 	
 	
 	if($ApacheGroupware==0){
-		$ApacheGroupwareListenIP=$sock->GET_INFO("FreeWebListen");
+		$ApacheGroupwareListenIP=$unix->APACHE_ListenDefaultAddress();
 		$ApacheGroupWarePort=$sock->GET_INFO("FreeWebListenPort");
 		$ApacheGroupWarePortSSL=$sock->GET_INFO("FreeWebListenSSLPort");
 	

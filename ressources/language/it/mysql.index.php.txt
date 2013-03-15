@@ -9,7 +9,7 @@ It depends on your computer performances.[br]
 Some services and features using mysql (Mail backups, syslog injection...) should take more process and memory.</enable_mysql_text>
 <mysqlserver>Mysql hostname</mysqlserver>
 <mysql_account>Mysql administrator profil</mysql_account>
-<mysql_database>Mysql database engine</mysql_database>
+<mysql_database>MySQL database engine</mysql_database>
 <mysql_database_text>Mysql database advanced options</mysql_database_text>
 <MYSQL_PASSWORD_USER>New Mysql password and username</MYSQL_PASSWORD_USER>
 <MYSQL_PASSWORD_USER_TEXT>Reset and change Mysql administrator to a new username and password</MYSQL_PASSWORD_USER_TEXT>

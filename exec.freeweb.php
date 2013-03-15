@@ -89,6 +89,8 @@ if($argv[1]=="--listwebs"){listwebs();die();exit;}
 if($argv[1]=="--reconfigure-all"){reconfigure_all_websites();die();exit;}
 if($argv[1]=="--reconfigure-webapp"){reconfigure_all_webapp();die();exit;}
 if($argv[1]=="--reconfigure-zpush"){reconfigure_all_zpush();die();exit;}
+if($argv[1]=="--reconfigure-updateutility"){reconfigure_all_updateutility();die();exit;}
+if($argv[1]=="--reconfigure-wpad"){reconfigure_all_wpad();die();exit;}
 if($argv[1]=="--rouncube-plugins"){roundcube_plugins($argv[2]);die();exit;}
 if($argv[1]=="--monit"){build_monit();die();exit;}
 if($argv[1]=="--watchdog"){watchdog($argv[2]);die();exit;}
@@ -230,6 +232,57 @@ function reconfigure_all_zpush(){
 	$php=$unix->LOCATE_PHP5_BIN();
 	reload_apache();	
 	
+}
+function reconfigure_all_updateutility(){
+	$unix=new unix();
+	@mkdir("/etc/artica-postfix/pids",0755,true);
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "Already instance executed pid $oldpid\n";
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	
+	$sql="SELECT servername FROM freeweb WHERE groupware='UPDATEUTILITY' AND enabled=1";
+	$q=new mysql();
+		$results=$q->QUERY_SQL($sql,'artica_backup');
+	$count=mysql_num_rows($results);
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$hostname=$ligne["servername"];
+		install_groupware($hostname);
+			buildHost(null,$hostname);
+	}
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	reload_apache();	
+}
+
+function reconfigure_all_wpad(){
+	$unix=new unix();
+	@mkdir("/etc/artica-postfix/pids",0755,true);
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "Already instance executed pid $oldpid\n";
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	
+	$sql="SELECT servername FROM freeweb WHERE groupware='WPAD' AND enabled=1";
+	$q=new mysql();
+		$results=$q->QUERY_SQL($sql,'artica_backup');
+	$count=mysql_num_rows($results);
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$hostname=$ligne["servername"];
+		install_groupware($hostname);
+			buildHost(null,$hostname);
+	}
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	reload_apache();	
 }
 
 function reconfigure_all_webapp(){
@@ -715,6 +768,10 @@ function CheckHttpdConf_mailman(){
 	
 }
 
+
+
+
+
 function CheckHttpdConf(){
 	EnableMods();
 	apache_user();
@@ -741,10 +798,10 @@ function CheckHttpdConf(){
 	
 	
 	$ApacheDisableModDavFS=$sock->GET_INFO("ApacheDisableModDavFS");
-	$FreeWebListen=trim($sock->GET_INFO("FreeWebListen"));
+	
 	$FreeWebListenPort=$sock->GET_INFO("FreeWebListenPort");
 	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
-	$FreeWebListen=$sock->GET_INFO("FreeWebListen");
+	
 	$FreeWebsEnableModSecurity=$sock->GET_INFO("FreeWebsEnableModSecurity");
 	$FreeWebsEnableModEvasive=$sock->GET_INFO("FreeWebsEnableModEvasive");
 	$FreeWebsEnableModQOS=$sock->GET_INFO("FreeWebsEnableModQOS");
@@ -760,9 +817,9 @@ function CheckHttpdConf(){
 	
 	
 	$TomcatEnable=$sock->GET_INFO("TomcatEnable");
-	if($FreeWebListen==null){$FreeWebListen="*";}
-	if($FreeWebListen<>"*"){$FreeWebListenApache="$FreeWebListen";}
-	if(!isset($FreeWebListenApache)){$FreeWebListenApache="*";}
+	
+	
+	
 	if(!is_numeric($FreeWebDisableSSL)){$FreeWebDisableSSL=0;}
 	if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
 	if(!is_numeric($FreeWebListenPort)){$FreeWebListenPort=80;}
@@ -773,6 +830,8 @@ function CheckHttpdConf(){
 	if(!is_numeric($FreeWebsEnableOpenVPNProxy)){$FreeWebsEnableOpenVPNProxy=0;}
 	if(!is_numeric($TomcatEnable)){$TomcatEnable=1;}
 	if(!is_numeric($FreeWebEnableSQLLog)){$FreeWebEnableSQLLog=0;}
+	
+	
 	
 	$users=new usersMenus();
 	$APACHE_MODULES_PATH=$users->APACHE_MODULES_PATH;	
@@ -807,7 +866,7 @@ function CheckHttpdConf(){
 	if(is_file("/etc/httpd/conf/extra/httpd-info.conf")){@unlink("/etc/httpd/conf/extra/httpd-info.conf");}
 	if(is_file("/etc/apache2/mods-enabled/ssl.conf")){@unlink("/etc/apache2/mods-enabled/ssl.conf");}
 	
-	
+	$FreeWebListen=$unix->APACHE_ListenDefaultAddress();
 	while (list ($num, $file) = each ($toremove) ){
 		shell_exec("/bin/rm -f $DAEMON_PATH/mods-enabled/$file >/dev/null 2>&1");
 		shell_exec("/bin/rm -f $DAEMON_PATH/mods-available/$file >/dev/null 2>&1");
@@ -815,7 +874,7 @@ function CheckHttpdConf(){
 	}
 	
 	if($FreeWebDisableSSL==1){$FreeWebListenSSLPort=0;}
-	$VirtualHostsIPAddresses=VirtualHostsIPAddresses($FreeWebListenPort,$FreeWebListenApache,$FreeWebListenSSLPort);
+	$VirtualHostsIPAddresses=VirtualHostsIPAddresses($FreeWebListenPort,$FreeWebListen,$FreeWebListenSSLPort);
 	
 		
 	if(count($VirtualHostsIPAddresses[0])>0){
@@ -825,6 +884,8 @@ function CheckHttpdConf(){
 	if(count($VirtualHostsIPAddresses[1])>0){
 		$conf[]=@implode("\n",$VirtualHostsIPAddresses[1]);
 	}	
+	
+	
 	
 	if($FreeWebDisableSSL==0){
 		
@@ -1453,10 +1514,9 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	
 	$apache_usr=$unix->APACHE_SRC_ACCOUNT();
 	$apache_group=$unix->APACHE_SRC_GROUP();
-	$FreeWebListen=$sock->GET_INFO("FreeWebListen");
 	$FreeWebListenPort=$sock->GET_INFO("FreeWebListenPort");
 	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
-	$FreeWebListen=$sock->GET_INFO("FreeWebListen");
+	$FreeWebListen=$unix->APACHE_ListenDefaultAddress();
 	$FreeWebsDisableSSLv2=$sock->GET_INFO("FreeWebsDisableSSLv2");
 	
 	if($apache_usr==null){echo "WARNING !!! could not find apache username!!!\n";}
@@ -1676,7 +1736,8 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		if($DirectorySecond<>null){$conf[]=$DirectorySecond;}
 	$zarafaProxy=$freeweb->ZarafaProxyJabberd();
 	if($zarafaProxy<>null){$conf[]=$zarafaProxy;}
-	
+	$WebDavFree=$freeweb->WebDavTable();
+	if($WebDavFree<>null){$conf[]=$WebDavFree;}
 	if($freeweb->UseReverseProxy==1){
 	
 		$conf[]=$freeweb->ReverseProxy();

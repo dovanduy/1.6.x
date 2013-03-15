@@ -57,6 +57,14 @@ function ParseFile($filename,$instancename){
 		if(trim($line)==null){continue;}
 		usleep(500);
 		if(preg_match("#(.+?)\s+([0-9\:]+)\s+(.+?)\s+(.+?)\s+(.+)\s+(.*?)\s+SMTP\s+-\s+([0-9]+)\s+([0-9]+)#i", $line,$re)){
+			
+			while(list( $num, $line ) = each ($re)){
+				$line=str_replace("'", "", $line);
+				$line=mysql_escape_string($line);
+				$re[$num]=$line;
+				
+			}
+			
 			$md5=md5(@implode("", $re));
 			$zDate="{$re[1]} {$re[2]}";
 			$time=strtotime($zDate);
@@ -86,6 +94,13 @@ function ParseFile($filename,$instancename){
 		}
 		
 		if(preg_match("#(.+?)\s+([0-9\:]+)\s+(.+?)\s+(.+?)\s+(.+?)\s+(.*?)\s+SMTP\s+-\s+([0-9]+)\s+\?#i", $line,$re)){
+			while(list( $num, $line ) = each ($re)){
+				$line=str_replace("'", "", $line);
+				$line=mysql_escape_string($line);
+				$re[$num]=$line;
+			
+			}
+			
 			$md5=md5(@implode("", $re));
 			$zDate="{$re[1]} {$re[2]}";
 			$time=strtotime($zDate);

@@ -28,6 +28,7 @@ function js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{listen_address}");
 	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
 	$html="
 		YahooWin3('420','$page?popup=yes','$title');
 	
@@ -45,7 +46,7 @@ function save(){
 	$squid=new squidbee();
 	$squid->global_conf_array["tcp_outgoing_address"]=$_POST["tcp_outgoing_address"];
 	$squid->SaveToLdap(true);
-	$sock->getFrameWork("cmd.php?squid-restart=yes");
+	
 }
 
 
@@ -89,6 +90,7 @@ function popup(){
 	var x_SaveSquidBinIpaddr=function (obj) {
 		var tempvalue=obj.responseText;
 		YahooWin3Hide();
+		Loadjs('squid.restart.php?onlySquid=yes&ask=yes');
 	}	
 	
 	function SaveSquidBinIpaddr(){

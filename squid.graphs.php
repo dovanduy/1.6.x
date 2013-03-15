@@ -72,6 +72,11 @@ if(isset($_GET["hostname"])){
 	
 	
 $html=@implode("\n", $f);
+
+
+
+
+
 echo $tpl->_ENGINE_parse_body($html);
 }
 
@@ -124,7 +129,7 @@ $refresh
 		<img src='$base/memory.hour.png?$t'>
 	</a>
 </div></center>
-
+<center style='margin:10px'>".button("{update_now}","Loadjs('squid.statistics.central.php?rrd-js=yes')",18)."</center>
 ";
 
 

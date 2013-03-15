@@ -27,6 +27,9 @@ if(!$usersmenus->AsSquidAdministrator){
 	if(isset($_GET["terme-of-use"])){echo terme_of_use();exit;}
 	if(isset($_POST["USETERMSTEXT"])){xSaveOptions();exit;}
 	if(isset($_POST["USELDAP"])){xSaveOptions();exit;}
+	if(isset($_GET["add-freeweb-js"])){add_freeweb_js();exit;}
+	if(isset($_GET["radius"])){radius_config();exit;}
+	if(isset($_POST["RAD_SERVER"])){xSaveOptions();exit;}
 
 js();
 
@@ -34,8 +37,16 @@ js();
 function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$YahooWin=2;
+	if(isset($_GET["YahooWin"])){$YahooWin=$_GET["YahooWin"];$YahooWinUri="&YahooWin={$_GET["YahooWin"]}";}
 	$title=$tpl->_ENGINE_parse_body("{HotSpot}");
-	$html="YahooWin2('700','$page?tabs=yes','$title')";
+	$html="
+	var YahooWinx=$YahooWin;
+	if(YahooWinx==2){
+		YahooWin2Hide();
+		YahooWin6Hide();
+	}	
+	YahooWin$YahooWin('700','$page?tabs=yes$YahooWinUri','$title')";
 	echo $html;
 }
 
@@ -85,40 +96,50 @@ function options(){
 	<tr>
 		<td colspan=3 style='font-size:18px'>{authentication}:<hr></td>
 	<tr>
-		<td class=legend style='font-size:16px'>{use_ldap_database}:</td>
+		<td class=legend style='font-size:16px;text-transform:capitalize'>{use_ldap_database}:</td>
 		<td>". Field_checkbox("USELDAP", 1,$HotSpotConfig["USELDAP"])."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{use_dedicated_database}:</td>
+		<td class=legend style='font-size:16px;text-transform:capitalize'>{use_dedicated_database}:</td>
 		<td>". Field_checkbox("USEMYSQL", 1,$HotSpotConfig["USEMYSQL"])."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{use_active_directory}:</td>
+		<td class=legend style='font-size:16px;text-transform:capitalize'>{use_active_directory}:</td>
 		<td>". Field_checkbox("USEAD-$t", 1,$HotSpotConfig["USEAD"])."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'><a href=\"javascript:blur();\" 
+		<td class=legend style='font-size:16px;text-transform:capitalize'><a href=\"javascript:blur();\" 
+		OnClick=\"javascript:YahooWin3('600','$page?radius=yes','{use_radius}');\"
+		style='font-size:16px;text-decoration:underline'>{use_radius}</a>:</td>
+		<td>". Field_checkbox("USERAD-$t", 1,$HotSpotConfig["USERAD"])."</td>
+		<td>&nbsp;</td>
+	</tr>		
+	<tr>
+		<td class=legend style='font-size:16px;text-transform:capitalize'><a href=\"javascript:blur();\" 
 		OnClick=\"javascript:YahooWin3('600','$page?terme-of-use=yes','{use_terme_of_use}');\"
 		style='font-size:16px;text-decoration:underline'>{use_terme_of_use}</a>:</td>
 		<td>". Field_checkbox("USETERMS", 1,$HotSpotConfig["USETERMS"])."</td>
 		<td>&nbsp;</td>
 	</tr>
+			
+				
+				
 	<tr>
-		<td class=legend style='font-size:16px'>{label}</a>:</td>
+		<td class=legend style='font-size:16px;text-transform:capitalize'>{label}</a>:</td>
 		<td style='font-size:16px'>". Field_text("USETERMSLABEL",$HotSpotConfig["USETERMSLABEL"],
 		"font-size:16px;width:220px")."</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:16px'>{verif_auth_each}:</td>
+		<td class=legend style='font-size:16px;text-transform:capitalize'>{verif_auth_each}:</td>
 		<td style='font-size:16px'>". Field_text("CACHE_TIME",$HotSpotConfig["CACHE_TIME"],"font-size:16px;width:90px")."&nbsp;{seconds}</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{re_authenticate_each} ({default}):</td>
+		<td class=legend style='font-size:16px;text-transform:capitalize'>{re_authenticate_each} ({default}):</td>
 		<td style='font-size:16px'>". Field_array_Hash($Timez,"CACHE_AUTH",$HotSpotConfig["CACHE_AUTH"],null,null,0,"font-size:16px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
@@ -140,7 +161,7 @@ function options(){
 	var x_SaveHostportConfig$t= function (obj) {
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
-		Loadjs('squid.compile.progress.php');
+		Loadjs('squid.compile.progress.php?ask=yes');
 		document.getElementById('$t-animate').innerHTML='';
 		
 		
@@ -152,6 +173,7 @@ function options(){
 			var USELDAP=0;
 			var USEMYSQL=0;
 			var USETERMS=0;
+			var USERAD=0;
 			var USEAD=0;
 			var XHR = new XHRConnection();
 			if(lock==0){
@@ -163,7 +185,9 @@ function options(){
 			if(document.getElementById('USELDAP').checked){USELDAP=1;}
 			if(document.getElementById('USEMYSQL').checked){USEMYSQL=1;}
 			if(document.getElementById('USETERMS').checked){USETERMS=1;}
+			if(document.getElementById('USERAD-$t').checked){USERAD=1;}
 			XHR.appendData('USEAD',USEAD);
+			XHR.appendData('USERAD',USERAD);
 			XHR.appendData('USELDAP',USELDAP);
 			XHR.appendData('USEMYSQL',USEMYSQL);
 			XHR.appendData('USETERMS',USETERMS);
@@ -181,6 +205,8 @@ function options(){
 	echo $tpl->_ENGINE_parse_body($html);
 }
 function xSaveOptions(){
+	
+	if(isset($_POST["RAD_PASSWORD"])){$_POST["RAD_PASSWORD"]=url_decode_special_tool($_POST["RAD_PASSWORD"]);}
 	$sock=new sockets();
 	$HotSpotConfig=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));	
 	while (list ($num, $ligne) = each ($_POST) ){	
@@ -198,13 +224,14 @@ function tabs(){
 	$tpl=new templates();	
 	$array["popup"]='{service_parameters}';
 	$array["options"]='{options}';
+	if(isset($_GET["YahooWin"])){$YahooWin=$_GET["YahooWin"];$YahooWinUri="&YahooWin={$_GET["YahooWin"]}";}
 	
 	
 	$fontsize=14;
 	if(count($array)>6){$fontsize=12.5;}
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t$YahooWinUri\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -221,6 +248,51 @@ function tabs(){
 	
 	
 }
+function add_freeweb_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$addfree=$tpl->javascript_parse_text("{add_freeweb_explain}");
+	$t=$_GET["t"];
+	$html="
+		
+var x_AddNewFreeWeb$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);}
+	RefreshTab('squid_hotspot');
+}
+
+function AddNewFreeWeb$t(){
+var servername=prompt('$addfree');
+if(!servername){return;}
+var XHR = new XHRConnection();
+XHR.appendData('ADD_DNS_ENTRY','');
+XHR.appendData('ForceInstanceZarafaID','');
+XHR.appendData('ForwardTo','');
+XHR.appendData('Forwarder','0');
+XHR.appendData('SAVE_FREEWEB_MAIN','yes');
+XHR.appendData('ServerIP','');
+XHR.appendData('UseDefaultPort','0');
+XHR.appendData('UseReverseProxy','0');
+XHR.appendData('gpid','');
+XHR.appendData('lvm_vg','');
+XHR.appendData('servername',servername);
+XHR.appendData('sslcertificate','');
+XHR.appendData('uid','');
+XHR.appendData('useSSL','0');
+XHR.appendData('force-groupware','SPLASHSQUID');
+AnimateDiv('$t-animate');
+XHR.sendAndLoad('freeweb.edit.main.php', 'POST',x_AddNewFreeWeb$t);
+}
+
+
+AddNewFreeWeb$t();
+
+";
+echo $html;
+
+}
 
 
 
@@ -230,10 +302,26 @@ function popup(){
 	$sock=new sockets();
 	$page=CurrentPageName();
 	$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
+	$EnableSplashScreenAsObject=$sock->GET_INFO("EnableSplashScreenAsObject");
 	if(!is_numeric($EnableSplashScreen)){$EnableSplashScreen=0;}
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	$SplashScreenURI=$sock->GET_INFO("SplashScreenURI");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	if(!is_numeric($EnableSplashScreenAsObject)){$EnableSplashScreenAsObject=0;}	
+	
+	
+	
+	$sql="SELECT servername FROM freeweb WHERE groupware='SPLASHSQUID'";
+	
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	$hash[null]="{select}";
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$servername=$ligne["servername"];
+		$hash[$servername]=$servername;
+	
+	}	
+	
 	$t=time();
 	$html="
 	
@@ -244,6 +332,11 @@ function popup(){
 	<tr>
 		<td colspan=2>". Paragraphe_switch_img("{activate_hostpot}","{activate_hostpot_explain}",
 		"EnableSplashScreen",$EnableSplashScreen,null,$width="450")."
+		</td>
+	</tr>
+	<tr>
+		<td colspan=2>". Paragraphe_switch_img("{EnableSplashScreenAsObject}","{EnableSplashScreenAsObject_explain}",
+		"EnableSplashScreenAsObject",$EnableSplashScreenAsObject,null,$width="450")."
 		
 		<div style='width:100%;text-align:right'>
 			<a href=\"javascript:blur();\" 
@@ -251,13 +344,25 @@ function popup(){
 			style='font-size:18px;text-decoration:underline'>{online_help}</a>
 		</div>		
 		</td>
-	</tr>
+	</tr>				
 	<tr>
-		<td class=legend style='font-size:16px'>{redirect_to}:</td>
-		<td>". Field_text("SplashScreenURI",$SplashScreenURI,"font-size:16px;")."
-		<div style='text-align:right'><a href=\"javascript:blur();\" 
-		OnClick=\"javascript:AnimateDiv('BodyContent');Loadjs('freeweb.php?in-front-ajax=yes&newinterface=yes');QuickLinkShow('quicklinks-section_freeweb');\"
-		style='font-size:12px;text-decoration:underline'>&laquo;{use_freeweb_service}&raquo;</a></div>
+		<td class=legend style='font-size:16px' valign='top'>{redirect_to}:</td>
+		<td>". Field_array_Hash($hash, "SplashScreenURI",$SplashScreenURI,null,null,0,"font-size:16px")."
+		
+		
+		<div style='text-align:right'>
+		<table style='width:100%'>
+			<tr>
+			<td width=1%><img src='img/plus-24.png'></td>
+			<td width=100%>
+		<a href=\"javascript:blur();\" 
+							OnClick=\"javascript:Loadjs('$page?add-freeweb-js=yes&t=$t');\"
+					 		style=\"font-size:14px;text-decoration:underline;font-weight:bold\">{add_a_web_service}</a>
+			</td>
+			</tr>
+			</table>
+					 		
+		</div>
 		</td>
 	<tr>
 		<td colspan=2 align='right'><hr>". button("{apply}","SaveHotSpot()","16px")."</td>
@@ -278,7 +383,8 @@ function SaveHotSpot(){
 		if(lock==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}
 		var XHR = new XHRConnection();
 		XHR.appendData('EnableSplashScreen',document.getElementById('EnableSplashScreen').value);
-		XHR.appendData('SplashScreenURI',document.getElementById('SplashScreenURI').value);		
+		XHR.appendData('SplashScreenURI',document.getElementById('SplashScreenURI').value);
+		XHR.appendData('EnableSplashScreenAsObject',document.getElementById('EnableSplashScreenAsObject').value);				
 		AnimateDiv('$t-animate');
 		XHR.sendAndLoad('$page', 'POST',x_SaveHotSpot);
 	}		
@@ -334,9 +440,8 @@ function SaveTermsOfUse$t(){
 }
 
 function SaveOptions(){
-	
-$HotSpotConfig=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));	
-	
+	$sock=new sockets();
+	$HotSpotConfig=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));	
 }
 
 
@@ -344,6 +449,58 @@ function SaveConfig(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableSplashScreen", $_POST["EnableSplashScreen"]);
 	$sock->SET_INFO("SplashScreenURI", $_POST["SplashScreenURI"]);
+	$sock->SET_INFO("EnableSplashScreenAsObject", $_POST["EnableSplashScreenAsObject"]);
 	$sock->getFrameWork("squid.php?build-smooth=yes");
 }
-
+function radius_config(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$array=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));	
+	if(!is_numeric($array["RAD_PORT"])){$array["RAD_PORT"]=1812;}
+	
+	
+	
+	$tt=time();
+	$html="
+	<div id='$tt'></div>
+	<table style='width:99%' class=form>
+	<tr>
+	<td class=legend style='font-size:16px'>{radius_server}:</td>
+	<td>". Field_text("RAD_SERVER-$tt",$array["RAD_SERVER"],"font-size:16px;padding:3px;width:190px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{listen_port}:</td>
+		<td>". Field_text("RAD_PORT-$tt",$array["RAD_PORT"],"font-size:16px;padding:3px;width:90px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{password}:</td>
+		<td>". Field_password("RAD_PASSWORD-$tt",$array["RAD_PASSWORD"],"font-size:16px;padding:3px;width:190px")."</td>
+	</tr>
+	<tr>
+		<td colspan=2 align='right'><hr>". button("{apply}","Save$tt()","18px")."</td>
+					</tr>
+					</table>
+					<script>
+					var x_Save$tt= function (obj) {
+					var results=obj.responseText;
+					if(results.length>3){alert(results);document.getElementById('$tt').innerHTML='';return;}
+					document.getElementById('$tt').innerHTML='';
+					YahooWin3Hide();
+	}
+	
+					function Save$tt(){
+					var XHR = new XHRConnection();
+					XHR.appendData('RAD_SERVER', document.getElementById('RAD_SERVER-$tt').value);
+					XHR.appendData('RAD_PORT', document.getElementById('RAD_PORT-$tt').value);
+					XHR.appendData('RAD_PASSWORD', encodeURIComponent(document.getElementById('RAD_PASSWORD-$tt').value));
+					AnimateDiv('$tt');
+					XHR.sendAndLoad('$page', 'POST',x_Save$tt);
+	}
+	</script>";
+	
+		echo $tpl->_ENGINE_parse_body($html);
+	
+	
+	}

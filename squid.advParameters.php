@@ -47,11 +47,12 @@ function js(){
 	
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$OnLyPorts=null;
 	$title=$tpl->_ENGINE_parse_body("{squid_advanced_parameters}");
-	
+	if(isset($_GET["OnLyPorts"])){$OnLyPorts="&OnLyPorts=yes&t={$_GET["t"]}";}
 	$html="
 	function SquidAVParamStart(){
-		YahooWin6('650','$page?popup=yes','$title');
+		YahooWin6('650','$page?popup=yes$OnLyPorts','$title');
 	}
 	SquidAVParamStart()";
 	
@@ -424,7 +425,10 @@ function popup(){
 	$array["http-safe-ports-ssl"]=$tpl->_ENGINE_parse_body('{http_safe_ports} (SSL)');
 	$array["WCCP"]=$tpl->_ENGINE_parse_body('WCCP');
 	
-	
+	if(isset($_GET["OnLyPorts"])){
+		unset($array["sizelimit"]);
+		unset($array["WCCP"]);
+	}
 
 	while (list ($num, $ligne) = each ($array) ){
 		$html[]= "<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";

@@ -4397,6 +4397,21 @@ function ifconfig_interfaces(){
 	echo "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
 	
 }
+
+function ifconfig_interfaces_all(){
+	$unix=new unix();
+	$cmd=$unix->find_program("ifconfig")." -s";
+	exec($cmd,$results);
+	while (list ($index, $line) = each ($results) ){
+		if(preg_match("#^(.+?)\s+[0-9]+#",$line,$re)){
+			$array[trim($re[1])]=trim($re[1]);
+		}
+	}
+	echo "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
+
+}
+
+
 function ifconfig_all(){
 	$unix=new unix();
 	$cmd=$unix->find_program("ifconfig")." -a 2>&1";
@@ -5559,7 +5574,7 @@ function postfix_multi_reconfigure_all(){
 }
 
 function SQUID_PROXY_PAC_REBUILD(){
-	NOHUP_EXEC("/etc/init.d/artica-postfix restart proxy-pac");
+	NOHUP_EXEC(LOCATE_PHP5_BIN2() ." /usr/share/artica-postfix/exec.proxy.pac.php --write");
 }
 function SQUID_PROXY_PAC_SHOW(){
 	shell_exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.proxy.pac.php --write");

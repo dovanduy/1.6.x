@@ -46,8 +46,8 @@ $GLOBALS["nohup"]=$unix->find_program("nohup");
 $GLOBALS["sysctl"]=$unix->find_program("sysctl");
 $GLOBALS["CHMOD_BIN"]=$unix->find_program("chmod");
 $GLOBALS["CHOWN_BIN"]=$unix->find_program("chown");
-
- 
+$GLOBALS["COUNT-LINES"]=0;
+$GLOBALS["COUNT-LINES-TIME"]=0;
 					
 $GLOBALS["ROUNDCUBE_HACK"]=0;
 $GLOBALS["PDNS_HACK"]=$sock->GET_INFO("EnablePDNSHack");
@@ -61,6 +61,10 @@ $GLOBALS["NODRYREBOOT"]=$sock->GET_INFO("NoDryReboot");
 $GLOBALS["NOOUTOFMEMORYREBOOT"]=$sock->GET_INFO("NoOutOfMemoryReboot");
 $GLOBALS["CLASS_SOCKET"]=$sock;
 $GLOBALS["CLASS_UNIX"]=$unix;
+$GLOBALS["CLEANCMD"]="{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.clean.logs.php --urgency >/dev/null 2>&1 &";
+
+
+
 $sock=null;
 $unix=null;
 
@@ -85,11 +89,31 @@ die();
 
 function Parseline($buffer){
 	$buffer=trim($buffer);
+	
+	$GLOBALS["COUNT-LINES"]++;
+	if($GLOBALS["COUNT-LINES"]>5000){
+		$GLOBALS["TOTAL-LINES"]=$GLOBALS["TOTAL-LINES"]+$GLOBALS["COUNT-LINES"];
+		$distanceInSeconds = round(abs(time() - $GLOBALS["COUNT-LINES-TIME"]));
+		$distanceInMinutes = round($distanceInSeconds / 60);
+		events("{$GLOBALS["TOTAL-LINES"]} Parsed...");
+		if($distanceInMinutes>2){
+			events("{$GLOBALS["TOTAL-LINES"]} Check size...");
+			$GLOBALS["COUNT-LINES-TIME"]=time();
+			shell_exec($GLOBALS["CLEANCMD"]);
+			$GLOBALS["COUNT-LINES"]=0;
+		}
+		
+	}
+	
+	
 	if(strpos($buffer,'):  operation="file_perm" pid=')>0){return;}
 
 
 	$dust=new syslogger();
 	if($dust->MailDustbin($buffer)){return;}
+//kernel dustbin
+	if(strpos($buffer,"ext4_dx_add_entry: Directory index full")>0){return true;}
+	
 	
 	//squid dustbin
 	if(strpos($buffer,"exec.postfix-logger.php")>0){return true;}
@@ -104,7 +128,9 @@ function Parseline($buffer){
 	if(strpos($buffer,"]: Accepting HTTP Socket connections")>0){return true;}	
 	if(strpos($buffer," RELEASE ")>0){return true;}	
 	if(strpos($buffer," SWAPOUT ")>0){return true;}	
+	if(strpos($buffer,"RELEASE -1 FFFFFFFF")>0){return true;}	
 //Postfix dustbin
+
 
 	if(preg_match("#Do you need to run.+?sa-update#",$buffer)){amavis_sa_update($buffer);return;}
 	if(strpos($buffer," fcrontab[")>0){return true;}	
@@ -140,7 +166,7 @@ function Parseline($buffer){
 	if(strpos($buffer,"User supplied password using program zarafa-gateway")>0){return true;}
 	if(strpos($buffer,"authenticated through User supplied password using program")>0){return true;}
 	if(strpos($buffer,"authenticated through Pipe socket using program")>0){return true;}
-
+	
 	
 	if(preg_match("#slapd.+?conn=[0-9]+\s+fd=.+?closed#",$buffer)){return true;}
 	if(strpos($buffer,"msmtp: ")>0){return true;}

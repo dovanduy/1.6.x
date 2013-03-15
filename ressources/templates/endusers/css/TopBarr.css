@@ -34,6 +34,7 @@ td.legend {
     font-size: 16px;
     font-weight: normal;
     text-align: right;
+	text-transform: capitalize;
    
 }
 

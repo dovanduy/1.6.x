@@ -149,10 +149,29 @@ function setup_2(){
 		<td class=legend style='font-size:14px'>{proxy_listen_port}:</td>
 		<td>". Field_array_Hash($arrayPP,"proxy_listen_port",$savedsettings["proxy_listen_port"],null,null,0,"font-size:14px")."</td>
 		</tr>";
-		
+	}
+	
+	if($users->POWER_DNS_INSTALLED){
+		$pdns="	<tr>
+		<td class=legend style='font-size:14px'>{activate_dns_service}:</td>
+		<td>". Field_checkbox("EnablePDNS", 1,0)."</td>
+		</tr>";		
 		
 	}
 	
+	if($users->FREERADIUS_INSTALLED){
+		$freeradius="	<tr>
+		<td class=legend style='font-size:14px'>{activate_radius_service}:</td>
+		<td>". Field_checkbox("EnableFreeRadius", 1,0)."</td>
+		</tr>";		
+	}
+	
+	if($users->dhcp_installed){
+		$dhcpd="	<tr>
+		<td class=legend style='font-size:14px'>{activate_dhcp_service}:</td>
+		<td>". Field_checkbox("EnableDHCPServer", 1,0)."</td>
+		</tr>";
+	}	
 	
 	//FIRST_WIZARD_NIC2 -> fini -> demande de reboot
 	
@@ -187,8 +206,13 @@ function setup_2(){
 	<tr>
 		<td colspan=2 style='font-size:16px;font-weight:bolder'>&nbsp;</td>
 	</tr>	
+	<tr>
+		<td colspan=2 style='font-size:16px;font-weight:bolder'>{services}</div></td>
+	</tr>	
 	$proxy			
-				
+	$pdns	
+	$freeradius	
+	$dhcpd	
 	<tr>
 		<td colspan=2 style='font-size:16px;font-weight:bolder'><div style='text-align:right'><hr>". button("{next}","ChangeQuickHostname()","18px")."</div></td>
 	</tr>
@@ -218,6 +242,25 @@ function setup_2(){
 			if(document.getElementById('proxy_listen_port')){
 				XHR.appendData('proxy_listen_port',document.getElementById('proxy_listen_port').value);
 			}
+			if(document.getElementById('EnablePDNS')){
+				var EnablePDNS=0;
+				if(document.getElementById('EnablePDNS').checked){EnablePDNS=1;}
+				XHR.appendData('EnablePDNS',EnablePDNS);
+			}
+
+			if(document.getElementById('EnableFreeRadius')){
+				var EnableFreeRadius=0;
+				if(document.getElementById('EnableFreeRadius').checked){EnableFreeRadius=1;}
+				XHR.appendData('EnableFreeRadius',EnableFreeRadius);
+			}
+
+			if(document.getElementById('EnableDHCPServer')){
+				var EnableDHCPServer=0;
+				if(document.getElementById('EnableDHCPServer').checked){EnableDHCPServer=1;}
+				XHR.appendData('EnableDHCPServer',EnableDHCPServer);
+			}				
+			
+			  
 			
 			XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
 			XHR.appendData('DNS1',document.getElementById('DNS1').value);
@@ -505,6 +548,18 @@ function setup_4(){
 		$squid->SaveToLdap();
 		
 	}
+	if(isset($savedsettings["EnablePDNS"])){
+		$sock->SET_INFO("EnablePDNS",$savedsettings["EnablePDNS"]);
+	}
+	
+	if(isset($savedsettings["EnableDHCPServer"])){
+		$sock->SET_INFO("EnableDHCPServer",$savedsettings["EnableDHCPServer"]);
+	}	
+	if(isset($savedsettings["EnableFreeRadius"])){
+		$sock->SET_INFO("EnableFreeRadius",$savedsettings["EnableFreeRadius"]);
+		$sock->getFrameWork("freeradius.php?restart=yes");
+	}	
+	  
 	
 	
 	

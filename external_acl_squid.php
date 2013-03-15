@@ -515,7 +515,7 @@ function GetMacFromIP($ipaddr){
 		if(!isset($GLOBALS["SBIN_NOHUP"])){$GLOBALS["SBIN_NOHUP"]=find_program("nohup");}
 		
 		$cmd="{$GLOBALS["SBIN_ARP"]} -n \"$ipaddr\" 2>&1";
-		$this->events($cmd);
+		WLOG($cmd);
 		exec($cmd,$results);
 		while (list ($num, $line) = each ($results)){
 			if(preg_match("#^[0-9\.]+\s+.+?\s+([0-9a-z\:]+)#", $line,$re)){

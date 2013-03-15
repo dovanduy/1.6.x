@@ -140,7 +140,7 @@ if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsApplian
      	 var tempvalue=obj.responseText;
       	if(tempvalue.length>3){alert(tempvalue);}
      	document.getElementById('sslbumpdiv$t').innerHTML='';
-     	Loadjs('squid.restart.php?onlySquid=yes');
+     	Loadjs('squid.restart.php?onlySquid=yes&ask=yes');
      	RefreshTab('main_config_sslbump');
 	 }	
 

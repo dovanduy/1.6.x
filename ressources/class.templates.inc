@@ -2045,6 +2045,7 @@ function statusLogs($line){
 	"check failed of .*? in groups"=>"UK",
 	"_DIE"=>"W",
 	"TROUBLE in"=>"W",
+	'"\s+404\s+[0-9]+\s+"'=>"DELETE"
 	);
 	
 	while (list ($num, $val) = each ($stat) ){
@@ -4938,7 +4939,7 @@ function button($text,$js,$fontsize=null){
 }
 
 function pourcentage_basic($pourc,$bandwith_color,$text){
-	
+	$text=str_replace(" ", "&nbsp;", $text);
 return"<div style='width:100px;background-color:white;padding-left:0px;border:1px solid $bandwith_color;line-height:normal'>
 			<div style='width:{$pourc}px;text-align:center;color:white;padding-top:3px;padding-bottom:3px;line-height:normal;background-color:$bandwith_color'><strong>$text</strong></div>
 		</div>";
@@ -5833,13 +5834,16 @@ function SimpleXMLElementToArray(SimpleXMLElement $xml) {
         return $array;
     }
     
-function FATAL_ERROR_SHOW_128($text,$noform=false){
+function FATAL_ERROR_SHOW_128($text,$noform=false,$nomargin=false){
 	$tpl=new templates();
+	$margin=null;
+	$width="95%";
 	$classform="class=form";
-	if($noform){$classform=null;}
+	if($noform){$classform=null;$width="99%";}
+	if(!$nomargin){$margin="margin:30px";}
 	$html="
-	<center style='margin:30px'>
-	<table style='width:99%' $classform>
+	<center style='$margin'>
+	<table style='width:{$width}' $classform>
 	<tr>
 		<td valign='top' style='width:1%'>
 			<img src='img/error-128.png'>
