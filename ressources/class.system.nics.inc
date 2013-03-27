@@ -195,7 +195,7 @@ class system_nic{
 		`dhcp`,`ROUTES`,`NETWORK`,`enabled`,`ipv6`,`ipv6mask`,`ipv6gw`,`ipv6addr`,`metric`)
 		VALUES('$this->eth','$this->IPADDR','$this->NETMASK','$this->GATEWAY','$this->BROADCAST','$this->DNS_1',
 		'$this->DNS_2','$this->dhcp','$routes','$this->NETWORK',1,'$this->ipv6','$this->ipv6mask',
-		'$this->ipv6gw','$this->ipv6addr','$this->metric`);
+		'$this->ipv6gw','$this->ipv6addr','$this->metric');
 		";
 	
 		if($this->metric==0){$this->metric=$this->lastmetric();exit;}

@@ -35,8 +35,10 @@ if($argv[1]=="--main"){ParseSquidLogMain(true);die();}
 
 
 
-
+	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$RepairHourtimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".repair-hour.time";
+	$RTTSizeTimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".RTTSize.time";
 	$oldpid=@file_get_contents($pidfile);
 	if($oldpid<100){$oldpid=null;}
 	$unix=new unix();
@@ -48,8 +50,21 @@ if($argv[1]=="--main"){ParseSquidLogMain(true);die();}
 		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
 		die();
 	}
+	
+	$timeP=$unix->file_time_min($pidtime);
+	if($timeP<5){
+		events("Main::Line: ".__LINE__." 5Mn minimal current: {$timeP}mn-> DIE");
+		die();
+	}
+	
+	@unlink($pidtime);
+	@file_put_contents($pidtime, time());
+	
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
+	
+	
+	
 	$sock=new sockets();
 	$EnableRemoteSyslogStatsAppliance=$sock->GET_INFO("EnableRemoteSyslogStatsAppliance");
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
@@ -60,6 +75,11 @@ if($argv[1]=="--main"){ParseSquidLogMain(true);die();}
 		ParseSquidLogBrut(false);
 		die();
 	}
+	
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nice=EXEC_NICE();
+	
 	events("Executed pid $mypid");
 	events("Execute ParseSquidLogBrut()");
 	ParseSquidLogBrut(false);
@@ -79,10 +99,30 @@ if($argv[1]=="--main"){ParseSquidLogMain(true);die();}
 	nudityScan();
 	events("Execute WordScanners()");
 	WordScanners();
+	
+	$RepairHourtime=$unix->file_time_min($RepairHourtimeFile);
+	if($RepairHourtime>60){
+		$cmd="$nohup $nice $php /usr/share/artica-postfix/exec.squid.stats.php --repair-hours --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
+		events("$cmd");
+		shell_exec($cmd);
+		@unlink($RepairHourtimeFile);
+		@file_put_contents($RepairHourtimeFile, time());
+	}
+	
+	
+	
+	$RTTSizeTime=$unix->file_time_min($RTTSizeTimeFile);
+	if($RTTSizeTime>5){
+		$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid-users-rttsize.php --now schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1");
+		events("$cmd");
+		shell_exec($cmd);
+		@unlink($RTTSizeTimeFile);
+		@file_put_contents($RTTSizeTimeFile, time());		
+	}
+	
 	events("FINISH....");
 	
-	$php5=$unix->LOCATE_PHP5_BIN();
-	shell_exec(trim(" $php5 ".dirname(__FILE__)."/exec.squid-users-rttsize.php --now schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1"));
+	
 
 function ParseUsersSize(){
 	return;
@@ -297,9 +337,11 @@ function WordScanners(){
 					$q->QUERY_SQL($prefix);
 					if(!$q->ok){
 						writelogs_squid("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"stats");
-						echo $q->mysql_error;}
+						@mkdir("/var/log/artica-postfix/searchwords-sql-errors",0755,true);
+						@file_put_contents("/var/log/artica-postfix/searchwords-sql-errors/".md5($prefix), $prefix);
 					}
-				}			
+				}
+			}			
 		}
 	
 	
@@ -350,7 +392,8 @@ function ParseUserAuthNewDir($directory){
 	
 	if(count($f)>0){
 		events("ParseUserAuthNewDir:: inject ".count($f)." rows on Line: ".__LINE__);
-		$q=new mysql_squid_builder();$q->QUERY_SQL($prefix.@implode(",", $f));
+		$q=new mysql_squid_builder();
+		$q->QUERY_SQL($prefix.@implode(",", $f));
 	}
 	
 }
@@ -401,17 +444,12 @@ function ParseUserAuth($checkpid=false){
 	}
 	
 
-		
-		$php5=$unix->LOCATE_PHP5_BIN();
-		$nohup=$unix->find_program("nohup");
-		$cmdNmap="$nohup $php5 ".dirname(__FILE__)."/exec.nmapscan.php --scan-squid >/dev/null 2>&1 &";		
 		$countDeFiles=0;
 		if (!$handle = opendir("/var/log/artica-postfix/squid-users")) {@mkdir("/var/log/artica-postfix/squid-users",0755,true);die();}
 			if(!$MustContinue){
 				if(systemMaxOverloaded()){
 					events("Fatal:$hostname VERY Overloaded system ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), die(); on Line: ".__LINE__);
 					writelogs_squid("Fatal:$hostname VERY Overloaded system ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), die();",__FUNCTION__,__FILE__,__LINE__,"stats");
-					shell_exec($cmdNmap);
 					return;
 				}
 			}
@@ -423,7 +461,6 @@ function ParseUserAuth($checkpid=false){
 		while (false !== ($filename = readdir($handle))) {
 				if($filename=="."){continue;}
 				if($filename==".."){continue;}
-				
 				$targetFile="/var/log/artica-postfix/squid-users/$filename";
 				$countDeFiles++;
 				$content=@file_get_contents($targetFile);
@@ -434,10 +471,27 @@ function ParseUserAuth($checkpid=false){
 				}
 				@unlink($targetFile);
 		}
-	
-
-		shell_exec($cmdNmap);
+			
 		if(count($f)>0){$q=new mysql_squid_builder();$q->QUERY_SQL($prefix.@implode(",", $f));}
+		nmap_scan();
+}
+
+function nmap_scan(){
+	if(isset($GLOBALS["nmap_scan_executed"])){return;}
+	$unix=new unix();
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
+	$timeF=$unix->file_time_min($pidTime);
+	if($timeF<10){
+		$GLOBALS["nmap_scan_executed"]=true;
+		return;
+	}
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$exec_nice=$unix->EXEC_NICE();
+	$cmdNmap="$exec_nice $nohup $php5 ".dirname(__FILE__)."/exec.nmapscan.php --scan-squid >/dev/null 2>&1 &";
+	@file_put_contents($pidTime, time());
+	shell_exec($cmdNmap);
+	$GLOBALS["nmap_scan_executed"]=true;
 }
 
 
@@ -510,6 +564,7 @@ while (false !== ($filename = readdir($handle))) {
 
 
 function ParseSquidLogMain_sql_toarray($filename){
+	if(!isset($GLOBALS["CLASS_SQUID_TAIL"])){$GLOBALS["CLASS_SQUID_TAIL"]=new squid_tail();}
 	$data=trim(@file_get_contents($filename));
 	$q=new mysql_squid_builder();
 	$array=explode(",", $data);
@@ -546,7 +601,7 @@ function ParseSquidLogMain_sql_toarray($filename){
 	if($mac==null){$mac=GetMacFromIP($CLIENT);}
 	if($username=="-"){$username=null;}
 	if($mac<>null){if($username==null){$username=$q->UID_FROM_MAC($mac);}}
-	if($hostname==null){$hostname=GetComputerName($CLIENT);}
+	if($hostname==null){$hostname=$GLOBALS["CLASS_SQUID_TAIL"]->GetComputerName($CLIENT);}
 	
 	if($username<>null){
 		$GLOBALS["USERSCACHE"][$CLIENT]=$username;
@@ -741,7 +796,7 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 	$workingDir="/var/log/artica-postfix/squid-brut";
 	if($dir<>null){$workingDir="/var/log/artica-postfix/squid-brut/$dir";}
 	$NumberOfFilesTemp=$unix->COUNT_FILES($workingDir);
-	if($NumberOfFilesTemp<2){
+	if($NumberOfFilesTemp<1){
 		events("Open $workingDir, nothing to scan ($NumberOfFilesTemp files)...");
 		if($NumberOfFilesTemp==0){
 			if($dir<>null){@rmdir($workingDir);}
@@ -765,14 +820,13 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 		$d++;
 		$h++;
 		
-		if($d>500){
-			if(system_is_overloaded(basename(__FILE__))){
+		if($d>1000){
+			if(systemMaxOverloaded()){
 				$array_load=sys_getloadavg();
 				$internal_load=$array_load[0];
-				events("ParseSquidLogBrutProcess()::$dir::Overloaded: $internal_load wait 2s",__LINE__);
-				sleep(2);
+				events("ParseSquidLogBrutProcess()::$dir:: Very Overloaded: $internal_load...",__LINE__);
+				break;
 			}
-			$d=0;
 		}
 		
 		
@@ -787,13 +841,13 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 		if($strlen==0){if(!is_file($targetFile)){continue;}$timefile=$unix->file_time_min($targetFile);@unlink($targetFile);continue;}
 		
 		if(!$squidtail->parse_tail($data,$time)){
-			events("ParseSquidLogBrutProcess()::$dir::[$h]:: parse_tail(): unable to parse: $targetFile $squidtail->error",__LINE__);
+			
 			$f++;
 			if($squidtail->ToRemove){
 				$timefile=$unix->file_time_min($targetFile);
-				events("ParseSquidLogBrutProcess()::$dir::[$h]::Removing[PARSED]::{$timefile}mn:: $targetFile",__LINE__);
 				@unlink($targetFile);
 			}
+			events("ParseSquidLogBrutProcess()::$dir::[$h]:: parse_tail(): unable to parse: $targetFile $squidtail->error",__LINE__);
 			continue;
 		}
 		
@@ -830,7 +884,9 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 			}
 			if(count($squidtail->GLOBAL_YOUTUBE)>500){
 				@mkdir("$ContainerDir/Youtube",0755,true);
-				@file_put_contents("$ContainerDir/Youtube/".md5(serialize($squidtail->GLOBAL_YOUTUBE)),
+				$md5=md5(serialize($squidtail->GLOBAL_YOUTUBE));
+				youtube_events("Saving queue:(2000) $ContainerDir/Youtube/".$md5, __LINE__);
+				@file_put_contents("$ContainerDir/Youtube/".$md5,
 				serialize($squidtail->GLOBAL_YOUTUBE));
 				$YOUTUBE=true;
 			}
@@ -875,7 +931,9 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 	}
 	if(count($squidtail->GLOBAL_YOUTUBE)>0){
 		@mkdir("$ContainerDir/Youtube",0755,true);;
-		@file_put_contents("$ContainerDir/Youtube/".md5(serialize($squidtail->GLOBAL_YOUTUBE)), 
+		$md5=md5(serialize($squidtail->GLOBAL_YOUTUBE));
+		youtube_events("Saving queue: $ContainerDir/Youtube/".$md5, __LINE__);
+		@file_put_contents("$ContainerDir/Youtube/".$md5, 
 		serialize($squidtail->GLOBAL_YOUTUBE));
 		$YOUTUBE=true;
 	}
@@ -897,7 +955,7 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 		}
 	}
 	
-	
+	if(system_is_overloaded(basename(__FILE__))){return;}
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nice=EXEC_NICE();
 	$nohup=$unix->find_program("nohup");
@@ -1253,6 +1311,7 @@ while (false !== ($filename = readdir($handle))) {
 
 
 function ArrayToMysql($FINAL_ARRAY,$time=0){
+	if(!isset($GLOBALS["CLASS_SQUID_TAIL"])){$GLOBALS["CLASS_SQUID_TAIL"]=new squid_tail();}
 	if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
 	if(!is_numeric($time)){$time=time();}
 	if($time==0){$time=time();}
@@ -1299,7 +1358,7 @@ function ArrayToMysql($FINAL_ARRAY,$time=0){
 	if($username=="-"){$username=null;}
 	
 	if($mac<>null){if($username==null){$username=$GLOBALS["Q"]->UID_FROM_MAC($mac);}}
-	if($hostname==null){$hostname=GetComputerName($CLIENT);}
+	if($hostname==null){$hostname=$GLOBALS["CLASS_SQUID_TAIL"]->GetComputerName($CLIENT);}
 	if(strlen($username)<3){$username=null;}
 	if(strlen($hostname)<3){
 		events("Fatal: bad hostname `$hostname` client=`$CLIENT`");
@@ -1409,22 +1468,35 @@ function youtube_array_to_sql($array){
 	
 	if($mac==null){$mac=GetMacFromIP($clientip);}
 	if($GLOBALS["VERBOSE"]){echo "$mac:: $VIDEOID -> \n";}	
-	if(!youtube_infos($VIDEOID)){if($GLOBALS["VERBOSE"]){echo "youtube_infos:: $VIDEOID -> FAILED \n";}return;}
+	if(!youtube_infos($VIDEOID)){
+		youtube_events("youtube_infos:: $VIDEOID -> FAILED",__LINE__);
+	}
 	$timeint=strtotime($time);
-	$timeKey=date('YmdH');
+	$timeKey=date('YmdH',$timeint);
 	$account=0;
 	if($mac<>null){if($username==null){$username=$q->UID_FROM_MAC($mac);}}
+	youtube_events("$timeKey => ('$time','$clientip','$hostname','$username','$mac','$account','$VIDEOID')", __LINE__);
 	return array($timeKey,"('$time','$clientip','$hostname','$username','$mac','$account','$VIDEOID')");
 		
 }
+
+
 function youtube_next(){
 	$unix=new unix();
 	$mypid=getmypid();
 	
 	$dirs=$unix->dirdir("/var/log/artica-postfix/squid/queues");
 	while (list ($directory,$array) = each ($dirs) ){
-		$dirs2=$unix->dirdir($directory);if(count($dirs2)==0){@rmdir($directory);continue;}
-		if(is_dir("$directory/Youtube")){youtube_next_dir("$directory/Youtube");}
+		$dirs2=$unix->dirdir($directory);
+		if(count($dirs2)==0){
+			youtube_events("$dirs2 0 elements, remove...",__LINE__);
+			@rmdir($directory);
+			continue;
+		}
+		
+		if(is_dir("$directory/Youtube")){
+			youtube_events("Scanning $directory/Youtube",__LINE__);
+			youtube_next_dir("$directory/Youtube");}
 	
 	}	
 	
@@ -1433,14 +1505,15 @@ function youtube_next(){
 function youtube_next_dir($dir){
 	$unix=new unix();
 	$countDefile=$unix->COUNT_FILES($dir);
-	events("$dir  $countDefile files on Line: ".__LINE__);
+	youtube_events("$dir -> $countDefile files on Line: ",__LINE__);
 	if($countDefile==0){
-		events("youtube_next_dir():: $dir:  remove... on Line: ".__LINE__);
+		youtube_events("youtube_next_dir():: $dir: no files... remove... ",__LINE__);
 		@rmdir($dir);
 		return;
 	}
 	$FINAL=array();
 	if (!$handle = opendir($dir)) {
+		youtube_events("youtube_next_dir():: Fatal: $dir no such directory",__LINE__);
 		ufdbguard_admin_events("Fatal: $dir no such directory",__FUNCTION__,__FILE__,__LINE__,"stats");
 		return;
 	}
@@ -1450,11 +1523,24 @@ function youtube_next_dir($dir){
 		if($filename==".."){continue;}
 		$targetFile="$dir/$filename";
 		$arrayFile=unserialize(@file_get_contents($targetFile));
-		if(!is_array($arrayFile)){@unlink($targetFile);continue;}
+		if(!is_array($arrayFile)){
+			youtube_events("youtube_next_dir()::$targetFile not an array, aborting",__LINE__);
+			@unlink($targetFile);
+			continue;
+		}
+		
+		if($GLOBALS["VERBOSE"]){print_r($arrayFile);}
+		
 		while (list ($index,$RTTSIZEARRAY) = each ($arrayFile) ){
 			$NewArray=youtube_array_to_sql($RTTSIZEARRAY);
-			if(!is_array($NewArray)){@unlink($targetFile);continue;}
-			$FINAL[$NewArray[0]]=$NewArray[1];
+			if(!is_array($NewArray)){
+				youtube_events("youtube_next_dir():: youtube_array_to_sql() return not an array for $targetFile",__LINE__);
+				@unlink($targetFile);
+				continue;
+			}
+			
+			youtube_events("youtube_next_dir():: {$NewArray[0]} -> {$NewArray[1]}",__LINE__);
+			$FINAL[$NewArray[0]][]=$NewArray[1];
 				
 		}
 		$c++;
@@ -1462,6 +1548,7 @@ function youtube_next_dir($dir){
 		
 	
 	}
+	youtube_events("youtube_inject() ".count($FINAL)." elements for $c scanned files...",__LINE__);
 	youtube_inject($FINAL);
 	if($c>0){events("youtube_next_dir():: $c deleted files...");}
 	
@@ -1470,6 +1557,7 @@ function youtube_next_dir($dir){
 
 
 function youtube($Aspid=false){
+	
 	$unix=new unix();
 	if($Aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".youtube.pid";
@@ -1509,10 +1597,11 @@ function youtube($Aspid=false){
 		$c++;
 		$targetFile="/var/log/artica-postfix/youtube/$filename";
 		$array=unserialize(@file_get_contents($targetFile));
-		
+		if($GLOBALS["VERBOSE"]){print_r($array);}
 			
 		$NewArray=youtube_array_to_sql($array);
 		if(!is_array($NewArray)){
+			youtube_events("$targetFile = not an array...",__LINE__);
 			@unlink($targetFile);
 			continue;
 		}
@@ -1522,6 +1611,7 @@ function youtube($Aspid=false){
 		}
 
 	if(count($GLOBALS["YOUTUBE"])==0){
+		youtube_events("GLOBALS[\"YOUTUBE\"] = 0 aborting...",__LINE__);
 		if($GLOBALS["VERBOSE"]){
 			echo "array_sql no rows...\n";
 			return;
@@ -1533,16 +1623,45 @@ function youtube($Aspid=false){
 	events("youtube():: Done... ($c files)");
 }
 
+function youtube_events($text,$line){
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	if($GLOBALS["VERBOSE"]){echo $text."\n";}
+	$common="/var/log/artica-postfix/youtube.inject.log";
+	$size=@filesize($common);
+	if($size>100000){@unlink($common);}
+	$pid=getmypid();
+	$date=date("Y-m-d H:i:s");
+	$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)."$date $text");
+	$h = @fopen($common, 'a');
+	$sline="[$pid] $text";
+	$line="$date [$pid] $text [Line:$line]\n";
+	@fwrite($h,$line);
+	@fclose($h);	
+	
+}
+
+
 function youtube_inject($array){
 	$q=new mysql_squid_builder();
+	youtube_events("youtube_inject() array of ".count($array)." elements...",__LINE__);
 	while (list ($timeKey, $rows) = each ($array) ){
 		if(count($rows)==0){continue;}
 		$q->check_youtube_hour($timeKey);
-		$sql="INSERT INTO youtubehours_$timeKey (zDate,ipaddr,hostname,uid,MAC,account,youtubeid) VALUES ".
-				@implode(",", $rows);
+		youtube_events("youtubehours_$timeKey = ".count($rows)." elements...",__LINE__);
+		if(count($rows)==1){
+			youtube_events("youtubehours_$timeKey = '".$rows[0]."'",__LINE__);
+		}
+		$suffix=trim(@implode(",", $rows));
+		if($suffix==null){
+			youtube_events("youtubehours_$timeKey = suffix = null, abort",__LINE__);
+			continue;
+		}
+		$sql="INSERT INTO youtubehours_$timeKey (zDate,ipaddr,hostname,uid,MAC,account,youtubeid) VALUES $suffix";
+				
 			
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){
+			youtube_events("youtubehours_$timeKey = $q->mysql_error ",__LINE__);
 			if($GLOBALS["VERBOSE"]){echo "**** $q->mysql_error **** \n";}
 			ufdbguard_admin_events("$q->mysql_error", __FUNCTION__, __FILE__, __LINE__, 'youtube');
 			@file_put_contents("/var/log/artica-postfix/youtube-errors/".md5($sql), $sql);
@@ -1559,7 +1678,10 @@ function youtube_infos($VIDEOID){
 	if($GLOBALS["VERBOSE"]){echo "$VIDEOID:: $uri -> \n";}	
 	$curl=new ccurl($uri);
 	$error=null;
-	if(!$curl->GetFile("/tmp/jsonc.inc")){return false;}
+	if(!$curl->GetFile("/tmp/jsonc.inc")){
+		youtube_events("gdata.youtube.com = Failed = > $curl->error",__LINE__);
+		return false;
+	}
 	$infox=@file_get_contents("/tmp/jsonc.inc");
 	$infos=json_decode($infox);
 	$uploaded=$infos->data->uploaded;
@@ -1819,6 +1941,7 @@ function inject_array_remote($array){
 function inject_failed($array){
 	if(!is_dir("/var/log/artica-postfix/dansguardian-stats2-errors")){@mkdir("/var/log/artica-postfix/dansguardian-stats2-errors",0755,true);}
 	$serialized=serialize($array);
+	events("FATAL !!! save into /var/log/artica-postfix/dansguardian-stats2-errors in line:".__LINE__);
 	@file_put_contents("/var/log/artica-postfix/dansguardian-stats2-errors/".md5($serialized),$serialized);
 	
 }

@@ -225,7 +225,7 @@ end;
 
 
 if a='B' then begin
-   fpsystem('/opt/kaspersky/klms/bin/klms-control --reset-web-admin-password');
+   fpsystem('/opt/kaspersky/klms/bin/klms-control --set-web-admin-password');
    writeln('[Enter] key to Exit');
    readln();
    Menu();
@@ -847,6 +847,7 @@ l.SaveToFile('/etc/network/interfaces');
 writeln('Shutdown ',eth,'...');
 fpsystem('ifdown '+eth);
 writeln('Starting ',eth,' with new parameters...');
+fpsystem('ifconfig '+eth+' down');
 fpsystem('ifconfig '+eth+' '+IP+' netmask '+NETMASK +' up');
 fpsystem('ip route add default via '+Gayteway+' dev '+eth+'  proto static');
 IP:=iptcp.IP_ADDRESS_INTERFACE(eth);
@@ -854,7 +855,14 @@ NETMASK:=iptcp.IP_MASK_INTERFACE(eth);
 Gayteway:=iptcp.IP_LOCAL_GATEWAY(eth);
 writeln('New configuration done '+IP+'/'+NETMASK +' Gateway:'+Gayteway);
 
-writeln('Restarting Artica Web interface console, please wait....');
+l:=Tstringlist.Create;
+l.Add(IP+';'+Gayteway+';'+netmask+';'+DNS+';'+eth);
+writeln('Updating new configuration, please wait....');
+l.SaveToFile('/etc/artica-postfix/network.first.settings');
+fpsystem('/usr/share/artica-postfix/exec.virtuals-ip.php --articalogon');
+
+
+writeln('Restarting Artica Web SSL Interface Console, please wait....');
 if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix restart apache >/dev/null 2>&1');
 if FileExists('/etc/init.d/artica-agent') then fpsystem('/etc/init.d/artica-agent restart >/dev/null 2>&1');
 writeln('[Enter] key to Exit');

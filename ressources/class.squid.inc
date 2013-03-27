@@ -672,6 +672,12 @@ class squidbee{
 			$this->HTCP_PORT=intval(trim($ini->_params["NETWORK"]["HTCP_PORT"]));
 			$this->visible_hostname=$ini->_params["NETWORK"]["visible_hostname"];
 			$this->LDAP_AUTH=$ini->_params["NETWORK"]["LDAP_AUTH"];
+			$this->LDAP_AUTH=$sock->GET_INFO("SquidStandardLDAPAuth");
+			
+			if($this->ASROOT){
+				echo "Starting......: [AUTH]: LDAP_AUTH = $this->LDAP_AUTH\n";
+			}
+			
 			$this->NTLM_AUTH=$ini->_params["NETWORK"]["NTLM_AUTH"];
 			$this->LDAP_EXTERNAL_AUTH=$ini->_params["NETWORK"]["LDAP_EXTERNAL_AUTH"];
 			$this->EnableParentProxy=$ini->_params["NETWORK"]["EnableParentProxy"];
@@ -680,6 +686,11 @@ class squidbee{
 			if(isset($ini->_params["NETWORK"]["max_filedesc"])){$this->max_filedesc=$ini->_params["NETWORK"]["max_filedesc"];}
 			if(!isset($ini->_params["NETWORK"]["forwarded_for"])){$ini->_params["NETWORK"]["forwarded_for"]="transparent";}
 			
+			if(!isset($ini->_params["NETWORK"]["snmp_community"])){$ini->_params["NETWORK"]["snmp_community"]="";}
+			if(!isset($ini->_params["NETWORK"]["snmp_enable"])){$ini->_params["NETWORK"]["snmp_enable"]=0;}
+			if(!isset($ini->_params["NETWORK"]["snmp_port"])){$ini->_params["NETWORK"]["snmp_port"]=null;}
+			if(!isset($ini->_params["NETWORK"]["snmp_access_ip"])){$ini->_params["NETWORK"]["snmp_access_ip"]=null;}
+			if(!isset($ini->_params["NETWORK"]["certificate_center"])){$ini->_params["NETWORK"]["certificate_center"]=null;}
 			
 			
 			$this->snmp_community=$ini->_params["NETWORK"]["snmp_community"];
@@ -813,8 +824,8 @@ class squidbee{
 		if($this->visible_hostname=="proxyweb"){$this->visible_hostname=null;}
 		if($this->visible_hostname==null){if(class_exists("unix")){$unix=new unix();$this->visible_hostname=$unix->hostname_g();}}
 		if($this->visible_hostname==null){$this->visible_hostname=$users->hostname;}
-		if($this->LDAP_AUTH==null){$this->LDAP_AUTH=0;}
-		if($this->NTLM_AUTH==null){$this->NTLM_AUTH=0;}
+		if(!is_numeric($this->LDAP_AUTH)){$this->LDAP_AUTH=0;}
+		if(!is_numeric($this->NTLM_AUTH)){$this->NTLM_AUTH=0;}
 		if($this->enable_kavproxy==null){$this->enable_kavproxy=0;}
 		if($this->enable_dansguardian==null){$this->enable_dansguardian=0;}
 		if($this->CACHE_SIZE==null){$this->CACHE_SIZE=2000;}
@@ -1473,6 +1484,11 @@ function SaveToLdap($norestart=false){
 			
 			$ini=$ini."ALT_PORT=$this->alt_listen_port\n";
 			$ini=$ini."visible_hostname=$this->visible_hostname\n";
+			
+			
+			
+			writelogs("Save LDAP_AUTH=$this->LDAP_AUTH",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$sock->SET_INFO("SquidStandardLDAPAuth", $this->LDAP_AUTH);
 			$ini=$ini."LDAP_AUTH=$this->LDAP_AUTH\n";
 			$ini=$ini."NTLM_AUTH=$this->NTLM_AUTH\n";
 			$ini=$ini."LDAP_EXTERNAL_AUTH=$this->LDAP_EXTERNAL_AUTH\n";
@@ -1525,7 +1541,7 @@ function SaveToLdap($norestart=false){
 				}
 				
 			}
-			$sock=new sockets();
+			
 			writelogs("Save SquidGlobalConfArray ".count($this->global_conf_array)." parameters",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$sock->SaveConfigFile(base64_encode(serialize($this->global_conf_array)),"SquidGlobalConfArray");
 			$sock->SET_INFO("DansGuardianEnabled",$this->enable_dansguardian);
@@ -1660,6 +1676,7 @@ function SaveToLdap($norestart=false){
 		
 		
 		private function ldap_auth_conf(){
+			if($this->ASROOT){echo "Starting......: [AUTH]: LDAP_AUTH = $this->LDAP_AUTH\n";}
 			if(!is_array($this->global_conf_array)){$this->ParseConfig();}
 			if($GLOBALS["VERBOSE"]){if(!$this->ASROOT){$GLOBALS["VERBOSE"]=false;}}
 			if($this->EnableKerbAuth==1){return "#--------- LDAP AUTH settings\n#squid_kerb_auth enabled\n";}
@@ -1671,6 +1688,7 @@ function SaveToLdap($norestart=false){
 			if($this->LDAP_AUTH==0){
 				if($this->LDAP_EXTERNAL_AUTH<>1){
 					if($this->ASROOT){echo "Starting......: [AUTH]: LDAP authentication method is disabled\n";}
+					return "#--------- LDAP authentication method is disabled\n";
 					return null;
 				}
 			}
@@ -2475,7 +2493,10 @@ function SaveToLdap($norestart=false){
 		
 		
 		private function ntlm_auth_conf(){
-			if($this->hasProxyTransparent==1){return;}
+			if($this->hasProxyTransparent==1){
+				return "#--------- NTLM `hasProxyTransparent` is enabled, aborting.\n";}
+				
+				
 			if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 			$users=$GLOBALS["CLASS_USERS"];
 			$sock=new sockets();
@@ -2493,7 +2514,7 @@ function SaveToLdap($norestart=false){
 			}
 			
 			
-			if($this->NTLM_AUTH==0){return null;}
+			if($this->NTLM_AUTH==0){return "#--------- NTLM NTLM_AUTH=0.\n";}
 			
 			if($this->ASROOT){
 				if(is_file("/usr/bin/ntlm_auth")){$users->SQUID_NTLM_ENABLED=true;$users->SQUID_NTLM_AUTH="/usr/bin/ntlm_auth";}
@@ -2522,7 +2543,7 @@ function SaveToLdap($norestart=false){
 			if($this->IS_32){
 				$external_childs=" children-max=5 children-startup=1 children-idle=2";
 				$auth_param_child=" startup=10 idle=5";}
-			$conf[]= "#--------- NTLM AUTH settings\n";
+			$conf[]= "#--------- NTLM AUTH settings (line:".__LINE__.")\n";
 			$conf[]= "\n#Authentification mode, building using squid compiled for artica";
 	
 			$conf[]= "";
@@ -2552,6 +2573,8 @@ function SaveToLdap($norestart=false){
 			$conf[]= "acl AUTHENTICATED proxy_auth REQUIRED";
 			//$conf[]= "client_persistent_connections off\n";
 			$conf[]="";
+			
+			
 			return implode("\n",$conf);
 			if($this->ASROOT){
 				$unix=new unix();
@@ -2568,18 +2591,29 @@ function SaveToLdap($norestart=false){
 		}
 		
 	private function auth_param_basic($direct=false){
-		if($this->hasProxyTransparent==1){$this->NTLM_AUTH=0;return;}
+		if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
+		if($this->hasProxyTransparent==1){
+			$this->NTLM_AUTH=0;
+			return "#--------- auth_param_basic `hasProxyTransparent` is enabled, aborting.\n";
+		}
+		$users=$GLOBALS["CLASS_USERS"];
+		if(!is_file($users->SQUID_NTLM_AUTH)){
+			$unix=new unix();
+			$users->SQUID_NTLM_AUTH=$unix->find_program("ntlm_auth");
+		}
 		echo "Starting......: [AUTH]: Basic: get definitions\n";
 		if($this->IS_32){$auth_param_child=" startup=10 idle=5";}
 		if($this->IS_33){$auth_param_child=" startup=10 idle=5";}
 		$Multiple=false;
 		if($this->NTLM_AUTH==1){
 			if(!$direct){
-				$conf[]= "#Basic authentication for other browser that did not supports NTLM:";
-				$conf[]= "auth_param basic program $users->SQUID_NTLM_AUTH --helper-protocol=squid-2.5-basic";
-				$conf[]= "auth_param basic children 30$auth_param_child";
-				$conf[]= "auth_param basic realm Basic Identification";
-				$conf[]= "auth_param basic credentialsttl 2 hours";
+				if(is_file($users->SQUID_NTLM_AUTH)){
+					$conf[]= "#Basic authentication for other browser that did not supports NTLM:";
+					$conf[]= "auth_param basic program $users->SQUID_NTLM_AUTH --helper-protocol=squid-2.5-basic";
+					$conf[]= "auth_param basic children 30$auth_param_child";
+					$conf[]= "auth_param basic realm Basic Identification";
+					$conf[]= "auth_param basic credentialsttl 2 hours";
+				}
 			}
 		}
 		
@@ -2614,6 +2648,7 @@ function SaveToLdap($norestart=false){
 	}
 	
 	private function locate_generic_bin($program){
+		if(!$this->ASROOT){return;}
 		$possibleDirs[]="/lib/squid3";
 		$possibleDirs[]="/lib64/squid3";
 		$possibleDirs[]="/lib/squid";
@@ -2624,6 +2659,8 @@ function SaveToLdap($norestart=false){
 		while (list ($num, $directory) = each ($possibleDirs) ){
 			if(is_file("$directory/$program")){return "$directory/$program";}
 		}
+		
+		echo "\n!!!!! ******************* !!!!!\nStarting......: [ERR]: locate_generic_bin() Unable to find $program\n!!!!! ******************* !!!!!\n";
 	
 	}	
 			
@@ -3310,9 +3347,10 @@ function BuildSquidConf(){
 		$EnableMalwarePatrol=0;
 		
 		if($this->ASROOT){
-			echo "Starting......: Squid Version $this->SQUID_BIN_VERSION\n";
+			$articaver=trim(@file_get_contents("/usr/share/artica-postfix/VERSION"));
+			echo "Starting......: Squid Version $this->SQUID_BIN_VERSION / Artica Version $articaver\n";
 			$conf=$conf . "# Squid version $this->SQUID_BIN_VERSION\n";
-			$conf=$conf . "# Builded by Artica v.".trim(@file_get_contents("/usr/share/artica-postfix/VERSION"))."\n";
+			$conf=$conf . "# Builded by Artica v.$articaver\n";
 			$conf=$conf . "# Date: ".date("Y-m-d H:i:s")."\n";
 			
 			
@@ -3391,6 +3429,9 @@ function BuildSquidConf(){
 			
 
 		if($this->hasProxyTransparent==1){
+			if($this->ASROOT){
+				echo "Starting......: [AUTH]: Disable all authentication method for transparent mode\n";
+			}
 			$this->EnableKerbAuth=0;
 			$this->NTLM_AUTH=0;
 			$this->EnableKerbAuth=0;
@@ -3645,7 +3686,7 @@ function BuildSquidConf(){
 		$conf=$conf. $this->WHITELISTED_AUTH();
 		$conf=$conf .$this->ACL_WHITE_COMPUTERS_IP();
 		if($this->ACL_ARP_ENABLED){
-			$conf=$conf ."\nacl whitelisted_mac_computers arp \"/etc/squid3/whitelisted-computers-by-mac.acl\n";
+			$conf=$conf ."\nacl whitelisted_mac_computers arp \"/etc/squid3/whitelisted-computers-by-mac.acl\"\n";
 		}
 		$ACL_TEMPLATES_URIS=$this->ACL_TEMPLATES_URIS();
 		$ACL_HOTSPOT_URIS=$this->ACL_HOTSPOT_URIS();

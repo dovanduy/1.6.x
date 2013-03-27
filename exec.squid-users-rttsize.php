@@ -5,7 +5,7 @@ $GLOBALS["OLD"]=false;
 $GLOBALS["FORCE"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(is_array($argv)){
-	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;}
+	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	if(preg_match("#--old#",implode(" ",$argv))){$GLOBALS["OLD"]=true;}
 	if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 	if(preg_match("#--rebuild#",implode(" ",$argv))){$GLOBALS["REBUILD"]=true;}
@@ -28,6 +28,7 @@ if($argv[1]=="--now"){UsersSizeByHour();ParseQueue();}
 
 UsersSizeByHour();
 ParseQueue();
+
 UserRTT_SIZE_DAY();
 UserSizeRTT_oldfiles();
 main_table();
@@ -71,24 +72,27 @@ function UsersSizeByHour(){
 	
 	
 	// VF /var/log/artica-postfix/squid/queues/RTTSize;
-	
+	$q=new mysql_squid_builder();
+	$q->CreateUserSizeRTTTable();
 	$RTTSIZEPATH="/var/log/artica-postfix/squid-RTTSize/".date("YmdH");
 	
 	if(!is_file($RTTSIZEPATH)){
 		events("$RTTSIZEPATH no such file...");
+		events("UserSizeRTT_oldfiles()");
 		UserSizeRTT_oldfiles();
+		events("main_table()");
 		main_table();
 		return;
 	}
 	
-	$q=new mysql_squid_builder();
-	$q->CreateUserSizeRTTTable();
+	
 	if(!$q->TABLE_EXISTS("UserSizeRTT")){
 		events("Fatal UserSizeRTT no such table, die()");
 		ufdbguard_admin_events("Fatal UserSizeRTT no such table, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
 		return;
 	}	
 	
+	events("$RTTSIZEPATH = ". FormatBytes(@filesize($RTTSIZEPATH)/1024));
 	$RTTSIZEARRAY=unserialize(@file_get_contents($RTTSIZEPATH));
 	RTTSizeArray($RTTSIZEARRAY);
 
@@ -117,33 +121,49 @@ function ParseQueue(){
 		}
 	}
 	
+	$timeMin=$unix->file_time_min($pidtime);
+	if(!$GLOBALS["VERBOSE"]){
+	if($timeMin<3){
+		events("Need to wait 3mn");
+		return;
+	}
+	}
 	
 	events("ParseQueue(): Starting pid [$mypid]...");
 	@file_put_contents($pidfile,$mypid);
-	
+	@unlink($pidtime);
+	@file_put_contents($pidtime, time());	
 	
 	$dirs=$unix->dirdir("/var/log/artica-postfix/squid/queues");
 	while (list ($directory,$array) = each ($dirs) ){
-		$dirs2=$unix->dirdir($directory);if(count($dirs2)==0){@rmdir($directory);continue;}
+		events("ParseQueue(): Scanning $directory");
+		$dirs2=$unix->dirdir($directory);
+		events("ParseQueue(): Scanning $directory ". count($dirs2)." items");
+		if(count($dirs2)==0){
+			events("ParseQueue(): remove $directory");
+			@rmdir($directory);
+			continue;
+		}
 		if(is_dir("$directory/RTTSize")){ParseRTTSizeDir("$directory/RTTSize");}
 		
 	}
-	
-	
+	events("ParseQueue():: Finish.. ".__LINE__);
+
 }
 
 function ParseRTTSizeDir($dir){
 	
-	
+	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".ParseQueue.time";
 	$unix=new unix();
+	events("ParseRTTSizeDir():: count files on $dir Line: ".__LINE__);
 	$countDefile=$unix->COUNT_FILES($dir);
-	events("$dir  $countDefile files on Line: ".__LINE__);
+	events("ParseRTTSizeDir():: $dir  $countDefile files on Line: ".__LINE__);
 	if($countDefile==0){
 		events("ParseRTTSizeDir():: $dir:  remove... on Line: ".__LINE__);
 		@rmdir($dir);
 		return;
 	}
-	
+	events("ParseRTTSizeDir(): scanning $dir");
 	
 	$q=new mysql_squid_builder();
 	$q->CreateUserSizeRTTTable();
@@ -158,47 +178,73 @@ function ParseRTTSizeDir($dir){
 		return;
 	}	
 	$c=0;
+	$d=0;
+	$D=0;
 	while (false !== ($filename = readdir($handle))) {
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}
 		$targetFile="$dir/$filename";
 		$arrayFile=unserialize(@file_get_contents($targetFile));
+		$countDeArrayFile=count($arrayFile);
 		if(!is_array($arrayFile)){@unlink($targetFile);continue;}
 		while (list ($index,$RTTSIZEARRAY) = each ($arrayFile) ){
-			RTTSizeArray($RTTSIZEARRAY);
+			$d++;
+			$D++;
+			if($d>500){
+				events("RTTSizeArray():: $countDeArrayFile/$D items...(". basename($targetFile).")");
+				$d=0;
+			}
 			
+			
+			RTTSizeArray($RTTSIZEARRAY,"$countDeArrayFile/$D");
+			@file_put_contents($pidtime, time());
+			usleep(100);
 		}
+		
+		if(!RTTSizeInjectArray()){continue;}
+		
 		$c++;
+		$D=0;
 		@unlink($targetFile);
 		
 	}
 			
-	if($c>0){events("ParseRTTSizeDir():: $c deleted files...");}
+	if($c>0){events("ParseRTTSizeDir($dir):: $c deleted files...");}
 	
 }
 
-function RTTSizeArray($RTTSIZEARRAY){
+function RTTSizeInjectArray(){
 	$q=new mysql_squid_builder();
+	while (list ($prefix,$rows) = each ($GLOBALS["QUERIES_RTT"]) ){
+		if(count($rows)<2){continue;}
+		events("RTTSizeInjectArray():: ".count($rows). " items");
+		$sql=$prefix.@implode(",", $rows);
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){
+			events("RTTSizeInjectArray() $q->mysql_error");
+			return false;
+		}
+	}
+	return true;
+}
+
+function RTTSizeArray($RTTSIZEARRAY,$dir=null){
+	
 	$classParse=new squid_tail();
+	
+	//events("RTTSizeArray($dir):: ". count($RTTSIZEARRAY). " items");
+	
 	
 	if(count($RTTSIZEARRAY["UID"])>0){
 		$f=array();
 		$prefix="INSERT IGNORE INTO UserSizeRTT (`zMD5`,`zdate`,`uid`,`size`,`hits`) VALUES ";
 		while (list ($username,$array) = each ($RTTSIZEARRAY["UID"]) ){
-			$time=$array["xtime"];$date=date("Y-m-d H:i:s");
+			$time=$array["xtime"];$date=date("Y-m-d H:i:s",$time);
 			$hits=$array["HITS"];
 			$size=$array["SIZE"];
 			$md5=md5($username.$date);
 			echo $username." HITS:$hits SIZE:$size\n";
-			$f[]="('$md5','$date','$username','$size','$hits')";
-		}
-	
-		if(count($f)>0){
-			$q->QUERY_SQL($prefix.@implode(",", $f));
-			if(!$q->ok){
-				ufdbguard_admin_events("Fatal: $q->mysql_error\n",__FUNCTION__,__FILE__,__LINE__,"stats");
-				return;
-			}
+			$GLOBALS["QUERIES_RTT"][$prefix][]="('$md5','$date','$username','$size','$hits')";
 		}
 	
 	}
@@ -207,61 +253,81 @@ function RTTSizeArray($RTTSIZEARRAY){
 		$f=array();
 		$prefix="INSERT IGNORE INTO UserSizeRTT (`zMD5`,`zdate`,`ipaddr`,`hostname`,`size`,`hits`) VALUES ";
 		while (list ($ip,$array) = each ($RTTSIZEARRAY["IP"]) ){
-			$time=$array["xtime"];$date=date("Y-m-d H:i:s");
+			$time=$array["xtime"];$date=date("Y-m-d H:i:s",$time);
 			$hits=$array["HITS"];
 			$size=$array["SIZE"];
 			$md5=md5($ip.$date);
 			$hostname=$classParse->GetComputerName($ip);
 			echo $ip."/$hostname HITS:$hits SIZE:$size\n";
-			$f[]="('$md5','$date','$ip','$hostname','$size','$hits')";
+			$GLOBALS["QUERIES_RTT"][$prefix]="('$md5','$date','$ip','$hostname','$size','$hits')";
 		}
 	
-		if(count($f)>0){
-			$q->QUERY_SQL($prefix.@implode(",", $f));
-			if(!$q->ok){
-				ufdbguard_admin_events("Fatal: $q->mysql_error\n",__FUNCTION__,__FILE__,__LINE__,"stats");
-				return;
-			}
-		}
-	
+			
 	}
 	
 	if(count($RTTSIZEARRAY["MAC"])>0){
 		$f=array();
 		$prefix="INSERT IGNORE INTO UserSizeRTT (`zMD5`,`zdate`,`MAC`,`size`,`hits`) VALUES ";
 		while (list ($mac,$array) = each ($RTTSIZEARRAY["MAC"]) ){
-			$time=$array["xtime"];$date=date("Y-m-d H:i:s");
+			$time=$array["xtime"];$date=date("Y-m-d H:i:s",$time);
 			$hits=$array["HITS"];
 			$size=$array["SIZE"];
 			$md5=md5($ip.$date);
-				
 			echo "$mac HITS:$hits SIZE:$size\n";
-			$f[]="('$md5','$date','$mac','$size','$hits')";
+			$GLOBALS["QUERIES_RTT"][$prefix][]="('$md5','$date','$mac','$size','$hits')";
 		}
 	
-		if(count($f)>0){
-		$q->QUERY_SQL($prefix.@implode(",", $f));
-				if(!$q->ok){
-				ufdbguard_admin_events("Fatal: $q->mysql_error\n",__FUNCTION__,__FILE__,__LINE__,"stats");
-				return;
-		}
-		}
-	
-		}
+	}
 	
 	
 }
 
 
 
-function UserRTT_SIZE_DAY(){
+function UserRTT_SIZE_DAY($day=null){
+	$GLOBALS["Q"]=new mysql_squid_builder();
+	events("UserRTT_SIZE_DAY():: Starting.. ".__LINE__);
 	
-	$sql="SELECT uid, DATE_FORMAT( zdate, '%Y-%m-%d' ) AS tday, DATE_FORMAT( zdate, '%H' ) AS thour , DATE_FORMAT( zdate, '%Y%m%d' ) AS tablesuffix, ipaddr, hostname, account, MAC, UserAgent, size, hits
+	$GLOBALS["Q"]->QUERY_SQL("DELETE FROM UserSizeRTT WHERE DATE_FORMAT( zdate, '%Y-%m-%d' ) = '1970-01-01'");
+	
+	
+	$sql="SELECT uid, DATE_FORMAT( zdate, '%Y-%m-%d' ) AS tday, DATE_FORMAT( zdate, '%H' ) AS thour , 
+			DATE_FORMAT( zdate, '%Y%m%d' ) AS tablesuffix, ipaddr, hostname, account, MAC, UserAgent, size, hits
 	FROM UserSizeRTT WHERE DATE_FORMAT( zdate, '%Y-%m-%d' ) < DATE_FORMAT( NOW( ) , '%Y-%m-%d' )";
 	
-	$q=new mysql_squid_builder();
+	if($day<>null){
+		$sql="SELECT uid, DATE_FORMAT( zdate, '%Y-%m-%d' ) AS tday, DATE_FORMAT( zdate, '%H' ) AS thour ,
+			DATE_FORMAT( zdate, '%Y%m%d' ) AS tablesuffix, ipaddr, hostname, account, MAC, UserAgent, size, hits
+			FROM UserSizeRTT WHERE DATE_FORMAT( zdate, '%Y-%m-%d' ) = '$day'";		
+	}
 	
-	$results=$q->QUERY_SQL($sql);
+	
+	$GLOBALS["Q"]->CreateUserSizeRTTTable();
+	if(!$GLOBALS["Q"]->TABLE_EXISTS("UserSizeRTT")){
+		events("Fatal UserSizeRTT no such table, die()");
+		ufdbguard_admin_events("Fatal UserSizeRTT no such table, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return;
+	}	
+	
+	$Allrow=$GLOBALS["Q"]->COUNT_ROWS("UserSizeRTT");
+		if($day==null){
+			if($Allrow>1000000){
+				events("UserRTT_SIZE_DAY():: Too Many items ($Allrow), get rows by elemnts...".__LINE__);
+				$sql="SELECT DATE_FORMAT( zdate, '%Y-%m-%d' ) AS tday FROM UserSizeRTT GROUP BY tday ORDER BY tday";
+			
+				$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+				while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+					UserRTT_SIZE_DAY($ligne["tday"]);
+				}
+				
+			}
+	}
+	
+	
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	
+	events("UserRTT_SIZE_DAY():: ".mysql_num_rows($results)." result(s)".__LINE__);
+	
 	if(mysql_num_rows($results)==0){return;}
 	
 	
@@ -278,15 +344,36 @@ function UserRTT_SIZE_DAY(){
 		$size=$ligne["size"];
 		$hits=$ligne["hists"];
 		$zMD5=md5($tablename.$uid.$ipaddr.$hostname.$MAC.$hour);
+		
+		if($tablename=="UserSizeD_19700101"){
+		
+			continue;
+		}
 		$f[$tablename][]="('$zMD5','$uid','$zdate','$ipaddr','$hostname','$account','$MAC','$UserAgent','$size','$hits','$hour')";
 		
+		if(count($f[$tablename])>5000){
+			
+			if(!UserRTT_SIZE_DAY_inject($f)){
+				events("UserRTT_SIZE_DAY():: -> UserRTT_SIZE_DAY_inject Failed  line:" .__LINE__);
+				return;
+			}
+			$f=array();
+		}
 		
 	}
 	
 	
 	if(count($f)>0){
+		events("UserRTT_SIZE_DAY():: -> UserRTT_SIZE_DAY_inject for ".count($f)." elements line:" .__LINE__);
 		if(UserRTT_SIZE_DAY_inject($f)){
-			$q->QUERY_SQL("DELETE FROM UserSizeRTT WHERE DATE_FORMAT( zdate, '%Y-%m-%d' ) < DATE_FORMAT( NOW( ) , '%Y-%m-%d' )");
+			if($day==null){
+				$GLOBALS["Q"]->QUERY_SQL("DELETE FROM UserSizeRTT WHERE DATE_FORMAT( zdate, '%Y-%m-%d' ) < DATE_FORMAT( NOW( ) , '%Y-%m-%d' )");
+			}else{
+				events("UserRTT_SIZE_DAY():: DELETE FROM UserSizeRTT WHERE DATE_FORMAT( zdate, '%Y-%m-%d' ) = '$day' line:" .__LINE__);
+				$GLOBALS["Q"]->QUERY_SQL("DELETE FROM UserSizeRTT WHERE DATE_FORMAT( zdate, '%Y-%m-%d' ) = '$day'");
+			}
+		}else{
+			events("UserRTT_SIZE_DAY():: -> UserRTT_SIZE_DAY_inject Failed  line:" .__LINE__);
 		}
 	
 	}
@@ -295,16 +382,24 @@ function UserRTT_SIZE_DAY(){
 
 function UserRTT_SIZE_DAY_inject($array){
 	
-
-	
-	
-	$q=new mysql_squid_builder();
 	while (list ($tablename, $rows) = each ($array)){
-		if(!$q->CreateUserSizeRTT_day($tablename)){ufdbguard_admin_events("$tablename: Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+		$GLOBALS["UserRTT_SIZE_DAY_inject"]=$GLOBALS["UserRTT_SIZE_DAY_inject"]+count($rows);
+		
+		events("UserRTT_SIZE_DAY_inject():: -> $tablename for ".count($rows)." total {$GLOBALS["UserRTT_SIZE_DAY_inject"]} line:" .__LINE__);
+		
+		if(!$GLOBALS["Q"]->CreateUserSizeRTT_day($tablename)){
+			events("UserRTT_SIZE_DAY_inject():: -> CreateUserSizeRTT_day() failed  line:" .__LINE__);
+			ufdbguard_admin_events("$tablename: Query failed {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}
+		
 		$sql="INSERT IGNORE INTO `$tablename` (`zMD5`,`uid`,`zdate`,
 		`ipaddr`,`hostname`,`account`,`MAC`,`UserAgent`,`size`,`hits`,`hour`) VALUES ".@implode(",", $rows);
-		if(!$q->QUERY_SQL($sql)){
-			ufdbguard_admin_events("$tablename: Query failed {$q->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;
+		
+		if(!$GLOBALS["Q"]->QUERY_SQL($sql)){
+			events("UserRTT_SIZE_DAY_inject():: -> MySQL error  line:" .__LINE__);
+			ufdbguard_admin_events("$tablename: Query failed {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
 		}
 		
 	}

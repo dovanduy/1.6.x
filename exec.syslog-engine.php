@@ -895,6 +895,11 @@ function system_admin_events_inject($f,$nooptimize=false){
 			if(!$q->ok){
 				WriteMyLogs("system_admin_events_inject:: $tablename: `$q->mysql_error`",__FUNCTION__,__FILE__,__LINE__);
 				writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+				if(preg_match("#Can't find file#", "$q->mysql_error")){
+					$q->QUERY_SQL("DROP TABLE $tablename","artica_events");
+					$tq->CheckTableTaskEvents($tablename);
+					$q->QUERY_SQL($sql,"artica_events");
+				}
 			}else{
 				if($GLOBALS["VERBOSE"]){echo "$tablename (".count($rows)." rows)\n";}
 			}			

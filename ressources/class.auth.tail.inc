@@ -33,7 +33,7 @@ class auth_tail{
 		if(strpos($buffer,"Successful su")>0){return true;}
 		
 		if(preg_match("#pam_ldap: error trying to bind as user \"uid=root,.+?\"\s+\(Invalid credentials\)#", $buffer)){
-			$GLOBALS["CLASS_UNIX"]->send_email_events("Error, root password is not set in LDAP Database", "pam_ldap claim $buffer\nYou should set your root password in the Artica web interface", "security");
+			//$GLOBALS["CLASS_UNIX"]->send_email_events("Error, root password is not set in LDAP Database", "pam_ldap claim $buffer\nYou should set your root password in the Artica web interface", "security");
 			return true;
 		}
 		

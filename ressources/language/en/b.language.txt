@@ -3171,6 +3171,12 @@ dotted quad (1.2.3.4),  an hostname  (radius.example.com), an ipv6 mask (fe80::/
 <activate_dhcp_service>Activate the DHCP service</activate_dhcp_service>
 <deny_artica_to_write_config>Deny Artica to write the configuration file automatically</deny_artica_to_write_config>
 <basic_ad_auth>Basic Active Directory Authentication</basic_ad_auth>
+<Created_tmp_disk_tables>Created temp tables</Created_tmp_disk_tables>
+<Created_tmp_tables>Created temp tables</Created_tmp_tables>
+
+<EnableSquidRemoteMySQL_text>This feature is disabled because your server using a remote MySQL service.[br]
+Purge operation must be enabled on the remote Artica server that store your MySQL service</EnableSquidRemoteMySQL_text>
+<DisableLocalStatisticsTasks>Disable local statistics tasks</DisableLocalStatisticsTasks>
 <metric>Metric</metric>
 <statistics_by_day>Daily statistics</statistics_by_day>
 <squid_logs_purge_explain>This task dump proxy statistics tables into a backup directory
@@ -3224,3 +3230,53 @@ Continue ?
 <ufdbguard_debug_off>This will turn off the Web Filtering serive debug mode.
 If you answer to yes, the Web filtering engine will be restarted.
 </ufdbguard_debug_off>
+<APP_SQUID_DB>Statistics MySQL Engine</APP_SQUID_DB>
+<restore_purged_statistics>Restore backuped statistics</restore_purged_statistics>
+<restore_purged_statistics_explain>Schedule or restore some backuped statistics by your Artica server or by other Artica servers</restore_purged_statistics_explain>
+<restore_statistics_database_explain2>This section allows you to setup backuped statistics restore tasks.[br]
+Set it the path that store backuped containers.[br]
+You can select a single backup or schedule an automatic restore task.
+</restore_statistics_database_explain2>
+<remote_connection>Remote connection</remote_connection>
+<remote_connection_wizard_text>Create/use a local folder connected to a remote resource using WebDav, Windows File Sharing, FTP....</remote_connection_wizard_text>
+<autofs_wizard_explain>The Auto-connection allows your server to create a "virtual" directory.[br]
+This virtual directory is a connection to a remote resource.[br]
+The local system think that this directory is a local folder but in fact all stored files and sub-directories are located to a remote server.[br]
+You can use many protocols such as Windows File sharing, WebDAV, SSH, FTP...[br]
+It depends on libraries installed on your server.[br]
+Benefit of this feature is when the server did not need to browse the remote resource, it is disconnected automatically.[br]
+In the opposite, if the system needs to access to files and folders, the resource is automatically connected.
+Select your saved connections or use the wizard in order to create a new one.
+</autofs_wizard_explain>
+<autofs_wizard_1>
+[b]1) Select your protocol[/b][br]
+In this dropdown list, you will see all available protocols.
+[br]Choose the protocol you want your server to use. 
+</autofs_wizard_1>
+<autofs_wizard_2>
+[b]2) Credentials informations[/b][br]
+Define here correct credentials in this form in order to allow your server to connect to the remote resource. 
+</autofs_wizard_2>
+<mounts_list_explain>Open the connection list in order to select it.</mounts_list_explain>
+<restore_folder>Restore folder</restore_folder>
+<restored>Restored datas</restored>
+<restore_a_backup>Restore a backup container</restore_a_backup>
+<squid_logs_restore>Restore containers task</squid_logs_restore>
+<squid_logs_restore_explain>This task run the restore task on all backuped Proxy statistics containers from a specified path</squid_logs_restore_explain>
+<APP_SQUID_DB>Statistics Database</APP_SQUID_DB> 
+<restored_containers>Restored containers</restored_containers>
+<restore_all_containers>Restore all containers</restore_all_containers>
+<mysql_statistics_engine>MySQL statistics Service</mysql_statistics_engine>
+<mysql_statistics_engine_params>Parameters of your MySQL service that store Proxy statistics</mysql_statistics_engine_params>
+<innodb_version>InnoDB version</innodb_version>
+<remote_mysqlsquidserver_text>Use a Remote MySQL service in order to inject and calculate Proxy statistics</remote_mysqlsquidserver_text>
+<squidlog_migrate_ask>This task will dump the local database and export it to the remote server.
+Do you want to perform this operation ?
+</squidlog_migrate_ask>
+<migrate_local_datas>Migrate local data</migrate_local_datas>
+<network_settings_will_be_applied_after_reboot>Network settings will be applied after reboot the server</network_settings_will_be_applied_after_reboot>
+<Max_used_connections>MAX used connections</Max_used_connections>
+<restart_artica_web_services_explain>This task restart Artica Framework service and Artica Web SSL console</restart_artica_web_services_explain>
+<restart_artica_web_services>Restart Artica Web consoles</restart_artica_web_services>
+<videos_number>Videos number</videos_number>
+<videos>videos</videos>

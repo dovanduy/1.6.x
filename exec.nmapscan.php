@@ -531,8 +531,14 @@ function nmap_scan_squid(){
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
 	
+
+	if(system_is_overloaded(basename(__FILE__))){
+		writelogs("Overloaded system, aborting",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}	
+	
 	$TimeF=$unix->file_time_min($pidTime);
-	if($TimeF<5){return;}
+	if($TimeF<10){return;}
 	
 	$oldpid=$unix->get_pid_from_file($pidpath);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
@@ -554,10 +560,20 @@ function nmap_scan_squid(){
 	$results=$q->QUERY_SQL($sql);
 	if(mysql_num_rows($results)==0){return;}
 	
-	
+	$c=0;$d=0;
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+		$c++;
+		$d++;
 		$mac=$ligne["MAC"];
 		nmap_scan_squid_mac($mac);
+		if($c>10){
+			if(system_is_overloaded(basename(__FILE__))){
+				writelogs("Overloaded system, aborting after $d scans",__FUNCTION__,__FILE__,__LINE__);
+				return;
+			}
+			$c=0;
+		}
+		
 	}
 	
 }
@@ -570,14 +586,14 @@ function nmap_scan_squid_mac($mac){
 	if($count==0){return;}
 	$unix=new unix();
 	$users=new usersMenus();
-	
+	$NICE=EXEC_NICE();
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 		
 		$IPADDRESS=$ligne["ipaddr"];
 		if(!$unix->PingHostCMD($IPADDRESS)){continue;}
 		
 		
-		$cmd=$users->NMAP_PATH." -v -F -PE -PN -O $IPADDRESS  --system-dns --version-light 2>&1";
+		$cmd=trim($NICE." ".$users->NMAP_PATH." -v -F -PE -PN -O $IPADDRESS  --system-dns --version-light 2>&1");
 		$resultsScan=array();
 		exec($cmd,$resultsScan);
 		$array=ExecArrayToArray($resultsScan);
@@ -586,6 +602,7 @@ function nmap_scan_squid_mac($mac){
 		echo "$mac:-> $IPADDRESS OK\n";
 		$data=base64_encode(serialize($array));
 		$sql="UPDATE webfilters_nodes SET nmap=1,nmapreport='$data' WHERE MAC='$mac'";
+		$q->QUERY_SQL($sql);
 	}
 	
 }

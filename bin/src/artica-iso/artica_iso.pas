@@ -54,6 +54,34 @@ end;
 
     if FileExists('/etc/php5/cli/conf.d/ming.ini') then fpsystem('/bin/rm /etc/php5/cli/conf.d/ming.ini');
 
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    fpsystem('clear');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('');
+    writeln('************************************************************************');
+    writeln('************************************************************************');
+    writeln('');
+    writeln('artica-cd... Please wait, do nothing... Artica will configure your server');
+    writeln('');
+    writeln('************************************************************************');
+    writeln('************************************************************************');
+
+
     if FileExists('/home/artica/php-engine.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING PHP ENGINE.....');
           ForceDirectories('/opt/artica-agent');
@@ -162,26 +190,35 @@ end;
        end;
 
         if FileExists('/home/artica/packages/articasql.tar.gz') then begin
-            writeln('Artica ISO: PLEASE WAIT.... INSTALLING Artica Mysql Statistics.....');
+            writeln('Artica ISO: PLEASE WAIT.... INSTALLING Artica MySQL Categories Statistics.....');
            forceDirectories('/opt/articatech');
            fpsystem('/bin/tar -xf /home/artica/packages/articasql.tar.gz -C /opt/articatech/ >/dev/null 2>&1');
-           fpsystem('/bin/mv /home/artica/packages/articasql.tar.gz /home/artica/packages/articasql.tar.gz.old');
+           fpsystem('/bin/rm /home/artica/packages/articasql.tar.gz');
         end;
+
+        if FileExists('/home/artica/packages/squid-db.tar.gz') then begin
+            writeln('Artica ISO: PLEASE WAIT.... INSTALLING Artica MySQL Engine Statistics.....');
+            forceDirectories('/opt/squidsql');
+            fpsystem('/bin/tar -xf /home/artica/packages/squid-db.tar.gz -C /opt/squidsql/ >/dev/null 2>&1');
+            fpsystem('/bin/mv /home/artica/packages/squid-db.tar.gz /home/artica/packages/squid-db.tar.gz.old');
+            fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.squid-db.php --init >/dev/null 2>&1');
+        end;
+
        if FIleExists('/usr/bin/apt-get') then begin
           writeln('Artica ISO: PLEASE WAIT.... REMOVING EXIM IF IT EXISTS...');
           if FileExists('/usr/sbin/exim') then begin
-             fpsystem('/usr/bin/apt-get --purge --yes --force-yes --remove exim4* >/dev/Null 2>&1');
-             fpsystem('/bin/echo "exim4 hold" | /usr/bin/dpkg --set-selections');
-             fpsystem('/bin/echo "xmail hold" | /usr/bin/dpkg --set-selections');
+             fpsystem('/usr/bin/apt-get --purge --yes --force-yes --remove exim4* >/dev/null 2>&1');
+             fpsystem('/bin/echo "exim4 hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
+             fpsystem('/bin/echo "xmail hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
           end;
           writeln('Artica ISO: PLEASE WAIT.... REMOVING SQUID/POSTFIX/SAMBA FROM DEBIAN REPOSITORY...');
-          fpsystem('/bin/echo "squid hold" | /usr/bin/dpkg --set-selections');
-          fpsystem('/bin/echo "squid3 hold" | /usr/bin/dpkg --set-selections');
-          fpsystem('/bin/echo "squid3-common hold" | /usr/bin/dpkg --set-selections');
-          fpsystem('/bin/echo "postfix hold" | /usr/bin/dpkg --set-selections');
-          fpsystem('/bin/echo "samba hold" | /usr/bin/dpkg --set-selections');
-          fpsystem('/bin/echo "winbind hold" | /usr/bin/dpkg --set-selections');
-          fpsystem('/bin/echo "samba-common hold" | /usr/bin/dpkg --set-selections');
+          fpsystem('/bin/echo "squid hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
+          fpsystem('/bin/echo "squid3 hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
+          fpsystem('/bin/echo "squid3-common hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
+          fpsystem('/bin/echo "postfix hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
+          fpsystem('/bin/echo "samba hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
+          fpsystem('/bin/echo "winbind hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
+          fpsystem('/bin/echo "samba-common hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
        end;
 
        if FileExists('/home/artica/packages/klmsui.deb') then begin
@@ -262,12 +299,14 @@ end;
 
        if FileExists('/home/artica/packages/squid32.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING SQUID 3.2x.....');
-          fpsystem('/bin/tar -xvf /home/artica/packages/squid32.tar.gz -C /');
+          fpsystem('/bin/tar -xvf /home/artica/packages/squid32.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/packages/squid32.tar.gz /home/artica/squid32.tar.gz.old');
           forceDirectories('/var/run/squid');
           fpsystem('/bin/chmod 0777 /var/run/squid');
-          fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd 2>&1');
+
     end;
+
+    fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd 2>&1');
 
        if FileExists('/home/artica/packages/metascanner.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING Kaspersky Metascanner.....');
@@ -279,35 +318,35 @@ end;
 
        if FileExists('/home/artica/packages/c-icap.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING C-ICAP.....');
-          fpsystem('/bin/tar -xvf /home/artica/packages/c-icap.tar.gz -C /');
+          fpsystem('/bin/tar -xvf /home/artica/packages/c-icap.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/packages/c-icap.tar.gz /home/artica/c-icap.tar.gz.old');
     end;
 
        if FileExists('/home/artica/packages/ftpunivtlse1fr.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING Webfilter databases.....');
           ForceDirectories('/var/lib/ftpunivtlse1fr');
-          fpsystem('/bin/tar -xvf /home/artica/packages/ftpunivtlse1fr.tar.gz -C /var/lib/ftpunivtlse1fr/');
+          fpsystem('/bin/tar -xvf /home/artica/packages/ftpunivtlse1fr.tar.gz -C /var/lib/ftpunivtlse1fr/ >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/packages/ftpunivtlse1fr.tar.gz /home/artica/ftpunivtlse1fr.tar.gz.old');
     end;
 
 
        if FileExists('/home/artica/packages/mskutils.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING mskutils.....');
-          fpsystem('/bin/tar -xvf /home/artica/packages/mskutils.tar.gz -C /');
+          fpsystem('/bin/tar -xvf /home/artica/packages/mskutils.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/packages/mskutils.tar.gz /home/artica/mskutils.tar.gz.old');
     end;
 
 
        if FileExists('/home/artica/squid32.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING squid 3.2x.....');
-          fpsystem('/bin/tar -xvf /home/artica/squid32.tar.gz -C /');
+          fpsystem('/bin/tar -xvf /home/artica/squid32.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/squid32.tar.gz /home/artica/squid32.tar.gz.old');
 
        end;
 
        if FileExists('/home/artica/ufdbguard.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING UfdbGuard.....');
-          fpsystem('/bin/tar -xvf /home/artica/ufdbguard.tar.gz -C /');
+          fpsystem('/bin/tar -xvf /home/artica/ufdbguard.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/ufdbguard.tar.gz /home/artica/ufdbguard.tar.gz.bak');
        end;
 
@@ -387,11 +426,18 @@ if not FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
          fpsystem('update-rc.d -f lighttpd remove >/dev/null 2>&1');
          fpsystem('/bin/mv -f /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.org');
          fpsystem('/bin/touch  /etc/lighttpd/init.d');
-         fpsystem('dpkg-divert --divert /etc/lighttpd/lighttpd.conf.org /etc/lighttpd/lighttpd.conf');
-         fpsystem('dpkg-divert --divert /etc/lighttpd/init.d /etc/init.d/lighttpd');
+         fpsystem('dpkg-divert --divert /etc/lighttpd/lighttpd.conf.org /etc/lighttpd/lighttpd.conf >/dev/null 2>&1');
+         fpsystem('dpkg-divert --divert /etc/lighttpd/init.d /etc/init.d/lighttpd >/dev/null 2>&1');
          writeln('artica-cd... removing lighttpd original instance done...');
     end;
-
+     fpsystem('clear');
+    writeln('************************************************************************');
+    writeln('************************************************************************');
+    writeln('');
+    writeln('artica-cd...0% Please wait, do nothing... the server will be restarted....');
+     writeln('');
+    writeln('************************************************************************');
+    writeln('************************************************************************');
 
     fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd 2>&1');
     writeln('artica-cd... Creating Artica configuration by process1, please wait...');
@@ -408,7 +454,7 @@ if not FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
     writeln('************************************************************************');
     writeln('************************************************************************');
     writeln('');
-    writeln('artica-cd... Please wait, do nothing... the server will be restarted....');
+    writeln('artica-cd...50% Please wait, do nothing... the server will be restarted....');
      writeln('');
     writeln('************************************************************************');
     writeln('************************************************************************');
@@ -423,6 +469,14 @@ if not FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
     writeln('');
     fpsystem('clear');
     writeln('');
+    writeln('************************************************************************');
+    writeln('************************************************************************');
+    writeln('');
+    writeln('artica-cd...80% Please wait, do nothing... the server will be restarted....');
+     writeln('');
+    writeln('************************************************************************');
+    writeln('************************************************************************');
+
     fpsystem('/usr/share/artica-postfix/bin/process1 --force --yes-from-iso >/dev/null 2>&1');
     writeln('artica-cd... remove init boot');
     fpsystem('update-rc.d -f artica-cd remove >/dev/null 2>&1');
@@ -440,6 +494,14 @@ if not FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
     writeln('');
     writeln('');
     writeln('');
+    fpsystem('clear');
+    writeln('************************************************************************');
+    writeln('************************************************************************');
+    writeln('');
+    writeln('artica-cd...99% Please wait, press [ENTER] KEY. the server will be restarted....');
+     writeln('');
+    writeln('************************************************************************');
+    writeln('************************************************************************');
     fpsystem('clear');
     writeln('artica-cd... System will reboot....');
     fpsystem('reboot');

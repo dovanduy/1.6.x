@@ -7,176 +7,161 @@ Your system will be able to serve many Macintosh clients simultaneously as an Ap
 <abovenot>n&atilde;o &eacute; superior</abovenot>
 <access_events>Eventos de Acesso</access_events>
 <acls_and_quotas>ACLS &amp; Cotas</acls_and_quotas>
-<acls_folders_rebuild_text>This will rebuild all permissions and ACLs, perform this operation ?</acls_folders_rebuild_text>
-<acls_no_such_dir_text>This directory does not exists on your system.[br]Perhaps you have remove it.[br]I suggest to remove this entry..</acls_no_such_dir_text>
-<acl_proxy_auth_explain>Give here username (the userid) that is stored by your LDAP server or Active Directory.[br]
-Note that it is only available if your have enabled the Proxy Authentication</acl_proxy_auth_explain>
-<ActAsSMTPGatewayStatistics>Act as SMTP Gateway logs/statistics</ActAsSMTPGatewayStatistics>
-<ActAsSMTPGatewayStatistics_text>If enabled this server will server SMTP events statistics and will be in charge of manage/backup/restore SMTP system logs</ActAsSMTPGatewayStatistics_text>
-<ActHasMaster>Act has Master</ActHasMaster>
-<ActHasSlave>Act has slave</ActHasSlave>
-<activate_openvpn_connection>Activate the VPN connection and connect to the VPN server</activate_openvpn_connection>
-<activate_sync_port>Activate the synchronize port</activate_sync_port>
-<activate_sync_port_mgreylist_text>If you enable this feature, remote MX server are able to connect in order to retreive the greylisting database trough the 5252 port.[br]
-If you have firewalls between your MXs, you should enable TCP connections in both directions between random unprivileged source ports and destination port 5252.
-</activate_sync_port_mgreylist_text>
-<ActiveDirectory_branches>Active Directory branches</ActiveDirectory_branches>
+<acls_folders_rebuild_text>Isso ir&aacute; recriar todas as permiss&otilde;es e ACLs, realizar esta opera&ccedil;&atilde;o?</acls_folders_rebuild_text>
+<acls_no_such_dir_text>Este diret&oacute;rio n&atilde;o existe em seu sistema. [br] Talvez voc&ecirc; removeu. [br] eu sugiro remover esta entrada</acls_no_such_dir_text>
+<acl_proxy_auth_explain>D&ecirc; aqui nome de usu&aacute;rio (ID do usu&aacute;rio) que &eacute; armazenado pelo servidor LDAP ou Active Directory. [br]
+Note que &eacute; dispon&iacute;vel apenas se tiver habilitado a autentica&ccedil;&atilde;o de proxy</acl_proxy_auth_explain>
+<ActAsSMTPGatewayStatistics>Atuar como Gateway SMTP logs / estat&iacute;stica</ActAsSMTPGatewayStatistics>
+<ActAsSMTPGatewayStatistics_text>Se ativado este servidor SMTP estat&iacute;sticas do servidor eventos e ser&aacute; respons&aacute;vel por gerenciar / backup / restore logs do sistema SMTP</ActAsSMTPGatewayStatistics_text>
+<ActHasMaster>Acto &eacute; principal</ActHasMaster>
+<ActHasSlave>Acto &eacute; escravo</ActHasSlave>
+<activate_openvpn_connection>Ativar a conex&atilde;o VPN e conectar ao servidor VPN</activate_openvpn_connection>
+<activate_sync_port>Ative a porta de sincroniza&ccedil;&atilde;o</activate_sync_port>
+<activate_sync_port_mgreylist_text>Se voc&ecirc; ativar esse recurso, servidor remoto MX s&atilde;o capazes de se conectar a fim de recuperar a base de dados atrav&eacute;s da porta greylisting 5252. [br]
+Se voc&ecirc; tem entre seus firewalls MXs, voc&ecirc; deve habilitar conex&otilde;es TCP nos dois sentidos entre as portas de origem aleat&oacute;rios sem privil&eacute;gios e porta de destino 5252.</activate_sync_port_mgreylist_text>
+<ActiveDirectory_branches>filiais Active Directory</ActiveDirectory_branches>
 <activedirectory_ipaddr>Adicionar endere&ccedil;o IP (opcional)</activedirectory_ipaddr>
-<active_directory_group>Active Directory group</active_directory_group>
-<activity>Activity</activity>
-<AddDefaultCharset_explain>This directive specifies a default value for the media type charset parameter (the name of a character encoding) to be added to a response if and only if the response's content-type is either text/plain or text/html.[br]
-This should override any charset specified in the body of the response via a META element,
-though the exact behavior is often dependent on the user's client configuration.[br]
-A setting of "Off" disables this functionality.[br]
-AddDefaultCharset "On" enables a default charset of iso-8859-1.[br]
-Any other value is assumed to be the charset to be used, which should be one of the IANA registered charset values for use in MIME media types.[br]
-see http://www.iana.org/assignments/character-sets</AddDefaultCharset_explain>
-<AddInArticaLogonFrontPage>Make links in Main logon front page</AddInArticaLogonFrontPage>
-<AddInArticaLogonFrontPage_text>If set, the main logon front-page will add links to the Public registration pages</AddInArticaLogonFrontPage_text>
-<additional_addresses>additional addresses</additional_addresses>
-<addrbl_server_text>Add RBL servers to check</addrbl_server_text>
-<ADDWEBSITE_PROXY_EXPLAIN>Add a website inside the category databases in order to filter it or to add it into the Web proxy statistics</ADDWEBSITE_PROXY_EXPLAIN>
-<add_amanda_computer>Add a new computer/ remote directory to backup</add_amanda_computer>
-<add_a_new_group_in_this_org>Add a new group in your organization</add_a_new_group_in_this_org>
-<add_a_subdomain>Add a subdomain</add_a_subdomain>
-<add_default_nets>Add default networks in ACLs</add_default_nets>
-<add_default_www>Add default website</add_default_www>
-<add_forwarder_text>Add a new DNS Server to check for all your newtork cards on this server</add_forwarder_text>
-<add_iscsi_disk>Add a new iSCSI Disk</add_iscsi_disk>
-<add_iscsi_explain>This form will help you to add a new iSCSI disk on this system.[br]First you need to set the IP address of the target server that will store your iSCSI hard disks.[br]
-If there is available disks, you will be able to select them.</add_iscsi_explain>
+<active_directory_group>Grupo Active Directory</active_directory_group>
+<activity>Atividade</activity>
+<AddDefaultCharset_explain>Esta diretiva especifica um valor padr&atilde;o para o par&acirc;metro charset tipo de m&iacute;dia (o nome de uma codifica&ccedil;&atilde;o de caracteres) para ser adicionado a uma resposta, se e somente se a resposta do tipo de conte&uacute;do &eacute; um texto / plain ou text / html. [br]
+Isto deve substituir qualquer charset especificado no corpo da resposta por meio de um elemento META,
+embora o comportamento exato &eacute; muitas vezes dependente da configura&ccedil;&atilde;o do cliente do usu&aacute;rio. [br]
+Um ajuste de &quot;Off&quot; desabilita essa funcionalidade. [br]
+AddDefaultCharset &quot;On&quot; permite uma charset padr&atilde;o da ISO-8859-1. [br]
+Qualquer outro valor &eacute; assumido como sendo o conjunto de caracteres a ser utilizado, o que deve ser um dos valores charset IANA registados para utiliza&ccedil;&atilde;o em media tipos MIME. [br]
+ver http://www.iana.org/assignments/character-sets</AddDefaultCharset_explain>
+<AddInArticaLogonFrontPage>Fa&ccedil;a liga&ccedil;&otilde;es na p&aacute;gina principal de logon frontal</AddInArticaLogonFrontPage>
+<AddInArticaLogonFrontPage_text>Se definido, o logon principal de primeira p&aacute;gina ir&aacute; adicionar links para as p&aacute;ginas de registro p&uacute;blicos</AddInArticaLogonFrontPage_text>
+<additional_addresses>endere&ccedil;os adicionais</additional_addresses>
+<addrbl_server_text>Adicionar servidores RBL para verificar</addrbl_server_text>
+<ADDWEBSITE_PROXY_EXPLAIN>Adicionar um site dentro das bases de dados da categoria, a fim de filtr&aacute;-la ou adicion&aacute;-lo nas estat&iacute;sticas de proxy da Web</ADDWEBSITE_PROXY_EXPLAIN>
+<add_amanda_computer>Adicionar um novo computador / diret&oacute;rio remoto de backup</add_amanda_computer>
+<add_a_new_group_in_this_org>Adicionar um novo grupo na sua organiza&ccedil;&atilde;o</add_a_new_group_in_this_org>
+<add_a_subdomain>Adicionar um subdom&iacute;nio</add_a_subdomain>
+<add_default_nets>Adicionar redes padr&atilde;o em ACLs</add_default_nets>
+<add_default_www>Adicionar site padr&atilde;o</add_default_www>
+<add_forwarder_text>Adicionar um novo servidor de DNS para verificar se todas as placas de rede no servidor</add_forwarder_text>
+<add_iscsi_disk>Adicionar um novo disco iSCSI</add_iscsi_disk>
+<add_iscsi_explain>Esta forma vai ajudar voc&ecirc; a adicionar um novo disco iSCSI no sistema. [br] Primeiro voc&ecirc; precisa definir o endere&ccedil;o IP do servidor de destino que ir&aacute; armazenar seus iSCSI discos r&iacute;gidos. [br]
+Se h&aacute; discos dispon&iacute;veis, voc&ecirc; ser&aacute; capaz de selecion&aacute;-los.</add_iscsi_explain>
 <add_keywords>Adicionar palavras-chave</add_keywords>
 <add_keywords_smtp_check>Adicionar palavras-chave no banco de dados, a fim de verific&aacute;-las em cada e-mail</add_keywords_smtp_check>
-<add_loadbalance_service>Add new balance service</add_loadbalance_service>
-<add_loadbalance_service_text>Create a new service that will be in charge of balancing connections to backend servers</add_loadbalance_service_text>
-<ADD_LVM_DISK>Add new lvm disk</ADD_LVM_DISK>
-<ADD_LVM_DISK_TEXT>Convert a physical hard drive into a LVM hard drive[br]Datas will be lost</ADD_LVM_DISK_TEXT>
+<add_loadbalance_service>Adicionar novo servi&ccedil;o balanceado</add_loadbalance_service>
+<add_loadbalance_service_text>Criar um novo servi&ccedil;o que estar&aacute; a cargo de conex&otilde;es de equil&iacute;brio para os servidores de back-end</add_loadbalance_service_text>
+<ADD_LVM_DISK>Adicionar novo disco lvm</ADD_LVM_DISK>
+<ADD_LVM_DISK_TEXT>Converter um disco r&iacute;gido f&iacute;sico em uma unidade LVM disco r&iacute;gido [br] Dados ser&atilde;o perdidos</ADD_LVM_DISK_TEXT>
 <add_members>Adicionar membros</add_members>
-<add_mount_point>Create a connexion</add_mount_point>
-<add_mount_point_text>Create a connexion to a device or a remote network folder</add_mount_point_text>
+<add_mount_point>Criar uma conex&atilde;o</add_mount_point>
+<add_mount_point_text>Criar uma conex&atilde;o a um dispositivo ou uma pasta de rede remota</add_mount_point_text>
 <add_multiple_keywords_explain>Escreva a lista de palavras-chave que voc&ecirc; precisa verificar (separadas por um enter). [br]
  Selecione a se&ccedil;&atilde;o do email que voc&ecirc; precisa verificar todo o conte&uacute;do, assunto por assunto... [br]
  Define a pontua&ccedil;&atilde;o de spam que ser&atilde;o adicionados quando o email bater com as palavras-chaves definidas. [br]</add_multiple_keywords_explain>
 <add_multiple_members_explain>Coloque aqui os membros (os endere&ccedil;os de e-mail) que voc&ecirc; quer adicionar. [br] Cada membro deve ser separada por um enter</add_multiple_members_explain>
-<add_multiple_rbl_explain>Add here your RBL servers you need to check separated by a carriage return</add_multiple_rbl_explain>
+<add_multiple_rbl_explain>Adicione aqui os seus servidores RBL voc&ecirc; precisa escrever separados por um s&iacute;mbolo de retorno</add_multiple_rbl_explain>
 <add_mysql_user_text>Adicione um novo administrador mysql que poder&aacute; ser conectado com o servidor</add_mysql_user_text>
-<add_new_disk>Add a new disk</add_new_disk>
-<add_new_route_text>Add a new TCP/IP route rule</add_new_route_text>
-<add_official_domains_popup_text>Add here your domain name (eg mydomain.com)
-you can add multiple domains, separate them with a comma:
-eg(mydomain.com,mydomain.net,mydomain.fr,mydomain.de,mydomain.us)
-</add_official_domains_popup_text>
-<add_serveralias_ask>Give the Web servername: www.domain.tld or domain.tld or *.domain.tld...</add_serveralias_ask>
-<add_smb_virtual_server>Add a new Samba virtual server that will be emulated by the main Samba process</add_smb_virtual_server>
-<add_storage>Add new storage</add_storage>
-<add_subdomain_explain>In this form, you can add a sub-domain of listed domains in the drop-down list.[br]
-Choose the main domain and set the subdomain you want to create.[br]
-</add_subdomain_explain>
-<add_to_menu>Add to menu</add_to_menu>
+<add_new_disk>Adicionar um novo disco</add_new_disk>
+<add_new_route_text>Adicione uma nova regra de rota TCP / IP</add_new_route_text>
+<add_official_domains_popup_text>Adicione aqui o seu nome de dom&iacute;nio (por exemplo mydomain.com)
+voc&ecirc; pode adicionar v&aacute;rios dom&iacute;nios, separe-os com uma v&iacute;rgula:
+por exemplo (mydomain.com, mydomain.net, mydomain.fr, mydomain.de, mydomain.us)</add_official_domains_popup_text>
+<add_serveralias_ask>D&ecirc; o nome do servidor Web:. Www.dom&iacute;nio.tld ou domain.tld ou * domain.tld ...</add_serveralias_ask>
+<add_smb_virtual_server>Adicionar um novo servidor Samba virtual que ser&aacute; emulado pelo processo principal Samba</add_smb_virtual_server>
+<add_storage>Adicionar novo armazenamento</add_storage>
+<add_subdomain_explain>Nesta forma, voc&ecirc; pode adicionar um sub-dom&iacute;nio de dom&iacute;nios listados na lista drop-down. [br]
+Escolha o dom&iacute;nio principal e definir o subdom&iacute;nio que voc&ecirc; deseja criar. [br]</add_subdomain_explain>
+<add_to_menu>Adicionar ao menu</add_to_menu>
 <add_vip_members_text>Adicionar novos membros no processo VIPTrack</add_vip_members_text>
-<add_virtual_server>Add a new Virtual server</add_virtual_server>
-<add_website>Add a website</add_website>
-<add_websites>Add websites</add_websites>
-<ADMINISTRATION_THEME>Administration theme</ADMINISTRATION_THEME>
+<add_virtual_server>Adicionar um novo servidor virtual</add_virtual_server>
+<add_website>Adicionar um site</add_website>
+<add_websites>Adicionar sites</add_websites>
+<ADMINISTRATION_THEME>tema de administra&ccedil;&atilde;o</ADMINISTRATION_THEME>
 <ADNETBIOSDOMAIN>Netbios AD Domain</ADNETBIOSDOMAIN>
-<advanced_artica_options_text>Define Artica global settings such as notifications, specific Web interface settings, Proxy use, LDAP parameters, master admin and password...</advanced_artica_options_text>
-<AD_CONNECTION_ERROR>Error linking to Active Directory</AD_CONNECTION_ERROR>
-<AD_CONNECTION_OK>Linked to Active Directory</AD_CONNECTION_OK>
-<affect_vg_to_service>Affect this group to a service (FreeWebs or Virtuals servers)</affect_vg_to_service>
-<affect_vg_to_service_explain>This option define that this LVM group will be used to create container for a given service.[br]For example, if you define this group to FreeWebs, you will be able to define a quotas in FreeWebs.[br]Web directory will be stored in a dedicated Virtual disk
-</affect_vg_to_service_explain>
-<Airflow_Temperature_Cel>Airflow Temperature (WDC)</Airflow_Temperature_Cel>
-<Airflow_Temperature_Cel_text>Airflow temperature on Western Digital HDs (Same as temp., but current value is 50 less for some models. Marked as obsolete.)</Airflow_Temperature_Cel_text>
-<aliases_domains_explain>This is the list of domains aliases of this domain.[br]All domains listed here will point to the main domain.[br]
-The server will transform the recipient with this domain.[br]
-In this case jhon@alias.domain.tld will be transfered to jhon@domain.tld.[br]
-</aliases_domains_explain>
-<AllowAllNetworks>Allow all networks</AllowAllNetworks>
-<AllowCONNECT>CONNECT ports</AllowCONNECT>
-<AllowCONNECT_explain>specifies a list of port numbers to which the proxy CONNECT method may connect.[br]Separate each port by a space: 465 665 9000</AllowCONNECT_explain>
-<allowed>allowed</allowed>
-<allowed_catgories_text>Choose categories you want to allow in this rule</allowed_catgories_text>
-<allowftp_access>Allow FTP Access</allowftp_access>
-<AllowInternetUsersCreateOrg>Public organization registration</AllowInternetUsersCreateOrg>
-<AllowInternetUsersCreateOrg_text>If checked, clients are free to create organizations on this server.[br]A register form is displayed in order to create an organization</AllowInternetUsersCreateOrg_text>
-<AllowInternetUsersCreateOrg_welcome_explain>This is the welcome text that should be added on the Web page registration form</AllowInternetUsersCreateOrg_welcome_explain>
-<all_directories>All directories</all_directories>
-<all_files>All files</all_files>
-<all_informations>All informations</all_informations>
-<all_messages>All messages</all_messages>
-<all_out_of_groups>All processes out of groups</all_out_of_groups>
-<already_exists>Already exists</already_exists>
-<already_used>Already used</already_used>
-<alternate_rule>Alternate Rule</alternate_rule>
-<AmandaComprateExplain>Should be followed by one or two numbers, optionally separated by a comma.[br]
-The 1st is the full compression rate; the 2nd is the incremental rate.[br]If the second is omitted, it is assumed equal to the first.[br]
-The numbers represent the amount of the original file the compressed file is expected to take up</AmandaComprateExplain>
-<AmandaCompress>Compression of the backed up data</AmandaCompress>
-<AmandaCompressExplain>
-"none" - don't compress the dump output.
-"client best" - compress on the client using the best (and probably slowest) algorithm.
-"client fast" - compress on the client using fast algorithm.
-"client custom" - compress using your custom client compression program. use client_custom_compress "PROG" to specify the custom compression program. PROG must not contain white space.
-"server best" - compress on the tape host using the best (and probably slowest) algorithm.
-"server fast" - compress on the tape host using a fast algorithm.  This may be useful when a fast tape host is backing up slow clients.
-"server custom" - compress using your server custom compression program. use server_custom_compress "PROG" to specify the custom compression program. PROG must not contain white space.
-</AmandaCompressExplain>
-<Amandadumptypes>DUMP types</Amandadumptypes>
-<Amandadumptypes_explain>Dump types allow you to define backup task behavior on the target source.</Amandadumptypes_explain>
-<AmandaestimateExplain>
-Determine the way AMANDA does it's estimate.
-"client"	- Use the same program as the dumping program,this is the most accurate way to do estimates, but it can take a long time.[br]
-"calcsize"	- Use a faster program to do estimates, but the result is less accurate.[br]
-"server"	- Use only statistics from the previous run to give an estimate, it takes only a few seconds but the result is not accurate if your disk usage changes from day to day.
-</AmandaestimateExplain>
-<AmandaindexExplain>keep an index of the files backed up</AmandaindexExplain>
-<AmandamaxdumpsExplain>max number of concurrent dumps to run on the client</AmandamaxdumpsExplain>
-<amandanetusage>maximum network bandwidth</amandanetusage>
-<AmandapriorityExplain>Priority level of the dump.[br]
-These are really only used when Amanda has no tape to write to because of some error.[br]
-In that degraded mode, as many incrementals as will fit on the holding disk are done, higher priority first, 
-to insure the important disks are at least dumped.</AmandapriorityExplain>
-<AmandaprogramExplain>specify the dump system to use</AmandaprogramExplain>
-<AmandaStrategy>Dump strategy</AmandaStrategy>
-<AmandaStrategyExplain>set the dump strategy[br]
-"standard" - the standard one.[br]
-"nofull"   - do level 1 dumps every time.  This can be used,for example, for small root filesystems that only change slightly relative to a site-wide prototype. Amanda then backs up just the changes.
-"noinc"    - do level 0 dumps every time.[br]
-"skip"     - skip all dumps.  Useful for sharing a single node list in several configurations.[br]
-"incronly" - do only incremental dumps. This is similar to strategy 'nofull', but will increase the dump level as usual. Full dumps will only be performed when an 'amadmin force' has been issued
-</AmandaStrategyExplain>
-<amanda_backup_server_explain>If this Artica server is a client and must send backups to a central server, set here the fully qualified hostname of the backup central server.</amanda_backup_server_explain>
-<amanda_computers_explain>This section allow you to define remote clients to backup.[br]Each added client must have amanda client installed first.[br]
-You have to define which directory to backup and the client hostname.[br]
-</amanda_computers_explain>
-<AmavisNoInternetTests>Disable any Anti-Spam Internet tests/checking</AmavisNoInternetTests>
-<amavis_bypass_servers_explain>This feature is only used if your server using postqueue filter mode.[br]
-When adding IP addresses here, these senders will not pass trough the content filter.[br] 
-For example, if you need to completly bypass outgoing messages, put here IP addresses of your mail server that able to send messages for outgoing transferts.</amavis_bypass_servers_explain>
-<amavis_enable_db>Enable use of BerkeleyDB/libdb (SNMP and nanny)</amavis_enable_db>
-<amavis_enable_global_cache>Enable use of libdb-based</amavis_enable_global_cache>
-<amavis_max_server_explain>
-This is the crucial performance parameter.[br] Too small and the
-machine is underutilized and there is a risk of using CPU by overload processes,
- too much and you end up with overbooked memory and swapping.[br]
- It depends how powerful CPU is, how much memory is available and how many messages per hour.[br]
-For modern dual or quad CPU hosts with enough memory a value between 15 and 50 is reasonable.
-</amavis_max_server_explain>
-<amavis_watchdog_explain>Amavis Watchdog ensure that some amavisd child did not hang CPU during the max time to live parameter.[br]
-If a child process hang more that X CPU % and it's execution reach the max time to live, it kill the child process and send a notification to the administrator</amavis_watchdog_explain>
+<advanced_artica_options_text>Definir as configura&ccedil;&otilde;es globais Artica como notifica&ccedil;&otilde;es, configura&ccedil;&otilde;es espec&iacute;ficas de interface Web, o uso de Proxy, par&acirc;metros LDAP, admin e senha mestre ...</advanced_artica_options_text>
+<AD_CONNECTION_ERROR>Erro de liga&ccedil;&atilde;o para o Active Directory</AD_CONNECTION_ERROR>
+<AD_CONNECTION_OK>Ligada ao Active Directory</AD_CONNECTION_OK>
+<affect_vg_to_service>Afetam este grupo para um servi&ccedil;o (FreeWebs ou servidores virtuals)</affect_vg_to_service>
+<affect_vg_to_service_explain>Esta op&ccedil;&atilde;o define que este grupo LVM ser&aacute; usado para criar recipiente para um determinado servi&ccedil;o. [br] Por exemplo, se voc&ecirc; definir este grupo para FreeWebs, voc&ecirc; ser&aacute; capaz de definir as quotas em FreeWebs. [br] diret&oacute;rio Web ser&aacute; armazenado em um disco dedicado Virtual</affect_vg_to_service_explain>
+<Airflow_Temperature_Cel>O fluxo de ar de temperatura (WDC)</Airflow_Temperature_Cel>
+<Airflow_Temperature_Cel_text>Temperatura do fluxo de ar em HDs Western Digital (mesmo valor de temp., Mas a corrente &eacute; de 50 a menos para alguns modelos. Marcado como obsoleto.)</Airflow_Temperature_Cel_text>
+<aliases_domains_explain>Esta &eacute; a lista de dom&iacute;nios aliases deste dom&iacute;nio. [br] Todos os dom&iacute;nios listados aqui vai apontar para o dom&iacute;nio principal. [br]
+O servidor ir&aacute; transformar o receptor com este dom&iacute;nio. [br]
+Neste caso jhon@alias.domain.tld ser&aacute; transferido para jhon@domain.tld. [br]</aliases_domains_explain>
+<AllowAllNetworks>Permitir todas as redes</AllowAllNetworks>
+<AllowCONNECT>CONEX&Atilde;O de portas</AllowCONNECT>
+<AllowCONNECT_explain>especifica uma lista de n&uacute;meros de porta para o qual o m&eacute;todo de proxy CONEX&Atilde;O pode ligar [br] cada porta separado por um espa&ccedil;o:. 465 665 9000</AllowCONNECT_explain>
+<allowed>permitido</allowed>
+<allowed_catgories_text>Escolher as categorias que voc&ecirc; deseja permitir nesta regra</allowed_catgories_text>
+<allowftp_access>Permitir acesso FTP</allowftp_access>
+<AllowInternetUsersCreateOrg>Registro de organiza&ccedil;&atilde;o p&uacute;blica</AllowInternetUsersCreateOrg>
+<AllowInternetUsersCreateOrg_text>Se marcada, os clientes s&atilde;o livres para criar organiza&ccedil;&otilde;es neste servidor. [br] um formul&aacute;rio de registro &eacute; exibido, a fim de criar uma organiza&ccedil;&atilde;o</AllowInternetUsersCreateOrg_text>
+<AllowInternetUsersCreateOrg_welcome_explain>Este &eacute; o texto de boas-vindas que deve ser adicionado no formul&aacute;rio de inscri&ccedil;&atilde;o da p&aacute;gina Web</AllowInternetUsersCreateOrg_welcome_explain>
+<all_directories>Todos os diret&oacute;rios</all_directories>
+<all_files>Todos os arquivos</all_files>
+<all_informations>todas as informa&ccedil;&otilde;es</all_informations>
+<all_messages>todas as mensagens</all_messages>
+<all_out_of_groups>Todos os processos para fora dos grupos</all_out_of_groups>
+<already_exists>j&aacute; existe</already_exists>
+<already_used>j&aacute; utilizado</already_used>
+<alternate_rule>Regra alternativa</alternate_rule>
+<AmandaComprateExplain>Deve ser seguido por um ou dois n&uacute;meros, opcionalmente separados por uma v&iacute;rgula. [br]
+O primeiro &eacute; a taxa de compress&atilde;o total, o segundo &eacute; a velocidade incremental [br] Se o segundo &eacute; omitido, &eacute; assumido como sendo igual ao primeiro [br]..
+Os n&uacute;meros representam a quantidade do arquivo original o arquivo compactado &eacute; esperado para assumir</AmandaComprateExplain>
+<AmandaCompress>Compress&atilde;o dos dados de backup</AmandaCompress>
+<AmandaCompressExplain>&quot;nenhum&quot; - n&atilde;o comprimir a sa&iacute;da de despejo.
+&quot;melhor cliente&quot; - comprimir no cliente usando o melhor (e provavelmente mais lento) algoritmo.
+&quot;fast cliente&quot; - comprimir no cliente usando o algoritmo r&aacute;pido.
+&quot;costume cliente&quot; - comprimir usando seu programa de compress&atilde;o personalizado do cliente. usar client_custom_compress &quot;PROG&quot; para especificar o programa de compress&atilde;o personalizado. PROG n&atilde;o deve conter espa&ccedil;os em branco.
+&quot;melhor servidor&quot; - comprimir no host fita usando o melhor (e mais lento provavelmente) algoritmo.
+&quot;fast servidor&quot; - comprimir no host fita usando um algoritmo r&aacute;pido. Isto pode ser &uacute;til quando um host fita r&aacute;pido &eacute; fazer backup dos clientes lentos.
+&quot;costume servidor&quot; - comprimir usando o seu servidor programa de compress&atilde;o personalizado. usar server_custom_compress &quot;PROG&quot; para especificar o programa de compress&atilde;o personalizado. PROG n&atilde;o deve conter espa&ccedil;os em branco.</AmandaCompressExplain>
+<Amandadumptypes>tipos de despejo</Amandadumptypes>
+<Amandadumptypes_explain>Tipos de despejo permitem definir o comportamento da tarefa de backup na fonte destino.</Amandadumptypes_explain>
+<AmandaestimateExplain>Determinar a forma AMANDA faz a estimativa.
+&quot;cliente&quot; - Use o mesmo programa que o programa de dumping, esta &eacute; a maneira mais precisa de fazer estimativas, mas pode levar um longo tempo [br].
+&quot;calcsize&quot; -. Use um programa mais r&aacute;pido para fazer estimativas, mas o resultado &eacute; menos preciso [br]
+&quot;servidor&quot; - Use apenas estat&iacute;sticas de execu&ccedil;&atilde;o anterior para dar uma estimativa, leva apenas alguns segundos, mas o resultado n&atilde;o &eacute; preciso se as altera&ccedil;&otilde;es de uso do disco de dia para dia.</AmandaestimateExplain>
+<AmandaindexExplain>manter um &iacute;ndice dos arquivos de backup</AmandaindexExplain>
+<AmandamaxdumpsExplain>n&uacute;mero m&aacute;ximo de lixeiras simult&acirc;neas para executar no cliente</AmandamaxdumpsExplain>
+<amandanetusage>largura de banda m&aacute;xima</amandanetusage>
+<AmandapriorityExplain>N&iacute;vel de prioridade do despejo. [br]
+Estes s&atilde;o realmente usados %u200B%u200Bapenas quando Amanda tem nenhuma fita para escrever por causa de algum erro. [br]
+Nesse modo degradado, como incrementais quantas couberem no disco de espera &eacute; feito, maior prioridade,
+para segurar os discos importantes s&atilde;o pelo menos despejado.</AmandapriorityExplain>
+<AmandaprogramExplain>especificar o sistema de descarga de usar</AmandaprogramExplain>
+<AmandaStrategy>despejar estrat&eacute;gia</AmandaStrategy>
+<AmandaStrategyExplain>definir a estrat&eacute;gia de despejo [br]
+&quot;padr&atilde;o&quot; - o padr&atilde;o [br].
+&quot;nofull&quot; - fazer um n&iacute;vel de dep&oacute;sitos de cada vez. Isto pode ser usado, por exemplo, para sistemas de ficheiros de raiz pequenas que muda apenas ligeiramente em rela&ccedil;&atilde;o ao local de um prot&oacute;tipo de largura. Amanda faz backup apenas as altera&ccedil;&otilde;es.
+&quot;noinc&quot; - fazer o n&iacute;vel 0 lix&otilde;es cada vez [br].
+&quot;pular&quot; - pular todas as lixeiras. &Uacute;til para compartilhar uma lista &uacute;nico n&oacute; em v&aacute;rias configura&ccedil;&otilde;es. [br]
+&quot;incronly&quot; - fazer apenas dumps incrementais. Isto &eacute; semelhante ao 'nofull &quot;estrat&eacute;gia, mas vai aumentar o n&iacute;vel de despejo como de costume. Despejos completos s&oacute; ser&aacute; realizada quando um 'amadmin for&ccedil;a &quot;foi emitido</AmandaStrategyExplain>
+<amanda_backup_server_explain>Se este servidor Artica &eacute; um cliente e deve enviar backups para um servidor central, definir aqui o nome completo do host do servidor de backup central.</amanda_backup_server_explain>
+<amanda_computers_explain>Esta se&ccedil;&atilde;o permite que voc&ecirc; defina os clientes remotos para backup. [br] Cada cliente deve ter agregado cliente amanda instalado primeiro. [br]
+Voc&ecirc; tem que definir qual o diret&oacute;rio de backup do hostname cliente. [br]</amanda_computers_explain>
+<AmavisNoInternetTests>Desative todos os testes anti-spam da Internet / verifica&ccedil;&atilde;o</AmavisNoInternetTests>
+<amavis_bypass_servers_explain>Este recurso s&oacute; &eacute; usado se o seu servidor usando postqueue modo de filtro. [br]
+Ao adicionar endere&ccedil;os IP aqui, estes remetentes n&atilde;o passar&aacute; atrav&eacute;s do filtro de conte&uacute;do. [br]
+Por exemplo, se voc&ecirc; precisa ignorar completamente as mensagens enviadas, colocar aqui os endere&ccedil;os IP do seu servidor de email que capaz de enviar mensagens para transferts sa&iacute;da.</amavis_bypass_servers_explain>
+<amavis_enable_db>Permitir a utiliza&ccedil;&atilde;o de Berkeley DB / libdb SNMP (e bab&aacute;)</amavis_enable_db>
+<amavis_enable_global_cache>Permitir o uso de libdb baseado</amavis_enable_global_cache>
+<amavis_max_server_explain>Este &eacute; o par&acirc;metro de desempenho crucial. [br] muito pequeno a 
+m&aacute;quina &eacute; subutilizada e existe o risco do uso de CPU por processos de sobrecarga,
+muito e voc&ecirc; acaba com a mem&oacute;ria lotado e troca. [br]
+Depende de como &eacute; poderoso CPU, mem&oacute;ria, quanto est&aacute; dispon&iacute;vel e quantas mensagens por hora. [br]
+Para os modernos ex&eacute;rcitos CPU dual ou quad com mem&oacute;ria suficiente um valor entre 15 e 50 &eacute; razo&aacute;vel.</amavis_max_server_explain>
+<amavis_watchdog_explain>Watchdog amavis garantir que alguma crian&ccedil;a amavisd n&atilde;o desligou CPU durante o tempo m&aacute;ximo para viver par&acirc;metro. [Br]
+Se um processo filho pendure mais do que% de CPU X e sua execu&ccedil;&atilde;o atingir o tempo m&aacute;ximo para viver, matar o processo filho e enviar uma notifica&ccedil;&atilde;o para o administrador</amavis_watchdog_explain>
 <analyze>Analyze</analyze>
-<analyzed>Analyzed</analyzed>
-<anonymous>anonymous</anonymous>
+<analyzed>analisado</analyzed>
+<anonymous>an&ocirc;nimo</anonymous>
 <antispam_filters>Filtros Anti-Spam</antispam_filters>
-<ApacheDisableModDavFS>Disable WebDAV service</ApacheDisableModDavFS>
-<ApacheKeepAlive>The Keep-Alive extension to HTTP/1.0 and the persistent connection feature of HTTP/1.1 provide long-lived HTTP sessions which allow multiple requests to be sent over the same TCP connection.[br]
-In some cases this has been shown to result in an almost 50% speedup in latency times for HTML documents with many images.
-</ApacheKeepAlive>
-<ApacheKeepAliveTimeout>The number of seconds Apache will wait for a subsequent request before closing the connection.[br]
-Once a request has been received, the timeout value specified by the Timeout directive applies.[br]
-Setting to a high value may cause performance problems in heavily loaded servers.[br]
-The higher the timeout, the more server processes will be kept occupied waiting on connections with idle clients
-</ApacheKeepAliveTimeout>
+<ApacheDisableModDavFS>Desativar servi&ccedil;o WebDAV</ApacheDisableModDavFS>
+<ApacheKeepAlive>A extens&atilde;o Keep-Alive para HTTP/1.0 e o recurso de conex&atilde;o persistente de HTTP/1.1 oferecer sess&otilde;es de longa dura&ccedil;&atilde;o HTTP que permitem v&aacute;rios pedidos para serem enviados atrav&eacute;s da mesma conex&atilde;o TCP. [br]
+Em alguns casos, esta tem sido mostrado para resultar em um aumento de velocidade de quase 50% no per&iacute;odo de lat&ecirc;ncia para documentos HTML com muitas imagens.</ApacheKeepAlive>
+<ApacheKeepAliveTimeout>O n&uacute;mero de segundos Apache ir&aacute; esperar por um posterior pedido antes de fechar a conex&atilde;o. [br]
+Uma vez que um pedido foi recebido, o valor de tempo limite especificado pela diretiva Timeout aplica. [br]
+Para um valor alto pode causar problemas de desempenho em servidores muito carregados. [br]
+Quanto maior o tempo de espera, os processos mais servidores ser&atilde;o mantidos ocupados &agrave; espera de conex&otilde;es com os clientes inativos</ApacheKeepAliveTimeout>
 <ApacheMaxClients>sets the limit on the number of simultaneous requests that will be served.</ApacheMaxClients>
 <ApacheMaxKeepAliveRequests>limits the number of requests allowed per connection when KeepAlive is on. If it is set to 0, unlimited requests will be allowed. We recommend that this setting be kept to a high value for maximum server performance</ApacheMaxKeepAliveRequests>
 <ApacheMaxRequestsPerChild>sets the limit on the number of requests that an individual child server process will handle.</ApacheMaxRequestsPerChild>

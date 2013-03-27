@@ -329,6 +329,7 @@ Allowing access to users.</APP_SPLASHSQUID_TEXT>
 <APP_SQUID0>Squid cache branch 2.7x</APP_SQUID0>
 <APP_SQUID31>Squid Cache 3.1x</APP_SQUID31>
 <APP_SQUID32_REPOS>Squid 3.2x repository</APP_SQUID32_REPOS>
+<APP_SQUID_DB>Statistics MySQL Engine</APP_SQUID_DB>
 <APP_SQUID_SESSION_MANAGER>Splash screen and sessions Manager</APP_SQUID_SESSION_MANAGER>
 <APP_SQUID_SESSION_MANAGER_TEXT>Maintains a concept of sessions by monitoring requests and timing out sessions if no requests have been seen for the idle timeout timer.[br]
 Intended use is for displaying "terms of use" pages, ad popups etc</APP_SQUID_SESSION_MANAGER_TEXT>
@@ -408,6 +409,24 @@ File:</ask_squid_restore_log_from_source>
 <auto-restore>Auto-restore</auto-restore>
 <AutoDiscover_webserver>Autodiscover web server</AutoDiscover_webserver>
 <AUTOFS_ERROR_NO_CONNECTION>Currently, no connection as been added on the Database.[br]In this case, it is normal that the service is stopped or down</AUTOFS_ERROR_NO_CONNECTION>
+<autofs_wizard_1>
+[b]1) Select your protocol[/b][br]
+In this dropdown list, you will see all available protocols.
+[br]Choose the protocol you want your server to use. 
+</autofs_wizard_1>
+<autofs_wizard_2>
+[b]2) Credentials informations[/b][br]
+Define here correct credentials in this form in order to allow your server to connect to the remote resource. 
+</autofs_wizard_2>
+<autofs_wizard_explain>The Auto-connection allows your server to create a "virtual" directory.[br]
+This virtual directory is a connection to a remote resource.[br]
+The local system think that this directory is a local folder but in fact all stored files and sub-directories are located to a remote server.[br]
+You can use many protocols such as Windows File sharing, WebDAV, SSH, FTP...[br]
+It depends on libraries installed on your server.[br]
+Benefit of this feature is when the server did not need to browse the remote resource, it is disconnected automatically.[br]
+In the opposite, if the system needs to access to files and folders, the resource is automatically connected.
+Select your saved connections or use the wizard in order to create a new one.
+</autofs_wizard_explain>
 <automated_compression>Automated compression</automated_compression>
 <automatically_compress_when_attachments_exceed>automatically uncompress when attachments exceed:</automatically_compress_when_attachments_exceed>
 <automatically_uncompress_attachments>automatically uncompress attachments</automatically_uncompress_attachments>
@@ -738,6 +757,8 @@ during this time, some service will be not available...</convert_background_warn
 Some features are disabled in the Open source edition, Click the link below to get more information about the licence.</CORP_LICENSE_EXPLAIN>
 <counters>Counters</counters>
 <CpuUsage>CPU usage</CpuUsage>
+<Created_tmp_disk_tables>Created temp tables</Created_tmp_disk_tables>
+<Created_tmp_tables>Created temp tables</Created_tmp_tables>
 <createfolders>Create folders</createfolders>
 <create_a_CSV_file>Create a CSV file</create_a_CSV_file>
 <create_a_dedicated_container>Create a dedicated container</create_a_dedicated_container>
@@ -844,6 +865,7 @@ Disabling this feature will disable any statistics sections in the Web interface
 Enable this option ban Artica to create index.php file.</DisableIndexPHPPage_explain>
 <DisableInstantLDAPBackup>Disable InstantLDAP Backup</DisableInstantLDAPBackup>
 <DisableJqueryDropDown>Disable dropdown lists design</DisableJqueryDropDown>
+<DisableLocalStatisticsTasks>Disable local statistics tasks</DisableLocalStatisticsTasks>
 <DisableSquidSNMPMode>Disable SMP compliance</DisableSquidSNMPMode>
 <DisableSWAPP>Disable System SWAP</DisableSWAPP>
 <disable_administration_tasks>Disable administration features</disable_administration_tasks>
@@ -959,6 +981,8 @@ IP Address: re:192\.168\.[0-5]\.*[br]
 <EnableRRDGraphFunction>Use the PHP RRD engine</EnableRRDGraphFunction>
 <EnableSplashScreenAsObject>Activate the HotSpot as proxy object</EnableSplashScreenAsObject>
 <EnableSplashScreenAsObject_explain>If turned to green, the HotSpot feature will be enabled only in ACLs section and let you use it as a proxy object</EnableSplashScreenAsObject_explain>
+<EnableSquidRemoteMySQL_text>This feature is disabled because your server using a remote MySQL service.[br]
+Purge operation must be enabled on the remote Artica server that store your MySQL service</EnableSquidRemoteMySQL_text>
 <EnableWatchCPUsage>Enable watchdog on CPU</EnableWatchCPUsage>
 <EnableWatchdog>Enable Watchdog service</EnableWatchdog>
 <EnableWatchMemoryUsage>Enable watchdog on Memory</EnableWatchMemoryUsage>
@@ -1353,6 +1377,7 @@ Import %tablesnum on your MySQL server.
 If this sever is currently in use and you cannot perform this operation now, 
 read the link below in order to display how to make this procedure later and click on the "I understand,continue anyway" button.
 </INNODB_FILE_PER_TABLE_ASK>
+<innodb_version>InnoDB version</innodb_version>
 <Inodes_change_explain>Change the limit of maximal files can be created on this partition.</Inodes_change_explain>
 <inode_size>Inode size</inode_size>
 <insert_in_mysql>Insert datas into MySQL</insert_in_mysql>
@@ -1592,6 +1617,7 @@ A server restart also sets the maximum size of existing MEMORY tables to the glo
 <max_msg_rate_timeout>Wait X seconds after MAX execution</max_msg_rate_timeout>
 <max_nice>Change job priority</max_nice>
 <max_processes>MAX Processes</max_processes>
+<Max_used_connections>MAX used connections</Max_used_connections>
 <max_waiting_minutes_onload>MAX time to wait when system is loaded</max_waiting_minutes_onload>
 <members_stats>Members statistics</members_stats>
 <members_stats_explain>This task calculate Members statistics/usage per day</members_stats_explain>
@@ -1606,6 +1632,7 @@ A server restart also sets the maximum size of existing MEMORY tables to the glo
 <messaging_statistics>Messaging statistics</messaging_statistics>
 <metric>Metric</metric>
 <mgreylist_empty_db_warn>This procedure will purge all current Grey/white database: Proceed ?</mgreylist_empty_db_warn>
+<migrate_local_datas>Migrate local data</migrate_local_datas>
 <milliseconds>milliseconds</milliseconds>
 <milter_greylist_tables>Building Milter-greylist day and month tables</milter_greylist_tables>
 <milter_greylist_tables_text>This task compile Day/month statistics tables from hours tables</milter_greylist_tables_text>
@@ -1632,6 +1659,7 @@ For example, if the number of messages stored in the queue is less than the Queu
 </min_subqueue_msgs_ttl_explain>
 <monitor>Monitor</monitor>
 <monitor_only>monitor only</monitor_only>
+<mounts_list_explain>Open the connection list in order to select it.</mounts_list_explain>
 <move_database_disk>Change database directory</move_database_disk>
 <move_the_spooldir>Move the Queue directory</move_the_spooldir>
 <move_the_spooldir_explain>This operation will change the location of the spool directory, usually /var/spool directory.[br]
@@ -1693,6 +1721,8 @@ Basically, each distribution list added in this section are stored outside the L
 </mysql_routing_table_list_explain>
 <mysql_server>MySQL server</mysql_server>
 <mysql_server_port>MySQL service listen port</mysql_server_port>
+<mysql_statistics_engine>MySQL statistics Service</mysql_statistics_engine>
+<mysql_statistics_engine_params>Parameters of your MySQL service that store Proxy statistics</mysql_statistics_engine_params>
 <mysql_tables_maintenance>MySQL tables maintenance</mysql_tables_maintenance>
 <mysql_tables_maintenance_explain>
 Whenever you change the structure of a MySQL database, or remove a lot of data from it, the files can become fragmented resulting in a loss of performance, 
@@ -1718,6 +1748,7 @@ Click on this warning in order to reduce the MySQL memory consumption.</mysql_wa
 <need_to_reboot_ask>To correctly setup the operation, you need to reboot the computer.
 Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <network_services_text>Manage this server network services such as DHCP/DNS/Network Interfaces...</network_services_text>
+<network_settings_will_be_applied_after_reboot>Network settings will be applied after reboot the server</network_settings_will_be_applied_after_reboot>
 <new_account>New account</new_account>
 <new_address>New address</new_address>
 <new_alias>New alias</new_alias>
@@ -2109,7 +2140,10 @@ The service will be not stopped but just refreshed.</reload_service_text>
 Connect to %s in order to modify parameters</remote_appliance_error_text>
 <remote_artica_port>Artica Web interface port</remote_artica_port>
 <remote_artica_server>Remote Artica server</remote_artica_server>
+<remote_connection>Remote connection</remote_connection>
+<remote_connection_wizard_text>Create/use a local folder connected to a remote resources using WebDav, Windows File Sharing, FTP....</remote_connection_wizard_text>
 <remote_domains>Remote domains</remote_domains>
+<remote_mysqlsquidserver_text>Use a Remote MySQL service in order to inject and calculate Proxy statistics</remote_mysqlsquidserver_text>
 <remote_mysql_server>Remote MySQL server</remote_mysql_server>
 <remote_node>Remote node</remote_node>
 <remote_ports>Remote ports</remote_ports>
@@ -2176,6 +2210,8 @@ All datas according SMTP events will be removed</reset_smtp_logs_ask>
 <reset_table>Empty table</reset_table>
 <restart>Restart</restart>
 <restarting_winbind>Restarting winbind service...</restarting_winbind>
+<restart_artica_web_services>Restart Artica Web consoles</restart_artica_web_services>
+<restart_artica_web_services_explain>This task restart Artica Framework service and Artica Web SSL console</restart_artica_web_services_explain>
 <restart_computer_and_defrag>Reboot and repair damaged file systems</restart_computer_and_defrag>
 <restart_computer_and_defrag_warn>
 The repair tool will sometimes require the root password be entered on the console in order to repair some 
@@ -2196,9 +2232,20 @@ if your server does not respond after a reboot
 <restart_webconsole_service>Restart the Artica Web Console service</restart_webconsole_service>
 <restart_webconsole_service_explain>Stop the lighttpd daemon and restart it by refresh it's memory and parameters</restart_webconsole_service_explain>
 <restart_web_console>Restart Web console</restart_web_console>
+<restored>Restored datas</restored>
+<restored_containers>Restored containers</restored_containers>
+<restore_all_containers>Restore all containers</restore_all_containers>
+<restore_a_backup>Restore a backup container</restore_a_backup>
 <restore_backup>Restore backup</restore_backup>
+<restore_folder>Restore folder</restore_folder>
 <restore_from_container_ask>Restore from this backup container</restore_from_container_ask>
+<restore_purged_statistics>Restore backuped statistics</restore_purged_statistics>
+<restore_purged_statistics_explain>Schedule or restore some backuped statistics by your Artica server or by other Artica servers</restore_purged_statistics_explain>
 <restore_sitename_ask>Restore this website</restore_sitename_ask>
+<restore_statistics_database_explain2>This section allows you to setup backuped statistics restore tasks.[br]
+Set it the path that store backuped containers.[br]
+You can select a single backup or schedule an automatic restore task.
+</restore_statistics_database_explain2>
 <retreival_mailrules_text>Create/edit rules that will fetch your messages from other mailboxes that are stored outside your local account</retreival_mailrules_text>
 <retry>Retry</retry>
 <reverse>reverse</reverse>
@@ -2386,6 +2433,9 @@ may generate errors, or become slow.
 <squidlogs_explain>The SquidLogs MySQL database store all proxy statistics, Web filtering/ACLS rules and Proxy parameters.[br]
 You need to ensure that this database have enough disk space in order to let Artica make your proxy available.
 </squidlogs_explain>
+<squidlog_migrate_ask>This task will dump the local database and export it to the remote server.
+Do you want to perform this operation ?
+</squidlog_migrate_ask>
 <SquidNudityScanExplain>Nudity Scanner is a scanner that analyzes pictures and determine whether an image may contain nudity.[br]
 It analyses the colors used in different sections of an image to determine whether those colors match the human skin color tones.[br]
 As result of the analysis it returns a score value that reflects the probability of the image to contain nudity.
@@ -2423,6 +2473,8 @@ All proxy events is sent to the syslog engine. This task only make sense if you 
 <squid_logs_purge_explain>This task dump proxy statistics tables into a backup directory
 and remove them from the MySQL database.
 </squid_logs_purge_explain>
+<squid_logs_restore>Restore containers task</squid_logs_restore>
+<squid_logs_restore_explain>This task run the restore task on all backuped Proxy statistics containers from a specified path</squid_logs_restore_explain>
 <squid_nonhierarchical_direct>By default, Squid will send any non-hierarchical requests (matching hierarchy_stoplist or not cacheable request type) direct to origin servers.[br]
 If you set this to off, proxy will prefer to send these requests to parents.[br]
 [b]Note that in most configurations, by turning this off you will only add latency to these request without any improvement in global hit ratio.[/b]
@@ -2790,6 +2842,8 @@ Example:*.bat,*.cmd,*.com,*.exe,*.vbs,*.msi,*.pif,*.reg
 "*" and "?" can be used to specify multiple files or directories as in DOS wildcards.
 </veto_files_explain>
 <video>video</video>
+<videos>videos</videos>
+<videos_number>Videos number</videos_number>
 <video_title>Video title</video_title>
 <virtualhosts>Virtual hosts</virtualhosts>
 <virtual_company>Virtual company</virtual_company>

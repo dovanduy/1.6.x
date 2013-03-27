@@ -227,6 +227,7 @@ if($argv[1]=="--all-squid"){
 	$conf[]=freshclam();
 	$conf[]=articadb();
 	$conf[]=winbindd();
+	$conf[]=squid_db();
 	echo @implode("\n",$conf);
 	die();
 }
@@ -936,7 +937,7 @@ function launch_all_status($force=false){
 	"dnsmasq","iscsi","watchdog_yorel","netatalk","postfwd2","vps_servers","smartd","crossroads_multiple","auth_tail","greyhole_watchdog","greensql","nscd","tomcat",
 	"openemm","openemm_sendmail","cgroups","ntpd_server","arpd","ps_mem","ipsec","yaffas","ifconfig_network","testingrrd","zarafa_multi","memcached","UpdateUtilityHTTP",
 	"udevd_daemon","dbus_daemon","ejabberd","pymsnt", "arkwsd", "arkeiad","haproxy","klms_status","klmsdb_status","klms_milter","CleanLogs","mimedefangmx","mimedefang",
-	"zarafa_search","snort","mailarchiver","articadb","checksyslog","freeradius","maillog_watchdog","arp_spoof","caches_pages",
+	"zarafa_search","snort","mailarchiver","articadb","squid_db","checksyslog","freeradius","maillog_watchdog","arp_spoof","caches_pages",
 	);
 	$data1=$GLOBALS["TIME_CLASS"];
 	$data2 = time();
@@ -1143,6 +1144,8 @@ function OpenVPNClientsStatus(){
 function maillog_watchdog(){
 	
 	if(!isset($GLOBALS["CLASS_USERS"])){CheckCallable();}
+	if(!$GLOBALS["CLASS_USERS"]->POSTFIX_INSTALLED){return;}
+	
 	$maillog_path=$GLOBALS["CLASS_USERS"]->maillog_path;
 	if($GLOBALS["VERBOSE"]){echo "maillog_path --> ??? file_size(`$maillog_path`)\n";}
 	$maillog_size=@filesize($maillog_path);
@@ -1362,6 +1365,15 @@ function squid_master_status(){
 		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 		shell_exec2($cmd);		
 	}
+	
+	$unix=new unix();
+	$CacheSchedules=$unix->file_time_min("/etc/artica-postfix/CACHES_SQUID_SCHEDULE");
+	if($CacheSchedules>1440){
+		$cmd=trim($prefixcmd.dirname(__FILE__)."/exec.squid.php --build-schedules >/dev/null 2>&1 &");
+		 @unlink("/etc/artica-postfix/CACHES_SQUID_SCHEDULE");
+		 @file_put_contents("/etc/artica-postfix/CACHES_SQUID_SCHEDULE", time());
+	}
+	
 
 	
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($pid)){
@@ -6944,7 +6956,20 @@ function ZARAFA_DB_VERSION(){
 	
 	return "0.0.0";
 }
+function _MYSQL_VERSION(){
+	if(isset($GLOBALS["SQUID_DB_VERSION"])){return $GLOBALS["SQUID_DB_VERSION"];}
+	$mysqld=$GLOBALS["CLASS_UNIX"]->find_program("mysqld");
+	
+	exec("$mysqld --version 2>&1",$results);
+	while (list ($i, $line) = each ($results)){
+		if(preg_match("#Ver\s+([0-9\.]+)#", $line,$re)){
+			$GLOBALS["SQUID_DB_VERSION"]=$re[1];
+			return $re[1];
+		}
+	}
 
+	return "0.0.0";
+}
 //========================================================================================================================================================
 function zarafa_db(){
 	if(!is_file("/opt/zarafa-db/bin/mysqld")){if($GLOBALS["VERBOSE"]){echo __FUNCTION__." not installed\n";}return null;}
@@ -6983,6 +7008,47 @@ function zarafa_db(){
 	return implode("\n",$l);return;
 }
 //========================================================================================================================================================
+//========================================================================================================================================================
+function squid_db(){
+	if(!is_file("/opt/squidsql/bin/mysqld")){if($GLOBALS["VERBOSE"]){echo __FUNCTION__." not installed\n";}return null;}
+	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("ProxyUseArticaDB");
+	if(!is_numeric($enabled)){$enabled=0;}
+	$pid_path="/var/run/squid-db.pid";
+	$master_pid=trim(@file_get_contents($pid_path));
+
+
+	$l[]="[APP_SQUID_DB]";
+	$l[]="service_name=APP_SQUID_DB";
+	$l[]="master_version="._MYSQL_VERSION();
+	$l[]="service_cmd=zarafadb";
+	$l[]="service_disabled=$enabled";
+	$l[]="family=proxy";
+	$l[]="pid_path=$pid_path";
+	$l[]="watchdog_features=1";
+
+	if($enabled==0){return implode("\n",$l);return;}
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		$cmd=trim("{$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.squid-db.php --init");
+		shell_exec2($cmd);
+		WATCHDOG("APP_SQUID_DB","squiddb");
+		$l[]="running=0\ninstalled=1";$l[]="";
+		return implode("\n",$l);
+		return;
+	}
+
+
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+	shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid-db.php --databasesize >/dev/null 2>&1 &");
+	return implode("\n",$l);return;
+}
+//========================================================================================================================================================
+
+
+
+
 
 function zarafa_licensed(){
 

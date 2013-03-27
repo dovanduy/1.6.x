@@ -109,7 +109,7 @@ function addcache_js(){
 	}
 	
 	
-	$html="YahooWin2('836','$page?addcache-popup=yes&cpunum=$cpunum&uuid={$_GET["uuid"]}&cacheid=$cacheid','$title')";
+	$html="YahooWin2('889','$page?addcache-popup=yes&cpunum=$cpunum&uuid={$_GET["uuid"]}&cacheid=$cacheid','$title')";
 	echo $html;
 }
 

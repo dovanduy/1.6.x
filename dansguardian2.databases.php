@@ -146,6 +146,7 @@ function statusDB(){
 	$catz=$q->LIST_TABLES_CATEGORIES();
 	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?squid-ini-status=yes')));
 	$APP_ARTICADB=DAEMON_STATUS_ROUND("APP_ARTICADB",$ini,null,1);
+	$APP_SQUID_DB=DAEMON_STATUS_ROUND("APP_SQUID_DB",$ini,null,1);
 	$sql="SHOW VARIABLES LIKE '%version%';";
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){writelogs("Fatal Error: $q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
@@ -197,7 +198,7 @@ function statusDB(){
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-	<td valign='top'>$APP_ARTICADB</td>
+	<td valign='top'>$APP_ARTICADB$APP_SQUID_DB</td>
 	<td valign='top'>
 	<table style='width:100%'>
 	<tbody>

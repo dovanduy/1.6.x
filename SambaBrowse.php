@@ -37,7 +37,7 @@
 	if(isset($_GET["in-front-ajax"])){$start="Browse2();";}	
 
 	$title=$tpl->_ENGINE_parse_body("{browse}"."... {folders}");
-	
+	header("content-type: application/x-javascript");
 $html="
 var x_DeleteHiddenDisk= function (obj) {
 	var results=obj.responseText;
@@ -153,13 +153,16 @@ function main_disks_discover(){
 		while (list ($disk, $path) = each ($added_disks_array) ){
 			$js="Loadjs('SambaBrowse.php?jdisk=$disk&mounted=$path&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}')";
 			$delete=imgtootltip("ed_delete.gif","{delete} $disk...","DeleteHiddenDisk('$disk')");
-			$FINALDISKS[]=Paragraphe32("noacco:$disk","$disk<br>",$js,"48-hd.png",150);
+			$FINALDISKS[]=Paragraphe32("noacco:$disk","$disk<br>",$js,"48-hd.png",220);
 	
 	
 		}
 	}
-		
 	
+	if($_GET["field"]<>null){
+		$js="Loadjs('autofs.wizard.php?field={$_GET["field"]}')";
+		$FINALDISKS[]=Paragraphe32("remote_connection","remote_connection_wizard_text",$js,"folder-granted-properties-48.png",220);
+	}
 	$finalfinal=CompileTr3($FINALDISKS);
 
 	$add_disk=Paragraphe("64-hd-plus.png","{invisible_disk}","{add_invisible_disk_text}","javascript:Loadjs('$page?hidden-add=yes')");

@@ -235,33 +235,15 @@ function execute_task($ID){
 	
 	if(system_is_overloaded(basename(__FILE__))){
 		OverloadedCheckBadProcesses();
-		
 		$os=new os_system();
 		$hash_mem=$os->realMemory();
-		if($hash_mem["ram"]["percent"]>70){
-			writelogs("Task $ID Over memory system {$hash_mem["ram"]["percent"]}%, aborting task",__FUNCTION__,__FILE__,__LINE__);
-			system_admin_events("Over memory system {$hash_mem["ram"]["percent"]}%, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-			$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
-			return;
-		}
-		
-		for($i=0;$i<6;$i++){
-			if(system_is_overloaded(basename(__FILE__))){
-				writelogs("Task $ID -> overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} `{$tasks->tasks_processes[$TaskType]}`, wait 10s",__FUNCTION__,__FILE__,__LINE__);
-				sleep(10);
-
-			}
-			
-			if(!system_is_overloaded(basename(__FILE__))){break;}
-		}
-	}
-	
-	if(system_is_overloaded(basename(__FILE__))){
-		system_admin_events("Overloaded system after 60 secondes, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		writelogs("Task $ID Over memory system {$hash_mem["ram"]["percent"]}%, aborting task",__FUNCTION__,__FILE__,__LINE__);
+		system_admin_events("Over memory system {$hash_mem["ram"]["percent"]}%, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
 		@unlink($lockfile);
 		return;
 	}
+	
 
 	if(!isset($TASKS_CACHE[$ID])){
 		$q=new mysql();
@@ -376,22 +358,13 @@ function execute_task_squid($ID){
 	
 	
 	if(system_is_overloaded(basename(__FILE__))){
-		
+		OverloadedCheckBadProcesses();
 		$os=new os_system();
 		$hash_mem=$os->realMemory();
-		if($hash_mem["ram"]["percent"]>70){
-			ufdbguard_admin_events("Over memory system {$hash_mem["ram"]["percent"]}%, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-			$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
-			return;
-		}		
-		
-		OverloadedCheckBadProcesses();
-		for($i=0;$i<20;$i++){
-			if(system_is_overloaded(basename(__FILE__))){
-				writelogs("Task $ID -> overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, wait 5s",__FUNCTION__,__FILE__,__LINE__);
-				sleep(5);
-			}
-		}
+		writelogs("Task $ID Over memory system {$hash_mem["ram"]["percent"]}%, aborting task",__FUNCTION__,__FILE__,__LINE__);
+		system_admin_events("Over memory system {$hash_mem["ram"]["percent"]}%, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
+		return;
 	}
 	
 	if(system_is_overloaded(basename(__FILE__))){
@@ -417,7 +390,7 @@ function execute_task_squid($ID){
 	if(preg_match("#^bin:(.+)#",$script, $re)){$cmd="$nice $WorkingDirectory/bin/{$re[1]} >/dev/null";}
 	
 	ufdbguard_admin_events("Task {$GLOBALS["SCHEDULE_ID"]} will be executed with `$cmd` ", __FUNCTION__, __FILE__, __LINE__, "scheduler",$ID);
-	writelogs("Task {$GLOBALS["SCHEDULE_ID"]} will be executed with `$cmd` ",__FUNCTION__,__FILE__,__LINE__);
+	writelogs("Load: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}: Task {$GLOBALS["SCHEDULE_ID"]} will be executed with `$cmd` ",__FUNCTION__,__FILE__,__LINE__);
 	$t=time();
 	shell_exec($cmd);	
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
@@ -428,30 +401,22 @@ function isMaxInstances(){
 	
 	$MaxInstnaces=11;
 	$MaxInstancesToDie=16;
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
 	$p=new processes_php();
 	$MemoryInstances=$p->MemoryInstances();
 	if(!is_numeric($MemoryInstances)){$MemoryInstances=0;}
 	writelogs("Task {$GLOBALS["SCHEDULE_ID"]} -> $MemoryInstances instances...",__FUNCTION__,__FILE__,__LINE__);
 	if($MemoryInstances>$MaxInstancesToDie){
 		writelogs("Task {$GLOBALS["SCHEDULE_ID"]} -> too much instances ($MemoryInstances) die ".@implode(",", $GLOBALS["INSTANCES_EXECUTED"]),__FUNCTION__,__FILE__,__LINE__);
-		die();
+		return false;
 	}
 	
 	if($MemoryInstances>$MaxInstnaces){
-		for($i=0;$i<10;$i++){
-			writelogs("Task {$GLOBALS["SCHEDULE_ID"]} -> too much instances ($MemoryInstances), waiting 10s ".@implode(",", $GLOBALS["INSTANCES_EXECUTED"]),__FUNCTION__,__FILE__,__LINE__);	
-			sleep(10);
-			$MemoryInstances=$p->MemoryInstances();
-			if($MemoryInstances<$MaxInstnaces){break;}
-		}
-	}
-	$MemoryInstances=$p->MemoryInstances();
-	if($MemoryInstances>$MaxInstnaces){
-		ufdbguard_admin_events("Too much instances ($MemoryInstances Max:$MaxInstnaces) aborting task ".@implode(",", $GLOBALS["INSTANCES_EXECUTED"]) , __FUNCTION__, __FILE__, __LINE__, "tasks");
-		$unix->THREAD_COMMAND_SET("$php5 {$GLOBALS["CMDLINES"]}");
+		ufdbguard_admin_events("Too much instances ($MemoryInstances Max:$MaxInstnaces)" , __FUNCTION__, __FILE__, __LINE__, "tasks");
 		return true;
 	}
-
+	
 	return false;
 	
 }

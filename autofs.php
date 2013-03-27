@@ -23,7 +23,7 @@ if(isset($_GET["status"])){status();exit;}
 if(isset($_GET["autofs-status"])){status_service();exit;}
 if(isset($_GET["EnableAutoFSDebug"])){EnableAutoFSDebugSave();exit;}
 
-
+if(isset($_GET["mounts-list-js"])){mounts_list_js();exit;}
 if(isset($_GET["mounts"])){mounts_list();exit;}
 if(isset($_GET["now-search-items"])){mounts_list_items();exit;}
 if(isset($_GET["form-add-js"])){form_add_js();exit;}
@@ -48,12 +48,26 @@ js();
 
 
 function form_add_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{add_mount_point}");
-	echo "YahooWin4('650','$page?form-add-popup=yes&dn={$_GET["dn"]}&t={$_GET["t"]}','$title');";
+	$YahooWin="YahooWin4";
+	if($_GET["field"]<>null){$YahooWin="LoadWinORG";}
+	
+	echo "$YahooWin('650','$page?form-add-popup=yes&dn={$_GET["dn"]}&t={$_GET["t"]}&field={$_GET["field"]}','$title');";
 	
 }
+function mounts_list_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{mounts_list}");
+	$YahooWin="LoadWinORG";
+	echo "$YahooWin('800','$page?mounts=yes&t={$_GET["t"]}&field={$_GET["field"]}','$title');";
+}
+
+
 function service_cmds_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -122,6 +136,11 @@ function form_add_popup(){
 	<div id='form-autofs-add-div'>
 	<table style='width:99%' class=form>
 	<tr>
+		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_1}</td>
+		
+	</tr>			
+			
+	<tr>
 		<td class=legend style='font-size:16px'>{filesystem_type}:</td>
 		<td>". Field_array_Hash($protos,"proto",null,"ChangeFS()",null,0,"font-size:16px;padding:3px")."</td>
 	</tr>
@@ -132,7 +151,7 @@ function form_add_popup(){
 	<script>
 		function ChangeFS(){
 			var proto=document.getElementById('proto').value;
-			LoadAjax('autofs-details','$page?form-add-details=yes&t={$_GET["t"]}&dn={$_GET["dn"]}&proto='+proto);
+			LoadAjax('autofs-details','$page?form-add-details=yes&field={$_GET["field"]}&t={$_GET["t"]}&dn={$_GET["dn"]}&proto='+proto);
 		}
 	</script>
 	
@@ -173,6 +192,9 @@ function form_add_details_USB(){
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
+		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_2}</td>
+	</tr>				
+	<tr>
 		<td class=legend style='font-size:16px'>{local_directory_name}:</td>
 		<td>". Field_text("USB_LOCAL_DIR",null,"font-size:16px;padding:3px;width:220px")."</td>
 	</tr>			
@@ -184,7 +206,7 @@ function form_add_details_USB(){
 
 
 	function refreshUsbList(){
-		LoadAjax('local-sub-list','$page?form-add-usblist=yes');
+		LoadAjax('local-sub-list','$page?form-add-usblist=yes&field={$_GET["field"]}');
 	}
 	refreshUsbList();
 	</script>
@@ -254,9 +276,11 @@ function usblist(){
 	var x_AutoFSUSB= function (obj) {
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue);return;}	
-		YahooWin4Hide();
 		if(document.getElementById('main_config_autofs')){RefreshTab('main_config_autofs');}
 		if(document.getElementById('BackupTaskAutoFSMountedList')){RefreshAutoMountsBackup();}
+		var field='{$_GET["field"]}';
+		if(field.length>1){Loadjs('autofs.wizard.php?field='+field);WinORGHide();return;}
+		YahooWin4Hide();		
 	}		
 	
 	function AutoFSUSB(key){
@@ -280,6 +304,9 @@ function form_add_details_FTP(){
 	$tpl=new templates();		
 	$html="
 	<table style='width:99%' class=form>
+	<tr>
+		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_2}</td>
+	</tr>			
 	<tr>
 		<td class=legend style='font-size:16px'>{remote_server_name}:</td>
 		<td>". Field_text("FTP_SERVER",null,"font-size:16px;padding:3px;width:220px")."</td>
@@ -307,10 +334,11 @@ function form_add_details_FTP(){
 var x_SaveAutoFsFTP= function (obj) {
 	var results=obj.responseText;
 	if(results.length>0){alert(results);return;}
-	YahooWin4Hide();
-	
 	if(document.getElementById('BackupTaskAutoFSMountedList')){RefreshAutoMountsBackup();}
 	$('#flexRT{$_GET["t"]}').flexReload();
+	var field='{$_GET["field"]}';
+	if(field.length>1){Loadjs('autofs.wizard.php?field='+field);WinORGHide();return;}
+	YahooWin4Hide();	
 	}	
 		
 	function SaveAutoFsFTP(){
@@ -338,8 +366,11 @@ $dn=$_GET["dn"];
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend style='font-size:16px'>{acl_dst}:</td>
-		<td>". Field_text("HTTP_SERVER",null,"font-size:16px;padding:3px;width:220px")."</td>
+		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_2}</td>
+	</tr>				
+	<tr>
+		<td class=legend style='font-size:16px'>{url}:</td>
+		<td>". Field_text("HTTP_SERVER",null,"font-size:16px;padding:3px;width:350px")."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:16px'>{web_user}:</td>
@@ -351,7 +382,8 @@ $dn=$_GET["dn"];
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:16px'>{local_directory_name}:</td>
-		<td>". Field_text("HTTP_LOCAL_DIR",null,"font-size:16px;padding:3px;width:220px")."</td>
+		<td>". Field_text("HTTP_LOCAL_DIR",null,"font-size:16px;padding:3px;width:220px",
+				null,null,null,false,"SaveAutoWebDavfsCK(event)")."</td>
 	</tr>			
 	<tr>
 		<td colspan=2 align='right' style='font-size:16px'>
@@ -364,11 +396,17 @@ $dn=$_GET["dn"];
 var x_SaveAutoWebDavfs= function (obj) {
 	var results=obj.responseText;
 	if(results.length>0){alert(results);return;}
-	YahooWin4Hide();
-	
 	if(document.getElementById('BackupTaskAutoFSMountedList')){RefreshAutoMountsBackup();}
 	$('#flexRT{$_GET["t"]}').flexReload();
+	var field='{$_GET["field"]}';
+	if(field.length>1){Loadjs('autofs.wizard.php?field='+field);WinORGHide();return;}
+	YahooWin4Hide();	
 	}	
+	
+	function SaveAutoWebDavfsCK(e){
+		if(!checkEnter(e)){return;}
+		SaveAutoWebDavfs();
+	}
 		
 	function SaveAutoWebDavfs(){
 		var XHR = new XHRConnection();
@@ -404,6 +442,9 @@ switch ($_GET["proto"]) {
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
+		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_2}</td>
+	</tr>				
+	<tr>
 		<td class=legend style='font-size:16px'>{remote_server_name}:</td>
 		<td>". Field_text("NFS_SERVER",null,"font-size:16px;padding:3px;width:220px")."</td>
 	</tr>
@@ -426,10 +467,11 @@ switch ($_GET["proto"]) {
 var x_SaveAutoFsNFS= function (obj) {
 	var results=obj.responseText;
 	if(results.length>0){alert(results);return;}
-	YahooWin4Hide();
-	
 	if(document.getElementById('BackupTaskAutoFSMountedList')){RefreshAutoMountsBackup();}
 	$('#flexRT{$_GET["t"]}').flexReload();
+	var field='{$_GET["field"]}';
+	if(field.length>1){Loadjs('autofs.wizard.php?field='+field);WinORGHide();return;}
+	YahooWin4Hide();	
 	}	
 		
 	function SaveAutoFsNFS(){
@@ -470,6 +512,9 @@ function form_add_details_CIFS(){
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
+		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_2}</td>
+	</tr>			
+	<tr>
 		<td class=legend style='font-size:16px'>{remote_server_name}:</td>
 		<td>". Field_text("CIFS_SERVER",null,"font-size:16px;padding:3px;width:220px")."</td>
 		<td>$button_browes</td>
@@ -503,12 +548,16 @@ function form_add_details_CIFS(){
 	<script>
 		
 var x_SaveAutoFsCIFS= function (obj) {
+	
 	var results=obj.responseText;
 	if(results.length>0){alert(results);return;}
-	YahooWin4Hide();
+	
 	if(document.getElementById('BackupTaskAutoFSMountedList')){RefreshAutoMountsBackup();}
 	if(document.getElementById('main_config_autofs')){RefreshTab('main_config_autofs');}
 	$('#flexRT{$_GET["t"]}').flexReload();
+	var field='{$_GET["field"]}';
+	if(field.length>1){Loadjs('autofs.wizard.php?field='+field);WinORGHide();return;}
+	YahooWin4Hide();
 	}	
 		
 	function SaveAutoFsCIFS(){
@@ -647,7 +696,7 @@ function PROTO_WEBDAVFS_ADD(){
 		$_GET["HTTP_SERVER"]=$_GET["HTTP_SERVER"]."/";
 	}
 	
-	
+	if($_GET["HTTP_LOCAL_DIR"]==null){$_GET["HTTP_LOCAL_DIR"]=time();}
 	
 	$dn="cn={$_GET["HTTP_LOCAL_DIR"]},ou=auto.automounts,ou=mounts,$ldap->suffix";	
 	$pattern="-fstype=davfs,rw,nosuid,nodev,user :{$_GET["HTTP_SERVER"]}";
@@ -905,6 +954,7 @@ function mounts_list(){
 		{name: '$add_mount_point', bclass: 'add', onpress : add_mount_point$t},
 	],";		
 		
+	if($_GET["field"]<>null){$buttons=null;}
 	
 if($explain<>null){$explain="<div class=explain style='font-size:13px'>$explain</div>";}	
 $html="
@@ -913,7 +963,7 @@ $html="
 $(document).ready(function(){
 var TMPMD$t='';
 $('#flexRT$t').flexigrid({
-	url: '$page?now-search-items=yes&t=$t',
+	url: '$page?now-search-items=yes&t=$t&field={$_GET["field"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '$proto', name : 'proto', width : 79, sortable : false, align: 'center'},	
@@ -998,9 +1048,18 @@ function mounts_list_items(){
 			$SIZE=explode(";",$ligne["SIZE"]);	
 			$array["SRC"]="{device}: $LABEL ({$SIZE[0]})";
 		}
-
-		$browsejs="Loadjs('tree.php?mount-point=/automounts/$localmount')";
+		if($_GET["field"]<>null){$addform="&target-dir={$_GET["field"]}&select-dir=yes";}
+		$browsejs="Loadjs('tree.php?mount-point=/automounts/$localmount$addform')";
 		$array["SRC"]=$tpl->_ENGINE_parse_body($array["SRC"]);
+		
+		if($_GET["field"]<>null){
+			
+			$delete=imgsimple("arrow-blue-left-32.png",null,$browsejs);		
+			
+			
+			
+		}
+		
 		
 		$data['rows'][] = array(
 		'id' => $id,

@@ -1156,10 +1156,11 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 		if($EnableRemoteStatisticsAppliance==0){
 			if($SquidActHasReverse==0){
 				$APP_ARTICADB=DAEMON_STATUS_LINE("APP_ARTICADB",$ini,null,1,"220px",true,1,"Loadjs('squid.categories.php')");
+				$APP_SQUID_DB=DAEMON_STATUS_LINE("APP_SQUID_DB",$ini,null,1,"220px",true,1,"Loadjs('squid.articadb.php')");
 			}
 		}
 	}
-
+	
 	$pointers="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" ";
 
 	
@@ -1312,7 +1313,7 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 		<div style='padding-left:155px;min-height:250px'>
 			<h3 style='font-size:16px;font-weight:bold;'>{APP_SQUID}</h3>
 			<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>$text</i>$start$icap
-			$status_dansguardian$status_kav4proxy$cicap$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD$APP_ARTICADB</span>
+			$status_dansguardian$status_kav4proxy$cicap$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD$APP_ARTICADB$APP_SQUID_DB</span>
 			$stats_paragraphe
 			$connectedApps
 			<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:s_PopUp('squid.accesslogs.php?external=yes',1024,768);\"><i><strong style='text-decoration:underline'>{access_events}</strong></i></div> 

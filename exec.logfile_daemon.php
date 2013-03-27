@@ -22,6 +22,7 @@ while(!feof($pipe)){
 		$keydate=date("lF");
 		$prefix=date("M")." ".date("d")." ".date("H:i:s")." localhost (squid-1): ";
 		$subdir=date("Y-m-d-h");
+		if(strpos($buffer, "TCP_DENIED:")>0){continue;}
 		@mkdir("/var/log/artica-postfix/squid-brut/$subdir");
 		if(is_dir("/var/log/artica-postfix/squid-brut/$subdir")){
 			$TargetFile="/var/log/artica-postfix/squid-brut/$subdir/".md5($buffer);

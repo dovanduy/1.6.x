@@ -95,6 +95,41 @@ class pagebuilder{
 		return $phpPage;
 	}  	
 	
+	public function jqueryPath(){
+		$jquerys[]="jquery-1.8.0.min.js";
+		//$jquerys[]="jquery-1.7.2.min.js";
+		$jquerys[]="jquery-1.6.2.min.js";
+		$jquerys[]="jquery-1.6.1.min.js";
+		$jquerys[]="jquery-1.6.min.js";
+		$jquerys[]="jquery-1.5.1.min.js";
+		$jquerys[]="jquery-1.4.4.min.js";
+		$jquerys[]="jquery-1.4.2.min.js";
+			
+		while (list ($num, $val) = each ($jquerys) ){
+			if(is_file("/usr/share/artica-postfix/js/$val")){return "js/$val";}
+		}
+
+		
+		
+	}
+	
+	
+	public function jQueryCustom(){
+		$lqueryCustom[]="jquery-ui-1.8.22.custom.min.js";
+		$lqueryCustom[]="jquery-ui-1.8.16.custom.min.js";
+		$lqueryCustom[]="jquery-ui-1.8.13.custom.min.js";
+		$lqueryCustom[]="jquery-ui-1.8.10.custom.min.js";
+		$lqueryCustom[]="jquery-ui-1.8.6.custom.min.js";
+		$lqueryCustom[]="jquery-ui-1.8.custom.min.js";
+		$lqueryCustom[]="jquery-ui-1.7.2.custom.js";
+			
+		while (list ($num, $val) = each ($lqueryCustom) ){
+		
+			if(is_file("/usr/share/artica-postfix/js/$val")){return "js/$val";}
+		}		
+		
+	}
+	
 	
 	public function jsArtica(){
 		if(!isset($GLOBALS["JS_HEAD_PREPREND"])){$GLOBALS["JS_HEAD_PREPREND"]=null;}
@@ -196,6 +231,8 @@ class pagebuilder{
 			//$jsTable[]="/js/jquery.collapse.js";
 			$jsTable[]="/js/jquery.cookie.js";
 			$jsTable[]="/js/fileuploader.js";
+			$jsTable[]="/js/highcharts.js";
+			$jsTable[]="/js/modules/exporting.js";
 			$jsTable[]="/js/mobiscroll-2.1.custom.min.js";
 
 

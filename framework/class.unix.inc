@@ -18,7 +18,7 @@ define( 'RE_IPV6_ADD', '(:(:' . RE_IPV6_WORD . '){1,7}|' . RE_IPV6_WORD . '(:{1,
 define( 'RE_IPV6_BLOCK', RE_IPV6_ADD . '\/' . RE_IPV6_PREFIX );
 define( 'IP_ADDRESS_STRING','(?:' .RE_IP_ADD . '(\/' . RE_IP_PREFIX . '|)'.'|'.RE_IPV6_ADD . '(\/' . RE_IPV6_PREFIX . '|)' .')' );
 class unix {
-	
+	public $mysql_error=null;
 	var $proc_status;
 	
 	function unix(){
@@ -1135,20 +1135,52 @@ function KERNEL_ARCH(){
 	if(preg_match("#i[0-9]86#", $results)){return 32;}
 	if(preg_match("#686-bigmem#", $results)){return 32;}
 	if(preg_match("#x86_64#", $results)){return 64;}
+	if(preg_match("#-amd64#", $results)){return 64;}
+}
+
+function MYSQL_BIN_PARSE_ERROR($text){
+	if(is_file($text)){$text=@file_get_contents($text);}
+	$f=explode("\n", $text);
+	while (list ($num, $ligne) = each ($f) ){
+		$ligne=trim($ligne);
+		if($ligne==null){continue;}
+		if(preg_match("#already exists#", $ligne)){continue;}
+		if($GLOBALS["VERBOSE"]){echo "MYSQL_BIN_PARSE_ERROR:: `$ligne`\n";}
+		if(preg_match("#: Got errno [0-9]+ on write#",$ligne)){
+			$this->mysql_error=$ligne;
+			return true;
+		}
+		
+		if(preg_match("#^ERROR\s+([0-9]+)#", $ligne)){
+			$this->mysql_error=$ligne;
+			return true;
+		}
+		
+	}
+	
+	return false;
+	
 }
 
 function RESTART_SYSLOG($onlysyslog=false){
 			$nohup=$this->find_program("nohup");
 			if(is_file("/etc/init.d/rsyslog")){
 				if($GLOBALS["VERBOSE"]){echo "/etc/init.d/rsyslog restart\n";}
-				shell_exec("/etc/init.d/rsyslog restart");}
+				shell_exec("/etc/init.d/rsyslog restart");
+			}
+				
+				
+				
 			if(is_file("/etc/init.d/syslog")){
-				if($GLOBALS["VERBOSE"]){system($this->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.initslapd.php --rsyslogd-init --verbose");}else{
+				if($GLOBALS["VERBOSE"]){system($this->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.initslapd.php --rsyslogd-init ");}else{
 					shell_exec($this->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.initslapd.php --rsyslogd-init >/dev/null 2>&1");
 				}
 				if($GLOBALS["VERBOSE"]){echo "/etc/init.d/syslog restart\n";}
 				shell_exec("$nohup /etc/init.d/syslog restart >/dev/null 2>&1 &");
 			}
+			
+			
+			
 			if(is_file("/etc/init.d/sysklogd")){
 				if($GLOBALS["VERBOSE"]){echo "/etc/init.d/sysklogd restart\n";}
 				shell_exec("$nohup /etc/init.d/sysklogd restart >/dev/null 2>&1 &");
@@ -3285,7 +3317,7 @@ public function alt_stat($file) {
 		}		
 
 		
-		private function alt_stat2($file) {
+	public function alt_stat2($file) {
 		 
 		 clearstatcache();
 		 $ss=@stat($file);
@@ -4473,37 +4505,18 @@ public function LOCATE_STUNNEL_BIN(){
 			}
 			$line="$date [$pid] $sourcefunction::$sourceline $text\n";
 		}
-		if($GLOBALS["VERBOSE"]){echo $line."\n";}
-		if($sourcefile<>null){
-			$sourcefile="/var/log/artica-postfix/$sourcefile.log";
-			$size=@filesize($sourcefile);
-			if($size>100000){@unlink($sourcefile);}
-			$f = @fopen($sourcefile, 'a');
-			@fwrite($f,$line);
-			@fclose($f);
-		}
-		
-		
+			
 		$common="/var/log/artica-postfix/syslog.log";
-		if($logFile<>null){$size=@filesize($logFile);}
+		if($logFile<>null){$common=$logFile;}
 		$size=@filesize($common);
 		if($size>100000){@unlink($common);}
 		
-		if($logFile<>null){$size=@filesize($logFile);if($size>100000){@unlink($logFile);}}
-		
-		
-		
-		
-		if($logFile<>null){$f = @fopen($logFile, 'a');}
 		$h = @fopen($common, 'a');
-		
 		$sline="[$pid] $text";
 		if($line==null){$line="$date [$pid] $text\n";}
 		if($GLOBALS["VERBOSE"]){echo $line."\n";}
-		if($phplog){error_log("$sline");}
-		if($logFile<>null){@fwrite($f,$line);}
+		if($phplog){error_log("$sline");}	
 		@fwrite($h,$line);
-		if($logFile<>null){@fclose($f);}
 		@fclose($h);
 	}	
 
@@ -5026,6 +5039,27 @@ function uptime(){
      return $this->distanceOfTimeInWords($Since,time());
      
    }	
+   
+   function TARGZ_TEST_CONTAINER($container){
+	   	$size=@filesize($container);
+	   	if($size<100){return false;}
+		$tar=$this->find_program("tar");
+	   	exec("$tar ztvf $container 2>&1");
+	   	while (list ($a, $b) = each ($resultsZ)){
+	   		if(preg_match("#does not look like a tar#", $b)){
+	   			if($GLOBALS["VERBOSE"]){echo "tar $container failed $b\n";}
+	   			return;
+	   		}
+	   	
+	   		if(preg_match("#tar: Error#", $b)){
+	   			if($GLOBALS["VERBOSE"]){echo "tar $container failed $b\n";}
+	   			return;
+	   		}
+	   	}
+
+   	return true;
+   	
+   }
 	
 	
 function distanceOfTimeInWords($fromTime, $toTime = 0, $showLessThanAMinute = true) {

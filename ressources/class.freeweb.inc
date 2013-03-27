@@ -1533,6 +1533,7 @@
 				$f[]="/usr/share/artica-postfix/user-backup/ressources";
 				$f[]="/etc/ssl/certs/mysql-client-download";
 				$f[]="/usr/share/artica-postfix/LocalDatabases";
+				$f[]="/etc/artica-postfix/settings/Daemons";
 			}
 			
 			if(($this->groupware=="ZARAFA") OR ($this->groupware=="ZARAFA_MOBILE") OR ($this->groupware=="Z-PUSH") OR ($this->groupware=="WEBAPP")){
@@ -2464,6 +2465,8 @@
 			if(mysql_num_rows($results)==0){return null;}
 			
 			while ($ligne = mysql_fetch_assoc($results)) {
+				$AuthLDAP=false;
+				$IsAuth=false;
 				$directory=$ligne["directory"];
 				if(!is_dir($directory)){
 					if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" WebDav $directory no such directory\n";}
@@ -2471,21 +2474,25 @@
 				}
 				$params=unserialize(base64_decode($ligne["params"]));
 				
+				if(($params["connectiontype"]=="ad") OR ($params["connectiontype"]=="ldap")){$AuthLDAP=true;}
+				if($AuthLDAP){$IsAuth=true;}
+				
+				
 				$Alias["/{$ligne["alias"]}"]=$directory;
 				$AliasN[$ligne["alias"]]=$ligne["alias"];
 				$locations[]="\t<Location /{$ligne["alias"]}>";
 				$locations[]="\t\tDAV On";
-				$locations[]="\t\tOrder deny,allow";
-				$locations[]="\t\tDeny from All";
-				$locations[]="\t\tAuthLDAPBindDN \"{$params["LDAP_DN"]}\"";
-				$locations[]="\t\tAuthLDAPBindPassword \"{$params["LDAP_PASSWORD"]}\"";
+				if(($params["connectiontype"]=="ad") OR ($params["connectiontype"]=="ldap")){
+					$locations[]="\t\tOrder deny,allow";
+					$locations[]="\t\tDeny from All";
+					$locations[]="\t\tAuthLDAPBindDN \"{$params["LDAP_DN"]}\"";
+					$locations[]="\t\tAuthLDAPBindPassword \"{$params["LDAP_PASSWORD"]}\"";
+					$locations[]="\t\tAuthType Basic";	
+					$locations[]="\t\tAuthBasicProvider ldap";
+					$locations[]="\t\tAuthUserFile /dev/null";							
+				}
 				
-				$locations[]="\t\tAuthType Basic";	
-				$locations[]="\t\tAuthBasicProvider ldap";
-				$locations[]="\t\tAuthUserFile /dev/null";							
-				
-				
-				if($params["connectiontype"]=="ad"){
+				if($AuthLDAP){
 					$locations[]="\t\tAuthLDAPURL \"ldap://{$params["LDAP_SERVER"]}:{$params["LDAP_PORT"]}/{$params["LDAP_SUFFIX"]}?sAMAccountName?sub?(objectClass=*)\"";
 					$locations[]="\t\tAuthName \"USE YOUR WINDOWS ACCOUNT\"";
 				}
@@ -2506,10 +2513,10 @@
 				if($params["ADGROUP"]<>null){
 					$locations[]="\t\tRequire ldap-group {$params["ADGROUP"]}";
 				}else{
-					$locations[]="\t\trequire valid-user";
+					if($IsAuth){$locations[]="\t\trequire valid-user";}
 				}
 			
-				$locations[]="\tSatisfy any";
+				if($IsAuth){$locations[]="\tSatisfy any";}
 				$locations[]="\t</Location>";
 		
 			}
@@ -3302,7 +3309,7 @@
 				$conf[]="set_include_path(BASE_PATH. PATH_SEPARATOR . BASE_PATH.\"server/PEAR/\" .  PATH_SEPARATOR . \"/usr/share/php/\");";
 				$conf[]="define(\"DIALOG_URL\", \"index.php?load=dialog&\");";
 				$conf[]="define(\"DND_FILEUPLOAD_URL\", \"index.php?load=upload_attachment&\");";
-				$conf[]="define(\"PATH_PLUGIN_DIR\", \"$this->WORKING_DIRECTORY/plugins\");";
+				$conf[]="define(\"PATH_PLUGIN_DIR\", \"plugins\");";
 				if(is_link("$this->WORKING_DIRECTORY/plugins")){@unlink("$this->WORKING_DIRECTORY/plugins");}
 				@mkdir("$this->WORKING_DIRECTORY/plugins",0755,true);
 				if($ZarafaEnablePlugins==1){

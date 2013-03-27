@@ -1115,6 +1115,7 @@ function ldap_js(){
 			var results=trim(obj.responseText);
 			if(results.length>0){alert(results);}
 			ldapauth_display();
+			Loadjs('squid.restart.php?onlySquid=yes&ask=yes');
 		}
 		
 		function ldapauth(){
@@ -1289,6 +1290,7 @@ function ldap_auth_remote(){
 		var results=obj.responseText;
 		if(results.length>0){alert(results);}
 		RefreshTab('main_squid_auth');
+		Loadjs('squid.restart.php?onlySquid=yes&ask=yes');
 	}				
 			
 		function SaveExternalLDAPSYS(){

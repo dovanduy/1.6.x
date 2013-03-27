@@ -54,6 +54,7 @@ function MemoryInstances(){
 		$arrayK["exec.testspeed.php"]=15;
 		$arrayK["exec.syslog-engine.php"]=30;
 		$arrayK["exec.my-rbl.check.php"]=15;
+		$arrayK["exec.logrotate.php"]=240;
 			
 		$array=array();
 		$cmd="$pgrep -l -f \"artica-postfix/exec\..*?\.php\" 2>&1";
@@ -101,10 +102,10 @@ function MemoryInstances(){
 		
 		$count=count($array);
 		if(count($array)>0){
-			$this->events("$count processe(s) In memory:",__FUNCTION__,__LINE__);
+			$this->events("$count processe(s) In memory: ".@implode(" ", $array),__FUNCTION__,__LINE__);
 		}
 		$mem=round(((memory_get_usage()/1024)/1000),2);
-		$this->events("{$mem}MB consumed in memory",__FUNCTION__,__LINE__);
+		
 		
 		
 		//yorel

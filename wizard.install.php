@@ -8,7 +8,8 @@ include_once('ressources/class.mysql.inc');
 include_once('ressources/class.privileges.inc');
 include_once('ressources/class.browser.detection.inc');
 include_once('ressources/class.resolv.conf.inc');
-
+include_once('ressources/class.system.network.inc');
+include_once('ressources/class.system.nics.inc');
 
 if(isset($_GET["setup-1"])){setup_1();exit;}
 if(isset($_GET["setup-2"])){setup_2();exit;}
@@ -174,7 +175,23 @@ function setup_2(){
 	}	
 	
 	//FIRST_WIZARD_NIC2 -> fini -> demande de reboot
+	$t=time();
 	
+	$IPADDR=$savedsettings["IPADDR"];
+	$NETMASK=$savedsettings["NETMASK"];
+	$GATEWAY=$savedsettings["GATEWAY"];
+	$metric=$savedsettings["metric"];
+	$BROADCAST=$savedsettings["BROADCAST"];
+	
+	$nic=new system_nic("eth0");
+	if($IPADDR==null){$IPADDR=$nic->IPADDR;}
+	if($NETMASK==null){$NETMASK=$nic->NETMASK;}
+	if($GATEWAY==null){$GATEWAY=$nic->GATEWAY;}
+	if($BROADCAST==null){$BROADCAST=$nic->BROADCAST;}
+	if($metric==null){$metric=$nic->metric;}
+	if(!is_numeric($metric)){$metric=100;}
+	if($metric<2){$metric=100;}
+	$DISABLED=false;
 	$FORM="
 	
 	<table style='width:99%' class=form>
@@ -190,18 +207,42 @@ function setup_2(){
 		<td>". Field_text("hostname_domain",$domainname,"font-size:16px;width:220px",null,null,null,false,"ChangeQuickHostnameCheck(event)")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 style='font-size:16px;font-weight:bolder'>&nbsp;</td>
+		<td colspan=2 style='font-size:16px;font-weight:bolder'>{network_settings_will_be_applied_after_reboot}</td>
 	</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{tcp_address}:</td>
+			<td>" . field_ipv4("IPADDR",$IPADDR,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{netmask}:</td>
+			<td>" . field_ipv4("NETMASK",$NETMASK,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+		</tr>
+			
+		<tr>
+			<td class=legend style='font-size:14px'>{gateway}:</td>
+			<td>" . field_ipv4("GATEWAY",$GATEWAY,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{metric}:</td>
+			<td>" . field_text("metric-$t",$metric,'padding:3px;font-size:18px;width:90px',null,null,null,false,null,$DISABLED)."</td>
+		</tr>					
+		<tr>
+			<td class=legend style='font-size:14px'>{broadcast}:</td>
+			<td>" . field_ipv4("BROADCAST",$BROADCAST,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+		</tr>		
+			
+				
+				
 	<tr>
 		<td colspan=2 style='font-size:16px;font-weight:bolder'>{dns_servers}</div></td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:14px'>{primary_dns}:</td>
-		<td>". field_ipv4("DNS1", $arrayNameServers[0],"font-size:14px")."</td>
+		<td>". field_ipv4("DNS1", $arrayNameServers[0],"padding:3px;font-size:18px")."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{secondary_dns}:</td>
-		<td>". field_ipv4("DNS2", $arrayNameServers[1],"font-size:14px")."</td>
+		<td>". field_ipv4("DNS2", $arrayNameServers[1],"padding:3px;font-size:18px")."</td>
 	</tr>	
 	<tr>
 		<td colspan=2 style='font-size:16px;font-weight:bolder'>&nbsp;</td>
@@ -260,7 +301,13 @@ function setup_2(){
 				XHR.appendData('EnableDHCPServer',EnableDHCPServer);
 			}				
 			
-			  
+			    
+			XHR.appendData('IPADDR',document.getElementById('IPADDR').value);
+			XHR.appendData('NETMASK',document.getElementById('NETMASK').value);  
+			XHR.appendData('GATEWAY',document.getElementById('GATEWAY').value);
+			XHR.appendData('BROADCAST',document.getElementById('BROADCAST').value);
+			XHR.appendData('metric',document.getElementById('metric-$t').value);          
+			
 			
 			XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
 			XHR.appendData('DNS1',document.getElementById('DNS1').value);
@@ -330,7 +377,24 @@ function setup_3(){
 	$resolv=new resolv_conf();
 	$resolv->MainArray["DNS1"]=$arrayNameServers[0];
 	$resolv->MainArray["DNS2"]=$arrayNameServers[1];
-	$resolv->save();	
+	$resolv->save();
+
+	if($_POST["IPADDR"]<>null){
+		$nics=new system_nic("eth0");
+		$nics->eth="ethO";
+		$nics->IPADDR=$arrayNameServers["IPADDR"];
+		$nics->NETMASK=$arrayNameServers["NETMASK"];
+		$nics->GATEWAY=$arrayNameServers["GATEWAY"];
+		$nics->BROADCAST=$arrayNameServers["BROADCAST"];
+		$nics->DNS1=$arrayNameServers[0];
+		$nics->DNS2=$arrayNameServers[1];
+		$nics->dhcp=0;
+		$nics->metric=$savedsettings["metric"];
+		$nics->enabled=1;
+		$nics->NoReboot=true;
+		$nics->SaveNic();
+	}
+	
 	
 	
 	$UseServerF=Field_array_Hash($UseServer, "UseServer",$UseServerV,"style:font-size:14px");

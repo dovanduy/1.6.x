@@ -23,6 +23,24 @@ include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 
 visited_sites();
 
+
+function badCharacters($sitename){
+	$cha["$"]=true;
+	$cha[";"]=true;
+	$cha["#"]=true;
+	$cha["!"]=true;
+	$cha["%"]=true;
+	$cha["'"]=true;
+	$cha["@"]=true;
+	
+	while (list ($ca, $pid) = each ($cha)){
+		if(strpos($sitename, $ca)>0){return true;}
+		
+	}
+	return false;
+	
+}
+
 function visited_sites(){
 
 	$unix=new unix();
@@ -53,8 +71,20 @@ function visited_sites(){
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$sitenameOrg=$ligne["sitename"];
 			$sitename=strtolower(trim($sitenameOrg));
+			
+			if(badCharacters($sitename)){
+				$q->categorize_reaffected($sitename);
+				$sitenameOrg=mysql_escape_string($sitenameOrg);
+				$q->QUERY_SQL("UPDATE visited_sites SET category='reaffected' WHERE `sitename`='$sitenameOrg'");
+				if(!$q->ok){progress("Fatal",100);die();}
+				$d++;
+				$c++;
+				continue;
+			}			
+			
 			if(strpos($sitename, ".")==0){
 				$q->categorize_reaffected($sitename);
+				$sitenameOrg=mysql_escape_string($sitenameOrg);
 				$q->QUERY_SQL("UPDATE visited_sites SET category='reaffected' WHERE `sitename`='$sitenameOrg'");
 				if(!$q->ok){progress("Fatal",100);die();}
 				$d++;
@@ -65,6 +95,17 @@ function visited_sites(){
 			if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitename)){
 				$sitename=gethostbyaddr($sitename);
 				if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitename)){$c++;continue;}
+			}
+			
+			$ipaddr=gethostbyname($sitename);
+			
+			if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $ipaddr)){
+				$q->categorize_reaffected($sitenameOrg);
+				$q->QUERY_SQL("UPDATE visited_sites SET category='reaffected' WHERE `sitename`='$sitenameOrg'");
+				if(!$q->ok){progress("Fatal",100);die();}
+				$d++;
+				$c++;
+				continue;				
 			}
 			
 			$cat=$q->GET_CATEGORIES($sitename);

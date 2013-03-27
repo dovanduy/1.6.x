@@ -53,7 +53,7 @@ function UseSnort(){
 function UseIpv6(){
 	$eth=$_POST["eth"];
 	$value=$_POST["ipv6-enable"];
-	$nics=new system_nic($nic);
+	$nics=new system_nic($eth);
 	$nics->eth=$nic;	
 }
 

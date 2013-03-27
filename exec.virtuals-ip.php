@@ -1,3 +1,4 @@
+#!/usr/bin/php
 <?php
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . '/ressources/class.templates.inc');
@@ -17,6 +18,7 @@ if($argv[1]=="--interfaces"){interfaces_show();die();}
 //if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded system,die()","MAIN",__FILE__,__LINE__);die();}
 
 if($argv[1]=="--just-add"){routes();die();}
+if($argv[1]=="--articalogon"){articalogon();die();}
 if($argv[1]=="--ifconfig"){ifconfig_tests();exit;}
 if($argv[1]=="--bridges"){bridges_build();exit;}
 if($argv[1]=="--parse-tests"){ifconfig_parse($argv[2]);exit;}
@@ -435,6 +437,30 @@ function ifupifdown($eth){
 	
 	exec("$ifup $eth",$results2);
 	$unix->send_email_events("$eth Interface was started", @implode("\n", $results2), "network");
+	
+}
+
+function articalogon(){
+	if(!is_file("/etc/artica-postfix/network.first.settings")){return;}
+	$f=explode(";", @file_get_contents("/etc/artica-postfix/network.first.settings"));
+	//l.Add(IP+';'+Gayteway+';'+netmask+';'+DNS); 
+	$IPADDR=$f[0];
+	$GATEWAY=$f[1];
+	$NETMASK=$f[2];
+	$DNS1=$f[3];
+	$eth=$f[4];
+	
+	$nics=new system_nic($eth);
+	$nics->eth=$eth;
+	$nics->IPADDR=$IPADDR;
+	$nics->NETMASK=$NETMASK;
+	$nics->GATEWAY=$GATEWAY;
+	$nics->DNS1=$DNS1;
+	$nics->dhcp=0;
+	$nics->enabled=1;
+	$nics->NoReboot=true;
+	$nics->SaveNic();
+	echo "Settings $eth ($IPADDR) done...\n";
 	
 }
 

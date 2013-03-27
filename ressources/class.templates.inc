@@ -1148,7 +1148,12 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	$disa=null;
 	if($class<>null){
 		if(preg_match("#script:(.+)#",$class,$re)){$class=null;$jsPressKey=$re[1];}
-	}	
+	}
+
+	if(preg_match("#^focus:(.*)#", $value,$re)){
+		$OnFocus="OnFocus=\"javascript:this.value='';\"";
+		$value=$re[1];
+	}
 	
 	if($style==null){$style='width:98%;font-size:12px';$size="size=50";}
 	if($class<>null){$class="class='$class'";}
@@ -1183,8 +1188,13 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	
 	if($DISABLED){$disa=" DISABLED";}
 	return "$help
-	<input type='text' id='$name' name='$name' value=\"$value\" $OnChange $jsPressKey $OnClick onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" style='$style' $class $size $OnMouseOver $OnMouseOut$disa>";
+	<input type='text' id='$name' name='$name' value=\"$value\" $OnFocus $OnChange $jsPressKey $OnClick onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" style='$style' $class $size $OnMouseOver $OnMouseOut$disa>";
 }
+
+
+
+
+
 function Field_password($name,$value=null,$style=null,$class=null,$OnChange=null,$help=null,$helpInside=false,$jsPressKey=null){
 	$nolock=false;
 	$OnMouseOver=null;
@@ -2330,13 +2340,11 @@ function get_img_ext($value){
 	}
 }
 function Get_extension($filename){
-		   	$parts = explode('.',$filename);
-   			$last = count($parts) - 1;
-   			$ext = $parts[$last];
-   			return $ext;
-		
-		
-		}
+	$parts = explode('.',$filename);
+   	$last = count($parts) - 1;
+   	$ext = $parts[$last];
+   	return $ext;
+}
 		
 function replace_accents($s) {
   $t=new htmltools_inc();

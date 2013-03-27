@@ -5,7 +5,7 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
-
+if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 
 if($argv[1]=='--free'){FreeSync();}

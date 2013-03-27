@@ -263,7 +263,7 @@ class squid_catz_dynamic{
 		if(preg_match("#^pc[0-9]+\.#", $www)){return "dynamic";}
 		if(preg_match("#^cpe.*?\.sanbrunocable\.[a-z]+$#", $www)){return "dynamic";}
 		if(preg_match("#.halls\.colostate\.edu$#", $www)){return "dynamic";}
-		if(preg_match("#^[0-9]+.*?\.bb\.sky\.com$#", $www)){return "dynamic";}
+		
 		if(preg_match("#^uwsclient-[0-9]+#", $www)){return "dynamic";}
 		if(preg_match("#pppoe-dynamic#", $www)){return "dynamic";}
 		if(preg_match("#\.net\.cable\.rogers\.com$#", $www)){return "dynamic";}

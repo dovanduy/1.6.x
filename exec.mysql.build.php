@@ -394,7 +394,7 @@ function multi_databases_list_tables($instance_id,$database){
 			$Rows=$ligne["Rows"];
 			$count=$count+1;
 			$tablename=$ligne["Name"];
-			if($GLOBALS["VERBOSE"]){echo "Found table `$database/$tablename $tablesize $Rows rows`\n";}	
+			eventsDB("Found table `$database/$tablename $tablesize $Rows rows`",__LINE__);
 			$f[]="($instance_id,'$tablename','$database','$tablesize','$Rows')";
 	}
 	
@@ -409,7 +409,17 @@ function multi_databases_list_tables($instance_id,$database){
 	}
 
 
-
+	function eventsDB($text,$line){
+		if($GLOBALS["VERBOSE"]){echo "[$line]: $text\n";}
+		$pid=getmypid();
+		$date=date('Y-m-d H:i:s');
+		$logFile="/var/log/artica-postfix/databases-stats.log";
+		$size=@filesize($logFile);
+		if($size>5000000){unlink($logFile);}
+		$f = @fopen($logFile, 'a');
+		@fwrite($f, "$date [$pid]:Line:$line  $text\n");
+		@fclose($f);
+	}
 
 function databases_list_fill(){
 	$unix=new unix();
@@ -443,30 +453,41 @@ function databases_list_fill(){
 	if(!$q->TABLE_EXISTS('mysqldbs','artica_backup')){
 	if($GLOBALS["VERBOSE"]){echo "check_storage_table()\n";}	
 		$q->check_storage_table();}	
+		eventsDB("DATABASE_LIST_SIMPLE()",__LINE__);
 	$databases=$q->DATABASE_LIST_SIMPLE();
-	
-	if($GLOBALS["VERBOSE"]){echo "Found ". count($databases)." databases\n";}
+	eventsDB("DATABASE_LIST_SIMPLE() fone",__LINE__);
+	eventsDB("Found ". count($databases)." databases -> dROP mysqldbtables",__LINE__);
 	
 	$q->QUERY_SQL("DROP TABLE mysqldbtables","artica_backup");
-	$q->BuildTables();
+	
+	eventsDB("BuildTables()...",__LINE__);
+	$t=new mysql_builder();
+	$t->check_mysql_dbtables();
+	
+	
+	
 	while (list ($database, $ligne) = each ($databases) ){
-		
+		eventsDB("-> databases_list_tables($database)...",__LINE__);
 		$rr=databases_list_tables($database);
 		$TableCount=$rr[0];
 		$Size=$rr[1];
-		if($GLOBALS["VERBOSE"]){echo "Found database `$database` $TableCount tables ($Size)\n";}
+		eventsDB("Found database `$database` $TableCount tables ($Size)",__LINE__);
 		$f[]="('$database','$TableCount','$Size')";
 		
 	}
 	
 	
 	if(count($f)>0){
+		eventsDB("Inbjecting ".count($f)." elements...",__LINE__);
 		$q->QUERY_SQL("TRUNCATE TABLE mysqldbs","artica_backup");
 		$q->QUERY_SQL($prefix.@implode(",", $f),"artica_backup");
 		
 	}	
-	multi_databases_parse();
 	
+	eventsDB("multi_databases_parse()",__LINE__);
+	multi_databases_parse();
+	eventsDB("multi_databases_parse() done...",__LINE__);
+	@file_put_contents($pidfileTime, time());
 }
 
 	

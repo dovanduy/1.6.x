@@ -250,9 +250,13 @@ function downloadFile($url,$hostname)  {
 	   		$this->SET_APC_STORE($key,$value);
 	   		return $value;
 	   	}   	
-   	} 		
+   	} 	
+
+   	
+   	$value=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/$key"));
+   	
     	
-   	$value=trim($this->getFrameWork("getinfos.php?key=$key&uid=".$uid));
+   //	$value=trim($this->getFrameWork("getinfos.php?key=$key&uid=".$uid));
    	$GLOBALS["GET_INFO"][$key]=$value;
    	if(!$nocache){
    		$this->SET_APC_STORE($key,$value);

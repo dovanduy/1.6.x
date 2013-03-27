@@ -7,7 +7,11 @@
 	include_once('ressources/class.mysql.dump.inc');
 	include_once('ressources/class.squid.inc');
 	
-
+if($argv[1]=="--export"){
+	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	$GLOBALS["VERBOSE"]=true;
+	do_export();exit;
+}
 	
 $usersmenus=new usersMenus();
 if(!$usersmenus->AsDansGuardianAdministrator){

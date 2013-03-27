@@ -821,6 +821,13 @@ begin
                exit();
             end;
 
+          if ParamStr(2)='squiddb' then begin
+               fpsystem('/etc/init.d/squid-db stop');
+               exit();
+            end;
+
+
+
           if ParamStr(2)='zarafa2' then begin
                fpsystem('/etc/init.d/zarafa-server2 stop');
                exit();
@@ -2411,6 +2418,11 @@ begin
                fpsystem('/etc/init.d/zarafa-db start');
                exit();
             end;
+           if ParamStr(2)='squiddb' then begin
+               fpsystem('/etc/init.d/squid-db start');
+               exit();
+            end;
+
 
           if ParamStr(2)='zarafa-db' then begin
                fpsystem('/etc/init.d/zarafa-db start');

@@ -1977,7 +1977,14 @@ function postscreen($hostname=null){
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){	
 		
-		if(!$ipClass->isIPAddress($ligne["hostname"])){
+		$ligne["ipaddr"]=trim($ligne["ipaddr"]);
+		$ligne["hostname"]=trim($ligne["hostname"]);
+			
+		if($ligne["hostname"]==null){continue;}
+		if($ligne["ipaddr"]==null){continue;}
+			
+		if($ipClass->isIPAddress($ligne["hostname"])){
+			
 			$hostsname[]="{$ligne["hostname"]}\tOK";
 		}else{
 			$nets[]="{$ligne["hostname"]}\tdunno";
@@ -1996,6 +2003,7 @@ function postscreen($hostname=null){
 	$networks=$ldap->load_mynetworks();	
 	if(is_array($networks)){
 		while (list ($num, $ligne) = each ($networks) ){
+			$ligne=trim($ligne);
 			if($ligne==null){continue;}
 			if(!$ipClass->isIPAddress($ligne)){
 				$hostsname[]="$ligne\tOK";

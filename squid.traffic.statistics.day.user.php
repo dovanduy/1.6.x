@@ -23,8 +23,11 @@
 	if(isset($_GET["users-form"])){users_form();exit;}
 	if(isset($_GET["users-search"])){users_search();exit;}
 	if(isset($_GET["paragraphe1"])){paragraphe1();exit;}
-	if(isset($_GET["paragraphe2"])){paragraphe2();exit;}
+	if(isset($_GET["paragraphe1-day-graph"])){paragraphe1_day_graph();exit;}
 	
+	
+	if(isset($_GET["paragraphe2"])){paragraphe2();exit;}
+	if(isset($_GET["paragraphe2-category-graph"])){paragraphe2_category_graph();exit;}
 	
 js();
 
@@ -47,18 +50,23 @@ function visited(){
 	$t=time();
 	$websites=$tpl->_ENGINE_parse_body("{websites}");
 	$size=$tpl->_ENGINE_parse_body("{size}");
-	$hitsTitl=$tpl->_ENGINE_parse_body("{hits}");	
+	$hitsTitl=$tpl->_ENGINE_parse_body("{hits}");
+
+	if(preg_match("#^[0-9]+#", $_GET["table"])){
+		$timeT=$q->TIME_FROM_HOUR_TABLE( $_GET["table"]);
+		$DayTime=date("Y {l} {F} d",$timeT);
+	}
 	
 	
 	$TITLE_PAGE="{$_GET["field"]}:{$_GET["user"]} $titleW";
 	if($_GET["field"]=="MAC"){
 		$userText=$q->UID_FROM_MAC($_GET["user"]);
 		if($userText<>null){
-			$TITLE_PAGE="$userText ({$_GET["user"]}) $titleW";
+			$TITLE_PAGE="$userText ({$_GET["user"]})";
 		}
 	}	
 	
-	$html="<div style='font-size:16px;font-weight:bold'>$TITLE_PAGE</div>
+	$html="
 	<table class='events-table-$t' style='display: none' id='events-table-$t' style='width:99%'></table>
 <script>
 
@@ -67,9 +75,9 @@ $('#events-table-$t').flexigrid({
 	url: '$page?websites-search=yes&user={$_GET["user"]}&field={$_GET["field"]}&table={$_GET["table"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$hitsTitl', name : 'hits', width :60, sortable : false, align: 'left'},
-		{display: '$size', name : 'size', width :84, sortable : true, align: 'left'},
-		{display: '$websites', name : 'sitename', width :625, sortable : true, align: 'left'},
+		{display: '$hitsTitl', name : 'hits', width :160, sortable : false, align: 'left'},
+		{display: '$size', name : 'size', width :184, sortable : true, align: 'left'},
+		{display: '$websites', name : 'sitename', width :425, sortable : true, align: 'left'},
 	],
 
 	searchitems : [
@@ -79,7 +87,7 @@ $('#events-table-$t').flexigrid({
 	sortname: 'hits',
 	sortorder: 'desc',
 	usepager: true,
-	title: '',
+	title: '<span style=font-size:16px>$titleW $DayTime $TITLE_PAGE</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -106,18 +114,12 @@ function visited_search(){
 	$table=$_GET["table"];
 	$field=$_GET["field"];
 	
-	if($q->COUNT_ROWS($table)==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table)==0){json_error_show("No data");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring=" AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
 		$sql="SELECT SUM(hits) as hits,SUM(size) as size,`sitename`,`$field`
 		 FROM  $table GROUP BY `sitename`,`$field` HAVING `$field`='{$_GET["user"]}' $searchstring";
 
@@ -125,10 +127,11 @@ function visited_search(){
 		$total = mysql_num_rows($results);
 		
 	}else{
-		$sql="SELECT SUM(hits) as hits,SUM(size) as size,`sitename`,`$field`
-		 FROM  $table GROUP BY `sitename`,`$field`";
+		$sql="SELECT SUM(hits) as hits,SUM(size) as size,`sitename`,`$field` 
+		FROM  $table GROUP BY `sitename`,`$field`
+		HAVING `$field`='{$_GET["user"]}'";
 		$results=$q->QUERY_SQL($sql,"artica_events");
-		$total = mysql_num_rows($ligne);
+		$total = mysql_num_rows($results);
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
@@ -152,14 +155,10 @@ function visited_search(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$q->mysql_error=wordwrap($q->mysql_error,80,"<br>");
-		$sql=wordwrap($sql,80,"<br>");
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
+	if(!$q->ok){json_error_show($q->mysql_error);}
+	
+	$span="<span style='font-size:16px'>";
+	$spanoff="</span>";
 	
 	if(mysql_num_rows($results)==0){
 		$sql=wordwrap($sql,80,"<br>");
@@ -169,7 +168,7 @@ function visited_search(){
 	$ligne["size"]=FormatBytes($ligne["size"]/1024);
 	$data['rows'][] = array(
 		'id' => $ligne['client'],
-		'cell' => array($ligne["hits"],$ligne["size"],$ligne["sitename"])
+		'cell' => array($span.XUFormatNumber($ligne["hits"]).$spanoff,$span.$ligne["size"].$spanoff,$span.$ligne["sitename"].$spanoff)
 		);
 	}
 	
@@ -177,6 +176,14 @@ function visited_search(){
 echo json_encode($data);		
 
 }
+
+function XUFormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){
+	$tmp1 = round((float) $number, $decimals);
+	while (($tmp2 = preg_replace('/(\d+)(\d\d\d)/', '\1 \2', $tmp1)) != $tmp1)
+		$tmp1 = $tmp2;
+	return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));
+}
+
 
 function tabs(){
 	
@@ -300,6 +307,7 @@ function paragraphe2(){
 	$page=CurrentPageName();
 	$tpl=new templates();		
 	$q=new mysql_squid_builder();
+	$t=time();
 	
 	$sql="SELECT SUM(hits) as thits,SUM(size) as tsize,category FROM(SELECT $table.hits,$table.size,$table.category,
 	webfilters_categories_caches.master_category FROM webfilters_categories_caches,$table
@@ -307,10 +315,10 @@ function paragraphe2(){
 	AND $table.`$field`='$user'
 	) as t
 	GROUP BY category ORDER BY tsize DESC LIMIT 0,1";	
-	$ligne2=mysql_fetch_array($sql);
+	$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
 	$p0=$tpl->_ENGINE_parse_body("{top_visited_categories_mostwieght}");
-	$p0=str_replace("X", $ligne["category"], $p0);
-	$p0=str_replace("Y", FormatBytes($ligne["tsize"]/1024), $p0);
+	$p0=str_replace("X", "<strong>".$ligne2["category"]."</strong>", $p0);
+	$p0=str_replace("Y", "<strong>".FormatBytes($ligne2["tsize"]/1024)."</strong>", $p0);
 	$p0="<div style='color:#CF1717;margin-top:5px;font-size:12px'>$p0</div>";
 	
 
@@ -329,7 +337,7 @@ function paragraphe2(){
 		$ligne["tsize"]=FormatBytes($ligne["tsize"]/1024);
 		$ydata[]="{$ligne["category"]}";
 		$xdata[]=$ligne["thits"];			
-		
+		$PIEDATA["{$ligne["category"]}"]=$ligne["thits"];
 		$rows[]="<tr>
 		<td width=1%><img src='img/20-categories-personnal.png'></td>
 		<td><strong style='font-size:12px'>
@@ -340,16 +348,12 @@ function paragraphe2(){
 	}	
 	
 	
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".".time().".png";
-	$gp=new artica_graphs($targetedfile);	
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;	
-	$gp->width=250;
-	$gp->height=400;
-	$gp->ViewValues=true;
+
+	$arrayHREF=urlencode(base64_encode(serialize($PIEDATA)));
+
 	//$gp->PieLegendHide=true;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{cache}");
-	$gp->pie();		
+	//$gp->x_title=$tpl->_ENGINE_parse_body("{cache}");
+
 	
 	
 	$html="<div style='color:#CF1717;font-weight:bold;margin-top:5px;font-size:13.5px'>{top_visited_categories} :</div>$p0
@@ -358,12 +362,27 @@ function paragraphe2(){
 	". @implode("\n", $rows)."
 	</tbody>
 	</table>
-	<center style='margin-top:10px'><img src='$targetedfile'></center>
+	<div style='margin-top:10px;width:400px;height:250px;' id='graph-$t'><center><img src='img/wait_verybig_mini_red.gif'></center></div>
 	
+			
+	<script>
+		Loadjs('$page?paragraphe2-category-graph=yes&container=graph-$t&data=$arrayHREF');
+	</script>		
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
 	
+}
+
+function paragraphe2_category_graph(){
+	$PieData=unserialize(base64_decode($_GET["data"]));
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{hits}";
+	$highcharts->Title="{top_categories}";
+	echo $highcharts->BuildChart();
 }
 
 
@@ -453,34 +472,42 @@ function paragraphe1(){
 		$ydata[]=$ligne["thits"];
 	}	
 	$time=time();
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".$table.$time.png";
-	$gp=new artica_graphs();
-	$gp->width=270;
-	$gp->height=150;
-	$gp->filename="$targetedfile";
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;
-	$gp->y_title=null;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{hour}");
-	$gp->title=null;
-	$gp->margin0=true;
-	$gp->Fillcolor="blue@0.9";
-	$gp->color="146497";
-	$gp->line_green();
+	$arrayHREF=urlencode(base64_encode(serialize(array($xdata,$ydata))));
 	
+	$t=time();
+	$graph1="<div style='margin-top:10px;width:400px;height:250px;' id='graph2-$t'><center><img src='img/wait_verybig_mini_red.gif'></center></div>
 	
-	if(!is_file($targetedfile)){$targetedfile="img/nograph-000.png";}
-	$graph1="<center style='margin-top:5px'><img src='$targetedfile'></center>";
+			
+	<script>
+		
+	</script>	";
 	
 	
 	$HTML="<p style='font-size:12px'>$webstatsUserIntro1</p>
 	<p style='font-size:12px'>$webstatsUserIntro2</p>
 	$webstatsUserIntro3
 	$graph1
-	<script>LoadUserReport2()</script>
+	<script>
+	Loadjs('$page?paragraphe1-day-graph=yes&container=graph2-$t&data=$arrayHREF');
+	LoadUserReport2()</script>
 	";
 	echo $tpl->_ENGINE_parse_body($HTML);
 	
+}
+
+function paragraphe1_day_graph(){
+	$AR=unserialize(base64_decode($_GET["data"]));
+	
+	
+	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$AR[0];
+	$highcharts->Title="{hits}/{hours}";
+	$highcharts->yAxisTtitle="{hits}";
+	$highcharts->xAxisTtitle="{hours}";
+	$highcharts->datas=array("{hits}"=>$AR[1]);	
+	echo $highcharts->BuildChart();
 }
 
 

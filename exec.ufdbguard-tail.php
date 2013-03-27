@@ -288,7 +288,7 @@ if(preg_match("#\] REDIR\s+#", $buffer)){return;}
 		$md5=md5($serialize);
 
 		
-		
+		if(!is_dir("/var/log/artica-postfix/ufdbguard-blocks")){@mkdir("/var/log/artica-postfix/ufdbguard-blocks");}
 		@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql",$serialize);
 		events("$www ($public_ip) blocked by rule $rulename/$category from $user/$local_ip/$Clienthostname/$MAC ".@filesize("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql")." bytes");
 		if(!is_file("/var/log/artica-postfix/pagepeeker/".md5($www))){@file_put_contents("/var/log/artica-postfix/pagepeeker/".md5($www), $www);}			
@@ -310,6 +310,7 @@ if(preg_match("#\] REDIR\s+#", $buffer)){return;}
 		$array=parse_url($uri);	
 		$www=$array["host"];
 		if(strpos($www, ":")>0){$t=explode(":", $www);$www=$t[0];}
+		
 		$category=CategoryCodeToCatName($category);
 		$MAC=$GLOBALS["CLASS_UNIX"]->IpToMac($local_ip);
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){$public_ip=$www;$www=$GLOBALS["CLASS_UNIX"]->IpToHostname($www);}else{$public_ip=HostnameToIp($www);}

@@ -989,15 +989,19 @@ function  parseTemplate_extension($uri){
 	if(!isset($array["path"])){return false;}
 	$path_parts = pathinfo($array["path"]);
 	$ext=$path_parts['extension'];
-	writelogs("$uri: $ext",__FUNCTION__,__FILE__,__LINE__);
+	$basename=$path_parts['basename'];
 	$filename=$path_parts['basename'];
+	
+	writelogs("$uri: $ext ($filename)",__FUNCTION__,__FILE__,__LINE__);
+	
+	if($filename==null){$filename="1x1.$ext";}
 	$ctype=null;
     switch ($ext) {
       
-      case "gif": parseTemplate_extension_gif();return true;break;
-      case "png": $ctype="image/png"; $filename="1x1.png";break;
-      case "jpeg": $ctype="image/jpg";$filename="1x1.jpg";break;
-      case "jpg": $ctype="image/jpg";$filename="1x1.jpeg";break;;
+      case "gif": parseTemplate_extension_gif($filename);return true;break;
+      case "png": $ctype="image/png"; break;
+      case "jpeg": $ctype="image/jpg";break;
+      case "jpg": $ctype="image/jpg";;break;;
       
     }
 
@@ -1005,8 +1009,8 @@ function  parseTemplate_extension($uri){
     	parseTemplateLogs("Fake $filename for $uri",__FUNCTION__,__FILE__,__LINE__);
    		$fsize = filesize("img/$filename"); 
     	header("Content-Type: $ctype");
-    	header("Content-Disposition: attachment; filename=\"$filename\";" );
-    	header("Content-Transfer-Encoding: binary");
+    	//header("Content-Disposition: attachment; filename=\"$filename\";" );
+    	//header("Content-Transfer-Encoding: binary");
     	header("Content-Length: ".$fsize);
     	ob_clean();
     	flush();
@@ -1024,12 +1028,12 @@ function  parseTemplate_extension($uri){
 	}
 		
 }
-function parseTemplate_extension_gif(){
+function parseTemplate_extension_gif($filename){
 		parseTemplateLogs("Fake GIF",__FUNCTION__,__FILE__,__LINE__);
 		$fsize = filesize("img/1x1.gif"); 
     	header("Content-Type: image/gif");
-    	header("Content-Disposition: attachment; filename=\"1x1.gif\";" );
-    	header("Content-Transfer-Encoding: binary");
+    	//header("Content-Disposition: attachment; filename=\"$filename\";" );
+    	//header("Content-Transfer-Encoding: binary");
     	header("Content-Length: ".$fsize);
     	ob_clean();
     	flush();

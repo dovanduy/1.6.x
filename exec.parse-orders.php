@@ -10,6 +10,10 @@ $GLOBALS["EXEC_PID_FILE"]="/etc/artica-postfix/".basename(__FILE__).".damon.pid"
 
 $oldpid=@file_get_contents($GLOBALS["EXEC_PID_FILE"]);
 $unix=new unix();
+
+$GLOBALS["EXEC_NICE"]=$unix->EXEC_NICE();
+$GLOBALS["NOHUP"]=$unix->find_program("nohup");
+
 if($unix->process_exists($oldpid)){
 	$ProcessTime=$unix->PROCCESS_TIME_MIN($oldpid);
 	events("artica-background already executed pid $oldpid since $ProcessTime Minutes",__FUNCTION__,__LINE__);
@@ -353,7 +357,7 @@ function ParseLocalQueue(){
 	if($MemoryInstances>4){events("Too much php processes in memory, aborting");return;}
 	if(!is_numeric($MemoryInstances)){$MemoryInstances=0;}
 
-if(is_file("/etc/artica-postfix/orders.queue")){
+	if(is_file("/etc/artica-postfix/orders.queue")){
 		$size=@filesize("/etc/artica-postfix/orders.queue");
 		if($size>0){
 			events("Loading /etc/artica-postfix/orders.queue $size bytes");
@@ -394,7 +398,8 @@ if(is_file("/etc/artica-postfix/background")){
 			events("done...");
 		}
 	}
-	
+	$nice=$GLOBALS["EXEC_NICE"];
+	$nohup=$GLOBALS["NOHUP"];	
 	
 	if(is_file("/usr/share/artica-postfix/ressources/logs/global.status.ini")){
 		$time_status=file_time_min("/usr/share/artica-postfix/ressources/logs/global.status.ini");
@@ -436,6 +441,10 @@ if(is_file("/etc/artica-postfix/background")){
 
 	while (list ($num, $cmd) = each ($orders) ){
 		if(trim($cmd)==null){continue;}
+		
+		$devnull=" >/dev/null 2>&1";
+		if(strpos($cmd,">")>0){$devnull=null;}
+		
 		if(preg_match("#artica-make#", $cmd)){
 			events("artica-make detected \"$cmd\", execute this task first...");
 			shell_exec("$nice$cmd$devnull");
@@ -455,8 +464,8 @@ if(is_file("/etc/artica-postfix/background")){
 		if(strpos($cmd,">")>0){$devnull=null;}
 
 		if(system_is_overloaded(__FILE__)){
-			events("Overloaded system, sleep 5s");
-			sleep(5);
+			events("Overloaded system, return....");
+			flush_queue($orders);
 			continue;
 		}
 		$count++;
@@ -469,21 +478,22 @@ if(is_file("/etc/artica-postfix/background")){
 	
 	
 	events("$count/$orders_number order(s) executed...end;");
-	if(is_array($orders)){
-		if(count($orders)>0){
-			reset($orders);
-			$fh = fopen("/etc/artica-postfix/background", 'w') or die("can't open file");
-			while (list ($num, $cmd) = each ($orders) ){
-				$datas="$cmd\n";
-				fwrite($fh, $datas);
-				}
-			fclose($fh);
-			events("Queued ". count($orders)." order(s)");
-		}
-	}
-	
-	
+	flush_queue($orders);
+}
 
+function flush_queue($orders){
+	$order_file="/etc/artica-postfix/background";
+	if(!is_array($orders)){@unlink($order_file);return;}
+	if(count($orders)==0){@unlink($order_file);return;}
+	reset($orders);
+	$fh = fopen("/etc/artica-postfix/background", 'w') or die("can't open file");
+	while (list ($num, $cmd) = each ($orders) ){
+		$datas="$cmd\n";
+		fwrite($fh, $datas);
+	}
+	fclose($fh);
+	events("Queued ". count($orders)." order(s)");	
+	
 }
 
 function artica_exec(){

@@ -9,8 +9,18 @@
 	include_once(dirname(__FILE__).'/framework/class.unix.inc');
 	
 	if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+	$GLOBALS["AS_ROOT"]=true;
+	
+	
+	$unix=new unix();
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["output"]=true;}
+	
+	if(system_is_overloaded(basename(__FILE__))){
+		$unix->THREAD_COMMAND_SET($unix->LOCATE_PHP5_BIN()." ".__FILE__);
+		die();
+	}
+	
 	
 	if($argv[1]=="--status"){status($argv[2]);die();}
 	if($argv[1]=="--dist"){distri($argv[2]);die();}

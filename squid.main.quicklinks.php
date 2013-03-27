@@ -1274,6 +1274,7 @@ function all_status(){
 	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("APP_UFDBGUARD",$ini,null,1);
 	$APP_FRESHCLAM=DAEMON_STATUS_ROUND("APP_FRESHCLAM",$ini,null,1);
 	$APP_ARTICADB=DAEMON_STATUS_ROUND("APP_ARTICADB",$ini,null,1);
+	$APP_SQUID_DB=DAEMON_STATUS_ROUND("APP_SQUID_DB",$ini,null,1);
 	if($users->PROXYTINY_APPLIANCE){$APP_ARTICADB=null;}
 	if($EnableRemoteStatisticsAppliance==1){$APP_ARTICADB=null;}
 	$squid=new squidbee();
@@ -1353,6 +1354,7 @@ function all_status(){
 	$tr[]=$APP_UFDBGUARD;
 	$tr[]=$APP_FRESHCLAM;
 	$tr[]=$APP_ARTICADB;
+	$tr[]=$APP_SQUID_DB;
 	
 	
 	

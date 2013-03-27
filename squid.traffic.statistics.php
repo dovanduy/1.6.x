@@ -21,6 +21,9 @@
 	if(isset($_GET["squid-status-stats"])){squid_status_stats();exit;}
 	
 	if(isset($_GET["squid-status-graphs"])){general_status_graphs();exit;}
+	if(isset($_GET["status-graph-flow"])){general_status_graphs_flow();exit;}
+	
+	
 	if(isset($_GET["squid-cache-flow-performance"])){general_status_cache_graphs();exit;}
 	
 	if(isset($_GET["day-consumption"])){day_consumption();exit;}
@@ -509,6 +512,7 @@ function squid_status_stats(){
 			
 		}
 	
+		if(!$q->TABLE_EXISTS("tables_day")){$q->CheckTables();}
 		$DAYSNumbers=$q->COUNT_ROWS("tables_day");
 		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(totalsize) as tsize FROM tables_day"));
@@ -520,7 +524,9 @@ function squid_status_stats(){
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(sitename) as tcount FROM visited_sites WHERE LENGTH(category)=0"));
 		$websitesnumsNot=numberFormat($ligne["tcount"],0,""," ");
 	
-		$youtube_objects=$q->COUNT_ROWS("youtube_objects");
+		
+		$results=$q->QUERY_SQL("SELECT count(youtubeid),youtubeid FROM `youtube_dayz` GROUP BY youtubeid");
+		$youtube_objects=mysql_num_rows($results);
 		$youtube_objects=numberFormat($youtube_objects,0,""," ");
 		
 		$CachePermformance=$q->CachePerfHour();
@@ -554,7 +560,8 @@ function squid_status_stats(){
 	$TR_CATZ="	
 	<tr>
 		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td width=99% valign='top' style='font-size:12px;text-decoration:underline' $mouse OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?js=yes&with-purge=yes')\"><b>$DAYSNumbers</b> {daysOfStatistics}</td>
+		<td width=99% valign='top' style='font-size:12px;text-decoration:underline' 
+		$mouse OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?js=yes&with-purge=yes')\"><b>$DAYSNumbers</b> {daysOfStatistics}</td>
 	</tr>
 	
 	<tr>
@@ -568,7 +575,9 @@ function squid_status_stats(){
 	
 	$TR_YOUTUBE="	<tr>
 		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td valign='top' $mouse style='font-size:12px;text-decoration:underline'><b>$youtube_objects</b> Youtube {objects}</td>
+		<td valign='top' $mouse style='font-size:12px;text-decoration:underline'
+		$mouse OnClick=\"javascript:Loadjs('squid.youtube.all.php')\"
+		><b>$youtube_objects</b> Youtube {objects}</td>
 	</tr>";
 	
 	
@@ -678,6 +687,96 @@ if(!$GLOBALS["AS_ROOT"]){
 
 function general_status_graphs(){
 	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$t=time();
+	
+	if(isset($_GET["from"])){
+		$filter="zDate>='{$_GET["from"]}' AND zDate<='{$_GET["to"]}'";
+		$selected_date="{from_date} {$_GET["from"]} - {to_date} {$_GET["to"]}";
+		$default_from_date=$_GET["from"];
+		$default_to_date=$_GET["to"];
+		$file_prefix="$default_from_date-$default_to_date";
+	}
+	
+	if($_GET["type"]<>null){
+		$type=$_GET["type"];
+		if($_GET["type"]=="req"){
+			$field="requests as totalsize";
+			$prefix_title="{requests}";
+			$hasSize=false;
+		}
+	}
+
+	if($default_from_date==null){
+		$sql="SELECT DATE_FORMAT(DATE_SUB(NOW(),INTERVAL 30 DAY),'%Y-%m-%d') as tdate";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$default_from_date=$ligne["tdate"];
+	}
+	
+	if($default_to_date==null){
+		$sql="SELECT DATE_FORMAT(DATE_SUB(NOW(),INTERVAL 1 DAY),'%Y-%m-%d') as tdate";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$default_to_date=$ligne["tdate"];
+	}
+	
+	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d') as tdate FROM tables_day ORDER BY zDate LIMIT 0,1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$mindate=$ligne["tdate"];
+	
+	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d') as tdate FROM tables_day ORDER BY zDate DESC LIMIT 0,1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$maxdate=$ligne["tdate"];	
+	
+	
+	$html="<div id='$t-1' style='height:350px'><center><img src='img/wait-clock.gif'></center></div>
+		<table style='margin-top:10px' class=form>
+	<tbody>
+	<tr>
+		<td class=legend nowrap>{from_date}:</td>
+		<td>". field_date('from_date1',$default_from_date,"font-size:16px;padding:3px;width:95px","mindate:$mindate;maxdate:$maxdate")."</td>
+		
+		<td class=legend nowrap>{to_date}:</td>
+		<td>". field_date('to_date1',$default_to_date,"font-size:16px;padding:3px;width:95px","mindate:$mindate;maxdate:$maxdate")."</td>
+		<td width=1%>". button("{apply}","SquidFlowSizeQuery('$type')")."</td>
+	</tr>
+	</table>
+	<div id='$t-2' style='height:350px'><center><img src='img/wait-clock.gif'></center></div>
+	
+	
+	
+	<script>
+		function SquidFlowSizeQuery(type){
+			if(!type){type='';}
+			var from=document.getElementById('from_date1').value;
+			var to=document.getElementById('to_date1').value;
+			LoadAjax('squid-status-graphs','$page?squid-status-graphs=yes&from='+from+'&to='+to+'&type='+type);
+		
+		}
+	
+	
+		function StartGraph1$t(){
+			Loadjs('$page?status-graph-flow=yes&id=$t-1&from={$_GET["from"]}&to={$_GET["to"]}&type={$_GET["type"]}');
+			setTimeout(\"StartGraph2$t()\",2000);
+		}
+		
+		function StartGraph2$t(){
+			Loadjs('$page?squid-cache-flow-performance=yes&id=$t-2&from={$_GET["from"]}&to={$_GET["to"]}&type={$_GET["type"]}');
+		 }
+		
+		StartGraph1$t();
+		
+	</script>
+	
+	";
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+
+
+function general_status_graphs_flow(){
+	$page=CurrentPageName();
 	$tpl=new templates();		
 	$q=new mysql_squid_builder();	
 	$selected_date="{last_30days}";
@@ -687,6 +786,8 @@ function general_status_graphs(){
 	$field="totalsize";
 	$prefix_title="{downloaded_flow} (MB)";
 	$hasSize=true;
+	if($_GET["from"]==null){unset($_GET["from"]);}
+	if($_GET["type"]==null){unset($_GET["type"]);}
 	
 	if(isset($_GET["from"])){
 		$filter="zDate>='{$_GET["from"]}' AND zDate<='{$_GET["to"]}'";
@@ -710,83 +811,22 @@ function general_status_graphs(){
 	
 	$results=$q->QUERY_SQL($sql);
 
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}
+	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$xdata[]=$ligne["tdate"];
 		if($hasSize){$ydata[]=round(($ligne["totalsize"]/1024)/1000);}else{$ydata[]=$ligne["totalsize"];}
 	}
 	
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".$file_prefix.$type.png";
-	$gp=new artica_graphs();
-	$gp->width=500;
-	$gp->height=350;
-	$gp->filename="$targetedfile";
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;
-	$gp->y_title=null;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{days}");
-	$gp->title=null;
-	$gp->margin0=true;
-	$gp->Fillcolor="blue@0.9";
-	$gp->color="146497";
-
-	$gp->line_green();
-	if(!is_file($targetedfile)){writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);$targetedfile="img/kas-graph-no-datas.png";}
 	
-	if($default_from_date==null){
-		$sql="SELECT DATE_FORMAT(DATE_SUB(NOW(),INTERVAL 30 DAY),'%Y-%m-%d') as tdate";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		$default_from_date=$ligne["tdate"];
-	}
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["id"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title=$prefix_title." - ".$selected_date;
+	$highcharts->yAxisTtitle="{bandwith} MB";
+	$highcharts->xAxisTtitle="{days}";
+	$highcharts->datas=array("{bandwith}"=>$ydata);
 	
-	if($default_to_date==null){
-		$sql="SELECT DATE_FORMAT(DATE_SUB(NOW(),INTERVAL 1 DAY),'%Y-%m-%d') as tdate";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		$default_to_date=$ligne["tdate"];
-	}	
-	
-	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d') as tdate FROM tables_day ORDER BY zDate LIMIT 0,1";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	$mindate=$ligne["tdate"];
-
-	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d') as tdate FROM tables_day ORDER BY zDate DESC LIMIT 0,1";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	$maxdate=$ligne["tdate"];		
-	
-	echo $tpl->_ENGINE_parse_body("<div ><h3> $prefix_title/{days} - $selected_date</h3>
-	<center>
-	<img src='$targetedfile'>
-	</center>
-	</div>
-	<table style='margin-top:10px' class=form>
-	<tbody>
-	<tr>
-		<td class=legend nowrap>{from_date}:</td>
-		<td>". field_date('from_date1',$default_from_date,"font-size:16px;padding:3px;width:95px","mindate:$mindate;maxdate:$maxdate")."</td>
-		
-		<td class=legend nowrap>{to_date}:</td>
-		<td>". field_date('to_date1',$default_to_date,"font-size:16px;padding:3px;width:95px","mindate:$mindate;maxdate:$maxdate")."</td>
-		<td width=1%>". button("{apply}","SquidFlowSizeQuery('$type')")."</td>
-	</tr>
-	</table>
-	<p>&nbsp;</p>
-	<div id='squid-cache-flow-performance'></div>
-	
-	<script>
-		function SquidFlowSizeQuery(type){
-			if(!type){type='';}
-			var from=document.getElementById('from_date1').value;
-			var to=document.getElementById('to_date1').value;
-			LoadAjax('squid-status-graphs','$page?squid-status-graphs=yes&from='+from+'&to='+to+'&type='+type);
-		
-		}
-		
-		LoadAjax('squid-cache-flow-performance','$page?squid-cache-flow-performance=yes&from=$default_from_date&to=$default_to_date&type=$type');
-		
-	</script>
-	
-	");
-	
+	echo $highcharts->BuildChart();
 }
 
 
@@ -823,32 +863,23 @@ function general_status_cache_graphs(){
 	
 	$results=$q->QUERY_SQL($sql);
 
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}
+	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$xdata[]=$ligne["tdate"];
 		$ydata[]=round(($ligne["totalsize"]/1024)/1000);
 	}
 	
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".cache-perf.$file_prefix.png";
-	$gp=new artica_graphs();
-	$gp->width=500;
-	$gp->height=350;
-	$gp->filename="$targetedfile";
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;
-	$gp->y_title=null;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{days}");
-	$gp->title=null;
-	$gp->margin0=true;
-	$gp->Fillcolor="blue@0.9";
-	$gp->color="146497";
-
-	$gp->line_green();
-	if(!is_file($targetedfile)){writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);return;}
-	echo $tpl->_ENGINE_parse_body("<div ><h3>{cache} (MB) /{days} - $selected_date</h3>
-	<center>
-	<img src='$targetedfile'>
-	</center>
-	</div>");
+	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["id"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title="{cache} (MB) /{days} - $selected_date";
+	$highcharts->yAxisTtitle="{bandwith} MB";
+	$highcharts->xAxisTtitle="{days}";
+	$highcharts->datas=array("{bandwith}"=>$ydata);
+	
+	echo $highcharts->BuildChart();	
+	
+	
 	
 }

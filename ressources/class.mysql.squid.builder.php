@@ -11,21 +11,25 @@ include_once(dirname(__FILE__)."/class.mysql.catz.inc");
 if(function_exists("debug_mem")){debug_mem();}
 include_once(dirname(__FILE__).'/class.simple.image.inc');
 if(function_exists("debug_mem")){debug_mem();}
+include_once(dirname(__FILE__)."/class.highcharts.inc");
 
 class mysql_squid_builder{
-	public $ClassSQL;
+	private $ClassSQL;
 	public $ok=false;
 	public $mysql_error;
 	public $UseMysql=true;
 	public $database="squidlogs";
-	public $mysql_server;
+	public $mysql_server="127.0.0.1";
 	public $mysql_admin;
 	public $mysql_password;
 	public $mysql_port;
 	public $MysqlFailed=false;
 	public $mysql_connection;
 	public $EnableRemoteStatisticsAppliance=0;
+	private $squidEnableRemoteStatistics=0;
 	public $DisableArticaProxyStatistics=0;
+	private $EnableSquidRemoteMySQL=0;
+	private $ProxyUseArticaDB=0;
 	public $EnableSargGenerator=0;
 	public $tasks_array=array();
 	public $tasks_explain_array=array();
@@ -38,20 +42,33 @@ class mysql_squid_builder{
 	public $AVAILABLE_METHOD=array();
 	public $acl_GroupTypeDynamic=array();
 	public $SocketName="/var/run/mysqld/mysqld.sock";
+	public $DisableLocalStatisticsTasks=0;
+	private $NOCHDB=array("mysql"=>true);
+	public $MYSQL_CMDLINES=null;
 	
-	function mysql_squid_builder(){
+	function mysql_squid_builder($local=false){
 		if(!class_exists("sockets")){include_once(dirname(__FILE__)."/class.sockets.inc");}
+		if(!class_exists("usersMenus")){include_once(dirname(__FILE__)."/class.users.menus.inc");}
 		$sock=new sockets();
-		$squidEnableRemoteStatistics=$sock->GET_INFO("squidEnableRemoteStatistics");
+		$users=new usersMenus();
+		$this->squidEnableRemoteStatistics=$sock->GET_INFO("squidEnableRemoteStatistics");
 		$this->EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+		$this->EnableSquidRemoteMySQL=$sock->GET_INFO("EnableSquidRemoteMySQL");
 		$squidRemostatisticsServer=$sock->GET_INFO("squidRemostatisticsServer");
 		$squidRemostatisticsPort=$sock->GET_INFO("squidRemostatisticsPort");
 		$squidRemostatisticsUser=$sock->GET_INFO("squidRemostatisticsUser");
 		$squidRemostatisticsPassword=$sock->GET_INFO("squidRemostatisticsPassword");
 		$this->SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
-		if(!is_numeric($squidEnableRemoteStatistics)){$squidEnableRemoteStatistics=0;}
+		$this->ProxyUseArticaDB=$sock->GET_INFO("ProxyUseArticaDB");
+		$this->DisableLocalStatisticsTasks=$sock->GET_INFO("DisableLocalStatisticsTasks");
+		if(!is_numeric($this->EnableSquidRemoteMySQL)){$this->EnableSquidRemoteMySQL=0;}
+		if(!is_numeric($this->squidEnableRemoteStatistics)){$this->squidEnableRemoteStatistics=0;}
 		if(!is_numeric($this->EnableRemoteStatisticsAppliance)){$this->EnableRemoteStatisticsAppliance=0;}
-		if($this->EnableRemoteStatisticsAppliance==1){$squidEnableRemoteStatistics=0;}
+		if(!is_numeric($this->ProxyUseArticaDB)){$this->ProxyUseArticaDB=0;}
+		if(!is_numeric($this->DisableLocalStatisticsTasks)){$this->DisableLocalStatisticsTasks=0;}
+		if(!$users->APP_SQUIDDB_INSTALLED){$this->ProxyUseArticaDB=0;}
+		if($this->EnableRemoteStatisticsAppliance==1){$this->squidEnableRemoteStatistics=0;}
+		
 		
 		$this->DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 		if(!is_numeric($this->DisableArticaProxyStatistics)){$this->DisableArticaProxyStatistics=0;}
@@ -62,6 +79,7 @@ class mysql_squid_builder{
 		if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}	
 		$UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
 		if(!is_numeric($UseDynamicGroupsAcls)){$UseDynamicGroupsAcls=0;}
+		
 	
 		
 		$this->acl_GroupType["all"]="{all}";
@@ -114,25 +132,15 @@ class mysql_squid_builder{
 		$this->AVAILABLE_METHOD["BDELETE"]=true;
 		$this->AVAILABLE_METHOD["BPROFIND"]=true;		
 		
-		
-		$this->ClassSQL=new mysql();
+		if($local==true){$this->squidEnableRemoteStatistics=0;$this->EnableSquidRemoteMySQL=0;}
+		$this->PrepareMySQLClass();
 		$this->UseMysql=$this->ClassSQL->UseMysql;
-		$this->mysql_admin=$this->ClassSQL->mysql_admin;
-		$this->mysql_password=$this->ClassSQL->mysql_password;
-		$this->mysql_port=$this->ClassSQL->mysql_port;
-		$this->mysql_server=$this->ClassSQL->mysql_server;
-		
-		
-		if($squidEnableRemoteStatistics==1){
-			$this->ClassSQL->mysql_admin=$squidRemostatisticsUser;
-			$this->ClassSQL->mysql_password=$squidRemostatisticsPassword;
-			$this->ClassSQL->mysql_port=$squidRemostatisticsPort;
-			$this->ClassSQL->mysql_server=$squidRemostatisticsServer;
-			$this->mysql_admin=$this->ClassSQL->mysql_admin;
-			$this->mysql_password=$this->ClassSQL->mysql_password;
-			$this->mysql_port=$this->ClassSQL->mysql_port;
-			$this->mysql_server=$this->ClassSQL->mysql_server;			
+		if(!$this->DATABASE_EXISTS("squidlogs")){
+			$this->CREATE_DATABASE("squidlogs");
+			$this->CheckTables();
 		}
+		
+
 		$this->fill_task_array();
 		$this->fill_tasks_disabled();
 		if($this->TestingConnection()){
@@ -142,8 +150,136 @@ class mysql_squid_builder{
 		
 	}
 	
+	private function PrepareMySQLClass(){
+		
+		if($this->EnableSquidRemoteMySQL==1){
+			$sock=new sockets();
+			$squidRemostatisticsServer=$sock->GET_INFO("squidRemostatisticsServer");
+			$squidRemostatisticsPort=$sock->GET_INFO("squidRemostatisticsPort");
+			$squidRemostatisticsUser=$sock->GET_INFO("squidRemostatisticsUser");
+			$squidRemostatisticsPassword=$sock->GET_INFO("squidRemostatisticsPassword");
+			$def["mysql_admin"]=$squidRemostatisticsUser;
+			$def["mysql_password"]=$squidRemostatisticsPassword;
+			$def["mysql_port"]=$squidRemostatisticsPort;
+			$def["mysql_server"]=$squidRemostatisticsServer;
+			$def["SocketPath"]=null;
+			$def["TryTCP"]=true;
+			$this->ClassSQL=new mysql($def);
+			$this->ClassSQL->mysql_admin=$squidRemostatisticsUser;
+			$this->ClassSQL->mysql_password=$squidRemostatisticsPassword;
+			$this->ClassSQL->mysql_port=$squidRemostatisticsPort;
+			$this->ClassSQL->mysql_server=$squidRemostatisticsServer;
+			$this->mysql_admin=$this->ClassSQL->mysql_admin;
+			$this->mysql_password=$this->ClassSQL->mysql_password;
+			$this->mysql_port=$this->ClassSQL->mysql_port;
+			$this->mysql_server=$this->ClassSQL->mysql_server;
+			
+			if(strlen($squidRemostatisticsPassword)>1){
+				$mysql_password=$this->shellEscapeChars($squidRemostatisticsPassword);
+				$pass=" -p$mysql_password";
+			}
+			$this->MYSQL_CMDLINES="--protocol=tcp --host=$squidRemostatisticsServer --port=$squidRemostatisticsPort -u $squidRemostatisticsUser$pass";
+			return;			
+		}
+		
+		
+		if($this->squidEnableRemoteStatistics==1){
+			$sock=new sockets();
+			$squidRemostatisticsServer=$sock->GET_INFO("squidRemostatisticsServer");
+			$squidRemostatisticsPort=$sock->GET_INFO("squidRemostatisticsPort");
+			$squidRemostatisticsUser=$sock->GET_INFO("squidRemostatisticsUser");
+			$squidRemostatisticsPassword=$sock->GET_INFO("squidRemostatisticsPassword");
+			
+			$def["mysql_admin"]=$squidRemostatisticsUser;
+			$def["mysql_password"]=$squidRemostatisticsPassword;
+			$def["mysql_port"]=$squidRemostatisticsPort;
+			$def["mysql_server"]=$squidRemostatisticsServer;
+			$def["SocketPath"]=null;
+			$def["TryTCP"]=true;
+			$this->ClassSQL=new mysql($def);
+			$this->ClassSQL->mysql_admin=$squidRemostatisticsUser;
+			$this->ClassSQL->mysql_password=$squidRemostatisticsPassword;
+			$this->ClassSQL->mysql_port=$squidRemostatisticsPort;
+			$this->ClassSQL->mysql_server=$squidRemostatisticsServer;
+			$this->mysql_admin=$this->ClassSQL->mysql_admin;
+			$this->mysql_password=$this->ClassSQL->mysql_password;
+			$this->mysql_port=$this->ClassSQL->mysql_port;
+			$this->mysql_server=$this->ClassSQL->mysql_server;
+			
+			if(strlen($squidRemostatisticsPassword)>1){
+				$mysql_password=$this->shellEscapeChars($squidRemostatisticsPassword);
+				$pass=" -p$mysql_password";
+			}
+			$this->MYSQL_CMDLINES="--protocol=tcp --host=$squidRemostatisticsServer --port=$squidRemostatisticsPort -u $squidRemostatisticsUser$pass";
+			return;
+		}
+		
+		if($this->ProxyUseArticaDB==1){
+			$def["SocketPath"]="/var/run/mysqld/squid-db.sock";
+			$def["mysql_admin"]="root";
+			$def["mysql_password"]=null;	
+			$def["TryTCP"]=false;
+			$this->SocketName=$def["SocketPath"];
+			$this->mysql_admin=$def["mysql_admin"];
+			$this->mysql_password=$def["mysql_password"];
+			$this->mysql_server="127.0.0.1";	
+			$this->ClassSQL=new mysql($def);
+			$this->MYSQL_CMDLINES="--protocol=socket --socket=/var/run/mysqld/squid-db.sock -u root";
+			
+			return;
+		}
+		
+		$this->ClassSQL=new mysql();
+		if($this->ClassSQL->mysql_admin==null){$this->ClassSQL->mysql_admin="root";}
+		if($this->ClassSQL->mysql_server==null){$this->ClassSQL->mysql_server="127.0.0.1";}
+		$this->mysql_admin=$this->ClassSQL->mysql_admin;
+		$this->mysql_password=$this->ClassSQL->mysql_password;
+		$this->mysql_port=$this->ClassSQL->mysql_port;
+		$this->mysql_server=$this->ClassSQL->mysql_server;
+		
+		if(strlen($this->ClassSQL->mysql_password)>1){
+			$mysql_password=$this->shellEscapeChars($this->ClassSQL->mysql_password);
+			$pass=" -p$mysql_password";
+		}
+		
+		if($this->ClassSQL->mysql_server=="127.0.0.1"){
+			$this->MYSQL_CMDLINES="--protocol=socket --socket={$this->ClassSQL->SocketName} -u {$this->ClassSQL->mysql_admin}$pass";
+		}else{
+			$this->MYSQL_CMDLINES="--protocol=tcp --host={$this->ClassSQL->mysql_server} --port={$this->ClassSQL->mysql_port} -u {$this->ClassSQL->mysql_admin}$pass";
+		}
+		
+		
+
+	}
+	
+	private function shellEscapeChars($path){
+		$path=str_replace(" ","\ ",$path);
+		$path=str_replace('$','\$',$path);
+		$path=str_replace("&","\&",$path);
+		$path=str_replace("?","\?",$path);
+		$path=str_replace("#","\#",$path);
+		$path=str_replace("[","\[",$path);
+		$path=str_replace("]","\]",$path);
+		$path=str_replace("{","\{",$path);
+		$path=str_replace("}","\}",$path);
+		$path=str_replace("*","\*",$path);
+		$path=str_replace('"','\\"',$path);
+		$path=str_replace("'","\\'",$path);
+		$path=str_replace("(","\(",$path);
+		$path=str_replace(")","\)",$path);
+		$path=str_replace("<","\<",$path);
+		$path=str_replace(">","\>",$path);
+		$path=str_replace("!","\!",$path);
+		$path=str_replace("+","\+",$path);
+		$path=str_replace(";","\;",$path);
+		return $path;
+	}	
+	
+	
 	private function fill_tasks_disabled(){
 			$users=new usersMenus();
+			$DisableArticaProxyStatistics=$this->DisableArticaProxyStatistics;
+			if($this->DisableLocalStatisticsTasks==1){$DisableArticaProxyStatistics=1;}
 			
 			if($users->PROXYTINY_APPLIANCE){
 				$this->tasks_disabled[1]=true;
@@ -168,6 +304,12 @@ class mysql_squid_builder{
 			}
 			
 			if($this->DisableArticaProxyStatistics==1){
+				$this->tasks_disabled[38]=true;
+				$this->tasks_disabled[37]=true;
+			}
+			
+			
+			if($DisableArticaProxyStatistics==1){
 				$this->tasks_disabled[15]=true;
 				$this->tasks_disabled[16]=true;
 				$this->tasks_disabled[9]=true;
@@ -184,8 +326,6 @@ class mysql_squid_builder{
 				$this->tasks_disabled[29]=true;
 				$this->tasks_disabled[34]=true;
 				$this->tasks_disabled[36]=true;
-				$this->tasks_disabled[37]=true;
-				$this->tasks_disabled[38]=true;
 				$this->tasks_disabled[40]=true;
 				$this->tasks_disabled[43]=true;
 				$this->tasks_disabled[44]=true;
@@ -266,6 +406,7 @@ class mysql_squid_builder{
 			$this->tasks_array[45]="{rebuild_caches}";
 			$this->tasks_array[46]="{fill_squid_client_table}";
 			$this->tasks_array[47]="{squid_logs_purge}";
+			$this->tasks_array[48]="{squid_logs_restore}";
 			
 			
 			
@@ -319,6 +460,7 @@ class mysql_squid_builder{
 			$this->tasks_explain_array[45]="{rebuild_caches_explain}";
 			$this->tasks_explain_array[46]="{fill_squid_client_table_explain}";
 			$this->tasks_explain_array[47]="{squid_logs_purge_explain}";
+			$this->tasks_explain_array[48]="{squid_logs_restore_explain}";
 			
 			
 
@@ -369,6 +511,7 @@ class mysql_squid_builder{
 			$this->tasks_processes[45]="exec.squid.rebuild.caches.php";
 			$this->tasks_processes[46]="exec.squid-tail-injector.php --users-auth";
 			$this->tasks_processes[47]="exec.squidlogs.purge.php";
+			$this->tasks_processes[48]="exec.squidlogs.restore.php --restore-all";
 			
 			
 			
@@ -555,17 +698,29 @@ class mysql_squid_builder{
 	}		
 	
 	
-	public function TestingConnection(){
+	public function TestingConnection($called=null){
+		
+		if($called==null){
+			if(function_exists("debug_backtrace")){
+				$trace=@debug_backtrace();
+				if(isset($trace[1])){
+					$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+				}
+			}
+		}
+		
 		$this->ok=true;
 		$this->ClassSQL->ok=true;
-		$a=$this->ClassSQL->TestingConnection();
+		$a=$this->ClassSQL->TestingConnection(false,$called);
 		$this->mysql_error=$this->ClassSQL->mysql_error;
 		return $a;
 	}
 	
 	public function COUNT_ROWS($table,$database=null){
 		$this->ok=true;
-		if($database<>$this->database){$database=$this->database;}
+		if(!$this->NOCHDB[$database]){
+			if($database<>$this->database){$database=$this->database;}
+		}
 		$count=$this->ClassSQL->COUNT_ROWS($table,$database);
 		if(!$this->ClassSQL->ok){
 			$this->ok=false;
@@ -611,24 +766,67 @@ class mysql_squid_builder{
 	}
 	
 	public function BD_CONNECT($noretry=false){
-		$this->ClassSQL->BD_CONNECT();
-		$this->mysql_connection=$this->ClassSQL->mysql_connection;
+		$this->PrepareMySQLClass();
+		$this->ok=true;
+		$results=$this->ClassSQL->BD_CONNECT();
+		if($results){
+			$this->mysql_connection=$this->ClassSQL->mysql_connection;
+			return true;
+		}
+		$this->ok=false;
+		$this->mysql_error=$this->ClassSQL->mysql_error;
+		writelogs("Fatal connection failed [".$this->ClassSQL->mysql_error."]",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		
 	}
 	
+	function FLUSH_PRIVILEGES(){
+		$sql="FLUSH PRIVILEGES";
+		$this->BD_CONNECT();
+		$results=@mysql_query($sql,$this->mysql_connection);
+		$errnum=@mysql_error($this->mysql_connection);
+		$des=@mysql_error($this->mysql_connection);
+		$this->mysql_error=$des;
+	
+	}	
+	public function EXECUTE_SQL($sql){
+		if(!$this->BD_CONNECT()){return false;}
+	
+		@mysql_query($sql,$this->mysql_connection);
+		if(mysql_error($this->mysql_connection)){
+			$time=date('h:i:s');
+			$errnum=mysql_errno($this->mysql_connection);
+			$des=mysql_error($this->mysql_connection);
+			$this->mysql_error="Error Number ($errnum) ($des)";
+			writelogs("$this->SocketPath:$this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			return false;
+		}
+	
+		
+		return true;
+	}	
+	
+	
+	public function DATABASE_LIST(){
+		if(!$this->BD_CONNECT()){return false;}
+		return $this->ClassSQL->DATABASE_LIST();
+	}
+	
+	
 	public function QUERY_SQL($sql,$database=null){
-		if($database<>$this->database){$database=$this->database;}
+		if(!$this->BD_CONNECT()){return false;}
+		if(!isset($this->NOCHDB[$database])){$this->NOCHDB[$database]=false;}
+		
+		if(!$this->NOCHDB[$database]){
+			if($database<>$this->database){$database=$this->database;}
+		}
 		if(strpos($sql, "information_schema.tables")){
 			if($GLOBALS["VERBOSE"]){echo "Select `mysql` database instead\n";}
 			$database="mysql";
-			$q=new mysql();
-			$results=$q->QUERY_SQL($sql,"$database");
-			if(!$q->ok){
-				if($GLOBALS["VERBOSE"]){echo "$q->mysql_error\n";}
-			}
-			$this->ok=$q->ok;
-			$this->mysql_error=$q->mysql_error;
-			$this->last_id=$q->last_id;
+			$results=$this->ClassSQL->QUERY_SQL($sql,"$database");
+			if(!$this->ClassSQL->ok){if($GLOBALS["VERBOSE"]){echo "$this->ClassSQL->mysql_error\n";}}
+			$this->ok=$this->ClassSQL->ok;
+			$this->mysql_error=$this->ClassSQL->mysql_error;
+			$this->last_id=$this->ClassSQL->last_id;
 			return $results;
 		
 		}
@@ -1076,8 +1274,8 @@ class mysql_squid_builder{
 	
 	public function COUNT_ALL_TABLES(){
 		
-			$sql="SELECT COUNT(*) as tcount, (SUM(`INDEX_LENGTH`)+ SUM(`DATA_LENGTH`)) as x FROM information_schema.tables WHERE table_schema = 'squidlogs'";
-			$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
+		$sql="SELECT COUNT(*) as tcount, (SUM(`INDEX_LENGTH`)+ SUM(`DATA_LENGTH`)) as x FROM information_schema.tables WHERE table_schema = 'squidlogs'";
+		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql));
 		return array($ligne["tcount"],$ligne["x"]);
 	}	
 	
@@ -1186,8 +1384,14 @@ class mysql_squid_builder{
 		if(isset($GLOBALS["LIST_TABLES_CATEGORIES"])){return $GLOBALS["LIST_TABLES_CATEGORIES"];}
 		$array=array();
 		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'category_%'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if(!$this->BD_CONNECT(true)){
+			writelogs("Fatal Error: Unable to BD_CONNECT()",
+			__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();
+		}
+		
+		$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",
+			__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
 		
 		
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -1626,6 +1830,68 @@ public function create_webfilters_categories_caches(){
 			return false;
 
 }
+
+public function SHOW_VARIABLES(){
+	$this->TestingConnection();
+	return $this->ClassSQL->SHOW_VARIABLES();
+}
+
+public function SHOW_STATUS(){
+	$this->TestingConnection();
+	return $this->ClassSQL->SHOW_STATUS();
+}
+
+
+public function Check_dansguardian_events_table($table=null){
+	
+	
+	if($table==null){$table="dansguardian_events_".date('Ymd');}
+	
+	$sql="CREATE TABLE IF NOT EXISTS `$table` (
+	`sitename` varchar(90) NOT NULL,
+	`ID` bigint(100) NOT NULL AUTO_INCREMENT,
+	`uri` varchar(90) NOT NULL,
+	`TYPE` varchar(50) NOT NULL,
+	`REASON` varchar(255) NOT NULL,
+	`CLIENT` varchar(50) NOT NULL DEFAULT '',
+	`hostname` varchar(120) NOT NULL DEFAULT '',
+	`account` BIGINT(100) NOT NULL,
+	`zDate` datetime NOT NULL,
+	`zMD5` varchar(90) NOT NULL,
+	`uid` varchar(128) NOT NULL,
+	`remote_ip` varchar(20) NOT NULL,
+	`country` varchar(20) NOT NULL,
+	`QuerySize` BIGINT(100) NOT NULL,
+	`hits` BIGINT(100) NOT NULL,
+	`cached` int(1) NOT NULL DEFAULT '0',
+	`MAC` varchar(20) NOT NULL,
+	PRIMARY KEY (`ID`),
+	UNIQUE KEY `zMD5` (`zMD5`),
+	KEY `sitename` (`sitename`,`TYPE`,`CLIENT`,`uri`),
+	KEY `zDate` (`zDate`),
+	KEY `hostname` (`hostname`),KEY `account` (`account`),
+	KEY `cached` (`cached`),
+	KEY `uri` (`uri`),
+	KEY `hits` (`hits`),
+	KEY `remote_ip` (`remote_ip`),
+	KEY `uid` (`uid`),
+	KEY `country` (`country`),
+	KEY `MAC` (`MAC`)
+	)  ENGINE = MYISAM;";
+	$this->QUERY_SQL($sql,$this->database);
+	if(!$this->ok){
+	if(function_exists("events_repair")){events_repair("$this->mysql_error in ".__CLASS__.'/'.__FUNCTION__." line:".__LINE__);}
+	writelogs("$this->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+	$this->mysql_error=$this->mysql_error."\n$sql";
+	return false;
+	}
+	
+	if(!$this->FIELD_EXISTS("$table", "hostname")){$this->QUERY_SQL("ALTER TABLE `$table` ADD `hostname` VARCHAR( 120 ) NOT NULL ,ADD INDEX ( `hostname` )");}
+	if(!$this->FIELD_EXISTS("$table", "hits")){$this->QUERY_SQL("ALTER TABLE `$table` ADD `hits` BIGINT(100) NOT NULL,ADD KEY `hits` (`hits`)");}
+	
+	return true;	
+	
+}
 	
 	
 public function CheckTables($table=null){
@@ -1648,6 +1914,7 @@ public function CheckTables($table=null){
 	$this->TablePrimaireHour();
 	$this->CreateWeekTable();
 	$this->create_webfilters_categories_caches();
+	$this->Check_dansguardian_events_table($table);
 	
 	if($this->TABLE_EXISTS("category_teans")){
 		if(!$this->TABLE_EXISTS("category_teens")){
@@ -1655,53 +1922,7 @@ public function CheckTables($table=null){
 		}
 	}
 	
-	if($table==null){$table="dansguardian_events_".date('Ymd');}	
-	if(!$this->TABLE_EXISTS($table,$this->database)){
-		writelogs("Checking $table in $this->database NOT EXISTS...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		$sql="CREATE TABLE IF NOT EXISTS `$table` (
-		  `sitename` varchar(90) NOT NULL,
-		  `ID` bigint(100) NOT NULL AUTO_INCREMENT,
-		  `uri` varchar(90) NOT NULL,
-		  `TYPE` varchar(50) NOT NULL,
-		  `REASON` varchar(255) NOT NULL,
-		  `CLIENT` varchar(50) NOT NULL DEFAULT '',
-		  `hostname` varchar(120) NOT NULL DEFAULT '',
-		 `account` BIGINT(100) NOT NULL,
-		  `zDate` datetime NOT NULL,
-		  `zMD5` varchar(90) NOT NULL,
-		  `uid` varchar(128) NOT NULL,
-		  `remote_ip` varchar(20) NOT NULL,
-		  `country` varchar(20) NOT NULL,
-		  `QuerySize` BIGINT(100) NOT NULL,
-		  `hits` BIGINT(100) NOT NULL,
-		  `cached` int(1) NOT NULL DEFAULT '0',
-		  `MAC` varchar(20) NOT NULL,
-		  PRIMARY KEY (`ID`),
-		  UNIQUE KEY `zMD5` (`zMD5`),
-		  KEY `sitename` (`sitename`,`TYPE`,`CLIENT`,`uri`),
-		  KEY `zDate` (`zDate`),
-		  KEY `hostname` (`hostname`),KEY `account` (`account`),
-		  KEY `cached` (`cached`),
-		  KEY `uri` (`uri`),
-		  KEY `hits` (`hits`),
-		  KEY `remote_ip` (`remote_ip`),
-		  KEY `uid` (`uid`),
-		  KEY `country` (`country`),
-		  KEY `MAC` (`MAC`)
-		)  ENGINE = MYISAM;";
-			 $this->QUERY_SQL($sql,$this->database); 
-			if(!$this->ok){
-				writelogs("$this->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				$this->mysql_error=$this->mysql_error."\n$sql";
-				return false;
-			}else{
-				writelogs("Checking $table SUCCESS",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
-			}
-		}
-	if(!$this->FIELD_EXISTS("$table", "hostname")){$this->QUERY_SQL("ALTER TABLE `$table` ADD `hostname` VARCHAR( 120 ) NOT NULL ,ADD INDEX ( `hostname` )");}
-	if(!$this->FIELD_EXISTS("$table", "hits")){$this->QUERY_SQL("ALTER TABLE `$table` ADD `hits` BIGINT(100) NOT NULL,ADD KEY `hits` (`hits`)");}
-		
-		
+	
 
 		
 		
@@ -1942,8 +2163,8 @@ public function CheckTables($table=null){
 			$this->QUERY_SQL($sql,$this->database);
 		}	
 		
-		if(!$this->TABLE_EXISTS('UserAuthDays',$this->database)){	
-			$sql="CREATE TABLE `squidlogs`.`UserAuthDays` (
+		
+			$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`UserAuthDays` (
 			`zMD5` VARCHAR(90) PRIMARY KEY ,
 			`ipaddr` VARCHAR(40),
 			`hostname` VARCHAR(128),
@@ -1961,9 +2182,9 @@ public function CheckTables($table=null){
 			 KEY `account`(`account`)
 			 )  ENGINE = MYISAM;";
 			$this->QUERY_SQL($sql,$this->database);
-		}
-		if(!$this->TABLE_EXISTS('UserAuthDaysGrouped',$this->database)){	
-			$sql="CREATE TABLE `squidlogs`.`UserAuthDaysGrouped` (
+		
+		
+			$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`UserAuthDaysGrouped` (
 			`ipaddr` VARCHAR(40),
 			`hostname` VARCHAR(128),
 			`uid` VARCHAR(40) NOT NULL,
@@ -1978,7 +2199,7 @@ public function CheckTables($table=null){
 			 KEY `account`(`account`)
 			 )  ENGINE = MYISAM;";
 			$this->QUERY_SQL($sql,$this->database);
-		}		
+		
 		
 		if(!$this->TABLE_EXISTS('youtube_objects',$this->database)){	
 			$sql="CREATE TABLE `squidlogs`.`youtube_objects` (
@@ -3276,6 +3497,14 @@ public function CheckTables($table=null){
 		if(substr($sitename, 0,1)=="."){$sitename=substr($sitename, 1,strlen($sitename));}
 		if(trim($sitename)==null){return;}
 		
+		if(strpos(" $sitename", ".")==0){
+			$this->categorize_reaffected($sitename);
+			$GLOBALS["CATEGORIZELOGS-COUNT"]++;
+			$GLOBALS["GET_CATEGORIES_MEMORY"][$sitename]="reaffected";
+			return "reaffected";
+		}
+		
+		
 		
 		if(!$nocache){
 			$sql="SELECT category FROM visited_sites WHERE sitename='$sitename'";
@@ -3555,7 +3784,7 @@ public function CheckTables($table=null){
 				'fi'=>true,
 				'fm'=>true,
 				'me'=>true,
-				
+				'mx'=> array('com' => true,"gov"=>true),
 				'my'=> array('com' => true,"gov"=>true),
 				'fr'=>array('gouv' => true,"gov"=>true),
 				'ua'=>array('net'=>true,"com"=>true,"gov"=>true),
@@ -4071,8 +4300,15 @@ private function CategoriesFamily($www){
 			) ";
 			$this->QUERY_SQL($sql,$this->database);
 			if(!$this->ok){writelogs("$this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return false;}
-		}	
+		}
+
+		if(!$this->FIELD_EXISTS("UserSizeRTT", "hits")){
+			$this->QUERY_SQL("ALTER TABLE `UserSizeRTT` ADD `hits` BIGINT( 100) NOT NULL ,ADD INDEX ( `hits` ) ");
+			if(!$this->ok){writelogs("$this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		}
 	}
+	
+	
 
 	function CreateUserSizeRTT_day($tablename){
 		if($this->EnableRemoteStatisticsAppliance==1){return;}

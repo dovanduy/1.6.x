@@ -31,7 +31,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{purge_statistics_database}");
-	$html="YahooWin4('725','$page?popup=yes','$title');";
+	$html="YahooWin4('821','$page?popup=yes','$title');";
 	echo $html;	
 	
 }
@@ -39,9 +39,15 @@ function js(){
 function tables_title(){
 	$q=new mysql_squid_builder();
 	$array=$q->COUNT_ALL_TABLES();
+	if(!$q->ok){
+		if($q->mysql_error==null){$q->mysql_error="MySQL error...";}
+		$ff="<div style='font-size:18px'>$q->mysql_error</div>";
+	}else{
+		$ff="<div style='font-size:18px;margin-bottom:10px'>{$array[0]} Tables (".FormatBytes($array[1]/1024).")</div>";
+	}
 	echo "
 	<div style='float:right'>". imgtootltip("refresh-24.png","{refresh}","RefreshTableTitle{$_GET["t"]}()")."</div>		
-	<div style='font-size:18px'>{$array[0]} Tables (".FormatBytes($array[1]/1024).")</div>";
+	$ff";
 	
 }
 
@@ -60,9 +66,17 @@ function popup(){
 	if(!$users->CORP_LICENSE){$ArticaProxyStatisticsBackupDays=5;}
 	
 	$new_schedule=$tpl->javascript_parse_text("{new_schedule}");
+	$EnableSquidRemoteMySQL=$sock->GET_INFO("EnableSquidRemoteMySQL");
+	if(!is_numeric($EnableSquidRemoteMySQL)){$EnableSquidRemoteMySQL=0;}
+	
+	
+	if($EnableSquidRemoteMySQL==1){
+		$EnableSquidRemoteMySQL_text="<div style='font-size:16px;color:#BA1010' class=form>{EnableSquidRemoteMySQL_text}</div>";
+	}
+	
 	$t=time();
 	$html="
-	
+	$EnableSquidRemoteMySQL_text
 	<div id='$t'></div>
 	<div id='title-$t'></div>
 	<div style='font-size:14px;' class=explain>{purge_statistics_database_explain2}</div>	
@@ -116,6 +130,12 @@ function popup(){
 			}
 			
 	function ReloadSchedules$t(){
+		var EnableSquidRemoteMySQL=$EnableSquidRemoteMySQL;
+		if(EnableSquidRemoteMySQL==1){
+			document.getElementById('ArticaProxyStatisticsBackupFolder-$t').disabled=true;
+			document.getElementById('ArticaProxyStatisticsBackupDays-$t').disabled=true;
+			return;
+		}
 		LoadAjax('schedules-$t','$page?schedules=yes');
 		}
 		

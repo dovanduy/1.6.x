@@ -8,19 +8,16 @@ include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 cpulimit();
 $_GET["LOGFILE"]="/var/log/artica-postfix/dansguardian-logger.debug";
+$GLOBALS["MAXDAYS"]=0;
+if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;}
-if(preg_match("#--simulate#",implode(" ",$argv))){$GLOBALS["SIMULATE"]=true;}
+if(preg_match("#maxdays=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["MAXDAYS"]=$re[1];}
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 
 purge();
 
 function purge(){
-	
-	$unix=new unix();
-	
-	
-	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
@@ -32,12 +29,15 @@ function purge(){
 		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
 		return;
 	}
-
+	@file_put_contents($pidfile, getmypid());
 	$sock=new sockets();
 	$users=new usersMenus();
 	$LICENSE=0;
 	$mysqldump=$unix->find_program("mysqldump");
 	$tar=$unix->find_program("tar");
+	$EnableSquidRemoteMySQL=$sock->GET_INFO("EnableSquidRemoteMySQL");
+	if(!is_numeric($EnableSquidRemoteMySQL)){$EnableSquidRemoteMySQL=0;}
+	if($EnableSquidRemoteMySQL==1){return ;}
 	
 	if(!is_file($mysqldump)){
 		echo "mysqldump, no such binary\n";
@@ -58,11 +58,12 @@ function purge(){
 	if($ArticaProxyStatisticsBackupFolder==null){$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics";}
 	
 	if(!is_numeric($ArticaProxyStatisticsBackupDays)){$ArticaProxyStatisticsBackupDays=90;}
+	if($GLOBALS["MAXDAYS"]>0){$ArticaProxyStatisticsBackupDays=$GLOBALS["MAXDAYS"];}
 	if($LICENSE==0){$ArticaProxyStatisticsBackupDays=5;}
 	if(!ScanDays()){if($GLOBALS["VERBOSE"]){echo "Failed...\n";}return;}
 	
-	ufdbguard_admin_events("Max Day: $ArticaProxyStatisticsBackupDays; folder:$ArticaProxyStatisticsBackupFolder",__FUNCTION__,__FILE__,__LINE__,"backup");
-	$q=new mysql_squid_builder();
+	if($GLOBALS["VERBOSE"]){"Max Day: $ArticaProxyStatisticsBackupDays; folder:$ArticaProxyStatisticsBackupFolder\n";}
+	$q=new mysql_squid_builder(true);
 	
 	$sql="SELECT tablename,zDate FROM tables_day WHERE zDate<DATE_SUB(NOW(),INTERVAL $ArticaProxyStatisticsBackupDays DAY)";
 	$results=$q->QUERY_SQL($sql);
@@ -98,20 +99,9 @@ function purge(){
 	@unlink("$ArticaProxyStatisticsBackupFolder/$t");
 	$DeleteTables=0;
 	$TotalSize=0;
-	if($q->mysql_server=="localhost"){$q->mysql_server="127.0.0.1";}
-	$pass=null;
-	if(strlen($q->mysql_password)>1){
-		$q->mysql_password=$unix->shellEscapeChars($q->mysql_password);
-		$pass=" -p$q->mysql_password";
-	}
-	if($q->mysql_server=="127.0.0.1"){
-		$serv="--protocol=socket --socket=$q->SocketName";
-	}else{
-		$serv="--protocol=tcp --host=$q->mysql_server --port=$q->mysql_port";
-	}
 	
 	
-	$mysqldump_prefix="$mysqldump $serv -u $q->mysql_admin{$pass} --skip-add-locks --insert-ignore --quote-names --skip-add-drop-table --verbose $q->database ";
+	$mysqldump_prefix="$mysqldump $q->MYSQL_CMDLINES --skip-add-locks --insert-ignore --quote-names --skip-add-drop-table --verbose --force $q->database ";
 	
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -171,8 +161,6 @@ function purge(){
 			
 			$cmdline="$mysqldump_prefix".@implode(" ", $c)." >$container";
 			if($GLOBALS["VERBOSE"]){echo "\n*******\n$cmdline\n*******\n";}
-			
-			
 			$resultsZ=array();
 			exec($cmdline,$resultsZ);
 			
@@ -204,6 +192,7 @@ function purge(){
 				return;			
 			}
 			chdir($ArticaProxyStatisticsBackupFolder);
+			
 			$cmdline="$tar cfz $container.tar.gz $container 2>&1";
 			$resultsZ=array();
 			exec($cmdline,$resultsZ);
@@ -211,32 +200,18 @@ function purge(){
 				echo "Compress: `$b`\n";
 			}
 			
-			$size=@filesize("$container.tar.gz");
-			if($size<100){
-				if($GLOBALS["VERBOSE"]){echo "Compress failed `$cmdline`\n";}
-				if($GLOBALS["VERBOSE"]){echo "$container.tar.gz size too low ( $size bytes) ...\n";}
-				ufdbguard_admin_events("Fatal Error: day: compress failed $container.tar.gz size too low ( $size bytes) ... ",__FUNCTION__,__FILE__,__LINE__,"backup");
+			if(!$unix->TARGZ_TEST_CONTAINER("$container.tar.gz")){
+				ufdbguard_admin_events("Fatal Error: tar $container failed",__FUNCTION__,__FILE__,__LINE__,"backup");
 				@unlink($container);
 				@unlink("$container.tar.gz");
 				return;
-			}
-			$TotalSize=$TotalSize+$size;
-			$resultsZ=array();
-			exec("$tar ztvf $container.tar.gz 2>&1");
-			while (list ($a, $b) = each ($resultsZ)){
-				if(preg_match("#does not look like a tar#", $b)){
-					if($GLOBALS["VERBOSE"]){echo "tar $container failed $b\n";}
-					ufdbguard_admin_events("Fatal Error: tar $container failed $b ",__FUNCTION__,__FILE__,__LINE__,"backup");
-					return;					
-				}
-				
-				if(preg_match("#tar: Error#", $b)){
-					if($GLOBALS["VERBOSE"]){echo "tar $container failed $b\n";}
-					ufdbguard_admin_events("Fatal Error: tar $container failed $b ",__FUNCTION__,__FILE__,__LINE__,"backup");
-					return;
-				}		
 			}			
+			
+			
+			$TotalSize=$TotalSize+$size;
 			@unlink($container);
+			
+			
 			reset($tablesB);
 			while (list ($tablename, $line) = each ($tablesB)){
 				if($GLOBALS["VERBOSE"]){echo "Delete table `$tablename`\n";}
@@ -257,6 +232,26 @@ function purge(){
 		
 	}
 	
+	
+	
+	$container="$ArticaProxyStatisticsBackupFolder/squidlogs.FULL.sql";
+	$cmd="$mysqldump_prefix >$container";
+	$resultsZ=array();
+	exec($cmdline,$resultsZ);
+	chdir($ArticaProxyStatisticsBackupFolder);
+	$cmdline="$tar cfz $container.tar.gz $container 2>&1";
+	exec($cmdline);
+	if(!$unix->TARGZ_TEST_CONTAINER("$container.tar.gz")){
+		ufdbguard_admin_events("Error $container.tar.gz, not a valid compressed file",__FUNCTION__,__FILE__,__LINE__,"backup");
+		@unlink("$container.tar.gz");
+	}else{
+		$size=@filesize($container);
+		$TotalSize=$TotalSize+$size;
+		@unlink("$container");
+	}
+	
+	
+	
 	if($DeleteTables>0){
 		$TotalSize=FormatBytes($TotalSize/1024);
 		$took=$unix->distanceOfTimeInWords($t,time(),true);
@@ -270,9 +265,12 @@ function purge(){
 
 
 
+
+
+
 function ScanDays(){
 	
-	$q=new mysql_squid_builder();
+	$q=new mysql_squid_builder(true);
 	$ARRAY_DAYS=array();
 	$tables=$q->LIST_TABLES_dansguardian_events();
 	while (list ($tablename, $line) = each ($tables)){

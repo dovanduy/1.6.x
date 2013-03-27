@@ -82,40 +82,41 @@ function right_tabs(){
 	
 
 while (list ($num, $ligne) = each ($array) ){
+	
+
 
 
 		if($num=="day-right-websites"){
-			$html[]= "<li><a href=\"squid.statistics.visited.day.php?table=$tablenameVisited&day={$_GET["day"]}\"><span>$ligne</span></a></li>\n";
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.statistics.visited.day.php?table=$tablenameVisited&day={$_GET["day"]}\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
 			
 
 		if($num=="find"){
-			$html[]= "<li><a href=\"squid.search.statistics.php?$num\"><span>$ligne</span></a></li>\n";
+			$html[]=$tpl->_ENGINE_parse_body( "<li><a href=\"squid.search.statistics.php?$num\"><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 		if($num=="not_categorized"){
-			$html[]= "<li><a href=\"squid.not-categorized.statistics.php\"><span>$ligne</span></a></li>\n";
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.not-categorized.statistics.php\"><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 	
 	
-		$html[]= "<li><a href=\"$page?$num=yes&day={$_GET["day"]}\"><span>$ligne</span></a></li>\n";
+		$html[]=$tpl->_ENGINE_parse_body( "<li><a href=\"$page?$num=yes&day={$_GET["day"]}\"><span>$ligne</span></a></li>\n");
 	}
-	
+
 	$t=time();
-	echo $tpl->_ENGINE_parse_body( "
-	<div id=$t style='width:97%;font-size:14px;margin-left:10px;margin-right:-15px;margin-top:-5px'>
+	echo "
+	<div id='right-tabs-$t' style='width:97%;font-size:14px;margin-left:10px;margin-right:-15px;margin-top:-5px'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
-				$(document).ready(function(){
-					$('#$t').tabs();
-			
-			
+			//ReloadjQuery();		
+			$(document).ready(function(){
+				$('#right-tabs-$t').tabs();
 			});
-		</script>");		
+		</script>";	
 }
 
 function today_zoom_js(){
@@ -136,42 +137,15 @@ function right_users(){
 	$page=CurrentPageName();
 	$tpl=new templates();		
 	$q=new mysql_squid_builder();	
-	$hour_table=date('Ymd',strtotime($_GET["day"]))."_hour";
-	$sql="SELECT SUM( hits ) as thits , client,uid,MAC FROM $hour_table GROUP BY client,uid,MAC ORDER BY thits DESC LIMIT 0 , 10";	
 	
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
-	if(mysql_num_rows($results)==0){
-		echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2>$sql<p>$buttonRepair</p></center>");
-		return;
-	}
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		if(trim($ligne["hostname"])==null){$ligne["hostname"]=$ligne["client"];}
-		if(trim($ligne["uid"])=="-"){$ligne["uid"]=$ligne["hostname"];}
-		if(trim($ligne["uid"])==null){$ligne["uid"]=$ligne["hostname"];}
-		$ydata[]=$ligne["uid"];
-		$xdata[]=$ligne["thits"];
-	}
-		
-	$title=$tpl->_ENGINE_parse_body("{top_members}/{hits}");
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".day.top.10.members.$hour_table.category.png";
-	$gp=new artica_graphs($targetedfile);	
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;	
-	$gp->width=550;
-	$gp->height=550;
-	$gp->ViewValues=true;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{top_members}");
-	$gp->pie();		
 	$t=time();
 	$html="
-	
-	<div style='font-size:16px;margin-bottom:5px'>$title</div>
-	<center style='margin:10px'><img src='$targetedfile?$t'></center>
+
+	<div id='graph-$t' style='width:650px;height:350px'><center style='margin:50px'><img src='img/wait-clock.gif'></center></div>
 	<div id='table-websites-members-days'></div>
 	
 	<script>
+		Loadjs('squid.traffic.statistics.days.graphs.php?getmembers=yes&container=graph-$t&day={$_GET["day"]}&type={$_GET["type"]}');
 		LoadAjax('table-websites-members-days','squid.traffic.table.days.php?day={$_GET["day"]}&table=members');
 	</script>
 	";
@@ -189,35 +163,15 @@ function right_category(){
 	$buttonRepair=button("{rescan_database}","Loadjs('squid.stats.repair.day.php?time=$time')",18);	
 	$hour_table=date('Ymd',strtotime($_GET["day"]))."_hour";
 	$sql="SELECT COUNT( sitename ) as thits , category FROM $hour_table GROUP BY category ORDER BY thits DESC LIMIT 0 , 10";
-
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
-	if(mysql_num_rows($results)==0){echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2>$sql<p>$buttonRepair</p></center>");return;}
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		if($ligne["category"]==null){$ligne["category"]=$tpl->javascript_parse_text("{unknown}");}
-		$ydata[]=$ligne["category"];
-		$xdata[]=$ligne["thits"];
-	}
-		
-	$title=$tpl->_ENGINE_parse_body("{top_categories}/{websites}");
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".day.top.10.websites.$hour_table.category.png";
-	$gp=new artica_graphs($targetedfile);	
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;	
-	$gp->width=550;
-	$gp->height=550;
-	$gp->ViewValues=true;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{top_categories}");
-	$gp->pie();		
 	$t=time();
+	
 	$html="
 	
-	<div style='font-size:16px;margin-bottom:5px'>$title</div>
-	<center style='margin:10px'><img src='$targetedfile?$t'></center>
+	<div id='graph-$t' style='width:650px;height:350px'><center style='margin:50px'><img src='img/wait-clock.gif'></center></div>
 	<div id='table-websites-categories-days'></div>
 	
 	<script>
+		Loadjs('squid.traffic.statistics.days.graphs.php?getcategory=yes&container=graph-$t&day={$_GET["day"]}&type={$_GET["type"]}');
 		LoadAjax('table-websites-categories-days','squid.traffic.table.days.php?day={$_GET["day"]}');
 	</script>
 	";
@@ -290,67 +244,21 @@ function today_zoom_popup_members(){
 	$type=$_GET["type"];
 	$field_query="size";
 	$field_query2="SUM(size)";	
-	$table_field="{size}";
+	$table_field=$tpl->javascript_parse_text("{size}");
 	$hour_table=date('Ymd',strtotime($_GET["day"]))."_hour";
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	$sitename=$tpl->_ENGINE_parse_body("{website}");
 	$category=$tpl->_ENGINE_parse_body("{category}");
 	
-	$title="<div style='font-size:16px;width:100%;font-weight:bold'>{$_GET["familysite"]}:&nbsp;". strtolower(date('{l} d {F} Y',strtotime($_GET["day"])))." ({$GLOBALS["title_array"][$type]})</div>";
-	if(!$q->TABLE_EXISTS($hour_table)){echo $tpl->_ENGINE_parse_body("
-	$title
-	<center style='margin:50px'>
-		<H2>{$_GET["day"]} table:$hour_table</H2>
-		<H2>{error_no_datas}$hour_table</H2>
-	</center>");
-	return;}
-	
-	
-	if($type=="req"){
-		$field_query="hits";
-		$field_query2="SUM(hits)";
-		$table_field="{hits}";	
-	}
-	$table_field=$tpl->_ENGINE_parse_body($table_field);
-	$sql="SELECT SUM($field_query) as totalsize,hour as tdate,uid,MAC,client,familysite 
-		FROM $hour_table GROUP BY uid,MAC,client,familysite  HAVING familysite='{$_GET["familysite"]}' ORDER BY hour";
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
-	if(mysql_num_rows($results)==0){echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2>$sql</center>");return;}
-	
-	$nb_events=mysql_num_rows($results);
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$xdata[]=$ligne["tdate"];
-		if($_GET["type"]=="size"){
-			$ydata[]=round(($ligne["totalsize"]/1024)/1000);}else{
-		$ydata[]=$ligne["totalsize"];}
-	}	
-	$t=time();
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".day.$hour_table.{$_GET["familysite"]}.$type.members.png";
-	$gp=new artica_graphs();
-	$gp->width=750;
-	$gp->height=220;
-	$gp->filename="$targetedfile";
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;
-	$gp->y_title=null;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{hours}");
-	$gp->title=null;
-	$gp->margin0=true;
-	$gp->Fillcolor="blue@0.9";
-	$gp->color="146497";
-	$gp->line_green();
-	
-	$image="<center style='margin-top:10px' class=form><img src='$targetedfile?$t'></center>";
-	if(!is_file($targetedfile)){writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);$image=null;}
-	
 	
 $html="
-<center>		
-$title$image
-</center>
+<div id='graph-$t' style='width:930px;height:350px'><center style='margin:50px'><img src='img/wait-clock.gif'></center></div>
+
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 <script>
+
+Loadjs('squid.traffic.statistics.days.graphs.php?getwebsite-members=yes&type={$_GET["type"]}&day={$_GET["day"]}&familysite={$_GET["familysite"]}&container=graph-$t');
+
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
 	url: '$page?today-zoom-popup-member-list=yes&day={$_GET["day"]}&type={$_GET["type"]}&familysite={$_GET["familysite"]}',
@@ -406,64 +314,20 @@ function today_zoom_popup_history(){
 	$type=$_GET["type"];
 	$field_query="size";
 	$field_query2="SUM(size)";	
-	$table_field="{size}";
+	$table_field=$tpl->_ENGINE_parse_body("{size}");
 	$hour_table=date('Ymd',strtotime($_GET["day"]))."_hour";
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	$sitename=$tpl->_ENGINE_parse_body("{website}");
 	$category=$tpl->_ENGINE_parse_body("{category}");
 	
-	$title="<div style='font-size:16px;width:100%;font-weight:bold'>{$_GET["familysite"]}:&nbsp;". strtolower(date('{l} d {F} Y',strtotime($_GET["day"])))." ({$GLOBALS["title_array"][$type]})</div>";
-	if(!$q->TABLE_EXISTS($hour_table)){echo $tpl->_ENGINE_parse_body("
-	$title
-	<center style='margin:50px'>
-		<H2>{$_GET["day"]} table:$hour_table</H2>
-		<H2>{error_no_datas}$hour_table</H2>
-	</center>");
-	return;}
-	
-	
-	if($type=="req"){
-		$field_query="hits";
-		$field_query2="SUM(hits)";
-		$table_field="{hits}";	
-	}
-	$table_field=$tpl->_ENGINE_parse_body($table_field);
-	$sql="SELECT SUM($field_query) as totalsize,hour as tdate,familysite FROM $hour_table GROUP BY hour,familysite HAVING familysite='{$_GET["familysite"]}' ORDER BY hour";
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
-	if(mysql_num_rows($results)==0){echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2>$sql</center>");return;}
-	
-	$nb_events=mysql_num_rows($results);
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$xdata[]=$ligne["tdate"];
-		if($_GET["type"]=="size"){
-			$ydata[]=round(($ligne["totalsize"]/1024)/1000);}else{
-		$ydata[]=$ligne["totalsize"];}
-	}	
-	$t=time();
-	$targetedfile="ressources/logs/".md5(basename(__FILE__).".".__FUNCTION__.".day.$hour_table.{$_GET["familysite"]}.$type").".png";
-	$gp=new artica_graphs();
-	$gp->width=930;
-	$gp->height=220;
-	$gp->filename="$targetedfile";
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;
-	$gp->y_title="MB";
-	$gp->x_title=$tpl->_ENGINE_parse_body("{hours}");
-	$gp->title=null;
-	$gp->margin0=true;
-	$gp->Fillcolor="blue@0.9";
-	$gp->color="146497";
-	$gp->line_green();
-	
-	$image="<center style='margin-top:10px;margin-bottom:10px' class=form><img src='$targetedfile?$t'></center>";
-	if(!is_file($targetedfile)){writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);$image=null;}
 	
 	
 $html="
-$title$image
+<div id='graph-$t' style='width:930px;height:350px'><center style='margin:50px'><img src='img/wait-clock.gif'></center></div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 <script>
+Loadjs('squid.traffic.statistics.days.graphs.php?getwebsite=yes&type={$_GET["type"]}&day={$_GET["day"]}&familysite={$_GET["familysite"]}&container=graph-$t');
+
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
 	url: '$page?today-zoom-popup-history-list=yes&day={$_GET["day"]}&type={$_GET["type"]}&familysite={$_GET["familysite"]}',
@@ -493,6 +357,9 @@ $('#flexRT$t').flexigrid({
 	
 	});   
 });
+
+
+
 </script>
 
 ";	
@@ -530,12 +397,12 @@ function today_zoom_popup_members_list(){
 	
 	$data = array();
 	$data['page'] = 0;
-	$data['total'] = $total;
+	$data['total'] = 0;
 	$data['rows'] = array();	
 	
 	
-	if(!$q->ok){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"$q->mysql_error", "",""));echo json_encode($data);return;}	
-	if(mysql_num_rows($results)==0){array('id' => $ligne[time()],'cell' => array(null,"", "",""));echo json_encode($data);return;}
+	if(!$q->ok){json_error_show($q->mysql_error);}	
+	if(mysql_num_rows($results)==0){json_error_show("No item");}
 	
 	$data['total'] = mysql_num_rows($results);
 	
@@ -556,12 +423,31 @@ function today_zoom_popup_members_list(){
 		
 		$categorize="<a href=\"javascript:blur()\" OnClick=\"javascript:$categorize\" style='font-size:{$fontsize}px;text-decoration:underline'>";
 		
+		$zoomByuid="<a href=\"javascript:blur()\" 
+		OnClick=\"Loadjs('squid.traffic.statistics.days.memberAndWebsite.php?field=uid&value=". urlencode($ligne["uid"])."&familysite={$_GET["familysite"]}&day={$_GET["day"]}')\"
+		style='font-size:{$fontsize}px;text-decoration:underline'>";
+
+		
+		$zoomByuid="<a href=\"javascript:blur()\"
+		OnClick=\"Loadjs('squid.traffic.statistics.days.memberAndWebsite.php?field=uid&value=". urlencode($ligne["uid"])."&familysite={$_GET["familysite"]}&day={$_GET["day"]}')\"
+		style='font-size:{$fontsize}px;text-decoration:underline'>";
+
+		$zoomByclient="<a href=\"javascript:blur()\"
+		OnClick=\"Loadjs('squid.traffic.statistics.days.memberAndWebsite.php?field=client&value=". urlencode($ligne["client"])."&familysite={$_GET["familysite"]}&day={$_GET["day"]}')\"
+		style='font-size:{$fontsize}px;text-decoration:underline'>";
+
+		$zoomByMac="<a href=\"javascript:blur()\"
+		OnClick=\"Loadjs('squid.traffic.statistics.days.memberAndWebsite.php?field=MAC&value=". urlencode($ligne["MAC"])."&familysite={$_GET["familysite"]}&day={$_GET["day"]}')\"
+		style='font-size:{$fontsize}px;text-decoration:underline'>";		
+		
+		
+		
 		$data['rows'][] = array(
 			'id' => $id,
 			'cell' => array(
-			"<span $style>{$ligne["uid"]}</span>",
-			"<span $style>{$ligne["MAC"]}</span>",
-			"<span $style>{$ligne["client"]}</span>",
+			"<span $style>$zoomByuid{$ligne["uid"]}</a></span>",
+			"<span $style>$zoomByMac{$ligne["MAC"]}</a></span>",
+			"<span $style>$zoomByclient{$ligne["client"]}</a></span>",
 			"<span $style>{$ligne["thits"]}</span>",
 			)
 			);		
@@ -726,33 +612,31 @@ function page_de_garde_purge(){
 	while (list ($num, $ligne) = each ($array) ){
 
 		if($num=="purge"){
-			$html[]= "<li><a href=\"squid.artica.statistics.purge.php?popup=yes\"><span>$ligne</span></a></li>\n";
+			$html[]=$tpl->_ENGINE_parse_body( "<li><a href=\"squid.artica.statistics.purge.php?popup=yes\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
 
 		if($num=="stats"){
-			$html[]= "<li><a href=\"$page?byjs=yes\"><span>$ligne</span></a></li>\n";
+			$html[]=$tpl->_ENGINE_parse_body( "<li><a href=\"$page?byjs=yes\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
 			
 
 		
 
-		$html[]= "<li><a href=\"$page?$num=yes&day={$_GET["day"]}\"><span>$ligne</span></a></li>\n";
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&day={$_GET["day"]}\"><span>$ligne</span></a></li>\n");
 	}
 
 	$t=time();
-	echo $tpl->_ENGINE_parse_body( "
-			<div id=purge_stats style='width:97%;font-size:14px;margin-left:10px;margin-right:-15px;margin-top:-5px'>
+	echo "
+		<div id=purge_stats style='width:97%;font-size:14px;margin-left:10px;margin-right:-15px;margin-top:-5px'>
 			<ul>". implode("\n",$html)."</ul>
 			</div>
 			<script>
 			$(document).ready(function(){
-			$('#purge_stats').tabs();
-				
-				
-});
-</script>");
+				$('#purge_stats').tabs();
+			});
+</script>";
 }
 
 
@@ -810,97 +694,43 @@ function right(){
 	
 	if($GLOBALS["VERBOSE"]){echo "Table=$hour_table<br>\n";}
 	
-	$title="<div style='font-size:16px;width:100%;font-weight:bold'>{statistics}:&nbsp;". strtolower(date('{l} d {F} Y',strtotime($_GET["day"])))." ({$GLOBALS["title_array"][$type]})</div>";
+	
 	if(!$q->TABLE_EXISTS($hour_table)){
 		if($q->TABLE_EXISTS($sourcetable)){
 			$button="<hr>".button("{repair}","RepairTableDay('$sourcetable')",16);
 		}else{
 			$button="<div style='font-size:10px'>$sourcetable no such table...$buttonRepair</div>";
 		}
-		echo $tpl->_ENGINE_parse_body("<input type='hidden' id='squid-stats-day-hide-type' value='{$_GET["type"]}'>$title<center style='margin:50px'><H2>{error_no_datas}</H2><div style='font-size:10px'>$hour_table no such table..</div>$button</center>");return;}
+		echo $tpl->_ENGINE_parse_body("<input type='hidden' id='squid-stats-day-hide-type' 
+				value='{$_GET["type"]}'>$title<center style='margin:50px'><H2>{error_no_datas}</H2>
+				<div style='font-size:10px'>$hour_table no such table..</div>$button</center><script>LoadAjax('statistics-days-left-status','$page?statistics-days-left-status=yes&day={$_GET["day"]}');</script>");
+		return;
+	}
 	
 	
 	if($type=="req"){$field_query="hits";}
 	
-	$sql="SELECT SUM($field_query) as totalsize,hour FROM $hour_table GROUP BY hour ORDER BY hour";
-	if($GLOBALS["VERBOSE"]){echo "$sql<br>\n";}
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
-	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." rows<br>\n";}
-	
-	if(mysql_num_rows($results)==0){
-		echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2><p>$buttonRepair</p></center>");
-	}else{
-	
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$xdata[]=$ligne["tdate"];
-		if($_GET["type"]=="size"){$ydata[]=round(($ligne["totalsize"]/1024)/1000);}else{$ydata[]=$ligne["totalsize"];}
-	}	
-	
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".day.$hour_table.$type.png";
-	$gp=new artica_graphs();
-	$gp->width=550;
-	$gp->height=350;
-	$gp->filename="$targetedfile";
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;
-	$gp->y_title=null;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{hours}");
-	$gp->title=null;
-	$gp->margin0=true;
-	$gp->Fillcolor="blue@0.9";
-	$gp->color="146497";
-
-	$gp->line_green();
-	if(!is_file($targetedfile)){
-		writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);
-		}	
-	
-	}
-	
-	
-	
-	$sql="SELECT SUM($field_query) as totalsize,familysite FROM $hour_table GROUP BY familysite ORDER BY totalsize DESC LIMIT 0,10";
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
-	if(mysql_num_rows($results)==0){echo $tpl->_ENGINE_parse_body("$title<center style='margin:50px'><H2>{error_no_datas}</H2><p>$buttonRepair</p></center>");return;}	
-
-	$xdata=array();
-	$ydata=array();
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		if(trim($ligne["familysite"])==null){continue;}
-		$ydata[]=$ligne["familysite"];
-		if($_GET["type"]=="size"){$size=round(($ligne["totalsize"]/1024));
-		$size_text=FormatBytes(($ligne["totalsize"]/1024));
-		}else{$size=$ligne["totalsize"];$size_text=$size;}
-		if($_GET["type"]=="size"){$xdata[]=round(($ligne["totalsize"]/1024));}else{$xdata[]=$ligne["totalsize"];}
-	}	
-
-$t=time();
-$table="<div id='$t'></div>";
-
-
-	$targetedfile2="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".day.top.10.websites.$hour_table.$type.png";
-	$gp=new artica_graphs($targetedfile2);	
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;	
-	$gp->width=550;
-	$gp->height=550;
-	$gp->ViewValues=true;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{top_websites}");
-	$gp->pie();		
+	$tG=time();
+	$t=time();
 	
 	$html="
 	<input type='hidden' id='squid-stats-day-hide-type' value='$type'>
-	$title
-	<center style='margin:10px'><img src='$targetedfile'></center>
-	<center style='margin:10px'><img src='$targetedfile2'></center>
-	$table
+	<div id='graph-$tG' style='width:650px;height:350px'><center style='margin:50px'><img src='img/wait-clock.gif'></center></div>
+	<div id='graph2-$tG' style='width:650px;height:350px'><center style='margin:50px'><img src='img/wait-clock.gif'></center></div>
+	<div id='$t'></div>
 	<script>
-		LoadAjax('$t','squid.traffic.statistics.days.table.php?field_query=$field_query&hour_table=$hour_table');
+		function WaitAndLaunch$t(){
+			Loadjs('squid.traffic.statistics.days.graphs.php?getsize=yes&container=graph-$tG&day={$_GET["day"]}&type={$_GET["type"]}');
+			Loadjs('squid.traffic.statistics.days.graphs.php?getwebsites=yes&container=graph2-$tG&day={$_GET["day"]}&type={$_GET["type"]}');
+			LoadAjax('$t','squid.traffic.statistics.days.table.php?field_query=$field_query&hour_table=$hour_table');
+		
+		}
+		
 		LoadAjax('statistics-days-left-status','$page?statistics-days-left-status=yes&day={$_GET["day"]}');
+		setTimeout(\"WaitAndLaunch$t()\",1000);
+		
+		
+		
 	</script>
 	
 ";
@@ -1065,9 +895,11 @@ function left_status(){
 
 		
 		</tbody>
-		</table>
+		</table>";
 		
-		<table style='width:97%' class=form>
+	}
+		
+		$html=$html."<table style='width:97%' class=form>
 		<tbody>
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'></td>
@@ -1100,7 +932,7 @@ function left_status(){
 		
 		";
 		
-	}
+	
 	
 	echo $tpl->_ENGINE_parse_body($html);
 	

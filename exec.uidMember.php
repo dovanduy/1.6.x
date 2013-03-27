@@ -4,18 +4,35 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/ressources/class.ldap.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
+include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 
 
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".time";
 $oldpid=$unix->get_pid_from_file($pidfile);
+
+
 if($unix->process_exists($oldpid,__FILE__)){
 		echo "Already PID running $oldpid (".basename(__FILE__).")\n";
 		die();
 	}		
-@mkdir(dirname($pidfile),0755,true);
-@file_put_contents($pidfile, getmypid());
+	
+	$time=$unix->file_time_min($timefile);
+	if($timefile<5){die();}
+	
+	@mkdir(dirname($pidfile),0755,true);
+	@file_put_contents($pidfile, getmypid());
+	@unlink($timefile);
+	@file_put_contents($timefile, time());
+
+
+if(system_is_overloaded(basename(__FILE__))){
+	$unix->THREAD_COMMAND_SET($unix->LOCATE_PHP5_BIN()." ".__FILE__);
+	die();
+}
+
 
 $ERROR=array();
 $ldap=new clladp();

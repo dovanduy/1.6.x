@@ -572,7 +572,17 @@ l.add('$cfg["Servers"][$i]["auth_type"] = "cookie";');
 l.add('$cfg["Servers"][$i]["user"] = "'+ SYS.MYSQL_INFOS('database_admin')+'";');
 l.add('$cfg["Servers"][$i]["password"] = "'+database_password+'";');
 if phpmyadminAllowNoPassword=1 then  l.add('$cfg["Servers"][$i]["AllowNoPassword"] = True;');
-
+if FileExists('/opt/squidsql/bin/mysqld') then begin
+   l.add('$i++;');
+   l.add('$cfg["Servers"][$i]["verbose"] = "Squid Mysql";');
+   l.add('$cfg["Servers"][$i]["socket"] = "/var/run/mysqld/squid-db.sock";');
+   l.add('$cfg["Servers"][$i]["connect_type"] = "socket";');
+   l.add('$cfg["Servers"][$i]["extension"] = "mysql";');
+   l.add('$cfg["Servers"][$i]["auth_type"] = "cookie";');
+   l.add('$cfg["Servers"][$i]["user"] = "root";');
+   l.add('$cfg["Servers"][$i]["password"] = "";');
+   l.add('$cfg["Servers"][$i]["AllowNoPassword"] = True;');
+end;
 l.add('');
 l.add(configtoadd.Text);
 l.add('/* End of servers configuration */');

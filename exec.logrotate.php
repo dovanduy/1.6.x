@@ -43,7 +43,11 @@ $logrotate=$unix->find_program("logrotate");if(!is_file($logrotate)){echo "logro
 
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $timefile="/etc/artica-postfix/pids/logrotate.time";
+
 $pid=file_get_contents("$pidfile");
+
+
+
 if($unix->process_exists($pid,basename(__FILE__))){
 	$timeMin=$unix->PROCCESS_TIME_MIN($pid);
 	system_admin_events("Already executed PID $pid since $timeMin Minutes",__FUNCTION__,__FILE__,__LINE__,"logrotate");
@@ -52,7 +56,8 @@ if($unix->process_exists($pid,basename(__FILE__))){
 		$kill=$unix->find_program("kill");
 		shell_exec("$kill -9 $pid");
 	}else{
-		die();}
+		die();
+	}
 }
 
 

@@ -2,7 +2,7 @@
 
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
-
+if(isset($_GET["artica-db-restart"])){articadb_restart();exit;}
 if(isset($_GET["rrd-perform"])){rrd_perform();exit;}
 if(isset($_GET["squidhour-repair-exec"])){squidhour_repair_executed();exit;}
 if(isset($_GET["squidhour-repair"])){squidhour_repair();exit;}
@@ -1971,6 +1971,15 @@ function squidhour_repair_executed(){
 		echo "<articadatascgi>$pidtime</articadatascgi>";
 	}
 		
+}
+
+function articadb_restart(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid-db.php --restart >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 }
 
 

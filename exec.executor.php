@@ -252,7 +252,7 @@ function launch_all_status(){
 			}
 			
 			
-			usleep(10000); 
+			sleep(1); 
 			call_user_func($func);
 	}
 	$already=array();
@@ -317,12 +317,12 @@ function launch_all_status(){
 
 // sans vérifications, toutes les 5 minutes
 function group5(){
-	if(!is_numeric($GLOBALS["TIME"]["GROUP5"])){$GLOBALS["TIME"]["GROUP5"]=time();return;}
-	if(($GLOBALS["TIME"]["GROUP5"]==0)){$GLOBALS["TIME"]["GROUP5"]=time();return;} 	
-	$mins=calc_time_min($GLOBALS["TIME"]["GROUP5"]);
-	if($mins<5){return;}
-	events("{$GLOBALS["TIME"]["GROUP5"]} =  $mins Minutes / 5Mn",__FUNCTION__,__LINE__);	
-	$GLOBALS["TIME"]["GROUP5"]=time();	
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
+	if($time<6){return;}
+	@unlink($filetime);
+	@file_put_contents($filetime, time());	
 			
 	$unix=new unix();
 	if($GLOBALS["POSTFIX_INSTALLED"]){
@@ -437,14 +437,12 @@ function group5(){
 }
 //sans vérifications toutes les 30mn
 function group30(){
-	if(!is_numeric($GLOBALS["TIME"]["GROUP30"])){$GLOBALS["TIME"]["GROUP30"]=time();return;}
-	if(($GLOBALS["TIME"]["GROUP30"]==0)){$GLOBALS["TIME"]["GROUP30"]=time();return;} 	
-	$mins=calc_time_min($GLOBALS["TIME"]["GROUP30"]);
-	
-	
-	if($mins<30){return;}
-	$GLOBALS["TIME"]["GROUP30"]=time();
-	events("Starting $mins (minutes)",__FUNCTION__,__LINE__);
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
+	if($time<31){return;}
+	@unlink($filetime);
+	@file_put_contents($filetime, time());
 	
 	$array["exec.activedirectory-import.php"];
 	
@@ -481,15 +479,12 @@ function group30(){
 
 //sans vérifications toutes les 10mn
 function group10(){
-	if(!is_numeric($GLOBALS["TIME"]["GROUP10"])){$GLOBALS["TIME"]["GROUP10"]=time();return;}
-	if(($GLOBALS["TIME"]["GROUP10"]==0)){$GLOBALS["TIME"]["GROUP10"]=time();return;} 	
-	$mins=calc_time_min($GLOBALS["TIME"]["GROUP10"]);
-	
-	
-	if($mins<10){return;}
-	events("Starting $mins (minutes) {$GLOBALS["TIME"]["GROUP10"]} ".time(),__FUNCTION__,__LINE__);	
-	$GLOBALS["TIME"]["GROUP10"]=time();
-	events("Starting {$GLOBALS["GROUP10"]}",__FUNCTION__,__LINE__);
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
+	if($time<11){return;}
+	@unlink($filetime);
+	@file_put_contents($filetime, time());
 	
 	
 	$EnablePhileSight=GET_INFO_DAEMON("EnablePhileSight");
@@ -545,13 +540,14 @@ function group10(){
 
 //toutes les minutes
 function group0(){
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
+	if($time<2){return;}
+	@unlink($filetime);
+	@file_put_contents($filetime, time());
 	
-	if(!is_numeric($GLOBALS["TIME"]["GROUP0"])){$GLOBALS["TIME"]["GROUP0"]=time();return;}
-	if(($GLOBALS["TIME"]["GROUP0"]==0)){$GLOBALS["TIME"]["GROUP0"]=time();return;} 	
-	$mins=calc_time_min($GLOBALS["TIME"]["GROUP0"]);
 	
-	if($mins<1){return;}	
-
 
 	events("Starting {$GLOBALS["TIME"]["GROUP0"]} 1mn",__FUNCTION__,__LINE__);
 	$GLOBALS["TIME"]["GROUP0"]=time();
@@ -578,13 +574,12 @@ function group0(){
 function group2(){
 	
 	
-if(!is_numeric($GLOBALS["TIME"]["GROUP2"])){$GLOBALS["TIME"]["GROUP2"]=time();return;}
-	if(($GLOBALS["TIME"]["GROUP2"]==0)){$GLOBALS["TIME"]["GROUP2"]=time();return;} 	
-	$mins=calc_time_min($GLOBALS["TIME"]["GROUP2"]);
-	
-	if($mins<2){return;}	
-	events("Starting {$GLOBALS["TIME"]["GROUP2"]} 2mn",__FUNCTION__,__LINE__);
-	$GLOBALS["TIME"]["GROUP2"]=time();
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
+	if($time<3){return;}
+	@unlink($filetime);
+	@file_put_contents($filetime, time());
 	
 	if(!is_file("/usr/share/artica-postfix/ressources/usb.scan.inc")){$array2[]="artica-install --usb-scan-write";}
 	
@@ -630,38 +625,7 @@ if(!is_numeric($GLOBALS["TIME"]["GROUP2"])){$GLOBALS["TIME"]["GROUP2"]=time();re
 	
 }
 
-function group10s(){
-	return;
-	$GLOBALS["TIME"]["GROUP10s"]=$GLOBALS["TIME"]["GROUP10s"]+1;
-	
-	if($GLOBALS["TIME"]["GROUP10s"]<30){return;}
-	
-	events("Starting {$GLOBALS["GROUP10s"]}",__FUNCTION__,__LINE__);
-	$GLOBALS["TIME"]["GROUP10s"]=0;
-  
-	if(is_array($array)){
-			while (list ($index, $file) = each ($array) ){
-				$cmd="{$GLOBALS["PHP5"]} /usr/share/artica-postfix/$file";
-				events("schedule $cmd",__FUNCTION__,__LINE__);
-				@$GLOBALS["CMDS"][]=$cmd;
-			}	
-		}
-	
-	if($GLOBALS["cpuLimitEnabled"]){$array2[]="process1 --cpulimit";}
-	
-	if(is_array($array2)){
-			while (list ($index, $file) = each ($array2) ){
-				$cmd="/usr/share/artica-postfix/bin/$file";
-				events("schedule $cmd",__FUNCTION__,__LINE__);
-				$GLOBALS["CMDS"][]=$cmd;
-			}	
-		}
-
-	@unlink($fileTime);
-	@file_put_contents($fileTime,"#");
-	if($GLOBALS["VERBOSE"]){events(__FUNCTION__. ":: die...");}
-	@file_put_contents("/etc/artica-postfix/pids/".basename(__FILE__).".GLOBALS",serialize($GLOBALS["TIME"]));
-}
+function group10s(){}
 function group30s(){
 	
 if(!is_numeric($GLOBALS["TIME"]["GROUP30s"])){$GLOBALS["TIME"]["GROUP30s"]=time();return;}
@@ -711,12 +675,12 @@ if(($GLOBALS["TIME"]["GROUP30s"]==0)){$GLOBALS["TIME"]["GROUP30s"]=time();return
 
 //5H
 function group5h(){
-	if(!is_numeric($GLOBALS["TIME"]["group5h"])){$GLOBALS["TIME"]["group5h"]=time();return;}
-	if(($GLOBALS["TIME"]["group5h"]==0)){$GLOBALS["TIME"]["group5h"]=time();return;} 	
-	$mins=calc_time_min($GLOBALS["TIME"]["group5h"]);
-	if($mins<300){return;}
-	events("{$GLOBALS["TIME"]["group5h"]} =  $mins Minutes / 300Mn",__FUNCTION__,__LINE__);	
-	$GLOBALS["TIME"]["group5h"]=time();
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
+	if($time<301){return;}
+	@unlink($filetime);
+	@file_put_contents($filetime, time());
 
 	
 	$array[]="exec.awstats.php";
@@ -738,14 +702,12 @@ function group5h(){
 //2H
 function group300(){
 	
-	if(!is_numeric($GLOBALS["TIME"]["GROUP300"])){$GLOBALS["TIME"]["GROUP300"]=time();return;}
-	if(($GLOBALS["TIME"]["GROUP300"]==0)){$GLOBALS["TIME"]["GROUP300"]=time();return;} 	
-	$mins=calc_time_min($GLOBALS["TIME"]["GROUP300"]);
-	
-	if($mins<120){return;}
-	
-	
-	$GLOBALS["TIME"]["GROUP300"]=time();	
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
+	if($time<121){return;}
+	@unlink($filetime);
+	@file_put_contents($filetime, time());
 	
 	
 	if(!is_file("/etc/artica-postfix/settings/Daemons/HdparmInfos")){sys_THREAD_COMMAND_SET(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.hdparm.php");}
@@ -782,14 +744,12 @@ function group300(){
 //24H 1440mn
 function group24h(){
 	
-	if(!is_numeric($GLOBALS["TIME"]["24H"])){$GLOBALS["TIME"]["24H"]=time();return;}
-	if(($GLOBALS["TIME"]["24H"]==0)){$GLOBALS["TIME"]["24H"]=time();return;} 	
-	$mins=calc_time_min($GLOBALS["TIME"]["24H"]);
-	
-	if($mins<1440){return;}
-	
-	
-	$GLOBALS["TIME"]["24H"]=time();	
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
+	if($time<1441){return;}
+	@unlink($filetime);
+	@file_put_contents($filetime, time());
 	
 	if($GLOBALS["GREYHOLE_INSTALLED"]){
 		$array[]="exec.greyhole.php --fsck";
@@ -816,14 +776,12 @@ function group24h(){
 }
 
 function group60mn(){
-	if(!is_numeric($GLOBALS["TIME"]["group60mn"])){$GLOBALS["TIME"]["group60mn"]=time();return;}
-	if(($GLOBALS["TIME"]["group60mn"]==0)){$GLOBALS["TIME"]["group60mn"]=time();return;} 	
-	$mins=calc_time_min($GLOBALS["TIME"]["group60mn"]);
-	if($mins<60){return;}
-	
-	
-	events("Starting {$GLOBALS["TIME"]["group60mn"]}",__FUNCTION__,__LINE__);
-	$GLOBALS["TIME"]["group60mn"]=time();	
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
+	if($time<61){return;}
+	@unlink($filetime);
+	@file_put_contents($filetime, time());
 	
 	
 	
@@ -842,16 +800,12 @@ function group60mn(){
 
 function group120(){
 	
-	if(!is_numeric($GLOBALS["TIME"]["GROUP120"])){$GLOBALS["TIME"]["GROUP120"]=time();return;}
-	if(($GLOBALS["TIME"]["GROUP120"]==0)){$GLOBALS["TIME"]["GROUP120"]=time();return;} 	
-	$mins=calc_time_min($GLOBALS["TIME"]["GROUP120"]);
-	if($mins<120){return;}	
-	
-	
-	$GLOBALS["TIME"]["GROUP120"]=time();
-	
-	events("Starting {$GLOBALS["GROUP120"]}",__FUNCTION__,__LINE__);
-	
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
+	if($time<121){return;}
+	@unlink($filetime);
+	@file_put_contents($filetime, time());
 	
 	
 	

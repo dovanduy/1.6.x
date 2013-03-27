@@ -376,6 +376,51 @@ class compile_ufdbguard{
 	private function build_times(){
 		$GLOBALS["TIMESRULES"]=array();
 		if($GLOBALS["VERBOSE"]){echo "Starting......: ufdbGuard build TIMES ....\n";}
+		
+		
+		$sock=new sockets();
+		$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
+		$TimeSpace=unserialize(base64_decode($ligne["TimeSpace"]));
+		if(is_array($TimeSpace)){
+			if(is_array($TimeSpace["TIMES"])){
+				if(count($TimeSpace["TIMES"])>0){
+					if($TimeSpace["RuleMatchTime"]==null){$TimeSpace["RuleMatchTime"]="none";}
+					if($TimeSpace["RuleAlternate"]==null){$TimeSpace["RuleAlternate"]="none";}
+					if($TimeSpace["RuleMatchTime"]<>null){
+						
+						$R=array();
+						while (list ($TIMEID, $array) = each ($TimeSpace["TIMES"]) ){
+							if(count($array["DAYS"])==0){continue;}
+							$dd=array();
+							while (list ($day, $val) = each ($array["DAYS"])){if($val==1){$dd[]=$day;}}
+							if(count($dd)==0){continue;}
+							if(strlen($array["BEGINH"])==1){$array["BEGINH"]="0{$array["BEGINH"]}";}
+							if(strlen($array["BEGINM"])==1){$array["BEGINM"]="0{$array["BEGINM"]}";}
+							if(strlen($array["ENDH"])==1){$array["ENDH"]="0{$array["ENDH"]}";}
+							if(strlen($array["ENDM"])==1){$array["ENDM"]="0{$array["ENDM"]}";}
+							$R[]="\tweekly ".@implode("", $dd)." {$array["BEGINH"]}:{$array["BEGINM"]} - {$array["ENDH"]}:{$array["ENDM"]}";
+						}
+						if(count($R)>0){
+							$f[]="time timeR0 {";
+							$f[]=@implode("\n", $R);
+							$f[]="}";
+							if($TimeSpace["RuleMatchTime"]=="inside"){$TimeSpace["RuleMatchTime"]="within";}
+							$GLOBALS["TIMESRULES"][0]["MATCH"]=$TimeSpace["RuleMatchTime"];
+							$GLOBALS["TIMESRULES"][0]["NEXT"]=$TimeSpace["RuleAlternate"];
+						}
+						
+						
+					}
+				
+				}
+				
+			}
+			
+			
+		}
+		
+		
+		
 		$q=new mysql_squid_builder();
 		$sql="SELECT ID,TimeSpace FROM webfilter_rules WHERE enabled=1";
 		$results=$q->QUERY_SQL($sql);
@@ -389,7 +434,7 @@ class compile_ufdbguard{
 			if($TimeSpace["RuleAlternate"]==null){$TimeSpace["RuleAlternate"]="none";}	
 			if($TimeSpace["RuleMatchTime"]=="none"){continue;}
 			if(count($TimeSpace["TIMES"])==0){continue;}
-			$f[]="time timeR{$ligne["ID"]} {";
+			
 			$R=array();
 			while (list ($TIMEID, $array) = each ($TimeSpace["TIMES"]) ){
 				if(count($array["DAYS"])==0){continue;}
@@ -403,6 +448,7 @@ class compile_ufdbguard{
 				$R[]="\tweekly ".@implode("", $dd)." {$array["BEGINH"]}:{$array["BEGINM"]} - {$array["ENDH"]}:{$array["ENDM"]}";
 			}
 			if(count($R)==0){continue;}
+			$f[]="time timeR{$ligne["ID"]} {";
 			$f[]=@implode("\n", $R);
 			$f[]="}";
 			if($TimeSpace["RuleMatchTime"]=="inside"){$TimeSpace["RuleMatchTime"]="within";}
@@ -1029,12 +1075,15 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		}
 		if(isset($GLOBALS["TIMESRULES"][0])){
 			if($GLOBALS["TIMESRULES"][0]["MATCH"]<>null){
+			if($GLOBALS["TIMESRULES"][0]["MATCH"]=="none"){$GLOBALS["TIMESRULES"][0]["MATCH"]="within";}
 			$time=" {$GLOBALS["TIMESRULES"][0]["MATCH"]} timeR0 ";
-			echo "Starting......: ufdbGuard build ACLS default rule to time timeR0...\n";
+				echo "Starting......: ufdbGuard build ACLS default rule to time timeR0...\n";
 			}else{
-			echo "Starting......: ufdbGuard build ACLS default rule has no time...\n";
+				echo "Starting......: ufdbGuard build ACLS default rule has no time...\n";
 			}
 		}
+		
+		
 		$RewriteRules=unserialize(base64_decode($this->DansGuardianDefaultMainRule["RewriteRules"]));
 		$RR=array();
 		
@@ -1082,7 +1131,10 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				$time=null;
 				$else=null;
 				echo "Starting......: ufdbGuard rule `$groupname`\n";
-				$URI=$this->build_acls_uriFromRuleID($RULE_ID);
+				
+				$redirect_pattern="?rule-id=$RULE_ID&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
+				$RedirectUri=$this->build_acls_uriFromRuleID($RULE_ID);
+				if($RedirectUri<>$this->SquidGuardIPWeb){$redirect_pattern=null;}
 				
 				if($GLOBALS["TIMESRULES"][$RULE_ID]["MATCH"]<>null){
 						$time=" {$GLOBALS["TIMESRULES"][$RULE_ID]["MATCH"]} timeR{$RULE_ID} ";
@@ -1092,17 +1144,13 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				
 				if(isset($GLOBALS["TIMESRULES"][$RULE_ID]["NEXT"])){
 					if(is_numeric($GLOBALS["TIMESRULES"][$RULE_ID]["NEXT"])){
-					$else=" else {\n".$this->compile_categories_fromruleid($GLOBALS["TIMESRULES"][$RULE_ID]["NEXT"])."\n\t\tredirect $this->SquidGuardIPWeb?$redirect_pattern\n\t}";
+						$else=" else {\n".$this->compile_categories_fromruleid($GLOBALS["TIMESRULES"][$RULE_ID]["NEXT"])."\n\t\tredirect $RedirectUri$redirect_pattern\n\t}";
 					}
 				}
 				
 				$groupname=str_replace(" ", "-", $groupname);
 				$compile_categories_fromruleid=$this->compile_categories_fromruleid($RULE_ID);
 				$compile_rewriterules_fromruleid=$this->compile_rewriterules_fromruleid($RULE_ID);
-
-				$redirect_pattern="?rule-id=$RULE_ID&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
-				$RedirectUri=$this->build_acls_uriFromRuleID($RULE_ID);
-				if($RedirectUri<>$this->SquidGuardIPWeb){$redirect_pattern=null;}
 				
 				$array[]="\t\"$groupname\"$time{";
 				if($compile_rewriterules_fromruleid<>null){$array[]=$compile_rewriterules_fromruleid;}

@@ -1091,7 +1091,7 @@ class dansguardian_rules{
 	
 	function LoadBlackListes($nocache=false){
 		if(isset($_SESSION["CATZ"][__CLASS__.".".__FUNCTION__])){return $_SESSION["CATZ"][__CLASS__.".".__FUNCTION__];}
-		include_once(dirname(__FILE__)."/class.mysql.squid.builder.inc");
+		include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");
 		$q=new mysql_squid_builder();
 		if($q->COUNT_ROWS("webfilters_categories_caches")==0){$this->CategoriesTableCache();}
 		$sql="SELECT description,categorykey FROM webfilters_categories_caches ORDER BY categorykey";

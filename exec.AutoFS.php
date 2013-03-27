@@ -131,8 +131,10 @@ $f=array();
 	$c=0;
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($ligne["local_dir"]==null){continue;}
+		if($ligne["user"]==null){continue;}
+		if($ligne["password"]==null){continue;}
 		$c++;
-		$f[]="/automounts/{$ligne["local_dir"]}\t{$ligne["user"]}\t{$ligne["password"]}";
+		$f[]="{$ligne["uri"]}\t{$ligne["user"]}\t{$ligne["password"]}";
 		
 	}
 	$f[]="";

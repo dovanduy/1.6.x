@@ -629,10 +629,12 @@ function status_computer_mysql_memory_check(){
 
 function status_computer(){
 	if(!$GLOBALS["AS_ROOT"]){
-		if(is_file("/usr/share/artica-postfix/ressources/logs/web/admin.index.memory.html")){
-			$tpl=new templates();
-			echo $tpl->_ENGINE_parse_body(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.memory.html"));
-			return;
+		if(!$GLOBALS["VERBOSE"]){
+			if(is_file("/usr/share/artica-postfix/ressources/logs/web/admin.index.memory.html")){
+				$tpl=new templates();
+				echo $tpl->_ENGINE_parse_body(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.memory.html"));
+				return;
+			}
 		}
 	}
 	
@@ -660,6 +662,7 @@ function status_computer(){
 	
 	
 	$os=new os_system();
+	if($GLOBALS["VERBOSE"]){echo "os->html_Memory_usage()<br>\n";}
 	$html=$html.RoundedLightGrey($os->html_Memory_usage())."<br>
 	<script>
 		LoadAjax('left_status','$page?status=left$ajaxadd');

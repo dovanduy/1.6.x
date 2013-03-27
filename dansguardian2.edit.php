@@ -783,6 +783,7 @@ function rule_time(){
 	$page=CurrentPageName();
 	$q=new mysql_squid_builder();		
 	$ID=$_GET["ID"];
+	$t=time();
 	if($ID==0){
 		$sock=new sockets();
 		$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
@@ -804,57 +805,116 @@ function rule_time(){
 		$RULESS[$ligne["ID"]]=$ligne["groupname"];
 		
 	}
-	
+	$rules=$tpl->javascript_parse_text("{rules}");
+	$delete=$tpl->javascript_parse_text("{delete}");
+	$new_time_rule=$tpl->javascript_parse_text("{new_time_rule}");
+	$buttons="
+	buttons : [
+	{name: '$new_time_rule', bclass: 'add', onpress : new_time_rule$t},
+	],";
 	
 	$html="
+	<div id='anim-$t'></div>
 	<div id='TimeSpaceSaveID'>
-	<div class=explain style='font-size:14px'>{ufdbguardTimeSpaceExplain}</div>
+	
 	<table class=form style='width:99%'>
-	<tbody>
 		<tr>
-			<td class=legend style='font-size:14px'>{match}:</td>
-			<td>". Field_array_Hash($RuleBH, "RuleMatchTime",$TimeSpace["RuleMatchTime"],null,null,0,"font-size:14px")."</td>
+			<td><div class=explain style='font-size:14px'>{ufdbguardTimeSpaceExplain}</div></td>
+			<td>
+			<table style='width:99%'>
+				<tbody>
+					<tr>
+						<td class=legend style='font-size:14px'>{match}:</td>
+						<td>". Field_array_Hash($RuleBH, "RuleMatchTime-$t",$TimeSpace["RuleMatchTime"],null,null,0,"font-size:14px")."</td>
+					</tr>
+					<tr>
+						<td class=legend style='font-size:14px' nowrap>{alternate_rule}:</td>
+						<td>". Field_array_Hash($RULESS, "RuleAlternate-$t",$TimeSpace["RuleAlternate"],null,null,0,"font-size:14px")."</td>
+					</tr>
+					<tr>
+						<td colspan=2 align='right'><hr>". button("{apply}", "TimeSpaceSaveMain$t()",16)."</td>
+					</tr>
+				</tbody>
+			</table>
+			</td>
 		</tr>
-		<tr>
-			<td class=legend style='font-size:14px'>{alternate_rule}:</td>
-			<td>". Field_array_Hash($RULESS, "RuleAlternate",$TimeSpace["RuleAlternate"],null,null,0,"font-size:14px")."</td>
-		</tr>
-		<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}", "TimeSpaceSaveMain()")."</td>
-		</tr>
-	</tbody>
 	</table>
 	</div>
-	
-	
-	<div id='TimeSpaceRules' style='width:100%;height:250px;overflow:auto'></div>
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 	
 	
 	
 <script>
+var rowid$t=0;
+$(document).ready(function(){
+$('#flexRT$t').flexigrid({
+	url: '$page?rule-time-list=yes&t=$t&ID=$ID',
+	dataType: 'json',
+	colModel : [
+		{display: '&nbsp;', name : 'id', width : 31, sortable : false, align: 'center'},
+		{display: '$rules', name : 'groupname', width : 747, sortable : true, align: 'left'},
+		{display: '$delete', name : 'delete', width : 48, sortable : false, align: 'center'},
+		],
+		$buttons
 
-	function RefreshTimeSpaceRules(){
-		LoadAjax('TimeSpaceRules','$page?rule-time-list=yes&ID=$ID');
+	sortname: 'groupname',
+	sortorder: 'asc',
+	usepager: true,
+	title: '',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: 885,
+	height: 350,
+	singleSelect: true,
+	rpOptions: [10, 20, 30, 50,100,200,500,1000]
 	
-	}
-
-
+	});   
+});
+	function new_time_rule$t(){
+		YahooWin5(550,'$page?rule-time-ID=yes&TIMEID=-1&ID=$ID&t=$t','$new_time_rule');
+	}	
+	
 	var x_TimeSpaceSaveMain= function (obj) {
 		var res=obj.responseText;
-		RefreshTab('main_filter_rule_edit');
-		if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
+		document.getElementById('anim-$t').innerHTML='';
+		$('#flexRT$t').flexReload();
 	}
 	
-	function TimeSpaceSaveMain(){
+	function TimeSpaceSaveMain$t(){
 		      var XHR = new XHRConnection();
 		      XHR.appendData('TimeSpaceSave', 'yes');
 		      XHR.appendData('ID', '$ID');
-		      XHR.appendData('RuleMatchTime', document.getElementById('RuleMatchTime').value);
-		      XHR.appendData('RuleAlternate', document.getElementById('RuleAlternate').value);
-		      AnimateDiv('TimeSpaceSaveID');
+		      XHR.appendData('RuleMatchTime', document.getElementById('RuleMatchTime-$t').value);
+		      XHR.appendData('RuleAlternate', document.getElementById('RuleAlternate-$t').value);
+		      Animate('anim-$t');
 		      XHR.sendAndLoad('$page', 'POST',x_TimeSpaceSaveMain);  		
-		}		
-	RefreshTimeSpaceRules();
+		}
+
+	var x_TimeSpaceDelete$t= function (obj) {
+		var res=obj.responseText;
+		if (res.length>3){alert(res);}
+		$('#row'+rowid$t).remove();
+	}
+	
+	function TimeSpaceDelete$t(TIMEID){
+			  rowid$t=TIMEID;
+		      var XHR = new XHRConnection();
+		      XHR.appendData('TimeSpaceDelete', 'yes');
+		      XHR.appendData('ID', '$ID');
+		      XHR.appendData('TIMEID', TIMEID);
+		      XHR.sendAndLoad('$page', 'POST',x_TimeSpaceDelete$t);  		
+		}
+
+	function TimeSpaceCheck$t(){
+		var ID=$ID;
+		if(ID==0){
+			document.getElementById('RuleAlternate-$t').value='none';
+			document.getElementById('RuleAlternate-$t').disabled=true;
+		}
+	
+	}
+	TimeSpaceCheck$t();
 </script>
 ";
 	
@@ -867,76 +927,68 @@ function rule_time(){
 function rule_time_list(){
 	$ID=$_GET["ID"];
 	$tpl=new templates();
-	$page=CurrentPageName();
-	$q=new mysql_squid_builder();	
-	$add=imgtootltip("plus-24.png","{add}","AddTimeRule()");
-	$sql="SELECT TimeSpace FROM webfilter_rules WHERE ID=$ID";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	$TimeSpace=unserialize(base64_decode($ligne["TimeSpace"]));	
-	$addText=$tpl->_ENGINE_parse_body("{add}");
+	$MyPage=CurrentPageName();
+	$q=new mysql_squid_builder();
+	$t=$_GET["t"];	
 	
-	$html="
-	<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:99%'>
-<thead class='thead'>
-	<tr>
-		<th width=1%>$add</th>
-		<th width=99%>{rules}</th>
-		<th width=1%>&nbsp;</th>
-	</tr>
-</thead>
-<tbody class='tbody'>	
-";
-$daysARR=array("m"=>"Monday","t"=>"Tuesday","w"=>"Wednesday","h"=>"Thursday","f"=>"Friday","a"=>"Saturday","s"=>"Sunday");	
-while (list ($TIMEID, $array) = each ($TimeSpace["TIMES"]) ){
-	if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-	$dd=array();
-	if(is_array($array["DAYS"])){
-		while (list ($day, $val) = each ($array["DAYS"])){if($val==1){$dd[]="{{$daysARR[$day]}}";}}
-		$daysText=@implode(", ", $dd);
+	if($ID>0){
+		$sql="SELECT TimeSpace FROM webfilter_rules WHERE ID=$ID";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$TimeSpace=unserialize(base64_decode($ligne["TimeSpace"]));	
 	}
-	if(strlen($array["BEGINH"])==1){$array["BEGINH"]="0{$array["BEGINH"]}";}
-	if(strlen($array["BEGINM"])==1){$array["BEGINM"]="0{$array["BEGINM"]}";}
-	if(strlen($array["ENDH"])==1){$array["ENDH"]="0{$array["ENDH"]}";}
-	if(strlen($array["ENDM"])==1){$array["ENDM"]="0{$array["ENDM"]}";}
-	$daysText=$daysText." {from} {$array["BEGINH"]}:{$array["BEGINM"]} {to} {$array["ENDH"]}:{$array["ENDM"]}";
 	
-	$delete=imgtootltip("delete-32.png","{delete} {rule}:$TIMEID","TimeSpaceDelete('$TIMEID')");
-	
-		$href="<a href=\"javascript:blur()\" OnClick=\"javascript:YahooWin5(550,'$page?rule-time-ID=yes&TIMEID=$TIMEID&ID=$ID','{rule}:$TIMEID');\" style='font-size:14px;text-decoration:underline'>";
+	if($ID==0){
+		$sock=new sockets();
+		$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
+		$TimeSpace=unserialize(base64_decode($ligne["TimeSpace"]));	
 		
-		$html=$html."
-		<tr class=$classtr>
-			<td width=1% align='center'>$href$TIMEID</a></td>
-			<td $style width=99% style='font-size:14px'>$href{each} $daysText</a></td>
-			<td width=1% >$delete</td>
-		</tr>
-		";
 	}
 	
-	$html=$html."</table>
-	</center>
-	<script>
-	function AddTimeRule(){
-		YahooWin5(550,'$page?rule-time-ID=yes&TIMEID=-1&ID=$ID','$addText');
+
+	$daysARR=array("m"=>"Monday","t"=>"Tuesday","w"=>"Wednesday","h"=>"Thursday","f"=>"Friday","a"=>"Saturday","s"=>"Sunday");
+
+	$data = array();
+	$data['page'] = 1;
+	$data['total'] = 1;
+	$data['rows'] = array();
+	$rule_text=$tpl->javascript_parse_text("{rule}");
+	$c=0;
+	while (list ($TIMEID, $array) = each ($TimeSpace["TIMES"]) ){
+	
+		$dd=array();
+		if(is_array($array["DAYS"])){
+			while (list ($day, $val) = each ($array["DAYS"])){if($val==1){$dd[]="{{$daysARR[$day]}}";}}
+			$daysText=@implode(", ", $dd);
+		}
+		if(strlen($array["BEGINH"])==1){$array["BEGINH"]="0{$array["BEGINH"]}";}
+		if(strlen($array["BEGINM"])==1){$array["BEGINM"]="0{$array["BEGINM"]}";}
+		if(strlen($array["ENDH"])==1){$array["ENDH"]="0{$array["ENDH"]}";}
+		if(strlen($array["ENDM"])==1){$array["ENDM"]="0{$array["ENDM"]}";}
+		$daysText=$daysText." {from} {$array["BEGINH"]}:{$array["BEGINM"]} {to} {$array["ENDH"]}:{$array["ENDM"]}";
+	
+		$delete=imgsimple("delete-32.png","{delete} {rule}:$TIMEID","TimeSpaceDelete$t('$TIMEID')");
+	
+		$href="<a href=\"javascript:blur()\" 
+		OnClick=\"javascript:YahooWin5(550,'$MyPage?rule-time-ID=yes&TIMEID=$TIMEID&ID=$ID','$rule_text:$TIMEID');\" 
+		style='font-size:18px;text-decoration:underline'>";
+	
+		
+		$textfinal=$tpl->javascript_parse_text("{each} $daysText");
+		$c++;
+		$data['rows'][] = array(
+				'id' => $TIMEID,
+				'cell' => array(
+						"$href$TIMEID</a>",
+						"$href$textfinal</a>",
+						"$delete",
+						
+				)
+				);		
+		
+		
 	}
-	
-	
-	var x_TimeSpaceDelete= function (obj) {
-		var res=obj.responseText;
-		RefreshTimeSpaceRules();
-	}
-	
-	function TimeSpaceDelete(TIMEID){
-		      var XHR = new XHRConnection();
-		      XHR.appendData('TimeSpaceDelete', 'yes');
-		      XHR.appendData('ID', '$ID');
-		      XHR.appendData('TIMEID', TIMEID);
-		      AnimateDiv('TimeSpaceRules');
-		      XHR.sendAndLoad('$page', 'POST',x_TimeSpaceDelete);  		
-		}		
-	</script>
-	";
-	echo $tpl->_ENGINE_parse_body($html);
+	$data['total']=$c;
+	echo json_encode($data);
 	
 }
 
@@ -981,15 +1033,25 @@ function rule_time_edit(){
 	$TIMEID=$_GET["TIMEID"];
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$q=new mysql_squid_builder();		
-	$sql="SELECT TimeSpace FROM webfilter_rules WHERE ID=$ID";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	
+	if($ID>0){
+		$q=new mysql_squid_builder();		
+		$sql="SELECT TimeSpace FROM webfilter_rules WHERE ID=$ID";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	}
+	
+	if($ID==0){
+		$sock=new sockets();
+		$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));		
+	}
+	
 	$TimeSpace=unserialize(base64_decode($ligne["TimeSpace"]));
 	$days=array("m"=>"Monday","t"=>"Tuesday","w"=>"Wednesday","h"=>"Thursday","f"=>"Friday","a"=>"Saturday","s"=>"Sunday");
 	$cron=new cron_macros();
 	$buttonname="{apply}";
 	if($TIMEID==-1){$buttonname="{add}";}
 	$Config=$TimeSpace["TIMES"][$TIMEID];
+	$t=$_GET["t"];
 	
 	while (list ($num, $val) = each ($days) ){
 		
@@ -1006,7 +1068,7 @@ function rule_time_edit(){
 	}
 	
 	$html="
-	<div id='TimeSpaceRuleSaveID'>
+	<div id='TimeSpaceRuleSaveID'></div>
 	<table style='width:100%'>
 	<tbody>
 	<tr>
@@ -1022,30 +1084,31 @@ function rule_time_edit(){
 				<tbody>
 					<tr>
 						<td class=legend style='font-size:14px' nowrap width=99%>{hourBegin}:</td>
-						<td style='font-size:14px' nowrap width=1%>". Field_array_Hash($cron->cron_hours,"BEGINH",$Config["BEGINH"],null,null,0,"font-size:14px")."H</td>
-						<td style='font-size:14px' nowrap width=99%>". Field_array_Hash($cron->cron_mins,"BEGINM",$Config["BEGINH"],null,null,0,"font-size:14px")."M</td>
+						<td style='font-size:14px' nowrap width=1%>". Field_array_Hash($cron->cron_hours,"BEGINH-$t",$Config["BEGINH"],null,null,0,"font-size:14px")."H</td>
+						<td style='font-size:14px' nowrap width=99%>". Field_array_Hash($cron->cron_mins,"BEGINM-$t",$Config["BEGINH"],null,null,0,"font-size:14px")."M</td>
 					</tr>
 					<tr><td colspan=3>&nbsp;</td></tr>
 					<tr>
 						<td class=legend style='font-size:14px' nowrap width=99%>{hourEnd}:</td>
-						<td style='font-size:14px' nowrap width=1%>". Field_array_Hash($cron->cron_hours,"ENDH",$Config["ENDH"],null,null,0,"font-size:14px")."H</td>
-						<td style='font-size:14px' nowrap width=99%>". Field_array_Hash($cron->cron_mins,"ENDM",$Config["ENDM"],null,null,0,"font-size:14px")."M</td>
+						<td style='font-size:14px' nowrap width=1%>". Field_array_Hash($cron->cron_hours,"ENDH-$t",$Config["ENDH"],null,null,0,"font-size:14px")."H</td>
+						<td style='font-size:14px' nowrap width=99%>". Field_array_Hash($cron->cron_mins,"ENDM-$t",$Config["ENDM"],null,null,0,"font-size:14px")."M</td>
 					</tr>
 				</tbody>
 			</table>
 		</td>
 	</tr>
 	<tr>
-	<td colspan=2 align='right'><hr>". button($buttonname, "TimeSpaceTimes()")."</td>
+	<td colspan=2 align='right'><hr>". button($buttonname, "TimeSpaceTimes()",16)."</td>
 	</tr>
 	</table>
-	</div>
+	
 	<script>
 	var x_TimeSpaceTimes= function (obj) {
 		var res=obj.responseText;
-		RefreshTab('main_filter_rule_edit');
-		if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
+		 document.getElementById('TimeSpaceRuleSaveID').innerHTML='';
+		if (res.length>3){alert(res);return;}
 		YahooWin5Hide();
+		$('#flexRT$t').flexReload();
 	}
 	
 	function TimeSpaceTimes(){
@@ -1054,10 +1117,10 @@ function rule_time_edit(){
 		      XHR.appendData('ID', '$ID');
 		      XHR.appendData('TIMEID', '$TIMEID');
 		      ". @implode("\n", $jsjs)."
-		      XHR.appendData('BEGINH', document.getElementById('BEGINH').value);
-		      XHR.appendData('BEGINM', document.getElementById('BEGINM').value);
-		      XHR.appendData('ENDH', document.getElementById('ENDH').value);
-		      XHR.appendData('ENDM', document.getElementById('ENDM').value);		      
+		      XHR.appendData('BEGINH', document.getElementById('BEGINH-$t').value);
+		      XHR.appendData('BEGINM', document.getElementById('BEGINM-$t').value);
+		      XHR.appendData('ENDH', document.getElementById('ENDH-$t').value);
+		      XHR.appendData('ENDM', document.getElementById('ENDM-$t').value);		      
 		      AnimateDiv('TimeSpaceRuleSaveID');
 		      XHR.sendAndLoad('$page', 'POST',x_TimeSpaceTimes);  		
 		}	
@@ -1075,47 +1138,51 @@ function rule_time_save(){
 	$TIMEID=$_POST["TIMEID"];
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$q=new mysql_squid_builder();		
-	$sql="SELECT TimeSpace FROM webfilter_rules WHERE ID=$ID";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	
+	if($ID==0){
+		$sock=new sockets();
+		$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
+	}
+	if($ID>0){
+		$q=new mysql_squid_builder();		
+		$sql="SELECT TimeSpace FROM webfilter_rules WHERE ID=$ID";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	}
+	
 	$TimeSpace=unserialize(base64_decode($ligne["TimeSpace"]));	
 	$Config["ENDH"]=$_POST["ENDH"];
 	$Config["ENDM"]=$_POST["ENDM"];
 	$Config["BEGINH"]=$_POST["BEGINH"];
 	$Config["BEGINM"]=$_POST["BEGINM"];
+	
 	while (list ($index, $value) = each ($_POST) ){
-		
 		if(preg_match("#day_([a-z])#", $index,$re)){
 			$Config["DAYS"][$re[1]]=$value;
 		}
 	}
+	
+	
 	if($TIMEID==-1){
 		$TimeSpace["TIMES"][]=$Config;
 	}else{
 		$TimeSpace["TIMES"][$TIMEID]=$Config;
 	}
 	
-	$TimeSpaceNew=base64_encode(serialize($TimeSpace));
+	
 	
 	if($ID==0){
 		$sock=new sockets();
-		$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
-		$TimeSpace=unserialize(base64_decode($ligne["TimeSpace"]));	
-		$TimeSpace["RuleMatchTime"]=$_POST["RuleMatchTime"];
-		$TimeSpace["RuleAlternate"]=$_POST["RuleAlternate"];
 		$TimeSpaceNew=base64_encode(serialize($TimeSpace));
 		$ligne["TimeSpace"]=$TimeSpaceNew;
 		$sock->SaveConfigFile(base64_encode(serialize($ligne)), "DansGuardianDefaultMainRule");	
-		$sock->getFrameWork("squid.php?rebuild-filters=yes");
 		return;
 	}	
 	
-	
+	$TimeSpaceNew=base64_encode(serialize($TimeSpace));
 	$sql="UPDATE webfilter_rules SET TimeSpace='$TimeSpaceNew' WHERE ID=$ID";
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?rebuild-filters=yes");		
+		
 	
 }
 
@@ -1124,32 +1191,32 @@ function rule_time_delete(){
 	$TIMEID=$_POST["TIMEID"];	
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$q=new mysql_squid_builder();	
-	$sql="SELECT TimeSpace FROM webfilter_rules WHERE ID=$ID";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if($ID>0){
+		$q=new mysql_squid_builder();	
+		$sql="SELECT TimeSpace FROM webfilter_rules WHERE ID=$ID";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	}
+	
+	if($ID==0){
+		$sock=new sockets();
+		$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
+	}
+	
+	
 	$TimeSpace=unserialize(base64_decode($ligne["TimeSpace"]));
 	unset($TimeSpace["TIMES"][$TIMEID]);	
 	$TimeSpaceNew=base64_encode(serialize($TimeSpace));
 	
 	if($ID==0){
-		$sock=new sockets();
-		$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
-		$TimeSpace=unserialize(base64_decode($ligne["TimeSpace"]));	
-		$TimeSpace["RuleMatchTime"]=$_POST["RuleMatchTime"];
-		$TimeSpace["RuleAlternate"]=$_POST["RuleAlternate"];
-		$TimeSpaceNew=base64_encode(serialize($TimeSpace));
 		$ligne["TimeSpace"]=$TimeSpaceNew;
 		$sock->SaveConfigFile(base64_encode(serialize($ligne)), "DansGuardianDefaultMainRule");	
-		$sock->getFrameWork("squid.php?rebuild-filters=yes");
 		return;
 	}	
-	
 	
 	$sql="UPDATE webfilter_rules SET TimeSpace='$TimeSpaceNew' WHERE ID=$ID";
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?rebuild-filters=yes");			
+	
 }
 
 
@@ -1512,7 +1579,7 @@ function rule_edit_save(){
 	
 	if($ID==0){
 		writelogs("Default rule, loading DansGuardianDefaultMainRule",__FUNCTION__,__FILE__,__LINE__);
-		$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
+		$DEFAULTARRAY=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
 	}
 	unset($_POST["ID"]);
 	$build=false;

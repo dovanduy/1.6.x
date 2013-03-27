@@ -2327,8 +2327,7 @@ function build_schedules($notfcron=false){
 		if($GLOBALS["VERBOSE"]){echo "These tasks cannot be executed in this server\n";}
 		return;
 	}
-	if(!$q->TABLE_EXISTS("webfilters_schedules")){$q->CheckDefaultSchedules();}
-	if($q->COUNT_ROWS("webfilters_schedules")==0){$q->CheckDefaultSchedules();}
+	$q->CheckDefaultSchedules();
 	if($q->COUNT_ROWS("webfilters_schedules")==0){die();}
 	
 	
@@ -2519,13 +2518,17 @@ function import_acls($filename){
 	}
 	
 	$mysqlbin=$unix->find_program("mysql");
-	$q=new mysql();
+	$q=new mysql_squid_builder();
 	$password=null;
 	$localdatabase="squidlogs";
-	if($q->mysql_server=="127.0.0.1"){$servcmd=" --socket=/var/run/mysqld/mysqld.sock ";}else{$servcmd=" --host=$q->mysql_server --port=$q->mysql_port ";}
-	if($q->mysql_password<>null){$password=" --password=$q->mysql_password ";}
-	$cmdline="$mysqlbin --batch --force --user=$q->mysql_admin$password $servcmd";
+	
+	$unix->shellEscapeChars();
+	
+	$q=new mysql_squid_builder();
+	
+	$cmdline="$mysqlbin --batch --force $q->MYSQL_CMDLINES";
 	$cmd="$cmdline --database=$localdatabase <$destinationfile 2>&1";
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 	shell_exec($cmd);
 	
 }

@@ -60,8 +60,8 @@
         <Filename Value="logon.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="logon"/>
-        <CursorPos X="107" Y="241"/>
-        <TopLine Value="211"/>
+        <CursorPos X="1" Y="863"/>
+        <TopLine Value="824"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="51"/>
         <Loaded Value="True"/>

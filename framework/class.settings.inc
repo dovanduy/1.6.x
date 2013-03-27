@@ -493,6 +493,7 @@ class settings_inc {
 	public $ETTERCAP_INSTALLED=false;
 	public $APACHE_MOD_PYTHON=false;
 	public $APP_PYAUTHENNTLM=false;
+	public $APP_SQUIDDB_INSTALLED=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -925,7 +926,7 @@ class settings_inc {
 			if(isset($_GLOBAL["ARTICADB_INSTALLED"])){$this->ARTICADB_INSTALLED=$_GLOBAL["ARTICADB_INSTALLED"];}
 			if(isset($_GLOBAL["APP_TOMCAT6_INSTALLED"])){$this->APP_TOMCAT6_INSTALLED=$_GLOBAL["APP_TOMCAT6_INSTALLED"];}
 			if(isset($_GLOBAL["APP_TOMCAT6_VERSION"])){$this->APP_TOMCAT6_VERSION=$_GLOBAL["APP_TOMCAT6_VERSION"];}
-			
+			if(isset($_GLOBAL["APP_SQUIDDB_INSTALLED"])){$this->APP_SQUIDDB_INSTALLED=$_GLOBAL["APP_SQUIDDB_INSTALLED"];}
 			
 			
 			$this->TOMCAT_JAVA=$_GLOBAL["TOMCAT_JAVA"];

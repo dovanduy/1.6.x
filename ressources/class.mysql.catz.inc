@@ -28,14 +28,20 @@ class mysql_catz{
 			$this->arrayConfig["mysql_admin"]="root";
 			$this->arrayConfig["SocketPath"]="/var/run/articadb.sock";
 			$this->arrayConfig["TryTCP"]=false;
-			
-			
+			$this->DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+			if(!is_numeric($this->DisableArticaProxyStatistics)){$this->DisableArticaProxyStatistics=0;}
 			$this->ClassSQL=new mysql($this->arrayConfig);
 			$this->UseMysql=$this->ClassSQL->UseMysql;
 			$this->mysql_admin=$this->ClassSQL->mysql_admin;
 			$this->mysql_password=$this->ClassSQL->mysql_password;
 			$this->ClassSQL->SocketPath="/var/run/articadb.sock";
 			$this->ClassSQL->TryTCP=false;
+			
+			if($this->EnableRemoteStatisticsAppliance==1){$this->DisableArticaProxyStatistics=1;}
+			if($this->DisableArticaProxyStatistics==1){return;}
+			
+			
+			
 			if(!$this->DATABASE_EXISTS($this->database)){$this->CREATE_DATABASE($this->database);}
 			if(function_exists("debug_mem")){debug_mem();}
 			if($this->TestingConnection()){}else{$this->MysqlFailed=true;}
@@ -45,6 +51,7 @@ class mysql_catz{
 	}
 	
 	public function TestingConnection(){
+		if($this->DisableArticaProxyStatistics==1){return;}
 		$this->ok=true;
 		$this->ClassSQL->ok=true;
 		$this->ClassSQL=new mysql($this->arrayConfig);
@@ -54,6 +61,7 @@ class mysql_catz{
 	}
 	
 	public function COUNT_ROWS($table,$database=null){
+		if($this->DisableArticaProxyStatistics==1){return 0;}
 		$table=str_replace("`", "", $table);
 		$table=str_replace("'", "", $table);
 		$table=str_replace("\"", "", $table);
@@ -69,11 +77,13 @@ class mysql_catz{
 	
 	
 	public function TABLE_SIZE($table,$database=null){
+		if($this->DisableArticaProxyStatistics==1){return 0;}
 		if($database<>$this->database){$database=$this->database;}
 		return $this->ClassSQL->TABLE_SIZE($table,$database);		
 	}
 	
 	public function TABLE_EXISTS($table,$database=null,$nocache=false){
+		if($this->DisableArticaProxyStatistics==1){return true;}
 		$keyCache=__FUNCTION__;
 		$table=str_replace("`", "", $table);
 		$table=str_replace("'", "", $table);
@@ -98,7 +108,7 @@ class mysql_catz{
 		$results=$this->QUERY_SQL($sql,$database);
 		if(!$this->ok){writelogs($this->mysql_error,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		$result=false;
-		writelogs(mysql_num_rows($results)." items $sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$GLOBALS[$keyCache][$database][$ligne["c"]]=true;
 			if(!$GLOBALS["AS_ROOT"]){$_SESSION[$keyCache][$database][$ligne["c"]]=true;}
@@ -113,17 +123,20 @@ class mysql_catz{
 		
 	}
 	private function DATABASE_EXISTS($database){
+		if($this->DisableArticaProxyStatistics==1){return true;}
 		$this->ClassSQL=new mysql($this->arrayConfig);
 		if($database<>$this->database){$database=$this->database;}
 		return $this->ClassSQL->DATABASE_EXISTS($database,true);
 	}
 	
 	private function FIELD_EXISTS($table,$field,$database=null){
+		if($this->DisableArticaProxyStatistics==1){return true;}
 		if($database<>$this->database){$database=$this->database;}
 		return $this->ClassSQL->FIELD_EXISTS($table,$field,$database);
 	}
 	
 	public function QUERY_SQL($sql,$database=null){
+		if($this->DisableArticaProxyStatistics==1){return null;}
 		if($database<>$this->database){$database=$this->database;}
 		$this->ClassSQL=new mysql($this->arrayConfig);
 		$results=$this->ClassSQL->QUERY_SQL($sql,$database);
@@ -145,6 +158,7 @@ class mysql_catz{
 	}
 	
 	private FUNCTION CREATE_DATABASE($database){
+		if($this->DisableArticaProxyStatistics==1){return null;}
 		if($database<>$this->database){$database=$this->database;}
 		return $this->ClassSQL->CREATE_DATABASE($database);
 	}
@@ -161,6 +175,7 @@ class mysql_catz{
 
 	
 	function GET_CATEGORIES($sitename){
+		if($this->DisableArticaProxyStatistics==1){return null;}
 		$keyMem=date("Ymdh");
 		$orgsitename=$sitename;
 		$BADCATZ["category_drogue"]=true;
@@ -251,6 +266,7 @@ class mysql_catz{
 	}
 	
 	public function LIST_TABLES_CATEGORIES($nocache=false){
+		if($this->DisableArticaProxyStatistics==1){return array();}
 		if(!$nocache){
 			if(!$GLOBALS["AS_ROOT"]){
 				if(isset($_SESSION["CATZLIST_TABLES_CATEGORIES"])){return $_SESSION["CATZLIST_TABLES_CATEGORIES"];}
@@ -287,6 +303,7 @@ class mysql_catz{
 	}	
 	
 	function COUNT_CATEGORIES(){
+		if($this->DisableArticaProxyStatistics==1){return 0;}
 		if(!$GLOBALS["AS_ROOT"]){
 			if(isset($_SESSION["CATZLIST_COUNT_CATEGORIES"])){return $_SESSION["CATZLIST_COUNT_CATEGORIES"];}
 		}
@@ -308,6 +325,7 @@ class mysql_catz{
 	}
 	
 	FUNCTION DELETE_TABLE($table){
+		if($this->DisableArticaProxyStatistics==1){return array();}
 		if(!function_exists("mysql_connect")){return 0;}
 		if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL table $this->database/$table was deleted $called" , __FUNCTION__, __FILE__, __LINE__, "mysql-delete");}
 		$this->QUERY_SQL("DROP TABLE `$table`",$this->database);
@@ -475,6 +493,7 @@ function TransArray(){
 	
 	
 	function CreateCategoryTable($category,$fulltablename=null){
+		if($this->DisableArticaProxyStatistics==1){return true;}
 		if($category=="drogue"){$category="drugs";}
 		if($category=="gambling"){$category="gamble";}
 		if($category=="hobby/games"){$category="games";}

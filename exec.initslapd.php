@@ -1,6 +1,7 @@
 <?php
 $GLOBALS["VERBOSE"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
@@ -13,6 +14,7 @@ if($argv[1]=="--start"){start_ldap();exit;}
 if($argv[1]=="--stop"){stop_ldap();exit;}
 if($argv[1]=="--spamass-milter"){buildscriptSpamass_milter();exit;}
 if($argv[1]=="--freeradius"){buildscriptFreeRadius();exit;}
+if($argv[1]=="--restart-www"){restart_artica_webservices();exit;}
 
 
 
@@ -775,6 +777,12 @@ function rsyslogd_init(){
 	@file_put_contents("/etc/init.d/syslog", @implode("\n", $f));
 	if(!is_file("/etc/init.d/rsyslog")){@file_put_contents("/etc/init.d/rsyslog", @implode("\n", $f));}
 	echo "syslog: [INFO] syslog path `/etc/init.d/syslog` done\n";
+	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program($nohup);
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.initd-mysql.php >/dev/null 2>&1 &");
+	
+	
 }
 
 function check_init_rsyslogd(){
@@ -1386,6 +1394,13 @@ $f[]="";
 @file_put_contents("/etc/init.d/wsgate", @implode("\n", $f));
 echo "wsgate: [INFO] wsgate path `/etc/init.d/wsgate` done\n";		
 
+}
+
+function restart_artica_webservices(){
+	exec("/etc/init.d/artica-postfix restart framework 2>&1",$results);
+	exec("/etc/init.d/artica-postfix restart apache 2>&1",$results);
+	system_admin_events("Restarting Artica Web consoles done\n".@implode("\n", $results), __FUNCTION__, __FILE__, __LINE__, "system");
+	
 }
 
 

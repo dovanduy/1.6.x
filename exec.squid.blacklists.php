@@ -268,26 +268,47 @@ if($GLOBALS["VERBOSE"]){echo "scanned ". count($f)." files\n";}
 	
 }
 
+
+
 function updatev2_checkversion(){
-	
-	
+	$GLOBALS["MIRROR"]=null;
+	$Mirrors[]="http://update.articatech.com";
+	$tmpfile="/tmp/articatechdb.version.".time();
+	$Mirrors[]="http://www.artica.fr/ufdb";
+	$destinationfile="/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version";
 	@mkdir("/usr/share/artica-postfix/ressources/logs/web/cache",0755);
+	
 	$unix=new unix();
-	if(is_file("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version")){
-		if($unix->file_time_min("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version")<5){return;}
+
+	
+	
+	while (list ($num, $uri) = each ($Mirrors) ){
+		$curl=new ccurl("$uri/articatechdb.version");
+		$curl->Timeout=10;
+		if($curl->GetFile($tmpfile)){
+			if(is_file($tmpfile)){
+				$array=unserialize(base64_decode(@file_get_contents($tmpfile)));
+				if(is_array($array)){
+					if(isset($array["ARTICATECH"]["VERSION"])){
+						$GLOBALS["MIRROR"]=$uri;
+						@unlink($destinationfile);
+						@copy($tmpfile, $destinationfile);
+						@chmod($destinationfile,0755);
+					}
+				}
+			}
+		}
+		
 	}
 	
-	$curl=new ccurl("http://update.articatech.com/articatechdb.version");
-	if(!$curl->GetFile("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version")){
-		$curl=new ccurl("http://www.artica.fr/ufdb/articatechdb.version");
-		$curl->GetFile("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version");
-	}
+	@unlink($tmpfile);
 	
-	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version")){
-		if($GLOBALS["VERBOSE"]){echo "/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version no such file<br>\n";}
+	if($GLOBALS["MIRROR"]==null){
+		ufdbguard_admin_events("error, unable to find a suitable mirror", __FUNCTION__, __FILE__, __LINE__, "update");
 		return;
 	}
-	@chmod("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version",0755);
+
+	
 }
 
 function updatev2_progress($num,$text){
@@ -352,17 +373,15 @@ function updatev2(){
 	@file_put_contents($pidfile, getmypid());	
 	$LOCAL_VERSION=@file_get_contents("/opt/articatech/VERSION");
 	updatev2_checkversion();
-	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version")){
-	$curl=new ccurl("http://update.articatech.com/articatechdb.version");
-		if(!$curl->GetFile("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version")){
-			$curl=new ccurl("http://www.artica.fr/ufdb/articatechdb.version");
-			$curl->GetFile("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version");
-		}
-		
-		
-		
+	if($GLOBALS["MIRROR"]==null){
+		schedulemaintenance();
+		EXECUTE_BLACK_INSTANCE();		
+		$took=$unix->distanceOfTimeInWords($t,time());
+		updatev2_progress(100,"{failed}  $curl->error after $took");
+		return;
 	}
 	$array=unserialize(base64_decode(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.version")));
+	
 	if(!is_array($array)){
 		if($GLOBALS["SCHEDULE_ID"]>0){
 			updatev2_progress(100,"corrupted file, not an array");
@@ -390,29 +409,20 @@ function updatev2(){
 	
 	@mkdir("/home/articadb",0755,true);
 	
-	$curl=new ccurl("http://update.articatech.com/articadb.tar.gz");
+	$curl=new ccurl("{$GLOBALS["MIRROR"]}/articadb.tar.gz");
 	$curl->Timeout=10200;
 	$curl->WriteProgress=true;
 	$curl->ProgressFile="/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.download";
 	updatev2_progress(50,"{downloading}...");
 	if(!$curl->GetFile("/home/articadb/articadb.tar.gz")){
-		updatev2_progress(55,"{downloading} {failed}, trying repository 1...");
-		$curl=new ccurl("http://www.artica.fr/ufdb/articadb.tar.gz");
-		$curl->Timeout=10200;
-		$curl->WriteProgress=true;
-		$curl->ProgressFile="/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.download";
-		updatev2_progress(57,"{downloading}...");
-		if(!$curl->GetFile("/home/articadb/articadb.tar.gz")){
-			$took=$unix->distanceOfTimeInWords($t,time());
-			ufdbguard_admin_events("Fatal : $curl->error after $took",__FUNCTION__,__FILE__,__LINE__,"update");
-			@unlink("/home/articadb/articadb.tar.gz");
-			ufdbtables(true); 
-			schedulemaintenance();
-			EXECUTE_BLACK_INSTANCE();
-			updatev2_progress(100,"{failed}  $curl->error after $took");
-			return;		
-		}
-	
+		$took=$unix->distanceOfTimeInWords($t,time());
+		ufdbguard_admin_events("Fatal : $curl->error after $took",__FUNCTION__,__FILE__,__LINE__,"update");
+		@unlink("/home/articadb/articadb.tar.gz");
+		ufdbtables(true); 
+		schedulemaintenance();
+		EXECUTE_BLACK_INSTANCE();
+		updatev2_progress(100,"{failed}  $curl->error after $took");
+		return;		
 	}
 	
 	$LOCAL_MD5=md5_file("/home/articadb/articadb.tar.gz");

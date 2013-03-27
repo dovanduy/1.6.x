@@ -51,9 +51,9 @@ class squid_tail{
 			if(preg_match("#GET cache_object#",$buffer)){$this->events("[SQUID]: cache_object abort".__LINE__);return true;}
 			if(preg_match("#^.+?squid\[[0-9]+\]:#", $buffer,$re)){$buffer=str_replace($re[0], "",$buffer);}
 			if(strpos($buffer, "HTTP/0.0")>0){$this->events("[SQUID]: HTTP/0.0 detected in \"$buffer\" -> abort in line:".__LINE__);return true;}
+			if(strpos($buffer, "TCP_DENIED:")>0){$this->error="TCP_DENIED";$this->ToRemove=true;return;}
 			
-			
-			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|TEXT|HTML|PROPFIND|GET|POST|LOCK|PUT|CONNECT|NONE|HEAD|OPTIONS)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
+			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|DELETE|TEXT|HTML|PROPFIND|GET|POST|LOCK|PUT|CONNECT|NONE|HEAD|OPTIONS)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
 				    $cached=0;
 				    $mac=trim($re[1]);
 					$ip=trim($re[2]);
@@ -72,7 +72,8 @@ class squid_tail{
 					if($ip=="::"){
 						$this->error="IP = $ip - $uri line:".__LINE__;
 						$this->ToRemove=true;
-						return;}
+						return;
+					}
 					if($this->CACHEDORNOT($SquidCode)){$cached=1;}
 					if($mac=="00:00:00:00:00:00"){$mac==null;}
 					
@@ -94,7 +95,7 @@ class squid_tail{
 
 			
 			
-			if(preg_match('#(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|HTML|TEXT|PROPFIND|GET|POST|CONNECT|PUT|LOCK|NONE|HEAD|OPTIONS)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
+			if(preg_match('#(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|DELETE|HTML|TEXT|PROPFIND|GET|POST|CONNECT|PUT|LOCK|NONE|HEAD|OPTIONS)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
 				    $cached=0;
 					$ip=$re[1];
 					$user=$re[2];
@@ -131,7 +132,7 @@ class squid_tail{
 						
 			}
 
-			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|HTML|TEXT|PROPFIND|GET|POST|PUT|LOCK|CONNECT|NONE|HEAD|OPTIONS)\s+(.+?)$#',$buffer,$re)){
+			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|DELETE|HTML|TEXT|PROPFIND|GET|POST|PUT|LOCK|CONNECT|NONE|HEAD|OPTIONS)\s+(.+?)$#',$buffer,$re)){
 					$cached=0;
 					$ip=$re[1];
 					$user=$re[2];
@@ -165,6 +166,7 @@ class squid_tail{
 			}
 			
 			$this->error="Unable to detect $buffer in line:".__LINE__." class ".__CLASS__;
+			
 			$this->events("[SQUID]: Not filtered: $buffer line:".__LINE__);
 			return false;
 	
@@ -364,7 +366,7 @@ private function CACHEDORNOT($SquidCode){
 	if($size==null){$size=0;}
 	
 	$zMD5=md5("$uri$date$CLIENT$username$TYPE$Country$site_IP");
-	$hostname=null;
+	//$hostname=$this->GetComputerName($CLIENT);
 	
 	if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitename)){$sitename=gethostbyaddr($sitename);}	
 	if(!is_dir("/var/log/artica-postfix/pagepeeker")){@mkdir("/var/log/artica-postfix/pagepeeker",600,true);}
@@ -384,6 +386,7 @@ private function CACHEDORNOT($SquidCode){
 	}
 	
 	if(preg_match("#youtube.com\/watch\?v=(.+?)\&#", $uri,$re)){
+		$this->youtube_events("$date: $CLIENT [$hostname] $username $mac [{$re[1]}]");
 			$youtube=array(
 				"VIDEOID"=>$re[1],
 				"clientip"=>$CLIENT,
@@ -469,6 +472,23 @@ private function CACHEDORNOT($SquidCode){
 	
 	
   
+}
+
+private function youtube_events($text,$line){
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	if($GLOBALS["VERBOSE"]){echo $text."\n";}
+	$common="/var/log/artica-postfix/youtube.scanner.log";
+	$size=@filesize($common);
+	if($size>100000){@unlink($common);}
+	$pid=getmypid();
+	$date=date("Y-m-d H:i:s");
+	$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)."$date $text");
+	$h = @fopen($common, 'a');
+	$sline="[$pid] $text";
+	$line="$date [$pid] $text [Line:$line]\n";
+	@fwrite($h,$line);
+	@fclose($h);
+
 }
 
 public function IsPhysicalAddress($address){
@@ -606,6 +626,7 @@ public function GetCountry($sitename){
 			}
 			
 	public function GetComputerName($ip){
+		$this->LoadResolveCache();
 		if(isset($GLOBALS["resvip"][$ip])){
 			if(strlen($GLOBALS["resvip"][$ip])>3){
 					return $GLOBALS["resvip"][$ip];
@@ -614,8 +635,24 @@ public function GetCountry($sitename){
 		
 		$name=gethostbyaddr($ip);
 		$GLOBALS["resvip"][$ip]=$name;
+		$this->SaveResolveCache();
 		return $name;
 	}
+	
+	private function LoadResolveCache(){
+		if(isset($GLOBALS["resvip"])){return;}
+		$unix=new unix();
+		$fname="/etc/squid3/ipcaches.db";
+		if($unix->file_time_min($fname)>15){$GLOBALS["resvip"]=array();}
+		$GLOBALS["resvip"]=unserialize(@file_get_contents($fname));
+		
+	}
+	
+	private function SaveResolveCache(){
+		$fname="/etc/squid3/ipcaches.db";
+		@file_put_contents($fname, serialize($GLOBALS["resvip"]));
+	}
+	
 	
 	private function GeoIPavailable(){
 		if(!function_exists("geoip_db_filename")){

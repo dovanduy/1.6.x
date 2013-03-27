@@ -555,6 +555,7 @@ class usersMenus {
 	public $APP_PYAUTHENNTLM=false;	
 	public $APP_ZARAFADB_INSTALLED=false;
 	public $FREERADIUS_INSTALLED=false;
+	public $APP_SQUIDDB_INSTALLED=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -699,6 +700,7 @@ class usersMenus {
 			if(isset($_GLOBAL["APACHE_MOD_PYTHON"])){$this->APACHE_MOD_PYTHON=$_GLOBAL["APACHE_MOD_PYTHON"];}
 			if(isset($_GLOBAL["APP_PYAUTHENNTLM"])){$this->APP_PYAUTHENNTLM=$_GLOBAL["APP_PYAUTHENNTLM"];}
 			if(isset($_GLOBAL["APP_ZARAFADB_INSTALLED"])){$this->APP_ZARAFADB_INSTALLED=$_GLOBAL["APP_ZARAFADB_INSTALLED"];}
+			if(isset($_GLOBAL["APP_SQUIDDB_INSTALLED"])){$this->APP_SQUIDDB_INSTALLED=$_GLOBAL["APP_SQUIDDB_INSTALLED"];}
 	
 			
 			

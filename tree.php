@@ -222,6 +222,7 @@ function js(){
 		function TreeChooseFolderForm(filepath){
 			document.getElementById('{$_GET["target-dir"]}').value=filepath;
 			YahooWinBrowseHide();
+			WinORGHide();
 		}
 		
 		

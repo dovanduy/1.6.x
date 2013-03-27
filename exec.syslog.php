@@ -451,28 +451,92 @@ function Parseline($buffer){
 			return;
 			}
 	}
+	
+	if(preg_match("#C-ICAP.*?Unable to find specified template#i", $buffer)){
+		$file="/etc/artica-postfix/croned.1/cicap_templates";
+		events("Not template for C-ICAP...");
+		if(IfFileTime($file,10)){
+			$cmd=trim("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.c-icap.php --template >/dev/null 2>&1 &");
+			events("$cmd");
+			WriteFileCache($file);
+		}
+		
+	}
+	
 
 	if(preg_match("#C-ICAP.*?general.*?VIRUS DETECTED: (.+?)\s+, http client ip: (.+?),\s+http user: (.*?), http url: (.+)#",$buffer,$re)){
-		$user=$re[3];
+		$user=trim($re[3]);
+		if($user=="-"){$user=null;}
 		$local_ip=$re[2];
 		$virus=$re[1];
-		$rulename="Antivirus ClamAV";
-		$category="C-ICAP ClamAV";
-		$public_ip="unknown";
-		$uri=$re[3];
+		$uri=$re[4];
 		$uri=str_replace("#012", "", $uri);
-		if(preg_match("#(|http|https|ftp|ftps)://(.+)#",$uri,$re)){$www=$re[2];}
-		if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}	
+		$uri=trim($uri);
+		$array=parse_url($uri);
+		$www=$array["host"];
+		if(strpos($www, ":")>0){$t=explode(":", $www);$www=$t[0];}
+		if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}
 		if(strpos($www,"/")>0){$tb=explode("/",$www);$www=$tb[0];}
-		$date=time();
-		$table=date('Ymd')."_blocked";	
-		$md5=md5("$date,$local_ip,$rulename,$category,$www,$public_ip");	
-		$sql="('$local_ip','$www','$category','$rulename','$public_ip','THREAT $virus DETECTED','Security issue','unknown')";
-		if(!is_dir("/var/log/artica-postfix/ufdbguard-queue")){@mkdir("/var/log/artica-postfix/ufdbguard-queue",0755,true);}
-		@file_put_contents("/var/log/artica-postfix/ufdbguard-queue/$md5.sql",$sql);
+		$MAC=$GLOBALS["CLASS_UNIX"]->IpToMac($local_ip);
+		$Clienthostname=$GLOBALS["CLASS_UNIX"]->IpToHostname($local_ip);
+		
+		$array["uid"]=$user;
+		$array["uri"]=$uri;
+		$array["MAC"]=$MAC;
+		$array["TIME"]=time();
+		$array["category"]="C-ICAP ClamAV";
+		$array["rulename"]="Antivirus ClamAV";
+		$array["public_ip"]=gethostbyname($www);
+		$array["blocktype"]="Security issue";
+		$array["why"]="THREAT $virus DETECTED";
+		$array["hostname"]=$Clienthostname;
+		$array["website"]=$www;
+		$array["client"]=$local_ip;
+		$serialize=serialize($array);
+		$md5=md5($serialize);
+		if(!is_dir("/var/log/artica-postfix/ufdbguard-blocks")){@mkdir("/var/log/artica-postfix/ufdbguard-blocks");}
+		@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql",$serialize);
 		eventsAuth("[CLAMAV]: blocked THREAT $virus DETECTED IN $uri");
 		return;	
 	}
+	
+	if(preg_match("#C-ICAP.*?VIRUS DETECTED:\s+(.+?)\s+,\s+.*?ip:\s+(.+?),\s+.*?user:\s+(.+?),\s+.*?url:\s+(.+)#",$buffer,$re)){
+		$user=trim($re[3]);
+		if($user=="-"){$user=null;}
+		$local_ip=$re[2];
+		$virus=$re[1];
+		$uri=$re[4];
+		$uri=str_replace("#012", "", $uri);
+		$uri=trim($uri);
+		$array=parse_url($uri);
+		$www=$array["host"];
+		if(strpos($www, ":")>0){$t=explode(":", $www);$www=$t[0];}
+		if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}
+		if(strpos($www,"/")>0){$tb=explode("/",$www);$www=$tb[0];}
+		$MAC=$GLOBALS["CLASS_UNIX"]->IpToMac($local_ip);
+		$Clienthostname=$GLOBALS["CLASS_UNIX"]->IpToHostname($local_ip);
+		
+		$array["uid"]=$user;
+		$array["uri"]=$uri;
+		$array["MAC"]=$MAC;
+		$array["TIME"]=time();
+		$array["category"]="C-ICAP ClamAV";
+		$array["rulename"]="Antivirus ClamAV";
+		$array["public_ip"]=gethostbyname($www);
+		$array["blocktype"]="Security issue";
+		$array["why"]="THREAT $virus DETECTED";
+		$array["hostname"]=$Clienthostname;
+		$array["website"]=$www;
+		$array["client"]=$local_ip;
+		$serialize=serialize($array);
+		$md5=md5($serialize);
+		if(!is_dir("/var/log/artica-postfix/ufdbguard-blocks")){@mkdir("/var/log/artica-postfix/ufdbguard-blocks");}
+		@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql",$serialize);
+		eventsAuth("[CLAMAV]: blocked THREAT $virus DETECTED IN $uri");
+		return;
+	}	
+	
+	
 
 	$auth=new auth_tail();
 	if($auth->ParseLog($buffer)){return;}

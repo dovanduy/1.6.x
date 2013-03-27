@@ -105,6 +105,7 @@ if($argv[1]=='--webcacheperfs'){webcacheperfs();exit;}
 if($argv[1]=='--visited-days'){visited_websites_by_day();exit;}
 if($argv[1]=='--repair-categories'){RepairCategoriesBases();exit;}
 if($argv[1]=='--members-central'){members_central();exit;}
+if($argv[1]=='--members-central-reset'){members_central_reset();exit;}
 if($argv[1]=='--repair-week'){repair_week();exit;}
 if($argv[1]=='--dump-days'){dump_days();exit;}
 if($argv[1]=='--members-central-grouped'){members_central_grouped();exit;}
@@ -1199,6 +1200,20 @@ function events($text){
 		@fwrite($h,$line);
 		@fclose($h);
 }
+function events_repair($text){
+	if($GLOBALS["VERBOSE"]){echo $text."\n";}
+	$common="/var/log/artica-postfix/squid.stats.repair.log";
+	$size=@filesize($common);
+	if($size>100000){@unlink($common);}
+	$pid=getmypid();
+	$date=date("Y-m-d H:i:s");
+	$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)."$date $text");
+	$h = @fopen($common, 'a');
+	$sline="[$pid] $text";
+	$line="$date [$pid] $text\n";
+	@fwrite($h,$line);
+	@fclose($h);
+}
 
 function squid_cache_perfs(){
 	
@@ -1399,7 +1414,11 @@ function not_categorized_day_resync(){
 
 function not_categorized_day_scan(){
 	
-
+	$sock=new sockets();
+	
+	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+	if($DisableArticaProxyStatistics==1){return;}
 	
 	not_categorized_day_resync();
 	
@@ -1555,6 +1574,18 @@ function members_central_grouped(){
 	
 }
 
+function members_central_reset(){
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("DROP TABLE UserAuthDays");
+	$q->QUERY_SQL("DROP TABLE UserAuthDaysGrouped");
+	$q->QUERY_SQL("UPDATE tables_day SET memberscentral=0 WHERE memberscentral=1");
+	$q->CheckTables();
+	members_central();
+	
+	
+	
+}
+
 
 function members_central($aspid=false){
 	
@@ -1624,13 +1655,22 @@ function members_central($aspid=false){
 	youtube_week();
 }
 
+
+
+
+
 function _members_central_perform($tablesource,$date){
 	$f=array();
 	if(!$GLOBALS["Q"]->TABLE_EXISTS("$tablesource")){return true;}
 	if($GLOBALS["VERBOSE"]){echo "checking table $tablesource\n";}
 	$sql="SELECT SUM(hits) as thits,SUM(QuerySize) as tsize,CLIENT,hostname,uid,MAC,account FROM `$tablesource`
 	GROUP BY CLIENT,hostname,uid,MAC,account";
-	$prefix="INSERT IGNORE INTO UserAuthDays (`zMD5`,`zDate`,`ipaddr`,`hostname`,`uid`,`MAC`,`account`,`QuerySize`,`hits`) VALUES ";
+	
+	
+	
+	
+	
+	
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	if(!$GLOBALS["Q"]->ok){
 		ufdbguard_admin_events("$tablesource is an old table, change to compatible mode", __FUNCTION__, __FILE__, __LINE__, "stats");
@@ -1649,6 +1689,7 @@ function _members_central_perform($tablesource,$date){
 	
 	$numrows=mysql_num_rows($results);
 	echo "$tablesource $numrows entries\n";
+	$prefix="INSERT IGNORE INTO UserAuthDays (`zMD5`,`zDate`,`ipaddr`,`hostname`,`uid`,`MAC`,`account`,`QuerySize`,`hits`) VALUES ";
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		
@@ -1675,6 +1716,7 @@ function _members_central_perform($tablesource,$date){
 		$account=$ligne["account"];
 		$QuerySize=$ligne["tsize"];
 		$hits=$ligne["thits"];
+		$uid=$ligne["uid"];
 		
 		if(strlen($uid)<3){if(strlen($MAC)>3){$uid=$GLOBALS["Q"]->UID_FROM_MAC($MAC);}}
 		$uid=addslashes($uid);
@@ -2142,6 +2184,7 @@ function table_hours(){
 
 }
 function _table_hours_perform($tablename){
+	if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
 	if(!preg_match("#squidhour_([0-9]+)#",$tablename,$re)){return;}
 	$hour=$re[1];
 	$year=substr($hour,0,4);
@@ -2150,15 +2193,20 @@ function _table_hours_perform($tablename){
 	$compressed=false;
 	$f=array();
 	$dansguardian_table="dansguardian_events_$year$month$day";
+	events_repair("Start `$tablename` -> $dansguardian_table L: ".__LINE__);
 	$accounts=$GLOBALS["Q"]->ACCOUNTS_ISP();
 	
 	
 
 	
-	$GLOBALS["Q"]->CheckTables($dansguardian_table);
+	if(!$GLOBALS["Q"]->Check_dansguardian_events_table($dansguardian_table)){return false;}
 	$sql="SELECT COUNT(ID) as hits,SUM(QuerySize) as QuerySize,DATE_FORMAT(zDate,'%Y-%m-%d %H:00:00') as zDate,sitename,uri,TYPE,REASON,CLIENT,uid,remote_ip,country,cached,MAC,hostname FROM $tablename GROUP BY sitename,uri,TYPE,REASON,CLIENT,uid,remote_ip,country,cached,MAC,zDate,hostname";
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	
+	events_repair("$dansguardian_table -> ". mysql_num_rows($results)." L: ".__LINE__);
+	
 	if(!$GLOBALS["Q"]->ok){
+		events_repair("$dansguardian_table ->  {$GLOBALS["Q"]->mysql_error} on `$tablename` L: ".__LINE__);
 		writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$tablename`\n".@implode("\n",$GLOBALS["REPAIR_MYSQL_TABLE"]),__FUNCTION__,__FILE__,__LINE__,"stats");
 		if(strpos(" {$GLOBALS["Q"]->mysql_error}", "is marked as crashed and should be repaired")>0){
 			$q1=new mysql();
@@ -2176,7 +2224,7 @@ function _table_hours_perform($tablename){
 	$prefix="INSERT IGNORE INTO $dansguardian_table (sitename,uri,TYPE,REASON,CLIENT,MAC,zDate,zMD5,uid,remote_ip,country,QuerySize,hits,cached,hostname,account) VALUES ";
 	
 	
-	
+	$d=0;
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$zmd=array();
@@ -2188,15 +2236,17 @@ function _table_hours_perform($tablename){
 		$zMD5=md5(@implode("",$zmd));
 		$accountclient=null;
 		if(isset($accounts[$ligne["CLIENT"]])){$accountclient=$accounts[$ligne["CLIENT"]];}
-		
+		$d++;
 		$f[]="('{$ligne["sitename"]}','{$ligne["uri"]}','{$ligne["TYPE"]}','{$ligne["REASON"]}','{$ligne["CLIENT"]}',
 		'{$ligne["MAC"]}','{$ligne["zDate"]}','$zMD5','{$ligne["uid"]}','{$ligne["remote_ip"]}','{$ligne["country"]}','{$ligne["QuerySize"]}',
 		'{$ligne["hits"]}','{$ligne["cached"]}','{$ligne["hostname"]}','$accountclient')";
 		if(count($f)>500){		
+			events_repair("Insterting $d elements L: ".__LINE__);
 			$GLOBALS["Q"]->UncompressTable($dansguardian_table);
 			$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
 			$f=array();
 			if(!$GLOBALS["Q"]->ok){
+				events_repair("{$GLOBALS["Q"]->mysql_error} L: ".__LINE__);
 				writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FUNCTION__,
 				__FILE__,__LINE__,"stats");
 				
@@ -2207,9 +2257,11 @@ function _table_hours_perform($tablename){
 	}
 	
 	if(count($f)>0){	
+		events_repair("Insterting ". count(count($f))." elements L: ".__LINE__);
 		$GLOBALS["Q"]->UncompressTable($dansguardian_table);
 		$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
 		if(!$GLOBALS["Q"]->ok){
+			events_repair("{$GLOBALS["Q"]->mysql_error} L: ".__LINE__);
 			writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FUNCTION__,
 		__FILE__,__LINE__,"stats");
 			
@@ -3004,20 +3056,38 @@ function RepairCategoriesBases(){
 }
 
 function thumbnail_parse(){
-		$unix=new unix();
+	$unix=new unix();
 		
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	$ttim=$unix->file_time_min($pidTime);
+	if($ttim<5){
+		writelogs("Aborting, neew to wait 5mn Current:{$ttim}mn",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}
+	
 	$oldpid=@file_get_contents($pidfile);
 	if($oldpid<100){$oldpid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}
+	
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
-	$ttim=$unix->file_time_min($pidTime);
-	if($ttim<3){writelogs("Aborting, neew to wait 3mn Current:{$ttim}mn",__FUNCTION__,__FILE__,__LINE__);return;}
+	
+	
 	@unlink($pidTime);
 	@file_put_contents($pidTime, time());
+	
+	if(system_is_overloaded(basename(__FILE__))){
+		writelogs("Overloaded system, aborting...",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}
+		
+		
 	
 	if(!is_dir("/var/log/artica-postfix/pagepeeker")){return ;}
 	if (!$handle = opendir("/var/log/artica-postfix/pagepeeker")) {return;}
@@ -3033,7 +3103,8 @@ function thumbnail_parse(){
 		thumbnail_site($sitename);
 		@unlink($targetFile);
 		$c++;
-		if($c>100){$c=0;if(system_is_overloaded(basename(__FILE__))){ufdbguard_admin_events("Fatal: Overloaded aborting task",__FUNCTION__,__FILE__,__LINE__,"stats");return;}}
+		if($c>100){$c=0;if(system_is_overloaded(basename(__FILE__))){
+			ufdbguard_admin_events("Fatal: Overloaded aborting task",__FUNCTION__,__FILE__,__LINE__,"stats");return;}}
 	}
 
 	
@@ -3047,7 +3118,10 @@ function thumbnail_parse_hours(){
 	while (list ($directory,$array) = each ($dirs) ){
 		$dirs2=$unix->dirdir($directory);if(count($dirs2)==0){@rmdir($directory);continue;}
 		if(is_dir("$directory/PageKeeper")){thumbnail_parse_dir("$directory/PageKeeper");}
-	
+		if(system_is_overloaded(basename(__FILE__))){
+			writelogs("Overloaded system, aborting...",__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
 	}
 	
 	
@@ -3083,6 +3157,10 @@ function thumbnail_parse_dir($directory){
 		}
 		$c++;
 		@unlink($targetFile);
+		if(system_is_overloaded(basename(__FILE__))){
+			writelogs("Overloaded system, aborting...",__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
 	
 	}
 		
@@ -3336,6 +3414,15 @@ function users_size_hour(){
 function repair_hours($aspid=false){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/squid_repair_hour_stats.pid";
+	$timefile="/etc/artica-postfix/pids/squid_repair_hour_stats.time";
+	
+	$timefileT=$unix->file_time_min($timefile);
+	if($timefileT<15){
+		ufdbguard_admin_events("Only each 15mn.. Aborting", __FUNCTION__, __FILE__, __LINE__, "stats");
+		return;
+	}
+	
+	@file_put_contents($timefile, time());
 	
 	if($aspid){
 
@@ -3361,19 +3448,28 @@ function repair_hours($aspid=false){
 	}
 	
 	
-	
-	if($GLOBALS["VERBOSE"]){echo "Starting ".__FUNCTION__."\n";}
+	@file_put_contents($timefile, time());
+	events_repair("Starting L:".__LINE__);
 	$q=new mysql_squid_builder();
 	$CurrentHourTable="squidhour_".date("YmdH");
-	if($GLOBALS["VERBOSE"]){echo "Find hours tables...\n";}
+	events_repair("Find hours tables...L: ".__LINE__);
+	
 	$tables=$q->LIST_TABLES_HOURS_TEMP();
 	$c=0;
 	$t=time();
-	if($GLOBALS["VERBOSE"]){echo "Find hours tables done ". count($tables)." table(s)...\n";}
+	events_repair("Find hours tables done ". count($tables)." table(s)... L: ".__LINE__);
+	
 	while (list ($table, $none) = each ($tables) ){
-		if($table==$CurrentHourTable){if($GLOBALS["VERBOSE"]){echo "SKIP `$table`\n";}continue;}
-		if($GLOBALS["VERBOSE"]){echo "Analyze: $table\n";}
-		if(!preg_match("#squidhour_([0-9]+)#",$table,$re)){continue;}
+		if($table==$CurrentHourTable){
+			events_repair("SKIP `$table`... L: ".__LINE__);
+			continue;
+		}
+		events_repair("Analyze `$table`... L: ".__LINE__);
+		
+		if(!preg_match("#squidhour_([0-9]+)#",$table,$re)){
+			events_repair("No match `$table` abort... L: ".__LINE__);
+			continue;
+		}
 		$hour=$re[1];
 		$year=substr($hour,0,4);
 		$month=substr($hour,4,2);
@@ -3403,10 +3499,13 @@ function repair_hours($aspid=false){
 		
 	}
 	
-	
+	@file_put_contents($timefile, time());
 	repair_week();
+	@file_put_contents($timefile, time());
 	week_uris();
+	@file_put_contents($timefile, time());
 	week_uris_blocked();	
+	@file_put_contents($timefile, time());
 	
 }
 
@@ -3527,6 +3626,7 @@ function youtube_days(){
 	$LIST_TABLES_YOUTUBE_HOURS=$q->LIST_TABLES_YOUTUBE_HOURS();
 	while (list ($tablesource, $value) = each ($LIST_TABLES_YOUTUBE_HOURS) ){
 		if($tablesource==$currenttable){continue;}
+		if($q->COUNT_ROWS($tablesource)==0){$q->QUERY_SQL("DROP TABLE `$tablesource`");continue;}
 		if(!_youtube_days($tablesource)){continue;}
 		$q->QUERY_SQL("DROP TABLE $tablesource");
 	}

@@ -1,4 +1,5 @@
 <?php
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 session_start();
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.ldap.inc');
@@ -7,6 +8,42 @@ include_once('ressources/class.langages.inc');
 include_once('ressources/class.sockets.inc');
 
 $GLOBALS["langs"]=array("fr","en","po","es","it");
+
+if(isset($_GET["jquery"])){
+	include_once('ressources/class.page.builder.inc');
+	$p=new pagebuilder();
+	$jquery=$p->jqueryPath();
+	$jQueryCustom=$p->jQueryCustom();	
+	
+	$f[]=$jquery;
+	$f[]=$jQueryCustom;
+	$f[]="/js/jqueryFileTree.js";
+	$f[]="/js/jquery.easing.1.3.js";
+	$f[]="/js/thickbox-compressed.js";
+	$f[]="/js/jquery.simplemodal-1.3.3.min.js";
+	$f[]="/js/jquery.jgrowl_minimized.js";
+	$f[]="/js/jquery.cluetip.js";
+	$f[]="/js/jquery.blockUI.js";
+	$f[]="/js/jquery.treeview.min.js";
+	$f[]="/js/jquery.treeview.async.js";
+	$f[]="/js/jquery.tools.min.js";
+	$f[]="/js/jquery.qtip.js";
+	$f[]="/js/jquery.kwicks-1.5.1.pack.js";
+	$f[]="/js/flexigrid.pack.js";
+	$f[]="/js/jquery-ui-timepicker-addon.js";
+	$f[]="/js/ui.selectmenu.js";
+	$f[]="/js/jquery.cookie.js";
+	$f[]="/js/fileuploader.js";
+	$f[]="/js/highcharts.js";
+	$f[]="/js/modules/exporting.js";
+	$f[]="/js/mobiscroll-2.1.custom.min.js";	
+	header("content-type: application/x-javascript");
+	while (list ($num, $ligne) = each ($f) ){
+		echo "Loadjs('$ligne');\n";
+	}
+	
+	die();
+}
 
 
 if(function_exists("apc_clear_cache")){

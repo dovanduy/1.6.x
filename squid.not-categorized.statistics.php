@@ -66,20 +66,23 @@ function page(){
 	
 	<center>
 	<div style='margin:8px;float-right;width:100%'>". button("{analyze}", "NoCategorizedAnalyze()")."</div>
-	<img src='$targetedfile'>
+	<img src='$targetedfile?t=".time()."'>
 	</center>
 	". CompileTrGen($tr,6)."
 	</div>
 	</div>
 	<script>
-		function NoCategorizedAnalyze(){
-		
-		}
 		
 	var x_NoCategorizedAnalyze= function (obj) {
 			var tempvalue=obj.responseText;
 			if(tempvalue.length>3){alert(tempvalue)};
-	    	RefreshTab('squid_stats_consumption');
+			if(document.getElementById('squid_stats_consumption')){
+	    		RefreshTab('squid_stats_consumption');
+			}
+			
+			if(document.getElementById('squid_stats_central')){
+	    		RefreshTab('squid_stats_central');
+			}			
 		}	
 
 		function NoCategorizedAnalyze(){

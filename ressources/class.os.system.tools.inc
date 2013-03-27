@@ -559,6 +559,13 @@ function html_Memory_usage(){
 		
 		$tbl=explode(";",$Disks);
 		while (list ($num, $val) = each ($tbl) ){
+			
+			$hdparm=null;
+			$inodesstat=null;
+			$pouc_disk_inodes_text=null;
+			$iostat=null;
+			
+			
 			if(trim($val)<>null){
 				$values=explode(",",$val);
 				if(is_array($values)){
@@ -608,6 +615,11 @@ function html_Memory_usage(){
 							";						
 					}
 					
+					if($GLOBALS["VERBOSE"]){
+						
+						echo "INODES_DEV[$disk][POURC] = {$INODES_DEV[$disk]["POURC"]}<br>\n";
+					}
+					
 					if(isset($INODES_DEV[$disk]["POURC"])){
 						$pourc_inodes=intval($INODES_DEV[$disk]["POURC"]);
 						$pourc_inodes_text=$pourc_inodes."%";
@@ -631,29 +643,32 @@ function html_Memory_usage(){
 					
 					
 					if($users->IOSTAT_INSTALLED){
-						
-						$pouc_disk_io=$users->IOSTAT_ARRAY[trim($disk)];
-						
-						if($pouc_disk_io<>null){
-							$pouc_disk_io=intval($pouc_disk_io);
-							$pouc_disk_io_text=$pouc_disk_io."%";
-							$color="#5DD13D";
-							if($pouc_disk_io>40){$color="#F59C44";}
-							if($pouc_disk_io>90){$color="#D32D2D";}
+							if(isset($users->IOSTAT_ARRAY[trim($disk)])){
+							$pouc_disk_io=$users->IOSTAT_ARRAY[trim($disk)];
 							
-							$this->meta_array["DISKS"]["$disk_name"]["pouc_disk_io"]=$pouc_disk_io;
-							$this->meta_array["DISKS"]["$disk_name"]["pouc_disk_io_color"]=$color;
-							
-							$pouc_disk_io_text="<br><span style='font-size:9px'>% i/o {use}:$pouc_disk_io%</span>";
-							$iostat="
-							<div style='width:100px;background-color:white;padding-left:0px;border:1px solid $color;margin-top:3px'>
-								<div style='width:{$pouc_disk_io}px;text-align:center;color:white;padding-top:3px;padding-bottom:3px;background-color:$color'>
-									
+							if($pouc_disk_io<>null){
+								$pouc_disk_io=intval($pouc_disk_io);
+								$pouc_disk_io_text=$pouc_disk_io."%";
+								$color="#5DD13D";
+								if($pouc_disk_io>40){$color="#F59C44";}
+								if($pouc_disk_io>90){$color="#D32D2D";}
+								
+								$this->meta_array["DISKS"]["$disk_name"]["pouc_disk_io"]=$pouc_disk_io;
+								$this->meta_array["DISKS"]["$disk_name"]["pouc_disk_io_color"]=$color;
+								
+								$pouc_disk_io_text="<br><span style='font-size:9px'>% i/o {use}:$pouc_disk_io%</span>";
+								$iostat="
+								<div style='width:100px;background-color:white;padding-left:0px;border:1px solid $color;margin-top:3px'>
+									<div style='width:{$pouc_disk_io}px;text-align:center;color:white;padding-top:3px;padding-bottom:3px;background-color:$color'>
+										
+									</div>
 								</div>
-							</div>
-							";
+								";
+							}
 						}
 					}
+					
+					
 					$color="#5DD13D";
 					if($pourc>70){$color="#F59C44";}
 					if($pourc>90){$color="#D32D2D";}
@@ -699,6 +714,7 @@ function html_Memory_usage(){
 						<td width=1% nowrap style='font-weight:bold'><div style='margin-top:10px;font-weight:bold'>{$occ}G/{$size}G&nbsp;</div>$pouc_disk_inodes_text$pouc_disk_io_text$pouc_hdparm_text</strong></td>
 						
 					</tr>";
+					
 				}
 			}
 			

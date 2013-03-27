@@ -257,6 +257,7 @@ class squid_stats_appliance{
 		$array["SquidSafePortsList"]=true;
 		$array["SquidSafePortsSSLList"]=true;
 		$array["EnableSquidPortsRestrictions"]=true;
+		$array["SquidStandardLDAPAuth"]=true;
 		
 		
 		$array["UpdateUtilityRedirectEnable"]=true;

@@ -634,6 +634,14 @@ class wad{
 			
 			$hash=ldap_get_entries($this->ldap_connection,$sr);
 			for($i=0;$i<$hash["count"];$i++){
+				
+				if($GLOBALS["AS_ROOT"]){
+					if(function_exists("system_is_overloaded"))
+					if(system_is_overloaded(basename(__FILE__))){return;}
+				}
+				
+				
+				
 				    $cn=$hash[$i]["cn"][0];
 				    $mail=$hash[$i]["mail"][0];
 				    $mailnickname=trim($hash[$i]["mailnickname"][0]);

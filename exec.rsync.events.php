@@ -7,12 +7,21 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.computers.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
-
+include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 
 	if(system_is_overloaded(basename(__FILE__))){
 		writelogs("Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting task",__FILE__,__FUNCTION__,__FILE__,__LINE__);
 		die();
 	}
+	
+$users=new usersMenus();
+if($users->SQUID_APPLIANCE){events("SQUID_APPLIANCE -> DIE");die();}
+if($users->WEBSTATS_APPLIANCE){events("WEBSTATS_APPLIANCE -> DIE");die();}
+if($users->PROXYTINY_APPLIANCE){events("PROXYTINY_APPLIANCE -> DIE");die();}
+if($users->SMTP_APPLIANCE){events("PROXYTINY_APPLIANCE -> DIE");die();}
+if($users->ZARAFA_INSTALLED){events("PROXYTINY_APPLIANCE -> DIE");die();}
+if($users->KASPERSKY_WEB_APPLIANCE){events("PROXYTINY_APPLIANCE -> DIE");die();}
+if($users->KASPERSKY_SMTP_APPLIANCE){events("PROXYTINY_APPLIANCE -> DIE");die();}
 
 if($argv[1]=="--computers-schedule"){
 	ScheduleComputers();

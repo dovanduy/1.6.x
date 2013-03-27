@@ -578,7 +578,7 @@ begin
    if FileExists('/opt/arkeia/bin/arkboot') then list.Add('$_GLOBAL["APP_ARKEIA_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_ARKEIA_INSTALLED"]=False;');
    if FileExists('/usr/lib/jvm/default-java/bin/keytool') then list.Add('$_GLOBAL["APP_JAVA_JDK_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_JAVA_JDK_INSTALLED"]=False;');
    if FileExists('/opt/zarafa-db/bin/mysqld') then list.Add('$_GLOBAL["APP_ZARAFADB_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_ZARAFADB_INSTALLED"]=False;');
-
+   if FileExists('/opt/squidsql/bin/mysqld') then list.Add('$_GLOBAL["APP_SQUIDDB_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_SQUIDDB_INSTALLED"]=False;');
 
    if FileExists('/home/openemm/bin/openemm.sh') then begin
       list.Add('$_GLOBAL["OPENEMM_INSTALLED"]=True;');

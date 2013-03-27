@@ -177,15 +177,31 @@ function page(){
 	$t=time();
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$search=$tpl->javascript_parse_text("{search}");
 	$html="<table style='width:100%'>
 	<tr>
-		<td valign='top' width=240px><div id='info-gene-$t' style='width:240px' class=form></div></td>
+		<td valign='top' width=240px>
+			<div id='info-gene-$t' style='width:240px' class=form></div>
+			
+			<table style='width:97%;margin-top:10px' class=form>
+			<tr>
+				<td class=legend>{member}:</td>
+				<td>". Field_text("Search-Memb-$t","focus:$search","font-size:12px",null,null,null,false,"SearchMember$t(event)")."</td>
+				</tr>
+			</table>
+			</td>
 		<td valign='top'><div id='info-central-$t'></div></td>
 	</tr>
 	</table>
 	
 	<script>
 		LoadAjax('info-central-$t','$page?central-infos=yes&t=$t');
+		
+		function SearchMember$t(e){
+			var pp=encodeURIComponent(document.getElementById('Search-Memb-$t').value);
+			if(!checkEnter(e)){return;}
+			Loadjs('squid.UserAuthDaysGrouped.php?search-js='+pp);
+		}
 	</script>
 	
 	
@@ -224,11 +240,13 @@ function central_information(){
 		$TRP[]="</table>";
 		$TRPTEXT=@implode("\n", $TRP);
 	}
-	
+	//database-connect-settings-32.png
 
+		$squiddb=Paragraphe32('mysql_statistics_engine','mysql_statistics_engine_params'
+				,"blur()","database-connect-settings-32-grey.png");	
 	
-	
-	
+	if($users->PROXYTINY_APPLIANCE){$squiddb=null;}
+		
 	
 	
 	if(!$users->PROXYTINY_APPLIANCE){
@@ -242,8 +260,14 @@ function central_information(){
 	
 	
 	if(!$users->PROXYTINY_APPLIANCE){
-		$tr[]=Paragraphe32('enable_disable_statistics','ARTICA_STATISTICS_TEXT'
-			,"Loadjs('squid.artica.statistics.php')","statistics-32.png");
+		
+		
+		if($users->APP_SQUIDDB_INSTALLED){
+			$squiddb=Paragraphe32('mysql_statistics_engine','mysql_statistics_engine_params'
+					,"Loadjs('squid.articadb.php')","database-connect-settings-32.png");
+				
+		}
+
 	
 	if($DisableArticaProxyStatistics==0){
 		$tr[]=Paragraphe32('purge_statistics_database','purge_statistics_database_explain'
@@ -253,8 +277,25 @@ function central_information(){
 		$tr[]=table_heures_enretard();
 		
 		
+		$tr[]=$squiddb;
+		
+		$tr[]=Paragraphe32('remote_mysql_server','remote_mysqlsquidserver_text'
+				,"Loadjs('squid.remote-mysql.php')","artica-meta-32.png");
+		
+		
+		
+		
+		
+		$tr[]=Paragraphe32('restore_purged_statistics','restore_purged_statistics_explain'
+				,"Loadjs('squid.artica.statistics.restore.php')","32-import.png");		
 		
 		}
+		
+		$tr[]=Paragraphe32('enable_disable_statistics','ARTICA_STATISTICS_TEXT'
+				,"Loadjs('squid.artica.statistics.php')","statistics-32.png");
+		
+		
+		
 	}
 	
 	if(!$users->CORP_LICENSE){
@@ -282,13 +323,14 @@ function central_information(){
 	<div style='font-size:18px'>{SQUID_STATS}</div>
 	$TRPTEXT
 	$more_features
-	<div id='graph1-$t'></div>
+	<div id='graph1-$t' style='height:250px'><center style='margin:50px'><img src='img/wait-clock.gif'></center></div>
+	<div style='text-align:right'>". imgtootltip("refresh-24.png","{refresh}","Loadjs('$page?graphique_heure=yes&container=graph1-$t');")."</div>
 	<center>
 	<div style='margin-top:15px;width:80%'>$table</div>
 	</center>
 	<script>
 		LoadAjax('info-gene-$t','squid.traffic.statistics.php?squid-status-stats=yes');
-		LoadAjax('graph1-$t','$page?graphique_heure=yes');
+		Loadjs('$page?graphique_heure=yes&container=graph1-$t');
 	</script>
 	";
 	
@@ -299,6 +341,7 @@ function central_information(){
 
 
 function table_heures_enretard(){
+	
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$q=new mysql_squid_builder();
@@ -307,7 +350,7 @@ function table_heures_enretard(){
 	$tables=$q->LIST_TABLES_HOURS_TEMP();
 	$c=0;
 	$t=time();
-	
+	$CountDeTable=0;
 	while (list ($table, $none) = each ($tables) ){
 		if($table==$CurrentHourTable){if($GLOBALS["VERBOSE"]){echo "SKIP `$table`\n";}continue;}
 		if(!preg_match("#squidhour_([0-9]+)#",$table,$re)){continue;}
@@ -317,21 +360,23 @@ function table_heures_enretard(){
 		$day=substr($hour,6,2);
 		$tt[$table]=true;
 	}
-	
-	
-	if(count($tt)>0){
+	if(!is_array($tt)){return null;}
+	$CountDeTable=count($tt);
+	if($CountDeTable>0){
 		$sock=new sockets();
 		$time=$sock->getFrameWork("squid.php?squidhour-repair-exec=yes");
 		if(is_numeric($time)){
 			$title=$tpl->javascript_parse_text("{squidhour_not_scanned} {running} {$time}Mn");
-			$title=str_replace("%s", count($tt), $title);
+			$title=str_replace("%s", $CountDeTable, $title);
+			$title=str_replace("%", $CountDeTable, $title);
 			return Paragraphe32("noacco:$title ",'launch_squidhour_explain'
 					,"blur()","wait-clock.gif");			
 		}
-		
+		$launch_squidhour_explain=$tpl->_ENGINE_parse_body("{launch_squidhour_explain}");
 		$title=$tpl->javascript_parse_text("{squidhour_not_scanned}");
-		$title=str_replace("%s", count($tt), $title);
-		return Paragraphe32("noacco:$title",'launch_squidhour_explain'
+		$title=str_replace("%s", $CountDeTable, $title);
+		$title=str_replace("%", $CountDeTable, $title);
+		return Paragraphe32("noacco:$title","$launch_squidhour_explain"
 				,"Loadjs('$page?squidhour-js=yes')","Database32-red.png");
 	}
 	
@@ -343,6 +388,9 @@ function graphique_heure(){
 	$users=new usersMenus();
 	if($users->PROXYTINY_APPLIANCE){return;}
 	$t=time();
+	
+	
+	
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$currenttime=date("YmdH");
@@ -357,36 +405,23 @@ function graphique_heure(){
 	if(!$q->ok){echo "$q->mysql_error";return;}
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		
-		$size=round(($ligne["tsize"]/1024));;
+		$size=round(($ligne["tsize"]/1024),2);;
 		if($GLOBALS["VERBOSE"]){echo "<strong>{$ligne["tdate"]} = $size</strong><br>\n";}
-		$xdata[]=$ligne["tdate"];
+		if(strlen($ligne["tdate"])==1){$ligne["tdate"]="0".$ligne["tdate"];}
+		$xdata[]="\"{$ligne["tdate"]}mn\"";
 		$ydata[]=$size;
 	}
 	
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".$t.png";
-	$gp=new artica_graphs();
-	$gp->width=600;
-	$gp->height=210;
-	$gp->filename="$targetedfile";
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;
-	$gp->y_title="KB";
-	$gp->x_title=$tpl->_ENGINE_parse_body("{minutes}");
-	$gp->title=null;
-	$gp->margin0=true;
-	$gp->Fillcolor="blue@0.9";
-	$gp->color="146497";
-
-	$gp->line_green();
-	if(is_file($targetedfile)){
-		
-		$html="
-		<div style='font-size:16px;margin-top:15px;margin-bottom:10px;font-weight:bold'>{downloaded_flow_this_hour}</div>
-		<center><img src='$targetedfile'></center>
-		";
-		echo $tpl->_ENGINE_parse_body($html);
-	}	
 	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title="{downloaded_flow_this_hour}";
+	$highcharts->yAxisTtitle="{bandwith} KB";
+	$highcharts->xAxisTtitle="{minutes}";
+	$highcharts->datas=array("{bandwith}"=>$ydata);
+
+	echo $highcharts->BuildChart();
 	
 }
 

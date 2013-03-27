@@ -48,6 +48,7 @@ class mysql_builder{
 	}
 	
 	private FUNCTION CREATE_DATABASE($database){
+		
 		return $this->ClassSQL->CREATE_DATABASE($database);
 	}
 	
@@ -91,9 +92,40 @@ class mysql_builder{
 		}
 	}
 	
+public function check_mysql_dbtables(){
+	
+	
+		$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`mysqldbs` (
+			`databasename` VARCHAR( 90 ) NOT NULL ,
+			`TableCount` INT(5) NOT NULL ,
+			`dbsize` BIGINT( 100 ) NOT NULL DEFAULT '0',
+			 INDEX ( `TableCount` , `dbsize` ) ,
+			 PRIMARY KEY (`databasename`)) ENGINE=MYISAM;";
+		$this->QUERY_SQL($sql,'artica_backup');
+		if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+	
+	
+		
+	$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`mysqldbtables` (
+			`zKey` VARCHAR( 90 ) NOT NULL ,
+			`tablename` VARCHAR( 90 ) NOT NULL ,
+			`databasename` VARCHAR( 90 ) NOT NULL ,
+			`tablesize` BIGINT( 100 ) NOT NULL DEFAULT '0',
+			`tableRows` BIGINT( 100 ) NOT NULL DEFAULT '0',
+			 INDEX ( `tablesize` , `tableRows` ) ,
+			 KEY `databasename`(`databasename`),
+			 KEY `tablename`(`tablename`),
+			 PRIMARY KEY (`zKey`)) ENGINE=MYISAM;";
+	$this->QUERY_SQL($sql,'artica_backup');
+	if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+			
+	
+}
+	
 public function check_storage_table(){
 		if(!$this->DATABASE_EXISTS("artica_backup")){$this->CREATE_DATABASE("artica_backup");}
 		if(!$this->DATABASE_EXISTS("eyeOS")){$this->CREATE_DATABASE("eyeOS");}	
+		$this->check_mysql_dbtables();
 
 		
 		if(!$this->TABLE_EXISTS('amanda_dumptype','artica_backup')){		
@@ -263,31 +295,7 @@ public function check_storage_table(){
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		} 
 		
-		if(!$this->TABLE_EXISTS('mysqldbs','artica_backup')){		
-			$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`mysqldbs` (
-			`databasename` VARCHAR( 90 ) NOT NULL ,
-			`TableCount` INT(5) NOT NULL ,
-			`dbsize` BIGINT( 100 ) NOT NULL DEFAULT '0',
-			 INDEX ( `TableCount` , `dbsize` ) ,
-			 PRIMARY KEY (`databasename`)) ENGINE=MYISAM;";
-			$this->QUERY_SQL($sql,'artica_backup');
-			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
-		} 
-
-			
-			$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`mysqldbtables` (
-			`zKey` VARCHAR( 90 ) NOT NULL ,
-			`tablename` VARCHAR( 90 ) NOT NULL ,
-			`databasename` VARCHAR( 90 ) NOT NULL ,
-			`tablesize` BIGINT( 100 ) NOT NULL DEFAULT '0',
-			`tableRows` BIGINT( 100 ) NOT NULL DEFAULT '0',
-			 INDEX ( `tablesize` , `tableRows` ) ,
-			 KEY `databasename`(`databasename`),
-			 KEY `tablename`(`tablename`),
-			 PRIMARY KEY (`zKey`)) ENGINE=MYISAM;";
-			$this->QUERY_SQL($sql,'artica_backup');
-			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
-			
+		
 
 		
 				
@@ -1577,7 +1585,7 @@ public function check_storage_table(){
 	
 	if(!$this->TABLE_EXISTS('xapian_folders','artica_backup')){
 		$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`xapian_folders` (
-			`ID` BIGINIT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			`ID` BIGINT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
 			`directory` varchar( 255 ) NOT NULL ,
 			`depth` INT( 3 ) NOT NULL DEFAULT '0',
 			`maxsize` INT( 5 ) NOT NULL DEFAULT '60',
@@ -1633,7 +1641,7 @@ public function check_storage_table(){
 			`hostname` varchar( 128 ) NOT NULL ,
 			`host_port` INT( 3 ) NOT NULL DEFAULT '9000',
 			`host_cred` TEXT NOT NULL,
-			INDEX ( `hostname` , `host_port`))";
+			INDEX ( `hostname` , `host_port`)) ENGINE=MYISAM";
 			$this->QUERY_SQL($sql,"artica_backup");
 	} 
 
@@ -1646,7 +1654,7 @@ public function check_storage_table(){
 			KEY `zone` (`zone`),
 			KEY `port` (`port`),
 			KEY `hostname` (`hostname`)
-			)";
+			) ENGINE=MYISAM";
 		$this->QUERY_SQL($sql,"artica_backup");	
 		
 		$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`pdns_restricts` (
@@ -1675,6 +1683,8 @@ public function check_storage_table(){
 		$sql="ALTER TABLE `computers_deploy_tasks` ADD `events_computers` LONGTEXT NOT NULL";
 		$this->QUERY_SQL($sql,"artica_backup");
 	}
+	
+
 
 	
 	if(!$this->TABLE_EXISTS('computers_deploy_tasks_sub','artica_backup')){		
@@ -1686,7 +1696,7 @@ public function check_storage_table(){
 				`progress` INT( 2 ) NOT NULL ,
 				`events` LONGTEXT NOT NULL ,
 				`uid` VARCHAR( 90 ) NOT NULL ,
-				INDEX ( `taskid` , `status` , `progress` , `uid`,`package_id` ))";
+				INDEX ( `taskid` , `status` , `progress` , `uid`,`package_id` )) ENGINE=MYISAM";
 			$this->QUERY_SQL($sql,"artica_backup");
 	}
 	
@@ -1703,7 +1713,7 @@ public function check_storage_table(){
 			  KEY `structure` (`structure`),
 			  KEY `key` (`key`),
 			  KEY `groupname` (`groupname`)
-			)";
+			) ENGINE=MYISAM";
 		$this->QUERY_SQL($sql,"artica_events");
 	}
 	
@@ -1716,9 +1726,22 @@ public function check_storage_table(){
 				`MAC` VARCHAR( 90 ) NOT NULL ,
 				`live` SMALLINT( 1 ) NOT NULL ,
 				INDEX ( `ipaddr` , `MAC` , `live` )
-				)";
+				) ENGINE=MYISAM";
 		$this->QUERY_SQL($sql,"artica_events");
 	}
+	
+	
+	if(!$this->TABLE_EXISTS('squidlogs_restores','artica_events')){
+		$sql="CREATE TABLE IF NOT EXISTS `artica_events`.`squidlogs_restores` (
+				`fullpath` VARCHAR( 255 ) NOT NULL PRIMARY KEY ,
+				`zDate` TIMESTAMP NOT NULL ,
+				`results` LONGTEXT,
+ 				INDEX ( `zDate`)
+				) ENGINE=MYISAM";
+		$this->QUERY_SQL($sql,"artica_events");
+	}	
+	
+	
 	if(!$this->TABLE_EXISTS('computers_lastscan','artica_backup')){		
 			$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`computers_lastscan` (
 				`ID` BIGINT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
@@ -1729,7 +1752,7 @@ public function check_storage_table(){
 				`Info` TEXT NOT NULL ,
 				INDEX ( `ipaddr` , `MAC`,`zDate`),
 				KEY `hostname` (`hostname`)
-				)";
+				) ENGINE=MYISAM";
 		$this->QUERY_SQL($sql,"artica_backup");
 	}		
 			
@@ -1742,7 +1765,7 @@ public function check_storage_table(){
 				`admins` TEXT NOT NULL ,
 				`readonly` INT( 1 ) NOT NULL DEFAULT '0',
 				`enabled` INT( 1 ) NOT NULL DEFAULT '1',
-				UNIQUE (`hostname`))";
+				UNIQUE (`hostname`)) ENGINE=MYISAM";
 			$this->QUERY_SQL($sql,"artica_backup");
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		}
@@ -1752,7 +1775,7 @@ public function check_storage_table(){
 		 TEXT NOT NULL ,
 		 UNIQUE (`uuid` ),
 		 UNIQUE(`share_name`)
-		 ) ";
+		 ) ENGINE=MYISAM";
 		$this->QUERY_SQL($sql,"artica_backup");
 		if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}	
 	}
@@ -1766,7 +1789,7 @@ public function check_storage_table(){
 			  `hostname` varchar(50) NOT NULL,
 			  PRIMARY KEY (`ID`),
 			  KEY `hostname` (`hostname`)
-			) ";	
+			) ENGINE=MYISAM";	
 		$this->QUERY_SQL($sql,"artica_backup");
 		if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}	
 	}		
@@ -1793,7 +1816,7 @@ public function check_storage_table(){
 					  KEY `mailfrom_domain` (`mailfrom_domain`),
 					  KEY `mailto` (`mailto`),
 					  FULLTEXT KEY `MessageBody` (`MessageBody`),  FULLTEXT KEY `header` (`header`)
-					  );";
+					  ) ENGINE=MYISAM;";
 				
 				$this->QUERY_SQL($sql,'artica_backup');
 				}
@@ -1813,7 +1836,7 @@ public function check_storage_table(){
 			  	KEY `ExcludeByMime` (`ExcludeByMime`),
 			  	KEY `IncludeByName` (`IncludeByName`),
 			 	KEY `hostname` (`hostname`)
-			 	)	";
+			 	) ENGINE=MYISAM";
 			$this->QUERY_SQL($sql,'artica_backup');
 			}
 			
@@ -3919,7 +3942,7 @@ public function CheckTablesPostfilter(){
 	
 public function CheckTableTaskEvents($tablename){
 	
-	if($this->TABLE_EXISTS($tablename,'artica_events')){return true;}
+	
 		
 	$sql="CREATE TABLE IF NOT EXISTS `artica_events`.`$tablename` (
 			`zDate` TIMESTAMP NOT NULL ,

@@ -90,6 +90,8 @@ function Parseline($buffer){
 	if($GLOBALS["DisableArticaProxyStatistics"]==1){return;}
 	if($GLOBALS["EnableRemoteStatisticsAppliance"]==1){return;}
 	$datelog=date("Y-m-d-h");
+	
+	
 	$MD5Buffer=md5($buffer);
 	if(strpos($buffer," squid[")>0){
 		@mkdir("/var/log/artica-postfix/squid-brut/$datelog",0755,true);

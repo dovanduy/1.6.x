@@ -276,6 +276,7 @@ Si le score d&eacute;passe un certain seuil, le courriel est alors consid&eacute
 <APP_SQUID0>Squid cache branche 2.7x</APP_SQUID0>
 <APP_SQUID31>Squid Cache 3.1x</APP_SQUID31>
 <APP_SQUID32_REPOS>D&eacute;p&ocirc;t Squid 3.2x</APP_SQUID32_REPOS>
+<APP_SQUID_DB>Moteur MySQL Stats.</APP_SQUID_DB>
 <APP_SQUID_SESSION_MANAGER>Page de garde ou administration des sessions</APP_SQUID_SESSION_MANAGER>
 <APP_SQUID_SESSION_MANAGER_TEXT>Permet l'utilisation du syst&egrave;me de sessions avec dur&eacute;es limit&eacute;es dans le temps.[br]Utile pour une page portail ou des authentifications par formulaire Web</APP_SQUID_SESSION_MANAGER_TEXT>
 <APP_STATISTICS_APPLIANCE>Appliance de statistiques</APP_STATISTICS_APPLIANCE>
@@ -350,6 +351,14 @@ Fichier:</ask_squid_restore_log_from_source>
 <auto-restore>Auto-restaurer</auto-restore>
 <AutoDiscover_webserver>Serveur Web Autodiscover</AutoDiscover_webserver>
 <AUTOFS_ERROR_NO_CONNECTION>Actuellement, aucune connexion n'a &eacute;t&eacute; ajout&eacute;e dans la base.[br]Dans ce cas, il est normal que le service soit d&eacute;sactiv&eacute; ou arr&ecirc;t&eacute;.</AUTOFS_ERROR_NO_CONNECTION>
+<autofs_wizard_1>[b]1) Indiquez le protocole[/b][br]
+La liste d&eacute;roulante indique tous les protocoles de connexion disponibles.
+[br]Choisissez celui que vous d&eacute;sirer utiliser</autofs_wizard_1>
+<autofs_wizard_2>[b]2) Identifiants et param&egrave;tres[/b][br]
+Indiquez correctement les identifiants et la ressource qui devra &ecirc;tre utilis&eacute;e.</autofs_wizard_2>
+<autofs_wizard_explain>L'auto-connexion vous permet de cr&eacute;er un r&eacute;pertoire local &quot;virtuel&quot; qui sera en faites une connexion vers une ressource distante.[br]
+Le syst&egrave;me local comprendre ce r&eacute;pertoire comme un syst&egrave;me de fichiers normal.[br]En faites les fichiers et r&eacute;pertoires sont bel et bien localis&eacute;s sur la ressource r&eacute;seau.[br]Vous pouvez utiliser plusieurs protocoles tels que Partage de fichiers, WebDAV, SSH, FTP...[br]Ceci d&eacute;pend exclusivement des librairies install&eacute;es sur votre serveur.[br]L'avantage de cette option est que la connexion est automatiquement arr&ecirc;t&eacute; ou relanc&eacute;es en cas d'inactivit&eacute; ou d'activit&eacute;s.[br]
+S&eacute;lectionnez votre connexion ajout&eacute;e ou utilisez l'assistant de cr&eacute;ation de connexion.</autofs_wizard_explain>
 <automated_compression>Compression automatique</automated_compression>
 <automatically_compress_when_attachments_exceed>Automatiquement compresser les pi&egrave;ces jointes lorsqu'elles sont sup&eacute;rieurs &agrave;:</automatically_compress_when_attachments_exceed>
 <automatically_uncompress_attachments>D&eacute;compression automatique des pi&egrave;ces jointes</automatically_uncompress_attachments>
@@ -650,6 +659,8 @@ Pendant ce temps, des services seront indisponibles...</convert_background_warn>
 <CORP_LICENSE_EXPLAIN>Artica Proxy appliance est un logiciel libre avec une souscription logicielle.[br]Certaines fonctionnalit&eacute;s sont d&eacute;sactiv&eacute;es dans la version libre.[br]Cliquez sur le lien ci-dessous afin de disposer de plus amples informations sur le type de licence.</CORP_LICENSE_EXPLAIN>
 <counters>Compteurs</counters>
 <CpuUsage>Utilisation CPU</CpuUsage>
+<Created_tmp_disk_tables>Tables temporaires cr&eacute;es</Created_tmp_disk_tables>
+<Created_tmp_tables>Tables temporaires cr&eacute;&eacute;es</Created_tmp_tables>
 <createfolders>Cr&eacute;er les dossiers</createfolders>
 <create_a_CSV_file>Cr&eacute;er un fichier CSV</create_a_CSV_file>
 <create_a_dedicated_container>Cr&eacute;er un conteneur d&eacute;di&eacute;</create_a_dedicated_container>
@@ -745,6 +756,7 @@ Toutefois si la base est une base de donn&eacute;es utilis&eacute;e par Artica e
 Si vous d&eacute;sirez d&eacute;sactiver cette v&eacute;rification, cochez cette case.</DisableIndexPHPPage_explain>
 <DisableInstantLDAPBackup>D&eacute;sactiver InstantLDAP Backup</DisableInstantLDAPBackup>
 <DisableJqueryDropDown>D&eacute;sactiver le design des listes d&eacute;roulantes</DisableJqueryDropDown>
+<DisableLocalStatisticsTasks>D&eacute;sactiver les t&acirc;ches locales de statistiques</DisableLocalStatisticsTasks>
 <DisableSquidSNMPMode>D&eacute;sactiver le mode SMP</DisableSquidSNMPMode>
 <DisableSWAPP>D&eacute;sactiver le SWAP syst&egrave;me</DisableSWAPP>
 <disable_administration_tasks>D&eacute;sactiver les fonctions d'administration</disable_administration_tasks>
@@ -850,6 +862,8 @@ Address IP: re:192\.168\.[0-5]\.*[br]</dynaacl_howto>
 <EnableRRDGraphFunction>Utiliser le moteur RRD PHP</EnableRRDGraphFunction>
 <EnableSplashScreenAsObject>Activer le HotSpot en tant qu'objet proxy</EnableSplashScreenAsObject>
 <EnableSplashScreenAsObject_explain>Si mis en vert, au lieu d'active le HotSpot pour l'ensemble des requ&ecirc;tes, vous aurez la possibilit&eacute; d'utiliser le HotSpot en tant qu'un objet proxy &agrave; placer dans les ACLs</EnableSplashScreenAsObject_explain>
+<EnableSquidRemoteMySQL_text>Cette fonction est d&eacute;sactiv&eacute;e car votre serveur utilise un serveur MySQL distant.[br]
+Les op&eacute;rations de purge doivent &ecirc;tre activ&eacute;es sur le serveur Artica distant qui h&eacute;berge le service MySQL</EnableSquidRemoteMySQL_text>
 <EnableWatchCPUsage>Activer la surveillance du CPU</EnableWatchCPUsage>
 <EnableWatchdog>Activer le service de surveillance</EnableWatchdog>
 <EnableWatchMemoryUsage>Activer la surveillance de la m&eacute;moire</EnableWatchMemoryUsage>
@@ -1183,6 +1197,7 @@ Supression des %tablesnum de votre serveur MySQL.[br]
 Arr&ecirc;t du serveur MySQL.[br]
 R&eacute;-importation des  %tablesnum tables.[br]
 Si votre serveur est actuellement en cours d'utilisation, nous vous conseillons alors de ne pas lancer l'op&eacute;ration de migration.[br]Lisez la page web via le lien ci-dessous afin de savoir comment effectuer la migration plus tard.Dans ce cas, cliquez sur le bouton  [b]&quot;J'ai compris, continuer malgr&eacute; tout&quot;[/b].</INNODB_FILE_PER_TABLE_ASK>
+<innodb_version>Version d'InnoDB</innodb_version>
 <Inodes_change_explain>Modifier la limite maximal des fichiers qui peuvent &ecirc;tre cr&eacute;&eacute;s dans cette partition.</Inodes_change_explain>
 <inode_size>Taille des inodes</inode_size>
 <insert_in_mysql>Ins&eacute;rer les donn&eacute;es dans MySQL</insert_in_mysql>
@@ -1403,6 +1418,7 @@ param&egrave;tre peut &ecirc;tre [b] coch&eacute; [/b] pour renverser le comport
 <max_msg_rate_timeout>Attendre X secondes apr&egrave;s un MAX ex&eacute;cution</max_msg_rate_timeout>
 <max_nice>Modifier la priorit&eacute; d'ex&eacute;cution</max_nice>
 <max_processes>NB de processus MAX</max_processes>
+<Max_used_connections>Connexions MAX utilis&eacute;es</Max_used_connections>
 <max_waiting_minutes_onload>Temps Max d'attente si le syst&egrave;me est charg&eacute;</max_waiting_minutes_onload>
 <members_stats>Statistiques des members</members_stats>
 <members_stats_explain>Calcul l'utilisation de la navigation et statistiques des membres par jour.</members_stats_explain>
@@ -1417,6 +1433,7 @@ param&egrave;tre peut &ecirc;tre [b] coch&eacute; [/b] pour renverser le comport
 <messaging_statistics>Statistiques de la messagerie</messaging_statistics>
 <metric>M&eacute;trique</metric>
 <mgreylist_empty_db_warn>Cette proc&eacute;dure va purger tout le contenu de la base Grise/Blanche, proc&eacute;der ?</mgreylist_empty_db_warn>
+<migrate_local_datas>Migrer les donn&eacute;es locales</migrate_local_datas>
 <milliseconds>millisecondes</milliseconds>
 <milter_greylist_tables>Statistiques jours et mois pour Milter-greylist</milter_greylist_tables>
 <milter_greylist_tables_text>Cette t&acirc;che compile les statistiques journaliers et mensuels depuis les table horaires.</milter_greylist_tables_text>
@@ -1441,6 +1458,7 @@ Afin de sauvegarder des connexions vers le serveur de destination, le processus 
 En effet, si la mise en tampon est activ&eacute;e, et que le nombre de messages restera de toutes fa&ccedil;on en dessous de la valeur indiqu&eacute;e, le processus SMTP devra quand m&ecirc;me envoyer les messages au bout de X secondes.</min_subqueue_msgs_ttl_explain>
 <monitor>Surveillance</monitor>
 <monitor_only>Surveillance seulement</monitor_only>
+<mounts_list_explain>Ouvrez la liste des connexions afin d'en s&eacute;lectionner une.</mounts_list_explain>
 <move_database_disk>Modifier le r&eacute;pertoire de stockage</move_database_disk>
 <move_the_spooldir>D&eacute;placer la file d'attente</move_the_spooldir>
 <move_the_spooldir_explain>Cette op&eacute;ration va modifier le chemin du r&eacute;pertoire &quot;spool&quot;, habituellement &quot;/var/spool&quot;.[br]
@@ -1491,6 +1509,8 @@ Le nombre d'instances va d&eacute;pendre de la puissance de votre serveur.[br]Fa
 Pour r&eacute;sumer, chaque liste de distribution ajout&eacute;e ici n'est pas stock&eacute;e dans la base LDAP.</mysql_routing_table_list_explain>
 <mysql_server>Serveur MySQL</mysql_server>
 <mysql_server_port>Port d'&eacute;coute du service MySQL</mysql_server_port>
+<mysql_statistics_engine>Service MySQL de statistiques</mysql_statistics_engine>
+<mysql_statistics_engine_params>Param&egrave;tres de votre Service MySQL qui stocke les statistiques Proxy</mysql_statistics_engine_params>
 <mysql_tables_maintenance>Maintenance sur les tables MySQL</mysql_tables_maintenance>
 <mysql_tables_maintenance_explain>Lorsque la structure des bases MySQL est modifi&eacute;e ou si beaucoup de donn&eacute;es sont supprim&eacute;es les fichiers des bases de donn&eacute;es peuvent &ecirc;tre fragment&eacute;s et causent des r&eacute;ductions drastiques de performances MySQL.[br]Cette t&acirc;che est en charge de lancer une d&eacute;fragmentation des tables sur l'ensemble des bases de donn&eacute;es h&eacute;berg&eacute;s dans votre service MySQL.</mysql_tables_maintenance_explain>
 <mysql_tmp_mem>R&eacute;pertoire temporaire et r&eacute;pertoire en m&eacute;moire</mysql_tmp_mem>
@@ -1511,6 +1531,7 @@ Pour r&eacute;sumer, chaque liste de distribution ajout&eacute;e ici n'est pas s
 <need_to_reboot_ask>Pour appliquer correctement la configuration, il faudra red&eacute;marrer la machine.
 Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t&acirc;che ?</need_to_reboot_ask>
 <network_services_text>Administrer les services r&eacute;seaux de ce serveur tels que le DHCP/DNS/Interfaces r&eacute;seaux</network_services_text>
+<network_settings_will_be_applied_after_reboot>Les param&egrave;tres r&eacute;seau seront appliqu&eacute;s apr&egrave;s le prochain red&eacute;marrage.</network_settings_will_be_applied_after_reboot>
 <new_account>Nouveau compte</new_account>
 <new_address>Nouvelle adresse</new_address>
 <new_alias>Nouvel alias</new_alias>
@@ -1876,7 +1897,10 @@ Le service ne sera pas stopp&eacute; mais juste rafra&icirc;chit.</reload_servic
 Connectez-vous sur  %s afin de modifier les param&egrave;tres</remote_appliance_error_text>
 <remote_artica_port>Port distant de la console web Artica</remote_artica_port>
 <remote_artica_server>Serveur Artica distant</remote_artica_server>
+<remote_connection>Connexion distante</remote_connection>
+<remote_connection_wizard_text>Cr&eacute;er/Utiliser un dossier local connect&eacute; &agrave; une ressource r&eacute;seau utilisant WebDav, le partage de fichiers, FTP...</remote_connection_wizard_text>
 <remote_domains>Domaines distants</remote_domains>
+<remote_mysqlsquidserver_text>Utiliser un service MySQL distant afin d'injecter et de calculer les statistiques Proxy.</remote_mysqlsquidserver_text>
 <remote_mysql_server>Serveur MySQL distant</remote_mysql_server>
 <remote_node>N%u0153ud distant</remote_node>
 <remote_ports>Ports distants</remote_ports>
@@ -1941,6 +1965,8 @@ Cette op&eacute;ration d&eacute;truira toutes les donn&eacute;es.</reset_smtp_lo
 <reset_table>Vider la table</reset_table>
 <restart>Red&eacute;marrer</restart>
 <restarting_winbind>Red&eacute;marrage du service Winbind</restarting_winbind>
+<restart_artica_web_services>Red&eacute;marre les console Artica</restart_artica_web_services>
+<restart_artica_web_services_explain>Cette t&acirc;che red&eacute;marre le service framework et la console web SSL Artica</restart_artica_web_services_explain>
 <restart_computer_and_defrag>Red&eacute;marrer l'ordinateur et r&eacute;parer les fichiers syst&egrave;mes endommag&eacute;s</restart_computer_and_defrag>
 <restart_computer_and_defrag_warn>Le syst&egrave;me de r&eacute;paration peut parfois vous demander le compte root en mode console afin de r&eacute;parer certains probl&egrave;mes sur les fichiers.
 Contactez notre support ou regardez la console syst&egrave;me du serveur si votre serveur ne r&eacute;pond pas apr&egrave;s le red&eacute;marrage.</restart_computer_and_defrag_warn>
@@ -1957,9 +1983,17 @@ Contactez notre support ou regardez la console syst&egrave;me du serveur si votr
 <restart_webconsole_service>Red&eacute;marre le moteur Web de la console Artica</restart_webconsole_service>
 <restart_webconsole_service_explain>Arr&ecirc;te le service lighttpd et le red&eacute;marre afin de rafra&icirc;chir les param&egrave;tres de la console</restart_webconsole_service_explain>
 <restart_web_console>Red&eacute;marrer la console web</restart_web_console>
+<restored>Donn&eacute;es restaur&eacute;es</restored>
+<restored_containers>Sauvegardes restaur&eacute;es</restored_containers>
+<restore_all_containers>Restaurer toutes les sauvegardes</restore_all_containers>
+<restore_a_backup>restaurer un jeu de sauvegarde</restore_a_backup>
 <restore_backup>Restaurer la sauvegarde</restore_backup>
+<restore_folder>Dossier de restauration</restore_folder>
 <restore_from_container_ask>Restaurer depuis ce paquetage de sauvegarde</restore_from_container_ask>
+<restore_purged_statistics>Restaurer les statistiques sauvegard&eacute;es</restore_purged_statistics>
+<restore_purged_statistics_explain>Programmez ou restaurez des statistiques sauvegard&eacute;es par votre serveur Artica ou bien un autre serveur Artica</restore_purged_statistics_explain>
 <restore_sitename_ask>Restaurer ce site Internet</restore_sitename_ask>
+<restore_statistics_database_explain2>Cette section vous permet de programmer la t&acirc;che de restauration des statistiques sauvegard&eacute;es.[br]Indiquez le chemin qui h&eacute;berge les jeux de sauvegarde.[br]Vous pouvez s&eacute;lectionner un fichier unique dans la section suivante afin de restaurer qu'un seul jeu de sauvegarde ou voir m&ecirc;me de programmer la restauration automatique &agrave; fr&eacute;quence r&eacute;guli&egrave;re du dossier.</restore_statistics_database_explain2>
 <retreival_mailrules_text>Cr&eacute;ation et &eacute;dition des r&egrave;gles permettant de r&eacute;cup&eacute;rer des messages stock&eacute;es dans des boites aux lettres non g&eacute;r&eacute;es par votre compte local.</retreival_mailrules_text>
 <retry>Recommencer</retry>
 <reverse>Inverse</reverse>
@@ -2112,6 +2146,8 @@ Voulez-vous effectuer cette op&eacute;ration ?</squidcach32_applyexplain>
 <squidhour_not_scanned>% Tables horaires non analys&eacute;es</squidhour_not_scanned>
 <squidlogs_explain>La base de donn&eacute;es MySQL stocke toutes les statistiques de navigation du proxy: les r&egrave;gles de filtrages, ACls et param&egrave;tres du proxy.[br]
 Vous devez vous assurer que cette base dispose d'espace disponible.</squidlogs_explain>
+<squidlog_migrate_ask>Cette t&acirc;che va sauvegarder la base de donn&eacute;es locale et l'importer dans le service MySQL distant.
+Voulez-vous effectuer cette op&eacute;ration ?</squidlog_migrate_ask>
 <SquidNudityScanExplain>Nudity Scanner est un scanner qui analyse les images &agrave; la vol&eacute;e et essaye de d&eacute;terminer le taux de &quot;nudit&eacute;&quot; d'une image.[br]
 Il analyse les couleurs utilis&eacute;es dans les diff&eacute;rentes sections d'une image afin de savoir si elles correspondent &agrave; la tonalit&eacute; de la couleur de la peau humaine.[br]
 Apr&egrave;s cette analyse, il ressort un taux de probabilit&eacute; que l'image correspond &agrave; une certaine nudit&eacute;.</SquidNudityScanExplain>
@@ -2145,6 +2181,8 @@ Cette t&acirc;che parcours les tables horaires non trait&eacute;es et injecte le
 Tous les logs proxy sont envoy&eacute;s &agrave; travers le moteur Syslog.[br]Activer cette t&acirc;che n'a du sens que si vous avez activ&eacute; les rapport Sarg ou bien la g&eacute;n&eacute;ration des logs au format CSV.</squid_logrotate_perform_explain>
 <squid_logs_purge>Purge des statistiques proxy</squid_logs_purge>
 <squid_logs_purge_explain>Cette t&acirc;che va extraire les statistiques vers un dossier de sauvegarde et supprimer les tables dans la base MySQL</squid_logs_purge_explain>
+<squid_logs_restore>T&acirc;che de restauration des sauvegardes</squid_logs_restore>
+<squid_logs_restore_explain>This task run the restore task on all backuped Proxy statistics containers from a specified path</squid_logs_restore_explain>
 <squid_nonhierarchical_direct>Par d&eacute;faut, le proxy va envoyer les requ&ecirc;tes non-hi&eacute;rarchiques directement vers les serveurs de destination sans passer par les proxys parents.[br]Si vous d&eacute;sactivez cette option, les requ&ecirc;tes non-hi&eacute;rarchiques seront passeront alors d'abord sur les proxys parents.[br]
 [b]Notez que l'utilisation des proxy parents pour les requ&ecirc;tes non-hi&eacute;rarchiques augmente la latence sans am&eacute;liorations du flux.[/b][br]
 Les requ&ecirc;tes non-h&eacute;rarchiques sont bien souvent:
@@ -2479,6 +2517,8 @@ Exemple : *.bat,*.cmd,*.com,*.exe,*.vbs,*.msi,*.pif,*.reg</veto_files_add_explai
 <veto_files_explain>C'est la liste des fichiers et r&eacute;pertoires qui ne seront pas visibles et accessibles.[br]
 Les caract&egrave;res &quot;*&quot; et &quot;?&quot; peuvent &ecirc;tre utilis&eacute;s afin de sp&eacute;cifier de multiples fichiers ou r&eacute;pertoires comme des jokers DOS.</veto_files_explain>
 <video>Vid&eacute;o</video>
+<videos>vid&eacute;os</videos>
+<videos_number>Nombre de vid&eacute;os</videos_number>
 <video_title>Titre de la vid&eacute;o</video_title>
 <virtualhosts>H&ocirc;tes virtuels</virtualhosts>
 <virtual_company>Soci&eacute;t&eacute; virtuelle</virtual_company>

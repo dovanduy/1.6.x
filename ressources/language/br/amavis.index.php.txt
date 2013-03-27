@@ -60,13 +60,13 @@ Perder email n&atilde;o &eacute; decente, mas pode ser desejado.</D_DISCARD_EXP>
 (ex. com milter),[br]Se isto n&atilde;o &eacute; poss&iacute;vel (ex. destinat&aacute;rios diferentes tem diferentes toler&acirc;ncias a conte&uacute;do ruim de email e n&atilde;o usando LMTP)
 amavisd-new envia um 'pulo' por si mesmo (o mesmo que Excluir Email e enviar notifica&ccedil;&atilde;o ao remetente).</D_REJECT_EXP>
 <edit_disclaimer>Edite o seu aviso</edit_disclaimer>
-<edit_disclaimer_text>Open the editor in order to modify the default disclaimer wich will be added on your outgoing emails</edit_disclaimer_text>
+<edit_disclaimer_text>Abra o editor para modificar o aviso padr&atilde;o que ser&aacute; adicionado em seus e-mails enviados</edit_disclaimer_text>
 <EnableBlockUsersTroughInternet>Habilitar envio de regras externas</EnableBlockUsersTroughInternet>
-<extension_list>Extensions list</extension_list>
-<filter_behavior>Filter behaviors</filter_behavior>
-<filter_behavior_text>Define here the amavis behavior when it encounter viruses, spams, filters...</filter_behavior_text>
-<filter_extension>file content type checking</filter_extension>
-<filter_extension_text>Bann attached files in mails by file content type</filter_extension_text>
+<extension_list>lista de extens&otilde;es</extension_list>
+<filter_behavior>comportamentos filtro</filter_behavior>
+<filter_behavior_text>Defina aqui o comportamento amavis quando se deparar com v&iacute;rus, spam, filtros ...</filter_behavior_text>
+<filter_extension>arquivo, tipo de conte&uacute;do, verifica&ccedil;&atilde;o</filter_extension>
+<filter_extension_text>Arquivos anexados em e-mails Bann por tipo de conte&uacute;do do arquivo</filter_extension_text>
 <FinalBadHeaderDestiny>When bad header found</FinalBadHeaderDestiny>
 <FinalBannedDestiny>When banned ext found</FinalBannedDestiny>
 <FinalSpamDestiny>When SPAM Found</FinalSpamDestiny>
