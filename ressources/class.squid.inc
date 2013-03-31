@@ -1113,7 +1113,7 @@ class squidbee{
 			if($GLOBALS["VERBOSE"]){
 				system("$php /usr/share/artica-postfix/exec.squid.quotasbuild.php --verbose");
 			}else{
-				shell_exec("$php /usr/share/artica-postfix/exec.squid.quotasbuild.php >/dev/null 2>&1");
+				shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.quotasbuild.php >/dev/null 2>&1 &");
 			}
 		}
 		

@@ -1983,17 +1983,20 @@ function postscreen($hostname=null){
 		if($ligne["hostname"]==null){continue;}
 		if($ligne["ipaddr"]==null){continue;}
 			
-		if($ipClass->isIPAddress($ligne["hostname"])){
-			
+		if(!$ipClass->isIPAddress($ligne["hostname"])){
 			$hostsname[]="{$ligne["hostname"]}\tOK";
 		}else{
-			$nets[]="{$ligne["hostname"]}\tdunno";
+			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $ligne["hostname"])){
+				$nets[]="{$ligne["hostname"]}\tdunno";
+			}
 		}
 		
 		if(!$ipClass->isIPAddress($ligne["ipaddr"])){
 			$hostsname[]="{$ligne["ipaddr"]}\tOK";
 		}else{
-			$nets[]="{$ligne["ipaddr"]}\tdunno";
+			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $ligne["ipaddr"])){
+				$nets[]="{$ligne["ipaddr"]}\tdunno";
+			}
 		}		
 		
 	}		
@@ -2008,7 +2011,9 @@ function postscreen($hostname=null){
 			if(!$ipClass->isIPAddress($ligne)){
 				$hostsname[]="$ligne\tOK";
 			}else{
-				$nets[]="$ligne\tdunno";
+				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $ligne)){
+					$nets[]="$ligne\tdunno";
+				}
 			}
 		}
 	}

@@ -566,7 +566,10 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('freshclam')) then list.Add('$_GLOBAL["FRESHCLAM_INSTALLED"]=True;') else list.Add('$_GLOBAL["FRESHCLAM_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('UpdateUtility-Console')) then list.Add('$_GLOBAL["UPDATE_UTILITYV2_INSTALLED"]=True;') else list.Add('$_GLOBAL["UPDATE_UTILITYV2_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('freeradius')) then list.Add('$_GLOBAL["FREERADIUS_INSTALLED"]=True;') else list.Add('$_GLOBAL["FREERADIUS_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('ntpdate')) then list.Add('$_GLOBAL["NTPDATE"]=True;') else list.Add('$_GLOBAL["NTPDATE"]=False;');
 
+
+   if FileExists('/usr/share/filez/index.php') then list.Add('$_GLOBAL["APP_FILEZ_WEB"]=True;') else list.Add('$_GLOBAL["APP_FILEZ_WEB"]=False;');
    if FileExists('/usr/local/share/artica/joomla17_src/includes/version.php') then list.Add('$_GLOBAL["JOOMLA17_INSTALLED"]=True;') else list.Add('$_GLOBAL["JOOMLA17_INSTALLED"]=False;');
    if FileExists('/usr/share/concrete5/concrete/config/version.php') then list.Add('$_GLOBAL["CONCRETE5_INSTALLED"]=True;') else list.Add('$_GLOBAL["CONCRETE5_INSTALLED"]=False;');
    if FileExists('/usr/libexec/squid/ecap_adapter_av.so') then list.Add('$_GLOBAL["ECAPAV_INSTALLED"]=True;') else list.Add('$_GLOBAL["ECAPAV_INSTALLED"]=False;');

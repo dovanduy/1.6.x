@@ -9,6 +9,7 @@
 <accesstime_to_internet_expired>Access time to Internet expired</accesstime_to_internet_expired>
 <access_attr>Access attribute</access_attr>
 <access_to_internet_disabled>Your access to internet is disabled</access_to_internet_disabled>
+<access_to_parameters>Access to parameters</access_to_parameters>
 <account_verification>Account verification</account_verification>
 <account_verification_text>
 Welcome to %SERVERNAME[br]
@@ -287,6 +288,8 @@ PyMSNt provides a gateway which allows Jabber users to communicate with their co
 </APP_EJABBERD_ABOUT>
 <APP_ERRSQUID>Proxy Error page</APP_ERRSQUID>
 <APP_ERRSQUID_TEXT>Display a simple Web page error according templates error in the proxy configuration</APP_ERRSQUID_TEXT>
+<APP_FILEZ_WEB>FileZ Web service</APP_FILEZ_WEB>
+<APP_FILEZ_WEB_TEXT>FileZ provides a Web service to upload and manage files you want to share through a web interface and unique URLs</APP_FILEZ_WEB_TEXT>
 <APP_FREERADIUS>FreeRadius</APP_FREERADIUS>
 <APP_GLUSTER_NOT_INSTALLED>The GlusterFS application is not installed, this feature cannot be displayed</APP_GLUSTER_NOT_INSTALLED>
 <APP_HAPROXY>HAProxy</APP_HAPROXY>
@@ -351,6 +354,7 @@ Click on the enable button in order to start the VnStat service in order to buil
 Once detection and download of the configuration file are complete it can be executed to determine the proxy for a specified URL
 </APP_WPAD_TEXT>
 <APP_XAPIAN_FREEWEB_TEXT>Xapian Search is a meta-search engine portal that indexing resources specified in the Xapian Search area.</APP_XAPIAN_FREEWEB_TEXT>
+<APP_ZARAFADB>Dedicated Zarafa MySQL server</APP_ZARAFADB>
 <APP_ZARAFA_DB>Zarafa MySQL engine</APP_ZARAFA_DB>
 <APP_ZARAFA_SEARCH>Zarafa Search daemon</APP_ZARAFA_SEARCH>
 <APP_ZARAFA_SERVER2>Zarafa server (2)</APP_ZARAFA_SERVER2>
@@ -552,6 +556,7 @@ It is designed to build websites statistics.</build_crypted_tables_catz_explain>
 <by_proxy_groups>By proxy group</by_proxy_groups>
 <cached_items>Cached item(s)</cached_items>
 <caches_behavior>Caches behavior</caches_behavior>
+<caches_on_disk>Caches on disk</caches_on_disk>
 <caches_options>Cache options</caches_options>
 <caches_parameters>Caches parameters</caches_parameters>
 <CACHE_AUTH>Show splash screen each</CACHE_AUTH>
@@ -562,6 +567,7 @@ It is designed to build websites statistics.</build_crypted_tables_catz_explain>
 <cache_items>Cache items</cache_items>
 <cache_items_tasks_explain>Build stored items in caches directories statistics</cache_items_tasks_explain>
 <cache_lru>Original list based LRU policy</cache_lru>
+<cache_memory>cache memory</cache_memory>
 <cache_object_size>Cache object size</cache_object_size>
 <cache_object_size_explain>This caches objects and their respective hierarchy of folders.(about 100kb per user)</cache_object_size_explain>
 <cache_override_webserver_medium>Cache override webserver (medium)</cache_override_webserver_medium>
@@ -786,6 +792,8 @@ An update is about 150Mb size.
 </databases_ufdbupdate_explain>
 <databases_users>Users Databases</databases_users>
 <database_backend>Database backend</database_backend>
+<database_maintenance>Database maintenance</database_maintenance>
+<database_maintenance_text>Tasks and system parameters in order to maintain your Database engine/datas</database_maintenance_text>
 <database_privileges>Databases privileges</database_privileges>
 <database_source>Database source</database_source>
 <DateTime>Date and time</DateTime>
@@ -795,7 +803,9 @@ An update is about 150Mb size.
 <dedicated_website_error_page>Dedicated Web site for page error</dedicated_website_error_page>
 <default_cache>Default cache</default_cache>
 <default_domain>Default domain</default_domain>
+<default_file_lifetime>Default file lifetime</default_file_lifetime>
 <default_rules>Default rules</default_rules>
+<default_size_for_rotation>Default size for rotation</default_size_for_rotation>
 <default_value_is_used>Default value is used</default_value_is_used>
 <default_webrule>Default Web filtering rule</default_webrule>
 <delayed_items>Delayed items</delayed_items>
@@ -856,6 +866,11 @@ the process will drop the database but if it is an Artica Database, the Database
 <DiplayFullPath>Display full path</DiplayFullPath>
 <directories>directories</directories>
 <DisableAnyCache>Disable caching Websites</DisableAnyCache>
+<DisableAnyCache_explain>
+<save_to_mysqldb>Save To the MySQL database</DisableAnyCache_explain>
+<DisableAnyCache_explain2>If turn to green, then the proxy will not use any filesystem cache methods ( Caches on Disk or Caches Booster).[br]
+Only one system cache method will be used: [b]the memory cache[/b].
+</DisableAnyCache_explain2>
 <DisableArticaProxyStatistics>Disable Artica statistics engine</DisableArticaProxyStatistics>
 <DisableArticaProxyStatistics_explain>If your server did not have required performances, you can get more performances if you turn to green this feature and clean the Database.[br]
 If you want statistics you can use S.A.R.G as a tool that generate statistics in the same way.[br]
@@ -944,6 +959,7 @@ The Samba server is made into a domain member server</domain_security_explain>
 <downloadb>Download</downloadb>
 <downloaded_flow_this_hour>Downloaded flow this hour</downloaded_flow_this_hour>
 <downloaded_size>Downloaded size</downloaded_size>
+<downloaded_size_by_day>Downloaded size by day</downloaded_size_by_day>
 <downloaded_size_per_day>Downloaded size per day</downloaded_size_per_day>
 <downloaded_size_per_hour>Downloaded size per hour</downloaded_size_per_hour>
 <downloadz>Download</downloadz>
@@ -1608,6 +1624,8 @@ parameter "map untrusted to domain" can be [b]checked[/b] to revert to the legac
 <max_days>MAX days</max_days>
 <max_day_in_database>MAX days stored in database</max_day_in_database>
 <max_events_in_database>MAX events in database</max_events_in_database>
+<max_extend_count_filez>MAX extend days</max_extend_count_filez>
+<max_file_lifetime>MAX file lifetime</max_file_lifetime>
 <max_heap_table_size>MAX Heap TABLE size</max_heap_table_size>
 <max_heap_table_size_text>This variable sets the maximum size to which user-created MEMORY tables are permitted to grow.[br]
 The value of the variable is used to calculate MEMORY table MAX_ROWS values.[br]
@@ -1851,6 +1869,7 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 We suggest to upgrade this server to a coporate licensed server</onlycorpavailable>
 <OnlyEnabled>Only enabled</OnlyEnabled>
 <only_from_activedirectory>Only from Active Directory</only_from_activedirectory>
+<only_incoming_mails>Only inbound messages</only_incoming_mails>
 <only_one_value_no_graph>Only one value as been generated for this query.[br]In this case, graphs cannot be builded</only_one_value_no_graph>
 <opempty_database>Empty the database ?</opempty_database>
 <opened_ports>Opened ports</opened_ports>
@@ -2301,6 +2320,7 @@ the web community that are of professional quality</Sanesecurity_signatures_expl
 Note: [b]Monthly and weekly statistics are already scheduled[/b].</sarg_build_daily_stats_explain>
 <sarg_build_hourly_stats>Build hourly statistics with SARG</sarg_build_hourly_stats>
 <save_and_send>Save and send</save_and_send>
+<save_to_mysqldb>Save To the MySQL database</save_to_mysqldb>
 <saving_network_done>Save network done</saving_network_done>
 <saving_network_failed>Saving network failed</saving_network_failed>
 <scan_dir>Scan folder</scan_dir>
@@ -2329,6 +2349,8 @@ It is in charge to upload extracted attachments to the MySQL database and clean 
 <send_password>Send Password</send_password>
 <send_test_message>Send a message Test</send_test_message>
 <send_test_message_text>Use this form to send quickly a message in order to see if the instance correcly route messages</send_test_message_text>
+<send_to_mailbox>Send to a Mailbox</send_to_mailbox>
+<send_to_smtp_server>Send to SMTP server</send_to_smtp_server>
 <separated_by_acarriage_return>Separated by a carriage return</separated_by_acarriage_return>
 <serveretdom>Server and domain</serveretdom>
 <server_all_kbytes_in>Amount of traffic receive by the proxy</server_all_kbytes_in>
@@ -2413,6 +2435,8 @@ Soft deletes always remain in the database, until they are purged.
 <sorry_table_is_missing>Sorry, table is missing in MySQL database</sorry_table_is_missing>
 <sourcetype>Source type</sourcetype>
 <source_file>Source file</source_file>
+<source_logs>Source logs</source_logs>
+<source_logs_squid_text>Display original log files in order to import them into the stattistics system or extract them</source_logs_squid_text>
 <SPAMASSASSIN_RULES>SpamAssassin rules</SPAMASSASSIN_RULES>
 <SPAMASSASSIN_RULES_TEXT>Build advanced anti-spam content rules accordind message parts.</SPAMASSASSIN_RULES_TEXT>
 <spamass_scr1>When the Bayesian classifier and network tests are not in use</spamass_scr1>
@@ -2583,6 +2607,7 @@ Dynamic ACLs groups feature allows you to define an object from a member's group
 </sugesst_dynamic_acl_groups>
 <synchronize_mailboxes>Synchronize Mailboxes</synchronize_mailboxes>
 <synchronize_mailboxes_explain>This task run mailboxes synchronization rules for all organizations</synchronize_mailboxes_explain>
+<synchronize_time_with_ad>Sync. time with the AD</synchronize_time_with_ad>
 <synchronize_webfilter_rules>Synchronize Web filters rules</synchronize_webfilter_rules>
 <synchronize_webfilter_rules_text>This task must be used when using external members databases like Microsoft Active Directory.[br]
 It force the Web filter to rebuild the members list inside Web filter rules.</synchronize_webfilter_rules_text>
@@ -2669,10 +2694,12 @@ This task will parse this queue in order to build thumbnails for stattistics pur
 <times>times</times>
 <title2>Title</title2>
 <token>token</token>
+<top_10>TOP 10</top_10>
 <top_categories>Top categories</top_categories>
 <top_categories_by_hits>Top categories by hits</top_categories_by_hits>
 <top_categories_by_size>Top categories by size</top_categories_by_size>
 <top_members>TOP Members</top_members>
+<top_websites>TOP Websites</top_websites>
 <total_per_thread_buffers>Total per thread buffers</total_per_thread_buffers>
 <to_time>To time</to_time>
 <transaction>transaction</transaction>
@@ -2801,6 +2828,7 @@ If the server accepts the client's username/password, the client can then mount 
 Samba can also accept session-based username/password requests.[br]
 The client maintains multiple authentication contexts by using a unique UID for each logon.
 </user_level_security_explain>
+<user_quotaz>User quota</user_quotaz>
 <UseSMTPProto>Use SMTP protocol</UseSMTPProto>
 <UseVirtualHosts>Use multiple virtual host</UseVirtualHosts>
 <use_active_directory>use Active Directory</use_active_directory>
@@ -2821,6 +2849,7 @@ The client maintains multiple authentication contexts by using a unique UID for 
 <use_sent_items>use Sent Items</use_sent_items>
 <use_terme_of_use>Use Terms of Service</use_terme_of_use>
 <use_tproxy_mode>Use Tproxy mode</use_tproxy_mode>
+<us_v2>Use version 2</us_v2>
 <values>values</values>
 <verbose_mode>Verbose mode</verbose_mode>
 <verify_caches>Verify caches</verify_caches>

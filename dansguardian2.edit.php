@@ -877,7 +877,6 @@ $('#flexRT$t').flexigrid({
 	
 	var x_TimeSpaceSaveMain= function (obj) {
 		var res=obj.responseText;
-		document.getElementById('anim-$t').innerHTML='';
 		$('#flexRT$t').flexReload();
 	}
 	
@@ -887,7 +886,7 @@ $('#flexRT$t').flexigrid({
 		      XHR.appendData('ID', '$ID');
 		      XHR.appendData('RuleMatchTime', document.getElementById('RuleMatchTime-$t').value);
 		      XHR.appendData('RuleAlternate', document.getElementById('RuleAlternate-$t').value);
-		      Animate('anim-$t');
+		      AnimateDiv('anim-$t');
 		      XHR.sendAndLoad('$page', 'POST',x_TimeSpaceSaveMain);  		
 		}
 
@@ -969,7 +968,7 @@ function rule_time_list(){
 		$delete=imgsimple("delete-32.png","{delete} {rule}:$TIMEID","TimeSpaceDelete$t('$TIMEID')");
 	
 		$href="<a href=\"javascript:blur()\" 
-		OnClick=\"javascript:YahooWin5(550,'$MyPage?rule-time-ID=yes&TIMEID=$TIMEID&ID=$ID','$rule_text:$TIMEID');\" 
+		OnClick=\"javascript:YahooWin5(550,'$MyPage?rule-time-ID=yes&TIMEID=$TIMEID&ID=$ID&t=$t','$rule_text:$TIMEID');\" 
 		style='font-size:18px;text-decoration:underline'>";
 	
 		

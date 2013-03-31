@@ -1518,7 +1518,12 @@
 				if($this->groupware=="DOTCLEAR"){
 					$f[]="/home/$this->servername/cache";
 					$f[]="/home/$this->servername/cache/cbtpl";
-				}				
+				}
+
+				if($this->groupware=="APP_FILEZ_WEB"){
+					$f[]="/home/fz_uploads/$this->servername";
+					
+				}
 				
 				$f[]="/usr/share/php";
 				$f[]="/usr/share/php5";
@@ -1918,6 +1923,17 @@
 						
 			}
 			
+			if($this->groupware=="APP_FILEZ_WEB"){
+				$params=$this->Params["FILEZ"];
+				if(!is_numeric($params["post_max_size"])){$params["post_max_size"]=750;}
+				if(!is_numeric($params["upload_max_filesize"])){$params["upload_max_filesize"]=750;}
+				$this->Params["PHP_VALUES"]["post_max_size"]="{$params["post_max_size"]}M";
+				$this->Params["PHP_VALUES"]["upload_max_filesize"]="{$params["upload_max_filesize"]}M";
+				$this->Params["PHP_VALUES"]["file_uploads"]="On";
+				$this->Params["PHP_VALUES"]["max_input_time"]="1200";
+				$this->Params["PHP_VALUES"]["max_execution_time"]="1200";				
+			}
+			
 			
 			if($this->groupware=="Z-PUSH"){
 				if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}else{$sock=$GLOBALS["CLASS_SOCKETS"];}
@@ -2285,6 +2301,20 @@
 				$f[]="\t</IfModule>";	
 				return @implode("\n",$f);
 			}
+			if($this->groupware=="APP_FILEZ_WEB"){
+				$f[]="\t<IfModule mod_rewrite.c>";
+				$f[]="\t\tRewriteEngine On";
+				$f[]="\t\tOptions +FollowSymlinks";
+				$f[]="\t\tOptions +Indexes";
+				$f[]="\t\tRewriteCond %{REQUEST_URI} !favicon.ico";
+				$f[]="\t\tRewriteCond %{REQUEST_URI} !doc/user/(.*)\.";
+				$f[]="\t\tRewriteCond %{REQUEST_URI} !resources/(.*)\.";
+				$f[]="\t\tRewriteRule ^(.*)$ index.php [QSA,L]";
+				
+				if($this->mod_rewrite<>null){$f[]=$this->mod_rewrite;}
+				$f[]="\t</IfModule>";
+				return @implode("\n",$f);
+			}		
 			
 			
 			if($this->groupware=="OWNCLOUD"){
@@ -2467,6 +2497,7 @@
 			while ($ligne = mysql_fetch_assoc($results)) {
 				$AuthLDAP=false;
 				$IsAuth=false;
+				$LOCATIONDONE=false;
 				$directory=$ligne["directory"];
 				if(!is_dir($directory)){
 					if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" WebDav $directory no such directory\n";}
@@ -2481,6 +2512,7 @@
 				$Alias["/{$ligne["alias"]}"]=$directory;
 				$AliasN[$ligne["alias"]]=$ligne["alias"];
 				$locations[]="\t<Location /{$ligne["alias"]}>";
+				$locations[]="\t\t# connectiontype = {$params["connectiontype"]}";
 				$locations[]="\t\tDAV On";
 				if(($params["connectiontype"]=="ad") OR ($params["connectiontype"]=="ldap")){
 					$locations[]="\t\tOrder deny,allow";
@@ -2493,15 +2525,22 @@
 				}
 				
 				if($AuthLDAP){
-					$locations[]="\t\tAuthLDAPURL \"ldap://{$params["LDAP_SERVER"]}:{$params["LDAP_PORT"]}/{$params["LDAP_SUFFIX"]}?sAMAccountName?sub?(objectClass=*)\"";
-					$locations[]="\t\tAuthName \"USE YOUR WINDOWS ACCOUNT\"";
+					if($params["connectiontype"]=="ad"){
+						$LOCATIONDONE=true;
+						$locations[]="\t\tAuthLDAPURL \"ldap://{$params["LDAP_SERVER"]}:{$params["LDAP_PORT"]}/{$params["LDAP_SUFFIX"]}?sAMAccountName?sub?(objectClass=*)\"";
+						$locations[]="\t\tAuthName \"USE YOUR WINDOWS ACCOUNT\"";
+					}
 				}
 					
 				
 			
 				if($params["connectiontype"]=="ldap"){
-					$locations[]="\t\tAuthLDAPURL \"ldap://{$params["LDAP_SERVER"]}:{$params["LDAP_PORT"]}/{$params["LDAP_SUFFIX"]}?{$params["LDAP_FILTER"]}\"";
-					$locations[]="\t\tAuthName \"USE YOUR LDAP ACCOUNT\"";
+					if(!$LOCATIONDONE){
+						$AuthLDAPURL="ldap://{$params["LDAP_SERVER"]}:{$params["LDAP_PORT"]}/{$params["LDAP_SUFFIX"]}?{$params["LDAP_FILTER"]}";
+						$AuthLDAPURL=str_replace("??", "?", $AuthLDAPURL);
+						$locations[]="\t\tAuthLDAPURL \"$AuthLDAPURL\"";
+						$locations[]="\t\tAuthName \"USE YOUR LDAP ACCOUNT\"";
+					}
 					$locations[]="\t\tAuthLDAPGroupAttribute {$params["GROUP_ATTRIBUTE"]}";
 					$locations[]="\t\tAuthLDAPGroupAttributeIsDN off";
 				}
@@ -2516,7 +2555,7 @@
 					if($IsAuth){$locations[]="\t\trequire valid-user";}
 				}
 			
-				if($IsAuth){$locations[]="\tSatisfy any";}
+				if($IsAuth){$locations[]="\t\tSatisfy any";}
 				$locations[]="\t</Location>";
 		
 			}
@@ -3413,7 +3452,12 @@
 			$sugar->verifinstall();
 			
 		}	
-		
+		private function TestFileZ(){
+			include_once(dirname(__FILE__)."/class.filezweb.inc");
+			$cld=new filez_www($this->servername);
+			$cld->verifinstall();	
+				
+		}		
 		private function SSLEngine2(){
 			$directory="/etc/openssl/certificate_center/$this->sslcertificate";
 			if(!is_file("$directory/server.crt")){
@@ -3484,6 +3528,8 @@
 			if($this->groupware=="WEBAPP"){return;}
 			if($this->groupware=="SUGAR"){$this->TestSUGAR();return;}
 			if($this->groupware=="PIWIGO"){$this->TestPIWIGO();return;}
+			if($this->groupware=="APP_FILEZ_WEB"){$this->TestFileZ();return;}
+			
 			if(!is_numeric($this->useMysql)){$this->useMysql=0;}
 			
 			

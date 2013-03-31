@@ -203,12 +203,12 @@ function today_zoom_popup(){
 		
 				
 		if($num=="website-zoom"){
-			$html[]= "<li><a href=\"squid.website-zoom.php?&sitename={$_GET["familysite"]}\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li><a href=\"squid.website-zoom.php?sitename={$_GET["familysite"]}&day={$_GET["day"]}\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 
 		if($num=="website-catz"){
-			$html[]= "<li><a href=\"squid.categorize.php?popup=yes&www={$_GET["familysite"]}&bykav=&day={$_GET["day"]}&group=&table-size=837&row-explain=609\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li><a href=\"squid.categorize.php?popup=yes&www={$_GET["familysite"]}&bykav=&day={$_GET["day"]}&group=&table-size=993&row-explain=764\"><span>$ligne</span></a></li>\n";
 			continue;
 		}			
 		
@@ -246,10 +246,10 @@ function today_zoom_popup_members(){
 	$field_query2="SUM(size)";	
 	$table_field=$tpl->javascript_parse_text("{size}");
 	$hour_table=date('Ymd',strtotime($_GET["day"]))."_hour";
-	$member=$tpl->_ENGINE_parse_body("{member}");
+	$member=$tpl->_ENGINE_parse_body("{members}");
 	$sitename=$tpl->_ENGINE_parse_body("{website}");
 	$category=$tpl->_ENGINE_parse_body("{category}");
-	
+	$title=$tpl->javascript_parse_text("{size}/$member {for} {$_GET["familysite"]} ({$_GET["type"]})");
 	
 $html="
 <div id='graph-$t' style='width:930px;height:350px'><center style='margin:50px'><img src='img/wait-clock.gif'></center></div>
@@ -265,22 +265,27 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$member', name : 'uid', width :394, sortable : true, align: 'left'},
-		{display: 'MAC', name : 'MAC', width : 165, sortable : false, align: 'left'},
-		{display: 'IP', name : 'client', width : 115, sortable : false, align: 'left'},
-		{display: '$table_field', name : 'uri', width : 75, sortable : false, align: 'left'},
+		{display: 'MAC', name : 'MAC', width : 165, sortable : true, align: 'left'},
+		{display: 'IP', name : 'client', width : 115, sortable : true, align: 'left'},
+		{display: '$table_field', name : 'thits', width : 75, sortable : true, align: 'left'},
 		
 
 		],
-	
+	searchitems : [
+		{display: '$member', name : 'uid'},
+		{display: 'MAC', name : 'MAC'},
+		{display: 'IP', name : 'client'},
+		
+		],	
 
-	sortname: 'zDate',
+	sortname: 'thits',
 	sortorder: 'desc',
 	usepager: true,
-	title: '',
+	title: '$title',
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 971,
+	width: 951,
 	height: 280,
 	singleSelect: true
 	
@@ -337,21 +342,28 @@ $('#flexRT$t').flexigrid({
 		{display: 'MAC', name : 'MAC', width : 107, sortable : false, align: 'left'},
 		{display: 'IP', name : 'client', width : 85, sortable : false, align: 'left'},
 		{display: '$sitename', name : 'sitename', width : 326, sortable : false, align: 'left'},
-		{display: '$table_field', name : 'uri', width : 67, sortable : false, align: 'left'},
+		{display: '$table_field', name : 'thits', width : 67, sortable : false, align: 'left'},
 		{display: '$category', name : 'category', width : 206, sortable : false, align: 'left'},
 		
 
 		],
 	
-
-	sortname: 'zDate',
+	searchitems : [
+		{display: '$member', name : 'uid'},
+		{display: 'MAC', name : 'MAC'},
+		{display: 'IP', name : 'client'},
+		{display: '$sitename', name : 'sitename'},
+		
+		],	
+		
+	sortname: 'thits',
 	sortorder: 'desc',
 	usepager: true,
 	title: '',
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 971,
+	width: 951,
 	height: 400,
 	singleSelect: true
 	
@@ -383,6 +395,13 @@ function today_zoom_popup_members_list(){
 	$hour_table=date('Ymd',strtotime($_GET["day"]))."_hour";
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	$sitename=$tpl->_ENGINE_parse_body("{website}");
+	$page=1;
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
+	if (isset($_POST['page'])) {$page = $_POST['page'];}
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";	
 	
 	if($type=="req"){
 		$field_query="hits";
@@ -391,13 +410,33 @@ function today_zoom_popup_members_list(){
 	}	
 		
 	
-	$sql="SELECT $field_query2 as thits, uid,client,MAC,familysite FROM $hour_table 
-	GROUP BY uid,client,MAC,familysite HAVING familysite='{$_GET["familysite"]}' ORDER BY thits DESC LIMIT 0,100";
+	$table="(SELECT $field_query2 as thits, uid,client,MAC,familysite FROM $hour_table 
+	GROUP BY uid,client,MAC,familysite HAVING familysite='{$_GET["familysite"]}') as t";
+	
+	
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+	
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$total = $ligne["TCOUNT"];
+	
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$total = $ligne["TCOUNT"]+1;
+	}
+	
+	
+	
+	$sql="SELECT * FROM $table WHERE 1 $searchstring $ORDER $limitSql";
+	
+	
 	$results=$q->QUERY_SQL($sql);
 	
 	$data = array();
 	$data['page'] = 0;
-	$data['total'] = 0;
+	$data['total'] =$total;
 	$data['rows'] = array();	
 	
 	
@@ -474,6 +513,13 @@ function today_zoom_popup_history_list(){
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	$sitename=$tpl->_ENGINE_parse_body("{website}");
 	
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
+	if (isset($_POST['page'])) {$page = $_POST['page'];}
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	
 	if($type=="req"){
 		$field_query="hits";
 		$field_query2="SUM(hits)";
@@ -481,8 +527,28 @@ function today_zoom_popup_history_list(){
 	}	
 		
 	
-	$sql="SELECT $field_query2 as thits, uid,client,MAC,sitename,category,familysite FROM $hour_table 
-	GROUP BY uid,client,sitename,MAC,category,familysite HAVING familysite='{$_GET["familysite"]}' ORDER BY thits DESC LIMIT 0,100";
+	$table="(SELECT $field_query2 as thits, uid,client,MAC,sitename,category,familysite FROM $hour_table 
+	GROUP BY uid,client,sitename,MAC,category,familysite HAVING familysite='{$_GET["familysite"]}' ) as t";
+	
+	
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+	
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$total = $ligne["TCOUNT"];
+	
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$total = $ligne["TCOUNT"]+1;
+	}
+	
+	
+	
+	$sql="SELECT * FROM $table WHERE 1 $searchstring $ORDER $limitSql";	
+	
+	
 	$results=$q->QUERY_SQL($sql);
 	
 	$data = array();
@@ -491,8 +557,8 @@ function today_zoom_popup_history_list(){
 	$data['rows'] = array();	
 	
 	
-	if(!$q->ok){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"$q->mysql_error", "",""));echo json_encode($data);return;}	
-	if(mysql_num_rows($results)==0){array('id' => $ligne[time()],'cell' => array(null,"", "",""));echo json_encode($data);return;}
+	if(!$q->ok){json_error_show($q->mysql_error);};	
+	if(mysql_num_rows($results)==0){json_error_show("No data");}
 	
 	$data['total'] = mysql_num_rows($results);
 	

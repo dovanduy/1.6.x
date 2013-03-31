@@ -156,7 +156,7 @@ function sql_domain($ou){
 	while (list ($domain,$nothing) = each ($domains) ){
 		$array_domain[]="OR delivery_domain='$domain'";
 	}
-	
+	if(count($array_domain)==0){return null;}
 	$sql_domain=implode(" ",$array_domain);
 	if(substr($sql_domain,0,2)=="OR"){$sql_domain=substr($sql_domain,2,strlen($sql_domain));}
 	$sql_domain="(".trim($sql_domain).")";

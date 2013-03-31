@@ -9,6 +9,9 @@ if(isset($_GET["processes-queue"])){process_queue();exit;}
 if(isset($_GET["backup-stats-restore"])){restore_backup();exit;}
 if(isset($_GET["backup-stats-restore-all"])){restore_all_backup();exit;}
 if(isset($_GET["migrate-local"])){migrate_local();exit;}
+
+if(isset($_GET["alldays"])){alldays();exit;}
+
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
 die();
@@ -80,4 +83,11 @@ function migrate_local(){
 	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.squidlogs.restore.php --migrate-local >$logfilename 2>&1 &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+}
+
+function alldays(){
+	$unix=new unix();
+	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.stats.days.websites.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
+	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmdline);
 }

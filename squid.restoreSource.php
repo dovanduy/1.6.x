@@ -9,8 +9,8 @@
 	
 
 	
-$usersmenus=new usersMenus();
-if(!$usersmenus->AsDansGuardianAdministrator){
+
+if(!CheckRightsSyslog()){
 	$tpl=new templates();
 	$alert=$tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
 	echo "<H2>$alert</H2>";
@@ -20,6 +20,16 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["progress"])){progress();exit;}
 js();
+
+function CheckRightsSyslog(){
+	$usersmenus=new usersMenus();
+	if($usersmenus->AsSystemAdministrator){return true;}
+	if($usersmenus->AsSquidAdministrator){return true;}
+	if($usersmenus->AsWebStatisticsAdministrator){return true;}
+	if($usersmenus->AsDansGuardianAdministrator){return true;}
+	return false;
+}
+
 
 
 function js(){

@@ -1,6 +1,6 @@
 <?php
 session_start();
-
+$_SESSION["MINIADM"]=true;
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
@@ -639,6 +639,9 @@ function choose_language_save(){
 }
 
 function right(){
+	
+	
+	
 	if(!$GLOBALS["VERBOSE"]){
 		if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
 	}

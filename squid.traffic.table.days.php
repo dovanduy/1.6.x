@@ -41,12 +41,13 @@ $('#table-$t').flexigrid({
 	url: '$page?events-table-members=yes&day={$_GET["day"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$member', name : 'uid', width :86, sortable : true, align: 'left'},
-		{display: '$hostname', name : 'hostname', width :110, sortable : true, align: 'left'},
+		{display: '$member', name : 'uid', width :112, sortable : true, align: 'left'},
+		{display: '$hostname', name : 'hostname', width :141, sortable : true, align: 'left'},
 		{display: '$ipaddr', name : 'client', width :97, sortable : true, align: 'left'},
 		{display: '$ComputerMacAddress', name : 'MAC', width :107, sortable : true, align: 'left'},
 		{display: '$hits', name : 'thits', width :55, sortable : true, align: 'center'},
 		{display: '$size', name : 'tsize', width :55, sortable : true, align: 'center'},
+		
 		
 	],
 	
@@ -64,7 +65,7 @@ $('#table-$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 615,
+	width: 661,
 	height: 250,
 	singleSelect: true
 	
@@ -100,6 +101,7 @@ $('#table-$t').flexigrid({
 		{display: '$category', name : 'category', width :177, sortable : true, align: 'left'},
 		{display: '$hits', name : 'hits', width :55, sortable : true, align: 'center'},
 		{display: '$size', name : 'size', width :55, sortable : true, align: 'center'},
+		{display: 'graph', name : 'aaa', width :41, sortable : false, align: 'center'},
 		
 	],
 	
@@ -115,8 +117,8 @@ $('#table-$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 615,
-	height: 250,
+	width: 667,
+	height: 350,
 	singleSelect: true
 	
 	});   
@@ -209,6 +211,9 @@ function rows_members(){
 			$ligne["uid"]=$q->UID_FROM_MAC($ligne["MAC"]);
 			$uid=$ligne["uid"];
 		}
+		
+		
+		
 		
 	$data['rows'][] = array(
 		'id' => $ligne['MAC'],
@@ -313,8 +318,14 @@ function rows(){
 		OnClick=\"javascript:$jsjscat\"
 		style='font-size:12px;text-decoration:underline'>
 		";
+		
 				
 		$category=$textcss.$jscat.$ligne["category"]."</a></span>";
+		
+		
+		$linkbycat=imgsimple("arrow-blue-left-24.png",null,
+			"Loadjs('squid.traffic.statistics.days.category.php?day={$_GET["day"]}&category=".urlencode($ligne["category"])."')");
+		
 		
 		$tb=array();
 		if(strpos($ligne["category"], ",")>0){
@@ -338,7 +349,7 @@ function rows(){
 				$textcss.$jsweb.$ligne["sitename"]."</a></span>",
 				$category,
 				$textcss.$ligne["hits"]."</span>",
-				$textcss.$ligne["size"]."</span>",
+				$textcss.$ligne["size"]."</span>",$linkbycat
 				
 				
 				)

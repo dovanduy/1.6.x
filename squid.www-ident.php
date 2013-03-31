@@ -37,18 +37,58 @@ function popup(){
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM visited_sites WHERE sitename='$www'"));
 	$time=time();
+	$country=$ligne["country"];
 	$year=$_GET["year"];
 	if(!is_numeric($year)){$year=date('Y');}
 	if(is_numeric($_GET["week"])){
 		$tablename="$year{$_GET["week"]}_week";
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(hits) as HitsNumber,SUM(size) as Querysize FROM $tablename WHERE sitename='$www'"));
 		if(!$q->ok){echo $q->mysql_error;}
+		$CALC=true;
+		$rq_title="{weekly}";
 	}
 	
+	if(!$CALC){
+		if(is_numeric($_GET["xtime"])){
+			$table=date("Ymd",$_GET["xtime"])."_hour";
+			if($q->TABLE_EXISTS($table)){
+				$sql="SELECT SUM(hits) as HitsNumber, SUM(size) as Querysize FROM $table WHERE familysite='$www'";
+				$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+				if(!$q->ok){echo $q->mysql_error;}	
+				$CALC=true;
+				$rq_title="{daily}";
+				$rq_title_suffix=" (".date("{l} {F} d").")";
+			}
+		}
+	}
 	
+	if(!$CALC){
+		if($q->TABLE_EXISTS("visited_sites_days")){
+			$sql="SELECT SUM(hits) as HitsNumber, SUM(size) as Querysize FROM visited_sites_days WHERE familysite='$www'";
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+			if(!$q->ok){echo $q->mysql_error;}		
+			$CALC=true;
+			$rq_title="{all_days}";
+		}
+	}	
+	
+	
+	if($CALC){
 	$requests=numberFormat($ligne["HitsNumber"],0,""," ");
 	$totalsize=FormatBytes($ligne["Querysize"]/1024);
-	$country=$ligne["country"];
+	
+	$vsiz="			<tr>
+				<td class=legend style='font-size:14px'>{requests} ($rq_title):</td>
+				<td style='font-size:14px;font-weight:bold'>$requests$rq_title_suffix</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:14px'>{size}:</td>
+				<td style='font-size:14px;font-weight:bold'>$totalsize</td>
+			</tr>	";
+	
+	
+	}
+	
 	if($country<>null){$img_country=GetFlags($country);}else{$img_country="flags/name.png";}
 	
 	$html="
@@ -66,8 +106,9 @@ function popup(){
 	<table style='width:99%' class=form>
 	<tr>
 		<td width=400px valign='top'>
-			<div id='thumbs-$md' class=BodyContent>".
-				RoundedLightWhite("<img src='squid.statistics.php?thumbnail=$www&t=$time' class='rounded'>")."
+			<div id='thumbs-$md' class=BodyContent>
+				
+				<div style='width:99% class=form><img src='squid.statistics.php?thumbnail=$www&t=$time' class='rounded'></div>
 				</div>
 			
 			</div>
@@ -76,14 +117,7 @@ function popup(){
 		<td valign='top'>
 		<div  class=BodyContent>
 			<table style='width:100%'>
-			<tr>
-				<td class=legend style='font-size:14px'>{requests}:</td>
-				<td style='font-size:14px;font-weight:bold'>$requests</td>
-			</tr>
-			<tr>
-				<td class=legend style='font-size:14px'>{size}:</td>
-				<td style='font-size:14px;font-weight:bold'>$totalsize</td>
-			</tr>	
+			$vsiz
 			<tr>
 				<td class=legend style='font-size:14px' valign='top'>{categories}:</td>
 				<td style='font-size:14px;font-weight:bold'><div id='catz-$md'></div></td>

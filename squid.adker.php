@@ -603,6 +603,10 @@ function settings(){
 	$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
 	$KerbAuthDisableNormalizeName=$sock->GET_INFO("KerbAuthDisableNormalizeName");
 	$KerbAuthMapUntrustedDomain=$sock->GET_INFO("KerbAuthMapUntrustedDomain");
+	$NtpdateAD=$sock->GET_INFO("NtpdateAD");
+	
+	$NTPDATE_INSTALLED=0;
+	if($users->NTPDATE){$NTPDATE_INSTALLED=1;}
 	$KerbAuthTrusted=$sock->GET_INFO("KerbAuthTrusted");
 	
 	
@@ -616,6 +620,7 @@ function settings(){
 	if(!is_numeric($KerbAuthDisableGroupListing)){$KerbAuthDisableGroupListing=0;}
 	if(!is_numeric($KerbAuthDisableNormalizeName)){$KerbAuthDisableNormalizeName=1;}
 	if(!is_numeric($KerbAuthMapUntrustedDomain)){$KerbAuthMapUntrustedDomain=1;}
+	if(!is_numeric($NtpdateAD)){$NtpdateAD=0;}
 	
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
@@ -721,7 +726,12 @@ function settings(){
 		<td class=legend style='font-size:14px'>{map_untrusted_to_domain}:</td>
 		<td>". Field_checkbox("KerbAuthMapUntrustedDomain",1,"$KerbAuthMapUntrustedDomain")."</td>
 		<td>&nbsp;</td>
-	</tr>				
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{synchronize_time_with_ad}:</td>
+		<td>". Field_checkbox("NtpdateAD",1,"$NtpdateAD")."</td>
+		<td>&nbsp;</td>
+	</tr>									
 	<tr>
 		<td class=legend style='font-size:14px'>{authenticate_from_kerberos}:</td>
 		<td>". Field_checkbox("EnableKerberosAuthentication",1,"$EnableKerberosAuthentication","EnableKerbAuthCheck()")."</td>
@@ -785,7 +795,7 @@ function settings(){
 			var EnableKerberosAuthentication=$EnableKerberosAuthentication;
 			var LockKerberosAuthentication=$LockKerberosAuthentication;
 			var EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance;
-			
+			var NTPDATE_INSTALLED=$NTPDATE_INSTALLED;
 			var samba_installed=$samba_installed;
 			document.getElementById('WINDOWS_DNS_SUFFIX').disabled=true;
 			document.getElementById('WINDOWS_SERVER_NETBIOSNAME').disabled=true;
@@ -800,6 +810,9 @@ function settings(){
 			document.getElementById('KerbAuthDisableGroupListing').disabled=true;
 			document.getElementById('KerbAuthDisableNormalizeName').disabled=true;
 			document.getElementById('KerbAuthMapUntrustedDomain').disabled=true;
+			document.getElementById('NtpdateAD').disabled=true;
+			
+			
 			
 			document.getElementById('KerbAuthTrusted').disabled=true;
 			if(document.getElementById('EnableKerbAuth').checked){EnableKerbAuth=1;}
@@ -833,6 +846,11 @@ function settings(){
 					document.getElementById('KerbAuthDisableNormalizeName').disabled=false;
 					document.getElementById('KerbAuthMapUntrustedDomain').disabled=false;
 					document.getElementById('KerbAuthTrusted').disabled=false;
+					
+					if(NTPDATE_INSTALLED==1){
+						document.getElementById('NtpdateAD').disabled=false;
+					
+					}
 					
 					if(document.getElementById('EnableKerberosAuthentication').checked){
 						document.getElementById('EnableKerbAuth').checked=false
@@ -914,6 +932,9 @@ function settings(){
 			if(document.getElementById('KerbAuthDisableNormalizeName').checked){XHR.appendData('KerbAuthDisableNormalizeName',1);}else{XHR.appendData('KerbAuthDisableNormalizeName',0);}
 			if(document.getElementById('KerbAuthTrusted').checked){XHR.appendData('KerbAuthTrusted',1);}else{XHR.appendData('KerbAuthTrusted',0);}
 			if(document.getElementById('KerbAuthMapUntrustedDomain').checked){XHR.appendData('KerbAuthMapUntrustedDomain',1);}else{XHR.appendData('KerbAuthMapUntrustedDomain',0);}
+			if(document.getElementById('NtpdateAD').checked){XHR.appendData('NtpdateAD',1);}else{XHR.appendData('NtpdateAD',0);}
+			
+			
 			
 			XHR.appendData('COMPUTER_BRANCH',document.getElementById('COMPUTER_BRANCH').value);
 			XHR.appendData('SAMBA_BACKEND',document.getElementById('SAMBA_BACKEND').value);
@@ -1131,6 +1152,7 @@ function settingsSave(){
 	$sock->SET_INFO("KerbAuthDisableGroupListing", $_POST["KerbAuthDisableGroupListing"]);
 	$sock->SET_INFO("KerbAuthTrusted", $_POST["KerbAuthTrusted"]);
 	$sock->SET_INFO("KerbAuthMapUntrustedDomain", $_POST["KerbAuthMapUntrustedDomain"]);
+	$sock->SET_INFO("NtpdateAD", $_POST["NtpdateAD"]);
 	
 	
 	

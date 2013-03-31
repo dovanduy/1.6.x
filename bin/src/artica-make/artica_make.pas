@@ -740,6 +740,15 @@ begin
          halt(0);
    end;
 
+   if ParamStr(1)='APP_FILEZ_WEB' then begin
+         phpldapadmin:=tsetup_phpldapadmin.Create;
+         phpldapadmin.APP_FILEZ_WEB();
+         zinstall.EMPTY_CACHE();
+         halt(0);
+   end;
+
+
+
    if ParamStr(1)='APP_PHPMYADMIN' then begin
          phpldapadmin:=tsetup_phpldapadmin.Create;
          phpldapadmin.xinstall_phpmyadmin();

@@ -776,44 +776,17 @@ function squidclamav(){
 
 function GetLocalCaches(){
 	$unix=new unix();	
-	$SQUID_CONFIG_PATH=$unix->SQUID_CONFIG_PATH();
-	
-	$f=explode("\n",@file_get_contents($SQUID_CONFIG_PATH));
-	while (list ($num, $line) = each ($f)){
-		if(preg_match("#cache_dir\s+([a-z]+)\s+(.+?)\s+[0-9]+#",$line,$re)){
-			writelogs("Directory: {$re[2]} type={$re[1]}",__FUNCTION__,__FILE__,__LINE__);
-			$array[trim($re[2])]=$re[1];
-		}
-		
-	}
-	if($GLOBALS["VERBOSE"]){print_r($array);}
-	return $array;
-	
+	return $unix->SQUID_CACHE_FROM_SQUIDCONF();
 }
 
-function GetCachesInsquidConf(){
-	$unix=new unix();	
-	$SQUID_CONFIG_PATH=$unix->SQUID_CONFIG_PATH();
-	
-	$f=explode("\n",@file_get_contents($SQUID_CONFIG_PATH));
-	while (list ($num, $line) = each ($f)){
-		if(preg_match("#cache_dir\s+(.+?)\s+(.+?)\s+#",$line,$re)){
-			writelogs("Directory: {$re[2]} type={$re[1]}",__FUNCTION__,__FILE__,__LINE__);
-			$array[trim($re[2])]=trim($re[2]);
-		}
-		
-	}
-	if($GLOBALS["VERBOSE"]){print_r($array);}
-	return $array;
-	
-}
+
 
 function ReconstructCaches(){
 	$squid=new squidbee();
 	$unix=new unix();	
 	$main_cache=$squid->CACHE_PATH;
 	echo "Starting......:  reconstruct caches\n";
-	$GetCachesInsquidConf=GetCachesInsquidConf();
+	$GetCachesInsquidConf=$unix->SQUID_CACHE_FROM_SQUIDCONF();
 	while (list ($num, $val) = each ($GetCachesInsquidConf)){
 		if(is_dir($num)){
 			echo "Starting......: Squid removing directory $num\n";
@@ -891,7 +864,7 @@ function BuildCaches($NOTSTART=false){
 	$unix->chown_func($squid_user,null, "/etc/squid3/*");
 	if(is_dir("/usr/share/squid-langpack")){$unix->chown_func($squid_user,null, "/usr/share/squid-langpack");}
 	
-	$GetCachesInsquidConf=GetCachesInsquidConf();
+	$GetCachesInsquidConf=$unix->SQUID_CACHE_FROM_SQUIDCONF();
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: Squid ".count($GetCachesInsquidConf)." caches to check\n";}
 	writelogs(count($GetCachesInsquidConf)." caches to check",__FUNCTION__,__FILE__,__LINE__);

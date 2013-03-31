@@ -499,7 +499,8 @@ function Build_lighthttp(){
 	
 				if(is_array($arr)){$plugins="\$rcmail_config['plugins'] = array(".implode(',',$arr).");";}
 				$version_bin=$users->roundcube_intversion;
-
+				$SockPath="/var/run/mysqld/mysqld.sock";
+				
 				$conf[]="<?php";
 				$conf[]="\$rcmail_config = array();";
 				$conf[]="\$rcmail_config['debug_level'] = {$this->roundCubeArray["debug_level"]};";

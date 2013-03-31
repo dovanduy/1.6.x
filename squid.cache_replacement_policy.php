@@ -27,7 +27,7 @@ function js(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{caches_options}");
-	$html="YahooWin4(600,'$page?popup=yes','$title')";
+	$html="YahooWin4(687,'$page?popup=yes','$title')";
 	echo $html;
 }
 

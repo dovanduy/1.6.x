@@ -556,6 +556,8 @@ class usersMenus {
 	public $APP_ZARAFADB_INSTALLED=false;
 	public $FREERADIUS_INSTALLED=false;
 	public $APP_SQUIDDB_INSTALLED=false;
+	public $APP_FILEZ_WEB=false;
+	public $NTPDATE=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -701,6 +703,10 @@ class usersMenus {
 			if(isset($_GLOBAL["APP_PYAUTHENNTLM"])){$this->APP_PYAUTHENNTLM=$_GLOBAL["APP_PYAUTHENNTLM"];}
 			if(isset($_GLOBAL["APP_ZARAFADB_INSTALLED"])){$this->APP_ZARAFADB_INSTALLED=$_GLOBAL["APP_ZARAFADB_INSTALLED"];}
 			if(isset($_GLOBAL["APP_SQUIDDB_INSTALLED"])){$this->APP_SQUIDDB_INSTALLED=$_GLOBAL["APP_SQUIDDB_INSTALLED"];}
+			if(isset($_GLOBAL["NTPDATE"])){$this->NTPDATE=$_GLOBAL["NTPDATE"];}
+			if(isset($_GLOBAL["APP_FILEZ_WEB"])){$this->APP_FILEZ_WEB=$_GLOBAL["APP_FILEZ_WEB"];}
+			
+			
 	
 			
 			

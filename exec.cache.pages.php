@@ -47,7 +47,7 @@ function start(){
 	$unix->chmod_func(0777, "$workdir/admin.index.memory.html");
 	shell_exec("$php5 /usr/share/artica-postfix/admin.top.menus.php update-white-32-tr >$notify_path 2>&1");
 	$unix->chmod_func(0777, $notify_path);
-	
+	shell_exec("/usr/share/artica-postfix/admin.index.loadvg.php >/dev/null 2>&1");
 	
 	$AsSquid=false;
 	if($users->SQUID_INSTALLED){$AsSquid=true;}

@@ -871,12 +871,15 @@ function rules_table_list(){
 	
 	$delete="&nbsp;";
 	$duplicate=imgsimple("duplicate-24.png",null,"Loadjs('dansguardian2.duplicate.php?default-rule=yes&t=$t')");
+	$sock=new sockets();
+	$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
+	$TimeSpace=rule_time_list_explain($ligne["TimeSpace"],0,$t);
 	
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
 			"<span id='anim-img-0'></span><a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;text-decoration:underline'>Default</a>
-			<i style='font-size:10px'>$TimeSpace</i>". rules_dans_time_rule(0)."
+			$TimeSpace". rules_dans_time_rule(0)."
 			
 			",
 			"<span style='font-size:14px'>-</span>",
@@ -916,12 +919,14 @@ while ($ligne = mysql_fetch_assoc($results)) {
 	OnClick=\"javascript:document.getElementById('anim-img-{$ligne['ID']}').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-blacklist-list=yes&RULEID={$ligne['ID']}&modeblk=1&group=&TimeID=&t=$t');\"
 	style='text-decoration:underline;font-weight:bold'>";		
 		
+		
+		$TimeSpace=rule_time_list_explain($ligne["TimeSpace"],$ligne["ID"],$t);
 
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
 			"<span id='anim-img-{$ligne["ID"]}'></span><a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;color:$color;text-decoration:underline'>{$ligne["groupname"]}</a>
-			<i style='font-size:10px'>$TimeSpace</i>$rules_dans_time_rule",
+			$TimeSpace",
 			"<span style='font-size:14px;color:$color;'>$jsGroups&laquo;&nbsp;". COUNTDEGROUPES($ligne["ID"])."&nbsp;&raquo;</a></span>",
 			"<span style='font-size:14px;color:$color;'>&laquo;&nbsp;$jsblack". COUNTDEGBLKS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
 			"<span style='font-size:14px;color:$color;'>&laquo;&nbsp;$jswhite". COUNTDEGBWLS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
@@ -936,6 +941,46 @@ while ($ligne = mysql_fetch_assoc($results)) {
 echo json_encode($data);	
 
 }
+function rule_time_list_explain($TimeSpace,$ID,$t){
+	$tpl=new templates();
+	$MyPage=CurrentPageName();
+	$TimeSpace=unserialize(base64_decode($TimeSpace));
+	if(!is_array($TimeSpace)){return null;}
+	if(count($TimeSpace["TIMES"])==0){return null;}
+	$daysARR=array("m"=>"Monday","t"=>"Tuesday","w"=>"Wednesday","h"=>"Thursday","f"=>"Friday","a"=>"Saturday","s"=>"Sunday");
+	$rule_text=$tpl->javascript_parse_text("{rule}");
+
+	while (list ($TIMEID, $array) = each ($TimeSpace["TIMES"]) ){
+
+		$dd=array();
+		if(is_array($array["DAYS"])){
+			while (list ($day, $val) = each ($array["DAYS"])){if($val==1){$dd[]="{{$daysARR[$day]}}";}}
+			$daysText=@implode(", ", $dd);
+		}
+		if(strlen($array["BEGINH"])==1){$array["BEGINH"]="0{$array["BEGINH"]}";}
+		if(strlen($array["BEGINM"])==1){$array["BEGINM"]="0{$array["BEGINM"]}";}
+		if(strlen($array["ENDH"])==1){$array["ENDH"]="0{$array["ENDH"]}";}
+		if(strlen($array["ENDM"])==1){$array["ENDM"]="0{$array["ENDM"]}";}
+		$daysText=$daysText."<br>{from} {$array["BEGINH"]}:{$array["BEGINM"]}<br>{to} {$array["ENDH"]}:{$array["ENDM"]}";
+
+
+
+		$href="<a href=\"javascript:blur()\"
+		OnClick=\"javascript:YahooWin5(550,'dansguardian2.edit.php?rule-time-ID=yes&TIMEID=$TIMEID&ID=$ID&t=$t','$rule_text:$TIMEID');\"
+		style='font-size:11px;text-decoration:underline'>";
+
+
+		$textfinal=$tpl->javascript_parse_text("{each} $daysText");
+
+
+		$FINAL[]="<div>$href<i>$textfinal</i></a></div>";
+	}
+	if(count($FINAL)>0){return @implode("\n", $FINAL);}
+	//rule_time_list_explain($ligne["TimeSpace"]);
+
+}
+
+
 
 function rules_dans_time_rule($RULEID){
 	$q=new mysql_squid_builder();

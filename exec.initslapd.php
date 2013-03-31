@@ -13,6 +13,7 @@ if($argv[1]=="--rsyslogd-init"){rsyslogd_init();exit;}
 if($argv[1]=="--start"){start_ldap();exit;}
 if($argv[1]=="--stop"){stop_ldap();exit;}
 if($argv[1]=="--spamass-milter"){buildscriptSpamass_milter();exit;}
+if($argv[1]=="--mailarchive-perl"){mailarchive_perl();exit;}
 if($argv[1]=="--freeradius"){buildscriptFreeRadius();exit;}
 if($argv[1]=="--restart-www"){restart_artica_webservices();exit;}
 
@@ -401,6 +402,65 @@ function buildscriptSpamass_milter(){
 	}
 
 }
+
+function mailarchive_perl(){
+$unix=new unix();
+$php=$unix->LOCATE_PHP5_BIN();
+$f[]="#!/bin/sh";
+$f[]="### BEGIN INIT INFO";
+$f[]="# Provides:          mailarchive-perl";
+$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
+$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
+$f[]="# Should-Start:";
+$f[]="# Should-Stop:";
+$f[]="# Default-Start:     2 3 4 5";
+$f[]="# Default-Stop:      0 1 6";
+$f[]="# Short-Description: mailarchive-perl";
+$f[]="# chkconfig: 2345 11 89";
+$f[]="# description: mailarchive-perl";
+$f[]="### END INIT INFO";
+$f[]="case \"\$1\" in";
+$f[]=" start)";
+$f[]="    $php /usr/share/artica-postfix/exec.mailarchiver.php --start \$2 \$3";
+$f[]="    ;;";
+$f[]="";
+$f[]="  stop)";
+$f[]="    $php /usr/share/artica-postfix/exec.mailarchiver.php --stop \$2 \$3";
+$f[]="    ;;";
+$f[]="";
+$f[]=" restart)";
+$f[]="    $php /usr/share/artica-postfix/exec.mailarchiver.php --stop \$2 \$3";
+$f[]="    $php /usr/share/artica-postfix/exec.mailarchiver.php --start \$2 \$3";
+$f[]="    ;;";
+$f[]="";
+$f[]="  *)";
+$f[]="    echo \"Usage: \$0 {start|stop|restart} (+ '--verbose' for more infos)\"";
+$f[]="    exit 1";
+$f[]="    ;;";
+$f[]="esac";
+$f[]="exit 0\n";
+
+$INITD_PATH="/etc/init.d/mailarchive-perl";
+echo "mailarchive-perl: [INFO] Writing $INITD_PATH with new config\n";
+@file_put_contents($INITD_PATH, @implode("\n", $f));
+
+@chmod($INITD_PATH,0755);
+
+if(is_file('/usr/sbin/update-rc.d')){
+shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+}
+
+if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 2345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+
+}
+
+
+
+
+
 function buildscriptLoopDisk(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();

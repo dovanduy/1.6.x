@@ -180,7 +180,26 @@ class templates{
 		return $pges->jsArtica();
 	}
 	
-
+	function javascript_senderror($error,$id){
+		header("content-type: application/x-javascript");
+		$error=$this->javascript_parse_text($error);
+		$t=time();
+		echo "function vght$t(){
+			var error='$error';
+			var text='';
+			text='<table style=\"width:80%\" class=form><tr>';
+			text=text+'<td width=1%><img src=img/error-64.png></td>';
+			text=text+'<td width=99%><p style=font-size:16px;color:#B90000><strong>Oups!</strong></p>';
+			text=text+'<p style=font-size:16px;color:#B90000><strong>$error</strong></p>';
+			text=text+'</td></table>';
+			document.getElementById($id).innerHTML=text;
+		
+		}\nvght$t();\n";
+		
+		
+		
+		
+	}
 		
 
 		
@@ -4981,6 +5000,7 @@ function pourcentage($pourc){
 
 function GET_CACHED($file,$function,$token=null,$return=false,$maxmin=0){
 	if($GLOBALS["VERBOSE"]){return;}
+	if($GLOBALS["AS_ROOT"]){return;}
 	$browser=md5($_SERVER['HTTP_USER_AGENT']);
 	if(trim($token)==null){$token=$function;}
 	$file=basename($file);

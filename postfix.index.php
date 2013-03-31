@@ -562,7 +562,7 @@ function multidomains_popup(){
 function backup_script(){
 $page=CurrentPageName();	
 $html=
-	"YahooWin2(550,'$page?popup-backup-behavior=yes','backup...','');";
+	"YahooWin2(650,'$page?popup-backup-behavior=yes','backup...','');";
 	
 return  $html;	
 }
@@ -1231,7 +1231,7 @@ function milter_behavior_popup(){
 }
 
 function backup_popup(){
-	
+	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
 	$users=new usersMenus();

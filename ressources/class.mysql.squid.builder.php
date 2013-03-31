@@ -2973,6 +2973,7 @@ public function CheckTables($table=null){
 			  `WeekNum` SMALLINT( 2 ) NOT NULL, 
 			  `SearchWordWeek` INT(50) NOT NULL,
 			  `SearchWordTEMP` INT(50) NOT NULL,
+			  `wwwvisited` tinyint(1) NOT NULL DEFAULT '0',
 			  PRIMARY KEY (`tablename`),
 			  KEY `zDate` (`zDate`,`size`,`size_cached`,`cache_perfs`),
 			  KEY `Hour` (`Hour`),
@@ -3017,6 +3018,10 @@ public function CheckTables($table=null){
 		if(!$this->FIELD_EXISTS("tables_day", "MembersCount")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `MembersCount` INT( 100 ) NOT NULL DEFAULT '0', ADD INDEX ( `MembersCount` )");}
 		if(!$this->FIELD_EXISTS("tables_day", "youtube_dayz")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `youtube_dayz` TINYINT( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `youtube_dayz` )");}
 		if(!$this->FIELD_EXISTS("tables_day", "youtube_week")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `youtube_week` TINYINT( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `youtube_week` )");}
+		if(!$this->FIELD_EXISTS("tables_day", "wwwvisited")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `wwwvisited` TINYINT( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `wwwvisited` )");}
+		
+		
+		
 		if(!$this->FIELD_EXISTS("tables_day", "WeekDay")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `WeekDay` SMALLINT( 2 ) NOT NULL ,ADD `WeekNum` SMALLINT( 2 ) NOT NULL ,ADD INDEX ( `WeekDay` , `WeekNum` )");}
 		if(!$this->FIELD_EXISTS("tables_day", "SearchWordWeek")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `SearchWordWeek` INT(50) NOT NULL ,ADD INDEX ( `SearchWordWeek` )");}
 		if(!$this->FIELD_EXISTS("tables_day", "SearchWordTEMP")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `SearchWordTEMP` INT(50) NOT NULL ,ADD INDEX ( `SearchWordTEMP` )");}
@@ -3113,7 +3118,21 @@ public function CheckTables($table=null){
 		}
 		if(!$this->FIELD_EXISTS("updateblks_events", "category")){$this->QUERY_SQL("ALTER TABLE `updateblks_events` ADD `category` VARCHAR( 50 ) NOT NULL ,ADD KEY `category` (`category`)");} 		
 		
-		if(!$this->TABLE_EXISTS('visited_sites',$this->database)){	
+		$sql="CREATE TABLE IF NOT EXISTS `visited_sites_days` (
+			  `zmd5` varchar(90) NOT NULL,
+			  `familysite` varchar(255) NOT NULL,
+			  `size` BIGINT(100) NOT NULL,
+			  `hits` BIGINT(100) NOT NULL,
+			  `zDate` date NOT NULL ,			  
+			  PRIMARY KEY (`zmd5`),
+			  KEY `size` (`size`),
+			  KEY `hits` (`hits`),
+			  KEY `zDate` (`zDate`),
+			  KEY `familysite` (`familysite`)
+			)  ENGINE = MYISAM;";		
+		$this->QUERY_SQL($sql,$this->database);
+		
+		
 		$sql="CREATE TABLE IF NOT EXISTS `visited_sites` (
 			  `sitename` varchar(255) NOT NULL,
 			  `Querysize` int(100) NOT NULL,
@@ -3138,7 +3157,6 @@ public function CheckTables($table=null){
 			  KEY `thumbnail` (`thumbnail`)
 			)  ENGINE = MYISAM;";
 			$this->QUERY_SQL($sql,$this->database);
-		}
 		
 		if(!$this->INDEX_EXISTS("visited_sites", "category", $this->database)){$this->QUERY_SQL("ALTER TABLE `visited_sites` ADD KEY `category` (`category`)");}
 		if(!$this->FIELD_EXISTS("visited_sites", "whois")){$this->QUERY_SQL("ALTER TABLE `visited_sites` ADD `whois` TEXT");}
@@ -3760,6 +3778,7 @@ public function CheckTables($table=null){
 				'ar' => array('gob' => true),
 				'pt' => array('com' => true,"gov"=>true,"uc"=>true,"ua"=>true,"gov"=>true),
 				'ph'=> array('com'=>true,"gov"=>true),
+				'tw' => array('co' => true,"go"=>true,"in"=>true,"gov"=>true,'ac'=>true,"com"=>true,"net"=>true),
 				'th' => array('co' => true,"go"=>true,"in"=>true,"gov"=>true,'ac'=>true),
 				'tr' => array('com' => true,"org"=>true,"co"=>true,"gov"=>true),
 				'co' => array('gov' => true,"za"=>true,"gov"=>true),

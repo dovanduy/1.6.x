@@ -27,6 +27,7 @@ if($argv[1]=="--run"){run();die();}
 if($argv[1]=="--mysql"){InstertIntoMysql();die();}
 if($argv[1]=="--var"){CheckLogStorageDir($argv[2]);die();}
 if($argv[1]=="--clean"){CleanMysqlDatabase();die();}
+if($argv[1]=="--squid"){check_all_squid();die();}
 
 
 
@@ -120,7 +121,7 @@ function InstertIntoMysql(){
 	$results = $q->QUERY_SQL($sql);	
 	if(!$q->ok){return;}	
 	if(!$q->TABLE_EXISTS("store")){return;}
-	
+	if(system_is_overloaded(basename(__FILE__))){return;}
 	$sock=new sockets();
 	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
 	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
@@ -171,47 +172,12 @@ function InstertIntoMysql(){
 			$filesize=$unix->file_size($filename);
 			system_admin_events("Task:$taskid File $basename ($filedate)",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			
-				$ext = pathinfo($basename, PATHINFO_EXTENSION);
-				$basenameFF=$basename;
-				$basenameFF=str_replace(".$ext", "", $basenameFF);
-				$basenameFF=$basenameFF.".".time().".$ext";			
+			if(ROTATE_TOMYSQL($filename,$filedate)){
+				@unlink($filename);
+				continue;
+			}
 	
-			if($LogRotateMysql==1){
-				system_admin_events("$filename => /tmp/$basename => MySQL...",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-				@copy($filename, "/tmp/$basename");
-				@unlink($filename);
-				@chmod("/tmp", 0777);
 
-				
-				$sql = "INSERT INTO `store` (`filename`,`taskid`,`filesize`,`filedata`,`filetime`) 
-				VALUES ('$basenameFF','$taskid','$filesize',LOAD_FILE('/tmp/$basename'),'$filedate')";
-			
-				$q->QUERY_SQL($sql);
-				
-				
-				if(!$q->ok){
-					system_admin_events("$q->mysql_error, go back /tmp/$basename => $filename...",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-					@copy("/tmp/$basename", "$filename");
-				}
-				@unlink("/tmp/$basename");
-			}
-			
-			if($LogRotateMysql==0){
-				@mkdir("$LogRotatePath",0755,true);
-				system_admin_events("$filename => $LogRotatePath/$basenameFF => Store Disk...",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-				shell_exec("$cpbin $filename $LogRotatePath/$basenameFF");
-				@unlink($filename);
-				
-				$sql = "INSERT INTO `store` (`filename`,`taskid`,`filesize`,`filedata`,`filetime`,`SavedInDisk`,`FileStorePath`) 
-				VALUES ('$basenameFF','$taskid','$filesize','Nil','$filedate',1,'$LogRotatePath/$basenameFF')";
-				$q->QUERY_SQL($sql);
-				if(!$q->ok){
-					system_admin_events("$q->mysql_error, go back $LogRotatePath/$basenameFF => $filename...",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-					@copy("$LogRotatePath/$basenameFF", "$filename");
-					@unlink("$LogRotatePath/$basenameFF");
-				}				
-				
-			}
 		}
 	}
 	
@@ -220,12 +186,14 @@ function InstertIntoMysql(){
 	reset($paths);
 	while (list ($path,$none) = each ($paths) ){
 		foreach (glob("$path/*") as $filename) {
+			if(system_is_overloaded(basename(__FILE__))){return;}
 			if(preg_match("#ipband\.#", $filename)){continue;}
 			$extension = pathinfo($filename, PATHINFO_EXTENSION);
 			if(is_dir($filename)){continue;}
 			if($extension==null){continue;}
 			if($extension=="log"){continue;}
 			echo "$filename = $extension\n";
+			$filedate=date('Y-m-d H:i:s',filemtime($filename));
 			if($extension=="gz"){
 				system_admin_events("$filename => Converting to bz2",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 				$filename=ConvertGZToBzip($filename);
@@ -237,7 +205,11 @@ function InstertIntoMysql(){
 				$tA=time();
 				$tC=$filename;
 				$tB=$unix->file_size_human($filename);
-				shell_exec("$bzip2 -z $filename");
+				if(!ROTATE_COMPRESS_FILE($filename)){
+					system_admin_events("File ".basename($tC)." Failed to compress file",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+					continue;
+				}
+				
 				$took=$unix->distanceOfTimeInWords($tA,time(),true);
 				$filename=$filename.".bz2";
 				$tD=$unix->file_size_human($filename);
@@ -247,74 +219,97 @@ function InstertIntoMysql(){
 			}
 			
 			if(preg_match("#[a-z]+-[0-9]+$#", $extension)){
-				shell_exec("$bzip2 -z $filename");
+				if(!ROTATE_COMPRESS_FILE($filename)){
+						system_admin_events("File ".basename($tC)." Failed to compress file",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+						continue;
+					}
 				$filename=$filename.".bz2";
 				$extension="bz2";	
 			}
-			$filedate=date('Y-m-d H:i:s',filemtime($filename));
+			
 			$basename=basename($filename);	
 			if($extension<>"bz2"){continue;}
-			
-			$ext = pathinfo($basename, PATHINFO_EXTENSION);
-			$basenameFF=$basename;
-			$basenameFF=str_replace(".$ext", "", $basenameFF);
-			$basenameFF=$basenameFF.".".time().".$ext";				
-			
-			$taskid=0;
-			$filesize=$unix->file_size($filename);
-			system_admin_events("Task:$taskid File $basename ($filedate)",__FUNCTION__,__FILE__,__LINE__,"logrotate");	
-			if($LogRotateMysql==1){
-				$TTIME=time();
-				system_admin_events("$filename => /tmp/$basename => MySQL...",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-				@copy($filename, "/tmp/$basename");
-				@unlink($filename);
-				@chmod("/tmp", 0777);
-				
-				$sql = "INSERT INTO `store` (`filename`,`taskid`,`filesize`,`filedata`,`filetime`) 
-				VALUES ('$basenameFF','$taskid','$filesize',LOAD_FILE('/tmp/$basename'),'$filedate')";
-				
-				$q->QUERY_SQL($sql);
-				if(!$q->ok){
-					@copy("/tmp/$basename", "$filename");
-					$took=$unix->distanceOfTimeInWords($TTIME,time(),true);
-					system_admin_events("Fatal: $q->mysql_error, go back /tmp/$basename => $filename...",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-					continue;
-				}
-				$took=$unix->distanceOfTimeInWords($TTIME,time(),true);
-				system_admin_events(basename($basename)." success inserting datas to MySQL database took: $took",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-				@unlink("/tmp/$basename");	
-			}
 
-			if($LogRotateMysql==0){
-				@mkdir("$LogRotatePath",0755,true);
-				system_admin_events("$filename => $LogRotatePath/$basenameFF => Store disk...",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-				shell_exec("$cpbin $filename $LogRotatePath/$basenameFF");
+			system_admin_events("Task:$taskid File $basename ($filedate)",__FUNCTION__,__FILE__,__LINE__,"logrotate");	
+			if(ROTATE_TOMYSQL($filename,$filedate)){
 				@unlink($filename);
-				
-				$sql = "INSERT INTO `store` (`filename`,`taskid`,`filesize`,`filedata`,`filetime`,`SavedInDisk`,`FileStorePath`) 
-				VALUES ('$basenameFF','$taskid','$filesize','','$filedate',1,'$LogRotatePath/$basenameFF')";
-				$t1=time();
-				$q->QUERY_SQL($sql);
-				if(!$q->ok){
-					system_admin_events("Fatal: $q->mysql_error, go back $LogRotatePath/$basenameFF => $filename...",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-					@copy("$LogRotatePath/$basenameFF", "$filename");
-					@unlink("$LogRotatePath/$basenameFF");
-					continue;
-				}else{
-					$filesizeText=FormatBytes($filesize/1024);
-					$took=$unix->distanceOfTimeInWords($t1,time());
-					system_admin_events("Success copy $basenameFF to $LogRotatePath ($filesizeText) took: $took ",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-				}				
-				
-			}			
+				continue;
+			}
+			
+			
 		}
 	}
 	
 	
 }
+function ROTATE_TOMYSQL($filename,$sourceDate){
+	$sock=new sockets();
+	$unix=new unix();
+	$taskid=0;
+	$basename=basename($filename);
+	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
+	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
+	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
+	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
+	if(!is_dir($LogRotatePath)){@mkdir($LogRotatePath,0755);}
+	$LogRotatePathWork="$LogRotatePath/work";
+	if($LogRotateMysql==0){$LogRotatePathWork=$LogRotatePath;}
+	if(!is_dir($LogRotatePathWork)){@mkdir($LogRotatePathWork,0777);}
+	@chmod($LogRotatePathWork, 0777);
+	$basenameFF=null;
+	$DestinationFile="$LogRotatePathWork/$basename";
+	
+	
+	if(is_file($DestinationFile)){
+		$ext = pathinfo($DestinationFile, PATHINFO_EXTENSION);
+		$basenameFF=basename($DestinationFile);
+		$basenameFF=str_replace(".$ext", "", $basenameFF);
+		$basenameFF=$basenameFF.".".time().".$ext";
+		$DestinationFile=str_replace(basename($DestinationFile), $basenameFF, $DestinationFile);
+	}
+	
+	if(!@copy($filename, $DestinationFile)){
+		@unlink($DestinationFile);
+		system_admin_events("Failed to copy $filename => $DestinationFile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		return false;
+	}
+	
+	if(preg_match("#-TASK-([0-9]+)#",$basename,$re)){$taskid=$re[1];}
+		
+	$ext = pathinfo($filename, PATHINFO_EXTENSION);
+	$basenameFF=$basename;
+	$basenameFF=str_replace(".$ext", "", $basenameFF);
+	$basenameFF=$basenameFF.".".time().".$ext";	
+	$filesize=$unix->file_size($filename);
+	
+	if($LogRotateMysql==1){
+		$sql = "INSERT INTO `store` (`filename`,`taskid`,`filesize`,`filedata`,`filetime`)
+		VALUES ('$basenameFF','$taskid','$filesize',LOAD_FILE('$DestinationFile'),'$sourceDate')";
+	}
+	
+	if($LogRotateMysql==0){
+		$basenameFF=basename($DestinationFile);
+		$sql = "INSERT INTO `store` (`filename`,`taskid`,`filesize`,`filedata`,`filetime`,`SavedInDisk`,`FileStorePath`)
+		VALUES ('$basenameFF','$taskid','$filesize','','$sourceDate',1,'$DestinationFile')";
+	}
+
+	$q=new mysql_syslog();
+	$q->CheckTables();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		system_admin_events("MySQL Failed $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		@unlink($DestinationFile);
+		return false;
+	}
+	if($LogRotateMysql==1){@unlink($DestinationFile);}
+	return true;
+}
+
+
 
 function ConvertGZToBzip($filesource){
 	$t=time();
+	$fromTime=time();
 	$fileDest=str_replace(".gz", ".bz2", $filesource);
 	$unix=new unix();
 	$gunzip=$unix->find_program("gunzip");
@@ -706,6 +701,107 @@ function moveolds(){
 	
 	
 }
+
+function ROTATE_COMPRESS_FILE($filename){
+	$unix=new unix();
+	if(!isset($GLOBALS["BZ2BIN"])){$GLOBALS["BZ2BIN"]=$unix->find_program("bzip2");;}
+	$EXEC_NICE=$unix->EXEC_NICE();
+	$cmdline="$EXEC_NICE {$GLOBALS["BZ2BIN"]} -z $filename";
+	shell_exec($cmdline);
+	if(!is_file("$filename.bz2")){return false;}
+	$cmdline="{$GLOBALS["BZ2BIN"]} -t -v $filename.bz2 2>&1";
+	exec($cmdline,$results);
+	while (list ($num, $line) = each ($results) ){
+		if(strpos($line,": ok")>0){return true;}
+	}
+	@unlink("$filename.bz2");
+}
+
+
+function check_all_squid(){
+	$sock=new sockets();
+	$unix=new unix();
+	
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
+	$pid=file_get_contents("$pidfile");
+	
+	
+	if(system_is_overloaded(basename(__FILE__))){die();}
+	
+
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timeMin=$unix->PROCCESS_TIME_MIN($pid);
+		if($timeMin>240){
+			system_admin_events("Too many TTL, $pid will be killed",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			$kill=$unix->find_program("kill");
+			shell_exec("$kill -9 $pid");
+		}else{
+			die();
+		}
+	}	
+	
+	$time=$unix->file_time_min($timefile);
+	if($time<300){return;}
+	
+	@file_put_contents($pidfile, getmypid());
+	@file_put_contents($timefile, time());
+	
+	
+	
+	$bzip2=$unix->find_program("bzip2");
+	$ALREADYCOMP["gz"]=true;
+	$ALREADYCOMP["bz2"]=true;
+	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
+	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
+	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
+	$ApacheLogRotate=$sock->GET_INFO("ApacheLogRotate");
+	if(!is_numeric($ApacheLogRotate)){$ApacheLogRotate=1;}
+	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
+	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
+	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}	
+	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
+	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}	
+	
+	foreach (glob("/var/log/squid/*") as $filename) {
+		if(is_dir($filename)){continue;}
+		$size=$unix->file_size($filename);
+		$time=$unix->file_time_min($filename);
+		$size=round(($size/1024)/1000,2);
+		
+		if($size>$LogsRotateDefaultSizeRotation){$TOROT[$filename]=true;continue;}
+		if($time>1440){$TOROT[$filename]=true;continue;}
+	}
+
+	if(count($TOROT)==0){return;}
+		
+	while (list ($filename, $none) = each ($TOROT) ){
+		
+		$extension = pathinfo($filename, PATHINFO_EXTENSION);
+		
+		$filedate=date('Y-m-d H:i:s',filemtime($filename));
+		$basename=basename($filename);
+		if($LogRotateCompress==1){
+			if($extension<>"bz2"){
+				if(!ROTATE_COMPRESS_FILE($filename)){continue;}
+				$filename=$filename.".bz2";
+				$extension="bz2";
+			}
+		}
+			
+		echo "[$filedate]: $filename ($extension)\n";
+		if(ROTATE_TOMYSQL($filename, $filedate)){
+			@unlink($filename);
+		}
+			
+		
+	}
+	
+	
+}
+
+
 
 function events($text){
 		$pid=@getmypid();

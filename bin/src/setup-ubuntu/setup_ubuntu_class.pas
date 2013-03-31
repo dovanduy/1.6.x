@@ -997,6 +997,7 @@ l.Add('libio-socket-ssl-perl');
 l.Add('libnet-ssleay-perl');
 l.Add('libhtml-parser-perl');
 l.Add('libarchive-zip-perl');
+l.add('libsendmail-milter-perl');
 
 l.Add('libwww-perl');
 l.add('libgd2-xpm-dev');                           
@@ -2021,6 +2022,7 @@ if distri.DISTRINAME_CODE='DEBIAN' then begin
          l.add('mailsync');
 
 
+
          if distri.DISTRINAME_VERSION='4' then begin
             l.add('libsys-syslog-perl');
             l.add('libmail-spf-query-perl');
@@ -2042,7 +2044,7 @@ if distri.DISTRINAME_CODE='DEBIAN' then begin
 
 end;
 
-
+l.add('libsendmail-milter-perl');
 l.Add('libio-socket-ssl-perl');
 l.Add('libnet-ssleay-perl');
 l.Add('libhtml-parser-perl');

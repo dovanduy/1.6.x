@@ -1773,11 +1773,10 @@ private function smtp_sasl_password_map(){
 		if(!$q->ok){echo "$q->mysql_error\n";}
 	
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){	
-			if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$ligne["hostname"])){
-				$hostsname[]="{$ligne["hostname"]}\tOK";
-			}
-			if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$ligne["ipaddr"])){
+			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $ligne["ipaddr"])){
 				$nets[]="{$ligne["ipaddr"]}\tdunno";
+			}else{
+				$hostsname[]="{$ligne["hostname"]}\tOK";
 			}
 			
 		}	
@@ -1790,7 +1789,7 @@ private function smtp_sasl_password_map(){
 			if(!$ipClass->isIPAddress($ligne)){
 				$hostsname[]="$ligne\tOK";
 			}else{
-				$nets[]="$ligne\tdunno";
+				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $num)){$nets[]="$num\tdunno";}
 			}
 		}
 	}
@@ -1803,7 +1802,7 @@ private function smtp_sasl_password_map(){
 			if(!$ipClass->isIPAddress($ligne)){
 				$hostsname[]="$ligne\tOK";
 			}else{
-				$nets[]="$ligne\tdunno";
+				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $num)){$nets[]="$num\tdunno";}
 			}
 		}
 	}
@@ -1819,7 +1818,7 @@ private function smtp_sasl_password_map(){
 			if(!$ipClass->isIPAddress($num)){
 				$hostsname[]="$num\tOK";
 			}else{
-				$nets[]="$num\tdunno";
+				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $num)){$nets[]="$num\tdunno";}
 			}	
 		}
 	}

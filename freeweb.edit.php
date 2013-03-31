@@ -360,6 +360,8 @@ function popup_tabs(){
 	//http://jmatrix.net/dao/case/case.jsp?case=7F000001-1C888D9-111189408B9-80
 	
 	$array["popup"]="{website}";
+	$array["groupwares"]='{groupwares}';
+
 	
 
 	
@@ -372,11 +374,22 @@ function popup_tabs(){
 		}
 		
 		
+		
+		
+		
 		$apache=new freeweb($_GET["servername"]);
+		
+		if($apache->groupware<>null){
+			unset($array["groupwares"]);
+		}
 		
 		if($apache->groupware=="DRUPAL"){
 			$array["drupal"]='{APP_DRUPAL}';
 		}
+		
+		if($apache->groupware=="APP_FILEZ_WEB"){
+			$array["FILEZ"]='{APP_FILEZ_WEB}';
+		}		
 
 
 		
@@ -405,7 +418,7 @@ function popup_tabs(){
 			$array["mod_cache"]='{cache_engine}';
 		}
 		
-		$array["groupwares"]='{groupwares}';
+		
 		
 		$array["aliases"]='{aliases}';
 		
@@ -472,6 +485,15 @@ function popup_tabs(){
 			unset($array["aliases"]);
 			unset($array["mod_cache"]);		
 		}
+		
+		if($apache->groupware=="APP_FILEZ_WEB"){
+			unset($array["webdav"]);
+			unset($array["reverse"]);
+			unset($array["aliases"]);
+			unset($array["mod_cache"]);
+			
+		}
+		
 		
 		if($apache->WebCopyID>0){unset($array["groupwares"]);}		
 		
@@ -574,7 +596,12 @@ function popup_tabs(){
 		if($num=="WEBDAVFREE"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.webdavfree.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
-		}		
+		}	
+
+		if($num=="FILEZ"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.filez.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;			
+		}
 		
 		
 		

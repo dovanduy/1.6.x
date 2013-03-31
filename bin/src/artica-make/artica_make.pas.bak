@@ -740,6 +740,15 @@ begin
          halt(0);
    end;
 
+   if ParamStr(1)='APP_FILEZ_WEB' then begin
+         phpldapadmin:=tsetup_phpldapadmin.Create;
+         phpldapadmin.xinstall_APP_FILEZ_WEB();
+         zinstall.EMPTY_CACHE();
+         halt(0);
+   end;
+
+
+
    if ParamStr(1)='APP_PHPMYADMIN' then begin
          phpldapadmin:=tsetup_phpldapadmin.Create;
          phpldapadmin.xinstall_phpmyadmin();
@@ -1611,6 +1620,7 @@ begin
          writeln('STARTING INSTALL/COMPILE POWERDNS, PLEASE WAIT.....');
          zinstall.INSTALL_STATUS('APP_PDNS_STATIC',15);
          samba.pdnsinstall_static();
+         zinstall.INSTALL_STATUS('APP_POWERADMIN',100);
          zinstall.EMPTY_CACHE();
          halt(0);;
    end;

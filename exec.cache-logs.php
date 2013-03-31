@@ -79,6 +79,13 @@ function Parseline($buffer){
 		
 	}
 	
+	if(preg_match("#WARNING: Disk space over limit#", $buffer)){
+		events("Disk space over limit Line: refresh swap.state".__LINE__);
+		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --swapstate >/dev/null 2>&1 &");
+		
+	}
+	
+	
 	if(preg_match("#\|\s+(.+?):\s+\(2\)\s+No such file or directory#", $buffer,$re)){
 		if(strpos($buffer, "storeDirClean")==0){
 			$dirname=trim($re[1]);

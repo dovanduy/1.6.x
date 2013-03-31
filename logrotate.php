@@ -6,8 +6,8 @@ if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1
 	include_once('ressources/class.mysql.syslog.inc');
 
 	
-$usersmenus=new usersMenus();
-if(!$usersmenus->AsSystemAdministrator){
+
+if(!CheckRightsSyslog()){
 	$tpl=new templates();
 	$alert=$tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
 	echo "alert('$alert');";
@@ -44,6 +44,15 @@ function js_start(){
 	echo "AnimateDiv('BodyContent');LoadAjax('BodyContent','$page?tabs=yes');";
 }
 
+function CheckRightsSyslog(){
+	$usersmenus=new usersMenus();
+	if($usersmenus->AsSystemAdministrator){return true;}
+	if($usersmenus->AsSquidAdministrator){return true;}
+	if($usersmenus->AsWebStatisticsAdministrator){return true;}
+	if($usersmenus->AsDansGuardianAdministrator){return true;}
+	return false;
+}
+
 function rotate_js(){
 	$ID=$_GET["ID"];
 	$tpl=new templates();
@@ -66,6 +75,7 @@ function rotate_popup(){
 	$tpl=new templates();	
 	$users=new usersMenus();
 	$q=new mysql_syslog();
+	$sock=new sockets();
 	$t=$_GET["t"];
 	$buttontext="{add}";
 	$ID=$_GET["ID"];
@@ -78,13 +88,14 @@ function rotate_popup(){
 	if(!is_numeric($ligne["RotateType"])){$ligne["RotateType"]=0;}
 	if(!is_numeric($ID)){$ID=0;}
 	//RotateFiles,RotateType,RotateFreq,MaxSize,RotateCount,postrotate,description,enabled		
-	
+	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
+	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}	
 	
 	if($ligne["RotateFiles"]==null){$ligne["RotateFiles"]="/var/log/*";}
 
 	$RotateFreq["daily"]="{daily}";
 	$RotateFreq["weekly"]="{weekly}";
-	if(!is_numeric($ligne["MaxSize"])){$ligne["MaxSize"]=100;}
+	if(!is_numeric($ligne["MaxSize"])){$ligne["MaxSize"]=$LogsRotateDefaultSizeRotation;}
 	if(!is_numeric($ligne["RotateCount"])){$ligne["RotateCount"]=5;}
 	
 	
@@ -284,11 +295,18 @@ function settings_popup(){
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
 	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
 	$LogsRotateDeleteSize=$sock->GET_INFO("LogsRotateDeleteSize");
+	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
+	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}
+	
 	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
 	
 	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
 	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
 	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
+	
+	
+	
+	
 	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
 	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}
 	if(!is_numeric($LogsRotateDeleteSize)){$LogsRotateDeleteSize=5000;}
@@ -298,7 +316,12 @@ function settings_popup(){
 		<td class=legend style='font-size:14px'>{delete_if_file_exceed}:</td>
 		<td style='font-size:14px'>". Field_text("LogsRotateDeleteSize",$LogsRotateDeleteSize,"font-size:14px;width:60px")."&nbsp;MB</td>
 		<td>&nbsp;</td>
-	</tr>			
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:14px'>{default_size_for_rotation}:</td>
+		<td style='font-size:14px'>". Field_text("LogsRotateDefaultSizeRotation",$LogsRotateDefaultSizeRotation,"font-size:14px;width:60px")."&nbsp;MB</td>
+		<td>&nbsp;</td>
+	</tr>						
 	<tr>
 		<td class=legend style='font-size:14px'>{compress_files}:</td>
 		<td>". Field_checkbox("LogRotateCompress", 1,$LogRotateCompress)."</td>
@@ -364,6 +387,9 @@ function settings_popup(){
 	  	if(document.getElementById('LogRotateMysql').checked){XHR.appendData('LogRotateMysql',1);}
 	  	else{XHR.appendData('LogRotateMysql',0);}	  	
 	  	XHR.appendData('LogRotatePath',document.getElementById('LogRotatePath').value);
+	  	
+	  	
+	  	XHR.appendData('LogsRotateDefaultSizeRotation',document.getElementById('LogsRotateDefaultSizeRotation').value);
 	  	XHR.appendData('SystemLogsPath',document.getElementById('SystemLogsPath').value);
 	  	XHR.appendData('BackupMaxDays',document.getElementById('BackupMaxDays').value);
 	  	XHR.appendData('BackupMaxDaysDir',document.getElementById('BackupMaxDaysDir').value);

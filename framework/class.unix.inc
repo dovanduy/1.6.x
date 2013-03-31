@@ -580,6 +580,22 @@ public function LOCATE_VBoxHeadless(){
 	}
 	
 	
+	function SQUID_CACHE_FROM_SQUIDCONF(){
+		
+		$SQUID_CONFIG_PATH=$this->SQUID_CONFIG_PATH();
+	
+		$f=explode("\n",@file_get_contents($SQUID_CONFIG_PATH));
+		while (list ($num, $line) = each ($f)){
+			if(preg_match("#cache_dir\s+(.+?)\s+(.+?)\s+#",$line,$re)){
+				$array[trim($re[2])]=trim($re[2]);
+			}
+	
+		}
+		
+		return $array;
+	}	
+	
+	
 private function icmpChecksum($data){
 	if (strlen($data)%2)
 	$data .= "\x00";

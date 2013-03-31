@@ -37,6 +37,7 @@ if($argv[1]=='--join'){JOIN_ACTIVEDIRECTORY();die();}
 if($argv[1]=='--samba-ver'){SAMBA_VERSION_DEBUG();die();}
 if($argv[1]=='--refresh-ticket'){refresh_ticket();die();}
 if($argv[1]=='--disconnect'){disconnect();exit;}
+if($argv[1]=='--ntpdate'){sync_time(true);exit;}
 
 
 unset($argv[0]);
@@ -133,11 +134,28 @@ function build_kerberos(){
 	
 }
 
-function sync_time(){
+function sync_time($aspid=false){
 	if(isset($GLOBALS[__FUNCTION__])){return;}
 	$unix=new unix();
 	$sock=new sockets();	
 	$function=__FUNCTION__;
+	if($aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$timeExec=intval($unix->PROCCESS_TIME_MIN($oldpid));
+			writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
+			if($timeExec>5){
+				$kill=$unix->find_program("kill");
+				system_admin_events("Starting......: killing old pid $oldpid (already exists since {$timeExec}Mn)",__FUNCTION__,__FILE__,__LINE__);
+				shell_exec("$kill -9 $oldpid >/dev/null");
+			}else{
+				return;
+			}
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
 	$ipaddr=trim($array["ADNETIPADDR"]);	
@@ -569,6 +587,8 @@ function winbindd_version(){
 		return $re[1];
 	}
 }
+
+
 
 function JOIN_ACTIVEDIRECTORY(){
 	$unix=new unix();	

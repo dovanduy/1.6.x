@@ -18,7 +18,8 @@
 	if(isset($_GET["visited"])){visited();exit;}
 	if(isset($_GET["visited-search"])){visited_search();exit;}
 	
-	
+	if(isset($_GET["graph1"])){graph1();exit;}
+	if(isset($_GET["graph2"])){graph2();exit;}
 	
 	
 	
@@ -30,7 +31,11 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{week}&raquo;&raquo;{member}&raquo;&raquo;{$_GET["user"]}");
-	$html="YahooWin5('890','$page?tabs=yes&user={$_GET["user"]}&field={$_GET["field"]}&table={$_GET["table"]}&category={$_GET["category"]}','$title')";
+	
+	if(preg_match("#[0-9]+_hour#", $_GET["table"])){
+		$title=$tpl->_ENGINE_parse_body("{day}&raquo;&raquo;{member}&raquo;&raquo;{$_GET["user"]}");
+	}
+	$html="YahooWin5('890','$page?tabs=yes&user={$_GET["user"]}&field={$_GET["field"]}&table={$_GET["table"]}&category=". urlencode($_GET["category"])."','$title')";
 	echo $html;
 	
 }
@@ -43,12 +48,12 @@ function tabs(){
 	$array["visited"]=$tpl->_ENGINE_parse_body('{visited_websites}');
 	
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= "<li><a href=\"$page?$num=yes&user={$_GET["user"]}&field={$_GET["field"]}&table={$_GET["table"]}&category={$_GET["category"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$html[]= "<li><a href=\"$page?$num=yes&user={$_GET["user"]}&field={$_GET["field"]}&table={$_GET["table"]}&category=". urlencode($_GET["category"])."\"><span style='font-size:14px'>$ligne</span></a></li>\n";
 		
 		
 			
 		}
-	echo "<div id='$id' style='width:100%;height:700px;overflow:auto;background-color:white;'>
+	echo "<div id='$id' style='width:100%;'>
 				<ul>". implode("\n",$html)."</ul>
 		</div>
 		<script>
@@ -59,7 +64,134 @@ function tabs(){
 	
 }
 
+
 function popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$table=$_GET["table"];
+	$user=$_GET["user"];
+	$field=$_GET["field"];
+	$category=$_GET["category"];
+	$t=$_GET["divkey"];
+
+	
+	$html="
+			<div style='width:750px;height:350px' id='container-$t-1'></div>
+			<div style='width:750px;height:350px' id='container-$t-2'></div>
+	<script>
+		Loadjs('$page?graph1=yes&container=container-$t-1&user={$_GET["user"]}&field={$_GET["field"]}&table={$_GET["table"]}&category=". urlencode($_GET["category"])."');
+		Loadjs('$page?graph2=yes&container=container-$t-2&user={$_GET["user"]}&field={$_GET["field"]}&table={$_GET["table"]}&category=". urlencode($_GET["category"])."');	
+	</script>
+	";
+	
+echo $html;
+	
+	
+	
+}
+
+function graph1(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$table=$_GET["table"];
+	$user=$_GET["user"];
+	$field=$_GET["field"];
+	$category=$_GET["category"];
+	$t=$_GET["divkey"];
+	$titleW=$q->WEEK_TITLE_FROM_TABLENAME($table);
+	$weeksd=array(1 => "Sunday", 2 => "Monday",3=>"Tuesday",4=>"Wednesday",5=>"Thursday",6=>"Friday",7=>"Saturday");
+	
+	
+	
+	$sql="SELECT SUM(hits) as thits,SUM(size) as tsize,sitename,
+	category,$field FROM $table GROUP BY sitename,category,$field 
+	HAVING category='$category' AND $field='$user' ORDER BY thits DESC LIMIT 0,10";
+	$results=$q->QUERY_SQL($sql);
+	
+	if(!$q->ok){
+		echo "alert('".$tpl->javascript_parse_text($q->mysql_error)."')";
+		return;
+	}	
+	
+	if(mysql_num_rows($results)<2){return;}
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		
+		$PieData[$ligne["sitename"]]=round(($ligne["tsize"]/1024));
+		
+	
+	}	
+	
+	
+	$category=str_replace(",", "<br>", $category);
+	$title=$tpl->_ENGINE_parse_body();
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{websites}";
+	$highcharts->Title="{top_visited_websites} {for} $user {in} $category ({size} KB)";
+	echo $highcharts->BuildChart();	
+}
+
+function graph2(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$table=$_GET["table"];
+	$user=trim($_GET["user"]);
+	if($user==null){return;}
+	$field=$_GET["field"];
+	$category=$_GET["category"];
+	$t=$_GET["divkey"];
+	$titleW=$q->WEEK_TITLE_FROM_TABLENAME($table);
+	$weeksd=array(1 => "Sunday", 2 => "Monday",3=>"Tuesday",4=>"Wednesday",5=>"Thursday",6=>"Friday",7=>"Saturday");
+	$xAxisTtitle="{days}";
+	$sql="SELECT SUM(hits) as thits,SUM(size) as tsize,`day`,category,$field FROM $table GROUP BY `day`,category,$field
+	HAVING category='$category' AND $field='$user' ORDER BY `day`";	
+	
+	if(preg_match("#[0-9]+_hour#", $table)){
+		$xAxisTtitle="{hours}";
+		$sql="SELECT SUM(hits) as thits,SUM(size) as tsize,`hour` as `day`,
+		category,$field FROM $table GROUP BY `day`,category,$field
+		HAVING category='$category' AND $field='$user' ORDER BY `hour`";		
+	}
+	
+
+	$results=$q->QUERY_SQL($sql);
+	
+	if(!$q->ok){
+		echo "alert('".$tpl->javascript_parse_text($q->mysql_error)."')";
+		return;
+	}
+	
+	if(mysql_num_rows($results)<2){return;}
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$ligne["tsize"]=FormatBytes($ligne["tsize"]/1024);
+		$title=$tpl->_ENGINE_parse_body("{{$weeksd[$ligne["day"]]}}");
+		
+		if(preg_match("#[0-9]+_hour#", $table)){$title="{$ligne["day"]}h";}
+		$xdata[]=$title;
+		$ydata[]=$ligne["thits"];
+		
+	
+	}		
+	$category=str_replace(",", "<br>", $category);
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title="{hits} $xAxisTtitle {for} $user {in} $category";
+	$highcharts->yAxisTtitle="{hits}";
+	$highcharts->datas=array("{hits}"=>$ydata);
+	$highcharts->xAxisTtitle=$xAxisTtitle;
+	echo $highcharts->BuildChart();	
+}
+
+
+function popup1(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$q=new mysql_squid_builder();	
@@ -175,7 +307,7 @@ $page=CurrentPageName();
 $hits=$tpl->_ENGINE_parse_body("{hits}");
 $size=$tpl->_ENGINE_parse_body("{size}");
 $websites=$tpl->_ENGINE_parse_body("{websites}");
-	
+	$title=$tpl->_ENGINE_parse_body("{websites} {for} {$_GET["user"]} {in} {$_GET["category"]}");
 $html="
 <table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
@@ -199,7 +331,7 @@ $('#table-$t').flexigrid({
 	sortname: 'hits',
 	sortorder: 'desc',
 	usepager: true,
-	title: '',
+	title: '<strong>$title</strong>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,

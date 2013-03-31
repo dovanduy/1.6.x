@@ -31,7 +31,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$www=$_GET["sitename"];
-	$html="RTMMail(1090,'$page?sitename=$www&xtime={$_GET["xtime"]}&week={$_GET["week"]}&year={$_GET["year"]}','ZOOM:$www')";
+	$html="RTMMail(1090,'$page?sitename=$www&xtime={$_GET["xtime"]}&week={$_GET["week"]}&year={$_GET["year"]}&day={$_GET["day"]}','ZOOM:$www')";
 	echo $html;
 	
 	
@@ -43,6 +43,11 @@ function tab(){
 	$q=new mysql_squid_builder();
 	$familysite=$q->GetFamilySites($_GET["sitename"]);
 	
+	if(!is_numeric($_GET["xtime"])){
+		if($_GET["day"]<>null){
+			$_GET["xtime"]=strtotime("{$_GET["day"]} 00:00:00");
+		}
+	}
 	
 	if(is_numeric($_GET["xtime"])){
 		$dateT=" ".date("{l} {F} d",$_GET["xtime"]);

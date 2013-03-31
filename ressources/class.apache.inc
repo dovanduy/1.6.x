@@ -57,6 +57,7 @@ class vhosts{
 	"WPAD"=>"script-128.png",
 	"UPDATEUTILITY"=>"kaspersky-logo-128.png",
     "UFDBGUARD"=>"128-banned.png",
+	"APP_FILEZ_WEB"=>"filez-logo-128.png",
 			
 //	
 	);
@@ -108,6 +109,8 @@ class vhosts{
 	"WPAD"=>"script-64.png",
 	"UPDATEUTILITY"=>"kaspersky-update-64.png",
 	"WEBDAVFREE"=>"organisation-64.gif",
+	"APP_FILEZ_WEB"=>"filez-logo-64.png",
+			
 			
 	);
 
@@ -170,7 +173,7 @@ class vhosts{
 	"UPDATEUTILITY"=>array("TITLE"=>"UpdateUtility","TEXT"=>"UpdateUtilityWWText"),
 	"UFDBGUARD"=>array("TITLE"=>"UFDBGUARD_FREEWEB","TEXT"=>"UFDBGUARD_FREEWEB_TEXT"),
 	"WEBDAVFREE"=>array("TITLE"=>"WEBDAVFREE","TEXT"=>"WEBDAVFREE_TEXT"),
-			
+	"APP_FILEZ_WEB"=>array("TITLE"=>"APP_FILEZ_WEB","TEXT"=>"APP_FILEZ_WEB_TEXT"),
 	
 	
 	
@@ -255,7 +258,7 @@ function listOfAvailableServices($freeweb=false){
 			if($squidEnableRemoteStatistics==1){unset($array["ANDROWEB"]);}
 			if($DisableArticaProxyStatistics==1){unset($array["ANDROWEB"]);}
 		}
-		
+		if($user->APP_FILEZ_WEB){$array["APP_FILEZ_WEB"]="{APP_FILEZ_WEB}";}
 		if($user->POSTFIX_INSTALLED){if($user->KLMS_WEB_INSTALLED){$array["KLMS"]="{APP_KLMS}";}}
 		if($user->XAPIAN_PHP_INSTALLED){$array["XAPIAN"]="Xapian Desktop";}
 		if($user->PIWIGO_INSTALLED){$array["PIWIGO"]="{APP_PIWIGO}";}

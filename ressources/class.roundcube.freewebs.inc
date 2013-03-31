@@ -937,6 +937,7 @@ class roundcube_freewebs{
 		
 			$q=new mysql();
 			$instance_id=$this->mysql_instance_id;
+			if(!is_numeric($instance_id)){$instance_id=0;}
 			if($instance_id>0){$q=new mysql_multi($instance_id);}
 			
 			
@@ -950,6 +951,12 @@ class roundcube_freewebs{
 			//see http://pear.php.net/manual/en/package.database.db.intro-dsn.php
 			if($instance_id>0){
 					$dsn="$auth@unix($q->SocketPath)/$this->database";
+			}
+			
+			if($instance_id==0){
+				if(($q->mysql_server=="127.0.0.1") OR ($q->mysql_server=="loalhost")){
+					$dsn="$auth@unix(/var/run/mysqld/mysqld.sock)/$this->database";
+				}
 			}
 			
 		

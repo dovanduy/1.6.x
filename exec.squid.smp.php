@@ -300,7 +300,7 @@ function caches_squid_z(){
 		return;
 	}
 	$stopstart=false;
-	$GetLocalCaches=GetLocalCaches();
+	$GetLocalCaches=$unix->SQUID_CACHE_FROM_SQUIDCONF();
 	$conffile="/tmp/squid-".time().".conf";
 	$f[]="cache_effective_user squid";
 	$f[]="pid_filename	/var/run/squid-temp.pid";
@@ -335,22 +335,7 @@ function caches_squid_z(){
 	}	
 }
 
-function GetLocalCaches(){
-	$unix=new unix();	
-	$SQUID_CONFIG_PATH=$unix->SQUID_CONFIG_PATH();
-	
-	$f=explode("\n",@file_get_contents($SQUID_CONFIG_PATH));
-	while (list ($num, $line) = each ($f)){
-		if(preg_match("#cache_dir\s+([a-z]+)\s+(.+?)\s+[0-9]+#",$line,$re)){
-			writelogs("Directory: {$re[2]} type={$re[1]}",__FUNCTION__,__FILE__,__LINE__);
-			$array[trim($re[2])]=$line;
-		}
-		
-	}
-	if($GLOBALS["VERBOSE"]){print_r($array);}
-	return $array;
-	
-}
+
 
 function events_squid_caches($text,$function,$line){
 	$file="/var/log/squid/artica-caches32.log";

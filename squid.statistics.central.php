@@ -291,6 +291,10 @@ function central_information(){
 		
 		}
 		
+		
+		$tr[]=Paragraphe32('source_logs','source_logs_squid_text'
+				,"Loadjs('squid.logrotate.php')","32-logs.png");		
+		
 		$tr[]=Paragraphe32('enable_disable_statistics','ARTICA_STATISTICS_TEXT'
 				,"Loadjs('squid.artica.statistics.php')","statistics-32.png");
 		

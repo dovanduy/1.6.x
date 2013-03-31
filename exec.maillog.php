@@ -183,6 +183,7 @@ if(strpos($buffer,"thread exiting")>0){return;}
 //if(strpos($buffer,") p00")>0){return;}  
 //if(strpos($buffer,") TIMING [total")>0){return;} 
 //if(strpos($buffer,") TIMING-SA total")>0){return;}   
+if(strpos($buffer,"mailarchiver[")>0){return;}
 if(strpos($buffer,") policy protocol:")>0){return;} 
 if(strpos($buffer,"]: policy protocol:")>0){return;} 
 if(strpos($buffer,") run_av (ClamAV-clamd)")>0){return;}

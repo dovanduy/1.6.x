@@ -1,7 +1,14 @@
 <?php
 if(isset($_GET["verbose"])){echo __LINE__." verbose OK<br>\n";$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 $GLOBALS["AS_ROOT"]=false;
-if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
+if(function_exists("posix_getuid")){if(posix_getuid()==0){
+	$GLOBALS["AS_ROOT"]=true;
+	include_once(dirname(__FILE__).'/framework/class.unix.inc');
+	include_once(dirname(__FILE__)."/framework/frame.class.inc");
+	include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
+	include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
+	include_once(dirname(__FILE__)."/framework/class.settings.inc");
+}}
 
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.html.pages.inc');
@@ -19,15 +26,28 @@ if(isset($_GET["month"])){month();exit;}
 if(isset($_GET["year"])){year();exit;}
 if(isset($_POST["LoadAvgClean"])){LoadAvgClean();exit;}
 
+if($GLOBALS["AS_ROOT"]){@mkdir("/usr/share/artica-postfix/ressources/web/cache1",0755,true);}
+
+
 injectSquid();
 PageDeGarde();
 License();
-
-
-
 exit;
 
 function injectSquid(){
+	$cacheFile="/usr/share/artica-postfix/ressources/web/cache1/injectSquid.".basename(__FILE__);
+	if($GLOBALS["AS_ROOT"]){
+		$unix=new unix();
+		$mins=$unix->file_time_min($cacheFile);
+		if($mins<5){return;}
+		@unlink($cacheFile);
+	}
+	
+	if(!$GLOBALS["AS_ROOT"]){
+		
+		if(is_file($cacheFile)){$tpl=new templates();echo $tpl->_ENGINE_parse_body(@file_get_contents($cacheFile));return;}
+	}
+	
 	if($GLOBALS["VERBOSE"]){echo "InjectSquid ->\n<br>";}
 	$users=new usersMenus();
 	$run=false;
@@ -47,7 +67,16 @@ function injectSquid(){
 	$html="<div style='margin-bottom:15px'>".
 	Paragraphe("tables-64-running.png", "{update_dbcatz_running}","{update_SQUIDAB_EXP}<hr><b>{since}:&nbsp;{$inf}&nbsp;{minutes}</b>", 
 	"javascript:Loadjs('squid.blacklist.upd.php')","go_to_section",300,132,1);
-	echo $tpl->_ENGINE_parse_body($html)."</div>";	
+	$html=$tpl->_ENGINE_parse_body($html)."</div>";	
+	
+	if($GLOBALS["AS_ROOT"]){
+		@file_put_contents($cacheFile, $html);
+		@chmod($cacheFile,0775);
+		
+	}else{
+		echo $html;
+	}
+	
 	return;	
 	}
 	
@@ -65,7 +94,16 @@ function injectSquid(){
 		$html="<div style='margin-bottom:15px'>".
 		Paragraphe("64-download.png", "{new_database_available}","{new_database_available_category_text}<hr>{version}:$REMOTE_VERSION ($REMOTE_SIZE)", 
 		"javascript:Loadjs('squid.categories.php')","go_to_section",300,132,1);
-		echo $tpl->_ENGINE_parse_body($html)."</div>";	
+		$html=$tpl->_ENGINE_parse_body($html)."</div>";	
+		
+		if($GLOBALS["AS_ROOT"]){
+			@file_put_contents($cacheFile, $html);
+			@chmod($cacheFile,0775);
+		
+		}else{
+			echo $html;
+		}
+		
 		return;			
 	}
 	
@@ -121,6 +159,8 @@ function tabs(){
 	$array["month"]='{month}';
 	$array["year"]='{year}';
 	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql();
 
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
@@ -465,14 +505,14 @@ $page=CurrentPageName();
 $GLOBALS["CPU_NUMBER"]=intval($users->CPU_NUMBER);
 $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	$tpl=new templates();
-	$title=html_entity_decode($tpl->javascript_parse_text("{server_load} {today}"));
+	$title=html_entity_decode($tpl->javascript_parse_text("Today: Server Load"));
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/loadavg_1.rrd");
 	$rrd->width=680;
 	$rrd->height=250;
 	$rrd->graphTitle=$title;
 	$rrd->timestart="-1day";
 	$rrd->watermark="-- ".date('H:i:s')." --";
-	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("{server_load}"));
+	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("Server load"));
 	$sock=new sockets();
 	$sock->getFrameWork("services.php?chmod-rrd=yes");
 	$id=time();
@@ -484,7 +524,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	
 	
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/mem_user.rrd");
-	$title=html_entity_decode($tpl->javascript_parse_text("{memory} {today}"));
+	$title=html_entity_decode($tpl->javascript_parse_text("Today: memory"));
 	$rrd->width=680;
 	$rrd->height=250;
 	$rrd->timestart="-1day";
@@ -493,7 +533,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	$rrd->base=1024;
 	$rrd->GPRINT="%7.2lf %sb";
 	$rrd->LineColor="#0136BA";
-	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("{memory} MB"));
+	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("Memory MB"));
 	$id=time();
 	if(!$rrd->buildgraph(dirname(__FILE__)."/ressources/logs/rrd.memd.png","mem_user")){	
 		$img2="<span style='color:#CB0B0B;font-size:12px'>Graph error:$rrd->error</span>";
@@ -502,7 +542,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	}	
 	$sock->getFrameWork("services.php?chmod-rrd=yes");
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/cpu_user.rrd");
-	$title=html_entity_decode($tpl->javascript_parse_text("{cpu} {today}"));
+	$title=html_entity_decode($tpl->javascript_parse_text("Today: CPU"));
 	$rrd->width=680;
 	$rrd->height=250;
 	$rrd->timestart="-1day";
@@ -513,7 +553,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	
 	$rrd->GPRINT="%05.2lf %%";
 	$rrd->LineColor="#287B30";
-	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("{cpu} %"));
+	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("CPU %"));
 	$id=time();
 	if(!$rrd->buildgraph(dirname(__FILE__)."/ressources/logs/rrd.cpud.png","cpu_user")){	
 		$img3="<span style='color:#CB0B0B;font-size:12px'>Graph error:$rrd->error</span>";
@@ -753,6 +793,19 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	
 }
 function PageDeGarde(){
+	
+	$cacheFile="/usr/share/artica-postfix/ressources/web/cache1/PageDeGarde.".basename(__FILE__);
+	if($GLOBALS["AS_ROOT"]){
+		$unix=new unix();
+		$mins=$unix->file_time_min($cacheFile);
+		if($mins<5){return;}
+		@unlink($cacheFile);
+	}
+	
+	if(!$GLOBALS["AS_ROOT"]){
+		if(is_file($cacheFile)){$tpl=new templates();echo $tpl->_ENGINE_parse_body(@file_get_contents($cacheFile));return;}
+	}	
+	
 	$tpl=new templates();
 	$page=CurrentPageName();
 	
@@ -760,7 +813,7 @@ function PageDeGarde(){
 	
 	if(internal_load()>1.2){if(GET_CACHED(__FILE__, __FUNCTION__)){return;}}
 	
-	$title=html_entity_decode($tpl->javascript_parse_text("{server_load} {thishour}"));
+	$title=html_entity_decode($tpl->javascript_parse_text("Server Load this hour"));
 	if($GLOBALS["VERBOSE"]){echo __LINE__." rrdbuilder()<br>\n";}
 	
 	try{
@@ -776,7 +829,7 @@ function PageDeGarde(){
 	$rrd->height=130;
 	$rrd->graphTitle=$title;
 	$rrd->watermark="-- ".date('H:i:s')." --";
-	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("{server_load}"));
+	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("Server Load"));
 	$sock=new sockets();
 	$sock->getFrameWork("services.php?chmod-rrd=yes");
 	$id=time();
@@ -797,7 +850,7 @@ function PageDeGarde(){
 	
 	if($GLOBALS["VERBOSE"]){echo __LINE__." rrdbuilder(/opt/artica/var/rrd/yorel/mem_user.rrd)<br>\n";}	
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/mem_user.rrd");
-	$title=html_entity_decode($tpl->javascript_parse_text("{memory} {thishour}"));
+	$title=html_entity_decode($tpl->javascript_parse_text("Memory this hour"));
 	$rrd->width=299;
 	$rrd->height=130;
 	$rrd->graphTitle=$title;
@@ -805,7 +858,7 @@ function PageDeGarde(){
 	$rrd->base=1024;
 	$rrd->GPRINT="%7.2lf %sb";
 	$rrd->LineColor="#0136BA";
-	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("{memory} MB"));
+	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("Memory MB"));
 	$id=time();
 	if(!$rrd->buildgraph(dirname(__FILE__)."/ressources/logs/rrd.mem.png","mem_user")){	
 		if(is_file(dirname(__FILE__)."/ressources/logs/rrd.mem.png")){
@@ -818,7 +871,7 @@ function PageDeGarde(){
 	}	
 	$sock->getFrameWork("services.php?chmod-rrd=yes");
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/cpu_user.rrd");
-	$title=html_entity_decode($tpl->javascript_parse_text("{cpu} {thishour}"));
+	$title=html_entity_decode($tpl->javascript_parse_text("CPU this hour"));
 	$rrd->width=299;
 	$rrd->height=130;
 	$rrd->graphTitle=$title;
@@ -828,7 +881,7 @@ function PageDeGarde(){
 	
 	$rrd->GPRINT="%05.2lf %%";
 	$rrd->LineColor="#287B30";
-	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("{cpu} %"));
+	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("CPU %"));
 	$id=time();
 	if(!$rrd->buildgraph(dirname(__FILE__)."/ressources/logs/rrd.cpu.png","cpu_user")){	
 		if(is_file(dirname(__FILE__)."/ressources/logs/rrd.cpu.png")){
@@ -867,7 +920,16 @@ function PageDeGarde(){
 	</div>
 	";
 	
+	if($GLOBALS["AS_ROOT"]){
+		@file_put_contents($cacheFile, $html);
+		@chmod($cacheFile, 0775);
+		return;
+		
+	}
+	
 	SET_CACHED(__FILE__, __FUNCTION__,null,$html);
+	
+	
 	echo $html;
 	
 	

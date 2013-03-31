@@ -23,11 +23,23 @@ class highcharts{
 	
 	
 	public function BuildChart(){
-		header("content-type: application/x-javascript");
+		
 		$t=time();
 		$tpl=new templates();
 		$this->Title=replace_accents($this->Title);
 		$this->Title=$tpl->javascript_parse_text($this->Title);
+		$borderColor="005447";
+		$page=CurrentPageName();
+		if(preg_match("#^miniadm#", $page)){
+			$borderColor="3B5998";
+			$this->AreaColor="#$borderColor";
+		}
+		
+		if($_SESSION["MINIADM"]){
+			$borderColor="3B5998";
+			$this->AreaColor="#$borderColor";			
+		}
+		
 		
 		$this->yAxisTtitle=$tpl->javascript_parse_text($this->yAxisTtitle);
 		$this->xAxisTtitle=$tpl->javascript_parse_text($this->xAxisTtitle);
@@ -45,7 +57,7 @@ class highcharts{
 		$f[]="\t\tchart: {";
 		$f[]="\t\t\ttype: '$this->ChartType',";
 		$f[]="\t\t\trenderTo: '$this->container',";
-		if($this->ChartType=="areaspline"){	$f[]="\t\t\tstyle:{	color: '#005447'}";}
+		if($this->ChartType=="areaspline"){	$f[]="\t\t\tstyle:{	color: '#$borderColor'}";}
 		if($this->ChartType=="pie"){
 			$f[]="\t\t\tplotBackgroundColor: null,";
 			$f[]="\t\t\tplotBorderWidth: null,";
@@ -57,7 +69,7 @@ class highcharts{
 		
 		$f[]="\t\t\tcredits: { enabled: false },";	
 			
-		$f[]="\t\t\ttitle: { text: '$this->Title' ,style:{	color: '#005447', fontSize: '18px'} },";	
+		$f[]="\t\t\ttitle: { text: '$this->Title' ,style:{	color: '#$borderColor', fontSize: '18px'} },";	
 		if($this->ChartType=="areaspline"){	
 			
 			if(count($this->xAxis)>0){
@@ -72,7 +84,7 @@ class highcharts{
 			$f[]="\t\t\txAxis: {";
 			$f[]="\t\t\t\tcategories: [". @implode(",", $this->xAxis)."],";
 			$f[]="\t\t\t\ttitle: {";
-			$f[]="\t\t\t\t\ttext: '$this->xAxisTtitle',style:{	color: '#005447', fontSize: '14px'}";
+			$f[]="\t\t\t\t\ttext: '$this->xAxisTtitle',style:{	color: '#$borderColor', fontSize: '14px'}";
 			$f[]="\t\t\t}";
 			$f[]="\t\t},";
 		}
@@ -80,7 +92,7 @@ class highcharts{
 		if($this->ChartType=="areaspline"){
 			$f[]="\t\t\tyAxis: {";
 			$f[]="\t\t\t\ttitle: {";
-			$f[]="\t\t\t\t\ttext: '$this->yAxisTtitle',style:{	color: '#005447', fontSize: '14px'}";
+			$f[]="\t\t\t\t\ttext: '$this->yAxisTtitle',style:{	color: '#$borderColor', fontSize: '14px'}";
 			$f[]="\t\t\t}";
 			$f[]="\t\t},";
 		}
@@ -118,7 +130,7 @@ class highcharts{
 	            },
 	           ";	
 	$f[]=" legend: {
-	                itemStyle:{	color: '#005447', fontSize: '12px'},
+	                itemStyle:{	color: '#$borderColor', fontSize: '12px'},
 					shadow: true
 	            },
 	           ";	
@@ -158,7 +170,7 @@ class highcharts{
 	$f[]="]";
 	$f[]="});";
 	$f[]="});";
-	
+	header("content-type: application/x-javascript");
 	return @implode("\n", $f);
 	
 		

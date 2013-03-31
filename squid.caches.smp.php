@@ -245,6 +245,16 @@ function page(){
 	
 	if($DisableAnyCache==1){
 		$html=FATAL_ERROR_SHOW_128("{all_cache_method_are_globally_disabled}");
+		$html=$html."<div style='width:100%'>
+				<div style='margin-top:10px;width:99%' class=form>
+					<a href=\"javascript:blur();\" OnClick=\"Loadjs('squid.caches.disable.php')\"
+					style='font-size:16px;text-decoration:underline;font-weight:bold'
+					>{access_to_parameters}</a>
+				</div>
+				
+				";
+		
+		
 		echo $tpl->_ENGINE_parse_body($html);
 		return;
 	}

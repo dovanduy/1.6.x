@@ -6,7 +6,7 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
-
+//exec.proxy.pac.php --write
 
 if($argv[1]=='--dump'){dump_config();die();}
 if($argv[1]=='--write'){writeproxypac();die();}
@@ -116,9 +116,16 @@ function writeproxypac(){
 	$isInNet[]="}";
 	$isInNet[]="";
 	@mkdir("/usr/share/proxy.pac",0755,true);
+	@unlink("/usr/share/proxy.pac/proxy.pac");
+	@unlink("/usr/share/proxy.pac/wpad.dat");
 	@file_put_contents("/usr/share/proxy.pac/proxy.pac",@implode("\n",$isInNet));
+	@file_put_contents("/usr/share/proxy.pac/wpad.dat",@implode("\n",$isInNet));
 	@chmod("/usr/share/proxy.pac/proxy.pac",0755);
 	@chown("/usr/share/proxy.pac/proxy.pac","squid");
+	
+	@chmod("/usr/share/proxy.pac/wpad.dat",0755);
+	@chown("/usr/share/proxy.pac/wpad.dat","squid");	
+	
 	echo "Starting......: proxy.pac service writing proxy.pac file done...\n";
 }
 

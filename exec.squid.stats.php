@@ -1602,6 +1602,9 @@ function members_central($aspid=false){
 			ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
 			return;
 		}
+		
+		@file_put_contents($pidfile, getmypid());
+		
 	}
 	clients_hours(true);
 	visited_websites_by_day(true);
@@ -1665,8 +1668,9 @@ function _members_central_perform($tablesource,$date){
 	if($GLOBALS["VERBOSE"]){echo "checking table $tablesource\n";}
 	$sql="SELECT SUM(hits) as thits,SUM(QuerySize) as tsize,CLIENT,hostname,uid,MAC,account FROM `$tablesource`
 	GROUP BY CLIENT,hostname,uid,MAC,account";
-	
-	
+	$unix=new unix();
+	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.stats.days.websites.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
+	shell_exec($cmdline);
 	
 	
 	
@@ -1750,6 +1754,9 @@ function _members_central_perform($tablesource,$date){
 
 
 function table_days(){
+	$unix=new unix();
+	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.stats.days.websites.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
+	
 	
 	if(system_is_overloaded(basename(__FILE__))){
 		writelogs_squid("Overloaded system, aborting",__FUNCTION__,__FILE__,__LINE__);
@@ -1794,6 +1801,7 @@ function table_days(){
 				}
 			}
 		}
+		shell_exec($cmdline);
 		WeekDaysNums();
 	
 }
@@ -3618,6 +3626,8 @@ function writeDebugLogs($text,$function,$file,$line){
 }
 
 function youtube_days(){
+	$unix=new unix();
+	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.stats.days.websites.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
 	if(isset($GLOBALS["youtube_days_executed"])){return;}
 	$GLOBALS["youtube_days_executed"]=true;
 	$q=new mysql_squid_builder();
@@ -3632,6 +3642,7 @@ function youtube_days(){
 	}
 	youtube_count();
 	youtube_dayz();
+	shell_exec($cmdline);
 	
 }
 function _youtube_days($tablesource){

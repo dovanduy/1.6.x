@@ -63,7 +63,7 @@ function js(){
 	$title=$tpl->_ENGINE_parse_body('{proxy_parameters_compilation}');
 	if(isset($_GET["ask"])){
 		$compile_squid_ask=$tpl->javascript_parse_text("{compile_squid_ask}");
-		echo "if(!confirm('$compile_squid_ask')){
+		echo "if(confirm('$compile_squid_ask')){
 				RTMMail(500,'$page?popup=yes$extension','$title');
 			}";
 		return;

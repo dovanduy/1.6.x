@@ -22,6 +22,7 @@ private
      artica_path:string;
      Arch:integer;
      MailArchiverEnabled:integer;
+     MailArchiverUsePerl:integer;
      amavis:Tamavis;
 
 
@@ -57,6 +58,8 @@ begin
 
   amavis:=tamavis.Create(SYS);
   if not TryStrToInt(SYS.GET_INFO('MailArchiverEnabled'),MailArchiverEnabled)  then MailArchiverEnabled:=0;
+  if not TryStrToInt(SYS.GET_INFO('MailArchiverUsePerl'),MailArchiverUsePerl)  then MailArchiverUsePerl:=0;
+
 end;
 //##############################################################################
 procedure tmailarchive.free();
@@ -99,6 +102,15 @@ begin
       logs.DebugLogs('Starting......: If amavis is installed, this feature was automatically disabled to prevent double operations');
       STOP();
       exit;
+  end;
+
+   pid:=PID_NUM();
+  if MailArchiverUsePerl=1 then begin
+        logs.DebugLogs('Starting......: mailArchiver using the perl method');
+         if SYS.PROCESS_EXIST(pid) then STOP();
+         if not FileExists('/etc/init.d/mailarchive-perl') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --mailarchive-perl');
+         fpsystem('/etc/init.d/mailarchive-perl start');
+         exit;
   end;
   
   
@@ -171,6 +183,20 @@ var
 begin
 pid:=PID_NUM();
 count:=0;
+
+if SYS.PROCESS_EXIST(pid) then begin
+   writeln('Stopping mailArchiver........: ' + pid + ' PID..');
+   fpsystem('/bin/kill ' + pid);
+end else begin
+    if MailArchiverUsePerl=1 then begin
+        writeln('Stopping mailArchiver........: PERL method..;');
+         if not FileExists('/etc/init.d/mailarchive-perl') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --mailarchive-perl');
+         fpsystem('/etc/init.d/mailarchive-perl stop');
+         exit;
+  end;
+  exit;
+end;
+
 if SYS.PROCESS_EXIST(pid) then begin
    writeln('Stopping mailArchiver........: ' + pid + ' PID..');
    fpsystem('/bin/kill ' + pid);

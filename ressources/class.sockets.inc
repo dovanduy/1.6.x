@@ -316,11 +316,19 @@ function downloadFile($url,$hostname)  {
    		}
    	   	
    	   	$file=md5($value);
-   	   	@mkdir(dirname(__FILE__)."/logs");
+   	   	@mkdir(dirname(__FILE__)."/logs",0755,true);
    	   	$targetedFile=dirname(__FILE__)."/logs/$key";
-   	   	file_put_contents($targetedFile,$value);
+   	    $alors=@file_put_contents($targetedFile,$value);
+   	    if(!$alors){
+   	    	$this->getFrameWork("services.php?chown-medir=yes");
+   	    	$alors=@file_put_contents($targetedFile,$value);
+   	    	writelogs("SET $key $targetedFile Permissions denied",__CLASS__ . "=>" . __FUNCTION__,__FILE__);
+   	    	if(!$alors){return false;}
+   	    }
+   	    
    	   	if(!is_file($targetedFile)){
    	   		writelogs("SET $key $targetedFile no such file",__CLASS__ . "=>" . __FUNCTION__,__FILE__);
+   	   		return;
    	   	}
    		$this->getFrameWork("setinfos.php?key=$key&path=$targetedFile");
    		if($value==null){$value=' ';}

@@ -96,11 +96,21 @@ private function ROUNDCUBE_INSTALL(){
 
 	if(is_file("$this->root/plugins/subscriptions_option/subscriptions_option.php")){$subscriptions_option=1;}
 	
-
+	$SockPath="/var/run/mysqld/mysqld.sock";
+	//mysql://user@unix(/path/to/socket)/pear
 	$q->checkRoundCubeTables($server_database);
+	$mysqlPassword=null;
+	if($q->mysql_admin==null){$q->mysql_admin="root";}
+	if($q->mysql_password<>null){
+		$mysqlPassword=":$q->mysql_password";
+	}
 	$conf[]="<?php";
 	$conf[]="\$rcmail_config = array();";
-	$conf[]="\$rcmail_config[\"db_dsnw\"] = \"mysql://$q->mysql_admin:$q->mysql_password@$q->mysql_server/$server_database\";";
+	if( ($q->mysql_server=="127.0.0.1") OR ($q->mysql_server=="localhost")){
+		$conf[]="\$rcmail_config[\"db_dsnw\"] = \"mysql://{$q->mysql_admin}$mysqlPassword@unix($SockPath)/$server_database\";";
+	}else{
+		$conf[]="\$rcmail_config[\"db_dsnw\"] = \"mysql://{$q->mysql_admin}$mysqlPassword@$q->mysql_server/$server_database\";";
+	}
 	$conf[]="\$rcmail_config[\"db_dsnr\"] = \"\";";
 	$conf[]="\$rcmail_config[\"db_max_length\"] = 512000;  // 500K";
 	$conf[]="\$rcmail_config[\"db_persistent\"] = FALSE;";

@@ -794,15 +794,15 @@ function dansguardian_status(){
 
 		$kav="<tr>
 			<td width=1%><span id='kav4-$time'><img src='img/$pic'></span></td>
-			<td class=legend nowrap>{APP_KAV4PROXY}:</td>
+			<td class=legend nowrap>Kaspersky:</td>
 			<td><div style='font-size:12px' nowrap>$kavicapserverEnabledText</td>
 			</tr>";			
 	}else{
 		$pic="status_ok-grey.gif";
-		$kavicapserverEnabledText="{not_installed}";
+		$kavicapserverEnabledText="-";
 		$kav="<tr>
 			<td width=1%><img src='img/$pic'></td>
-			<td class=legend nowrap>{APP_KAV4PROXY}:</td>
+			<td class=legend nowrap>Kaspersky:</td>
 			<td><div style='font-size:12px' nowrap>$kavicapserverEnabledText</td>
 			</tr>";			
 	}
@@ -871,7 +871,7 @@ function dansguardian_status(){
 		$pic="status_ok-grey.gif";
 		$cicap="<tr>
 				<td width=1%><img src='img/$pic'></td>
-				<td class=legend>{APP_C_ICAP}:</td>
+				<td class=legend>Antivirus:</td>
 				<td><div style='font-size:12px' nowrap>{not_installed}</td>
 				</tr>";			
 
@@ -962,7 +962,7 @@ function dansguardian_status(){
 	}
 
 	if($t>0){
-		$table="<table style='width:99%' class=form><tbody>
+		$table="<table style='width:250px' class=form><tbody>
 		$EnableWatchdogTextTR
 		$EnableActiveDirectoryTextTR
 		$EnableRemoteStatisticsApplianceTextTR

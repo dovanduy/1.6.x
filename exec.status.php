@@ -1367,12 +1367,20 @@ function squid_master_status(){
 	}
 	
 	$unix=new unix();
-	$CacheSchedules=$unix->file_time_min("/etc/artica-postfix/CACHES_SQUID_SCHEDULE");
+	$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/CACHES_SQUID_SCHEDULE");
 	if($CacheSchedules>1440){
 		$cmd=trim($prefixcmd.dirname(__FILE__)."/exec.squid.php --build-schedules >/dev/null 2>&1 &");
 		 @unlink("/etc/artica-postfix/CACHES_SQUID_SCHEDULE");
 		 @file_put_contents("/etc/artica-postfix/CACHES_SQUID_SCHEDULE", time());
 	}
+	
+	$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/CACHES_SQUID_ROTATE");
+	if($CacheSchedules>300){
+		$cmd=trim($prefixcmd.dirname(__FILE__)."/exec.logrotate.php --squid >/dev/null 2>&1 &");
+		@unlink("/etc/artica-postfix/CACHES_SQUID_ROTATE");
+		@file_put_contents("/etc/artica-postfix/CACHES_SQUID_ROTATE", time());
+	}	
+	
 	
 
 	
@@ -2015,14 +2023,34 @@ function mimedefang_version(){
 	
 }
 //========================================================================================================================================================
+
+function mailarchive_pid(){
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$pgrep=$GLOBALS["CLASS_UNIX"]->find_program("pgrep");
+	exec("$pgrep -l -f milter_archiver.pl 2>&1",$results);
+	if(!is_array($results)){return null;}
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#pgrep#",$ligne,$re)){continue;}
+		if(!preg_match("#([0-9]+)\s+(.+)#",$ligne,$re)){continue;}
+		return $re[1];
+	}
+
+}
+
 function mailarchiver(){
 	$MailArchiverEnabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('MailArchiverEnabled');
+	$MailArchiverUsePerl=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("MailArchiverUsePerl");
 	if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
+	if(!is_numeric($MailArchiverUsePerl)){$MailArchiverUsePerl=0;}
 	if($GLOBALS["VERBOSE"]){echo "DEBUG: MailArchiverEnabled..: $MailArchiverEnabled\n";}
-	$pid_path="/var/run/maildump/maildump.pid";
-	if($GLOBALS["VERBOSE"]){echo "DEBUG: pid path....: $pid_path\n";}
-	$master_pid=trim(@file_get_contents($pid_path));
-	if($GLOBALS["VERBOSE"]){echo "DEBUG: master pid..: $master_pid\n";}	
+	if($MailArchiverUsePerl==0){
+		$pid_path="/var/run/maildump/maildump.pid";
+		if($GLOBALS["VERBOSE"]){echo "DEBUG: pid path....: $pid_path\n";}
+		$master_pid=trim(@file_get_contents($pid_path));
+		if($GLOBALS["VERBOSE"]){echo "DEBUG: master pid..: $master_pid\n";}	
+	}else{
+		$master_pid=mailarchive_pid();
+	}
 	
 	$l[]="[APP_MAILARCHIVER]";
 	$l[]="service_name=APP_MAILARCHIVER";

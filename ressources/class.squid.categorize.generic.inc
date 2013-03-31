@@ -120,6 +120,7 @@ class generic_categorize{
 		if(preg_match("#\.ehistats\.[a-z]+$#",$www)){return "tracker";}
 		if(preg_match("#\.iestats\.[a-z]+$#",$www)){return "tracker";}
 		if(preg_match("#^logc.*?\.at\.pagesjaunes\.fr$#",$www)){return "tracker";}
+		if(preg_match("#log\.optimizely\.com$#",$www)){return "tracker";}
 	}
 	
 	private function Filehosting($www){
@@ -876,6 +877,7 @@ private function socialnet($www){
 		if(preg_match("#\.adnxs\.com$#", $www)){return "publicite";}	
 		if(preg_match("#\.netadsrv\.[a-z]+$#", $www)){return "publicite";}
 		if(preg_match("#^publicidad\.#", $www)){return "publicite";}
+		if(preg_match("#\.cabestan\.com$#", $www)){return "publicite";}
 		
 	}
 	
@@ -1217,6 +1219,7 @@ private function socialnet($www){
 		if(preg_match("#\.creative-mobile\.com$#",$www)){return "games";}
 		if(preg_match("#\.americasarmy\.com$#",$www)){return "games";}
 		if(preg_match("#\.secondlife\.com$#",$www)){return "games";}
+		if(preg_match("#\.gamershell\.com$#",$www)){return "games";}
 	}
 	
 	private function automobile($www){
@@ -1358,6 +1361,7 @@ private function socialnet($www){
 		if(preg_match("#\.uptodown\.[a-z]+$#", $www)){return "downloads";}
 		if(preg_match("#\.[0-9]+-download\.a-z]+$#", $www)){return "downloads";}
 		if(preg_match("#\.malavida\.[a-z]+$#", $www)){return "downloads";}
+		if(preg_match("#\.soft112\.com$#", $www)){return "downloads";}
 	}
 	
 	private function dynamic($www){
@@ -1478,6 +1482,8 @@ private function socialnet($www){
 		if(preg_match("#[0-9]+\.ctinets\.com$#", $www)){return "dynamic";}
 		if(preg_match("#[0-9]+\.static\.ctinets\.com$#", $www)){return "dynamic";}
 		if(preg_match("#^static.*?\.rev\.dyxnet\.com$#", $www)){return "dynamic";}
+		if(preg_match("#^so.*?\.asiawhere\.com$#", $www)){return "dynamic";}
+		if(preg_match("#^[0-9]+.*?\.kbtelecom\.net\.tw$#", $www)){return "dynamic";}
 	}
 	
 	
@@ -1624,6 +1630,7 @@ private function socialnet($www){
 		if(preg_match("#\.freelyads\.[a-z\.]+$#", $www)){return "smallads";}
 		if(preg_match("#\.olxalgerie\.com$#", $www)){return "smallads";}
 		if(preg_match("#\.auctions\.yahoo\.[a-z\.]+$#", $www)){return "smallads";}
+		if(preg_match("#\.mes-occasions\.[a-z\.]+$#", $www)){return "smallads";}
 	}
 	
 	private function realestate($www){
@@ -2057,7 +2064,7 @@ private function socialnet($www){
 		if(preg_match("#\.structurae\.[a-z]+$#", $www)){return "culture";}
 		if(preg_match("#\.antoloji\.com$#", $www)){return "culture";}
 		if(preg_match("#\.beniculturali\.it$#", $www)){return "culture";}
-		if(preg_match("#(theatre|culturali|museum|musee|conservatoire)#", $www)){return "culture";}
+		if(preg_match("#(theatre|culturali|museum|musee|muzeum|conservatoire)#", $www)){return "culture";}
 		
 		if(preg_match("#-rencontre#", $www)){return "dating";}
 		if(strpos($www, "edenflirt.com")>0){return "dating";}
@@ -2234,6 +2241,7 @@ private function socialnet($www){
 		if(strpos($www, ".babylon.com")>0){return "translators";}
 		if(preg_match("#^translate.*\.#", $www)){return "translators";}
 		if(preg_match("#\.babelfish\.yahoo.com$#", $www)){return "translators";}
+		if(preg_match("#\.zaixian-fanyi\.[a-z\.]+$#", $www)){return "translators";}
 		if(preg_match("#\.nciku\.com$#", $www)){return "translators";}
 		if(preg_match("#\.woxikon\.de$#", $www)){return "translators";}
 		if(preg_match("#\.proz\.com$#", $www)){return "translators";}
@@ -2440,12 +2448,18 @@ private function socialnet($www){
 		if(preg_match("#\.myticket\.[a-z]+#", $www)){return "recreation/nightout";}
 		
 		
-		if(preg_match("#(cooking|recette|marmiton|cuisiner|culinaire)#", $www)){return "hobby/cooking";}
+		
+		
+		
+		if(preg_match("#(cooking|recette|marmiton|cuisiner|culinaire|gastronomie|gastronomy|gastronome)#", $www)){return "hobby/cooking";}
 		if(preg_match("#^recettes-.*?\.fr$#", $www)){return "hobby/cooking";}
 		if(preg_match("#\.cuisineblog\.fr$#", $www)){return "hobby/cooking";}
 		if(preg_match("#\.meltyfood\.fr$#", $www)){return "hobby/cooking";}
 		if(preg_match("#\.rezeptwiese\.[a-z]+$#", $www)){return "hobby/cooking";}
 		if(preg_match("#\.atelierdeschefs\.[a-z]+$#", $www)){return "hobby/cooking";}
+		
+		
+		if(preg_match("#(astronomy|astronomie|astronome|telescope|cosmologie|astrophoto)#", $www)){return "science/astronomy";}
 		
 		if(preg_match("#^[0-9]+\.info$#", $www)){return "suspicious";}
 		if(preg_match("#\.zrdt6-[0-9]+\.zv$#", $www)){return "suspicious";}

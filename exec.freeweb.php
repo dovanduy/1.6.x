@@ -2286,6 +2286,12 @@ function install_groupware($servername,$rebuild=false){
 			return;
 			break;	
 			
+		case "APP_FILEZ_WEB":
+			writelogs("install_filezweb($servername)",__FUNCTION__,__FILE__,__LINE__);
+			install_filezweb($servername);
+			return;
+			break;			
+			
 			
 		default:
 			;
@@ -2693,6 +2699,12 @@ function install_owncloud($servername){
 	include_once(dirname(__FILE__)."/ressources/class.owncloud.inc");
 	$cld=new owncloud_www($servername);
 	$cld->verifinstall();
+}
+
+function install_filezweb($servername){
+	include_once(dirname(__FILE__)."/ressources/class.filezweb.inc");
+	$cld=new filez_www($servername);
+	$cld->verifinstall();	
 }
 
 function install_sugarcrm($servername){

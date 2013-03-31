@@ -3445,7 +3445,7 @@ begin
     ArrayList.Add('[APP_SMARTMONTOOLS] "' + zsmartd.VERSION() + '"');
     zsmartd.free;
 
-
+    if FileExists('/usr/share/filez/index.php') then    ArrayList.Add('[APP_FILEZ_WEB] "1.0.0"');
     imapsync:=timapsync.Create(SYS);
     ArrayList.Add('[APP_IMAPSYNC] "' + imapsync.VERSION() + '"');
     ArrayList.Add('[APP_MAILSYNC] "' + imapsync.MAILSYNC_VERSION() + '"');

@@ -719,6 +719,8 @@ function status_squid_left(){
 	$squid=new squidbee();
 	$q=new mysql();
 	$master_version=$squid->SQUID_VERSION;
+	
+	$cache_mem=$squid->global_conf_array["cache_mem"];	
 	$users=new usersMenus();
 	
 	$As32=false;
@@ -826,18 +828,33 @@ function status_squid_left(){
 	
 	
 	
-	
+	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	$hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
 	if(!is_numeric($hasProxyTransparent)){$hasProxyTransparent=0;}
 	
 	$hasProxyTransparentText="{disabled}";
 	$hasProxyTransparentCheck="20-check-grey.png";
 	
+	$DisableAnyCacheText="{enabled}";
+	$DisableAnyCacheCheck="20-check.png";
 	
 	if($hasProxyTransparent==1){
 		$hasProxyTransparentText="{enabled}";
 		$hasProxyTransparentCheck="20-check.png";
 	}
+	
+	if($DisableAnyCache==1){
+		$DisableAnyCacheText="{disabled}";
+		$DisableAnyCacheCheck="20-check-grey.png";
+	}	
+	
+	if(preg_match("#^([0-9]+)\s+#", $cache_mem)){
+		$cache_mem2=$re[1];
+		$cache_mem2=($cache_mem*1024);
+		$cache_mem2=FormatBytes($cache_mem2);
+	}
+	
 	
 	
 	$transparent_mode="
@@ -850,7 +867,15 @@ function status_squid_left(){
 			style='$styleText;text-decoration:underline'>$hasProxyTransparentText</a></td>
 		</tr>";	
 	
-	
+	$DisableAnyCache="
+		<tr>
+			<td width=1%><img src='img/$DisableAnyCacheCheck'></td>
+			<td class=legend nowrap>{caches} {disk}:</td>
+			<td style='font-size:14px'>
+			<a href=\"javascript:blur();\"
+			OnClick=\"Loadjs('squid.caches.disable.php');\"
+			style='$styleText;text-decoration:underline'>$DisableAnyCacheText</a></td>
+		</tr>";	
 	
 	
 	$squidversion="	
@@ -880,6 +905,14 @@ function status_squid_left(){
 		</tr>		
 		$smptr
 		$transparent_mode
+		$DisableAnyCache
+		<tr>
+			<td width=1%><img src='img/20-check.png'></td>
+			<td class=legend nowrap>{cache_memory}:</td>
+			<td style='font-size:14px'><a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('squid.cache_mem.php');\" 
+			style='$styleText;text-decoration:underline'>{$cache_mem2}</a></td>
+		</tr>			
 		</tbody>
 	</table>
 	</center>
@@ -964,6 +997,8 @@ function section_members_status(){
 	$visible_hostname=$squid->visible_hostname;
 	$hasProxyTransparent=$squid->hasProxyTransparent;
 	if($hasProxyTransparent==1){$hasProxyTransparent="{yes}";}else{$hasProxyTransparent="{no}";}
+
+
 	
 	if(!$squid->ACL_ARP_ENABLED){
 		$arpinfos=

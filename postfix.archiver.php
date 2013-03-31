@@ -27,38 +27,162 @@ function popup(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$t=time();
+	
+	$MailArchiverEnabled=$sock->GET_INFO("MailArchiverEnabled");
+	$MailArchiverToMySQL=$sock->GET_INFO("MailArchiverToMySQL");
+	$MailArchiverToMailBox=$sock->GET_INFO("MailArchiverToMailBox");
+	$MailArchiverMailBox=$sock->GET_INFO("MailArchiverMailBox");
+	$MailArchiverUsePerl=$sock->GET_INFO("MailArchiverUsePerl");
+	$MailArchiverToSMTP=$sock->GET_INFO("MailArchiverToSMTP");
+	$MailArchiverSMTP=$sock->GET_INFO("MailArchiverSMTP");
+	$MailArchiverSMTPINcoming=$sock->GET_INFO("MailArchiverSMTPINcoming");
+	
+	
+	
+	if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
+	if(!is_numeric($MailArchiverToMySQL)){$MailArchiverToMySQL=1;}
+	if(!is_numeric($MailArchiverUsePerl)){$MailArchiverUsePerl=0;}
+	if(!is_numeric($MailArchiverToSMTP)){$MailArchiverToSMTP=0;}
+	if(!is_numeric($MailArchiverSMTPINcoming)){$MailArchiverSMTPINcoming=1;}	
+	
+	
 	$milter=Paragraphe_switch_img('{enable_APP_MAILARCHIVER}',
-	'{enable_APP_MAILARCHIVER_text}','enable_archiver',$sock->GET_INFO("MailArchiverEnabled"),'{enable_disable}',450);
+	'{enable_APP_MAILARCHIVER_text}','enable_archiver',$MailArchiverEnabled,'{enable_disable}',450);
 	
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
 	<td>
-		<div style='font-size:22px'>{backupemail_behavior}<hr></div>
+		<div style='font-size:26px'>{backupemail_behavior}<hr></div>
 		<div style='text-align:right'><a href=\"javascript:blur();\" 
 		OnClick=\"javascript:s_PopUpFull('http://www.mail-appliance.org/index.php?cID=353','1024','900');\"
 		style='font-size:14px;text-decoration:underline'>{online_help}</a></div>
-	$milter
-	<div style='text-align:right;width:100%'><hr>". button("{apply}","ApplyBackupBehavior$t()","16px")."</div>
+		$milter
+		</td>
+	</tr>
+	</table>
+	<table style='width:99%' class=form>
+		<tr>
+			<td class=legend style='font-size:16px'>{us_v2}:</td>
+			<td>". Field_checkbox("MailArchiverUsePerl", 1,$MailArchiverUsePerl)."</td>
+		</tr>	
+		<tr>
+			<td class=legend style='font-size:16px'>{save_to_mysqldb}:</td>
+			<td>". Field_checkbox("MailArchiverToMySQL", 1,$MailArchiverToMySQL)."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:16px'>{send_to_mailbox}:</td>
+			<td>". Field_checkbox("MailArchiverToMailBox", 1,$MailArchiverToMailBox,"MailArchiverToMailBoxCheck()")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:16px'>{mailbox}:</td>
+			<td>". Field_text("MailArchiverMailBox",$MailArchiverMailBox,"font-size:14px;width:220px")."</td>
+		</tr>					
+		<tr>
+			<td class=legend style='font-size:16px'>{send_to_smtp_server}:</td>
+			<td>". Field_checkbox("MailArchiverToSMTP", 1,$MailArchiverToSMTP,"MailArchiverToSMTPCheck()")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:16px'>{only_incoming_mails}:</td>
+			<td>". Field_checkbox("MailArchiverSMTPINcoming", 1,$MailArchiverSMTPINcoming,"")."</td>
+		</tr>
+					
+		<tr>
+			<td class=legend style='font-size:16px'>{smtp_server}:</td>
+			<td>". Field_text("MailArchiverSMTP",$MailArchiverSMTP,"font-size:14px;width:220px")."</td>
+		</tr>	
+		</table>		
+	<div style='text-align:right;width:100%'><hr>". button("{apply}","ApplyBackupBehavior$t()","18px")."</div>
 	</td>
 	</tr>
 	</table>
 	<script>
 
 	
-	var X_ApplyBackupBehavior$t= function (obj) {
+	var XwwApplyBackupBehavior$t= function (obj) {
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
 		if(document.getElementById('main_config_archiver')){RefreshTab('main_config_archiver');}
+		//if(document.getElementById('main_config_archiver')){RefreshTab('main_config_archiver');}
+		
+		
 		}
 		
 	function ApplyBackupBehavior$t(){
 		var XHR = new XHRConnection();
+		MailArchiverToMailBox=0;
+		MailArchiverToMySQL=0;
+		MailArchiverUsePerl=0;
+		MailArchiverToSMTP=0;
+		MailArchiverSMTPINcoming=0;
+		MailArchiverEnabled=0;
+		MailArchiverEnabled=document.getElementById('enable_archiver').value;
 		XHR.appendData('MailArchiverEnabled',document.getElementById('enable_archiver').value);
+		XHR.appendData('MailArchiverMailBox',document.getElementById('MailArchiverMailBox').value);
+		XHR.appendData('MailArchiverSMTP',document.getElementById('MailArchiverSMTP').value);
+		
+		
+		
+		if(document.getElementById('MailArchiverToMailBox').checked){MailArchiverToMailBox=1;}
+		if(document.getElementById('MailArchiverToMySQL').checked){MailArchiverToMySQL=1;}
+		if(document.getElementById('MailArchiverUsePerl').checked){MailArchiverUsePerl=1;}
+		if(document.getElementById('MailArchiverToSMTP').checked){MailArchiverToSMTP=1;}
+		if(document.getElementById('MailArchiverSMTPINcoming').checked){MailArchiverSMTPINcoming=1;}
+		
+		
+		if(MailArchiverEnabled==1){
+			if(MailArchiverToMailBox==0){
+				if(MailArchiverToMySQL==0){
+					if(MailArchiverToSMTP==0){
+						alert('There no sense to store messages in nothing !!! Please select MySQL or MailBox');
+					}
+				}
+			}
+		}
+		XHR.appendData('MailArchiverToMailBox',MailArchiverToMailBox);
+		XHR.appendData('MailArchiverToMySQL',MailArchiverToMySQL);
+		XHR.appendData('MailArchiverUsePerl',MailArchiverUsePerl);
+		XHR.appendData('MailArchiverToSMTP',MailArchiverToSMTP);
+		XHR.appendData('MailArchiverSMTPINcoming',MailArchiverSMTPINcoming);
+		
+		
+		
 		document.getElementById('img_enable_archiver').src='img/wait_verybig.gif';
-		XHR.sendAndLoad('$page', 'POST',X_ApplyBackupBehavior$t);				
+		XHR.sendAndLoad('$page', 'POST',XwwApplyBackupBehavior$t);				
 	}
-
+	
+	function MailArchiverToMailBoxCheck(){
+		document.getElementById('MailArchiverMailBox').disabled=true;
+		var MailArchiverToMailBox=0;
+		if(document.getElementById('MailArchiverToMailBox').checked){
+			MailArchiverToMailBox=1;
+		}
+		
+		if(MailArchiverToMailBox==1){
+			document.getElementById('MailArchiverMailBox').disabled=false;
+		}
+		
+	}
+	
+	function MailArchiverToSMTPCheck(){
+		document.getElementById('MailArchiverSMTP').disabled=true;
+		document.getElementById('MailArchiverSMTPINcoming').disabled=true;
+		
+		var MailArchiverToMailBox=0;
+		if(document.getElementById('MailArchiverToSMTP').checked){
+			MailArchiverToMailBox=1;
+		}
+		
+		if(MailArchiverToMailBox==1){
+			document.getElementById('MailArchiverSMTP').disabled=false;
+			document.getElementById('MailArchiverSMTPINcoming').disabled=false;
+		}
+		
+	}	
+	
+	
+MailArchiverToMailBoxCheck();
+MailArchiverToSMTPCheck();
 </script>";
 	
 	$tpl=new templates();
@@ -70,7 +194,16 @@ function MailArchiverEnabled(){
 	writelogs("MailArchiverEnabled=$MailArchiverEnabled",__FUNCTION__,__FILE__);
 	$sock=new sockets();
 	$sock->SET_INFO('MailArchiverEnabled',$MailArchiverEnabled);
-	$sock=new sockets();
+	$sock->SET_INFO('MailArchiverMailBox',$_POST["MailArchiverMailBox"]);
+	$sock->SET_INFO('MailArchiverToMailBox',$_POST["MailArchiverToMailBox"]);
+	$sock->SET_INFO('MailArchiverToMySQL',$_POST["MailArchiverToMySQL"]);
+	$sock->SET_INFO('MailArchiverUsePerl',$_POST["MailArchiverUsePerl"]);
+	
+	$sock->SET_INFO('MailArchiverToSMTP',$_POST["MailArchiverToSMTP"]);
+	$sock->SET_INFO('MailArchiverSMTP',$_POST["MailArchiverSMTP"]);
+	$sock->SET_INFO('MailArchiverSMTPINcoming',$_POST["MailArchiverSMTPINcoming"]);
+	
+	
 	$sock->getFrameWork("postfix.php?milters=yes");
 	$sock->getFrameWork("postfix.php?restart-mailarchiver=yes");	
 }

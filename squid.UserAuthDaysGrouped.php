@@ -98,6 +98,15 @@ function liste(){
 	
 	$q=new mysql_squid_builder();
 	
+	if(!$q->TABLE_EXISTS($table)){
+		json_error_show("$table No such table...");
+	}
+	
+	if($q->COUNT_ROWS($table)==0){
+		json_error_show("$table No data..");
+	}
+	
+	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
 			$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";
@@ -107,7 +116,7 @@ function liste(){
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
 	
-	$table="(SELECT uid,mac,hostname,ipaddr,SUM(hits) as hits, SUM(QuerySize) as size FROM $table GROUP BY  uid,mac,hostname,ipaddr ) as t";
+	$table="(SELECT uid,MAC,hostname,ipaddr,SUM(hits) as hits, SUM(QuerySize) as size FROM $table GROUP BY  uid,mac,hostname,ipaddr ) as t";
 	
 	$searchstring=string_to_flexquery();
 	if($searchstring==null){
@@ -115,7 +124,7 @@ function liste(){
 		if($searchstring<>null){
 			$searchstring=str_replace("*", "%", $searchstring);
 			$OP=" = ";
-			if(strpos($searchstring, "%")>0){$OP="LIKE";}
+			if(strpos(" $searchstring", "%")>0){$OP="LIKE";}
 			$searchstring="AND ( (`uid` $OP '$searchstring') OR (`MAC` $OP '$searchstring') OR (`ipaddr` $OP '$searchstring') OR (`hostname` $OP '$searchstring'))";
 		}
 	}
@@ -136,11 +145,16 @@ function liste(){
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+	
+
+	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show("$q->mysql_error");}
 	
-	
+	if(mysql_num_rows($results)==0){
+		json_error_show("Query No data.. $sql");
+	}	
 	
 	$data['page'] = $page;
 	$data['total'] = $total;

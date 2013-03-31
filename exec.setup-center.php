@@ -663,7 +663,14 @@ $products[]=array(
 	"REPO_CODE"=>"zarafa",
 	"FAMILY"=>"WEB",
 	"SUBFAMILY"=>"APP",
-	);	
+	);
+$products[]=array(
+		"PRODUCT_CODE"=>"APP_FILEZ_WEB",
+		"REPO_CODE"=>"filez",
+		"FAMILY"=>"WEB",
+		"SUBFAMILY"=>"APP",
+);
+
 	
 $products[]=array(
 	"PRODUCT_CODE"=>"APP_Z_PUSH_WEB",

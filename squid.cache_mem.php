@@ -144,6 +144,7 @@ function popup(){
 	var x_SaveCacheMem=function (obj) {
 		var tempvalue=obj.responseText;
 		YahooWin3Hide();
+		RefreshTab('squid_main_svc');
 		Loadjs('squid.restart.php?prepare-js=yes');
 	}	
 	

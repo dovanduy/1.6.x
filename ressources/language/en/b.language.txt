@@ -3280,3 +3280,31 @@ Do you want to perform this operation ?
 <restart_artica_web_services>Restart Artica Web consoles</restart_artica_web_services>
 <videos_number>Videos number</videos_number>
 <videos>videos</videos>
+<access_to_parameters>Access to parameters</access_to_parameters>
+<caches_on_disk>Caches on disk</caches_on_disk>
+<save_to_mysqldb>Save To the MySQL database</save_to_mysqldb>
+<send_to_mailbox>Send to a Mailbox</send_to_mailbox>
+<us_v2>Use version 2</us_v2>
+<cache_memory>cache memory</cache_memory>
+<DisableAnyCache_explain2>If turn to green, then the proxy will not use any filesystem cache methods ( Caches on Disk or Caches Booster).[br]
+Only one system cache method will be used: [b]the memory cache[/b].
+</DisableAnyCache_explain2>
+<synchronize_time_with_ad>Sync. time with the AD</synchronize_time_with_ad>
+<only_incoming_mails>Only inbound messages</only_incoming_mails>
+<APP_ZARAFADB>Dedicated Zarafa MySQL server</APP_ZARAFADB>
+<send_to_smtp_server>Send to SMTP server</send_to_smtp_server>
+<top_10>TOP 10</top_10>
+<database_maintenance>Database maintenance</database_maintenance>
+<database_maintenance_text>Tasks and system parameters in order to maintain your Database engine/datas</database_maintenance_text>
+<source_logs>Source logs</source_logs>
+<source_logs_squid_text>Display original log files in order to import them into the statistics system or extract them</source_logs_squid_text>
+<default_size_for_rotation>Default size for rotation</default_size_for_rotation>
+<APP_FILEZ_WEB>FileZ Web service</APP_FILEZ_WEB>
+<APP_FILEZ_WEB_TEXT>FileZ provides a Web service to upload and manage files you want to share through a web interface and unique URLs</APP_FILEZ_WEB_TEXT> 
+<top_websites>TOP Websites</top_websites>
+<downloaded_size_by_day>Downloaded size by day</downloaded_size_by_day>
+<max_file_lifetime>MAX file lifetime</max_file_lifetime>
+<default_file_lifetime>Default file lifetime</default_file_lifetime>
+<max_extend_count_filez>MAX extend days</max_extend_count_filez>
+<user_quotaz>User quota</user_quotaz>
+ 

@@ -20,6 +20,9 @@ if(isset($_GET["navcalendar"])){build_calendar();exit;}
 if(isset($_GET["build-calendar"])){build_calendar();exit;}
 if(isset($_GET["buildiconsof"])){buildiconsof();exit;}
 if(isset($_GET["buildiconsof-week"])){buildiconsof_week();exit;}
+if(isset($_GET["graph1"])){graph1();exit;}
+if(isset($_GET["graph2"])){graph2();exit;}
+if(isset($_GET["search-www"])){search_websites();exit;}
 main_page();
 
 function main_page(){
@@ -61,81 +64,58 @@ function content(){
 }
 
 
-function buildiconsof_week(){
-	if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
-	
-	$q=new mysql_squid_builder();
-	$page=CurrentPageName();
-	$tpl=new templates();	
-	$sql="SELECT SUM(totalBlocked) as totalBlocked,AVG(MembersCount) as MembersCount,SUM(requests) as requests,
-	SUM(totalsize) as totalsize,
-	SUM(not_categorized) as not_categorized,
-	SUM(YouTubeHits) as YouTubeHits
-	FROM tables_day WHERE WEEK(zDate)='{$_GET["week"]}' AND YEAR(zDate)={$_GET["year"]}";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));	
-	
-	if(!$q->ok){
-		echo "<H2>$q->mysql_error</H2>";
-	}
-	
-	$NotCategorized=$ligne["not_categorized"];
-	$SumSize=$ligne["totalsize"];
-	$SumHits=$ligne["requests"];
-	$MembersCount=round($ligne["MembersCount"]);
-	$YouTubeHits=$ligne["YouTubeHits"];
-	$BlockedCount=$ligne["totalBlocked"];	
-	
-	if($NotCategorized>0){
-		$tR[]=Paragraphe("tables-failed-64.png", "$NotCategorized {not_categorized}",
-		"{display_not_categorized_websites}","javascript:Loadjs('squid.visited.php?week={$_GET["week"]}&onlyNot=yes')");		
-	}
-	$SumSize=FormatBytes($SumSize/1024);
-	$SumHits=numberFormat($SumHits,0,""," ");
-	$tR[]=Paragraphe("64-webscanner.png", "$SumSize {downloaded_size}",
-	"$SumSize {downloaded_size}, $SumHits {hits}, {display_visited_websites}","miniadm.webstats.websites.byweek.php?week={$_GET["week"]}&year={$_GET["year"]}&day={$_GET["day"]}&tablename=$tablename&xtime=$xtime");
-	
-	if($YouTubeHits>0){
-			$tR[]=Paragraphe("youtube-64.png", "&laquo;$YouTubeHits&raquo; {youtube_videos}",
-			"{display_youtube_for_this_day}","miniadm.webstats.websites.ByWeekYoutube.php?week={$_GET["week"]}&year={$_GET["year"]}&day={$_GET["day"]}&tablename=$tablename&xtime=$xtime");
-		}		
-	
-	
-	if($MembersCount>0){
-		$tR[]=Paragraphe("member-64.png", "&laquo;$MembersCount&raquo; {members}",
-		"{display_members_for_this_week}","miniadm.webstats.websites.ByWeekMembers.php?week={$_GET["week"]}&year={$_GET["year"]}&day={$_GET["day"]}&tablename=$tablename&xtime=$xtime");
-	}
-	
 
-		
-		
-		if($BlockedCount>0){
-			$tR[]=Paragraphe("hearth-blocked-64.png", "&laquo;$BlockedCount&raquo; {blocked_hits}",
-			"{display_blocked_events}","miniadm.webstats.websites.ByWeekBlocked.php?week={$_GET["week"]}&year={$_GET["year"]}&day={$_GET["day"]}&tablename=$tablename&xtime=$xtime");
-		}
-
-		
-	$NotCategorizedTests=$q->COUNT_ROWS("webtests");
-	if($NotCategorizedTests>0){
-		$tR[]=Paragraphe("spider-database-64.png", "&laquo;$NotCategorizedTests&raquo; {not_categorized}",
-		"{display_not_categorized_tests}","miniadm.webstats.not.categorized.php");
-	}		
-	
-	
-	
-	$html=$tpl->_ENGINE_parse_body("<div style='width:700px'>".CompileTr2($tR,"none")."</div>");
-	$_SESSION[__FILE__][__FUNCTION__]=$html;
-	echo $html;	
-	
-}
-
-
-
-function webstats_left(){
-	if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
+function search_websites(){
 	$tpl=new templates();
 	$q=new mysql_squid_builder();
+	$page=CurrentPageName();	
+	$query=url_decode_special_tool(trim($_GET["pattern"]));
+	$query=str_replace("*", "%", $query);
+	$sql="SELECT SUM(size) as size, SUM(hits) as hits, familysite
+	FROM visited_sites_days GROUP BY familysite HAVING familysite LIKE '$query' ORDER BY size DESC LIMIT 0,20";
+	$results=$q->QUERY_SQL($sql);
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$site=$ligne["familysite"];
+		$size=FormatBytes($ligne["size"]/1024);
+		if(strlen($site)>27){$site=substr($site,0,27)."...";}
+		$text=$tpl->_ENGINE_parse_body("<div style='margin-top:10px;font-size:14px'><strong>{size}:$size<br>".FormatNumber($ligne["hits"])." {hits}</div>");
+		$len=strlen($site);
+		
+		$js="Loadjs('squid.website-zoom.php?&sitename=".urlencode($site)."&js=yes')";
+		$f[]=Paragraphe32("noacco:$site", $text, $js, "website-32.png");
+		
+		
+	}	
+	if(count($f)>0){
+		echo $tpl->_ENGINE_parse_body(CompileTr4($f));
+	}
+	
+}
+function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){
+	$tmp1 = round((float) $number, $decimals);
+	while (($tmp2 = preg_replace('/(\d+)(\d\d\d)/', '\1 \2', $tmp1)) != $tmp1)
+		$tmp1 = $tmp2;
+	return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));
+}
+
+function webstats_left(){
+	//if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$page=CurrentPageName();
 	
 	$NotCategorizedTests=$q->COUNT_ROWS("webtests");
+	$RUNGRAPH=1;
+	if(!$q->TABLE_EXISTS("visited_sites_days")){
+		$q->CheckTables();
+		$RUNGRAPH=0;
+	}
+	if($q->COUNT_ROWS("visited_sites_days")==0){$RUNGRAPH=0;}
+	
+	if($RUNGRAPH==0){
+		$sock=new sockets();
+		$sock->getFrameWork("squidstats.php?alldays=yes");
+	}
 
 	if($NotCategorizedTests>0){
 		$NotCategorizedTests=numberFormat($NotCategorizedTests,0,""," ");
@@ -143,14 +123,69 @@ function webstats_left(){
 		"{display_not_categorized_tests}","miniadm.webstats.not.categorized.php");
 	}		
 	
-$tR[]=Paragraphe("statistics-64.png", "{statistics_by_date}",
-	"{statistics_by_date_text}","miniadm.webstats.php");
-		
-$tR[]=Paragraphe("unknown-user-64.png", "{member_wwwtrack}",
-	"{member_wwwtrack_text}","miniadm.MembersTrack.php");
+$tR[]=Paragraphe32("statistics_by_date", "statistics_by_date_text", "document.location.href='miniadm.webstats.php'", "statistics2-32.png");
+$tR[]=Paragraphe32("member_wwwtrack", "member_wwwtrack_text",
+	"document.location.href='miniadm.MembersTrack.php'","unknown-user-48.png");
 
-	$content=CompileTr3($tR,"none");
-	$html="<div class=BodyContent><center><div style='width:700px'>$content</div></center></div>";
+$tR[]=Paragraphe32("database_maintenance", "database_maintenance_text",
+		"document.location.href='miniadm.squiddb.php'","datasource-32.png");
+
+
+$ff=time();
+	$content=CompileTr2($tR,"none");
+	$html="<div class=BodyContent>
+	<table style='width:100%'>
+	<tr>
+		<td valign='top'>
+				<center>$content</center>
+		</td>
+		<td valign='top'>
+			<table style='width:100%'>
+			<tr>
+				<td><strong>{websites}:</td>
+				<td>". Field_text("Search$ff","focus:{search}","font-size:14px",null,null,null,false,"SearchWebSite$ff(event)",false)."</td>
+			</tr>
+			</tr>
+			<td><strong>{members}:</td>
+			<td>". Field_text("Search-Memb-$ff","focus:{search}","font-size:14px",null,null,null,false,"SearchMember$ff(event)")."</td>
+			
+			</table>
+		</td>
+	</tr>
+	</table>
+	<div id='SearchWebsites-results-$ff'></div>			
+				
+	</div>
+		<div id='$ff-graph' style='height:450px' class=BodyContent></div>
+		<div id='$ff-graph2' style='height:450px' class=BodyContent></div>
+	<script>
+	
+		function RUNGRAPH$ff(){
+			var RUNGRAPH=$RUNGRAPH;
+			if(RUNGRAPH==0){
+				return;
+			}
+			AnimateDiv('$ff-graph');
+			AnimateDiv('$ff-graph2');
+			Loadjs('$page?graph1=yes&container=$ff-graph');
+			Loadjs('$page?graph2=yes&container=$ff-graph2');
+		}
+		function SearchWebSite$ff(e){
+			if(!checkEnter(e)){return;}
+			var pp=encodeURIComponent(document.getElementById('Search$ff').value);
+			LoadAjax('SearchWebsites-results-$ff','$page?search-www=yes&pattern='+pp);
+		}
+		
+		function SearchMember$ff(e){
+			var pp=encodeURIComponent(document.getElementById('Search-Memb-$ff').value);
+			if(!checkEnter(e)){return;}
+			Loadjs('squid.UserAuthDaysGrouped.php?search-js='+pp);
+		}		
+		
+		RUNGRAPH$ff();
+	</script>
+	
+	";
 	$html= $tpl->_ENGINE_parse_body($html);
 	$_SESSION[__FILE__][__FUNCTION__]=$html;
 	echo $html;	
@@ -212,54 +247,58 @@ function messaging_right(){
 }
 
 
-function buildiconsof(){
-	$tablename=$_GET["tablename"];
-	$xtime=$_GET["xtime"];
+
+
+function graph1(){
+	$q=new mysql_squid_builder();
+	$sql="SELECT SUM( size ) AS size, zDate
+FROM `visited_sites_days`
+GROUP BY zDate ORDER BY zDate";
+	$results=$q->QUERY_SQL($sql);
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$size=round(($ligne["size"]/1024)/1000);
+		$date=strtotime($ligne["zDate"]."00:00:00");
+		$xdata[]=date("m-d",$date);
+		$ydata[]=$size;
+	
+	}	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title="{downloaded_size_by_day}";
+	$highcharts->yAxisTtitle="{size}";
+	$highcharts->xAxisTtitle="{days}";
+	$highcharts->datas=array("{size}"=>$ydata);	
+	echo $highcharts->BuildChart();
+	
+}
+function graph2(){
 	$q=new mysql_squid_builder();
 	$tpl=new templates();
-	$NotCategorizedTests=$q->COUNT_ROWS("webtests");
-	$dansguardian_events="dansguardian_events_".date("Ymd",$xtime);
-	$sql="SELECT totalBlocked,MembersCount,requests,totalsize,not_categorized,YouTubeHits FROM tables_day WHERE tablename='$dansguardian_events'";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));	
-	$NotCategorized=$ligne["not_categorized"];
-	$SumSize=$ligne["totalsize"];
-	$SumHits=$ligne["requests"];
-	$MembersCount=$ligne["MembersCount"];
-	$YouTubeHits=$ligne["YouTubeHits"];
-	$BlockedCount=$ligne["totalBlocked"];
-	
+	$sql="SELECT SUM( size ) AS size, familysite
+FROM `visited_sites_days`
+GROUP BY familysite ORDER BY size DESC LIMIT 0,10";
+	$results=$q->QUERY_SQL($sql);
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$size=round(($ligne["size"]/1024)/1000);
+		$PieData[$ligne["familysite"]]=$size;
+		
 
-	$SumSize=FormatBytes($SumSize/1024);
-	$SumHits=numberFormat($SumHits,0,""," ");
-	$tR[]=Paragraphe("64-webscanner.png", "$SumSize {downloaded_size}",
-	"$SumSize {downloaded_size}, $SumHits {hits}, {display_visited_websites}","miniadm.webstats.websites.byday.php?month=$month&year={$_GET["year"]}&day={$_GET["day"]}&tablename=$tablename&xtime=$xtime");
-	
-	if($YouTubeHits>0){
-			$tR[]=Paragraphe("youtube-64.png", "&laquo;$YouTubeHits&raquo; {youtube_videos}",
-			"{display_youtube_for_this_day}","miniadm.webstats.websites.ByDayYoutube.php?month=$month&year={$_GET["year"]}&day={$_GET["day"]}&tablename=$tablename&xtime=$xtime");
-		}		
-	
-	
-	if($MembersCount>0){
-		$tR[]=Paragraphe("member-64.png", "&laquo;$MembersCount&raquo; {members}",
-		"{display_members_for_this_day}","miniadm.webstats.websites.ByDayMembers.php?month=$month&year={$_GET["year"]}&day={$_GET["day"]}&tablename=$tablename&xtime=$xtime");
 	}
 	
-	if($BlockedCount>0){
-			$tR[]=Paragraphe("hearth-blocked-64.png", "&laquo;$BlockedCount&raquo; {blocked_hits}",
-			"{display_blocked_events}","miniadm.webstats.websites.ByDayBlocked.php?month=$month&year={$_GET["year"]}&day={$_GET["day"]}&tablename=$tablename&xtime=$xtime");
-	}		
-	if($NotCategorizedTests>0){
-		$tR[]=Paragraphe("tables-failed-64.png", "$NotCategorizedTests {not_categorized}",
-		"{display_not_categorized_websites}","javascript:Loadjs('squid.visited.php?day=". date("Y-m-d",$xtime)."&onlyNot=yes')");		
-	}	
+	if(!$q->ok){
+		$tpl->javascript_senderror($q->mysql_error,$_GET["container"]);
+	}
 	
 	
-	echo $tpl->_ENGINE_parse_body("<div style='width:700px'>".CompileTr2($tR,"none")."</div>");
+	$tpl=new templates();
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{websites}";
+	$highcharts->Title=$tpl->_ENGINE_parse_body("{top_websites}/{size}");
+	echo $highcharts->BuildChart();
 	
-	echo "<center>". button($tpl->_ENGINE_parse_body("{refresh_summary}"), "Loadjs('squid.refresh.day.summarize.php?xtime=$xtime')","18px")."</center>";
-	
-	//echo "$tablename - $tablename_blocked - $xtime";
+
 }
-
-

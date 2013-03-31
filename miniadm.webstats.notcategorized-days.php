@@ -12,12 +12,13 @@ include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.calendar.inc");
 $users=new usersMenus();if(!$users->AsWebStatisticsAdministrator){header("location:miniadm.index.php");die();}
 	
-
+if(isset($_GET["graphjs"])){graph();exit;}
 if(isset($_GET["content"])){content();exit;}
 if(isset($_GET["messaging-right"])){messaging_right();exit;}
 if(isset($_GET["webstats-middle"])){webstats_middle();exit;}
 if(isset($_GET["graph"])){generate_graph();exit;}
 if(isset($_POST["NoCategorizedAnalyze"])){NoCategorizedAnalyze();exit;}
+
 
 main_page();
 
@@ -107,28 +108,14 @@ function generate_graph(){
 		if($c>0){$tr[]="<table style='width:20%' class=form><tbody>$table</tbody></table>";}				
 				
 				
-				
+			$Main=array($xdata,$ydata);
+			$Main=urlencode(base64_encode(serialize($Main)));
 			$t=time();
-			$targetedfile="ressources/logs/".md5(basename(__FILE__).".".__FUNCTION__.".day.$ff").".png";
-			$gp=new artica_graphs();
-			$gp->width=920;
-			$gp->height=350;
-			$gp->filename="$targetedfile";
-			$gp->xdata=$xdata;
-			$gp->ydata=$ydata;
-			$gp->y_title=null;
-			$gp->x_title=$tpl->_ENGINE_parse_body("{days}");
-			$gp->title=null;
-			$gp->margin0=true;
-			$gp->Fillcolor="blue@0.9";
-			$gp->color="146497";
-			$gp->line_green();
-			
-		if(is_file($targetedfile)){
 			echo "<center>
 			<div style='font-size:18px;margin-bottom:10px'>".$tpl->_ENGINE_parse_body("{not_categorized}/{days}")."</div>
-			<img src='$targetedfile'></center>";
-		}
+			<div id='$ff-graph' style='width:940px;height:450px'><center><img src='img/wait_verybig_mini_red.gif'></center></div>
+			</center>";
+		
 	
 	}
 	
@@ -152,13 +139,29 @@ function generate_graph(){
 			XHR.appendData('NoCategorizedAnalyze','yes');
 			XHR.sendAndLoad('$page', 'POST',x_NoCategorizedAnalyze);
 		}
-	</script>	
+		
+		Loadjs('$page?graphjs=yes&container=$ff-graph&data=$Main');
+		
+	</script>";
+}
+function graph(){
 	
+	$array=unserialize(base64_decode($_GET["data"]));
 	
-	";
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$array[0];
+	$highcharts->Title="{unknown_websites}";
+	$highcharts->yAxisTtitle="{websites}";
+	$highcharts->xAxisTtitle="{days}";
+	$highcharts->datas=array("{websites}"=>$array[1]);
+	
+	echo $highcharts->BuildChart();
 	
 	
 }
+
+
 function NoCategorizedAnalyze(){
 	$tpl=new templates();
 	$sock=new sockets();

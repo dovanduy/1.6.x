@@ -9,6 +9,7 @@
 <accesstime_to_internet_expired>Temps d'acc&egrave;s &agrave; Internet expir&eacute;</accesstime_to_internet_expired>
 <access_attr>Attribut d'acc&egrave;s</access_attr>
 <access_to_internet_disabled>Votre acc&egrave;s &agrave; Internet est d&eacute;sactiv&eacute;</access_to_internet_disabled>
+<access_to_parameters>Acc&eacute;der au param&egrave;tres</access_to_parameters>
 <account_verification>V&eacute;rification du compte</account_verification>
 <account_verification_text>Bienvenue &agrave; %SERVERNAME[br]
 Veuillez sauvegarder les param&egrave;tres de votre compte ci-dessous:[br]
@@ -236,6 +237,8 @@ Am&eacute;liorer la collaboration entre le personnel.[br]
 Offrir un h&eacute;bergement de messagerie Instantan&eacute;e au publique.[br]</APP_EJABBERD_ABOUT>
 <APP_ERRSQUID>Page d'erreur Proxy</APP_ERRSQUID>
 <APP_ERRSQUID_TEXT>Affiche une simple page d'erreur lorsque vous souhaitez afficher un mod&egrave;le d'erreur &quot;redirig&eacute;&quot; dans la configuration du Proxy.</APP_ERRSQUID_TEXT>
+<APP_FILEZ_WEB>Service web FileZ</APP_FILEZ_WEB>
+<APP_FILEZ_WEB_TEXT>FileZ fournit un service Web afin de charger et de g&eacute;rer des fichiers qui peuvent &ecirc;tre partag&eacute;s via une interface Web en fournissant des liens uniques.</APP_FILEZ_WEB_TEXT>
 <APP_FREERADIUS>FreeRadius</APP_FREERADIUS>
 <APP_GLUSTER_NOT_INSTALLED>L'application GlusterFS n'est pas install&eacute;e, cette fonctionnalit&eacute; ne peut &ecirc;tre affich&eacute;e.</APP_GLUSTER_NOT_INSTALLED>
 <APP_HAPROXY>HAProxy</APP_HAPROXY>
@@ -293,6 +296,7 @@ Si le score d&eacute;passe un certain seuil, le courriel est alors consid&eacute
 <APP_WPAD_TEXT>L'auto-configuration du proxy (WPAD) est une m&eacute;thode utilis&eacute; par les navigateurs afin de fournir une fichier de configuration envoy&eacute; par les services DHCP et/ou DNS.[br]
 Une fois apr&egrave;s avoir d&eacute;tect&eacute; et t&eacute;l&eacute;charg&eacute; le fichier de configuration, il est ex&eacute;cut&eacute; afin de d&eacute;terminer les param&egrave;tres du proxy</APP_WPAD_TEXT>
 <APP_XAPIAN_FREEWEB_TEXT>Xapian Desktop est un m&eacute;ta-moteur de recherche bas&eacute; sur des ressources fichiers ou web indiqu&eacute;es dans la section Xapian Desktop</APP_XAPIAN_FREEWEB_TEXT>
+<APP_ZARAFADB>Serveur MySQL d&eacute;di&eacute; Zarafa</APP_ZARAFADB>
 <APP_ZARAFA_DB>Moteur MySQL Zarafa</APP_ZARAFA_DB>
 <APP_ZARAFA_SEARCH>D&eacute;mon Zarafa Search</APP_ZARAFA_SEARCH>
 <APP_ZARAFA_SERVER2>Serveur Zarafa (2)</APP_ZARAFA_SERVER2>
@@ -474,6 +478,7 @@ Elle permet de construire les tables n&eacute;cessaires &agrave; la construction
 <by_proxy_groups>Par groupe de Proxy</by_proxy_groups>
 <cached_items>&Eacute;l&eacute;ment(s) du cache</cached_items>
 <caches_behavior>Comportement des Caches</caches_behavior>
+<caches_on_disk>Caches sur disque</caches_on_disk>
 <caches_options>Options du cache</caches_options>
 <caches_parameters>Param&egrave;tres des caches</caches_parameters>
 <CACHE_AUTH>Afficher la page d'accueil chaque</CACHE_AUTH>
@@ -484,6 +489,7 @@ Elle permet de construire les tables n&eacute;cessaires &agrave; la construction
 <cache_items>&Eacute;l&eacute;ment(s) du cache</cache_items>
 <cache_items_tasks_explain>Construit les statistiques des &eacute;l&eacute;ments stock&eacute;s dans le cache.</cache_items_tasks_explain>
 <cache_lru>LRU: M&eacute;thode originelle de cache</cache_lru>
+<cache_memory>Cache m&eacute;moire</cache_memory>
 <cache_object_size>Taille du Cache d'objets</cache_object_size>
 <cache_object_size_explain>C'est le cache des diff&eacute;rents objets (dossiers de BAL) et de leur hi&eacute;rarchie respective. (a peu pr&egrave;s 100Kb par utilisateur)</cache_object_size_explain>
 <cache_override_webserver_medium>Le cache surcharge le site web (moyen)</cache_override_webserver_medium>
@@ -681,6 +687,8 @@ Pendant ce temps, des services seront indisponibles...</convert_background_warn>
 Une mise &agrave; jour prend environ 150Mb de bande passante.</databases_ufdbupdate_explain>
 <databases_users>Bases utilisateurs</databases_users>
 <database_backend>Type de base</database_backend>
+<database_maintenance>Maintenance de la base</database_maintenance>
+<database_maintenance_text>T&acirc;ches et param&egrave;tres syst&egrave;mes afin de maintenir votre moteur de base de donn&eacute;es.</database_maintenance_text>
 <database_privileges>Privil&egrave;ges des Bases</database_privileges>
 <database_source>Source de la base</database_source>
 <DateTime>Date et heure</DateTime>
@@ -690,7 +698,9 @@ Une mise &agrave; jour prend environ 150Mb de bande passante.</databases_ufdbupd
 <dedicated_website_error_page>Site d&eacute;di&eacute; pour la page d'erreur</dedicated_website_error_page>
 <default_cache>Cache par d&eacute;faut</default_cache>
 <default_domain>Domaine par d&eacute;faut</default_domain>
+<default_file_lifetime>Temps de vie par d&eacute;faut d'un fichier</default_file_lifetime>
 <default_rules>R&egrave;gles par d&eacute;faut</default_rules>
+<default_size_for_rotation>Taille par d&eacute;faut pour la rotation</default_size_for_rotation>
 <default_value_is_used>La valeur par d&eacute;faut est utilis&eacute;e.</default_value_is_used>
 <default_webrule>R&egrave;gle par d&eacute;faut de filtrage</default_webrule>
 <delayed_items>&eacute;l&eacute;ments retard&eacute;s</delayed_items>
@@ -748,6 +758,9 @@ Toutefois si la base est une base de donn&eacute;es utilis&eacute;e par Artica e
 <DiplayFullPath>Afficher le chemin complet</DiplayFullPath>
 <directories>R&eacute;pertoires</directories>
 <DisableAnyCache>D&eacute;sactiver le cache des sites</DisableAnyCache>
+<DisableAnyCache_explain>Sauvegarder dans la base MySQL</DisableAnyCache_explain>
+<DisableAnyCache_explain2>Si vert, le proxy va alors d&eacute;sactiver l'utilisation des caches par syst&egrave;mes de fichiers ( caches sur le disque dur ou bien les Caches Booster).[br]
+Seul un seul cache sera en vigueur: [b]le cache m&eacute;moire[/b].</DisableAnyCache_explain2>
 <DisableArticaProxyStatistics>D&eacute;sactiver le moteur de statistiques Artica</DisableArticaProxyStatistics>
 <DisableArticaProxyStatistics_explain>Si votre serveur ne dispose pas des performances requises, vous pouvez mettre en rouge cette option.[br]Cela aura pour but de d&eacute;sactiver le moteur de g&eacute;n&eacute;ration de statistiques via la base MySQL.[br]Vous disposerez ainsi de plus de m&eacute;moire et de CPU pour le proxy.[br]Vous pouvez alors aussi utiliser S.A.R.G afin de disposer quand m&ecirc;me de statistiques.Sarg est un outil qui assure la g&eacute;n&eacute;ration ponctuelle des statistiques de visites.[br]La d&eacute;sactivation de cette option va aussi d&eacute;sactiver toutes les sections relatives aux statistiques g&eacute;n&eacute;r&eacute;es par Artica.</DisableArticaProxyStatistics_explain>
 <DisableArticaProxyStatistics_warn>Le moteur de statistiques Artica est d&eacute;sactiv&eacute;, l'affichage de cette fonctionnalit&eacute; est alors impossible &agrave; visualiser.</DisableArticaProxyStatistics_warn>
@@ -824,6 +837,7 @@ Dans cette section, indiquez le domaine &agrave; ajouter &agrave; la machine vir
 <downloadb>T&eacute;l&eacute;chargement</downloadb>
 <downloaded_flow_this_hour>Flux t&eacute;l&eacute;charg&eacute; par heure</downloaded_flow_this_hour>
 <downloaded_size>taille t&eacute;l&eacute;charg&eacute;e</downloaded_size>
+<downloaded_size_by_day>Flux t&eacute;l&eacute;charg&eacute; par jour</downloaded_size_by_day>
 <downloaded_size_per_day>Flux t&eacute;l&eacute;charg&eacute; par jour</downloaded_size_per_day>
 <downloaded_size_per_hour>Taille des t&eacute;l&eacute;chargements par heure</downloaded_size_per_hour>
 <downloadz>T&eacute;l&eacute;charger</downloadz>
@@ -1411,6 +1425,8 @@ param&egrave;tre peut &ecirc;tre [b] coch&eacute; [/b] pour renverser le comport
 <max_days>NB jours MAX</max_days>
 <max_day_in_database>NB Jours MAX stock&eacute;s dans la base</max_day_in_database>
 <max_events_in_database>NB &Eacute;v&egrave;nements MAX dans la base</max_events_in_database>
+<max_extend_count_filez>Jour MAX d'extension</max_extend_count_filez>
+<max_file_lifetime>Temps MAX de vie d'un fichier</max_file_lifetime>
 <max_heap_table_size>Limiter la cr&eacute;ation des tables m&eacute;moires de plus de</max_heap_table_size>
 <max_heap_table_size_text>Ne pas autoriser la cr&eacute;ation de tables de type MEMORY (HEAP) plus grande que cette valeur. La valeur de la variable est utilis&eacute;e pour calculer la valeur maximale de MAX_ROWS pour la table MEMORY.[br] Modifier cette variable n'a pas d'effet sur les tables existantes, &agrave; moins que la table ne soit recr&eacute;e, avec une commande comme CREATE TABLE ou TRUNCATE TABLE, ou encore modifi&eacute;e avec ALTER TABLE.</max_heap_table_size_text>
 <max_load_to_run>Charge serveur MAX</max_load_to_run>
@@ -1632,6 +1648,7 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 Nous vous sugg&eacute;reront de mettre &agrave; jour la licence de votre serveur.</onlycorpavailable>
 <OnlyEnabled>Seulement actif</OnlyEnabled>
 <only_from_activedirectory>Seulement depuis l'Active Directory</only_from_activedirectory>
+<only_incoming_mails>Seulement les messages entrants</only_incoming_mails>
 <only_one_value_no_graph>Seulement une seule valeur &agrave; &eacute;t&eacute; trouv&eacute;e pour cette requ&ecirc;te.[br]Dans cette condition les graphiques ne peuvent &ecirc;tre g&eacute;n&eacute;r&eacute;s.</only_one_value_no_graph>
 <opempty_database>Vider la base ?</opempty_database>
 <opened_ports>Ports ouverts</opened_ports>
@@ -2034,6 +2051,7 @@ Ces signatures sont l'aboutissement d'un travail acharn&eacute; et de l'engageme
 <sarg_build_daily_stats_explain>Cette t&acirc;che peut &ecirc;tre utilis&eacute;e si et seulement si vous avez install&eacute; et activ&eacute; le logiciel SARG.[br]Elle permet de construire les statistiques de visites par jour.[br][b]Note[/b]: ne vous pr&eacute;occupez pas de la programmation des statistiques hebdomadaires et mensuelles, elles sont d&eacute;j&agrave; programm&eacute;es.[/b]</sarg_build_daily_stats_explain>
 <sarg_build_hourly_stats>Construit les statistiques horaires avec SARG</sarg_build_hourly_stats>
 <save_and_send>Sauver et envoyer</save_and_send>
+<save_to_mysqldb>Sauvegarder dans la base MySQL</save_to_mysqldb>
 <saving_network_done>Enregistrement du r&eacute;seau r&eacute;ussi</saving_network_done>
 <saving_network_failed>&Eacute;chec d'enregistrement du r&eacute;seau</saving_network_failed>
 <scan_dir>Analyse du dossier</scan_dir>
@@ -2061,6 +2079,8 @@ Elle est en charge d'enregistrer les pi&egrave;ces jointes originales dans la ba
 <send_password>Envoyer le mot de passe</send_password>
 <send_test_message>Envoyer un message de test</send_test_message>
 <send_test_message_text>Utiliser ce formulaire afin d'envoyer rapidement un message afin de tester le routage de votre instance de messagerie</send_test_message_text>
+<send_to_mailbox>Envoyer &agrave; une bo&icirc;te aux lettres</send_to_mailbox>
+<send_to_smtp_server>Envoyer &agrave; un serveur SMTP</send_to_smtp_server>
 <separated_by_acarriage_return>S&eacute;par&eacute;s par un retour chariot</separated_by_acarriage_return>
 <serveretdom>Serveur et domaine</serveretdom>
 <server_all_kbytes_in>Montant du trafic r&eacute;ceptionn&eacute; par le proxy</server_all_kbytes_in>
@@ -2132,6 +2152,8 @@ Il sont marqu&eacute;s pour suppression et l'utilisateur ne les visualise plus.[
 <sorry_table_is_missing>D&eacute;sol&eacute;, mais la table est manquante dans la base MySQL</sorry_table_is_missing>
 <sourcetype>Type de source</sourcetype>
 <source_file>Fichier source</source_file>
+<source_logs>Fichiers de logs</source_logs>
+<source_logs_squid_text>Affichez les fichiers d'&eacute;v&egrave;nements originaux afin de les r&eacute;-importer dans le syst&egrave;me de statistiques ou de les extraire.</source_logs_squid_text>
 <SPAMASSASSIN_RULES>R&egrave;gles SpamAssassin</SPAMASSASSIN_RULES>
 <SPAMASSASSIN_RULES_TEXT>Construisez des r&egrave;gles SpamAssassin avanc&eacute;es sur le contenu des messages.</SPAMASSASSIN_RULES_TEXT>
 <spamass_scr1>Lorsque le classificateur bay&eacute;sien et les test r&eacute;seaux ne sont pas utilis&eacute;s.</spamass_scr1>
@@ -2277,6 +2299,7 @@ Il semble que les Groups d'ACLs dynamiques ne sont pas activ&eacute;s.[br]
 Les Groups d'ACLs dynamiques permettent de pouvoir cr&eacute;er des objets qui utilisent les groupes d'utilisateurs stock&eacute;s dans votre Active Directory.[br]La mise &agrave; jour des utilisateurs s'effectuant de fa&ccedil;on dynamique par requ&ecirc;tes directes sur votre base AD/LDAP</sugesst_dynamic_acl_groups>
 <synchronize_mailboxes>Synchroniser les bo&icirc;tes aux lettres</synchronize_mailboxes>
 <synchronize_mailboxes_explain>Cette t&acirc;che va lancer la synchronisation des bo&icirc;tes aux lettres pour toutes les r&egrave;gles de toutes les organisations.</synchronize_mailboxes_explain>
+<synchronize_time_with_ad>Synchro. l'heure avec l'AD</synchronize_time_with_ad>
 <synchronize_webfilter_rules>Synchroniser les r&egrave;gles de filtrage</synchronize_webfilter_rules>
 <synchronize_webfilter_rules_text>Cette t&acirc;che doit &ecirc;tre utilis&eacute;e lors de l'utilisation de base de donn&eacute;es utilisateurs externes comme Microsoft Active Directory.[br]
 Elle force le moteur de filtrage Web &agrave; reconstruire les listes des membres stock&eacute;es dans les r&egrave;gles.</synchronize_webfilter_rules_text>
@@ -2360,10 +2383,12 @@ Le service est actuellement g&eacute;r&eacute; par l'appliance de statistiques.<
 <times>fois</times>
 <title2>Titre</title2>
 <token>Jeton</token>
+<top_10>TOP 10</top_10>
 <top_categories>TOP des cat&eacute;gories</top_categories>
 <top_categories_by_hits>Top des cat&eacute;gories par acc&egrave;s</top_categories_by_hits>
 <top_categories_by_size>Top des cat&eacute;gories par poids</top_categories_by_size>
 <top_members>TOP des membres</top_members>
+<top_websites>TOP des sites Web</top_websites>
 <total_per_thread_buffers>Total des tampons par thread</total_per_thread_buffers>
 <to_time>A l'heure</to_time>
 <transaction>Transaction</transaction>
@@ -2479,6 +2504,7 @@ Vous devriez uniquement activer cette option que si le filtrage Web n'est pas cr
 <UseRotation>Utiliser la rotation</UseRotation>
 <user_level_security>S&eacute;curit&eacute; au niveau de l'utilisateur</user_level_security>
 <user_level_security_explain>La s&eacute;curit&eacute; au niveau de l'utilisateur est le choix par d&eacute;faut pour Samba.[br]. Si le serveur accepte le nom d'utilisateur/mot de passe du client, ce dernier peut alors monter des partages multiples sans devoir saisir un mot de passe &agrave; chaque fois.[br]Samba peut aussi accepter des requ&ecirc;tes nom d'utilisateur/mot de passe bas&eacute;es sur les sessions.[br] Le client maintient des contextes d'authentification multiples gr&acirc;ce &agrave; l'utilisation d'un identifiant utilisateur unique (ou UID) pour chaque connexion.</user_level_security_explain>
+<user_quotaz>Quota utilisateur</user_quotaz>
 <UseSMTPProto>Utiliser le protocole SMTP</UseSMTPProto>
 <UseVirtualHosts>Utiliser de multiple h&ocirc;tes virtuels</UseVirtualHosts>
 <use_active_directory>Utiliser Active Directory</use_active_directory>
@@ -2499,6 +2525,7 @@ Vous devriez uniquement activer cette option que si le filtrage Web n'est pas cr
 <use_sent_items>Utiliser les &Eacute;l&eacute;ments Envoy&eacute;s</use_sent_items>
 <use_terme_of_use>Utiliser &quot;conditions de services&quot;</use_terme_of_use>
 <use_tproxy_mode>Utiliser le mode TProxy</use_tproxy_mode>
+<us_v2>Utiliser la version 2</us_v2>
 <values>valeurs</values>
 <verbose_mode>Mode verbeux</verbose_mode>
 <verify_caches>V&eacute;rifier les caches</verify_caches>
