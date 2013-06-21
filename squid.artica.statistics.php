@@ -83,7 +83,8 @@ function params(){
 	$p1=Paragraphe_switch_img("{CleanArticaSquidDatabases}", "{CleanArticaSquidDatabases_explain}","CleanArticaSquidDatabases",$CleanArticaSquidDatabases,null,450);
 	$html="
 	<div id=$t></div>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table>
 	<tr>
 		<td colspan=2>$p</td>
 	</tr>
@@ -95,6 +96,7 @@ function params(){
 		<td colspan=2 align='right'>". button("{apply}", "SaveStopArticaStats()",16)."</td>
 	</tr>
 	</table>
+	</div>
 	<script>
 	var x_SaveStopArticaStats= function (obj) {
 		var tempvalue=obj.responseText;

@@ -1575,31 +1575,7 @@ function DeleteRelayDomainName(){
 	$ou=$_GET["ou"];
 	$domain_name=$_GET["DeleteRelayDomainName"];
 	$ldap=new clladp();
-	$dn="cn=$domain_name,cn=transport_map,ou=$ou,dc=organizations,$ldap->suffix";
-	$ldap->ldap_delete($dn,false);
-	$dn="cn=@$domain_name,cn=relay_recipient_maps,ou=$ou,dc=organizations,$ldap->suffix";
-	$ldap->ldap_delete($dn,false);
-	$dn="cn=$domain_name,cn=relay_domains,ou=$ou,dc=organizations,$ldap->suffix";	
-	$ldap->ldap_delete($dn,false);
-	
-	$sql="DELETE FROM postfix_duplicate_maps WHERE pattern='$domain_name'";
-	$q=new mysql();
-	$q->QUERY_SQL($sql,"artica_backup");	
-	
-	$sql="DELETE FROM postfix_aliases_domains WHERE domain='$domain_name'";
-	$q=new mysql();
-	$q->QUERY_SQL($sql,"artica_backup");	
-	
-	$sql="DELETE FROM amavis_bypass_rcpt WHERE domain LIKE '%$domain_name'";
-	$q=new mysql();
-	$q->QUERY_SQL($sql,"artica_backup");		
-	
-	$jb=new ejabberd($domain);
-	$jb->Delete();	
-	
-	$sock=new sockets();
-	$usr=new usersMenus();
-	$sock->getFrameWork("cmd.php?postfix-transport-maps=yes");	
+	$ldap->DeleteRemoteDomain($domain_name,$ou);
 	ChockServices();
 
 }

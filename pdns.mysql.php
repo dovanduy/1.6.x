@@ -3,7 +3,9 @@ include_once(dirname(__FILE__) . '/ressources/class.main_cf.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . "/ressources/class.sockets.inc");
 include_once(dirname(__FILE__) . "/ressources/class.pdns.inc");
-
+$GLOBALS["VERBOSEDOMS"]=false;
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(isset($_GET["verbose-domain"])){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSEDOMS"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 
 if(posix_getuid()<>0){
 	$user=new usersMenus();
@@ -1194,7 +1196,7 @@ function item_config(){
 if($ttl==null){$ttl=8600;}
 if(!is_numeric($prio)){$prio=0;}
 
-$EnCryptedFunction=base64_encode("LoadAjaxTiny('DnsZoneName-$t','$page?DnsDomain-Field=yes&id=$id&t=$t');");
+$EnCryptedFunction=base64_encode("LoadAjaxTiny('DnsZoneNameSpan-$t','$page?DnsDomain-Field=yes&id=$id&t=$t');");
 
 $html="		
 <div id='anime-$t'></div>
@@ -1343,6 +1345,7 @@ function DnsDomainField(){
 	$ldap=new clladp();
 	$domains=array();
 	$tpl=new templates();
+	$users=new usersMenus();
 	$id=$_GET["id"];
 	$t=$_GET["t"];
 	$EnCryptedFunction=$_GET["EnCryptedFunction"];
@@ -1354,18 +1357,20 @@ function DnsDomainField(){
 	if(!$users->AsSystemAdministrator){
 		if(!$users->AsDnsAdministrator){
 			$ldap=new clladp();
+			if($GLOBALS["VERBOSE"]){echo "ldap->hash_get_domains_ou({$_SESSION["ou"]})\n";}
 			$domains=$ldap->hash_get_domains_ou($_SESSION["ou"]);
 			
 		};
 	}	
 	if(($users->AsSystemAdministrator) OR ($users->AsDnsAdministrator)){
+		if($GLOBALS["VERBOSE"]){echo "ldap->hash_get_all_domains()\n";}
 		$domains=$ldap->hash_get_all_domains();
 
 	}
 	
 	
-	
-	
+	//$GLOBALS["VERBOSEDOMS"]
+	$DnsZoneNameV=null;
 
 	$q=new mysql();
 	if($id>0){

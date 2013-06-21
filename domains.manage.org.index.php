@@ -695,10 +695,12 @@ if(($usersmenus->AsPostfixAdministrator) OR ($usersmenus->AsMessagingOrg) OR ($u
 	}		
 }
 
+if(!isset($_GET["miniadm"])){
 	if(($usersmenus->AllowChangeDomains) OR ($usersmenus->AsPostfixAdministrator)  OR ($usersmenus->AsMessagingOrg)){
 		$transport=Paragraphe('folder-transport-64.png','{localdomains}',
 		'{localdomains_text}',"javascript:Loadjs('domains.edit.domains.php?js=yes&ou=$ou')",null,210,null,0,true);
 	}
+}
 
 if($usersmenus->cyrus_imapd_installed){
 	$buildAllmailboxes=	Paragraphe("rebuild-mailboxes-64.png","{rebuild_mailboxes_org}","{rebuild_mailboxes_org_text}",
@@ -840,10 +842,12 @@ if($usersmenus->AsOrgAdmin){
 	$orgsduplicate=Paragraphe('org-duplicate-64.png','{EXPORT_ORG}','{duplicate_to_remote_server}',"javascript:Loadjs('domains.organization-settings.php?ou=$ou&js-export=yes')",null,210,0,0,true);
 	}
 
-if(($usersmenus->AsOrgAdmin) OR ($usersmenus->AsMessagingOrg)){
-	$transport=Paragraphe('folder-transport-64.png','{localdomains}','{localdomains_text}',"javascript:Loadjs('domains.edit.domains.php?js=yes&ou=$ou')",null,210,null,0,true);
-	if($usersmenus->POSTFIX_INSTALLED){$sendmail="<div style='float:left'>".Buildicon64('DEF_ICO_SENDTOALL',210,100,"?ou=$ou")."</div>";}
-}	
+if(!isset($_GET["miniadm"])){	
+	if(($usersmenus->AsOrgAdmin) OR ($usersmenus->AsMessagingOrg)){
+		$transport=Paragraphe('folder-transport-64.png','{localdomains}','{localdomains_text}',"javascript:Loadjs('domains.edit.domains.php?js=yes&ou=$ou')",null,210,null,0,true);
+		if($usersmenus->POSTFIX_INSTALLED){$sendmail="<div style='float:left'>".Buildicon64('DEF_ICO_SENDTOALL',210,100,"?ou=$ou")."</div>";}
+	}	
+}
 
 if($usersmenus->ARTICA_META_ENABLED){
 	if($sock->GET_INFO("AllowArticaMetaAddUsers")<>1){$add_user=null;}

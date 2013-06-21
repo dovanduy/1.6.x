@@ -49,6 +49,9 @@ ForceDirectories('/opt/artica/var/rrd/yorel');
 if FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
        if not FileExists('/etc/artica-postfix/artica-iso-make-launched') then begin
           fpsystem('/bin/touch /etc/artica-postfix/artica-iso-setup-launched');
+          fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd 2>&1');
+          fpsystem('/etc/artica-postfix/bin/artica-install --php-ini');
+          fpsystem('/usr/share/artica-postfix/bin/process1 --web-settings');
        end;
 end;
 
@@ -120,14 +123,14 @@ end;
        if FileExists('/home/artica/packages/ZARAFA/zarafa-web-app.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING ZARAFA WEBAPP.....');
           fpsystem('/bin/tar -xf /home/artica/packages/ZARAFA/zarafa-web-app.tar.gz -C / >/dev/null 2>&1');
-          fpsystem('/bin/mv /home/artica/packages/ZARAFA/zarafa-web-app.tar.gz /home/artica/packages/ZARAFA/zarafa-web-app.tar.gz.old');
+          fpsystem('/bin/mv /home/artica/packages/ZARAFA/zarafa-web-app.tar.gz /home/artica/zarafa-web-app.tar.gz.old');
        end;
 
        if FileExists('/home/artica/packages/ZARAFA/webapp.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING ZARAFA WEBAPP.....');
           ForceDirectories('/usr/share/zarafa-webapp');
           fpsystem('/bin/tar -xf /home/artica/packages/ZARAFA/webapp.tar.gz -C /usr/share/zarafa-webapp/ >/dev/null 2>&1');
-          fpsystem('/bin/mv /home/artica/packages/ZARAFA/webapp.tar.gz /home/artica/packages/ZARAFA/webapp.tar.gz.old');
+          fpsystem('/bin/mv /home/artica/packages/ZARAFA/webapp.tar.gz /home/artica/webapp.tar.gz.old');
        end;
 
 
@@ -135,21 +138,31 @@ end;
            writeln('Artica ISO: PLEASE WAIT.... INSTALLING ZARAFA WEBAPP plugins.....');
           ForceDirectories('/usr/share/zarafa-webapp/plugins');
           fpsystem('/bin/tar -xf /home/artica/packages/ZARAFA/webappplugins.tar.gz -C /usr/share/zarafa-webapp/plugins/ >/dev/null 2>&1');
-          fpsystem('/bin/mv /home/artica/packages/ZARAFA/webappplugins.tar.gz /home/artica/packages/ZARAFA/webappplugins.tar.gz.old');
+          fpsystem('/bin/mv /home/artica/packages/ZARAFA/webappplugins.tar.gz /home/artica/webappplugins.tar.gz.old');
        end;
+
+       if FileExists('/home/artica/packages/chilli.tar.gz') then begin
+           writeln('Artica ISO: PLEASE WAIT.... INSTALLING Chilli-Hotspot software.....');
+          fpsystem('/bin/tar xf /home/artica/packages/chilli.tar.gz -C / >/dev/null 2>&1');
+          fpsystem('/bin/mv /home/artica/packages/chilli.tar.gz /home/artica/chilli.tar.gz.old');
+          fpsystem('clear');
+       end;
+
+
 
 
         if FileExists('/home/artica/packages/ZARAFA/zpush.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING ZARAFA ZPUSH.....');
           forceDirectories('/usr/share/z-push');
           fpsystem('/bin/tar -xf /home/artica/packages/ZARAFA/zpush.tar.gz -C /usr/share/z-push/ >/dev/null 2>&1');
-          fpsystem('/bin/mv /home/artica/packages/ZARAFA/zpush.tar.gz /home/artica/packages/ZARAFA/zpush.tar.gz.old');
+          fpsystem('/bin/mv /home/artica/packages/ZARAFA/zpush.tar.gz /home/artica/zpush.tar.gz.old');
+          fpsystem('clear');
        end;
 
        if FileExists('/home/artica/packages/samba.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING SAMBA WEBAPP.....');
           fpsystem('/bin/tar -xf /home/artica/packages/samba.tar.gz -C / >/dev/null 2>&1');
-          fpsystem('/bin/mv /home/artica/packages/samba.tar.gz /home/artica/packages/samba.tar.gz.old');
+          fpsystem('/bin/mv /home/artica/packages/samba.tar.gz /home/artica/samba.tar.gz.old');
           writeln('Artica ISO: PLEASE WAIT.... Creating winbindd_priv group.....');
           fpsystem('/usr/sbin/groupadd winbindd_priv >/dev/null 2>&1');
           writeln('Artica ISO: PLEASE WAIT.... Set privileges.....');
@@ -161,6 +174,7 @@ end;
           fpsystem('/bin/echo "samba hold" | /usr/bin/dpkg --set-selections');
           fpsystem('/bin/echo "winbind hold" | /usr/bin/dpkg --set-selections');
           fpsystem('/bin/echo "samba-common hold" | /usr/bin/dpkg --set-selections');
+          fpsystem('clear');
        end;
 
        fpsystem('/bin/echo "exim4-base hold" | /usr/bin/dpkg --set-selections');
@@ -171,14 +185,16 @@ end;
           fpsystem('/bin/tar -xf /home/artica/packages/glusterfs.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv /home/artica/packages/glusterfs.tar.gz /home/artica/packages/glusterfs.tar.gz.old');
           fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.gluster.init.d.php');
+          fpsystem('clear');
        end;
 
 
        if FileExists('/home/artica/packages/pdns.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING PowerDNS.....');
           fpsystem('/bin/tar -xf /home/artica/packages/pdns.tar.gz -C / >/dev/null 2>&1');
-          fpsystem('/bin/mv /home/artica/packages/pdns.tar.gz /home/artica/packages/pdns.tar.gz.old');
+          fpsystem('/bin/mv /home/artica/packages/pdns.tar.gz /home/artica/pdns.tar.gz.old');
           if FileExists('/usr/sbin/dnsmasq') then fpsystem('aptitude remove dnmasq -y -q');
+          fpsystem('clear');
 
        end;
 
@@ -186,7 +202,7 @@ end;
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING Roundcube.....');
           ForceDirectories('/usr/share/roundcube');
           fpsystem('/bin/tar -xf /home/artica/packages/roundcube.tar.gz -C /usr/share/roundcube/ >/dev/null 2>&1');
-          fpsystem('/bin/mv /home/artica/packages/roundcube.tar.gz /home/artica/packages/roundcube.tar.gz.old');
+          fpsystem('/bin/mv /home/artica/packages/roundcube.tar.gz /home/artica/roundcube.tar.gz.old');
        end;
 
         if FileExists('/home/artica/packages/articasql.tar.gz') then begin
@@ -194,13 +210,14 @@ end;
            forceDirectories('/opt/articatech');
            fpsystem('/bin/tar -xf /home/artica/packages/articasql.tar.gz -C /opt/articatech/ >/dev/null 2>&1');
            fpsystem('/bin/rm /home/artica/packages/articasql.tar.gz');
+           fpsystem('clear');
         end;
 
         if FileExists('/home/artica/packages/squid-db.tar.gz') then begin
             writeln('Artica ISO: PLEASE WAIT.... INSTALLING Artica MySQL Engine Statistics.....');
             forceDirectories('/opt/squidsql');
             fpsystem('/bin/tar -xf /home/artica/packages/squid-db.tar.gz -C /opt/squidsql/ >/dev/null 2>&1');
-            fpsystem('/bin/mv /home/artica/packages/squid-db.tar.gz /home/artica/packages/squid-db.tar.gz.old');
+            fpsystem('/bin/mv /home/artica/packages/squid-db.tar.gz /home/artica/squid-db.tar.gz.old');
             fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.squid-db.php --init >/dev/null 2>&1');
         end;
 
@@ -210,6 +227,7 @@ end;
              fpsystem('/usr/bin/apt-get --purge --yes --force-yes --remove exim4* >/dev/null 2>&1');
              fpsystem('/bin/echo "exim4 hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
              fpsystem('/bin/echo "xmail hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
+             fpsystem('clear');
           end;
           writeln('Artica ISO: PLEASE WAIT.... REMOVING SQUID/POSTFIX/SAMBA FROM DEBIAN REPOSITORY...');
           fpsystem('/bin/echo "squid hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
@@ -219,12 +237,14 @@ end;
           fpsystem('/bin/echo "samba hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
           fpsystem('/bin/echo "winbind hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
           fpsystem('/bin/echo "samba-common hold" | /usr/bin/dpkg --set-selections >/dev/null 2>&1');
+          fpsystem('clear');
        end;
 
        if FileExists('/home/artica/packages/klmsui.deb') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING Kaspersky Web console For Mail security 8.x.....');
           fpsystem('/usr/bin/dpkg -i /home/artica/packages/klmsui.deb >/dev/null 2>&1');
           fpsystem('/bin/mv /home/artica/packages/klmsui.deb /home/artica/packages/klmsui.deb.old');
+          fpsystem('clear');
        end;
 
       if FileExists('/home/artica/packages/updatev2.tar.gz') then begin
@@ -241,8 +261,9 @@ end;
          fpsystem('/bin/cp /home/artica/packages/updatev2/updater.ini /etc/UpdateUtility/');
          fpsystem('/bin/cp /home/artica/packages/updatev2/updater.xml /etc/UpdateUtility/');
          fpsystem('/bin/cp -rf /home/artica/packages/updatev2/lib/*  /etc/UpdateUtility/lib/');
-         fpsystem('/home/artica/packages/updatev2.tar.gz /home/artica/packages/updatev2.tar.old');
+         fpsystem('/home/artica/packages/updatev2.tar.gz /home/artica/updatev2.tar.old');
          Writeln('Done...');
+         fpsystem('clear');
       end;
 
 
@@ -250,6 +271,7 @@ end;
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING Dansguardian.....');
           fpsystem('/bin/tar -xvf /home/artica/packages/dansguardian2.tar.gz -C /');
           fpsystem('/bin/mv -f /home/artica/packages/dansguardian2.tar.gz /home/artica/dansguardian2.tar.gz.old');
+          fpsystem('clear');
       end;
 
 
@@ -280,6 +302,7 @@ end;
           fpsystem('/bin/echo "postfix hold" | /usr/bin/dpkg --set-selections');
           writeln('Artica ISO: PLEASE WAIT.... Configuring Cyrus-imap if it exists.....');
           fpsystem('/usr/share/artica-postfix/bin/artica-install --reconfigure-cyrus >/dev/null 2>&1');
+          fpsystem('clear');
 
       end;
 
@@ -289,24 +312,27 @@ end;
           fpsystem('/usr/bin/dpkg --force-architecture -i /home/artica/packages/klms.deb');
           fpsystem('/bin/mv /home/artica/packages/klms.deb /home/artica/packages/klms.deb.old');
           fpsystem('/opt/kaspersky/klms/bin/klms-setup.pl --auto-install=/usr/share/artica-postfix/bin/install/klms.setup');
+          fpsystem('clear');
        end;
 
        if FileExists('/home/artica/packages/ufdbguard.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING Dansguardian.....');
           fpsystem('/bin/tar -xvf /home/artica/packages/ufdbguard.tar.gz -C /');
           fpsystem('/bin/mv -f /home/artica/packages/ufdbguard.tar.gz /home/artica/ufdbguard.tar.gz.old');
+          fpsystem('clear');
        end;
 
        if FileExists('/home/artica/packages/squid32.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING SQUID 3.2x.....');
           fpsystem('/bin/tar -xvf /home/artica/packages/squid32.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/packages/squid32.tar.gz /home/artica/squid32.tar.gz.old');
+          fpsystem('/bin/rm -f /etc/squid3/squid.conf >/dev/null 2>&1');
           forceDirectories('/var/run/squid');
           fpsystem('/bin/chmod 0777 /var/run/squid');
+          fpsystem('clear');
 
     end;
 
-    fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd 2>&1');
 
        if FileExists('/home/artica/packages/metascanner.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING Kaspersky Metascanner.....');
@@ -314,12 +340,14 @@ end;
           fpsystem('/bin/mv -f /home/artica/packages/metascanner.tar.gz /home/artica/metascanner.tar.gz.old');
           if FileExists('/opt/kaspersky/khse/libexec/libframework.so') then fpsystem('/bin/cp /opt/kaspersky/khse/libexec/libframework.so /lib/libframework.so');
           if FileExists('/opt/kaspersky/khse/libexec/libyaml-cpp.so.0.2') then fpsystem('/bin/cp /opt/kaspersky/khse/libexec/libyaml-cpp.so.0.2 /lib/libyaml-cpp.so.0.2');
+          fpsystem('clear');
     end;
 
        if FileExists('/home/artica/packages/c-icap.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING C-ICAP.....');
           fpsystem('/bin/tar -xvf /home/artica/packages/c-icap.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/packages/c-icap.tar.gz /home/artica/c-icap.tar.gz.old');
+          fpsystem('clear');
     end;
 
        if FileExists('/home/artica/packages/ftpunivtlse1fr.tar.gz') then begin
@@ -327,6 +355,7 @@ end;
           ForceDirectories('/var/lib/ftpunivtlse1fr');
           fpsystem('/bin/tar -xvf /home/artica/packages/ftpunivtlse1fr.tar.gz -C /var/lib/ftpunivtlse1fr/ >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/packages/ftpunivtlse1fr.tar.gz /home/artica/ftpunivtlse1fr.tar.gz.old');
+          fpsystem('clear');
     end;
 
 
@@ -334,6 +363,7 @@ end;
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING mskutils.....');
           fpsystem('/bin/tar -xvf /home/artica/packages/mskutils.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/packages/mskutils.tar.gz /home/artica/mskutils.tar.gz.old');
+          fpsystem('clear');
     end;
 
 
@@ -341,6 +371,7 @@ end;
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING squid 3.2x.....');
           fpsystem('/bin/tar -xvf /home/artica/squid32.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/squid32.tar.gz /home/artica/squid32.tar.gz.old');
+          fpsystem('clear');
 
        end;
 
@@ -348,8 +379,15 @@ end;
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING UfdbGuard.....');
           fpsystem('/bin/tar -xvf /home/artica/ufdbguard.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/ufdbguard.tar.gz /home/artica/ufdbguard.tar.gz.bak');
+          fpsystem('clear');
        end;
 
+       if FileExists('/home/artica/packages/msmtp.tar.gz') then begin
+          writeln('Artica ISO: PLEASE WAIT.... INSTALLING MSMTP.....');
+          fpsystem('/bin/tar -xvf /home/artica/msmtp.tar.gz -C / >/dev/null 2>&1');
+          fpsystem('/bin/mv -f /home/artica/msmtp.tar.gz /home/artica/msmtp.tar.gz.bak');
+          fpsystem('clear');
+       end;
 
 
 
@@ -358,6 +396,7 @@ end;
           fpsystem('/bin/tar -xvf /home/artica/packages/netatalk.tar.gz -C /');
           fpsystem('/bin/mv -f /home/artica/packages/netatalk.tar.gz /home/artica/netatalk.tar.gz.old');
           fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd 2>&1');
+          fpsystem('clear');
     end;
 
 
@@ -367,26 +406,26 @@ end;
           fpsystem('/bin/tar -xvf /home/artica/packages/ufdbguard.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv /home/artica/packages/ufdbguard.tar.gz /home/artica/ufdbguard.tar.gz.old');
           writeln('Artica ISO: PLEASE WAIT.... CREATING CONFIGURATION.....');
+          fpsystem('clear');
     end;;
 
     if FileExists('/home/artica/packages/kav4proxy-5.5-62.tar.gz') then begin
        writeln('Artica ISO: PLEASE WAIT.... INSTALLING KAV4PROXY.....');
        fpsystem('/usr/share/artica-postfix/bin/artica-make APP_KAV4PROXY >/dev/null 2>&1');
+       fpsystem('clear');
     end;
 
-       if FileExists('/home/artica/packages/kav4proxy-5.5-80.tar.gz') then begin
-          writeln('Artica ISO: PLEASE WAIT.... INSTALLING KAV4PROXY.....');
-          fpsystem('/usr/share/artica-postfix/bin/artica-make APP_KAV4PROXY >/dev/null 2>&1');
-    end;
 
        if FileExists('/home/artica/packages/crossroads.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING LOAD BALANCER.....');
           fpsystem('/bin/tar -xvf /home/artica/packages/crossroads.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv /home/artica/packages/crossroads.tar.gz /home/artica/crossroads.tar.gz.old');
           writeln('Artica ISO: PLEASE WAIT.... CREATING CONFIGURATION.....');
+          fpsystem('clear');
     end;
 
-       if not FileExists('/bin/login.old') then begin
+    if not FileExists('/bin/login.old') then begin
+            writeln('Artica ISO: PLEASE WAIT...INSTALLING MENU CONSOLE...');
             fpsystem('/bin/mv /bin/login /bin/login.old');
             if FIleExists('/usr/share/artica-postfix/bin/artica-logon') then fpsystem('/bin/ln -s /usr/share/artica-postfix/bin/artica-logon /bin/login');
             if FIleExists('/opt/artica-agent/bin/artica-logon') then fpsystem('/bin/ln -s /opt/artica-agent/bin/artica-logon /bin/login');
@@ -394,22 +433,46 @@ end;
             fpsystem('/bin/chmod 777 /bin/login');
             if FIleExists('/usr/share/artica-postfix/bin/artica-logon') then fpsystem('/bin/chmod 777 /usr/share/artica-postfix/bin/artica-logon');
             if FIleExists('/opt/artica-agent/bin/artica-logon') then fpsystem('/bin/chmod 777 /opt/artica-agent/bin/artica-logon');
+            fpsystem('clear');
         end;
 
         if FIleExists('/opt/artica-agent/usr/share/artica-agent/starter.php') then fpsystem('/opt/artica-agent/usr/share/artica-agent/starter.php');
 
         if DirectoryExists('/usr/share/artica-postfix') then begin
+           writeln('Artica ISO: PLEASE WAIT...Settings privileges on /usr/share/artica-postfix');
            fpsystem('/usr/bin/nohup /bin/chown www-data:www-data /usr/share/artica-postfix/* >/dev/null 2>&1 &');
            fpsystem('/usr/bin/nohup /bin/chown -R www-data:www-data /usr/share/artica-postfix >/dev/null 2>&1 &');
+           fpsystem('clear');
         end;
 
 if not FileExists('/etc/artica-postfix/artica-as-rebooted') then fpsystem('/bin/rm -f /etc/artica-postfix/artica-iso-first-reboot');
-if not FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
 
+
+if not FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
+    fpsystem('clear');
+    writeln('Artica ISO: PLEASE WAIT... Creating startup scripts...');
+    fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.initslapd.php');
+    fpsystem('/bin/rm -f /etc/squid3/squid.conf >/dev/null 2>&1');
+    fpsystem('/etc/artica-postfix/bin/artica-install -lighttpd-cert');
+
+
+
+    fpsystem('clear');
+
+   if FileExists('/etc/init.d/php5-fpm') then begin
+       writeln('Artica ISO: PLEASE WAIT... Configuring php5 PFM for the first time...');
+       fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.initslapd.php --phppfm >/dev/null 2>&1');
+       fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.php-fpm.php --restart');
+       fpsystem('clear');
+    end;
+
+
+    writeln('Artica ISO: PLEASE WAIT... Creating a basic network configuration...');
     interfaces:=Tstringlist.Create;
     interfaces.Add('auto lo');
     interfaces.Add('iface lo inet loopback');
     interfaces.Add('# The primary network interface');
+    interfaces.Add('allow-hotplug eth0');
     interfaces.Add('iface eth0 inet dhcp');
     interfaces.Add('');
     try
@@ -417,96 +480,70 @@ if not FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
     finally
     end;
 
-    writeln('Checking sources.list...');
+    writeln('Artica ISO: PLEASE WAIT... Checking sources.list...');
     if FileExists('/usr/share/artica-postfix/exec.apt-get.php') then fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.apt-get.php --sources-list');
+    fpsystem('clear');
 
     if FileExists('/etc/init.d/lighttpd') then begin
-         writeln('artica-cd... removing lighttpd original instance...');
+         writeln('Artica ISO: PLEASE WAIT... Removing lighttpd original instance...');
          fpsystem('/etc/init.d/lighttpd stop');
          fpsystem('update-rc.d -f lighttpd remove >/dev/null 2>&1');
          fpsystem('/bin/mv -f /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.org');
          fpsystem('/bin/touch  /etc/lighttpd/init.d');
          fpsystem('dpkg-divert --divert /etc/lighttpd/lighttpd.conf.org /etc/lighttpd/lighttpd.conf >/dev/null 2>&1');
          fpsystem('dpkg-divert --divert /etc/lighttpd/init.d /etc/init.d/lighttpd >/dev/null 2>&1');
-         writeln('artica-cd... removing lighttpd original instance done...');
+         writeln('Artica ISO: PLEASE WAIT... Removing lighttpd original instance done...');
+         fpsystem('clear');
     end;
-     fpsystem('clear');
-    writeln('************************************************************************');
-    writeln('************************************************************************');
-    writeln('');
-    writeln('artica-cd...0% Please wait, do nothing... the server will be restarted....');
-     writeln('');
-    writeln('************************************************************************');
-    writeln('************************************************************************');
 
+    fpsystem('clear');
+    writeln('Artica ISO: PLEASE WAIT 0% DO NOTHING !!!! SERVER WILL BE RESTARTED....');
+    writeln('Artica ISO: PLEASE WAIT... Creating default root password...');
     fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd 2>&1');
-    writeln('artica-cd... Creating Artica configuration by process1, please wait...');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    fpsystem('clear');
-    writeln('************************************************************************');
-    writeln('************************************************************************');
-    writeln('');
-    writeln('artica-cd...50% Please wait, do nothing... the server will be restarted....');
-     writeln('');
-    writeln('************************************************************************');
-    writeln('************************************************************************');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    fpsystem('clear');
-    writeln('');
-    writeln('************************************************************************');
-    writeln('************************************************************************');
-    writeln('');
-    writeln('artica-cd...80% Please wait, do nothing... the server will be restarted....');
-     writeln('');
-    writeln('************************************************************************');
-    writeln('************************************************************************');
 
-    fpsystem('/usr/share/artica-postfix/bin/process1 --force --yes-from-iso >/dev/null 2>&1');
-    writeln('artica-cd... remove init boot');
+    writeln('Artica ISO: Creating Artica configuration by process1, please wait...');
+    fpsystem('clear');
+    writeln('Artica ISO: PLEASE WAIT 50% DO NOTHING !!!! SERVER WILL BE RESTARTED....');
+    fpsystem('clear');
+    writeln('Artica ISO: PLEASE WAIT 80% DO NOTHING !!!! SERVER WILL BE RESTARTED....');
+    writeln('Artica ISO: PLEASE WAIT, BUILDING SETTINGS "PROCESS1"....MATRIX STARTED !!!!!');
+    fpsystem('/usr/share/artica-postfix/bin/process1 --force --yes-from-iso --verbose');
+    fpsystem('clear');
+    writeln('Artica ISO: PLEASE WAIT, BUILDING INIT.D scripts....');
+    fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.initslapd.php');
+   fpsystem('clear');
+    writeln('Artica ISO: PLEASE WAIT 85% DO NOTHING !!!! SERVER WILL BE RESTARTED....');
+    fpsystem('clear');
+    writeln('Artica ISO: PLEASE WAIT... Cleaning init.d');
     fpsystem('update-rc.d -f artica-cd remove >/dev/null 2>&1');
     fpsystem('/bin/rm -f /etc/init.d/artica-cd >/dev/null 2>&1');
     fpsystem('/bin/rm -f /etc/cron.d/artica-boot-first >/dev/null 2>&1');
     fpsystem('/bin/rm -f /etc/artica-postfix/ARTICA_ISO.lock');
     fpsystem('/bin/touch /etc/artica-postfix/artica-iso-first-reboot');
     fpsystem('/bin/touch /etc/artica-postfix/artica-as-rebooted');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
-    writeln('');
     fpsystem('clear');
-    writeln('************************************************************************');
-    writeln('************************************************************************');
-    writeln('');
-    writeln('artica-cd...99% Please wait, press [ENTER] KEY. the server will be restarted....');
-     writeln('');
-    writeln('************************************************************************');
-    writeln('************************************************************************');
+    writeln('Artica ISO: PLEASE WAIT 99% DO NOTHING !!!! SERVER WILL BE RESTARTED....');
+
+   if FileExists('/home/artica/packages/kav4proxy-5.5-80.tar.gz') then begin
+          writeln('Artica ISO: PLEASE WAIT.... INSTALLING KAV4PROXY.....');
+          fpsystem('/usr/share/artica-postfix/bin/artica-make APP_KAV4PROXY_ISO >/dev/null 2>&1');
+          fpsystem('clear');
+    end;
+
     fpsystem('clear');
-    writeln('artica-cd... System will reboot....');
+    writeln('Artica ISO: PLEASE WAIT... System will reboot....');
     fpsystem('reboot');
 end else begin
+   if FileExists('/home/artica/packages/kav4proxy-5.5-80.tar.gz') then begin
+          writeln('Artica ISO: PLEASE WAIT.... INSTALLING KAV4PROXY.....');
+          fpsystem('/usr/share/artica-postfix/bin/artica-make APP_KAV4PROXY_ISO >/dev/null 2>&1');
+          fpsystem('clear');
+    end;
+
+
+     writeln('Artica ISO: terminated....');
      if FileExists('/etc/init.d/artica-cd') then begin
+        writeln('Artica ISO: PLEASE WAIT... Remove old installation "artica-cd"');
         fpsystem('update-rc.d -f artica-cd remove >/dev/null 2>&1');
         fpsystem('/bin/rm -f /etc/init.d/artica-cd');
     end;

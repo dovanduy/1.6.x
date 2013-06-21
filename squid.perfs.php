@@ -24,6 +24,7 @@
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["perfs"])){perfs();exit;}
 	if(isset($_GET["cache_mem"])){save();exit;}
+	if(isset($_GET["tabs"])){tabs();exit;}
 	js();
 
 	
@@ -33,12 +34,45 @@ function js(){
 	$title=$tpl->_ENGINE_parse_body("{tune_squid_performances}");
 	$page=CurrentPageName();
 	$html="
-		YahooWin3('700','$page?popup=yes','$title');
+		YahooWin3('780','$page?tabs=yes','$title');
 	
 	";
 		echo $html;
 	
 	
+	
+	
+}
+
+function tabs(){
+	$tpl=new templates();
+	$array["popup"]='{system}';
+	$array["plugins"]='{squid_plugins}';
+
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql();
+	
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="plugins"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.client-plugins.php?popup=yes\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
+	}
+	echo "
+	<div id=main_squidperfs style='width:100%'>
+		<ul style='font-size:16px'>". implode("\n",$html)."</ul>
+	</div>
+		<script>
+				$(document).ready(function(){
+					$('#main_squidperfs').tabs();
+		
+		
+			});
+		</script>";
+		
 	
 	
 }

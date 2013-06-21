@@ -718,7 +718,7 @@ function page_de_garde(){
 	$html="<table $styletable>
 	<tbody>
 	<tr>
-		<td valign='top' width=1%>
+		<td valign='top' width=1% style='vertical-align:top;'>
 			
 			<div id='days-left-menus' style='width:220px'></div>
 		</td>

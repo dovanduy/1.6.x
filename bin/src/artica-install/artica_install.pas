@@ -316,7 +316,7 @@ if install.IsRoot()=false then begin
 end;
 
 if ParamStr(1)='--lighttpd-reload' then begin
-   zlighttpd.LIGHTTPD_RELOAD();
+
    halt(0);
 end;
 
@@ -1179,8 +1179,6 @@ if ParamStr(1)='--reload-dhcpd' then begin
    halt(0);
 end;
  if ParamStr(1)='--dhcpd-find-nic' then begin
-   dhcp3:=Tdhcp3.Create(SYS);
-   writeln(dhcp3.FIND_NIC());
    halt(0);
 end;
 
@@ -3283,11 +3281,11 @@ if ParamStr(1)='--lighttpd-status' then
 begin
 GLOBAL_INI:=MyConf.Create();
 writeln('config path........: ',zlighttpd.LIGHTTPD_CONF_PATH());
-writeln('Pid path...........: ',zlighttpd.LIGHTTPD_PID());
+
 writeln('init.d path........: ',zlighttpd.LIGHTTPD_INITD());
 writeln('logs path..........: ',zlighttpd.LIGHTTPD_LOG_PATH());
 writeln('socket path........: ',zlighttpd.LIGHTTPD_SOCKET_PATH());
-writeln('Popup authenticate.: ',zlighttpd.IS_AUTH_LDAP());
+
 
 
 halt(0);

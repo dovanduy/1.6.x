@@ -16,7 +16,7 @@
 		exit;
 		
 	}
-	
+	if(isset($_GET["test-cat"])){test_category();exit;}
 	if(isset($_GET["js-popup-master"])){js_popup_master();exit;}
 	if(isset($_GET["subtitles-categories"])){subtitle_categories();exit;}
 	if(isset($_GET["tabs"])){tabs();exit;}
@@ -30,18 +30,19 @@
 	if(isset($_POST["MoveCategorizedWebsitePattern"])){MoveCategorizedWebsiteAll();exit;}
 	if(isset($_GET["RemoveDisabled-popup"])){removedisabled_popup();exit;}
 	if(isset($_POST["RemoveDisabled"])){removedisabled_perform();exit;}
+	if(isset($_POST["WEBTESTS"])){test_category_perform();exit;}
 js();	
 	
 function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$width=862;
+	$width=950;
 	$title=$tpl->_ENGINE_parse_body("{categories}");
 	if($_GET["category"]<>null){$title=$title."::{$_GET["category"]}";$width=720;}
 	if($_GET["website"]<>null){
 		if(preg_match("#^www\.(.+)#", $_GET["website"],$re)){$_GET["website"]=$re[1];}
 		$title=$title."::{$_GET["website"]}";
-		$width=720;
+		$width=860;
 	}
 	$start="YahooWin4('$width','$page?tabs=yes&category={$_GET["category"]}&website={$_GET["website"]}','$title');";
 	$html="
@@ -67,10 +68,16 @@ function js_popup_master(){
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$array["status"]='{status}';
+	$sock=new sockets();
+	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+	
+	$array["free-cat"]='{add_websites}';
+	$array["test-cat"]='{test_categories}';
 	$array["list"]='{categories}';
 	$array["popup"]='{manage_your_items}';
 	$array["size"]='{compiled_categories}';
+	if($DisableArticaProxyStatistics==0){$array["status"]='{status}';}
 	$array["squidlogs"]='{statistics_database}';
 	
 	if($_GET["category"]<>null){
@@ -82,38 +89,51 @@ function tabs(){
 		$catzadd="&middlesize=yes";
 		
 	}
-	
+	https://192.168.1.204:9000/squid.visited.php?add-www=yes&_=1369253307129
 
 while (list ($num, $ligne) = each ($array) ){
+	
+		if($num=="free-cat"){
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:13px'><a href=\"squid.visited.php?free-cat=yes&category={$_GET["category"]}&t=$t\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+	
 		if($num=="status"){
-			$html[]= "<li><a href=\"dansguardian2.databases.php?statusDB=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+			$html[]= "<li style='font-size:13px'>
+			<a href=\"dansguardian2.databases.php?statusDB=yes\">
+				<span style='font-size:13px'>$ligne</span></a></li>\n";
 			continue;
 		}
 	
 	
 		if($num=="list"){
-			$html[]= "<li><a href=\"dansguardian2.databases.php?categories=$catzadd\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+			$html[]= "<li style='font-size:13px'>
+				<a href=\"dansguardian2.databases.php?categories=$catzadd&minisize-middle=yes\"><span style='font-size:13px'>$ligne</span></a></li>\n";
 			continue;
 		}
 		
 		if($num=="size"){
-			$html[]= "<li><a href=\"dansguardian2.databases.compiled.php?status=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+			$html[]= "<li style='font-size:13px'><a href=\"dansguardian2.databases.compiled.php?status=yes\">
+			<span style='font-size:13px'>$ligne</span></a></li>\n";
 			continue;
 		}	
 
 		if($num=="squidlogs"){
-			$html[]= "<li><a href=\"squidlogs.php\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+			$html[]= "<li style='font-size:13px'><a href=\"squidlogs.php\"
+			><span style='font-size:13px'>$ligne</span></a></li>\n";
 			continue;
 		}		
 	
 	
-		$html[]= "<li><a href=\"$page?$num&category={$_GET["category"]}$catzadd&website={$_GET["website"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$html[]= "<li style='font-size:13px'>
+		<a href=\"$page?$num=yes&category={$_GET["category"]}$catzadd&website={$_GET["website"]}\">
+			<span style='font-size:13px'>$ligne</span></a></li>\n";
 	}
 	
 	
 	echo $tpl->_ENGINE_parse_body( "
-	<div id=squid_categories_zoom style='width:100%;font-size:14px'>
-		<ul>". implode("\n",$html)."</ul>
+	<div id=squid_categories_zoom style='width:100%;font-size:13px'>
+		<ul style='font-size:13px'>". implode("\n",$html)."</ul>
 	</div>
 		<script>
 				$(document).ready(function(){
@@ -198,7 +218,7 @@ function subtitle_categories(){
 function popup(){
 	
 	$tpl=new templates();
-	$TB_WIDTH=689;
+	$TB_WIDTH=915;
 	
 	$users=new usersMenus();
 
@@ -248,7 +268,7 @@ function popup(){
 			
 
 	
-if($_GET["middlesize"]=="yes"){$TB_WIDTH=830;}
+		if($_GET["middlesize"]=="yes"){$TB_WIDTH=915;}
 		if($_GET["category"]<>null){
 			$table_title="$category_text::$category";
 		$buttons="buttons : [
@@ -814,5 +834,110 @@ function MoveCategorizedWebsiteAll(){
 		
 		
 		
+}
+
+function test_category(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$html="	<div style='width:95%' class=form>
+	<table>
+	<tr>
+		<td class=legend style='font-size:22px' nowrap>{website}:</td>
+		<td width=99%>". Field_text("WEBTESTS-$t",null,"font-size:22px;width:99%;padding:13px;border:2px solid #808080",
+	null,null,null,false,"CheckSingleSite$t(event)")."</td>
+	</tr>
+	</table>
+	<div id='answer-$t'></div>
+	
+	
+	</div>
+<script>
+		function x_CheckSingleSite$t(obj){
+			var tempvalue=obj.responseText;
+			if(tempvalue.length>3){
+				document.getElementById('answer-$t').innerHTML=tempvalue;
+			}
+		}
+
+function CheckSingleSite$t(e){
+		if(!checkEnter(e)){return;}
+		var XHR = new XHRConnection();
+		XHR.appendData('WEBTESTS',document.getElementById('WEBTESTS-$t').value);
+		AnimateDiv('answer-$t');
+		XHR.sendAndLoad('$page', 'POST',x_CheckSingleSite$t);	
+
+}
+</script>
+
+
+			
+";
+	
+echo $tpl->_ENGINE_parse_body($html);	
+}
+
+function test_category_perform(){
+	$www=$_REQUEST["WEBTESTS"];
+	
+	
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$www=$q->WebsiteStrip($www);
+	
+	if($www==null){
+		echo $tpl->_ENGINE_parse_body("<p class=text-error>{corrupted_request}: &laquo;{$_REQUEST["WEBTESTS"]}&raquo;</p>");
+		return;
+	}
+	
+	$dans=new dansguardian_rules();
+	$dans->LoadBlackListes();
+	
+	$catz=$q->GET_CATEGORIES($www,true);
+	if($catz==null){
+		echo $tpl->_ENGINE_parse_body("<p class=text-error>{unknown}: &laquo;{$_REQUEST["WEBTESTS"]}&raquo;</p>");
+		return;
+	}
+	if(strpos(" $catz", ",")>0){$CATs=explode(",", $catz);}else{$CATs[]=$catz;}
+	
+	$sql="SELECT * FROM personal_categories";
+	if(!$q->TABLE_EXISTS("personal_categories")){json_error_show("personal_categories no such table!",1);}
+	
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){json_error_show("Mysql Error [".__LINE__."]: $q->mysql_error",1);}
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){$PERSONALSCATS[$ligne["category"]]=$ligne["category_description"];}
+		
+	
+	while (list ($num, $categoryname) = each ($CATs) ){
+		
+		if(!isset($dans->array_blacksites[$categoryname])){
+			if(isset($dans->array_blacksites[str_replace("_","-",$categoryname)])){$categoryname=str_replace("_","-",$categoryname);}
+			if(isset($dans->array_blacksites[str_replace("_","/",$categoryname)])){$categoryname=str_replace("_","/",$categoryname);}
+		}		
+		if($dans->array_pics[$categoryname]<>null){$pic="<img src='img/{$dans->array_pics[$categoryname]}'>";}else{$pic="&nbsp;";}
+		$text_category=$dans->array_blacksites[$categoryname];
+
+		if(isset($PERSONALSCATS[$categoryname])){
+			$text_category=utf8_encode($PERSONALSCATS[$categoryname]);
+			if($pic=="&nbsp;"){$pic="<img src='img/20-categories-personnal.png'>";}
+
+		}
+		$js="javascript:Loadjs('squid.categories.php?category=$categoryname&t=$t')";
+		$categoryText[]=$tpl->_ENGINE_parse_body("
+		<tr>
+			<td width=1% nowrap>$pic</td>
+			<td valign='top'>
+				<div style='font-size:18px';font-weight:bold'>
+					<a href=\"javascript:blur();\" OnClick=\"$js\" style='text-decoration:underline'>$categoryname</a>:</div>
+				<div style='font-size:16px;width:100%;font-weight:normal'>{$text_category}</div>
+			</td>
+		</tr>		
+		");
+		
+		
+	}
+	$found=$tpl->_ENGINE_parse_body("{found}");
+	echo "<div style='width:95%:padding-left:50px;padding-top:20px' class=explain><div style='font-size:18px'>$found</div><table>".@implode("\n", $categoryText)."</table></div>";
+	
 }
 

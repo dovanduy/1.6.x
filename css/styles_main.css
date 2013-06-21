@@ -464,3 +464,42 @@ INPUT:hover .unityDivForm  {
 	border-radius: 5px 5px 5px 5px;	
 }
 }
+
+.text-error {
+  color: #b94a48;
+}
+
+a.text-error:hover, a.text-error:focus {
+  color: #953b39;
+}
+
+p.text-error{
+	color: #b94a48;
+	margin:5px;
+	padding:3px;
+	border:1px solid #E40501;
+	border-radius:5px 5px 5px 5px;
+	 -moz-border-radius:5px;
+	-webkit-border-radius:5px;
+    background-color: #F7E5D9;
+ 	font-weight:bold;
+    font-size: 14px;
+    margin-bottom: 20px;
+    padding: 8px 35px 8px 14px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+p.text-warning{
+	color: #b94a48;
+	margin:5px;
+	padding:3px;
+	border:1px solid #E40501;
+	border-radius:5px 5px 5px 5px;
+	 -moz-border-radius:5px;
+	-webkit-border-radius:5px;
+    background-color: #F7E5D9;
+ 	font-weight:bold;
+    font-size: 14px;
+    margin-bottom: 20px;
+    padding: 8px 35px 8px 14px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}

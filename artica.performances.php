@@ -519,7 +519,7 @@ var {$idmd}reste=0;
 	
 	
 	function {$idmd}StartPage(){
-		YahooWin(820,'$page?popup=yes','$title');
+		YahooWin(850,'$page?popup=yes','$title');
 		setTimeout(\"{$idmd}ChargeLogs();\",1000);	
 		setTimeout(\"{$idmd}demarre()\",1000);
 	}	
@@ -714,6 +714,7 @@ function main_config_artica(){
 	$SystemLoadNotif=trim($sock->GET_INFO("SystemLoadNotif"));
 	
 	$DisableLoadAVGQueue=$sock->GET_INFO('DisableLoadAVGQueue');
+	$oom_kill_allocating_task=$sock->GET_INFO("oom_kill_allocating_task");
 		
 	
 	$cgroupsEnabled=$sock->GET_INFO("cgroupsEnabled");
@@ -730,6 +731,7 @@ function main_config_artica(){
 	if(!is_numeric($cpulimit)){$cpulimit=0;}
 	if(!is_numeric($cgroupsEnabled)){$cgroupsEnabled=0;}
 	if(!is_numeric($SystemLoadNotif)){$SystemLoadNotif=0;}
+	if(!is_numeric($oom_kill_allocating_task)){$oom_kill_allocating_task=1;}
 	
 	if(!is_numeric($DisableLoadAVGQueue)){$DisableLoadAVGQueue=0;}
 	
@@ -907,7 +909,14 @@ $html="
 			<td nowrap width=1% align='right' class=legend>{DisableLoadAVGQueue}:</td>
 			<td>" . Field_checkbox("DisableLoadAVGQueue",1,$DisableLoadAVGQueue)."</td>
 			<td>" . help_icon("{DisableLoadAVGQueue_explain}")."</td>
-		</tr>		
+		</tr>	
+		<tr>
+			<td nowrap width=1% align='right' class=legend>{oom_kill_allocating_task}:</td>
+			<td>" . Field_checkbox("oom_kill_allocating_task",1,$oom_kill_allocating_task)."</td>
+			<td>/td>
+		</tr>
+					
+					
 		<tr>
 			<td nowrap width=1% align='right' class=legend>{EnableBandwithCalculation}:</td>
 			<td>" . Field_checkbox("EnableBandwithCalculation",1,$EnableBandwithCalculation)."</td>
@@ -1270,8 +1279,7 @@ if(isset($_POST["ArticaInCgroups"])){$sock->SET_INFO('ArticaInCgroups',$_POST["A
 if(isset($_POST["DisableLoadAVGQueue"])){$sock->SET_INFO('DisableLoadAVGQueue',$_POST["DisableLoadAVGQueue"]);}
 if(isset($_POST["SystemLoadNotif"])){$sock->SET_INFO('SystemLoadNotif',$_POST["SystemLoadNotif"]);}
 if(isset($_POST["EnableBandwithCalculation"])){$sock->SET_INFO('EnableBandwithCalculation',$_POST["EnableBandwithCalculation"]);}
-
-
+if(isset($_POST["oom_kill_allocating_task"])){$sock->SET_INFO('oom_kill_allocating_task',$_POST["oom_kill_allocating_task"]);}
 
 	
 	while (list ($num, $val) = each ($_POST) ){

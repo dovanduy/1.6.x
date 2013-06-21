@@ -4,10 +4,12 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}if($G
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
+include_once(dirname(__FILE__)."/ressources/class.system.nics.inc");
 
 if($argv[1]=="--build"){build();exit;}
 if($argv[1]=="--stop"){stop();exit;}
 if($argv[1]=="--start"){start();exit;}
+if($argv[1]=="--dictionary"){dictionary();exit;}
 
 
 function build(){
@@ -15,12 +17,15 @@ function build(){
 	$unix=new unix();
 	$sock=new sockets();
 	$checkrad=$unix->find_program("checkrad");
+	$EnableMikrotik=$sock->GET_INFO("EnableMikrotik");
 	echo "Starting FreeRadius.............: checkrad: `$checkrad`\n";
 	$ListenIP=$sock->GET_INFO("FreeRadiusListenIP");
 	$FreeRadiusListenPort=$sock->GET_INFO("FreeRadiusListenPort");
 	if($ListenIP==null){$ListenIP="*";}
 	if(!is_numeric($FreeRadiusListenPort)){$FreeRadiusListenPort=1812;}
 	echo "Starting FreeRadius.............: Listen addr: `$ListenIP:$FreeRadiusListenPort`\n";
+	$IsMySQL=IsMySQL();	$UseMySQL=false;
+	if($IsMySQL>0){$UseMySQL=true;}
 	
 	$f[]="prefix = /usr";
 	$f[]="exec_prefix = /usr";
@@ -92,11 +97,18 @@ function build(){
 	$f[]="	max_spare_servers = 10";
 	$f[]="	max_requests_per_server = 0";
 	$f[]="}";
+	
+	$f[]="pap {";
+	$f[]="\tencryption_scheme = clear";
+	$f[]="}";
+	
 	$f[]="";
 	$f[]="modules {";
 	$f[]="	\$INCLUDE \${confdir}/modules/";
 	$f[]="	\$INCLUDE eap.conf";
-	$f[]="#	\$INCLUDE sql.conf";
+	if($UseMySQL){
+		$f[]="	\$INCLUDE sql.conf";
+	}
 	$f[]="#	\$INCLUDE sql/mysql/counter.conf";
 	$f[]="#	\$INCLUDE sqlippool.conf";
 	$f[]="}";
@@ -110,19 +122,25 @@ function build(){
 	$f[]="}";
 	$f[]="";
 	$f[]="\$INCLUDE policy.conf";
-	$f[]="\$INCLUDE sites-enabled/\n";	
+	$f[]="\$INCLUDE sites-enabled/";	
+	//$f[]="\$INCLUDE dictionary";
+	
+	dictionary();
 	echo "Starting FreeRadius.............: /etc/freeradius/radiusd.conf done...\n";
 	@mkdir("/etc/freeradius",0755,true);
 	@file_put_contents("/etc/freeradius/radiusd.conf", @implode("\n", $f));
 	eap();
+	pap();
 	proxy();
 	ntlm_auth();
+	build_sql_connections();
 	module_ldap();
 	inner_tunnel();
 	site_default();
 	confusers();
 	clients();
 	mschap();
+	microtik();
 	
 }
 
@@ -138,6 +156,50 @@ function freeradius_pid(){
 	}
 	return $oldpid;
 }
+
+
+function dictionary(){
+	
+	$prefix="/usr/share/freeradius";
+	
+	$unix=new unix();
+	$files=$unix->DirFiles($prefix,"^dictionary\.rfc3*");
+	
+	$f[]="# -*- text -*-";
+	$f[]="#";
+	$f[]="# Version \$Id$";
+	$f[]="#";
+	$f[]="#	DO NOT EDIT THE FILES IN THIS DIRECTORY";
+	$f[]="#";
+	$f[]="#	The files in this directory are maintained and updated by";
+	$f[]="#	the FreeRADIUS project.  Newer releases of software may update";
+	$f[]="#	or change these files.";
+	$f[]="#";
+	$f[]="#	Use the main dictionary file (usually /etc/raddb/dictionary)";
+	$f[]="#	for local system attributes and \$INCLUDEs.";
+	$f[]="#";
+	$f[]="#";
+	$f[]="#";
+	$f[]="#	This file contains dictionary translations for parsing";
+	$f[]="#	../..";
+	
+	$f[]="\$INCLUDE  /usr/share/freeradius/dictionary.freeradius.internal";
+	if(is_file("/usr/share/freeradius/dictionary.chillispot")){
+		$f[]="\$INCLUDE  /usr/share/freeradius/dictionary.chillispot";
+	}
+	
+	while (list ($num, $filename) = each ($files) ){
+		if($filename=="dictionary.zyxel"){continue;}
+		if($filename=="dictionary.columbia_university"){continue;}
+		if($filename=="dictionary.rfc5090"){continue;}
+		$f[]="\$INCLUDE /usr/share/freeradius/$filename";
+		
+	}
+	
+	echo "Starting FreeRadius.............: /usr/share/freeradius/dictionary (".count($files)." items)\n";
+	@file_put_contents("/usr/share/freeradius/dictionary", @implode("\n", $f)."\n");
+}
+
 
 function ntlm_auth(){
 	$sock=new sockets();
@@ -206,6 +268,32 @@ function mschap(){
 	@mkdir("/etc/freeradius/modules",0755,true);
 	@file_put_contents("/etc/freeradius/modules/mschap", @implode("\n", $f));
 	echo "Starting FreeRadius.............: /etc/freeradius/modules/mschap done...\n";	
+}
+
+function pap(){
+	$f[]="# -*- text -*-";
+	$f[]="#";
+	$f[]="#  \$Id\$";
+	$f[]="";
+	$f[]="# PAP module to authenticate users based on their stored password";
+	$f[]="#";
+	$f[]="#  Supports multiple encryption/hash schemes.  See \"man rlm_pap\"";
+	$f[]="#  for details.";
+	$f[]="#";
+	$f[]="#  The \"auto_header\" configuration item can be set to \"yes\".";
+	$f[]="#  In this case, the module will look inside of the User-Password";
+	$f[]="#  attribute for the headers {crypt}, {clear}, etc., and will";
+	$f[]="#  automatically create the attribute on the right-hand side,";
+	$f[]="#  with the correct value.  It will also automatically handle";
+	$f[]="#  Base-64 encoded data, hex strings, and binary data.";
+	$f[]="pap {";
+	$f[]="	auto_header = yes";
+	$f[]="}";
+	$f[]="";
+		
+	@mkdir("/etc/freeradius/modules",0755,true);
+	@file_put_contents("/etc/freeradius/modules/pap", @implode("\n", $f));
+	echo "Starting FreeRadius.............: /etc/freeradius/modules/pap done...\n";	
 }
 
 
@@ -368,12 +456,154 @@ function proxy(){
 	echo "Starting FreeRadius.............: /etc/freeradius/proxy.conf done...\n";
 }
 
+function IsMySQL(){
+	if(is_file("/usr/sbin/chilli")){return 1;}
+	
+	$q=new mysql();
+	$c=0;
+	
+	
+	$sql="SELECT ID FROM freeradius_db WHERE connectiontype='mysql_local' and `enabled`=1";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	if(mysql_num_rows($results)>0){$c++;}
+	return $c;
+}
+
+function build_sql_connections(){
+	if(!is_file("/usr/sbin/chilli")){
+		if(IsMySQL()==0){return;}
+	}
+	$q=new mysql();
+	$f[]="# -*- text -*-";
+	$f[]="##";
+	$f[]="## sql.conf -- SQL modules";
+	$f[]="##";
+	$f[]="##	\$Id\$";
+	$f[]="";
+	$f[]="######################################################################";
+	$f[]="#";
+	$f[]="#  Configuration for the SQL module";
+	$f[]="#";
+	$f[]="#  The database schemas and queries are located in subdirectories:";
+	$f[]="#";
+	$f[]="#	sql/DB/schema.sql	Schema";
+	$f[]="#	sql/DB/dialup.conf	Basic dialup (including policy) queries";
+	$f[]="#	sql/DB/counter.conf	counter";
+	$f[]="#	sql/DB/ippool.conf	IP Pools in SQL";
+	$f[]="#	sql/DB/ippool.sql	schema for IP pools.";
+	$f[]="#";
+	$f[]="#  Where \"DB\" is mysql, mssql, oracle, or postgresql.";
+	$f[]="#";
+	$f[]="";
+	$f[]="sql {";
+	$f[]="	#";
+	$f[]="	#  Set the database to one of:";
+	$f[]="	#";
+	$f[]="	#	mysql, mssql, oracle, postgresql";
+	$f[]="	#";
+	$f[]="	database = \"mysql\"";
+	$f[]="";
+	$f[]="	#";
+	$f[]="	#  Which FreeRADIUS driver to use.";
+	$f[]="	#";
+	$f[]="	driver = \"rlm_sql_\${database}\"";
+	$f[]="";
+	$f[]="	# Connection info:";
+	$f[]="	server = \"$q->mysql_server\"";
+	$f[]="	port = $q->mysql_port";
+	$f[]="	login = \"$q->mysql_admin\"";
+	$f[]="	password = \"$q->mysql_password\"";
+	$f[]="	radius_db = \"artica_backup\"";
+	$f[]="	acct_table1 = \"radacct\"";
+	$f[]="	acct_table2 = \"radacct\"";
+	$f[]="";
+	$f[]="	# Allow for storing data after authentication";
+	$f[]="	postauth_table = \"radpostauth\"";
+	$f[]="";
+	$f[]="	authcheck_table = \"radcheck\"";
+	$f[]="	authreply_table = \"radreply\"";
+	$f[]="";
+	$f[]="	groupcheck_table = \"radgroupcheck\"";
+	$f[]="	groupreply_table = \"radgroupreply\"";
+	$f[]="";
+	$f[]="	# Table to keep group info";
+	$f[]="	usergroup_table = \"radusergroup\"";
+	$f[]="";
+	$f[]="	# If set to 'yes' (default) we read the group tables";
+	$f[]="	# If set to 'no' the user MUST have Fall-Through = Yes in the radreply table";
+	$f[]="	# read_groups = yes";
+	$f[]="";
+	$f[]="	# Remove stale session if checkrad does not see a double login";
+	$f[]="	deletestalesessions = yes";
+	$f[]="";
+	$f[]="	# Print all SQL statements when in debug mode (-x)";
+	$f[]="	sqltrace = no";
+	$f[]="	sqltracefile = \${logdir}/sqltrace.sql";
+	$f[]="";
+	$f[]="	# number of sql connections to make to server";
+	$f[]="	num_sql_socks = 5";
+	$f[]="";
+	$f[]="	# number of seconds to dely retrying on a failed database";
+	$f[]="	# connection (per_socket)";
+	$f[]="	connect_failure_retry_delay = 60";
+	$f[]="";
+	$f[]="	# lifetime of an SQL socket.  If you are having network issues";
+	$f[]="	# such as TCP sessions expiring, you may need to set the socket";
+	$f[]="	# lifetime.  If set to non-zero, any open connections will be";
+	$f[]="	# closed \"lifetime\" seconds after they were first opened.";
+	$f[]="	lifetime = 0";
+	$f[]="";
+	$f[]="	# Maximum number of queries used by an SQL socket.  If you are";
+	$f[]="	# having issues with SQL sockets lasting \"too long\", you can";
+	$f[]="	# limit the number of queries performed over one socket.  After";
+	$f[]="	# \"max_qeuries\", the socket will be closed.  Use 0 for \"no limit\".";
+	$f[]="	max_queries = 0";
+	$f[]="";
+	$f[]="	# Set to 'yes' to read radius clients from the database ('nas' table)";
+	$f[]="	# Clients will ONLY be read on server startup.  For performance";
+	$f[]="	# and security reasons, finding clients via SQL queries CANNOT";
+	$f[]="	# be done \"live\" while the server is running.";
+	$f[]="	# ";
+	$f[]="	#readclients = yes";
+	$f[]="";
+	$f[]="	# Table to keep radius client info";
+	$f[]="	nas_table = \"nas\"";
+	$f[]="";
+	$f[]="	# Read driver-specific configuration";
+	$f[]="	\$INCLUDE sql/\${database}/dialup.conf";
+	$f[]="}";
+	$f[]="sqlcounter noresetBytecounter {
+counter-name = Total-Max-Octets
+check-name = Max-Octets
+reply-name = ChilliSpot-Max-Total-Octets
+sqlmod-inst = sql
+key = User-Name
+reset = never
+query = \"SELECT (SUM(AcctInputOctets)+SUM(AcctOutputOctets)) FROM radacct WHERE UserName='%{%k}'\"
+}\n";	
+	@file_put_contents("/etc/freeradius/sql.conf", @implode("\n", $f));
+	
+}
+
+
 function build_ldap_connections(){
 	if(isset($GLOBALS["build_ldap_connections"])){return $GLOBALS["build_ldap_connections"];}
 	$sock=new sockets();
 	$q=new mysql();
 	$FreeRadiusEnableLocalLdap=$sock->GET_INFO("FreeRadiusEnableLocalLdap");
 	if(!is_numeric($FreeRadiusEnableLocalLdap)){$FreeRadiusEnableLocalLdap=1;}	
+	
+	if(CoovaChilliADEnabled()){
+		$f[]="\tChilliAD";
+		$f[]="\tif (notfound) {";
+		$f[]="\t\tChilliAD";
+		$f[]="\t}";
+		$f[]="\tif (reject) {";
+		$f[]="\t\tChilliAD";
+		$f[]="\t}";
+	
+	}
+	
 	
 	if($FreeRadiusEnableLocalLdap==1){
 		$f[]="\tldap0";
@@ -423,6 +653,8 @@ function build_ldap_connections(){
 	
 		}
 	}
+	
+
 
 	$GLOBALS["build_ldap_connections"]=@implode("\n", $f);
 	return $GLOBALS["build_ldap_connections"];
@@ -435,9 +667,13 @@ function inner_tunnel(){
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	$isLDAP=isLDAP();
+
 	$FreeRadiusEnableLocalLdap=$sock->GET_INFO("FreeRadiusEnableLocalLdap");
 	if(!is_numeric($FreeRadiusEnableLocalLdap)){$FreeRadiusEnableLocalLdap=1;}
-		
+	$IsMySQL=IsMySQL();	$UseMySQL=false;
+	if($IsMySQL>0){$UseMySQL=true;}
+	
+	
 	$f[]="server inner-tunnel {";
 	$f[]="";
 	$f[]="listen {";
@@ -450,6 +686,15 @@ function inner_tunnel(){
 	$f[]="authorize {";
 	$f[]="	chap";
 	$f[]="	mschap";
+	if($UseMySQL){
+		$f[]="\tsql {";
+      	$f[]="\t\tok  = return";
+     	$f[]="\t}";
+     	$f[]="noresetBytecounter";
+	}
+	
+	
+	
 	$f[]="#	unix";
 	$f[]="#	IPASS";
 	$f[]="	suffix";
@@ -480,8 +725,18 @@ function inner_tunnel(){
 	$f[]="\tAuth-Type PAP {\n\t\tpap\n\t}";
 	$f[]="\tAuth-Type CHAP {\n\t\tchap\n\t}";
 	$f[]="\tAuth-Type MS-CHAP {\n\t\tmschap\n\t}";
+	
 	if($isLDAP){
 		$f[]="\tAuth-Type LDAP {";
+		
+		if(CoovaChilliADEnabled()){
+			$f[]="\t\tChilliAD{";
+			$f[]="\t\t\treject = 1";
+			$f[]="\t\t\tok = return";
+			$f[]="\t\t}";			
+			
+		}
+		
 		if($FreeRadiusEnableLocalLdap==1){
 			$f[]="\t\tldap0{";
 			$f[]="\t\t\treject = 1";
@@ -498,8 +753,6 @@ function inner_tunnel(){
 		}
 		$f[]="\t}";
 	}
-	$f[]="";
-	$f[]="#	pam";
 	$f[]="	unix";
 	if($EnableKerbAuth==1){$f[]="	ntlm_auth";}
 
@@ -508,13 +761,17 @@ function inner_tunnel(){
 	$f[]="";
 	$f[]="session {";
 	$f[]="	radutmp";
-	$f[]="#	sql";
+	if($UseMySQL){
+		$f[]="	sql";
+	}
 	$f[]="}";
 	$f[]="";
 	$f[]="";
 	$f[]="post-auth {";
 	$f[]="#	reply_log";
-	$f[]="#	sql";
+	if($UseMySQL){
+		$f[]="	sql";
+	}
 	$f[]="#	sql_log";
 	$f[]="#	ldap";
 	$f[]="	Post-Auth-Type REJECT {";
@@ -553,6 +810,52 @@ function module_ldap(){
 	$sock=new sockets();
 	$FreeRadiusEnableLocalLdap=$sock->GET_INFO("FreeRadiusEnableLocalLdap");
 	if(!is_numeric($FreeRadiusEnableLocalLdap)){$FreeRadiusEnableLocalLdap=1;}	
+	
+	if(CoovaChilliADEnabled()){
+		$ChilliConf=CoovaChilliConf();
+		$LDAP_FILTER="(&(sAMAccountname=%{Stripped-User-Name:-%{User-Name}})(objectClass=person))";
+		if(!is_numeric($ChilliConf["AD_PORT"])){$ChilliConf["AD_PORT"]=389;}
+		$LDAP_SERVER=$ChilliConf["AD_SERVER"];
+		$LDAP_PORT=$ChilliConf["AD_PORT"];
+		$LDAP_SUFFIX=$ChilliConf["AD_SUFFIX"];
+		$LDAP_DN=$ChilliConf["AD_DN"];
+		$LDAP_PASSWORD=$ChilliConf["AD_PASS"];
+			
+		$f[]="ldap ChilliAD {";
+		$f[]="        server = \"$LDAP_SERVER\"";
+		$f[]="        port = \"$LDAP_PORT\"";
+		$f[]="        basedn = \"$LDAP_SUFFIX\"";
+		$f[]="        filter = \"$LDAP_FILTER\"";
+		$f[]="        identity    = \"\"";
+		$f[]="        password = \"\"";
+		$f[]="        groupname_attribute = cn";
+		$f[]="        groupmembership_filter = \"(|(&(objectClass=group)(member=%Ldap-UserDn}))(&(objectClass=top)(uniquemember=%{Ldap-UserDn})))\"";
+		$f[]="        groupmembership_attribute = memberOf";
+		$f[]="        access_attr_used_for_allow = yes";
+		$f[]="        ldap_connections_number = 5";
+		$f[]="        chase_referrals = yes";
+		$f[]="        ldap_debug = 5";
+		$f[]="        ldap_connections_number = 5";
+		$f[]="        compare_check_items = no";
+		$f[]="        do_xlat = yes";
+		$f[]="        set_auth_type = yes";
+		$f[]="        rebind = yes";
+		$f[]="        timeout = 4";
+		$f[]="        timelimit = 3";
+		$f[]="        net_timeout = 1";
+		$f[]="        tls {";
+		$f[]="                start_tls = no";
+		$f[]="        }";
+		$f[]="        dictionary_mapping = \${confdir}/ldap.attrmap";
+		$f[]="        edir_account_policy_check = no";
+		$f[]="}\n";
+			
+	
+	
+	
+	}	
+	
+	
 	if($FreeRadiusEnableLocalLdap==1){
 		
 		$f[]="ldap ldap0 {";
@@ -659,7 +962,12 @@ function module_ldap(){
 			$f[]="}\n";
 		
 								
-		}		
+		}
+
+
+	
+		
+		
 	
 	@mkdir("/etc/freeradius/modules",0755,true);
 	@file_put_contents("/etc/freeradius/modules/ldap", @implode("\n", $f));
@@ -667,6 +975,34 @@ function module_ldap(){
 	
 	
 }
+function CoovaChilliADEnabled(){
+	if(!CoovaChilliEnabled()){return false;}
+	$ChilliConf=CoovaChilliConf();
+	if($ChilliConf["EnableActiveDirectory"]==1){return true;}
+	return false;
+}
+
+
+
+function CoovaChilliEnabled(){
+	if(isset($GLOBALS["ChilliEnabled"])){return $GLOBALS["ChilliEnabled"];}
+	$unix=new unix();
+	$chilli=$unix->find_program("chilli");
+	if(!is_file($chilli)){$GLOBALS["ChilliEnabled"]=false;return;}
+	$sock=new sockets();
+	$EnableChilli=$sock->GET_INFO("EnableChilli");
+	if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+	if($EnableChilli==1){$GLOBALS["ChilliEnabled"]=true;return true;}
+	$GLOBALS["ChilliEnabled"]=false;
+	return false;
+}
+function CoovaChilliConf(){
+	if(isset($GLOBALS["ChilliConf"])){return $GLOBALS["ChilliConf"];}
+	$ChilliConf=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/ChilliConf")));
+	$GLOBALS["ChilliConf"]=$ChilliConf;
+	return $GLOBALS["ChilliConf"];
+}
+ 
 
 
 function clients(){
@@ -675,13 +1011,30 @@ function clients(){
 	$f[]="	ipaddr = 127.0.0.1";
 	$f[]="#	netmask = 32";
 	$f[]="	secret		= $ldap->ldap_password";
-	$f[]="#	shortname	= localhost";
+	$f[]=" 	shortname	= localhost";
 	$f[]="	nastype     = other	# localhost isn't usually a NAS...";
 	$f[]="#	login       = !root";
 	$f[]="#	password    = someadminpas";
 	$f[]="#	virtual_server = home1";
 	$f[]="#	coa_server = coa";
 	$f[]="}";
+	
+	if(CoovaChilliEnabled()){
+		$ChilliConf=CoovaChilliConf();
+		$sock=new sockets();
+		$nics=new system_nic($ChilliConf["HS_WANIF"]);
+		if($nics->IPADDR<>null){$ListenIP=$nics->IPADDR;}
+		$f[]="client localhost{$ChilliConf["HS_WANIF"]} {";
+		$f[]="	ipaddr = $ListenIP";
+		$f[]="	secret		= $ldap->ldap_password";
+		$f[]=" 	shortname	= localhost{$ChilliConf["HS_WANIF"]}";
+		$f[]="	nastype     = other	# localhost isn't usually a NAS...";
+		$f[]="}";
+		
+		
+	}
+	
+	
 	$f[]="";
 	$f[]="#client 192.168.0.0/24 {";
 	$f[]="#	secret		= testing123-1";
@@ -775,12 +1128,12 @@ function isLDAP(){
 			$q->QUERY_SQL($sql,"artica_backup")
 	);
 	if($ligne["tcount"]>0){return true;}	
-	
+	if(CoovaChilliADEnabled()){return true;}
 	return false;
 }
 
 function site_default(){
-	
+	@unlink("/etc/freeradius/sites-enabled/default");
 	$sock=new sockets();
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
@@ -788,10 +1141,18 @@ function site_default(){
 	$FreeRadiusEnableLocalLdap=$sock->GET_INFO("FreeRadiusEnableLocalLdap");
 	if(!is_numeric($FreeRadiusEnableLocalLdap)){$FreeRadiusEnableLocalLdap=1;}	
 	$q=new mysql();
-	
+	$IsMySQL=IsMySQL();	$UseMySQL=false;
+	if($IsMySQL>0){$UseMySQL=true;}
+		
 	$f[]="authorize {";
 	$f[]="	preprocess";
 	$f[]="#	auth_log";
+	if($UseMySQL){
+		$f[]="\tsql {";
+      	$f[]="\t\tok  = return";
+     	$f[]="\t}";
+     	$f[]="noresetBytecounter";
+	}
 	$f[]="	chap";
 	$f[]="	mschap";
 	$f[]="	digest";
@@ -805,7 +1166,6 @@ function site_default(){
 	$f[]="";
 	$f[]="#	unix";
 	$f[]="	files";
-	$f[]="#	sql";
 	$f[]="#	etc_smbpasswd";
 	if($isLDAP){$f[]=build_ldap_connections();}
 	$f[]="#	daily";
@@ -823,6 +1183,16 @@ function site_default(){
 	$f[]="	Auth-Type MS-CHAP {\n\t\tmschap\n\t}";
 	if($isLDAP){
 		$f[]="\tAuth-Type LDAP {";
+		
+		if(CoovaChilliADEnabled()){
+			$f[]="\t\tChilliAD{";
+			$f[]="\t\t\treject = 1";
+			$f[]="\t\t\tok = return";
+			$f[]="\t\t}";
+				
+		}
+		
+		
 		if($FreeRadiusEnableLocalLdap==1){
 			$f[]="\t\tldap0{";
 			$f[]="\t\t\treject = 1";
@@ -877,7 +1247,9 @@ function site_default(){
 	$f[]="	radutmp";
 	$f[]="#	sradutmp";
 	$f[]="#	main_pool";
-	$f[]="#	sql";
+	if($UseMySQL){
+		$f[]="	sql";
+	}
 	$f[]="#	sql_log";
 	$f[]="#	pgsql-voip";
 	$f[]="	exec";
@@ -885,13 +1257,17 @@ function site_default(){
 	$f[]="}";
 	$f[]="session {";
 	$f[]="	radutmp";
-	$f[]="#	sql";
+	if($UseMySQL){
+		$f[]="	sql";
+	}
 	$f[]="}";
 	$f[]="";
 	$f[]="";
 	$f[]="post-auth {";
 	$f[]="#	reply_log";
-	$f[]="#	sql";
+	if($UseMySQL){
+		$f[]="	sql";
+	}
 	$f[]="#	sql_log";
 	$f[]="#	ldap";
 	$f[]="	exec";
@@ -927,7 +1303,12 @@ function start(){
 	$unix=new unix();
 	$sock=new sockets();
 	$EnableFreeRadius=$sock->GET_INFO("EnableFreeRadius");
+	$EnableChilli=$sock->GET_INFO("EnableChilli");
+	
+	
 	if(!is_numeric($EnableFreeRadius)){$EnableFreeRadius=0;}
+	if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+	if($EnableChilli==1){$EnableFreeRadius=1;$sock->SET_INFO("EnableFreeRadius",1);}
 	if($EnableFreeRadius==0){
 		echo "Starting FreeRadius.............: service is disabled\n";
 		stop();
@@ -949,6 +1330,16 @@ function start(){
 	
 	$freeradius_version=freeradius_version();
 	echo "Starting FreeRadius.............: daemon version $freeradius_version\n";
+	if(CoovaChilliADEnabled()){
+		$ChilliConf=CoovaChilliConf();
+		if($ChilliConf["RADIUS_IF"]<>null){
+			$array=$unix->InterfaceToIP($ChilliConf["RADIUS_IF"]);
+			$ip=$array["IP"];
+			$f[]="-i $ip -p 1812";
+		}
+		
+		
+	}
 	$f[]="-d /etc/freeradius -n radiusd";
 	$cmdline="$freeradius ".@implode(" ", $f);
 	shell_exec($cmdline);
@@ -1016,4 +1407,60 @@ function stop(){
 		echo "Stopping FreeRadius.............: Failed\n";
 	}	
 
+}
+
+
+function microtik(){
+	
+	if(is_file("/usr/share/freeradius/dictionary.mikrotik")){return;}
+	
+	$f[]="# MikroTik vendor specific dictionary";
+	$f[]="# Copyright (C) 2003-2009 MikroTikls, SIA";
+	$f[]="#";
+	$f[]="# You may freely redistribute and use this software or any part of it in source";
+	$f[]="# and/or binary forms, with or without modification for any purposes without";
+	$f[]="# limitations, provided that you respect the following statement:";
+	$f[]="#";
+	$f[]="# This software is provided 'AS IS' without a warranty of any kind, expressed or";
+	$f[]="# implied, including, but not limited to, the implied warranty of";
+	$f[]="# merchantability and fitness for a particular purpose. In no event shall";
+	$f[]="# MikroTikls SIA be liable for direct or indirect, incidental, consequential or";
+	$f[]="# other damages that may result from the use of this software, including, but";
+	$f[]="# not limited to, loss of data, time and (or) profits.";
+	$f[]="#";
+	$f[]="# \$Id: dictionary.mikrotik,v 1.6 2007/06/15 08:25:04 aland Exp \$";
+	$f[]="#";
+	$f[]="# MikroTik Attributes                                                ";
+	$f[]="";
+	$f[]="VENDOR          Mikrotik                        14988";
+	$f[]="";
+	$f[]="BEGIN-VENDOR    Mikrotik";
+	$f[]="";
+	$f[]="ATTRIBUTE       Mikrotik-Recv-Limit                     1       integer";
+	$f[]="ATTRIBUTE       Mikrotik-Xmit-Limit                     2       integer";
+	$f[]="";
+	$f[]="# this attribute is unused";
+	$f[]="ATTRIBUTE       Mikrotik-Group                          3       string";
+	$f[]="";
+	$f[]="ATTRIBUTE       Mikrotik-Wireless-Forward               4       integer";
+	$f[]="ATTRIBUTE       Mikrotik-Wireless-Skip-Dot1x            5       integer";
+	$f[]="ATTRIBUTE       Mikrotik-Wireless-Enc-Algo              6       integer";
+	$f[]="ATTRIBUTE       Mikrotik-Wireless-Enc-Key               7       string";
+	$f[]="ATTRIBUTE       Mikrotik-Rate-Limit                     8       string";
+	$f[]="ATTRIBUTE       Mikrotik-Realm                          9       string";
+	$f[]="ATTRIBUTE       Mikrotik-Host-IP                        10      ipaddr";
+	$f[]="ATTRIBUTE       Mikrotik-Mark-Id                        11      string";
+	$f[]="ATTRIBUTE       Mikrotik-Advertise-URL                  12      string";
+	$f[]="ATTRIBUTE       Mikrotik-Advertise-Interval             13      integer";
+	$f[]="ATTRIBUTE       Mikrotik-Recv-Limit-Gigawords           14      integer";
+	$f[]="ATTRIBUTE       Mikrotik-Xmit-Limit-Gigawords           15      integer";
+	$f[]="# MikroTik Values";
+	$f[]="";
+	$f[]="VALUE   Mikrotik-Wireless-Enc-Algo      No-encryption           0";
+	$f[]="VALUE   Mikrotik-Wireless-Enc-Algo      40-bit-WEP              1";
+	$f[]="VALUE   Mikrotik-Wireless-Enc-Algo      104-bit-WEP             2";
+	$f[]="";
+	$f[]="END-VENDOR      Mikrotik";
+	@mkdir("/usr/share/freeradius",0755);
+	@file_put_contents("/usr/share/freeradius/dictionary.mikrotik", @implode("\n", $f));	
 }

@@ -293,6 +293,9 @@ class squidnodes{
 				$conf[]="cache deny DoNotCache\n"; 
 			}			
 			if($refresh_pattern_list<>null){$conf[]=$refresh_pattern_list;}
+			
+			
+			
 			$conf[]="";
 			$conf[]="#--------- LOGS --";
 			$conf[]="coredump_dir	/var/squid/cache";
@@ -372,6 +375,11 @@ class squidnodes{
 		$cachesDirectory=$this->GET("caches_directory");
 		$globalCachesize=$this->GET("caches_size_global");
 		if($cachesDirectory==null){$cachesDirectory="/home/squid/cache-default";}
+		
+		if(preg_match("#^\/var\/#", $cachesDirectory)){
+			$cachesDirectory=str_replace("/var/", "/home/squid/", $cachesDirectory);
+		}
+		
 		if(!is_numeric($globalCachesize)){$globalCachesize=5000;}
 		if($CPUS==1){
 			return "cache_dir	ufs $cachesDirectory-0 $globalCachesize 16 256";
@@ -485,7 +493,7 @@ class squidnodes{
 			$conf[]="client_request_buffer_max_size $client_request_buffer_max_size KB";
 		}
 		
-		$conf[]="maximum_object_size {$squid->global_conf_array["maximum_object_size"]}";
+		$conf[]="maximum_object_size $maximum_object_size $maximum_object_size_unit";
 		$conf[]="minimum_object_size $minimum_object_size $minimum_object_size_unit";
 		$conf[]="maximum_object_size_in_memory $maximum_object_size_in_memory $maximum_object_size_in_memory_unit";
 	

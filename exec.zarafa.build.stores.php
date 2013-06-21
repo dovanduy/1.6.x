@@ -291,6 +291,17 @@ function export_hash_users($company){
 	
 }
 
+function get_version_array(){
+	$unix=new unix();
+	$zarafa_server=$unix->find_program("zarafa-server");
+	exec("$zarafa_server -V 2>&1",$results);
+	while (list ($num, $user_line) = each ($results) ){
+		if(preg_match("#Product version:\s+([0-9]+),([0-9]+),([0-9]+)#", $user_line,$re)){
+			return array("MAJOR"=>$re[1],"MINOR"=>$re[2],"REV"=>$re[3]);
+		}
+	}
+}
+
 
 function config(){
 	$unix=new unix();
@@ -303,12 +314,9 @@ function config(){
 	if(!is_numeric($ZarafaWebNTLM)){$ZarafaWebNTLM=0;}
 	if(!is_numeric($ZarafaEnablePlugins)){$ZarafaEnablePlugins=0;}
 	
-	
+	//7,1,3,40304
 	
 	$users=new usersMenus();
-	
-	if(!$users->ASPELL_INSTALLED){$ZarafaAspellEnabled=0;}
-	
 
 	
 	
@@ -394,7 +402,21 @@ function ldap_config(){
 	
 	$ldap_user_search_filter="(objectClass=zarafa-user)";
 	
+	$Is713Sup=false;
+	if(!$users->ASPELL_INSTALLED){$ZarafaAspellEnabled=0;}
 	
+	$version2=get_version_array();
+	
+	echo "Starting zarafa..............: MAJOR:{$version2["MAJOR"]}, MINOR:{$version2["MINOR"]}, REV:{$version2["REV"]}\n";
+	
+	if($version2["MAJOR"]>6){
+		if($version2["MINOR"]>0){
+			if($version2["REV"]>2){
+				$Is713Sup=true;
+				echo "Starting zarafa..............: 7.1.3 version or above...\n";
+			}
+		}
+	}	
 	
 	$ldap_user_unique_attribute="uidNumber";
 	$ldap_user_unique_attribute_type = "text";
@@ -550,10 +572,12 @@ $f[]="";
 $f[]="ldap_quota_multiplier = 1048576";
 $f[]="";
 $f[]="";
-$f[]="ldap_user_department_attribute = departmentNumber";
-$f[]="ldap_user_location_attribute = physicalDeliveryOfficeName";
-$f[]="ldap_user_telephone_attribute = telephoneNumber";
-$f[]="ldap_user_fax_attribute = facsimileTelephoneNumber";
+if(!$Is713Sup){
+	$f[]="ldap_user_department_attribute = departmentNumber";
+	$f[]="ldap_user_location_attribute = physicalDeliveryOfficeName";
+	$f[]="ldap_user_telephone_attribute = telephoneNumber";
+	$f[]="ldap_user_fax_attribute = facsimileTelephoneNumber";
+}
 $f[]="ldap_last_modification_attribute = modifyTimestamp";
 $f[]="ldap_object_search_filter =(|(mail=%s*)(uid=%s*)(cn=*%s*)(sAMAccountName=*%s*)(fullname=*%s*)(givenname=*%s*)(lastname=*%s*)(sn=*%s*)) ";
 $f[]="ldap_filter_cutoff_elements = 1000";
@@ -610,7 +634,7 @@ function remove_database(){
 	echo "Starting zarafa..............: remove $MYSQL_DATA_DIR/zarafa*\n";
 	shell_exec("/bin/rm -rf $MYSQL_DATA_DIR/zarafa");
 	echo "Starting zarafa..............: restart MySQL\n";
-	shell_exec("/etc/init.d/artica-postfix restart mysql >/tmp/zarafa_removedb 2>&1");
+	shell_exec("/etc/init.d/mysql restart >/tmp/zarafa_removedb 2>&1");
 	echo "Starting zarafa..............: restart Zarafa server\n";
 	shell_exec("/etc/init.d/zarafa-server restart >>/tmp/zarafa_removedb 2>&1");
 	

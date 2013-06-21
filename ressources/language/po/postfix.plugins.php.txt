@@ -1,5 +1,4 @@
-<about>
-This section allows you to enable and disable services that hook Postfix routing mails.[br] you will see all services options that every module offer if you enable it</about>
+<about>Esta se&ccedil;&atilde;o permite ativar e desativar servi&ccedil;os de reencaminhamento de mail do Postfix. [br] Se habilitado(ativo), permite-te ver tos as op&ccedil;&otilde;es de servi&ccedil;o dispon&iacute;veis em cada m&oacute;dulo,</about>
 <activated>activated</activated>
 <addons_bundle>Open Source addons</addons_bundle>
 <amavis_bundle>Amavisd-new bundle</amavis_bundle>

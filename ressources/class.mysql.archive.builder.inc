@@ -3,17 +3,20 @@ if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}
 include_once(dirname(__FILE__).'/class.users.menus.inc');
 include_once(dirname(__FILE__).'/class.mysql.inc');
 class mysql_mailarchive_builder{
-	var $ClassSQL;
-	var $ok=false;
-	var $mysql_error;
-	var $UseMysql=true;
-	var $database="mailarchive";
-	var $mysql_server;
-	var $mysql_admin;
-	var $mysql_password;
-	var $mysql_port;
-	var $MysqlFailed=false;
-	var $EnableRemoteStatisticsAppliance=0;
+	private $ClassSQL;
+	public  $ok=false;
+	public  $mysql_error;
+	private $UseMysql=true;
+	public  $database="mailarchive";
+	private $mysql_server;
+	private $mysql_admin;
+	private $mysql_password;
+	private $mysql_port;
+	public  $MysqlFailed=false;
+	private $EnableRemoteStatisticsAppliance=0;
+	private $SocketName;
+	public  $MYSQL_CMDLINES;
+	
 	
 	
 	function mysql_mailarchive_builder(){
@@ -23,8 +26,38 @@ class mysql_mailarchive_builder{
 		$this->mysql_password=$this->ClassSQL->mysql_password;
 		$this->mysql_port=$this->ClassSQL->mysql_port;
 		$this->mysql_server=$this->ClassSQL->mysql_server;		
-		
+		$this->SocketName=$this->ClassSQL->SocketName;	
 		if(!$this->TestingConnection()){$this->MysqlFailed=true;}
+		
+		if($this->mysql_server=="localhost"){$this->mysql_server="127.0.0.1";}
+		
+		if(strlen($this->mysql_password)>1){$pass=$this->shellEscapeChars($this->mysql_password);$pass=" -p$pass";}
+		if($this->mysql_server=="127.0.0.1"){$serv="--protocol=socket --socket=$this->SocketName";}
+		if($this->mysql_server<>"127.0.0.1"){$serv="--protocol=tcp --host=$this->mysql_server --port=$this->mysql_port";}		
+		$this->MYSQL_CMDLINES="$serv -u $this->mysql_admin{$pass}";
+	}
+	
+	private function shellEscapeChars($path){
+		$path=str_replace(" ","\ ",$path);
+		$path=str_replace('$','\$',$path);
+		$path=str_replace("&","\&",$path);
+		$path=str_replace("?","\?",$path);
+		$path=str_replace("#","\#",$path);
+		$path=str_replace("[","\[",$path);
+		$path=str_replace("]","\]",$path);
+		$path=str_replace("{","\{",$path);
+		$path=str_replace("}","\}",$path);
+		$path=str_replace("*","\*",$path);
+		$path=str_replace('"','\\"',$path);
+		$path=str_replace("'","\\'",$path);
+		$path=str_replace("(","\(",$path);
+		$path=str_replace(")","\)",$path);
+		$path=str_replace("<","\<",$path);				
+		$path=str_replace(">","\>",$path);
+		$path=str_replace("!","\!",$path);
+		$path=str_replace("+","\+",$path);
+		$path=str_replace(";","\;",$path);
+		return $path;	
 	}
 	
 	public function TestingConnection(){
@@ -100,6 +133,36 @@ class mysql_mailarchive_builder{
 		return $ligne["tsum"];
 		
 	}	
+	
+	public function COUNT_TABLES($database){
+		if(isset($GLOBALS["COUNT_TABLES$database"])){return count($GLOBALS["COUNT_TABLES$database"]);}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$database'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$array[$ligne["c"]]=$ligne["c"];
+			$GLOBALS["COUNT_TABLES$database"][$ligne["c"]]=$ligne["c"];
+				
+		}
+	
+		return count($array);
+	}
+
+	FUNCTION DATABASE_SIZE_BYTES($database){
+		if(!function_exists("mysql_connect")){return 0;}
+		$sql="SHOW table STATUS";
+		$dbsize=0;
+		$results=$this->QUERY_SQL($sql,$database);
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$dbsize += $ligne['Data_length'] + $ligne['Index_length'];
+		}
+	
+		return $dbsize;
+	
+	}
 	
 	public function CheckTables(){
 		if(!$this->DATABASE_EXISTS($this->database)){$this->CREATE_DATABASE($this->database);}
@@ -182,8 +245,9 @@ class mysql_mailarchive_builder{
 			$GLOBALS["LIST_BACKUP_TABLES"][$ligne["c"]]="$year-$month-$day";
 			$array[$ligne["c"]]=$ligne["c"];
 		}
-		
-		return $GLOBALS["LIST_BACKUP_TABLES"];	
+		if(isset($GLOBALS["LIST_BACKUP_TABLES"])){
+			return $GLOBALS["LIST_BACKUP_TABLES"];	
+		}
 		
 		
 	}

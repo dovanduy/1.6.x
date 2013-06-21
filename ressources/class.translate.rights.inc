@@ -5,7 +5,7 @@ class TranslateRights{
 	private $priv;
 	private $uid;
 	public $FINAL_PRIVS;
-	function TranslateRights($priv,$uid){
+	function TranslateRights($priv=null,$uid=null){
 		$this->priv=$priv;
 		$this->uid=$uid;
 	}
@@ -61,6 +61,8 @@ class TranslateRights{
 			$f['AsAnAdministratorGeneric']=true;
 			$f['AsPostfixAdministrator']=true;
 			$f['OverWriteRestrictedDomains']=true;
+			$f['AsProxyMonitor']=true;
+			$f["AsSystemWebMaster"]=true;
 			return $f;		
 	}
 	
@@ -97,7 +99,7 @@ class TranslateRights{
 		$log=false;
 		$priv=$this->priv;
 		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=1000;if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();}}
-		
+		if($GLOBALS["VERBOSE"]){echo "[{$_SESSION["uid"]}]::ParseRights()\n";}
 		if($_SESSION["uid"]==-100){
 			$this->FINAL_PRIVS["AsArticaAdministrator"]=true;
 			$this->FINAL_PRIVS["AllowEditOuSecurity"]=true;
@@ -125,11 +127,16 @@ class TranslateRights{
 		$this->FINAL_PRIVS["AsArticaAdministrator"]=false;
 		$this->FINAL_PRIVS["AsSystemAdministrator"]=false;
 		if(isset($GLOBALS["DEBUG_PRIVS"])){if($GLOBALS["DEBUG_PRIVS"]){$log=true;}}
+		
+		if($GLOBALS["VERBOSE"]){echo "[{$_SESSION["uid"]}]::Receive array of ". count($priv)." privileges\n";}
+		
 		if($log){writelogs("logon: Receive array of ". count($priv)." privileges",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		if($log){
 			while (list ($num, $ligne) = each ($priv) ){
 				writelogs("logon: $num = $ligne",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		}
+		
+		if($GLOBALS["VERBOSE"]){echo "[{$_SESSION["uid"]}]::this->GetPrivsArray()\n";}
 		$GetPrivsArray=$this->GetPrivsArray();
 		while (list ($num, $ligne) = each ($GetPrivsArray) ){
 			if(!isset($priv[$num])){$priv[$num]="no";}
@@ -156,6 +163,7 @@ class TranslateRights{
 			if(is_array($priv)){
 				while (list ($key, $val) = each ($priv) ){
 					if($val=="yes"){
+						if($GLOBALS["VERBOSE"]){echo "[{$_SESSION["uid"]}]::$key = $val\n";}
 						writelogs("$key=$val",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					}
 				}}
@@ -163,7 +171,7 @@ class TranslateRights{
 		
 		
 		if($this->FINAL_PRIVS["AllowEditOuSecurity"]==true){
-			if($log){writelogs("{$_SESSION["uid"]}: AllowEditOuSecurity: TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			if($log){writelogs("[FINAL_PRIVS]:{$_SESSION["uid"]}: AllowEditOuSecurity: TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			$this->FINAL_PRIVS["AllowChangeAntiSpamSettings"]=true;
 			$this->FINAL_PRIVS["AllowDansGuardianBanned"]=true;
 			$this->FINAL_PRIVS["AllowManageOwnComputers"]=true;
@@ -218,12 +226,15 @@ class TranslateRights{
 		}
 			
 		if($this->FINAL_PRIVS["AsSquidAdministrator"]){
+			if($GLOBALS["VERBOSE"]){echo "[{$_SESSION["uid"]}]::AsSquidAdministrator: TRUE\n";}
+			if($log){writelogs("[FINAL_PRIVS]:{$_SESSION["uid"]}: AsSquidAdministrator: TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			$this->FINAL_PRIVS["AsAnAdministratorGeneric"]=true;
 			$this->FINAL_PRIVS["AsWebFilterRepository"]=true;
 			$this->FINAL_PRIVS["AsDansGuardianGroupRule"]=true;
 			$this->FINAL_PRIVS["AsDansGuardianAdministrator"]=true;
 			$this->FINAL_PRIVS["AsWebStatisticsAdministrator"]=true;
 			$this->FINAL_PRIVS["AsHotSpotManager"]=true;
+			$this->FINAL_PRIVS["AsProxyMonitor"]=true;
 		}
 			
 		if($this->FINAL_PRIVS["AsDansGuardianAdministrator"]){
@@ -247,6 +258,8 @@ class TranslateRights{
 			$this->FINAL_PRIVS["OverWriteRestrictedDomains"]=true;
 			$this->FINAL_PRIVS["AsWebMaster"]=true;
 			$this->FINAL_PRIVS["AllowEditAliases"]=true;
+			$this->FINAL_PRIVS["AsSystemWebMaster"]=true;
+			
 				
 				
 		}
@@ -335,7 +348,7 @@ class TranslateRights{
 			$this->FINAL_PRIVS["AsAnAdministratorGeneric"]=true;
 		}
 
-		
+		$this->priv=$this->FINAL_PRIVS;
 	}
 	
 	

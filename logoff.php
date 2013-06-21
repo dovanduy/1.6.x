@@ -181,7 +181,7 @@ if($logo==null){$logo="ressources/templates/{$_COOKIE["artica-template"]}/i/fond
 
 
 
-
+unset($_SESSION["MINIADM"]);
 unset($_SESSION["uid"]);
 unset($_SESSION["privileges"]);
 unset($_SESSION["qaliases"]);
@@ -195,6 +195,7 @@ unset($_SESSION["__CLASS-USER-MENUS"]);
 unset($_SESSION["translation"]);
 $_COOKIE["username"]="";
 $_COOKIE["password"]="";
+$_COOKIE["MINIADM"]="";
 
 
 while (list ($num, $ligne) = each ($_SESSION) ){

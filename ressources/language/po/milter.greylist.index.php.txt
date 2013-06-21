@@ -1,7 +1,7 @@
-<about> milter-greylist is a stand-alone milter written in C that implements the  greylist filtering method, as proposed by Evan Harris.[br]
-Grey listing works by assuming that, unlike legitimate MTA, spam engines will not retry sending their junk mail on a temporary error.[br]
-The filter will always reject mail temporarily on a first attempt, then accept it after some time has elapsed.</about>
-<acl>Access List</acl>
+<about>milter-greylist &eacute; um milter stand-alone escrito em C que implementa o m&eacute;todo de filtragem greylist, como proposto por Evan Harris. [br]
+A lista Grey(cinzenta) funciona assumindo que, ao contrario do legitmo MTA, os motores de spam n&atilde;o v&atilde;o tentar reenviar o seu lixo eletr&ocirc;nico num erro tempor&aacute;rio. [br]
+O filtro ir&aacute; sempre rejeitar correio temporariamente numa primeira tentativa, ent&atilde;o aceit&aacute;-la depois que tenha decorrido algum tempo.</about>
+<acl>Lista de acesso</acl>
 <acl_text>
 The primary use of this feautre is to setup milter-greylist whitelist.[br] It also offers a handy blacklist feature.[br] 
 Access-lists (ACL) are used to do that.[br] ACL enable the administrator  to  specify  complex  conditions  on sender IP, sender DNS address,

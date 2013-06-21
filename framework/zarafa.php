@@ -45,6 +45,8 @@ if(isset($_GET["artica-dbsize"])){zarafadb_getsize();exit;}
 if(isset($_GET["zarafadb-killthread"])){zarafadb_killthread();exit;}
 if(isset($_GET["users-count"])){zarafa_admin_userscount();exit;}
 if(isset($_GET["reload"])){zarafa_reload();exit;}
+if(isset($_GET["zarafa-stats-system"])){zarafa_stats_system();exit;}
+if(isset($_GET["zarafadb-restart"])){zarafadb_restart();exit;}
 
 
 
@@ -571,4 +573,19 @@ function zarafa_reload(){
 	shell_exec("$php5 /usr/share/artica-postfix/exec.initdzarafa.php");
 	shell_exec("$nohup /etc/init.d/zarafa-server reload >/dev/null 2>&1 &");
 	
+}
+
+function zarafa_stats_system(){
+	$unix=new unix();
+	$zarafa_stats=$unix->find_program("zarafa-stats");
+	exec("zarafa-stats --system 2>&1",$results);
+	echo  "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+function zarafadb_restart(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup /usr/share/artica-postfix/exec.zarafa-db.php --restart >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 }

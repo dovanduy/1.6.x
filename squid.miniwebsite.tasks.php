@@ -75,6 +75,7 @@ function white_params_popup(){
 			if(document.getElementById('animate-$t')){document.getElementById('animate-$t').innerHTML='';}
 			if(tableT.length>0){RechargeTableauDesSitesCaches();}
 			YahooWin5Hide();
+			ExecuteByClassName('SearchFunction');	
 			$TasksCallBacks
 			}
 	
@@ -135,7 +136,8 @@ function page(){
 	}
 	
 	$html="
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table>
 	<tr>
 		<td width=1%><img src='img/arrow-right-16.png'></td>
 		<td><a href=\"javascript:blur();\"
@@ -149,7 +151,7 @@ function page(){
 	</tr>	
 	$genthumbnail
 	</table>
-	
+	</div>
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
@@ -206,7 +208,8 @@ if($_GET["with-enable"]=="yes"){$enabled=1;}
 	$html="
 	<div id='animate-$t'></div>
 	<div style='font-size:18px;font-weight:bold'>{$_GET["sitename"]} {cache_parameters}</div>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table >
 	
 	
 	<tr>
@@ -233,16 +236,20 @@ if($_GET["with-enable"]=="yes"){$enabled=1;}
 		<td colspan=2 align='right'>". button("{apply}","SaveCacheWebParams$t()",16)."</td>
 	</tr>
 	</table>
-
+</div>
 	<script>
 		var X_SaveCacheWebParams$t= function (obj) {
 			var tableT='{$_GET["table-t"]}';
 			var results=obj.responseText;
 			if(results.length>3){alert(results);}	
 			if(document.getElementById('animate-$t')){document.getElementById('animate-$t').innerHTML='';}
-			if(tableT.length>0){RechargeTableauDesSitesCaches();}
+			ExecuteByClassName('SearchFunction');	
+			if(tableT.length>0){
+				if(IsFunctionExists('RechargeTableauDesSitesCaches')){RechargeTableauDesSitesCaches();}
+			}
 			YahooWin5Hide();
 			$TasksCallBacks
+			
 			}
 	
 	

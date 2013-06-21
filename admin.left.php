@@ -81,6 +81,22 @@ function left_infos_1(){
 		}
 	}
 	
+	$t=time();
+	echo "
+<script>
+	
+	function Start$t(){
+	 if(document.getElementById('admin-left-infos')){
+	 	var leftcontent=document.getElementById('admin-left-infos').innerHTML;
+			if(leftcontent.length<70){
+				LoadAjax('admin-left-infos','admin.index.status-infos.php');
+			}
+		}
+	}
+	
+	 Start$t();
+</script>";
+	
 	
 	
 }

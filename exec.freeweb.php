@@ -31,6 +31,7 @@ include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 include_once(dirname(__FILE__) . '/framework/class.settings.inc');
 include_once(dirname(__FILE__) . '/ressources/class.freeweb.inc');
+include_once(dirname(__FILE__) . '/ressources/class.system.network.inc');
 if($GLOBALS["VERBOSE"]){ echo "starting include functions done..\n";}
 $GLOBALS["SSLKEY_PATH"]="/etc/ssl/certs/apache";
 
@@ -57,18 +58,19 @@ if($argv[1]=="--dumpconf"){dumpconf($argv[2]);die();}
 if($argv[1]=="--restore"){restore_container($argv[2],$argv[3],$argv[4]);die();}
 
 
-
+if($argv[1]=="--sync-squid"){sync_squid();die();}
 if($argv[1]=="--all-status"){mod_status_all();die();}
-if($argv[1]=="--httpd"){CheckHttpdConf();reload_apache();die();}
-if($argv[1]=="--build"){build();reload_apache();die();}
+if($argv[1]=="--httpd"){CheckHttpdConf();reload_apache();die();sync_squid();}
+if($argv[1]=="--build"){build();reload_apache();sync_squid();die();}
 if($argv[1]=="--apache-user"){apache_user();die();}
 if($argv[1]=="--sitename"){
 		buildHost(null,$argv[2]);
 		if(!$GLOBALS["NO_HTTPD_CONF"]){CheckHttpdConf();}
 		if(!$GLOBALS["NO_HTTPD_RELOAD"]){reload_apache();}
+		sync_squid();
 		die();
 }
-if($argv[1]=="--remove-host"){remove_host($argv[2]);reload_apache();die();}
+if($argv[1]=="--remove-host"){remove_host($argv[2]);reload_apache();sync_squid();die();}
 if($argv[1]=="--perms"){FDpermissions($argv[2]);die();}
 if($argv[1]=="--failed-start"){CheckFailedStart();die();exit;}
 if($argv[1]=="--install-groupware"){install_groupware($argv[2]);die();exit;}
@@ -118,6 +120,7 @@ help();
 //http://www.tux-planet.fr/installation-et-configuration-de-modsecurity/
 
 function help(){
+	echo @implode(" ", $argv)."\n";
 	echo "Usage : \t(use --verbose for more infos)\n";
 	echo "--build............................: Configure apache\n";
 	echo "--apache-user --verbose............: Set Apache account in memory\n";
@@ -168,7 +171,35 @@ function reconfigure_all_websites(){
 		install_groupware($hostname);
 		buildHost(null,$hostname);
 	}
+	sync_squid();
 }
+
+function sync_squid(){
+	$unix=new unix();
+	$free=new freeweb();
+	if(!$unix->IsSquidReverse()){return;}
+
+	$sql="SELECT servername,useSSL FROM freeweb WHERE enabled=1 ORDER BY servername";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$hostname=$ligne["servername"];
+		$f[]="('$hostname','127.0.0.1','82','{$ligne["useSSL"]}')";
+		
+	}
+	
+	$q=new mysql_squid_builder();
+	$sql="DELETE FROM reverse_www WHERE `ipaddr`='127.0.0.1' AND `port`='82'";
+	$q->QUERY_SQL($sql);
+	if(count($f)>0){
+		$prefix="INSERT IGNORE INTO reverse_www (`servername`,`ipaddr`,`port`,`ssl`) VALUES ".@implode(",", $f);
+		$q->QUERY_SQL($prefix);
+		$php5=$unix->LOCATE_PHP5_BIN();
+		$nohup=$unix->find_program("nohup");
+		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid-reverse.php --build >/dev/null 2>&1 &");
+	}
+}
+
 
 function remove_disabled(){
 	$workdir="/etc/apache2/sites-enabled";
@@ -479,7 +510,11 @@ function ReloadApache($nocheck=false){
 	if(!is_file($apache2ctl)){return;}	
 	$cmd="$apache2ctl -f $LOCATE_APACHE_CONF_PATH -k restart 2>&1";
 	echo "Starting......: Apache \"$cmd\"\n";		
-	exec($cmd,$results);		
+	exec($cmd,$results);	
+	$nginx=$GLOBALS["CLASS_UNIX"]->find_program("nginx");
+	if(is_file($nginx)){
+		shell_exec("/etc/init.d/nginx reconfigure");
+	}
 }
 
 
@@ -546,7 +581,20 @@ function startApache($withoutkill=false){
 		}
 			
 			echo "Starting......: Apache $ligne\n";
-		}	
+		}
+
+		
+	$APACHE_PID_PATH=$GLOBALS["CLASS_UNIX"]->APACHE_PID_PATH();
+	$unix=new unix();
+	sleep(2);
+	$pid=$unix->get_pid_from_file($APACHE_PID_PATH);
+	if(!$unix->process_exists($pid)){
+		echo "Starting......: Apache Failed [$APACHE_PID_PATH]\n";
+		return;
+	}	
+	echo "Starting......: Apache Success pid $pid\n";
+	$nginx=$GLOBALS["CLASS_UNIX"]->find_program("nginx");
+	if(is_file($nginx)){shell_exec("/etc/init.d/nginx reconfigure");}
 	
 }
 
@@ -563,6 +611,46 @@ function patch_suse_default_server(){
 		$tmp123=str_replace("Include /etc/apache2/conf.d/*.conf","",$tmp123);
 		$tmp123=str_replace("Include /etc/apache2/mod_userdir.conf","",$tmp123);
 		@file_put_contents("/etc/apache2/default-server.conf", $tmp123);$tmp123=null;	
+}
+
+function php5_fpm(){
+	$unix=new unix();
+	$daemon_path=$unix->APACHE_LOCATE_PHP_FPM();
+	if(!is_file($daemon_path)){return;}
+	$f[]="# PHP-FPM configuration";
+	$f[]="<IfModule mod_fastcgi.c>";
+	$f[]="  Alias /php5.fastcgi /var/lib/apache2/fastcgi/php5.fastcgi";
+	$f[]="  AddHandler php-script .php";
+	$f[]="  FastCGIExternalServer /var/lib/apache2/fastcgi/php5.fastcgi -socket /var/run/php-fpm-apache2.sock -idle-timeout 610";
+	$f[]="  Action php-script /php5.fastcgi virtual";
+	$f[]="";
+	$f[]="  # Forbid access to the fastcgi handler.";
+	$f[]="  <Directory /var/lib/apache2/fastcgi>";
+	$f[]="    <Files php5.fastcgi>";
+	$f[]="      Order deny,allow";
+	$f[]="      Allow from all";
+	$f[]="    </Files>";
+	$f[]="  </Directory>";
+	$f[]="";
+	$f[]="  # FPM status page.";
+	$f[]="  <Location /php-fpm-status>";
+	$f[]="    SetHandler php-script";
+	$f[]="    Order deny,allow";
+	$f[]="    Deny from all";
+	$f[]="    Allow from 127.0.0.1 ::1";
+	$f[]="  </Location>";
+	$f[]="";
+	$f[]="  # FPM ping page.";
+	$f[]="  <Location /php-fpm-ping>";
+	$f[]="    SetHandler php-script";
+	$f[]="    Order deny,allow";
+	$f[]="    Deny from all";
+	$f[]="    Allow from 127.0.0.1 ::1";
+	$f[]="  </Location>";
+	$f[]="</IfModule>";
+
+	@file_put_contents("/etc/apache2/mods-available/php5-fpm.conf", @implode("\n", $f));
+	
 }
 
 
@@ -671,7 +759,7 @@ function SSL_DEFAULT_VIRTUAL_HOST(){
 	$sock=new sockets();
 	$free=new freeweb("_default_");
 	if($free->useSSL==1){return;}
-	
+	$users=new usersMenus();
 	
 	$workingDir=$free->WORKING_DIRECTORY;
 	if($workingDir==null){$workingDir="/var/www";}
@@ -683,15 +771,18 @@ function SSL_DEFAULT_VIRTUAL_HOST(){
 	$sites_enabled="$DAEMON_PATH/sites-enabled";	
 	$unix->vhosts_BuildCertificate("_default_");
 	$hostname=$unix->hostname_g();
-	echo "Starting......: Apache hostname = $hostname\n";
+	
 	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
 	if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
 	
-	
-	
-	
+	if($unix->IsSquidReverse()){$SquidActHasReverse=1;}
+
+	if($SquidActHasReverse==1){
+		$FreeWebListenSSLPort=447;
+	}
+	echo "Starting......: Apache hostname = $hostname:$FreeWebListenSSLPort\n";
 	$f[]="<IfModule mod_ssl.c>";
-	$f[]="    <VirtualHost _default_:443>";
+	$f[]="    <VirtualHost _default_:$FreeWebListenSSLPort>";
 	$f[]="            ServerAdmin webmaster@$hostname";
 	$f[]="            DocumentRoot $workingDir";
 	$f[]="            <Directory />";
@@ -769,7 +860,87 @@ function CheckHttpdConf_mailman(){
 }
 
 
-
+function php5_conf($DAEMON_PATH){
+	$f[]="<IfModule mod_php5.c>";
+	$f[]="    <FilesMatch \"\.ph(p3?|tml)$\">";
+	$f[]="	SetHandler application/x-httpd-php";
+	$f[]="    </FilesMatch>";
+	$f[]="    <FilesMatch \"\.phps$\">";
+	$f[]="	SetHandler application/x-httpd-php-source";
+	$f[]="    </FilesMatch>";
+	$f[]="    # To re-enable php in user directories comment the following lines";
+	$f[]="    # (from <IfModule ...> to </IfModule>.) Do NOT set it to On as it";
+	$f[]="    # prevents .htaccess files from disabling it.";
+	$f[]="    <IfModule mod_userdir.c>";
+	$f[]="        <Directory /home/*/public_html>";
+	$f[]="            php_admin_value engine Off";
+	$f[]="        </Directory>";
+	$f[]="    </IfModule>";
+	$f[]="</IfModule>";	
+	@file_put_contents("$DAEMON_PATH/mods-enabled/php5.conf", @implode("\n", $f));
+	
+	$f=array();
+	$f[]="<IfModule mod_suphp.c>";
+	$f[]="	AddType application/x-httpd-suphp .php .php3 .php4 .php5 .phtml";
+	$f[]="	suPHP_AddHandler application/x-httpd-suphp";
+	$f[]="";
+	$f[]="    <Directory />";
+	$f[]="        suPHP_Engine on";
+	$f[]="    </Directory>";
+	$f[]="";
+	$f[]="    # By default, disable suPHP for debian packaged web applications as files";
+	$f[]="    # are owned by root and cannot be executed by suPHP because of min_uid.";
+	$f[]="    <Directory /usr/share>";
+	$f[]="        suPHP_Engine off";
+	$f[]="    </Directory>";
+	$f[]="";
+	$f[]="# # Use a specific php config file (a dir which contains a php.ini file)";
+	$f[]="#	suPHP_ConfigPath /etc/php4/cgi/suphp/";
+	$f[]="# # Tells mod_suphp NOT to handle requests with the type <mime-type>.";
+	$f[]="#	suPHP_RemoveHandler <mime-type>";
+	$f[]="</IfModule>";;
+	@file_put_contents("$DAEMON_PATH/mods-enabled/suphp.conf", @implode("\n", $f));
+	
+	
+	$f=array();
+	$unix=new unix();
+	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
+	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
+	
+	
+	
+	$f[]="[global]";
+	$f[]="logfile=/var/log/apache2/suphp.log";
+	$f[]="loglevel=info";
+	$f[]="webserver_user=$APACHE_SRC_ACCOUNT";
+	$f[]="docroot=/";
+	$f[]=";chroot=/mychroot";
+	$f[]="; Security options";
+	$f[]="allow_file_group_writeable=false";
+	$f[]="allow_file_others_writeable=false";
+	$f[]="allow_directory_group_writeable=false";
+	$f[]="allow_directory_others_writeable=false";
+	$f[]=";Check wheter script is within DOCUMENT_ROOT";
+	$f[]="check_vhost_docroot=true";
+	$f[]=";Send minor error messages to browser";
+	$f[]="errors_to_browser=false";
+	$f[]=";PATH environment variable";
+	$f[]="env_path=/bin:/usr/bin:/usr/local/bin:/usr/local/bin";
+	$f[]=";Umask to set, specify in octal notation";
+	$f[]="umask=0077";
+	$f[]="; Minimum UID";
+	$f[]="min_uid=30";
+	$f[]="; Minimum GID";
+	$f[]="min_gid=30";
+	$f[]="[handlers]";
+	$f[]=";Handler for php-scripts";
+	$f[]="application/x-httpd-suphp=\"php:/usr/bin/php-cgi\"";
+	$f[]=";Handler for CGI-scripts";
+	$f[]="x-suphp-cgi=\"execute:!self\"";
+	$f[]="";	
+	@mkdir("/etc/suphp",0755,true);
+	@file_put_contents("/etc/suphp/suphp.conf", @implode("\n", $f));
+}
 
 
 function CheckHttpdConf(){
@@ -778,6 +949,7 @@ function CheckHttpdConf(){
 	$sock=$GLOBALS["CLASS_SOCKETS"];
 	$unix=new unix();
 	$users=new usersMenus();
+
 	$freeweb=new freeweb();
 	$chmod=$unix->find_program("chmod");
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -801,7 +973,7 @@ function CheckHttpdConf(){
 	
 	$FreeWebListenPort=$sock->GET_INFO("FreeWebListenPort");
 	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
-	
+	$FreeWebEnableModSUPhp=$sock->GET_INFO("FreeWebEnableModSUPhp");
 	$FreeWebsEnableModSecurity=$sock->GET_INFO("FreeWebsEnableModSecurity");
 	$FreeWebsEnableModEvasive=$sock->GET_INFO("FreeWebsEnableModEvasive");
 	$FreeWebsEnableModQOS=$sock->GET_INFO("FreeWebsEnableModQOS");
@@ -830,10 +1002,16 @@ function CheckHttpdConf(){
 	if(!is_numeric($FreeWebsEnableOpenVPNProxy)){$FreeWebsEnableOpenVPNProxy=0;}
 	if(!is_numeric($TomcatEnable)){$TomcatEnable=1;}
 	if(!is_numeric($FreeWebEnableSQLLog)){$FreeWebEnableSQLLog=0;}
+	if(!is_numeric($FreeWebEnableModSUPhp)){$FreeWebEnableModSUPhp=0;}
+	
+	
+	if($unix->IsSquidReverse()){
+		$FreeWebListenSSLPort=447;
+		$FreeWebListenPort=82;
+	}
 	
 	
 	
-	$users=new usersMenus();
 	$APACHE_MODULES_PATH=$users->APACHE_MODULES_PATH;	
 	
 	$toremove[]="mod-status.init";
@@ -851,6 +1029,15 @@ function CheckHttpdConf(){
 	$toremove[]="log_sql_module.load";
 	$toremove[]="log_sql_mysql_module.load";
 	$toremove[]="log_sql_ssl.load";
+	
+	$toremove[]="php5.conf";
+	$toremove[]="php5.load";
+	$toremove[]="fcgid_module.load";
+	$toremove[]="php5-fpm.load";
+	$toremove[]="fastcgi.load";
+	$toremove[]="php5-fpm.conf";
+	
+
 
 	echo "Starting......: Apache hostname: `$hostname`\n";
 	echo "Starting......: Apache Check `$hostname` in host file\n";
@@ -872,7 +1059,7 @@ function CheckHttpdConf(){
 		shell_exec("/bin/rm -f $DAEMON_PATH/mods-available/$file >/dev/null 2>&1");
 		
 	}
-	
+	php5_conf($DAEMON_PATH);
 	if($FreeWebDisableSSL==1){$FreeWebListenSSLPort=0;}
 	$VirtualHostsIPAddresses=VirtualHostsIPAddresses($FreeWebListenPort,$FreeWebListen,$FreeWebListenSSLPort);
 	
@@ -910,6 +1097,12 @@ function CheckHttpdConf(){
 	
 	$conf[]="<IfModule mod_fcgid.c>";
 	$conf[]="\tPHP_Fix_Pathinfo_Enable 1";
+	$conf[]="</IfModule>";
+	
+	$conf[]="<IfModule mod_fastcgi.c>";
+	$conf[]="\tAddHandler fastcgi-script .fcgi";
+	$conf[]="#FastCgiWrapper /usr/lib/apache2/suexec";
+	$conf[]="\tFastCgiIpcDir /var/lib/apache2/fastcgi";
 	$conf[]="</IfModule>";
 	
 	if($users->APACHE_MOD_STATUS){
@@ -976,26 +1169,26 @@ function CheckHttpdConf(){
 		
 	}
 	
-@mkdir("/var/run/apache2",0775,true);	
-$f[]="<IfModule mod_ssl.c>";
-$f[]="	SSLRandomSeed startup builtin";
-$f[]="	SSLRandomSeed startup file:/dev/urandom 512";
-$f[]="	SSLRandomSeed connect builtin";
-$f[]="	SSLRandomSeed connect file:/dev/urandom 512";
-$f[]="	AddType application/x-x509-ca-cert .crt";
-$f[]="	AddType application/x-pkcs7-crl    .crl";
-$f[]="	SSLPassPhraseDialog  builtin";
-$f[]="	SSLSessionCache        shmcb:/var/run/apache2/ssl_scache(512000)";
-$f[]="	SSLSessionCacheTimeout  300";
-$f[]="	SSLSessionCacheTimeout  300";
-$f[]="	SSLMutex  sem";
-//$f[]="	SSLMutex  file:/var/run/apache2/ssl_mutex";
-$f[]="	SSLCipherSuite HIGH:MEDIUM:!ADH";
-$f[]="	SSLProtocol all -SSLv2";
-$f[]="</IfModule>";
-$f[]="";	
-@file_put_contents("$DAEMON_PATH/ssl.conf",@implode("\n",$f));	
-unset($f);	
+	@mkdir("/var/run/apache2",0775,true);	
+	$f[]="<IfModule mod_ssl.c>";
+	$f[]="	SSLRandomSeed startup builtin";
+	$f[]="	SSLRandomSeed startup file:/dev/urandom 512";
+	$f[]="	SSLRandomSeed connect builtin";
+	$f[]="	SSLRandomSeed connect file:/dev/urandom 512";
+	$f[]="	AddType application/x-x509-ca-cert .crt";
+	$f[]="	AddType application/x-pkcs7-crl    .crl";
+	$f[]="	SSLPassPhraseDialog  builtin";
+	$f[]="	SSLSessionCache        shmcb:/var/run/apache2/ssl_scache(512000)";
+	$f[]="	SSLSessionCacheTimeout  300";
+	$f[]="	SSLSessionCacheTimeout  300";
+	$f[]="	SSLMutex  sem";
+	//$f[]="	SSLMutex  file:/var/run/apache2/ssl_mutex";
+	$f[]="	SSLCipherSuite HIGH:MEDIUM:!ADH";
+	$f[]="	SSLProtocol all -SSLv2";
+	$f[]="</IfModule>";
+	$f[]="";	
+	@file_put_contents("$DAEMON_PATH/ssl.conf",@implode("\n",$f));	
+	unset($f);	
 
 
 	
@@ -1172,7 +1365,11 @@ unset($f);
 	if(is_file("/etc/apache2/default-server.conf")){patch_suse_default_server();$httpd[]="Include /etc/apache2/default-server.conf";}
 	$httpd[]="Include $DAEMON_PATH/conf.d/";
 	$httpd[]="Include $DAEMON_PATH/sites-enabled/";
-	if(is_file("$APACHE_MODULES_PATH/mod_php5.so")){$httpd[]="LoadModule php5_module $APACHE_MODULES_PATH/mod_php5.so";}
+	
+	
+	//PHP5 MODULE
+	
+	//if(is_file("$APACHE_MODULES_PATH/mod_php5.so")){$httpd[]="LoadModule php5_module $APACHE_MODULES_PATH/mod_php5.so";}
 	if(is_file("$APACHE_MODULES_PATH/mod_ldap.so")){$httpd[]="LoadModule ldap_module $APACHE_MODULES_PATH/mod_ldap.so";}
 	
 	
@@ -1185,6 +1382,9 @@ unset($f);
 	}		
 	
 	$httpd[]="";
+	$httpd[]=YfiAdds();
+	
+	
 	echo "Starting......: Apache $httpdconf done\n";
 	@file_put_contents($httpdconf,@implode("\n",$httpd));
 	
@@ -1203,7 +1403,20 @@ unset($f);
 	@unlink("$DAEMON_PATH/conf.d/jk.conf");
 	$free=new freeweb();
 	
+	
+	
 	$array["php5_module"]="libphp5.so";
+	
+	
+	
+	if($users->APACHE_MOD_SUPHP){
+		if($FreeWebEnableModSUPhp==1){
+			$array["suphp_module"]="mod_suphp.so";
+		}
+	}
+	
+	
+	
 	//$array["access_module"]="mod_access.so";
 	$array["qos_module"]="mod_qos.so";
 	$array["rewrite_module"]="mod_rewrite.so";
@@ -1241,10 +1454,24 @@ unset($f);
 	$array["bw_module"]="mod_bw.so";
 	$array["expires_module"]="mod_expires.so";
 	$array["include_module"]="mod_include.so";
+	$array["rpaf_module"]="mod_rpaf-2.0.so";
+	$array["fastcgi_module"]="mod_fastcgi.so";
+	$array["deflate_module"]="mod_deflate.so";
+	$array["headers_module"]="mod_headers.so";
+
 	
-	 
-	
-	
+	if(is_file("$APACHE_MODULES_PATH/mod_rpaf-2.0.so")){
+		$net=new networking();
+		$ips=$net->ALL_IPS_GET_ARRAY();
+		while (list ($ip, $line) = each ($ips) ){$tip[]=$ip;}
+		$rpfmod[]="<IfModule mod_rpaf.c>";
+		$rpfmod[]="\tRPAFenable On";
+		$rpfmod[]="\tRPAFsethostname On";
+		$rpfmod[]="\tRPAFproxy_ips ".@implode(" ", $tip);
+		$rpfmod[]="\tRPAFheader X-Forwarded-For";
+		$rpfmod[]="</IfModule>";
+		@file_put_contents("$DAEMON_PATH/mods-enabled/rpaf.conf",@implode("\n", $rpfmod));
+	}
 	
 	 
 	
@@ -1309,7 +1536,8 @@ unset($f);
 	@unlink("$DAEMON_PATH/mods-enabled/dav_lock_module.load");
 	@unlink("$DAEMON_PATH/mods-enabled/dav_module.load");
 	@unlink("$DAEMON_PATH/mods-enabled/dav_fs_module.load");
-	@unlink("$DAEMON_PATH/mods-enabled/pagespeed.load");	
+	@unlink("$DAEMON_PATH/mods-enabled/pagespeed.load");
+	@unlink("$DAEMON_PATH/mods-enabled/rpaf.load");
 	
 	$sock=new sockets();
 	$FreeWebsDisableMOdQOS=$sock->GET_INFO("FreeWebsDisableMOdQOS");
@@ -1406,7 +1634,52 @@ if($FreeWebsEnableModEvasive==1){
 	echo "Starting......: Apache terminated... next process\n";	
 }	
 
-
+function YfiAdds(){
+	if(!is_file("/var/www/c2/index.php")){return;}
+	$f[]="## -- YFi begin";
+	$f[]="<Directory  /var/www/c2>";
+	$f[]="    AllowOverride All";
+	$f[]="</Directory>";
+	$f[]="#-------COMPRESS CONTENT-----------";
+	$f[]="# place filter 'DEFLATE' on all outgoing content";
+	$f[]="SetOutputFilter DEFLATE";
+	$f[]="# exclude uncompressible content via file type";
+	$f[]="SetEnvIfNoCase Request_URI \.(?:exe|t?gz|jpg|png|pdf|zip|bz2|sit|rar)$ no-gzip";
+	$f[]="#dont-vary";
+	$f[]="# Keep a log of compression ratio on each request";
+	$f[]="DeflateFilterNote Input instream";
+	$f[]="DeflateFilterNote Output outstream";
+	$f[]="DeflateFilterNote Ratio ratio";
+	$f[]="LogFormat '\"%r\" %{outstream}n/%{instream}n (%{ratio}n%%)' deflate";
+	$f[]="CustomLog /var/log/apache2/deflate.log deflate";
+	$f[]="# Properly handle old browsers that do not support compression";
+	$f[]="BrowserMatch ^Mozilla/4 gzip-only-text/html";
+	$f[]="BrowserMatch ^Mozilla/4\.0[678] no-gzip";
+	$f[]="BrowserMatch \bMSIE !no-gzip !gzip-only-text/html";
+	$f[]="#----------------------------------";
+	$f[]="";
+	$f[]="#------ADD EXPIRY DATE-------------";
+	$f[]="<FilesMatch \"\.(ico|pdf|flv|jpg|jpeg|png|gif|js|css|swf)$\">";
+	$f[]="    Header set Expires \"Thu, 15 Apr 2012 20:00:00 GMT\"";
+	$f[]="</FilesMatch>";
+	$f[]="#----------------------------------";
+	$f[]="";
+	$f[]="#--------Remove ETags --------------------";
+	$f[]="FileETag none";
+	$f[]="#-----------------------------------------";
+	$f[]="## -- YFi end";	
+	
+	$unix=new unix();
+	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
+	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
+	$unix->chmod_func(0755, "/var/www/c2/*");
+	$unix->chown_func($APACHE_SRC_ACCOUNT, $APACHE_SRC_GROUP,"/var/www/c2/*");
+	$unix->chown_func($APACHE_SRC_ACCOUNT, $APACHE_SRC_GROUP,"/var/www/c2/yfi_cake/*");
+	
+	
+	return @implode("\n", $f);
+	
+}
 
 function apache_security($DAEMON_PATH){
 	$sock=new sockets();
@@ -1527,9 +1800,15 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	
 	if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
 	if(!is_numeric($FreeWebListenPort)){$FreeWebListenPort=80;}
-	if(!is_numeric($FreeWebsDisableSSLv2)){$FreeWebsDisableSSLv2=0;}		
+	if(!is_numeric($FreeWebsDisableSSLv2)){$FreeWebsDisableSSLv2=0;}
 
-	$port=$FreeWebListen;
+	if($unix->IsSquidReverse()){
+		$FreeWebListenPort=82;
+		$FreeWebListenSSLPort=447;
+		$FreeWebListen="127.0.0.1";
+	}
+
+	$port=$FreeWebListenPort;
 	if($uid<>null){
 		$u=new user($uid);
 		$ServerAdmin=$u->mail;
@@ -1550,7 +1829,24 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		$conf[]="\tServerSignature $ServerSignature";
 		$conf[]="\tRewriteEngine On";
 		if($freeweb->Forwarder==0){$conf[]="\tRewriteCond %{HTTPS} off";}
-		if($freeweb->Forwarder==0){$conf[]="\tRewriteRule (.*) https://%{HTTP_HOST}:$FreeWebListenSSLPort";}
+		
+		
+		
+		if($freeweb->Forwarder==0){
+			$redirectPage=null;
+			
+			if(!$unix->IsSquidReverse()){
+				if($FreeWebListenSSLPort<>443){
+					$conf[]="\tRewriteRule (.*) https://%{HTTP_HOST}:$FreeWebListenSSLPort$redirectPage";
+				}else{
+					$conf[]="\tRewriteRule (.*) https://%{HTTP_HOST}$redirectPage";
+				}
+			}else{
+				$conf[]="\tRewriteRule (.*) https://%{HTTP_HOST}$redirectPage";
+			}
+		}
+			
+			
 		if($freeweb->Forwarder==1){$conf[]="\tRewriteRule (.*) $freeweb->ForwardTo";}
 		$conf[]="</VirtualHost>";
 		$conf[]="";
@@ -1973,7 +2269,14 @@ function VirtualHostsIPAddresses($StandardPort,$listenAddr,$SSLPORT){
 	$sock=new sockets();
 	$NameVirtualHostSSL=array();
 	$NameVirtualHost=array();
+	$unix=new unix();
 	$ss=array();
+	
+	if($unix->IsSquidReverse()){
+		$SSLPORT=447;
+		$StandardPort=82;
+		$listenAddr="127.0.0.1";
+	}
 	
 	$hashListenAddr=unserialize(base64_decode($sock->GET_INFO("FreeWebsApacheListenTable")));
 	if(is_array($hashListenAddr)){
@@ -2385,12 +2688,12 @@ function resolv_servers(){
 		$ipaddr=gethostbyname($ligne["servername"]);
 		if($GLOBALS["VERBOSE"]){echo "$ipaddr\n";}
 		if($ipaddr==null){
-			$unix->send_email_events("FreeWeb: http(s)://{$ligne["servername"]} unable to resolve","Artica tried to resolve the {$ligne["servername"]}, no ip address is returned, so it's means that this website will be not available", "system");
+			//$unix->send_email_events("FreeWeb: http(s)://{$ligne["servername"]} unable to resolve","Artica tried to resolve the {$ligne["servername"]}, no ip address is returned, so it's means that this website will be not available", "system");
 			continue;
 		}
 		
 		if($ipaddr==$ligne["servername"]){
-			$unix->send_email_events("FreeWeb: http(s)://{$ligne["servername"]} unable to resolve","Artica tried to resolve the {$ligne["servername"]}, no ip address is returned, so it's means that this website will be not available", "system");
+			//$unix->send_email_events("FreeWeb: http(s)://{$ligne["servername"]} unable to resolve","Artica tried to resolve the {$ligne["servername"]}, no ip address is returned, so it's means that this website will be not available", "system");
 			$sql="UPDATE freeweb SET `resolved_ipaddr`='' WHERE servername='{$ligne["servername"]}'";
 			$q->QUERY_SQL($sql,"artica_backup");			
 			continue;
@@ -2399,7 +2702,7 @@ function resolv_servers(){
 		if($ipaddr<>$ligne["resolved_ipaddr"]){
 			$sql="UPDATE freeweb SET `resolved_ipaddr`='$ipaddr' WHERE servername='{$ligne["servername"]}'";
 			$q->QUERY_SQL($sql,"artica_backup");
-			$unix->send_email_events("FreeWeb: http(s)://{$ligne["servername"]} resolved to $ipaddr","Artica tried to resolve the {$ligne["servername"]}, old ip was [{$ligne["resolved_ipaddr"]}] new ip is $ipaddr", "system");
+			//$unix->send_email_events("FreeWeb: http(s)://{$ligne["servername"]} resolved to $ipaddr","Artica tried to resolve the {$ligne["servername"]}, old ip was [{$ligne["resolved_ipaddr"]}] new ip is $ipaddr", "system");
 		}
 		
 	}	

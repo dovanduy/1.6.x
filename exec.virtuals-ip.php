@@ -1,17 +1,20 @@
 #!/usr/bin/php
 <?php
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . '/ressources/class.templates.inc');
 include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__) . '/framework/frame.class.inc');
+include_once(dirname(__FILE__) . '/framework/class.settings.inc');
 include_once(dirname(__FILE__) . '/ressources/class.system.network.inc');
 include_once(dirname(__FILE__) . '/ressources/class.system.nics.inc');
 include_once(dirname(__FILE__) . '/ressources/class.os.system.inc');
+
 $GLOBALS["NO_GLOBAL_RELOAD"]=false;
 $GLOBALS["AS_ROOT"]=true;
 $GLOBALS["SLEEP"]=false;
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);ini_set_verbosed();}
+
 if(preg_match("#--sleep#",implode(" ",$argv))){$GLOBALS["SLEEP"]=true;}
 if($argv[1]=="--resolvconf"){resolvconf();exit;}
 if($argv[1]=="--interfaces"){interfaces_show();die();}
@@ -30,6 +33,10 @@ if($argv[1]=="--ping"){ping($argv[2]);exit;}
 if($argv[1]=="--ipv6"){Checkipv6();exit;}
 if($argv[1]=="--ifupifdown"){ifupifdown($argv[2]);exit;}
 if($argv[1]=="--reconstruct-interface"){reconstruct_interface($argv[2]);exit;}
+if($argv[1]=="--ucarp"){ucarp_build();exit;}
+if($argv[1]=="--ucarp-start"){ucarp_build();exit;}
+if($argv[1]=="--ucarp-stop"){ucarp_stop();exit;}
+if($argv[1]=="--net-rules"){persistent_net_rules();exit;}
 
 
 
@@ -86,6 +93,195 @@ function resolvconf(){
 	
 }
 
+function ucarp_stop(){
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$unix=new unix();
+	
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "Starting......: UCARP Start task already running PID: $oldpid\n";
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	
+	$ucarp_bin=$unix->find_program("ucarp");
+	if(!is_file($ucarp_bin)){echo "Starting......: UCARP Not installed...\n";return;}	
+	$pids=ucarp_all_pid();
+	$kill=$unix->find_program("kill");
+	
+	echo "Starting......: UCARP Found (".count($pids).") processe(s)\n";
+	
+	while (list ($pid, $line) = each ($pids) ){
+		echo "Starting......: UCARP checks PID:$pid processe(s)\n";
+		ucarp_stop_single($pid);
+	}
+	
+	
+}
+
+function ucarp_stop_single($pid){
+	$unix=new unix();
+	$ucarp_bin=$unix->find_program("ucarp");
+	if(!is_file($ucarp_bin)){echo "Starting......: UCARP Not installed...\n";return;}
+	$kill=$unix->find_program("kill");
+	$ifconfig=$unix->find_program("ifconfig");
+	if(!$unix->process_exists($pid)){
+		echo "Starting......: UCARP [$pid]: Not running...\n";
+		return;
+	}
+	
+	$cmdline=var_export(@file_get_contents("/proc/$pid/cmdline"),true);
+	if(preg_match("#'--interface=(.+?)'#", $cmdline,$re)){
+		echo "Starting......: UCARP: [$pid]: Shutting down interface ucarp:{$re[1]}...\n";
+		shell_exec("$ifconfig {$re[1]}:ucarp down");
+	}
+		
+	echo "Starting......: UCARP: [$pid]: Shutting down $pid...\n";
+	for($i=0;$i<10;$i++){
+		shell_exec("$kill $pid >/dev/null 2>&1");
+		sleep(1);
+		if(!$unix->process_exists($pid)){break;}
+	}
+	
+	if(!$unix->process_exists($pid)){
+		echo "Starting......: UCARP: [$pid]: Shutting down success...\n";
+	}
+}
+
+function ucarp_build(){
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$unix=new unix();
+	$sock=new sockets();
+	
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "Starting......: UCARP Start task already running PID: $oldpid\n";
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	$users=new settings_inc();
+	if(!$users->CORP_LICENSE){echo "Starting......: UCARP No license set, aborting...\n";return;}
+	$ucarp_bin=$unix->find_program("ucarp");
+	
+	if(!is_file($ucarp_bin)){echo "Starting......: UCARP Not installed...\n";return;}
+	
+	$sql="SELECT * FROM `nics` WHERE enabled=1 AND `ucarp-enable`=1 ORDER BY Interface";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo "Starting......: UCARP: MySQL Error: $q->mysql_error\n";return;}
+	$count=mysql_num_rows($results);
+	@unlink("/etc/network/if-up.d/ucarp");
+	if($count==0){echo "Starting......: UCARP: Network Unconfigured\n";return;}
+	
+	$FINAL[]="#!/bin/sh";
+	
+	$pid=ucarp_pid();
+	$kill=$unix->find_program("kill");
+	$ifconfig=$unix->find_program("ifconfig");
+	
+	$EnableChilli=$sock->GET_INFO("EnableChilli");
+	$chilli=$unix->find_program("chilli");
+	if(!is_numeric($EnableChilli)){$EnableChilli=0;}	
+	if(is_file($chilli)){
+		if($EnableChilli==1){
+			$ChilliConf=unserialize(base64_decode($sock->GET_INFO("ChilliConf")));
+			$SKIP_INTERFACE=strtolower(trim($ChilliConf["HS_LANIF"]));
+		}
+		
+	}
+	
+
+	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$eth=trim(strtolower($ligne["Interface"]));
+		if($SKIP_INTERFACE==$eth){
+			echo "Starting......: UCARP: Skipping interface: $SKIP_INTERFACE\n";
+			continue;
+		}
+		$downfile="/usr/share/ucarp/vip-$eth-down.sh";
+		$upfile="/usr/share/ucarp/vip-$eth-up.sh";
+		$ucarpcmd=array();
+		$ucarpcmd[]=$ucarp_bin;
+		$ucarpcmd[]="--interface=$eth";
+		$ucarpcmd[]="--srcip={$ligne["IPADDR"]}";
+		$ucarpcmd[]="--vhid={$ligne["ucarp-vid"]}";
+		$ucarpcmd[]="--passfile=/etc/artica-postfix/ucarppass";
+		
+		$ucarpcmd[]="--addr={$ligne["ucarp-vip"]}";
+		
+		if($ligne["ucarp-master"]==0){
+			$advAdd=$ligne["ucarp-advskew"]+5;
+			if($advAdd>255){$advAdd=255;}
+			$ucarpcmd[]="--advskew=$advAdd";
+		}else{
+			$ucarpcmd[]="--preempt";
+			$ucarpcmd[]="--advskew=1";
+			$ucarpcmd[]="--advbase=1";
+			
+		}
+		$ucarpcmd[]="--neutral";
+		$ucarpcmd[]="--ignoreifstate";
+		$ucarpcmd[]="--upscript=$upfile";
+		$ucarpcmd[]="--downscript=$downfile";
+		$ucarpcmd[]="--daemonize";
+		@file_put_contents("/etc/artica-postfix/ucarppass", "secret");
+		@chmod("/etc/artica-postfix/ucarppass",0700);
+		$ucarpcmdLINE=@implode(" ", $ucarpcmd);
+		$FINAL[]=@implode(" ", $ucarpcmd);
+
+		$down=array();
+		$down[]="#!/bin/sh";
+		$down[]="$ifconfig $eth:ucarp down";
+		$down[]="$php5 ".__FILE__." --ucarp-notify $1 $2 $3 $4 $5 >/dev/null 2>&1";
+		$down[]="exit 0\n";
+		@file_put_contents($downfile, @implode("\n", $down));
+		@chmod($downfile, 0755);
+		
+		$up=array();
+		$up[]="#!/bin/sh";
+		$up[]="$ifconfig $eth:ucarp {$ligne["ucarp-vip"]} netmask {$ligne["NETMASK"]} up";
+		$up[]="$php5 ".__FILE__." --ucarp-notify $1 $2 $3 $4 $5 >/dev/null 2>&1";
+		$up[]="exit 0\n";
+		@file_put_contents($upfile, @implode("\n", $up));
+		@chmod($upfile, 0755);	
+
+		
+		
+		shell_exec($ucarpcmdLINE);
+		sleep(1);
+		$pid=ucarp_pid($eth);
+		if($unix->process_exists($pid)){
+			shell_exec("/usr/share/ucarp/vip-$eth-up.sh");
+		}else{
+			echo "Starting......: UCARP: Not running\n";
+		}
+	}	
+	
+	$FINAL[]="";
+	echo "Starting......: UCARP: /etc/network/if-up.d/ucarp done..\n";
+	@file_put_contents("/etc/network/if-up.d/ucarp", @implode("\n", $FINAL));
+	@chmod("/etc/network/if-up.d/ucarp", 0755);
+	
+	
+}
+
+function ucarp_pid($eth=null){
+	$unix=new unix();
+	$ucarp_bin=$unix->find_program("ucarp");
+	if($eth<>null){$eth=".*?--interface=$eth";}
+	return $unix->PIDOF_PATTERN("$ucarp_bin$eth");
+	
+}
+function ucarp_all_pid($eth=null){
+	$unix=new unix();
+	$ucarp_bin=$unix->find_program("ucarp");
+	if($eth<>null){$eth=".*?--interface=$eth";}
+	return $unix->PIDOF_PATTERN_ALL("$ucarp_bin$eth");
+
+}
+
 function reconstruct_interface($eth){
 	$GLOBALS["NO_GLOBAL_RELOAD"]=true;
 	if($GLOBALS["SLEEP"]){sleep(10);}
@@ -94,15 +290,64 @@ function reconstruct_interface($eth){
 }
 
 function build(){
+	$unix=new unix();
+	$users=new usersMenus();
+	$q=new mysql();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$sock=new sockets();
+	$oom_kill_allocating_task=$sock->GET_INFO("oom_kill_allocating_task");
+	if(!is_numeric($oom_kill_allocating_task)){$oom_kill_allocating_task=1;}
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$oldpid=@file_get_contents($pidfile);
+	$sysctl=$unix->find_program("sysctl");
+	
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "Starting......: Building networks already executed PID: $oldpid\n";
+		die();
+	}	
+	
+	if($oom_kill_allocating_task==1){
+		echo "Starting......: Kernel oom_kill_allocating_task is enabled\n";
+		shell_exec("$sysctl -w \"vm.oom_dump_tasks=1\" >/dev/null 2>&1");
+		shell_exec("$sysctl -w \"vm.oom_kill_allocating_task=1\" >/dev/null 2>&1");
+		
+	}else{
+		echo "Starting......: Kernel oom_kill_allocating_task is disabled\n";
+		shell_exec("$sysctl -w \"vm.oom_dump_tasks=0\" >/dev/null 2>&1");
+		shell_exec("$sysctl -w \"vm.oom_kill_allocating_task=0\" >/dev/null 2>&1");		
+	}
+	
+	persistent_net_rules();
+	
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.initd-mysql.php >/dev/null 2>&1 &");
+
+	if(!$q->BD_CONNECT()){
+		sleep(1);
+		echo "Starting......: Building networks MySQL database not available starting MySQL service...\n";
+		shell_exec("$nohup /etc/init.d/mysql start >/dev/null 2>&1 &");
+		
+		for($i=0;$i<5;$i++){
+			$q=new mysql();
+			if(!$q->BD_CONNECT()){
+				echo "Starting......: Building networks waiting MySQL database to start...$i/4\n";
+				sleep(1);
+			}
+			
+		}
+		
+		$q=new mysql();
+		if(!$q->BD_CONNECT()){
+			echo "Starting......: Building networks MySQL database not available...\n";
+			if(is_file("/etc/init.d/network-urgency.sh")){shell_exec("/etc/init.d/network-urgency.sh");}
+			die();
+		}
+		
+	}
+
 $GLOBALS["SAVED_INTERFACES"]=array();
-$users=new usersMenus();	
-$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-$oldpid=@file_get_contents($pidfile);
-$unix=new unix();
-if($unix->process_exists($oldpid,basename(__FILE__))){
-	echo "Starting......: Building networks already executed PID: $oldpid\n";
-	die();
-}
+	
+
 Checkipv6();
 
 @file_put_contents($pidfile,getmypid());
@@ -110,11 +355,8 @@ Checkipv6();
 	if($users->AS_DEBIAN_FAMILY){
 		echo "Starting......: Debian family\n";
 		BuildNetWorksDebian();
-		print_r($GLOBALS["SCRIPTS"]);
-		while (list ($index, $line) = each ($GLOBALS["SCRIPTS"]) ){
-			echo $line."\n";
-			
-		}
+		
+
 	}else{
 		echo "Starting......: RedHat family\n";
 		BuildNetWorksRedhat();
@@ -125,16 +367,31 @@ Checkipv6();
 	Checkipv6();
 	
 	echo "Starting......: reloading ". count($GLOBALS["SAVED_INTERFACES"])." interface(s)\n";
-	while (list ($num, $val) = each ($GLOBALS["SAVED_INTERFACES"]) ){
-		ifupifdown($val);
-	}
+	
 	
 	if(count($GLOBALS["SAVED_INTERFACES"])==0){
 		echo "Starting......: Building Ipv6 virtuals IP...\n";
 		Checkipv6Virts();
 	}
+	@unlink("/etc/init.d/network-urgency.sh");
 	
-	echo "Starting......: Stopping...\n";
+	$sh[]="#!/bin/sh -e";
+	$sh[]="# Builded on ". date("Y-m-d H:i:s");
+	while (list ($index, $line) = each ($GLOBALS["SCRIPTS"]) ){
+		echo "Starting......: `$line`\n";
+		$sh[]="echo \"Starting......: $line\"";
+		$sh[]=$line;
+		system($line);
+		usleep(500);
+	}	
+	$sh[]="exit 0\n";
+	reset($GLOBALS["SCRIPTS"]);
+	@file_put_contents("/etc/init.d/network-urgency.sh", @implode("\n", $sh));
+	@chmod("/etc/init.d/network-urgency.sh",0755);
+		
+	
+	
+	echo "Starting......: done...\n";
 	
 }
 
@@ -142,9 +399,10 @@ function BuildNetWorksDebian(){
 	if(!is_file("/etc/network/interfaces")){return;}
 	echo "Starting......: Building networks mode Debian\n";
 	$nic=new system_nic();
+	
 	$datas=$nic->root_build_debian_config();
 	if($datas==null){
-		echo "Starting......: not yet configured\n";
+		echo "Starting......: Not yet configured\n";
 		return;
 	}
 	
@@ -463,5 +721,56 @@ function articalogon(){
 	echo "Settings $eth ($IPADDR) done...\n";
 	
 }
+function persistent_net_rules(){
+	if(!is_dir("/etc/udev/rules.d")){return;}
+	$filename="/etc/udev/rules.d/70-persistent-net.rules";
+	if(is_file($filename)){return;}
+	
+	
+	$unix=new unix();
+	$fz=$unix->dirdir("/sys/class/net");
+	
+	$final=array();
+	while (list ($net, $line) = each ($fz) ){
+		$line=basename($line);
+		if(!preg_match("#eth[0-9]+#", $line)){continue;}
+		$array=udevadm_eth($line);
+		if(!$array){echo "Starting......: Building persistent rule `FAILED` for `$line`\n";continue;}
+		echo "Starting......: Building persistent rule for `$line` {$array["MAC"]}\n";
+		$final[]="SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\"{$array["MAC"]}\", ATTR{dev_id}==\"{$array["dev_id"]}\", ATTR{type}==\"{$array["TYPE"]}\", KERNEL==\"eth*\", NAME=\"$line\"";
+		
+	}
+	
+	if(count($final)>0){
+		echo "Starting......: Building $filename done\n";
+		@file_put_contents($filename, @implode("\n", $final)."\n");
+		
+	}
+	
+	
+}
+
+function udevadm_eth($eth){
+	$unix=new unix();
+	$udevadm=$unix->find_program("udevadm");
+	if(!is_file($udevadm)){return false;}
+	$MAC=null;
+	$dev_id=null;
+	$type=null;
+	exec("udevadm info -a -p /sys/class/net/$eth",$results);
+	while (list ($index, $line) = each ($results) ){
+		if(preg_match('#ATTR.*?address.*?=="(.+?)"#', $line,$re)){$MAC=$re[1];continue;}
+		if(preg_match('#ATTR.*?dev_id.*?=="(.+?)"#', $line,$re)){$dev_id=$re[1];continue;}
+		if(preg_match('#ATTR.*?type.*?=="(.+?)"#', $line,$re)){$type=$re[1];continue;}
+		
+	}
+	if($MAC==null){return false;}
+	if($dev_id==null){return false;}
+	if($type==null){return false;}
+	return array("MAC"=>$MAC,"DEV"=>$dev_id,"TYPE"=>$type); 
+}
+
+
+//
 
 ?>

@@ -10,6 +10,7 @@ include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.squid.tail.inc");
 include_once(dirname(__FILE__)."/ressources/class.ccurl.inc");
+include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
@@ -29,6 +30,7 @@ if($argv[1]=="--squid-brut-proc"){ParseSquidLogBrutProcess($argv[2],true);die();
 if($argv[1]=="--squid-sql-proc"){ParseSquidLogMainProcess($argv[2],true);die();}
 if($argv[1]=="--users-auth"){ParseUserAuth(true);die();}
 if($argv[1]=="--main"){ParseSquidLogMain(true);die();}
+if($argv[1]=="--clean-squid-queues"){CleanSquidQueues();die();}
 
 
 
@@ -38,7 +40,14 @@ if($argv[1]=="--main"){ParseSquidLogMain(true);die();}
 	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$RepairHourtimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".repair-hour.time";
+	$RepairHourYoutubetimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".youtube-hour.time";
+	$CategorizetimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".SquidCategorizeTablestimeFile.time";
+	$CategorizeAllTablestimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".SquidCategorizeAllTablestimeFile.time";
+	$UpdateCategoriesArticaTimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".UpdateCategoriesArticaTimeFile.time";
 	$RTTSizeTimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".RTTSize.time";
+	$CachePerfsFile="/etc/artica-postfix/pids/".basename(__FILE__).".CachePerfs.time";
+	
+	
 	$oldpid=@file_get_contents($pidfile);
 	if($oldpid<100){$oldpid=null;}
 	$unix=new unix();
@@ -100,6 +109,26 @@ if($argv[1]=="--main"){ParseSquidLogMain(true);die();}
 	events("Execute WordScanners()");
 	WordScanners();
 	
+	
+	$CategorizetimeFileTIME=$unix->file_time_min($CategorizetimeFile);
+	if($CategorizetimeFileTIME>5){
+		$cmd="$nohup $nice $php /usr/share/artica-postfix/exec.squid.stats.categorize-table.php --repair-tables --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
+		events("$cmd");
+		shell_exec($cmd);
+		@unlink($CategorizetimeFile);
+		@file_put_contents($CategorizetimeFile, time());
+	}
+	$CategorizeAllTablestimeFileTIME=$unix->file_time_min($CategorizeAllTablestimeFile);
+	if($CategorizeAllTablestimeFileTIME>720){
+		$cmd="$nohup $nice $php /usr/share/artica-postfix/exec.squid.stats.categorize-table.php --all --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
+		events("$cmd");
+		shell_exec($cmd);
+		@unlink($CategorizeAllTablestimeFile);
+		@file_put_contents($CategorizeAllTablestimeFile, time());
+	}	
+	
+	
+	
 	$RepairHourtime=$unix->file_time_min($RepairHourtimeFile);
 	if($RepairHourtime>60){
 		$cmd="$nohup $nice $php /usr/share/artica-postfix/exec.squid.stats.php --repair-hours --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
@@ -109,17 +138,43 @@ if($argv[1]=="--main"){ParseSquidLogMain(true);die();}
 		@file_put_contents($RepairHourtimeFile, time());
 	}
 	
+	$RepairHourYoutubetime=$unix->file_time_min($RepairHourYoutubetimeFile);
+	if($RepairHourtime>60){
+		$cmd="$nohup $nice $php /usr/share/artica-postfix/exec.squid.stats.youtube.days.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
+		events("$cmd");
+		shell_exec($cmd);
+		@unlink($RepairHourYoutubetimeFile);
+		@file_put_contents($RepairHourYoutubetimeFile, time());
+	}	
+	
 	
 	
 	$RTTSizeTime=$unix->file_time_min($RTTSizeTimeFile);
 	if($RTTSizeTime>5){
-		$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid-users-rttsize.php --now schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1");
+		$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid-users-rttsize.php --now schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
 		events("$cmd");
 		shell_exec($cmd);
 		@unlink($RTTSizeTimeFile);
 		@file_put_contents($RTTSizeTimeFile, time());		
 	}
 	
+	$UpdateCategoriesArticaTime=$unix->file_time_min($UpdateCategoriesArticaTimeFile);
+	if($UpdateCategoriesArticaTime>720){
+		$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid.blacklists.php --ufdb --force --nologs --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
+		events("$cmd");
+		shell_exec($cmd);
+		@unlink($UpdateCategoriesArticaTimeFile);
+		@file_put_contents($UpdateCategoriesArticaTimeFile, time());
+	}	
+	$CachePerfs=$unix->file_time_min($CachePerfsFile);
+	if($CachePerfs>800){
+		$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid.stats.days.cached.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
+		events("$cmd");
+		shell_exec($cmd);
+		@unlink($CachePerfsFile);
+		@file_put_contents($CachePerfsFile, time());
+	}	
+
 	events("FINISH....");
 	
 	
@@ -279,7 +334,18 @@ function nudityScan(){
 		
 }
 
+function WordScanners_v2(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup $php5 ". dirname(__FILE__)."/exec.squid.words.parsers.php >/dev/null 2>&1 &");
+	
+	
+}
+
 function WordScanners(){
+
+	
 	if(isset($GLOBALS["WordScanners_executed"])){return;}
 	$GLOBALS["WordScanners_executed"]=true;
 	$workdir="/var/log/artica-postfix/searchwords";
@@ -352,6 +418,12 @@ function ParseUserAuthNew(){
 	$dirs=$unix->dirdir("/var/log/artica-postfix/squid/queues");
 	while (list ($directory,$array) = each ($dirs) ){
 		$dirs2=$unix->dirdir($directory);if(count($dirs2)==0){@rmdir($directory);continue;}
+		if(is_dir("$directory/SearchWords")){
+			$php=$unix->LOCATE_PHP5_BIN();
+			$nohup=$unix->find_program("nohup");
+			shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.words.parsers.php >/dev/null 2>&1 &");
+		}		
+		
 		if(is_dir("$directory/Members")){ParseUserAuthNewDir("$directory/Members");}
 	
 	}
@@ -507,8 +579,8 @@ function ParseUserAuthArray($array){
 	$hostname=trim($array["HOSTNAME"]);
 	$hostname=str_replace("$", "", $hostname);
 	
-	if(strlen($array["IP"])<4){continue;}
-	if(strlen($hostname)<3){continue;}
+	if(strlen($array["IP"])<4){return;}
+	if(strlen($hostname)<3){return;}
 	$MAC=trim($array["MAC"]);
 	if(!__IsPhysicalAddress($MAC)){$MAC=null;}
 	
@@ -636,6 +708,9 @@ function ParseSquidLogBrut($nopid=false){
 	@mkdir("/var/log/artica-postfix/squid-brut",0777,true);
 	@chmod("/var/log/artica-postfix/squid-brut",0777);
 	
+	@mkdir("/var/log/artica-postfix/squid-reverse",0777,true);
+	@chmod("/var/log/artica-postfix/squid-reverse",0777);	
+	
 	$unix=new unix();
 	$lockfile="/etc/artica-postfix/pids/".basename(__FILE__).".0.".__FUNCTION__.".lck";
 	if($nopid){
@@ -716,13 +791,45 @@ function ParseSquidLogBrut($nopid=false){
 	$cmd="$nohup $php5 ".__FILE__." --squid >/dev/null 2>&1 &";
 	events_brut("ParseSquidLogMain:: $cmd",__LINE__);
 	shell_exec($cmd);
-	
+	CleanSquidQueues();
 
+}
+
+
+function CleanSquidQueues(){
+	$unix=new unix();
+	$dirs=$unix->dirdir("/var/log/artica-postfix/squid/queues");
+	while (list ($directory, $none) = each ($dirs) ){
+		if(basename($directory)==date("Y-m-d-h")){continue;}
+		
+		$dirs2=$unix->dirdir($directory);
+		if(count($dirs2)==0){@rmdir($directory);continue;}
+		while (list ($directory2, $none) = each ($dirs2) ){
+			$countDeFiles=$unix->COUNT_FILES($directory2);
+			if($countDeFiles==0){@rmdir($directory2);}
+			if(is_dir("$directory2/SearchWords")){
+				$php=$unix->LOCATE_PHP5_BIN();
+				$nohup=$unix->find_program("nohup");
+				shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.words.parsers.php >/dev/null 2>&1 &");
+			}
+		}
+		
+		
+	}
+	
+	
+	
 }
 
 
 
 function ParseSquidLogBrutProcess($dir=null,$nopid=false){
+	
+	if(systemMaxOverloaded()){
+		events("ParseSquidLogBrutProcess:: systemMaxOverloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} !!! -> DIE",__LINE__);
+		return;
+	}
+	
 	
 	if($dir<>null){
 		if(!is_dir("/var/log/artica-postfix/squid-brut/$dir")){
@@ -778,6 +885,7 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 	if(is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){$DisableArticaProxyStatistics=1;}
 	$GLOBALS["EnableRemoteSyslogStatsAppliance"]=$EnableRemoteSyslogStatsAppliance;
 	$GLOBALS["DisableArticaProxyStatistics"]=$DisableArticaProxyStatistics;	
+	CleanSquidQueues();
 	$ContainerDir="/var/log/artica-postfix/squid/queues/". date("Y-m-d-h");
 	@mkdir($ContainerDir,0755,true);
 	$PAGEKEEP=false;
@@ -827,6 +935,7 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 				events("ParseSquidLogBrutProcess()::$dir:: Very Overloaded: $internal_load...",__LINE__);
 				break;
 			}
+			$d=0;
 		}
 		
 		
@@ -847,7 +956,9 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 				$timefile=$unix->file_time_min($targetFile);
 				@unlink($targetFile);
 			}
-			events("ParseSquidLogBrutProcess()::$dir::[$h]:: parse_tail(): unable to parse: $targetFile $squidtail->error",__LINE__);
+			if($squidtail->error<>"TCP_DENIED"){
+				events("ParseSquidLogBrutProcess()::$dir::[$h]:: parse_tail(): unable to parse: $targetFile $squidtail->error",__LINE__);
+			}
 			continue;
 		}
 		
@@ -861,18 +972,24 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 		
 		
 		if(count($squidtail->GLOBAL_QUEUE)>2000){
-			events("ParseSquidLogBrutProcess()::$dir::  injecting 2000 requests $REMOVED_LOG removed file(s)...",__LINE__);
-			events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_RTTSIZE ".count($squidtail->GLOBAL_RTTSIZE) ." items...",__LINE__);
-			events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_PAGEKEEPER ".count($squidtail->GLOBAL_PAGEKEEPER) ." items...",__LINE__);
-			events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_YOUTUBE ".count($squidtail->GLOBAL_YOUTUBE) ." items...",__LINE__);
-			events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_SQUIDUSERS ".count($squidtail->GLOBAL_SQUIDUSERS) ." items...",__LINE__);
+			events("ParseSquidLogBrutProcess()::$dir:: Container...........: `$ContainerDir` ",__LINE__);
+			events("ParseSquidLogBrutProcess()::$dir:: injecting 2000 requests $REMOVED_LOG removed file(s)...",__LINE__);
+			events("ParseSquidLogBrutProcess()::$dir:: GLOBAL_RTTSIZE......: ".count($squidtail->GLOBAL_RTTSIZE) ." items...",__LINE__);
+			events("ParseSquidLogBrutProcess()::$dir:: GLOBAL_PAGEKEEPER...: ".count($squidtail->GLOBAL_PAGEKEEPER) ." items...",__LINE__);
+			events("ParseSquidLogBrutProcess()::$dir:: GLOBAL_YOUTUBE......: ".count($squidtail->GLOBAL_YOUTUBE) ." items...",__LINE__);
+			events("ParseSquidLogBrutProcess()::$dir:: GLOBAL_SQUIDUSERS...: ".count($squidtail->GLOBAL_SQUIDUSERS) ." items...",__LINE__);
+			events("ParseSquidLogBrutProcess()::$dir:: GLOBAL_SEARCHWORDS..: ".count($squidtail->GLOBAL_SEARCHWORDS) ." items...",__LINE__);
 			
 			
 			PURGE_GLOBAL_QUEUE($squidtail->GLOBAL_QUEUE);
+			$squidtail->GLOBAL_QUEUE=array();
+			
+			
 			if(count($squidtail->GLOBAL_RTTSIZE)>500){
 				@mkdir("$ContainerDir/RTTSize",0755,true);
 				@file_put_contents("$ContainerDir/RTTSize/".md5(serialize($squidtail->GLOBAL_RTTSIZE)),
 				serialize($squidtail->GLOBAL_RTTSIZE));
+				$squidtail->GLOBAL_RTTSIZE=array();
 				$RTTSIZE=true;
 			}
 			
@@ -880,6 +997,7 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 				@mkdir("$ContainerDir/PageKeeper",0755,true);
 				@file_put_contents("$ContainerDir/PageKeeper/".md5(serialize($squidtail->GLOBAL_PAGEKEEPER)),
 				serialize($squidtail->GLOBAL_PAGEKEEPER));
+				$squidtail->GLOBAL_PAGEKEEPER=array();
 				$PAGEKEEP=true;
 			}
 			if(count($squidtail->GLOBAL_YOUTUBE)>500){
@@ -888,32 +1006,39 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 				youtube_events("Saving queue:(2000) $ContainerDir/Youtube/".$md5, __LINE__);
 				@file_put_contents("$ContainerDir/Youtube/".$md5,
 				serialize($squidtail->GLOBAL_YOUTUBE));
+				$squidtail->GLOBAL_YOUTUBE=array();
 				$YOUTUBE=true;
 			}
 			if(count($squidtail->GLOBAL_SQUIDUSERS)>500){
 				@mkdir("$ContainerDir/Members",0755,true);
 				@file_put_contents("$ContainerDir/Members/".md5(serialize($squidtail->GLOBAL_SQUIDUSERS)),
 				serialize($squidtail->GLOBAL_SQUIDUSERS));
+				$squidtail->GLOBAL_SQUIDUSERS=array();
 				
 			}
 			
-			$squidtail->GLOBAL_QUEUE=array();
-			$squidtail->GLOBAL_RTTSIZE=array();
-			$squidtail->GLOBAL_PAGEKEEPER=array();
-			$squidtail->GLOBAL_YOUTUBE=array();
-			$squidtail->GLOBAL_SQUIDUSERS=array();
-		}
+			if(count($squidtail->GLOBAL_SEARCHWORDS)>500){
+				@mkdir("$ContainerDir/SearchWords",0755,true);
+				@file_put_contents("$ContainerDir/SearchWords/".md5(serialize($squidtail->GLOBAL_SEARCHWORDS)),
+						serialize($squidtail->GLOBAL_SEARCHWORDS));
+				$squidtail->GLOBAL_SEARCHWORDS=array();
+			
+			}
+			
+		} // PURGE OVER 2000
 		
 		
-	}
+	} // END GLOBAL LOOP
 	
 	PURGE_GLOBAL_QUEUE($squidtail->GLOBAL_QUEUE);
-	
+	events("ParseSquidLogBrutProcess()::$dir::  $h Scanned file(s) ",__LINE__);
 	events("ParseSquidLogBrutProcess()::$dir::  $REMOVED_LOG removed file(s) ",__LINE__);
-	events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_RTTSIZE...: ".count($squidtail->GLOBAL_RTTSIZE) ." items...",__LINE__);
-	events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_PAGEKEEPER: ".count($squidtail->GLOBAL_PAGEKEEPER) ." items...",__LINE__);
-	events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_YOUTUBE...: ".count($squidtail->GLOBAL_YOUTUBE) ." items...",__LINE__);
-	events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_SQUIDUSERS: ".count($squidtail->GLOBAL_SQUIDUSERS) ." items...",__LINE__);
+	events("ParseSquidLogBrutProcess()::$dir::  Container.........: `$ContainerDir` ",__LINE__);
+	events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_RTTSIZE....: ".count($squidtail->GLOBAL_RTTSIZE) ." items...",__LINE__);
+	events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_PAGEKEEPER.: ".count($squidtail->GLOBAL_PAGEKEEPER) ." items...",__LINE__);
+	events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_YOUTUBE....: ".count($squidtail->GLOBAL_YOUTUBE) ." items...",__LINE__);
+	events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_SQUIDUSERS.: ".count($squidtail->GLOBAL_SQUIDUSERS) ." items...",__LINE__);
+	events("ParseSquidLogBrutProcess()::$dir::  GLOBAL_SEARCHWORDS: ".count($squidtail->GLOBAL_SEARCHWORDS) ." items...",__LINE__);
 			
 	
 	if(count($squidtail->GLOBAL_RTTSIZE)>0){
@@ -943,6 +1068,11 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 		serialize($squidtail->GLOBAL_SQUIDUSERS));
 	}		
 
+	if(count($squidtail->GLOBAL_SEARCHWORDS)>0){
+		@mkdir("$ContainerDir/SearchWords",0755,true);
+		@file_put_contents("$ContainerDir/SearchWords/".md5(serialize($squidtail->GLOBAL_SEARCHWORDS)),
+		serialize($squidtail->GLOBAL_SEARCHWORDS));
+	}	
 	
 	$size=round(($size/1024),2);
 	events("ParseSquidLogBrutProcess()::$dir:: $c:parsed $f failed, $h total in ".$unix->distanceOfTimeInWords($timeStart,time() ." size={$size}Ko").__LINE__);
@@ -1003,6 +1133,11 @@ function PURGE_GLOBAL_QUEUE($QUEUE){
 
 function ParseSquidLogMain(){
 	
+	
+	if(systemMaxOverloaded()){
+		events("ParseSquidLogBrutProcess:: systemMaxOverloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} !!! -> DIE",__LINE__);
+		return;
+	}
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -1494,9 +1629,16 @@ function youtube_next(){
 			continue;
 		}
 		
+		if(is_dir("$directory/SearchWords")){
+			$php=$unix->LOCATE_PHP5_BIN();
+			$nohup=$unix->find_program("nohup");
+			shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.words.parsers.php >/dev/null 2>&1 &");
+		}		
+		
 		if(is_dir("$directory/Youtube")){
 			youtube_events("Scanning $directory/Youtube",__LINE__);
-			youtube_next_dir("$directory/Youtube");}
+			youtube_next_dir("$directory/Youtube");
+		}
 	
 	}	
 	
@@ -1643,7 +1785,10 @@ function youtube_events($text,$line){
 
 function youtube_inject($array){
 	$q=new mysql_squid_builder();
+	if(!is_array($array)){return;}
+	if(count($array)==0){return;}
 	youtube_events("youtube_inject() array of ".count($array)." elements...",__LINE__);
+	
 	while (list ($timeKey, $rows) = each ($array) ){
 		if(count($rows)==0){continue;}
 		$q->check_youtube_hour($timeKey);
@@ -1656,8 +1801,9 @@ function youtube_inject($array){
 			youtube_events("youtubehours_$timeKey = suffix = null, abort",__LINE__);
 			continue;
 		}
+		
 		$sql="INSERT INTO youtubehours_$timeKey (zDate,ipaddr,hostname,uid,MAC,account,youtubeid) VALUES $suffix";
-				
+		youtube_events($sql,__LINE__);
 			
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){

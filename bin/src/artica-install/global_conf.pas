@@ -3477,7 +3477,7 @@ begin
                                   
     //pommo
     lighttpd:=tlighttpd.Create(SYS);
-     ArrayList.Add('[APP_POMMO] "' +lighttpd.POMMO_VERSION() + '"');
+
      ArrayList.Add('[APP_LMB] "' +LMB_VERSION() + '"');
      ArrayList.Add('[APP_GROUPOFFICE] "' +GROUPOFFICE_VERSION() + '"');
 
@@ -6793,8 +6793,8 @@ begin
      ApacheEnabled:=0;
      if not TryStrToInt(APACHE_ARTICA_ENABLED(),ApacheEnabled) then ApacheEnabled:=0;
 
-     framework:=Tframework.CReate(SYS);
-     framework.STOP();
+     if not FileExists('/etc/init.d/artica-framework') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --framework');
+     fpsystem('/etc/init.d/artica-framework stop');
      lighttpd.LIGHTTPD_STOP();
      apache_artica:=tapache_artica.Create(SYS);
      apache_artica.STOP();
@@ -6829,15 +6829,7 @@ begin
    fpsystem('/bin/chmod 755 /usr/share/artica-postfix/ressources/sessions');
    fpsystem('/bin/chmod 755 /usr/share/artica-postfix/computers/ressources/logs');
    logs.Debuglogs('myconf.APACHE_ARTICA_START:: starting....');
-
-
-
-  Try
-   framework:=Tframework.Create(SYS);
-   framework.START();
-   framework.free;
-  finally
-  end;
+   fpsystem('/etc/init.d/artica-framework start');
 
   Try
    memcachec:=tmemcached.Create(SYS);
@@ -6850,7 +6842,6 @@ begin
 
     logs.Debuglogs('myconf.APACHE_ARTICA_START:: ApacheEnabled: '+IntTOstr(ApacheEnabled));
     if ApacheEnabled=0 then begin
-    pid:=lighttpd.LIGHTTPD_PID();
         if not SYS.PROCESS_EXIST(pid) then begin
            logs.Debuglogs('Starting Apache..............: Apache bin: '+SYS.LOCATE_APACHE_BIN_PATH());
            logs.Debuglogs('Starting Apache..............: LibPhp5...: '+SYS.LOCATE_APACHE_LIBPHP5());
@@ -6860,8 +6851,8 @@ begin
 
 
 
-           lighttpd.LIGHTTPD_START();
-
+           if not FileExists('/etc/init.d/artica-webconsole') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --artica-web');
+           fpsystem('/etc/init.d/artica-webconsole start');
            try
               zphpldapadmin:=Tphpldapadmin.Create(SYS);
               zphpldapadmin.CONFIG();

@@ -45,6 +45,8 @@ function page(){
 	
 
 	$www="$http_suffix://$ocswebservername:$OCSWebPortLink/ocsinventory";
+	$www=str_replace("http://http:", "http:", $www);
+	$www=str_replace("https://https:", "https:", $www);
 	$silentinstall="OCS-NG-Windows-Agent-Setup.exe /S /NOW /SERVER=$www /NOTAG /NP";
 	
 	$page=CurrentPageName();

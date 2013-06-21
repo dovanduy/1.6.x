@@ -639,7 +639,9 @@ if($t<2){
 				$http_suffix="http";
 				$OCSWebPortLink=$OCSWebPort;
 			}
-		return "$http_suffix://$ocswebservername:$OCSWebPortLink/ocsinventory";
+		$final="$http_suffix://$ocswebservername:$OCSWebPortLink/ocsinventory";
+		$final=str_replace("http://http:", "http:", $final);
+		$final=str_replace("https://https:", "https:", $final);
 	}
 	
 	function COUNT_HARDWARE_SOFTWARES($PUBLISHER=null,$NAME=null){

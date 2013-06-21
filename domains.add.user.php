@@ -77,7 +77,7 @@ function INDEX_CREATE(){
 	$title="{$_GET["ou"]}:{create_user}";
 	
 	$step1="
-	<table style='width:99%' class=form OnMouseOver=\"javascript:HideExplainAll(1)\">
+	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(1)\">
 	<tr>
 	<td valign='top' width=1%><img src='img/chiffre1_32.png'></td>
 	<td valign='top'>
@@ -89,7 +89,7 @@ function INDEX_CREATE(){
 	</table>";
 	
 	$step2="
-	<table style='width:99%' class=form OnMouseOver=\"javascript:HideExplainAll(2)\">
+	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(2)\">
 	<tr>
 	<td valign='top' width=1%><img src='img/chiffre2_32.png'></td>
 	<td valign='top'>
@@ -104,7 +104,7 @@ function INDEX_CREATE(){
 	</table>";
 	
 	$step3="
-	<table style='width:99%' class=form OnMouseOver=\"javascript:HideExplainAll(3)\">
+	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(3)\">
 	<tr>
 	<td valign='top' width=1%><img src='img/chiffre3_32.png'></td>
 	<td valign='top'>
@@ -116,7 +116,7 @@ function INDEX_CREATE(){
 	";
 	
 	$step4="
-	<table style='width:99%' class=form OnMouseOver=\"javascript:HideExplainAll(4)\">
+	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(4)\">
 	<tr>
 	<td valign='top' width=1%><img src='img/chiffre4_32.png'></td>
 	<td valign='top'>
@@ -133,7 +133,7 @@ if($_GET["gpid"]>0){$step4="<input type='hidden' id='group_id' value='{$_GET["gp
 	<input type='hidden' id='ou-mem-add-form-user' value='{$_GET["ou"]}'>
 	<input type='hidden' id='ou' value='{$_GET["ou"]}'>
 	<div id='adduser_ajax_newfrm' style='margin-top:5px'>
-	<table style='width:100%'>
+	<table style='width:100%' class=TableRemove>
 	<tr>
 	<td valign='top' style='width:50%'>
 		<table style='width:100%'>
@@ -156,12 +156,13 @@ if($_GET["gpid"]>0){$step4="<input type='hidden' id='group_id' value='{$_GET["gp
 		</table>
 	</td>
 	<td valign='top' style='width:50%'>
-			<center style='margin-bottom:8px'><img src='img/add-woman-256.png'></center>		
-			<div class=explain id='text-1'>{name_the_new_account_explain}</div>
-			<div class=explain id='text-2'>{user_email_text}</div>
-			<div class=explain id='text-3'>{select_user_group_text}</div>
-			<div class=explain id='text-4'>{give_password_text}</div>
-			
+			<center style='margin-bottom:8px'><img src='img/add-woman-256.png'></center>
+			<div style='padding-left:10px'>		
+				<div class=explain id='text-1'>{name_the_new_account_explain}</div>
+				<div class=explain id='text-2'>{user_email_text}</div>
+				<div class=explain id='text-3'>{select_user_group_text}</div>
+				<div class=explain id='text-4'>{give_password_text}</div>
+			</div>
 			
 	</td>
 	</tr>	

@@ -1161,9 +1161,7 @@ begin
               end;
 
              if ParamStr(2)='framework' then begin
-                   SYS:=Tsystem.Create;
-                   framework:=tframework.Create(SYS);
-                   framework.STOP();
+                   fpsystem(SYS.LOCATE_PHP5_BIN() + ' /usr/share/artica-postfix/exec.framework.php --stop');
                    exit();
               end;
 
@@ -2280,9 +2278,7 @@ begin
               end;
 
               if ParamStr(2)='framework' then begin
-                   SYS:=Tsystem.Create;
-                   framework:=tframework.Create(SYS);
-                   framework.START();
+                   fpsystem(SYS.LOCATE_PHP5_BIN() + ' /usr/share/artica-postfix/exec.framework.php --start');
                    exit();
               end;
               if ParamStr(2)='squidcache-tail' then begin
@@ -2738,7 +2734,7 @@ begin
 
               if ParamStr(2)='pommo' then begin
                  lighttpd:=Tlighttpd.Create(SYS);
-                 lighttpd.POMMO_ALIASES();
+
                  exit();
               end;
 
@@ -2882,7 +2878,7 @@ begin
                  zsquid.TAIL_STOP();
                  exit();
               end;
-              if ParamStr(2)='squidcache-tail ' then begin
+              if ParamStr(2)='squidcache-tail' then begin
                  zsquid.TAIL_CACHE_START();
                  exit();
               end;

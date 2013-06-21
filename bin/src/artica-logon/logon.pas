@@ -28,6 +28,8 @@ private
      procedure ChangeDNS();
      function ParseResolvConf():string;
      function StatisticsAppliance():string;
+     function GetIPInterface(eth:string):string;
+     procedure WebConsoleSetup();
 public
     procedure   Free;
     constructor Create();
@@ -68,6 +70,23 @@ begin
     logs.Free;
 end;
 //##############################################################################
+function tlogon.GetIPInterface(eth:string):string;
+var
+ iptcp:ttcpip;
+begin
+     iptcp:=ttcpip.Create;
+    result:=iptcp.IP_ADDRESS_INTERFACE(eth);
+    if result='0.0.0.0' then begin
+       if fileexists('/etc/artica-postfix/settings/Daemons/WizardSavedSettings') then begin
+          if not FileExists('/etc/artica-postfix/TESTS_NETWORK_EXECUTED') then begin
+               fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.wizard-install.php --tests-network');
+               result:=iptcp.IP_ADDRESS_INTERFACE(eth);
+          end;
+       end;
+    end;
+
+end;
+
 procedure tlogon.Menu();
 var
    a:string;
@@ -103,9 +122,13 @@ if length(eth)=0 then eth:='eth0';
 htop_bin:=SYS.LOCATE_GENERIC_BIN('htop');
 
     iptcp:=ttcpip.Create;
-    CURRENTIP:=iptcp.IP_ADDRESS_INTERFACE(eth);
-    if CURRENTIP='0.0.0.0' then ChangeIP();
-
+    CURRENTIP:=GetIPInterface(eth);
+    if CURRENTIP='0.0.0.0' then CURRENTIP:=GetIPInterface('eth1');
+    if CURRENTIP='0.0.0.0' then begin
+       ChangeIP();
+       Menu();
+       exit;
+    end;
 logs.Debuglogs('Initialize menu done....');
 fpsystem('clear');
 try
@@ -123,8 +146,8 @@ if not  ArticaAgent then  begin
    ARTICA_VERSION:= trim(SYS.ARTICA_VERSION());
    ARTICA_NIGHTLY_VERSION:=GetLatestNightlyVersion();
    writeln('Artica version ' + ARTICA_VERSION);
-   fpsystem('/etc/init.d/artica-postfix start framework >/dev/null 2>&1 &');
-   if not SYS.PROCESS_EXIST(lighttp.LIGHTTPD_PID()) then fpsystem('/etc/init.d/artica-postfix start apache >/dev/null 2>&1 &');
+   fpsystem('/usr/bin/nohup /etc/init.d/artica-webconsole start >/dev/null 2>&1 &');
+   fpsystem('/usr/bin/nohup /etc/init.d/artica-postfix start framework >/dev/null 2>&1 &');
    slighttpd:=Tlighttpd.Create(SYS);
    port:=slighttpd.LIGHTTPD_LISTEN_PORT();
    SYSURIS:=Tsystem.Create();
@@ -171,6 +194,7 @@ if not  ArticaAgent then writeln('[C]..... Synchronize settings & remove cache')
 if ARTICA_VERSION<>ARTICA_NIGHTLY_VERSION then writeln('[D]..... Upgrade to a nightly build (',ARTICA_NIGHTLY_VERSION,')');
 if FileExists('/usr/bin/htop') then writeln('[E]..... Process Monitor');
 if FileExists(squidbin) then writeln('[F]..... Register to a Statistics Appliance');
+writeln('[G]..... Web console setup');
 if FileExists(htop_bin) then writeln('[H]..... Tasks Manager');
 writeln('[L]..... Configure languages');
 writeln('[M]..... Modify DNS');
@@ -181,7 +205,6 @@ writeln('[R]..... Reboot');
 writeln('[S]..... Shutdown');
 if not  ArticaAgent then writeln('[U]..... Global Administrator Username  & password');
 if not  ArticaAgent then writeln('[W]..... How to access to the Artica Web interface ?');
-if not  ArticaAgent then writeln('[Y]..... Change the Web Administration Listen Port');
 if ArticaAgent then writeln('[1]..... Register this node to the Master console');
 
 if FileExists('/bin/setupcon') then begin
@@ -217,6 +240,14 @@ if a='F' then begin
    Menu();
    exit;
 end;
+
+if a='G' then begin
+   WebConsoleSetup();
+   Menu();
+   exit;
+end;
+
+
 if a='H' then begin
    fpsystem(htop_bin);
    Menu();
@@ -385,9 +416,7 @@ if a='Y' then begin
    writeln('[Enter] key to return to menu');
    readln();
 end;
-    writeln('Unable to understand "',a,'" [Enter] key to return to menu');
-   readln();
- Menu();
+Menu();
 
 end;
 //##############################################################################
@@ -463,6 +492,85 @@ begin
    readln();
 end;
 //##############################################################################
+procedure tlogon.WebConsoleSetup();
+var
+  CONF       :TiniFile;
+  a    :string;
+  LastestBuild:Integer;
+  LighttpdMinimalLibraries:integer;
+  MyCurrentVersionTXT:string;
+  MasterIndexFile:string;
+  answer:string;
+  perform:string;
+begin
+  fpsystem('clear');
+   writeln('Artica Web Console Menu');
+   writeln('**********************************************');
+   writeln('');
+   writeln('Restart Artica Web console service........: [R]');
+
+   if not TryStrToInt(SYS.GET_INFO('LighttpdMinimalLibraries'),LighttpdMinimalLibraries) then LighttpdMinimalLibraries:=0;
+   if LighttpdMinimalLibraries=0 then writeln('Turn ON loading minimal PHP libraires..: [M]');
+   if LighttpdMinimalLibraries=0 then writeln('Turn OFF loading minimal PHP libraires.: [M]');
+
+   writeln('Change the Artica Web console listen port.: [L]');
+   writeln('Create an Artica Web console with FreeWebs: [F]');
+   writeln('Restart the framework service.............: [G]');
+   writeln('Generate the Main configuration file......: [H]');
+   writeln('Press Q and [Enter]  key to Exit');
+   readln();
+   readln(a);
+   a:=UpperCase(a);
+
+   if a='Q' then exit;
+
+   if a='R' then begin
+      writeln('Please wait... Restarting the Artica Web console service...');
+      fpsystem('/etc/init.d/artica-webconsole restart');
+      fpsystem('clear');
+      writeln('Press [Enter] key to Exit');
+      readln();
+      WebConsoleSetup();
+      exit;
+   end;
+
+   if a='L' then begin
+      ChangeArticaPort();
+      WebConsoleSetup();
+      exit;
+   end;
+
+
+   if a='F' then begin
+      fpsystem('clear');
+      writeln('Give the name of your Web server eg "admin.yourdomain.com"');
+      readln(answer);
+      fpsystem(SYS.LOCATE_PHP5_BIN() +' /usr/share/artica-postfix/exec.wizard.install.php --articaweb "'+ answer+'"');
+      writeln('Press [Enter] key to Exit');
+      readln();
+      WebConsoleSetup();
+      exit;
+   end;
+   if a='G' then begin
+      fpsystem('clear');
+      fpsystem('/etc/init.d/artica-postfix restart framework');
+      writeln('Press [Enter] key to Exit');
+      readln();
+      WebConsoleSetup();
+      exit;
+   end;
+
+   if a='H' then begin
+      fpsystem('clear');
+      fpsystem('/usr/share/artica-postfix/bin/process1 --web-settings');
+      writeln('Press [Enter] key to Exit');
+      readln();
+      WebConsoleSetup();
+      exit;
+   end;
+
+end;
+
 procedure tlogon.NightlyBuild();
 var
   CONF       :TiniFile;
@@ -805,8 +913,9 @@ begin
     writeln('Perform this operation ?(Y/N)');
     readln(answer);
 
-    if length(trim(answer))>0 then perform:=UpperCase(answer) else perform:='Y';
+    if length(trim(answer))>0 then perform:=UpperCase(trim(answer)) else perform:='Y';
     if perform='o' then perform:='Y';
+    if perform='y' then perform:='Y';
 
     if perform<>'Y' then begin
         writeln('Choose "'+perform+'"');
@@ -859,10 +968,13 @@ l:=Tstringlist.Create;
 l.Add(IP+';'+Gayteway+';'+netmask+';'+DNS+';'+eth);
 writeln('Updating new configuration, please wait....');
 l.SaveToFile('/etc/artica-postfix/network.first.settings');
+fpsystem('/etc/init.d/artica-postfix start mysql');
+fpsystem('/bin/rm -f /etc/init.d/network-urgency.sh');
 fpsystem('/usr/share/artica-postfix/exec.virtuals-ip.php --articalogon');
 writeln('Restarting Artica Web SSL Interface Console, please wait....');
-if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix restart apache >/dev/null 2>&1');
-if FileExists('/etc/init.d/artica-agent') then fpsystem('/etc/init.d/artica-agent restart >/dev/null 2>&1');
+fpsystem('/etc/init.d/artica-postfix stop apache');
+fpsystem('clear');
+fpsystem('/etc/init.d/artica-postfix start apache');
 writeln('[Enter] key to Exit');
 readln(answer);
 exit;

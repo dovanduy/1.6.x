@@ -270,6 +270,9 @@ class Fetchmail_settings{
 			$sqa["`poll`"]=$POSTED_ARRAY["poll"];
 			$sq[]=" `poll`='{$POSTED_ARRAY["poll"]}'";
 		}
+		
+		if(!is_numeric($POSTED_ARRAY["UseDefaultSMTP"])){$POSTED_ARRAY["UseDefaultSMTP"]=1;}
+		
 		$md5=md5($POSTED_ARRAY["uid"].$POSTED_ARRAY["is"].$POSTED_ARRAY["user"].$POSTED_ARRAY["poll"].$POSTED_ARRAY["proto"]);
 		if(isset($POSTED_ARRAY["uid"])){$sqa["`uid`"]=$POSTED_ARRAY["uid"];}
 		if(isset($POSTED_ARRAY["proto"])){$sqa["`proto`"]=$POSTED_ARRAY["proto"];$sq[]=" `proto`='{$POSTED_ARRAY["proto"]}'";}
@@ -295,6 +298,7 @@ class Fetchmail_settings{
 		if(isset($POSTED_ARRAY["sslproto"])){$sqa["`sslproto`"]=$POSTED_ARRAY["sslproto"];;$sq[]=" `sslproto`='{$POSTED_ARRAY["sslproto"]}'";}
 		if(isset($POSTED_ARRAY["smtp_port"])){$sqa["`smtp_port`"]=$POSTED_ARRAY["smtp_port"];;$sq[]=" `smtp_port`='{$POSTED_ARRAY["smtp_port"]}'";}
 		if(isset($POSTED_ARRAY["orgmail"])){$sqa["`orgmail`"]=$POSTED_ARRAY["orgmail"];;$sq[]=" `orgmail`='{$POSTED_ARRAY["orgmail"]}'";}
+		if(isset($POSTED_ARRAY["UseDefaultSMTP"])){$sqa["`UseDefaultSMTP`"]=$POSTED_ARRAY["UseDefaultSMTP"];;$sq[]=" `UseDefaultSMTP`='{$POSTED_ARRAY["UseDefaultSMTP"]}'";}
 
 		
 		
@@ -322,6 +326,10 @@ class Fetchmail_settings{
 		
 		writelogs($sql,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$q=new mysql();
+		
+		if(!$q->FIELD_EXISTS("fetchmail_rules","UseDefaultSMTP","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `fetchmail_rules` ADD `UseDefaultSMTP` INT( 1 ) NOT NULL DEFAULT '1'",'artica_backup');
+		}
 		
 		if(!$q->QUERY_SQL($sql,"artica_backup")){
 			$q->BuildTables();
@@ -376,6 +384,7 @@ class Fetchmail_settings{
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		$array=array();
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(!is_numeric($ligne["UseDefaultSMTP"])){$ligne["UseDefaultSMTP"]=1;}
 			$array[$ligne["ID"]]=array(
 				"is"=>$ligne["is"],
 				"user"=>$ligne["user"],
@@ -401,7 +410,8 @@ class Fetchmail_settings{
 				"schedule"=>$ligne["schedule"],
 				"sslproto"=>$ligne["sslproto"],
 				"smtp_port"=>$ligne["smtp_port"],
-				"orgmail"=>$ligne["orgmail"]
+				"orgmail"=>$ligne["orgmail"],
+				"UseDefaultSMTP"=>$ligne["UseDefaultSMTP"]
 			);
 		}
 		
@@ -414,6 +424,7 @@ class Fetchmail_settings{
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		$array=array();
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(!is_numeric($ligne["UseDefaultSMTP"])){$ligne["UseDefaultSMTP"]=1;}
 			$array[$ligne["ID"]]=array(
 				"is"=>$ligne["is"],
 				"user"=>$ligne["user"],
@@ -440,7 +451,8 @@ class Fetchmail_settings{
 				"schedule"=>$ligne["schedule"],
 				"sslproto"=>$ligne['sslproto'],
 				"smtp_port"=>$ligne["smtp_port"],
-				"orgmail"=>$ligne["orgmail"]
+				"orgmail"=>$ligne["orgmail"],
+				"UseDefaultSMTP"=>$ligne["UseDefaultSMTP"]
 			);
 		}
 		
@@ -452,6 +464,7 @@ class Fetchmail_settings{
 		$q=new mysql();
 		$array=array();
 		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+			if(!is_numeric($ligne["UseDefaultSMTP"])){$ligne["UseDefaultSMTP"]=1;}
 			return array(
 				"is"=>$ligne["is"],
 				"user"=>$ligne["user"],
@@ -476,7 +489,8 @@ class Fetchmail_settings{
 				"schedule"=>$ligne["schedule"],
 				"sslproto"=>$ligne["sslproto"],
 				"smtp_port"=>$ligne["smtp_port"],
-				"orgmail"=>$ligne["orgmail"]
+				"orgmail"=>$ligne["orgmail"],
+				"UseDefaultSMTP"=>$ligne["UseDefaultSMTP"]
 			);
 		
 		

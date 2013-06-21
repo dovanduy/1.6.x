@@ -79,7 +79,7 @@ function tabs(){
 	
 	
 	echo "
-	<div id=main_config_freewebMains style='width:100%;overflow:auto'>
+	<div id=main_config_freewebMains style='width:99%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -134,7 +134,7 @@ function webservice(){
 	
 	$UseDefaultPort=0;
 	if($users->APACHE_PROXY_MODE){$APACHE_PROXY_MODE=1;}
-	$parcourir_domaines="<input type='button' OnClick=\"javascript:Loadjs('browse.domains.php?field=domainname')\" value='{browse}...'>";
+	$parcourir_domaines=button("{browse}...","Loadjs('browse.domains.php?field=domainname')",12);
 	if($users->dnsmasq_installed){$DNS_INSTALLED=true;}
 	if($users->POWER_DNS_INSTALLED){$DNS_INSTALLED=true;}
 	$FreeWebDisableSSL=trim($sock->GET_INFO("FreeWebDisableSSL"));
@@ -145,6 +145,11 @@ function webservice(){
 	$freeweb=new freeweb($_GET["servername"]);
 	
 	$acl_dstdomain_label=$tpl->_ENGINE_parse_body("{acl_dstdomain}");
+	
+	
+	
+		
+	
 	
 	
 	
@@ -379,7 +384,7 @@ function webservice(){
 	$html="
 	<div id='freewebdiv-$t'></div>
 	<input type='hidden' id='force-groupware' name ='force-groupware' value='{$_GET["force-groupware"]}'>
-	<table style='width:100%'>
+	<table style='width:100%' class=TableRemove>
 	<tr>
 		<td valign='top' width=1%>
 			<center>
@@ -393,7 +398,8 @@ function webservice(){
 	$explain
 	<div id='freewebdiv'>
 		<div id='block1' style='display:block;'>
-			<table style='width:99%' class=form>
+			<div style='width:95%' class=form>
+			<table>
 			<tr> 
 				<td class=legend nowrap style='font-size:14px'>$acl_dstdomain_label:</td>
 				<td colspan=2>$domain</td>
@@ -425,13 +431,13 @@ function webservice(){
 			<tr>
 				<td class=legend style='font-size:14px'>{member}:</td>
 				<td>". Field_text("www_uid",$ligne["uid"],"font-size:14px;padding:3px;")."</td>
-				<td><span id='bb_button'><input type='button' OnClick=\"javascript:Loadjs('user.browse.php?field=www_uid&YahooWin=6')\" value='{browse}...'></span>
+				<td><span id='bb_button'>". button("{browse}...","Loadjs('user.browse.php?field=www_uid&YahooWin=6')",12)."</span>
 				<span id='status-uid-www' style='float:right'></span></td>
 			</tr>
 			<tr>
 				<td class=legend style='font-size:14px'>{group}:</td>
 				<td>". Field_text("www_group",$ligne["gpid"],"font-size:14px;padding:3px;")."</td>
-				<td><span id='bb_button1'><input type='button' OnClick=\"javascript:Loadjs('MembersBrowse.php?field-user=www_group&OnlyGroups=1&OnlyGUID=1');\" value='{browse}...'></span>
+				<td><span id='bb_button1'>". button("{browse}...","Loadjs('MembersBrowse.php?field-user=www_group&OnlyGroups=1&OnlyGUID=1')",12)."</span>
 					<span id='status-gpid-www' style='float:right'></span>
 				</td>
 			</tr>		
@@ -457,6 +463,7 @@ function webservice(){
 				<td>&nbsp;</td>
 			</tr>
 		</table>
+		</div>
 		</div>	
 	</div>	
 	</div>
@@ -547,10 +554,11 @@ function webservice(){
 			}
 			if(NewServer==1){
 				YahooWin5Hide();
+				ExecuteByClassName('SearchFunction');
 				return;
 			}
 			if(document.getElementById('main_config_freewebMains')){RefreshTab('main_config_freewebMains');}
-			
+			ExecuteByClassName('SearchFunction');
 		}	
 		
 		function SaveFreeWebMain(){
@@ -1258,7 +1266,7 @@ function sugard_additional_infos($servername){
 $sock=new sockets();
 		
 		$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
-		$FreeWebListen=$sock->GET_INFO("FreeWebListen");
+		$FreeWebListen=$sock->GET_INFO("FreeWebListenPort");
 		if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
 		if(!is_numeric($FreeWebListen)){$FreeWebListen=80;}
 		$listen=$FreeWebListen;

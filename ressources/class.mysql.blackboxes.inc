@@ -102,7 +102,7 @@ class mysql_blackbox{
 	}
 	
 	public function BuildCachelogs($nodeid){
-		if(!$this->TABLE_EXISTS("cachelogs$nodeid")){
+		
 			$sql="CREATE TABLE IF NOT EXISTS `cachelogs$nodeid` (
 			`line` varchar(255) NOT NULL,
 			`zDate` DATETIME NOT NULL,
@@ -111,7 +111,7 @@ class mysql_blackbox{
 			 )";
 			
 			$this->QUERY_SQL($sql);
-		}
+		
 		
 	}
 	

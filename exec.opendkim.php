@@ -26,6 +26,9 @@ function build(){
 	$EnableDKFilter=$sock->GET_INFO("EnableDKFilter");
 	$conf=unserialize(base64_decode($sock->GET_INFO("OpenDKIMConfig")));
 	if($EnableDKFilter==null){$EnableDKFilter=0;}
+	$DisconnectDKFilter=$sock->GET_INFO("DisconnectDKFilter");
+	if(!is_numeric($DisconnectDKFilter)){$DisconnectDKFilter=0;}
+	if($DisconnectDKFilter==1){return;}
 	
 	if($conf["On-BadSignature"]==null){$conf["On-BadSignature"]="accept";}
 	if($conf["On-NoSignature"]==null){$conf["On-NoSignature"]="accept";}
@@ -94,7 +97,7 @@ if(!is_file($opendkim_genkey)){
 }
 
 if(!is_file($opendkim_genkey)){
-	echo "Starting......: opendkim \"opendkim-genkey(.sh\" no such binary found !\n";
+	echo "Starting......: opendkim \"opendkim-genkey.sh\" no such binary found !\n";
 	return;
 }	
 $chown=$unix->find_program("chown");

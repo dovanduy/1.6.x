@@ -286,7 +286,7 @@ function query_logs(){
 	
 	
 	if($filter<>null){
-		$cmd="$grep -E \"$filter\" $logfile|$tail -n $rp";
+		$cmd="$grep -i -E \"$filter\" $logfile|$tail -n $rp";
 	}else{
 		$cmd="$tail -n $rp $logfile";
 		}		

@@ -12,6 +12,7 @@ include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ccurl.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
+include_once(dirname(__FILE__).'/ressources/class.mysql.services.inc');
 
 if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
 if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
@@ -57,124 +58,78 @@ function get_swap(){
 
 }
 
-
-function start(){
+function upgrade(){
+	$GLOBALS["NOPID"]=true;
+	$GLOBALS["OUTPUT"]=true;
+	stop();
+	start(true);
 	$unix=new unix();
+	$mysql_upgrade=$unix->find_program("mysql_upgrade");
+
+	echo "Starting......: **************************\n";
+	echo "Starting......: [INIT]: Running upgrade $mysql_upgrade....\n";
+	echo "Starting......: **************************\n";
+	shell_exec("$mysql_upgrade -u root -S /var/run/mysqld/squid-db.sock --verbose");
+	stop();
+	start(false);
+}
+
+
+function start($nopid=false){
+	$unix=new unix();
+	
+	$SERV_NAME="zarafa-db";	
 	$pidfile="/etc/artica-postfix/pids/zarafadbstart.pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	$sock=new sockets();
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
-		return;
+	if(!$nopid){
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		$sock=new sockets();
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
+			return;
+		}
 	}
 		
 	@file_put_contents($pidfile, getmypid());
 		
 	
+	$sock=new sockets();
+	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
+	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
 	
-	if(!is_file("/opt/zarafa-db/bin/mysqld")){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-db is not installed...\n";}
+	if($ZarafaDedicateMySQLServer==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME is not Enabled...\n";}
 		return;
 	}	
-	
-	$pid=ZARAFADB_PID();
-	
-	if($unix->process_exists($pid)){
-		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: MySQL Database Engine already running pid $pid since {$time}mn\n";}
+	$mysqld=$unix->find_program("mysqld");
+	if(!is_file($mysqld)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME is not installed...\n";}
 		return;
 	}	
-	
-	
-	
-	
+
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: writing init.d\n";}
 	initd();
-	//innodb_buffer_pool_size
+	$WORKDIR=$sock->GET_INFO("ZarafaDedicateMySQLWorkDir");
 	
-	$memory=get_memory();
-	$swap=get_swap();
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Server available memory `{$memory}MB`\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Server available swap `{$swap}MB`\n";}
+	if($WORKDIR==null){$WORKDIR="/home/zarafa-db";}
+	$mysql_pid_file="/var/run/zarafa-db.pid";
+	$MYSQL_SOCKET="/var/run/mysqld/zarafa-db.sock";
+	$mysqlserv=new mysql_services();
+	$mysqlserv->WORKDIR=$WORKDIR;
+	$mysqlserv->MYSQL_PID_FILE=$mysql_pid_file;
+	$mysqlserv->MYSQL_SOCKET=$MYSQL_SOCKET;
+	$mysqlserv->SERV_NAME=$SERV_NAME;
+	$mysqlserv->TokenParams="ZarafaTuningParameters";
+	$mysqlserv->InnoDB=true;
 	
-	$EnableZarafaTuning=$sock->GET_INFO("EnableZarafaTuning");
-	if(!is_numeric($EnableZarafaTuning)){$EnableZarafaTuning=0;}
-	$zarafa_max_connections=null;
-	$zarafa_innodb_buffer_pool_size=null;
-	$zarafa_innodb_log_file_size=null;
-	$zarafa_innodb_log_buffer_size=null;
-	$zarafa_max_allowed_packet=null;
-	$zarafa_query_cache_size=null;
-	
-	if($EnableZarafaTuning==1){
-		$ZarafTuningParameters=unserialize(base64_decode($sock->GET_INFO("ZarafaTuningParameters")));
-		$zarafa_innodb_buffer_pool_size=$ZarafTuningParameters["zarafa_innodb_buffer_pool_size"];
-		$zarafa_query_cache_size=$ZarafTuningParameters["zarafa_query_cache_size"];
-		$zarafa_innodb_log_file_size=$ZarafTuningParameters["zarafa_innodb_log_file_size"];
-		$zarafa_innodb_log_buffer_size=$ZarafTuningParameters["zarafa_innodb_log_buffer_size"];
-		$zarafa_max_allowed_packet=$ZarafTuningParameters["zarafa_max_allowed_packet"];
-		$zarafa_max_connections=$ZarafTuningParameters["zarafa_max_connections"];
-		$zarafa_connect_timeout=$ZarafTuningParameters["zarafa_connect_timeout"];
-		$zarafa_interactive_timeout=$ZarafTuningParameters["zarafa_interactive_timeout"];
-	}
-	
-	
-	if(!is_numeric($zarafa_interactive_timeout)){$zarafa_interactive_timeout=57600;}
-	if(!is_numeric($zarafa_connect_timeout)){$zarafa_connect_timeout=60;}
-	if(!is_numeric($zarafa_max_connections)){$zarafa_max_connections=150;}
-	if(!is_numeric($zarafa_innodb_buffer_pool_size)){$zarafa_innodb_buffer_pool_size=round($memory/3);}
-	if(!is_numeric($zarafa_innodb_log_file_size)){$zarafa_innodb_log_file_size=round($zarafa_innodb_buffer_pool_size*0.25);}
-	if(!is_numeric($zarafa_innodb_log_buffer_size)){$zarafa_innodb_log_buffer_size=32;}
-	if(!is_numeric($zarafa_max_allowed_packet)){$zarafa_max_allowed_packet=100;}
-	if(!is_numeric($zarafa_query_cache_size)){$zarafa_query_cache_size=8;}
-		
-	if($zarafa_max_allowed_packet<100){$zarafa_max_allowed_packet=100;}
-	
-	$KERNEL_ARCH=$unix->KERNEL_ARCH();
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Architecture: $KERNEL_ARCH bits\n";}
-	if($unix->KERNEL_ARCH()==32){
-		if($zarafa_innodb_buffer_pool_size>3999){$zarafa_innodb_buffer_pool_size=3999;}
-		if($zarafa_innodb_buffer_pool_size>$swap){$zarafa_innodb_buffer_pool_size=$swap;}
-	}
-	
-	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Innodb buffer pool size: {$zarafa_innodb_buffer_pool_size}M\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Innodb log file size: {$zarafa_innodb_buffer_pool_size}M\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Innodb log buffer size: {$zarafa_innodb_log_buffer_size}M\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Max allowed packet: {$zarafa_max_allowed_packet}M\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Max connections: {$zarafa_max_connections} cnxs\n";}
-	
-		
-	$f[]="/opt/zarafa-db/bin/mysqld";
-	$f[]="--defaults-file=/opt/zarafa-db/my.cnf ";
-	$f[]="--user=root";
-	$f[]="--pid-file=/var/run/zarafa-db.pid"; 
-	$f[]="--basedir=/opt/zarafa-db"; 
-	$f[]="--datadir=/opt/zarafa-db/data"; 
-	$f[]="--plugin_dir=/opt/zarafa-db/lib/plugin"; 
-	$f[]="--socket=/var/run/mysqld/zarafa-db.sock";
-	$f[]="--general_log_file=/opt/zarafa-db/general_log.log";
-	$f[]="--max-allowed-packet={$zarafa_max_allowed_packet}M";
-	$f[]="--innodb-buffer-pool-size={$zarafa_innodb_buffer_pool_size}M";
-	$f[]="--innodb-log-file-size={$zarafa_innodb_log_file_size}M";
-	$f[]="--innodb-log-buffer-size={$zarafa_innodb_log_buffer_size}M";
-	$f[]="--max-connections={$zarafa_max_connections}";
-	$f[]="--connect_timeout={$zarafa_connect_timeout}";
-	$f[]="--interactive_timeout={$zarafa_interactive_timeout}";
-	$f[]="--innodb-fast-shutdown=0";
-	$f[]="--log-warnings=2";
-	$f[]="--innodb-file-per-table";
-	$f[]="--innodb=FORCE";
-	$f[]="--skip-networking";
 	
 	$TMP=$unix->FILE_TEMP();
 	
-	$cmdline=@implode(" ", $f);
+	$cmdline=$mysqlserv->BuildParams();
 	$nohup=$unix->find_program("nohup");
 	if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting MySQL daemon\n";}
-	shell_exec("$nohup $cmdline >$TMP 2>&1 &");
+	shell_exec("$nohup $cmdline >/dev/null 2>&1 &");
 	sleep(1);
 	for($i=0;$i<10;$i++){
 		$pid=ZARAFADB_PID();
@@ -255,7 +210,10 @@ function ZARAFADB_PID(){
 	$unix=new unix();
 	$pid=$unix->get_pid_from_file("/var/run/zarafa-db.pid");
 	if($unix->process_exists($pid)){return $pid;}
-	return $unix->PIDOF("/opt/zarafa-db/bin/mysqld");
+	$mysqld=$unix->find_program("mysqld");
+	$pid=$unix->PIDOF_PATTERN("$mysqld.*?--pid-file=/var/run/zarafa-db.pid");
+	return $pid;
+	
 	
 }
 
@@ -315,7 +273,7 @@ function initd(){
 
 	$f[]="#!/bin/sh";
 	$f[]="### BEGIN INIT INFO";
-	$f[]="# Provides:          Zarafa MySQL database";
+	$f[]="# Provides:          zarafa-db";
 	$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
 	$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
 	$f[]="# Should-Start:";
@@ -353,7 +311,7 @@ function initd(){
 	$f=array();
 	$f[]="#!/bin/sh";
 	$f[]="### BEGIN INIT INFO";
-	$f[]="# Provides:          Zarafa-server Second";
+	$f[]="# Provides:          zarafa-server2";
 	$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
 	$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
 	$f[]="# Should-Start:";

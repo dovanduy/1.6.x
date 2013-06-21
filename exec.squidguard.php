@@ -44,6 +44,7 @@ if(count($argv)>0){
 	if($argv[1]=="--disks"){DisksStatus();exit;}
 	if($argv[1]=="--version"){checksVersion();exit;}
 	if($argv[1]=="--dump-adrules"){dump_adrules($argv[2]);exit;}
+	if($argv[1]=="--dbmem"){ufdbdatabases_in_mem();exit;}
 	
 	
 	$argvs=$argv;
@@ -61,6 +62,7 @@ if(count($argv)>0){
 	if($argv[1]=="--phraselists"){echo CompileCategoryWords();exit;}
 	if($argv[1]=="--fix1"){echo FIX_1_CATEGORY_CHECKED();exit;}
 	if($argv[1]=="--bads"){echo remove_bad_files();exit;}
+	if($argv[1]=="--reload131"){echo reload_131();exit;}
 	
 	
 	
@@ -97,8 +99,8 @@ $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
 $pid=@file_get_contents($pidfile);
 if($unix->process_exists($pid,basename(__FILE__))){
 	$timefile=$unix->PROCCESS_TIME_MIN($pid);
-	if($timefile<10){
-		writelogs(basename(__FILE__).":Already executed since {$timefile}mn.. aborting the process",
+	if($timefile<6){
+		writelogs(basename(__FILE__).": Already running PID $pid since {$timefile}mn.. aborting the process",
 		basename(__FILE__),__FILE__,__LINE__);
 		die();
 	}else{
@@ -176,6 +178,7 @@ function build_ufdbguard_HUP(){
 	$kill=$unix->find_program("kill");
 	$pid=$unix->PIDOF($ufdbguardd);
 	if($unix->process_exists($pid)){
+		
 		echo "Starting......: ufdbGuard reloading service PID:$pid\n";
 		WriteToSyslogMail("Asking to reload ufdbguard PID:$pid",basename(__FILE__));
 		$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
@@ -195,7 +198,7 @@ function ufdbguard_start(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
-		echo "Starting......: UfdGuard Starting service aborted, task pid already running $pid\n";
+		echo "Starting......: UfdbGuard Starting service aborted, task pid already running $pid\n";
 		writelogs(basename(__FILE__).":Already executed.. aborting the process",basename(__FILE__),__FILE__,__LINE__);
 		return;
 	}
@@ -471,7 +474,8 @@ function build(){
 		CompressCategories();	
 		notify_remote_proxys();
 	}
-		
+	
+	shell_exec("$php5 /usr/share/artica-postfix/exec.initslapd.php --ufdbguard");
 	CheckPermissions();
 	ufdbguard_admin_events("Service will be rebuiled and restarted",__FUNCTION__,__FILE__,__LINE__,"config");
 	shell_exec("$nohup ".LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.usrmactranslation.php >/dev/null 2>&1 &");
@@ -494,9 +498,7 @@ function build(){
 		shell_exec("$nohup $php5 ". basename(__FILE__)."/exec.squid.php --reconfigure-squid >/dev/null 2>&1");
 	}
 	
-	send_email_events("SquidGuard/ufdbGuard/Dansguardian/Squid rules was rebuilded","","system");
-
-	}
+}
 	
 
 	
@@ -1959,6 +1961,7 @@ function inject($category,$table=null,$file=null){
 		if($www=="thisisarandomentrythatdoesnotexist.com"){$CBAD++;continue;}
 		if($www==null){$CBADNULL++;continue;}
 		if(preg_match("#(.+?)\s+(.+)#", $www,$re)){$www=$re[1];}
+		if(preg_match("#^\.(.*)$#", $www,$re)){$www=$re[1];}
 		
 		if(strpos($www, "#")>0){echo "FALSE: $www\n";continue;}
 		if(strpos($www, "'")>0){echo "FALSE: $www\n";continue;}
@@ -2857,6 +2860,137 @@ function FIX_1_CATEGORY_CHECKED(){
 	}
 	
 	
+	
+}
+
+function ufdbdatabases_in_mem(){
+	$sock=new sockets();
+	$unix=new unix();
+	$UfdbDatabasesInMemory=$sock->GET_INFO("UfdbDatabasesInMemory");
+	if(!is_numeric($UfdbDatabasesInMemory)){$UfdbDatabasesInMemory=0;}
+	if($UfdbDatabasesInMemory==0){
+		echo "Starting URLfilterDB Database in memory feature is disabled\n";
+		$MOUNTED_DIR_MEM=$unix->MOUNTED_TMPFS_MEM("/var/lib/ufdbguard-memory");
+		if($MOUNTED_DIR_MEM>0){
+			echo "Starting URLfilterDB Database unmounting...\n";
+			$umount=$unix->find_program("umount");
+			shell_exec("$umount -l /var/lib/ufdbguard-memory");
+		}
+		return;
+	}
+	
+	
+	$POSSIBLEDIRS[]="/var/lib/ufdbartica";
+	$POSSIBLEDIRS[]="/var/lib/squidguard";
+	$POSSIBLEDIRS[]="/var/lib/ftpunivtlse1fr";
+	
+	$ufdbartica_size=$unix->DIRSIZE_BYTES("/var/lib/ufdbartica");
+	$ufdbartica_size=round(($ufdbartica_size/1024)/1000)+5;
+	
+	$squidguard_size=$unix->DIRSIZE_BYTES("/var/lib/squidguard");
+	$squidguard_size=round(($squidguard_size/1024)/1000)+5;
+	$ftpunivtlse1fr_size=$unix->DIRSIZE_BYTES("/var/lib/ftpunivtlse1fr");
+	$ftpunivtlse1fr_size=round(($ftpunivtlse1fr_size/1024)/1000)+5;
+	echo "Starting URLfilterDB ufdbartica DB....: about {$ufdbartica_size}MB\n";
+	echo "Starting URLfilterDB squidguard DB....: about {$squidguard_size}MB\n";
+	echo "Starting URLfilterDB ftpunivtlse1fr DB: about {$ftpunivtlse1fr_size}MB\n";
+	$total=$ufdbartica_size+$squidguard_size+$ftpunivtlse1fr_size+10;
+	echo "Starting URLfilterDB require {$total}MB\n";
+	$mount=$unix->find_program("mount");
+	
+	$MOUNTED_DIR_MEM=$unix->MOUNTED_TMPFS_MEM("/var/lib/ufdbguard-memory");
+	if($MOUNTED_DIR_MEM==0){
+		$system_mem=$unix->TOTAL_MEMORY_MB();
+		echo "Starting URLfilterDB system memory {$system_mem}MB\n";
+		if($system_mem<$total){
+			$require=$total-$system_mem;
+			echo "Starting URLfilterDB not engough memory require at least {$require}MB\n";
+			return;
+		}
+		$system_free=$unix->TOTAL_MEMORY_MB_FREE();
+		echo "Starting URLfilterDB system memory available {$system_free}MB\n";
+		if($system_free<$total){
+			$require=$total-$system_free;
+			echo "Starting URLfilterDB not engough memory require at least {$require}MB\n";
+			return;
+		}
+	}
+	
+	$idbin=$unix->find_program("id");
+	$mount=$unix->find_program("mount");
+	$umount=$unix->find_program("umount");
+	$rm=$unix->find_program("rm");
+	$cp=$unix->find_program("cp");
+	$chown=$unix->find_program("chown");
+	if($MOUNTED_DIR_MEM>0){
+		if($MOUNTED_DIR_MEM<$total){
+			echo "Starting URLfilterDB: umounting from memory\n";
+			shell_exec("$umount -l /var/lib/ufdbguard-memory");
+			$MOUNTED_DIR_MEM=$unix->MOUNTED_TMPFS_MEM("/var/lib/ufdbguard-memory");
+		}
+	}
+
+	if($MOUNTED_DIR_MEM==0){
+		if(strlen($idbin)<3){echo "Starting URLfilterDB: tmpfs `id` no such binary\n";return;}
+		if(strlen($mount)<3){echo "Starting URLfilterDB: tmpfs `mount` no such binary\n";return;}
+		exec("$idbin squid 2>&1",$results);
+		if(!preg_match("#uid=([0-9]+).*?gid=([0-9]+)#", @implode("", $results),$re)){echo "Starting......:MySQL mysql no such user...\n";return;}
+		$uid=$re[1];
+		$gid=$re[2];
+		echo "Starting URLfilterDB: tmpfs uid/gid =$uid:$gid for {$total}M\n";
+		@mkdir("/var/lib/ufdbguard-memory");
+		$cmd="$mount -t tmpfs -o rw,uid=$uid,gid=$gid,size={$total}M,nr_inodes=10k,mode=0700 tmpfs \"/var/lib/ufdbguard-memory\"";
+		shell_exec($cmd);	
+		$MOUNTED_DIR_MEM=$unix->MOUNTED_TMPFS_MEM("/var/lib/ufdbguard-memory");
+		if($MOUNTED_DIR_MEM==0){
+			echo "Starting URLfilterDB: tmpfs failed...\n";
+			return;
+		}
+	}
+	
+	echo "Starting URLfilterDB: mounted as {$MOUNTED_DIR_MEM}MB\n";
+	reset($POSSIBLEDIRS);
+	while (list ($index, $directory) = each ($POSSIBLEDIRS) ){
+		$directoryname=basename($directory);
+		@mkdir("/var/lib/ufdbguard-memory/$directoryname",0755,true);
+		if(!is_dir("/var/lib/ufdbguard-memory/$directoryname")){
+			echo "Starting URLfilterDB: $directoryname permission denied\n";
+			return;
+		}
+		@chown("/var/lib/ufdbguard-memory/$directoryname","squid");
+		echo "Starting URLfilterDB: replicating $directoryname\n";
+		shell_exec("$cp -rfu $directory/* /var/lib/ufdbguard-memory/$directoryname/");
+	}
+	
+	$ufdbguardConfs[]="/etc/ufdbguard/ufdbGuard.conf";
+	$ufdbguardConfs[]="/etc/squid3/ufdbGuard.conf";
+	
+	echo "Starting URLfilterDB: setup privileges\n";
+	shell_exec("$chown -R squid:squid /var/lib/ufdbguard-memory >/dev/null 2>&1");
+	
+	echo "Starting URLfilterDB: modify configuration files\n";
+	while (list ($index, $configfile) = each ($ufdbguardConfs) ){
+		$f=explode("\n",@file_get_contents($configfile));
+		while (list ($indexLine, $line) = each ($f) ){
+			reset($POSSIBLEDIRS);
+			while (list ($index, $directory) = each ($POSSIBLEDIRS) ){
+				$directoryname=basename($directory);
+				$line=str_replace($directory, "/var/lib/ufdbguard-memory/$directoryname", $line);
+				$f[$indexLine]=$line;
+			}
+		}
+	
+		@file_put_contents($configfile, @implode("\n", $f));
+		echo "Starting URLfilterDB: $configfile success...\n";
+	}
+	
+}
+
+function reload_131(){
+	
+	$cp=new compile_ufdbguard();
+	if(!$cp->Is31){return;}
+	shell_exec("/etc/init.d/ufdb reload");
 	
 }
 

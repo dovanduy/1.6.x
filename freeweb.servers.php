@@ -7,7 +7,7 @@
 	include_once('ressources/class.freeweb.inc');
 	include_once('ressources/class.awstats.inc');
 	include_once('ressources/class.pdns.inc');
-	
+	include_once('ressources/class.squid.inc');
 	
 
 	$user=new usersMenus();
@@ -96,6 +96,19 @@ function page(){
 		
 	}
 	
+	$users=new usersMenus();
+	if($users->SQUID_INSTALLED){
+		$sock=new sockets();
+		$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+		if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
+		$squid=new squidbee();
+		if($squid->isNGnx()){$SquidActHasReverse=1;}
+		
+		if($SquidActHasReverse==1){
+			$explainSquidActHasReverse=$tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{explain_freewebs_reverse}</div>");
+		}
+	}
+	
 	
 	$t=time();
 	
@@ -105,6 +118,7 @@ function page(){
 	
 		],";
 	$html="
+	$explainSquidActHasReverse
 	<table class='freewebs-table-$t' style='display: none' id='freewebs-table-$t' style='width:100%;margin:-10px'></table>
 <script>
 FreeWebIDMEM='';

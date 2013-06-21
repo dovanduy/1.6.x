@@ -17,7 +17,7 @@ Procmail is also a complete drop-in replacement for your MDA. (If this doesn't m
 <accountID>Account identifier</accountID>
 <AccountLess3Carac>Accounts less than 4 caracters</AccountLess3Carac>
 <account_already_exists>Account already exists</account_already_exists>
-<account_name>Account settings</account_name>
+<account_name>Defeni&ccedil;&otilde;es da Conta</account_name>
 <ACLS>Access Control Lists</ACLS>
 <acls_directory>Manage Access Control list of this directory</acls_directory>
 <acls_get_error>Unable to obtain ACL information, check that your disk have ACLs enabled or getfacl/setfacl tools are correctly installed on your system</acls_get_error>

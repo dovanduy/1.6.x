@@ -82,7 +82,14 @@ function buildUsers(){
 	if($FreeWebListenSSLPort==null){$FreeWebListenSSLPort=443;}
 	if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
 	if(!is_numeric($FreeWebListenPort)){$FreeWebListenPort=80;}
-	if(!is_numeric($FreeWebsDisableSSLv2)){$FreeWebsDisableSSLv2=0;}		
+	if(!is_numeric($FreeWebsDisableSSLv2)){$FreeWebsDisableSSLv2=0;}	
+
+	if($unix->IsSquidReverse()){
+		$FreeWebListenPort=82;
+		$FreeWebListenPort=447;
+		$FreeWebListen="127.0.0.1";
+	}
+	
 	$port=$FreeWebListen;	
 	
 	

@@ -118,13 +118,17 @@ class rrdbuilder{
 		   		if($GLOBALS["VERBOSE"]){echo __LINE__." rrd_graph($imagepath)<br>\n";}
 		   		try{
 					$ret =@rrd_graph($imagepath, $options, count($options));
-		  			if (! $ret) {$this->error="$this->graphTitle, ".rrd_error();return false;}
+		  			if (! $ret) {
+		  				if($GLOBALS["VERBOSE"]){echo __LINE__." $this->graphTitle, ".rrd_error()."<br>\n";}
+		  				$this->error="$this->graphTitle, ".rrd_error();return false;}
 		   		}catch (Exception $e) {
+		   			if($GLOBALS["VERBOSE"]){echo __LINE__." ".$e->getMessage()."<br>\n";}
 					$this->error=$e->getMessage();
 					return false; 
 				}
 		   }
-			
+		   if($GLOBALS["VERBOSE"]){echo __LINE__." OK \"$imagepath\"<br>\n";}
+		   if($GLOBALS["AS_ROOT"]){@chmod($imagepath, 0755);}
 		   return true;
 		
 		}

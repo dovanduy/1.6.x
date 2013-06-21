@@ -26,7 +26,9 @@ if($argv[1]=="--service-up"){service_up();die();}
 
 
 function PHP5SessionPath($dir){
-	if($dir==null){return;}
+	if($dir==null){
+		$dir=ini_get("session.save_path");
+	}
 	$unix=new unix();
 	$mount=$unix->find_program("mount");
 	$umount=$unix->find_program("umount");	

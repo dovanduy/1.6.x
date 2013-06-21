@@ -17,32 +17,43 @@ include_once(dirname(__FILE__) . '/ressources/class.bind9.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 $GLOBALS["ASROOT"]=true;
 if($argv[1]=='--bind'){compile_bind();die();}
+	if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
+	if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
+	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
+	if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
+
 
 
 
 BuildDHCP();
 
-function BuildDHCP(){
+function BuildDHCP($nopid=false){
+
+	$LOGBIN="DHCP Server";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
+	
+	
 	$unix=new unix();
-	if(!$GLOBALS["FORCE"]){
-		if($unix->file_time_min($timefile)<2){
-			if($GLOBALS["VERBOSE"]){echo "$timefile -> is less than 2mn\n";}
-			return;
+	if(!$nopid){
+		if(!$GLOBALS["FORCE"]){
+			if($unix->file_time_min($timefile)<2){
+				if($GLOBALS["VERBOSE"]){echo "$timefile -> is less than 2mn\n";}
+				return;
+			}
 		}
 	}
 	
 	$ldap=new clladp();
-	if($ldap->ldapFailed){echo "Starting......: DHCP SERVER ldap connection failed,aborting\n";return;}
+	if($ldap->ldapFailed){echo "Starting......: [INIT]: $LOGBIN ldap connection failed,aborting\n";return;}
 	if(!$ldap->ExistsDN("dc=organizations,$ldap->suffix")){echo "Starting......: DHCP SERVER dc=organizations,$ldap->suffix no such branch, aborting\n";return;	}
-	echo "Starting......: DHCP SERVER ldap connection success\n";
+	echo "Starting......: [INIT]: $LOGBIN ldap connection success\n";
 	$dhcpd=new dhcpd();
 	$conf=$dhcpd->BuildConf();
 	$confpath=dhcp3Config();
 	$unix=new unix();
 	@mkdir(dirname($confpath),null,true);
 	@file_put_contents($confpath,$conf);
-	echo "Starting......: DHCP SERVER saving \"$confpath\" (". strlen($conf)." bytes) done\n";
+	echo "Starting......: [INIT]: $LOGBIN saving \"$confpath\" (". strlen($conf)." bytes) done\n";
 	
 	if(!$unix->UnixUserExists("dhcpd")){
 		$unix->CreateUnixUser("dhcpd","dhcpd");
@@ -53,7 +64,7 @@ function BuildDHCP(){
 	$complain=$unix->find_program("aa-complain");
 	
 	if(is_file($complain)){
-		$dhcpd3=$unix->find_program("dhcpd3");
+		$dhcpd3=$unix->DHCPD_BIN_PATH();
 		if(is_file($dhcpd3)){shell_exec("$complain $dhcpd3 >/dev/null 2>&1");}
 	}
 	
@@ -68,6 +79,199 @@ function compile_bind(){
 	$bind->SaveToLdap();
 }
 
+function start($aspid=false){
+	$unix=new unix();
+	$sock=new sockets();
+	$LOGBIN="DHCP Server";
+	$binpath=$unix->DHCPD_BIN_PATH();
+	if(!is_file($binpath)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN, not installed\n";}
+		return;
+	}
+	
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN, Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	$pid=PID_NUM();	
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN Service already started $pid since {$timepid}Mn...\n";}
+		return;
+	}
+	
+	$EnableDHCPServer=$sock->GET_INFO("EnableDHCPServer");
+	if(!is_numeric($EnableDHCPServer)){$EnableDHCPServer=0;}
+	
+	$EnableChilli=$sock->GET_INFO("EnableChilli");
+	if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+	
+	
+	
+	if($EnableChilli==1){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN replaced by HotSpot feature...\n";}$EnableDHCPServer=0;}
+	if($EnableDHCPServer==0){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service disabled\n";}return;}	
+	
+	@mkdir("/var/run/dhcp3-server",0755,true);
+	@mkdir("/var/lib/dhcp3",0755,true);
+	
+	if(!is_file("/var/lib/dhcp3/dhcpd.other")){@file_put_contents("/var/lib/dhcp3/dhcpd.other", "#");}
+	if(!is_file("/var/lib/dhcp3/dhcpd.leases")){@file_put_contents("/var/lib/dhcp3/dhcpd.leases", "#");}
+	$unix->SystemCreateUser("dhcpd","dhcpd");
+	$unix->chown_func("dhcpd", "dhcpd","/var/run/dhcp3-server");
+	$unix->chown_func("dhcpd", "dhcpd","/var/lib/dhcp3/dhcpd.leases~");
+	
+	
+	$DHCP3ListenNIC=$sock->GET_INFO('DHCP3ListenNIC');
+	if($DHCP3ListenNIC==null){$DHCP3ListenNIC="eth0";}
+	echo "Starting......: [INIT]: $LOGBIN Listen $DHCP3ListenNIC\n";
+	echo "Starting......: [INIT]: $LOGBIN building settings...\n";
+	BuildDHCP(true);
+	
+	
+	
+	$cmd="$binpath -q -pf ".PID_PATH()." -cf ".dhcp3Config()." -lf /var/lib/dhcp3/dhcpd.leases";
+	echo "Starting......: [INIT]: $LOGBIN service..\n";
+	
+	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+	shell_exec($cmd);
+	
+	for($i=0;$i<6;$i++){
+		$pid=PID_NUM();
+		if($unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service waiting $i/6...\n";}
+		sleep(1);
+	}
+	
+	$pid=PID_NUM();
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service Success service started pid:$pid...\n";}
+		return;
+	}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service failed...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: `$cmd`\n";}
+	
+	
+}
+//##############################################################################
+function restart(){
+	$unix=new unix();
+	$LOGBIN="DHCP Server";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN Already Artica task running PID $oldpid since {$time}mn\n";}
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	
+	stop(true);
+	start(true);
+
+}
+function reload(){
+	$unix=new unix();
+	$LOGBIN="DHCP Server";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN Already Artica task running PID $oldpid since {$time}mn\n";}
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	$pid=PID_NUM();
+	$time=$unix->PROCCESS_TIME_MIN($pid);
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$kill=$unix->find_program("kill");
+	BuildDHCP(true);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN reloading PID $pid since {$time}mn\n";}	
+	shell_exec("$kill -HUP $pid");
+	start(true);
+
+}
+//##############################################################################
+function stop($aspid=false){
+	$LOGBIN="DHCP Server";
+	$unix=new unix();
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+
+	$pid=PID_NUM();
+
+
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service already stopped...\n";}
+		return;
+	}
+	$pid=PID_NUM();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$kill=$unix->find_program("kill");
+
+
+
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service Shutdown pid $pid...\n";}
+	shell_exec("$kill $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=PID_NUM();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+
+	$pid=PID_NUM();
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service success...\n";}
+		return;
+	}
+
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service shutdown - force - pid $pid...\n";}
+	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=PID_NUM();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service success...\n";}
+		return;
+	}
+
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service failed...\n";}
+
+}
+//##############################################################################
+function PID_NUM(){
+	$filename=PID_PATH();
+	$pid=trim(@file_get_contents($filename));
+	$unix=new unix();
+	if($unix->process_exists($pid)){return $pid;}
+	return $unix->PIDOF($unix->DHCPD_BIN_PATH());
+}
+//##############################################################################
+function PID_PATH(){
+	return '/var/run/dhcpd.pid';
+}
+//##############################################################################
 
 function dhcp3Config(){
 	

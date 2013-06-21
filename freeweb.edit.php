@@ -10,7 +10,7 @@
 	include_once('ressources/class.user.inc');
 	include_once('ressources/class.system.network.inc');
 	$user=new usersMenus();
-	if($user->AsWebMaster==false){
+	if(!checksPrivs()){
 		$tpl=new templates();
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
@@ -55,6 +55,13 @@
 	
 	
 	js();
+	
+function checksPrivs(){
+	$users=new usersMenus();
+	if($users->AsSystemWebMaster){return true;}
+	if($users->AsWebMaster){return true;}
+	return false;
+}
 	
 function display_config_js(){
 	$page=CurrentPageName();
@@ -234,7 +241,7 @@ function js(){
 	
 	
 	$title=$tpl->_ENGINE_parse_body("{free_web_servers}::{$ligne["ou"]}&nbsp;&raquo;&nbsp;{$_GET["hostname"]}$gpwr");
-	echo "YahooWin5('940.6','$page?popup-tabs=yes&servername={$_GET["hostname"]}&force-groupware={$_GET["force-groupware"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}','$title');";
+	echo "YahooWin5('1005','$page?popup-tabs=yes&servername={$_GET["hostname"]}&force-groupware={$_GET["force-groupware"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}','$title');";
 	}
 	
 function groupwares_save(){
@@ -267,7 +274,8 @@ function groupwares_index(){
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));		
 	if($ligne["groupware"]<>null){
 		echo $tpl->_ENGINE_parse_body("
-		<table style='width:99%' class=form>
+		<div style='width:95%' class=form>
+		<table>
 		<tr>
 			<td width=1% valign='top'><img src='img/{$h->IMG_ARRAY_64[$ligne["groupware"]]}'></td>
 			<td valign='top' width=99%>
@@ -276,7 +284,7 @@ function groupwares_index(){
 				</div>
 			</td>
 		</tr>
-		</table>");
+		</table></div>");
 		return;
 		
 	}
@@ -310,7 +318,7 @@ $html="
 <div class=explain>$freeweb_groupware_explain</div>
 $groupware_text
 <center>
-<div style='width:705px' class=form>". implode("\n",$tables)."</div>
+<div style='width:900px' class=form>". implode("\n",$tables)."</div>
 </center>
 <script>
 		var x_FreeWebToGroupWare=function (obj) {
@@ -318,6 +326,7 @@ $groupware_text
 			if(results.length>0){alert(results);return;}
 			$('#freewebs-table-{$_GET["t"]}').flexReload();	
 			RefreshTab('main_config_freewebedit');
+			ExecuteByClassName('SearchFunction');
 		}
 	
 	
@@ -360,12 +369,13 @@ function popup_tabs(){
 	//http://jmatrix.net/dao/case/case.jsp?case=7F000001-1C888D9-111189408B9-80
 	
 	$array["popup"]="{website}";
-	$array["groupwares"]='{groupwares}';
+	
 
 	
 
 	
 	if($_GET["servername"]<>null){
+		$array["groupwares"]='{groupwares}';
 		$users=new usersMenus();
 		if($users->APACHE_MOD_FCGID && $users->APACHE_MOD_SUEXEC){
 			if($FreeWebEnableModFcgid==1){
@@ -507,7 +517,7 @@ function popup_tabs(){
 		}
 	}
 	
-
+	$array["openbasedir"]="BaseDir";
 	
 	
 	
@@ -563,7 +573,15 @@ function popup_tabs(){
 		if($num=="aliases"){
 				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.aliases.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 				continue;
-		}			
+		}
+		
+
+		if($num=="openbasedir"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.openbasedir.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+		}		
+
+		
 		
 		if($num=="drupal"){
 				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.drupal.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
@@ -1138,8 +1156,10 @@ function popup(){
 	if($users->POWER_DNS_INSTALLED){$DNS_INSTALLED=true;}
 	$FreeWebDisableSSL=trim($sock->GET_INFO("FreeWebDisableSSL"));
 	if(!is_numeric($FreeWebDisableSSL)){$FreeWebDisableSSL=0;}	
+	
 	$check_configuration=$tpl->_ENGINE_parse_body("{check_configuration}");	
 	$webservice=$tpl->_ENGINE_parse_body("{webservice}");	
+	
 	$ServerIPVAL="{$ServerIPVAL}:$ServerPort";
 	
 	if($vgservices["freewebs"]<>null){

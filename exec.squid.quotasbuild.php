@@ -14,6 +14,9 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 
 if($argv[1]=="--build"){bigbuild();exit;}
+if($argv[1]=="--macuid"){MacToUid();exit;}
+
+
 
 build();
 
@@ -101,8 +104,13 @@ while ($ligne = mysql_fetch_assoc($results)) {
 	$array["MAC"][$ligne["MAC"]]=$ligne["size"];
 }
 @file_put_contents($file_quotas_hour, serialize($array));
-$array=array();
+MacToUid();
+}
+function MacToUid(){
+	
+	$array=array();
 	$q=new mysql_squid_builder();
+	
 	$sql="SELECT * FROM webfilters_nodes WHERE LENGTH(uid)>1";
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -111,21 +119,44 @@ $array=array();
 		if($GLOBALS["VERBOSE"]){echo "{$ligne["MAC"]} = {$ligne["uid"]}\n";}
 		$array[$ligne["MAC"]]=$ligne["uid"];
 	}
-
-
-$q=new mysql();
-$sql="SELECT MacAddress, uid FROM hostsusers";
-$results = $q->QUERY_SQL($sql,"artica_backup");	
-
-while ($ligne = mysql_fetch_assoc($results)) {
-	$mac=strtolower(trim($ligne["MacAddress"]));
-	if(!IsPhysicalAddress($mac)){continue;}
-	$uid=strtolower(trim($ligne["uid"]));
-	$array[$mac]=$uid;
+	
+	
+	$q=new mysql();
+	$sql="SELECT MacAddress, uid FROM hostsusers";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$mac=strtolower(trim($ligne["MacAddress"]));
+		if(!IsPhysicalAddress($mac)){continue;}
+		$uid=strtolower(trim($ligne["uid"]));
+		$array[$mac]=$uid;
 	}
 	@file_put_contents("/etc/squid3/MacToUid.ini", serialize($array));
+	if(count($array)>0){iFBuildMacToUid();}
+	
 }
+function iFBuildMacToUid(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$squidconfigured=false;
+	$f=file("/etc/squid3/squid.conf");
+	while (list($num,$val)=each($f)){
+		if(preg_match("#external_acl_type MacToUid#", $val)){
+			$squidconfigured=true;
+		}
+
+	}
+
+	if(!$squidconfigured){
+		echo "Starting......: Squid is not set with quota..";
+		system("$php5 /usr/share/artica-postfix/exec.squid.php --build");
+		return;
+	}
+
+	echo "Starting......: reloading squid";
+	system("$php5 /usr/share/artica-postfix/exec.squid.php --reload-squid");
 
 
+}
 
 ?>

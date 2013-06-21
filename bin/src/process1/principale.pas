@@ -46,7 +46,7 @@ type
     syslogng:tsyslogng;
     function ExecPipe(commandline:string):string;
     procedure killfile(path:string);
-    PROCEDURE web_settings();
+
     procedure CheckMaxLogs();
     function TEST_PROCSTAT():boolean;
     function bdb_recover_check():boolean;
@@ -65,7 +65,7 @@ type
     function get_LDAP_suffix():string;
     function LOCATE_PROCSTAT():string;
   public
-
+    PROCEDURE web_settings(NoExecution:boolean=false);
     procedure DeadArticaInstall();
     procedure move_kas3_stats();
     procedure cleanlogs();
@@ -75,7 +75,7 @@ type
     procedure mailgraph_log();
     procedure exec_dstat_top_php();
     procedure CleanCpulimit();
-    constructor Create;
+    constructor Create(noload:boolean=false);
     procedure TestLDAP();
     end;
 
@@ -88,6 +88,8 @@ var
 begin
   D:=false;
   if ParamStr(1)='-V' then D:=true;
+  if ParamStr(2)='-V' then D:=true;
+  if ParamStr(2)='--verbose' then D:=true;
   SYS:=Tsystem.Create();
 
   AddMeToCron();
@@ -147,7 +149,7 @@ begin
 end;
 
 //##############################################################################
-constructor Tprocess1.Create;
+constructor Tprocess1.Create(noload:boolean);
 begin
    D:=false;
    forcedirectories('/etc/artica-postfix');
@@ -173,9 +175,8 @@ begin
    awstats:=Tawstats.Create(GLOBAL_INI.SYS);
    bind9:=Tbind9.Create(GLOBAL_INI.SYS);
    processINFOS:=Tprocessinfos.Create;
-
-   LOGS.logsStart('artica-daemon:: ThProcThread[1]:: Create');
-   logs.Debuglogs('process 1 execute....');
+  logs.Debuglogs('process 1 execute....');
+  if not noload then begin
    if ParamStr(1)='-mysql' then exit;
    if ParamStr(1)='-kasstat' then exit;
    if ParamStr(1)='--kill' then exit;
@@ -188,6 +189,7 @@ begin
    end;
    
    Execute;
+  end;
 end;
 
 //##############################################################################
@@ -323,7 +325,7 @@ end;
 
 
 
-PROCEDURE Tprocess1.web_settings();
+PROCEDURE Tprocess1.web_settings(NoExecution:boolean);
 var
 
    application_postgrey:string;
@@ -389,7 +391,7 @@ var
    amanda               :tamanda;
    tomcat               :ttomcat;
    openemm              :topenemm;
-   openldap_admin,openldap_password,openldap_server,corp:string;
+   openldap_admin,openldap_password,openldap_server,corp,phpfpm:string;
    crossroads          :tcrossroads;
    POSTFIX_INSTALLED:boolean;
 begin
@@ -398,6 +400,7 @@ begin
        if ParamStr(1)='--verbose' then verbosed:=true;
        if ParamStr(2)='--verbose' then verbosed:=true;
        if ParamStr(3)='--verbose' then verbosed:=true;
+       if ParamStr(1)='--web-settings' then  NoExecution:=true;
        cyr:=Tcyrus.Create(SYS);
        clamav:=Tclamav.Create;
        logs.Debuglogs('##################### web_settings:: writing status for artica-postfix php service #####################');
@@ -433,9 +436,12 @@ begin
        tomcat:=ttomcat.Create(SYS);
 
        toolsversions:=ttoolsversions.Create(SYS);
+          forceDirectories('/etc/pango');
         if verbosed then writeln('web_settings:: -> SYS.LOCATE_APACHE_MODULES_PATH()');
        LOCATE_APACHE_MODULES_PATH:=SYS.LOCATE_APACHE_MODULES_PATH();
-       if not FileExists('/etc/init.d/artica-swap') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initd-swap.php >/dev/null 2>&1');
+       if not NoExecution then begin
+              if not FileExists('/etc/init.d/artica-swap') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initd-swap.php >/dev/null 2>&1');
+       end;
 
        WifiCardOk:=0;
        kas3:=Tkas3.Create(SYS);
@@ -449,11 +455,13 @@ begin
           logs.DeleteFile(GLOBAL_INI.get_ARTICA_PHP_PATH()+'/upload.php')
        end;
 
-
-       if FileExists('/usr/share/artica-postfix/exec.wifi.detect.cards.php') then fpsystem(SYS.LOCATE_PHP5_BIN() +' /usr/share/artica-postfix/exec.wifi.detect.cards.php --detect');
+       if not NoExecution then begin
+          if FileExists('/usr/share/artica-postfix/exec.wifi.detect.cards.php') then fpsystem(SYS.LOCATE_PHP5_BIN() +' /usr/share/artica-postfix/exec.wifi.detect.cards.php --detect');
+       end;
        tryStrToInt(SYS.GET_INFO('WifiCardOk'),WifiCardOk);
-       if WifiCardOk=1 then  fpsystem(SYS.LOCATE_PHP5_BIN()+ ' /usr/share/artica-postfix/exec.wifi.detect.cards.php --iwlist &');
-
+       if not NoExecution then begin
+              if WifiCardOk=1 then  fpsystem(SYS.LOCATE_PHP5_BIN()+ ' /usr/share/artica-postfix/exec.wifi.detect.cards.php --iwlist &');
+       end;
 
 
        
@@ -521,8 +529,24 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('wsgate')) then list.Add('$_GLOBAL["WSGATE_INSTALLED"]=True;') else list.Add('$_GLOBAL["WSGATE_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('urlsnarf')) then list.Add('$_GLOBAL["URLSNARF_INSTALLED"]=True;') else list.Add('$_GLOBAL["URLSNARF_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('ettercap')) then list.Add('$_GLOBAL["ETTERCAP_INSTALLED"]=True;') else list.Add('$_GLOBAL["ETTERCAP_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('ftp-proxy')) then list.Add('$_GLOBAL["APP_FTP_PROXY"]=True;') else list.Add('$_GLOBAL["APP_FTP_PROXY"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('chilli')) then list.Add('$_GLOBAL["APP_CHILLI_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_CHILLI_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('ucarp')) then list.Add('$_GLOBAL["UCARP_INSTALLED"]=True;') else list.Add('$_GLOBAL["UCARP_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('haarp')) then list.Add('$_GLOBAL["HAARP_INSTALLED"]=True;') else list.Add('$_GLOBAL["HAARP_INSTALLED"]=False;');
+
+
+
+   phpfpm:=SYS.LOCATE_GENERIC_BIN('php5-fpm')  ;
+   if not fileExists(phpfpm) then phpfpm:=SYS.LOCATE_GENERIC_BIN('php-fpm');
+   if FileExists(phpfpm) then list.Add('$_GLOBAL["PHPFPM_INSTALLED"]=True;') else list.Add('$_GLOBAL["PHPFPM_INSTALLED"]=False;');
+
+
+
+
    if FileExists('/usr/lib/perl5/Apache2/AuthenNTLM.pm') then list.Add('$_GLOBAL["PERL_AUTHNTLM"]=True;') else list.Add('$_GLOBAL["PERL_AUTHNTLM"]=False;');
 
+   if verbosed then writeln('web_settings:: 6%');
+   if verbosed then writeln('Testsing Apache libraries in "'+LOCATE_APACHE_MODULES_PATH+'"' );
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_authnz_ldap.so') then list.Add('$_GLOBAL["APACHE_MOD_AUTHNZ_LDAP"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_AUTHNZ_LDAP"]=False;');
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_qos.so') then list.Add('$_GLOBAL["APACHE_MOD_QOS"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_QOS"]=False;');
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_security2.so') then list.Add('$_GLOBAL["APACHE_MOD_SECURITY"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_SECURITY"]=False;');
@@ -537,6 +561,15 @@ begin
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_log_sql_mysql.so') then list.Add('$_GLOBAL["APACHE_MOD_LOGSSQL"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_LOGSSQL"]=False;');
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_bw.so') then list.Add('$_GLOBAL["APACHE_MOD_BW"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_BW"]=False;');
    if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_python.so') then list.Add('$_GLOBAL["APACHE_MOD_PYTHON"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_PYTHON"]=False;');
+   if verbosed then writeln(LOCATE_APACHE_MODULES_PATH+'/mod_suphp.so ??');
+   if FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_suphp.so') then list.Add('$_GLOBAL["APACHE_MOD_SUPHP"]=True;') else list.Add('$_GLOBAL["APACHE_MOD_SUPHP"]=False;');
+
+   if not FIleExists(LOCATE_APACHE_MODULES_PATH+'/mod_rpaf-2.0.so') then begin
+    if not NoExecution then begin
+      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/compile-apache-mod.php >/dev/null 2>&1 &');
+
+    end;
+   end;
    if FIleExists(SYS.LOCATE_PYTHON_PACKAGE('pyntlm.py')) then list.Add('$_GLOBAL["APP_PYAUTHENNTLM"]=True;') else list.Add('$_GLOBAL["APP_PYAUTHENNTLM"]=False;');
 
 
@@ -551,6 +584,13 @@ begin
    if FileExists('/etc/artica-postfix/FROM_ISO') then list.Add('$_GLOBAL["FROM_ISO"]=True;') else list.Add('$_GLOBAL["FROM_ISO"]=False;');
    if FileExists('/etc/artica-postfix/APACHE_APPLIANCE') then list.Add('$_GLOBAL["APACHE_APPLIANCE"]=True;') else list.Add('$_GLOBAL["APACHE_APPLIANCE"]=False;');
    if FileExists('/etc/artica-postfix/AS_KIMSUFFI') then list.Add('$_GLOBAL["AS_KIMSUFFI"]=True;') else list.Add('$_GLOBAL["AS_KIMSUFFI"]=False;');
+   if FileExists('/etc/artica-postfix/SQUID_REVERSE_APPLIANCE') then begin
+      list.Add('$_GLOBAL["SQUID_REVERSE_APPLIANCE"]=True;');
+      SYS.set_INFO('SquidActHasReverse','1');
+   end else begin list.Add('$_GLOBAL["SQUID_REVERSE_APPLIANCE"]=False;'); end;
+
+
+
    if FileExists(SYS.LOCATE_GENERIC_BIN('monit')) then list.Add('$_GLOBAL["MONIT_INSTALLED"]=True;') else list.Add('$_GLOBAL["MONIT_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('mysqld_multi')) then list.Add('$_GLOBAL["MYSQLD_MULTI_INSTALLED"]=True;') else list.Add('$_GLOBAL["MYSQLD_MULTI_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('afpd')) then list.Add('$_GLOBAL["NETATALK_INSTALLED"]=True;') else list.Add('$_GLOBAL["NETATALK_INSTALLED"]=False;');
@@ -567,7 +607,7 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('UpdateUtility-Console')) then list.Add('$_GLOBAL["UPDATE_UTILITYV2_INSTALLED"]=True;') else list.Add('$_GLOBAL["UPDATE_UTILITYV2_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('freeradius')) then list.Add('$_GLOBAL["FREERADIUS_INSTALLED"]=True;') else list.Add('$_GLOBAL["FREERADIUS_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('ntpdate')) then list.Add('$_GLOBAL["NTPDATE"]=True;') else list.Add('$_GLOBAL["NTPDATE"]=False;');
-
+   if FileExists(SYS.LOCATE_GENERIC_BIN('nginx')) then list.Add('$_GLOBAL["NGINX_INSTALLED"]=True;') else list.Add('$_GLOBAL["NGINX_INSTALLED"]=False;');
 
    if FileExists('/usr/share/filez/index.php') then list.Add('$_GLOBAL["APP_FILEZ_WEB"]=True;') else list.Add('$_GLOBAL["APP_FILEZ_WEB"]=False;');
    if FileExists('/usr/local/share/artica/joomla17_src/includes/version.php') then list.Add('$_GLOBAL["JOOMLA17_INSTALLED"]=True;') else list.Add('$_GLOBAL["JOOMLA17_INSTALLED"]=False;');
@@ -965,7 +1005,9 @@ begin
       logs.Debuglogs('web_settings() -> quarantine -> ' + GLOBAL_INI.PROCMAIL_QUARANTINE_PATH());
       if not DirectoryExists(GLOBAL_INI.PROCMAIL_QUARANTINE_PATH()) then begin
          forcedirectories(GLOBAL_INI.PROCMAIL_QUARANTINE_PATH());
-         fpsystem('/bin/chown ' + GLOBAL_INI.PROCMAIL_USER() +' ' +  GLOBAL_INI.PROCMAIL_QUARANTINE_PATH() + ' >/dev/null 2>&1');
+          if not NoExecution then begin
+                   fpsystem('/bin/chown ' + GLOBAL_INI.PROCMAIL_USER() +' ' +  GLOBAL_INI.PROCMAIL_QUARANTINE_PATH() + ' >/dev/null 2>&1');
+          end;
       end;
 
 
@@ -1041,7 +1083,9 @@ begin
                if not FileExists(mldap.SLAPD_CONF_PATH()) then begin
                     writeln('Warning slpad.conf, no such file, restarting LDAP server');
                     fpsystem('/usr/share/artica-postfix/bin/artica-install --slapdconf');
-                    fpsystem('/etc/init.d/artica-postfix restart ldap');
+                     if not NoExecution then begin
+                        fpsystem('/etc/init.d/artica-postfix restart ldap');
+                     end;
                end;
           end;
        end;
@@ -1189,7 +1233,7 @@ begin
     
 
 
-    if lighttpd.IS_AUTH_LDAP() then list.Add('$_GLOBAL["LIGHTTPD_LDAP_AUTH"]=True;')  else list.Add('$_GLOBAL["LIGHTTPD_LDAP_AUTH"]=False;');
+   // if lighttpd.IS_AUTH_LDAP() then list.Add('$_GLOBAL["LIGHTTPD_LDAP_AUTH"]=True;')  else list.Add('$_GLOBAL["LIGHTTPD_LDAP_AUTH"]=False;');
     
     
 
@@ -1306,6 +1350,7 @@ if POSTFIX_INSTALLED then begin
         if FileExists(SYS.LOCATE_GENERIC_BIN('dkim-filter')) then list.Add('$_GLOBAL["MILTER_DKIM_INSTALLED"]=True;') else list.Add('$_GLOBAL["MILTER_DKIM_INSTALLED"]=False;');
         if FileExists(SYS.LOCATE_GENERIC_BIN('dkimproxy.in')) then list.Add('$_GLOBAL["DKIMPROXY_INSTALLED"]=True;') else list.Add('$_GLOBAL["DKIMPROXY_INSTALLED"]=False;');
         if FileExists(SYS.LOCATE_GENERIC_BIN('postmulti')) then list.Add('$_GLOBAL["POSTMULTI"]=True;') else list.Add('$_GLOBAL["POSTMULTI"]=False;');
+
         if postfix.POSTFIX_LDAP_COMPLIANCE() then list.Add('$_GLOBAL["POSTFIX_LDAP_COMPLIANCE"]=True;') else list.Add('$_GLOBAL["POSTFIX_LDAP_COMPLIANCE"]=False;');
         if postfix.POSTFIX_PCRE_COMPLIANCE() then list.Add('$_GLOBAL["POSTFIX_PCRE_COMPLIANCE"]=True;') else list.Add('$_GLOBAL["POSTFIX_PCRE_COMPLIANCE"]=False;');
         if FileExists(postfix.gnarwl_path()) then list.Add('$_GLOBAL["GNARWL_INSTALLED"]=True;') else list.Add('$_GLOBAL["GNARWL_INSTALLED"]=False;');
@@ -1382,8 +1427,9 @@ if POSTFIX_INSTALLED then begin
         //-------------pommo
         if DirectoryExists('/usr/share/pommo') then list.Add('$_GLOBAL["POMMO_INSTALLED"]=True;') else list.Add('$_GLOBAL["POMMO_INSTALLED"]=false;');
 
-        fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/postfix.index.php &');
-
+         if not NoExecution then begin
+                 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/postfix.index.php &');
+         end;
 
 
         
@@ -1463,7 +1509,7 @@ end;
        end;
      
 
-
+  if NoExecution then fpsystem('clear');
   logs.Debuglogs('Tprocess1.web_settings():: ############# CHECKING SQUID #######################');
 
     if FileExists(squid.SQUID_BIN_PATH()) then begin
@@ -1475,21 +1521,22 @@ end;
        list.Add('$_GLOBAL["SQUID_NTLM_AUTH"]="' + squid.ntml_auth_path() + '";' );
        list.Add('$_GLOBAL["SQUID_BIN_PATH"]="' + squid.SQUID_BIN_PATH() + '";' );
        list.Add('$_GLOBAL["SQUID_CACHMGR"]="' + squid.cachemgr_path() + '";' );
+       list.Add('$_GLOBAL["SQUID_BIN_VERSION"]=' + IntToStr(squid.SQUID_BIN_VERSION(squid.SQUID_VERSION())) + ';' );
        list.Add('$_GLOBAL["squid_kerb_auth_path"]="' + squid.squid_kerb_auth_path() + '";' );
        list.Add('$_GLOBAL["squid_ext_session_acl"]="' + squid.ext_session_acl_path() + '";' );
-
+       logs.Debuglogs('Tprocess1.web_settings -> purge ???');
        if not FileExists(SYS.LOCATE_GENERIC_BIN('purge')) then begin
-          if FileExists('/usr/share/artica-postfix/bin/artica-make') then fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' /usr/share/artica-postfix/bin/artica-make APP_SQUID32_PURGE >/dev/null 2>&1 &');
+          if NoExecution then if FileExists('/usr/share/artica-postfix/bin/artica-make') then fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' /usr/share/artica-postfix/bin/artica-make APP_SQUID32_PURGE >/dev/null 2>&1 &');
        end;
 
 
        if FileExists(SYS.LOCATE_GENERIC_BIN('purge')) then list.Add('$_GLOBAL["SQUID_PURGE_INSTALLED"]=True;') else list.Add('$_GLOBAL["SQUID_PURGE_INSTALLED"]=False;');
-       list.Add('$_GLOBAL["SQUID_BIN_VERSION"]=' + IntToStr(squid.SQUID_BIN_VERSION(squid.SQUID_VERSION())) + ';' );
+
        if squid.ntlm_enabled() then  list.Add('$_GLOBAL["SQUID_NTLM_ENABLED"]=True;') else list.Add('$_GLOBAL["SQUID_NTLM_ENABLED"]=False;');
        if squid.SQUID_ARP_ACL_ENABLED()=1 then list.Add('$_GLOBAL["SQUID_ARP_ACL_ENABLED"]=True;') else list.Add('$_GLOBAL["SQUID_ARP_ACL_ENABLED"]=False;');
 
        if not FileExists('/opt/articatech/bin/articadb') then begin
-          if FileExists('/usr/share/artica-postfix/exec.squid.blacklists.php') then  fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.blacklists.php --v2 >/dev/null 2>&1 &');
+          if not  NoExecution then if FileExists('/usr/share/artica-postfix/exec.squid.blacklists.php') then  fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.blacklists.php --v2 >/dev/null 2>&1 &');
        end;
 
       if length(SYS.LOCATE_GENERIC_BIN('squidclamav'))>5 then begin
@@ -1561,7 +1608,7 @@ end;
        end;
        
        
-
+  if NoExecution then fpsystem('clear');
 
 
     logs.Debuglogs('web_settings() -> 55%');
@@ -1632,7 +1679,7 @@ end;
      list.Add('$_GLOBAL["DKIMFILTER_INSTALLED"]=False;');
  end;
  //--------------------------------------------------------------------------------------------
- 
+if NoExecution then fpsystem('clear');
 logs.Debuglogs('web_settings() -> 70%');
      if fileExists('/usr/local/ap-mailfilter3/etc/filter.conf') then list.Add('$_GLOBAL["kas_installed"]=True;') else list.Add('$_GLOBAL["kas_installed"]=false;');
      
@@ -1653,7 +1700,7 @@ logs.Debuglogs('web_settings() -> 70%');
           
 if FileExists('/opt/artica/sbin/hotwayd') then list.Add('$_GLOBAL["hotwayd_installed"]=True;') else list.Add('$_GLOBAL["hotwayd_installed"]=False;');
 
-
+if NoExecution then fpsystem('clear');
 logs.Debuglogs('web_settings() -> 75%');
 
 
@@ -1696,7 +1743,7 @@ logs.Debuglogs('web_settings() -> 75%');
      end;
 
  //-----------------------------------------------------------------------------------------------------
-
+if NoExecution then fpsystem('clear');
      logs.Debuglogs('web_settings() -> 80%');
      logs.Debuglogs('web_settings() Checking rrdtool...');
      if fileexists(GLOBAL_INI.RRDTOOL_BIN_PATH()) then begin
@@ -1737,7 +1784,7 @@ logs.Debuglogs('web_settings() -> 75%');
           list.Add('$_GLOBAL["awstats_installed"]=False;');
     end;
 
-
+    if NoExecution then fpsystem('clear');
     logs.Debuglogs('web_settings() -> 90%');
     logs.Debuglogs('web_settings() Checking procmail_quarantine_path...');
     list.Add('$_GLOBAL["procmail_quarantine_path"]="' + GLOBAL_INI.PROCMAIL_QUARANTINE_PATH() + '";');
@@ -1762,7 +1809,7 @@ logs.Debuglogs('web_settings() -> 75%');
        if verbosed then writeln('web_settings:: 95%');
     LOGS.Debuglogs('web_settings() -> 95%');
     list.Add('?>');
-
+    if NoExecution then fpsystem('clear');
     LOGS.Debuglogs('web_settings() Terminate save file');
     forcedirectories(php_path + '/ressources');
     logs.DeleteFile(php_path + '/ressources/settings.new.inc');
@@ -1780,16 +1827,19 @@ logs.Debuglogs('web_settings() -> 75%');
     logs.Debuglogs('thProcThread.web_settings('+ php_path + ') -> TERM');
 
     if FileExists('/usr/share/artica-postfix/exec.hdparm.php') then begin
-       if not FileExists('/etc/artica-postfix/settings/Daemons/HdparmInfos') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.hdparm.php &');
+      if not NoExecution then begin
+             if not FileExists('/etc/artica-postfix/settings/Daemons/HdparmInfos') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.hdparm.php &');
+      end;
     end;
-
+    if NoExecution then fpsystem('clear');
     list.Free;;
     if verbosed then writeln('web_settings:: 100%');
-    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.tests-settings.php >/dev/null 2>&1 &');
-    if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix start framework');
+     if not NoExecution then begin
+        fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.tests-settings.php >/dev/null 2>&1 &');
+        if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix start framework');
+        CheckMaxLogs();
+    end;
 
-
-    CheckMaxLogs();
 
 end;
 //##############################################################################

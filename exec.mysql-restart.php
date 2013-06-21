@@ -22,34 +22,7 @@ if($unix->process_exists($pid,(basename(__FILE__)))){
 
 $t=time();
 $unix=new unix();
-$mysql_server_script=mysql_server_script();
-if(!is_file($mysql_server_script)){
-	$results[]="Unable to stat mysql.server script, trying with Artica script";
-	exec("/etc/init.artica-postfix restart mysql 2>&1",$results);
-	$took=$unix->distanceOfTimeInWords($t,time());
-system_admin_events("Restarting MySQL service done took $took:\n".@implode("\n", $results)."\n".
-@file_get_contents("/var/log/mysql/mysql.start.log")
-, __FUNCTION__, __FILE__, __LINE__, "mysql");
-	die();
-} 
-exec("$mysql_server_script stop 2>&1",$results);
-exec("/etc/init.artica-postfix start mysql 2>&1",$results);
+exec("/etc/init.d/mysql restart 2>&1",$results);
+$took=$unix->distanceOfTimeInWords($t,time());
+system_admin_events("Restarting MySQL service done took $took:\n".@implode("\n", $results), __FUNCTION__, __FILE__, __LINE__, "mysql");
 
-
-
-system_admin_events("Restarting MySQL service done took $took:\n".@implode("\n", $results)."\n".
-@file_get_contents("/var/log/mysql/mysql.start.log")
-, __FUNCTION__, __FILE__, __LINE__, "mysql");
-
-
-
-
-function mysql_server_script(){
-	
-	$f[]="/usr/share/mysql/mysql.server";
-	$f[]="/usr/local/mysql/support-files/mysql.server";
-	while (list ($num, $ligne) = each ($f) ){
-		if(is_file($ligne)){return $ligne;}
-		
-	}
-}

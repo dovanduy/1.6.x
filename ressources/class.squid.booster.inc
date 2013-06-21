@@ -187,9 +187,9 @@ class squidbooster{
 		$maxsize=" max-size=$this->SquidBoosterMemK";
 		$SquidBoosterMemDIFF=$mountedram-10;
 	
-		return "cache_dir aufs /var/squid/cache_booster $SquidBoosterMemDIFF 16 256$maxsize";
+		return "cache_dir diskd /var/squid/cache_booster $SquidBoosterMemDIFF 16 256$maxsize";
 		if($this->IS_32){
-		return "cache_dir rock /var/squid/cache_booster $SquidBoosterMemDIFF max-size=$this->SquidBoosterMemK";
+			return "cache_dir diskd /var/squid/cache_booster $SquidBoosterMemDIFF max-size=$this->SquidBoosterMemK";
 		}else{
 		return "cache_dir diskd /var/squid/cache_booster $SquidBoosterMemDIFF 16 256 max-size=$this->SquidBoosterMemK";
 		}

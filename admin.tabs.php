@@ -548,12 +548,13 @@ $tpl=new templates();
 }
 
 function admin_index(){
-if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}
 $newfrontend=false;
 $ajaxadd=null;
 if(isset($_GET["newfrontend"])){$newfrontend=true;}	
 
 if($newfrontend){$ajaxadd="&newfrontend=yes";}
+$t=time();
+$left_status_content="<center id='wait1'></center>";
 
 $page=CurrentPageName();
 	$html="
@@ -561,14 +562,41 @@ $page=CurrentPageName();
 	<tbody>
 	<tr>
 		<td valign='top' width='50%'>
-			<div id='left_status' style='margin-left:-15px'><center id='wait1'></center></div>
+			<div id='left_status' style='margin-left:-15px'>
+				<div id='status-left'></div>
+			</div>
 		</td>
 		<td valign='top' width='50%'>
-			<div id='right_status' style='margin-left:-5px'><center id='wait2'></center></div>
+			<div id='right_status' style='margin-left:-5px'>
+				<center id='wait2'></center>
+			</div>
 			<script>
-				AnimateDiv('wait1');
 				AnimateDiv('wait2');
-				LoadAjax('right_status','admin.index.php?status=right&counter=1$ajaxadd');		
+				
+		
+				
+				function ChargeLeftMenus$t(){
+					if(document.getElementById('admin-left-infos')){
+						var content=document.getElementById('admin-left-infos').innerHTML;
+						if(content.length<50){
+							LoadAjax('admin-left-infos','admin.index.status-infos.php?t=$t$ajaxadd');
+						}
+					}
+				}
+				function ChargeLeftMenus2$t(){
+					LoadAjaxTiny('right-status-infos','admin.left.php?part1=yes');
+				}
+				
+				function ChargeStatusLeft$t(){
+					
+					LoadAjaxTiny('status-left','admin.index.loadvg.php?t=$t$ajaxadd');
+				}				
+				
+				setTimeout('ChargeStatusLeft$t()',800);
+				setTimeout('ChargeLeftMenus$t()',1300);
+				setTimeout('ChargeLeftMenus2$t()',5000);				
+				LoadAjax('right_status','admin.index.php?status=right&counter=1$ajaxadd');
+						
 			</script>
 					
 		</td>
@@ -1143,7 +1171,14 @@ function left_menus(){
 		if($lang==null){$lang="en";}
 		$md5=md5("{$_SESSION["uid"]}{$lang}leftmenu");
 		if(!$GLOBALS["VERBOSE"]){
-			if(is_file("ressources/logs/web/menus-$md5.object.$lang.cache")){echo @file_get_contents("ressources/logs/web/menus-$md5.object.$lang.cache");exit;}
+			if(is_file("ressources/logs/web/menus-$md5.object.$lang.cache")){
+				$data=@file_get_contents("ressources/logs/web/menus-$md5.object.$lang.cache");
+				if(strlen($data)>45){
+					$tpl=new templates();
+					echo $tpl->_ENGINE_parse_body($data);
+					exit;
+				}
+			}
 		}
 		writelogs("LANG=$lang",__FUNCTION__,__FILE__,__LINE__);
 	

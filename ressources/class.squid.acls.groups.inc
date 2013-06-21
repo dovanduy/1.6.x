@@ -10,7 +10,10 @@ class squid_acls_groups{
 	var $AUTH=0;	
 	var $GroupTypes=array();
 	var $ASROOT=false;
+	var $error=null;
 	private $hasProxyTransparent=0;
+	private $SquidBubbleMode=0;
+	
 	public $ARRAY_NO_ITEM=array();
 
 	function squid_acls_groups(){
@@ -24,7 +27,9 @@ class squid_acls_groups{
 		if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}
 		$this->EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 		$this->hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
+		$this->SquidBubbleMode=$sock->GET_INFO("SquidBubbleMode");
 		if(!is_numeric($this->EnableKerbAuth)){$this->EnableKerbAuth=0;}
+		if(!is_numeric($this->SquidBubbleMode)){$this->SquidBubbleMode=0;}
 		$squid=new squidbee();
 		if($squid->LDAP_AUTH==1){$this->AUTH=1;}
 		if($squid->LDAP_EXTERNAL_AUTH==1){$this->AUTH=1;}
@@ -41,33 +46,86 @@ class squid_acls_groups{
 		
 	}
 	
-	private function debugOutput($text,$function,$line){
+	private function debugOutput($text,$function=null,$line=null){
+		
 		if(!$GLOBALS["AS_ROOT"]){return;}
 		if(!$GLOBALS["VERBOSE"]){return;}
+		if(!is_numeric($line)){
+			if(function_exists("debug_backtrace")){
+				$trace=@debug_backtrace();
+				if(isset($trace[1])){
+					$function=$trace[1]["function"];
+					$line=$trace[1]["line"];
+					
+				}
+			}
+		}
+		
 		echo "DEBUG ACLS:$function::$text [$line]\n";
 	}
 	
-	function buildacls_order(){
+	function buildacls_order($aclport=0,$aclgpid=0){
 		$function=__FUNCTION__;
 		$q=new mysql_squid_builder();
-		$sql="SELECT webfilters_sqacls.ID,
+		if(!is_numeric($aclport)){$aclport=0;}
+		if(!is_numeric($aclgpid)){$aclgpid=0;}
+		
+		if($aclport>0){
+			if($this->SquidBubbleMode==0){return;}
+		}
+		
+		$sql="SELECT 
+		webfilters_sqacls.ID,
+		webfilters_sqacls.aclname,
 		webfilters_sqacls.xORDER,
-		webfilters_sqaclaccess.httpaccess_data,
-		webfilters_sqaclaccess.httpaccess
-		FROM webfilters_sqacls, webfilters_sqaclaccess 
-		WHERE webfilters_sqacls.ID=webfilters_sqaclaccess.aclid
-		AND webfilters_sqacls.enabled=1
+		webfilters_sqacls.aclport,
+		webfilters_sqacls.aclgroup
+		FROM webfilters_sqacls 
+		WHERE webfilters_sqacls.enabled=1
+		AND webfilters_sqacls.aclport=$aclport
+		AND webfilters_sqacls.aclgpid=$aclgpid
 		ORDER BY webfilters_sqacls.xORDER";
 
 		$results = $q->QUERY_SQL($sql);
-		if($this->ASROOT){echo "Starting......: [ACLS]: buildacls_order() ". mysql_num_rows($results). "... (Line ".__LINE__.")\n";}
+		if($this->ASROOT){echo "Starting......: [ACLS]: buildacls_order(`$aclport`,`$aclgpid`) ". mysql_num_rows($results). "... (Line ".__LINE__.")\n";}
 		if(!$q->ok){if(preg_match("#Error Table.*?doesn't exist#",$q->mysql_error)){$q->CheckTables();$results = $q->QUERY_SQL($sql);}}
 		$this->debugOutput("Find `by order` -> ". mysql_num_rows($results)." items", __FUNCTION__, __LINE__);
 		if(!$q->ok){$this->debugOutput("$q->mysql_error", __FUNCTION__, __LINE__);}
 		$conf=array();
+		
+		$PrefixAcls=null;
+		if($aclport==0){
+			if($this->SquidBubbleMode==1){
+				$PrefixAcls=" MyStandPort ";
+			}
+		}
+		if($aclport>0){$PrefixAcls=" MyPort$aclport ";}
+		
 		while ($ligne = mysql_fetch_assoc($results)) {
-			$httpaccess=$ligne["httpaccess"];
+			$aclid=$ligne["ID"];
+			$this->debugOutput("buildacls_order($aclport,$aclid): SELECT httpaccess,httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$aclid'");
+			$ligneWhat=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess,httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$aclid'"));
+			if(!$q->ok){echo "*** FATAL **** $q->mysql_error in line: ".__LINE__."\n";}
+			
+			$httpaccess_data=$ligneWhat["httpaccess_data"];
+			$httpaccess=$ligneWhat["httpaccess"];
+			
+			$aclgroup=$ligne["aclgroup"];
+			$this->debugOutput("buildacls_order($aclport,$aclid) http_access: ($httpaccess_data) [$aclid] $httpaccess/is an acl group ? `$aclgroup`",__FUNCTION__,__FILE__,__LINE__);
+			if($aclgroup==1){
+				$conf[]="#";
+				$conf[]="#-------- ACL Group `{$ligne["aclname"]}`";
+				$conf[]=$this->buildacls_order($aclport,$aclid);
+				$conf[]="#----------------------------------------";
+				$conf[]="#";
+				continue;
+			}
+			
 			$firstToken=null;
+			if($httpaccess==null){
+				$this->debugOutput("buildacls_order($aclport,$aclid) httpaccess is null, aborting!!");
+				continue;
+			}
 			if($httpaccess=="tcp_outgoing_tos"){continue;}
 			if($httpaccess=="url_rewrite_access_deny"){continue;}
 			if($httpaccess=="adaptation_access_deny"){continue;}
@@ -80,17 +138,29 @@ class squid_acls_groups{
 			
 			$reverse=false;
 			
-			$aclid=$ligne["ID"];
-			if($httpaccess=="deny_access_except"){$reverse=true;$firstToken="http_access deny";}
-			if($httpaccess=="access_allow"){$firstToken="http_access allow";}
-			if($httpaccess=="access_deny"){$firstToken="http_access deny";}
-			if($httpaccess=="cache_deny"){$firstToken="cache deny";}
+			
+			if($httpaccess=="deny_access_except"){$reverse=true;$firstToken="http_access deny$PrefixAcls";}
+			if($httpaccess=="access_allow"){$firstToken="http_access allow$PrefixAcls";}
+			if($httpaccess=="access_deny"){$firstToken="http_access deny$PrefixAcls";}
+			if($httpaccess=="cache_deny"){$firstToken="cache deny$PrefixAcls";}
+			if($httpaccess=="http_reply_access_deny"){$firstToken="http_reply_access deny$PrefixAcls";}
+			if($httpaccess=="http_reply_access_allow"){$firstToken="http_reply_access allow$PrefixAcls";}
+			
+			
+			
 			if($httpaccess=="deny_quota_rule"){
-				$deny_quota_rule_id=$ligne["httpaccess_data"];
-				if($deny_quota_rule_id==0){continue;}
+				$this->debugOutput("  **************  deny_quota_rule ******************");
+				$this->debugOutput("buildacls_order($aclport,$aclid)  -> deny_quota_rule");
+				$deny_quota_rule_id=$httpaccess_data;
+				if($deny_quota_rule_id==0){
+					$this->debugOutput("deny_quota_rule: deny_quota_rule_id = $deny_quota_rule_id SKIP !");
+					continue;
+				}
 				$aclquota=new squid_acls_quotas_time($deny_quota_rule_id);
-				if(!$aclquota->IsValid($deny_quota_rule_id)){continue;}
-				$firstToken="http_access deny !time_quota$deny_quota_rule_id";
+				if(!$aclquota->IsValid($deny_quota_rule_id)){
+					$this->debugOutput("deny_quota_rule: RULE:$deny_quota_rule_id is not valid !");
+					continue;}
+				$firstToken="http_access deny {$PrefixAcls}!time_quota$deny_quota_rule_id";
 			}
 			
 			
@@ -104,6 +174,8 @@ class squid_acls_groups{
 				if($this->ASROOT){echo "Starting......: [ACLS]: buildacls_order() SKIP! type:`$httpaccess` ($firstToken) groups:". count($groups)." (Line ".__LINE__.")\n";}
 				continue;
 			}
+			
+			$this->debugOutput("buildacls_order($aclport,$aclid): *** $firstToken ".@implode(" ", $groups)." ***");
 			$conf[]="$firstToken ".@implode(" ", $groups);
 			
 			
@@ -114,28 +186,55 @@ class squid_acls_groups{
 	}
 	
 	
-	function buildacls_bytype($ruletype){
+	function buildacls_bytype($ruletype,$aclport=0){
+		$this->error=null;
+		if($aclport>0){
+			if($this->SquidBubbleMode==0){
+				$this->error="SquidBubbleMode is not enabled";
+				return;
+			}
+		}
+		$LOCALSIPS=array();
+		if($ruletype=="tcp_outgoing_address"){
+			if($this->ASROOT){
+				if(class_exists("unix")){
+					$unix=new unix();
+					$LOCALSIPS=$unix->NETWORK_ALL_INTERFACES(true);
+				}
+			}
+		}
 		
-		if(isset($GLOBALS["buildacls_bytype$ruletype"])){return $GLOBALS["buildacls_bytype$ruletype"];}
+		
+		if(isset($GLOBALS["buildacls_bytype$ruletype$aclport"])){return $GLOBALS["buildacls_bytype$ruletype$aclport"];}
+		
+		if($GLOBALS["VERBOSE"]){echo "######### $ruletype:$aclport #########\n";}
+		
 		if($GLOBALS["VERBOSE"]){echo "DEBUG: ACLS: Find `$ruletype`\n";}
 		$rulesAcls=array();
-		$sql="SELECT webfilters_sqacls.ID,webfilters_sqacls.xORDER,webfilters_sqaclaccess.httpaccess_data
+		$sql="SELECT webfilters_sqacls.ID,
+		webfilters_sqacls.aclport, 
+		webfilters_sqacls.xORDER,
+		webfilters_sqaclaccess.httpaccess_data
 		FROM webfilters_sqacls, webfilters_sqaclaccess 
 		WHERE webfilters_sqacls.ID=webfilters_sqaclaccess.aclid
 		AND webfilters_sqacls.enabled=1
-		AND webfilters_sqaclaccess.httpaccess='$ruletype' ORDER BY webfilters_sqacls.xORDER";
+		AND webfilters_sqacls.aclport=$aclport
+		AND webfilters_sqaclaccess.httpaccess='$ruletype' 
+		ORDER BY webfilters_sqacls.xORDER";
+		
+		
 		$reverse=false;
 		$q=new mysql_squid_builder();
 		if($ruletype=="deny_access_except"){$reverse=true;}
-		
+		$this->debugOutput("$ruletype:$aclport MySQL AND webfilters_sqacls.aclport=$aclport",__FUNCTION__,__LINE__);
 		
 		
 		$results = $q->QUERY_SQL($sql);
 		if(!$q->ok){if(preg_match("#Error Table.*?doesn't exist#",$q->mysql_error)){$q->CheckTables();$results = $q->QUERY_SQL($sql);}}
+		if(!$q->ok){$this->error=str_replace("\n"," ",$q->mysql_error);}
 		
-		
-		
-		$this->debugOutput("`$ruletype` -> ". mysql_num_rows($results)." items",__FUNCTION__,__LINE__);
+		if(mysql_num_rows($results)==0){$this->error="MySQL:No item";}
+		$this->debugOutput("$ruletype:$aclport MySQL > ". mysql_num_rows($results)." items",__FUNCTION__,__LINE__);
 		
 		
 		while ($ligne = mysql_fetch_assoc($results)) {
@@ -143,7 +242,11 @@ class squid_acls_groups{
 			if($ruletype=="deny_log"){$reverse=true;}
 			
 			$groups=$this->buildacls_bytype_items($aclid,$reverse);
-			if(count($groups)==0){continue;}
+			if(count($groups)==0){
+				$this->debugOutput("$ruletype:$aclport No groups..");
+				$this->error=$this->error." $aclid=0;";
+				continue;
+			}
 			$valueToAdd=null;
 			
 			
@@ -154,8 +257,20 @@ class squid_acls_groups{
 			}
 			
 			if($ruletype=="tcp_outgoing_address"){
+				
 				$valueToAdd=$ligne["httpaccess_data"];
+				if($GLOBALS["VERBOSE"]){echo "tcp_outgoing_address \"$valueToAdd\" PORT:{$aclport}\n";}
 				if($valueToAdd==null){continue;}
+				if(count($LOCALSIPS)>0){
+					if(preg_match("#[0-9\.]+#", $valueToAdd)){
+						if(!isset($LOCALSIPS[$valueToAdd])){
+							if($GLOBALS["VERBOSE"]){echo "tcp_outgoing_address \"$valueToAdd\" PORT:{$aclport} NO SUCH ADDRESS !!!\n";}
+							continue;
+						}
+					}
+				}
+				
+				
 				$valueToAdd=$valueToAdd." ";
 			}
 			
@@ -341,12 +456,24 @@ class squid_acls_groups{
 		
 	}
 	
-	function ACL_MULTIPLE_EXPLAIN($aclid,$ACCESSEnabled){
+	function ACL_MULTIPLE_EXPLAIN($aclid,$ACCESSEnabled,$aclgroup=0){
+		$q=new mysql_squid_builder();
+		if($aclgroup==1){
+			$explains=array();
+			$sql="SELECT ID,enabled FROM webfilters_sqacls WHERE aclgpid=$aclid";
+			$results = $q->QUERY_SQL($sql);
+			while ($ligne = mysql_fetch_assoc($results)) {
+				$explains[]="<div>".$this->ACL_MULTIPLE_EXPLAIN($ligne["ID"],$ligne["enabled"],0)."</div>";
+			}
+			
+				return @implode("", $explains);
+						
+		}
 		$linkcolor="black";
 		$WarnColor="#EA0C0C";
 		if($ACCESSEnabled==0){$linkcolor="#9C9C9C";$WarnColor="#9C9C9C";}
 		$errorNoObjects="<div style='font-size:11px;fonct-weight:bold;color:$WarnColor'><img src='img/icon_mini_warning.gif' align='left' style='margin-right:4px'>{error_acl_no_object}</div>";
-		$q=new mysql_squid_builder();
+		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='url_rewrite_access_deny'"));
 		$url_rewrite_access_deny=$ligne["httpaccess_value"];
 		if(!is_numeric($url_rewrite_access_deny)){$url_rewrite_access_deny=0;}
@@ -401,6 +528,16 @@ class squid_acls_groups{
 		$delay_access_id=$ligne["httpaccess_data"];
 		if(!is_numeric($delay_access)){$delay_access=0;}	
 		if(!is_numeric($delay_access_id)){$delay_access_id=0;}
+		
+		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='http_reply_access_deny'"));
+		$http_reply_access_deny=$ligne["httpaccess_value"];
+		if(!is_numeric($http_reply_access_deny)){$http_reply_access_deny=0;}
+		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='http_reply_access_allow'"));
+		$http_reply_access_allow=$ligne["http_reply_access_allow"];
+		if(!is_numeric($http_reply_access_allow)){$http_reply_access_allow=0;}		
+
 
 		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='request_header_add'"));
@@ -438,6 +575,10 @@ class squid_acls_groups{
 		if(!is_numeric($cache_deny)){$cache_deny=0;}		
 		if($access_deny==1){$url_rewrite_access_deny=0;$adaptation_access_deny=0;$cache_deny=0;$access_allow=0;}
 		if($access_deny==1){$explain[]="<strong style=\"color:$explain_deny_color\">{deny_access}</strong>";}
+		if($http_reply_access_deny==1){$explain[]="<strong style=\"color:$explain_deny_color\">{deny_reply_access}</strong>";}
+		
+				
+		if($http_reply_access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">{allow_reply_access}</strong>";}
 		if($access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">{allow}</strong>";}
 		if($snmp_access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">{allow_snmp_access}</strong>";}
 		if($log_access==1){$explain[]="<strong style=\"color:$explain_allow_color\">{log_to_csv} <a href=\"squid.acls-rules.php?csv=$aclid\" style='text-decoration:underline'>&laquo;download&raquo;</a></strong>";}
@@ -548,7 +689,8 @@ class squid_acls_groups{
 		
 		
 
-		$sql="SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,webfilters_sqgroups.* FROM webfilters_sqacllinks,webfilters_sqgroups 
+		$sql="SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,webfilters_sqgroups.* 
+		FROM webfilters_sqacllinks,webfilters_sqgroups 
 		WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID AND webfilters_sqacllinks.aclid=$aclid";
 		$q=new mysql_squid_builder();
 		$results = $q->QUERY_SQL($sql);

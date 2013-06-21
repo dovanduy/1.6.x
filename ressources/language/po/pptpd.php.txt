@@ -1,4 +1,4 @@
-<accountname>Account name</accountname>
+<accountname>Nome Conta</accountname>
 <added_on>added on</added_on>
 <ADD_CONNEXION>Add a connection</ADD_CONNEXION>
 <add_imap_account>New IMAP account</add_imap_account>

@@ -194,6 +194,19 @@ $tableEngines = array("hardware"=>"InnoDB","accesslog"=>"InnoDB","bios"=>"InnoDB
 	
 	
 }
+function mysqld_version(){
+	if(isset($GLOBALS[__FUNCTION__])){return $GLOBALS[__FUNCTION__];}
+
+	$mysqld=$GLOBALS["CLASS_UNIX"]->find_program("mysqld");
+	exec("$mysqld --version 2>&1",$results);
+	while (list ($num, $ligne) = each ($results) ){
+
+		if(preg_match("#mysqld.*?([0-9\.\-]+)#", $ligne,$re)){
+			$GLOBALS[__FUNCTION__]=$re[1];
+			return $GLOBALS[__FUNCTION__];
+		}
+	}
+}
 
 function multi_status(){
 	
@@ -214,7 +227,7 @@ if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded system
 	if(count($INSTANCES)==0){die();}
 	$unix=new unix();
 	
-	$mysqlversion=$unix->GetVersionOf("mysql-ver");
+	$mysqlversion=mysqld_version();
 	while (list ($instance_id, $line) = each ($INSTANCES)){
 		$master_pid=multi_get_pid($instance_id);
 		$l[]="[ARTICA_MYSQL:$instance_id]";
@@ -461,6 +474,7 @@ function databases_list_fill(){
 	$q->QUERY_SQL("DROP TABLE mysqldbtables","artica_backup");
 	
 	eventsDB("BuildTables()...",__LINE__);
+	if(!class_exists("mysql_builder")){include_once(dirname(__FILE__)."/ressources/class.mysql.builder.inc");}
 	$t=new mysql_builder();
 	$t->check_mysql_dbtables();
 	

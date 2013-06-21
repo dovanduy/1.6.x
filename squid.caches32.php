@@ -158,7 +158,7 @@ function page(){
 	</table>
 	</div>
 	<script>
-		SaveSquid32CachesStatus();
+		ifFnExistsCallIt('SaveSquid32CachesStatus');
 		
 	var x_SaveSquid32Caches= function (obj) {
 			var results=obj.responseText;
@@ -317,17 +317,24 @@ function smp_js(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$page=CurrentPageName();
+	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
 	$squid_worker_license_explain=$tpl->javascript_parse_text("{squid_worker_license_explain}");
 	$squid_worker_activate_explain=$tpl->javascript_parse_text("{squid_worker_activate_explain}");
-	if(!$users->CORP_LICENSE){echo "alert('$squid_worker_license_explain');";return;}
+	if(!$users->CORP_LICENSE){
+		$squid_worker_license_explain=$tpl->javascript_parse_text("{squid_worker_license_explain}");
+		$squid_worker_license_explain=str_replace("%s","$CPU_NUMBER",$squid_worker_license_explain);
+		echo "alert('$squid_worker_license_explain');";
+		return;
+	}
+	
 	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
 	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
-	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
+	
 	$uuid=$_GET["uuid"];
 	$t=time();
 	
 	if(!$users->CORP_LICENSE){
-		$squid_worker_license_explain=$tpl->_ENGINE_parse_body("{squid_worker_license_explain}");
+		$squid_worker_license_explain=$tpl->javascript_parse_text("{squid_worker_license_explain}");
 		$squid_worker_license_explain=str_replace("%s","$CPU_NUMBER",$squid_worker_license_explain);
 		echo "alert('$squid_worker_license_explain')";
 		die();
@@ -369,6 +376,7 @@ function smp_js(){
 
 function license_explain(){
 	$users=new usersMenus();
+	if($users->CORP_LICENSE){die();}
 	$sock=new sockets();
 	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
 	
@@ -377,12 +385,17 @@ function license_explain(){
 	
 	$tpl=new templates();
 	$squid_worker_license_explain=$tpl->_ENGINE_parse_body("{squid_worker_license_explain}");
+	$squid_worker_explain=$tpl->_ENGINE_parse_body("{squid_worker_explain}");
 	$squid_worker_license_explain=str_replace("%s","$CPU_NUMBER",$squid_worker_license_explain);
 	$html="
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table style='width:99%'>
 	<tr>
 		<td valign='top' width=1%><img src='img/64-key.png' style='margin:5px'></td>
-		<td valign='top' style='font-size:14px;' width=99%>$squid_worker_license_explain</td>
+		<td valign='top' style='font-size:14px;' width=99%>$squid_worker_license_explain
+		<br>$squid_worker_explain
+		
+		</td>
 	</tr>
 	<tr>
 		<td style='font-size:14px' colspan=2 align='right'><a href=\"javascript:Loadjs('artica.license.php');\" 
@@ -755,6 +768,8 @@ function add_new_disk_popup(){
 		<td>&nbsp;</td>
 		</tr>";
 		
+		if($squid->CACHE_TYPE==null){$squid->CACHE_TYPE="diskd";}
+		
 		$type=$tpl->_ENGINE_parse_body(Field_array_Hash($caches_types,"cache_type-$t",
 		$squid->CACHE_TYPE,"CheckCachesTypes()",null,0,"font-size:16px;padding:3px"));
 		$SliderDef=round($squid->CACHE_SIZE/1000);
@@ -766,7 +781,8 @@ function add_new_disk_popup(){
 	
 	$html="	<div id='waitcache-$t'></div>
 	<input type='hidden' name='squid-cache-size-$t' id='squid-cache-size-$t' value='10'>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table style='width:99%'>
 		$cachedirtext
 		<tr>
 			<td class=legend style='font-size:16px' nowrap>{type}:</td>
@@ -781,7 +797,7 @@ function add_new_disk_popup(){
 			<td>" . help_icon('{cache_size_text}',false,'squid.index.php')."</td>
 		</tr>
 		<tr>
-		<td colspan=4><strong>{warn_calculate_nothdsize}</strong></td>		
+		<td colspan=4><div class=explain>{warn_calculate_nothdsize}</div></td>		
 
 		<tr>
 			<td class=legend nowrap style='font-size:16px'>{cache_dir_level1}:</td>
@@ -806,7 +822,7 @@ function add_new_disk_popup(){
 		<td align='right' colspan=4><hr>". button('{apply}',"AddNewCacheSave$t()",14)."</td>
 		</tr>
 	</table>
-	
+	</div>
 <script>
 		$(document).ready(function(){
 			$('#slider$t').slider({ max: $maxCacheSize,step:2,value:$SliderDef,slide: function(e, ui) {ChangeSlideField$t(ui.value)},change: function(e, ui) {ChangeSlideField$t(ui.value);} });
@@ -839,6 +855,7 @@ function add_new_disk_popup(){
 				}
 			YahooWin3Hide();
 			SaveSquid32CachesStatus();
+			ExecuteByClassName('SearchFunction');
 		}		
 	
 	function AddNewCacheSave$t(){
@@ -910,6 +927,7 @@ function delete_cache(){
 	$cachedir=base64_decode($_POST["delete-cache"]);
 	$squid=new squidbee();
 	unset($squid->cache_list[$cachedir]);
+	
 	$sock=new sockets();
 	$squid->SaveToLdap(true);
 	$squid->SaveToServer(true);

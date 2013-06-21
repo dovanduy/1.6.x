@@ -50,6 +50,16 @@ function addjs(){
 page();
 
 function page(){
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->_ENGINE_parse_body("{onlycorpavailable}");
+		$content="<p class=text-error>$onlycorpavailable</p>";
+		echo $content;
+		return;
+	}
+	
+	
 $t=time();
 $page=CurrentPageName();
 $tpl=new templates();

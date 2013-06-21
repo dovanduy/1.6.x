@@ -299,13 +299,15 @@ function caches_squid_z(){
 		events_squid_caches( "Starting......: [SMP] Aready running pid $oldpid",__FUNCTION__,__LINE__);
 		return;
 	}
+	@file_put_contents($pidffile, getmypid());
+	
 	$stopstart=false;
-	$GetLocalCaches=$unix->SQUID_CACHE_FROM_SQUIDCONF();
+	$GetLocalCaches=$unix->SQUID_CACHE_FROM_SQUIDCONF_FULL();
 	$conffile="/tmp/squid-".time().".conf";
 	$f[]="cache_effective_user squid";
 	$f[]="pid_filename	/var/run/squid-temp.pid";
-	$f[]="http_port 65478";
-	
+	$f[]="http_port 127.0.0.1:65478";
+	print_r($GetLocalCaches);
 	while (list ($cache_dir, $line) = each ($GetLocalCaches)){
 		if(!is_dir($cache_dir)){
 			events_squid_caches("Starting......: [SMP] creating $cache_dir",__FUNCTION__,__LINE__);

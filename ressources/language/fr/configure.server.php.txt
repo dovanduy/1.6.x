@@ -42,7 +42,7 @@
 <messaging_text>Configurez votre syst&egrave;me de messagerie et  configurer votre Postfix</messaging_text>
 <nfs_share>Partage de r&eacute;pertoires en NFS</nfs_share>
 <nfs_share_text>Partagez un r&eacute;pertoire en utilisant le protocole NFS</nfs_share_text>
-<nic_settings>Parametre reseaux</nic_settings>
+<nic_settings>Param&egrave;tres r&eacute;seaux</nic_settings>
 <nic_settings_text>R&eacute;glez votre configuration IP</nic_settings_text>
 <play_with_isp>Jouer avec votre FAI</play_with_isp>
 <play_with_isp_text>Utiliser ce serveur comme un v&eacute;ritable serveur de mail entre vous et votre FAI (aol, free, yahoo ..)...</play_with_isp_text>

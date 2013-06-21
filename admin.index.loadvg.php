@@ -1,7 +1,9 @@
 <?php
+if($argv[1]=="--verbose"){echo __LINE__." verbose OK<br>\n";$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(isset($_GET["verbose"])){echo __LINE__." verbose OK<br>\n";$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 $GLOBALS["AS_ROOT"]=false;
-if(function_exists("posix_getuid")){if(posix_getuid()==0){
+if(function_exists("posix_getuid")){
+	if(posix_getuid()==0){
 	$GLOBALS["AS_ROOT"]=true;
 	include_once(dirname(__FILE__).'/framework/class.unix.inc');
 	include_once(dirname(__FILE__)."/framework/frame.class.inc");
@@ -14,6 +16,7 @@ include_once('ressources/class.templates.inc');
 include_once('ressources/class.html.pages.inc');
 include_once('ressources/class.mysql.inc');
 include_once('ressources/class.artica.graphs.inc');
+include_once('ressources/class.highcharts.inc');
 include_once('ressources/class.rrd.inc');
 $users=new usersMenus();
 if(!$GLOBALS["AS_ROOT"]){if(!$users->AsSystemAdministrator){die();}}
@@ -25,14 +28,44 @@ if(isset($_GET["week"])){week();exit;}
 if(isset($_GET["month"])){month();exit;}
 if(isset($_GET["year"])){year();exit;}
 if(isset($_POST["LoadAvgClean"])){LoadAvgClean();exit;}
+if(isset($_GET["graph1"])){graph1();exit;}
+if(isset($_GET["graph2"])){graph2();exit;}
+if(isset($_GET["graph3"])){graph3();exit;}
 
 if($GLOBALS["AS_ROOT"]){@mkdir("/usr/share/artica-postfix/ressources/web/cache1",0755,true);}
 
-
+if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
+MySqlSyslog();
+if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 injectSquid();
+if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 PageDeGarde();
+if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 License();
+if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 exit;
+
+
+function MySqlSyslog(){
+	if($GLOBALS["AS_ROOT"]){return;}
+	$sock=new sockets();
+	$tpl=new templates();
+	$EnableMySQLSyslogWizard=$sock->GET_INFO("EnableMySQLSyslogWizard");
+	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+	if(!is_numeric($EnableMySQLSyslogWizard)){$EnableMySQLSyslogWizard=0;}
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
+	if($EnableMySQLSyslogWizard==1){return;}
+	if($EnableSyslogDB==1){return;}
+	
+	$html="<div style='margin-bottom:15px'>".
+			Paragraphe("warning-panneau-64.png", "{MySQL_SYSLOG_NOTSET}","{MySQL_SYSLOG_NOTSET_EXPLAIN}",
+			"javascript:Loadjs('MySQLSyslog.wizard.php')","go_to_section",300,132,1);
+	echo $tpl->_ENGINE_parse_body($html)."</div>";	
+	if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
+	
+	
+	
+}
 
 function injectSquid(){
 	$cacheFile="/usr/share/artica-postfix/ressources/web/cache1/injectSquid.".basename(__FILE__);
@@ -44,8 +77,14 @@ function injectSquid(){
 	}
 	
 	if(!$GLOBALS["AS_ROOT"]){
-		
-		if(is_file($cacheFile)){$tpl=new templates();echo $tpl->_ENGINE_parse_body(@file_get_contents($cacheFile));return;}
+		if(is_file($cacheFile)){
+			$tpl=new templates();
+			$data=@file_get_contents($cacheFile);
+			if(strlen($data)>20){
+				echo $tpl->_ENGINE_parse_body($data);
+				return;
+			}
+		}
 	}
 	
 	if($GLOBALS["VERBOSE"]){echo "InjectSquid ->\n<br>";}
@@ -58,6 +97,7 @@ function injectSquid(){
 	if($EnableWebProxyStatsAppliance==1){$users->WEBSTATS_APPLIANCE=true;}
 	if($users->WEBSTATS_APPLIANCE){$run=true;}
 	if($users->SQUID_INSTALLED){$run=true;}
+	if($users->SQUID_REVERSE_APPLIANCE){$run=false;}
 	if($GLOBALS["VERBOSE"]){echo "run -> $run\n<br>";}
 	if(!$run){return;}	
 	$inf=trim($sock->getFrameWork("squid.php?isInjectrunning=yes") );
@@ -80,8 +120,8 @@ function injectSquid(){
 	return;	
 	}
 	
-	$datas=base64_decode($sock->getFrameWork("squid.php?articadb-checkversion=yes"));
-	if($GLOBALS["VERBOSE"]){echo "$datas<br>\n";}
+	
+	
 	
 	$LOCAL_VERSION=$sock->getFrameWork("squid.php?articadb-version=yes");
 	$array=unserialize(base64_decode($sock->getFrameWork("squid.php?articadb-nextversion=yes")));
@@ -186,6 +226,7 @@ function tabs(){
 	if($GLOBALS["VERBOSE"]){echo "<hr>";}
 	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d') as tday,HOUR(zDate) as thour,AVG(mem) as tmem FROM ps_mem_tot GROUP BY tday,thour HAVING tday=DATE_FORMAT(NOW(),'%Y-%m-%d') ORDER BY thour";
 	if($GLOBALS["VERBOSE"]){echo "<code>$sql</code><br>";}
+	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_events");
 	$mysql_num_rows=mysql_num_rows($results);
 	$xtitle=$tpl->javascript_parse_text("{hours}");
@@ -203,6 +244,7 @@ function tabs(){
 	$targetedfile="ressources/logs/".basename(__FILE__).".ps-mem.png";
 	$xdata=array();
 	$ydata[]=array();
+	$c=0;
 	writelogs("mysql return no rows from a table of $mysql_num_rows rows ",__FUNCTION__,__FILE__,__LINE__);
 	if($mysql_num_rows>0){
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -584,7 +626,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	$rrd->graphTitle=$title;
 	$rrd->timestart="-1week";
 	$rrd->watermark="-- ".date('H:i:s')." --";
-	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("{server_load}"));
+	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("Server Load"));
 	$sock=new sockets();
 	$sock->getFrameWork("services.php?chmod-rrd=yes");
 	$id=time();
@@ -793,146 +835,48 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	
 }
 function PageDeGarde(){
-	
-	$cacheFile="/usr/share/artica-postfix/ressources/web/cache1/PageDeGarde.".basename(__FILE__);
-	if($GLOBALS["AS_ROOT"]){
-		$unix=new unix();
-		$mins=$unix->file_time_min($cacheFile);
-		if($mins<5){return;}
-		@unlink($cacheFile);
-	}
-	
+	if($GLOBALS['VERBOSE']){echo date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
+	$cacheFile=dirname(__FILE__)."/ressources/logs/web/".basename(__FILE__).".".__FUNCTION__;
 	if(!$GLOBALS["AS_ROOT"]){
-		if(is_file($cacheFile)){$tpl=new templates();echo $tpl->_ENGINE_parse_body(@file_get_contents($cacheFile));return;}
-	}	
-	
-	$tpl=new templates();
-	$page=CurrentPageName();
-	
-	if(GET_CACHED(__FILE__, __FUNCTION__,null,false,1)){return;}
-	
-	if(internal_load()>1.2){if(GET_CACHED(__FILE__, __FUNCTION__)){return;}}
-	
-	$title=html_entity_decode($tpl->javascript_parse_text("Server Load this hour"));
-	if($GLOBALS["VERBOSE"]){echo __LINE__." rrdbuilder()<br>\n";}
-	
-	try{
-		$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/loadavg_1.rrd");
-	} 
-	catch (Exception $e) {
-		echo "<strong>" . $e->getMessage()."</strong><br>";
-		return false; 
-	}
-	
-	
-	$rrd->width=299;
-	$rrd->height=130;
-	$rrd->graphTitle=$title;
-	$rrd->watermark="-- ".date('H:i:s')." --";
-	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("Server Load"));
-	$sock=new sockets();
-	$sock->getFrameWork("services.php?chmod-rrd=yes");
-	$id=time();
-	if($GLOBALS["VERBOSE"]){echo __LINE__." buildgraph()<br>\n";}
-	if(!is_dir(dirname(__FILE__)."/ressources/logs")){
-		@mkdir(dirname(__FILE__)."/ressources/logs",0777,true);
-	}
-
-	if(!$rrd->buildgraph(dirname(__FILE__)."/ressources/logs/rrd.load.png","loadavg_1")){	
-		if(is_file(dirname(__FILE__)."/ressources/logs/rrd.load.png")){
-			$img="<img src=\"ressources/logs/rrd.load.png?$id\">";
+		if(is_file($cacheFile)){
+			$data=@file_get_contents($cacheFile);
+			if(strlen($data)>45){
+				$users=new usersMenus();
+				$tpl=new templates();
+				if($GLOBALS["VERBOSE"]){echo "$cacheFile -> LOADING....\n";}
+				echo $tpl->_ENGINE_parse_body($data);
+				return;
+			}
 		}else{
-			$img="<span style='color:#CB0B0B;font-size:12px'>Graph error:$rrd->error</span>";
+			if($GLOBALS["VERBOSE"]){echo "$cacheFile No such file\n";}
 		}
-	}else{
-		$img="<img src=\"ressources/logs/rrd.load.png?$id\">";
 	}
-	
-	if($GLOBALS["VERBOSE"]){echo __LINE__." rrdbuilder(/opt/artica/var/rrd/yorel/mem_user.rrd)<br>\n";}	
-	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/mem_user.rrd");
-	$title=html_entity_decode($tpl->javascript_parse_text("Memory this hour"));
-	$rrd->width=299;
-	$rrd->height=130;
-	$rrd->graphTitle=$title;
-	$rrd->watermark="-- ".date('H:i:s')." --";	
-	$rrd->base=1024;
-	$rrd->GPRINT="%7.2lf %sb";
-	$rrd->LineColor="#0136BA";
-	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("Memory MB"));
-	$id=time();
-	if(!$rrd->buildgraph(dirname(__FILE__)."/ressources/logs/rrd.mem.png","mem_user")){	
-		if(is_file(dirname(__FILE__)."/ressources/logs/rrd.mem.png")){
-			$img2="<img src=\"ressources/logs/rrd.mem.png?$id\">";
-		}else{
-			$img2="<span style='color:#CB0B0B;font-size:12px'>Graph error:$rrd->error</span>";
-		}
-	}else{
-		$img2="<img src=\"ressources/logs/rrd.mem.png?$id\">";
-	}	
-	$sock->getFrameWork("services.php?chmod-rrd=yes");
-	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/cpu_user.rrd");
-	$title=html_entity_decode($tpl->javascript_parse_text("CPU this hour"));
-	$rrd->width=299;
-	$rrd->height=130;
-	$rrd->graphTitle=$title;
-	$rrd->units_exponent=0;
-	$rrd->upper_limit=100;
-	$rrd->lower_limit=0;
-	
-	$rrd->GPRINT="%05.2lf %%";
-	$rrd->LineColor="#287B30";
-	$rrd->line_title=html_entity_decode($tpl->javascript_parse_text("CPU %"));
-	$id=time();
-	if(!$rrd->buildgraph(dirname(__FILE__)."/ressources/logs/rrd.cpu.png","cpu_user")){	
-		if(is_file(dirname(__FILE__)."/ressources/logs/rrd.cpu.png")){
-			$img3="<img src=\"ressources/logs/rrd.cpu.png?$id\">";
-		}else{
-			$img3="<span style='color:#CB0B0B;font-size:12px'>Graph error:$rrd->error</span>";
-		}
-	}else{
-		$img3="<img src=\"ressources/logs/rrd.cpu.png?$id\">";
-	}	
-	
-	
-	
-	$html="<div style=\"width: 300px; min-height: 112px; cursor: default;\" class=\"paragraphe\" 
-	onclick=\"javascript:Loadjs('admin.index.loadvg.php?all=yes')\" 
-	id=\"$id\" 
-	onmouseover=\"javascript:this.className='paragraphe_over';this.style.cursor='pointer';\" 
-	onmouseout=\"javascript:this.className='paragraphe';this.style.cursor='default';\">
-	$img
-	</div>
-	<br>
-	<div style=\"width: 300px; min-height: 112px; cursor: default;\" class=\"paragraphe\" 
-	onclick=\"javascript:Loadjs('admin.index.loadvg.php?all=yes')\" 
-	id=\"$id\" 
-	onmouseover=\"javascript:this.className='paragraphe_over';this.style.cursor='pointer';\" 
-	onmouseout=\"javascript:this.className='paragraphe';this.style.cursor='default';\">
-	$img2
-	</div>
-	<br>
-	<div style=\"width: 300px; min-height: 112px; cursor: default;\" class=\"paragraphe\" 
-	onclick=\"javascript:Loadjs('admin.index.loadvg.php?all=yes')\" 
-	id=\"$id\" 
-	onmouseover=\"javascript:this.className='paragraphe_over';this.style.cursor='pointer';\" 
-	onmouseout=\"javascript:this.className='paragraphe';this.style.cursor='default';\">
-	$img3
-	</div>
-	";
-	
-	if($GLOBALS["AS_ROOT"]){
-		@file_put_contents($cacheFile, $html);
-		@chmod($cacheFile, 0775);
-		return;
 		
+	if($GLOBALS["AS_ROOT"]){$timeT="<div style='font-size:10px;text-aglin:right'>".date("H:i:s")."</div>";}
+	
+	$page=CurrentPageName();
+	$q=new mysql();
+	$time=time();
+	if($q->COUNT_ROWS("sys_mem", "artica_events")>1){
+		$f1[]="<div style='width:299px;height:230px' id='$time-2'></div>";
+		$f2[]="AnimateDiv('$time-2');Loadjs('$page?graph2=yes&container=$time-2');";
 	}
+	if($q->COUNT_ROWS("sys_loadvg", "artica_events")>1){
+		$f1[]="<div style='width:299px;height:230px' id='$time-1'></div>$timeT";
+		$f2[]="AnimateDiv('$time-1');Loadjs('$page?graph1=yes&container=$time-1');";
+	}	
 	
-	SET_CACHED(__FILE__, __FUNCTION__,null,$html);
 	
-	
+	if($GLOBALS['VERBOSE']){echo date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
+	$html=@implode("\n", $f1)."<script>".@implode("\n", $f2)."</script>";
+	if($GLOBALS["AS_ROOT"]){
+		@mkdir(dirname($cacheFile),0777,true);
+		@file_put_contents($cacheFile, $html);
+		@chmod($cacheFile, 0777);
+		return;
+	}
 	echo $html;
-	
-	
+
 }
 
 
@@ -942,5 +886,122 @@ function LoadAvgClean(){
 	$q->BuildTables();
 	
 }
+
+function graph1(){
+	if(!class_exists("highcharts")){return ;}
+	$tpl=new templates();
+	$_GET["time"]="hour";
+	
+	
+		$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d %H') as tdate, 
+		MINUTE(zDate) as `time`,AVG(loadavg) as value FROM `sys_loadvg` GROUP BY `time` ,tdate
+		HAVING tdate=DATE_FORMAT(NOW(),'%Y-%m-%d %H') ORDER BY `time`";
+		
+		$title="{server_load_this_hour}";
+		$timetext="{minutes}";
+		
+	
+		
+		
+	$filecache="ressources/logs/web/".basename(__FILE__).".".__FUNCTION__.".cache";	
+	if(file_time_min_Web($filecache)>30){@unlink($filecache);}
+	
+	if(!is_file($filecache)){
+		$q=new mysql();
+		$results = $q->QUERY_SQL($sql,"artica_events");
+		if(!$q->ok){$tpl->javascript_senderror("",$_GET["container"]);}
+		
+		if(mysql_num_rows($results)<2){
+			$tpl->javascript_senderror("",$_GET["container"]);
+		}
+		
+		
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$xdata[]=$ligne["time"];
+			$ydata[]=round($ligne["value"],2);
+		}
+		if(count($xdata)>1){
+			$ARRAY=array($xdata,$ydata);
+			@file_put_contents($filecache, serialize($ARRAY));
+		}
+	
+	}else{
+		
+		$ARRAY=unserialize(@file_get_contents($filecache));
+		$xdata=$ARRAY[0];
+		$ydata=$ARRAY[1];
+	}
+	$title="{server_load_this_hour}";
+	$timetext="{minutes}";
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title=$title;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->yAxisTtitle="{load}";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->datas=array("{load}"=>$ydata);
+	echo $highcharts->BuildChart();
+	
+}
+function graph2(){
+	if(!class_exists("highcharts")){return ;}
+	$tpl=new templates();
+	
+		$sql="SELECT DATE_FORMAT( zDate, '%Y-%m-%d %H' ) AS tdate, MINUTE( zDate ) AS time, 
+				AVG( memory_used ) AS value
+				FROM `sys_mem`
+				GROUP BY `time` , tdate
+				HAVING tdate = DATE_FORMAT( NOW( ) , '%Y-%m-%d %H' )
+				ORDER BY `time`";
+
+		$title="{memory_consumption_this_hour}";
+		$timetext="{minutes}";
+
+	
+	$q=new mysql();
+	$results = $q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){$tpl->javascript_senderror($q->mysql_error,$_GET["container"]);}
+
+	if(mysql_num_rows($results)<2){
+	$tpl->javascript_senderror("",$_GET["container"]);
+	}
+
+	$filecache="ressources/logs/web/".basename(__FILE__).".".__FUNCTION__.".cache";
+	if(file_time_min_Web($filecache)>30){@unlink($filecache);}
+	
+	if(!is_file($filecache)){
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$xdata[]=$ligne["time"];
+			$ligne["value"]=$ligne["value"]/1024;
+			$ydata[]=round($ligne["value"],2);
+		}
+		if(count($xdata)>1){
+			$ARRAY=array($xdata,$ydata);
+			@file_put_contents($filecache, serialize($ARRAY));
+		}
+		
+	}else{
+		
+			$ARRAY=unserialize(@file_get_contents($filecache));
+			$xdata=$ARRAY[0];
+			$ydata=$ARRAY[1];
+		}
+		$title="{memory_consumption_this_hour}";
+		$timetext="{minutes}";
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->Title=$title;
+	$highcharts->yAxisTtitle="{memory} (MB)";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->datas=array("{memory}"=>$ydata);
+	echo $highcharts->BuildChart();
+
+}
+
 
 ?>

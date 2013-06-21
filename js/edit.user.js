@@ -86,7 +86,7 @@ var X_UserADD= function (obj) {
 		
 		if(document.getElementById('adduser_ajax_newfrm')){
 			YahooUserHide();
-			YahooUser(800,'domains.edit.user.php?userid='+results+'&ajaxmode=yes','windows: '+results);
+			YahooUser(962,'domains.edit.user.php?userid='+results+'&ajaxmode=yes','windows: '+results);
 			
 			if(document.getElementById('members_area')){
 				LoadMembers(groupid);
@@ -96,11 +96,11 @@ var X_UserADD= function (obj) {
 		}
 		
 		if(CurrentPageName()=='domains.edit.user.php'){
-			YahooUser(740,'domains.edit.user.php?userid='+results+'&ajaxmode=yes','windows: '+results);
+			YahooUser(962,'domains.edit.user.php?userid='+results+'&ajaxmode=yes','windows: '+results);
 		}
 	
 		if(CurrentPageName()=='domains.edit.group.php'){
-			YahooUser(740,'domains.edit.user.php?userid='+results+'&ajaxmode=yes','windows: '+results);
+			YahooUser(962,'domains.edit.user.php?userid='+results+'&ajaxmode=yes','windows: '+results);
 			LoadMembers(groupid);	
 		}
 		

@@ -690,7 +690,7 @@ var
    ZarafaMajorVersion,ZarafaMinorVersion,ZarafaSoftDelete,ZarafaCacheCellSize,ZarafaCacheObjectSize,ZarafaCacheIndexedObjectSize,ZarafaCacheQuotaLifeTime:Integer;
    ZarafaCacheQuotaSize,ZarafaCacheAclSize,ZarafaCacheUserSize,ZarafaCacheUserDetailsSize,ZarafaCacheUserDetailsLifeTime,ZarafaThreadStackSize,ZarafaCacheServerSize,ZarafadAgentJunk:integer;
    ZarafaMySQLServiceType:integer;
-   EnableZarafaSearch,EnableZarafaSearchAttach,ZarafaLogLevel,ZarafaEnableSecurityLogging:integer;
+   EnableZarafaSearch,EnableZarafaSearchAttach,ZarafaLogLevel,ZarafaEnableSecurityLogging,ZarafaDedicateMySQLServer:integer;
 begin
 attachment_storage:='database';
 if not TryStrToInt(SYS.GET_INFO('ZarafaUserSafeMode'),ZarafaUserSafeMode) then ZarafaUserSafeMode:=0;
@@ -734,6 +734,7 @@ if not TryStrToInt(SYS.GET_INFO('EnableZarafaSearchAttach'),EnableZarafaSearchAt
 if not TryStrToInt(SYS.GET_INFO('ZarafaLogLevel'),ZarafaLogLevel) then ZarafaLogLevel:=2;
 if not TryStrToInt(SYS.GET_INFO('ZarafaEnableSecurityLogging'),ZarafaEnableSecurityLogging) then ZarafaEnableSecurityLogging:=0;
 if not TryStrToInt(SYS.GET_INFO('ZarafaMySQLServiceType'),ZarafaMySQLServiceType) then ZarafaMySQLServiceType:=1;
+if not TryStrToInt(SYS.GET_INFO('ZarafaDedicateMySQLServer'),ZarafaDedicateMySQLServer) then ZarafaDedicateMySQLServer:=0;
 
 
 
@@ -852,6 +853,11 @@ end;
 l.add('log_file		= /var/log/zarafa/server.log');
 l.add('log_level		= '+IntTostr(ZarafaLogLevel));
 l.add('log_timestamp		= 1');
+
+if ZarafaMySQLServiceType=3 then begin
+   if ZarafaDedicateMySQLServer=0 then ZarafaMySQLServiceType:=2;
+end;
+
 if ZarafaMySQLServiceType=1 then begin
    logs.DebugLogs('Starting zarafa..............: Zarafa-server Using the same Artica MySQL server '+SYS.MYSQL_INFOS('mysql_server'));
    l.add('mysql_host		= '+SYS.MYSQL_INFOS('mysql_server'));
@@ -868,10 +874,12 @@ if ZarafaMySQLServiceType=2 then begin
    l.add('mysql_database		= zarafa');
 end;
 if ZarafaMySQLServiceType=3 then begin
-logs.DebugLogs('Starting zarafa..............: Zarafa-server Using the Dedicate MySQL service using Unix socket');
-   l.add('mysql_socket		= /var/run/mysqld/zarafa-db.sock');
-   l.add('mysql_user		= root');
-   l.add('mysql_database	= zarafa');
+   if ZarafaDedicateMySQLServer=1 then begin
+      logs.DebugLogs('Starting zarafa..............: Zarafa-server Using the Dedicate MySQL service using Unix socket');
+      l.add('mysql_socket		= /var/run/mysqld/zarafa-db.sock');
+      l.add('mysql_user		= root');
+      l.add('mysql_database	= zarafa');
+   end;
 end;
 if ZarafaMySQLServiceType=4 then begin
    logs.DebugLogs('Starting zarafa..............: Zarafa-server Using a remote MySQL service '+SYS.GET_INFO('ZarafaRemoteMySQLServer')+':'+SYS.GET_INFO('ZarafaRemoteMySQLServerPort'));

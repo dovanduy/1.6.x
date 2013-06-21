@@ -1,6 +1,6 @@
-<about>SQLgrey is a postfix policy service implementing a grey-listing policy.[br]
-SQLgrey is written in Perl and uses DBI to access an SQL database.[br]
-Its goal is reducing the SPAM reaching user mailboxes</about>
+<about>O SQLgrey &eacute; um servi&ccedil;o de inspe&ccedil;&atilde;o do postfix  que implementa uma pol&iacute;tica de grey-listing. [br]
+SQLgrey &eacute; escrito em Perl e usa DBI para aceder a uma base de dados SQL. [br]
+O seu objetivo &eacute; reduzir  o SPAM nas caixas de correio dos utilizadores atingidos.</about>
 <add_white_list>Add a white listed server</add_white_list>
 <admin_mail>Administrator email address</admin_mail>
 <admin_mail_text>who gets urgent notifications (DB is down for example) empty: don't send mail notifications</admin_mail_text>

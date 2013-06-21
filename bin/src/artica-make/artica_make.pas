@@ -162,7 +162,11 @@ begin
    end;
 
    if ParamStr(1)='APP_OPENVPN' then begin
+      zinstall.INSTALL_STATUS('APP_OPENVPN',8);
+      zinstall.INSTALL_PROGRESS('APP_OPENVPN','{building_dependencies}');
       fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-openvpn');
+      zinstall.INSTALL_STATUS('APP_OPENVPN',100);
+      zinstall.INSTALL_PROGRESS('APP_OPENVPN','{success}');
       zinstall.EMPTY_CACHE();
       halt(0);
    end;
@@ -486,6 +490,8 @@ begin
    end;
 
    if ParamStr(1)='APP_EMAILRELAY' then begin
+         zinstall.INSTALL_STATUS('APP_EMAILRELAY',8);
+         zinstall.INSTALL_PROGRESS('APP_EMAILRELAY','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          emailrelay:=tsetup_emailrelay.Create;
          emailrelay.xinstall();
@@ -808,6 +814,8 @@ begin
    end;
 
    if ParamStr(1)='APP_SQUID31' then begin
+         zinstall.INSTALL_STATUS('APP_SQUID31',8);
+         zinstall.INSTALL_PROGRESS('APP_SQUID31','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-squid');
          squid:=tsetup_squid.Create;
          squid.xinstall();
@@ -898,6 +906,7 @@ begin
 
 
    if ParamStr(1)='APP_OCSI' then begin
+
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          ocsi:=tsetup_ocs.Create;
          ocsi.xinstall_v2();
@@ -1289,6 +1298,14 @@ begin
          zinstall.EMPTY_CACHE();
          halt(0);
    end;
+   if ParamStr(1)='APP_CAKEPHP' then begin
+         joomla:=tsetup_joomla.Create;
+         joomla.cakephp_install();
+         zinstall.EMPTY_CACHE();
+         halt(0);
+   end;
+
+
 
   if ParamStr(1)='APP_LMB' then begin
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
@@ -1510,6 +1527,8 @@ begin
 
 
    if ParamStr(1)='APP_SAMBA' then begin
+            zinstall.INSTALL_STATUS('APP_SAMBA',8);
+         zinstall.INSTALL_PROGRESS('APP_SAMBA','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-samba');
          samba:=install_samba.Create;
          samba.xinstall();
@@ -1525,6 +1544,8 @@ begin
     end;
 
    if ParamStr(1)='APP_SAMBA35' then begin
+         zinstall.INSTALL_STATUS('APP_SAMBA35',8);
+         zinstall.INSTALL_PROGRESS('APP_SAMBA35','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-samba');
          samba:=install_samba.Create;
          samba.xinstall('samba35');
@@ -1543,6 +1564,8 @@ begin
 
 
        if ParamStr(1)='APP_SAMBA36' then begin
+         zinstall.INSTALL_STATUS('APP_SAMBA36',8);
+         zinstall.INSTALL_PROGRESS('APP_SAMBA36','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-samba');
          samba:=install_samba.Create;
          samba.xinstall('samba36');
@@ -1664,6 +1687,8 @@ begin
               zinstall.EMPTY_CACHE();
               halt(0);
          end;
+         zinstall.INSTALL_STATUS('APP_SPAMASSASSIN',8);
+         zinstall.INSTALL_PROGRESS('APP_SPAMASSASSIN','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-postfix');
          spamassassin.xinstall();
          zinstall.EMPTY_CACHE();
@@ -1691,6 +1716,8 @@ begin
 
 
    if ParamStr(1)='APP_MHONARC' then begin
+         zinstall.INSTALL_STATUS('APP_MHONARC',8);
+         zinstall.INSTALL_PROGRESS('APP_MHONARC','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          mhonarc:=mhonarcisnt.Create;
          mhonarc.xinstall();
@@ -1703,7 +1730,8 @@ begin
          writeln('APP_POSTFIX:: Already executed, aborting');
          exit;
         end;
-
+           zinstall.INSTALL_STATUS('APP_POSTFIX',8);
+         zinstall.INSTALL_PROGRESS('APP_POSTFIX','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-postfix');
          postfix:=tpostfix_install.Create;
@@ -1714,6 +1742,8 @@ begin
    end;
 
  if ParamStr(1)='APP_FETCHMAIL' then begin
+          zinstall.INSTALL_STATUS('APP_FETCHMAIL',8);
+         zinstall.INSTALL_PROGRESS('APP_FETCHMAIL','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          fetchmail:=install_fetchmail.Create();
          fetchmail.xinstall();
@@ -1731,6 +1761,13 @@ begin
    if ParamStr(1)='APP_KAV4PROXY' then begin
          squid:=tsetup_squid.Create;
          squid.kav4proxy_install();
+         zinstall.EMPTY_CACHE();
+         halt(0);
+   end;
+
+   if ParamStr(1)='APP_KAV4PROXY_ISO' then begin
+         squid:=tsetup_squid.Create;
+         squid.kav4proxy_install(true);
          zinstall.EMPTY_CACHE();
          halt(0);
    end;
@@ -1777,6 +1814,12 @@ begin
    end;
 
   if ParamStr(1)='APP_C_ICAP' then begin
+         if SYS.FILE_TIME_BETWEEN_MIN('/etc/artica-postfix/C_ICAP_BUILDED') < 30 then halt(0);
+         fpsystem('/bin/rm  /etc/artica-postfix/C_ICAP_BUILDED');
+         fpsystem('/bin/touch  /etc/artica-postfix/C_ICAP_BUILDED');
+
+         zinstall.INSTALL_STATUS('APP_C_ICAP',8);
+         zinstall.INSTALL_PROGRESS('APP_C_ICAP','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          ccicap:=cicap.Create;
          if ParamStr(2)='-configure' then begin
@@ -1836,6 +1879,8 @@ begin
 
 
    if ParamStr(1)='APP_CLAMAV_MILTER' then begin
+         zinstall.INSTALL_STATUS('APP_CLAMAV_MILTER',8);
+         zinstall.INSTALL_PROGRESS('APP_CLAMAV_MILTER','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-postfix');
          clamav:=tsetup_clamav.Create;
@@ -1845,6 +1890,8 @@ begin
    end;
 
    if ParamStr(1)='APP_CLAMAV' then begin
+         zinstall.INSTALL_STATUS('APP_CLAMAV',8);
+         zinstall.INSTALL_PROGRESS('APP_CLAMAV','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          clamav:=tsetup_clamav.Create;
          clamav.install_clamav();
@@ -1854,6 +1901,8 @@ begin
    end;
 
    if ParamStr(1)='APP_MILTERGREYLIST' then begin
+         zinstall.INSTALL_STATUS('APP_MILTERGREYLIST',8);
+         zinstall.INSTALL_PROGRESS('APP_MILTERGREYLIST','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-postfix');
 
@@ -1865,6 +1914,8 @@ begin
    end;
 
    if ParamStr(1)='APP_MAILSPY' then begin
+         zinstall.INSTALL_STATUS('APP_MAILSPY',8);
+         zinstall.INSTALL_PROGRESS('APP_MAILSPY','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-postfix');
          mailspy:=milterspy.Create;
@@ -1947,8 +1998,10 @@ begin
 
 
    if ParamStr(1)='APP_AMAVISD_MILTER' then begin
-         fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
-         fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-postfix');
+       zinstall.INSTALL_STATUS('APP_AMAVISD_MILTER',8);
+       zinstall.INSTALL_PROGRESS('APP_AMAVISD_MILTER','{building_dependencies}');
+       fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
+       fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-postfix');
 
        amavis:=amavisd.Create();
        spamassassin:=tspam.Create;
@@ -1974,8 +2027,10 @@ begin
 
 
    if ParamStr(1)='APP_AMAVISD_NEW' then begin
-         fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
-         fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-postfix');
+          zinstall.INSTALL_STATUS('APP_AMAVISD_NEW',8);
+          zinstall.INSTALL_PROGRESS('APP_AMAVISD_NEW','{building_dependencies}');
+          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
+          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-postfix');
           spamassassin:=tspam.Create;
           spamassassin.xinstall();
           amavis:=amavisd.Create();
@@ -2008,6 +2063,8 @@ begin
 
 
    if ParamStr(1)='APP_DSPAM' then begin
+          zinstall.INSTALL_STATUS('APP_DSPAM',8);
+          zinstall.INSTALL_PROGRESS('APP_DSPAM','{building_dependencies}');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-postfix');
          amavis:=amavisd.Create();
@@ -2018,6 +2075,8 @@ begin
 
 
    if ParamStr(1)='APP_IMAPSYNC' then begin
+          zinstall.INSTALL_STATUS('APP_IMAPSYNC',8);
+          zinstall.INSTALL_PROGRESS('APP_IMAPSYNC','{building_dependencies}');
           fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
           imaps:=imapsync.Create();
           imaps.xinstall();
@@ -2026,6 +2085,9 @@ begin
    end;
 
     if ParamStr(1)='APP_OFFLINEIMAP' then begin
+          if sys.FILE_TIME_BETWEEN_MIN('/etc/artica-postfix/APP_OFFLINEIMAP_EXEC')<10 then halt(0);
+          fpsystem('/bin/rm -f /etc/artica-postfix/APP_OFFLINEIMAP_EXEC >/dev/null 2>&1');
+          fpsystem('/bin/touch /etc/artica-postfix/APP_OFFLINEIMAP_EXEC');
           imaps:=imapsync.Create();
           imaps.offlineimap();
           zinstall.EMPTY_CACHE();

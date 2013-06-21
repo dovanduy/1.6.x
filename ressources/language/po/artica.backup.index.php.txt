@@ -1,6 +1,6 @@
-<about>All informations are stored in 2 databases used by Artica.[br]
-LDAP is used for all settings and accounts. Mysql is used for events and product related that use MySQL.[br]
-Artica should backup these settings in order to restore them if this server crash</about>
+<about>Todas as informa&ccedil;&otilde;es s&atilde;o armazenadas em 2 Base de Dados utilizadas pelo Artica. [br]
+O LDAP &eacute; usado para todas as configura&ccedil;&otilde;es e contas. O MySQL &eacute; usado para eventos e produtos relacionados que usam MySQL. [br]
+O Artica deve fazer o backup dessas configura&ccedil;&otilde;es, a fim de restaur&aacute;-los se porventura o Servidor &quot;Crashar&quot;.</about>
 <add_folder>Adicionar uma nova pasta</add_folder>
 <add_has_backup>Add this disk has a backup storage disk</add_has_backup>
 <add_share_folder>Add a new remote share folder</add_share_folder>

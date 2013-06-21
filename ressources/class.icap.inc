@@ -402,6 +402,15 @@ class icap{
 		if(is_file("$modules_path/virus_scan.so")){$result=true;}
 		if($this->ASROOT){echo "Starting......: [ICAP]: $modules_path/virus_scan.so no such file\n";}
 		if(!$result){if($this->ASROOT){echo "Starting......: [ICAP]: C-ICAP Failed, no library found in `$modules_path`\n";}}
+		if(!$result){
+			if($this->ASROOT){
+				$unix=new unix();
+				$nohup=$unix->find_program("nohup");
+				if($this->ASROOT){echo "\n***************\nStarting......: [ICAP]: Installing C-ICAP application !!!!\n\n***************\n";}
+				shell_exec("$nohup /usr/share/artica-postfix/bin/artica-make APP_C_ICAP >/dev/null 2>&1 &");
+			}
+		}
+		
 		return $result;
 	}
 

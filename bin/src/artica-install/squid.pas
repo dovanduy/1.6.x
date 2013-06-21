@@ -1004,23 +1004,10 @@ begin
     result:='';
     binpath:=SQUID_BIN_PATH();
     if not FileExists(binpath) then exit;
-    pidpath:=SQUID_GET_CONFIG('pid_filename');
-
-     if length(pidpath)=0 then begin
-       SQUID_SET_CONFIG('pid_filename',SQUID_DETERMINE_PID_PATH());
-       SQUID_STOP();
-       SQUID_START();
-       pidpath:=SQUID_GET_CONFIG('pid_filename');
-    end;
-
+    pidpath:='/var/run/squid/squid.pid';
     if Not FileExists(pidpath) then exit(SYS.PIDOF(binpath));
-
     result:=SYS.GET_PID_FROM_PATH(pidpath);
     if not SYS.PROCESS_EXIST(result) then result:=SYS.PIDOF(binpath);
-
-    
-
-
 end;
 //##############################################################################
 PROCEDURE tsquid.REMOVE();
@@ -1819,199 +1806,23 @@ logs.Debuglogs('Starting......: squid RealTime log is depreciated, exiting.');
 end;
 //#####################################################################################
 procedure tsquid.TAIL_CACHE_START();
-var
-   pid:string;
-   pidint:integer;
-   log_path:string;
-   count:integer;
-   cmd,startup:string;
-   CountTail:Tstringlist;
 begin
 
 if not FileExists(SQUID_BIN_PATH()) then begin
    logs.Debuglogs('Starting......: squid cache RealTime log squid is not installed');
    exit;
 end;
+    fpsystem('/etc/init.d/cache-tail start');
 
-startup:=TAIL_STARTUP_CACHE;
-pid:=TAIL_CACHE_PID();
-if SYS.PROCESS_EXIST(pid) then begin
-      logs.DebugLogs('Starting......: squid cache RealTime log already running with pid '+pid);
-      CountTail:=Tstringlist.Create;
-      CountTail.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('/usr/bin/tail -f -n 0 /var/log/squid/cache.log'));
-      logs.DebugLogs('Starting......: squid cache RealTime log process number:'+IntToStr(CountTail.Count));
-      if CountTail.Count>3 then fpsystem('/etc/init.d/artica-postfix restart squidcache-tail');
-      CountTail.free;
-      exit;
-end;
-log_path:='/var/log/squid/cache.log';
-
-if not FileExists(log_path) then begin
-   logs.DebugLogs('Starting......: squid cache RealTime log stats, unable to stats logfile');
-   exit;
-end;
-TAIL_CACHE_STOP();
-logs.DebugLogs('Starting......: squid cache RealTime log path: '+log_path);
-
-pid:=SYS.PIDOF_PATTERN('/usr/bin/tail -f -n 0 '+log_path);
-count:=0;
-pidint:=0;
-      while SYS.PROCESS_EXIST(pid) do begin
-          if count>0 then break;
-          if not TryStrToInt(pid,pidint) then continue;
-          logs.DebugLogs('Starting......: squid cache RealTime log stop tail pid '+pid);
-          if pidint>0 then  fpsystem('/bin/kill '+pid);
-          sleep(200);
-          pid:=SYS.PIDOF_PATTERN('/usr/bin/tail -f -n 0 '+log_path);
-          inc(count);
-      end;
-
-cmd:='/usr/bin/tail -f -n 0 '+log_path+'|'+startup+' >>/var/log/artica-postfix/squid-logger-start.log 2>&1 &';
-logs.Debuglogs(cmd);
-fpsystem(cmd);
-pid:=TAIL_CACHE_PID();
-count:=0;
-while not SYS.PROCESS_EXIST(pid) do begin
-        sleep(100);
-        inc(count);
-        if count>40 then begin
-           logs.DebugLogs('Starting......: squid cache RealTime log (timeout)');
-           break;
-        end;
-        pid:=TAIL_CACHE_PID();
-  end;
-
-pid:=TAIL_CACHE_PID();
-
-if SYS.PROCESS_EXIST(pid) then begin
-      logs.DebugLogs('Starting......: squid cache RealTime log success with pid '+pid);
-      exit;
-end;
-logs.DebugLogs('Starting......: squid cache RealTime log failed');
 end;
 //#####################################################################################
 procedure tsquid.TAIL_STOP();
-var
-   pid:string;
-   pidint,i:integer;
-   count:integer;
-   CountTail:Tstringlist;
-   pidDaemon:string;
 begin
-
-pid:=TAIL_PID();
-
-
-
-if not SYS.PROCESS_EXIST(pid) then begin
-      writeln('Stopping squid RealTime log: Already stopped');
-      CountTail:=Tstringlist.Create;
-      try
-         CountTail.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('/usr/bin/tail -f -n 0 /var/log/squid/access.log'));
-         writeln('Stopping squid RealTime log: Tail processe(s) number '+IntToStr(CountTail.Count));
-      except
-        logs.Debuglogs('Stopping squid RealTime log: fatal error on SYS.PIDOF_PATTERN_PROCESS_LIST() function');
-      end;
-
-      count:=0;
-     for i:=0 to CountTail.Count-1 do begin;
-          pid:=CountTail.Strings[i];
-          if count>100 then break;
-          if not TryStrToInt(pid,pidint) then continue;
-          writeln('Stopping squid RealTime log: Stop tail pid '+pid);
-          if pidint>0 then  fpsystem('/bin/kill '+pid);
-          sleep(100);
-          inc(count);
-      end;
-      exit;
-end;
-
-writeln('Stopping squid RealTime log: Stopping pid '+pid);
-fpsystem('/bin/kill '+pid);
-
-pid:=TAIL_PID();
-if not SYS.PROCESS_EXIST(pid) then begin
-      writeln('Stopping squid RealTime log: Stopped');
-end;
-
-
-CountTail:=Tstringlist.Create;
-CountTail.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('/usr/bin/tail -f -n 0 /var/log/squid/access.log'));
-writeln('Stopping squid RealTime log: Tail processe(s) number '+IntToStr(CountTail.Count));
-count:=0;
-     for i:=0 to CountTail.Count-1 do begin;
-          pid:=CountTail.Strings[i];
-          if count>100 then break;
-          if not TryStrToInt(pid,pidint) then continue;
-          writeln('Stopping squid RealTime log: Stop tail pid '+pid);
-          if pidint>0 then  fpsystem('/bin/kill '+pid);
-          sleep(100);
-          inc(count);
-      end;
-
-
 end;
 //####################################################################################
 procedure tsquid.TAIL_CACHE_STOP();
-var
-   pid:string;
-   pidint,i:integer;
-   count:integer;
-   CountTail:Tstringlist;
-   pidDaemon:string;
 begin
-
-pid:=TAIL_CACHE_PID();
-
-
-
-if not SYS.PROCESS_EXIST(pid) then begin
-      writeln('Stopping squid cache RealTime log: Already stopped');
-      CountTail:=Tstringlist.Create;
-      try
-         CountTail.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('/usr/bin/tail -f -n 0 /var/log/squid/cache.log'));
-         writeln('Stopping squid cache RealTime log: Tail processe(s) number '+IntToStr(CountTail.Count));
-      except
-        logs.Debuglogs('Stopping cache squid RealTime log: fatal error on SYS.PIDOF_PATTERN_PROCESS_LIST() function');
-      end;
-
-      count:=0;
-     for i:=0 to CountTail.Count-1 do begin;
-          pid:=CountTail.Strings[i];
-          if count>100 then break;
-          if not TryStrToInt(pid,pidint) then continue;
-          writeln('Stopping cache squid RealTime log: Stop tail pid '+pid);
-          if pidint>0 then  fpsystem('/bin/kill '+pid);
-          sleep(100);
-          inc(count);
-      end;
-      exit;
-end;
-
-writeln('Stopping cache squid RealTime log: Stopping pid '+pid);
-fpsystem('/bin/kill '+pid);
-
-pid:=TAIL_CACHE_PID();
-if not SYS.PROCESS_EXIST(pid) then begin
-      writeln('Stopping cache squid RealTime log: Stopped');
-end;
-
-
-CountTail:=Tstringlist.Create;
-CountTail.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('/usr/bin/tail -f -n 0 /var/log/squid/cache.log'));
-writeln('Stopping squid RealTime log: Tail processe(s) number '+IntToStr(CountTail.Count));
-count:=0;
-     for i:=0 to CountTail.Count-1 do begin;
-          pid:=CountTail.Strings[i];
-          if count>100 then break;
-          if not TryStrToInt(pid,pidint) then continue;
-          writeln('Stopping cache squid RealTime log: Stop tail pid '+pid);
-          if pidint>0 then  fpsystem('/bin/kill '+pid);
-          sleep(100);
-          inc(count);
-      end;
-
-
+ fpsystem('/etc/init.d/cache-tail stop');
 end;
 //####################################################################################
 procedure tsquid.TAIL_SOCK_STOP();

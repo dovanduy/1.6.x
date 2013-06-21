@@ -47,6 +47,13 @@ function tabs(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$filters_settings=$tpl->_ENGINE_parse_body('{antispam_filters}');
+	
+	if($users->AMAVIS_INSTALLED){
+		$array["amavis"]='{APP_AMAVISD_NEW}';
+		
+	}
+	
+	
 	$array["synthesis"]='{synthesis}';
 	$array["postfix"]='{mta_policies}';
 	$array["status"]='{mailplugins}';
@@ -62,6 +69,13 @@ function tabs(){
 	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";$height="100%";}
 
 	while (list ($num, $ligne) = each ($array) ){
+		if($num=="amavis"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.index.php?ajax-pop=yes&in-front-ajax=yes\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		
+		
 		if($num=="antispam"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.index.php?main=filters\"><span>$ligne</span></a></li>\n");
 			continue;
@@ -87,7 +101,7 @@ function tabs(){
 	
 	
 	echo "
-	<div id=main_config_postfix_security style='width:100%;height:$height;overflow:auto;$fontsize'>
+	<div id=main_config_postfix_security style='width:103%;$fontsize'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -314,6 +328,9 @@ function status_list(){
 	if($users->CLAMD_INSTALLED){
 		$EnableClamavDaemon=$sock->GET_INFO("EnableClamavDaemon");
 		if(!is_numeric($EnableClamavDaemon)){$EnableClamavDaemon=0;}
+		$EnableClamavDaemonForced=$sock->GET_INFO("EnableClamavDaemonForced");
+		if(!is_numeric($EnableClamavDaemonForced)){$EnableClamavDaemonForced=0;}
+		if($EnableClamavDaemonForced==1){$EnableClamavDaemon=1;}		
 		$array["CLAMAV"]["JS"]="Loadjs('clamav.enable.php')";
 		$array["CLAMAV"]["INSTALLED"]=True;
 		$array["CLAMAV"]["ENABLED"]=$EnableClamavDaemon;

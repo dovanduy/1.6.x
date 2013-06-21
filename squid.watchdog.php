@@ -234,6 +234,9 @@ function popup(){
 	if($MonitConfig["ExternalPageToCheck"]==null){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}	
 	$ExternalPageToCheck=$MonitConfig["ExternalPageToCheck"];
 	
+	$MaxSwapPourc=$MonitConfig["MaxSwapPourc"];
+	if(!is_numeric($MaxSwapPourc)){$MaxSwapPourc=10;}
+	
 	$MONIT_INSTALLED=0;
 	$users=new usersMenus();
 	if($users->MONIT_INSTALLED){$MONIT_INSTALLED=1;}
@@ -259,6 +262,11 @@ function popup(){
 				<td style='font-size:14px'>". Field_text("$t-watchdogMEM", $MonitConfig["watchdogMEM"],"font-size:14px;width:60px")."&nbsp;MB</td>
 				<td>&nbsp;</td>
 			</tr>
+			<tr>
+				<td class=legend style='font-size:14px'>{MaxSwapPourc}:</td>
+				<td style='font-size:14px'>". Field_text("$t-MaxSwapPourc", $MaxSwapPourc,"font-size:14px;width:60px")."&nbsp;%</td>
+				<td>&nbsp;</td>
+			</tr>						
 			<tr>
 				<td class=legend style='font-size:14px'>{minimum_reload_interval}:</td>
 				<td style='font-size:14px'>". Field_text("$t-SquidCacheReloadTTL", $SquidCacheReloadTTL,"font-size:14px;width:60px")."&nbsp;{minutes}</td>
@@ -313,6 +321,9 @@ function popup(){
 		XHR.appendData('ExternalPageToCheck',document.getElementById('$t-ExternalPageToCheck').value);
 		XHR.appendData('MgrInfosMaxTimeOut',document.getElementById('$t-MgrInfosMaxTimeOut').value);
 		XHR.appendData('SquidCacheReloadTTL',document.getElementById('$t-SquidCacheReloadTTL').value);
+		XHR.appendData('MaxSwapPourc',document.getElementById('$t-MaxSwapPourc').value);
+		
+		
 		AnimateDiv('$t');
 		XHR.sendAndLoad('$page', 'POST',x_{$t}_SaveInstance);
 	}	

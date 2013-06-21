@@ -1262,11 +1262,23 @@ class dansguardian_rules{
 	}	
 	
 	function DelPersonalCategory($index){
-		writelogs("Delete content id $index",__CLASS__.'/'.__FUNCTION__,__FILE__);
-		$sql="DELETE FROM dansguardian_personal_categories WHERE ID=$index";
-		$q=new mysql();
-		$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){writelogs("$q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__);return;}	
+		if(is_numeric($index)){
+			writelogs("Delete content id $index",__CLASS__.'/'.__FUNCTION__,__FILE__);
+			$sql="DELETE FROM dansguardian_personal_categories WHERE ID=$index";
+			$q=new mysql();
+			$q->QUERY_SQL($sql,"artica_backup");
+			if(!$q->ok){writelogs("$q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__);return;}
+		}else{
+			$sql="DELETE FROM dansguardian_personal_categories WHERE category='$index'";
+			$q=new mysql();
+			$q->QUERY_SQL($sql,"artica_backup");
+			
+			
+			$q=new mysql_squid_builder();
+			$q->QUERY_SQL("DELETE FROM personal_categories WHERE `category`='$index'");
+			if(!$q->ok){writelogs("$q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__);return;}
+			
+		}	
 		$sock=new sockets();
 		$this->RestartFilters();				
 		

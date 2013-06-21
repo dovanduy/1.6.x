@@ -31,7 +31,11 @@ class postfix_system{
 	private function queue_directory(){
 		$postconf=$this->LOCATE_POSTCONF();
 		if($postconf==null){return null;}
-		return trim(shell_exec("$postconf -h queue_directory"));
+		exec("$postconf -h queue_directory 2>&1",$results);
+		return trim($results[0]);
+		
+		
+		
 		}
 		
 	public function getQueuesNumber(){
@@ -84,7 +88,7 @@ private	 function DirListFiles($dir,$recursive = TRUE) {
 
 	private function QUEUE_PATH(){
 		if($GLOBALS["POSTFIX_QUEUE_PATH"]<>null){return $GLOBALS["POSTFIX_QUEUE_PATH"];}
-		exec("/usr/sbin/postconf -h queue_directory",$results);
+		exec("/usr/sbin/postconf -h queue_directory 2>&1",$results);
 		$GLOBALS["POSTFIX_QUEUE_PATH"]=$results[0];
 		return $results[0];
 		

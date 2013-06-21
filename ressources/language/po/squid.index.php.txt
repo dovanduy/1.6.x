@@ -2,7 +2,7 @@
 <access_list>Rules list</access_list>
 <access_rule>Access rule</access_rule>
 <access_rules>Access rules</access_rules>
-<access_rules_back>Restore Default rules</access_rules_back>
+<access_rules_back>Repor regras padr&atilde;o</access_rules_back>
 <access_rules_back_text>This will rebuild to default access rules, [b]all your rules settings will be deleted[/b] and rebuild</access_rules_back_text>
 <access_rules_text>Allowing or Denying access based on defined access lists[br]
 "Access Control list" are linked to a rule statement that tells Squid whether or not to deny or allow traffic that matches the ACL.[br]
@@ -11,7 +11,7 @@ If it finds a match, it enforces the allow or deny statement and stops reading f
 You have to be careful not to place a deny statement in the list that blocks a similar allow statement below it.
 </access_rules_text>
 <acl>Acl</acl>
-<acls>Access Control list</acls>
+<acls>Acesso h&aacute; Lista de Controlo</acls>
 <acls_text>Access control settings are among the most important features of Squid.[br]
 You can configure Squid to set filters for various entities and at different granularities (e.g. filters for specific protocols,
 filters for certain types of commands, filters for specific routers, filters for specified domains, etc).[br]
@@ -112,7 +112,7 @@ In your Squid.conf configuration file you would write something like this,
 will allow a maximum of 5 http connection to access
 </acl_maxconn_text>
 <acl_maxconn_title>Matches when the client's IP address has more than the specified number of HTTP connections established</acl_maxconn_title>
-<acl_max_user_ip>Max User IP</acl_max_user_ip>
+<acl_max_user_ip>N&ordm; Max de IP&acute;s Utilizador</acl_max_user_ip>
 <acl_max_user_ip_text>If -s is specified then the limit is strict, denying browsing from any further IP addresses until the ttl has expired.[br]
 Without -s Squid will just annoy the user by "randomly" denying requests.[br]
 (the counter is then reset each time the limit is reached and a request is denied).[br]

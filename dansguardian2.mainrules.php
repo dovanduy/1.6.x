@@ -1,4 +1,5 @@
 <?php
+
 	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -21,6 +22,7 @@ if(isset($_GET["rules-toolbox"])){rules_toolbox();exit;}
 if(isset($_GET["dansguardian-status"])){status_left();exit;}
 if(isset($_POST["DansGuardianDeleteMainRule"])){delete_rule();exit;}
 if(isset($_GET["rules-table"])){rules_table();exit;}
+if(isset($_POST["rule-move"])){rule_move();exit;}
 if(isset($_GET["rules-table-list"])){rules_table_list();exit;}
 if(isset($_GET["rules-toolbox-left"])){rules_toolbox_left();exit;}
 if(isset($_POST["EnableUFDB2"])){EnableUFDB2();exit;}
@@ -238,7 +240,7 @@ function tabs(){
 	
 	$html= "
 	<center><div id='rules-toolbox'></div></center>
-	<div id=main_dansguardian_mainrules style='width:100%;overflow:auto'>
+	<div id=main_dansguardian_mainrules style='width:101%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -255,44 +257,7 @@ function tabs(){
 
 
 
-function TimeToText($TimeSpace){
-	$RuleBH=array("inside"=>"{inside_time}","outside"=>"{outside_time}","none"=>"{disabled}");
-	if($TimeSpace["RuleMatchTime"]==null){$TimeSpace["RuleMatchTime"]="none";}
-	if($TimeSpace["RuleAlternate"]==null){$TimeSpace["RuleAlternate"]="none";}	
-	if($TimeSpace["RuleMatchTime"]=="none"){return;}
-	$q=new mysql_squid_builder();
-	
-	$RULESS["none"]="{none}";
-	$RULESS[0]="{default}";
-	$sql="SELECT ID,enabled,groupmode,groupname FROM webfilter_rules WHERE enabled=1 ORDER BY groupname";
-	$results=$q->QUERY_SQL($sql);
-	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){$RULESS[$ligne["ID"]]=$ligne["groupname"];}	
-	
-	
-	$daysARR=array("m"=>"Monday","t"=>"Tuesday","w"=>"Wednesday","h"=>"Thursday","f"=>"Friday","a"=>"Saturday","s"=>"Sunday");	
-	while (list ($TIMEID, $array) = each ($TimeSpace["TIMES"]) ){
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$dd=array();
-		if(!is_array($array["DAYS"])){return;}
-		
-		while (list ($day, $val) = each ($array["DAYS"])){if($val==1){$dd[]="{{$daysARR[$day]}}";}}
-		$daysText=@implode(", ", $dd);
-		
-	if(strlen($array["BEGINH"])==1){$array["BEGINH"]="0{$array["BEGINH"]}";}
-	if(strlen($array["BEGINM"])==1){$array["BEGINM"]="0{$array["BEGINM"]}";}
-	if(strlen($array["ENDH"])==1){$array["ENDH"]="0{$array["ENDH"]}";}
-	if(strlen($array["ENDM"])==1){$array["ENDM"]="0{$array["ENDM"]}";}
 
-	$f[]="<div style='font-weight:normal'>{$RuleBH[$TimeSpace["RuleMatchTime"]]} $daysText {from} {$array["BEGINH"]}:{$array["BEGINM"]} {to} {$array["ENDH"]}:{$array["ENDM"]} {then}
-	 {alternate_rule} {to} {$RULESS[$TimeSpace["RuleAlternate"]]}</div>";		
-		
-	}
-	
-	
-	return @implode("\n", $f);
-
-	
-}
 
 
 function rules_ufdb_not_installed(){
@@ -334,9 +299,9 @@ function rules(){
 	
 	if(!$users->APP_UFDBGUARD_INSTALLED){rules_ufdb_not_installed();return;}
 	
-	$html="<table style='width:100%'>
+	$html="<table style='width:100%' class='TableRemove TableMarged'>
 	<tr>
-	<td valign='top' width=5%><div id='rules-toolbox-left' style='margin-left:-18px;'></div></td>
+	<td valign='top' width=5%><div id='rules-toolbox-left'></div></td>
 	<td valign='top' width=99% style='padding-left:8px'><div id='rules-table'></div></td>
 	</tr>
 	</table>
@@ -351,6 +316,14 @@ function rules(){
 
 
 function rules_toolbox_left(){
+	if(!isset($_GET["t"])){$_GET["t"]=time();}
+/*	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string',"<p class=text-error>");
+	ini_set('error_append_string',"</p>");
+	
+*/	
+	$updateutility=null;
 	$q=new mysql_squid_builder();
 	$page=CurrentPageName();
 	$tpl=new templates();	
@@ -359,8 +332,14 @@ function rules_toolbox_left(){
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	$Computers=$q->COUNT_ROWS("webfilters_nodes");
+	
+	if(!$q->TABLE_EXISTS("webfilter_certs")){$q->CheckTables();}
+	if($q->COUNT_ROWS("webfilter_certs")==0){$q->fill_webfilter_certs();}
+	
 	$Computers=numberFormat($Computers,0,""," ");
 	$sock=new sockets();
+	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 
 	$UsersRequests=$q->COUNT_ROWS("webfilters_usersasks");
 
@@ -370,6 +349,8 @@ function rules_toolbox_left(){
 	$todayblocked=date("Ymd")."_blocked";
 	$CountDeBlocked=$sql=$q->COUNT_ROWS($todayblocked);
 	$CountDeBlocked=numberFormat($CountDeBlocked,0,""," ");
+	
+	$disable_service=$tpl->_ENGINE_parse_body("{disable_service}");
 	
 	$datasUFDB=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
 	if(!is_numeric($datasUFDB["DebugAll"])){$datasUFDB["DebugAll"]=0;}
@@ -400,20 +381,40 @@ function rules_toolbox_left(){
 	}
 	
 	
+	if($EnableUfdbGuard==1){
+		$DisableUfdbGuard="
+			<tr>
+		<td valign='middle' width=1%><img src='img/ok32.png'></td>
+		<td valign='middle' width=99%>
+			<table style='width:100%'>
+			<tr>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='middle' $mouse style='font-size:13px;text-decoration:underline' 
+				OnClick=\"javascript:Loadjs('squid.disableUfdb.php')\" nowrap><b>$disable_service</td>
+			</tr>
+			</table>
+		</td>
+		</tr>		
+		";
+		
+	}
+	
+	
 	
 	$html="
 	<table style='width:95%' class=form>
+	$DisableUfdbGuard
 	<tr>
-	<td valign='middle' width=1%><img src='img/computer-32.png'></td>
-	<td valign='middle' width=99%>
-		<table style='width:100%'>
-		<tr>
-			<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
-			<td valign='middle' $mouse style='font-size:13px;text-decoration:underline' 
-			OnClick=\"javascript:Loadjs('squid.nodes.php')\" nowrap><b>$Computers</b> {computers}</td>
-		</tr>
-		</table>
-	</td>
+		<td valign='middle' width=1%><img src='img/computer-32.png'></td>
+		<td valign='middle' width=99%>
+			<table style='width:100%'>
+			<tr>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='middle' $mouse style='font-size:13px;text-decoration:underline' 
+				OnClick=\"javascript:Loadjs('squid.nodes.php')\" nowrap><b>$Computers</b> {computers}</td>
+			</tr>
+			</table>
+		</td>
 	</tr>
 	
 	<tr>
@@ -522,9 +523,7 @@ function rules_toolbox_left(){
 	
 	";
 	
-	$sock=new sockets();
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
-	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
+
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");		
@@ -567,32 +566,35 @@ function rules_toolbox_left(){
 		}
 		
 		if($EnableWebProxyStatsAppliance==0){
-		if(trim($sock->getFrameWork("squid.php?isufdbguard-squidconf=yes"))<>"OK"){
-			echo $tpl->_ENGINE_parse_body("
-					<div id='$t-2'>
-					<table style='width:95%;margin-bottom:20px' class=form>
-					<tr>
-					<td valign='top' width=99%>
-					<div style='font-size:14px;color:#CC0A0A'>
-					<img src='img/info-48.png' style='float:left;margin:3px'>
-					<span style='font-size:11px'>{warn_ufdbguard_not_squidconf}</span>
-					<table style='width:100%'>
-					<tr>
-					<td width=1%><img src='img/arrow-right-16.png'></td>
-					<td width=99%><a href=\"javascript:blur();\" 
-		OnClick=\"javascript:Loadjs('squid.compile.progress.php');\"
-		style='font-size:12px;text-decoration:underline'>{APP_SQUID}:{reconfigure}</a></td>
-					</tr>
-					</table>
-					</div>
-					</td>
-					</tr>
-					</table>
-					</div>");			
-			
-		}
+			if(trim($sock->getFrameWork("squid.php?isufdbguard-squidconf=yes"))<>"OK"){
+				echo $tpl->_ENGINE_parse_body("
+						<div id='$t-2'>
+						<table style='width:95%;margin-bottom:20px' class=form>
+						<tr>
+						<td valign='top' width=99%>
+						<div style='font-size:14px;color:#CC0A0A'>
+						<img src='img/info-48.png' style='float:left;margin:3px'>
+						<span style='font-size:11px'>{warn_ufdbguard_not_squidconf}</span>
+						<table style='width:100%'>
+						<tr>
+						<td width=1%><img src='img/arrow-right-16.png'></td>
+						<td width=99%><a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('squid.compile.progress.php');\"
+			style='font-size:12px;text-decoration:underline'>{APP_SQUID}:{reconfigure}</a></td>
+						</tr>
+						</table>
+						</div>
+						</td>
+						</tr>
+						</table>
+						</div>");			
+				
+				}
 		
 		}
+		
+		
+		
 		
 	}
 	
@@ -619,17 +621,8 @@ function rules_toolbox_left(){
 	</table>
 	</div>
 	<script>
-	var x_EnableUFDB2=function(obj){
-      var tempvalue=obj.responseText;
-      if(tempvalue.length>3){alert(tempvalue);}
-      RefreshTab('main_dansguardian_mainrules');
-	  }
-	
 	function EnableUFDB2(){
-	  var XHR = new XHRConnection();
-      XHR.appendData('EnableUFDB2','yes');
-      AnimateDiv('$t');
-      XHR.sendAndLoad('$page', 'POST',x_EnableUFDB2);
+	  Loadjs('squid.EnableUfdb.php');
 	 }	
 	
 	</script>
@@ -646,10 +639,11 @@ function rules_table(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
+	$webfilter=new webfilter_rules();
 	$t=time();	
 	$add_rule=$tpl->_ENGINE_parse_body("{new_rule}");
 	$rule_text=$tpl->_ENGINE_parse_body("{rule}");
-	$TimeSpace=TimeToText(unserialize(base64_decode($ligne["TimeSpace"])));
+	$TimeSpace=$webfilter->TimeToText(unserialize(base64_decode($ligne["TimeSpace"])));
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
 	$groups=$tpl->_ENGINE_parse_body("{groups}");
@@ -662,12 +656,16 @@ function rules_table(){
 	$global_parameters=$tpl->_ENGINE_parse_body("{global_parameters}");
 	$ldap_parameters=$tpl->_ENGINE_parse_body("{ldap_parameters2}");
 	$config_file=$tpl->_ENGINE_parse_body("{config_file}");
+	$categories_group=$tpl->_ENGINE_parse_body("{categories_groups}");
+	
 	$error_ldap=null;
 	$buttons="
 	buttons : [
-	{name: '$add_rule', bclass: 'add', onpress : DansGuardianNewRule},
-	{name: '$compile_rules', bclass: 'Reconf', onpress : CompileUfdbGuardRules},
-	{name: '$global_parameters', bclass: 'Settings', onpress : UfdbGuardConfigs},
+	{name: '<strong style=font-size:12px;>$add_rule</strong>', bclass: 'add', onpress : DansGuardianNewRule},
+	{name: '<strong style=font-size:12px;font-weight:bold>$compile_rules</strong>', bclass: 'Reconf', onpress : CompileUfdbGuardRules},
+	{name: '<strong style=font-size:12px;font-weight:bold>$categories_group</strong>', bclass: 'group', onpress : CategoriesGroups},
+	{name: '<strong style=font-size:12px;font-weight:bold>$global_parameters</strong>', bclass: 'Settings', onpress : UfdbGuardConfigs},
+	
 	
 	
 	],";
@@ -707,13 +705,13 @@ function rules_table(){
 	</div>");}
 	}	
 	
-$TBSIZE=223;
-$TBWIDTH=615;
-if($tpl->language=="fr"){$TBSIZE=204;$TBWIDTH=610;}
+$TBSIZE=157;
+$TBWIDTH=636;
+if($tpl->language=="fr"){$TBSIZE=175;$TBWIDTH=636;}
 	//{display: '&nbsp;', name : 'dup', width :31, sortable : false, align: 'center'}, 
 	
 $html="
-<div style='margin-left:-10px;margin-right:-10px'>
+<div>
 $error_ldap
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 </div>
@@ -728,14 +726,15 @@ $('#flexRT$t').flexigrid({
 		{display: '$groups', name : 'topattern', width :57, sortable : false, align: 'center'},
 		{display: '$blacklists', name : 'enabled', width : 101, sortable : false, align: 'center'},
 		{display: '$whitelists', name : 'delete', width : 91, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'zOrder', width :42, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'dup', width :31, sortable : false, align: 'center'},
-		{display: '$delete', name : 'delete', width : 32, sortable : false, align: 'center'},
+		{display: '$delete', name : 'delete', width : 31, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
 		{display: '$rule_text', name : 'groupname'},
 		],
-	sortname: 'groupname',
+	sortname: 'zOrder',
 	sortorder: 'asc',
 	usepager: true,
 	title: '',
@@ -762,12 +761,29 @@ $('#flexRT$t').flexigrid({
 		Loadjs('$page?CompileUfdbGuardRules=yes');
 	}
 	
+	function CategoriesGroups(){
+		Loadjs('dansguardian2.categories.group.php?tSource=$t');
+	}
+	
 	function UfdbGuardConfigs(){
 		Loadjs('ufdbguard.php');
 	}
 	
 	function UfdbguardEvents(){
 		Loadjs('$page?UfdbguardEvents=yes');
+	}
+	var x_RuleDansUpDown$t= function (obj) {
+		var res=obj.responseText;
+		if(res.length>3){alert(res);return;}
+		$('#flexRT$t').flexReload();
+	}	
+
+		
+	function RuleDansUpDown(ID,dir){
+		var XHR = new XHRConnection();
+		XHR.appendData('rule-move', ID);
+		XHR.appendData('rule-dir', dir);
+		XHR.sendAndLoad('$page', 'POST',x_RuleDansUpDown$t);	
 	}
 	
 
@@ -808,7 +824,13 @@ function rules_table_list(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
+	$webfilter=new webfilter_rules();
+	if(!$q->FIELD_EXISTS("webfilter_rules", "zOrder")){$q->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `zOrder` SMALLINT(2) NOT NULL,ADD INDEX ( `zOrder` )");}
+	if(!$q->ok){json_error_show("$q->mysql_error");}	
 	
+	if(!$q->FIELD_EXISTS("webfilter_rules", "AllSystems")){$q->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `AllSystems` SMALLINT(1),ADD INDEX ( `AllSystems` )");}	
+	if(!$q->ok){json_error_show("$q->mysql_error");}
+	$sock=new sockets();
 	$t=$_GET["t"];
 	$search='%';
 	$table="webfilter_rules";
@@ -842,52 +864,34 @@ function rules_table_list(){
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	
 
-	
+	if(!is_numeric($rp)){$rp=50;}
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	$results = $q->QUERY_SQL($sql);
+	if($GLOBALS["VERBOSE"]){echo "$sql<br>\n";}
 	writelogs($sql." ==> ". mysql_num_rows($results)." items",__FUNCTION__,__FILE__,__LINE__);
+	
+	$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
+	$DefaultPosition=$ligne["defaultPosition"];
+	if(!is_numeric($DefaultPosition)){$DefaultPosition=0;}
 	
 	
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total+1;
 	$data['rows'] = array();
+	$tmplate=$tpl->_ENGINE_parse_body("{template}");
 	
-	if(!$q->ok){json_error_show("$q->mysql_error");}		
+	if(!$q->ok){json_error_show("$q->mysql_error");}	
 	
+	$AllSystems=$tpl->_ENGINE_parse_body("{AllSystems}");
 	
-	$js="DansGuardianEditRule('0','default')";
-	$jsblack="<a href=\"javascript:blur();\"
-	OnClick=\"javascript:document.getElementById('anim-img-0').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-blacklist-list=yes&RULEID=0&modeblk=0&group=&TimeID=&t=$t');\"
-	style='text-decoration:underline;font-weight:bold'>";
+	if($DefaultPosition==0){
+		$data['rows'][]=DefaultRule();
+	}
 
-	
-	$jswhite="<a href=\"javascript:blur();\"
-	OnClick=\"javascript:document.getElementById('anim-img-0').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-blacklist-list=yes&RULEID=0&modeblk=1&group=&TimeID=&t=$t');\"
-	style='text-decoration:underline;font-weight:bold'>";	
-	
-	$delete="&nbsp;";
-	$duplicate=imgsimple("duplicate-24.png",null,"Loadjs('dansguardian2.duplicate.php?default-rule=yes&t=$t')");
-	$sock=new sockets();
-	$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
-	$TimeSpace=rule_time_list_explain($ligne["TimeSpace"],0,$t);
-	
-	$data['rows'][] = array(
-		'id' => $ligne['ID'],
-		'cell' => array(
-			"<span id='anim-img-0'></span><a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;text-decoration:underline'>Default</a>
-			$TimeSpace". rules_dans_time_rule(0)."
-			
-			",
-			"<span style='font-size:14px'>-</span>",
-			"<span style='font-size:14px'>&laquo;&nbsp;$jsblack". COUNTDEGBLKS(0)."</a>&nbsp;&raquo;</span>",
-			"<span style='font-size:14px'>&laquo;&nbsp;$jswhite". COUNTDEGBWLS(0)."</a>&nbsp;&raquo;</span>",
-			"$duplicate",
-			$delete )
-		);
 	
 while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=$ligne["ID"];
@@ -896,12 +900,14 @@ while ($ligne = mysql_fetch_assoc($results)) {
 		$delete=imgtootltip("delete-24.png","{delete}","DansGuardianDeleteMainRule('{$ligne["ID"]}')");
 		
 		$js="DansGuardianEditRule('{$ligne["ID"]}','{$ligne["groupname"]}');";
-		$TimeSpace=TimeToText(unserialize(base64_decode($ligne["TimeSpace"])));
+		if($GLOBALS["VERBOSE"]){echo "<HR>webfilter->rule_time_list_from_ruleid({$ligne["ID"]})<HR><br>\n";}
+		
+		
 		
 		$color="black";
 		if($ligne["enabled"]==0){$color="#CCCCCC";}
 		
-		$rules_dans_time_rule=rules_dans_time_rule($ligne["ID"]);
+		
 		if($ligne["groupmode"]==0){
 			$warn="<div style='float:right'><img src='img/stop-24.png'></div>";
 		}		
@@ -920,143 +926,156 @@ while ($ligne = mysql_fetch_assoc($results)) {
 	style='text-decoration:underline;font-weight:bold'>";		
 		
 		
-		$TimeSpace=rule_time_list_explain($ligne["TimeSpace"],$ligne["ID"],$t);
+		$TimeSpace=$webfilter->rule_time_list_explain($ligne["TimeSpace"],$ligne["ID"],$t);
+    	$TimeSpace=str_replace('\n\n', "<br>", $TimeSpace);
+		
+		$styleupd="style='border:0px;margin:0px;padding:0px;background-color:transparent'";
+		$up=imgsimple("arrow-up-16.png","","RuleDansUpDown('{$ligne['ID']}',1)");
+		$down=imgsimple("arrow-down-18.png","","RuleDansUpDown('{$ligne['ID']}',0)");
+		$zorder="<table $styleupd><tr><td $styleupd>$down</td $styleupd><td $styleupd>$up</td></tr></table>";		
+		
+		
+		$CountDeGroups="&laquo;&nbsp;$jswhite$jsGroups".$webfilter->COUNTDEGROUPES($ligne["ID"])."</a>&nbsp;&raquo;";
+		
+		if($ligne["AllSystems"]==1){
+			$jsGroups="*";
+			$CountDeGroups="*";
+		}
+		
+		$jtemplate="&nbsp;<a href=\"javascript:blur();\"
+		OnClick=\"javascript:document.getElementById('anim-img-{$ligne['ID']}').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian.template.php?js=yes&ID={$ligne["ID"]}');\"
+		style='text-decoration:underline;font-weight:normal;color:$color;'>&laquo;$tmplate&raquo;</a>";		
+		
 
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
-			"<span id='anim-img-{$ligne["ID"]}'></span><a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;color:$color;text-decoration:underline'>{$ligne["groupname"]}</a>
-			$TimeSpace",
-			"<span style='font-size:14px;color:$color;'>$jsGroups&laquo;&nbsp;". COUNTDEGROUPES($ligne["ID"])."&nbsp;&raquo;</a></span>",
-			"<span style='font-size:14px;color:$color;'>&laquo;&nbsp;$jsblack". COUNTDEGBLKS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
-			"<span style='font-size:14px;color:$color;'>&laquo;&nbsp;$jswhite". COUNTDEGBWLS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
+			"<span id='anim-img-{$ligne["ID"]}'></span>
+				<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" 
+				style='font-size:14px;color:$color;text-decoration:underline'>{$ligne["groupname"]}</a>
+			$TimeSpace$jtemplate",
+			"<span style='font-size:14px;color:$color;'>$CountDeGroups</span>",
+			"<span style='font-size:14px;color:$color;'>&laquo;&nbsp;$jsblack". $webfilter->COUNTDEGBLKS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
+			"<span style='font-size:14px;color:$color;'>&laquo;&nbsp;$jswhite". $webfilter->COUNTDEGBWLS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
+			$zorder,
 			$duplicate,
 			$delete )
 		);
 	}
 	
-	
-	
+	if($DefaultPosition==1){
+		$data['rows'][]=DefaultRule();
+	}	
+
 	
 echo json_encode($data);	
 
 }
-function rule_time_list_explain($TimeSpace,$ID,$t){
+
+function DefaultRule(){
+	$t=$_GET["t"];
+	$sock=new sockets();
+	$webfilter=new webfilter_rules();
 	$tpl=new templates();
-	$MyPage=CurrentPageName();
-	$TimeSpace=unserialize(base64_decode($TimeSpace));
-	if(!is_array($TimeSpace)){return null;}
-	if(count($TimeSpace["TIMES"])==0){return null;}
-	$daysARR=array("m"=>"Monday","t"=>"Tuesday","w"=>"Wednesday","h"=>"Thursday","f"=>"Friday","a"=>"Saturday","s"=>"Sunday");
-	$rule_text=$tpl->javascript_parse_text("{rule}");
-
-	while (list ($TIMEID, $array) = each ($TimeSpace["TIMES"]) ){
-
-		$dd=array();
-		if(is_array($array["DAYS"])){
-			while (list ($day, $val) = each ($array["DAYS"])){if($val==1){$dd[]="{{$daysARR[$day]}}";}}
-			$daysText=@implode(", ", $dd);
-		}
-		if(strlen($array["BEGINH"])==1){$array["BEGINH"]="0{$array["BEGINH"]}";}
-		if(strlen($array["BEGINM"])==1){$array["BEGINM"]="0{$array["BEGINM"]}";}
-		if(strlen($array["ENDH"])==1){$array["ENDH"]="0{$array["ENDH"]}";}
-		if(strlen($array["ENDM"])==1){$array["ENDM"]="0{$array["ENDM"]}";}
-		$daysText=$daysText."<br>{from} {$array["BEGINH"]}:{$array["BEGINM"]}<br>{to} {$array["ENDH"]}:{$array["ENDM"]}";
-
-
-
-		$href="<a href=\"javascript:blur()\"
-		OnClick=\"javascript:YahooWin5(550,'dansguardian2.edit.php?rule-time-ID=yes&TIMEID=$TIMEID&ID=$ID&t=$t','$rule_text:$TIMEID');\"
-		style='font-size:11px;text-decoration:underline'>";
-
-
-		$textfinal=$tpl->javascript_parse_text("{each} $daysText");
-
-
-		$FINAL[]="<div>$href<i>$textfinal</i></a></div>";
-	}
-	if(count($FINAL)>0){return @implode("\n", $FINAL);}
-	//rule_time_list_explain($ligne["TimeSpace"]);
-
-}
-
-
-
-function rules_dans_time_rule($RULEID){
-	$q=new mysql_squid_builder();
-	$tpl=new templates();
-	$sql="SELECT * FROM webfilters_dtimes_rules WHERE ruleid='$RULEID' and enabled=1";
-	$results = $q->QUERY_SQL($sql);
-	if(mysql_num_rows($results)==0){return;}
-	$text="<table style='width:100%'><tbody>";
-	while ($ligne = mysql_fetch_assoc($results)) {
-$ligne['TimeName']=utf8_encode($ligne['TimeName']);
-		$TimeSpace=unserialize($ligne["TimeCode"]);
-		$days=array("0"=>"Monday","1"=>"Tuesday","2"=>"Wednesday","3"=>"Thursday","4"=>"Friday","5"=>"Saturday","6"=>"Sunday");
-		$f=array();
-		while (list ($num, $val) = each ($TimeSpace["DAYS"]) ){	
-			if($num==array()){continue;}
-			if(!isset($days[$num])){continue;}
-			if($days[$num]==array()){continue;}
-			if($val<>1){continue;}
-			$f[]= "{{$days[$num]}}";
-		}	
-		
-		
-		if(strlen($TimeSpace["BEGINH"])==1){$TimeSpace["BEGINH"]="0{$TimeSpace["BEGINH"]}";}
-		if(strlen($TimeSpace["BEGINM"])==1){$TimeSpace["BEGINM"]="0{$TimeSpace["BEGINM"]}";}
-		if(strlen($TimeSpace["ENDH"])==1){$TimeSpace["ENDH"]="0{$TimeSpace["ENDH"]}";}
-		if(strlen($TimeSpace["ENDM"])==1){$TimeSpace["ENDM"]="0{$TimeSpace["ENDM"]}";}
-
-		
-		$ligneTOT=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_dtimes_blks 
-		WHERE webfilter_id={$ligne["ID"]} AND modeblk=0"));
-		$blacklist=$ligneTOT["tcount"];
-		
-		$ligneTOT=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_dtimes_blks 
-		WHERE webfilter_id={$ligne["ID"]} AND modeblk=1"));
-		$whitelist=$ligneTOT["tcount"];	
-
-		
-		
-		$text=$text."<tr style='background-color:transparent'>
-			<td width=1%><img src='img/clock_24.png'></td>
-			<td width=99%><div style='font-size:11px'>
-				<strong>{$ligne['TimeName']}</strong>: {from} {$TimeSpace["BEGINH"]}:{$TimeSpace["BEGINM"]} {to} {$TimeSpace["ENDH"]}:{$TimeSpace["ENDM"]} (".@implode(", ", $f).")
-				<div><i>{blacklist}:<b>$blacklist</b> {whitelist}:<b>$whitelist</b></div>
-			</td>
-	</tR>";
-		
-		
-
-	}
+	$tmplate=$tpl->_ENGINE_parse_body("{template}");
 	
-	$text=$text."</tbody></table>";
-	return $text;
+	
+
+	
+	$js="DansGuardianEditRule('0','default')";
+	$jsblack="<a href=\"javascript:blur();\"
+	OnClick=\"javascript:document.getElementById('anim-img-0').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-blacklist-list=yes&RULEID=0&modeblk=0&group=&TimeID=&t=$t');\"
+	style='text-decoration:underline;font-weight:bold'>";
+	
+	
+	$jswhite="<a href=\"javascript:blur();\"
+	OnClick=\"javascript:document.getElementById('anim-img-0').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-blacklist-list=yes&RULEID=0&modeblk=1&group=&TimeID=&t=$t');\"
+	style='text-decoration:underline;font-weight:bold'>";
+	
+	$delete="&nbsp;";
+	$duplicate=imgsimple("duplicate-24.png",null,"Loadjs('dansguardian2.duplicate.php?default-rule=yes&t=$t')");
+	$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
+	if($GLOBALS["VERBOSE"]){echo "<HR>webfilter->rule_time_list_from_ruleid(0)<HR><br>\n";}
+	$TimeSpace=$webfilter->rule_time_list_explain($ligne["TimeSpace"],0,$t);
+	$TimeSpace=str_replace('\n\n', "<br>", $TimeSpace);
+	
+	if($GLOBALS["VERBOSE"]){echo "<HR>$TimeSpace<HR><br>\n";}
+	$jtemplate="&nbsp;<a href=\"javascript:blur();\"
+	OnClick=\"javascript:document.getElementById('anim-img-0').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian.template.php?js=yes&ID=0');\"
+	style='text-decoration:underline;font-weight:normal'>&laquo;$tmplate&raquo;</a>";
+	
+	return array(
+		'id' => 0,
+		'cell' => array(
+						"<span id='anim-img-0'></span><a href=\"javascript:blur();\" OnClick=\"javascript:$js\"
+						style='font-size:14px;text-decoration:underline'>Default</a>
+						$TimeSpace$jtemplate
+	
+						",
+			"<span style='font-size:14px'>*</span>",
+				"<span style='font-size:14px'>&laquo;&nbsp;$jsblack". $webfilter->COUNTDEGBLKS(0)."</a>&nbsp;&raquo;</span>",
+						"<span style='font-size:14px'>&laquo;&nbsp;$jswhite". $webfilter->COUNTDEGBWLS(0)."</a>&nbsp;&raquo;</span>",
+								"",
+								"$duplicate",
+								$delete )
+				);	
+	
 }
 
-function COUNTDEGROUPES($ruleid){
+
+function rule_move(){
+
 	$q=new mysql_squid_builder();
-	$sql="SELECT COUNT(ID) as tcount FROM webfilter_assoc_groups WHERE webfilter_id='$ruleid'";
+	$sql="SELECT zOrder FROM webfilter_rules WHERE `ID`='{$_POST["rule-move"]}'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	if(!is_numeric($ligne["tcount"])){$ligne["tcount"]=0;}
-	return $ligne["tcount"];
+	$xORDER_ORG=$ligne["zOrder"];
+	$xORDER=$xORDER_ORG;
+	if($_POST["rule-dir"]==1){$xORDER=$xORDER_ORG-1;}
+	if($_POST["rule-dir"]==0){$xORDER=$xORDER_ORG+1;}
+	if($xORDER<0){$xORDER=0;}
+	$sql="UPDATE webfilter_rules SET zOrder=$xORDER WHERE `ID`='{$_POST["rule-move"]}'";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;;return;}
+	//echo $sql."\n";
+
+	if($_POST["rule-dir"]==1){
+		$xORDER2=$xORDER+1;
+		if($xORDER2<0){$xORDER2=0;}
+		$sql="UPDATE webfilter_rules SET zOrder=$xORDER2 WHERE `ID`<>'{$_POST["rule-move"]}' AND zOrder=$xORDER";
+		$q->QUERY_SQL($sql);
+		//echo $sql."\n";
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+	if($_POST["rule-dir"]==0){
+		$xORDER2=$xORDER-1;
+		if($xORDER2<0){$xORDER2=0;}
+		$sql="UPDATE webfilter_rules SET zOrder=$xORDER2 WHERE `ID`<>'{$_POST["rule-move"]}' AND zOrder=$xORDER";
+		$q->QUERY_SQL($sql);
+		//echo $sql."\n";
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+
+	$c=0;
+	$sql="SELECT ID FROM webfilter_rules ORDER BY zOrder";
+	$results = $q->QUERY_SQL($sql);
+
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$q->QUERY_SQL("UPDATE webfilter_rules SET zOrder=$c WHERE `ID`={$ligne["ID"]}");
+		$c++;
+	}
+
+
 }
 
-function COUNTDEGBLKS($ruleid){
-	$q=new mysql_squid_builder();
-	$sql="SELECT COUNT(ID) as tcount FROM webfilter_blks WHERE webfilter_id='$ruleid' AND modeblk=0" ;
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	if(!is_numeric($ligne["tcount"])){$ligne["tcount"]=0;}
-	return $ligne["tcount"];	
-}
-function COUNTDEGBWLS($ruleid){
-	$q=new mysql_squid_builder();
-	$sql="SELECT COUNT(ID) as tcount FROM webfilter_blks WHERE webfilter_id='$ruleid' AND modeblk=1" ;
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	if(!is_numeric($ligne["tcount"])){$ligne["tcount"]=0;}
-	return $ligne["tcount"];	
-}
+
+
+
+
+
+
+
+
+
 
 function delete_rule(){
 	$q=new mysql_squid_builder();

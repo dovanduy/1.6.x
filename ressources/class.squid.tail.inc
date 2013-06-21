@@ -9,7 +9,7 @@ class squid_tail{
 	public $GLOBAL_YOUTUBE=array();
 	public $GLOBAL_RTTSIZE=array();
 	public $GLOBAL_SQUIDUSERS=array();
-	
+	public $GLOBAL_SEARCHWORDS=array();
 	function squid_tail(){
 		if(!isset($GLOBALS["USERSDB"])){
 				$this->LOADUSERDB();}
@@ -42,6 +42,7 @@ class squid_tail{
 	
 	
 	public function parse_tail($buffer,$xtime=0){
+		$PROTOS="PROPPATCH|MKCOL|MOVE|UNLOCK|DELETE|HTML|TEXT|PROPFIND|GET|POST|CONNECT|PUT|LOCK|NONE|HEAD|OPTIONS";
 			$this->ToRemove=false;
 			if($GLOBALS["EnableRemoteStatisticsAppliance"]==1){
 				$this->error="EnableRemoteStatisticsAppliance =1";
@@ -51,9 +52,20 @@ class squid_tail{
 			if(preg_match("#GET cache_object#",$buffer)){$this->events("[SQUID]: cache_object abort".__LINE__);return true;}
 			if(preg_match("#^.+?squid\[[0-9]+\]:#", $buffer,$re)){$buffer=str_replace($re[0], "",$buffer);}
 			if(strpos($buffer, "HTTP/0.0")>0){$this->events("[SQUID]: HTTP/0.0 detected in \"$buffer\" -> abort in line:".__LINE__);return true;}
-			if(strpos($buffer, "TCP_DENIED:")>0){$this->error="TCP_DENIED";$this->ToRemove=true;return;}
+			if(strpos($buffer, "TCP_DENIED:")>0){
+				//$this->events("$buffer -> ABORT in line:".__LINE__);
+				$this->error="TCP_DENIED";$this->ToRemove=true;return;}
+				
+				
+				if(preg_match("#^([A-Za-z]+)\s+([0-9]+)\s+([0-9]+):([0-9]+):([0-9]+)\s+#", $buffer,$re)){
+					$Fdate="{$re[1]} {$re[2]} {$re[3]}:{$re[4]}:{$re[5]}";
+					$Ftime=strtotime($Fdate);
+					$Fday=date("Y-m-d H:i:s",$Ftime);
+					if($Fday<>"1970-01-01 01:00:00"){$xtime=$Ftime;}else{$this->events("Unable to determine date from $Fdate \"$buffer\"");}
+				}				
+				
 			
-			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|DELETE|TEXT|HTML|PROPFIND|GET|POST|LOCK|PUT|CONNECT|NONE|HEAD|OPTIONS)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
+			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"([a-z]+:|'.$PROTOS.')\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
 				    $cached=0;
 				    $mac=trim($re[1]);
 					$ip=trim($re[2]);
@@ -65,11 +77,13 @@ class squid_tail{
 					$size=$re[8];
 					$SquidCode=$re[9];
 					if($ip=="127.0.0.1"){
+						$this->events("$buffer -> ABORT in line:".__LINE__);
 						$this->error="IP = 127.0.0.1  - $uri line:".__LINE__;
 						$this->ToRemove=true;
 						return;}
 					
 					if($ip=="::"){
+						$this->events("$buffer -> ABORT in line:".__LINE__);
 						$this->error="IP = $ip - $uri line:".__LINE__;
 						$this->ToRemove=true;
 						return;
@@ -95,7 +109,7 @@ class squid_tail{
 
 			
 			
-			if(preg_match('#(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|DELETE|HTML|TEXT|PROPFIND|GET|POST|CONNECT|PUT|LOCK|NONE|HEAD|OPTIONS)\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
+			if(preg_match('#(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|'.$PROTOS.')\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
 				    $cached=0;
 					$ip=$re[1];
 					$user=$re[2];
@@ -106,11 +120,13 @@ class squid_tail{
 					$SquidCode=$re[8];
 					if($ip=="127.0.0.1"){
 						$this->error="IP = 127.0.0.1 - $uri line:".__LINE__;
+						$this->events("$buffer -> ABORT in line:".__LINE__);
 						$this->ToRemove=true;
 						return;}
 						
 					if($ip=="::"){
 						$this->error="IP = $ip - $uri line:".__LINE__;
+						$this->events("$buffer -> ABORT in line:".__LINE__);
 						$this->ToRemove=true;
 						return;
 					}						
@@ -132,7 +148,7 @@ class squid_tail{
 						
 			}
 
-			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|DELETE|HTML|TEXT|PROPFIND|GET|POST|PUT|LOCK|CONNECT|NONE|HEAD|OPTIONS)\s+(.+?)$#',$buffer,$re)){
+			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+"(rer:|'.$PROTOS.')\s+(.+?)$#',$buffer,$re)){
 					$cached=0;
 					$ip=$re[1];
 					$user=$re[2];
@@ -142,11 +158,13 @@ class squid_tail{
 					
 					if($ip=="127.0.0.1"){
 						$this->error="IP = 127.0.0.1 - $uri line:".__LINE__;
+						$this->events("$buffer -> ABORT in line:".__LINE__);
 						$this->ToRemove=true;
 						return;}
 						
 					if($ip=="::"){
 						$this->error="IP = $ip - $uri line:".__LINE__;
+						$this->events("$buffer -> ABORT in line:".__LINE__);
 						$this->ToRemove=true;
 						return;
 					}						
@@ -161,13 +179,50 @@ class squid_tail{
 					}	
 					$this->Builsql($ip,$user,$uri,$code_error,$size,$time,$cached,null,$xtime);
 					$this->InjectUserAuthDb($user,$ip,$mac,$UserAgent,$xtime);
-					
 					return true;				
+			}
+			
+			
+			if(preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[.+?:(.+?)\s+.+?\]\s+".+?('.$PROTOS.')\s+(.+?)\s+HTTP.*?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
+				$cached=0;
+				$mac=trim($re[1]);
+				$ip=trim($re[2]);
+				$user=$re[3];
+				$time=date('H:i:s');
+				if($xtime>0){$time=date('H:i:s',$xtime);}
+				$uri=$re[6];
+				$code_error=$re[7];
+				$size=$re[8];
+				$SquidCode=$re[9];
+				
+				if($ip=="127.0.0.1"){
+					$this->error="IP = 127.0.0.1 - $uri line:".__LINE__;
+					$this->events("$buffer -> ABORT in line:".__LINE__);
+					$this->ToRemove=true;
+					return;}
+				
+				if($ip=="::"){
+					$this->error="IP = $ip - $uri line:".__LINE__;
+					$this->events("$buffer -> ABORT in line:".__LINE__);
+					$this->ToRemove=true;
+					return;
+				}				
+				
+				if($this->CACHEDORNOT($SquidCode)){$cached=1;}
+				if(preg_match('#UserAgent:"(.+?)"#', $buffer,$re)){$UserAgent=$re[1];}
+				if(preg_match('#Forwarded:"(.*?)"#', $buffer,$re)){$Forwarded=trim($re[1]);}
+				if($Forwarded=="-"){$Forwarded=null;}
+				if($Forwarded=="0.0.0.0"){$Forwarded=null;}
+				if($Forwarded=="255.255.255.255"){$Forwarded=null;}
+				if(strlen($Forwarded)>4){if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $Forwarded)){$ip=$Forwarded;}}
+				$this->Builsql($ip,$user,$uri,$code_error,$size,$time,$cached,null,$xtime);
+				$this->InjectUserAuthDb($user,$ip,$mac,$UserAgent,$xtime);
+				return true;
 			}
 			
 			$this->error="Unable to detect $buffer in line:".__LINE__." class ".__CLASS__;
 			
-			$this->events("[SQUID]: Not filtered: $buffer line:".__LINE__);
+			$this->events("[SQUID]:v1.0 - Not filtered: $buffer line:".__LINE__);
 			return false;
 	
 	}
@@ -229,6 +284,7 @@ private function CACHEDORNOT($SquidCode){
 
 	
 	private function InjectUserAuthDb($user,$ip,$mac,$userAgent){
+		return;
 		if($GLOBALS["EnableRemoteStatisticsAppliance"]==1){return;}
 		if($GLOBALS["DisableArticaProxyStatistics"]==1){return;}
 		if($ip=="127.0.0.1"){return;}
@@ -258,8 +314,15 @@ private function CACHEDORNOT($SquidCode){
 
 
 	private function Builsql($CLIENT,$username=null,$uri,$code_error,$size=0,$time,$cached,$mac=null,$xtime=0){
-			if($GLOBALS["EnableRemoteStatisticsAppliance"]==1){return;}
-			if($GLOBALS["DisableArticaProxyStatistics"]==1){return;}
+			
+			
+			$hostname=null;
+			if($GLOBALS["EnableRemoteStatisticsAppliance"]==1){
+				$this->events("EnableRemoteStatisticsAppliance: RETURN!!");
+				return;}
+			if($GLOBALS["DisableArticaProxyStatistics"]==1){$this->events("DisableArticaProxyStatistics: RETURN!!");
+				return;
+			}
 			$squid_error["100"]="Continue";
 			$squid_error["101"]="Switching Protocols";
 			$squid_error["102"]="Processing";
@@ -345,7 +408,8 @@ private function CACHEDORNOT($SquidCode){
 	}
 	
 	if($sitename==null){
-		$this->events(__FUNCTION__."::".__LINE__." Unable to extract domain name from `$uri`");
+		$this->events($uri." => Unable to extract domain name from ");
+		$this->youtube_events(__FUNCTION__."::".__LINE__." Unable to extract domain name from `$uri`");
 		return;
 	}	
 	
@@ -385,24 +449,28 @@ private function CACHEDORNOT($SquidCode){
 		}
 	}
 	
-	if(preg_match("#youtube.com\/watch\?v=(.+?)\&#", $uri,$re)){
-		$this->youtube_events("$date: $CLIENT [$hostname] $username $mac [{$re[1]}]");
-			$youtube=array(
-				"VIDEOID"=>$re[1],
-				"clientip"=>$CLIENT,
-				"username"=>$username,
-				"time"=>$date,
-				"mac"=>$mac,
-				"hostname"=>$hostname
-				);
-		
-		
-		$this->GLOBAL_YOUTUBE[]=$youtube;
-		$youtube=array();
-		//https://gdata.youtube.com/feeds/api/videos/EPldrIzZMkg?v=2&alt=jsonc
-		}	
-
 	
+	if(strpos(" $uri", "youtube")>0){
+		$VIDEOID=$this->GetYoutubeID($uri);
+		if($VIDEOID<>null){
+			$this->youtube_events("YOUTUBE:: $date: $CLIENT $username $mac [$VIDEOID]");
+			if($hostname==null){$hostname=$this->GetComputerName($CLIENT);}
+			$youtube=array(
+					"VIDEOID"=>$VIDEOID,
+					"clientip"=>$CLIENT,
+					"username"=>$username,
+					"time"=>$date,
+					"mac"=>$mac,
+					"hostname"=>$hostname
+			);
+			
+			$CountNextYoutube=count($this->GLOBAL_YOUTUBE)+1;
+			$this->youtube_events("YOUTUBE:: Youtube $CountNextYoutube Added in Array",__LINE__);
+			$this->GLOBAL_YOUTUBE[]=$youtube;
+			
+		}
+	}
+
 	$uri=addslashes($uri);
 	$Country=addslashes($Country);
 	$username=addslashes($username);
@@ -432,26 +500,7 @@ private function CACHEDORNOT($SquidCode){
 	
 	
 	if(trim($username)=="-"){$username=null;}
-	// Realtime size.....
-	//-------------------------------------------------------------
-	
-	$RTTSIZEARRAY=array();
-	$RTTSIZEARRAY=unserialize(@file_get_contents($RTTSIZEPATH));
-	$RTTSIZEARRAY["IP"][$CLIENT]["SIZE"]=$RTTSIZEARRAY["IP"][$CLIENT]["SIZE"]+$size;
-	$RTTSIZEARRAY["IP"][$CLIENT]["HITS"]=$RTTSIZEARRAY["IP"][$CLIENT]["HITS"]+1;
-	if($mac<>null){
-		$RTTSIZEARRAY["MAC"][$mac]["SIZE"]=$RTTSIZEARRAY["MAC"][$mac]["SIZE"]+$size;
-		$RTTSIZEARRAY["MAC"][$mac]["HITS"]=$RTTSIZEARRAY["MAC"][$mac]["HITS"]+1;
-	}
-	
-	if($username<>null){
-		$RTTSIZEARRAY["UID"][$username]["SIZE"]=$RTTSIZEARRAY["UID"][$username]["SIZE"]+$size;
-		$RTTSIZEARRAY["UID"][$username]["HITS"]=$RTTSIZEARRAY["UID"][$username]["HITS"]+1;
-	}	
 
-	$this->GLOBAL_RTTSIZE[]=$RTTSIZEARRAY;
-	
-	//-------------------------------------------------------------
 	if(isset($searchWords["WORDS"])){
 		if(preg_match("#gstatic\.[a-z\.]+$#",$searchWords["SITENAME"])){if(preg_match("#^tbn:.*?#", $searchWords["WORDS"])){unset($searchWords["WORDS"]);}}
 	}
@@ -475,17 +524,15 @@ private function CACHEDORNOT($SquidCode){
 }
 
 private function youtube_events($text,$line){
-	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
-	if($GLOBALS["VERBOSE"]){echo $text."\n";}
+	$this->events($text);
 	$common="/var/log/artica-postfix/youtube.scanner.log";
 	$size=@filesize($common);
 	if($size>100000){@unlink($common);}
 	$pid=getmypid();
 	$date=date("Y-m-d H:i:s");
-	$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)."$date $text");
 	$h = @fopen($common, 'a');
 	$sline="[$pid] $text";
-	$line="$date [$pid] $text [Line:$line]\n";
+	$line="$date [class.squid.tail.inc/$pid] $text [Line:$line]\n";
 	@fwrite($h,$line);
 	@fclose($h);
 
@@ -516,6 +563,26 @@ public function GetIpFromName($sitename){
 	if(isset($GLOBALS["IPs"][$sitename])){return $GLOBALS["IPs"][$sitename];}
 	$GLOBALS["IPs"][$sitename]=trim(gethostbyname($sitename));
 	return $GLOBALS["IPs"][$sitename];
+}
+
+private function GetYoutubeID($url){
+	$Youtuberegex[]="youtube.*?stream.*?&v=(.+?)&fmt";
+	$Youtuberegex[]="youtube.*?ptracking.*?&video_id=(.+?)$";
+	$Youtuberegex[]="youtube.*?user_watch.*?&video_id=(.+?)&";
+	$Youtuberegex[]="youtube.*?watchtime.*?&docid=(.+?)&";
+	$Youtuberegex[]="youtube\..*?\/watch\?v=(.+?)\&";	
+	while (list ($index, $regex) = each ($Youtuberegex) ){
+		if(preg_match("#$regex#", $url,$re)){
+			$youtubeid=$re[1];
+			if(strpos($youtubeid, "&")>0){
+				$tt=explode("&",$youtubeid);
+				$this->events("YOUTUBE: $youtubeid = " .$tt[0]);
+				$youtubeid=$tt[0];
+			}
+			return $youtubeid;
+		}
+	}
+	
 }
 
 public function GetCountry($sitename){

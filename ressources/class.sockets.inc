@@ -22,6 +22,9 @@ class sockets{
 	function sockets(){
 		if(!isset($GLOBALS["VERBOSE_MASTER"])){$GLOBALS["VERBOSE_MASTER"]=false;}
 		if(!isset($GLOBALS["DEBUG"])){$GLOBALS["DEBUG"]=false;}
+		if(!isset($GLOBALS["DEBUG_SOCK"])){$GLOBALS["DEBUG_SOCK"]=false;}
+		$this->MEMCACHE_ENABLED();
+		
 		$GLOBALS["posix_getuid"]=1000;
 		if(function_exists("posix_getuid")){
 			$GLOBALS["posix_getuid"]=posix_getuid();
@@ -44,7 +47,7 @@ class sockets{
 		$this->ArticaMetaEnabled=$this->APC_GET("ArticaMetaEnabled");
 		
 		if($this->remote_ip==null){
-			if(!file_exists(dirname(__FILE__) . '/settings.inc')){
+		if(!file_exists(dirname(__FILE__) . '/settings.inc')){	
 			if(function_exists("writelogs")){writelogs("ERROR: unable to stat " . dirname(__FILE__) . '/settings.inc',__CLASS__ . "=>" . __FUNCTION__,__FILE__);};return false;}
 			include(dirname(__FILE__) . '/settings.inc');
 			if($_GLOBAL["ARTICA_DAEMON_IP"]=='0.0.0.0'){$this->remote_ip='127.0.0.1';}else{$this->remote_ip=$_GLOBAL["ARTICA_DAEMON_IP"];}
@@ -194,9 +197,29 @@ function downloadFile($url,$hostname)  {
    	
    }
    
-   function MEMCACHE_GET($key){
-   	
+  private function MEMCACHE_ENABLED(){
+   		if(isset($GLOBALS["MEMCACHE_ENABLED"])){return;}
+   		$Data=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableMemcached"));
+   		if($GLOBALS["DEBUG_SOCK"]){
+   			$trace=debug_backtrace();
+   			if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+   			echo __CLASS__."/".__LINE__.":: -> $called<br>\n";
+   		}
+   		
+   		
+   		if(!is_numeric($Data)){
+   			if($GLOBALS["DEBUG_SOCK"]){echo __CLASS__."/".__LINE__.":: -> MEMCACHE_ENABLED 0<br>\n";}
+   			$GLOBALS["MEMCACHE_ENABLED"]=0;
+   		}else{
+   			if($GLOBALS["DEBUG_SOCK"]){echo __CLASS__."/".__LINE__.":: -> MEMCACHE_ENABLED 1<br>\n";}
+   			$GLOBALS["MEMCACHE_ENABLED"]=$Data;
+   		}
+   }
    
+   
+   function MEMCACHE_GET($key){
+   	if(!isset($GLOBALS["MEMCACHE_ENABLED"])){$this->MEMCACHE_ENABLED();}
+   	if($GLOBALS["MEMCACHE_ENABLED"]==0){return;}
    	
   	 if(class_exists("Memcache")){
 		$memcache = new Memcache();
@@ -230,31 +253,38 @@ function downloadFile($url,$hostname)  {
 
    function GET_INFO($key,$nocache=false){
       	$uid=null;
+      	if(!isset($GLOBALS["MEMCACHE_ENABLED"])){$this->MEMCACHE_ENABLED();}
   		if(isset($_SESSION["uid"])){ $uid=$_SESSION["uid"];}
+  		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=posix_getuid();}
   		
+  		
+  		if($GLOBALS["posix_getuid"]==0){
+  			$value=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/$key"));
+			if($key=="SystemV5CacheEnabled"){if($value==null){$value=0;}}
+  			$GLOBALS["GET_INFO"][$key]=$value;
+  			if($GLOBALS["VERBOSE_MASTER"]){echo "\$GLOBALS[\"GET_INFO\"][$key]=$value ". basename(__FILE__). " line ".__LINE__."\n";}
+  			return $value;
+  		}  		
   		
   		
    if(!$nocache){
-   		if(isset($GLOBALS["GET_INFO"][$key])){return $GLOBALS["GET_INFO"][$key];}
-   		$X=$this->MEMCACHE_GET($key);
-		if(!empty($X)){return $X;}
-		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=posix_getuid();}
-
-     			
    	
-		if($GLOBALS["posix_getuid"]==0){
-			$value=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/$key"));
-			if($key=="SystemV5CacheEnabled"){if($value==null){$value=0;}}
-	   		$GLOBALS["GET_INFO"][$key]=$value;
-			if($GLOBALS["VERBOSE_MASTER"]){echo "\$GLOBALS[\"GET_INFO\"][$key]=$value ". basename(__FILE__). " line ".__LINE__."\n";}
-	   		$this->SET_APC_STORE($key,$value);
-	   		return $value;
-	   	}   	
-   	} 	
+   	if(isset($GLOBALS["MEMCACHE_ENABLED"])){
+	   		if($GLOBALS["MEMCACHE_ENABLED"]==1){
+	   			if(isset($GLOBALS["GET_INFO"][$key])){return $GLOBALS["GET_INFO"][$key];}
+	   			$X=$this->MEMCACHE_GET($key);
+				if(!empty($X)){return $X;}
+	   		}
+   		}
+	} 	
 
    	
-   	$value=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/$key"));
-   	
+   	if(!is_file("/etc/artica-postfix/settings/Daemons/$key")){return null;}
+   	if($GLOBALS["VERBOSE"]){
+   		$value=trim(file_get_contents("/etc/artica-postfix/settings/Daemons/$key"));
+   	}else{
+   		$value=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/$key"));
+   	}
     	
    //	$value=trim($this->getFrameWork("getinfos.php?key=$key&uid=".$uid));
    	$GLOBALS["GET_INFO"][$key]=$value;
@@ -285,12 +315,14 @@ function downloadFile($url,$hostname)  {
    	}   	
    	
    function SET_INFO($key,$value){
+   	if(!isset($GLOBALS["MEMCACHE_ENABLED"])){$this->MEMCACHE_ENABLED();}
+   
+   	
    	$trace=debug_backtrace();
 	if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
    	
    		if($key=="SQUIDEnable"){
    			if($value==1){
-   				
 					writelogs("SET SQUID $key $value $called",__CLASS__ . "/" . __FUNCTION__,__FILE__);				
 					if(class_exists("unix")){
 						$unix=new unix();
@@ -451,24 +483,28 @@ private function fopen_curl($uri){
 	}
 	$errno=0;
 	
-	$ch = curl_init();
+	$chB = curl_init();
 	if(!$GLOBALS["AS_ROOT"]){
-		curl_setopt($ch, CURLOPT_INTERFACE,"127.0.0.1");
+		curl_setopt($chB, CURLOPT_INTERFACE,"127.0.0.1");
 	}
-	curl_setopt($ch, CURLOPT_URL, "http://127.0.0.1:47980/$uri");
-	curl_setopt($ch, CURLOPT_HEADER, 0);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-	curl_setopt($ch, CURLOPT_POST, 0);
-	curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0");
-	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-	curl_setopt($ch, CURLOPT_HTTPHEADER, array("Pragma: no-cache", "Cache-Control: no-cache"));
-	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
-	curl_setopt ($ch, CURLOPT_TIMEOUT, $CURLOPT_TIMEOUT);
+	curl_setopt($chB, CURLOPT_FORBID_REUSE, 1);
+	curl_setopt($chB, CURLOPT_FRESH_CONNECT, 1);
+	curl_setopt($chB, CURLOPT_URL, "http://127.0.0.1:47980/$uri");
+	curl_setopt($chB, CURLOPT_HEADER, 0);
+	curl_setopt($chB, CURLOPT_RETURNTRANSFER, 1);
+	curl_setopt($chB, CURLOPT_POST, 0);
+	curl_setopt($chB, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0");
+	curl_setopt($chB, CURLOPT_SSL_VERIFYHOST, 0);
+	curl_setopt($chB, CURLOPT_SSL_VERIFYPEER, false);
+	curl_setopt($chB, CURLOPT_HTTPHEADER, array("Pragma: no-cache", "Cache-Control: no-cache"));
+	curl_setopt($chB, CURLOPT_PROXY, "");
+	curl_setopt($chB, CURLOPT_HTTPPROXYTUNNEL,0);
+	curl_setopt($chB, CURLOPT_HTTPHEADER, array('Expect:'));
+	curl_setopt ($chB, CURLOPT_TIMEOUT, $CURLOPT_TIMEOUT);
 	if($GLOBALS["VERBOSE"]){echo "[DEBUG SOCKET::".$this->mem_getusage()."] -> $uri curl_exec() ".__FUNCTION__." Line:".__LINE__."<br>\n";}
-	$data=curl_exec($ch);
-	$errno=curl_errno($ch);
-	curl_close($ch);
+	$data=curl_exec($chB);
+	$errno=curl_errno($chB);
+	curl_close($chB);
 	
 	
 	if($errno>0){
@@ -527,6 +563,15 @@ function GET_MYSQL_ROOT($key){
 				$unix=new unix();$GLOBALS["GetUniqueID"]=base64_encode($unix->GetUniqueID());}
 				$this->SET_APC_STORE($CACHE_KEY, $GLOBALS["GetUniqueID"]);
 				return $GLOBALS["GetUniqueID"];
+			}
+			
+		}
+		
+		if($uri=="cmd.php?postfixQueues=yes"){
+			if($GLOBALS["AS_ROOT"]){
+				include_once("/usr/share/artica-postfix/framework/class.postfix.inc");
+				$p=new postfix_system();$datas=serialize($p->getQueuesNumber());
+				return "<articadatascgi>".serialize($p->getQueuesNumber())."</articadatascgi>";
 			}
 			
 		}
@@ -744,21 +789,26 @@ function GET_MYSQL_ROOT($key){
 	
 
 
+
 	function LANGUAGE_DUMP($lang){
 		if($GLOBALS["AS_ROOT"]){return;}
 		if($lang=="undefined"){return;}
 		writelogs("Dumping language $lang",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		$data=array();
-		if(class_exists("Memcache")){
-			$memcache = new Memcache();
-			$memcache->connect('unix:///var/run/memcached.sock', 0);
-			$ARRAY=unserialize($memcache->get("ARTICA_LANG_$lang"));
-			if(count($ARRAY)>100){
-				$memcache->close();
-				return $ARRAY;
+		if(!isset($GLOBALS["MEMCACHE_ENABLED"])){$this->MEMCACHE_ENABLED();}
+		if($GLOBALS["DEBUG"]){echo "LANGUAGE_DUMP MEMCACHE: {$GLOBALS["MEMCACHE_ENABLED"]}<br>\n";}
+		
+		
+		if($GLOBALS["MEMCACHE_ENABLED"]==1){
+			if(class_exists("Memcache")){
+				$memcache = new Memcache();
+				$memcache->connect('unix:///var/run/memcached.sock', 0);
+				$ARRAY=unserialize($memcache->get("ARTICA_LANG_$lang"));
+				if(count($ARRAY)>100){
+					$memcache->close();
+					return $ARRAY;
+				}
 			}
-		}else{
-			if($GLOBALS["DEBUG"]){echo "LANGUAGE_DUMP \"Memcache\" doesn't exists\n";}
 		}		
 		
 		
@@ -850,14 +900,16 @@ function GET_MYSQL_ROOT($key){
 	
 	
 	function SET_APC_STORE($key,$value){
-		
-		if(class_exists("Memcache")){
-			$memcache = new Memcache();
-			$memcache->connect('unix:///var/run/memcached.sock', 0);
-			$ARRAY=unserialize($memcache->get('ARTICA_INFOS'));
-			$ARRAY[$key]=$value;
-			$memcache->set('ARTICA_INFOS', serialize($ARRAY), 0, 9999); 
-			return;
+		if(!isset($GLOBALS["MEMCACHE_ENABLED"])){$this->MEMCACHE_ENABLED();}
+		if($GLOBALS["MEMCACHE_ENABLED"]==1){
+			if(class_exists("Memcache")){
+				$memcache = new Memcache();
+				$memcache->connect('unix:///var/run/memcached.sock', 0);
+				$ARRAY=unserialize($memcache->get('ARTICA_INFOS'));
+				$ARRAY[$key]=$value;
+				$memcache->set('ARTICA_INFOS', serialize($ARRAY), 0, 9999); 
+				return;
+			}
 		}		
 		
 		
@@ -956,6 +1008,7 @@ function GET_MYSQL_ROOT($key){
 	}
 	
 	function APC_SAVE($key,$value){
+		if($GLOBALS["DEBUG_SOCK"]){echo __CLASS__."/".__LINE__.":: -> SET_APC_STORE(...)<br>\n";}
 		$this->SET_APC_STORE($key,$value);
 	}
    

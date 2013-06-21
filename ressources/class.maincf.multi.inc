@@ -142,7 +142,10 @@ public function SET_BIGDATA($key,$value){
 			return false;
 		}
 		return true;
-	}		
+	}	
+
+	
+	
 	
 	
 	public function SET_VALUE($key,$value){
@@ -203,6 +206,73 @@ public function SET_BIGDATA($key,$value){
 			}
 		}
 	}
+	
+	public function postfix_global_whitelist_to_mx(){
+		if(isset($GLOBALS["postfix_global_whitelist_to_mx"])){return $GLOBALS["postfix_global_whitelist_to_mx"];}
+		if(!function_exists("getmxrr")){
+			echo "Starting......: Postfix getmxrr function not available\n";
+			return false;}
+		$q=new mysql();
+		if(!$q->FIELD_EXISTS("postfix_global_whitelist","allmx","artica_backup")){
+			$sql="ALTER TABLE `postfix_global_whitelist` ADD `allmx` TEXT";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}
+		
+		$sql="SELECT sender,allmx FROM postfix_global_whitelist WHERE enabled=1 ORDER BY sender";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$TOADD=array();
+			$ligne["sender"]=trim($ligne["sender"]);
+			if($ligne["sender"]==null){continue;}
+			$SourceSender=$ligne["sender"];
+			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $ligne["sender"])){$ARRAY[$ligne["sender"]]=$ligne["sender"];continue;}
+			
+			
+			$from=$ligne["sender"];
+			$allmx=unserialize($ligne["allmx"]);
+			
+			if(is_array($allmx)){
+				if(count($allmx)>0){
+					while (list ($index, $ip) = each ($allmx) ){$ARRAY[$ip]=$ip;}
+				}
+				continue;
+			}
+			
+			if(strpos($from,"@")>0){
+				$from=str_replace("*", "", $from);
+				if(!preg_match("#^@(.+)#", $from,$re)){continue;}
+				$from=$re[1];
+			}
+			
+			if(preg_match("#^\*(.+)#", $from,$re)){$from=$re[1];}
+			if(strpos($from, '*')>0){continue;}
+			$mxhosts=array();
+			getmxrr($from, $mxhosts,$mxWeight);
+			if(count($mxhosts)>0){
+				while (list ($index, $host) = each ($mxhosts) ){
+					if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $host)){
+						$TOADD[]=$host;
+						$ARRAY[$host]=$host;
+						continue;
+					}
+					$iphosts=gethostbyname($host);
+					if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $iphosts)){
+						$TOADD[]=$iphosts;
+						$ARRAY[$iphosts]=$iphosts;
+						continue;
+					}
+				}
+			}
+			
+			$sql="UPDATE postfix_global_whitelist SET allmx='".mysql_escape_string(serialize($TOADD))."' WHERE sender='$SourceSender'";
+			$q->QUERY_SQL($sql,"artica_backup");
+			
+			
+		}
+		$GLOBALS["postfix_global_whitelist_to_mx"]=$ARRAY;
+		return $ARRAY;
+	}
+	
 	
 	public function relay_domains_restricted(){
 		$q=new mysql();
@@ -1821,6 +1891,15 @@ private function smtp_sasl_password_map(){
 				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $num)){$nets[]="$num\tdunno";}
 			}	
 		}
+	}
+	
+	
+	$postfix_global_whitelist_to_mx=$this->postfix_global_whitelist_to_mx();
+	if(count($postfix_global_whitelist_to_mx)>0){
+		while (list ($num, $ligne) = each ($postfix_global_whitelist_to_mx) ){
+			$nets[]="$ligne\tdunno";
+		}
+	
 	}
 	
 	

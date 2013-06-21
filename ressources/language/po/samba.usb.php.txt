@@ -1,4 +1,4 @@
-<about>This feature allows you to automatically share USB devices when you plug them on this computer</about>
+<about>Este recurso permite que  partilhes automaticamente dispositivos USB, sempre que o(s) conectes ao computador</about>
 <add_shared_disk>If click on it, you will automatically share this USB device in your network</add_shared_disk>
 <available_disks>available disks</available_disks>
 <folder_properties>Share and folder properties</folder_properties>

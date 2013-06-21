@@ -171,6 +171,20 @@ function build_line($ligne){
 		$unix=new unix();
 		$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 		$fetchmail_version=fetchmail_version();
+		
+		if(!isset($GLOBALS["FetchMailToZarafa"])){
+			$GLOBALS["FetchMailToZarafa"]=$sock->GET_INFO("FetchMailToZarafa");
+			if(!is_numeric($GLOBALS["FetchMailToZarafa"])){
+				$GLOBALS["FetchMailToZarafa"]=1;
+			}
+		}
+		
+		if(!isset($GLOBALS["ZARAFA_D_AGENT_BIN"])){
+			$GLOBALS["ZARAFA_D_AGENT_BIN"]=$unix->find_program("zarafa-dagent");
+			if(!is_file($GLOBALS["ZARAFA_D_AGENT_BIN"])){$GLOBALS["FetchMailToZarafa"]=0;}
+		}
+		
+		
 		if(preg_match("#^([0-9]+)\.([0-9]+)\.([0-9]+)#", $fetchmail_version,$re)){
 			$MAJOR=$re[1];
 			$MINOR=$re[2];
@@ -179,7 +193,7 @@ function build_line($ligne){
 		
 		
 			$ID=$ligne["ID"];
-			writelogs("Building fetchmail rule for ID: {$ligne["ID"]} user:{$ligne["uid"]}",__FUNCTION__,__FILE__,__LINE__);
+			writelogs("Building fetchmail rule for ID: {$ligne["ID"]},Zarafa Dagent:`{$GLOBALS["ZARAFA_D_AGENT_BIN"]}`  user:{$ligne["uid"]}, FetchMailToZarafa:{$GLOBALS["FetchMailToZarafa"]}",__FUNCTION__,__FILE__,__LINE__);
 			
 			$ligne["poll"]=trim($ligne["poll"]);
 			if($ligne["poll"]==null){
@@ -220,7 +234,7 @@ function build_line($ligne){
 			$multidrop=null;
 			if($ligne["proto"]=="httpp"){$ligne["proto"]="pop3";}
 			if(!isset($ligne["folder"])){$ligne["folder"]=null;}
-			
+			if(!is_numeric($ligne["UseDefaultSMTP"])){$ligne["UseDefaultSMTP"]=1;}
 			if(trim($ligne["port"])>0){$port="port {$ligne["port"]}";}
 			if(trim($ligne["aka"])<>null){$aka="\n\taka {$ligne["aka"]}";}
 			if($ligne["ssl"]==1){$ssl="\n\tssl\n\tsslproto ''";}	
@@ -253,6 +267,12 @@ function build_line($ligne){
 			
 			if($ligne["dropdelivered"]==1){
 				$dropdelivered="\n\tdropdelivered is {$ligne["is"]} here";
+			}
+			
+			if($GLOBALS["FetchMailToZarafa"]==1){
+				if($ligne["UseDefaultSMTP"]==1){
+					$smtp="\n\tmda \"{$GLOBALS["ZARAFA_D_AGENT_BIN"]} %T\"";
+				}
 			}
 			
 			

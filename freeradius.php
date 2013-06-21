@@ -44,6 +44,7 @@ function tabs(){
 		$array["status"]='{status}';
 		$array["auth"]='{databases_users}';
 		$array["profiles"]='{connections_profiles}';
+		$array["users"]='{internal_users}';
 		$array["events"]='{events}';
 		
 		
@@ -68,6 +69,11 @@ function tabs(){
 
 		if($num=="events"){
 			$tab[]="<li><a href=\"syslog.php?popup=yes&force-prefix=freeradius&TB_EV=682\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}
+
+		if($num=="users"){
+			$tab[]="<li><a href=\"freeradius.users.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
 		}		
 		
@@ -129,12 +135,12 @@ function status(){
 
 function testauth_perform(){
 	$sock=new sockets();
-	$TESTAUTHPASS=base64_encode(url_decode_special_tool($_POST["TESTAUTHPASS"]));
+	$TESTAUTHPASS=urlencode(base64_encode(url_decode_special_tool($_POST["TESTAUTHPASS"])));
 	if($TESTAUTHPASS==null){
 		echo "Please set a password";
 		return;
 	}
-	$TESTAUTHUSER=base64_encode($_POST["TESTAUTHUSER"]);
+	$TESTAUTHUSER=urlencode(base64_encode($_POST["TESTAUTHUSER"]));
 	echo(base64_decode($sock->getFrameWork("freeradius.php?test-auth=yes&username=$TESTAUTHUSER&password=$TESTAUTHPASS")));
 	
 	

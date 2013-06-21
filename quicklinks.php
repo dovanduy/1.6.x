@@ -63,6 +63,7 @@ if($users->WEBSTATS_APPLIANCE){$ASSQUID=true;}
 if($users->KASPERSKY_WEB_APPLIANCE){$ASSQUID=true;}
 if($user->SQUID_APPLIANCE){$ASSQUID=true;}
 if($users->SQUID_INSTALLED){$ASSQUID=true;}
+if($users->SQUID_REVERSE_APPLIANCE){$ASSQUID=true;}
 
 
 if($SambaEnabled==1){
@@ -109,7 +110,7 @@ $miltergrey=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-milter-greylist.p
 
 $postfix_multiple=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("postfix-multi-48.png", "multiple_instances",null, "QuickLinkPostfixMulti()"));
 if($EnablePostfixMultiInstance==0){$postfix_multiple=null;}
-if(($users->SQUID_APPLIANCE) OR ($users->KASPERSKY_WEB_APPLIANCE)){$OnlyWeb=true;}
+if(($users->SQUID_APPLIANCE) OR ($users->KASPERSKY_WEB_APPLIANCE) OR ($users->SQUID_REVERSE_APPLIANCE)){$OnlyWeb=true;}
 
 if($EnableRemoteStatisticsAppliance==0){
 	$freewebs=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("website-48.png", "free_web_servers","freewebs_explain", "QuickLinkSystems('section_freeweb')"));
@@ -422,6 +423,14 @@ function section_start(){
 		if($users->AsWebStatisticsAdministrator){
 			echo "<script>SquidQuickLinks();</script>";return;
 		}
+	}
+	
+	
+	
+	
+	
+	if(is_file("/usr/share/artica-postfix/ressources/logs/web/admin.index.status-infos.php.left_menus_services")){
+		$left_menus_services=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.status-infos.php.left_menus_services");
 	}
 	
 	

@@ -10,7 +10,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	include_once('ressources/class.cron.inc');
 	
 	$users=new usersMenus();
-	if(!$users->AsPostfixAdministrator){
+	if(!$users->AsMailBoxAdministrator){
 		$tpl=new templates();
 		$error=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
 		echo "alert('$error')";
@@ -60,6 +60,8 @@ function popup(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$EnableZarafaMulti=$sock->GET_INFO("EnableZarafaMulti");
+	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
+	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}	
 	$users=new usersMenus();
 	if(!is_numeric($EnableZarafaMulti)){$EnableZarafaMulti=0;}
 	
@@ -70,7 +72,8 @@ function popup(){
 	$array["popup-status"]="{status}";
 	$array["popup-www"]="{parameters}";
 	
-	if($users->APP_ZARAFADB_INSTALLED){
+	//if($users->APP_ZARAFADB_INSTALLED){
+	if($ZarafaDedicateMySQLServer==1){
 		$array["popup-zarafadb"]="{database}";
 	}
 	
@@ -200,7 +203,7 @@ function popup_status(){
 			</tr>	
 			<tr>
 				<td width=1%><span id='mysql-dedie-img'></span></td>
-				<td nowrap><span id='mysql-dedie-text' style='font-size:13px;text-decoration:underline'></span></td>
+				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('ZarafaDB.wizard.php')\" id='mysql-dedie-text' style='font-size:13px;text-decoration:underline'></a></td>
 			</tr>				
 		</table>
 		</td>
@@ -225,8 +228,13 @@ function ZarafaBox(){
 	$users=new usersMenus();
 	$mysqldimg="ok24-grey.png";
 	$mysqltext=$mysqltext. "{APP_ZARAFA_DB} {not_installed}";
-	$ZarafaRemoteMySQLServer=$sock->GET_INFO("ZarafaRemoteMySQLServer");
-	if($users->APP_ZARAFADB_INSTALLED){
+	$ZarafaRemoteMySQLServer=$sock->GET_INFO("ZarafaMySQLServiceType");
+	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
+	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
+	
+	
+	if($ZarafaDedicateMySQLServer==1){
+		$mysqldimg="ok24.png";
 		$mysqltext="{APP_ZARAFADB} {installed}";
 		if($ZarafaRemoteMySQLServer<>3){
 			$mysqldimg="warning24.png";
@@ -301,26 +309,17 @@ function services_status(){
 		$tr[]=DAEMON_STATUS_ROUND($ligne,$ini,null,1);
 		
 	}
+$tables[]="<div style='width:95%' class=form>";	
+if(isset($_GET["miniadm"])){
+	$tables[]=CompileTr4($tr,true);
+	$et="&miniadm=yes";
 	
-$tables[]="<table style='width:99%' class=form>";
-$t=0;
-while (list ($key, $line) = each ($tr) ){
-		$line=trim($line);
-		if($line==null){continue;}
-		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
-		if($t==2){$t=0;$tables[]="</tr><tr>";}
-		}
-
-if($t<2){
-	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
-	}
+}else{
+	$tables[]=CompileTr2($tr,true);
 }
-				
-$tables[]="</table>
+$tables[]="
 <div style='width:100%;text-align:right'>". 
-imgtootltip("32-refresh.png","{refresh}","LoadAjax('zarafa-services-status','$page?services-status=yes');")."</div>";
+imgtootltip("32-refresh.png","{refresh}","LoadAjax('zarafa-services-status','$page?services-status=yes$et');")."</div>";
 
 
 $html=implode("\n",$tables);	

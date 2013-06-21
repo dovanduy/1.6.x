@@ -408,7 +408,7 @@ function forward_item_save(){
 	if($id>0){
 		$sql="UPDATE pdns_fwzones SET port='{$_POST["port"]}',
 		zone='{$_POST["zone"]}',
-		recursive='{$_POST["recursive"]},
+		recursive='{$_POST["recursive"]}',
 		hostname='{$_POST["hostname"]}' WHERE ID='$id'";
 		
 		

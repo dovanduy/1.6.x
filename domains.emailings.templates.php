@@ -542,7 +542,7 @@ function template_tinymce(){
     <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />
     <title>{$ligne["template_name"]}</title>
   	<script type=\"text/javascript\" language=\"javascript\" src=\"js/jquery-1.4.2.min.js\"></script>
-    <script language=\"javascript\" type=\"text/javascript\" src=\"js/tiny_mce/tiny_mce.js\"></script> 	
+    <script language=\"javascript\" type=\"text/javascript\" src=\"js/tiny_mce/tinymce.min.js\"></script> 	
   	
 	<script>
 		//removed template

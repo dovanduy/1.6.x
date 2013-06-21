@@ -1,7 +1,7 @@
-<about>IPTables is a firewall program.[br]
-It can restrict access by port, by IP address, or by the properties of packets.[br]
-Firewalls aren't everything you need for security, but they're an excellent first step.</about>
-<ACCEPT>Allow connections</ACCEPT>
+<about>IPTables &eacute; um programa de firewall. [br]
+Pde restringir o acesso com base nas portas, endere&ccedil;o IP, ou com base nas propriedades dos pacotes. [br]
+Firewalls n&atilde;o resolvem todos os teus problemas de seguran&ccedil;a, mas s&atilde;o  um bom come&ccedil;o.</about>
+<ACCEPT>Permitir conex&otilde;es</ACCEPT>
 <add_inboundrule>Inbound rule</add_inboundrule>
 <add_inboundrule_text>Add a rule to Allow or deny connections from others to your server</add_inboundrule_text>
 <close_windows>All iptables Firewall operations completed, You can close the windows now</close_windows>

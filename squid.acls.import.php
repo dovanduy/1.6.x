@@ -50,7 +50,7 @@ function popup(){
 	<tr>
 		<td class=legend style='font-size:16px'>{backup_file}:</td>
 		<td class=legend style='font-size:16px'>". Field_text("backupctner-$t",null,"font-size:16px;width:95%")."</td>
-		<td width=1%>". button("{browse}...","Loadjs('tree.php?target-form=backupctner-$t&select-file=gz')","12px")."</td>
+		<td width=1%>". button("{browse}...","Loadjs('tree.php?target-form=backupctner-$t&select-file=gz,acl')","12px")."</td>
 	</tr>
 				
 <td colspan=3 align='right'><hr>". button("{import}...","Save$t()","18px")."</td></tr>

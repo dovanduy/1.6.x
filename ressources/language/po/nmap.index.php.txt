@@ -1,11 +1,8 @@
-<about>Nmap is a security scanner originally written by Gordon Lyon (Fyodor).[br]
-It may be used to discover computers and services on a computer network,
-thus creating a "map" of the network.[br]
-Just like many simple port scanners, Nmap is capable of discovering passive services on a network despite
-the fact that such services aren't advertising themselves with a service discovery protocol.[br]
-In addition Nmap may be able to determine various details about the remote computers.[br]
-These include operating system, device type, uptime, software product used to run a service,
-exact version number of that product, presence of some firewall techniques and, on a local area network, even vendor of the remote network card.</about>
+<about>Nmap &eacute; um scanner de seguran&ccedil;a originalmente escrito por Gordon Lyon (Fyodor). [br]
+Pode ser usado para descobrir computadores e servi&ccedil;os numa rede de computadores, criando assim um &quot;mapa&quot; da rede.[br]
+Assim  como muitos scanners de portas simples, o Nmap &eacute; capaz de descobrir servi&ccedil;os passivos numa rede, apesar do facto tais servi&ccedil;os n&atilde;o se anunciarem como um protocolo de descoberta de servi&ccedil;os. [br]
+Em resumo o Nmap &eacute; capaz de obter v&aacute;rios detalhes sobre os computadores remotos. [br]
+Isso inclui sistema operativo, tipo de dispositivo, o tempo de atividade, software usados %u200B%u200Bpara executar um determinado servi&ccedil;o, n&uacute;mero exato da vers&atilde;o do produto, a presen&ccedil;a de algumas t&eacute;cnicas de firewall e,  numa rede local, at&eacute; o fornecedor da placa de rede remota.</about>
 <add_network>Add a new network to scan</add_network>
 <add_network_text>add IP range to scan in order to discover new remote computers</add_network_text>
 <ip>TCP/IP Address</ip>

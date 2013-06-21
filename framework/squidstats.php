@@ -2,15 +2,18 @@
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
-
-
 if(isset($_GET["repair-hour"])){repair_hour();exit;}
 if(isset($_GET["processes-queue"])){process_queue();exit;}
 if(isset($_GET["backup-stats-restore"])){restore_backup();exit;}
 if(isset($_GET["backup-stats-restore-all"])){restore_all_backup();exit;}
 if(isset($_GET["migrate-local"])){migrate_local();exit;}
-
+if(isset($_GET["category-uid"])){category_uid();exit;}
 if(isset($_GET["alldays"])){alldays();exit;}
+if(isset($_GET["table-members-time"])){table_members_time();exit;}
+if(isset($_GET["categorize-day-table"])){table_categorize_time();exit;}
+if(isset($_GET["sumary-counters-table"])){table_sumarize_time();exit;}
+
+
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
@@ -91,3 +94,35 @@ function alldays(){
 	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmdline);
 }
+function category_uid(){
+	$unix=new unix();
+	$uid=$_GET["category-uid"];
+	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.websites_uid.php --websites-uid-categorize \"$uid\" >/dev/null 2>&1 &";
+	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmdline);	
+}
+function table_members_time(){
+	$unix=new unix();
+	$xtime=$_GET["xtime"];
+	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.stats.members.hours.php --bytime $xtime >/dev/null 2>&1 &";
+	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmdline);	
+}
+
+function table_categorize_time(){
+	$unix=new unix();
+	$xtime=$_GET["xtime"];
+	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.stats.categorize-table.php --xtime $xtime >/dev/null 2>&1 &";
+	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmdline);	
+	
+}
+function table_sumarize_time(){
+	$unix=new unix();
+	$xtime=$_GET["xtime"];
+	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.stats.totals.php --xtime $xtime >/dev/null 2>&1 &";
+	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmdline);
+
+}
+

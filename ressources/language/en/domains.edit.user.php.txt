@@ -68,7 +68,7 @@ please check if all features are translated after the operation.</change_uid_exp
 <duplicate_mailto_text>If you fill this field, all mails to this user will be duplicated to the email address set</duplicate_mailto_text>
 <EnableUserSpamLearning>Junk Learning</EnableUserSpamLearning>
 <EnableUserSpamLearning_explain>If mails are saved into Junk folder of this user mailbox, mails will be imported for analysis in order to increase the Spamassassin detection rate.[br]
-After analyze the mail, it will be automatically deleted in order to not polluate junk folder</EnableUserSpamLearning_explain>
+After analyze the mail, it will be automatically deleted in order to not pollute junk folder</EnableUserSpamLearning_explain>
 <EnableUserSpamLearning_text>Allow artica parsing the junk/Spam mailbox in order to send junk mails to spamassassin</EnableUserSpamLearning_text>
 <enable_file_share>Enable File Sharing</enable_file_share>
 <error_image_missing>There is an error according gd libraries, make sure you have installed php5-gd or any modules required</error_image_missing>

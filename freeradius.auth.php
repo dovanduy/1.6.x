@@ -44,7 +44,7 @@ function connection_id(){
 	$t=$_GET["t"];
 	$connection_id=$_GET["connection-form-id"];
 	$CONNECTIONS_TYPE["ldap"]="{ldap}";
-	//$CONNECTIONS_TYPE["mysql"]="{mysql}";
+	$CONNECTIONS_TYPE["mysql_local"]="{local_mysql}";
 	$CONNECTIONS_TYPE["ad"]="{ActiveDirectory}";
 	if($connection_id>0){
 		$q=new mysql();
@@ -93,6 +93,7 @@ function connection_form(){
 	
 	if($cnxt=="ldap"){connection_form_ldap();exit;}
 	if($cnxt=="ad"){connection_form_ad();exit;}
+	if($cnxt=="mysql_local"){connection_form_mysql_local();exit;}
 
 	
 }
@@ -188,6 +189,66 @@ function Save$tt(){
 
 echo $tpl->_ENGINE_parse_body($html);
 
+}
+
+function connection_form_mysql_local(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$t=$_GET["t"];
+	$connection_id=$_GET["connection-id"];
+	$cnxt=$_GET["cnxt"];
+	$btname="{add}";
+	$array=array();
+	if($connection_id>0){
+		$btname="{apply}";
+		$q=new mysql();
+		$ligne=mysql_fetch_array(
+				$q->QUERY_SQL("SELECT params FROM freeradius_db WHERE ID=$connection_id","artica_backup")
+		);
+		$array=unserialize(base64_decode($ligne["params"]));
+	
+	}
+	
+	
+	
+	
+	$tt=time();
+	$html="
+	<div style='font-size:16px' class=explain>{radius_local_mysqldb_explain}</div>
+	<div id='$tt'></div>
+	<div style='width:95%' class=form>
+	<table style='width:99%'>
+	<tr>
+	<tr>
+		<td colspan=2 align='right'>
+				<hr>". button($btname,"Save$tt()","18px")."</td>
+	</tr>
+	</table>
+	</div>
+	
+	<script>
+	var x_Save$tt= function (obj) {
+		var connection_id=$connection_id;
+		var results=obj.responseText;
+		if(results.length>3){alert(results);document.getElementById('$tt').innerHTML='';return;}
+		document.getElementById('$tt').innerHTML='';
+		if(connection_id==0){YahooWin2Hide();}
+		$('#$t').flexReload();
+	}
+	
+	
+	function Save$tt(){
+		var XHR = new XHRConnection();
+		XHR.appendData('connectionname', encodeURIComponent(document.getElementById('connectionname-$t').value));
+		XHR.appendData('connectiontype', document.getElementById('connectiontype-$t').value);
+		XHR.appendData('ID', '$connection_id');
+		AnimateDiv('$tt');
+		XHR.sendAndLoad('$page', 'POST',x_Save$tt);
+	}
+	
+	</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);
 }
 
 
@@ -476,7 +537,7 @@ function connection_list(){
 	$CONNECTIONS_TYPE["ldap"]="{ldap}";
 	$CONNECTIONS_TYPE["mysql"]="{mysql}";
 	$CONNECTIONS_TYPE["ad"]="{ActiveDirectory}";	
-	
+	$CONNECTIONS_TYPE["mysql_local"]="{local_mysql}";
 	
 	
 	if($searchstring==null){

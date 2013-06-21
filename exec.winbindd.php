@@ -54,7 +54,10 @@ function setfacl_squid($without_reload=false){
 				shell_exec("$setfacl -R -m g:squid:rwx $dir/pipe >/dev/null 2>&1");
 				shell_exec("$chmod 1777 $dir/pipe");
 				echo "Starting......: WINBIND setfacl_squid:: reloading squid\n";
-				if(!$without_reload){shell_exec("$squidbin -k reconfigure >/dev/null 2>&1");}
+				
+				if(!$without_reload){
+					squid_watchdog_events("Reconfiguring Proxy parameters...");;
+					shell_exec("$squidbin -k reconfigure >/dev/null 2>&1");}
 				return;
 			}else{
 				if($GLOBALS["VERBOSE"]){echo "$dir/pipe no such file\n";}
@@ -65,7 +68,11 @@ function setfacl_squid($without_reload=false){
 	echo "Starting......: WINBIND setfacl_squid:: waiting pipe done...\n";
 	
 }
-
+function squid_watchdog_events($text){
+	$unix=new unix();
+	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefile=basename($trace[1]["file"]);$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];}}
+	$unix->events($text,"/var/log/squid.watchdog.log",false,$sourcefunction,$sourceline);
+}
 function DirsPrivileges(){
 	$sock=new sockets();
 	$unix=new unix();

@@ -498,6 +498,14 @@ $sock=new sockets();
 		$SquidEnableProxyPac=0;
 	}
 	
+	if($users->SQUID_REVERSE_APPLIANCE){
+		$listen_port=null;
+		$proxy_pac=null;
+		$proxy_pac_rules=null;
+		$SquidEnableProxyPac=0;
+		$squid_accl_websites=null;
+	}
+	
 	
 if($sock->GET_INFO("SquidEnableProxyPac")<>1){$proxy_pac_rules=null;}	
 	
@@ -731,11 +739,9 @@ function main_enableETDisable(){
 	$html="
 	<div id='EnableETDisableSquidDiv'>
 	<div class=explain style='font-size:14px'>{enable_squid_service_text}</div>
-	<div style='width:95%' class=form>
-	$field
-	</div>
 	
-	<div style='text-align:right'>". button("{apply}", "SaveEnableSquidGLobal()",16)."</div>
+	$field
+	<div style='text-align:right'><hr>". button("{apply}", "SaveEnableSquidGLobal()",16)."</div>
 	</div>
 	
 	";
@@ -1276,16 +1282,17 @@ changeCacheIndex();";
 function transparent_js(){
 $page=CurrentPageName();
 	$tpl=new templates();
+	$t=time();
+	header("content-type: application/x-javascript");
 	$title=$tpl->_ENGINE_parse_body('{transparent_mode}','squid.index.php');
 	$html="
-	
-
-	function TransparentIndex(){
+	function TransparentIndex$t(){
 		YahooWin(684,'$page?squid-transparent-popup=yes','$title');
 	
 	}
 	
-	TransparentIndex();
+	TransparentIndex$t();
+	
 	
 ";
 	echo $html;
@@ -1299,7 +1306,7 @@ function transparent_save(){
 	$sock->SET_INFO("hasProxyTransparent", $_GET["squid_transparent"]);
 	$sock->SET_INFO("UseTProxyMode", $_GET["UseTProxyMode"]);
 	$sock->SET_INFO("KernelSendRedirects", $_GET["KernelSendRedirects"]);
-	
+	$sock->SET_INFO("SquidTransparentMixed", $_GET["SquidTransparentMixed"]);
 	
 	if($_GET["squid_transparent"]==1){
 		$sock->SET_INFO("EnableArticaAsGateway",1);
@@ -1368,7 +1375,10 @@ function transparent_HTTP(){
 	$CONFIG_NETFILTER_TPROXY=0;
 	
 	$KernelSendRedirects=$sock->GET_INFO("KernelSendRedirects");
-	if(!is_numeric($KernelSendRedirects)){$KernelSendRedirects=1;}	
+	$SquidTransparentMixed=$sock->GET_INFO("SquidTransparentMixed");
+	
+	if(!is_numeric($KernelSendRedirects)){$KernelSendRedirects=1;}
+	if(!is_numeric($SquidTransparentMixed)){$SquidTransparentMixed=0;}	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	
@@ -1431,9 +1441,14 @@ function transparent_HTTP(){
 	
 	$field=Paragraphe_switch_img('{transparent_mode}','{transparent_mode_text}',
 			'squid_transparent',$squid->hasProxyTransparent,null,450);
+	
+	$field=Paragraphe_switch_img('{SquidTransparentMixed}','{SquidTransparentMixed_text}',
+			'SquidTransparentMixed',$SquidTransparentMixed,null,450);	
+	
+	
 	$html="
 	
-	<div id='squid_transparentdiv'>
+	<div id='squid_transparentdiv'></div>
 		<div style='float:right'>". help_icon("{transparent_mode_limitations}")."</div>
 			<div class=explain style='font-size:14px'>{transparent_mode_explain}</div>
 		<table style='width:99%' class=form>
@@ -1460,7 +1475,7 @@ function transparent_HTTP(){
 	var x_SaveTransparentProxy= function (obj) {
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue)};
-		TransparentIndex();
+		document.getElementById('squid_transparentdiv').innerHTML='';
 		if(document.getElementById('main_squid_quicklinks_tabs')){RefreshTab('main_squid_quicklinks_tabs');}
 		Loadjs('squid.restart.php?onlySquid=yes&ask=yes');
 	}	
@@ -1472,6 +1487,9 @@ function transparent_HTTP(){
 		if(EnableRemoteStatisticsAppliance==1){Loadjs('$page?error-remote-appliance=yes');return;}
 		var CONFIG_NETFILTER_TPROXY=$CONFIG_NETFILTER_TPROXY;
 		XHR.appendData('squid_transparent',document.getElementById('squid_transparent').value);
+		XHR.appendData('SquidTransparentMixed',document.getElementById('SquidTransparentMixed').value);
+		
+		
 		
 		if(CONFIG_NETFILTER_TPROXY==0){
 			XHR.appendData('UseTProxyMode',0);

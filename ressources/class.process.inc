@@ -84,7 +84,6 @@ function MemoryInstances(){
 
 				if(isset($arrayK[$filename])){
 					if($time>$arrayK[$filename]){
-					$GLOBALS["CLASS_UNIX"]->send_email_events("[artica-background] $filename is killed after {$time}Mn live",$ligne,"system");
 					$this->events("killing $filename it freeze...",__FUNCTION__,__LINE__);
 					shell_exec("/bin/kill -9 {$re[1]}");
 					continue;						
@@ -116,7 +115,7 @@ function MemoryInstances(){
 					if($GLOBALS["CLASS_UNIX"]->PID_IS_CHROOTED($re[1])){continue;}
 					$time=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($re[1]);
 					if($time>10){
-						$GLOBALS["CLASS_UNIX"]->send_email_events("[artica-background] yorel-upd is killed after {$time}Mn live");
+						//$GLOBALS["CLASS_UNIX"]->send_email_events("[artica-background] yorel-upd is killed after {$time}Mn live");
 						$this->events("killing yorel-upd it {$re[1]} freeze {$time}Mn...",__FUNCTION__,__LINE__);
 						shell_exec("/bin/kill -9 {$re[1]}");
 					}

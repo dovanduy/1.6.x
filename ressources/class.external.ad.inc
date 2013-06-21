@@ -6,6 +6,8 @@ class external_ad_search{
 	public $error;
 	public $suffix=null;
 	private $connectionEncoded=null;
+	public $IsError=false;
+	private $UserConnected=null;
 	function external_ad_search($connectionEncoded=null){
 		if(!isset($GLOBALS["AS_ROOT"])){
 			if(posix_geteuid()>0){$GLOBALS["AS_ROOT"]=false;}else{$GLOBALS["AS_ROOT"]=true;}
@@ -38,7 +40,7 @@ class external_ad_search{
 		$bind=ldap_bind($this->ldap_connection, "$username@{$this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"]}",
 		 $password);
 		if(!$bind){
-			$error=ldap_err2str($this->ldap_connection);
+			$error=ldap_err2str(ldap_err2str(ldap_errno($this->ldap_connection)));
 			$this->error="Failed to login to DC {$this->KerbAuthInfos["LDAP_SERVER"]} - $username@{$this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"]} `$error`";
 			writelogs($this->error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			return false;
@@ -876,6 +878,15 @@ class external_ad_search{
 				$this->KerbAuthInfos["LDAP_SUFFIX"]=$array["LDAP_SUFFIX"];
 				$this->KerbAuthInfos["LDAP_SERVER"]=$array["LDAP_SERVER"];
 			}
+			
+			
+			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"])){
+				$SMB=$this->SAMBA_GetNetAdsInfos();
+				$array["FQDN"]=$SMB["LDAP server name"];
+				$this->KerbAuthInfos["FQDN"]=$array["FQDN"];
+				if($array["FQDN"]<>null){$FGH=explode(".",$array["FQDN"]);unset($FGH[0]);
+				$this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"]=@implode(".", $FGH);}
+			}			
 				
 		}
 
@@ -994,7 +1005,10 @@ class external_ad_search{
 	}
 
 	public function searchGroup($pattern,$array,$maxitems=0){
-		if(!$this->connect()){return $array;}
+		if(!$this->connect()){
+			$this->IsError=true;
+			return $array;
+		}
 		if($pattern==null){$pattern="*";}
 		$searchFilter="(&(objectClass=group)(sAMAccountName=$pattern))";
 		$filter=array("samaccountname");
@@ -1007,6 +1021,8 @@ class external_ad_search{
 		if (!$sr) {
 			if(is_numeric(ldap_errno($this->ldap_connection))){
 				$error=ldap_errno($this->ldap_connection);$errstr=@ldap_err2str($error);
+				$this->IsError=true;
+				$this->error="$errstr User:`$this->UserConnected` $searchFilter";
 				writelogs("Error:`$error` ($errstr) suffix:{$this->KerbAuthInfos["LDAP_SUFFIX"]} $searchFilter",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			}
 			return $array;
@@ -1036,7 +1052,8 @@ class external_ad_search{
 		if (!$sr) {
 			if(is_numeric(ldap_errno($this->ldap_connection))){
 				$error=ldap_errno($this->ldap_connection);$errstr=@ldap_err2str($error);
-				writelogs("Error:`$error` ($errstr) suffix:{$this->KerbAuthInfos["LDAP_SUFFIX"]} $searchFilter",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+				$this->error="`$error` ($errstr) $this->UserConnected $searchFilter";
+				writelogs("Error:`$error` ($errstr) $this->UserConnected $searchFilter",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			}
 			return null;
 		}	
@@ -1057,7 +1074,7 @@ class external_ad_search{
 		if (!$sr) {
 			if(is_numeric(ldap_errno($this->ldap_connection))){
 				$error=ldap_errno($this->ldap_connection);$errstr=@ldap_err2str($error);
-				writelogs("Error:`$error` ($errstr) suffix:{$this->KerbAuthInfos["LDAP_SUFFIX"]} $searchFilter",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+				writelogs("$errstr) $this->UserConnected $searchFilter",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			}
 			return $array;
 		}
@@ -1119,20 +1136,36 @@ class external_ad_search{
 		
 		ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
 		ldap_set_option($this->ldap_connection, LDAP_OPT_REFERRALS, 0);
-		if(($this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"]<>null) && ($this->KerbAuthInfos["WINDOWS_SERVER_ADMIN"]<>null)){
-			$bind=ldap_bind($this->ldap_connection, "{$this->KerbAuthInfos["WINDOWS_SERVER_ADMIN"]}@{$this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"]}", $this->KerbAuthInfos["WINDOWS_SERVER_PASS"]);
+		$this->KerbAuthInfos["LDAP_DN"]=trim($this->KerbAuthInfos["LDAP_DN"]);
+		if(trim($this->KerbAuthInfos["LDAP_DN"])==null){
+			$error_plus="LDAP_DN = null";
+			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"])){
+				$SMB=$this->SAMBA_GetNetAdsInfos();
+				$array["FQDN"]=$SMB["LDAP server name"];
+				$this->KerbAuthInfos["FQDN"]=$array["FQDN"];
+				if($array["FQDN"]<>null){$FGH=explode(".",$array["FQDN"]);unset($FGH[0]);
+				$this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"]=@implode(".", $FGH);}
+			}
+			
+			if(($this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"]<>null) && ($this->KerbAuthInfos["WINDOWS_SERVER_ADMIN"]<>null)){
+				$Username="{$this->KerbAuthInfos["WINDOWS_SERVER_ADMIN"]}@{$this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"]}";
+			}
 		}
 		
-		if($this->KerbAuthInfos["LDAP_DN"]<>null){
-			$bind=ldap_bind($this->ldap_connection, "{$this->KerbAuthInfos["LDAP_DN"]}", $this->KerbAuthInfos["WINDOWS_SERVER_PASS"]);
+		if(trim($this->KerbAuthInfos["LDAP_DN"])<>null){
+			$error_plus="LDAP_DN to modify";
+			$Username=$this->KerbAuthInfos["LDAP_DN"];
+			
 		}
 		
+		$this->UserConnected=$Username;
+		$bind=ldap_bind($this->ldap_connection, $Username, $this->KerbAuthInfos["WINDOWS_SERVER_PASS"]);
 		
 		if(!$bind){
 			@ldap_get_option($this->ldap_connection, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
 			$error=ldap_errno($this->ldap_connection);$errstr=@ldap_err2str($error);
-			$this->error="Er.$error Failed to login to DC {$this->KerbAuthInfos["LDAP_SERVER"]} `$errstr - $extended_error` in ".__CLASS__."/".__FUNCTION__." line:".__LINE__;
-			writelogs("Er.$error Failed to login to DC {$this->KerbAuthInfos["LDAP_SERVER"]} `$errstr - $extended_error`",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			$this->error="($error_plus) $error Failed to login as $Username to DC {$this->KerbAuthInfos["LDAP_SERVER"]} `$errstr - $extended_error` in ".__CLASS__."/".__FUNCTION__." line:".__LINE__;
+			writelogs("Er.$error Failed to login as $Username to DC {$this->KerbAuthInfos["LDAP_SERVER"]} `$errstr - $extended_error`",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			return false;
 		}
 		

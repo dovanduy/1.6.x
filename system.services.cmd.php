@@ -21,6 +21,7 @@ function js(){
 	$appname=$_GET["APPNAME"];
 	$action=$_GET["action"];
 	$title=$tpl->javascript_parse_text("{{$appname}}::{{$action}}");
+	$_GET["cmd"]=urlencode($_GET["cmd"]);
 	$html="YahooWinBrowse('700','$page?popup=yes&appname=$appname&action=$action&cmd={$_GET["cmd"]}&id={$_GET["id"]}&appcode={$_GET["appcode"]}','$title')";
 	echo $html;
 	
@@ -34,7 +35,7 @@ function popup(){
 	$id=$_GET["id"];
 	$t=time();
 	$title=$tpl->_ENGINE_parse_body("{please_wait} {{$action}} {{$appname}}...");
-	
+	$_GET["cmd"]=urlencode($_GET["cmd"]);
 	$sock=new sockets();
 	$sock->getFrameWork("system.php?generic-start=yes&action={$_GET["action"]}&cmd={$_GET["cmd"]}&key=$t");
 	
@@ -44,7 +45,7 @@ function popup(){
 			<div id='Status$t'></div>
 		</center>
 		<textarea style='margin-top:5px;font-family:Courier New;
-	font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:11.5px'
+	font-weight:bold;width:99%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:11.5px'
 	id='textarea$t'></textarea>
 			
 	<script>

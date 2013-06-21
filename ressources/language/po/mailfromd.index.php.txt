@@ -1,7 +1,6 @@
-<about>Mailfromd is a general-purpose mail filtering daemon. It is able to interact with any MTA that supports milter or pmilter protocol,
-such as Sendmail , Postfix and MeTA1..[br]
-It is able to filter both incoming and outgoing messages using criteria of arbitrary complexity,[br]
-supplied by the administrator in the form of a script file.</about>
+<about>Mailformd &eacute; um &quot;daeamon&quot; generalista de filtragem de email.
+&Eacute; capz de interagir com qualquer MTA que suporte os protocolos &quot;milter&quot; ou &quot;pmilter&quot;, como o Sendmail, Postfix e MeTA1..[br]
+&Eacute; capaz de filtrar em ambos os sentidos, quer a  entrada quer a saida de menssagens, atrav&eacute;s de crit&eacute;rios de complexidade arbitr&aacute;ria, [br] fornecidos pelo administrador, com base num ficheiro de script.</about>
 <apply_to_server>Apply settings</apply_to_server>
 <close_windows>All operations are completed, you can close this windows...</close_windows>
 <enabled_plugins>Plugins Enabled</enabled_plugins>

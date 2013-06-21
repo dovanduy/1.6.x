@@ -1,4 +1,4 @@
-<accounts>Your accounts</accounts>
+<accounts>As suas contas</accounts>
 <ACTION_PROBABLE_MODE>When found probable SPAM or Virus</ACTION_PROBABLE_MODE>
 <ACTION_PROBABLE_MODE_SUBJECT>if pass, SPAM prepend subject with</ACTION_PROBABLE_MODE_SUBJECT>
 <ACTION_SPAM_MODE>When found a spam or a virus</ACTION_SPAM_MODE>

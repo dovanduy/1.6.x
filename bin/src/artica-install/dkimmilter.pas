@@ -19,6 +19,7 @@ private
      SYS:TSystem;
      artica_path:string;
      EnableDkimMilter:integer;
+     DisconnectDKFilter:integer;
      binpath:string;
 public
     procedure   Free;
@@ -43,6 +44,8 @@ begin
        SYS:=zSYS;
        binpath:=BIN_PATH();
        if not TryStrToInt(SYS.GET_INFO('EnableDkimMilter'),EnableDkimMilter) then EnableDkimMilter:=0;
+       if not TryStrToInt(SYS.GET_INFO('DisconnectDKFilter'),DisconnectDKFilter) then DisconnectDKFilter:=0;
+       if DisconnectDKFilter=1 then EnableDkimMilter:=0;
        //http://www.howtoforge.com/postfix-dkim-with-dkim-milter-centos5.1
 end;
 //##############################################################################
@@ -61,6 +64,12 @@ var
    pidstring:string;
    fpid,i:integer;
 begin
+
+if DisconnectDKFilter=1 then begin
+   writeln('Stopping milter-dkim.........: disconnected');
+   exit;
+end;
+
 if not FileExists(binpath) then begin
    writeln('Stopping milter-dkim.........: Not installed');
    exit;

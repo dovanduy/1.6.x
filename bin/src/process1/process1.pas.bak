@@ -88,6 +88,36 @@ if ParamStr(1)='-V' then begin
    writeln('process1 start in debug mode');
    D:=True;
 end;
+if ParamStr(1)='--verbose' then begin
+   writeln('process1 start in debug mode');
+   D:=True;
+end;
+if ParamStr(2)='--verbose' then begin
+   writeln('process1 start in debug mode');
+   D:=True;
+end;
+if ParamStr(1)='--web-settings' then begin
+        P1:=Tprocess1.Create(true);
+        P1.web_settings();
+        zlogs.Debuglogs('shutdown...');
+        zlogs.OutputCmd('/bin/touch /etc/artica-postfix/process1.cron');
+        halt(0);
+end;
+
+
+
+if ParamStr(1)='--force' then begin
+        P1:=Tprocess1.Create();
+        zlogs.Debuglogs('shutdown...');
+        zlogs.OutputCmd('/bin/touch /etc/artica-postfix/process1.cron');
+        halt(0);
+end;
+if ParamStr(2)='--force' then begin
+        P1:=Tprocess1.Create();
+        zlogs.Debuglogs('shutdown...');
+        zlogs.OutputCmd('/bin/touch /etc/artica-postfix/process1.cron');
+        halt(0);
+end;
 
 
 if ParamStr(1)='--nickernel' then begin
@@ -206,12 +236,7 @@ if ParamStr(1)='time' then begin
 end;
 
 
-if ParamStr(1)='--force' then begin
-        P1:=Tprocess1.Create();
-        zlogs.Debuglogs('shutdown...');
-        zlogs.OutputCmd('/bin/touch /etc/artica-postfix/process1.cron');
-        halt(0);
-end;
+
  if ParamStr(1)='--pear' then begin
     writeln(SYS.PEAR_MODULES());
      halt(0);
@@ -289,7 +314,6 @@ end;
  if ParamStr(1)='--kill' then begin
          P1:=Tprocess1.Create();
          P1.KillsfUpdatesBadProcesses();
-         P1.CleanBadProcesses();
          halt(0);
      end;
      

@@ -3,7 +3,7 @@ include_once(dirname(__FILE__) . '/ressources/class.main_cf.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . "/ressources/class.sockets.inc");
 include_once(dirname(__FILE__) . "/ressources/class.pdns.inc");
-
+include_once(dirname(__FILE__) . '/ressources/class.system.network.inc');
 
 if(posix_getuid()<>0){
 	$user=new usersMenus();
@@ -13,6 +13,8 @@ if(posix_getuid()<>0){
 		die();exit();
 	}
 }
+
+if(isset($_GET["PDNSRestartIfUpToMB"])){PDNSRestartIfUpToMB();exit;}
 if(isset($_GET["service-cmds"])){service_cmds_js();exit;}
 if(isset($_GET["service-cmds-peform"])){service_cmds_perform();exit;}
 if(isset($_GET["digg"])){digg();exit;}
@@ -61,7 +63,7 @@ if(isset($_GET["SaveDNSEntry"])){AddDNSEntry();exit;}
 if(isset($_GET["DelDNSEntry"])){DelDNSEntry();exit;}
 if(isset($_GET["EnablePDNS"])){EnablePDNS();exit;}
 if(isset($_GET["PowerDNSLogsQueries"])){SaveLogsSettings();exit;}
-if(isset($_GET["PDNSRestartIfUpToMB"])){PDNSRestartIfUpToMB();exit;}
+
 if(isset($_GET["infos"])){pdns_infos();exit;}
 if(isset($_GET["pdns-infos-query"])){pdns_infos_query();exit;}
 
@@ -291,6 +293,7 @@ $page=CurrentPageName();
 	$PowerActAsSlave=$sock->GET_INFO("PowerActAsSlave");
 	$PowerDNSLogLevel=$sock->GET_INFO("PowerDNSLogLevel");
 	$PowerSkipCname=$sock->GET_INFO("PowerSkipCname");
+	$PowerDNSRecursorQuerLocalAddr=$sock->GET_INFO("PowerDNSRecursorQuerLocalAddr");
 	
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
 	$PowerDNSMySQLEngine=1;
@@ -305,6 +308,20 @@ $page=CurrentPageName();
 	if(!is_numeric($PowerActAsSlave)){$PowerActAsSlave=0;}
 	if(!is_numeric($PowerDNSLogLevel)){$PowerDNSLogLevel=1;}
 	if(!is_numeric($PowerSkipCname)){$PowerSkipCname=0;}
+	$net=new networking();
+	
+	if($PowerDNSRecursorQuerLocalAddr==null){
+		
+		$net->ifconfig("eth0");
+		if($net->tcp_addr<>null){
+			if($net->tcp_addr<>"0.0.0."){
+				$PowerDNSRecursorQuerLocalAddr=$net->tcp_addr;
+			}
+		}
+		
+	}
+	
+	
 	
 	
 	$PowerDNSMySQLType=$sock->GET_INFO("PowerDNSMySQLType");
@@ -339,6 +356,11 @@ $page=CurrentPageName();
 	for($i=0;$i<10;$i++){
 		$loglevels[$i]=$i;
 	}
+	
+	$ips=$net->ALL_IPS_GET_ARRAY();
+	unset($ips["127.0.0.1"]);
+	$PowerDNSRecursorQuerLocalAddr=Field_array_Hash($ips, "PowerDNSRecursorQuerLocalAddr",$PowerDNSRecursorQuerLocalAddr,null,null,0,"font-size:16px");
+	
 	
 	$PowerDNSLogLevel=Field_array_Hash($loglevels, "PowerDNSLogLevel",$PowerDNSLogLevel,null,null,0,"font-size:16px");
 	
@@ -382,6 +404,10 @@ $page=CurrentPageName();
 					<td valign='top' class=legend style='font-size:16px' nowrap>DNSSEC:</td>
 					<td width=1%>". Field_checkbox("PowerDNSDNSSEC",1,$PowerDNSDNSSEC)."</td>
 				</tr>
+				<tr>	
+					<td valign='top' class=legend style='font-size:16px' nowrap>{outgoing_network_addr}:</td>
+					<td width=1%>$PowerDNSRecursorQuerLocalAddr</td>
+				</tr>				
 
 				
 				<tr>
@@ -514,6 +540,9 @@ $page=CurrentPageName();
 			XHR.appendData('PowerDNSMySQLRemoteServer',document.getElementById('PowerDNSMySQLRemoteServer').value);
 			XHR.appendData('PowerDNSMySQLRemotePort',document.getElementById('PowerDNSMySQLRemotePort').value);
 			XHR.appendData('PowerDNSMySQLRemoteAdmin',document.getElementById('PowerDNSMySQLRemoteAdmin').value);
+			XHR.appendData('PowerDNSRecursorQuerLocalAddr',document.getElementById('PowerDNSRecursorQuerLocalAddr').value);
+			
+			
 			
 			var pp=encodeURIComponent(document.getElementById('PowerDNSMySQLRemotePassw').value);
 			XHR.appendData('PowerDNSMySQLRemotePassw',pp);
@@ -643,6 +672,9 @@ function PDNSRestartIfUpToMB(){
 	$sock->SET_INFO("PowerDNSMySQLRemotePort",$_GET["PowerDNSMySQLRemotePort"]); 
 	$sock->SET_INFO("PowerDNSMySQLRemoteAdmin",$_GET["PowerDNSMySQLRemoteAdmin"]);
 	$sock->SET_INFO("PowerDNSMySQLRemotePassw",$_GET["PowerDNSMySQLRemotePassw"]);
+	$sock->SET_INFO("PowerDNSRecursorQuerLocalAddr",$_GET["PowerDNSRecursorQuerLocalAddr"]);
+	
+	
 	
 	$sock->SET_INFO("PDNSRestartIfUpToMB",$_GET["PDNSRestartIfUpToMB"]);
 	$sock->SET_INFO("PowerUseGreenSQL",$_GET["PowerUseGreenSQL"]);
@@ -658,6 +690,7 @@ function PDNSRestartIfUpToMB(){
 	if(isset($_GET["PowerDNSLogLevel"])){$sock->SET_INFO("PowerDNSLogLevel",$_GET["PowerDNSLogLevel"]);}
 	if(isset($_GET["PowerSkipCname"])){$sock->SET_INFO("PowerSkipCname",$_GET["PowerSkipCname"]);}
 	$sock->getFrameWork("cmd.php?pdns-restart=yes");
+	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
 
 }
 

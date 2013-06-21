@@ -9,7 +9,8 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	
 	
 	$user=new usersMenus();
-	if($user->AsSambaAdministrator==false){
+	
+	if(!CheckRights()){
 		$tpl=new templates();
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
@@ -190,6 +191,8 @@ function SambaAclBrowseFilter(){
 	if(!is_numeric($OnlyLDAP)){$OnlyLDAP=0;}
 	if($NOComputers==0){$NOComputers=1;}
 	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":".__LINE__." OnlyUsers=$OnlyUsers<br>\n";}
+	
 	
 	unset($_GET["SambaAclBrowseFilter"]);
 	while (list ($key, $value) = each ($_GET) ){
@@ -270,7 +273,7 @@ function query_group(){
 	if(!is_numeric($OnlyCheckAD)){$OnlyCheckAD=0;}
 	if($Zarafa==1){$nogetent=true;$ObjectZarafa=true;}
 	
-	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":".__LINE__." OnlyUsers=$OnlyUsers<br>\n";}
 	$OnlyUsers=0;
 	$OnlyGroups=1;
 
@@ -286,8 +289,12 @@ function query_group(){
 	if($ldap->IsKerbAuth()){
 		$adKerb=new external_ad_search();
 		$hash=$adKerb->searchGroup($query,array(),$_POST["rp"]);
+		if($adKerb->IsError){
+			json_error_show($adKerb->error,1);
+		}
 		
 	}else{
+		if($GLOBALS["VERBOSE"]){echo "<strong>IsKerbAuth = false</strong><br>\n";}
 		$hash=$users->find_ldap_items($query,$_GET["organization"],$nogetent,$ObjectZarafa,$_POST["rp"],$OnlyGUID,$OnlyUsers,$OnlyCheckAD);
 	}
 	
@@ -344,15 +351,6 @@ function query(){
 	if($_GET["OnlyUsers"]=="yes"){$_GET["OnlyUsers"]=1;}
 	$users=new user();
 	$query=$_POST["query"];
-	
-	if($_POST["qtype"]=="groups"){
-		query_group();
-		return;
-		
-	}
-	
-	$nogetent=false;	
-		
 	$OnlyUsers=$_GET["OnlyUsers"];
 	$OnlyGroups=$_GET["OnlyGroups"];
 	$OnlyGUID=$_GET["OnlyGUID"];
@@ -360,7 +358,25 @@ function query(){
 	$OnlyCheckAD=$_GET["OnlyCheckAD"];
 	$OnlyLDAP=$_GET["OnlyLDAP"];
 	$Zarafa=$_GET["Zarafa"];
-	$OnlyAD=$_GET["OnlyAD"];
+	$OnlyAD=$_GET["OnlyAD"];	
+	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":".__LINE__." OnlyUsers=$OnlyUsers OnlyGroups={$_GET["OnlyGroups"]}<br>\n";}
+	
+	if($_POST["qtype"]=="groups"){
+		query_group();
+		return;
+		
+	}
+	
+	
+	if($OnlyGroups==1){
+		query_group();
+		return;		
+	}
+	
+	$nogetent=false;	
+		
+
 	
 	if(!is_numeric($OnlyGUID)){$OnlyGUID=0;}
 	if(!is_numeric($OnlyUsers)){$OnlyUsers=0;}
@@ -382,7 +398,7 @@ function query(){
 	$sock=new sockets();
 	
 	
-	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":".__LINE__." OnlyAD={$_GET["OnlyAD"]}<br>\n";}
 	
 	if($_GET["OnlyAD"]==1){
 		$EnableSambaActiveDirectory=$sock->GET_INFO("EnableSambaActiveDirectory");
@@ -403,6 +419,12 @@ function query(){
 		
 	}
 	
+	$usersMenus=new usersMenus();
+	if(!$usersMenus->IsSuperAdmin()){
+		$_GET["organization"]=$_SESSION["ou"];
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":".__LINE__." ->find_ldap_items($query,{$_GET["organization"]},$nogetent,ObjectZarafa=$ObjectZarafa,{$_POST["rp"]},OnlyGUID=$OnlyGUID,OnlyUsers=$OnlyUsers,OnlyCheckAD=$OnlyCheckAD...<br>\n";}
 	$hash=$users->find_ldap_items($query,$_GET["organization"],$nogetent,$ObjectZarafa,$_POST["rp"],$OnlyGUID,$OnlyUsers,$OnlyCheckAD);
 
 	
@@ -463,6 +485,21 @@ function query(){
 
 	
 }
+
+function CheckRights(){
+	$users=new usersMenus();
+	if($users->IsSuperAdmin()){return true;}
+	if($users->AsSambaAdministrator){return true;}
+	if($users->AsPostfixAdministrator){return true;}
+	if($users->AsMessagingOrg){return true;}
+	if($users->AsMailBoxAdministrator){return true;}
+	if($users->AsDansGuardianAdministrator){return true;}
+	return false;
+	
+	
+}
+
+
 
 
 

@@ -314,12 +314,12 @@ var x_SharedDHCPNetSave= function (obj) {
 		XHR.appendData('sharednet_name',document.getElementById('sharednet_name').value);
 		XHR.appendData('groupnameAdd',document.getElementById('groupnameAdd').value);
 		XHR.appendData('scope',document.getElementById('scope').value);
-		XHR.appendData('subnet',document.getElementById('subnet_'.$t).value);
+		XHR.appendData('subnet',document.getElementById('subnet').value);
 		XHR.appendData('netmask',document.getElementById('netmask_$t').value);
 		XHR.appendData('routers',document.getElementById('routers').value);
 		XHR.appendData('range1',document.getElementById('range1_$t').value);
 		XHR.appendData('range2',document.getElementById('range2_$t').value);
-		XHR.appendData('subnet-mask',document.getElementById('subnet-mask').value);
+		XHR.appendData('subnet-mask',document.getElementById('subnet-mask_$t').value);
 		XHR.appendData('domain-name-servers1',document.getElementById('domain-name-servers1').value);
 		XHR.appendData('domain-name-servers2',document.getElementById('domain-name-servers2').value);
 		XHR.appendData('tftp-server-name',document.getElementById('tftp-server-name').value);

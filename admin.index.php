@@ -1,13 +1,14 @@
 <?php
 $GLOBALS["AS_ROOT"]=false;
+$GLOBALS["VERBOSE"]=false;
 if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
+if(isset($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}}
 $GLOBALS["ICON_FAMILY"]="SYSTEM";
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if($GLOBALS["VERBOSE"]){echo "Memory:(".__LINE__.") " .round(memory_get_usage(true)/1024)."Ko<br>\n";}
 include_once('ressources/class.templates.inc');
 if($GLOBALS["VERBOSE"]){echo "Memory:(".__LINE__.") " .round(memory_get_usage(true)/1024)."Ko<br>\n";}
-if(!$GLOBALS["AS_ROOT"]){session_start();}
+if(!$GLOBALS["AS_ROOT"]){session_start();unset($_SESSION["MINIADM"]);unset($_COOKIE["MINIADM"]);}
 include_once('ressources/class.html.pages.inc');
 include_once('ressources/class.cyrus.inc');
 include_once('ressources/class.main_cf.inc');
@@ -48,7 +49,7 @@ if(isset($_GET["postfix-status-right"])){echo status_postfix();exit;}
 
 if(isset($_GET["graph"])){graph();exit;}
 if(isset($_GET["start-all-services"])){START_ALL_SERVICES();exit;}
-if($_GET["status"]=="left"){status_left();exit;}
+if($_GET["status"]=="left"){die("<H1>Not supported</H1>");}
 if($_GET["status"]=="right"){status_right();exit;}
 
 
@@ -425,7 +426,9 @@ function main_admin_tabs(){
 		if($SQUIDEnable==1){
 			$array["t:HTTP_FILTER_STATS"]="{MONITOR}";
 			if(!$users->PROXYTINY_APPLIANCE){
-				$array["t:HTTP_BLOCKED_STATS"]="{blocked_websites}";
+				if(!$users->SQUID_REVERSE_APPLIANCE){
+					$array["t:HTTP_BLOCKED_STATS"]="{blocked_websites}";
+				}
 			}
 		}
 	}
@@ -631,9 +634,12 @@ function status_computer(){
 	if(!$GLOBALS["AS_ROOT"]){
 		if(!$GLOBALS["VERBOSE"]){
 			if(is_file("/usr/share/artica-postfix/ressources/logs/web/admin.index.memory.html")){
-				$tpl=new templates();
-				echo $tpl->_ENGINE_parse_body(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.memory.html"));
-				return;
+				$data=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.memory.html");
+				if(strlen($data)>45){
+					$tpl=new templates();
+					echo $tpl->_ENGINE_parse_body($data);
+					return;
+				}
 			}
 		}
 	}
@@ -665,7 +671,11 @@ function status_computer(){
 	if($GLOBALS["VERBOSE"]){echo "os->html_Memory_usage()<br>\n";}
 	$html=$html.RoundedLightGrey($os->html_Memory_usage())."<br>
 	<script>
+	
+	var content=document.getElementById('left_status').innerHTML;
+	if(content.length<5){
 		LoadAjax('left_status','$page?status=left$ajaxadd');
+	}
 	</script>
 	
 	
@@ -686,16 +696,29 @@ function status_mysql(){
 	$tpl=new templates();
 	$q=new mysql();
 	$sock=new sockets();
-	
+	$page=CurrentPageName();
 	
 	$MySqlMemoryCheck=$sock->GET_INFO("MySqlMemoryCheck");
 	if(!is_numeric($MySqlMemoryCheck)){$MySqlMemoryCheck=0;}
 	if($MySqlMemoryCheck==0){
 		$status_computer_mysql_memory_check=status_computer_mysql_memory_check();
 		if($status_computer_mysql_memory_check<>null){$status_computer_mysql_memory_check=$status_computer_mysql_memory_check."<br>";}
+	}
+
+	
+	if(is_file("ressources/logs/zarafa.notify.MySQLIssue")){
+		echo "<center>".$tpl->_ENGINE_parse_body(
+		Paragraphe('danger64.png',"{ZARAFA_ISSUE}",
+		@file_get_contents("ressources/logs/zarafa.notify.MySQLIssue"),null,null,420,80))."</center>";
+		
+	}
+	
+	if(is_file("ressources/logs/zarafa.notify.licenseover")){
+		echo "<center>".$tpl->_ENGINE_parse_body(
+		Paragraphe('danger64.png',"{ZARAFA_ISSUE}",
+		@file_get_contents("ressources/logs/zarafa.notify.licenseover"),null,null,420,80))."</center>";
+	
 	}	
-	
-	
 	
 	$sql="SELECT count(*) FROM admin_cnx";
 	$q->QUERY_SQL($sql,"artica_events");
@@ -717,9 +740,9 @@ function status_mysql(){
 			$q->QUERY_SQL($sql,"artica_events");
 			if(!$q->ok){
 				$t2=time();
-				return $status_computer_mysql_memory_check.RoundedLightGrey($tpl->_ENGINE_parse_body(
+				return $status_computer_mysql_memory_check."<center>".$tpl->_ENGINE_parse_body(
 				Paragraphe('danger64.png',"{mysql_error}",
-				"$q->mysql_error",null,"$q->mysql_error",330,80)))."
+				"$q->mysql_error",null,"$q->mysql_error",420,80))."</center>
 				<br>
 				<script>
 					function RefreshMySQL$t2(){ LoadAjaxTiny('admin-index-status-mysql','$page?admin-index-status-mysql=yes'); }
@@ -737,7 +760,10 @@ function status_mysql(){
 			$sql="SELECT count(*) FROM admin_cnx";
 			$q->QUERY_SQL($sql,"artica_events");
 			if(!$q->ok){
-				return $status_computer_mysql_memory_check.RoundedLightGrey($tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error}","$q->mysql_error",null,"$q->mysql_error",330,80)))."<br>";
+				return $status_computer_mysql_memory_check."<center>".
+				$tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error}",
+						"$q->mysql_error","Loadjs('StartStopServices.php?APP=APP_MYSQL_ARTICA&cmd=". urlencode("/etc/init.d/mysql")."&action=start&CacheOff=yes')","$q->mysql_error",420,80)).
+				"</center><br>";
 				return;
 			}			
 			
@@ -745,7 +771,7 @@ function status_mysql(){
 		
 		
 		if(trim($q->mysql_error)<>null){
-			return $status_computer_mysql_memory_check.RoundedLightGrey($tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error}","$q->mysql_error",null,"$q->mysql_error",330,80)))."<br>";
+			return $status_computer_mysql_memory_check."<center>".RoundedLightGrey($tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error}","$q->mysql_error",null,"$q->mysql_error",330,80)))."</center><br>";
 		}
 		
 	}
@@ -888,8 +914,11 @@ function status_right(){
 		if(is_file("/usr/share/artica-postfix/ressources/logs/web/admin.index.status.html")){
 			$time=file_time_min_Web("/usr/share/artica-postfix/ressources/logs/web/admin.index.status.html");
 			if($time<5){
-				echo $tpl->_ENGINE_parse_body(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.status.html"));
-				return;
+				$data=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.status.html");
+				if(strlen($data)>45){
+					echo $tpl->_ENGINE_parse_body($data);
+					return;
+				}
 			}
 		}
 		$sock=new sockets();
@@ -1073,33 +1102,6 @@ function status_memdump(){
 
 
 
-function status_left(){
-	$newfrontend=false;
-	$t=time();
-	if(isset($_GET["newfrontend"])){$newfrontend=true;}
-	if($newfrontend){$ajaxadd="?$t=yes&newfrontend=yes";}
-	$html="
-	<div id='status-left'></div>
-	<script>
-		LoadAjax('status-left','admin.index.loadvg.php$ajaxadd');
-		
-		function ChargeLeftMenus$t(){
-			var content=document.getElementById('admin-left-infos').innerHTML;
-			if(content.length<50){
-				LoadAjax('admin-left-infos','admin.index.status-infos.php$ajaxadd');
-			}
-		}
-		function ChargeLeftMenus2$t(){
-			LoadAjaxTiny('right-status-infos','admin.left.php?part1=yes');
-		}
-		setTimeout('ChargeLeftMenus$t()',1200);
-		setTimeout('ChargeLeftMenus2$t()',5000);
-	</script>
-	
-	";
-	echo $html;
-	
-	}
 
 
 

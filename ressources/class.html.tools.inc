@@ -109,8 +109,8 @@ if($bsini->_params[$key]["pattern_date"]<>null){
 if($bsini->_params["$key"]["service_disabled"]=="0"){	
 	$img="warning42.png";
 	//$js_service="StartStopService('".$bsini->_params["$key"]["service_cmd"]."','1','$title');";
-	$disabled="<tr><td colspan=2 align='right'><strong style='font-size:11px;line-height:auto'><i>{service_disabled}</i></strong></td></tr>";
-	$disabled_mini="<i>{service_disabled}</i>";
+	$disabled="<tr><td colspan=2 align='right'><strong style='font-size:11px;line-height:auto'><i style='font-size:11px'>{service_disabled}</i></strong></td></tr>";
+	$disabled_mini="<i style='font-size:11px'>{service_disabled}</i>";
 }
 
 if($bsini->_params["$key"]["master_pid"]<>null){
@@ -190,7 +190,9 @@ $version="
 
 	if($textoadd==null){
 		if($bsini->_params["$key"]["uptime"]<>null){
-			$textoadd="<div style='text-align:right'><i>{since}: {$bsini->_params["$key"]["uptime"]}</i></div>";
+			$textoadd="<div style='text-align:right'><i style='font-size:11px'>{since}: {$bsini->_params["$key"]["uptime"]}</i></div>";
+		}else{
+			$textoadd="<div style='text-align:right'><i style='font-size:11px'>&nbsp;</i></div>";
 		}
 		
 	}
@@ -207,17 +209,17 @@ $version="
 	
 	if($bsini->_params["$key"]["service_cmd"]<>null){
 		if($bsini->_params["$key"]["service_disabled"]=="1"){
-			
+			$bsini->_params["$key"]["service_cmd"]=urlencode($bsini->_params["$key"]["service_cmd"]);
 			$idIMG=md5("{$bsini->_params["$key"]["service_name"]}_icon".time());
 			$cmdline="
 				<tr>
 				<td>&nbsp;</td>
 				<td>
-				<table style='width:5%'>
+				<table style='width:54px'>
 					<tr>
-						<td width=1%>". imgtootltip("16-run.png","{start}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=start&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>
-						<td width=1%>". imgtootltip("restart-16.png","{restart}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=restart&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>
-						<td width=1%>". imgtootltip("16-stop.png","{stop}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=stop&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>		
+						<td width=18px>". imgtootltip("16-run.png","{start}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=start&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>
+						<td width=18px>". imgtootltip("restart-16.png","{restart}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=restart&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>
+						<td width=18px>". imgtootltip("16-stop.png","{stop}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=stop&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>		
 					</tr>		
 				</table>
 				</td>
@@ -228,14 +230,14 @@ $version="
 	
 $html="
 
-<table style='width:100%;background-color:#D5EED9;font-size:11px;line-height:auto' class=TableRemove>
+<table style='width:100%;background-color:#D5EED9;font-size:11px;line-height:auto' class='TableRemove TableMarged'>
 <tr>
-<td width=1% valign='top' style='background-color:#D5EED9;font-size:11px;line-height:auto'><img src='img/$img' id='$idIMG'></td>
-<td style='background-color:#D5EED9;font-size:11px;border:0px;line-height:auto'>
+<td width='34px' valign='top' style='background-color:#D5EED9;font-size:11px;line-height:auto;vertical-align:top'><img src='img/$img' id='$idIMG'></td>
+<td style='background-color:#D5EED9;font-size:11px;border:0px;line-height:auto;vertical-align:top'>
 	<table style='width:100%;background:transparent;border:0px;padding:0px;background-color:#D5EED9;font-size:11px;line-height:auto' class=TableRemove>
 		<tr>
-		<td align='right' nowrap style='background-color:#D5EED9;font-size:11px;line-height:auto'><strong>$master_title:</td>
-		<td style='background-color:#D5EED9;font-size:11px;border:0px;line-height:auto'>
+		<td align='right' nowrap style='background-color:#D5EED9;font-size:11px;line-height:auto;vertical-align:top'><strong>$master_title:</td>
+		<td style='background-color:#D5EED9;font-size:11px;border:0px;line-height:auto;vertical-align:top'>
 			<strong><span style='font-size:12px'>$status</span>$pid_text</strong></td>
 		</tr>
 		$pid
@@ -291,7 +293,7 @@ function icon_href($img,$java){
 
 function RoundedLightGreen($text){
 	
-return "<div>
+return "<div style='margin-left:5px;margin:right:5px'>
   <b class=\"RLightGreen\">
   <b class=\"RLightGreen1\"><b></b></b>
   <b class=\"RLightGreen2\"><b></b></b>
@@ -351,7 +353,31 @@ function AboutCollapse($explain){
 	 
 }
 
+function Field_ColorPicker($name,$value=null,$style=null,$class=null,$OnChange=null,$help=null,$helpInside=false,$jsPressKey=null,$DISABLED=false,$OnClick=null){
+	return "<input type='text' name='$name' id='$name' value='$value' style='$style'>
+	<script>
+	$(document).ready(function(){
+		$('#$name').ColorPicker({
+	onSubmit: function(hsb, hex, rgb, el) {
+		$(el).val(hex);
+		$(el).ColorPickerHide();
+	},
+	onBeforeShow: function () {
+		$(this).ColorPickerSetColor(this.value);
+	}
+})
+.bind('keyup', function(){
+	$(this).ColorPickerSetColor(this.value);
+});
+	});
+	</script>
+	";
+	
+}
+
+
 function Field_array_Hash($Hash,$FieldName,$default=null,$java=null,$class='',$maxlength=0,$style_of_field=null,$disabled=false){
+	$tpl=new templates();
 	if(!is_array($Hash)){return "<input type='hidden' name='$FieldName' value='0' id='$FieldName'>";}
 	if(preg_match("#style:(.+)#",$java,$re)){
 		$java=null;
@@ -375,9 +401,16 @@ function Field_array_Hash($Hash,$FieldName,$default=null,$java=null,$class='',$m
 	
 		$java="OnChange=\"javascript:$java\"";	
 		
-if(!preg_match("#font-size#",$style_of_field)){$style_of_field=$style_of_field.";font-size:12px";}
+if(!preg_match("#font-size#",$style_of_field)){$style_of_field=$style_of_field.";font-size:12px !important";}
+$style_of_field=str_replace(": ", ":", $style_of_field);
+if(preg_match("#font-size:([0-9]+)px#", $style_of_field,$re)){
+	$style_of_field=$style_of_field. ";font-size:{$re[1]}px !important";
+}
+
+
 	$DISABLED_TOKEN=null;	
-	$class="class='$class'  style='$style_of_field'";
+	if($class<>"No_STYLE"){$class="class='$class'  style='$style_of_field'";}else{$class=null;}
+	
 	if($disabled){$DISABLED_TOKEN="DISABLED";}
 	$html="
 	<!--Field_array_Hash default value=\"$default\" -->
@@ -385,10 +418,11 @@ if(!preg_match("#font-size#",$style_of_field)){$style_of_field=$style_of_field."
 	reset ($Hash);$q=false;
 	while (list($num,$val)=each($Hash)){	
 	$def=null;
-	
+	$val=$tpl->_ENGINE_parse_body($val);
 	if(!$q){
 		if($num==$default){$def="selected";$q=true;}
 	}
+	
 	if($maxlength>0){if (strlen($val)>$maxlength){$val=substr($val,0,$maxlength-3) . "...";}}
 	$html=$html ."\t<option value=\"$num\" $def>$val</option>\n";
 	}
@@ -526,12 +560,8 @@ class htmltools_inc{
 	    $s=str_replace("&yuml;","y",$s);
 	    $s=str_replace("&Icirc;","I",$s);
 	    $s=str_replace("&icirc;","i",$s);  
-	    
-	    
-	      
-	    $s = html_entity_decode($s);
-	    
-	    return $s;		
+		$s = html_entity_decode($s);
+		return $s;		
 	}	
 	
 	function StripSpecialsChars($pattern){

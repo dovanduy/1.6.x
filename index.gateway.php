@@ -149,7 +149,7 @@ function dhcp_index_js(){
 		}
 		
 		function PxeConfig(){
-		YahooWin3(630,'$page?dhcp-pxe=yes','$pxe');
+		YahooWin3(710,'$page?dhcp-pxe=yes','$pxe');
 		
 		}
 		
@@ -748,14 +748,24 @@ function dhcp_index(){
 	$pcs=Buildicon64('DEF_ICO_BROWSE_COMP');
 	$enable=Paragraphe("modem-64.png","{EnableDHCPServer}","{EnableDHCPServer_text}",
 	"javascript:EnableDHCPServerForm()","{EnableDHCPServer_text}");
+	$title="<H1>{APP_DHCP}</H1>";
+	$class_from="form";
+	
+	
+	if(isset($_GET["miniadm"])){
+		$title=null;
+		$class_from="TableRemove";
+		$statuswidth="width=410px";
+	}
+	
 	
 	
 	$html="
 <div class='BodyContent'>
-	<table style='width:99%' class=form>
+	<table style='width:99%' class=$class_from>
 		<tr>
-			<td valign='top'>
-				<H1>{APP_DHCP}</H1>
+			<td valign='top' $statuswidth>
+				$title
 				<div id='dhcp-status'></div>
 			</td>
 			<td valign='top'>

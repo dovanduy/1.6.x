@@ -30,7 +30,9 @@ if($argv[1]=="--c-icap"){package_c_icap();exit;}
 if($argv[1]=="--ufdb"){package_ufdbguard();exit;}
 if($argv[1]=="--ecapclam"){ecap_clamav();exit;}
 if($argv[1]=="--package"){create_package();exit;}
-if($argv[1]=="--c-icap-remove"){c_cicap_remove();exit;}
+if($argv[1]=="--c-icap-remove"){die();exit;}
+if($argv[1]=="--msmtp"){package_msmtp();exit;}
+
 
 
 
@@ -191,6 +193,11 @@ mkdir("/root/squid-builder/lib/squid3",0755,true);
 mkdir("/root/squid-builder/usr/sbin",0755,true);
 mkdir("/root/squid-builder/usr/bin",0755,true);
 mkdir("/root/squid-builder/usr/share/squid-langpack",0755,true);
+mkdir("/root/squid-builder/var/log/haarp",0755,true);
+mkdir("/root/squid-builder/var/tmp/haarp",0755,true);
+mkdir("/root/squid-builder/etc/haarp/plugins",0755,true);
+mkdir("/root/squid-builder/var/run/haarp",0755,true);
+
 
 shell_exec("$cp -rf /usr/share/squid3/* /root/squid-builder/usr/share/squid3/");
 if(!$GLOBALS["NO_COMPILE"]){shell_exec("/bin/cp -rf /usr/share/squid3/errors/templates/* /root/squid-builder/usr/share/squid3/errors/templates/");}
@@ -200,8 +207,47 @@ shell_exec("$cp -rf /usr/share/squid-langpack/* /root/squid-builder/usr/share/sq
 shell_exec("$cp -rf /usr/sbin/squid /root/squid-builder/usr/sbin/squid");
 shell_exec("$cp -rf /usr/bin/purge /root/squid-builder/usr/bin/purge");
 shell_exec("$cp -rf /usr/bin/squidclient /root/squid-builder/usr/bin/squidclient");
+
+
+$f[]="/usr/sbin/haarp";
+$f[]="/etc/haarp/haarp.conf.default";
+$f[]="/etc/init.d/haarpclean";
+$f[]="/etc/haarp/haarp.conf";
+$f[]="/etc/haarp/plugins";
+
+while (list ($num, $ligne) = each ($f) ){
+	if(is_dir($ligne)){
+		shell_exec("/bin/cp -rfd $ligne/* /root/squid-builder$ligne/");
+		continue;
+	}
+	
+	if(!is_file($ligne)){echo "$ligne no such file\n";continue;}
+	$dir=dirname($ligne);
+	echo "Installing $ligne in /root/squid-builder$dir/\n";
+	if(!is_dir("/root/squid-builder$dir")){@mkdir("/root/squid-builder$dir",0755,true);}
+	shell_exec("/bin/cp -fd $ligne /root/squid-builder$dir/");
+
+}
+
+
+
+$CICAP=c_icap_array();
+while (list ($num, $filename) = each ($CICAP) ){
+	if(is_dir($filename)){
+		@mkdir("/root/squid-builder$filename",0755,true);
+		shell_exec("/bin/cp -rfd $filename/* /root/squid-builder$filename/");
+		continue;
+	}
+	$dir=dirname($filename);
+	echo "Installing $filename in /root/squid-builder$dir/\n";
+	if(!is_dir("/root/squid-builder$dir")){@mkdir("/root/squid-builder$dir",0755,true);}
+	shell_exec("/bin/cp -fd $filename /root/squid-builder$dir/");
+}
+
+
 echo "Compile SARG....\n";
 compile_sarg();
+
 
 if($Architecture==64){$Architecture="x64";}
 if($Architecture==32){$Architecture="i386";}
@@ -633,6 +679,12 @@ $f[]="/usr/lib/libicapapi.so.0";
 $f[]="/usr/lib/libicapapi.so.0.0.1";
 $f[]="/usr/lib/libicapapi.so.2" ;     
 $f[]="/usr/lib/libicapapi.so.2.0.2";
+$f[]="/usr/share/c_icap/templates/srv_url_check/en/DENY";
+$f[]="/usr/share/c_icap/templates/virus_scan/en/VIR_MODE_HEAD";  
+$f[]="/usr/share/c_icap/templates/virus_scan/en/VIR_MODE_PROGRESS";  
+$f[]="/usr/share/c_icap/templates/virus_scan/en/VIR_MODE_TAIL";
+$f[]="/usr/share/c_icap/templates/virus_scan/en/VIR_MODE_VIRUS_FOUND";  
+$f[]="/usr/share/c_icap/templates/virus_scan/en/VIRUS_FOUND";
 $f[]="/usr/share/man/man8/c-icap.8";
 $f[]="/usr/share/man/man8/c-icap-client.8";
 $f[]="/usr/share/man/man8/c-icap-config.8";
@@ -665,6 +717,8 @@ $f[]="/usr/lib/c_icap/srv_clamav.so";
 $f[]="/usr/lib/c_icap/srv_echo.so";
 $f[]="/usr/lib/c_icap/srv_url_check.so";
 $f[]="/usr/lib/c_icap/sys_logger.so";
+$f[]="/usr/lib/c_icap/virus_scan.a";
+$f[]="/usr/lib/c_icap/virus_scan.la";
 $f[]="/etc/srv_url_check.conf.default";
 $f[]="/etc/srv_url_check.conf";
 $f[]="/etc/srv_clamav.conf.default";
@@ -677,29 +731,38 @@ $f[]="/usr/local/bin/fnb_learn";
 $f[]="/usr/local/bin/fnb_makepreload";
 $f[]="/usr/lib/c_icap/srv_classify.la";
 $f[]="/usr/lib/c_icap/srv_classify.so";
+$f[]="/usr/lib/c_icap/bdb_tables.a";
+$f[]="/usr/lib/c_icap/dnsbl_tables.a";
+$f[]="/usr/lib/c_icap/ldap_module.a";
+$f[]="/usr/lib/c_icap/libbz2.so.1.0.4";
+$f[]="/usr/lib/c_icap/srv_echo.so";
+$f[]="/usr/lib/c_icap/srv_ex206.so";
+$f[]="/usr/lib/c_icap/srv_url_check.so";
+$f[]="/usr/lib/c_icap/sys_logger.so";
+$f[]="/usr/lib/c_icap/virus_scan.so";
+$f[]="/usr/lib/c_icap/bdb_tables.la";
+$f[]="/usr/lib/c_icap/dnsbl_tables.la";
+$f[]="/usr/lib/c_icap/ldap_module.la";
+$f[]="/usr/lib/c_icap/srv_echo.a";
+$f[]="/usr/lib/c_icap/srv_ex206.a";
+$f[]="/usr/lib/c_icap/srv_url_check.a";
+$f[]="/usr/lib/c_icap/sys_logger.a";
+$f[]="/usr/lib/c_icap/virus_scan.a";
+$f[]="/usr/lib/c_icap/bdb_tables.so";
+$f[]="/usr/lib/c_icap/dnsbl_tables.so";
+$f[]="/usr/lib/c_icap/ldap_module.so";
+$f[]="/usr/lib/c_icap/srv_echo.la";
+$f[]="/usr/lib/c_icap/srv_ex206.la";
+$f[]="/usr/lib/c_icap/srv_url_check.la";
+$f[]="/usr/lib/c_icap/sys_logger.la";
+$f[]="/usr/lib/c_icap/virus_scan.la";
 return $f;	
 	
 }
 
 function c_cicap_remove(){
-	
-/* params c-icap
- * ./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap"
- * ./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap" --with-clamav
- */ 
+	die();
 
-	
-	$f=c_icap_array();	
-	while (list ($num, $filename) = each ($f)){
-		if(is_file($filename)){@unlink($filename);}
-	} 
-	if(is_dir("/usr/share/c_icap")){shell_exec("/bin/rm -rf /usr/share/c_icap");}
-	if(is_dir("/usr/include/c_icap")){shell_exec("/bin/rm -rf /usr/include/c_icap");}
-	if(is_dir("/usr/lib/c_icap")){shell_exec("/bin/rm -rf /usr/lib/c_icap");}
-	
-	
-	
-	echo "Uninstall C-ICAP done\n";
 }
 
 
@@ -795,5 +858,43 @@ function ecap_clamav(){
 	shell_exec("$cp -a /usr/libexec/squid/ecap_adapter_av.so /root/ecapav/usr/libexec/squid/ecap_adapter_av.so");
 	
 }
+function package_msmtp_version(){
+	exec("/root/msmtp-compiled/usr/bin/msmtp --version 2>&1",$results);
+	while (list ($num, $line) = each ($results)){
+		if(preg_match("#msmtp version.*?([0-9\.]+)#", $line,$re)){return $re[1];}
+	}
 
+
+}
+
+function package_msmtp(){
+	$base="/root/msmtp-compiled";
+	shell_exec("/bin/rm -rf /root/ufdbGuard-compiled");
+
+	$f[]="/usr/share/info/msmtp.info";
+	$f[]="/usr/bin/msmtp";
+	$f[]="/usr/share/gettext/po";
+
+	while (list ($num, $filename) = each ($f)){
+
+		if(is_dir($filename)){
+			@mkdir("$base/$filename",0755,true);
+			shell_exec("/bin/cp -rf $filename/ $base/$filename/");
+			continue;
+		}
+
+		$dirname=dirname($filename);
+		if(!is_dir("$base/$dirname")){@mkdir("$base/$dirname",0755,true);}
+		shell_exec("/bin/cp -f $filename $base/$dirname/");
+
+	}
+
+	$Architecture=Architecture();
+	$version=package_msmtp_version();
+	chdir($base);
+	shell_exec("tar -czf msmtp-$Architecture-$version.tar.gz *");
+	shell_exec("/bin/cp msmtp-$Architecture-$version.tar.gz /root/");
+	echo "/root/msmtp-$Architecture-$version.tar.gz done\n";
+
+}
 

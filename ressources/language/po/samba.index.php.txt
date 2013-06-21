@@ -1,8 +1,6 @@
-<about>
-Samba is an Open Source/Free Software suite that provides seamless file and print services to SMB/CIFS clients.[br]
-Samba is freely available, unlike other SMB/CIFS implementations,
-and allows for interoperability between Linux/Unix servers and Windows-based clients
-</about>
+<about>O Samba &eacute; um Open Source/suite de Software Livre que fornece servi&ccedil;os de partilha de ficheiros e impress&atilde;o a clientes SMB/CIFS. [br]
+O Samba est&aacute; dispon&iacute;vel gratuitamente, ao contr&aacute;rio de outras implementa&ccedil;&otilde;es de SMB/CIFS,
+e permite a interoperabilidade entre servidores Linux/Unix e clientes baseados em Windows.</about>
 <add_a_shared_folder>Add a new shared folder</add_a_shared_folder>
 <add_a_shared_folder_text>Explore your disks and share folders</add_a_shared_folder_text>
 <add_sub_folder>Add a sub-folder</add_sub_folder>

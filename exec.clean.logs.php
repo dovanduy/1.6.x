@@ -11,9 +11,10 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
+include_once(dirname(__FILE__)."/ressources/class.mysql.syslogs.inc");
 
-if(!$GLOBALS["VERBOSE"]){
-	echo "starting ".@implode("; ", $argv)."\n";
+if($GLOBALS["VERBOSE"]){
+	echo "Starting ".@implode("; ", $argv)."\n";
 }
 if($argv[1]=='--urgency'){UrgencyChecks();exit;}
 if($argv[1]=='--logrotatelogs'){logrotatelogs(true);die();}
@@ -22,13 +23,18 @@ if($argv[1]=='--used-space'){used_space();die();}
 if($argv[1]=='--cleandb'){CleanLogsDatabases(true);die();}
 if(!$GLOBALS["FORCE"]){
 	if(system_is_overloaded(__FILE__)){
+		if($GLOBALS["VERBOSE"]){echo "This system is overloaded, die()\n";}
 		writelogs("This system is overloaded, die()",__FUNCTION__,__FILE__,__LINE__);
 		die();
 	}
 }
 
 
-if($argv[1]=='--clean-logs'){Clean_tmp_path(true);CleanLogs();logrotatelogs(true);die();}
+if($GLOBALS["VERBOSE"]){
+	echo "Starting LINE:".__LINE__." ->".@implode("; ", $argv)."\n";
+}
+
+if($argv[1]=='--clean-logs'){Clean_tmp_path(true);squidLogs();CleanLogs();logrotatelogs(true);die();}
 if($argv[1]=='--clean-tmp2'){Clean_tmp_path(true);logrotatelogs(true);die();}
 if($argv[1]=='--clean-tmp'){CleanLogs();logrotatelogs(true);die();}
 if($argv[1]=='--clean-sessions'){sessions_clean();logrotatelogs(true);die();}
@@ -39,10 +45,11 @@ if($argv[1]=='--wrong-numbers'){wrong_number();die();}
 if($argv[1]=='--DirectoriesSize'){DirectoriesSize();die();}
 if($argv[1]=='--cleanbin'){Cleanbin();die();}
 if($argv[1]=='--zarafa-locks'){ZarafaLocks();die();}
-if($argv[1]=='--squid-caches'){CleanCacheStores();die();}
+if($argv[1]=='--squid-caches'){squidLogs();CleanCacheStores(true);die();}
 if($argv[1]=='--rotate'){CleanRotatedFiles();die();}
-if($argv[1]=='--squid'){clean_squid_users_size();die();}
+if($argv[1]=='--squid'){squidLogs();clean_squid_users_size();die();}
 if($argv[1]=='--artica-logs'){artica_logs();die();}
+if($argv[1]=='--squidLogs'){squidLogs();die();}
 
 
 
@@ -68,11 +75,26 @@ function init(){
 	
 }
 
-function CleanCacheStores(){
+function CleanCacheStores($aspid=false){
 	$unix=new unix();
+	$TimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$Pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	
+	
+	if(!$GLOBALS["FORCE"]){
+		$timefile=$unix->file_time_min($TimeFile);
+		if($timefile<60){return;}
+	}
+	if($aspid){
+		$pid=$unix->get_pid_from_file($Pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){return;}
+		@file_put_contents($Pidfile, getmypid());
+	}
+	@unlink($TimeFile);
+	@file_put_contents($TimeFile, getmypid());
+	
 	$users=new usersMenus();
-	return;
-	if(!$users->SQUID_INSTALLED){return;}
+	if(!$users->SQUID_INSTALLED){if($GLOBALS["VERBOSE"]){echo "Squid is not installed...\n";}return;}
 	$rm=$unix->find_program("rm");
 	$f=file("/etc/squid3/squid.conf");
 	while (list ($index, $line) = each ($f)){
@@ -84,9 +106,11 @@ function CleanCacheStores(){
 	}
 	$dirs=$unix->dirdir("/var/cache");
 	while (list ($directory, $line) = each ($dirs)){
-		if(isset($effective[$directory])){continue;}
+		if(isset($effective[$directory])){
+			if($GLOBALS["VERBOSE"]){echo "Checking Directory $directory is used by squid...\n";}
+			continue;}
 		$dirname=basename($directory);
-		
+		if($GLOBALS["VERBOSE"]){echo "Checking Directory $dirname\n";}
 		if(preg_match("#^squid.*#", $dirname)){
 			if($GLOBALS["VERBOSE"]){echo "Found dir `$dirname`\n";}
 			$unix->send_email_events("Old squid cache directory $dirname will be deleted", "", "logs_cleaning");
@@ -98,6 +122,35 @@ function CleanCacheStores(){
 	
 	
 }
+
+function squidLogs(){
+	$unix=new unix();
+	$syslog=new mysql_storelogs();
+	if(!is_dir("/var/log/squid")){return;}
+	foreach (glob("/var/log/squid/*.log") as $filename) {
+
+		$filedate=date('Y-m-d H:i:s',filemtime($filename));
+			
+		$time=$unix->file_time_min($filename);
+		echo "$filename {$time}Mn\n";
+		if($time>1440){
+			$syslog->ROTATE_TOMYSQL($filename, $filedate);
+		}
+	}
+	foreach (glob("/var/log/squid/cache*") as $filename) {
+	
+		$filedate=date('Y-m-d H:i:s',filemtime($filename));
+			
+		$time=$unix->file_time_min($filename);
+		echo "$filename {$time}Mn\n";
+		if($time>1440){
+		$syslog->ROTATE_TOMYSQL($filename, $filedate);
+		}
+	}	
+	
+	
+}
+
 
 function CleanSquidStoreLogs(){
 	$unix=new unix();
@@ -322,6 +375,7 @@ function Clean_tmp_path($aspid=false){
 	clean_artica_workfiles("/var/log/artica-postfix/Postfix-sql-error");
 	clean_squid_users_size(true);
 	artica_logs();
+	squidLogs();
 }
 
 function Cleanbin(){
@@ -442,6 +496,7 @@ function clean_squid_users_size($nopid=false){
 	$dirs[]="/var/log/artica-postfix/searchwords";
 	$dirs[]="/var/log/artica-postfix/squid-usersize";
 	$dirs[]="/var/log/artica-postfix/squid-brut";
+	$dirs[]="/var/log/artica-postfix/squid-reverse";
 	
 	
 	
@@ -563,6 +618,8 @@ function CleanRotatedFiles(){
 	}
 
 	$q=new mysql_syslog();
+	if($q->EnableSyslogDB==1){$LogRotateMysql=1;}
+	$q2=new mysql_storelogs();
 	
 	while (list ($WorkingDir, $ligne) = each ($DirsToScan) ){	
 	
@@ -573,16 +630,35 @@ function CleanRotatedFiles(){
 	
 	while (list ($filename, $ligne) = each ($table) ){
 		$path="$WorkingDir/$filename";
+		if($unix->file_time_min($path)<1440){continue;}
+		
+		
 		$ext=$unix->file_extension($filename);
 		echo "$path -> `$ext`\n";
 		if(!isset($compressed[$ext])){
-			if(!$unix->compress($path, "$path.gz")){system_admin_events("Unable to compress $path", __FUNCTION__, __FILE__, __LINE__, "clean");continue;}
+			if(!$unix->compress($path, "$path.gz")){
+				$q2->events("Unable to compress $path");
+				system_admin_events("Unable to compress $path", __FUNCTION__, __FILE__, __LINE__, "clean");
+				continue;
+			}
 			@unlink($path);
 			$filename="$filename.gz";
 			$path="$WorkingDir/$filename";
 			
 		}
+		
+		
+		
 		$filedate=date('Y-m-d H:i:s',filemtime($path));
+		
+		if($q->EnableSyslogDB==1){
+			$q2->events("Injecting $path $filedate");
+			if(!$q2->InjectFile($path, $filedate)){return;}
+			$q2->events("remove: $path");
+			@unlink($path);
+			continue;
+		}
+		
 		$filesize=$unix->file_size($path);
 		$ext = pathinfo($path, PATHINFO_EXTENSION);
 		$basenameFF=$filename;
@@ -590,7 +666,10 @@ function CleanRotatedFiles(){
 		$basenameFF=$basenameFF.".".basename($WorkingDir).".".time().".$ext";			
 		$taskid=0;
 		
+		
+		
 		if($LogRotateMysql==1){
+			$q2->events("$path File Date:$filedate MySQL EnableSyslogDB:`$q->EnableSyslogDB`");
 			system_admin_events("$path => /tmp/$filename => MySQL...",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			@copy($path, "/tmp/$filename");
 			@unlink($path);
@@ -603,8 +682,10 @@ function CleanRotatedFiles(){
 			$q->QUERY_SQL($sql);
 				
 				
-			if(!$q->ok){system_admin_events("$q->mysql_error, go back /tmp/$filename => $path...",__FUNCTION__,__FILE__,__LINE__,"logrotate");@copy("/tmp/$basename", "$filename");}
-			@unlink("/tmp/$filename");
+			if(!$q->ok){
+				$q2->events("$q->mysql_error, go back /tmp/$filename => $path...");
+				system_admin_events("$q->mysql_error, go back /tmp/$filename => $path...",__FUNCTION__,__FILE__,__LINE__,"logrotate");@copy("/tmp/$basename", "$filename");}
+				@unlink("/tmp/$filename");
 			continue;
 		}
 		
@@ -992,14 +1073,19 @@ if($GLOBALS["VERBOSE"]){echo "/tmp/process1*\n";}
 function sessions_clean(){
 	$unix=new unix();
 	foreach (glob("/var/lib/php5/*") as $filename) {
-		$array=$unix->alt_stat($filename);
-		$owner=$array["owner"]["owner"]["name"];
-		$time=file_time_min($filename);
-		if($GLOBALS["VERBOSE"]){echo "$filename :{$time}Mn\n";}
-		if($time>360){
-			@unlink($filename);
-		}
+		$time=$unix->file_time_min($filename);
+		if($time>360){@unlink($filename);}
 	}
+	
+	foreach (glob("/usr/share/artica-postfix/ressources/logs/jGrowl/*") as $filename) {
+		$time=$unix->file_time_min($filename);
+		if($time>360){@unlink($filename);}
+	}
+	
+	foreach (glob("/usr/share/artica-postfix/ressources/conf/*") as $filename) {
+		$time=$unix->file_time_min($filename);
+		if($time>360){@unlink($filename);}
+	}	
 	
 }
 function wrong_number(){
@@ -1242,6 +1328,9 @@ function MakeSpace(){
 	if($EnableBackupPc==0){
 		if(is_dir("/var/lib/backuppc")){shell_exec("/bin/rm -rf /var/lib/backuppc");}
 	}
+	
+	if(is_dir("/var/log/fai")){shell_exec("/bin/rm -rf /var/log/fai");}
+	
 }
 
 function DirectoriesSize(){

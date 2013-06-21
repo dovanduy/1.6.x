@@ -24,7 +24,7 @@ if(!function_exists("rrd_create")){echo "rrd_create() no such function\n";die();
 	   "--width",300,
 	   "--height",120,
 	   "--full-size-mode",
-	   "--border",0,
+	 //  "--border",0,
 	   "--tabwidth",10,
 	    "--start", "-1h",
 	    "--title=Load avg",

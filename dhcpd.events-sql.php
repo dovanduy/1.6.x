@@ -138,6 +138,7 @@ function search(){
 		$color="black";
 		$uid=null;
 		$mac=null;
+		$js="zBlur()";
 		if(preg_match("#to\s+([0-9a-z:]+)\s+via#",$ligne["description"],$re)){$mac=$re[1];}
 		if(preg_match("#from\s+([0-9a-z:]+)\s+via#",$ligne["description"],$re)){$mac=$re[1];}
 		
@@ -145,8 +146,8 @@ function search(){
 		
 			$uid=$computers->ComputerIDFromMAC($mac);
 			if($uid<>null){
-				
-				$uri="<a href=\"javascript:blur();\" OnClick=\"javascript:YahooUser(962,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=','$uid');\" style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>$mac</a>&nbsp;<span style='font-size:11px'>($uid)</span>";
+				$js=MEMBER_JS($uid,1,1);
+				$uri="<a href=\"javascript:blur();\" OnClick=\"$js\" style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>$mac</a>&nbsp;<span style='font-size:11px'>($uid)</span>";
 				$ligne["description"]=str_replace($mac,$uri,$ligne["description"]);
 			}
 		}

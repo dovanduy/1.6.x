@@ -5,7 +5,7 @@
 <f1>Cure/skip</f1>
 <f2>Cure failed delete/skip</f2>
 <f3>Cure failed delete all</f3>
-<f4>Delete All</f4>
+<f4>Excluir Todos</f4>
 <Heuristic>Enable heuristic scanner</Heuristic>
 <i0>Just scan for virus presence; do not modify the files.</i0>
 <i1>Cure infected objects; if disinfection fails - skip it.</i1>

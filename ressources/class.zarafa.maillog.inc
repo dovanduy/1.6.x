@@ -58,7 +58,18 @@ class zarafa_maillog_buffer{
 	}	
 
 	
-	
+	if(preg_match("#zarafa-licensed.*?You are over your user limit#",$buffer,$re)){
+		$file="/etc/artica-postfix/croned.1/zarafa-server.licenseover";
+		@file_put_contents("/usr/share/artica-postfix/ressources/logs/zarafa.notify.licenseover", $buffer);
+		@chmod("/usr/share/artica-postfix/ressources/logs/zarafa.notify.licenseover", 0777);
+		$timefile=$this->file_time_min($file);
+		if($timefile>10){
+			$this->email_events("Zarafa server license issue",
+			"zarafa-server claim \n$buffer\nPlease check your license status","mailbox");
+			@unlink($file);	@file_put_contents($file,"#");
+			}else{$this->events("Zarafa server license issue \"You are over your user limit\" {$timefile}Mn/5Mn");}
+		return true;
+	}
 	
 	
 	
@@ -189,6 +200,8 @@ class zarafa_maillog_buffer{
 		$file="/etc/artica-postfix/croned.1/zarafa-server.table.{$re[1]}.failed.".md5($re[1]);
 		$timefile=$this->file_time_min($file);
 		if($timefile>10){
+			@file_put_contents("/usr/share/artica-postfix/ressources/logs/zarafa.notify.MySQLIssue", $buffer);
+			@chmod(0777, "/usr/share/artica-postfix/ressources/logs/zarafa.notify.MySQLIssue");
 			$this->email_events("Zarafa server SQL issue table [{$re[1]}] doesn't exist",
 			"zarafa-server claim \n$buffer\nThere is an SQL issue\nYou should delete the zarafa database trough Artica tools console in order to rebuild correctly the database.","mailbox");
 			@unlink($file);@file_put_contents($file,"#");

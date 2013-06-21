@@ -129,6 +129,7 @@ class clladp{
 		if(!isset($GLOBALS["VERBOSE++"])){$GLOBALS["VERBOSE++"]=false;}
 		if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
 		
+		if($GLOBALS["VERBOSE"]){echo __CLASS__."/".__LINE__."::class.active.directory.inc...()<br>\n";}
 		include_once(dirname(__FILE__) . '/class.active.directory.inc');
 		if(isset($_GET["debug-page"])){$GLOBALS["VERBOSE"]=true;}
 		if(!isset($GLOBALS["AS_ROOT"])){$GLOBALS["AS_ROOT"]=false;if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
@@ -321,6 +322,13 @@ public function ldap_perform_connection($ldapport=null){
 			$this->ldapbind=$GLOBALS["LDAP_BIN_ID"];
 			return true;
 		}
+		
+		if(!function_exists("ldap_connect")){
+			if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";writeLogs("-> Call to undefined function ldap_connect() $called".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}
+			return false;
+		}
+		
+		
 		ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
 		ldap_set_option($this->ldap_connection, LDAP_OPT_REFERRALS, 0); 
 		
@@ -347,13 +355,12 @@ public function ldap_perform_connection($ldapport=null){
 				$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";			
 			}
 		}
+				
+		
 	if(!function_exists("ldap_connect")){
-		
-		if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";writeLogs("-> Call to undefined function ldap_connect() $called".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}		
+		if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";writeLogs("-> Call to undefined function ldap_connect() $called".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}
 		return false;
-	}				
-		
-	
+	}	
 	$this->ldap_connection=ldap_connect($this->ldap_host, $ldapport ) ;
 	$GLOBALS["LDAP_CONNECT_ID"]=$this->ldap_connection;
 	 if(!$this->ldap_connection){
@@ -2068,11 +2075,12 @@ function Hash_GetALLUsers(){
 		
 	}
 		
-	function hash_get_domains_ou($ou){
+	function hash_get_domains_ou($ou,$nokey=false){
 		$res=array();
 		$hash=$this->Hash_domains_table($ou);
 		if(is_array($hash)){
 			while (list ($num, $ligne) = each ($hash) ){
+				if($nokey){$res[]=$num;continue;}
 				$res[$num]=$num;
 			}
 		}
@@ -2418,7 +2426,10 @@ function Hash_GetALLUsers(){
 
 	
 	function hash_get_all_domains(){
-		if($this->ldapFailed){return array();}
+		if(!isset($GLOBALS["VERBOSEDOMS"])){$GLOBALS["VERBOSEDOMS"]=false;}
+		if($this->ldapFailed){
+			if($GLOBALS["VERBOSEDOMS"]){echo "LDAP FAILED, RETURN...\n";}
+			return array();}
 		if(isset($GLOBALS["hash_get_all_domains"])){if(is_array($GLOBALS["hash_get_all_domains"])){return $GLOBALS["hash_get_all_domains"];}}
 		$ld =$this->ldap_connection;
 		$bind =$this->ldapbind;
@@ -2454,12 +2465,14 @@ function Hash_GetALLUsers(){
 			}
 		}
 		
-		
+		if($GLOBALS["VERBOSEDOMS"]){echo "PowerDNS -> records\n";}
 		$q=new mysql();
 		if($q->TABLE_EXISTS("records", "powerdns")){
 			$results = $q->QUERY_SQL("SELECT name FROM domains WHERE `type`='MASTER'","powerdns");
+			if(!$q->ok){if($GLOBALS["VERBOSEDOMS"]){echo "$q->mysql_error -> records\n";}}
 			while ($ligne = mysql_fetch_assoc($results)) {
 				if($ligne["name"]=="in-addr.arpa"){continue;}
+				if($GLOBALS["VERBOSEDOMS"]){echo "{$ligne["name"]} -> records\n";}
 				$arr[$ligne["name"]]=$ligne["name"];
 			}
 		}
@@ -2468,7 +2481,9 @@ function Hash_GetALLUsers(){
 		
 		
 		$GLOBALS["hash_get_all_domains"]=$arr;
+		if($GLOBALS["VERBOSEDOMS"]){print_r($arr);}
 		return $arr;
+		
 		
 		}
 
@@ -3272,9 +3287,10 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 		
 	}
 	
-	function DeleteLocadDomain($domain,$ou){
-		
-		$HashDomains=$this->Hash_domains_table($ou);
+	function DeleteLocadDomain($domain,$ou=null){
+		if($ou<>null){
+			$HashDomains=$this->Hash_domains_table($ou);
+		}
 		$h=$this->Ldap_search($this->suffix,"(associatedDomain=$domain)",array("dn"));
 		if($h["count"]>0){
 			$res["associatedDomain"]=$domain;
@@ -3286,6 +3302,10 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 			$this->Ldap_del_mod($h[$i]["dn"],$res);
 		}
 	}
+	
+
+	
+	
 	
 	switch ($HashDomains[$domain]) {
 			case "associateddomain":$this->delete_associated_domain($ou,$domain);break;
@@ -3305,6 +3325,37 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 		$p=new pdns();
 		$p->DelDomain($domain);		
 	}
+	
+	
+	function DeleteRemoteDomain($domain_name,$ou=null){
+		$dn="cn=$domain_name,cn=transport_map,ou=$ou,dc=organizations,$this->suffix";
+		if(!$this->ldap_delete($dn,false)){echo $this->ldap_last_error;return;}
+		$dn="cn=@$domain_name,cn=relay_recipient_maps,ou=$ou,dc=organizations,$this->suffix";
+	
+		if(!$this->ldap_delete($dn,false)){echo $this->ldap_last_error;return;}
+		$dn="cn=$domain_name,cn=relay_domains,ou=$ou,dc=organizations,$this->suffix";
+		if(!$this->ldap_delete($dn,false)){echo $this->ldap_last_error;return;}
+	
+		$sql="DELETE FROM postfix_duplicate_maps WHERE pattern='$domain_name'";
+		$q=new mysql();
+		$q->QUERY_SQL($sql,"artica_backup");
+		$sql="DELETE FROM postfix_aliases_domains WHERE domain='$domain_name'";
+		$q=new mysql();
+		$q->QUERY_SQL($sql,"artica_backup");
+	
+		$sql="DELETE FROM amavis_bypass_rcpt WHERE domain LIKE '%$domain_name'";
+		$q=new mysql();
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!class_exists("ejabberd")){include_once(dirname(__FILE__)."/class.ejabberd.inc");}
+		$jb=new ejabberd($domain_name);
+		$jb->Delete();
+	
+		$sock=new sockets();
+		$usr=new usersMenus();
+		$sock->getFrameWork("cmd.php?postfix-transport-maps=yes");
+	
+	
+		}	
 	
 	
 function ou_add_relay_domain($ou,$domain_name,$relayIP,$relayPort,$mx="no",$trusted_smtp_domain=0){

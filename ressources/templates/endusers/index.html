@@ -1,16 +1,19 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title></title>
-	<link rel="stylesheet" href="/ressources/templates/endusers/css/jquery.css" />
-	<link rel="stylesheet" href="/ressources/templates/endusers/css/TopBarr.css" />
-	<link rel="stylesheet" href="/css/jquery.qtip.css" />
-	<link rel="stylesheet" href="/css/rounded.css" />
-	<link rel="stylesheet" href="/fonts.css.php" />
-	<link rel="stylesheet" type="text/css" href="/css/flexigrid.pack.css" />
-  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-1.8.0.min.js"></script>
-  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-ui-1.8.23.custom.min.js"></script>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Miniadm</title>
+    
+   <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.css">
+   <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap-responsive.css">
+   <link rel="stylesheet" type="text/css" href="/bootstrap/css/docs.css">
+   <link rel="stylesheet" type="text/css" href="/css/rounded.css" />
+   <link rel="stylesheet" type="text/css" href="/css/flexigrid.pack.css" />
+   <link rel="stylesheet" href="/ressources/templates/endusers/css/jquery2.css" />
+   <link rel="stylesheet" href="/js/jqueryFileTree.css" />
+   <link rel="stylesheet" type="text/css" href="/css/colorpicker.css">
+
+   
 	<script type="text/javascript" language="javascript" src="/mouse.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/md5.js"></script>
 	<script type="text/javascript" language="javascript" src="/XHRConnection.js"></script>
@@ -19,7 +22,11 @@
 	<script type="text/javascript" language="javascript" src="/js/artica_confapply.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/edit.user.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/cookies.js"></script>
-	<script type="text/javascript" language="javascript" src="/default.js"></script>
+	
+	<script type="text/javascript" language="javascript" src="/default.js"></script>    
+  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-1.8.0.min.js"></script>
+  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-ui-1.8.23.custom.min.js"></script>
+  	<script type="text/javascript" language="javascript" src="/js/flexigrid.pack.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/jqueryFileTree.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/jquery.easing.1.3.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/thickbox-compressed.js"></script>
@@ -30,40 +37,253 @@
 	<script type="text/javascript" language="javascript" src="/js/jquery.treeview.min.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/jquery.treeview.async.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/jquery.tools.min.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.qtip.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.kwicks-1.5.1.pack.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/flexigrid.pack.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.qtip.js"></script>  	
 	<script type="text/javascript" language="javascript" src="/js/jquery-ui-timepicker-addon.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/ui.selectmenu.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/jquery.cookie.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/fileuploader.js"></script> 
-	<script type="text/javascript" language="javascript\" src="/js/tween-min.js"></script>
-	<script type="text/javascript" language="javascript\" src="/js/steelseries-min.js"></script>
-	<script type="text/javascript" language="javascript\" src="/js/highcharts.js"></script>		
-	<script type="text/javascript" language="javascript\" src="/js/modules/exporting.js"></script>				
-	<script>
-		var LoadAjaxPicture='/ressources/templates/endusers/ajax-loader-eu.gif';
-	</script> 
+	<script type="text/javascript" language="javascript" src="/js/tween-min.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/tiny_mce/tinymce.min.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/colorpicker.js"></script>
+  
+  	<script type="text/javascript" language="javascript" src="/js/highcharts.js"></script>		
+	<script type="text/javascript" language="javascript" src="/js/modules/exporting.js"></script>	
+	<link href="/js/tiny_mce/themes/advanced/skins/o2k7/ui.css" rel="stylesheet">
+	<link href="/js/tiny_mce/themes/advanced/skins/o2k7/ui_silver.css" rel="stylesheet">
+	<link href="/js/tiny_mce/plugins/inlinepopups/skins/clearlooks2/window.css" rel="stylesheet">
+	
+	<script>try {  for(var lastpass_iter=0; lastpass_iter < document.forms.length; lastpass_iter++){    var lastpass_f = document.forms[lastpass_iter];    if(typeof(lastpass_f.lpsubmitorig)=="undefined"){      if (typeof(lastpass_f.submit) == "function") {        lastpass_f.lpsubmitorig = lastpass_f.submit;        lastpass_f.submit = function(){          var form = this;          try {            if (document.documentElement && 'createEvent' in document)            {              var forms = document.getElementsByTagName('form');              for (var i=0 ; i<forms.length ; ++i)                if (forms[i]==form)                {                  var element = document.createElement('lpformsubmitdataelement');                  element.setAttribute('formnum',i);                  element.setAttribute('from','submithook');                  document.documentElement.appendChild(element);                  var evt = document.createEvent('Events');                  evt.initEvent('lpformsubmit',true,false);                  element.dispatchEvent(evt);                  break;                }            }          } catch (e) {}          try {            form.lpsubmitorig();          } catch (e) {}        }      }    }  }} catch (e) {}</script><script>try {  for(var lastpass_iter=0; lastpass_iter < document.forms.length; lastpass_iter++){    var lastpass_f = document.forms[lastpass_iter];    if(typeof(lastpass_f.lpsubmitorig)=="undefined"){      if (typeof(lastpass_f.submit) == "function") {        lastpass_f.lpsubmitorig = lastpass_f.submit;        lastpass_f.submit = function(){          var form = this;          try {            if (document.documentElement && 'createEvent' in document)            {              var forms = document.getElementsByTagName('form');              for (var i=0 ; i<forms.length ; ++i)                if (forms[i]==form)                {                  var element = document.createElement('lpformsubmitdataelement');                  element.setAttribute('formnum',i);                  element.setAttribute('from','submithook');                  document.documentElement.appendChild(element);                  var evt = document.createEvent('Events');                  evt.initEvent('lpformsubmit',true,false);                  element.dispatchEvent(evt);                  break;                }            }          } catch (e) {}          try {            form.lpsubmitorig();          } catch (e) {}        }      }    }  }} catch (e) {}</script>	
+  	
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      
+      td {vertical-align:middle;}
+
+      @media (max-width: 1000px) {
+        /* Enable use of floated navbar text */
+        .navbar-text.pull-right {
+          float: none;
+          padding-left: 5px;
+          padding-right: 5px;
+        }
+      }
+      
+.explain {
+    background-color: #FCF8E3;
+    border: 1px solid #FBEED5;
+    border-radius: 4px 4px 4px 4px;
+    margin-bottom: 20px;
+    padding: 8px 35px 8px 14px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+    background-color: #D9EDF7;
+    border-color: #BCE8F1;
+    color:#888888;
+    font-size:14px;
+} 
+
+
+
+
+
+.explainWarn {
+    
+    border: 1px solid #FBEED5;
+    border-radius: 4px 4px 4px 4px;
+    margin-bottom: 20px;
+    padding: 8px 35px 8px 14px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+    background-color: #FCF8E3;
+    border-color: #E5DBA9;
+    color:#888888;
+    font-size:14px;
+}  
+
+.MiniAdmParagrapheSwitchIm{
+	background-color: #F5F5F5;
+    border: 1px solid #D0D0D0;
+    padding: 10px;	
+	border-radius: 4px 4px 4px 4px;
+    display: block;
+	margin-left:10px;
+	margin-top:0px;
+	color:#333333;
+	
+}
+.MiniAdmParagrapheSwitchIm div{
+	color:#333333 !important;
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+	
+}
+#calendrier {
+	width:99%;
+}
+#calendrier table{
+	border-collapse:collapse;
+	width:100%;
+}
+#calendrier th{
+	border-top:1px solid;
+	border-bottom:1px solid #000000;
+}
+#calendrier th.mois{
+	padding:3px;
+}
+
+#calendrier th.mois a{
+}
+
+#calendrier th.semaine{
+	border-bottom:1px solid;
+}
+
+#calendrier th.jour{
+
+}
+#calendrier td{
+
+	text-align:center;
+	border-top:1px solid #000000;
+	border-bottom:1px solid #000000;
+	
+	font-weight:bold;
+}
+#calendrier td.today{
+	background-color:#2682AF;
+	color:white;
+}
+#calendrier td.inactif{
+	font-style:italic;
+	color:#999999;
+}
+#calendrier td.event{
+	background-color:#1595D3;
+	color:white !important;
+}
+#calendrier_events{
+	background-color:#FFFF99;
+}
+#calendrier_events .event{
+	margin:2px;
+	padding:2px;
+}
+#calendrier td.event a {
+    border-bottom: 2px solid;
+    color:white !important;
+    text-decoration: none;
+}
+      
+      table.TableRemove{
+		padding:0px;
+      	margin:0px;
+      	height:auto;
+      	line-height:normal;  
+      	font-size:11px;   
+      	vertical-align:top;     	
+      	
+      }
+      .TableRemove td{
+		vertical-align:top;
+      	
+      }
+      
+      table.TableMarged{
+		margin:5px;
+      	
+      }
+      
+	td.TableMarged{
+		padding-left:5px;
+      	
+      }
+      
+      td.TableRemove{
+      	vertical-align:top;
+		padding:0px;
+      	margin:0px;
+      	height:auto;
+      	line-height:normal;      	
+      }
+      
+      td.BodyContent{
+		vertical-align:top;
+      }
+      td.form{
+		vertical-align:top;
+      
+      }
+      
+      
+      td.legend{
+      	vertical-align:middle;
+      	font-size:16px;
+      	text-align:right;
+      	text-transform:capitalize;
+      	white-space:nowrap;
+      	padding-bottom:10px;
+      	padding-right:10px;
+      	color:#888888;
+      }
+      
+      .form table{
+    	margin: 5px;
+    	padding: 5px;	
+      	
+      }
+      
+      td.form a{
+		color:black;
+      }
+      
+
+div .form {
+    background: -moz-linear-gradient(center top , #F1F1F1 0px, #FFFFFF 45px) repeat scroll 0 0 transparent;
+    border: 1px solid #DDDDDD;
+    border-radius: 5px 5px 5px 5px;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+    margin: 5px;
+    padding: 5px;
+	
+}
+
+table .form {
+    background: -moz-linear-gradient(center top , #F1F1F1 0px, #FFFFFF 45px) repeat scroll 0 0 transparent;
+    border: 1px solid #DDDDDD;
+    border-radius: 5px 5px 5px 5px;
+    margin-top: 5px;
+    padding: 5px;
+    width: 99%;
+}
+
+.form table{
+    border-radius: 5px 5px 5px 5px;
+    margin-top: 5px;
+    padding: 5px;
+    width: 99%;	
+	
+}
+
+
+div .formOver {
+    background: -moz-linear-gradient(center top , #FFE3E3 0px, #FFFFFF 45px) repeat scroll 0 0 transparent;
+    border: 1px solid #DDDDDD;
+    border-radius: 5px 5px 5px 5px;
+    box-shadow: 2px 2px 8px #FFA0A1;
+    margin: 5px;
+    padding: 5px;
+}    
+      
+    </style>
+   <!--[if IE]>
+		<link rel="stylesheet" type="text/css" href="/bootstrap/css/ie-only.css" />
+	<![endif]-->
 </head>
-<body class="MainLayout1 MainCenter1">
-<div>
-	<div id="BlueBarrMain" class="BlueBarrSize">
-		<div id="blueBarContent" class="fixed_elem">
-			<div id="pageHead" class="clearfix">
-					<h1 id="pageLogo" class="pixelSnapped"><a href="miniadm.index.php">Accueil</a></h1>
-					<div class="clearfix" id="headNav">
-
-				</div>
-			</div>
-		</div>
-	</div>
-</div>
-
-
-<div>
-	<div id="globalContainer" class="uiContextualLayerParent"></div>
-</div>
-
+<body>
 <input type='hidden' id='LoadAjaxPicture' name="LoadAjaxPicture" value="/ressources/templates/endusers/ajax-loader-eu.gif">
 <div id="SetupControl" style='width:0;height:0'></div>
 <div id="dialogS" style='width:0;height:0'></div> 
@@ -89,14 +309,54 @@
 <div class="error message" id='AcaNotifyMessError'></div>
 <div class="warning message" id='AcaNotifyMessWarn'></div>
 <div class="success message" id='AcaNotifyMessSuccess'></div>
-<script>
-	function FillHead(){
-		AjaxTopMenu('headNav','miniadm.index.php?headNav=yes');
-	}
-	initMessagesTop();
-	setTimeout('FillHead()', 1000);
-	
-</script>
+
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid" id='top-menu'>
+ 		
+          
+          <!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+    	
+     <table style="width:100%;margin-left:-10px;font-size:14px;" class=TableRemove>
+     <tr>
+     <td style='width:350px;font-size:14px;' valign=top>
+     	<div class="span3 bs-docs-sidebar" id='left-menu'></div>
+	</td>
+	<td style='width:100%'>
+  		<div class="span12" id="globalContainer">
+			<div class="row-fluid"></div><!--/row-->
+        </div><!--/span-->
+     </td>
+     </tr>
+      </table>
+      </div><!--/row-->
+
+      <hr>
+
+      <footer>
+        
+      </footer>
+
+    </div>
+
+
 {SCRIPT}
+<script>
+initMessagesTop();
+setTimeout('FillTopEnu()',1000);
+
+function FillTopEnu(){
+	LoadAjaxTiny('top-menu',"miniadm.index.php?top-menu=yes");
+}
+</script>
+<script src="bootstrap/js/bootstrap-tab.js"></script>
+<script src="bootstrap/js/bootstrap-tooltip.js"></script>
+<script src="bootstrap/js/bootstrap-button.js"></script>
+
 </body>
 </html>

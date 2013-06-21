@@ -34,9 +34,11 @@ if($argv[1]=="--latests"){latests();exit;}
 if($argv[1]=="--error-txt"){error_txt();exit;}
 if($argv[1]=="--c-icap"){package_c_icap();exit;}
 if($argv[1]=="--ufdb"){package_ufdbguard();exit;}
+if($argv[1]=="--msmtp"){package_msmtp();exit;}
+
 if($argv[1]=="--ecapclam"){ecap_clamav();exit;}
 if($argv[1]=="--package"){create_package();exit;}
-if($argv[1]=="--c-icap-remove"){c_cicap_remove();exit;}
+if($argv[1]=="--c-icap-remove"){die();exit;}
 
 
 
@@ -573,6 +575,49 @@ while (list ($num, $filename) = each ($dirs)){
 	
 }
 
+function package_msmtp_version(){
+	exec("/root//root/msmtp-compiled/usr/bin/msmtp --version 2>&1",$results);
+	while (list ($num, $line) = each ($results)){
+		if(preg_match("msmtp version.*?([0-9\.]+)#", $line,$re)){return $re[1];}
+	}
+
+
+}
+
+function package_msmtp(){
+	$base="/root/msmtp-compiled";
+	shell_exec("/bin/rm -rf /root/ufdbGuard-compiled");
+	
+	$f[]="/usr/share/info/msmtp.info";
+	$f[]="/usr/bin/msmtp";
+	$f[]="/usr/share/gettext/po";	
+
+	while (list ($num, $filename) = each ($f)){
+		
+		if(is_dir($filename)){
+			@mkdir("$base/$filename",0755,true);
+			shell_exec("/bin/cp -rf $filename/ $base/$filename/");
+			continue;
+		}
+		
+		$dirname=dirname($filename);
+		if(!is_dir("$base/$dirname")){@mkdir("$base/$dirname",0755,true);}
+		shell_exec("/bin/cp -f $filename $base/$dirname/");
+	
+	}	
+	
+	$Architecture=Architecture();
+	$version=package_msmtp_version();
+	chdir($base);
+	shell_exec("tar -czf msmtp-$Architecture-$version.tar.gz *");
+	shell_exec("/bin/cp msmtp-$Architecture-$version.tar.gz /root/");
+	echo "/root/msmtp-$Architecture-$version.tar.gz done";
+	
+}
+
+
+
+
 function package_ufdbguard(){
 	
 shell_exec("/bin/rm -rf /root/ufdbGuard-compiled");
@@ -717,24 +762,6 @@ return $f;
 }
 
 function c_cicap_remove(){
-	
-/* params c-icap
- * ./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap"
- * ./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap" --with-clamav
- */ 
-
-	
-	$f=c_icap_array();	
-	while (list ($num, $filename) = each ($f)){
-		if(is_file($filename)){@unlink($filename);}
-	} 
-	if(is_dir("/usr/share/c_icap")){shell_exec("/bin/rm -rf /usr/share/c_icap");}
-	if(is_dir("/usr/include/c_icap")){shell_exec("/bin/rm -rf /usr/include/c_icap");}
-	if(is_dir("/usr/lib/c_icap")){shell_exec("/bin/rm -rf /usr/lib/c_icap");}
-	
-	
-	
-	echo "Uninstall C-ICAP done\n";
 }
 
 

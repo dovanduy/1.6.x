@@ -1078,7 +1078,7 @@ function Squid_status(){
 if($ini->_params["SQUID"]["running"]==0){
 		$img="status_postfix_bg_failed.png";
 		$status="{stopped}";
-		$start="<hr><div style='text-align:right'>".button("{start}","Loadjs('StartStopServices.php?APP=APP_SQUID&cmd=squid-cache&action=start')")."</div>";
+		$start="<hr><div style='text-align:right'>".button("{start}","Loadjs('StartStopServices.php?APP=APP_SQUID&cmd=".urlencode("/etc/init.d/squid")."&action=start&CacheOff=yes')")."</div>";
 	}else{
 			if(preg_match("#2\.3.*#",$master_version)){$img='status_postfix_bg_ok23.png';}
 			if(preg_match("#2\.5.*#",$master_version)){$img='status_postfix_bg_ok25.png';}

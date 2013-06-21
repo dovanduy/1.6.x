@@ -79,7 +79,7 @@
 CleanSessions();
 $distanceInSeconds = round(abs(time() - $GLOBALS["STARTIME"]));
 $distanceInMinutes = round($distanceInSeconds / 60);
-WLOG("Dynamic ACL: v1.0: die after ({$distanceInSeconds}s/about {$distanceInMinutes}mn)");
+WLOG("Dynamic ACL: v1.0a: die after ({$distanceInSeconds}s/about {$distanceInMinutes}mn)");
 if(isset($GLOBALS["F"])){@fclose($GLOBALS["F"]);}
 
 
@@ -244,6 +244,7 @@ function parseURL($url){
 function CheckPattern($name,$gpid,$type){
 	if(!is_numeric($gpid)){return;}
 	if(!is_numeric($type)){return;}
+	if(!isset($GLOBALS["CACHE_CLEAN_MYSQL"])){$GLOBALS["CACHE_CLEAN_MYSQL"]=time();}
 	
 	if($type==3){
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $name)){
@@ -280,6 +281,16 @@ function CheckPattern($name,$gpid,$type){
 			return $ligne["ID"];
 		}
 	}
+	
+	if(DistanceInMns($GLOBALS["CACHE_CLEAN_MYSQL"])>5){
+		$GLOBALS["CACHE_CLEAN_MYSQL"]=time();
+		if($GLOBALS["DEBUG_LEVEL"]>3){WLOG("CheckPattern():: Clean old rules...");}
+		$sql="DELETE FROM `webfilter_aclsdynamic` WHERE `duration`>0 AND `maxtime`>".time();
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){WLOG("CheckPattern()::$q->mysql_error,$sql");}
+	}
+	
+	
 	}
 	catch (Exception $e) {
 		WLOG($e->getMessage());
@@ -529,8 +540,13 @@ function SessionActive($array){
 		WLOG("{$GLOBALS["SESSIONS"][$md5key]["uid"]}: Key: $md5key {$GLOBALS["SESSIONS"][$md5key]["TIME"]} = $distanceInSeconds seconds <> {$GLOBALS["SESSION_TIME"]} seconds");
 		unset($GLOBALS["SESSIONS"][$md5key]);return; }
 	return $GLOBALS["SESSIONS"][$md5key]["uid"];
-	
-	
+
+}
+function DistanceInMns($time){
+	$data1 = $time;
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	return round($difference/60);
 }
 
 function openLogs($force=false){
@@ -557,7 +573,7 @@ function WLOG($text=null){
 	if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 	$date=@date("Y-m-d H:i:s");
 	$mem=_get_memory_usage_158();
-	
+	if(!isset($GLOBALS["F"])){$GLOBALS["F"] = @fopen($GLOBALS["LOG_FILE_NAME"], 'a'); }
    	if (is_file($filename)) { 
    		$size=@filesize($filename);
    		if($size>1000000){

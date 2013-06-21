@@ -179,9 +179,9 @@ function maillog_query(){
 	
 	
 	if($pattern<>null){
-		$cmd="$grep -E '[0-9:]+\s+.*?\s+KLMS:\s+' $path|$grep -E '$pattern'|$tail -n {$_GET["rp"]}";
+		$cmd="$grep -i -E '[0-9:]+\s+.*?\s+KLMS:\s+' $path|$grep -E '$pattern'|$tail -n {$_GET["rp"]}";
 	}else{
-		$cmd="$grep -E '[0-9:]+\s+.*?\s+KLMS:\s+' $path|$tail -n {$_GET["rp"]}";
+		$cmd="$grep -i -E '[0-9:]+\s+.*?\s+KLMS:\s+' $path|$tail -n {$_GET["rp"]}";
 	}
 	
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);

@@ -84,6 +84,10 @@ function AddCachedSitelist_js_delete(){
 				$('#row{$IDROW}').remove();
 			}
 			
+			if(document.getElementById('{$IDROW}')){
+				$('#{$IDROW}').remove();
+			}			
+			
 		}		
 
 		function AddCachedSitelist_js_delete(){
@@ -169,6 +173,16 @@ function AddCachedSitelist_save(){
 }
 
 function AddCachedSitelist_popup(){
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->_ENGINE_parse_body("{onlycorpavailable}");
+		$content="<p class=text-error>$onlycorpavailable</p>";
+		echo $content;
+		return;
+	}
+	
+	
 	$page=CurrentPageName();
 	$t=$_GET["t"];
 	$option[null]="---------";
@@ -196,7 +210,8 @@ function AddCachedSitelist_popup(){
 	
 	$html="
 	<div id='AddCachedSitelistDiv-$t'></div>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table >
 	<tr>
 	<td valign='top'>
 	
@@ -205,7 +220,7 @@ function AddCachedSitelist_popup(){
 	<table style='width:99%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{pattern}:</td>
-		<td style='font-size:14px'>". Field_text("refresh_pattern_site-$t",$domain,'font-size:16px;padding:3px',null,null,null,false,"AddCachedSiteListCheckEnter(event)")."</td>
+		<td style='font-size:14px'>". Field_text("refresh_pattern_site-$t",$domain,'font-size:16px;padding:3px;width:95%',null,null,null,false,"AddCachedSiteListCheckEnter(event)")."</td>
 		<td width=1%>". help_icon("{refresh_pattern_site}")."</td>
 	</tr>
 	<tr>
@@ -238,9 +253,11 @@ function AddCachedSitelist_popup(){
 	</td>
 	</tr>
 	</table>
+	
 	<center style='margin-top:10px'>
 	<div style='width:95%' class=form>
 	<center><img src='img/refresh_pattern_graph.gif' style='border:3px solid #CCCCCC'></center>
+	</div>
 	</div>
 	</center>
 	
@@ -251,8 +268,9 @@ function AddCachedSitelist_popup(){
 			if(results.length>0){alert(results);}
 			if(document.getElementById('flexRT{$_GET["t"]}')){
 				$('#flexRT{$_GET["t"]}').flexReload();	
+				
 			}
-		
+			ExecuteByClassName('SearchFunction');	
 			YahooWin3Hide();
 		}			
 		
@@ -289,6 +307,15 @@ function AddCachedSitelist_popup(){
 }
 
 function WEBSITES_LIST(){
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->_ENGINE_parse_body("{onlycorpavailable}");
+		$content="<p class=text-error>$onlycorpavailable</p>";
+		echo $content;
+		return;
+	}
+	
 $t=time();
 $page=CurrentPageName();
 $tpl=new templates();
@@ -376,7 +403,7 @@ buttons : [
 	}
 	
 	function SquidRestartNow$t(){
-		Loadjs('squid.restart.php&onlySquid=yes&ApplyConfToo=yes');
+		Loadjs('squid.restart.php?onlySquid=yes&ApplyConfToo=yes');
 	}
 
 function AddNewCachedWebsite(){

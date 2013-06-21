@@ -12,7 +12,7 @@
 	
 
 	$user=new usersMenus();
-	if($user->AsWebMaster==false){
+	if(!GetPrivs()){
 		$tpl=new templates();
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
@@ -27,7 +27,10 @@ if(isset($_POST["delete-item"])){item_delete();exit;}
 if(isset($_POST["item-run"])){item_run();exit;}
 if(isset($_POST["exec"])){execute();exit;}
 table();
-
+function GetPrivs(){
+	$users=new usersMenus();
+	if($users->AsSystemWebMaster){return true;}
+}
 function table(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
@@ -58,7 +61,7 @@ function table(){
 	$lang=$tpl->_ENGINE_parse_body("{language}");
 	$enable=$tpl->_ENGINE_parse_body("{enable}");
 	$website=$tpl->_ENGINE_parse_body("{websites}");
-	$size=$tpl->_ENGINE_parse_body("size");
+	$size=$tpl->_ENGINE_parse_body("{size}");
 	$execute=$tpl->_ENGINE_parse_body("{execute}");
 	$events=$tpl->_ENGINE_parse_body("{events}");
 	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
@@ -109,7 +112,7 @@ $('#flexRT$t').flexigrid({
 	});   
 });
 function ItemShow$t(id){
-	YahooWin5('550','$page?item-id='+id+'&t=$t','WebCopy:'+id);
+	YahooWin5('670','$page?item-id='+id+'&t=$t','WebCopy:'+id);
 }
 
 function ItemEvents$t(){
@@ -135,7 +138,7 @@ function ItemDelete$t(id){
 
 function ItemNew$t(){
 	title='$new_entry';
-	YahooWin5('550','$page?item-id=0&t=$t','WebCopy::'+title);
+	YahooWin5('670','$page?item-id=0&t=$t','WebCopy::'+title);
 }
 var x_ItemExec$t=function (obj) {
 	var results=obj.responseText;
@@ -286,6 +289,7 @@ function item_popup(){
 		$minrate=$ligne["minrate"];
 		$maxfilesize=$ligne["maxfilesize"];
 		$maxsitesize=$ligne["maxsitesize"];
+		$lang=$ligne["lang"];
 		$browse=null;
 	}
 	
@@ -300,7 +304,8 @@ function item_popup(){
 
 $html="		
 <div id='anime-$t'></div>
-<table style='width:99%' class=form>
+<div style='width:95%' class=form>
+<table >
 <tr>	
 	<td class=legend style='font-size:14px' nowrap>{website}:</strong></td>
 	<td align=left>". Field_text("sitename-$t",$sitename,"width:280px;font-size:14px","script:FormCheck$t(event)")."</strong></td>
@@ -331,6 +336,7 @@ $html="
 	<td colspan=3 align='right'><hr>". button("$bname","SaveForm$t();","18px")."</td>
 <tr>
 </table>
+</div>
 <script>
 
 		function FormCheck$t(e){
@@ -343,6 +349,7 @@ $html="
 			document.getElementById('anime-$t').innerHTML='';
 			if (results.length>3){alert(results);return;}
 			$('#flexRT$t').flexReload();
+			ExecuteByClassName('SearchFunction');
 		}				
 		
 		function SaveForm$t(){

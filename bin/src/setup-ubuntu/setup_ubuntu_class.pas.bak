@@ -486,9 +486,11 @@ var
    u  :string;
    i  :integer;
    ll :TStringDynArray;
+   rebot:boolean;
 begin
 if length(trim(list))=0 then exit;
 result:=false;
+rebot:=false;
 
    writeln('Checking bad installations with -f install...');
    cmd:='/usr/bin/apt-get -y -f install';
@@ -520,11 +522,14 @@ result:=false;
        if length(trim(ll[i]))>0 then begin
           cmd:='DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get -o Dpkg::Options::="--force-confnew" --force-yes -fuy install ' + ll[i];
           fpsystem(cmd);
+          rebot:=true;
        end;
    end;
 
 
-
+   if rebot then begin
+      if FileExists('/usr/share/artica-postfix/exec.initslapd.php') then fpsystem('php /usr/share/artica-postfix/exec.initslapd.php');
+   end;
    if FileExists('/tmp/packages.list') then fpsystem('/bin/rm -f /tmp/packages.list');
    result:=true;
 
@@ -908,8 +913,13 @@ l.add('e2fsprogs');
 if ArchStruct=64 then begin
    l.add('libc6-i386');
    l.add('lib32stdc++6');
-   l.add('ia32-libs-gtk');
-   //l.add('ia32-libs');
+   if distri.DISTRINAME_CODE='UBUNTU' then begin
+      if UbuntuIntVer<12 then l.add('ia32-libs-gtk');
+      if UbuntuIntVer>11 then l.add('ia32-libs');
+   end;
+   if distri.DISTRINAME_CODE='DEBIAN' then begin
+      l.add('ia32-libs-gtk');
+   end;
 end;
 
 
@@ -945,7 +955,7 @@ l.Add('usbutils');
 if not FileExists('/etc/artica-postfix/NO_DATABASES_ENGINES') then begin
    l.Add('slapd');
    l.add('ldap-utils');
-   l.Add('mysql-server');
+   if not FileExists('/usr/sbin/mysqld') then l.Add('mysql-server');
 end;
 
 l.Add('openssl');
@@ -972,7 +982,8 @@ l.add('php5-sqlite');
 l.Add('php-pear');
 l.add('php5-dev'); // To compile PHP5
 l.add('librrd-dev');
-
+l.add('ucarp');
+l.add('iputils-arping');
 
 l.add('libmodule-build-perl');
 l.Add('librrds-perl');
@@ -997,6 +1008,7 @@ l.Add('libio-socket-ssl-perl');
 l.Add('libnet-ssleay-perl');
 l.Add('libhtml-parser-perl');
 l.Add('libarchive-zip-perl');
+l.add('libsendmail-milter-perl');
 
 l.Add('libwww-perl');
 l.add('libgd2-xpm-dev');                           
@@ -1015,7 +1027,7 @@ l.Add('iproute');
 l.add('bzip2');
 l.add('zip');
 l.add('re2c');
-l.add('arping');
+
 if not LIGHT_INSTALL then l.add('httrack');//xapian
 
 
@@ -1094,6 +1106,7 @@ l.add('libapache2-mod-evasive');
 L.add('libapache2-mod-proxy-html');
 L.add('libapache2-mod-jk');
 L.add('libapache2-mod-geoip');
+L.add('libapache2-mod-fastcgi');
 //L.add('libapache2-mod-fcgid');
 l.Add('libapache2-mod-perl2');
 l.Add('libapache2-authenntlm-perl');
@@ -1101,7 +1114,13 @@ l.Add('libapache2-mod-python');
 //l.add('libapache2-mod-log-sql-mysql');
 //l.Add('libapache2-mod-log-sql');
 L.add('apache2-suexec');
-l.add('libiodbc2-dev');
+
+   if distri.DISTRINAME_CODE='UBUNTU' then begin
+      if UbuntuIntVer<12 then  l.add('libiodbc2-dev');
+   end;
+   if distri.DISTRINAME_CODE='DEBIAN' then begin
+      l.add('libiodbc2-dev');
+   end;
 
 //openLdap compilation
 l.add('libslp-dev');
@@ -1339,14 +1358,17 @@ end;
 
 if distri.DISTRINAME_CODE='UBUNTU' then begin
     writeln('Checking.............: Code UBUNTU ('+distri.DISTRINAME_VERSION+') MAJOR='+IntToStr(UbuntuIntVer));
-    if(UbuntuIntVer=10) then non_free:=true;
+    if(UbuntuIntVer=10) then begin
+        non_free:=true;
 
+    end;
     if UbuntuIntVer>10 then begin
 
     end;
 
 
    if UbuntuIntVer>7 then begin
+      l.add('nginx');
       l.add('memtester');
       l.add('procinfo');
       l.add('autofs');
@@ -1431,7 +1453,7 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
       l.Add('screen');
       l.add('suricata');
       l.add('ettercap-common');
-      l.add('ettercap-text-only');
+
 
 
    end;
@@ -1520,12 +1542,15 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
          l.add('libjpeg62-dev');
          l.add('pike7.6');
      end;
-     if  UbuntuIntVer=12 then begin
+
+     if  UbuntuIntVer>11 then begin
        l.Add('libio-compress-perl');
        l.add('pike7.8');
+       l.add('php5-fpm');
+       l.add('ettercap-text-only');
      end;
-end;
 
+end;
 
 
 
@@ -1639,7 +1664,7 @@ l.Add('php5-mcrypt');
 l.Add('php-log');
 l.Add('slapd');
 l.add('ldap-utils');
-l.Add('mysql-server');
+if Not FileExists('/usr/sbin/mysqld') then l.Add('mysql-server');
 l.Add('libldap2-dev');
 l.Add('libkrb5-dev');
 l.Add('libsasl2-dev');
@@ -1971,6 +1996,7 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
          l.add('lzop');
          l.Add('tnef');
          l.add('libgsasl7-dev'); //gsasl.h
+         l.add('libgsasl7');
          l.add('libnet-dns-perl');
          l.Add('cabextract');
          l.add('python-ldap');
@@ -2015,6 +2041,7 @@ if distri.DISTRINAME_CODE='DEBIAN' then begin
          l.add('lzop');
          l.Add('tnef');
          l.add('libgsasl7-dev'); //gsasl.h
+         l.add('libgsasl7');
          l.add('libnet-dns-perl');
          l.Add('cabextract');
          l.add('python-ldap');

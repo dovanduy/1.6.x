@@ -124,6 +124,7 @@ class settings_inc {
 	public $URLSNARF_INSTALLED=false;
 	public $APP_ZARAFADB_INSTALLED=false;
 	public $FREERADIUS_INSTALLED=false;
+	public $SQUID_REVERSE_APPLIANCE=false;
 	/* This licence must be used Only with Artica-for postfix */
 	public $ChartLicence="D1XFWGMEW9L.HSK5T4Q79KLYCK07EK";
 	/*you cannot use it without any authorizations of maani.us.
@@ -361,6 +362,7 @@ class settings_inc {
 	public $SQUIDGUARD_BIN_PATH="";
 	public $RSYNC_INSTALLED=false;
 	public $ZARAFA_APPLIANCE=false;
+	public $NGINX_INSTALLED=false;
 	public $mysqld_datadir;
 	public $DRUPAL_INSTALLED=false;
 	public $MAIL_DKIM_VERSION=null;
@@ -494,6 +496,7 @@ class settings_inc {
 	public $APACHE_MOD_PYTHON=false;
 	public $APP_PYAUTHENNTLM=false;
 	public $APP_SQUIDDB_INSTALLED=false;
+	public $APP_CHILLI_INSTALLED=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -555,6 +558,7 @@ class settings_inc {
 			$this->ChangeAutoInterface=$_GLOBAL["ChangeAutoInterface"];
 			$this->aveserver_pattern_date=$_GLOBAL["aveserver_pattern_date"];
 			$this->disks_inodes=trim($_GLOBAL["disks_inodes"]);
+			if(isset($_GLOBAL["NGINX_INSTALLED"])){$this->NGINX_INSTALLED=$_GLOBAL["NGINX_INSTALLED"];;}
 			if(isset($_GLOBAL["POSTFIX_STATUS"])){$this->POSTIFX_STATUS=$_GLOBAL["POSTFIX_STATUS"];}
 			if(isset($_GLOBAL["KAS_STATUS"])){$this->KAS_STATUS=$_GLOBAL["KAS_STATUS"];}
 			if(isset($_GLOBAL["CYRUS_STATUS"])){$this->CYRUS_STATUS=$_GLOBAL["CYRUS_STATUS"];}
@@ -601,7 +605,7 @@ class settings_inc {
 			if(isset($_GLOBAL["URLSNARF_INSTALLED"])){$this->URLSNARF_INSTALLED=$_GLOBAL["URLSNARF_INSTALLED"];}
 			if(isset($_GLOBAL["ETTERCAP_INSTALLED"])){$this->ETTERCAP_INSTALLED=$_GLOBAL["ETTERCAP_INSTALLED"];}
 			if(isset($_GLOBAL["APP_ZARAFADB_INSTALLED"])){$this->APP_ZARAFADB_INSTALLED=$_GLOBAL["APP_ZARAFADB_INSTALLED"];}
-
+			if(isset($_GLOBAL["APP_CHILLI_INSTALLED"])){$this->APP_CHILLI_INSTALLED=$_GLOBAL["APP_CHILLI_INSTALLED"];}
 			
 			
 			if(isset($_GLOBAL["MPM_ITK_MODULE"])){$this->MPM_ITK_MODULE=$_GLOBAL["MPM_ITK_MODULE"];}
@@ -692,6 +696,9 @@ class settings_inc {
 			if(isset($_GLOBAL["ZARAFA_SEARCH_INSTALLED"])){$this->ZARAFA_SEARCH_INSTALLED=$_GLOBAL["ZARAFA_SEARCH_INSTALLED"];;}
 			if(isset($_GLOBAL["ZARAFA_INDEXER_INSTALLED"])){$this->ZARAFA_INDEXER_INSTALLED=$_GLOBAL["ZARAFA_INDEXER_INSTALLED"];;}
 			if(isset($_GLOBAL["FREERADIUS_INSTALLED"])){$this->FREERADIUS_INSTALLED=$_GLOBAL["FREERADIUS_INSTALLED"];;}
+			if(isset($_GLOBAL["SQUID_REVERSE_APPLIANCE"])){$this->SQUID_REVERSE_APPLIANCE=$_GLOBAL["SQUID_REVERSE_APPLIANCE"];;}
+			
+			
 			
 			if(isset($_GLOBAL["LIGHT_INSTALL"])){$this->LIGHT_INSTALL=$_GLOBAL["LIGHT_INSTALL"];}
 			// Are you sure to do that !!!, breaking the license turn you to a pirate...

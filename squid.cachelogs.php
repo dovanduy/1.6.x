@@ -118,6 +118,7 @@ $sock=new sockets();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
+	
 	while (list ($key, $line) = each ($datas) ){
 		
 		$date="&nbsp;";

@@ -232,7 +232,7 @@ class dhcpd{
 		}
 		$ini->loadString($ArticaDHCPSettings);
 		if(!is_array($ini->_params["SET"])){$ini->_params["SET"]=array();}
-		if($GLOBALS["VERBOSE"]){while (list ($num, $ligne) = each ($ini->_params["SET"]) ){echo "Starting......: DHCP server DEBUG: loading $num = $ligne\n";}}		
+		if($GLOBALS["VERBOSE"]){while (list ($num, $ligne) = each ($ini->_params["SET"]) ){echo "Starting......: [INIT]: DHCP Server server DEBUG: loading $num = $ligne\n";}}		
 		
 		$this->ddns_domainname=$ini->_params["SET"]["ddns_domainname"];
 		$this->max_lease_time=$ini->_params["SET"]["max_lease_time"];
@@ -284,7 +284,7 @@ class dhcpd{
 		if(!is_numeric($this->ping_check)){$this->ping_check=1;}
 		
 		$this->OnlySetGateway=$sock->GET_INFO("DHCPOnlySetGateway");
-		if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP server DEBUG: loading OnlySetGateway = [DHCPOnlySetGateway]  $this->OnlySetGateway\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: DHCP Server server DEBUG: loading OnlySetGateway = [DHCPOnlySetGateway]  $this->OnlySetGateway\n";}
 		$ip=new networking();
 		$ip->LoadIPs();
 		$this->array_tcp=$ip->Local_interfaces();
@@ -294,7 +294,7 @@ class dhcpd{
 		//if($this->range1==null){$this->range1="192.168.1.55";}
 		//if($this->range2==null){$this->range2="192.168.1.240";}
 		if(!is_numeric($this->OnlySetGateway)){
-			if($GLOBALS["VERBOSE"]){"Starting......: DHCP DEBUG OnlySetGateway is not numeric, set it to 0\n";}
+			if($GLOBALS["VERBOSE"]){"Starting......: [INIT]: DHCP Server DEBUG OnlySetGateway is not numeric, set it to 0\n";}
 			$this->OnlySetGateway=0;
 		}
 		writelogs("LOADING ROUTES ",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
@@ -447,7 +447,7 @@ private function GetMyDNS(){
 			while (list ($index, $ipaddr) = each ($arrayNameServers_tmp) ){
 				if($ipaddr=="0.0.0.0"){continue;}
 				if($ipaddr=="127.0.0.1"){continue;}
-				if($GLOBALS["ASROOT"]){echo "Starting......: DHCP server name server: \"$ipaddr\"\n";}
+				if($GLOBALS["ASROOT"]){echo "Starting......: [INIT]: DHCP Server server name server: \"$ipaddr\"\n";}
 				$arrayNameServers[]=$ipaddr;
 			}			
 		if($GLOBALS["VERBOSE"]){echo "DEBUG: DNS server return array of ". count($arrayNameServers_tmp)." element(s)\n";}	
@@ -460,14 +460,14 @@ private function DomainNameServers(){
 	
 		$arrayNameServers=array();
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$this->DNS_1)){
-			if($GLOBALS["ASROOT"]){echo "Starting......: DHCP server domain name server 1]:$this->DNS_1\n";}
+			if($GLOBALS["ASROOT"]){echo "Starting......: [INIT]: DHCP Server server domain name server 1]:$this->DNS_1\n";}
 			$arrayNameServers[]=$this->DNS_1;
 		}else{
 			
 		}
 		
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$this->DNS_2)){
-			if($GLOBALS["ASROOT"]){echo "Starting......: DHCP server domain name server 2]:$this->DNS_2\n";}
+			if($GLOBALS["ASROOT"]){echo "Starting......: [INIT]: DHCP Server server domain name server 2]:$this->DNS_2\n";}
 			$arrayNameServers[]=$this->DNS_2;
 		}		
 	
@@ -476,11 +476,11 @@ private function DomainNameServers(){
 			
 		$arrayNameServers=$this->GetMyDNS();
 		if($GLOBALS["VERBOSE"]){echo "DEBUG: ->GetMyDNS() ->". count($arrayNameServers)." items Line ".__LINE__."\n";}	
-		if($GLOBALS["ASROOT"]){echo "Starting......: DHCP server ". count($arrayNameServers)." domain name servers\n";}
+		if($GLOBALS["ASROOT"]){echo "Starting......: [INIT]: DHCP Server server ". count($arrayNameServers)." domain name servers\n";}
 		if(count($arrayNameServers)>0){return $arrayNameServers;}
 		
 		if($GLOBALS["ASROOT"]){
-			echo "Starting......: DHCP SERVER no name servers set, try to get defaults via resolv.conf\n";
+			echo "Starting......: [INIT]: DHCP Server SERVER no name servers set, try to get defaults via resolv.conf\n";
 			$resolv_conf=explode("\n",@file_get_contents("/etc/resolv.conf"));
 			while (list ($index, $lines) = each ($resolv_conf) ){
 				if(preg_match("#127\.0\.0\.1#",$lines)){continue;}
@@ -488,7 +488,7 @@ private function DomainNameServers(){
 					$g=trim($re[1]);
 					if($g=="127.0.0.1"){continue;}
 					$arrayNameServers[]=$g;
-					if($GLOBALS["ASROOT"]){echo "Starting......: DHCP SERVER name server: $g\n";}
+					if($GLOBALS["ASROOT"]){echo "Starting......: [INIT]: DHCP Server SERVER name server: $g\n";}
 				}
 			}
 		}
@@ -541,13 +541,13 @@ private function DomainNameServers(){
 		$conf=$conf."include \"/var/lib/dhcp3/dhcpd.other\";\n";
 		
 		if($this->broadcast==null){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP broadcast =>  eth_IP = $eth_IP\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: DHCP Server broadcast =>  eth_IP = $eth_IP\n";}
 			preg_match("#^([0-9\.]+)\.([0-9]+)$#", $eth_IP,$re);
 			$this->broadcast="{$re[1]}.255";
 			
 		}
 		
-		if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP broadcast =  $this->broadcast\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: DHCP Server broadcast =  $this->broadcast\n";}
 		
 		if($this->ddns_domainname<>null){
 			$conf=$conf."ddns-domainname \"$this->ddns_domainname\";\n";
@@ -598,12 +598,12 @@ private function DomainNameServers(){
 		//$conf=$conf."ddns-hostname = pick (option fqdn.hostname,option host-name,concat (\"dhcp-\", binary-to-ascii (10, 8, \"-\", leased-address)));";
 		
 		if($this->gateway<>null){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP DEBUG: gateway [". count($gateway_array)."] = $this->gateway set by admin\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: DHCP Server DEBUG: gateway [". count($gateway_array)."] = $this->gateway set by admin\n";}
 			$gateway_array[]=$this->gateway;
 		}
 		
 		if($this->EnableArticaAsGateway==1){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP DEBUG: gateway [". count($gateway_array)."] = $eth_IP (EnableArticaAsGateway = 1) \n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: DHCP Server DEBUG: gateway [". count($gateway_array)."] = $eth_IP (EnableArticaAsGateway = 1) \n";}
 			$gateway_array[]=$eth_IP;
 		}
 		
@@ -641,7 +641,7 @@ private function DomainNameServers(){
 		if(is_numeric($re[4])){if($re[4]>0){$range_suffix=$re[4];}}
 		$final_subnet="{$re[1]}.{$re[2]}.{$re[3]}.$range_suffix";
 		if($final_subnet=="...0"){$final_subnet="0.0.0.0";}
-		if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP DEBUG: final_subnet=$final_subnet\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: DHCP Server DEBUG: final_subnet=$final_subnet\n";}
 		
 		
 		
@@ -670,10 +670,10 @@ private function DomainNameServers(){
 		
 		
 		if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->broadcast,$re)){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP DEBUG: broadcast =  $this->broadcast -> {$re[1]}.{$re[2]}.{$re[3]}.{$re[4]}\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: DHCP Server DEBUG: broadcast =  $this->broadcast -> {$re[1]}.{$re[2]}.{$re[3]}.{$re[4]}\n";}
 			$conf=$conf."\toption broadcast-address {$re[1]}.{$re[2]}.{$re[3]}.{$re[4]};\n";
 		}else{
-			if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP DEBUG: broadcast =  no match skip it\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: DHCP Server DEBUG: broadcast =  no match skip it\n";}
 		}
 		if($this->ntp_server<>null){
 			$conf=$conf."\toption ntp-servers $this->ntp_server;\n";
@@ -682,7 +682,7 @@ private function DomainNameServers(){
 		
 		
 		
-		if($GLOBALS["ASROOT"]){echo "Starting......: DHCP server PXE enabled ? \"$this->pxe_enable\"\n";}
+		if($GLOBALS["ASROOT"]){echo "Starting......: [INIT]: DHCP Server server PXE enabled ? \"$this->pxe_enable\"\n";}
 		if($this->pxe_enable==1){
 			if($this->pxe_file<>null){
 				$conf=$conf."\tfilename \"$this->pxe_file\";\n";
@@ -704,7 +704,7 @@ private function DomainNameServers(){
 						$conf=$conf."\toption routers ". implode(",",$k). ";\n";
 				}
 		}else{
-			if($GLOBALS["VERBOSE"]){echo "Starting......: DHCP OnlySetGateway = 1 adding only $this->gateway as gateway\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: DHCP Server OnlySetGateway = 1 adding only $this->gateway as gateway\n";}
 			$conf=$conf."\toption routers $this->gateway;\n";	
 		}
 	
@@ -774,11 +774,21 @@ private function DomainNameServers(){
 			if($ip_addr=="127.0.0.1"){continue;}
 			if($ip_addr=="0.0.0.0"){continue;}
 			if($GLOBALS["VERBOSE"]){echo "$ComputerMacAddress `$hostname` -> $ip_addr\n";}
+	
+			
+			
 			$ARR[$ComputerMacAddress]=array(
 			"MAC"=>"hardware ethernet $ComputerMacAddress",
 			"IP"=>"fixed-address $ip_addr",
 			"hostname"=>$hostname,
-			"domainname"=>$DnsZoneName);
+			"domainname"=>$DnsZoneName,
+			"routers"=>trim($ligne["routers"]),
+			"time-servers"=>trim($ligne["time-servers"]),
+			"domain-name-servers"=>trim($ligne["domain-name-servers"]),
+			"ntp-servers"=>trim($ligne["ntp-servers"]),
+			 "local-pac-server"=>trim($ligne["local-pac-server"]),
+			);
+
 			
 		}
 		
@@ -857,6 +867,7 @@ private function DomainNameServers(){
 		while (list ($num, $ligne) = each ($array) ){
 				if($num==null){continue;}
 				$hostname=$ligne["hostname"];
+				$ligne["MAC"]=trim($ligne["MAC"]);
 				if(isset($GLOBALS["HOSTNAME_ALREADY_SET"][$hostname])){continue;}
 				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", trim($num))){if($GLOBALS["VERBOSE"]){echo "Skip $num , match ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$\n";}continue;}
 				$IP=$ligne["IP"];
@@ -873,7 +884,7 @@ private function DomainNameServers(){
 				if(preg_match("#localhost#",$domainname)){$domainname=null;}
 				
 				
-				
+				if($GLOBALS["VERBOSE"]){echo "SetFixedAddresses();$hostname -> {$ligne["MAC"]}\n";}
 				$conf=$conf ."\thost $hostname{\n";
 				$conf=$conf ."\t\t{$ligne["MAC"]};\n";
 				$conf=$conf ."\t\t{$ligne["IP"]};\n";
@@ -881,6 +892,28 @@ private function DomainNameServers(){
 					$conf=$conf ."\t\toption host-name \"$hostname\";\n";
 				}
 				if($domainname<>null){$conf=$conf ."\t\toption domain-name \"$domainname\";\n";}
+				
+				if($ligne["routers"]<>null){
+					$conf=$conf ."\t\toption routers {$ligne["routers"]};\n";
+				}
+				if($ligne["time-servers"]<>null){
+					$conf=$conf ."\t\toption time-servers {$ligne["time-servers"]};\n";
+				}	
+
+				if($ligne["domain-name-servers"]<>null){
+					$conf=$conf ."\t\toption domain-name-servers {$ligne["domain-name-servers"]};\n";
+				}
+
+				if($ligne["ntp-servers"]<>null){
+					$conf=$conf ."\t\toption ntp-servers {$ligne["ntp-servers"]};\n";
+				}	
+
+				if($ligne["local-pac-server"]<>null){
+					$conf=$conf."\t\toption local-pac-server code 252 = text;\n";
+					$conf=$conf."\t\toption local-pac-server \"{$ligne["local-pac-server"]}\";\n";					
+					
+				}				
+							
 				if($GLOBALS["VERBOSE"]){echo "Add fixed address for $hostname {$ligne["MAC"]} = {$ligne["IP"]}\n";}
 				$conf=$conf ."\t}\n";
 				$GLOBALS["HOSTNAME_ALREADY_SET"][$hostname]=true;

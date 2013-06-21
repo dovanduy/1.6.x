@@ -35,6 +35,7 @@ js();
 
 
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$YahooWin=2;
@@ -222,6 +223,35 @@ function xSaveOptions(){
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
+	$users=new usersMenus();
+	if($users->APP_CHILLI_INSTALLED){
+		$proto="https";
+		if($_SERVER["HTTPS"]<>"on"){
+			$proto="http";
+		}
+		
+		$uri="<a href=\"javascript:blur();\" OnClick=\"javascript:document.location.href='logoff.php?goto=miniadm.logon.php';\"
+		style='text-decoration:underline;font-size:16px'>$proto://{$_SERVER["HTTP_HOST"]}/miniadm.logon.php</a>";
+		$APP_CHILLI_INSTALLED_FTHOWTO=$tpl->_ENGINE_parse_body("{APP_CHILLI_INSTALLED_FTHOWTO}");
+		$APP_CHILLI_INSTALLED_FTHOWTO=str_replace("%S", $uri, $APP_CHILLI_INSTALLED_FTHOWTO);
+		$html="
+		<center style='margin:10px'><img src='img/hotspot-logo.png'></center>		
+		<div class=explain style='font-size:16px'>$APP_CHILLI_INSTALLED_FTHOWTO</div>";
+		echo $tpl->_ENGINE_parse_body($html);
+		return;
+		
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	$array["popup"]='{service_parameters}';
 	$array["options"]='{options}';
 	if(isset($_GET["YahooWin"])){$YahooWin=$_GET["YahooWin"];$YahooWinUri="&YahooWin={$_GET["YahooWin"]}";}
@@ -301,13 +331,16 @@ function popup(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$page=CurrentPageName();
+	$users=new usersMenus();
 	$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
 	$EnableSplashScreenAsObject=$sock->GET_INFO("EnableSplashScreenAsObject");
 	if(!is_numeric($EnableSplashScreen)){$EnableSplashScreen=0;}
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	$SplashScreenURI=$sock->GET_INFO("SplashScreenURI");
+	$PdnsHotSpot=$sock->GET_INFO("PdnsHotSpot");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-	if(!is_numeric($EnableSplashScreenAsObject)){$EnableSplashScreenAsObject=0;}	
+	if(!is_numeric($EnableSplashScreenAsObject)){$EnableSplashScreenAsObject=0;}
+	if(!is_numeric($PdnsHotSpot)){$PdnsHotSpot=0;}	
 	
 	
 	
@@ -322,6 +355,15 @@ function popup(){
 	
 	}	
 	
+	
+	$PDNSHotSpot=Paragraphe_switch_img("{force_dns_redirection}","{PDNSHotSpot_explain}",
+		"PdnsHotSpot",$PdnsHotSpot,null,"450");
+	
+	if(!$users->POWER_DNS_INSTALLED){
+		$PDNSHotSpot=Paragraphe_switch_disable("{force_dns_redirection}", "{PDNSHotSpot_explain}");
+	}
+	
+	
 	$t=time();
 	$html="
 	
@@ -331,12 +373,17 @@ function popup(){
 	<table style='width:99%' class=form>
 	<tr>
 		<td colspan=2>". Paragraphe_switch_img("{activate_hostpot}","{activate_hostpot_explain}",
-		"EnableSplashScreen",$EnableSplashScreen,null,$width="450")."
+		"EnableSplashScreen",$EnableSplashScreen,null,"450")."
 		</td>
 	</tr>
+				
+	<tr>
+		<td colspan=2>$PDNSHotSpot</td>
+	</tr>				
+				
 	<tr>
 		<td colspan=2>". Paragraphe_switch_img("{EnableSplashScreenAsObject}","{EnableSplashScreenAsObject_explain}",
-		"EnableSplashScreenAsObject",$EnableSplashScreenAsObject,null,$width="450")."
+		"EnableSplashScreenAsObject",$EnableSplashScreenAsObject,null,"450")."
 		
 		<div style='width:100%;text-align:right'>
 			<a href=\"javascript:blur();\" 
@@ -385,6 +432,11 @@ function SaveHotSpot(){
 		XHR.appendData('EnableSplashScreen',document.getElementById('EnableSplashScreen').value);
 		XHR.appendData('SplashScreenURI',document.getElementById('SplashScreenURI').value);
 		XHR.appendData('EnableSplashScreenAsObject',document.getElementById('EnableSplashScreenAsObject').value);				
+		
+		if(document.getElementById('PdnsHotSpot')){
+			XHR.appendData('PdnsHotSpot',document.getElementById('PdnsHotSpot').value);
+		}
+		
 		AnimateDiv('$t-animate');
 		XHR.sendAndLoad('$page', 'POST',x_SaveHotSpot);
 	}		
@@ -450,6 +502,13 @@ function SaveConfig(){
 	$sock->SET_INFO("EnableSplashScreen", $_POST["EnableSplashScreen"]);
 	$sock->SET_INFO("SplashScreenURI", $_POST["SplashScreenURI"]);
 	$sock->SET_INFO("EnableSplashScreenAsObject", $_POST["EnableSplashScreenAsObject"]);
+	
+	if(isset($_POST["PdnsHotSpot"])){
+		$sock->SET_INFO("PdnsHotSpot", $_POST["PdnsHotSpot"]);
+		if($_POST["PdnsHotSpot"]==1){$sock->SET_INFO("EnablePDNS", 1);}
+		$sock->getFrameWork("cmd.php?pdns-restart=yes");
+	}
+	
 	$sock->getFrameWork("squid.php?build-smooth=yes");
 }
 function radius_config(){

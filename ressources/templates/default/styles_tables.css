@@ -1,5 +1,5 @@
 table{
-font-size:11px;
+
 }
 
 table tr.rowA{
@@ -23,7 +23,6 @@ background-image:url(/img/icon-info-bg.png);
 background-position:0% 0%;
 background-repeat:no-repeat;
 color:#4C535C;
-font-size:11px;
 font-style:normal;
 padding:3px;
 padding-left:22px;
@@ -36,7 +35,6 @@ margin:3px;
 table td.switchRowBlack {
 background-color:#000000;
 color:#FFFFFF;
-font-size:11px;
 font-style:normal;
 font-weight:bolder;
 padding-left:3px;
@@ -91,9 +89,6 @@ table td{
 	padding-left:3px;
 	padding-right:3px;
 	padding-top:0px;
-	
-	font-size:10px;
-	
 }
 
 tr.rowT{

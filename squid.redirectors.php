@@ -10,7 +10,7 @@
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
 	}
-	
+	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_POST["url_rewrite_children"])){save();exit;}
 	
@@ -19,13 +19,43 @@ js();
 
 
 function js(){
-	
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$title=$tpl->_ENGINE_parse_body("{squid_redirectors}");
-	$html="YahooWin2('440','$page?popup=yes','$title')";
+	$title=$tpl->javascript_parse_text("{squid_redirectors}");
+	$html="YahooWin2('640','$page?tabs=yes','$title')";
 	echo $html;
 }
+
+function tabs(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$array["popup"]='{squid_redirectors}';
+	$array["plugins"]='{squid_plugins}';
+	
+
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="plugins"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.client-plugins.php?popup=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+	}
+
+	echo "
+	<div id=main_config_redirectors style='width:100%'>
+		<ul style='font-size:16px'>". implode("\n",$html)."</ul>
+	</div>
+		<script>
+				$(document).ready(function(){
+					$('#main_config_redirectors').tabs();
+				});
+		</script>";
+}
+
 
 function popup(){
 	$tpl=new templates();
@@ -76,7 +106,7 @@ function popup(){
 	var x_UrlReWriteSave= function (obj) {
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue)};
-		YahooWin2Hide();
+		RefreshTab('main_config_redirectors');
 		
 	}		
 

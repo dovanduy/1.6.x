@@ -316,6 +316,14 @@ function PaseUdfdbGuardnew(){
 			continue;
 		}
 		
+		while (list ($key, $line) = each ($array) ){
+			$line=trim($line);
+			if(is_numeric($line)){continue;}
+			$line=mysql_escape_string($line);
+			$line=str_replace("'", "`", $line);
+			$array[$key]=$line;
+		}
+		
 		$uid=$array["uid"];
 		$MAC=$array["MAC"];
 		$time=$array["TIME"];

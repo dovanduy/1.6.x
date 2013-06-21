@@ -123,7 +123,7 @@ var x_altermime_enable= function (obj) {
 	}
 	
 	function LoadTinyMce(){
-		Loadjs('js/tiny_mce/tiny_mce.js');
+		Loadjs('js/tiny_mce/tinymce.min.js');
 		setTimeout(\"LoadTinyMce2()\",1000);
 	
 	}
@@ -766,7 +766,7 @@ function filterbehavior_js(){
 	$html="
 
 	function LoadAmavisFilterBehavior(){
-		YahooWin(750,'$page?popup=filterbehavior','$title');
+		YahooWin(880,'$page?popup=filterbehavior','$title');
 	}
 
 	var x_d_exp=function(obj){

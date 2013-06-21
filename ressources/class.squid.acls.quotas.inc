@@ -10,7 +10,10 @@ class squid_acls_quotas_time{
 	}
 	
 	public function IsValid($ruleid=null){
-		if($this->locate_binary()==null){return false;}
+		if($this->locate_binary()==null){
+			$this->debugOutput("WARNING locate_binary -> false");
+			return false;
+		}
 		if(!is_numeric($ruleid)){$ruleid=0;}
 		if($ruleid==0){$ruleid=$this->ruleid;}
 		if($ruleid==0){$this->Output("Rule $ruleid not acceptable");return false;}
@@ -29,12 +32,30 @@ class squid_acls_quotas_time{
 			}
 		}
 		if($this->GetavailableRulesNumber($ruleid)==0){
-			$this->Output("Rule $ruleid no quota rules available");
+			$this->Output("Rule $ruleid no quota rules available by GetavailableRulesNumber($ruleid)");
 			return false;
 		}
 		return true;
 		
 	}
+	
+	private function debugOutput($text,$function=null,$line=null){
+	
+		if(!$GLOBALS["AS_ROOT"]){return;}
+		if(!$GLOBALS["VERBOSE"]){return;}
+		if(!is_numeric($line)){
+			if(function_exists("debug_backtrace")){
+				$trace=@debug_backtrace();
+				if(isset($trace[1])){
+					$function=$trace[1]["function"];
+					$line=$trace[1]["line"];
+						
+				}
+			}
+		}
+	
+		echo "DEBUG ACLS:$function::$text [$line]\n";
+	}	
 	
 	private function GetavailableRulesNumber($ruleid){
 		$q=new mysql();

@@ -80,7 +80,7 @@ class auth_tail{
 			$filename=md5($re[1]);
 			if($this->IfFileTime($filename,5)){
 				@mkdir("/etc/artica-postfix/sshd-fw",644,true);
-				$this->Addrule($re[1],$re[2]);
+				//$this->Addrule($re[1],$re[2]);
 				$this->WriteFileCache($filename);
 				return true;
 			}

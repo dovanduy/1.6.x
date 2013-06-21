@@ -55,18 +55,22 @@ function tabs(){
 	$squid=new squidbee();
 	$sock=new sockets();
 	$page=CurrentPageName();
+	$byminiadm=false;
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	$users=new usersMenus();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
+	if(isset($_GET["byminiadm"])){$byminiadm=true;}
 	
 	$array["caches"]='{caches}';
 	if($DisableAnyCache==0){
 		$array["parameters"]='{parameters}';
-		$array["cache_control"]='{cache_control}';
-		$array["cache_websites"]='{cache_control}:{websites}';
+		if(!$byminiadm){
+			$array["cache_control"]='{cache_control}';
+			$array["cache_websites"]='{cache_control}:{websites}';
+		}
 		$array["main_parameters"]='{main_parameters}';
 	}
 	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
@@ -112,7 +116,7 @@ function tabs(){
 			
 		}
 	echo "
-	<div id=squid_main_caches_new style='width:$width;heigth:750px;overflow:auto'>
+	<div id=squid_main_caches_new style='width:99%'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>

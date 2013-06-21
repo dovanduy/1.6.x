@@ -44,6 +44,7 @@ function defaults_form(){
 	$tpl=new templates();	
 	$sock=new sockets();
 	$users=new usersMenus();	
+	$FreeWebDisableSSLLock=0;
 	$FreeWebListen=$sock->GET_INFO("FreeWebListen");
 	$FreeWebListenPort=$sock->GET_INFO("FreeWebListenPort");
 	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
@@ -55,6 +56,7 @@ function defaults_form(){
 	if(!is_numeric($FreeWebDisableSSL)){$FreeWebDisableSSL=0;}
 	if($FreeWebListenPort==null){$FreeWebListenPort=80;}
 	if($FreeWebListenSSLPort==null){$FreeWebListenSSLPort=443;}	
+	
 	$tcp=new networking();
 	$ips=$tcp->ALL_IPS_GET_ARRAY();
 	$ips["*"]="{all}";	
@@ -103,6 +105,11 @@ function defaults_form(){
 		}	
 		
 		function FreeWebDisableSSLCheck$t(){
+			var FreeWebDisableSSLLock=$FreeWebDisableSSLLock;
+			if(FreeWebDisableSSLLock==1){
+				document.getElementById('FreeWebDisableSSL-$t').disabled=true;
+			}
+		
 			if(document.getElementById('FreeWebDisableSSL-$t').checked){
 				document.getElementById('FreeWebListenSSLPort-$t').disabled=true;
 				return;
@@ -127,8 +134,8 @@ FreeWebDisableSSLCheck$t();
 function defaults_save(){
 	$sock=new sockets();
 	$sock->SET_INFO("FreeWebListen",$_POST["FreeWebListen-default"]);
-	$sock->SET_INFO("FreeWebListenPort",$_POST["FreeWebListenPort"]);
-	$sock->SET_INFO("FreeWebListenSSLPort",$_POST["FreeWebListenPort-default"]);
+	$sock->SET_INFO("FreeWebListenPort",$_POST["FreeWebListenPort-default"]);
+	$sock->SET_INFO("FreeWebListenSSLPort",$_POST["FreeWebListenSSLPort-default"]);
 	$sock->SET_INFO("FreeWebDisableSSL", $_POST["FreeWebDisableSSL"]);
 	$sock->getFrameWork("cmd.php?freeweb-restart=yes");
 	$sock->getFrameWork("cmd.php?pure-ftpd-restart=yes");

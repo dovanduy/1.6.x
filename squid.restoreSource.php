@@ -43,7 +43,7 @@ function js(){
 	$html="
 		function Start$t(){
 			if(!confirm('$ask')){return;}
-			YahooWinBrowse('750','$page?popup=yes&filename=$filename','$title');
+			YahooWinBrowse('750','$page?popup=yes&filename=$filename&storeid={$_GET["storeid"]}','$title');
 		
 		}
 			
@@ -56,7 +56,7 @@ function popup(){
 	$page=CurrentPageName();
 	$t=time();
 	$sock=new sockets();
-	$sock->getFrameWork("squid.php?rotate-restore=$filename");
+	$sock->getFrameWork("squid.php?rotate-restore=$filename&storeid={$_GET["storeid"]}");
 	
 	$html="
 	<table style='width:99%' class=form>

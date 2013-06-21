@@ -38,7 +38,7 @@ if(count($files)>0){write_syslog("Processing ".count($files),__FILE__);}
 		events("################################################################### $count/$max)");
 		if(quarantine_process("$quarantine_dir/$file")){
 			if(is_file("$quarantine_dir/$file")){@unlink("$quarantine_dir/$file");}
-			events("processing $quarantine_dir/$file success");
+			
 		}else{
 			events("processing $quarantine_dir/$file failed");
 		}
@@ -77,12 +77,12 @@ function ASSP_QUAR($baseDir){
 //""	
 	if(!is_dir($baseDir)){return null;}
 	$files=DirEML($baseDir);
+	if(count($files)==0){return null;}
 	events("Processing ".count($files)." files in $baseDir");
 	while (list ($num, $file) = each ($files) ){
 		if(quarantine_process("$baseDir/$file")){
 			WriteToSyslogMail("$baseDir/$file removed",__FILE__,false);
 			@unlink("$baseDir/$file");
-			events("processing $baseDir/$file success");
 		}else{
 			events("processing $baseDir/$file failed");
 		}
@@ -90,16 +90,23 @@ function ASSP_QUAR($baseDir){
 	
 }
 
-function events($text){
+function events($text,$line=0){
 		$pid=getmypid();
+		$trace=debug_backtrace();
+		$function=$trace[1]["function"];
+		if($line==0){$line=$trace[1]["line"];}
 		$date=date('Y-m-d H:i:s');
 		$logFile="/var/log/artica-postfix/artica-mailarchive.debug";
+		$me=basename(__FILE__);
+		if($me==null){$me=basename($trace[1]["file"]);}
 		$size=filesize($logFile);
 		if($size>5000000){unlink($logFile);}
 		$f = @fopen($logFile, 'a');
-		@fwrite($f, "$date mailarchive[$pid]: $text\n");
+		$line="$date {$me}[$pid]:[$function] $text in line: $line";
+		if($GLOBALS["VERBOSE"]){echo "$line\n";}
+		@fwrite($f, "$line\n");
 		@fclose($f);	
-		}
+	}
 		
 function DirList($path){
 	$dir_handle = @opendir($path);

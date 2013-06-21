@@ -64,28 +64,21 @@ function popup(){
 	
 		while (list ($num, $ligne) = each ($array) ){
 		
-		$a[]="<li><a href=\"$page?$num=yes&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}\"><span>". $tpl->_ENGINE_parse_body("$ligne")."</span></a></li>\n";
+		$a[]="<li style='font-size:16px'><a href=\"$page?$num=yes&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}\"><span>". $tpl->_ENGINE_parse_body("$ligne")."</span></a></li>\n";
 		
 			
 		}	
 	
 	
 	$html="
-	<div id='OPENDKIM_TABS' style='background-color:white;width:100%;height:600px;overflow:auto'>
+	<div id='OPENDKIM_TABS'>
 	<ul>
 		".implode("\n",$a)."
 	</ul>
 	</div>
 		<script>
 				$(document).ready(function(){
-					$('#OPENDKIM_TABS').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
+					$('#OPENDKIM_TABS').tabs();
 			
 			
 			});
@@ -104,9 +97,11 @@ function config(){
 	$page=CurrentPageName();
 	$actions=array("accept"=>"{accept}","discard"=>"{discard}","tempfail"=>"{tempfail}");
 	$EnableDKFilter=$sock->GET_INFO("EnableDKFilter");
+	$DisconnectDKFilter=$sock->GET_INFO("DisconnectDKFilter");
 	$conf=unserialize(base64_decode($sock->GET_INFO("OpenDKIMConfig")));
 	
-	if($EnableDKFilter==null){$EnableDKFilter=0;}
+	if(!is_numeric($EnableDKFilter)){$EnableDKFilter=0;}
+	if(!is_numeric($DisconnectDKFilter)){$DisconnectDKFilter=0;}
 	
 	if($conf["On-BadSignature"]==null){$conf["On-BadSignature"]="accept";}
 	if($conf["On-NoSignature"]==null){$conf["On-NoSignature"]="accept";}
@@ -129,14 +124,19 @@ function config(){
 	
 	
 	$html="
-			<div class=explain>{dkim_about}<br>{dkim_about2}</div>
-			<div id='dkim-form'>
+			<div class=explain style='font-size:14px'>{dkim_about}<br>{dkim_about2}</div>
+			<div id='dkim-form' style='width:99%' class=form>
 			<table style='width:100%'>
 				<tr>
 					<td class=legend style='font-size:13px'>{enable_opendkim}</td>
 					<td>". Field_checkbox("EnableDKFilter",1,$EnableDKFilter,"SaveEnableDKFilter_silent()")."</td>
 					<td width=1%>&nbsp;</td>
 				</tr>
+				<tr>
+					<td class=legend style='font-size:13px'>{disconnect_from_artica}</td>
+					<td>". Field_checkbox("DisconnectDKFilter",1,$DisconnectDKFilter)."</td>
+					<td width=1%>&nbsp;</td>
+				</tr>							
 				<tr>
 					<td class=legend style='font-size:13px'>{OpenDKIMTrustInternalNetworks}</td>
 					<td>". Field_checkbox("OpenDKIMTrustInternalNetworks",1,$conf["OpenDKIMTrustInternalNetworks"])."</td>
@@ -189,7 +189,7 @@ function config(){
 				</tr>				
 				
 				<tr>
-					<td colspan=2 align='right'><hr>". button("{apply}","SaveOpenDKIMForm()")."</td>
+					<td colspan=2 align='right'><hr>". button("{apply}","SaveOpenDKIMForm()",18)."</td>
 				</tr>			
 			</table>
 			</div>
@@ -214,6 +214,7 @@ function SaveOpenDKIMForm(){
 	if(document.getElementById('ADSPNoSuchDomain').checked){XHR.appendData('ADSPNoSuchDomain','1');}else{XHR.appendData('ADSPNoSuchDomain','0');}
 	if(document.getElementById('DomainKeysCompat').checked){XHR.appendData('DomainKeysCompat','1');}else{XHR.appendData('DomainKeysCompat','0');}
 	if(document.getElementById('OpenDKIMTrustInternalNetworks').checked){XHR.appendData('OpenDKIMTrustInternalNetworks','1');}else{XHR.appendData('OpenDKIMTrustInternalNetworks','0');}
+	if(document.getElementById('DisconnectDKFilter').checked){XHR.appendData('DisconnectDKFilter','1');}else{XHR.appendData('$DisconnectDKFilter','0');}
 	
 	
 	
@@ -240,10 +241,12 @@ function SaveOpenDKIMForm(){
 }
 function save(){
 	$sock=new sockets();
+	$sock->SET_INFO("DisconnectDKFilter", $_GET["DisconnectDKFilter"]);
 	$sock->SET_INFO("EnableDKFilter",$_GET["EnableDKFilter"]);
 	$sock->SaveConfigFile(base64_encode(serialize($_GET)),"OpenDKIMConfig");
 	$sock->getFrameWork("cmd.php?opendkim-restart=yes");
 	$sock->getFrameWork("cmd.php?reconfigure-postfix=yes");
+	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
 }
 
 function config_nokey(){

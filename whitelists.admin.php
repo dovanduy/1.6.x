@@ -1295,23 +1295,27 @@ function whitelist_global_list(){
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){json_error_show($q->mysql_error." LINE:".__LINE__);}
-	
+	$score=0;
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$allmxText=null;
 		$disable=Field_checkbox("enabled_{$ligne["ID"]}",1,$ligne["enabled"],"GlobalWhiteDisable('{$ligne["ID"]}')");
 		$delete=imgsimple("delete-24.png","{delete}","GlobalWhiteDelete('{$ligne["ID"]}')");
 		$modifyScore="<a href=\"javascript:blur();\" OnClick=\"javascript:GlobalScoreModify('{$ligne["ID"]}','$score');\" style='text-decoration:underline;font-weight:bold'>";
-		
+		$allmx=unserialize($ligne["allmx"]);
 		if($score==0){$score="{no}";}else{$score="-{$ligne["score"]}";}
 		$icon="datasource-32.png";
 		if($EnableAmavisDaemon==0){$score="{disabled}";}
+		if(count($allmx)>0){
+			$allmxText="<div style='font-size:11px'><i>".@implode(", ", $allmx)."</i></div>";
+		}
 		
 		
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
 			"<img src='img/$icon'>",
-			"<span style='font-size:14px'><code>{$ligne["sender"]}</code></span>",
+			"<span style='font-size:14px'><code>{$ligne["sender"]}</code></span>$allmxText",
 			$tpl->_ENGINE_parse_body("<span style='font-size:14px'><strong style='font-size:14px' id='score_{$ligne["ID"]}'>$modifyScore$score</a></strong></span>"),
 			"$disable",
 			$delete )

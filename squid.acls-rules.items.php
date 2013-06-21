@@ -116,6 +116,7 @@ function LinkAddAclItem(){
 		if(res.length>3){alert(res);return;}
 		$('#table-items-$t').flexReload();
 		$('#table-$t').flexReload();
+		ExecuteByClassName('SearchFunction');
 	}	
 
 function LinkAclRuleGpid{$_GET["aclid"]}(gpid){
@@ -147,6 +148,7 @@ function LinkAclRuleGpid{$_GET["aclid"]}(gpid){
 		if(res.length>3){alert(res);return;}
 		$('#row'+DeleteAclKey).remove();
 		$('#table-$t').flexReload();
+		ExecuteByClassName('SearchFunction');
 	}	
 </script>
 	

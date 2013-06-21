@@ -283,10 +283,18 @@ class squid_acls{
 			if($ligne["GroupType"]=="req_mime_type"){
 				$ligne["GroupType"]="req_mime_type -i";
 			}
+			if($ligne["GroupType"]=="rep_mime_type"){
+				$ligne["GroupType"]="rep_mime_type -i";
+			}			
+			
 			
 			if($ligne["GroupType"]=="url_regex"){
 				$ligne["GroupType"]="url_regex -i";
-			}			
+			}	
+			if($ligne["GroupType"]=="referer_regex"){
+				$ligne["GroupType"]="referer_regex -i";
+			}
+			
 				
 			$AclsItemsCount=$this->buildItems($ligne["ID"],$ReturnFirstValue);
 			
@@ -404,9 +412,14 @@ class squid_acls{
 		$filename="/etc/squid3/acls/container_$gpid.txt";
 		@unlink($filename);
 		$f=$this->GetItems($gpid);
-		if($returnFirstValue){return $f[0];}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group$gpid, ".count($f)." items\n";}
+		if($returnFirstValue){
+			if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group$gpid, returnFirstValue = true return ".$f[0]." items\n";}
+			return $f[0];}
 		$c=count($f);
-		if($c>0){@file_put_contents($filename, @implode("\n", $f));}
+		if($c>0){
+			if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group$gpid, save $filename\n";}
+			@file_put_contents($filename, @implode("\n", $f));}
 		return $c;
 	}
 	
@@ -449,6 +462,7 @@ class squid_acls{
 	}
 	
 	private function string_to_regex($pattern){
+		if(preg_match("#^regex:(.+)#", $pattern,$re)){return $re[1];}
 		$pattern=str_replace(".", "\.", $pattern);
 		$pattern=str_replace("(", "\(", $pattern);
 		$pattern=str_replace(")", "\)", $pattern);
@@ -483,13 +497,25 @@ class squid_acls{
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$ligne["pattern"]=trim($ligne["pattern"]);
 			if($ligne["pattern"]==null){continue;}
+			
 			if(trim($ligne["pattern"])==null){if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: ACL Engine Group: $gpid pattern is null, skip..\n";}continue;}
 			
 			if($GroupeType=="dstdomain"){
+				$WEBSITE=$ligne["pattern"];
+				if(substr($WEBSITE, 0,1)=="."){$WEBSITE=substr($WEBSITE,0,strlen($WEBSITE));}
 				$MASTERDOMAIN=$q->GetFamilySites($ligne["pattern"]);
-				if(isset($MASTERDOMAINAL[$MASTERDOMAIN])){continue;}
+				//if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group{$gpid}, dstdomain Checks domain `$WEBSITE` [$MASTERDOMAIN]\n";}
 				if(substr($ligne["pattern"], 0,1)<>"."){$ligne["pattern"]=".{$ligne["pattern"]}";}
-				$MASTERDOMAINAL[$MASTERDOMAIN]=true;
+				
+				if(isset($MASTERDOMAINAL[$MASTERDOMAIN])){
+					if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group{$gpid}, dstdomain SKIP $MASTERDOMAIN -> $WEBSITE\n";}
+					continue;
+				}
+				
+				
+				if($WEBSITE==$MASTERDOMAIN){$MASTERDOMAINAL[$MASTERDOMAIN]=true;}
+				
+				
 			}
 			
 			if($GroupeType=="arp"){
@@ -501,27 +527,53 @@ class squid_acls{
 			}
 			
 			if($GroupeType=="req_mime_type"){
-				$ligne["pattern"]=="^{$ligne["pattern"]}$";
+				if(preg_match("#^regex:(.+)#", $ligne["pattern"],$re)){$ligne["pattern"]=$re[1];}else{	
+					$ligne["pattern"]="^{$ligne["pattern"]}$";
+				}
 			}
+			
 
 			if($GroupeType=="url_regex"){
 				$ligne["pattern"]=$this->string_to_regex($ligne["pattern"]);
-				
-				
+			}
+			if($GroupeType=="urlpath_regex"){
+				$ligne["pattern"]=$this->string_to_regex($ligne["pattern"]);
 			}
 			
-			if(isset($already[$ligne["pattern"]])){continue;}
+			
+			
+			if($GroupeType=="referer_regex"){
+				$ligne["pattern"]=$this->string_to_regex($ligne["pattern"]);
+			}
+			
+			if($GroupeType=="dst"){
+				if(!$this->badIP($ligne["pattern"])){continue;}
+			}
+			
+			
+			
+			if(isset($already[$ligne["pattern"]])){
+				if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group$gpid, $GroupeType: {$ligne["pattern"]} SKIP (".__LINE__.")\n";}
+				continue;}
 			$already[$ligne["pattern"]]=true;
 			
 			if(preg_match("#AD:(.*?):(.+)#", $ligne["pattern"],$re)){
 				$entries=$this->members_from_activedirectory($ligne["pattern"]);
 				if($entries==null){continue;}
 				$ligne["pattern"]=$entries;
-			}			
+			}	
+			//if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group$gpid, $GroupeType: {$ligne["pattern"]}\n";}		
 			$f[]=$ligne["pattern"];
 			$c++;
 		}
 		return $f;		
+	}
+	
+	private function badIP($ipaddr){
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $ipaddr)){return true;}
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $ipaddr)){return false;}
+		return true;
+		
 	}
 	
 	private function members_from_activedirectory($dn){

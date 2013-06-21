@@ -19,7 +19,7 @@ if(isset($_GET["openvpn"])){openvpn();exit;}
 if(isset($_GET["postfix-single"])){postfix_single();exit;}
 if(isset($_GET["nsswitch"])){nsswitch();exit;}
 if(isset($_GET["nsswitch-tenir"])){nsswitch_tenir();exit;}
-
+if(isset($_GET["cache-pages"])){cache_pages();exit;}
 
 if(isset($_GET["changeRootPasswd"])){changeRootPasswd();exit;}
 if(isset($_GET["process1"])){process1();exit;}
@@ -417,7 +417,7 @@ function restart_mysql_emergency(){
 	$nohup=$unix->find_program("nohup");
 	@unlink($filetime);
 	@file_put_contents($filetime, time());	
-	$cmd="$nohup /etc/init.d/artica-postfix restart mysql >/dev/null 2>&1 &";
+	$cmd="$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &";
 	writelogs_framework($cmd,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 		
@@ -587,7 +587,7 @@ function restart_mysql(){
 	$cmd=trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.mysql.build.php --build >/dev/null 2>&1");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
-	$cmd=trim("$nohup /etc/init.d/artica-postfix restart mysql >/dev/null 2>&1 &");
+	$cmd=trim("$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
 	
@@ -785,15 +785,21 @@ function changeRootPasswd(){
 		@copy("/etc/shadow", "/etc/artica-postfix/shadow.bak");
 	}
 	
-	
-	$f=file("/etc/shadow");
+	$t=array();
+	$f=explode("\n",@file_get_contents("/etc/shadow"));
 	while (list($num,$val)=each($f)){
+		if(trim($val)==null){continue;}
 		if(preg_match("#^root:(.*?):.*?:#", $val,$re)){
 			writelogs_framework("remove `{$re[1]}` in  the line `$val`",__FUNCTION__,__FILE__,__LINE__);
 			$val=str_replace($re[1], "", $val);
-			@file_put_contents("/etc/shadow", @implode("\n", $f));
+			
 		}
+		
+		$t[]=$val;
+		
 	}
+	
+	@file_put_contents("/etc/shadow", @implode("\n", $t));
 	
 	
 	$unix=new unix();
@@ -892,7 +898,7 @@ function mysqld_perso_save(){
 	@file_put_contents("/etc/artica-postfix/my.cnf.mysqld", trim($datas));
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	$cmd=trim("$nohup /etc/init.d/artica-postfix restart mysql >/dev/null 2>&1 &");
+	$cmd=trim("$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);			
 	
@@ -1603,7 +1609,12 @@ function lighttpd_chowndir(){
 		if($groupname<>null){if($username<>null){break;}}
 		
 	}	
-
+	if(is_file($_GET["chowndir"])){
+		@chown($_GET["chowndir"], $username);
+		@chgrp($_GET["chowndir"], $groupname);
+		return;
+		
+	}
 	
 	$unix=new unix();
 	$unix->chown_func($username, $groupname,base64_decode($_GET["chowndir"]));
@@ -1734,13 +1745,7 @@ function restart_winbind_tenir(){
 
 function CPU_NUMBER(){
 	$unix=new unix();
-	$cat=$unix->find_program("cat");
-	$grep=$unix->find_program("grep");
-	$cut=$unix->find_program("cut");
-	$wc=$unix->find_program("wc");
-	$cmd="$cat /proc/cpuinfo |$grep \"model name\" |$cut -d: -f2|$wc -l 2>&1";
-	$CPUNUM=exec($cmd);
-	writelogs_framework("$cmd ->$CPUNUM",__FUNCTION__,__FILE__,__LINE__);
+	$CPUNUM=$unix->CPU_NUMBER();
 	echo "<articadatascgi>$CPUNUM</articadatascgi>";
 }
 function UpdateUtilityDBSize(){
@@ -1750,6 +1755,14 @@ function UpdateUtilityDBSize(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 	
+}
+function cache_pages(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$nohup $php /usr/share/artica-postfix/exec.cache.pages.php --force >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
 }
 
 ?>

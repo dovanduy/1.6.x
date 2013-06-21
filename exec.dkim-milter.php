@@ -27,6 +27,10 @@ if($argv[1]=="--keyTable"){keyTable();die();}
 function build(){
 	$sock=new sockets();
 	$EnableDKFilter=$sock->GET_INFO("EnableDkimMilter");
+	$DisconnectDKFilter=$sock->GET_INFO("DisconnectDKFilter");
+	
+	if(!is_numeric($DisconnectDKFilter)){$DisconnectDKFilter=0;}
+	if($DisconnectDKFilter==1){return;}
 	$conf=unserialize(base64_decode($sock->GET_INFO("DkimMilterConfig")));
 	if($EnableDKFilter==null){$EnableDKFilter=0;}
 	

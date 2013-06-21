@@ -15,9 +15,22 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["posix_getuid"]=0;
 include_once(dirname(__FILE__) . '/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__) . '/ressources/class.mysql.inc');
+include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 include_once(dirname(__FILE__) . '/framework/class.settings.inc');
+
+
+$unix=new unix();
+
+if(system_is_overloaded(basename(__FILE__))){die();}
+$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
+$oldpid=$unix->get_pid_from_file($pidfile);
+if($unix->process_exists($oldpid,basename(__FILE__))){
+	die();
+}
+
+
 
 $sock=new sockets();
 if(is_file("/usr/share/artica-postfix/class.users.menus.inc")){@unlink("/usr/share/artica-postfix/class.users.menus.inc");}

@@ -1114,7 +1114,7 @@ function zarafa_server_all(){
 	$f=array();
 	$f[]="#!/bin/sh";
 	$f[]="### BEGIN INIT INFO";
-	$f[]="# Provides:          Zarafa-server Main";
+	$f[]="# Provides:          zarafa-server";
 	$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
 	$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
 	$f[]="# Should-Start:";

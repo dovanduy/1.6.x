@@ -1,4 +1,4 @@
-<about>NTPD is designed to synchronize the clocks of computers over a network to a common timebase (usually UTC) via NTP Protocol</about>
+<about>O NTPD foi projetado para sincronizar os rel&oacute;gios dos computadores de uma rede numa base de tempo comum (geralmente UTC) atrav&eacute;s do protocolo NTP.</about>
 <add_text_server>Click on the picture below in order to add a new Internet Time server....</add_text_server>
 <add_title_server>Add Time server</add_title_server>
 <close_windows>All operations are successfull, you can close this windows now</close_windows>

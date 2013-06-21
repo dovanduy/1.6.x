@@ -96,16 +96,20 @@ function change(){
 	if(strlen(trim($_POST["change_password"]))>1){
 			$_POST["change_password"]=url_decode_special_tool($_POST["change_password"]);
 			
+			include_once(dirname(__FILE__))."/ressources/class.samba.inc";
+			$smb=new samba();
+			if(!$smb->createRootID($_POST["change_password"])){
+				return;
+			}
+			
+
 			$sock->SET_INFO("RootPasswordChanged", 1);
 			writelogs(" -> nsswitch ",__FUNCTION__,__FILE__,__LINE__);
 			$sock->getFrameWork("services.php?nsswitch=yes");
 			$change_password=url_decode_special($_POST["change_password"]);
 			$changeRootPasswd=base64_encode($change_password);
 			writelogs(" -> services.php?changeRootPasswd= ",__FUNCTION__,__FILE__,__LINE__);
-			echo base64_decode($sock->getFrameWork("services.php?changeRootPasswd=$changeRootPasswd&pass=$changeRootPasswd"));
-			include_once(dirname(__FILE__))."/ressources/class.samba.inc";
-			$smb=new samba();
-			$smb->createRootID($change_password);
+			echo base64_decode($sock->getFrameWork("services.php?changeRootPasswd=$changeRootPasswd&pass=$changeRootPasswd"));			
 			
 			
 	}		

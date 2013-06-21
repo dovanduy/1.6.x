@@ -32,6 +32,7 @@ private
      EnableAmavisDaemon:integer;
      EnableClamavDaemon:integer;
      EnableFreshClam:integer;
+     EnableClamavDaemonForced:integer;
      CLAMD_BIN_PATH_MEM:string;
      function COMMANDLINE_PARAMETERS(FoundWhatPattern:string):boolean;
      procedure FRESHCLAM_REWRITE_INITD();
@@ -122,6 +123,7 @@ begin
       if not TryStrToInt(SYS.GET_INFO('EnableAmavisDaemon'),EnableAmavisDaemon) then EnableAmavisDaemon:=0;
       if not TryStrToInt(SYS.GET_INFO('ClamavMilterEnabled'),ClamavMilterEnabled) then ClamavMilterEnabled:=0;
       if not TryStrToInt(SYS.GET_INFO('EnableClamavDaemon'),EnableClamavDaemon) then EnableClamavDaemon:=0;
+      if not TryStrToInt(SYS.GET_INFO('EnableClamavDaemonForced'),EnableClamavDaemonForced) then EnableClamavDaemonForced:=0;
 
 
       if FileExists('/etc/artica-postfix/KASPER_MAIL_APP') then begin
@@ -139,18 +141,30 @@ begin
       end;
 
       if not SYS.ISMemoryHiger1G() then begin
-          if EnableAmavisDaemon=1 then logs.Syslogs('Starting......: Fatal: artica-install:: Memory is under 1G, Clamd will be disabled');
-          EnableAmavisDaemon:=0;
-          ClamavMilterEnabled:=0;
-          EnableClamavDaemon:=0;
-          EnableFreshClam:=0;
-          SYS.set_INFO('EnableAmavisDaemon','0');
-          SYS.set_INFO('ClamavMilterEnabled','0');
-          SYS.set_INFO('EnableFreshClam','0');
-          SYS.set_INFO('EnableClamavDaemon','0');
+          if EnableAmavisDaemon=1 then begin
+             logs.Syslogs('Starting......: Fatal: artica-install:: Memory is under 1G, Clamd will be disabled');
+             logs.Debuglogs('Starting......: Fatal: artica-install:: Memory is under 1G, Clamd will be disabled');
+          end;
+
+          if EnableClamavDaemonForced=0 then begin
+                   ClamavMilterEnabled:=0;
+                   EnableClamavDaemon:=0;
+                   EnableFreshClam:=0;
+                   SYS.set_INFO('EnableAmavisDaemon','0');
+                   SYS.set_INFO('ClamavMilterEnabled','0');
+                   SYS.set_INFO('EnableFreshClam','0');
+                   SYS.set_INFO('EnableClamavDaemon','0');
+          end;
+                    EnableAmavisDaemon:=0;
 
       end;
 
+      if EnableClamavDaemonForced=1 then begin
+         SYS.set_INFO('EnableFreshClam','1');
+         SYS.set_INFO('EnableClamavDaemon','1');
+         EnableClamavDaemon:=1;
+         EnableFreshClam:=1;
+      end;
 
       if ClamavMilterEnabled=1 then begin
          if EnableAmavisDaemon=1 then begin
@@ -402,9 +416,13 @@ begin
      end;
      count:=0;
 
-     if NotEngoughMemory then logs.DebugLogs('Starting......: Warning !!! not enough memory !!!, node at least 728Mb memory on this computer');
-     
 
+     if NotEngoughMemory then logs.DebugLogs('Starting......: Warning !!! not enough memory !!!, node at least 728Mb memory on this computer');
+
+     if EnableClamavDaemonForced=1 then begin
+        logs.DebugLogs('Starting......: Clamav Daemon is force to run by EnableClamavDaemonForced');
+        EnableClamavDaemon:=1;
+     end;
      if SYS.PROCESS_EXIST(CLAMD_PID()) then begin
         if EnableClamavDaemon=0 then begin
            CLAMD_STOP();

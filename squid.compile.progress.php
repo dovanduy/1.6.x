@@ -298,7 +298,7 @@ function compile_squid(){
 	
 	$text="{apply config}&nbsp;{success}";
 	if($EnableWebProxyStatsAppliance==0){
-		$cmd="squid.php?build-smooth-tenir=yes&MyCURLTIMEOUT=300";
+		$cmd="squid.php?build-smooth-tenir=yes&MyCURLTIMEOUT=300&force=yes";
 		$sock->getFrameWork($cmd);	
 	}
 	

@@ -24,6 +24,8 @@ if(isset($_GET["mysql-fnfound"])){REPAIR_TABLE_FILE_NOT_FOUND();exit;}
 if(isset($_GET["empty-database"])){EMPTY_DATABASE();exit;}
 if(isset($_GET["database-path"])){database_path();exit; }
 if(isset($_GET["movedb"])){database_move();exit;}
+if(isset($_GET["clean"])){database_clean();exit;}
+
 reset($_GET);
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
@@ -407,4 +409,11 @@ function database_move(){
 	
 }
 
-
+function database_clean(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.mysql.start.php --clean >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}

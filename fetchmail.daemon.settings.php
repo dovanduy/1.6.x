@@ -23,9 +23,13 @@ function popup(){
 	$sock=new sockets();
 	$users=new usersMenus();
 	$MONIT_INSTALLED=1;
+	$ZARAFA_INSTALLED=0;
 	if(!$users->MONIT_INSTALLED){$MONIT_INSTALLED=0;}
+	if($users->ZARAFA_INSTALLED){$ZARAFA_INSTALLED=1;}
 	$FetchMailGLobalDropDelivered=$sock->GET_INFO("FetchMailGLobalDropDelivered");
 	$EnableFetchmailScheduler=$sock->GET_INFO("EnableFetchmailScheduler");
+	$FetchMailToZarafa=$sock->GET_INFO("FetchMailToZarafa");
+	if(!is_numeric($FetchMailToZarafa)){$FetchMailToZarafa=1;}
 	
 	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("FetchMailMonitConfig")));
 	
@@ -82,6 +86,11 @@ $fetchmail_daemon="
 							<td>". Field_checkbox("FetchMailGLobalDropDelivered", 1,$FetchMailGLobalDropDelivered)."</td>
 							<td width=1%>". help_icon("{dropdelivered_explain}")."</td>
 						</tr>
+						<tr>
+							<td class=legend><strong style='font-size:14px' >{FetchMailToZarafa}:</strong></td>
+							<td>". Field_checkbox("FetchMailToZarafa", 1,$FetchMailToZarafa)."</td>
+							<td width=1%>". help_icon("{FetchMailToZarafa_explain}")."</td>
+						</tr>									
 							<tr>
 								<td colspan=2 align='right'><hr>". button("{edit}","SaveFetchMailDaemon()",16)."
 							</td>
@@ -149,19 +158,26 @@ $fetchmail_daemon="
 		}
 		
 		function SaveFetchMailDaemon(){
-			var XHR = new XHRConnection();		
-			XHR.appendData('FetchmailDaemonPostmaster',document.getElementById('FetchmailDaemonPostmaster').value);
-			XHR.appendData('FetchmailPoolingTime',document.getElementById('FetchmailPoolingTime').value);
-			if(document.getElementById('FetchMailGLobalDropDelivered').checked){XHR.appendData('FetchMailGLobalDropDelivered',1);}else{XHR.appendData('FetchMailGLobalDropDelivered',0);}
-			if(document.getElementById('EnableFetchmailScheduler').checked){XHR.appendData('EnableFetchmailScheduler',1);}else{XHR.appendData('EnableFetchmailScheduler',0);}
-			AnimateDiv('fetchdaemondiv');
-			XHR.sendAndLoad('$page', 'GET',x_SaveFetchMailDaemon);			
+				var XHR = new XHRConnection();		
+				XHR.appendData('FetchmailDaemonPostmaster',document.getElementById('FetchmailDaemonPostmaster').value);
+				XHR.appendData('FetchmailPoolingTime',document.getElementById('FetchmailPoolingTime').value);
+				if(document.getElementById('FetchMailGLobalDropDelivered').checked){XHR.appendData('FetchMailGLobalDropDelivered',1);}else{XHR.appendData('FetchMailGLobalDropDelivered',0);}
+				if(document.getElementById('EnableFetchmailScheduler').checked){XHR.appendData('EnableFetchmailScheduler',1);}else{XHR.appendData('EnableFetchmailScheduler',0);}
+				if(document.getElementById('FetchMailToZarafa').checked){XHR.appendData('FetchMailToZarafa',1);}else{XHR.appendData('FetchMailToZarafa',0);}
+				AnimateDiv('fetchdaemondiv');
+				XHR.sendAndLoad('$page', 'GET',x_SaveFetchMailDaemon);			
 			
 			}
 			
 		function FetchmailCheck(){
 			var MONIT_INSTALLED=$MONIT_INSTALLED;
+			var ZARAFA_INSTALLED=$ZARAFA_INSTALLED;
 			document.getElementById('FetchmailPoolingTime').disabled=true;
+			
+			if(ZARAFA_INSTALLED==0){
+				document.getElementById('FetchMailToZarafa').disabled=true;
+			}
+			
 			if(!document.getElementById('EnableFetchmailScheduler').checked){
 				document.getElementById('FetchmailPoolingTime').disabled=false;
 				EnableFetchMonit();
@@ -298,6 +314,7 @@ function section_fetchmail_daemon_save(){
 	$fetch->FetchmailPoolingTime=$_GET["FetchmailPoolingTime"];
 	$sock->SET_INFO("FetchMailGLobalDropDelivered", $_GET["FetchMailGLobalDropDelivered"]);
 	$sock->SET_INFO("EnableFetchmailScheduler", $_GET["EnableFetchmailScheduler"]);
+	$sock->SET_INFO("FetchMailToZarafa", $_GET["FetchMailToZarafa"]);
 	echo $fetch->Save();
 	
 }

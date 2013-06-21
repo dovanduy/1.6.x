@@ -77,8 +77,11 @@ function update_white_32_tr(){
 		
 		if($_SESSION["uid"]<>-100){if(is_numeric($_SESSION["uid"])){return null;}}
 		if(is_file("/usr/share/artica-postfix/ressources/logs/web/admin.index.notify.html")){
-			echo $tpl->_ENGINE_parse_body(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.notify.html"));
-			return;	
+			$data=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.notify.html");
+			if(strlen($data)>45){
+				echo $tpl->_ENGINE_parse_body($data);
+				return;	
+				}
 			}
 		}
 	

@@ -14,7 +14,7 @@
 	
 	
 	$user=new usersMenus();
-	if($user->AsSquidAdministrator==false){
+	if($user->AsWebStatisticsAdministrator==false){
 		$tpl=new templates();
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
@@ -180,7 +180,9 @@ function schedules(){
 	
 	$html=$html."
 	<div style=\"font-size:18px;margin-top:10px\">{schedules}:</div>
-			<table style=\"width:99%\" class=\"form\">".@implode("\n", $tr)."</table>";
+	<div class=\"form\" style=\"width:99%\" >
+		<table style=\"width:99%\" >".@implode("\n", $tr)."</table>
+	</div>";
 	echo $tpl->_ENGINE_parse_body($html);
 	
 }

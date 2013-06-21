@@ -463,7 +463,7 @@ function certificate_save(){
 			$generate=true;
 	}else{
 		$sql="UPDATE sslcertificates SET 
-			CountryName='{$_POST["commonName"]}',
+			CountryName='{$_POST["CountryName"]}',
 			stateOrProvinceName='{$_POST["stateOrProvinceName"]}',
 			CertificateMaxDays='{$_POST["CertificateMaxDays"]}',
 			OrganizationName='{$_POST["OrganizationName"]}',
@@ -731,6 +731,7 @@ function save_crt(){
 	
 }
 function save_bundle(){
+	$sock=new sockets();
 	$data=url_decode_special_tool($_POST["save-bundle"]);
 	$CommonName=$_POST["CommonName"];
 	$sql="UPDATE sslcertificates SET `bundle`='$data' WHERE `CommonName`='$CommonName'";
@@ -738,7 +739,8 @@ function save_bundle(){
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$tpl=new templates();
-	echo $tpl->javascript_parse_text($sock->getFrameWork("openssl.php?tomysql=$CommonName"));
+	$CommonName=urlencode($CommonName);
+	echo $tpl->javascript_parse_text(base64_decode($sock->getFrameWork("openssl.php?tomysql=$CommonName")));
 	
 }
 function bundle(){
@@ -770,7 +772,7 @@ function bundle(){
 		function SaveBundle$tt(){
 			if(confirm('$warn_gen_x50')){
 				var XHR = new XHRConnection();  
-				var pp=encodeURIComponent(document.getElementById('bundl$t').value);
+				var pp=encodeURIComponent(document.getElementById('bundl$tt').value);
 				XHR.appendData('save-bundle',pp);
 				XHR.appendData('CommonName','$CommonName');
 				AnimateDiv('$tt-adddis');

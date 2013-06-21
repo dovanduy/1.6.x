@@ -40,7 +40,6 @@ function Tracker($www){
 				if(preg_match("#\.webtracker\.[a-z]+$#", $www)){return "tracker";}
 				if(preg_match("#\.lphbs\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.labs\.apnic\.net$#", $www)){return "tracker";}
-				if(preg_match("#\.conduit-data\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.telemetrytaxonomy\.net$#", $www)){return "tracker";}
 				if(preg_match("#\.msecndsl\.net$#", $www)){return "tracker";}
 				if(preg_match("#\.checkeffect\.at$#", $www)){return "tracker";}
@@ -1429,7 +1428,6 @@ function Tracker($www){
 				if(preg_match("#\.audience2media\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.audienceadnetwork\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.audienceiq\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.autotrader\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.awltovhc\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.bannerconnect\.net$#", $www)){return "tracker";}
 				if(preg_match("#\.barilliance\.com$#", $www)){return "tracker";}
@@ -1457,7 +1455,6 @@ function Tracker($www){
 				if(preg_match("#\.brandscreen\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.brandsideplatform\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.bridgetrack\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.brightcove\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.brightedge\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.brightroll\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.brilig\.com$#", $www)){return "tracker";}
@@ -1632,8 +1629,8 @@ function Tracker($www){
 				if(preg_match("#\.gfk\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.gfkdaphne\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.gigcount\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.gigya-inc\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.gigya\.com$#", $www)){return "tracker";}
+				
+				
 				
 				if(preg_match("#\.glammedia\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.gmads\.com$#", $www)){return "tracker";}
@@ -1949,7 +1946,7 @@ function Tracker($www){
 				if(preg_match("#\.scandinavianadnetworks\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.scanscout\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.scorecardresearch\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.scoreloop\.com$#", $www)){return "tracker";}
+				
 				if(preg_match("#\.secure-adserver\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.send\.microad\.jp$#", $www)){return "tracker";}
 				if(preg_match("#\.sensic\.net$#", $www)){return "tracker";}

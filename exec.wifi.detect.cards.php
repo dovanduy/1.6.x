@@ -16,6 +16,17 @@ if($argv[1]=="--checkap"){CheckConnection();die();}
 
 function detectCards(){
 	$unix=new unix();
+	
+	@mkdir("/etc/artica-postfix/pids",0755,true);
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$oldpid=@file_get_contents($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "detectCards: [INFO] Already running...\n";
+		die();
+	}
+	
+	@file_put_contents($pidfile, getmypid());	
+	
 	$detect=false;
 	$sock=new sockets();
 	$lspci=$unix->find_program("lspci");
@@ -69,6 +80,17 @@ function SupportedCards($pattern){
 
 function iwlist(){
 	$unix=new unix();
+	
+	@mkdir("/etc/artica-postfix/pids",0755,true);
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$oldpid=@file_get_contents($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "iwlist: [INFO] Already running...\n";
+		die();
+	}
+	
+	@file_put_contents($pidfile, getmypid());	
+	
 	$eth=$unix->GET_WIRELESS_CARD();
 	if($eth==null){ 
 		if($GLOBALS["VERBOSE"]){echo "Unable to get nic name...\n";}

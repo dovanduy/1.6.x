@@ -156,7 +156,7 @@ $pattern=base64_encode($_GET["search"]);
 	
 
 
-	if($_POST["query"]<>null){
+	if($_GET["query"]<>null){
 
 		$search=base64_encode($_POST["query"]);
 		$array=unserialize(base64_decode($sock->getFrameWork("cmd.php?syslog-query=$search&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}")));	

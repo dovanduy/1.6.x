@@ -18,7 +18,8 @@ if($_SESSION["uid"]=="-100"){
 	die();
 	
 }
-
+if(isset($_GET["top-menu"])){top_menu();exit;}
+if(isset($_GET["left-menu"])){left_menu();exit;}
 if(isset($_GET["upload-pic-js"])){upload_pic_js();exit;}
 if(isset($_GET["upload-pic-popup"])){upload_pic_popup();exit;}
 if( isset($_GET['TargetpathUploaded']) ){upload_form_perform();exit();}
@@ -28,30 +29,62 @@ if(isset($_GET["headNav"])){headNav();exit;}
 if(isset($_GET["right-top-menus"])){right();exit;}
 if(isset($_POST["GetMyTitle"])){GetMyTitle();exit;}
 if(isset($_GET["left-content-id"])){left();exit;}
+if(isset($_GET["aero"])){aero();exit;}
 
 main_page();
 exit;
 
 
-if(isset($_GET["accordion"])){accordion();exit;}
-if(isset($_GET["tab-acc"])){tab_accordion();exit;}
-if($_GET["accordion-content"]=="members"){accordion_content_members();exit;}
-if($_GET["accordion-content"]=="myaccount"){accordion_content_myaccount();exit;}
-if($_GET["accordion-content"]=="messaging"){accordion_content_messaging();exit;}
-if($_GET["accordion-content"]=="mymessaging"){accordion_content_Mymessaging();exit;}
-if(isset($_GET["BodyToolbox"])){BodyToolbox();exit;}
 if(isset($_GET["choose-language"])){choose_language();exit;}
 if(isset($_POST["miniconfig-POST-lang"])){choose_language_save();exit();}
 
 
 function main_page(){
+	
+	
 	$tplfile="ressources/templates/endusers/index.html";
 	if(!is_file($tplfile)){echo "$tplfile no such file";die();}
 	$content=@file_get_contents($tplfile);
+	
 	$content=str_replace("{SCRIPT}", "<script>LoadAjax('globalContainer','miniadm.index.php?content=yes')</script>", $content);
 	echo $content;
 	
 	
+}
+
+function top_menu(){
+	if(isset($_SESSION["MINIADM_TOP_MENU"])){echo $_SESSION["MINIADM_TOP_MENU"];return;}
+	$page=CurrentPageName();
+	$mini=new miniadm();
+	$_SESSION["MINIADM_TOP_MENU"]=$mini->NavBar()."
+	<script>
+		LoadAjax('left-menu','$page?left-menu=yes');
+
+function x_ChangeHTMLTitle(obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>0){
+		document.title=tempvalue;
+    }else{
+    	document.title=\"!!! Error !!!\";
+    }
+}
+function ChangeHTMLTitleEndUsersPerform(){
+	var XHR = new XHRConnection();
+	XHR.appendData('GetMyTitle','yes');
+	XHR.sendAndLoad(\"$page\", 'POST',x_ChangeHTMLTitle);	
+}	
+	setTimeout('ChangeHTMLTitleEndUsersPerform()',500);		
+		
+	</script>
+	";
+	
+	echo $_SESSION["MINIADM_TOP_MENU"];
+}
+
+function left_menu(){
+	//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+	$miniadm=new miniadm();
+	echo $miniadm->leftmenu();
 }
 
 function headNav(){
@@ -119,108 +152,82 @@ echo $html;
 	
 }
 
-function left(){
-	if(!$GLOBALS["VERBOSE"]){
-		if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
-	}
+function aero(){
 	$users=new usersMenus();
-	$sock=new sockets();
-	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-	$tpl=new templates();
-	if(is_array($_SESSION["privs"])){
-		$r=$_SESSION["privs"];
-		while (list ($key, $val) = each ($r) ){
-			$_SESSION[$key]=$val;
-		}
-	}	
+	if(!$users->AsSystemAdministrator){return;}
 	
+	$q=new mysql();
 	
-	if($users->AsOrgAdmin){
-		$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("users_and_groups",
-		"manage_users_and_groups_ou_explain",
-		"miniadmin.members.php");
-	}
-	
-	if($users->AsHotSpotManager){
-		$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("hostpot_members",
-		"hostpot_members_text",
-		"miniadmin.hotspot.php");		
+		$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d %H') as tdate, 
+		MINUTE(zDate) as `time`,AVG(loadavg) as value FROM `sys_loadvg` GROUP BY `time` ,tdate
+		HAVING tdate=DATE_FORMAT(NOW(),'%Y-%m-%d %H') ORDER BY `time`";
 		
-	}
-	$mini=new miniadm();
-	if($mini->IFItsProxy()){
-		if($users->AsSquidAdministrator){
-			$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("APP_PROXY",
-					"APP_PROXY_TEXT",
-					"miniadmin.proxy.php");		
-		}
-		
-		
-		$mini->squid_load_dynamic_acls();
-		if(count($_SESSION["SQUID_DYNAMIC_ACLS"])>0){
-			$dynamic_acls_newbee_explain=str_replace("%s", count($_SESSION["SQUID_DYNAMIC_ACLS"]), $tpl->_ENGINE_parse_body("{dynamic_acls_newbee_explain}"));
-			$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("dynamic_acls_newbee",
-					"noacc:$dynamic_acls_newbee_explain",
-					"miniadmin.proxy.dynamic.acls.php");
-			
-			
-		}	
-		
-		
-	}
+	$q=new mysql();
+	$results = $q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){die();}
+	if(mysql_num_rows($results)<2){die();}
+	
+	
+	$t=time();
+	header("content-type: application/x-javascript");
+	echo "
+	Loadjs('miniadm.about.php?graph1=yes&time=hour&container=herounit');
+	document.getElementById('herounit').className ='';		
+	";
 	
 	
 	
-	
-	
-	if($_SESSION["AsWebStatisticsAdministrator"]){
-		if($EnableRemoteStatisticsAppliance==0){
-			$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("web_statistics",
-			"web_statistics_member_text",
-			"miniadm.webstats-start.php");			
-		}
-	}
-	
-
-	if(($_SESSION["ASDCHPAdmin"]) OR ($_SESSION["AsOrgDNSAdmin"]) OR ($_SESSION["AllowChangeDomains"])  ) {
-		$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("network_services",
-				"network_services_text","miniadm.network.php");
-	}	
-
-	
-
-	if($users->SAMBA_INSTALLED){
-		$EnableSambaVirtualsServers=$sock->GET_INFO("EnableSambaVirtualsServers");
-		if(!is_numeric($EnableSambaVirtualsServers)){$EnableSambaVirtualsServers=0;}
-	}
-	
-	if($EnableSambaVirtualsServers==1){
-		if(count($_SESSION["VIRTUALS_SERVERS"])>0){	
-			if(count($_SESSION["VIRTUALS_SERVERS"])>1){
-				$tr[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("file_sharing_services",
-						"file_sharing_services_text","miniadm.samba-multiple.php");				
-				
-			}
-			
-		}
-	}
-	
-	
-	
-	if(count($tr)==0){return;}
-	
-	$html="<div class=\"BodyContent\"><table style='widh:100%'> ".@implode("", $tr)."</table></div>";
-	$html=$tpl->_ENGINE_parse_body($html);
-	
-	$_SESSION[__FILE__][__FUNCTION__]=$html;
-	echo $html;
-		
 	
 }
 
 
+
 function content_start(){
+	$page=CurrentPageName();
+	$uid=$_SESSION["uid"];
+	$ct=new user($_SESSION["uid"]);
+	$t=time();
+	$base="ressources/profiles/icons";
+	if($ct->DisplayName==null){$ct->DisplayName=$_SESSION["uid"];}	
+	$browser=browser_detection();
+	if($browser=="ie"){
+		$error="<p class=text-error>{ie_not_really_compatible}</p>";
+	}
+	$html="$error
+	<div class='hero-unit' id='herounit'>
+		<h1 style='text-transform:capitalize'>{$_SESSION["ou"]}</h1>
+		<h2>{about_this_section}.</h2>
+		<p>{enduser_explain_section}</p>
+	</div>
+	
+	<div class=\"row-fluid\" id='$t'></div>
+	
+	
+	<script>
+		function Aero$t(){
+			Loadjs('$page?aero=yes');
+		
+		}
+	
+		LoadAjax('$t','$page?right-top-menus=yes');
+		setTimeout('Aero$t()',800);
+	</script>";
+	
+	$tpl=new templates();
+	$html=$tpl->_ENGINE_parse_body($html);
+	$OU=$_SESSION["ou"];
+	if(trim($OU)==null){
+		$sock=new sockets();
+		$savedsettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+		$OU=$savedsettings["organization"];
+	}
+	
+	$html=str_replace("%ORGA", $OU, $html);
+	echo $html;	
+}
+
+
+function content_start_old(){
 	$page=CurrentPageName();
 	$uid=$_SESSION["uid"];
 	$ct=new user($_SESSION["uid"]);
@@ -326,265 +333,8 @@ function content_start(){
 
 
 
-build();
 
-function accordion_content_messaging($return=false){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$users=new usersMenus();
-	$ouencoded=urlencode(base64_encode($_SESSION["ou"]));
-	
-		$transport=Paragraphe_miniadm("folder-transport-48.png",
-		"{localdomains}","{localdomains_text}",
-		"Loadjs('domains.edit.domains.php?js=yes&ou=$ouencoded&encoded=yes&in-front-ajax=yes')");
-		
-		$quarantine_admin=Paragraphe_miniadm("folder-quarantine-extrainfos-48.png",
-		"{quarantine_manager}",
-		"{quarantine_manager_text}","javascript:LoadAjax('BodyContent','domains.quarantine.php?js={$_SESSION["ou"]}&inline=yes')");		
-	
-		if(!$users->AllowChangeDomains){
-			$transport=Paragraphe_miniadm("folder-transport-48-grey.png",
-			"{localdomains}","{localdomains_text}",
-			"");			
-		}
 
-		if(!$users->AsQuarantineAdministrator){
-			$quarantine_admin=Paragraphe_miniadm("folder-quarantine-extrainfos-48-grey.png",
-			"{quarantine_manager}",
-			"{quarantine_manager_text}","");
-		}
-		
-
-		
-		
-	$html=$transport.$quarantine_admin;
-	$html=$tpl->_ENGINE_parse_body($html);
-	if($return){return $html;}
-	echo $html;
-}
-
-function build(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	
-	echo "
-	</div>
-	<script>
-		LoadAjax('left-menus','$page?accordion=yes');
-		YahooWinHide();
-	</script>
-	
-	
-	";
-}
-
-function BodyToolbox(){
-	include_once(dirname(__FILE__)."/ressources/class.html.tools.inc");
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$html=new htmltools_inc();
-	$lang=$html->LanguageArray();		
-	$u=new user($_SESSION["uid"]);
-		$connected="{connected_has}:&nbsp;$u->uid <a href=\"javascript:blur();\" 
-			OnClick=\"javascript:Minilogoff();\"
-			style='text-decoration:underline;font-size:12px'
-			>{disconnect}</a>";
-		
-		$empty="<a href=\"javascript:blur();\" 
-			OnClick=\"javascript:CacheOff();\"
-			style='text-decoration:underline;font-size:12px'
-			>";
-	echo $tpl->_ENGINE_parse_body("
-		<a href=\"javascript:blur();\" OnClick=\"javascript:RefreshCenterPanel()\">
-		<H1 style='margin-bottom:3px'>{organization}:{$_SESSION["ou"]}</H1></a><div style='font-size:12px'>($connected)
-		&nbsp;|&nbsp;$empty{empty_cache}</a><div id='tool-map'></div></div>
-		
-		<script>
-			var uid='{$_SESSION["uid"]}';
-			function Minilogoff(){
-				MyHref('/miniadm.logoff.php');
-			}
-			
-			function RefreshCenterPanel(){
-				LoadAjax('BodyContent','$page?center-panel=yes');
-			
-			}
-			if(uid=='-100'){Minilogoff();}
-			document.title='Artica ({$lang[$_COOKIE["artica-language"]]}) :: {organization}:{$_SESSION["ou"]} :: $u->uid'; 
-			RefreshCenterPanel();
-		</script>
-		");
-	
-}
-
-function accordion(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$users=new usersMenus();
-	
-	$array["myaccount"]="{myaccount}";
-	$content["myaccount"]=accordion_content_myaccount(true);
-	
-	
-	if($users->POSTFIX_INSTALLED){
-		$array["mymessaging"]="{mymessaging}";
-		$content["mymessaging"]=accordion_content_messaging(true);
-	}
-	
-	if($users->AsOrgAdmin){$array["members"]="{members}";}
-	if($users->POSTFIX_INSTALLED){
-		if($users->AsMessagingOrg){$array["messaging"]="{messaging_org}";}
-	}
-	
-	
-	
-	
-	
-	
-	$cc=0;
-	while (list ($num, $val) = each ($array) ){
-		
-		$jsBlockHide[]="document.getElementById('accordion-div-$num').style.display = 'none'";
-		
-		$cc++;
-		$tr[]="
-		<h3 class=\"ui-accordion-header ui-helper-reset ui-state-default ui-state-active ui-corner-top\">
-		<span class=\"ui-icon ui-icon-triangle-1-e\"></span>
-			<a href=\"javascript:blur();\" OnClick=\"javascript:MyAccordionSwitch('$num')\">$val</a>
-		</h3>
-		
-	
-			<div id='accordion-div-$num' class=\"ui-accordion-content ui-helper-reset ui-widget-content ui-corner-bottom ui-accordion-content-active\" style='display:none'>
-				<input type='hidden' id='accordion-$cc' value='$num'>
-				<div style='height:auto;margin-left:-20px;margin-right:-20px' id='accordion-content-$cc'>{$content["$num"]}</div>
-			</div>
-		";
-		
-
-		
-	}
-	
-	
-	$html="
-	<div id='accordion' style='overflow-x: hidden' class='ui-accordion ui-widget ui-helper-reset'>". @implode("\n",$tr)."
-
-</div>	
-
- <script>
-	function LoadMyAccordion(){
-		MyAccordionSwitch('myaccount');
-  	}
-
-	function MyAccordionSwitch(key){
-		". @implode("\n", $jsBlockHide)."
-		document.getElementById('accordion-div-'+key).style.display = 'block'; 
-		
-	}
-  
-  
-  LoadAjax('BodyToolbox','$page?BodyToolbox=yes');
-  LoadMyAccordion();
-  
-  
-  </script>
-	";
-	
-	echo $tpl->_ENGINE_parse_body($html);
-	
-}
-
-function tab_accordion(){
-	
-	
-}
-
-function accordion_content(){
-	
-	
-}
-
-function accordion_content_members(){
-	
-	$usersmenus=new usersMenus();
-	$ou_encoded=base64_encode($_SESSION["ou"]);
-	$find_members=Paragraphe_miniadm('find-members-48.png','{find_members}','{find_members_text}',"LoadAjax('BodyContent','domains.manage.org.index.php?org_section=users&SwitchOrgTabs=$ou_encoded&ou=$ou_encoded&mem=yes');");		
-	if(($usersmenus->AllowAddUsers) OR ($usersmenus->AsOrgAdmin) OR ($usersmenus->AsMessagingOrg)){	
-		$adduser=Paragraphe_miniadm("folder-useradd-48.png","{add_user}","{add_user_text}","Loadjs('domains.add.user.php?ou={$_SESSION["ou"]}')");
-		$groups=Paragraphe_miniadm('folder-group-48.png','{manage_groups}','{manage_groups_text}',"Loadjs('domains.edit.group.php?ou=$ou_encoded&js=yes')");
-		
-	}
-	
-	echo $adduser.$groups.$find_members."
-	<script>
-		LoadAjax('BodyContent','domains.manage.org.index.php?org_section=users&SwitchOrgTabs=$ou_encoded&ou=$ou_encoded&mem=yes');
-	</script>
-	
-	";
-}
-
-function accordion_content_Mymessaging(){
-	$events=Paragraphe_miniadm("48-mailevents.png",
-	"{messaging_events}","{messaging_events_text}",
-	"LoadAjax('BodyContent','miniamd.user.rtmm.php')");	
-	
-	//48-spam-grey.png
-	
-	
-	echo $events;
-}
-
-function accordion_content_myaccount($return=false){
-	include_once(dirname(__FILE__)."/ressources/class.user.inc");
-	include_once(dirname(__FILE__)."/ressources/class.html.tools.inc");
-	$tpl=new templates();
-	$u=new user("{$_SESSION["uid"]}");
-	$page=CurrentPageName();
-	$dn=urlencode(base64_encode($u->dn));
-	$ou_encoded=base64_encode($_SESSION["ou"]);
-	$htmltools=new htmltools_inc();
-	$sock=new sockets();
-	$lang=$htmltools->LanguageArray();	
-	$current=$lang[$_COOKIE["artica-language"]];
-	$langage=Paragraphe_miniadm("language-48.png",
-	"{language}","{change_the_webconsole_language_text}<br><strong>$current</strong>",
-	"YahooWin2('320','$page?choose-language=yes','{language}:$current')");
-	
-	
-	$myaccount=Paragraphe_miniadm("identity-48.png",
-	"{myaccount}","{myaccount_text}",
-	"LoadAjax('BodyContent','domains.edit.user.php?userid={$_SESSION["uid"]}&ajaxmode=yes&dn=$dn')");	
-	
-	
-	$adressebook=Paragraphe_miniadm("48-addressbook.png",
-	"{my_address_book}","{my_address_book_text}",
-	"LoadAjax('BodyContent','my.addressbook.php')");	
-	
-	$users=new usersMenus();
-	if($users->OPENVPN_INSTALLED){
-		$show=false;
-		if($users->AllowOpenVPN){$show=true;}
-		if($sock->GET_INFO("EnableOpenVPNEndUserPage")==1){$show=true;}
-		if($show){
-			$openvpn_client=Paragraphe_miniadm("42-openvpn.png",
-			"{my_vpn_cnx}","{my_vpn_cnx_text}",
-			"LoadAjax('BodyContent','miniadm.openvpn.client.php')");	
-		}
-		
-	}
-	
-	//
-	
-	
-	$html=$langage.$myaccount.$adressebook.$openvpn_client;
-	$html=$tpl->_ENGINE_parse_body($html);
-	if($return){return "$html";}
-	echo "
-	$html
-	<script>
-			LoadAjax('BodyContent','domains.edit.user.php?userid={$_SESSION["uid"]}&ajaxmode=yes&dn=$dn');
-	</script>
-	";
-}
 
 function choose_language(){
 	include_once(dirname(__FILE__)."/ressources/class.html.tools.inc");
@@ -635,6 +385,7 @@ function choose_language_save(){
 	REMOVE_CACHED(null);
 	writelogs("-> setcookie",__FUNCTION__,__FILE__,__LINE__);
 	setcookie("artica-language", $_POST["miniconfig-POST-lang"], time()+172800);
+	
 	$tpl=new templates();	
 }
 
@@ -661,7 +412,9 @@ function right(){
 		
 	}
 	
-	$tt[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("myaccount","myaccount_text","miniadm.profile.php");
+	if(!$_SESSION["VirtAclUser"]){
+		$tt[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("myaccount","myaccount_text","miniadm.profile.php");
+	}
 	$tt[]=SIMPLE_PARAGRAPHE_BLUE_ARROWTR("logoff","logoff_text","miniadm.logoff.php","shutdown-computer-24.png");
 			
 			

@@ -1,18 +1,15 @@
-<about>
-MIMEDefang is a framework for filtering e-mail.[br]
-It uses Sendmail's "Milter" API, some C glue code, and some Perl code to let you write high-performance mail filters in Perl.[br]
+<about>MIMEDefand &eacute; uma framework para filtrar e-mail.[br]
+Usa a API &quot;Milter&quot; do Sendmail, com algum c&oacute;digo em C e em Perl para deixa-lo escrever filtros de correio de alto desempenho.[br]
 
-People use MIMEDefang to:[ul]
+As pessoas usam MIMEDefand para[ul]
 
-[li]Block viruses[/li]
-[li]Block or tag spam[/li]
-[li]Remove HTML mail parts[/li]
-[li]Add boilerplate disclaimers to outgoing mail[/li]
-[li]Remove or alter attachments[/li]
-[li]Replace attachments with URL's[/li]
-[li]Implement sophisticated access controls.[/li]
-[/ul]
-</about>
+[li]Bloquear virus[/li]
+[li]Bloquear ou etiquetar spam[/li]
+[li]Remover do correio o HTML[/li]
+[li]Adicionar ren&uacute;ncias padronizadas de correio de sa&iacute;da[/li]
+[li]Remover ou alterar anexos[/li]
+[li]Substituir anexo com URL's[/li]
+[li]Implementar controles de acesso sofisticados.[/li]</about>
 <AddWarningsInline>Add Warnings In line</AddWarningsInline>
 <AddWarningsInline_text>
 If you enable it then MIMEDefang tries *very* hard to add warnings directly in the message body (text or html) rather than adding a separate "WARNING.TXT" MIME part.[br]

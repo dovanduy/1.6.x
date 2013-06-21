@@ -8,24 +8,29 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__). "/ressources/smtp/smtp.php");
 include_once(dirname(__FILE__).'/ressources/class.mime.parser.inc');
 include_once(dirname(__FILE__).'/ressources/class.rfc822.addresses.inc');
-
+$GLOBALS["OUTPUT"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;}
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;
-$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
-ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+if(preg_match("#--verbose#",implode(" ",$argv))){
+	$GLOBALS["DEBUG"]=true;
+	$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 }
-if($argv[1]=="--date"){echo date('d M Y H:i:s')."\n";die();}
-if($argv[1]=="--transfert"){transfert();die();}
-if($argv[1]=="--scan-size"){ScanSize();die();}
-if($argv[1]=="--verbose"){unset($argv[1]);}
-if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();exit;}
-if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();exit;}
-
+if(count($argv)>1){
+	if($argv[1]=="--date"){echo date('d M Y H:i:s')."\n";die();}
+	if($argv[1]=="--transfert"){transfert();die();}
+	if($argv[1]=="--scan-size"){ScanSize();die();}
+	if($argv[1]=="--purge"){purge();die();}
+	if($argv[1]=="--verbose"){unset($argv[1]);}
+	if(isset($argv[1])){if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();exit;}}
+	if(isset($argv[1])){if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();exit;}}
+}
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(isset($argv)){
-	if(count($argv)>0){if(strlen($argv[1])>0){die("Could not understand {$argv[1]}\n");}}
+	if(isset($argv[1])){
+		if(count($argv)>0){if(strlen($argv[1])>0){die("Could not understand {$argv[1]}\n");}}
+	}
 }
 $sock=new sockets();
 $MailArchiverEnabled=$sock->GET_INFO("MailArchiverEnabled");
@@ -67,7 +72,7 @@ function work(){
 	$t=time();
 	if (!$handle = opendir("/var/spool/mail-rtt-backup")) {@mkdir("/var/spool/mail-rtt-backup",0755,true);die();}
 	
-	if($GLOBALS["VERBOSE"]){echo "Processing /var/spool/mail-rtt-backup\n";}
+	
 	while (false !== ($filename = readdir($handle))) {
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}
@@ -75,13 +80,13 @@ function work(){
 		
 		if($GLOBALS["VERBOSE"]){echo "Processing $targetFile\n";}
 		if(archive_process($targetFile)){
-			events("removing $targetFile",__LINE__);
+			if($GLOBALS["VERBOSE"]){echo "removing $targetFile\n";}
 			@unlink($targetFile);
 		}
 		$countDeFiles++;
 		if(system_is_overloaded(basename(__FILE__))){
 			$took=$unix->distanceOfTimeInWords($t,time());
-			system_admin_events("Fatal: Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} after $took execution time processed $countDeFiles files ->  aborting task","MAIN",__FILE__,__LINE__,"archive");
+			events("Fatal: Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} after $took execution time processed $countDeFiles files ->  aborting task",__LINE__);
 			die();
 		}			
 		
@@ -94,15 +99,22 @@ ScanSize();
 
 function events($text,$line=0){
 		$pid=getmypid();
+		$trace=debug_backtrace();
+		$function=$trace[1]["function"];
+		if($line==0){$line=$trace[1]["line"];}
 		$date=date('Y-m-d H:i:s');
 		$logFile="/var/log/artica-postfix/artica-mailarchive.debug";
+		$me=basename(__FILE__);
+		if($me==null){$me=basename($trace[1]["file"]);}
+		
 		$size=filesize($logFile);
 		if($size>5000000){unlink($logFile);}
 		$f = @fopen($logFile, 'a');
-		if($GLOBALS["VERBOSE"]){echo "$date mailarchive[$pid]:[BACKUP] $text\n";}
-		@fwrite($f, "$date mailarchive[$pid]:[BACKUP] $text in line: $line\n");
+		$line="$date {$me}[$pid]:[$function] $text in line: $line";
+		if($GLOBALS["VERBOSE"]){echo "$line\n";}
+		@fwrite($f, "$line\n");
 		@fclose($f);	
-		}
+	}
 		
 		
 function archive_process_smtp($fullmessagesdir,$realmailfrom){
@@ -150,6 +162,149 @@ function archive_process_smtp($fullmessagesdir,$realmailfrom){
 	
 }
 
+function archive_process_copyto($file,$realmailfrom,$realmailto){
+	
+	$dests=array();
+	$ldap=new clladp();
+	if(!isset($GLOBALS["uidfrom"][$realmailfrom])){$GLOBALS["uidfrom"][$realmailfrom]=$ldap->uid_from_email($realmailfrom);}
+
+	if(!archive_process_copytorule($GLOBALS["uidfrom"][$realmailfrom],"out",$file,$realmailfrom)){
+		return false;
+	}
+	
+	
+	$f=explode("\r\n",@file_get_contents($file));
+	while (list ($index, $line) = each ($f) ){
+		if(preg_match("#X-REAL-RCPTTO.*?:(.+)#", $line,$re)){
+			$email=trim($re[1]);
+			$email=str_replace(">", "", $email);
+			$email=str_replace("<", "", $email);
+			$email=trim(strtolower($email));
+			events("Recipient Detected: from=<$realmailfrom> to=<$email>",__LINE__);
+			$dests[]=$email;
+			if(preg_match("#subject.*?:#i",$line)){break;}
+			if(preg_match("#X-Archive-end#",$line)){break;}
+		}
+		
+	}
+
+	
+	
+	while (list ($index, $rcpt) = each ($dests) ){
+		$rcpt=trim($rcpt);
+		if($rcpt==null){continue;}
+		if(!isset($GLOBALS["uidfrom"][$rcpt])){$GLOBALS["uidfrom"][$rcpt]=$ldap->uid_from_email($rcpt);}
+		events("Checks to=<$rcpt> ({$GLOBALS["uidfrom"][$rcpt]})",__LINE__);
+		if(!archive_process_copytorule($rcpt,"in",$file,$realmailfrom)){return false;}
+		events("Checks to=<{$GLOBALS["uidfrom"][$rcpt]}> ($rcpt)",__LINE__);
+		if(!archive_process_copytorule($GLOBALS["uidfrom"][$rcpt],"in",$file,$realmailfrom)){return false;}		
+	}
+	
+	return true;
+}
+
+function archive_process_copytorule($email,$direction,$file,$realmailfrom){
+	$q=new mysql();
+	$email=trim(strtolower($email));
+	
+	events("Testing rule From: <$realmailfrom> `$direction` <$email>",__LINE__);
+	if($email==null){return true;}
+	$sql="SELECT `next`,`params` FROM mailarchives WHERE email='$email' AND direction='$direction'";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	
+	if(!$q->ok){
+		events("Error MySQL server `$q->mysql_error`",__LINE__);
+		return false;
+	}
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		if($ligne["next"]<>null){
+			$params=unserialize(base64_decode($ligne["params"]));
+			events("Send message for $email -> $direction -> To <{$ligne["next"]}>",__LINE__);
+			return archive_process_sendemail($realmailfrom,$ligne["next"],$file,$params);
+		}
+	}
+	
+	return true;
+}
+
+function archive_process_sendemail($realmailfrom,$realmailto,$file,$ArrayConfig){
+	
+	$host="127.0.0.1";
+	$port=25;
+	$authenticated=false;
+	$user=null;
+	$pass=null;
+	
+	if(!preg_match("#.+?@.+$#", $realmailto)){
+		$ldap=new clladp();
+		$user=new user($realmailto);
+		$realmailto=$user->mail;
+	}
+	
+	if($ArrayConfig["USE_SMTP_SRV"]==1){
+		$SMTP_SRV=trim($ArrayConfig["SMTP_SRV"]);
+		if($SMTP_SRV==null){
+			events("Error: $realmailfrom No smtp server set but force to use an external SMTP server",__LINE__);
+			return false;
+		}
+		$host=$SMTP_SRV;
+		if(preg_match("#(.+?):([0-9]+)#", $SMTP_SRV,$re)){
+			$host=$re[1];
+			$port=$re[2];
+		}
+		
+		if($ArrayConfig["USE_AUTH"]==1){
+			$authenticated=true;
+			$user=$ArrayConfig["SMTP_USERNAME"];
+			$pass=$ArrayConfig["SMTP_PASSWORD"];
+		}
+		
+	}
+	
+	$basename=basename($file);
+	$smtp=new smtp();
+	$params["host"]=$host;
+	$params["port"]=$port;
+	$params["auth"]=$authenticated;
+	$params["user"]=$user;
+	$params["pass"]=$pass;
+	$params["helo"]=$GLOBALS["MYHOSTNAME"];
+	$params["bindto"]="127.0.0.1";
+	
+	
+	if(!$smtp->connect($params)){
+		events("[$basename] $realmailfrom -> Could not connect to  `$host:$port`",__LINE__);
+		smtp::events("[$basename] $realmailfrom -> Could not connect to  `$host:$port`",__FUNCTION__,__FILE__,__LINE__);
+		return false;
+	}
+	
+	$size=@filesize($file);
+	if($size==0){
+		events("SMTP Failed from=<$realmailfrom> to=<$realmailto> 0 bytes",__LINE__);
+		return true;
+	}
+	
+	$MAILDATA=@file_get_contents($file);
+	$MAILDATA=str_replace("X-Archive-end", "X-REAL-ARCHIVED: yes", $MAILDATA);
+	$MAILDATA=str_replace("X-REAL-MAILFROM", "X-REAL-ARCHIVED: yes\r\nX-REAL-MAILFROM", $MAILDATA);	
+
+	if(!$smtp->send(array("from"=>$realmailfrom,"recipients"=>$realmailto,"body"=>$MAILDATA))){
+		events("SMTP Failed from=<$realmailfrom> to=<$realmailto> ",__LINE__);
+		while (list ($index, $error) = each ($smtp->errors) ){
+			events("Error: ($host:$port/$user) $error",__LINE__);
+		}
+		smtp::events("[$basename] Failed from=<$realmailfrom> to=<$realmailto>",__FUNCTION__,__FILE__,__LINE__);
+		return false;
+	}
+	events("SMTP Success from=<$realmailfrom> to=<$realmailto> trough {$params["host"]}",__LINE__);
+	if($GLOBALS["VERBOSE"]){echo "Success from=<$realmailto> to=<$realmailto> trough {$params["host"]}\n";}
+	return true;	
+	
+}
+
+
+
 function archive_process_smtpsrv($file,$realmailfrom,$realmailto){
 	$MailArchiverToSMTP=$GLOBALS["MailArchiverToSMTP"];
 	$MailArchiverSMTP=$GLOBALS["MailArchiverSMTP"];
@@ -194,6 +349,8 @@ function archive_process_smtpsrv($file,$realmailfrom,$realmailto){
 			return true;
 		}
 	}
+	
+	
 	if(preg_match("#^(.+?):([0-9]+)#", $MailArchiverSMTP,$re)){
 		$MailArchiverSMTP=$re[1];
 		$MailArchiverSMTP_port=$re[2];
@@ -250,13 +407,22 @@ function archive_process($file){
 	$MailArchiverToSMTP=$GLOBALS["MailArchiverToSMTP"];
 	$MailArchiverSMTP=$GLOBALS["MailArchiverSMTP"];
 	$MailArchiverSMTPINcoming=$GLOBALS["MailArchiverSMTPINcoming"];	
-
+	if(!is_numeric($MailArchiverSMTP)){$MailArchiverSMTP=0;}
+	$realmailfrom=null;
+	$realmailto=null;
 	exec("$grep X-REAL- $file 2>&1",$resultsgrep);
 	
 	while (list ($num, $line) = each ($resultsgrep) ){
 		events("[$num] $line",__LINE__);
-		if(preg_match("#X-REAL-MAILFROM:\s+<(.*?)>#", $line,$re)){$realmailfrom=trim($re[1]);}
-		if(preg_match("#X-REAL-RCPTTO:\s+<(.*?)>#", $line,$re)){$realmailto=trim($re[1]);}
+		if(preg_match("#X-REAL-MAILFROM:\s+<(.*?)>#", $line,$re)){$realmailfrom=trim($re[1]);continue;}
+		if(preg_match("#X-REAL-RCPTTO:\s+<(.*?)>#", $line,$re)){$realmailto=trim($re[1]);continue;}
+		if($realmailto==null){
+			if(preg_match("#X-REAL-RCPTTO:\s+(.*)#", $line,$re)){$realmailto=trim($re[1]);continue;}
+		}
+		if($realmailfrom==null){
+			if(preg_match("#X-REAL-MAILFROM:\s+(.*)#", $line,$re)){$realmailfrom=trim($re[1]);continue;}
+		}
+		
 		if(preg_match("#X-REAL-ARCHIVED#", $line,$re)){
 			events("$file detected as already archived...",__LINE__);
 			$ARCHIVED=true;
@@ -264,12 +430,14 @@ function archive_process($file){
 		
 	}
 	$realmailfrom=str_replace("<", "", $realmailfrom);
-	$realmailto=str_replace("<", "", $realmailto);
+	
 	$realmailfrom=str_replace(">", "", $realmailfrom);
 	$realmailto=str_replace(">", "", $realmailto);
+	$realmailto=str_replace("<", "", $realmailto);
 	
 	
 	if($GLOBALS["VERBOSE"]){echo "X-REAL-MAILFROM: `$realmailfrom` X-REAL-RCPTTO: `$realmailto`\n";}
+	if($GLOBALS["VERBOSE"]){echo "MailArchiverToMailBox = $MailArchiverToMailBox;MailArchiverSMTP=$MailArchiverSMTP; \n";}
 	
 	
 	if($MailArchiverToMailBox==1){
@@ -279,14 +447,19 @@ function archive_process($file){
 		}
 	}
 	
-	if($MailArchiverSMTPINcoming==1){
+	if($MailArchiverSMTP==1){
 		if(!$ARCHIVED){
 			if(!archive_process_smtpsrv($file,$realmailfrom,$realmailto)){return false;}
 		}		
 		
 	}
+	if(!$ARCHIVED){
+		if(!archive_process_copyto($file,$realmailfrom,$realmailto)){return false;}
+	}
+	
+	
 
-	if($MailArchiverToMySQL==0){events("$file return true;",__LINE__);return true;}
+	if($MailArchiverToMySQL==0){return true;}
 	
 	
 	$ldap=new clladp();
@@ -683,6 +856,92 @@ function mailarchive_pid(){
 		return $re[1];	
 	}	
 	
+}
+
+function purge(){
+	$unix=new unix();
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());	
+	
+	if(!$GLOBALS["VERBOSE"]){
+		if(!$GLOBALS["FORCE"]){
+			$time=$unix->PROCCESS_TIME_MIN($pidTime);
+			if($time<1440){return;}
+		}
+	}
+	$sock=new sockets();
+	@unlink($pidTime);
+	@file_put_contents($pidTime, time());
+	
+	$MailArchiverToMySQLMaxDays=$sock->GET_INFO("MailArchiverToMySQLMaxDays");
+	$MailArchiverToMySQLBackupPath=$sock->GET_INFO("MailArchiverToMySQLBackupPath");
+	if(!is_numeric($MailArchiverToMySQLMaxDays)){$MailArchiverToMySQLMaxDays=60;}
+	if($MailArchiverToMySQLBackupPath==null){$MailArchiverToMySQLBackupPath="/home/artica/backup/mailsarchives";}
+
+	$mysqldump=$unix->find_program("mysqldump");
+	if(!is_file($mysqldump)){
+		system_admin_events("mysqldump no such binary",__FUNCTION__,__FILE__,__LINE__, "backup");
+		return false;
+	}
+
+	$gzip=$unix->find_program("gzip");
+	if(!is_file($gzip)){
+		system_admin_events("gzip no such binary",__FUNCTION__,__FILE__,__LINE__, "backup");
+		return false;
+	}	
+	
+	$q=new mysql_mailarchive_builder();
+	$params=$q->MYSQL_CMDLINES;
+	$sql="SELECT tablename FROM indextables WHERE xday<DATE_SUB(NOW(),INTERVAL $MailArchiverToMySQLMaxDays DAY)";
+	
+	@mkdir($MailArchiverToMySQLBackupPath,0755,true);
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		system_admin_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__, "backup");
+	}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$tablename=$ligne["tablename"];
+		$targetFilename=$MailArchiverToMySQLBackupPath."/$tablename.gz";
+		$targetLogsFilename="$MailArchiverToMySQLBackupPath/$tablename.log";
+		if(is_file($targetFilename)){@unlink($targetFilename);}
+		if(is_file($targetLogsFilename)){@unlink($targetLogsFilename);}
+		$cmdline=array();
+		$cmdline[]=$mysqldump;
+		$cmdline[]=$params;
+		$cmdline[]="--log-error=$targetLogsFilename";
+		$cmdline[]="--skip-add-locks --insert-ignore --quote-names --skip-add-drop-table --verbose $q->database $tablename";
+		$cmdline[]=" |$gzip -9 > $targetFilename";
+		
+		$cmd=@implode(" ", $cmdline);
+		shell_exec($cmd);
+		if($unix->MYSQL_BIN_PARSE_ERROR(@file_get_contents($targetLogsFilename))){
+			system_admin_events("$unix->mysql_error",__FUNCTION__,__FILE__,__LINE__, "backup");
+			@unlink($targetFilename);
+			@unlink($targetLogsFilename);
+			continue;
+		}	
+		@unlink($targetLogsFilename);
+		$q->QUERY_SQL("DROP TABLE `$tablename`");
+		if(!$q->ok){
+			system_admin_events("$q->mysql_error\nDROP TABLE `$tablename`",__FUNCTION__,__FILE__,__LINE__, "backup");
+			continue;
+		}
+		
+		$q->QUERY_SQL("DELETE FROM indextables WHERE tablename='$tablename'");
+		if(!$q->ok){
+			system_admin_events("$q->mysql_error\nDELETE FROM indextables WHERE tablename='$tablename'",__FUNCTION__,__FILE__,__LINE__, "backup");
+			continue;
+		}		
+		
+		
+	}
+
 }
 
 

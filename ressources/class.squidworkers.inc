@@ -13,6 +13,7 @@ class squidworkers{
 	private $DisableAnyCache=0;
 	private $SquidBoosterMem=0;
 	private $DisableSquidSNMPMode=1;
+	private $SquidCachesMount=array();
 	
 	function squidworkers(){
 		if(posix_getuid()==0){$this->ASROOT=true;}
@@ -24,6 +25,7 @@ class squidworkers{
 		if(preg_match("#^3\.2\.#", $this->SQUID_VERSION)){$this->IS_32=true;}
 		if(preg_match("#^3\.3\.#", $this->SQUID_VERSION)){$this->IS_32=true;}
 		$this->uuid=$sock->getFrameWork("services.php?GetMyHostId=yes");
+		$this->SquidCachesMount=unserialize(base64_decode($sock->GET_INFO("SquidCachesMount")));
 		$this->FillSettings();
 		$this->store_dir_minsize_calc();
 	}
@@ -104,6 +106,13 @@ class squidworkers{
 		
 	
 		$q=new mysql_squid_builder();
+		if(!$q->BD_CONNECT(true)){
+			if($this->ASROOT){
+				echo "Starting......: [SMP] MySQL database engine not ready, die()...\n";
+				die();
+			}
+		}
+		echo "Starting......: [SMP] Query MySQL Engine...for $this->uuid\n";
 		$sql="SELECT uuid FROM cacheconfig WHERE `uuid`='$this->uuid'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if($ligne["uuid"]==null){$this->WorkersDefault();}
@@ -126,19 +135,22 @@ class squidworkers{
 		$globalCachesize=$ligne["globalCachesize"];
 		if(!is_numeric($globalCachesize)){$globalCachesize=5000;}
 		if($cachesDirectory==null){$cachesDirectory="/var/cache";}
+		
+		if(preg_match("#^\/var\/#", $cachesDirectory)){
+			$cachesDirectory=str_replace("/var/", "/home/squid/", $cachesDirectory);
+		}
+		
 		if(!is_numeric($CPUS)){$CPUS=$this->CPU_NUMBER();}
 		$boost=new squidbooster();
 		echo "Starting......: [SMP] is disabled ? `$this->DisableSquidSNMPMode`\n";
 		if($this->DisableSquidSNMPMode==1){
 			echo "Starting......: [SMP] is disabled ... turn to worker 1\n";
-			$f[]="#--------- Multiple cpus -- (disabled) is default cache";
 			$f[]="workers 1";
 			if($maincachedir<>null){$f[]=$maincachedir;}
 			return @implode("\n", $f);
 		}
 	
 		echo "Starting......: [SMP] is enabled checking new SMP mode feature...\n";
-		$f[]="#--------- Multiple cpus -- (enabled)";
 		$newworkers=$this->caches_mysql();
 		if($newworkers<>null){return $newworkers;}
 		$f[]="workers $CPUS";
@@ -190,6 +202,29 @@ class squidworkers{
 		if($version<>null){$GLOBALS[__FUNCTION__]=$version;return $version;}
 		echo "Warning !!!!!! cannot find version in $squidbin ! !!\n";
 	}
+	
+	private function CountDeCaches($cpuindex,$uuid){
+		$count=0;
+		
+		$CacheMount=$this->BuildSquidCachesMount($cpuindex);
+		echo "Starting......: [SMP] CPU[$cpuindex] : Memory Cache = `$CacheMount`\n";
+		if($CacheMount<>null){$count++;}
+		
+		if($this->DisableAnyCache==0){
+			$q=new mysql();
+			$boost=new squidbooster();
+			$boost_cache=$boost->cache_booster_SMP($cpuindex);
+			if($boost_cache<>null){$count++;}
+			if($this->SquidBoosterOnly==0){
+				$results=$q->QUERY_SQL("SELECT * FROM squid_caches32 WHERE enabled=1 
+					AND uuid='$uuid' AND cpunum=$cpuindex AND ToDelete=0 AND Building=2","artica_backup");
+				if(mysql_num_rows($results)>0){$count++;}
+			}
+			
+		}
+		
+		return $count;	
+	}
 
 	
 	private function caches_mysql(){
@@ -198,65 +233,81 @@ class squidworkers{
 		
 		$q=new mysql();
 		$results=$q->QUERY_SQL("SELECT * FROM squid_caches32 WHERE enabled=1 AND uuid='$uuid' AND ToDelete=0 AND Building=2","artica_backup");
-		if(mysql_num_rows($results)==0){
-			echo "Starting......: [SMP] No cache to set..\n";
-			return;
-		}
 		$CPU_NUMBER=$this->CPU_NUMBER();
 		echo "Starting......: [SMP] CPU(s) = $CPU_NUMBER\n";
+		
 		$f[]="workers $CPU_NUMBER";
 		$boost=new squidbooster();
-		
+		$WORKCOUNT=0;
 		
 		for($i=1;$i<$CPU_NUMBER+1;$i++){
+			$CountDeCaches=$this->CountDeCaches($i,$uuid);
+			echo "Starting......: [SMP] CPU[$i] = CPU[$i] Caches = `$CountDeCaches`\n";
+			if($CountDeCaches==0){continue;}
 			$f[]="if \${process_number} = $i";
-			$boost_cache=$boost->cache_booster_SMP($i);
-			if($boost_cache<>null){$f[]=$boost_cache;}
-			if($this->SquidBoosterOnly==1){continue;}
-			$results=$q->QUERY_SQL("SELECT * FROM squid_caches32 WHERE enabled=1 AND uuid='$uuid' 
-					AND cpunum=$i AND ToDelete=0 AND Building=2","artica_backup");
-			if(!$q->ok){
-				echo "Starting......: [SMP] CPU Number $i `$q->mysql_error`\n";
-				continue;
+			
+			$CacheMount=$this->BuildSquidCachesMount($i);
+			echo "Starting......: [SMP] CPU[$i] = Cache mounted `$CacheMount`\n";
+			if($CacheMount<>null){
+				$WORKCOUNT++;
+				$f[]=$CacheMount;
 			}
 			
-			if(mysql_num_rows($results)==0){
-				echo "Starting......: [SMP] CPU Number $i No cache saved, this CPU run wihout caching\n";
-			}else{
-				echo "Starting......: [SMP] CPU Number $i `". mysql_num_rows($results)." caches`\n";
-			}
-			if(mysql_num_rows($results)>0){
-				while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-					$cache_maxsizeT=null;
-					echo "Starting......: [SMP] CPU Number $i cache dir:`{$ligne["cache_directory"]} `\n";
-					if(!$this->ifValidCache($ligne["cache_directory"])){
-						echo "Starting......: [SMP] CPU Number $i invalid cache path `{$ligne["cache_directory"]}`\n";
-						continue;
-					}
-					$cache_directory=$ligne["cache_directory"];
-					$cache_size=$ligne["size"]*1000;
-					$cache_dir_level1=$ligne["cache_dir_level1"];
-					$cache_dir_level2=$ligne["cache_dir_level2"];
-					$cache_maxsize=$ligne["cache_maxsize"];
-					$cache_type=$ligne["cache_type"];				
+			if($this->DisableAnyCache==0){
+				$boost_cache=$boost->cache_booster_SMP($i);
+				if($boost_cache<>null){$f[]=$boost_cache;}
+				if($this->SquidBoosterOnly==1){continue;}
+				$results=$q->QUERY_SQL("SELECT * FROM squid_caches32 WHERE enabled=1 AND uuid='$uuid' AND cpunum=$i AND ToDelete=0 AND Building=2","artica_backup");
+				if(!$q->ok){echo "Starting......: [SMP] CPU Number $i `$q->mysql_error`\n";continue;}
+			
+				if(mysql_num_rows($results)==0){
+					echo "Starting......: [SMP] CPU Number $i No cache saved, this CPU run wihout caching\n";
+				}else{
+					echo "Starting......: [SMP] CPU Number $i `". mysql_num_rows($results)." caches`\n";
+				}
+				if(mysql_num_rows($results)>0){
+					while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+						$cache_maxsizeT=null;
+						$cache_directory=$ligne["cache_directory"];
+						
+						if(preg_match("#^\/var\/#", $cache_directory)){
+							$cache_directory=str_replace("/var/", "/home/squid/", $cache_directory);
+						}
+						
+						echo "Starting......: [SMP] CPU Number $i cache dir:`$cache_directory`\n";
+						if(!$this->ifValidCache($cache_directory)){echo "Starting......: [SMP] CPU Number $i invalid cache path `$cache_directory`\n";continue;}
+						$cache_directory=$ligne["cache_directory"];
+						$cache_size=$ligne["size"]*1000;
+						$cache_dir_level1=$ligne["cache_dir_level1"];
+						$cache_dir_level2=$ligne["cache_dir_level2"];
+						$cache_maxsize=$ligne["cache_maxsize"];
+						$cache_type=$ligne["cache_type"];	
+
 					
-					if($cache_maxsize>0){
-						$cache_maxsize=$cache_maxsize*1024;
-						$cache_maxsizeT=" max-size=$cache_maxsize";
-					}
 					
-					if(!is_numeric($cache_dir_level1)){$cache_dir_level1=16;}
-					if(!is_numeric($cache_dir_level2)){$cache_dir_level2=256;}
+						if($cache_maxsize>0){
+							$cache_maxsize=$cache_maxsize*1024;
+							$cache_maxsizeT=" max-size=$cache_maxsize";
+						}
+					
+						if(!is_numeric($cache_dir_level1)){$cache_dir_level1=16;}
+						if(!is_numeric($cache_dir_level2)){$cache_dir_level2=256;}
 				
-					$f[]="cache_dir $cache_type $cache_directory $cache_size $cache_dir_level1 $cache_dir_level2 $cache_maxsizeT";
-					
+						$f[]="cache_dir $cache_type $cache_directory $cache_size $cache_dir_level1 $cache_dir_level2 $cache_maxsizeT";
+						$WORKCOUNT++;
+					}
 				}
 			}
+			
+			
+			
 			$f[]="endif";
 		
 		}
-		$f[]="#------------------";		
-		return @implode("\n", $f);
+		$f[]="#------------------";	
+		if($WORKCOUNT>0){	
+			return @implode("\n", $f);
+		}
 		
 		
 	}
@@ -274,8 +325,84 @@ class squidworkers{
 		return true;
 		
 	}
-
 	
+	private function BuildSquidCachesMount($Index){
+		if(isset($GLOBALS["BuildSquidCachesMount"][$Index])){return $GLOBALS["BuildSquidCachesMount"][$Index];}
+		
+		
+		if(!isset($this->SquidCachesMount[$Index])){
+			if($this->ASROOT){echo "Starting......: [SMP] CPU[$Index]: Memory cache: no array()\n";}
+			return null;
+		}
+		$mountedram=intval($this->SquidCachesMount[$Index]);
+		if($this->ASROOT){echo "Starting......: [SMP] CPU[$Index] : Memory cache: ={$mountedram}M\n";}
+		if(!is_numeric($mountedram)){return null;}
+		if($mountedram<0){$mountedram=0;}
+		
+		if($mountedram==0){
+			if($this->BuildSquidCachesMountIsMounted($Index)>0){
+				if($this->ASROOT){echo "Starting......: [SMP] CPU[$Index] : Memory cache umounting..\n";}
+				$this->BuildSquidCachesMountUmount($Index);
+			}
+			return null;
+		}
+		
+		$Dir="/var/cache/MemBooster$Index";
+		if($this->ASROOT){echo "Starting......: [SMP] CPU[$Index] : Memory cache on `$Dir`\n";}
+		
+		$AlreadyMounted=$this->BuildSquidCachesMountIsMounted($Index);
+		if($AlreadyMounted==0){$this->BuildSquidCachesMountInRam($mountedram,$Index);}
+		$Diff=intval($mountedram-$AlreadyMounted);
+		if(preg_match("#^-([0-9]+)#", $Diff,$re)){$Diff=intval($re[1]);}
+		if($Diff>5){
+			$this->BuildSquidCachesMountUmount($Index);
+			$this->BuildSquidCachesMountInRam($mountedram,$Index);
+		}
+		
+		
+		$MemDIFF=$mountedram-10;
+		if($this->ASROOT){echo "Starting......: [SMP] CPU[$Index] : Return a cache of {$MemDIFF}M\n";}
+		$GLOBALS["BuildSquidCachesMount"][$Index]="cache_dir diskd $Dir $MemDIFF 16 256";
+		return "cache_dir diskd $Dir $MemDIFF 16 256";		
+		
+	}
+	
+	private function BuildSquidCachesMountIsMounted($Index){
+		$f=file("/proc/mounts");
+		while (list ($num, $val) = each ($f)){
+				if(preg_match("#^tmpfs.+?\/var\/cache\/MemBooster$Index\s+.+?size=([0-9]+)([a-zA-Z]+)#", $val,$re)){
+					$size=$re[1];
+					$unit=strtolower($re[2]);
+					if($unit=="k"){return round($size/1024);}
+					if($unit=="m"){return $size;}
+		
+				}
+			}
+			return 0;
+		}
+		
+		private function BuildSquidCachesMountInRam($RAM,$Index){
+			$unix=new unix();
+			$mount=$unix->find_program("mount");
+			$Dir="/var/cache/MemBooster$Index";
+			
+			@mkdir($Dir,0755,true);
+			@chown($Dir, "squid");
+			@chgrp($Dir, "squid");
+			shell_exec("$mount -t tmpfs -o size={$RAM}M tmpfs $Dir >/dev/null 2>&1");
+		
+		}		
+	
+		private function  BuildSquidCachesMountUmount($Index){
+			$unix=new unix();
+			$umount=$unix->find_program("umount");
+			$rm=$unix->find_program("rm");
+			$Dir="/var/cache/MemBooster$Index";
+			shell_exec("$umount -l $Dir");
+			shell_exec("$rm -rf  -l $Dir");
+			
+		}
+		
 	
 	private function CPU_NUMBER(){
 		$unix=new unix();

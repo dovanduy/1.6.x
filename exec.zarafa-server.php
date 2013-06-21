@@ -29,6 +29,16 @@ function XZARAFA_SERVER_PID(){
 	return $unix->PIDOF_PATTERN("zarafa-server -c /etc/zarafa/server.cfg");
 
 }
+function ZARAFADB_PID(){
+	$unix=new unix();
+	$pid=$unix->get_pid_from_file("/var/run/zarafa-db.pid");
+	if($unix->process_exists($pid)){return $pid;}
+	$mysqld=$unix->find_program("mysqld");
+	$pid=$unix->PIDOF_PATTERN("$mysqld.*?--pid-file=/var/run/zarafa-db.pid");
+	return $pid;
+
+
+}
 
 function start(){
 	$unix=new unix();
@@ -37,7 +47,7 @@ function start(){
 	$sock=new sockets();
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine Artica Task Already running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 
@@ -46,19 +56,41 @@ function start(){
 
 
 	if(!is_file($serverbin)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server is not installed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine is not installed...\n";}
 		return;
 	}
 	
 	$SLAPD_PID_FILE=$unix->SLAPD_PID_PATH();
 	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
 	if(!$unix->process_exists($oldpid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Failed, OpenLDAP server is not running...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine OpenLDAP server is not running start it...\n";}
+		shell_exec("/etc/init.d/slapd start");
 		return;
-		
-	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: OpenLDAP server is running...\n";}
 	}
+
+		
+	if(!$unix->process_exists($oldpid)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine Failed, OpenLDAP server is not running...\n";}		
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine OpenLDAP server is running...\n";}
+	}
+	
+	$ZarafaMySQLServiceType=$sock->GET_INFO("ZarafaMySQLServiceType");
+	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
+	if(!is_numeric($ZarafaMySQLServiceType)){$ZarafaMySQLServiceType=1;}
+	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
+
+	
+	if($ZarafaDedicateMySQLServer==1){
+		if($ZarafaMySQLServiceType==3){
+			$PID=ZARAFADB_PID();
+			if(!$unix->process_exists($PID)){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine Failed, Zarafa Database is not running\n";}
+			}
+		}
+	}
+		
+	
 
 	$pid=XZARAFA_SERVER_PID();
 
@@ -69,12 +101,15 @@ function start(){
 	}
 
 
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting zarafa-server reconfigure...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine reconfigure...\n";}
 	system("/usr/share/artica-postfix/bin/artica-install --zarafa-reconfigure");
+	@unlink("/usr/share/artica-postfix/ressources/logs/zarafa.notify");
+	@unlink("/usr/share/artica-postfix/ressources/logs/zarafa.notify.MySQLIssue");
 	$f[]=$serverbin;
 	$f[]="--config=/etc/zarafa/server.cfg";
 	$f[]="--ignore-database-version-conflict";
 	$f[]="--ignore-unknown-config-options";
+	$f[]="--ignore-attachment-storage-conflict";
 
 	$cmdline=@implode(" ", $f);
 

@@ -47,12 +47,16 @@ if($user->MAILMAN_INSTALLED){
 $banner=Paragraphe('banner-loupe-64.png','{SMTP_BANNER}','{SMTP_BANNER_TEXT}',
 		"javascript:Loadjs('postfix.banner.php?hostname=master&ou=master')");
 
+$mime=Paragraphe('email-settings-64.png','{MIME_OPTIONS}','{MIME_OPTIONS_TEXT}',
+		"javascript:Loadjs('postfix.mime.php?hostname=master&ou=master')");
+
 
 
 $tr[]=$postfixStop;
 $tr[]=$debug;
 $tr[]=$artica_stats;
 $tr[]=$banner;
+$tr[]=$mime;
 $tr[]=$RemoteSyslog;
 $tr[]=$HaProxy;
 $tr[]=$mailman;

@@ -1,6 +1,5 @@
 <?php
 	if(isset($_GET["verbose"])){ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
-	
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -22,12 +21,14 @@ js();
 function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	header("content-type: application/x-javascript");
 	$title=$tpl->_ENGINE_parse_body("{compilation_status}");
 	$html="YahooWin4('550','$page?popup=yes','$title');";
 	echo $html;
 }
 
 function popup(){
+	header('Content-Type: text/html; charset=utf-8');
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$tpl=new templates();
@@ -35,6 +36,7 @@ function popup(){
 	$value=$tpl->_ENGINE_parse_body("{value}");
 	$tablewidth=530;
 	$servername_size=409;
+	$t=time();
 	
 	$html="
 	<table class='squid-table-$t' style='display: none' id='squid-table-$t' style='width:100%;margin:-10px'></table>

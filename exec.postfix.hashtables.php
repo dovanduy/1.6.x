@@ -297,7 +297,10 @@ $ldap=new clladp();
 	echo "Starting......: Postfix ". count($GLOBALS["sender_bcc_maps"])." Sender(s) BCC\n"; 	
 }
 function sender_bcc_maps_build(){
-if(!is_array($GLOBALS["sender_bcc_maps"])){
+	
+	if(!isset($GLOBALS["sender_bcc_maps"])){$GLOBALS["sender_bcc_maps"]=array();}
+	
+	if(!count($GLOBALS["sender_bcc_maps"]==0)){
 		shell_exec("{$GLOBALS["sender_bcc_maps"]} -e \"sender_bcc_maps = \" >/dev/null 2>&1");
 		return null;
 		}
@@ -1477,6 +1480,7 @@ function mailbox_transport_maps(){
 		$f=array();
 		$DestinationFile="/etc/postfix/mailbox_transport_maps";
 		$sql="SELECT * FROM postfix_transport_mailbox WHERE hostname='master'";
+		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){	
 			$xType=$ligne["xType"];

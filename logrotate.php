@@ -4,6 +4,7 @@ if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.mysql.syslog.inc');
+	include_once(dirname(__FILE__)."/ressources/class.mysql.syslogs.inc");
 
 	
 
@@ -411,8 +412,22 @@ function FormatNumberX($number, $decimals = 0, $thousand_separator = '&nbsp;', $
 
 function storage(){
 	$page=CurrentPageName();
-	$tpl=new templates();	
+	$tpl=new templates();
 	$sock=new sockets();
+	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
+	
+	if($EnableSyslogDB==1){
+		
+		echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:16px'>{LOGRATE_EXPLAIN_SYSTORE}</div>
+				<center style='margin:50px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('MySQLSyslog.wizard.php');\" 
+				style='font-size:18px;text-decoration:underline'>{run_wizard_install}</a></center>
+				
+				");
+		return;
+		
+	}
+	
 	$items=$tpl->_ENGINE_parse_body("{items}");
 	$size=$tpl->_ENGINE_parse_body("{size}");
 	$SaveToDisk=$tpl->_ENGINE_parse_body("{SaveToDisk}");
@@ -919,7 +934,7 @@ function storage_view_js(){
 	$tpl=new templates();
 	$page=CurrentPageName();	
 	$filename=$_GET["filename"];
-	$html="YahooWin5('1060','$page?storage-popup=yes&filename=$filename','$filename')";
+	$html="YahooWin5('1060','$page?storage-popup=yes&storeid={$_GET["storeid"]}&filename=$filename','$filename')";
 	echo $html;
 }
 function storage_view_popup(){
@@ -950,7 +965,7 @@ function storage_view_popup(){
 var rowSquidTask='';
 $(document).ready(function(){
 $('#$t').flexigrid({
-	url: '$page?storage-view-search=yes&filename={$_GET["filename"]}&t=$t',
+	url: '$page?storage-view-search=yes&filename={$_GET["filename"]}&t=$t&storeid={$_GET["storeid"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '$rows', name : 'rows', width : 1018, sortable : true, align: 'left'},
@@ -1009,6 +1024,7 @@ buttons : [
 	if(confirm('$extract {$_GET["filename"]} ?')){
 	  	var XHR = new XHRConnection();
 	  	XHR.appendData('extract-file','{$_GET["filename"]}');
+	  	XHR.appendData('storeid','{$_GET["storeid"]}');
 	  	XHR.sendAndLoad('$page', 'POST',x_ExtractFile);
 	  	}
 	}
@@ -1058,28 +1074,36 @@ function storage_view_extract(){
 	$newtFile=$_POST["extract-file"];
 	$sock=new sockets();
 	@unlink("$mydir/ressources/logs/$newtFile");
+	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
 	
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SavedInDisk,FileStorePath FROM store WHERE filename = '$newtFile'"));
+	if($EnableSyslogDB==0){
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SavedInDisk,FileStorePath FROM store WHERE filename = '$newtFile'"));
+		writelogs("SavedInDisk = {$ligne["SavedInDisk"]}",__FUNCTION__,__FILE__,__LINE__);
 	
-	writelogs("SavedInDisk = {$ligne["SavedInDisk"]}",__FUNCTION__,__FILE__,__LINE__);
+		if($ligne["SavedInDisk"]==1){
+			$array["FROM"]=$ligne["FileStorePath"];
+			$array["TO"]="$mydir/ressources/logs/$newtFile";
+			$sock->getFrameWork("services.php?copyFiles=".base64_encode(serialize($array)));
+			return;
+		}
 	
-	if($ligne["SavedInDisk"]==1){
-		$array["FROM"]=$ligne["FileStorePath"];
-		$array["TO"]="$mydir/ressources/logs/$newtFile";
-		$sock->getFrameWork("services.php?copyFiles=".base64_encode(serialize($array)));
-		return;
-	}
-	
-	
-	
-	$sql="SELECT filedata INTO DUMPFILE '$mydir/ressources/logs/$newtFile' FROM store WHERE filename = '$newtFile'";
-	writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
-	$q->QUERY_SQL($sql);
+		$sql="SELECT filedata INTO DUMPFILE '$mydir/ressources/logs/$newtFile' FROM store WHERE filename = '$newtFile'";
+		writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
+		$q->QUERY_SQL($sql);
 	
 	
-	if(!$q->ok){
-		writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
-		echo $q->mysql_error;return;
+		if(!$q->ok){
+			writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+			echo $q->mysql_error;return;
+		}
+		
+	}else{
+		$q=new mysql_storelogs();
+		$sql="SELECT filecontent INTO DUMPFILE '$mydir/ressources/logs/$newtFile' FROM files_store WHERE ID = '{$_POST["storeid"]}'";
+		writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
+		$q->QUERY_SQL($sql);
+		
 	}
 	
 	$ext=file_extension($newtFile);

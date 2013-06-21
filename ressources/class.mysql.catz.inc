@@ -7,6 +7,7 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 if(function_exists("debug_mem")){debug_mem();}
 class mysql_catz{
 	var $ClassSQL;
+	private $called='';
 	var $ok=false;
 	var $mysql_error;
 	var $UseMysql=true;
@@ -29,7 +30,15 @@ class mysql_catz{
 			$this->arrayConfig["SocketPath"]="/var/run/articadb.sock";
 			$this->arrayConfig["TryTCP"]=false;
 			$this->DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+			$this->EnableArticaDB=$sock->GET_INFO("EnableArticaDB");
 			if(!is_numeric($this->DisableArticaProxyStatistics)){$this->DisableArticaProxyStatistics=0;}
+			if(!is_numeric($this->EnableArticaDB)){$this->EnableArticaDB=1;}
+			
+			if($this->EnableRemoteStatisticsAppliance==1){$this->DisableArticaProxyStatistics=1;}
+			if($this->EnableArticaDB==0){$this->DisableArticaProxyStatistics=1;}
+			if($this->DisableArticaProxyStatistics==1){return;}			
+			
+			
 			$this->ClassSQL=new mysql($this->arrayConfig);
 			$this->UseMysql=$this->ClassSQL->UseMysql;
 			$this->mysql_admin=$this->ClassSQL->mysql_admin;
@@ -37,18 +46,29 @@ class mysql_catz{
 			$this->ClassSQL->SocketPath="/var/run/articadb.sock";
 			$this->ClassSQL->TryTCP=false;
 			
-			if($this->EnableRemoteStatisticsAppliance==1){$this->DisableArticaProxyStatistics=1;}
-			if($this->DisableArticaProxyStatistics==1){return;}
+
 			
+			if(function_exists("debug_backtrace")){
+				$trace=@debug_backtrace();
+				if(isset($trace[1])){
+					$this->called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]} ";
+				}
+			}			
 			
-			
-			if(!$this->DATABASE_EXISTS($this->database)){$this->CREATE_DATABASE($this->database);}
+			if($this->TestingConnection()){}else{$this->MysqlFailed=true;return;}
+			if(!$this->DATABASE_EXISTS($this->database)){$this->MysqlFailed=true;return;}
 			if(function_exists("debug_mem")){debug_mem();}
-			if($this->TestingConnection()){}else{$this->MysqlFailed=true;}
+			
 			if(function_exists("debug_mem")){debug_mem();}
 		}
 		
 	}
+	
+	public function SHOW_VARIABLES(){
+		if($this->DisableArticaProxyStatistics==1){return;}
+		$this->TestingConnection();
+		return $this->ClassSQL->SHOW_VARIABLES();
+	}	
 	
 	public function TestingConnection(){
 		if($this->DisableArticaProxyStatistics==1){return;}
@@ -56,7 +76,7 @@ class mysql_catz{
 		$this->ClassSQL->ok=true;
 		$this->ClassSQL=new mysql($this->arrayConfig);
 		$a=$this->ClassSQL->TestingConnection();
-		$this->mysql_error=$this->ClassSQL->mysql_error;
+		$this->mysql_error=$this->called.$this->ClassSQL->mysql_error;
 		return $a;
 	}
 	
@@ -139,9 +159,9 @@ class mysql_catz{
 		if($this->DisableArticaProxyStatistics==1){return null;}
 		if($database<>$this->database){$database=$this->database;}
 		$this->ClassSQL=new mysql($this->arrayConfig);
-		$results=$this->ClassSQL->QUERY_SQL($sql,$database);
+		$results=$this->ClassSQL->QUERY_SQL($sql,$database,$this->called);
 		$this->ok=$this->ClassSQL->ok;
-		$this->mysql_error=$this->ClassSQL->mysql_error;
+		$this->mysql_error=$this->called.$this->ClassSQL->mysql_error;
 		$this->last_id=$this->ClassSQL->last_id;
 		$this->affected_rows=$this->ClassSQL->affected_rows;
 		return $results;
@@ -214,9 +234,7 @@ class mysql_catz{
 			if($table=="category_"){
 				if($GLOBALS["VERBOSE"]){echo "qz->GET_CATEGORIES($sitename) bad $table (category_)\n";}
 				continue;}
-			if(isset($BADCATZ[$table])){
-				if($GLOBALS["VERBOSE"]){echo "qz->GET_CATEGORIES($sitename) bad $table (BADCATZ)\n";}
-				continue;}
+			if(isset($BADCATZ[$table])){continue;}
 			if(preg_match("#bak$#", $table)){
 				if($GLOBALS["VERBOSE"]){echo "qz->GET_CATEGORIES($sitename) bad $table (bak)\n";}
 				continue;}
@@ -451,6 +469,7 @@ function TransArray(){
 			$trans["category_science_astronomy"]="science/astronomy";
 			$trans["category_science_computing"]="science/computing";
 			$trans["category_science_weather"]="science/weather";
+			$trans["category_science_chemistry"]="science/chemistry";
 			$trans["category_searchengines"]="searchengines";
 			$trans["category_sect"]="sect";
 			$trans["category_sexual_education"]="sexual_education";
@@ -539,7 +558,7 @@ function TransArray(){
 						if(isset($trace[1])){$called="\ncalled by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 					} catch (Exception $e) {$this->writeLogs("Fatal: ".$e->getMessage(),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 				}
-				$this->mysql_error=$this->mysql_error." cat:$category $called";
+				$this->mysql_error=$this->called.$this->mysql_error." cat:$category $called";
 				writelogs("Failed to create $category $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				return false;
 			}

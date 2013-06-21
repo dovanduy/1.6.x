@@ -1,8 +1,10 @@
 <?php
 session_start();
 
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
-ini_set('error_append_string',null);
+ini_set('display_errors', 1);
+ini_set('error_reporting', E_ALL);
+ini_set('error_prepend_string',"<p class=text-error>");
+ini_set('error_append_string',"</p>");
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
@@ -129,7 +131,7 @@ function messaging_left(){
 
 
 	
-	$html="<div class=BodyContent><center><div style='width:700px'>".CompileTr3($t,"none")."</div></center></div>";
+	$html="<div class=BodyContent><center><div style='width:95%'>".CompileTr3($t,"none")."</div></center></div>";
 	echo $tpl->_ENGINE_parse_body($html);
 	
 	

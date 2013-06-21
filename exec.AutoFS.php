@@ -31,7 +31,7 @@ $attr=array("gidNumber");
 $sr =@ldap_search($ldap->ldap_connection,$suffix,$filter,$attr);
 		$hash=ldap_get_entries($ldap->ldap_connection,$sr);
 		for($i=0;$i<$hash["count"];$i++){
-			$gpid=$hash[$i][strtolower("gidNumber")][0];
+		$gpid=$hash[$i][strtolower("gidNumber")][0];
 			$auto=new autofs();
 			$auto->AutofsSharedDir($gpid);
 			

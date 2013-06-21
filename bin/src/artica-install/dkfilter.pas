@@ -19,6 +19,7 @@ private
      SYS:TSystem;
      artica_path:string;
      EnableDKFilter:integer;
+     DisconnectDKFilter:integer;
      binpath:string;
 public
     procedure   Free;
@@ -41,6 +42,8 @@ begin
        SYS:=zSYS;
        binpath:=BIN_PATH();
        if not TryStrToInt(SYS.GET_INFO('EnableDKFilter'),EnableDKFilter) then EnableDKFilter:=0;
+       if not TryStrToInt(SYS.GET_INFO('DisconnectDKFilter'),DisconnectDKFilter) then DisconnectDKFilter:=0;
+       if DisconnectDKFilter=1 then EnableDKFilter:=0;
 
 end;
 //##############################################################################
@@ -59,6 +62,12 @@ var
    pidstring:string;
    fpid,i:integer;
 begin
+
+if DisconnectDKFilter=1 then begin
+   writeln('Stopping opendkim.........: disconnected');
+   exit;
+end;
+
 if not FileExists(binpath) then begin
    writeln('Stopping opendkim............: Not installed');
    exit;

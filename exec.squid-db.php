@@ -2,6 +2,7 @@
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
+$GLOBALS["NOPID"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;
 $GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
@@ -24,6 +25,8 @@ if($argv[1]=="--databasesize"){databasesize($GLOBALS["FORCE"]);die();}
 if($argv[1]=="--restorefrom"){RestoreFromBackup($argv[2]);die();}
 if($argv[1]=="--keys"){GetStartedValues();die();}
 if($argv[1]=="--checks"){checktables();die();}
+if($argv[1]=="--statistics"){statistics();die();}
+if($argv[1]=="--upgrade"){upgrade();die();}
 
 
 
@@ -56,6 +59,23 @@ function get_swap(){
 	return 0;
 
 
+}
+
+function upgrade(){
+	$GLOBALS["NOPID"]=true;
+	$GLOBALS["OUTPUT"]=true;
+	stop();
+	@unlink("/opt/squidsql/share/mysql/english/errmsg.sys");
+	start(true);
+	$unix=new unix();
+	$mysql_upgrade=$unix->find_program("mysql_upgrade");
+	
+	echo "Starting......: **************************\n";
+	echo "Starting......: [INIT]: Running upgrade $mysql_upgrade....\n";
+	echo "Starting......: **************************\n";
+	shell_exec("$mysql_upgrade -u root -S /var/run/mysqld/squid-db.sock --verbose");
+	stop();
+	start(false);	
 }
 
 function Get_errmsgsys(){
@@ -107,20 +127,92 @@ function ToCopy($WORKDIR){
 	
 }
 
-
-function start(){
+function statistics(){
+	$pidfile="/etc/artica-postfix/pids/squiddbstats.pid";
 	$unix=new unix();
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	$sock=new sockets();
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		return;
+	}	
+	
+	
+	$Socket="/var/run/mysqld/squid-db.sock";
+	$mysqladmin=$unix->find_program("mysqladmin");
+	$cmdline="$mysqladmin -S $Socket -u root status 2>&1";
+	if($GLOBALS["VERBOSE"]){echo "$cmdline\n";}
+	exec($cmdline,$results);
+	$date=date("Y-m-d H:i:s");
+	if(!preg_match("#Uptime:\s+([0-9]+)\s+Threads:\s+([0-9]+)\s+Questions:\s+([0-9]+)\s+Slow queries:\s+([0-9]+)\s+Opens:\s+([0-9]+)\s+Flush tables:\s+([0-9]+)\s+Open tables:\s+([0-9]+)\s+ Queries per second avg:\s+([0-9]+)#",@implode("", $results),$re)){
+		if($GLOBALS["VERBOSE"]){echo @implode("", $results)." no match..\n";}
+		return;
+	}
+	
+	$sql="CREATE TABLE IF NOT EXISTS `MySQLStats` (
+	`zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`uptime` BIGINT(100) NOT NULL,
+	`threads` BIGINT(10) NOT NULL,
+	`questions` BIGINT(100) NOT NULL,
+	`squeries` BIGINT(10) NOT NULL,
+	`opens` BIGINT(100) NOT NULL,
+	`ftables` BIGINT(20) NOT NULL,
+	`open` BIGINT(10) NOT NULL,
+	`queriesavg` BIGINT(100) NOT NULL,
+	 UNIQUE KEY `zDate` (`zDate`),
+	 KEY `uptime` (`uptime`),
+	 KEY `threads` (`threads`),
+	 KEY `questions` (`questions`),
+	 KEY `squeries` (`squeries`),
+	 KEY `opens` (`opens`),
+	 KEY `ftables` (`ftables`),
+	 KEY `open` (`open`),											
+	 KEY `queriesavg` (`queriesavg`)
+	)";	
+	
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){
+	if($GLOBALS["VERBOSE"]){
+		echo $sql."\n$q->mysql_error\n";}
+	}
+	
+	
+	$sql="INSERT IGNORE INTO MySQLStats (zDate,uptime,threads,questions,squeries,opens,ftables,open,queriesavg)
+	VALUES('$date','{$re[1]}','{$re[2]}','{$re[3]}','{$re[4]}','{$re[5]}','{$re[6]}','{$re[7]}','{$re[8]}')";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		if($GLOBALS["VERBOSE"]){
+			echo $sql."\n$q->mysql_error\n";}
+	}
+	if($GLOBALS["VERBOSE"]){
+		echo $sql."\nOK\n";
+	}
+}
+function squid_watchdog_events($text){
+	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefile=basename($trace[1]["file"]);$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];}}
+	$unix=new unix();
+	$unix->events($text,"/var/log/squid.watchdog.log",false,$sourcefunction,$sourceline);
+}
+
+
+function start($skipGrant=false){
+	$unix=new unix();
+	
 	$pidfile="/etc/artica-postfix/pids/squiddbstart.pid";
 	$WORKDIR="/opt/squidsql";
 	$SERV_NAME="squid-db";
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	$sock=new sockets();
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
-		return;
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	if(!$GLOBALS["NOPID"]){
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
+			return;
+		}
 	}
-		
 	@file_put_contents($pidfile, getmypid());
 	$GetStartedValues=GetStartedValues();
 	$sock=new sockets();
@@ -184,18 +276,22 @@ function start(){
 	$thread_cache_size=$SquidDBTuningParameters["thread_cache_size"];
 	$ListenPort=$SquidDBTuningParameters["ListenPort"];
 	$read_rnd_buffer_size=$SquidDBTuningParameters["read_rnd_buffer_size"];
-	
+	$net_read_timeout=$SquidDBTuningParameters["net_read_timeout"];
 	$read_buffer_size=$SquidDBTuningParameters["read_buffer_size"];
 	$sort_buffer_size=$SquidDBTuningParameters["sort_buffer_size"];
 	$thread_stack=$SquidDBTuningParameters["thread_stack"];
 	$join_buffer_size=$SquidDBTuningParameters["join_buffer_size"];
 	$max_tmp_table_size=$SquidDBTuningParameters["max_tmp_table_size"];
-
+	$tmpdir=$SquidDBTuningParameters["tmpdir"];
 	
 	
 	
 	
 	if(!is_numeric($ListenPort)){$ListenPort=0;}
+	if(!is_numeric($net_read_timeout)){$net_read_timeout=120;}
+	
+	
+	if($tmpdir==null){$tmpdir="/tmp";}
 	
 	
 	$net="--skip-networking";
@@ -287,6 +383,7 @@ function start(){
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Thread Cache Size........: {$thread_cache_size}\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: TMP Table size...........: {$tmp_table_size}M\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Read RND Buffer Size.....: {$read_rnd_buffer_size}M\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Net Read timeout.........: {$net_read_timeout}s\n";}
 	$CREATEDB=false;
 	
 	
@@ -299,9 +396,9 @@ function start(){
 		shell_exec("$lnbin -s $my_print_defaults $WORKDIR/bin/my_print_defaults");
 	}
 	
-	if(!is_file("$WORKDIR/data/mysql/plugin.MYD")){
+	if(!is_file("$WORKDIR/data/mysql/user.MYD")){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Installing defaults databases, Please Wait...\n";}
-		shell_exec("$WORKDIR/scripts/mysql_install_db --basedir=$WORKDIR --plugin_dir=$WORKDIR/lib/plugin --datadir=$WORKDIR/data --skip-name-resolve --user=root --force --no-defaults --default-storage-engine=myisam >/dev/null 2>&1");
+		install_db($WORKDIR);
 		$CREATEDB=true;
 	}
 	
@@ -310,8 +407,32 @@ function start(){
 	$topCopyMysql["host.MYI"]=true;
 	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
 	
+	$topCopyMysqlForce["tables_priv.frm"]=true;
+	$topCopyMysqlForce["tables_priv.MYD"]=true;
+	$topCopyMysqlForce["tables_priv.MYI"]=true;
+	$topCopyMysqlForce["columns_priv.frm"]=true;
+	$topCopyMysqlForce["columns_priv.MYD"]=true;
+	$topCopyMysqlForce["columns_priv.MYI"]=true;
+	$topCopyMysqlForce["procs_priv.frm"]=true;
+	$topCopyMysqlForce["procs_priv.MYD"]=true;
+	$topCopyMysqlForce["procs_priv.MYI"]=true;	
+	
+	$topCopyMysqlForce["plugin.frm"]=true;
+	$topCopyMysqlForce["plugin.MYD"]=true;
+	$topCopyMysqlForce["plugin.MYI"]=true;	
+	
+	$topCopyMysqlForce["user.frm"]=true;
+	$topCopyMysqlForce["user.MYD"]=true;
+	$topCopyMysqlForce["user.MYI"]=true;
+
+	$topCopyMysqlForce["db.frm"]=true;
+	$topCopyMysqlForce["db.MYD"]=true;
+	$topCopyMysqlForce["db.MYI"]=true;	
+	
+	$ToCopyForce=false;
 	while (list ($filename, $ligne) = each ($topCopyMysql) ){
 		if(!is_file("$WORKDIR/data/mysql/$filename")){
+			$ToCopyForce=true;
 			if(is_file("$MYSQL_DATA_DIR/mysql/$filename")){
 				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Installing $filename\n";}
 				@copy("$MYSQL_DATA_DIR/mysql/$filename", "$WORKDIR/data/mysql/$filename");
@@ -319,8 +440,20 @@ function start(){
 			}
 		}
 	}
-	   
 	
+	
+		while (list ($filename, $ligne) = each ($topCopyMysqlForce) ){
+			if(!is_file("$WORKDIR/data/mysql/$filename")){
+				if(is_file("$MYSQL_DATA_DIR/mysql/$filename")){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Installing $filename\n";}
+					@copy("$MYSQL_DATA_DIR/mysql/$filename", "$WORKDIR/data/mysql/$filename");
+				}
+			}
+		}
+	
+	
+
+
 	
 	
 	
@@ -360,6 +493,9 @@ function start(){
 	$f[]="--general-log-file=$WORKDIR/general_log.log";
 	$f[]="--slow-query-log-file=$WORKDIR/slow-query.log";
 	$f[]="--log-error=$WORKDIR/error.log";
+	if($skipGrant){
+		$f[]="--skip-grant-tables";
+	}
 	if($max_allowed_packet>0){
 		$f[]="--max-allowed-packet={$max_allowed_packet}M";
 	}
@@ -401,7 +537,6 @@ function start(){
 	}
 	
 	if($thread_cache_size>0){
-		$thread_cache_size=($thread_cache_size*1024)*1000;
 		$f[]="--thread_cache_size=$thread_cache_size";
 	}
 	
@@ -412,9 +547,18 @@ function start(){
 	}
 	
 	if($max_tmp_table_size>0){
-		$max_tmp_table_size=($max_tmp_table_size*1024)*1000;
-		$f[]="--max_tmp_table_size={$max_tmp_table_size}";
-	}	
+		if($GetStartedValues["--max_tmp_table_size"]){
+			$max_tmp_table_size=($max_tmp_table_size*1024)*1000;
+			$f[]="--max_tmp_table_size={$max_tmp_table_size}";
+		}
+	}
+
+	if($net_read_timeout>0){
+		if($GetStartedValues["--net_read_timeout"]){
+			$f[]="--net_read_timeout={$net_read_timeout}";
+		}
+	}
+	
 	if($sort_buffer_size>0){
 		$sort_buffer_size=($sort_buffer_size*1024)*1000;
 		$f[]="--sort_buffer_size={$sort_buffer_size}";
@@ -431,7 +575,9 @@ function start(){
 	if($thread_stack>0){
 		$thread_stack=($thread_stack*1024)*1000;
 		$f[]="--thread_stack={$thread_stack}";
-	}	
+	}
+
+	$f[]="--tmpdir=$tmpdir";
 	
 	
 	$f[]="--log-warnings=2";
@@ -449,22 +595,36 @@ function start(){
 	$nohup=$unix->find_program("nohup");
 	if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting MySQL daemon ($SERV_NAME)\n";}
+	
+	@unlink("/opt/squidsql/error.log");
+	
+	
 	shell_exec("$nohup $cmdline >$TMP 2>&1 &");
 	sleep(1);
-	for($i=0;$i<10;$i++){
+	for($i=0;$i<5;$i++){
 		$pid=SQUIDDB_PID();
 		if($unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: MySQL daemon ($SERV_NAME) started pid .$pid..\n";}break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: MySQL daemon wait $i/10\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: MySQL daemon wait $i/5\n";}
 		sleep(1);
 	}	
 	sleep(1);
 	$pid=SQUIDDB_PID();
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: MySQL daemon ($SERV_NAME) failed to start\n";}
-		$f=explode("\n",@file_get_contents($TMP));
-		while (list ($num, $ligne) = each ($TMP) ){
-			if(trim($ligne)==null){continue;}
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $ligne\n";}
+		if(is_file($TMP)){
+			$f=explode("\n",@file_get_contents($TMP));
+			while (list ($num, $ligne) = each ($f) ){if(trim($ligne)==null){continue;}if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $ligne\n";}}
+		}
+		
+		$f=explode("\n", @file_get_contents("/opt/squidsql/error.log"));
+		while (list ($num, $ligne) = each ($f) ){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: MySQL Results \"$ligne\"\n";}
+			if(preg_match("#Incorrect information in file: './mysql/proxies_priv.frm'#", $ligne)){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: remove MySQL tables and install again...\n";}
+				shell_exec("/bin/rm -rf $WORKDIR/data/mysql/*");
+				shell_exec("$nohup $php5 ".__FILE__." --start --recall >/dev/ null 2>&1 &");
+				return;
+			}
 		}
 	
 	}else{
@@ -480,14 +640,15 @@ function start(){
 function stop(){
 	$SERV_NAME="squid-db";
 	$unix=new unix();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Already task running PID $oldpid since {$time}mn\n";}
-		return;
+	if(!$GLOBALS["NOPID"]){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
 	}
-
 	$pid=SQUIDDB_PID();
 	
 	if(!$unix->process_exists($pid)){
@@ -594,7 +755,7 @@ function initd(){
 
 	$f[]="#!/bin/sh";
 	$f[]="### BEGIN INIT INFO";
-	$f[]="# Provides:          Squid MySQL Statistics database";
+	$f[]="# Provides:         squid-db";
 	$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
 	$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
 	$f[]="# Should-Start:";
@@ -700,4 +861,45 @@ function databasesize($force=false){
 	@chmod($arrayfile, 0755);
 	
 }
+
+function install_db($WORKDIR){
+	$unix=new unix();
+	$mysqld_safe=$unix->find_program("mysqld_safe");
+	$mysql_install_db=$unix->find_program("mysql_install_db");
+	$cp=$unix->find_program("cp");
+	//shell_exec("cp -f /var/lib/mysql/mysql/plugin.* /opt/squidsql/data/mysql/");
+	if(is_file("$WORKDIR/data/ibdata1")){
+		@unlink("$WORKDIR/data/ibdata1");
+		@unlink("$WORKDIR/data/ib_logfile0");
+		@unlink("$WORKDIR/data/ib_logfile1");
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $WORKDIR/ibdata1 no such file\n";}
+	}
+	
+	if(is_file("/usr/share/mysql/mysql_system_tables.sql")){
+		if(is_file($mysqld_safe)){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $mysqld_safe with mysql_system_tables.sql\n";}
+			$cmd="$mysqld_safe --defaults-file=/opt/squidsql/my.cnf --log-error=/opt/squidsql/error.log --user=root --socket=/var/run/mysqld/squid-db.sock2 --basedir=/opt/squidsql --datadir=/opt/squidsql/data --skip-networking --plugin_dir=/opt/squidsql/lib/plugin --init-file=/usr/share/mysql/mysql_system_tables.sql --verbose";
+			shell_exec($cmd);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: `$cmd`\n";}
+			
+			
+			if(is_file("/usr/share/mysql/mysql_system_tables_data.sql")){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $mysqld_safe with mysql_system_tables_data.sql\n";}
+				shell_exec("$mysqld_safe --defaults-file=/opt/squidsql/my.cnf --log-error=/opt/squidsql/error.log --socket=/var/run/mysqld/squid-db.sock2 --user=root --basedir=/opt/squidsql --datadir=/opt/squidsql/data --skip-networking --plugin_dir=/opt/squidsql/lib/plugin --init-file=/usr/share/mysql/mysql_system_tables_data.sql --verbose");
+				
+			}
+		}
+		
+	}
+	if(!is_file("$WORKDIR/data/mysql/user.MYD")){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: checks with `$mysql_install_db`\n";}
+		if(is_file("$mysql_install_db")){
+			$cmd="$mysql_install_db --basedir=$WORKDIR --plugin_dir=$WORKDIR/lib/plugin --datadir=$WORKDIR/data --skip-name-resolve --user=root --force --no-defaults --log-error=/opt/squidsql/error.log >/dev/null 2>&1";
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: `$cmd`\n";}
+			shell_exec($cmd);
+		}
+	}
+}
+	
 ?>

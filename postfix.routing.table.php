@@ -37,7 +37,7 @@ if(isset($_GET["relayhost"])){relayhost_tabs();exit;}
 if(isset($_GET["relayhost-popup"])){relayhost();exit;}
 if(isset($_GET["relayhost-sasl-auth"])){relayhost_sasl_auth();exit;}
 if(isset($_GET["relayhost-sasl-config"])){relayhost_sasl_config();exit;}
-if(isset($_GET["relayhostSave"])){relayhostSave();exit;}
+if(isset($_POST["relayhostSave"])){relayhostSave();exit;}
 if(isset($_GET["noanonymous"])){smtp_sasl_security_options_save();exit;}
 
 
@@ -993,6 +993,7 @@ function PostFixDeleteRoutingTable(){
 	}
 function relayhost(){
 $main=new main_cf()	;
+$tpl=new templates();
 $page=CurrentPageName();
 if($main->main_array["relayhost"]<>null){
 	$relayhost=$main->main_array["relayhost"];
@@ -1007,13 +1008,15 @@ if($relayhost<>null){
 }
 
 if($relayT[1]<>null){
-	$delete=imgtootltip("delete-48.png","{delete}","RelayHostDelete()");
+	$delete="<a href=\"javascript:blur();\" OnClick=\"RelayHostDelete();\" style='font-size:16px;text-decoration:underline;text-transform:capitalize'>{delete} {$relayT[1]}</a>";
 }
 
 $maps=new smtp_sasl_password_maps();
 $pp=str_replace(".","\.",$relayT[1]);
 $pp=str_replace("[","\[",$pp);
 $pp=str_replace("]","\]",$pp);
+$pp=str_replace("smtp:","",$pp);
+
 while (list ($relaisa, $ligne) = each ($maps->smtp_sasl_password_hash) ){
 	if(preg_match("#$pp#i",$relaisa)){
 		if(preg_match("#^(.+?):(.+?)$#",$ligne,$re)){$username=$re[1];$password=$re[2];}
@@ -1024,11 +1027,12 @@ $otherisp=Paragraphe("relais-isp.png","{USE_MY_ISP}","{USE_MY_IPS_EXAMPLES_TEXT}
 $maptable=Paragraphe("tables-lock-64.png","(". count($maps->smtp_sasl_password_hash).") {items}:{passwords_table}","{passwords_table_text}",
 "javascript:Loadjs('postfix.smptp.sasl.passwords.maps.php')");
 
-
-
+$t=time();
+$ask_compile_postfix=$tpl->javascript_parse_text("{ask_compile_postfix}");
 
 $form="<div style='font-size:16px'>{relayhost}</div>
 <div class=explain>{relayhost_text}</div>
+<div id='relayhostdiv-$t'></div>
 <div style='text-align:right'><code style='font-size:14px;padding:3px'>$relayhost</code></div>
 	<table style='width:100%'>
 	<tr>
@@ -1041,7 +1045,8 @@ $form="<div style='font-size:16px'>{relayhost}</div>
 					<tr>
 						<td valign='top'>
 						<input type='hidden' name='relayhostSave' value='yes'>
-						<table style='width:99%' class=form>
+						<div style='width:95%' class=form>
+						<table style='width:99%'>
 							<td align='right' nowrap class=legend>{relay_address}:</strong></td>
 							<td style='font-size:12px'>" . Field_text('relay_address',$relayT[1],"font-size:13px;padding:3px") . "</td>	
 						</tr>
@@ -1063,16 +1068,18 @@ $form="<div style='font-size:16px'>{relayhost}</div>
 						</tr>						
 						
 						<tr>
-							<td align='right' colspan=2 align='right'>". button("{apply}","PostfixSaveRelayHost()")."</td>
+							<td align='right' colspan=2 align='right'>". button("{apply}","PostfixSaveRelayHost()",14)."</td>
 						</tr>		
 								
 						</td>
 						</tr>
 						</table>
+						</div>
 					</td>
-						<td valign='top'>$delete</td>
+						
 					</tr>
 					</table>
+					<div style='text-align:right'>$delete</div>
 			</div>
 		</td>
 	</tr>
@@ -1082,16 +1089,20 @@ $form="<div style='font-size:16px'>{relayhost}</div>
 <script>
 var X_PostfixSaveRelayHost= function (obj) {
 		var results=trim(obj.responseText);
-		if(results.length>0){alert(results);}
-		$('#container-tabs').tabs( 'load' ,0 );
-		YahooWinHide();
+		if(results.length>2){alert(results);}
+		document.getElementById('relayhostdiv-$t').innerHTML='';
+		RefreshTab('main_relayhost_config');
+		if(confirm('$ask_compile_postfix')){
+			Loadjs('postfix.compile.php');
+		}
 	}		
 function PostfixSaveRelayHost(){
 		var XHR = new XHRConnection();
 		XHR.appendData('relayhostSave','yes');
 		XHR.appendData('relay_address',document.getElementById('relay_address').value);
 		XHR.appendData('relay_username',document.getElementById('relay_username').value);
-		XHR.appendData('relay_password',document.getElementById('relay_password').value);
+		var relay_password=encodeURIComponent(document.getElementById('relay_password').value);
+		XHR.appendData('relay_password',relay_password);
 		if(document.getElementById('MX_lookups').checked){
 			XHR.appendData('MX_lookups','yes');
 		}else{
@@ -1099,8 +1110,8 @@ function PostfixSaveRelayHost(){
 		}
 		
 		XHR.appendData('relay_port',document.getElementById('relay_port').value);
-		document.getElementById('relayhostdiv').innerHTML='<center style=\"width:100%\"><img src=img/wait_verybig.gif></center>';   
-		XHR.sendAndLoad('$page', 'GET',X_PostfixSaveRelayHost);
+		AnimateDiv('relayhostdiv-$t');   
+		XHR.sendAndLoad('$page', 'POST',X_PostfixSaveRelayHost);
 		
 	}
 function RelayHostDelete(){
@@ -1115,23 +1126,23 @@ function RelayHostDelete(){
 
 
 
-$tpl=new templates();
+
 	echo $tpl->_ENGINE_parse_body("$form");		
 }
 function relayhostSave(){
 	
 	
-	
-	if($_GET["relay_port"]==null){$_GET["relay_port"]=25;}
+	$_POST["relay_password"]=url_decode_special_tool($_POST["relay_password"]);
+	if($_POST["relay_port"]==null){$_POST["relay_port"]=25;}
 	$tpl=new templates();
-	if($_GET["relay_address"]==null){
+	if($_POST["relay_address"]==null){
 		echo $tpl->_ENGINE_parse_body("{error_no_server_specified}");
 		exit;
 	}	
 	$tool=new DomainsTools();
-	writepostfixlogs("Port={$_GET["relay_port"]} address={$_GET["relay_address"]}",__FUNCTION__,__FILE__);
-	$data=$tool->transport_maps_implode($_GET["relay_address"],$_GET["relay_port"],'smtp',$_GET["MX_lookups"]);
-	writepostfixlogs("Port={$_GET["relay_port"]} address={$_GET["relay_address"]}=$data",__FUNCTION__,__FILE__);
+	writepostfixlogs("Port={$_POST["relay_port"]} address={$_POST["relay_address"]}",__FUNCTION__,__FILE__);
+	$data=$tool->transport_maps_implode($_POST["relay_address"],$_POST["relay_port"],'smtp',$_POST["MX_lookups"]);
+	writepostfixlogs("Port={$_POST["relay_port"]} address={$_POST["relay_address"]}=$data",__FUNCTION__,__FILE__);
 	$data=str_replace('smtp:','',$data);
 	$main=new main_cf();
 	$main->main_array["relayhost"]=$data;
@@ -1139,9 +1150,10 @@ function relayhostSave(){
 	$sock->SET_INFO("PostfixRelayHost",$data);
 	$main->save_conf();
 	
-	if($_GET["relay_username"]<>null){
+	if($_POST["relay_username"]<>null){
+		writelogs("ADD relay_username:`{$_POST["relay_username"]}`",__FUNCTION__,__FILE__,__LINE__);
 		$sals=new smtp_sasl_password_maps();
-		$sals->add($data,$_GET["relay_username"],$_GET["relay_password"]);
+		$sals->add($data,$_POST["relay_username"],$_POST["relay_password"]);
 	}
 	$sock->getFrameWork("cmd.php?postfix-relayhost=yes");
 	

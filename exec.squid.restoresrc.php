@@ -10,19 +10,23 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 include_once(dirname(__FILE__)."/framework/class.settings.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.syslog.inc");
+include_once(dirname(__FILE__)."/ressources/class.mysql.syslogs.inc");
 
-if($argv[1]=="--restore"){echo restore($argv[2]);return;}
+if($argv[1]=="--restore"){echo restore($argv[2],$argv[3]);return;}
 
 
-function restore($filename){
+function restore($filename,$storeid){
 	$filename=trim($filename);
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$filename.pid";
 	$pid=@file_get_contents("$pidfile");
 	if($unix->process_exists($pid,basename(__FILE__))){die();}
 	@file_put_contents($pidfile, getmypid());
-	
+	$EnableSyslogDB=@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableSyslogDB");
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
 	@mkdir("/var/log/artica-postfix/squid-brut",0777,true);
+	@mkdir("/var/log/artica-postfix/squid-reverse",0777,true);
+	
 	
 	
 	$GLOBALS["filename"]=$filename;
@@ -38,11 +42,17 @@ function restore($filename){
 	$bzip2=$unix->find_program("bzip2");
 	$gunzip=$unix->find_program("gunzip");
 	
-	$q=new mysql_syslog();
+	
 	
 	progress("Extract $filename from MySQL database into $TempDir",4);
-	$sql="SELECT filedata INTO DUMPFILE '$TempDir/$filename' FROM store WHERE filename = '$filename'";
-	$q->QUERY_SQL($sql);
+	if($EnableSyslogDB==1){
+		$q=new mysql_storelogs();
+		$sql="SELECT filecontent INTO DUMPFILE '$TempDir/$filename' FROM files_store WHERE ID = '$storeid'";
+	}else{
+		$q=new mysql_syslog();
+		$sql="SELECT filedata INTO DUMPFILE '$TempDir/$filename' FROM store WHERE filename = '$filename'";
+		$q->QUERY_SQL($sql);
+	}
 	if(!$q->ok){progress("Failed!!! $q->mysql_error",100);return;}
 	$file_extension=file_extension($filename);
 	progress("Extract $filename extension: $file_extension",5);

@@ -41,7 +41,10 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 		private $ajaxScript = "";					// ecriture du script ajax
 		public $USLink=false;
 		private $LienJoursJS=null;
-		
+		public $StyleMoisSize=0;
+		public $StyleJoursSize=0;
+		public $StyleHeight=0;
+		public $InsideEvents=false;
 		
 	
 /*_______________________________________________________________________________________________________________	
@@ -460,7 +463,7 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 					$onclickPrec = $onclickSuiv = "";
 				}
 				$colspan = $this->navigMois ?  ($nbCols-2) : $nbCols ;
-				
+				if($this->StyleMoisSize>0){$styleMois=" style='font-size:{$this->StyleMoisSize}px'";}
 				
 				$code .=  "<tr>\n";
 				
@@ -471,13 +474,13 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 				($this->dateMin && $this->convert("SQL",$date) <= $this->convert("SQL",$this->dateMin))		// date inferieure � limite inf
 				|| (!$this->passe && $this->convert("SQL",$date) <= gmdate("Y-m-d"))
 				)
-					$code .= "<th class=\"mois\">&nbsp;</th>";
+					$code .= "<th class=\"mois\"$styleMois>&nbsp;</th>";
 				else
-					$code .= "<th class=\"mois\"><a ". (strlen($lienMoisPrec)>0 ? "href=\"".$lienMoisPrec."\"" : "") .$onclickPrec.$this->targetNavig."><strong style='font-size:24px'>&laquo;</strong></a></th>";
+					$code .= "<th class=\"mois\"$styleMois><a ". (strlen($lienMoisPrec)>0 ? "href=\"".$lienMoisPrec."\"" : "") .$onclickPrec.$this->targetNavig."><strong style='font-size:24px'>&laquo;</strong></a></th>";
 
 
 				// lien mois en cours	
-				$code .=  "<th colspan=\"".$colspan."\" class=\"mois\">".($this->lienMoisActif ? "<a href=\"".$lienMois."\"".$this->targetLiens.">" : "") . sprintf("%s %04d",$this->_num2Month($moisCur),$a_annee).($this->lienMoisActif ? "</a>" : "") . "</th>";
+				$code .=  "<th colspan=\"".$colspan."\" class=\"mois\"$styleMois>".($this->lienMoisActif ? "<a href=\"".$lienMois."\"".$this->targetLiens.">" : "") . sprintf("%s %04d",$this->_num2Month($moisCur),$a_annee).($this->lienMoisActif ? "</a>" : "") . "</th>";
 				
 				
 
@@ -488,23 +491,29 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 				($this->dateMax && $this->getDateFrom($max,"SQL",$date) >= $this->convert("SQL",$this->dateMax))		// date inferieure � limite inf
 				|| (!$this->futur && $this->getDateFrom($max,"SQL",$date) >= gmdate("Y-m-d"))
 				)
-					$code .= "<th class=\"mois\">&nbsp;</th>";
+					$code .= "<th class=\"mois\"$styleMois>&nbsp;</th>";
 				else
-					$code .= "<th class=\"mois\"><a ". (strlen($lienMoisSuiv)>0 ? "href=\"".$lienMoisSuiv."\"" : "") .$onclickSuiv.$this->targetNavig."><strong style='font-size:24px'>&raquo;</strong></a></th>";
+					$code .= "<th class=\"mois\"$styleMois><a ". (strlen($lienMoisSuiv)>0 ? "href=\"".$lienMoisSuiv."\"" : "") .$onclickSuiv.$this->targetNavig."><strong style='font-size:24px'>&raquo;</strong></a></th>";
 
 				$code .=  "</tr>\n";
 			}
 			
+			$stjours[]=" style='";
+			
+			if($this->StyleJoursSize>0){$stjours[]="font-size:{$this->StyleJoursSize}px;";}
+			if($this->StyleHeight>0){$stjours[]="height:{$this->StyleHeight}px;vertical-align:middle;";}
+			$stjours[]="'";
+			$styleJours=@implode("", $stjours);
 			
 			// ligne des jours lit�raux
 			if ($this->cjours)
 			{
 				$code .=  "<tr>\n";
 				if ($this->csemaines)
-					$code .=  "<th>&nbsp;</th>";
+					$code .=  "<th $styleJours>&nbsp;</th>";
 				for ($j=1; $j<=7; $j++)
 				{
-					$code .=  "<th class=\"jour\">".substr($this->jours[$this->lng][$j],0,3)."</th>";
+					$code .=  "<th class=\"jour\" $styleJours>".substr($this->jours[$this->lng][$j],0,3)."</th>";
 				}
 				$code .=  "</tr>\n";
 			}
@@ -528,9 +537,9 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 				|| (!$this->futur && $semaine > $curSemaine) 
 				|| (!$this->passe && $semaine < $curSemaine)
 				)
-					$code .=  "<tr><th>" . $noSemaine . "</th>";
+					$code .=  "<tr><th $styleJours>" . $noSemaine . "</th>";
 				else
-					$code .=  "<tr><th><a href=\"".$lienSemaine."\"".$this->targetLiens.">" . $noSemaine . "</a></th>";
+					$code .=  "<tr><th $styleJours><a href=\"".$lienSemaine."\"".$this->targetLiens.">" . $noSemaine . "</a></th>";
 			}
 			
 			
@@ -547,31 +556,32 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 					$lienJour = $this->_ecritLien($this->lienJours,$a_annee,$a_mois,$jour);
 
 				// affichage du jour
-				if ($jour>0 && $jour<=$max)
-				{
+				if ($jour>0 && $jour<=$max){
 					$event = false;
 					// jours avec liens vers les �v�nements
-					if ($this->cevents)
-					{
+					if ($this->cevents){
 						// divs des �v�nements
-						if (isset($this->events[$jourStr]) && is_array($this->events[$jourStr]))
-						{
+						if (isset($this->events[$jourStr]) && is_array($this->events[$jourStr])){
 							$nomdiv = "event_".parent::convert("UNX",$jourStr);
+							$InsideEvents=array();
 							$codeEvent .= "<div id=\"".$nomdiv."\" class=\"event\" style=\"display:none;\">";
 							foreach ($this->events[$jourStr] as $event)
+								$InsideEvents[]=$event['event'];
 								$codeEvent .= $event['event'];
-							$codeEvent .="</div>\n";
-							$event = true;
+								$codeEvent .="</div>\n";
+								$event = true;
 						}
-						$onclick = $event ? " onmouseover=\"document.getElementById('".$nomdiv."').style.display='block';\" onmouseout=\"document.getElementById('".$nomdiv."').style.display='none';\"" : "";
+						if(!$this->InsideEvents){
+							$onclick = $event ? " onmouseover=\"document.getElementById('".$nomdiv."').style.display='block';\" onmouseout=\"document.getElementById('".$nomdiv."').style.display='none';\"" : "";
+						}
 					}
 					
 					
 					// CODE HTML DES JOURS
 					
-					$codeJourInactif = "<td class=\"inactif\">".sprintf("%02d",$jour)."</td>\n";
+					$codeJourInactif = "<td class=\"inactif\" $styleJours>".sprintf("%02d",$jour)."</td>\n";
 
-					$codeJourActif = "<td class=\"actif\">";
+					$codeJourActif = "<td class=\"actif\" $styleJours>";
 					if ($this->liensJoursActif){ 
 						if($this->LienJoursJS<>null){
 							$lienJourJS="OnClick=\"javascript:$this->LienJoursJS('$lienJour')\" ";
@@ -583,7 +593,7 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 						$codeJourActif .= "</td>\n";
 					}
 
-					$codeJourActifToday = "<td class=\"today\">";
+					$codeJourActifToday = "<td class=\"today\" $styleJours>";
 					if ($this->liensJoursActif){
 						
 						if($this->LienJoursJS<>null){
@@ -604,16 +614,25 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 						$lienJour="javascript:blur();";
 					}
 					
+					if(count($InsideEvents)>0){
+						$InsideEventsText="<div style='font-size:12px;margin-5px;text-align:left'>".@implode("\n", $InsideEvents)."</div>";
+					}
 					
-					$codeEvenement = "<td class=\"event\">";
+					$codeEvenement = "<td class=\"event\" $styleJours>";
 					$codeEvenement .= "<a href=\"".$lienJour."\"$lienJourJS".$onclick.$this->targetLiens.">".sprintf("%02d",$jour)."</a>";
+					if(count($InsideEvents)>0){
+						$codeEvenement .= $InsideEventsText;
+					}
 					$codeEvenement .= "</td>\n";
 
-					$codeEvenementToday = "<td class=\"today\">";
+					$codeEvenementToday = "<td class=\"today\" $styleJours>";
 					$codeEvenementToday .= "<a href=\"".$lienJour."\"$lienJourJS".$onclick.$this->targetLiens.">".sprintf("%02d",$jour)."</a>";
+					if(count($InsideEvents)>0){
+						$codeEvenementToday .= $InsideEventsText;
+					}
 					$codeEvenementToday .= "</td>\n";
 					
-					$codeJourInactifToday = "<td class=\"today\">".sprintf("%02d",$jour)."</td>\n";
+					$codeJourInactifToday = "<td class=\"today\" $styleJours>".sprintf("%02d",$jour)."</td>\n";
 					
 					
 					// affichage jour pass�
@@ -677,9 +696,9 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 						|| (!$this->futur && $semaine > $curSemaine) 
 						|| (!$this->passe && $semaine < $curSemaine)
 						)
-							$code .=  "<tr><th>" . $noSemaine . "</th>";
+							$code .=  "<tr><th $styleJours>" . $noSemaine . "</th>";
 						else
-							$code .=  "<tr><th><a href=\"".$lienSemaine."\"".$this->targetLiens.">" . $noSemaine . "</a></th>";
+							$code .=  "<tr><th $styleJours><a href=\"".$lienSemaine."\"".$this->targetLiens.">" . $noSemaine . "</a></th>";
 
 					}
 				}

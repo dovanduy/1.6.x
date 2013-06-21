@@ -565,7 +565,8 @@ function index(){
 	$ADD_COMPUTER=$tpl->_ENGINE_parse_body("{ADD_COMPUTER}");
 	$periodic_scan=$tpl->_ENGINE_parse_body("{periodic_scan}");
 	$findcomputer="{name: '$scan_your_network', bclass: 'ScanNet', onpress : ScanNet},";
-
+	$networks=$tpl->_ENGINE_parse_body('{edit_networks}');
+	
 	$networs="{name: '$edit_networks', bclass: 'Net', onpress : ViewNetwork},";
 	$addComp="{name: '$ADD_COMPUTER', bclass: 'Add', onpress : AddCompz},";
 
@@ -680,6 +681,10 @@ function ScanNet(){
 
 function AddCompz(){
 	$add_computer_js
+}
+
+function ViewNetwork(){
+	YahooWin2(550,'$page?browse-networks=yes','$networks');
 }
 
 function PerScanz(){

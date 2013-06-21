@@ -141,6 +141,6 @@ $f[]="";
 @chmod("/etc/init.d/samba", 0755);
 $f=array();
 shell_exec("$updatercd -f samba defaults >/dev/null 2>&1");
-shell_exec($unix->LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.winbind.php");
+shell_exec($unix->LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.winbindd.php");
 echo "PLEASE WAIT.... Creating startup samba scripts for SMBD and WINBINDD DONE !\n";	
 }

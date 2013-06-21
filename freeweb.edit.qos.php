@@ -20,13 +20,13 @@ page();
 	
 	
 function page(){
-	$sql="SELECT * FROM freeweb WHERE servername='{$_GET["servername"]}'";
+	
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$q=new mysql();
 	$sock=new sockets();
-	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
-	$Params=unserialize($ligne["Params"]);	
+	$free=new freeweb($_GET["servername"]);
+	$Params=$free->Params;
 	
 	$EnableQOS=$Params["QOS"]["EnableQOS"];
 	$QS_ClientEntries=$Params["QOS"]["QS_ClientEntries"];
@@ -48,50 +48,50 @@ function page(){
 	$html="
 	<div id='webdav-qos'>
 	<div style='font-size:16px'>{QOS}</div>
-	<div class=explain>{mod_qos_explain}</div>
+	<div class=explain style='font-size:14px'>{mod_qos_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend>{enable_qos_service}:</td>
+		<td class=legend style='font-size:16px'>{enable_qos_service}:</td>
 		<td>". Field_checkbox("EnableQOS",1,$EnableQOS)."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend>{QS_ClientEntries}:</td>
-		<td>". Field_text("QS_ClientEntries",$QS_ClientEntries,"font-size:13px;width:90px")."</td>
+		<td class=legend style='font-size:16px'>{QS_ClientEntries}:</td>
+		<td>". Field_text("QS_ClientEntries",$QS_ClientEntries,"font-size:16px;width:120px")."</td>
 		<td>". help_icon("{QS_ClientEntries_explain}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{QS_SrvMaxConnPerIP}:</td>
-		<td>". Field_text("QS_SrvMaxConnPerIP",$QS_SrvMaxConnPerIP,"font-size:13px;width:30px")."</td>
+		<td class=legend style='font-size:16px'>{QS_SrvMaxConnPerIP}:</td>
+		<td>". Field_text("QS_SrvMaxConnPerIP",$QS_SrvMaxConnPerIP,"font-size:16px;width:90px")."</td>
 		<td>". help_icon("{QS_SrvMaxConnPerIP_explain}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{QOSMaxClients}:</td>
-		<td>". Field_text("MaxClients",$MaxClients,"font-size:13px;width:30px")."</td>
+		<td class=legend style='font-size:16px'>{QOSMaxClients}:</td>
+		<td>". Field_text("MaxClients",$MaxClients,"font-size:16px;width:90px")."</td>
 		<td>". help_icon("{QOSMaxClients_explain}")."</td>
 	</tr>		
 	<tr>
-		<td class=legend>{QS_SrvMaxConnClose}:</td>
-		<td>". Field_text("QS_SrvMaxConnClose",$QS_SrvMaxConnClose,"font-size:13px;width:60px")."</td>
+		<td class=legend style='font-size:16px'>{QS_SrvMaxConnClose}:</td>
+		<td>". Field_text("QS_SrvMaxConnClose",$QS_SrvMaxConnClose,"font-size:16px;width:90px")."</td>
 		<td>". help_icon("{QS_SrvMaxConnClose_explain}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{QS_SrvMinDataRate}:</td>
-		<td>". Field_text("QS_SrvMinDataRate",$QS_SrvMinDataRate,"font-size:13px;width:90px")."</td>
+		<td class=legend style='font-size:16px'>{QS_SrvMinDataRate}:</td>
+		<td>". Field_text("QS_SrvMinDataRate",$QS_SrvMinDataRate,"font-size:16px;width:120px")."</td>
 		<td>". help_icon("{QS_SrvMinDataRate_explain}")."</td>
 	</tr>
 	<tr>
-		<td class=legend>{LimitRequestFields}:</td>
-		<td>". Field_text("LimitRequestFields",$LimitRequestFields,"font-size:13px;width:60px")."</td>
+		<td class=legend style='font-size:16px'>{LimitRequestFields}:</td>
+		<td>". Field_text("LimitRequestFields",$LimitRequestFields,"font-size:16px;width:60px")."</td>
 		<td></td>
 	</tr>		
 	<tr>
-		<td class=legend>{QS_LimitRequestBody}:</td>
-		<td>". Field_text("QS_LimitRequestBody",$QS_LimitRequestBody,"font-size:13px;width:90px")."</td>
+		<td class=legend style='font-size:16px'>{QS_LimitRequestBody}:</td>
+		<td>". Field_text("QS_LimitRequestBody",$QS_LimitRequestBody,"font-size:16px;width:120px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td colspan=3 align=right><hr>". button("{apply}","SaveWebQOS()")."</td>
+		<td colspan=3 align=right><hr>". button("{apply}","SaveWebQOS()",18)."</td>
 	</tr>
 	</table>
 	<p>&nbsp;</p>
@@ -137,22 +137,14 @@ function SaveWebQOS(){
 	$sql="SELECT * FROM freeweb WHERE servername='{$_GET["servername"]}'";
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$q=new mysql();
-	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
-	$Params=unserialize($ligne["Params"]);	
-
+		
+	$free=new freeweb($_GET["servername"]);
 	while (list ($num, $ligne) = each ($_GET) ){
-		$Params["QOS"][$num]=$ligne;
+		$free->Params["QOS"][$num]=$ligne;
 		
 	}
 	
-	$data=addslashes(serialize($Params));
-	$sql="UPDATE freeweb SET `Params`='$data' WHERE servername='{$_GET["servername"]}'";
-	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?freeweb-website=yes&servername={$_GET["servername"]}");	
-	
+	$free->SaveParams();
 }
 
 

@@ -6,6 +6,7 @@ include_once(dirname(__FILE__) . '/ressources/class.ccurl.inc');
 include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__) . '/ressources/class.pdns.inc');
+include_once(dirname(__FILE__) . '/ressources/class.system.network.inc');
 $GLOBALS["SHOWKEYS"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(is_array($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}}
@@ -19,6 +20,9 @@ if($argv[1]=="--reload"){reload_service();exit;}
 if($argv[1]=="--rebuild-database"){rebuild_database();exit;}
 if($argv[1]=="--replic-artica"){replic_artica_servers();exit;}
 if($argv[1]=="--allow-recursion"){allow_recursion();exit;}
+if($argv[1]=="--start-recursor"){start_recursor();exit;}
+if($argv[1]=="--stop-recursor"){stop_recursor();exit;}
+if($argv[1]=="--listen-ips"){listen_ips();exit;}
 
 
 function poweradmin(){
@@ -1020,12 +1024,16 @@ function replic_artica_servers_perform($host,$username,$password){
 }
 
 function forward_zones(){
+	$unix=new unix();
+	shell_exec(trim($unix->find_program("nohup")." ". $unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.initslapd.php --pdns-recursor >/dev/null 2>&1 &"));
+	
+	
 	$q=new mysql();
 	$sql="SELECT * FROM pdns_fwzones";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){return;}	
-	
-	
+	$ZONES=array();
+	$ZONES_RECUSRIVE=array();
 	@unlink("/etc/powerdns/forward-zones-file");
 	@unlink("/etc/powerdns/forward-zones-recurse");
 
@@ -1046,25 +1054,33 @@ function forward_zones(){
 	if(count($ZONES)>0){
 		$t=array();
 		while (list ($zone, $array) = each ($ZONES) ){
+			if(count($array)==0){continue;}
 			$z=array();
-			while (list ($hostname, $none) = each ($array) ){$z[]=$hostname;}
+			while (list ($hostname, $none) = each ($array) ){if(trim($hostname)==null){continue;}$z[]=$hostname;}
 			echo "Starting......: PowerDNS Forward zone $zone -> ".@implode(",",$z)."\n";
 			$t[]="$zone=".@implode(",",$z);
 		}
-
-		@file_put_contents("/etc/powerdns/forward-zones-file", @implode("\n", $t));
+		if(count($t)>0){
+			@file_put_contents("/etc/powerdns/forward-zones-file", @implode("\n", $t));
+		}
 	}
 	
 	if(count($ZONES_RECUSRIVE)>0){
 		$t=array();
 		while (list ($zone, $array) = each ($ZONES_RECUSRIVE) ){
+			if(count($array)==0){continue;}
 			$z=array();
-			while (list ($hostname, $none) = each ($array) ){$z[]=$hostname;}
+			
+			while (list ($hostname, $none) = each ($array) ){
+				if(trim($hostname)==null){continue;}
+				$z[]=$hostname;}
 			echo "Starting......: PowerDNS Forward recursive zone $zone -> ".@implode(",",$z)."\n";
 			$t[]="$zone=".@implode(",",$z);
 		}
-	
-		@file_put_contents("/etc/powerdns/forward-zones-file", @implode(";", $t));
+		
+		if(count($t)>0){
+			@file_put_contents("/etc/powerdns/forward-zones-file", @implode(";", $t));
+		}
 	}	
 }
 
@@ -1085,6 +1101,206 @@ function allow_recursion(){
 	
 }
 
+function stop_recursor(){
+	$sock=new sockets();
+	$unix=new unix();
+	$DisablePowerDnsManagement=$sock->GET_INFO("DisablePowerDnsManagement");
+	
+	if(!is_numeric($DisablePowerDnsManagement)){$DisablePowerDnsManagement=0;}
+	$nohup=$unix->find_program("nohup");
+	$recursorbin=$unix->find_program("pdns_recursor");
+	$kill=$unix->find_program("kill");
+	if($DisablePowerDnsManagement==1){
+		echo "Stopping......: PowerDNS Recursor DisablePowerDnsManagement=$DisablePowerDnsManagement, aborting task\n";
+		return;
+	}
+
+	if(!is_file($recursorbin)){
+		echo "Stopping......: PowerDNS Recursor Not installed, aborting task\n";
+	}	
+	
+	$pid=pdns_recursor_pid();
+	if(!$unix->process_exists($pid)){
+		echo "Stopping......: PowerDNS Recursor Already stopped\n";
+		return;
+	}
+	
+	$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+	echo "Stopping......: PowerDNS Recursor pid $pid running since {$pidtime}mn\n";
+	shell_exec("$kill $pid");
+	sleep(1);
+	$pid=pdns_recursor_pid();
+	if($unix->process_exists($pid)){
+		for($i=0;$i<5;$i++){
+			echo "Stopping......: PowerDNS Recursor waiting pid $pid top stop ".($i+1)."/5\n";
+			shell_exec("$kill $pid");
+			$pid=pdns_recursor_pid();
+			if(!$unix->process_exists($pid)){break;}
+		}
+	}	
+	
+	$pid=pdns_recursor_pid();
+	if($unix->process_exists($pid)){
+		echo "Stopping......: PowerDNS Recursor force killing pid $pid\n";
+		shell_exec("$kill -9 $pid");
+		if($unix->process_exists($pid)){
+			for($i=0;$i<5;$i++){
+				echo "Stopping......: PowerDNS Recursor waiting pid $pid top stop ".($i+1)."/5\n";
+				shell_exec("$kill -9 $pid");
+				$pid=pdns_recursor_pid();
+				if(!$unix->process_exists($pid)){break;}
+				}
+			}
+	}
+	
+	$pid=pdns_recursor_pid();
+	if($unix->process_exists($pid)){
+		echo "Stopping......: PowerDNS Recursor Failed to stop\n";
+	}else{
+		echo "Stopping......: PowerDNS Recursor success\n";
+	}
+	
+}
+
+function start_recursor(){
+	$sock=new sockets();
+	$unix=new unix();
+	$DisablePowerDnsManagement=$sock->GET_INFO("DisablePowerDnsManagement");
+	$PowerDNSRecursorQuerLocalAddr=$sock->GET_INFO("PowerDNSRecursorQuerLocalAddr");
+	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
+	if(!is_numeric($DisablePowerDnsManagement)){$DisablePowerDnsManagement=0;}
+	$EnableChilli=0;
+	$chilli=$unix->find_program("chilli");
+	if(is_file($chilli)){
+		$EnableChilli=$sock->GET_INFO("EnableChilli");
+		if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+	}
+	
+	if($EnableChilli==1){
+		echo "Stopping......: PowerDNS Recursor HotSpot is enabled...\n";
+		stop_recursor();
+		return;
+	}
+	
+	
+	if($PowerDNSRecursorQuerLocalAddr==null){
+		$net=new networking();
+		$net->ifconfig("eth0");
+		if($net->tcp_addr<>null){
+			if($net->tcp_addr<>"0.0.0."){
+				$PowerDNSRecursorQuerLocalAddr=$net->tcp_addr;
+			}
+		}
+		
+	}
+	
+	
+	
+	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
+	$nohup=$unix->find_program("nohup");
+	$recursorbin=$unix->find_program("pdns_recursor");
+	
+	if(!is_file($recursorbin)){
+		echo "Starting......: PowerDNS Recursor Not installed, aborting task\n";
+	}
+	$pid=pdns_recursor_pid();
+	if($unix->process_exists($pid)){
+		$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+		echo "Starting......: PowerDNS Recursor Already running PID $pid since {$pidtime}mn\n";
+		return;
+	}
+	
+	if($DisablePowerDnsManagement==1){
+		echo "Starting......: PowerDNS Recursor DisablePowerDnsManagement=$DisablePowerDnsManagement, aborting task\n";
+		return;
+	}
+	if($EnablePDNS==0){
+		echo "Starting......: PowerDNS Recursor service is disabled, aborting task\n";
+		stop_recursor();
+		return;
+	}	
+	
+	$trace=null;$quiet="yes";
+	$PowerDNSLogLevel=$sock->GET_INFO("PowerDNSLogLevel");
+	$PowerDNSLogsQueries=$sock->GET_INFO("PowerDNSLogsQueries");
+	if(!is_numeric($PowerDNSLogLevel)){$PowerDNSLogLevel=1;}
+	
+	$query_local_address=" --query-local-address=$PowerDNSRecursorQuerLocalAddr";
+
+	
+	if ($PowerDNSLogLevel>8){$trace=' --trace';}
+	if ($PowerDNSLogsQueries==1){$quiet='no';}
+	
+	echo "Starting......: PowerDNS Recursor Network card to send queries $PowerDNSRecursorQuerLocalAddr\n";
+	echo "Starting......: PowerDNS Recursor Log level [$PowerDNSLogLevel]\n";
+	echo "Starting......: PowerDNS Recursor Verify MySQL DB...\n";
+	checkMysql();
+	
+	@mkdir("/var/run/pdns",0755,true);
+	
+	$cmdline="$nohup $recursorbin --daemon --export-etc-hosts --socket-dir=/var/run/pdns --quiet=$quiet --config-dir=/etc/powerdns{$trace} $query_local_address >/dev/null 2>&1 &";
+	shell_exec($cmdline);
+	sleep(1);
+	$pid=pdns_recursor_pid();
+	if(!$unix->process_exists($pid)){
+		for($i=0;$i<5;$i++){
+			echo "Starting......: PowerDNS Recursor waiting ".($i+1)."/5\n";
+			$pid=pdns_recursor_pid();
+			if($unix->process_exists($pid)){break;}
+		}
+	}
+	
+	$pid=pdns_recursor_pid();
+	if(!$unix->process_exists($pid)){
+		echo "Starting......: PowerDNS Recursor failed\n";
+		echo "Starting......: PowerDNS Recursor \"$cmdline\"\n";
+	}else{
+		echo "Starting......: PowerDNS Recursor success PID $pid\n";
+	}
+	
+}
+
+function pdns_recursor_pid(){
+	$unix=new unix();
+	$pid=trim(@file_get_contents("/var/run/pdns/pdns_recursor.pid"));
+	if($unix->process_exists($pid)){return $pid;}
+	$recursorbin=$unix->find_program("pdns_recursor");
+	return $unix->PIDOF($recursorbin);
+	
+}
+
+function listen_ips(){
+	$sock=new sockets();
+	$unix=new unix();
+	$PowerDNSListenAddr=$sock->getFrameWork("PowerDNSListenAddr");
+	$t=array();
+	$ipA=explode("\n", $PowerDNSListenAddr);
+	while (list ($line2,$ip) = each ($ipA) ){
+		if(trim($ip)==null){continue;}
+		if(!$unix->isIPAddress($ip)){continue;}
+		$t[$ip]=$ip;
+	}
+	
+	if(count($t)==0){
+		$ips=new networking();
+		$ipz=$ips->ALL_IPS_GET_ARRAY();
+		while (list ($ip, $line2) = each ($ipz) ){
+			$t[$ip]=$ip;
+		
+		}
+		
+	}
+	
+	$t["127.0.0.1"]="127.0.0.1";
+	while (list ($a,$b) = each ($t) ){
+		$f[]=$a;
+		
+		
+	}
+	
+	@file_put_contents("/etc/powerdns/iplist", @implode(",", $f));
+	
+}
 
 
 ?>

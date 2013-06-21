@@ -344,6 +344,7 @@ function connection_list(){
 	$CONNECTIONS_TYPE["livingston"]="Livingston PortMaster";
 	$CONNECTIONS_TYPE["max40xx"]="Ascend Max 4000 family";
 	$CONNECTIONS_TYPE["multitech"]="Multitech CommPlete Server";
+	$CONNECTIONS_TYPE["mikrotik"]="Mikrotik";
 	$CONNECTIONS_TYPE["netserver"]="3Com/USR NetServer";
 	$CONNECTIONS_TYPE["pathras"]="Cyclades PathRAS";
 	$CONNECTIONS_TYPE["patton"]="Patton 2800 family";

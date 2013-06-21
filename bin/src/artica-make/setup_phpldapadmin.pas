@@ -217,11 +217,11 @@ if not DirectoryExists(source_folder) then source_folder:=libs.COMPILE_GENERIC_A
 
 if length(trim(source_folder))=0 then begin
      writeln('Install phpmyadmin failed...');
-     install.INSTALL_STATUS('APP_PHPMYADMIN',110);
+     install.INSTALL_STATUS(CODE_NAME,110);
      exit;
 end;
-    install.INSTALL_PROGRESS('APP_PHPMYADMIN','{installing}');
-    install.INSTALL_STATUS('APP_PHPMYADMIN',70);
+    install.INSTALL_PROGRESS(CODE_NAME,'{installing}');
+    install.INSTALL_STATUS(CODE_NAME,70);
 writeln('Installing phpmyadmin from "',source_folder,'"');
 forceDirectories('/usr/share/phpmyadmin');
 fpsystem('/bin/cp -rf '+source_folder+'/* /usr/share/phpmyadmin/');
@@ -239,6 +239,7 @@ if FileExists('/usr/share/phpmyadmin/index.php') then begin
    writeln('unable to stat /usr/share/phpmyadmin/index.php');
   install.INSTALL_PROGRESS(CODE_NAME,'{failed}');
   install.INSTALL_STATUS(CODE_NAME,110);
+  fpsystem('/etc/init.d/artica-postfix restart apache');
   exit;
 
 end;

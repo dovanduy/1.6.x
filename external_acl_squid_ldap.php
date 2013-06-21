@@ -79,7 +79,8 @@ if(isset($GLOBALS["F"])){@fclose($GLOBALS["F"]);}
 function LoadSettings(){
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."\n";}
 	if(!isset($GLOBALS["LoadSettingsFailed"])){$GLOBALS["LoadSettingsFailed"]=0;}
-	$fh = fopen('/etc/artica-postfix/settings/Daemons/KerbAuthInfos', 'r');
+	if(!is_file("/etc/artica-postfix/settings/Daemons/KerbAuthInfos")){$GLOBALS["KerbAuthInfos"]=null;return;}
+	$fh = @fopen('/etc/artica-postfix/settings/Daemons/KerbAuthInfos', 'r');
 	if(!$fh){
 			$GLOBALS["LoadSettingsFailed"]++;
 			usleep(5000);
@@ -88,7 +89,7 @@ function LoadSettings(){
 			}
 		return;}
 	$data = fread($fh, filesize('/etc/artica-postfix/settings/Daemons/KerbAuthInfos'));
-	fclose($fh);
+	@fclose($fh);
 	if($GLOBALS["VERBOSE"]){echo "############################\n$data\n############################\n";}	
 	$decoded=base64_decode($data);
 	if($GLOBALS["VERBOSE"]){echo "############################\n$decoded\n############################\n";}
@@ -162,7 +163,6 @@ function GetGroupsFromMember($member){
 	
 	unset($GLOBALS["RETRY_AFTER_ERROR"]);
 	if(isset($hash[0]["memberof"])){
-		//WLOG("{$hash[0]["memberof"]["count"]} items");
 		for($i=0;$i<$hash[0]["memberof"]["count"];$i++){
 			if(preg_match("#^CN=(.+?),#i", $hash[0]["memberof"][$i],$re)){
 				$re[1]=trim(strtolower($re[1]));
@@ -171,7 +171,7 @@ function GetGroupsFromMember($member){
 			
 		}
 	}
-
+	
 	return $array;
 	
 }
@@ -182,7 +182,8 @@ function MemberInfoByDN($dn){
 		return null;
 	}
 	$searchFilter="(objectClass=*)";
-	$filter=array("displayName","samaccountname","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber","objectClass","member","memberOf");
+	//"memberOf" retiré.
+	$filter=array("displayName","samaccountname","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber","objectClass","member");
 	$sr =@ldap_search($GLOBALS["CONNECTION"],$dn,"$searchFilter",$filter,null, null, 10);
 	if (!$sr) {WLOG("[QUERY]: MemberInfoByDN()::Bad search $dn / $searchFilter");return null;}
 	$hash=ldap_get_entries($GLOBALS["CONNECTION"],$sr);
@@ -330,10 +331,10 @@ function HashUsersFromGroupDN($dn){
 			
 	}
 	
-	if(isset($hash[0]["memberof"]["count"])){
+	/*if(isset($hash[0]["memberof"]["count"])){
 		for($i=0;$i<$hash[0]["memberof"]["count"];$i++){
 			$dn1=$hash[0]["memberof"][0];
-			$ff=$this->HashUsersFromGroupDN($dn1);
+			$ff=HashUsersFromGroupDN($dn1);
 			if(count($ff)>0){
 				while (list ($a, $b) = each ($ff) ){
 					if(trim($b)==null){continue;}
@@ -343,7 +344,7 @@ function HashUsersFromGroupDN($dn){
 
 		}
 	}
-
+	*/
 	
 	while (list ($a, $b) = each ($f) ){
 		if(trim($b)==null){continue;}
@@ -424,8 +425,7 @@ function ConnectToPureLDAP(){
 				$error=$error . "<br>Insufficient access rights.";
 				break;
 			case 81:
-				$error=$error . "<br>Unable to connect to the LDAP server<br>
-				$server<br>please,<br>verify if ldap daemon is running<br> or the ldap server address";
+				$error=$error . "<br>Unable to connect to the LDAP server<br>$server<br>please,<br>verify if ldap daemon is running<br> or the ldap server address";
 				break;
 			case -1:
 					
@@ -436,7 +436,7 @@ function ConnectToPureLDAP(){
 		WLOG("[LDAP]: Connecting to LDAP server $server failed<br>$error");
 		return false;
 	}
-	WLOG("[LDAP]: Binding to LDAP server $server <span style='font-weight:bold;color:#00B218'>success</span>.");
+	//WLOG("[LDAP]: Binding to LDAP server $server <span style='font-weight:bold;color:#00B218'>success</span>.");
 	return true;	
 	
 }
@@ -456,14 +456,14 @@ function ConnectToLDAP(){
 	
 	$GLOBALS["SUFFIX"]=$array["LDAP_SUFFIX"];
 	$GLOBALS["CONNECTION"]=@ldap_connect($array["LDAP_SERVER"],$array["LDAP_PORT"]);
-	WLOG("[LDAP]: Connecting to LDAP server `{$array["LDAP_SERVER"]}:{$array["LDAP_PORT"]}`");
+	//WLOG("[LDAP]: Connecting to LDAP server `{$array["LDAP_SERVER"]}:{$array["LDAP_PORT"]}`");
 	if(!$GLOBALS["CONNECTION"]){
 		WLOG("[LDAP]: <strong style='color:red'>Fatal: ldap_connect({$array["LDAP_SERVER"]},{$array["LDAP_PORT"]} )");
 		@ldap_close();
 		return false;
 	}	
 	
-	WLOG("[LDAP]: Connecting to LDAP server {$array["LDAP_SERVER"]} <span style='font-weight:bold;color:#00B218'>success</span> with suffix:&laquo;{$GLOBALS["SUFFIX"]}&raquo;");
+	//WLOG("[LDAP]: Connecting to LDAP server {$array["LDAP_SERVER"]} <span style='font-weight:bold;color:#00B218'>success</span> with suffix:&laquo;{$GLOBALS["SUFFIX"]}&raquo;");
 	@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_PROTOCOL_VERSION, 3);
 	@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_REFERRALS, 0);	
 	@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_PROTOCOL_VERSION, 3); // on passe le LDAP en version 3, necessaire pour travailler avec le AD
@@ -501,10 +501,10 @@ function ConnectToLDAP(){
 			default:
 				$error=$error . "<br>Could not bind to the LDAP server." ."<br>". @ldap_err2str($GLOBALS["CONNECTION"]);
 		}
-		WLOG("[LDAP]: Connecting to LDAP server {$array["LDAP_SERVER"]} failed<br>$error");
+		WLOG("[LDAP]:".__LINE__." Connecting to LDAP server {$array["LDAP_SERVER"]} failed<br>$error");
 		return false;
 	}
-	WLOG("[LDAP]: Binding to LDAP server {$array["LDAP_SERVER"]} <span style='font-weight:bold;color:#00B218'>success</span>.");
+	//WLOG("[LDAP]: Binding to LDAP server {$array["LDAP_SERVER"]} <span style='font-weight:bold;color:#00B218'>success</span>.");
 	return true;
 }
 
@@ -580,7 +580,7 @@ function WLOG($text=null){
    			$GLOBALS["F"] = @fopen($filename, 'a');
    		}
    	}
-	if($GLOBALS["VERBOSE"]){echo "$date [{$GLOBALS["PID"]}]: $text $called\n";}
+	if($GLOBALS["VERBOSE"]){echo "$date ".basename(__FILE__)." [{$GLOBALS["PID"]}]: $text $called\n";}
 	@fwrite($GLOBALS["F"], "$date [{$GLOBALS["PID"]}]: $text $called\n");
 }
 
@@ -664,7 +664,16 @@ function ufdbguard_checks($id){
 		WLOG("[QUERY]: ufdbguard_checks($id) no user...");
 		return;
 	}
-	echo @implode($FINAL, "\n")."\n";
+	while (list ($a, $Member) = each ($FINAL) ){
+		$Member=trim($Member);
+		if($Member==null){continue;}
+		$Member=str_replace(" ", "%20", $Member);
+		$FINAL2[]=$Member;
+	}
+		
+		
+	
+	echo @implode($FINAL2, "\n")."\n";
 	
 	
 }

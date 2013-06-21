@@ -12,16 +12,26 @@
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.rtmm.tools.inc');
 
+	if(isset($_GET["thumbnail"])){thumbnail();exit;}
+	if(isset($_GET["thumbnail-zoom-js"])){thumbnail_zoom_js();exit;}
+	if(isset($_GET["thumbnail-zoom-popup"])){thumbnail_zoom_popup();exit;}	
 	
 	
-	$user=new usersMenus();
-	if(!$user->AsWebStatisticsAdministrator){
-		$tpl=new templates();
-		echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
-		exit;
-		
-	}	
-	
+	if(function_exists("Privileges_members_ownstats")){
+		if(!Privileges_members_ownstats()){
+			$tpl=new templates();
+			echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
+			exit;
+		}
+	}else{
+		$user=new usersMenus();
+		if(!$user->AsWebStatisticsAdministrator){
+			$tpl=new templates();
+			echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
+			exit;
+			
+		}	
+	}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["graph"])){echo graph();exit;}	
 	if(isset($_GET["browsed"])){echo browsed_websites();exit;}
@@ -32,15 +42,14 @@
 	if(isset($_GET["popup-filter"])){popup_filter();exit;}
 	if(isset($_GET["Q_CLIENT"])){saveFilter();exit;}
 	if(isset($_GET["show-hits"])){showhits();exit;}
-	if(isset($_GET["thumbnail"])){thumbnail();exit;}
-	if(isset($_GET["thumbnail-zoom-js"])){thumbnail_zoom_js();exit;}
-	if(isset($_GET["thumbnail-zoom-popup"])){thumbnail_zoom_popup();exit;}
+	
+
 	
 js();
 
 function thumbnail_zoom_js(){
 	$page=CurrentPageName();
-	$html="YahooSetupControlModal('430','$page?thumbnail-zoom-popup={$_GET["thumbnail-zoom-js"]}','{$_GET["thumbnail-zoom-js"]}');";
+	$html="YahooSearchUser('430','$page?thumbnail-zoom-popup={$_GET["thumbnail-zoom-js"]}','{$_GET["thumbnail-zoom-js"]}');";
 	echo $html;
 	
 }

@@ -295,9 +295,9 @@ begin
        end;
     end;
     bind9.STOP();
-    if loglevel>8 then straces:=' --log-dns-details --log-failed-updates --loglevel=3';
+    if loglevel>8 then straces:=' --log-dns-details --log-failed-updates --loglevel='+IntToStr(loglevel);
     fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pdns.php --mysql');
-    fpsystem(BIN_PATH()+' --daemon --guardian=yes --recursor=127.0.0.1:1553 --config-dir=/etc/powerdns --lazy-recursion=yes'+straces);
+    fpsystem(BIN_PATH()+' --daemon --guardian=yes --recursor=127.0.0.1:1553 --config-dir=/etc/powerdns '+straces);
     count:=0;
 
  while not SYS.PROCESS_EXIST(PID_NUM()) do begin
@@ -325,56 +325,8 @@ end;
 
 //#############################################################################
 procedure tpdns.RECURSOR_START();
-var
-   count:integer;
-   pid,trace,quiet:string;
-   loglevel:integer;
-   PowerDNSLogsQueries:integer;
-   PowerDNSDNSSEC:integer;
-   cmdline:string;
 begin
-     if DisablePowerDnsManagement=1 then exit;
-     quiet:='yes';
-    pid:=RECURSOR_PID_NUM();
-    IF sys.PROCESS_EXIST(pid) then begin
-       logs.DebugLogs('Starting......: PowerDNS Recursor Already running PID '+ pid);
-       if EnablePDNS=0 then RECURSOR_STOP();
-       exit;
-    end;
-
-    if not FIleExists(RECURSOR_BIN_PATH()) then begin
-       logs.DebugLogs('Starting......: PowerDNS Recursor is not installed');
-       exit;
-    end;
-
-    if not TryStrToInt(SYS.GET_INFO('PowerDNSLogLevel'),loglevel) then loglevel:=1;
-    if not TryStrToInt(SYS.GET_INFO('PowerDNSLogsQueries'),PowerDNSLogsQueries) then PowerDNSLogsQueries:=0;
-    if not TryStrToInt(SYS.GET_INFO('PowerDNSDNSSEC'),PowerDNSDNSSEC) then PowerDNSDNSSEC:=0;
-    forcedirectories('/var/run/pdns');
-    if loglevel>8 then trace:=' --trace';
-    if PowerDNSLogsQueries=1 then quiet:='no';
-    cmdline:=RECURSOR_BIN_PATH()+' --daemon --export-etc-hosts --socket-dir=/var/run/pdns --quiet='+quiet+' --config-dir=/etc/powerdns'+trace;
-    fpsystem(cmdline);
-    count:=0;
- while not SYS.PROCESS_EXIST(RECURSOR_PID_NUM()) do begin
-
-        sleep(100);
-        inc(count);
-        if count>90 then begin
-           logs.DebugLogs('Starting......: PowerDNS Recursor (timeout)');
-           logs.DebugLogs('Starting......: PowerDNS Recursor "'+cmdline+'"');
-           break;
-        end;
-  end;
-
-pid:=RECURSOR_PID_NUM();
-    IF sys.PROCESS_EXIST(pid) then begin
-       logs.DebugLogs('Starting......: PowerDNS Recursor successfully started and running PID '+ pid);
-       exit;
-    end;
-
-logs.DebugLogs('Starting......: PowerDNS Recursor failed');
-
+    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pdns.php --start-recursor');
 end;
 
 
@@ -499,52 +451,9 @@ end;
 
 //#############################################################################
 procedure tpdns.RECURSOR_STOP();
-var
-   count:integer;
-   pid:string;
 begin
-
-    if DisablePowerDnsManagement=1 then begin
-       writeln('Stopping PowerDNS Recursor...: Unlinked from Artica');
-       exit;
-    end;
-
-pid:=RECURSOR_PID_NUM();
-    IF not sys.PROCESS_EXIST(pid) then begin
-       writeln('Stopping PowerDNS Recursor...: Already stopped');
-       exit;
-    end;
-
-    writeln('Stopping PowerDNS Recursor...: Stopping Smoothly PID '+pid);                                                                                                                               
-
-       logs.OutputCmd('/bin/kill '+pid);
-       count:=0;
-       pid:=RECURSOR_PID_NUM();
-       while SYS.PROCESS_EXIST(pid) do begin
-            sleep(100);
-            inc(count);
-        if count>10 then begin
-           writeln('Stopping PowerDNS Recursor...: time-out');
-           break;
-        end;
-         logs.OutputCmd('/bin/kill '+pid);
-         pid:=RECURSOR_PID_NUM();
-     end;
-
-
-pid:=RECURSOR_PID_NUM();
-IF not sys.PROCESS_EXIST(pid) then begin
-       writeln('Stopping PowerDNS Recursor...: Successfully stopped');
-       exit;
-    end;
-
-
-
-    writeln('Stopping PowerDNS Recursor...: Failed');
-
+    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pdns.php --stop-recursor');
 end;
-
-
 //#############################################################################
 function tpdns.STATUS:string;
 var
@@ -608,8 +517,10 @@ var
    iplistV6:string;
    RecursoriplistV6:string;
    RecursoripAllowFrom:string;
+   LaunchPipe:integer;
    database_admin,database_password,AllowedRecursions:string;
    EnableUfdbGuard:integer;
+   PDNSHotSpot:integer;
    PowerDNSMySQLType,PowerDNSMySQLRemotePort,EnablePDNSRecurseRestrict:integer;
    PowerDNSMySQLRemoteServer,PowerDNSMySQLRemoteAdmin,PowerDNSMySQLRemotePassw:string;
 begin
@@ -638,10 +549,13 @@ if not TryStrToInt(SYS.GET_INFO('EnableUfdbGuard'),EnableUfdbGuard) then EnableU
 if not TryStrToInt(SYS.GET_INFO('PowerDNSMySQLType'),PowerDNSMySQLType) then PowerDNSMySQLType:=1;
 if not TryStrToInt(SYS.GET_INFO('PowerDNSMySQLRemotePort'),PowerDNSMySQLRemotePort) then PowerDNSMySQLRemotePort:=3306;
 if not TryStrToInt(SYS.GET_INFO('EnablePDNSRecurseRestrict'),EnablePDNSRecurseRestrict) then EnablePDNSRecurseRestrict:=0;
+if not TryStrToInt(SYS.GET_INFO('PdnsHotSpot'),PDNSHotSpot) then PDNSHotSpot:=0;
+LaunchPipe:=0;
 
-PowerDNSMySQLRemoteServer:=SYS.GET_INFO('PowerDNSMySQLRemoteServer')
-PowerDNSMySQLRemoteAdmin:=SYS.GET_INFO('PowerDNSMySQLRemoteAdmin')
-PowerDNSMySQLRemotePassw:=SYS.GET_INFO('PowerDNSMySQLRemotePassw')
+
+PowerDNSMySQLRemoteServer:=SYS.GET_INFO('PowerDNSMySQLRemoteServer');
+PowerDNSMySQLRemoteAdmin:=SYS.GET_INFO('PowerDNSMySQLRemoteAdmin');
+PowerDNSMySQLRemotePassw:=SYS.GET_INFO('PowerDNSMySQLRemotePassw');
 
 
 if SquidActHasReverse=1 then PDSNInUfdb:=0;
@@ -652,7 +566,12 @@ database_admin:=SYS.GET_MYSQL('database_admin');
 database_password:=trim(SYS.GET_MYSQL('database_password'));
 if length(database_admin)=0 then database_admin:='root';
 pipe:='';
-if PDSNInUfdb=1 then pipe:='pipe,';
+if PDSNInUfdb=1 then LaunchPipe:=1;
+if PDNSHotSpot=1 then LaunchPipe:=1;
+
+
+
+if LaunchPipe=1 then pipe:='pipe,';
 
 
 // PowerSkipCname: Do not perform CNAME indirection for each query
@@ -673,23 +592,6 @@ z:=Tstringlist.Create;
 z.AddStrings(tcp.InterfacesStringList());
 cdirlist:='127.0.0.0/8,127.0.0.1,';
 
- if FileExists('/etc/artica-postfix/settings/Daemons/PowerDNSListenAddr') then begin
-        PowerDNSListenAddr:=Tstringlist.Create;
-        PowerDNSListenAddr.LoadFromFile('/etc/artica-postfix/settings/Daemons/PowerDNSListenAddr');
-        for i:=0 to PowerDNSListenAddr.Count-1 do begin
-              if length(trim(PowerDNSListenAddr.Strings[i]))>0 then begin
-                      logs.DebugLogs('Starting......: PowerDNS listen IP address '+PowerDNSListenAddr.Strings[i]);
-                      cdirtmp:=tcp.CDIR(ipstr);
-                      iplist:=iplist+trim(PowerDNSListenAddr.Strings[i])+',';
-                      PowerDNSListenAddrDefault:=false;
-                      if length(cdirtmp)>0 then begin
-                           if pos(cdirtmp,' '+cdirlist)=0 then cdirlist:=cdirlist+cdirtmp+',';
-                      end;
-              end;
-        end;
-
- end;
-
   if FileExists('/etc/artica-postfix/settings/Daemons/PowerDNSListenAddrV6') then begin
         PowerDNSListenAddr:=Tstringlist.Create;
         PowerDNSListenAddr.LoadFromFile('/etc/artica-postfix/settings/Daemons/PowerDNSListenAddrV6');
@@ -705,24 +607,6 @@ cdirlist:='127.0.0.0/8,127.0.0.1,';
 
  end;
 
-
-for i:=0 to z.Count-1 do begin
-    if(length(z.Strings[i]))=0 then continue;
-    if z.Strings[i]='vmnet1' then continue;
-    if z.Strings[i]='vmnet8' then continue;
-    if z.Strings[i]='tun0' then continue;
-   // writeln('interface:',z.Strings[i]);
-    ipstr:=tcp.IP_ADDRESS_INTERFACE(z.Strings[i]);
-    if ipstr='0.0.0.0' then continue;
-    if PowerDNSListenAddrDefault then logs.DebugLogs('Starting......: PowerDNS listen IP address '+ipstr);
-    cdirtmp:=tcp.CDIR(ipstr);
-
-    if length(cdirtmp)>0 then begin
-       if pos(cdirtmp,' '+cdirlist)=0 then cdirlist:=cdirlist+cdirtmp+',';
-    end;
-
-    if PowerDNSListenAddrDefault then if pos(ipstr,' '+iplist)=0 then iplist:=iplist+ipstr+',';
-end;
 
 logs.DebugLogs('Starting......: PowerDNS log level '+IntToStr(loglevel));
 l:=Tstringlist.Create;
@@ -784,10 +668,26 @@ if PDSNInUfdb=1 then begin
    l.add('pipebackend-abi-version=2');
    l.add('distributor-threads=2');
 end;
+
+if PDNSHotSpot=1 then begin
+   logs.DebugLogs('Starting......: PowerDNS starting the HotSpot engine...');
+   fpsystem('/bin/chmod 777 /usr/share/artica-postfix/exec.pdns.pipe.php >/dev/null 2>&1');
+   l.add('pipe-command=/usr/share/artica-postfix/exec.pdns.pipe.php');
+   l.add('pipebackend-abi-version=2');
+   l.add('distributor-threads=2');
+end else begin
+    logs.DebugLogs('Starting......: PowerDNS HotSpot engine is disabled...');
+end;
+
 l.add('lazy-recursion=yes');
-l.add('# load-modules=');
+
 l.add('#local-address=0.0.0.0');
-l.add('local-address='+iplist);
+fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pdns.php --listen-ips');
+
+z:=Tstringlist.Create;
+z.LoadFromFile('/etc/powerdns/iplist');
+cdirlist:=trim(z.Strings[0]);
+l.add('local-address='+cdirlist);
 
 if(length(iplistV6)>3) then iplistV6:='::1,'+iplistV6;
 iplistV6:=AnsiReplaceText(iplistV6,',,',',');
@@ -958,7 +858,7 @@ end;
 logs.WriteToFile(l.Text,'/etc/powerdns/pdns.d/pdns.local');
 logs.DebugLogs('Starting......: PowerDNS updating /etc/powerdns/pdns.d/pdns.local done...');
 L.Clear;
-RecursoripAllowFrom:=cdirlist+','+RecursoripAllowFrom;
+if length(RecursoripAllowFrom)>0 then RecursoripAllowFrom:=cdirlist+','+RecursoripAllowFrom;
 RecursoripAllowFrom:=AnsiReplaceText(RecursoripAllowFrom,',,',',');
 RecursoripAllowFrom:=AnsiReplaceText(RecursoripAllowFrom,',,',',');
 

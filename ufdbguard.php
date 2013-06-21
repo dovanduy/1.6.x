@@ -26,7 +26,7 @@
 	if(isset($_POST["url_rewrite_bypass"])){url_rewrite_bypass_save();exit;}
 	if(isset($_GET["force-reload-js"])){force_reload_js();exit;}
 	if(isset($_POST["force-reload-perform"])){force_reload_perform();exit;}
-	
+	if(isset($_GET["import-export"])){import_export();exit;}
 	js();
 
 	
@@ -64,7 +64,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{APP_UFDBGUARD}");
-	$html="YahooWin3('650','$page?tabs=yes','$title');";
+	$html="YahooWin3('700','$page?tabs=yes','$title');";
 	echo $html;
 	}
 	
@@ -175,6 +175,7 @@ function tabs(){
 		if(!$users->WEBSTATS_APPLIANCE){$array["ufdbclient"]='{client_parameters}';}
 		if($EnableRemoteStatisticsAppliance==1){unset($array["popup"]);}
 		$array["notifs"]='{notifications}';
+		$array["import-export"]="{import}/{export}";
 		
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="notifs"){
@@ -217,6 +218,7 @@ function popup(){
 	$url_rewrite_bypass=$squid->url_rewrite_bypass;
 	$ufdbguardReloadTTL=$sock->GET_INFO("ufdbguardReloadTTL");
 	$EnableGoogleSafeSearch=$sock->GET_INFO("EnableGoogleSafeSearch");
+	$UfdbDatabasesInMemory=$sock->GET_INFO("UfdbDatabasesInMemory");
 	
 	if($datas["enforce-https-with-hostname"]==null){$datas["enforce-https-with-hostname"]=0;}
 	if($datas["enforce-https-official-certificate"]==null){$datas["enforce-https-official-certificate"]=0;}
@@ -226,7 +228,13 @@ function popup(){
 	if(!is_numeric($datas["check-proxy-tunnel"])){$datas["check-proxy-tunnel"]=1;}
 	if(!is_numeric($datas["strip-domain-from-username"])){$datas["strip-domain-from-username"]=0;}
 	if(!is_numeric($datas["refreshuserlist"])){$datas["refreshuserlist"]=15;}
+	if(!is_numeric($datas["refreshdomainlist"])){$datas["refreshdomainlist"]=15;}
 	
+	
+	
+	if(!is_numeric($UfdbDatabasesInMemory)){$UfdbDatabasesInMemory=0;}
+	
+	if(!is_numeric($datas["allow-unknown-protocol-over-https"])){$datas["allow-unknown-protocol-over-https"]=1;}
 	
 	if(!isset($datas["tcpsockets"])){$datas["tcpsockets"]=0;}
 	if(!isset($datas["listen_addr"])){$datas["listen_addr"]="all";}
@@ -274,12 +282,26 @@ function popup(){
 		<td>". Field_checkbox("https-prohibit-insecure-sslv2",1,$datas["https-prohibit-insecure-sslv2"])."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{allow-unknown-protocol-over-https}:</td>
+		<td>". Field_checkbox("allow-unknown-protocol-over-https",1,$datas["allow-unknown-protocol-over-https"])."</td>
+		<td width=1%>&nbsp;</td>
+	</tr>				
+				
+	
 	</table>
 	<table style='width:99%' class=form>
 	<tr>
 	
 	<td colspan=3><span style='font-size:16px'>{UFDBGUARD_SERVICE_OPTS}:</span>
 	</tr>
+				
+				
+	<tr>
+		<td class=legend style='font-size:14px'>{UfdbDatabasesInMemory}:</td>
+		<td>". Field_checkbox("UfdbDatabasesInMemory",1,$UfdbDatabasesInMemory)."</td>
+		<td width=1%>". help_icon("{UfdbDatabasesInMemory_explain}")."</td>
+	</tr>					
 	<tr>
 		<td class=legend style='font-size:14px'>{bypass_iffailed}:</td>
 		<td>". Field_checkbox("url_rewrite_bypass",1,$url_rewrite_bypass,"url_rewrite_bypassCheck()")."</td>
@@ -337,10 +359,14 @@ function popup(){
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:14px'>{refreshuserlist}:</td>
-		<td style='font-size:14px'>". Field_checkbox("refreshuserlist",1,$datas["refreshuserlist"])."&nbsp;{minutes}</td>
+		<td style='font-size:14px'>". Field_text("refreshuserlist",$datas["refreshuserlist"],"font-size:14px;width:90px")."&nbsp;{minutes}</td>
 		<td width=1%>&nbsp;</td>
 	</tr>				
-				
+	<tr>
+		<td class=legend style='font-size:14px'>{refreshdomainlist}:</td>
+		<td style='font-size:14px'>". Field_text("refreshdomainlist",$datas["refreshdomainlist"],"font-size:14px;width:90px")."&nbsp;{minutes}</td>
+		<td width=1%>&nbsp;</td>
+	</tr>					
 	
 	
 	<tr>
@@ -395,6 +421,13 @@ function popup(){
 		if(document.getElementById('https-prohibit-insecure-sslv2').checked){
     		XHR.appendData('https-prohibit-insecure-sslv2',1);}else{
     		XHR.appendData('https-prohibit-insecure-sslv2',0);}  
+    		
+    		
+		if(document.getElementById('allow-unknown-protocol-over-https').checked){
+    		XHR.appendData('allow-unknown-protocol-over-https',1);}else{
+    		XHR.appendData('allow-unknown-protocol-over-https',0);}     		
+    		
+    		
 
 		if(document.getElementById('url-lookup-result-when-fatal-error').checked){
     		XHR.appendData('url-lookup-result-when-fatal-error',1);}else{
@@ -419,6 +452,10 @@ function popup(){
 		if(document.getElementById('strip-domain-from-username').checked){
     		XHR.appendData('strip-domain-from-username',1);}else{
     		XHR.appendData('strip-domain-from-username',0);}     		
+
+		if(document.getElementById('UfdbDatabasesInMemory').checked){
+    		XHR.appendData('UfdbDatabasesInMemory',1);}else{
+    		XHR.appendData('UfdbDatabasesInMemory',0);}       		
     		
     		
     		
@@ -427,6 +464,7 @@ function popup(){
     	XHR.appendData('listen_addr',document.getElementById('listen_addr').value);	
     	XHR.appendData('ufdbguardReloadTTL',document.getElementById('ufdbguardReloadTTL').value);
     	XHR.appendData('refreshuserlist',document.getElementById('refreshuserlist').value);
+    	XHR.appendData('refreshdomainlist',document.getElementById('refreshdomainlist').value);
     	
     	
     		
@@ -463,7 +501,10 @@ function save_ssl(){
 		writelogs("SET_INFO EnableGoogleSafeSearch= {$_POST["EnableGoogleSafeSearch"]}",__FUNCTION__,__FILE__,__LINE__);
 		$sock->SET_INFO('EnableGoogleSafeSearch', $_POST["EnableGoogleSafeSearch"]);
 	}	
-	
+	if(isset($_POST["UfdbDatabasesInMemory"])){
+		writelogs("SET_INFO UfdbDatabasesInMemory= {$_POST["UfdbDatabasesInMemory"]}",__FUNCTION__,__FILE__,__LINE__);
+		$sock->SET_INFO('UfdbDatabasesInMemory', $_POST["UfdbDatabasesInMemory"]);
+	}	
 	
 	
 	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
@@ -474,5 +515,27 @@ function save_ssl(){
 	}
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ufdbguardConfig");
 	$sock->getFrameWork("cmd.php?reload-squidguard=yes");
+}
+
+function import_export(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();	
+	$export=Paragraphe("64-export.png", "{export_rules}", "{export_acl_rules_explain}",
+			"javascript:Loadjs('dansguardian2.export.php')");
+	
+	$import=Paragraphe("64-import.png", "{import_rules}", "{import_acl_rules_explain}",
+			"javascript:Loadjs('dansguardian2.import.php')");
+	$html="
+	<div style='width:95%' class=form>
+	<table style='width:99%'>
+	<tr>
+	<td align='center'>$export</td>
+	<td align='center'>$import</td>
+	</tr>
+	</table>
+	</div>";
+	echo $tpl->_ENGINE_parse_body($html);
+	
 }
 

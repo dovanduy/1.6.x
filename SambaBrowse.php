@@ -53,11 +53,13 @@ var x_DeleteHiddenDisk= function (obj) {
 	}
 
 	function Browse(){
+		$('head').append( $('<link rel=\"stylesheet\" type=\"text/css\" />').attr('href', '/js/jqueryFileTree.css') );
 		LoadWinORG(776,'$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}','$title');
 
 	}
 	
 	function Browse2(){
+		$('head').append( $('<link rel=\"stylesheet\" type=\"text/css\" />').attr('href', '/js/jqueryFileTree.css') );
 		$('#BodyContent').load('$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}');
 	}	
 $start
@@ -71,6 +73,7 @@ function IsPriv(){
 	if($users->AsArticaAdministrator){return true;}
 	if($users->AsSambaAdministrator){return true;}
 	if($users->AsSystemAdministrator){return true;}
+	if($users->AsWebStatisticsAdministrator){return true;}
 	if($users->AsOrgStorageAdministrator){return true;}
 	return false;
 	}
@@ -500,7 +503,7 @@ function browsedisk_start(){
 	<tr>
 	<td valign='top'>
 		<div style='overflow:auto;height:500px;width:100%'>
-			<div id='folderTree' class=form style='width:95%'></div>
+			<div id='folderTree' class=form style='width:95%' class=form></div>
 		</div>
 	</td>
 	<td valign='top'>
@@ -645,7 +648,7 @@ function TreeRightInfos(){
 	<div style='width:240px'>
 	<div style='font-size:16px;font-weight:bold'>&laquo;$f&raquo;</div>
 
-	<table style='width:99%' class=form>
+	<table style='width:99%'>
 		<tr ".CellRollOver('SmbAddSubFolder()').">
 		<td width=1% valign='top'>
 		" . imgtootltip('folder-32-add.png','{add_sub_folder}',"")."</td>

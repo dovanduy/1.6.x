@@ -73,6 +73,7 @@ if(preg_match("#\]\s+(.+?):\s+Cannot allocate memory#",$buffer,$re)){
 if(preg_match("#\]\s+(.+?):\s+No such file or directory#",$buffer,$re)){
 	  	events("ERROR ON {$re[1]} : No such file or directory -> create it");
 	  	@file_put_contents($re[1],"www.nodomain.bv");
+	  	squid_watchdog_events("Reconfiguring Proxy parameters...");
 		shell_exec("squid -k reconfigure");
 		return null;
 		}		
@@ -87,6 +88,11 @@ if(preg_match("#\]\s+(.+?):\s+No such file or directory#",$buffer,$re)){
 
 	events("Not filtered: $buffer");
 
+}
+function squid_watchdog_events($text){
+	$unix=new unix();
+	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefile=basename($trace[1]["file"]);$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];}}
+	$unix->events($text,"/var/log/squid.watchdog.log",false,$sourcefunction,$sourceline);
 }
 
 function IfFileTime($file,$min=10){

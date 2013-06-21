@@ -17,7 +17,10 @@ if($GLOBALS["VERBOSE"]){echo "Checks {$argv[1]}\n";}
 
 if($argv[1]=='--sources-list'){CheckSourcesList();die();}
 if($argv[1]=='--wsgate'){wsgate_debian();die();}
-
+if($argv[1]=='--phpfpm'){php_fpm();die();}
+if($argv[1]=='--phpfpm-daemon'){php_fpm(true);die();}
+if($argv[1]=='--nginx'){check_nginx(true);die();}
+if($argv[1]=='--pkg-upgrade'){UPGRADE_FROM_INTERFACE();die();}
 
 
 if(system_is_overloaded(basename(__FILE__))){
@@ -38,7 +41,8 @@ $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".md5($argv[1]).".pid"
 $oldpid=$unix->get_pid_from_file($pidfile);
 if($unix->process_exists($oldpid,basename(__FILE__))){
 	$timefile=$unix->file_time_min($pidfile);
-	system_admin_events(basename(__FILE__).": Already executed pid $oldpid since $timefile minutes.. aborting the process","MAIN",__FILE__,__LINE__);
+	//$text,$function,$file,$line,$category,$taskid=0
+	system_admin_events(basename(__FILE__).": Already executed pid $oldpid since $timefile minutes.. aborting the process","MAIN",__FILE__,__LINE__,"update");
 	die();
 }
 @unlink($pidfile);
@@ -46,7 +50,7 @@ if($unix->process_exists($oldpid,basename(__FILE__))){
 
 if($argv[1]=='--update'){GetUpdates();die();}
 if($argv[1]=='--upgrade'){UPGRADE();die();}
-if($argv[1]=='--pkg-upgrade'){UPGRADE_FROM_INTERFACE();die();}
+
 if($argv[1]=='--clean-upgrade'){clean_upgrade();die();}
 
 
@@ -67,8 +71,10 @@ function GetUpdates(){
 
 	$unix=new unix();
 	$tmpf=$unix->FILE_TEMP();
+	exim_remove();
 	CheckSourcesList();
 	wsgate_debian();
+	
 	$sock=new sockets();	
 	$ini=new Bs_IniHandler();
 	$users=new usersMenus();
@@ -79,27 +85,29 @@ function GetUpdates(){
 	$nohup=$unix->find_program("nohup");
 	if(trim($AUTOUPDATE["auto_apt"])==null){$AUTOUPDATE["auto_apt"]="no";}
 	$q=new mysql();
+	php_fpm();
+	
 	if($GLOBALS["VERBOSE"]){system_admin_events("Running apt-check",__FUNCTION__,__FILE__,__LINE__,"system-update");}
 	exec("{$_GET["APT-GET"]} check 2>&1",$results);
-	if($GLOBALS["VERBOSE"]){system_admin_events("Running apt-check -> " . count($results) . " items",__FUNCTION__,__FILE__,__LINE__,"system-update");}
+	if($GLOBALS["VERBOSE"]){system_admin_events("Running apt-check -> " . count($results) . " items",__FUNCTION__,__FILE__,__LINE__,"update");}
 
 	while (list ($num, $line) = each ($results) ){
-			if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: $line",__FUNCTION__,__FILE__,__LINE__,"system-update");}
+			if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: $line",__FUNCTION__,__FILE__,__LINE__,"update");}
 			if(preg_match("#dpkg --configure -a#", $line)){
 					$cmd="DEBIAN_FRONTEND=noninteractive dpkg --configure -a --force-confold 2>&1";
-					if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: Executing $cmd",__FUNCTION__,__FILE__,__LINE__,"system-update");}					
+					if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: Executing $cmd",__FUNCTION__,__FILE__,__LINE__,"update");}					
 					exec("$cmd",$results1);
 					while (list ($num1, $line1) = each ($results1) ){
 						if(preg_match("#hardlink between a file in.+?backuppc#", $line1)){
-							if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: remove backuppc",__FUNCTION__,__FILE__,__LINE__,"system-update");}
+							if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: remove backuppc",__FUNCTION__,__FILE__,__LINE__,"update");}
 							shell_exec("{$_GET["APT-GET"]} -y remove backuppc --force-yes ");
 						}
 						
 					}
 					
 					
-					system_admin_events("dpkg was interrupted\nReconfigure has been performed\n".@implode("\n",$results1),__FUNCTION__,__FILE__,__LINE__,"system-update","system-update");
-					if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: reconfigure:\n".@implode("\n",$results1),__FUNCTION__,__FILE__,__LINE__,"system-update");}
+					system_admin_events("dpkg was interrupted\nReconfigure has been performed\n".@implode("\n",$results1),__FUNCTION__,__FILE__,__LINE__,"update","update");
+					if($GLOBALS["VERBOSE"]){system_admin_events("apt-check: reconfigure:\n".@implode("\n",$results1),__FUNCTION__,__FILE__,__LINE__,"update");}
 					return ;
 				}
 					
@@ -157,13 +165,15 @@ $q->QUERY_SQL("TRUNCATE TABLE syspackages_updt","artica_backup");
 			
 		}else{
 			if(preg_match("#dpkg was interrupted.+?dpkg --configure -a#",$val)){
-				send_email_events("dpkg was interrupted","Reconfigure all will be performed\n$val","system");
+				send_email_events("dpkg was interrupted","Reconfigure all will be performed\n$val",
+				"update");
 				shell_exec("DEBIAN_FRONTEND=noninteractive dpkg --configure -a --force-confold >/dev/null");
 				return;
 			}
 			
 			if(preg_match("#dpkg --configure -a#", $val)){
-		 		send_email_events("dpkg was interrupted","Reconfigure all will be performed\n$val","system");
+		 		send_email_events("dpkg was interrupted",
+		 		"Reconfigure all will be performed\n$val","update");
 				shell_exec("DEBIAN_FRONTEND=noninteractive dpkg --configure -a --force-confold >/dev/null");
 				return ;
 			}			
@@ -177,8 +187,8 @@ $q->QUERY_SQL("TRUNCATE TABLE syspackages_updt","artica_backup");
 	if($count>0){
 		@file_put_contents("/etc/artica-postfix/apt.upgrade.cache",implode("\n",$packages));
 		$text="You can perform upgrade of linux packages for\n".@file_get_contents("/etc/artica-postfix/apt.upgrade.cache");
-		system_admin_events("New upgrade $count packages(s) ready $text",__FUNCTION__,__FILE__,__LINE__,"system-update");
-		send_email_events("new upgrade $count packages(s) ready",$text,"system");
+		system_admin_events("New upgrade $count packages(s) ready $text",__FUNCTION__,__FILE__,__LINE__,"update");
+		send_email_events("new upgrade $count packages(s) ready",$text,"update");
 		
 		$paragraph=ParagrapheTEXT('32-infos.png',"$count {system_packages}",
 		"$count {system_packages_can_be_upgraded}","javascript:Loadjs('artica.update.php');
@@ -188,27 +198,61 @@ $q->QUERY_SQL("TRUNCATE TABLE syspackages_updt","artica_backup");
 		
 		if($AUTOUPDATE["auto_apt"]=="yes"){UPGRADE(true);}
 	}else{
-		system_admin_events("No new packages...",__FUNCTION__,__FILE__,__LINE__,"system-update");
+		system_admin_events("No new packages...",__FUNCTION__,__FILE__,__LINE__,"update");
 		
 		@unlink("/etc/artica-postfix/apt.upgrade.cache");
 	}
 	
 	exec("/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system 2>&1",$results2);
-	system_admin_events("Checks Artica required packages done\n".@implode("\n", $results2),__FUNCTION__,__FILE__,__LINE__,"system-update");
+	system_admin_events("Checks Artica required packages done\n".@implode("\n", $results2),__FUNCTION__,__FILE__,__LINE__,"update");
 
 
 
 }
 
 
+
+function FIX_DEBIAN_MULTIMEDIA(){
+	if(!is_file("/etc/apt/sources.list")){return;}
+	$f=@explode("\n",@file_get_contents("/etc/apt/sources.list"));
+	
+	$WRITE=false;
+	while (list ($num, $val) = each ($f) ){
+		
+			if(preg_match("#debian-multimedia#",$val)){
+				$f[$num]=str_replace("www.debian-multimedia.org", "www.deb-multimedia.org", $val);
+				$WRITE=TRUE;
+				return;
+			}
+	}
+	
+	if($WRITE){
+		@file_put_contents("/etc/apt/sources.list", @implode("\n", $f));
+	}
+			
+	
+}
+
 function UPGRADE_FROM_INTERFACE(){
 	
-if(system_is_overloaded(basename(__FILE__))){system_admin_events("Overloaded system... aborting task...",__FUNCTION__,__FILE__,__LINE__,"system-update");die();}	
 	
 	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$timefile=$unix->file_time_min($pidfile);
+		//$text,$function,$file,$line,$category,$taskid=0
+		system_admin_events(basename(__FILE__).": Already executed pid $oldpid since $timefile minutes.. aborting the process",__FUNCTION__,__FILE__,__LINE__,"update");
+		die();
+	}
+	
+//if(system_is_overloaded(basename(__FILE__))){system_admin_events("Overloaded system... aborting task...",__FUNCTION__,__FILE__,__LINE__,"system-update");die();}	
+	
+	
 	$aptitude=$unix->find_program("aptitude");
 	if(!is_file($aptitude)){return;}
-	if(system_is_overloaded()){$unix->events(basename(__FILE__).": UPGRADE_FROM_INTERFACE() system is overloaded aborting");return;}
+	//if(system_is_overloaded()){$unix->events(basename(__FILE__).": UPGRADE_FROM_INTERFACE() system is overloaded aborting");return;}
 	
 	
 		$q=new mysql();
@@ -226,7 +270,11 @@ if(system_is_overloaded(basename(__FILE__))){system_admin_events("Overloaded sys
 			update_events("Results on upgrade {$ligne["package"]}\n\n". @implode("\n", $results2),__FUNCTION__,__FILE__,__LINE__,"system-update","system_update");	
 			$q->QUERY_SQL("UPDATE syspackages_updt SET progress=100  WHERE package='{$ligne["package"]}'","artica_backup");
 			if($GLOBALS["VERBOSE"]){echo "$cmd\n".@implode("\n", $results2);}
-			if(system_is_overloaded()){$unix->events(basename(__FILE__).": UPGRADE_FROM_INTERFACE() system is overloaded aborting");return;}
+			if(system_is_overloaded()){
+				$unix->events(basename(__FILE__).": UPGRADE_FROM_INTERFACE() system is overloaded aborting");
+				$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --pkg-upgrade");
+				return;
+			}
 		}
 		if(!is_file("/etc/cron.d/pkg-upgrade")){@unlink("/etc/cron.d/pkg-upgrade");}
 		GetUpdates();
@@ -389,13 +437,205 @@ $q->QUERY_SQL($sql,"artica_backup");
 @unlink('/etc/artica-postfix/apt.upgrade.cache');
 if(!$noupdate){GetUpdates();}
 
-send_email_events("Debian/Ubuntu System upgrade operation",$datas,"system");
+send_email_events("Debian/Ubuntu System upgrade operation",$datas,"update");
 INSERT_DEB_PACKAGES();
 if($EnableRebootAfterUpgrade==1){
-	send_email_events("Rebooting after upgrade operation","reboot command has been performed","system");
+	send_email_events("Rebooting after upgrade operation",
+	"reboot command has been performed","update");
 	shell_exec("reboot");
 }
 
+}
+
+function check_nginx(){
+	
+
+	
+	$unix=new unix();
+	if(is_file("/etc/lsb-release")){if($GLOBALS["VERBOSE"]){ "CheckSourcesList: Ubuntu system, aborting\n";}}
+	if(!is_file("/etc/debian_version")){return;}
+	$ver=trim(@file_get_contents("/etc/debian_version"));
+	preg_match("#^([0-9]+)\.#",$ver,$re);
+	if(preg_match("#squeeze\/sid#",$ver)){$Major=6;}
+	$Major=$re[1];
+	if($Major<>6){
+		echo "CheckSourcesList: Debian version <> $Major aborting...\n";
+		return;
+	}
+
+	$update=false;
+	$FOUND=false;
+	$f=@explode("\n",@file_get_contents("/etc/apt/sources.list"));
+	while (list ($num, $val) = each ($f) ){
+		if(preg_match("#packages\.nginx\.org#",$val)){
+			echo "CheckSourcesList:  /etc/apt/sources.list correct with nginx repository\n";
+			$FOUND=true;
+			break;
+		}
+	}
+	if(!$FOUND){
+		$update=true;
+		echo "CheckSourcesList: adding nginx repositories...\n";
+		$f[]="deb http://nginx.org/packages/debian/ squeeze nginx";
+		$f[]="deb-src http://nginx.org/packages/debian/ squeeze nginx";
+		@file_put_contents("/etc/apt/sources.list", @implode("\n", $f));
+	}	
+	$KEY="2048R\/7BD9BF62";
+	$aptkey=$unix->find_program("apt-key");
+	$aptget=$unix->find_program("apt-get");
+	$wget=$unix->find_program("wget");
+	exec("$aptkey list 2>&1",$results);
+	$FOUND=false;
+	while (list ($num, $val) = each ($results) ){
+		if(preg_match("#$KEY#", $val)){
+			echo "CheckSourcesList: key $KEY correct with dotdeb repository\n";
+			$FOUND=true;
+			break;
+		}
+	}
+	
+	if(!$FOUND){
+	$update=true;
+	echo "CheckSourcesList: Adding new key $KEY...\n";
+	shell_exec("$wget 'http://nginx.org/packages/keys/nginx_signing.key' --quiet --output-document=- | $aptkey add -");
+	
+	}	
+	
+	if($update){
+		echo "CheckSourcesList: updating repository\n";
+		shell_exec("$aptget update");
+	}
+
+	
+	
+}
+
+
+function Check_dotdeb(){
+	FIX_DEBIAN_MULTIMEDIA();
+	$unix=new unix();
+	if(is_file("/etc/lsb-release")){if($GLOBALS["VERBOSE"]){ "CheckSourcesList: Ubuntu system, aborting\n";}}
+	if(!is_file("/etc/debian_version")){return;}
+	$ver=trim(@file_get_contents("/etc/debian_version"));
+	preg_match("#^([0-9]+)\.#",$ver,$re);
+	if(preg_match("#squeeze\/sid#",$ver)){$Major=6;}
+	$Major=$re[1];
+	if($Major<>6){
+		echo "CheckSourcesList: Debian version <> $Major aborting...\n";
+		return;
+	}	
+	$update=false;
+	$FOUND=false;
+	$f=@explode("\n",@file_get_contents("/etc/apt/sources.list"));
+	while (list ($num, $val) = each ($f) ){
+		if(preg_match("#packages\.dotdeb\.org#",$val)){
+			echo "CheckSourcesList:  /etc/apt/sources.list correct with ngninx repository\n";
+			$FOUND=true;
+			break;
+		}
+	}
+	if(!$FOUND){
+		$update=true;
+		echo "CheckSourcesList: adding dotdeb repositories...\n";
+
+		$f[]="deb-src http://packages.dotdeb.org squeeze all";
+		$f[]="deb http://packages.dotdeb.org squeeze all";		
+		@file_put_contents("/etc/apt/sources.list", @implode("\n", $f));
+	}
+	
+	$KEY="4096R\/89DF5277";
+	$aptkey=$unix->find_program("apt-key");
+	$aptget=$unix->find_program("apt-get");
+	$wget=$unix->find_program("wget");
+	exec("$aptkey list 2>&1",$results);
+	$FOUND=false;
+	while (list ($num, $val) = each ($results) ){
+		if(preg_match("#$KEY#", $val)){
+			echo "CheckSourcesList: key $KEY correct with dotdeb repository\n";
+			$FOUND=true;
+			break;
+			}
+	}
+	
+	if(!$FOUND){
+		$update=true;
+		echo "CheckSourcesList: Adding new key $KEY...\n";
+		shell_exec("$wget 'http://www.dotdeb.org/dotdeb.gpg' --quiet --output-document=- | $aptkey add -");
+		
+	}
+	
+	
+	$PACKAGES="libapache2-mod-php5 libapache2-mod-php5filter php5-cgi php5-cli php5-common php5-curl php5-dbg php5-dev php5-enchant php5-fpm php5-gd php5-gmp php5-imap php5-interbase php5-intl php5-ldap php5-mcrypt php5-mysql php5-odbc php5-pgsql php5-pspell php5-recode php5-snmp php5-sqlite php5-sybase php5-tidy php5-xmlrpc php5-xsl";
+	$PECL="php5-apc php5-ffmpeg php5-gearman php5-geoip php5-http php5-imagick php5-memcache php5-memcached php5-pinba php5-redis php5-spplus php5-ssh2 php5-suhosin php5-xcache php5-xdebug php5-xhprof";
+	$ALL="php-pear php5";
+	if(!is_file("/etc/apt/preferences.d/dotdeb-org")){
+		$t[]="Package: $PACKAGES $PECL $ALL";
+		$t[]="Pin: origin packages.dotdeb.org";
+		$t[]="Pin-Priority: 500";
+		echo "CheckSourcesList: /etc/apt/preferences.d/dotdeb-org done...\n";
+		@mkdir("/etc/apt/preferences.d",0755,true);
+		@file_put_contents("/etc/apt/preferences.d/dotdeb-org", @implode("\n", $t));
+	}
+	
+
+
+	
+	if($update){
+		echo "CheckSourcesList: updating repository\n";
+		shell_exec("$aptget update");
+	}
+}
+
+function exim_remove(){
+	$unix=new unix();
+	$f[]="/usr/lib/exim4/exim4";
+	$f[]="/usr/sbin/exim";
+	$f[]="/usr/sbin/exim4";
+	$f[]="/etc/init.d/exim4";
+	$f[]="/usr/sbin/exim";
+	$removeexim=false;
+	while (list ($num, $val) = each ($f) ){
+		if(is_file($val)){
+			$removeexim=true;
+		}
+		
+	}
+	
+	$eximp[]="exim4";
+	$eximp[]="exim4-base";
+	$eximp[]="exim4-config";
+	$eximp[]="exim4-daemon-light";
+	
+	if($removeexim){
+		$aptget=$unix->find_program("apt-get");
+		$echo=$unix->find_program("echo");
+		$dpkg=$unix->find_program("dpkg");
+		while (list ($num, $val) = each ($eximp) ){
+			shell_exec("$echo $val hold|$dpkg --set-selections");
+		}
+		   
+		
+		
+		$cmd="DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes -y remove exim* 2>&1";
+		shell_exec($cmd);
+	}
+	sendmail_remove();
+}
+
+function sendmail_remove(){
+	
+	$f[]="/etc/init.d/sendmail";
+	$removeexim=false;
+	while (list ($num, $val) = each ($f) ){
+		if(is_file($val)){
+			$removeexim=true;
+		}
+	
+	}
+	if($removeexim){
+		shell_exec("/etc/init.d/sendmail stop");
+		shell_exec("/usr/sbin/update-rc.d -f sendmail remove");
+	}	
 }
 
 
@@ -422,6 +662,7 @@ while (list ($num, $val) = each ($f) ){
 	
 	if(preg_match("#deb\s+http:.+?#",$val)){
 			echo "CheckSourcesList:  /etc/apt/sources.list correct, return\n";
+			Check_dotdeb();
 			return;
 	}
 }
@@ -443,6 +684,9 @@ if($Major==6){
 		$f[]="deb http://ftp.debian.org/debian/ squeeze main non-free";
 		$f[]="deb-src http://ftp.debian.org/debian/ squeeze main non-free";
 		$f[]="deb http://ftp.debian.org/debian squeeze main";
+		$f[]="deb-src http://packages.dotdeb.org squeeze all";
+		$f[]="deb http://packages.dotdeb.org squeeze all";
+		
 		@file_put_contents("/etc/apt/sources.list",@implode("\n",$f));
 		echo "CheckSourcesList:  /etc/apt/sources.list configured, done...\n";	
 }
@@ -459,7 +703,7 @@ function CheckYum(){
 	if($count>0){
 		@file_put_contents("/etc/artica-postfix/apt.upgrade.cache",implode("\n",$packages));
 		$text="You can perform upgrade of linux packages for\n".@file_get_contents("/etc/artica-postfix/apt.upgrade.cache");
-		send_email_events("new upgrade $count packages(s) ready",$text,"system");
+		send_email_events("new upgrade $count packages(s) ready",$text,"update");
 		
 		$paragraph=Paragraphe('64-infos.png',"$count {system_packages}",
 		"$count {system_packages_can_be_upgraded}",null,"{system_packages_can_be_upgraded}",300,80);
@@ -530,17 +774,128 @@ function wsgate_debian(){
 	shell_exec($cmd);
 	@file_put_contents("/etc/apt/sources.list.d/freerdp1.list", $sourcelist);
 	
-	$cmd="DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes update 2>&1";
+	$cmd="DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes -y update 2>&1";
 	exec($cmd,$results);
 	system_admin_events($cmd."\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"system-update");
 	shell_exec($cmd);	
-	$cmd="DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes install wsgate 2>&1";
+	$cmd="DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes -y install wsgate 2>&1";
 	exec($cmd,$results);
 	system_admin_events($cmd."\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"system-update");
 	shell_exec($cmd);		
 	
 }
 
+function php_fpm($aspid=false){
+	
+	$unix=new unix();
+	if(is_file("/etc/lsb-release")){if($GLOBALS["VERBOSE"]){ "CheckSourcesList: Ubuntu system, aborting\n";}}
+	if(!is_file("/etc/debian_version")){return;}
+	$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
+	if(is_file($phpfpm)){nginx();return;}
+	
+	if($aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+		$kill=$unix->find_program("kill");
+		$timexec=$unix->file_time_min($pidTime);
+		if($timexec<240){return;}
+		@unlink($pidTime);
+		@file_put_contents($pidTime, time());
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($time<30){return;}
+			shell_exec("$kill -9 $oldpid >/dev/null 2>&1");
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	
+	
+	$ver=trim(@file_get_contents("/etc/debian_version"));
+	preg_match("#^([0-9]+)\.#",$ver,$re);
+	if(preg_match("#squeeze\/sid#",$ver)){$Major=6;}
+	$Major=$re[1];
+	if($Major<>6){
+		echo "CheckSourcesList: Debian version <> $Major aborting...\n";
+		return;
+	}	
+	
+	Check_dotdeb();
+	$unix=new unix();
+	$aptget=$unix->find_program("apt-get");
+	echo "CheckSourcesList: Installing php5-fpm\n";
+	$cmd="DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes -y install php5-fpm libapache2-mod-fastcgi 2>&1";
+	echo "CheckSourcesList: $cmd\n";
+	shell_exec($cmd);	
+	$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
+	if(is_file($phpfpm)){
+		$php=$unix->LOCATE_PHP5_BIN();
+		shell_exec("$php /usr/share/artica-postfix/exec.initslapd.php --phppfm");
+		shell_exec("/etc/init.d/php5-fpm restart");
+		shell_exec("/etc/init.d/artica-postfix restart apache");
+		shell_exec("/etc/init.d/artica-postfix restart artica-status");
+		shell_exec("/etc/init.d/artica-framework restart");
+		shell_exec("$php /usr/share/artica-postfix/exec.freeweb.php --build");
+	}
+	
+	
+	
+}
+function nginx($aspid=false){
+
+	$unix=new unix();
+	if(is_file("/etc/lsb-release")){if($GLOBALS["VERBOSE"]){ "CheckSourcesList: Ubuntu system, aborting\n";}}
+	if(!is_file("/etc/debian_version")){return;}
+	$nginx=$unix->find_program("nginx");
+	if(is_file($nginx)){return;}
+
+	if($aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+		$kill=$unix->find_program("kill");
+		$timexec=$unix->file_time_min($pidTime);
+		if($timexec<240){return;}
+		@unlink($pidTime);
+		@file_put_contents($pidTime, time());
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($time<30){return;}
+			shell_exec("$kill -9 $oldpid >/dev/null 2>&1");
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+
+
+
+	$ver=trim(@file_get_contents("/etc/debian_version"));
+	preg_match("#^([0-9]+)\.#",$ver,$re);
+	if(preg_match("#squeeze\/sid#",$ver)){$Major=6;}
+	$Major=$re[1];
+	if($Major<>6){
+		echo "CheckSourcesList: Debian version <> $Major aborting...\n";
+		return;
+	}
+
+	check_nginx();
+	$unix=new unix();
+	$aptget=$unix->find_program("apt-get");
+	echo "CheckSourcesList: Installing nginx\n";
+	$cmd="DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes -y install nginx 2>&1";
+	echo "CheckSourcesList: $cmd\n";
+	shell_exec($cmd);
+	$nginx=$unix->find_program("nginx");
+	if(is_file($nginx)){
+		$php=$unix->LOCATE_PHP5_BIN();
+		shell_exec("$php /usr/share/artica-postfix/exec.initslapd.php --nginx");
+		shell_exec("/etc/init.d/nginx restart");
+
+	}
+
+
+
+}
 
 
 

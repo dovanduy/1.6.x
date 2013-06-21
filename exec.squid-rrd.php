@@ -10,11 +10,13 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
+die();
 
-if($argv[1]=="--stats-appliance"){SendToStatisticsAppliance();die();}
+if($argv[1]=="--stats-appliance"){die();SendToStatisticsAppliance();die();}
 
 squidrrd();
 function squidrrd(){
+	die();
 	if(!$GLOBALS["FORCE"]){
 		if(system_is_overloaded(basename(__FILE__))){
 			writelogs("Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting task",__FILE__,__FUNCTION__,__FILE__,__LINE__);

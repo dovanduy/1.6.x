@@ -51,6 +51,8 @@ function enable_transparent(){
 	$iptables=$unix->find_program("iptables");	
 	$sysctl=$unix->find_program("sysctl");
 	$ips=$unix->ifconfig_interfaces_list();
+	$KernelSendRedirects=$sock->GET_INFO("KernelSendRedirects");
+	if(!is_numeric($KernelSendRedirects)){$KernelSendRedirects=1;}
 	
 	unset($ips["127.0.0.1"]);
 	unset($ips["lo"]);
@@ -61,19 +63,29 @@ function enable_transparent(){
 		echo "Starting......: Squid Transparent mode: Activate TProxy mode...\n";	
 	}
 	
-	$KernelSendRedirects=$sock->GET_INFO("KernelSendRedirects");
-	if(!is_numeric($KernelSendRedirects)){$KernelSendRedirects=1;}
+
+	
+	
+	iptables_delete_all();
+	$chilli=$unix->find_program("chilli");
+	$EnableChilli=$sock->GET_INFO("EnableChilli");
+	if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+	if(!is_file($chilli)){$EnableChilli=0;}
+	
+	if($EnableChilli==1){return;}
+	
+	
+	if($SquidBinIpaddr=="0.0.0.0"){$SquidBinIpaddr=null;}
+	if($SquidBinIpaddr=="127.0.0.1"){$SquidBinIpaddr=null;}
+	if($SquidBinIpaddr<>null){$ips=array();$ips["eth0"]=$SquidBinIpaddr;}
+	
+	
+
 	
 	shell_exec2("$sysctl -w net.ipv4.ip_forward=1 2>&1");
 	shell_exec2("$sysctl -w net.ipv4.conf.default.send_redirects=$KernelSendRedirects 2>&1");
 	shell_exec2("$sysctl -w net.ipv4.conf.all.send_redirects=$KernelSendRedirects 2>&1");
-	shell_exec2("$sysctl -w net.ipv4.conf.eth0.send_redirects=$KernelSendRedirects 2>&1");
-	
-	
-	iptables_delete_all();
-	if($SquidBinIpaddr=="0.0.0.0"){$SquidBinIpaddr=null;}
-	if($SquidBinIpaddr=="127.0.0.1"){$SquidBinIpaddr=null;}
-	if($SquidBinIpaddr<>null){$ips=array();$ips["eth0"]=$SquidBinIpaddr;}
+	shell_exec2("$sysctl -w net.ipv4.conf.eth0.send_redirects=$KernelSendRedirects 2>&1");	
 	
 	if($UseTProxyMode==1){
 		

@@ -38,7 +38,9 @@ if(is_file("/etc/artica-postfix/auth-tail-debug")){$GLOBALS["VERBOSE"]=true;}
 if($GLOBALS["VERBOSE"]){events("waiting event in VERBOSE MODE....");}
 @mkdir("/var/log/artica-postfix/squid-users",0755,true);
 @mkdir("/var/log/artica-postfix/squid-brut",0777,true);
+@mkdir("/var/log/artica-postfix/squid-reverse",0777,true);
 @chmod("/var/log/artica-postfix/squid-brut",0777);
+@chmod("/var/log/artica-postfix/squid-reverse",0777);
 @mkdir("/var/log/artica-postfix/youtube",0755,true);
 @mkdir('/var/log/artica-postfix/squid-userAgent');
 $squidver=$unix->squid_version();
@@ -89,7 +91,7 @@ function Parseline($buffer){
 	if($GLOBALS["EnableRemoteSyslogStatsAppliance"]==1){return;}
 	if($GLOBALS["DisableArticaProxyStatistics"]==1){return;}
 	if($GLOBALS["EnableRemoteStatisticsAppliance"]==1){return;}
-	$datelog=date("Y-m-d-h");
+	$datelog=date("Y-m-d-H");
 	
 	
 	$MD5Buffer=md5($buffer);
@@ -97,6 +99,8 @@ function Parseline($buffer){
 		@mkdir("/var/log/artica-postfix/squid-brut/$datelog",0755,true);
 		$GLOBALS["SQUIDCOUNT"]=$GLOBALS["SQUIDCOUNT"]+1;
 		if($GLOBALS["SQUIDCOUNT"]>1000){shell_exec($GLOBALS["CMDLINE_SQUIDBRUT"]);$GLOBALS["SQUIDCOUNT"]=0;}
+		
+		
 				
 		if(!is_dir("/var/log/artica-postfix/squid-brut/$datelog")){
 			@file_put_contents("/var/log/artica-postfix/squid-brut/$MD5Buffer", $buffer);
@@ -132,6 +136,28 @@ function Parseline($buffer){
 				
 		return;
 	}
+	
+	if(strpos($buffer," (squid):")>0){
+		$GLOBALS["SQUIDCOUNT"]=$GLOBALS["SQUIDCOUNT"]+1;
+		if($GLOBALS["SQUIDCOUNT"]>1000){shell_exec($GLOBALS["CMDLINE_SQUIDBRUT"]);$GLOBALS["SQUIDCOUNT"]=0;}
+		
+		@mkdir("/var/log/artica-postfix/squid-brut/$datelog",0755,true);
+		if(!is_dir("/var/log/artica-postfix/squid-brut/$datelog")){
+			@file_put_contents("/var/log/artica-postfix/squid-brut/$MD5Buffer", $buffer);
+			return;
+		}
+		
+		
+		@file_put_contents("/var/log/artica-postfix/squid-brut/$datelog/$MD5Buffer", $buffer);
+		if(!is_file("/var/log/artica-postfix/squid-brut/$datelog/$MD5Buffer")){
+			events("/var/log/artica-postfix/squid-brut/$datelog Permission denied Line:".__LINE__);
+		}
+		
+		return;		
+		
+	}
+	
+	
 	
 	events("Not Filtered \"$buffer\" Line:".__LINE__);
 	

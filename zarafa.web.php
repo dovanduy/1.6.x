@@ -236,14 +236,18 @@ function SAVE(){
 
 function popup(){
 	
-	
+	$sock=new sockets();
 	$q=new mysql();
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$users=new usersMenus();
 	$array["popup-webmail"]="{WEBMAIL}";
 	$array["popup-server"]="{APP_ZARAFA_SERVER}";
-	if($users->APP_ZARAFADB_INSTALLED){
+	
+	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
+	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
+	
+	if($ZarafaDedicateMySQLServer){
 		$array["server2"]="{second_instance}";
 	}
 	$array["popup-imap"]="IMAP/POP3";

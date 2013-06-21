@@ -1,19 +1,14 @@
-<!DOCTYPE html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="en">
-<head>
-  <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8">
-  <meta content="text/html; charset=utf-8" http-equiv="Content-type" />
-  <link  rel="stylesheet" type="text/css" href="/ressources/templates/endusers/css/s.css" charset="utf-8"  />
-  <link  rel="stylesheet" type="text/css" href="/ressources/templates/endusers/css/jquery.css" charset="utf-8"  />
-  <link rel="stylesheet" type="text/css" href="/css/jquery.jgrowl.css" />
-  <link rel="stylesheet" type="text/css" href="/css/jquery.cluetip.css" />
-  <link rel="stylesheet" type="text/css" href="/css/jquery.treeview.css" />
-  <link rel="stylesheet" type="text/css" href="/css/thickbox.css" media="screen"/>
-  <link rel="stylesheet" type="text/css" href="/css/jquery.qtip.css" />
-  <link rel="stylesheet" type="text/css" href="/fonts.css.php" />
-  
-  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-1.8.0.min.js"></script>
-  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-ui-1.8.23.custom.min.js"></script>
+  <head>
+    <meta charset="utf-8">
+    <title>{TEMPLATE_TITLE_HEAD}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap-responsive.css">
+
 	<script type="text/javascript" language="javascript" src="/mouse.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/md5.js"></script>
 	<script type="text/javascript" language="javascript" src="/XHRConnection.js"></script>
@@ -22,59 +17,110 @@
 	<script type="text/javascript" language="javascript" src="/js/artica_confapply.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/edit.user.js"></script>
 	<script type="text/javascript" language="javascript" src="/js/cookies.js"></script>
-	<script type="text/javascript" language="javascript" src="/default.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jqueryFileTree.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.easing.1.3.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/thickbox-compressed.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.simplemodal-1.3.3.min.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.jgrowl_minimized.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.cluetip.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.blockUI.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.treeview.min.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.treeview.async.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.tools.min.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.qtip.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.kwicks-1.5.1.pack.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/flexigrid.pack.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery-ui-timepicker-addon.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/ui.selectmenu.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/jquery.cookie.js"></script>
-	<script type="text/javascript" language="javascript" src="/js/fileuploader.js"></script>  
+	<script type="text/javascript" language="javascript" src="/default.js"></script>    
+  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-1.8.0.min.js"></script>
+  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-ui-1.8.23.custom.min.js"></script>    
+   <style type="text/css">
+     body {
+        padding-top: 40px;
+        padding-bottom: 40px;
+        background-color: #f5f5f5;
+      }
 
-  <title>{TEMPLATE_TITLE_HEAD}</title>
-
+      .form-signin {
+        max-width: 300px;
+        padding: 19px 29px 29px;
+        margin: 0 auto 20px;
+        background-color: #fff;
+        border: 1px solid #e5e5e5;
+        -webkit-border-radius: 5px;
+           -moz-border-radius: 5px;
+                border-radius: 5px;
+        -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+           -moz-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+                box-shadow: 0 1px 2px rgba(0,0,0,.05);
+      }
+      .form-signin .form-signin-heading,
+      .form-signin .checkbox {
+        margin-bottom: 10px;
+      }
+      .form-signin input[type="text"],
+      .form-signin input[type="password"] {
+        font-size: 16px;
+        height: auto;
+        margin-bottom: 15px;
+        padding: 7px 9px;
+      }
+    </style>    
+    <!--[if IE]>
+		<link rel="stylesheet" type="text/css" href="/bootstrap/css/ie-only.css" />
+	<![endif]-->    
 </head>
-
 <body>
-  <div id="sum">
-    <div id="header"></div>
-    <div id="content">
-<form action="#">
-		<div class="f">
-			<div class="field">
-				<label for="flogin">{username}:</label> <input type="text" name="artica_username" id="artica_username" onfocus="this.setAttribute('class','active')" onblur="this.removeAttribute('class');" OnKeyPress="javascript:SendLogon(event)">
-		
-			</div>
-			<div class="field">
-				<label for="fpassword">{password}:</label> <input type="password" name="artica_password" id="artica_password" onfocus="this.setAttribute('class','active')" onblur="this.removeAttribute('class');" OnKeyPress="javascript:SendLogon(event)">
-			</div>
-			<div class="field button">
-						{LOGON_BUTTON}
-			</div>
-		</div>
-		
-	</form>			
-    </div><!-- /#content -->
+<input type='hidden' id='LoadAjaxPicture' name="LoadAjaxPicture" value="/ressources/templates/endusers/ajax-loader-eu.gif">
+<div id="SetupControl" style='width:0;height:0'></div>
+<div id="dialogS" style='width:0;height:0'></div> 
+<div id="dialogT" style='width:0;height:0'></div> 
+<div id="dialog0" style='width:0;height:0'></div> 
+<div id="dialog1" style='width:0;height:0'></div>
+<div id="dialog2" style='width:0;height:0'></div> 
+<div id="dialog3" style='width:0;height:0'></div>
+<div id="dialog4" style='width:0;height:0'></div>
+<div id="dialog5" style='width:0;height:0'></div>
+<div id="dialog6" style='width:0;height:0'></div>
+<div id="YahooUser" style='width:0;height:0'></div>
+<div id="logsWatcher" style='width:0;height:0'></div>
+<div id="WinORG" style='width:0;height:0'></div>
+<div id="WinORG2" style='width:0;height:0'></div>
+<div id="RTMMail" style='width:0;height:0'></div>
+<div id="Browse" style='width:0;height:0'></div>
+<div id="SearchUser" style='width:0;height:0'></div>
+<div id="UnityDiv" style='width:0;height:0'></div>
+<div id='PopUpInfos' style='position:absolute'></div>
+<div id='find' style='position:absolute'></div>
+<div class="info message" id='AcaNotifyMessInfo'></div>
+<div class="error message" id='AcaNotifyMessError'></div>
+<div class="warning message" id='AcaNotifyMessWarn'></div>
+<div class="success message" id='AcaNotifyMessSuccess'></div>
 
-    <div class="footer">
-    	<center style='font-size:13px;font-weight:bold;color:white'></center>
-    </div><!-- /#footer -->
-  </div>
-<script>
-function SendLogon(e){
-	if(!checkEnter(e)){return;}
-	Loadjs('miniadm.logon.php?js=yes');
-}
-</script>
+    <div class="container">
+
+      <form class="form-signin">
+        <h2 class="form-signin-heading">{please_sign_in}</h2>
+        <input type="text" class="input-block-level" placeholder="{username}" id="artica_username">
+        <input type="password" class="input-block-level" placeholder="{password}" id="artica_password">
+        <button class="btn btn-large btn-primary" type="button" id="signin">Sign in</button>
+      </form>
+
+    </div> 
+
+ 
+ <script type="text/javascript">
+ 
+ $('#signin').on('click', function (e) {
+	 //if(!checkEnter(e)){return;}
+		$.getScript('miniadm.logon.php?js=yes');
+
+});
+ 
+ 
+ $('.input-block-level').keypress(function (e) {
+	
+	 if (e.which == 13) {
+		 $.getScript('miniadm.logon.php?js=yes');
+	 }
+
+});
+ 
+ 
+ 
+ function SendLogon(event){
+	 if(!checkEnter(e)){return;}
+	 $.getScript('miniadm.logon.php?js=yes');
+	 
+ }
+ 
+ </script>
+
 </body>
 </html>

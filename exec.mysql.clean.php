@@ -472,7 +472,7 @@ function clean_squid_stats_dbs(){
 	}
 	
 	if($count_tables>0){
-		shell_exec("/etc/init.d/artica-postfix restart mysql");
+		shell_exec("/etc/init.d/mysql restart");
 	}
    	$sock->TOP_NOTIFY("$count_tables statistics tables as been deleted with $rows rows","info");
 	

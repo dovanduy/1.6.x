@@ -1,5 +1,5 @@
-<about> OBM is a global Groupware, Messaging, CRM and Project appliation.[br] It is mainly used as an Exchange Or Notes/Domino Mail and groupware replacement but also as simple contact databases to full CRM. OBM advanced shared calendar and contacts has connectors with MS Outlook, Thunderbird/Lightning or PDA.
-OBM is always evolving and the data and the database model are subject to change.</about>
+<about>O OBM &eacute; um projecto aplicaccional (Groupware, Messaging, CRM. [br] &Eacute; usado principalmente como troca ou Notes/Mail de Domino e substitui&ccedil;&atilde;o de groupware, mas tamb&eacute;m como uma simples bases de dados de contactos de CRM. O OBM disponibiliza  uma avan&ccedil;ada partilha de calend&aacute;rio e contactos, atrav&eacute;s de conetores para o MS Outlook, Thunderbird/Lightning e PDA.
+OBM est&aacute; sempre  a evoluir e os dados e o modelo de base de dados est&atilde;o sujeitos a altera&ccedil;&otilde;es.</about>
 <apacheconf>Lighttpd Config file</apacheconf>
 <close_now>All operations completed, You can close the windows now</close_now>
 <domains_updated>Domains updated</domains_updated>

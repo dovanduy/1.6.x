@@ -140,7 +140,7 @@ class netagent{
 		$hostid=$this->hostid();
 		
 		$curl=new ccurl($this->master_uri."/nodes.listener.php");
-		$curlparms["SETTINGS_INC"]=$values;
+		$curlparms["SETTINGS_PARAMS"]=$values;
 		$curlparms["nodeid"]=$this->nodeid;
 		$curlparms["VERSION"]=trim(@file_get_contents("/usr/share/artica-postfix/VERSION"));
 		$curlparms["perfs"]=$this->perfs($_GLOBAL["CPU_NUMBER"]);
@@ -231,15 +231,70 @@ class netagent{
 		}
 		
 		
+		$ORDERS_RECEIVED=false;
+		//$curl->data=html_entity_decode($curl->data);
 		
-		
-		if(preg_match("#<ORDERS>(.+?)</ORDERS>#is", $curl->data,$re)){
-			$this->OrdersParse($re[1]);
-		}else{
-			writelogs("Did not receive any order....",__FUNCTION__,__FILE__,__LINE__);
+		if(strlen($curl->data)>0){
+			$Encrypted=$this->decode_orders($curl->data);
+			if($Encrypted<>null){
+				$this->OrdersParse($Encrypted);
+				$ORDERS_RECEIVED=true;
+			}else{
+				if($GLOBALS["OUTPUT"]){echo "Encrypted = NULL\n";}
+			}
+			
+			
 		}
 		
+		if(!$ORDERS_RECEIVED){
+			if(preg_match("#<ORDERS>(.*?)</ORDERS>#is", $curl->data,$re)){
+				$this->OrdersParse($re[1]);
+				$ORDERS_RECEIVED=true;
+			}
+		}
+		
+		
+		
+		
+		if($GLOBALS["OUTPUT"]){if(!$ORDERS_RECEIVED){echo "No orders receive ".strlen($curl->data)." bytes\n";}}
 		if($GLOBALS["OUTPUT"]){echo "Done...\n";}
+		
+	}
+	
+	private function decode_orders($bigdata){
+		$unix=new unix();
+		$tmpfile=$unix->FILE_TEMP();
+		
+		@file_put_contents($tmpfile, $bigdata);
+		$bigdata=null;
+		
+		$f=explode("\n",@file_get_contents($tmpfile));
+		if($GLOBALS["OUTPUT"]){echo count($f)." lines\n";}
+		
+		while (list ($num, $line) = each ($f) ){
+			if(strpos(" $line", "<ORDERS>")>0){
+				if($GLOBALS["OUTPUT"]){echo "FOUND $num\n";}
+				$start=true;
+				$line=str_replace("<ORDERS>", "", $line);
+				$t[]=$line;
+				if(strpos(" $line", "</ORDERS>")>0){
+					if($GLOBALS["OUTPUT"]){echo "FOUND $num END\n";}
+					$line=str_replace("</ORDERS>", "", $line);
+					return $line;
+				}
+				continue;
+			}
+		
+			if(strpos(" $line", "</ORDERS>")>0){
+				if($GLOBALS["OUTPUT"]){echo "FOUND $num END\n";}
+				$line=str_replace("</ORDERS>", "", $line);
+				$t[]=$line;
+				$return=@implode("", $t);
+				unset($t);
+				return $return;
+			}
+		}
+		
 		
 	}
 	
@@ -269,6 +324,7 @@ class netagent{
 	}
 	
 	private function OrdersParse($EncodedData){
+		$EncodedData=trim($EncodedData);
 		$data=unserialize(base64_decode($EncodedData));
 		while (list ($num, $array) = each ($data) ){
 				$orderid=$array["orderid"];

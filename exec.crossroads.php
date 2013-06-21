@@ -64,16 +64,10 @@ while (list ($servername, $ligne) = each ($MAIN["BACKENDS"]) ){	$cd[]="--backend
 
 function LoadIpAddresses(){
 	$unix=new unix();
-	$ifconfig=$unix->find_program("ifconfig");
-	exec("$ifconfig 2>&1",$results);
-	while (list ($index, $line) = each ($results) ){
-		if(preg_match("#inet adr:([0-9\.]+)#", $line,$re)){
-			echo "Starting......: Crossroads multiple found interface '{$re[1]}'\n";
-			$GLOBALS["INET_I"][trim($re[1])]=true;
-		}
+	$ifconfigs=$unix->ifconfig_interfaces_list();
+	while (list ($index, $ipaddr) = each ($ifconfigs) ){
+			$GLOBALS["INET_I"][$ipaddr]=$ipaddr;
 	}
-	
-	
 }
 
 function multiples_start(){

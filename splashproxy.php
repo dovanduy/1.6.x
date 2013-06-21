@@ -1,5 +1,17 @@
 <?php
-	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+	if(isset($_GET["verbose"])){
+		$GLOBALS["VERBOSE"]=true;
+		ini_set('display_errors', 1);
+		ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string',null);
+		ini_set('error_append_string',null);
+	}
+	
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string',null);
+	ini_set('error_append_string',null);
+		
 	$GLOBALS["ICON_FAMILY"]="ANTISPAM";
 	include_once('ressources/class.templates.inc');
 	include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
@@ -25,13 +37,42 @@ function page(){
 	$t=time();
 	
 	$HotSpotConfig=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));
-	$array=unserialize(base64_decode($_GET["request"]));
 	
-	$LOGIN=$array["LOGIN"];
-	$IPADDR=$array["IPADDR"];
-	$MAC=$array["MAC"];
-	$HOST=$array["HOST"];
-	$URI=$array["URI"];
+	
+	
+	if(isset($_GET["request"])){$array=unserialize(base64_decode($_GET["request"]));}
+	
+	
+	if(!is_array($array)){
+		if(isset($_SERVER["HTTP_X_FORWARDED_FOR"])){$IPADDR=$_SERVER["HTTP_X_FORWARDED_FOR"];}
+		if($IPADDR==null){
+			if(function_exists("apache_request_headers")){
+				$headers = apache_request_headers();
+				if(isset($headers["X-Forwarded-For"])){$IPADDR=$headers["X-Forwarded-For"];}
+			}
+		}
+
+		if($IPADDR==null){
+			if($_SERVER["SERVER_ADDR"]<>$_SERVER["REMOTE_ADDR"]){
+				$IPADDR=$_SERVER["REMOTE_ADDR"];
+			}
+		}
+		
+	}
+	
+	
+	
+		$LOGIN=$array["LOGIN"];
+		$IPADDR=$array["IPADDR"];
+		$MAC=$array["MAC"];
+		$HOST=$array["HOST"];
+		$URI=$array["URI"];
+		$q=new mysql_squid_builder();
+		$uid=trim($q->Hotspot_SessionActive($array));
+		if($uid<>null){if($URI<>null){header("Location:$URI");die();}}
+	
+		$array_requests=base64_encode(serialize($array));
+	
 	
 	if(!isset($HotSpotConfig["USETERMSLABEL"])){$HotSpotConfig["USETERMSLABEL"]=null;}
 	if(!isset($HotSpotConfig["USETERMS"])){$HotSpotConfig["USETERMS"]=1;}
@@ -54,7 +95,7 @@ function page(){
 		<div style='text-align:right;margin-top:-15px;margin-bottom:10px'>
 			<a href=\"javascript:blur();\" OnClick=\"javascript:Terms$t();\"
 			style='color:#E50000;text-decoration:underline'>{$HotSpotConfig["USETERMSLABEL"]}</a>&nbsp;". 
-			Field_checkbox("USETERMS$t", 1)
+			Field_checkbox("USETERMS$t", 1,$_COOKIE["USETERMS"])
 		."</div>";
 		
 	}
@@ -142,6 +183,7 @@ function page(){
 
 			<form action=\"#\">
 				<div class=\"f\">
+					<input type='hidden' name='request' id='request' value='$array_requests'>
 					<div class=\"field\">
 						<label for=\"username\">{username}:</label> <input type=\"text\" name=\"username\" id=\"username\" onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" OnKeyPress=\"javascript:SendLogon$t(event)\">
 		
@@ -175,17 +217,23 @@ function page(){
 		}	 
 	 	
 	function SendLogonStart$t(){
+		var XHR = new XHRConnection();	
 		if(document.getElementById('USETERMS$t')){
 			if(!document.getElementById('USETERMS$t').checked){
 				alert('$youmustaceptterms');
 				return;
 			}
+			XHR.appendData('USETERMS',1);
+			Set_Cookie('USETERMS', '1', '3600', '/', '', '');
+			
 		}
-		var XHR = new XHRConnection();
+		
  		var user=document.getElementById('username').value;
  		var password=MD5(document.getElementById('password').value);
+ 		var passEnc=encodeURIComponent(document.getElementById('password').value);
  		XHR.appendData('username',user);
 		XHR.appendData('password',password);
+		XHR.appendData('passEnc',passEnc);
 		XHR.appendData('md5key','$md5key');
 		XHR.appendData('debugAuth','$debug_auth');
 		XHR.appendData('request','{$_GET["request"]}');
@@ -236,21 +284,15 @@ function page(){
 }
 
 function check_auth(){
-	$tpl=new templates();
-	if($_POST["debugAuth"]==1){
-		$GLOBALS["VERBOSE"]=true;
-		ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
-		ini_set('error_prepend_string',null);
-		ini_set('error_append_string',null);
 	
-		
-	}
+	if(isset($_POST["USETERMS"])){setcookie("USETERMS",1,3600);}
+	
+	$tpl=new templates();
+	if($_POST["debugAuth"]==1){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+	
 	$username=$_POST["username"];
 	$time=time();
-	if($username==null){
-		echo $tpl->javascript_parse_text("{wrong_password_or_username}");
-		return;
-	}
+	if($username==null){echo $tpl->javascript_parse_text("{wrong_password_or_username}");return;}
 	
 	include_once(dirname(__FILE__).'/ressources/class.user.inc');
 	$sock=new sockets();
@@ -267,9 +309,6 @@ function check_auth(){
 	if(!isset($HotSpotConfig["USEAD"])){$HotSpotConfig["USEAD"]=0;}
 	if(!isset($HotSpotConfig["USERAD"])){$HotSpotConfig["USERAD"]=0;}
 	
-	
-	
-	
 	if(!is_numeric($HotSpotConfig["USELDAP"])){$HotSpotConfig["USELDAP"]=1;}
 	if(!is_numeric($HotSpotConfig["USEMYSQL"])){$HotSpotConfig["USEMYSQL"]=1;}
 	if(!is_numeric($HotSpotConfig["CACHE_AUTH"])){$HotSpotConfig["CACHE_AUTH"]=60;}
@@ -283,39 +322,45 @@ function check_auth(){
 	$CACHE_AUTH=$HotSpotConfig["CACHE_AUTH"];	
 	$username=$_POST["username"];
 	$password=$_POST["password"];
+	$passEnc=url_decode_special_tool($_POST["passEnc"]);
 	$md5key=trim($_POST["md5key"]);
-	if($md5key==null){echo "md5key is null...\n";return;}
+	
+	if($password==null){echo "Invalid Password\n";die();}
 	
 	$array=unserialize(base64_decode($_POST["request"]));
 	$LOGIN=$array["LOGIN"];
 	$IPADDR=$array["IPADDR"];
 	$MAC=$array["MAC"];
 	$HOST=$array["HOST"];	
+	if($MAC==null){$MAC="00:00:00:00:00:00";}
 	
+	
+	
+	
+	if($IPADDR==null){$IPADDR=$_SERVER["REMOTE_ADDR"];}
+	if($LOGIN==null){$LOGIN=$username;}
+	if($HOST==null){$HOST=gethostbyaddr($IPADDR);}
+	if($md5key==null){$md5key=md5("$LOGIN$IPADDR$MAC$HOST");}
 	$auth=false;
 	
-	$q=new mysql_squid_builder();
-	
-	$sql="SELECT md5,finaltime FROM hotspot_sessions WHERE md5='$md5key'";
-	
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	if(!$q->ok){echo $q->mysql_error."\n$sql";return;}
-	$md5_session=$ligne["md5"];
-	
 	if($HotSpotConfig["USEAD"]==1){
-		if($GLOBALS["VERBOSE"]){echo "AUTH = FALSE continue IF AD... (".__LINE__.")\n";}
-		$creds["username"]=$username;
-		$creds["password"]=$password;
-		$results=trim(base64_decode($sock->GET_INFO("squid.php?pamlogon=".base64_encode(serialize($creds)))));
-		if($results=="SUCCESS"){$auth=true;}
+		writelogs("$username:: Checks Active Directory..",__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "$username AUTH = FALSE continue IF AD... (".__LINE__.")\n";}
+		$external_ad_search=new external_ad_search();
+		if($external_ad_search->CheckUserAuth($username,$passEnc)){
+			writelogs("$username:: Checks Active Directory success...",__FUNCTION__,__FILE__,__LINE__);
+			$auth=true;
+		}
 	}
 	
-
+	
 	if($HotSpotConfig["USELDAP"]==1){
 		if(!$auth){
-			if($GLOBALS["VERBOSE"]){echo "AUTH = FALSE continue IF LDAP... (".__LINE__.")\n";}
+			writelogs("$username:: Checks LDAP connection..",__FUNCTION__,__FILE__,__LINE__);
 			$ct=new user($username);
-			if(md5($ct->password)==$password){$auth=true;}
+			if(md5($ct->password)==$password){
+				writelogs("$username:: Checks LDAP connection success...",__FUNCTION__,__FILE__,__LINE__);
+				$auth=true;}
 		}
 		
 	}
@@ -323,7 +368,7 @@ function check_auth(){
 	
 	if($HotSpotConfig["USERAD"]==1){
 		if(!$auth){
-			if($GLOBALS["VERBOSE"]){echo "AUTH = FALSE continue IF RADIUS... (".__LINE__.")\n";}
+			writelogs("$username:: Checks RADIUS connection..",__FUNCTION__,__FILE__,__LINE__);
 			$RAD_SERVER=$HotSpotConfig["RAD_SERVER"];
 			$RAD_PORT=$HotSpotConfig["RAD_PORT"];
 			$RAD_PASSWORD=$HotSpotConfig["RAD_PASSWORD"];
@@ -331,9 +376,9 @@ function check_auth(){
 			include_once("/usr/share/artica-postfix/ressources/class.radius.auth.inc");
 			if($GLOBALS["VERBOSE"]){echo "RADIUS_AUTHENTICATION -> With ($username,$password,$RAD_SERVER,$RAD_PORT) (".__LINE__.")\n";}
 			
-			$retval=RADIUS_AUTHENTICATION($username,$password,$RAD_SERVER,$RAD_PORT,$RAD_PASSWORD);
+			$retval=RADIUS_AUTHENTICATION($username,$passEnc,$RAD_SERVER,$RAD_PORT,$RAD_PASSWORD);
 			if($retval==2){
-				if($GLOBALS["VERBOSE"]){echo "AUTH = TRUE, continue next step...\n";}
+				writelogs("$username:: Checks RADIUS connection success...",__FUNCTION__,__FILE__,__LINE__);
 				$auth=true;
 			}
 		}
@@ -343,53 +388,52 @@ function check_auth(){
 	$ASUID=false;
 	
 	if($HotSpotConfig["USEMYSQL"]==1){
+		$q=new mysql_squid_builder();
 		if(!$auth){
-			if($GLOBALS["VERBOSE"]){echo "AUTH = FALSE continue IF MYSQL... (".__LINE__.")\n";}
+			writelogs("$username:: Checks MySQL connection..",__FUNCTION__,__FILE__,__LINE__);
 			if(!$q->TABLE_EXISTS("hotspot_members")){$q->CheckTables();}
 			$sql="SELECT uid,password,ttl,sessiontime,enabled FROM hotspot_members WHERE uid='$username'";
 			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 			if($ligne["uid"]<>null){
-				$ASUID=true;
-				if($ligne["password"]==$password){$auth=true;}
-				if($ligne["sessiontime"]>0){$CACHE_AUTH=$ligne["sessiontime"];}
-				if($ligne["enabled"]==0){echo $tpl->javascript_parse_text("{access_to_internet_disabled} ({disabled})");die();}
-				if(intval($ligne["ttl"])>0){if($time>$ligne["ttl"]){echo $tpl->javascript_parse_text("{accesstime_to_internet_expired}");die();	}}
+				
+				if($ligne["password"]==$passEnc){
+					if($ligne["sessiontime"]>0){$CACHE_AUTH=$ligne["sessiontime"];}
+					if($ligne["enabled"]==0){echo $tpl->javascript_parse_text("{access_to_internet_disabled} ({disabled})");die();}
+					if(intval($ligne["ttl"])>0){if($time>$ligne["ttl"]){echo $tpl->javascript_parse_text("{accesstime_to_internet_expired}");die();	}}
+					writelogs("$username:: Checks MySQL connection success..",__FUNCTION__,__FILE__,__LINE__);
+					$auth=true;
+				}
 			}
 		}
 	}
 		
 	
+	writelogs("$username:: Result = $auth",__FUNCTION__,__FILE__,__LINE__);	
 	
+	if(!$auth){
+		writelogs("$username:: Die() authentification failed",__FUNCTION__,__FILE__,__LINE__);	
+		echo $tpl->javascript_parse_text("{wrong_password_or_username}");
+		return;
+	}
 	
-if(!$auth){
-	if($GLOBALS["VERBOSE"]){echo "AUTH = FALSE , END (".__LINE__.")\n";}
-	echo $tpl->javascript_parse_text("{wrong_password_or_username}");
-	return;
-}
-
-		$q=new mysql_squid_builder();
-		if(!is_numeric($CACHE_AUTH)){$CACHE_AUTH=60;}
-		$finaltime = strtotime("+$CACHE_AUTH minutes", $time);
-		
-		
-
-	if($LOGIN<>null){$uid=$LOGIN;}else{	$uid=$username;}	
-		
-		if($md5_session<>null){
-			$sql="UPDATE hotspot_sessions SET logintime=$time,maxtime=$CACHE_AUTH,
-			username='$username',uid='$uid',MAC='$MAC',hostname='$HOST',
-			finaltime=$finaltime
-			WHERE md5='$md5key'";		
-		}else{
-			$sql="INSERT IGNORE INTO hotspot_sessions (md5,logintime, maxtime,finaltime,username,uid,MAC,hostname)
-			VALUES('$md5key',$time,$finaltime,$CACHE_AUTH,'$username','$uid','$MAC','$HOST')";
-			
-		}			
-
+	$q=new mysql_squid_builder();
+	if(!is_numeric($CACHE_AUTH)){$CACHE_AUTH=60;}
+	$finaltime = strtotime("+$CACHE_AUTH minutes", $time);
+	$datelogs=date("Y-m-d H:i:s",$finaltime);
+	writelogs("$username -> $HOST +{$CACHE_AUTH}mn Next checkup time will be $datelogs ",__FUNCTION__,__FILE__,__LINE__);
+	if($LOGIN<>null){$uid=$LOGIN;}else{	$uid=$username;}
+	
+	$q->QUERY_SQL("DELETE FROM hotspot_sessions WHERE ipaddr='$IPADDR'");
+	$q->QUERY_SQL("DELETE FROM hotspot_sessions WHERE MAC='$MAC'");
+	$q->QUERY_SQL("DELETE FROM hotspot_sessions WHERE uid='$uid'");
+	$sql="INSERT IGNORE INTO hotspot_sessions (md5,logintime, maxtime,finaltime,username,uid,MAC,hostname,ipaddr)
+	VALUES('$md5key',$time,$finaltime,$CACHE_AUTH,'$username','$uid','$MAC','$HOST','$IPADDR')";
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
 	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error."\n$sql";return;}		
+	if(!$q->ok){writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);echo $q->mysql_error."\n$sql";return;}		
 		
-		if($HotSpotConfig["USEMYSQL"]==1){
+	if($HotSpotConfig["USEMYSQL"]==1){
 			if(!$ASUID){
 				$sql="INSERT IGNORE INTO hotspot_members (uid,MAC,hostname,ipaddr,enabled) VALUES ('$uid','$MAC','$HOST','$IPADDR',1)";
 			}else{
@@ -403,6 +447,8 @@ if(!$auth){
 
 	
 }
+
+
 
 
 function getimage(){

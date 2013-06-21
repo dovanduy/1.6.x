@@ -340,7 +340,7 @@ class PHPMailer {
    * @param boolean $exceptions Should we throw external exceptions?
    */
   public function __construct($exceptions = false) {
-    $this->exceptions = ($exceptions == true);
+    $this->exceptions = false;
     $this->PluginDir=dirname(__FILE__)."/";
   }
 
@@ -808,7 +808,12 @@ class PHPMailer {
 
           if ($tls) {
             if (!$this->smtp->StartTLS()) {
-              throw new phpmailerException($this->Lang('tls'));
+            	if ($this->exceptions) {
+            		throw new phpmailerException($this->Lang('tls'));
+            	}
+            	$this->SetError($this->Lang('tls'));
+            	$this->smtp->Reset();
+            	return false;
             }
 
             //We must resend HELO after tls negotiation

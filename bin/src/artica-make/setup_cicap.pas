@@ -57,8 +57,7 @@ end;
 //#########################################################################################      e
 procedure cicap.configure();
 begin
-     fpsystem('/etc/init.d/artica-postfix restart cicap');
-     fpsystem('/etc/init.d/artica-postfix restart squid-cache');
+
 end;
 //#########################################################################################
 

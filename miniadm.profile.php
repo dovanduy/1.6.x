@@ -1,22 +1,27 @@
 <?php
-session_start();
+session_start();$_SESSION["MINIADM"]=true;
+include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
+include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 
 if(isset($_GET["verbose"])){
 	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
 	$GLOBALS["VERBOSE"]=true;
+	$GLOBALS["DEBUG_TEMPLATE"]=true;
+	$GLOBALS["DEBUG_LANG"]=true;
 }
 
-if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
+if(!isset($_SESSION["uid"])){die("NO SESSION");}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
-include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
+
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 
 if(isset($_GET["upload-pic-js"])){upload_pic_js();exit;}
 if(isset($_GET["upload-pic-popup"])){upload_pic_popup();exit;}
-
+if(isset($_GET["lang"])){lang_popup();exit;}
+if(isset($_POST["lang"])){lang_save();exit;}
 if(isset($_GET["content"])){content();exit;}
-if(isset($_POST["displayName"])){save();exit;}
+if(isset($_POST["DisplayName"])){save();exit;}
 if( isset($_GET['TargetpathUploaded']) ){upload_form_perform();exit();}
 if(isset($_GET["privileges"])){privileges();exit;}
 
@@ -35,20 +40,33 @@ function content(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$users=new usersMenus();
-	$ct=new user($_SESSION["uid"]);
+	$VirtualUser=$_SESSION["VirtAclUser"];
+	
+	if(isset($_SESSION["RADIUS_ID"])){if($_SESSION["RADIUS_ID"]>0){$VirtualUser=true;}}
+	if(!$VirtualUser){$ct=new user($_SESSION["uid"]);}else{$ct=new user();}
+	
 	$t=time();
+	
 	$ActiveDirectory=0;
 	if($ct->AsActiveDirectoryMember){$ActiveDirectory=1;}
+	$boot=new boostrap_form();
+	if($VirtualUser){$ct->DisplayName=$_SESSION["uid"];}
+
 	
-	if($users->AllowChangeUserPassword){
-		$password="
-		<tr>
-			<td class=legend>{password}:</td>
-			<td>". Field_password("password-$t",$ct->password)."</td>
-		</tr>";
-		
+	$boot->set_field("DisplayName", "{displayName}", $ct->DisplayName);
+	$boot->set_field("sn", "{sn}", $ct->sn);
+	$boot->set_field("givenName", "{givenName}", $ct->givenName);
+	if($users->AllowChangeUserPassword){$boot->set_fieldpassword("password", "{password}", $ct->password);}
+	$boot->set_field("telephoneNumber", "{telephoneNumber}", $ct->telephoneNumber);
+	$boot->set_field("mobile", "{mobile}", $ct->mobile);
+	$boot->set_button("{apply}");
+	$boot->set_CallBack("AjaxTopMenu('headNav','miniadm.index.php?headNav=yes');");
+	
+	if($VirtualUser){
+		$boot->set_form_locked();
+	}else{
+		if($ActiveDirectory==1){$boot->set_form_locked();}
 	}
-	
 	
 	$picture="ressources/$ct->ThumbnailPath";
 
@@ -60,6 +78,8 @@ function content(){
 		$picture=null;
 	}
 	
+	$form=$boot->Compile();
+	$language=$tpl->javascript_parse_text("{language}");
 	$html="
 	<div class=BodyContent>
 		<table style='width:100%'>
@@ -69,6 +89,8 @@ function content(){
 		<H1>{myaccount}</H1>
 		<p>{myaccount_text}</p>
 		<div style='text-align:right'>
+		<a href=\"javascript:blur();\" OnClick=\"YahooWin3(500,'$page?lang=yes','$language');\">
+		$language</a>&nbsp;|&nbsp;
 		<a href=\"javascript:blur();\" OnClick=\"YahooWin3(500,'$page?privileges=yes','{my_privileges}');\">
 		{my_privileges}</a></div>
 		</td>
@@ -76,77 +98,10 @@ function content(){
 		</table>
 	</div>
 	<div class=BodyContent>
-		<div id='anim-$t'></div>
-		<table style='width:100%' id='$t-table'>
-		<tr>
-			<td class=legend>{displayName}:</td>
-			<td>". Field_text("displayName-$t",$ct->DisplayName)."</td>
-		</tr>
-		<tr>
-			<td class=legend>{sn}:</td>
-			<td>". Field_text("sn-$t",$ct->sn)."</td>
-		</tr>		
-		<tr>
-			<td class=legend>{givenName}:</td>
-			<td>". Field_text("givenName-$t",$ct->givenName)."</td>
-		</tr>	
-		$password	
-		<tr>
-			<td class=legend>{telephoneNumber}:</td>
-			<td>". Field_text("telephoneNumber-$t",$ct->telephoneNumber)."</td>
-		</tr>		
-		<tr>
-			<td class=legend>{mobile}:</td>
-			<td>". Field_text("mobile-$t",$ct->mobile)."</td>
-		</tr>	
-
-		<tr>
-			<td colspan=2 align='right' class='right'>
-				<hr>
-				". button("{apply}", "SaveAccount$t()","18px")."
-			</td>
-		</tr>
+		$form
 		
-		</table>
 	</div>
-	
-<script>
-	var x_SaveAccount$t= function (obj) {
-			var results=obj.responseText;
-			document.getElementById('anim-$t').innerHTML='';
-			if(results.length>3){alert(results);return;}
-			AjaxTopMenu('headNav','miniadm.index.php?headNav=yes');
-		}		
-		
-		function SaveAccount$t(){
-			var ActiveDirectory=$ActiveDirectory;
-			if(ActiveDirectory==1){return;}
-			var XHR = new XHRConnection();
-			if(document.getElementById('password-$t')){
-				var pp=encodeURIComponent(document.getElementById('password-$t').value);
-				XHR.appendData('password',pp);
-			}
-			var sn=encodeURIComponent(document.getElementById('sn-$t').value);
-			XHR.appendData('displayName',encodeURIComponent(document.getElementById('displayName-$t').value));
-			XHR.appendData('sn',sn);
-			XHR.appendData('givenName',encodeURIComponent(document.getElementById('givenName-$t').value));
-			XHR.appendData('telephoneNumber',document.getElementById('telephoneNumber-$t').value);
-			XHR.appendData('mobile',document.getElementById('mobile-$t').value);
-			AnimateDiv('anim-$t');
-			XHR.sendAndLoad('$page', 'POST',x_SaveAccount$t);			
-		
-		}
-		
-		function ActiveDirectory(){
-			var ActiveDirectory=$ActiveDirectory;
-			if(ActiveDirectory==1){
-				DisableFieldsFromId('$t-table');
-				}
-		}
-		
-		ActiveDirectory();
-		
-</script>	
+
 	
 	
 	";
@@ -155,9 +110,9 @@ function content(){
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
-function save(){
+function save(){	
 		$ct=new user($_SESSION["uid"]);
-		$ct->DisplayName=url_decode_special_tool($_POST["displayName"]);
+		$ct->DisplayName=url_decode_special_tool($_POST["DisplayName"]);
 		$ct->sn=url_decode_special_tool($_POST["sn"]);
 		$ct->givenName=url_decode_special_tool($_POST["givenName"]);
 		$ct->telephoneNumber=$_POST["telephoneNumber"];
@@ -308,9 +263,12 @@ function privileges(){
 	include_once(dirname(__FILE__)."/ressources/class.translate.rights.inc");
 	$cr=new TranslateRights(null, null);
 	$r=$cr->GetPrivsArray();
+	
 	$ldap=new clladp();
 	$ht=array();
-	$ht[]="<table style='width:99%' class=form>";
+	$ht[]="<div style='width:95%' class=form>";
+	
+	$ht[]="<table style='width:99%'>";
 	if($ldap->IsKerbAuth()){
 		if($GLOBALS["VERBOSE"]){echo "<li><strong>IsKerbAuth = TRUE (line ".__LINE__.")</strong></li>\n";}
 		include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
@@ -336,7 +294,7 @@ function privileges(){
 	
 	
 	while (list ($key, $val) = each ($r) ){
-		if(!isset($_SESSION[$key])){continue;}
+		if(!isset($_SESSION[$key])){$_SESSION[$key]=$val;}
 		if($_SESSION[$key]){
 			$ht[]="<tr><td width=1%><img src='img/arrow-right-16.png'></td><td><span style='font-size:14px'>{{$key}}</span></td></tr>";
 		}
@@ -357,6 +315,36 @@ function privileges(){
 		}
 	}
 	
-	$ht[]="</table>";
+	$ht[]="</table></div>";
 	echo $tpl->_ENGINE_parse_body(@implode("\n", $ht));
+}
+
+function lang_popup(){
+	$htmlT=new htmltools_inc();
+	$page=CurrentPageName();
+	$lang=$htmlT->LanguageArray();
+	$tpl=new templates();
+	$boot=new boostrap_form();
+	$boot->set_list("lang", "{language}",$lang, $tpl->language,array("COOKIE"=>"artica-language"));
+	$boot->set_AjaxFinal("window.location.href='$page';");
+	$boot->set_button("{apply}");
+	$boot->set_CloseYahoo("YahooWin3");
+	echo $boot->Compile();
+	
+	
+	
+	
+}
+
+function lang_save(){
+	if($_POST["lang"]==null){echo "No language set...\n";}
+	$_SESSION["detected_lang"]=$_POST["lang"];
+	$_SESSION["OU_LANG"]=$_POST["lang"];
+	$_COOKIE["artica-language"]=$_POST["lang"];
+	unset($_SESSION["translation"]);
+	unset($_SESSION["MINIADM_TOP_MENU"]);
+	while (list ($key, $val) = each ($_SESSION)){
+		if(preg_match("#\.php$#", $key)){unset($_SESSION[$key]);}
+	}
+	
 }

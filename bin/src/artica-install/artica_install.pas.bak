@@ -316,7 +316,7 @@ if install.IsRoot()=false then begin
 end;
 
 if ParamStr(1)='--lighttpd-reload' then begin
-   zlighttpd.LIGHTTPD_RELOAD();
+
    halt(0);
 end;
 
@@ -552,7 +552,6 @@ if ParamStr(1)='--pdns-reconfigure' then begin
 end;
 if ParamStr(1)='--pdns-reload' then begin
    zpdns:=tpdns.Create(SYS);
-   zpdns.CONFIG_DEFAULT();
    zpdns.RELOAD();
 end;
 
@@ -3284,11 +3283,11 @@ if ParamStr(1)='--lighttpd-status' then
 begin
 GLOBAL_INI:=MyConf.Create();
 writeln('config path........: ',zlighttpd.LIGHTTPD_CONF_PATH());
-writeln('Pid path...........: ',zlighttpd.LIGHTTPD_PID());
+
 writeln('init.d path........: ',zlighttpd.LIGHTTPD_INITD());
 writeln('logs path..........: ',zlighttpd.LIGHTTPD_LOG_PATH());
 writeln('socket path........: ',zlighttpd.LIGHTTPD_SOCKET_PATH());
-writeln('Popup authenticate.: ',zlighttpd.IS_AUTH_LDAP());
+
 
 
 halt(0);

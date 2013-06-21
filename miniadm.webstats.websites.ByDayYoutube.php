@@ -3,21 +3,27 @@ session_start();
 
 ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
 ini_set('error_append_string',null);
-if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
+if(!isset($_SESSION["uid"])){die("oups");}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.calendar.inc");
+include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 if(!$_SESSION["AsWebStatisticsAdministrator"]){header("location:miniadm.index.php");die();}
 	
 
 if(isset($_GET["content"])){content();exit;}
 if(isset($_GET["messaging-right"])){messaging_right();exit;}
 if(isset($_GET["webstats-middle"])){webstats_middle();exit;}
+if(isset($_GET["www-graĥs"])){section_graphs();exit;}
 if(isset($_GET["graph"])){generate_graph();exit;}
 if(isset($_GET["graph2"])){generate_graph2();exit;}
+if(isset($_GET["graph3"])){generate_graph3();exit;}
+if(isset($_GET["graph4"])){generate_graph4();exit;}
+if(isset($_GET["www-table"])){section_table();exit;}
+if(isset($_GET["www-hits"])){hits_search();exit;}
 
 
 
@@ -52,7 +58,7 @@ function content(){
 	$ff=time();
 	$tablename=$_GET["tablename"];
 	$xtime=$_GET["xtime"];
-	
+	call_user_func(BECALL);
 
 	$jsadd="LoadAjax('statistics-$t','$page?webstats-stats=yes');";
 	
@@ -98,45 +104,134 @@ function content(){
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
+function suffix(){
+	$t=$_GET["t"];
+	return "&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}";
+}
+
 function webstats_middle(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=$_GET["t"];
 	$ff=time();
+	$boot=new boostrap_form();
+	call_user_func(BECALL);
+	$title=null;
+	$suffix=suffix();
+	if(isset($_GET["title"])){
+		
+		$dateT=time_to_date($_GET["xtime"]);
+		$title=$tpl->_ENGINE_parse_body("<H4>&laquo;$dateT&raquo; {youtube_videos}</H4>
+		<p>{display_youtube_for_this_day}</p>");
+		
+	}
 	
-	$html="
-	<div class=BodyContent id='graph-$ff'></div>
-	<div class=BodyContent id='graph2-$ff'></div>
-	<div class=BodyContent id='table-$ff'></div>
 	
-	
-	<script>
-		LoadAjax('graph-$ff','$page?graph=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}');
-		LoadAjax('graph2-$ff','$page?graph2=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}');
-		LoadAjax('table-$ff','$page?webstats_middle_table=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}');
-	</script>
-	";
-	
-	echo $html;
-	
+
+	$_GET["uid"]=urlencode($_GET["uid"]);
+	$fsite=urlencode($_GET["familysite"]);
+	$array["{graphs}"]="$page?www-graĥs=yes$suffix";
+	$array["{videos}"]="$page?www-table=yes$suffix";
+	$array["{hits}"]="$page?www-hits=yes$suffix";
+	echo $title.$boot->build_tab($array);
+
+}
+function section_table(){
+	$boot=new boostrap_form();
+	call_user_func(BECALL);
+	echo $boot->SearchFormGen("title,uid,ipaddr","items",suffix());
 	
 }
 
-
-function webstats_middle_table(){
-	
+function section_graphs(){
 	$page=CurrentPageName();
-	$tpl=new templates();	
-	$users=new usersMenus();
-	$TB_HEIGHT=500;
-	$TB_WIDTH=910;
-	$uid=$_GET["uid"];
+	$t=$_GET["t"];
+	$ff=time();
+	$suffix=suffix();
+	$html="
+	<table style='width:950px' class=TableRemove>
+	<tr>
+	<td valign='top'><div id='graph-$ff' style='width:450px;height:450px'></div></td>
+	<td valign='top'><div id='graph2-$ff' style='width:450px;height:450px'></div></td>
+	</tr>
+	<tr>
+	<td align='center' style='text-align:center'><div id='graph3-$ff' style='width:450px;height:450px'></div></td>
+	<td align='center' style='text-align:center'><div id='graph4-$ff' style='width:450px;height:450px'></div></td>
+	</tr>
+	</table>
+	
+	<script>
+		Loadjs('$page?graph=yes$suffix&container=graph-$ff');
+		Loadjs('$page?graph2=yes$suffix&container=graph2-$ff');
+		Loadjs('$page?graph3=yes$suffix&container=graph3-$ff');
+		Loadjs('$page?graph4=yes$suffix&container=graph4-$ff');
+		LoadAjax('table-$ff','$page?webstats_middle_table=yes$suffix');
+	</script>	
+	
+	";	
+	
+	echo $html;
+	
+}
+
+function hits_search(){
+	$tablename="youtubeday_".date("Ymd",$_GET["xtime"]);
+	$sql="SELECT COUNT(youtubeid) as hits,`hour` FROM `$tablename` GROUP BY `hour` ORDER BY `hour` DESC";
+	$q=new mysql_squid_builder();
+	$tpl=new templates();
+	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){senderrors($q->mysql_error);}
+	
+	
+	$boot=new boostrap_form();
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$zmd5=md5(serialize($ligne));
+		$color="black";
+	
+	
+		//familysite 	size 	hits
+	
+		$urljsSIT="Loadjs('miniadm.webstats.ByHourYoutube.php?xtime={$_GET["xtime"]}&hour={$ligne["hour"]}');";
+		$truri=$boot->trswitch($urljsSIT);
+		$ligne["hits"]=numberFormat($ligne["hits"],0,""," ");
+		$tr[]="
+		<tr $truri>
+		<td ><i class='icon-time'></i>&nbsp;{$ligne["hour"]}h</td>
+		<td width=1% align=center>{$ligne["hits"]}</td>
+		</tr>
+		";
+	}
+	echo $tpl->_ENGINE_parse_body("
+			<table class='table table-bordered table-hover'>
+			<thead>
+			<tr>
+			<th>{hour}</th>
+			<th>{hits}</th>
+			</tr>
+			</thead>
+			<tbody>
+			").@implode("\n", $tr)."
+			</tbody>
+			</table>";
+	
 		
-	$t=time();
+}
+
+
+	
+	
+function webstats_middle_table_items(){
+	$t=$_GET["t"];
+	$tpl=new templates();
+	$MyPage=CurrentPageName();
+	$q=new mysql_squid_builder();
+	$users=new usersMenus();
+	$sock=new sockets();
 	$sitename=$tpl->javascript_parse_text("{sitename}");
 	$imapserv=$tpl->_ENGINE_parse_body("{imap_server}");
 	$account=$tpl->_ENGINE_parse_body("{account}");
-//	$title=$tpl->_ENGINE_parse_body("$attachments_storage {items}:&nbsp;&laquo;$size&raquo;");
+	//	$title=$tpl->_ENGINE_parse_body("$attachments_storage {items}:&nbsp;&laquo;$size&raquo;");
 	$filessize=$tpl->_ENGINE_parse_body("{filesize}");
 	$action_delete_rule=$tpl->javascript_parse_text("{action_delete_rule}");
 	$enable=$tpl->_ENGINE_parse_body("{enable}");
@@ -155,79 +250,7 @@ function webstats_middle_table(){
 	$video=$tpl->_ENGINE_parse_body("{video}");
 	$uid=$tpl->_ENGINE_parse_body("{account}");
 	$ipaddr=$tpl->_ENGINE_parse_body("{ipaddr}");
-	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
-	$buttons="
-	buttons : [
-	
-	{name: '$online_help', bclass: 'Help', onpress : ItemHelp$t},
-	
-	],	";
-	$html="
-	
-	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
-	
-<script>
-var mem$t='';
-$(document).ready(function(){
-$('#flexRT$t').flexigrid({
-	url: '$page?items=yes&t=$t&uid=$uid&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}',
-	dataType: 'json',
-	colModel : [
-		{display: '$video', name : 'title', width :307, sortable : true, align: 'left'},
-		{display: '$uid', name : 'uid', width :114, sortable : true, align: 'left'},	
-		{display: '$ipaddr', name : 'ipaddr', width :107, sortable : true, align: 'left'},
-		{display: '$hostname', name : 'hostname', width :107, sortable : true, align: 'left'},
-		{display: '$MAC', name : 'MAC', width :107, sortable : true, align: 'left'},
-		{display: '$hits', name : 'hits', width :75, sortable : true, align: 'left'},
-		
-	
-	],
-	$buttons
-
-	searchitems : [
-		{display: '$video', name : 'title'},
-		{display: '$uid', name : 'uid'},
-		{display: '$ipaddr', name : 'ipaddr'},
-		{display: '$hostname', name : 'hostname'},
-		{display: '$MAC', name : 'MAC'},
-		
-
-	],
-	sortname: 'hits',
-	sortorder: 'desc',
-	usepager: true,
-	title: '<span id=\"title-$t\"></span>',
-	useRp: true,
-	rp: 50,
-	showTableToggleBtn: false,
-	width: $TB_WIDTH,
-	height: $TB_HEIGHT,
-	singleSelect: true,
-	rpOptions: [10, 20, 30, 50,100,200,500]
-	
-	});   
-});
-
-function ItemHelp$t(){
-	//s_PopUpFull('http://www.mail-appliance.org/index.php?cID=339','1024','900');
-}
-
-
-</script>";
-	
-	echo $html;
-	
-	
-	
-}	
-	
-function webstats_middle_table_items(){
-	$t=$_GET["t"];
-	$tpl=new templates();
-	$MyPage=CurrentPageName();
-	$q=new mysql_squid_builder();
-	$users=new usersMenus();
-	$sock=new sockets();
+	$hostname=$tpl->_ENGINE_parse_body("{hostname}");	
 	
 	
 	$search='%';
@@ -248,24 +271,12 @@ GROUP BY ipaddr, hostname, uid, MAC, youtubeid, title) as t";
 	$FORCE_FILTER=null;
 	
 	
-	if(!$q->TABLE_EXISTS($tablemain, $database)){json_error_show("$table doesn't exists...");}
-	if($q->COUNT_ROWS($tablemain, $database)==0){json_error_show("No rules");}
+	
 
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-	$searchstring=string_to_flexquery();
-	if($searchstring<>null){
-		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
-		$total = $ligne["TCOUNT"];
-		
-	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
-		$total = $ligne["TCOUNT"];
-	}
-	
+	$searchstring=string_to_flexquery("items");
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	
 
@@ -273,17 +284,13 @@ GROUP BY ipaddr, hostname, uid, MAC, youtubeid, title) as t";
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
-	$results = $q->QUERY_SQL($sql,$database);
-	
-	$data = array();
-	$data['page'] = $page;
-	$data['total'] = $total;
-	$data['rows'] = array();
-	
-	if(!$q->ok){json_error_show($q->mysql_error);}	
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER ORDER BY hits DESC LIMIT 0,250";	
+	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){senderrors($q->mysql_error);}
 
+	
+	$boot=new boostrap_form();
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 	$zmd5=md5(serialize($ligne));
 	$color="black";
@@ -291,30 +298,48 @@ GROUP BY ipaddr, hostname, uid, MAC, youtubeid, title) as t";
 	
 	//familysite 	size 	hits
 	
-	$urljsSIT="<a href=\"javascript:blur();\" 
-	OnClick=\"javascript:Loadjs('miniadm.webstats.youtubeid.php?youtubeid={$ligne["youtubeid"]}&xtime={$_GET["xtime"]}');\"
-	style='font-size:12px;text-decoration:underline;color:$color'>";
+	$urljsSIT="Loadjs('miniadm.webstats.youtubeid.php?youtubeid={$ligne["youtubeid"]}&xtime={$_GET["xtime"]}');";
 	
 	$ligne["hits"]=numberFormat($ligne["hits"],0,""," ");
 	$ligne["size"]=FormatBytes($ligne["size"]/1024);
 	$ligne["familysite"]=$q->GetFamilySites($ligne["sitename"]);
-	$data['rows'][] = array(
-		'id' => "$zmd5",
-		'cell' => array(
-			"<span style='font-size:12px;color:$color'>$urljsSIT{$ligne["title"]}</a></span>",
-			"<span style='font-size:12px;color:$color'>$urljsFAM{$ligne["uid"]}</a></span>",
-			"<span style='font-size:12px;color:$color'>$urljs{$ligne["ipaddr"]}</span>",
-			"<span style='font-size:12px;color:$color'>{$ligne["hostname"]}</span>",
-			"<span style='font-size:12px;color:$color'>{$ligne["MAC"]}</span>",
-			"<span style='font-size:12px;color:$color'>{$ligne["hits"]}</span>",
-			)
-		);
+	$truri=$boot->trswitch($urljsSIT);
+	$jsuid=null;
+	if($ligne["uid"]<>null){
+		$jsuid=$boot->trswitch("Loadjs('miniadm.webstats.ByMember.youtube.Byday.php?uid={$ligne["uid"]}&by=uid&xtime={$_GET["xtime"]}')");
+		$ligne["uid"]="<i class='icon-user'></i>&nbsp;{$ligne["uid"]}";
+		
+	
 	}
-	
-	
-echo json_encode($data);		
-	
-	
+	$tr[]="
+	<tr>
+		<td $truri><img src='miniadm.webstats.youtube.php?thumbnail={$ligne["youtubeid"]}'></td>
+		<td $truri><i class='icon-facetime-video'></i>&nbsp;{$ligne["title"]}</td>
+		<td nowrap $jsuid>{$ligne["uid"]}</td>
+		<td nowrap $jsuid><i class='icon-user'></i>&nbsp;{$ligne["ipaddr"]}</td>
+		<td nowrap $jsuid><i class='icon-user'></i>&nbsp;{$ligne["hostname"]}</td>
+		<td nowrap $jsuid><i class='icon-user'></i>&nbsp;{$ligne["MAC"]}</td>
+		<td width=1% align=center>{$ligne["hits"]}</td>
+	</tr>
+	";
+	}
+	echo $tpl->_ENGINE_parse_body("
+	<table class='table table-bordered table-hover'>
+		<thead>
+			<tr>
+			<th colspan=2>$video</th>
+			<th>{member}</th>
+			<th>{ipaddr}</th>
+			<th>{hostname}</th>
+			<th>{MAC}</th>
+			<th>{hits}</th>
+			</tr>
+		</thead>
+		<tbody>
+				 ").@implode("\n", $tr)." 
+		</tbody>
+	</table>";
+
 }
 function generate_graph2(){
 	include_once('ressources/class.artica.graphs.inc');
@@ -344,35 +369,103 @@ function generate_graph2(){
 
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			if(trim($ligne["category"])==null){$ligne["category"]=$unknown;}
-			$ydata[]=$ligne["category"];
-			$xdata[]=$ligne["thits"];
+			$PieData[$ligne["category"]]=$ligne["thits"];
 			$c++;
 		}
-		$targetedfile="ressources/logs/".md5(basename(__FILE__).".".__FUNCTION__.__LINE__.".".time()).".png";
-		$gp=new artica_graphs($targetedfile);	
-		$gp->xdata=$xdata;
-		$gp->ydata=$ydata;	
-		$gp->width=460;
-		$gp->height=500;
-		$gp->ViewValues=true;
-		$gp->PieLegendHide=false;
-		$gp->x_title=$tpl->_ENGINE_parse_body("{top_categories_by_hits}");
-		$gp->pie(true);		
-		if(is_file("$targetedfile")){$graph1="
-		<center style='font-size:18px;margin:10px'>{$gp->x_title}</center>
-		<img src='$targetedfile'>";}
 	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{categories}";
+	$highcharts->Title=$tpl->_ENGINE_parse_body("Youtube: {categories}/{hits}");
+	echo $highcharts->BuildChart();
 	}
+}
+
+function generate_graph3(){
+	include_once('ressources/class.artica.graphs.inc');
+	$q=new mysql_squid_builder();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=$_GET["t"];
+	$ff=time();
+	$graph1=null;
+	$graph2=null;
+	$xtime=$_GET["xtime"];
+	$tablename="youtubeday_".date("Ymd",$xtime);
 	
-	$html="<center style='margin:10Px'>$graph1</center>";
 	
-	echo $html;
+	$sql="SELECT SUM(hits) as hits,uid FROM `$tablename` GROUP BY uid
+	ORDER BY hits DESC LIMIT 0,15";
+	
+	
+	
+	
+	$unknown=$tpl->_ENGINE_parse_body("{unknown}");
+	$c=0;
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}
+	if(mysql_num_rows($results)>0){
+	
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$PieData[$ligne["uid"]]=$ligne["hits"];
+			$c++;
+		}
+	
+		$highcharts=new highcharts();
+		$highcharts->container=$_GET["container"];
+		$highcharts->PieDatas=$PieData;
+		$highcharts->ChartType="pie";
+		$highcharts->PiePlotTitle="{members}";
+		$highcharts->Title=$tpl->_ENGINE_parse_body("Youtube: {top_members}/{hits} ({{$_GET["hour"]}})");
+		echo $highcharts->BuildChart();
+	}
+}
+
+function generate_graph4(){
+	$q=new mysql_squid_builder();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=$_GET["t"];
+	$ff=time();
+	$graph1=null;
+	$graph2=null;
+	$xtime=$_GET["xtime"];
+	$tablename="youtubeday_".date("Ymd",$xtime);
+	
+	
+	$sql="SELECT COUNT(youtubeid) as hits,uid FROM `$tablename` GROUP BY uid ORDER BY hits DESC LIMIT 0,15";
+	
+	
+	
+	
+	$unknown=$tpl->_ENGINE_parse_body("{unknown}");
+	$c=0;
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}
+	if(mysql_num_rows($results)>0){
+	
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$PieData[$ligne["uid"]]=$ligne["hits"];
+			$c++;
+		}
+	
+		$highcharts=new highcharts();
+		$highcharts->container=$_GET["container"];
+		$highcharts->PieDatas=$PieData;
+		$highcharts->ChartType="pie";
+		$highcharts->PiePlotTitle="{members}";
+		$highcharts->Title=$tpl->_ENGINE_parse_body("Youtube: {top_members}/{videos}");
+		echo $highcharts->BuildChart();
+	}	
 	
 }
 
 
 function generate_graph(){
-	include_once('ressources/class.artica.graphs.inc');
 	$q=new mysql_squid_builder();
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -399,30 +492,15 @@ function generate_graph(){
 		
 	}	
 				
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title="Youtube: {statistics} ". $tpl->_ENGINE_parse_body("{hits}/{hours}");
+	$highcharts->yAxisTtitle="{requests}";
+	$highcharts->xAxisTtitle="{hours}";
+	$highcharts->datas=array("{requests}"=>$ydata);
+	echo $highcharts->BuildChart();				
 				
-				
-			$t=time();
-			$targetedfile="ressources/logs/".md5(basename(__FILE__).".".__FUNCTION__.".day.$tablename").".png";
-			$gp=new artica_graphs();
-			$gp->width=920;
-			$gp->height=350;
-			$gp->filename="$targetedfile";
-			$gp->xdata=$xdata;
-			$gp->ydata=$ydata;
-			$gp->y_title=null;
-			$gp->x_title=$tpl->_ENGINE_parse_body("{hours}");
-			$gp->title=null;
-			$gp->margin0=true;
-			$gp->Fillcolor="blue@0.9";
-			$gp->color="146497";
-			$gp->line_green();
-			
-		if(is_file($targetedfile)){
-			echo "<center>
-			<div style='font-size:18px;margin-bottom:10px'>".$tpl->_ENGINE_parse_body("{hits}/{hours}")."</div>
-			<img src='$targetedfile'></center>";
-		}
-	
 	}
 	
 }

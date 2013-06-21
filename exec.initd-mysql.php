@@ -8,53 +8,7 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 initd_debian();
 
 function initd_debian(){
-$unix=new unix();
-$sock=new sockets();
-$servicebin=$unix->find_program("update-rc.d");
-if(!is_file($servicebin)){return;}
-$php5=$unix->LOCATE_PHP5_BIN();	
-$f[]="#!/bin/bash";
-$f[]="#";
-$f[]="### BEGIN INIT INFO";
-$f[]="# Provides:          mysql";
-$f[]="# Required-Start:    \$remote_fs \$syslog";
-$f[]="# Required-Stop:     \$remote_fs \$syslog";
-$f[]="# Should-Start:      \$network \$time";
-$f[]="# Should-Stop:       \$network \$time";
-$f[]="# Default-Start:     2 3 4 5";
-$f[]="# Default-Stop:      0 1 6";
-$f[]="# Short-Description: Start and stop the mysql database server daemon";
-$f[]="# Description:       Controls the main MySQL database server daemon \"mysqld\"";
-$f[]="#                    and its wrapper script \"mysqld_safe\".";
-$f[]="### END INIT INFO";
-$f[]="#";	
-$f[]="case \"\$1\" in";
-$f[]=" start)";
-$f[]="    $php5 /usr/share/artica-postfix/exec.mysql.start.php --start \$2";
-$f[]="    ;;";
-$f[]="";
-$f[]="  stop)";
-$f[]="    $php5 /usr/share/artica-postfix/exec.mysql.start.php --stop \$2";
-$f[]="    ;;";
-$f[]="";
-$f[]=" restart)";
-$f[]="     $php5 /usr/share/artica-postfix/exec.mysql.start.php --stop \$2";
-$f[]="     sleep 3";
-$f[]="     $php5 /usr/share/artica-postfix/exec.mysql.start.php --start \$2";
-$f[]="    ;;";
-$f[]="";
-$f[]="  *)";
-$f[]="    echo \"Usage: \$0 {start|stop|restart} (+ 'debug' for more infos)\"";
-$f[]="    exit 1";
-$f[]="    ;;";
-$f[]="esac";
-$f[]="exit 0";
-
-if(is_file("/etc/init.d/mysql")){$updatercd=false;if(!is_file("/etc/init.d/mysql.bak")){@copy("/etc/init.d/mysql", "/etc/init.d/mysql.bak");}}else{$updatercd=true;}
-@file_put_contents("/etc/init.d/mysql", @implode("\n", $f));
-if($updatercd){
-	shell_exec("$servicebin -f mysql defaults >/dev/null 2>&1");
-}
-echo "Starting......: /etc/init.d/mysql done...\n";
-
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 ".basename(__FILE__)."/exec.initslapd.php --mysql");
 }

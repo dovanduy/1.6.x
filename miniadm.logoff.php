@@ -1,9 +1,9 @@
 <?php
+if(isset($_GET["content"])){content();exit;}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
-
 
 $_SESSION=array();
 unset($_SESSION["uid"]);
@@ -27,13 +27,14 @@ while (list ($num, $ligne) = each ($_SESSION) ){
 }
 unset($_SESSION);
 session_destroy();
-$mini=new miniadmin();
-$mini->content="
-<script>
-	MyHref('/miniadm.logon.php');
-</script>
 
-";
-$mini->Buildpage();
+$page=CurrentPageName();
+$tplfile="ressources/templates/endusers/index.html";
+if(!is_file($tplfile)){echo "$tplfile no such file";die();}
+$content=@file_get_contents($tplfile);
 
-echo $mini->webpage;
+$content=str_replace("{SCRIPT}", "<script>MyHref('/miniadm.logon.php');</script>", $content);
+echo $content;
+
+
+

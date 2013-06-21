@@ -2,6 +2,11 @@
 
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
+if(isset($_GET["squid-get-system-info"])){squid_get_system_info();exit;}
+if(isset($_GET["squid-get-storage-info"])){squid_get_storage_info();exit;}
+if(isset($_GET["MacToUidStats"])){MacToUidStats();exit;}
+if(isset($_GET["MacToUid"])){MacToUid();exit;}
+if(isset($_GET["watchdog-log"])){watchdoglogs();exit;}
 if(isset($_GET["artica-db-restart"])){articadb_restart();exit;}
 if(isset($_GET["rrd-perform"])){rrd_perform();exit;}
 if(isset($_GET["squidhour-repair-exec"])){squidhour_repair_executed();exit;}
@@ -12,6 +17,12 @@ if(isset($_GET["prepare-build-tests"])){prepare_build_tests();exit;}
 if(isset($_GET["saveSquidContent"])){saveSquidContent();exit;}
 if(isset($_GET["logrotate-tenir"])){logrotate_tenir();exit;}
 if(isset($_GET["import-acls"])){import_acls();exit;}
+if(isset($_GET["import-webfiltering-rules"])){import_webfiltering();exit;}
+if(isset($_GET["reverse-proxy-apply"])){reverse_proxy_apply();exit;}
+if(isset($_GET["reload_unlock"])){reload_unlock();exit;}
+
+
+
 if(isset($_GET["link-csv"])){link_csv();exit;}
 if(isset($_GET["build-whitelist"])){build_whitelist();exit;}
 if(isset($_GET["build-whitelist-tenir"])){build_whitelist_tenir();exit;}
@@ -94,7 +105,7 @@ if(isset($_GET["articadb-nextcheck"])){articadb_next_check();exit;}
 if(isset($_GET["run-report"])){run_report();exit;}
 if(isset($_GET["GoogleSSL-dump"])){GoogleSSL_dump();exit;}
 if(isset($_GET["weekdaynum"])){statistics_weekdaynum();exit;}
-
+if(isset($_GET["artica-catz-restart"])){artica_catz_restart();exit;}
 if(isset($_GET["summarize-day"])){summarize_day();exit;}
 if(isset($_GET["mib"])){mib();exit;}
 if(isset($_GET["rotate-restore"])){rotate_restore();exit;}
@@ -166,7 +177,7 @@ function access_logs(){
 	$search=$_GET["search"];
 	if(strlen($search)>1){
 		$search=str_replace("*", ".*", $search);
-		$cmd="$tail -n 1000 /var/log/squid/access.log|$grep -E \"$search\" 2>&1";
+		$cmd="$tail -n 1000 /var/log/squid/access.log|$grep -i -E \"$search\" 2>&1";
 	}else{
 		$cmd="$tail -n 500 /var/log/squid/access.log 2>&1";
 	}
@@ -266,7 +277,7 @@ function CheckRunningTasks(){
 	$ps=$unix->find_program("ps");
 	$grep=$unix->find_program("grep");
 	$array=array();
-	exec("$ps -x|grep -E \"schedule-id=\" 2>&1",$results);
+	exec("$ps -x|grep -i -E \"schedule-id=\" 2>&1",$results);
 	writelogs_framework(count($results)." items..",__FUNCTION__,__FILE__,__LINE__);	
 	while (list ($num, $val) = each ($results)){
 		
@@ -395,7 +406,7 @@ function migration_stats(){
 	if(is_file("/etc/artica-postfix/exec.squid.logs.migrate.php.pid")){
 		$pid=$unix->get_pid_from_file("/etc/artica-postfix/exec.squid.logs.migrate.php.pid");
 		if(is_numeric($pid)){
-			if($unix->process_exists($pid)){
+			if($unix->process_exists($pid,"exec.squid.logs.migrate.php")){
 				$time=$unix->PROCCESS_TIME_MIN($pid);
 				writelogs_framework("/etc/artica-postfix/exec.squid.logs.migrate.php.pid ->$pid $time mn",__FUNCTION__,__FILE__,__LINE__);
 				echo "<articadatascgi>". base64_encode(serialize( array($pid,$time)))."</articadatascgi>";
@@ -406,7 +417,7 @@ function migration_stats(){
 	if(is_file("/etc/artica-postfix/pids/exec.squid.logs.migrate.php.pid")){
 		$pid=$unix->get_pid_from_file("/etc/artica-postfix/pids/exec.squid.logs.migrate.php.pid");
 		if(is_numeric($pid)){
-			if($unix->process_exists($pid)){
+			if($unix->process_exists($pid,"exec.squid.logs.migrate.php")){
 				$time=$unix->PROCCESS_TIME_MIN($pid);
 				echo "<articadatascgi>". base64_encode(serialize(array($pid,$time)))."</articadatascgi>";
 			}
@@ -455,12 +466,19 @@ function squid_k_reconfigure(){
 	@chmod("/usr/share/artica-postfix/ressources/logs/web/restart.squid",0777);
 	$unix=new unix();
 	$squid=$unix->LOCATE_SQUID_BIN();
-	
-	
+	$force=null;
+	if(isset($_GET["force"])){$force=" --force";}
+	squid_watchdog_events("Reconfiguring Proxy parameters...");
 	shell_exec("$squid -k reconfigure >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1");
 	sleep(2);
 	$tail=$unix->find_program("tail");
 	shell_exec("$tail -n 100 /var/log/squid/cache.log >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1");
+}
+
+function squid_watchdog_events($text){
+	$unix=new unix();
+	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefile=basename($trace[1]["file"]);$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];}}
+	$unix->events($text,"/var/log/squid.watchdog.log",false,$sourcefunction,$sourceline);
 }
 
 function squid_z_reconfigure(){
@@ -470,7 +488,9 @@ function squid_z_reconfigure(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
-	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.watchdog.php --squidz >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1 &");
+	$force=null;
+	if(isset($_GET["force"])){$force=" --force";}
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.watchdog.php --squidz{$force} >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1 &");
 	
 }
 function firewall(){
@@ -510,7 +530,7 @@ function UpdateUtility_webevents(){
 	if(is_numeric($_GET["rp"])){$max=$_GET["rp"];}
 	if($_GET["search"]<>null){
 		$search=base64_decode($_GET["search"]);
-		$cmd="$grep -E '$search' /var/log/UpdateUtility/access.log|$tail -n $max 2>&1";
+		$cmd="$grep -i -E '$search' /var/log/UpdateUtility/access.log|$tail -n $max 2>&1";
 		
 		
 	}else{
@@ -529,7 +549,9 @@ function ufdbguard_events(){
 	if(is_numeric($_GET["rp"])){$max=$_GET["rp"];}
 	if($_GET["search"]<>null){
 		$search=base64_decode($_GET["search"]);
-		$cmd="$grep -E '$search' /var/log/squid/ufdbguardd.log|$tail -n $max 2>&1";
+		writelogs_framework("SEARCH $search",__FUNCTION__,__FILE__,__LINE__);
+		
+		$cmd="$grep -i -E '$search' /var/log/squid/ufdbguardd.log|$tail -n $max 2>&1";
 		
 		
 	}else{
@@ -755,14 +777,44 @@ function cachelogs(){
 	$search=str_replace("[","\[",$search);
 	$search=str_replace("]","\]",$search);
 	
-	$cmd="$grep -E '$search' /var/log/squid/cache.log 2>&1|$tail -n $rp 2>&1";
+	$cmd="$grep -i -E '$search' /var/log/squid/cache.log 2>&1|$tail -n $rp 2>&1";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
 	exec("$cmd",$results);
 	
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 
 }
+function watchdoglogs(){
+	$search=trim(base64_decode($_GET["watchdog-log"]));
+	$unix=new unix();
+	$tail=$unix->find_program("tail");
+	$grep=$unix->find_program("grep");
+	$rp=500;
+	if(is_numeric($_GET["rp"])){$rp=$_GET["rp"];}
 
+	if($search==null){
+
+		$cmd="$tail -n $rp /var/log/squid.watchdog.log  2>&1";
+		writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+		exec("$tail -n $rp /var/log/squid.watchdog.log  2>&1",$results);
+		echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+		return;
+	}
+
+	$search=str_replace(".","\.",$search);
+	$search=str_replace("*",".*?",$search);
+	$search=str_replace("(","\(",$search);
+	$search=str_replace(")","\)",$search);
+	$search=str_replace("[","\[",$search);
+	$search=str_replace("]","\]",$search);
+
+	$cmd="$grep -E '$search' /var/log/squid.watchdog.log  2>&1|$tail -n $rp 2>&1";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	exec("$cmd",$results);
+
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+
+}
 function cache_smp_logs(){
 	$search=trim(base64_decode($_GET["cachelogs"]));
 	$unix=new unix();
@@ -787,7 +839,7 @@ function cache_smp_logs(){
 	$search=str_replace("[","\[",$search);
 	$search=str_replace("]","\]",$search);
 	
-	$cmd="$grep -E '$search' /var/log/squid/artica-caches32.log 2>&1|$tail -n $rp 2>&1";
+	$cmd="$grep -i -E '$search' /var/log/squid/artica-caches32.log 2>&1|$tail -n $rp 2>&1";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	exec("$cmd",$results);
 	
@@ -810,7 +862,7 @@ function accesslogs(){
 	
 	if($search==null){
 		
-		$cmd="$grep -E 'squid.*?$OnlyIpAddr' /var/log/auth.log|$tail -n $rp 2>&1";
+		$cmd="$tail -n 6000 /var/log/auth.log|$grep -i -E 'squid.*?$OnlyIpAddr'|$tail -n $rp 2>&1";
 		writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
 		exec("$cmd",$results);
 		echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
@@ -824,7 +876,7 @@ function accesslogs(){
 	$search=str_replace("[","\[",$search);
 	$search=str_replace("]","\]",$search);
 	
-	$cmd="$grep -E 'squid([\[|\-])' /var/log/auth.log 2>&1|$grep -E '$search' 2>&1|$tail -n $rp 2>&1";
+	$cmd="$tail -n 6000 /var/log/auth.log|$grep -i -E 'squid([\[|\-])' 2>&1|$grep -E '$search' 2>&1|$tail -n $rp 2>&1";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
 	exec("$cmd",$results);
 	
@@ -1215,6 +1267,7 @@ function support_step2(){
 	if(is_file($squidbin)){
 		$results[]="$squidbin -v:";
 		exec("$squidbin -v 2>&1",$results);
+		squid_watchdog_events("Reconfiguring Proxy parameters...");
 		exec("$squidbin -k reconfigure 2>&1",$results);
 	}else{
 		$results[]="squid no such binary....";
@@ -1224,6 +1277,7 @@ function support_step2(){
 	if(is_file($squidbin)){
 		$results[]="$squidbin -v:";
 		exec("$squidbin -v 2>&1",$results);
+		squid_watchdog_events("Reconfiguring Proxy parameters...");
 		exec("$squidbin -k reconfigure 2>&1",$results);
 	}else{
 		$results[]="squid3 no such binary....";
@@ -1627,7 +1681,15 @@ function watchdog_logs(){
 	$unix=new unix();
 	$tail=$unix->find_program("tail");
 	if(!isset($_GET["rp"])){$rp=50;}else{$rp=$_GET["rp"];}
-	exec("$tail -n $rp /var/log/squid.watchdog.log 2>&1",$results);
+	$cmdline="$tail -n $rp /var/log/squid.watchdog.log";
+	if($_GET["search"]<>null){
+		$grep=$unix->find_program("grep");
+		$_GET["search"]=base64_decode($_GET["search"]);
+		$cmdline="$grep -i -E '{$_GET["search"]}' /var/log/squid.watchdog.log|$tail -n $rp";
+	}
+	
+	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
+	exec("$cmdline 2>&1",$results);
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 }
 function watchdog_auth(){
@@ -1635,6 +1697,7 @@ function watchdog_auth(){
 	$tail=$unix->find_program("tail");
 	if(!isset($_GET["rp"])){$rp=50;}else{$rp=$_GET["rp"];}
 	$file="/var/log/squid/externalAcl{$_GET["ID"]}Auth.log";
+	writelogs_framework("$tail -n $rp $file",__FUNCTION__,__FILE__,__LINE__);
 	exec("$tail -n $rp $file 2>&1",$results);
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
 	
@@ -1877,13 +1940,36 @@ function import_acls(){
 	exec($cmd,$results);	
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 }
+function import_webfiltering(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$file=$_GET["import-webfiltering-rules"];
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --import-webfilter \"$file\" 2>&1");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
+}
 
 function rotate_restore(){
 	$unix=new unix();
 	$filename=$_GET["rotate-restore"];
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$nohup=$unix->find_program("nohup");	
+	$nohup=$unix->find_program("nohup");
+
+	$EnableSyslogDB=@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableSyslogDB");
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
+	$storeid=$_GET["storeid"];
+	
+	if($EnableSyslogDB==1){
+		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.restoresrc.php --restore $filename $storeid >/dev/null 2>&1 &");
+		return;
+		
+	}
+	
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.restoresrc.php --restore $filename >/dev/null 2>&1 &");
+	
+	
 }
 function saveSquidContent(){
 	$unix=new unix();
@@ -1938,6 +2024,7 @@ function saveSquidContent(){
 	@file_put_contents($SQUID_CONFIG_PATH, $datas);
 	@file_put_contents("/etc/squid3/squid.conf", $datas);
 	writelogs_framework("$squidbin -f $SQUID_CONFIG_PATH -k reconfigure 2>&1",__FUNCTION__,__FILE__,__LINE__);
+	squid_watchdog_events("Reconfiguring Proxy parameters...");
 	shell_exec("$squidbin -f $SQUID_CONFIG_PATH -k reconfigure 2>&1");
 	
 }
@@ -1952,6 +2039,7 @@ function squidhour_repair(){
 	
 }
 function rrd_perform(){
+	return;
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
@@ -1981,6 +2069,121 @@ function articadb_restart(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 }
+function artica_catz_restart(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.catz-db.php --restart >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
 
+function squid_get_system_info(){
+	$unix=new unix();
+	
+	$fileCache="/etc/squid3/squid_get_system_info.db";
+	if($unix->file_time_min($fileCache)<10){
+		$dats=unserialize(@file_get_contents($fileCache));
+	}
+	if(!is_array($dats)){$dats=array();}
+	if(count($dats)<2){
+		@unlink($fileCache);
+		$dats=$unix->squid_get_system_info();
+		@file_put_contents($fileCache,serialize($dats));
+	}
+	
+	echo "<articadatascgi>". base64_encode(serialize($dats))."</articadatascgi>";
+}
+
+function squid_get_storage_info(){
+	$unix=new unix();
+	$dats=null;
+	$StoreDirCache="/etc/squid3/squid_storedir_info.db";
+	if($unix->file_time_min($StoreDirCache)<10){
+		$dats=unserialize(@file_get_contents($StoreDirCache));
+	}
+	
+	
+	if(!is_array($dats)){$dats=array();}
+	if(count($dats)<1){
+		
+		$uri=$unix->squidclient_builduri();
+		$cmd="$uri:storedir 2>&1";
+		exec($cmd,$results);
+		writelogs_framework("$StoreDirCache not an array $cmd = ".count($results)." items...",__FUNCTION__,__FILE__,__LINE__);
+		$dirs=0;
+		while (list($num,$ligne)=each($results)){
+			if(preg_match("#Current Capacity.*?:\s+([0-9\.]+)%\s+used#",$ligne,$re)){$CURCAP=trim($re[1]);continue;}
+			if(preg_match("#Store Directory.*?:\s+(.+)#", $ligne,$re)){$StoreDir=trim($re[1]);$dirs++;continue;}
+			if(preg_match("#Percent Used:\s+([0-9\.]+)%#", $ligne,$re)){$dats[$StoreDir]["PERC"]=$re[1];continue;}
+			if(preg_match("#Maximum Size:\s+([0-9\.]+)#", $ligne,$re)){$dats[$StoreDir]["SIZE"]=$re[1];continue;}
+			if(preg_match("#Shared Memory Cache#", $ligne)){$StoreDir="MEM";continue;}
+			
+			if(preg_match("#Current entries:\s+([0-9\.]+)\s+([0-9\.]+)%#",$ligne,$re)){
+				$dats[$StoreDir]["ENTRIES"]=$re[1];
+				$dats[$StoreDir]["PERC"]=$re[2];
+			}
+
+
+		}
+		
+		if($dirs==0){
+			if($CURCAP<>null){
+				$dats["CURCAP"]=$CURCAP;
+			}
+		}
+		
+		@unlink($StoreDirCache);
+		if(is_array($dats)){
+			writelogs_framework("Saving new array in $StoreDirCache",__FUNCTION__,__FILE__,__LINE__);
+			file_put_contents($StoreDirCache, serialize($dats));
+		}
+	}
+	echo "<articadatascgi>". base64_encode(serialize($dats))."</articadatascgi>";
+}
+
+function MacToUid(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.quotasbuild.php --macuid >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+function MacToUidStats(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.stats.php --macuid >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+function reverse_proxy_apply(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$nginx=$unix->find_program("nginx");
+	if(is_file($nginx)){
+		$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.nginx.php --restart >/dev/null 2>&1 &");
+		
+	}else{
+		$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid-reverse.php --build >/dev/null 2>&1 &");
+	}
+	
+	
+	
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function  reload_unlock(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build-whitelists --force >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
 
 ?>

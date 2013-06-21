@@ -20,9 +20,14 @@ if($argv[1]=="--x509"){x509($argv[2]);}
 if($argv[1]=="--mysql"){update_from_mysql($argv[2]);}
 if($argv[1]=="--squid-auto"){squid_autosigned($argv[2]);}
 if($argv[1]=="--squid-validate"){squid_validate($argv[2]);}
+if($argv[1]=="--BuildCSR"){BuildCSR($argv[2]);}
 
 
-
+function BuildCSR($CommonName){
+	buildkey($CommonName);
+	squid_autosigned($CommonName);
+	update_from_mysql($CommonName);
+}
 
 
 
@@ -49,7 +54,9 @@ function buildkey($CommonName){
 	if($ligne["localityName"]==null){$ligne["localityName"]="Brooklyn";}
 	if($ligne["emailAddress"]==null){$ligne["emailAddress"]="postmaster@localhost.localdomain";}
 	if($ligne["OrganizationName"]==null){$ligne["OrganizationName"]="MyCompany Ltd";}
-	if($ligne["OrganizationalUnit"]==null){$ligne["OrganizationalUnit"]="IT service";}		
+	if($ligne["OrganizationalUnit"]==null){$ligne["OrganizationalUnit"]="IT service";}	
+
+	if($ligne["levelenc"]<1024){$ligne["levelenc"]=1024;}
 	
 	if(preg_match("#^.*?_(.+)#", $ligne["CountryName"],$re)){$C=$re[1];}
 	
@@ -60,9 +67,11 @@ function buildkey($CommonName){
 	
 	
 	@mkdir($directory,0755,true);
-	$cmd="$openssl req -nodes -newkey rsa:2048 -nodes -keyout $directory/myserver.key -out $directory/server.csr -subj \"/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CommonName\"";
+	$cmd="$openssl req -nodes -newkey rsa:{$ligne["levelenc"]} -nodes -keyout $directory/myserver.key -out $directory/server.csr -subj \"/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CommonName\" 2>&1";
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-	shell_exec($cmd);
+	exec($cmd,$results);
+	if($GLOBALS["VERBOSE"]){echo @implode("\n", $results)."\n";}
+	
 	$csr=mysql_escape_string(@file_get_contents("$directory/server.csr"));
 	$privkey=mysql_escape_string(@file_get_contents("$directory/myserver.key"));
 	
@@ -108,6 +117,8 @@ function passphrase(){
 function update_from_mysql($CommonName){
 	$unix=new unix();
 	$ldap=new clladp();
+	if($CommonName==null){echo "openssl.......: Fatal:".__LINE__."::CommonName is null aborting...\n";exit;}
+	
 	$directory="/etc/openssl/certificate_center/$CommonName";
 	$openssl=$unix->find_program("openssl");
 	$cp=$unix->find_program("cp");
@@ -115,17 +126,19 @@ function update_from_mysql($CommonName){
 	$q=new mysql();
 	$q->BuildTables();
 	
-	$sql="SELECT bundle,crt,privkey  FROM sslcertificates WHERE CommonName='$CommonName'";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	if($ligne["CommonName"]==null){echo "CommonName is null, aborting...\n";exit;}
 
-	if($ligne["privkey"]<>null){
-		echo "{error_missing_data_in_mysql}: {private_key}";
+	
+	$sql="SELECT bundle,crt,privkey,Squidkey,SquidCert,CommonName  FROM sslcertificates WHERE CommonName='$CommonName'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if($ligne["CommonName"]==null){echo "Fatal:".__LINE__."::CommonName is null, aborting...\n$sql";exit;}
+
+	if($ligne["privkey"]==null){
+		if($GLOBALS["VERBOSE"]){echo "{error_missing_data_in_mysql}: {private_key}\n";}
 		return;
 	}
 	
-	if($ligne["crt"]<>null){
-		echo "{error_missing_data_in_mysql}: {certificate}";
+	if($ligne["crt"]==null){
+		if($GLOBALS["VERBOSE"]){echo "{error_missing_data_in_mysql}: {certificate}\n";}
 		return;
 	}
 
@@ -136,9 +149,26 @@ function update_from_mysql($CommonName){
 	@file_put_contents($privkey, $ligne["privkey"]);
 	@file_put_contents($$certificate_path, $ligne["crt"]);
 	
+	@unlink("$directory/myserver.key");
+	@unlink("$directory/server.crt");
 	@unlink("$directory/chain.crt");
 	@unlink("$directory/cakey.pem");
 	@unlink("$directory/$CommonName.crt");
+	
+	if(strlen($ligne["Squidkey"])>10){
+		@file_put_contents("$directory/myserver.key", $ligne["Squidkey"]);
+	}
+	
+	if(strlen($ligne["SquidCert"])>10){
+		@file_put_contents("$directory/server.crt", $ligne["SquidCert"]);
+	}	
+
+	if(strlen($ligne["bundle"])>10){
+		@file_put_contents("$directory/chain.crt", $ligne["bundle"]);
+		@file_put_contents("$directory/cakey.pem", $ligne["privkey"]);
+		@file_put_contents("$directory/$CommonName.crt", $ligne["crt"]);
+	}	
+	
 	
 	
 	if(strlen($ligne["bundle"])>10){
@@ -156,8 +186,6 @@ function update_from_mysql($CommonName){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$nohup $php5 ".__FILE__." --pass >/dev/null 2>&1 &");			
-	
-	
 	
 }
 
@@ -431,26 +459,56 @@ function squid_autosigned($CommonName){
 	$L=$ligne["localityName"];
 	$O=$ligne["OrganizationName"];
 	$OU=$ligne["OrganizationalUnit"];	
+	if($ligne["levelenc"]<1024){$ligne["levelenc"]=1024;}
 
-	$cmd="$openssl genrsa -des3 -passout pass:{$ligne["password"]} -out $directory/squid-server.key 1024";
-	echo $cmd."\n";
-	shell_exec($cmd);
+	$cmd="$openssl genrsa -des3 -passout pass:{$ligne["password"]} -out $directory/squid-server.key {$ligne["levelenc"]} 2>&1";
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
+	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}
 	
-	$cmd="openssl req -new -key $directory/squid-server.key -passin pass:{$ligne["password"]} -subj \"/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CommonName\" -out $directory/squid-server.csr";
-	echo $cmd."\n";
-	shell_exec($cmd);
+	$cmd="openssl req -new -key $directory/squid-server.key -passin pass:{$ligne["password"]} -subj \"/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CommonName\" -out $directory/squid-server.csr 2>&1";
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
+	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}
 		
-	$cmd="$openssl rsa -in $directory/squid-server.key  -passin pass:{$ligne["password"]} -out $directory/squid-proxy.key";
-	echo $cmd."\n";
-	shell_exec($cmd);
+	$cmd="$openssl rsa -in $directory/squid-server.key  -passin pass:{$ligne["password"]} -out $directory/squid-proxy.key 2>&1";
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
+	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}
 	
-	$cmd="$openssl x509 -req -days $CertificateMaxDays -in $directory/squid-server.csr -signkey $directory/squid-proxy.key -out $directory/squid-proxy.crt";
-	echo $cmd."\n";	
-	shell_exec($cmd);
+	$cmd="$openssl x509 -req -days $CertificateMaxDays -in $directory/squid-server.csr -signkey $directory/squid-proxy.key -out $directory/squid-proxy.crt 2>&1";
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";	}
+	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}
 	
+	
+	// http://wiki.squid-cache.org/Features/DynamicSslCert
+	$cmd="$openssl req -new -newkey rsa:{$ligne["levelenc"]} -days $CertificateMaxDays -nodes -x509 -keyout $directory/RootCA.pem  -out $directory/RootCA.pem -subj -subj \"/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CommonName\" 2>&1";
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";	}
+	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}
+	
+	$cmd="$openssl x509 -in $directory/RootCA.pem -outform DER -out $directory/RootCA.der 2>&1";
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";	}
+	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}	
+		
+	$SquidSrca=mysql_escape_string(@file_get_contents("$directory/RootCA.pem"));
 	$Squidkey=mysql_escape_string(@file_get_contents("$directory/squid-proxy.key"));
 	$SquidCert=mysql_escape_string(@file_get_contents("$directory/squid-proxy.crt"));
-	$sql="UPDATE sslcertificates SET `Squidkey`='$Squidkey',`SquidCert`='$SquidCert' WHERE CommonName='$CommonName'";
+	$SquidDer=mysql_escape_string(@file_get_contents("$directory/RootCA.der"));
+	
+	if(!$q->FIELD_EXISTS("sslcertificates","srca","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `srca` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
+	if(!$q->FIELD_EXISTS("sslcertificates","der","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `der` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
+	if(!$q->FIELD_EXISTS("sslcertificates","crt","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `crt` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
+	if(!$q->FIELD_EXISTS("sslcertificates","bundle","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `bundle` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
+	if(!$q->FIELD_EXISTS("sslcertificates","password","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `password` VARCHAR(128) NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
+	if(!$q->FIELD_EXISTS("sslcertificates","Squidkey","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `Squidkey` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
+	if(!$q->FIELD_EXISTS("sslcertificates","SquidCert","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `SquidCert` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
+	if(!$q->FIELD_EXISTS("sslcertificates","keyPassword","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `keyPassword` VARCHAR(255) NOT NULL,ADD INDEX(`keyPassword`)";$q->QUERY_SQL($sql,'artica_backup');}
+	if(!$q->FIELD_EXISTS("sslcertificates","levelenc","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `levelenc` INT(3) NOT NULL DEFAULT '1024',ADD INDEX(`levelenc`)";$q->QUERY_SQL($sql,'artica_backup');}	
+
+	
+	$sql="UPDATE sslcertificates SET 
+		`Squidkey`='$Squidkey',
+		`SquidCert`='$SquidCert', 
+		`srca`='$SquidSrca',
+		`der`='$SquidDer'
+		WHERE CommonName='$CommonName'";
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error."\n";}	
 }
@@ -465,5 +523,4 @@ function squid_validate($CommonName){
 	@file_put_contents("/etc/ssl/certs/$CommonName.cert", $ligne["SquidCert"]);
 	
 }
-
-
+?>

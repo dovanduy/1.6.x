@@ -77,6 +77,9 @@ function popup(){
 	$ClamavDaemonInstalled=0;
 	$EnableClamavDaemon=$sock->GET_INFO("EnableClamavDaemon");
 	if(!is_numeric($EnableClamavDaemon)){$EnableClamavDaemon=0;}
+	$EnableClamavDaemonForced=$sock->GET_INFO("EnableClamavDaemonForced");
+	if(!is_numeric($EnableClamavDaemonForced)){$EnableClamavDaemonForced=0;}
+	if($EnableClamavDaemonForced==1){$EnableClamavDaemon=1;}	
 	if($users->CLAMAV_INSTALLED){	$ClamavDaemonInstalled=1;}
 	
 	

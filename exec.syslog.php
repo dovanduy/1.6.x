@@ -110,6 +110,7 @@ function Parseline($buffer){
 
 
 	$dust=new syslogger();
+	if(strpos($buffer,"]: [DEBUG]")>0){return;}
 	if($dust->MailDustbin($buffer)){return;}
 //kernel dustbin
 	if(strpos($buffer,"ext4_dx_add_entry: Directory index full")>0){return true;}
@@ -355,7 +356,7 @@ function Parseline($buffer){
 	if(strpos($buffer,"question answered from packet cache from")>0){return;}
 	if(strpos($buffer,": timeout resolving")>0){return;}
 	if(strpos($buffer,": query throttled")>0){return;}
-	
+	if(strpos($buffer,"]: Invalid query packet")>0){return;}
 	if(strpos($buffer,'BIND dn="cn=')>0){return;}
 	if(strpos($buffer,'RESULT tag=')>0){return;}
 	if(strpos($buffer,'SRCH base="')>0){return;}
@@ -367,12 +368,56 @@ function Parseline($buffer){
 	if(strpos($buffer,"attr=dNSTTL aRecord nSRecord cNAMERecord")>0){return;}
 	if(strpos($buffer,": monit HTTP server started")>0){return;}
 	if(strpos($buffer,"Awakened by the")>0){return;}
-
+	
 
 	if(dhcpd($buffer)){return;}
 	if(preg_match("#squid\[[0-9]+\]:#",$buffer)){squid_parser($buffer);return;}
 	if(preg_match("#nss_wins\[[0-9]+\]:#",$buffer)){nss_parser($buffer);return;}
 	if(preg_match("#haproxy\[[0-9]+\]:#",$buffer)){haproxy_parser($buffer);return;}
+	
+	
+	if(preg_match("#'apache' total mem amount of ([0-9]+)([a-zA-Z])+\s+matches resource limit#",$buffer,$re)){
+		$file="/etc/artica-postfix/croned.1/apache.matches.resource.limit";
+		if(IfFileTime($file,5)){
+			$unit=strtolower($re[2]);
+			if($unit=="kb"){$size=$re[1];$size=round($size/1024,2);
+			$cmd="{$GLOBALS["nohup"]} /etc/init.d/artica-postfix restart apachesrc >/dev/null 2>&1 &";
+			events("{$size}M $buffer = $cmd ... ");
+			shell_exec($cmd);
+			WriteFileCache($file);
+			return;
+		}
+		events("$buffer = > TIMEOUT ... ");
+		return;
+	}
+	
+	}
+		
+	if(preg_match("#connect failed: No such file or directory on unix:\/var\/run\/php-fpm\.sock#",$buffer)){
+		$file="/etc/artica-postfix/croned.1/lighttpd.php-fpm.sock.No.such.file.directory.0";
+		if(IfFileTime($file,1)){
+			$cmd="{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.initslapd.php --phppfm-fix >/dev/null 2>&1 &";
+			events("$buffer = $cmd ... ");
+			shell_exec($cmd);
+			WriteFileCache($file);
+			return;
+		}
+		events("$buffer = > TIMEOUT ... ");
+		return;
+	}
+	
+	if(preg_match("#lighttpd.*?mod_fastcgi.*?connect failed:\s+No such file or directory on unix:\/var\/run\/php-fpm\.sock#",$buffer)){
+		$file="/etc/artica-postfix/croned.1/lighttpd.php-fpm.sock.No.such.file.directory";
+		if(IfFileTime($file,1)){
+			$cmd="{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.initslapd.php --phppfm-fix >/dev/null 2>&1 &";
+			events("$buffer = $cmd ... ");
+			shell_exec($cmd);
+			WriteFileCache($file);
+			return;
+		}
+		events("$buffer = > TIMEOUT ... ");
+		return;
+	}
 	
 	
 	if(preg_match("#monit\[.+?system statistic error.+?cannot get real memory buffers amount#", $buffer)){
@@ -383,6 +428,15 @@ function Parseline($buffer){
 			WriteFileCache($file);
 		}
 		return;
+	}
+	
+	
+	if(preg_match("#squid\.monitrc:.*?syntax error#",$buffer)){
+		$cmd="{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.squid.php --watchdog-config >/dev/null 2>&1 &";
+		events("$buffer Monit = $cmd ... ");
+		shell_exec($cmd);
+		return;		
+		
 	}
 	
 	
@@ -683,6 +737,19 @@ function Parseline($buffer){
 		}
 		return;
 	}	
+	
+	
+	if(preg_match("#pdns_recursor\[.*?Failed to update \. records, RCODE=([0-9]+)#",$buffer,$re)){
+		events("--> Failed to update \. records, RCODE={$re[1]}");
+		$file="/etc/artica-postfix/croned.1/pdns.failed.to.update.record.{$re[1]}";
+		if(IfFileTime($file,2)){
+			shell_exec(trim("{$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.initslapd.php --pdns-recursor >/dev/null 2>&1"));
+			shell_exec(trim("{$GLOBALS["nohup"]} /etc/init.d/pdns-recursor restart >/dev/null 2>&1 &"));
+		}
+		
+		return;
+	}
+	
 	
 	if(preg_match("#pdns(?:\[\d{1,5}\])?: Not authoritative for '.*',.*sending servfail to\s+(.+?)\s+\(recursion was desired\)#",$buffer,$re)){
 		events("--> PDNS Hack {$re[2]}");
@@ -1119,7 +1186,7 @@ if(preg_match("#zarafa-server.+?INNODB engine is disabled#",$buffer)){
 	$file="/etc/artica-postfix/croned.1/zarafa.INNODB.engine";
 	if(IfFileTime($file,2)){
 			events("Zarafa innodb errr");
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart mysql');
+			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/mysql restart');
 			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart zarafa');
 			WriteFileCache($file);
 			return;
@@ -1287,7 +1354,7 @@ if(preg_match("#'(.+?)'\s+total mem amount of\s+([0-9]+).+?matches resource limi
 		if(IfFileTime($file,15)){
 					events("{$re[1]}% limit memory exceed");
 					shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} ".dirname(__FILE__)."/exec.watchdog.php --mem >/dev/null 2>&1 &");
-					system_admin_events("{$re[1]}% memory limit","Monitor claim \"$buffer\"\n".@implode("\n", $psarr),__FUNCTION__,__FILE__,__LINE__,"watchdog");
+					system_admin_events("{$re[1]}% memory limit\nMonitor claim \"$buffer\"\n",__FUNCTION__,__FILE__,__LINE__,"watchdog");
 					WriteFileCache($file);
 					return;
 				}else{
@@ -1347,7 +1414,7 @@ if(preg_match("#cpu system usage of ([0-9\.]+)% matches#",$buffer,$re)){
 	$file="/etc/artica-postfix/croned.1/cpu.system.monit";
 	if(IfFileTime($file,15)){
 				events("cpu exceed");
-				system_admin_events("CPU warning {$re[1]}%","Monitor claim \"$buffer\"",__FUNCTION__,__FILE__,__LINE__,"watchdog");
+				system_admin_events("CPU warning {$re[1]}%\nMonitor claim \"$buffer\"",__FUNCTION__,__FILE__,__LINE__,"watchdog");
 				shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} ".dirname(__FILE__)."/exec.watchdog.php --cpu >/dev/null 2>&1 &");
 				WriteFileCache($file);
 				return;
@@ -1361,7 +1428,7 @@ if(preg_match("#monit.+?loadavg.+?of\s+([0-9\.]+)\s+matches resource limit#",$bu
 	$file="/etc/artica-postfix/croned.1/load.system.monit";
 		if(IfFileTime($file,15)){
 					events("Load exceed");
-					system_admin_events("Load warning {$re[1]}","Monitor claim \"$buffer\"",__FUNCTION__,__FILE__,__LINE__,"watchdog");
+					system_admin_events("Load warning {$re[1]}\nMonitor claim \"$buffer\"",__FUNCTION__,__FILE__,__LINE__,"watchdog");
 					shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} ".dirname(__FILE__)."/exec.watchdog.php --loadavg >/dev/null 2>&1 &");
 					WriteFileCache($file);
 					return;
@@ -1748,6 +1815,7 @@ function dhcpd($buffer){
 		$text=addslashes($re[1]);
 		$sqlcontent="('$day','$text')";
 		@file_put_contents("/var/log/artica-postfix/dhcpd/".md5($sqlcontent),$sqlcontent);
+		return true;
 	}
 	
 	
@@ -1825,7 +1893,7 @@ function squid_parser($buffer){
 	if(strpos($buffer,"Target number of buckets")>0){return;}
 	
 	
-	if(preg_match("#squid.*?swap directories, Check cache.*?squid -z#")){
+	if(preg_match("#squid.*?swap directories, Check cache.*?squid -z#",$buffer)){
 		events("Squid Must reconfigure squid caches");
 		$file="/etc/artica-postfix/croned.1/squid-caches-failed-1";
 		if(IfFileTime($file,5)){
@@ -2080,6 +2148,7 @@ function events_not_filtered($text){
 		$sline="[$pid] $text";
 		$line="$date [$pid] $text\n";
 		@fwrite($h,$line);
+		
 		@fclose($h);	
 	
 }

@@ -21,8 +21,9 @@ function js(){
 	unset($_SESSION[md5("statusPostfix_satus")]);
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$service_cmd=$_GET["cmd"];
+	$service_cmd=urlencode($_GET["cmd"]);
 	$application=$tpl->_ENGINE_parse_body("{".$_GET["APP"]."}");
+	if(isset($_GET["CacheOff"])){$CacheOff="CacheOff();";}
 	$action=$_GET["action"];
 	$idmd="STARTSTOPSERVICE_START";
 	$html="
@@ -56,6 +57,7 @@ function STARTSTOPSERVICE_DEMARRE(){
 				document.getElementById('APPLICATIONSTART').innerHTML=tempvalue;
 				if(document.getElementById('main_config_pptpd')){RefreshTab('main_config_pptpd');}
 				if(document.getElementById('admin_perso_tabs')){RefreshTab('admin_perso_tabs');}
+				$CacheOff;
 				stopstart_reloaded=1;
 				}
 			}
@@ -96,6 +98,7 @@ function popup(){
 	
 	";
 	
+	$_GET["cmd"]=urlencode($_GET["cmd"]);
 	
 	$sock=new sockets();
 	$sock->getFrameWork("cmd.php?START-STOP-SERVICES=yes&cmd={$_GET["cmd"]}&action={$_GET["action"]}&APP={$_GET["APP"]}");

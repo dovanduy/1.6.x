@@ -7,6 +7,7 @@ include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.archive.builder.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
+include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 
 $users=new usersMenus();
 if(!$users->AsHotSpotManager){header("location:miniadm.index.php");die();}
@@ -63,34 +64,14 @@ function content(){
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$array["sessions"]='{sessions}';
-	$array["members"]='{members}';
-	while (list ($num, $ligne) = each ($array) ){
-			
-		$tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
-			
-		}
+	if(isset($_GET["title"])){
+		$title=$tpl->_ENGINE_parse_body("<H3>{hostpot_members}</H3><p>{hostpot_members_text}</p>");
+	}
+	$boot=new boostrap_form();
+	$array["{sessions}"]="$page?sessions=yes";
+	$array["{members}"]="$page?members=yes";
+	echo $title.$boot->build_tab($array);
 	
-	
-	
-
-	$html="
-		<div id='main_hostspot' style='background-color:white;margin-top:10px'>
-		<ul>
-		". implode("\n",$tab). "
-		</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_hostspot').tabs();
-			
-
-			});
-		</script>
-	
-	";	
-	
-	echo $tpl->_ENGINE_parse_body($html);			
 }
 
 function members(){

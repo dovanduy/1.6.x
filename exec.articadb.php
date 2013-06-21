@@ -67,6 +67,7 @@ $f[]="";
 @mkdir("/opt/articatech/tmp",0755,true);
 shell_exec("/bin/ln -sf /opt/articatech/data /opt/articatech/mysql/data");
 shell_exec("/bin/ln -sf /opt/articatech/my.cnf /opt/articatech/mysql/etc/my.cnf");
+@unlink("/opt/articatech/data/data");
 $q=new mysql();
 if($q->DATABASE_EXISTS("catz")){$q->DELETE_DATABASE("catz");}
 echo "Starting......: ArticaDBst configuration done...\n";

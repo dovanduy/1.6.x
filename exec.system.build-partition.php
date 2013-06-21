@@ -120,7 +120,7 @@ function disk_change_fstab($dev,$ext,$target){
 		events("disk_change_fstab():: No target specified...");
 		return;
 	}
-	$line="$dev\t$target\t$ext\trw,relatime,errors=remount-ro,user_xattr,acl  0    1";
+	$line="$dev\t$target\t$ext\trw,async,relatime,errors=remount-ro,user_xattr,acl  0    1";
 	$f=explode("\n",@file_get_contents("/etc/fstab"));
 	
 	$devRegex=str_replace("/", "\/", $dev);

@@ -13,6 +13,7 @@ if(isset($_GET["poll"])){SavePools();exit();}
 if(isset($_GET["AddNewFetchMailRule"])){AddNewFetchMailRule();exit();}
 if(isset($_GET["LdapRules"])){LdapRules();exit;}
 if(isset($_GET["UserDeleteFetchMailRule"])){UserDeleteFetchMailRule();exit;}
+if(isset($_POST["UseDefaultSMTP"])){UseDefaultSMTP_save();exit;}
 if($user->AsArticaAdministrator==false){header('location:users.index.php');exit;}
 if(isset($_GET["import_1"])){echo import_1();exit;}
 if(isset($_GET["LocalRules"])){echo LocalRules();exit;}
@@ -308,6 +309,10 @@ if($array["is"]==null){
 	if($array["limit"]==1024){$textlimit="&nbsp;(1MB)";}
 	if(!is_numeric($array["smtp_port"])){$array["smtp_port"]=25;}
 	if(trim($array["smtp_host"])==null){$array["smtp_host"]="127.0.0.1";}
+	if(!is_numeric($array["UseDefaultSMTP"])){$array["UseDefaultSMTP"]=1;}
+	
+	
+	
 	$form="
 	$flexgrid
 	<div style='font-size:18px'>{server_options}:</div>
@@ -320,6 +325,10 @@ if($array["is"]==null){
 		<td align='right' class=legend style='font-size:14px'>{server}</strong>:&nbsp;</td>
 		<td align='left'>" . Field_text('MailBoxServer',$array["poll"],'width:228px;font-size:14px')."</td>
 	</tr>
+	<tr>
+		<td align='right' class=legend style='font-size:14px'>{UseDefaultSMTP}</strong>:&nbsp;</td>
+		<td align='left'>" . Field_checkbox("UseDefaultSMTP", 1,$array["UseDefaultSMTP"],"UseDefaultSMTPCheck()")."</td>
+	</tr>				
 	<tr>
 		<td align='right' class=legend style='font-size:14px'>{server} (SMTP)</strong>:&nbsp;</td>
 		<td align='left'>" . Field_text('_smtp_host',$array["smtp_host"],'width:228px;font-size:14px')."</td>
@@ -515,7 +524,34 @@ $form2="
 	</form>
 	</div>
 	<script>
+	var x_UseDefaultSMTPCheck= function (obj) {
+		var tempvalue=obj.responseText;
+		if(tempvalue.length>3){alert(tempvalue);}
+	}
+	
+	
+	
+		function UseDefaultSMTPCheck(){
+			document.getElementById('_smtp_host').disabled=true;
+			document.getElementById('_smtp_port').disabled=true;
+			var value=1;
+			if(!document.getElementById('UseDefaultSMTP').checked){
+				document.getElementById('_smtp_host').disabled=false;
+				document.getElementById('_smtp_port').disabled=false;
+				value=0;			
+			}
+			
+			var XHR = new XHRConnection();
+    		XHR.appendData('UseDefaultSMTP',value);
+    		XHR.appendData('ruleid','$rulenumber');
+    		XHR.sendAndLoad('$page', 'POST',x_UseDefaultSMTPCheck);
+		
+		}
+	
+	
 		function CheckForms(){
+			document.getElementById('_smtp_host').disabled=true;
+			document.getElementById('_smtp_port').disabled=true;
 			var FetchMailGLobalDropDelivered=$FetchMailGLobalDropDelivered;
 			document.getElementById('_interval').disabled=true;
 			
@@ -523,13 +559,20 @@ $form2="
 				document.getElementById('_dropdelivered').checked=true;
 				document.getElementById('_dropdelivered').disabled=true;
 			}
+			
+			if(!document.getElementById('UseDefaultSMTP').checked){
+				document.getElementById('_smtp_host').disabled=false;
+				document.getElementById('_smtp_port').disabled=false;	
+			}		
+			
+			
 		}
 		
 		function UpdateScheduleView(){
 			document.getElementById('schedule-id').innerHTML=document.getElementById('_schedule').value;
 		}
 		
-		YahooWinHide();
+	YahooWinHide();
 	CheckForms();
 	</script>
 	
@@ -569,6 +612,15 @@ echo RoundedLightGreen($tpl->_ENGINE_parse_body($html));
 	
 }
 
+
+function UseDefaultSMTP_save(){
+	$ruleid=$_POST["ruleid"];
+	$UseDefaultSMTP=$_POST["UseDefaultSMTP"];
+	$q=new mysql();
+	$q->QUERY_SQL("UPDATE fetchmail_rules SET UseDefaultSMTP=$UseDefaultSMTP WHERE ID=$ruleid","artica_backup");
+	if(!$q->ok){echo $q->mysql_error;}
+	
+}
 
 
 function SavePools(){

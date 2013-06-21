@@ -20,8 +20,20 @@ if(isset($_GET["tune2fs-values"])){tune2fs_values();exit;}
 if(isset($_GET["INODES_MAX"])){INODES_MAX();exit;}
 if(isset($_GET["HardDriveDiskSizeMB"])){HardDriveDiskSizeMB();exit;}
 if(isset($_GET["TOTAL_MEMORY_MB"])){TOTAL_MEMORY_MB();exit;}
-
-
+if(isset($_GET["archiverlogs"])){archiverlogs();exit;}
+if(isset($_GET["squid-db-query"])){squiddb_query();exit;}
+if(isset($_GET["wizard-execute"])){wizard_execute();exit;}
+if(isset($_GET["ucarp-compile"])){ucarp_compile();exit;}
+if(isset($_GET["ucarp-status"])){ucarp_status();exit;}
+if(isset($_GET["ucarp-start-tenir"])){ucarp_start();exit;}
+if(isset($_GET["ucarp-stop-tenir"])){ucarp_stop();exit;}
+if(isset($_GET["syslogdb-restart"])){syslogdb_restart();exit;}
+if(isset($_GET["syslogdb-status"])){syslogdb_status();exit;}
+if(isset($_GET["syslogdb-query"])){syslogdb_query();exit;}
+if(isset($_GET["logrotate-query"])){logrotate_query();exit;}
+if(isset($_GET["BuildCSR"])){BuildCSR();exit;}
+if(isset($_GET["SYSTEMS_ALL_PARTITIONS"])){SYSTEMS_ALL_PARTITIONS();exit;}
+if(isset($_GET["apply-patch"])){APPLY_PATCH();exit;}
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
@@ -30,6 +42,11 @@ die();
 function TOTAL_MEMORY_MB(){
 	$unix=new unix();
 	echo "<articadatascgi>". $unix->TOTAL_MEMORY_MB()."</articadatascgi>";
+}
+
+function SYSTEMS_ALL_PARTITIONS(){
+	$unix=new unix();
+	echo "<articadatascgi>". base64_encode(serialize($unix->SYSTEMS_ALL_PARTITIONS()))."</articadatascgi>";
 }
 
 function dns_linker(){
@@ -112,9 +129,21 @@ function generic_start(){
 	$token=$_GET["cmd"];
 	$file="/usr/share/artica-postfix/ressources/logs/web/$key.log";
 	@unlink($file);
-	@file_put_contents($file, "{$action} Please wait....\n/etc/init.d/artica-postfix $action $token\n");
+	writelogs_framework("token $token -> $action",__FUNCTION__,__FILE__,__LINE__);
+	
+	$binary="/etc/init.d/artica-postfix";
+	if(strpos("$token", "init.d")>0){
+		$binary=$token;
+		writelogs_framework("change binary to $token",__FUNCTION__,__FILE__,__LINE__);
+		$token=null;
+	}else{
+		$token=" $token";
+	}
+		
+	
+	@file_put_contents($file, "{$action} Please wait....\n$binary $action$token\n");
 	@chmod($file, 0777);
-	$cmd="$nohup /etc/init.d/artica-postfix $action $token >> $file 2>&1 &";
+	$cmd="$nohup $binary $action$token >> $file 2>&1 &";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 	
@@ -209,4 +238,246 @@ function HardDriveDiskSizeMB(){
 		return;
 	}
 		
+}
+
+function archiverlogs(){
+	$filelog="/var/log/artica-postfix/artica-mailarchive.debug";
+	$unix=new unix();
+	$grep=$unix->find_program("grep");
+	$tail=$unix->find_program("tail");
+	$search=trim(base64_decode($_GET["search"]));
+	$prefix=null;
+	$max=500;
+	if(isset($_GET["rp"])){$max=$_GET["rp"];}	
+	
+	if($search<>null){
+		$prefix="$grep -i -E '$search' $filelog| ";
+		
+	}
+	
+	if($search<>null){
+		$search=str_replace(".","\.",$search);
+		$search=str_replace("*",".*?",$search);
+		$search=str_replace("(","\(",$search);
+		$search=str_replace(")","\)",$search);
+		$search=str_replace("[","\[",$search);
+		$search=str_replace("]","\]",$search);
+		$cmd="$grep -i -E '$search' $filelog| $tail -n $max 2>&1";
+	}else{
+		$cmd="$tail -n $max $filelog 2>&1";
+	}
+	
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+		
+}
+function logrotate_query(){
+	$filelog="/var/log/artica-postfix/logrotate.debug";
+	
+	$unix=new unix();
+	$grep=$unix->find_program("grep");
+	$tail=$unix->find_program("tail");
+	$search=trim(base64_decode($_GET["search"]));
+	$prefix=null;
+	$max=500;
+	if(isset($_GET["rp"])){$max=$_GET["rp"];}
+	
+	if($search<>null){
+		$prefix="$grep -i -E '$search' $filelog| ";
+	
+	}
+	
+	if($search<>null){
+		$search=str_replace(".","\.",$search);
+		$search=str_replace("*",".*?",$search);
+		$search=str_replace("(","\(",$search);
+		$search=str_replace(")","\)",$search);
+		$search=str_replace("[","\[",$search);
+		$search=str_replace("]","\]",$search);
+		$cmd="$grep -i -E '$search' $filelog| $tail -n $max 2>&1";
+	}else{
+		$cmd="$tail -n $max $filelog 2>&1";
+	}
+	
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+		
+	
+}
+
+function syslogdb_query(){
+	$filelog=@file_get_contents("/etc/artica-postfix/settings/Daemons/MySQLSyslogWorkDir");
+	if($filelog==null){$filelog="/home/syslogsdb";}	
+	$filelog="$filelog/error.log";
+	$unix=new unix();
+	$grep=$unix->find_program("grep");
+	$tail=$unix->find_program("tail");
+	$search=trim(base64_decode($_GET["search"]));
+	$prefix=null;
+	$max=500;
+	if(isset($_GET["rp"])){$max=$_GET["rp"];}
+	
+	if($search<>null){
+		$prefix="$grep -i -E '$search' $filelog| ";
+	
+	}
+	
+	if($search<>null){
+		$search=str_replace(".","\.",$search);
+		$search=str_replace("*",".*?",$search);
+		$search=str_replace("(","\(",$search);
+		$search=str_replace(")","\)",$search);
+		$search=str_replace("[","\[",$search);
+		$search=str_replace("]","\]",$search);
+		$cmd="$grep -i -E '$search' $filelog| $tail -n $max 2>&1";
+	}else{
+		$cmd="$tail -n $max $filelog 2>&1";
+	}
+	
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+		
+	
+}
+
+function squiddb_query(){
+	$filelog="/opt/squidsql/error.log";
+	$unix=new unix();
+	$grep=$unix->find_program("grep");
+	$tail=$unix->find_program("tail");
+	$search=trim(base64_decode($_GET["search"]));
+	$prefix=null;
+	$max=500;
+	if(isset($_GET["rp"])){$max=$_GET["rp"];}
+	
+	if($search<>null){
+		$prefix="$grep -i -E '$search' $filelog| ";
+	
+	}
+	
+	if($search<>null){
+		$search=str_replace(".","\.",$search);
+		$search=str_replace("*",".*?",$search);
+		$search=str_replace("(","\(",$search);
+		$search=str_replace(")","\)",$search);
+		$search=str_replace("[","\[",$search);
+		$search=str_replace("]","\]",$search);
+		$cmd="$grep -i -E '$search' $filelog| $tail -n $max 2>&1";
+	}else{
+		$cmd="$tail -n $max $filelog 2>&1";
+	}
+	
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
+	
+}
+
+function wizard_execute(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.wizard-install.php >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+
+function ucarp_compile(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup /etc/init.d/artica-failover restart >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+
+function ucarp_status(){
+	$unix=new unix();
+	$eth=$_GET["ucarp-status"];
+	$pgrep=$unix->find_program("pgrep");
+	$ucarp_bin=$unix->find_program("ucarp");
+	if($eth<>null){$eth=".*?--interface=$eth";}
+	
+	$pid=$unix->PIDOF_PATTERN("$ucarp_bin$eth");
+	writelogs_framework("$pid = PIDOF_PATTERN($ucarp_bin$eth)",__FUNCTION__,__FILE__,__LINE__);
+	if(!$unix->process_exists($pid)){
+		writelogs_framework("$pid = NOT IN MEMORY",__FUNCTION__,__FILE__,__LINE__);
+		echo "<articadatascgi>". base64_encode(serialize(array()))."</articadatascgi>";	
+		return;
+	}
+	writelogs_framework("$pid =OK",__FUNCTION__,__FILE__,__LINE__);
+	$pidtim=$unix->PROCCESS_TIME_MIN($pid);
+	echo "<articadatascgi>". base64_encode(serialize(array("PID"=>$pid,"TIME"=>$pidtim)))."</articadatascgi>";
+	
+	
+}
+function ucarp_start(){
+	$unix=new unix();
+	if(!is_file("/etc/init.d/artica-failover")){
+		
+		$php=$unix->LOCATE_PHP5_BIN();
+		shell_exec("$php ". dirname(__FILE__)."/exec.initslapd.php --failover");
+	}
+	exec("/etc/init.d/artica-failover start 2>&1",$results);	
+	echo "<articadatascgi>". base64_encode(@implode("\n", $results))."</articadatascgi>";
+	return;
+}
+function ucarp_stop(){
+	$unix=new unix();
+	if(!is_file("/etc/init.d/artica-failover")){
+
+		$php=$unix->LOCATE_PHP5_BIN();
+		shell_exec("$php ". dirname(__FILE__)."/exec.initslapd.php --failover");
+	}
+	exec("/etc/init.d/artica-failover stop 2>&1",$results);
+	echo "<articadatascgi>". base64_encode(@implode("\n", $results))."</articadatascgi>";
+	return;
+}
+function syslogdb_restart(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.logs-db.php --init";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	$cmd=trim("$nohup /etc/init.d/syslog-db restart >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+
+function BuildCSR(){
+	$unix=new unix();
+	$commonName=$_GET["BuildCSR"];
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.openssl.php --BuildCSR $commonName 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";
+}
+
+function syslogdb_status(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();	
+	$cmd="$php5 /usr/share/artica-postfix/exec.status.php --syslog-db --nowachdog";
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";
+
+}
+function APPLY_PATCH(){
+	$filename="/usr/share/artica-potfix/ressources/conf/upload/{$_GET["apply-patch"]}";
+	if(!is_file($filename)){
+		echo "<articadatascgi>". base64_encode(serialize(array("{$_GET["apply-patch"]} no such file")))."</articadatascgi>";
+		return;
+	}
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$tar=$unix->find_program("tar");
+	exec("$tar -xvf $filename -C /usr/share/ 2>&1",$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+	shell_exec("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+	
 }

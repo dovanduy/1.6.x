@@ -1242,7 +1242,7 @@ function events_search(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){json_error_show($q->mysql_error);}
+	if(!$q->ok){json_error_show($q->mysql_error."<br>$sql");}
 	
 
   while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -1296,8 +1296,30 @@ function PurgeCategoriesDatabase(){
 
 function PurgeCategoryTable(){
 	$q=new mysql_squid_builder();
-	$q->QUERY_SQL("DROP TABLE {$_POST["PurgeCategoryTable"]}");
-	$q->CreateCategoryTable(null,$_POST["PurgeCategoryTable"]);
+	
+	
+	
+	if(preg_match("#^category_(.+)$#", $_POST["PurgeCategoryTable"],$re)){$categoryname=$re[1];}
+		
+	echo "{$_POST["PurgeCategoryTable"]} -> $categoryname\n";
+	
+	$sql="SELECT category FROM personal_categories WHERE category='".mysql_escape_string($categoryname)."'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$norestore=false;
+	if($ligne["category"]<>null){
+		$norestore=true;
+		echo "$categoryname -> delete...\n";
+		$q->QUERY_SQL("DELETE FROM personal_categories WHERE `category`='".mysql_escape_string($categoryname)."'");
+		if(!$q->ok){echo $q->mysql_error;}
+	}
+	
+	
+	if($q->TABLE_EXISTS($_POST["PurgeCategoryTable"])){
+		echo "{$_POST["PurgeCategoryTable"]} -> drop...\n";
+		$q->QUERY_SQL("DROP TABLE `{$_POST["PurgeCategoryTable"]}`");
+		if(!$q->ok){echo $q->mysql_error;}
+	}
+	//if($norestore){$q->CreateCategoryTable(null,$_POST["PurgeCategoryTable"]);}
 	
 }
 

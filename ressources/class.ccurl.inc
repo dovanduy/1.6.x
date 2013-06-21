@@ -1,6 +1,9 @@
 <?php
+define ('CURLOPTTYPE_OBJECTPOINT ',  10000);
+define ('CURLOPT_NOPROXY',CURLOPTTYPE_OBJECTPOINT + 177);
 class ccurl{
 	var $uri;
+	var $UseDirect=false;
 	var $parms=array();
 	var $data='';
 	var $NoHTTP_POST=false;
@@ -24,7 +27,11 @@ class ccurl{
 	var $ProgressFile=null;
 	var $ProgressFunction=null;
 	var $x_www_form_urlencoded=true;
+	var $CURLOPT_NOPROXY="localhost,127.0.0.1";
+	var $CURLOPT_HEADER=true;
+	var $CURLINFO_HTTP_CODE=0;
 	private $called=null;
+	private $headers=null;
 	
 	// CURLOPT_INTERFACE
 	
@@ -90,11 +97,125 @@ class ccurl{
 		$GLOBALS["CURLDEBUG"][]=$text;
 	}
 	
-	function get(){
-		if (!extension_loaded('curl')) {
-			$this->wget();
-			return;
+	
+	private function getdirect_HTTP_Request2(){
+	
+				$config = array(
+						'adapter'           => 'HTTP_Request2_Adapter_Socket',
+						'connect_timeout'   => $this->Timeout,
+						'timeout'           => 0,
+						'use_brackets'      => true,
+						'protocol_version'  => '1.1',
+						'buffer_size'       => 16384,
+						'store_body'        => true,				
+						'ssl_verify_peer'   => true,
+						'ssl_verify_host'   => true,
+						'ssl_cafile'        => null,
+						'ssl_capath'        => null,
+						'ssl_local_cert'    => null,
+						'ssl_passphrase'    => null,
+				
+						'digest_compat_ie'  => false,
+				
+						'follow_redirects'  => false,
+						'max_redirects'     => 5,
+						'strict_redirects'  => false
+				);
+				
+				$request = new Http_Request2($this->uri);
+				$request->setConfig($config);
+				
+				
+				try {
+					$response = $request->send();
+				} catch (Exception $exc) {
+					$es = $exc->getTraceAsString();
+					$ets=$exc->__toString();
+					$egc=$exc->getCode();
+					$egl=$exc->getLine();
+					$egm=$exc->getMessage();
+					$egt=$exc->getTrace();
+					$response = null;
+					$this->error="$es $ets $egc $egl $egm $egt";
+					return false;
+					
+				}
+				$this->data = $response->getBody();	
+				return true;			
+			
+	
+}
+
+	private function pear_install_HTTP_Request2(){
+		if(!$GLOBALS["AS_ROOT"]){return false;}
+		$unix=new unix();
+		$pear=$unix->find_program("pear");
+		if(!is_file($pear)){return;}
+		$hohup=$unix->find_program("nohup");
+		shell_exec("$hohup $pear install HTTP_Request2 >/dev/null 2>&1 &");
+	}
+	
+	
+	private function getdirect(){
+		include_once('HTTP/Request2.php');
+		if(!class_exists("Http_Request2")){$this->pear_install_HTTP_Request2();}
+		if(class_exists("Http_Request2")){return $this->getdirect_HTTP_Request2();}
+		//$auth = base64_encode('user:password');
+		//$header = array("Authorization: Basic $auth");
+		$socket=array();
+		
+		
+		if($this->interface<>null){
+			$this->OutPutlogs("getdirect() -> Interface:$this->interface");
+			$socket=array('socket' => array('bindto' => "$this->interface:0"));
 		}
+		$opts = array('http' =>
+			  array(
+			    'method'  => 'GET',
+			    'header'=>"Content-Type: text/html; charset=utf-8",
+			    //  "Authorization: Basic ".base64_encode("$https_user:$https_password")."\r\n",
+			  	$socket,
+			    'timeout' => $this->Timeout
+			  )
+			);
+		$context = stream_context_create($opts);
+		$this->OutPutlogs("getdirect() -> $this->uri");
+		
+
+		try {
+			$result =file_get_contents($this->uri,false,$context);
+		}
+		catch (Exception $e) {
+			
+			$this->error=$e->getMessage();
+			$this->OutPutlogs("getdirect() -> $this->error");
+			return false;
+		}
+		
+		
+		
+		if(!$result){
+			$this->error=$this->error ." Failed to get $this->uri in context (timeout ($this->Timeout)";
+			if($GLOBALS["VERBOSE"]){echo "Failed to get $this->uri in context\n";}
+			return false;
+		}
+		
+		$this->OutPutlogs("getdirect() -> ".strlen($result)." bytes");
+		$this->data=$result;
+		
+		if(!$this->ParseTextError()){
+			$this->error="ParseTextError() -> Return False data:".strlen($result)." bytes";
+			$this->OutPutlogs("ParseTextError() -> Return False....");
+			return false;
+		}
+		
+		return true;
+	}
+
+	
+	function get(){
+		if (!extension_loaded('curl')) {return $this->wget();}
+		if($this->UseDirect){return $this->getdirect();}
 		
 		
 		$curlPost=null;
@@ -116,24 +237,14 @@ class ccurl{
 				}
 			}
 			curl_setopt($ch, CURLOPT_URL, "$this->uri");
-			curl_setopt($ch, CURLOPT_HEADER, 1);
+			curl_setopt($ch, CURLOPT_HEADER, $this->CURLOPT_HEADER);
+			$this->OutPutlogs("PHP: ".PHP_VERSION);
+			//curl_setopt($ch, CURLINFO_HEADER_OUT, $this->CURLOPT_HEADER);
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-			if($this->NoHTTP_POST){
-				//if($GLOBALS["VERBOSE"]){writelogs("Ban post protocol",__CLASS__.'/'.__FUNCTION__,__FILE__);}
-				curl_setopt($ch, CURLOPT_POST, 0);
-			}else{
-				curl_setopt($ch, CURLOPT_POST, 1);
-			}
-			if($this->UserAgent<>null){
-				curl_setopt($ch, CURLOPT_USERAGENT, $this->UserAgent);
-			}else{
-				curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0");
-			}
 			
-			if($this->FollowLocation){
-				
-				curl_setopt($ch, CURLOPT_FOLLOWLOCATION,true);
-			}
+			if($this->NoHTTP_POST){curl_setopt($ch, CURLOPT_POST, 0);}else{curl_setopt($ch, CURLOPT_POST, 1);}
+			if($this->UserAgent<>null){curl_setopt($ch, CURLOPT_USERAGENT, $this->UserAgent);}else{curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0");}
+			if($this->FollowLocation){curl_setopt($ch, CURLOPT_FOLLOWLOCATION,true);}
 			
 			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
 			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -157,26 +268,38 @@ class ccurl{
 				//if($GLOBALS["VERBOSE"]){echo "setting proxy for $this->ArticaProxyServerName:$this->ArticaProxyServerPort\n";}
 				curl_setopt ($ch, CURLOPT_PROXY,"$this->ArticaProxyServerName:$this->ArticaProxyServerPort");
 				
-				//curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_BASIC | CURLAUTH_NTLM);
+				//curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_BASIC | CURLAUTH_NTLM | CURLAUTH_ANYSAFE);
 				if($this->ArticaProxyServerUsername<>null){
-					$this->OutPutlogs("Using proxy with authentication");
-					curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_BASIC);
+					$this->OutPutlogs("Using proxy with authentication [$this->ArticaProxyServerUsername:$this->ArticaProxyServerUserPassword]");
+					curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_ANY);
 					curl_setopt($ch, CURLOPT_PROXYUSERPWD, $this->ArticaProxyServerUsername.':'.$this->ArticaProxyServerUserPassword);
 				}
+			}else{
+				$this->OutPutlogs("Not using proxy...");
+				$this->ArticaProxyServerEnabled="no";
+				$this->ArticaProxyServerName=null;
+				$this->ArticaProxyServerPort=null;
+				curl_setopt($ch, CURLOPT_NOPROXY,$this->CURLOPT_NOPROXY);
 			}		
 			
 			
+			if($GLOBALS["VERBOSE"]){curl_setopt($ch, CURLINFO_HEADER_OUT, 1);}
 			
-			if($curlPost<>null){
-				$this->OutPutlogs("Add posts datas....");
-				curl_setopt($ch, CURLOPT_POSTFIELDS, $curlPost);
-			}	
+			if($curlPost<>null){$this->OutPutlogs("Add posts datas....");curl_setopt($ch, CURLOPT_POSTFIELDS, $curlPost);}	
 			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
 			$this->data=curl_exec($ch);
-			$error=curl_errno($ch);		
-			if($error>0){
-				$this->OutPutlogs("Error:$error: datas: $this->uri (". strlen($this->data)." bytes) ");
-			}
+			$this->CURLINFO_HTTP_CODE=curl_getinfo($ch,CURLINFO_HTTP_CODE);
+			if($GLOBALS["VERBOSE"]){echo curl_getinfo($ch, CURLINFO_HEADER_OUT);}
+			if($GLOBALS["VERBOSE"]){echo "***** $this->CURLINFO_HTTP_CODE *****\n";}
+			
+			
+			$header_size = curl_getinfo($ch,CURLINFO_HEADER_SIZE);
+			$this->headers=substr($this->data, 0, $header_size);
+			$this->data=substr( $this->data, $header_size );
+			$this->OutPutlogs($this->headers);
+			$error=curl_errno($ch);	
+			$this->OutPutlogs(__CLASS__."/".__FUNCTION__."(): Error:$error");
+			if($error>0){$this->OutPutlogs(__CLASS__."/".__FUNCTION__."(): Error:$error: datas: $this->uri (". strlen($this->data)." bytes) ");}
 			curl_close($ch);
 			
 			
@@ -190,6 +313,19 @@ class ccurl{
 	}
 	
 	public function ParseTextError(){
+			if($this->CURLINFO_HTTP_CODE<400){return true;}
+		
+		
+		
+			if(strpos($this->headers, "407 Proxy Authentication Required")){
+				
+				$this->data=null;
+				$this->error="407 Proxy Authentication Required";
+				$this->error_num=407;
+				return false;
+			}
+		
+		
 			if(strpos(strtolower($this->data), strtolower("<title>Artica-postfix 404</title>"))>0){
 					$this->error="404 Not found ".strlen($this->data)." bytes length";
 					writelogs("404 Not found !!",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
@@ -227,6 +363,17 @@ class ccurl{
 					$this->error="500 - Internal Server Error ".strlen($this->data)." bytes length";
 					$this->error_num=500;
 					$this->data=null;
+					return false;
+				}
+				
+				if(strpos(strtolower($this->data), strtolower("X-Squid-Error:"))>0){
+					
+					if(preg_match("#X-Squid-Error:\s+([0-9]+)\s+(.+?)$#is", $this->data,$re)){
+						$this->error="Error {$re[1]}: {$re[2]}";
+					}				
+					$this->error_num=$re[1];
+					$this->data=null;
+					if($this->error_num<400){return true;}
 					return false;
 				}
 				

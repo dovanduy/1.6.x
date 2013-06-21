@@ -37,7 +37,7 @@ function action_rescan_js(){
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue)};
 		if(document.getElementById('main_config_dhcpd')){RefreshTab('main_config_dhcpd');}
-		
+		ExecuteByClassName('SearchFunction');
 	 }	
 	
 	function DCHP_LEASE_RESCAN(){

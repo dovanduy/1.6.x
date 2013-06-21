@@ -36,7 +36,7 @@ function popup(){
 	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
 	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}	
 	if(!is_numeric($LicenseInfos["EMPLOYEES"])){$LicenseInfos["EMPLOYEES"]=$WizardSavedSettings["employees"];}
-	
+	$t=time();
 	$ASWEB=false;
 	if($users->SQUID_INSTALLED){$ASWEB=true;}
 	if($users->WEBSTATS_APPLIANCE){$ASWEB=true;}
@@ -56,6 +56,8 @@ function popup(){
 		</div>";
 		}
 	}
+	
+	$unlocklick="<td>". Field_text("UNLOCKLIC-$t",$LicenseInfos["UNLOCKLIC"],"font-size:16px;width:240px")."</td>";
 
 	
 	if($LicenseInfos["license_status"]==null){
@@ -69,6 +71,7 @@ function popup(){
 	
 	if($LicenseInfos["license_status"]=="{license_active}"){
 		$users->CORP_LICENSE=true;
+		$unlocklick="<td style='font-size:16px;font-weight:bold'><input type='hidden' id='UNLOCKLIC-$t' value='{$LicenseInfos["UNLOCKLIC"]}'>{$LicenseInfos["UNLOCKLIC"]}</td>";
 	}	
 	
 	if($users->CORP_LICENSE){$star=null;}
@@ -81,7 +84,7 @@ function popup(){
 	</tr>";	
 	}
 	
-	$t=time();
+	
 	$CORP_LICENSE=0;
 	$textcolor="black";
 	$bt="<hr>".button($button_text,"RegisterSave$t()",18);
@@ -120,6 +123,10 @@ function popup(){
 		<td class=legend style='font-size:16px'>{license_number}:</td>
 		<td style='font-size:16px'>{$LicenseInfos["license_number"]}</td>
 	</tr>
+	</tr>
+		<td class=legend style='font-size:16px'>{unlock_license}:</td>
+		$unlocklick
+	</tr>	
 	<tr>
 		<td class=legend style='font-size:16px'>{license_status}:</td>
 		<td style='font-size:16px;color:$textcolor'>{$LicenseInfos["license_status"]}</td>
@@ -143,6 +150,7 @@ function popup(){
 			XHR.appendData('COMPANY',document.getElementById('COMPANY-$t').value);
 			XHR.appendData('EMAIL',document.getElementById('EMAIL-$t').value);
 			XHR.appendData('EMPLOYEES',document.getElementById('EMPLOYEES-$t').value);
+			XHR.appendData('UNLOCKLIC',document.getElementById('UNLOCKLIC-$t').value);
 			XHR.appendData('REGISTER','1');
 			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',x_RegisterSave$t);

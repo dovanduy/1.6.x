@@ -360,8 +360,7 @@ function enable_mimedefang(){
 }
 function disable_mimedefang(){
 	$sock=new sockets();
-	
-	$sock->SET_INFO("MimeDefangEnabled", 1);
+	$sock->SET_INFO("MimeDefangEnabled", 0);
 	$sock->getFrameWork("mimedefang.php?restart=yes");
 	$sock->getFrameWork("mimedefang.php?postfix-milter=yes");
 	$sock->getFrameWork("cmd.php?artica-filter-reload=yes");		

@@ -7,10 +7,14 @@
   color: #333333;
   padding: 3px;
   width: none;
+  height:auto;
+  line-height:auto;
 }
 
 .flexigrid input[type="text"] {
   width: auto;
+  height:auto;
+  font-size:11px !important;
 }
 
 .flexigrid.hideBody{height:26px!important;border-bottom:1px solid #ccc}
@@ -109,6 +113,18 @@ div.pGroup{float:left;background:none;height:24px;margin:0 5px}
 .flexigrid .pReload.loading{background:url(/css/images-flexigrid/load.gif) no-repeat center}
 .flexigrid.ie div.hDiv th div,.flexigrid.ie div.bDiv td div,div.colCopy.ie div
 /* common inner cell properties*/{overflow:hidden}
+
+div.pGroup input, select, textarea {
+  background-color: #FBFBFB;
+  border: 1px solid;
+  color: #333333;
+  padding: 3px;
+  width: none;
+  height:auto;
+  line-height:auto;
+  font-size:11px !important;
+}
+
 
 .flexigrid .pPageStat{font-size:11px;}
 .flexigrid .pGroup{font-size:11px;}

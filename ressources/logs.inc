@@ -17,10 +17,17 @@ function writeToFile($text,$filepath){
 }
 function writelogs($text=null,$function=null,$file_source=null,$line=null){
 	$name=null;
+	$file_source=basename($file_source);
+	$lineToSave="$text in $file_source function $function line $line";
+	if($file_source=="splashproxy.php"){
+		$servername=$_SERVER["SERVER_NAME"];
+		$f = @fopen("/var/log/apache2/$servername/$file_source.log", 'a');
+		@fwrite($f, "$lineToSave\n");
+		@fclose($f);
+	}
 	
 	if(isset($_SERVER["SERVER_SOFTWARE"])){
 		if(preg_match("#^Apache#", $_SERVER["SERVER_SOFTWARE"])){
-			$file_source=basename($file_source);
 			error_log("$text in $file_source function $function line $line");
 			return;
 		}

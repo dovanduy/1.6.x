@@ -239,7 +239,39 @@ class smtp_sasl_password_maps{
 			writelogs("Update/add $dn",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$upd=array();
 			if($ldap->ExistsDN($dn)){
-				$upd["SmtpSaslPasswordString"][]="$username:$password";
+				writelogs("Delete DN:`$dn`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				if(!$ldap->ldap_delete($dn)){
+					$this->ldap_infos=$ldap->ldap_last_error;
+					writelogs("Delete DN:`$dn` failed $ldap->ldap_last_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					return false;
+				}
+			
+			}
+			$pattern_to_search=$server;
+			$pattern_to_search=str_replace(".","\.",$relayT[1]);
+			$pattern_to_search=str_replace("[","\[",$pattern_to_search);
+			$pattern_to_search=str_replace("]","\]",$pattern_to_search);
+			$pattern_to_search=str_replace("smtp:","",$pattern_to_search);
+			
+			
+			
+			$sr =@ldap_search($ldap->ldap_connection,"cn=smtp_sasl_password_maps,cn=artica,$ldap->suffix",'(&(objectclass=PostfixSmtpSaslPaswordMaps)(cn=*))',array());
+			if ($sr) {
+				$hash=ldap_get_entries($ldap->ldap_connection,$sr);
+				for($i=0;$i<$hash["count"];$i++){
+					$sets=$hash[$i]["smtpsaslpasswordstring"][0];
+					if(preg_match("#cn=(.+?),cn=smtp_sasl_password_maps,cn=artica#",$hash[$i]["dn"],$regs)){
+						writelogs("Found DN:{$hash[$i]["dn"]} ({$regs[1]})",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+						if(preg_match("#$pattern_to_search#", $hash[$i]["dn"])){
+							$ldap->ldap_delete($hash[$i]["dn"]);
+						}
+						
+					}
+				}
+			}			
+			
+			
+			/*	$upd["SmtpSaslPasswordString"][]="$username:$password";
 				$return=$ldap->Ldap_modify($dn,$upd);
 				$this->ldap_infos=$ldap->ldap_last_error;
 				if($return){
@@ -250,18 +282,22 @@ class smtp_sasl_password_maps{
 				}
 				return $return;
 			}
-			
-		
+			*/
+			writelogs("Create DN:`$dn`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$upd["objectClass"][]='top';
 			$upd["objectClass"][]='PostfixSmtpSaslPaswordMaps';
 			$upd["cn"][]="$server";
 			$upd["SmtpSaslPasswordString"][]="$username:$password";
-			if($ldap->ldap_add($dn,$upd)){
+			if(!$ldap->ldap_add($dn,$upd)){
 				$this->ldap_infos=$ldap->ldap_last_error;
-				$sock=new sockets();
-				$sock->getFrameWork("cmd.php?postfix-hash-senderdependent=yes");
-				return true;}
-			return false;
+				writelogs("ADD DN:`$dn` failed $ldap->ldap_last_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				return false;
+			
+			}
+			$sock=new sockets();
+			$sock->getFrameWork("cmd.php?postfix-hash-senderdependent=yes");
+			return true;
+			
 		}
 		
 		

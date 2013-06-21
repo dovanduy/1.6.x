@@ -7,10 +7,18 @@ class privileges{
 	var $ldap;
 	var $webpage=null;
 	var $privilegesuid=null;
+	private $radiusid=0;
 	
-	function privileges($uid=null,$privilegesuid=null){
+	function privileges($uid=null,$privilegesuid=null,$radiusid=0){
 		$this->privilegesuid=$privilegesuid;
 		$this->uid=$uid;
+		$this->radiusid=$radiusid;
+		if(isset($_SESSION["RADIUS_ID"])){
+			if($GLOBALS["VERBOSE"]){echo "Radius identifier={$_SESSION["RADIUS_ID"]}<br>\n";}
+			if($_SESSION["RADIUS_ID"]>0){
+				$this->radiusid=$_SESSION["RADIUS_ID"];
+			}
+		}
 		if(function_exists("CurrentPageName")){$this->webpage=CurrentPageName();}
 		
 		
@@ -115,7 +123,33 @@ $spec",1);
 		if(trim($this->uid)==null){
 			if($GLOBALS["VERBOSE"]){echo "SearchPrivileges -> no uid, return<br>\n";}
 			return;
-		}	
+		}
+
+		
+		if($this->radiusid>0){
+			$q=new mysql();
+			$results=$q->QUERY_SQL("SELECT groupname FROM radusergroup WHERE username='$this->uid'","artica_backup");
+			while ($ligne = mysql_fetch_assoc($results)) {
+				$groupname=$ligne["groupname"];
+				if($groupname=="administrators"){
+					$this->privs["AsSystemAdministrator"]="yes";
+					$this->privs["AsPostfixAdministrator"]="yes";
+					$this->privs["AsArticaAdministrator"]="yes";
+					$this->privs["AsSquidAdministrator"]="yes";
+					$this->privs["AsSambaAdministrator"]="yes";
+					$this->privs["AsVirtualBoxManager"]="yes";
+					$this->privs["AsDansGuardianAdministrator"]="yes";
+					$this->privs["AsWebStatisticsAdministrator"]="yes";
+				}
+				if($groupname=="ProxyAdms"){$this->privs["AsSquidAdministrator"]="yes";}
+				if($groupname=="ProxySecurity"){$this->privs["AsDansGuardianAdministrator"]="yes";}				
+				if($groupname=="WebStatsAdm"){$this->privs["AsWebStatisticsAdministrator"]="yes";}				
+				
+				
+			}
+			$_SESSION["privileges_array"]=$this->privs;
+			return;
+		}
 		
 		
 		if($this->uid<>-100){
@@ -196,6 +230,15 @@ $spec",1);
 			if($result){
 				for($i=0;$i<$result["count"];$i++){
 					$gidnumber=$result[$i]["gidnumber"][0];
+					if($gidnumber==544){
+						include_once(dirname(__FILE__)."/class.translate.rights.inc");
+						$pp=new TranslateRights();
+						$pt=$pp->GetPrivsArray();while (list ($num, $ligne) = each ($pt) ){$this->privs[$num]="yes";}
+						continue;
+					}						
+							
+					
+					
 					if($GLOBALS["DEBUG_PRIVS"]){writelogs("[$this->uid] is a part of {$result[$i]["cn"][0]} ($gidnumber)",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 					
 					if(isset($result[$i]["articagroupprivileges"][0])){

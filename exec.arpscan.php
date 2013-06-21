@@ -134,16 +134,25 @@ function scanarp_mysql(){
 	$unix=new unix();
 	$t=time();
 
+	if(systemMaxOverloaded()){return;}
 	
-$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-$unix=new unix();
-$me=basename(__FILE__);
-if($unix->process_exists(@file_get_contents($pidfile),$me)){
-	if($GLOBALS["VERBOSE"]){echo " --> Already executed.. ". @file_get_contents($pidfile). " aborting the process\n";}
-	system_admin_events("--> Already executed.. ". @file_get_contents($pidfile). " aborting the process", __FUNCTION__, __FILE__, __LINE__, "network");
-	die();
-}
-@file_put_contents($pidfile, getmypid());	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+	$unix=new unix();
+	$me=basename(__FILE__);
+	$oldpid=@file_get_contents($pidfile);
+	if($unix->process_exists($oldpid,$me)){
+		if($GLOBALS["VERBOSE"]){echo " --> Already executed.. $oldpid aborting the process\n";}
+		system_admin_events("--> Already executed.. $oldpid aborting the process", __FUNCTION__, __FILE__, __LINE__, "network");
+		die();
+	}
+	
+	$list=$unix->PIDOF_PATTERN_ALL($me);
+	if(count($list)>2){
+		system_admin_events("--> Already executed..". count($list)." Processes executed");
+		die(); 
+	}
+	
+	@file_put_contents($pidfile, getmypid());	
 	
 	
 	$arpbin=$unix->find_program("arp");

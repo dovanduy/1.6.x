@@ -6,8 +6,10 @@ include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 
-$users=new usersMenus();
-if(!$users->AsOrgAdmin){header("location:miniadm.messaging.php");die();}
+if(!checkRights()){header("location:miniadm.messaging.php");die();}
+
+
+
 if(isset($_GET["content"])){content();exit;}
 
 
@@ -59,3 +61,8 @@ function content(){
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
+function checkRights(){
+	$users=new usersMenus();
+	if($users->AsOrgAdmin){return true;}
+	if($users->AsMessagingOrg){return true;}
+}

@@ -104,7 +104,7 @@ function recategorize_day_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$text=$tpl->javascript_parse_text("{WWW_RESCAN_ASK}");
-	
+	if(isset($_GET["href"])){$href="window.location.href = '{$_GET["href"]}';";}
 	$html="
 	
 	var x_recategorizePerform= function (obj) {
@@ -112,6 +112,9 @@ function recategorize_day_js(){
 		if (res.length>3){
 			alert(res);
 		}
+		$href
+		
+		
 	}		
 	
 	if(confirm('$text')){
@@ -154,7 +157,12 @@ function js(){
 	$t=$_GET["t"];
 	$categorize_this_query=$tpl->_ENGINE_parse_body("{categorize_this_query}");
 	if(isset($_GET["onlyNot"])){$onlyNot="&onlyNot=yes";}
-	$start="YahooWin3('890','$page?popup=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}$onlyNot','$title');";
+	if(isset($_GET["day"])){
+		if($_GET["day"]<>null){
+			$titledate=$_GET["day"];
+		}
+	}
+	$start="YahooWin3('890','$page?popup=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}$onlyNot','$title $titledate');";
 	if(isset($_GET["add-www"])){
 		if($category<>null){$category_text="&raquo;&raquo;{category}&raquo;&raquo;$category";}
 		$title=$tpl->_ENGINE_parse_body("{add_websites}$category_text");
@@ -404,12 +412,15 @@ function free_catgorized(){
 		
 		";
 	}
-	
+	$textarea_with=100;
 	if($_GET["websitetoadd"]<>null){$website_default="http://".$_GET["websitetoadd"]."\n";}
-	
+	if(isset($_SESSION["MINIADM"])){
+		$textarea_with=95;
+	}
 	$html="
 	<div class=explain style='font-size:13px' id='free-cat-explain$t'>{free_catgorized_explain}</div>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table >
 	<tr>
 		<td class=legend>{category}:</td>
 		<td>$field_category</td>
@@ -421,16 +432,17 @@ function free_catgorized(){
 	</tr>
 	<tr>
 	<td colspan=3 align='center'>
-		<textarea style='margin-top:5px;font-family:Courier New;font-weight:bold;width:100%;height:150px;border:5px solid #8E8E8E;overflow:auto;font-size:16px' id='textToParseCats$t'>$website_default</textarea>
+		<textarea style='margin-top:5px;font-family:Courier New;font-weight:bold;width:{$textarea_with}%;height:150px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important' id='textToParseCats$t'>$website_default</textarea>
 	</td>
 	</tr>
 	<tr>
 	<td colspan=3 align='right'>
 	
-		". button("{submit}","FreeCategoryPost()",16)."
+		". button("{add}","FreeCategoryPost()",16)."
 	</td>
 	</tr>
 	</table>
+	</div>
 	<script>
 	var x_FreeCategoryPost$t= function (obj) {
 		var res=obj.responseText;
@@ -439,7 +451,7 @@ function free_catgorized(){
 			document.getElementById('textToParseCats$t').value=res;
 		}
 		if(tt>0){ if(document.getElementById(tt)){ $('#'+tt).flexReload();} }
-		
+		ExecuteByClassName('SearchFunction');
 	}	
 
 	function free_catgorized_explain(){
@@ -448,6 +460,7 @@ function free_catgorized(){
 		if(catz.length>0){
 			LoadAjaxTiny('free-cat-explain$t','$page?free-cat-explain='+escape(catz));
 		}
+		
 	}
 	
 	function FreeCategoryPost(){
@@ -500,7 +513,7 @@ function free_catgorized_explain(){
 		$content=$cats[$_GET["free-cat-explain"]];
 	}
 	
-	echo $content;
+	echo utf8_encode($content);
 	
 }
 
@@ -615,10 +628,15 @@ function free_catgorized_save(){
 	while (list ($num, $www) = each ($f) ){
 		writelogs("Scanning $www",__FUNCTION__,__FILE__,__LINE__);
 		$www=str_replace("(whois)", "", $www);
+		$www=str_replace("\r", "", $www);
 		$www=str_replace("||", "", $www);
 		$www=str_replace("^", "", $www);		
 		$www=trim($www);		
 		$www=trim(strtolower($www));
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){
+			$websitesToscan[]=$www;
+			continue;
+		}
 		if($www==null){continue;}
 		$www=stripslashes($www);
 		if(preg_match("#href=\"(.+?)\">#", $www,$re)){$www=$re[1];}
@@ -638,8 +656,10 @@ function free_catgorized_save(){
 		$www=trim($www);
 		if(!preg_match("#\.([a-z0-9]+)$#",$www,$re)){continue;}
 		if(strlen($re[1])<2){
-			echo "$www bad extension `.{$re[1]}` \n";
-			continue;
+			if(!is_numeric($re[1])){
+				echo "$www bad extension `.{$re[1]}` \n";
+				continue;
+			}
 		}
 		$www=str_replace('"', "", $www);
 		
@@ -685,7 +705,10 @@ function free_catgorized_save(){
 		if(preg_match("#\.jpg$#i",$www,$re)){continue;}
 		if(preg_match("#\.php$#i",$www,$re)){continue;}
 		if(preg_match("#\.js$#i",$www,$re)){continue;}
-		if(!preg_match("#\.[a-z0-9]+$#",$www,$re)){;continue;}
+		if(!preg_match("#\.[a-z0-9]+$#",$www,$re)){;
+			echo "$www bad extension `$www` \n";
+			continue;
+		}
 		if(strpos(" ", trim($www))>0){continue;}
 		$sites[$www]=$www;
 		}

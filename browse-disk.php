@@ -20,14 +20,17 @@ function js(){
 	if($_GET["replace-start-root"]=="yes"){$_GET["replace-start-root"]=1;}
 	if($_GET["with-samba"]=="yes"){$_GET["with-samba"]=1;}
 	
-	$widthsize=550;
-	if($_GET["philesight"]<>null){$widthsize=350;}
+	$widthsize=650;
+	if($_GET["philesight"]<>null){$widthsize=550;}
 	
 	$page=CurrentPageName();
 	$html="
 	function BrowsDiskNewStart(){
 		YahooWinBrowse($widthsize,'$page?popup=yes&root={$_GET["start-root"]}&philesight={$_GET["philesight"]}&with-capsule={$_GET["with-capsule"]}&with-samba={$_GET["with-samba"]}&field={$_GET["field"]}&replace-start-root={$_GET["replace-start-root"]}','Browse');
 	}
+	$('head').append($(\"<link rel='stylesheet' href='/css/jquery.treeview.css' type='text/css' media='screen' />\"));
+	
+	
 	BrowsDiskNewStart();
 		
 	";
@@ -57,7 +60,7 @@ function popup(){
 		$styleleft="width=100%";
 	}
 	$html="
-	<table style='width:100%'>
+	<table style='width:100%' class=TableRemove>
 	<tr>
 	<td valign='top' $styleleft>
 		<div style='width:100%;height:600px;overflow:auto'>

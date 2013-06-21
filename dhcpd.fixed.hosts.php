@@ -4,6 +4,7 @@ session_start();
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.users.menus.inc');
 include_once('ressources/class.dhcpd.inc');
+include_once('ressources/class.tcpip.inc');
 include_once(dirname(__FILE__).'/ressources/class.computers.inc');
 $users=new usersMenus();
 if(!GetRights()){		
@@ -32,6 +33,7 @@ function GetRights(){
 }
 
 function host_edit_js(){
+	header("content-type: application/x-javascript");
 	$mac=$_GET["mac"];
 	$tt=$_GET["t"];
 	$page=CurrentPageName();

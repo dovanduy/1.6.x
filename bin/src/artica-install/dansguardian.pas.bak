@@ -533,74 +533,8 @@ end;
 //##############################################################################
 
 procedure tdansguardian.C_ICAP_START();
-var
-   count:integer;
-   pid:string;
-   squid:tsquid;
-
 begin
-count:=0;
-if not FileExists(C_ICAP_BIN_PATH()) then begin
-   logs.Debuglogs('C_ICAP_START():: unable to stat c-icap bin...');
-   exit;
-end;
-
-//if not FileExists(clamav.CLAMSCAN_BIN_PATH()) then begin
-  //    logs.Debuglogs('Starting......: c-icap Unable to stat clamscan bin path, aborting...');
-  //    exit;
-//end;
-
-if CicapEnabled=0 then begin
-     logs.Debuglogs('Starting......: c-icap is disabled by artica by "CicapEnabled" token...');
-     C_ICAP_STOP();
-     exit;
-end;
-
- if EnableRemoteStatisticsAppliance=1 then begin
-     logs.Debuglogs('Starting......: c-icap is disabled it using the remote appliance');
-     C_ICAP_STOP();
-     exit;
- end;
-
-PID:= C_ICAP_PID();
-
-
-
- logs.Debuglogs('C_ICAP_START() -> PID='+ PID);
- if SYS.PROCESS_EXIST(PID) then begin
-    logs.Debuglogs('Starting......: c-icap already running using pid ' + PID+ '...');
-    exit;
- end;
- C_ICAP_CONFIGURE();
- logs.Debuglogs('Starting......: c-icap...');
- logs.Debuglogs(C_ICAP_BIN_PATH() + ' -f '+C_ICAP_CONF_PATH());
-
- fpsystem(C_ICAP_BIN_PATH() + ' -f '+C_ICAP_CONF_PATH()+' -d 3');
-
- 
-
- while not SYS.PROCESS_EXIST(PID) do begin
-
-        sleep(100);
-        inc(count);
-        if count>80 then begin
-           logs.DebugLogs('Starting......: c-icap (timeout)');
-           break;
-        end;
-        PID:= C_ICAP_PID();
-  end;
-
- 
- PID:= C_ICAP_PID();
- 
- if length(PID)>0 then begin
-    squid:=tsquid.Create;
-    logs.DebugLogs('Starting......: c-icap started with new pid ' + PID);
- end else begin
-    writeln('Starting......: c-icap failed with command line '+C_ICAP_BIN_PATH() + ' -f '+C_ICAP_CONF_PATH()+' -d 3');
- end;
-
-
+fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.c-icap.php --start');
 end;
 //##############################################################################
 procedure tdansguardian.C_ICAP_CONFIGURE();
@@ -665,68 +599,10 @@ end;
 //##############################################################################
 
 procedure tdansguardian.C_ICAP_STOP();
- var
-    pid:string;
-    allpids:TstringList;
-    count,i,pidf:integer;
 begin
-count:=0;
-  if not FileExists(C_ICAP_BIN_PATH()) then begin
-     writeln('Stopping C-icap..............: Not installed');
-     exit;
-  end;
-  
-  pid:=C_ICAP_PID();
-  if not SYS.PROCESS_EXIST(pid) then begin
-     PID:=SYS.PidByProcessPath(C_ICAP_BIN_PATH());
-  end;
-  
-if SYS.PROCESS_EXIST(pid) then begin
-   writeln('Stopping C-icap..............: Stopping smoothly ' + pid + ' PID');
-   fpsystem('/bin/echo -n "stop"  > /var/run/c-icap/c-icap.ctl');
-     while SYS.PROCESS_EXIST(pid) do begin
-        sleep(100);
-        inc(count);
-        if count>30 then break;
-        pid:=C_ICAP_PID();
-    end;
+fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.c-icap.php --stop');
 end;
 
-pid:=C_ICAP_PID();
-if SYS.PROCESS_EXIST(pid) then begin
-   writeln('Stopping C-icap..............: Stopping must kill ' + pid + ' PID');
-   logs.OutputCmd('/bin/kill '+ pid);
-
-  while SYS.PROCESS_EXIST(pid) do begin
-        sleep(100);
-        inc(count);
-        pid:=C_ICAP_PID();
-        if count>30 then break;
-  end;
-
-end else begin
-       writeln('Stopping C-icap..............: seems stopped');
-end;
-  writeln('Stopping C-icap..............: found childrend running on '+ C_ICAP_BIN_PATH());
-  allpids:=Tstringlist.Create;
-  allpids.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST(C_ICAP_BIN_PATH()));
-     for i:=0 to allpids.Count-1 do begin
-         if not TryStrToInt(allpids.Strings[i],pidf) then continue;
-         if pidf>3 then begin
-            writeln('Stopping C-icap..............: child: ' + IntToStr(pidf) + ' PIDs');
-            fpsystem('/bin/kill -9 '+ IntToStr(pidf));
-         end;
-  end;
-
-  cicap_mem_pid:='';
-  pid:=C_ICAP_PID();
-  if not SYS.PROCESS_EXIST(pid) then begin
-     writeln('Stopping C-icap..............: Stopped');
-  end else begin
-     writeln('Stopping C-icap..............: Failed pid '+pid);
-  end;
-end;
-//##############################################################################
 
 function tdansguardian.DANSGUARDIAN_STATUS():string;
 var

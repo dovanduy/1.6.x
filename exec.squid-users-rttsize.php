@@ -35,10 +35,14 @@ main_table();
 
 
 function UsersSizeByHour(){
-	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
 	$oldpid=@file_get_contents($pidfile);
+	if(systemMaxOverloaded()){
+		events("UsersSizeByHour:: systemMaxOverloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} !!! -> DIE",__LINE__);
+		return;
+	}
+	
 	
 	$unix=new unix();
 	$mypid=getmypid();
@@ -381,7 +385,7 @@ function UserRTT_SIZE_DAY($day=null){
 }
 
 function UserRTT_SIZE_DAY_inject($array){
-	
+	return;
 	while (list ($tablename, $rows) = each ($array)){
 		$GLOBALS["UserRTT_SIZE_DAY_inject"]=$GLOBALS["UserRTT_SIZE_DAY_inject"]+count($rows);
 		

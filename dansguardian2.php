@@ -64,6 +64,7 @@ function tabs(){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$enable_streamcache=$sock->GET_INFO("SquidEnableStreamCache");
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+	if($squid->isNGnx()){$SquidActHasReverse=0;}
 	$UfdbGuardHide=$sock->GET_INFO("UfdbGuardHide");
 	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
@@ -116,6 +117,8 @@ function tabs(){
 		unset($array["databases"]);		
 	}
 	
+	if(isset($_GET["without-acl"])){unset($array["acls"]);}
+	
 	if($UfdbGuardHide==1){
 
 		unset($array["rules"]);
@@ -162,7 +165,7 @@ function tabs(){
 
 
 	$html="
-	<div id=main_dansguardian_tabs style='width:99%;overflow:auto'>
+	<div id=main_dansguardian_tabs style='width:105%'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -478,6 +481,7 @@ function dansguardian_status(){
 	$q=new mysql_squid_builder();
 	$categories=$q->LIST_TABLES_CATEGORIES();
 	$sock=new sockets();
+	$squid=new squidbee();
 	$SquidGuardIPWeb=trim($sock->GET_INFO("SquidGuardIPWeb"));
 	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
 	$SquidDisableAllFilters=$sock->GET_INFO("SquidDisableAllFilters");
@@ -486,20 +490,34 @@ function dansguardian_status(){
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
+	$PdnsHotSpot=$sock->GET_INFO("EnableSplashScreen");
 	$EnableMalwarePatrol=$sock->GET_INFO("EnableMalwarePatrol");
 	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+	if($squid->isNGnx()){$SquidActHasReverse=0;}
 	$UfdbEnabledCentral=$sock->GET_INFO('UfdbEnabledCentral');
 	$AntivirusEnabledCentral=$sock->GET_INFO('AntivirusEnabledCentral');
 	$EnableKerbAuthCentral=$sock->GET_INFO('EnableKerbAuthCentral');
 	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
 	$DnsFilterCentral=$sock->GET_INFO('DnsFilterCentral');
+	$SquidBubbleMode=$sock->GET_INFO('SquidBubbleMode');
+	
+	$EnableFTPProxy=$sock->GET_INFO('EnableFTPProxy');
+	
 	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
 	$Watchdog=$MonitConfig["watchdog"];
 	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
 	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
-	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}
+
+	$EnableHaarp=$sock->GET_INFO("EnableHaarp");
+	if(!is_numeric($EnableHaarp)){$EnableHaarp=0;}
 	
+	// APP_HAARP $EnableHaarp
+	
+	
+	
+	if(!is_numeric($EnableFTPProxy)){$EnableFTPProxy=0;}
 	$PDSNInUfdb=$sock->GET_INFO("PDSNInUfdb");
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
@@ -508,14 +526,26 @@ function dansguardian_status(){
 	if(!is_numeric($EnableMalwarePatrol)){$EnableMalwarePatrol=0;}
 	if(!is_numeric($SquidDisableAllFilters)){$SquidDisableAllFilters=0;}
 	if(!is_numeric($EnableSplashScreen)){$EnableSplashScreen=0;}
+	if(!is_numeric($PdnsHotSpot)){$PdnsHotSpot=0;}
 	if(!is_numeric($AsSquidLoadBalancer)){$AsSquidLoadBalancer=0;}
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 	if(!is_numeric($kavicapserverEnabled)){$kavicapserverEnabled=0;}
-	if(!is_numeric($PDSNInUfdb)){$PDSNInUfdb=0;}
+	if(!is_numeric($SquidBubbleMode)){$SquidBubbleMode=0;}
+	
+
 	if(!is_numeric($Watchdog)){$Watchdog=1;}
 	$t=1;
 	
 	if(!is_numeric($DnsFilterCentral)){$DnsFilterCentral=0;}
+	
+	if($users->APP_CHILLI_INSTALLED){
+		$EnableChilli=$sock->GET_INFO("EnableChilli");
+		if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+		$EnableSplashScreen=$EnableChilli;
+	}
+	
+	if(!is_numeric($PDSNInUfdb)){$PDSNInUfdb=0;}
+	if($PdnsHotSpot==1){$EnableSplashScreen=1;}
 	
 	if($EnableRemoteStatisticsAppliance==1){
 		if(is_numeric($EnableKerbAuthCentral)){$EnableKerbAuth=$EnableKerbAuthCentral;}
@@ -537,6 +567,43 @@ function dansguardian_status(){
 
 	$pic="status_ok-grey.gif";
 	$picSplashScreen="status_ok-grey.gif";
+	
+	$picSquidBubbleMode="status_ok-grey.gif";
+	$SquidBubbleModeText="{disabled}";
+	
+	
+	// APP_HAARP $EnableHaarp
+	
+	
+	$picFTPMode="status_ok-grey.gif";
+	$EnableFTPProxyText="<a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('ftp.proxy.php');\"
+		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
+	
+	$EnableHaarpText="<span style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</span>";
+	$picHaarp="status_ok-grey.gif";
+	
+	if(!$users->APP_FTP_PROXY){
+		$EnableFTPProxyText="-";
+	}else{
+		if($EnableFTPProxy==1){
+			$picFTPMode="status_ok.gif";
+			$EnableFTPProxyText="<a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('ftp.proxy.php');\"
+			style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";
+		}
+	}
+	
+	if(!$users->HAARP_INSTALLED){
+		$EnableHaarpText="-";
+	}else{
+		if($EnableHaarp==1){
+			$picHaarp="status_ok.gif";
+			$EnableHaarpText="<span style='font-size:12px;font-weight:bold;'>{enabled}</span>";
+		}
+	}	
+	
+	
 	$EnableActiveDirectoryText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('squid.adker.php');\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
@@ -546,7 +613,22 @@ function dansguardian_status(){
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
 
 
+	
 
+	if($SquidBubbleMode==1){
+		$SquidBubbleModeText="{enabled}";		
+		$picSquidBubbleMode="status_ok.gif";
+	}
+	
+	
+	$SquidBubbleModeTR="<tr>
+	<td width=1%><span id='AdSquidStatusLeft3'><img src='img/$picSquidBubbleMode'></span></td>
+	<td class=legend nowrap style='font-size:12px'>{bubble_mode}:</td>
+	<td><div style='font-size:12px' nowrap>
+	<a href=\"javascript:blur();\"
+	OnClick=\"javascript:Loadjs('squid.bubble.php');\"
+	style='font-size:12px;font-weight:bold;text-decoration:underline'>$SquidBubbleModeText</a></td>
+	</tr>";
 
 	if($EnableKerbAuth==1){
 		$pic="status_ok.gif";
@@ -566,9 +648,24 @@ function dansguardian_status(){
 
 	$EnableActiveDirectoryTextTR="<tr>
 				<td width=1%><span id='AdSquidStatusLeft'><img src='img/$pic'></span></td>
-				<td class=legend>Active Directory:</td>
+				<td class=legend style='font-size:12px'>Active Directory:</td>
 				<td><div style='font-size:12px' nowrap>$EnableActiveDirectoryText</td>
-				</tr>";		
+				</tr>";	
+
+	
+	$EnableFTPProxyTextTR="<tr>
+	<td width=1%><span id='AdSquidStatusLeft'><img src='img/$picFTPMode'></span></td>
+	<td class=legend style='font-size:12px'>{APP_FTP_PROXY}:</td>
+	<td><div style='font-size:12px' nowrap>$EnableFTPProxyText</td>
+	</tr>";	
+	//APP_FTP_PROXY // $EnableFTPProxy
+	
+	
+	$EnableHaarpTextTR="<tr>
+	<td width=1%><span id='AdSquidStatusLeft'><img src='img/$picHaarp'></span></td>
+	<td class=legend style='font-size:12px'>{APP_HAARP}:</td>
+	<td><div style='font-size:12px' nowrap>$EnableHaarpText</td>
+	</tr>";	
 
 	
 	if($AsSquidLoadBalancer==1){
@@ -578,7 +675,7 @@ function dansguardian_status(){
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";	
 		$AsSquidLoadBalancerText="<tr>
 				<td width=1%><span id='AdSquidStatusLeft3'><img src='img/status_ok.gif'></span></td>
-				<td class=legend>Load-balancer:</td>
+				<td class=legend style='font-size:12px'>Load-balancer:</td>
 				<td><div style='font-size:12px' nowrap>$AsSquidLoadBalancerText</td>
 				</tr>";		
 		
@@ -594,7 +691,7 @@ function dansguardian_status(){
 	
 	$EnableRemoteStatisticsApplianceTextTR="<tr>
 				<td width=1%><span id='AdSquidStatusLeft3'><img src='img/$EnableRemoteStatisticsAppliancePic'></span></td>
-				<td class=legend>Stats Appliance:</td>
+				<td class=legend style='font-size:12px'>Stats Appliance:</td>
 				<td><div style='font-size:12px' nowrap>
 				<a href=\"javascript:blur();\"
 				OnClick=\"javascript:Loadjs('squid.stats-appliance.php');\" 
@@ -612,7 +709,7 @@ function dansguardian_status(){
 	$t++;
 	$EnableWatchdogTextTR="<tr>
 	<td width=1%><span id='AdSquidStatusLeft3'><img src='img/$EnableWatchdogPic'></span></td>
-	<td class=legend nowrap>{squid_watchdog_mini}:</td>
+	<td class=legend nowrap style='font-size:12px'>{squid_watchdog_mini}:</td>
 	<td><div style='font-size:12px' nowrap>
 	<a href=\"javascript:blur();\"
 	OnClick=\"javascript:Loadjs('squid.watchdog.php');\"
@@ -620,16 +717,42 @@ function dansguardian_status(){
 	</tr>";	
 		
 // ----------------------------------------------------------------------------------------------------------------	
+	
+	if($users->SQUID_REVERSE_APPLIANCE){$SquidActHasReverse=1;}
+	if($squid->isNGnx()){$SquidActHasReverse=0;}
+	
 	if($SquidActHasReverse==1){
+		$SquidBubbleModeTR=null;
 		$t++;
 		$AsSquidLoadBalancerText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('squid.reverse.websites.php');\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";	
 		$AsSquidLoadBalancerText="<tr>
 				<td width=1%><span id='AdSquidStatusLeft2'><img src='img/status_ok.gif'></span></td>
-				<td class=legend>{squid_reverse_proxy}:</td>
+				<td class=legend style='font-size:12px'>{squid_reverse_proxy}:</td>
 				<td><div style='font-size:12px' nowrap>$AsSquidLoadBalancerText</td>
 				</tr>";			
+		
+	}
+	
+	if($users->SQUID_REVERSE_APPLIANCE){
+		$AsSquidLoadBalancerText="<tr>
+				<td width=1%><span id='AdSquidStatusLeft2'><img src='img/status_ok.gif'></span></td>
+				<td class=legend style='font-size:12px'>{squid_reverse_proxy}:</td>
+				<td><div style='font-size:12px' nowrap><a href=\"javascript:blur();\"
+				OnClick=\"javascript:blur();\" 
+				style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a></td>
+				</tr>";	
+	}
+	
+	if($squid->isNGnx()){
+		$AsSquidLoadBalancerText="<tr>
+				<td width=1%><span id='AdSquidStatusLeft2'><img src='img/status_ok.gif'></span></td>
+				<td class=legend style='font-size:12px'>{squid_reverse_proxy}:</td>
+				<td><div style='font-size:12px' nowrap><a href=\"javascript:blur();\"
+				OnClick=\"javascript:blur();\"
+				style='font-size:12px;font-weight:bold;text-decoration:underline'>nginx</a></td>
+				</tr>";		
 		
 	}
 	
@@ -671,7 +794,7 @@ function dansguardian_status(){
 		$ufdb="
 		<tr>
 			<td width=1%><span id='ufd-$time'><img src='img/$pic'></span></td>
-			<td class=legend nowrap>{APP_UFDBGUARD}:</td>
+			<td class=legend nowrap style='font-size:12px'>{APP_UFDBGUARD}:</td>
 			<td><div style='font-size:12px' nowrap><span id='ufd-$time'>$EnableUfdbGuardText</span></td>
 		</tr>";	
 
@@ -698,7 +821,7 @@ function dansguardian_status(){
 		$ufdbPDNS="
 		<tr>
 			<td width=1%><span id='ufdPDNS-$time'><img src='img/$pic'></span></td>
-			<td class=legend nowrap>{dns_filter}:</td>
+			<td class=legend nowrap style='font-size:12px'>{dns_filter}:</td>
 			<td><div style='font-size:12px' nowrap><span id='ufd-$time'>$EnableUfdbPDNSText</span></td>
 		</tr>";	
 		
@@ -731,7 +854,7 @@ function dansguardian_status(){
 		}
 		$dansgu="<tr>
 			<td width=1%><span id='dans-$time'><img src='img/$pic'></td>
-			<td class=legend nowrap>{APP_DANSGUARDIAN}:</td>
+			<td class=legend nowrap style='font-size:12px'>{APP_DANSGUARDIAN}:</td>
 			<td><div style='font-size:12px' nowrap>$DansGuardianEnabledText</td>
 			</tr>";			
 
@@ -739,7 +862,7 @@ function dansguardian_status(){
 	
 	$SplashScreenFinal="<tr>
 			<td width=1%><span id='spalsh-$time'><img src='img/$picSplashScreen'></td>
-			<td class=legend nowrap>HotSpot:</td>
+			<td class=legend nowrap style='font-size:12px'>HotSpot:</td>
 			<td><div style='font-size:12px' nowrap>$EnableSplashScreenText</td>
 			</tr>";	
 	
@@ -768,7 +891,7 @@ function dansguardian_status(){
 		$eCapClam="
 			<tr>
 				<td width=1%><span id='ecapav-$time'><img src='img/$pic'></span></td>
-				<td class=legend>{APP_ECAPAV}:</td>
+				<td class=legend style='font-size:12px'>{APP_ECAPAV}:</td>
 				<td><div style='font-size:12px' nowrap>$eCapAVText</td>
 			</tr>";			
 
@@ -802,7 +925,7 @@ function dansguardian_status(){
 		$kavicapserverEnabledText="-";
 		$kav="<tr>
 			<td width=1%><img src='img/$pic'></td>
-			<td class=legend nowrap>Kaspersky:</td>
+			<td class=legend nowrap style='font-size:12px'>Kaspersky:</td>
 			<td><div style='font-size:12px' nowrap>$kavicapserverEnabledText</td>
 			</tr>";			
 	}
@@ -832,7 +955,7 @@ function dansguardian_status(){
 			
 		$cicap="<tr>
 				<td width=1%><span id='cicap-$time'><img src='img/$pic'></span></td>
-				<td class=legend>{APP_C_ICAP}:</td>
+				<td class=legend style='font-size:12px'>Antivirus:</td>
 				<td><div style='font-size:12px' nowrap>$CicapEnabledText</td>
 				</tr>";
 
@@ -855,14 +978,14 @@ function dansguardian_status(){
 			$kavMeta="
 				<tr>
 				<td width=1%><span id='kavmeta-$time'><img src='img/$pic'></span></td>
-				<td class=legend>{APP_KAVMETASCANNER}:</td>
+				<td class=legend style='font-size:12px'>{APP_KAVMETASCANNER}:</td>
 				<td><div style='font-size:12px' nowrap>$KavMetascannerEnableText</td>
 				</tr>";			
 		}else{
 			$kavMeta="
 					<tr>
 					<td width=1%><img src='img/$pic'></td>
-					<td class=legend>{APP_KAVMETASCANNER}:</td>
+					<td class=legend style='font-size:12px'>{APP_KAVMETASCANNER}:</td>
 					<td><div style='font-size:12px' nowrap>{not_installed}</td>
 					</tr>";			
 		}
@@ -871,8 +994,8 @@ function dansguardian_status(){
 		$pic="status_ok-grey.gif";
 		$cicap="<tr>
 				<td width=1%><img src='img/$pic'></td>
-				<td class=legend>Antivirus:</td>
-				<td><div style='font-size:12px' nowrap>{not_installed}</td>
+				<td class=legend style='font-size:12px'>Antivirus:</td>
+				<td><div style='font-size:12px' nowrap>-</td>
 				</tr>";			
 
 	}
@@ -896,7 +1019,7 @@ function dansguardian_status(){
 
 	$StreamCache="<tr>
 				<td width=1%><span id='stream-$time'><img src='img/$pic'></span></td>
-				<td class=legend>{StreamSquidCache}:</td>
+				<td class=legend style='font-size:12px'>{StreamSquidCache}:</td>
 				<td><div style='font-size:12px' nowrap>$SquidEnableStreamCacheText</td>
 			</tr>";
 	$StreamCache=null;
@@ -919,7 +1042,7 @@ function dansguardian_status(){
 
 	$MalWarePatrol="<tr>
 				<td width=1%><span id='malwarepatrol-$time'><img src='img/$pic'></span></td>
-				<td class=legend>Malware Patrol:</td>
+				<td class=legend style='font-size:12px'>Malware Patrol:</td>
 				<td><div style='font-size:12px' nowrap>$SquidEnableMalWarePatrol</td>
 			</tr>";	
 
@@ -941,13 +1064,14 @@ function dansguardian_status(){
 	}
 	$DisableAllFilters="<tr>
 					<td width=1%><span id='disableall-$time'><img src='img/$pic'></span></td>
-					<td class=legend>{disable_filters}:</td>
+					<td class=legend style='font-size:12px'>{disable_filters}:</td>
 					<td><div style='font-size:12px' nowrap>$SquidDisableAllFiltersText</td>
 					</tr>";	
 
 
 
 	$eCapClam=null;
+	if($squid->isNGnx()){$SquidActHasReverse=0;}
 	
 	if($SquidActHasReverse==1){
 		$ufdb=null;$ufdbPDNS=null;
@@ -955,6 +1079,8 @@ function dansguardian_status(){
 		$StreamCache=null;
 		$dansgu=null;
 		$SplashScreenFinal=null;
+		$SquidBubbleModeTR=null;
+		$EnableActiveDirectoryTextTR=null;
 	}
 
 	if(!$users->APP_KHSE_INSTALLED){
@@ -962,13 +1088,28 @@ function dansguardian_status(){
 	}
 
 	if($t>0){
-		$table="<table style='width:250px' class=form><tbody>
+		$table="
+		<div style='width:93%' class=form>
+		<table style='width:250px' class='TableRemove TableMarged'><tbody>
 		$EnableWatchdogTextTR
 		$EnableActiveDirectoryTextTR
+		$SquidBubbleModeTR
 		$EnableRemoteStatisticsApplianceTextTR
 		$AsSquidLoadBalancerText
 		$SplashScreenFinal
-		$ufdb$ufdbPDNS$eCapClam$dansgu$cicap$kav$kavMeta$MalWarePatrol$StreamCache$DisableAllFilters</tbody></table>";
+		$ufdb$ufdbPDNS
+		$eCapClam
+		$dansgu
+		$cicap
+		$kav
+		$kavMeta
+		$MalWarePatrol
+		$EnableHaarpTextTR
+		$EnableFTPProxyTextTR
+		$DisableAllFilters
+		
+		</tbody>
+		</table></div>";
 
 	}
 
@@ -981,6 +1122,7 @@ function dansguardian_status(){
 	$t=time();
 	$html="
 	$table
+	
 	<script>
 		function RefreshDansguardianMainService(){
 			LoadAjax('dansguardian-service-status','$page?dansguardian-service-status=yes');

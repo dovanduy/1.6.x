@@ -16,7 +16,7 @@ Procmail is also a complete drop-in replacement for your MDA. (If this doesn't m
 <account>Account</account>
 <accountID>Account identifier</accountID>
 <AccountLess3Carac>Accounts less than 4 caracters</AccountLess3Carac>
-<account_already_exists>Account already exists</account_already_exists>
+<account_already_exists>A Conta j&aacute; existe</account_already_exists>
 <account_name>Account settings</account_name>
 <ACLS>Access Control Lists</ACLS>
 <acls_directory>Manage Access Control list of this directory</acls_directory>

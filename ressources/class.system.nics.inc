@@ -24,6 +24,12 @@ class system_nic{
 	var $ipv6addr=null;
 	var $ipv6gw=null;
 	var $metric=0;
+	var $ucarp_enabled=0;
+	var $ucarp_master=0;
+	var $ucarp_vid=3;
+	var $ucarp_vip='';
+	var $ucarp_advskew=1;
+	var $ucarp_advbase=1;	
 	function system_nic($eth=null){
 		
 		$sock=new sockets();
@@ -72,12 +78,44 @@ class system_nic{
 		}	
 
 		
-		if(!$q->FIELD_EXISTS("nics","ipv6mask","artica_backup")){
-			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6mask` INT( 2 ) NOT NULL DEFAULT '0'",'artica_backup');
-		}
+				
+
+		
+		
 		
 		$q->QUERY_SQL("UPDATE `nics` SET ipv6=$this->ipv6 WHERE `Interface`='$this->eth'");
 		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+	
+	private function CheckMySQLFields(){
+		$q=new mysql();
+		if(!$q->FIELD_EXISTS("nics","ipv6mask","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6mask` INT( 2 ) NOT NULL DEFAULT '0'",'artica_backup');
+		}
+		if(!$q->FIELD_EXISTS("nics","ucarp-vid","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-vid` INT( 1 ) NOT NULL DEFAULT '3'",'artica_backup');
+		}
+		
+		if(!$q->FIELD_EXISTS("nics","ucarp-vip","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-vip` VARCHAR( 60 )",'artica_backup');
+		}
+		
+		if(!$q->FIELD_EXISTS("nics","ucarp-advskew","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-advskew` INT( 1 )",'artica_backup');
+		}
+		
+		if(!$q->FIELD_EXISTS("nics","ucarp-advbase","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-advbase` INT( 3 )",'artica_backup');
+		}
+		
+		if(!$q->FIELD_EXISTS("nics","ucarp-enable","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-enable` INT( 1 ) NULL DEFAULT '0'",'artica_backup');
+		}
+		
+		if(!$q->FIELD_EXISTS("nics","ucarp-master","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-master` INT( 1 ) NULL DEFAULT '0'",'artica_backup');
+		}
+		
 	}
 	
 	private function loadEthConfig(){
@@ -126,6 +164,18 @@ class system_nic{
 		$this->ipv6addr=$ligne["ipv6addr"];
 		$this->ipv6gw=$ligne["ipv6gw"];
 		$this->metric=$ligne["metric"];
+		$this->ucarp_enabled=$ligne["ucarp-enable"];
+		$this->ucarp_master=$ligne["ucarp-master"];
+		$this->ucarp_vid=$ligne["ucarp-vid"];
+		$this->ucarp_vip=$ligne["ucarp-vip"];
+		$this->ucarp_advskew=$ligne["ucarp-advskew"];
+		$this->ucarp_advbase=$ligne["ucarp-advbase"];
+		if(!is_numeric($this->ucarp_enabled)){$this->ucarp_enabled=0;}
+		if(!is_numeric($this->ucarp_vid)){$this->ucarp_vid=0;}
+		if(!is_numeric($this->ucarp_advbase)){$this->ucarp_advbase=0;}
+		if($this->ucarp_vid==0){$this->ucarp_vid=3;}
+		if($this->ucarp_advbase==0){$this->ucarp_advbase=2;}
+		
 		if($this->metric==0){$this->metric=$this->lastmetric();}
 		
 		if($this->ipv6addr==null){
@@ -165,23 +215,29 @@ class system_nic{
 	
 	private function lastmetric(){
 		$q=new mysql();
+		$hash=array();
+		$f=array();
 		$sql="SELECT metric as tcount FROM `nics` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));		
 		$hash[$ligne["metric"]]=$ligne["metric"];
 		
 		$sql="SELECT metric as tcount FROM `nics_vlan` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$hash[$ligne["metric"]]=$ligne["metric"];
 
 		$sql="SELECT metric as tcount FROM `nic_virtuals` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$hash[$ligne["metric"]]=$ligne["metric"];		
 		
-		krsort($hash[$ligne["metric"]]);
-		while (list ($a, $b) = each ($hash) ){
-			$f[]=$b;
+		if(is_array($hash)){
+			if(count($hash)>0){
+				@krsort($hash[$ligne["metric"]]);
+				while (list ($a, $b) = each ($hash) ){
+					$f[]=$b;
+				}
+			}
 		}
-		
+		if(!is_numeric($f[0])){$f[0]=1;}
 		return $f[0]+1;
 		
 	}
@@ -189,7 +245,7 @@ class system_nic{
 	
 	public function SaveNic(){
 		$routes=addslashes(serialize($this->ROUTES));
-		
+		$this->CheckMySQLFields();
 		$sql_add="
 		INSERT INTO `nics` (`Interface`,`IPADDR`,`NETMASK`,`GATEWAY`,`BROADCAST`,`DNS1`,`DNS2`,
 		`dhcp`,`ROUTES`,`NETWORK`,`enabled`,`ipv6`,`ipv6mask`,`ipv6gw`,`ipv6addr`,`metric`)
@@ -197,8 +253,13 @@ class system_nic{
 		'$this->DNS_2','$this->dhcp','$routes','$this->NETWORK',1,'$this->ipv6','$this->ipv6mask',
 		'$this->ipv6gw','$this->ipv6addr','$this->metric');
 		";
-	
+		if($this->ucarp_vid==0){$this->ucarp_vid=3;}
+		if($this->ucarp_advbase==0){$this->ucarp_advbase=2;}
 		if($this->metric==0){$this->metric=$this->lastmetric();exit;}
+		if(!is_numeric($this->ucarp_master)){$this->ucarp_master=0;}
+		if(!is_numeric($this->ucarp_enabled)){$this->ucarp_enabled=0;}
+		$this->eth=trim($this->eth);
+		if(preg_match("#(.+?)\s+#", $this->eth,$re)){$this->eth=$re[1];}
 		
 		$sql_upd="UPDATE `nics` SET 
 		`IPADDR`='$this->IPADDR',
@@ -215,8 +276,16 @@ class system_nic{
 		`ipv6gw`='$this->ipv6gw',
 		`ipv6addr`='$this->ipv6addr',
 		`metric`='$this->metric',
+		`ROUTES`='$routes',
+		`ucarp-enable`='$this->ucarp_enabled',
+		`ucarp-master`='$this->ucarp_master',
+		`ucarp-vid`='$this->ucarp_vid',
+		`ucarp-vip`='$this->ucarp_vip',
+		`ucarp-advskew`='$this->ucarp_advskew',
+		`ucarp-advbase`='$this->ucarp_advbase',
 		`ROUTES`='$routes'
 		 WHERE `Interface`='$this->eth'";
+
 		
 		writelogs("save nic infos : NIC:ipv6=$this->ipv6; `$this->eth`;$this->IPADDR;$this->NETMASK;$this->GATEWAY;$this->dhcp;$this->BROADCAST",__CLASS__."/".__FUNCTION__,__FILE__);
 		
@@ -247,7 +316,8 @@ class system_nic{
 		
 		if($ligne["Interface"]<>null){
 			writelogs("save nic infos : UPDATE `{$ligne["Interface"]}`",__FUNCTION__,__FILE__);
-			$sql=	$sql_upd;}
+			$sql=$sql_upd;
+		}
 		
 		writelogs("save nic infos : $sql = > `{$ligne["Interface"]}`",__FUNCTION__,__FILE__);
 		$q->QUERY_SQL($sql,"artica_backup");
@@ -632,6 +702,14 @@ class system_nic{
 		$unix=new unix();
 		$servicebin=$unix->find_program("update-rc.d");
 		$NetWorkBroadCastAsIpAddr=$sock->GET_INFO("NetWorkBroadCastAsIpAddr");
+		$EnableChilli=$sock->GET_INFO("EnableChilli");
+		if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+		if($EnableChilli==1){
+			$ChilliConf=unserialize(base64_decode($sock->GET_INFO("ChilliConf")));
+			echo "Starting......: Will skip {$ChilliConf["HS_LANIF"]} for HotSpot config\n";
+			$eth_SKIP[$ChilliConf["HS_LANIF"]]=true;
+		}
+		
 		$EnableipV6=$sock->GET_INFO("EnableipV6");
 		$OVHNetConfig=$sock->GET_INFO("OVHNetConfig");
 		if(!is_numeric($OVHNetConfig)){$OVHNetConfig=0;}
@@ -656,17 +734,26 @@ class system_nic{
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){echo "Starting......: Mysql error : $q->mysql_error\n";return;}
 		$count=mysql_num_rows($results);
-		if($count==0){echo "Starting......: Network unconfigured\n";return;}
+		if($count==0){echo "Starting......: Network Unconfigured\n";return;}
 		
 		$f[]="auto lo";
 		$f[]="iface lo inet loopback";
 		$f[]="";
+		$ISREAL=0;
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
-			$eth=$ligne["Interface"];
+			$eth=trim($ligne["Interface"]);
+			if(trim($eth)==null){echo "Starting......: no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
+			if(isset($eth_SKIP[$eth])){
+				echo "Starting......: $eth skipping\n";
+				continue;
+			}
 			$ipv6=$ligne["ipv6"];
 			$scripts=array();
 			if($EnableipV6==0){$ipv6=0;}
-			if(trim($eth)==null){echo "Starting......: no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
+			
+			if(isset($ASALREADY[$eth])){continue;}
+			$ASALREADY[$eth]=true;
+			
 			$GLOBALS["SAVED_INTERFACES"][]=$eth;
 
 			if($count==0){echo "Starting......: $eth \"{$ligne["IPADDR"]}\"\n";return;}
@@ -674,21 +761,26 @@ class system_nic{
 			$f[]="";
 			
 			
-			
+			echo "Starting......: \"$eth\" \"{$ligne["IPADDR"]}\"\n";
 			$f[]="auto $eth ".$this->auto_eth_virts($eth);	
-
+			$ISREAL++;
 			
-			
+			$eth=trim($eth);
+			$eth=str_replace("\n", "", $eth);
+			$eth=str_replace("\r", "", $eth);
 			if($ligne["Bridged"]==1){$f[]="iface $eth inet manual\n";continue;}	
 			if($ligne["dhcp"]==1){$f[]="iface $eth inet dhcp";continue;}
 			$f[]="iface $eth inet static";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth up";
+			
 			if($eth=="eth0"){
 				if($OVHNetConfig==1){
 					$REMOVE_GATEWAY=true;
-					$GLOBALS["INTERFACES_CMD"][]="{$GLOBALS["routebin"]} del {$ligne["GATEWAY"]} dev eth0";
-					$GLOBALS["INTERFACES_CMD"][]="{$GLOBALS["routebin"]} del default gw {$ligne["GATEWAY"]}";
-					$GLOBALS["INTERFACES_CMD"][]="{$GLOBALS["routebin"]} add {$ligne["GATEWAY"]} dev eth0";
-					$GLOBALS["INTERFACES_CMD"][]="{$GLOBALS["routebin"]} add default gw {$ligne["GATEWAY"]}";					
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} del {$ligne["GATEWAY"]} dev eth0";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} del default gw {$ligne["GATEWAY"]}";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} add {$ligne["GATEWAY"]} dev eth0";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} add default gw {$ligne["GATEWAY"]}";					
 					$scripts[]="\tpost-up {$GLOBALS["routebin"]} add {$ligne["GATEWAY"]} dev eth0 metric 10{$ligne["metric"]}";
 					$scripts[]="\tpost-up {$GLOBALS["routebin"]} add default gw {$ligne["GATEWAY"]}";
 					$scripts[]="\tpost-down {$GLOBALS["routebin"]} del {$ligne["GATEWAY"]} dev eth0 metric 10{$ligne["metric"]}";
@@ -698,7 +790,7 @@ class system_nic{
 			
 			if($REMOVE_GATEWAY==true){$ligne["GATEWAY"]="0.0.0.0";}
 			$ifconfig="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]}";
-
+			$GLOBALS["SCRIPTS"][]="$ifconfig";
 			
 			$f[]="\taddress {$ligne["IPADDR"]}";
 			$f[]="\tnetmask {$ligne["NETMASK"]}";
@@ -732,16 +824,18 @@ class system_nic{
 			if($ligne["DNS1"]<>null){$dns[]=$ligne["DNS1"];}
 			if($ligne["DNS2"]<>null){$dns[]=$ligne["DNS2"];}
 			$unix=new unix();
-			
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
-			$GLOBALS["SCRIPTS"][]="$ifconfig up";
-			$GLOBALS["SCRIPTS"][]=$mainroute;
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth up";
+				
+
+			//$GLOBALS["SCRIPTS"][]=$mainroute;
 			
 			if($ligne["IsBridge"]==1){
 				$php5=$unix->LOCATE_PHP5_BIN();
 				$f[]="\tbridge_ports {$ligne["BRIDGE_PORTS"]}";
 				$f[]="\tbridge_stp off";
 				$f[]="\tbridge_maxwait 5";
+				$GLOBALS["SCRIPTS"][]="$php5 /usr/share/artica-postfix/exec.vservers.php --checkbridge $eth {$ligne["BRIDGE_PORTS"]}";
   				$f[]="\tpre-up $php5 /usr/share/artica-postfix/exec.vservers.php --checkbridge $eth {$ligne["BRIDGE_PORTS"]}";
   				
   				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} {$ligne["BRIDGE_PORTS"]} up";
@@ -803,6 +897,16 @@ class system_nic{
 			}		
 
 		}
+		//UCARP FailOver
+		if($ligne["ucarp-enable"]==1){
+			$f[]="";
+			$f[]="iface $eth:ucarp inet static";
+			$f[]="\taddress {$ligne["ucarp-vip"]}";
+			$f[]="\tnetmask {$ligne["NETMASK"]}";
+			$f[]="";
+		}
+		
+		
 		
 		$f[]=@implode("\n", $scripts);
 		
@@ -816,7 +920,7 @@ class system_nic{
 				@unlink("/etc/init.d/$eth-up");
 			}				
 		}
-		
+
 	    $f[]="";
 	    $f[]="";
 		
@@ -839,7 +943,10 @@ class system_nic{
 			if($ligne["ipv6"]==1){continue;}
 			$arr=explode(".",$ligne["ipaddr"]);
 			$arr[3]="255";
-			$brd=implode(".",$arr);			
+			$brd=implode(".",$arr);		
+			$ligne["nic"]=trim($ligne["nic"]);
+			$eth=str_replace("\n", "", $ligne["nic"]);
+			$eth=str_replace("\r", "", $ligne["nic"]);
 			$eth="{$ligne["nic"]}:{$ligne["ID"]}";
 			if($NetWorkBroadCastAsIpAddr==1){$brd=$ligne["ipaddr"];}
 			if($ligne["gateway"]==null){$ligne["gateway"]="0.0.0.0";}
@@ -949,7 +1056,7 @@ class system_nic{
 			
 		}		
 	
-	
+	if($ISREAL==0){return null;}
 	return @implode("\n",$f);
 	
 	}

@@ -9,8 +9,10 @@
   $GLOBALS["uriToHost"]=array();
   $GLOBALS["SESSION_TIME"]=array();
   $GLOBALS["DEBUG_LEVEL"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/SplashDebug");
-  if(!is_numeric($GLOBALS["DEBUG_LEVEL"])){$GLOBALS["DEBUG_LEVEL"]=1;}
-  if($GLOBALS["DEBUG_LEVEL"]>0){$GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');}
+  if(!is_numeric( $GLOBALS["DEBUG_LEVEL"])){ $GLOBALS["DEBUG_LEVEL"]=0;}
+  if($GLOBALS["DEBUG_LEVEL"]>0){$GLOBALS["SPLASH_DEBUG"]=true;}
+  $GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');
+  
   
   $max_execution_time=ini_get('max_execution_time'); 
   if(is_file("/etc/artica-postfix/settings/Daemons/SplashScreenURI")){$GLOBALS["SplashScreenURI"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/SplashScreenURI");}
@@ -20,16 +22,60 @@
   
   WLOG("starting... max_execution_time:$max_execution_time argv[1]={$argv[1]} session-time={$GLOBALS["SESSION_TIME"]}");
   if($argv[1]=="--mactouid"){$GLOBALS["MACTUIDONLY"]=true;}
-  if($argv[1]=="--splash"){$GLOBALS["SPLASH"]=true;}
+  if($argv[1]=="--splash"){
+  	$GLOBALS["SPLASH"]=true;
+  	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("Starting SPLASH engine , include class.mysql.squid.builder.php ");}
+  	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+  	$GLOBALS["Q"]=new mysql_squid_builder();
+  	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("[Q] initialised...");}
+  }
+  
+  
+  
   
   
 while (!feof(STDIN)) {
  $url = trim(fgets(STDIN));
  
  if($url<>null){
+ 	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG($url);}
  	$array=parseURL($url);
  	$SplashScreenURI=$GLOBALS["SplashScreenURI"];
  	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG($url." str:".strlen($url)." LOGIN:{$array["LOGIN"]},IPADDR:{$array["IPADDR"]} MAC:{$array["MAC"]} HOST:{$array["HOST"]} URI:{$array["URI"]}");}
+ 	
+	if($GLOBALS["SPLASH_DEBUG"]){
+		if(!$GLOBALS["SPLASH"]){
+			WLOG("Splash screen is not enabled...");
+		}
+	}
+ 	
+ 	if($GLOBALS["SPLASH"]){
+ 			if(trim($array["LOGIN"])<>null){fwrite(STDOUT, "OK\n");continue;}
+ 			if($array["IPADDR"]=="127.0.0.1"){
+ 				fwrite(STDOUT, "OK\n");
+ 				continue;
+ 			}
+	 		if($GLOBALS["SPLASH_DEBUG"]){WLOG("[{$array["IPADDR"]}]:{$array["RHOST"]} = $SplashScreenURI ??");}
+			if($array["RHOST"]==uriToHost($SplashScreenURI)){
+	 			fwrite(STDOUT, "OK\n");
+	 			continue;
+	 		}
+	 		if($GLOBALS["SPLASH_DEBUG"]){WLOG("[{$array["IPADDR"]}]: -> SessionActive(array)");}
+	 		$uid=trim($GLOBALS["Q"]->Hotspot_SessionActive($array));
+	 		if($uid<>null){
+	 			if($GLOBALS["SPLASH_DEBUG"]){WLOG("[{$array["IPADDR"]}]: -> SessionActive TRUE $uid");}
+	 			fwrite(STDOUT, "OK user=$uid\n");
+	 			continue;
+	 		}else{
+	 			if($GLOBALS["SPLASH_DEBUG"]){WLOG("[{$array["IPADDR"]}]: -> SessionActive FALSE");}
+	 			$Message=base64_encode(serialize($array));
+	 			fwrite(STDOUT, "ERR message=\"$Message\"\n");
+	 		}
+ 		
+
+ 		continue;
+ 	}
+ 	
  	
  	if($GLOBALS["MACTUIDONLY"]){
  		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("ASK: {$array["MAC"]} = ?");}
@@ -37,32 +83,9 @@ while (!feof(STDIN)) {
  		if($uid<>null){fwrite(STDOUT, "OK user=$uid\n");continue;}
  		fwrite(STDOUT, "OK\n");
  		continue;
- 	}
+ 	} 	
  	
- 	if($GLOBALS["SPLASH"]){
-		if($array["RHOST"]==uriToHost($SplashScreenURI)){
- 			fwrite(STDOUT, "OK\n");
- 			continue;
- 		}
- 		
- 		$uid=SessionActive($array);
- 		if($uid<>null){
- 			fwrite(STDOUT, "OK user=$uid\n");
- 			continue;
- 		}
- 		
-		
- 		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("ASK: Slpash = {$array["URI"]} {$array["IPADDR"]} MAC:{$array["MAC"]} ?");}
- 		$uid=SplasHCheckAuth($array);
- 		if($uid==null){
- 			WLOG("return ERR;");
- 			fwrite(STDOUT, "ERR message=\"". base64_encode(serialize($array))."\"\n");
- 		}else{
- 			WLOG("return OK $uid;");
- 			fwrite(STDOUT, "OK user=$uid\n");
- 		}
- 		continue;
- 	}
+ 	
  	
   	if(CheckQuota($array)){fwrite(STDOUT, "OK\n");}else{WLOG("ERR \"Out of quota\"");fwrite(STDOUT, "ERR message=\"Out Of Quota\"\n");}
  }
@@ -71,7 +94,7 @@ while (!feof(STDIN)) {
 CleanSessions();
 $distanceInSeconds = round(abs(time() - $GLOBALS["STARTIME"]));
 $distanceInMinutes = round($distanceInSeconds / 60);
-WLOG("v1.0: die after ({$distanceInSeconds}s/about {$distanceInMinutes}mn)");
+WLOG("v1.0:". basename(__FILE__)." die after ({$distanceInSeconds}s/about {$distanceInMinutes}mn)");
 if(isset($GLOBALS["F"])){@fclose($GLOBALS["F"]);}
 
 
@@ -89,8 +112,46 @@ function CleanSessions(){
 
 function parseURL($url){
 	$uri=null;
-	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("Analyze $url");}
+	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("parseURL():: Analyze [$url]");}
 	$md5=md5($url);
+	
+	// 10.0.0.32 00:1e:8c:a5:39:19 - crash-
+	// 10.0.0.76 00:25:22:73:31:d5 -
+	// 10.0.0.60 00:1d:92:70:96:70 - fbexternal-a.akamaihd.net:443
+	
+	if(preg_match("#([0-9\.]+)\s+([0-9\:a-z]+)\s+-(.+?):([0-9]+)$#", $url,$re)){
+		$GLOBALS["CACHE_URI"][$md5]["LOGIN"]=null;
+		$GLOBALS["CACHE_URI"][$md5]["IPADDR"]=$re[1];
+		$GLOBALS["CACHE_URI"][$md5]["MAC"]=$re[2];
+		$GLOBALS["CACHE_URI"][$md5]["HOST"]=GetComputerName($re[1]);
+		$GLOBALS["CACHE_URI"][$md5]["URI"]=null;
+		$GLOBALS["CACHE_URI"][$md5]["RHOST"]=$re[3];
+		return $GLOBALS["CACHE_URI"][$md5];		
+	}
+	
+	if(preg_match("#([0-9\.]+)\s+([0-9\:a-z]+)\s+-$#", $url,$re)){
+		$GLOBALS["CACHE_URI"][$md5]["LOGIN"]=null;
+		$GLOBALS["CACHE_URI"][$md5]["IPADDR"]=$re[1];
+		$GLOBALS["CACHE_URI"][$md5]["MAC"]=$re[2];
+		$GLOBALS["CACHE_URI"][$md5]["HOST"]=GetComputerName($re[1]);
+		$GLOBALS["CACHE_URI"][$md5]["URI"]=null;
+		$GLOBALS["CACHE_URI"][$md5]["RHOST"]=null;
+		return $GLOBALS["CACHE_URI"][$md5];		
+	}
+	
+	if(preg_match("#([0-9\.]+)\s+([0-9\:a-z]+)\s+-\s+([a-z]+)-$#", $url,$re)){
+		$GLOBALS["CACHE_URI"][$md5]["LOGIN"]=null;
+		$GLOBALS["CACHE_URI"][$md5]["IPADDR"]=$re[1];
+		$GLOBALS["CACHE_URI"][$md5]["MAC"]=$re[2];
+		$GLOBALS["CACHE_URI"][$md5]["HOST"]=GetComputerName($re[1]);
+		$GLOBALS["CACHE_URI"][$md5]["URI"]=null;
+		$GLOBALS["CACHE_URI"][$md5]["RHOST"]=$re[3];
+		return $GLOBALS["CACHE_URI"][$md5];
+	}	
+	
+	
+	
+		
 	if(preg_match("#(http|ftp|https|ftps):\/\/(.*)#i", $url,$re)){
 		$uri=$re[1]."://".$re[2];
 		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("found uri $uri");}
@@ -431,26 +492,10 @@ function SplasHCheckAuth($array){
 	curl_close($ch);
 }
 
-function SessionActive($array){
-	
-	$LOGIN=$array["LOGIN"];
-	$IPADDR=$array["IPADDR"];
-	$MAC=$array["MAC"];
-	$HOST=$array["HOST"];
-	$md5key=md5("$LOGIN$IPADDR$MAC$HOST");
-	if(!isset($GLOBALS["SESSIONS"][$md5key])){return;}
-	$distanceInSeconds = round(abs(time() - $GLOBALS["SESSIONS"][$md5key]["TIME"]));
-	
-	
-	if($distanceInSeconds>$GLOBALS["SESSION_TIME"]){
-		WLOG("{$GLOBALS["SESSIONS"][$md5key]["uid"]}: Key: $md5key {$GLOBALS["SESSIONS"][$md5key]["TIME"]} = $distanceInSeconds seconds <> {$GLOBALS["SESSION_TIME"]} seconds");
-		unset($GLOBALS["SESSIONS"][$md5key]);return; }
-	return $GLOBALS["SESSIONS"][$md5key]["uid"];
-	
-	
-}
+
 
 function WLOG($text=null){
+	if(!isset($GLOBALS["F"])){$GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');}
 	$trace=@debug_backtrace();
 	if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 	$date=@date("Y-m-d H:i:s");
@@ -466,7 +511,7 @@ function WLOG($text=null){
    	}
 	
 	
-	@fwrite($GLOBALS["F"], "$date [{$GLOBALS["PID"]}]: $text $called\n");
+	@fwrite($GLOBALS["F"], "$date ".basename(__FILE__)."[{$GLOBALS["PID"]}]: $text $called\n");
 }
 
 function uriToHost($uri){
@@ -481,12 +526,8 @@ function uriToHost($uri){
 	
 }
 function GetComputerName($ip){
-		$time=time("Ymh");
-		if(count($GLOBALS["resvip"])>5){unset($GLOBALS["resvip"]);}
-		if(isset($GLOBALS["resvip"][$time][$ip])){return $GLOBALS["resvip"][$time][$ip];}
-		$name=gethostbyaddr($ip);
-		$GLOBALS["resvip"][$time]=$name;
-		return $name;
+		
+		return $ip;
 		}
 function GetMacFromIP($ipaddr){
 		$ipaddr=trim($ipaddr);

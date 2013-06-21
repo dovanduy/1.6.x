@@ -1166,7 +1166,6 @@ class categorize_mailling{
 	if(preg_match("#\.vipimportantpart\.com$#", $www)){return "mailing";}
 	if(preg_match("#\.virginmobile\.fr$#", $www)){return "mailing";}
 	if(preg_match("#\.vistaprint\.fr$#", $www)){return "mailing";}
-	if(preg_match("#\.vivastreet\.fr$#", $www)){return "mailing";}
 	if(preg_match("#\.vmghbvy\.info$#", $www)){return "mailing";}
 	if(preg_match("#\.vmisudy\.info$#", $www)){return "mailing";}
 	if(preg_match("#\.vml0345\.com$#", $www)){return "mailing";}

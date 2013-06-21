@@ -4,9 +4,11 @@ include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.ccurl.inc');
+include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__) . '/framework/class.settings.inc');
+
 $GLOBALS["SINGLE_DEBUG"]=false;
 $GLOBALS["FORCE"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
@@ -16,7 +18,11 @@ if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 
 if($argv[1]=="--start"){SERVICE_START();die(0);}
 if($argv[1]=="--stop"){SERVICE_STOP();die(0);}
+if($argv[1]=="--restart"){SERVICE_RESTART();die(0);}
 if($argv[1]=="--recovery"){restart_reco();die();}
+if($argv[1]=="--watch"){WATCHDOG_MYSQL();die();}
+if($argv[1]=="--engines"){status_all_mysql_engines();die();}
+if($argv[1]=="--clean"){clean_events();die();}
 
 
 
@@ -27,9 +33,11 @@ function PID_NUM(){
 	if(!$unix->process_exists($pid)){
 		$mysqlbin=$unix->LOCATE_mysqld_bin();
 		$pgrep=$unix->find_program("pgrep");
+		$lsof=$unix->find_program("lsof");
 		if(is_file($pgrep)){
 			if($GLOBALS["VERBOSE"]){echo "[VERBOSE]: $pgrep -l -f \"$mysqlbin.*?--pid-file=/var/run/mysqld/mysqld.pid\" 2>&1\n";}
 			exec("$pgrep -l -f \"$mysqlbin.*?--pid-file=/var/run/mysqld/mysqld.pid\" 2>&1",$results);
+			
 			while (list ($num, $line) = each ($results) ){
 				if($GLOBALS["VERBOSE"]){echo "[VERBOSE]: $line\n";}
 				if(preg_match("#pgrep#",$line)){continue;}
@@ -39,7 +47,15 @@ function PID_NUM(){
 			 	}
 			}
 		}
-		
+		$results=array();
+		exec("$lsof -Pnl +M -i TCP:3306 2>&1",$results);
+		while (list ($num, $line) = each ($results) ){
+			if(preg_match("#mysqld\s+([0-9]+).*?TCP.*?:3306#",$line,$re)){
+				@file_put_contents("/var/run/mysqld/mysqld.pid", $re[1]);
+				return $re[1];
+			}
+			
+		}
 	}
 	return $pid;
 	
@@ -62,7 +78,7 @@ $MYSQL_DIR=$unix->MYSQL_DATA_DIR();
 $zarafa_server=$unix->find_program("zarafa-server");
 $GLOBALS["RECOVERY"]=3;
 echo "Stopping MySQL...............: RECOVERY MODE\n";
-SERVICE_STOP();
+SERVICE_STOP(true);
 
 
 if(is_file($zarafa_server)){
@@ -71,14 +87,14 @@ if(is_file($zarafa_server)){
 }
 
 echo "Starting......: MySQL RECOVERY MODE\n";
-SERVICE_START();
+SERVICE_START(false,true);
 echo "Starting......: Sleeping 10 seconds\n";
 sleep(10);
 echo "Stopping MySQL...............: RECOVERY MODE\n";
-SERVICE_STOP();
+SERVICE_STOP(true);
 $GLOBALS["RECOVERY"]=0;
 echo "Starting......: MySQL Normal mode\n";
-SERVICE_START();
+SERVICE_START(false,true);
 
 if(is_file($zarafa_server)){
 	echo "Starting......: Restarting Zarafa-server\n";
@@ -88,8 +104,103 @@ if(is_file($zarafa_server)){
 	
 }
 
+function WATCHDOG_MYSQL(){
+	$unix=new unix();
+	$mysqladmin=$unix->find_program("mysqladmin");
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$oldpid=@file_get_contents($pidfile);	
+	$kill=$unix->find_program("kill");
+	
+	if(!$GLOBALS["FORCE"]){
+		$LastExec=$unix->file_time_min($pidTime);
+		if($LastExec<5){return;}
+		
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($time<5){return;}
+			shell_exec("$kill -9 $oldpid");
+		}
+	}
+	
+	@unlink($pidfile);
+	@unlink($pidTime);
+	@file_put_contents($pidfile, getmypid());
+	@file_put_contents($pidTime, time());
+	
+	
+	$socket="/var/run/mysqld/mysqld.sock";
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	
+	if(!$unix->is_socket($socket)){
+		system_admin_events("$socket, no such file, restarting MySQL service", __FUNCTION__, __FILE__, __LINE__, "mysql");
+		shell_exec("$nohup /etc/init.d/mysql start >/dev/null 2>&1 &");
+		return;
+	}
+	
+	$MYSQLPid=PID_NUM();
+	if(!$unix->process_exists($MYSQLPid)){
+		system_admin_events("Error, \"MySQL service is not running\", Starting MySQL service", __FUNCTION__, __FILE__, __LINE__, "mysql");
+		shell_exec("$nohup /etc/init.d/mysql start >/dev/null 2>&1 &");
+		return;
+	}
+	$RunningScince=$unix->PROCCESS_TIME_MIN($MYSQLPid);
+	if($GLOBALS["VERBOSE"]){echo "MySQL PID: $MYSQLPid running since \"{$RunningScince}mn\"\n";}
+	
+	if(!is_file($mysqladmin)){return;}
+	$q=new mysql();
+	$cmds[]=$mysqladmin;
+	$cmds[]="--user=$q->mysql_admin";
+	if($q->mysql_password<>null){
+		$password=$unix->shellEscapeChars($q->mysql_password);
+		$cmds[]="--password=$password";
+	}
+	$cmds[]="--socket=$socket";	
+	$cmds[]="processlist";
+	$cmd=@implode(" ", $cmds)." 2>&1";
+	exec("$cmd",$results);
+	if($GLOBALS["VERBOSE"]){echo "Receive: ".count($results)." rows\n";}
+	while (list ($num, $line) = each ($results) ){
+		if(strpos($line, "-----------------------------")>0){continue;}
+		if(preg_match("#show processlist#",$line)){ continue;}
+		
+		if(preg_match("#Can't connect to local MySQL server through socket#", $line)){
+			system_admin_events("Error, \"Can't connect to local MySQL server through socket\", restarting MySQL service", __FUNCTION__, __FILE__, __LINE__, "mysql");
+			shell_exec("$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &");			
+			return;
+		}
+		
+		if(preg_match("#error:\s+'(.*?)'#", $line,$re)){
+			system_admin_events("Error, \"{$re[1]}\", restarting MySQL service", __FUNCTION__, __FILE__, __LINE__, "mysql");
+			shell_exec("$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &");
+			return;
+		}
+		
+		if(preg_match("#\|\s+([0-9]+)\s+\|\s+(.*?)\s+\|\s+(.*?)\s+\|\s+(.*?)\s+\|\s+(Query|Sleep)\s+\|\s+([0-9]+)\s+#",$line,$re)){
+			$time=time();
+			$seconds=$time-$re[6];
+			$dist=$unix->distanceOfTimeInWords($seconds,$time);
+			if($GLOBALS["VERBOSE"]){echo "\"Process {$re[1]}/{$re[5]}\" running since {$dist}\n";}
+			$countPid[$re[1]]=$re[5];
+			continue;
+		}
+		
+		if($GLOBALS["VERBOSE"]){echo "\"$line\"\n";}
+		
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo count($countPid)." Threads...\n";}
+		
+}
+function SERVICE_RESTART(){
+	SERVICE_STOP(true);
+	SERVICE_START(false,true);
+	
+}
 
-function SERVICE_STOP(){
+
+function SERVICE_STOP($aspid=false){
 	$unix=new unix();
 	$sock=new sockets();
 	$socket="/var/run/mysqld/mysqld.sock";
@@ -98,23 +209,28 @@ function SERVICE_STOP(){
 	$nohup=$unix->find_program("nohup");	
 	$mysqladmin=$unix->find_program("mysqladmin");
 	$kill=$unix->find_program("kill");
+	$pgrep=$unix->find_program("pgrep");
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
 	$kill=$unix->find_program("kill");
 	
-	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "Stopping MySQL...............: this script is already executed PID: $oldpid since {$time}Mn\n";
-		if($time<5){if(!$GLOBALS["FORCE"]){return;}}
-		shell_exec("$kill -9 $oldpid");
+	if(!$aspid){
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			echo "Stopping MySQL...............: This script is already executed PID: $oldpid since {$time}Mn\n";
+			if($time<5){if(!$GLOBALS["FORCE"]){return;}}
+			shell_exec("$kill -9 $oldpid");
+		}
+		
+		
+		@file_put_contents($pidfile, getmypid());		
 	}
 	
-	@file_put_contents($pidfile, getmypid());		
-	
-	
 	$pid=PID_NUM();  
+	if($GLOBALS["VERBOSE"]){echo "DEBUG:: PID RETURNED $pid\n";}
+	
+
 	
 	if(!$unix->process_exists($pid,$mysqlbin)){echo "Stopping MySQL...............: Already stopped\n";return;}
 	
@@ -296,10 +412,7 @@ if($EnableMysqlFeatures==0){
    echo "Starting......: innodb_force_recovery:$innodb_force_recovery\n";
    
    
-   
-   echo "Starting......: Change init.d script...\n";
-   shell_exec("$php5 /usr/share/artica-postfix/exec.initd-mysql.php >/dev/null 2>&1");
-   
+   echo "Starting......: Settings permissions..\n";
    $unix->chown_func($mysql_user,$mysql_user, "/var/run/mysqld");
    $unix->chown_func($mysql_user,$mysql_user, "/var/log/mysql");
    $unix->chown_func($mysql_user,$mysql_user, $datadir);
@@ -342,7 +455,6 @@ if($EnableMysqlFeatures==0){
    if(is_file("/var/run/mysqld/mysqld.pid")){$unix->chown_func($mysql_user,$mysql_user, "/var/run/mysqld/mysqld.pid");}
    
    if(is_file($MySQLLOgErrorPath)){@unlink($MySQLLOgErrorPath);}
-    $cmds[]=$nohup;
 	$cmds[]=$mysqlbin;
 	$cmds[]="--pid-file=/var/run/mysqld/mysqld.pid";
 	$cmds[]=$logpathstring;
@@ -359,7 +471,12 @@ if($EnableMysqlFeatures==0){
 	}
 	
 	$cmd=@implode(" ", $cmds);
+	while (list ($num, $ligne) = each ($cmds) ){
+		echo "Starting......: MySQL option: $ligne\n";
+	}
+	
 	echo "Starting......: MySQL starting daemon, please wait\n";
+	writelogs("Starting MySQL $cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 	$count=0;
     sleep(2);
@@ -389,4 +506,93 @@ if($EnableMysqlFeatures==0){
 
    
 }
+
+function status_all_mysql_engines(){
+	$unix=new unix();
+	if(systemMaxOverloaded()){return;}
+	
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/MYSQLDB_STATUS";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	
+	if(!$GLOBALS["VERBOSE"]){
+		$time=$unix->file_time_min($cachefile);
+		if($time<60){return;}
+	}
+	
+	
+	
+	$sock=new sockets();
+	$datadir=$unix->MYSQL_DATA_DIR();
+	
+	$array["APP_MYSQL_ARTICA"]["size"]=$unix->DIRSIZE_BYTES($datadir);
+	$array["APP_MYSQL_ARTICA"]["INFO"]=$unix->DIRPART_INFO($datadir);
+	
+	if(is_dir("/opt/articatech/mysql")){
+		$array["APP_ARTICADB"]["size"]=$unix->DIRSIZE_BYTES("/opt/articatech");
+		$array["APP_ARTICADB"]["INFO"]=$unix->DIRPART_INFO("/opt/articatech");
+		
+	}
+	
+	if(is_dir("/opt/squidsql")){
+		$array["APP_SQUID_DB"]["size"]=$unix->DIRSIZE_BYTES("/opt/squidsql");
+		$array["APP_SQUID_DB"]["INFO"]=$unix->DIRPART_INFO("/opt/squidsql");
+		
+	}
+	
+	$MySQLSyslogWorkDir=$sock->GET_INFO("MySQLSyslogWorkDir");
+	if($MySQLSyslogWorkDir==null){$MySQLSyslogWorkDir="/home/syslogsdb";}	
+	
+	if(is_dir($MySQLSyslogWorkDir)){
+		$array["MYSQL_SYSLOG"]["size"]=$unix->DIRSIZE_BYTES($MySQLSyslogWorkDir);
+		$array["MYSQL_SYSLOG"]["INFO"]=$unix->DIRPART_INFO($MySQLSyslogWorkDir);		
+	}
+	if($GLOBALS["VERBOSE"]){print_r($array);}
+	@unlink($cachefile);
+	@file_put_contents($cachefile, base64_encode(serialize($array)));
+	@chmod($cachefile, 0777);
+	
+}
+function clean_events(){
+	$q=new mysql();
+	$unix=new unix();
+	$rm=$unix->find_program("rm");
+	$nohup=$unix->find_program("nohup");
+	$TABLES=$q->LIST_TABLES_EVENTS_SYSTEM();
+	while (list ($tablename, $line) = each ($TABLES) ){
+		echo "DROP $tablename\n";
+		$q->QUERY_SQL("DROP TABLE `$tablename`","artica_events");
+	}
+	$datadir=$unix->MYSQL_DATA_DIR();
+	shell_exec("$rm -f $datadir/artica_events/*.BAK");
+	if(is_dir("$datadir/syslogstore")){
+		$q->DELETE_DATABASE("syslogstore");
+		shell_exec("$rm -f $datadir/syslogstore/*.BAK");
+	}
+	
+	$files=$unix->DirFiles("$datadir/artica_events","TaskSq[0-9]+\.MYI");
+	while (list ($file, $line) = each ($files) ){
+		$file=str_replace(".MYI", "", $file);
+		$q->QUERY_SQL("DROP TABLE `$file`","artica_events");
+		
+	}
+	
+	$q->QUERY_SQL("TRUNCATE TABLE `nmap_events`","artica_events");
+	$q->QUERY_SQL("TRUNCATE TABLE `nmap_events`","artica_events");
+	$q->QUERY_SQL("TRUNCATE TABLE `avgreports`","artica_events");
+	$q->QUERY_SQL("TRUNCATE TABLE `events`","artica_events");
+	$q->QUERY_SQL("TRUNCATE TABLE `dhcpd_logs`","artica_events");
+	$q->QUERY_SQL("TRUNCATE TABLE `update_events`","artica_events");
+	shell_exec("$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &");
+	shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.mysql.start.php --engines --verbose 2>&1 &");
+	
+	
+}
+
 ?>

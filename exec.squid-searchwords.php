@@ -22,6 +22,9 @@ include_once(dirname(__FILE__).'/ressources/class.squid.tail.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 
+if($argv[1]=="--hour"){searchwords_hour(true);die();}
+
+
 BuildWeeks();
 function BuildWeeks(){
 	if($GLOBALS["VERBOSE"]){echo "BuildWeeks(): OK\n";}
@@ -324,6 +327,101 @@ function UserSizeRTT_oldfiles(){
 	}
 	
 	
+}
+
+function searchwords_hour($aspid=false){
+	if(isset($GLOBALS["searchwords_hour_executed"])){return true;}
+	$GLOBALS["searchwords_hour_executed"]=true;
+	$unix=new unix();
+	$GLOBALS["Q"]=new mysql_squid_builder();
+	
+	if(!$GLOBALS["FORCE"]){
+		if(systemMaxOverloaded()){
+			ufdbguard_admin_events("VERY Overloaded system ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}) aborting function",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}
+	
+		$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=@file_get_contents($pidfile);
+		$myfile=basename(__FILE__);
+			if($unix->process_exists($oldpid,$myfile)){
+				ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
+			return;
+		}
+		
+		$timeP=$unix->file_time_min($pidtime);
+		if($timeP<30){
+			events("Main::Line: ".__LINE__." 30Mn minimal current: {$timeP}mn-> DIE");
+			die();
+		}	
+		
+		@unlink($pidtime);
+		@file_put_contents($pidtime, time());
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	$currenttable="searchwords_".date("YmdH");
+	if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
+	$LIST_TABLES_SEARCHWORDS_HOURS=$GLOBALS["Q"]->LIST_TABLES_SEARCHWORDS_HOURS();
+	
+	while (list ($num, $tablename) = each ($LIST_TABLES_SEARCHWORDS_HOURS) ){
+		if($tablename==$currenttable){
+			if($GLOBALS["VERBOSE"]){echo "$tablename -> $currenttable >skip\n";}
+			continue;
+		}
+		if($GLOBALS["VERBOSE"]){echo "$tablename -> $currenttable\n";}
+		
+		if(searchwords_hour_to_day($tablename)){
+			$GLOBALS["Q"]->QUERY_SQL("DROP TABLE $tablename");
+		}
+	}
+}
+
+function searchwords_hour_to_day($sourcetable){
+
+	
+	$time=$GLOBALS["Q"]->TIME_FROM_SEARCHHOUR_TABLE($sourcetable);
+	$hour=date("H",$time);
+	if(date("YmdH",$time)==date("YmdH")){
+		if($GLOBALS["VERBOSE"]){echo "$sourcetable -> $hour >skip\n";}
+		return false;
+	}
+	
+	
+	$sql="SELECT COUNT(zmd5) as hits,DATE_FORMAT(zDate,'%Y%m%d') as prefix,
+	DATE_FORMAT(zDate,'%Y-%m-%d') as `newdate`,`sitename`,`ipaddr`,`hostname`,`uid`,`MAC`,`account`,`familysite`,`words` 
+	FROM `$sourcetable`
+	GROUP BY prefix,sitename,ipaddr,hostname,uid,MAC,account,familysite,words,newdate HAVING LENGTH(words)>1";
+
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$sourcetable`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+
+	$f=array();
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+	$zmd5=md5(serialize($ligne));
+	$sitename=$ligne["sitename"];
+		if(preg_match("#^www\.(.+)#", $sitename,$re)){$sitename=$re[1];}
+		$words=addslashes(utf8_encode($ligne["words"]));
+
+		$s="('$zmd5','{$ligne["hits"]}','$sitename','{$ligne["newdate"]}','$hour','{$ligne["ipaddr"]}',
+		'{$ligne["hostname"]}','{$ligne["uid"]}','{$ligne["MAC"]}','{$ligne["account"]}','{$ligne["familysite"]}','$words')";
+		$f[$ligne["prefix"]][]=$s;
+
+
+	}
+
+	if(count($f)>0){
+		while (list ($index_table, $rows) = each ($f) ){
+			$newtable="searchwordsD_$index_table";
+			if(!$GLOBALS["Q"]->check_SearchWords_day($index_table)){writelogs_squid("Fatal: Creating $newtable {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+			$sql="INSERT IGNORE INTO $newtable (`zmd5`,`hits`,`sitename`,`zDate`,`hour`,`ipaddr`,`hostname`,`uid`,`MAC`,`account`,`familysite`,`words`) VALUES ".@implode(",", $rows);
+			$GLOBALS["Q"]->QUERY_SQL($sql);
+			if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$newtable`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+		}
+
+	}
+	return true;
 }
 
 

@@ -60,10 +60,11 @@ function create_package(){
 	$fdir[]="/usr/lib/powerdns";
 	$fdir[]="/etc/powerdns";
 	$fdir[]="/usr/share/poweradmin";
-	
+	$fdir[]="/usr/lib/powerdns";
 	while (list ($num, $ligne) = each ($fdir) ){
-		@mkdir($ligne,0755,true);
-		shell_exec("/bin/cp -rfd $ligne/* $WORKDIR/$ligne/");
+		@mkdir("$WORKDIR$ligne",0755,true);
+		echo "Installing $ligne in $WORKDIR$ligne/\n";
+		shell_exec("/bin/cp -rfd $ligne/* $WORKDIR$ligne/");
 	}
 	
 	
@@ -76,6 +77,7 @@ function create_package(){
 	$f[]="/usr/bin/rec_control";
 	$f[]="/etc/init.d/pdns-recursor";
 	$f[]="/etc/init.d/pdns";
+	
 	
 
 	while (list ($num, $ligne) = each ($f) ){

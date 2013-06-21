@@ -72,6 +72,8 @@ if(!is_file("ressources/settings.inc")){echo "
 </H1></div>";exit;}
 
 
+if(isset($_GET["ldap_connect"])){ldap_connect_error();exit;}
+if(isset($_GET["ldap_connect_popup"])){ldap_connect_popup();exit;}
 
 if(isset($_GET["reject-browser"])){reject_browser();exit;}
 if(isset($_GET["session"])){session_settings();exit;}
@@ -120,7 +122,7 @@ var x_SendLogonStart=function(obj){
 		if(LANGUAGE_SELECTOR_REMOVE==1){
 			Set_Cookie('artica-language', '{$logon_parameters["DEFAULT_LANGUAGE"]}', '3600', '/', '', '');
 		}
-		
+		var mem_logon_user='{$_COOKIE["mem-logon-user"]}';
 		
 		AnimateDiv('loginform');
 		MEM_USERNAME=escape(MEM_USERNAME);
@@ -1003,8 +1005,7 @@ function buildPage(){
 	if($users->HAPRROXY_APPLIANCE){$template="LoadBalance";}
 	if($users->WEBSTATS_APPLIANCE){$template="WebStats";}
 	
-	if($SquidActHasReverse==1){$TEMPLATE_INDEX="logonr.html";}
-	if($AsSquidLoadBalancer==1){$TEMPLATE_INDEX="logonb.html";}
+
 
 	if($template==null){
 		if($users->SQUID_INSTALLED){
@@ -1021,8 +1022,8 @@ function buildPage(){
 	
 	if($template==null){
 		if($users->POSTFIX_INSTALLED){
-			if($users->cyrus_imapd_installed){$template="Postfix";}
-			if($users->ZARAFA_INSTALLED){$template="zarafa";}
+			if($users->cyrus_imapd_installed){$template="Postfix";$TEMPLATE_INDEX="logon.html";}
+			if($users->ZARAFA_INSTALLED){$template="zarafa";$TEMPLATE_INDEX="logon.html";}
 		}
 	}
 		
@@ -1032,6 +1033,7 @@ function buildPage(){
 			if(!$users->SQUID_INSTALLED){
 				if(!$users->SAMBA_INSTALLED){
 					$template="Postfix";
+					$TEMPLATE_INDEX="logon.html";
 				}
 			}
 		}
@@ -1041,6 +1043,12 @@ function buildPage(){
 	if(trim($template)==null){if($users->SQUID_INSTALLED){$template="Squid";}}
 	if(trim($template)==null){if($users->SAMBA_INSTALLED){$template="Samba";}}
 	if(trim($template)==null){if($users->APACHE_INSTALLED){$template="Apache";}}
+	
+	if($template=="Squid"){
+		if($SquidActHasReverse==1){$TEMPLATE_INDEX="logonr.html";}
+		if($AsSquidLoadBalancer==1){$TEMPLATE_INDEX="logonb.html";}
+	}
+	
 
 	if($GLOBALS["VERBOSE"]){echo "<H1>template=$template line ".__LINE__."</H1>";}
 	
@@ -1053,6 +1061,8 @@ function buildPage(){
 		$p=new pagebuilder();
 		if(is_file("ressources/templates/$template/$TEMPLATE_INDEX"));
 		$tpl=@file_get_contents("ressources/templates/$template/$TEMPLATE_INDEX");
+		
+		if($GLOBALS["VERBOSE"]){echo "<H1>ressources/templates/$template/$TEMPLATE_INDEX (".strlen($tpl).") length line ".__LINE__."</H1>";}
 		
 		foreach (glob("ressources/templates/$template/css/*.css") as $filename) {
 			//$datas=@file_get_contents("$filename");
@@ -1091,16 +1101,51 @@ function buildPage(){
 		$favicon=$p->favicon($template);
 		if($GLOBALS["VERBOSE"]){echo "replace tokens line:".__LINE__."<br>\n";}
 		if(is_file($TITLE_RESSOURCE)){$title=@file_get_contents($TITLE_RESSOURCE);$title=str_replace("%server", $users->hostname, $title);}else{$title=$users->hostname;}
-		$tpl=str_replace("{COPYRIGHT}","Copyright 2006 - ". date('Y').$lang2Link,$tpl);
-		$tpl=str_replace("{copy-right}","Copyright 2006 - ". date('Y').$lang2Link,$tpl);
+		
+		
+		if($GLOBALS["VERBOSE"]){echo "new templates() line:".__LINE__."<br>\n";}
+		$tpl2=new templates();
+		$FPM=null;
+		if(method_exists("templates","parsePHPModules")){
+			$modules=$tpl2->parsePHPModules();
+			$PHPVERSION=null;
+			if(isset($modules["Core"]["PHP Version"])){
+				$PHPVERSION="&nbsp;|&nbsp;PHP {$modules["Core"]["PHP Version"]}";
+			}
+			
+			if(isset($modules["cgi-fcgi"]["php-fpm"])){
+				$FPM=" (PHP-FPM)";
+			}
+		}
+		
+		$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+		$WizardSavedSettingsSend=$sock->GET_INFO("WizardSavedSettingsSend");
+		if(!is_numeric($WizardSavedSettingsSend)){$WizardSavedSettingsSend=0;}
+		$miniadm="<span style='color:white'>&nbsp;|&nbsp;</span><a href='miniadm.logon.php' style='color:white'>End-User WebAccess</a>&nbsp;";
+		if(!isset($WizardSavedSettings["company_name"])){$WizardSavedSettings["company_name"]=null;}
+		$company_name=$WizardSavedSettings["company_name"];		
+		if($company_name<>null){$company_name="<center style='margin:5px;font-size:14px;padding:5px;border-top:1px solid white;border-bottom:1px solid white'>-&nbsp;$company_name&nbsp;-</center>";}
+		
+		$ARTICAVER=@file_get_contents("VERSION").$PHPVERSION.$FPM;
+		
+		$tpl=str_replace("{COPYRIGHT}","{$company_name}Copyright 2006 - ". date('Y').$lang2Link.$miniadm,$tpl);
+		$tpl=str_replace("{copy-right}","{$company_name}Copyright 2006 - ". date('Y').$lang2Link.$miniadm,$tpl);
 		$tpl=str_replace("{TEMPLATE_HEAD}","<!-- HEAD TITLE: $TITLE_RESSOURCE -->\n$favicon\n$jquery\n$jsArtica\n". @implode("\n", $js)."\n$jslogon\n".@implode("\n", $css)."\n".@implode("\n", $log), $tpl);
-		$tpl=str_replace("{ARTICA_VERSION}",@file_get_contents("VERSION"),$tpl);
+		$tpl=str_replace("{ARTICA_VERSION}",$ARTICAVER,$tpl);
 		$tpl=str_replace("{SQUID_VERSION}",$users->SQUID_VERSION,$tpl);
 		$tpl=str_replace("{POSTFIX_VERSION}",$users->POSTFIX_VERSION,$tpl);
 		$tpl=str_replace("{SAMBA_VERSION}",$users->SAMBA_VERSION,$tpl);
 		$tpl=str_replace("{CROSSROADS_VERSION}",$users->CROSSROADS_VERSION,$tpl);
 		$tpl=str_replace("{APACHE_VERSION}",$users->APACHE_VERSION,$tpl);
 		
+		
+		
+		
+		
+		if(!function_exists("ldap_connect")){
+			$tpl=str_replace("{LOGON_BUTTON}","<span id='YouCanAnimateIt'></span><script>Loadjs('$page?ldap_connect=yes');</script>",$tpl);
+			
+		}
 		
 		
 		
@@ -1116,7 +1161,7 @@ function buildPage(){
 		
 		$tpl=str_replace("{artica_username}",$_GET["MEM_USERNAME"],$tpl);
 		$tpl=str_replace("{LOGON_BUTTON}","<span id='YouCanAnimateIt'></span>
-			<script>Loadjs('$page?reject-browser=yes');</script>$tests<input type='hidden' id='template' value='$template'>$ProductName".button("{login}", "SendLogonStart()","18px"),$tpl);
+			<script>Loadjs('$page?reject-browser=yes');</script><input type='hidden' id='template' value='$template'>$ProductName".button("{login}", "SendLogonStart()","18px"),$tpl);
 		$tpl=str_replace("{TEMPLATE_TITLE_HEAD}",$title,$tpl);
 		
 			
@@ -1126,8 +1171,7 @@ function buildPage(){
 			$tpl=str_replace("{ZARAFA_VERSION}",$sock->getFrameWork("zarafa.php?getversion=yes"),$tpl);
 			
 		}
-		if($GLOBALS["VERBOSE"]){echo "new templates() line:".__LINE__."<br>\n";}
-		$tpl2=new templates();
+
 		if(trim($FixedLanguage)==null){$tpl2->language=$DetectedLanguage;}
 		if($GLOBALS["VERBOSE"]){echo "Langage $tpl2->language line:".__LINE__."<br>\n";}
 		
@@ -1422,6 +1466,23 @@ $html="
 	echo $tpl->_ENGINE_parse_body($html);
 	#F2FAFD
 }
+
+function ldap_connect_error(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{GENERIC_LDAP_ERROR}");
+	header("content-type: application/x-javascript");
+	echo "YahooSetupControlModalFixedNoclose('650','$page?ldap_connect_popup=yes','$title');";
+	
+}
+
+function ldap_connect_popup(){
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{error_ldap_connect_function}"))."
+	<script>$(\".ui-dialog-titlebar-close\").hide();</script>";
+	
+}
+
 function reject_browser(){
 	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
 	$tpl=new templates();
@@ -1436,20 +1497,53 @@ function reject_browser(){
 	if(!is_numeric($WizardSavedSettingsSend)){$WizardSavedSettingsSend=0;}
 	$q=new mysql();
 	$countDeNIC=$q->COUNT_ROWS("nics", "artica_backup");
+	if(!isset($WizardSavedSettings["company_name"])){$WizardSavedSettings["company_name"]=null;}
+	$company_name=$WizardSavedSettings["company_name"];
+	
+	
 	
 	writelogs("NICS = $countDeNIC WizardSavedSettingsSend=$WizardSavedSettingsSend count:".count($WizardSavedSettings),__FUNCTION__,__FILE__,__LINE__);
 	
-	if($countDeNIC==0){
-		if($WizardSavedSettingsSend==0){
-			if(count($WizardSavedSettings)<2){
-				$wizard="Loadjs('wizard.install.php?js=yes');";
+	if($company_name==null){
+	
+				$wizard="
+						$(\"head\").append($(\"<link rel='stylesheet' href='ressources/templates/default/blurps.css' type='text/css' media='screen' />\"));
+						$(\"head\").append($(\"<link rel='stylesheet' href='ressources/templates/default/styles_forms.css' type='text/css' media='screen' />\"));
+						$('.footer').remove();
+						document.getElementById('content').style.width='900px';
+						document.getElementById('content').style.height='690px';
+						document.getElementById('content').style.marginLeft='-150px';
+						document.getElementById('content').style.backgroundColor='white';
+						document.getElementById('content').style.backgroundImage='none';
+						document.getElementById('content').style.padding='10px';
+						document.getElementById('content').style.borderRadius = '5px';
+						document.getElementById('content').style.MozBorderRadius = '5px';				
+						LoadAjax('content','wizard.install.php?setup-1=yes');";
 			}
+		
+	
+	
+	if($wizard==null){
+		if($_COOKIE["mem-logon-user"]<>null){
+			$fillUsername="
+			var mem_logon_user='{$_COOKIE["mem-logon-user"]}';
+			if(document.getElementById('artica_username')){
+				document.getElementById('artica_username').value=mem_logon_user;
+				if(document.getElementById('artica_password')){
+					document.getElementById('artica_password').focus();
+				}
+			}
+			";
 		}
+		
 	}
 	
 	
 	echo "
 	//CountNIC: $countDeNIC WizardSavedSettingsSend=$WizardSavedSettingsSend count:".count($WizardSavedSettings)."
+	
+	
+	
 	
 function StartBrowserLoc(){
 	$(document).ready(function(){
@@ -1467,7 +1561,7 @@ function StartBrowserLoc(){
 	}
 $wizard
 StartBrowserLoc();
-
+$fillUsername
 ";
 }
 

@@ -16,9 +16,14 @@
 		die();	
 	}
 	
+	if(isset($_POST["aclrulename-group"])){acl_rule_group_save();exit;}
 	if(isset($_POST["aclname-save"])){acl_rule_save();exit;}
 	if(isset($_GET["acls-list"])){acl_list();exit;}
 	if(isset($_GET["Addacl-js"])){acl_js();exit;}
+	if(isset($_GET["Addacl-group"])){acl_group_js();exit;}
+	if(isset($_GET["acl-rule-settings-group"])){acl_group_settings();exit;}
+	if(isset($_GET["acl-rule-group"])){page();exit;}
+	
 	if(isset($_GET["acl-rule-tabs"])){acl_rule_tab();exit;}
 	if(isset($_GET["acl-rule-settings"])){acl_rule_settings();exit;}
 	if(isset($_POST["acl-rule-delete"])){acl_rule_delete();exit;}
@@ -30,12 +35,13 @@
 	if(isset($_GET["csv"])){output_scv();exit;}
 	if(isset($_POST["EnableSquidPortsRestrictions"])){EnableSquidPortsRestrictions();exit;}
 	page();
+
 	
-	
-function acl_js(){
+function acl_group_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$q=new mysql_squid_builder();
+	header("content-type: application/x-javascript");
 	$ID=$_GET["ID"];
 	if(!is_numeric($ID)){$ID=-1;}
 	if($ID<1){
@@ -49,27 +55,83 @@ function acl_js(){
 		var res=obj.responseText;
 		if(res.length>3){alert(res);return;}
 		$('#table-{$_GET["t"]}').flexReload();
+		ExecuteByClassName('SearchFunction');
 	}	
 	
 	
-	function AclCreateNewAclRule(){
+	function AclCreateNewAclRule$t(){
 		var aclname=prompt('$title','New Rule...');
 		if(!aclname){return;}
 		var XHR = new XHRConnection();
 		XHR.appendData('aclname-save', aclname);
-		XHR.appendData('ID', '$ID');		      
+		XHR.appendData('ID', '$ID');
+		XHR.appendData('aclport', '{$_GET["listen-port"]}');
+		XHR.appendData('aclgroup', '1');		      
+		XHR.sendAndLoad('$page', 'POST',x_aclCallBack);  			
+	}
+
+	AclCreateNewAclRule$t();
+	";
+	
+	echo $html;
+	
+	
+}	
+	
+function acl_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	header("content-type: application/x-javascript");
+	$t=time();
+	$ID=$_GET["ID"];
+	if(!is_numeric($_GET["rule-master"])){$_GET["rule-master"]=0;}
+	if(!is_numeric($ID)){$ID=-1;}
+	if($ID<1){
+		$title=$tpl->javascript_parse_text("{new_rule}");
+	}else{
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT aclname,aclgroup FROM webfilters_sqacls WHERE ID='$ID'"));
+		$title=utf8_encode($ligne["aclname"]);
+		$aclgroup=$ligne["aclgroup"];
+	}
+	if(!is_numeric($aclgroup)){$aclgroup=0;}
+	
+	$t=time();
+	$html="var x_aclCallBack= function (obj) {
+		var res=obj.responseText;
+		if(res.length>3){alert(res);return;}
+		$('#table-{$_GET["t"]}').flexReload();
+		ExecuteByClassName('SearchFunction');
+	}	
+	
+	
+	function AclCreateNewAclRule$t(){
+		var aclname=prompt('$title','New Rule...');
+		if(!aclname){return;}
+		var XHR = new XHRConnection();
+		XHR.appendData('aclname-save', aclname);
+		XHR.appendData('ID', '$ID');
+		XHR.appendData('aclport', '{$_GET["listen-port"]}');	
+		XHR.appendData('aclgpid', '{$_GET["rule-master"]}');		      
 		XHR.sendAndLoad('$page', 'POST',x_aclCallBack);  			
 	}
 	
-	function aclShowMainStart(){
+	function aclShowMainStart$t(){
+		var size=650;
+		var aclgroup=$aclgroup;
 		var ID=$ID;
-		if( ID<0 ){ AclCreateNewAclRule(); return; }
-		YahooWin2(650,'$page?acl-rule-tabs=yes&ID=$ID&t={$_GET["t"]}','$title');
+		if( ID<0 ){ AclCreateNewAclRule$t(); return; }
+		if(aclgroup==1){size=1000;}
+		if(aclgroup==1){
+			YahooSearchUser(size,'$page?acl-rule-tabs=yes&ID=$ID&t={$_GET["t"]}','$title');
+			return;
+		}
+		YahooWin2(size,'$page?acl-rule-tabs=yes&ID=$ID&t={$_GET["t"]}','$title');
 	
 	}
-	aclShowMainStart();
+	aclShowMainStart$t();
 	";
-	header("content-type: application/javascript");
+	
 	echo $html;
 	
 	
@@ -80,11 +142,20 @@ function acl_rule_tab(){
 	$tpl=new templates();	
 	$ID=$_GET["ID"];
 	$t=$_GET["t"];
+	$q=new mysql_squid_builder();
 	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT aclname,aclgroup FROM webfilters_sqacls WHERE ID='$ID'"));
 	
-	$array["acl-rule-settings"]='{settings}';
-	$array["acl-items"]='{items}';
-	
+	if($ligne["aclgroup"]==0){
+		$array["acl-rule-settings"]='{settings}';
+		$array["acl-items"]='{items}';
+	}else{
+		$array["acl-rule-group"]='{rules}';
+		$array["acl-rule-settings-group"]='{settings}';
+		
+		
+	}
+	if($ID==0){unset($array["acl-items"]);}
 	
 
 	while (list ($num, $ligne) = each ($array) ){
@@ -93,7 +164,11 @@ function acl_rule_tab(){
 			continue;
 			
 		}
-		
+		if($num=="acl-rule-group"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&aclgroup-id=$ID&t=$t\"><span>$ligne</span></a></li>\n");
+			continue;
+			
+		}
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&ID=$ID&t=$t\"><span>$ligne</span></a></li>\n");
 	
@@ -101,20 +176,19 @@ function acl_rule_tab(){
 
 	
 	echo "
-	<div id=main_acl_rule_zoom style='width:100%;overflow:auto'>
+	<div id=main_acl_rule_zoom_$ID>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
 				$(document).ready(function(){
-					$('#main_acl_rule_zoom').tabs();
+					$('#main_acl_rule_zoom_$ID').tabs();
 			
 			
 			});
 		</script>";	
 }
 
-
-function acl_rule_settings(){
+function acl_group_settings(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$q=new mysql_squid_builder();
@@ -124,6 +198,72 @@ function acl_rule_settings(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT aclname,acltpl FROM webfilters_sqacls WHERE ID='$ID'"));
 	$aclname=utf8_encode($ligne["aclname"]);
 	$acltpl=$ligne["acltpl"];
+	$t=time();
+	
+	$html="	<div style='width:95%' class=form>
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:16px'>{rule_name}:</td>
+		<td>". Field_text("aclrulename-$t",$aclname,"font-size:16px;width:420px")."</td>
+	</tr>	
+	<tr>
+		<td colspan=2 align='right'>". button("{apply}","SaveAclRule$ID()","18")."</td>
+	</tr>
+	</table>
+	</div>
+	<script>
+	var x_SaveAclRule$ID= function (obj) {
+			document.getElementById('divid$t').innerHTML='';	
+			var res=obj.responseText;
+			if(res.length>3){alert(res);return;}
+			RefreshTab('main_acl_rule_zoom');
+			$('#table-$t').flexReload();
+			ExecuteByClassName('SearchFunction');
+		}
+	
+		function SaveAclRule$ID(){
+			var XHR = new XHRConnection();
+			XHR.appendData('aclrulename-group', document.getElementById('aclrulename-$t').value);
+
+		}
+	</script>		
+	";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+		
+}
+
+
+function acl_rule_settings(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$q=new mysql_squid_builder();
+	$ID=$_GET["ID"];	
+	$t=time();
+	
+	$results=$q->QUERY_SQL("SELECT aclname,ID FROM webfilters_sqacls WHERE aclgroup=1");
+	if(mysql_num_rows($results)>0){
+		
+		$ACLSGROUPS[0]="{none}";
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$aclname=utf8_encode($ligne["aclname"]);
+			$ACLSGROUPS[$ligne["ID"]]=$ligne["aclname"];
+		
+		}
+		
+	}
+	
+	
+	
+	
+	$please_choose_a_bandwith_rule=$tpl->javascript_parse_text("{please_choose_a_bandwith_rule}");
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT aclname,acltpl,aclgpid FROM webfilters_sqacls WHERE ID='$ID'"));
+	
+	if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";return;}
+	
+	$aclname=utf8_encode($ligne["aclname"]);
+	$acltpl=$ligne["acltpl"];
+	$aclgpid=$ligne["aclgpid"];
 	$squid=new squidbee();
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='url_rewrite_access_deny'"));
@@ -145,6 +285,16 @@ function acl_rule_settings(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='access_allow'"));
 	$access_allow=$ligne["httpaccess_value"];
 	if(!is_numeric($access_allow)){$access_allow=0;}	
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='http_reply_access_deny'"));
+	$http_reply_access_deny=$ligne["httpaccess_value"];
+	if(!is_numeric($http_reply_access_deny)){$http_reply_access_deny=0;}	
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='http_reply_access_allow'"));
+	$http_reply_access_allow=$ligne["http_reply_access_allow"];
+	if(!is_numeric($http_reply_access_allow)){$http_reply_access_allow=0;}	
+	
+	
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='snmp_access_allow'"));
 	$snmp_access_allow=$ligne["httpaccess_value"];
@@ -171,6 +321,9 @@ function acl_rule_settings(){
 	$delay_access_id=$ligne["httpaccess_data"];
 	if(!is_numeric($delay_access)){$delay_access=0;}	
 	if(!is_numeric($delay_access_id)){$delay_access_id=0;}
+	
+	
+	
 
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='tcp_outgoing_address'"));
 	$tcp_outgoing_address=$ligne["httpaccess_value"];
@@ -239,14 +392,23 @@ function acl_rule_settings(){
 	if(!is_numeric($t)){$t=time();}
 	$html="
 	<div id='FormToParse$t'>
-	<div id='divid$t'></div> 
-	<table style='width:99%' class=form>
+	<div id='divid$t' ></div> 
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{rule_name}:</td>
 		<td>". Field_text("aclrulename",$aclname,"font-size:14px;width:220px")."</td>
-	</tr>	
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{rule_group}:</td>
+		<td>". Field_array_Hash($ACLSGROUPS,"aclgpid-$t",$aclgpid,null,null,0,"font-size:14px")."</td>
+	</tr>
+				
+	
 	</table>
-	<table style='width:99%' class=form>
+	</div>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{allow}:</td>
 		<td>". Field_checkbox("access_allow",1,$access_allow,"access_allow_check()")."</td>
@@ -255,6 +417,16 @@ function acl_rule_settings(){
 		<td class=legend style='font-size:14px'>{deny_access}:</td>
 		<td>". Field_checkbox("access_deny",1,$access_deny,"access_deny_check()")."</td>
 	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{deny_reply_access}:</td>
+		<td>". Field_checkbox("http_reply_access_deny",1,$http_reply_access_deny,"http_reply_access_deny_check()")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{allow_reply_access}:</td>
+		<td>". Field_checkbox("http_reply_access_allow",1,$http_reply_access_allow,"http_reply_access_allow_check()")."</td>
+	</tr>
+				
+	
 	<tr>
 		<td class=legend style='font-size:14px'>{deny_access_except}:</td>
 		<td>". Field_checkbox("deny_access_except",1,$deny_access_except,"deny_access_except_check()")."</td>
@@ -285,7 +457,7 @@ function acl_rule_settings(){
 		<td>". Field_checkbox("deny_log",1,$deny_log,"deny_log_check()")."</td>
 	</tr>				
 	</table>
-	
+	</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{limit_bandwidth}:</td>
@@ -300,8 +472,8 @@ function acl_rule_settings(){
 		<td width=1%>". button('{browse}...',"Loadjs('squid.bandwith.php?browser-acl-js=yes&aclruleid=$ID')")."</td>
 	</tr>			
 	</table>
-				
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>			
+	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{affect_quota_rule}:</td>
 		<td>". Field_checkbox("deny_quota_rule",1,$deny_quota_rule,"deny_quota_rule_check()")."</td>
@@ -315,8 +487,9 @@ function acl_rule_settings(){
 		<td width=1%>". button('{browse}...',"Loadjs('squid.ext_time_quota_acl.php?browser-quota-js=yes&checkbowid=deny_quota_rule&textid=deny_quota_rule_id_text&idnum=deny_quota_rule_id')")."</td>
 	</tr>			
 	</table>				
-
-	<table style='width:99%' class=form>
+	</div>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{request_header_add}:</td>
 		<td>". Field_checkbox("request_header_add",1,$request_header_add,"request_header_addCheck()")."</td>
@@ -342,8 +515,9 @@ function acl_rule_settings(){
 		<td>". Field_text("tcp_outgoing_tos_value",$tcp_outgoing_tos_value,'font-size:14px;width:90px')."</td>
 	</tr>	
 	</table>
-	
-	<table style='width:99%' class=form>	
+	</div>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>	
 	<tr>
 		<td class=legend style='font-size:14px'>{acl_tcp_outgoing_address}:</td>
 		<td>". Field_checkbox("tcp_outgoing_address-$t",1,$tcp_outgoing_address,"tcp_outgoing_address_check$t()")."</td>
@@ -353,14 +527,15 @@ function acl_rule_settings(){
 		<td>". Field_array_Hash($ipss,"tcp_outgoing_address_value",$tcp_outgoing_address_value,null,null,0,"font-size:14px")."</td>
 	</tr>	
 	</table>	
+	</div>
 	
-	
-	
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td colspan=2 align='right'><hr>". button("{apply}", "SaveAclRule$ID()",16)."</td>
 	</tr>
 	</table>
+	</div>
 	</div>
 	
 	<script>
@@ -371,12 +546,15 @@ function acl_rule_settings(){
 			if(res.length>3){alert(res);return;}
 			RefreshTab('main_acl_rule_zoom');
 			$('#table-$t').flexReload();
-			
+			ExecuteByClassName('SearchFunction');
 		}
 	
 		function SaveAclRule$ID(){
 			var XHR = new XHRConnection();
 			XHR.appendData('aclrulename', document.getElementById('aclrulename').value);
+			XHR.appendData('aclgpid', document.getElementById('aclgpid-$t').value);
+			
+			
 			XHR.appendData('tcp_outgoing_tos_value', document.getElementById('tcp_outgoing_tos_value').value);
 			XHR.appendData('tcp_outgoing_address_value', document.getElementById('tcp_outgoing_address_value').value);
 			var delay_access_id=document.getElementById('delay_access_id').value;
@@ -404,14 +582,15 @@ function acl_rule_settings(){
 			if(document.getElementById('deny_log').checked){XHR.appendData('deny_log', '1');}else{XHR.appendData('deny_log', '0');}
 			if(document.getElementById('deny_quota_rule').checked){XHR.appendData('deny_quota_rule', '1');}else{XHR.appendData('deny_quota_rule', '0');}
 			
+			if(document.getElementById('http_reply_access_allow').checked){XHR.appendData('http_reply_access_allow', '1');}else{XHR.appendData('http_reply_access_allow', '0');}
+			if(document.getElementById('http_reply_access_deny').checked){XHR.appendData('http_reply_access_deny', '1');}else{XHR.appendData('http_reply_access_deny', '0');}
+			
+			
+			
+			
 			XHR.appendData('deny_quota_rule_id', document.getElementById('deny_quota_rule_id').value);
 			XHR.appendData('request_header_add_name', document.getElementById('request_header_add_name').value);
 			XHR.appendData('request_header_add_value', document.getElementById('request_header_add_value').value);
-			
-						
-
-			  
-			
 			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',x_SaveAclRule$ID);  		
 		
@@ -473,8 +652,17 @@ function acl_rule_settings(){
 		if(document.getElementById('access_allow').checked){DisableAllInstead('access_allow');}else{CheckAll();}
 	}
 	
+	
 	function access_deny_check(){
 		if(document.getElementById('access_deny').checked){DisableAllInstead('access_deny');}else{CheckAll();}
+	}
+	
+	function http_reply_access_deny_check(){
+		if(document.getElementById('http_reply_access_deny').checked){DisableAllInstead('http_reply_access_deny');}else{CheckAll();}
+	}
+	
+	function http_reply_access_allow_check(){
+		if(document.getElementById('http_reply_access_allow').checked){DisableAllInstead('http_reply_access_allow');}else{CheckAll();}
 	}
 	
 	function deny_log_check(){
@@ -587,7 +775,9 @@ function acl_rule_settings(){
 	snmp_access_allow_check();
 	log_access_check();
 	features33_check();
-	deny_quota_rule_check();	
+	deny_quota_rule_check();
+	http_reply_access_deny_check();	
+	http_reply_access_allow_check();
 	</script>
 	
 	
@@ -599,7 +789,8 @@ function acl_rule_settings(){
 }
 
 function acl_main_rule_edit(){
-	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	if(!isset($_POST["aclgpid"])){$_POST["aclgpid"]=0;}
+	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
 	if(!isset($_POST["tcp_outgoing_tos_value"])){$_POST["tcp_outgoing_tos_value"]=null;}
 	if(!isset($_POST["tcp_outgoing_address_value"])){$_POST["tcp_outgoing_address_value"]=null;}
 	try {
@@ -608,7 +799,7 @@ function acl_main_rule_edit(){
 		$acl=new squid_acls_groups();
 		$ID=$_POST["ID"];
 		$aclname=$_POST["aclrulename"];
-		$sql="UPDATE webfilters_sqacls SET aclname='$aclname' WHERE ID='$ID'";
+		$sql="UPDATE webfilters_sqacls SET aclname='$aclname',`aclgpid`='{$_POST["aclgpid"]}' WHERE ID='$ID'";
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){echo $q->mysql_error;return;}
 		if(!$acl->aclrule_edittype($ID,"access_allow",$_POST["access_allow"])){return;}
@@ -624,8 +815,8 @@ function acl_main_rule_edit(){
 		if(!$acl->aclrule_edittype($ID,"log_access",$_POST["log_access"],$_POST["log_access"])){return;}
 		if(!$acl->aclrule_edittype($ID,"deny_log",$_POST["deny_log"])){return;}
 		if(!$acl->aclrule_edittype($ID,"deny_quota_rule",$_POST["deny_quota_rule"],$_POST["deny_quota_rule_id"])){return;}
-		
-		 
+		if(!$acl->aclrule_edittype($ID,"http_reply_access_deny",$_POST["http_reply_access_deny"])){return;}
+		if(!$acl->aclrule_edittype($ID,"http_reply_access_allow",$_POST["http_reply_access_allow"])){return;}
 		
 		
 		
@@ -669,20 +860,53 @@ function EnableSquidPortsRestrictions(){
 	
 }
 
-
+function acl_rule_group_save(){
+	$ID=$_POST["ID"];
+	$q=new mysql_squid_builder();
+	$sql="UPDATE webfilters_sqacls SET aclname='{$_POST["aclrulename-group"]}' WHERE ID='$ID'";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}
+	
+}
 
 function acl_rule_save(){
 	$q=new mysql_squid_builder();
 	$ID=$_POST["ID"];
 	$aclname=$_POST["aclname-save"];
+	if(!isset($_POST["aclgroup"])){$_POST["aclgroup"]=0;}
+	if(!isset($_POST["aclgpid"])){$_POST["aclgpid"]=0;}
+	if(!isset($_POST["aclport"])){$_POST["aclport"]=0;}
+	if(is_numeric($_POST["aclport"])){$_POST["aclport"]=0;}
 	
-	if($ID<0){
-		$sql="INSERT INTO webfilters_sqacls (aclname,enabled) VALUES ('$aclname',1)";
+	if(!$q->FIELD_EXISTS("webfilters_sqacls", "aclgroup")){
+		$q->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `aclgroup` smallint(1) NOT NULL,ADD INDEX(`aclgroup`)");
+	}
+	if(!$q->FIELD_EXISTS("webfilters_sqacls", "aclgpid")){
+		$q->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `aclgpid` INT(100) NOT NULL,ADD INDEX(`aclgpid`)");
+	}	
+	
+	if(!$q->FIELD_EXISTS("webfilters_sqacls", "aclport")){
+		$q->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `aclport` smallint(5) NOT NULL,
+		ADD INDEX(`aclport`)");
 	}
 	
-	$q->CheckTables();
+	if($ID<0){
+		$q->CheckTables();
+				
+		$sql="SELECT xORDER FROM webfilters_sqacls WHERE ORDER BY xORDER DESC LIMIT 0,1";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$xORDER=$ligne["xORDER"];
+		if(!is_numeric($xORDER)){$xORDER=0;}
+		$xORDER=$xORDER+1;
+		$aclport=trim($_POST["aclport"]);
+		if(!is_numeric($aclport)){$aclport=0;}
+		$sql="INSERT INTO webfilters_sqacls (aclname,enabled,acltpl,xORDER,aclport,aclgroup,aclgpid) 
+		VALUES ('$aclname',1,'','$xORDER','$aclport','{$_POST["aclgroup"]}','{$_POST["aclgpid"]}')";
+	}
+	
+	
 	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error;return;}
+	if(!$q->ok){echo $q->mysql_error."\nLine:".__LINE__."\nfunction\n".__FUNCTION__."\nsql:$sql";return;}
 		
 }
 
@@ -690,13 +914,25 @@ function acl_rule_delete(){
 	$q=new mysql_squid_builder();
 	$q->CheckTables();
 	$ID=$_POST["acl-rule-delete"];
+	acl_rule_delete_perform($ID);
+
+	
+	
+}
+
+function acl_rule_delete_perform($ID){
+	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("DELETE FROM webfilters_sqaclaccess WHERE aclid='$ID'");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$q->QUERY_SQL("DELETE FROM webfilters_sqacllinks WHERE aclid='$ID'");
-	if(!$q->ok){echo $q->mysql_error;return;}	
+	if(!$q->ok){echo $q->mysql_error;return;}
 	$q->QUERY_SQL("DELETE FROM webfilters_sqacls WHERE ID='$ID'");
-	if(!$q->ok){echo $q->mysql_error;return;}		
-	
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$sql="SELECT ID,enabled FROM webfilters_sqacls WHERE aclgpid=$ID";
+	$results = $q->QUERY_SQL($sql);
+	while ($ligne = mysql_fetch_assoc($results)) {
+		acl_rule_delete_perform($ligne["ID"]);
+	}
 	
 }
 
@@ -716,8 +952,13 @@ function acl_rule_enable(){
 function acl_rule_order(){
 	$q=new mysql_squid_builder();
 	$ID=$_POST["acl-rule-order"];
+	$sql="SELECT xORDER,aclgpid,aclport FROM webfilters_sqacls WHERE `ID`='$ID'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$aclport=$ligne["aclport"];
+	$aclgpid=$ligne["aclgpid"];
+	
 	$neworder=$_POST["acl-rule-value"];
-	$sql="SELECT ID FROM webfilters_sqacls WHERE `xORDER`='{$neworder}'";	
+	$sql="SELECT ID,aclgpid,aclport FROM webfilters_sqacls WHERE `xORDER`='{$neworder}' AND aclport=$aclport AND aclgpid=$aclgpid";	
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	if($ligne["ID"]>0){
 		$alt=$neworder+1;
@@ -730,22 +971,27 @@ function acl_rule_order(){
 	if(!$q->ok){echo $q->mysql_error;return;}	
 	
 	$c=0;
-	$sql="SELECT ID FROM webfilters_sqacls ORDER BY xORDER";
+	$sql="SELECT ID FROM webfilters_sqacls WHERE aclport=$aclport AND aclgpid=$aclgpid ORDER BY xORDER";
 	$results = $q->QUERY_SQL($sql);
 
 	while ($ligne = mysql_fetch_assoc($results)) {	
-		$q->QUERY_SQL("UPDATE webfilters_sqacls SET xORDER=$c WHERE `ID`={$ligne["ID"]}");
+		$q->QUERY_SQL("UPDATE webfilters_sqacls SET xORDER=$c `ID`={$ligne["ID"]}");
 		$c++;
 	}	
 	
 }
 	
 function acl_rule_move(){
-	
+	$aclport=$_GET["aclport"];
+	if(!is_numeric($aclport)){$aclport=0;}
 	$q=new mysql_squid_builder();
-	$sql="SELECT xORDER FROM webfilters_sqacls WHERE `ID`='{$_POST["acl-rule-move"]}'";
+	$sql="SELECT xORDER,aclgpid FROM webfilters_sqacls WHERE `ID`='{$_POST["acl-rule-move"]}'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	$xORDER_ORG=$ligne["xORDER"];
+	$aclgpid=$ligne["aclgpid"];
+	
+
+	
 	$xORDER=$xORDER_ORG;
 	if($_POST["acl-rule-dir"]==1){$xORDER=$xORDER_ORG-1;}
 	if($_POST["acl-rule-dir"]==0){$xORDER=$xORDER_ORG+1;}
@@ -753,27 +999,31 @@ function acl_rule_move(){
 	$sql="UPDATE webfilters_sqacls SET xORDER=$xORDER WHERE `ID`='{$_POST["acl-rule-move"]}'";
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;;return;}
-	//echo $sql."\n";
+	echo $sql."\n";
 	
 	if($_POST["acl-rule-dir"]==1){
 		$xORDER2=$xORDER+1;
 		if($xORDER2<0){$xORDER2=0;}
-		$sql="UPDATE webfilters_sqacls SET xORDER=$xORDER2 WHERE `ID`<>'{$_POST["acl-rule-move"]}' AND xORDER=$xORDER";
+		$sql="UPDATE webfilters_sqacls SET 
+		xORDER=$xORDER2 WHERE `ID`<>'{$_POST["acl-rule-move"]}' 
+		AND xORDER=$xORDER AND aclport=$aclport AND aclgpid=$aclgpid";
 		$q->QUERY_SQL($sql);
 		//echo $sql."\n";
+		
 		if(!$q->ok){echo $q->mysql_error;return;}
 	}
 	if($_POST["acl-rule-dir"]==0){
 		$xORDER2=$xORDER-1;
 		if($xORDER2<0){$xORDER2=0;}
-		$sql="UPDATE webfilters_sqacls SET xORDER=$xORDER2 WHERE `ID`<>'{$_POST["acl-rule-move"]}' AND xORDER=$xORDER";
+		$sql="UPDATE webfilters_sqacls SET xORDER=$xORDER2 WHERE `ID`<>'{$_POST["acl-rule-move"]}' 
+		AND xORDER=$xORDER AND aclport=$aclport AND aclgpid=$aclgpid";
 		$q->QUERY_SQL($sql);
 		//echo $sql."\n";
 		if(!$q->ok){echo $q->mysql_error;return;}
 	}
 
 	$c=0;
-	$sql="SELECT ID FROM webfilters_sqacls ORDER BY xORDER";
+	$sql="SELECT ID FROM webfilters_sqacls WHERE aclport=$aclport AND aclgpid=$aclgpid ORDER BY xORDER";
 	$results = $q->QUERY_SQL($sql);
 
 	while ($ligne = mysql_fetch_assoc($results)) {	
@@ -803,14 +1053,34 @@ function page(){
 	$squid_templates_error=$tpl->javascript_parse_text("{squid_templates_error}");
 	$bandwith=$tpl->javascript_parse_text("{bandwith}");
 	$session_manager=$tpl->javascript_parse_text("{session_manager}");
+	$new_group=$tpl->javascript_parse_text("{new_group}");
 	$squid=new squidbee();
 	$session_manager="{name: '$session_manager', bclass: 'clock', onpress : SessionManager$t},";
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	$Table_title=null;
 	if($EnableWebProxyStatsAppliance==0){
 		if(!$squid->IS_33){$session_manager=null;}
 	}
 	
+	
+	$table_width=905;
+	$newgroup_bt="{name: '$new_group', bclass: 'add', onpress : AddAclGroup},";
+	$apply_paramsbt="{separator: true},{name: '$apply_params', bclass: 'Reload', onpress : SquidBuildNow$t},";
+	$optionsbt="{separator: true},{name: '$options', bclass: 'Settings', onpress : AclOptions$t},";
+	
+	$bandwithbt=",{name: '$bandwith', bclass: 'Network', onpress : BandwithSection$t}";
+	
+	if(!is_numeric($_GET["aclgroup-id"])){$_GET["aclgroup-id"]=0;}
+	if($_GET["aclgroup-id"]>0){
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT aclname,aclgroup FROM webfilters_sqacls WHERE ID='{$_GET["aclgroup-id"]}'"));
+		$ligne["aclname"]=utf8_encode($ligne["aclname"]);
+		$Table_title=$tpl->javascript_parse_text("{rules}:{$ligne["aclname"]}");
+		$newgroup_bt=null;
+		$apply_paramsbt=null;$optionsbt=null;$bandwithbt=null;$session_manager=null;
+		$GROUPE_RULE_ID_NEW_RULE="&rule-master={$_GET["aclgroup-id"]}";
+		$table_width=959;
+	}
 	
 	$html="
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
@@ -818,7 +1088,7 @@ function page(){
 var DeleteSquidAclGroupTemp=0;
 $(document).ready(function(){
 $('#table-$t').flexigrid({
-	url: '$page?acls-list=yes&t=$t&toexplainorg=table-$t&t=$t',
+	url: '$page?acls-list=yes&t=$t&toexplainorg=table-$t&t=$t&aclgroup-id={$_GET["aclgroup-id"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '$rule', name : 'aclname', width : 249, sortable : true, align: 'left'},
@@ -827,18 +1097,18 @@ $('#table-$t').flexigrid({
 		{display: '', name : 'xORDER', width : 13, sortable : true, align: 'center'},
 		{display: '', name : 'none2', width : 15, sortable : true, align: 'left'},
 		{display: '', name : 'none3', width : 25, sortable : false, align: 'left'},
+		{display: '', name : 'none4', width : 25, sortable : false, align: 'left'},
 		
 	],
 buttons : [
 	{name: '$new_rule', bclass: 'add', onpress : AddAcl},
-	{name: '$groups', bclass: 'Group', onpress : GroupsSection$t},
-	{name: '$bandwith', bclass: 'Network', onpress : BandwithSection$t},$session_manager
+	$newgroup_bt
+	{name: '$groups', bclass: 'Group', onpress : GroupsSection$t}
+	$bandwithbt,$session_manager
 	{separator: true},
 	{name: '$squid_templates_error', bclass: 'Script', onpress : SquidTemplatesErrors$t},
-	{separator: true},
-	{name: '$options', bclass: 'Settings', onpress : AclOptions$t},
-	{separator: true},
-	{name: '$apply_params', bclass: 'Reload', onpress : SquidBuildNow$t},
+	$optionsbt
+	$apply_paramsbt
 		],	
 	searchitems : [
 		{display: '$rule', name : 'aclname'},
@@ -846,20 +1116,24 @@ buttons : [
 	sortname: 'xORDER',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '$Table_title',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 869,
-	height: 450,
+	width: $table_width,
+	height: 550,
 	singleSelect: true
 	
 	});   
 });
 function AddAcl() {
-	Loadjs('$page?Addacl-js=yes&ID=-1&t=$t');
+	Loadjs('$page?Addacl-js=yes&ID=-1&t=$t$GROUPE_RULE_ID_NEW_RULE');
 	
-}	
+}
+
+function AddAclGroup(){
+	Loadjs('$page?Addacl-group=yes&ID=-1&t=$t');
+}
 
 function SessionManager$t(){
 	Loadjs('squid.ext_time_quota_acl.php?t=$t')
@@ -975,16 +1249,23 @@ function acl_list(){
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
 	$RULEID=$_GET["RULEID"];
+	$GROUPE_RULE_ID=$_GET["aclgroup-id"];
+	if(!is_numeric($GROUPE_RULE_ID)){$GROUPE_RULE_ID=0;}
 	$t=$_GET["t"];
 	$search='%';
 	$table="webfilters_sqacls";
+	$GROUPE_RULE_ID_NEW_RULE=null;
 	$page=1;
 	$data = array();
 	$data['rows'] = array();
 	$sock=new sockets();
 	$EnableSquidPortsRestrictions=$sock->GET_INFO("EnableSquidPortsRestrictions");
 	if(!is_numeric($EnableSquidPortsRestrictions)){$EnableSquidPortsRestrictions=0;}
-
+	if($GROUPE_RULE_ID>0){
+		$FORCE_FILTER=" AND aclgpid=$GROUPE_RULE_ID";
+	}else{
+		$FORCE_FILTER=" AND aclgpid=0";
+	}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -1021,7 +1302,7 @@ function acl_list(){
 				style='font-size:16px;text-decoration:underline;color:black'>$default</span></A>
 				",
 				"<span style='font-size:12px;color:black'>$explain</span>",
-				"&nbsp;","&nbsp;","&nbsp;","&nbsp;")
+				"&nbsp;","&nbsp;","&nbsp;","&nbsp;","&nbsp;")
 		);	
 
 		$ports=unserialize(base64_decode($sock->GET_INFO("SquidSafePortsSSLList")));
@@ -1045,7 +1326,7 @@ function acl_list(){
 						style='font-size:16px;text-decoration:underline;color:$color'>$ports_restrictions</span></A>
 						",
 		"<span style='font-size:12px;color:$colored;font-weight:bold'><div>$sslp</div><div>$http</div></span>",
-		"&nbsp;","&nbsp;","$enableSSL","&nbsp;")
+		"&nbsp;","&nbsp;","$enableSSL","&nbsp;","&nbsp;")
 		);		
 		
 		
@@ -1053,6 +1334,8 @@ function acl_list(){
 	$rp=50;
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	
+	// Reset for acl group
+	if($GROUPE_RULE_ID>0){$data['rows']=array();$total=0;}
 
 	
 	$pageStart = ($page-1)*$rp;
@@ -1069,10 +1352,11 @@ function acl_list(){
 	$data['total'] = $total;
 	
 	
-	
+	$c=0;
 	$acls=new squid_acls_groups();
 	$order=$tpl->_ENGINE_parse_body("{order}:");
 	while ($ligne = mysql_fetch_assoc($results)) {
+		$c++;
 		$val=0;
 		$color="black";
 		$disable=Field_checkbox("aclid_{$ligne['ID']}", 1,$ligne["enabled"],"EnableDisableAclRule$t('{$ligne['ID']}')");
@@ -1080,11 +1364,15 @@ function acl_list(){
 		$delete=imgsimple("delete-24.png",null,"DeleteSquidAclRule('{$ligne['ID']}')");
 		if($ligne["enabled"]==0){$color="#9C9C9C";}
 		
-		$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID'],$ligne["enabled"]));
+		$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID'],$ligne["enabled"],$ligne["aclgroup"]));
 		
 		$up=imgsimple("arrow-up-16.png","","AclUpDown('{$ligne['ID']}',1)");
 		$down=imgsimple("arrow-down-18.png","","AclUpDown('{$ligne['ID']}',0)");
+		$export=imgsimple("24-export.png","","Loadjs('squid.acls.export.php?single-id={$ligne['ID']}')");
 		
+		if($GROUPE_RULE_ID>0){
+			
+			$export=null;}
 		
 	$data['rows'][] = array(
 		'id' => "acl{$ligne['ID']}",
@@ -1094,15 +1382,15 @@ function acl_list(){
 		Onclick=\"javascript:ChangeRuleOrder({$ligne['ID']},{$ligne["xORDER"]});\"
 		style=\"text-decoration:underline\">{$ligne["xORDER"]}</a>&raquo;</i></div>",
 		"<span style='font-size:12px;color:$color'>$explain</span>",
-		$up,$down,$disable,$delete)
+		$up,$down,$disable,$export,$delete)
 		);
 	}
 	
-	
+	if($GROUPE_RULE_ID>0){$data['total']=$c;}
 	echo json_encode($data);	
 }
 function output_scv(){
-	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
 	$aclid=$_GET["csv"];
 	$path=dirname(__FILE__)."/ressources/logs/web/access_acl_$aclid.csv";
 	$file=basename($path);

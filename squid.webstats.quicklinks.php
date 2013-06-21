@@ -550,6 +550,15 @@ $users=new usersMenus();
     $timeouts=Paragraphe("clock-gold-64.png", "{timeouts}", "{timeouts_squid_parameters}",
     "javascript:Loadjs('squid.timeouts.php')");
 
+    if($users->SQUID_REVERSE_APPLIANCE){
+    	$sslbump=null;
+    	$messengers=null;
+    	$googlenossl=null;
+    	$ftp_user=null;
+    	$your_network=null;
+    }
+    
+    
 	$tr=array();
 	$tr[]=$watchdog;
 	$tr[]=$listen_port;

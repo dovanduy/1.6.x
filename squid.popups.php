@@ -187,6 +187,10 @@ function ldap_auth_save(){
 			$squid->NTLM_AUTH=0;
 		}
 		
+		if(isset($_GET["SquidLdapAuthEnableGroups"])){
+			$squid->SquidLdapAuthEnableGroups=$_GET["SquidLdapAuthEnableGroups"];
+		}
+		
 		
 		if(!$squid->SaveToLdap()){
 			echo $squid->ldap_error;
@@ -1104,10 +1108,11 @@ function dns_popup(){
 function ldap_js(){
 		$page=CurrentPageName();
 		$tpl=new templates();
-		$title=$tpl->_ENGINE_parse_body("{authenticate_users}");
+		header("content-type: application/x-javascript");
+		$title=$tpl->javascript_parse_text("{authenticate_users}");
 		echo "
 		function ldapauth_display(){
-				YahooWin2(570,'$page?content=ldap_auth','$title');
+			YahooWin2(600,'$page?content=ldap_auth','$title');
 		}
 		
 		
@@ -1119,8 +1124,14 @@ function ldap_js(){
 		}
 		
 		function ldapauth(){
+			var SquidLdapAuthEnableGroups=0;
 			var XHR = new XHRConnection();
 			XHR.appendData('ldap_auth',document.getElementById('ldap_auth').value);
+			
+			if( document.getElementById('SquidLdapAuthEnableGroups') ) {
+				if(document.getElementById('SquidLdapAuthEnableGroups').checked){SquidLdapAuthEnableGroups=1;}
+				XHR.appendData('SquidLdapAuthEnableGroups',SquidLdapAuthEnableGroups);
+			}
 			XHR.sendAndLoad('$page', 'GET',x_ldapauth);	
 		}
 		
@@ -1138,7 +1149,8 @@ function ldap_js(){
 			XHR.sendAndLoad('$page', 'GET',x_ldapauth);		
 		}
 
-		ldapauth_display();";}
+		ldapauth_display();
+";}
 
 
 function ldap_auth_index(){
@@ -1324,11 +1336,26 @@ function ldap_auth_remote(){
 function ldap_auth_popup(){
 	$squid=new squidbee();
 	$users=new usersMenus();
-	
+	$sock=new sockets();
+	$SquidLdapAuthEnableGroups=$sock->GET_INFO("SquidLdapAuthEnableGroups");
+	//SquidLdapAuthEnableGroups
 	$form_ldap="	
 		<table style='width:99%' class=form>
 			<tr>
-			<td valign='top'>" . Paragraphe_switch_img("{authenticate_users}","{authenticate_users_explain}",'ldap_auth',$squid->LDAP_AUTH,'{enable_disable}',340)."</td>
+			<td valign='top'>" . Paragraphe_switch_img(
+					"{authenticate_users}","{authenticate_users_explain}",
+					'ldap_auth',$squid->LDAP_AUTH,'{enable_disable}',340)."
+			</td>
+			</tr>
+			<tr>
+			<td>
+				<table style='width:100%' class=TableRemove>
+				<tr>
+					<td style='font-size:16px' class=legend>{enable_group_checking}</td>
+					<td>". Field_checkbox("SquidLdapAuthEnableGroups", 1,$SquidLdapAuthEnableGroups)."</td>
+				</tr>
+				</table>
+			</td>
 			</tr>
 			<tr>
 				<td  valign='top' align='right'><hr>". button("{apply}","ldapauth()",16)."</td>
@@ -1873,8 +1900,10 @@ $squid=new squidbee();
 function listen_port_popup(){
 	$q=new mysql();
 	$squid=new squidbee();
+	$users=new usersMenus();
 	if(!is_numeric($squid->second_listen_port)){$squid->second_listen_port=0;}
 	if(!is_numeric($squid->ssl_port)){$squid->ssl_port=0;}
+	if($squid->isNGnx()){$users->SQUID_REVERSE_APPLIANCE=false;}
 	
 	$sock=new sockets();
 	$arrayParams=unserialize(base64_decode($sock->getFrameWork("squid.php?compile-list=yes")));
@@ -1888,6 +1917,14 @@ function listen_port_popup(){
 	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
 	}	
+	
+	if($users->SQUID_REVERSE_APPLIANCE){
+			$lock="lock();";
+			if($SSL==1){
+				$squid->ssl_port=443;
+			}
+	}
+	
 	
 	$t=$_GET["t"];
 	
@@ -1939,6 +1976,13 @@ $form="
 				}	
 							
 			}
+			
+			function lock(){
+				document.getElementById('listen_port').disabled=true;
+				document.getElementById('ssl_port-$t').disabled=true;
+			}
+			
+			$lock
 		</script>
 		";
 
@@ -2069,6 +2113,10 @@ function listen_port_save(){
 		$squid->HTCP_PORT=$_GET["htcp_port"];
 		$squid->ssl_port=$_GET["ssl_port"];
 		$squid->certificate_center=$_GET["certificate_center"];
+		$sock->SET_INFO("SquidOldHTTPPort",$squid->listen_port);
+		$sock->SET_INFO("SquidOldSSLPort",$squid->ssl_port);
+		$sock->SET_INFO("SquidOldHTTPPort2",$squid->second_listen_port);
+		
 		if(!$squid->SaveToLdap()){
 			echo $squid->ldap_error;
 			exit;

@@ -234,6 +234,8 @@ class pagebuilder{
 			$jsTable[]="/js/highcharts.js";
 			$jsTable[]="/js/modules/exporting.js";
 			$jsTable[]="/js/mobiscroll-2.1.custom.min.js";
+			$jsTable[]="/js/tiny_mce/tinymce.min.js";
+			$jsTable[]="/js/colorpicker.js";
 
 
 			if(($this->CurrentPageName()=="logon.php") OR ($this->CurrentPageName()=="logoff.php") OR ($this->CurrentPageName()=="404.php")){
@@ -371,6 +373,7 @@ class pagebuilder{
 			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/fileuploader.css\" />";
 			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/fonts.css.php\" />";
 			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/mobiscroll-2.1.custom.min.css\" />";
+			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/colorpicker.css\" />";
 			
 			
 			$_SESSION["ARTICA_HEAD_TEMPLATE"]=$html;

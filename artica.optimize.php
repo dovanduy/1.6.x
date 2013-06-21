@@ -50,8 +50,12 @@ function popup2(){
 	if(!is_numeric($EnableArticaStatus)){$EnableArticaStatus=1;}
 	if(!is_numeric($EnableArticaExecutor)){$EnableArticaExecutor=1;}
 	if(!is_numeric($EnableArticaBackground)){$EnableArticaBackground=1;}
-	if(!is_numeric($EnableClamavDaemon)){$EnableClamavDaemon=0;}
 	
+	
+	if(!is_numeric($EnableClamavDaemon)){$EnableClamavDaemon=0;}
+	$EnableClamavDaemonForced=$sock->GET_INFO("EnableClamavDaemonForced");
+	if(!is_numeric($EnableClamavDaemonForced)){$EnableClamavDaemonForced=0;}
+	if($EnableClamavDaemonForced==1){$EnableClamavDaemon=1;}
 	
 	
 	

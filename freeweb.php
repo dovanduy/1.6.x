@@ -9,6 +9,7 @@
 	include_once('ressources/class.freeweb.inc');
 	include_once('ressources/class.awstats.inc');
 	include_once('ressources/class.pdns.inc');
+	include_once('ressources/class.squid.inc');
 	
 	
 
@@ -177,6 +178,7 @@ function parameters(){
 	$ApacheDisableModDavFS=$sock->GET_INFO("ApacheDisableModDavFS");
 	$FreeWebPerformances=unserialize(base64_decode($sock->GET_INFO("FreeWebPerformances")));
 	$FreeWebEnableModFcgid=$sock->GET_INFO("FreeWebEnableModFcgid");
+	$FreeWebEnableModSUPhp=$sock->GET_INFO("FreeWebEnableModSUPhp");
 	$SecServerSignature=$sock->GET_INFO("SecServerSignature");	
 	$ApacheServerName=$sock->GET_INFO("ApacheServerName");
 	$ApacheLogRotate=$sock->GET_INFO("ApacheLogRotate");
@@ -189,6 +191,7 @@ function parameters(){
 	$JSFreeWebsEnableModQOS=1;
 	$JSFreeWebsEnableOpenVPNProxy=1;
 	$JSFreeWebsEnableWebDav=1;
+	$JSFreeWebsEnableModSUPhp=1;
 	if(!is_numeric($ApacheServerSignature)){$ApacheServerSignature=1;}
 	if(!is_numeric($FreeWebsEnableModSecurity)){$FreeWebsEnableModSecurity=0;}
 	if(!is_numeric($FreeWebsEnableModQOS)){$FreeWebsEnableModQOS=0;}
@@ -196,6 +199,8 @@ function parameters(){
 	if(!is_numeric($FreeWebsDisableSSLv2)){$FreeWebsDisableSSLv2=0;}
 	if(!is_numeric($ApacheDisableModDavFS)){$ApacheDisableModDavFS=0;}
 	if(!is_numeric($FreeWebEnableModFcgid)){$FreeWebEnableModFcgid=0;}
+	if(!is_numeric($FreeWebEnableModSUPhp)){$FreeWebEnableModSUPhp=0;}
+	
 	if(!is_numeric($ApacheLogRotate)){$ApacheLogRotate=1;}
 	
 	
@@ -215,6 +220,9 @@ function parameters(){
 	if(!$users->APACHE_MOD_QOS){$JSFreeWebsEnableModQOS=0;}
 	if(!$users->APACHE_PROXY_MODE){$JSFreeWebsEnableOpenVPNProxy=0;}
 	if(!$users->APACHE_MODE_WEBDAV){$JSFreeWebsEnableWebDav=0;}
+	if(!$users->APACHE_MOD_SUPHP){$JSFreeWebsEnableModSUPhp=0;}
+	
+	
 	if(!is_numeric($FreeWebsOpenVPNRemotPort)){
 		if($users->OPENVPN_INSTALLED){
 			include_once(dirname(__FILE__).'/ressources/class.openvpn.inc');
@@ -302,6 +310,11 @@ function parameters(){
 		<td>". Field_checkbox("FreeWebsEnableModSecurity",1,$FreeWebsEnableModSecurity,"ModSecurityDisable2()")."</td>
 		<td>&nbsp;</td>
 	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{FreeWebsEnableModSuPHP}:</td>
+		<td>". Field_checkbox("FreeWebEnableModSUPhp",1,$FreeWebEnableModSUPhp,"")."</td>
+		<td>&nbsp;</td>
+	</tr>				
 	<tr>
 		<td class=legend style='font-size:14px'>{FreeWebsEnableModEvasive}:</td>
 		<td>". Field_checkbox("FreeWebsEnableModEvasive",1,$FreeWebsEnableModEvasive)."&nbsp;<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?mod-evasive-default=yes')\" style='font-size:13px;text-decoration:underline'>{default}</a></td>
@@ -425,6 +438,9 @@ function parameters(){
 			if(document.getElementById('FreeWebsDisableSSLv2').checked){XHR.appendData('FreeWebsDisableSSLv2',1);}else{XHR.appendData('FreeWebsDisableSSLv2',0);}
 			if(document.getElementById('ApacheDisableModDavFS').checked){XHR.appendData('ApacheDisableModDavFS',1);}else{XHR.appendData('ApacheDisableModDavFS',0);}
 			if(document.getElementById('FreeWebEnableModFcgid').checked){XHR.appendData('FreeWebEnableModFcgid',1);}else{XHR.appendData('FreeWebEnableModFcgid',0);}
+			if(document.getElementById('FreeWebEnableModSUPhp').checked){XHR.appendData('FreeWebEnableModSUPhp',1);}else{XHR.appendData('FreeWebEnableModSUPhp',0);}
+			
+			
 			
 			if(document.getElementById('KeepAlive').checked){XHR.appendData('KeepAlive',1);}else{XHR.appendData('KeepAlive',0);}
 			XHR.appendData('Timeout',document.getElementById('Timeout').value);
@@ -453,8 +469,13 @@ function parameters(){
 			var JSFreeWebsEnableOpenVPNProxy=$JSFreeWebsEnableOpenVPNProxy;
 			var JSFreeWebsEnableWebDav=$JSFreeWebsEnableWebDav;
 			var JSFreeWebEnableModFcgid=$JSFreeWebEnableModFcgid;
+			var JSFreeWebsEnableModSUPhp=$JSFreeWebsEnableModSUPhp;
 			var ApacheServerTokens=document.getElementById('ApacheServerTokens').value;
 			
+			
+			if(JSFreeWebsEnableModSUPhp==0){
+				document.getElementById('FreeWebEnableModSUPhp').disabled=true;
+			}
 			
 			if(JSFreeWebsEnableModSecurity==0){
 				document.getElementById('SecServerSignature').disabled=true;
@@ -536,6 +557,11 @@ function SaveMacterConfig(){
 	$sock->SET_INFO("FreeWebsEnableOpenVPNProxy",$_GET["FreeWebsEnableOpenVPNProxy"]);
 	$sock->SET_INFO("FreeWebsDisableSSLv2",$_GET["FreeWebsDisableSSLv2"]);
 	$sock->SET_INFO("ApacheDisableModDavFS" ,$_GET["ApacheDisableModDavFS"]);
+	$sock->SET_INFO("FreeWebEnableModSUPhp" ,$_GET["FreeWebEnableModSUPhp"]);
+	
+	
+	
+	
 	$sock->SET_INFO("varWwwPerms",$_GET["varWwwPerms"]);
 	$sock->SET_INFO("FreeWebEnableModFcgid",$_GET["FreeWebEnableModFcgid"]);
 	$sock->SET_INFO("SecServerSignature", $_GET["SecServerSignature"]);
@@ -555,10 +581,26 @@ function popup(){
 	$tpl=new templates();	
 	$page=CurrentPageName();
 	$users=new usersMenus();
+	$sock=new sockets();
 	$array["index"]='{status}';
 	$array["webs"]='{squid_accel_websites}';
 	$array["params"]='{parameters}';
 	$array["listen_addresses"]='{listen_addresses}';
+	
+	if($users->SQUID_INSTALLED){
+		$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+		if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
+		if($users->SQUID_REVERSE_APPLIANCE){$SquidActHasReverse=1;}
+		
+	}
+	
+	$squid=new squidbee();
+	if($squid->isNGnx()){$SquidActHasReverse=1;}
+	
+	if($SquidActHasReverse==1){
+		unset($array["listen_addresses"]);
+	}
+	
 	$array["modules"]='{available_modules}';
 	if($users->PUREFTP_INSTALLED){
 		$array["pure-ftpd"]='{APP_PUREFTPD}';
@@ -650,6 +692,7 @@ function index(){
 	$tcp=new networking();
 	$APACHE_APPLIANCE=0;
 	if($users->APACHE_APPLIANCE){$APACHE_APPLIANCE=1;}
+	
 	
 	
 	if($users->roundcube_installed){
@@ -1258,8 +1301,10 @@ $table="
 	$serv[]=DAEMON_STATUS_ROUND("APP_APACHE_SRC",$ini,null,0).$table;
 	
 	if(!isset($_GET["withoutftp"])){
+		$serv[]=DAEMON_STATUS_ROUND("APP_PHPFPM",$ini,null,0);
 		$serv[]=DAEMON_STATUS_ROUND("PUREFTPD",$ini,null,0);
 		$serv[]=DAEMON_STATUS_ROUND("APP_TOMCAT",$ini,null,0);
+		$serv[]=DAEMON_STATUS_ROUND("APP_NGINX",$ini,null,0);
 	}
 	
 	$refresh="<div style='text-align:right;margin-top:8px'>".imgtootltip("refresh-24.png","{refresh}","RefreshTab('main_config_freeweb')")."</div>";

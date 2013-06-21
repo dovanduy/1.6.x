@@ -32,8 +32,11 @@
 	if(isset($_POST["tpl-remove"])){TEMPLATE_REMOVE();exit;}
 	if(isset($_GET["new-template"])){TEMPLATE_ADD();exit;}
 	if(isset($_POST["ChooseAclsTplSquid"])){TEMPLATE_AFFECT();exit;}
-	
+	if(isset($_GET["replace-js"])){REPLACE_JS();exit;}
+	if(isset($_GET["replace-popup"])){REPLACE_POPUP();exit;}
 	if(isset($_POST["RebuidSquidTplDefault"])){RebuidSquidTplDefault();exit;}
+	if(isset($_POST["replace-from"])){REPLACE_PERFORM();exit;}
+	
 js();
 
 function ZOOM_JS(){
@@ -48,6 +51,7 @@ function ZOOM_JS(){
 	
 }
 function HEADER_JS(){
+	header("content-type: application/x-javascript");
 	$zmd5=$_GET["zmd5"];
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -59,21 +63,128 @@ function HEADER_JS(){
 	
 }
 
+function REPLACE_JS(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{replace}");
+	$html="YahooWin5(700,'$page?replace-popup=yes','$title')";
+	echo $html;	
+}
+function REPLACE_POPUP(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();	
+	$html="<div class=explain style='font-size:16px'>{SQUID_TEMPLATE_REPLACE_EXPLAIN}</div>
+	<div id='$t'></div>
+	<div style='font-size:22px'>{from}:</div>
+	<textarea style='width:95%;height:100px;font-family:monospace;
+	overflow:auto;font-size:20px !important;border:4px solid #CCCCCC;background-color:transparent' id='from-$t'></textarea>
+	
+	<hr>
+	<div style='font-size:22px'>{to}:</div>
+	<textarea style='width:95%;height:100px;font-family:monospace;
+	overflow:auto;font-size:20px !important;border:4px solid #CCCCCC;background-color:transparent' id='to-$t'></textarea>
+	<div style='width:100%;text-align:right'>	
+	
+	
+	
+	<hr>". button("{apply}","Replace$t()",16)."</div>
+	<script>
+	var xReplace$t=function(obj){
+		var results=obj.responseText;
+		document.getElementById('$t').innerHTML='';
+		if(results.length>3){alert(results);}
+		
+    }	    
+	
+	 function Replace$t(){
+      	var XHR = new XHRConnection();
+      	XHR.appendData('replace-from',document.getElementById('from-$t').value);
+      	XHR.appendData('replace-to',document.getElementById('to-$t').value);
+      	AnimateDiv('$t');
+      	XHR.sendAndLoad('$page', 'POST',xReplace$t);          
+      }	
+     </script>	
+	
+	";
+	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function REPLACE_PERFORM(){
+	$stringfrom=trim(stripslashes($_POST["replace-from"]));
+	$stringto=trim(stripslashes($_POST["replace-to"]));
+	$q=new mysql_squid_builder();
+	if($stringfrom==null){echo "From: NULL -> abort\n";}
+
+	$sql="SELECT * FROM squidtpls";
+	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){echo "Fatal,$q->mysql_error\n";return;}
+	$i=0;
+	while ($ligne = mysql_fetch_assoc($results)) {	
+		$zmd5=$ligne["zmd5"];
+		$ligne["template_header"]=stripslashes($ligne["template_header"]);
+		$ligne["template_title"]=stripslashes($ligne["template_title"]);
+		$ligne["template_body"]=stripslashes($ligne["template_body"]);
+		
+		$ligne["template_body"]=str_replace($stringfrom, $stringto, $ligne["template_body"]);
+		$ligne["template_title"]=str_replace($stringfrom, $stringto, $ligne["template_title"]);
+		$ligne["template_header"]=str_replace($stringfrom, $stringto, $ligne["template_header"]);
+		
+		$ligne["template_header"]=mysql_escape_string($ligne["template_header"]);
+		$ligne["template_title"]=mysql_escape_string($ligne["template_title"]);
+		$ligne["template_body"]=mysql_escape_string($ligne["template_body"]);
+		
+		$q->QUERY_SQL("UPDATE squidtpls 
+					SET template_header='{$ligne["template_header"]}',
+					template_title='{$ligne["template_title"]}',
+					template_body='{$ligne["template_body"]}'
+					WHERE zmd5='$zmd5'");
+		
+		if(!$q->ok){
+				echo $q->mysql_error."\nAfter $i modification(s)";
+				if($i>0){
+					$sock=new sockets();
+					$sock->getFrameWork("cmd.php?squid-templates=yes");
+				}
+				break;
+		}
+		$i++;
+					
+		
+		
+	}
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("\"$stringfrom\" {to} \"$stringto\"
+	{success} $i {templates}",1);
+	if($i>0){
+		$sock=new sockets();
+		$sock->getFrameWork("cmd.php?squid-templates=yes");
+	}
+	
+}
+
 function js(){
 	$tpl=new templates();
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{squid_templates_error}");
 	if(!is_numeric($_GET["choose-acl"])){$_GET["choose-acl"]=0;}
 	$yahoo="YahooWin4";
+	$YooKill="YahooWin4Hide();";
 	if($_GET["choose-acl"]>0){
 		$yahoo="YahooWinBrowse";
+		$YooKill="YahooWinBrowseHide();";
 	}
 	if(isset($_GET["choose-generic"])){
 		$yahoo="YahooWinBrowse";
-		
+		$YooKill="YahooWinBrowseHide();";
 	}
 	$html="
-	$('#SquidTemplateErrorsTable').remove();
+	if(document.getElementById('SquidTemplateErrorsTable')){
+		$('#SquidTemplateErrorsTable').remove();
+	}
+	$YooKill
 	$yahoo('774','$page?popup=yes&choose-acl={$_GET["choose-acl"]}&choose-generic={$_GET["choose-generic"]}&divid={$_GET["divid"]}&yahoo=$yahoo','$title');";
 	echo $html;
 	}
@@ -183,7 +294,7 @@ function ZOOM_POPUP(){
 	<center>".Field_text("template_title-$t",$ligne["template_title"],"font-size:18px;border:4px solid #CCCCCC;width:95%")."</center>
 	<div style='width:95%' class=form id='{$_GET["zmd5"]}'>
 
-	<textarea style='width:100%;height:450px;font-family:monospace;
+	<textarea style='width:95%;height:450px;font-family:monospace;
 	overflow:auto;font-size:13px;border:4px solid #CCCCCC;background-color:transparent' id='{$_GET["zmd5"]}-text-$t'>{$ligne["template_body"]}</textarea>
 	<div style='width:100%;text-align:right'><hr>". button("{apply}","SaveTemplateForm()",16)."</div>
 	</div>
@@ -556,6 +667,7 @@ function popup(){
 	$ask_remove_template=$tpl->javascript_parse_text("{ask_remove_template}");
 	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
 	$date=$tpl->_ENGINE_parse_body("{zDate}");
+	$replace=$tpl->_ENGINE_parse_body("{replace}");
 	$t=time();
 	$backToDefault=$tpl->_ENGINE_parse_body("{backToDefault}");
 	$ERROR_SQUID_REBUILD_TPLS=$tpl->javascript_parse_text("{ERROR_SQUID_REBUILD_TPLS}");
@@ -584,6 +696,8 @@ $('#SquidTemplateErrorsTable').flexigrid({
 		{display: '$template_name', name : 'template_name', width :190, sortable : true, align: 'left'},
 		{display: '$title', name : 'template_title', width : $template_title_size, sortable : false, align: 'left'},
 		{display: '$date', name : 'template_time', width : 110, sortable : true, align: 'left'},
+		
+		
 		$chooseacl_column
 		{display: '&nbsp;', name : 'delete', width : 31, sortable : false, align: 'center'},
 	],
@@ -592,6 +706,8 @@ $('#SquidTemplateErrorsTable').flexigrid({
 		{name: '$new_template', bclass: 'add', onpress : NewTemplateNew},
 		{name: '$lang', bclass: 'Search', onpress : SearchLanguage},
 		{separator: true},
+		{name: '$replace', bclass: 'Copy', onpress : Replace$t},
+		
 		{name: '$online_help', bclass: 'Help', onpress : help$t},
 
 		],
@@ -621,7 +737,9 @@ function help$t(){
 	s_PopUpFull('http://proxy-appliance.org/index.php?cID=385','1024','900');
 }
 
-
+function Replace$t(){
+	Loadjs('$page?replace-js=yes');
+}
 
 	function SearchLanguage(){
 		YahooWin5(350,'$page?Select-lang=yes&choose-acl={$_GET["choose-acl"]}','$lang');

@@ -47,7 +47,8 @@ function popup(){
 	$page=CurrentPageName();
 	$html="
 	<div id='$t'></div>
-	<table style='width:100%' class=form>
+	<div style='width:95%' class=form>
+	<table>
 	<tr>
 		<td class=legend style='font-size:14px'>". $tpl->_ENGINE_parse_body("{deny_artica_to_write_config}")."</td>	
 		<td>". Field_checkbox("DenySquidWriteConf", 1,$DenySquidWriteConf,"DenySquidWriteConfSave()")."</td>
@@ -55,10 +56,11 @@ function popup(){
 	</table>
 	
 	<textarea 
-		style='width:100%;height:550px;overflow:auto;border:5px solid #CCCCCC;font-size:14px;font-weight:bold;padding:3px'
+		style='width:95%;height:550px;overflow:auto;border:5px solid #CCCCCC;font-size:14px;font-weight:bold;padding:3px'
 		id='SQUID_CONTENT-$t'>$datas</textarea>
 		
 	<center><hr>". $tpl->_ENGINE_parse_body(button("{apply}", "SaveUserConfFile()",22))."</center>
+	</div>
 	<script>
 		var x_DenySquidWriteConfSave= function (obj) {
 			var results=obj.responseText;

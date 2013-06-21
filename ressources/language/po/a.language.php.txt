@@ -3,7 +3,7 @@
  It also provides a kernel level implementation of the AppleTalk Protocol Suite[br]
 Your system will be able to serve many Macintosh clients simultaneously as an AppleShare file server (AFP).
 </ABOUT_NETATALK>
-<aboveeq>is above</aboveeq>
+<aboveeq>Est&aacute; acima</aboveeq>
 <abovenot>is not above</abovenot>
 <access_events>Access events</access_events>
 <acls_and_quotas>ACLS & Quotas</acls_and_quotas>

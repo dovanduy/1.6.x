@@ -1,4 +1,7 @@
 <?php
+
+
+
 	include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 	include_once(dirname(__FILE__)."/ressources/class.crypt.php");
 	include_once(dirname(__FILE__)."/ressources/class.user.inc");
@@ -13,18 +16,18 @@
 	
 	
 function C_ICAP_FILE(){
-$file=$_GET["file"];
-if($file<>null){
-	$ci=new cicap();
-	$quarantinef=$ci->main_array["CONF"]["VirSaveDir"]."/$file";
-	writelogs("$file -> $quarantinef",__FUNCTION__,__FILE__,__LINE__);
-	$infos=FileInfo($quarantinef);
-}else{
-	$infos="ERROR! No file!";
-}
-$tpl=new template_users("{$_GET["file"]}",$infos,1,0,0,0);
-$tpl->web_page=str_replace('LeftMenushide();','',$tpl->web_page);
-echo $tpl->web_page;
+	$file=$_GET["file"];
+	if($file<>null){
+		$ci=new cicap();
+		$quarantinef=$ci->main_array["CONF"]["VirSaveDir"]."/$file";
+		writelogs("$file -> $quarantinef",__FUNCTION__,__FILE__,__LINE__);
+		$infos=FileInfo($quarantinef);
+	}else{
+		$infos="ERROR! No file!";
+	}
+	$tpl=new template_users("{$_GET["file"]}",$infos,1,0,0,0);
+	$tpl->web_page=str_replace('LeftMenushide();','',$tpl->web_page);
+	echo $tpl->web_page;
 
 }
 

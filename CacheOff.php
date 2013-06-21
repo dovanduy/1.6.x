@@ -10,6 +10,7 @@ include_once('ressources/class.sockets.inc');
 $GLOBALS["langs"]=array("fr","en","po","es","it");
 
 if(isset($_GET["jquery"])){
+	return;
 	include_once('ressources/class.page.builder.inc');
 	$p=new pagebuilder();
 	$jquery=$p->jqueryPath();
@@ -143,15 +144,22 @@ if(function_exists("apc_clear_cache")){
 			unset($_SESSION["__CLASS-USER-MENUS"]);
 			unset($_SESSION["translation"]);
 			unset($_SESSION["ICON_MYSQL_CACHE"]);
+			unset($_SESSION["SETTINGS_FILES"]);
 			unset($_SESSION["CATZ"]);
 			unset($_SESSION[md5("statusPostfix_satus")]);
 			@unlink("ressources/logs/postfix.status.html");
+			
 
 			$workdir="/usr/share/artica-postfix/ressources/logs/web";
 			$ToDelete["admin.index.tabs.html"]=true;
 			$ToDelete["admin.index.memory.html"]=true;
 			$ToDelete["admin.index.notify.html"]=true;
 			$ToDelete["admin.index.quicklinks.html"]=true;
+			$ToDelete["admin.index.status-infos.php.left_menus_services"]=true;
+			$ToDelete["admin.index.status-infos.php.page"]=true;
+			$ToDelete["admin.index.status-infos.php.left_menus_actions"]=true;
+			
+			
 			$ToDelete["logon.html"]=true;
 			$ToDelete["traffic.statistics.html"]=true;
 			while (list ($filename, $val) = each ($ToDelete) ){@unlink("$workdir/$filename");}
@@ -167,7 +175,8 @@ if(function_exists("apc_clear_cache")){
 			$html=$tpl->javascript_parse_text($text,1);
 			$html=str_replace("\n", "<br>", $html);
 			echo "<div class=explain style='font-size:14px'>".$html."</div>";
-			
+			$sock=new sockets();
+			$sock->getFrameWork("services.php?cache-pages=yes");
 			
 		
 

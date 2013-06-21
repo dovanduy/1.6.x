@@ -372,6 +372,14 @@
 		
 		public function CreateSite(){
 			include_once(dirname(__FILE__)."/class.user.inc");
+			if(trim($this->servername)==null){
+				echo "Fatal! no servername\n";return;
+			}
+			$this->mysql_password=mysql_escape_string($this->mysql_password);
+			$this->mysql_username=mysql_escape_string($this->mysql_username);
+			$this->ftpuser=mysql_escape_string($this->ftpuser);
+			$this->ftppassword=mysql_escape_string($this->ftppassword);
+			$this->uid=mysql_escape_string($this->uid);			
 			
 			$sqladd="INSERT INTO freeweb (mysql_password,mysql_username,ftpuser,ftppassword,useSSL,
 			servername,mysql_database,uid,useMysql,
@@ -380,25 +388,27 @@
 			'$this->servername','$this->mysql_database','$this->uid','$this->useMysql',
 			'$this->useFTP','$this->lvm_vg','$this->lvm_size','$this->UseLoopDisk','$this->LoopMounts','$this->ou','$this->groupware','$this->www_dir')";
 			
-			
-		$sqledit="UPDATE freeweb SET 
-			mysql_password='$this->mysql_password',
-			mysql_username=''$this->mysql_username',
-			ftpuser=''$this->ftpuser',
-			ftppassword=''$this->ftppassword',
-			uid=''$this->uid',
-			useMysql='$this->useMysql',
-			useFTP='$this->useFTP',
-			lvm_vg='$this->lvm_vg',
-			lvm_size='$this->lvm_size',
-			UseLoopDisk='$this->UseLoopDisk',
-			LoopMounts='$this->LoopMounts',
-			useSSL='$this->useSSL',
-			ou='$this->ou',
-			groupware='$this->groupware',
-			www_dir='$this->www_dir'
-			WHERE servername='$this->servername'";	
-				
+
+		$sqlzedit[]="UPDATE freeweb SET";
+		$sqlzedit[]="mysql_password='$this->mysql_password',"; 
+		$sqlzedit[]="mysql_username='$this->mysql_username',"; 
+		$sqlzedit[]="ftpuser='$this->ftpuser',";
+		$sqlzedit[]="ftppassword='$this->ftppassword',";
+		$sqlzedit[]="uid='".$this->uid."',";
+		$sqlzedit[]="useMysql='$this->useMysql',";
+		$sqlzedit[]="useFTP='$this->useFTP',";
+		$sqlzedit[]="lvm_vg='$this->lvm_vg',";
+		$sqlzedit[]="lvm_size='$this->lvm_size',";
+		$sqlzedit[]="UseLoopDisk='$this->UseLoopDisk',";
+		$sqlzedit[]="LoopMounts='$this->LoopMounts',";
+		$sqlzedit[]="useSSL='$this->useSSL',";
+		$sqlzedit[]="ou='$this->ou',";
+		$sqlzedit[]="groupware='$this->groupware',";
+		$sqlzedit[]="www_dir='$this->www_dir'";
+		$sqlzedit[]="WHERE servername='$this->servername'";	
+		$sqledit=@implode(" ", $sqlzedit);
+		
+		if($GLOBALS["VERBOSE"]){echo "\n*******\n$sqledit\n*******\n";}
 			
 			$sql="SELECT servername FROM freeweb WHERE servername='$this->servername'";
 			$q=new mysql();
@@ -598,6 +608,9 @@
 		
 		
 		public function QUOS(){
+			if(!$this->AS_ROOT){return;}
+			if(!isset($this->Params["QOS"])){return;}
+			echo "Starting......: Apache \"$this->servername\" QUOS() {$this->Params["QOS"]["EnableQOS"]}\n";
 			if(!isset($this->Params["QOS"])){$this->Params["QOS"]["EnableQOS"]=0;}
 			$EnableQOS=$this->Params["QOS"]["EnableQOS"];
 			if(!is_numeric($EnableQOS)){$EnableQOS=0;}
@@ -610,13 +623,14 @@
 			if(isset($this->Params["QOS"]["QS_LimitRequestBody"])){$QS_LimitRequestBody=$this->Params["QOS"]["QS_LimitRequestBody"];}
 			
 			if($EnableQOS==0){
+				echo "Starting......: Apache \"$this->servername\" QUOS() DISABLED\n";
 				//$f[]="\t<IfModule mod_qos.c>";
 				//$f[]="\t\tQS_InvalidUrlEncoding off";
 				//$f[]="\t\tQS_ResponseHeaderFilter off";
 				//$f[]="\t\tQS_DenyQueryBody off";
 				//$f[]="\t\tQS_PermitUriBody off";
 				//$f[]="\t</IfModule>";
-				return @implode("\n",$f);
+				return null;
 			}
 			
 			
@@ -1144,6 +1158,13 @@
 				$this->WORKING_DIRECTORY="/opt/kaspersky/klmsui/share/htdocs";
 				return;
 			}
+			
+			if($this->groupware=="CHILLI"){
+				$this->WORKING_DIRECTORY="/var/www/coova_json";
+				$this->InstallChilli();
+				return;
+			}
+			
 			if($this->groupware=="WPAD"){
 				$this->WORKING_DIRECTORY="/usr/share/proxy.pac";
 				return;
@@ -1502,8 +1523,14 @@
 			
 				$f[]=$this->WORKING_DIRECTORY;
 				$f[]="/var/log/apache2/$this->servername";
+				
+				if($this->AS_ROOT){
+					@chmod("/var/log/apache2/$this->servername", 0777);
+				}
 			
 				if($this->groupware=="KLMS"){return null;}
+				if($this->groupware=="CHILLI"){return null;}
+				
 			
 				if($this->groupware=="GROUPOFFICE"){
 					$f[]="/home/$this->servername";
@@ -1575,6 +1602,16 @@
 					$f[]=$ligne["directory"];
 				}
 			}
+			
+			$sql="SELECT directory FROM freewebs_openbasedir WHERE servername='$this->servername' ORDER BY directory";
+			$WorkingDirRegex=string_to_regex($this->WORKING_DIRECTORY);
+			$q=new mysql();
+			$results=$q->QUERY_SQL($sql,'artica_backup');
+			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+				if(is_file($ligne["directory"])){$ligne["directory"]=dirname($ligne["directory"]);}
+				$f[]=$ligne["directory"];
+			
+			}			
 			
 			
 			
@@ -1826,6 +1863,8 @@
 			if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}else{$sock=$GLOBALS["CLASS_SOCKETS"];}
 			if($this->WebCopyID>0){return null;}
 			if($this->groupware=="KLMS"){return null;}
+			if($this->groupware=="CHILLI"){return null;}
+			
 			$php_open_base_dir=$this->open_basedir();
 			$includes[]=".";
 			$includes[]="/usr/share/php";
@@ -1861,7 +1900,19 @@
 					if(is_file($ligne["directory"])){$ligne["directory"]=dirname($ligne["directory"]);}
 					$includes[]=$ligne["directory"];
 				}
+			}
+			
+			$sql="SELECT directory FROM freewebs_openbasedir WHERE servername='$this->servername' ORDER BY directory";
+			$WorkingDirRegex=string_to_regex($this->WORKING_DIRECTORY);
+			$q=new mysql();
+			$results=$q->QUERY_SQL($sql,'artica_backup');
+			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+					if(is_file($ligne["directory"])){$ligne["directory"]=dirname($ligne["directory"]);}
+					$includes[]=$ligne["directory"];
+				
 			}			
+
+			
 			
 			
 			$this->Params["PHP_VALUES"]["include_path"]=@implode(":", $includes);
@@ -2058,6 +2109,7 @@
 			if($this->groupware=="WEBDAVFREE"){return "index.html";}
 			if($this->groupware=="UPDATEUTILITY"){return "index.php";}
 			if($this->groupware=="WPAD"){return "proxy.pac";}
+			if($this->groupware=="CHILLI"){return "splash.php";}
 			
 			
 			
@@ -2673,6 +2725,10 @@
 			$sql="DELETE FROM freeweb_webdav WHERE servername='$this->servername'";
 			writelogs("$sql",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			$q->QUERY_SQL($sql,"artica_backup");			
+
+			$sql="DELETE FROM freewebs_openbasedir WHERE servername='$this->servername'";
+			writelogs("$sql",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			$q->QUERY_SQL($sql,"artica_backup");			
 			
 			
 			
@@ -3000,6 +3056,25 @@
 			@unlink("$this->WORKING_DIRECTORY/config.php");	
 			@file_put_contents("$this->WORKING_DIRECTORY/config.php",@implode("\n",$f));	
 		}
+		
+		private function InstallChilli(){
+			@mkdir("$this->WORKING_DIRECTORY/$this->servername/img",0755,true);
+			@chmod("$this->WORKING_DIRECTORY/$this->servername/img",0755);
+			$f["input.png"]=true;    
+			$f["btn_bg.png"]=true;  ;  
+			$f["input_act.png"]=true;  
+			$f["form.png"]=true;  ;  
+			$f["logo.png"]=true;   
+			$f["pattern.png"]=true;  
+
+			while (list ($key, $value) = each ($f) ){
+				@copy("/usr/share/artica-postfix/ressources/templates/Squid/i/$key", "$this->WORKING_DIRECTORY/$this->servername/img/$key");
+				@chmod("$this->WORKING_DIRECTORY/$this->servername/img/$key",0755);
+			}
+			
+		}
+		
+		
 		
 		private function InstallZarafaConfigWebAPP($Otherdirectory=null){
 				if(!$this->AS_ROOT){return;}
@@ -3459,6 +3534,10 @@
 				
 		}		
 		private function SSLEngine2(){
+			
+			
+			
+			
 			$directory="/etc/openssl/certificate_center/$this->sslcertificate";
 			if(!is_file("$directory/server.crt")){
 				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $directory/server.crt no such file\n";}
@@ -3631,6 +3710,8 @@
 			
 			
 			$f[]="[PHP]";
+			
+			$f[]="magic_quotes_gpc = \"{$this->Params["PHP_VALUES"]["magic_quotes_gpc"]}\"";
 			$f[]="safe_mode = \"{$this->Params["PHP_VALUES"]["safe_mode"]}\"";
 			$f[]="safe_mode_gid = \"{$this->Params["PHP_VALUES"]["safe_mode_gid"]}\"";
 			$f[]="engine = \"{$this->Params["PHP_VALUES"]["engine"]}\"";

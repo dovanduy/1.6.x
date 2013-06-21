@@ -1,6 +1,7 @@
 <?php
-if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
-if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
+if(isset($_GET["VERBOSE"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
+if(isset($_GET["VERBOSE"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -42,7 +43,7 @@ if(isset($_POST["compile-alldbs-perform"])){compile_all_db_perform();exit;}
 
 if(isset($_GET["CheckStatsAppliance"])){CheckStatsAppliance();exit;}
 if(isset($_POST["PurgeCategoriesDatabase"])){PurgeCategoriesDatabase();exit;}
-if(isset($_POST["PurgeCategoryTable"])){PurgeCategoryTable();exit;}
+
 
 if(isset($_GET["status"])){global_status();exit;}
 if(isset($_GET["global-artica-status-databases"])){global_status_artica_db();exit;}
@@ -129,7 +130,17 @@ function statusDB(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$users=new usersMenus();
+	$sock=new sockets();
+	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	
+	
+	if($DisableArticaProxyStatistics==1){
+		$html=FATAL_ERROR_SHOW_128("{ARTICASTATISTICS_DISABLED}",16)."</center>";
+		echo $tpl->_ENGINE_parse_body($html);
+		return;		
+		
+	}
 	
 	if(!$users->ARTICADB_INSTALLED){
 		$html=FATAL_ERROR_SHOW_128("{ARTICADB_NOT_INSTALLED_EXPLAIN}")."<center style='margin:80px'>
@@ -139,7 +150,7 @@ function statusDB(){
 	}
 	
 	
-	$date=GetLastUpdateDate();
+	$date=$sock->getFrameWork("squid.php?articadb-version=yes");
 	$q=new mysql_catz();
 	$sock=new sockets();
 	$ini=new Bs_IniHandler();
@@ -149,7 +160,12 @@ function statusDB(){
 	$APP_SQUID_DB=DAEMON_STATUS_ROUND("APP_SQUID_DB",$ini,null,1);
 	$sql="SHOW VARIABLES LIKE '%version%';";
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){writelogs("Fatal Error: $q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+	
+	
+	
+	if(!$q->ok){
+		$error=FATAL_ERROR_SHOW_128("$q->mysql_error");
+		writelogs("Fatal Error: $q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($ligne["Variable_name"]=="slave_type_conversions"){continue;}
 		$tt[]="	<tr>
@@ -195,7 +211,7 @@ function statusDB(){
 	
 	$dbsize=$sock->getFrameWork("squid.php?articadbsize=yes");
 	$items=numberFormat($q->COUNT_CATEGORIES(),0,""," ");
-	$html="
+	$html="$error
 	<table style='width:99%' class=form>
 	<tr>
 	<td valign='top'>$APP_ARTICADB$APP_SQUID_DB</td>
@@ -399,9 +415,11 @@ function categories(){
 		$compilesize="51";
 	}
 	
+
+	
 	if($_GET["maximize"]=="yes"){
-		$tablewith=837;
-		$categorysize=469;
+		$tablewith=900;
+		$categorysize=522;
 		$size_size=72;
 		$size_elemnts=105;
 	}	
@@ -415,7 +433,15 @@ function categories(){
 		
 	}
 	
-	
+	if($_GET["minisize-middle"]=="yes"){
+		$tablewith=917;
+		$categorysize=470;
+		$size_elemnts=70;
+		$size_size=80;
+		$compilesize="51";
+		$TABLE_ROWS2="{display: 'Artica', name : 'TABLE_ROWS2', width : $size_elemnts, sortable : false, align: 'left'},";
+		$artica="&artica=yes";
+	}	
 	
 	$t=time();
 	$html="
@@ -524,7 +550,7 @@ buttons : [
 			if(confirm('$purge_catagories_table_explain')){
 				var XHR = new XHRConnection();
 				XHR.appendData('PurgeCategoryTable',tablename);
-				XHR.sendAndLoad('$page', 'POST',X_TableCategoryPurge);					
+				XHR.sendAndLoad('dansguardian2.databases.compiled.php', 'POST',X_TableCategoryPurge);					
 			}
 		}
 		
@@ -596,7 +622,11 @@ function categories_search($forceArtica=false){
 		$sql="SELECT COUNT( table_name ) AS tcount FROM information_schema.tables WHERE table_schema = '$tableSchema' AND table_name LIKE 'category_$search'";
 		writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-		if(!$q->ok){json_error_show("Mysql Error [".__LINE__."]: $q->mysql_error",1);}
+		if($q->mysql_error<>null){
+			if(!$q->ok){
+				json_error_show("Mysql Error [".__LINE__."]: $q->mysql_error.<br>$sql",1);
+				}
+		}
 		$total = $ligne["tcount"];
 		
 	}else{
@@ -620,7 +650,12 @@ function categories_search($forceArtica=false){
 	
 	writelogs("$q->mysql_admin:$q->mysql_password:$sql",__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
-	if(!$q->ok){json_error_show("Mysql Error [".__LINE__."]: $q->mysql_error",1);}
+	
+	if(!$q->ok){
+		if($q->mysql_error<>null){
+			json_error_show("Mysql Error [".__LINE__."]: $q->mysql_error<br>$sql",1);
+		}
+	}
 	if(mysql_num_rows($results)==0){
 		if(!$artica){
 			categories_search(true);
@@ -880,6 +915,7 @@ function categories_search2(){
 }
 
 function add_category_js(){
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$widownsize=725;
@@ -1101,13 +1137,6 @@ function add_category_save(){
 	$_POST["personal_database"]=strtolower($ldap->StripSpecialsChars($_POST["personal_database"]));
 	
 	if($_POST["personal_database"]=="security"){$_POST["personal_database"]="security2";}
-	
-	if(isset($dans->array_blacksites[$_POST["personal_database"]])){
-		$tpl=new templates();
-		echo $tpl->javascript_parse_text("{category_already_exists}");
-		return;
-	}
-	
 	if($_POST["CatzByGroupA"]<>null){$_POST["CatzByGroupL"]=$_POST["CatzByGroupA"];}
 	
 	$_POST["CatzByGroupL"]=addslashes($_POST["CatzByGroupL"]);
@@ -1122,6 +1151,13 @@ function add_category_save(){
 			WHERE category='{$_POST["personal_database"]}'
 			";
 	}else{
+		
+		if(isset($dans->array_blacksites[$_POST["personal_database"]])){
+			$tpl=new templates();
+			echo $tpl->javascript_parse_text("{$_POST["personal_database"]}:{category_already_exists}");
+			return;
+		}
+		
 		$sql="INSERT IGNORE INTO personal_categories (category,category_description,master_category) 
 		VALUES ('{$_POST["personal_database"]}','{$_POST["category_text"]}','{$_POST["CatzByGroupL"]}');";
 	}
@@ -1327,12 +1363,7 @@ function PurgeCategoriesDatabase(){
 	
 }
 
-function PurgeCategoryTable(){
-	$q=new mysql_squid_builder();
-	$q->QUERY_SQL("DROP TABLE {$_POST["PurgeCategoryTable"]}");
-	$q->CreateCategoryTable(null,$_POST["PurgeCategoryTable"]);
-	
-}
+
 
 
 

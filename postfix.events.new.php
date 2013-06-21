@@ -10,7 +10,7 @@
 	include_once('ressources/class.main_cf.inc');
 
 	$user=new usersMenus();
-	if($user->AsPostfixAdministrator==false){
+	if(!CheckRights()){
 		$tpl=new templates();
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
@@ -21,6 +21,12 @@
 	if(isset($_GET["ZoomEvents"])){ZoomEvents();exit;}
 	
 page();
+
+function CheckRights(){
+	if($user->AsPostfixAdministrator){return true;}
+	if($user->AsMailBoxAdministrator){return true;}
+	return false;
+}
 
 function js_zarafa(){
 	$page=CurrentPageName();
@@ -145,7 +151,8 @@ function events_list(){
 		$img=statusLogs($line);
 		
 		$loupejs="ZoomEvents('$lineenc')";
-		$line="<a href=\"javascript:blur();\"OnClick=\"javascript:$loupejs\"><img src='img/tree_loupe.gif' align='right'><span style='font-size:12px'>$line</span></a>";
+		
+
 	
 	$data['rows'][] = array(
 				'id' => "dom$m5",

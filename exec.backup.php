@@ -366,8 +366,10 @@ if(!$GLOBALS["NO_STANDARD_BACKUP"]){
 			
 			backup_events($ID,"initialization","INFO, LDAP Database processing",__LINE__);
 			backup_ldap($ID);
-			backup_events($ID,"initialization","INFO, Mysql Database processing",__LINE__);
+			backup_events($ID,"initialization","INFO, MySQL Database processing",__LINE__);
 			backup_mysql($ID,0);
+			backup_events($ID,"initialization","INFO, Restarting MySQL service...",__LINE__);
+			shell_exec("/etc/init.d/mysql restart");
 			backup_events($ID,"initialization","INFO, Artica settings processing",__LINE__);
 			backup_artica($ID);
 			if($users->ZARAFA_INSTALLED){if($sock->GET_INFO("ZarafaStoreOutside")==1){backup_events($ID,"initialization","INFO, Zarafa external attachments processing...");backup_ZarafaOutside($ID);}}
@@ -1720,8 +1722,13 @@ function check_rsync_error($ID,$results){
 			 if(preg_match("#some files\/attrs were not transferred#",$line)){continue;}
 			 if(preg_match("#some files vanished before they could be transferred#",$line)){continue;}
 			 writelogs(date('m-d H:i:s')." "."[TASK $ID]: $line ",__FUNCTION__,__FILE__,__LINE__);
-			 if($ID>0){backup_events($ID,"Copy","ERROR,$line\n$cmd",__LINE__);return false;}
+			 if($ID>0){backup_events($ID,"Copy","ERROR,$line",__LINE__);return false;}
 			}
+			
+			if(preg_match("#rsync: mkstemp.*?failed:#",$line)){
+				if($ID>0){backup_events($ID,"Copy","ERROR,$line",__LINE__);return false;}
+			}
+			
 		}
 	return true;	
 	}

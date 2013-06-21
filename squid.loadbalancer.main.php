@@ -323,13 +323,27 @@ function popup_list_options($datas){
 function peer_infos(){
 	include_once("ressources/class.ccurl.inc");
 	$squid=new squidbee();
+	$sock=new sockets();
+	$SquidMgrListenPort=trim($sock->GET_INFO("SquidMgrListenPort"));
+	
+	if( !is_numeric($SquidMgrListenPort) OR ($SquidMgrListenPort==0) ){
+		$listenport=$squid->listen_port;
+	
+	}else{
+		$listenport=$SquidMgrListenPort;
+	}
 
 
-	$uri="http://localhost:$squid->listen_port/squid-internal-mgr/peer_select";
+	$uri="http://127.0.0.1:$listenport/squid-internal-mgr/peer_select";
 	if($GLOBALS["VERBOSE"]){echo "<li> curl -> $uri</li>";}
-	$curl=new ccurl("http://localhost:$squid->listen_port/squid-internal-mgr/peer_select");
+	$curl=new ccurl("http://127.0.0.1:$squid->listen_port/squid-internal-mgr/peer_select");
 	$curl->NoHTTP_POST=true;
-	$curl->ArticaProxyServerEnabled="no";	
+	$curl->ArticaProxyServerEnabled="no";
+	$curl->CURLOPT_NOPROXY="127.0.0.1";
+	$curl->ArticaProxyServerEnabled=="no";
+	$curl->interface="127.0.0.1";
+	$curl->Timeout=5;
+	$curl->UseDirect=true;		
 	$curl->get();
 	if($GLOBALS["VERBOSE"]){echo "<li> ". strlen( $curl->data)."</li>";}
 	$datas=explode("\n", $curl->data);

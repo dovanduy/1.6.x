@@ -64,23 +64,41 @@ var x_SaveArticaUpdateForm= function (obj) {
 	
 	function SaveArticaUpdateForm(){
 		var XHR = new XHRConnection();
-		if(document.getElementById('enabled').checked){XHR.appendData('enabled','yes');}else{XHR.appendData('enabled','no');}
-		if(document.getElementById('autoinstall').checked){XHR.appendData('autoinstall','yes');}else{XHR.appendData('autoinstall','no');}
-		if(document.getElementById('nightlybuild').checked){XHR.appendData('nightlybuild','yes');}else{XHR.appendData('nightlybuild','no');}		
-		if(document.getElementById('front_page_notify').checked){XHR.appendData('front_page_notify','yes');}else{XHR.appendData('front_page_notify','no');}
-		if(document.getElementById('EnableNightlyInFrontEnd').checked){XHR.appendData('EnableNightlyInFrontEnd','1');}else{XHR.appendData('EnableNightlyInFrontEnd','0');}
-		if(document.getElementById('EnablePatchUpdates').checked){XHR.appendData('EnablePatchUpdates','1');}else{XHR.appendData('EnablePatchUpdates','0');}
+		
+		if(document.getElementById('enabled')){
+			if(document.getElementById('enabled').checked){XHR.appendData('enabled','yes');}else{XHR.appendData('enabled','no');}
+		}
+		
+		if(document.getElementById('autoinstall')){
+			if(document.getElementById('autoinstall').checked){XHR.appendData('autoinstall','yes');}else{XHR.appendData('autoinstall','no');}
+		}
+		
+		if(document.getElementById('nightlybuild')){
+			if(document.getElementById('nightlybuild').checked){XHR.appendData('nightlybuild','yes');}else{XHR.appendData('nightlybuild','no');}
+		}		
+		
+		if(document.getElementById('front_page_notify')){
+			if(document.getElementById('front_page_notify').checked){XHR.appendData('front_page_notify','yes');}else{XHR.appendData('front_page_notify','no');}
+		}
+		
+		if(document.getElementById('EnableNightlyInFrontEnd')){
+			if(document.getElementById('EnableNightlyInFrontEnd').checked){XHR.appendData('EnableNightlyInFrontEnd','1');}else{XHR.appendData('EnableNightlyInFrontEnd','0');}
+		}
+		if(document.getElementById('EnablePatchUpdates')){
+			if(document.getElementById('EnablePatchUpdates').checked){XHR.appendData('EnablePatchUpdates','1');}else{XHR.appendData('EnablePatchUpdates','0');}
+		}
 		
 		
 		
-		
-		if(document.getElementById('EnableScheduleUpdates').checked){
-			var ArticaScheduleUpdates=document.getElementById('ArticaScheduleUpdates').value;
-			if(ArticaScheduleUpdates.length==0){
-				alert('$cannot_schedule_update_without_schedule');
-			}
-			XHR.appendData('EnableScheduleUpdates','1');}
-		else{XHR.appendData('EnableScheduleUpdates','0');}
+		if(document.getElementById('EnableScheduleUpdates')){
+			if(document.getElementById('EnableScheduleUpdates').checked){
+				var ArticaScheduleUpdates=document.getElementById('ArticaScheduleUpdates').value;
+				if(ArticaScheduleUpdates.length==0){
+					alert('$cannot_schedule_update_without_schedule');
+				}
+				XHR.appendData('EnableScheduleUpdates','1');}
+			else{XHR.appendData('EnableScheduleUpdates','0');}
+		}
 		
 		if(document.getElementById('samba_notify')){if(document.getElementById('samba_notify').checked){XHR.appendData('samba_notify','yes');}else{XHR.appendData('samba_notify','no');}}
 		
@@ -90,13 +108,22 @@ var x_SaveArticaUpdateForm= function (obj) {
 			if(document.getElementById('EnableRebootAfterUpgrade').checked){XHR.appendData('EnableRebootAfterUpgrade','1');}else{XHR.appendData('EnableRebootAfterUpgrade','0');}
 			
 		}		
-		if(document.getElementById('DisableInstantLDAPBackup').checked){XHR.appendData('DisableInstantLDAPBackup','1');}else{XHR.appendData('DisableInstantLDAPBackup','0');}
+		if(document.getElementById('DisableInstantLDAPBackup')){
+			if(document.getElementById('DisableInstantLDAPBackup').checked){XHR.appendData('DisableInstantLDAPBackup','1');}else{XHR.appendData('DisableInstantLDAPBackup','0');}
+		}
 		
-		
-		XHR.appendData('ArticaScheduleUpdates',document.getElementById('ArticaScheduleUpdates').value);
-		XHR.appendData('WgetBindIpAddress',document.getElementById('WgetBindIpAddress').value);
-    	XHR.appendData('CheckEveryMinutes',document.getElementById('CheckEveryMinutes').value);
-    	XHR.appendData('uri',document.getElementById('uri').value);
+		if(document.getElementById('ArticaScheduleUpdates')){
+			XHR.appendData('ArticaScheduleUpdates',document.getElementById('ArticaScheduleUpdates').value);
+		}			
+		if(document.getElementById('WgetBindIpAddress')){
+			XHR.appendData('WgetBindIpAddress',document.getElementById('WgetBindIpAddress').value);
+		}
+		if(document.getElementById('CheckEveryMinutes')){
+    		XHR.appendData('CheckEveryMinutes',document.getElementById('CheckEveryMinutes').value);
+    	}
+    	if(document.getElementById('uri')){
+    		XHR.appendData('uri',document.getElementById('uri').value);
+    	}
     	AnimateDiv('ArticaUpdateForm');
     	XHR.sendAndLoad('$page', 'GET',x_SaveArticaUpdateForm);
 		}

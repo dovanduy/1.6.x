@@ -378,7 +378,7 @@ function SMTP_NOTIFICATIONS_NOTIF_JS(){
 		
 	function testnotifs(){
 		SaveArticaSMTPNotifValues();
-		YahooWin3('560','$page?ajax-notif-start=yes','$title');
+		YahooWin3('800','$page?ajax-notif-start=yes','$title');
 		setTimeout(\"StartNotif()\",500);
 	}
 	
@@ -426,7 +426,7 @@ function SMTP_NOTIFICATIONS_POPUP(){
 }
 
 function SMTP_NOTIFICATIONS_TEST(){
-	$html="<div style='width:99%;height:300px;overflow:auto' id='testnotifs'>
+	$html="<div style='width:95%;height:500px;overflow:auto' id='testnotifs' class=form>
 	
 	</div>";
 	
@@ -1526,7 +1526,7 @@ function SMTP_NOTIFICATIONS_TABS(){
 	
 	
 	return "
-	<div id='main_config_notifs' style='width:100%;height:620px;overflow:auto'>
+	<div id='main_config_notifs' style='width:100%;'>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
 		<script>
@@ -1654,8 +1654,8 @@ if($ini->_params["SMTP"]["monit"]==null){$ini->_params["SMTP"]["monit"]=1;}
 $notif1="
 	<div class=explain style='font-size:14px'>{smtp_notifications_text}</div>
 	<div id='notif1'>
-
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table>
 	<tr>
 		<td nowrap class=legend style='font-size:14px'>{jGrowlNotifsDisabled}:</strong></td>
 		<td>" . Field_checkbox("jGrowlNotifsDisabled",1,$jGrowlNotifsDisabled,"")."</td>
@@ -1674,33 +1674,36 @@ $notif1="
 	
 	<tr>
 		<td nowrap class=legend style='font-size:14px'>{smtp_server_name}:</strong></td>
-		<td>" . Field_text('smtp_server_name',trim($ini->_params["SMTP"]["smtp_server_name"]),'font-size:14px;padding:3px;width:150px')."</td>
+		<td>" . Field_text('smtp_server_name',trim($ini->_params["SMTP"]["smtp_server_name"]),'font-size:14px;padding:3px;width:200px')."</td>
 	</tr>
 	<tr>
 		<td nowrap class=legend style='font-size:14px'>{smtp_server_port}:</strong></td>
-		<td>" . Field_text('smtp_server_port',trim($ini->_params["SMTP"]["smtp_server_port"]),'font-size:14px;padding:3px;width:30px')."</td>
+		<td>" . Field_text('smtp_server_port',trim($ini->_params["SMTP"]["smtp_server_port"]),'font-size:14px;padding:3px;width:60px')."</td>
 	</tr>	
 	<tr>
 		<td nowrap class=legend style='font-size:14px'>{smtp_sender}:</strong></td>
-		<td>" . Field_text('smtp_sender',trim($ini->_params["SMTP"]["smtp_sender"]),'font-size:14px;padding:3px;width:150px')."</td>
+		<td>" . Field_text('smtp_sender',trim($ini->_params["SMTP"]["smtp_sender"]),'font-size:14px;padding:3px;width:200px')."</td>
 	</tr>
 	<tr>
 		<td nowrap class=legend style='font-size:14px'>{smtp_dest}:</strong></td>
-		<td>" . Field_text('smtp_dest',trim($ini->_params["SMTP"]["smtp_dest"]),'font-size:14px;padding:3px;width:150px')."</td>
+		<td>" . Field_text('smtp_dest',trim($ini->_params["SMTP"]["smtp_dest"]),'font-size:14px;padding:3px;width:200px')."</td>
 	</tr>
 	<tr>
 		<td nowrap class=legend style='font-size:14px'>{smtp_auth_user}:</strong></td>
-		<td>" . Field_text('smtp_auth_user',trim($ini->_params["SMTP"]["smtp_auth_user"]),'font-size:14px;padding:3px;width:150px')."</td>
+		<td>" . Field_text('smtp_auth_user',trim($ini->_params["SMTP"]["smtp_auth_user"]),'font-size:14px;padding:3px;width:200px')."</td>
 	</tr>	
 	<tr>
 		<td nowrap class=legend style='font-size:14px'>{smtp_auth_passwd}:</strong></td>
-		<td>" . Field_password('smtp_auth_passwd',trim($ini->_params["SMTP"]["smtp_auth_passwd"]),'font-size:14px;padding:3px;width:100px')."</td>
+		<td>" . Field_password('smtp_auth_passwd',trim($ini->_params["SMTP"]["smtp_auth_passwd"]),'font-size:14px;padding:3px;width:150px')."</td>
 	</tr>
 	<tr>
 		<td nowrap class=legend style='font-size:14px'>{tls_enabled}:</strong></td>
 		<td>" . Field_checkbox("tls_enabled",1,$ini->_params["SMTP"]["tls_enabled"])."</td>
 	</tr>	
-
+	<tr>
+		<td nowrap class=legend style='font-size:14px'>LOGIN:</strong></td>
+		<td>" . Field_checkbox("USE_LOGIN",1,$ini->_params["SMTP"]["USE_LOGIN"])."</td>
+	</tr>
 	
 	
 	<tr>
@@ -1712,6 +1715,7 @@ $notif1="
 
 	</tr>
 </table>
+</div>
 <table>
 <tr>	
 <td valign='top'>$warn</td><td>$member_add</td>
@@ -1735,6 +1739,7 @@ var x_SaveArticaSMTPNotifValues= function (obj) {
 		
 		
 		if(document.getElementById('tls_enabled').checked){XHR.appendData('tls_enabled',1);}else {XHR.appendData('tls_enabled',0);}
+		if(document.getElementById('USE_LOGIN').checked){XHR.appendData('USE_LOGIN',1);}else {XHR.appendData('USE_LOGIN',0);}
 		if(document.getElementById('EnableMONITSmtpNotif').checked){XHR.appendData('EnableMONITSmtpNotif',1);}else {XHR.appendData('EnableMONITSmtpNotif',0);}
 		XHR.appendData('smtp_server_name',document.getElementById('smtp_server_name').value);
 		XHR.appendData('smtp_server_port',document.getElementById('smtp_server_port').value);
@@ -1756,6 +1761,7 @@ var x_SaveArticaSMTPNotifValues= function (obj) {
 		document.getElementById('smtp_server_port').disabled=true;
 		document.getElementById('smtp_server_name').disabled=true;
 		document.getElementById('tls_enabled').disabled=true;
+		document.getElementById('USE_LOGIN').disabled=true;
 		if(document.getElementById('enabled').checked){
 			document.getElementById('EnableMONITSmtpNotif').disabled=false;
 			document.getElementById('smtp_auth_passwd').disabled=false;
@@ -1764,7 +1770,8 @@ var x_SaveArticaSMTPNotifValues= function (obj) {
 			document.getElementById('smtp_sender').disabled=false;
 			document.getElementById('smtp_server_port').disabled=false;
 			document.getElementById('smtp_server_name').disabled=false;
-			document.getElementById('tls_enabled').disabled=false;		
+			document.getElementById('tls_enabled').disabled=false;
+			document.getElementById('USE_LOGIN').disabled=false;			
 		}
 	}
 	SMTPNotifArticaEnableSwitch();
@@ -2003,6 +2010,16 @@ function SMTP_NOTIFICATIONS_NOTIF(){
 			continue;
 			
 		}
+		
+		if(preg_match("#errormsg='(.+)'#", $ligne,$re)){
+			$success="<div style='margin:5px;background-color:white;text-align:center;font-size:14px;font-weight:bold;color:red;border:1px solid red;padding:4px;margin:5px'>
+			{failed}<br>{$re[1]}</div><br>";
+			continue;			
+			
+		}
+		
+		
+		
 		if(preg_match('#errormsg=(.+?)\s+exitcode=EX_UNAVAILABLE#',$ligne,$re)){
 			$success="<div style='margin:5px;background-color:white;text-align:center;font-size:14px;font-weight:bold;color:red;border:1px solid red;padding:4px;margin:5px'>
 			{failed}<br>{$re[1]}</div><br>";

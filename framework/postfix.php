@@ -224,7 +224,7 @@ function postfix_instances_list(){
 		$grep=$unix->find_program("grep");
 		$search=str_replace(".", "\.", $search);
 		$search=str_replace("*", ".*?", $search);
-		$searcchmd="|$grep -E '$search.*?\s+'";
+		$searcchmd="|$grep -i -E '$search.*?\s+'";
 	}
 	
 	$postmulti=$unix->find_program("postmulti");

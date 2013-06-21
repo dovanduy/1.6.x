@@ -1,13 +1,15 @@
 <?php
 session_start();
 
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
-ini_set('error_append_string',null);
+ini_set('display_errors', 1);
+ini_set('error_reporting', E_ALL);
+ini_set('error_prepend_string',"<p class=text-error>");
+ini_set('error_append_string',"</p>");
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
 if(!$_SESSION["ASDCHPAdmin"]){header("location:miniadm.index.php");die();}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
-include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
+include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 
 
@@ -74,8 +76,26 @@ function content(){
 
 function webstats_middle(){
 	$page=CurrentPageName();
-	$tpl=new templates();	
-	$users=new usersMenus();
-	$html="<div id='BodyContent'></div><script>Loadjs('index.gateway.php?index_dhcp=yes&in-front-ajax=yes&newinterface=yes');</script>";
-	echo $html;
+	$tpl=new templates();
+	
+	
+	if(isset($_GET["explain-title"])){
+		$title="<H1>{APP_DHCP}</H1>
+		<p>{APP_DHCP_TEXT}</p>";
+		
+	}
+	$boot=new boostrap_form();
+	$fontsize=null;
+	if(isset($_GET["newinterface"])){$newinterface="&newinterface=yes";$newinterfacesuffix="?newinterface=yes";$fontsize="font-size:14px;";}
+	
+	
+	$array["{status}"]='index.gateway.php?dhcp-tab=status&miniadm=yes';
+	$array["{settings}"]='index.gateway.php?dhcp-tab=config&miniadm=yes';
+	$array["{fixedHosts}"]="miniadm.dhcpd.fixed.hosts.php";
+	$array["{groups2}"]='dhcpd.shared-networks.php?newinterface=yes';
+	
+	$array["{leases}"]="miniadm.dhcpd.leases.php";
+	$array["{events}"]="miniadm.dhcpd.events-sql.php$newinterfacesuffix";
+	$html="$title".$boot->build_tab($array);
+	echo $tpl->_ENGINE_parse_body($html);
 }	

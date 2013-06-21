@@ -229,7 +229,7 @@ $('#$t').flexigrid({
 			var XHR = new XHRConnection();
 			XHR.appendData('websites-analyze','ok');
 			AnimateDiv('analyze-img-$t');
-			XHR.sendAndLoad('$page', 'POST',x_PostTestWebsites$t);				
+			XHR.sendAndLoad('miniadm.webstats.not.categorized.php', 'POST',x_PostTestWebsites$t);				
 		
 		}
 		

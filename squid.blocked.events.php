@@ -14,6 +14,7 @@
 	if(isset($_GET["calendar"])){calendar();exit;}
 	if(isset($_GET["title-zday"])){calendar_title();exit;}
 	if(isset($_GET["build-calendar"])){calendar_build();exit;}
+	if(isset($_POST["reload-unlock"])){reload_unlock();exit;}
 BlockedSites2();	
 
 
@@ -51,7 +52,7 @@ function BlockedSites2(){
 	$unblock=$tpl->javascript_parse_text("{unblock}");
 	$UnBlockWebSiteExplain=$tpl->javascript_parse_text("{UnBlockWebSiteExplain}");
 	$smtp_notifications=$tpl->javascript_parse_text("{smtp_notifications}");
-	
+	$UnBlockWebSiteExplainReload=$tpl->javascript_parse_text("{need_to_proxy_reload_ask}");
 	$divstart="<div style='margin:-10px;margin-left:-15px;margin-right:-15px'>";
 	$divend="</div>";
 	if(isset($_GET["noreduce"])){$divstart=null;$divend=null;}
@@ -110,7 +111,20 @@ $('#flexRT$t').flexigrid({
 
 	var x_UnBlockWebSite$t=function(obj){
 	      var tempvalue=obj.responseText;
-	      if(tempvalue.length>3){alert(tempvalue);}
+	      $('#flexRT$t').flexReload();
+	      }
+
+	var x_UnBlockWebSite$t=function(obj){
+	    var tempvalue=obj.responseText;
+	    if(tempvalue.length>3){alert(tempvalue);return;}
+		if(confirm('$UnBlockWebSiteExplainReload')){
+			var XHR = new XHRConnection();
+			XHR.appendData('reload-unlock','yes');
+			XHR.sendAndLoad('$page', 'POST',x_UnBlockWebSite3$t);
+			return;
+		}	      
+	      
+	      
 	      $('#flexRT$t').flexReload();
 	}	
 
@@ -337,4 +351,7 @@ function calendar_build(){
 	
 }
 
-
+function  reload_unlock(){
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?reload_unlock=yes");
+}

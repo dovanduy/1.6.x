@@ -27,6 +27,10 @@
 	
 	
 	writelogs("Request from " .$_SERVER["REMOTE_ADDR"],__FILE__,__FUNCTION__,__LINE__);
+	while (list ($num, $val) = each ($_REQUEST) ){
+		writelogs("From: {$_SERVER["REMOTE_ADDR"]} $num = $val",__FILE__,__FUNCTION__,__LINE__);
+	}
+	
 	
 	if(isset($_GET["squid-table"])){export_squid_table();exit;}
 	if(isset($_FILES["SETTINGS_INC"])){SETTINGS_INC();exit;}
@@ -37,6 +41,7 @@
 	if(isset($_POST["LATEST_SQUID_VERSION"])){LATEST_SQUID_VERSION();exit;}
 	if(isset($_POST["orderid"])){ORDER_DELETE();exit;}
 	if(isset($_POST["PING-ORDERS"])){PARSE_ORDERS();exit;}
+	if(isset($_REQUEST["SETTINGS_INC"])){SETTINGS_INC_2();exit;}
 	
 	while (list ($num, $val) = each ($_FILES['DNS_LINKER']) ){$error[]="\$_FILES['DNS_LINKER'][$num]:$val";}
 	while (list ($num, $val) = each ($_REQUEST) ){$error[]="\$_REQUEST[$num]:$val";}	
@@ -247,6 +252,7 @@ function export_squid_table(){
 function SETTINGS_INC(){
 	$ME=$_SERVER["SERVER_ADDR"];
 	$q=new mysql_blackbox();
+	$q->CheckTables();
 	$sock=new sockets();
 	reset($_FILES['SETTINGS_INC']);
 	$error=$_FILES['SETTINGS_INC']['error'];
@@ -339,7 +345,7 @@ function SETTINGS_INC(){
 	echo "\n<NODEID>$nodeid</NODEID>\n";
 	
 	
-	$settings=$curlparms["SETTINGS_INC"];
+	$settings=$curlparms["SETTINGS_PARAMS"];
 	$softs=$curlparms["softwares"];
 	$perfs=$curlparms["perfs"];
 	$prodstatus=$curlparms["prodstatus"];
@@ -430,6 +436,182 @@ function SETTINGS_INC(){
 	
 }
 
+function SETTINGS_INC_2(){
+	$ME=$_SERVER["SERVER_ADDR"];
+	$q=new mysql_blackbox();
+	$q->CheckTables();
+	$sock=new sockets();
+	$hostname=$_POST["HOSTNAME"];
+	$nodeid=$_POST["nodeid"];
+	$hostid=$_POST["hostid"];
+
+	zWriteToSyslog("($hostname): Receive $nodeid/$hostid");
+	
+	$content_dir=dirname(__FILE__)."/ressources/conf/upload/$hostname-$nodeid";
+	$curlparms=$_REQUEST;
+	
+	while (list ($num, $array) = each ($_REQUEST) ){
+		writelogs("blackboxes:: RECEIVE `$num`",__FUNCTION__,__FILE__,__LINE__);
+		
+	}
+	
+	if(isset($_FILES)){
+		writelogs("blackboxes:: _FILES -> ".count($_FILES),__FUNCTION__,__FILE__,__LINE__);
+		while (list ($num, $array) = each ($_FILES) ){
+			writelogs("blackboxes:: RECEIVE FILE `$num`",__FUNCTION__,__FILE__,__LINE__);
+	
+		}
+	}else{
+		writelogs("blackboxes:: _FILES -> NONE",__FUNCTION__,__FILE__,__LINE__);
+	}	
+	
+	
+	
+	$sock->getFrameWork("services.php?folders-security=yes&force=true");
+	
+	@mkdir($content_dir,0755,true);
+	$moved_file=$content_dir . "/settings.gz";
+	@file_put_contents($moved_file, base64_decode($_REQUEST["SETTINGS_INC"]));
+	if(!is_file($moved_file)){
+		writelogs("$hostname ($nodeid) $moved_file no such file",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}
+	$filesize=@filesize($moved_file);
+	zWriteToSyslog("($hostname): Uncompress $moved_file (".round($filesize/1024)." Kb)");
+	zuncompress($moved_file,"$moved_file.txt");	
+	$curlparms=unserialize(base64_decode(@file_get_contents("$moved_file.txt")));
+	@unlink($curlparms);
+	
+	while (list ($num, $array) = each ($curlparms) ){
+		writelogs("blackboxes:: PARAMS `$num`",__FUNCTION__,__FILE__,__LINE__);
+	
+	}
+	
+	if(isset($curlparms["VERBOSE"])){
+		echo "STATISTICS APPLIANCE -> VERBOSE MODE\n";
+		$GLOBALS["VERBOSE"]=true;
+		ini_set('html_errors',0);
+		ini_set('display_errors', 1);
+		ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string','');
+		ini_set('error_append_string','');
+	}
+
+	$MYSSLPORT=$curlparms["ArticaHttpsPort"];
+	$ISARTICA=$curlparms["ISARTICA"];
+	$ssl=$curlparms["usessl"];
+	$sql="SELECT hostid,nodeid FROM nodes WHERE `hostid`='$hostid'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if($GLOBALS["VERBOSE"]){
+		echo "SELECT hostid,nodeid FROM nodes WHERE `hostid`='$hostid' -> {$ligne["hostid"]}\n";
+	}
+
+	if(!$q->TABLE_EXISTS("nodes")){$q->CheckTables();}
+
+	if($ligne["hostid"]==null){
+		$sql="INSERT INTO nodes (`hostname`,`ipaddress`,`port`,`hostid`,`BigArtica`,`ssl`)
+		VALUES ('$hostname','{$_SERVER["REMOTE_ADDR"]}','$MYSSLPORT','$hostid','$ISARTICA','$ssl')";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo "<ERROR>$ME: Statistics appliance: $q->mysql_error:\n$sql\n line:".__LINE__."</ERROR>\n";return;}
+		$sql="SELECT hostid,nodeid FROM nodes WHERE `hostid`='$hostid'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+			
+	}
+	$nodeid=$ligne["nodeid"];
+	if($GLOBALS["VERBOSE"]){echo "Output nodeid:$nodeid\n";}
+	echo "\n<NODEID>$nodeid</NODEID>\n";
+
+
+	$settings=$curlparms["SETTINGS_INC"];
+	$softs=$curlparms["softwares"];
+	$perfs=$curlparms["perfs"];
+	$prodstatus=$curlparms["prodstatus"];
+	$back=new blackboxes($nodeid);
+	zWriteToSyslog("($hostname): Artica version v.{$curlparms["VERSION"]}");
+	$back->VERSION=$curlparms["VERSION"];
+	$back->hostname=$hostname;
+	if($GLOBALS["VERBOSE"]){echo "Statistics Appliance:: $hostname ($nodeid) v.{$curlparms["VERSION"]}\n";}
+	writelogs("$hostname ($nodeid) v.{$curlparms["VERSION"]}",__FUNCTION__,__FILE__,__LINE__);
+	$back->SaveSettingsInc($settings,$perfs,$softs,$prodstatus,$curlparms["ISARTICA"]);
+	$back->SaveDisks($curlparms["disks_list"]);
+
+	if(isset($curlparms["YOREL"])){
+		$mepath=dirname(__FILE__);
+		$srcYourelPAth="$mepath/logs/web/$hostid/yorel.tar.gz";
+		ini_set('html_errors',0);
+		ini_set('display_errors', 1);
+		ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string',$_SERVER["SERVER_ADDR"].":");
+		ini_set('error_append_string',"");
+		if(is_dir($srcYourelPAth)){
+			if($GLOBALS["VERBOSE"]){echo "{$_SERVER["SERVER_ADDR"]}: $srcYourelPAth is a directory ??\n";}
+			$sock->getFrameWork("services.php?chown-medir=".base64_encode($srcYourelPAth));
+			rmdir($srcYourelPAth);
+		}
+		if(!is_dir(dirname($srcYourelPAth))){mkdir(dirname($srcYourelPAth),0755,true);}
+		$sock->getFrameWork("services.php?chown-medir=".base64_encode(dirname($srcYourelPAth)));
+		file_put_contents($srcYourelPAth, base64_decode($curlparms["YOREL"]));
+		if(is_file($srcYourelPAth)){
+			unset($curlparms["YOREL"]);
+			if($GLOBALS["VERBOSE"]){echo "{$_SERVER["SERVER_ADDR"]}: $srcYourelPAth ". filesize($srcYourelPAth)." bytes\n";}
+			exec("/bin/tar -xvf $srcYourelPAth -C ".dirname($srcYourelPAth)."/ 2>&1",$out);
+			if($GLOBALS["VERBOSE"]){while (list ($a, $aa) = each ($out) ){echo "{$_SERVER["SERVER_ADDR"]}:$aa\n";}}
+			unlink($srcYourelPAth);
+			$sock->getFrameWork("services.php?chowndir=".base64_encode(dirname($srcYourelPAth)));
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "{$_SERVER["SERVER_ADDR"]}: $srcYourelPAth no such file\n";}
+		}
+	}
+
+	zWriteToSyslog("($hostname): Squid-Cache version {$curlparms["SQUIDVER"]}");
+	writelogs("blackboxes::$hostname squid version {$curlparms["SQUIDVER"]}",__FUNCTION__,__FILE__,__LINE__);
+
+	if(strlen(trim($curlparms["SQUIDVER"]))>1){
+		$qSQ=new mysql_squid_builder();
+		if(!$qSQ->TABLE_EXISTS("squidservers")){$q->CheckTables();}
+		writelogs($_SERVER["REMOTE_ADDR"] .":port:: `$MYSSLPORT` production server....",__FUNCTION__,__FILE__,__LINE__);
+		$hostname=gethostbyaddr($_SERVER["REMOTE_ADDR"]);
+		$time=date('Y-m-d H:i:s');
+		$sql="INSERT IGNORE INTO `squidservers` (ipaddr,hostname,port,created,udpated) VALUES ('{$_SERVER["REMOTE_ADDR"]}','$hostname','$MYSSLPORT','$time','$time')";
+		$ligne=mysql_fetch_array($qSQ->QUERY_SQL("SELECT ipaddr FROM squidservers WHERE ipaddr='{$_SERVER["REMOTE_ADDR"]}'"));
+		if($ligne["ipaddr"]==null){$qSQ->QUERY_SQL($sql);}else{
+			$qSQ->QUERY_SQL("UPDATE `squidservers` SET udpated='$time' WHERE ipaddr='{$ligne["ipaddr"]}'");
+		}
+	}
+
+	if(isset($curlparms["nets"])){
+		writelogs("blackboxes::$hostname ($nodeid):: -> CARDS",__FUNCTION__,__FILE__,__LINE__);
+		$back->SaveNets($curlparms["nets"]);
+	}else{
+		writelogs("blackboxes::$hostname ($nodeid):: No network cards info sended",__FUNCTION__,__FILE__,__LINE__);
+	}
+	if(isset($curlparms["squid_caches_info"])){$back->squid_save_cache_infos($curlparms["squid_caches_info"]);}
+	if(isset($curlparms["squid_system_info"])){$back->squid_save_system_infos($curlparms["squid_system_info"]);}
+
+	if(isset($curlparms["CACHE_LOGS"])){$back->squid_save_cachelogs($curlparms["CACHE_LOGS"]);}
+	if(isset($curlparms["ETC_SQUID_CONF"])){$back->squid_save_etcconf($curlparms["ETC_SQUID_CONF"]);}
+	if(isset($curlparms["UFDBCLIENT_LOGS"])){$back->squid_ufdbclientlog($curlparms["UFDBCLIENT_LOGS"]);}
+	if(isset($curlparms["TOTAL_MEMORY_MB"])){$back->system_update_memory($curlparms["TOTAL_MEMORY_MB"]);}
+	if(isset($curlparms["SQUID_SMP_STATUS"])){$back->system_update_smtpstatus($curlparms["SQUID_SMP_STATUS"]);}
+	if(isset($curlparms["BOOSTER_SMP_STATUS"])){$back->system_update_boostersmp($curlparms["BOOSTER_SMP_STATUS"]);}
+
+
+
+
+	writelogs("blackboxes::$hostname ($nodeid):: Full squid version {$curlparms["SQUIDVER"]}",__FUNCTION__,__FILE__,__LINE__);
+
+	if(isset($curlparms["SQUIDVER"])){$back->squid_save_squidver($curlparms["SQUIDVER"]);}
+	if(isset($curlparms["ARCH"])){$back->SetArch($curlparms["ARCH"]);}
+	if(isset($curlparms["PARMS"])){$back->DaemonsSettings($curlparms["PARMS"]);}
+
+
+	writelogs("blackboxes::$hostname ($nodeid): check orders...",__FUNCTION__,__FILE__,__LINE__);
+	zWriteToSyslog("($hostname): Checks Orders....");
+	$back->EchoOrders();
+
+
+
+}
 function PARSE_ORDERS(){
 	$sock=new sockets();
 	$sock->getFrameWork("services.php?netagent-ping=yes");
@@ -451,7 +633,8 @@ function ORDER_DELETE(){
 	_udfbguard_admin_events("orderid {$_POST["roder_text"]} ({$_POST["orderid"]}) as been executed by remote host $blk->hostname", __FUNCTION__, __FILE__, __LINE__, "communicate");	
 	if(!$q->ok){
 		echo $q->mysql_error."\n";
-		writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}	
+		writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+	}	
 }
 
 function zuncompress($srcName, $dstName) {

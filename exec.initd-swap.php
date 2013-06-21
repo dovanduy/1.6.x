@@ -17,7 +17,7 @@ function buildscript(){
 
 	$f[]="#!/bin/sh";
 	$f[]="### BEGIN INIT INFO";
-	$f[]="# Provides:          Swap config service";
+	$f[]="# Provides:          artica-swap";
 	$f[]="# Required-Start:    \$local_fs";
 	$f[]="# Required-Stop:     \$local_fs";
 	$f[]="# Should-Start:";
@@ -70,6 +70,17 @@ if(is_file('/sbin/chkconfig')){
 function start(){
 	$sock=new sockets();
 	$unix=new unix();
+	@mkdir("/etc/artica-postfix/pids",0755,true);
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$oldpid=@file_get_contents($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "SWAP: [INFO] Already running...\n";
+		die();
+	}
+	
+	@file_put_contents($pidfile, getmypid());
+	
+	
 	$sysctl=$unix->find_program("sysctl");
 	$swapoff=$unix->find_program("swapoff");
 	$swapon=$unix->find_program("swapon");

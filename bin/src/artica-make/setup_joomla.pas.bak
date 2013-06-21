@@ -50,6 +50,7 @@ public
       procedure APP_SQUID32_REPOS();
       procedure APP_SQUID32_PURGE();
       procedure Ownloud_install();
+      procedure cakephp_install();
 END;
 
 implementation
@@ -515,7 +516,7 @@ begin
     SetCurrentDir('/root');
     install.INSTALL_STATUS(CODE_NAME,10);
     install.INSTALL_STATUS(CODE_NAME,30);
-    ForceDirectories(DirectoryDest);
+
 
   if not FileExists(SYS.LOCATE_APACHE_BIN_PATH()) then begin
      writeln('Install '+CODE_NAME+' failed...');
@@ -539,7 +540,7 @@ begin
         exit;
      end;
 
-
+     if DirectoryExists(DirectoryDest) then fpsystem('/bin/rm -rf '+DirectoryDest);
      forceDirectories(DirectoryDest);
      cmd:='/bin/cp -rf ' + source_folder+'/* '+DirectoryDest+'/';
      writeln(cmd);
@@ -555,6 +556,109 @@ begin
         install.INSTALL_PROGRESS(CODE_NAME,'{installed}');
         exit;
      end;
+
+
+
+     writeln('Install '+CODE_NAME+' extracted on "'+source_folder+'"');
+     install.INSTALL_STATUS(CODE_NAME,50);
+     install.INSTALL_PROGRESS(CODE_NAME,'{installing}');
+
+end;
+
+procedure tsetup_joomla.cakephp_install();
+ var
+   CODE_NAME:string;
+   cmd:string;
+   RegExpr:TRegExpr;
+   DirectoryDest:string;
+begin
+    CODE_NAME:='APP_CAKEPHP';
+    DirectoryDest:='/var/www/c2';
+    SetCurrentDir('/root');
+    ForceDirectories(DirectoryDest);
+
+  install.INSTALL_STATUS(CODE_NAME,10);
+  install.INSTALL_STATUS(CODE_NAME,30);
+
+  if not FileExists(SYS.LOCATE_APACHE_BIN_PATH()) then begin
+     writeln('Install '+CODE_NAME+' failed...');
+     install.INSTALL_PROGRESS(CODE_NAME,'{failed} (apache)');
+     install.INSTALL_STATUS(CODE_NAME,110);
+     exit;
+  end;
+      install.INSTALL_PROGRESS(CODE_NAME,'{downloading}');
+     if length(source_folder)=0 then source_folder:=libs.COMPILE_GENERIC_APPS('cakephp');
+     if not DirectoryExists(source_folder) then begin
+        writeln('Install '+CODE_NAME+' failed...');
+        install.INSTALL_STATUS(CODE_NAME,110);
+        exit;
+     end;
+
+     writeln('Install '+CODE_NAME+' extracted on "'+source_folder+'"');
+     install.INSTALL_STATUS(CODE_NAME,50);
+     install.INSTALL_PROGRESS(CODE_NAME,'{installing}');
+
+     forceDirectories(DirectoryDest);
+     cmd:='/bin/cp -rf ' + source_folder+'/* '+DirectoryDest+'/';
+     fpsystem(cmd);
+     install.INSTALL_PROGRESS(CODE_NAME,'{checking}');
+
+
+     if not FileExists(DirectoryDest+'/index.php') then begin
+        writeln('Install '+CODE_NAME+' failed...!!!');
+        install.INSTALL_STATUS(CODE_NAME,110);
+        exit;
+     end else begin
+         writeln('Install '+CODE_NAME+' success...');
+        install.INSTALL_STATUS(CODE_NAME,100);
+        install.INSTALL_PROGRESS(CODE_NAME,'{installed}');
+     end;
+
+
+     writeln('installing yficake....');
+     libs:=tlibs.Create;
+     source_folder:=libs.COMPILE_GENERIC_APPS('yficake');
+
+
+
+     if not DirectoryExists(source_folder) then begin
+        writeln('Install '+CODE_NAME+' failed... !!! ');
+        install.INSTALL_STATUS(CODE_NAME,110);
+        exit;
+     end;
+
+
+     forceDirectories(DirectoryDest);
+     cmd:='/bin/cp -rf ' + source_folder+' '+DirectoryDest+'/';
+     fpsystem(cmd);
+     install.INSTALL_PROGRESS(CODE_NAME,'{checking}');
+
+     writeln('installing yfi....');
+     DirectoryDest:='/usr/share/yfi';
+     libs:=tlibs.Create;
+     source_folder:=libs.COMPILE_GENERIC_APPS('yfi');
+
+
+     if not DirectoryExists(source_folder) then begin
+        writeln('Install '+CODE_NAME+' failed... !!!! ');
+        install.INSTALL_STATUS(CODE_NAME,110);
+        exit;
+     end;
+     forceDirectories(DirectoryDest);
+     cmd:='/bin/cp -rf ' + source_folder+'/* '+DirectoryDest+'/';
+     fpsystem(cmd);
+     install.INSTALL_PROGRESS(CODE_NAME,'{checking}');
+
+     writeln('installing coova_json....');
+     DirectoryDest:='/usr/share/coova_json';
+     libs:=tlibs.Create;
+     source_folder:=libs.COMPILE_GENERIC_APPS('coova_json');
+ forceDirectories(DirectoryDest);
+     cmd:='/bin/cp -rf ' + source_folder+'/* '+DirectoryDest+'/';
+     fpsystem(cmd);
+     install.INSTALL_PROGRESS(CODE_NAME,'{checking}');
+
+
 
 end;
 

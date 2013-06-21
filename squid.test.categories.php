@@ -1,5 +1,10 @@
 <?php
-	if(isset($_GET["verbose"])){echo __LINE__." verbose OK<br>\n";$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+	if(isset($_GET["verbose"])){echo __LINE__." verbose OK<br>\n";
+		$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);
+		ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string',null);
+		ini_set('error_append_string',null);
+	}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -29,14 +34,14 @@
 	if(isset($_POST["websites-delete"])){websites_delete();exit;}
 	if(isset($_POST["PerformProposal"])){PerformProposal();exit;}
 	if(isset($_POST["retry-analyze"])){retry_analyze();exit;}
-	if(isset($_POST["WEBTESTS"])){WEBTESTS();exit;}
+	if(isset($_REQUEST["WEBTESTS"])){WEBTESTS();exit;}
 	if(isset($_POST["import-artica"])){import_artica_fr();exit;}
 page();
 
 
 function WEBTESTS(){
 	
-$www=$_POST["WEBTESTS"];
+$www=$_REQUEST["WEBTESTS"];
 $q=new mysql_squid_builder();
 $www=$q->WebsiteStrip($www);
 
@@ -98,13 +103,15 @@ function page(){
 	$date=$tpl->_ENGINE_parse_body("{zDate}");
 	$country=$tpl->_ENGINE_parse_body("{country}");
 	$form=$tpl->_ENGINE_parse_body("
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table>
 	<tr>
 		<td class=legend style='font-size:14px'>{website}:</td>
 		<td>". Field_text("WEBTESTS",null,"font-size:14px;padding:3px;border:2px solid #808080",
 	null,null,null,false,"CheckSingleSite(event)")."</td>
 	</tr>
 	</table>
+	</div>
 	");
 	
 	

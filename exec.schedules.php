@@ -52,7 +52,7 @@ function build_schedules(){
 	$pidTimeINT=$unix->file_time_min($pidTime);
 	if(!$GLOBALS["VERBOSE"]){
 		if($pidTimeINT<1){
-			writelogs("To short time to execute the process",__FILE__,__FUNCTION__,__LINE__);
+			writelogs("To short time to execute the process $pidTime = {$pidTimeINT}Mn < 1",__FILE__,__FUNCTION__,__LINE__);
 			return;
 		}
 	}
@@ -171,10 +171,17 @@ function execute_task($ID){
 	$unix=new unix();
 	$tasks=new system_tasks();
 	$php5=$unix->LOCATE_PHP5_BIN();
+	$pgrep=$unix->find_program("pgrep");
 	$GLOBALS["SCHEDULE_ID"]=$ID;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.pid";
 	$lockfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.lck";
 	$oldpid=$unix->get_pid_from_file($pidfile);
+	
+	if(systemMaxOverloaded()){
+		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
+		return;
+	}
+	
 	
 	if(is_file($lockfile)){
 		$locktime=$unix->file_time_min($lockfile);
@@ -191,11 +198,30 @@ function execute_task($ID){
 		return;
 	}
 	
+	
+
+	
+	
+	
 	$pidtime=$unix->file_time_min($pidfile);
 	if($pidtime<1){
-		system_admin_events("last execution was done since {$pidtime}mn" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		system_admin_events("last execution was already executed (since {$pidtime}mn )" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		return;
-	}	
+	}
+
+	exec("$pgrep -l -f \"^$php5.*?".basename(__FILE__)." --run\" 2>&1",$results);
+	while (list ($num, $line) = each ($results) ){
+		if(preg_match("#pgrep#", $line)){continue;}
+		if(!preg_match("#^([0-9]+)\s+#", $line,$re)){continue;}
+		$pidz[]=$re[1];
+	}
+	
+	if(count($pidz)>6){
+		writelogs("Too many processes executed: ".@implode(", ", $pidz)." schedule this task on artica scheduler..." ,  __FUNCTION__,__FILE__, __LINE__, "tasks",$ID);
+		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
+		die();
+	}
+	
 
 	@unlink($pidfile);
 	@file_put_contents($lockfile, "#");
@@ -237,8 +263,8 @@ function execute_task($ID){
 		OverloadedCheckBadProcesses();
 		$os=new os_system();
 		$hash_mem=$os->realMemory();
-		writelogs("Task $ID Over memory system {$hash_mem["ram"]["percent"]}%, aborting task",__FUNCTION__,__FILE__,__LINE__);
-		system_admin_events("Over memory system {$hash_mem["ram"]["percent"]}%, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		writelogs("Task $ID Overloaded system:{$GLOBALS["SYSTEM_INTERNAL_LOAD"]} memory {$hash_mem["ram"]["percent"]}%, aborting task",__FUNCTION__,__FILE__,__LINE__);
+		system_admin_events("Overloaded system:{$GLOBALS["SYSTEM_INTERNAL_LOAD"]} memory {$hash_mem["ram"]["percent"]}%, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
 		@unlink($lockfile);
 		return;

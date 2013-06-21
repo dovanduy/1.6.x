@@ -437,7 +437,11 @@ if(preg_match("#zarafa-dagent.+?Client disconnected#",$buffer)){return null;}
 if(strpos($buffer, "MGREYSTATS")>0){$md5=md5($buffer);@file_put_contents("/var/log/artica-postfix/MGREYSTATS/$md5", $buffer);return;}
 
 
-
+if(preg_match("#connect to.*?\[(.*?)lmtp\]:\s+Permission denied#", $buffer)){
+	events("{$re[1]}/lmtp, permission denied, apply postfix:postfix");
+	$GLOBALS["CLASS_UNIX"]->chown_func("postfix","postfix", "{$re[1]}/lmtp");
+	return;
+}
 
 if(preg_match("#postfix-script\[.+?: the Postfix mail system is not running#", $buffer)){
 	$sock=new sockets();
@@ -1609,7 +1613,7 @@ if(preg_match("#zarafa-server\[.+?INNODB engine is not support.+?Please enable t
 	if(file_time_min($file)>5){
 		email_events("Zarafa server: innodb is not enabled","Zarafa-server claim\n$buffer\nArtica will restart mysql","mailbox");
 		if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart mysql");
+			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/mysql restart");
 		}
 		@unlink($file);
 		file_put_contents($file,"#");

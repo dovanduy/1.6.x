@@ -596,7 +596,9 @@ function createRootID($requested_password=null){
 	$group=new groups();
 	$ldap=new clladp();
 	$sock=new sockets();
-	if($requested_password==null){$requested_password=$ldap->ldap_password;}
+	if($requested_password==null){
+		if(!$GLOBALS["AS_ROOT"]){echo "No password set for root";}return false;
+	}
 	$dn="ou=users,dc=samba,dc=organizations,{$ldap->suffix}";
 	if(!$ldap->ExistsDN($dn)){
 		$this->verifyBranch();
@@ -606,7 +608,10 @@ function createRootID($requested_password=null){
 		
 	$sock->getFrameWork("services.php?nsswitch=yes");
 	$dn="uid=root,ou=users,dc=samba,dc=organizations,{$ldap->suffix}";
-	if($ldap->ExistsDN($dn)){$ldap->ldap_delete($dn);}
+	if($ldap->ExistsDN($dn)){
+		writelogs("remove: $dn",__FUNCTION__,__FILE__,__LINE__);
+		$ldap->ldap_delete($dn);
+	}
 	
 	
 	$sock=new sockets();
@@ -643,10 +648,13 @@ function createRootID($requested_password=null){
 				
 	if(!$ldap->ldap_add($dn,$upd)){echo $ldap->ldap_last_error.":".__FUNCTION__.",\n".__FILE__."\n";return;}
 	
+	
+	writelogs("Update: $dn with password \"****\"",__FUNCTION__,__FILE__,__LINE__);
 	$upd["userPassword"][0]=$requested_password;	
 	$ldap=new clladp();
 	if(!$ldap->Ldap_modify($dn, $upd)){
-		echo "Failed to modify $dn password\n";
+		writelogs("Failed to modify $dn password",__FUNCTION__,__FILE__,__LINE__);
+		echo "Failed to modify $dn password\n". $ldap->ldap_last_error."\nIn ".basename(__FILE__)."\nFunction: ".__FUNCTION__."\nLine:".__LINE__;
 		return false;
 		
 	}

@@ -37,7 +37,7 @@ $count=0;
 $pid=getmypid();
 $max=count($files);
 $date1=date('H:i:s');
-events("Processing ".count($files)." files in $quarantine_dir");
+if(count($files)>0){events("Processing ".count($files)." files in $quarantine_dir");}
 	while (list ($num, $file) = each ($files) ){
 		
 		events("################################################################### $count/$max)");
@@ -81,7 +81,7 @@ die();
 function ASSP_QUAR($baseDir){
 //""	
 	if(!is_dir($baseDir)){
-		events("Processing unable to stat $baseDir");	
+			
 		return null;
 	}
 	
@@ -124,12 +124,13 @@ function DirEML($path){
 
 function events($text){
 		$pid=getmypid();
+		$me=basename(__FILE__);
 		$date=date('Y-m-d H:i:s');
 		$logFile="/var/log/artica-postfix/artica-mailarchive.debug";
 		$size=filesize($logFile);
 		if($size>5000000){unlink($logFile);}
 		$f = @fopen($logFile, 'a');
-		if($GLOBALS["DEBUG"]){echo "$date mailarchive[$pid]:[BACKUP] $text\n";}
+		if($GLOBALS["DEBUG"]){echo "$date $me[$pid]:[BACKUP] $text\n";}
 		@fwrite($f, "$date mailarchive[$pid]:[BACKUP] $text\n");
 		@fclose($f);	
 		}

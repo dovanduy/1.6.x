@@ -38,12 +38,7 @@ $GLOBALS["nmblookup"]=$unix->find_program("nmblookup");
 
 if($argv[1]=="lookup"){echo "{$argv[2]}:".nmblookup($argv[2],$argv[3])."\n";die();}
 
-if($argv[1]=='--single-computer'){
-	return;
-	writelogs("update_computer({$argv[2]},{$argv[3]},{$argv[4]}) " ,basename(__FILE__),__FILE__,__LINE__);
-	
-
-}
+if($argv[1]=='--single-computer'){die();}
 if($GLOBALS["VERBOSE"]){
 	echo " --> Argument={$argv[1]}\n";
 	echo " --> Force={$GLOBALS["FORCE"]}\n";
@@ -64,6 +59,8 @@ if($ComputersAllowDHCPLeases==0){
 	writelogs("ComputersAllowDHCPLeases is disabled, aborting...","MAIN",__FILE__,__LINE__);
 	die();
 }
+
+localsyslog("Check changed leases...");
 
 if(!$GLOBALS["FORCE"]){if($GLOBALS["VERBOSE"]){echo " -->Changed()\n";}if(!Changed()){die();}}
 

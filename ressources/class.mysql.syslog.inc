@@ -14,6 +14,7 @@ class mysql_syslog{
 	var $mysql_port;
 	var $MysqlFailed=false;
 	var $EnableRemoteStatisticsAppliance=0;
+	var $EnableSyslogDB=0;
 	var $last_id;
 	
 	function mysql_syslog(){
@@ -26,6 +27,8 @@ class mysql_syslog{
 		$this->mysql_server=$this->ClassSQL->mysql_server;
 		if(!$this->DATABASE_EXISTS($this->database)){$this->CREATE_DATABASE($this->database);}
 		if($this->TestingConnection()){}else{$this->MysqlFailed=true;}
+		$this->EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+		if(!is_numeric($this->EnableSyslogDB)){$this->EnableSyslogDB=0;}
 		
 	}
 	
@@ -190,6 +193,8 @@ class mysql_syslog{
 			}
 			
 		if(!$this->FIELD_EXISTS("logrotate", "RotateFiles")){$this->QUERY_SQL("ALTER TABLE `logrotate` ADD `RotateFiles` VARCHAR( 255 ) NOT NULL , ADD UNIQUE KEY (`RotateFiles`)");}
+		if($this->EnableSyslogDB==1){return;}
+		
 		
 		if(!$this->TABLE_EXISTS("store")){
 			$sql="CREATE TABLE IF NOT EXISTS `store` (

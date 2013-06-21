@@ -22,6 +22,14 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 
+if($argv[1]=="--restart"){
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("UPDATE tables_day SET wwwvisited=0 WHERE wwwvisited=1");
+	
+}
+
+
+
 
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
@@ -34,7 +42,9 @@ if($unix->process_exists($oldpid,$myfile)){
 }
 
 $time=$unix->file_time_min($pidTime);
-if($time<240){die();}
+if($time<240){
+	if($GLOBALS["VERBOSE"]){echo "$pidTime -> {$time}Mn/240mn\n";}
+	die();}
 @unlink($pidTime);
 @file_put_contents($pidTime, time());
 
@@ -93,6 +103,7 @@ function perform($tablesource,$zday){
 		$md5=md5($zday.$ligne["familysite"]);
 		$ligne["familysite"]=mysql_escape_string($ligne["familysite"]);
 		$f[]="('$md5','$zday','{$ligne["familysite"]}','{$ligne["size"]}','{$ligne["hits"]}')";
+		if($GLOBALS["VERBOSE"]){echo "('$md5','$zday','{$ligne["familysite"]}','{$ligne["size"]}','{$ligne["hits"]}')\n";}
 		
 	}
 	if(count($f)>0){
@@ -106,4 +117,12 @@ function perform($tablesource,$zday){
 	return true;
 	
 }
+
+
+function familysites($nopid=false){
+	
+	
+	
+}
+
 

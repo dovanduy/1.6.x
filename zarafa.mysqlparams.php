@@ -31,9 +31,12 @@ function page(){
 	$ZarafaMySQLServiceType=$sock->GET_INFO("ZarafaMySQLServiceType");
 	if(!is_numeric($ZarafaMySQLServiceType)){$ZarafaMySQLServiceType=1;}
 	
+	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
+	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
+	
 	$arraySRV[1]="{main_mysql_server_1}";
 	$arraySRV[2]="{main_mysql_server_2}";
-	if($users->APP_ZARAFADB_INSTALLED){
+	if($ZarafaDedicateMySQLServer==1){
 		$arraySRV[3]="{main_mysql_server_3}";
 	}
 	$arraySRV[4]="{main_mysql_server_4}";

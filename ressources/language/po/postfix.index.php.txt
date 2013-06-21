@@ -1,5 +1,5 @@
 <2bounce_notice_recipient>bounce notice recipient</2bounce_notice_recipient>
-<2bounce_notice_recipient_text>The recipient of undeliverable mail that cannot be returned to the sender</2bounce_notice_recipient_text>
+<2bounce_notice_recipient_text>Se o detinatario do mail n&atilde;o for encontrado, a mensagem de correio n&atilde;o pode ser devolvida ao rementente</2bounce_notice_recipient_text>
 <address_verify_sender>address verify sender</address_verify_sender>
 <address_verify_sender_text>The sender address to use in address verification probes</address_verify_sender_text>
 <antispam_enable_save>Apply your modules and make it in production mode....</antispam_enable_save>

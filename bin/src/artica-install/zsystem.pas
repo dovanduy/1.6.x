@@ -5283,10 +5283,7 @@ begin
 
      verbosed:=COMMANDLINE_PARAMETERS('--verbose');
      forceDirectories('/etc/artica-postfix');
-    if not FileExists('/etc/artica-postfix/ifconfig.conf') then begin
-       if verbosed then writeln('txt_uris():: -> ifconfig()');
-       ifconfig('/etc/artica-postfix/ifconfig.conf');
-    end;
+     ifconfig('/etc/artica-postfix/ifconfig.conf');
 
     if verbosed then writeln('txt_uris():: -> File time=',FILE_TIME_BETWEEN_MIN('/etc/artica-postfix/ifconfig.conf'),'mn');
 

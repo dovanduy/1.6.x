@@ -684,7 +684,7 @@ function postfix_network(){
 	if(!is_numeric($PostfixMultiCreateBubble)){$PostfixMultiCreateBubble=0;}		
 	
 	if($PostfixMultiCreateBubble==1){$BubbleText="<div style='font-size:12px;font-weight:bold;color:#9E0000'><i>{PostfixMultiCreateBubbleIsEnabled}</i></div>";}
-	
+	$t=time();
 	
 $html="
 <span style='font-size:16px;font-weight:bold'>{mynetworks_title}</span>

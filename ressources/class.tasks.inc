@@ -152,6 +152,7 @@ class system_tasks{
 			$this->tasks_array[64]="{milter_greylist_tables}";
 			$this->tasks_array[65]="{purge_mysql_logrotate}";
 			$this->tasks_array[66]="{restart_artica_web_services}";
+			$this->tasks_array[67]="{drop_caches}";
 			
 			
 			$this->tasks_explain_array[1]="{reboot_system_explain}";
@@ -222,6 +223,7 @@ class system_tasks{
 			$this->tasks_explain_array[64]="{milter_greylist_tables_text}";
 			$this->tasks_explain_array[65]="{purge_mysql_logrotate_explain}";
 			$this->tasks_explain_array[66]="{restart_artica_web_services_explain}";
+			$this->tasks_explain_array[67]="{drop_caches_explain}";
 			
 			
 			
@@ -296,8 +298,7 @@ class system_tasks{
 			$this->tasks_processes[64]="exec.postfix.miltergrey.stats.php";
 			$this->tasks_processes[65]="exec.logrotate.php --clean";
 			$this->tasks_processes[66]="exec.initslapd.php --restart-www";
-			
-			
+			$this->tasks_processes[67]="exec.drop-caches.php";
 			
 			
 			
@@ -439,6 +440,7 @@ public function CheckDefaultSchedules(){
 		$array[64]=array("TimeText"=>"30 7 * * *","TimeDescription"=>"Miltergrey list stats each day at 07h30");
 		$array[65]=array("TimeText"=>"30 18 * * 0","TimeDescription"=>"Purge logs storage MySQL database each Sunday at 18h30");
 		$array[66]=array("TimeText"=>"14 0,3,6,9,12,15,18,21 * * *","TimeDescription"=>"Restart Artica Web consoles each 3h");
+		$array[67]=array("TimeText"=>"17 0,4,8,12,16,18,22 * * *","TimeDescription"=>"Clean kernel caches each 4h");
 		
 		$c=0;
 		while (list ($TaskType, $content) = each ($array) ){

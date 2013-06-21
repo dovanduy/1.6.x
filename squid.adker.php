@@ -52,9 +52,11 @@
 	if(isset($_GET["diconnect-js"])){diconnect_js();exit;}
 	if(isset($_GET["disconnect-popup"])){diconnect_popup();exit;}
 	if(isset($_GET["disconnect-perform"])){diconnect_perform();exit;}
+	if(isset($_GET["DisableSquidBasicAuth-check"])){DisableSquidBasicAuth_save();exit;}
 js();
 
 function join_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{restart_connection}");
@@ -62,6 +64,7 @@ function join_js(){
 	
 }
 function diconnect_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{disconnect}");
@@ -163,7 +166,7 @@ function status_kerb(){
 	
 	if(count($datas)==0){
 		echo "
-		<script>LoadAjaxTiny('{$_GET["t"]}','squid.adker.php?status=yes&t=$t');</script>";
+		<script>LoadAjaxTiny('squid-adker-status','squid.adker.php?status=yes&t=squid-adker-status');</script>";
 		return;
 		
 	}
@@ -177,12 +180,13 @@ function status_kerb(){
 	
 	
 	if(trim($text)<>null){$text=": $text";}
-	$html="<table style='width:99%' class=form>
+	$html="
+	<table style='width:99%' class=form>
 	<tbody>
 	<tr>
 		<td width=1% valign='top'><img src='$img'></td>
 		<td nowrap style='font-size:13px' valign='top'><strong style='color:$textcolor'>Active Directory $text</strong></td>
-		<td width=1%>".imgtootltip("refresh-24.png","{refresh}","LoadAjaxTiny('{$_GET["t"]}','squid.adker.php?status=yes&t=$t');")."</td>
+		<td width=1%>".imgtootltip("refresh-24.png","{refresh}","LoadAjaxTiny('squid-adker-status','squid.adker.php?status=yes&t=squid-adker-status');")."</td>
 	</tr>
 	</tbody>
 	</table>
@@ -603,6 +607,8 @@ function settings(){
 	$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
 	$KerbAuthDisableNormalizeName=$sock->GET_INFO("KerbAuthDisableNormalizeName");
 	$KerbAuthMapUntrustedDomain=$sock->GET_INFO("KerbAuthMapUntrustedDomain");
+	$DisableSilentNTLM=$sock->GET_INFO("DisableSilentNTLM");
+	$DisableSquidBasicAuth=$sock->GET_INFO("DisableSquidBasicAuth");
 	$NtpdateAD=$sock->GET_INFO("NtpdateAD");
 	
 	$NTPDATE_INSTALLED=0;
@@ -620,6 +626,8 @@ function settings(){
 	if(!is_numeric($KerbAuthDisableGroupListing)){$KerbAuthDisableGroupListing=0;}
 	if(!is_numeric($KerbAuthDisableNormalizeName)){$KerbAuthDisableNormalizeName=1;}
 	if(!is_numeric($KerbAuthMapUntrustedDomain)){$KerbAuthMapUntrustedDomain=1;}
+	if(!is_numeric($DisableSilentNTLM)){$DisableSilentNTLM=0;}
+	if(!is_numeric($DisableSquidBasicAuth)){$DisableSquidBasicAuth=1;}
 	if(!is_numeric($NtpdateAD)){$NtpdateAD=0;}
 	
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
@@ -637,6 +645,7 @@ function settings(){
 	$arrayBCK["rid"]="rid";
 	$arrayBCK["tdb"]="tdb";
 	if($LockKerberosAuthentication==1){$EnableKerberosAuthentication=0;}
+	$DisableSquidBasicAuth_error=$tpl->javascript_parse_text("{DisableSquidBasicAuth_error}");
 	
 	if($EnableKerbAuth==1){
 		$disconnectTR="
@@ -654,6 +663,11 @@ function settings(){
 		
 		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{samba_is_not_installed}"));
 		return;
+	}
+	
+	if($DisableSilentNTLM==1){
+		$DisableSilentNTLM_text="<div class=explain style='font-size:14px'>{DisableSilentNTLM_explain}</div>";
+		
 	}
 	
 	$html="
@@ -695,13 +709,26 @@ function settings(){
 		</table>		
 	</td>
 	</table>
-	
-	<table style='width:99%' class=form>
+	$DisableSilentNTLM_text
+	<div style='width:95%' class=form>
+	<table>
 	<tr>
-		<td class=legend style='font-size:14px'>{EnableWindowsAuthentication}:</td>
+		<td class=legend style='font-size:14px' nowrap>{EnableWindowsAuthentication}:</td>
 		<td>". Field_checkbox("EnableKerbAuth",1,"$EnableKerbAuth","EnableKerbAuthCheck()")."</td>
 		<td>&nbsp;</td>
 	</tr>
+	<tr>
+		<td class=legend style='font-size:14px' nowrap>{DisableSilentNTLM}:</td>
+		<td>". Field_checkbox("DisableSilentNTLM",1,"$DisableSilentNTLM","DisableSquidBasicAuthCheck()")."</td>
+		<td>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:14px' nowrap>{DisableSquidBasicAuth}:<div id='DisableSquidBasicAuth-anim'></div></td>
+		<td>". Field_checkbox("DisableSquidBasicAuth",1,"$DisableSquidBasicAuth","DisableSquidBasicAuthCheck()")."</td>
+		<td></td>
+	</tr>
+
+				
 	<tr>
 		<td class=legend style='font-size:14px'>{KerbAuthDisableNsswitch}:</td>
 		<td>". Field_checkbox("KerbAuthDisableNsswitch",1,"$KerbAuthDisableNsswitch")."</td>
@@ -713,7 +740,7 @@ function settings(){
 		<td>&nbsp;</td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:14px'>{KerbAuthDisableGroupListing}:</td>
+		<td class=legend style='font-size:14px' nowrap>{KerbAuthDisableGroupListing}:</td>
 		<td>". Field_checkbox("KerbAuthDisableGroupListing",1,"$KerbAuthDisableGroupListing")."</td>
 		<td>&nbsp;</td>
 	</tr>	
@@ -723,12 +750,12 @@ function settings(){
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{map_untrusted_to_domain}:</td>
+		<td class=legend style='font-size:14px' nowrap>{map_untrusted_to_domain}:</td>
 		<td>". Field_checkbox("KerbAuthMapUntrustedDomain",1,"$KerbAuthMapUntrustedDomain")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{synchronize_time_with_ad}:</td>
+		<td class=legend style='font-size:14px' nowrap>{synchronize_time_with_ad}:</td>
 		<td>". Field_checkbox("NtpdateAD",1,"$NtpdateAD")."</td>
 		<td>&nbsp;</td>
 	</tr>									
@@ -788,7 +815,7 @@ function settings(){
 	<td colspan=2 align='right'><hr>". button("{apply}","SaveKERBProxy()",16)."</td>
 	</tr>
 	</table>
-	
+	</div>
 	<script>
 		function EnableKerbAuthCheck(){
 			var EnableKerbAuth=0;
@@ -811,6 +838,7 @@ function settings(){
 			document.getElementById('KerbAuthDisableNormalizeName').disabled=true;
 			document.getElementById('KerbAuthMapUntrustedDomain').disabled=true;
 			document.getElementById('NtpdateAD').disabled=true;
+			document.getElementById('DisableSilentNTLM').disabled=true;
 			
 			
 			
@@ -846,6 +874,8 @@ function settings(){
 					document.getElementById('KerbAuthDisableNormalizeName').disabled=false;
 					document.getElementById('KerbAuthMapUntrustedDomain').disabled=false;
 					document.getElementById('KerbAuthTrusted').disabled=false;
+					document.getElementById('DisableSilentNTLM').disabled=false;
+					
 					
 					if(NTPDATE_INSTALLED==1){
 						document.getElementById('NtpdateAD').disabled=false;
@@ -921,6 +951,7 @@ function settings(){
 	}		
 	
 		function SaveKERBProxy(){
+			DisableSquidBasicAuthCheck();
 			var EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance;
 			if(EnableRemoteStatisticsAppliance==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}
 			var pp=encodeURIComponent(document.getElementById('WINDOWS_SERVER_PASS').value);
@@ -933,6 +964,8 @@ function settings(){
 			if(document.getElementById('KerbAuthTrusted').checked){XHR.appendData('KerbAuthTrusted',1);}else{XHR.appendData('KerbAuthTrusted',0);}
 			if(document.getElementById('KerbAuthMapUntrustedDomain').checked){XHR.appendData('KerbAuthMapUntrustedDomain',1);}else{XHR.appendData('KerbAuthMapUntrustedDomain',0);}
 			if(document.getElementById('NtpdateAD').checked){XHR.appendData('NtpdateAD',1);}else{XHR.appendData('NtpdateAD',0);}
+			if(document.getElementById('DisableSilentNTLM').checked){XHR.appendData('DisableSilentNTLM',1);}else{XHR.appendData('DisableSilentNTLM',0);}
+			if(document.getElementById('DisableSquidBasicAuth').checked){XHR.appendData('DisableSquidBasicAuth',1);}else{XHR.appendData('DisableSquidBasicAuth',0);}
 			
 			
 			
@@ -950,6 +983,25 @@ function settings(){
 		
 		}
 		
+		function DisableSquidBasicAuthCheck(){
+			var DisableSilentNTLM=0;
+			var DisableSquidBasicAuth=0;
+			if(document.getElementById('DisableSquidBasicAuth').checked){DisableSquidBasicAuth=1;}
+			if(document.getElementById('DisableSilentNTLM').checked){DisableSilentNTLM=1;}
+			if(DisableSilentNTLM==1){
+				if(DisableSquidBasicAuth==1){
+					alert('$DisableSquidBasicAuth_error');
+					document.getElementById('DisableSilentNTLM').checked=false;
+					document.getElementById('DisableSquidBasicAuth').checked=false;
+					return;
+				}
+				
+			}
+			
+			LoadAjaxTiny('DisableSquidBasicAuth-anim','$page?DisableSquidBasicAuth-check=yes&value='+DisableSquidBasicAuth);
+				
+		}		
+		
 		
 		EnableKerbAuthCheck();
 		LoadAjax('kerbchkconf','$page?kerbchkconf=yes');
@@ -960,6 +1012,14 @@ function settings(){
 	
 	
 }	
+
+function DisableSquidBasicAuth_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("DisableSquidBasicAuth", $_GET["value"]);
+	$tpl=new templates();
+	if($_GET["value"]==1){$enabled="{enabled}";}else{$enabled="{disabled}";}
+	echo $tpl->_ENGINE_parse_body("<strong style='font-size:14px;font-weight:bold'>{success}:$enabled</strong>...");
+}
 
 function ldap_params(){
 	$page=CurrentPageName();
@@ -982,19 +1042,19 @@ function ldap_params(){
 	if(!is_numeric($array["LDAP_RECURSIVE"])){$array["LDAP_RECURSIVE"]=0;}
 	$html="
 	<div id='serverkerb-$t'></div>
-	<div class=explain style='font-size:14px'>{ldap_ntlm_parameters_explain}</div>
+	<div class=explain style='font-size:14px' nowrap>{ldap_ntlm_parameters_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend style='font-size:14px'>{use_dynamic_groups_acls}:</td>
+		<td class=legend style='font-size:14px' nowrap>{use_dynamic_groups_acls}:</td>
 		<td>". Field_checkbox("UseDynamicGroupsAcls",1,$UseDynamicGroupsAcls,"UseDynamicGroupsAclsCheck()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{TTL_CACHE}:</td>
+		<td class=legend style='font-size:14px' nowrap>{TTL_CACHE}:</td>
 		<td style='font-size:14px'>". Field_text("DynamicGroupsAclsTTL",$DynamicGroupsAclsTTL,"font-size:14px;padding:3px;width:90px")."&nbsp;{seconds}</td>
 	</tr>
 				
 	<tr>
-		<td class=legend style='font-size:14px'>{non_ntlm_domain}:</td>
+		<td class=legend style='font-size:14px' nowrap>{non_ntlm_domain}:</td>
 		<td>". Field_text("LDAP_NONTLM_DOMAIN",$array["LDAP_NONTLM_DOMAIN"],"font-size:14px;padding:3px;width:190px")."</td>
 	</tr>	
 	<tr>
@@ -1095,6 +1155,32 @@ function ldap_params_save(){
 	}
 	$sock->SaveConfigFile(base64_encode(serialize($array)), "KerbAuthInfos");
 	
+	
+	$ldap_connection=@ldap_connect($_POST["LDAP_SERVER"],$_POST["LDAP_PORT"]);
+	if(!$ldap_connection){
+		echo "Connection Failed to connect to DC ldap://{$_POST["LDAP_SERVER"]}:{$_POST["LDAP_PORT"]}";
+		if (@ldap_get_option($ldap_connection, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error)) {
+			$error=$error."\n$extended_error";
+		}		
+		@ldap_close();
+		return false;
+	}
+	
+	ldap_set_option($ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
+	ldap_set_option($ldap_connection, LDAP_OPT_REFERRALS, 0);
+	$bind=ldap_bind($ldap_connection, $_POST["LDAP_DN"],$_POST["LDAP_PASSWORD"]);
+	if(!$bind){
+		
+		$error=ldap_err2str(ldap_errno($ldap_connection));
+		if (@ldap_get_option($ldap_connection, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error)) {
+			$error=$error."\n$extended_error";
+		}
+		
+		echo "Failed to login to DC {$_POST["LDAP_SERVER"]} - {$_POST["LDAP_DN"]} \n`$error`";
+		return false;
+	}	
+	
+	
 	if($EnableWebProxyStatsAppliance==1){
 		include_once("ressources/class.blackboxes.inc");
 		$blk=new blackboxes();
@@ -1153,6 +1239,8 @@ function settingsSave(){
 	$sock->SET_INFO("KerbAuthTrusted", $_POST["KerbAuthTrusted"]);
 	$sock->SET_INFO("KerbAuthMapUntrustedDomain", $_POST["KerbAuthMapUntrustedDomain"]);
 	$sock->SET_INFO("NtpdateAD", $_POST["NtpdateAD"]);
+	$sock->SET_INFO("DisableSilentNTLM", $_POST["DisableSilentNTLM"]);
+	$sock->SET_INFO("DisableSquidBasicAuth", $_POST["DisableSquidBasicAuth"]);
 	
 	
 	

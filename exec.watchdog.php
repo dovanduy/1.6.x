@@ -52,8 +52,8 @@ function startprocess($APP_NAME,$cmd){
 	
 	exec("/etc/init.d/artica-postfix start $cmd 2>&1",$results);
 	if($GLOBALS["VERBOSE"]){echo "\n".@implode("\n",$results)."\n";return;}
-	$unix->send_email_events("$APP_NAME stopped","Artica tried to start it:\n".@implode("\n",$results),"system");
-	
+	//$unix->send_email_events("$APP_NAME stopped","Artica tried to start it:\n".@implode("\n",$results),"system");
+
 }
 function bandwith(){
 	return;

@@ -42,7 +42,9 @@ class mysql_builder{
 	private function FIELD_TYPE($table,$field,$database){
 		return $this->ClassSQL->FIELD_TYPE($table,$field,$database);
 	}
-	
+	private function COUNT_ROWS($table,$database){
+		return $this->ClassSQL->COUNT_ROWS($table,$database);
+	}	
 	private FUNCTION INDEX_EXISTS($table,$index,$database){
 		return $this->ClassSQL->INDEX_EXISTS($table,$index,$database);
 	}
@@ -188,19 +190,39 @@ public function check_storage_table(){
 		}		
 		
 		
-		if(!$this->TABLE_EXISTS('dhcpd_fixed','artica_backup')){		
+			
 			$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`dhcpd_fixed` (
 			`mac` VARCHAR( 50 ) NOT NULL ,
 			`ipaddr` VARCHAR( 50 ) NOT NULL ,
 			`hostname` VARCHAR( 128 ) NOT NULL ,
 			`domain` VARCHAR( 128 ) NOT NULL ,
+			`routers` VARCHAR( 128 ),
+			`time-servers` VARCHAR( 128 ),
+			`domain-name-servers` VARCHAR( 255 ),
+			`ntp-servers`  VARCHAR( 255 ),
+			`local-pac-server` VARCHAR( 255 ),
 			PRIMARY KEY ( `mac` ) ,
 			INDEX ( `hostname` , `domain` ) ,
 			UNIQUE (`ipaddr`)
 			) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,'artica_backup');
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
-		} 
+			
+			if(!$this->FIELD_EXISTS('dhcpd_fixed',"routers",'artica_backup')){
+				$FIELDS["routers"]=128;
+				$FIELDS["time-servers"]=128;
+				$FIELDS["domain-name-servers"]=255;
+				$FIELDS["ntp-servers"]=255;
+				$FIELDS["local-pac-server"]=255;
+				while (list ($field, $value) = each ($FIELDS) ){
+					if(!$this->FIELD_EXISTS('dhcpd_fixed',$field,'artica_backup')){
+						$sql="ALTER TABLE `dhcpd_fixed` ADD `$field` VARCHAR( $value )";
+						$this->QUERY_SQL($sql,"artica_backup");
+						if(!$q->ok){echo $q->mysql_error."\n$sql\n";}
+					}
+				}
+			}
+		
 
 		if(!$this->TABLE_EXISTS('adgroupsprivs','artica_backup')){
 			$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`adgroupsprivs` (
@@ -282,6 +304,26 @@ public function check_storage_table(){
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		} 		
 
+		$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`mailarchives` (
+			`zmd5` VARCHAR( 90 ) NOT NULL PRIMARY KEY,
+			`ou` VARCHAR( 90 ) NOT NULL,
+			`email` VARCHAR( 250 ) NOT NULL ,
+			`direction` VARCHAR( 40 ) NOT NULL ,
+			`next` VARCHAR( 250 ) NOT NULL ,
+			`params` TEXT,
+			`enable` TINYINT( 1 ) NOT NULL ,
+			KEY  `enable` ( `enable`),
+			KEY `email` (`email`),
+			KEY `next` (`next`),
+			KEY `direction` (`direction`)
+			) ENGINE=MYISAM;";
+		$this->QUERY_SQL($sql,'artica_backup');
+		if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+		if(!$this->FIELD_EXISTS("mailarchives","params","artica_backup")){
+			$sql="ALTER TABLE `mailarchives` ADD `params` TEXT";
+			$this->QUERY_SQL($sql,"artica_backup");
+		}
+		
 		
 		if(!$this->TABLE_EXISTS('syspackages_updt','artica_backup')){		
 			$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`syspackages_updt` (
@@ -306,7 +348,7 @@ public function check_storage_table(){
 			`TableCount` INT(5) NOT NULL ,
 			`dbsize` BIGINT( 100 ) NOT NULL DEFAULT '0',
 			 INDEX ( `TableCount` , `dbsize`,`instance_id` ) ,
-			 KEY (`databasename`)) ENGINE=MYISAM;";
+			 KEY `databasename` (`databasename`)) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,'artica_backup');
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		
@@ -498,11 +540,30 @@ public function check_storage_table(){
 				  KEY `category` (`category`),
 				  KEY `zDate` (`zDate`)
 				) ENGINE=MYISAM;";
-			writelogs("INFO: building artica_events/update_events",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			
 			$this->QUERY_SQL($sql,'artica_events');
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
-		} 		
-		
+		} 
+
+		if(!$this->TABLE_EXISTS('sys_loadvg','artica_events')){
+			$sql="CREATE TABLE IF NOT EXISTS `sys_loadvg` (		
+			 	`zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				loadavg float,
+				PRIMARY KEY (`zDate`),
+				KEY `loadavg` (`loadavg`)
+			) ENGINE=MYISAM;		
+			";
+			$this->QUERY_SQL($sql,'artica_events');
+		}
+		if(!$this->TABLE_EXISTS('psalerts','artica_events')){
+			$sql="CREATE TABLE IF NOT EXISTS `psalerts` (
+			 	`zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				content LONGTEXT,
+				PRIMARY KEY (`zDate`)
+			) ENGINE=MYISAM;
+			";
+			$this->QUERY_SQL($sql,'artica_events');
+		}		
 		
 		if(!$this->TABLE_EXISTS('ldap_ou_import','artica_backup')){		
 			$sql="CREATE TABLE IF NOT EXISTS `ldap_ou_import` (
@@ -983,8 +1044,139 @@ public function check_storage_table(){
 			$this->QUERY_SQL($sql,"artica_events");
 	}		
 	
+	$sql="CREATE TABLE IF NOT EXISTS radacct (
+  radacctid bigint(21) NOT NULL auto_increment,
+  acctsessionid varchar(64) NOT NULL default '',
+  acctuniqueid varchar(32) NOT NULL default '',
+  username varchar(64) NOT NULL default '',
+  groupname varchar(64) NOT NULL default '',
+  realm varchar(64) default '',
+  nasipaddress varchar(15) NOT NULL default '',
+  nasportid varchar(15) default NULL,
+  nasporttype varchar(32) default NULL,
+  acctstarttime datetime NULL default NULL,
+  acctstoptime datetime NULL default NULL,
+  acctsessiontime int(12) default NULL,
+  acctauthentic varchar(32) default NULL,
+  connectinfo_start varchar(50) default NULL,
+  connectinfo_stop varchar(50) default NULL,
+  acctinputoctets bigint(20) default NULL,
+  acctoutputoctets bigint(20) default NULL,
+  calledstationid varchar(50) NOT NULL default '',
+  callingstationid varchar(50) NOT NULL default '',
+  acctterminatecause varchar(32) NOT NULL default '',
+  servicetype varchar(32) default NULL,
+  framedprotocol varchar(32) default NULL,
+  framedipaddress varchar(15) NOT NULL default '',
+  acctstartdelay int(12) default NULL,
+  acctstopdelay int(12) default NULL,
+  xascendsessionsvrkey varchar(10) default NULL,
+  PRIMARY KEY  (radacctid),
+  KEY username (username),
+  KEY framedipaddress (framedipaddress),
+  KEY acctsessionid (acctsessionid),
+  KEY acctsessiontime (acctsessiontime),
+  KEY acctuniqueid (acctuniqueid),
+  KEY acctstarttime (acctstarttime),
+  KEY acctstoptime (acctstoptime),
+  KEY nasipaddress (nasipaddress)
+ )ENGINE=MYISAM; ;";
+	$this->QUERY_SQL($sql,"artica_backup");
 	
+	if(!$this->FIELD_EXISTS("radacct","username","artica_backup")){
+		$sql="ALTER TABLE `radacct` ADD `username` varchar(64) NOT NULL default '' ,ADD INDEX ( `username` )";
+		$this->QUERY_SQL($sql,"artica_backup");
+	}	
+	
+ $sql="CREATE TABLE IF NOT EXISTS radcheck (
+  id int(11) unsigned NOT NULL auto_increment,
+  username varchar(64) NOT NULL default '',
+  attribute varchar(64)  NOT NULL default '',
+  op char(2) NOT NULL DEFAULT '==',
+  value varchar(253) NOT NULL default '',
+  PRIMARY KEY  (id),
+  KEY username (username(32))
+) ENGINE=MYISAM;";$this->QUERY_SQL($sql,"artica_backup");
+ 
+ if(!$this->FIELD_EXISTS("radcheck","username","artica_backup")){
+ 	$sql="ALTER TABLE `radcheck` ADD `username` varchar(64) NOT NULL default '' ,ADD INDEX ( `username` )";
+ 	$this->QUERY_SQL($sql,"artica_backup");
+ } 
+ 
+ 
 
+ $sql="CREATE TABLE IF NOT EXISTS radgroupcheck (
+   id int(11) unsigned NOT NULL auto_increment,
+  gpid int(11) NOT NULL, 		
+  groupname varchar(64) NOT NULL default '',
+  attribute varchar(64)  NOT NULL default '',
+  op char(2) NOT NULL DEFAULT '==',
+  value varchar(253)  NOT NULL default '',
+  PRIMARY KEY  (id),
+  KEY groupname (groupname(32)),KEY gpid (gpid)
+) ENGINE=MYISAM;";$this->QUERY_SQL($sql,"artica_backup");
+ 
+ 
+ $sql="CREATE TABLE IF NOT EXISTS radgroupreply (
+    id int(11) unsigned NOT NULL auto_increment,
+ 	gpid int(11) NOT NULL,
+  	groupname varchar(64) NOT NULL default '',
+  	attribute varchar(64)  NOT NULL default '',
+ 	op char(2) NOT NULL DEFAULT '=',
+  	value varchar(253)  NOT NULL default '',
+  	PRIMARY KEY  (id),
+ 	KEY gpid (gpid),
+  	KEY groupname (groupname(32))
+ ) ENGINE=MYISAM;";$this->QUERY_SQL($sql,"artica_backup");
+
+ $sql="CREATE TABLE IF NOT EXISTS radreply (
+  id int(11) unsigned NOT NULL auto_increment,
+  groupname varchar(64) NOT NULL default '',
+  attribute varchar(64)  NOT NULL default '',
+  op char(2) NOT NULL DEFAULT '=',
+  value varchar(253)  NOT NULL default '',
+  PRIMARY KEY  (id),
+  KEY groupname (groupname(32))
+ ) ENGINE=MYISAM;";$this->QUERY_SQL($sql,"artica_backup");
+ 
+ $sql="CREATE TABLE IF NOT EXISTS radusergroup (
+  username varchar(64) NOT NULL default '',
+  groupname varchar(64) NOT NULL default '',
+  priority int(11) NOT NULL default '1',
+  gpid int(11) NOT NULL,
+  KEY username (username(32)),
+  KEY gpid (gpid)
+ ) ENGINE=MYISAM;";$this->QUERY_SQL($sql,"artica_backup");
+ 
+
+ if(!$this->FIELD_EXISTS("radusergroup","gpid","artica_backup")){
+ 	$sql="ALTER TABLE `radusergroup` ADD `gpid` INT(11) NOT NULL ,ADD INDEX ( `gpid` )";
+ 	$this->QUERY_SQL($sql,"artica_backup");
+ }
+ 
+ 
+ $sql="CREATE TABLE IF NOT EXISTS radpostauth (
+     id int(11) NOT NULL auto_increment,
+  username varchar(64) NOT NULL default '',
+  pass varchar(64) NOT NULL default '',
+  reply varchar(32) NOT NULL default '',
+  authdate timestamp NOT NULL,
+  PRIMARY KEY  (id)
+ 		
+ ) ENGINE=MYISAM;";$this->QUERY_SQL($sql,"artica_backup");
+ 
+ $sql="CREATE TABLE IF NOT EXISTS nas (
+   id int(10) NOT NULL auto_increment,
+   nasname varchar(128) NOT NULL,
+   shortname varchar(32),
+   type varchar(30) DEFAULT 'other',
+   ports int(5),
+   secret varchar(60) DEFAULT 'secret' NOT NULL,
+   community varchar(50),
+   description varchar(200) DEFAULT 'RADIUS Client',
+   PRIMARY KEY (id),
+   KEY nasname (nasname)
+) ENGINE=MYISAM;";$this->QUERY_SQL($sql,"artica_backup");
 	
 	if(!$this->TABLE_EXISTS('ps_mem','artica_events')){		
 			$sql="CREATE TABLE IF NOT EXISTS `ps_mem` (
@@ -999,8 +1191,84 @@ public function check_storage_table(){
 			) ENGINE=MYISAM;";	
 	
 			$this->QUERY_SQL($sql,"artica_events");
-	}	
+	}
+
+
+	$sql="CREATE TABLE IF NOT EXISTS `radattribute` (
+	`att_status` int(2) NOT NULL default '0',
+	`attribute` varchar(200) NOT NULL,
+	`default_value` varchar(200) default NULL,
+	`unit` varchar(20) default NULL,
+	`gp_database` varchar(40) default NULL,
+	`enum_value` varchar(255) default NULL,
+	`description` varchar(255) default NULL,
+	`category` varchar(200) default NULL,
+	PRIMARY KEY  (`attribute`)
+	) ENGINE=MyISAM DEFAULT CHARSET=utf8;";
+	;$this->QUERY_SQL($sql,"artica_backup");
 	
+	
+	
+	if($this->COUNT_ROWS("radattribute","artica_backup")==0){
+		$f=array();
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (1, 'Auth-Type', 'Local', 'enum', 'radgroupcheck;', 'Local;Pam;Accept;Reject;System;EAP;', 'Authorization different value', 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Callback-ID', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Callback');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Callback-Number', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Callback');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Callback-Station-ID', NULL, NULL, 'radgroupcheck;', NULL, NULL, 'Callback');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Calling-Station-ID', NULL, NULL, 'radgroupcheck;', NULL, 'MAC address of client', 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Filter-ID', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Framed-Compression', 'Van-Jacobsen-Header-Compression', NULL, 'radgroupreply;', 'None;Van-Jacobson-TCP-IP;Van-Jacobsen-Header-Compression;IPX-Header-Compression;Stac-LZS-Compression;', NULL, 'Framed');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Framed-IP-Address', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Framed');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Framed-IP-Netmask', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Framed');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Framed-IPX-Network', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Framed');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Framed-MTU', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Framed');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Framed-Route', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Framed');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Framed-Routing', NULL, NULL, 'radgroupreply;', 'Broadcast routing tables and notifications;Listen for routing notification broadcasts;Broadcast and listen for notifications;', NULL, 'Framed');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Framed-Protocol', 'PPP', NULL, 'radgroupreply;', 'PPP;SLIP;ARAP;Gandalf SLP/MLP;Xylogics IPX/SIP;X.75 Synchronous;', NULL, 'Framed');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Login-LAT-Group', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Login');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Login-LAT-Node', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Login');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Login-LAT-Port', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Login');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Login-IP-Host', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Login');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Login-Service', NULL, NULL, 'radgroupreply;', 'Telnet;Rlogin;Tcp Clear;PortMaster;LAT;X25-PAD;X25-T3POS;Tcp Clear Quiet;', NULL, 'Login');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Login-TCP-Port', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Login');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Port-Limit', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (1, 'Service-Type', 'Login', 'enum', 'radgroupreply;', 'Login-User;Framed;Callback Login;Callback Framed;Outbound;Administrative;NAS Prompt;Authenticate Only;Callback NAS Prompt;Call Check;Callback Administrative;', 'Network service', 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Fall-Through', '1', NULL, 'radgroupreply;', NULL, NULL, 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Tunnel-Type', NULL, NULL, 'radgroupreply;', 'Point-to-Point Tunneling Protocol;Layer Two Forwarding;Layer Two Tunneling Protocol;Ascend Tunnel Manaement Protocol;Virtual Tunneling Protocol;IP Authentification Header in the Tunnel-mode;IP-in-IP Encapsulation;Minimal IP-in-IP Encapsulation;IP Encapsul', NULL, 'Tunnel');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Tunnel-Medium-Type', 'IPv4', NULL, 'radgroupreply;', 'IPv4;IPv6;NSAP;HDLC;BBN 1822;802;E.163;E.164;F.69;X.121;IPX;Appletalk;Decnet IV;Banyan Vines; E164 with NSAP format subaddress;', NULL, 'Tunnel');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Tunnel-Password', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Tunnel');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'EAP-Message', NULL, NULL, 'radgroupreply;', NULL, NULL, 'EAP');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Reply-Message', NULL, NULL, 'radgroupreply;', NULL, 'String returned to the user', 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'ChilliSpot-MAC-Allowed', NULL, NULL, 'radgroupcheck;radgroupreply;', NULL, 'For allow mac adress auth', 'Chillispot');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'ChilliSpot-UAM-Allowed', NULL, NULL, 'radgroupreply;', NULL, 'When received from the radius server in an RFC 2882 style configuration management message this attribute will override the uamallowed command line option.', 'Chillispot');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'ChilliSpot-Max-Total-Octets', NULL, NULL, 'radgroupreply;radgroupcheck;', NULL, 'Maximum number of octets the user is allowed to transfer (sum of octets transmitted and received). After this limit has been reached the user will be disconnected.', 'Chillispot');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'ChilliSpot-Max-Output-Octets', NULL, NULL, 'radgroupreply;radgroupcheck;', NULL, 'Maximum number of octets the user is allowed to receive. After this limit has been reached the user will be disconnected.', 'Chillispot');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'ChilliSpot-Max-Input-Octets', NULL, NULL, 'radgroupcheck;radgroupreply;', NULL, 'Maximum number of octets the user is allowed to transmit. After this limit has been reached the user will be disconnected.', 'Chillispot');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'WISPr-Session-Terminate-Time', NULL, NULL, 'radgroupreply;', NULL, 'The time when the user should be disconnected in ISO 8601 format (YYYY-MM-DDThh:mm:ssTZD). If TZD is not specified local time is assumed. For example a disconnect on 18 December 2001 at 7:00 PM UTC would be specified as 2001-12-18T19:00:00+00:00.', 'Wispr');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'WISPr-Bandwidth-Max-Down', '4194304', 'bits', 'radgroupreply;', NULL, 'Maximum receive rate (b/s). Limits the bandwidth of the connection. Note that this attribute is specified in bits per second.', 'Wispr');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'WISPr-Bandwidth-Max-Up', '2097152', 'bits', 'radgroupreply;', NULL, 'Maximum transmit rate (b/s). Limits the bandwidth of the connection. Note that this attribute is specified in bits per second.', 'Wispr');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (1, 'WISPr-Redirection-URL', 'http://www.pixpros.net', 'text', 'radgroupreply;', NULL, 'If present the client will be redirected to this URL once authenticated. This URL should include a link to WISPr-Logoff-URL in order to enable the client to log off.', 'Wispr');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'WISPr-Logoff-URL', NULL, NULL, 'radgroupreply;', NULL, 'Chilli includes this attribute in Access-Request messages in order to notify the operator of the log off URL to use for logging off clients. Defaults to \"http://192.168.182.1:3990/logoff\"', 'Wispr');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'WISPr-Location-Name', NULL, NULL, 'radgroupcheck;', NULL, 'Location Name is set to the radiuslocationname option if present. Should be in the format: <HOTSPOT_OPERATOR_NAME>,<LOCATION>', 'Wispr');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'WISPr-Location-ID', NULL, NULL, 'radgroupcheck;', NULL, 'Location ID is set to the radiuslocationid option if present. Should be in the format: isocc=<ISO_Country_Code>, cc=<E.164_Country_Code>,ac=<E.164_Area_Code>,network=<ssid/ZONE>', 'Wispr');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (1, 'Acct-Interim-Interval', '60', 'minutes', 'radgroupreply;', NULL, 'If present in Access-Accept chilli will generate interim accounting records with the specified interval (seconds).', 'Accounting');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'NAS-Port-Type', NULL, NULL, 'radgroupcheck;', 'Wireless-IEEE-802.11;', NULL, 'Nas');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'NAS-ID', NULL, NULL, 'radgroupcheck;', NULL, 'Set to radiusnasid option if present.', 'Nas');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'MS-MPPE-Send-Key', NULL, NULL, 'radgroupreply;', NULL, 'User for wpa', 'Mppe');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'MS-MPPE-Recv-Key', NULL, NULL, 'radgroupreply;', NULL, NULL, 'Mppe');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'Called-Station-ID', NULL, NULL, 'radgroupcheck;', NULL, '	Set to the radiuscalled command line option or the MAC address of ChilliSpot if not present.', 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (1, 'Session-Timeout', '7200', 'hours', 'radgroupreply;radgroupcheck;', NULL, 'Logout once session timeout is reached (seconds)', 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (1, 'Idle-Timeout', '600', 'minutes', 'radgroupreply;', NULL, 'Logout once idle timeout is reached (seconds)', 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'CHAP-Password', NULL, NULL, 'radgroupcheck;', NULL, 'Used for UAM', 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'CHAP-Challenge', NULL, NULL, 'radgroupcheck;', NULL, 'Used for UAM', 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (0, 'NAS-IP-Address', NULL, NULL, 'radgroupcheck;', NULL, 'IP address of Chilli (set by the radiusnasip or radiuslisten option).IP address of Chilli (set by the radiusnasip or radiuslisten option). If neither radiuslisten nor nasipaddress are set NAS-IP-Address is set to \"0.0.0.0\". ', 'Nas');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (1, 'Max-Daily-Session', '14400', 'hours', 'radgroupreply;radgroupcheck;', NULL, NULL, 'Divers');";
+		$f[]="INSERT IGNORE INTO `radattribute` VALUES (1, 'Simultaneous-Use', '1', 'enum', 'radgroupreply;radgroupcheck;', '0;1;', NULL, 'Divers');";		
+		while (list ($key, $sql) = each ($f) ){
+			$this->QUERY_SQL($sql,"artica_backup");
+		}
+	}
+
 	
 
 	
@@ -1056,7 +1324,7 @@ public function check_storage_table(){
 			  `config` TEXT NOT NULL,
 			   PRIMARY KEY (`directory`),
 			   KEY `enabled` (`enabled`)
-				)";
+				) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,"artica_backup");		
 		}		
 	
@@ -1079,7 +1347,7 @@ public function check_storage_table(){
 				  KEY `family` (`family`),
 				  FULLTEXT KEY `title_2` (`title`),
 				  FULLTEXT KEY `text` (`text`)
-				)";
+				) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,"artica_backup");
 	}	
 	 	
@@ -1099,7 +1367,7 @@ public function check_storage_table(){
 			$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`getent_users` (
 		`uid` VARCHAR( 128 ) NOT NULL ,
 		PRIMARY KEY ( `uid` )
-		)";
+		) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql,"artica_backup");
 	}
 
@@ -1273,8 +1541,8 @@ public function check_storage_table(){
 	}
 
 	
-	if(!$this->TABLE_EXISTS('hostsusers','artica_backup')){		
-			$sql="CREATE TABLE IF NOT EXISTS `hostsusers` (
+	if(!$this->TABLE_EXISTS('hostsusers',"artica_backup")){
+		$sql="CREATE TABLE IF NOT EXISTS `hostsusers` (
 				  `zmd5` varchar(90) NOT NULL,
 				  `uid` varchar(128) NOT NULL,
 				  `computerid` varchar(128) NOT NULL,
@@ -2467,8 +2735,11 @@ function check_postfwd2_table(){
 		  `OrganizationalUnit` varchar(90),
 		  `CompanyName`  varchar(90),
 		  `emailAddress` varchar(250),
+		  `levelenc` INT(3) NOT NULL DEFAULT '1024',
 		  `CertificateMaxDays` INT(3),
 		  `csr` TEXT NOT NULL,
+		  `srca` TEXT NOT NULL,
+		  `der` TEXT NOT NULL,				
 		  `privkey` TEXT NOT NULL,
 		  `keyPassword` varchar(255) NOT NULL,
 		  `crt` TEXT NOT NULL,
@@ -2495,6 +2766,7 @@ function check_postfwd2_table(){
 	if(!$this->FIELD_EXISTS("sslcertificates","Squidkey","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `Squidkey` TEXT NOT NULL";$this->QUERY_SQL($sql,'artica_backup');}
 	if(!$this->FIELD_EXISTS("sslcertificates","SquidCert","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `SquidCert` TEXT NOT NULL";$this->QUERY_SQL($sql,'artica_backup');}
 	if(!$this->FIELD_EXISTS("sslcertificates","keyPassword","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `keyPassword` VARCHAR(255) NOT NULL,ADD INDEX(`keyPassword`)";$this->QUERY_SQL($sql,'artica_backup');}
+	if(!$this->FIELD_EXISTS("sslcertificates","levelenc","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `levelenc` INT(3) NOT NULL DEFAULT '1024',ADD INDEX(`levelenc`)";$this->QUERY_SQL($sql,'artica_backup');}
 	
 	
 }	
@@ -3178,7 +3450,29 @@ if(!$this->TABLE_EXISTS('smtp_logs_day_users','artica_events')){
 	if(!$this->FIELD_EXISTS("postfix_global_blacklist","score","artica_backup")){
 		$sql="ALTER TABLE `postfix_global_blacklist` ADD `score` INT( 10 ) NOT NULL DEFAULT '0',ADD INDEX ( `score` )";
 		$this->QUERY_SQL($sql,'artica_backup');
-	}		
+	}	
+
+	
+	$sql="CREATE TABLE IF NOT EXISTS `haarp` (
+	`id` bigint NOT NULL auto_increment,
+	`file` varchar(767) NOT NULL,
+	`domain` varchar(255) NOT NULL,
+	`size` int(10) unsigned NOT NULL default '0',
+	`modified` datetime NOT NULL,
+	`downloaded` datetime NOT NULL,
+	`requested` int(10) unsigned NOT NULL default '0',
+	`last_request` datetime NOT NULL,
+	`rg` varchar(610) NOT NULL DEFAULT '',
+	`pos` varchar(510) NOT NULL DEFAULT '',
+	`filesize` int(11) DEFAULT '0',
+	`np` int(11) DEFAULT '0',
+	`deleted` tinyint(1) NOT NULL default '0',
+	`static` tinyint(1) NOT NULL default '0',
+	PRIMARY KEY  (`id`),
+	UNIQUE KEY `file_domain` (`file`,`domain`)
+	) ENGINE=InnoDB DEFAULT CHARSET=latin1;";
+	$this->QUERY_SQL($sql,'artica_backup');
+	
 	
 	
 	if(!$this->TABLE_EXISTS('contacts_whitelist','artica_backup')){		
@@ -3215,20 +3509,25 @@ if(!$this->TABLE_EXISTS('smtp_logs_day_users','artica_events')){
 		if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	}	
 	
-	if(!$this->TABLE_EXISTS('postfix_global_whitelist','artica_backup')){		
+		
 		$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`postfix_global_whitelist` (
 			`ID` INT( 5 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
 			`sender` VARCHAR( 255 ) NOT NULL ,
 			`hostname` VARCHAR( 255 ) NOT NULL ,
 			`enabled` INT( 1 ) NOT NULL DEFAULT '1',
 			`score` INT( 10 ) NOT NULL DEFAULT '0',
+			`allmx` TEXT,
 			KEY `sender` (`sender`),
 			KEY `hostname` (`hostname`),
 			INDEX(`enabled`,`score`)
-			)";		
+			) ENGINE=MYISAM";		
 		$this->QUERY_SQL($sql,'artica_backup');
 		if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-	}	
+		
+		if(!$this->FIELD_EXISTS("postfix_global_whitelist","allmx","artica_backup")){
+			$sql="ALTER TABLE `postfix_global_whitelist` ADD `allmx` TEXT";
+			$this->QUERY_SQL($sql,'artica_backup');
+		}	
 	
 	if(!$this->FIELD_EXISTS("contacts_whitelist","manual","artica_backup")){
 		$sql="ALTER TABLE `contacts_whitelist` ADD `manual` smallint( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `manual` )";
@@ -3412,7 +3711,7 @@ if(!$this->TABLE_EXISTS('mails_stats','artica_events')){
 			  KEY `zDate` (`zDate`),
 			  KEY `instance` (`instance`),
 			  KEY `size` (`size`),
-			  FULLTEXT KEY `recipients` (`recipients`))";
+			  FULLTEXT KEY `recipients` (`recipients`)) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,"artica_events");
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		}
@@ -3441,7 +3740,7 @@ if(!$this->TABLE_EXISTS('mails_stats','artica_events')){
 			  KEY `city` (`city`),
 			  KEY `from_domain` (`from_domain`),
 			  KEY `to_domain` (`to_domain`),
-			  KEY `ipaddr` (`ipaddr`))";
+			  KEY `ipaddr` (`ipaddr`)) ENGINE=MYISAM;";
 				$this->QUERY_SQL($sql,"artica_events");
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	}
@@ -3466,7 +3765,7 @@ if(!$this->TABLE_EXISTS('amavis_event_hours','artica_events')){
 				  KEY `country` (`country`),
 				  KEY `ipaddr` (`ipaddr`),
 				  KEY `bounce_error` (`bounce_error`)
-				  )"; 	
+				  ) ENGINE=MYISAM;"; 	
 				$this->QUERY_SQL($sql,"artica_events");
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	}
@@ -3477,7 +3776,7 @@ if(!$this->TABLE_EXISTS('amavis_event_hours','artica_events')){
 				  `hostname` varchar(255) NOT NULL,
 				  PRIMARY KEY (`domain`),
 				  KEY `hostname` (`hostname`)
-				)  "; 	
+				)  ENGINE=MYISAM;"; 	
 				$this->QUERY_SQL($sql,"artica_backup");
 				if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	}	
@@ -3494,7 +3793,7 @@ if(!$this->TABLE_EXISTS('amavis_event_hours','artica_events')){
 				`bandwith` BIGINT( 10 ) NOT NULL ,
 				KEY `zDate` (`zDate`),
 				KEY `bandwith` (`bandwith`)
-				)";
+				) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,"artica_events");
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		}
@@ -3509,7 +3808,7 @@ if(!$this->TABLE_EXISTS('amavis_event_hours','artica_events')){
 				  `ByPassProxy` smallint(1) NOT NULL default '1',
 				  `CreateAlbum` smallint(1) NOT NULL default '0',
 				  PRIMARY KEY  (`uid`)
-				) ";
+				) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,"artica_backup");
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		}
@@ -3526,7 +3825,7 @@ public function CheckTablesAwstats(){
 			`content` BLOB NOT NULL ,
 			KEY `servername` (`servername`),
 			KEY `awstats_file` (`awstats_file`)
-			)";
+			) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql,"artica_backup");
 		if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}	
 	}
@@ -3538,7 +3837,7 @@ public function CheckTablesAwstats(){
 			KEY `website` (`website`),
 			KEY `key` (`key`),
 			KEY `value` (`value`)
-			)";
+			) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql,"artica_backup");
 		if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	}	
@@ -3555,7 +3854,7 @@ public function CheckTablesPostfilter(){
 				_value CHAR(32) NOT NULL default '',
 				_timestamp TIMESTAMP,
 				UNIQUE INDEX (_key)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}
@@ -3566,7 +3865,7 @@ public function CheckTablesPostfilter(){
 					_value CHAR(32) NOT NULL default '',
 					_timestamp TIMESTAMP,
 					UNIQUE INDEX (_key)
-				) TYPE=MyISAM;"; 
+				) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}
@@ -3577,7 +3876,7 @@ public function CheckTablesPostfilter(){
 				_value CHAR(32) NOT NULL default 'auto-whitelisted',
 				_timestamp TIMESTAMP,
 				UNIQUE INDEX (_key)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}			
@@ -3593,7 +3892,7 @@ public function CheckTablesPostfilter(){
 				UNIQUE KEY _ip (_ip,_sender,_recipient),
 				KEY _last_seen (_last_seen),
 				KEY _first_seen (_first_seen)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}
@@ -3604,7 +3903,7 @@ public function CheckTablesPostfilter(){
 					_value CHAR(32) NOT NULL default '',
 					_timestamp TIMESTAMP,
 					UNIQUE INDEX (_key)
-				) TYPE=MyISAM;"; 
+				) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}		
@@ -3625,7 +3924,7 @@ public function CheckTablesPostfilter(){
 					_time_period MEDIUMINT UNSIGNED NOT NULL default 0,
 					_priority TINYINT UNSIGNED NOT NULL default 0,
 					UNIQUE KEY (_address)
-				) TYPE=MyISAM;"; 
+				) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}
@@ -3640,7 +3939,7 @@ public function CheckTablesPostfilter(){
 				_probes TINYINT UNSIGNED DEFAULT 0,
 				_used TINYINT UNSIGNED DEFAULT 0,
 				UNIQUE INDEX (_sender,_recipient)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}	
@@ -3651,7 +3950,7 @@ public function CheckTablesPostfilter(){
 				_cookie CHAR(32),
 				_timestamp TIMESTAMP,
 				UNIQUE INDEX (_address)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}	
@@ -3662,7 +3961,7 @@ public function CheckTablesPostfilter(){
 				_value CHAR(32) NOT NULL default '',
 				_timestamp TIMESTAMP,
 				UNIQUE INDEX (_key)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}
@@ -3673,7 +3972,7 @@ public function CheckTablesPostfilter(){
 					_value CHAR(32) NOT NULL default '',
 					_timestamp TIMESTAMP,
 					UNIQUE INDEX (_key)
-				) TYPE=MyISAM;"; 
+				) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}	
@@ -3684,7 +3983,7 @@ public function CheckTablesPostfilter(){
 				_value CHAR(32) NOT NULL default '',
 				_timestamp TIMESTAMP,
 				UNIQUE INDEX (_key)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}	
@@ -3695,7 +3994,7 @@ public function CheckTablesPostfilter(){
 				_value CHAR(32) NOT NULL default '',
 				_timestamp TIMESTAMP,
 				UNIQUE INDEX (_key)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}	
@@ -3706,7 +4005,7 @@ public function CheckTablesPostfilter(){
 				_value CHAR(32) NOT NULL default '',
 				_timestamp TIMESTAMP,
 				UNIQUE INDEX (_key)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}	
@@ -3717,7 +4016,7 @@ public function CheckTablesPostfilter(){
 				_value CHAR(32) NOT NULL default '',
 				_timestamp TIMESTAMP,
 				UNIQUE INDEX (_key)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}
@@ -3730,7 +4029,7 @@ public function CheckTablesPostfilter(){
 				_timestamp TIMESTAMP,
 				INDEX (_userid),
 				UNIQUE INDEX (_userid, _address)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 	
 		}
@@ -3749,7 +4048,7 @@ public function CheckTablesPostfilter(){
 				PRIMARY KEY (_userid),
 				INDEX (_master),
 				UNIQUE INDEX (_address)
-			) TYPE=MyISAM;	"; 
+			) ENGINE=MYISAM;	"; 
 			$this->QUERY_SQL($sql,'postfilter');
 			$sql="ALTER TABLE user AUTO_INCREMENT=1;";
 			$this->QUERY_SQL($sql,'postfilter');
@@ -3761,7 +4060,7 @@ public function CheckTablesPostfilter(){
 				_config MEDIUMTEXT,
 				_timestamp TIMESTAMP,
 				UNIQUE INDEX (_version)
-			) TYPE=MyISAM"; 
+			) ENGINE=MYISAM"; 
 			$this->QUERY_SQL($sql,'postfilter');
 		}
 
@@ -3777,7 +4076,7 @@ public function CheckTablesPostfilter(){
 				_report BOOL DEFAULT 1,
 				_timestamp TIMESTAMP,
 				INDEX (_recipient)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 		}			
 
@@ -3788,7 +4087,7 @@ public function CheckTablesPostfilter(){
 				_info CHAR(128) NOT NULL DEFAULT '',
 				_count INT UNSIGNED NOT NULL DEFAULT 0,
 				UNIQUE KEY (_entry, _type)
-			) TYPE=MyISAM;"; 
+			) ENGINE=MYISAM;"; 
 			$this->QUERY_SQL($sql,'postfilter');
 		}
 
@@ -4276,7 +4575,20 @@ public function CheckTableTaskEvents($tablename){
 				) ";
 			$this->QUERY_SQL($sql,'artica_backup');
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-		}	
+		}
+		
+		if(!$this->TABLE_EXISTS('freewebs_openbasedir','artica_backup')){
+			$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`freewebs_openbasedir` (
+				`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+				`servername` VARCHAR( 128 ) NOT NULL ,
+				`directory` VARCHAR( 255 ) NOT NULL ,
+				INDEX ( `servername` )
+				) ";
+			$this->QUERY_SQL($sql,'artica_backup');
+			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		}		
+
+		
 
 		
 		if(!$this->TABLE_EXISTS('drupal_queue_orders','artica_backup')){
@@ -4873,6 +5185,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  `dropdelivered` int(1) NOT NULL DEFAULT '0',
 				  `smtp_host` VARCHAR( 75 ) NOT NULL DEFAULT '127.0.0.1',
 				  `smtp_port` INT( 10 ) NOT NULL DEFAULT '25',
+				  `UseDefaultSMTP` int(1) NOT NULL DEFAULT '1',
 				  `sslfingerprint` VARCHAR( 255 ) NOT NULL,
 				  `schedule` VARCHAR( 128 ) NOT NULL,
 				  `folders` TEXT NOT NULL,
@@ -4890,6 +5203,11 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 			$sql="ALTER TABLE `fetchmail_rules` ADD `sslproto` VARCHAR( 20 ) NOT NULL";
 			$this->QUERY_SQL($sql,'artica_backup');
 		}
+		
+		if(!$this->FIELD_EXISTS("fetchmail_rules","UseDefaultSMTP","artica_backup")){
+			$sql="ALTER TABLE `fetchmail_rules` ADD `UseDefaultSMTP` INT( 1 ) NOT NULL DEFAULT '1'";
+			$this->QUERY_SQL($sql,'artica_backup');
+		}		
 		
 		if(!$this->FIELD_EXISTS("fetchmail_rules","orgmail","artica_backup")){
 			$sql="ALTER TABLE `fetchmail_rules` ADD `orgmail` VARCHAR( 255 ) NOT NULL";
@@ -5600,7 +5918,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  innocent_corpusfed int not null,
 				  spam_classified int not null,
 				  innocent_classified int not null
-				) type=MyISAM;";
+				) ENGINE=MYISAM;";
 		
 		$this->QUERY_SQL($sql,'artica_events');
 		}
@@ -5612,7 +5930,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 			  spam_hits int not null,
 			  innocent_hits int not null,
 			  last_hit date not null
-			) type=MyISAM PACK_KEYS=1;";
+			) ENGINE=MYISAM PACK_KEYS=1;";
 		$this->QUERY_SQL($sql,'artica_events');
 		}
 		
@@ -5623,7 +5941,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 			  data blob not null,
 			  length smallint not null,
 			  created_on date not null
-			) type=MyISAM max_rows=2500000 avg_row_length=8096;";	
+			) ENGINE=MYISAM max_rows=2500000 avg_row_length=8096;";	
 		$this->QUERY_SQL($sql,'artica_events');
 		}	
 		
@@ -5821,7 +6139,7 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 		
 		
 		
-if(!$this->TABLE_EXISTS('sys_events','artica_events')){			
+	
 		$sql="CREATE TABLE IF NOT EXISTS `sys_events` (
 				  `md5` varchar(90) NOT NULL,
 				  `ID` int(20) NOT NULL auto_increment,
@@ -5830,12 +6148,13 @@ if(!$this->TABLE_EXISTS('sys_events','artica_events')){
 				  `event_text` varchar(255) NOT NULL,
 				  `daemon` varchar(20) NOT NULL,
 				  `msg_id` varchar(20) default NULL,
-				  PRIMARY KEY  (`md5`,`ID`),
+				  PRIMARY KEY  (`ID`),
+				  UNIQUE KEY `md5` (`md5`),
 				  KEY `type` (`type`,`daemon`),
 				  KEY `msg_id` (`msg_id`)
-				);";
+				) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql,'artica_events');
-		}				
+				
 		
 	if(!$this->TABLE_EXISTS('what2','artica_events')){			
 		$sql="CREATE TABLE what2 (
@@ -5843,7 +6162,7 @@ if(!$this->TABLE_EXISTS('sys_events','artica_events')){
 			  visible tinyint(1) default '0',
 			  description varchar(255) default '',
 			  PRIMARY KEY  (what)
-			);";
+			) ENGINE=MYISAM;";
 		
 		$this->QUERY_SQL($sql,'artica_events');
 		
@@ -5935,7 +6254,7 @@ if(!$this->TABLE_EXISTS('sys_events','artica_events')){
 				('aio_cancel', 0, ''),
 				('aio_error', 0, ''),
 				('aio_fsync', 0, ''),
-				('aio_suspend', 0, '');";
+				('aio_suspend', 0, '') ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql,'artica_events');
 		
 	}
@@ -5946,7 +6265,7 @@ if(!$this->TABLE_EXISTS('sys_events','artica_events')){
 			  `id` int(11) NOT NULL auto_increment,
 			  `share` varchar(255) NOT NULL,
 			  UNIQUE KEY `id` (`id`)
-			) AUTO_INCREMENT=1 ;";
+			) AUTO_INCREMENT=1 ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql,'artica_events');
 	}
 	
@@ -5955,7 +6274,7 @@ if(!$this->TABLE_EXISTS('sys_events','artica_events')){
 				`website_md5` VARCHAR( 90 ) NOT NULL ,
 				`website` VARCHAR( 255 ) NOT NULL ,
 				UNIQUE (`website_md5`)
-				)";
+				) ENGINE=MYISAM;";
 		
 		$this->QUERY_SQL($sql,'artica_events');
 		
@@ -5976,7 +6295,7 @@ if(!$this->TABLE_EXISTS('sys_events','artica_events')){
 		  KEY `community` (`community`),
 		  KEY `country` (`country`),
 		  KEY `ipaddr` (`ipaddr`),
-		  KEY `squidguard` (`squidguard`))";
+		  KEY `squidguard` (`squidguard`)) ENGINE=MYISAM;";
 
 		$this->QUERY_SQL($sql,'artica_backup');
 		if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__LINE__);}
@@ -5989,7 +6308,7 @@ if(!$this->TABLE_EXISTS('sys_events','artica_events')){
 			  `site_md5` varchar(90) NOT NULL,
 			  UNIQUE KEY `uri_MD5` (`uri_MD5`),
 			  KEY `site_md5` (`site_md5`)
-			) ";
+			) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,'artica_events');
 		}
 
@@ -6014,7 +6333,7 @@ if(!$this->TABLE_EXISTS('sys_events','artica_events')){
 			  KEY `relayhost` (`relayhost`),
 			  KEY `Country` (`Country`),
 			  KEY `Region` (`Region`)
-				) AUTO_INCREMENT=1 ;";
+				) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql,'artica_events');
 	}
 	

@@ -156,6 +156,10 @@ if(count($sql)>1){
 	
 	}	
 	
+	
+	
+	
+	$sql=array();
 	if($GLOBALS["VERBOSE"]){system_admin_events("[getent group]::  Executing, please wait",__FUNCTION__,__FILE__,__LINE__,"samba");}	
 	exec("$getent group 2>&1",$results);
 	if($GLOBALS["VERBOSE"]){system_admin_events("[getent group]:: parsing  ".count($results)." elements ",__FUNCTION__,__FILE__,__LINE__,"samba");}
@@ -194,6 +198,7 @@ if(count($sql)>0){
 	$cmd_domains_list=array();
 	$wbinfo=$unix->find_program("wbinfo");	
 	$results=array();
+	$prefix="INSERT IGNORE INTO getent_groups (`group`) VALUES ";
 	if(is_file($wbinfo)){
 			exec("$wbinfo -m 2>&1",$cmd_domains_list);
 			if($GLOBALS["VERBOSE"]){system_admin_events("[wbinfo -m]:: return ". count($cmd_domains_list)." elements",__FUNCTION__,__FILE__,__LINE__,"samba");}
@@ -205,6 +210,8 @@ if(count($sql)>0){
 			exec("$wbinfo -g --domain=$DOMAIN 2>&1",$results);
 			if($GLOBALS["VERBOSE"]){system_admin_events("[wbinfo -g]:: parsing  ".count($results)." elements for domain $DOMAIN,",__FUNCTION__,__FILE__,__LINE__,"samba");}
 			while (list ($num, $group) = each ($results) ){
+				if(isset($GPIDADDED[trim($group)])){continue;}
+				
 				if(preg_match("#^Error looking#", $group,$re)){$unix->send_email_events("Error exporting group list with wbinfo for $DOMAIN", "wbinfo -g  for domain $DOMAIN report:\n$ligne\nWill try in next cycle", "system");break;}
 				$group=addslashes(utf8_encode($group));
 				$sql[]="('$group')";

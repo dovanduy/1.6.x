@@ -173,6 +173,12 @@ $mysql=new mysql();
         	@unlink("$path/$file");
         	continue;
         }
+        
+        if(strpos($users->hostname, ".")>0){
+        	$ty=explode($users->hostname,".");
+        	$users->hostname=$ty[0];
+        }
+        
         if(strlen($text)<5){$text="No content body as been added for this notification";}
         $sql="INSERT IGNORE INTO events (zDate,hostname,process,text,context,content,attached_files,recipient,event_id) VALUES(
         	'$date',

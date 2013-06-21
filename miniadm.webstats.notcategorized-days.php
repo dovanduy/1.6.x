@@ -6,7 +6,7 @@ ini_set('error_append_string',null);
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
-include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
+include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.calendar.inc");
@@ -83,7 +83,7 @@ function generate_graph(){
 	$tpl=new templates();
 	$t=$_GET["t"];
 	$ff=time();
-		
+	$boot=new boostrap_form();
 	
 	$sql="SELECT zDate,not_categorized FROM tables_day WHERE not_categorized>0";
 	$c=0;
@@ -97,15 +97,22 @@ function generate_graph(){
 				$ydata[]=$ligne["not_categorized"];
 				
 			$c++;
-		$table=$table."<tr>
-			<td style='font-size:14px' width=99% nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.visited.php?day={$ligne["zDate"]}&onlyNot=yes');\" style='font-size:14px;text-decoration:underline'>{$ligne["zDate"]}</a></td>
-			<td style='font-size:14px' width=1% nowrap><strong>{$ligne["not_categorized"]}</strong></td>
+			
+		$timeDate=strtotime($ligne["zDate"]." 00:00:00");
+		$timeText=time_to_date($timeDate);
+		$js=$boot->trswitch("Loadjs('squid.visited.php?day={$ligne["zDate"]}&onlyNot=yes')");
+		$jsrecat=$boot->trswitch("Loadjs('squid.visited.php?recategorize-day-js={$ligne["zDate"]}&href=$page')");
+		$BIGTABLE[]="
+		<tr>
+			<td $js>$timeText</td>
+			<td $js><strong style='font-size:18px'>{$ligne["not_categorized"]}</strong></td>
+			<td $jsrecat width=1% nowrap><img src='img/32-categories-loupe.png'></td>
 		</tr>
 		";
-		if($c>10){$c=0;$tr[]="<table style='width:20%' class=form><tbody>$table</tbody></table>";$table=null;}
+		
 		
 	}	
-		if($c>0){$tr[]="<table style='width:20%' class=form><tbody>$table</tbody></table>";}				
+						
 				
 				
 			$Main=array($xdata,$ydata);
@@ -119,9 +126,21 @@ function generate_graph(){
 	
 	}
 	
+	$BIGTABLE_COMPILED=$tpl->_ENGINE_parse_body("
+		<table class='table table-bordered table-hover'>
+		<thead>
+				<tr>
+					<th>{date}</th>
+					<th colspan=2>{websites}</th>
+				</tr>
+			</thead>
+			 <tbody>
+			").@implode("", $BIGTABLE)."</tbody></table>";	
+	
 	echo "<center>
-	<div style='margin:8px;float-right;width:100%'>".$tpl->_ENGINE_parse_body(button("{analyze}", "NoCategorizedAnalyze()",18))."</div>
-	<div style='width:80%'>".CompileTrGen($tr,6)."</div></center>
+		<div style='margin:8px;float-right;width:100%'>".$tpl->_ENGINE_parse_body(button("{analyze}", "NoCategorizedAnalyze()",18))."</div>
+		</center>
+		$BIGTABLE_COMPILED
 	
 		<script>
 		function NoCategorizedAnalyze(){
@@ -131,7 +150,7 @@ function generate_graph(){
 	var x_NoCategorizedAnalyze= function (obj) {
 			var tempvalue=obj.responseText;
 			if(tempvalue.length>3){alert(tempvalue)};
-	    	
+	    	window.location.href = '$page';
 		}	
 
 		function NoCategorizedAnalyze(){

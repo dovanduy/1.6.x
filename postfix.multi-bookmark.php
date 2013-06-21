@@ -24,7 +24,15 @@ function js(){
 	$title="{$_GET["hostname"]}:{bookmark_item}";
 	$title=$tpl->_ENGINE_parse_body($title);
 	$html="RTMMail('374','$page?popup=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$title');
-	LoadAjaxWhite('left-menus-services','admin.index.status-infos.php?left-menus-services=yes');
+	
+	if(document.getElementById('left-menus-services')){
+				var content=document.getElementById('left-menus-services').innerHTML;
+				if(content.length<50){
+					LoadAjaxWhite('left-menus-services','admin.index.status-infos.php?left-menus-services=yes');
+				}
+			}
+	
+	
 	";
 	echo $html;
 	
@@ -72,7 +80,12 @@ function popup(){
 			AnimateDiv('$t');
 			Set_Cookie('INSTANCEBKM', cook, '3600', '/', '', '');
 			Loadjs('$page?hostname={$_GET["hostname"]}&ou={$_GET["ou"]}');
-			LoadAjaxWhite('left-menus-services','admin.index.status-infos.php?left-menus-services=yes');
+			if(document.getElementById('left-menus-services')){
+				var content=document.getElementById('left-menus-services').innerHTML;
+				if(content.length<50){
+					LoadAjaxWhite('left-menus-services','admin.index.status-infos.php?left-menus-services=yes');
+				}
+			}
 		}
 	</script>
 	";

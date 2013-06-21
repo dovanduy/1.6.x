@@ -35,6 +35,10 @@ function popup(){
 	$EnableClamavDaemon=$sock->GET_INFO("EnableClamavDaemon");
 	if($EnableClamavDaemon==null){$EnableClamavDaemon=0;}
 	
+	$EnableClamavDaemonForced=$sock->GET_INFO("EnableClamavDaemonForced");
+	if(!is_numeric($EnableClamavDaemonForced)){$EnableClamavDaemonForced=0;}
+	if($EnableClamavDaemonForced==1){$EnableClamavDaemon=1;}	
+	
 	$p=Paragraphe_switch_img("{ENABLE_CLAMAV}","{ENABLE_CLAMAV_TEXT}","EnableClamavDaemon",$EnableClamavDaemon,null,350);
 
 	$html="

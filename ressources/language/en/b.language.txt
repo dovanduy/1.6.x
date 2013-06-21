@@ -2835,6 +2835,7 @@ Your will be able to enable it trough the service parameters section.
 <SMTP_BANNER_TEXT>SMTP greeting banner text displayed when connecting to the SMTP port</SMTP_BANNER_TEXT>
 <category_no_license_explain>Not used for webfiltering, license is required</category_no_license_explain> 
 <refreshuserlist>Users list cache time</refreshuserlist>
+<refreshdomainlist>Domains lists cache time</refreshdomainlist>
 <freeweb_compile_background>Parameters has been applied to the selected web server.
 This task has been scheduled in background mode</freeweb_compile_background>
 <update2>Update</update2>
@@ -2939,6 +2940,7 @@ Suggest to keep this option Off if you use this server in standard mode...
 <explain_no33squid>Feature not available, you must have version 3.3x; current:</explain_no33squid>
 <add_http_header>Add an HTTP header</add_http_header>
 <req_mime_type>Mime type (GET)</req_mime_type>
+<rep_mime_type>Mime type (reply)</rep_mime_type>
 <req_mime_type_explain>pattern matching on the request content-type header[br]
 Example:[br]
 video/x-mpeg2a[br]
@@ -2952,6 +2954,24 @@ video/x-msvideo[br]
 video/mpeg[br]
 video/mp4v-es[br]
 </req_mime_type_explain>
+<rep_mime_type_explain>
+pattern matching on the request content-type header[br]
+Example:[br]
+video/x-mpeg2a[br]
+video/x-ms-asf[br]
+video/x-ms-asf-plugin[br]
+video/x-ms-wm[br]
+video/x-ms-wmx[br]
+video/x-pn-realvideo[br]
+video/quicktime[br]
+video/x-msvideo[br]
+video/mpeg[br]
+video/mp4v-es[br]
+pattern matching against the mime type of the reply received by the proxy.[br]
+Can be used to detect file download or some types HTTP tunneling requests.
+</rep_mime_type_explain>
+
+
 <shared_public_stores>Shared public stores</shared_public_stores>
 <choose_member>Choose a member</choose_member>
 <public_stores>Public stores</public_stores>
@@ -2961,7 +2981,7 @@ video/mp4v-es[br]
 <export_acl_rules_explain>Export/backup your ACLs rules to a compressed file</export_acl_rules_explain>
 <please_wait_exporting_rules>Please wait, exporting rules.</please_wait_exporting_rules>
 <import_rules>Import rules</import_rules>
-<import_acl_rules_explain>Import exported/backuped ACLs rules from a .gz compressed file</import_acl_rules_explain>
+<import_acl_rules_explain>Import exported/backuped ACLs rules from a .gz,.acl compressed file</import_acl_rules_explain>
 <please_wait_preparing_settings>Please wait, preparing settings...</please_wait_preparing_settings>
 <please_wait_checking_settings>Please wait, checking your parameters</please_wait_checking_settings>
 <settings_will_not_be_applied>Parameters will not be applied to the proxy service</settings_will_not_be_applied>
@@ -2997,6 +3017,17 @@ http://*.google.* (.google. should the same)[br]
 "$" character means, end of line.[br]
 example: .exe$ or http*://*.exe$ should block any http://domain.tld/download/something.exe request.
 </acl_squid_url_regex_explain> 
+
+<acl_squid_referer_regex_explain>
+Give the full url item.[br]
+example: http://www.mywebsite.com/webpage[br]
+The star character is supported.[br]
+Example: matches all google.com websites[br]
+http://*.google.* (.google. should the same)[br]
+"$" character means, end of line.[br]
+example: .exe$ or http*://*.exe$ should match any http://domain.tld/download/something.exe request.
+</acl_squid_referer_regex_explain>
+
 <url_regex_acl2>URL expression</url_regex_acl2>
 <deny_logging>do not log requests events</deny_logging>
 <caches_options>Cache options</caches_options>
@@ -3293,6 +3324,13 @@ Only one system cache method will be used: [b]the memory cache[/b].
 <only_incoming_mails>Only inbound messages</only_incoming_mails>
 <APP_ZARAFADB>Dedicated Zarafa MySQL server</APP_ZARAFADB>
 <send_to_smtp_server>Send to SMTP server</send_to_smtp_server>
+<AsProxyMonitor>As Proxy monitor</AsProxyMonitor>
+<proxy_events_text>Display internal proxy service events</proxy_events_text>
+<realtime_requests_text>Display realtime requests passed trough the Proxy service</realtime_requests_text> 
+<logged_in_as>Logged in as</logged_in_as>
+<ask_disable_ufdbguard>This operation will disable the Web filtering engine, the proxy will be reloaded in order to make this operation.
+Do you want to carry out this operation ?
+</ask_disable_ufdbguard>
 <top_10>TOP 10</top_10>
 <database_maintenance>Database maintenance</database_maintenance>
 <database_maintenance_text>Tasks and system parameters in order to maintain your Database engine/datas</database_maintenance_text>
@@ -3307,4 +3345,606 @@ Only one system cache method will be used: [b]the memory cache[/b].
 <default_file_lifetime>Default file lifetime</default_file_lifetime>
 <max_extend_count_filez>MAX extend days</max_extend_count_filez>
 <user_quotaz>User quota</user_quotaz>
- 
+<read_ahead_gap_text>
+The amount of data the cache will buffer ahead of what has been sent to the client 
+when retrieving an object from another server.[br]
+It limits the amount of memory used for in-transit data, and limits long
+running connections to the speed of the client.[br]
+Lets imagine an user requests a 1GB file.[br] If your value is
+1000M then the proxy service will read all the file at full network speed, buffering
+it in memory.[br]The end result is that you runs out of both memory and
+internet bandwidth. 
+</read_ahead_gap_text>
+<read_ahead_gap>Read AHEAD Gap</read_ahead_gap>
+<memory_cache>Memory Cache</memory_cache>
+<hot_objects>Hot objects</hot_objects>
+<central_memory>Central memory</central_memory>
+<virtual_caches>Virtual caches</virtual_caches>
+<squid_virtual_caches_explain>Virtual cache feature as the same behavior of standard caches but it use only the memory.[br]
+Caches are directly mounted in memory in order to speed up delivery objects.[br]
+</squid_virtual_caches_explain>
+<disable_service>Disable the service</disable_service>
+<AsAnAdministratorGeneric>Is a generic administrator</AsAnAdministratorGeneric>
+<about2>About</about2>
+<please_sign_in>Please sign in</please_sign_in>
+<DisableSilentNTLM>Disable silent authentication</DisableSilentNTLM>
+<DisableSilentNTLM_explain>NTLM/silent authentication is disabled, this means that a logon popup is displayed when members start an Internet session...</DisableSilentNTLM_explain>
+<proxy_status>Proxy status</proxy_status>
+<proxy_status_text>Status of all proxy services</proxy_status_text>
+<proxy_monitor>Proxy monitor</proxy_monitor>
+<proxy_monitor_text>Proxy Internal status</proxy_monitor_text>
+<mymessaging_archive_text>Define Archive/duplicate rules for incoming or outgoing messages.</mymessaging_archive_text>
+<archive_module>Archive module</archive_module>
+<error_on_this_field>Error on this field</error_on_this_field>
+<inbound>Inbound</inbound>
+<outbound>Outbound</outbound>
+<direction>Direction</direction> 
+<enable_APP_MAILARCHIVER_disable_text>The Mail Archiver engine is disabled, no message will be duplicated or archived</enable_APP_MAILARCHIVER_disable_text>
+<MailArchiverUsePerl_disable_text>If you want to create archive/duplicate rules, you need to enable use V2 feature</MailArchiverUsePerl_disable_text>
+<external_smtp_server>External SMTP server</external_smtp_server>
+<smtp_authentication>SMTP authentication</smtp_authentication>
+<MailArchiverEnabled_disable_text>The Mail Archive feature is not enabled on this server.[br]In this case archive rules will be not processed on this messaging server</MailArchiverEnabled_disable_text>
+<enabled_rule>Enabled rule</enabled_rule>
+<archive_rule>Archive rule</archive_rule>
+<dns_service>DNS service</dns_service>
+<EnablePDNS_disable_text>PowerDNS service is not enabled, no resolution service will be activated in your configuration.</EnablePDNS_disable_text>
+<ie_not_really_compatible>You currently using Internet Exporer, this browser is not really compatible with this web Interface.[br]
+We currently working on Internet Explorer compatibilities.[br]
+We suggest accessing to this web Interface with FireFox,Chrome or Opera browser.</ie_not_really_compatible>
+<category_database_explain_text>Web categories Daemon a MySQL service designed to identify websites according statistics.[br]
+It used for statistics purpose.</category_database_explain_text>
+<disconnect_from_artica>Disconnect from Artica</disconnect_from_artica>
+<FreeWebsEnableModSuPHP>Activate SuPHP mode</FreeWebsEnableModSuPHP>
+<AllSystems>All Systems</AllSystems>
+<bubble_mode>Bubble mode</bubble_mode>
+<bubble_mode_explain>Bubble mode is a feature that allows you to create a set of ACLS rules per listen port.[br]
+This is like a bubbles, each added port use it's own environment and can use it's own system log.[br]
+In this case, you can define different behviors by each port.[br]
+For example you can define a specific access for servers or systems that require to not be authenticated. or define a specific port for external clients that are not connected to the Active Directory.
+</bubble_mode_explain> 
+<display_calendar>Display the calendar</display_calendar>
+<activate_bubble_mode>Activate the Bubble mode</activate_bubble_mode>
+<activate_bubble_explain>If turn to green, you will be able to define multiple ports in the Web filter ACLS section.[br]
+All current ACL rules will be available on the standard port set in the current configuration.
+</activate_bubble_explain>
+<outgoing_network_addr>Outgoing network address</outgoing_network_addr>
+<PDNSHotSpot_explain>This feature allows the local PDNS service to resolve all DNS request to the HotSpot page if members are not authenticated.[br]
+This ensure that SSL connection are correctly redirected to the HotSpot page using the DNS method.
+</PDNSHotSpot_explain>
+<AllSystemsDansExpl>This rule is an all systems rule, this means it matches all nodes inside your network.[br]
+Make sure that this rule is a last rule in order to be activated only if other rules do not match</AllSystemsDansExpl>
+<DisableSquidBasicAuth_error>There is no sense to disable all authentication methods.[br]Please choose only one method to disable</DisableSquidBasicAuth_error>
+<DisableSquidBasicAuth>Disable Basic Authentification</DisableSquidBasicAuth>
+<capacity>Capacity</capacity>
+<error_smp_disabled>Error: SMP mode is disabled</error_smp_disabled>
+<referer_regex>Referer URL expression</referer_regex>
+<this_rule_is_disabled>This rule is disabled, there will be no change on the main service...</this_rule_is_disabled>
+<bubble_rule>Bubble rule</bubble_rule>
+<ARTICASTATISTICS_DISABLED>Artica Statistics feature is disabled in your configuration</ARTICASTATISTICS_DISABLED>
+<advanced_settings_in_miniadm>[b]Note:[/b] You need to use the dedicated Web interface trough FreeWebs in order to manage this feature.[br]
+Use this Youtube link in order to see the procedure to create a dedicated Web administration interface.[br]
+[b]http://youtu.be/l9AqAndl3hI[/b]
+</advanced_settings_in_miniadm>
+<building_dependencies>Building packages...</building_dependencies>
+<amavis_wizard_rule_per_user>Settings per user</amavis_wizard_rule_per_user>
+<amavis_wizard_rule_per_user_text>Give access to anti-spam settings for each user defined in Artica.</amavis_wizard_rule_per_user_text>
+<amavis_wizard_rule_per_user_expain1>This feature will allow your member to modify the Anti-Spam/Antivirus behavior in the dedicated Artica Web interface management.[br]
+If you continue, Artica will create a dedicated MySQL database engine in order to store members datas.[br]
+You need to create a dedicated Web interface trough FreeWebs in Artica in order to allows members to use this feature.[br]
+You need to add specific privileges on groups in order to let members modify their settings.
+</amavis_wizard_rule_per_user_expain1>
+<amavis_wizard_rule_per_user_expain2>
+After clicking on the "build feature" the process will create your MySQL service and force Artica to build the Anti-Spam settings per user configuration in dedicated Web console Websites.
+</amavis_wizard_rule_per_user_expain2>
+<build_feature>Build Feature</build_feature>
+<APP_AMAVISDB>Amavis MySQL Engine</APP_AMAVISDB>
+<APP_FTP_PROXY>FTP proxy server</APP_FTP_PROXY>
+<enable_ftp_proxy_service>Enable the FTP proxy service</enable_ftp_proxy_service>
+<enable_ftp_proxy_service_text>If green, Artica will run the FTP Proxy service and allows your user to use a native FTP client in order to connect trough Internet.[br]
+Specific FTP Proxy service settings are stored in the End-Users Web access.[br]
+After enabling this service, use the End-users WebAccess console to tune your FTP Proxy service.
+</enable_ftp_proxy_service_text> 
+<proxy_ftp_main_settings>FTP Proxy settings</proxy_ftp_main_settings>
+<timeout2>TimeOut</timeout2>
+<messaging_options>Messaging options</messaging_options>
+<antispam_settings>Anti-Spam options</antispam_settings>
+<antispam_settings_endusers_text>Personalize the Anti-Spam behavior according your account.</antispam_settings_endusers_text>
+<new_policy>New policy</new_policy>
+<policies>Policies</policies>
+<member_www_stats_text>Display statistics by members</member_www_stats_text>
+<members_by_day>Members by day</members_by_day>
+<virus_lover>Allow receive infected messages</virus_lover>
+<spam_lover>Allow receive SPAM messages</spam_lover>
+<unchecked_lover>Allow receive UNCHECKED messages</unchecked_lover>
+<banned_files_lover>Allow receive messages with BANNED files </banned_files_lover>
+<banned_files_lover>Allow receive messages with BAD HEADERS</banned_files_lover>
+<bypass_virus_checks>Disable antivirus engine</bypass_virus_checks>
+<bypass_spam_checks>Disable anti-spam engine</bypass_spam_checks>
+<bypass_header_checks>Disable bad headers scanners</bypass_header_checks>
+<spam_modifies_subj>Modify SPAM subject messages</spam_modifies_subj>
+<scores>scores</scores>
+<spam_tag_level>Score for adding the spam level in message header</spam_tag_level>
+<spam_tag2_level>Score for tagging the message as SPAM</spam_tag2_level>
+<spam_tag3_level>Score for tagging the message as blatant spam</spam_tag3_level>
+<spam_kill_level>Score to quarantine the message</spam_kill_level>
+<spam_quarantine_cutoff_level>Score for removing the message</spam_quarantine_cutoff_level>
+<WebstatisticsByMember>Display statistics for each Member</WebstatisticsByMember>
+<WebstatisticsByMember_explain>If enabled, when a member open a session on this Web console, it can display it's own web statistics.</WebstatisticsByMember_explain>
+
+<amavis_users_policies_explain>Select the right policy according each email address for your account.[br]
+if no policy is selected then your email address will use the global policy defined by your administrator.
+</amavis_users_policies_explain>
+<amavis_wblsql_explain>You can define the full domain: @domain.tld or the full email address: user@domain.tld</amavis_wblsql_explain>
+<memory_consumption_this_hour>Memory consumption this hour</memory_consumption_this_hour>
+<memory_consumption_today>Memory consumption today</memory_consumption_today>
+<server_load_this_hour>Server load this hour</server_load_this_hour>
+<server_load_today>Server load today</server_load_today>
+<watchdog_events>Watchdog events</watchdog_events>
+<web_statistics_member_intro>Display surf statistics about requests forwarded by the proxy server</web_statistics_member_intro>
+<domains_policies>Policy per domain</domains_policies>
+<spam_dsn_cutoff_level>Score at which not to generate delivery status notifications</spam_dsn_cutoff_level>
+<sendreportto>Send reports to email</sendreportto>
+<subjects_tags>Subjects tags</subjects_tags>
+<non_spam_messages>Non SPAM messages</non_spam_messages>
+<spam_messages>SPAM messages</spam_messages>
+<blatant_spam>Blatant SPAM messages</blatant_spam>
+<virus_detected>virus detected</virus_detected>
+<bad_headers>Bad headers</bad_headers>
+<spam_messages>SPAM messages</spam_messages>
+<performances>performances</performances>
+<MACtoMembers>MAC To members</MACtoMembers>
+<mactouid_explain>If you did not use any authentication method, the proxy will not add the member information into it's events.[br]
+If each user use it's own computer to surf on Internet this section allows you to "associates" one or several MAC Addresses to a member name.[br]
+In this case you will be able to display statistics by member name instead MAC/IP addresses.
+</mactouid_explain>
+<link_mac_to_uid>Associate MAC address</link_mac_to_uid>
+<apply_changes>Apply changes</apply_changes>
+<apply_changes_mactouid_explain>This operation will build MAC database and reload the proxy service.
+It will update all statistics table with your new changes.
+During this task the server will be loaded.
+Do you want to carry out this operation ?
+</apply_changes_mactouid_explain>
+<deny_reply_access>Deny reply access</deny_reply_access>
+<allow_reply_access>Allow reply access</allow_reply_access>
+<url_regex_acl3>Regex matching on URL path</url_regex_acl3>
+<enable_group_checking>Checks Groups</enable_group_checking>
+<time_duration>Time duration</time_duration>
+<allow_members>Allow members</allow_members>
+<virtual_user>virtual member</virtual_user>
+<unlock_license>Unlock license</unlock_license>
+<SquidClientParams_text>This section allows you to tune the number of plugins loaded by the proxy service.[br]
+Plugins should be the number of authentication processes, web filtering processes...[br]
+More you add processes, more your proxy can handle requests but this will increase the system load.[br]
+If you using multiple processors mode, you need to multiply the process number by CPU number.
+</SquidClientParams_text>
+<rule_group>Rule group</rule_group>
+<export_rule>Export rule</export_rule>
+<authentication_modules>Authentication modules</authentication_modules>
+<acls_modules>ACLS modules</acls_modules>
+<filtering_modules>Filtering modules</filtering_modules>
+<web_filtering>Web filtering</web_filtering>
+<preload_processes>Preload processes</preload_processes>
+<prepare_processes>Prepare processes</prepare_processes>
+<radius_local_mysqldb_explain>This will use the local MySQL server used by Artica.[br]
+In this case, use a member with the "hotspot" privileges and connect to the End-Users Web Access with this member.[br]
+You will be able to manage accounts on this database</radius_local_mysqldb_explain>
+<local_mysql>Local MySQL (Artica)</local_mysql>
+<radius_members>RADIUS Members</radius_members>
+<users_and_groups_system_explain>This section manage users and groups on different databases used by the system.</users_and_groups_system_explain>
+<group2>Group</group2>
+<DeleteThisGroup>Delete this group</DeleteThisGroup>
+<freeradius_not_enabled>FreeRadius service is not enabled...</freeradius_not_enabled>
+<no_password_set_for_this_account>No password set for this account</no_password_set_for_this_account>
+<verify>Verify</verify>
+<rebuild_tables_explain>Delete all tables and rebuild them with cleaned data</rebuild_tables_explain>
+<attributes>Attributes</attributes>
+<reply>Reply</reply>
+<add_attribute>New attribute</add_attribute>
+<radgroupreply_explain>Contains the radius reply items that are returned when authentication is successful for members inside the designed group</radgroupreply_explain>
+<radgroupcheck_explain>Contains the radius check items that are required to successfully authenticate for members inside the designed group</radgroupcheck_explain>
+<only_one_value_cannot_generate_graph>The specified query return only one value, the chart cannot be generated. value generated is:</only_one_value_cannot_generate_graph>
+<no_value_cannot_generate_graph>The specified query return no return value, the chart cannot be generated</no_value_cannot_generate_graph>
+<squid_plugins>Proxy Plugins</squid_plugins>
+<top_videos>Top videos</top_videos>
+<PerMembersYoutubeDetails>Display Youtube details per member</PerMembersYoutubeDetails>
+<ask_compile_postfix>You need to reconfigure the SMTP service.
+Do you wan to perform this operation now ?
+</ask_compile_postfix>
+<this_website_was_categorized_in>This website was categorized in</this_website_was_categorized_in>
+<rescan_categories_ask>Analyze not categorized websites ?
+This operation should take time and load the system.
+</rescan_categories_ask>
+<invalid_ipaddr>Invalid TPC/IP address</invalid_ipaddr>
+<invalid_mac>Invalid MAC Address</invalid_mac>
+<dhcp_host_explain_options>This section allows you to force specific options for this host.[br]
+You can set multiple values by separate them with the ";" character.</dhcp_host_explain_options>
+<time-servers>Time servers</time-servers>
+<domain-name-servers>DNS servers</domain-name-servers>
+<ntp-servers>NTP servers</ntp-servers>
+<local-pac-server>Proxy Pac address</local-pac-server>
+<assitance>Assistance</assistance>
+<assistance>Assistance</assistance>
+<memory_consumption_this_week>Memory use this week</memory_consumption_this_week>
+<server_load_this_week>Server load this week</server_load_this_week>
+<AseMailCampaignsAdmin>Can Manage Mass mailing feature</AseMailCampaignsAdmin>
+<AllowSenderCanonical>Can modify sent email address</AllowSenderCanonical>
+<FetchMailToZarafa>Deliver messages directly to Zarafa server</FetchMailToZarafa>
+<FetchMailToZarafa_explain>If enabled, the Fetchmail daemon will send messages directly to the Zarafa server without using the MTA (if the zarafa server is installed on this server).[br]
+This is a global default rule, a member rule can disable this feature if the mailbox is not stored on this server.
+</FetchMailToZarafa_explain>
+<UseDefaultSMTP>Use Default SMTP settings</UseDefaultSMTP>
+<ZARAFA_ISSUE>Zarafa server issue</ZARAFA_ISSUE>
+<wizard_warn_memory>Your memory server: %sM is not really recommended in order to use correctly Artica and components.[br]
+We strongly suggest to increase your server memory up to %F + 2 CPUs for production mode.[br]
+Artica is not just a Web interface but a set of services that add extra features on this server such as Watchdogs, auto-repair systems, statistics...[br]
+Of course you can continue to play with this server.[br]
+[b]But do not be offended if this server is overloaded or if administration Web pages are slowly loaded.[/b]
+</wizard_warn_memory>
+<miniadm_wizard_explain>The Web Artica Web console is not only the Web Administration Interface.[br]
+The End-users WebAccess is another web administration interface designed for your colleagues and your users.[br]
+It can be used to delegate administration tasks according privileges.[br]
+Fill this form in order to create your web administration console.[br]
+It use the virtual hosts system.[br]
+You need to ensure that the web server set in this form can be resolved by your DNS server.
+</miniadm_wizard_explain>
+<statistics_administrator>Statistics Administrator</statistics_administrator>
+<miniadm_wizard_explain2>The current Web Artica administration interface is running on 9000 port in SSL mode.[br]
+If you want to add a new Artica Web administration Interface on the standard port, fill the field: "Second Web administration interface".
+</miniadm_wizard_explain2>
+<second_webadmin>Second Web administration interface</second_webadmin>
+<error_powerdns_disabled>Error PowerDNS service is currently disabled, no information can be displayed</error_powerdns_disabled>
+<IsAnIpv4Error>Defined value is not an IPV4 ip address, remove all field content or set a correct IP address</IsAnIpv4Error>
+<failover>Failover</failover>
+<isamaster>Is the Master</isamaster>
+<ucarp-vid>ID of the virtual server</ucarp-vid>
+<ucarp-advskew>Advertisement skew</ucarp-advskew>
+<freeradius_users_explain>RADIUS members database is used for both RADIUS service when using local MySQL database connection and for the End-Users WebAccess.[br]
+The End-Users WebAccess accept specific groups:[b]administrators,ProxyAdms,ProxySecurity and WebStatsAdm[/b]</freeradius_users_explain>
+<internal_users>Internal members</internal_users>
+<ucarp-vip>TCP/IP address</ucarp-vip>
+<oom_kill_allocating_task>Let Kernel kill tasks</oom_kill_allocating_task>
+<drop_caches>Drop kernel caches</drop_caches>
+<master2>Master</master2>
+<ucarp_master_explain>If enabled, this server will be the primary production server.[br]
+Other servers will have this option disabled.
+</ucarp_master_explain>
+<ucarp_vip_explain>This is the TCP/IP interface that will be used in order to access to server services.[br]
+Backups server have to switch to this network address is the master is down.[br]
+It must be the same address for the Master and all backups servers.[br]
+For example, if you using Artica as the proxy, browsers must point to this IP address.
+</ucarp_vip_explain>
+<drop_caches_explain>Cause the kernel to drop clean caches, dentries and inodes from memory, causing that memory to become free</drop_caches_explain>
+<SquidCacheReloadTTL_explain>Ban Artica to rebuild/restart proxy service in x minutes interval</SquidCacheReloadTTL_explain>
+<SQUID_MAX_RESTART>Maximum restart tasks</SQUID_MAX_RESTART>
+<SQUID_MAX_RESTART_EXPLAIN>After x restarts operations, the watchdog stop any action and wait the Proxy service to run correctly</SQUID_MAX_RESTART_EXPLAIN>
+<TestExternalWebPage>Test external Web page</TestExternalWebPage>
+<squid_TestExternalWebPage_explain>Test if an external web page can be loaded trough the proxy service.[br]
+If not, then the proxy service will be restarted</squid_TestExternalWebPage_explain>
+<EnableFailover_explain>If the proxy did not respond correctly in time, and if failover has been set then the watchdog will down the Network address in order to switch to backup server.</EnableFailover_explain>
+<ExternalPageUsername_EXPLAIN>If set then the watchdog will make a session to the proxy using specified credentials.[br]
+If failed, then watchdog operations will be executed</ExternalPageUsername_EXPLAIN>
+<ExternalPageListen_explain>If authentication is enabled, the watchdog must use a specific interface to connect trough the proxy in order to be authenticated.[br]
+If no IP address is selected, then the watchdog will use a random IP address in the list.</ExternalPageListen_explain>
+<ExternalPageToCheck_explain>This is the Web page downloaded by the watchdog, you can use %T token that will be remplaced by a random number in order to force the proxy to access trough Internet and not using it's cache system.</ExternalPageToCheck_explain>
+<force_dns_redirection>Force DNS redirection</force_dns_redirection>
+<squid_php_failover_explain>The failover feature is located under the End-Users WebAccess front-end.[br]
+Use a member that have System privileges and browse into the network features.[br]
+Choose your network card and click on the failover tab.
+</squid_php_failover_explain>
+<failover2>failover</failover2>
+<new_domain>New domain</new_domain>
+<allow-unknown-protocol-over-https>Allow unknown protocol over HTTPS</allow-unknown-protocol-over-https>
+<check_SSL_protocol>Check SSL protocol</check_SSL_protocol>
+<advanced_search>Advanced search</advanced_search>
+<advanced_search_explain>you can use the star character "*" in fields in order to search by scope.[br]
+If you want to search the opposite "NOT LIKE", use "not: your search"</advanced_search>
+<no_such_table>No such table</no_such_table>
+<net_read_timeout>Net read Timeout</net_read_timeout>
+<datas>Datas</datas>
+<UfdbDatabasesInMemory>Load databases in memory</UfdbDatabasesInMemory>
+<UfdbDatabasesInMemory_explain>If enabled, then Artica will create a partition in memory and copy all databases in the memory area in order to speedup web filtering engine</UfdbDatabasesInMemory>
+<APP_PHPFPM>PHP5 FastCGI Daemon</APP_PHPFPM>
+<statistics_per_users>Statistics per user</statistics_per_users>
+<statistics_per_users_explain>Build statistics table per user</statistics_per_users_explain>
+<categorize_tables>Categorize tables</categorize_tables>
+<categorize_tables_explain>This task parse all tables and try to categorize Websites without categories
+[br]Can only be launched each 12 hours.
+</categorize_tables_explain>
+<top_websites_by_hits>TOP Websites by requests number</top_websites_by_hits>
+<top_websites_by_size>TOP Websites by downloaded size</top_websites_by_size>
+<top_members_by_size>TOP members by downloaded size</top_members_by_size>
+<top_members_by_hits>TOP members by requests</top_members_by_hits>
+<squidstats_gen_members_table>build or update the statistics members table</squidstats_gen_members_table>
+<members_table>Members Table</members_table>
+<use_the_tools_section>Use the Tools section in order to repair missing table or datas</use_the_tools_section>
+<familysites>Main websites</familysites>
+<not_categorized_day_explain>Artica updates categories databases about each 3 days.[br]
+We analyze about 8.000 websites and categorize more than 1.000 webistes per day.[br]
+We suggest to regulary analyze tables With the "Categorize Internet sites" option in the "tools" section in order to refersh your tables.[br]
+</not_categorized_day_explain>
+<squidstats_gen_categorize_table>Update categories on websites not categorized on the selected table</squidstats_gen_categorize_table>
+<ForceWindowsUpdateCaching>Make Windows Updates cache</ForceWindowsUpdateCaching>
+<export>Export</export>
+<catz_explain>This section lists categories used for statistics tasks in order to generate charts/graphs/tables by category.</catz_explain>
+<web_services>Web Services</web_services>
+<create_container>Create container</create_container>
+<WEB_FILTERING_EXPLAIN>Create rules in order to ban or allow members to be connect trough Internet web sites.</WEB_FILTERING_EXPLAIN>
+<LOGRATE_EXPLAIN_SYSTORE>You need to use the End-Users WebAccess management console with Linux system privileges in order to to display this section.</LOGRATE_EXPLAIN_SYSTORE>
+<MySQL_SYSLOG_NOTSET>MySQL Logs storage not set</MySQL_SYSLOG_NOTSET>
+<MySQL_SYSLOG_NOTSET_EXPLAIN>The MySQL service that stores system/applications events is not set.[br]
+We suggest to run this wizard in order to install the service.</MySQL_SYSLOG_NOTSET_EXPLAIN>
+<logs_storage>Logs storage</logs_storage>
+<MYSQLSYSLOG_EXPLAIN>The MySQL Syslog storage service is designed to store source logs on your server.[br]
+It is a dedicated service in order to not pollute other applications that require a MySQL service.[br]
+With this service, you can centralize system logs on this server.[br]
+If you open this service, all Artica servers installed on your network can use this service in order to backup logs.
+Backup logs is mandatory for the proxy according laws in your country.
+</MYSQLSYSLOG_EXPLAIN>
+<MYSQLSYSLOG_TYPE_EXPLAIN>[b]Client or Server ?[b][br]
+Is this Artica server must backup it's logs to a remote Artica server or is a service that stores backuped logs ?
+</MYSQLSYSLOG_TYPE_EXPLAIN>
+<MYSQLSYSLOG_TYPE_SERVER_EXPLAIN>Storing logs should take space, ensure that the specified directory have disk space.[br]
+We suggest about 10/20Gb free space.[br]
+If this server is [b]not[/b] designed to receive backuped logs from remote Artica servers, set 0 on Listen Port field.[br]
+</MYSQLSYSLOG_TYPE_SERVER_EXPLAIN>
+<mysqlsyslog_finish>Your MySQL service is installed, you can change or tune this MySQL service
+through the End-Users WebAccess interface by using an account with Linux system privileges.
+Logs already stored on your main MySQL service will be transfered to this new service.
+</mysqlsyslog_finish>
+<APP_SYSLOG_DB>MySQL system Logs</APP_SYSLOG_DB>
+<system_events_text>Display events about all system services</system_events_text>
+<syslog_store>System events storage</syslog_store>
+<MYSQLSYSLOG_TYPE_CLIENT_EXPLAIN>Define here credentials of the remote Artica server that will receive backuped logs</MYSQLSYSLOG_TYPE_CLIENT_EXPLAIN>
+<mysql_parameters>MySQL parameters</mysql_parameters>
+<run_wizard_install>Run the installation wizard</run_wizard_install>
+<categories_filtering>Web categories filtering rules</categories_filtering>
+<error_ldap_connect_function>There is an issue while loading the LDAP library.[br]
+the ldap_connect function is not found inside the PHP framework.[br]
+To fix this issue you have to:[br]
+[li]If you using an Appliance, use the Menu: Restart Artica Web service[/li]
+[li]Use this command line /etc/init.d/artica-postfix restart apache[/li] 
+[li]Reboot the server[/li]
+[li]Or you can use the End-Users WebAccess if you have already create it.[br]
+This End-Users WebAccess use Apache engine and should not encounter this issue[/li]
+[li]Use the menu console in order to "Create an Artica Web console with FreeWebs" and try to connect to the new generated Web console[li]
+</End-Users WebAccess>
+<by>by</by>
+<DisableArticaProxyStatistics_disabled_explain>The Artica Web statistics feature is disabled, this section cannot be displayed.</DisableArticaProxyStatistics_disabled_explain>
+<your_categories>Your categories</your_categories>
+<reverse_proxy_server>Reverse Proxy server</reverse_proxy_server>
+<retention_time>Retention time</retention_time>
+<AsSystemWebMaster>Can manage Web sites with FreeWebs</AsSystemWebMaster>
+<explain_freewebs_reverse>Your proxy is set as reverse, in this case, Web servers are automatically protected by the proxy.[br]
+The Web service engine listen loopback interface and the proxy is in charge to serve your web server.</explain_freewebs_reverse>
+<reverse_proxy_settings>Reverse Proxy parameters</reverse_proxy_settings>
+<web_sources>Web sources</web_sources>
+<new_source>New source</new_source>
+<servername2>Server name</servername2>
+<requests_by_day>Requests number by day</requests_by_day>
+<reverse_proxy_settings_text>This section will helps you to protect your webservers trough the reverse Proxy engine.</reverse_proxy_settings_text>
+<update_counters>Update counters</update_counters>
+<update_counters_table>Update requests, size, keywords global counters</update_counters_table>
+<top_words_by_hits>TOP words by Hits</top_words_by_hits>
+<top_searchengines_by_hits>TOP search engines by hits</top_searchengines_by_hits>
+<searchs>searchs</searchs>
+<corrupted_request>Corrupted request</corrupted_request>
+<need_to_proxy_reload_ask>Operation has been saved.
+You need to reload the proxy service.
+Do you want to perform this operation ?
+</need_to_proxy_reload_ask>
+<no_information_retreived>No information retreived</no_information_retreived>
+<this_table_is_categorized>This table is categorized</this_table_is_categorized>
+<freeweb_openbasedir_explain>Allow PHP applications to browse some external directories</freeweb_openbasedir_explain>
+<generate_ssl>Generate SSL (HTTPS)</generate_ssl>
+<wizard_certificate_1>Welcome on the certificate generation.[br]
+In order to create the certificate, define the common name of this certificate.[br]
+This should be a server hostname (server.domain.tld).[br]
+After submiting this form, Artica will generate a Certificate Signing Request and a default auto-signed certificate.[br]
+You will be able to change default settings in the future.
+</wizard_certificate_1>
+<CSR>Certificate Signing Request</CSR>
+<CSR_MULTIPLE_EXPLAIN>If you need multiple certificate to handle multiple subdomains set *.domain.tld</CSR_MULTIPLE_EXPLAIN>
+<SRCA>Self-Signed Root CA Certificate</SRCA>
+<proxy_behavior>Proxy behavior</proxy_behavior>
+<proxy_behavior_explain>You can define here the behavior of your proxy service.[br]
+You have 3 ways to define how your proxy can serve Internet.[br]
+[b]Exclusive Reverse Proxy:[/b][br]
+The Proxy service act only in the reverse mode, no open port is allowed in order to surf trough Internet.[br]
+It is designed to protect your local Web servers.[br]
+[b]Exclusive Internet Proxy:[/b][br]
+The Proxy service act only as a standard proxy in order to accelerate Internet browsing.[br]
+[b]Mixed Mode[/b][br]
+The mixed mode allows your proxy service act as a proxy server and a reverse proxy server.[br]
+We did not recommand this mode.
+</proxy_behavior_explain>
+<exclusive_reverse_proxy>Exclusive Reverse Proxy</exclusive_reverse_proxy>
+<exclusive_internet_proxy>Exclusive Internet Proxy</exclusive_internet_proxy>
+<mixed_mode>Mixed mode</mixed_mode>
+<proxy_service_is_disabled>Proxy service is disabled</proxy_service_is_disabled>
+<apache_chain>Apache chain</apache_chain>
+<delete_certificate_ask>The certificate will be deleted from database but still exists on the disk for current services that use it.</delete_certificate_ask>
+<onlydefaulttemplate_remove>This will be only applied on default template.[br]
+It's return back to default template and change color.[br]
+Continue?
+</onlydefaulttemplate_remove>
+<color>Color</color>
+<default_certificate>Default certificate</default_certificate>
+<forceddomain>Force domain</forceddomain>
+<cached_requests_by_day>Cached requests by day</cached_requests_by_day>
+<cached_requests>Cached requests</cached_requests>
+<used_bandwidth>Used bandwidth</used_bandwidth>
+<allowed_networks>Allowed networks</allowed_networks>
+<chilli_allowed_networks_exp>Give here network or IP address that will be allowed without need to be authenticated.
+values can be an IP address: 10.10.10.1, or a network: 10.10.10.0/24, or a URL: http://www.mycompany.com.
+</chilli_allowed_networks_exp>
+<SplashPages>Splash service</SplashPages>
+<new_splash_page>New splash service</new_splash_page>
+<HS_LANIF>Subscriber Interface for client devices</HS_LANIF>
+<HS_WANIF>WAN Interface toward the Internet</HS_WANIF>
+<HS_NETWORK>HotSpot Network</HS_NETWORK>
+<APP_CHILLIWEB>Advanced HotSpot Interface</APP_CHILLIWEB>
+<APP_APP_CHILLIWEB_TEXT>This is is the Web Interface for Chilli Hostpost</APP_APP_CHILLIWEB_TEXT>
+<dhcp_start_ip>DHCP start IP</dhcp_start_ip> 
+<HotSpot>HotSpot</HotSpot>
+<MYSQLZARAFA_EXPLAIN>
+This wizard will help you to create a dedicated MySQL service for Zarafa Mail server.
+The MySQL Zarafa storage service is designed to store mailboxes on your server.[br]
+It is a dedicated service in order to not pollute other applications that require a MySQL service.[br]
+With this service, you can centralize Mailboxes service on this server.[br]
+By using this service, you have to tranfert all Mailboxes stored on the main MySQL server to this new service. 
+</MYSQLZARAFA_EXPLAIN>
+<categories_groups>Categories Groups</categories_groups>
+<loader_files>MAX files to load</loader_files>
+<loader_sleep>Sleep between iteration</loader_sleep>
+<loader_threshold>Max time to load files</loader_threshold>
+<new_cache>New cache</new_cache>
+<nginx_inactive_explain>[b]Cache Invalidation[/b][br]provides the amount of time a cached request should remain 'valid'</nginx_inactive_explain>
+<APP_NGINX>NgInx Web engine</APP_NGINX> 
+<action_delete_group>Delete this group ?</action_delete_group>
+<at_the_top_rules>At the top of rules</at_the_top_rules>
+<at_the_end_of_rules>At the end of rules</at_the_end_of_rules>
+<position>position</position>
+<protect_owa>Protect Outlook WebAccess</protect_owa>
+<WITH-HTTP_SSL_MODULE>HTTPS/SSL support</WITH-HTTP_SSL_MODULE>
+<WITH-HTTP_REALIP_MODULE>Find the real IP support</WITH-HTTP_REALIP_MODULE> 	
+<WITH-HTTP_SUB_MODULE>Replace text in pages support</WITH-HTTP_SUB_MODULE> 	
+<WITH-HTTP_DAV_MODULE>WebDAV pass-through support.</WITH-HTTP_DAV_MODULE> 	
+<WITH-HTTP_FLV_MODULE>Flash Streaming Video support</WITH-HTTP_FLV_MODULE> 	
+<WITH-HTTP_MP4_MODULE>Enables mp4 streaming with seeking ability</WITH-HTTP_MP4_MODULE> 	
+<WITH-HTTP_GZIP_STATIC_MODULE>Serves precompressed versions of static files</WITH-HTTP_GZIP_STATIC_MODULE>	
+<WITH-HTTP_RANDOM_INDEX_MODULE>Randomize directory indexes</WITH-HTTP_RANDOM_INDEX_MODULE> 	
+<WITH-HTTP_SECURE_LINK_MODULE>Protect pages with a secret key support</WITH-HTTP_SECURE_LINK_MODULE> 	
+<WITH-HTTP_STUB_STATUS_MODULE>Server statistics. support</WITH-HTTP_STUB_STATUS_MODULE>
+<WITH-MAIL>SMTP support</WITH-MAIL>	
+<WITH-MAIL_SSL_MODULE>SMTPS support</WITH-MAIL_SSL_MODULE> 	
+<WITH-FILE-AIO>AIO support</WITH-FILE-AIO> 	
+<WITH-IPV6>ipV6 support</WITH-IPV6>
+<replace_rules>Replace rules</replace_rules>
+<active_connections>Active connections</active_connections>
+<accepteds>accepted</accepteds>
+<handles>handles</handles>
+<keepalive>keep-alive</keepalive>
+<reading>reading</reading>
+<writing>writing</writing>
+<replace_rule>Replace rule</replace_rule>
+<WITH-DEBUG>Debog mode enabled</WITH-DEBUG>
+<WITH-PCRE-JIT>PCRE JIT support</WITH-PCRE-JIT>
+<WITH-HTTP_GEOIP_MODULE>Geo-localisation support</WITH-HTTP_GEOIP_MODULE>
+<WITH-HTTP_IMAGE_FILTER_MODULE>Transform JPEG, GIF and PNG images feature</WITH-HTTP_IMAGE_FILTER_MODULE>
+<WITH-HTTP_XSLT_MODULE>XSLT templates support</WITH-HTTP_XSLT_MODULE>
+<ADD-MODULE>Added module</ADD-MODULE>
+<WITH-LD-OPT>Dynamic library option</WITH-LD-OPT>
+<CommonName>Common Name</CommonName>
+<level_encryption>Encryption level</level_encryption>
+<system_events>System events</system_events>
+<pools>pools</pools>
+<new_pool>New pool</new_pool>
+<link_source>Link a source</link_source>
+<max_failed>MAX fails</max_failed>
+</MYSQLSYSLOG_EXPLAIN>
+<MYSQLZARAFA_TYPE_EXPLAIN>[b]Client or Server ?[b][br]
+Is this Artica server must use MailBoxes stored on a remote Artica server (client) or 
+is it a service that stores mailboxes on this computer (server) ? 
+</MYSQLZARAFA_TYPE_EXPLAIN>
+
+<MYSQLZARAFA_TYPE_SERVER_EXPLAIN>Storing mailboxes should take space, ensure that the specified directory have disk space.[br]
+We suggest about 100/500Gb free space.[br]
+If this server is [b]not[/b] designed to provide mailboxes from remote Artica servers, set 0 on Listen Port field.[br]
+</MYSQLZARAFA_TYPE_SERVER_EXPLAIN>
+<network_parameters>Network settings</network_parameters>
+<dhcp_parameters>DHCP settings</dhcp_parameters>
+<hotspot>HotSpot</hotspot>
+<you_need_to_define_the_second_network_card>You need to define the second network card</you_need_to_define_the_second_network_card>
+<interfaces_cards_cannot_be_the_same>Network interface cards cannot be the same</interfaces_cards_cannot_be_the_same>
+<you_need_to_define_the_hostpot_webservice>You need to choose the HotSpot Web service</you_need_to_define_the_hostpot_webservice>
+<disconnect_session>Disconnect this session</disconnect_session>
+<coova_proxy_port>By defaut, the HotSpot redirect sessions to the local proxy service using this port.[br]
+If you want to not redirect Hotspot session to the local proxy service, set 0 as port</coova_proxy_port>
+<coova_proxy_sslport>By defaut, the HotSpot redirect HTTPS sessions to the local proxy service using this port.[br]
+SSL sessions are transfered to the MAN-IN-THE-MIDDLE proxy behavior.[br]
+This means that SSL certificates will be faked by the proxy.
+</coova_proxy_sslport>
+<coova_ssl_splash_explain>If enabled, the HostPost system will also can redirect to the logon splash page trough SSL</coova_proxy_sslport>
+<coova_CoovaUFDBEnabled_explain>If enabled, authenticated members will be filtered trough the Web filtering rules</coova_CoovaUFDBEnabled_explain>
+<MIME_OPTIONS>SMTP Mime options</MIME_OPTIONS>
+<MIME_OPTIONS_TEXT>Paramaters about MTA behavior with MIME messages</MIME_OPTIONS_TEXT>
+<detect_8bit_encoding_header>8BITMIME body content detection</detect_8bit_encoding_header>
+<detect_8bit_encoding_header_text>Automatically detect 8BITMIME body content by looking at Content-Transfer-Encoding: message headers;</detect_8bit_encoding_header_text>
+<disable_mime_input_processing>Disable MIME Input processing</disable_mime_input_processing>
+<disable_mime_input_processing_text>Turn off MIME processing while receiving mail.[br]
+This means that no special treatment is given to Content-Type: message headers, 
+and that all text after the initial message headers is considered to be part of the message body.[br]
+Mime input processing is enabled by default, and is needed in order to recognize MIME headers 
+in message content.
+</disable_mime_input_processing_text>
+<disable_mime_output_conversion>Disable 8BITMIME format conversion to 7BIT format</disable_mime_output_conversion>
+<disable_mime_output_conversion_text>Disable the conversion of 8BITMIME format to 7BIT format.[br]
+Mime output conversion is needed when the destination does not advertise 8BITMIME support</disable_mime_output_conversion_text>
+<inbound_port>Inbound port</inbound_port>
+<error_this_hostname_is_reserved_freeweb>Error, this hostname is already set in FreeWeb.
+If you need to use it, you need first to remove the FreeWeb entry.
+</error_this_hostname_is_reserved_freeweb>
+<APP_CHILLI_INSTALLED_FTHOWTO>You can setup the HotPost system trough then End-Users WebAccess.[br]
+The End-Users WebAccess can be displayed here:[br]
+%S
+[br]
+You need to ensure that you have Proxy administrators privileges in order to display the section.
+</APP_CHILLI_INSTALLED_FTHOWTO>
+<proxy_http_port>HTTP Proxy port</proxy_http_port>
+<proxy_https_port>HTTPS Proxy port</proxy_https_port>
+<use_remote_dhcp_server>Use a remote DHCP server</use_remote_dhcp_server>
+<use_remote_dhcp_server_chilli>The HotSpot must act as a DHCP server, if set, DHCP requests will be relayed to the specified server</use_remote_dhcp_server_chilli>
+<dhcp_server_ip>DHCP server IP address</dhcp_server_ip>
+<intelligent_cache>Intelligent cache</intelligent_cache>
+<squid_worker_explain>By default the Proxy use only one CPU.[br]In some cases it is good.[br] 
+Using more than one CPU allows the proxy to turn on a kind of internal Load-balancing between each CPU.[br]
+With this feature the proxy service will have more resources to accelerate Internet.
+</squid_worker_explain>
+<ALLOW_RETURN_1CPU>Allow disable SMP</ALLOW_RETURN_1CPU>
+<ALLOW_RETURN_1CPU_EXPLAIN>If multiple CPU feature is enabled and Proxy encounter issues to bind CPUs, this option allow Artica to reconfigure the Proxy using only single CPU.[br]
+This to temporary allow users accessing to Internet.
+</ALLOW_RETURN_1CPU_EXPLAIN>
+<backup_database_status>Backup database status</backup_database_status>
+<internal_port>Internal Port</internal_port>
+<this_form_is_locked>This form is locked, you are unable to save informations</this_form_is_locked>
+<artica_patch_explain>Upload a patch (tar.gz) in order to update Artica</artica_patch_explain> 
+<infrastructure>Infrastructure</infrastructure>
+<SSL_NOT_COMPILED>SSL is not compiled in your software</SSL_NOT_COMPILED>
+<behavior_listen_ports>Behavior and Listen ports</behavior_listen_ports>
+<MaxSwapPourc>Max Swap used</MaxSwapPourc>
+<MaxSwapPourc_explain>If the system exceed the swap used value, Artica will flush the swap automatically</MaxSwapPourc_explain>
+<caches_rules>Caches rules</caches_rules>
+<daemons_number>Daemons number</daemons_number>
+<max_daemons>MAX Daemons</max_daemons>
+<haarp_rule_explain>You can define here regular expression that will force requested objects to pass trough the intelligent cache.</haarp_rule_explain> 
+<APP_HAARP>StreamCache</APP_HAARP>
+<mysql_databases>MySQL Databases</mysql_databases>
+<MYSQL_SYSLOG>MySQL system events database</MYSQL_SYSLOG>
+<CleanMySQLLogs>This operation will clean the MySQL database events.
+Do you want to perform this operation
+</CleanMySQLLogs>
+<mysql_task_background>The MySQL operation has been launched in background mode</mysql_task_background>
+<DisableAnyCache_error_explain>Your server is configured to not save in cache Internet objects requested by your users.[br]
+This section cannot be displayed.</DisableAnyCache_error_explain>
+<caches_rules>Cache rules</caches_rules>
+<economy>Economy</economy>
+
+<APP_HAARP_EXPLAIN>This engine is a dedicated cache engine designed for 4shared.com, doubleclick.net, freeav.com, grisoft.com, kaspersky.com, microsoft.com, photobucket.com, speedtest.net, tube8.com, video.msn.com, xvideos.com, avast.com, edgecastcdn.net, freeav.net, grisoft.cz, kaspersky-labs.com nai.com, pop6.com,  submanga.com, tumblr.com, vimeo.com,  youtube.com, avgate.com, eset.com, globo.com, juegosdiarios.com, mccont.com, orkut.com.br, pornotube.com, symantecliveupdate.com, uol.com.br, vsh.r7.com, ytimg.com, avgate.net, , etrustdownloads.ca.com, googlevideo.com, juegosjuegos.com, mediafire.com, orkut.com, rad.msn.com, terra.com, update.nai.com, windowsupdate.com, ziddu.com, avg.com, fbcdn.net, grandchase.com.br, justin.tv, metacafe.com, phncdn.com,    redtubefiles.com, testdevelocidad.es, viddler.com, xtube.com.[br]
+It use a specific engine in order to allows caching streaming objects that most standards proxies services cannot correctly handle this kind of websites.[br]
+Whith this plugin, you are able to increase the caching rate and safe your bandwidth</APP_HAARP_EXPLAIN>
+<activate_webfiltering>Activate the Web filtering engine</activate_webfiltering>
+<activate_streamcache>Activate the StreamCache engine</activate_streamcache>
+<webfiltering>Web Filtering</webfiltering>
+<APP_HOTSPOT>HotSpot service</APP_HOTSPOT>
+<HS_LAN_ACCESS>Allow communicate with the local network</HS_LAN_ACCESS>
+<CHILLI_ERROR_SAME_NETS>Fatal, the LAN Network %a is the same of the Wan network.[br]The HotSpot will not have the expected behavior</CHILLI_ERROR_SAME_NETS>
+<CHILLI_HS_LANIF_NULL>Fatal, the LAN interface is not set</CHILLI_HS_LANIF_NULL>
+<CHILLI_HS_WANIF_NULL>Fatal, the WAN interface is not set</CHILLI_HS_WANIF_NULL>
+<RADIUS_IF>Interface for LDAP connection</RADIUS_IF>
+<ON_ERRORS>On Errors</ON_ERRORS>
+<SQUID_TEMPLATE_REPLACE_EXPLAIN>This option allows you to replace a string into all templates</SQUID_TEMPLATE_REPLACE_EXPLAIN>
+<SquidTransparentMixed>Enable transparent mixed mode</SquidTransparentMixed>
+<SquidTransparentMixed_text>By default,when define the Proxy has transparent, nobody can be connected to the proxy directly.[br]
+Enable this feature allows you to activate transparent method and standard method on the same server.[br]
+For example, you can have a connected proxy to your Active Directory and a port defined as transparent.
+</SquidTransparentMixed_text> 

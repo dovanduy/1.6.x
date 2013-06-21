@@ -10,6 +10,7 @@ include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.calendar.inc");
+include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 if(!$_SESSION["AsWebStatisticsAdministrator"]){header("location:miniadm.index.php");die();}
 	
 
@@ -19,8 +20,9 @@ if(isset($_GET["webstats-middle"])){webstats_middle();exit;}
 if(isset($_GET["graph"])){generate_graph();exit;}
 if(isset($_GET["webstats_middle_table"])){webstats_middle_table();exit;}
 if(isset($_GET["items"])){webstats_middle_table_items();exit;}
-
+if(isset($_GET["generate-graph-final"])){generate_graph_final();exit;}
 if(isset($_POST["NoCategorizedAnalyze"])){NoCategorizedAnalyze();exit;}
+if(isset($_GET['tabs'])){tabs();exit;}
 
 main_page();
 
@@ -32,6 +34,56 @@ function main_page(){
 	$content=str_replace("{SCRIPT}", "<script>LoadAjax('globalContainer','$page?content=yes&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}')</script>", $content);
 	echo $content;	
 }
+
+function tabs(){
+	$boot=new boostrap_form();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	if(!is_numeric($_GET["xtime"])){
+		$_GET["xtime"]=strtotime("{$_GET["year"]}-{$_GET["month"]}-{$_GET["day"]} 00:00:00");
+		
+	}
+	
+	$dateT=time_to_date($_GET["xtime"]);
+	
+	if(isset($_GET["xtime"])){
+		$_GET["year"]=date("Y",$_GET["xtime"]);
+		$_GET["month"]=date("m",$_GET["xtime"]);
+		$_GET["day"]=date("d",$_GET["xtime"]);
+		$_GET["tablename"]=date("Ymd",$_GET["xtime"])."_members";
+	}	
+	
+	$q=new mysql_squid_builder();
+	if(!$q->TABLE_EXISTS($_GET["tablename"])){
+		
+		senderror("{table_does_not_exists} {$_GET["tablename"]} {use_the_tools_section}");
+		
+	}
+	
+	
+	$t=$_GET["t"];
+	$display_members_for_this_day=$tpl->javascript_parse_text("$dateT: {display_members_for_this_day}");
+	
+	$subtitle="<a href=\"javascript:blur();\" OnClick=\"Loadjs(\'miniadm.webstats.php?calendar-js=yes&div=tab-$t&prefix=tabs=yes&t=$t&source-page=$page\')\">$display_members_for_this_day</a>";
+	
+	
+	$title="<script>
+			document.getElementById('MembersSubtitlePage').innerHTML='$subtitle';
+		</script>";
+	
+	if(isset($_GET["title"])){
+		$title="<H3>$display_members_for_this_day</H3>";
+	}
+	
+	$array["{uid}"]="$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=uid');";
+	$array["{ipaddr}"]="$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=client');";
+	$array["{MAC}"]="$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=MAC');";
+	$array["{hostname}"]="$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=hostname');";
+	echo $title.$boot->build_tab($array);
+	
+	
+}
+
 function content(){
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -52,7 +104,7 @@ function content(){
 	$YouTubeHits=$ligne["YouTubeHits"];
 	$SumSize=FormatBytes($SumSize/1024);
 	$SumHits=numberFormat($SumHits,0," "," ");
-	$H1[]="$MembersCount {members} {$SumSize}/$SumHits {hits}";	
+	$H1[]="{statistics} &laquo;{members}&raquo;";	
 	
 		$dateT=date("{l} {F} d",$_GET["xtime"]);
 		if($tpl->language=="fr"){
@@ -65,11 +117,7 @@ function content(){
 		$_GET["day"]=date("d",$_GET["xtime"]);	
 	}
 	
-	$js_uid="LoadAjax('webstats-middle-$ff','$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=uid');";
-	$js_ipaddr="LoadAjax('webstats-middle-$ff','$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=ipaddr');";
-	$js_MAC="LoadAjax('webstats-middle-$ff','$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=MAC');";
-	$js_hostname="LoadAjax('webstats-middle-$ff','$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER=hostname');";
-	
+
 	$html="
 	<div class=BodyContent>
 		<div style='font-size:14px'>
@@ -77,23 +125,23 @@ function content(){
 			&nbsp;&raquo;&nbsp;<a href=\"miniadm.webstats.php?t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}\">{web_statistics}</a>
 		</div>
 		<H1>". @implode(", ", $H1)."</H1>
-		<p>$dateT: {display_members_for_this_day}</p>
+		<h2 style='font-size:16px' id='MembersSubtitlePage'></h2>
 	</div>
-	<div style='font-size:16px;' class=BodyContent>
-	<center>
-		<a href=\"javascript:$js_uid\" style='font-size:16px;text-decoration:underline'>{members}</a>&nbsp;|&nbsp;
-		<a href=\"javascript:$js_ipaddr\" style='font-size:16px;text-decoration:underline'>{ipaddr}</a>&nbsp;|&nbsp;
-		<a href=\"javascript:$js_MAC\" style='font-size:16px;text-decoration:underline'>{MAC}</a>&nbsp;|&nbsp;
-		<a href=\"javascript:$js_hostname\" style='font-size:16px;text-decoration:underline'>{hostname}</a>
-	</center>
-	</div>	
-	<div id='webstats-middle-$ff'></div>
+	<div style='font-size:16px;' class=BodyContent id='tab-$ff'></div>
+
+	
+	
 	
 	<script>
-		LoadAjax('webstats-middle-$ff','$page?webstats-middle=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}');
+		LoadAjax('tab-$ff','$page?tabs=yes&t=$ff&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}');
 	</script>
 	";
 	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function suffix2(){
+	$t=$_GET["t"];	
+	return "&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER={$_GET["FILTER"]}";
 }
 
 function webstats_middle(){
@@ -101,15 +149,15 @@ function webstats_middle(){
 	$tpl=new templates();
 	$t=$_GET["t"];
 	$ff=time();
-	
+	$suffix=suffix2();
 	$html="
 	<div class=BodyContent id='graph-$ff'></div>
 	<div class=BodyContent id='table-$ff'></div>
 	
 	
 	<script>
-		LoadAjax('graph-$ff','$page?graph=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER={$_GET["FILTER"]}');
-		LoadAjax('table-$ff','$page?webstats_middle_table=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER={$_GET["FILTER"]}');
+		LoadAjax('graph-$ff','$page?graph=yes$suffix&container=graph-$ff');
+		LoadAjax('table-$ff','$page?webstats_middle_table=yes$suffix');
 	</script>
 	";
 	
@@ -132,7 +180,7 @@ function which_filter($tablename){
 	if($count>1){return "MAC";}
 	
 	
-	$sql="SELECT COUNT(ipaddr) as tcount FROM $tablename WHERE LENGTH(ipaddr)>0";
+	$sql="SELECT COUNT(client) as tcount FROM $tablename WHERE LENGTH(ipaddr)>0";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	$count=mysql_num_rows($results);
 	if($count>1){return "ipaddr";}
@@ -153,88 +201,12 @@ function webstats_middle_table(){
 	$TB_HEIGHT=500;
 	$TB_WIDTH=910;
 	$uid=$_GET["uid"];
-		
-	$t=time();
-	$sitename=$tpl->javascript_parse_text("{sitename}");
-	$client=$tpl->_ENGINE_parse_body("{ipaddr}");
-	$account=$tpl->_ENGINE_parse_body("{account}");
-//	$title=$tpl->_ENGINE_parse_body("$attachments_storage {items}:&nbsp;&laquo;$size&raquo;");
-	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
-	$action_delete_rule=$tpl->javascript_parse_text("{action_delete_rule}");
-	$enable=$tpl->_ENGINE_parse_body("{enable}");
-	$compile_rules=$tpl->_ENGINE_parse_body("{compile_rules}");
-	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
-	$enabled=$tpl->_ENGINE_parse_body("{enabled}");
-	$items=$tpl->_ENGINE_parse_body("{items}");
-	$error_want_operation=$tpl->javascript_parse_text("{error_want_operation}");
-	$events=$tpl->javascript_parse_text("{events}");
-	$category=$tpl->javascript_parse_text("{category}");
-	$title=$tpl->javascript_parse_text("{video_title}");
-	$size=$tpl->javascript_parse_text("{size}");
-	$duration=$tpl->javascript_parse_text("{duration}");
-	$hits=$tpl->javascript_parse_text("{hits}");
-	$familysite=$tpl->javascript_parse_text("{familysite}");
-	$MAC=$tpl->_ENGINE_parse_body("{MAC}");
+	$boot=new boostrap_form();
+	$tablename_members=date("Ymd",$_GET["xtime"])."_members";
+	if($_GET["FILTER"]==null){$_GET["FILTER"]=which_filter($tablename_members);}
+	$SearchQuery=$boot->SearchFormGen("{$_GET["FILTER"]}","items","&t={$_GET["t"]}&uid=$uid&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER={$_GET["FILTER"]}");
+	echo $SearchQuery;
 	
-	$tablename_members="UserSizeD_".date("Ymd",$_GET["xtime"]);
-	if($_GET["FILTER"]==null){$_GET["FILTER"]=which_filter($tablename_members);}	
-	$FILTER=$tpl->_ENGINE_parse_body("{{$_GET["FILTER"]}}");
-	
-	$buttons="
-	buttons : [
-	
-	{name: '$online_help', bclass: 'Help', onpress : ItemHelp$t},
-	
-	],	";
-	$html="
-	
-	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
-	
-<script>
-var mem$t='';
-$(document).ready(function(){
-$('#flexRT$t').flexigrid({
-	url: '$page?items=yes&t=$t&uid=$uid&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&tablename={$_GET["tablename"]}&xtime={$_GET["xtime"]}&FILTER={$_GET["FILTER"]}',
-	dataType: 'json',
-	colModel : [
-		{display: '$FILTER', name : '{$_GET["FILTER"]}', width :538, sortable : true, align: 'left'},
-		{display: '$hits', name : 'hits', width :149, sortable : true, align: 'right'},
-		{display: '$size', name : 'size', width :149, sortable : true, align: 'right'},
-		
-		
-	
-	],
-	$buttons
-
-	searchitems : [
-		{display: '$FILTER', name : '{$_GET["FILTER"]}'},
-
-		
-
-	],
-	sortname: 'size',
-	sortorder: 'desc',
-	usepager: true,
-	title: '<span id=\"title-$t\"></span>',
-	useRp: true,
-	rp: 50,
-	showTableToggleBtn: false,
-	width: $TB_WIDTH,
-	height: $TB_HEIGHT,
-	singleSelect: true,
-	rpOptions: [10, 20, 30, 50,100,200,500]
-	
-	});   
-});
-
-function ItemHelp$t(){
-	//s_PopUpFull('http://www.mail-appliance.org/index.php?cID=339','1024','900');
-}
-
-
-</script>";
-	
-	echo $html;
 	
 	
 	
@@ -249,7 +221,7 @@ function webstats_middle_table_items(){
 	$sock=new sockets();
 	$xtime=$_GET["xtime"];
 	$database="squidlogs";
-	$tablename_members="UserSizeD_".date("Ymd",$xtime);
+	$tablename_members=date("Ymd",$_GET["xtime"])."_members";
 	if($_GET["FILTER"]==null){$_GET["FILTER"]=which_filter($tablename_members);}
 	
 	
@@ -268,36 +240,18 @@ function webstats_middle_table_items(){
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-	$searchstring=string_to_flexquery();
-	if($searchstring<>null){
-		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
-		$total = $ligne["TCOUNT"];
-		
-	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
-		$total = $ligne["TCOUNT"];
-	}
+	$searchstring=string_to_flexquery("items");
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	
 
-	
+	$boot=new boostrap_form();
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER ORDER BY size DESC LIMIT 0,150";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,$database);
-	
-	$data = array();
-	$data['page'] = $page;
-	$data['total'] = $total;
-	$data['rows'] = array();
-	
-	if(!$q->ok){json_error_show($q->mysql_error);}	
-
 	while ($ligne = mysql_fetch_assoc($results)) {
 	$zmd5=md5(serialize($ligne));
 	$color="black";
@@ -322,31 +276,51 @@ function webstats_middle_table_items(){
 
 	
 	// https://192.168.1.106:9000/
-	$urljs="<a href=\"javascript:blur();\" 
-	OnClick=\"javascript:Loadjs('squid.members.zoom.php?table=$dansguardian_events&field={$_GET["FILTER"]}&value={$ligne["{$_GET["FILTER"]}"]}')\"
-	style='font-size:18px;text-decoration:underline;color:$color'>";		
+	$urljs="Loadjs('squid.members.zoom.php?table=$dansguardian_events&field={$_GET["FILTER"]}&value={$ligne["{$_GET["FILTER"]}"]}')";	
+	$link=$boot->trswitch($urljs);
+	$tr[]="
+	<tr id='$id'>
+	<td $link><i class='icon-user'></i> {$ligne["name"]}</a>{$ligne["{$_GET["FILTER"]}"]}</td>
+	<td $link><i class='icon-globe'></i> {$ligne["hits"]}</td>
+	<td $link><i class='icon-globe'></i> {$ligne["size"]}</td>
+	</tr>";
 	
-	
-	
-	$data['rows'][] = array(
-		'id' => "$zmd5",
-		'cell' => array(
-			"<span style='font-size:18px;color:$color'>$urljs{$ligne["{$_GET["FILTER"]}"]}</a></span>",
-			"<span style='font-size:18px;color:$color'>{$ligne["hits"]}</span>",
-			"<span style='font-size:18px;color:$colorsize'>{$ligne["size"]}</span>",
-			)
-		);
+
 	}
 	
 	
-echo json_encode($data);		
+echo $tpl->_ENGINE_parse_body("
+		
+		<table class='table table-bordered table-hover'>
+		
+			<thead>
+				<tr>
+					<th>{{$_GET["FILTER"]}}</th>
+					<th>{hits}</th>
+					<th>{size}</th>
+				</tr>
+			</thead>
+			 <tbody>
+			").@implode("\n", $tr)." </tbody>
+		</table>";		
 	
+	
+}
+function generate_graph(){
+	
+	$page=CurrentPageName();
+	$t=time();
+	$html="<div style='width:920px;height:400px' id='$t'></div>
+	<script>
+		Loadjs('$page?generate-graph-final=yes&xtime={$_GET["xtime"]}&FILTER={$_GET["FILTER"]}&container=$t');
+	</script>
+	";
+	echo $html;
 	
 }
 
 
-
-function generate_graph(){
+function generate_graph_final(){
 	include_once('ressources/class.artica.graphs.inc');
 	$q=new mysql_squid_builder();
 	$page=CurrentPageName();
@@ -354,56 +328,40 @@ function generate_graph(){
 	$t=$_GET["t"];
 	$ff=time();
 	$xtime=$_GET["xtime"];
-	$tablename="UserSizeD_".date("Ymd",$_GET["xtime"]);
+	$tablename=date("Ymd",$_GET["xtime"])."_members";
 	if($_GET["FILTER"]==null){$_GET["FILTER"]=which_filter($tablename);}
 	$FILTER=$tpl->_ENGINE_parse_body("{{$_GET["FILTER"]}}");	
-	
-	
-	
-	
 	$sql="SELECT COUNT({$_GET["FILTER"]}) as tcount, hour FROM $tablename GROUP BY hour ORDER BY hour";
-	
+	switch ($_GET["FILTER"]) {
+		case "client":$subtitle="{ipaddr}";break;
+		case "uid":$subtitle="{member}";break;
+		default:$subtitle="{{$_GET["FILTER"]}}";
+			;
+		break;
+	}
 	
 
 	$c=0;
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
 	if(mysql_num_rows($results)>0){
-	
-			$nb_events=mysql_num_rows($results);
-			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-				$xdata[]=$ligne["hour"];
-				$ydata[]=$ligne["tcount"];
-				
+		$nb_events=mysql_num_rows($results);
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$xdata[]=$ligne["hour"];
+			$ydata[]=$ligne["tcount"];
 			$c++;
-		
+		}
 	}	
 				
-				
-				
-			$t=time();
-			$targetedfile="ressources/logs/".md5(basename(__FILE__).".".__FUNCTION__.".day.$tablename").".png";
-			$gp=new artica_graphs();
-			$gp->width=920;
-			$gp->height=350;
-			$gp->filename="$targetedfile";
-			$gp->xdata=$xdata;
-			$gp->ydata=$ydata;
-			$gp->y_title=null;
-			$gp->x_title=$tpl->_ENGINE_parse_body("{hours}");
-			$gp->title=null;
-			$gp->margin0=true;
-			$gp->Fillcolor="blue@0.9";
-			$gp->color="146497";
-			$gp->line_green();
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title="{statistics} ". $tpl->_ENGINE_parse_body("$subtitle/{hours}");
+	$highcharts->yAxisTtitle="{members}";
+	$highcharts->xAxisTtitle="{hours}";
+	$highcharts->datas=array("{members}"=>$ydata);
+	echo $highcharts->BuildChart();
 			
-		if(is_file($targetedfile)){
-			echo "<center>
-			<div style='font-size:18px;margin-bottom:10px'>".$tpl->_ENGINE_parse_body("$FILTER/{hours}")."</div>
-			<img src='$targetedfile'></center>";
-		}
 	
-	}
 	
 }
 

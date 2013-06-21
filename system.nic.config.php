@@ -701,14 +701,14 @@ function zlistnics_builder(){
 		$val=$_GET["nic-builder"];
 		writelogs("Found: $val",__FUNCTION__,__FILE__,__LINE__);
 		$val=trim($val);
-		if(preg_match('#master#',$val)){continue;}
-		if(preg_match("#^veth.+?#",$val)){continue;}
-		if(preg_match("#^tunl[0-9]+#",$val)){continue;}
-		if(preg_match("#^dummy[0-9]+#",$val)){continue;}
-		if(preg_match("#^gre[0-9]+#",$val)){continue;}
-		if(preg_match("#^ip6tnl[0-9]+#",$val)){continue;}
-		if(preg_match("#^sit[0-9]+#",$val)){continue;}
-		if(preg_match("#^vlan[0-9]+#",$val)){continue;}
+		if(preg_match('#master#',$val)){return;}
+		if(preg_match("#^veth.+?#",$val)){return;}
+		if(preg_match("#^tunl[0-9]+#",$val)){return;}
+		if(preg_match("#^dummy[0-9]+#",$val)){return;}
+		if(preg_match("#^gre[0-9]+#",$val)){return;}
+		if(preg_match("#^ip6tnl[0-9]+#",$val)){return;}
+		if(preg_match("#^sit[0-9]+#",$val)){return;}
+		if(preg_match("#^vlan[0-9]+#",$val)){return;}
 		
 		
 		$nic=new system_nic();

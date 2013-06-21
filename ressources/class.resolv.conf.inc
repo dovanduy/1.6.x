@@ -46,7 +46,7 @@ class resolv_conf{
 	private function SearchPrinciPalDomain(){
 		exec("/bin/hostname -A 2>&1",$results );
 		$ff=@implode("", $results);
-		if(preg_match("#([\s+\(\)\[\]+)#", $ff)){
+		if(preg_match("#([\s+\(\)\[\]]+)#", $ff)){
 			$ff=null;
 		}
 		

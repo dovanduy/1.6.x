@@ -15,12 +15,15 @@ $GLOBALS["CHECKTIME"]=false;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["BYCRON"]=false;
 $GLOBALS["NOCHECKTIME"]=false;
+$GLOBALS["NOLOGS"]=false;
 $GLOBALS["MYPID"]=getmypid();
 $GLOBALS["CMDLINE"]=@implode(" ", $argv);
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
-if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;$GLOBALS["CHECKTIME"]=false;}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--checktime#",implode(" ",$argv))){$GLOBALS["CHECKTIME"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--nologs#",implode(" ",$argv))){$GLOBALS["NOLOGS"]=true;}
+
 if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;$GLOBALS["CHECKTIME"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 
@@ -89,7 +92,9 @@ function ufdbtables($nopid=false){
 	$URIBASE="http://www.artica.fr/ufdb";
 	$WORKDIR="/var/lib/ufdbartica";
 	if(@file_get_contents("/usr/local/share/artica/.lic")<>"TRUE"){
-		ufdbguard_admin_events("UFDB::Warning: only corporate license is allowed to be updated...",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+		if(!$GLOBALS["NOLOGS"]){
+			ufdbguard_admin_events("UFDB::Warning: only corporate license is allowed to be updated...",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+		}
 		return;
 	}
 	if(!$nopid){
@@ -98,8 +103,10 @@ function ufdbtables($nopid=false){
 		$pid=@file_get_contents($pidfile);
 		if($unix->process_exists($pid,__FILE__)){
 			$timepid=$unix->PROCCESS_TIME_MIN($pid);
-			ufdbguard_admin_events("UFDB::Warning: Task already executed PID: $pid since {$timepid}Mn",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
-			return;
+			if(!$GLOBALS["NOLOGS"]){
+				ufdbguard_admin_events("UFDB::Warning: Task already executed PID: $pid since {$timepid}Mn",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+				return;
+			}
 		}		
 		@file_put_contents($pidfile, getmypid());
 	}
@@ -294,9 +301,13 @@ function updatev2_checkversion(){
 						@unlink($destinationfile);
 						@copy($tmpfile, $destinationfile);
 						@chmod($destinationfile,0755);
+					}else{
+						events("Unable to get VERSION");
 					}
 				}
 			}
+		}else{
+			events("$uri $curl->error");
 		}
 		
 	}
@@ -304,6 +315,7 @@ function updatev2_checkversion(){
 	@unlink($tmpfile);
 	
 	if($GLOBALS["MIRROR"]==null){
+		events("error, unable to find a suitable mirror");
 		ufdbguard_admin_events("error, unable to find a suitable mirror", __FUNCTION__, __FILE__, __LINE__, "update");
 		return;
 	}
@@ -335,25 +347,24 @@ function updatev2(){
 		die();
 	}
 	
-	$unix=new unix();
-	if(is_dir("/opt/articatech/data/catz")){
-		if(!$GLOBALS["FORCE"]){	
-			if(!$GLOBALS["CHECKTIME"]){
-				$CHECKTIME=$unix->file_time_min($timeFile);
-				if($CHECKTIME<2880){
-					updatev2_progress(100,"last update since {$CHECKTIME}Mn, require minimal 2880Mn");
-					ufdbguard_admin_events("Warning: last update since {$CHECKTIME}Mn, require minimal 2880Mn (48H)",
-					__FUNCTION__,__FILE__,__LINE__,"update");
-					return;
-				}
-
-			}
-		}
+	if($GLOBALS["FORCE"]){events("Force enabled");}
+	if(!$GLOBALS["CHECKTIME"]){events("CHECKTIME disabled");}
+	
+	
+	$CHECKTIME=$unix->file_time_min($timeFile);
+	events("{$CHECKTIME}Mn for $timeFile");
+	if($CHECKTIME<2880){
+		events("last update since {$CHECKTIME}Mn, require minimal 2880Mn");
+		updatev2_progress(100,"last update since {$CHECKTIME}Mn, require minimal 2880Mn");
+		ufdbguard_admin_events("Warning: last update since {$CHECKTIME}Mn, require minimal 2880Mn (48H)",
+		__FUNCTION__,__FILE__,__LINE__,"update");
+		return;
 	}
 	
-	@unlink($timeFile);
-	@file_put_contents($timeFile, time());	
+
 	$pid=@file_get_contents($pidfile);
+	
+	
 	if($unix->process_exists($pid,__FILE__)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
 		if($time<10200){
@@ -369,10 +380,13 @@ function updatev2(){
 		}
 	}
 	
-	
+	@unlink($timeFile);
+	@file_put_contents($timeFile, time());	
 	@file_put_contents($pidfile, getmypid());	
 	$LOCAL_VERSION=@file_get_contents("/opt/articatech/VERSION");
 	updatev2_checkversion();
+	
+	
 	if($GLOBALS["MIRROR"]==null){
 		schedulemaintenance();
 		EXECUTE_BLACK_INSTANCE();		
@@ -473,6 +487,20 @@ function updatev2(){
 	
 	shell_exec($nohup." ".$unix->LOCATE_PHP5_BIN()." ".__FILE__." --support >/dev/null 2>&1 &");
 }
+
+function events($text){
+	$pid=@getmypid();
+	$filename=basename(__FILE__);
+	$date=@date("h:i:s");
+	$logFile="/var/log/artica-postfix/updatev2.debug";
+	$size=@filesize($logFile);
+	if($size>1000000){@unlink($logFile);}
+	$f = @fopen($logFile, 'a');
+	@fwrite($f, "$pid [$date] ".basename(__FILE__)." $text\n");
+	@fclose($f);
+
+}
+
 
 
 function updatev2_checktables($npid=false){

@@ -1,15 +1,18 @@
 <?php
 session_start();
 
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
-ini_set('error_append_string',null);
+ini_set('display_errors', 1);
+ini_set('error_reporting', E_ALL);
+ini_set('error_prepend_string',"<p class='text-error'>");
+ini_set('error_append_string',"</p>");
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
-$PRIV=GetPrivs();
-if(!$PRIV){header("location:miniadm.index.php");die();}
+
+
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
-include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
+include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
+$PRIV=GetPrivs();if(!$PRIV){header("location:miniadm.index.php");die();}
 
 
 if(isset($_GET["content"])){content();exit;}
@@ -47,9 +50,7 @@ function main_page(){
 	echo $content;	
 }
 function GetPrivs(){
-	if($_SESSION["ASDCHPAdmin"]){return true;}
-	if($_SESSION["AsOrgDNSAdmin"]){return true;}
-	return false;
+		return isNetSessions();
 }
 function content(){
 	$page=CurrentPageName();
@@ -77,13 +78,56 @@ function content(){
 }
 
 function webstats_middle(){
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$t=time();
+	$boot=new boostrap_form();
+	
+	if($users->AsSystemAdministrator){
+		$array["{edit_networks}"]="miniadm.network.interfaces.php";
+		
+	}
+	
+	
+	if($users->AsDnsAdministrator){
+		if($users->POWER_DNS_INSTALLED){
+			$array["{dns_service}"]="miniadm.PowerDNS.php?popup=yes&explain-title=yes";
+		}	
+		
+	}
+	
+	
+	if($_SESSION["ASDCHPAdmin"]){
+		if($users->dhcp_installed){
+			$array["{APP_DHCP}"]="miniadm.dhcp.php?webstats-middle=yes&explain-title=yes";
+		}
+	}
+
+	
+	if($_SESSION["AllowChangeDomains"]){
+		$array["{manage_internet_domains}"]="miniadm.smtpdom.php?webstats-middle=yes&title=yes";
+	}
+	//$array["{status}"]="$page?status=yes";
+	//$array["{events}"]="$page?events=yes";
+	echo $boot->build_tab($array);
+	return;
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string',null);
+	ini_set('error_append_string',null);	
+	
+	
 	$page=CurrentPageName();
 	$tpl=new templates();	
-	$users=new usersMenus();
+	
+
 	$tr=array();
-	$dhcp=Paragraphe("64-dhcp.png", "{APP_DHCP}", "{APP_DHCP_TEXT}","miniadm.dhcp.php");
+	$dhcp=Paragraphe("64-dhcp.png", "{APP_DHCP}", "{APP_DHCP_TEXT}","miniadm.dhcp.php?webstats-middle=yes");
 	$pdns=Paragraphe("dns-64.png", "{APP_PDNS}", "{APP_PDNS_TEXT}","miniadm.pdns.php");
-	$domains=Paragraphe("domain-main-64.png", "{manage_internet_domains}", "{manage_internet_domains_text}","miniadm.smtpdom.php");
+	$domains=Paragraphe("domain-main-64.png", "{manage_internet_domains}",
+			 "{manage_internet_domains_text}","miniadm.smtpdom.php");
 	
 	
 	if(!$_SESSION["ASDCHPAdmin"]){$dhcp=Paragraphe("64-dhcp-grey.png", "{APP_DHCP}", "{APP_DHCP_TEXT}");}

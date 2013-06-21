@@ -33,7 +33,7 @@ function monitor_parameters_js(){
 	$tpl=new templates();
 	$t=$_GET["t"];
 	$title=$tpl->javascript_parse_text("{parameters}");
-	$html="YahooWin('650','$page?monitor-parameters-popup=yes&t=$t','$title')";
+	$html="YahooWin('680','$page?monitor-parameters-popup=yes&t=$t','$title')";
 	echo $html;
 }
 
@@ -264,6 +264,7 @@ function proxy_service(){
 	}
 	
 	$html="
+		<script type='text/javascript' language='javascript' src='/js/steelseries-min.js'></script>		
 		$parameters_link
 		<div id='counter-$t'>
 		$storages
@@ -1026,7 +1027,7 @@ function services_status(){
 	$html="
 			
 	<div style='float:right'>". imgtootltip("refresh-32.png","{refresh}","LoadAjax('services-status','$page?services-status-table=yes');")."</div>
-	<center ><div style='width:1400px;margin:10px'>$html</div></center>";
+	<center ><div style='width:100%;margin:10px'>$html</div></center>";
 	echo $html;
 	
 }
@@ -1106,15 +1107,17 @@ function toolbox(){
 			"javascript:Loadjs('squid.restart.php?onlySquid=yes');");
 	
 
-	$html="<table style='width:100%' style='margin-left:-10px'>
+	$html="<table style='width:100%'>
 	<tr>
 		<td>$ufdbbutt</td>
 		<td>$current_sessions</td>
 		<td>$performances</td>
 		<td>$squid_rotate</td>
+	</tr>
 		<td>$reconfigure</td>
 		<td>$debug_compile</td>
-		<td>$restart_service_only</td>				
+		<td>$restart_service_only</td>
+		<td>&nbsp;</td>				
 	</tr>
 	</table>
 	

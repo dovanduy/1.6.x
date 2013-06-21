@@ -159,6 +159,10 @@ function popup(){
 	$serverMem=round(($users->MEM_TOTAL_INSTALLEE-300)/1024);
 	
 	$VARIABLES=$q->SHOW_VARIABLES();
+	while (list ($key, $value) = each ($SquidDBTuningParameters) ){
+		if($VARIABLES[$key]==null){$VARIABLES=$SquidDBTuningParameters[$key];}
+	
+	}
 	
 	
 	$read_buffer_size=round(($VARIABLES["read_buffer_size"]/1024)/1000,2);

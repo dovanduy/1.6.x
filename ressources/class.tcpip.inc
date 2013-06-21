@@ -538,17 +538,17 @@ public static function ipv4ToIpv6Cdir( $original_ip_str ) {
     }
     
 function ip2cidr($ip_start,$ip_end) {
-if(long2ip(ip2long($ip_start))!=$ip_start or long2ip(ip2long($ip_end))!=$ip_end) return NULL;
-$ipl_start=(int)ip2long($ip_start);
-$ipl_end=(int)ip2long($ip_end);
-if($ipl_start>0 && $ipl_end<0) $delta=($ipl_end+4294967296)-$ipl_start;
-else $delta=$ipl_end-$ipl_start;
-$netmask=str_pad(decbin($delta),32,0,STR_PAD_LEFT);
-if(ip2long($ip_start)==0 && substr_count($netmask,"1")==32) return "0.0.0.0/0";
-if($delta<0 or ($delta>0 && $delta%2==0)) return NULL;
-for($mask=0;$mask<32;$mask++) if($netmask[$mask]==1) break;
-if(substr_count($netmask,"0")!=$mask) return NULL;
-return "$ip_start/$mask";
+	if(long2ip(ip2long($ip_start))!=$ip_start or long2ip(ip2long($ip_end))!=$ip_end) return NULL;
+	$ipl_start=(int)ip2long($ip_start);
+	$ipl_end=(int)ip2long($ip_end);
+	if($ipl_start>0 && $ipl_end<0) $delta=($ipl_end+4294967296)-$ipl_start;
+	else $delta=$ipl_end-$ipl_start;
+	$netmask=str_pad(decbin($delta),32,0,STR_PAD_LEFT);
+	if(ip2long($ip_start)==0 && substr_count($netmask,"1")==32) return "0.0.0.0/0";
+	if($delta<0 or ($delta>0 && $delta%2==0)) return NULL;
+	for($mask=0;$mask<32;$mask++) if($netmask[$mask]==1) break;
+	if(substr_count($netmask,"0")!=$mask) return NULL;
+	return "$ip_start/$mask";
 }
 
 function HostsNumber($ip_addr,$subnet_mask = "255.255.255.0"){

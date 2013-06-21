@@ -101,7 +101,8 @@ class ActiveDirectory{
 			$array["LDAP_SUFFIX"]=$INFOS["SUFFIX"];
 			$array["LDAP_PORT"]=$INFOS["LDAP_PORT"];
 			$array["LDAP_SERVER"]=$INFOS["SERVER_IP"];
-			$array["WINDOWS_DNS_SUFFIX"]=$INFOS["SERVER_IP"];
+			$array["FQDN"]=$INFOS["FQDN"];
+			
 			$sock->SaveConfigFile(base64_encode(serialize($array)), "KerbAuthInfos");
 		}
 		//cn=$this->ldap_admin,cn=Users,
@@ -120,6 +121,10 @@ class ActiveDirectory{
 		$this->ldap_host=$array["LDAP_SERVER"];
 		$this->ldap_port=$array["LDAP_PORT"];
 		$this->LDAP_RECURSIVE=$array["LDAP_RECURSIVE"];
+		
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $array["WINDOWS_DNS_SUFFIX"])){
+			if($array["FQDN"]<>null){$FGH=explode(".",$array["FQDN"]);unset($FGH[0]);$array["WINDOWS_DNS_SUFFIX"]=@implode(".", $FGH);}
+		}
 		
 		if($array["LDAP_DN"]==null){
 			$this->ldap_dn_user="{$array["WINDOWS_SERVER_ADMIN"]}@{$array["WINDOWS_DNS_SUFFIX"]}";
@@ -161,7 +166,10 @@ class ActiveDirectory{
 			if(preg_match("#LDAP server:\s+(.+)#i", $ligne,$re)){$array["SERVER_IP"]=trim($re[1]);continue;}
 			if(preg_match("#Bind Path:\s+(.+)#i", $ligne,$re)){$array["SUFFIX"]=trim($re[1]);continue;}	
 			if(preg_match("#LDAP port:\s+(.+)#i", $ligne,$re)){$array["LDAP_PORT"]=trim($re[1]);continue;}			
-			if(preg_match("#Realm:\s+(.+)#i", $ligne,$re)){$array["WINDOWS_DNS_SUFFIX"]=trim(strtolower($re[1]));continue;}	
+			if(preg_match("#Realm:\s+(.+)#i", $ligne,$re)){$array["WINDOWS_DNS_SUFFIX"]=trim(strtolower($re[1]));continue;}
+			if(preg_match("#LDAP server name:\s+(.+)#i", $ligne,$re)){$array["FQDN"]=$re[1];}
+			
+			
 		}
 	
 		return $array;

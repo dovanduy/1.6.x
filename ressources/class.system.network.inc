@@ -46,6 +46,7 @@ class networking{
           if($filter){
           	if(preg_match("#^veth#",trim($dev_name))){continue;}
           	if(preg_match("#^sit#",trim($dev_name))){continue;}
+          	if(preg_match("#^lxc#",trim($dev_name))){continue;}
           	if(preg_match("#^lo#",trim($dev_name))){continue;}
           	if(preg_match("#^br[0-9]+#",trim($dev_name))){continue;}
           	if(preg_match("#^ham[0-9]+#",trim($dev_name))){continue;}
@@ -187,15 +188,50 @@ class networking{
 	function ifconfig($nic){
 		include_once(dirname(__FILE__) . '/class.sockets.inc');
 		if(isset($GLOBALS["CLASS_SOCKETS"])){$sock=$GLOBALS["CLASS_SOCKETS"];}else{$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}
-		$nicinfos=$sock->getFrameWork("cmd.php?nicstatus=$nic");
+		if(!$GLOBALS["AS_ROOT"]){
+			$nicinfos=$sock->getFrameWork("cmd.php?nicstatus=$nic");
+		}else{
+			$nicinfos=exec("/usr/share/artica-postfix/bin/artica-install --nicstatus $nic 2>&1");
+		}
 		
 		$tbl=explode(";",$nicinfos);
 		$this->tcp_addr=$tbl[0];
 		$this->mac_addr=$tbl[1];
 		$this->netmask=$tbl[2];
 		$this->gateway=$tbl[4];
+		
+		$ipBin="/bin/ip";
+		if(!is_file($ipBin)){
+			$ipBin="/sbin/ip";
+		}
+		
+		exec("$ipBin link show $nic 2>&1",$results);
+		while (list ($index, $line) = each ($results) ){
+			if(preg_match("#LOWER_UP#", $line)){
+				$this->linkup=true;
+			}
+		}
+		
+		if($this->netmask=="0.0.0.0"){
+			$results=array();
+			exec("$ipBin addr show $nic 2>&1",$results);
+			while (list ($index, $line) = each ($results) ){
+				if(preg_match("#inet\s+([0-9\.]+)\/([0-9]+)\s+#", $line,$re)){
+					$net=$re[1]."/".$re[2];
+					$results2=array();
+					exec("/usr/share/artica-postfix/bin/ipcalc $net 2>&1");
+					while (list ($index, $line) = each ($results2) ){
+						if(preg_match("#Netmask:\s+([0-9\.]+)#", $line,$re)){$this->netmask=$re[1];break;}
+						
+					}
+					break;
+				}
+			}
+		}
+		
+		
 		if(trim($tbl[5])=='yes'){$this->wireless=true;}else{$this->wireless=false;}
-		if(trim($tbl[6])=='yes'){$this->linkup=true;}else{$this->linkup=false;}		
+			
 		
 		}
 		

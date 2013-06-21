@@ -521,6 +521,7 @@ class blackboxes{
 		}
 		writelogs("Injecting ".count($tt)." lines",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		if(count($tt)>0){
+			writelogs("removing `cachelogs$this->nodeid`",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			$q->QUERY_SQL("DROP TABLE `cachelogs$this->nodeid`");
 			$q->BuildCachelogs($this->nodeid);
 			$q->QUERY_SQL($prefix.@implode(",", $tt));
@@ -609,14 +610,33 @@ class blackboxes{
 			zWriteToSyslog("($this->hostname): Checks Orders -> nothing..");
 			return;}
 		
+		$t=array();
 		$this->WriteToSyslog("($this->hostname): ".mysql_num_rows($results)." order(s)");
-		
+		$ALREADY=array();
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			
+			
+			$md5=md5("$this->hostid{$ligne["orderdata"]}");
+			if(isset($ALREADY[$md5])){
+				$del[]="DELETE FROM poolorders WHERE orderid='{$ligne["orderid"]}'";
+				continue;
+			}
 			$this->WriteToSyslog("($this->hostname): {$ligne["orderid"]} = {$ligne["orderdata"]}");
 			$t[]=array("orderid"=>$ligne["orderid"],"orderdata"=>$ligne["orderdata"]);
+			$ALREADY[$md5]=true;
 		}
 		
 		echo "\n<ORDERS>".base64_encode(serialize($t))."</ORDERS>\n";
+		
+		if(count($del)>0){
+			$this->WriteToSyslog("($this->hostname): remove ".count($del)." duplicated order(s)");
+			while (list ($num, $sql) = each ($del) ){
+				$q->QUERY_SQL($sql);
+				if(!$q->ok){
+					$this->WriteToSyslog("($this->hostname): $q->mysql_error");
+				}
+			}
+		}
 		
 	}
 	

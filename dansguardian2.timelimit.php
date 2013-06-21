@@ -1,5 +1,6 @@
 <?php
-	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}	
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
+	if(isset($_GET["VERBOSE"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}	
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -45,7 +46,11 @@ function EditTimeRule_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$ID=$_GET["ID"];
+	
 	$RULEID=$_GET["RULEID"];	
+	
+	if($GLOBALS["VERBOSE"]){echo "RuleID=$RULEID<br>\n";}
+	
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_dtimes_rules WHERE ID='$ID'"));
 	$TimeSpace=unserialize($ligne["TimeCode"]);
@@ -68,6 +73,8 @@ function EditTimeRule_popup(){
 		";
 		
 	}
+	
+	if($GLOBALS["VERBOSE"]){echo __LINE__."RULEID:$RULEID<br>\n";}
 	
 	$html="
 	<div id='$t'>
@@ -93,7 +100,7 @@ function EditTimeRule_popup(){
 					<tr>
 						<td class=legend style='font-size:14px' nowrap width=99%>{hourBegin}:</td>
 						<td style='font-size:14px' nowrap width=1%>". Field_array_Hash($cron->cron_hours,"BEGINH",$TimeSpace["BEGINH"],null,null,0,"font-size:14px")."H</td>
-						<td style='font-size:14px' nowrap width=99%>". Field_array_Hash($cron->cron_mins,"BEGINM",$TimeSpace["BEGINH"],null,null,0,"font-size:14px")."M</td>
+						<td style='font-size:14px' nowrap width=99%>". Field_array_Hash($cron->cron_mins,"BEGINM",$TimeSpace["BEGINM"],null,null,0,"font-size:14px")."M</td>
 					</tr>
 					<tr><td colspan=3>&nbsp;</td></tr>
 					<tr>
@@ -226,7 +233,7 @@ function EditTimeRule_tabs(){
 			continue;
 		}
 
-		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?EditTimeRule-$num=yesRULEID=$RULEID&ID=$ID\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?EditTimeRule-$num=yes&RULEID=$RULEID&ID=$ID\"><span>$ligne</span></a></li>\n");
 	
 	}
 
@@ -255,6 +262,7 @@ function page(){
 	$description=$tpl->_ENGINE_parse_body("{description}");
 	$new_time_rule=$tpl->_ENGINE_parse_body("{new_time_rule}");
 	$t=time();		
+	$RULEID=$ID;
 	$html=$tpl->_ENGINE_parse_body("<div class=explain style='font-size:13px'>{dansguardian_timelimit_explain}</div>")."
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
@@ -265,7 +273,7 @@ $('#table-$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$description', name : 'TimeName', width : 159, sortable : true, align: 'left'},
-		{display: '$time', name : 'TimeText', width : 331, sortable : false, align: 'left'},
+		{display: '$time', name : 'TimeText', width : 586, sortable : false, align: 'left'},
 		{display: '', name : 'none2', width : 22, sortable : false, align: 'left'},
 		{display: '', name : 'none3', width : 36, sortable : false, align: 'left'},
 		
@@ -283,7 +291,7 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 600,
+	width: 875,
 	height: 250,
 	singleSelect: true
 	
@@ -371,7 +379,7 @@ function timerules_list(){
 	$table="webfilters_dtimes_rules";
 	$page=1;
 
-	if($q->COUNT_ROWS($table)==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table)==0){json_error_show("No rule...",1);}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -403,6 +411,9 @@ function timerules_list(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	if($OnlyEnabled){$limitSql=null;}
+	
+	
+	
 	$sql="SELECT *  FROM `$table` WHERE ruleid='$RULEID' $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);

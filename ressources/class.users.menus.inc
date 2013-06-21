@@ -54,6 +54,7 @@ class usersMenus {
 	public $AsDansGuardianGroupRule=false;
 	public $AsWebStatisticsAdministrator=false;
 	public $AsWebMaster=false;
+	public $AsSystemWebMaster=false;
 	public $AsDnsAdministrator=false;
 	public $AsQuarantineAdministrator=false;
 	public $AllowFetchMails=false;
@@ -69,6 +70,7 @@ class usersMenus {
 	public $AllowViewStatistics=false;
 	public $AllowChangeAntiSpamSettings=false;
 	public $AsOrgAdmin=false;
+	public $AsProxyMonitor=false;
 	public $AsInventoryAdmin=false;
 	public $AseMailCampaignsAdmin=false;
 	public $NETATALK_INSTALLED=false;
@@ -103,6 +105,7 @@ class usersMenus {
 	public $SIMPLE_GROUPEWARE_INSTALLED=false;
 	public $MEMCACHED_INSTALLED=false;
 	public $APP_ATOPENMAIL_INSTALLED=false;
+	public $HAARP_INSTALLED=false;
 	public $CLAMD_DATABASE_PATH="";
 	public $APP_ATOPENMAIL_VERSION="";
 	public $COLLECTD_RRD=array();
@@ -148,6 +151,8 @@ class usersMenus {
 	public $AsHotSpotManager=false;
 	public $AsOrgDNSAdmin=false;
 	public $ASDCHPAdmin=false;
+	
+	public $PHPFPM_INSTALLED=false;
 	/* This licence must be used Only with Artica-for postfix */
 	public $ChartLicence="D1XFWGMEW9L.HSK5T4Q79KLYCK07EK";
 	/*you cannot use it without any authorizations of maani.us.
@@ -208,6 +213,7 @@ class usersMenus {
 	public $KAVMILTER_PID;
 	public $hotwayd_installed;
 	public $SQUID_INSTALLED=false;
+	public $NGINX_INSTALLED=false;
 	public $SQUID_BIN_PATH="";
 	public $VMWARE_HOST=false;
 	public $HAPROXY_INSTALLED=false;
@@ -267,6 +273,7 @@ class usersMenus {
 	public $spfmilterEnabled=0;
 	public $spfmilter_installed=false;
 	public $MIMEDEFANG_INSTALLED=false;
+	public $APP_CHILLI_INSTALLED=false;
 	public $netbiosname;
 	public $MIMEDEFANG_SOCKET="";
 	public $MimeDefangEnabled;
@@ -556,8 +563,12 @@ class usersMenus {
 	public $APP_ZARAFADB_INSTALLED=false;
 	public $FREERADIUS_INSTALLED=false;
 	public $APP_SQUIDDB_INSTALLED=false;
+	public $APACHE_MOD_SUPHP=false;
 	public $APP_FILEZ_WEB=false;
 	public $NTPDATE=false;
+	public $APP_FTP_PROXY=false;
+	public $UCARP_INSTALLED=false;
+	public $SQUID_REVERSE_APPLIANCE=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -568,11 +579,19 @@ class usersMenus {
 		return $_GLOBAL;
 	}
 	
+
+	
 	
 	function usersMenus($priv=null,$nobuild=0,$hostname=null){
+			$noldap=false;
+			$mypage=$this->CurrentPageName();
+			if($mypage=="exec.initslapd.php"){$noldap=true;}
+		
+			if(!$noldap){
+				if(!class_exists("clladp")){include_once(dirname(__FILE__)."/class.ldap.inc");}
+				$this->ldapClass=new clladp();
+			}
 			
-			if(!class_exists("clladp")){include_once(dirname(__FILE__)."/class.ldap.inc");}
-			$this->ldapClass=new clladp();
 			$_GLOBAL=array();
 			if($GLOBALS["VERBOSE"]){
 					$trace=debug_backtrace();
@@ -587,16 +606,30 @@ class usersMenus {
 			include_once(dirname(__FILE__)."/class.sockets.inc");
 			$settings=dirname(__FILE__).'/settings.inc';
 			
+			if(!$GLOBALS["AS_ROOT"]){if(isset($_SESSION["SETTINGS_FILES"])){$GLOBALS["SETTINGS_FILES"]=$_SESSION["SETTINGS_FILES"];}}
+			if(isset($GLOBALS["SETTINGS_FILES"])){if(!is_array($GLOBALS["SETTINGS_FILES"])){unset($GLOBALS["SETTINGS_FILES"]);}}
+			if(isset($GLOBALS["SETTINGS_FILES"])){if(count($GLOBALS["SETTINGS_FILES"])<15){unset($GLOBALS["SETTINGS_FILES"]);}}
+			
+			
+			if( (!isset($GLOBALS["SETTINGS_FILES"])) OR (!is_array($GLOBALS["SETTINGS_FILES"])) ){
 				if(file_exists($settings)){
 					@include($settings);
 					$this->GLOBAL_CONFIG=$_GLOBAL;
 					$GLOBALS["SETTINGS_FILES"]=$_GLOBAL;
-					if(!is_array($this->GLOBAL_CONFIG)){echo "Settings unable stat";return false;}
-					}else{
-					die("Unable to stat $settings");
-					}
-
+					if(!$GLOBALS["AS_ROOT"]){$_SESSION["SETTINGS_FILES"]=$_GLOBAL;}
+					
+					}else{die("Unable to stat $settings");}
+			}
 			
+			$_GLOBAL=$GLOBALS["SETTINGS_FILES"];
+			$this->GLOBAL_CONFIG=$_GLOBAL;
+			
+			if(!is_array($this->GLOBAL_CONFIG)){
+				if(!$GLOBALS["AS_ROOT"]){echo "<p class=text-error>";}
+				echo "GLOBAL_CONFIG Not an array for settings or unable stat $settings in ".basename(__FILE__)." function:".__FUNCTION__." line:".__LINE__."\n";
+				if(!$GLOBALS["AS_ROOT"]){echo "</p>";}
+				return false;
+			}
 			
 			$this->cyrus_ldap_admin_password=$_GLOBAL["cyrus_ldap_admin_password"];
 			if(isset($_GLOBAL["AutomaticConfig"])){$this->AutomaticConfig=$_GLOBAL["AutomaticConfig"];}
@@ -642,6 +675,7 @@ class usersMenus {
 			if(isset($_GLOBAL["EMAILRELAY_INSTALLED"])){$this->EMAILRELAY_INSTALLED=$_GLOBAL["EMAILRELAY_INSTALLED"];;}
 			if(isset($_GLOBAL["KAVMILTER_PID"])){$this->KAVMILTER_PID=$_GLOBAL["KAVMILTER_PID"];;}
 			if(isset($_GLOBAL["SQUID_INSTALLED"])){$this->SQUID_INSTALLED=$_GLOBAL["SQUID_INSTALLED"];;}
+			if(isset($_GLOBAL["NGINX_INSTALLED"])){$this->NGINX_INSTALLED=$_GLOBAL["NGINX_INSTALLED"];;}
 			if(isset($_GLOBAL["KAV4PROXY_INSTALLED"])){$this->KAV4PROXY_INSTALLED=$_GLOBAL["KAV4PROXY_INSTALLED"];;}
 			if(isset($_GLOBAL["SQUID_PID"])){$this->SQUID_PID=$_GLOBAL["SQUID_PID"];;}
 			if(isset($_GLOBAL["SQUID_NTLM_AUTH"])){$this->SQUID_NTLM_AUTH=$_GLOBAL["SQUID_NTLM_AUTH"];;}
@@ -705,9 +739,13 @@ class usersMenus {
 			if(isset($_GLOBAL["APP_SQUIDDB_INSTALLED"])){$this->APP_SQUIDDB_INSTALLED=$_GLOBAL["APP_SQUIDDB_INSTALLED"];}
 			if(isset($_GLOBAL["NTPDATE"])){$this->NTPDATE=$_GLOBAL["NTPDATE"];}
 			if(isset($_GLOBAL["APP_FILEZ_WEB"])){$this->APP_FILEZ_WEB=$_GLOBAL["APP_FILEZ_WEB"];}
+			if(isset($_GLOBAL["APACHE_MOD_SUPHP"])){$this->APACHE_MOD_SUPHP=$_GLOBAL["APACHE_MOD_SUPHP"];}
+			if(isset($_GLOBAL["APP_FTP_PROXY"])){$this->APP_FTP_PROXY=$_GLOBAL["APP_FTP_PROXY"];}
+			if(isset($_GLOBAL["PHPFPM_INSTALLED"])){$this->PHPFPM_INSTALLED=$_GLOBAL["PHPFPM_INSTALLED"];}
+			if(isset($_GLOBAL["SQUID_REVERSE_APPLIANCE"])){$this->SQUID_REVERSE_APPLIANCE=$_GLOBAL["SQUID_REVERSE_APPLIANCE"];}
 			
 			
-	
+			
 			
 			
 			
@@ -799,6 +837,7 @@ class usersMenus {
 			if(isset($_GLOBAL["PROXYTINY_APPLIANCE"])){$this->PROXYTINY_APPLIANCE=$_GLOBAL["PROXYTINY_APPLIANCE"];}
 			if(isset($_GLOBAL["NETATALK_INSTALLED"])){$this->NETATALK_INSTALLED=$_GLOBAL["NETATALK_INSTALLED"];}
 			if(isset($_GLOBAL["SAMBA_APPLIANCE"])){$this->SAMBA_APPLIANCE=$_GLOBAL["SAMBA_APPLIANCE"];}
+			if(isset($_GLOBAL["UCARP_INSTALLED"])){$this->UCARP_INSTALLED=$_GLOBAL["UCARP_INSTALLED"];}
 			if(isset($_GLOBAL["APP_KHSE_INSTALLED"])){$this->APP_KHSE_INSTALLED=$_GLOBAL["APP_KHSE_INSTALLED"];}
 			if(isset($_GLOBAL["MPM_ITK_MODULE"])){$this->MPM_ITK_MODULE=$_GLOBAL["MPM_ITK_MODULE"];}
 			if(isset($_GLOBAL["QUOTA_INSTALLED"])){$this->QUOTA_INSTALLED=$_GLOBAL["QUOTA_INSTALLED"];}
@@ -812,7 +851,12 @@ class usersMenus {
 			if(isset($_GLOBAL["LDAP_RWM"])){$this->LDAP_RWM=$_GLOBAL["LDAP_RWM"];}
 			if(isset($_GLOBAL["FROM_ISO"])){$this->FROM_ISO=$_GLOBAL["FROM_ISO"];}
 			if(isset($_GLOBAL["APP_JAVA_JDK_INSTALLED"])){$this->APP_JAVA_JDK_INSTALLED=$_GLOBAL["APP_JAVA_JDK_INSTALLED"];}
-
+			if(isset($_GLOBAL["APP_CHILLI_INSTALLED"])){$this->APP_CHILLI_INSTALLED=$_GLOBAL["APP_CHILLI_INSTALLED"];}
+			if(isset($_GLOBAL["HAARP_INSTALLED"])){$this->HAARP_INSTALLED=$_GLOBAL["HAARP_INSTALLED"];}
+			
+			
+			
+			
 			
 			$this->bindrrd_installed=$_GLOBAL["bindrrd_installed"];
 			$this->fdm_installed=$_GLOBAL["fdm_installed"];
@@ -1125,8 +1169,9 @@ class usersMenus {
 			if(!$GLOBALS["AS_ROOT"]){
 				if($GLOBALS["DEBUG_PRIVS"]){writelogs("->_ParsePrivieleges()",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 				$priv=$this->_ParsePrivieleges();
-				$this->_TranslateRights($priv);			
-				$this->priv=$priv;
+				$this->priv=$this->_TranslateRights($priv);			
+				
+				
 			}
 		
 	}
@@ -1266,6 +1311,17 @@ private function roundcube_detect_version(){
 		$this->roundcube_intversion=$this->roundcube_version=$_GET["__ROUNDCUBE_INTVER"];
 	}
 
+}
+
+
+public function IsSquidReverse(){
+	if(isset($GLOBALS["SQUID_IsSquidReverse"])){return $GLOBALS["SQUID_IsSquidReverse"];}
+	if(!$this->SQUID_INSTALLED){$GLOBALS["SQUID_IsSquidReverse"]=false;return false;}
+	if($this->SQUID_REVERSE_APPLIANCE){$GLOBALS["SQUID_IsSquidReverse"]=true;return true;}
+	$sock=new sockets();
+	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+	if(!is_numeric($SquidActHasReverse)){$GLOBALS["SQUID_IsSquidReverse"]=false;return false;}
+	if($SquidActHasReverse==1){$GLOBALS["SQUID_IsSquidReverse"]=true;return true;}
 }
 
 private function build_user_left_menus(){
@@ -2330,7 +2386,7 @@ private function MAILBOXES_MENUS($array=array()){
 		if(isset($GLOBALS["_TranslateRights"])){
 			reset($GLOBALS["_TranslateRights"]);
 			while (list ($num, $ligne) = each ($GLOBALS["_TranslateRights"]) ){$this->$num=$ligne;}
-			return;
+			return $GLOBALS["_TranslateRights"];
 		}
 		
 		
@@ -2343,7 +2399,10 @@ private function MAILBOXES_MENUS($array=array()){
 		$TTR=$cr->FINAL_PRIVS;
 		if(!is_array($TTR)){return;}
 		$GLOBALS["_TranslateRights"]=$TTR;
-		while (list ($num, $ligne) = each ($GLOBALS["_TranslateRights"]) ){$this->$num=$ligne;}
+		while (list ($num, $ligne) = each ($GLOBALS["_TranslateRights"]) ){
+			if($GLOBALS['VERBOSE']){echo "this->$num=$ligne\n";}
+			$this->$num=$ligne;}
+		return $GLOBALS["_TranslateRights"];
 		
 	}
 	
@@ -2474,6 +2533,17 @@ private function MAILBOXES_MENUS($array=array()){
 		if($priv["AsVirtualBoxManager"]=="yes"){return true;}
 		return false;
 		}
+		
+	function IsSuperAdmin(){
+		if($this->AsArticaAdministrator){return true;}
+		if($this->AsPostfixAdministrator){return true;}
+		if($this->AsSquidAdministrator){return true;}
+		if($this->AsSambaAdministrator){return true;}
+		if($this->AsSquidAdministrator){return true;}
+		if($this->AsDansGuardianAdministrator){return true;}
+		if($this->AsMailBoxAdministrator){return true;}
+		return false;
+	}
 	
 		
 function array_monitorix($type="day"){

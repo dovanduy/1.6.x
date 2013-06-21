@@ -118,15 +118,16 @@ function compile_infos(){
 	
 	$f=file("ressources/logs/web/squid.compile.txt");
 	krsort($f);
-	$html="<div style='width:100%;height:550px;overflow:auto'>";
+	$html="<div style='width:100%;height:550px;overflow:auto'><div><code style='font-size:12px;white-space:normal;background-color:transparent;border:0px'>";
 	while (list ($index, $val) = each ($f) ){
-		$html=$html."<div><code style='font-size:12px'>$val</code></div>";
+		$html=$html."$val<br>";
 		
 	}
 	
-	echo $html."</div>
+	echo $html."</code></div></div>
 	<hr>
 	<center style='margin:5px'>".button($title, "YahooSetupControlHide()",16)."</center>
+	<script>ExecuteByClassName('SearchFunction');</script>
 	
 	";
 }

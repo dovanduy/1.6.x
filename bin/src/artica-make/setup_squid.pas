@@ -26,7 +26,7 @@ public
       procedure Free;
       procedure xinstall(sourcepackage:string='');
       procedure dansgardian_install();
-      procedure kav4proxy_install();
+      procedure kav4proxy_install(norestart:boolean=false);
       procedure kavupdateutility_install();
       procedure sarg_install();
       function command_line_squid(path:string=''):string;
@@ -768,7 +768,7 @@ end;
 
 
 
-procedure tsetup_squid.kav4proxy_install();
+procedure tsetup_squid.kav4proxy_install(norestart:boolean);
 var
 source_folder:string;
 SYS:Tsystem;
@@ -865,19 +865,19 @@ autoanswers_conf.free;
          SetCurrentDir('/opt/kaspersky/kav4proxy/lib/bin/setup');
          fpsystem('./postinstall.pl');
 
-         fpsystem('/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -a /usr/share/artica-postfix/bin/install/KAVPROXY.key');
-         fpSystem('/opt/kaspersky/kav4proxy/bin/kav4proxy-keepup2date -q -d /var/run/kav4proxy/keeup2date.pid &');
-
- sleep(500);
- writeln('running updates OK');
+         if not norestart then fpsystem('/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -a /usr/share/artica-postfix/bin/install/KAVPROXY.key');
+         if not norestart then begin
+            fpSystem('/opt/kaspersky/kav4proxy/bin/kav4proxy-keepup2date -q -d /var/run/kav4proxy/keeup2date.pid &');
+             sleep(500);
+             writeln('running updates OK');
+         end;
  install.INSTALL_PROGRESS('APP_KAV4PROXY','{installed}');
  install.INSTALL_STATUS('APP_KAV4PROXY',100);
  SetCurrentDir('/root');
  kavupdateutility_install();
  if FileExists('/home/artica/packages/kav4proxy-5.5-62.tar.gz') then fpsystem('/bin/rm -f /home/artica/packages/kav4proxy-5.5-62.tar.gz');
  if FileExists('/home/artica/packages/kav4proxy-5.5-80.tar.gz') then fpsystem('/bin/rm -f /home/artica/packages/kav4proxy-5.5-80.tar.gz');
-
- fpsystem('/etc/init.d/artica-postfix restart squid');
+ if not norestart then fpsystem('/etc/init.d/artica-postfix restart squid');
 
 
 

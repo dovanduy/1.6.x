@@ -119,6 +119,8 @@ echo $html;
 }
 
 function popup(){
+	$form="class=form";
+	if(isset($_GET["no-form"])){$form=null;}
 	$t=time();
 	if(!isset($_GET["imgphile"])){$_GET["imgphile"]="/";}
 	
@@ -131,7 +133,8 @@ function popup(){
 	$button=button("{browse}...","Loadjs('browse-disk.php?philesight=philesight-$t')",16);
 	
 	$html="
-	<table style='width:99%' class=form>
+	<div style='width:95%' $form>
+	<table style='width:100%'>
 	<tr>
 		<td valign='top' width=95%>
 		<div style='float:right'>$button</div>

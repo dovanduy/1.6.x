@@ -43,8 +43,8 @@ if($argv[1]=="--export-not-categorized"){ExportNoCategorized(true);die();}
 	$system_is_overloaded=system_is_overloaded();
 	if($system_is_overloaded){
 		$unix=new unix();
-		WriteMyLogs("Overloaded system, Web filtering maintenance databases tasks aborted (general)","MAIN",__FILE__,__LINE__);
-		$unix->send_email_events("Overloaded system, Web filtering maintenance databases tasks aborted (general)",
+		WriteMyLogs("Overloaded system, [{$GLOBALS["SYSTEM_INTERNAL_LOAD"]}] Web filtering maintenance databases tasks aborted (general)","MAIN",__FILE__,__LINE__);
+		$unix->send_email_events("Overloaded system, [{$GLOBALS["SYSTEM_INTERNAL_LOAD"]}] Web filtering maintenance databases tasks aborted (general)",
 		 "Artica will wait a new better time...", "proxy");
 		die();
 	}
@@ -98,6 +98,9 @@ function register(){
 	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
 	$WizardSavedSettingsSend=$sock->GET_INFO("WizardSavedSettingsSend");
 	if(count($WizardSavedSettings)<2){return;}
+	if(!isset($WizardSavedSettings["company_name"])){$WizardSavedSettings["company_name"]=null;}
+	if($WizardSavedSettings["company_name"]==null){return;}
+	
 	if(!is_numeric($WizardSavedSettingsSend)){$WizardSavedSettingsSend=0;}
 	if($WizardSavedSettingsSend==1){return;}
 	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
@@ -143,9 +146,34 @@ function uuid_check(){
 	echo $uuid."\n";
 }
 
+function CheckLic($array1=array(),$array2=array()){
+	$WORKDIR=base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2E=");
+	$WORKFILE=base64_decode('LmxpYw==');
+	$WORKPATH="$WORKDIR/$WORKFILE";
+	$sock=new sockets();	
+	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$curl->parms["REGISTER-LIC"]=base64_encode(serialize($array1));
+	$curl->parms["REGISTER-OLD"]=base64_encode(serialize($array2));
+	$curl->get();
+
+	if(preg_match("#REGISTRATION_DELETE_NOW#s", $curl->data,$re)){
+		@unlink($WORKPATH);
+		$array1["license_status"]="{license_invalid}";
+		$array1["license_number"]=null;
+		$array1["UNLOCKLIC"]=null;
+		$array1["TIME"]=time();
+		$sock->SaveConfigFile(base64_encode(serialize($array1)), "LicenseInfos");
+		return;
+	}	
+	
+}
+
 function register_lic(){
 	$sock=new sockets();
 	$unix=new unix();
+	$WORKDIR=base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2E=");
+	$WORKFILE=base64_decode('LmxpYw==');
+	$WORKPATH="$WORKDIR/$WORKFILE";
 	$nohup=$unix->find_program("nohup");
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -162,19 +190,51 @@ function register_lic(){
 	
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
 	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	
+
+	
+	
+	
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
 	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
 	if(!is_numeric($LicenseInfos["REGISTER"])){echo "License information: server is not registered\n";}
 	if($LicenseInfos["REGISTER"]<>1){echo "License information: server is not registered\n";die();}	
-	$LicenseInfos["UUID"]=$uuid;	
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$LicenseInfos["UUID"]=$uuid;
+
+	
+	
+	
+	
 	//if($GLOBALS["VERBOSE"]){$curl->parms["VERBOSE"]="yes";}
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
 	if($LicenseInfos["license_number"]=="--"){$LicenseInfos["license_number"]=null;}
 	
 	if(strpos($LicenseInfos["license_number"], "(")>0){$LicenseInfos["license_number"]=null;}
-	@mkdir("/usr/local/share/artica",640,true);
+	@mkdir($WORKDIR,640,true);
 	
+	
+	if(isset($LicenseInfos["UNLOCKLIC"])){
+		if(strlen($LicenseInfos["UNLOCKLIC"])>4){
+			if(isset($LicenseInfos["license_number"])){
+				if(strlen($LicenseInfos["license_number"])>4){
+					$manulic=aef00vh567($uuid)."-".aef00vh567($LicenseInfos["license_number"]);
+					if($manulic==$LicenseInfos["UNLOCKLIC"]){
+						@file_put_contents($WORKPATH, "TRUE");
+						$LicenseInfos["license_status"]="{license_active}";
+						$LicenseInfos["TIME"]=time();
+						$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+						if($cmdADD<>null){shell_exec($cmdADD);}
+						CheckLic($LicenseInfos,$WizardSavedSettings);
+						return;
+					}
+				}
+			}
+				
+		}
+	}	
+	
+	
+	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
 	$curl->parms["REGISTER-LIC"]=base64_encode(serialize($LicenseInfos));
 	$curl->parms["REGISTER-OLD"]=base64_encode(serialize($WizardSavedSettings));
 	$curl->get();
@@ -184,12 +244,12 @@ function register_lic(){
 			$LicenseInfos["license_number"]=$re[1];
 			$LicenseInfos["TIME"]=time();
 			$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
-			@unlink("/usr/local/share/artica/.lic");
+			@unlink($WORKPATH);
 			if($cmdADD<>null){shell_exec($cmdADD);}
 			return;
 	}
 	if(preg_match("#LICENSE_OK:\[(.+?)\]#s", $curl->data,$re)){
-			@file_put_contents("/usr/local/share/artica/.lic", "TRUE");
+			@file_put_contents($WORKPATH, "TRUE");
 			$LicenseInfos["license_status"]="{license_active}";
 			$LicenseInfos["TIME"]=time();
 			$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
@@ -197,19 +257,30 @@ function register_lic(){
 			return;
 	}
 	if(preg_match("#REGISTRATION_INVALID#s", $curl->data,$re)){
-		@unlink("/usr/local/share/artica/.lic");
+		@unlink($WORKPATH);
 		$LicenseInfos["license_status"]="{license_invalid}";
 		$LicenseInfos["license_number"]=null;
+		$LicenseInfos["UNLOCKLIC"]=null;
 		$LicenseInfos["TIME"]=time();
 		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
 		if($cmdADD<>null){shell_exec($cmdADD);}
 		return;
-	}		
+	}	
+
+	if(preg_match("#REGISTRATION_DELETE_NOW#s", $curl->data,$re)){
+		@unlink($WORKPATH);
+		$LicenseInfos["license_status"]="{license_invalid}";
+		$LicenseInfos["license_number"]=null;
+		$LicenseInfos["UNLOCKLIC"]=null;
+		$LicenseInfos["TIME"]=time();
+		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+		return;
+	}	
 		
 	if($curl->error<>null){
 		system_admin_events("License registration failed with error $curl->error", "GetLicense", "license", 0, "license");
 	}
-	if(!is_file("/usr/local/share/artica/.lic")){
+	if(!is_file($WORKPATH)){
 		$LicenseInfos["TIME"];
 		$LicenseInfos["license_status"]="{registration_failed} $curl->error";
 		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
@@ -457,6 +528,8 @@ function Export($asPid=false){
 		$limit=null;
 		$limitupate=null;
 		$sql="SELECT COUNT(zmd5) as tcount FROM $table WHERE sended=0 and enabled=1";
+		$q->CreateCategoryTable(null,$table);
+		
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$prefix="INSERT IGNORE INTO categorize (zmd5 ,pattern,zDate,uuid,category) VALUES";
 		if($ligne["tcount"]>0){
@@ -743,7 +816,67 @@ function ifMustBeExecuted(){
 	if(!$users->SQUID_INSTALLED){$update=false;}
 	return $update;
 }	
-	
+function aef00vh567($string){
+	$ascii=NULL;
+	$serial=NULL;
+	$secret_num=1;
+	$bds[33]=true;
+	$bds[34]=true;
+	$bds[35]=true;
+	$bds[36]=true;
+	$bds[37]=true;
+	$bds[38]=true;
+	$bds[39]=true;
+	$bds[40]=true;
+	$bds[41]=true;
+	$bds[42]=true;
+	$bds[43]=true;
+	$bds[44]=true;
+	$bds[45]=true;
+	$bds[46]=true;
+	$bds[47]=true;
+	$bds[58]=true;
+	$bds[59]=true;
+	$bds[60]=true;
+	$bds[61]=true;
+	$bds[62]=true;
+	$bds[63]=true;
+	$bds[64]=true;
+	$bds[91]=true;
+	$bds[92]=true;
+	$bds[93]=true;
+	$bds[94]=true;
+	$bds[95]=true;
+	$bds[96]=true;
+
+
+
+
+	for ($i = 0; $i < strlen($string); $i++)
+	{
+		$ascii .= $secret_num+ ord($string[$i]);
+	}
+	$ascii=substr($ascii,0,20);
+	for ($i = 0; $i < strlen($ascii); $i+=2){
+		$string=substr($ascii,$i,2);
+
+
+
+		switch($string){
+		 case $string>122:
+				$string-=40;
+				break;
+			case $string<=48:
+				$string+=40;
+				break;
+		}
+		if(isset($bds[$string])){continue;}
+		if($string>122){continue;}
+
+		$serial .= chr($string);
+	}
+	return $serial;
+}	
 
 
 ?>

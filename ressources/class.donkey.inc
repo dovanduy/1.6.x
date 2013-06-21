@@ -804,7 +804,7 @@ if ($network == "Donkey") {
 }
 
 $connect = mysql_connect($hostname, $dbuser, $dbpass) or die (mysql_error());
-mysql_select_db($dbname, $connect);
+@mysql_select_db($dbname, $connect);
 $insert = "INSERT INTO mldonkey (filename, filetype, filesize, duration, end, rate, network, hash, ed2klink, fileowner, filegroup) VALUES ('$filename', '$filetype', '$filesize', '$duration', '$end', '$rate', '$network', '$hash', '$ed2klink', '$fileowner', '$filegroup')";
 $results = mysql_query($insert) or die(mysql_error());
 mysql_close($connect);

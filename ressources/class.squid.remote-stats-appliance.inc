@@ -216,6 +216,7 @@ class squid_stats_appliance{
 		$array["hasProxyTransparent"]=true;
 		$array["UseTProxyMode"]=true;
 		$array["KernelSendRedirects"]=true;
+		$array["SquidTransparentMixed"]=true;
 		$array["kavicapserverEnabled"]=true;
 		$array["ufdbguardConfig"]=true;
 		$array["EnableMalwarePatrol"]=true;
@@ -242,7 +243,8 @@ class squid_stats_appliance{
 		$array["CicapEnabled"]=true;
 		$array["EnableKerberosAuthentication"]=true;
 		$array["EnableKerbAuth"]=true; 
-		$array["KerbAuthInfos"]=true; 
+		$array["SquidBubbleMode"]=true;
+		$array["SquidClientParams"]=true;
 		$array["SambaAdInfos"]=true; 
 		$array["LockKerberosAuthentication"]=true; 
 		$array["KerbAuthDisableGroupListing"]=true;
@@ -258,7 +260,11 @@ class squid_stats_appliance{
 		$array["SquidSafePortsSSLList"]=true;
 		$array["EnableSquidPortsRestrictions"]=true;
 		$array["SquidStandardLDAPAuth"]=true;
-		
+		$array["SquidLdapAuthEnableGroups"]=true;
+		$array["NtpdateAD"]=true;
+		$array["DisableSquidBasicAuth"]=true;
+		$array["DisableSilentNTLM"]=true;
+		$array["ForceWindowsUpdateCaching"]=true;
 		
 		$array["UpdateUtilityRedirectEnable"]=true;
 		$array["UpdateUtilityHTTPSRV"]=true;
@@ -373,6 +379,7 @@ class squid_stats_appliance{
 		$squidlogs["webfilters_quotas"]=true;
 		$squidlogs["webfilter_avwhitedoms"]=true;
 		$squidlogs["webfilter_aclsdynamic"]=true;
+		$squidlogs["webfilters_nodes"]=true;
 		$squidlogs["squidtpls"]=true;
 		
 		

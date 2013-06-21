@@ -166,8 +166,8 @@ function AddNewSchedule_popup(){
 	$t=time();
 	
 	$html="
-	<div id='div-$t'>
-	<table style='width:99%' class='form'>
+	<div id='div-$t' style='width:95%' class='form'>
+	<table >
 	<tr>
 		<td class=legend style='font-size:14px'>{task_type}:</td>
 		<td>". Field_array_Hash($task_type, "TaskType-$t",$ligne["TaskType"],"ExplainTaskType()",null,0,"font-size:14px")."</td>

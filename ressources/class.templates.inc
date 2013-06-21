@@ -2,6 +2,8 @@
 if(!isset($GLOBALS["EXECUTED_AS_ROOT"])){if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();if($GLOBALS["posix_getuid"]==0){$GLOBALS["EXECUTED_AS_ROOT"]=true;}else{$GLOBALS["EXECUTED_AS_ROOT"]=false;}}}
 if(!isset($GLOBALS["DEBUG_MEM"])){$GLOBALS["DEBUG_MEM"]=false;}
 if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
+if(!isset($GLOBALS["DEBUG_LANG"])){$GLOBALS["DEBUG_LANG"]=false;}
+define("BECALL",base64_decode("T05MWV9DT1JQX0hUTUw="));
 debug_mem();
 if(isset($_GET["debug-page"])){	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(!$GLOBALS["EXECUTED_AS_ROOT"]){if(isset($GLOBALS["KAV4PROXY_NOSESSION"])){if(!$GLOBALS["KAV4PROXY_NOSESSION"]){session_start();}}}
@@ -25,6 +27,7 @@ debug_mem();
 include_once(dirname(__FILE__).  '/class.ini.inc');
 debug_mem();
 include_once(dirname(__FILE__).  '/class.mysql.inc');
+include_once(dirname(__FILE__)."/class.browser.detection.inc");
 debug_mem();
 CheckSessions();
 debug_mem();
@@ -95,6 +98,7 @@ class templates{
 	var $AutomaticConfig=false;
 	var $pattern_array;
 	function templates($title=null,$body=null,$js_add=null,$do_nothing=0,$arrayConfig=array()){
+		
 		if($GLOBALS["VERBOSE"]){
 			$trace=debug_backtrace();
 			$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";			
@@ -121,6 +125,7 @@ class templates{
 			
 			$this->title=$title;
 			$this->js_add=$js_add;
+			if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>LANGUAGE $this->language</strong><br>\n";}
 			if($this->language==null){
 				$this->language=$this->_detect_lang();
 				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." _detect_lang() return `$this->language` in " . basename(__FILE__). " line ".__LINE__);}
@@ -182,21 +187,25 @@ class templates{
 	
 	function javascript_senderror($error,$id){
 		header("content-type: application/x-javascript");
-		$error=$this->javascript_parse_text($error);
-		$t=time();
-		echo "function vght$t(){
-			var error='$error';
-			var text='';
-			text='<table style=\"width:80%\" class=form><tr>';
-			text=text+'<td width=1%><img src=img/error-64.png></td>';
-			text=text+'<td width=99%><p style=font-size:16px;color:#B90000><strong>Oups!</strong></p>';
-			text=text+'<p style=font-size:16px;color:#B90000><strong>$error</strong></p>';
-			text=text+'</td></table>';
-			document.getElementById($id).innerHTML=text;
+		if($error<>null){
+			$error=$this->javascript_parse_text($error);
+			$error=str_replace("\\n", "<br>", $error);
+			$error=str_replace("'", "`", $error);
+			$t=time();
+			echo "function vght$t(){
+				var text='<p style=\"font-size:16px;color:#B90000\" class=text-error><strong>$error</strong></p>';
+				document.getElementById('$id').innerHTML=text;
+			
+			}";
+		}else{
+			echo "function vght$t(){
+			$('#$id').remove();
+				}";
+		}
 		
-		}\nvght$t();\n";
+		echo "\nvght$t();\n";
 		
-		
+		exit;
 		
 		
 	}
@@ -209,6 +218,7 @@ class templates{
 		$content=str_replace("</li>", "", $content);
 		$content=str_replace("<ul>", "", $content);
 		$content=str_replace("</ul>", "", $content);
+		$content=str_replace("<br>", "\n", $content);
 		$content=str_replace("\n\n", "\n", $content);
 		$content=str_replace("\n\n", "\n", $content);
 		//$content=replace_accents($content);
@@ -223,6 +233,7 @@ class templates{
 			
 		}else{
 			$content=str_replace("<br />",'',$content);
+			$content=str_replace("\\n","\n",$content);
 			
 		}
 		return $content;
@@ -287,6 +298,36 @@ class templates{
 		}
 		
 		return $value;
+	}
+	
+	function parsePHPModules() {
+		ob_start();
+		phpinfo(INFO_MODULES);
+		$s = ob_get_contents();
+		ob_end_clean();
+	
+		$s = strip_tags($s,'<h2><th><td>');
+		$s = preg_replace('/<th[^>]*>([^<]+)<\/th>/',"<info>\\1</info>",$s);
+		$s = preg_replace('/<td[^>]*>([^<]+)<\/td>/',"<info>\\1</info>",$s);
+		$vTmp = preg_split('/(<h2[^>]*>[^<]+<\/h2>)/',$s,-1,PREG_SPLIT_DELIM_CAPTURE);
+		$vModules = array();
+		for ($i=1;$i<count($vTmp);$i++) {
+			if (preg_match('/<h2[^>]*>([^<]+)<\/h2>/',$vTmp[$i],$vMat)) {
+				$vName = trim($vMat[1]);
+				$vTmp2 = explode("\n",$vTmp[$i+1]);
+				foreach ($vTmp2 AS $vOne) {
+					$vPat = '<info>([^<]+)<\/info>';
+					$vPat3 = "/$vPat\s*$vPat\s*$vPat/";
+					$vPat2 = "/$vPat\s*$vPat/";
+					if (preg_match($vPat3,$vOne,$vMat)) { // 3cols
+						$vModules[$vName][trim($vMat[1])] = array(trim($vMat[2]),trim($vMat[3]));
+					} elseif (preg_match($vPat2,$vOne,$vMat)) { // 2cols
+						$vModules[$vName][trim($vMat[1])] = trim($vMat[2]);
+					}
+				}
+			}
+		}
+		return $vModules;
 	}
 	
 	
@@ -379,7 +420,8 @@ class templates{
 					}}
 		
 		$content=str_replace("<input type='button'","<input type='button' class='button'",$content);
-
+		//$content=str_replace("Loadjs(",'$.getScript(',$content);
+		
 		
 		
 		return $content;
@@ -538,13 +580,17 @@ function _detect_lang(){
 			if($GLOBALS["VERBOSE"]){echo "[DEBUG: ".__LINE__."] return EXECUTED_AS_ROOT=TRUE (". basename(__FILE__).")\n" ;}
 			return;}
 		
-		$FixedLanguage=$sock->GET_INFO("FixedLanguage");
-		if(trim($FixedLanguage)<>null){return $FixedLanguage;}
+		if(!$_SESSION["MINIADM"]){
+			$FixedLanguage=$sock->GET_INFO("FixedLanguage");
+			if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>FixedLanguage $FixedLanguage</strong><br>\n";}
+			if(trim($FixedLanguage)<>null){return $FixedLanguage;}
+		}
+		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>artica-language {$_COOKIE["artica-language"]}</strong><br>\n";}
 		if(isset($_COOKIE["artica-language"])){return $_COOKIE["artica-language"];}
 		$GLOBALS["CURRENT_PAGE"]=CurrentPageName();
 		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		if(!isset($_SESSION["detected_lang"])){$_SESSION["detected_lang"]=null;}
-		
+		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>detected_lang {$_SESSION["detected_lang"]}</strong><br>\n";}
 		
 		
 		if($_SESSION["detected_lang"]<>null){
@@ -560,6 +606,7 @@ function _detect_lang(){
 			}
 		}
 	
+		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>language $this->language</strong><br>\n";}
 	 if($this->language==null){
 	 	if(!class_exists("articaLang")){include_once(dirname(__FILE__)."/class.langages.inc");}
 		if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::this->language is null function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
@@ -1205,9 +1252,14 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 		}
 	}
 	
+	$FocusCss="onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" style='$style' $class";
+	if(isset($_SESSION["MINIADM"])){
+		$FocusCss=null;
+	}
+	
 	if($DISABLED){$disa=" DISABLED";}
 	return "$help
-	<input type='text' id='$name' name='$name' value=\"$value\" $OnFocus $OnChange $jsPressKey $OnClick onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" style='$style' $class $size $OnMouseOver $OnMouseOut$disa>";
+	<input type='text' id='$name' name='$name' value=\"$value\" style=\"$style\" $OnFocus $OnChange $jsPressKey $OnClick  $FocusCss $size $OnMouseOver $OnMouseOut$disa>";
 }
 
 
@@ -1314,24 +1366,58 @@ function string_to_sql_search($pattern){
 	return $pattern;
 }
 
-function string_to_flexregex(){
+function string_to_flexregex($searchindix=null){
+	
+	if(isset($_GET["SearchQuery"])){
+		$_POST["query"]=$_GET["SearchQuery"];
+		$_POST["qtype"]=$_REQUEST["qtype"];
+	}
+	
+	if(isset($_GET["$searchindix"])){
+		$_POST["query"]=$_GET[$searchindix];
+		$_POST["qtype"]=$_REQUEST["qtype"];
+	
+	}	
+	
 	if(!isset($_POST["query"])){return;}
 	if($_POST["query"]==null){return;}
 	return string_to_regex($_POST["query"]);
 }
 
-function string_to_flexquery(){
+function string_to_flexquery($searchindix=null){
+	if(isset($_GET["SearchQuery"])){
+		$_POST["query"]=$_GET["SearchQuery"];
+		$_POST["qtype"]=$_REQUEST["qtype"];
+	}
+	
+	if(isset($_GET["$searchindix"])){
+		$_POST["query"]=$_GET[$searchindix];
+		$_POST["qtype"]=$_REQUEST["qtype"];		
+		
+	}
+	
 	if(!isset($_POST["qtype"])){return;}
 	if(!isset($_POST["query"])){return;}
 	if(trim($_POST["query"])==null){return;}
 	$search=string_to_sql_search($_POST["query"]);
 	if($search==null){return null;}
-	if(strpos("  $search", "%")>0){
-			$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
-		}else{
-			$searchstring="AND (`{$_POST["qtype"]}` = '$search')";
-		}
-	return $searchstring;	
+	
+	if(strpos($_POST["qtype"], ',')>0){
+		$Fields=explode(",",$_POST["qtype"]);
+		
+	}else{
+		$Fields[]=$_POST["qtype"];
+	}
+	$COM=" = ";
+	if(strpos("  $search", "%")>0){$COM=" LIKE ";}
+	
+	while (list ($index, $F) = each ($Fields) ){
+		$tta[]="(`$F` $COM '$search')";
+	}
+	
+	if(count($tta)==1){return " AND {$tta[0]}";}
+	return "AND (" .@implode($tta, " OR ").")";
+	
 }
 
 
@@ -1423,11 +1509,24 @@ function imgtootltip($img,$tooltip=null,$js=null,$align=null,$imgid=null){
 	qtyp_{$id}();
 	</script>";
 	
+	$browser=browser_detection();
+	if($browser=="ie"){
+		return "<div 
+		OnMouseOver=\";this.style.cursor='pointer';\" 
+		OnMouseOut=\";this.style.cursor='default';\" 
+		style='$float'
+		$js>
+		<img src='/$image_path' $align id='$id' $js>
+		</div>";
+		
+	}
 	if($DisableToolTips==1){$jsTool=null;}
+	if(isset($_SESSION["MINIADM"])){$jsTool=null;}
+	if($_COOKIE["MINIADM"]=="YES"){$jsTool=null;}
 	
 	$IMAGE="
 	<input type='hidden' id='Text_$id' 
-	value='$textToolTip<br><hr><div style=text-align:right><a href=\"javascript:Blurz();\" OnClick=javascript($(\"$id\").qtip(\"toggle\", false); style=\"font-size:11px\">{close}</a></div>'>
+	value='$textToolTip<br><hr><div style=text-align:right><a href=\"javascript:Blurz();\" OnClick=javascript:($(\"$id\").qtip(\"toggle\", false); style=\"font-size:11px\">{close}</a></div>'>
 	<div OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" style='$float'>
 		<img src='/$image_path' $align id='$id' $js>
 	</div>
@@ -1688,6 +1787,7 @@ if($tooltip<>null){
 		$tooltip=str_replace("\n",'',$tooltip);	
 		$tooltip=str_replace("\r",'',$tooltip);	
 		$tooltip=str_replace("\r\n"," ",$tooltip);
+		$tooltip=str_replace("'","`",$tooltip);
 		$tooltip=trim($tooltip);
 		
 }$tooltip=ASCII_TO_HTML($tooltip);return $tooltip;
@@ -2694,7 +2794,9 @@ function Paragraphe_switch_img_32($title,$text,$field_name=null,$value=null,$tip
 }
 	
 function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=null,$width="220"){
-	
+	$MINIADM=false;
+	if(isset($_SESSION["MINIADM"])){$MINIADM=true;}
+	if(isset($_COOKIE["MINIADM"])){$MINIADM=true;}
 	$id=md5('Paragraphe_switch_img'.$field_name.$text.$title);
 	$hrf="<a href='$link' class='nostylea'>";
 
@@ -2721,14 +2823,19 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 	$fontsize=12;
 	$fontsize_title=14;
 	if($width>400){$fontsize=14;$fontsize_title=16;}
-	
-	$html="<div style='width:{$width}px;' class=BodyContent>
-	<table style='width:100%;'>
-	<tr>
-	<td width=1% valign='top'><div style='min-height: 120px;'>$img</a></div></td>
-	<td valign='top' id='$id'><h3 style='font-size:{$fontsize_title}px;color:black'>$title</h3>
-	<div style='text-align:left;font-size:{$fontsize}px;font-family:\"Ubuntu\",\"Lucida Grande\",\"Lucida Sans Unicode\",Helvetica,Arial,Verdana,sans-serif;' id='text_$id'>$field$text</div>
-	</td>
+	$class="BodyContent";
+	if($MINIADM){$class="MiniAdmParagrapheSwitchIm";}
+	$html="
+	<div style='width:{$width}px;' class=$class>
+		<table style='width:100%;'>
+		<tr>
+			<td width=1% valign='top' style='line-height:normal;'><div style='min-height: 120px;'>$img</a></div></td>
+			<td valign='top' id='$id' style='line-height:normal;;padding-left:5px'><h3 style='font-size:{$fontsize_title}px;color:black;text-transform:capitalize'>$title</h3>
+			<div 
+				style='text-align:left;
+				font-size:{$fontsize}px; 
+				id='text_$id'>$field$text</div>
+		</td>
 	</tr>
 	</table>
 	
@@ -2840,6 +2947,11 @@ function Buildicon64($ICON_KEY,$width=210,$height=null,$param=null){
 
 
 function Paragraphe32($title,$text,$js,$img,$size=220){
+	$MINIADM=false;
+	if(isset($_SESSION["MINIADM"])){$MINIADM=true;}
+	if($_COOKIE["MINIADM"]=="YES"){$MINIADM=true;}
+	
+	$fontsizeDef=12;
 	
 	if(preg_match("#noacco:(.+)#",$title,$re)){
 		$title=$re[1];
@@ -2851,6 +2963,39 @@ function Paragraphe32($title,$text,$js,$img,$size=220){
 	
 		$id=md5($js);
 		$img_id="{$id}_img";
+		
+		
+		if($MINIADM){
+			$html="<div style='min-height:110px;width:100%;text-align:left'>
+			<table style='width:100%;padding:0px;margin:0'
+					>
+			<tr>
+			<td width=32px valign='top' style='vertical-align:top';>
+			<input type='hidden' name='{$img_id}_org' id='{$img_id}_org' value='img/$img'>
+			" . imgtootltip($img,"{{$text}}","$js",null,$img_id)."</td>
+			<td style='text-align:left'>
+				<strong style='font-size:14px;line-height:normal'>$title</strong>
+				<div style='font-size:12px;line-height:normal'>$text</div><!-- replace -->
+				
+			</td>
+			</tr>
+			</table>
+			</div>
+			";
+			return "<div style='margin:5px;width:{$size}px' OnMouseOver=\"this.style.cursor='pointer';\" 
+			OnMouseOut=\"this.style.cursor='auto'\" 
+				OnClick=\"javascript:SeTimeOutIMG32('$img_id');$js\">".RoundedLightGrey($html,null,1)."</div>";
+		
+		
+		
+		
+		
+		}	
+		
+		
+		
+		
+		
 	return "
 	<table style='width:{$size}px;' 
 		class=form 
@@ -2859,11 +3004,11 @@ function Paragraphe32($title,$text,$js,$img,$size=220){
 		OnClick=\"javascript:SeTimeOutIMG32('$img_id');$js\"
 		>
 	<tr>
-	<td width=1% valign='top'>
+	<td width=1% valign='top' style='vertical-align:top';>
 	<input type='hidden' name='{$img_id}_org' id='{$img_id}_org' value='img/$img'>
 	" . imgtootltip($img,"{{$text}}","$js",null,$img_id)."</td>
 	<td>
-	<strong style='font-size:12px;line-height:normal'>$title</strong>
+	<strong style='font-size:{$fontsizeDef}px;line-height:normal'>$title</strong>
 	<div style='min-height:75px'>
 		<div style='font-size:11px;line-height:normal'>$text</div><!-- replace -->
 	</div>
@@ -3197,11 +3342,11 @@ function Paragraphe_tips($img,$title,$text,$link=null,$width=210){
 		}
 		
 		$text="
-		<div id='text_$id' style='$min_height;font-size:11px;font-family:Verdana;letter-spacing:-1px'>
+		<div id='text_$id' style='$min_height;'>
 			$text
 		</div>";
 		}else{
-			$text="<span id='text_$id' style='font-family:Verdana;letter-spacing:-1p'>$text</span>";
+			$text="<span id='text_$id' style='letter-spacing:-1p'>$text</span>";
 		}
 	
 	$height=null;
@@ -3231,7 +3376,7 @@ function Paragraphe_tips($img,$title,$text,$link=null,$width=210){
 	//$OnMouseOutToolTip="OnMouseOut=\"$tooltip_out\"";
 	
 	$html="
-	<div style='width:{$width}px$height$styleFloat;min-height:112px' class='paragraphe' id='$fieldMD5-id' $OnMouseOver $OnMouseOut>
+	<div style='$height$styleFloat;min-height:112px' class='paragraphe' id='$fieldMD5-id' $OnMouseOver $OnMouseOut>
 		<table style='width:100%'>
 			<tr>
 				<td width=1% valign='top'>
@@ -3269,7 +3414,9 @@ function Paragraphe_tips($img,$title,$text,$link=null,$width=210){
 
 	
 function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="210",$height=null,$nowrap=0,$float=false,$nojs=false){
-	
+	$MINIADM=false;
+	if(isset($_SESSION["MINIADM"])){$MINIADM=true;}
+	if($_COOKIE["MINIADM"]=="YES"){$MINIADM=true;}	
 	$styleFloat='';
 	if(preg_match("#(.+?):(.+)#", $img,$re)){$img=$re[1];$next_image=$re[2];}
 	$nomysql=false;
@@ -3294,8 +3441,10 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 			$lang=$_COOKIE["artica-language"];
 			if($lang==null){$lang="en";}
 			$md5=md5("$img$title$text$link$width");
-			$datas=GET_CACHED(__FILE__,__FUNCTION__,$md5,true);
-			if($datas<>null){return $datas;}
+			if(!$MINIADM){
+				$datas=GET_CACHED(__FILE__,__FUNCTION__,$md5,true);
+				if($datas<>null){return $datas;}
+			}
 		}
 	}
 	
@@ -3392,7 +3541,7 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 			qtyp_{$id}();
 		</script>";
 	if($_COOKIE["DisableToolTips"]==1){$jsjstip=null;}
-
+	if($MINIADM){$jsjstip=null;}
 		$js_tips="
 		<input type='hidden' id='p-text-$id' value='<strong style=font-size:13px>$title</strong><hr>$textOrg<br><hr><div style=text-align:right><a href=\"javascript:Blurz();\" OnClick=javascript($(\"$id\").qtip(\"toggle\", false); style=\"font-size:11px\">{close}</a></div>'>
 		$jsjstip
@@ -3463,6 +3612,11 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 		$max_caracts=40;
 		$max_text_caracts=150;
 	}	
+
+	if($width>350){
+		$max_caracts=80;
+		$max_text_caracts=250;
+	}	
 	
 	$title_entity_decode=html_entity_decode($title);
 
@@ -3476,7 +3630,7 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 			
 		}		
 		
-		
+		$titleSrc=$title;
 		$title_lenght=strlen($title);
 		if($title_lenght<25){$min_height_title=null;}
 		//supprimé, $min_height_title
@@ -3525,8 +3679,39 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 	//$OnMouseOverToolTip="OnMouseOver=\"$tooltip_over\"";
 	//$OnMouseOutToolTip="OnMouseOut=\"$tooltip_out\"";
 	if($next_image<>null){$next_image="<center style='padding:3px'><img src='img/$next_image'></center>";}
+	
+	if($MINIADM){
+		$html="<div style='min-height:110px;text-align:left'>
+		<table style='width:99.9%;'
+		OnMouseOver=\"this.style.cursor='pointer';\"
+		OnMouseOut=\"this.style.cursor='auto'\"
+		
+		>
+		<tr>
+		<td width=1% valign='top' style='vertical-align:top';>
+			$bigA$hrf$img_p</a>
+		</td>
+		<td style='padding-left:5px'>
+		<div >
+			<strong style='font-size:14px;line-height:normal'>$titleSrc</strong>
+			<div style='font-size:12px;line-height:normal'>$text</div><!-- replace -->
+		</div>
+		</td>
+		</tr>
+		</table>
+		</div>
+		$jsaddon
+		$js_tips
+		";
+		return "<div style='margin:5px'>".RoundedLightGrey($html,"javascript:Paragraphe_{$img_pid}_Switch()",1)."</div>";
+				
+		
+		
+	}
+	
+	
 	$html="
-	<div style='width:{$width}px$styleFloat;$min_height' class='paragraphe' id='$id' $OnMouseOver $OnMouseOut>
+	<div style='width:{$width}px$styleFloat;$min_height;margin-bottom:10px' class='paragraphe' id='$id' $OnMouseOver $OnMouseOut>
 		<table style='width:100%'>
 			<tr>
 				<td width=1% valign='top'>
@@ -3572,16 +3757,27 @@ function ae_detect_ie(){
         
 }
 
-function TinyMce($FiledName,$datas){
+function TinyMce($FiledName,$datas,$nojs=false){
 	
-
+	$js="<script language=\"javascript\" type=\"text/javascript\" src=\"js/tiny_mce/tinymce.min.js\"></script>";
+	if($nojs){$js=null;}
 $html="
-<script language=\"javascript\" type=\"text/javascript\" src=\"js/tiny_mce/tiny_mce.js\"></script>
+<textarea id=\"$FiledName\" name=\"$FiledName\" rows=\"15\" cols=\"80\" style=\"width: 100%\">$datas</textarea>		
+$js
 <script language=\"javascript\" type=\"text/javascript\">
-" . TinyMceInit()."
+	tinymce.init({
+		mode : \"textareas\",
+		plugins : \"pagebreak,layer,table,save,insertdatetime,preview,media,searchreplace,print,contextmenu,paste,directionality,fullscreen,noneditable,visualchars,nonbreaking,template code\",
+		theme_advanced_buttons1 : \"newdocument,|,bold,italic,underline,strikethrough,|,justifyleft,justifycenter,justifyright,justifyfull,styleselect,formatselect,fontselect,fontsizeselect\",
+		theme_advanced_buttons2 : \"cut,copy,paste,pastetext,pasteword,|,search,replace,|,bullist,numlist,|,outdent,indent,blockquote,|,undo,redo,|,link,unlink,anchor,image,cleanup,help,code,|,insertdate,inserttime,preview,|,forecolor,backcolor\",
+		theme_advanced_buttons3 : \"tablecontrols,|,hr,removeformat,visualaid,|,sub,sup,|,charmap,emotions,iespell,media,advhr,|,print,|,ltr,rtl,|,fullscreen\",
+		theme_advanced_buttons4 : \"insertlayer,moveforward,movebackward,absolute,cite,abbr,acronym,del,ins,attribs,|,visualchars,nonbreaking,template,pagebreak\",
+		theme_advanced_toolbar_location : \"top\",
+		theme_advanced_toolbar_align : \"left\",
+		theme_advanced_statusbar_location : \"bottom\",
+		theme_advanced_resizing : true,
+	});
 </script>
-<textarea id=\"$FiledName\" name=\"$FiledName\" rows=\"15\" cols=\"80\" style=\"width: 100%\">$datas</textarea>
-
 ";
 return $html;	
 }
@@ -3594,7 +3790,7 @@ return "
 		theme : \"advanced\",
 		skin : \"o2k7\",
 		skin_variant : \"silver\",
-		plugins : \"safari,pagebreak,layer,table,save,advhr,advimage,advlink,emotions,iespell,insertdatetime,preview,media,searchreplace,print,contextmenu,paste,directionality,fullscreen,noneditable,visualchars,nonbreaking,xhtmlxtras,template,inlinepopups\",
+		plugins : \"pagebreak,layer,table,save,advhr,advimage,emotions,iespell,insertdatetime,preview,media,searchreplace,print,contextmenu,paste,directionality,fullscreen,noneditable,visualchars,nonbreaking,xhtmlxtras,template,inlinepopups\",
 		theme_advanced_buttons1 : \"save,newdocument,|,bold,italic,underline,strikethrough,|,justifyleft,justifycenter,justifyright,justifyfull,styleselect,formatselect,fontselect,fontsizeselect\",
 		theme_advanced_buttons2 : \"cut,copy,paste,pastetext,pasteword,|,search,replace,|,bullist,numlist,|,outdent,indent,blockquote,|,undo,redo,|,link,unlink,anchor,image,cleanup,help,code,|,insertdate,inserttime,preview,|,forecolor,backcolor\",
 		theme_advanced_buttons3 : \"tablecontrols,|,hr,removeformat,visualaid,|,sub,sup,|,charmap,emotions,iespell,media,advhr,|,print,|,ltr,rtl,|,fullscreen\",
@@ -3760,6 +3956,7 @@ function BuildSession($uid){
 			return;
 		}
 	}
+	if($_SESSION["VirtAclUser"]){return;}
 	if(!class_exists("user")){include_once(dirname(__FILE__)."/class.user.inc");}
 	if($GLOBALS["VERBOSE"]){echo "<strong>BuildSession() -> `$uid`</strong><br>\n";}
 	$ldap=new clladp();
@@ -3886,6 +4083,8 @@ function CheckSessions(){
 		$noback["public.squid.error.php"]=true;
 		$noback["exec.squid.sslpassword_program.php"]=true;
 		$noback["external_acl_dynamic.php"]=true;
+		$noback["external_acl_squid.php"]=true;
+		$noback["execdomainlist.php"]=true;
 		if(preg_match('#^exec\..+\.php$#',$page)){$noback[$page]=true;}
 		if(preg_match('#listener\.php$#',$page)){$noback[$page]= true;}		
 		if(preg_match("#^prxy\..*?\.php$#", $page)){$noback[$page]=true;}
@@ -4073,7 +4272,7 @@ function browserTree($target_field){
 }
 
 function DAEMON_STATUS_IS_OK($key,$bsini){
-	
+	if(!isset($bsini->_params["$key"])){return true;}
 	if($bsini->_params["$key"]["service_disabled"]==null){$bsini->_params["$key"]["service_disabled"]=-1;}
 	if($bsini->_params["$key"]["service_disabled"]==0){return true;}
 	if($bsini->_params[$key]["running"]==0){return false;}
@@ -4953,9 +5152,31 @@ class tweak_array{
 			return $array;
 		}
 } 
-function button($text,$js,$fontsize=null){
+function button($text,$js,$fontsize=12.5){
+	$fontsizeSrc=$fontsize;
 	if(is_numeric($fontsize)){if($fontsize>0){$fontsize="{$fontsize}px";}}
-	if($fontsize==null){$fontsize="10px";}
+	if($fontsize==null){$fontsize="12px";}
+	
+	if(isset($_SESSION["MINIADM"])){
+		$tpl=new templates();
+		$Loading=$tpl->javascript_parse_text("{loading}");
+		
+		$btid=md5("$text$js$fontsize".time());
+		$script="<script> $('#$btid').on('click', function (e) { $js }) </script>";
+		if(preg_match("#^([0-9]+)#", $fontsize,$re)){$fontsize=$re[1];}
+		if($fontsizeSrc<12.5){
+			return "<button class=\"btn\" type=\"button\" id='$btid'
+			style='font-size:{$fontsize}px' data-loading-text=\"$Loading...\">$text</button>$script";
+		}
+		if($fontsize<12.5){
+			$fontsize=16;
+		}
+		return "<button class=\"btn-large btn-primary\" type=\"button\" id='$btid' 
+		style='font-size:{$fontsize}px' data-loading-text=\"$Loading...\">$text</button>$script";
+	
+		
+		return "<button class=\"btn btn-primary\" type=\"button\">$text</button>$script";
+	}
 	
 	$over="OnMouseOut=\"javascript:this.className='ui-state-default ui-corner-all';this.style.cursor='auto'\"";
 	$out="OnMouseOver=\"javascript:this.className='ui-state-active ui-corner-all';this.style.cursor='pointer'\"";
@@ -4968,12 +5189,12 @@ function button($text,$js,$fontsize=null){
 function pourcentage_basic($pourc,$bandwith_color,$text){
 	$text=str_replace(" ", "&nbsp;", $text);
 return"<div style='width:100px;background-color:white;padding-left:0px;border:1px solid $bandwith_color;line-height:normal'>
-			<div style='width:{$pourc}px;text-align:center;color:white;padding-top:3px;padding-bottom:3px;line-height:normal;background-color:$bandwith_color'><strong>$text</strong></div>
+			<div style='width:{$pourc}px;text-align:center;color:white;padding-top:3px;padding-bottom:3px;line-height:normal;background-color:$bandwith_color;font-size:12px !important'><strong>$text</strong></div>
 		</div>";
 	
 }
 
-function pourcentage($pourc){
+function pourcentage($pourc,$submargin=0){
 	$pourc=str_replace('%','',$pourc);
 	$orginal_pourc=$pourc;
 	$pourc=round($pourc);
@@ -4983,14 +5204,14 @@ function pourcentage($pourc){
 	if($pourc==0){$int=-119;}
 	if($pourc>0){$int=$pourc-118;}
 	if($pourc>50){$int=$pourc-100;}
-	
+	if($submargin>0){$marginTop="margin-top:-{$submargin}px;";}
 	
 	$precent="
-		<table style=\"border:0px;background-color:transparent;\">
+		<table style=\"border:0px;background-color:transparent;$marginTop\">
 			<tbody>
 			<tr style=\"border:0px;background-color:transparent;\">
 				<td style=\"border:0px;background-color:transparent;\"><img style=\"background:white url(img/percentImage_back4.png) no-repeat scroll 1px 0;margin:5px 0 0;padding:0;background-position:{$int}px 0pt;\" src=\"img/percentImage.png\"></td>
-				<td width=1% nowrap style=\"font-size:12px;border:0px;background-color: transparent;\">$orginal_pourc%</td>
+				<td width=1% nowrap style=\"font-size:12px !important;border:0px;background-color: transparent;\">$orginal_pourc%</td>
 			</tr>
 		</tbody>
 		</table>";
@@ -5013,28 +5234,36 @@ function GET_CACHED($file,$function,$token=null,$return=false,$maxmin=0){
 		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANGUAGE: define the session with the new language {$_SESSION["detected_lang"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 	}
 	
-	
-	if(class_exists("Memcache")){
-		$memcache = new Memcache();
-		$memcache->connect('unix:///var/run/memcached.sock', 0);
-		$ARRAY=unserialize($memcache->get('ARTICACACHEARRAY'));
-		$data=$ARRAY[$uid][$file][$function][$token][$browser][$_SESSION["detected_lang"]];
-		if(is_array($data)){return false;}
-		
-		if($return){
-			if($GLOBALS["VERBOSE"]){writelogs("Memcache -> RETURN ".strlen($data)." bytes length",__FUNCTION__,__FILE__,__LINE__);}
-			return $data;
+	$sock=new sockets();
+	if($GLOBALS["MEMCACHE_ENABLED"]==1){
+		if(class_exists("Memcache")){
+			$memcache = new Memcache();
+			$memcache->connect('unix:///var/run/memcached.sock', 0);
+			$ARRAY=unserialize($memcache->get('ARTICACACHEARRAY'));
+			$data=$ARRAY[$uid][$file][$function][$token][$browser][$_SESSION["detected_lang"]];
+			if(is_array($data)){return false;}
+			
+			if($return){
+				if($GLOBALS["VERBOSE"]){writelogs("Memcache -> RETURN ".strlen($data)." bytes length",__FUNCTION__,__FILE__,__LINE__);}
+				if(strlen($data)>20){
+					return $data;
+				}else{
+					return false;
+				}
+			}	
+			if(trim($data)==null){return false;}
+			if(strlen($data)<20){return false;}
+			if($GLOBALS["VERBOSE"]){writelogs("Memcache -> ECHO ".strlen($data)." bytes length",__FUNCTION__,__FILE__,__LINE__);}
+			echo $data;
+			return true;
 		}	
-		if($data==null){return false;}
-		if($GLOBALS["VERBOSE"]){writelogs("Memcache -> ECHO ".strlen($data)." bytes length",__FUNCTION__,__FILE__,__LINE__);}
-		echo $data;
-		return true;
-	}	
+	}
 	
 	$dir=dirname(__FILE__)."/logs/web/cache/$uid";
 	$targetFile="$dir/$file.$function.$token.$browser.{$_SESSION["detected_lang"]}.object.cache";
 	if(!is_file($targetFile)){return false;}
 	$data=trim(@file_get_contents($targetFile));
+	if(strlen($data)<20){return false;}
 	
 	if($data<>null){
 		if($GLOBALS["VERBOSE"]){writelogs("Disk ".strlen($data)." bytes length",__FUNCTION__,__FILE__,__LINE__);}
@@ -5455,7 +5684,7 @@ function IsPhysicalAddress($address){
 		writelogs("$address:array 5 did not match 2",__FUNCTION__,__FILE__,__LINE__);
 		return false;
 	}
-	writelogs("$address ok",__FUNCTION__,__FILE__,__LINE__);
+	
 	return true;
 }
 
@@ -5592,14 +5821,43 @@ function artica_mysql_events($subject,$text,$file,$context){
 function numberFormat  ($number  , $decimals = 2 , $dec_point = '.' , $sep = ',', $group=3   ){
     $num = sprintf("%0.{$decimals}f",$number);   
     $num = explode('.',$num);
+    
     while (strlen($num[0]) % $group) $num[0]= ' '.$num[0];
     $num[0] = str_split($num[0],$group);
     $num[0] = join($sep[0],$num[0]);
     $num[0] = trim($num[0]);
-    $num = join($dec_point[0],$num);
+    $num = @join($dec_point,$num);
    
     return $num;
 }
+
+function CompileTrGen($array,$title=null,$rowNumber=5){
+	if(!is_array($array)){return null;}
+	if(count($array)==0){return null;}
+	$tdcenter=null;
+	$trpurc=100/$rowNumber;
+	$tables[]="<table style='width:99%' $classform><tr>";
+	if($title<>null){$tables[]="<tr><td colspan=$rowNumber>$title</td></tr>";}
+	$t=0;
+	while (list ($key, $line) = each ($array) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		$t=$t+1;
+		$tables[]="<td width=$trpurc% valign='top'$tdcenter>$line</td>";
+		if($t==$rowNumber){$t=0;$tables[]="</tr><tr>";}
+
+	}
+	if($t<$rowNumber){
+		for($i=0;$i<=$t;$i++){
+			$tables[]="<td width=$trpurc% valign='top'$tdcenter>&nbsp;</td>";
+		}
+	}
+
+	$tables[]="</tr></table>";
+	return implode("\n",$tables);
+}
+
+
 function CompileTr4($array,$noform=false,$title=null,$center=false){
 	if(!is_array($array)){return null;}
 	if(count($array)==0){return null;}
@@ -5639,40 +5897,20 @@ while (list ($key, $line) = each ($array) ){
 		$line=trim($line);
 		if($line==null){continue;}
 		$t=$t+1;
-		$tables[]="<td valign='top' $tdcenter>$line</td>";
+		$tables[]="<td valign='top' $tdcenter width=33%>$line</td>";
 		if($t==3){$t=0;$tables[]="</tr><tr>";}
 		
 }
 if($t<3){
 	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
+		$tables[]="<td valign='top' width=33%>&nbsp;</td>";				
 	}
 }
 				
 	$tables[]="</tr></table>";	
 	return implode("\n",$tables);
 }
-function CompileTrGen($array,$num=5){
-	if(!is_array($array)){return null;}
-	$tables[]="<table style='width:100%'><tr>";
-	$t=0;
-	while (list ($key, $line) = each ($array) ){
-			$line=trim($line);
-			if($line==null){continue;}
-			$t=$t+1;
-			$tables[]="<td valign='top'>$line</td>";
-			if($t==$num){$t=0;$tables[]="</tr><tr>";}
-			
-	}
-	if($t<$num){
-		for($i=0;$i<=$t;$i++){
-			$tables[]="<td valign='top'>&nbsp;</td>";				
-		}
-	}
-				
-	$tables[]="</tr></table>";	
-	return implode("\n",$tables);
-}
+
 function file_time_min_Web($path){
 	if(!is_file($path)){
 		if($GLOBALS["VERBOSE"]){echo "file_time_min() -> unable to stat $path\n";}
@@ -5745,7 +5983,7 @@ function quicklinks_paragraphe($img,$title,$text,$link){
 }
 
 function CACHE_SESSION_GET($function,$file,$maxtimeMin=30){
-	if(!isset($_SESSION[$file][$function])){return CACHE_SESSION_GETF();}
+	if(!isset($_SESSION[$file][$function])){return CACHE_SESSION_GETF("$function",$file,$maxtimeMin);}
 	$time=$_SESSION[$file][$function]["time"];
 	$datas=$_SESSION[$file][$function]["datas"];
 	if(!is_numeric($time)){return;}
@@ -5757,15 +5995,15 @@ function CACHE_SESSION_GET($function,$file,$maxtimeMin=30){
 	return true;
 	
 }
-			function CACHE_SESSION_GETF($function,$file,$maxtimeMin=30){
-				$md5=md5("$file$function{$_SESSION["uid"]}");
-				$cachefile="/usr/share/artica-postfix/ressources/logs/web/cache/{$_SESSION["uid"]}.$md5.cache";
-				if(!is_file($cachefile)){return false;}
-				if(file_get_time_min($cachefile)>$maxtimeMin){@unlink($cachefile);return false;}
-				$datas=@file_get_contents($cachefile);
-				if(strlen($datas)<5){return false;}
-				echo $datas;return true;
-			}	
+function CACHE_SESSION_GETF($function,$file,$maxtimeMin=30){
+	$md5=md5("$file$function{$_SESSION["uid"]}");
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/cache/{$_SESSION["uid"]}.$md5.cache";
+	if(!is_file($cachefile)){return false;}
+	if(file_get_time_min($cachefile)>$maxtimeMin){@unlink($cachefile);return false;}
+	$datas=@file_get_contents($cachefile);
+	if(strlen($datas)<5){return false;}
+	echo $datas;return true;
+}	
 
 function table_error_showZoom($error,$underline=1){
 	$full=base64_encode($error);
@@ -5871,7 +6109,8 @@ function FATAL_ERROR_SHOW_128($text,$noform=false,$nomargin=false){
 	if(!$nomargin){$margin="margin:30px";}
 	$html="
 	<center style='$margin'>
-	<table style='width:{$width}' $classform>
+	<div style='width:95%' $classform>
+	<table style='width:{$width}'>
 	<tr>
 		<td valign='top' style='width:1%'>
 			<img src='img/error-128.png'>
@@ -5879,6 +6118,7 @@ function FATAL_ERROR_SHOW_128($text,$noform=false,$nomargin=false){
 		<td><div style='font-size:18px;color:#E41717'>$text</div></td>
 	</tr>
 	</table>
+	</div>
 	</center>
 	";
 	return $tpl->_ENGINE_parse_body($html);
@@ -5916,10 +6156,19 @@ function SIMPLE_PARAGRAPHE_BLUE_ARROWTR($title,$text,$js,$img="arrow-blue-left-2
 	}
 	
 	$tpl=new templates();
-	if(preg_match("#noacc:(.+)#", $text,$re)){$text=$re[1];}else{
-	$text=$tpl->_ENGINE_parse_body("{{$text}}");
+	if(preg_match("#noacc:(.+)#", $text,$re)){$text=$re[1];}
+	else{
+		$text=$tpl->_ENGINE_parse_body("{{$text}}");
 	}
 	$text=str_replace("%ou", $_SESSION["ou"], $text);
+	$title=$tpl->_ENGINE_parse_body("{{$title}}");
+	
+	return $tpl->_ENGINE_parse_body("<div class=\"span5\"><div class=bs-docs-example>
+	<h2>{$title}</h2>
+	<p>$text</p>
+	<p><a class=\"btn\" href=\"$link\" $js>$title &raquo;</a></p>
+	</div></div>");
+	
 	
 	return "		<tr>
 		<td valign='top'><img src='img/$img'></td>
@@ -5959,4 +6208,40 @@ function debug_mem($text=null){
 	
 	
 }
+
+function lic_generate_string($string){
+	$ascii=NULL;
+	$serial=NULL;
+	$secret_num=5;
+	for ($i = 0; $i < strlen($string); $i++)
+	{
+	$ascii .= $secret_num+ ord($string[$i]);
+	}
+	$ascii=substr($ascii,0,20);
+	for ($i = 0; $i < strlen($ascii); $i+=2)
+	{
+	$string=substr($ascii,$i,2);
+	switch($string)
+	{
+	case $string>122:
+	$string-=40;
+	break;
+	case $string<=48:
+	$string+=40;
+	break;
+	}
+	$serial .= chr($string);
+	}
+	return $serial;
+	}
+function senderrors($text){sendserrors($text);}
+function senderror($text){sendserrors($text);}
+function sendserrors($text){
+		if(strtolower(trim($text))=="no data"){$text="{this_request_contains_no_data}";}
+	
+		$tpl=new templates();
+		echo $tpl->_ENGINE_parse_body("<p class=text-error style='margin:20px'>$text</p>");exit();
+	}
+
+
 ?>

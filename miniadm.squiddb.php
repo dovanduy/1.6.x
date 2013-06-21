@@ -83,12 +83,7 @@ function webstats_left(){
 	$squiddb=Paragraphe32('mysql_statistics_engine','mysql_statistics_engine_params'
 			,"blur()","database-connect-settings-32-grey.png");	
 	
-	if($users->APP_SQUIDDB_INSTALLED){
-		$squiddb=Paragraphe32('mysql_statistics_engine','mysql_statistics_engine_params'
-				,"Loadjs('squid.articadb.php')","database-connect-settings-32.png");
-	
-	}
-	
+
 	$tr[]=Paragraphe32('purge_statistics_database','purge_statistics_database_explain'
 			,"Loadjs('squid.artica.statistics.purge.php')","table-delete-32.png");
 	

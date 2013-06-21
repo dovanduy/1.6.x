@@ -1571,6 +1571,33 @@ class user{
 	}
 	
 	
+	function find_ldap_items_groups($users,$ou=null,$nogetent=false,$ObjectZarafa=false,$MaxItems=0,$OnlyGroups=0,$OnlyUsers=0,$OnlyCheckAD=0){
+		$ldap=new clladp();
+		if($MaxItems==0){$MaxItems_sql=50;}else{$MaxItems_sql=$MaxItems;}
+		$suffix=$ldap->suffix;
+		if($ou<>null){
+			$suffix="ou=$ou,dc=organizations,$ldap->suffix";
+		}
+		
+		
+		$sr =@ldap_search($ldap->ldap_connection,$suffix,"(&(objectClass=posixGroup)(|(cn=$users)(displayName=$users)))",
+				array("displayname","cn","gidNumber"),null,$MaxItems);
+		if($sr){
+			$result = ldap_get_entries($ldap->ldap_connection, $sr);
+			for($i=0;$i<$result["count"];$i++){
+				$displayname=$result[$i]["displayname"][0];
+				$gidNumber=$result[$i]["gidnumber"][0];
+				$uid=$result[$i]["cn"][0];
+				if($displayname==null){$displayname=$uid;}
+				$res["@$uid"]="@$displayname:$gidNumber";
+			}
+		
+		}else{
+			writelogs("find_ldap_items_groups:: Error for posixGroup",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		}
+	}
+	
+	
 	function find_ldap_items($users,$ou=null,$nogetent=false,$ObjectZarafa=false,$MaxItems=0,$OnlyGroups=0,$OnlyUsers=0,$OnlyCheckAD=0){
 		$ldap=$this->ldapClass;
 		$EnableKerbAuth=0;
@@ -1635,6 +1662,8 @@ class user{
 		
 	}
 		
+		if($GLOBALS["VERBOSE"]){echo __CLASS__."::".__FUNCTION__.":".__LINE__." OnlyGroups=$OnlyGroups<br>\n";}
+	
 		if($OnlyGroups==0){
 			$UserSearched=true;
 			if($OnlyCheckAD==0){
@@ -1665,24 +1694,15 @@ class user{
 			}
 		}
 		
+		
+		
+		
 		if($OnlyUsers==0){
-			if($OnlyCheckAD==0){	
+			if($OnlyCheckAD==0){
+				if($GLOBALS["VERBOSE"]){echo __CLASS__."::".__FUNCTION__.":".__LINE__." ->find_ldap_items_groups(..)<br>\n";}
+				$res=$this->find_ldap_items_groups($users,$ou,$nogetent,$ObjectZarafa,$MaxItems,$OnlyGroups,$OnlyUsers,$OnlyCheckAD);
 				$GroupSearched=true;
-				$sr =@ldap_search($ldap->ldap_connection,$suffix,"(&(objectClass=posixGroup)(|(cn=$users)(displayName=$users)))",
-				array("displayname","cn","gidNumber"),null,$MaxItems);
-				if($sr){
-					$result = ldap_get_entries($ldap->ldap_connection, $sr);
-					for($i=0;$i<$result["count"];$i++){
-						$displayname=$result[$i]["displayname"][0];
-						$gidNumber=$result[$i]["gidnumber"][0];
-						$uid=$result[$i]["cn"][0];
-						if($displayname==null){$displayname=$uid;}
-						$res["@$uid"]="@$displayname:$gidNumber";
-					}
-						
-				}else{
-					writelogs("Error for posixGroup",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);		
-				}
+				
 			}
 			
 			if($EnableKerbAuth==1){
@@ -1693,10 +1713,12 @@ class user{
 		
 		if(!$UserSearched){
 			if($EnableKerbAuth==1){
-			$adKerb=new external_ad_search();
-			$res=$adKerb->searchUser($users,$res);
+				$adKerb=new external_ad_search();
+				$res=$adKerb->searchUser($users,$res);
 			}
-		}		
+		}
+
+		
 		if(!$GroupSearched){
 			if($EnableKerbAuth==1){
 				$adKerb=new external_ad_search();

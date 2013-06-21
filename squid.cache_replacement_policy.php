@@ -40,8 +40,11 @@ function popup(){
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	if($CacheReplacementPolicy==null){$CacheReplacementPolicy="heap_LFUDA";}
 	$SquidDebugCacheProc=$sock->GET_INFO("SquidDebugCacheProc");
+	$ForceWindowsUpdateCaching=$sock->GET_INFO("ForceWindowsUpdateCaching");
 	if(!is_numeric($SquidDebugCacheProc)){$SquidDebugCacheProc=0;}
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
+	if(!is_numeric($ForceWindowsUpdateCaching)){$ForceWindowsUpdateCaching=0;}
+	
 	$squid=new squidbee();
 	$t=time();
 	$array["lru"]="{cache_lru}";
@@ -73,7 +76,14 @@ function popup(){
 		<tr>
 			<td class=legend style='font-size:14px'>{DisableAnyCache}:</td>
 			<td>". Field_checkbox("DisableAnyCache-$t",1,$DisableAnyCache,"CheckDisableAnyCache$t()")."</td>
-		</tr>		
+		</tr>	
+		<tr>
+			<td class=legend style='font-size:14px'>{ForceWindowsUpdateCaching}:</td>
+			<td>". Field_checkbox("ForceWindowsUpdateCaching-$t",1,$ForceWindowsUpdateCaching)."</td>
+		</tr>
+			
+					
+				
 	<tr>
 		<td class=legend style='font-size:14px'>{cache_replacement_policy}:</td>
 		<td>". Field_array_Hash($array, "CacheReplacementPolicy-$t",$CacheReplacementPolicy,null,null,0,"font-size:14px")."</td>
@@ -108,14 +118,19 @@ function popup(){
 		function Save$t(){
 			var SquidDebugCacheProc=0;
 			var DisableAnyCache=0;
+			var ForceWindowsUpdateCaching=0;
 			var XHR = new XHRConnection();
 			if(document.getElementById('DisableAnyCache-$t').checked){DisableAnyCache=1;}
 			if(document.getElementById('SquidDebugCacheProc-$t').checked){SquidDebugCacheProc=1;}
+			if(document.getElementById('ForceWindowsUpdateCaching-$t').checked){ForceWindowsUpdateCaching=1;}
+			
+			
 			XHR.appendData('CacheReplacementPolicy',document.getElementById('CacheReplacementPolicy-$t').value);
 			XHR.appendData('maximum_object_size',document.getElementById('maximum_object_size-$t').value);
 			XHR.appendData('maximum_object_size_in_memory',document.getElementById('maximum_object_size_in_memory-$t').value);
 			XHR.appendData('SquidDebugCacheProc',SquidDebugCacheProc);
 			XHR.appendData('DisableAnyCache',DisableAnyCache);
+			XHR.appendData('ForceWindowsUpdateCaching',ForceWindowsUpdateCaching);
 			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',x_Save$t);
 		}
@@ -146,6 +161,7 @@ function save(){
 	$sock->SET_INFO("CacheReplacementPolicy", $_POST["CacheReplacementPolicy"]);
 	$sock->SET_INFO("SquidDebugCacheProc", $_POST["SquidDebugCacheProc"]);
 	$sock->SET_INFO("DisableAnyCache", $_POST["DisableAnyCache"]);
+	$sock->SET_INFO("ForceWindowsUpdateCaching", $_POST["ForceWindowsUpdateCaching"]);
 	$squid=new squidbee();
 	$squid->global_conf_array["maximum_object_size"]=$_POST["maximum_object_size"]." MB";
 	$squid->global_conf_array["maximum_object_size_in_memory"]=$_POST["maximum_object_size_in_memory"]." MB";

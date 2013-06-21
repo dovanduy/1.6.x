@@ -8,6 +8,7 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 include_once(dirname(__FILE__)."/framework/class.settings.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.syslog.inc");
+include_once(dirname(__FILE__)."/ressources/class.mysql.syslogs.inc");
 $GLOBALS["FORCE"]=false;
 $GLOBALS["EXECUTED_AS_ROOT"]=true;
 $GLOBALS["RUN_AS_DAEMON"]=false;
@@ -28,6 +29,7 @@ if($argv[1]=="--mysql"){InstertIntoMysql();die();}
 if($argv[1]=="--var"){CheckLogStorageDir($argv[2]);die();}
 if($argv[1]=="--clean"){CleanMysqlDatabase();die();}
 if($argv[1]=="--squid"){check_all_squid();die();}
+if($argv[1]=="--convert"){ConvertToDedicatedMysql(true);die();}
 
 
 
@@ -69,13 +71,14 @@ if(!$GLOBALS["FORCE"]){if($time<30){system_admin_events("No less than 30mn (curr
 @unlink($timefile);
 @file_put_contents($timefile, time());
 moveolds2();
+reconfigure();
 $cmd=$unix->EXEC_NICE().$logrotate." -s /var/log/logrotate.state /etc/logrotate.conf 2>&1";
 if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 $t=time();
 $results[]="Results of : $cmd";
 exec($cmd,$results);
 $took=$unix->distanceOfTimeInWords($t,time(),true);
-system_admin_events("Success took: $took".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"logrotate");
+rotate_events("Success took: $took".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"logrotate");
 
 
 
@@ -101,12 +104,15 @@ function run(){
 	reconfigure();
 	
 	$cmd=$unix->EXEC_NICE().$logrotate." -s /var/log/logrotate.state /etc/logrotate.conf 2>&1";
-	system_admin_events("Executing: $cmd",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+	events("Executing: $cmd");
+	rotate_events("Executing: $cmd",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 	$t=time();
 	exec($cmd,$results);
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
-	system_admin_events("Success took: $took\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"logrotate");
+	events("Success took: $took\n".@implode("<br>", $results));
+	rotate_events("Success took: $took\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"logrotate");
 	InstertIntoMysql();
+	ConvertToDedicatedMysql();
 	
 }
 
@@ -136,7 +142,6 @@ function InstertIntoMysql(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$RotateFiles=$ligne["RotateFiles"];
 		$dirname=dirname($RotateFiles);
-		
 		$paths[$dirname]=true;
 	}
 	
@@ -170,11 +175,13 @@ function InstertIntoMysql(){
 			if(!preg_match("#-TASK-([0-9]+)#",$basename,$re)){continue;}
 			$taskid=$re[1];
 			$filesize=$unix->file_size($filename);
-			system_admin_events("Task:$taskid File $basename ($filedate)",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			rotate_events("Task:$taskid File $basename ($filedate)",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			
 			if(ROTATE_TOMYSQL($filename,$filedate)){
 				@unlink($filename);
 				continue;
+			}else{
+				rotate_events("FAILED Task:$taskid File $basename ($filedate)",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			}
 	
 
@@ -206,6 +213,7 @@ function InstertIntoMysql(){
 				$tC=$filename;
 				$tB=$unix->file_size_human($filename);
 				if(!ROTATE_COMPRESS_FILE($filename)){
+					events("File ".basename($tC)." Failed to compress file");
 					system_admin_events("File ".basename($tC)." Failed to compress file",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 					continue;
 				}
@@ -214,12 +222,14 @@ function InstertIntoMysql(){
 				$filename=$filename.".bz2";
 				$tD=$unix->file_size_human($filename);
 				$extension="bz2";
+				events("File ".basename($tC)." ($tB) as been converted to bz2 width new size $tD, took: $took");
 				system_admin_events("File ".basename($tC)." ($tB) as been converted to bz2 width new size $tD, took: $took",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 				
 			}
 			
 			if(preg_match("#[a-z]+-[0-9]+$#", $extension)){
 				if(!ROTATE_COMPRESS_FILE($filename)){
+						events("File ".basename($tC)." Failed to compress file");
 						system_admin_events("File ".basename($tC)." Failed to compress file",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 						continue;
 					}
@@ -230,7 +240,7 @@ function InstertIntoMysql(){
 			$basename=basename($filename);	
 			if($extension<>"bz2"){continue;}
 
-			system_admin_events("Task:$taskid File $basename ($filedate)",__FUNCTION__,__FILE__,__LINE__,"logrotate");	
+			events("Task:$taskid File $basename ($filedate)");	
 			if(ROTATE_TOMYSQL($filename,$filedate)){
 				@unlink($filename);
 				continue;
@@ -246,6 +256,13 @@ function ROTATE_TOMYSQL($filename,$sourceDate){
 	$sock=new sockets();
 	$unix=new unix();
 	$taskid=0;
+	$q=new mysql_syslog();
+	if($q->EnableSyslogDB==1){
+		$q=new mysql_storelogs();
+		return $q->InjectFile($filename, $sourceDate);
+		
+	}
+	
 	$basename=basename($filename);
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
 	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
@@ -270,7 +287,7 @@ function ROTATE_TOMYSQL($filename,$sourceDate){
 	
 	if(!@copy($filename, $DestinationFile)){
 		@unlink($DestinationFile);
-		system_admin_events("Failed to copy $filename => $DestinationFile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		rotate_events("Failed to copy $filename => $DestinationFile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		return false;
 	}
 	
@@ -293,7 +310,7 @@ function ROTATE_TOMYSQL($filename,$sourceDate){
 		VALUES ('$basenameFF','$taskid','$filesize','','$sourceDate',1,'$DestinationFile')";
 	}
 
-	$q=new mysql_syslog();
+	
 	$q->CheckTables();
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){
@@ -414,6 +431,13 @@ function CleanMysqlDatabase(){
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
 	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
 	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
+	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}	
+	if($EnableSyslogDB==1){if($MySQLSyslogType<>1){return;}}
+	
+	
 	
 	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
 	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
@@ -428,7 +452,9 @@ function CleanMysqlDatabase(){
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		return false;
 	}
-$t=time();
+	
+	
+	$t=time();
 	@file_put_contents("$BackupMaxDaysDir/$t", time());
 	if(!is_file("$BackupMaxDaysDir/$t")){
 		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
@@ -437,8 +463,23 @@ $t=time();
 	}
 	@unlink("$BackupMaxDaysDir/$t");
 	
+	if($EnableSyslogDB==1){
+		$q=new mysql_storelogs();
+		$sql="SELECT `filename`,`hostname`,`storeid` FROM `files_info` WHERE filetime<DATE_SUB(NOW(),INTERVAL $BackupMaxDays DAY)";
+		$results=$q->QUERY_SQL($sql);
+		if(!$q->ok){system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);return;}
+		while ($ligne = mysql_fetch_assoc($results)) {
+			if(!$q->ExtractFile("$BackupMaxDaysDir/{$ligne["hostname"]}.{$ligne["filename"]}",$ligne["storeid"])){continue;}
+			$q->DelteItem($ligne["storeid"]);
+			$q->events("{$ligne["filename"]} saved into $BackupMaxDaysDir");
+			
+		}
+		return;
+	}
+	
+	
 	$q=new mysql_syslog();
-	$sql="SELECT `filename`,`taskid`,`filesize`,`filetime` FROM `store` WHERE filetime<DATE_SUB(NOW(),INTERVAL 30 DAY)";
+	$sql="SELECT `filename`,`taskid`,`filesize`,`filetime` FROM `store` WHERE filetime<DATE_SUB(NOW(),INTERVAL $BackupMaxDays DAY)";
 	$results=$q->QUERY_SQL($sql);
 	
 	if($GLOBALS["VERBOSE"]){echo "$sql ($q->mysql_error) ". mysql_num_rows($results)." file(s)\n";}
@@ -518,16 +559,23 @@ function reconfigure(){
 	$sql="SELECT *  FROM `logrotate` WHERE enabled=1";	
 	system_admin_events($sql,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 	$results = $q->QUERY_SQL($sql);	
-	if(!$q->ok){return;}
+	if(!$q->ok){
+		if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";}
+		return;}
 	
 	
-	foreach (glob("/etc/logrotate.d/*") as $filename) {@unlink($filename);}
+	foreach (glob("/etc/logrotate.d/*") as $filename) {
+		if($GLOBALS["VERBOSE"]){echo "Remove $filename\n";}
+		@unlink($filename);}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$f=array();
 		$dir=$ligne["RotateFiles"];
 		$dir=dirname($ligne["RotateFiles"]);
 		if(!is_dir($dir)){continue;}
+		if(is_numeric($ligne["MaxSize"])){$ligne["MaxSize"]=100;}
+		if(!is_numeric($ligne["RotateCount"])){$ligne["RotateCount"]=5;}
+		
 		$f[]="{$ligne["RotateFiles"]} {";
 		$f[]="\t{$ligne["RotateFreq"]}";
 		$f[]="\tmissingok";
@@ -582,8 +630,8 @@ function LoagRotateApache(){
 			$f[]="/var/log/apache2/$servername/*.log {";
 			$f[]="\t{$ligneC["RotateFreq"]}";
 			$f[]="\tmissingok";
-			if($ligneC["MaxSize"]>0){$f[]="\tsize {$ligne["MaxSize"]}M";}
-			if($ligneC["RotateCount"]>0){$f[]="\trotate {$ligne["RotateCount"]}";}
+			if($ligneC["MaxSize"]>0){$f[]="\tsize {$ligneC["MaxSize"]}M";}
+			if($ligneC["RotateCount"]>0){$f[]="\trotate {$ligneC["RotateCount"]}";}
 			if($LogRotateCompress==1){$f[]="\tcompress";}
 			$f[]="\tsharedscripts";
 			$f[]="\tcreate 640 root";
@@ -801,16 +849,115 @@ function check_all_squid(){
 	
 }
 
+function ConvertToDedicatedMysql($aspid=false){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";	
+	if(system_is_overloaded(basename(__FILE__))){
+		events("Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting...");
+		return;
+	}
+	
+	if($aspid){
+		$pid=@file_get_contents("$pidfile");
+		if($unix->process_exists($pid,basename(__FILE__))){
+			system_admin_events("Already executed PID $pid",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			return;
+		}
+		$pidTime=$unix->file_time_min($pidTime);
+		if($pidTime<5){return;}
+		
+		
+	}
+	
+
+	@unlink($pidTime);
+	@file_put_contents($pidTime, getmypid());
+	@file_put_contents($pidfile, getmypid());
+	
+	
+	$sock=new sockets();
+	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
+	if($EnableSyslogDB==0){
+		events("EnableSyslogDB = 0, aborting...");
+		return;
+	}
+	
+	$q=new mysql_storelogs();
+	$q1=new mysql_syslog();
+	
+	if(!$q->BD_CONNECT()){
+		events("$q->mysql_error, aborting...");
+		return;
+	}
+	$q->checkTables();
+	if(!$q->TABLE_EXISTS("files_store")){
+		events("files_store no such table...");
+		return;
+	}
+	if(!$q->TABLE_EXISTS("files_info")){
+		events("files_info no such table...");
+		return;
+	}	
+	$unix=new unix();
+	$rm=$unix->find_program("rm");
+	$hostname=$unix->hostname_g();
+	$MaxCount=$q1->COUNT_ROWS("store");
+	if($MaxCount==0){
+		events("Old store table store no logs...");
+		return;
+	}
+	$sql="SELECT `filename`,`taskid`,`filesize`,`filetime` FROM `store` LIMIT 0,500";
+	$results=$q1->QUERY_SQL($sql);
+	if(!$q1->ok){events("$q->mysql_error, $sql");return;}
+	
+	$tmpdir="/home/".time();
+	
+	@mkdir($tmpdir,0777);
+	@chmod($tmpdir,0777);
+	@chown($tmpdir,"mysql");
+	@chgrp($tmpdir,"mysql");
+	
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$filename=mysql_escape_string($ligne["filename"]);
+		$taskid=mysql_escape_string($ligne["taskid"]);
+		$filesize=mysql_escape_string($ligne["filesize"]);
+		$filetime=mysql_escape_string($ligne["filetime"]);
+		events("Converting $filename task [$taskid] ($filesize bytes) time:$filetime ->$tmpdir/$filename");
+		$sql="SELECT filedata INTO DUMPFILE '$tmpdir/$filename' FROM store WHERE filename = '$filename'";
+		$q1->QUERY_SQL($sql);
+		if(!$q1->ok){
+			shell_exec("$rm -rf $tmpdir");
+			events("$q->mysql_error, $sql");
+			return;
+		}
+		
+		if(!$q->InjectFile("$tmpdir/$filename",$filetime)){
+			shell_exec("$rm -rf $tmpdir");
+			return false;
+		}
+		
+		
+		$q1->QUERY_SQL("DELETE FROM store WHERE filename = '$filename'");
+		if(!$q1->ok){
+			shell_exec("$rm -rf $tmpdir");
+			events("$q->mysql_error, $sql");
+			return;
+		}		
+		events("Success converted $filename");
+		
+	}
+	
+	
+	
+	
+}
+
 
 
 function events($text){
-		$pid=@getmypid();
-		$date=@date("h:i:s");
-		$logFile="/var/log/artica-postfix/logrotate.debug";
-		
-		$size=@filesize($logFile);
-		if($size>1000000){@unlink($logFile);}
-		$f = @fopen($logFile, 'a');
-		@fwrite($f, "$pid ".basename(__FILE__)." $text\n");
-		@fclose($f);	
-		}
+	if(!isset($GLOBALS["CLASS_SYSTEMLOGS"])){$GLOBALS["CLASS_SYSTEMLOGS"]=new mysql_storelogs();}
+	$GLOBALS["CLASS_SYSTEMLOGS"]->events($text);
+}

@@ -241,10 +241,10 @@ function popup_add(){
 			<table style='width:99%' class=form>
 			<tr>
 				<td class=legend style='font-size:14px'>{ip_address}:</td>
-				<td>". Field_text('ip_addr',null,"width:120px;font-size:14px","script:CheckHostip()")."</td>
+				<td>". field_ipv4('ip_addr',null,"font-size:14px")."</td>
 			</tR>
 			<tr>
-				<td class=legend style='font-size:14px'>{servername}:</td>
+				<td class=legend style='font-size:14px'>{hostname}:</td>
 				<td>". Field_text('servername',null,"width:220px;font-size:14px",null,"CheckHostAlias()")."</td>
 			</tR>
 				
@@ -253,22 +253,10 @@ function popup_add(){
 				<td>". Field_text('alias',null,"width:120px;font-size:14px")."</td>
 			</tR>
 		</table><hr>
-		<div style='width:100%;text-align:right'>". button("{add}","etc_hosts_add_form_save()")."</div>
+		<div style='width:100%;text-align:right'>". button("{add}","etc_hosts_add_form_save()",16)."</div>
 		</div>
 		
 		<script>
-			function CheckHostip(){
-				DisableFieldsFromId('hostsdiv');
-				document.getElementById('ip_addr').disabled=false;
-				var ip_addr=document.getElementById('ip_addr').value;
-				var re = new RegExp('^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+');
-				
-				if(ip_addr.match(re)){
-					document.getElementById('servername').disabled=false;
-				}	
-			
-			}
-		
 		
 			function CheckHostAlias(){
 				var servername=document.getElementById('servername').value;
@@ -288,7 +276,7 @@ function popup_add(){
 			
 			}
 			
-			CheckHostip();
+		
 			
 		</script>
 	";

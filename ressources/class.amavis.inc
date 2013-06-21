@@ -27,8 +27,11 @@ class amavis{
 	var $EnableLDAPAmavis=0;
 	var $EnableAmavisDKIMVerification=0;
 	var $AmavisNoInternetTests=0;
+	private $AmavisPerUser=0;
 	
 	function amavis(){
+		$users=new usersMenus();
+		if(!$users->AMAVIS_INSTALLED){return;}
 		$GLOBALS["inet_socket_port"]=array();
 		$called=null;
 		if(function_exists("debug_backtrace")){try {$trace=@debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}} catch (Exception $e) {}}
@@ -47,9 +50,11 @@ class amavis{
 		$this->EnableQuarantineSpammy2=$sock->GET_INFO("EnableQuarantineSpammy2");
 		$this->EnableLDAPAmavis=$sock->GET_INFO("EnableLDAPAmavis");
 		$this->EnableDKIMVerification=$sock->GET_INFO("EnableAmavisDKIMVerification");
+		$this->AmavisPerUser=$sock->GET_INFO("AmavisPerUser");
 		if(!is_numeric($this->EnableLDAPAmavis)){$this->EnableLDAPAmavis=0;}
 		if(!is_numeric($this->EnableDKIMVerification)){$this->EnableDKIMVerification=0;}
 		if(!is_numeric($this->AmavisNoInternetTests)){$this->AmavisNoInternetTests=1;}
+		if(!is_numeric($this->AmavisPerUser)){$this->AmavisPerUser=0;}
 		
 		
 		writelogs("this->EnableScanSecurity=$this->EnableScanSecurity",__CLASS__.'/'.__FUNCTION__,__FILE__);
@@ -65,6 +70,7 @@ class amavis{
 			$sock->SET_INFO("EnableScanSecurity",1);
 			$this->EnableScanSecurity=1;
 		}
+		
 		
 		
 		
@@ -382,6 +388,26 @@ function GetLocalDomains(){
 	if(substr($domains,strlen($domains)-1,1)==','){$domains=substr($domains,0,strlen($domains)-1);}
 	return $domains;
 	}
+	
+	
+private function MySQLSettings(){
+	include_once(dirname(__FILE__)."/class.amavidb.inc");
+	$amavis=new amavisdb();
+	$f[]="# MySQL settings AmavisPerUser:$this->AmavisPerUser";
+	if($this->AmavisPerUser==1){
+		$f[]="\$sql_allow_8bit_address = 1;";
+		$f[]="\$sql_select_policy=\"SELECT *,users.id FROM users,policy WHERE (users.policy_id=policy.id) AND (users.email IN (%k)) ORDER BY users.priority DESC\";";
+		$f[]="\$sql_select_white_black_list=\"SELECT wb FROM wblist,mailaddr WHERE (wblist.rid=?) AND (wblist.sid=mailaddr.id) AND (mailaddr.email IN (%k)) ORDER BY mailaddr.priority DESC\";";
+		$f[]="@lookup_sql_dsn =  ($amavis->dbidsn);";
+		$f[]="@storage_sql_dsn = @lookup_sql_dsn;";
+		$f[]="\$virus_quarantine_method = 'sql:';";
+		$f[]="\$spam_quarantine_method = 'sql:';";
+		$f[]="\$banned_files_quarantine_method = 'sql:';";
+		$f[]="\$bad_header_quarantine_method = 'sql:';";	
+	}
+	
+	return @implode("\n",$f)."\n";
+}
 		
 function buildconf(){
 	$users=new usersMenus();
@@ -624,7 +650,9 @@ function buildconf(){
 		
 		
 		
-		
+		$conf=$conf."# MySQL defined settings\n";
+		$conf=$conf.$this->MySQLSettings();
+		$conf=$conf."# #######################\n\n";
 		$currentip=$this->getInternalIPs();
 		$conf=$conf."#adding net acl $currentip of all interfaces prevent DENIED ACCESS from IP 172.16.X.YYY\n";
 		$conf=$conf ."@inet_acl = qw($currentip);\n";
@@ -814,7 +842,11 @@ function buildconf(){
 		$conf=$conf."\$final_spam_destiny       = {$this->main_array["BEHAVIORS"]["final_spam_destiny"]};\n";
 		$conf=$conf."\$final_bad_header_destiny = {$this->main_array["BEHAVIORS"]["final_bad_header_destiny"]};\n";
 		$conf=$conf."\$mailfrom_to_quarantine = undef;\n";
-		$conf=$conf."\$spam_quarantine_method   = 'local:spam-%m.gz';\n";
+		if($this->AmavisPerUser==0){
+			$conf=$conf."\$spam_quarantine_method   = 'local:spam-%m.gz';\n";
+			$this->EnableQuarantineSpammy=1;
+			$this->EnableQuarantineSpammy2=0;
+		}
 		
 		if($this->EnableQuarantineSpammy==1){
 			$conf=$conf."\$defang_by_ccat{CC_SPAMMY, 1};\n";	
@@ -970,7 +1002,14 @@ function buildconf(){
 			
 			$always_clean=null;
 			$EnableClamavDaemon=$sock->GET_INFO("EnableClamavDaemon");
+			
 			if(!is_numeric($EnableClamavDaemon)){$EnableClamavDaemon=0;}
+			
+			$EnableClamavDaemonForced=$sock->GET_INFO("EnableClamavDaemonForced");
+			if(!is_numeric($EnableClamavDaemonForced)){$EnableClamavDaemonForced=0;}
+			if($EnableClamavDaemonForced==1){$EnableClamavDaemon=1;}
+			
+			
 			if($users->CLAMAV_INSTALLED){
 				if(strlen($users->CLAMAV_SOCKET)>0){
 					if($EnableClamavDaemon==1){

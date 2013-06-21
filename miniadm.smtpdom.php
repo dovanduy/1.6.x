@@ -67,6 +67,11 @@ function webstats_middle(){
 	$tpl=new templates();	
 	$users=new usersMenus();
 	$ou=base64_encode($_SESSION["ou"]);
-	$html="<div id='BodyContent'></div><script>LoadAjax('BodyContent','domains.edit.domains.php?ajax=yes&ou=$ou&expand=yes');</script>";
+	if(isset($_GET["title"])){
+		$title=$tpl->_ENGINE_parse_body("<H1>{manage_internet_domains}</H1><p>{manage_internet_domains_text}</p>");
+	}
+	
+	
+	$html="$title<div id='BodyContent'></div><script>LoadAjax('BodyContent','domains.edit.domains.php?ajax=yes&ou=$ou&expand=yes');</script>";
 	echo $html;
 }	

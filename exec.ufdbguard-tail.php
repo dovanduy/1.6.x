@@ -98,12 +98,20 @@ if(strpos($buffer,"acl {")>0){return ;}
 if(strpos($buffer,"URL verifications")>0){return ;}
 if(strpos($buffer,"must be part of the security")>0){return ;}
 if(strpos($buffer,"}")>0){return ;}
+if(strpos($buffer,"finished retrieving")>0){return ;}
+if(strpos($buffer,"] statistics:")>0){return ;}
+if(strpos($buffer,"loading URL table from")>0){return ;}
+if(strpos($buffer,"]    option")>0){return ;}
 if(strpos($buffer,"{")>0){return ;}
 if(strpos($buffer,"] category \"")>0){return ;}
 if(strpos($buffer,"]    domainlist     \"")>0){return ;}
 if(strpos($buffer,"]       pass ")>0){return ;}
 if(strpos($buffer,"] safe-search")>0){return ;}
 if(strpos($buffer,"configuration file")>0){return ;}
+if(strpos($buffer,"refreshdomainlist")>0){return ;}
+if(strpos($buffer,"software suite is free and Open Source Software")>0){return ;}
+if(strpos($buffer,"by URLfilterDB")>0){return ;}
+if(strpos($buffer,"] configuration status")>0){return ;}
 if(strpos($buffer,'expressionlist "')>0){return ;}
 if(strpos($buffer,'is newer than')>0){return ;}
 if(strpos($buffer,'source "')>0){return ;}

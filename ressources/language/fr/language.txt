@@ -1080,7 +1080,7 @@ Copiez/collez une liste d'ordinateurs avec chaque nom d'ordinateur s&eacute;par&
 <connection_cache_ttl_limit>Temps maximum de dur&eacute;e de vie</connection_cache_ttl_limit>
 <connection_cache_ttl_limit_text>La taille maximale de dur&eacute;e de vie (TTL) que le processus &quot;scache&quot; va conserver .[br]Les requ&ecirc;tes qui sp&eacute;cifient une valeur TTL plus grande vont &ecirc;tre r&eacute;duite &agrave; cette valeur.[br]Le but de ce contr&ocirc;le additionnel est de prot&eacute;ger l'infrastructure contre des personnes imprudentes.</connection_cache_ttl_limit_text>
 <connection_to_backup_failed>&Eacute;chec de connexion &agrave; la ressource distante</connection_to_backup_failed>
-<ConnectTimeout>Connect Timeout</ConnectTimeout>
+<ConnectTimeout>Temps MAX de connexion</ConnectTimeout>
 <consumption>Consommation</consumption>
 <contacts>Contacts</contacts>
 <contacts_databases>Bases de contacts</contacts_databases>

@@ -25,7 +25,7 @@ if($unix->process_exists(@file_get_contents($pidfile),basename(__FILE__))){echo 
 $pid=getmypid();
 echo "Starting......: Postfix configurator running $pid\n";
 file_put_contents($pidfile,$pid);
-
+if($argv[1]=='--wlscreen'){wlscreen();die();}
 
 
 $users=new usersMenus();
@@ -1370,6 +1370,16 @@ function OthersValues(){
 	$disable_dns_lookups=$mainmulti->GET("disable_dns_lookups");
 	$smtpd_banner=$mainmulti->GET('smtpd_banner');
 	
+	$detect_8bit_encoding_header=$main->GET("detect_8bit_encoding_header");
+	$disable_mime_input_processing=$main->GET("disable_mime_input_processing");
+	$disable_mime_output_conversion=$main->GET("disable_mime_output_conversion");
+	
+	
+	if(!is_numeric($detect_8bit_encoding_header)){$detect_8bit_encoding_header=1;}
+	if(!is_numeric($disable_mime_input_processing)){$disable_mime_input_processing=0;}
+	if(!is_numeric($disable_mime_output_conversion)){$disable_mime_output_conversion=0;}
+	
+	
 	if(!is_numeric($ignore_mx_lookup_error)){$ignore_mx_lookup_error=0;}
 	if(!is_numeric($disable_dns_lookups)){$disable_dns_lookups=0;}
 	if(!is_numeric($smtpd_reject_unlisted_recipient)){$smtpd_reject_unlisted_recipient=1;}
@@ -1432,14 +1442,22 @@ function OthersValues(){
 	
 	
 	
+	$detect_8bit_encoding_header=$mainmulti->YesNo($detect_8bit_encoding_header);
+	$disable_mime_input_processing=$mainmulti->YesNo($disable_mime_input_processing);
+	$disable_mime_output_conversion=$mainmulti->YesNo($disable_mime_output_conversion);
 	
-	$address_verify_negative_cache=$mainmulti->YesNo($address_verify_negative_cache);
-	$smtpd_reject_unlisted_sender=$mainmulti->YesNo($smtpd_reject_unlisted_sender);
-	$smtpd_reject_unlisted_recipient=$mainmulti->YesNo($smtpd_reject_unlisted_recipient);
+
+	
+	$mime_nesting_limit=$mainmulti->GET("mime_nesting_limit");
+	if(!is_numeric($mime_nesting_limit)){
+		$mime_nesting_limit=$sock->GET_INFO("mime_nesting_limit");
+	}
+	
+	if(!is_numeric($mime_nesting_limit)){$mime_nesting_limit=100;}
 	
 	$main->main_array["default_destination_recipient_limit"]=$sock->GET_INFO("default_destination_recipient_limit");
 	$main->main_array["smtpd_recipient_limit"]=$sock->GET_INFO("smtpd_recipient_limit");
-	$main->main_array["mime_nesting_limit"]=$sock->GET_INFO("mime_nesting_limit");
+	
 	$main->main_array["header_address_token_limit"]=$sock->GET_INFO("header_address_token_limit");
 	$main->main_array["virtual_mailbox_limit"]=$sock->GET_INFO("virtual_mailbox_limit");
 	
@@ -1447,13 +1465,20 @@ function OthersValues(){
 	if($main->main_array["virtual_mailbox_limit"]==null){$main->main_array["virtual_mailbox_limit"]=102400000;}
 	if($main->main_array["default_destination_recipient_limit"]==null){$main->main_array["default_destination_recipient_limit"]=50;}
 	if($main->main_array["smtpd_recipient_limit"]==null){$main->main_array["smtpd_recipient_limit"]=1000;}
-	if($main->main_array["mime_nesting_limit"]==null){$main->main_array["mime_nesting_limit"]=100;}
+	
 	if($main->main_array["header_address_token_limit"]==null){$main->main_array["header_address_token_limit"]=10240;}
 	
 	echo "Starting......: message_size_limit={$main->main_array["message_size_limit"]}\n";
 	echo "Starting......: default_destination_recipient_limit={$main->main_array["default_destination_recipient_limit"]}\n";
 	echo "Starting......: smtpd_recipient_limit={$main->main_array["smtpd_recipient_limit"]}\n";
-	echo "Starting......: mime_nesting_limit={$main->main_array["mime_nesting_limit"]}\n";
+	echo "Starting......: *** MIME PROCESSING ***\n";
+	echo "Starting......: mime_nesting_limit=$mime_nesting_limit\n";
+	echo "Starting......: detect_8bit_encoding_header=$detect_8bit_encoding_header\n";
+	echo "Starting......: disable_mime_input_processing=$disable_mime_input_processing\n";
+	echo "Starting......: disable_mime_output_conversion=$disable_mime_output_conversion\n";
+	
+	
+	
 	echo "Starting......: header_address_token_limit={$main->main_array["header_address_token_limit"]}\n";
 	echo "Starting......: minimal_backoff_time=$minimal_backoff_time\n";
 	echo "Starting......: maximal_backoff_time=$maximal_backoff_time\n";
@@ -1496,7 +1521,12 @@ function OthersValues(){
 	postconf("mailbox_size_limit","$message_size_limit");
 	postconf("default_destination_recipient_limit","{$main->main_array["default_destination_recipient_limit"]}");
 	postconf("smtpd_recipient_limit","{$main->main_array["smtpd_recipient_limit"]}");
-	postconf("mime_nesting_limit","{$main->main_array["mime_nesting_limit"]}");
+	
+	postconf("mime_nesting_limit","$mime_nesting_limit");
+	postconf("detect_8bit_encoding_header","$detect_8bit_encoding_header");
+	postconf("disable_mime_input_processing","$disable_mime_input_processing");
+	postconf("disable_mime_output_conversion","$disable_mime_output_conversion");
+		
 	postconf("minimal_backoff_time","$minimal_backoff_time");
 	postconf("maximal_backoff_time","$maximal_backoff_time");
 	postconf("maximal_queue_lifetime","$maximal_queue_lifetime");
@@ -1577,22 +1607,40 @@ function inet_interfaces(){
 	if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	if($sock->GET_INFO("EnablePostfixMultiInstance")==1){return;}
 	$table=explode("\n",$sock->GET_INFO("PostfixBinInterfaces"));	
+	$unix=new unix();
 	
+	$interfacesexists=$unix->NETWORK_ALL_INTERFACES();
+	while (list ($num, $myarray) = each ($interfacesexists) ){
+		$INTERFACE[$myarray["IPADDR"]]=$myarray["IPADDR"];
+	}
 	
 	while (list ($num, $val) = each ($table) ){
 		$val=trim($val);
 		if($val==null){continue;}
 		if(isset($already[$val])){continue;}
+		echo "Starting......: Postfix checking interface : `$val`\n";
+		if($val=="127.0.0.1"){
+			$newarray[]=$val;
+			$already[$val]=true;
+			continue;
+		}
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $val)){
+			if(!isset($INTERFACE[$val])){
+				echo "Starting......: Postfix $val interface not found\n";
+				continue;
+			}
+		}
+		
 		$already[$val]=true;
 		if(preg_match("#[a-zA-Z]+[0-9]+#", $val)){
 			$ipsaddrs=LoadIpAddresses($val);
 			while (list ($a, $b) = each ($ipsaddrs) ){
-				echo "Starting......: Postfix $nic found interface '$b'\n";
+				echo "Starting......: Postfix found interface '$b'\n";
 				$newarray[]=$b;
 			}
 		continue;
 		}
-		
+		echo "Starting......: Postfix add $val interface in settings\n";
 		$newarray[]=$val;
 	}
 	
@@ -2000,7 +2048,10 @@ function postscreen($hostname=null){
 		}		
 		
 	}		
+	
 
+		
+		
 	
 
 	$networks=$ldap->load_mynetworks();	
@@ -2016,6 +2067,14 @@ function postscreen($hostname=null){
 				}
 			}
 		}
+	}
+	
+	$postfix_global_whitelist_to_mx=$main->postfix_global_whitelist_to_mx();
+	if(count($postfix_global_whitelist_to_mx)>0){
+		while (list ($num, $ligne) = each ($postfix_global_whitelist_to_mx) ){
+			$nets[]="$ligne\tdunno";
+		}
+		
 	}
 	
 	@unlink("/etc/postfix/postscreen_access.hosts");
@@ -2738,10 +2797,12 @@ function smtpd_milters(){
 	while (list ($key, $value) = each ($milter_array) ){
 		postconf($key,$value);
 	}
-	
-	
-	
-	
+}
+
+function wlscreen(){
+	echo "wlscreen()\n";
+	$f=new maincf_multi();
+	$f->postfix_global_whitelist_to_mx();
 	
 	
 }

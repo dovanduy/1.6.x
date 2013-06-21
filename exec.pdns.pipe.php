@@ -1,15 +1,30 @@
 #!/usr/bin/php -q
 <?php
-$GLOBALS["DEBUG"]=true;
+$GLOBALS["DEBUG"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;echo "VERBOSED !!! \n";}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if($GLOBALS["VERBOSE"]){$GLOBALS["DEBUG"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
-
+include_once("/usr/share/artica-postfix/ressources/class.mysql.squid.builder.php");
 $GLOBALS["UFDBGCLIENT"]=ufdbguardConstruct();
-$descriptorspec = array(0 => array("pipe", "r"),1 => array("pipe", "w"),2 => array("file", "/var/log/squid/pipe-error-output.txt", "a"));
-$process = proc_open ($GLOBALS["UFDBGCLIENT"], $descriptorspec, $pipes);
-if (!is_resource($process)) {WriteToSyslog("Running pipe /usr/bin/ufdbgclient  failed");die();}
-if(is_resource($process)){WriteToSyslog("PIPE:$process: Running pipe on /usr/bin/ufdbgclient success");}
+$GLOBALS["SplashScreenURI"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/SplashScreenURI");
+$GLOBALS["PdnsHotSpot"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/PdnsHotSpot");
+$GLOBALS["PDSNInUfdb"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/PDSNInUfdb");
+if(!is_numeric($GLOBALS["PDSNInUfdb"])){$GLOBALS["PDSNInUfdb"]=0;}
+if(!is_numeric($GLOBALS["PdnsHotSpot"])){$GLOBALS["PdnsHotSpot"]=0;}
+if($GLOBALS["SplashScreenURI"]==null){$GLOBALS["PdnsHotSpot"]=0;}
+
+if($argv[1]=="--resolve"){
+	HotSpotRequests($argv[2],$argv[3],0,0,0);
+	die();
+}
+
+
+if($GLOBALS["PDSNInUfdb"]==1){
+	$descriptorspec = array(0 => array("pipe", "r"),1 => array("pipe", "w"),2 => array("file", "/var/log/squid/pipe-error-output.txt", "a"));
+	$process = proc_open ($GLOBALS["UFDBGCLIENT"], $descriptorspec, $pipes);
+	if (!is_resource($process)) {WriteToSyslog("Running pipe /usr/bin/ufdbgclient  failed");die();}
+	if(is_resource($process)){WriteToSyslog("PIPE:$process: Running pipe on /usr/bin/ufdbgclient success");}
+}
 
 if($GLOBALS["VERBOSE"]){
 	$textTosend="http://{$argv[1]} {$argv[2]}/ - GET\n";
@@ -19,6 +34,8 @@ if($GLOBALS["VERBOSE"]){
 	closepipe($process,$pipes);
 	die();
 }
+
+$q=new mysql_squid_builder();
 
 while ( $szTmp = @fgets(STDIN) ) {
 		$line = trim($szTmp);
@@ -43,7 +60,6 @@ while ( $szTmp = @fgets(STDIN) ) {
 			
 		}
 		if($GLOBALS["DEBUG"]){
-			WriteToSyslog(@implode(" ", $ll));
 			WriteToSyslog("TYPE: $TYPE DOMAIN:$szDom CLASS:$CLASS QTYPE:$QTYPE ID:$ID Ip:$szIp");
 		}
 		
@@ -59,26 +75,40 @@ while ( $szTmp = @fgets(STDIN) ) {
 			if(strlen($szDom)>4){
 				if(strpos(" $szDom", "*")==0){
 					if(!preg_match("#\.arpa$#", $szDom)){
-						$full=trim(ufdbgclient("http://$szDom $szIp/ - GET\n",$pipes));	
-						if($GLOBALS["DEBUG"]){WriteToSyslog("ufdbgclient:".strlen($full)." bytes...");}
-						$t=time();
-							if(strlen($full)>3){
+						if($GLOBALS["DEBUG"]){WriteToSyslog("PDSNInUfdb:{$GLOBALS["PDSNInUfdb"]} PdnsHotSpot:{$GLOBALS["PdnsHotSpot"]} Check query $szDom for $szIp");}
+						$sends=null;
+						//**********************************************************************
+						if($GLOBALS["PDSNInUfdb"]==1){						
+							$sends=UfdbRequests($szDom,$szIp,$pipes,$CLASS,$ID);
+							if(strlen($sends)>0){echo $sends;}
 								
-								if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $GLOBALS["PDSNInUfdbWebsite"])){
-									$sends="DATA\t$szDom\t$CLASS\tA\t600\t$ID\t{$GLOBALS["PDSNInUfdbWebsite"]}\n";
-								}else{
-									$sends="DATA\t$szDom\t$CLASS\tCNAME\t600\t$ID\t{$GLOBALS["PDSNInUfdbWebsite"]}\n";
-								}
-								
-								if(strlen($sends)>0){
-									if($GLOBALS["DEBUG"]){WriteToSyslog("SEND:". str_replace("\t", " ", $sends));}
-									echo $sends;
-								}
+						}
+						//**********************************************************************
+						if(strlen($sends)==0){
+							if($GLOBALS["PdnsHotSpot"]==1){
+								$array["LOGIN"]=null;
+								$array["IPADDR"]=$szIp;
+								$array["MAC"]=null;
+								$array["HOST"]=null;
+								$uid=$q->Hotspot_SessionActive($array);
+								if($uid==null){
+									if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $GLOBALS["SplashScreenURI"])){
+										$sends="DATA\t$szDom\t$CLASS\tA\t0\t$ID\t{$GLOBALS["SplashScreenURI"]}\n";
+									}else{
+										$sends="DATA\t$szDom\t$CLASS\tCNAME\t0\t$ID\t{$GLOBALS["SplashScreenURI"]}\n";
+									}
+								}								
+								if(strlen($sends)>0){echo $sends;}
 							}
 						}
+						//**********************************************************************						
+						
 					}
 				}
+			}
 		}
+		
+		
 		//echo "LOG\tValue: ".$szDom.", ".$szIp."\n";
 		echo "END\n";
 		if($GLOBALS["DEBUG"]){WriteToSyslog("finishing query...");}
@@ -86,6 +116,71 @@ while ( $szTmp = @fgets(STDIN) ) {
 
 closepipe($process,$pipes);
 die();
+
+function HotSpotRequests($szDom,$szIp,$pipes,$CLASS,$ID){
+	if($szDom==$GLOBALS["SplashScreenURI"]){return null;}
+	if($szIp=="127.0.0.1"){return null;}
+	$time=time();
+	if($GLOBALS["DEBUG"]){WriteToSyslog("HotSpotRequests($szDom,$szIp...)");}
+	$q=new mysql_squid_builder();
+	$sql="SELECT md5,finaltime FROM hotspot_sessions WHERE ipaddr='$szIp' AND finaltime>$time";
+	if($GLOBALS["DEBUG"]){WriteToSyslog("HotSpotRequests:: $sql");}
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if(!$q->ok){
+		if(preg_match("#Unknown column.*?ipaddr#", $q->mysql_error)){
+			$q->QUERY_SQL("ALTER TABLE `hotspot_sessions` ADD `ipaddr` VARCHAR( 128 ) ,ADD INDEX ( `ipaddr` )");
+			WriteToSyslog("HotSpotRequests FATAL !! $q->mysql_error check DB");
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		}
+	}
+	
+	
+	if(!$q->ok){	
+		WriteToSyslog("HotSpotRequests FATAL !! $q->mysql_error");
+		return;
+	}
+	
+	$finaltime=$ligne["finaltime"];
+	$md5_session=$ligne["md5"];
+	
+	if($GLOBALS["DEBUG"]){WriteToSyslog("$finaltime/$md5_session");}
+
+	
+	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $GLOBALS["SplashScreenURI"])){
+		$sends="DATA\t$szDom\t$CLASS\tA\t0\t$ID\t{$GLOBALS["SplashScreenURI"]}\n";
+	}else{
+		$sends="DATA\t$szDom\t$CLASS\tCNAME\t0\t$ID\t{$GLOBALS["SplashScreenURI"]}\n";
+	}	
+	
+	if($md5_session==null){
+		WriteToSyslog("HotSpotRequests: no session set for $szIp return {$GLOBALS["SplashScreenURI"]}");
+		return $sends;
+	}
+
+	$reste=PdnsPIpedistanceOfTimeInWords($finaltime,$time);
+	if($GLOBALS["DEBUG"]){WriteToSyslog("HotSpotRequests session OK: $reste");}
+	
+	
+	
+}
+
+function UfdbRequests($szDom,$szIp,$pipes,$CLASS,$ID){
+	$sends=null;
+	if($szIp=="127.0.0.1"){return null;}
+	$full=trim(ufdbgclient("http://$szDom $szIp/ - GET\n",$pipes));
+	if($GLOBALS["DEBUG"]){WriteToSyslog("ufdbgclient:".strlen($full)." bytes...");}	
+	$t=time();
+	if(strlen($full)>3){
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $GLOBALS["PDSNInUfdbWebsite"])){
+			$sends="DATA\t$szDom\t$CLASS\tA\t10\t$ID\t{$GLOBALS["PDSNInUfdbWebsite"]}\n";
+		}else{
+			$sends="DATA\t$szDom\t$CLASS\tCNAME\t10\t$ID\t{$GLOBALS["PDSNInUfdbWebsite"]}\n";
+		}		
+		
+	}
+	return $sends;
+}
+
 
 function ufdbgclient($full,$pipes=null){
 	//http://192.168.1.245/Inotify.php?_=1355916677559 192.168.1.158/- - GET myip=192.168.1.238 myport=3128
@@ -107,6 +202,60 @@ function ufdbgclient($full,$pipes=null){
 	SetCache($KEY,$results[0]);
 	return $results[0];
 
+}
+function PdnsPIpedistanceOfTimeInWords($fromTime, $toTime = 0, $showLessThanAMinute = true) {
+	$distanceInSeconds = round(abs($toTime - $fromTime));
+	$distanceInMinutes = round($distanceInSeconds / 60);
+
+	if ( $distanceInMinutes <= 1 ) {
+		if ( !$showLessThanAMinute ) {
+			return ($distanceInMinutes == 0) ? 'less than a minute' : '1 minute';
+		} else {
+			if ( $distanceInSeconds < 5 ) {
+				return 'less than 5 seconds ('.$distanceInSeconds.'s)';
+			}
+			if ( $distanceInSeconds < 10 ) {
+				return 'less than 10 seconds ('.$distanceInSeconds.'s)';
+			}
+			if ( $distanceInSeconds < 20 ) {
+				return 'less than 20 seconds ('.$distanceInSeconds.'s) ';
+			}
+			if ( $distanceInSeconds < 40 ) {
+				return 'about half a minute ('.$distanceInSeconds.'s)';
+			}
+			if ( $distanceInSeconds < 60 ) {
+				return 'less than a minute';
+			}
+
+			return '1 minute';
+		}
+	}
+	if ( $distanceInMinutes < 45 ) {
+		return $distanceInMinutes . ' minutes';
+	}
+	if ( $distanceInMinutes < 90 ) {
+		return 'about 1 hour';
+	}
+	if ( $distanceInMinutes < 1440 ) {
+		return 'about ' . round(floatval($distanceInMinutes) / 60.0) . ' hours';
+	}
+	if ( $distanceInMinutes < 2880 ) {
+		return '1 day';
+	}
+	if ( $distanceInMinutes < 43200 ) {
+		return 'about ' . round(floatval($distanceInMinutes) / 1440) . ' days';
+	}
+	if ( $distanceInMinutes < 86400 ) {
+		return 'about 1 month';
+	}
+	if ( $distanceInMinutes < 525600 ) {
+		return round(floatval($distanceInMinutes) / 43200) . ' months';
+	}
+	if ( $distanceInMinutes < 1051199 ) {
+		return 'about 1 year';
+	}
+
+	return 'over ' . round(floatval($distanceInMinutes) / 525600) . ' years';
 }
 
 function SetCache($KEY,$UriDest){

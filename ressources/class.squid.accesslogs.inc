@@ -6,7 +6,7 @@ class accesslogs{
 	
 	function accesslogs(){}
 	
-	public function Buildline($array){
+	public function Buildline($array,$boostrap=false){
 		$tcp=new IP();
 		$date=$array["DATE"];
 		$mac=$array["MAC"];
@@ -19,9 +19,11 @@ class accesslogs{
 		$ip=$array["IP"];
 		$today=date("Y-m-d");
 		$proxy=null;
-		
+		$trclass=null;
 		if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
-		
+		$http_status_codes=$this->http_status_codes();
+		$color="inherit";
+		$date=str_replace($today, "", $date);
 		if(preg_match('#Forwarded:"(.*?)"#', $line,$re)){
 			if($re[1]<>"-"){$ip=$re[1];}
 		}
@@ -30,7 +32,13 @@ class accesslogs{
 			$color="#BA0000";
 			$return_code_text="<div style='color:$color;font-size:11px'><i>$proxy&laquo;($return_code) TCP_DENIED/ERR_CONNECT_FAIL&raquo;$line</i></div>";
 			}		
-		if($return_code>399){$color="#D60808";$return_code_text="<div style='color:$color;font-size:11px'><i>$proxy&laquo;{$http_status_codes[$return_code]}&raquo;</i></div>";}
+		if($return_code>399){
+				$color="#D60808";
+				$return_code_text="<div style='color:$color;font-size:11px'>
+				<i>$proxy&laquo;{$http_status_codes[$return_code]}&raquo;</i>
+				</div>";
+			$trclass="warning";
+		}
 		
 		if(isset($array["PROXY"])){
 	
@@ -49,7 +57,7 @@ class accesslogs{
 				style='text-decoration:underline;color:$color'>$ip</a>";;
 	
 		if($user=="-"){$user=null;}
-		$http_status_codes=$this->http_status_codes();
+		
 	
 
 		
@@ -78,11 +86,19 @@ class accesslogs{
 	
 		$host=$GLOBALS["Q"]->GetFamilySites($this->GetDomainFromURl($uri));
 		if($host=="cache_object"){return null;}
+		
+		
+		
 	
 		if($this->stats){
+			if(!$boostrap){
 			$uri=str_replace($host, "<a href=\"javascript:blur()\"
 				OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?today-zoom=yes&type=req&familysite=$host&day=$today');\"
 				style='text-decoration:underline;color:$color'>$host</a>", $uri);
+			}
+			
+			
+			
 		}
 		
 		$spanON="<span style='color:$color'>";
@@ -108,6 +124,24 @@ class accesslogs{
 				
 		}
 		
+		
+		if($boostrap){
+			$strlen=strlen($uri);
+			$uriT = wordwrap($uri, 100, "\n", true);
+			$uriT = htmlentities($uriT);
+			$uriT = nl2br($uriT);
+			$uriT=str_replace($host, "<a href=\"javascript:blur()\"
+					OnClick=\"javascript:Loadjs('miniadm.webstats.familysite.all.php?familysite=$host');\"
+					style='text-decoration:underline;color:$color'>$host</a>", $uriT);
+			
+			return "<tr class='$trclass'>
+			<td nowrap>$date</td>
+			<td>$proto</td>
+			<td>$uriT$return_code_text</td>
+			<td>". @implode("&nbsp;|&nbsp;", $ident)."</td>
+			</tr>";
+			
+		}
 		
 	
 		return array('id' => md5($line),

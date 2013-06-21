@@ -2645,10 +2645,10 @@ function USER_CHANGE_EMAIL() {
 	
 	$user_domain = Field_array_Hash ( $domains, 'UserChangeEmailDomain', $domain,"style:font-size:16px'" );
 	$form = Field_hidden ( 'UserChangeEmailAddrUID', $ct->uid ) . "
-	<div id='ChangeUserPasswordID'>
+	<div id='ChangeUserPasswordID' style='width:95%' class=form>
 	<div style='text-align:left;margin-bottom:8px'><i style='font-size:16px;font-weight:bold;padding-bottom:4px'>$ct->DisplayName, {email}:</i></div>
 	<center>
-	<table style='width:95%' class=form>
+	<table >
 	<tbody>
 	<tr>
 		<td>" . Field_text ( 'email', $email, "width:160px;font-size:16px;text-align:right" ) . "</td>	
@@ -2730,8 +2730,8 @@ function USER_CHANGE_PASSWORD() {
 	}
 	
 	$form = Field_hidden ( 'UserPasswordID', $ct->uid ) . "
-	<div id='ChangeUserPasswordID'>
-	<table style='width:99%' class=form>
+	<div id='ChangeUserPasswordID' style='width:95%' class=form>
+	<table>
 	<tr>
 		<td class=legend style='font-size:16px;'>{password}:</td>
 		<td>" . Field_password ("UserPassword", $ct->password, "font-size:16px;padding:5px;width:90%" ) . "</td>

@@ -8,6 +8,7 @@
 	include_once('ressources/class.ini.inc');
 	include_once('ressources/class.amavis.inc');
 	$user=new usersMenus();
+	
 	if($user->AsPostfixAdministrator==false){
 		$tpl=new templates();
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
@@ -119,7 +120,9 @@ function popup(){
 	$tr[]=$EnableAmavisDaemonP;
 	$tr[]=Paragraphe32("watchdog", "watchdog_amavis_text", "Loadjs('amavis.daemon.watchdog.php')", "watchdog-32.png");
 	$tr[]=Paragraphe32("postfix_hooking", "postfix_hooking_text", "Loadjs('amavis.index.php?hooking-js=yes')", "folder-equerre-32.png");
+	$tr[]=Paragraphe32("amavis_wizard_rule_per_user", "amavis_wizard_rule_per_user_text", "Loadjs('amavis.wizard.users.php')", "32-wizard.png");
 	$tr[]=Paragraphe32("reload_service", "reload_service_text", "AmavisCompileRules()", "service-restart-32.png");
+	
 	
 	
 	https://192.168.1.213:9000/amavis.daemon.watchdog.php?_=1345459954124
@@ -191,6 +194,8 @@ function status(){
 	$status_amavismilter=DAEMON_STATUS_ROUND("AMAVISD_MILTER",$ini,null);
 	$status_spamassassin=DAEMON_STATUS_ROUND("SPAMASSASSIN",$ini,null);
 	$status_clamav=DAEMON_STATUS_ROUND("CLAMAV",$ini,null);
+	$status_amavisdb=DAEMON_STATUS_ROUND("APP_AMAVISDB",$ini,null);
+	
 	$tpl=new templates();
 	
 	$html="<table style='width:99%' class=form>
@@ -208,7 +213,7 @@ function status(){
 		</table>
 		</center>	
 	
-	$status_amavismilter$status_spamassassin$status_clamav</td>
+	$status_amavismilter$status_spamassassin$status_clamav$status_amavisdb</td>
 	</tr>
 	</table>
 	<div style='text-align:right'>". imgtootltip("refresh-32.png","{refresh}","LoadAjax('status-$t','$page?status=yes&t=$t');")."</div>";

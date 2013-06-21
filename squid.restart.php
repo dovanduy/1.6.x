@@ -253,16 +253,17 @@ function restart(){
 	
 	$cmd="cmd.php?force-restart-squid=yes";
 	if(isset($_GET["onlySquid"])){
-		$cmd="cmd.php?force-restart-squidonly=yes$ApplyConfToo";
+		$ApplyConfToo="&ApplyConfToo=yes";
+		$cmd="cmd.php?force-restart-squidonly=yes$ApplyConfToo&force=yes";
 	}
 	
 	if(isset($_GET["onlyreload"])){
-		$cmd="squid.php?squid-k-reconfigure=yes";
+		$cmd="squid.php?squid-k-reconfigure=yes&force=yes";
 		
 	}
 	
 	if(isset($_GET["CheckCaches"])){
-		$cmd="squid.php?squid-z-reconfigure=yes";
+		$cmd="squid.php?squid-z-reconfigure=yes&force=yes";
 	}
 	
 	if(isset($_GET["firewall"])){

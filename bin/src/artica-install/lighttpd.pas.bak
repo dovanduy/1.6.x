@@ -24,17 +24,17 @@ private
      mem_pid:string;
      lighttpd_modules:Tstringlist;
      mem_binpath:string;
-    procedure   LIGHTTPD_DEFAULT_CONF_SAVE();
-    function    APACHE_ARTICA_ENABLED():string;
+
+
     function    Explode(const Separator, S: string; Limit: Integer = 0):TStringDynArray;
-    function    _IS_INCLUDE_EXISTS(include_value:string;needed:string):boolean;
-    procedure   CHECK_SUBFOLDER();
-    function    SET_PHP_CGI_BINPATH():boolean;
+
+
+
     function    ActiveIP():string;
     function    APACHE_ENABLED():string;
     procedure   IS_CGI_SPAWNED();
-    function    isModule(modulename:string):boolean;
-    procedure   LOAD_MODULES();
+
+
     function    roundcube_main_folder():string;
     function    lighttpd_modules_path():string;
 
@@ -51,7 +51,7 @@ public
     function    LIGHTTPD_INITD():string;
     function    LIGHTTPD_LOG_PATH():string;
     function    LIGHTTPD_SOCKET_PATH():string;
-    function    LIGHTTPD_PID():string;
+
     function    LIGHTTPD_GET_USER():string;
     function    LIGHTTPD_CONF_PATH:string;
     procedure   LIGHTTPD_CERTIFICATE();
@@ -63,9 +63,9 @@ public
     procedure   CLEAN_PHP5_SESSIONS();
     procedure   TROUBLESHOTLIGHTTPD();
     function    lighttpd_server_key(key:string):string;
-    procedure   LIGHTTPD_RELOAD();
-    procedure    POMMO_ALIASES();
-    function    POMMO_VERSION():string;
+
+
+
 
     procedure   PHPMYADMIN();
 
@@ -76,9 +76,9 @@ public
     function    CACHE_STATUS:string;
     function    LIGHTTPD_LISTEN_PORT():string;
     function    LIGHTTPD_CERTIFICATE_PATH():string;
-    function    DEFAULT_CONF():string;
+
     procedure   CHANGE_INIT();
-    function    IS_AUTH_LDAP():boolean;
+
     FUNCTION    IS_IPTABLES_INPUT_RULES():boolean;
     procedure   CreateWebFolders();
     function    MON():string;
@@ -99,7 +99,7 @@ begin
        InsufficentRessources:=SYS.ISMemoryHiger1G();
        DisableEaccelerator:=0;
        lighttpd_modules:=Tstringlist.Create;
-       if APACHE_ARTICA_ENABLED()='1' then EnableLighttpd:=0;
+
 
        if not TryStrToInt(SYS.GET_INFO('DisableEaccelerator'),DisableEaccelerator) then DisableEaccelerator:=0;
 
@@ -377,23 +377,18 @@ begin
    logs.OutputCmd('/bin/chmod 755 /var/lib/php/session');
    logs.OutputCmd('/bin/chmod 755 /var/lighttpd/upload');
    logs.Debuglogs('Starting......: lighttpd: Saving default configuration');
-   LIGHTTPD_DEFAULT_CONF_SAVE();
    logs.Debuglogs('Starting......: lighttpd: Adding include path..');
    LIGHTTPD_ADD_INCLUDE_PATH();
-   logs.Debuglogs('Starting......: lighttpd: Checking sub-directories');
-   CHECK_SUBFOLDER();
+
    if not FileExists(LIGHTTPD_CERTIFICATE_PATH()) then begin
       logs.Debuglogs('LIGHTTPD_VERIF_CONFIG() -> LIGHTTPD_CERTIFICATE()');
       LIGHTTPD_CERTIFICATE();
    end;
 
-          if not SET_PHP_CGI_BINPATH() then begin
-             logs.Debuglogs('Starting......: lighttpd:  fatal error while setting lighttpd.conf');
-             exit;
-          end;
+
 
           logs.Debuglogs('Starting......: lighttpd:  Checking pommo aliases');
-          POMMO_ALIASES();
+
           forcedirectories('/var/run/lighttpd');
           if length(logs_path)>0 then forcedirectories(logs_path);
           logs.Debuglogs('Starting......: lighttpd:  Checking securities on '+user+':'+group);
@@ -405,202 +400,14 @@ end;
 
 //##############################################################################
 procedure Tlighttpd.LIGHTTPD_START(notroubleshoot:boolean);
-var
-   pid:string;
-   user:string;
-   group:string;
-   daemon:boolean;
-   RegExpr:TRegExpr;
-   LighttpdArticaDisabled:integer;
-   SessionPathInMemory:integer;
-   SessionPath:string;
-   nohup:string;
-   memc:tmemcached;
 begin
-   daemon:=LOGS.COMMANDLINE_PARAMETERS('--daemon');
-   if not TryStrToInt(SYS.GET_INFO('LighttpdArticaDisabled'),LighttpdArticaDisabled) then LighttpdArticaDisabled:=0;
-   if not TryStrToInt(SYS.GET_INFO('SessionPathInMemory'),SessionPathInMemory) then SessionPathInMemory:=0;
-   nohup:=SYS.LOCATE_GENERIC_BIN('nohup');
-
-
-logs.Debuglogs('###################### LIGHTTPD #####################');
-
-   if not FileExists(LIGHTTPD_BIN_PATH()) then begin
-       logs.Debuglogs('LIGHTTPD_START():: it seems that lighttpd is not installed... Aborting');
-       exit;
-   end;
-
-   if not FileExists('/etc/lighttpd/lighttpd.conf') then DEFAULT_CONF();
-
-   pid:=LIGHTTPD_PID();
-   if pid='0' then pid:=SYS.PROCESS_LIST_PID(LIGHTTPD_BIN_PATH());
-
-   if SYS.PROCESS_EXIST(pid) then begin
-      logs.Debuglogs('Starting......: lighttpd daemon is already running using PID ' + LIGHTTPD_PID() + '...');
-      if LighttpdArticaDisabled=1 then begin
-            logs.Debuglogs('Starting......: lighttpd daemon is already but lighttpd is disabled for Artica...');
-            LIGHTTPD_STOP();
-            memc:=tmemcached.Create(SYS);
-            memc.START();
-            memc.free;
-            exit;
-      end;
-      logs.Debuglogs('LIGHTTPD_START():: lighttpd already running with PID number ' + pid);
-      memc:=tmemcached.Create(SYS);
-      memc.START();
-      memc.free;
-      exit();
-   end;
-
-   if not SYS.isoverloaded() then begin
-      logs.Debuglogs('Starting......: lighttpd: lighttpd launching process1 for writing settings');
-      fpsystem(SYS.EXEC_NICE()+nohup+' /usr/share/artica-postfix/bin/process1 --force >/dev/null 2>&1 &');
-   end;
-   logs.DeleteFile('/var/log/lighttpd/error.log');
-
-   user:=LIGHTTPD_GET_USER();
-   RegExpr:=TRegExpr.Create;
-   RegExpr.Expression:='(.+?):(.+)';
-   if RegExpr.Exec(user) then begin
-       user:=RegExpr.Match[1];
-       group:=RegExpr.Match[2];
-   end;
-
-   SYS.AddUserToGroup(user,group,'','');
-
-   if RegExpr.Exec(group) then group:=RegExpr.Match[1];
-   if not SYS.isoverloaded() then begin
-      logs.Debuglogs('Starting......: lighttpd: Cleaning PHP5 sessions...');
-      CLEAN_PHP5_SESSIONS();
-   end;
-   SYS.THREAD_COMMAND_SET('/usr/share/artica-postfix/bin/artica-install --lighttpd-perms');
-
-
-   PHPMYADMIN();
-   if not SYS.isoverloaded() then begin
-      if DirectoryExists('/usr/share/phpmyadmin') then fpsystem('/bin/chown -R '+user+':'+group+' /usr/share/phpmyadmin');
-   end;
-
-   if LighttpdArticaDisabled=1 then begin
-      logs.Debuglogs('Starting......: lighttpd daemon is already but lighttpd is disabled for Artica...');
-      exit;
-   end;
-
-
-       if not SYS.PROCESS_EXIST(pid) then begin
-          logs.Debuglogs('Starting......: lighttpd: -> verif configuration');
-          if not SYS.isoverloaded() then LIGHTTPD_VERIF_CONFIG();
-          SessionPath:= SYS.LOCATE_PHP5_SESSION_PATH();
-          logs.Debuglogs('Starting......: lighttpd: User.........:'+user);
-          logs.Debuglogs('Starting......: lighttpd: Group........:'+group);
-          logs.Debuglogs('Starting......: lighttpd: Pid..........:'+pid);
-          logs.Debuglogs('Starting......: lighttpd: Port.........:' + LIGHTTPD_LISTEN_PORT());
-          logs.Debuglogs('Starting......: lighttpd: Logs path....:'+LIGHTTPD_LOG_PATH());
-          logs.Debuglogs('Starting......: lighttpd: Socket path..:'+LIGHTTPD_SOCKET_PATH());
-          logs.Debuglogs('Starting......: lighttpd: Php5-cgi path:'+PHP5_CGI_BIN_PATH());
-          logs.Debuglogs('Starting......: lighttpd: PHP client...:' + SYS.LOCATE_PHP5_BIN());
-          logs.Debuglogs('Starting......: lighttpd: Certificate..:'+LIGHTTPD_CERTIFICATE_PATH());
-          logs.Debuglogs('Starting......: lighttpd: PHP ext dir..:' + SYS.LOCATE_PHP5_EXTENSION_DIR());
-          logs.Debuglogs('Starting......: lighttpd: PHP ext conf.:' + SYS.LOCATE_PHP5_EXTCONF_DIR());
-          logs.Debuglogs('Starting......: lighttpd: PHP session.:' + SessionPath);
-          logs.Debuglogs('Starting......: lighttpd: Mem session.:' + IntTostr(SessionPathInMemory)+'M');
-
-          fpsystem(nohup+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.shm.php --SessionMem "'+SessionPath+'" >/dev/null 2>&1 &');
-          logs.OutputCmd(LIGHTTPD_BIN_PATH()+ ' -f /etc/lighttpd/lighttpd.conf');
-          fpsystem(nohup+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.shm.php --service-up >/dev/null 2>&1 &');
-
-
-       end else begin
-          if daemon then writeln('Starting......: lighttpd daemon is already running using PID ' + LIGHTTPD_PID() + '...');
-          logs.DebugLogs('Starting......: lighttpd daemon is already running using PID ' + LIGHTTPD_PID() + '...');
-       end;
-
-
-
-   if not SYS.PROCESS_EXIST(LIGHTTPD_PID()) then begin
-      logs.Debuglogs('Starting......: lighttpd: Failed');
-      logs.Debuglogs('Starting......: lighttpd: using "'+LIGHTTPD_BIN_PATH()+ ' -f /etc/lighttpd/lighttpd.conf"');
-      if not notroubleshoot then TROUBLESHOTLIGHTTPD();
-      end else begin
-      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.apc.compile.php');
-      logs.Debuglogs('Starting......: lighttpd: Success (PID ' + LIGHTTPD_PID() + ')');
-      IS_CGI_SPAWNED();
-
-      end;
-
-     memc:=tmemcached.Create(SYS);
-     memc.START();
-
+     fpsystem('/etc/init.d/artica-webconsole start');
 end;
 
 //##############################################################################
 procedure Tlighttpd.PHPMYADMIN();
-var l:Tstringlist;
-configtoadd:TstringList;
-phpmyadminAllowNoPassword:integer;
-database_password:string;
 begin
- if not FileExists('/usr/share/phpmyadmin/index.php') then begin
-    logs.DebugLogs('Starting......: lighttpd PhpMyAdmin: /usr/share/phpmyadmin/index.php no such file');
-    exit;
- end;
-
- configtoadd:=TStringlist.Create;
-if FileExists('/etc/artica-postfix/phpmyadmin_config.txt') then configtoadd.LoadFromFile('/etc/artica-postfix/phpmyadmin_config.txt');
-forceDirectories('/usr/share/phpmyadmin/config');
-if not TryStrToInt(SYS.GET_INFO('phpmyadminAllowNoPassword'),phpmyadminAllowNoPassword) then phpmyadminAllowNoPassword:=0;
-database_password:=SYS.MYSQL_INFOS('database_password');
-if database_password='!nil' then database_password:='';
-
-logs.DebugLogs('Starting......: lighttpd PhpMyAdmin: AllowNoPassword='+IntTOstr(phpmyadminAllowNoPassword));
-
-
-l:=Tstringlist.Create;
-l.add('<?php');
-l.add('/* Servers configuration */');
-l.add('$i = 0;');
-l.add('');
-l.add('/* Server: Artica Mysql [1] */');
-l.add('$i++;');
-l.add('$cfg["Servers"][$i]["verbose"] = "Artica Mysql";');
-l.add('$cfg["Servers"][$i]["host"] = "'+ SYS.MYSQL_INFOS('server')+'";');
-l.add('$cfg["Servers"][$i]["port"] = '+ SYS.MYSQL_INFOS('port')+';');
-l.add('$cfg["Servers"][$i]["socket"] = "";');
-l.add('$cfg["Servers"][$i]["connect_type"] = "tcp";');
-l.add('$cfg["Servers"][$i]["extension"] = "mysql";');
-l.add('$cfg["Servers"][$i]["auth_type"] = "cookie";');
-l.add('$cfg["Servers"][$i]["user"] = "'+ SYS.MYSQL_INFOS('database_admin')+'";');
-l.add('$cfg["Servers"][$i]["password"] = "'+database_password+'";');
-if phpmyadminAllowNoPassword=1 then  l.add('$cfg["Servers"][$i]["AllowNoPassword"] = True;');
-if FileExists('/opt/squidsql/bin/mysqld') then begin
-l.add('$i++;');
-l.add('$cfg["Servers"][$i]["verbose"] = "Squid Mysql";');
-l.add('$cfg["Servers"][$i]["socket"] = "/var/run/mysqld/squid-db.sock";');
-l.add('$cfg["Servers"][$i]["connect_type"] = "socket";');
-l.add('$cfg["Servers"][$i]["extension"] = "mysql";');
-l.add('$cfg["Servers"][$i]["auth_type"] = "cookie";');
-l.add('$cfg["Servers"][$i]["user"] = "root";');
-l.add('$cfg["Servers"][$i]["password"] = "";');
-l.add('$cfg["Servers"][$i]["AllowNoPassword"] = True;');
-end;
-l.add('');
-l.add(configtoadd.Text);
-l.add('/* End of servers configuration */');
-l.add('');
-l.add('$cfg["blowfish_secret"] = "4bf112360c9db0.66618545";');
-l.add('$cfg["DefaultLang"] = "en-utf-8";');
-l.add('$cfg["ServerDefault"] = 1;');
-l.add('$cfg["UploadDir"] = "";');
-l.add('$cfg["SaveDir"] = "";');
-l.add('?>');
-logs.WriteToFile(l.Text,'/usr/share/phpmyadmin/config.inc.php');
-l.free;
-configtoadd.free;
-logs.Debuglogs('Starting......: lighttpd: Success writing phpmyadmin configuration');
-if DirectoryExists('/usr/share/phpmyadmin/setup') then fpsystem('/bin/rm -rf /usr/share/phpmyadmin/setup');
-if DirectoryExists('/usr/share/phpmyadmin/config') then fpsystem('/bin/rm -rf /usr/share/phpmyadmin/config');
-
-
+     fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.lighttpd.php --phpmyadmin');
 
 end;
 //##############################################################################
@@ -696,7 +503,6 @@ for i:=0 to l.Count-1 do begin
     RegExpr.Expression:='can.+?find username\s+';
     if RegExpr.Exec(l.Strings[i]) then begin
         logs.Debuglogs('Starting......: lighttpd: detecting username error generate new configuration file');
-        LIGHTTPD_DEFAULT_CONF_SAVE();
         LIGHTTPD_START(true);
         break;
     end;
@@ -748,105 +554,23 @@ begin
 l:=TstringList.Create;
 l.ADD('check process '+ExtractFileName(LIGHTTPD_BIN_PATH())+' with pidfile '+LIGHTTPD_PID_PATH());
 l.ADD('group lighttpd');
-l.ADD('start program = "/etc/init.d/artica-postfix start apache"');
-l.ADD('stop program = "/etc/init.d/artica-postfix stop apache"');
+l.ADD('start program = "/etc/init.d/artica-webconsole start"');
+l.ADD('stop program = "/etc/init.d/artica-webconsole stop"');
 l.ADD('if 5 restarts within 5 cycles then timeout');
 result:=l.Text;
 l.free;
 end;
-//##############################################################################
-procedure Tlighttpd.LIGHTTPD_RELOAD();
- var
-    pid      :string;
-begin
-   pid:=LIGHTTPD_PID();
-   if pid='0' then pid:=SYS.PROCESS_LIST_PID(LIGHTTPD_BIN_PATH());
-   if not SYS.PROCESS_EXIST(pid) then begin
-      LIGHTTPD_START();
-      exit;
-   end;
-
-  LIGHTTPD_DEFAULT_CONF_SAVE();
-
-  fpsystem('/bin/kill -HUP '+pid);
-end;
-
 procedure Tlighttpd.LIGHTTPD_STOP();
- var
-    count      :integer;
 begin
-
-     count:=0;
-
-     logs.DeleteFile('/etc/artica-postfix/cache.global.status');
-     if SYS.PROCESS_EXIST(LIGHTTPD_PID()) then begin
-        writeln('Stopping lighttpd: ' + LIGHTTPD_PID() + ' PID..');
-        logs.OutputCmd('/bin/kill ' + LIGHTTPD_PID());
-        while SYS.PROCESS_EXIST(LIGHTTPD_PID()) do begin
-              sleep(100);
-              inc(count);
-              if count>100 then begin
-                 writeln('Stopping lighttpd: Failed force kill');
-                 logs.OutputCmd('/bin/kill -9 '+LIGHTTPD_PID());
-                 exit;
-              end;
-        end;
-
-
-        sleep(1000);
-        if not SYS.PROCESS_EXIST(LIGHTTPD_PID()) then begin
-           writeln('Stopping lighttpd: success');
-        end;
-
-      end else begin
-        writeln('Stopping lighttpd: Already stopped');
-     end;
-
+  if not FileExists('/etc/init.d/artica-webconsole') then  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --artica-web >/dev/null 2>&1');
+  fpsystem('/etc/init.d/artica-webconsole restart');
 end;
 //##############################################################################
 procedure Tlighttpd.CHANGE_INIT();
 var
 l:TstringList;
 begin
-l:=TstringList.Create;
-if not fileExists(LIGHTTPD_INITD()) then exit;
-l.Add('#!/bin/sh');
-l.Add('### BEGIN INIT INFO');
-l.Add('# Provides:          lighttpd');
-l.Add('# Required-Start:    networking');
-l.Add('# Required-Stop:     networking');
-l.Add('# Default-Start:     2 3 4 5');
-l.Add('# Default-Stop:      0 1 6');
-l.Add('# Short-Description: Start the lighttpd web server.');
-l.Add('### END INIT INFO');
-l.Add('');
-l.Add('');
-l.Add('DAEMON_OPTS="-f /etc/lighttpd/lighttpd.conf"');
-l.Add('');
-l.Add('');
-l.Add('case "$1" in');
-l.Add('  start)');
-l.Add('	/etc/init.d/artica-postfix start apache --daemon');
-l.Add('    ;;');
-l.Add('  stop)');
-l.Add('	/etc/init.d/artica-postfix stop apache --daemon');
-l.Add('	;;');
-l.Add('  reload)');
-l.Add('	/etc/init.d/artica-postfix stop apache --daemon');
-l.Add('	/etc/init.d/artica-postfix start apache --daemon');
-l.Add('  ;;');
-l.Add('  restart|force-reload)');
-l.Add('	/etc/init.d/artica-postfix stop apache --daemon');
-l.Add('	/etc/init.d/artica-postfix start apache --daemon');
-l.Add('	;;');
-l.Add('  *)');
-l.Add('	echo "Usage: {start|stop|restart|reload|force-reload}" >&2');
-l.Add('	exit 1');
-l.Add('	;;');
-l.Add('esac');
-l.Add('');
-l.Add('exit 0');
-l.SaveToFile(LIGHTTPD_INITD());
+fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --artica-web >/dev/null 2>&1');
 end;
 //##############################################################################
 FUNCTION Tlighttpd.IS_IPTABLES_INPUT_RULES():boolean;
@@ -917,11 +641,6 @@ logs.Debuglogs('Starting......: lighttpd: Creating certificate using /etc/artica
 forcedirectories('/opt/artica/ssl/certs');
 cmd:=openssl_path+' req -new -passin pass:artica -x509 -batch -config /etc/artica-postfix/ssl.certificate.conf '+extensions+'-keyout /opt/artica/ssl/certs/lighttpd.pem -out /opt/artica/ssl/certs/lighttpd.pem -days '+CertificateMaxDays+' -nodes';
 logs.OutputCmd(cmd);
-
-//openssl genrsa -des3 -passout  pass:artica -out www.domain.ext.key 1024
-
-//openssl req -new -passin pass:artica -batch -config /etc/artica-postfix/ssl.certificate.conf -key www.domain.ext.key -out www.domain.ext.csr
-
 end;
 
 //#########################################################################################
@@ -1071,157 +790,7 @@ end;
    l.free;
 
 end;
-
-
-function Tlighttpd.POMMO_VERSION():string;
-var
-l:TstringList;
-i:integer;
-RegExpr:TRegExpr;
-
-begin
-  if not FileExists('/usr/share/pommo/docs/RELEASE') then exit;
-
-result:=SYS.GET_CACHE_VERSION('APP_POMMO');
-if length(result)>0 then exit;
-
-  l:=TstringList.Create;
-  l.LoadFromFile('/usr/share/pommo/docs/RELEASE');
-  RegExpr:=TRegExpr.Create;
-  RegExpr.Expression:='poMMo\s+Aardvark.+?([0-9\.]+)';
-
-for i:=0 to l.Count-1 do begin
-   if RegExpr.Exec(l.Strings[i]) then begin
-      result:=RegExpr.Match[1];
-      break;
-   end;
-end;
- RegExpr.free;
- l.free;
- SYS.SET_CACHE_VERSION('APP_AMAVIS_STAT',result);
-
-end;
 //##############################################################################
-procedure Tlighttpd.POMMO_ALIASES();
-var
-RegExpr:TRegExpr;
-l:TStringList;
-f:boolean;
-i:integer;
-begin
-
-if not DirectoryExists('/usr/share/pommo') then begin
-      Logs.Debuglogs('Starting......: lighttpd: PoMMo is not installed, skipping aliases');
-      exit;
-end;
-
-fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pommo.php');
-
-if not FileExists(LIGHTTPD_CONF_PATH()) then begin
-   logs.Syslogs('POMMO_ALIASES:: unable to stat lighttpd.conf');
-   exit;
-end;
-
-RegExpr:=TRegExpr.Create;
-f:=false;
-RegExpr.Expression:='^alias\.url.+?\/usr\/share\/pommo';
-l:=TstringList.Create;
-try
-   l.LoadFromFile(LIGHTTPD_CONF_PATH());
-
-except
-      exit;
-end;
-For i:=0 to l.Count-1 do begin
-   if RegExpr.Exec(l.Strings[i]) then begin
-      f:=true;
-      break;
-   end;
-end;
-
-if not f then begin
-   Logs.Debuglogs('Starting......: lighttpd: PoMMo '+POMMO_VERSION()+' is installed, adding aliases');
-   l.Add('alias.url +=("/mailing"  => "/usr/share/pommo/")');
-   try
-      l.SaveToFile(LIGHTTPD_CONF_PATH());
-   except
-      Logs.Syslogs('Starting......: lighttpd: PoMMo FATAL ERROR !');
-      exit;
-   end;
-end else begin
-   Logs.Debuglogs('Starting......: lighttpd: PoMMo is installed, aliases already added');
-end;
- l.free;
- RegExpr.Free;
-
-end;
-//##############################################################################
-
-
-
-
-
-function Tlighttpd.LIGHTTPD_PID():string;
-begin
-
-if length(mem_pid)>0 then exit(mem_pid);
-
-if not FileExists(LIGHTTPD_PID_PATH()) then begin
-   result:=SYS.PidByProcessPath(LIGHTTPD_BIN_PATH() + ' -f /etc/lighttpd/lighttpd.conf');
-   mem_pid:=result;
-   exit;
-end;
-
-result:=SYS.GET_PID_FROM_PATH(LIGHTTPD_PID_PATH());
-result:=trim(result);
-if result='0' then result:='';
-
-if length(trim(result))<2 then  begin
-   logs.Debuglogs('LIGHTTPD_PID:: unable to read '+LIGHTTPD_PID_PATH());
-   result:=SYS.PidByProcessPath(LIGHTTPD_BIN_PATH() + ' -f /etc/lighttpd/lighttpd.conf');
-   mem_pid:=result;
-   exit;
-end;
-end;
-//##############################################################################
-function Tlighttpd.IS_AUTH_LDAP():boolean;
-var
-
-RegExpr:TRegExpr;
-l:TStringList;
-i:integer;
-
-begin
-
-if not FileExists(LIGHTTPD_CONF_PATH()) then begin
-   logs.Debuglogs('LIGHTTPD_SOCKET_PATH:: unable to stat lighttpd.conf');
-   exit;
-end;
-result:=false;
-l:=TstringList.Create;
-try
-   l.LoadFromFile(LIGHTTPD_CONF_PATH());
-except
-exit;
-end;
-RegExpr:=TRegExpr.Create;
-RegExpr.Expression:='auth.backend[\s+=]+"(.+?)"';
-
-for i:=0 to l.Count-1 do begin
-   if RegExpr.Exec(l.Strings[i]) then begin
-    result:=true;
-    break;
-   end;
-end;
-   l.Free;
-   RegExpr.free;
-
-end;
-//##############################################################################
-
-
-
-
 function Tlighttpd.LIGHTTPD_SOCKET_PATH():string;
 var
 
@@ -1307,6 +876,7 @@ if length(php5DefaultCharset)=0 then php5DefaultCharset:='utf-8';
 l.Add('[PHP]');
 l.Add('safe_mode = Off');
 l.Add('safe_mode_gid = Off');
+l.Add('short_open_tag = On');
 l.Add('engine = On');
 l.Add('precision    =  12');
 l.Add('y2k_compliance = On');
@@ -1434,7 +1004,6 @@ l.Add('mysql.default_port ='+IntToStr(PHPDefaultMysqlserverPort));
 l.Add('mysql.default_socket ="'+mysql_socket+'"');
 l.Add('mysql.default_host ='+PHPDefaultMysqlserver);
 l.Add('mysql.default_user ='+PHPDefaultMysqlRoot);
-l.Add('mysql.default_password ="'+PHPDefaultMysqlPass+'"');
 l.Add('mysql.connect_timeout = 60');
 l.Add('mysql.trace_mode = Off');
 l.Add('[LDAP]');
@@ -1448,7 +1017,6 @@ l.Add('mysqli.default_port = '+IntToStr(PHPDefaultMysqlserverPort));
 l.Add('mysqli.default_socket ="'+mysql_socket+'"');
 l.Add('mysqli.default_host ='+PHPDefaultMysqlserver);
 l.Add('mysqli.default_user ='+PHPDefaultMysqlRoot);
-l.Add('mysqli.default_pw ="'+PHPDefaultMysqlPass+'"');
 l.Add('mysqli.reconnect = Off');
 l.Add('');
 l.Add('[mSQL]');
@@ -1586,6 +1154,7 @@ end;
   t.add('/etc/php-cgi-fcgi.ini');
   t.add('/etc/php5/fastcgi/php.ini');
   t.add('/etc/php5/apache2/php.ini');
+  t.add('/etc/php5/fpm/php.ini');
 
   for i:=0 to t.Count-1 do begin
       if FileExists(t.Strings[i]) then begin
@@ -1617,24 +1186,6 @@ if FileExists('/usr/share/roundcube/index.php') then exit('/usr/share/roundcube'
 if FileExists('/var/lib/roundcube/index.php') then exit('/var/lib/roundcube');
 end;
 //##############################################################################
-
-
-
-
-
-function Tlighttpd._IS_INCLUDE_EXISTS(include_value:string;needed:string):boolean;
-var
- l:TStringDynArray;
- i:integer;
-begin
-   result:=false;
-   if length(include_value)=0 then exit(false);
-   l:=Explode(':',include_value);
-   for i:=0 to length(l)-1 do begin
-       if l[i]=needed then exit(true);
-   end;
-end;
-//##############################################################################
 function Tlighttpd.PHP5_CHECK_EXTENSIONS:string;
 var
 l:TstringList;
@@ -1646,7 +1197,7 @@ sofile:string;
 soname:string;
 libdir:string;
 LOCATE_PHP5_EXTENSION_DIR:string;
-NoPHPMcrypt,EnableMemcached:integer;
+NoPHPMcrypt,EnableMemcached,LighttpdMinimalLibraries:integer;
 begin
 
 
@@ -1669,6 +1220,7 @@ end;
 
 if not TryStrToInt(SYS.GET_INFO('NoPHPMcrypt'),NoPHPMcrypt) then NoPHPMcrypt:=0;
 if not TryStrToInt(SYS.GET_INFO('EnableMemcached'),EnableMemcached) then EnableMemcached:=1;
+if not TryStrToInt(SYS.GET_INFO('LighttpdMinimalLibraries'),LighttpdMinimalLibraries) then LighttpdMinimalLibraries:=0;
 t:=Tstringlist.Create;
 t.Add('/etc/php5/conf.d/mcrypt.ini');
 t.add(confdir+'/z-mailparse.ini');
@@ -1712,8 +1264,6 @@ end;
 
 
 
-
-
 fpsystem('/bin/ln -s /usr/share/artica-postfix/ressources/logs/php.log /var/log/php.log >/dev/null 2>&1');
 
 l:=Tstringlist.Create;
@@ -1724,8 +1274,8 @@ z.add('pcntl.so');
 z.add('curl.so');
 z.add('openssl.so');
 z.add('fileinfo.so');
-z.add('dom.so');
-z.add('ftp.so');
+if LighttpdMinimalLibraries=0 then z.add('dom.so');
+if LighttpdMinimalLibraries=0 then z.add('ftp.so');
 z.add('gd.so');
 z.add('iconv.so');
 z.add('imap.so');
@@ -1738,42 +1288,46 @@ z.add('sockets.so');
 //z.add('xmlreader.so');
 z.add('xmlwriter.so');
 z.add('filter.so');
-z.add('phpcups.so');
-z.add('mysqli.so');
-z.add('pdo.so');
-z.add('pdo_mysql.so');
-z.add('pdo_sqlite.so');
-z.add('sqlite.so');
+if LighttpdMinimalLibraries=0 then z.add('phpcups.so');
+if LighttpdMinimalLibraries=0 then z.add('mysqli.so');
+if LighttpdMinimalLibraries=0 then z.add('pdo.so');
+if LighttpdMinimalLibraries=0 then z.add('pdo_mysql.so');
+if LighttpdMinimalLibraries=0 then z.add('pdo_sqlite.so');
+if LighttpdMinimalLibraries=0 then z.add('sqlite.so');
 z.add('posix.so');
-z.add('zip.so');
-z.add('xapian.so');
+if LighttpdMinimalLibraries=0 then z.add('zip.so');
+if LighttpdMinimalLibraries=0 then z.add('xapian.so');
 z.add('geoip.so');
 z.add('zlib.so');
 z.add('tokenizer.so');
 z.add('mailparse.so');
 z.add('json.so');
-z.add('uploadprogress.so');
+if LighttpdMinimalLibraries=0 then z.add('uploadprogress.so');
 z.add('xmlrpc.so');
 z.add('session.so');
 z.add('gettext.so');
 z.add('mbstring.so');
-z.add('ssh2.so');
-z.add('pspell.so');
-z.add('rrd.so');
-z.add('rrdtool.so');
+if LighttpdMinimalLibraries=0 then z.add('ssh2.so');
+if LighttpdMinimalLibraries=0 then z.add('pspell.so');
+if LighttpdMinimalLibraries=0 then z.add('rrd.so');
+if LighttpdMinimalLibraries=0 then z.add('rrdtool.so');
+
 if FileExists('/opt/arkeia/wui/httpd/lib/arkphp.so') then begin
        if not FileExists( LOCATE_PHP5_EXTENSION_DIR+'/arkphp.so') then fpsystem(SYS.LOCATE_GENERIC_BIN('ln')+' -s /opt/arkeia/wui/httpd/lib/arkphp.so '+LOCATE_PHP5_EXTENSION_DIR+'/arkphp.so');
        z.add('arkphp.so');
 end;
 
-
+if LighttpdMinimalLibraries=0 then logs.Debuglogs('Starting......: lighttpd: Loading ALL required libraries');
+if LighttpdMinimalLibraries=1 then logs.Debuglogs('Starting......: lighttpd: Loading minimalist required libraries');
 
 //z.add('oauth.so');
-if EnableMemcached=1 then z.add('memcache.so') else logs.Debuglogs('Starting......: lighttpd: memcached is disabled');
+if LighttpdMinimalLibraries=0 then  begin
+   if EnableMemcached=1 then z.add('memcache.so') else logs.Debuglogs('Starting......: lighttpd: memcached is disabled');
+end;
 
 if NoPHPMcrypt=0 then begin
    z.add('mcrypt.so');
-   z.add('ming.so');
+   if LighttpdMinimalLibraries=0 then z.add('ming.so');
 end else begin
   logs.Debuglogs('Starting......: lighttpd: mcrypt is disabled');
 end;
@@ -1782,7 +1336,7 @@ end;
 if DisableEaccelerator=1 then begin
     logs.Debuglogs('Starting......: lighttpd: eAccelerator is disabled');
 end else begin
-   z.add('eaccelerator.so');
+   if LighttpdMinimalLibraries=0 then  z.add('eaccelerator.so');
 end;
 
 
@@ -1812,6 +1366,7 @@ end;
 //             open_basedir
 
 if DisableEaccelerator=0 then begin
+   if LighttpdMinimalLibraries=0 then begin
 forcedirectories('/tmp/eaccelerator');
 if FileExists(SYS.LOCATE_EACCELERATOR_SO()) then begin
    if not FileExists(confdir+'/eaccelerator.so.ini') then begin
@@ -1834,9 +1389,9 @@ if FileExists(SYS.LOCATE_EACCELERATOR_SO()) then begin
    end;
    end;
 end;
+end;
 
-
-
+if LighttpdMinimalLibraries=0 then begin
 if EnableMemcached=1 then begin
    forcedirectories('/var/lib/memcache');
    if FileExists(LOCATE_PHP5_EXTENSION_DIR+'/memcache.so') then begin
@@ -1850,6 +1405,7 @@ if EnableMemcached=1 then begin
       l.Add('memcache.maxratio=0');
    end;
  end;
+ end;
 
 result:=L.Text;
 FreeAndNil(l);
@@ -1862,577 +1418,6 @@ if fileExists('/usr/lib64/lighttpd/mod_alias.so') then exit('/usr/lib64/lighttpd
 if fileExists('/usr/local/lib64/lighttpd/mod_alias.so') then exit('/usr/local/lib64/lighttpd');
 if FileExists('/usr/lib/lighttpd/mod_alias.so') then exit('/usr/lib/lighttpd');
 if FileExists('/usr/local/lib/lighttpd/mod_alias.so') then exit('/usr/local/lib/lighttpd');
-end;
-//##############################################################################
-procedure Tlighttpd.CHECK_SUBFOLDER();
-begin
-    if DirectoryExists('/usr/share/oma') then begin
-       logs.OutputCmd('/bin/ln -s --force /usr/share/oma /usr/share/artica-postfix/oma');
-    end;
-
-    if DirectoryExists('/usr/share/roundcube') then begin
-       logs.OutputCmd('/bin/ln -s --force /usr/share/roundcube /usr/share/artica-postfix/webmail');
-       logs.OutputCmd('/bin/ln -s --force /usr/share/roundcube /usr/share/artica-postfix/roundcube');
-    end;
-
-end;
-//##############################################################################
-function Tlighttpd.SET_PHP_CGI_BINPATH():boolean;
-var
-   l:TstringList;
-   RegExpr:TRegExpr;
-   i:integer;
-   php_cgi:string;
-   found:boolean;
-   line_f:integer;
-begin
-result:=true;
-   if not FileExists(LIGHTTPD_CONF_PATH()) then begin
-      logs.Debuglogs('Starting......: lighttpd: unable to locate lighttpd.conf');
-      exit;
-   end;
-
-   php_cgi:=PHP5_CGI_BIN_PATH();
-
-   if length(php_cgi)=0 then begin
-      logs.Debuglogs('Starting......: lighttpd: unable to stat php-cgi,php5-cgi...');
-      exit;
-   end;
-
-
-l:=TstringList.Create;
-try
-   l.LoadFromFile(LIGHTTPD_CONF_PATH());
-
-except
-exit;
-end;
-RegExpr:=TRegExpr.Create;
-RegExpr.Expression:='"bin-path"';
-found:=false;
-
-for i:=0 to l.Count-1 do begin
-    if RegExpr.Exec(l.Strings[i]) then begin
-       l.Strings[i]:='                "bin-path" => "'+php_cgi+'",';
-       found:=true;
-       result:=true;
-       line_f:=i;
-       break;
-    end;
-end;
-
-if found then begin
-       logs.Debuglogs('Starting......: lighttpd: set ' + php_cgi + ' in line ('+IntToStr(line_f)+')');
-       logs.WriteToFile(l.Text,LIGHTTPD_CONF_PATH());
-       l.free;
-       RegExpr.free;
-       exit(true);
-end;
-
-
-
-
-end;
-
-
-
-
-procedure Tlighttpd.LIGHTTPD_DEFAULT_CONF_SAVE();
-var
-l:TStringList;
-begin
-l:=TstringList.Create;
-logs.logs('LIGHTTPD_DEFAULT_CONF_SAVE:: Saving file ' +LIGHTTPD_CONF_PATH());
-l.Add(DEFAULT_CONF());
-logs.WriteToFile(L.Text,LIGHTTPD_CONF_PATH());
-l.free;
-end;
-//##############################################################################
-function tlighttpd.DEFAULT_CONF():string;
-var
-l:TstringList;
-mailman:tmailman;
-user:string;
-RegExpr:TRegExpr;
-group,name:string;
-PHP_FCGI_CHILDREN:integer;
-PHP_FCGI_MAX_REQUESTS:integer;
-max_procs:integer;
-roundcube_folder:string;
-zarafa:tzarafa_server;
-ArticaHttpsPort:integer;
-backuppcCgiBin:string;
-perlbin:string;
-backuppc:tbackuppc;
-LighttpdEnableSSLV2:integer;
-ldap_admin,ldap_password,ldap_server,ldap_port,ldap_suffix:string;
-mod_auth:boolean;
-NoLDAPInLighttpdd:integer;
-ArticaHttpUseSSL:integer;
-LighttpdUseUnixSocket:integer;
-lighttpdPhpPort:integer;
-DenyMiniWebFromStandardPort:integer;
-LighttpdArticaDisableSSLv2:integer;
-LighttpdArticaMaxProcs:integer;
-LighttpdArticaMaxChildren:integer;
-LighttpdRunAsminimal:integer;
-LighttpdArticaListenIP:string;
-begin
-ArticaHttpsPort:=9000;
-NoLDAPInLighttpdd:=0;
-ArticaHttpUseSSL:=1;
-
-if not tryStrToInt(SYS.GET_INFO('ArticaHttpUseSSL'),ArticaHttpUseSSL) then ArticaHttpUseSSL:=1;
-if not tryStrToInt(sys.GET_INFO('NoLDAPInLighttpdd'),NoLDAPInLighttpdd) then NoLDAPInLighttpdd:=0;
-if not tryStrToInt(sys.GET_INFO('LighttpdUseUnixSocket'),LighttpdUseUnixSocket) then LighttpdUseUnixSocket:=0;
-if not tryStrToInt(sys.GET_INFO('lighttpdPhpPort'),lighttpdPhpPort) then lighttpdPhpPort:=1808;
-if not tryStrToInt(sys.GET_INFO('DenyMiniWebFromStandardPort'),DenyMiniWebFromStandardPort) then DenyMiniWebFromStandardPort:=0;
-if not tryStrToInt(sys.GET_INFO('LighttpdArticaDisableSSLv2'),LighttpdArticaDisableSSLv2) then LighttpdArticaDisableSSLv2:=0;
-if not tryStrToInt(sys.GET_INFO('LighttpdArticaMaxProcs'),LighttpdArticaMaxProcs) then LighttpdArticaMaxProcs:=0;
-if not tryStrToInt(sys.GET_INFO('LighttpdArticaMaxChildren'),LighttpdArticaMaxChildren) then LighttpdArticaMaxChildren:=0;
-if not tryStrToInt(sys.GET_INFO('LighttpdRunAsminimal'),LighttpdRunAsminimal) then LighttpdRunAsminimal:=0;
-if not tryStrToInt(sys.GET_INFO('PHP_FCGI_MAX_REQUESTS'),PHP_FCGI_MAX_REQUESTS) then PHP_FCGI_MAX_REQUESTS:=200;
-
-
-
-LighttpdArticaListenIP:=SYS.GET_INFO('LighttpdArticaListenIP');
-
-user:=LIGHTTPD_GET_USER();
-LOAD_MODULES();
-mod_auth:=isModule('mod_auth');
-if length(user)=0 then user:=SYS.GET_INFO('LighttpdUserAndGroup');
-if length(user)=0 then begin
-   user:='www-data:www-data';
-   SYS.set_INFO('LighttpdUserAndGroup',user);
-end;
-
-if not TrYStrToInt(SYS.GET_INFO('ArticaHttpsPort'),ArticaHttpsPort) then ArticaHttpsPort:=9000;
-logs.Debuglogs('Starting......: lighttpd: (config) running on port '+IntToStr(ArticaHttpsPort));
-
-
-
-
-RegExpr:=TRegExpr.Create;
-RegExpr.Expression:='(.+?):(.+)';
-RegExpr.Exec(user);
-name:=RegExpr.Match[1];
-group:=RegExpr.Match[2];
-if RegExpr.Exec(name) then name:=RegExpr.Match[1];
-
-
-
-roundcube_folder:=SYS.locate_roundcube_main_folder();
-
-if RegExpr.Exec(name) then name:=RegExpr.Match[1];
-
-name:=AnsireplaceText(name,'www-data:www-data','www-data');
-name:=AnsireplaceText(name,'lighttpd:lighttpd:','lighttpd');
-
-PHP_FCGI_CHILDREN:=1;
-max_procs:=2;
-if not InsufficentRessources then begin
-     PHP_FCGI_CHILDREN:=1;
-     PHP_FCGI_MAX_REQUESTS:=1000;
-     max_procs:=1;
-end;
-
-if LighttpdArticaMaxProcs>0 then max_procs:=LighttpdArticaMaxProcs;
-if LighttpdArticaMaxChildren>0 then PHP_FCGI_CHILDREN:=LighttpdArticaMaxChildren;
-
-if LighttpdRunAsminimal=1 then begin
-       max_procs:=2;
-       PHP_FCGI_CHILDREN:=2;
-end;
-
-l:=TstringList.Create;
-l.Add('#artica-postfix saved by artica lighttpd.conf (Artica Install binary) v2.0');
-l.Add('');
-l.Add('server.modules = (');
-l.Add('        "mod_alias",');
-l.Add('        "mod_access",');
-l.Add('        "mod_accesslog",');
-l.Add('        "mod_compress",');
-l.Add('        "mod_fastcgi",');
-l.Add('        "mod_cgi",');
-l.Add('	       "mod_status",');
-if NoLDAPInLighttpdd=1 then begin
-     logs.Debuglogs('Starting......: lighttpd: (config) LDAP Mode is disabled');
-end;
-
-if mod_auth then l.Add('	       "mod_auth"') else logs.Debuglogs('Starting......: lighttpd: (config) mod_auth module does not exists (should be a security issue !!!)');
-
-logs.Debuglogs('Starting......: lighttpd: user:"'+name+'"');
-
-l.Add(')');
-l.Add('');
-l.Add('server.document-root        = "/usr/share/artica-postfix"');
-l.Add('server.username = "'+name+'"');
-l.Add('server.groupname = "'+group+'"');
-l.Add('server.errorlog             = "/var/log/lighttpd/error.log"');
-l.Add('index-file.names            = ( "index.php","index.cgi")');
-l.Add('');
-l.Add('mimetype.assign             = (');
-l.Add('  ".pdf"          =>      "application/pdf",');
-l.Add('  ".sig"          =>      "application/pgp-signature",');
-l.Add('  ".spl"          =>      "application/futuresplash",');
-l.Add('  ".class"        =>      "application/octet-stream",');
-l.Add('  ".ps"           =>      "application/postscript",');
-l.Add('  ".torrent"      =>      "application/x-bittorrent",');
-l.Add('  ".dvi"          =>      "application/x-dvi",');
-l.Add('  ".gz"           =>      "application/x-gzip",');
-l.Add('  ".pac"          =>      "application/x-ns-proxy-autoconfig",');
-l.Add('  ".swf"          =>      "application/x-shockwave-flash",');
-l.Add('  ".tar.gz"       =>      "application/x-tgz",');
-l.Add('  ".tgz"          =>      "application/x-tgz",');
-l.Add('  ".tar"          =>      "application/x-tar",');
-l.Add('  ".zip"          =>      "application/zip",');
-l.Add('  ".mp3"          =>      "audio/mpeg",');
-l.Add('  ".m3u"          =>      "audio/x-mpegurl",');
-l.Add('  ".wma"          =>      "audio/x-ms-wma",');
-l.Add('  ".wax"          =>      "audio/x-ms-wax",');
-l.Add('  ".ogg"          =>      "application/ogg",');
-l.Add('  ".wav"          =>      "audio/x-wav",');
-l.Add('  ".gif"          =>      "image/gif",');
-l.Add('  ".jar"          =>      "application/x-java-archive",');
-l.Add('  ".jpg"          =>      "image/jpeg",');
-l.Add('  ".jpeg"         =>      "image/jpeg",');
-l.Add('  ".png"          =>      "image/png",');
-l.Add('  ".xbm"          =>      "image/x-xbitmap",');
-l.Add('  ".xpm"          =>      "image/x-xpixmap",');
-l.Add('  ".xwd"          =>      "image/x-xwindowdump",');
-l.Add('  ".css"          =>      "text/css",');
-l.Add('  ".html"         =>      "text/html",');
-l.Add('  ".htm"          =>      "text/html",');
-l.Add('  ".js"           =>      "text/javascript",');
-l.Add('  ".asc"          =>      "text/plain",');
-l.Add('  ".c"            =>      "text/plain",');
-l.Add('  ".cpp"          =>      "text/plain",');
-l.Add('  ".log"          =>      "text/plain",');
-l.Add('  ".conf"         =>      "text/plain",');
-l.Add('  ".text"         =>      "text/plain",');
-l.Add('  ".txt"          =>      "text/plain",');
-l.Add('  ".dtd"          =>      "text/xml",');
-l.Add('  ".xml"          =>      "text/xml",');
-l.Add('  ".mpeg"         =>      "video/mpeg",');
-l.Add('  ".mpg"          =>      "video/mpeg",');
-l.Add('  ".mov"          =>      "video/quicktime",');
-l.Add('  ".qt"           =>      "video/quicktime",');
-l.Add('  ".avi"          =>      "video/x-msvideo",');
-l.Add('  ".asf"          =>      "video/x-ms-asf",');
-l.Add('  ".asx"          =>      "video/x-ms-asf",');
-l.Add('  ".wmv"          =>      "video/x-ms-wmv",');
-l.Add('  ".bz2"          =>      "application/x-bzip",');
-l.Add('  ".tbz"          =>      "application/x-bzip-compressed-tar",');
-l.Add('  ".tar.bz2"      =>      "application/x-bzip-compressed-tar",');
-l.Add('  ""              =>      "application/octet-stream",');
-l.Add(' )');
-l.Add('');
-l.Add('');
-l.Add('accesslog.filename          = "/var/log/lighttpd/access.log"');
-l.Add('url.access-deny             = ( "~", ".inc",".log",".ini" )');
-l.Add('');
-l.Add('static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )');
-l.Add('server.port                 = '+IntToStr(ArticaHttpsPort));
-if length(LighttpdArticaListenIP)>3 then l.Add('server.bind                = "'+LighttpdArticaListenIP+'"');
-l.Add('server.pid-file             = "/var/run/lighttpd/lighttpd.pid"');
-l.Add('server.max-fds 		   = 2048');
-l.Add('server.max-connections      = 512');
-//l.Add('server.max-keep-alive-requests = 0');
-//l.Add('server.max-keep-alive-idle = 4');
-//l.Add('server.stat-cache-engine = "fam"');
-l.Add('server.network-backend      = "write"');
-//l.Add('server.error-handler-404    = "404.php"');
-
-fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.lighttpd.nets.php');
-fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.lighttpd.nets.php --phpmyadmin');
-if FileExists('/etc/artica-postfix/lighttpd_nets') then l.Add(logs.ReadFromFile('/etc/artica-postfix/lighttpd_nets'));
-
-if FileExists('/proc/user_beancounters') then begin
-      logs.Debuglogs('Starting......: lighttpd: VPS mode enabled, swith to socket mode for PHP');
-      LighttpdUseUnixSocket:=1;
-end;
-
-l.Add('');
-l.Add('fastcgi.server = ( ".php" =>((');
-l.Add('         "bin-path" => "/usr/bin/php-cgi",');
-if LighttpdUseUnixSocket=1 then begin
-   logs.Debuglogs('Starting......: lighttpd: Fast-cgi server unix socket mode');
-   l.Add('         "socket" => "/var/run/lighttpd/php.socket" + var.PID,');
-end else begin
-   logs.Debuglogs('Starting......: lighttpd: Fast-cgi server socket 127.0.0.1:'+IntTostr(lighttpdPhpPort));
-    l.add('         "host" => "127.0.0.1","port" =>'+intToStr(lighttpdPhpPort)+',');
-end;
-l.Add('         "max-procs" => '+IntToStr(max_procs)+',');
-l.Add('         "idle-timeout" => 10,');
-l.Add('         "bin-environment" => (');
-l.Add('             "PHP_FCGI_CHILDREN" => "'+IntToStr(PHP_FCGI_CHILDREN)+'",');
-l.Add('             "PHP_FCGI_MAX_REQUESTS" => "'+intToStr(PHP_FCGI_MAX_REQUESTS)+'"');
-l.Add('          ),');
-l.Add('          "bin-copy-environment" => (');
-l.Add('            "PATH", "SHELL", "USER"');
-l.Add('           ),');
-l.Add('          "broken-scriptfilename" => "enable"');
-l.Add('        ))');
-l.Add(')');
-if ArticaHttpUseSSL=1 then begin
-   l.Add('ssl.engine                 = "enable"');
-   l.Add('ssl.pemfile                = "/opt/artica/ssl/certs/lighttpd.pem"');
-
-   if LighttpdArticaDisableSSLv2=1 then begin
-      logs.Debuglogs('Starting......: lighttpd: disable SSLv2 and weak ssl cipher');
-      l.Add('ssl.use-sslv2              = "disable"');
-      l.Add('ssl.cipher-list            = "TLSv1+HIGH !SSLv2 RC4+MEDIUM !aNULL !eNULL !3DES @STRENGTH"');
-   end else begin
-      l.Add('ssl.use-sslv2              = "enable"');
-      l.Add('ssl.cipher-list            = "TLSv1+HIGH RC4+MEDIUM !SSLv2 !3DES !aNULL @STRENGTH"');
-   end;
-
-end;
-if NoLDAPInLighttpdd=0 then begin
-if mod_auth then begin
-   l.Add('status.status-url          = "/server-status"');
-   l.Add('status.config-url          = "/server-config"');
-end;
-end;
-l.Add('server.upload-dirs         = ( "/var/lighttpd/upload" )');
-
-if FileExists('/etc/artica-postfix/lighttpd.phpmyadmin') then begin
-   l.Add('');
-   l.Add(logs.ReadFromFile('/etc/artica-postfix/lighttpd.phpmyadmin'));
-   l.add('');
-end;
-
-
-
-forceDirectories('/var/lighttpd/upload');
-fpsystem('/bin/chown -R '+name+' /var/lighttpd');
-
-if DirectoryExists(roundcube_folder) then begin
-logs.Debuglogs('Starting......: lighttpd: (config) roundcube is installed on '+roundcube_folder);
-fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.roundcube.php --databases >/dev/null 2>&1 &');
-l.Add('alias.url += (	"/webmail" 			 => "'+roundcube_folder+'")');
-l.Add('$HTTP["url"] =~ "^/webmail/config|/webmail/temp|/webmail/logs" { url.access-deny = ( "" )}');
-end;
-
-zarafa:=tzarafa_server.Create(SYS);
-if FileExists(zarafa.SERVER_BIN_PATH()) then begin
-logs.Debuglogs('Starting......: lighttpd: (config) zarafa is installed');
-l.Add('alias.url += (	"/webaccess" 			 => "/usr/share/zarafa-webaccess")');
-l.Add('alias.url += (	"/webmail" 			 => "/usr/share/zarafa-webaccess")');
-zarafa.WEB_ACCESS_CONFIG();
-//l.Add('$HTTP["url"] =~ "^/webmail/config|/webmail/temp|/webmail/logs" { url.access-deny = ( "" )}');
-end;
-
-
-l.Add('	server.follow-symlink = "enable"');
-l.Add('alias.url +=("/monitorix"  => "/var/www/monitorix/")');
-l.Add('alias.url += ("/blocked_attachments"=> "/var/spool/artica-filter/bightml")');
-l.Add('alias.url += ("/squid-rrd"=> "/opt/artica/share/www/squid/rrd")');
-l.Add('alias.url += ("/artica-agent"=> "/usr/share/artica-postfix/ressources/artica-agent")');
-
-if DenyMiniWebFromStandardPort=1 then begin
-   l.Add('$HTTP["url"] =~ "^/miniadm.*|/computers|/user-backup" { url.access-deny = ( "" )}');
-end;
-   l.Add('$HTTP["url"] =~ "^/prxy.*\.php" { url.access-deny = ( "" )}');
-if DirectoryExists(awstats.AWSTATS_www_root()) then l.Add('alias.url += ( "/awstats" => "'+awstats.AWSTATS_www_root()+'" )');
-if FileExists('/usr/share/poweradmin/index.php') then begin
-   l.Add('alias.url += ( "/powerdns" => "/usr/share/poweradmin" )');
-   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pdns.php --poweradmin');
-end;
-perlbin:=SYS.LOCATE_GENERIC_BIN('perl');
-l.Add('alias.url += ( "/cgi-bin/" => "/usr/lib/cgi-bin/" )');
-
-ldap_admin:=SYS.get_LDAP('admin');
-ldap_password:=SYS.get_LDAP('password');
-ldap_server:=SYS.get_LDAP('server');
-ldap_port:=SYS.get_LDAP('port');
-ldap_suffix:=SYS.get_LDAP('suffix');
-if length(trim(ldap_server))=0 then ldap_server:='127.0.0.1';
-
-if NoLDAPInLighttpdd=0 then begin
-   if ldap_server='127.0.0.1' then if not fileExists(SYS.LOCATE_SLAPD()) then mod_auth:=false;
-
-if mod_auth then begin
-   // LDAP AUTH ---------------------------------------------------------------------
-   l.Add('');
-   logs.Debuglogs('Starting......: lighttpd: (config) auth plain');
-end;
-end;
-// BackuPPC ---------------------------------------------------------------------
-
-
-
-backuppc:=tbackuppc.Create(SYS);
-backuppcCgiBin:=backuppc.CGI_BIN_PATH();
-logs.Debuglogs('Starting......: lighttpd: (config) BackupPC "'+backuppcCgiBin+'"');
-   if DirectoryExists(backuppcCgiBin) then begin
-      logs.Debuglogs('Starting......: lighttpd: (config) BackupPC is installed');
-      l.Add('alias.url  += ( "/backuppc" => "'+backuppcCgiBin+'")');
-    end else begin
-    logs.Debuglogs('Starting......: lighttpd: (config) BackupPC is not installed');
-end;
-
-l.Add('');
-l.Add('cgi.assign= (');
-l.Add('	".pl"  => "'+perlbin+'",');
-l.Add('	".php" => "/usr/bin/php-cgi",');
-l.Add('	".py"  => "/usr/bin/python",');
-l.Add('	".cgi"  => "'+perlbin+'",');
-
-mailman:=tmailman.Create(SYS);
-
-if FileExists(mailman.BIN_PATH()) then begin
-   l.Add('"/admin" => "",');
-   l.Add('"/admindb" => "",');
-   l.Add('"/confirm" => "",');
-   l.Add('"/create" => "",');
-   l.Add('"/edithtml" => "",');
-   l.Add('"/listinfo" => "",');
-   l.Add('"/options" => "",');
-   l.Add('"/private" => "",');
-   l.Add('"/rmlist" => "",');
-   l.Add('"/roster" => "",');
-   l.Add('"/subscribe" => ""');
-end;
-   l.Add(')');
-   l.Add('');
-if mod_auth then begin
-l.Add('auth.debug = 2');
-l.Add('$HTTP["url"] =~ "^/cgi-bin/" {');
-l.Add('auth.backend = "plain"');
-l.Add('auth.backend.plain.userfile = "/etc/lighttpd/.lighttpdpassword" ');
-l.Add('auth.require = ("/cgi-bin/" => (');
-l.Add('     "method"  => "basic",');
-l.Add('     "realm"   => "awstats Statistics",');
-l.Add('     "require" => "valid-user"');
-l.Add('  ))');
-l.Add('}');
-l.Add('');
-
-l.Add('$HTTP["url"] =~ "^/server-status" {');
-l.Add('auth.backend = "plain"');
-l.Add('auth.backend.plain.userfile = "/etc/lighttpd/.lighttpdpassword" ');
-l.Add('auth.require = ("/server-status" => (');
-l.Add('     "method"  => "basic",');
-l.Add('     "realm"   => "Lighttpd config - status",');
-l.Add('     "require" => "valid-user"');
-l.Add('  ))');
-l.Add('}');
-l.Add('');
-
-l.Add('$HTTP["url"] =~ "^/server-config" {');
-l.Add('auth.backend = "plain"');
-l.Add('auth.backend.plain.userfile = "/etc/lighttpd/.lighttpdpassword" ');
-l.Add('auth.require = ("/server-config" => (');
-l.Add('     "method"  => "basic",');
-l.Add('     "realm"   => "Lighttpd config - status",');
-l.Add('     "require" => "valid-user"');
-l.Add('  ))');
-l.Add('}');
-l.Add('');
-
-l.Add('$HTTP["url"] =~ "^/squid/" {');
-l.Add('auth.backend = "plain"');
-l.Add('auth.debug = 2');
-l.Add('auth.backend.plain.userfile = "/etc/lighttpd/squid-users.passwd" ');
-l.Add('auth.require = ("/squid/" => (');
-l.Add('     "method"  => "basic",');
-l.Add('     "realm"   => "Squid Statistics",');
-l.Add('     "require" => "valid-user"');
-l.Add('  ))');
-l.Add('}');
-l.Add('');
-
-l.Add('$HTTP["url"] =~ "^/cluebringer/" {');
-l.Add('auth.backend = "plain"');
-l.Add('auth.debug = 2');
-l.Add('auth.backend.plain.userfile = "/etc/lighttpd/cluebringer.passwd" ');
-l.Add('auth.require = ("/cluebringer/" => (');
-l.Add('     "method"  => "basic",');
-l.Add('     "realm"   => "ClueBringer (Policyd V2) administration",');
-l.Add('     "require" => "valid-user"');
-l.Add('  ))');
-l.Add('}');
-l.Add('');
-
-end;
-
-
-
-if Not FileExists('/etc/lighttpd/lighttpd.conf') then begin
-   forceDirectories('/etc/lighttpd');
-   logs.Debuglogs('Starting......: lighttpd: (config) save /etc/lighttpd/lighttpd.conf');
-   logs.WriteToFile(l.Text,'/etc/lighttpd/lighttpd.conf');
-end;
-result:=l.text;
-l.free;
-end;
-//##############################################################################
-procedure tlighttpd.LOAD_MODULES();
-var
-   tmpstr:string;
-   l:tstringlist;
-   RegExpr:TRegExpr;
-   i:integer;
-begin
-if not FileExists(LIGHTTPD_BIN_PATH()) then exit;
-if lighttpd_modules.Count>1 then exit;
-tmpstr:=logs.FILE_TEMP();
-fpsystem(LIGHTTPD_BIN_PATH() +' -V >'+tmpstr+' 2>&1');
-
-RegExpr:=TRegExpr.Create;
-l:=Tstringlist.Create;
-RegExpr.Expression:='\+\s+(.+?)\s+support';
-try
-   l.LoadFromFile(tmpstr);
-   for i:=0 to l.Count-1 do begin
-          if RegExpr.Exec(l.Strings[i]) then begin
-             logs.Debuglogs('Starting......: lighttpd: Available module "'+ RegExpr.Match[1]+'"');
-             lighttpd_modules.Add(RegExpr.Match[1]);
-          end;
-   end;
-finally
-   logs.DeleteFile(tmpstr);
-   l.free;
-end;
- RegExpr.free;
-end;
-//##############################################################################
-function tlighttpd.isModule(modulename:string):boolean;
-var
-i:integer;
-libdir:string;
-begin
-  LOAD_MODULES();
-  libdir:=lighttpd_modules_path();
-  result:=false;
-  for i:=0 to lighttpd_modules.Count-1 do begin
-      if LowerCase(modulename)=LowerCase(lighttpd_modules.Strings[i]) then begin
-         result:=true;
-         exit;
-      end;
-  end;
-
-if FileExists(libdir+'/'+modulename+'.so') then exit(true);
-
-end;
-//##############################################################################
-
-
-function Tlighttpd.APACHE_ARTICA_ENABLED():string;
-var
-   s:string;
-begin
-
-if not FileExists(SYS.LOCATE_APACHE_INITD_PATH()) then exit('0');
-
-if not FileExists(LIGHTTPD_BIN_PATH()) then begin
-   result:='1';
-   exit;
-end;
-s:=SYS.GET_INFO('ApacheArticaEnabled');
-if length(s)=0 then exit('0');
-exit(s);
 end;
 //##############################################################################
 function Tlighttpd.Explode(const Separator, S: string; Limit: Integer = 0):TStringDynArray;

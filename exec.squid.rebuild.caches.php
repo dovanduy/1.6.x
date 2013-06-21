@@ -93,6 +93,8 @@ function rebuild_default_cache(){
 	$cache_dir=$squid->CACHE_PATH;
 	$mv=$unix->find_program("mv");
 	$rm=$unix->find_program("rm");
+	$chmod=$unix->find_program("chmod");
+	$chown=$unix->find_program("chown");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	writelogs("$cache_dir to delete...",__FUNCTION__,__FILE__,__LINE__);
 	$t=time();
@@ -121,6 +123,8 @@ function rebuild_default_cache(){
 		writelogs("$ligne",__FUNCTION__,__FILE__,__LINE__);
 		
 	}	
+	shell_exec("$chown -R squid:squid $cache_dir");
+	shell_exec("$chown -R 0755 $cache_dir");
 	
 	@unlink("/etc/artica-postfix/squid.lock");
 	writelogs("starting squid",__FUNCTION__,__FILE__,__LINE__);
@@ -227,6 +231,7 @@ function rebuildcaches(){
 	}
 	ouputz("Reloading $squidbin cache",__LINE__);
 	$results=array();
+	squid_watchdog_events("Reconfiguring Proxy parameters...");
 	exec("$squidbin -k reconfigure 2>&1",$results);
 	while (list ($num, $ligne) = each ($results) ){ouputz("$ligne",__LINE__);}
 	
@@ -246,7 +251,11 @@ function rebuildcaches(){
 	
 	
 }
-
+function squid_watchdog_events($text){
+	$unix=new unix();
+	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefile=basename($trace[1]["file"]);$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];}}
+	$unix->events($text,"/var/log/squid.watchdog.log",false,$sourcefunction,$sourceline);
+}
 
 
 

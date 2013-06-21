@@ -1,5 +1,5 @@
-<about_half_a_minute>about half a minute</about_half_a_minute>
-<about_time>about</about_time>
+<about_half_a_minute>A volta de meio minuto</about_half_a_minute>
+<about_time>Acerca de</about_time>
 <access_to_web_administration_interface>Access to the web administration interface</access_to_web_administration_interface>
 <add_ldap_database_link>Link LDAP Database</add_ldap_database_link>
 <add_ldap_database_link_text>Add a new connection to a remote LDAP/Active Directory database</add_ldap_database_link_text>
