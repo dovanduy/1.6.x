@@ -778,10 +778,46 @@ $html="<!-- $value: $def -->
 <input type=\"checkbox\" id='$name' name=\"$name\" value=\"yes\" $value style='padding:0px;margin:0px;border:0px' $js>";
 return $html;}
 
+function miniadm_BuildFieldToolTip($help){
+	$tpl=new templates();
+	$n = rand(10e16, 10e20);
+	$rand=base_convert($n, 10, 36);
+	$fieldid=md5($help.$rand);
+	$text=$help;
+	
+	$text=$tpl->_ENGINE_parse_body($text);
+	$text=str_replace("\n" ,"<br>", $text);
+	$text=str_replace("\"" ,"'", $text);
+
+return "
+<img src='img/help.png'  id='$fieldid'>
+<script>		
+$(\"#$fieldid\").on({
+	\"mouseover\": function() {
+	$(this).tooltip(\"show\");
+	},
+	blur: function() {
+	$(this).tooltip(\"hide\");
+	},
+	mouseout: function() {
+	$(this).tooltip(\"hide\");
+	}
+}).tooltip({
+placement: \"left\",
+trigger: \"manual\",
+html:true,
+title: \"<div style='font-size:12px'>$text</div>\",
+
+});\n</script>";
+}
+
+
 
 function help_icon($help,$no_float=false,$additional_langfile=null){
 	$DisableHelpToolTips=$_COOKIE["DisableHelpToolTips"];
 	if($DisableHelpToolTips==1){return null;}
+	if(isset($_SESSION["MINIADM"])){return miniadm_BuildFieldToolTip($help);}
+	
 	
 $tpl=new templates();
 		$n = rand(10e16, 10e20);
@@ -856,7 +892,36 @@ return "
 
 
 function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=null){
-	if($style==null){$style="font-size:13px";}
+	
+	$value=trim($value);
+	$OnMouseOver=null;
+	$OnMouseOut=null;
+	$size=null;
+	$disa=null;
+	$jsAddInside=null;
+	
+	
+	$FocusCss="onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" style='$style' $class";
+	if(isset($_SESSION["MINIADM"])){
+		$FocusCss=null;
+	}
+	
+	if(preg_match("#.+?:(.+)#",$jsAdd)){$jsAddInside=$jsAdd;}
+	
+	return "$help
+	<input type='text' id='$field_name' name='$field_name' $jsAddInside value=\"$defaultvalue\" style=\"$style;min-width:145px\" $OnFocus $OnChange $jsPressKey $OnClick  $FocusCss $size $OnMouseOver $OnMouseOut$disa>
+<script>
+	
+	$(function(){
+    	$('#$field_name').ipAddress();
+	});
+	
+	</script>	
+	
+	";	
+	
+	
+	
 	
 	$withPX=38;
 	if(preg_match("#font-size:([0-9]+)#", $style,$re)){
@@ -1399,7 +1464,11 @@ function string_to_flexquery($searchindix=null){
 	if(!isset($_POST["qtype"])){return;}
 	if(!isset($_POST["query"])){return;}
 	if(trim($_POST["query"])==null){return;}
-	$search=string_to_sql_search($_POST["query"]);
+	
+	$REGEXP=false;
+	if(preg_match("#^regex\s+(.+)#", $_POST["query"],$re)){$search=$re[1];$REGEXP=true;}
+	
+	if(!$REGEXP){$search=string_to_sql_search($_POST["query"]);}
 	if($search==null){return null;}
 	
 	if(strpos($_POST["qtype"], ',')>0){
@@ -1410,6 +1479,8 @@ function string_to_flexquery($searchindix=null){
 	}
 	$COM=" = ";
 	if(strpos("  $search", "%")>0){$COM=" LIKE ";}
+	if($REGEXP){$COM=" REGEXP ";}
+	
 	
 	while (list ($index, $F) = each ($Fields) ){
 		$tta[]="(`$F` $COM '$search')";
@@ -6238,7 +6309,9 @@ function senderrors($text){sendserrors($text);}
 function senderror($text){sendserrors($text);}
 function sendserrors($text){
 		if(strtolower(trim($text))=="no data"){$text="{this_request_contains_no_data}";}
-	
+		if(strtolower(trim($text))=="no rights"){$text="{ERROR_NO_PRIVS}";}
+		if(strtolower(trim($text))=="no privs"){$text="{ERROR_NO_PRIVS}";}
+		if(strtolower(trim($text))=="no priv"){$text="{ERROR_NO_PRIVS}";}
 		$tpl=new templates();
 		echo $tpl->_ENGINE_parse_body("<p class=text-error style='margin:20px'>$text</p>");exit();
 	}

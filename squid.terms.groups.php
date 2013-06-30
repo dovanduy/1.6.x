@@ -849,7 +849,7 @@ function term_group_del(){
 
 function term_group_add(){
 	$_POST["group-add"]=addslashes($_POST["group-add"]);
-	$sql="INSERT INTO webfilter_termsg (groupname) VALUE ('{$_POST["group-add"]}')";
+	$sql="INSERT INTO webfilter_termsg (groupname,enabled) VALUE ('{$_POST["group-add"]}','1')";
 	$q=new mysql_squid_builder();
 	$q->CheckTables();
 	$q->QUERY_SQL($sql);

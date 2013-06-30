@@ -680,7 +680,7 @@ class dansguardian_rules{
 									"converters"=>"{www_converters}",
 									"meetings"=>"{www_meetings}",
 									"getmarried"=>"{www_getmarried}",
-									
+									"tobacco"=>"{www_tobacco}",
 									
 									"recreation/sports"=>"{recreation_sports}",
 									"recreation/humor"=>"{recreation_humor}",
@@ -822,6 +822,7 @@ class dansguardian_rules{
 		  	"filehosting"=>"20-storage.png",
 		  	"religion"=>"20-christians.png",
 		  	"recreation/wellness"=>"20-heathly.png",
+		  	"tobacco"=>"20-tobacco.png",
 		  	"science/chemistry"=>"20-chemistery.png",
 		  	"spyware"=>"20-setup.png",
 		  	"recreation/governments"=>"20-towns.png",

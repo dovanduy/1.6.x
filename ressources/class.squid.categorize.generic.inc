@@ -92,6 +92,7 @@ class generic_categorize{
 		if(preg_match("#transports\.[a-z]+#", $www)){return "transport";}
 		if(preg_match("#\.dhl-([a-z]+)\.com$#", $www)){return "transport";}		
 		if(preg_match("#-transporter\.[a-z\.]+$#", $www)){return "transport";}
+		if(preg_match("#transport\.[a-z\.]+$#", $www)){return "transport";}
 		
 	}
 	
@@ -102,7 +103,7 @@ class generic_categorize{
 		$array=array("cnzz","xiti","resultspage","hstrck.com","memecounter","meetrics","effectivemeasure","irotracker","rtrk","omtrdc.net",
 				"ezakus","statistik","odiso","online-metrix","cleervoyance","pandastats","estadisticasgratis",
 				"lognormal","zeroredirect","quantcount","raster-xml","revolvermaps","optimizely","hcatracker","adlooxtracking.com",
-				"redhelper","ceipmsn","userdail","go2cloud.org","sindelclick.com","hitslink","rtrk.nl","shinystat.com","cmos.greencompute.org","ninjastat.com","oadz.com",
+				"redhelper","ceipmsn","userdail","go2cloud.org","adlooxtracking","mobileapptracking","sindelclick.com","hitslink","rtrk.nl","shinystat.com","cmos.greencompute.org","ninjastat.com","oadz.com",
 		);
 		
 		if(preg_match("#[a-z][0-9]+tracking[0-9]+\.[a-z]+$#", $www)){return "tracker";}
@@ -123,10 +124,10 @@ class generic_categorize{
 		if(preg_match("#^nalog[0-9]+\.kaluga\.net$#",$www)){return "tracker";}
 		if(preg_match("#\.web-force\.eu$#",$www)){return "tracker";}
 		if(preg_match("#\.trafficg\.com$#",$www)){return "tracker";}
-		
+		if(preg_match("#cptrack[0-9]+\.[a-z]+$#",$www)){return "tracker";}
 		if(preg_match("#\.online-metrix\.net$#",$www)){return "tracker";}
 		if(preg_match("#\.track\.clicksure\.com$#",$www)){return "tracker";}
-	
+		if(preg_match("#\.track[0-9]+\.com$#",$www)){return "tracker";}
 		
 		if(preg_match("#^cedexis-#",$www)){return "tracker";}
 		if(preg_match("#^statistik\.#",$www)){return "tracker";}
@@ -266,7 +267,7 @@ class generic_categorize{
 	
 	private function imagehosting($www){
 		
-		$array=array("bababian","photobucket","servimg","edgefcs","web-album.org","iofferphoto","rackcdn","t26","tinypic","imageshack","stylesfire","fotolog.com");
+		$array=array("bababian","photobucket","servimg","edgefcs","imagevenue","mzsimg.com","web-album.org","iofferphoto","rackcdn","t26","tinypic","imageshack","stylesfire","fotolog.com");
 		if($this->ParseArray($array, $www)){return "imagehosting";}
 
 		if(strpos($www, ".yimg.com")>0){return "imagehosting";}
@@ -340,7 +341,7 @@ class generic_categorize{
 				"gamaniak",
 				"listentoyoutube",
 				"video.msn.com","shockya","brightcove","videostep.com",
-				"castup","cdnvideo",
+				"castup","cdnvideo","ustream.tv","movideo.com",
 				"rocktube","vimeocdn","freemake","windowsmedia","tare","livestream","nowvideo","vimeo","real",
 				"dropshots","allmyvideos","pcvideo","loadup","videobam","popscreencdn","ultimedia",
 				"firststreaming","videoegg","lkimg","flvstorage","topclip","dailymotion","trilulilu","videoplaza","video-loader");
@@ -379,7 +380,7 @@ class generic_categorize{
 		if(preg_match("#\.uloz\.to$#", $www)){return "audio-video";}
 		if(preg_match("#\.nflxvideo\.net$#", $www)){return "audio-video";}
 		if(preg_match("#\.ivi\.ru$#", $www)){return "audio-video";}
-		if(preg_match("#(media-player|mediaplayer)#", $www)){return "audio-video";}
+		if(preg_match("#(media-player|mediaplayer|plusbellelavie)#", $www)){return "audio-video";}
 		
 		
 	}
@@ -429,7 +430,7 @@ class generic_categorize{
 		if(preg_match("#\.samsungapps\.com$#",$www)){return "mobile-phone";} 
 		if(preg_match("#\.ssuggest\.com$#",$www)){return "mobile-phone";} 
 		if(preg_match("#(\-|\.])nokia\.[a-z]+$#",$www)){return "mobile-phone";} 
-		if(preg_match("#(mobilephone|blackberry|yourphone|smartphone|nokia|android|windowsphon|bestphone|mobileapps)#",$www)){return "mobile-phone";} 
+		if(preg_match("#(mobilephone|blackberry|yourphone|smartphone|galaxynote|nokia|android|windowsphon|bestphone|mobileapps)#",$www)){return "mobile-phone";} 
 		if(preg_match("#\.blackberry\.[a-z]+$#",$www)){return "mobile-phone";}
 		if(preg_match("#\.android\.[a-z]+$#",$www)){return "mobile-phone";} 
 		if(preg_match("#^gsm[0-9]+\.[a-z]+$#",$www)){return "mobile-phone";}
@@ -462,7 +463,7 @@ class generic_categorize{
 		include_once(dirname(__FILE__)."/class.squid.catz.schools.inc");
 		$pub=new squid_catz_schools();$cat=$pub->parse($www);if($cat<>null){return "recreation/schools";}
 		$array=array("universidad-finis-terrae","finisterrae.cl","tu-harburg","mathletics","grenet","powerschool",
-		"schoology","edublogs","sumdog","tableau-noir","hbxxedu.com");
+		"schoology","edublogs","sumdog","tableau-noir","hbxxedu.com","uam.es","edu.au");
 		
 		if($this->ParseArray($array, $www)){return "recreation/schools";}
 		
@@ -481,17 +482,21 @@ class generic_categorize{
 		if(preg_match("#\.k12\.ia\.us$#", $www)){return "recreation/schools";}
 		if(preg_match("#\.ac\.[a-z]+$#", $www)){return "recreation/schools";}
 		if(preg_match("#\.crdp-.*?\.fr$#", $www)){return "recreation/schools";}
-		
+		if(preg_match("#(collegesaint|student)#", $www)){return "recreation/schools";}
 		if(preg_match("#(college|lycee|ecole).*?etudiant$#", $www)){return "recreation/schools";}
-		
+		if(preg_match("#resultats-bac#", $www)){return "recreation/schools";}
 		if(preg_match("#(college|lycee|ecole).*?\.free\.fr$#", $www)){return "recreation/schools";}
 		if(preg_match("#\.univ-[a-z]+\.(fr|org)$#", $www)){return "recreation/schools";}
 		if(preg_match("#^univ-[a-z]+\.(fr|org)$#", $www)){return "recreation/schools";}
+		if(preg_match("#^usd[0-9]+\.com$#", $www)){return "recreation/schools";}
+		if(preg_match("#\.usd[0-9]+\.com$#", $www)){return "recreation/schools";}
 	}
 	
 	private function sports($www){
 		
 		$array=array("sofoot");
+		
+		$sports="foot|tennis|judo|jujitsu|rugby|football|championat|fifa";
 		if($this->ParseArray($array, $www)){return "recreation/sports";}
 		if(preg_match("#volleyball#", $www)){return "recreation/sports";}
 		if(preg_match("#nbcsportsmedia.*?\.msnbc\.com$#", $www)){return "recreation/sports";}
@@ -515,7 +520,7 @@ class generic_categorize{
 		if(preg_match("#\.golfsmith\.com$#", $www)){return "recreation/sports";}
 		if(preg_match("#\.mlb.com$#", $www)){return "recreation/sports";}
 		if(preg_match("#sport\.yahoo\.[a-z]+$#", $www)){return "recreation/sports";}
-		if(preg_match("#(football|intersport|jujitsu|self-defense|sportetstyle|footeo|judoclub|petanque|culturisme|rolandgarros)#", $www)){return "recreation/sports";}
+		if(preg_match("#(football|intersport|jujitsu|judoclub|paintball|-rugby-|judo-club|self-defense|aerobic|sportetstyle|footeo|judoclub|petanque|culturisme|rolandgarros)#", $www)){return "recreation/sports";}
 		if(preg_match("#\.clubeo.com$#", $www)){return "recreation/sports";}
 		if(preg_match("#\.static-clubeo.com$#", $www)){return "recreation/sports";}
 		if(preg_match("#\.ffboxe\.com$#", $www)){return "recreation/sports";}
@@ -535,6 +540,8 @@ class generic_categorize{
 		if(preg_match("#\.i-run\.[a-z]+$#", $www)){return "recreation/sports";}
 		if(preg_match("#-sports\.[a-z\.]+$#", $www)){return "recreation/sports";}
 		if(preg_match("#in(foot|tennis)\.#", $www)){return "recreation/sports";}
+		if(preg_match("#-($sports)\.[a-z]+$#", $www)){return "recreation/sports";}
+		if(preg_match("#^($sports)-#", $www)){return "recreation/sports";}
 		
 	}
 	
@@ -542,7 +549,7 @@ class generic_categorize{
 		
 		$array=array("1jour-1bonplan","wholesalepowertools","cdiscount","blizko","focalprice","cherchons","diplotop",
 				"360buy","mbstatic","groupon","zura","amazon","htfacile","leguide","crystalcommerce","babidou","jd.com","coovee.net",
-				"couponcodes","alloy.ru","franceprix","topachat","bonsplansdemarc","teamfanshop.com","hmmm.cz"
+				"couponcodes","alloy.ru","franceprix","consopremium","topachat","bonsplansdemarc","teamfanshop.com","hmmm.cz"
 				
 		);
 		
@@ -744,7 +751,7 @@ class generic_categorize{
 	
 	private function dictionaries($www){
 		
-		$array=array("thefreedictionary","yourdictionary","about","abes.fr","theses.fr","wikipedia","wikia","docstoc","wikidot","wikispaces","wikimedia","wikiquote","wikisource");
+		$array=array("thefreedictionary","yourdictionary","oxfordjournals","about","abes.fr","theses.fr","wikipedia","wikia","docstoc","wikidot","wikispaces","wikimedia","wikiquote","wikisource");
 		if($this->ParseArray($array, $www)){return "dictionaries";}
 		
 		
@@ -768,7 +775,7 @@ class generic_categorize{
 	private function webtv($www){
 		
 		$array=array("moiseriali","blip","ustream","zap2it","tvrage","arte","canalplus","mtv","diziizle","m6web",
-				"bfmtv","france2","france3","francetelevisions","tvnet","jcntv.jp","webtv-corp.ru","wmaker.tv","leclubcanal","premiumtv","partner-tvmag.net");
+				"bfmtv","france2","france3","francetelevisions","mediasetpremium.it","tvnet","jcntv.jp","webtv-corp.ru","wmaker.tv","leclubcanal","premiumtv","partner-tvmag.net");
 		
 		if($this->ParseArray($array, $www)){return "webtv";}
 		
@@ -813,6 +820,8 @@ class generic_categorize{
 		if(preg_match("#\.cgates\.lt$#", $www)){return "webtv";}
 		if(preg_match("#^tvsl[0-9]+\.orange\.[a-z]+$#", $www)){return "webtv";}
 		if(preg_match("#program.*?-tv#", $www)){return "webtv";}
+		if(preg_match("#^webtv#", $www)){return "webtv";}
+		
 		
 		
 	}
@@ -913,7 +922,7 @@ private function socialnet($www){
 		
 		$array=array("open-system","adsmogo","ic-live","gestionpub","bidvertiser","banners-service","agency-siam.ru","servedbyopenx.com",
 				"easypush","ovoadv","clickbank" ,"adhood","betrad","deskrgas.net","smaato","cibleclick","madvertise","fmpub","plugrush","madnet.ru","client-privilege.com",
-				"jumpsavehuge.com","syn-api.com","luxup.ru","mediagra.com",'ivwbox.de',"pubmatic.com"
+				"jumpsavehuge.com","syn-api.com","luxup.ru","promo-onweb.com","network-media","network-medianet","mediagra.com",'ivwbox.de',"pubmatic.com","movad.de",
 		);
 		
 		if($this->ParseArray($array, $www)){return "publicite";}
@@ -980,6 +989,7 @@ private function socialnet($www){
 		if(preg_match("#-affiliation\.[a-z]+$#", $www)){return "publicite";}	
 		if(preg_match("#\.adrime\.[a-z]+$#", $www)){return "publicite";}
 		if(preg_match("#^adrime\.[a-z]+$#", $www)){return "publicite";}	
+		if(preg_match("#advert\.[a-z\.]+$#", $www)){return "publicite";}	
 		
 	}
 	
@@ -1007,14 +1017,14 @@ private function socialnet($www){
 				);
 		
 		if($this->ParseArray($array, $www)){return "mixed_adult";}
-		if(preg_match("#(doctissimo|zoophilie|transsexu)#", $www)){return "mixed_adult";}
+		if(preg_match("#(doctissimo|zoophilie|transsexu|plancul)#", $www)){return "mixed_adult";}
 		
 	}
 	
 	private function clothing($www){
 		$array=array("glam","c-mod","etnies","morel-france","bon-clic-bon-genre","placedestendances",
 				"spartoo","spreadshirt","etam","zalando","ztat","shopstyle","forzieri","howards",
-				"orchestra","scarosso","misscoquines","costumemagic",
+				"orchestra","scarosso","misscoquines","costumemagic","marksandspencer"
 		);
 		
 		if(preg_match("#(chaussure|shirtinator|timberland|clothes|clothing|marquepaschere|hugoboss|vetement|burberry|basketnike|hollister|abercrombie|marroquineri|costume)#", $www)){return "clothing";}
@@ -1029,7 +1039,7 @@ private function socialnet($www){
 		
 		$array=array("hidemyass","cameleo","anonymsp","ega3","arendadorogo","aradero",
 				"serqus","forfolks","amaleto","gredor","parsekus","raufen","vkontakte","vkadre",
-				"vkomsakte","fkontakle","vkvkvkvkvk","worka","vkokoko","serqus","generalxy4",
+				"vkomsakte","fkontakle","vkvkvkvkvk","worka","vkokoko","serqus","generalxy4","vkokoko",
 				"blokunet","cmle","cmla","bremdy","daydostup","oknovpope.ru","vkokoko.ru",
 		);
 		
@@ -1042,22 +1052,38 @@ private function socialnet($www){
 	
 	
 	private function industry($www){
-		$array=array("jlg","mindvalley","bunchball","chat2deal","nachtmann","whopper","burgerking","burgerkingfrance","pagespro-orange",
+		$array=array("jlg","mindvalley","bunchball","edf.com","chat2deal","nachtmann","whopper","burgerking","burgerkingfrance","pagespro-orange",
 		"schneider-electric.com","sony-europe.com","afacerist","hubb","telenav","choosit","lyonnaise-des-eaux","adp","cat",
-		"danfoss","batiactu","schunk","advertory","samsonite","etiuslugi.ru","schneider","198ic.com","gesep.com","samsung","datazug","surinternet","bankfirstcorp","sandhills",
+		"danfoss","batiactu","schunk","advertory","samsonite","personal-wissen.net","etiuslugi.ru","schneider","198ic.com","gesep.com","samsung","datazug","surinternet","bankfirstcorp","sandhills",
 		);
 
 		if($this->ParseArray($array, $www)){return "industry";}
 		if(preg_match("#(telemarketing|patisserie|artisans|-expertise\.|electric|radyator|industrial|charcuterie|architekten|assainissement|electricite|europages|manutention|industrie)#", $www)){return "industry";}
-		if(preg_match("#(beton|mortier|fournituresbtp|materiaux|soudeuse|plombier|chauffagiste|soudeur|hydraulique|electro|elektro|schneider|metaal|electrique|materiel-de|imprimerie|bobinage|agroalimentaire|prefabricados|agroplastic|agroequipement|xtrmexport|expert-comptable|boulangerie|boucherie|cartonnerie|ferronnerie)#",$www)){return "industry";}
+		if(preg_match("#(beton|mortier|fournituresbtp|materiaux|entreprendre|agricole|ingenierie|hydraulic|traiteur|metaux|depannage|artisan|soudeuse|plombier|chauffagiste|soudeur|hydraulique|electro|elektro|schneider|metaal|electrique|materiel-de|imprimerie|bobinage|agroalimentaire|prefabricados|agroplastic|agroequipement|xtrmexport|expert-comptable|boulangerie|boucherie|cartonnerie|ferronnerie)#",$www)){return "industry";}
 		if(preg_match("#\.pro$#", $www)){return "industry";}
-		if(preg_match("#^plastik#", $www)){return "industry";}
+		if(preg_match("#^(plastik|grossiste)#", $www)){return "industry";}
 		if(preg_match("#plastik\.[a-z\.]+#", $www)){return "industry";}
 		if(preg_match("#axima.*?seitha#", $www)){return "industry";}
 		if(preg_match("#-associes\.[a-z\.]+#", $www)){return "industry";}
-		if(preg_match("#-consulting\.[a-z\.]+#", $www)){return "industry";}
+		if(preg_match("#-(consulting|creation|entreprises)\.[a-z\.]+#", $www)){return "industry";}
 		
 
+		
+	}
+	
+	private function wellness($www){
+		if(preg_match("#(fitness|magnetiseur|vitalite|dieteticien|-beaute-|aloevera|bienetre|wellness|manucure|coiffure)#",$www)){return "recreation/wellness";}
+		if(preg_match("#massage[\.|\-]#",$www)){return "recreation/wellness";}
+		if(preg_match("#psychologies\.com$#",$www)){return "recreation/wellness";}
+		if(preg_match("#\.becomegorgeous\.com$#",$www)){return "recreation/wellness";}
+	}
+	
+	private function tobacco($www){
+		$array=array("vapotille","enviedevape","e-clopmania","ciga.fr","forum-ecigarette");
+		
+		if(preg_match("#(cigarette|tobacco|tabac)#", $www)){return "tobacco";}
+		
+		if($this->ParseArray($array, $www)){return "tobacco";}
 		
 	}
 	
@@ -1076,7 +1102,7 @@ private function socialnet($www){
 		
 		if($this->ParseArray($array, $www)){return "womanbrand";}
 		if(preg_match("#(fashion|beaute|mode|glamour|modeparis)#", $www)){return "womanbrand";}
-		
+		if(preg_match("#feminin\.[a-z]+$#", $www)){return "womanbrand";}
 		
 	}
 	
@@ -1102,8 +1128,9 @@ private function socialnet($www){
 	
 	
 	private function ScienceComputing($www){
-		
+		if(preg_match("#\.[a-z]+\.avast\.com$#",$www)){return "updatesites";}
 		if(preg_match("#\.www3\.hp\.com$#",$www)){return "updatesites";}
+		
 		
 		$array=array("canonical","n1adsl",".internetarchaeology",
 		"googlecode",
@@ -1111,9 +1138,9 @@ private function socialnet($www){
 		"opendns",
 		"symantec",
 		"nabble","coremetrics.com",
-		"htp","atos.net","atosorigin","atosworldline",
+		"htp","atos.net","atosorigin","atosworldline","ipv6test.net",
 		"citrix","dell",
-		"hyves","spiceworks","dslreports","itpub.net",
+		"hyves","spiceworks","dslreports","itpub.net","redsoft.at",
 		"sanasecurity","github",
 		"canonical.com","dell","codes-sources","ibm","parallels","unveiltech","jquery","opera","windows\.microsoft","canon-europe","canon",
 		"ubuntu","eye.fi","messagelabs.com","omniroot");
@@ -1123,7 +1150,8 @@ private function socialnet($www){
 		
 		
 		if(preg_match("#([\.|-])photoshop([-|\.])#", $www)){return "science/computing";}
-		if(preg_match("#(informatique|imprimante|computing|komputer|computer|kaspersky|pcastuces|squid-cache|ordinateur|reseaunance|logiciel|software|sourcecode|freebox)#", $www)){return "science/computing";}
+		if(preg_match("#^(clavier|keyboard)-#", $www)){return "science/computing";}
+		if(preg_match("#(informatique|informatic|imprimante|computing|komputer|computer|kaspersky|pcastuces|squid-cache|ordinateur|reseaunance|logiciel|software|sourcecode|freebox)#", $www)){return "science/computing";}
 		if(preg_match("#zoneadsl\.#", $www)){return "science/computing";}
 		
 		if(preg_match("#-geek\.#", $www)){return "science/computing";}
@@ -1186,7 +1214,7 @@ private function socialnet($www){
 	
 	private function weather($www){
 		
-		$array=array("meteonews","gismeteo","weather","buienradar","accuweather","lachainemeteo","weatherzone","accu-weather");
+		$array=array("meteonews","gismeteo","extremeweathercenters","weather","weatherbug","buienradar","accuweather","lachainemeteo","weatherzone","accu-weather");
 		
 		if($this->ParseArray($array, $www)){return "science/weather";}
 		
@@ -1361,7 +1389,7 @@ private function socialnet($www){
 	
 	private function porn($www){
 		
-		$array=array('ruerotic',"xxx4u","sopital","publicsexchat","fux.com","freepornvs","adultgamecity","youjizz","livesexbook","sex-zone","adnlt.com");
+		$array=array('ruerotic',"xxx4u","sopital","publicsexchat","red8porn","fux.com","hidrvids","freepornvs","adultgamecity","youjizz","livesexbook","sex-zone","adnlt.com");
 		if($this->ParseArray($array, $www)){return "porn";}
 		
 		
@@ -1500,13 +1528,19 @@ private function socialnet($www){
 		
 	}
 	
+	private function celebrity($www){
+		$array=array("justjared","bunte","promiflash","fanpop","zimbio","dailysingle");
+		if($this->ParseArray($array, $www)){return "celebrity";}
+		
+	}
+	
 	
 	private function games($www){	
 		include_once(dirname(__FILE__)."/class.squid.catz.games.inc");
 		
-		$array=array("jeux-ios","majorleaguegaming","gaijinent","101xp","gamer-info","gamefaqs",
+		$array=array("jeux-ios","majorleaguegaming","gaijinent","101xp","gamer-info","gamefaqs","king.com",
 				"gamingfacts","midasplayer","king","happyoz","boardgamearena","didi*games","y8freegames","kaisergames",
-				"playdidi","fupa.com","la.net.ua","battle.net","gamedonga.co.kr");
+				"playdidi","fupa.com","la.net.ua","battle.net","microjogos","gamedonga.co.kr","wow-europe.com","blizzard.com");
 		if($this->ParseArray($array, $www)){return "games";}
 		
 		$pub=new squid_catz_games();
@@ -1517,7 +1551,7 @@ private function socialnet($www){
 		if(preg_match("#\.playme[0-9]+\.[a-z]+$#",$www)){return "games";}
 		if(preg_match("#\.roblox\.com$#",$www)){return "games";}
 		if(preg_match("#\.torn\.com$#",$www)){return "games";}
-		if(preg_match("#(playstation|nintendo|jeuxvideo|minecraft|xboxlive|multigaming|battlefield|skyrim|gameportal|juegos|xbox360|top-jeux)#",$www)){return "games";}
+		if(preg_match("#(playstation|nintendo|blizzard\.com|jeuxvideo|pokemon|worldofwarcraft|minecraft|xboxlive|multigaming|battlefield|skyrim|gameportal|juegos|xbox360|top-jeux)#",$www)){return "games";}
 		
 		if(preg_match("#\.torn\.com$#",$www)){return "games";}
 		if(preg_match("#\.spele\.nl$#",$www)){return "games";}
@@ -1561,7 +1595,7 @@ private function socialnet($www){
 		$prefixrenault="(dacia|zoe|trafic|clio|sport|car|cancun|campaigns)";
 		
 		
-		if(preg_match("#(peugeot|auto-ecole|hyundai|autobilan|volkswagen|camions|autodrive|autocarros|motorsports|otomobil|motorcar|citroen|automobile|voiture|rentalcars|toyota|europcar)#",$www)){return "automobile/cars";}
+		if(preg_match("#(automotos|-auto-|autoservice|carburant|automotiva|peugeot|auto-ecole|hyundai|autobilan|volkswagen|camions|autodrive|autocarros|motorsports|otomobil|motorcar|citroen|automobile|voiture|rentalcars|toyota|europcar)#",$www)){return "automobile/cars";}
 		if(preg_match("#auto\.sanook\.com$#",$www)){return "automobile/cars";}
 		
 		if(preg_match("#$prefixrenault.*?renault#",$www)){return "automobile/cars";}
@@ -1600,7 +1634,7 @@ private function socialnet($www){
 	}
 	
 	private function mailing($www){
-		$array=array('maileva','selfmail','activemailer',"webcontrolcenter.com");
+		$array=array('maileva','selfmail','activemailer',"webcontrolcenter.com","spamtrap");
 		
 		if($this->ParseArray($array, $www)){return "mailing";}
 		
@@ -1675,7 +1709,7 @@ private function socialnet($www){
 		if(preg_match("#\.itimesoffers\.com$#", $www)){return "mailing";}
 		if(preg_match("#msx-smtp[0-9\-]+\.hinet\.net$#", $www)){return "mailing";}
 		if(preg_match("#^ms.*?\.hinet\.net$#", $www)){return "mailing";}
-		if(preg_match("#(newsletter|mailsender|clicksmail|emailing)#", $www)){return "mailing";}
+		if(preg_match("#(newsletter|mailsender|clicksmail|emailing|email-service)#", $www)){return "mailing";}
 		if(preg_match("#\.mailingreport\.com$#", $www)){return "mailing";}
 		if(preg_match("#\.magical-ears\.com$#", $www)){return "mailing";}
 		if(preg_match("#\.adsender\.us$#", $www)){return "mailing";}
@@ -1704,7 +1738,7 @@ private function socialnet($www){
 	}
 	
 	private function gamble($www){
-		$array=array("plein2kdo.com","108qambc.com","16xx.net");
+		$array=array("plein2kdo.com","108qambc.com","16xx.net","gambler");
 		if($this->ParseArray($array, $www)){return "gamble";}
 		if(preg_match("#\.check4d\.com$#",$www)){return "gamble";}
 		if(preg_match("#\.jaro\.com$#",$www)){return "gamble";}
@@ -1717,16 +1751,10 @@ private function socialnet($www){
 		
 		$array=array("fileice","rapidshare","rapidgator","softonic","sftcdn","torrentino",
 				"yourfiledownloader","rutracker","alphacoders","altools","utorrent","bittorrent","vip-file","softsalad"
-				,"software\.informer","brothersoft","otherdownload","uptodown","malavida","soft112","winds10","telecharsoft"
+				,"software\.informer","brothersoft","trulydownload.com","otherdownload","uptodown","malavida","soft112","winds10","telecharsoft"
 				);
 		
-		while (list ($none, $pattern) = each ($array) ){
-			if(preg_match("#\.$pattern\.[a-z\.]+$#", $www)){return "downloads";}
-			if(preg_match("#^$pattern\.[a-z\.]+$#", $www)){return "downloads";}
-		}
-		
-
-	
+		if($this->ParseArray($array, $www)){return "downloads";}
 		
 		if(preg_match("#\.rargb\.me$#", $www)){return "downloads";}
 		if(preg_match("#torrent\.#", $www)){return "downloads";}
@@ -1771,7 +1799,7 @@ private function socialnet($www){
 		"actcom.co.il","iprevolution.co.jp","connect.az","jcsfiberlink.net","isp.timbrasil.com.br","hcinet.net","cnt.nerim.net","anitex.by","knology.net","bootp.virginia.edu","tricom.net","cablemodem.amnethn.com","cotas.com.bo","retail.datagroup.ua",
 		"blomand.net","cpe.townisp.com","dynamic.hinet.net","kyivstar.net","moldtelecom.md","kristel.ru","kateka.lt","surewest.net","airstreamcomm.net","airnet.ru","nationalcablenetworks.ru","nt.net","ppcom.ru","20la.com.cn","shoreham.net","uln.ru","gcn.ua","cablenet.net.ar","netplaza.fi","broadband.kyivstar.net","is.com.fj","static.3bb.co.th","astinet.telkom.net.id","orangearmenia.am","charter.com","comstar.net.ua","king-online.ru","cable.virginmedia.com","zolcomp.hu","bigsandytelco.com","kyivstar.net","ertelecom.ru","broadband44.net","mojohost.com","balchik.net","e-telecom.ru","icnet.ne.jp","homenet.orn.ru","sktv.ru","lynet.no","skybroadband.com","ptt.rs","broadband.tesco.net","juropnet.hu","pacenet-india.com","teleweb.at","astra2connect.com","wonenbreburgnet.nl","dynamic-dsl.frii.net","norwoodlight","highspeed-baumann.de","dyn.telefonica.de","lipetsk.ru","troycable.net","omkc.ru","dhcp.transact.bm","net.il","iconnectbg.net","dhcp.surewest.net","host-telecom.com","adsl.dynamic.seed.net.tw",
 		"vinf.ru","kosnet.ru","seaside.ns.ca","onlink.net","adsl.kis.ru","hnt.ru","spectrum.com.au","ringnett.no","wi.net","zappmobile.ro","dyn.ctinets.com","kbcnet.rs","fament.com","hardynet.com","dynamic.ufanet.ru","dynamic-pool.mclaut.net","dhcp.mpi-stuttgart.mpg.de","gvtel.com",
-		"priv.bahnhof.se","intelnet.net.gt","prod-infinitum.com.mx","ephone.se","onlinehome-server.info","dynamic.adsl.gvt.net.br","retail.telecomitalia.it","wlms-broadband.com","airtelbroadband.in","isp.belgacom.be","adsl.cyta.gr","dsl.irvnca.pacbell.net","webside.pt","connect.com.fj","midsouth.biz.rr.com","aircel.co.in"
+		"priv.bahnhof.se","intelnet.net.gt","prod-infinitum.com.mx","ftth.internl.net","systech.hu","ark.cablelynx.com","avangarddsl.ru","dyn.bashtel.ru","iusacell.net","isurgut.ru","saturn.infonet.ee","dyn.com","cable.virginmedia.com","superkabel.de","bredbandsbolaget.se","ephone.se","onlinehome-server.info","dynamic.adsl.gvt.net.br","retail.telecomitalia.it","wlms-broadband.com","airtelbroadband.in","isp.belgacom.be","adsl.cyta.gr","dsl.irvnca.pacbell.net","webside.pt","connect.com.fj","midsouth.biz.rr.com","aircel.co.in"
 		);
 		
 		if($this->ParseArray($array, $www)){return "dynamic";}
@@ -1814,7 +1842,7 @@ private function socialnet($www){
 		if(preg_match("#dsl-dhcp#", $www)){return "dynamic";}
 		if(preg_match("#dhcp-ind\.#", $www)){return "dynamic";}
 		if(preg_match("#\.dyndns-.*?\.[a-z]+$#", $www)){return "dynamic";}
-		if(preg_match("#[0-9]+\.serverel\.net$#", $www)){return "dynamic";}
+		if(preg_match("#[0-9]+\.(serverel|kansai-bb)\.[a-z]+$#", $www)){return "dynamic";}
 		if(preg_match("#\.dip\.t-dialin\.net$#", $www)){return "dynamic";}
 		if(preg_match("#\.pool\.telekom\.[a-z]+$#", $www)){return "dynamic";}
 		if(preg_match("#\.adsl\.tpnet\.[a-z]+$#", $www)){return "dynamic";}
@@ -2025,14 +2053,14 @@ private function socialnet($www){
 		if(preg_match("#\.atraveo\.[a-z]+$#", $www)){return "recreation/travel";}
 		if(preg_match("#\.travel$#", $www)){return "recreation/travel";}
 		if(preg_match("#-camping\.[a-z]+$#", $www)){return "recreation/travel";}
-		if(preg_match("#(holiday|fasthotel|campingdela|vacanze|transpole|vacances|airlines|tourisme|voyage|hoteliere|travel|fastbooking|touristik)#", $www)){return "recreation/travel";}
+		if(preg_match("#(holiday|fasthotel|campingdela|mercanotel|vacanze|transpole|vacances|airlines|tourisme|voyage|hoteliere|travel|fastbooking|touristik)#", $www)){return "recreation/travel";}
 	}
 	
 	
 	function news($www){
 		
 		$array=array("n24","news","3news","journaldunet","linternaute","feedsportal","townnews","cnn",
-				"newser","wsj","newsinc","orbyt","itespresso","dailymail","n24.de","ruvr.ru","leprogres","lesechos","bbcimg","bbc");
+				"newser","wsj","newsinc","orbyt","itespresso","nytimes","dailymail","n24.de","ruvr.ru","leprogres","lesechos","bbcimg","bbc");
 				
 		if($this->ParseArray($array, $www)){return "news";}
 		
@@ -2084,6 +2112,7 @@ private function socialnet($www){
 		if(preg_match("#\.diariocritico\.com$#", $www)){return "news";}
 		if(preg_match("#\.h-avis\.no$#", $www)){return "news";}
 		if(preg_match("#\.usatoday\.com$#", $www)){return "news";}
+		if(preg_match("#^courrierdes#", $www)){return "news";}
 		if(preg_match("#(watch|pap|cast|herald|sentinel|courier|gazet|tribune|chronicle|daily|news).*?\.(blogspot|altervista).*?\.[a-z]+$#", $www)>0){return "news";}
 	}
 	
@@ -2203,18 +2232,21 @@ private function socialnet($www){
 			if($GLOBALS["VERBOSE"]){echo "GetCategories() no such website\n";}
 		}
 		$cat=null;
-		$cat=$this->dynamic($www);if($cat<>null){return $cat;}
+		
 		$cat=$this->clothing($www);if($cat<>null){return $cat;}
 		$cat=$this->industry($www);if($cat<>null){return $cat;}
 		$cat=$this->remote_control($www);if($cat<>null){return $cat;}
 		$cat=$this->sslsites($www);if($cat<>null){return $cat;}
+		
+		$cat=$this->ScienceComputing($www);if($cat<>null){return $cat;}
+		$cat=$this->dynamic($www);if($cat<>null){return $cat;}
 		
 		
 		$cat=$this->weather($www);if($cat<>null){return $cat;}
 		$cat=$this->smallads($www);if($cat<>null){return $cat;}
 		$cat=$this->shopping($www);if($cat<>null){return $cat;}
 		$cat=$this->womanbrand($www);if($cat<>null){return $cat;}
-		$cat=$this->ScienceComputing($www);if($cat<>null){return $cat;}
+		
 		
 		$cat=$this->publicite($www);if($cat<>null){return $cat;}
 		$cat=$this->proxy($www);if($cat<>null){return $cat;}
@@ -2225,7 +2257,7 @@ private function socialnet($www){
 		$cat=$this->games($www);if($cat<>null){return $cat;}
 		$cat=$this->culture($www);if($cat<>null){return $cat;}
 		$cat=$this->society($www);if($cat<>null){return $cat;}
-		
+		$cat=$this->celebrity($www);if($cat<>null){return $cat;}
 		
 		$cat=$this->Tracker($www);if($cat<>null){return $cat;}
 		$cat=$this->mailing($www);if($cat<>null){return $cat;}
@@ -2240,9 +2272,11 @@ private function socialnet($www){
 		$cat=$this->transports($www);if($cat<>null){return $cat;}
 		
 		$cat=$this->webplugins($www);if($cat<>null){return $cat;}
+		$cat=$this->tobacco($www);if($cat<>null){return $cat;}
 		
 		
 		
+		$cat=$this->wellness($www);if($cat<>null){return $cat;}
 		$cat=$this->Blog($www);if($cat<>null){return $cat;}
 		$cat=$this->news($www);if($cat<>null){return $cat;}
 		$cat=$this->travel($www);if($cat<>null){return $cat;}
@@ -2290,7 +2324,7 @@ private function socialnet($www){
 		if(preg_match("#\.ameli\.fr$#",$www)){return "finance/insurance";}
 		if(preg_match("#.*?-assurances\.[a-z]+$#",$www)){return "finance/insurance";}
 		if(preg_match("#.*?-assurance\.[a-z]+$#",$www)){return "finance/insurance";}
-		if(preg_match("#(mutuelle|assurance|insurance|allianz|swisslife|prevoyance|assuradeuren)#",$www)){return "finance/insurance";}
+		if(preg_match("#(mutuelle|assurance|insurance|allianz|swisslife|seguranca|prevoyance|assuradeuren)#",$www)){return "finance/insurance";}
 		if(preg_match("#\.darva\.com$#",$www)){return "finance/insurance";}		
 		if(preg_match("#\.allianz\.[a-z]+$#",$www)){return "finance/insurance";}
 		
@@ -2330,12 +2364,7 @@ private function socialnet($www){
 		if(preg_match("#\.vgwort.de$#", $www)){return "associations";}
 		if(preg_match("#^resistance-[0-9]+\.[a-z]+$#", $www)){return "associations";}
 		
-		if(preg_match("#\.justjared\.com$#", $www)){return "celebrity";}
-		if(preg_match("#\.bunte.de$#", $www)){return "celebrity";}
-		
-		if(preg_match("#\.fanpop\.com$#", $www)){return "celebrity";}
-		if(preg_match("#\.zimbio.com$#", $www)){return "celebrity";}
-		if(preg_match("#\.dailysingle\.com$#", $www)){return "celebrity";}
+
 		
 		if(preg_match("#\.swagbucks\.com$#", $www)){return "paytosurf";}
 		if(preg_match("#\.mow\.fm$#", $www)){return "paytosurf";}
@@ -2343,6 +2372,7 @@ private function socialnet($www){
 		if(preg_match("#(howtomakemoneyonline|moneymaker|earnmoney|makingmoney|makedreamprofits)#", $www)){return "paytosurf";}
 		
 		if(preg_match("#\.mangareader\.net$#", $www)){return "manga";}
+		if(preg_match("#-mangas\.[a-z\.]+$#", $www)){return "manga";}
 		if(preg_match("#\.voyance\.avigora\.com$#", $www)){return "astrology";}
 		if(preg_match("#\.tarot\.com$#", $www)){return "astrology";}
 		if(preg_match("#(astrolog|voyance|horoskop|horoscope)#", $www)){return "astrology";}
@@ -2391,7 +2421,7 @@ private function socialnet($www){
 		
 
 
-		if(preg_match("#(makeup|maquillage|sephora|marionnaud|parfum|perfume|cosmetique|danieljouvance|cosmetic|yves-rocher|shampoo|shampoing)#",$www)){return "cosmetics";}
+		if(preg_match("#(makeup|parfume|perfume|maquillage|sephora|marionnaud|parfum|perfume|cosmetique|danieljouvance|cosmetic|yves-rocher|shampoo|shampoing)#",$www)){return "cosmetics";}
 		if(preg_match("#\.nivea\.fr$#",$www)){return "cosmetics";}
 		if(preg_match("#coeur-de-bio\.com#",$www)){return "cosmetics";}
 		if(preg_match("#\.skinstore\.[a-z]+$#",$www)){return "cosmetics";}
@@ -2428,6 +2458,9 @@ private function socialnet($www){
 		if(preg_match("#\.conduit\.[a-z]+$#",$www)){return "malware";}
 		if(preg_match("#\.rkconnect\.com$#",$www)){return "malware";}
 		if(preg_match("#\.getwebcake.\com$#",$www)){return "malware";}
+		if(preg_match("#\.complitly\.[a-z]+$#",$www)){return "malware";}
+		if(preg_match("#\.complitly[a-z]+search\.[a-z]+$#",$www)){return "malware";}
+		if(preg_match("#\.complitlyjs\.[a-z]+$#",$www)){return "malware";}
 		
 		if(preg_match("#orange-business.com$#", $www)){return "isp";}
 		if(preg_match("#\.infomaniak\.ch$#", $www)){return "isp";}
@@ -2476,7 +2509,7 @@ private function socialnet($www){
 		if(preg_match("#^meubles-.*#", $www)){return "housing/accessories";}
 		if(preg_match("#(literie|meubles|mobilier|jardiland|climatisation|decoraction)(\-|\.)#", $www)){return "housing/accessories";}
 		if(preg_match("#\.fly\.fr$#", $www)){return "housing/accessories";}
-		if(preg_match("#(mobilier-et-decoration|-culligan|jardiland|decoration|mobilier|abatjour|muebles|luminaire)#", $www)){return "housing/accessories";}
+		if(preg_match("#(mobilier-et-decoration|-culligan|kitchen|grillage|cloture|bathroom|jardiland|decoration|mobilier|abatjour|muebles|luminaire)#", $www)){return "housing/accessories";}
 		if(preg_match("#\.cuisines-schmidt\.com$#", $www)){return "housing/accessories";}
 		if(preg_match("#\.ikea\.[a-z]+$#", $www)){return "housing/accessories";}
 		if(preg_match("#\.longmoney\.ru$#", $www)){return "housing/accessories";}
@@ -2512,7 +2545,7 @@ private function socialnet($www){
 		if(preg_match("#\.inetpsa\.com$#", $www)){return "webapps";}
 		if(preg_match("#\.cpn\.vwg$#", $www)){return "webapps";}
 		
-		if(preg_match("#(sellerie|marechalerie|cheveaux|equitation|equestre|horses|ecuries|horseware)#", $www)){return "horses";}
+		if(preg_match("#(ecurie|sellerie|marechalerie|cheveaux|equitation|equestre|horses|ecuries|horseware)#", $www)){return "horses";}
 		if(preg_match("#^ecurie-#", $www)){return "horses";}
 		if(preg_match("#\.racingpost\.com$#", $www)){return "horses";}
 		if(preg_match("#-cheval\.[a-z\.]+$#", $www)){return "horses";}
@@ -2549,7 +2582,7 @@ private function socialnet($www){
 		if(preg_match("#^emploi\..+#", $www)){return "jobsearch";}
 		if(preg_match("#\.apec\.fr$#", $www)){return "jobsearch";}
 		if(preg_match("#^job\..+#", $www)){return "jobsearch";}
-		if(preg_match("#(jobsearch|offre-emploi|newjob|chercheunemploi|recruitment|recruiting|recruit\.)#", $www)){return "jobsearch";}
+		if(preg_match("#(jobsearch|offre-emploi|recruit|newjob|chercheunemploi|recruitment|recruiting|recruit\.)#", $www)){return "jobsearch";}
 		if(preg_match("#\.jobsonline\.net$#", $www)){return "jobsearch";}
 		if(preg_match("#\.viadeo\.com$#", $www)){return "jobsearch";}
 		if(preg_match("#\.naukri\.com$#", $www)){return "jobsearch";}
@@ -2559,10 +2592,16 @@ private function socialnet($www){
 		if(preg_match("#\.newjobs\.[a-z]+$#", $www)){return "jobsearch";}
 		if(preg_match("#\.zonajobs\.[a-z\.]+$#", $www)){return "jobsearch";}
 		if(preg_match("#\.profilsearch\.com$#", $www)){return "jobsearch";}
+		if(preg_match("#recrute\.[a-z]+$#", $www)){return "jobsearch";}
 		if(preg_match("#-interim\.#", $www)){return "jobsearch";}
 		if(preg_match("#\.ilconte\.ru$#", $www)){return "jobsearch";}
 		if(preg_match("#engineeer\.com$#", $www)){return "jobsearch";}
 		
+		if(preg_match("#-dessous\.[a-z]+$#", $www)){return "sex/lingerie";}
+		if(preg_match("#-dessous-#", $www)){return "sex/lingerie";}
+		if(preg_match("#^[0-9]+dessous#", $www)){return "sex/lingerie";}
+		if(preg_match("#^(lesdessous|dessousde)#", $www)){return "sex/lingerie";}
+		if(preg_match("#(charme|gay).*?(lingerie|dessous)#", $www)){return "sex/lingerie";}
 		
 		if(strpos($www, "collegehumor.com")>0){return "recreation/humor";}
 		if(preg_match("#\.bu2z\.com$#",$www)){return "recreation/humor";}
@@ -2577,6 +2616,8 @@ private function socialnet($www){
 		if(preg_match("#\.cybercartes\.com$#",$www)){return "gifts";}
 		if(preg_match("#\.aquarelle\.com$#",$www)){return "gifts";}
 		if(preg_match("#\.aquarelle\.eu$#",$www)){return "gifts";}
+		if(preg_match("#(surprises|-fleurs-)#",$www)){return "gifts";}
+		if(preg_match("#amour.*?fleurs#",$www)){return "gifts";}
 
 		if(preg_match("#\.bankrate\.com$#",$www)){return "finance/moneylending";}
 		if(preg_match("#\.cofinoga\.[a-z]+$#",$www)){return "finance/moneylending";}
@@ -2661,7 +2702,7 @@ private function socialnet($www){
 		if(preg_match("#\.tf1\.fr$#", $www)){return "webtv";}
 		if(preg_match("#\.chiens-de-france\.[a-z]+$#", $www)){return "hobby/pets";}
 		if(preg_match("#(\.|\-)chiens(\.|\-)#", $www)){return "hobby/pets";}
-		if(preg_match("#(labradors|malinois|animalerie|animali|yorkshire|royalcanin|shih-tzu|shihtzu|veterinaria|alynxstar|tiendanimal|monchien|heurtschia)#", $www)){return "hobby/pets";}
+		if(preg_match("#(labradors|toiletteur|malinois|animalerie|animali|yorkshire|royalcanin|shih-tzu|shihtzu|veterinaria|alynxstar|tiendanimal|monchien|heurtschia)#", $www)){return "hobby/pets";}
 		if(preg_match("#pension.*?(anima|chien|chat)#", $www)){return "hobby/pets";}
 		if(preg_match("#^pets-#", $www)){return "hobby/pets";}
 		
@@ -2693,7 +2734,7 @@ private function socialnet($www){
 		if(preg_match("#-soins-#", $www)){return "health";}
 		if(preg_match("#\.katalog-stomatologu\.[a-z\.]+$#", $www)){return "health";}
 		if(preg_match("#\.valtaf\.be$#", $www)){return "health";}
-		if(preg_match("#(therapie|orthopedique|health|orthopaedie|podolog|orthodontie|medecin|physiotherapie|psychiatrie|andrologue|arthrose|osteopath|neurologie|chirurgie|cardiologie|dermatology|opticien|dentiste|psychologue|antigymnastique|ophtalmologue)#", $www)){return "health";}
+		if(preg_match("#(therapie|orthopedique|ophtalmo|orthopedie|-sante-|dermatologue|health|orthopaedie|varices|podolog|orthodontie|medecin|physiotherapie|psychiatrie|andrologue|arthrose|osteopath|neurologie|chirurgie|cardiologie|dermatology|opticien|dentiste|psychologue|antigymnastique|ophtalmologue)#", $www)){return "health";}
 		//allemand
 		if(preg_match("#(radiologische|psihoterapie|radioonkologie|medizinischen|hematologie|strahlentherapie)#", $www)){return "health";}
 		
@@ -2760,11 +2801,7 @@ private function socialnet($www){
 		
 		if(preg_match("#(allocine|filmtrailer)\.[a-z]+$#",$www)){return "movies";}
 		if(preg_match("#\.logmein\.com$#",$www)){return "remote-control";}
-		if(preg_match("#(fitness|magnetiseur|dieteticien|wellness)#",$www)){return "recreation/wellness";}
-		if(preg_match("#massage[\.|\-]#",$www)){return "recreation/wellness";}
-		
-		if(preg_match("#psychologies\.com$#",$www)){return "recreation/wellness";}
-		if(preg_match("#\.becomegorgeous\.com$#",$www)){return "recreation/wellness";}
+
 		if(preg_match("#\.homestyler\.com$#",$www)){return "housing/doityourself";}
 		if(preg_match("#(deco-travaux|bricolage|carrelage|-house-plan|ideesmaison|bricoleur)#",$www)){return "housing/doityourself";}
 		
@@ -2838,12 +2875,12 @@ private function socialnet($www){
 		if(preg_match("#\.eventful\.com$#", $www)){return "recreation/nightout";}
 		if(preg_match("#-restaurant\.[a-z\.]+$#", $www)){return "recreation/nightout";}
 		if(preg_match("#\.sortir\.ville\.orange\.fr$#", $www)){return "recreation/nightout";}
-		if(preg_match("#^(sortira|pizza-)#", $www)){return "recreation/nightout";}
-		if(preg_match("#(lecafe|discotheque)#", $www)){return "recreation/nightout";}
+		if(preg_match("#^(sortira|pizza)#", $www)){return "recreation/nightout";}
+		if(preg_match("#(lecafe|ristorante|discotheque|billetterie)#", $www)){return "recreation/nightout";}
 		if(preg_match("#sortir\.#", $www)){return "recreation/nightout";}
 		if(preg_match("#^restaurant#", $www)){return "recreation/nightout";}
 		if(preg_match("#-resto\.(fr|com|ch|be)$#", $www)){return "recreation/nightout";}
-		if(preg_match("#^(resto|festivals|concerts)-#", $www)){return "recreation/nightout";}
+		if(preg_match("#^(resto|festivals|concerts|fnacspectacles)-#", $www)){return "recreation/nightout";}
 		
 		
 		if(preg_match("#^impots-.*?#", $www)){return "finance/other";}
@@ -2865,13 +2902,14 @@ private function socialnet($www){
 		if(preg_match("#^clinique([-\.]+).+?\.$#", $www)){return "hospitals";}
 		if(preg_match("#^chu-.+?\.fr$#", $www)){return "hospitals";}
 		if(preg_match("#^chi-.+?\.fr$#", $www)){return "hospitals";}
+		if(preg_match("#^ch-.+?\.fr$#", $www)){return "hospitals";}
 		if(preg_match("#^chi[0-9]+\.fr$#", $www)){return "hospitals";}
 		if(preg_match("#\.cgos\.info$#", $www)){return "hospitals";}
 		if(preg_match("#^dolcea-maison-#", $www)){return "hospitals";}
 		
 
 		
-		if(preg_match("#(aviation|aeroclub|avionique|aeronaut)#", $www)){return "automobile/planes";}
+		if(preg_match("#(aviation|aeroclub|avionique|aeronaut|aircraft)#", $www)){return "automobile/planes";}
 		if(preg_match("#covoiturage#", $www)){return "automobile/carpool";}
 		
 		
@@ -2886,7 +2924,7 @@ private function socialnet($www){
 		if(preg_match("#-photography-#$#", $www)){return "photo";}
 		if(preg_match("#photography\.[a-z\.]+$#", $www)){return "photo";}
 		if(preg_match("#photography-#", $www)){return "photo";}
-		if(preg_match("#(photographe|fotografie|photographier|photobook|photographic)#", $www)){return "photo";}
+		if(preg_match("#(photographe|fotografie|fujifilm|photographier|photobook|photographic)#", $www)){return "photo";}
 		
 		
 		if(preg_match("#\.ryland\.com$#", $www)){return "housing/builders";}
@@ -2944,7 +2982,7 @@ private function socialnet($www){
 		if(preg_match("#\.[0-9](moto|auto)\.[a-z]+$#", $www)){return "automobile/bikes";}
 		if(preg_match("#\.harley-davidson\.com$#", $www)){return "automobile/bikes";}
 		if(preg_match("#\.mobcustom\.[a-z]+$#", $www)){return "automobile/bikes";}
-		if(preg_match("#(motospiece|honda|bikes|scooter|suzuki|piecesmoto|permis-moto)#", $www)){return "automobile/bikes";}
+		if(preg_match("#(motospiece|honda|bikes|scooter|suzuki|piecesmoto|permis-moto|-moto-|motostore)#", $www)){return "automobile/bikes";}
 		
 		if(preg_match("#(alcool|alcohol)##", $www)){return "alcohol";}
 		if(preg_match("#\.persona\.org$#", $www)){return "browsersplugins";}
@@ -2969,6 +3007,8 @@ private function socialnet($www){
 		
 		if(preg_match("#(astronomy|astronomie|astronome|telescope|cosmologie|astrophoto)#", $www)){return "science/astronomy";}
 		if(preg_match("#\.fis[0-9]+\.info$#", $www)){return "suspicious";}
+		if(preg_match("#blue[0-9]+xyz#", $www)){return "suspicious";}
+		if(preg_match("#vuittonlouis#", $www)){return "suspicious";}
 		if(preg_match("#^[0-9]+\.info$#", $www)){return "suspicious";}
 		if(preg_match("#\.st\.mycdn\.me$#", $www)){return "suspicious";}
 		if(preg_match("#\.sysinfonet\.cc$#", $www)){return "suspicious";}
@@ -3004,7 +3044,7 @@ private function socialnet($www){
 		
 		
 		if(preg_match("#\.voirdessinanime\.com$#", $www)){return "children";}
-		if(preg_match("#(enfant|children|toysrus)#", $www)){return "children";}
+		if(preg_match("#(enfant|children|toysrus|enfance)#", $www)){return "children";}
 		if(preg_match("#\.ptitclic\.net$#", $www)){return "children";}
 		if(preg_match("#faire.*?part.*?naissance#", $www)){return "children";}
 		
@@ -3013,7 +3053,7 @@ private function socialnet($www){
 		if(preg_match("#\.cargocollective\.com$#", $www)){return "hobby/arts";}
 		if(preg_match("#-art\.[a-z]+$#", $www)){return "hobby/arts";}
 		if(preg_match("#\.book\.fr$#", $www)){return "hobby/arts";}
-		if(preg_match("#cineast#", $www)){return "hobby/arts";}
+		if(preg_match("#(artisticas|cineast)#", $www)){return "hobby/arts";}
 		if(preg_match("#clovisgauzy\.fr$#", $www)){return "hobby/arts";}
 		if(preg_match("#^formation-.*?#", $www)){return "learning";}
 		if(preg_match("#(-|\.)formation\.#", $www)){return "learning";}

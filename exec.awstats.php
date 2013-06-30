@@ -127,6 +127,9 @@ function exectute_awstats($servername,$articameta=false){
 
 function awstats_import_sql($servername,$articameta){
 $q=new mysql();	
+$unix=new unix();
+
+
 $sql="DELETE FROM awstats_files WHERE `servername`='$servername'";
 		$q->QUERY_SQL($sql,"artica_backup");
 		
@@ -154,11 +157,11 @@ $sql="DELETE FROM awstats_files WHERE `servername`='$servername'";
 					$q->ok;		
 		}
 
-if($articameta){
-	$sock=new sockets();
-	if($sock->GET_INFO("ArticaMetaEnabled")==1){
-	shell_exec($GLOBALS["nice"].LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.artica.meta.users.php --export-awstats-files");
-	}	
+	if($articameta){
+		$sock=new sockets();
+		if($sock->GET_INFO("ArticaMetaEnabled")==1){
+		shell_exec($GLOBALS["nice"].LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.artica.meta.users.php --export-awstats-files");
+		}	
 }				
 		
 		

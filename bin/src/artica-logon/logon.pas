@@ -661,9 +661,14 @@ var
   MasterIndexFile        :string;
 begin
    result:='0';
+
    MasterIndexFile:='/usr/share/artica-postfix/ressources/index.ini';
    if not FileExists(MasterIndexFile) then exit;
-   autoupdate:=TiniFile.Create(MasterIndexFile);
+   try
+      autoupdate:=TiniFile.Create(MasterIndexFile);
+   except
+    exit();
+   end;
    tmpstr:=autoupdate.ReadString('NEXT','artica-nightly','');
    if length(tmpstr)=0 then exit;
    result:=tmpstr;
@@ -969,7 +974,8 @@ l.Add(IP+';'+Gayteway+';'+netmask+';'+DNS+';'+eth);
 writeln('Updating new configuration, please wait....');
 l.SaveToFile('/etc/artica-postfix/network.first.settings');
 fpsystem('/etc/init.d/artica-postfix start mysql');
-fpsystem('/bin/rm -f /etc/init.d/network-urgency.sh');
+fpsystem('/bin/rm -f /etc/artica-postfix/MEM_INTERFACES >/dev/null 2>&1');
+fpsystem('/bin/rm -f /etc/init.d/network-urgency.sh >/dev/null 2>&1');
 fpsystem('/usr/share/artica-postfix/exec.virtuals-ip.php --articalogon');
 writeln('Restarting Artica Web SSL Interface Console, please wait....');
 fpsystem('/etc/init.d/artica-postfix stop apache');

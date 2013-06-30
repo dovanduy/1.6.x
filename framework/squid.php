@@ -677,7 +677,7 @@ function ufdbguard_compile_database(){
 		@unlink($debugfile);
 		$devnull="--verbose >$debugfile";
 	}
-	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squidguard.php --compile-category $database $devnull 2>&1 &");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squidguard.php --compile-category \"$database\" $devnull 2>&1 &");
 	shell_exec($cmd);
 	
 	if(isset($_GET["debug"])){sleep(1);@chmod($debugfile,0777);}

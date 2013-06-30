@@ -755,6 +755,7 @@ class system_nic{
 			$ASALREADY[$eth]=true;
 			
 			$GLOBALS["SAVED_INTERFACES"][]=$eth;
+			$GLOBALS["MEM_INTERFACES"][$eth]=$ligne["IPADDR"];
 
 			if($count==0){echo "Starting......: $eth \"{$ligne["IPADDR"]}\"\n";return;}
 			$dns=array();
@@ -950,6 +951,8 @@ class system_nic{
 			$eth="{$ligne["nic"]}:{$ligne["ID"]}";
 			if($NetWorkBroadCastAsIpAddr==1){$brd=$ligne["ipaddr"];}
 			if($ligne["gateway"]==null){$ligne["gateway"]="0.0.0.0";}
+			$GLOBALS["MEM_INTERFACES"][$eth]=$ligne["ipaddr"];
+			
 			$f[]="";
 			$f[]="iface $eth inet static";
 			$f[]="\taddress {$ligne["ipaddr"]}";
@@ -1037,6 +1040,7 @@ class system_nic{
 			shell_exec("{$GLOBALS["vconfigbin"]} add {$ligne["nic"]} {$ligne["vlanid"]} >/dev/null 2>&1");
 			echo "Starting......: VLAN $eth {$ligne["ipaddr"]}/{$ligne["netmask"]} gateway {$ligne["gateway"]} ({$ligne["org"]}) route ID $table_routeid/$table_routename\n";
 			$f[]="";
+			$GLOBALS["MEM_INTERFACES"]["$eth$vlanid_text"]=$ligne["ipaddr"];
 			$f[]="auto $eth$vlanid_text";
 			$f[]="iface $eth$vlanid_text inet static";
 			$f[]="\taddress {$ligne["ipaddr"]}";

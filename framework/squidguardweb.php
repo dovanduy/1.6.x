@@ -18,7 +18,7 @@ function service_cmds(){
 	$cmds=$_GET["service-cmds"];
 	$results[]="Postition: $cmds";
 	
-	exec("/etc/init.d/artica-postfix $cmds squidguard-http 2>&1",$results);
+	exec("/etc/init.d/squidguard-http $cmds 2>&1",$results);
 	writelogs_framework("artica-postfix $cmds squidguard-http ".count($results)." rows",__FUNCTION__,__FILE__,__LINE__);
 	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";
 }

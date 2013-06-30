@@ -28,6 +28,7 @@ $GLOBALS["NICE"]=$unix->EXEC_NICE();
 $GLOBALS["nohup"]=$unix->find_program("nohup");
 $GLOBALS["CHMOD"]=$unix->find_program("chmod");
 $GLOBALS["KILLBIN"]=$unix->find_program("kill");
+$GLOBALS["KILL"]=$GLOBALS["KILLBIN"];
 if($GLOBALS["VERBOSE"]){echo "DEBUG MODE ENABLED\n";}
 if($GLOBALS["VERBOSE"]){echo "command line: {$GLOBALS["COMMANDLINE"]}\n";}
 $GLOBALS["AMAVIS_WATCHDOG"]=unserialize(@file_get_contents("/etc/artica-postfix/amavis.watchdog.cache"));
@@ -211,9 +212,9 @@ if($argv[1]=="--maillog"){echo maillog_watchdog();die();}
 if($argv[1]=="--freeradius"){echo freeradius();die();}
 if($argv[1]=="--php-pfm"){echo php_fpm();die();}
 if($argv[1]=="--syslog-db"){echo syslog_db();die();}
-if($argv[1]=="--nginx"){echo nginx();die();}
+if($argv[1]=="--nginx"){echo nginx()."\n".nginx_db();die();}
 if($argv[1]=="--haarp"){echo haarp();die();}
-if($argv[1]=="--chilli"){echo chilli();die();}
+if($argv[1]=="--chilli"){echo chilli()."\n";echo chilli_dnsmasq();die();}
 
 
 
@@ -242,6 +243,8 @@ if($argv[1]=="--all-squid"){
 	$conf[]=squid_db();
 	$conf[]=haarp();
 	$conf[]=chilli();
+	$conf[]=chilli_dnsmasq();
+	$conf[]=nginx();
 	echo @implode("\n",$conf);
 	die();
 }
@@ -1024,8 +1027,8 @@ function launch_all_status($force=false){
 	"dnsmasq","iscsi","watchdog_yorel","netatalk","postfwd2","vps_servers","smartd","crossroads_multiple","auth_tail","greyhole_watchdog","greensql","nscd","tomcat",
 	"openemm","openemm_sendmail","cgroups","ntpd_server","arpd","ps_mem","ipsec","yaffas","ifconfig_network","testingrrd","zarafa_multi","memcached","UpdateUtilityHTTP",
 	"udevd_daemon","dbus_daemon","ejabberd","pymsnt", "arkwsd", "arkeiad","haproxy","klms_status","klmsdb_status","klms_milter","CleanLogs","mimedefangmx","mimedefang",
-	"zarafa_search","snort","mailarchiver","articadb","amavisdb","squid_db","nginx","checksyslog","freeradius","maillog_watchdog","arp_spoof","caches_pages",
-	"php_fpm","CleanCloudCatz","syslog_db"
+	"zarafa_search","snort","mailarchiver","articadb","amavisdb","squid_db","nginx","nginx_db","checksyslog","freeradius","maillog_watchdog","arp_spoof","caches_pages",
+	"php_fpm","CleanCloudCatz","syslog_db","chilli","chilli_dnsmasq","haarp"
 	);
 	$data1=$GLOBALS["TIME_CLASS"];
 	$data2 = time();
@@ -2589,7 +2592,7 @@ function squidguardweb(){
 	$l[]="[APP_SQUIDGUARD_HTTP]";
 	$l[]="service_name=APP_SQUIDGUARD_HTTP";
 	$l[]="master_version=".GetVersionOf("lighttpd");
-	$l[]="service_cmd=squidguard-http";
+	$l[]="service_cmd=/etc/init.d/squidguard-http";
 	$l[]="service_disabled=$squidGuardEnabled";
 	$l[]="watchdog_features=1";
 	$l[]="pid_path=$pid_path";
@@ -2600,7 +2603,11 @@ function squidguardweb(){
 	}
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
-		WATCHDOG("APP_SQUIDGUARD_HTTP","squidguard-http");
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			shell_exec("{$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.initslapd.php --squidguard-http >/dev/null 2>&1");
+			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/squidguard-http restart >/dev/null 2>&1 &");
+				
+		}
 		$l[]="running=0\ninstalled=1";$l[]="";return implode("\n",$l);
 		return;
 	}
@@ -2782,6 +2789,11 @@ function ufdbguardd(){
 	 
 	if($EnableUfdbGuard==0){
 		if($GLOBALS["VERBOSE"]){echo "EnableUfdbGuard =  0 die();\n";}
+		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+			shell_exec2("{$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.initslapd.php --ufdbguard >/dev/null 2>&1");
+			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/ufdb stop >/dev/null 2>&1 &");
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["KILL"]} $master_pid >/dev/null 2>&1 &");
+		}
 		return implode("\n",$l);
 		return;
 	}
@@ -2790,6 +2802,7 @@ function ufdbguardd(){
 	if(!is_file("/etc/artica-postfix/ufdbfirst")){
 		if(!is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){
 			ufdbguard_admin_events("Launching first updates of Ufdbguard databases",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+			shell_exec2("{$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.initslapd.php --ufdbguard >/dev/null 2>&1");
 			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.blacklists.php --ufdb-first >/dev/null 2>&1 &");
 		}	
 	}
@@ -2804,6 +2817,7 @@ function ufdbguardd(){
 			if(function_exists("squid_admin_notifs")){squid_admin_notifs("Stopping Ufdbguard service, it is disabled...", __FUNCTION__, __FILE__, __LINE__, "proxy");}
 			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("UfdGuard master Daemon service is running but disabled-> stop it...", basename(__FILE__));}
 			ufdbguard_admin_events("UfdGuard master Daemon service is running but disabled-> stop it...",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+			shell_exec2("{$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.initslapd.php --ufdbguard >/dev/null 2>&1");
 			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/ufdb stop >/dev/null 2>&1 &");
 		}
 	}
@@ -2812,7 +2826,8 @@ function ufdbguardd(){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
 			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("UfdGuard master Daemon service is not running -> start it...", basename(__FILE__));}
 			ufdbguard_admin_events("UfdGuard master Daemon service is not running -> start it...",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
-			WATCHDOG("APP_UFDBGUARD","ufdb");
+			shell_exec2("{$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.initslapd.php --ufdbguard >/dev/null 2>&1");
+			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/ufdb start >/dev/null 2>&1 &");
 		}
 		$l[]="running=0\ninstalled=1";$l[]="";return implode("\n",$l);
 		return;
@@ -7592,6 +7607,71 @@ function chilli_version(){
 
 }
 //========================================================================================================================================================
+function dnsmasq_version($binpath=null){
+	$key=md5(__FUNCTION__.$binpath);
+	if(isset($GLOBALS[$key])){return $GLOBALS[$key];}
+	if($binpath==null){$binpath=$GLOBALS["CLASS_UNIX"]->find_program("dnsmasq");}
+	if(!is_file($binpath)){return 0;}
+
+	exec("$binpath --version 2>&1",$array);
+	while (list ($pid, $line) = each ($array) ){
+		if(preg_match("#version\s+([0-9a-z\.]+)\s+Copyright#i", $line,$re)){
+			$GLOBALS[$key]=$re[1];
+			return $re[1];}
+			if($GLOBALS['VERBOSE']){echo "dnsmasq_version(), $line, not found \n";}
+	}
+
+}
+//========================================================================================================================================================
+
+
+function chilli_dnsmasq(){
+	$bin="/etc/chilli/sbin/dnsmasq";
+	if(!is_file($bin)){return;}
+	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableChilli");
+	if(!is_numeric($enabled)){$enabled=0;}
+	$pid_path="/var/run/chilli.dnsmasq.pid";
+	$master_pid=trim(@file_get_contents($pid_path));
+
+
+	$l[]="[APP_HOTSPOT_DNSMASQ]";
+	$l[]="service_name=APP_DNSMASQ";
+	$l[]="master_version=".dnsmasq_version("/etc/chilli/sbin/dnsmasq");
+	$l[]="service_cmd=/etc/init.d/chilli";
+	$l[]="service_disabled=$enabled";
+	$l[]="family=proxy";
+	$l[]="pid_path=$pid_path";
+	$l[]="watchdog_features=1";
+
+	if($enabled==0){
+		if($GLOBALS["VERBOSE"]){echo "chilli_dnsmasq():: EnableChilli = $enabled \n";}
+		return implode("\n",$l);
+		
+	}
+	
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF("/etc/chilli/sbin/dnsmasq");
+	}	
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			$cmd=trim("{$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.chilli.php --start-dnsmasq >/dev/null 2>&1");
+			shell_exec2($cmd);
+		}
+		$l[]="running=0\ninstalled=1";$l[]="";
+		return implode("\n",$l);
+		return;
+	}
+
+
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+
+	
+	return implode("\n",$l);return;
+}
+//========================================================================================================================================================
 
 
 
@@ -7600,7 +7680,7 @@ function haarp(){
 	$bin=$GLOBALS["CLASS_UNIX"]->find_program("haarp");
 	if(!is_file($bin)){return;}
 	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableHaarp");
-	if(!is_numeric($enabled)){$enabled=1;}
+	if(!is_numeric($enabled)){$enabled=0;}
 	$pid_path="/var/run/haarp.pid";
 	$master_pid=trim(@file_get_contents($pid_path));
 
@@ -7615,6 +7695,11 @@ function haarp(){
 	$l[]="watchdog_features=1";
 
 	if($enabled==0){return implode("\n",$l);return;}
+	
+	
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF($bin);
+	}
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
@@ -7654,10 +7739,13 @@ function haarp_version(){
 	}
 
 }
-//========================================================================================================================================================
 
 //========================================================================================================================================================
 function nginx(){
+	
+	$bin=$GLOBALS["CLASS_UNIX"]->find_program("nginx");
+	if(!is_file($bin)){$GLOBALS["CLASS_USERS"]->NGINX_INSTALLED=false;}
+	
 	if(!$GLOBALS["CLASS_USERS"]->NGINX_INSTALLED){
 		$cmd=trim("{$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.nginx.php --install-nginx >/dev/null 2>&1 &");
 		shell_exec2($cmd);
@@ -7680,6 +7768,11 @@ function nginx(){
 	$l[]="watchdog_features=1";
 
 	if($enabled==0){return implode("\n",$l);return;}
+	
+	
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF($bin);
+	}
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
@@ -7712,7 +7805,7 @@ function nginx_version(){
 	
 	exec("$bin -v 2>&1",$array);
 	while (list ($pid, $line) = each ($array) ){
-			if(preg_match("#nginx\/([0-9\.\-]+)#i", $line,$re)){
+			if(preg_match("#\/([0-9\.\-]+)#i", $line,$re)){
 				$GLOBALS["nginx_version"]=$re[1];
 				return $re[1];}
 			if($GLOBALS['VERBOSE']){echo "nginx_version(), $line, not found \n";}
@@ -7763,7 +7856,49 @@ function syslog_db(){
 	//shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid-db.php --statistics >/dev/null 2>&1 &");
 	return implode("\n",$l);return;
 }
+//========================================================================================================================================================
+function nginx_db(){
 
+	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableNginxStats");
+	if(!is_numeric($enabled)){$enabled=0;}
+	if($enabled==0){return;}
+	$MySQLSyslogType=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("MySQLNgnixType");
+	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
+	if($MySQLSyslogType<>1){return;}
+
+	$pid_path="/var/run/nginxdb.pid";
+	$master_pid=trim(@file_get_contents($pid_path));
+
+
+	$l[]="[APP_NGINXDB]";
+	$l[]="service_name=APP_NGINXDB";
+	$l[]="master_version="._MYSQL_VERSION();
+	$l[]="service_cmd=/etc/init.d/nginx-db";
+	$l[]="service_disabled=$enabled";
+	$l[]="family=proxy";
+	$l[]="pid_path=$pid_path";
+	$l[]="watchdog_features=1";
+
+	if($enabled==0){return implode("\n",$l);return;}
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			$cmd=trim("{$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.nginx-db.php --init");
+			shell_exec2($cmd);
+			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/nginx-db restart >/dev/null 2>&1 &");
+		}
+		$l[]="running=0\ninstalled=1";$l[]="";
+		return implode("\n",$l);
+		return;
+	}
+
+
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+	shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.nginx-db.php --databasesize >/dev/null 2>&1 &");
+	return implode("\n",$l);return;
+}
 
 
 
@@ -8638,7 +8773,7 @@ function dnsmasq(){
 	$l[]="[DNSMASQ]";
 	$l[]="service_name=APP_DNSMASQ";
 	$l[]="service_cmd=dnsmasq";
-	$l[]="master_version=".GetVersionOf("dnsmasq");
+	$l[]="master_version=".dnsmasq_version();
 	$l[]="service_disabled=$EnableDNSMASQ";
 	$l[]="family=network";
 	$l[]="watchdog_features=1";
@@ -9531,6 +9666,7 @@ function ifconfig_network(){
 				$GLOBALS["CLASS_UNIX"]->send_email_events("No Network detected !, rebuild network configuration","Artica has no detected network the network interface will be rebuilded\nHere it is the Network dump\n".@implode("\n", $ifconfigbinDump)."\nIf you did not want this watchdog, do the following command on this console server:\n# echo 1 >/etc/artica-postfix/settings/Daemons/DisableWatchDogNetwork\n# /etc/init.d/artica-postfix restart artica-status","system");
 				@unlink($timefile);
 				@file_put_contents($timefile, time());
+				@unlink("/etc/artica-postfix/MEM_INTERFACES");
 				$cmd=trim("{$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.virtuals-ip.php >/dev/null 2>&1 &");
 				shell_exec2($cmd);
 			}		

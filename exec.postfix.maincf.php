@@ -12,10 +12,12 @@ include_once(dirname(__FILE__).'/ressources/class.main.hashtables.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 $GLOBALS["RELOAD"]=false;
+$GLOBALS["URGENCY"]=false;
 $_GET["LOGFILE"]="/usr/share/artica-postfix/ressources/logs/web/interface-postfix.log";
 if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
+if(preg_match("#--urgency#",implode(" ",$argv))){$GLOBALS["URGENCY"]=true;}
 
 if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 $unix=new unix();
@@ -198,6 +200,12 @@ if($GLOBALS["EnablePostfixMultiInstance"]==1){shell_exec(LOCATE_PHP5_BIN2()." ".
 	haproxy_compliance();
 	smtpd_milters();
 	ReloadPostfix();	
+	if($GLOBALS["URGENCY"]){
+		$unix=new unix();
+		$php5=$unix->LOCATE_PHP5_BIN();
+		$nohup=$unix->find_program("nohup");
+		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.postfix.hashtables.php >/dev/null 2>&1 &");
+	}
 	
 }
 

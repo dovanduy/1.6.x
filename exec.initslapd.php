@@ -33,6 +33,9 @@ if($argv[1]=="--dhcpd"){dhcpd();exit;}
 if($argv[1]=="--haarp"){haarp();exit;}
 if($argv[1]=="--mysql"){mysqlInit();exit;}
 if($argv[1]=="--ubuntu"){CleanUbuntu();exit;}
+if($argv[1]=="--squidguard-http"){squidguard_http();exit;}
+
+
 
 
 	
@@ -79,6 +82,7 @@ if($argv[1]=="--ubuntu"){CleanUbuntu();exit;}
 	mysqlInit();
 	CleanUbuntu();
 	UpstartJob();
+	squidguard_http();
 	
 function UpstartJob(){	
 	$restore=false;
@@ -471,16 +475,12 @@ function ifup(){
 	$f[]="case \"\$1\" in";
 	$f[]=" start)";
 	$f[]="  $php /usr/share/artica-postfix/exec.virtuals-ip.php";
-	$f[]="	/sbin/ifup lo >/dev/null 2>&1";
-	$f[]="	/sbin/ifup eth0 >/dev/null 2>&1";
 	$f[]=" ;;";
 	$f[]="";
 	$f[]="  stop)";
-	$f[]="    /sbin/ifdown eth0 >/dev/null 2>&1";
 	$f[]="    ;;";
 	$f[]="";
 	$f[]=" restart)";
-	$f[]="	 /sbin/ifdown eth0 >/dev/null 2>&1";
 	$f[]="	 $php /usr/share/artica-postfix/exec.virtuals-ip.php";
 	$f[]="   /sbin/ifup eth0 >/dev/null 2>&1";
 	$f[]="    ;;";
@@ -1130,6 +1130,72 @@ function mysqlInit(){
 		shell_exec("/sbin/chkconfig --level 2345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
 	}
 }
+function squidguard_http(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$INITD_PATH="/etc/init.d/squidguard-http";
+	$php5script="exec.squidguard-http.php";
+	$daemonbinLog="Ufdbguard Web page error";
+	
+	
+	
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:         squidguard-http";
+	$f[]="# Required-Start:    \$local_fs \$syslog";
+	$f[]="# Required-Stop:     \$local_fs \$syslog";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: $daemonbinLog";
+	$f[]="# chkconfig: - 80 75";
+	$f[]="# description: $daemonbinLog";
+	$f[]="### END INIT INFO";
+	
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --start \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --stop \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --restart \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" reconfigure)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --build \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart|reconfigure} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+	
+	
+	echo "$daemonbinLog: [INFO] Writing $INITD_PATH with new config\n";
+	@unlink($INITD_PATH);
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+	@chmod($INITD_PATH,0755);
+	
+	if(is_file('/usr/sbin/update-rc.d')){
+	shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+	
+	if(is_file('/sbin/chkconfig')){
+			shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 2345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+	
+		
+	
+}
+
 function haarp(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
@@ -1371,7 +1437,7 @@ function CleanUbuntu(){
 			shell_exec("/etc/init.d/avahi-daemon stop");
 			if(is_file('/usr/sbin/update-rc.d')){
 				shell_exec("/usr/sbin/update-rc.d -f avahi-daemon remove >/dev/null 2>&1");
-				shell_exec("kill -9 `pidof avahi-daemon`");
+				shell_exec("kill -9 `pidof avahi-daemon` >/dev/null 2>&1");
 			}
 		}
 	}
@@ -2584,7 +2650,9 @@ function ufdbguard(){
 	$unix=new unix();
 	$sock=new sockets();
 	$ufdbguardd=$unix->find_program("ufdbguardd");
-	if(!is_file($ufdbguardd)){return;}
+	if(!is_file($ufdbguardd)){
+		echo "slapd: [INFO] ufdbguardd no such binary\n";
+		return;}
 	$php=$unix->LOCATE_PHP5_BIN();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");

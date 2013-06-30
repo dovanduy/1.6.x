@@ -375,75 +375,24 @@ function ipconfig_nic(){
 		}
 		
 	function SwitchDHCP(){
-		document.getElementById('IPADDR_0').disabled=true;
-		document.getElementById('IPADDR_1').disabled=true;
-		document.getElementById('IPADDR_2').disabled=true;
-		document.getElementById('IPADDR_3').disabled=true;
-		
-		document.getElementById('NETMASK_0').disabled=true;
-		document.getElementById('NETMASK_1').disabled=true;
-		document.getElementById('NETMASK_2').disabled=true;
-		document.getElementById('NETMASK_3').disabled=true;
-		
-		document.getElementById('GATEWAY_0').disabled=true;
-		document.getElementById('GATEWAY_1').disabled=true;
-		document.getElementById('GATEWAY_2').disabled=true;
-		document.getElementById('GATEWAY_3').disabled=true;
-		
-		document.getElementById('BROADCAST_0').disabled=true;
-		document.getElementById('BROADCAST_1').disabled=true;
-		document.getElementById('BROADCAST_2').disabled=true;
-		document.getElementById('BROADCAST_3').disabled=true;
-		
-		document.getElementById('DNS_1_0').disabled=true;
-		document.getElementById('DNS_1_1').disabled=true;
-		document.getElementById('DNS_1_2').disabled=true;
-		document.getElementById('DNS_1_3').disabled=true;
-		
-		document.getElementById('DNS_2_0').disabled=true;
-		document.getElementById('DNS_2_1').disabled=true;
-		document.getElementById('DNS_2_2').disabled=true;
-		document.getElementById('DNS_2_3').disabled=true;		
-		
-		
+		document.getElementById('IPADDR').disabled=true;
+		document.getElementById('NETMASK').disabled=true;
+		document.getElementById('GATEWAY').disabled=true;
+		document.getElementById('BROADCAST').disabled=true;
+		document.getElementById('DNS_1').disabled=true;
+		document.getElementById('DNS_2').disabled=true;
 		document.getElementById('dhcp').disabled=true;
 		
 		if(document.getElementById('enabled').checked==false){return;}
 		
 		document.getElementById('dhcp').disabled=false;
 		if(document.getElementById('dhcp').checked==true){return;}
-		
-		document.getElementById('IPADDR_0').disabled=false;
-		document.getElementById('IPADDR_1').disabled=false;
-		document.getElementById('IPADDR_2').disabled=false;
-		document.getElementById('IPADDR_3').disabled=false;
-		
-		document.getElementById('NETMASK_0').disabled=false;
-		document.getElementById('NETMASK_1').disabled=false;
-		document.getElementById('NETMASK_2').disabled=false;
-		document.getElementById('NETMASK_3').disabled=false;
-		
-		document.getElementById('GATEWAY_0').disabled=false;
-		document.getElementById('GATEWAY_1').disabled=false;
-		document.getElementById('GATEWAY_2').disabled=false;
-		document.getElementById('GATEWAY_3').disabled=false;
-		
-		document.getElementById('BROADCAST_0').disabled=false;
-		document.getElementById('BROADCAST_1').disabled=false;
-		document.getElementById('BROADCAST_2').disabled=false;
-		document.getElementById('BROADCAST_3').disabled=false;
-		
-		document.getElementById('DNS_1_0').disabled=false;
-		document.getElementById('DNS_1_1').disabled=false;
-		document.getElementById('DNS_1_2').disabled=false;
-		document.getElementById('DNS_1_3').disabled=false;
-		
-		document.getElementById('DNS_2_0').disabled=false;
-		document.getElementById('DNS_2_1').disabled=false;
-		document.getElementById('DNS_2_2').disabled=false;
-		document.getElementById('DNS_2_3').disabled=false;			
-		
-		
+		document.getElementById('IPADDR').disabled=false;
+		document.getElementById('NETMASK').disabled=false;
+		document.getElementById('GATEWAY').disabled=false;
+		document.getElementById('BROADCAST').disabled=false;
+		document.getElementById('DNS_1').disabled=false;
+		document.getElementById('DNS_2').disabled=false;
 	}		
 	
 	function DisableSnortInterface(){

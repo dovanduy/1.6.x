@@ -1069,7 +1069,9 @@ function Squid_status(){
 	$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?squid-ini-status=yes")));
 	$master_version=$ini->_params["SQUID"]["master_version"];
 	$master_pid=$ini->_params["SQUID"]["master_pid"];
-
+	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	
 
 	
 	
@@ -1078,7 +1080,9 @@ function Squid_status(){
 if($ini->_params["SQUID"]["running"]==0){
 		$img="status_postfix_bg_failed.png";
 		$status="{stopped}";
-		$start="<hr><div style='text-align:right'>".button("{start}","Loadjs('StartStopServices.php?APP=APP_SQUID&cmd=".urlencode("/etc/init.d/squid")."&action=start&CacheOff=yes')")."</div>";
+		if($SQUIDEnable==1){
+			$start="<hr><div style='text-align:right'>".button("{start}","Loadjs('StartStopServices.php?APP=APP_SQUID&cmd=".urlencode("/etc/init.d/squid")."&action=start&CacheOff=yes')")."</div>";
+		}
 	}else{
 			if(preg_match("#2\.3.*#",$master_version)){$img='status_postfix_bg_ok23.png';}
 			if(preg_match("#2\.5.*#",$master_version)){$img='status_postfix_bg_ok25.png';}
@@ -1086,11 +1090,11 @@ if($ini->_params["SQUID"]["running"]==0){
 			if(preg_match("#2\.6.*#",$master_version)){$img='status_postfix_bg_ok26.png';}			
 			if(preg_match("#2\.8.*#",$master_version)){$img='status_postfix_bg_ok28.png';}
 			if(preg_match("#2\.9.*#",$master_version)){$img='status_postfix_bg_ok29.png';}
-			if(preg_match("#2\.10.*#",$stat[1])){$img='status_postfix_bg_ok210.png';}			
 			if(preg_match("#3\.0.*#",$master_version)){$img='status_postfix_bg_ok30.png';}
 			if(preg_match("#3\.1.*#",$master_version)){$img='status_postfix_bg_ok31.png';}
 			if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
 			if(preg_match("#3\.3.*#",$master_version)){$img='status_postfix_bg_ok33.png';}
+			if(preg_match("#3\.4.*#",$master_version)){$img='status_postfix_bg_ok34.png';}
 			$text="{service_running}<br>{using_version} $master_version {pid} $master_pid";
 	}
 
@@ -1152,6 +1156,10 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 	$cicap=DAEMON_STATUS_LINE("C-ICAP",$ini,null,1,"220px");
 	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_LINE("APP_SQUIDGUARD_HTTP",$ini,null,1,"220px",true,1,"Loadjs('squidguardweb.php')");
 	$APP_UFDBGUARD=DAEMON_STATUS_LINE("APP_UFDBGUARD",$ini,null,1,"220px",true,1,"Loadjs('dansguardian2.php?js-ufdbguard=yes')");
+	$APP_NGINX=DAEMON_STATUS_LINE("APP_NGINX",$ini,null,1,"220px",true,1,"blur()");
+	
+	
+	
 	if(!$users->PROXYTINY_APPLIANCE){
 		if($EnableRemoteStatisticsAppliance==0){
 			if($SquidActHasReverse==0){
@@ -1313,7 +1321,7 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 		<div style='padding-left:155px;min-height:250px'>
 			<h3 style='font-size:16px;font-weight:bold;'>{APP_SQUID}</h3>
 			<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>$text</i>$start$icap
-			$status_dansguardian$status_kav4proxy$cicap$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD$APP_ARTICADB$APP_SQUID_DB</span>
+			$status_dansguardian$status_kav4proxy$cicap$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD$APP_ARTICADB$APP_SQUID_DB$APP_NGINX</span>
 			$stats_paragraphe
 			$connectedApps
 			<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:s_PopUp('squid.accesslogs.php?external=yes',1024,768);\"><i><strong style='text-decoration:underline'>{access_events}</strong></i></div> 
@@ -1384,6 +1392,7 @@ $stat=unserialize(base64_decode($sock->getFrameWork("cmd.php?postfix-mutli-stat=
 			$img='status_postfix_bg_failed.png';
 			$text='<span style=color:red>{service_stopped}<br>{using_version} ' . $stat[1]."</span>";
 			$start="<hr><div style='text-align:right'>".button("{start}","MultipleInstanceRestart()")."</div>";
+			
 					
 			break;
 	}

@@ -3907,9 +3907,17 @@ function USER_ADD() {
 	$userid = $_REQUEST["new_userid"];
 	$password = $_REQUEST["password"];
 	$group_id = $_REQUEST["group_id"];
+	
+	if(isset($_GET["encpass"])){$password=url_decode_special_tool($password);}
+	
 	$ou = $_REQUEST["ou"];
 	$tpl = new templates ( );
 	
+	if(preg_match("#(.+?)@(.+)#", $_REQUEST["email"],$re)){
+		$_REQUEST["user_domain"]=$re[2];
+		$_REQUEST["email"]=$re[1];
+	}
+
 	$email = $_REQUEST["email"] . "@" . $_REQUEST["user_domain"];
 	$email=strtolower($email);
 	

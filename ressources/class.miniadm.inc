@@ -156,6 +156,8 @@ class miniadm{
 		$MailArchiverEnabled=$sock->GET_INFO("MailArchiverEnabled");
 		$MailArchiverUsePerl=$sock->GET_INFO("MailArchiverUsePerl");
 		$WebstatisticsByMember=$sock->GET_INFO("WebstatisticsByMember");
+		$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 		if(!is_numeric($WebstatisticsByMember)){$WebstatisticsByMember=0;}
 		$_SESSION["WebstatisticsByMember"]=$WebstatisticsByMember;
 		
@@ -178,6 +180,18 @@ class miniadm{
 			}
 		}
 		
+		if(!isset($_SESSION["ISACTIVEDIRECTORY"])){$ldap=new clladp();$_SESSION["ISACTIVEDIRECTORY"]=$ldap->IsKerbAuth();}
+		
+		if(!isset($_SESSION["NGNIX_PRIVS"])){
+			include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");
+			$q=new mysql_squid_builder();
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(*) as tcount FROM reverse_privs WHERE uid='{$_SESSION["uid"]}'"));
+			if(!is_numeric($ligne["tcount"])){$ligne["tcount"]=0;}
+			$_SESSION["NGNIX_PRIVS"]=$ligne["tcount"];
+		}
+		
+		
+		
 		if($users->SQUID_INSTALLED){
 			$sock=new sockets();
 			$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
@@ -195,6 +209,13 @@ class miniadm{
 		$messou=array();
 		$styleGrey=null;
 		$subactive="subactive";
+		
+		$AS_PROXY_SECTION=false;
+		if($users->SQUID_INSTALLED){$AS_PROXY_SECTION=true;}
+		if($users->APP_FTP_PROXY){$AS_PROXY_SECTION=true;}
+		if($users->NGINX_INSTALLED){$AS_PROXY_SECTION=true;}
+		
+		
 		
 		if(is_array($_SESSION["privs"])){
 			$r=$_SESSION["privs"];
@@ -258,58 +279,43 @@ class miniadm{
 			}
 			
 	if($users->POSTFIX_INSTALLED){
+		if($users->AsAnAdministratorGeneric){
+			$postfix["{APP_POSTFIX}"]="miniadmin.postfix.php";
+		}
 		
+		if($users->AsPostfixAdministrator){if($AMAVIS_ALL){$postfix["{APP_AMAVIS}"]="miniadmin.postfix.amavis.php";}}
 		if($users->AsMailBoxAdministrator){
 			if($users->ZARAFA_INSTALLED){
 				$postfix["{mailboxes}"]="miniadmin.zarafa.php";
 			}
 		}		
-		if($users->AsPostfixAdministrator){$postfix["{domains}"]="miniadm.messaging.domains.php?buildpage=yes";}			
-		if($users->AsPostfixAdministrator){if($AMAVIS_ALL){$postfix["{APP_AMAVIS}"]="miniadmin.postfix.amavis.php";}}
-		if($users->AsPostfixAdministrator){$postfix["{archive_module}"]="miniadmin.postfix.archive.php";}
+					
+		
+		
 			
 		}
 		
 		
 		if( ($users->AsSquidAdministrator) OR ($users->AsWebMaster) ){
+			
 			if($users->NGINX_INSTALLED){
 				$adm["{certificates_center}"]="miniadmin.certificates.php";
-				$prxy["{reverse_proxy_settings}"]="miniadmin.proxy.reverse.php";
+			
 			}
 		}
 			
+		if($_SESSION["NGNIX_PRIVS"]>0){
+			$prxy["{APP_PROXY}"]="miniadmin.proxy.index.php";
+		}
+		
 			
-		if($users->AsSquidAdministrator){
-			if($users->SQUID_INSTALLED){
+		if($AS_PROXY_SECTION){
 				$adm["{certificates_center}"]="miniadmin.certificates.php";
-				$prxy["{proxy_main_settings}"]="miniadmin.proxy.php?startup=proxy-settings";
-				if($SquidActHasReverse){
-					$prxy["{reverse_proxy_settings}"]="miniadmin.proxy.reverse.php";
-				}
-
-				
-			}
-				
-				if($users->APP_FTP_PROXY){
-					$EnableFTPProxy=$sock->GET_INFO('EnableFTPProxy');
-					if(!is_numeric($EnableFTPProxy)){$EnableFTPProxy=0;}
-					if($EnableFTPProxy==1){
-						$prxy["{proxy_ftp_main_settings}"]="miniadmin.ftp.proxy.php";
-					}
-				}
-				
-				
-			}
+				$prxy["{APP_PROXY}"]="miniadmin.proxy.index.php";
 			
-			if($users->AsDansGuardianAdministrator){
-				$prxy["{WEB_FILTERING}"]="miniadmin.webfiltering.php";
-				
-			}
 			
-			if($users->AsDansGuardianAdministrator){
-				$adm["{certificates_center}"]="miniadmin.certificates.php";
-				//$prxy["{access_rules}"]="miniadmin.access.rules.php";
-			}			
+			if($users->AsDansGuardianAdministrator){$prxy["{WEB_FILTERING}"]="miniadmin.webfiltering.php";}
+			if($users->AsDansGuardianAdministrator){$adm["{certificates_center}"]="miniadmin.certificates.php";}			
 			
 			$this->squid_load_dynamic_acls();
 			if(count($_SESSION["SQUID_DYNAMIC_ACLS"])>0){
@@ -318,14 +324,10 @@ class miniadm{
 					
 			}
 	
-			if($users->AsProxyMonitor){
-				
-				
-				$monitorprox["{proxy_monitor}"]="miniadmin.proxy.monitor.php";
-				
-				
+			if($users->AsProxyMonitor){$prxy["{proxy_monitor}"]="miniadmin.proxy.monitor.php";}
 			
-			}
+			
+		}			
 			
 			if($Privileges_members_admins){
 				$adm["{users_and_groups}"]="miniadmin.system.members.php";
@@ -335,7 +337,7 @@ class miniadm{
 			
 			if($_SESSION["AsWebStatisticsAdministrator"]){
 				if($EnableRemoteStatisticsAppliance==0){
-					$monitorprox["{web_statistics}"]="miniadm.webstats-start.php";
+					$prxy["{web_statistics}"]="miniadm.webstats-start.php";
 				}
 			}
 		
@@ -353,6 +355,13 @@ class miniadm{
 		if($users->AsSystemAdministrator){
 			$adm["{certificates_center}"]="miniadmin.certificates.php";
 			$adm["{events}"]="miniadm.system.events.php";
+		}
+		
+		if($SQUIDEnable==0){
+			unset($prxy["{web_statistics}"]);
+			unset($prxy["{WEB_FILTERING}"]);
+			unset($prxy["{dynamic_acls_newbee}"]);
+			unset($prxy["{proxy_monitor}"]);
 		}
 		
 		
@@ -415,10 +424,12 @@ class miniadm{
 		$ff=array();
 		if(count($admorg)>0){
 			if(trim($_SESSION["ou"])<>null){
-				$ff[]="<li class=\"active\"><a href=\"#\">{organization} {$_SESSION["ou"]}</a></li>";
-				while (list ($a, $b) = each ($admorg) ){
-					$title=$tpl->_ENGINE_parse_body($a);
-					$ff[]="<li style='text-transform:capitalize'><a href=\"$b\"><i class=\"icon-chevron-right\"></i> $title</a></li>";
+				if(!$_SESSION["ISACTIVEDIRECTORY"]){
+					$ff[]="<li class=\"active\"><a href=\"#\">{organization} {$_SESSION["ou"]}</a></li>";
+					while (list ($a, $b) = each ($admorg) ){
+						$title=$tpl->_ENGINE_parse_body($a);
+						$ff[]="<li style='text-transform:capitalize'><a href=\"$b\"><i class=\"icon-chevron-right\"></i> $title</a></li>";
+					}
 				}
 			}
 				
@@ -459,7 +470,7 @@ class miniadm{
 		if((count($prxy)>0) OR (count($monitorprox)>0)){
 			$ff[]="<li style='text-transform:capitalize' class=\"active\"><a href=\"#\">Proxy</a></li>";
 			if(count($monitorprox)>0){
-				$ff[]="<li class='$subactive'><a href=\"#\" >{monitor}</a></li>";
+				
 				while (list ($a, $b) = each ($monitorprox) ){
 					$title=$tpl->_ENGINE_parse_body($a);
 					$ff[]="<li style='text-transform:capitalize'><a href=\"$b\"><i class=\"icon-chevron-right\"></i> $title</a></li>";
@@ -470,11 +481,8 @@ class miniadm{
 			
 			
 			if(count($prxy)>0){
-				$ff[]="<li style='text-transform:capitalize' class=\"$subactive\"><a href=\"#\">{manage}</a></li>";
 				while (list ($a, $b) = each ($prxy) ){
-					
 					$title=$tpl->_ENGINE_parse_body($a);
-				
 					$ff[]="<li style='text-transform:capitalize'><a href=\"$b\"><i class=\"icon-chevron-right\"></i> $title</a></li>";
 				}
 			}
@@ -522,6 +530,7 @@ class boostrap_form{
 	private $ScriptsToAdd=array();
 	private $id_animate;
 	private $AjaxFinal=array();
+	private $form_error=null;
 	private $tpl;
 	function boostrap_form(){
 		$this->t=time();
@@ -550,6 +559,10 @@ class boostrap_form{
 		$this->lockedForm=true;
 	}
 	
+	public function set_form_error($error){
+		$this->form_error=$this->tpl->_ENGINE_parse_body($error);
+	}
+	
 	public function setAjaxPage($page){
 		$this->ajax_page=$page;
 		
@@ -574,6 +587,11 @@ class boostrap_form{
 		
 		$this->fields_array[$title]=array("TYPE"=>"TITLE","VALUE"=>$this->tpl->_ENGINE_parse_body($title));	
 	}
+	
+	public function set_subtitle($title){
+		$this->fields_array[$title]=array("TYPE"=>"SUBTITLE","VALUE"=>$this->tpl->_ENGINE_parse_body($title));
+	}
+	
 	
 	function set_spacerexplain($explain){
 		$this->fields_array[$explain]=array("TYPE"=>"EXPLAIN_SPACER","VALUE"=>$this->tpl->_ENGINE_parse_body($explain));
@@ -793,7 +811,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			
 			
 			if(count($EXPLAIN["BUTTONS"])>0){
-				$EXPLAINTXTP[]="<div style='width:100%'>".@implode(" ", $EXPLAIN["BUTTONS"])."</div>";
+				$EXPLAINTXTP[]=$tpl->_ENGINE_parse_body("<div style='width:100%'>".@implode(" ", $EXPLAIN["BUTTONS"])."</div>");
 				
 			}
 			
@@ -889,10 +907,17 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 		if($this->ExecuteByClassName<>null){
 			$final0="ExecuteByClassName('$this->ExecuteByClassName');";
 		}
+		
+		if($this->form_error<>null){
+			$f[]="<p class=text-error style='font-size:18px !important'>$this->form_error</p>";
+		}
+		
 		$this->js=array();
 		if($this->lockedForm){
-			$f[]="<p class=text-warning>{this_form_is_locked}</p>";
+			$f[]=$tpl->_ENGINE_parse_body("<p class=text-warning>{this_form_is_locked}</p>");
 		}
+		
+		
 		
 		$f[]="
 		<center id='$this->id_animate'></center>		
@@ -928,19 +953,10 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			
 			if($this->lockedForm){$disabled="disabled";}
 			
-			if($TYPE=="HIDDEN"){
-				$this->js[]="\tXHR.appendData('$fieldname','$VALUE');";
-				continue;
-			}
-			
-			if($TYPE=="TITLE"){
-				$f[]="<H3>$VALUE</H3>";continue;
-			}
-			
-			if($TYPE=="EXPLAIN_SPACER"){
-				$f[]="<div class=explain>$VALUE</div>";
-				continue;
-			}
+			if($TYPE=="HIDDEN"){$this->js[]="\tXHR.appendData('$fieldname','$VALUE');";continue;}
+			if($TYPE=="TITLE"){$f[]="<H3>$VALUE</H3>";continue;}
+			if($TYPE=="EXPLAIN_SPACER"){$f[]="<div class=explain>$VALUE</div>";continue;}
+			if($TYPE=="SUBTITLE"){$f[]="<H4>$VALUE</H4>";continue;}
 			
 			
 			
@@ -986,16 +1002,13 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 					$JSFUNCTIONS[$functionjs]="function $functionjs(){\n".@implode("\n", $tre)."\n\t}";
 				}
 				
-
-				
-				
-				
 				$field="
 			 	<label class='checkbox'>
 					<input type=\"checkbox\" id='$FIELDN' 
 					name=\"$FIELDN\" value=\"1\" OnClick=\"javascript:{$functionName}Iconz();$functionjsI\" $checked>&nbsp;$CAPTION <span id='$FIELDN-icon'>$iconCK</span>
 				</label>		
-			";
+				";
+				
 				if(isset($params["ONDISABLE"])){
 					$DIVERRORSTEXT["$FIELDN-error"]=$tpl->_ENGINE_parse_body($params["ONDISABLE"]);
 					$jsp_a="\n\t\tdocument.getElementById('$FIELDN-error').style.display='none';\n";
@@ -1077,14 +1090,12 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			if($jsipv4Validator){
 				$this->js[]="\tvar field2$c=document.getElementById('$FIELDN').value;";
 				$this->js[]="\tif(field2$c.length>1){";
-				
 				$this->js[]="\tif(!IsAnIpv4(field2$c)){";
-				$this->js[]="\t\t\talert('$IsAnIpv4Error');";
-				$this->js[]="\t\t\tdocument.getElementById('Control-$t-$c').className='control-group error';";
-				$this->js[]="\t\t\tdocument.getElementById('help-$t-$c').innerHTML='$error_on_this_field';";
+				$this->js[]="\t\t\talert('$IsAnIpv4Error:'+field2$c);";
 				$this->js[]="\t\t\treturn;";
 				$this->js[]="\t\t}";
 				$this->js[]="\t}";
+				$this->ToolTips[]="\t$(function(){ $('#{$FIELDN}').ipAddress(); });";
 			}
 			
 			if($TYPE=="TEXT"){

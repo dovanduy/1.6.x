@@ -34,6 +34,7 @@ if(isset($_GET["logrotate-query"])){logrotate_query();exit;}
 if(isset($_GET["BuildCSR"])){BuildCSR();exit;}
 if(isset($_GET["SYSTEMS_ALL_PARTITIONS"])){SYSTEMS_ALL_PARTITIONS();exit;}
 if(isset($_GET["apply-patch"])){APPLY_PATCH();exit;}
+if(isset($_GET["apply-soft"])){APPLY_SOFT();exit;}
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
@@ -468,16 +469,46 @@ function syslogdb_status(){
 
 }
 function APPLY_PATCH(){
-	$filename="/usr/share/artica-potfix/ressources/conf/upload/{$_GET["apply-patch"]}";
+	$filename="/usr/share/artica-postfix/ressources/conf/upload/{$_GET["apply-patch"]}";
 	if(!is_file($filename)){
-		echo "<articadatascgi>". base64_encode(serialize(array("{$_GET["apply-patch"]} no such file")))."</articadatascgi>";
+		echo "<articadatascgi>". base64_encode(serialize(array("$filename no such file")))."</articadatascgi>";
 		return;
 	}
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$tar=$unix->find_program("tar");
-	exec("$tar -xvf $filename -C /usr/share/ 2>&1",$results);
+	exec("$tar -xvf $filename -C /usr/share/artica-postfix/ 2>&1",$results);
+	@unlink($filename);
+	$results[]="Done...";
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 	shell_exec("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
 	
 }
+function APPLY_SOFT(){
+	$filename="/usr/share/artica-postfix/ressources/conf/upload/{$_GET["apply-soft"]}";
+	if(!is_file($filename)){
+		echo "<articadatascgi>". base64_encode(serialize(array("$filename no such file")))."</articadatascgi>";
+		return;
+	}
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$tar=$unix->find_program("tar");
+	$results[]="Copy to $filename to /root ";
+	@copy($filename, "/root/" .basename($filename));
+	@unlink($filename);
+	chdir("/root");
+	exec("$tar -xvf /root/".basename($filename)." -C / 2>&1",$results);
+	$results[]="Done...";
+	
+	if(preg_match("#^nginx-#", $filename)){
+		$results[]="Ask to restarting nginx";
+		shell_exec("$nohup /etc/init.d/nginx restart >/dev/null 2>&1 &");
+	}
+	
+	@unlink($filename);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+	shell_exec("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+	shell_exec("$nohup /usr/share/artica-postfix/bin/process1 --force ".time()." >/dev/null 2>&1 &");
+	
+}
+

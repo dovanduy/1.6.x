@@ -236,6 +236,7 @@ class pagebuilder{
 			$jsTable[]="/js/mobiscroll-2.1.custom.min.js";
 			$jsTable[]="/js/tiny_mce/tinymce.min.js";
 			$jsTable[]="/js/colorpicker.js";
+			$jsTable[]="/js/jquery.input-ip-address-control-1.0.min.js";
 
 
 			if(($this->CurrentPageName()=="logon.php") OR ($this->CurrentPageName()=="logoff.php") OR ($this->CurrentPageName()=="404.php")){

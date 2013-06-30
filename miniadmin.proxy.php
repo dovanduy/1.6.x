@@ -56,7 +56,8 @@ function content(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
-	
+	$TTILE=TRUE;
+	if(isset($_GET["title-none"])){$TTILE=FALSE;}
 	$users=new usersMenus();
 	
 	if(count($_SESSION["SQUID_DYNAMIC_ACLS"])>0){
@@ -99,16 +100,16 @@ function content(){
 		
 	}
 	if($_GET["title"]<>null){$title="{{$_GET["title"]}}";}
-	$html="
-	<div class=BodyContent>
-		<div style='font-size:14px'><a href=\"miniadm.index.php\">{myaccount}</a>$head
-	</div>
-		
-		
+	
+	$inside_title="	<div class=BodyContent>
+		<div style='font-size:14px'><a href=\"miniadm.index.php\">{myaccount}</a>$head</div>
 		<H1>$title</H1>
 		<p>{APP_PROXY_TEXT}</p>
 		<div id='statistics-$t'></div>
-	</div>	
+	</div>	";
+	if(!$TTILE){$inside_title=null;}
+	$html="
+
 	<div id='left-$t' class=BodyContent></div>
 	
 	<script>

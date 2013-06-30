@@ -10,6 +10,7 @@
 	include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 	include_once(dirname(__FILE__) . '/framework/frame.class.inc');	
 	include_once(dirname(__FILE__) . "/ressources/class.categorize.externals.inc");
+	include_once(dirname(__FILE__) . "/ressources/class.squid.categorize.generic.inc");
 	
 	if(is_array($argv)){
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
@@ -26,6 +27,7 @@ if($argv[1]=="--file-export"){file_export();die();}
 if($argv[1]=="--dbtrans"){dansguardian_community_nocat();die();}
 if($argv[1]=="--import-artica-cloud"){import_categories_cloud();die();}
 if($argv[1]=="--analyze"){GetPageInfos($argv[2]);die();}
+if($argv[1]=="--bright"){bright($argv[2]);die();}
 
 
 	$unix=new unix();
@@ -111,6 +113,63 @@ if($argv[1]=="--analyze"){GetPageInfos($argv[2]);die();}
 		
 		
 	}
+	
+function bright(){
+	$q=new mysql_squid_builder();
+	$sql="SELECT sitename FROM webtests WHERE checked=0 ORDER BY sitename";
+	$results=$q->QUERY_SQL("$sql");
+	
+	writelogs(mysql_num_rows($results)." items for $sql",__FUNCTION__,__FILE__,__LINE__);
+	$heristic=new generic_categorize();
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$forcedelete=false;
+		$www=$ligne["sitename"];
+		if(strpos($www, ",")>0){$forcedelete=true;}
+		if(strpos($www, " ")>0){$forcedelete=true;}
+		if(strpos($www, ":")>0){$forcedelete=true;}
+		if(strpos($www, "%")>0){$forcedelete=true;}
+	
+		if($forcedelete){$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='$www'");continue;}
+		$articacats=null;
+	
+		$ligne["sitename"]=trim(strtolower($ligne["sitename"]));
+		if(preg_match("#^www\.(.+)#", $www,$re)){
+			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='$www'");
+			$www=$re[1];
+			$ligne["sitename"]=$www;
+			$q->QUERY_SQL("INSERT IGNORE INTO webtests (sitename) ('{$re[1]}')");
+		}
+		$delete=false;
+		writelogs("CHECK: {$ligne["sitename"]}",__FUNCTION__,__FILE__,__LINE__);
+	
+		$q->QUERY_SQL("UPDATE webtests SET checked=1 WHERE sitename='{$ligne["sitename"]}'");
+		
+		$category=$heristic->GetCategories($ligne["sitename"]);
+		if($category<>null){
+			echo "{$ligne["sitename"]} -> $category\n";
+			writelogs("SUCCESS: {$ligne["sitename"]} `$category` parse next",__FUNCTION__,__FILE__,__LINE__);
+			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='{$ligne["sitename"]}'");
+			$q->ADD_CATEGORYZED_WEBSITE($ligne["sitename"], $category);
+			continue;
+		}
+		
+		$f=new external_categorize($ligne["sitename"]);
+		
+		$category=$f->BrightcloudGetCatCode();
+		
+		if($category<>null){
+			echo "{$ligne["sitename"]} -> $category\n";
+			writelogs("SUCCESS: {$ligne["sitename"]} `$category` parse next",__FUNCTION__,__FILE__,__LINE__);
+			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='{$ligne["sitename"]}'");
+			$q->ADD_CATEGORYZED_WEBSITE($ligne["sitename"], $category);
+			continue;
+		}		
+		
+		
+	}
+	
+	
+}	
 	
 	
 function GetPageInfos($sitename){

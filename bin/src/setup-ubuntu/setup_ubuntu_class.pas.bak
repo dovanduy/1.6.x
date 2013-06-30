@@ -1499,6 +1499,7 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
        l.add('libssh2-php');
        L.add('xtables-addons-source');
        l.add('virt-what');
+       l.add('nginx');
 
     end;
 

@@ -764,11 +764,18 @@ function start_squid($aspid=false){
 		if(!is_dir("/opt/squidsql/data/squidlogs")){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT][{$GLOBALS["MYPID"]}]: MySQL database not prepared\n";}
 			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT][{$GLOBALS["MYPID"]}]: /opt/squidsql/data/squidlogs no such directory\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT][{$GLOBALS["MYPID"]}]: Starting MySQL database\n";}
+			shell_exec("/etc/init.d/squid-db start");
+			shell_exec("/etc/init.d/artica-status start");
+			
+		}
+		if(!is_dir("/opt/squidsql/data/squidlogs")){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT][{$GLOBALS["MYPID"]}]: MySQL database not prepared\n";}
 			return;
 		}
 	}
 	
-	
+	$unix->CreateUnixUser("squid","squid");
 	
 	if(!is_file("/etc/squid3/squid.conf")){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT][{$GLOBALS["MYPID"]}]: Warning /etc/squid3/squid.conf no such file\n";}
@@ -842,6 +849,7 @@ function start_squid($aspid=false){
 	$unix->chown_func("squid","squid", "/etc/squid3/*");
 	$unix->chown_func("squid","squid", "/home/squid/cache");
 	$unix->chown_func("squid","squid", "/var/run/squid");
+	$unix->chown_func("squid","squid", "/var/run/squid/squid.pid");
 	$unix->chown_func("squid","squid", "/var/logs");
 	$squid_locate_pinger=$unix->squid_locate_pinger();
 	if(is_file($squid_locate_pinger)){@chmod($squid_locate_pinger,4755);}
@@ -874,6 +882,7 @@ function start_squid($aspid=false){
 			$MustBuild=true;
 		}
 		$unix->chown_func("squid","squid",$CacheDirectory);
+		$unix->chown_func("squid","squid","/var/run/squid");
 		$unix->chown_func("squid","squid","$CacheDirectory/*");
 		$unix->chmod_func(0777, "$CacheDirectory/*");
 		$unix->chmod_alldirs(0755, $CacheDirectory);
@@ -901,14 +910,14 @@ function start_squid($aspid=false){
 	}
 	
 	if(!$unix->process_exists($pid)){
-		SendLogs("Squid failed to start...");
+		SendLogs("Starting Squid failed to start...");
 		if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];$executed="Executed by $sourcefunction() line $sourceline\nusing argv:{$GLOBALS["ARGVS"]}\n";}}
-		squid_admin_notifs("Squid failed to start\n".@implode("\n", $GLOBALS["LOGS"])."\n$executed", __FUNCTION__, __FILE__, __LINE__, "proxy");
-		system_admin_events("Squid failed to start\n".@implode("\n", $GLOBALS["LOGS"]), __FUNCTION__, __FILE__, __LINE__, "proxy");
+		squid_admin_notifs("Starting Squid failed to start\n".@implode("\n", $GLOBALS["LOGS"])."\n$executed", __FUNCTION__, __FILE__, __LINE__, "proxy");
+		system_admin_events("Starting Squid failed to start\n".@implode("\n", $GLOBALS["LOGS"]), __FUNCTION__, __FILE__, __LINE__, "proxy");
 		return;
 	}
 	
-	SendLogs("Squid Tests if it listen all connections....");
+	SendLogs("Starting Squid Tests if it listen all connections....");
 	for($i=0;$i<10;$i++){
 		if(is_started()){SendLogs("Starting squid listen All connections OK");break;}
 		SendLogs("Starting squid listen All connections... waiting $i/10");
@@ -916,14 +925,16 @@ function start_squid($aspid=false){
 	}
 	
 	$took=$unix->distanceOfTimeInWords($t1,time());
-	SendLogs("Squid success to start PID $pid...");
+	SendLogs("Starting Squid success to start PID $pid...");
 	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];$executed="Executed by $sourcefunction() line $sourceline\nusing argv:{$GLOBALS["ARGVS"]}\n";}}
 	$php5=$unix->LOCATE_PHP5_BIN();
 	
-	system_admin_events("Squid success to start PID $pid took $took\n".@implode("\n", $GLOBALS["LOGS"]), __FUNCTION__, __FILE__, __LINE__, "proxy");
+	system_admin_events("Starting Squid success to start PID $pid took $took\n".@implode("\n", $GLOBALS["LOGS"]), __FUNCTION__, __FILE__, __LINE__, "proxy");
+	SendLogs("Starting Squid finishing by schedule other tasks");
 	$unix->THREAD_COMMAND_SET("/etc/init.d/artica-postfix start squidcache-tail");
 	$unix->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart auth-logger");
 	$unix->THREAD_COMMAND_SET("$php5 ".basename(__FILE__)."/exec.proxy.pac.php --write");
+	SendLogs("Starting Squid done...");
 }
 
 

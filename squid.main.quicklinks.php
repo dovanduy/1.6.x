@@ -51,6 +51,8 @@ $page=CurrentPageName();
 $tpl=new templates();
 $sock=new sockets();
 $users=new usersMenus();
+$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 $EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 $DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
@@ -66,14 +68,15 @@ if(!is_numeric($StatsPerfsSquidAnswered)){$StatsPerfsSquidAnswered=0;}
 
 
 $statisticsAdded=false;
-$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("service-check-48.png", "services_status","system_information_text", "QuickLinkSystems('section_status')"));
+if($SQUIDEnable==1){
+	$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("service-check-48.png", "services_status","system_information_text", "QuickLinkSystems('section_status')"));
+}
 $tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-parameters.png", "proxy_parameters","section_security_text", "QuickLinkSystems('section_architecture')"));
-if($users->AsSquidAdministrator){$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-tasks.png", "tasks","", "QuickLinkSystems('section_tasks')"));}
-
-//$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-network-user.png", "members","softwares_mangement_text", "QuickLinkSystems('section_members')"));
-//$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("Firewall-Secure-48.png", "basic_filters","softwares_mangement_text", "QuickLinkSystems('section_basic_filters')"));
-
+if($SQUIDEnable==1){
+	if($users->AsSquidAdministrator){$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-tasks.png", "tasks","", "QuickLinkSystems('section_tasks')"));}
 	$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("web-filtering-48.png", "WEB_FILTERING","softwares_mangement_text", "QuickLinkSystems('section_webfiltering_dansguardian')"));
+}
+
 
 if($users->KAV4PROXY_INSTALLED){
 	$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("bigkav-48.png", "APP_KAV4PROXY","softwares_mangement_text", "QuickLinkSystems('section_kav4proxy')"));
@@ -81,8 +84,10 @@ if($users->KAV4PROXY_INSTALLED){
 }
 	if($EnableRemoteStatisticsAppliance==0){
 		if($DisableArticaProxyStatistics==0){
-			$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "SquidQuickLinksStatistics()"));
-			$statisticsAdded=true;
+			if($SQUIDEnable==1){
+				$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "SquidQuickLinksStatistics()"));
+				$statisticsAdded=true;
+			}
 		}
 	}
 
@@ -93,7 +98,9 @@ $count=1;
 while (list ($key, $line) = each ($tr) ){if($line==null){continue;}$tr2[]=$line;}
 
 if(count($tr2)<6){
-	$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-logs.png", "PROXY_EVENTS","PROXY_EVENTS", "QuickLinkSystems('section_squid_rtmm')"));
+	if($SQUIDEnable==1){
+		$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-logs.png", "PROXY_EVENTS","PROXY_EVENTS", "QuickLinkSystems('section_squid_rtmm')"));
+	}
 }
 
 $tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("web-site-48.png", "main_interface","main_interface_back_interface_text", "QuickLinksHide()"));
@@ -1264,7 +1271,8 @@ function section_status(){
 	
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}		
-	
+	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	
 	$array["status"]="{services_status}";
 	$array["events-squidcache"]='{proxy_service_events}';
@@ -1299,6 +1307,12 @@ function section_status(){
 	if(isset($_GET["byminiadm"])){
 		unset($array["events-squidaccess"]);
 		unset($array["events-squidcache"]);
+	}
+	
+	if($SQUIDEnable==0){
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{proxy_service_is_disabled}<hr>		<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.newbee.php?js_enable_disable_squid=yes')\" style='font-size:22px;text-decoration:underline'>
+		{enable_squid_service}</a>"));
+		return;
 	}
 	
 	while (list ($num, $ligne) = each ($array) ){

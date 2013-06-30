@@ -51,13 +51,25 @@ class squid_tail{
 			$buffer=trim($buffer);
 			if(preg_match("#GET cache_object#",$buffer)){$this->events("[SQUID]: cache_object abort".__LINE__);return true;}
 			if(preg_match("#^.+?squid\[[0-9]+\]:#", $buffer,$re)){$buffer=str_replace($re[0], "",$buffer);}
-			if(strpos($buffer, "HTTP/0.0")>0){$this->events("[SQUID]: HTTP/0.0 detected in \"$buffer\" -> abort in line:".__LINE__);return true;}
+			if(strpos($buffer, "HTTP/0.0")>0){
+				if(!preg_match("#($PROTOS)\s+http.*?:#",$buffer)){
+					$this->events("[SQUID]: HTTP/0.0 detected in \"$buffer\" -> abort in line:".__LINE__);
+					return true;
+				}
+			}
+			
+			
 			if(strpos($buffer, "TCP_DENIED:")>0){
 				//$this->events("$buffer -> ABORT in line:".__LINE__);
-				$this->error="TCP_DENIED";$this->ToRemove=true;return;}
+				$this->error="TCP_DENIED";$this->ToRemove=true;return;
+			}
+				
+			if(strpos($buffer, "RELEASE -1")>0){$this->error="RELEASE";$this->ToRemove=true;return;}
+			if(strpos($buffer, "RELEASE 00")>0){$this->error="RELEASE";$this->ToRemove=true;return;}
+			if(strpos($buffer, "SWAPOUT 00")>0){$this->error="SWAPOUT";$this->ToRemove=true;return;}			
 				
 				
-				if(preg_match("#^([A-Za-z]+)\s+([0-9]+)\s+([0-9]+):([0-9]+):([0-9]+)\s+#", $buffer,$re)){
+			if(preg_match("#^([A-Za-z]+)\s+([0-9]+)\s+([0-9]+):([0-9]+):([0-9]+)\s+#", $buffer,$re)){
 					$Fdate="{$re[1]} {$re[2]} {$re[3]}:{$re[4]}:{$re[5]}";
 					$Ftime=strtotime($Fdate);
 					$Fday=date("Y-m-d H:i:s",$Ftime);
@@ -221,8 +233,10 @@ class squid_tail{
 			}
 			
 			$this->error="Unable to detect $buffer in line:".__LINE__." class ".__CLASS__;
+			if(isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]->events("NOT PARSED --start--$buffer--end--","/var/log/squid.NotParsed.log");}
+			$this->ToRemove=true;
 			
-			$this->events("[SQUID]:v1.0 - Not filtered: $buffer line:".__LINE__);
+			$this->events("[SQUID]:v1.1 - Not filtered: $buffer line:".__LINE__);
 			return false;
 	
 	}

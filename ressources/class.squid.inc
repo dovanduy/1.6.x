@@ -2393,13 +2393,17 @@ function SaveToLdap($norestart=false){
 		}		
 		
 		
-
+		$ListenIPTXT="$ListenIP:";
 		$transparent_token=$this->transparent_token();
+		
+		$transparent_token=null;
+		$ListenIPTXT=null;
+		
 		if($http_port>0){
 			$this->MyPortsArray[$http_port]=true;
 			
-			$http_port_line[]="http_port $ListenIP:$http_port $transparent_token";
-			echo "Starting......: [HOT]: HTTP: $ListenIP:$http_port $transparent_token\n";
+			$http_port_line[]="http_port $ListenIPTXT$http_port $transparent_token";
+			echo "Starting......: [HOT]: HTTP: $ListenIPTXT$http_port $transparent_token\n";
 		}
 		
 		if($https_port>0){
@@ -2414,8 +2418,9 @@ function SaveToLdap($norestart=false){
 			}
 			
 			$ssltoken=$this->ssl_bump_token();
-			$http_port_line[]=trim("https_port $ListenIP:$https_port $transparent_token $ssltoken $certificates");
-			echo "Starting......: [HOT]: SSL: $ListenIP:$https_port $transparent_token $ssltoken $certificates\n";
+			$ssltoken=null;
+			$http_port_line[]=trim("https_port $ListenIPTXT$https_port $transparent_token $ssltoken $certificates");
+			echo "Starting......: [HOT]: SSL: $ListenIPTXT$https_port $transparent_token $ssltoken $certificates\n";
 			
 		}else{
 			echo "Starting......: [HOT]: SSL Not configured\n";

@@ -141,6 +141,15 @@ public function LOCATE_VBoxHeadless(){
 		$f[]="/srv/www/cgi-bin/awstats/awstats.pl";
 		while (list ($num, $path) = each ($f) ){if(is_file($path)){return $path;}}			
 	}
+	private function LOCATE_AWSTATS_POSSIBLE_DIRS(){
+		$f[]="/usr/local/awstats";
+		$f[]="/usr/share/awstats";
+		$f[]="/root/awstats-6.3";
+		$f[]="/srv/www/ispcp/engine/awstats";
+		return $f;
+	}
+	
+	
 	public function LOCATE_AWSTATS_BUILDSTATICPAGES_BIN(){
 		$f[]="/usr/local/awstats/tools/awstats_buildstaticpages.pl";
 		$f[]="/usr/share/awstats/tools/awstats_buildstaticpages.pl";
@@ -152,6 +161,14 @@ public function LOCATE_VBoxHeadless(){
 		
 		
 	}
+	public function LOCATE_AWSTATS_PLUGINS_DIR(){
+		$possibledirs=$this->LOCATE_AWSTATS_POSSIBLE_DIRS();
+		while (list ($num, $path) = each ($possibledirs) ){
+			if(is_dir($path."/plugins")){return $path."/plugins";}
+		}
+	}
+	
+	
 	
 	public function LOCATE_VBOX_ADDITIONS_PID(){	
 		if(is_file("/var/run/vboxadd-service")){return "/var/run/vboxadd-service";}
@@ -180,6 +197,64 @@ public function LOCATE_VBoxHeadless(){
 			}
 			return null;
 	}
+	
+	
+	public function NGINX_COMPILE_PARAMS(){
+		$nginx=$this->find_program("nginx");
+		if(!is_file($nginx)){return;}
+		exec("$nginx -V 2>&1",$results);
+		
+		$NOT["CONFIGURE"]=true; // 	1
+		$NOT["ARGUMENTS:"]=true; // 	1
+		$NOT["PREFIX"]=true; // 	/etc/nginx
+		$NOT["SBIN-PATH"]=true; // 	/usr/sbin/nginx
+		$NOT["CONF-PATH"]=true; // 	/etc/nginx/nginx.conf
+		$NOT["ERROR-LOG-PATH"]=true; // 	/var/log/nginx/error.log
+		$NOT["HTTP-LOG-PATH"]=true; // 	/var/log/nginx/access.log
+		$NOT["PID-PATH"]=true; // 	/var/run/nginx.pid
+		$NOT["LOCK-PATH"]=true; // 	/var/run/nginx.lock
+		$NOT["HTTP-CLIENT-BODY-TEMP-PATH"]=true; // 	/var/cache/nginx/client_temp
+		$NOT["HTTP-PROXY-TEMP-PATH"]=true; // 	/var/cache/nginx/proxy_temp
+		$NOT["HTTP-FASTCGI-TEMP-PATH"]=true; // 	/var/cache/nginx/fastcgi_temp
+		$NOT["HTTP-UWSGI-TEMP-PATH"]=true; // 	/var/cache/nginx/uwsgi_temp
+		$NOT["HTTP-SCGI-TEMP-PATH"]=true; // 	/var/cache/nginx/scgi_temp
+		$NOT["USER"]=true; // 	nginx
+		$NOT["GROUP"]=true; //
+		$NOT["WITH-HTTP_GUNZIP_MODULE"]=true; //
+		
+		while (list ($key, $value) = each ($results) ){
+			if(preg_match("#nginx version: (.*?)\/([0-9\.]+)#", $value,$re)){
+				$ARRAY["DEF"]["VENDOR"]=$re[1];
+				$ARRAY["DEF"]["VERSION"]=$re[2];
+				continue;}
+			if(preg_match("#TLS SNI support enabled#", $value,$re)){$ARRAY["DEF"]["TLS"]=true;continue;}
+			if(preg_match("#configure arguments:\s+(.*)#",$value,$re)){
+				$f=explode(" ",$value);
+				while (list ($a, $b) = each ($f) ){
+		
+					if(preg_match("#add-module=(.+)#",$b,$re)){
+						$module=basename($re[1]);
+						
+						$ARRAY["MODULES"][$module]=$module;continue;
+					}
+		
+					$b=str_replace("--", "", $b);
+		
+					if(preg_match("#(.+?)=(.+)#", $b,$ri)){
+						if(isset($NOT[strtoupper($b)])){continue;}
+						$ARRAY["ARGS"][strtoupper($ri[1])]=trim($ri[2]);
+						continue;
+					}
+					if(isset($NOT[strtoupper($b)])){continue;}
+					$ARRAY["ARGS"][strtoupper($b)]=true;
+				}
+					
+			}
+		}
+
+		return $ARRAY;
+	}
+	
 
 	public function InterfaceToIP($eth){
 		include_once("/usr/share/artica-postfix/ressources/class.system.nics.inc");
@@ -1802,6 +1877,22 @@ public function shellEscapeChars($path){
 	
 	
 	function dskspace_bytes($dir_name){
+		
+		$du=$this->find_program("du");
+		if(is_file($du)){
+			exec("$du -bs $dir_name 2>&1",$results);
+			while (list ($num, $ligne) = each ($results) ){
+				$ligne=trim($ligne);
+				if($ligne==null){continue;}
+				if(preg_match("#^([0-9]+)\s+#",$ligne,$re)){return $re[1];}
+		
+		
+			}
+		
+		
+		}		
+		
+		
         $dir_size =0;
            if (is_dir($dir_name)) {
                if ($dh = opendir($dir_name)) {
@@ -5009,19 +5100,19 @@ public function LOCATE_STUNNEL_BIN(){
 	
 	
 	
-	public function events($text,$logFile=null,$phplog=false,$sourcefunction=null,$sourceline=null){
+	public function events($text,$logFile=null,$phplog=false,$sourcefunction=null,$sourceline=null,$sourcefile=null){
 		$maxSize=100000;
 		$pid=getmypid();
 		if($logFile<>null){
 			$logbasename=basename($logFile);
 			if($logbasename=="squid.watchdog.log"){$maxSize=900000;}
 		}
-		
+		if($sourcefile<>null){$sourcefile=basename($sourcefile);}
 		$date=date("Y-m-d H:i:s");
 		if(function_exists("debug_backtrace")){
 			$trace=debug_backtrace();
 			if(isset($trace[1])){
-				$sourcefile=basename($trace[1]["file"]);
+				if($sourcefile==null){$sourcefile=basename($trace[1]["file"]);}
 				if($sourcefunction==null){$sourcefunction=$trace[1]["function"];}
 				if($sourceline==null){$sourceline=$trace[1]["line"];}
 			}
@@ -5029,15 +5120,15 @@ public function LOCATE_STUNNEL_BIN(){
 		}
 
 		$line="$date [$pid] $sourcefile: $text  - function:$sourcefunction in line:$sourceline\n";
+		if($logFile==null){$logFile="/var/log/artica-postfix/syslog.log";}
 		
-		$common="/var/log/artica-postfix/syslog.log";
-		if($logFile<>null){$common=$logFile;}
-		$size=@filesize($common);
-		if($size>$maxSize){@unlink($common);}
 		
-		$h = @fopen($common, 'a');
+		$size=@filesize($logFile);
+		if($size>$maxSize){@unlink($logFile);}
+		
+		$h = @fopen($logFile, 'a');
 	
-		if($line==null){$line="$date [$pid] $text\n";}
+		
 		if($GLOBALS["VERBOSE"]){echo $line;}
 		if($phplog){error_log("$line");}	
 		@fwrite($h,$line);
@@ -5062,6 +5153,8 @@ public function LOCATE_STUNNEL_BIN(){
 		while (false !== ($filename = readdir($handle))) {
 			if($filename=="."){continue;}
 			if($filename==".."){continue;}
+			$path = $directory.'/'.$filename;
+			if(is_dir($path)){continue;}
 			$c++;
 		}	
 		return $c;

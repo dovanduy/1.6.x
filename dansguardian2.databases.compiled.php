@@ -109,6 +109,9 @@ function delete_category(){
 	$category=trim($_POST["delete-personal-cat"]);
 	if(strlen($category)==0){return;}
 	$q=new mysql_squid_builder();
+	
+	$tableURI="categoryuris_$category";
+	
 	$q->QUERY_SQL("DELETE FROM webfilter_blks WHERE category='$category'");
 	if(!$q->ok){echo $q->mysql_error."\nline:".__LINE__."\n";return;}
 	$q->QUERY_SQL("DELETE FROM usersisp_catztables WHERE category='$category'");
@@ -119,7 +122,9 @@ function delete_category(){
 	if(!$q->ok){echo $q->mysql_error."\nline:".__LINE__."\n";return;}
 	$q->QUERY_SQL("DROP TABLE category_$category");
 	if(!$q->ok){echo $q->mysql_error."\nDROP TABLE category_$category\nline:".__LINE__."\n";return;}
-	
+	if($q->TABLE_EXISTS("$tableURI")){
+		$q->QUERY_SQL("DROP TABLE $tableURI");
+	}
 	$sock=new sockets();
 	$sock->getFrameWork("webfilter.php?compile-rules=yes");
 }
@@ -871,7 +876,8 @@ function add_category_tabs(){
 	
 	$array["add-perso-cat-popup"]=$catname;
 	if($_GET["cat"]<>null){
-		$array["manage"]='{manage_your_items}';
+		$array["manage"]='{websites}';
+		$array["urls"]='{urls}';
 		$array["category-events"]='{events}';
 	}
 	
@@ -881,9 +887,14 @@ function add_category_tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="manage"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.categories.php?popup=yes&category={$_GET["cat"]}&t=$t\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.categories.php?popup=yes&category={$_GET["cat"]}&tablesize=695&t=$t\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="urls"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.categories.urls.php?popup=yes&category={$_GET["cat"]}&tablesize=695&t=$t\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 		
 		if($num=="category-events"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.update.logs.php?popup=yes&category=$catzenc&t=$t&tablesize=695&descriptionsize=530\" style='font-size:14px'><span>$ligne</span></a></li>\n");

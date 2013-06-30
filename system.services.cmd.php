@@ -45,7 +45,7 @@ function popup(){
 			<div id='Status$t'></div>
 		</center>
 		<textarea style='margin-top:5px;font-family:Courier New;
-	font-weight:bold;width:99%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:11.5px'
+	font-weight:bold;width:95%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:11.5px'
 	id='textarea$t'></textarea>
 			
 	<script>
@@ -85,7 +85,9 @@ function popup(){
 	var X_refreshidStatus$t= function (obj) {
 		var res=obj.responseText;
 		if (res.length>3){
-			document.getElementById('$id').src='img/'+res;
+			if(document.getElementById('$id')){
+				document.getElementById('$id').src='img/'+res;
+			}
 		}
 		GetInfos$t();
 	}		
@@ -106,17 +108,13 @@ function popup(){
 	}		
 		
 		function GetInfos$t(){
-			if(document.getElementById('$id')){
-				var XHR = new XHRConnection();
-				XHR.appendData('LOGSOF','$t');
-				XHR.sendAndLoad('$page', 'POST',X_GetInfos$t);   
-			}
+			var XHR = new XHRConnection();
+			XHR.appendData('LOGSOF','$t');
+			XHR.sendAndLoad('$page', 'POST',X_GetInfos$t);   
 		}		
 		
 		if(document.getElementById('$id')){
 			document.getElementById('$id').src='img/wait_verybig_mini_red-48.gif';
-		}else{
-		alert('$id!!');
 		}
 	step1$t();		
 	";

@@ -2338,7 +2338,7 @@ function SQUIDGUARD_RELOAD(){
 function SQUIDGUARD_WEB_RELOAD(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	$cmd=trim("$nohup /etc/init.d/artica-postfix restart squidguard-http >/dev/null 2>&1 &");
+	$cmd=trim("$nohup /etc/init.d/squidguard-http restart >/dev/null 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
 }
@@ -3752,11 +3752,12 @@ function samba_logon_scripts(){
 function TCP_VIRTUALS(){
 	
 	writelogs_framework("initialize",__FUNCTION__,__FILE__,__LINE__);
-	
+	$unix=new unix();
 	if(isset($_GET["stay"])){
 		if($_GET["stay"]<>"no"){
 			$php5=$unix->LOCATE_PHP5_BIN();
 			writelogs_framework("initialize",__FUNCTION__,__FILE__,__LINE__);
+			@unlink("/etc/artica-postfix/MEM_INTERFACES");
 			shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php");
 			return;
 		}
@@ -3768,6 +3769,7 @@ function TCP_VIRTUALS(){
 	$nohup=$unix->find_program("nohup");
 	writelogs_framework("nohup:$nohup",__FUNCTION__,__FILE__,__LINE__);
 	$php5=$unix->LOCATE_PHP5_BIN();
+	@unlink("/etc/artica-postfix/MEM_INTERFACES");
 	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.virtuals-ip.php >/dev/null 2>&1 &";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec(trim($cmd));
@@ -3778,15 +3780,17 @@ function TCP_VLANS(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=LOCATE_PHP5_BIN2();
+	@unlink("/etc/artica-postfix/MEM_INTERFACES");
 	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.virtuals-ip.php --bridges >/dev/null 2>&1 &";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 	
 	if(isset($_GET["stay"])){
-
+		@unlink("/etc/artica-postfix/MEM_INTERFACES");
 		shell_exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.virtuals-ip.php --vlans");
 		return;
 	}
+	@unlink("/etc/artica-postfix/MEM_INTERFACES");
 	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.virtuals-ip.php --vlans >/dev/null 2>&1 &";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
@@ -3797,6 +3801,7 @@ function TCP_VIRTUALS_BUILD_BRIDGES(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=LOCATE_PHP5_BIN2();
+	@unlink("/etc/artica-postfix/MEM_INTERFACES");
 	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.virtuals-ip.php --bridges >/dev/null 2>&1 &";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
@@ -8401,12 +8406,14 @@ function postfinder(){
 }
 
 function IP_DEL_ROUTE(){
+	@unlink("/etc/artica-postfix/MEM_INTERFACES");
 	$cmd=trim(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.virtuals-ip.php --routes-del {$_GET["ip-del-route"]}");
 	shell_exec($cmd);
 }
 function IP_ROUTES(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
+	@unlink("/etc/artica-postfix/MEM_INTERFACES");
 	$cmd=trim($nohup." ".LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.virtuals-ip.php --routes >/dev/null 2>&1 &");
 	shell_exec($cmd);
 }

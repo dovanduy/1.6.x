@@ -18,6 +18,10 @@ $GLOBALS["LOGFILE"]="/var/log/artica-postfix/dansguardian-logger.debug";
 if(preg_match("#--simulate#",implode(" ",$argv))){$GLOBALS["SIMULATE"]=true;}
 if(preg_match("#--nolock#",implode(" ",$argv))){$GLOBALS["NOLOCK"]=true;}
 
+for($i=1;$i<count($argv[1]);$i++){
+	$GLOBALS["PARSED_COMMANDS"]=$GLOBALS["PARSED_COMMANDS"]." {$argv[$i]}";
+}
+
 if($argv[1]=="--words"){WordScanners(true);die();}
 if($argv[1]=="--unveiltech"){unveiltech();die();}
 if($argv[1]=="--youtube"){youtube(true);die();}
@@ -740,34 +744,135 @@ function ParseSquidLogBrut($nopid=false){
 		@unlink($lockfile);
 	}
 
-	$dirs=$unix->dirdir("/var/log/artica-postfix/squid-brut");
+	
+	if(systemMaxOverloaded()){
+		events_brut("Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting taks, wait a better time");
+		return;
+	}
+	
 	
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nice=EXEC_NICE();
 	$nohup=$unix->find_program("nohup");
+	$pgrep=$unix->find_program("pgrep");
+	$Forked=0;
+	$CurrentSubDir=date("Y-m-d-H");
+	$GLOBALDIRS=array();
+	
+	
+	
+	$Year=date("Y");
+	$ALREADYPROCS=array();
+	exec("$pgrep -l -f \"\-\-squid\-brut-proc $Year\" 2>&1",$pgrep_results);
+	while (list ($index,$line) = each ($pgrep_results) ){
+		if(preg_match("#pgrep#", $line)){continue;}
+		if(!preg_match("#^([0-9]+)\s+#", $line,$re)){continue;}
+		$ALREADYPROCS[$re[1]]=true;
+		if(preg_match("#squid-brut-proc\s+([0-9\-]+)#", $line,$re)){$ALREADYDIR[$re[1]]=true;}
+	}	
+	
+	
+	$dirs=$unix->dirdir("/var/log/artica-postfix/squid-brut");
 	while (list ($dir, $val) = each ($dirs) ){
-		$basename=basename($dir);
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".$basename.".ParseSquidLogBrutProcess.pid";
-		$oldpid=@file_get_contents($pidfile);
-		$filesCount=$unix->COUNT_FILES($dir);
-		events_brut("Found dir $basename $filesCount files, [$pidfile] PID:$oldpid");
 		
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
-			events_brut("$basename: Already process running pid: $oldpid since {$MNS}mn");
+		$basename=basename($dir);
+		if($basename=="--verbose"){continue;}
+		if(!preg_match("#[0-9]+-[0-9]+-[0-9]+-[0-9]+#", $basename)){
+			events_brut("Directory: `$basename` NO MATCH, aborting");
 			continue;
 		}
 		
+		if(isset($ALREADYDIR[$basename])){
+			events_brut("$basename currently processing...");
+			continue;
+		}
+		
+		if(system_is_overloaded()){
+			if(count($GLOBALDIRS)>1){
+				events_brut("Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, skip calculate the queue...");
+				break;
+			}
+		}
+		
+		
+		$filesCount=$unix->COUNT_FILES($dir);
+		if($filesCount==0){
+			events_brut("[$basename]: Removing: No files...");
+			if($basename<>$CurrentSubDir){
+				@rmdir($dir);
+				if(is_dir($dir)){events_brut("Removing directory:$basename !!! FAILED !!!");}
+				continue;
+			}
+		}
+		
+		$intBase=str_replace("-", "", $basename);
+		$GLOBALDIRS[$intBase]=$dir;
+
+	}
+	
+	ksort($GLOBALDIRS);
+	$CountDeDirInQueue=count($GLOBALDIRS);
+	
+	if($CountDeDirInQueue>5){$MaxForked=2;}
+	if($CountDeDirInQueue>10){$MaxForked=4;}
+	if($CountDeDirInQueue>50){$MaxForked=6;}
+	if($CountDeDirInQueue>100){$MaxForked=8;}
+	
+
+	
+	
+	
+	if(system_is_overloaded()){
+		events_brut("Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, reduce queue to 3 processes MAX");
+		$MaxForked=3;
+	}
+	
+
+	
+	$Forked=count($ALREADYPROCS);
+	events_brut("$CountDeDirInQueue directories in queue, Fork $MaxForked processes Current=$Forked...");
+	while (list ($val,$dir) = each ($GLOBALDIRS) ){
+		
+		
+		if($Forked>$MaxForked){
+			events_brut("Exit loop, MAX forked processes reached ( $Forked processes)");
+			break;
+		}
+		$basename=basename($dir);
+		
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".$basename.".ParseSquidLogBrutProcess.pid";
+		$oldpid=@file_get_contents($pidfile);
+		events_brut("[$val]: Directory:$basename [$pidfile] PID:$oldpid");
+		
+		
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
+			events_brut("[$val]: $basename: Already process running pid: $oldpid since {$MNS}mn");
+			$Forked++;
+			continue;
+		}
+		
+		events_brut("[$val]: -> ParseSquidLogMainProcessCount() For $basename");
 		$Procs=ParseSquidLogMainProcessCount("squid-brut-proc",$basename);
+		
+		
+		events_brut("[$val]: $Procs processe(s) Running");
 		if($Procs>0){
 			$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
-			events_brut("$Procs processe(s) Already process running");
+			events_brut("[$val]: $Procs processe(s) Already process running");
+			$Forked++;
 			continue;			
 		}
 		
 		$cmd="$nohup $php5 ".__FILE__." --squid-brut-proc $basename >/dev/null 2>&1 &";
 		events_brut("ParseSquidLogBrut:: $cmd",__LINE__);
 		shell_exec($cmd);
+		sleep(2);
+		$Forked++;
+		if(system_is_overloaded()){
+			events_brut("Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, reduce queue to 3 processes MAX");
+			$MaxForked=3;
+		}
 		
 	}
 	
@@ -841,6 +946,8 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 	
 	
 	$unix=new unix();
+	$GLOBALS["CLASS_UNIX"]=$unix;
+	
 	$sep=".";
 	if($dir<>null){$sep=".$dir.";}
 	
@@ -896,6 +1003,10 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 	$subdirs["Youtube"]=true;
 	$subdirs["Members"]=true;
 	
+	$ERROR_NOT_LOGS["TCP_DENIED"]=true;
+	$ERROR_NOT_LOGS["RELEASE"]=true;
+	$ERROR_NOT_LOGS["SWAPOUT"]=true;
+	
 	while (list ($subdir, $none) = each ($subdirs)){
 		@mkdir("$ContainerDir/$subdir",0755,true);
 		if(!is_dir("$ContainerDir/$subdir")){events("ParseSquidLogBrutProcess():: $ContainerDir/$subdir permission denied",__LINE__);return;}
@@ -921,18 +1032,17 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 	if (!$handle = opendir($workingDir)) {@mkdir($workingDir,0755,true);@unlink($lockfile);return;}
 	
 	while (false !== ($filename = readdir($handle))) {
-		if($filename=="."){continue;}
-		if($filename==".."){continue;}
-		$targetFile="$workingDir/$filename";
+		if($filename=="."){continue;}if($filename==".."){continue;}
+		$targetFile="$workingDir/$filename"; 
 		if(!is_file($targetFile)){continue;}
 		$d++;
 		$h++;
 		
-		if($d>1000){
+		if($d>300){
 			if(systemMaxOverloaded()){
 				$array_load=sys_getloadavg();
 				$internal_load=$array_load[0];
-				events("ParseSquidLogBrutProcess()::$dir:: Very Overloaded: $internal_load...",__LINE__);
+				events("ParseSquidLogBrutProcess()::$dir:: Overloaded: $internal_load system, break loop...",__LINE__);
 				break;
 			}
 			$d=0;
@@ -956,7 +1066,7 @@ function ParseSquidLogBrutProcess($dir=null,$nopid=false){
 				$timefile=$unix->file_time_min($targetFile);
 				@unlink($targetFile);
 			}
-			if($squidtail->error<>"TCP_DENIED"){
+			if(!isset($ERROR_NOT_LOGS[$squidtail->error])){
 				events("ParseSquidLogBrutProcess()::$dir::[$h]:: parse_tail(): unable to parse: $targetFile $squidtail->error",__LINE__);
 			}
 			continue;
@@ -1160,6 +1270,7 @@ function ParseSquidLogMain(){
 	while (list ($dir, $val) = each ($dirs) ){
 		
 		$basename=basename($dir);
+		if($basename=="--verbose"){continue;}
 		$pidfile="/etc/artica-postfix/pids/squidMysqllogs.$basename.lock.pid";
 		$oldpid=@file_get_contents($pidfile);
 		$filesCount=$unix->COUNT_FILES($dir);
@@ -2122,18 +2233,23 @@ function events_tail($text){
 		@fclose($f);	
 		}	
 function events_brut($text){
+	
+	$cmdlines=$GLOBALS["PARSED_COMMANDS"];
+	if(function_exists("debug_backtrace")){
+	$trace=@debug_backtrace();
+	if(isset($trace[1])){
+		$function="{$trace[1]["function"]}()";
+		$line="{$trace[1]["line"]}";
+		
+	}
+	}
+	
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
-			//if($GLOBALS["VERBOSE"]){echo "$text\n";}
-			$pid=@getmypid();
-			$date=@date("h:i:s");
-			$logFile="/var/log/artica-postfix/squid-brut.debug";
-			$size=@filesize($logFile);
-			if($size>1000000){@unlink($logFile);}
-			$f = @fopen($logFile, 'a');
-			$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)." $date $text");
-			@fwrite($f, "$pid ".basename(__FILE__)." $date $text\n");
-			@fclose($f);
-		}	
+	$pid=@getmypid();
+	$logFile="/var/log/artica-postfix/squid-brut.debug";
+	//events($text,$logFile=null,$phplog=false,$sourcefunction=null,$sourceline=null)
+	$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)." $text",$logFile,false,$function,$line,basename(__FILE__));
+}	
 
 		
 function tables_status(){

@@ -33,6 +33,7 @@ if(isset($_POST["pattern"])){member_edit_save();exit;}
 if(isset($_POST["member-delete"])){member_edit_del();exit;}
 if(isset($_GET["explain-group-type"])){group_explain_type();exit;}
 if(isset($_GET["explain-group-button"])){group_display_button();exit;}
+if(isset($_GET["member-check-already-exists"])){member_check_already_exists();exit;}
 
 tabs();
 
@@ -594,6 +595,26 @@ echo json_encode($data);
 
 }
 
+function member_check_already_exists(){
+	$tpl=new templates();
+	$pattern=$_GET["member-check-already-exists"];
+	$q=new mysql_squid_builder();
+	$pattern=str_replace("_","%",$pattern);
+	echo "<div style='font-size:16px'>$pattern</div>";
+	$sql="SELECT groupid FROM webfilter_members WHERE `pattern` LIKE '%$pattern%'";
+	$results=$q->QUERY_SQL($sql);
+
+	
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilter_group WHERE ID={$ligne["groupid"]}"));
+		echo $tpl->_ENGINE_parse_body("<li style='font-size:16px'>{alreadyexists}: {$ligne2["groupname"]}</li>");
+	}
+	
+	
+}
+
+
+
 function members_edit(){
 	$ID=$_GET["member-edit"];
 	$tpl=new templates();
@@ -605,7 +626,7 @@ function members_edit(){
 	$button_name="{apply}";
 	if($ID<0){$button_name="{add}";}
 	$t=$_GET["t"];
-	
+	$tt=time();
 	if($ID>-1){
 		$sql="SELECT * FROM webfilter_members WHERE ID=$ID";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
@@ -619,25 +640,26 @@ function members_edit(){
 	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}	
 	
 	$html="
-	<div id='members-edit-group'>
-	<table style='width:99%' class=form>
+	<div id='members-edit-group'  style='width:95%' class=form>
+	<table style='width:100%'>
 	<tr>
-		<td class=legend>{enabled}:</td>
+		<td class=legend style='font-size:16px'>{enabled}:</td>
 		<td>". Field_checkbox("member_enabled",1,$ligne["enabled"])."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{member_type}:</td>
-		<td>". field_array_Hash($membertype,"membertype",$ligne["membertype"],"membertypeSwitch()",null,0,"font-size:14px")."</td>
+		<td class=legend style='font-size:16px'>{member_type}:</td>
+		<td>". field_array_Hash($membertype,"membertype",$ligne["membertype"],"membertypeSwitch()",null,0,"font-size:16px")."</td>
 	</tr>
 	<tr>
-		<td class=legend>{member}:</td>
+		<td class=legend style='font-size:16px'>{member}:</td>
 		<td><span id='member-type-div'></span>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button("$button_name","SaveMemberType()",16)."</td>
+		<td colspan=2 align='right'><hr>". button("$button_name","SaveMemberType()",18)."</td>
 	</tr>
 	</table>
-	
+	<div id='$tt'></div>
+	</div>
 	<script>
 	var x_SaveMemberType= function (obj) {
 		var res=obj.responseText;
@@ -651,6 +673,8 @@ function members_edit(){
 	}
 	
 		function SaveMemberTypeCheck(e){
+			var pp= document.getElementById('pattern').value;
+			LoadAjaxTiny('$tt','$page?member-check-already-exists='+pp);
 			if(checkEnter(e)){
 				SaveMemberType();
 			}
@@ -672,6 +696,7 @@ function members_edit(){
 		membertype=document.getElementById('membertype').value;
 		var def=escape('{$ligne["pattern"]}');
 		LoadAjaxTiny('member-type-div','$page?member-type-field='+membertype+'&default='+def);
+		
 	}
 	
 	membertypeSwitch();
@@ -719,10 +744,14 @@ function member_edit_del(){
 
 function members_type_field(){
 	$tpl=new templates();
+	
+	
+	$script="<script>document.getElementById('pattern').focus();</script>";
+	
 	// $name,$value=null,$style=null,$class=null,$OnChange=null,$help=null,$helpInside=false,$jsPressKey=null,$DISABLED=false,$OnClick=null
-	if($_GET["member-type-field"]==0){echo field_ipv4("pattern", $_GET["default"],"font-size:14px");}
-	if($_GET["member-type-field"]==1){echo Field_text("pattern", $_GET["default"],"font-size:14px",null,null,null,false,"SaveMemberTypeCheck(event)");}
-	if($_GET["member-type-field"]==2){echo field_ipv4_cdir("pattern", $_GET["default"],"font-size:14px",null,null,null,false,"SaveMemberTypeCheck(event)");}
+	if($_GET["member-type-field"]==0){echo field_ipv4("pattern", $_GET["default"],"font-size:16px",false,"OnKeyPress=\"javascript:SaveMemberTypeCheck(event)\"").$script;}
+	if($_GET["member-type-field"]==1){echo Field_text("pattern", $_GET["default"],"font-size:16px",null,null,null,false,"SaveMemberTypeCheck(event)").$script;}
+	if($_GET["member-type-field"]==2){echo field_ipv4_cdir("pattern", $_GET["default"],"font-size:16px",false,"OnKeyPress=\"javascript:SaveMemberTypeCheck(event)\"").$script;}
 	
 }
 

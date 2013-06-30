@@ -55,6 +55,9 @@ $mysql=new mysql();
 		$date=date("Y-m-d H:i:s",$file);
 		$array=unserialize(@file_get_contents($path.'/'.$file));
 		$buffer=$array["buffer"];
+		if(isset($ALREADY[md5($buffer)])){@unlink($path.'/'.$file);continue;}
+		$ALREADY[md5($buffer)]=true;
+		
 		$dmsg=@implode("\n",$array["dmsg"]);			
 		$text="Why artica has rebooted ?Detected\n$buffer\n\nDmsg:$dmsg";
 		$subject="Reboot report";

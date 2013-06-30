@@ -96,7 +96,9 @@ if($EnableRemoteStatisticsAppliance==0){
 
 if($ASSQUID){
 	if($users->AsDansGuardianAdministrator){
-		$SquidRules=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("web-filtering-48.png", "WEB_FILTERING","softwares_mangement_text", "QuickLinkSystems('section_webfiltering_dansguardian')"));
+		if($SQUIDEnable==1){
+			$SquidRules=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("web-filtering-48.png", "WEB_FILTERING","softwares_mangement_text", "QuickLinkSystems('section_webfiltering_dansguardian')"));
+		}
 	}
 	
 }
@@ -128,6 +130,8 @@ if(!$users->AsSystemAdministrator){$network=null;}
 if($users->ZARAFA_APPLIANCE){$zarafa=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("zarafa-logo-48.png", "APP_ZARAFA",null, "QuickLinkSystems('section_zarafa')"));}
 if(!$users->AsWebStatisticsAdministrator){$squidStats=null;}
 if(!$users->MILTERGREYLIST_INSTALLED){$miltergrey=null;}
+if($users->SQUID_INSTALLED){if($SQUIDEnable==0){$squidStats=null;}}
+
 
 
 if($OnlyWeb){$samba=null;}
@@ -271,14 +275,18 @@ $tr2=$tr;
 			if($users->SQUID_APPLIANCE){
 				if(count($tr2)<7){	
 					if($users->AsDansGuardianAdministrator){
-						$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("web-filtering-48.png", "WEB_FILTERING","softwares_mangement_text", "QuickLinkSystems('section_webfiltering_dansguardian')"));
+						if($SQUIDEnable==1){
+							$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("web-filtering-48.png", "WEB_FILTERING","softwares_mangement_text", "QuickLinkSystems('section_webfiltering_dansguardian')"));
+						}
 					}
 				}
 			}
 			
 			if(($users->SQUID_APPLIANCE) OR ($users->WEBSTATS_APPLIANCE) OR ($users->KASPERSKY_WEB_APPLIANCE)){
 					if($users->AsSquidAdministrator){
-						$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-logs.png", "PROXY_EVENTS","PROXY_EVENTS", "QuickLinkSystems('section_squid_rtmm')"));
+						if($SQUIDEnable==1){
+							$tr2[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-logs.png", "PROXY_EVENTS","PROXY_EVENTS", "QuickLinkSystems('section_squid_rtmm')"));
+						}
 					}
 				}
 		}

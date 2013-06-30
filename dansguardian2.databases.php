@@ -940,7 +940,8 @@ function add_category_tabs(){
 	
 	$array["add-perso-cat-popup"]=$catname;
 	if($_GET["cat"]<>null){
-		$array["manage"]='{manage_your_items}';
+		$array["manage"]='{websites}';
+		$array["urls"]='{urls}';
 		$array["category-events"]='{events}';
 	}
 	
@@ -950,9 +951,14 @@ function add_category_tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="manage"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.categories.php?popup=yes&category={$_GET["cat"]}&t=$t\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.categories.php?popup=yes&category={$_GET["cat"]}&tablesize=695&t=$t\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="urls"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.categories.urls.php?popup=yes&category={$_GET["cat"]}&tablesize=695&t=$t\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 		
 		if($num=="category-events"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.update.logs.php?popup=yes&category=$catzenc&t=$t&tablesize=695&descriptionsize=530\" style='font-size:14px'><span>$ligne</span></a></li>\n");

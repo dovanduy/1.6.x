@@ -3297,6 +3297,9 @@ function thumbnail_parse_hours(){
 function thumbnail_parse_dir($directory){
 	$unix=new unix();
 	$countDefile=$unix->COUNT_FILES($directory);
+	$sock=new sockets();
+	$DisableLocalStatisticsTasks=$sock->GET_INFO("DisableLocalStatisticsTasks");
+	if(!is_numeric($DisableLocalStatisticsTasks)){$DisableLocalStatisticsTasks=0;}
 	events_tail("$directory  $countDefile files on Line: ".__LINE__);
 	if($countDefile==0){
 		events("thumbnail_parse_dir():: $directory:  remove... on Line: ".__LINE__);
@@ -3314,6 +3317,7 @@ function thumbnail_parse_dir($directory){
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}
 		$targetFile="$directory/$filename";
+		if($DisableLocalStatisticsTasks==1){@unlink($targetFile);continue;}
 		$arrayFile=unserialize(@file_get_contents($targetFile));
 		if(!is_array($arrayFile)){@unlink($targetFile);continue;}
 		while (list ($sitename,$RTTSIZEARRAY) = each ($arrayFile) ){

@@ -671,7 +671,7 @@ function build(){
 	RemoveAllSites();
 	if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG]: Apache -> create_cron_task();\n";}
 	create_cron_task();
-	
+	sync_squid();
 	$sock=new sockets();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$varWwwPerms=$sock->GET_INFO("varWwwPerms");

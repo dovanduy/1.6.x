@@ -74,6 +74,8 @@ function routes_listes(){
 	$q=new mysql();	
 	$results=$q->QUERY_SQL($sql,"artica_backup");	
 	if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}	
+	
+	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		$html=$html."

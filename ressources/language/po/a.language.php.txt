@@ -6,8 +6,8 @@ Your system will be able to serve many Macintosh clients simultaneously as an Ap
 <aboveeq>Est&aacute; acima</aboveeq>
 <abovenot>is not above</abovenot>
 <access_events>Access events</access_events>
-<acls_and_quotas>ACLS & Quotas</acls_and_quotas>
-<acls_folders_rebuild_text>This will rebuild all permissions and ACLs, perform this operation ?</acls_folders_rebuild_text>
+<acls_and_quotas>ACLS &amp; Quotas</acls_and_quotas>
+<acls_folders_rebuild_text>v&atilde;o ser regeneradas todas as permiss&otilde;es e ACLs, executar esta opera&ccedil;&atilde;o?</acls_folders_rebuild_text>
 <acls_no_such_dir_text>This directory does not exists on your system.[br]Perhaps you have remove it.[br]I suggest to remove this entry..</acls_no_such_dir_text>
 <acl_proxy_auth_explain>Give here username (the userid) that is stored by your LDAP server or Active Directory.[br]
 Note that it is only available if your have enabled the Proxy Authentication</acl_proxy_auth_explain>

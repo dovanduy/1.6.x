@@ -224,6 +224,11 @@ function popup(){
 	if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
 	if(!is_numeric($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
 	if(!is_numeric($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
+	if(!is_numeric($MonitConfig["NotifyDNSIssues"])){$MonitConfig["NotifyDNSIssues"]=0;}
+	if(!is_numeric($MonitConfig["DNSIssuesMAX"])){$MonitConfig["DNSIssuesMAX"]=1;}
+	if($MonitConfig["DNSIssuesMAX"]==0){$MonitConfig["DNSIssuesMAX"]=1;}
+	
+	
 	
 	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=10;}
 	if(!is_numeric($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=10;}
@@ -258,10 +263,20 @@ function popup(){
 				<td>&nbsp;</td>
 			</tr>	
 			<tr>
+				<td class=legend style='font-size:14px'>{NotifyDNSIssues}:</td>
+				<td style='font-size:14px'>". Field_text("$t-NotifyDNSIssues", $MonitConfig["NotifyDNSIssues"],"font-size:14px;width:60px")."</td>
+				<td>&nbsp;</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:14px'>{DNSIssuesMAX}:</td>
+				<td style='font-size:14px'>". Field_text("$t-DNSIssuesMAX", $MonitConfig["DNSIssuesMAX"],"font-size:14px;width:60px")."</td>
+				<td>&nbsp;</td>
+			</tr>						
+			<tr>
 				<td class=legend style='font-size:14px'>{notify_when_memory_exceed}:</td>
 				<td style='font-size:14px'>". Field_text("$t-watchdogMEM", $MonitConfig["watchdogMEM"],"font-size:14px;width:60px")."&nbsp;MB</td>
 				<td>&nbsp;</td>
-			</tr>
+			</tr>						
 			<tr>
 				<td class=legend style='font-size:14px'>{MaxSwapPourc}:</td>
 				<td style='font-size:14px'>". Field_text("$t-MaxSwapPourc", $MaxSwapPourc,"font-size:14px;width:60px")."&nbsp;%</td>
@@ -300,8 +315,12 @@ function popup(){
 		document.getElementById('$t-watchdog').disabled=false;
 		if(!document.getElementById('$t-watchdog').checked){return;}
 		document.getElementById('$t-watchdogMEM').disabled=false;
-		document.getElementById('$t-watchdogCPU').disabled=false;		
+		document.getElementById('$t-watchdogCPU').disabled=false;
+		document.getElementById('$t-NotifyDNSIssues').disabled=false;
+		document.getElementById('$t-DNSIssuesMAX').disabled=false;				
+		
 	
+		
 	}
 	
 	
@@ -316,12 +335,14 @@ function popup(){
 	function SaveWatchdog{$t}(){
 		var XHR = new XHRConnection();	
 		if(document.getElementById('$t-watchdog').checked){XHR.appendData('watchdog',1);}else{XHR.appendData('watchdog',0);}
+		if(document.getElementById('$t-NotifyDNSIssues').checked){XHR.appendData('NotifyDNSIssues',1);}else{XHR.appendData('NotifyDNSIssues',0);}
 		XHR.appendData('watchdogMEM',document.getElementById('$t-watchdogMEM').value);
 		XHR.appendData('watchdogCPU',document.getElementById('$t-watchdogCPU').value);
 		XHR.appendData('ExternalPageToCheck',document.getElementById('$t-ExternalPageToCheck').value);
 		XHR.appendData('MgrInfosMaxTimeOut',document.getElementById('$t-MgrInfosMaxTimeOut').value);
 		XHR.appendData('SquidCacheReloadTTL',document.getElementById('$t-SquidCacheReloadTTL').value);
 		XHR.appendData('MaxSwapPourc',document.getElementById('$t-MaxSwapPourc').value);
+		XHR.appendData('DNSIssuesMAX',document.getElementById('$t-DNSIssuesMAX').value);
 		
 		
 		AnimateDiv('$t');

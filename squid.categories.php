@@ -303,7 +303,7 @@ $('#$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 			{display: '$date', name : 'zDate', width : 140, sortable : true, align: 'left'},	
-			{display: '$website', name : 'pattern', width :$rowebsite, sortable : false, align: 'left'},
+			{display: '$website', name : 'pattern', width :$rowebsite, sortable : true, align: 'left'},
 			{display: '$movetext', name : 'description2', width : 40, sortable : false, align: 'left'},
 			{display: '$movetext', name : 'description', width : 40, sortable : false, align: 'left'},
 			{display: '&nbsp;', name : 'none2', width : 40, sortable : false, align: 'left'},
@@ -420,11 +420,11 @@ function query(){
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
 	$nowebsites=$tpl->_ENGINE_parse_body("{no_saved_web_site_catz}");
+	$category=null;
 	
+	if($category==null){if($_GET["category"]<>null){$category=$_GET["category"];$_POST["qtype"]="pattern";}}
+	if($category==null){if($_POST["qtype"]<>null){$category=$_POST["qtype"];$_POST["qtype"]="pattern";}}	
 	writelogs("Category:$category",__FUNCTION__,__FILE__,__LINE__);
-	if($category==null){if($_GET["category"]<>null){$category=$_GET["category"];}}
-	if($category==null){if($_POST["qtype"]<>null){$category=$_POST["qtype"];}}	
-	
 	
 	if($_POST["query"]<>null){if($_GET["website"]<>null){$_POST["query"]=$_GET["website"];}}
 	if($category==null){json_error_show("Please select a category first");}
@@ -443,28 +443,14 @@ function query(){
 	
 	$_POST["query"]=trim($_POST["query"]);
 	
-	if($_POST["query"]==null){
-		if($_GET["website"]<>null){
-			$_POST["query"]=$_GET["website"];
-			$_POST["qtype"]="pattern";
-		}
-		
-	}
 	
-	$_POST["query"]=trim($_POST["query"]);
-	if($_POST["query"]<>null){
+	$searchstring=string_to_flexquery();
+	
+	
+	
+	
+	if($searchstring<>null){
 		$orgQuery=$_POST["query"];
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		if(strpos("  $search", "%")>0){
-			$searchstring="AND (`pattern` LIKE '$search')";
-		}else{
-			$searchstring="AND `pattern`='$search'";
-		}
-		
-		
 		$sql="SELECT COUNT(zmd5) as TCOUNT FROM `$table` WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$total = $ligne["TCOUNT"];
@@ -481,6 +467,7 @@ function query(){
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	$sql="SELECT zDate,zmd5,pattern,enabled  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show($q->mysql_error,1);}
 	if(mysql_num_rows($results)==0){json_error_show("$nowebsites",1);}
@@ -726,6 +713,8 @@ function field_list(){
 	$dans=new dansguardian_rules();
 	while (list ($num, $ligne) = each ($dans->array_blacksites) ){$array[$num]=$num;}
 	$array[null]="{select}";
+	
+	ksort($array);
 	$callback="SearchByCategory";
 	$callbackjs="<script>$callback();</script>";
 	if(isset($_GET["time"])){$time="-{$_GET["time"]}";}

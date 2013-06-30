@@ -1,5 +1,5 @@
 <accept_time>Accept time</accept_time>
-<access_list>Rules list</access_list>
+<access_list>Lista de regras</access_list>
 <access_rule>Access rule</access_rule>
 <access_rules>Access rules</access_rules>
 <access_rules_back>Repor regras padr&atilde;o</access_rules_back>
@@ -16,7 +16,7 @@ You have to be careful not to place a deny statement in the list that blocks a s
 You can configure Squid to set filters for various entities and at different granularities (e.g. filters for specific protocols,
 filters for certain types of commands, filters for specific routers, filters for specified domains, etc).[br]
 </acls_text>
-<acl_arp>Ethernet Address (unix only)</acl_arp>
+<acl_arp>Endere&ccedil;o Ethernet(s&oacute; em Unix)</acl_arp>
 <acl_arp_text>This option only works for clients on the same local subnet, and only for certain platforms.[br]
 Linux, Solaris, and some BSD variants are the supported operating systems for this type of ACL.[br]
 This ACL can provide a somewhat secure method of access control, because MAC addresses are usually harder to spoof than IP addresses,
@@ -28,7 +28,7 @@ ACLARP refers MACADDRESS of the ethernet 11:12:13:14:15:16[br]
 [br][i]Squid can only determine the MAC address for clients that are on the same subnet. If the client is on a different subnet, then Squid
 cannot find out its MAC address.[/i]
 </acl_arp_text>
-<acl_arp_title>Ethernet (MAC) address matching</acl_arp_title>
+<acl_arp_title>Endere&ccedil;o Ethernet(MAC) correspondente</acl_arp_title>
 <acl_browser>Browser matching</acl_browser>
 <acl_browser_text>This is A regular expression that matches the clients browser type based on the user agent header[br]
 This allows for ACL's to operate based on the browser type in use, for example, using this ACL type, one could create an ACL for
@@ -38,22 +38,22 @@ Example:[br]
 This refers to the requests, which are coming from the browsers who have "MOZILLA" keyword in the user-agent header.
 </acl_browser_text>
 <acl_browser_title>Browser Name matching</acl_browser_title>
-<acl_dst>Web Server Address</acl_dst>
-<acl_dstdomain>Web Server Hostname</acl_dstdomain>
+<acl_dst>Endere&ccedil;o Servidor Web</acl_dst>
+<acl_dstdomain>Nome do host do Servidor Web</acl_dstdomain>
 <acl_dstdomain_text>When matching to be done based on the destination servers domain, you can use this acl type.[br]
 [i]Note: Here "." is more important.[/i][br]
 [b]Example:[/b]
 [br][blk] .kovaiteam.com[/blk][br]This looks for *.kovaiteam.com from URL
 </acl_dstdomain_text>
-<acl_dstdomain_title>This refers to destination domain i.e. the source domain where the origin server is locate</acl_dstdomain_title>
-<acl_dstdom_regex>Web Server Regexp</acl_dstdom_regex>
+<acl_dstdomain_title>Isto refere-se ao Dom&iacute;nio de destino i.e. o dom&iacute;nio de origem onde o servidor de origem se encontra localizado.</acl_dstdomain_title>
+<acl_dstdom_regex>Servidor Web Regexp</acl_dstdom_regex>
 <acl_dstdom_regex_text>Matching done on destination domain based on regular expression[br]
 [b]Example:[/b]
 [br][blk] redhat[/blk][br]
 This looks for the word redhat from the client's reqest
 </acl_dstdom_regex_text>
 <acl_dstdom_regex_title>Provides match against destination domain</acl_dstdom_regex_title>
-<acl_dst_as>Dest AS Number</acl_dst_as>
+<acl_dst_as>N&uacute;mero AS de dest</acl_dst_as>
 <acl_dst_as_text>The autonomous system number ACL types are generally only used in Cache Peer, or ICP, access restrictions.[br]
 Autonomous system numbers are used in organizations that have multiple internet links and routers operating under a single administrative authority using
 the same gateway protocol.
@@ -63,14 +63,14 @@ An example for routing all requests for AS#1241 and only those to mycache.mydoma
 cache_peer_access mycache.mydomain.net allow asexample[br]
 cache_peer_access mycache_mydomain.net deny all[/b]
 </acl_dst_as_text>
-<acl_dst_as_title>Destination Autonomous System Number is the AS number of the server being queried</acl_dst_as_title>
+<acl_dst_as_title>Destination Autonomous System Number  &eacute; o n&uacute;mero AS do servidor a ser consultado.</acl_dst_as_title>
 <acl_dst_text>[ul]
 [li]172.16.1.0/24 - refers to the whole Network with address 172.16.1.0[/li]
 [li]172.16.1.25/32 - refers to a single source[/li]
 [li]172.16.1.25-172.16.1.35/32 - refers range of IP Addresses from 172.16.1.25-172.16.1.35[/li]
 [/ul]</acl_dst_text>
-<acl_dst_title>Same as "Client Address" but looks for destination IP Address</acl_dst_title>
-<acl_external>External Program</acl_external>
+<acl_dst_title>Mesmo como &quot;Endere&ccedil;o Cliente&quot;, mas olha para o endere&ccedil;o IP de destino</acl_dst_title>
+<acl_external>Programa externo</acl_external>
 <acl_external_text>[b]Example:[/b]
 [br]
 auth_param basic program put your authenticator here[br]
@@ -84,8 +84,8 @@ http_access allow it password[br]
 Allows user if user belongs to a group that is allowed during a given time and using a given ip.[br]
 </acl_external_text>
 <acl_external_title> Provides match against external ACL lookup via a helper class defined by the "external acl type" tag</acl_external_title>
-<acl_ident>User name</acl_ident>
-<acl_ident_regex>User name (regex)</acl_ident_regex>
+<acl_ident>Nome Utilizador</acl_ident>
+<acl_ident_regex>Nome Utilizador (regex)</acl_ident_regex>
 <acl_ident_regex_text>Same as "User name" but matching is done on ident output.
 [br]
 [b]Note: Need an external ident server server running on the client machines[/b]
@@ -103,15 +103,15 @@ In your Squid.conf configuration file you would write something like this,
 [br]http_access allow friends
 [br]http_access deny all[/blk][br]
 </acl_ident_text>
-<acl_ident_title>Provides string matching on user name</acl_ident_title>
-<acl_maxconn>Maximum Connections</acl_maxconn>
+<acl_ident_title>Fornece cadeia de caracteres que corresponda com o nome de utilizador.</acl_ident_title>
+<acl_maxconn>M&aacute;ximo de conex&otilde;es</acl_maxconn>
 <acl_maxconn_text>Matching is true when the defined number of HTTP connections has been established for a client
 [br]
 [b]Example:[/b]
 [br][blk]5[/blk][br]
 will allow a maximum of 5 http connection to access
 </acl_maxconn_text>
-<acl_maxconn_title>Matches when the client's IP address has more than the specified number of HTTP connections established</acl_maxconn_title>
+<acl_maxconn_title>Quando um endere&ccedil;o IP cliente tem mais de um n&uacute;mero especifico de liga&ccedil;&otilde;es HTTP estabelecidas</acl_maxconn_title>
 <acl_max_user_ip>N&ordm; Max de IP&acute;s Utilizador</acl_max_user_ip>
 <acl_max_user_ip_text>If -s is specified then the limit is strict, denying browsing from any further IP addresses until the ttl has expired.[br]
 Without -s Squid will just annoy the user by "randomly" denying requests.[br]
@@ -130,8 +130,8 @@ http_access deny maxuser[br][/blk][br]
 
 The same user can log to a maximum of 2 times from two different machines and when he tries to login for the third time from a third system, he will not be allowed to browse
 </acl_max_user_ip_text>
-<acl_max_user_ip_title>This will be matched when the same user attempts to log in for more than the specified number of times from different ip addresses</acl_max_user_ip_title>
-<acl_method>Request Method</acl_method>
+<acl_max_user_ip_title>Ser&aacute; usado/combinado quando o mesmo utilizador tenta fazer logon mais do que um n&uacute;mero determinado de vezes a partir de diferentes endere&ccedil;os IP</acl_max_user_ip_title>
+<acl_method>Modo de solicita&ccedil;&atilde;o</acl_method>
 <acl_method_text>Matching done based on the HTTP request method:
 [UL]
 [li]GET[/li]
@@ -144,26 +144,26 @@ The same user can log to a maximum of 2 times from two different machines and wh
 
 </acl_method_text>
 <acl_method_title>This ACL type matches the HTTP method in the request headers. This includes the methods GET,PUT, etc</acl_method_title>
-<acl_myip>Proxy IP Address</acl_myip>
+<acl_myip>Endere&ccedil;o IP do Proxy</acl_myip>
 <acl_myip_text>Using this acl type, we can specify the local IP address on which the clients connections exists.[br]
 This allows ACLs to be constructed that only match one physical network, if multiple interfaces are present on the proxy, among other things
 [br]
 [b]Example:[/b]
 [br][blk]172.16.1.53/32[/blk][br]
 </acl_myip_text>
-<acl_myip_title>The local IP address on which the client connection exists.</acl_myip_title>
-<acl_myport>Proxy Port</acl_myport>
+<acl_myip_title>O endere&ccedil;o IP local em que existe a conex&atilde;o do cliente.</acl_myip_title>
+<acl_myport>Porta do Proxy</acl_myport>
 <acl_myport_text>Matching done on local interface port
 [br]
 [b]Example:[/b]
 [br][blk]3128[/blk][br]
 </acl_myport_text>
 <acl_myport_title>This provides match against local socket TCP port</acl_myport_title>
-<acl_name>Give the name of this acl</acl_name>
-<acl_port>Remote port</acl_port>
+<acl_name>D&aacute; nome a esta Regra</acl_name>
+<acl_port>Porta remota</acl_port>
 <acl_port_text>Matching done on the destination port like 80, 8080, 9000...</acl_port_text>
 <acl_port_title>This ACL matches on the destination port for the request</acl_port_title>
-<acl_proto>Remote Protocol</acl_proto>
+<acl_proto>Protocolo Remoto</acl_proto>
 <acl_proto_text>values was [ul]
 [li]http[/li]
 [li]ftp[/li]
@@ -172,7 +172,7 @@ This allows ACLs to be constructed that only match one physical network, if mult
 [li]cache_object[/li][/ul]
 </acl_proto_text>
 <acl_proto_title>This ACL matches on the protocol of the request</acl_proto_title>
-<acl_proxy_auth>External Auth</acl_proxy_auth>
+<acl_proxy_auth>Autentica&ccedil;&atilde;o Externa</acl_proxy_auth>
 <acl_proxy_auth_regex>External Auth Regexp</acl_proxy_auth_regex>
 <acl_proxy_auth_regex_text>Matching based on regular expressions using external authentication process[br]
 [i]Note that authentication cannot work on a [b]transparent proxy or HTTP accelerator[/b][/i].[br]
@@ -186,7 +186,7 @@ When a Proxy-Authentication header is sent but it is not needed during ACL check
  [b]-i mesh[/b][br]
 [i]The above configuration will allow *mesh* if it give valid username and password.[/i]
 </acl_proxy_auth_regex_text>
-<acl_proxy_auth_regex_title>Calls an external authenticator process, but allows regex pattern or case insensitive matches</acl_proxy_auth_regex_title>
+<acl_proxy_auth_regex_title>Chama um processo de autentica&ccedil;&atilde;o externo, mas permite regex padr&atilde;o ou pesquisas insens&iacute;veis.</acl_proxy_auth_regex_title>
 <acl_proxy_auth_text>Some of the authenticator helper programs available for Squid are PAM, NCSA, UNIX passwd, SMB, NTLM, etc.[br]
 [i]Note that authentication cannot work on a [b]transparent proxy or HTTP accelerator[/b][/i].[br]
 The HTTP protocol does not provide for two authentication stages (one local and one on remote Web sites).

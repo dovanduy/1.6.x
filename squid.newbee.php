@@ -1442,7 +1442,7 @@ function transparent_HTTP(){
 	$field=Paragraphe_switch_img('{transparent_mode}','{transparent_mode_text}',
 			'squid_transparent',$squid->hasProxyTransparent,null,450);
 	
-	$field=Paragraphe_switch_img('{SquidTransparentMixed}','{SquidTransparentMixed_text}',
+	$field1=Paragraphe_switch_img('{SquidTransparentMixed}','{SquidTransparentMixed_text}',
 			'SquidTransparentMixed',$SquidTransparentMixed,null,450);	
 	
 	

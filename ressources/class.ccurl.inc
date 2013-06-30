@@ -211,6 +211,65 @@ class ccurl{
 		
 		return true;
 	}
+	
+	
+	public function getHeaders(){
+		
+		$ch = curl_init();
+		if($this->interface<>null){
+			$this->OutPutlogs("CURLOPT_INTERFACE $this->interface");
+			curl_setopt($ch, CURLOPT_INTERFACE,$this->interface);}
+			else{
+		
+				if($this->WgetBindIpAddress<>null){
+					$this->OutPutlogs("CURLOPT_INTERFACE $this->WgetBindIpAddress");
+					curl_setopt($ch, CURLOPT_INTERFACE,$this->WgetBindIpAddress);
+				}
+			}		
+		
+			if($this->UserAgent<>null){curl_setopt($ch, CURLOPT_USERAGENT, $this->UserAgent);}else{curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0");}
+			if($this->FollowLocation){curl_setopt($ch, CURLOPT_FOLLOWLOCATION,true);}
+				
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array("Pragma: no-cache", "Cache-Control: no-cache",'Expect:'));
+		curl_setopt($ch, CURLOPT_URL, $this->uri);
+		curl_setopt($ch, CURLOPT_FILETIME, true);
+		curl_setopt($ch, CURLOPT_NOBODY, true);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		
+		if($this->authname<>null){curl_setopt($ch, CURLOPT_USERPWD, "$this->authname:$this->authpass");}
+		curl_setopt ($ch, CURLOPT_TIMEOUT, $this->Timeout);
+		if($this->ArticaProxyServerEnabled=="yes"){
+			$this->OutPutlogs("Using proxy $this->ArticaProxyServerName:$this->ArticaProxyServerPort");
+			curl_setopt($ch,CURLOPT_HTTPPROXYTUNNEL,FALSE);
+			curl_setopt ($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+			curl_setopt ($ch, CURLOPT_PROXY,"$this->ArticaProxyServerName:$this->ArticaProxyServerPort");
+			if($this->ArticaProxyServerUsername<>null){
+				$this->OutPutlogs("Using proxy with authentication [$this->ArticaProxyServerUsername:$this->ArticaProxyServerUserPassword]");
+				curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_ANY);
+				curl_setopt($ch, CURLOPT_PROXYUSERPWD, $this->ArticaProxyServerUsername.':'.$this->ArticaProxyServerUserPassword);
+			}
+		}else{
+			$this->OutPutlogs("Not using proxy...");
+			$this->ArticaProxyServerEnabled="no";
+			$this->ArticaProxyServerName=null;
+			$this->ArticaProxyServerPort=null;
+			curl_setopt($ch, CURLOPT_NOPROXY,$this->CURLOPT_NOPROXY);
+		}
+		
+		
+		$this->header = curl_exec($ch);
+		$Infos= curl_getinfo($ch);
+		curl_close($ch);
+		return $Infos;
+	}
+	
+	public function getFiletime()
+	{
+		return $this->info['filetime'];
+	}
+	
 
 	
 	function get(){

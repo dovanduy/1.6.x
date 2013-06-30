@@ -57,6 +57,7 @@ function popup(){
 	$tpl=new templates();
 	$t=$_GET["t"];
 	$sock=new sockets();
+	$_GET["category"]=urlencode($_GET["category"]);
 	$sock->getFrameWork("squid.php?ufdbguard-compile-database={$_GET["category"]}&MyCURLTIMEOUT=120");	
 	$tt=time();
 	$tpl=new templates();

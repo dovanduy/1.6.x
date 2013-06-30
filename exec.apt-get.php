@@ -452,6 +452,8 @@ function check_nginx(){
 
 	
 	$unix=new unix();
+	$nginx=$unix->find_program("nginx");
+	if(is_file($nginx)){return;}
 	if(is_file("/etc/lsb-release")){if($GLOBALS["VERBOSE"]){ "CheckSourcesList: Ubuntu system, aborting\n";}}
 	if(!is_file("/etc/debian_version")){return;}
 	$ver=trim(@file_get_contents("/etc/debian_version"));

@@ -67,6 +67,7 @@ function postfix_reconfigures_multiples_instances(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
+	
 	shell_exec(trim("$nohup $php /usr/share/artica-postfix/exec.virtuals-ip.php --postfix-instances >/dev/null 2>&1 &"));
 
 }
@@ -109,6 +110,7 @@ function ifup_ifdown(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
+	@unlink("/etc/artica-postfix/MEM_INTERFACES");
 	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.virtuals-ip.php --ifupifdown $eth >/dev/null 2>&1 &");
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);		
@@ -184,6 +186,7 @@ function reconstruct_interface(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
+	@unlink("/etc/artica-postfix/MEM_INTERFACES");
 	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.virtuals-ip.php --reconstruct-interface $eth --sleep >/dev/null 2>&1 &");
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
@@ -192,6 +195,7 @@ function reconstruct_all_interfaces(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
+	@unlink("/etc/artica-postfix/MEM_INTERFACES");
 	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.virtuals-ip.php --sleep >/dev/null 2>&1 &");
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	

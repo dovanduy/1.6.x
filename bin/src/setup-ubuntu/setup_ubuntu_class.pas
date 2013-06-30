@@ -1453,6 +1453,7 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
       l.Add('screen');
       l.add('suricata');
       l.add('ettercap-common');
+      l.add('libxslt-dev');
 
 
 

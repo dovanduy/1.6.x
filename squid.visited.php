@@ -426,9 +426,17 @@ function free_catgorized(){
 		<td>$field_category</td>
 		<td width=1%>$refresh</td>
 	</tr>
-		<td class=legend>{force}:</td>
-		<td>". Field_checkbox("ForceCat$t", 1)."</td>
-		<td width=1%>". help_icon("{free_cat_force_explain}")."</td>
+		<td colspan=3>
+		<table>
+			<tr>
+				<td class=legend>{force}:</td>
+				<td>". Field_checkbox("ForceCat$t", 1)."</td>
+				<td width=1%>". help_icon("{free_cat_force_explain}")."</td>
+				<td class=legend>{no_extension_check}:</td>
+				<td>". Field_checkbox("ForceExt$t", 1)."</td>
+				<td width=1%>". help_icon("{free_cat_no_extension_check_explain}")."</td>
+			</tr>
+		</table>
 	</tr>
 	<tr>
 	<td colspan=3 align='center'>
@@ -470,6 +478,10 @@ function free_catgorized(){
 		XHR.appendData('category',cat);
 		XHR.appendData('textToParseCats',document.getElementById('textToParseCats$t').value);
 		if(document.getElementById('ForceCat$t').checked){XHR.appendData('ForceCat',1);}else{XHR.appendData('ForceCat',0);}
+		if(document.getElementById('ForceExt$t').checked){XHR.appendData('ForceExt',1);}else{XHR.appendData('ForceExt',0);}
+		
+		
+		
 		document.getElementById('textToParseCats$t').value='Processing....\\n\\n'+document.getElementById('textToParseCats$t').value;
 		XHR.sendAndLoad('$page', 'POST',x_FreeCategoryPost$t);	
 	}	
@@ -624,6 +636,9 @@ function free_catgorized_save(){
 	$_POST["textToParseCats"]=str_replace("https:", "http:", $_POST["textToParseCats"]);
 	$f=explode("\n",$_POST["textToParseCats"] );
 	$ForceCat=$_POST["ForceCat"];
+	$ForceExt=$_POST["ForceExt"];
+	
+	if(!is_numeric($ForceExt)){$ForceExt=0;}
 	if(!is_numeric($ForceCat)){$ForceCat=0;}
 	while (list ($num, $www) = each ($f) ){
 		writelogs("Scanning $www",__FUNCTION__,__FILE__,__LINE__);
@@ -654,16 +669,17 @@ function free_catgorized_save(){
 		if(preg_match("#\.php$#", $www,$re)){echo "$www php script...\n";continue;}
 		$www=str_replace("/", "", $www);
 		$www=trim($www);
-		if(!preg_match("#\.([a-z0-9]+)$#",$www,$re)){continue;}
-		if(strlen($re[1])<2){
-			if(!is_numeric($re[1])){
-				echo "$www bad extension `.{$re[1]}` \n";
-				continue;
+		if($ForceExt==0){
+			if(!preg_match("#\.([a-z0-9]+)$#",$www,$re)){echo "$www No extension !!?? \n";continue;}
+			if(strlen($re[1])<2){
+				if(!is_numeric($re[1])){
+					echo "$www bad extension `.{$re[1]}` [$ForceExt]\n";
+					continue;
+				}
 			}
 		}
+		
 		$www=str_replace('"', "", $www);
-		
-		
 		writelogs("Success pass $www",__FUNCTION__,__FILE__,__LINE__);
 		$websitesToscan[]=$www;
 	}
@@ -705,9 +721,11 @@ function free_catgorized_save(){
 		if(preg_match("#\.jpg$#i",$www,$re)){continue;}
 		if(preg_match("#\.php$#i",$www,$re)){continue;}
 		if(preg_match("#\.js$#i",$www,$re)){continue;}
-		if(!preg_match("#\.[a-z0-9]+$#",$www,$re)){;
-			echo "$www bad extension `$www` \n";
-			continue;
+		if($ForceExt==0){
+			if(!preg_match("#\.[a-z0-9]+$#",$www,$re)){;
+				echo "$www bad extension `$www` \n";
+				continue;
+			}
 		}
 		if(strpos(" ", trim($www))>0){continue;}
 		$sites[$www]=$www;

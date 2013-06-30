@@ -107,6 +107,7 @@ function register(){
 	$WizardSavedSettings["UUID"]=$uuid;
 	$WizardSavedSettings["CPUS_NUMBER"]=XZCPU_NUMBER();
 	$WizardSavedSettings["MEMORY"]=$unix->SYSTEM_GET_MEMORY_MB()."MB";
+	$WizardSavedSettings["LINUX_DISTRI"]=$unix->LINUX_DISTRIBUTION();
 	
 	if(is_file("/etc/artica-postfix/dmidecode.cache.url")){
 		$final_array=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/dmidecode.cache.url")));

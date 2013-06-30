@@ -41,7 +41,11 @@ if(!$GLOBALS["FORCE"]){
 @file_put_contents($pidfile, getmypid());
 
 $users=new settings_inc();
-if(!$users->dnsmasq_installed){writelogs("DNSMasq is not installed, aborting","MAIN",__FILE__,__LINE__);die();}
+if(!$users->dnsmasq_installed){
+	echo "Starting......: DnsMASQ is not installed, aborting\n";
+	writelogs("DNSMasq is not installed, aborting","MAIN",__FILE__,__LINE__);
+	die();
+}
 
 $sock=new sockets();
 $EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
@@ -110,7 +114,7 @@ function UseStatsAppliance(){
 	if(is_file($dnsmasqbin)){
 		$pid=$unix->PIDOF($dnsmasqbin);
 		if(is_numeric($pid)){
-			echo "Starting......: dnsmasq reloading PID:`$pid`\n";
+			echo "Starting......: DnsMASQ reloading PID:`$pid`\n";
 			$kill=$unix->find_program("kill");
 			shell_exec("$kill -HUP $pid");
 		}
@@ -122,17 +126,29 @@ function reload_dnsmasq(){
 	$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
 	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
 	if($EnableDNSMASQ==0){
-		echo "Starting......: dnsmasq unable to reload DnsMASQ (not enabled)\n";
+		echo "Starting......: DnsMASQ unable to reload DnsMASQ (not enabled)\n";
 		return ;
 	}
 	$unix=new unix();
 	
-	$dnsmasqbin=$unix->find_program("dnsmasq");
-	if(is_file(!$dnsmasqbin)){echo "Starting......: dnsmasq unable to reload DnsMASQ (not such dsnmasq binary)\n";return;}
-	$pid=$unix->PIDOF($dnsmasqbin);
-	if(!is_numeric($pid)){echo "Starting......: dnsmasq unable to reload DnsMASQ (not running)\n";return;}
+	$EnableChilli=$sock->GET_INFO("EnableChilli");
+	$chilli=$unix->find_program("chilli");
 	
-	echo "Starting......: dnsmasq reloading PID:`$pid`\n";
+	
+	if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+	if(is_file($chilli)){
+		if($EnableChilli==1){
+			echo "Starting......: DnsMASQ HotSpot is enabled, cannot use this instance\n";
+			return;
+		}	
+	}
+	
+	$dnsmasqbin=$unix->find_program("dnsmasq");
+	if(is_file(!$dnsmasqbin)){echo "Starting......: DnsMASQ unable to reload DnsMASQ (not such dsnmasq binary)\n";return;}
+	$pid=$unix->PIDOF($dnsmasqbin);
+	if(!is_numeric($pid)){echo "Starting......: DnsMASQ unable to reload DnsMASQ (not running)\n";return;}
+	
+	echo "Starting......: DnsMASQ reloading PID:`$pid`\n";
 	$kill=$unix->find_program("kill");
 	shell_exec("$kill -HUP $pid");
 }

@@ -46,6 +46,7 @@ $GLOBALS["nohup"]=$unix->find_program("nohup");
 $GLOBALS["sysctl"]=$unix->find_program("sysctl");
 $GLOBALS["CHMOD_BIN"]=$unix->find_program("chmod");
 $GLOBALS["CHOWN_BIN"]=$unix->find_program("chown");
+$GLOBALS["REBOOT_BIN"]=$unix->find_program("reboot");
 $GLOBALS["COUNT-LINES"]=0;
 $GLOBALS["COUNT-LINES-TIME"]=0;
 					
@@ -375,6 +376,28 @@ function Parseline($buffer){
 	if(preg_match("#nss_wins\[[0-9]+\]:#",$buffer)){nss_parser($buffer);return;}
 	if(preg_match("#haproxy\[[0-9]+\]:#",$buffer)){haproxy_parser($buffer);return;}
 	
+	
+	
+	
+	
+	
+	if(preg_match("#coova-chilli.+?net\.c.*?Cannot assign requested address.*?ioctl.*?SIOCSIFFLAGS#",$buffer,$re)){
+		$file="/etc/artica-postfix/croned.1/coova-chilli.SIOCSIFFLAGS";
+		if(IfFileTime($file,5)){
+			events("HotSpot Failed to bin address, disable hotSpot system!");
+			system_admin_events("HotSpot Failed to bin address, disable hotSpot system!", __FUNCTION__, __FILE__, __LINE__, "system");
+			@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableChilli", 0);
+			$cmd="{$GLOBALS["nohup"]} /etc/init.d/artica-ifup start >/dev/null 2>&1 &";
+			shell_exec($cmd);
+			$cmd="{$GLOBALS["nohup"]} /etc/init.d/chilli stop >/dev/null 2>&1 &";
+			shell_exec($cmd);
+			WriteFileCache($file);
+			return;
+		}
+		events("$buffer = > TIMEOUT ... ");
+		return;
+	}
+		
 	
 	if(preg_match("#'apache' total mem amount of ([0-9]+)([a-zA-Z])+\s+matches resource limit#",$buffer,$re)){
 		$file="/etc/artica-postfix/croned.1/apache.matches.resource.limit";
@@ -1236,10 +1259,10 @@ if(preg_match("#kernel:.+?Out of memory:\s+kill\s+process\s+#",$buffer,$re)){
 	if(IfFileTime($file,1)){
 		if($GLOBALS["NOOUTOFMEMORYREBOOT"]<>1){
 			events("Out of memory -> REBOOT !!!");
-			email_events("Out of memory: reboot action performed","Kernel claim \"$buffer\" the server will be rebooted",'system');
+			$uptime=$GLOBALS["CLASS_UNIX"]->uptime();
+			email_events("Out of memory: reboot action performed Uptime:$uptime","Kernel claim \"$buffer\" the server will be rebooted",'system');
 			WriteFileCache($file);
-			shell_exec("/etc/init.d/artica-postfix stop");
-			shell_exec("reboot");
+			shell_exec("{$GLOBALS["REBOOT_BIN"]}");
 			return;	
 		}else{
 			email_events("Out of memory: your system hang !","Kernel claim \"$buffer\" I suggest rebooting the system",'system');
@@ -1247,6 +1270,27 @@ if(preg_match("#kernel:.+?Out of memory:\s+kill\s+process\s+#",$buffer,$re)){
 		}
 	}
 }
+
+
+if(preg_match("#kernel:\s+\[.+?Out of memory\s+\(oom_kill_allocating_task#",$buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/kernel.Out.of.memory";
+	if(!is_numeric($GLOBALS["NOOUTOFMEMORYREBOOT"])){$GLOBALS["NOOUTOFMEMORYREBOOT"]=0;}
+	if(IfFileTime($file,1)){
+		if($GLOBALS["NOOUTOFMEMORYREBOOT"]<>1){
+			events("Out of memory -> REBOOT !!!");
+			$uptime=$GLOBALS["CLASS_UNIX"]->uptime();
+			email_events("Out of memory: reboot action performed uptime:$uptime","Kernel claim \"$buffer\" the server will be rebooted",'system');
+			WriteFileCache($file);
+			
+			shell_exec("{$GLOBALS["REBOOT_BIN"]}");
+			return;	
+		}else{
+			email_events("Out of memory: your system hang !","Kernel claim \"$buffer\" I suggest rebooting the system",'system');
+			WriteFileCache($file);
+		}
+	}
+}
+
 
 if(preg_match("#kernel:.+?ata.+?status:\s+{\s+DRDY#",$buffer,$re)){
 	if($GLOBALS["NODRYREBOOT"]==1){
@@ -1261,8 +1305,8 @@ if(preg_match("#kernel:.+?ata.+?status:\s+{\s+DRDY#",$buffer,$re)){
 		$array["dmsg"]=$results;
 		@mkdir("/etc/artica-postfix/reboot",644,true);
 		@file_put_contents("/etc/artica-postfix/reboot/".time(),serialize($array));
-		email_events("Hard Disk problem: reboot action performed","Kernel claim \"$buffer\" the server will be rebooted\n".@implode("\n",$results),'system');
-		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/sbin/reboot");
+		email_events("Hard Disk issue: reboot action performed","Kernel claim \"$buffer\" the server will be rebooted\n".@implode("\n",$results),'system');
+		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET($GLOBALS["REBOOT_BIN"]);
 		return;
 	}
 }
@@ -1340,7 +1384,6 @@ if(preg_match("#'(.+?)'\s+total mem amount of\s+([0-9]+).+?matches resource limi
 		if(IfFileTime($file,5)){
 					events("{$re[1]} was restarted");
 					$processname=$re[1];if(preg_match("#mysqlmulti([0-9]+)#", $processname,$ri)){$tt=unserialize(@file_get_contents("/etc/artica-postfix/mysql_multi_names.cache"));$instancenem=$tt[$ri[1]];$re[1]="Mysql Instance {$ri[1]} ($instancenem)";}
-					email_events("{$re[1]}: stopped, try to restart","Monitor claim \"$buffer\"",'system');
 					WriteFileCache($file);
 					return;
 				}else{
@@ -1369,7 +1412,7 @@ if(preg_match("#monit\[.+?'(.+?)'\s+process is not running#",$buffer,$re)){
 	if(IfFileTime($file,5)){
 				events("{$re[1]} was stopped");
 				$processname=$re[1];if(preg_match("#mysqlmulti([0-9]+)#", $processname,$ri)){$tt=unserialize(@file_get_contents("/etc/artica-postfix/mysql_multi_names.cache"));$instancenem=$tt[$ri[1]];$re[1]="Mysql Instance {$ri[1]} ($instancenem)";}
-				email_events("{$re[1]}: stopped","Monitor claim \"$buffer\"",'system');
+				
 				WriteFileCache($file);
 				return;
 			}else{
@@ -1444,7 +1487,6 @@ if(preg_match("#monit.+?'(.+)'\s+start:#",$buffer,$re)){
 	$file="/etc/artica-postfix/croned.1/monit.start.{$re[1]}";
 	if(IfFileTime($file,5)){
 				events("{$re[1]} start");
-				email_events("{$re[1]} starting","Monitor currently starting service {$re[1]}",'system');
 				WriteFileCache($file);
 				return;
 			}else{
@@ -1457,7 +1499,6 @@ if(preg_match("#monit\[.+?:\s+'(.+?)'\s+process is running with pid\s+([0-9]+)#"
 	$file="/etc/artica-postfix/croned.1/monit.run.{$re[1]}";
 	if(IfFileTime($file,5)){
 				events("{$re[1]} running");
-				email_events("{$re[1]} now running pid {$re[2]}","Monitor report $buffer",'system');
 				WriteFileCache($file);
 				return;
 			}else{

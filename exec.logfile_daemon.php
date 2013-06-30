@@ -30,6 +30,10 @@ while(!feof($pipe)){
 		$prefix=date("M")." ".date("d")." ".date("H:i:s")." localhost (squid-1): ";
 		$subdir=date("Y-m-d-h");
 		if(strpos($buffer, "TCP_DENIED:")>0){continue;}
+		if(strpos($buffer, "RELEASE -1")>0){continue;}
+		if(strpos($buffer, "RELEASE 00")>0){continue;}
+		if(strpos($buffer, "SWAPOUT 00")>0){continue;}
+		
 		$TargetFile=GetTargetFile($subdir,md5($buffer));
 		@file_put_contents($TargetFile, $prefix.$buffer);
 		if(!is_file($TargetFile)){events(dirname($TargetFile)." permission denied");}

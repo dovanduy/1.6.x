@@ -995,8 +995,10 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		}
 		$COUNT_ROWS=$q->COUNT_ROWS($category_table);
 		if($COUNT_ROWS==0){
-			echo "Starting......: ufdbGuard WARNING $categorynamePerso (PERSO) No entry in table $category_table\n";
-			return;			
+			if(!is_file($supposed_path)){
+				echo "Starting......: ufdbGuard WARNING $categorynamePerso (PERSO) No entry in table $category_table\n";
+				return;		
+			}	
 		}
 		
 		echo "Starting......: ufdbGuard Adding $categorynamePerso (PERSO) ($COUNT_ROWS entries) $extLOG\n";
@@ -1009,6 +1011,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		if($this->Notrefreshdomainlist==1){
 			if(!is_file($supposed_path)){
 				echo "Starting......: ufdbGuard $categorynamePerso $supposed_path (PERSO) no such file\n";
+				$GLOBALS["CATEGORIES_SKIPPED"][$OrginalCategoryNamedKey]=true;
 				return;
 			}
 		}
@@ -1028,6 +1031,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		}
 		$array[]="}\n";
 		$GLOBALS["PERSONALCATZ"][$OrginalCategoryNamedKey]=$categoryname;
+		$GLOBALS["CATEGORIES_ADDED"][$OrginalCategoryNamedKey]=$OrginalCategoryNamedKey;
 		return @implode("\n", $array);
 	}
 	
@@ -1571,7 +1575,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$allows=array();
 		$banns=array();
 		if(!isset($GLOBALS["EnableGoogleSafeSearch"])){$sock=new sockets();$GLOBALS["EnableGoogleSafeSearch"]=$sock->GET_INFO("EnableGoogleSafeSearch");if(!is_numeric($GLOBALS["EnableGoogleSafeSearch"])){$GLOBALS["EnableGoogleSafeSearch"]=1;}}
-		$sql="SELECT GoogleSafeSearch,groupmode,endofrule FROM webfilter_rules WHERE ID='$RULE_ID'";
+		$sql="SELECT GoogleSafeSearch,groupmode,endofrule,UseSecurity FROM webfilter_rules WHERE ID='$RULE_ID'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if($ligne["groupmode"]==0){
 			echo "Starting......: ufdbGuard rule:$RULE_ID deny all users...\n";
@@ -1584,6 +1588,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$UseSecurity=$ligne["UseSecurity"];
 		if(!is_numeric($UseSecurity)){$UseSecurity=0;}
 			
+		if($GLOBALS["VERBOSE"]){echo "\n\nStarting......:  ***** CHECK RULE $RULE_ID *****\n";}
 		
 		$sql="SELECT * FROM webfilter_blks WHERE webfilter_id=$RULE_ID";
 		$q=new mysql_squid_builder();
@@ -1594,15 +1599,17 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				$bannedExtDomains=null;
 				$bannedfiles=null;
 				$bannedRegexP=null;
-				
-				if(isset($ARRAY["{$blks["modeblk"]}$RULE_ID{$blks["category"]}"])){continue;}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ufdbGuard ruleid:$RULE_ID category `{$blks["category"]}\n";}
+				if(isset($ARRAY["{$blks["modeblk"]}$RULE_ID{$blks["category"]}"])){
+					if($GLOBALS["VERBOSE"]){echo "Starting......: {$blks["category"]} Alreay set, SKIP\n";}
+					continue;}
 				$category=$q->CategoryShellEscape($blks["category"]);
 				if($category=="agressive"){$category="agressivecat";}
 				if($category=="english_malware"){echo "Starting......: ufdbGuard ruleid:$RULE_ID category `$category` skipped\n";continue;}
 				
 				
 				if(!isset($GLOBALS["CATEGORIES_ADDED"][$category])){
-					if($GLOBALS["VERBOSE"]){echo "Starting......: ufdbGuard ruleid:$RULE_ID category `$category` ({$blks["category"]}) is skipped\n";}
+					if($GLOBALS["VERBOSE"]){echo "Starting......: ufdbGuard ruleid:$RULE_ID category `$category` ({$blks["category"]}) is skipped Not added in GLOBALS[\"CATEGORIES_ADDED\"][$category]\n";}
 					continue;
 				}
 				
@@ -1745,9 +1752,30 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$main_path="/var/lib/squidguard/$category";
 		$tablename="category_".$q->category_transform_name($category);
 		$tablename=str_replace("category_category", "category", $tablename);
+		$tablename_uris="categoryuris_".$q->category_transform_name($categorySource);
+		$tablename_uris=str_replace("categoryuris_categoryuris", "categoryuris_", $tablename_uris);
 		
-		if($GLOBALS["OUPUT"]){echo "Starting......: ufdbGuard check table `$tablename`\n";}
+		if($GLOBALS["OUPUT"]){echo "Starting......: ufdbGuard check Domains table `$tablename`\n";}
+		if($GLOBALS["OUPUT"]){echo "Starting......: ufdbGuard check Uris table `$tablename_uris`\n";}
 		ufdbguard_admin_events("$categorySource table `$tablename`",__FUNCTION__,__FILE__,__LINE__,"$categorySource");
+		
+		
+		if(!$q->TABLE_EXISTS($tablename_uris)){ufdbguard_admin_events("table `$tablename_uris` no such table\n");}
+		if($q->TABLE_EXISTS($tablename_uris)){
+			$sql="SELECT pattern FROM $tablename_uris WHERE enabled=1 ORDER BY pattern";
+			$results = $q->QUERY_SQL($sql);
+			while ($ligne = mysql_fetch_assoc($results)) {
+				$URIS[]=$ligne["pattern"];
+			}
+			
+			if(count($URIS)>0){
+				if($GLOBALS["OUPUT"]){echo "Starting......: ufdbGuard $categorySource ". count($URIS)." URL(s) Items\n";}
+				@file_put_contents("$main_path/urls", @implode("\n", $URIS));
+				unset($URIS);
+			}
+			
+		}
+		
 		
 		if(!$q->TABLE_EXISTS($tablename)){
 			ufdbguard_admin_events("table `$tablename` no such table, create a fake",__FUNCTION__,__FILE__,__LINE__,"$categorySource");
@@ -1919,6 +1947,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$EXEC_NICE=$unix->EXEC_NICE();
 		if($GLOBALS["OUPUT"]){echo "Starting......: $ufdbGenTable $directory/domains\n";}
 		$cmd="$EXEC_NICE$ufdbGenTable -n -q -W -t $category_compile$d$u";
+		if($GLOBALS["OUPUT"]){echo "Starting......: `$cmd`\n";}
 		shell_exec($cmd);
 	}
 	

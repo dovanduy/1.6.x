@@ -132,8 +132,8 @@
         <Filename Value="clamav.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="clamav"/>
-        <CursorPos X="74" Y="161"/>
-        <TopLine Value="113"/>
+        <CursorPos X="28" Y="424"/>
+        <TopLine Value="397"/>
         <EditorIndex Value="32"/>
         <UsageCount Value="203"/>
         <Loaded Value="True"/>
@@ -1240,127 +1240,123 @@
         <UsageCount Value="203"/>
       </Unit141>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="29" HistoryIndex="28">
       <Position1>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="590" Column="25" TopLine="551"/>
+        <Caret Line="594" Column="18" TopLine="551"/>
       </Position1>
       <Position2>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="594" Column="18" TopLine="551"/>
+        <Caret Line="679" Column="18" TopLine="652"/>
       </Position2>
       <Position3>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="679" Column="18" TopLine="652"/>
+        <Caret Line="691" Column="24" TopLine="652"/>
       </Position3>
       <Position4>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="691" Column="24" TopLine="652"/>
+        <Caret Line="695" Column="16" TopLine="652"/>
       </Position4>
       <Position5>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="695" Column="16" TopLine="652"/>
+        <Caret Line="703" Column="24" TopLine="652"/>
       </Position5>
       <Position6>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="703" Column="24" TopLine="652"/>
+        <Caret Line="722" Column="18" TopLine="695"/>
       </Position6>
       <Position7>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="722" Column="18" TopLine="695"/>
+        <Caret Line="74" Column="27" TopLine="29"/>
       </Position7>
       <Position8>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="74" Column="27" TopLine="29"/>
+        <Caret Line="553" Column="16" TopLine="531"/>
       </Position8>
       <Position9>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="553" Column="16" TopLine="531"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position9>
       <Position10>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="45" Column="17" TopLine="1"/>
       </Position10>
       <Position11>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="45" Column="17" TopLine="1"/>
+        <Caret Line="574" Column="18" TopLine="549"/>
       </Position11>
       <Position12>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="574" Column="18" TopLine="549"/>
+        <Caret Line="576" Column="60" TopLine="551"/>
       </Position12>
       <Position13>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="576" Column="60" TopLine="551"/>
+        <Caret Line="578" Column="54" TopLine="551"/>
       </Position13>
       <Position14>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="578" Column="54" TopLine="551"/>
+        <Caret Line="600" Column="107" TopLine="551"/>
       </Position14>
       <Position15>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="600" Column="107" TopLine="551"/>
+        <Caret Line="1228" Column="39" TopLine="1201"/>
       </Position15>
       <Position16>
         <Filename Value="dansguardian.pas"/>
-        <Caret Line="1228" Column="39" TopLine="1201"/>
+        <Caret Line="1237" Column="36" TopLine="1201"/>
       </Position16>
       <Position17>
-        <Filename Value="dansguardian.pas"/>
-        <Caret Line="1237" Column="36" TopLine="1201"/>
+        <Filename Value="global_conf.pas"/>
+        <Caret Line="3200" Column="45" TopLine="3194"/>
       </Position17>
       <Position18>
         <Filename Value="global_conf.pas"/>
-        <Caret Line="3200" Column="45" TopLine="3194"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position18>
       <Position19>
         <Filename Value="global_conf.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="29" Column="4" TopLine="1"/>
       </Position19>
       <Position20>
-        <Filename Value="global_conf.pas"/>
-        <Caret Line="29" Column="4" TopLine="1"/>
+        <Filename Value="clamav.pas"/>
+        <Caret Line="18" Column="55" TopLine="1"/>
       </Position20>
       <Position21>
         <Filename Value="clamav.pas"/>
-        <Caret Line="18" Column="55" TopLine="1"/>
+        <Caret Line="33" Column="24" TopLine="1"/>
       </Position21>
       <Position22>
         <Filename Value="clamav.pas"/>
-        <Caret Line="33" Column="24" TopLine="1"/>
+        <Caret Line="124" Column="104" TopLine="111"/>
       </Position22>
       <Position23>
         <Filename Value="clamav.pas"/>
-        <Caret Line="124" Column="104" TopLine="111"/>
+        <Caret Line="137" Column="29" TopLine="130"/>
       </Position23>
       <Position24>
         <Filename Value="clamav.pas"/>
-        <Caret Line="130" Column="29" TopLine="209"/>
+        <Caret Line="145" Column="29" TopLine="130"/>
       </Position24>
       <Position25>
         <Filename Value="clamav.pas"/>
-        <Caret Line="137" Column="29" TopLine="130"/>
+        <Caret Line="156" Column="52" TopLine="130"/>
       </Position25>
       <Position26>
         <Filename Value="clamav.pas"/>
-        <Caret Line="145" Column="29" TopLine="130"/>
+        <Caret Line="162" Column="28" TopLine="130"/>
       </Position26>
       <Position27>
         <Filename Value="clamav.pas"/>
-        <Caret Line="156" Column="52" TopLine="130"/>
+        <Caret Line="164" Column="42" TopLine="130"/>
       </Position27>
       <Position28>
         <Filename Value="clamav.pas"/>
-        <Caret Line="162" Column="28" TopLine="130"/>
+        <Caret Line="165" Column="28" TopLine="130"/>
       </Position28>
       <Position29>
         <Filename Value="clamav.pas"/>
-        <Caret Line="164" Column="42" TopLine="130"/>
+        <Caret Line="161" Column="74" TopLine="113"/>
       </Position29>
-      <Position30>
-        <Filename Value="clamav.pas"/>
-        <Caret Line="165" Column="28" TopLine="130"/>
-      </Position30>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>

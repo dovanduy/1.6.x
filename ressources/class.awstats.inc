@@ -6,8 +6,10 @@
 	
 	
 	class awstats{
-		var $website;
-		
+		private $website=null;
+		private $logfilepath=null;
+		private $LogType=null;
+		private $LogFormat=null;
 		function awstats($website){
 			$this->website=$website;
 		}
@@ -51,7 +53,18 @@
 			
 		}
 		
+		public function set_LogFile($logfilepath=null){
+			$this->logfilepath=$logfilepath;
+			
+		}
+		public function set_LogType($LogType=null){
+			$this->LogType=$LogType;
+				
+		}		
+		public function set_LogFormat($LogFormat=null){
+			$this->LogFormat=$LogFormat;
 		
+		}		
 		
 		public function buildconf(){
 			
@@ -62,10 +75,27 @@
 			$DirIcons=$this->GET("DirIcons");
 			if($DirIcons==null){$DirIcons="/img/awstats/icons";};
 			$LogSeparator=$this->GET("LogSeparator");
+			
+			
+			
+			$LogFile=$this->GET("LogFile");
+			$LogType=$this->GET("LogType");
+			$LogFormat=$this->GET("LogFormat");
+			
+			if($LogFile==null){$LogFile=$this->logfilepath;}
+			if($LogType==null){$LogType=$this->LogType;}
+			if($LogFormat==null){$LogFormat=$this->LogFormat;}
 			if($LogSeparator==null){$LogSeparator=" ";}
-			$f[]="LogFile=\"{$this->GET("LogFile")}\"";
-			$f[]="LogType={$this->GET("LogType")}";
-			$f[]="LogFormat={$this->GET("LogFormat")}";
+			
+			
+			if(class_exists("unix")){
+				$unix=new unix();
+				$LOCATE_AWSTATS_PLUGINS_DIR=$unix->LOCATE_AWSTATS_PLUGINS_DIR();
+			}
+			
+			$f[]="LogFile=\"$LogFile\"";
+			$f[]="LogType=$LogType";
+			$f[]="LogFormat=$LogFormat";
 			$f[]="LogSeparator=$LogSeparator";
 			$f[]="SiteDomain=\"$SiteDomain\"";
 			$f[]="DNSLookup=$DNSLookup";
@@ -631,7 +661,10 @@
 			$f[]="# legend names and country names.";
 			$f[]="# Warning: This plugin is not compatible with option BuildReportFormat=xhtml. ";
 			$f[]="#";
-			$f[]="LoadPlugin=\"graphgooglechartapi\"";
+			
+			if(is_file("$LOCATE_AWSTATS_PLUGINS_DIR/graphgooglechartapi.pm")){
+				$f[]="LoadPlugin=\"graphgooglechartapi\"";
+			}
 			$f[]="";
 			$f[]="# PLUGIN: GeoIPfree";
 			$f[]="# REQUIRED MODULES: Geo::IPfree version 0.2+ (from Graciliano M.P.)";

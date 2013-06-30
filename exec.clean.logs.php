@@ -50,6 +50,7 @@ if($argv[1]=='--rotate'){CleanRotatedFiles();die();}
 if($argv[1]=='--squid'){squidLogs();clean_squid_users_size();die();}
 if($argv[1]=='--artica-logs'){artica_logs();die();}
 if($argv[1]=='--squidLogs'){squidLogs();die();}
+if($argv[1]=='--nginx'){nginx();die();}
 
 
 
@@ -110,12 +111,11 @@ function CleanCacheStores($aspid=false){
 			if($GLOBALS["VERBOSE"]){echo "Checking Directory $directory is used by squid...\n";}
 			continue;}
 		$dirname=basename($directory);
-		if($GLOBALS["VERBOSE"]){echo "Checking Directory $dirname\n";}
+		if($GLOBALS["VERBOSE"]){echo "Checking Directory [$directory] => $dirname\n";}
 		if(preg_match("#^squid.*#", $dirname)){
-			if($GLOBALS["VERBOSE"]){echo "Found dir `$dirname`\n";}
-			$unix->send_email_events("Old squid cache directory $dirname will be deleted", "", "logs_cleaning");
+			if($GLOBALS["VERBOSE"]){echo "Removing dir `$dirname`\n";}
 			system_admin_events("Old squid cache directory $dirname will be deleted", __FUNCTION__, __FILE__, __LINE__, "clean");
-			squid_admin_notifs("Old squid cache directory $dirname will be deleted", __FUNCTION__, __FILE__, __LINE__, "clean");
+			squid_admin_notifs("Old squid cache directory $dirname will be deleted\nRemoving: `$directory`", __FUNCTION__, __FILE__, __LINE__, "clean");
 			shell_exec("$rm -rf $directory >/dev/null 2>&1");
 		}
 	}

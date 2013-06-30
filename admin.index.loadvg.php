@@ -68,6 +68,11 @@ function MySqlSyslog(){
 }
 
 function injectSquid(){
+	$sock=new sockets();
+	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	if($SQUIDEnable==0){return;}
+	
 	$cacheFile="/usr/share/artica-postfix/ressources/web/cache1/injectSquid.".basename(__FILE__);
 	if($GLOBALS["AS_ROOT"]){
 		$unix=new unix();

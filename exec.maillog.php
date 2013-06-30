@@ -780,6 +780,7 @@ if(preg_match("#fatal: parameter inet_interfaces: no local interface found for (
 	if($timefile>5){
 		email_events("Postfix: Interface {$re[1]} is not available",
 		"Postfix claim \n$buffer\nArtica will try to restore TCP/IP interfaces.","postfix");
+		@unlink("/etc/artica-postfix/MEM_INTERFACES");
 		shell_exec_maillog(trim("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.virtuals-ip.php >/dev/null 2>&1 &"));
 		@unlink($file);
 		@file_put_contents($file,"#");
@@ -1267,6 +1268,14 @@ if(preg_match("#postfix\/smtp.+?connect to\s+(.+?)\[(.+?)\]:([0-9]+):\s+Connecti
 
 
 if(preg_match("#NOQUEUE: reject: RCPT from.+?\[(.+?)\]:.+?Relay access denied;\s+from=<(.+?)>\s+to=<(.+?)>#",$buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/postfix.relay.access.denied";
+	if(file_time_min($file)>30){
+		$GLOBALS["CLASS_UNIX"]->send_email_events("Postfix Relay access denied", "Artica will recompile Postfix in case of bad settings", "postfix");
+		shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.maincf.php --urgency >/dev/null 2>&1 &");
+		@unlink($file);
+		@file_put_contents($file, time);
+	}	
+	
 	events("Relay access denied :{$re[1]} from {$re[2]} to {$re[2]}");
 	event_message_reject_hostname("Relay access denied",$re[2],$re[3],$re[1]);
 	return;
@@ -2486,7 +2495,20 @@ if(preg_match("#postfix\/bounce\[.+?:\s+(.+?):\s+sender non-delivery notificatio
 
 
 if(preg_match("#smtp\[.+?\]:\s+(.+?):\s+to=<(.+?)>, relay=(.+?)\[.+?status=bounced\s+\(.+?loops back to myself#",$buffer,$re)){
+	if(!is_dir("/etc/artica-postfix/croned.1")){@mkdir("/etc/artica-postfix/croned.1",0755,true);}
+	
+	$file="/etc/artica-postfix/croned.1/postfix.loops.back.to.myself";
+	if(file_time_min($file)>10){
+		shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.maincf.php --urgency >/dev/null 2>&1 &");
+		@unlink($file);
+		@file_put_contents($file, time);
+	}
+	
 	event_messageid_rejected($re[1],"loops back to myself",$re[3],$re[2]);
+	
+	
+	
+	
 	return null;
 }
 
@@ -2590,6 +2612,14 @@ if(preg_match("#postfix\/lmtp.+?:\s+(.+?):\s+to=<(.+?)>.+?said:\s+550-Mailbox un
 
 
 if(preg_match('#: (.+?): reject: RCPT.+?Relay access denied; from=<(.+?)> to=<(.+?)> proto=SMTP#',$buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/postfix.relay.access.denied";
+	if(file_time_min($file)>30){
+		$GLOBALS["CLASS_UNIX"]->send_email_events("Postfix Relay access denied", "Artica will recompile Postfix in case of bad settings", "postfix");
+		shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.maincf.php --urgency >/dev/null 2>&1 &");
+		@unlink($file);
+		@file_put_contents($file, time);
+	}	
+	
 	if($re[1]=="NOQUEUE"){$re[1]=md5($re[3].$re[2].date('Y-m d H is'));}
 	event_finish($re[1],$re[3],"reject","Relay access denied",$re[2],$buffer);
 	return null;
@@ -3237,6 +3267,14 @@ if(preg_match("#host.+?\[(.+?)\]\s+said:.+?<(.+?)>: Recipient address rejected: 
 		if(preg_match("#loops back to myself#",$bounce_error,$re)){
 			$status="Error";
 			$delivery_success="no";
+			
+			$file="/etc/artica-postfix/croned.1/postfix.loops.back.to.myself";
+			if(file_time_min($file)>10){
+				shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.maincf.php --urgency >/dev/null 2>&1 &");
+				@unlink($file);
+				@file_put_contents($file, time);
+			}			
+			
 			$bounce_error="loops back to myself";
 		}
 		

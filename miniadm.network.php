@@ -85,8 +85,9 @@ function webstats_middle(){
 	$t=time();
 	$boot=new boostrap_form();
 	
-	if($users->AsSystemAdministrator){
+	if(isNetSessions()){
 		$array["{edit_networks}"]="miniadm.network.interfaces.php";
+		$array["{routing_tables}"]="miniadm.network.routes.php";
 		
 	}
 	

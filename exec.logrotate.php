@@ -412,6 +412,9 @@ function CheckLogStorageDir($DirPath=null){
 }
 
 function CleanMysqlDatabase(){
+	
+	
+	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/logrotate.". __FUNCTION__.".time";
@@ -422,8 +425,26 @@ function CleanMysqlDatabase(){
 	if($time<15){system_admin_events("No less than 15mn or delete $timefile file",__FUNCTION__,__FILE__,__LINE__,"logrotate");die();}
 	@unlink($timefile);
 	@file_put_contents($timefile, time());	
-	
 	$sock=new sockets();
+	
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
+	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
+	if($MySQLSyslogType==0){$MySQLSyslogType=1;}
+	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
+	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
+	$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
+	
+	if($EnableSyslogDB==1){
+		if($MySQLSyslogType==2){
+			if($GLOBALS["VERBOSE"]){echo "Using a remote server , aborting\n";}
+			return;
+		}
+	}
+	
+	
+	
 	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
 	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
@@ -912,10 +933,11 @@ function ConvertToDedicatedMysql($aspid=false){
 	$results=$q1->QUERY_SQL($sql);
 	if(!$q1->ok){events("$q->mysql_error, $sql");return;}
 	
-	$tmpdir="/home/".time();
+	$tmpdir="/home/syslog-migration/".time();
 	
-	@mkdir($tmpdir,0777);
+	@mkdir($tmpdir,0777,true);
 	@chmod($tmpdir,0777);
+	@chmod("/home/syslog-migration",0777);
 	@chown($tmpdir,"mysql");
 	@chgrp($tmpdir,"mysql");
 	
@@ -947,9 +969,10 @@ function ConvertToDedicatedMysql($aspid=false){
 			return;
 		}		
 		events("Success converted $filename");
+		@unlink($tmpdir/$filename);
 		
 	}
-	
+	shell_exec("$rm -rf $tmpdir");
 	
 	
 	

@@ -198,12 +198,12 @@ function build_line($ligne){
 			$ligne["poll"]=trim($ligne["poll"]);
 			if($ligne["poll"]==null){
 				echo "Starting......: fetchmail rule {$ligne["ID"]} as no poll, skip it..\n";
-				continue;
+				return;
 			}
 			if($ligne["proto"]==null){$ligne["proto"]="auto";}
 			if($ligne["uid"]==null){
 				echo "Starting......: fetchmail rule {$ligne["ID"]} as no uid, skip it..\n";
-				continue;
+				return;
 			}
 			writelogs("Building \$user->user({$ligne["uid"]})",__FUNCTION__,__FILE__,__LINE__);
 			$user=new user($ligne["uid"]);
@@ -212,7 +212,7 @@ function build_line($ligne){
 				writelogs("Building fetchmail uid has no mail !!!, skip it.. user:{$ligne["uid"]}",__FUNCTION__,__FILE__,__LINE__);
 				echo "Starting......: fetchmail uid has no mail !!!, skip it..\n";
 				$unix->send_email_events("Fetchmail rule for {$ligne["uid"]}/{$ligne["poll"]} has been skipped", "cannot read email address from LDAP", "mailbox");
-				continue;
+				return;
 			}
 			
 			$ligne["is"]=$user->mail;

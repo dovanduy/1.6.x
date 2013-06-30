@@ -334,7 +334,9 @@ function SERVICE_START($nochecks=false,$nopid=false){
 	$PID_NUM=PID_NUM();
 	if($unix->process_exists($PID_NUM)){
 		$timemin=$unix->PROCCESS_TIME_MIN($PID_NUM);
-		echo "Starting......: MySQL alreay running PID \"$PID_NUM\" since {$timemin}Mn\n";return;}	
+		echo "Starting......: MySQL already running PID \"$PID_NUM\" since {$timemin}Mn\n";
+		return;
+	}	
 	
 	$mysql_install_db=$unix->find_program('mysql_install_db');
 	$mysqlbin=$unix->LOCATE_mysqld_bin();

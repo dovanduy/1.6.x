@@ -19,20 +19,38 @@ if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--checktime#",implode(" ",$argv))){$GLOBALS["CHECKTIME"]=true;}
 if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
+
+if($argv[1]=="--headers"){Getheaders();exit;}
+
+
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 
 	$unix=new unix();
 	$ln=$unix->find_program("ln");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		system_admin_events("Aborting tasks, already executed pid $oldpid", __FUNCTION__, __FILE__, __LINE__, "geoip");
 		die();
 	}
+	
 
 	@file_put_contents($pidfile, getmypid());
-
-	$uri="http://geolite.maxmind.com/download/geoip/database/";
+	
+	
+	$time=$unix->file_time_min($pidTime);
+	if(!$GLOBALS["VERBOSE"]){
+		if($time<4320){
+			return;
+		}
+	}
+	
+	@unlink($pidTime);
+	@file_put_contents($pidTime, time());
+	
+	// http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz
+	$uri="http://dev.maxmind.com/geoip/legacy/geolite/";
 	$database_path='/usr/local/share/GeoIP';   
 	if(!is_dir($database_path)){@mkdir($database_path,0755,true);}
 	$localdatabase_version=0;
@@ -58,6 +76,7 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 		die();
 	}
 	
+	print_r($array);
 	
 	if($array["GeoLiteCity.dat"]["VERSION"]>0){
 		if($array["GeoLiteCity.dat"]["VERSION"]>$localGeoLiteCityVersion){
@@ -71,7 +90,7 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 		}
 	}
 	
-	$array=GetVersions($uri."asnum/");
+	if($GLOBALS['VERBOSE']){echo "############ asnum GeoIPASNum.dat ##############\n";}
 	if($array["GeoIPASNum.dat"]["VERSION"]>0){
 		if($array["GeoIPASNum.dat"]["VERSION"]>$locaGeoIPASNumVersion){
 			if($GLOBALS["VERBOSE"]){echo "GeoIPASNum.dat must be updated to {$array["GeoIPASNum.dat"]["VERSION"]}...\n";}
@@ -84,7 +103,9 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 		}
 	}
 	
-	$array=GetVersions($uri."GeoLiteCountry/");
+	
+	if($GLOBALS['VERBOSE']){echo "############ GeoLiteCountry GeoIP.dat ##############\n";}
+
 	if($array["GeoIP.dat"]["VERSION"]>0){
 		if($array["GeoIP.dat"]["VERSION"]>$localdatabase_version){
 			if($GLOBALS["VERBOSE"]){echo "GeoIP.dat must be updated to {$array["GeoIP.dat"]["VERSION"]}...\n";}
@@ -135,31 +156,37 @@ function GetVersions($uri){
 		return array("FAILED"=>true);
 	}
 	
-	
+	http://download.maxmind.com/download/geoip/database/asnum/GeoIPASNumv6.dat.gz
 	$f=explode("\n", $curl->data);
 	while (list ($num, $line) = each ($f) ){
-		if(preg_match('#<a href="(.+?)\.gz".*?\s+([0-9]+)-(.*?)-([0-9]+)\s+([0-9]+):([0-9]+)#', $line,$re)){
+		if(preg_match('#http:\/\/(.+?)\.dat\.gz#', $line,$re)){
 			$re[1]=trim($re[1]);
-			$date=strtotime("{$re[2]}-{$re[3]}-{$re[4]} {$re[5]}:{$re[6]}");
-			$newdate=date("Y-m-d H:i:s",$date);
-			$newdatBin=date('Ymd');
-			//if($GLOBALS["VERBOSE"]){echo "Found {$re[1]} $newdate - $newdatBin\n";}
-			
-			$array[$re[1]]=array(
-				"VERSION"=>$newdatBin,
-				"URI"=>"$uri{$re[1]}.gz"
+			$file=basename("{$re[1]}.dat");
+			$uri="http://{$re[1]}.dat.gz";
+			//echo "GetVersions() $file = $uri\n";
+			$curl=new ccurl($uri);
+			$headers=$curl->getHeaders();
+			$filetime=$headers["filetime"];
+			$array[$file]=array(
+				"VERSION"=>date("Ymdh",$filetime),
+				"URI"=>$uri
 			);
 			
 		}else{
-			if($GLOBALS["VERBOSE"]){echo "`$line` -> no such preg\n";}
+			//if($GLOBALS["VERBOSE"]){echo "`$line` -> no such preg\n";}
 		}
 		
 	}
 
 	return $array;
-	
+
 }
 function UpdateDB($uri,$filenameExtracted,$rootpath){
+	
+	if($GLOBALS["VERBOSE"]){
+		echo "***** \n\n $uri \n*****\n\n";
+	}
+	
 	$curl=new ccurl($uri);
 	$unix=new unix(); 
 	$curl->NoHTTP_POST=true;
@@ -196,4 +223,8 @@ function GetGeoIPDbVersions($databasepath){
 }
 
 
-
+function Getheaders(){
+	$curl=new ccurl("http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz");
+	print_r($curl->getHeaders());
+	
+}

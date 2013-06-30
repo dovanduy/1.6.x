@@ -3834,6 +3834,7 @@ By using this service, you have to tranfert all Mailboxes stored on the main MyS
 <WITH-HTTP_XSLT_MODULE>XSLT templates support</WITH-HTTP_XSLT_MODULE>
 <ADD-MODULE>Added module</ADD-MODULE>
 <WITH-LD-OPT>Dynamic library option</WITH-LD-OPT>
+<WITH-HTTP_DEGRADATION_MODULE>Allow to return 204 or 444 code for some locations on low memory condition.</WITH-HTTP_DEGRADATION_MODULE>
 <CommonName>Common Name</CommonName>
 <level_encryption>Encryption level</level_encryption>
 <system_events>System events</system_events>
@@ -3906,6 +3907,7 @@ This to temporary allow users accessing to Internet.
 </ALLOW_RETURN_1CPU_EXPLAIN>
 <backup_database_status>Backup database status</backup_database_status>
 <internal_port>Internal Port</internal_port>
+<www_tobacco>All websites about tobacco, including accessories and electronic cigarettes, help to stop smoking...</www_tobacco>
 <this_form_is_locked>This form is locked, you are unable to save informations</this_form_is_locked>
 <artica_patch_explain>Upload a patch (tar.gz) in order to update Artica</artica_patch_explain> 
 <infrastructure>Infrastructure</infrastructure>
@@ -3928,7 +3930,7 @@ Do you want to perform this operation
 This section cannot be displayed.</DisableAnyCache_error_explain>
 <caches_rules>Cache rules</caches_rules>
 <economy>Economy</economy>
-
+<artica_software_explain>Upload here a software package in order to add a feature or to update an already installed software</artica_software_explain>
 <APP_HAARP_EXPLAIN>This engine is a dedicated cache engine designed for 4shared.com, doubleclick.net, freeav.com, grisoft.com, kaspersky.com, microsoft.com, photobucket.com, speedtest.net, tube8.com, video.msn.com, xvideos.com, avast.com, edgecastcdn.net, freeav.net, grisoft.cz, kaspersky-labs.com nai.com, pop6.com,  submanga.com, tumblr.com, vimeo.com,  youtube.com, avgate.com, eset.com, globo.com, juegosdiarios.com, mccont.com, orkut.com.br, pornotube.com, symantecliveupdate.com, uol.com.br, vsh.r7.com, ytimg.com, avgate.net, , etrustdownloads.ca.com, googlevideo.com, juegosjuegos.com, mediafire.com, orkut.com, rad.msn.com, terra.com, update.nai.com, windowsupdate.com, ziddu.com, avg.com, fbcdn.net, grandchase.com.br, justin.tv, metacafe.com, phncdn.com,    redtubefiles.com, testdevelocidad.es, viddler.com, xtube.com.[br]
 It use a specific engine in order to allows caching streaming objects that most standards proxies services cannot correctly handle this kind of websites.[br]
 Whith this plugin, you are able to increase the caching rate and safe your bandwidth</APP_HAARP_EXPLAIN>
@@ -3948,3 +3950,71 @@ Whith this plugin, you are able to increase the caching rate and safe your bandw
 Enable this feature allows you to activate transparent method and standard method on the same server.[br]
 For example, you can have a connected proxy to your Active Directory and a port defined as transparent.
 </SquidTransparentMixed_text> 
+<routing_tables>Routing tables</routing_tables>
+<iprules_explain>Define here source IP and/or destination IP, IP can be a single IP 10.10.0.1 or a network 10.10.0.0/24 or 10.10.10.0/255.255.255.0
+</iprules_explain>
+<new_route>New route</new_route>
+<main_routes>Main routes</main_routes>
+<delete_route>Delete route</delete_route>
+<manual_update>Manual update</manual_update>
+<hotspot_network>HotSpot network</hotspot_network>
+<internet_network>Internet network</internet_network>
+<COOVA_ERROR_NO_2_INTERFACES>Error, your server need at least 2 network interfaces in order to run the HotSpot service.[br]
+This section cannot be displayed</COOVA_ERROR_NO_2_INTERFACES>
+<CHILLI_ERROR_NO_FREEWEB>No FreeWeb splash screen is defined, your HotSpot service will not run as expected</CHILLI_ERROR_NO_FREEWEB>
+<APP_POSTFIX_TEXT>This section allows you to manage the SMTP service that is in charge to transfert messages to the correct destination.[br]
+Messages can be transfered to remote server or to the local service in charge of store messages into mailboxes.
+</APP_POSTFIX_TEXT>
+<add_urls>Add URLs</add_urls>
+<webfiltering_add_uris_explain>Set here URLs you want to match associated to your category.[br]
+In the field, separate each entry with a carriage return.[br]
+Add the appropriate URLs and always remove a leading [b]www.[/b][br]
+example:[br]
+cnn.com/video[br]
+edition.cnn.com/video[br]
+</webfiltering_add_uris_explain>
+<behavior>behavior</behavior>
+<you_need_to_define_sources_first>There no source defined, you need to define sources before apply these parameters</you_need_to_define_sources_first>
+<nginx_servername2>This is the name of your source, it is an ergonomic name in order to easily retreive it</nginx_servername2>
+<nginx_destination>Where requests must be forwarded ?.[br]
+You can define an IP Address (172.16.2.3);[br]
+Or an hostname: www.mydomain.com[br]
+Or an uri: http://www.mydomain.com
+</nginx_destination>
+<nginx_forceddomain>If the remote web server store virtual hosts (multiple webservers) you can force here which virtual hostname you want to connect</nginx_forceddomain>
+<nginx_ForceRedirect>If the remote Web server sends redirects then all redirects will be forced to pass trough the reverse-proxy service</nginx_ForceRedirect>
+<ForceRedirect>Force redirect</ForceRedirect>
+<NotifyDNSIssues>Notify when detecting DNS resolutions issues</NotifyDNSIssues>
+<NotifyDNSIssues_explain>Send an email notification if the proxy encounter DNS resolutions issues.</NotifyDNSIssues>
+<DNSIssuesMAX>MAX DNS issues per minute</DNSIssuesMAX>
+<free_cat_no_extension_check_explain>If checked, the engine will not refuse domain without extension.</free_cat_no_extension_check_explain>
+<nginx_replace_explain>Replace rules allows you to force the reverse proxy to replace web pages on-the-fly</nginx_replace_explain>
+<error_nginx_substitutions_filter>Error, the substitution filter is not installed</error_nginx_substitutions_filter>
+<ERROR_NO_ORGANISATION_SELECTED>Error, no selected organization</ERROR_NO_ORGANISATION_SELECTED>
+<NGINX_PRIVS_EXPLAIN>This section allows members to manage this website.</NGINX_PRIVS_EXPLAIN>
+<nginx_subst_explain>This rule can do both regular expression and fixed string substitutions on response bodies.[br]
+Here some examples[br]
+st(\d*).example.com replaced by $1.example.com with ir flags[br]
+a.example.com replaced by s.example.com with g flags[br] 
+flags can be:[br]
+[b]g[/b]: Replace all the match strings.[br]
+[b]i[/b]: Perform a case-insensitive match.[br]
+[b]o[/b]: Just replace the first one.[br]
+[b]r[/b]: The pattern is treated as a regular expression, default is fixed string. [br]
+</nginx_subst_explain>
+<paths>paths</paths>
+<new_path>New path</new_path>
+<nginx_path_explain>Paths are requests inside the domain.[br]
+it can be a folder ( /myfolder/ ) or a requests file ( /myimage.png ) [br]or a regular expression ( ~* ^.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt)$
+these requests can be forwarded to a local directory or forwared to a remote server.
+</nginx_path_explain>
+<localpath>Local path</localpath>
+<nginx_website_dir_explain>If set then when clients will request this path, the reverse proxy will display content of the remote server</nginx_website_dir_explain>
+<MYSQLNGINX_EXPLAIN>The MySQL Nginx storage service is designed to store statistics on your server.[br]
+It is a dedicated service in order to not pollute other applications that require a MySQL service.[br]
+With this service, you can display Web statistics of your reverse proxy or Web service.[br]
+If you open this service, all Artica servers installed on your network can use this service in order to send statistics.
+</MYSQLNGINX_EXPLAIN>
+<database_statistics_wizard>Statistics Database wizard</database_statistics_wizard>
+<APP_NGINXDB>Reverse Proxy Statistics Database</APP_NGINXDB>
+<alreadyexists>Already exists</alreadyexists>

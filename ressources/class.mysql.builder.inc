@@ -980,7 +980,47 @@ public function check_storage_table(){
 	
 			$this->QUERY_SQL($sql,"artica_events");
 	}
-
+	
+	$sql="CREATE TABLE IF NOT EXISTS `iproute_table` (
+				  `ID` int(10) NOT NULL AUTO_INCREMENT,
+				  `routename` varchar(128) NOT NULL,
+				  `gateway` varchar(128) NOT NULL,
+				  `interface` varchar(50) NOT NULL,
+				  `enable` smallint(1) NOT NULL,
+				  PRIMARY KEY (`ID`),
+				  KEY `routename` (`routename`),
+				  KEY `interface` (`interface`),
+				  KEY `gateway` (`gateway`),
+				  KEY `enable` (`enable`)
+				) ENGINE=MYISAM;";	
+	$this->QUERY_SQL($sql,"artica_backup");
+	
+	$sql="CREATE TABLE IF NOT EXISTS `iproute_rules` (
+				  `ID` int(10) NOT NULL AUTO_INCREMENT,
+				  `ruleid` int(10) NOT NULL,
+				  `src` varchar(255) NOT NULL,
+				  `destination` varchar(255) NOT NULL,
+				  `priority` INT(10) NOT NULL,
+				  `enable` smallint(1) NOT NULL,
+				  PRIMARY KEY (`ID`),
+				  KEY `src` (`src`),
+				  KEY `priority` (`priority`),
+				  KEY `ruleid` (`ruleid`),
+				  KEY `destination` (`destination`),	
+				  KEY `enable` (`enable`)
+				) ENGINE=MYISAM;";		
+	
+	
+	
+	
+	$this->QUERY_SQL($sql,"artica_backup");
+	
+	if(!$this->FIELD_EXISTS("iproute_rules","ruleid","artica_backup")){
+		$sql="ALTER TABLE `iproute_rules` ADD `ruleid` int(10) NOT NULL,ADD INDEX ( `ruleid` )";
+		$this->QUERY_SQL($sql,"artica_backup");
+	}	
+	
+	
 	
 	if(!$this->TABLE_EXISTS('zarafauserss','artica_events')){	
 		$sql="CREATE TABLE IF NOT EXISTS `zarafauserss` (
@@ -3533,11 +3573,7 @@ if(!$this->TABLE_EXISTS('smtp_logs_day_users','artica_events')){
 		$sql="ALTER TABLE `contacts_whitelist` ADD `manual` smallint( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `manual` )";
 		$this->QUERY_SQL($sql,'artica_backup');
 	}
-	if(!$this->FIELD_EXISTS("contacts_whitelist","md5","artica_backup")){
-		$sql="DROP TABLE `contacts_whitelist`";
-		$this->QUERY_SQL($sql,'artica_backup');
-		$this->BuildTables();
-	}
+
 	
 	
 	if(!$this->FIELD_EXISTS("postfix_global_whitelist","score","artica_backup")){

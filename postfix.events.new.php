@@ -23,6 +23,7 @@
 page();
 
 function CheckRights(){
+	$user=new usersMenus();
 	if($user->AsPostfixAdministrator){return true;}
 	if($user->AsMailBoxAdministrator){return true;}
 	return false;

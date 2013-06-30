@@ -47,9 +47,9 @@ fpsystem('/bin/chmod 600 /etc/ssh/*');
 ForceDirectories('/opt/artica/var/rrd/yorel');
 
 if FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
-       if not FileExists('/etc/artica-postfix/artica-iso-make-launched') then begin
+       if not FileExists('/etc/artica-postfix/artica-iso-setup-launched') then begin
           fpsystem('/bin/touch /etc/artica-postfix/artica-iso-setup-launched');
-          fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd 2>&1');
+          fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd >/etc/artica-postfix/artica-iso-make-launched 2>&1');
           fpsystem('/etc/artica-postfix/bin/artica-install --php-ini');
           fpsystem('/usr/share/artica-postfix/bin/process1 --web-settings');
        end;
@@ -379,13 +379,21 @@ end;
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING UfdbGuard.....');
           fpsystem('/bin/tar -xvf /home/artica/ufdbguard.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/ufdbguard.tar.gz /home/artica/ufdbguard.tar.gz.bak');
+          fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.initslapd.php >/dev/null 2>&1');
           fpsystem('clear');
        end;
 
        if FileExists('/home/artica/packages/msmtp.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING MSMTP.....');
-          fpsystem('/bin/tar -xvf /home/artica/ufdbguard.tar.gz -C / >/dev/null 2>&1');
-          fpsystem('/bin/mv -f /home/artica/ufdbguard.tar.gz /home/artica/ufdbguard.tar.gz.bak');
+          fpsystem('/bin/tar -xvf /home/artica/msmtp.tar.gz -C / >/dev/null 2>&1');
+          fpsystem('/bin/mv -f /home/artica/msmtp.tar.gz /home/artica/msmtp.tar.gz.bak');
+          fpsystem('clear');
+       end;
+
+      if FileExists('/home/artica/packages/nginx.tar.gz') then begin
+          writeln('Artica ISO: PLEASE WAIT.... INSTALLING NGINX.....');
+          fpsystem('/bin/tar -xvf /home/artica/packages/nginx.tar.gz -C / >/dev/null 2>&1');
+          fpsystem('/bin/mv -f /home/artica/packages/nginx.tar.gz /home/artica/packages/nginx.tar.gz.bak');
           fpsystem('clear');
        end;
 
@@ -395,7 +403,6 @@ end;
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING NETATALK.....');
           fpsystem('/bin/tar -xvf /home/artica/packages/netatalk.tar.gz -C /');
           fpsystem('/bin/mv -f /home/artica/packages/netatalk.tar.gz /home/artica/netatalk.tar.gz.old');
-          fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd 2>&1');
           fpsystem('clear');
     end;
 
@@ -499,7 +506,7 @@ if not FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
     fpsystem('clear');
     writeln('Artica ISO: PLEASE WAIT 0% DO NOTHING !!!! SERVER WILL BE RESTARTED....');
     writeln('Artica ISO: PLEASE WAIT... Creating default root password...');
-    fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd 2>&1');
+    fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd >/etc/artica-postfix/chpasswd-done 2>&1');
 
     writeln('Artica ISO: Creating Artica configuration by process1, please wait...');
     fpsystem('clear');

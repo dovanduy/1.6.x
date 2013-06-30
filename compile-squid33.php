@@ -32,7 +32,7 @@ if($argv[1]=="--ecapclam"){ecap_clamav();exit;}
 if($argv[1]=="--package"){create_package();exit;}
 if($argv[1]=="--c-icap-remove"){die();exit;}
 if($argv[1]=="--msmtp"){package_msmtp();exit;}
-
+if($argv[1]=="--nginx"){package_nginx();exit;}
 
 
 
@@ -675,10 +675,11 @@ $f[]="/usr/lib/libicapapi.la";
 $f[]="/usr/lib/libicapapi.so";
 $f[]="/usr/lib/libicapapi.so.0";
 $f[]="/usr/lib/libicapapi.so.0.0.7";
-$f[]="/usr/lib/libicapapi.so.0";
 $f[]="/usr/lib/libicapapi.so.0.0.1";
 $f[]="/usr/lib/libicapapi.so.2" ;     
 $f[]="/usr/lib/libicapapi.so.2.0.2";
+$f[]="/usr/lib/libicapapi.so.2.0.3";
+$f[]="/usr/lib/libicapapi.so.2.0.5";
 $f[]="/usr/share/c_icap/templates/srv_url_check/en/DENY";
 $f[]="/usr/share/c_icap/templates/virus_scan/en/VIR_MODE_HEAD";  
 $f[]="/usr/share/c_icap/templates/virus_scan/en/VIR_MODE_PROGRESS";  
@@ -869,7 +870,7 @@ function package_msmtp_version(){
 
 function package_msmtp(){
 	$base="/root/msmtp-compiled";
-	shell_exec("/bin/rm -rf /root/ufdbGuard-compiled");
+	shell_exec("/bin/rm -rf $base");
 
 	$f[]="/usr/share/info/msmtp.info";
 	$f[]="/usr/bin/msmtp";
@@ -896,5 +897,88 @@ function package_msmtp(){
 	shell_exec("/bin/cp msmtp-$Architecture-$version.tar.gz /root/");
 	echo "/root/msmtp-$Architecture-$version.tar.gz done\n";
 
+}
+
+function package_nginx(){
+	/*
+	 * 
+	 * 
+	 * http://openresty.org/#Download
+cd /root
+wget http://openresty.org/download/ngx_openresty-1.2.8.6.tar.gz
+tar -xf ngx_openresty-1.2.8.6.tar.gz
+cd ngx_openresty-1.2.7.8
+
+cd ngx_openresty-1.2.8.6/bundle
+git clone git://github.com/yaoweibin/ngx_http_substitutions_filter_module.git
+mv ngx_http_substitutions_filter_module ngx_http_substitutions_filter_module-1.0
+ *****
+dans configure
+[http_substitutions_filter_module=>'ngx_http_substitutions_filter_module']
+*****
+*
+
+./configure --with-luajit --sbin-path=/usr/sbin/nginx --prefix=/usr/share/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-client-body-temp-path=/var/lib/nginx/body --http-fastcgi-temp-path=/var/lib/nginx/fastcgi --http-log-path=/var/log/nginx/access.log --http-proxy-temp-path=/var/lib/nginx/proxy --http-scgi-temp-path=/var/lib/nginx/scgi --http-uwsgi-temp-path=/var/lib/nginx/uwsgi --lock-path=/var/lock/nginx.lock --pid-path=/var/run/nginx.pid --with-pcre-jit --with-debug --with-http_addition_module --with-http_dav_module --with-http_geoip_module --with-http_gzip_static_module --with-http_image_filter_module --with-http_realip_module --with-http_stub_status_module --with-http_ssl_module --with-http_sub_module --with-http_xslt_module --with-ipv6 --with-mail --with-mail_ssl_module  --with-http_realip_module  --with-http_addition_module --with-http_xslt_module --with-http_image_filter_module --with-http_geoip_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_gzip_static_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_stub_status_module
+	 */
+	$base="/root/nginx-compiled";
+	shell_exec("/bin/rm -rf $base");
+	$f[]="/usr/share/nginx";
+	$f[]="/usr/sbin/nginx";
+	$f[]="/etc/nginx";
+	$f[]="/var/lib/nginx";
+	$f[]="/usr/lib/libxslt.a";
+	$f[]="/usr/lib/libxslt.la";
+	$f[]="/usr/lib/libxslt.so";
+	$f[]="/usr/lib/libxslt.so.1";
+	$f[]="/usr/lib/libxslt.so.1.1.26";
+	$f[]="/usr/lib32/libxslt.so.1";
+	$f[]="/usr/lib32/libxslt.so.1.1.26";
+
+	
+	$Architecture=Architecture();
+	$version=package_nginx_version();	
+	
+	while (list ($num, $filename) = each ($f)){
+	
+		if(is_dir($filename)){
+			@mkdir("$base/$filename",0755,true);
+			echo "/bin/cp -rf $filename/* $base$filename/\n";
+			shell_exec("/bin/cp -rf $filename/* $base$filename/");
+			continue;
+		}
+	
+		
+		if(is_file($filename)){
+			$dirname=dirname($filename);
+			if(!is_dir("$base/$dirname")){@mkdir("$base/$dirname",0755,true);}
+			echo "/bin/cp -f $filename $base$dirname/\n";
+			shell_exec("/bin/cp -f $filename $base/$dirname/");
+		}
+	
+	}
+
+	chdir($base);
+	if(is_file("$base/nginx-$Architecture-$version.tar.gz")){
+		@unlink("$base/nginx-$Architecture-$version.tar.gz");
+	}
+	
+	shell_exec("/bin/rm -rf $base/etc/nginx/sites-enabled/*");
+	shell_exec("tar -czf nginx-$Architecture-$version.tar.gz *");
+	shell_exec("/bin/cp nginx-$Architecture-$version.tar.gz /root/");
+	echo "/root/nginx-$Architecture-$version.tar.gz done\n";	
+	
+}
+function package_nginx_version(){
+	
+	$unix=new unix();
+	$nginx=$unix->find_program("nginx");
+	if(!is_file($nginx)){return;}
+	$php5=$unix->LOCATE_PHP5_BIN();
+	exec("$nginx -V 2>&1",$results);
+	
+	while (list ($key, $value) = each ($results) ){
+		if(preg_match("#nginx version: .*?\/([0-9\.]+)#", $value,$re)){return $re[1];}
+		if(preg_match("#TLS SNI support enabled#", $value,$re)){$ARRAY["DEF"]["TLS"]=true;continue;}
+	}	
 }
 

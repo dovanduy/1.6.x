@@ -34,12 +34,14 @@ if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
 if(!is_numeric($EnableKavICAPRemote)){$EnableKavICAPRemote=0;}
 if(is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){$DisableArticaProxyStatistics=1;}
-
+$GLOBALS["MonitConfig"]=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidWatchdogMonitConfig")));
 $UfdbguardSMTPNotifs=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/UfdbguardSMTPNotifs")));
 if(!isset($UfdbguardSMTPNotifs["ALLOW_RETURN_1CPU"])){$UfdbguardSMTPNotifs["ALLOW_RETURN_1CPU"]=1;}
 if(!is_numeric($UfdbguardSMTPNotifs["ALLOW_RETURN_1CPU"])){$UfdbguardSMTPNotifs["ALLOW_RETURN_1CPU"]=1;}
-
-
+if(!is_numeric($GLOBALS["MonitConfig"]["NotifyDNSIssues"])){$GLOBALS["MonitConfig"]["NotifyDNSIssues"]=0;}
+if(!is_numeric($GLOBALS["MonitConfig"]["DNSIssuesMAX"])){$GLOBALS["MonitConfig"]["DNSIssuesMAX"]=1;}
+if($GLOBALS["MonitConfig"]["DNSIssuesMAX"]==0){$GLOBALS["MonitConfig"]["DNSIssuesMAX"]=1;}
+$GLOBAL["DNSISSUES"]=array();
 
 $GLOBALS["EnableRemoteSyslogStatsAppliance"]=$EnableRemoteSyslogStatsAppliance;
 $GLOBALS["DisableArticaProxyStatistics"]=$DisableArticaProxyStatistics;
@@ -73,6 +75,7 @@ function Parseline($buffer){
 	
 	if($GLOBALS["VERBOSE"]){events(" - > ". __LINE__);}
 	
+	if(count($GLOBALS["DNSISSUES"])>1){$curdate=date("YmdHi");$curcount=count($GLOBALS["DNSISSUES"][$curdate]);unset($GLOBALS["DNSISSUES"]);$GLOBALS["DNSISSUES"][$curdate]=$curcount;}
 	
 	$GLOBALS["COUNTLINES"]++;
 	if($GLOBALS["COUNTLINES"]>20){
@@ -81,15 +84,27 @@ function Parseline($buffer){
 		$GLOBALS["COUNTLINES"]=0;
 	}
 	
-	if(preg_match("#commBind: Cannot bind socket FD [0-9]+ to.*?Address already in use", $buffer)){
+	
+	if(preg_match("#ipcacheParse: No Address records in response to '(.+?)'#", $buffer,$re)){
+		if($GLOBALS["MonitConfig"]["NotifyDNSIssues"]==0){reset($GLOBAL["DNSISSUES"]);return;}
+		$curdate=date("YmdHi");
+		$GLOBALS["DNSISSUES"][$curdate][$re[1]]=true;
+		if(count($GLOBALS["DNSISSUES"][$curdate]+1)>$GLOBALS["MonitConfig"]["DNSIssuesMAX"]){
+			while (list ($num, $ligne) = each ($GLOBALS["DNSISSUES"][$curdate]) ){$t[]=$num;}
+			reset($GLOBALS["DNSISSUES"]);
+			squid_admin_notifs("Warning, ". count($t)." DNS issues.\nProxy service have issues to Resolve these websites::\n".@implode("\n", $t)."",__FUNCTION__,__FILE__,__LINE__,"watchdog");
+		}
+		return;
+	}
+	
+	
+	
+	if(preg_match("#commBind: Cannot bind socket FD.*?Address already in use#", $buffer)){
 		if(TimeStampTTL(__LINE__,5)){
 			squid_admin_notifs("Warning, Bind Socket issue.\n$buffer\nProxy service have issues to bind port\n$buffer\nArtica will restart the proxy service",__FUNCTION__,__FILE__,__LINE__,"watchdog");
 			shell_exec("/etc/init.d/squid restart");
-	
 		}
-	
 		return;
-	
 	}	
 	
 	
@@ -100,7 +115,6 @@ function Parseline($buffer){
 			shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
 		}
 		return;
-		
 	}
 	
 
@@ -173,6 +187,17 @@ function Parseline($buffer){
 		@chown($re[1], "squid");
 		@chown(dirname($re[1]), "squid");
 		return;
+		
+	}
+	
+	if(preg_match("#Squid Cache.*?Terminated abnormally#", $buffer)){
+		if(TimeStampTTL(__LINE__,5)){
+			squid_admin_notifs("Squid Cache Terminated abnormally.\n$buffer\nProxy service have issues\n$buffer\nArtica will restart the proxy service",__FUNCTION__,__FILE__,__LINE__,"watchdog");
+			shell_exec("/etc/init.d/squid restart");
+		
+		}
+		
+		return;		
 		
 	}
 	

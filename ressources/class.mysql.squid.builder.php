@@ -4538,7 +4538,33 @@ private function CategoriesFamily($www){
 			$category=str_replace('-',"",$category);
 			$category=str_replace('_',"",$category);
 			return $category;	
-	}	
+	}
+
+	
+	function CreateCategoryUrisTable($category,$fulltablename=null){
+		$category=$this->category_transform_name($category);
+		$tablename=strtolower("categoryuris_$category");
+		if($fulltablename<>null){$tablename=$fulltablename;}
+		$sql="CREATE TABLE IF NOT EXISTS `$this->database`.`$tablename` (
+			`zmd5` VARCHAR( 90 ) NOT NULL ,
+			`zDate` DATETIME NOT NULL ,
+			`pattern` VARCHAR( 255 ) NOT NULL ,
+			`enabled` smallint( 1 ) NOT NULL DEFAULT '1',
+			PRIMARY KEY ( `zmd5` ) ,
+			UNIQUE KEY `pattern` (`pattern`),
+			KEY `zDate` (`zDate`),		
+			KEY `enabled` (`enabled`)
+		)";
+		$this->QUERY_SQL($sql,$this->database);
+		if(!$this->ok){
+				writelogs("Failed to create $tablename",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				return false;
+			}
+			
+		return true;
+		
+	}
+	
 	
 	function CreateCategoryTable($category,$fulltablename=null){
 		$catz=new mysql_catz();

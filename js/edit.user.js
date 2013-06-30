@@ -15,7 +15,7 @@ var X_UserADD= function (obj) {
 	if(document.getElementById('group_id')){groupid=document.getElementById('group_id').value;}
 	if(document.getElementById('ajax_return_group_id')){groupid=document.getElementById('ajax_return_group_id').value;}
 
-	
+	ExecuteByClassName('SearchFunction');
 	var reg = new RegExp( "ERROR(.+)","gi" ); 
 	if(results.match(reg)){
 		alert(results);

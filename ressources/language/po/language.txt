@@ -13,18 +13,18 @@ Procmail is also a complete drop-in replacement for your MDA. (If this doesn't m
 <acceptmessage>Accept this message</acceptmessage>
 <access>Access</access>
 <accessed>accessed</accessed>
-<account>Account</account>
+<account>Conta</account>
 <accountID>Account identifier</accountID>
 <AccountLess3Carac>Accounts less than 4 caracters</AccountLess3Carac>
-<account_already_exists>Account already exists</account_already_exists>
+<account_already_exists>A conta j&aacute; existe</account_already_exists>
 <account_name>Defeni&ccedil;&otilde;es da Conta</account_name>
-<ACLS>Access Control Lists</ACLS>
-<acls_directory>Manage Access Control list of this directory</acls_directory>
+<ACLS>Lista de controlo de acessos</ACLS>
+<acls_directory>Gerir o acesso a lista de controlo deste diret&oacute;rio</acls_directory>
 <acls_get_error>Unable to obtain ACL information, check that your disk have ACLs enabled or getfacl/setfacl tools are correctly installed on your system</acls_get_error>
-<ACLS_SUPPORT>ACLs support</ACLS_SUPPORT>
+<ACLS_SUPPORT>Suporte de ACLs</ACLS_SUPPORT>
 <ACLS_SUPPORT_EXPLAIN>These parameters will define ACL defaults behaviours when adding a new shared folder.[br]You can set ACL parameters directly on shared folder properties</ACLS_SUPPORT_EXPLAIN>
-<ACLS_SUPPORT_TEXT>Advanced configuration in order to support ACLs between this server and Windows clients</ACLS_SUPPORT_TEXT>
-<acl_check_permissions>check permissions on "open for delete"</acl_check_permissions>
+<ACLS_SUPPORT_TEXT>Configura&ccedil;&atilde;o avan&ccedil;ada, permitir  ACLs entre este servidor e clientes Windows</ACLS_SUPPORT_TEXT>
+<acl_check_permissions>verificar permiss&otilde;es no &quot;Open for delete&quot;</acl_check_permissions>
 <acl_check_permissions_text>controls what Samba does on receiving a protocol request of "open for delete" from a Windows client.[br]
 If a Windows client doesn't have permissions to delete a file then they expect this to be denied at open time.[br]
 POSIX systems normally only detect restrictions on delete by actually attempting to delete the file or directory.[br]
@@ -38,11 +38,11 @@ If this parameter is set to "false" Samba doesn't check permissions on "open for
 If the user doesn't have permission to delete the file this will only be discovered at close time, which is 
 too late for the Windows user tools to display an error message to the user.[br]
 The symptom of this is files that appear to have been deleted "magically" re-appearing on a Windows explorer refresh</acl_check_permissions_text>
-<acl_disks>Disks Access Control Lists</acl_disks>
-<acl_enabled>ACLs enabled</acl_enabled>
+<acl_disks>Discos Lista de controlo de acessos</acl_disks>
+<acl_enabled>Ativar ACLs</acl_enabled>
 <acl_feature_about>Access Control Lists (ACLs) provide a much more flexible way of specifying permissions on a file or other object than the standard Unix user/group/owner system.[br]Windows NT and above, when running on an NTFS partition, use ACLs to specify permissions on files and directories.[br]This feature allows you to enable/disable ACL support on your system.</acl_feature_about>
 <acl_file_type_add_popup>Set file extensions separated by a comma (eg : zip,iso,exe,pif,vbs,rar)</acl_file_type_add_popup>
-<acl_group_control>ACL group control</acl_group_control>
+<acl_group_control>Grupo de controlo ACL</acl_group_control>
 <acl_group_control_text>Only the owner of a file or directory and the superuser can modify the permissions and ACLs on a file.[br]
 If this parameter is set, then Samba overrides this restriction, and also allows the primary group owner of a file or directory 
 to modify the permissions and ACLs on that file.[br] 
