@@ -1668,7 +1668,11 @@ function inet_interfaces(){
 		$finale=implode(",",$newarray);
 		$finale=str_replace(',,',',',$finale);
 	}else{
-		$finale="all";
+		$unix=new unix();
+		$INT=$unix->NETWORK_ALL_INTERFACES(true);
+		$INT["127.0.0.1"]="127.0.0.1";
+		while (list ($a, $b) = each ($INT) ){$INTS[]=$a;}
+		$finale=@implode(",", $INTS);
 	}
 	
 	echo "Starting......: Postfix Listen interface(s) \"$finale\"\n";

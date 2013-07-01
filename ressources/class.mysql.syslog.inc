@@ -112,13 +112,13 @@ class mysql_syslog{
 		$f[]="('/var/log/syslog',1,'daily','100',5,'%PHP% /usr/share/artica-postfix/exec.syslog-engine.php --restart-syslog','{syslog_events}',1)";
 		
 		$t=$this->syslog_array();
-		
+		$f1[]="  chmod 0755 /etc/init.d/syslog > /dev/null";
 		$f1[]="  /etc/init.d/syslog restart > /dev/null";
 		$f1[]="  /etc/init.d/artica-postfix restart sysloger > /dev/null";
 		$f1[]="  /etc/init.d/artica-postfix restart postfix-logger > /dev/null";
 		$f1[]="  %POSTFIX% reload > /dev/null";
 		$defaultrestart=mysql_escape_string(@implode("\n", $f1));
-		
+		$f2[]="  chmod 0755 /etc/init.d/syslog > /dev/null";
 		$f2[]="  /etc/init.d/syslog restart > /dev/null";
 		$f2[]="  /etc/init.d/artica-postfix restart fetchmail-logger > /dev/null";
 		$f2[]="  /etc/init.d/artica-postfix restart fetchmail > /dev/null";		
@@ -134,7 +134,7 @@ class mysql_syslog{
 		$f[]="('/var/log/lighttpd/*',1,'daily','100',5,'/etc/init.d/artica-postfix restart apache','Lighttpd',1)";
 		$f[]="('/var/log/apt/*',1,'daily','100',5,'/etc/init.d/artica-postfix restart apache','apt-get',1)";
 		$f[]="('/var/log/snort',1,'daily','50',5,'/etc/init.d/snort restart','snort',1)";
-		$f[]="('/var/log/auth.log',1,'daily','100',5,'/etc/init.d/syslog restart','snort',1)";
+		$f[]="('/var/log/auth.log',1,'daily','100',5,'chmod 0755 /etc/init.d/syslog && /etc/init.d/syslog restart','snort',1)";
 		
 		
 		while (list ($num, $path) = each ($t) ){		

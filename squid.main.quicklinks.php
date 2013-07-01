@@ -1451,6 +1451,7 @@ function all_status(){
 	$APP_HAARP=DAEMON_STATUS_ROUND("APP_HAARP",$ini,null,1);
 	if($users->PROXYTINY_APPLIANCE){$APP_ARTICADB=null;}
 	if($EnableRemoteStatisticsAppliance==1){$APP_ARTICADB=null;}
+	$APP_FTP_PROXY=DAEMON_STATUS_ROUND("APP_FTP_PROXY",$ini,null,1);
 	$squid=new squidbee();
 	
 	
@@ -1537,6 +1538,7 @@ function all_status(){
 	$tr[]=$APP_FRESHCLAM;
 	$tr[]=$APP_ARTICADB;
 	$tr[]=$APP_SQUID_DB;
+	$tr[]=$APP_FTP_PROXY;
 	
 	
 	

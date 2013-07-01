@@ -215,6 +215,7 @@ if($argv[1]=="--syslog-db"){echo syslog_db();die();}
 if($argv[1]=="--nginx"){echo nginx()."\n".nginx_db();die();}
 if($argv[1]=="--haarp"){echo haarp();die();}
 if($argv[1]=="--chilli"){echo chilli()."\n";echo chilli_dnsmasq();die();}
+if($argv[1]=="--ftp-proxy"){echo ftp_proxy()."\n";die();}
 
 
 
@@ -245,6 +246,7 @@ if($argv[1]=="--all-squid"){
 	$conf[]=chilli();
 	$conf[]=chilli_dnsmasq();
 	$conf[]=nginx();
+	$conf[]=ftp_proxy();
 	echo @implode("\n",$conf);
 	die();
 }
@@ -3466,7 +3468,7 @@ function syslogger(){
 	$pid_path="/etc/artica-postfix/exec.syslog.php.pid";
 	$master_pid=trim(@file_get_contents($pid_path));
 	$service_disabled=1;
-
+	if(is_file("/etc/init.d/syslog")){@chmod("/etc/init.d/syslog",0755);}
 
 	$l[]="[APP_SYSLOGER]";
 	$l[]="service_name=APP_SYSLOGER";
@@ -4892,7 +4894,59 @@ function klmsdb_status(){
 
 	return implode("\n",$l);return;
 }
+//========================================================================================================================================================
+function ftp_proxy(){
+	$unix=new unix();
+	$bin=$GLOBALS["CLASS_UNIX"]->find_program("ftp-proxy");
+	if(!is_file($bin)){return;}
 
+	$master_pid=@file_get_contents('/var/run/ftp-proxy.pid');
+	$EnableFTPProxy=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableFTPProxy");
+	if(!is_numeric($EnableFTPProxy)){$EnableFTPProxy=0;}
+
+
+	$l[]="[APP_FTP_PROXY]";
+	$l[]="service_name=APP_FTP_PROXY";
+	$l[]="master_version=".ftp_proxy_version();
+	$l[]="service_disabled=$EnableFTPProxy";
+	$l[]="pid_path=/var/run/ftp-proxy.pid";
+	$l[]="watchdog_features=1";
+	$l[]="family=network";
+
+	if($EnableFTPProxy==0){$l[]="";return implode("\n",$l);return;}
+
+
+
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		$master_pid=$unix->PIDOF($bin);
+	}
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			$cmd=trim("{$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.ftpproxy.php --start >/dev/null 2>&1 &");
+			shell_exec2($cmd);
+		}
+		$l[]="";
+		return implode("\n",$l);
+		return;
+	}
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+
+	return implode("\n",$l);return;
+}
+
+//========================================================================================================================================================
+function ftp_proxy_version(){
+	$bin=$GLOBALS["CLASS_UNIX"]->find_program("ftp-proxy");
+	if(!is_file($bin)){if($GLOBALS['VERBOSE']){echo "ftp-proxy -> no such file\n";}return;}
+	exec("$bin -V 2>&1",$array);
+	while (list ($pid, $line) = each ($array) ){
+		if(preg_match("#version\s+([0-9\.\-]+)#i", $line,$re)){return $re[1];}
+		if($GLOBALS['VERBOSE']){echo "ftp_proxy_version(), $line, not found \n";}
+	}
+}
+//========================================================================================================================================================
 
 function haproxy(){
 	if(!$GLOBALS["CLASS_USERS"]->HAPROXY_INSTALLED){return;}
@@ -9367,7 +9421,7 @@ function auditd(){
 	$l[]="service_disabled=$EnableAuditd";
 	$l[]="watchdog_features=1";
 	$l[]="family=system";
-	//$l[]="remove_cmd=--pureftpd-remove";
+	
 
 	if($EnableAuditd==0){
 		$l[]="running=0\ninstalled=1";$l[]="";
@@ -9409,7 +9463,7 @@ function kav4fsavs(){
 	$l[]="master_version=".GetVersionOf("kav4fs");
 	$l[]="service_disabled=$EnableKav4FS";
 	$l[]="family=system";
-	//$l[]="remove_cmd=--pureftpd-remove";
+
 
 	if($EnableKav4FS==0){
 		$l[]="running=0\ninstalled=1";$l[]="";

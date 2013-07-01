@@ -463,7 +463,7 @@ class generic_categorize{
 		include_once(dirname(__FILE__)."/class.squid.catz.schools.inc");
 		$pub=new squid_catz_schools();$cat=$pub->parse($www);if($cat<>null){return "recreation/schools";}
 		$array=array("universidad-finis-terrae","finisterrae.cl","tu-harburg","mathletics","grenet","powerschool",
-		"schoology","edublogs","sumdog","tableau-noir","hbxxedu.com","uam.es","edu.au");
+		"schoology","edublogs","sumdog","tableau-noir","hbxxedu.com","uam.es","edu.au","u-cergy");
 		
 		if($this->ParseArray($array, $www)){return "recreation/schools";}
 		

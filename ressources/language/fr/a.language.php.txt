@@ -1,4 +1,3 @@
-</SambaWinBindCacheTime_explain>D&eacute;cembre<//SambaWinBindCacheTime_explain>
 <ABOUT_NETATALK>Netatalk est un serveur de fichiers gratuit AFP.[br]Il fournit aussi au noyau l'impl&eacute;mentation du protocole AppleTalk.[br]
 Votre syst&egrave;me sera en mesure de fournir des ressources AppleShare AFP &agrave; de multiples clients MAC</ABOUT_NETATALK>
 <aboveeq>est sup&eacute;rieur</aboveeq>

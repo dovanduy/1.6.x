@@ -1366,6 +1366,7 @@ function RESTART_SYSLOG($onlysyslog=false){
 					shell_exec($this->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.initslapd.php --rsyslogd-init >/dev/null 2>&1");
 				}
 				if($GLOBALS["VERBOSE"]){echo "/etc/init.d/syslog restart\n";}
+				@chmod("/etc/init.d/syslog", 0755);
 				shell_exec("$nohup /etc/init.d/syslog restart >/dev/null 2>&1 &");
 			}
 			

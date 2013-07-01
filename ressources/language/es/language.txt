@@ -1958,7 +1958,6 @@ after the message is queued, send the  entire  message through the specified ext
 <folders>folders</folders>
 <folders_monitor>Folders monitor</folders_monitor>
 <for>for</for>
-<form add/mod>Form Add & modify</form add/mod>
 <format_device>Format this device</format_device>
 <format_device_explain>This operation will format this device in order to perform writeable operations</format_device_explain>
 <form_error>operation canceled...!

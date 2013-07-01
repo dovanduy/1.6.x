@@ -6711,12 +6711,16 @@ function SYSLOG_QUERY(){
 	if($tail==null){return;}
 	if(isset($_GET["prefix"])){
 		if(trim($_GET["prefix"])<>null){
+			if(strpos($_GET["prefix"], ",")>0){$_GET["prefix"]="(".str_replace(",", "|", $_GET["prefix"]).")";}
 			$_GET["prefix"]=str_replace("*",".*?",$_GET["prefix"]);
 			$pattern="{$_GET["prefix"]}.*?\[[0-9]+\].*?$pattern";
 		}
 	}
 	
-	if($preprend<>null){$grep="$grepbin '$preprend'";}
+	if($preprend<>null){
+		$grep="$grepbin '$preprend'";
+		if(strpos($preprend, ",")>0){$grep="$grepbin -E '(".str_replace(",", "|", $preprend).")'";}
+	}
 	
 	writelogs_framework("Pattern \"$pattern\"" ,__FUNCTION__,__FILE__,__LINE__);
 	if(isset($_GET["rp"])){$maxrows=$_GET["rp"];}
@@ -6724,9 +6728,13 @@ function SYSLOG_QUERY(){
 	
 	
 	if(strlen($pattern)>1){
-		if(($preprend<>null) && (strlen($preprend)>3)){$grep="$grepbin '$preprend'|$grepbin -i -E '$pattern'";}else{
-			$grep="$grepbin -i -E '$pattern'";
-		}
+		if(($preprend<>null) && (strlen($preprend)>3)){
+			$preprend="'".$preprend."'";
+			if(strpos($preprend, ",")>0){$preprend=" -E '(".str_replace(",", "|", $preprend).")'";}
+			$grep="$grepbin $preprend|$grepbin -i -E '$pattern'";}
+			else{
+				$grep="$grepbin -i -E '$pattern'";
+			}
 	}
 	
 	unset($results);

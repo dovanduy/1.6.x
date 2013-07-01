@@ -760,6 +760,7 @@ function UrgencyChecks(){
 	}
 	
 	if($restart){
+		@chmod("/etc/init.d/syslog",0755);
 		shell_exec("/etc/init.d/syslog restart");
 		shell_exec("/etc/init.d/artica-postfix restart sysloger");
 		shell_exec("/etc/init.d/artica-postfix restart auth-logger");

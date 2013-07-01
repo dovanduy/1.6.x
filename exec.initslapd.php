@@ -1348,7 +1348,6 @@ function dhcpd(){
 	$f[]="# chkconfig: - 80 75";
 	$f[]="# description: $daemonbinLog";
 	$f[]="### END INIT INFO";
-	$f[]="RSYSLOGD=rsyslogd";
 	$f[]="DAEMON_BIN=$daemon_path";
 	$f[]="PATH=/sbin:/bin:/usr/sbin:/usr/bin";
 	$f[]="";
@@ -1805,7 +1804,7 @@ function checkDebSyslog(){
 	$f[]="start program = \"/etc/init.d/syslog start\"";
 	$f[]="stop program = \"/etc/init.d/syslog stop\"";
 	$f[]="if 5 restarts within 5 cycles then timeout";
-
+	@chmod("/etc/init.d/syslog",0755);
 	@file_put_contents("/etc/monit/conf.d/APP_RSYSLOGD.monitrc", @implode("\n", $f));	
 	if(file_exists("/usr/sbin/rsyslogd")){rsyslogd_init();}
 }
@@ -2010,9 +2009,12 @@ function rsyslogd_init(){
 	$f[]=":";
 	$f[]="";
 	@unlink("/etc/init.d/syslog");
-	@chmod("/etc/init.d/syslog", 0755);
+	shell_exec($unix->find_program("chmod")." 0755 /etc/init.d/syslog");
 	@file_put_contents("/etc/init.d/syslog", @implode("\n", $f));
-	if(!is_file("/etc/init.d/rsyslog")){@file_put_contents("/etc/init.d/rsyslog", @implode("\n", $f));}
+	if(!is_file("/etc/init.d/rsyslog")){
+		@file_put_contents("/etc/init.d/rsyslog", @implode("\n", $f));
+		shell_exec($unix->find_program("chmod")." 0755 /etc/init.d/rsyslog");
+	}
 	echo "syslog: [INFO] syslog path `/etc/init.d/syslog` done\n";
 	
 	$php5=$unix->LOCATE_PHP5_BIN();

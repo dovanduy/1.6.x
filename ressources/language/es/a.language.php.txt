@@ -1,4 +1,3 @@
-</SambaWinBindCacheTime_explain>Diciembre<//SambaWinBindCacheTime_explain>
 <ABOUT_NETATALK>Netatalk es una libre disposici&oacute;n de c&oacute;digo abierto servidor de archivos AFP. [Br]
 Tambi&eacute;n proporciona una implementaci&oacute;n a nivel de kernel de la serie de AppleTalk Protocol [br]
 El sistema ser&aacute; capaz de servir a muchos clientes Macintosh simult&aacute;neamente como un servidor de archivos AppleShare (AFP).</ABOUT_NETATALK>

@@ -1,4 +1,3 @@
-</SambaWinBindCacheTime_explain>Dezembro<//SambaWinBindCacheTime_explain>
 <ABOUT_NETATALK>Netatalk is a freely-available Open Source AFP fileserver.[br]
  It also provides a kernel level implementation of the AppleTalk Protocol Suite[br]
 Your system will be able to serve many Macintosh clients simultaneously as an AppleShare file server (AFP).

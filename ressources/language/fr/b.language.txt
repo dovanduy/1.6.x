@@ -1,9 +1,3 @@
-</br>
-<b>domain<//br>
-</MYSQLSYSLOG_EXPLAIN>[b]Client ou Serveur ?[b][br]
-Si ce serveur doit utilise un Artica MySQL distant (client) ou si le service MySQL doit &ecirc;tre g&eacute;r&eacute; par ce serveur (serveur) ?<//MYSQLSYSLOG_EXPLAIN>
-</squid_aclmax_connections_explain>
-<duplicate_the_ruleid_give_name>Give the new rule name in order to duplicate the rule:<//squid_aclmax_connections_explain>
 <abort_remove_task>Abort remove task ?</abort_remove_task>
 <about2>A propos</about2>
 <abouttime>environ</abouttime>
@@ -1317,6 +1311,18 @@ Nous vous sugg&eacute;rons de mettre &agrave; jour la licence.</free_license_one
 <FSTAB_DIR>R&eacute;pertoire dans fstab</FSTAB_DIR>
 <FSTAB_NAME>Nom dans fstab</FSTAB_NAME>
 <FSTAB_TYPE>Type de partition dans fstab</FSTAB_TYPE>
+<FTPAllowMagicUser>Autoriser l'utilisateur magique</FTPAllowMagicUser>
+<FTPAllowMagicUser_explain>Utile pour les connexions FTP sortantes.[br]
+Il autorise la mise en place d'une entr&eacute;e &quot;magique&quot; dans la commande USER afin de contenir l'adresse du serveur FTP de destination dans la forme &quot;user[@host[:port]]&quot; et &eacute;crase l'adresse et le port de destination</FTPAllowMagicUser_explain>
+<FTPProxyDestinationTransferMode>Mode de transfert</FTPProxyDestinationTransferMode>
+<FTPProxyDestinationTransferMode_explain>Sp&eacute;cifiez le mode de transfert FTP utilis&eacute; depuis le proxy FTP.[br]
+Le mode de transfert peut &ecirc;tre active,passive ou client.[br]
+Par d&eacute;faut le mode client est activ&eacute; o&ugrave; le mode utilise sera celui d&eacute;fini par le client FTP</FTPProxyDestinationTransferMode_explain>
+<FTPProxyLDAPExplain>Vous pouvez utiliser un serveur LDAP afin de forcer les utilisateur &agrave; s'authentifier sur le proxy avant de se connecter sur le serveur FTP.</FTPProxyLDAPExplain>
+<FTPUseMagicChar>Caract&egrave;re magique</FTPUseMagicChar>
+<FTPUseMagicChar_explain>Indique le caract&egrave;re de s&eacute;paration entre l'utilisateur et le serveur FTP host[:port] lorsque l'utilisateur magique est autoris&eacute;.[br]
+Par d&eacute;faut le caract&egrave;re @ est ajout&eacute; ce qui permet d'utiliser une adresse email comme authentification sur les sites FTP.[br]
+exemple: me@mydomain%ftp.server:21 si le caract&egrave;re est &quot;%&quot;).</FTPUseMagicChar_explain>
 <fulluri>URL compl&egrave;te</fulluri>
 <full_features>Toutes fonctionnalit&eacute;s</full_features>
 <generated_on>G&eacute;n&eacute;r&eacute; le</generated_on>
@@ -3048,6 +3054,12 @@ Vous devriez uniquement activer cette option que si le filtrage Web n'est pas cr
 <UseNetworkCard>Utiliser la carte r&eacute;seau</UseNetworkCard>
 <UseOnlyBooster>Utiliser uniquement ce booster</UseOnlyBooster>
 <UserAgents>Identifiants navigateurs</UserAgents>
+<UserAuthMagic>Utilisateur AUTH magique</UserAuthMagic>
+<UserAuthMagic_explain>Indiquez l'ordre du compte utilisateur/mot de passe utilis&eacute; dans la chaine FTP USER et PASS.[br]
+les commandes sont support&eacute;es par les clients FTP (ex:@auth par NcFTP).[br]
+Les param&egrave;tres valides sont:[br]
+@auth pour ftpuser@authuser[@host:port][br]
+auth@ pour authuser@[ftpuser@host:port]</UserAuthMagic_explain>
 <UseRemoteServer>Utiliser un serveur distant</UseRemoteServer>
 <UseRemoteUfdbguardService>Utiliser un serveur UfdbGuard distant</UseRemoteUfdbguardService>
 <username2>Utilisateur</username2>

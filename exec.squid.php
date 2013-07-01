@@ -739,6 +739,7 @@ function Reload_Squid(){
 		if(is_file("/etc/init.d/syslog")){
 			$results=array();
 			echo "Starting......: [RELOAD]: Reloading syslog engine\n";
+			@chmod("/etc/init.d/syslog",0755);
 			shell_exec("$nohup /etc/init.d/syslog reload >/dev/null 2>&1 &");
 		}
 	}

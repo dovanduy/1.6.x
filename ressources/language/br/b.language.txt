@@ -1,9 +1,3 @@
-</br>&lt;b&gt;dom&iacute;nio<//br>
-</MYSQLSYSLOG_EXPLAIN>
-<MYSQLZARAFA_TYPE_EXPLAIN>[b]Client or Server ?[b][br]
-Is this Artica server must use MailBoxes stored on a remote Artica server (client) or is it a service that stores mailboxes on this computer (server) ? 
-<//MYSQLSYSLOG_EXPLAIN>
-</squid_aclmax_connections_explain>&lt;duplicate_the_ruleid_give_name&gt;D&ecirc; um novo nome a regra para que possa duplic&aacute;-la:<//squid_aclmax_connections_explain>
 <abort_remove_task>Abort remove task ?</abort_remove_task>
 <about2>About</about2>
 <abouttime>about</abouttime>
@@ -1502,6 +1496,25 @@ Please, upgrade to a corporate license...</free_license_one_rule_text>
 <FSTAB_DIR>Directory in fstab</FSTAB_DIR>
 <FSTAB_NAME>Name in fstab</FSTAB_NAME>
 <FSTAB_TYPE>Partition type in fstab</FSTAB_TYPE>
+<FTPAllowMagicUser>Allow Magic user</FTPAllowMagicUser>
+<FTPAllowMagicUser_explain>
+Especially useful for outbound FTP traffic.[br]
+It allows to put some "magic" in the USER name.[br]
+If set, it enables the USER name to contain the target erver in the form "user[@host[:port]]" and override the Destination Address
+(and Destination Port)</FTPAllowMagicUser_explain>
+<FTPProxyDestinationTransferMode>Destination TransferMode</FTPProxyDestinationTransferMode>
+<FTPProxyDestinationTransferMode_explain>Specify the FTP transfer mode to be used from the proxy to the server.[br]
+TransferMode can be active, passive, or client.[br]
+The default is "client" which means to use the same as the client.
+</FTPProxyDestinationTransferMode_explain>
+<FTPProxyLDAPExplain>You can use an LDAP server in order to force the proxy to authenticate users before allow access client to FTP servers</FTPProxyLDAPExplain>
+<FTPUseMagicChar>Magic character</FTPUseMagicChar>
+<FTPUseMagicChar_explain>
+Defines the character to use as separator between user and host[:port] in the target setting 
+of Allow Magic user.[br]
+Default is the '@' character.[br]
+This allows you to use E-Mail addresses as usernames for login to the ftp server (i.e. me@mydomain%ftp.server:21 if you set it to %)
+</FTPUseMagicChar_explain>
 <fulluri>complete URL</fulluri>
 <full_features>Full features</full_features>
 <generated_on>Generated on</generated_on>
@@ -3461,6 +3474,13 @@ You should only enable this if the webfiltering process is not critical to your 
 <UseNetworkCard>Use Network card</UseNetworkCard>
 <UseOnlyBooster>Use only the booster cache</UseOnlyBooster>
 <UserAgents>User-Agents</UserAgents>
+<UserAuthMagic>User Auth magic</UserAuthMagic>
+<UserAuthMagic_explain>
+Defines the order of user authentication name and password should be encoded in FTP USER and PASS[br]
+commands, as supported by some ftp-client's (i.e. @auth by NcFTP).[br]
+Valid settings are: [br]
+@auth  for  ftpuser@authuser[@host:port][br]
+auth@  for  authuser@[ftpuser@host:port]</UserAuthMagic_explain>
 <UseRemoteServer>Use a remote server</UseRemoteServer>
 <UseRemoteUfdbguardService>Use a remote Ufdbguard server</UseRemoteUfdbguardService>
 <username2>User name</username2>

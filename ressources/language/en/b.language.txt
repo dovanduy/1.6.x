@@ -4031,3 +4031,31 @@ Artica will transform your request into a regular expression.[br]
 If your pattern is a real regular expression define [b]regex:[/b] before expression.[br]
 example: regex:^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)[br]
 </dstdomain_regex_explain> 
+<FTPProxyDestinationTransferMode_explain>Specify the FTP transfer mode to be used from the proxy to the server.[br]
+TransferMode can be active, passive, or client.[br]
+The default is "client" which means to use the same as the client.
+</FTPProxyDestinationTransferMode_explain>
+<FTPProxyDestinationTransferMode>Destination TransferMode</FTPProxyDestinationTransferMode>
+<FTPProxyLDAPExplain>You can use an LDAP server in order to force the proxy to authenticate users before allow access client to FTP servers</FTPProxyLDAPExplain>
+<UserAuthMagic>User Auth magic</UserAuthMagic>
+<UserAuthMagic_explain>
+Defines the order of user authentication name and password should be encoded in FTP USER and PASS[br]
+commands, as supported by some ftp-client's (i.e. @auth by NcFTP).[br]
+Valid settings are: [br]
+@auth  for  ftpuser@authuser[@host:port][br]
+auth@  for  authuser@[ftpuser@host:port]</UserAuthMagic_explain>
+<FTPUseMagicChar>Magic character</FTPUseMagicChar>
+<FTPAllowMagicUser>Allow Magic user</FTPAllowMagicUser>
+<FTPAllowMagicUser_explain>
+Especially useful for outbound FTP traffic.[br]
+It allows to put some "magic" in the USER name.[br]
+If set, it enables the USER name to contain the target server in the form "user[@host[:port]]" and override the Destination Address
+(and Destination Port)
+</FTPAllowMagicUser_explain>
+
+<FTPUseMagicChar_explain>
+Defines the character to use as separator between user and host[:port] in the target setting 
+of Allow Magic user.[br]
+Default is the '@' character.[br]
+This allows you to use E-Mail addresses as usernames for login to the ftp server (i.e. me@mydomain%ftp.server:21 if you set it to %)
+</FTPUseMagicChar_explain>

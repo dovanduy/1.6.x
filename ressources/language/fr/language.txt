@@ -1829,7 +1829,6 @@ Il retransfert les messages sur un autre serveur sur le port 25.[br]Fetchmail n'
 <folders>r&eacute;pertoires</folders>
 <folders_monitor>Moniteur de dossiers</folders_monitor>
 <for>pour</for>
-<form add/mod>Ajouter et modifier le formulaire</form add/mod>
 <format_device>Formater ce p&eacute;riph&eacute;rique</format_device>
 <format_device_explain>Cette op&eacute;ration va formater ce dispositif afin de r&eacute;aliser les op&eacute;rations en &eacute;criture</format_device_explain>
 <form_error>op&eacute;ration annul&eacute;e ...!
