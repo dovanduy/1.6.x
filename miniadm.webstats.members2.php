@@ -169,6 +169,7 @@ function search_members(){
 	$q=new mysql_squid_builder();
 	$tpl=new templates();
 	$searchstring=string_to_flexquery("search-members");
+	$Params=url_decode_special_tool($_GET["Params"]);
 	
 	if(!$_SESSION["CORP"]){
 		$tpl=new templates();
@@ -177,14 +178,17 @@ function search_members(){
 		echo $content;
 		return;
 	}
+	$boot=new boostrap_form();
+	$ORDER=$boot->TableOrder(array("uid"=>"ASC"));
 	
+
 	
 	$table="(SELECT SUM(size) as size,SUM(hits) as hits,uid FROM members_uid GROUP BY uid) as t";
-	$sql="SELECT *  FROM $table WHERE 1 $searchstring ORDER BY uid LIMIT 0,150";
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring ORDER BY $ORDER LIMIT 0,150";
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
 
-	$boot=new boostrap_form();
+	
 	if(!$q->ok){
 		echo "<p class=text-error>$q->mysql_error<hr><code>$sql</code></p>";
 	}
@@ -203,18 +207,12 @@ function search_members(){
 	
 	
 	}
+
 	
-	echo $tpl->_ENGINE_parse_body("
-		<table class='table table-bordered table-hover'>
-			<thead>
-				<tr>
-					<th>{member}</th>
-					<th>{size}</th>
-					<th>{hits}</th>
-				</tr>
-			</thead>
-			 <tbody>
-			").@implode("\n", $tr)." </tbody>
-		</table>
-";
+echo $boot->TableCompile(
+			array("uid"=>"{member}","size"=>"{size}","hits"=>"{hits}"),
+			$tr
+			);
+	
+	
 }

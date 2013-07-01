@@ -5,9 +5,14 @@
   $GLOBALS["PID"]=getmypid();
   $GLOBALS["STARTIME"]=time();
   $GLOBALS["uriToHost"]=array();
+  $GLOBALS["ITCHART"]=false;
   $GLOBALS["SESSION_TIME"]=array();
   $GLOBALS["LOG_FILE_NAME"]="/var/log/squid/external-acl-dynamic.log";
 
+  if(preg_match("#--itchart#", @implode("", $argv))){
+  	WLOG("Starting ACLs dynamic with itchart feature...");
+  	$GLOBALS["ITCHART"]=true;
+  }
   
   
   if(!is_numeric($GLOBALS["DEBUG_LEVEL"])){$GLOBALS["DEBUG_LEVEL"]=1;}
@@ -28,6 +33,12 @@
 			 	WLOG($url);
 			 	$ID=0;
 			 	if($GLOBALS["DEBUG_LEVEL"]>2){WLOG("LOOP()::str:".strlen($url)." Rule ID:{$GLOBALS["RULE_ID"]}; LOGIN:{$array["LOGIN"]}; IPADDR:{$array["IPADDR"]}; MAC:{$array["MAC"]}; HOST:{$array["HOST"]}; RHOST:{$array["RHOST"]}; URI:{$array["URI"]}");}
+			 	
+			 	if($GLOBALS["ITCHART"]){
+			 		fwrite(STDOUT, "ERR message=1\n");
+			 		continue;
+			 	}
+			 	
 			 	
 			 	if(isset($array["LOGIN"])){
 			 		if($GLOBALS["DEBUG_LEVEL"]>3){WLOG("LOOP()::{$GLOBALS["RULE_ID"]} ->{$array["LOGIN"]} type 2");}

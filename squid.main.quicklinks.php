@@ -396,7 +396,11 @@ function section_architecture_tabs(){
 		$array["load-balance"]='{load_balancer}';
 	}
 	$array["caches"]='{caches}';
-	$array["architecture-users"]='{users_interactions}';
+	if($_GET["byminiadm"]==null){
+		$array["architecture-users"]='{users_interactions}';
+	}else{
+		$array["users-interactions"]='{users_interactions}';
+	}
 	$array["architecture-adv"]='{advanced_options}';
 	
 	if($_GET["byminiadm"]<>null){
@@ -408,6 +412,11 @@ function section_architecture_tabs(){
 				$MINA[$ligne]="miniadmin.proxy.infrastructure.php?tabs=yes";
 				continue;
 			}
+			
+			if($num=="users-interactions"){
+				$MINA[$ligne]="miniadmin.proxy.userinteraction.php?tabs=yes";
+				continue;
+			}			
 			
 			if($num=="caches"){
 				$MINA[$ligne]="miniadmin.proxy.caches.php";

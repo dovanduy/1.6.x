@@ -501,6 +501,7 @@ function dansguardian_status(){
 	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
 	$DnsFilterCentral=$sock->GET_INFO('DnsFilterCentral');
 	$SquidBubbleMode=$sock->GET_INFO('SquidBubbleMode');
+	$EnableITChart=$sock->GET_INFO('EnableITChart');
 	
 	$EnableFTPProxy=$sock->GET_INFO('EnableFTPProxy');
 	
@@ -580,6 +581,12 @@ function dansguardian_status(){
 		OnClick=\"javascript:Loadjs('ftp.proxy.php');\"
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
 	
+	
+	$EnableITChartPic="status_ok-grey.gif";
+	$EnableITChartText="<a href=\"javascript:blur();\"
+	OnClick=\"javascript:Loadjs('ITChart.php');\"
+	style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
+	
 	$EnableHaarpText="<span style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</span>";
 	$picHaarp="status_ok-grey.gif";
 	
@@ -644,6 +651,21 @@ function dansguardian_status(){
 		OnClick=\"javascript:Loadjs('squid.webauth.php');\" 
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";				
 	}
+	
+	if($EnableITChart==1){
+		$EnableITChartPic="status_ok.gif";
+		$EnableITChartText="<a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('ITChart.php');\"
+		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";		
+	}
+	
+	
+	
+	$EnableITChartTextTR="<tr>
+				<td width=1%><span id='AdSquidStatusLeft'><img src='img/$EnableITChartPic'></span></td>
+				<td class=legend style='font-size:12px'>{IT_charter}:</td>
+				<td><div style='font-size:12px' nowrap>$EnableITChartText</td>
+				</tr>";	
 
 
 	$EnableActiveDirectoryTextTR="<tr>
@@ -1081,6 +1103,7 @@ function dansguardian_status(){
 		$SplashScreenFinal=null;
 		$SquidBubbleModeTR=null;
 		$EnableActiveDirectoryTextTR=null;
+		$EnableITChartTextTR=null;
 	}
 
 	if(!$users->APP_KHSE_INSTALLED){
@@ -1097,6 +1120,7 @@ function dansguardian_status(){
 		$EnableRemoteStatisticsApplianceTextTR
 		$AsSquidLoadBalancerText
 		$SplashScreenFinal
+		$EnableITChartTextTR
 		$ufdb$ufdbPDNS
 		$eCapClam
 		$dansgu
@@ -1106,6 +1130,7 @@ function dansguardian_status(){
 		$MalWarePatrol
 		$EnableHaarpTextTR
 		$EnableFTPProxyTextTR
+		
 		$DisableAllFilters
 		
 		</tbody>

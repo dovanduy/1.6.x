@@ -1,3 +1,8 @@
+</MYSQLSYSLOG_EXPLAIN>
+<MYSQLZARAFA_TYPE_EXPLAIN>[b]Client or Server ?[b][br]
+Is this Artica server must use MailBoxes stored on a remote Artica server (client) or 
+is it a service that stores mailboxes on this computer (server) ? 
+<//MYSQLSYSLOG_EXPLAIN>
 <abort_remove_task>Abort remove task ?</abort_remove_task>
 <about2>About</about2>
 <abouttime>about</abouttime>
@@ -1270,6 +1275,7 @@ After enabling this service, use the End-users WebAccess console to tune your FT
 <enable_group_checking>Checks Groups</enable_group_checking>
 <enable_helo_randomize>Enable HELO randomization</enable_helo_randomize>
 <enable_imap_text>Enable the IMAP protocol for retreive messages from a mail client software trought IMAP</enable_imap_text>
+<enable_it_charter>Enable the IT Charter feature</enable_it_charter>
 <enable_mac_squid_filters>Activate MAC filtering</enable_mac_squid_filters>
 <enable_mac_squid_filters_explain>if turn to green, the Proxy will be able to log MAC addresses and you will be able to create ACLs using MAC addresses for whitelisting or blacklisting.
 MAC addresses filtering is available only if the proxy is on the same LAN, if it is not the case.[br]
@@ -1752,6 +1758,13 @@ Check the howto section in order to set your browser.</instroduction_enduser_pro
 <is_valid>Is valid</is_valid>
 <item>item</item>
 <items_has_been_added_in_webfiltering_database>Items has been added in Web filtering database</items_has_been_added_in_webfiltering_database>
+<IT_charter>Technology Charter</IT_charter>
+<it_charters>IT Charters</it_charters>
+<IT_charter_explain>Technology Charter feature allows the proxy service to redirect requests to an internal Web page that force members to read the company policy before accessing to Internet.[br]
+This feature will only display one time the policy page if the user as correctly accept the User Agreement.[br]
+Each User Agreement is logged in order to ensure that the policy has been read.[br]
+You can create multiple charters.[br]When an user as successfully read a policy agreement, it should be redirected to the next policy agreement.
+</IT_charter_explain>
 <i_understand_continue>I understand,continue anyway</i_understand_continue>
 <jabberdhostname>eJabberd hostname</jabberdhostname>
 <jabber_clients>Jabber Clients Softwares</jabber_clients>
@@ -1765,6 +1778,7 @@ lots of companies and individual users has already adopted it.[b]There are numer
 <kaspersky_updateutility_text>This task run the global Kaspersky updater in order to an antivirus pattern databases local cache.</kaspersky_updateutility_text>
 <keepalive>keep-alive</keepalive>
 <KeepAlive_tlm_notset>If you want to use the NTLM authentification, you need to activate the KeepAlive feature under FreeWebs Global parameters</KeepAlive_tlm_notset>
+<keep_current_settings>Keep current settings</keep_current_settings>
 <KerbAuthDisableGroupListing>Disable users/groups listing</KerbAuthDisableGroupListing>
 <KerbAuthDisableNormalizeName>Disable normalize name</KerbAuthDisableNormalizeName>
 <KerbAuthDisableNsswitch>Not include Active Directory in the local system</KerbAuthDisableNsswitch>
@@ -2214,6 +2228,7 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <new_expression>New expression</new_expression>
 <new_folder>New folder</new_folder>
 <new_forward_zone>New forward zone</new_forward_zone>
+<new_itchart>New IT Charter</new_itchart>
 <new_items>New items</new_items>
 <new_keyword>New keyword</new_keyword>
 <new_license>New license</new_license>

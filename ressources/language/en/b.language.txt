@@ -4059,3 +4059,13 @@ of Allow Magic user.[br]
 Default is the '@' character.[br]
 This allows you to use E-Mail addresses as usernames for login to the ftp server (i.e. me@mydomain%ftp.server:21 if you set it to %)
 </FTPUseMagicChar_explain>
+<IT_charter>Technology Charter</IT_charter>
+<IT_charter_explain>Technology Charter feature allows the proxy service to redirect requests to an internal Web page that force members to read the company policy before accessing to Internet.[br]
+This feature will only display one time the policy page if the user as correctly accept the User Agreement.[br]
+Each User Agreement is logged in order to ensure that the policy has been read.[br]
+You can create multiple charters.[br]When an user as successfully read a policy agreement, it should be redirected to the next policy agreement.
+</IT_charter_explain>
+<enable_it_charter>Enable the IT Charter feature</enable_it_charter>
+<keep_current_settings>Keep current settings</keep_current_settings>
+<new_itchart>New IT Charter</new_itchart>
+<it_charters>IT Charters</it_charters>

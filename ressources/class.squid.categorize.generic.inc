@@ -775,7 +775,7 @@ class generic_categorize{
 	private function webtv($www){
 		
 		$array=array("moiseriali","blip","ustream","zap2it","tvrage","arte","canalplus","mtv","diziizle","m6web",
-				"bfmtv","france2","france3","francetelevisions","mediasetpremium.it","tvnet","jcntv.jp","webtv-corp.ru","wmaker.tv","leclubcanal","premiumtv","partner-tvmag.net");
+				"bfmtv","france2","france3","24tv.ua","luxnet.ua","francetelevisions","mediasetpremium.it","tvnet","jcntv.jp","webtv-corp.ru","wmaker.tv","leclubcanal","premiumtv","partner-tvmag.net");
 		
 		if($this->ParseArray($array, $www)){return "webtv";}
 		

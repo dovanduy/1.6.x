@@ -2368,6 +2368,29 @@ public function CheckTables($table=null){
 				)  ENGINE = MYISAM;";
 		$this->QUERY_SQL($sql,$this->database);		
 		
+
+		$sql="CREATE TABLE IF NOT EXISTS `itcharters` (
+			`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			`ChartContent` TEXT NOT NULL,
+			`Params` TEXT NULL ,
+			`title` VARCHAR(255) NOT NULL,
+			`explain` TEXT NOT NULL,
+			`enabled` INT(1) NOT NULL DEFAULT '1' ,
+			 KEY `title` (`title`),
+			 KEY `enabled` (`enabled`)
+			)  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);	
+
+		$sql="CREATE TABLE IF NOT EXISTS `itchartlog` (
+			`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			`chartid` INT NOT NULL,
+			`uid` VARCHAR(128) NOT NULL ,
+			`zDate` datetime NOT NULL,
+			`ipaddr` VARCHAR(128) NOT NULL,
+			`MAC` VARCHAR(128) NOT NULL
+			)  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);		
+		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `hotspot_ident` (
 				`ipaddr` VARCHAR( 90 ) NOT NULL PRIMARY KEY ,

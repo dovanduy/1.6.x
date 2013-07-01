@@ -18,6 +18,8 @@ if($_SESSION["uid"]=="-100"){
 	die();
 	
 }
+if(isset($_POST["SourceParams"])){SourceParams();exit;}
+
 if(isset($_GET["top-menu"])){top_menu();exit;}
 if(isset($_GET["left-menu"])){left_menu();exit;}
 if(isset($_GET["upload-pic-js"])){upload_pic_js();exit;}
@@ -35,6 +37,8 @@ main_page();
 exit;
 
 
+
+
 if(isset($_GET["choose-language"])){choose_language();exit;}
 if(isset($_POST["miniconfig-POST-lang"])){choose_language_save();exit();}
 
@@ -50,6 +54,12 @@ function main_page(){
 	echo $content;
 	
 	
+}
+function SourceParams(){
+	$SourceParams=unserialize(base64_decode($_POST["SourceParams"]));
+	$SourceParams[$_POST["KeyParams"]]=$_POST["value"];
+	$SourceParams["FIRST"]=$_POST["KeyParams"];
+	echo base64_encode(serialize($SourceParams));
 }
 
 function top_menu(){

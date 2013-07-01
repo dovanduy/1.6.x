@@ -4907,6 +4907,7 @@ function ftp_proxy(){
 
 	$l[]="[APP_FTP_PROXY]";
 	$l[]="service_name=APP_FTP_PROXY";
+	$l[]="service_cmd=/etc/init.d/ftp-proxy";
 	$l[]="master_version=".ftp_proxy_version();
 	$l[]="service_disabled=$EnableFTPProxy";
 	$l[]="pid_path=/var/run/ftp-proxy.pid";

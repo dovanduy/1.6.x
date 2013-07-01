@@ -106,30 +106,9 @@ function setup_2(){
 	if(count($savedsettings)<3){
 			$hostname=base64_decode($sock->getFrameWork("network.php?fqdn=yes"));	
 			if($hostname==null){$users=new usersMenus();$hostname=$users->fqdn;}	
-		
+			$arrayNameServers=GetNamesServers();
 			
-			$resolv_conf=explode("\n",@file_get_contents("/etc/resolv.conf"));
-			while (list ($index, $lines) = each ($resolv_conf) ){
-				if(preg_match("#127\.0\.0\.1#",$lines)){continue;}
-				if(preg_match("#^nameserver\s+(.+)#",$lines,$re)){
-					$g=trim($re[1]);
-					if($g=="127.0.0.1"){continue;}
-					$arrayNameServers[]=$g;
-				}
-			}	
-			
-			if(count($arrayNameServers)==0){
-				$resolv_conf=file("/etc/resolvconf/resolv.conf.d/original");
-				while (list ($index, $lines) = each ($resolv_conf) ){
-					if(preg_match("#127\.0\.0\.1#",$lines)){continue;}
-					if(preg_match("#^nameserver\s+(.+)#",$lines,$re)){
-						$g=trim($re[1]);
-						if($g=="127.0.0.1"){continue;}
-						$arrayNameServers[]=$g;
-					}
-				}			
-				
-			}
+
 			
 			
 			if(strpos($hostname, '.')>0){
@@ -149,6 +128,23 @@ function setup_2(){
 		$domainname=$savedsettings["domain"];
 		$arrayNameServers[0]=$savedsettings["DNS1"];
 		$arrayNameServers[1]=$savedsettings["DNS2"];
+	}
+	
+	if($netbiosname==null){
+		$hostname=base64_decode($sock->getFrameWork("network.php?fqdn=yes"));
+		if($hostname==null){$users=new usersMenus();$hostname=$users->fqdn;}
+		if(strpos($hostname, '.')>0){
+			$Thostname=explode(".", $hostname);
+			$netbiosname=$Thostname[0];
+			unset($Thostname[0]);
+			$domainname=@implode(".", $Thostname);
+		}else{
+			$netbiosname=$hostname;
+		}
+	}
+	
+	if($arrayNameServers[0]==null){
+		$arrayNameServers=GetNamesServers();
 	}
 	
 	if($users->SQUID_INSTALLED){
@@ -216,7 +212,7 @@ function setup_2(){
 	$GATEWAY=$savedsettings["GATEWAY"];
 	$metric=$savedsettings["metric"];
 	$BROADCAST=$savedsettings["BROADCAST"];
-	
+	$KEEPNET=$savedsettings["KEEPNET"];
 	$nic=new system_nic("eth0");
 	if($IPADDR==null){$IPADDR=$nic->IPADDR;}
 	if($NETMASK==null){$NETMASK=$nic->NETMASK;}
@@ -227,6 +223,7 @@ function setup_2(){
 	if($metric<2){$metric=100;}
 	$DISABLED=false;
 	if(trim($arrayNameServers[1])==null){$arrayNameServers[1]="8.8.8.8";}
+	if(!is_numeric($KEEPNET)){$KEEPNET=0;}
 	$FORM="
 	
 	<table style='width:99%' class=form>
@@ -247,6 +244,10 @@ function setup_2(){
 	<tr>
 		<td colspan=2 style='font-size:12px;font-weight:bolder'>{network_settings_will_be_applied_after_reboot}</td>
 	</tr>
+		<tr>
+			<td class=legend style='font-size:14px' nowrap>{keep_current_settings}:</td>
+			<td>" . Field_checkbox("KEEPNET",1,$KEEPNET,'KeepNetCheck()')."</td>
+		</tr>				
 		<tr>
 			<td class=legend style='font-size:14px' nowrap>{tcp_address}:</td>
 			<td>" . field_ipv4("IPADDR",$IPADDR,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
@@ -302,15 +303,47 @@ function setup_2(){
 		function ChangeQuickHostnameCheck(e){
 			if(checkEnter(e)){ChangeQuickHostname();}
 		}
+		
+		function KeepNetCheck(){
+			
+			document.getElementById('hostname_netbios').disabled=false;
+			document.getElementById('hostname_domain').disabled=false;
+			document.getElementById('IPADDR').disabled=false;
+			document.getElementById('NETMASK').disabled=false;
+			document.getElementById('GATEWAY').disabled=false;
+			document.getElementById('BROADCAST').disabled=false;
+			document.getElementById('metric-$t').disabled=false;	
+			document.getElementById('DNS1').disabled=false;
+			document.getElementById('DNS2').disabled=false;
+			
+			
+			if(document.getElementById('KEEPNET').checked){
+				document.getElementById('IPADDR').disabled=true;
+				document.getElementById('NETMASK').disabled=true;
+				document.getElementById('GATEWAY').disabled=true;
+				document.getElementById('BROADCAST').disabled=true;
+				document.getElementById('metric-$t').disabled=true;	
+				document.getElementById('DNS1').disabled=true;
+				document.getElementById('DNS2').disabled=true;
+				document.getElementById('hostname_netbios').disabled=true;
+				document.getElementById('hostname_domain').disabled=true;				
+			
+			}
+		
+		}
 
 		
 		function ChangeQuickHostname(){
+			KEEPNET=0;
+			if(document.getElementById('KEEPNET').checked){KEEPNET=1;}
 			var XHR = new XHRConnection();
 			var netbios=document.getElementById('hostname_netbios').value;
 			var dom=document.getElementById('hostname_domain').value;
-			if(netbios.length==0){alert('$netbiosname_field (Null!)');return;}
-			if(dom.length==0){alert('$domain_field (Null!)');return;}
-			if(dom=='localhost.localdomain'){alert('localhost.localdomain wrong domain...');return;}
+			if(KEEPNET==0){
+				if(netbios.length==0){alert('$netbiosname_field (Null!)');return;}
+				if(dom.length==0){alert('$domain_field (Null!)');return;}
+				if(dom=='localhost.localdomain'){alert('localhost.localdomain wrong domain...');return;}
+			}
 			
 			if(document.getElementById('proxy_listen_port')){
 				XHR.appendData('proxy_listen_port',document.getElementById('proxy_listen_port').value);
@@ -344,27 +377,27 @@ function setup_2(){
 				if(document.getElementById('EnableWebFiltering').checked){EnableWebFiltering=1;}
 				XHR.appendData('EnableWebFiltering',EnableWebFiltering);
 			}			
-
+			
 			 
-			
-			    
-			XHR.appendData('IPADDR',document.getElementById('IPADDR').value);
-			XHR.appendData('NETMASK',document.getElementById('NETMASK').value);  
-			XHR.appendData('GATEWAY',document.getElementById('GATEWAY').value);
-			XHR.appendData('BROADCAST',document.getElementById('BROADCAST').value);
-			XHR.appendData('metric',document.getElementById('metric-$t').value);          
-			
+			XHR.appendData('KEEPNET',KEEPNET);
+			if(KEEPNET==0){ 
+				XHR.appendData('IPADDR',document.getElementById('IPADDR').value);
+				XHR.appendData('NETMASK',document.getElementById('NETMASK').value);  
+				XHR.appendData('GATEWAY',document.getElementById('GATEWAY').value);
+				XHR.appendData('BROADCAST',document.getElementById('BROADCAST').value);
+				XHR.appendData('metric',document.getElementById('metric-$t').value);          
+				XHR.appendData('DNS1',document.getElementById('DNS1').value);
+				XHR.appendData('DNS2',document.getElementById('DNS2').value);
+				XHR.appendData('netbiosname',netbios);
+				XHR.appendData('domain',dom);
+			}
 			
 			XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
-			XHR.appendData('DNS1',document.getElementById('DNS1').value);
-			XHR.appendData('DNS2',document.getElementById('DNS2').value);
-			XHR.appendData('netbiosname',netbios);
-			XHR.appendData('domain',dom);
 			AnimateDiv('setup-content');
 			XHR.sendAndLoad('$page', 'POST',X_ChangeQuickHostname);
 			
 		}
-	
+		KeepNetCheck();
 	</script>
 	
 	";
@@ -402,6 +435,8 @@ function setup_3(){
 	$telephone=$savedsettings["telephone"];
 	$UseServerV=$savedsettings["UseServer"];
 	$smtp_domainname=$savedsettings["smtp_domainname"];
+	$KEEPNET=$savedsettings["KEEPNET"];
+	if(!is_numeric($KEEPNET)){$KEEPNET=0;}
 	$t=time();
 	$UseServer[null]="{select}";
 	$UseServer["ASMAIL"]="{mail_server}";
@@ -418,25 +453,29 @@ function setup_3(){
 	$arrayNameServers[1]=$savedsettings["DNS2"];	
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$resolv=new resolv_conf();
-	$resolv->MainArray["DNS1"]=$arrayNameServers[0];
-	$resolv->MainArray["DNS2"]=$arrayNameServers[1];
-	$resolv->save();
+	if($KEEPNET==0){
+		$resolv=new resolv_conf();
+		$resolv->MainArray["DNS1"]=$arrayNameServers[0];
+		$resolv->MainArray["DNS2"]=$arrayNameServers[1];
+		$resolv->save();
+	}
 
-	if($_POST["IPADDR"]<>null){
-		$nics=new system_nic("eth0");
-		$nics->eth="ethO";
-		$nics->IPADDR=$arrayNameServers["IPADDR"];
-		$nics->NETMASK=$arrayNameServers["NETMASK"];
-		$nics->GATEWAY=$arrayNameServers["GATEWAY"];
-		$nics->BROADCAST=$arrayNameServers["BROADCAST"];
-		$nics->DNS1=$arrayNameServers[0];
-		$nics->DNS2=$arrayNameServers[1];
-		$nics->dhcp=0;
-		$nics->metric=$savedsettings["metric"];
-		$nics->enabled=1;
-		$nics->NoReboot=true;
-		$nics->SaveNic();
+	if($KEEPNET==0){
+		if($_POST["IPADDR"]<>null){
+			$nics=new system_nic("eth0");
+			$nics->eth="ethO";
+			$nics->IPADDR=$arrayNameServers["IPADDR"];
+			$nics->NETMASK=$arrayNameServers["NETMASK"];
+			$nics->GATEWAY=$arrayNameServers["GATEWAY"];
+			$nics->BROADCAST=$arrayNameServers["BROADCAST"];
+			$nics->DNS1=$arrayNameServers[0];
+			$nics->DNS2=$arrayNameServers[1];
+			$nics->dhcp=0;
+			$nics->metric=$savedsettings["metric"];
+			$nics->enabled=1;
+			$nics->NoReboot=true;
+			$nics->SaveNic();
+		}
 	}
 	
 	
@@ -568,7 +607,12 @@ function setup_3(){
 	<script>
 		var X_ChangeCompanySettings= function (obj) {
 			var results=obj.responseText;
-			LoadAjax('setup-content','$page?setup-4=yes&savedsettings='+results);
+			var KEEPNET=$KEEPNET;
+			if(KEEPNET==0){
+				LoadAjax('setup-content','$page?setup-4=yes&savedsettings='+results);
+			}else{
+				LoadAjax('setup-content','$page?setup-5=yes&savedsettings='+results);
+			}
 		
 			}
 		
@@ -866,30 +910,31 @@ function dns_save(){
 	$DetectedLanguage=$langAutodetect->get_languages();
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;		
 	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
+	
+	$KEEPNET=$savedsettings["KEEPNET"];
 	$netbiosname=$savedsettings["netbiosname"];
 	$domainname=$savedsettings["domain"];
 	$arrayNameServers[0]=$savedsettings["DNS1"];
 	$arrayNameServers[1]=$savedsettings["DNS2"];
 	$page=CurrentPageName();
 	$tpl=new templates();	
-
-	if($savedsettings["DNS1"]==null){
-		
-$html="
-		<table style='width:99%' class=form>
-		<tr>
-			<td valign='top'><img src='img/danger64.png'></td>
-			<td style='padding-left:15px'><strong style='font-size:18px'>{saving_network_failed}:<br>$netbiosname.$domainname<br>DNS1:{$arrayNameServers[0]}<br>DNS2{$arrayNameServers[1]}</strong>
-			
-		</td>
-		</tr>
-		</table>
-	";
-	echo $tpl->_ENGINE_parse_body($html);	
-	return;	
-		
-	}
-	
+	if($KEEPNET==0){
+		if($savedsettings["DNS1"]==null){
+				
+			$html="
+					<table style='width:99%' class=form>
+					<tr>
+						<td valign='top'><img src='img/danger64.png'></td>
+						<td style='padding-left:15px'><strong style='font-size:18px'>{saving_network_failed}:<br>$netbiosname.$domainname<br>DNS1:{$arrayNameServers[0]}<br>DNS2{$arrayNameServers[1]}</strong>
+						
+					</td>
+					</tr>
+					</table>
+				";
+				echo $tpl->_ENGINE_parse_body($html);	
+				return;	
+		}
+	}	
 
 
 	
@@ -1053,7 +1098,7 @@ function check_email_address($email) {
 		
 	}
 
-	if(!checkDNSEmail($email)){return false;}
+	return true;
 	
 	
   // First, we check that there's one @ symbol, 
@@ -1091,3 +1136,31 @@ $domain_array[$i])) {
   return true;
 }
 
+
+
+function GetNamesServers(){
+	
+	$resolv_conf=explode("\n",@file_get_contents("/etc/resolv.conf"));
+	while (list ($index, $lines) = each ($resolv_conf) ){
+		if(preg_match("#127\.0\.0\.1#",$lines)){continue;}
+		if(preg_match("#^nameserver\s+(.+)#",$lines,$re)){
+			$g=trim($re[1]);
+			if($g=="127.0.0.1"){continue;}
+			$arrayNameServers[]=$g;
+		}
+	}
+		
+	if(count($arrayNameServers)==0){
+		$resolv_conf=file("/etc/resolvconf/resolv.conf.d/original");
+		while (list ($index, $lines) = each ($resolv_conf) ){
+			if(preg_match("#127\.0\.0\.1#",$lines)){continue;}
+			if(preg_match("#^nameserver\s+(.+)#",$lines,$re)){
+				$g=trim($re[1]);
+				if($g=="127.0.0.1"){continue;}
+				$arrayNameServers[]=$g;
+			}
+		}
+	
+	}	
+	return $arrayNameServers;
+}

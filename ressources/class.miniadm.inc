@@ -640,6 +640,56 @@ class boostrap_form{
 	
 	}	
 	
+	public function TableCompile($array,$rows){
+		$tFunc="SetSearchParams{$_GET["divid"]}";
+		$Params=unserialize(base64_decode(url_decode_special_tool($_GET["Params"])));
+		$f[]="<table class='table table-bordered table-hover'>
+			<thead>
+				<tr>";
+		
+		while (list ($key, $text) = each ($array) ){
+			if($Params["order-$key"]==1){$Params["order-$key"]=0;}else{$Params["order-$key"]=1;}
+			$tri=$this->trswitch("$tFunc('order-$key','{$Params["order-$key"]}')");
+			$text=$this->tpl->_ENGINE_parse_body($text);
+			$f[]="<th $tri><u>$text</u></th>";
+		}
+		$f[]="</tr>
+		</thead>
+	<tbody>";
+		
+	$f[]=@implode("\n", $rows)." </tbody></table>";
+	return @implode("\n", $f);
+	}
+	
+	public function TableOrder($array){
+		$Params=unserialize(base64_decode(url_decode_special_tool($_GET["Params"])));
+		$FIRST=null;
+		if(isset($Params["FIRST"])){
+			$key=$Params["FIRST"];
+			$FIRST=$key;
+			$value=$Params[$key];
+			if(preg_match("#order-(.+)#", $key,$re)){
+				if($value==1){
+				$f[]="{$re[1]} ASC";
+				}else{$f[]="{$re[1]} DESC";}
+			}
+		}
+		
+		while (list ($key, $value) = each ($Params) ){
+			if(preg_match("#order-(.+)#", $key,$re)){
+				if($FIRST==$re[1]){continue;}
+				if($value==1){$array[$re[1]]="ASC";}else{$array[$re[1]]="DESC";}
+			}
+			
+		}
+		
+		while (list ($field, $dir) = each ($array) ){	
+			$f[]="$field $dir";
+			
+		}
+		return @implode(",",$f);
+	}
+	
 	public function set_AddScript($function,$array){
 		$page=CurrentPageName();
 
@@ -850,6 +900,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
     <div class='form-search' style='margin:10px;text-align:right'>
     	<input type='hidden' id='SearchFunction$t' value='SearchQuery$t' class='SearchFunction'>
     	<input type='hidden' id='qtype$t' value='$qtype'>
+    	<input type='hidden' id='Params$t' value=''>
    	 	 <input type='text' id='s-$t' class='input-medium search-query' OnKeyPress=\"javascript:SearchQueryQ$t(event)\">
    		 <button type='button' id='bt-$t' class='btn' data-loading-text=\"$Loading...\">$search</button>$labeltxt
     </div>
@@ -867,10 +918,11 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 		function SearchQuery$t(){
 			var pp=encodeURIComponent(document.getElementById('s-$t').value);
 			var pa=encodeURIComponent(document.getElementById('qtype$t').value);
+			var pr=encodeURIComponent(document.getElementById('Params$t').value);
 			var btn$t = $('#bt-$t');
 			btn$t.button('loading');
 			setTimeout(function () { btn$t.button('reset') }, 2000);
-			LoadAjax('$t-search','$page?$field='+pp+'$additional&qtype='+pa)		
+			LoadAjax('$t-search','$page?$field='+pp+'$additional&qtype='+pa+'&divid=$t&Params='+pr)		
 		}
 		
 		function buttonHandler$t(){
@@ -882,8 +934,26 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 		
 		}
 		
-		buttonHandler$t();
-		SearchQuery$t();
+	var xSetSearchParams$t= function (obj) {
+		var res=obj.responseText;
+		if(res.length>3){
+			document.getElementById('Params$t').value=res;
+		}
+		SearchQuery$t()
+	}		
+		
+	function SetSearchParams$t(key,value){
+		var XHR = new XHRConnection();
+		var pr=encodeURIComponent(document.getElementById('Params$t').value);
+		XHR.appendData('SourceParams', pr);
+		XHR.appendData('KeyParams', key);
+		XHR.appendData('value', value);
+		XHR.sendAndLoad('miniadm.index.php', 'POST',xSetSearchParams$t);  
+	}
+		
+		
+	buttonHandler$t();
+	SearchQuery$t();
 		
 	</script>";		
 		

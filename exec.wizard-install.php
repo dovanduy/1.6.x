@@ -69,6 +69,14 @@ function WizardExecute(){
 	if(is_dir("/opt/articatech/data")){
 		shell_exec("$nohup /etc/init.d/artica-postfix start articadb >/dev/null 2>&1 &");
 	}
+	$KEEPNET=$savedsettings["KEEPNET"];
+	if($KEEPNET==1){
+		@file_put_contents("/etc/artica-postfix/WIZARD_INSTALL_EXECUTED", time());
+		shell_exec("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+		return;
+	}
+	
+	
 	
 	$nics=new system_nic("eth0");
 	$nics->eth="eth0";

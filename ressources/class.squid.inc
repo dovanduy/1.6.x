@@ -1335,7 +1335,55 @@ class squidbee{
 		
 		
 	}
-	
+	private function external_acl_helper_ITChart(){
+		if(!$this->ASROOT){return;}$sock=new sockets();
+		$EnableITChart=$sock->GET_INFO("EnableITChart");
+		if(!is_numeric($EnableITChart)){$EnableITChart=0;}
+		if($EnableITChart==0){return;}
+		$array["CACHE_TIME"]=360;
+		if($this->is_auth()){$L[]="%LOGIN";}
+		$external_acl_children=$this->SquidClientParams["external_acl_children"];
+		$external_acl_startup=$this->SquidClientParams["external_acl_startup"];
+		$external_acl_idle=$this->SquidClientParams["external_acl_idle"];
+		$ProcessesNumber=$external_acl_children;
+		$L[]="%SRC";
+		if($this->ACL_ARP_ENABLED){$L[]="%SRCEUI48";}
+		$L[]="%>{X-Forwarded-For}";
+		if($this->IS_32){$ipv4=" ipv4";}
+		$port=0;
+		$ItChartFreeWeb=$sock->GET_INFO("ItChartFreeWeb");
+		
+		if(preg_match("#(.+?):([0-9]+)#", $ItChartFreeWeb,$re)){
+			$sitename=$re[1];
+			$port=$re[2];
+		}else{
+			$sitename=$ItChartFreeWeb;
+		}
+		
+		$acl_SplashPage="acl ItChartPage dstdomain .$sitename";
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $sitename)){
+			$acl_SplashPage="acl ItChartPage dst $sitename";
+		}
+		
+		if($port>0){
+			$SplashScreenURI="https://$sitename:$port/public.squid.error.php";
+		}else{
+			$SplashScreenURI="http://$sitename:$port/public.squid.error.php";
+		}
+		
+		$f[]="#-----------------------------------------------------------------\n";
+		$GLOBALS["ArtcExtrnItChart"]=true;
+		$f[]="external_acl_type ArtcExtrnItChart ttl={$array["CACHE_TIME"]} negative_ttl=0 children-startup={$external_acl_startup} children-idle={$external_acl_idle} children-max={$ProcessesNumber} $ipv4 ".@implode(" ", $L)." /usr/share/artica-postfix/external_acl_dynamic.php --itchart\n";
+		$f[]="acl ItChartAcl external ArtcExtrnItChart";
+		$f[]="$acl_SplashPage";
+		$f[]="deny_info 302:$SplashScreenURI?ItChart=yes&request=%o&src=%u ItChartAcl";
+		$GLOBALS["HTTP_ACCESS"]["ItChart"]="http_access allow ItChartPage\nhttp_access deny $this->MyStandPort!ItChartAcl";
+		$f[]="#-----------------------------------------------------------------\n";
+		
+		
+		return @implode("\n", $f);
+		
+	}
 	
 	private function external_acl_helper_splash_screen(){
 		if($this->EnableSplashScreen==0){return;}
@@ -3911,6 +3959,7 @@ function BuildSquidConf(){
 		$conf=$conf.  $this->external_acl_helper_nudity_scanner();
 		$conf=$conf.  $this->external_acl_dynamic_helper();
 		$conf=$conf.  $this->external_acl_helper_time_quota_acl();
+		$conf=$conf.  $this->external_acl_helper_ITChart();
 		$conf=$conf . $this->external_acl_helper();
 		$conf=$conf . "#--------- Bubble Mode ($this->SquidBubbleMode)\n";
 		$this->MyStandPort=null;
@@ -5152,8 +5201,10 @@ function BuildSquidConf(){
 			if($this->EnableUserAgentBanAll==1){$conf[]="http_access deny !AllowedBrowsers";}		
 			if(isset($GLOBALS["HTTP_ACCESS"]["BLOCKEDSITES"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["BLOCKEDSITES"];}	
 			if(isset($GLOBALS["HTTP_ACCESS"]["MALWARE_PATROL"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["MALWARE_PATROL"];}			
+			if(isset($GLOBALS["HTTP_ACCESS"]["ItChart"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["ItChart"];}
 			
 			if($this->ASROOT){echo "Starting......: [ACLS]: Building http_access rules... (Line ".__LINE__.")\n";}
+			
 			$conf[]="#--------- ACLS added by administrators";
 			$conf[]=$acls->buildacls_order(0);
 			

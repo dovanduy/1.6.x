@@ -1,3 +1,8 @@
+</MYSQLSYSLOG_EXPLAIN>
+<MYSQLZARAFA_TYPE_EXPLAIN>[b]Client or Server ?[b][br]
+Is this Artica server must use MailBoxes stored on a remote Artica server (client) or 
+is it a service that stores mailboxes on this computer (server) ? 
+<//MYSQLSYSLOG_EXPLAIN>
 <abort_remove_task>Abort remove task ?</abort_remove_task>
 <about2>A propos</about2>
 <abouttime>environ</abouttime>
@@ -1112,6 +1117,7 @@ Les param&egrave;tres sp&eacute;cifiques au proxy FTP sont disponibles dans l'in
 <enable_group_checking>V&eacute;rifier les groupes</enable_group_checking>
 <enable_helo_randomize>Activer l'envoi HELO al&eacute;atoire</enable_helo_randomize>
 <enable_imap_text>Activer le protocole IMAP afin d'autoriser vos utilisateurs &agrave; utiliser leur client de messagerie pour r&eacute;cup&eacute;rer les messages sur le serveur. via IMAP</enable_imap_text>
+<enable_it_charter>Activer la charte Informatique</enable_it_charter>
 <enable_mac_squid_filters>Activer le filtrage MAC</enable_mac_squid_filters>
 <enable_mac_squid_filters_explain>Si vert, le Proxy (si il en a la capacit&eacute;) va enregistrer les adresses MAC dans les &eacute;v&egrave;nements.[br]Vous serez en mesure aussi de cr&eacute;er des ACLs avec les adresses MAC pour les listes blanches ou noires.[br]
 L'utilisation des adresses MAC n'est possible que si ce serveurs utilise le m&ecirc;me r&eacute;seau que les postes clients.[br]Le cas &eacute;ch&eacute;ant, d&eacute;sactivez cette fonction afin de d&eacute;charger le proxy de la r&eacute;solution des adresses MAC pour chaque requ&ecirc;te.</enable_mac_squid_filters_explain>
@@ -1517,6 +1523,12 @@ Avec votre compte vous &ecirc;tes en mesure d'acc&eacute;der &agrave; Internet e
 <is_valid>Est valide</is_valid>
 <item>&Eacute;l&eacute;ment</item>
 <items_has_been_added_in_webfiltering_database>&eacute;l&eacute;ments ont &eacute;t&eacute;s ajout&eacute;s dans les bases de filtrage Web.</items_has_been_added_in_webfiltering_database>
+<IT_charter>Charte informatique</IT_charter>
+<it_charters>Chartes informatiques</it_charters>
+<IT_charter_explain>La fonctionnalit&eacute; de charte informatique autorise le service proxy &agrave; rediriger les requ&ecirc;tes des utilisateurs vers une page interne. Cette page propose la validation d'une charte informatique avant d'acc&eacute;der &agrave; Internet.[br]
+Cette fonctionnalit&eacute; ne s'affiche que si et seulement si l'utilisateur n'a pas valid&eacute; la charte.[br]
+Chaque accord de la charte est enregistr&eacute; dans les &eacute;v&egrave;nements afin de s'assurer qu'elle a bel et bien &eacute;t&eacute; consult&eacute;e.[br]Vous pouvez cr&eacute;er plusieurs chartes.[br]
+Lorsqu'un utilisateur &agrave; consult&eacute; une charte, il pourrait &ecirc;tre &agrave; nouveau redirig&eacute; vers la suivante.</IT_charter_explain>
 <i_understand_continue>J'ai compris, continuer malgr&eacute; tout</i_understand_continue>
 <jabberdhostname>Domaine eJabberd</jabberdhostname>
 <jabber_clients>Logiciels Clients Jabber</jabber_clients>
@@ -1530,6 +1542,7 @@ Voici les logiciels clients disponibles sous Windows (et/ou Linux) qui permetten
 <kaspersky_updateutility_text>Cette t&acirc;che ex&eacute;cute le processus de miroir des serveurs de mise &agrave; jour Kaspersky afin de d&eacute;livrer les mises &agrave; jour localement en seul point.</kaspersky_updateutility_text>
 <keepalive>keep-alive</keepalive>
 <KeepAlive_tlm_notset>Si vous d&eacute;sire utiliser l'authentification NTLM, vous devez activer le &quot;KeepAlive&quot; (Rester connect&eacute;) dans les param&egrave;tres globaux de FreeWebs</KeepAlive_tlm_notset>
+<keep_current_settings>Garder les param&egrave;tres actuels</keep_current_settings>
 <KerbAuthDisableGroupListing>D&eacute;sactiver le parcours utilisateurs/groupes</KerbAuthDisableGroupListing>
 <KerbAuthDisableNormalizeName>D&eacute;sactiver la normalisation des noms</KerbAuthDisableNormalizeName>
 <KerbAuthDisableNsswitch>Ne pas int&eacute;grer l'AD dans le syst&egrave;me local</KerbAuthDisableNsswitch>
@@ -1921,6 +1934,7 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 <new_expression>Nouvelle expression</new_expression>
 <new_folder>Nouveau dossier</new_folder>
 <new_forward_zone>Nouvelle zone de transfert</new_forward_zone>
+<new_itchart>Nouvelle charte informatique</new_itchart>
 <new_items>Nouveaux &eacute;l&eacute;ments</new_items>
 <new_keyword>Nouveau mot clef</new_keyword>
 <new_license>Nouvelle licence</new_license>
