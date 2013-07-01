@@ -1183,6 +1183,18 @@ The Samba server is made into a domain member server</domain_security_explain>
 <drop_caches>Drop kernel caches</drop_caches>
 <drop_caches_explain>Cause the kernel to drop clean caches, dentries and inodes from memory, causing that memory to become free</drop_caches_explain>
 <dst>Destination IP(s)</dst>
+<dstdomain_regex>Web server (regex)</dstdomain_regex>
+<dstdomain_regex_explain>Give the regulare expression that matches the domain.[br]
+example: www.mywebsite.*[br]
+The star character is supported.[br]
+Example: matches all google.com websites[br]
+*.google.* (.google. should the same)[br]
+"$" character means, end of line.[br]
+example: .xxx$ or should block any http://*.xxx request.[br]
+Artica will transform your request into a regular expression.[br]
+If your pattern is a real regular expression define [b]regex:[/b] as suffix.[br]
+example: regex:^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)[br]
+</dstdomain_regex_explain>
 <dump_group>Dump group</dump_group>
 <duplicate_the_ruleid_give_name>Give the new rule name in order to duplicate the rule:</duplicate_the_ruleid_give_name>
 <duplicate_uidNumber>Duplicate uidNumber</duplicate_uidNumber>
@@ -2280,6 +2292,7 @@ We suggest to regulary analyze tables With the "Categorize Internet sites" optio
 <NO_ENOUGH_MEMORY_FOR_THIS_SECTION>Your server did not handle enough memory to activate features listed in this section</NO_ENOUGH_MEMORY_FOR_THIS_SECTION>
 <no_entry>No entry</no_entry>
 <no_expression_group>No expression group</no_expression_group>
+<no_extension_check>Disable extension checking</no_extension_check>
 <no_group>No group</no_group>
 <no_information_retreived>No information retreived</no_information_retreived>
 <no_instance>No instance</no_instance>

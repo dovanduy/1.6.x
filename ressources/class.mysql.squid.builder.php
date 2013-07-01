@@ -88,6 +88,7 @@ class mysql_squid_builder{
 		$this->acl_GroupType["src"]="{addr}";
 		$this->acl_GroupType["arp"]="{ComputerMacAddress}";
 		$this->acl_GroupType["dstdomain"]="{dstdomain}";
+		$this->acl_GroupType["dstdom_regex"]="{dstdomain_regex}";
 		$this->acl_GroupType["dst"]="{dst}";
 		$this->acl_GroupType["proxy_auth"]="{members}";
 		if($EnableKerbAuth==1){if($UseDynamicGroupsAcls==1){$this->acl_GroupType["proxy_auth_ads"]="{dynamic_activedirectory_group}";}}

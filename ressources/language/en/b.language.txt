@@ -3987,6 +3987,7 @@ Or an uri: http://www.mydomain.com
 <NotifyDNSIssues>Notify when detecting DNS resolutions issues</NotifyDNSIssues>
 <NotifyDNSIssues_explain>Send an email notification if the proxy encounter DNS resolutions issues.</NotifyDNSIssues>
 <DNSIssuesMAX>MAX DNS issues per minute</DNSIssuesMAX>
+<no_extension_check>Disable extension checking</no_extension_check>
 <free_cat_no_extension_check_explain>If checked, the engine will not refuse domain without extension.</free_cat_no_extension_check_explain>
 <nginx_replace_explain>Replace rules allows you to force the reverse proxy to replace web pages on-the-fly</nginx_replace_explain>
 <error_nginx_substitutions_filter>Error, the substitution filter is not installed</error_nginx_substitutions_filter>
@@ -4018,3 +4019,15 @@ If you open this service, all Artica servers installed on your network can use t
 <database_statistics_wizard>Statistics Database wizard</database_statistics_wizard>
 <APP_NGINXDB>Reverse Proxy Statistics Database</APP_NGINXDB>
 <alreadyexists>Already exists</alreadyexists>
+<dstdomain_regex>Web server (regex)</dstdomain_regex>
+<dstdomain_regex_explain>Give the regular expression that matches the domain.[br]
+example: www.mywebsite.*[br]
+The star character is supported.[br]
+Example: matches all google.com websites[br]
+*.google.* (.google. should the same)[br]
+"$" character means, end of line.[br]
+example: .xxx$ or should block any http://*.xxx request.[br]
+Artica will transform your request into a regular expression.[br]
+If your pattern is a real regular expression define [b]regex:[/b] before expression.[br]
+example: regex:^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)[br]
+</dstdomain_regex_explain> 

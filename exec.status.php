@@ -7523,6 +7523,7 @@ function squid_db(){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
 			$cmd=trim("{$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.squid-db.php --init");
 			shell_exec2($cmd);
+			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/artica-postfix start articadb >/dev/null 2>&1 &");
 			squid_watchdog_events("Artica MySQL statistics did not running, start it...");
 			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/squid-db restart >/dev/null 2>&1 &");
 		}
@@ -7776,11 +7777,12 @@ function nginx(){
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
-			$cmd=trim("{$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.initslapd.php --nginx >/dev/null 2>&1");
+			$cmd=trim("{$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.initslapd.php --nginx >/dev/null 2>&1 ");
 			shell_exec2($cmd);
 			$cmd=trim("{$GLOBALS["NICE"]} {$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.nginx.php --start >/dev/null 2>&1 &");
 			shell_exec2($cmd);
-			
+			$cmd=trim("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.initslapd.php --force >/dev/null 2>&1 &");
+			shell_exec2($cmd);
 		}
 		$l[]="running=0\ninstalled=1";$l[]="";
 		return implode("\n",$l);

@@ -1029,6 +1029,17 @@ Dans cette section, indiquez le domaine &agrave; ajouter &agrave; la machine vir
 <drop_caches>Supprimer les caches du noyau</drop_caches>
 <drop_caches_explain>Supprime tous les caches m&eacute;moire du noyau afin de lib&eacute;rer de la m&eacute;moire vive.</drop_caches_explain>
 <dst>Adresse(s) IP de destination</dst>
+<dstdomain_regex>Serveur Web (regex)</dstdomain_regex>
+<dstdomain_regex_explain>Indiquez l'expression r&eacute;guli&egrave;re qui va correspondre au domaine..[br]
+exemple: www.mywebsite.*[br]
+le caract&egrave;re joker * est support&eacute;.[br]
+Exmeple: correspjnd &agrave; tous les sites google.com [br]
+*.google.* (.google. peut &ecirc;tre le m&ecirc;me)[br]
+&quot;$&quot; correspond &agrave; la fin d'une ligne.[br]
+exemple: .xxx$ correspond &agrave; tous les sites http://*.xxx.[br]
+Artica transforme votre expression en expression r&eacute;guli&egrave;re.[br]
+Si la chaine est une vrai expression r&eacute;guli&egrave;re, mettez [b]regex:[/b] comme pr&eacute;fixe.[br]
+exemple: regex:^([0-9] \.[0-9] \.[0-9] \.[0-9] )[br]</dstdomain_regex_explain>
 <dump_group>Analyser le groupe</dump_group>
 <duplicate_the_ruleid_give_name>Indiquez le nom de la nouvelle r&egrave;gle afin de dupliquer la r&egrave;gle source:</duplicate_the_ruleid_give_name>
 <duplicate_uidNumber>uidNumber en doublons</duplicate_uidNumber>
@@ -1987,6 +1998,7 @@ Nous vous sugg&eacute;rons de r&eacute;guli&egrave;rement analyser les tables av
 <NO_ENOUGH_MEMORY_FOR_THIS_SECTION>Votre serveur ne dispose pas assez de m&eacute;moire pour faire tourner les fonctionnalit&eacute;s list&eacute;es dans cette section.</NO_ENOUGH_MEMORY_FOR_THIS_SECTION>
 <no_entry>Pas d'entr&eacute;e</no_entry>
 <no_expression_group>Pas de groupe d'expressions.</no_expression_group>
+<no_extension_check>D&eacute;sactiver la v&eacute;rif. de l'extension</no_extension_check>
 <no_group>Pas de groupe</no_group>
 <no_information_retreived>Aucune information retrouv&eacute;e</no_information_retreived>
 <no_instance>Pas d'instance</no_instance>

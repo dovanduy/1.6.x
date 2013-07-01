@@ -462,7 +462,7 @@ class squid_acls{
 	}
 	
 	private function string_to_regex($pattern){
-		if(preg_match("#^regex:(.+)#", $pattern,$re)){return $re[1];}
+		if(preg_match("#^regex:(.+)#", trim($pattern),$re)){return $re[1];}
 		$pattern=str_replace(".", "\.", $pattern);
 		$pattern=str_replace("(", "\(", $pattern);
 		$pattern=str_replace(")", "\)", $pattern);
@@ -536,11 +536,14 @@ class squid_acls{
 			if($GroupeType=="url_regex"){
 				$ligne["pattern"]=$this->string_to_regex($ligne["pattern"]);
 			}
-			if($GroupeType=="urlpath_regex"){
+			
+			if($GroupeType=="dstdom_regex"){
 				$ligne["pattern"]=$this->string_to_regex($ligne["pattern"]);
 			}
 			
-			
+			if($GroupeType=="urlpath_regex"){
+				$ligne["pattern"]=$this->string_to_regex($ligne["pattern"]);
+			}
 			
 			if($GroupeType=="referer_regex"){
 				$ligne["pattern"]=$this->string_to_regex($ligne["pattern"]);
