@@ -1696,6 +1696,7 @@ function MEMBERS_NOT_AFFECTED($ou){
 		$arr=$ldap->UserDatas($ligne);
 		$mail=$arr["mail"];
 		$domain=$arr["domainName"];
+		$ligneEn=urlencode($ligne);
 		$html=$html . "
 		<tr>
 		<td width=1%><img src='img/fw_bold.gif'></td>

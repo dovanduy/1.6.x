@@ -904,6 +904,7 @@ Do you want to carry out this operation ?
 <connect_klms_to_mta_text>If turn to green, all messages will be forwarded to the Kaspersky Mail Security service in real-time by the main SMTP service.[br]
 In this case, Kaspersky Mail Security service will be able to block unwanted Spams and infected messages</connect_klms_to_mta_text>
 <ContactAndOrganization>Contact and organization</ContactAndOrganization>
+<content>content</content>
 <contimeout>Connection timeout</contimeout>
 <controller>Constroller</controller>
 <controllers>Controllers</controllers>
@@ -1018,6 +1019,8 @@ the process will drop the database but if it is an Artica Database, the Database
 <delete_this_category_ask>Delete this category ?</delete_this_category_ask>
 <delete_this_child>Delete this child</delete_this_child>
 <delete_this_domain>Delete this domain</delete_this_domain>
+<delete_this_event>Delete this event</delete_this_event>
+<delete_this_itchart>Delete this IT Chart</delete_this_itchart>
 <delete_this_member_ask>Do you want to remove this member from the database ?</delete_this_member_ask>
 <delete_this_node>Delete this node</delete_this_node>
 <delete_this_rule>Delete this rule</delete_this_rule>
@@ -1350,6 +1353,7 @@ This End-Users WebAccess use Apache engine and should not encounter this issue[/
 <error_missing_tables_click_to_repair>Error, there is some missing tables on the database.[br]
 Click on the "repair" button in order to create these tables</error_missing_tables_click_to_repair>
 <error_nginx_substitutions_filter>Error, the substitution filter is not installed</error_nginx_substitutions_filter>
+<ERROR_NO_LICENSE>Error, this server run without any Entreprise license</ERROR_NO_LICENSE>
 <error_no_member_set>Error, no member defined</error_no_member_set>
 <ERROR_NO_ORGANISATION_SELECTED>Error, no selected organization</ERROR_NO_ORGANISATION_SELECTED>
 <error_no_ou_created>Error no organization created or found</error_no_ou_created>
@@ -1743,6 +1747,7 @@ Check the howto section in order to set your browser.</instroduction_enduser_pro
 <internet_access_per_day>Internet access per day</internet_access_per_day>
 <internet_browsing>Internet Browsing</internet_browsing>
 <internet_network>Internet network</internet_network>
+<introduction_text>Introduction text</introduction_text>
 <invalid>invalid</invalid>
 <invalid_ipaddr>Invalid TPC/IP address</invalid_ipaddr>
 <invalid_mac>Invalid MAC Address</invalid_mac>
@@ -1765,6 +1770,8 @@ This feature will only display one time the policy page if the user as correctly
 Each User Agreement is logged in order to ensure that the policy has been read.[br]
 You can create multiple charters.[br]When an user as successfully read a policy agreement, it should be redirected to the next policy agreement.
 </IT_charter_explain>
+<IT_charter_explain2>[b]Notice[/b]The redirection is only made if the user is connected to an HTTP website.[br]
+SSL protocol cannot be broken and redirected.[br]For example, the https://www.google.com will be not redirected but http://www.google.com will be redirected to the IT Chart</IT_charter_explain2>
 <i_understand_continue>I understand,continue anyway</i_understand_continue>
 <jabberdhostname>eJabberd hostname</jabberdhostname>
 <jabber_clients>Jabber Clients Softwares</jabber_clients>
@@ -2356,6 +2363,7 @@ Continue?
 <OnlyEnabled>Only enabled</OnlyEnabled>
 <only_from_activedirectory>Only from Active Directory</only_from_activedirectory>
 <only_incoming_mails>Only inbound messages</only_incoming_mails>
+<only_miniadm>This feature can only be managed with the EndUsers WebAccess console</only_miniadm>
 <only_one_value_cannot_generate_graph>The specified query return only one value, the chart cannot be generated. value generated is:</only_one_value_cannot_generate_graph>
 <only_one_value_no_graph>Only one value as been generated for this query.[br]In this case, graphs cannot be builded</only_one_value_no_graph>
 <ON_ERRORS>On Errors</ON_ERRORS>
@@ -2381,6 +2389,7 @@ The main service will be restarted...</operation_in_background_restart_service>
 <pagepeeker_icon_text>PagePeeker allows you to create Website Thumbnails that can be displayed in statistics Artica Web pages.</pagepeeker_icon_text>
 <page_body>Page body</page_body>
 <page_header>Page header</page_header>
+<page_title>Title Page</page_title>
 <page_to_check>Web page to check</page_to_check>
 <paranoid_anonymous>Paranoid mode</paranoid_anonymous>
 <parent_options_basetime_n>Specify a base amount to be subtracted from round trip times of parents.[br]

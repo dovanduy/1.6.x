@@ -3240,6 +3240,8 @@ function replace_conf($conf){
 						if($GLOBALS["AS_ROOT"]){echo "Starting......: Postfix [PERSO]: No value for $num, skip\n";}
 						continue;
 					}
+					
+					if($num=="inet_interfaces"){continue;}
 					if($GLOBALS["AS_ROOT"]){echo "Starting......: Postfix [PERSO]: $num = {$val["VALUE"]}\n";}
 					system("{$GLOBALS["postconf"]} -e \"$num = {$val["VALUE"]}\" >/dev/null 2>&1");
 				}

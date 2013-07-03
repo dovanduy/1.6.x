@@ -61,7 +61,7 @@ if($argv[1]=='--ScanLibexec'){ScanLibexec();die();}
 
 
 
-if($argv[1]=='--networks'){mynetworks();MailBoxTransport();ReloadPostfix(true);die();}
+if($argv[1]=='--networks'){mynetworks();MailBoxTransport();ReloadPostfix(true);HashTables();die();}
 if($argv[1]=='--headers-check'){headers_check();die();}
 if($argv[1]=='--headers-checks'){headers_check();die();}
 if($argv[1]=='--assp'){ASSP_LOCALDOMAINS();die();}
@@ -78,7 +78,7 @@ if($argv[1]=='--mime-header-checks'){mime_header_checks();headers_check();BodyCh
 if($argv[1]=='--interfaces'){inet_interfaces();MailBoxTransport();exec("{$GLOBALS["postfix"]} stop");exec("{$GLOBALS["postfix"]} start");ReloadPostfix(true);die();}
 if($argv[1]=='--mailbox-transport'){MailBoxTransport();ReloadPostfix(true);die();}
 if($argv[1]=='--disable-smtp-sasl'){disable_smtp_sasl();ReloadPostfix(true);die();}
-if($argv[1]=='--perso-settings'){perso_settings();die();}
+if($argv[1]=='--perso-settings'){perso_settings();HashTables();die();}
 if($argv[1]=='--luser-relay'){luser_relay();die();}
 if($argv[1]=='--smtp-sender-restrictions'){smtp_cmdline_restrictions();ReloadPostfix(true);die();}
 if($argv[1]=='--postdrop-perms'){fix_postdrop_perms();exit;}
@@ -115,6 +115,7 @@ if($argv[1]=='--reconfigure'){
 	_DefaultSettings();
 	$unix=new unix();
 	$unix->send_email_events("Postfix: postfix compilation done. Took :".$unix->distanceOfTimeInWords($t1,time()), "No content yet...\nShould be an added feature :=)", "postfix");
+	HashTables();
 	die();
 }
 
@@ -149,8 +150,9 @@ function smtp_cmdline_restrictions(){
 		if($GLOBALS["RELOAD"]){
 			if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: Postfix -> ReloadPostfix() function\n ***\n";}
 			ReloadPostfix(true);
-		
+			
 		}	
+		HashTables();
 	
 }
 
@@ -165,6 +167,12 @@ function smtpd_data_restrictions(){
 	}
 }
 
+function HashTables(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");	
+	$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.postfix.hashtables.php");
+}
 
 function _DefaultSettings(){
 if($GLOBALS["EnablePostfixMultiInstance"]==1){shell_exec(LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.postfix-multi.php --from-main-null");return;}
@@ -205,6 +213,8 @@ if($GLOBALS["EnablePostfixMultiInstance"]==1){shell_exec(LOCATE_PHP5_BIN2()." ".
 		$php5=$unix->LOCATE_PHP5_BIN();
 		$nohup=$unix->find_program("nohup");
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.postfix.hashtables.php >/dev/null 2>&1 &");
+	}else{
+		HashTables();
 	}
 	
 }
@@ -226,6 +236,7 @@ if($argv[1]=='--write-maincf'){
 	echo "Starting......: restarting postfix\n";
 	$unix->send_email_events("Postfix will be restarted","Line: ". __LINE__."\nIn order to apply new configuration file","postfix");
 	shell_exec("/etc/init.d/artica-postfix restart postfix-single");
+	HashTables();
 	die();
 }
 
@@ -237,6 +248,7 @@ if($argv[1]=='--maincf'){
 	_DefaultSettings();
 	perso_settings();
 	if($GLOBALS["DEBUG"]){echo @file_get_contents("/etc/postfix/main.cf");}
+	HashTables();
 	die();
 }
 
@@ -254,6 +266,7 @@ function ASSP_LOCALDOMAINS(){
 	}
 	echo "Starting......: ASSP ". count($domains)." local domains\n"; 
 	@file_put_contents("/usr/share/assp/files/localdomains.txt",$conf);
+	HashTables();
 	
 }
 
@@ -1625,6 +1638,10 @@ function inet_interfaces(){
 	while (list ($num, $val) = each ($table) ){
 		$val=trim($val);
 		if($val==null){continue;}
+		if($val=="all"){
+			echo "Starting......: Postfix skip $val\n";
+			continue;
+		}
 		if(isset($already[$val])){continue;}
 		echo "Starting......: Postfix checking interface : `$val`\n";
 		if($val=="127.0.0.1"){
@@ -1648,6 +1665,9 @@ function inet_interfaces(){
 			}
 		continue;
 		}
+		
+		if($val=="all"){continue;}
+		
 		echo "Starting......: Postfix add $val interface in settings\n";
 		$newarray[]=$val;
 	}

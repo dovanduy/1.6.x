@@ -4743,6 +4743,7 @@ return $tpl->_ENGINE_parse_body(Paragraphe('folder-64-fetchmail.png',
 }
 
 function URL_COMPUTER($uid,$win){
+	$uid=urlencode($uid);
 	return "YahooWin$win(870,'domains.edit.user.php?userid=$uid$&ajaxmode=yes&Yahoowin=$win','$uid')";
 }
 function MEMBER_JS($uid,$noclik=0,$nojavascript=0,$dn=null,$t=null){

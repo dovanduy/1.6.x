@@ -29,6 +29,8 @@ function js(){
 	$delete_all_computers_warn=$tpl->_ENGINE_parse_body('{delete_all_computers_warn}');
 	$prefix=str_replace('.','_',$page);
 	$prefix=str_replace('-','',$prefix);
+	$uidenc=urlencode($_GET["uid"]);
+	$dnenc=urlencode($_GET["dn"]);
 	$html="
 	var rule_mem='';
 	var {$prefix}timeout=0;
@@ -37,7 +39,7 @@ function js(){
 	var {$prefix}reste=0;	
 	
 	function {$prefix}start(){
-		YahooLogWatcher(550,'$page?popup=yes&uid={$_GET["uid"]}&dn={$_GET["dn"]}','$title::{$_GET["uid"]}');
+		YahooLogWatcher(550,'$page?popup=yes&uid=$uidenc&dn=$dnenc','$title::{$_GET["uid"]}');
 		
 	
 	}

@@ -781,6 +781,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</confirm_import_rules_text>
 <connect_klms_to_mta>Connecter Kaspersky Mail Security au MTA</connect_klms_to_mta>
 <connect_klms_to_mta_text>Si mis en vert, tous les messages seront transmis par le service MTA en temps r&eacute;el &agrave; Kaspersky Mail Security Suite.[br]Dans ce cas, Kaspersky Mail Security Suite sera en mesure de blocker les messages ind&eacute;sirables et infect&eacute;s.</connect_klms_to_mta_text>
 <ContactAndOrganization>Contact et organisation</ContactAndOrganization>
+<content>Contenu</content>
 <contimeout>D&eacute;lai MAX de connexion</contimeout>
 <controller>Contr&ocirc;leur</controller>
 <controllers>Contr&ocirc;leurs</controllers>
@@ -884,6 +885,8 @@ Toutefois si la base est une base de donn&eacute;es utilis&eacute;e par Artica e
 <delete_this_category_ask>Supprimer cette cat&eacute;gorie ?</delete_this_category_ask>
 <delete_this_child>Supprimer cet enfant</delete_this_child>
 <delete_this_domain>Supprimer ce domaine</delete_this_domain>
+<delete_this_event>Supprimer cet &eacute;v&egrave;nement</delete_this_event>
+<delete_this_itchart>Supprimer cette charte informatique</delete_this_itchart>
 <delete_this_member_ask>Voulez-vous d&eacute;truire ce membre de la base de donn&eacute;es ?</delete_this_member_ask>
 <delete_this_node>Supprimer ce n%u0153ud</delete_this_node>
 <delete_this_rule>Supprimer cette r&egrave;gle</delete_this_rule>
@@ -1177,6 +1180,7 @@ Cette interface utilise le moteur Apache et pourrait quand &agrave; elle charger
 <error_missing_tables_click_to_repair>Erreur, Il y a des tables manquantes dans la base de donn&eacute;es.[br]
 Cliquez sur le bouton &quot;R&eacute;parer&quot; afin d'ordonner la reconstruction de la structure de la base.</error_missing_tables_click_to_repair>
 <error_nginx_substitutions_filter>Erreur, le module de remplacement n'es pas install&eacute;.</error_nginx_substitutions_filter>
+<ERROR_NO_LICENSE>Ce serveur est activ&eacute; en mode communautaire et ne dispose de licence entreprise valide.</ERROR_NO_LICENSE>
 <error_no_member_set>Erreur, pas de membre indiqu&eacute;</error_no_member_set>
 <ERROR_NO_ORGANISATION_SELECTED>Erreur, pas d'organisation s&eacute;lectionn&eacute;e.</ERROR_NO_ORGANISATION_SELECTED>
 <error_no_ou_created>Erreur, aucune organisation cr&eacute;e ou trouv&eacute;e</error_no_ou_created>
@@ -1509,6 +1513,7 @@ Avec votre compte vous &ecirc;tes en mesure d'acc&eacute;der &agrave; Internet e
 <internet_access_per_day>Acc&egrave;s internet par jour</internet_access_per_day>
 <internet_browsing>Surf Internet</internet_browsing>
 <internet_network>R&eacute;seau Internet</internet_network>
+<introduction_text>Texte d'introduction</introduction_text>
 <invalid>Non valide</invalid>
 <invalid_ipaddr>Adresse TCP/IP invalide</invalid_ipaddr>
 <invalid_mac>Adresse MAC invalide</invalid_mac>
@@ -1529,6 +1534,9 @@ Avec votre compte vous &ecirc;tes en mesure d'acc&eacute;der &agrave; Internet e
 Cette fonctionnalit&eacute; ne s'affiche que si et seulement si l'utilisateur n'a pas valid&eacute; la charte.[br]
 Chaque accord de la charte est enregistr&eacute; dans les &eacute;v&egrave;nements afin de s'assurer qu'elle a bel et bien &eacute;t&eacute; consult&eacute;e.[br]Vous pouvez cr&eacute;er plusieurs chartes.[br]
 Lorsqu'un utilisateur &agrave; consult&eacute; une charte, il pourrait &ecirc;tre &agrave; nouveau redirig&eacute; vers la suivante.</IT_charter_explain>
+<IT_charter_explain2>[b]Note[/b][br]
+La redirection vers la charte est effectu&eacute;e uniquement lorsque les utilisateurs tentent de se connecter sur un site non-ssl. Le protocole SSL ne peut &ecirc;tre cass&eacute;.[br]
+Ainsi tant que l'utilisateur utilise des sites SSL, il ne sera pas forc&eacute; vers la charte Informatique.</IT_charter_explain2>
 <i_understand_continue>J'ai compris, continuer malgr&eacute; tout</i_understand_continue>
 <jabberdhostname>Domaine eJabberd</jabberdhostname>
 <jabber_clients>Logiciels Clients Jabber</jabber_clients>
@@ -1570,7 +1578,7 @@ In most cases where the computer is not running as a router of some kind, we cou
 <last_status>Dernier &eacute;tat</last_status>
 <last_transaction_messages>Derni&egrave;res transactions des messages</last_transaction_messages>
 <last_update>Derni&egrave;re mise &agrave; jour</last_update>
-<latest_scan>Derni&egrave;re anaylyse</latest_scan>
+<latest_scan>Derni&egrave;re analyse</latest_scan>
 <launch_squidhour_explain>Lancer la t&acirc;che qui va parcourir les tables non analys&eacute;es afin d'injecter les &eacute;v&egrave;nements dans les tables de travail.</launch_squidhour_explain>
 <launch_UpdateUtility>Lance Update Utility</launch_UpdateUtility>
 <launch_UpdateUtility_explain>T&eacute;l&eacute;charges les bases de mise &agrave; jour des produits kaspersky et construit le d&eacute;p&ocirc;t local</launch_UpdateUtility_explain>
@@ -2055,6 +2063,7 @@ Continuer ?</onlydefaulttemplate_remove>
 <OnlyEnabled>Seulement actif</OnlyEnabled>
 <only_from_activedirectory>Seulement depuis l'Active Directory</only_from_activedirectory>
 <only_incoming_mails>Seulement les messages entrants</only_incoming_mails>
+<only_miniadm>Cette fonctionnalit&eacute; ne peut &ecirc;tre administr&eacute; qu'avec l'interface Web EndUsers WebAccess.</only_miniadm>
 <only_one_value_cannot_generate_graph>La requ&ecirc;te envoy&eacute;e ne retourne qu'une seule valeur, le graphique ne peut &ecirc;tre construit, la valeur retourn&eacute;e est:</only_one_value_cannot_generate_graph>
 <only_one_value_no_graph>Seulement une seule valeur &agrave; &eacute;t&eacute; trouv&eacute;e pour cette requ&ecirc;te.[br]Dans cette condition les graphiques ne peuvent &ecirc;tre g&eacute;n&eacute;r&eacute;s.</only_one_value_no_graph>
 <ON_ERRORS>Sur erreurs</ON_ERRORS>
@@ -2078,6 +2087,7 @@ Le service principal va &ecirc;tre recharg&eacute;.</operation_in_background_res
 <pagepeeker_icon_text>PagePeeker vous autorise &agrave; cr&eacute;er des miniatures des sites Internet qui vont &ecirc;tre affich&eacute;s dans les statistiques d'Artica.</pagepeeker_icon_text>
 <page_body>Corps de la page</page_body>
 <page_header>Ent&ecirc;tes de la page</page_header>
+<page_title>Titre de la page</page_title>
 <page_to_check>Page Web &agrave; v&eacute;rifier</page_to_check>
 <paranoid_anonymous>Mode parano&iuml;aque</paranoid_anonymous>
 <parent_options_basetime_n>Sp&eacute;cifie une base qui sera soustraite au temps cycle de connexion aux serveurs.[br]

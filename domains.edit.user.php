@@ -413,8 +413,9 @@ function AJAX_USER_TAB() {
 			continue;
 		}
 	
-		
-		$toolbox[]="<li><a href=\"domains.edit.user.php?userid=$userid&ajaxmode=yes&section=$num&dn={$_GET["dn"]}\"><span $styleText>$ligne</span></a></li>";
+		$useridenc=urlencode($userid);
+		$dnenc=urlencode($_GET["dn"]);
+		$toolbox[]="<li><a href=\"domains.edit.user.php?userid=$useridenc&ajaxmode=yes&section=$num&dn=$dnenc\"><span $styleText>$ligne</span></a></li>";
 		
 		$html = $html . "<li><a href=\"javascript:LoadUserSectionAjax('$num','{$_GET["dn"]}')\" $class><span $styleText>$ligne</span></a></li>\n";
 	}
@@ -543,19 +544,21 @@ function AJAX_COMPUTER_TAB() {
 		$fontsize="14px";
 	}
 	
+	$uidenc=urlencode($_GET["userid"]);
+	
 	while ( list ( $num, $ligne ) = each ( $arr ) ) {
 		
 		if($num=="applications"){
-			$toolbox[]="<li><a href=\"computer.infos.php?popup-services=yes&uid={$_GET["userid"]}&t={$_GET["t"]}\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
+			$toolbox[]="<li><a href=\"computer.infos.php?popup-services=yes&uid=$uidenc&t={$_GET["t"]}\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
 			continue;	
 		}
 		
 		if($num=="activity"){
-			$toolbox[]="<li><a href=\"computer.activity.php?uid={$_GET["userid"]}&t={$_GET["t"]}\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
+			$toolbox[]="<li><a href=\"computer.activity.php?uid=$uidenc&t={$_GET["t"]}\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
 			continue;
 		}
 		
-		$toolbox[]="<li><a href=\"$page?userid={$_GET["userid"]}&ajaxmode=yes&section=$num&t={$_GET["t"]}\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
+		$toolbox[]="<li><a href=\"$page?userid=$uidenc&ajaxmode=yes&section=$num&t={$_GET["t"]}\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
 	}
 	
 	$html = "<div id='container-computer-tabs' style='width:99%;margin:0px;background-color:white'>
@@ -978,8 +981,8 @@ function AJAX_COMPUTER() {
 		
 	}
 	
-	
-	$delete = Paragraphe ( 'delete-64.png', '{delete_this_computer}', "{delete_this_computer}","javascript:Loadjs('computer.delete.php?uid={$_GET["userid"]}')" );
+	$uidenc=urlencode($_GET["userid"]);
+	$delete = Paragraphe ( 'delete-64.png', '{delete_this_computer}', "{delete_this_computer}","javascript:Loadjs('computer.delete.php?uid=$uidenc')" );
 	$bind9 = new bind9 ( );
 	$t=time();
 	if ($EnableDHCPServer == 1) {
@@ -1003,13 +1006,15 @@ function AJAX_COMPUTER() {
 	if (preg_match ( "#(.+?)\.#", $computer->DisplayName, $re )) {$Diplayname = $re [1];} else {$Diplayname = $computer->DisplayName;}} else {$Diplayname = $computer->DisplayName;}
 	
 	$password = Paragraphe ( "cyrus-password-64.png", "{credentials_informations}", "{credentials_informations_text}", "javascript:Loadjs('computer.passwd.php?uid={$_GET["userid"]}')" );
+	
+	$cuidenc=urlencode($computer->uid);
 	$computer_infos_services = Paragraphe ( "computer-tour-64.png", "{COMPUTER_INFOS_SERVICES}", "{COMPUTER_INFOS_SERVICES_TEXT}", 
-	"javascript:Loadjs('computer.infos.php?uid=$computer->uid');" );
+	"javascript:Loadjs('computer.infos.php?uid=$cuidenc');" );
 	
 	
 	
 	$wakeonlan=Paragraphe("restart-64.png","{wakeup_computer}","{wakeup_computer_text}"
-	,"javascript:Loadjs('computer.wakeonlan.php?uid={$_GET["userid"]}')" );
+	,"javascript:Loadjs('computer.wakeonlan.php?uid=$uidenc')" );
 	
 	//computer.wakeonlan.php
 	
@@ -1210,13 +1215,13 @@ CheckUidComp();
 
 function AJAX_COMPUTER_NETBIOS_LINK(){
 	
-	
+	$uid=urlencode($_GET["userid"]);
 	$html="
 	<div style='width:10%;margin-top:-5px'>
 	<table style='width:100%'>
 	<tr>
 		<td width=0.5%><img src='img/arrow-right-16.png'></td>
-		<td width=100% nowrap><a href=javascript:blur(); OnClick=javascript:Loadjs(\"domains.computer.modifyname.php?userid={$_GET["userid"]}\"); 
+		<td width=100% nowrap><a href=javascript:blur(); OnClick=javascript:Loadjs(\"domains.computer.modifyname.php?userid=$uid\"); 
 		style=\"font-size:11px;text-decoration:underline\">{change_netbios_name}</a></td>
 	</tr>
 	</table>
@@ -1851,8 +1856,9 @@ function USER_ADDRESS($userid) {
 	$user = new user ( $userid );
 	
 	$priv = new usersMenus ( );
+	$useridEnc=urlencode($userid);
 	//ParseForm(Form_name,pageToSend,return_box,noHidden,ReturnValues,idRefresh,uriRefresh,function_callback){
-	$uri_returned = "domains.edit.user.php?userid=$userid&ajaxmode=yes&section=address";
+	$uri_returned = "domains.edit.user.php?userid=$useridEnc&ajaxmode=yes&section=address";
 	$button = "<input type='button' value='{submit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('userLdapform','" . basename ( __FILE__ ) . "',true,false,false,'userform','$uri_returned');\">";
 	if (! $as_connected_user) {
 		if ($priv->AllowAddUsers == false) {
@@ -2974,8 +2980,9 @@ function USER_ACCOUNT_POPUP($userid) {
 	}
 	
 	$priv = new usersMenus ( );
+	$uidenc=urlencode($us->uid);
 	$button = "<input type='button' value='{submit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('userLdapform','$page',true,false,false,'userform',
-	'domains.edit.user.php?userid=$us->uid&ajaxmode=yes&section=account');\">";
+	'domains.edit.user.php?userid=$uidenc&ajaxmode=yes&section=account');\">";
 	
 	if ($usermenus->SIMPLE_GROUPEWARE_INSTALLED) {
 		include_once ("ressources/class.mysql.inc");
@@ -5543,11 +5550,11 @@ function SaveAllowedSMTP() {
 }
 
 function AJAX_COMPUTER_OCS() {
-	
+	$uidend=urlencode($_GET["userid"]);
 	$time=time();
 	$html="<div id='$time'></div>
 	<script>
-		LoadAjax('$time','computers.ocs.single.php?uid={$_GET["userid"]}');
+		LoadAjax('$time','computers.ocs.single.php?uid=$uidend');
 	</script>
 	
 	";
@@ -5577,9 +5584,10 @@ function AJAX_COMPUTER_OCS() {
 }
 
 function USER_SAFEBOX() {
+	$uidend=urlencode($_GET["userid"]);
 	$html = "<div id='safebox'></div>
 	<script>
-		Loadjs('domains.edit.user.safebox.php?uid={$_GET["userid"]}&main=yes');
+		Loadjs('domains.edit.user.safebox.php?uid=$uidend&main=yes');
 	</script>
 	
 	

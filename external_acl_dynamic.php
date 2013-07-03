@@ -11,7 +11,15 @@
 
   if(preg_match("#--itchart#", @implode("", $argv))){
   	WLOG("Starting ACLs dynamic with itchart feature...");
+  	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
   	$GLOBALS["ITCHART"]=true;
+  }
+  
+  if($argv[1]=="--test-itchart"){
+  	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+  	ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+  	echo CheckITChart($argv[2],$argv[3],$argv[4]);
+  	die();
   }
   
   
@@ -30,12 +38,20 @@
 	 
 		 if($url<>null){
 			 	$array=parseURL($url);
-			 	WLOG($url);
+			 	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG($url);}
 			 	$ID=0;
+			 	
+			 	
 			 	if($GLOBALS["DEBUG_LEVEL"]>2){WLOG("LOOP()::str:".strlen($url)." Rule ID:{$GLOBALS["RULE_ID"]}; LOGIN:{$array["LOGIN"]}; IPADDR:{$array["IPADDR"]}; MAC:{$array["MAC"]}; HOST:{$array["HOST"]}; RHOST:{$array["RHOST"]}; URI:{$array["URI"]}");}
 			 	
 			 	if($GLOBALS["ITCHART"]){
-			 		fwrite(STDOUT, "ERR message=1\n");
+			 		$ChartID=CheckITChart($array["LOGIN"],$array["IPADDR"],$array["MAC"]);
+			 		if($ChartID>0){
+			 			$error=base64_encode(serialize(array("ChartID"=>$ChartID,"LOGIN"=>$array["LOGIN"],"IPADDR"=>$array["IPADDR"],"MAC"=>$array["MAC"])));
+						fwrite(STDOUT, "ERR message=$error\n");
+						continue;
+			 		}
+			 		fwrite(STDOUT, "OK\n");
 			 		continue;
 			 	}
 			 	
@@ -170,7 +186,7 @@ function parseURL($url){
 	
 	//max auth=4
 	if(count($tr)==4){
-		WLOG("count --> 4");
+		
 		$login=$tr[0];
 		$ipaddr=$tr[1];
 		$mac=$tr[2];
@@ -661,6 +677,75 @@ function GetMacFromIP($ipaddr){
 			
 		
 	}
+	
+function CheckITChart($login,$ipaddr,$mac){
+	$q=new mysql_squid_builder();
+	
+	if(!isset($GLOBALS["ITCHARTSIDS"])){
+		$sql="SELECT ID FROM itcharters WHERE enabled=1";
+		$results = $q->QUERY_SQL($sql);
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$GLOBALS["ITCHARTSIDS"][$ligne["ID"]]=$ligne["ID"];
+			WLOG("CheckITChart():: ChartID {$ligne["ID"]} to check..");
+		}
+	}
+	
+	if(count($GLOBALS["ITCHARTSIDS"])==0){
+		WLOG("CheckITChart():: $login,$ipaddr,$mac no chart id, aborting, you should disable this feature.");
+		return 0;}
+	
+	$itCharts=$GLOBALS["ITCHARTSIDS"];
+	reset($itCharts);
+	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("CheckITChart():: login=$login,ipaddr=$ipaddr,mac=$mac ". count($itCharts)." to check");}
+	if(trim($login<>null)){
+		$login=trim(strtolower($login));
+		while (list ($ID, $line) = each ($itCharts)){
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM itchartlog WHERE uid='$login' AND chartid='$ID'"));
+			$EvID=$ligne["ID"];
+			
+			if(!is_numeric($EvID)){$EvID=0;}
+			if($EvID==0){
+				WLOG("CheckITChart():: LOGIN:$login ChartID $ID not read..");
+				return $ID;}
+		}
+		return 0;
+	}
+	
+	if(trim($mac<>null)){
+		$mac=trim(strtolower($mac));
+		reset($itCharts);
+		while (list ($ID, $line) = each ($itCharts)){
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM itchartlog WHERE MAC='$mac' AND chartid='$ID'"));
+			$EvID=$ligne["ID"];
+			if(!is_numeric($EvID)){$EvID=0;}
+			if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("CheckITChart()::MAC:$mac ChartID $ID = $EvID");}
+			if($EvID==0){
+				WLOG("CheckITChart():: MAC:$mac ChartID $ID not read..");
+				return $ID;}
+		}
+		return 0;
+	}	
+	if(trim($ipaddr<>null)){
+		$ipaddr=trim(strtolower($ipaddr));
+		reset($itCharts);
+		while (list ($ID, $line) = each ($itCharts)){
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM itchartlog WHERE ipaddr='$ipaddr' AND chartid='$ID'"));
+			$EvID=$ligne["ID"];
+			if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("CheckITChart()::IPADDR:$ipaddr ChartID $ID = $EvID");}
+			
+			if(!is_numeric($EvID)){$EvID=0;}
+			if($EvID==0){
+				WLOG("CheckITChart():: IPADDR:$ipaddr ChartID $ID not read..");
+				return $ID;}
+		}
+		return 0;
+	}
+
+	WLOG("CheckITChart():: ??!!");
+	
+}	
+	
+	
 function find_program($strProgram) {
 	  $key=md5($strProgram);
 	  if(isset($GLOBALS["find_program"][$key])){return $GLOBALS["find_program"][$key];}

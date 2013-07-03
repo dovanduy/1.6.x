@@ -250,7 +250,7 @@ function main_discover(){
 			
 		}
 			
-		
+$_GET["computer"]=urlencode($_GET["computer"]);
 $html=$html . "<div style='float:left;width:220px'>".
 Paragraphe("64-network-user.png","{COMPUTER_ACCESS}","{COMPUTER_ACCESS_TEXT}","javascript:Loadjs('computer.passwd.php?uid={$_GET["computer"]}')")."</div>";		
 		

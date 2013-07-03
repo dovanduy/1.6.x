@@ -1339,6 +1339,7 @@ class squidbee{
 		if(!$this->ASROOT){return;}$sock=new sockets();
 		$EnableITChart=$sock->GET_INFO("EnableITChart");
 		if(!is_numeric($EnableITChart)){$EnableITChart=0;}
+		
 		if($EnableITChart==0){return;}
 		$array["CACHE_TIME"]=360;
 		if($this->is_auth()){$L[]="%LOGIN";}
@@ -1376,9 +1377,21 @@ class squidbee{
 		$f[]="external_acl_type ArtcExtrnItChart ttl={$array["CACHE_TIME"]} negative_ttl=0 children-startup={$external_acl_startup} children-idle={$external_acl_idle} children-max={$ProcessesNumber} $ipv4 ".@implode(" ", $L)." /usr/share/artica-postfix/external_acl_dynamic.php --itchart\n";
 		$f[]="acl ItChartAcl external ArtcExtrnItChart";
 		$f[]="$acl_SplashPage";
-		$f[]="deny_info 302:$SplashScreenURI?ItChart=yes&request=%o&src=%u ItChartAcl";
-		$GLOBALS["HTTP_ACCESS"]["ItChart"]="http_access allow ItChartPage\nhttp_access deny $this->MyStandPort!ItChartAcl";
+		$f[]="deny_info $SplashScreenURI?ItChart=yes&request=%o&src=%u ItChartAcl";
+		//$f[]="deny_info 511:/etc/squid3/ArtcExtrnItChart.html ItChartAcl";
+		$GLOBALS["HTTP_ACCESS"]["ItChart"]="http_access allow ItChartPage\n\nhttp_access deny $this->MyStandPort!CONNECT !ItChartAcl";
 		$f[]="#-----------------------------------------------------------------\n";
+
+		$ssp[]="<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\">
+<html>
+    <head>
+    <title>Redirect...</title>
+     <meta http-equiv=\"refresh\" content=\"1; URL=$SplashScreenURI?ItChart=yes&request=%o&src=%u\"> 
+     </head>
+    <body style=\"margin: 0pt auto; height:100%; background:white;\"></body>
+</html>";
+		
+		@file_put_contents("/etc/squid3/ArtcExtrnItChart.html", @implode("\n", $ssp));
 		
 		
 		return @implode("\n", $f);

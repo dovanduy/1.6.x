@@ -639,7 +639,17 @@ class boostrap_form{
 		);
 	
 	}	
+	public function set_checkboxYesNo($field_name,$caption,$value,$params=array()){
+		$this->fields_array["$field_name"]=array(
+				"TYPE"=>"CHECKYesNo",
+				"CAPTION"=>$caption,
+				"VALUE"=>$value,
+				"FIELDN"=>"$field_name-$this->t",
+				"PARAMS"=>$params
 	
+		);
+	
+	}	
 	public function TableCompile($array,$rows){
 		$tFunc="SetSearchParams{$_GET["divid"]}";
 		$Params=unserialize(base64_decode(url_decode_special_tool($_GET["Params"])));
@@ -648,6 +658,11 @@ class boostrap_form{
 				<tr>";
 		
 		while (list ($key, $text) = each ($array) ){
+			
+			if($key=="delete"){
+				$f[]="<th>&nbsp;</th>";
+				continue;
+			}
 			if($Params["order-$key"]==1){$Params["order-$key"]=0;}else{$Params["order-$key"]=1;}
 			$tri=$this->trswitch("$tFunc('order-$key','{$Params["order-$key"]}')");
 			$text=$this->tpl->_ENGINE_parse_body($text);
@@ -675,12 +690,13 @@ class boostrap_form{
 			}
 		}
 		
-		while (list ($key, $value) = each ($Params) ){
-			if(preg_match("#order-(.+)#", $key,$re)){
-				if($FIRST==$re[1]){continue;}
-				if($value==1){$array[$re[1]]="ASC";}else{$array[$re[1]]="DESC";}
+		if(is_array($Params)){
+			while (list ($key, $value) = each ($Params) ){
+				if(preg_match("#order-(.+)#", $key,$re)){
+					if($FIRST==$re[1]){continue;}
+					if($value==1){$array[$re[1]]="ASC";}else{$array[$re[1]]="DESC";}
+				}
 			}
-			
 		}
 		
 		while (list ($field, $dir) = each ($array) ){	
@@ -1111,7 +1127,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 				$jsp_b=null;
 				$functionjs=null;
 				$functionjsI=null;
-				if($VALUE==1){$checked="checked";$iconCK="<i class='icon-ok'></i>";}				
+				if(strtoupper($VALUE)=="Y"){$checked="checked";$iconCK="<i class='icon-ok'></i>";}				
 				$field="
 				<label class='checkbox'>
 				<input type=\"checkbox\" id='$FIELDN'
@@ -1129,6 +1145,32 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 				$this->js[]="\tif(document.getElementById('$FIELDN').checked){XHR.appendData('$fieldname','Y');}else{XHR.appendData('$fieldname','N');}";
 				
 			}
+			
+			if($TYPE=="CHECKYesNo"){
+				$label=null;
+				$iconCK=null;
+				$jsp_a=null;
+				$jsp_b=null;
+				$functionjs=null;
+				$functionjsI=null;
+				if(strtolower($VALUE)=="yes"){$checked="checked";$iconCK="<i class='icon-ok'></i>";}
+				$field="
+				<label class='checkbox'>
+				<input type=\"checkbox\" id='$FIELDN'
+				name=\"$FIELDN\" value=\"yes\" OnClick=\"javascript:{$functionName}Iconz();$functionjsI\" $checked>&nbsp;$CAPTION <span id='$FIELDN-icon'>$iconCK</span>
+				</label>
+				";
+			
+				if(isset($params["ONDISABLE"])){
+				$DIVERRORSTEXT["$FIELDN-error"]=$tpl->_ENGINE_parse_body($params["ONDISABLE"]);
+				$jsp_a="\n\t\tdocument.getElementById('$FIELDN-error').style.display='none';";
+				$jsp_b="\n\t\tdocument.getElementById('$FIELDN-error').style.display='block';";
+				}
+			
+				$ICONZ[]="\tif(document.getElementById('$FIELDN').checked){\n\t\t{$jsp_a}document.getElementById('$FIELDN-icon').innerHTML='<i class=\"icon-ok\"></i>';\n\t}else{\n\t\t{$jsp_b}document.getElementById('$FIELDN-icon').innerHTML='';\n\t}";
+				$this->js[]="\tif(document.getElementById('$FIELDN').checked){XHR.appendData('$fieldname','yes');}else{XHR.appendData('$fieldname','no');}";
+			
+			}			
 			
 			
 			

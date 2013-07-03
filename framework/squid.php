@@ -1081,6 +1081,7 @@ function schedule_maintenance_executed_tlse(){
 function reconfigure_squid(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.usrmactranslation.php >/dev/null 2>&1 &");	
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	

@@ -336,7 +336,9 @@ function CONTACT_PAGE(){
 		$ct=new contacts($_SESSION["uid"],null,$_GET["uidUser"]);
 		$hidden="<input type='hidden' id='uidUser' name='uidUser' value='{$_GET["uidUser"]}'>";
 		$ProfessionalEmail=Field_text('mail',"$ct->mail",null,null,null,null,false,"EditContactCheck(event)",true);
-		$img_picture=imgtootltip($ct->img_identity,"{picture}","s_PopUp('edit.thumbnail.php?uid={$_GET["uidUser"]}',600,300);");
+		
+		$uidUser=urlencode($_GET["uidUser"]);
+		$img_picture=imgtootltip($ct->img_identity,"{picture}","s_PopUp('edit.thumbnail.php?uid=$uidUser',600,300);");
 		
 		if($_SESSION["uid"]<>-100){
 			 	$users=new usersMenus();

@@ -124,13 +124,8 @@ htop_bin:=SYS.LOCATE_GENERIC_BIN('htop');
     iptcp:=ttcpip.Create;
     CURRENTIP:=GetIPInterface(eth);
     if CURRENTIP='0.0.0.0' then CURRENTIP:=GetIPInterface('eth1');
-    if CURRENTIP='0.0.0.0' then begin
-       ChangeIP();
-       Menu();
-       exit;
-    end;
-logs.Debuglogs('Initialize menu done....');
-fpsystem('clear');
+    logs.Debuglogs('Initialize menu done....');
+    fpsystem('clear');
 try
    lighttp:=Tlighttpd.Create(SYS);
 except

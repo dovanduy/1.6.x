@@ -48,6 +48,7 @@ function parameters(){
 	$configDisk=trim($sock->GET_INFO('ArticaAutoUpdateConfig'));
 	$ini->loadString($configDisk);
 	$AUTOUPDATE=$ini->_params["AUTOUPDATE"];
+	
 	$EnableNightlyInFrontEnd=$sock->GET_INFO("EnableNightlyInFrontEnd");
 	$EnableRebootAfterUpgrade=$sock->GET_INFO("EnableRebootAfterUpgrade");
 	$EnableScheduleUpdates=$sock->GET_INFO("EnableScheduleUpdates");
@@ -92,11 +93,11 @@ function parameters(){
 	$boot->set_formtitle("{artica_autoupdate}");
 	$boot->set_formdescription("{autoupdate_text}");
 	
-	$boot->set_checkboxYN("enabled", "{enable_autoupdate}", $AUTOUPDATE["enabled"]);
-	$boot->set_checkboxYN("autoinstall", "{enable_autoinstall}", $AUTOUPDATE["autoinstall"]);
-	$boot->set_checkboxYN("nightlybuild", "{enable_nightlybuild}", $AUTOUPDATE["nightlybuild"]);
-	$boot->set_checkboxYN("EnableNightlyInFrontEnd", "{EnableNightlyInFrontEnd}", $AUTOUPDATE["EnableNightlyInFrontEnd"]);
-	$boot->set_checkboxYN("front_page_notify", "{front_page_notify}", $AUTOUPDATE["front_page_notify"]);
+	$boot->set_checkboxYesNo("enabled", "{enable_autoupdate}", $AUTOUPDATE["enabled"]);
+	$boot->set_checkboxYesNo("autoinstall", "{enable_autoinstall}", $AUTOUPDATE["autoinstall"]);
+	$boot->set_checkboxYesNo("nightlybuild", "{enable_nightlybuild}", $AUTOUPDATE["nightlybuild"]);
+	$boot->set_checkboxYesNo("EnableNightlyInFrontEnd", "{EnableNightlyInFrontEnd}", $AUTOUPDATE["EnableNightlyInFrontEnd"]);
+	$boot->set_checkboxYesNo("front_page_notify", "{front_page_notify}", $AUTOUPDATE["front_page_notify"]);
 	$boot->set_list("WgetBindIpAddress", "{WgetBindIpAddress}", $arrcp,$WgetBindIpAddress);
 	$boot->set_field("CheckEveryMinutes", "{CheckEveryMinutes}", $AUTOUPDATE["CheckEveryMinutes"]);
 	$boot->set_checkbox("RebootAfterArticaUpgrade", "{RebootAfterArticaUpgrade}", $RebootAfterArticaUpgrade);

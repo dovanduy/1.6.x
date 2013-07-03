@@ -323,6 +323,7 @@ function popup(){
 	$sock=new sockets();
 	$EnableArticaRemoteAgent=$sock->GET_INFO("EnableArticaRemoteAgent");
 	if($EnableArticaRemoteAgent==null){$EnableArticaRemoteAgent=0;}
+	$_GET["uid"]=urlencode($_GET["uid"]);
 	
 	$a[]="<li><a href=\"$page?popup-index=yes&uid={$_GET["uid"]}\"><span>{index}</span></a></li>";
 	if($users->AllowAddUsers){
@@ -458,7 +459,7 @@ function popup_scan_computer(){
 function popup_users(){
 	$computer=new computers($_GET["uid"]);
 	$page=CurrentPageName();
-	
+	$_GET["uid"]=urlencode($_GET["uid"]);
 	
 	$html="<H1>$computer->DisplayName::{users}</H1>
 	<div style='width:100%;height:250px;overflow:auto' id='users-list-comp'></div>
@@ -780,6 +781,7 @@ function popup_tasks(){
 	$sql="SELECT * FROM computers_tasks WHERE MAC='$cmp->ComputerMacAddress' ORDER BY ID DESC;";
 	$page=CurrentPageName();
 	$md=md5(__FUNCTION__);
+	$_GET["uid"]=urlencode($_GET["uid"]);
 	$html="
 	<script>
 	
@@ -814,6 +816,7 @@ function popup_tasks(){
 
 function popup_events(){
 	$page=CurrentPageName();
+	$_GET["uid"]=urlencode($_GET["uid"]);
 	$html="
 	<div id='popup-events' style='width:100%;height:450px;overflow:auto'>
 	
@@ -926,6 +929,7 @@ function popup_tasks_lists($return=false){
 	$q=new mysql();
 	$tr=array();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
+	$_GET["uid"]=urlencode($_GET["uid"]);
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$path=base64_decode($ligne["path"]);
 		$path=str_replace("\\\\","\\",$path);
@@ -1042,7 +1046,8 @@ function popup_services(){
 	}
 	
 	if($users->AllowAddUsers){
-		$js="javascript:YahooUser(962,'domains.edit.user.php?userid=$uid&ajaxmode=yes','$uid');";
+		$uidenc=urlencode($uid);
+		$js="javascript:YahooUser(962,'domains.edit.user.php?userid=$uidenc&ajaxmode=yes','$uid');";
 		$network=Paragraphe("64-computers-parameters.png","{COMPUTER_NETWORK}","{COMPUTER_NETWORK_TEXT}",$js);
 	}
 	

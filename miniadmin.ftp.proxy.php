@@ -124,20 +124,22 @@ function settings(){
 	$boot->set_list("FTPProxyDestinationTransferMode", "{FTPProxyDestinationTransferMode}",$DestinationTransferModeR,
 			$FTPProxyDestinationTransferMode,array("TOOLTIP"=>"{FTPProxyDestinationTransferMode_explain}"));
 
+	$boot->set_checkbox("FTPAllowMagicUser", "{AllowMagicUser}", $FTPAllowMagicUser,
+			array("LINK"=>"FTPUserAuthMagic,FTPUseMagicChar","TOOLTIP"=>"{FTPAllowMagicUser_explain}"));
+	$boot->set_field("FTPUserAuthMagic", "{UserAuthMagic}", $FTPUserAuthMagic,
+			array("TOOLTIP"=>"{UserAuthMagic_explain}")
+	);
+	$boot->set_field("FTPUseMagicChar", "{FTPUseMagicChar}", $FTPUseMagicChar,
+			array("TOOLTIP"=>"{FTPUseMagicChar_explain}")
+	);
+	
 	
 	$boot->set_subtitle("LDAP");
 	$boot->set_spacerexplain("{FTPProxyLDAPExplain}");
 	$boot->set_checkbox("FTPProxyUseAuth", "{enabled}", $FTPProxyUseAuth,array("LINK"=>"FTPLDAPServer,FTPLDAPBindDN"));
 	$boot->set_field("FTPLDAPServer", "{ldap_server}", $LDAPServer);
 	$boot->set_field("FTPLDAPBindDN", "{ldap_user_dn}", $LDAPBindDN);
-	$boot->set_checkbox("FTPAllowMagicUser", "{AllowMagicUser}", $FTPAllowMagicUser,
-			array("LINK"=>"FTPUserAuthMagic,FTPUseMagicChar","TOOLTIP"=>"{FTPAllowMagicUser_explain}"));
-	$boot->set_field("FTPUserAuthMagic", "{UserAuthMagic}", $FTPUserAuthMagic,
-			array("TOOLTIP"=>"{UserAuthMagic_explain}")
-			);
-	$boot->set_field("FTPUseMagicChar", "{FTPUseMagicChar}", $FTPUseMagicChar,
-			array("TOOLTIP"=>"{FTPUseMagicChar_explain}")
-	);	
+
 	
 	
 	

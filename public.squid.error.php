@@ -1,7 +1,13 @@
 <?php
 	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}	
+	if(isset($_GET["verbose"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.mysql.inc');
+	include_once('ressources/class.users.menus.inc');
+	call_user_func(base64_decode("bGtkZmpvemlmX3VlaGZl"));
+	
+	if(isset($_GET["ItChart"])){ItChart();exit;}
+	if(isset($_POST["AcceptChart"])){ItChartSave();exit;}
 	
 	
 	
@@ -45,3 +51,80 @@
 	$newheader=str_replace("{TITLE}", $ligne["template_title"], $newheader);
 	$templateDatas="$newheader{$ligne["template_body"]}</body></html>";
 	echo $templateDatas;	
+	
+	
+function ItChart(){
+	$users=new usersMenus();
+	$array=unserialize(base64_decode($_GET["request"]));
+	if(defined(base64_decode("a2Rmam96aWY="))){$a=constant(base64_decode("a2Rmam96aWY="));}
+	$src=$_GET["src"];
+	$ChartID=$array["ChartID"];
+	$LOGIN=$array["LOGIN"];
+	$IPADDR=$array["IPADDR"];
+	$MAC=$array["MAC"];
+	$t=time();
+	$Curpage=CurrentPageName();
+	$q=new mysql_squid_builder();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ChartContent,ChartHeaders,TextIntro,TextButton,title FROM itcharters WHERE ID='$ChartID'"));
+	
+	$page=@file_get_contents("ressources/templates/endusers/splash.html");
+
+	$page=str_replace("{PAGE_TITLE}", $ligne["title"], $page);
+	$page=str_replace("{HEADS}", $ligne["ChartHeaders"], $page);
+	
+	
+	
+	
+	if($ligne["TextIntro"]==null){
+		$ligne["TextIntro"]="<p style='font-size:18px'>Please read the IT chart before accessing trough Internet</p>";
+	}
+	if($ligne["TextButton"]==null){
+		$ligne["TextButton"]="I accept the terms and conditions of this agreement";
+		
+	}
+	
+	$content="<p style='font-size:16px'>{$a}{$ligne["TextIntro"]}</p>
+	<p style='margin-left:50px' id='$t'>{$ligne["ChartContent"]}</p>
+	
+	<center><div style='margin:20px'>". button($ligne["TextButton"], "Accept$t()")."</center>
+	
+	";
+	$page=str_replace("{CONTENT}", $content, $page);
+	$scriptJS="
+var xAccept$t= function (obj) {
+	var res=obj.responseText;
+	document.getElementById('$t').innerHTML='';
+	if(res.length>3){alert(res);}
+	window.location.href = '$src';
+}
+	
+function Accept$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('AcceptChart', 'yes');
+	XHR.appendData('AcceptChartContent', '{$_GET["request"]}');
+	AnimateDiv('$t');
+	XHR.sendAndLoad('$Curpage', 'POST',xAccept$t);
+}
+	";
+		
+
+$page=str_replace("{SCRIPT}", "$scriptJS", $page);
+echo $page;
+	
+	
+}
+function ItChartSave(){
+	$array=unserialize(base64_decode($_POST["AcceptChartContent"]));
+	$src=$_GET["src"];
+	$ChartID=$array["ChartID"];
+	$LOGIN=trim(strtolower($array["LOGIN"]));
+	$IPADDR=trim($array["IPADDR"]);
+	$MAC=trim(strtolower($array["MAC"]));
+
+	$q=new mysql_squid_builder();
+	$zDate=date("Y-m-d H:i:s");
+	$q->QUERY_SQL("INSERT IGNORE INTO `itchartlog` (`chartid`,`uid`,`ipaddr`,`MAC`,`zDate`)
+	VALUES ('$ChartID','$LOGIN','$IPADDR','$MAC','$zDate')");
+	if(!$q->ok){echo $q->mysql_error;}
+	
+}

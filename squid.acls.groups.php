@@ -447,7 +447,8 @@ function item_save(){
 			$URLAR=parse_url($_POST["item-pattern"]);
 			if(isset($URLAR["host"])){$_POST["item-pattern"]=$URLAR["host"];}
 		}
-		if(preg_match("#^www.(.*)#", $_POST["item-pattern"],$re)){$_POST["item-pattern"]=$re[1];}	
+		if(preg_match("#^www.(.*)#", $_POST["item-pattern"],$re)){$_POST["item-pattern"]=$re[1];}
+		if(preg_match("#(.*?)\/#", $_POST["item-pattern"],$re)){$_POST["item-pattern"]=$re[1];}	
 	}
 	
 	if($GroupType=="method"){
@@ -459,7 +460,8 @@ function item_save(){
 		}
 	}
 	 
-	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM webfilters_sqitems WHERE gpid='$gpid' AND pattern='{$_POST["item-pattern"]}'"));
+	if(trim($ligne["ID"])>0){return;}
 	
 	$sqladd="INSERT INTO webfilters_sqitems (pattern,gpid,enabled,other) 
 	VALUES ('{$_POST["item-pattern"]}','$gpid','1','');";
@@ -490,13 +492,16 @@ function item_import(){
 		if(trim($pattern)==null){continue;}
 		
 		if($GroupType=="dstdomain"){
-			if(preg_match("#\/\/#", $_POST["item-pattern"])){
-				$URLAR=parse_url($_POST["item-pattern"]);
-				if(isset($URLAR["host"])){$_POST["item-pattern"]=$URLAR["host"];}
+			if(preg_match("#\/\/#", $pattern)){
+				$URLAR=parse_url($pattern);
+				if(isset($URLAR["host"])){$pattern=$URLAR["host"];}
 			}
-			if(preg_match("#^www.(.*)#", $_POST["item-pattern"],$re)){$_POST["item-pattern"]=$re[1];}
+			if(preg_match("#^www.(.*)#",$pattern,$re)){$pattern=$re[1];}
+			if(preg_match("#(.*?)\/#", $pattern,$re)){$pattern=$re[1];}
 		}		
 		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM webfilters_sqitems WHERE gpid='$gpid' AND pattern='$pattern'"));
+		if(trim($ligne["ID"])>0){continue;}
 		$Patterns[$pattern]=true;
 		
 		

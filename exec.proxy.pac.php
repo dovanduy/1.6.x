@@ -120,10 +120,12 @@ function writeproxypac(){
 	@unlink("/usr/share/proxy.pac/wpad.dat");
 	@file_put_contents("/usr/share/proxy.pac/proxy.pac",@implode("\n",$isInNet));
 	@file_put_contents("/usr/share/proxy.pac/wpad.dat",@implode("\n",$isInNet));
+	@file_put_contents("/usr/share/proxy.pac/wspad.dat",@implode("\n",$isInNet));
 	@chmod("/usr/share/proxy.pac/proxy.pac",0755);
 	@chown("/usr/share/proxy.pac/proxy.pac","squid");
 	
 	@chmod("/usr/share/proxy.pac/wpad.dat",0755);
+	@chmod("/usr/share/proxy.pac/wspad.dat",0755);
 	@chown("/usr/share/proxy.pac/wpad.dat","squid");	
 	
 	echo "Starting......: proxy.pac service writing proxy.pac file done...\n";

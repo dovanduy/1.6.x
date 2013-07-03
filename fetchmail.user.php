@@ -228,16 +228,17 @@ function items(){
 		</tr>
 		</table>
 		";
-		
+		$uidenc=urlencode($_GET["uid"]);
 		$sql="SELECT COUNT(ID) as tcount FROM fetchmail_debug_execute WHERE account_id='$ID'";
 		$ligneCOUNT=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
 			if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}
 			if($ligneCOUNT["tcount"]>0){
-				$showdebuglogs=imgsimple("script-24.png",null,"Loadjs('fetchmail.user.debug.php?uid=$uid&ruleid=$ID')");
+				$showdebuglogs=imgsimple("script-24.png",null,"Loadjs('fetchmail.user.debug.php?uid=$uidenc&ruleid=$ID')");
 			}		
 		
-			$enable=Field_checkbox("{$ID}_enabled",1,$ligne["enabled"],
-			"Loadjs('wizard.fetchmail.newbee.php?enable-js-rule=$ID&uid={$_GET["uid"]}&t={$_GET["t"]}')");
+		
+		$enable=Field_checkbox("{$ID}_enabled",1,$ligne["enabled"],
+		"Loadjs('wizard.fetchmail.newbee.php?enable-js-rule=$ID&uid=$uidenc&t={$_GET["t"]}')");
 	
 	$data['rows'][] = array(
 		'id' => "$ID",

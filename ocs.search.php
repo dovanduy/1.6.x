@@ -43,19 +43,12 @@ function js_in_front(){
 function js_in_front_popup(){
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$box="LoadAjax('ocs-search-toolbox','computer-browse.php?MenusRight=yes');";
-	if(isset($_GET["without-box"])){	$box=null;}
+	
+	
 $html="<div class=explain>{OCS_SEARCH_EXPLAIN}</div>
-<table style='width:100%'>
-<tbody>
-<tr>
-	<td width=100% valign='top'><span id='ocs-search-div'></span></td>
-	<td width=1% valign='top'><span id='ocs-search-toolbox'></span></td>
-</tR>
-</table>
+<span id='ocs-search-div'></span>
 <script>
 	LoadAjax('ocs-search-div','$page?def={$_GET["search"]}');
-	$box
 </script>
 ";
 echo $tpl->_ENGINE_parse_body($html);
@@ -105,11 +98,13 @@ function page(){
 	$depth=$tpl->_ENGINE_parse_body("depth");
 	$execute=$tpl->_ENGINE_parse_body("{execute}");
 	$all=$tpl->_ENGINE_parse_body("{all}");
+	$import=$tpl->javascript_parse_text("{import_artica_computers}");
 	$buttons="
 	buttons : [
 	{name: '$new_entry', bclass: 'Add', onpress : AddComputer$t},
 	{name: '$lastest_scan', bclass: 'search', onpress : lastest_scan$t},
 	{name: '$all', bclass: 'search', onpress : all_scan$t},
+	{name: '$import', bclass: 'Add', onpress : ImportComputer$t},
 	
 	
 	],	";
@@ -125,8 +120,8 @@ $('#flexRT$t').flexigrid({
 	url: '$uri',
 	dataType: 'json',
 	colModel : [
-		{display: '$hostname', name : 'NAME', width :303, sortable : true, align: 'left'},
-		{display: '$ipaddr', name : 'IPADDRESS', width :112, sortable : true, align: 'left'},
+		{display: '$hostname', name : 'NAME', width :331, sortable : true, align: 'left'},
+		{display: '$ipaddr', name : 'IPADDRESS', width :238, sortable : true, align: 'left'},
 		{display: 'MAC', name : 'MAC', width :120, sortable : true, align: 'left'},
 		{display: '&nbsp;', name : 'delete', width :31, sortable : false, align: 'center'},
 		
@@ -147,7 +142,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 635,
+	width: 880,
 	height: $TB_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
@@ -161,6 +156,10 @@ function AddComputer$t(){
 
 function lastest_scan$t(){
 	$('#flexRT$t').flexOptions({url: '$uri&latest-scan=yes'}).flexReload(); 
+}
+
+function ImportComputer$t(){
+	YahooWin3('450','$page?artica-importlist-popup=yes','$import');
 }
 
 function all_scan$t(){

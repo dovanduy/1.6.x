@@ -4069,3 +4069,12 @@ You can create multiple charters.[br]When an user as successfully read a policy 
 <keep_current_settings>Keep current settings</keep_current_settings>
 <new_itchart>New IT Charter</new_itchart>
 <it_charters>IT Charters</it_charters>
+<page_title>Title Page</page_title>
+<content>content</content>
+<introduction_text>Introduction text</introduction_text>
+<delete_this_itchart>Delete this IT Chart</delete_this_itchart>
+<delete_this_event>Delete this event</delete_this_event>
+<ERROR_NO_LICENSE>This server run in community mode without any Entreprise license</ERROR_NO_LICENSE>
+<IT_charter_explain2>[b]Notice[/b][br]The redirection is only made if the user is connected to an HTTP website.[br]
+SSL protocol cannot be broken and redirected.[br]For example, the https://www.google.com will be not redirected but http://www.google.com will be redirected to the IT Chart</IT_charter_explain2>
+<only_miniadm>This feature can only be managed with the EndUsers WebAccess console</only_miniadm>

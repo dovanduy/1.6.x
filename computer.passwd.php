@@ -17,6 +17,7 @@ function js(){
 	$title=$tpl->_ENGINE_parse_body('{COMPUTER_ACCESS}');
 	$prefix=str_replace(".","_",$page);
 	$page=CurrentPageName();	
+	$_GET["uid"]=urlencode($_GET["uid"]);
 	$html="
 	function {$prefix}Load(){
 		YahooWin5(550,'$page?index={$_GET["uid"]}&uid={$_GET["uid"]}','$title');

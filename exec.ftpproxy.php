@@ -304,13 +304,9 @@ function build(){
 		if($LDAPBindDN==null){$LDAPBindDN="%s@domain.tld";}
 		if($LDAPServer==null){$LDAPServer="10.10.0.2";}
 
-		$FTPUserAuthMagic=$sock->GET_INFO("FTPUserAuthMagic");
-		$FTPUseMagicChar=$sock->GET_INFO("FTPUseMagicChar");
+
 		
-		if($FTPUserAuthMagic==null){$FTPUserAuthMagic="@user";}
-		if($FTPUseMagicChar==null){$FTPUseMagicChar="@";}
-		$FTPAllowMagicUser=$sock->GET_INFO("FTPAllowMagicUser");
-		if(!is_numeric($FTPAllowMagicUser)){$FTPAllowMagicUser=1;}
+
 		
 		$f[]="#";
 		$f[]="UserAuthType		ldap";
@@ -327,16 +323,27 @@ function build(){
 		$f[]="# LDAPIdentifier	LoginName";
 		$f[]="# LDAPObjectClass	FTPProxyUser";
 		$f[]="LDAPServer		$LDAPServer";
-		$f[]="UserAuthMagic		$FTPUserAuthMagic";	
-		$f[]="UseMagicChar		$FTPUseMagicChar";
-		$f[]="# ForceMagicUser	yes";
-		if($FTPAllowMagicUser==1){
-			$f[]="AllowMagicUser	yes";	
-		}else{
-			$f[]="AllowMagicUser	no";
-		}	
+
+
 
 	}
+
+	if($FTPUserAuthMagic==null){$FTPUserAuthMagic="@user";}
+	if($FTPUseMagicChar==null){$FTPUseMagicChar="@";}
+	$FTPAllowMagicUser=$sock->GET_INFO("FTPAllowMagicUser");
+	if(!is_numeric($FTPAllowMagicUser)){$FTPAllowMagicUser=1;}	
+	$FTPUserAuthMagic=$sock->GET_INFO("FTPUserAuthMagic");
+	$FTPUseMagicChar=$sock->GET_INFO("FTPUseMagicChar");	
+	
+	$f[]="# ForceMagicUser	yes";
+	if($FTPAllowMagicUser==1){
+		$f[]="AllowMagicUser	yes";
+	}else{
+		$f[]="AllowMagicUser	no";
+	}
+	
+	$f[]="UserAuthMagic		$FTPUserAuthMagic";
+	$f[]="UseMagicChar		$FTPUseMagicChar";	
 	$f[]="LogDestination	daemon";
 	$f[]="LogLevel		$FTPLogLevel";
 	$f[]="";

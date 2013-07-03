@@ -1,13 +1,14 @@
 <?php
-	include_once('ressources/class.templates.inc');
-	include_once('ressources/class.ldap.inc');
-	include_once('ressources/class.users.menus.inc');
-	include_once('ressources/class.mysql.inc');
-	include_once('ressources/class.computers.inc');
-	include_once('ressources/class.os.system.inc');
+	include_once(dirname(__FILE__).'/ressources/class.templates.inc');
+	include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
+	include_once(dirname(__FILE__).'/ressources/class.users.menus.inc');
+	include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
+	include_once(dirname(__FILE__).'/ressources/class.computers.inc');
+	include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 	include_once(dirname(__FILE__).'/ressources/class.mount.inc');
 	include_once(dirname(__FILE__).'/framework/frame.class.inc');
 	include_once(dirname(__FILE__).'/framework/class.unix.inc');
+	include_once(dirname(__FILE__).'/ressources/class.tcpip.inc');
 
 if(is_file("/etc/artica-postfix/AS_KIMSUFFI")){echo "AS_KIMSUFFI!\n";die();}	
 if($argv[1]=="--schedules"){set_computer_schedules();exit;}
@@ -48,8 +49,9 @@ function LaunchScan($host){
 }
 
 function importcomputersFromList(){
-	cpulimit(20);
+	
 	$sock=new sockets();
+	$ipClass=new IP();
 	$tbl=explode("\n",$sock->GET_INFO("ComputerListToImport"));
 	writelogs("ComputerListToImport=" . count($tbl)." values",__FUNCTION__,__FILE__,__LINE__);
 	$i=0;
@@ -60,16 +62,27 @@ function importcomputersFromList(){
 		$ip=null;
 		$mac=null;
 		if($computername==null){continue;}
-		$ip_arp=unserialize(base64_decode($sock->getFrameWork("cmd.php?arp-ip=".$_GET["arp-ip"])));
-		if(is_array($ip_arp)){
-			$ip=$ip_arp[0];
-			$mac=$ip_arp[1];
-			unset($ip_arp);
+		
+		if(strpos($computername, " ")>0){
+			$TRB=explode(" ",$computername);
+			$computername=$TRB[0];
+			unset($TRB[0]);
+			while (list ($a, $b) = each ($TRB)){
+				if($b==null){continue;}
+				if($ipClass->isValid($b)){$ip=$b;continue;}
+				if($ipClass->IsvalidMAC($b)){$mac=$b;continue;}	
+				}
+			}
+			
+		if(isset($_GET["arp-ip"])){
+			$ip_arp=unserialize(base64_decode($sock->getFrameWork("cmd.php?arp-ip=".$_GET["arp-ip"])));
+			if(is_array($ip_arp)){$ip=$ip_arp[0];$mac=$ip_arp[1];unset($ip_arp);}
 		}
 		$pourc=round(($z/$max)*100);
 		writelogs("$pourc) $computername",__FUNCTION__,__FILE__,__LINE__);
 		
 		WriteCOmputerBrowseProgress($pourc,"{import}: $computername ($ip/$mac)");
+		$cmp=new computers();
 		
 		if($mac<>null){$uid=$cmp->ComputerIDFromMAC($mac);}else{$uid="$computername$";}
 		if($uid==null){$uid="$computername$";}

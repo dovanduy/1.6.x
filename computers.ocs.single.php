@@ -76,6 +76,7 @@ function softwares(){
 
 	$page=CurrentPageName();
 	$tpl=new templates();	
+	$_GET["uid"]=urlencode($_GET["uid"]);
 	$html="
 	<center>
 	<table style='width:65%' class=form>

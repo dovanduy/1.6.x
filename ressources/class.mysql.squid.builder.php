@@ -2371,7 +2371,10 @@ public function CheckTables($table=null){
 
 		$sql="CREATE TABLE IF NOT EXISTS `itcharters` (
 			`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
-			`ChartContent` TEXT NOT NULL,
+			`ChartContent` TEXT NULL,
+			`ChartHeaders` TEXT NOT NULL,
+			`TextIntro` TEXT NOT NULL,
+			`TextButton` VARCHAR(128) NOT NULL,
 			`Params` TEXT NULL ,
 			`title` VARCHAR(255) NOT NULL,
 			`explain` TEXT NOT NULL,
@@ -2380,6 +2383,22 @@ public function CheckTables($table=null){
 			 KEY `enabled` (`enabled`)
 			)  ENGINE = MYISAM;";
 		$this->QUERY_SQL($sql,$this->database);	
+		
+		if(!$this->FIELD_EXISTS("itcharters", "ChartHeaders")){
+			$this->QUERY_SQL("ALTER TABLE `itcharters` ADD `ChartHeaders` TEXT NULL");
+			if(!$this->ok){echo $q->mysql_error."\n";}
+		}
+		
+		if(!$this->FIELD_EXISTS("itcharters", "TextIntro")){
+			$this->QUERY_SQL("ALTER TABLE `itcharters` ADD `TextIntro` TEXT NULL");
+			if(!$this->ok){echo $q->mysql_error."\n";}
+		}	
+
+
+		if(!$this->FIELD_EXISTS("itcharters", "TextButton")){
+			$this->QUERY_SQL("ALTER TABLE `itcharters` ADD `TextButton` VARCHAR(128) NOT NULL");
+			if(!$this->ok){echo $q->mysql_error."\n";}
+		}		
 
 		$sql="CREATE TABLE IF NOT EXISTS `itchartlog` (
 			`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -3463,7 +3482,7 @@ public function CheckTables($table=null){
 		if(!$this->FIELD_EXISTS("tables_day", "familysites")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `familysites` TINYINT( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `familysites` )");}
 		if(!$this->FIELD_EXISTS("tables_day", "cached")){$this->QUERY_SQL("ALTER TABLE `tables_day` ADD `cached` TINYINT( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `cached` )");}
 		
-		if($this->FIELD_TYPE("tables_day", "totalBlocked")=="bigint(100)"){
+		if($this->FIELD_TYPE("tables_day", "totalBlocked",$this->database)=="bigint(100)"){
 			$this->QUERY_SQL('ALTER TABLE `tables_day` CHANGE `size` `size` BIGINT( 255 ) NOT NULL');
 			$this->QUERY_SQL('ALTER TABLE `tables_day` CHANGE `totalBlocked` `totalBlocked` BIGINT( 255 ) NOT NULL');
 			$this->QUERY_SQL('ALTER TABLE `tables_day` CHANGE `requests` `requests` BIGINT( 255 ) NOT NULL');
@@ -5795,3 +5814,12 @@ class webfilter_rules{
 	}	
 	
 }
+
+function lkdfjozif_uehfe(){
+	$users=new usersMenus();
+	$tpl=new templates();
+	if(!$users->CORP_LICENSE){
+	define("kdfjozif", "<p class=text-error>".$tpl->_ENGINE_parse_body("{ERROR_NO_LICENSE}")."</p>");}
+	
+}
+

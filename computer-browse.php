@@ -464,19 +464,13 @@ var x_ClacNetmaskcdir  = function (obj) {
 		XHR.sendAndLoad('$page', 'GET',x_ClacNetmaskcdir);        
 	}
 	
-	
-
-	
-	
-
-	
 	function BrowsComputersRefresh(){
 		var mode='';
 		var val='';
 		if(document.getElementById('mode')){mode=document.getElementById('mode').value;}
 		if(document.getElementById('value')){val=document.getElementById('value').value;}
 		if(document.getElementById('callback')){callback=document.getElementById('callback').value;}
-		LoadAjax('computerlist','$page?computer-refresh=yes&mode={$_GET["mode"]}&tofind='+document.getElementById('query_computer').value+'&mode={$_GET["mode"]}&{$_GET["value"]}&callback={$_GET["callback"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}');
+		
 	
 	}
 	
