@@ -44,6 +44,9 @@ class compile_ufdbguard{
 		$this->UpdateUtilityRedirectEnable=$sock->GET_INFO("UpdateUtilityRedirectEnable");
 		$this->UfdbGuardRedirectCategories=unserialize(base64_decode($sock->GET_INFO("UfdbGuardRedirectCategories")));
 		$this->DansGuardianDefaultMainRule=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
+		
+		
+		
 		$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
 		if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}		
 		
@@ -1158,8 +1161,15 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		}		
 		
 		$q=new mysql_squid_builder();
+		
+		
+		
 		$sql="SELECT freeweb,ExternalWebPage,UseExternalWebPage FROM webfilter_rules WHERE ID=$ID";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		
+		echo "Starting......: [ACL]: [$ID] UseExternalWebPage: {$ligne["UseExternalWebPage"]}\n";
+		
+		
 		if($ligne["UseExternalWebPage"]==0){
 			if($ligne["freeweb"]<>null){return "http://{$ligne["freeweb"]}$redirect_pattern";}
 			return $RedirectUriDEF.$redirect_pattern;
@@ -1193,7 +1203,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		if($this->DansGuardianDefaultMainRule["ExternalWebPage"]==null){$this->DansGuardianDefaultMainRule["UseExternalWebPage"]=0;}
 		if(!isset($this->DansGuardianDefaultMainRule["UseSecurity"])){$this->DansGuardianDefaultMainRule["UseSecurity"]=0;}
 		
-
+	
 		
 		$endofrule=$this->DansGuardianDefaultMainRule["endofrule"];
 		if($endofrule<>null){$endofrule=" $endofrule";}
@@ -1215,24 +1225,24 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		if($this->DansGuardianDefaultMainRule["freeweb"]<>null){
 			$RedirectUriDEF="http://{$this->DansGuardianDefaultMainRule["freeweb"]}";
 		}
-		
+		echo "Starting......: [DEFAULT]: ufdbGuard redirect banned to \"$RedirectUriDEF\"\n";
 		
 		$array[]="acl{";
 		$sql="SELECT category,modeblk FROM webfilter_blks WHERE webfilter_id=0";
 		$results=$q->QUERY_SQL($sql);
-		echo "Starting......: ufdbGuard build ACLS for default rule ". mysql_num_rows($results)." items...\n";
+		echo "Starting......: [DEFAULT]: ufdbGuard build ACLS for default rule ". mysql_num_rows($results)." items...\n";
 		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$bannedRegexP=null;
 			$category=trim($ligne["category"]);
 			if($category==null){continue;}
-			if($category=="english_malware"){echo "Starting......: ufdbGuard build ACLS:$category skipped\n";continue;}
+			if($category=="english_malware"){echo "Starting......: [DEFAULT]: ufdbGuard build ACLS:$category skipped\n";continue;}
 			
 			$category=$this->TransFormCategoryName($category);
 			if(isset($GLOBALS["CATEGORIES_SKIPPED"][$category])){echo "Starting......: ufdbGuard build ACLS:$category skipped\n";continue;}
 			if(!isset($GLOBALS["CATEGORIES_ADDED"][$category])){echo "Starting......: ufdbGuard build ACLS:$category not added\n";continue;}
 			
-			if($GLOBALS["VERBOSE"]){echo "Starting......: ufdbGuard build DEFAULT: ACLS:$category banned={$ligne["modeblk"]}\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: [DEFAULT]: ufdbGuard build DEFAULT: ACLS:$category banned={$ligne["modeblk"]}\n";}
 			
 			if(!isset($GLOBALS["PERSONALCATZ"][$category])){echo "Starting......: ufdbGuard build DEFAULT (PERSO) no such category \"$category\"\n";}else{
 				echo "Starting......: ufdbGuard build DEFAULT (PERSO) category \"$category\" = {$GLOBALS["PERSONALCATZ"][$category]}\n";

@@ -13,7 +13,6 @@
 	include_once('ressources/class.tcpip.inc');
 	$usersmenus=new usersMenus();
 	if($usersmenus->AsSystemAdministrator==false){exit();}
-
 	if(isset($_GET["virtual-list"])){nics_list();exit;}
 	
 	page();

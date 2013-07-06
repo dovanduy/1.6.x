@@ -519,8 +519,8 @@ class system_nic{
 		
 		
 		
-		$NoGatewayForVirtualNetWork=$sock->GET_INFO("NoGatewayForVirtualNetWork");	
-		if(!is_numeric($NoGatewayForVirtualNetWork)){$NoGatewayForVirtualNetWork=0;}
+		$GLOBALS["NoGatewayForVirtualNetWork"]=$sock->GET_INFO("NoGatewayForVirtualNetWork");	
+		if(!is_numeric($GLOBALS["NoGatewayForVirtualNetWork"])){$GLOBALS["NoGatewayForVirtualNetWork"]=0;}
 		$sql="SELECT * FROM nics_virtuals ORDER BY ID DESC";
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");	
@@ -541,7 +541,7 @@ class system_nic{
 			if($NetWorkBroadCastAsIpAddr==1){$brd=$ligne["ipaddr"];}
 			$array[]="BROADCAST=$brd";
 			if($ligne["GATEWAY"]<>"0.0.0.0"){
-				if($NoGatewayForVirtualNetWork==0){$array[]="GATEWAY={$ligne["gateway"]}";}
+				if($GLOBALS["NoGatewayForVirtualNetWork"]==0){$array[]="GATEWAY={$ligne["gateway"]}";}
 			}
 			$array[]="ONBOOT=yes";
 			$array[]="USERCTL=yes";	
@@ -810,7 +810,11 @@ class system_nic{
 					if($ligne["GATEWAY"]<>"0.0.0.0"){
 						$f[]="\tgateway {$ligne["GATEWAY"]}";
 						if(preg_match("#^([0-9\.]+)\.[0-9]+$#", $ligne["IPADDR"],$re)){
-							$mainroute="{$GLOBALS["routebin"]} add -net {$re[1]}.0 netmask {$ligne["NETMASK"]} gw {$ligne["GATEWAY"]} dev $eth";
+							if(!isset($ALREADYNETSROUTE["{$re[1]}.0"])){
+								$ALREADYNETSROUTE["{$re[1]}.0"]=true;
+								$mainroute="{$GLOBALS["routebin"]} add -net {$re[1]}.0 netmask {$ligne["NETMASK"]} gw {$ligne["GATEWAY"]} dev $eth";
+								$GLOBALS["SCRIPTS"][]=$mainroute;
+							}
 						}
 					}
 				}			
@@ -857,6 +861,9 @@ class system_nic{
 			if(is_array($routes)){
 				if(count($routes)>0){
 	         		while (list ($ip, $ip_array) = each ($routes) ){
+	         			if($ligne["GATEWAY"]=="0.0.0.0"){$ligne["GATEWAY"]=null;}
+	         			
+	         			
 	         			
 		         		if($ip=="default"){
 		         			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev $eth  metric 10{$ligne["metric"]}";
@@ -890,6 +897,7 @@ class system_nic{
 		
 		if(count($scripts)==0){
 		if($ligne["GATEWAY"]<>null){
+				
 				if($ligne["metric"]==null){if($eth=="eth0"){$ligne["metric"]=1;}else{$ligne["metric"]=$this->lastmetric();}}
 				
 				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev $eth  metric 10{$ligne["metric"]}";
@@ -927,24 +935,50 @@ class system_nic{
 		
 		}
 		
-		$NoGatewayForVirtualNetWork=$sock->GET_INFO("NoGatewayForVirtualNetWork");	
-		if(!is_numeric($NoGatewayForVirtualNetWork)){$NoGatewayForVirtualNetWork=0;}	
-		if($REMOVE_GATEWAY){$NoGatewayForVirtualNetWork=1;}
+		$GLOBALS["NoGatewayForVirtualNetWork"]=$sock->GET_INFO("NoGatewayForVirtualNetWork");	
+		if(!is_numeric($GLOBALS["NoGatewayForVirtualNetWork"])){$GLOBALS["NoGatewayForVirtualNetWork"]=0;}	
+		if($REMOVE_GATEWAY){$GLOBALS["NoGatewayForVirtualNetWork"]=1;}
+		
+		$f[]=$this->BuildVirtIps();
+		$f[]=$this->BuildVlans();
+		if($ISREAL==0){return null;}
+		return @implode("\n",$f);
+	
+	}
+	
+	
+	public function BuildVirtIps(){
+		
+		$sock=new sockets();
+		$NetWorkBroadCastAsIpAddr=$sock->GET_INFO("NetWorkBroadCastAsIpAddr");
+		$unix=new unix();
+		if(!isset($GLOBALS["moprobebin"])){
+			$GLOBALS["moprobebin"]=$unix->find_program("modprobe");
+		}
+		if(!isset($GLOBALS["vconfigbin"])){
+			$GLOBALS["vconfigbin"]=$unix->find_program("vconfig");
+		}
+		if(!isset($GLOBALS["ifconfig"])){
+			$GLOBALS["ifconfig"]=$unix->find_program("ifconfig");
+		}
+		if(!isset($GLOBALS["ipbin"])){
+			$GLOBALS["ipbin"]=$unix->find_program("ip");
+		}		
 		
 		$sql="SELECT * FROM nics_virtuals WHERE failover=0 ORDER BY ID DESC";
 		$q=new mysql();
 		if(!$q->FIELD_EXISTS("nics_virtuals","failover","artica_backup")){$sql="ALTER TABLE `nics_virtuals` ADD `failover` TINYINT( 1 ) NOT NULL,ADD INDEX ( `failover` )";$q->QUERY_SQL($sql,'artica_backup');if(!$q->ok){echo $q->mysql_error."\n\n";}}
-		$results=$q->QUERY_SQL($sql,"artica_backup");	
+		$results=$q->QUERY_SQL($sql,"artica_backup");
 		$count=mysql_num_rows($results);
 		if($count>0){
 			$f[]="";
 			$f[]="#Virtual interfaces...\n";
 		}
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			if($ligne["ipv6"]==1){continue;}
 			$arr=explode(".",$ligne["ipaddr"]);
 			$arr[3]="255";
-			$brd=implode(".",$arr);		
+			$brd=implode(".",$arr);
 			$ligne["nic"]=trim($ligne["nic"]);
 			$eth=str_replace("\n", "", $ligne["nic"]);
 			$eth=str_replace("\r", "", $ligne["nic"]);
@@ -952,118 +986,141 @@ class system_nic{
 			if($NetWorkBroadCastAsIpAddr==1){$brd=$ligne["ipaddr"];}
 			if($ligne["gateway"]==null){$ligne["gateway"]="0.0.0.0";}
 			$GLOBALS["MEM_INTERFACES"][$eth]=$ligne["ipaddr"];
-			
+				
 			$f[]="";
 			$f[]="iface $eth inet static";
 			$f[]="\taddress {$ligne["ipaddr"]}";
 			$f[]="\tnetmask {$ligne["netmask"]}";
-			
+				
 			$ligne["cdir"]=$this->checkcdir($ligne["cdir"]);
-			
-			
+				
+				
 			echo "Starting......: Virtual $eth net:{$ligne["cdir"]} {$ligne["ipaddr"]}/{$ligne["netmask"]} gateway {$ligne["gateway"]} ({$ligne["org"]})\n";
-			
+				
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["ipaddr"]} netmask {$ligne["netmask"]} up";
-			
+				
 			$scripts=array();
-			if($NoGatewayForVirtualNetWork==0){
-				if($ligne["gateway"]<>"0.0.0.0"){
-					if($ligne["ForceGateway"]==1){
-						$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} rule add from {$ligne["ipaddr"]} table {$ligne["ID"]}0";
-						$scripts[]="\tpost-up {$GLOBALS["ipbin"]} rule add from {$ligne["ipaddr"]} table {$ligne["ID"]}0";
-						
-						$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["gateway"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
-						$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route add default via {$ligne["gateway"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
-						$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route flush cache";
-						$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route flush cache";
-						
-						$scripts[]="\tpost-down {$GLOBALS["ipbin"]} route del default via {$ligne["gateway"]} table {$ligne["ID"]}0";	
-						$scripts[]="\tpost-down {$GLOBALS["ipbin"]} rule del from {$ligne["ipaddr"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
-		         		
+			if($GLOBALS["NoGatewayForVirtualNetWork"]==0){
+			if($ligne["gateway"]<>"0.0.0.0"){
+				if($ligne["ForceGateway"]==1){
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} rule add from {$ligne["ipaddr"]} table {$ligne["ID"]}0";
+					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} rule add from {$ligne["ipaddr"]} table {$ligne["ID"]}0";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["gateway"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
+					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route add default via {$ligne["gateway"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route flush cache";
+					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route flush cache";
+					$scripts[]="\tpost-down {$GLOBALS["ipbin"]} route del default via {$ligne["gateway"]} table {$ligne["ID"]}0";
+					$scripts[]="\tpost-down {$GLOBALS["ipbin"]} rule del from {$ligne["ipaddr"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
 					}
 				}
 			}
-			
+				
 			if(count($scripts)==0){
 			if($ligne["gateway"]<>"0.0.0.0"){
-					if($ligne["cdir"]<>null){
-						$mainroute="{$ligne["cdir"]} via {$ligne["gateway"]} src {$ligne["ipaddr"]} metric 20{$ligne["metric"]}";
-						//$mainroute="-net {$re[1]}.0 netmask {$ligne["netmask"]} gw {$ligne["gateway"]} dev $eth metric 20{$ligne["metric"]}";
-						$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route add $mainroute";
-						$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route add $mainroute";
-						$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route flush cache";
-						$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route flush cache";
-						$scripts[]="\tpost-down {$GLOBALS["ipbin"]} route del route $mainroute";
-						$scripts[]="\tpost-down {$GLOBALS["ipbin"]} route flush cache";
+				if($ligne["cdir"]<>null){
+					$mainroute="{$ligne["cdir"]} via {$ligne["gateway"]} src {$ligne["ipaddr"]} metric 20{$ligne["metric"]}";
+					//$mainroute="-net {$re[1]}.0 netmask {$ligne["netmask"]} gw {$ligne["gateway"]} dev $eth metric 20{$ligne["metric"]}";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route add $mainroute";
+					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route add $mainroute";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route flush cache";
+					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route flush cache";
+					$scripts[]="\tpost-down {$GLOBALS["ipbin"]} route del route $mainroute";
+					$scripts[]="\tpost-down {$GLOBALS["ipbin"]} route flush cache";
 					}
-				}	
-				
+				}
 			}
+		
 			$f[]=@implode("\n", $scripts);
 			$f[]="\tbroadcast $brd";
-    		$f[]="";
-	        $f[]="";				
+			$f[]="";
+			$f[]="";
+		}		
+		
+		return @implode("\n", $f);
+		
+	}
+	
+	
+	
+	public function BuildVlans(){
+		$sock=new sockets();
+		$NetWorkBroadCastAsIpAddr=$sock->GET_INFO("NetWorkBroadCastAsIpAddr");
+		$unix=new unix();
+		if(!isset($GLOBALS["moprobebin"])){
+			$GLOBALS["moprobebin"]=$unix->find_program("modprobe");
 		}
+		if(!isset($GLOBALS["vconfigbin"])){
+			$GLOBALS["vconfigbin"]=$unix->find_program("vconfig");
+		}	
+		if(!isset($GLOBALS["ifconfig"])){
+			$GLOBALS["ifconfig"]=$unix->find_program("ifconfig");
+		}
+		if(!isset($GLOBALS["ipbin"])){
+			$GLOBALS["ipbin"]=$unix->find_program("ip");
+		}		
+		
 		
 		$sql="SELECT * FROM nics_vlan ORDER BY ID DESC";
 		$q=new mysql();
-		$results=$q->QUERY_SQL($sql,"artica_backup");	
+		$results=$q->QUERY_SQL($sql,"artica_backup");
 		$count=mysql_num_rows($results);
 		if($count>0){
 			$this->module_8021q();
 			$f[]="";
 			$f[]="#VLANs interfaces...\n";
 		}
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["moprobebin"]} 8021q >/dev/null 2>&1";
 			if(!is_file($GLOBALS["vconfigbin"])){continue;}
 			if($ligne["metric"]==0){$ligne["metric"]=$this->lastmetric();}
 			$arr=explode(".",$ligne["ipaddr"]);
 			$arr[3]="255";
 			$vlanid_text=null;
-			$brd=implode(".",$arr);			
+			$brd=implode(".",$arr);
 			$eth="{$ligne["nic"]}";
 			$vlanid=$ligne["vlanid"];
 			if($vlanid==0){continue;}
 			if($vlanid>0){$vlanid_text=".$vlanid";}
-			
+				
 			if(strlen($vlanid)==1){$vlansuffix="0$vlanid";$vlanprexif="2";}
 			if(strlen($vlanid)==2){$vlansuffix=$vlanid;$vlanprexif="2";}
 			$table_routeid="$vlanprexif$vlansuffix";
 			if(strlen($vlanid)>2){
-					if($vlanid>200){$table_routeid=$vlanid;}
-					if($vlanid<200){$table_routeid=200+$vlanid;}
+				if($vlanid>200){$table_routeid=$vlanid;}
+				if($vlanid<200){$table_routeid=200+$vlanid;}
 			}
 			$table_routename="vlan{$ligne["vlanid"]}";
 			$this->vlanTable($table_routename, $table_routeid);
-			shell_exec("{$GLOBALS["vconfigbin"]} add {$ligne["nic"]} {$ligne["vlanid"]} >/dev/null 2>&1");
+			
 			echo "Starting......: VLAN $eth {$ligne["ipaddr"]}/{$ligne["netmask"]} gateway {$ligne["gateway"]} ({$ligne["org"]}) route ID $table_routeid/$table_routename\n";
 			$f[]="";
 			$GLOBALS["MEM_INTERFACES"]["$eth$vlanid_text"]=$ligne["ipaddr"];
-			$f[]="auto $eth$vlanid_text";
-			$f[]="iface $eth$vlanid_text inet static";
-			$f[]="\taddress {$ligne["ipaddr"]}";
-			$f[]="\tnetmask {$ligne["netmask"]}";
-			if($NetWorkBroadCastAsIpAddr==1){$brd=$ligne["ipaddr"];}
-			$f[]="\tbroadcast $brd";
+					$f[]="auto $eth$vlanid_text";
+					$f[]="iface $eth$vlanid_text inet static";
+					$f[]="\taddress {$ligne["ipaddr"]}";
+					$f[]="\tnetmask {$ligne["netmask"]}";
+					if($NetWorkBroadCastAsIpAddr==1){$brd=$ligne["ipaddr"];}
+					$f[]="\tbroadcast $brd";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth$vlanid_text down";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["vconfigbin"]} rem $eth$vlanid_text";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["vconfigbin"]} add $eth {$ligne["vlanid"]}";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth$vlanid_text down";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth$vlanid_text {$ligne["ipaddr"]} netmask {$ligne["netmask"]} up";
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route flush cache";
+					$f[]="\tpre-up {$GLOBALS["moprobebin"]} 8021q >/dev/null 2>&1";
+					$f[]="\tpost-up {$GLOBALS["ipbin"]} route flush cache";
+					$f[]="\tmtu 1500";
+					$f[]="\tvlan-raw-device {$ligne["nic"]}";
+					$f[]="";
+					$f[]="";
+						
+			}
 			
-			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth$vlanid_text down";
-			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth$vlanid_text {$ligne["ipaddr"]} netmask {$ligne["netmask"]} up";
-			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route flush cache";
-			$f[]="\tpre-up moprobe 8021q >/dev/null 2>&1";
-			$f[]="\tpost-up {$GLOBALS["ipbin"]} route flush cache";	
-			$f[]="\tmtu 1500";
-			$f[]="\tvlan-raw-device {$ligne["nic"]}";
-    		$f[]="";
-	        $f[]="";			
-			
-		}		
-	
-	if($ISREAL==0){return null;}
-	return @implode("\n",$f);
-	
+			return @implode("\n", $f);
 	}
+	
+	
 	
 	private function checkcdir($cdir,$ip,$netmask){
 		if(!preg_match("#(.+?)\/([0-9]+)#", $cdir,$re)){return null;}

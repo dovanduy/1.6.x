@@ -64,6 +64,13 @@ function tabs(){
 	$boot=new boostrap_form();
 	$mini=new miniadm();
 	$users=new usersMenus();
+	$ldap=new clladp();
+	if($ldap->IsKerbAuth()){
+		$array["{activedirectory_members}"]="miniadm.members.browse.php?section-search-ad=yes";
+		
+	}
+	
+	
 	$array["{radius_members}"]="miniadm.system.members.radius.php";
 	
 	if($mini->IFItsProxy()){

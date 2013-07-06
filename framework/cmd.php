@@ -8424,6 +8424,8 @@ function IP_ROUTES(){
 	@unlink("/etc/artica-postfix/MEM_INTERFACES");
 	$cmd=trim($nohup." ".LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.virtuals-ip.php --routes >/dev/null 2>&1 &");
 	shell_exec($cmd);
+	$cmd=trim($nohup." ".LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.virtuals-ip.php --main-routes >/dev/null 2>&1 &");
+	shell_exec($cmd);	
 }
 
 function disks_quotas_list(){

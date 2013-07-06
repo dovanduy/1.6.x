@@ -82,6 +82,22 @@ class mount{
 		
 	}
 	
+	public function umount($mountpoint=null){
+		if($mountpoint==null){
+			$this->events("umount() no mount point specified Line::".__LINE__);
+			return;
+		}
+		
+		if(!$this->ismounted($mountpoint)){
+			$this->events("umount() already unmounted Line::".__LINE__);
+			return;
+		}
+		
+		@chdir("/root");
+		shell_exec("/bin/umount -l \"$mountpoint\" >/dev/null");
+		
+	}
+	
 	
 	public function smb_mount($mountpoint,$server,$username,$password,$path){
 		

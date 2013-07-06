@@ -124,6 +124,8 @@ function GetGroupsFromMember($member){
 	@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_REFERRALS, 0);
 	$searchFilter="(&(objectCategory=Person)(objectClass=user)(sAMAccountName=$member))";
 	
+	if($GLOBALS["VERBOSE"]){WLOG("[QUERY]::$searchFilter -> $filter");}
+	
 	$GLOBALS["QUERIES_NUMBER"]++;
 	
 	$sr =@ldap_search($GLOBALS["CONNECTION"],$GLOBALS["SUFFIX"],"$searchFilter",$filter,null, 10, 10);

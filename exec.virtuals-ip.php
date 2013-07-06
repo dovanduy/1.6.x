@@ -38,8 +38,12 @@ if($argv[1]=="--ucarp"){ucarp_build();exit;}
 if($argv[1]=="--ucarp-start"){ucarp_build();exit;}
 if($argv[1]=="--ucarp-stop"){ucarp_stop();exit;}
 if($argv[1]=="--net-rules"){persistent_net_rules();exit;}
-
+if($argv[1]=="--main-routes"){routes_main_build();exit;}
 if($argv[1]=="--routes"){routes();exit;}
+if($argv[1]=="--vlans-build"){vlan_build();exit;}
+if($argv[1]=="--vlans-delete"){vlan_delete($argv[2]);exit;}
+if($argv[1]=="--virtip-build"){virtip_build($argv[2]);exit;}
+if($argv[1]=="--virtip-delete"){virtip_delete($argv[2]);exit;}
 
 
 if($GLOBALS["SLEEP"]){sleep(2);}
@@ -129,6 +133,86 @@ function dev_shm(){
 		shell_exec("$ln -s /dev/shm/network /etc/network/run");
 	}
 	if($GLOBALS["VERBOSE"]){echo "Line:".__LINE__." dev_shm ->done\n";}
+	
+}
+
+function vlan_build(){
+	$nic=new system_nic();
+	$nic->BuildVlans();
+	if(count($GLOBALS["SCRIPTS"])>0){
+		while (list ($index, $line) = each ($GLOBALS["SCRIPTS"]) ){
+			$line=trim($line);
+			if($line==null){continue;}
+			$md=md5($line);
+			if(isset($AL[$md])){continue;}
+			$AL[$md]=true;			
+			
+			echo "Starting......: `$line`\n";
+			$sh[]="echo \"Starting......: $line\"";
+			events("$line",__FUNCTION__,__LINE__);
+			system($line);
+		}
+		usleep(500);
+	}
+	BuildNetWorksDebian();
+}
+function virtip_build(){
+	$nic=new system_nic();
+	$nic->BuildVirtIps();
+	if(count($GLOBALS["SCRIPTS"])>0){
+		while (list ($index, $line) = each ($GLOBALS["SCRIPTS"]) ){
+			$line=trim($line);
+			if($line==null){continue;}
+			$md=md5($line);
+			if(isset($AL[$md])){continue;}
+			$AL[$md]=true;
+				
+			echo "Starting......: `$line`\n";
+			$sh[]="echo \"Starting......: $line\"";
+			events("$line",__FUNCTION__,__LINE__);
+			system($line);
+		}
+		usleep(500);
+	}
+	BuildNetWorksDebian();
+}
+
+function vlan_delete($ID){
+	$sql="SELECT * FROM nics_vlan WHERE ID='$ID'";
+	$q=new mysql();
+	if(!is_numeric($ID)){return;}
+	if($ID<1){return;}	
+	$unix=new unix();
+	if(!isset($GLOBALS["moprobebin"])){$GLOBALS["moprobebin"]=$unix->find_program("modprobe");}
+	if(!isset($GLOBALS["vconfigbin"])){$GLOBALS["vconfigbin"]=$unix->find_program("vconfig");}
+	if(!isset($GLOBALS["ifconfig"])){$GLOBALS["ifconfig"]=$unix->find_program("ifconfig");}
+	if(!isset($GLOBALS["ipbin"])){$GLOBALS["ipbin"]=$unix->find_program("ip");}	
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$eth="{$ligne["nic"]}";
+	$vlanid=$ligne["vlanid"];
+	if($vlanid==0){return;}
+	if($vlanid>0){$vlanid_text=".$vlanid";}	
+	shell_exec("{$GLOBALS["ifconfig"]} $eth$vlanid_text down");
+	shell_exec("{$GLOBALS["vconfigbin"]} rem eth$vlanid_text");
+	$q->QUERY_SQL("DELETE FROM nics_vlan WHERE ID='$ID'","artica_backup");
+	BuildNetWorksDebian();
+}
+function virtip_delete($ID){
+	if(!is_numeric($ID)){return;}
+	if($ID<1){return;}
+	$sql="SELECT * FROM nics_virtuals WHERE ID='$ID'";
+	$q=new mysql();
+	
+	$unix=new unix();
+	if(!isset($GLOBALS["moprobebin"])){$GLOBALS["moprobebin"]=$unix->find_program("modprobe");}
+	if(!isset($GLOBALS["vconfigbin"])){$GLOBALS["vconfigbin"]=$unix->find_program("vconfig");}
+	if(!isset($GLOBALS["ifconfig"])){$GLOBALS["ifconfig"]=$unix->find_program("ifconfig");}
+	if(!isset($GLOBALS["ipbin"])){$GLOBALS["ipbin"]=$unix->find_program("ip");}
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$eth="{$ligne["nic"]}:{$ligne["ID"]}";
+	shell_exec("{$GLOBALS["ifconfig"]} $eth down");
+	$q->QUERY_SQL("DELETE FROM nics_virtuals WHERE ID='$ID'","artica_backup");
+	BuildNetWorksDebian();	
 	
 }
 
@@ -312,7 +396,7 @@ function events($text,$function,$line){
 	
 	
 }
-
+function event($text,$function=null,$line=null){events($text,$function,$line);}
 function build(){
 	$unix=new unix();
 	$users=new usersMenus();
@@ -493,7 +577,6 @@ Checkipv6();
 			}
 		}
 	}
-	
 	$GLOBALS["SCRIPTS"][]="$ifconfig lo down";
 	$GLOBALS["SCRIPTS"][]="$ifconfig lo 127.0.0.1 up";
 	
@@ -508,6 +591,11 @@ Checkipv6();
 	routes_main();
 
 	while (list ($index, $line) = each ($GLOBALS["SCRIPTS"]) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		$md=md5($line);
+		if(isset($AL[$md])){continue;}
+		$AL[$md]=true;		
 		echo "Starting......: `$line`\n";
 		$sh[]="echo \"Starting......: $line\"";
 		$sh[]=$line;
@@ -739,20 +827,100 @@ function PARSECDR($pattern){
 	
 	
 }
-function routes_main(){
+
+function routes_main_build(){
+	routes();
+	routes_main();
 	$unix=new unix();
+	$route=$unix->find_program("route");
+	$ip=$unix->find_program("ip");
+
+	
+	if(count($GLOBALS["SCRIPTS"])==0){
+		echo "No route to build\n";
+		return;}
+	
+	echo "Starting......: `$ip route flush all`\n";
+	shell_exec("$ip route flush all");
+		
+	while (list ($index, $line) = each ($GLOBALS["SCRIPTS"]) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		$md=md5($line);
+		if(isset($AL[$md])){continue;}
+		$AL[$md]=true;
+		echo "Starting......: `$line`\n";
+		system($line);
+	}
+	
+	
+	
+		
+}
+
+function routes_main(){
+	
+	$unix=new unix();
+	$GLOBALS["ifconfig"]=$unix->find_program("ifconfig");
+	$GLOBALS["routebin"]=$unix->find_program("route");
+	$GLOBALS["ipbin"]=$unix->find_program("ip");
+	$GLOBALS["vconfigbin"]=$unix->find_program("vconfig");
+	$GLOBALS["moprobebin"]=$unix->find_program("modprobe");	
+	
+	
+	
+	$sock=new sockets();
+	$OVHNetConfig=$sock->GET_INFO("OVHNetConfig");
+	if(!is_numeric($OVHNetConfig)){$OVHNetConfig=0;}
+	$NetWorkBroadCastAsIpAddr=$sock->GET_INFO("NetWorkBroadCastAsIpAddr");
+	$EnableChilli=$sock->GET_INFO("EnableChilli");
+	if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+	if($EnableChilli==1){
+		$ChilliConf=unserialize(base64_decode($sock->GET_INFO("ChilliConf")));
+		echo "Starting......: Will skip {$ChilliConf["HS_LANIF"]} for HotSpot config\n";
+		$eth_SKIP[$ChilliConf["HS_LANIF"]]=true;
+	}	
+	
+	
+	
 	$route=$unix->find_program("route");
 	$ip=$unix->find_program("ip");
 	$types[1]="{network_nic}";
 	$types[2]="{host}";
-	$sql="SELECT * FROM nic_routes ORDER BY `nic`";
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
+	
 	$q=new mysql();
 	$GLOBALS["SCRIPTS"][]="$route add 127.0.0.1";
 	$GLOBALS["SCRIPTS"][]="$route add -net 127.0.0.0 netmask 255.0.0.0 lo";
 	
-
 	
+	$sql="SELECT * FROM `nics` WHERE enabled=1 ORDER BY Interface";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo "Starting......: Mysql error : $q->mysql_error\n";return;}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$eth=trim($ligne["Interface"]);
+		if(isset($eth_SKIP[$eth])){echo "Starting......: $eth skipping\n";continue;}		
+		if($ligne["GATEWAY"]==null){continue;}
+		if($ligne["GATEWAY"]=="0.0.0.0"){continue;}
+		$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} add {$ligne["GATEWAY"]} dev $eth";
+		//$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} add default gw {$ligne["GATEWAY"]}";	
+		if($ligne["NETMASK"]=="0.0.0.0"){continue;}
+		if(trim($ligne["NETMASK"])==null){continue;}
+		if(preg_match("#^([0-9\.]+)\.[0-9]+$#", $ligne["IPADDR"],$re)){
+			if(isset($eth_SKIP[$eth])){echo "Starting......: {$ligne["IPADDR"]} -> {$re[1]}.0/{$ligne["NETMASK"]}\n";continue;}
+			if(isset($ALREADYNETS["{$re[1]}.0"])){continue;}
+			$ALREADYNETS["{$re[1]}.0"]=true;
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} add -net {$re[1]}.0 netmask {$ligne["NETMASK"]} gw {$ligne["GATEWAY"]} dev $eth";
+		}			
+		
+		
+	}
+	
+	
+	
+
+	$sql="SELECT * FROM nic_routes ORDER BY `nic`";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	
 	
@@ -760,11 +928,14 @@ function routes_main(){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$type=$ligne["type"];
 		$ttype="-net";
+		if($ligne["nic"]==null){
+			echo "Starting......: Error, no nic set for this route: {$ligne["pattern"]} gw {$ligne["gateway"]}\n";
+			continue;
+		}
 		if($type==1){
 			$ttype="-net";
 			if($ligne["nic"]<>null){$dev=" dev {$ligne["nic"]}";}
-			$cmd="$ip route add {$ligne["gateway"]} $dev >/dev/null 2>&1";
-			$CMDS="$cmd >/dev/null 2>&1";
+			$CMDS="$ip route add {$ligne["gateway"]} $dev";
 			$GLOBALS["SCRIPTS"][]=$CMDS;
 				
 		}
@@ -789,7 +960,7 @@ function routes(){
 	$types[2]="{host}";	
 
 	
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
 	$q=new mysql();	
 	
 	$f=explode("\n",@file_get_contents("/etc/iproute2/rt_tables"));

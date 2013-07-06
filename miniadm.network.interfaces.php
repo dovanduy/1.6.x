@@ -14,7 +14,7 @@ include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 
 if(isset($_GET["interfaces"])){interfaces();exit;}
 if(isset($_GET["search-interfaces"])){interfaces_search();exit;}
-
+if(isset($_GET["ifconfig"])){ifconfig();exit;}
 tabs();
 
 
@@ -25,6 +25,10 @@ function tabs(){
 	$t=time();
 	$boot=new boostrap_form();
 	$array["{main_interfaces}"]="$page?interfaces=yes";
+	if($users->VLAN_INSTALLED){$array["VLAN"]='miniadm.network.vlans.php';}
+	$array["{virtual_ips}"]='miniadm.network.virtips.php';
+	$array["{display_current_config}"]="$page?ifconfig=yes";
+	
 	$array["{failover}:{events}"]="miniadm.ucarp.events.php";
 	echo $boot->build_tab($array);	
 }
@@ -318,3 +322,10 @@ function listnicinfos($nicname,$js=null){
 }
 
 
+function ifconfig(){
+	$sock=new sockets();
+	$datas=unserialize(base64_decode($sock->getFrameWork("system.php?ifconfig-show=yes")));
+	echo "<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:95%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important'
+	id='textarea$t'>".@implode("\n", $datas)."</textarea>";
+}

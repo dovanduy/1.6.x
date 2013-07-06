@@ -19,6 +19,10 @@ if(isset($_GET["section-tab"])){section_tab();exit;}
 if(isset($_GET["section-search-ldap"])){section_search_ldap();exit;}
 if(isset($_GET["search-users-ldap"])){users_search_ldap();exit;}
 
+if(isset($_GET["section-search-ad"])){section_search_ad();exit;}
+if(isset($_GET["search-users-ad"])){users_search_ad();exit;}
+
+
 
 
 js();
@@ -64,6 +68,89 @@ function section_search_ldap(){
 	echo $boot->SearchFormGen(null,"search-users-ldap","&ou=$ou&CallBack=$callback");
 	
 }
+function section_search_ad(){
+	$boot=new boostrap_form();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$ou=$_SESSION["ou"];
+	$callback=urlencode($_GET["CallBack"]);
+	echo $boot->SearchFormGen(null,"search-users-ad","&CallBack=$callback");	
+	
+}
+function users_search_ad(){
+	include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+	$p=new external_ad_search();
+	if($_GET["search-users-ad"]<>null){$tofind=$_GET["search-users-ad"];}
+	if($tofind==null){$tofind='*';}else{$tofind="*$tofind*";}
+	$hash=$p->find_users(null,$tofind,250);	
+	$tpl=new templates();
+	$MyPage=CurrentPageName();
+		
+	
+	
+	$boot=new boostrap_form();
+	$users=new user();
+	$number=$hash["count"];
+	
+	
+	$styleTD=" style='font-size:16px'";
+	
+	for($i=0;$i<$number;$i++){
+		$userARR=$hash[$i];
+		$img="user7-32.png";
+		$uid=$userARR["samaccountname"][0];
+		if(strpos($uid, "$")>0){$img="computer-32.png";}
+		if($userARR["displayname"][0]==null){$userARR["displayname"][0]=$uid;}
+		$js=MEMBER_JS($uid,1,1);
+	
+		if(($userARR["sn"][0]==null) && ($userARR["givenname"][0]==null)){$userARR["sn"][0]=$uid;}
+	
+		$sn=texttooltip($userARR["sn"][0],"{display}:$uid",$js,null,0,"font-size:13px");
+		$givenname=texttooltip($userARR["givenname"][0],"{display}:$uid",$js,null,0,"font-size:13px");
+		$title=texttooltip($userARR["title"][0],"{display}:$uid",$js,null,0,"font-size:13px");
+		$mail=texttooltip($userARR["mail"][0],"{display}:$uid",$js,null,0,"font-size:13px");
+		$telephonenumber=texttooltip($userARR["telephonenumber"][0],"{display}:$uid",$js,null,0,"font-size:13px");
+		if($userARR["telephonenumber"][0]==null){$userARR["telephonenumber"][0]="&nbsp;";}
+		if($userARR["mail"][0]==null){$userARR["mail"][0]="&nbsp;";}
+
+		if($_GET["CallBack"]<>null){
+			$link=$boot->trswitch("{$_GET["CallBack"]}('$uid')");
+		}else{
+			$link=$boot->trswitch($js);
+		}
+		
+		$tr[]="
+		<tr id='$id'>
+		
+		<td $styleTD width=1% nowrap $link><img src='img/$img'></td>
+		<td $styleTD width=99% nowrap $link><i class='icon-user'></i>&nbsp;{$userARR["sn"][0]} {$userARR["givenname"][0]}<div><i>{$userARR["title"][0]}</i></td>
+		<td $styleTD width=1% nowrap $link>{$userARR["telephonenumber"][0]}</td>
+		<td $styleTD width=1% nowrap $link>{$userARR["mail"][0]}</td>
+		</tr>";
+		
+		
+		}
+		if($tofind<>null){$tofind=" ($tofind)";}
+		echo $tpl->_ENGINE_parse_body("
+		
+				<table class='table table-bordered table-hover'>
+		
+			<thead>
+				<tr>
+					<th colspan=2>{member}$tofind</th>
+					<th>{phone}</th>
+					<th>{email}</th>
+				</tr>
+			</thead>
+			 <tbody>
+			").@implode("\n", $tr)." </tbody>
+				</table>";
+	
+}
+
+
+
+
 function users_search_ldap(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
@@ -85,7 +172,7 @@ function users_search_ldap(){
 	$number=$hash["count"];
 	
 	
-	$styleTD=" style='font-size:12px'";
+	$styleTD=" style='font-size:16px'";
 	
 	for($i=0;$i<$number;$i++){
 		$userARR=$hash[$i];

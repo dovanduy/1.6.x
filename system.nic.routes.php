@@ -21,34 +21,25 @@ function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$add_new_route_text=$tpl->_ENGINE_parse_body("{add_new_route_text}");
-	$html="
-	<table style='width:100%'>
-	<tr>
 	
-		<td valign='top'><div id='routes-listes' style='width:100%;height:540px'></div></td>
-		<td valign='top'><div id='routes-icons'></div></td>
-	</tr>
-	</table>
-	<script>
-		function RefreshRoutes(){
-			LoadAjax('routes-listes','$page?routes-listes=yes');
-		
-		}
-		
-		function SystemAddRoute(){
-			YahooWin4('455','$page?routes-popup-add=yes','$add_new_route_text');
-		}
-		
-		LoadAjax('routes-icons','$page?routes-icons=yes');
-		RefreshRoutes();
-	</script>
-	";
+	$html="<p class=text-error>{routes_goto_miniadm}</p>";
+	
 	
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
 function routes_listes(){
+	
+	
 		$tpl=new templates();
+		
+		$html="<p class=text-error>{routes_goto_miniadm}</p>";
+		
+		
+		echo $tpl->_ENGINE_parse_body($html);
+		return;		
+		
+		
 		$page=CurrentPageName();
 		$types[1]="{network_nic}";
 		$types[2]="{host}";	

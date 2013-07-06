@@ -12,6 +12,8 @@ include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
+if(isset($_GET["CalcCdir"])){CalcCdir();exit;}
+
 $PRIV=GetPrivs();if(!$PRIV){header("location:miniadm.index.php");die();}
 
 
@@ -110,7 +112,7 @@ function webstats_middle(){
 	if($_SESSION["AllowChangeDomains"]){
 		$array["{manage_internet_domains}"]="miniadm.smtpdom.php?webstats-middle=yes&title=yes";
 	}
-	//$array["{status}"]="$page?status=yes";
+	$array["{computers}"]="miniadm.computers.browse.php?page=yes";
 	//$array["{events}"]="$page?events=yes";
 	echo $boot->build_tab($array);
 	return;
@@ -154,3 +156,16 @@ function webstats_middle(){
 	$tr[]=$pdns;
 	echo $tpl->_ENGINE_parse_body(CompileTr3($tr));
 }	
+function CalcCdir(){
+	if(isset($_GET["netmask"])){$netmask=$_GET["netmask"];}
+	if(isset($_GET["ipaddr"])){$ipaddr=$_GET["ipaddr"];}
+	include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
+	$ip=new IP();
+	
+	$ipaddrTR=explode(".",$ipaddr);
+	$ipaddr="{$ipaddrTR[0]}.{$ipaddrTR[1]}.{$ipaddrTR[2]}.0";
+	
+	if($netmask<>null){echo $ip->maskTocdir($ipaddr, $netmask);}	
+	
+	
+}

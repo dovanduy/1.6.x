@@ -805,7 +805,7 @@ function AJAX_COMPUTER_DNS_FORM($uid) {
 	$DnsType = Field_array_Hash ( $dnstypeTable, "DnsType", $computer->DnsType, "style:font-size:14px", null, 0, null, $disabled );
 	
 	$html = "			
-<table style='width:99%' class=form>
+<table style='width:100%'>
 <tbody>
 <tr>
 					<td colspan=2><div style='font-size:16px'>{dns_information}</H5></td>
@@ -1032,7 +1032,7 @@ function AJAX_COMPUTER() {
 	}
 	
 	$MacField = Field_text ('ComputerMacAddress', 
-	$computer->ComputerMacAddress, 'width:100%;font-size:14px;padding:3px;font-weight:bold',null,null,null,false,
+	$computer->ComputerMacAddress, 'width:95%;font-size:14px;padding:3px;font-weight:bold',null,null,null,false,
 	"ComputerFindByMac()" );
 	
 	if (IsPhysicalAddress($computer->ComputerMacAddress)) {
@@ -1075,8 +1075,9 @@ function AJAX_COMPUTER() {
 		$wakeonlan
 		$delete
 		</td>
-	<td valign='top' width=99%>
-			<table style='width:99%' class=form>
+	<td valign='top' width=99% style='vertical-align:top !important'>
+		   <div style='width:95%' class=form>
+			<table style='width:100%'>
 				<tr>
 					<td colspan=3><div style='font-size:16px'>{network_information}</div></td>
 					
@@ -1124,13 +1125,14 @@ function AJAX_COMPUTER() {
 											
 				
 				<tr>
-					<td colspan=3 align='right'><hr>" . button ( $button_title, "SaveComputerForm('FFM34567-{$_GET["userid"]}');",16 ) . "
-						
+					<td colspan=3 align='right' style='padding:10px'>
+						<hr>" . button ( $button_title, "SaveComputerForm('FFM34567-{$_GET["userid"]}');",16 ) . "
 					</td>
 				</tr>
 				$computer_infos
 				
 				</table>
+				</div>
 		</td>
 		</tr>		
 		</table>

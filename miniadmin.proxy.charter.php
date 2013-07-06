@@ -57,9 +57,20 @@ function settings(){
 	$sock=new sockets();
 	$boot=new boostrap_form();	
 	$sock=new sockets();
+	$tpl=new templates();
 	$EnableITChart=$sock->GET_INFO("EnableITChart");
 	$ItChartFreeWeb=$sock->GET_INFO("ItChartFreeWeb");
 	if(!is_numeric($EnableITChart)){$EnableITChart=0;}
+	
+	$q=new mysql_squid_builder();
+	$q->CheckTables();
+	
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(*) as tcount FROM itcharters"));
+	if($ligne["tcount"]==0){
+		echo "<p class=text-error>".$tpl->_ENGINE_parse_body("{ERROR_NO_ITCHART_CREATED}")."</p>";
+	}
+	
 	$boot->set_formtitle("{IT_charter}");
 	$boot->set_formdescription("{IT_charter_explain}<br>{IT_charter_explain2}");
 	$boot->set_checkbox("EnableITChart", "{enable_it_charter}", $EnableITChart);

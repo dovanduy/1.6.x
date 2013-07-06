@@ -9,6 +9,7 @@ include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 include_once(dirname(__FILE__)."/framework/class.settings.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.syslog.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.syslogs.inc");
+include_once(dirname(__FILE__).'/ressources/class.mount.inc');
 $GLOBALS["FORCE"]=false;
 $GLOBALS["EXECUTED_AS_ROOT"]=true;
 $GLOBALS["RUN_AS_DAEMON"]=false;
@@ -422,7 +423,15 @@ function CleanMysqlDatabase(){
 	if($unix->process_exists($pid,basename(__FILE__))){system_admin_events("Already executed PID $pid",__FUNCTION__,__FILE__,__LINE__,"logrotate");die();}
 	@file_put_contents($pidfile, getmypid());
 	$time=$unix->file_time_min($timefile);
-	if($time<15){system_admin_events("No less than 15mn or delete $timefile file",__FUNCTION__,__FILE__,__LINE__,"logrotate");die();}
+	if(!$GLOBALS["FORCE"]){
+		if($time<15){
+			events("No less than 15mn or delete $timefile file to force...");
+			system_admin_events("No less than 15mn or delete $timefile file",
+			__FUNCTION__,__FILE__,__LINE__,"logrotate");return;
+		}
+	}
+	
+	
 	@unlink($timefile);
 	@file_put_contents($timefile, time());	
 	$sock=new sockets();
@@ -438,7 +447,8 @@ function CleanMysqlDatabase(){
 	
 	if($EnableSyslogDB==1){
 		if($MySQLSyslogType==2){
-			if($GLOBALS["VERBOSE"]){echo "Using a remote server , aborting\n";}
+			events("Is a client of remote MySQL server , aborting");
+			if($GLOBALS["VERBOSE"]){echo "Is a client of remote MySQL server , aborting\n";}
 			return;
 		}
 	}
@@ -451,11 +461,13 @@ function CleanMysqlDatabase(){
 	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
 	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
+	$BackupSquidLogsUseNas=$sock->GET_INFO("BackupSquidLogsUseNas");
 	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
 	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
 	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
 	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
-	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}	
+	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
+	if(!is_numeric($BackupSquidLogsUseNas)){$BackupSquidLogsUseNas=0;}	
 	if($EnableSyslogDB==1){if($MySQLSyslogType<>1){return;}}
 	
 	
@@ -465,12 +477,29 @@ function CleanMysqlDatabase(){
 	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
 	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
 	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}	
+	$mount=new mount("/var/log/artica-postfix/logrotate.debug");
+	if($BackupSquidLogsUseNas==1){
+		
+		$BackupSquidLogsNASIpaddr=$sock->GET_INFO("BackupSquidLogsNASIpaddr");
+		$BackupSquidLogsNASFolder=$sock->GET_INFO("BackupSquidLogsNASFolder");
+		$BackupSquidLogsNASUser=$sock->GET_INFO("BackupSquidLogsNASUser");
+		$BackupSquidLogsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");	
+		$mountPoint="/mnt/BackupSquidLogsUseNas";
+		if(!$mount->smb_mount($mountPoint,$BackupSquidLogsNASIpaddr,$BackupSquidLogsNASUser,$BackupSquidLogsNASPassword,$BackupSquidLogsNASFolder)){
+			events("Unable to connect to NAS storage system: $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr");
+			return;
+		}
+		$BackupMaxDaysDir="$mountPoint/artica-backup-syslog";
+	}
 	
 	
 	@mkdir("$BackupMaxDaysDir",0755);
 	if(!is_dir($BackupMaxDaysDir)){
 		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
+		events("FATAL $BackupMaxDaysDir permission denied");
+		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		if($BackupSquidLogsUseNas==1){$mount->umount($mountPoint);}
 		return false;
 	}
 	
@@ -478,11 +507,37 @@ function CleanMysqlDatabase(){
 	$t=time();
 	@file_put_contents("$BackupMaxDaysDir/$t", time());
 	if(!is_file("$BackupMaxDaysDir/$t")){
+		events("FATAL $BackupMaxDaysDir permission denied");
 		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
+		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
-		return false;		
+		if($BackupSquidLogsUseNas==1){$mount->umount($mountPoint);}
+		return false;
 	}
-	@unlink("$BackupMaxDaysDir/$t");
+	@unlink("$BackupMaxDaysDir/$t");	
+	
+	
+	if($BackupSquidLogsUseNas==1){
+		if(is_dir("/home/logrotate_backup")){
+			$files=$unix->DirFiles("/home/logrotate_backup");
+			events("Scanning the old storage systems.. ".count($files)." file(s)");
+			while (list ($basename, $none) = each ($files) ){
+				$filepath="/home/logrotate_backup/$basename";
+				if($GLOBALS["VERBOSE"]){echo "Checking \"$filepath\"\n";}
+				$size=@filesize($filepath);
+				if($size<20){events("Removing $filepath");@unlink($filepath);continue;}
+				if(!@copy($filepath, "$BackupMaxDaysDir/$basename")){
+					events("copy Failed $filepath to \"$BackupMaxDaysDir/$basename\" permission denied...");
+					continue;
+				}
+				events("Move $filepath to $BackupSquidLogsNASIpaddr success...");
+				@unlink($filepath);
+			}
+		}
+	}
+	
+	
+
 	
 	if($EnableSyslogDB==1){
 		$q=new mysql_storelogs();
@@ -495,6 +550,7 @@ function CleanMysqlDatabase(){
 			$q->events("{$ligne["filename"]} saved into $BackupMaxDaysDir");
 			
 		}
+		if($BackupSquidLogsUseNas==1){$mount->umount($mountPoint);}
 		return;
 	}
 	
@@ -512,10 +568,18 @@ function CleanMysqlDatabase(){
 	
 	while ($ligne = mysql_fetch_assoc($results)) {	
 		if($GLOBALS["VERBOSE"]){echo "Processing {$ligne["filename"]}\n";}
-		if(!ExtractFileFromDatabase($ligne["filename"],$BackupMaxDaysDir)){return false;}
+		if(!ExtractFileFromDatabase($ligne["filename"],$BackupMaxDaysDir)){
+			events("Unable to extract {$ligne["filename"]} to $BackupMaxDaysDir");
+			squid_admin_notifs("SYSLOG: Unable to extract {$ligne["filename"]} to $BackupMaxDaysDir",__FUNCTION__,__FILE__,__LINE__);
+			if($BackupSquidLogsUseNas==1){$mount->umount($mountPoint);}
+			return false;
+		}else{
+			events("Success extracting {$ligne["filename"]} to $BackupMaxDaysDir");
+		}
 	}
 	
-	
+	if($BackupSquidLogsUseNas==1){$mount->umount($mountPoint);}
+
 }
 
 function ExtractFileFromDatabase($filename,$nextDir){
@@ -981,6 +1045,17 @@ function ConvertToDedicatedMysql($aspid=false){
 
 
 function events($text){
+	
+	if(function_exists("debug_backtrace")){
+		$trace=@debug_backtrace();
+		if(isset($trace[1])){
+			$file=basename($trace[1]["file"]);
+			$function=$trace[1]["function"];
+			$line=$trace[1]["line"];
+		}
+	}
+	
 	if(!isset($GLOBALS["CLASS_SYSTEMLOGS"])){$GLOBALS["CLASS_SYSTEMLOGS"]=new mysql_storelogs();}
-	$GLOBALS["CLASS_SYSTEMLOGS"]->events($text);
+	if($GLOBALS["VERBOSE"]){echo "$text\n";}
+	$GLOBALS["CLASS_SYSTEMLOGS"]->events($text,$function,$line);
 }

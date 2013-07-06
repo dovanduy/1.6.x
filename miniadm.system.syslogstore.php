@@ -13,6 +13,10 @@ include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.syslogs.inc");
+
+if(isset($_GET["events-daemon"])){events_daemon();exit;}
+if(isset($_GET["search-events-daemon"])){events_table_daemon();exit;}
+
 $PRIV=GetPrivs();if(!$PRIV){header("location:miniadm.index.php");die();}
 
 if(isset($_GET["status"])){status();exit;}
@@ -27,8 +31,7 @@ if(isset($_GET["new-member-js"])){member_jsp();exit;}
 if(isset($_GET["member-popup"])){member_popup();exit;}
 if(isset($_POST["username"])){member_save();exit;}
 if(isset($_POST["members-delete"])){member_delete();exit;}
-if(isset($_GET["events-daemon"])){events_daemon();exit;}
-if(isset($_GET["search-events-daemon"])){events_table_daemon();exit;}
+
 if(isset($_POST["LogsRotateDeleteSize"])){settings_save();exit;}
 
 if(isset($_GET["database"])){database_section();exit;}

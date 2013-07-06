@@ -11,13 +11,107 @@ include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.calendar.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.syslogs.inc");
-if(!$_SESSION["AsWebStatisticsAdministrator"]){header("location:miniadm.index.php");die();}
+if(!$_SESSION["AsWebStatisticsAdministrator"]){senderror("no rights");}
 
+
+if(isset($_GET["backuped-logs"])){page();exit;}
 if(isset($_GET["search-dabatase-js"])){search_database_js();exit;}
 if(isset($_GET["search-dabatase-popup"])){search_database_popup();exit;}
 if(isset($_POST["QUERY_SYSLOG_DATE"])){search_database_popup_save();exit;}
 if(isset($_GET["search-database"])){search_database();exit;}
-page();
+if(isset($_GET["parameters"])){parameters();exit;}
+if(isset($_POST["BackupMaxDays"])){parameters_Save();exit;}
+
+tabs();
+
+
+function tabs(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$t=time();
+	$boot=new boostrap_form();
+	$array["{backuped_logs}"]="$page?backuped-logs=yes";
+	$array["{parameters}"]="$page?parameters=yes";
+	$array["{task_events}"]="miniadm.system.syslogstore.php?events-daemon=yes";
+	echo $boot->build_tab($array);	
+	
+	
+}
+
+function parameters(){
+	$users=new usersMenus();
+	$sock=new sockets();
+	$boot=new boostrap_form();
+	
+	$boot->set_formtitle("{logs_retention}");
+	$boot->set_formdescription("{squid_logs_retention_explain}");
+	
+	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
+	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
+	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}
+	
+	$BackupSquidLogsUseNas=$sock->GET_INFO("BackupSquidLogsUseNas");
+	$BackupSquidLogsNASIpaddr=$sock->GET_INFO("BackupSquidLogsNASIpaddr");
+	$BackupSquidLogsNASFolder=$sock->GET_INFO("BackupSquidLogsNASFolder");
+	$BackupSquidLogsNASUser=$sock->GET_INFO("BackupSquidLogsNASUser");
+	$BackupSquidLogsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");
+	if(!is_numeric($BackupSquidLogsUseNas)){$BackupSquidLogsUseNas=0;}
+	
+	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
+	
+	
+	
+
+	$boot->set_field("BackupMaxDays", "{max_day_in_database}", $BackupMaxDays,array("TOOLTIP"=>"{syslog_max_day_in_database_explain}"));
+	$boot->set_field("BackupMaxDaysDir", "{backup_folder}", $BackupMaxDaysDir,array("BROWSE"=>true,"TOOLTIP"=>"{syslog_backup_folder_explain}"));
+	
+	
+	$boot->set_spacertitle("{NAS_storage}");
+	$boot->set_checkbox("BackupSquidLogsUseNas", "{use_remote_nas}", $BackupSquidLogsUseNas,
+			array("TOOLTIP"=>"{BackupSquidLogsUseNas_explain}",
+			"LINK"=>"BackupSquidLogsNASIpaddr,BackupSquidLogsNASFolder,BackupSquidLogsNASUser,BackupSquidLogsNASPassword"		
+					
+			));
+	$boot->set_field("BackupSquidLogsNASIpaddr", "{hostname}", $BackupSquidLogsNASIpaddr);
+	$boot->set_field("BackupSquidLogsNASFolder", "{shared_folder}", $BackupSquidLogsNASFolder,array("ENCODE"=>true));
+	$boot->set_field("BackupSquidLogsNASUser","{username}", $BackupSquidLogsNASUser,array("ENCODE"=>true));
+	$boot->set_fieldpassword("BackupSquidLogsNASPassword","{password}", $BackupSquidLogsNASPassword,array("ENCODE"=>true));
+	
+	$boot->set_button("{apply}");
+	
+	if($MySQLSyslogType<>1){
+		$boot->set_spacerexplain("{MySQLSyslogTypediff_explain}");
+		$boot->set_form_locked();
+	
+	}
+	
+	if(!$users->AsSquidAdministrator){
+		$boot->set_form_locked();
+	}
+	
+	echo $boot->Compile();
+}
+
+function parameters_Save(){
+	
+	if(isset($_POST["BackupSquidLogsNASFolder"])){$_POST["BackupSquidLogsNASFolder"]=url_decode_special_tool($_POST["BackupSquidLogsNASFolder"]);}
+	if(isset($_POST["BackupSquidLogsNASUser"])){$_POST["BackupSquidLogsNASUser"]=url_decode_special_tool($_POST["BackupSquidLogsNASUser"]);}
+	if(isset($_POST["BackupSquidLogsNASPassword"])){$_POST["BackupSquidLogsNASPassword"]=url_decode_special_tool($_POST["BackupSquidLogsNASPassword"]);}
+	
+	
+	$sock=new sockets();
+	while (list ($key, $value) = each ($_POST) ){
+		$sock->SET_INFO($key, $value);
+	}
+	
+	$sock=new sockets();
+	$sock->getFrameWork("services.php?rotateclean=yes");
+	
+}
+
 
 function search_database_popup(){
 	$boot=new boostrap_form();
@@ -90,12 +184,15 @@ function page(){
 	$page=CurrentPageName();
 	$boot=new boostrap_form();
 	$tpl=new templates();
-	$LINKS["LINKS"][]=array("LABEL"=>"{advanced_search}","JS"=>"Loadjs('$page?search-dabatase-js=yes&xtime={$_GET["xtime"]}')");
+	//$LINKS["LINKS"][]=array("LABEL"=>"{advanced_search}","JS"=>"Loadjs('$page?search-dabatase-js=yes&xtime={$_GET["xtime"]}')");
 	echo 
 	$tpl->_ENGINE_parse_body("<p>{source_logs_squid_text}</p>").	
 	$boot->SearchFormGen("filename,hostname,filetime","search-database","&xtime={$_GET["xtime"]}",$LINKS);
 	
 }
+
+
+
 function search_database(){
 	$page=1;
 	$MyPage=CurrentPageName();

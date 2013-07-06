@@ -126,6 +126,11 @@ htop_bin:=SYS.LOCATE_GENERIC_BIN('htop');
     if CURRENTIP='0.0.0.0' then CURRENTIP:=GetIPInterface('eth1');
     logs.Debuglogs('Initialize menu done....');
     fpsystem('clear');
+
+    if CURRENTIP='0.0.0.0' then begin
+       Writeln('No IP configuration detected, you should run the "N" option');
+    end;
+
 try
    lighttp:=Tlighttpd.Create(SYS);
 except

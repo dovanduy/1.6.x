@@ -562,6 +562,7 @@ Do you want to carry out this operation ?
 
 </backto31xsquid_explain>
 <backups>backups</backups>
+<BackupSquidLogsUseNas_explain>If enabled, Artica will save extracted logs container to a remote file sharing service ( Windows file server, NAS file server) using SMB protocol</BackupSquidLogsUseNas_explain>
 <backup_categories>Backup your categories</backup_categories>
 <backup_categories_explain>Extract your categories content from Mysql database and backup them into [b]/home/squid/categories_backuped[/b] directory</backup_categories_explain>
 <backup_containers>backup containers</backup_containers>
@@ -1121,6 +1122,7 @@ Mime output conversion is needed when the destination does not advertise 8BITMIM
 <display_calendar>Display the calendar</display_calendar>
 <display_config>Display configuration</display_config>
 <display_config_text>Display this item Artica builed configuration file</display_config_text>
+<display_current_config>Display current configuration</display_current_config>
 <display_current_sessions>Display current active sessions</display_current_sessions>
 <display_dns_items>Display DNS items</display_dns_items>
 <display_fw_rules>Display FireWall rules</display_fw_rules>
@@ -1130,6 +1132,7 @@ Mime output conversion is needed when the destination does not advertise 8BITMIM
 <display_not_categorized_tests>Display Websites that are not categorized</display_not_categorized_tests>
 <display_not_categorized_websites>Display unknown sites</display_not_categorized_websites>
 <display_performance_status>Display performances status</display_performance_status>
+<display_routes>Display current routes</display_routes>
 <display_visited_websites>Display visited sites</display_visited_websites>
 <display_youtube_for_this_day>Display downloaded videos downloaded on this day</display_youtube_for_this_day>
 <dnsbl_service>DNSBL service</dnsbl_service>
@@ -1353,6 +1356,7 @@ This End-Users WebAccess use Apache engine and should not encounter this issue[/
 <error_missing_tables_click_to_repair>Error, there is some missing tables on the database.[br]
 Click on the "repair" button in order to create these tables</error_missing_tables_click_to_repair>
 <error_nginx_substitutions_filter>Error, the substitution filter is not installed</error_nginx_substitutions_filter>
+<ERROR_NO_ITCHART_CREATED>[b]Notice:[/b][br]Not IT Charter has been created, members will be not redirect to any IT Charter</ERROR_NO_ITCHART_CREATED>
 <ERROR_NO_LICENSE>Error, this server run without any Entreprise license</ERROR_NO_LICENSE>
 <error_no_member_set>Error, no member defined</error_no_member_set>
 <ERROR_NO_ORGANISATION_SELECTED>Error, no selected organization</ERROR_NO_ORGANISATION_SELECTED>
@@ -2113,6 +2117,9 @@ It is a dedicated service in order to not pollute other applications that requir
 With this service, you can display Web statistics of your reverse proxy or Web service.[br]
 If you open this service, all Artica servers installed on your network can use this service in order to send statistics.
 </MYSQLNGINX_EXPLAIN>
+<MySQLSyslogTypediff_explain>Currently the events logs are stored on a remote MySQL engine.[br]
+In this case, the extract task must be performed on the remote server that store events
+</MySQLSyslogTypediff_explain>
 <MYSQLSYSLOG_EXPLAIN>The MySQL Syslog storage service is designed to store source logs on your server.[br]
 It is a dedicated service in order to not pollute other applications that require a MySQL service.[br]
 With this service, you can centralize system logs on this server.[br]
@@ -2198,6 +2205,7 @@ Click on this warning in order to reduce the MySQL memory consumption.</mysql_wa
 <my_microsoft_groups>My Microsoft Groups</my_microsoft_groups>
 <my_privileges>My privileges</my_privileges>
 <my_public_ip>My Public IP</my_public_ip>
+<NAS_storage>NAS storage</NAS_storage>
 <nb_employees>employees number:</nb_employees>
 <need_reconfigure_ufdb>You need to reconfigure the Web filtering engine parameters to make these settings into production mode</need_reconfigure_ufdb>
 <need_restart_reconfigure_proxy>You need to restart/reconfigure your proxy service to make these parameters in production mode.</need_restart_reconfigure_proxy>
@@ -2270,6 +2278,7 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <new_template>New template</new_template>
 <new_useragent_pattern>New User Agent pattern</new_useragent_pattern>
 <new_virtual_ip>New virtual IP</new_virtual_ip>
+<new_vlan>New VLAN</new_vlan>
 <new_volume>New volume</new_volume>
 <new_webserver>New website</new_webserver>
 <new_website>New website</new_website>
@@ -2864,6 +2873,10 @@ for example replace bing.com to google.com or microsoft.com to ubuntu.com :=).
 </rewrite_rules_fdb_explain>
 <re_authenticate_each>Re-authenticate each</re_authenticate_each>
 <root_account>Root account</root_account>
+<routes_goto_miniadm>The TCP/IP route management interface has been moved to the EndUsers WebAccess Interface.[br]
+Use a members that have Linux system privileges in order to login on the Web Management interface.
+</routes_goto_miniadm>
+<routes_tables>Routes tables</routes_tables>
 <routing_lmtp_table_explain>This table list routing rules per final mailbox account to the final MDA (Mail Delivery Agent) it designed to define where to put messages in the final way.[br]
 Basically it designed to use LMTP protocol to communicate to a Cyrus-Imap or a Zarafa destination server.[br]
 </routing_lmtp_table_explain>
@@ -3121,6 +3134,11 @@ and remove them from the MySQL database.
 </squid_logs_purge_explain>
 <squid_logs_restore>Restore containers task</squid_logs_restore>
 <squid_logs_restore_explain>This task run the restore task on all backuped Proxy statistics containers from a specified path</squid_logs_restore_explain>
+<squid_logs_retention_explain>By default proxy events files (in the source format) are saved and stored in the MySQL database engine.[br]
+After several days, the source logs are extracted from the database and should stored outside the server.[br]
+You can define here settings when Artica extract sources.[br]
+According your country laws you must keep this logs for a specified time (1 year, 2 years...)
+</squid_logs_retention_explain>
 <SQUID_MAX_RESTART>Maximum restart tasks</SQUID_MAX_RESTART>
 <SQUID_MAX_RESTART_EXPLAIN>After x restarts operations, the watchdog stop any action and wait the Proxy service to run correctly</SQUID_MAX_RESTART_EXPLAIN>
 <squid_nonhierarchical_direct>By default, Squid will send any non-hierarchical requests (matching hierarchy_stoplist or not cacheable request type) direct to origin servers.[br]
@@ -3258,9 +3276,12 @@ It force the Web filter to rebuild the members list inside Web filter rules.</sy
 <syncronize_dns_entries_explain>This task execute synchronization of DNS entries between Artica servers.[br]
 This task make sense if you have added replication servers under the PowerDNS section</syncronize_dns_entries_explain>
 <syslogstore_explain>SyslogStore database store compressed logs files after log rotation.[br]It sore system events logs, Proxy events logs and all services.</syslogstore_explain>
+<syslog_backup_folder_explain>Local folder to backup logs.[br]
+When Artica extract events from MySQL database, it will save compressed logs to this directory (unlimited time)</syslog_backup_folder_explain>
 <syslog_engine>System logs parser</syslog_engine>
 <syslog_engine_explain>This task is in charge to parse all events from the system, and insert them into MySQL database</syslog_engine_explain>
 <syslog_events>System logs events</syslog_events>
+<syslog_max_day_in_database_explain>How long (in day) backuped logs will be stored in the MySQL database before backup to the targeted source ?</syslog_max_day_in_database_explain>
 <syslog_store>System events storage</syslog_store>
 <SystemLoadNotif>Send report when system load exceed</SystemLoadNotif>
 <system_events>System events</system_events>
@@ -3283,6 +3304,7 @@ This stask will parse this queue and insert values into MySQL database.</system_
 <target_folder>Target folder</target_folder>
 <task>Task</task>
 <tasks_klms8_text>Display unning tasks and their identifiers in order to stop/start/edit and monitor them</tasks_klms8_text>
+<task_events>Task events</task_events>
 <task_executed_in_background>Task was executed in background mode</task_executed_in_background>
 <task_ipbandresolv>Resolve ipband hostnames</task_ipbandresolv>
 <task_ipbandresolv_explain>When ipband build the bandwidth report for each node, nodes are only defined by their IPv4 addresses.[br]
@@ -3535,6 +3557,7 @@ The client maintains multiple authentication contexts by using a unique UID for 
 <use_radius>Use RADIUS</use_radius>
 <use_remote_dhcp_server>Use a remote DHCP server</use_remote_dhcp_server>
 <use_remote_dhcp_server_chilli>The HotSpot must act as a DHCP server, if set, DHCP requests will be relayed to the specified server</use_remote_dhcp_server_chilli>
+<use_remote_nas>Use remote NAS system</use_remote_nas>
 <use_schedule>Use schedule</use_schedule>
 <use_second_instance>Use second instance</use_second_instance>
 <use_sent_items>use Sent Items</use_sent_items>
@@ -3574,6 +3597,7 @@ Example:*.bat,*.cmd,*.com,*.exe,*.vbs,*.msi,*.pif,*.reg
 <virtual_company>Virtual company</virtual_company>
 <virtual_hostname_cannot_same_main_hostname>Virtual hostname cannot be the same of the main service hostname.
 You can change the hostname on the master service in the main FreeWebs configuration</virtual_hostname_cannot_same_main_hostname>
+<virtual_ips>Virtual IPs</virtual_ips>
 <virtual_user>virtual member</virtual_user>
 <virus_detected>virus detected</virus_detected>
 <virus_lover>Allow receive infected messages</virus_lover>

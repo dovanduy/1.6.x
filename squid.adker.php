@@ -627,7 +627,7 @@ function settings(){
 	if(!is_numeric($KerbAuthDisableNormalizeName)){$KerbAuthDisableNormalizeName=1;}
 	if(!is_numeric($KerbAuthMapUntrustedDomain)){$KerbAuthMapUntrustedDomain=1;}
 	if(!is_numeric($DisableSilentNTLM)){$DisableSilentNTLM=0;}
-	if(!is_numeric($DisableSquidBasicAuth)){$DisableSquidBasicAuth=1;}
+	if(!is_numeric($DisableSquidBasicAuth)){$DisableSquidBasicAuth=0;}
 	if(!is_numeric($NtpdateAD)){$NtpdateAD=0;}
 	
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}

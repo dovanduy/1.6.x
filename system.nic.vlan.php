@@ -73,20 +73,28 @@ function vlan_add(){
 	
 	if(!is_numeric($_GET["vlanid"])){echo "Vlan ID must be a numeric value...\n";return;}
 	
+	
+	if($_GET["netmask"]=='___.___.___.___'){$_GET["netmask"]="0.0.0.0";}
+	if($_GET["gateway"]=='___.___.___.___'){$_GET["gateway"]="0.0.0.0";}
+	if($_GET["vlan-ipaddr"]=='___.___.___.___'){$_GET["vlan-ipaddr"]="0.0.0.0";}
+	
+	
 	$sql="INSERT INTO nics_vlan (nic,org,ipaddr,netmask,cdir,gateway,vlanid,metric)
 		VALUES('{$_GET["nic"]}','{$_GET["org"]}','{$_GET["vlan-ipaddr"]}',
 		'{$_GET["netmask"]}','{$_GET["cdir"]}','{$_GET["gateway"]}',{$_GET["vlanid"]},{$_GET["metric"]});
 		";
 	
 	if($_GET["ID"]>0){
-		$sql="UPDATE nics_vlan SET nic='{$_GET["nic"]}',
-		org='{$_GET["org"]}',
-		ipaddr='{$_GET["vlan-ipaddr"]}',
-		netmask='{$_GET["netmask"]}',
-		cdir='{$_GET["cdir"]}',
-		vlanid='{$_GET["vlanid"]}',
-		metric='{$_GET["metric"]}',
-		gateway='{$_GET["gateway"]}' WHERE ID={$_GET["ID"]}";
+		$sql="UPDATE nics_vlan SET 
+		`nic`='{$_GET["nic"]}',
+		`org`='{$_GET["org"]}',
+		`ipaddr`='{$_GET["vlan-ipaddr"]}',
+		`netmask`='{$_GET["netmask"]}',
+		`cdir`='{$_GET["cdir"]}',
+		`vlanid`='{$_GET["vlanid"]}',
+		`metric`='{$_GET["metric"]}',
+		`gateway`='{$_GET["gateway"]}' 
+		WHERE `ID`='{$_GET["ID"]}'";
 	}
 	writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
 	$q=new mysql();
@@ -100,7 +108,8 @@ function vlan_add(){
 		}	
 	
 	if(!$q->ok){echo $q->mysql_error;return;}
-	
+	$sock=new sockets();
+	$sock->getFrameWork("system.php?vlans-build=yes");	
 	
 }	
 function vlan_cdir(){

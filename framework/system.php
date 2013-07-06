@@ -35,6 +35,16 @@ if(isset($_GET["BuildCSR"])){BuildCSR();exit;}
 if(isset($_GET["SYSTEMS_ALL_PARTITIONS"])){SYSTEMS_ALL_PARTITIONS();exit;}
 if(isset($_GET["apply-patch"])){APPLY_PATCH();exit;}
 if(isset($_GET["apply-soft"])){APPLY_SOFT();exit;}
+if(isset($_GET["syslogarchive-logs"])){syslogarchive_logs();exit;}
+if(isset($_GET["vlans-build"])){vlans_build();exit;}
+if(isset($_GET["vlans-delete"])){vlans_delete();exit;}
+if(isset($_GET["routes-apply-perform"])){routes_apply_perform();exit;}
+if(isset($_GET["routes-show"])){routes_show();exit;}
+if(isset($_GET["virtip-build"])){virtip_build();exit;}
+if(isset($_GET["virtip-delete"])){virtip_delete();exit;}
+if(isset($_GET["ifconfig-show"])){ifconfig_show();exit;}
+
+
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
@@ -89,6 +99,13 @@ function dirdir(){
 
 function process1(){
 	shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose --".time());
+}
+
+function routes_show(){
+	$unix=new unix();
+	$ip=$unix->find_program("ip");
+	exec("$ip route show 2>&1",$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 }
 
 function restart_ldap(){
@@ -511,4 +528,78 @@ function APPLY_SOFT(){
 	shell_exec("$nohup /usr/share/artica-postfix/bin/process1 --force ".time()." >/dev/null 2>&1 &");
 	
 }
+function syslogarchive_logs(){
+	$unix=new unix();
+	$tail=$unix->find_program("tail");
+	if(!isset($_GET["rp"])){$rp=250;}else{$rp=$_GET["rp"];}
+	$cmdline="$tail -n $rp /var/log/artica-postfix/logrotate.debug";
+	if($_GET["search"]<>null){
+		$grep=$unix->find_program("grep");
+		$_GET["search"]=base64_decode($_GET["search"]);
+		$cmdline="$grep -i -E '{$_GET["search"]}' /var/log/artica-postfix/logrotate.debug|$tail -n $rp";
+	}
 
+	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
+	exec("$cmdline 2>&1",$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+function vlans_build(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.virtuals-ip.php --vlans-build >/dev/null 2>&1 &";	
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+function virtip_build(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.virtuals-ip.php --virtip-build >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+
+
+function vlans_delete(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --vlans-delete {$_GET["vlans-delete"]} >/dev/null 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+function virtip_delete(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --virtip-delete {$_GET["virtip-delete"]} >/dev/null 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+
+
+function routes_apply_perform(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	@mkdir("/usr/share/artica-postfix/ressources/logs/web",0755,true);
+	$cmd="$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --main-routes >/usr/share/artica-postfix/ressources/logs/web/routes-apply.log 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/routes-apply.log", 0777);
+}
+
+function ifconfig_show(){
+	$unix=new unix();
+	$ifconfig=$unix->find_program("ifconfig");
+	exec("$ifconfig -a 2>&1",$results);
+	$results[]="\n\t***************\n";
+	$ip=$unix->find_program("ip");
+	exec("$ip link show 2>&1",$results);
+	$results[]="\n\t***************\n";	
+	exec("$ip route 2>&1",$results);
+	$results[]="\n\t***************\n";	
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+	
+}

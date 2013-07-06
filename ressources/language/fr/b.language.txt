@@ -471,6 +471,7 @@ Elle est con&ccedil;ue pour injecter les fichiers transform&eacute;s au format M
 Elle va supprimer la version existante pour la remplacer vers cette ancienne branche par le bais d'une compilation.
 Voulez-vous effectuer cette op&eacute;ration ?</backto31xsquid_explain>
 <backups>Sauvegardes</backups>
+<BackupSquidLogsUseNas_explain>Si Activ&eacute;, Artica va extraire les fichiers d'&eacute;v&egrave;nements vers un serveur de fichiers distant: (Serveur de fichiers Windows SMB).</BackupSquidLogsUseNas_explain>
 <backup_categories>Sauvegarder vos cat&eacute;gories</backup_categories>
 <backup_categories_explain>Extrait le contenu des cat&eacute;gories depuis la base MySQL et les sauvegarde dans le r&eacute;pertoire [b]/home/squid/categories_backuped[/b]</backup_categories_explain>
 <backup_containers>Sauvegardes</backup_containers>
@@ -977,6 +978,7 @@ La conversion en sortie est requise lorsque le serveur destinataire n'indique pa
 <display_calendar>Afficher le calendrier</display_calendar>
 <display_config>Afficher la configuration</display_config>
 <display_config_text>Afficher la configuration de cet &eacute;l&eacute;ment construite par Artica</display_config_text>
+<display_current_config>Afficher la configuration actuelle</display_current_config>
 <display_current_sessions>Afficher les sessions actives</display_current_sessions>
 <display_dns_items>Visualiser les entr&eacute;es DNS</display_dns_items>
 <display_fw_rules>Afficher les r&egrave;gles du pare-feu</display_fw_rules>
@@ -986,6 +988,7 @@ La conversion en sortie est requise lorsque le serveur destinataire n'indique pa
 <display_not_categorized_tests>Afficher les sites non cat&eacute;goris&eacute;s.</display_not_categorized_tests>
 <display_not_categorized_websites>Afficher les sites inconnus</display_not_categorized_websites>
 <display_performance_status>Affichage de l'&eacute;tat des performances</display_performance_status>
+<display_routes>Afficher les routes actuelles</display_routes>
 <display_visited_websites>Afficher les sites visit&eacute;s</display_visited_websites>
 <display_youtube_for_this_day>Visualisation des vid&eacute;os t&eacute;l&eacute;charg&eacute;es ce jour</display_youtube_for_this_day>
 <dnsbl_service>Service DNSBL</dnsbl_service>
@@ -1180,6 +1183,7 @@ Cette interface utilise le moteur Apache et pourrait quand &agrave; elle charger
 <error_missing_tables_click_to_repair>Erreur, Il y a des tables manquantes dans la base de donn&eacute;es.[br]
 Cliquez sur le bouton &quot;R&eacute;parer&quot; afin d'ordonner la reconstruction de la structure de la base.</error_missing_tables_click_to_repair>
 <error_nginx_substitutions_filter>Erreur, le module de remplacement n'es pas install&eacute;.</error_nginx_substitutions_filter>
+<ERROR_NO_ITCHART_CREATED>[b]Info[/b][br]Aucune charte informatique n'a &eacute;t&eacute; cr&eacute;e, les membres ne seront pas redirig&eacute;s vers une charte informatique.</ERROR_NO_ITCHART_CREATED>
 <ERROR_NO_LICENSE>Ce serveur est activ&eacute; en mode communautaire et ne dispose de licence entreprise valide.</ERROR_NO_LICENSE>
 <error_no_member_set>Erreur, pas de membre indiqu&eacute;</error_no_member_set>
 <ERROR_NO_ORGANISATION_SELECTED>Erreur, pas d'organisation s&eacute;lectionn&eacute;e.</ERROR_NO_ORGANISATION_SELECTED>
@@ -1846,6 +1850,7 @@ Veuillez reconfigurer chaque instance pour cet effet.</multiple_postfix_not_act_
 C'est un service d&eacute;di&eacute; afin de ne pas polluer les autres application qui requi&egrave;re un syst&egrave;me MySQL.[br]
 Avec ce service, vous serez en mesure de visualiser les statistiques de votre proxy invers&eacute;.[br]
 Si vous ouvrez ce service (cr&eacute;ation d'un port), les serveurs Artica seront en mesure d'utiliser ce service MySQL afin d'y stocker leurs &eacute;v&egrave;nements.</MYSQLNGINX_EXPLAIN>
+<MySQLSyslogTypediff_explain>Actuellement les fichiers d'&eacute;v&egrave;nements sont stock&eacute;s sur un serveur distant.[br]C'est &agrave; ce serveur qui h&eacute;berge les &eacute;v&egrave;nements d'effectuer les t&acirc;ches d'extraction.</MySQLSyslogTypediff_explain>
 <MYSQLSYSLOG_EXPLAIN>Le service MySQL syslog est con&ccedil;u pour stocker les &eacute;v&egrave;nements source sur votre serveur.[br]
 C'est un service d&eacute;di&eacute; afin de ne pas polluer les autres application qui utilisent un service MySQL.[br]Avec ce service, vous &ecirc;tes en mesure de centraliser le stockage des &eacute;v&egrave;nements sur ce serveur.[br]Si vous ouvrez le service, les autres serveurs Artica seront en mesure de sauvegarder les &eacute;v&egrave;nements sur ce serveur.[br]Le stockage des &eacute;v&egrave;nements est important car il r&eacute;pond aux lois de r&eacute;tention de votre pays.</MYSQLSYSLOG_EXPLAIN>
 <mysqlsyslog_finish>Votre service MySQL est install&eacute;, vous pouvez param&eacute;trer plus en d&eacute;tail ce service MySQL &agrave; travers la console utilisateur finale WebAccess en utilisant un compte que dispose des privil&egrave;ges Administrateur Linux.
@@ -1906,6 +1911,7 @@ Pour r&eacute;sumer, chaque liste de distribution ajout&eacute;e ici n'est pas s
 <my_microsoft_groups>Mes groupes Microsoft</my_microsoft_groups>
 <my_privileges>Mes privil&egrave;ges</my_privileges>
 <my_public_ip>Mon adresse IP Publique</my_public_ip>
+<NAS_storage>Stockage N.A.S</NAS_storage>
 <nb_employees>Nombre d'employ&eacute;s</nb_employees>
 <need_reconfigure_ufdb>Le service de filtrage Web doit &ecirc;tre reconfigur&eacute; afin d'appliquer la configuration en mode production.</need_reconfigure_ufdb>
 <need_restart_reconfigure_proxy>Vous devez red&eacute;marrer ou reconfigurer votre proxy pour appliquer ces param&egrave;tres en production.</need_restart_reconfigure_proxy>
@@ -1977,6 +1983,7 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 <new_template>Nouveau mod&egrave;le</new_template>
 <new_useragent_pattern>Nouveau masque Agent Client</new_useragent_pattern>
 <new_virtual_ip>Nouvelle adresse virtuelle</new_virtual_ip>
+<new_vlan>Nouveau VLAN</new_vlan>
 <new_volume>Nouveau volume</new_volume>
 <new_webserver>Nouveau site Web</new_webserver>
 <new_website>Nouveau site web</new_website>
@@ -2515,6 +2522,8 @@ Ces r&egrave;gles peuvent aider les utilisateurs &agrave; acc&eacute;der aux sit
 Elles peuvent aussi interdire l'acc&egrave;s &agrave; certains sites Internet en les rempla&ccedil;ant par d'autres sites.[br]Par exemple, remplacer bing.com par google.com voir m&ecirc;me remplacer microsoft.com par ubuntu.com :=).</rewrite_rules_fdb_explain>
 <re_authenticate_each>R&eacute;-authentifier chaque</re_authenticate_each>
 <root_account>Compte Root</root_account>
+<routes_goto_miniadm>La gestion des routes TCP/IP s'effectue &agrave; travers l'interface EndUsers WebAccess.[br]Munissez-vous d'un compte qui dispose du droit Syst&egrave;me Linux.</routes_goto_miniadm>
+<routes_tables>Tables des routes</routes_tables>
 <routing_lmtp_table_explain>Cette table permet d'effectuer le routage des comptes de bo&icirc;tes aux lettres (destination finale) vers les agents de d&eacute;livrance de courriers (MDA). Les r&egrave;gles d&eacute;finissent donc le service final de destination.[br]
 De fa&ccedil;on g&eacute;n&eacute;rale le protocole LMTP est utilis&eacute; afin de d&eacute;livrer le courrier vers un service de type Zarafa ou Cyrus-imap.</routing_lmtp_table_explain>
 <routing_recipient_table_explain>Cette table liste les r&egrave;gles d'acheminement en fonction des adresses de messagerie de destination.[br]La diff&eacute;rence avec la table associ&eacute;es aux organisations est que ces r&egrave;gles priment et permettent aussi l'utilisation des adresses e messagerie compl&egrave;tes des destinataires (user@dompain.tld).</routing_recipient_table_explain>
@@ -2732,6 +2741,9 @@ Tous les logs proxy sont envoy&eacute;s &agrave; travers le moteur Syslog.[br]Ac
 <squid_logs_purge_explain>Cette t&acirc;che va extraire les statistiques vers un dossier de sauvegarde et supprimer les tables dans la base MySQL</squid_logs_purge_explain>
 <squid_logs_restore>T&acirc;che de restauration des sauvegardes</squid_logs_restore>
 <squid_logs_restore_explain>Cette t&acirc;che lance l'ex&eacute;cution de la restauration des fichiers de statistiques proxy depuis un chemin sp&eacute;cifique.</squid_logs_restore_explain>
+<squid_logs_retention_explain>Par d&eacute;faut, les fichiers d'&eacute;v&egrave;nements (dans leur format original) sont h&eacute;berg&eacute;s dans la base MySQL.[br]
+Apr&egrave;s quelques jours, ces fichiers sources sont extraits de la base et plac&eacute;s pour sauvegarde &agrave; long terme.[br]
+Vous pouvez d&eacute;finir ici les param&egrave;tres  qui permet de piloter la t&acirc;che d'extraction des fichiers d'&eacute;v&egrave;nements sources.[br]En fonction des lois de votre pays vous devez les conserver pour une dur&eacute;e d&eacute;termin&eacute;e (1 an, 2 ans...).</squid_logs_retention_explain>
 <SQUID_MAX_RESTART>T&acirc;che de red&eacute;marrage MAX.</SQUID_MAX_RESTART>
 <SQUID_MAX_RESTART_EXPLAIN>Apr&egrave;s X red&eacute;marrage, alors le service de surveillance cesse toute activit&eacute; et attend que le service de proxy revient &agrave; l'&eacute;tat normal.</SQUID_MAX_RESTART_EXPLAIN>
 <squid_nonhierarchical_direct>Par d&eacute;faut, le proxy va envoyer les requ&ecirc;tes non-hi&eacute;rarchiques directement vers les serveurs de destination sans passer par les proxys parents.[br]Si vous d&eacute;sactivez cette option, les requ&ecirc;tes non-hi&eacute;rarchiques seront passeront alors d'abord sur les proxys parents.[br]
@@ -2852,9 +2864,11 @@ Elle force le moteur de filtrage Web &agrave; reconstruire les listes des membre
 <syncronize_dns_entries_explain>Cette t&acirc;che ex&eacute;cute la r&eacute;plication des entr&eacute;es DNS entre des serveurs Artica.[br]
 Elle a du sens que si vous avez ajout&eacute; des serveurs Artica &agrave; r&eacute;pliquer dans la section dedi&eacute;e &agrave; PowerDNS</syncronize_dns_entries_explain>
 <syslogstore_explain>La base SyslogStore stocke les fichiers de logs au format compress&eacute; apr&egrave;s chaque rotation.[br]Elle stocke les &eacute;v&egrave;nements syst&egrave;mes, proxy et autres services au format brut et originel.</syslogstore_explain>
+<syslog_backup_folder_explain>R&eacute;pertoire local de stockage des &eacute;v&egrave;nements extraits.[br]Lorsque Artica extrait les fichiers d'&eacute;v&egrave;nements depuis la base MySQL, il sont alors stock&eacute;s de fa&ccedil;on ind&eacute;finie dans ce r&eacute;pertoire.</syslog_backup_folder_explain>
 <syslog_engine>Ramasse-miettes syst&egrave;me</syslog_engine>
 <syslog_engine_explain>Cette t&acirc;che est en charge de ramasser tous les &eacute;v&egrave;nements syst&egrave;mes et de les ins&eacute;rer dans la base MySQL.</syslog_engine_explain>
 <syslog_events>&Eacute;v&egrave;nements syst&egrave;me</syslog_events>
+<syslog_max_day_in_database_explain>Combien de temps (en jours) les fichiers d'&eacute;v&egrave;nements vont &ecirc;tre stock&eacute;s dans la base MySQL avant d'&ecirc;tre extraits.</syslog_max_day_in_database_explain>
 <syslog_store>Stockage des &eacute;v&egrave;nements syst&egrave;me</syslog_store>
 <SystemLoadNotif>Envoyer un rapport lorsque la charge exc&egrave;de</SystemLoadNotif>
 <system_events>&Eacute;v&egrave;nements syst&egrave;me</system_events>
@@ -2877,6 +2891,7 @@ Cette t&acirc;che est en charge d'analyser la file d'attente et d'importer les d
 <target_folder>R&eacute;pertoire cible</target_folder>
 <task>Task</task>
 <tasks_klms8_text>Affiche les t&acirc;ches en cours et leur identifiant unique afin de les stopper/arr&ecirc;ter/&eacute;diter.</tasks_klms8_text>
+<task_events>&Eacute;v&egrave;nements de la t&acirc;che</task_events>
 <task_executed_in_background>La t&acirc;che &agrave; &eacute;t&eacute; ex&eacute;cut&eacute;e en arri&egrave;re plan.</task_executed_in_background>
 <task_ipbandresolv>R&eacute;solution des n%u0153uds ipband</task_ipbandresolv>
 <task_ipbandresolv_explain>Lorsque ipband construit les rapports d'activit&eacute; pour chaque n%u0153ud, il utilise uniquement les adresses Ipv4.[br]
@@ -3109,6 +3124,7 @@ auth@ pour authuser@[ftpuser@host:port]</UserAuthMagic_explain>
 <use_radius>Utiliser RADIUS</use_radius>
 <use_remote_dhcp_server>Utiliser un serveur DHCP distant</use_remote_dhcp_server>
 <use_remote_dhcp_server_chilli>Le HotSpot doit &ecirc;tre le serveur DHCP, si cette option est activ&eacute;e, les requ&ecirc;tes DHCP seront transf&eacute;r&eacute;es au serveur DHCP sp&eacute;cifi&eacute;.</use_remote_dhcp_server_chilli>
+<use_remote_nas>Utiliser un N.A.S distant</use_remote_nas>
 <use_schedule>Utiliser la programmation</use_schedule>
 <use_second_instance>Utiliser une seconde instance</use_second_instance>
 <use_sent_items>Utiliser les &Eacute;l&eacute;ments Envoy&eacute;s</use_sent_items>
@@ -3143,6 +3159,7 @@ Les caract&egrave;res &quot;*&quot; et &quot;?&quot; peuvent &ecirc;tre utilis&e
 <virtual_company>Soci&eacute;t&eacute; virtuelle</virtual_company>
 <virtual_hostname_cannot_same_main_hostname>Le serveur virtuel ne peut pas avoir le m&ecirc;me nom que le service Web ma&icirc;tre.
 Vous pouvez changer le nom d'h&ocirc;te du service Web ma&icirc;tre dans la configuration g&eacute;n&eacute;rale de FreeWebs</virtual_hostname_cannot_same_main_hostname>
+<virtual_ips>Adresses virtuelles</virtual_ips>
 <virtual_user>Membre virtuel</virtual_user>
 <virus_detected>Virus d&eacute;tect&eacute;s</virus_detected>
 <virus_lover>Re&ccedil;oit des messages infect&eacute;s</virus_lover>

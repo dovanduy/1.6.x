@@ -4078,3 +4078,27 @@ You can create multiple charters.[br]When an user as successfully read a policy 
 <IT_charter_explain2>[b]Notice[/b][br]The redirection is only made if the user is connected to an HTTP website.[br]
 SSL protocol cannot be broken and redirected.[br]For example, the https://www.google.com will be not redirected but http://www.google.com will be redirected to the IT Chart</IT_charter_explain2>
 <only_miniadm>This feature can only be managed with the EndUsers WebAccess console</only_miniadm>
+<ERROR_NO_ITCHART_CREATED>[b]Notice:[/b][br]Not IT Charter has been created, members will be not redirect to any IT Charter</ERROR_NO_ITCHART_CREATED>
+<squid_logs_retention_explain>By default proxy events files (in the source format) are saved and stored in the MySQL database engine.[br]
+After several days, the source logs are extracted from the database and should stored outside the server.[br]
+You can define here settings when Artica extract sources.[br]
+According your country laws you must keep this logs for a specified time (1 year, 2 years...)
+</squid_logs_retention_explain>
+<MySQLSyslogTypediff_explain>Currently the events logs are stored on a remote MySQL engine.[br]
+In this case, the extract task must be performed on the remote server that store events
+</MySQLSyslogTypediff_explain>
+<syslog_max_day_in_database_explain>How long (in day) backuped logs will be stored in the MySQL database before backup to the targeted source ?</syslog_max_day_in_database_explain>
+<syslog_backup_folder_explain>Local folder to backup logs.[br]
+When Artica extract events from MySQL database, it will save compressed logs to this directory (unlimited time)</syslog_backup_folder_explain>
+<use_remote_nas>Use remote NAS system</use_remote_nas>
+<NAS_storage>NAS storage</NAS_storage>
+<task_events>Task events</task_events>
+<routes_tables>Routes tables</routes_tables>
+<new_vlan>New VLAN</new_vlan>
+<routes_goto_miniadm>The TCP/IP route management interface has been moved to the EndUsers WebAccess Interface.[br]
+Use a members that have Linux system privileges in order to login on the Web Management interface.
+</routes_goto_miniadm>
+<display_routes>Display current routes</display_routes>
+<virtual_ips>Virtual IPs</virtual_ips>
+<BackupSquidLogsUseNas_explain>If enabled, Artica will save extracted logs container to a remote file sharing service ( Windows file server, NAS file server) using SMB protocol</BackupSquidLogsUseNas_explain>
+<display_current_config>Display current configuration</display_current_config>

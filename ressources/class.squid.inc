@@ -2704,24 +2704,73 @@ function SaveToLdap($norestart=false){
 		$sql="SELECT template_uri FROM squidtpls WHERE template_link=1";
 		$results = $q->QUERY_SQL($sql);
 		$acls=array();
+		$ALREADY=array();
 		while ($ligne = mysql_fetch_assoc($results)) {
 			if(trim($ligne["template_uri"])==null){return;}
-			$ligne["template_uri"]=str_replace("%FREEWEBS%", "", $ligne["template_uri"]);
-			if(strpos("  {$ligne["template_uri"]}", "http")==0){$ligne["template_uri"]="http://{$ligne["template_uri"]}";}
-			if(preg_match("#^([0-9]+):(.+)#", $ligne["template_uri"],$re)){
-				$ligne["template_uri"]=$re[2];
-			}
-			$acls[]="^". $this->string_to_regex($ligne["template_uri"]);
+			
+			$uri=$this->ACL_TEMPLATES_URIS_TO_DSTDOMAIN($ligne["template_uri"]);
+			if(isset($ALREADY[$uri])){continue;}$ALREADY[$uri]=true;
+			$acls[]=$uri;
 		}
+		
+		$GetUfdBguardRedirect=$this->GetUfdBguardRedirect();
+		
+		while (list ($tpl, $line) = each ($GetUfdBguardRedirect)){
+			$uri=$this->ACL_TEMPLATES_URIS_TO_DSTDOMAIN($tpl);
+			if(isset($ALREADY[$uri])){continue;}$ALREADY[$uri]=true;
+			$acls[]=$uri;
+		}
+		
 		if($this->ASROOT){echo "Starting......: [ACLS]: ".count($acls)." error templates URI(s)\n";}
 		if(count($acls)==0){$GLOBALS[__CLASS__][__FUNCTION__]=null;return;}
 		@file_put_contents("/etc/squid3/acls/templatesacls.txt", @implode("\n", $acls));
 		$GLOBALS["HTTP_ACCESS_ALLOW_TEMPLATES"]="http_access allow {$this->MyStandPort}AllowedUrisTemplates";
-		$results="acl AllowedUrisTemplates url_regex -i \"/etc/squid3/acls/templatesacls.txt\"\n";
+		$results="acl AllowedUrisTemplates dstdomain \"/etc/squid3/acls/templatesacls.txt\"\n";
 		$GLOBALS[__CLASS__][__FUNCTION__]=$results;
 		return $results;
 		
 	}
+	
+	private function ACL_TEMPLATES_URIS_VERIF($uri){
+		$uri=str_replace("%FREEWEBS%", "", $uri);
+		if(strpos("  $uri", "http")==0){$uri="http://$uri";}
+		if(preg_match("#^([0-9]+):(.+)#", $uri,$re)){$uri=$re[2];}
+		$URLAR=parse_url($uri);
+		$scheme=$URLAR["scheme"];
+		$sitename=$URLAR["host"];
+		return "$scheme://$sitename";
+		
+	}
+	
+	private function ACL_TEMPLATES_URIS_TO_DSTDOMAIN($uri){
+		$uri=str_replace("%FREEWEBS%", "", $uri);
+		if(strpos("  $uri", "http")==0){$uri="http://$uri";}
+		if(preg_match("#^([0-9]+):(.+)#", $uri,$re)){$uri=$re[2];}
+		$URLAR=parse_url($uri);
+		$scheme=$URLAR["scheme"];
+		$sitename=$URLAR["host"];
+		if($sitename==null){return;}
+		if(preg_match("#^(.+?):[0-9]+$#", $sitename)){return $re[1];}
+		return $sitename;
+	
+	}	
+	
+	private function GetUfdBguardRedirect(){
+		if(!is_file("/etc/squid3/ufdbGuard.conf")){return array();}
+		$array=array();
+		$f=explode("\n",@file_get_contents("/etc/squid3/ufdbGuard.conf"));
+		while (list ($num, $line) = each ($f)){
+			if(preg_match("#redirect\s+(.+)#", $line,$re)){
+				$uri=trim($re[1]);if(preg_match("#^[0-9]+:(.+)#", $uri,$re)){$uri=$re[1];}
+				$array[$uri]=$uri;
+				continue;
+				}
+				
+			}
+		
+		return $array;
+	}
+	
 	
 	private function string_to_regex($pattern){
 		if(trim($pattern)==null){return null;}
@@ -2922,7 +2971,7 @@ function SaveToLdap($norestart=false){
 			if(!is_numeric($DynamicGroupsAclsTTL)){$DynamicGroupsAclsTTL=3600;}
 			if($DynamicGroupsAclsTTL<5){$DynamicGroupsAclsTTL=5;}
 			if(!is_numeric($DisableSilentNTLM)){$DisableSilentNTLM=0;}
-			if(!is_numeric($DisableSquidBasicAuth)){$DisableSquidBasicAuth=1;}
+			if(!is_numeric($DisableSquidBasicAuth)){$DisableSquidBasicAuth=0;}
 			if($DisableSilentNTLM==1){
 				if($DisableSquidBasicAuth==1){
 						if($GLOBALS["VERBOSE"]){echo "Starting......: [AUTH] ntlm_auth_conf(): Both DisableSilentNTLM and DisableSquidBasicAuth are enabled assuming that \"DisableSilentNTLM\" must be disable\n";}
@@ -3053,8 +3102,11 @@ function SaveToLdap($norestart=false){
 			$users->SQUID_NTLM_AUTH=$unix->find_program("ntlm_auth");
 		}
 		echo "Starting......: [AUTH]: Basic: get definitions\n";
+		
+		
+		
 		$DisableSquidBasicAuth=$sock->GET_INFO("DisableSquidBasicAuth");
-		if(!is_numeric($DisableSquidBasicAuth)){$DisableSquidBasicAuth=1;}
+		if(!is_numeric($DisableSquidBasicAuth)){$DisableSquidBasicAuth=0;}
 		
 
 		$auth_param_basic_children=$this->SquidClientParams["auth_param_basic_children"];

@@ -5400,15 +5400,16 @@ FUNCTION REMOVE_CACHED($file=null){
 	}
 	
 	if(class_exists("Memcache")){
-		$memcache = new Memcache();
-		$memcache->connect('unix:///var/run/memcached.sock', 0);
-		$ARRAY=unserialize($memcache->get('ARTICACACHEARRAY'));
-		$size=strlen(serialize($ARRAY))/1024;
-		$sizetot=$sizetot+$size;
-		//writelogs("Memcache SET ".strlen(serialize($ARRAY))." bytes length",__FUNCTION__,__FILE__,__LINE__);
-		$memcache->set('ARTICACACHEARRAY', array(), 0, 300); 
-	}	
-	
+		if($GLOBALS["MEMCACHE_ENABLED"]==1){
+			$memcache = new Memcache();
+			$memcache->connect('unix:///var/run/memcached.sock', 0);
+			$ARRAY=unserialize($memcache->get('ARTICACACHEARRAY'));
+			$size=strlen(serialize($ARRAY))/1024;
+			$sizetot=$sizetot+$size;
+			//writelogs("Memcache SET ".strlen(serialize($ARRAY))." bytes length",__FUNCTION__,__FILE__,__LINE__);
+			$memcache->set('ARTICACACHEARRAY', array(), 0, 300); 
+		}	
+	}
 	if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	$sock->DATA_CACHE_EMPTY();
 	unset($_SESSION["cached-pages"]);

@@ -1514,7 +1514,7 @@ function Hash_GetALLUsers(){
 		if($debugThis){echo "<li>hash_get_ou():: Starting: haskey=$keyMem ".__LINE__."</li>\n";}
 		if($this->IsKerbAuth()){
 			$ldap=new external_ad_search();
-			return $ldap->hash_get_ou($has_key);
+			return $ldap->hash_get_ou($has_key,array());
 		}
 		
 		

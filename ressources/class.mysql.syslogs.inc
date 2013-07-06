@@ -445,26 +445,26 @@ class mysql_storelogs{
 		
 	}
 	
-	public function events($text){
+	public function events($text,$function=null,$line=0){
 		$pid=@getmypid();
 		
 		if(function_exists("debug_backtrace")){
 			$trace=@debug_backtrace();
 			if(isset($trace[1])){
 				$file=basename($trace[1]["file"]);
-				$function=$trace[1]["function"];
-				$line=$trace[1]["line"];
+				if($function==null){$function=$trace[1]["function"];}
+				if($line==0){$line=$trace[1]["line"];}
 			}
 		}		
 		
 		$date=@date("H:i:s");
 		$logFile="/var/log/artica-postfix/logrotate.debug";
-		$line="$date [$pid] $file $text <div><i>function:$function, line:$line</i></div>\n";
-		if($GLOBALS["VERBOSE"]){echo $line;}
+		$textF="$date [$pid] $file $text <div><i>function:$function, line:$line</i></div>\n";
+		if($GLOBALS["VERBOSE"]){echo $textF;}
 		$size=@filesize($logFile);
 		if($size>8000000){@unlink($logFile);}
 		$f = @fopen($logFile, 'a');
-		@fwrite($f, $line);
+		@fwrite($f, $textF);
 		@fclose($f);	
 		}
 	

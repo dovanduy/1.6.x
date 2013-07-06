@@ -105,6 +105,8 @@ if(isset($_GET["start-cicap"])){start_cicap();exit;}
 if(isset($_GET["restart-cicap"])){restart_cicap();exit;}
 if(isset($_GET["cicap-events"])){events_cicap();exit;}
 if(isset($_GET["rotatebuild"])){rotatebuild();exit;}
+if(isset($_GET["rotateclean"])){rotateClean();exit;}
+
 if(isset($_GET["netagent"])){netagent();exit;}
 if(isset($_GET["netagent-ping"])){netagent_ping();exit;}
 
@@ -397,7 +399,14 @@ function rotatebuild(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
 }
-
+function rotateClean(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.logrotate.php --clean --force >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
 function total_memory(){
 	$unix=new unix();
 	echo "<articadatascgi>". $unix->TOTAL_MEMORY_MB()."</articadatascgi>";

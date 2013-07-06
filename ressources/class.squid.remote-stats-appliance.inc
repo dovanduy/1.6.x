@@ -269,7 +269,18 @@ class squid_stats_appliance{
 		$array["UpdateUtilityRedirectEnable"]=true;
 		$array["UpdateUtilityHTTPSRV"]=true;
 		$array["UpdateUtilityExternWbsrvAddr"]=true;
-		$array["UpdateUtilityExternWbsrv"]=true;		
+		$array["UpdateUtilityExternWbsrv"]=true;	
+
+		
+		$array["BackupMaxDays"]=true;
+		$array["BackupMaxDaysDir"]=true;
+		$array["BackupSquidLogsNASIpaddr"]=true;
+		$array["BackupSquidLogsNASFolder"]=true;
+		$array["BackupSquidLogsNASUser"]=true;
+		$array["BackupSquidLogsNASPassword"]=true;
+		
+		$array["EnableITChart"]=true;
+		$array["ItChartFreeWeb"]=true;
 		
 		return $array;
 	}
@@ -381,6 +392,9 @@ class squid_stats_appliance{
 		$squidlogs["webfilter_aclsdynamic"]=true;
 		$squidlogs["webfilters_nodes"]=true;
 		$squidlogs["squidtpls"]=true;
+		$squidlogs["itcharters"]=true;
+		$squidlogs["itchartlog"]=true;
+		
 		
 		
 		$databases["squidlogs"]=$squidlogs;

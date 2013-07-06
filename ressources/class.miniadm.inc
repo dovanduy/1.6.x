@@ -658,15 +658,24 @@ class boostrap_form{
 				<tr>";
 		
 		while (list ($key, $text) = each ($array) ){
-			
+			$colspan=0;
+			$colspan_text=null;
 			if($key=="delete"){
 				$f[]="<th>&nbsp;</th>";
 				continue;
 			}
+			
+			if(preg_match("#(.+?):colspan=([0-9]+)#", $text,$re)){
+				$colspan=$re[2];
+				$text=$re[1];
+			}
+			
+			
 			if($Params["order-$key"]==1){$Params["order-$key"]=0;}else{$Params["order-$key"]=1;}
 			$tri=$this->trswitch("$tFunc('order-$key','{$Params["order-$key"]}')");
 			$text=$this->tpl->_ENGINE_parse_body($text);
-			$f[]="<th $tri><u>$text</u></th>";
+			if($colspan>0){$colspan_text=" colspan=$colspan";}
+			$f[]="<th $tri$colspan_text><u>$text</u></th>";
 		}
 		$f[]="</tr>
 		</thead>
@@ -1014,6 +1023,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			$disabled=null;
 			$c++;
 			$button=null;
+			$FieldButton=null;
 			$ClassPrepend=null;
 			$classField=null;
 			$TYPE=$array["TYPE"];
@@ -1037,6 +1047,8 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			}
 					
 			
+
+			
 			if($this->lockedForm){$disabled="disabled";}
 			
 			if($TYPE=="HIDDEN"){$this->js[]="\tXHR.appendData('$fieldname','$VALUE');";continue;}
@@ -1053,6 +1065,27 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 				//$ClassPrepend="input-append";
 				//$classField='span2';
 				$button="<button class='btn' type=\"button\" OnClick=\"{$params["BUTTON"]["JS"]}\">{$params["BUTTON"]["LABEL"]}</button>";
+			}
+			
+			if(isset($params["CDIR"])){
+				$calculate=$this->tpl->_ENGINE_parse_body("{calculate}");
+				$JSZ=explode(",",$params["CDIR"]);
+				$functCdir=rand(0, time());
+				$CDIRJS[]="var xCdir{$functCdir} = function (obj) {";
+				$CDIRJS[]="\tvar results=obj.responseText;";
+				$CDIRJS[]="\tif(results.length==0){return;}";
+				$CDIRJS[]="\tdocument.getElementById('$FIELDN').value=results;";
+				$CDIRJS[]="}";
+				$CDIRJS[]="function Cdir{$functCdir}(){";
+				$CDIRJS[]="\tvar XHR = new XHRConnection();";
+				$CDIRJS[]="\tXHR.appendData('CalcCdir','yes');";
+				while (list ($index, $fieldIS) = each ($JSZ) ){
+					$CDIRJS[]="\tXHR.appendData('$fieldIS',document.getElementById('$fieldIS-$this->t').value);";
+				}
+				$CDIRJS[]="\tXHR.sendAndLoad('miniadm.network.php', 'GET',xCdir{$functCdir});";
+				$CDIRJS[]="}";
+				$FieldButton="<button class='btn' type=\"button\" OnClick=\"Cdir{$functCdir}()\">$calculate</button>";
+				unset($JSZ);
 			}
 			
 			if(isset($params["TOOLTIP"])){
@@ -1202,6 +1235,10 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			if($jsipv4Validator){
 				$this->js[]="\tvar field2$c=document.getElementById('$FIELDN').value;";
 				$this->js[]="\tif(field2$c.length>1){";
+				$this->js[]="\tif(field2$c=='___.___.___.___'){
+					field2$c='0.0.0.0';
+					document.getElementById('$FIELDN').value=field2$c;
+				}";
 				$this->js[]="\tif(!IsAnIpv4(field2$c)){";
 				$this->js[]="\t\t\talert('$IsAnIpv4Error:'+field2$c);";
 				$this->js[]="\t\t\treturn;";
@@ -1216,7 +1253,8 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 				if(isset($params["BROWSE"])){
 					$browse=$tpl->_ENGINE_parse_body("{browse}");
 					$field=$field."<button class='btn' type=\"button\" OnClick=\"Loadjs('SambaBrowse.php?no-shares=yes&field=$FIELDN')\">$browse...</button>";
-				}				
+				}	
+				if($FieldButton<>null){$field=$field.$FieldButton;}			
 			}
 			
 			if($TYPE=="PASSWORD"){
@@ -1295,13 +1333,17 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 				OnClick=\"$xbutjs\" data-loading-text=\"$Loading...\">$xbuttonname</button>";
 			}
 		}
-		$f[]="
-		<!-- $infoLock -->		
-		<button class=\"btn-large {$btlock}\" id='MAINBUT-$t' style='font-size:16px' type=\"button\"  data-loading-text=\"$Loading...\">$this->buttonname&nbsp;&raquo;</button>";
-		$f[]="</div>		
-		</div>
-		<script>		
 		
+$CDIRJSFin=null;		
+if(isset($CDIRJS)){	if(count($CDIRJS)>0){$CDIRJSFin=@implode("\n", $CDIRJS);}}		
+		
+$f[]="
+<!-- $infoLock -->		
+<button class=\"btn-large {$btlock}\" id='MAINBUT-$t' style='font-size:16px' type=\"button\"  data-loading-text=\"$Loading...\">$this->buttonname&nbsp;&raquo;</button>";
+$f[]="</div>		
+</div>
+<script>		
+$CDIRJSFin
 var x$functionName= function (obj) {
 \tvar btn$t = $('#MAINBUT-$t');
 \tbtn$t.button('reset');
@@ -1497,6 +1539,7 @@ function isNetSessions(){
 	if($users->AsSquidAdministrator){return true;}
 	if($users->AsSambaAdministrator){return true;}
 	if($users->AsPostfixAdministrator){return true;}
+	if($users->AsDansGuardianAdministrator){return true;}
 	return false;
 
 }

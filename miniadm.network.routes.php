@@ -41,7 +41,9 @@ if(isset($_POST["subruleid"])){subrules_save();exit;}
 if(isset($_POST["route-delete"])){route_delete();exit;}
 if(isset($_POST["rule-delete"])){rule_delete();exit;}
 
-
+if(isset($_GET["routes-apply-js"])){route_apply_js();exit;}
+if(isset($_GET["routes-apply-popup"])){route_apply_popup();exit;}
+if(isset($_GET["routes-display"])){route_display();exit;}
 tabs();
 
 
@@ -53,6 +55,7 @@ function tabs(){
 	$boot=new boostrap_form();
 	$array["{main_routes}"]="$page?mainroutes-list=yes";
 	$array["{routes_tables}"]="$page?routes-list=yes";
+	$array["{display_routes}"]="$page?routes-display=yes";
 	echo $boot->build_tab($array);
 }
 
@@ -74,7 +77,7 @@ function mainroutes_section(){
 	$page=CurrentPageName();
 	$compile_rules=null;
 	$EXPLAIN["BUTTONS"][]=button("{new_route}","Loadjs('$page?mainrouteid=');",16);
-	$EXPLAIN["BUTTONS"][]=$compile_rules;
+	$EXPLAIN["BUTTONS"][]=button("{apply_parameters}","Loadjs('$page?routes-apply-js');",16);;
 	echo $boot->SearchFormGen("pattern,gateway","mainroutes-search",null,$EXPLAIN);	
 }
 
@@ -104,6 +107,40 @@ function mainroutes_js(){
 	}
 	$html="YahooWin2('850','$page?mainrouteid-popup=yes&zmd5=$ID','$title');";
 	echo $html;	
+	
+}
+
+function route_apply_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$title=$tpl->_ENGINE_parse_body("{apply_parameters}");	
+	$html="YahooWin2('850','$page?routes-apply-popup=yes','$title');";
+	echo $html;
+}
+
+function route_apply_popup(){
+	$sock=new sockets();
+	$sock->getFrameWork("system.php?routes-apply-perform=yes");
+	$f=explode("\n",@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/routes-apply.log"));
+	while (list ($index, $line) = each ($f) ){
+		if($line==null){continue;}
+		$tt[]=$line;
+	}
+	
+	echo "<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:95%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:12.5px !important'
+	id='textarea$t'>".@implode("\n", $tt)."</textarea>";
+	
+}
+
+function route_display(){
+	$sock=new sockets();
+	$datas=unserialize(base64_decode($sock->getFrameWork("system.php?routes-show=yes")));
+	echo "<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:95%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important'
+	id='textarea$t'>".@implode("\n", $datas)."</textarea>";		
+	
 	
 }
 
@@ -325,6 +362,7 @@ function mainroutes_popup(){
 	
 	$boot->set_formtitle($title);
 	$boot->set_hidden("zmd5", $zmd5);
+	//$boot->set_checkbox("enable", "{enabled}", $ligne["enable"],array("DISABLEALL"=>true));
 	$boot->set_list("type", "{type}", $types,$ligne["type"]);
 	$boot->set_field("pattern", "{destination}", $ligne["pattern"]);
 	$boot->set_field("gateway", "{gateway}", $ligne["gateway"]);
@@ -506,12 +544,19 @@ function mainroutes_search(){
 		$link=$boot->trswitch("Loadjs('$page?mainrouteid={$ligne["zmd5"]}');");
 	
 		$delete=imgtootltip("delete-64.png",null,"Delete$t('{$ligne["zmd5"]}')");
+		$color="black";
+		
+	/*	if($ligne["enable"]==0){
+			$color="#A9A9A9";
+		}
+	*/	
+		
 		$tr[]="<tr id='R{$ligne["ID"]}'>
 		<td width=1% nowrap $link><img src='img/64-ip-settings.png'></td>
-		<td style='font-size:18px' nowrap $link>&nbsp;". $tpl->javascript_parse_text($types[$ligne["type"]])."</td>
-		<td style='font-size:18px' nowrap $link>&nbsp;{$ligne["nic"]}</td>
-		<td style='font-size:18px' nowrap $link>&nbsp;{$ligne["pattern"]}</td>
-		<td style='font-size:18px' nowrap $link>&nbsp;{$ligne["gateway"]}</td>
+		<td style='font-size:18px;color:$color' nowrap $link>&nbsp;". $tpl->javascript_parse_text($types[$ligne["type"]])."</td>
+		<td style='font-size:18px;color:$color' nowrap $link>&nbsp;{$ligne["nic"]}</td>
+		<td style='font-size:18px;color:$color' nowrap $link>&nbsp;{$ligne["pattern"]}</td>
+		<td style='font-size:18px;color:$color' nowrap $link>&nbsp;{$ligne["gateway"]}</td>
 		<td  width=1% nowrap>$delete</td>
 		</tr>
 		";
