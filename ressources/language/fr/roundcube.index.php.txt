@@ -3,16 +3,16 @@
 <APP_ROUNDCUBE3_PLUGINS_EXPLAIN>La g&eacute;n&eacute;ration 3 de Roundcube Offre la gestion des extensions.[br]S&eacute;lectionnez votre extensions dans cette liste.</APP_ROUNDCUBE3_PLUGINS_EXPLAIN>
 <archive>D&eacute;placer les messages vers un dossier d'archive (s&eacute;lection par l'utilisateur)</archive>
 <artica_ldap_addr>Plugin Artica: Ajouter une connexion avec le carnet d'adresses personnel LDAP</artica_ldap_addr>
-<auto_create_user>Cr&eacute;ez automatiquement un nouvel utilisateur RoundCube lors de  l'&eacute;tablissement de la premi&egrave;re connexion</auto_create_user>
+<auto_create_user>Cr&eation automatique d`utilisateur</auto_create_user>
 <conf>Configuration du script</conf>
 <confirm_rebuild>Attention, vous choisissez de reconstruire des tables, toutes les donn&eacute;es seront effac&eacute;es...</confirm_rebuild>
 <database_attachments>database backed storage for temporary attachment file handling</database_attachments>
 <database_status>&Eacute;tat des tables</database_status>
 <debug_level>Rapport d'erreurs syst&egrave;me</debug_level>
 <debug_logger>Augmenter le niveau de traces</debug_logger>
-<default_host>L'h&ocirc;te de courrier choisi pour ex&eacute;cuter l'&eacute;tablissement de la connexion</default_host>
+<default_host>Serveur IMAP</default_host>
 <emoticons>Replace emoticons in plain text message body with real icons</emoticons>
-<enable_caching>Activer le cache des messages et de donn&eacute;es de bo&icirc;tes aux lettres dans la base de donn&eacute;es locale</enable_caching>
+<enable_caching>Mettre cache les bo&icirc;tes aux lettres</enable_caching>
 <example_addressbook>Exemple de carnet d'addresses</example_addressbook>
 <filesystem_attachments>C'est un plugin principal qui fournit des services basiques sur le syst&egrave;me de fichiers bas&eacute; essentiellement sur les pi&egrave;ces jointes.[br]Il inclut le stockage des pi&egrave;ces jointes des messages en cours de r&eacute;daction et sauvegard&eacute;s temporairement avant l'envoi.</filesystem_attachments>
 <flag_for_deletion>Signalez le message pour l'effacement (Non Supprim&eacute;s)</flag_for_deletion>
@@ -30,7 +30,7 @@ faux causes la suppression de messages  de fa&ccedil;on permanente si il n'y a p
 <new_user_dialog>Present identities settings dialog to new users</new_user_dialog>
 <PHP_FCGI_CHILDREN>Le nombre de processus php-cgi</PHP_FCGI_CHILDREN>
 <PHP_FCGI_MAX_REQUESTS>Demandes maximales avant reprise de processus php-cgi</PHP_FCGI_MAX_REQUESTS>
-<product_name>Utilisez ce nom pour composer des titres de page</product_name>
+<product_name>Titre des pages</product_name>
 <rebuild>Reconstruire</rebuild>
 <rlogs>&Eacute;v&egrave;nements RoundCube</rlogs>
 <RoundCubeHTTPEngineEnabled>Activ&eacute; le site internet d&eacute;di&eacute;</RoundCubeHTTPEngineEnabled>
@@ -40,7 +40,7 @@ faux causes la suppression de messages  de fa&ccedil;on permanente si il n'y a p
 <roundcube_web_folder>Chemin du r&eacute;pertoire web</roundcube_web_folder>
 <show_additional_headers>Show additional message headers</show_additional_headers>
 <sieverules>filtres dans le style de Thunderbird (mode avanc&eacute;)</sieverules>
-<skip_deleted>Messages Supprim&eacute;s ne devant pas &ecirc;tre montr&eacute;s</skip_deleted>
+<skip_deleted>Cacher les messages supprim&eacute;s</skip_deleted>
 <squirrelmail_usercopy>Copy a new users identity and settings from a nearby Squirrelmail installation</squirrelmail_usercopy>
 <subscriptions_option>Activer ou d&eacute;sactiver l'utilisation des abonnements imap</subscriptions_option>
 <userinfo>Afficher les informations du compte</userinfo>

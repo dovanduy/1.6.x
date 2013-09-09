@@ -48,7 +48,7 @@ $html="
 
 	
 <script>
-$(document).ready(function(){
+function flexigridStart$t(){
 $('#flexRT$t').flexigrid({
 	url: '$page?web-events=yes',
 	dataType: 'json',
@@ -78,7 +78,8 @@ $('#flexRT$t').flexigrid({
 	rpOptions: [10, 20, 30, 50,100,200]
 	
 	});   
-});
+}
+setTimeout('flexigridStart$t()',800);
 
 </script>
 

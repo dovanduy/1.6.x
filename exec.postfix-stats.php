@@ -12,6 +12,7 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.postfix.builder.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
+include_once(dirname(__FILE__).'/ressources/class.mysql.syslogs.inc');
 events("commands= ".implode(" ",$argv));
 $users=new usersMenus();
 if(!$users->POSTFIX_INSTALLED){die();}

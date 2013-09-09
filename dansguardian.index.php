@@ -377,8 +377,8 @@ function popup_tabs(){
 	$array["authentication"]='{authentication}';
 	$array["proxy-events"]='{events}';
 	$sock=new sockets();
-	$EnableUfdbGuard=$sock->GET_INFO('EnableUfdbGuard');
-	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	
 	$tpl=new templates();
 	while (list ($num, $ligne) = each ($array) ){
 		
@@ -443,7 +443,7 @@ function popup_databases(){
 	$squidGuardEnabled=$sock->GET_INFO("squidGuardEnabled");
 	if($squidGuardEnabled==null){$squidGuardEnabled=0;$sock->SET_INFO("squidGuardEnabled",0);}
 	$cicap_enabled=$sock->GET_INFO('CicapEnabled');
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	$EnableSquidClamav=$sock->GET_INFO("EnableSquidClamav");	
 	
 	
@@ -551,7 +551,7 @@ function popup_dansguardian_main(){
 	$squidGuardEnabled=$sock->GET_INFO("squidGuardEnabled");
 	if($squidGuardEnabled==null){$squidGuardEnabled=0;$sock->SET_INFO("squidGuardEnabled",0);}
 	$cicap_enabled=$sock->GET_INFO('CicapEnabled');
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	$EnableSquidClamav=$sock->GET_INFO("EnableSquidClamav");
 	
 	
@@ -1122,7 +1122,7 @@ function main_rules_mainsettings(){
 	if($dansguardian_enabled==null){$dansguardian_enabled=0;$sock->SET_INFO("DansGuardianEnabled",0);}
 	$squidGuardEnabled=$sock->GET_INFO("squidGuardEnabled");
 	if($squidGuardEnabled==null){$squidGuardEnabled=0;$sock->SET_INFO("squidGuardEnabled",0);}	
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	if($EnableUfdbGuard==null){$EnableUfdbGuard=0;$sock->SET_INFO("EnableUfdbGuard",0);}	
 	
 	$dansguardian_part="	
@@ -1254,12 +1254,10 @@ function popup_authentication(){
 	$squid=new squidbee();
 	$LDAP_AUTH=$squid->LDAP_AUTH;
 	
-	if($hasProxyTransparent==1){
-		$IP_SET=true;
-	}else{
+
 		if($LDAP_AUTH==0){$IP_SET=true;}
 		if($LDAP_AUTH==1){$IP_SET=FALSE;}
-	}
+	
 	if($squid->enable_squidguard==1){$groupipadd=Paragraphe("64-filter-computer.png","{filter_ip_group}",'{filter_ip_group_text}',"javascript:YahooWin(600,'$page?popup-group-ip=yes','{filter_ip_group}');");}
 	
 	$html="

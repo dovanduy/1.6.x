@@ -39,7 +39,7 @@ class squidguard{
 		$this->ldap_server=$ldap->ldap_host;
 		$this->ldap_suffix=$ldap->suffix;
 		$this->SquidGuardIPWeb=$sock->GET_INFO("SquidGuardIPWeb");
-		$this->EnableUfdbGuard=$sock->GET_INFO('EnableUfdbGuard');
+		$this->EnableUfdbGuard=$sock->EnableUfdbGuard();
 		if($this->SquidGuardIPWeb==null){$this->SquidGuardIPWeb="http://$usrs->hostname:9020/exec.squidguard.php";}
 		$this->SquidGuardIPWeb=str_replace('.(none)',"",$this->SquidGuardIPWeb);
 		echo "Starting......: squidGuard verbose mode={$GLOBALS["VERBOSE"]}\n";

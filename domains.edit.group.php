@@ -817,7 +817,8 @@ function GROUP_DEFAULT_PASSWORD(){
 	<div id='GROUP_DEFAULT_PASSWORD'>
 	<p class=caption>{group_default_password_text}</p>
 	<input type='hidden' id='error_passwords_mismatch' value='{error_passwords_mismatch}'>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 		<tr>
 		<td class=legend>{password}:</span></td>	
 		<td>" . Field_password("default_password1",$group->DefaultGroupPassword)."</td>
@@ -833,6 +834,7 @@ function GROUP_DEFAULT_PASSWORD(){
 			<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ChangeDefaultGroupPassword($gpid);\" value='{edit}&nbsp;&raquo;'>
 		</tr>
 	</table>	
+	</div>
 	</div>	
 	";
 	
@@ -1139,6 +1141,7 @@ function GROUP_SETTINGS_PAGE_CONTENT(){
 	if(isset($_GET["GroupSettingsID"])){$GroupSettingsID=$_GET["GroupSettingsID"];}
 	
 	$html_tab1="
+	
 	<div style='width:95%' class=form>
 	<table>
 	<tr>
@@ -1338,7 +1341,8 @@ $html="
 	<table style='width:100%'>
 		<td valign='top'><table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table></td>
 	<td valign='top' width=5%>
-		<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+		<table>
 			<tr>
 				<td>$add_member</td>
 			</tr>
@@ -1355,6 +1359,7 @@ $html="
 				<td><span id='ShowDeleteAll'></span>
 			</tr>		
 		</table>
+		</div>
 	<td>
 	
 	</table>
@@ -1996,12 +2001,17 @@ function GROUP_PRIVILEGES_TABS($gid){
 	if($users->AllowEditOuSecurity){
 		$array["G"]='{groups_allow}';
 		$array["O"]='{organization_allow}';
-		$array["A"]='{administrators_allow}';		
+		$array["A"]='{administrators_allow}';
+		$array["Z"]='{backup}';
 	}
 	
 	while (list ($num, $ligne) = each ($array) ){
-		$a[]="<li><a href=\"$page?GroupPriv=$gid&tab=$num$addon\"><span style='font-size:13px'>$ligne</span></a></li>\n";
-			
+		
+		if($num=="Z"){
+			$a[]="<li><a href=\"domains.edit.group.BackupStore.php?gid=$gid&tab=$num$addon\"><span style='font-size:12px'>$ligne</span></a></li>\n";
+			continue;
+		}
+		$a[]="<li><a href=\"$page?GroupPriv=$gid&tab=$num$addon\"><span style='font-size:12px'>$ligne</span></a></li>\n";
 		}
 		
 $html="
@@ -2329,7 +2339,8 @@ function GROUP_PRIVILEGES($gid){
     	
     	
 $group_allow="&nbsp;{groups_allow}</H3><br>
-		<table style='width:99%' class=form>
+<div style='width:95%' class=form>
+		<table>
 		
 			<tr>
 				<td align='right'><span style='font-size:13.5px'>{AllowAddUsers}:</span></td><td>$AllowAddUsers</td>
@@ -2339,11 +2350,12 @@ $group_allow="&nbsp;{groups_allow}</H3><br>
 			</tr>			
 					
 			
-		</table>
+		</table></div>
 ";  	
     	
 $user_allow="&nbsp;{users_allow}</H3><br>
-					<table style='width:99%' class=form>
+		<div style='width:95%' class=form>
+					<table>
 						
 						<tr>
 							<td align='right' nowrap><span style='font-size:13.5px'>{AllowChangeAntiSpamSettings}:</span></td><td>" . Field_yesno_checkbox('AllowChangeAntiSpamSettings',$HashPrivieleges["AllowChangeAntiSpamSettings"]) ."</td>
@@ -2401,10 +2413,11 @@ $user_allow="&nbsp;{users_allow}</H3><br>
 						<tr>
 							<td align='right' nowrap><span style='font-size:13.5px'>{AllowEditAsWbl}:</span></td><td>" . Field_yesno_checkbox('AllowEditAsWbl',$HashPrivieleges["AllowEditAsWbl"]) ."</td>
 						</tr>									
-					</table>";
+					</table></div>";
 
 $org_allow="&nbsp;{organization_allow}</H3><br>
-<table style='width:99%' class=form>	
+<div style='width:95%' class=form>
+<table >	
 	<tr>
 		<td align='right' nowrap><span style='font-size:13.5px'>{AsOrgAdmin}:</span></td>
 		<td>$AsOrgAdmin</td>
@@ -2459,12 +2472,13 @@ $org_allow="&nbsp;{organization_allow}</H3><br>
 	<tr>
 		<td align='right'><span style='font-size:13.5px'>{AllowChangeDomains}:</span></td><td>$AllowChangeDomains</td>
 	</tr>	
-</table>					
+</table></div>					
 ";
  
 
 $admin_allow="&nbsp;{administrators_allow}</H3><br>
-<table style='width:99%' class=form>
+<div style='width:95%' class=form>
+<table>
 				
 
 
@@ -2547,7 +2561,7 @@ $admin_allow="&nbsp;{administrators_allow}</H3><br>
 							<td align='right' nowrap><strong style='font-size:13.5px'>{AllowViewStatistics}:</span></td>
 							<td>$AllowViewStatistics</td>
 						</tr>																					
-						</table>";
+						</table></div>";
 $sufform=$_GET["tab"];
 switch ($_GET["tab"]) {
 	case "G":$g=$group_allow;break;
@@ -2894,7 +2908,9 @@ function GROUP_SAMBA_IDENTITY(){
 	$password=urlencode(base64_encode($master_password));
 	$datas=unserialize(base64_decode($sock->getFrameWork("cmd.php?pdbedit-group=$group->groupName&password=$password")));
 	
-	$html="<table style='width:99%' class=form>
+	$html="
+		<div style='width:95%' class=form>	
+		<table>
 	<tr>
 		<td class=legend>{name}:</span></td>
 		<td><strong style='font-size:12px'>$group->groupName</td>
@@ -2907,7 +2923,7 @@ function GROUP_SAMBA_IDENTITY(){
 		<td class=legend>{sambaSID}:</span></td>
 		<td><strong style='font-size:12px'>$group->sambaSID</td>
 	</tr>	
-	</table>
+	</table></div>
 	<p>&nbsp;</p>
 	<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 <thead class='thead'>
@@ -2975,7 +2991,8 @@ $html="<div style='font-size:16px'>{MK_SAMBA_GROUP}&raquo;&nbsp;<strong>$group->
 <input type='hidden' name='ou' id='ou' value='{$_GET["ou"]}'>
 <input type='hidden' name='SaveGroupSamba' id='SaveGroupSamba' value='yes'>
 <div class=explain style='font-size:16px'>$text</div>
-<table style='width:99%' class=form>
+<div style='width:95%' class=form>
+<table>
 <tr>
 	<td align='right' class=legend style='font-size:16px'><strong>{sambaGroupType}</strong>:</td>
 	<td>".Field_array_Hash($array_group,'sambaGroupType',$group->sambaGroupType,"style:font-size:16px;padding:3px")."</td>
@@ -2987,7 +3004,7 @@ $html="<div style='font-size:16px'>{MK_SAMBA_GROUP}&raquo;&nbsp;<strong>$group->
 <tr>
 	<td colspan=2 align='right'><hr>". button("{apply}","SaveGroupTypeSamba()",16)."</td>
 </tr>
-</table>
+</table></div>
 </div>
 <script>
 	var x_SaveGroupTypeSamba= function (obj) {

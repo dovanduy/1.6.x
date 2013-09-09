@@ -32,7 +32,8 @@ if(isset($_GET["watchdog-config"])){watchdog_monit();exit;}
 if(isset($_GET["winbindd-logs"])){winbind_logs();exit;}
 if(isset($_GET["joint"])){join_ad();exit;}
 if(isset($_GET["GetNetAdsInfos"])){GetNetAdsInfos();exit;}
-
+if(isset($_GET["current-version"])){current_version();exit;}
+if(isset($_GET["downgrade"])){downgrade();exit;}
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 
@@ -252,9 +253,8 @@ function SmblientBrowse(){
 	$username=$datas[0];
 	$password=$datas[1];
 	$unix=new unix();
-	$password=escapeshellarg($password);
-	$password=str_replace("'", "", $password);
-	$password=str_replace('$', '\$', $password);	
+	$password=$unix->shellEscapeChars($password);
+;	
 	$smbclient=$unix->find_program("smbclient");
 	$cmd="$smbclient -g -L //localhost -U {$username}%{$password} 2>&1";
 	exec($cmd,$results);
@@ -344,9 +344,8 @@ function netrpcinfo(){
 		echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 		return;
 	}
-	$array["PASSWD"]=escapeshellarg($array["PASSWD"]);
-	$array["PASSWD"]=str_replace("'", "", $array["PASSWD"]);
-	$array["PASSWD"]=str_replace('$', '\$', $array["PASSWD"]);
+	$array["PASSWD"]=$unix->shellEscapeChars($array["PASSWD"]);
+
 	if(is_file($net)){
 		$cmd="$net rpc info -U {$array["USER"]}%{$array["PASSWD"]} 2>&1";
 		exec($cmd,$results);
@@ -462,9 +461,7 @@ function wbinfo_authenticate(){
 		echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 		return;
 	}	
-	$array["PASSWD"]=escapeshellarg($array["PASSWD"]);
-	$array["PASSWD"]=str_replace("'", "", $array["PASSWD"]);
-	$array["PASSWD"]=str_replace('$', '\$', $array["PASSWD"]);
+	$array["PASSWD"]=$unix->shellEscapeChars($array["PASSWD"]);
 	
 	if(isset($array["WORKGROUP"])){
 		if($array["WORKGROUP"]<>null){
@@ -505,14 +502,11 @@ function SAMBA_HAVE_POSIX_ACLS(){
 
 function SAMBA_VERSION(){
 	$unix=new unix();
-	$winbind=$unix->find_program("smbd");
-	exec("$winbind -V 2>&1",$results);
-	if(preg_match("#Version\s+([0-9\.]+)#i", @implode("", $results),$re)){
-		echo "<articadatascgi>". $re[1]."</articadatascgi>";	
-		return;
-	}
-	
-	
+	echo "<articadatascgi>". $unix->samba_version()."</articadatascgi>";	
+}
+function current_version(){
+	$unix=new unix();
+	echo "<articadatascgi>". base64_encode($unix->samba_version())."</articadatascgi>";
 }
 function join_ad(){
 	$unix=new unix();
@@ -577,4 +571,12 @@ function GetNetAdsInfos(){
 	@file_put_contents("/etc/squid3/NET_ADS_INFOS", serialize($array));
 	echo "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
 	
+}
+function downgrade(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.samba.downgrade.php \"{$_GET["downgrade"]}\" >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 }

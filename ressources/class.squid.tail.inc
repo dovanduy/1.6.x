@@ -65,9 +65,31 @@ class squid_tail{
 			}
 				
 			if(strpos($buffer, "RELEASE -1")>0){$this->error="RELEASE";$this->ToRemove=true;return;}
-			if(strpos($buffer, "RELEASE 00")>0){$this->error="RELEASE";$this->ToRemove=true;return;}
-			if(strpos($buffer, "SWAPOUT 00")>0){$this->error="SWAPOUT";$this->ToRemove=true;return;}			
+			if(strpos($buffer, "RELEASE 0")>0){$this->error="RELEASE";$this->ToRemove=true;return;}
+			if(strpos($buffer, "SWAPOUT 0")>0){$this->error="SWAPOUT";$this->ToRemove=true;return;}
+			if(strpos($buffer, "SWAPIN 0")>0){$this->error="SWAPOUT";$this->ToRemove=true;return;}
+		
 				
+			if(isset($GLOBALS["SQUID_OLD_STYLE"])){
+				if(preg_match("#^([0-9\.]+)\s+([0-9]+)\s+(.*?)\s+([A-Z\_]+)\/([0-9]+)\s+([0-9]+)\s+([A-Z]+)\s+(.*?)\s+(.*?)\s+([A-Z\_]+)\/(.*?)#", $buffer,$re)){
+					$time=$re[1];
+					$ip=$re[2];
+					$SquidCode=$re[4];
+					$Fdate=date("Y-m-d H:i:s",$time);
+					$xtime=strtotime($Fdate);
+					$cached=0;
+					$size=$re[6];
+					$uri=$re[8];
+					$code_error=$re[5];
+					$user=$re[9];
+					if($this->CACHEDORNOT($SquidCode)){$cached=1;}
+					if($ip=="127.0.0.1"){$this->events("$buffer -> ABORT in line:".__LINE__);$this->error="IP = 127.0.0.1  - $uri line:".__LINE__;$this->ToRemove=true;return;}
+					$this->Builsql($ip,$user,$uri,$code_error,$size,$xtime,$cached,null,$xtime);
+					continue;
+				}
+			
+				
+			}
 				
 			if(preg_match("#^([A-Za-z]+)\s+([0-9]+)\s+([0-9]+):([0-9]+):([0-9]+)\s+#", $buffer,$re)){
 					$Fdate="{$re[1]} {$re[2]} {$re[3]}:{$re[4]}:{$re[5]}";

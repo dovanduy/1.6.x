@@ -234,6 +234,9 @@ function webstats_left(){
 }
 
 function webstats_stats(){
+		$sock=new sockets();
+		$SQUID_LOCAL_STATS_DISABLED=$sock->SQUID_LOCAL_STATS_DISABLED();
+		if($SQUID_LOCAL_STATS_DISABLED){return;}
 		$t=$_GET["t"];
 		$tpl=new templates();
 		$q=new mysql_squid_builder();

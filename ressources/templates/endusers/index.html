@@ -12,6 +12,7 @@
    <link rel="stylesheet" href="/ressources/templates/endusers/css/jquery2.css" />
    <link rel="stylesheet" href="/js/jqueryFileTree.css" />
    <link rel="stylesheet" type="text/css" href="/css/colorpicker.css">
+   <link rel="stylesheet" type="text/css" href="/ressources/templates/endusers/css/canvas.css">
 
    
 	<script type="text/javascript" language="javascript" src="/mouse.js"></script>
@@ -82,10 +83,14 @@
     margin-bottom: 20px;
     padding: 8px 35px 8px 14px;
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-    background-color: #D9EDF7;
     border-color: #BCE8F1;
-    color:#888888;
+    color:#37A8BF;
     font-size:14px;
+    font-weight:bold;
+	background: -moz-linear-gradient(right top, #D9EDF7, white) repeat scroll 0% 0% transparent;
+	border-radius: 5px 5px 5px 5px; 
+	
+      
 } 
 
 
@@ -325,7 +330,7 @@ div .formOver {
     	
      <table style="width:100%;margin-left:-10px;font-size:14px;" class=TableRemove>
      <tr>
-     <td style='width:350px;font-size:14px;' valign=top>
+     <td style='width:350px;font-size:14px;' valign=top id='left-menu-bar'>
      	<div class="span3 bs-docs-sidebar" id='left-menu'></div>
 	</td>
 	<td style='width:100%'>

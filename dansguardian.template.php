@@ -4,6 +4,7 @@
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.dansguardian.inc');
 	include_once('ressources/class.squid.inc');
+	include_once('ressources/class.mysql.inc');
 	header("Pragma: no-cache");	
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
@@ -66,7 +67,7 @@ function TemplateColorSave(){
 		return;
 	}
 	
-	$template=mysql_escape_string($template);
+	$template=mysql_escape_string2($template);
 	
 	$sql="UPDATE webfilter_rules SET 
 		TemplateError='$template',
@@ -84,6 +85,12 @@ function TemplateColorSave(){
 function Dans2(){
 	$q=new mysql_squid_builder();	
 	$page=CurrentPageName();
+	$users=new usersMenus();
+	$tpl=new templates();
+	if(!$users->CORP_LICENSE){
+		echo "<p class=text-error>".$tpl->_ENGINE_parse_body("{MOD_TEMPLATE_ERROR_LICENSE}")."</p>";
+	}
+	
 	$ID=$_GET["ID"];
 	$tpl=new templates();
 	$onlydefaulttemplate_remove=$tpl->javascript_parse_text("{onlydefaulttemplate_remove}");

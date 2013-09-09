@@ -31,6 +31,7 @@ if($argv[1]=="--var"){CheckLogStorageDir($argv[2]);die();}
 if($argv[1]=="--clean"){CleanMysqlDatabase();die();}
 if($argv[1]=="--squid"){check_all_squid();die();}
 if($argv[1]=="--convert"){ConvertToDedicatedMysql(true);die();}
+if($argv[1]=="--test-nas"){tests_nas(true);die();}
 
 
 
@@ -94,7 +95,7 @@ function run(){
 	if($unix->process_exists($pid,basename(__FILE__))){system_admin_events("Already executed PID $pid",__FUNCTION__,__FILE__,__LINE__,"logrotate");die();}
 	@file_put_contents($pidfile, getmypid());
 	$time=$unix->file_time_min($timefile);
-	if($time<15){system_admin_events("No less than 15mn or delete $timefile file",__FUNCTION__,__FILE__,__LINE__,"logrotate");die();}
+	if($time<60){events("No less than 1h or delete $timefile file",__FUNCTION__,__FILE__,__LINE__,"logrotate");die();}
 	@unlink($timefile);
 	@file_put_contents($timefile, time());	
 	
@@ -106,10 +107,12 @@ function run(){
 	
 	$cmd=$unix->EXEC_NICE().$logrotate." -s /var/log/logrotate.state /etc/logrotate.conf 2>&1";
 	events("Executing: $cmd");
-	rotate_events("Executing: $cmd",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+	rotate_events("Last scan {$time}mn, Executing: $cmd",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 	$t=time();
 	exec($cmd,$results);
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
+	
+	system_admin_events("Success took: $took\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"logrotate");
 	events("Success took: $took\n".@implode("<br>", $results));
 	rotate_events("Success took: $took\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"logrotate");
 	InstertIntoMysql();
@@ -412,10 +415,75 @@ function CheckLogStorageDir($DirPath=null){
 	
 }
 
+function tests_nas(){
+	$sock=new sockets();
+	$BackupSquidLogsUseNas=$sock->GET_INFO("BackupSquidLogsUseNas");
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
+	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
+	if(!is_numeric($BackupSquidLogsUseNas)){$BackupSquidLogsUseNas=0;}
+	
+	
+	$mount=new mount("/var/log/artica-postfix/logrotate.debug");
+	
+	if($BackupSquidLogsUseNas==0){echo "Backup using NAS is not enabled\n";return;}
+	$BackupSquidLogsNASIpaddr=$sock->GET_INFO("BackupSquidLogsNASIpaddr");
+	$BackupSquidLogsNASFolder=$sock->GET_INFO("BackupSquidLogsNASFolder");
+	$BackupSquidLogsNASUser=$sock->GET_INFO("BackupSquidLogsNASUser");
+	$BackupSquidLogsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");
+	$BackupSquidLogsNASRetry=$sock->GET_INFO("BackupSquidLogsNASRetry");
+	if(!is_numeric($BackupSquidLogsNASRetry)){$BackupSquidLogsNASRetry=0;}
+	
+	$failed="***********************\n** FAILED **\n***********************\n";
+	$success="***********************\n******* SUCCESS *******\n***********************\n";
+	
+	$mountPoint="/mnt/BackupSquidLogsUseNas";
+	if(!$mount->smb_mount($mountPoint,$BackupSquidLogsNASIpaddr,
+			$BackupSquidLogsNASUser,$BackupSquidLogsNASPassword,$BackupSquidLogsNASFolder)){
+		
+		if($BackupSquidLogsNASRetry==1){
+			sleep(3);
+			$mount=new mount("/var/log/artica-postfix/logrotate.debug");
+			if(!$mount->smb_mount($mountPoint,$BackupSquidLogsNASIpaddr,$BackupSquidLogsNASUser,$BackupSquidLogsNASPassword,$BackupSquidLogsNASFolder)){
+				echo "$failed\nUnable to connect to NAS storage system: $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr\n";
+				echo @implode("\n", $GLOBALS["MOUNT_EVENTS"]);
+				return;					
+			}
+		}else{
+			echo "$failed\nUnable to connect to NAS storage system: $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr\n";
+			echo @implode("\n", $GLOBALS["MOUNT_EVENTS"]);
+			return;
+		}
+	}
+			
+	
+	$BackupMaxDaysDir="$mountPoint/artica-backup-syslog";
+
+	@mkdir($BackupMaxDaysDir,0755,true);
+	if(!is_dir($BackupMaxDaysDir)){
+		echo "$failed$BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr/$BackupSquidLogsNASFolder/artica-backup-syslog permission denied.\n";
+		$mount->umount($mountPoint);
+		return;
+	}
+	
+	$t=time();
+	@file_put_contents("$BackupMaxDaysDir/$t", "#");
+	if(!is_file("$BackupMaxDaysDir/$t")){
+		echo "$failed$BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr/$BackupSquidLogsNASFolder/artica-backup-syslog/* permission denied.\n";
+		$mount->umount($mountPoint);
+		return;
+	}	
+	@unlink("$BackupMaxDaysDir/$t");
+	$mount->umount($mountPoint);
+	echo "$success";
+	
+}
+
 function CleanMysqlDatabase(){
 	
 	
-	
+	$users=new usersMenus();
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/logrotate.". __FUNCTION__.".time";
@@ -479,21 +547,30 @@ function CleanMysqlDatabase(){
 	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}	
 	$mount=new mount("/var/log/artica-postfix/logrotate.debug");
 	if($BackupSquidLogsUseNas==1){
-		
 		$BackupSquidLogsNASIpaddr=$sock->GET_INFO("BackupSquidLogsNASIpaddr");
 		$BackupSquidLogsNASFolder=$sock->GET_INFO("BackupSquidLogsNASFolder");
 		$BackupSquidLogsNASUser=$sock->GET_INFO("BackupSquidLogsNASUser");
 		$BackupSquidLogsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");	
+		$BackupSquidLogsNASRetry=$sock->GET_INFO("BackupSquidLogsNASRetry");
+		if(!is_numeric($BackupSquidLogsNASRetry)){$BackupSquidLogsNASRetry=0;}		
 		$mountPoint="/mnt/BackupSquidLogsUseNas";
 		if(!$mount->smb_mount($mountPoint,$BackupSquidLogsNASIpaddr,$BackupSquidLogsNASUser,$BackupSquidLogsNASPassword,$BackupSquidLogsNASFolder)){
-			events("Unable to connect to NAS storage system: $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr");
-			return;
+			events("Unable to connect to NAS storage system (1): $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr");
+			if($BackupSquidLogsNASRetry==0){return;}
+			sleep(3);
+			$mount=new mount("/var/log/artica-postfix/logrotate.debug");
+			if(!$mount->smb_mount($mountPoint,$BackupSquidLogsNASIpaddr,$BackupSquidLogsNASUser,$BackupSquidLogsNASPassword,$BackupSquidLogsNASFolder)){
+				events("Unable to connect to NAS storage system (2): $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr");
+				return;
+			}
+			
 		}
-		$BackupMaxDaysDir="$mountPoint/artica-backup-syslog";
+		$BackupMaxDaysDir="$mountPoint/artica-backup-syslog/$users->hostname";
 	}
 	
 	
-	@mkdir("$BackupMaxDaysDir",0755);
+	@mkdir("$BackupMaxDaysDir",0755,true);
+	
 	if(!is_dir($BackupMaxDaysDir)){
 		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
 		events("FATAL $BackupMaxDaysDir permission denied");
@@ -642,10 +719,10 @@ function reconfigure(){
 	$q=new mysql_syslog();
 	//RotateFiles,RotateType,RotateFreq,MaxSize,RotateCount,postrotate,description,enabled	
 	$sql="SELECT *  FROM `logrotate` WHERE enabled=1";	
-	system_admin_events($sql,__FUNCTION__,__FILE__,__LINE__,"logrotate");
+	
 	$results = $q->QUERY_SQL($sql);	
 	if(!$q->ok){
-		if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";}
+		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		return;}
 	
 	
@@ -839,6 +916,7 @@ function ROTATE_COMPRESS_FILE($filename){
 	$unix=new unix();
 	if(!isset($GLOBALS["BZ2BIN"])){$GLOBALS["BZ2BIN"]=$unix->find_program("bzip2");;}
 	$EXEC_NICE=$unix->EXEC_NICE();
+	events("$filename -> Compressing");
 	$cmdline="$EXEC_NICE {$GLOBALS["BZ2BIN"]} -z $filename";
 	shell_exec($cmdline);
 	if(!is_file("$filename.bz2")){return false;}
@@ -855,7 +933,7 @@ function check_all_squid(){
 	$sock=new sockets();
 	$unix=new unix();
 	
-	
+	$php5=$unix->LOCATE_PHP5_BIN();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
 	$pid=file_get_contents("$pidfile");
@@ -903,8 +981,16 @@ function check_all_squid(){
 		$time=$unix->file_time_min($filename);
 		$size=round(($size/1024)/1000,2);
 		
-		if($size>$LogsRotateDefaultSizeRotation){$TOROT[$filename]=true;continue;}
-		if($time>1440){$TOROT[$filename]=true;continue;}
+		if($size>$LogsRotateDefaultSizeRotation){
+			$TOROT[$filename]=true;
+			events("$filename -> Add to queue {$size}M exceed {$LogsRotateDefaultSizeRotation}M");
+			continue;
+		}
+		if($time>1440){
+			events("$filename -> Add to queue {$time}mn exceed 1440mn");
+			$TOROT[$filename]=true;
+			continue;
+		}
 	}
 
 	if(count($TOROT)==0){return;}
@@ -915,6 +1001,13 @@ function check_all_squid(){
 		
 		$filedate=date('Y-m-d H:i:s',filemtime($filename));
 		$basename=basename($filename);
+		
+		if(preg_match("#sarg\.#", $filename)){
+			shell_exec("$php5 ".dirname(__FILE__)."/exec.sarg.php --rotate $basename >/dev/null 2>&1 &");
+			continue;
+		}		
+		
+		
 		if($LogRotateCompress==1){
 			if($extension<>"bz2"){
 				if(!ROTATE_COMPRESS_FILE($filename)){continue;}
@@ -930,6 +1023,20 @@ function check_all_squid(){
 			
 		
 	}
+	
+	foreach (glob("/home/squid/cache-logs/*") as $filename) {
+		if(!ROTATE_COMPRESS_FILE($filename)){
+			events("File ".basename($filename)." Failed to compress file");
+			system_admin_events("File ".basename($filename)." Failed to compress file",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			continue;
+		}
+		
+		$filedate=date('Y-m-d H:i:s',filemtime($filename));
+		$filename=$filename.".bz";
+		if(ROTATE_TOMYSQL($filename, $filedate)){@unlink($filename);}
+		
+	}
+	
 	
 	
 }
@@ -1007,10 +1114,10 @@ function ConvertToDedicatedMysql($aspid=false){
 	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
-		$filename=mysql_escape_string($ligne["filename"]);
-		$taskid=mysql_escape_string($ligne["taskid"]);
-		$filesize=mysql_escape_string($ligne["filesize"]);
-		$filetime=mysql_escape_string($ligne["filetime"]);
+		$filename=mysql_escape_string2($ligne["filename"]);
+		$taskid=mysql_escape_string2($ligne["taskid"]);
+		$filesize=mysql_escape_string2($ligne["filesize"]);
+		$filetime=mysql_escape_string2($ligne["filetime"]);
 		events("Converting $filename task [$taskid] ($filesize bytes) time:$filetime ->$tmpdir/$filename");
 		$sql="SELECT filedata INTO DUMPFILE '$tmpdir/$filename' FROM store WHERE filename = '$filename'";
 		$q1->QUERY_SQL($sql);

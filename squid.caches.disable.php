@@ -38,6 +38,8 @@ function popup(){
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}	
 	$level=Paragraphe_switch_img('{DisableAnyCache}',"{DisableAnyCache_explain2}","DisableAnyCache-$t",$DisableAnyCache,null,440);
 	
+	
+	
 	$html="
 	<div id='animate-$t'></div>		
 	<div style='margin:10px;padding:10px' class=form>

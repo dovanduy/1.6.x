@@ -145,7 +145,7 @@ for($i=0;$i<24;$i++){$def1[]=$i;}
 	
 $array_days=array("sunday","monday","tuesday","wednesday","thursday","friday","saturday");
 
-$mins="<table style='width:99%;' class=form>";
+$mins="<table style='width:100%;'>";
 
 $group_min="<table style='width:100%;'>
 <tr><td valign='top'>";
@@ -156,7 +156,7 @@ for($i=0;$i<60;$i++){
 	if($count>10){
 		$mins=$mins."</table>";
 		$group_min=$group_min."$mins</td><td valign='top'>";
-		$mins="<table style='width:99%' class=form>";
+		$mins="<table style='width:100%'>";
 		$count=0;
 	}
 	$mins=$mins."
@@ -173,14 +173,14 @@ for($i=0;$i<60;$i++){
 
 
 $group_min=$group_min."</td>
-<td valign='top'>$mins</td>
+<td valign='top' style='vertical-align:top'>$mins</td>
 </tr>
 </table>";
 
 $group_hours="<table style='width:100%;'>
 <tr>
-	<td valign='top'>
-	<table style='width:99%' class=form>";
+	<td valign='top' style='vertical-align:top'>
+	<table style='width:100%'>";
 $count=0;
 for($i=0;$i<24;$i++){
 	if($i<10){$hour_text="0$i";}else{$hour_text=$i;}
@@ -190,9 +190,9 @@ for($i=0;$i<24;$i++){
 		<!-- hours next -->";
 		$group_hours=$group_hours."$hours
 </td>
-<td valign='top'>";
+<td valign='top' style='vertical-align:top'>";
 		$hours="
-			<table style='width:99%' class=form>";
+			<table style='width:100%'>";
 		$count=0;
 	}
 	$hours=$hours."
@@ -211,7 +211,7 @@ for($i=0;$i<24;$i++){
 
 $group_hours=$group_hours."
 	</td>
-	<td valign='top' style=''>
+	<td valign='top' style='vertical-align:top'>
 		$hours
 	</td>
 </tr>
@@ -231,7 +231,7 @@ $group_hours=$group_hours."
 	}
 	
 	$days_html="
-<table style='width:99%' class=form>
+<table style='width:100%'>
 		$days_html
 </table>";
 	
@@ -240,19 +240,30 @@ $html="
 <form name='FFM_CRON'>
 <table style='width:100%'>
 	<tr>
-		<td valign='top'>
+		<td valign='top' style='vertical-align:top'>
+			
+			
+			<div style='width:95%' class=form>
+			<div style='font-size:18px'>{days}</div>
 			$days_html
+			</div>
 		</td>
-		<td valign='top'>
+		<td valign='top' style='vertical-align:top;padding-left:15px'>
 		<!-- hours -->
-				$group_hours</table>
+		<div style='width:95%' class=form>
+			<div style='font-size:18px'>{hours}</div>
+				$group_hours
+			</table>
+			</div>
 			<div style='width:100%;text-align:right;font-size:12px'>
 				<a href=\"#\" OnClick=\"javascript:UnselectAllHours();\" style='font-size:12px'>{unselect_all}</a>&nbsp;&nbsp;
 				<a href=\"#\" OnClick=\"javascript:SelectAllHours();\" style='font-size:12px'>{all}</a>
 			</div>				
-		<hr>
-		
-			$group_min</table>
+			<div style='width:95%' class=form>
+			<div style='font-size:18px'>{minutes}</div>
+			$group_min
+			</table>
+			</div>
 			<div style='width:100%;text-align:right;font-size:12px'>
 				<a href=\"#\" OnClick=\"javascript:UnselectAllMins();\" style='font-size:12px'>{unselect_all}</a>&nbsp;&nbsp;
 				<a href=\"#\" OnClick=\"javascript:SelectAllMins();\" style='font-size:12px'>{all}</a>
@@ -261,7 +272,7 @@ $html="
 	</tr>
 	<tr>
 	<td colspan=2 align='right'><hr>
-	". button("{apply}", "SaveCronInfos()",13)."
+	". button("{apply}", "SaveCronInfos()",16)."
 	
 	</td>
 	</tr>

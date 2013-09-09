@@ -162,27 +162,31 @@ echo $tpl->_ENGINE_parse_body($html);
 
 function SaveInfos(){
 	$q=new mysql();
+	$_POST["uid"]=addslashes($_POST["uid"]);
 	$sql="SELECT uid FROM quotaroot WHERE uid='{$_POST["uid"]}'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
+	
+	if(!isset($_POST["GraceTime"])){$_POST["GraceTime"]=10080;}
+	if(!is_numeric($_POST["GraceTime"])){$_POST["GraceTime"]=10080;}
+	
 	if($ligne["uid"]==null){
 		$sql="INSERT INTO quotaroot (`uid`,`block-hardlimit`,`block-softlimit`,`inode-softlimit`,`inode-hardlimit`,`enabled`,`GraceTime`) VALUES
-		('{$_POST["uid"]}',{$_POST["block-hardlimit"]},{$_POST["block-softlimit"]},{$_POST["inode-softlimit"]}
-		,{$_POST["inode-hardlimit"]},{$_POST["enabled"]},{$_POST["GraceTime"]})";
+		('{$_POST["uid"]}','{$_POST["block-hardlimit"]}','{$_POST["block-softlimit"]}','{$_POST["inode-softlimit"]}','{$_POST["inode-hardlimit"]}','{$_POST["enabled"]}','{$_POST["GraceTime"]}')";
 		
 	}else{
 		$sql="UPDATE quotaroot SET 
-			`block-hardlimit`={$_POST["block-hardlimit"]},
-			`block-softlimit`={$_POST["block-softlimit"]},
-			`inode-hardlimit`={$_POST["inode-hardlimit"]},
-			`inode-softlimit`={$_POST["inode-softlimit"]},
-			`GraceTime`=10080,
-			`enabled`={$_POST["enabled"]}
+			`block-hardlimit`='{$_POST["block-hardlimit"]}',
+			`block-softlimit`='{$_POST["block-softlimit"]}',
+			`inode-hardlimit`='{$_POST["inode-hardlimit"]}',
+			`inode-softlimit`='{$_POST["inode-softlimit"]}',
+			`GraceTime`='{$_POST["GraceTime"]}',
+			`enabled`='{$_POST["enabled"]}'
 			WHERE `uid`='{$_POST["uid"]}'
 			";
 	}
 	
 	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo $q->mysql_error;return;}
+	if(!$q->ok){echo $q->mysql_error."\nMySQL Command:\n$sql\n";return;}
 	$sock=new sockets();
 	$sock->getFrameWork("services.php?setquotas=yes");
 }

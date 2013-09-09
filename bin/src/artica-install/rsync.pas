@@ -450,6 +450,7 @@ end;
 pid:=RSYNC_PID();
 
 if sys.PROCESS_EXIST(pid) then begin
+   logs.Syslogs('Stopping rsync daemon PID '+pid);
    writeln('Stopping Rsync...........: Daemon PID '+pid);
    logs.OutputCmd('/bin/kill ' + pid);
    count:=0;
@@ -491,6 +492,7 @@ pid:=RSYNC_STUNNEL_PID();
 
 if sys.PROCESS_EXIST(pid) then begin
    writeln('Stopping Rsync SSL.......: Daemon PID '+pid);
+   logs.Syslogs('Stopping Rsync SSL daemon PID '+pid);
    logs.OutputCmd('/bin/kill ' + pid);
    count:=0;
    while SYS.PROCESS_EXIST(pid) do begin

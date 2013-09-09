@@ -309,6 +309,9 @@ function items(){
 		
 	}
 	
+	if($ligne["ipaddr"]<>null){if($ligne["uid"]==null){$ligne["uid"]=$q->UID_FROM_IP($ligne["ipaddr"]);}}
+	
+	
 	$data['rows'][] = array(
 		'id' => "$zmd5",
 		'cell' => array(

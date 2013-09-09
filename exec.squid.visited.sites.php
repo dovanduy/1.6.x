@@ -21,6 +21,9 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 
+$sock=new sockets();
+$sock->SQUID_DISABLE_STATS_DIE();
+
 visited_sites();
 
 
@@ -74,7 +77,7 @@ function visited_sites(){
 			
 			if(badCharacters($sitename)){
 				$q->categorize_reaffected($sitename);
-				$sitenameOrg=mysql_escape_string($sitenameOrg);
+				$sitenameOrg=mysql_escape_string2($sitenameOrg);
 				$q->QUERY_SQL("UPDATE visited_sites SET category='reaffected' WHERE `sitename`='$sitenameOrg'");
 				if(!$q->ok){progress("Fatal",100);die();}
 				$d++;
@@ -84,7 +87,7 @@ function visited_sites(){
 			
 			if(strpos($sitename, ".")==0){
 				$q->categorize_reaffected($sitename);
-				$sitenameOrg=mysql_escape_string($sitenameOrg);
+				$sitenameOrg=mysql_escape_string2($sitenameOrg);
 				$q->QUERY_SQL("UPDATE visited_sites SET category='reaffected' WHERE `sitename`='$sitenameOrg'");
 				if(!$q->ok){progress("Fatal",100);die();}
 				$d++;

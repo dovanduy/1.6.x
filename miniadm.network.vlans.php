@@ -93,8 +93,8 @@ function vlans_save(){
 	
 	while (list ($key, $value) = each ($_POST) ){
 		$fields[]="`$key`";
-		$values[]="'".mysql_escape_string($value)."'";
-		$edit[]="`$key`='".mysql_escape_string($value)."'";
+		$values[]="'".mysql_escape_string2($value)."'";
+		$edit[]="`$key`='".mysql_escape_string2($value)."'";
 	
 	}
 	
@@ -143,22 +143,14 @@ function vlans_search(){
 		$md=md5(serialize($ligne));
 		$ip=new IP();
 		$cdir=$ligne["cdir"];
-		$eth="{$ligne["nic"]}.{$ligne["ID"]}/{$ligne["nic"]}";
+		$eth="{$ligne["nic"]}";
 		
 		if($ligne["cdir"]==null){
 			$ligne["cdir"]=$net->array_TCP[$ligne["nic"]];
 			$eth=$ligne["nic"];
 		}
+		
 		$img="folder-network-48.png";
-		
-		if($interfaces["{$ligne["nic"]}.{$ligne["ID"]}"]<>null){
-			$img="folder-network-48-grey.png";
-		}
-		
-		if(trim($ligne["org"])==null){
-			$ligne["org"]=$tpl->_ENGINE_parse_body("<strong style='color:red'>{no_organization}</strong>");
-		}
-		
 		$edit=$boot->trswitch("Loadjs('$page?vlanid-js={$ligne["ID"]}')");
 		$delete=imgsimple("delete-48.png","{delete}","Delete$t('{$ligne["ID"]}','$md')");
 		

@@ -56,6 +56,12 @@ class blackboxes{
 		$this->ipaddress=$ligne["ipaddress"];
 		$this->port=$ligne["port"];
 		$this->settings_inc=unserialize(base64_decode($ligne["settingsinc"]));
+		
+		if($ligne["squidver"]<>null){
+			$this->settings_inc["SQUID_INSTALLED"]=true;
+		}
+		
+		
 		$this->laststatus=distanceOfTimeInWords(time(),strtotime($ligne["laststatus"]));
 		$this->VERSION=$ligne["articaver"];
 		$this->etcsquidconf=base64_decode($ligne["squidconf"]);
@@ -217,6 +223,8 @@ class blackboxes{
 		
 		if($GLOBALS["AS_ROOT"]){$unix=new unix();}
 		
+		if(isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]->events("SendOrder($parms) Port:$this->port, Artica=$this->IsArtica","/var/log/stats-appliance.log");}
+		
 		if(($this->port<5) OR ($this->IsArtica==1)){
 			if(isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]->events("this->OrderQueue()","/var/log/stats-appliance.log");}
 			return $this->OrderQueue($parms);
@@ -270,9 +278,12 @@ class blackboxes{
 			
 			$sql="INSERT IGNORE INTO `poolorders` (`hostid`,`nodeid`,`orderid`,`orderdata`) VALUES ('$this->hostid','$this->nodeid','$orderid','$order')";		
 			$q=new mysql_blackbox();
+			$this->WriteToSyslog($sql);
 			$q->QUERY_SQL($sql);
 			
-			if(!$q->ok){echo $q->mysql_error;
+			if(!$q->ok){
+				echo $q->mysql_error;
+				$this->WriteToSyslog($sql);
 			_udfbguard_admin_events("Creating new order for $this->hostid ($this->hostname) failed\n$q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "communicate");
 			return false;}
 			
@@ -516,7 +527,7 @@ class blackboxes{
 				$zDate=date("Y-m-d H:i:s",$time);
 				$line=$re[3];
 			}
-			$line=mysql_escape_string($line);
+			$line=$this->mysql_escape_string_art($line);
 			$tt[]="('$zDate','$line')";
 		}
 		writelogs("Injecting ".count($tt)." lines",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
@@ -527,6 +538,14 @@ class blackboxes{
 			$q->QUERY_SQL($prefix.@implode(",", $tt));
 			if(!$q->ok){writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		}
+		
+	}
+	
+	private function mysql_escape_string_art($line){
+		if(function_exists("mysql_real_escape_string")){
+			return mysql_real_escape_string($line);
+		}
+		return mysql_escape_string($line);
 		
 	}
 	

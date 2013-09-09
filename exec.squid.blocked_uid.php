@@ -24,6 +24,11 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 include_once(dirname(__FILE__).'/ressources/class.squid.youtube.inc');
 
+$sock=new sockets();
+$EnableRemoteSyslogStatsAppliance=$sock->GET_INFO("EnableRemoteSyslogStatsAppliance");
+if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
+if($EnableRemoteSyslogStatsAppliance==1){die();}
+
 if($argv[1]=='--blocked-uid'){blocked_uid();exit;}
 if($argv[1]=='--blocked-uid-reset'){blocked_uid_reset();exit;}
 if($argv[1]=='--reset'){blocked_uid_reset();exit;}
@@ -190,6 +195,13 @@ function blocked_uid_parse_array($array){
 
 function blocked_macuid($tablename){
 	$q=new mysql_squid_builder();
+	$sql="SELECT * FROM webfilters_ipaddr WHERE LENGTH(uid)>1";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		if($GLOBALS["VERBOSE"]){echo "{$ligne["ipaddr"]} = {$ligne["uid"]}\n";}
+		$array2[$ligne["ipaddr"]]=$ligne["uid"];
+	}
+	
 	$sql="SELECT * FROM webfilters_nodes WHERE LENGTH(uid)>1";
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -197,14 +209,16 @@ function blocked_macuid($tablename){
 		if(!IsPhysicalAddress($ligne["MAC"])){continue;}
 		if($GLOBALS["VERBOSE"]){echo "{$ligne["MAC"]} = {$ligne["uid"]}\n";}
 		$array[$ligne["MAC"]]=$ligne["uid"];
-	}
+	}	
 
 	while (list ($mac, $uid) = each ($array) ){
 		if($GLOBALS["VERBOSE"]){echo "$tablename, $mac -> $uid\n";}
 		if(IsCompressed($tablename)){Uncompress($tablename);}
-		$uid=mysql_escape_string($uid);
+		$uid=mysql_escape_string2($uid);
 		$q->QUERY_SQL("UPDATE $tablename SET uid='$uid' WHERE MAC='$mac'");
 
 	}
+	
+
 
 }

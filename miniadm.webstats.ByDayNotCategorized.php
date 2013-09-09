@@ -173,7 +173,7 @@ if(isset($_POST['page'])) {$page = $_POST['page'];}
 
 $search=string_to_flexquery("sitename-search");
 if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
-$category=mysql_escape_string($_GET["category"]);
+$category=mysql_escape_string2($_GET["category"]);
 $sql="SELECT SUM(size) as size, sum(hits) as hits,`{$_GET["groupby"]}`,`category` FROM $table
 GROUP BY {$_GET["groupby"]},category HAVING LENGTH(`category`)=0 $search $ORDER LIMIT 0,500";
 $results = $q->QUERY_SQL($sql,$database);

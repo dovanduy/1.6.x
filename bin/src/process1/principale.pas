@@ -252,7 +252,7 @@ if l.Count>1 then begin
    try
    for i:=0 to l.Count-2 do begin
        if length(trim(l.Strings[i]))=0 then continue;
-       logs.Debuglogs('Killing bad process maillog '+ l.Strings[i]);
+       logs.Syslogs('Killing bad process maillog '+ l.Strings[i]);
        fpsystem('/bin/kill '+l.Strings[i]);
    end;
    except
@@ -314,7 +314,11 @@ list:=Tstringlist.Create;
 list.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('exec.dstat.top.php'));
 if list.Count>2 then begin
    for i:=0 to list.Count-1 do begin
-       if SYS.PROCESS_EXIST(list.Strings[i]) then fpsystem('/bin/kill '+list.Strings[i]);
+       if SYS.PROCESS_EXIST(list.Strings[i]) then begin
+          logs.Syslogs('Killing  (exec_dstat_top_php) PID '+list.Strings[i]);
+          fpsystem('/bin/kill '+list.Strings[i]);
+
+       end;
    end;
 end;
 
@@ -533,6 +537,8 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('chilli')) then list.Add('$_GLOBAL["APP_CHILLI_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_CHILLI_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('ucarp')) then list.Add('$_GLOBAL["UCARP_INSTALLED"]=True;') else list.Add('$_GLOBAL["UCARP_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('haarp')) then list.Add('$_GLOBAL["HAARP_INSTALLED"]=True;') else list.Add('$_GLOBAL["HAARP_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('cntlm')) then list.Add('$_GLOBAL["CNTLM_INSTALLED"]=True;') else list.Add('$_GLOBAL["CNTLM_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('iscsid')) then list.Add('$_GLOBAL["ISCSID_INSTALLED"]=True;') else list.Add('$_GLOBAL["ISCSID_INSTALLED"]=False;');
 
 
 
@@ -811,7 +817,7 @@ begin
    pdns:=tpdns.Create(SYS);
    if FileExists(pdns.BIN_PATH()) then begin
           list.Add('$_GLOBAL["POWER_DNS_INSTALLED"]=True;');
-          if pdns.MYSQL_EXISTS then list.Add('$_GLOBAL["POWER_DNS_MYSQL"]=True;') else list.Add('$_GLOBAL["POWER_DNS_MYSQL"]=False;');
+          list.Add('$_GLOBAL["POWER_DNS_MYSQL"]=True;');
           if FileExists('/usr/share/poweradmin/index.php') then  list.Add('$_GLOBAL["POWERADMIN_INSTALLED"]=True;') else list.Add('$_GLOBAL["POWERADMIN_INSTALLED"]=False;');
    end else begin
        list.Add('$_GLOBAL["POWER_DNS_INSTALLED"]=False;');
@@ -1138,8 +1144,7 @@ begin
     
     //-------------Fethcmail
     fetchmail:=tfetchmail.Create(SYS);
-    list.Add('$_GLOBAL["fetchmail_daemon_pool"]="' +  fetchmail.FETCHMAIL_DAEMON_POOL() + '";');
-    list.Add('$_GLOBAL["fetchmail_daemon_postmaster"]="' +  fetchmail.FETCHMAIL_DAEMON_POSTMASTER() + '";');
+
     
 
     
@@ -1515,18 +1520,22 @@ end;
     if FileExists(squid.SQUID_BIN_PATH()) then begin
        logs.Debuglogs('Tprocess1.web_settings():: Squid is installed writing $_GLOBAL["SQUID_INSTALLED"]=True;');
        list.Add('$_GLOBAL["SQUID_INSTALLED"]=True;');
-       list.Add('$_GLOBAL["SQUID_PID"]="' + squid.SQUID_PID() + '";' );
+       logs.Debuglogs('Tprocess1.web_settings():: Scanning Squid environment...');
        list.Add('$_GLOBAL["SQUID_VERSION"]="' + squid.SQUID_VERSION() + '";' );
        list.Add('$_GLOBAL["SQUID_LDAP_AUTH"]="' + squid.ldap_auth_path() + '";' );
        list.Add('$_GLOBAL["SQUID_NTLM_AUTH"]="' + squid.ntml_auth_path() + '";' );
        list.Add('$_GLOBAL["SQUID_BIN_PATH"]="' + squid.SQUID_BIN_PATH() + '";' );
        list.Add('$_GLOBAL["SQUID_CACHMGR"]="' + squid.cachemgr_path() + '";' );
+       logs.Debuglogs('Tprocess1.web_settings():: Scanning Squid version...');
        list.Add('$_GLOBAL["SQUID_BIN_VERSION"]=' + IntToStr(squid.SQUID_BIN_VERSION(squid.SQUID_VERSION())) + ';' );
        list.Add('$_GLOBAL["squid_kerb_auth_path"]="' + squid.squid_kerb_auth_path() + '";' );
        list.Add('$_GLOBAL["squid_ext_session_acl"]="' + squid.ext_session_acl_path() + '";' );
        logs.Debuglogs('Tprocess1.web_settings -> purge ???');
        if not FileExists(SYS.LOCATE_GENERIC_BIN('purge')) then begin
-          if NoExecution then if FileExists('/usr/share/artica-postfix/bin/artica-make') then fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' /usr/share/artica-postfix/bin/artica-make APP_SQUID32_PURGE >/dev/null 2>&1 &');
+          if NoExecution then begin
+             logs.Debuglogs('Tprocess1.web_settings():: Running APP_SQUID32_PURGE');
+             if FileExists('/usr/share/artica-postfix/bin/artica-make') then fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' /usr/share/artica-postfix/bin/artica-make APP_SQUID32_PURGE >/dev/null 2>&1 &');
+          end;
        end;
 
 
@@ -2280,7 +2289,7 @@ begin
            fpsystem('/etc/init.d/artica-postfix restart sysloger');
            
         end else begin
-           logs.Debuglogs('Tprocess1.CheckSyslog():: '+syslog_path + ':: ' + IntToStr(msize) + 'ko.. SKIP must reach '+IntToStr(BigSize)+'ko before kill it');
+           logs.syslogs('Tprocess1.CheckSyslog():: '+syslog_path + ':: ' + IntToStr(msize) + 'ko.. SKIP must reach '+IntToStr(BigSize)+'ko before kill it');
         end;
   end;
   

@@ -4,7 +4,9 @@
 	include_once(dirname(__FILE__).'/class.ini.inc');
 	
 	class roundcube{
-		var $https_port=443;
+		var $https_port=449;
+		var $mysql_error=null;
+		var $mysql_errornum=null;
 		var $lighttp_min_proc;
 		var $lighttp_max_proc;
 		var $lighttp_max_load_per_proc;
@@ -19,12 +21,30 @@
 		var $roundcube_plugins_array=array();
 		var $roundcubeWebsites=array();
 		var $AsRoot=false;
+		var $mysql_server;
+		var $mysql_admin;
+		var $mysql_password;
+		var $mysql_port;
+		var $SocketPath;
+		var $MYSQL_CMDLINES=null;
+		var $database="roundcubemail";
+		var $dbidsn;
+		var $SieveListenIp;
+		var $root_path="/usr/share/roundcube";
+		var $ok=true;
+		private $ClassSQL;
 		
-		function roundcube(){
+		function roundcube($database=null){
 			$artica=new artica_general();
-			if(posix_getuid()==0){$this->AsRoot=true;}
+			if(posix_getuid()==0){
+				$this->AsRoot=true;
+				include_once("/usr/share/artica-postfix/framework/class.unix.inc");
+			}
+			if($database<>null){$this->database=$database;}
+			
 			$users=new usersMenus();
 			$sock=new sockets();
+			$this->ParseMysqlParams();
 			$this->RoundCubeLightHTTPD=$artica->RoundCubeLightHTTPD;
 			$this->RoundCubeHTTPEngineEnabled=$artica->RoundCubeHTTPEngineEnabled;
 			
@@ -43,11 +63,101 @@
 			
 			$this->roundcube_plugins_line=$users->roundcube_plugins;
 			$this->roundcube_plugins_array=$this->BuildPlugins();
+	}
+	
+	private function ParseMysqlParams(){
+		$sock=new sockets();
+		$this->SocketPath="/var/run/mysqld/mysqld.sock";
+		$def=array();
+		$MySQLSyslogType=$sock->GET_INFO("RoundCubeMySQLServiceType");
+		if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=0;}
+		if($MySQLSyslogType>0){
+		
+		if($MySQLSyslogType==4){
 			
-			
-			
-			
+			$this->mysql_admin=$sock->GET_INFO("RoundCubeRemoteMySQLServerAdmin");
+			$this->mysql_password=$sock->GET_INFO("RoundCubeRemoteMySQLServerPassword");
+			$this->mysql_server=$sock->GET_INFO("RoundCubeRemoteMySQLServer");
+			$this->mysql_port=$sock->GET_INFO("RoundCubeRemoteMySQLServerPort");
+			$this->SocketPath=null;
+			$def["TryTCP"]=true;
+			$auth=$this->mysql_admin;
+			$def["mysql_server"]=$this->mysql_server;
+			$def["mysql_port"]=$this->mysql_port;
+			if($this->mysql_password<>null){$auth="$this->mysql_admin:$this->mysql_password";}
+			$this->MYSQL_CMDLINES="--host=$this->mysql_server --port=$this->mysql_port -u $this->mysql_admin -p" .$sock->shellEscapeChars($this->mysql_password);
+			$dsn="$auth@$q->mysql_server:$q->mysql_port/$this->database";
+			$this->dbidsn=$dsn;
 		}
+		if($MySQLSyslogType==3){
+			$this->mysql_admin="root";
+			$this->mysql_password=null;
+			$def["mysql_admin"]=$this->mysql_admin;
+			$def["mysql_password"]=$this->mysql_password;
+			$this->SocketPath="/var/run/mysqld/roundcube-db.sock";
+			$def["TryTCP"]=false;
+			$def["mysql_server"]="127.0.0.1";
+			$def["SocketPath"]=$this->SocketPath;
+			$this->MYSQL_CMDLINES="--protocol=socket --socket=$this->SocketPath -u root";
+			$dsn="root@unix($this->SocketPath)/$this->database";
+			$this->dbidsn=$dsn;
+		}
+		
+		
+		
+			
+		}else{
+			$q=new mysql();
+			if($q->mysql_server=="localhost"){$q->mysql_server="127.0.0.1";}
+			if($q->mysql_server=="localhost.localdomain"){$q->mysql_server="127.0.0.1";}
+			
+			if($q->mysql_server=="127.0.0.1"){
+				$token[]="--protocol=socket --socket=$q->SocketName";
+				
+			}else{
+				$token[]="--host=$q->mysql_server --port=$q->mysql_port";
+			}			
+			
+			
+			if($q->mysql_admin<>null){$token[]="--user=$q->mysql_admin";}
+			if($q->mysql_password<>null){$token[]="--password=".$sock->shellEscapeChars($this->mysql_password);}
+			$token[]="--database=$this->database";
+			$token[]="--silent";
+			$this->MYSQL_CMDLINES=@implode(" ", $token);
+		}
+		
+		$this->ClassSQL=new mysql($def);
+		if(!$this->ClassSQL->DATABASE_EXISTS($this->database)){
+				$this->ClassSQL->CREATE_DATABASE($this->database);
+				if($this->AsRoot){
+					$unix=new unix();
+					$php5=$unix->LOCATE_PHP5_BIN();
+					$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.roundcube.php --force");
+				}
+		}
+		return;
+		
+		
+	}
+	
+	public function DATABASE_EXISTS($database){
+		return $this->ClassSQL->DATABASE_EXISTS($database);
+		
+	}
+	
+	public function TABLE_EXISTS($table){
+		return $this->ClassSQL->TABLE_EXISTS($table, $this->database);
+	}
+	
+	public function QUERY_SQL($sql){
+		$this->ok=true;
+		$results=$this->ClassSQL->QUERY_SQL($sql, $this->database);
+		$this->ok=$this->ClassSQL->ok;
+		$this->mysql_error=$this->ClassSQL->mysql_error; 
+		$this->mysql_errornum=$this->ClassSQL->mysql_errornum;
+		return $results;
+	}
+	
 		
 	function Parse_lighttpd(){
 		$tbl=explode("\n",$this->RoundCubeLightHTTPD);
@@ -60,12 +170,14 @@
 			if(preg_match('#PHP_FCGI_CHILDREN.+?([0-9]+)#',$line,$re)){$this->PHP_FCGI_CHILDREN=$re[1];}
 			if(preg_match('#PHP_FCGI_MAX_REQUESTS.+?([0-9]+)#',$line,$re)){$this->PHP_FCGI_MAX_REQUESTS=$re[1];}
 			if(preg_match('#ssl\.engine.+?enable#',$line,$re)){$this->ssl_enabled=1;}
-			
-			
-			
-		}
 		}
 		
+		$sock=new sockets();
+		$this->https_port=$sock->GET_INFO("RoundCubeHTTPSPort");
+		if(!is_numeric($this->https_port)){$this->https_port=449;}
+		
+	}
+	
 		
 	function BuildPlugins(){
 		$arr=explode(';',$this->roundcube_plugins_line);
@@ -136,7 +248,10 @@
 				$this->roundCubeArray["upload_max_filesize"]=$sock->GET_INFO('php5UploadMaxFileSize');
 				if($this->roundCubeArray["upload_max_filesize"]==null){$this->roundCubeArray["upload_max_filesize"]="2";}
 				
-				
+				if(!isset($this->roundCubeArray["sieve_port"])){$this->roundCubeArray["sieve_port"]=4190;}
+				if(!is_numeric($this->roundCubeArray["sieve_port"])){$this->roundCubeArray["sieve_port"]=4190;}
+				$this->SieveListenIp=$sock->GET_INFO("SieveListenIp");
+				if($this->SieveListenIp==null){$this->SieveListenIp="127.0.0.1";}
 				
 				
 	}
@@ -166,121 +281,159 @@
 	}
 		
 		
-function Build_lighthttp(){
-						
-				$this->BuilDefault();
-				$users=new usersMenus();
+	function Build_lighthttp(){
+		if(!$this->AsRoot){return;}
+		$this->BuilDefault();
+		$users=new usersMenus();
+		$sock=new sockets();
+		$unix=new unix();
+		$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
+		$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
+		if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=1;}
+		if(!is_file($phpfpm)){$EnablePHPFPM=0;}
+		$LighttpdUseUnixSocket=$sock->GET_INFO('LighttpdUseUnixSocket');
+		if(!is_numeric($LighttpdUseUnixSocket)){$LighttpdUseUnixSocket=0;}
+		$lighttpdRcbePhpPort=$sock->GET_INFO('lighttpdRcbePhpPort');
+		if(!is_numeric($lighttpdRcbePhpPort)){$lighttpdRcbePhpPort=1818;}
+		$PHP_STANDARD_MODE=true;
+	
+	
+		$f[]="#artica-postfix saved by artica lighttpd-roundcube.conf";
+		$f[]="server.modules = (";
+		$f[]="\t\"mod_alias\",";
+		$f[]="\t\"mod_access\",";
+		$f[]="\t\"mod_accesslog\",";
+		$f[]="\t\"mod_compress\",";
+		$f[]="\t\"mod_fastcgi\",";
+		$f[]="\t\"mod_status\"";
+		$f[]=")";
+		$f[]="";
+		$f[]="server.document-root        = \"$this->root_path\"";
+		$f[]="server.username = \"www-data\"";
+		$f[]="server.groupname = \"www-data\"";
+		$f[]="server.errorlog             = \"/var/log/lighttpd/roundcube-error.log\"";
+		$f[]="index-file.names            = ( \"index.php\")";
+		$f[]="";
+		$f[]="mimetype.assign             = (";
+		$f[]="\t\".pdf\"          =>      \"application/pdf\",";
+		$f[]="\t\".sig\"          =>      \"application/pgp-signature\",";
+		$f[]="\t\".spl\"          =>      \"application/futuresplash\",";
+		$f[]="\t\".class\"        =>      \"application/octet-stream\",";
+		$f[]="\t\".ps\"           =>      \"application/postscript\",";
+		$f[]="\t\".torrent\"      =>      \"application/x-bittorrent\",";
+		$f[]="\t\".dvi\"          =>      \"application/x-dvi\",";
+		$f[]="\t\".gz\"           =>      \"application/x-gzip\",";
+		$f[]="\t\".pac\"          =>      \"application/x-ns-proxy-autoconfig\",";
+		$f[]="\t\".swf\"          =>      \"application/x-shockwave-flash\",";
+		$f[]="\t\".tar.gz\"       =>      \"application/x-tgz\",";
+		$f[]="\t\".tgz\"          =>      \"application/x-tgz\",";
+		$f[]="\t\".tar\"          =>      \"application/x-tar\",";
+		$f[]="\t\".zip\"          =>      \"application/zip\",";
+		$f[]="\t\".mp3\"          =>      \"audio/mpeg\",";
+		$f[]="\t\".m3u\"          =>      \"audio/x-mpegurl\",";
+		$f[]="\t\".wma\"          =>      \"audio/x-ms-wma\",";
+		$f[]="\t\".wax\"          =>      \"audio/x-ms-wax\",";
+		$f[]="\t\".ogg\"          =>      \"application/ogg\",";
+		$f[]="\t\".wav\"          =>      \"audio/x-wav\",";
+		$f[]="\t\".gif\"          =>      \"image/gif\",";
+		$f[]="\t\".jar\"          =>      \"application/x-java-archive\",";
+		$f[]="\t\".jpg\"          =>      \"image/jpeg\",";
+		$f[]="\t\".jpeg\"         =>      \"image/jpeg\",";
+		$f[]="\t\".png\"          =>      \"image/png\",";
+		$f[]="\t\".xbm\"          =>      \"image/x-xbitmap\",";
+		$f[]="\t\".xpm\"          =>      \"image/x-xpixmap\",";
+		$f[]="\t\".xwd\"          =>      \"image/x-xwindowdump\",";
+		$f[]="\t\".css\"          =>      \"text/css\",";
+		$f[]="\t\".html\"         =>      \"text/html\",";
+		$f[]="\t\".htm\"          =>      \"text/html\",";
+		$f[]="\t\".js\"           =>      \"text/javascript\",";
+		$f[]="\t\".asc\"          =>      \"text/plain\",";
+		$f[]="\t\".c\"            =>      \"text/plain\",";
+		$f[]="\t\".cpp\"          =>      \"text/plain\",";
+		$f[]="\t\".log\"          =>      \"text/plain\",";
+		$f[]="\t\".conf\"         =>      \"text/plain\",";
+		$f[]="\t\".text\"         =>      \"text/plain\",";
+		$f[]="\t\".txt\"          =>      \"text/plain\",";
+		$f[]="\t\".dtd\"          =>      \"text/xml\",";
+		$f[]="\t\".xml\"          =>      \"text/xml\",";
+		$f[]="\t\".mpeg\"         =>      \"video/mpeg\",";
+		$f[]="\t\".mpg\"          =>      \"video/mpeg\",";
+		$f[]="\t\".mov\"          =>      \"video/quicktime\",";
+		$f[]="\t\".qt\"           =>      \"video/quicktime\",";
+		$f[]="\t\".avi\"          =>      \"video/x-msvideo\",";
+		$f[]="\t\".asf\"          =>      \"video/x-ms-asf\",";
+		$f[]="\t\".asx\"          =>      \"video/x-ms-asf\",";
+		$f[]="\t\".wmv\"          =>      \"video/x-ms-wmv\",";
+		$f[]="\t\".bz2\"          =>      \"application/x-bzip\",";
+		$f[]="\t\".tbz\"          =>      \"application/x-bzip-compressed-tar\",";
+		$f[]="\t\".tar.bz2\"      =>      \"application/x-bzip-compressed-tar\",";
+		$f[]="\t\"\"              =>      \"application/octet-stream\",";
+		$f[]=" )";
+		$f[]="";
+		$f[]="";
+		$f[]="accesslog.filename          = \"/var/log/lighttpd/roundcube-access.log\"";
+		$f[]="url.access-deny             = ( \"~\", \".inc\" )";
+		$f[]="";
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Listen port $this->https_port\n";}
+		$f[]="static-file.exclude-extensions = ( \".php\", \".pl\", \".fcgi\" )";
+		$f[]="server.port                 = $this->https_port";
+		$f[]="#server.bind                = \"127.0.0.1\"";
+		$f[]="#server.error-handler-404   = \"/error-handler.html\"";
+		$f[]="#server.error-handler-404   = \"/error-handler.php\"";
+		$f[]="server.pid-file             = \"/var/run/lighttpd/lighttpd-roundcube.pid\"";
+		$f[]="server.max-fds 		     = 2048";
+		$f[]="cgi.fix_pathinfo 			 = 1";
+		$f[]="";
+	
+	
+		if(is_file($phpfpm)){
 				
-				$conf=$conf."#artica-postfix saved by artica lighttpd-roundcube.conf\n\n";
-				$conf=$conf."server.modules = (\n";
-				$conf=$conf."\t\"mod_alias\",\n";
-				$conf=$conf."\t\"mod_access\",\n";
-				$conf=$conf."\t\"mod_accesslog\",\n";
-				$conf=$conf."\t\"mod_compress\",\n";
-				$conf=$conf."\t\"mod_fastcgi\",\n";
-				$conf=$conf."\t\"mod_status\"\n";
-				$conf=$conf.")\n";
-				$conf=$conf."\n";
-				$conf=$conf."server.document-root        = \"$users->roundcube_web_folder\"\n";
-				$conf=$conf."server.username = \"www-data\"\n";
-				$conf=$conf."server.groupname = \"www-data\"\n";
-				$conf=$conf."server.errorlog             = \"/var/log/lighttpd/roundcube-error.log\"\n";
-				$conf=$conf."index-file.names            = ( \"index.php\")\n";
-				$conf=$conf."\n";
-				$conf=$conf."mimetype.assign             = (\n";
-				$conf=$conf."\t\".pdf\"          =>      \"application/pdf\",\n";
-				$conf=$conf."\t\".sig\"          =>      \"application/pgp-signature\",\n";
-				$conf=$conf."\t\".spl\"          =>      \"application/futuresplash\",\n";
-				$conf=$conf."\t\".class\"        =>      \"application/octet-stream\",\n";
-				$conf=$conf."\t\".ps\"           =>      \"application/postscript\",\n";
-				$conf=$conf."\t\".torrent\"      =>      \"application/x-bittorrent\",\n";
-				$conf=$conf."\t\".dvi\"          =>      \"application/x-dvi\",\n";
-				$conf=$conf."\t\".gz\"           =>      \"application/x-gzip\",\n";
-				$conf=$conf."\t\".pac\"          =>      \"application/x-ns-proxy-autoconfig\",\n";
-				$conf=$conf."\t\".swf\"          =>      \"application/x-shockwave-flash\",\n";
-				$conf=$conf."\t\".tar.gz\"       =>      \"application/x-tgz\",\n";
-				$conf=$conf."\t\".tgz\"          =>      \"application/x-tgz\",\n";
-				$conf=$conf."\t\".tar\"          =>      \"application/x-tar\",\n";
-				$conf=$conf."\t\".zip\"          =>      \"application/zip\",\n";
-				$conf=$conf."\t\".mp3\"          =>      \"audio/mpeg\",\n";
-				$conf=$conf."\t\".m3u\"          =>      \"audio/x-mpegurl\",\n";
-				$conf=$conf."\t\".wma\"          =>      \"audio/x-ms-wma\",\n";
-				$conf=$conf."\t\".wax\"          =>      \"audio/x-ms-wax\",\n";
-				$conf=$conf."\t\".ogg\"          =>      \"application/ogg\",\n";
-				$conf=$conf."\t\".wav\"          =>      \"audio/x-wav\",\n";
-				$conf=$conf."\t\".gif\"          =>      \"image/gif\",\n";
-				$conf=$conf."\t\".jar\"          =>      \"application/x-java-archive\",\n";
-				$conf=$conf."\t\".jpg\"          =>      \"image/jpeg\",\n";
-				$conf=$conf."\t\".jpeg\"         =>      \"image/jpeg\",\n";
-				$conf=$conf."\t\".png\"          =>      \"image/png\",\n";
-				$conf=$conf."\t\".xbm\"          =>      \"image/x-xbitmap\",\n";
-				$conf=$conf."\t\".xpm\"          =>      \"image/x-xpixmap\",\n";
-				$conf=$conf."\t\".xwd\"          =>      \"image/x-xwindowdump\",\n";
-				$conf=$conf."\t\".css\"          =>      \"text/css\",\n";
-				$conf=$conf."\t\".html\"         =>      \"text/html\",\n";
-				$conf=$conf."\t\".htm\"          =>      \"text/html\",\n";
-				$conf=$conf."\t\".js\"           =>      \"text/javascript\",\n";
-				$conf=$conf."\t\".asc\"          =>      \"text/plain\",\n";
-				$conf=$conf."\t\".c\"            =>      \"text/plain\",\n";
-				$conf=$conf."\t\".cpp\"          =>      \"text/plain\",\n";
-				$conf=$conf."\t\".log\"          =>      \"text/plain\",\n";
-				$conf=$conf."\t\".conf\"         =>      \"text/plain\",\n";
-				$conf=$conf."\t\".text\"         =>      \"text/plain\",\n";
-				$conf=$conf."\t\".txt\"          =>      \"text/plain\",\n";
-				$conf=$conf."\t\".dtd\"          =>      \"text/xml\",\n";
-				$conf=$conf."\t\".xml\"          =>      \"text/xml\",\n";
-				$conf=$conf."\t\".mpeg\"         =>      \"video/mpeg\",\n";
-				$conf=$conf."\t\".mpg\"          =>      \"video/mpeg\",\n";
-				$conf=$conf."\t\".mov\"          =>      \"video/quicktime\",\n";
-				$conf=$conf."\t\".qt\"           =>      \"video/quicktime\",\n";
-				$conf=$conf."\t\".avi\"          =>      \"video/x-msvideo\",\n";
-				$conf=$conf."\t\".asf\"          =>      \"video/x-ms-asf\",\n";
-				$conf=$conf."\t\".asx\"          =>      \"video/x-ms-asf\",\n";
-				$conf=$conf."\t\".wmv\"          =>      \"video/x-ms-wmv\",\n";
-				$conf=$conf."\t\".bz2\"          =>      \"application/x-bzip\",\n";
-				$conf=$conf."\t\".tbz\"          =>      \"application/x-bzip-compressed-tar\",\n";
-				$conf=$conf."\t\".tar.bz2\"      =>      \"application/x-bzip-compressed-tar\",\n";
-				$conf=$conf."\t\"\"              =>      \"application/octet-stream\",\n";
-				$conf=$conf." )\n";
-				$conf=$conf."\n";
-				$conf=$conf."\n";
-				$conf=$conf."accesslog.filename          = \"/var/log/lighttpd/roundcube-access.log\"\n";
-				$conf=$conf."url.access-deny             = ( \"~\", \".inc\" )\n";
-				$conf=$conf."\n";
-				$conf=$conf."static-file.exclude-extensions = ( \".php\", \".pl\", \".fcgi\" )\n";
-				$conf=$conf."server.port                 = $this->https_port\n";
-				$conf=$conf."#server.bind                = \"127.0.0.1\"\n";
-				$conf=$conf."#server.error-handler-404   = \"/error-handler.html\"\n";
-				$conf=$conf."#server.error-handler-404   = \"/error-handler.php\"\n";
-				$conf=$conf."server.pid-file             = \"/var/run/lighttpd/lighttpd-roundcube.pid\"\n";
-				$conf=$conf."server.max-fds 		     = 2048\n";
-				$conf=$conf."cgi.fix_pathinfo 			 = 1\n";
-				$conf=$conf."\n";
-				$conf=$conf."fastcgi.server = ( \".php\" =>((\n";
-				$conf=$conf."\t\t\"bin-path\" => \"$users->phpcgi\",\n";
-				$conf=$conf."\t\t\"host\" => \"127.0.0.1\",\"port\" =>1809,\n";
-				$conf=$conf."\t\t\"min-procs\" => 1,\n";
-				$conf=$conf."\t\t\"max-procs\" => $this->lighttp_max_proc,\n";
-				$conf=$conf."\t\t\"max-load-per-proc\" => $this->lighttp_max_load_per_proc,\n";
-				$conf=$conf."\t\t\"idle-timeout\" => 10,\n";
-				$conf=$conf."\t\t \"bin-environment\" => (\n";
-				$conf=$conf."\t\t\t\"PHP_FCGI_CHILDREN\" => \"$this->PHP_FCGI_CHILDREN\",\n";
-				$conf=$conf."\t\t\t\"PHP_FCGI_MAX_REQUESTS\" => \"$this->PHP_FCGI_MAX_REQUESTS\"\n";
-				$conf=$conf."\t\t),\n";
-				$conf=$conf."\t\t\"bin-copy-environment\" => (\n";
-				$conf=$conf."\t\t\t\"PATH\", \"SHELL\", \"USER\"\n";
-				$conf=$conf."\t\t),\n";
-				$conf=$conf."\t\t\"broken-scriptfilename\" => \"enable\"\n";
-				$conf=$conf."\t))\n";
-				$conf=$conf.")\n";
-				if($this->ssl_enabled==1){$ssl="enable";}else{$ssl="disable";}
-				$conf=$conf."ssl.engine                 = \"$ssl\"\n";
-				$conf=$conf."ssl.pemfile                = \"/opt/artica/ssl/certs/lighttpd.pem\"\n";
-				$conf=$conf."status.status-url          = \"/server-status\"\n";
-				$conf=$conf."status.config-url          = \"/server-config\"\n";				
-				return $conf;		
+			if($EnablePHPFPM==1){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service PHP-FPM is enabled\n";}
+				$PHP_STANDARD_MODE=false;
+				$f[]='fastcgi.server = ( ".php" =>((';
+				$f[]="\t\"socket\" => \"/var/run/php-fpm.sock\",";
+			}
+		}
+	
+	
+	
+		if ($PHP_STANDARD_MODE){
+			$f[]="fastcgi.server = ( \".php\" =>((";
+			$f[]="\t\"bin-path\" => \"$users->phpcgi\",";
+			if($LighttpdUseUnixSocket==1){
+				$f[]='\t"socket" => "/var/run/lighttpd/phprcbe.socket" + var.PID,';
+			}else{
+	
+				$f[]='\t"host" => "127.0.0.1","port" =>'.$lighttpdRcbePhpPort.',';
+			}
+		}
+	
+	
 		
-		
+		$f[]="\t\t\"min-procs\" => 1,";
+		$f[]="\t\t\"max-procs\" => $this->lighttp_max_proc,";
+		$f[]="\t\t\"max-load-per-proc\" => $this->lighttp_max_load_per_proc,";
+		$f[]="\t\t\"idle-timeout\" => 10,";
+		$f[]="\t\t \"bin-environment\" => (";
+		$f[]="\t\t\t\"PHP_FCGI_CHILDREN\" => \"$this->PHP_FCGI_CHILDREN\",";
+		$f[]="\t\t\t\"PHP_FCGI_MAX_REQUESTS\" => \"$this->PHP_FCGI_MAX_REQUESTS\"";
+		$f[]="\t\t),\n";
+		$f[]="\t\t\"bin-copy-environment\" => (";
+		$f[]="\t\t\t\"PATH\", \"SHELL\", \"USER\"";
+		$f[]="\t\t),\n";
+		$f[]="\t\t\"broken-scriptfilename\" => \"enable\"";
+		$f[]="\t))\n";
+		$f[]=")\n";
+		if($this->ssl_enabled==1){$ssl="enable";}else{$ssl="disable";}
+		$f[]="ssl.engine                 = \"$ssl\"\n";
+		$f[]="ssl.pemfile                = \"/opt/artica/ssl/certs/lighttpd.pem\"";
+		$f[]="status.status-url          = \"/server-status\"";
+		$f[]="status.config-url          = \"/server-config\"";
+		@mkdir("/var/run/lighttpd",0755,true);
+		return @implode("\n", $f);
+	
+	
 	}	
 
 	
@@ -302,7 +455,7 @@ function Build_lighthttp(){
 		
 		while (list ($num, $line) = each ($tables)){
 			$mysql=new mysql();
-			if(!$mysql->TABLE_EXISTS($num,"roundcubemail")){
+			if(!$this->ClassSQL->TABLE_EXISTS($num,$this->database)){
 				$img="icon_mini_off.gif";
 			}else{$img="icon-mini-ok.gif";}
 			
@@ -320,19 +473,22 @@ function Build_lighthttp(){
 		$mysql=new mysql();
 		$users=new usersMenus();
 		$path=$users->roundcube_mysql_sources;
-		$mysql->DELETE_DATABASE('roundcubemail');
-		$mysql->CREATE_DATABASE('roundcubemail');
+		$this->ClassSQL->DELETE_DATABASE('roundcubemail');
+		$this->ClassSQL->CREATE_DATABASE('roundcubemail');
 		$this->ParseSQLCommands($path);
+		if($this->AsRoot){
+			$unix=new unix();
+			$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.roundcube.php --force");
+		}
 	}
 	
 	
 	function ParseSQLCommands($file){
 		$datas=@file_get_contents($file);
-		$mysql=new  mysql();
 		if(preg_match_all("#CREATE(.+?);#is",$datas,$re)){
 			while (list ($num, $line) = each ($re[0])){
 				$sql=$line;
-				$mysql->QUERY_SQL($sql,"roundcubemail");
+				$this->ClassSQL->QUERY_SQL($sql,"roundcubemail");
 			}
 		}
 		
@@ -357,7 +513,7 @@ function Build_lighthttp(){
 	
 	public function plugin_password($basedir,$ou=null){
 		if(!$this->AsRoot){return;}
-		include_once("/usr/share/artica-postfix/framework/class.unix.inc");
+		
 		$unix=new unix();
 		$pear=$unix->find_program("pear");
 		if(strlen($pear)<5){return null;}
@@ -365,7 +521,7 @@ function Build_lighthttp(){
 			shell_exec("$pear install Net_LDAP2-2.0.10");
 		}
 		if(!$unix->PEAR_INSTALL_CHECK("Net_LDAP2")){return false;}
-		if(!is_file("$basedir/plugins/password/password.php")){return false;}
+		if(!is_file("$this->root_path/plugins/password/password.php")){return false;}
 		$ldap=new clladp();
 		if($ou<>null){$dnprefix="ou=$ou,";}
 		$conf[]="<?php";
@@ -390,7 +546,7 @@ function Build_lighthttp(){
 		$conf[]="\$rcmail_config['password_ldap_pwattr'] = 'userPassword';";
 		$conf[]="\$rcmail_config['password_ldap_force_replace'] = true;";
 		$conf[]="?>";
-		if(file_put_contents("$basedir/plugins/password/config.inc.php",@implode("\n",$conf))){return true;}
+		if(file_put_contents("$this->root_path/plugins/password/config.inc.php",@implode("\n",$conf))){return true;}
 		
 	}
 	
@@ -447,51 +603,53 @@ function Build_lighthttp(){
 			}
 			
 			if($this->AsRoot){
-				if(!is_file("$users->roundcube_web_folder/plugins/msglistcols/msglistcols.php")){$this->plugin_install($users->roundcube_web_folder,"msglistcols");}
-				if(!is_file("$users->roundcube_web_folder/plugins/sticky_notes/sticky_notes.php")){$this->plugin_install($users->roundcube_web_folder,"sticky_notes");}
-				if(!is_file("$users->roundcube_web_folder/plugins/jqueryui/jqueryui.php")){$this->plugin_install($users->roundcube_web_folder,"jqueryui");}
-				if(!is_file("$users->roundcube_web_folder/plugins/dkimstatus/dkimstatus.php")){$this->plugin_install($users->roundcube_web_folder,"dkimstatus");}
-				if(!is_file("$users->roundcube_web_folder/plugins/fail2ban/fail2ban.php")){$this->plugin_install($users->roundcube_web_folder,"fail2ban");}
+				if(!is_file("$this->root_path/plugins/msglistcols/msglistcols.php")){$this->plugin_install($this->root_path,"msglistcols");}
+				if(!is_file("$this->root_path/plugins/sticky_notes/sticky_notes.php")){$this->plugin_install($this->root_path,"sticky_notes");}
+				if(!is_file("$this->root_path/plugins/jqueryui/jqueryui.php")){$this->plugin_install($this->root_path,"jqueryui");}
+				if(!is_file("$this->root_path/plugins/dkimstatus/dkimstatus.php")){$this->plugin_install($this->root_path,"dkimstatus");}
+				//if(!is_file("$this->root_path/plugins/fail2ban/fail2ban.php")){$this->plugin_install($this->root_path,"fail2ban");}
 			
 				
 				
 				
-				if(is_file("$users->roundcube_web_folder/plugins/msglistcols/msglistcols.php")){
+				if(is_file("$this->root_path/plugins/msglistcols/msglistcols.php")){
 					echo "Starting......: Roundcube msglistcols Enabled\n";
 					$arr[]="'msglistcols'";
 				}
 				
 				
-				if(is_file("$users->roundcube_web_folder/plugins/dkimstatus/dkimstatus.php")){
+				if(is_file("$this->root_path/plugins/dkimstatus/dkimstatus.php")){
 					echo "Starting......: Roundcube dkimstatus Enabled\n";
 					$arr[]="'dkimstatus'";
 				}
 				
-				if(is_file("$users->roundcube_web_folder/plugins/fail2ban/fail2ban.php")){
-					echo "Starting......: Roundcube fail2ban Enabled\n";
-					$arr[]="'fail2ban'";
+				if(is_file("$this->root_path/plugins/fail2ban/fail2ban.php")){
+					echo "Starting......: Roundcube fail2ban installed but skipped\n";
+					//$arr[]="'fail2ban'";
 				}				
 				
 				
-				if(is_file("$users->roundcube_web_folder/plugins/jqueryui/jqueryui.php")){
+				if(is_file("$this->root_path/plugins/jqueryui/jqueryui.php")){
 					echo "Starting......: Roundcube jqueryui Enabled\n";
-					$this->plugin_jqueryui($users->roundcube_web_folder);
+					$this->plugin_jqueryui($this->root_path);
 					$arr[]="'jqueryui'";
 					
-					if(is_file("$users->roundcube_web_folder/plugins/sticky_notes/sticky_notes.php")){
+					if(is_file("$this->root_path/plugins/sticky_notes/sticky_notes.php")){
 						echo "Starting......: Roundcube sticky_notes Enabled\n";
 						$arr[]="'sticky_notes'";
 					}					
 				}
 				
-				if($this->plugin_password($users->roundcube_web_folder,null)){
+				if($this->plugin_password($this->root_path,null)){
 					echo "Starting......: Roundcube password Enabled\n";
 					$arr[]="'password'";
 				}else{
 					echo "Starting......: Roundcube password failed\n";
 				}
 				
-			
+				if(is_dir("$this->root_path/plugins/managesieve")){
+					$arr[]="'managesieve'";
+				}
 				
 				
 			}
@@ -649,6 +807,99 @@ function Build_lighthttp(){
 				$conf[]="\$rcmail_config['reply_same_folder'] = false;\n";	
 				return @implode("\n", $conf);			
 		}
+		
+		
+	function managesieve(){
+		$local=false;
+		if(!is_dir("$this->root_path/plugins/managesieve")){return;}
+		if($this->roundCubeArray["default_host"]=="127.0.0.1"){$local=true;}
+		if($this->roundCubeArray["default_host"]=="localhost"){$local=true;}
+		$managesieve_port=$round->roundCubeArray["sieve_port"];
+		
+		
+		if($this->SieveListenIp=="127.0.0.1"){$local=true;}
+		if($local){
+			$f=file("/etc/services");
+			while (list ($num, $ligne) = each ($f) ){
+				if(preg_match("#sieve\s+([0-9]+)\/tcp#", $ligne,$re)){
+					$managesieve_port=$re[1];
+					break;
+				}
+			}
+		}
+		
+		$conf[]="<?php";
+		$conf[]="";
+		$conf[]="// managesieve server port";
+		$conf[]="\$rcmail_config['managesieve_port'] = $managesieve_port;";
+		$conf[]="";
+		$conf[]="// managesieve server address, default is localhost.";
+		$conf[]="// Replacement variables supported in host name:";
+		$conf[]="// %h - user's IMAP hostname";
+		$conf[]="// %n - http hostname (\$_SERVER['SERVER_NAME'])";
+		$conf[]="// %d - domain (http hostname without the first part)";
+		$conf[]="// For example %n = mail.domain.tld, %d = domain.tld";
+		$conf[]="\$rcmail_config['managesieve_host'] = '$this->SieveListenIp';";
+		$conf[]="";
+		$conf[]="// authentication method. Can be CRAM-MD5, DIGEST-MD5, PLAIN, LOGIN, EXTERNAL";
+		$conf[]="// or none. Optional, defaults to best method supported by server.";
+		$conf[]="\$rcmail_config['managesieve_auth_type'] = null;";
+		$conf[]="";
+		$conf[]="// Optional managesieve authentication identifier to be used as authorization proxy.";
+		$conf[]="// Authenticate as a different user but act on behalf of the logged in user.";
+		$conf[]="// Works with PLAIN and DIGEST-MD5 auth.";
+		$conf[]="\$rcmail_config['managesieve_auth_cid'] = null;";
+		$conf[]="";
+		$conf[]="// Optional managesieve authentication password to be used for imap_auth_cid";
+		$conf[]="\$rcmail_config['managesieve_auth_pw'] = null;";
+		$conf[]="";
+		$conf[]="// use or not TLS for managesieve server connection";
+		$conf[]="// it's because I've problems with TLS and dovecot's managesieve plugin";
+		$conf[]="// and it's not needed on localhost";
+		$conf[]="\$rcmail_config['managesieve_usetls'] = false;";
+		$conf[]="";
+		$conf[]="// default contents of filters script (eg. default spam filter)";
+		$conf[]="\$rcmail_config['managesieve_default'] = '/etc/dovecot/sieve/global';";
+		$conf[]="";
+		$conf[]="// The name of the script which will be used when there's no user script";
+		$conf[]="\$rcmail_config['managesieve_script_name'] = 'managesieve';";
+		$conf[]="";
+		$conf[]="// Sieve RFC says that we should use UTF-8 endcoding for mailbox names,";
+		$conf[]="// but some implementations does not covert UTF-8 to modified UTF-7.";
+		$conf[]="// Defaults to UTF7-IMAP";
+		$conf[]="\$rcmail_config['managesieve_mbox_encoding'] = 'UTF-8';";
+		$conf[]="";
+		$conf[]="// I need this because my dovecot (with listescape plugin) uses";
+		$conf[]="// ':' delimiter, but creates folders with dot delimiter";
+		$conf[]="\$rcmail_config['managesieve_replace_delimiter'] = '';";
+		$conf[]="";
+		$conf[]="// disabled sieve extensions (body, copy, date, editheader, encoded-character,";
+		$conf[]="// envelope, environment, ereject, fileinto, ihave, imap4flags, index,";
+		$conf[]="// mailbox, mboxmetadata, regex, reject, relational, servermetadata,";
+		$conf[]="// spamtest, spamtestplus, subaddress, vacation, variables, virustest, etc.";
+		$conf[]="// Note: not all extensions are implemented";
+		$conf[]="\$rcmail_config['managesieve_disabled_extensions'] = array();";
+		$conf[]="";
+		$conf[]="// Enables debugging of conversation with sieve server. Logs it into <log_dir>/sieve";
+		$conf[]="\$rcmail_config['managesieve_debug'] = false;";
+		$conf[]="";
+		$conf[]="// Enables features described in http://wiki.kolab.org/KEP:14";
+		$conf[]="\$rcmail_config['managesieve_kolab_master'] = false;";
+		$conf[]="";
+		$conf[]="// Script name extension used for scripts including. Dovecot uses '.sieve',";
+		$conf[]="// Cyrus uses '.siv'. Doesn't matter if you have managesieve_kolab_master disabled.";
+		$conf[]="\$rcmail_config['managesieve_filename_extension'] = '.siv';";
+		$conf[]="";
+		$conf[]="// List of reserved script names (without extension).";
+		$conf[]="// Scripts listed here will be not presented to the user.";
+		$conf[]="\$rcmail_config['managesieve_filename_exceptions'] = array();";
+		$conf[]="";
+		$conf[]="?>";
+		@file_put_contents("$this->root_path/plugins/managesieve/config.inc.php", @implode("\n", $conf));
+		@chmod("$this->root_path/plugins/managesieve/config.inc.php",0755);		
+		
+		
+	}
 	
 	
 	function enable_ldap(){
@@ -682,6 +933,136 @@ function Build_lighthttp(){
 			}
 		return $conf;	
 		}
+		
+		
+		
+	}
+	
+	
+	function db_inc_php($return=false){
+		$filepath="/etc/roundcube/debian-db.php";
+		$f[]="<?php";
+		$f[]="\$rcmail_config = array();";
+		$f[]="\$rcmail_config[\"db_dsnw\"] = \"$this->dbidsn\";";
+		$f[]="\$rcmail_config[\"db_dsnr\"] = \"\";";
+		$f[]="\$rcmail_config[\"db_max_length\"] = 512000;  // 500K";
+		$f[]="\$rcmail_config[\"db_persistent\"] = FALSE;";
+		$f[]="\$rcmail_config[\"db_table_users\"] = \"users\";";
+		$f[]="\$rcmail_config[\"db_table_identities\"] = \"identities\";";
+		$f[]="\$rcmail_config[\"db_table_contacts\"] = \"contacts\";";
+		$f[]="\$rcmail_config[\"db_table_session\"] = \"session\";";
+		$f[]="\$rcmail_config[\"db_table_cache\"] = \"cache\";";
+		$f[]="\$rcmail_config[\"db_table_messages\"] = \"messages\";";
+		$f[]="\$rcmail_config[\"db_sequence_users\"] = \"user_ids\";";
+		$f[]="\$rcmail_config[\"db_sequence_identities\"] = \"identity_ids\";";
+		$f[]="\$rcmail_config[\"db_sequence_contacts\"] = \"contact_ids\";";
+		$f[]="\$rcmail_config[\"db_sequence_cache\"] = \"cache_ids\";";
+		$f[]="\$rcmail_config[\"db_sequence_messages\"] = \"message_ids\";";
+		$f[]="\$rcmail_config[\"db_sequence_contacts\"] = \"contact_ids\";";
+		$f[]="\$rcmail_config[\"db_sequence_contactgroups\"] = \"contactgroups_ids\";";
+		$f[]="?>";
+		@mkdir(dirname($filepath),0755,true);
+		if(!$return){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: RoundCube Web `$filepath`\n";}
+			@file_put_contents($filepath, @implode("\n", $f));
+		}
+		
+		$f=array();
+		$filepath="$this->root_path/config/db.inc.php";
+		$f[]="<?php";
+		$f[]="";
+		$f[]="/*";
+		$f[]=" +-----------------------------------------------------------------------+";
+		$f[]=" | Configuration file for database access                                |";
+		$f[]=" |                                                                       |";
+		$f[]=" | This file is part of the Roundcube Webmail client                     |";
+		$f[]=" | Copyright (C) 2005-2012, The Roundcube Dev Team                       |";
+		$f[]=" |                                                                       |";
+		$f[]=" | Licensed under the GNU General Public License version 3 or            |";
+		$f[]=" | any later version with exceptions for skins & plugins.                |";
+		$f[]=" | See the README file for a full license statement.                     |";
+		$f[]=" |                                                                       |";
+		$f[]=" +-----------------------------------------------------------------------+";
+		$f[]="";
+		$f[]="*/";
+		$f[]="";
+		$f[]="\$rcmail_config = array();";
+		$f[]="";
+		$f[]="// PEAR database DSN for read/write operations";
+		$f[]="// format is db_provider://user:password@host/database ";
+		$f[]="// For examples see http://pear.php.net/manual/en/package.database.mdb2.intro-dsn.php";
+		$f[]="// currently supported db_providers: mysql, mysqli, pgsql, sqlite, mssql or sqlsrv";
+		$f[]="";
+		$f[]="\$rcmail_config['db_dsnw'] = 'mysql://$this->dbidsn';";
+		$f[]="\$rcmail_config['db_dsnr'] = '';";
+		$f[]="";
+		$f[]="// use persistent db-connections";
+		$f[]="// beware this will not \"always\" work as expected";
+		$f[]="// see: http://www.php.net/manual/en/features.persistent-connections.php";
+		$f[]="\$rcmail_config['db_persistent'] = FALSE;";
+		$f[]="";
+		$f[]="// you can define specific table names used to store webmail data";
+		$f[]="\$rcmail_config['db_table_users'] = 'users';";
+		$f[]="\$rcmail_config['db_table_identities'] = 'identities';";
+		$f[]="\$rcmail_config['db_table_contacts'] = 'contacts';";
+		$f[]="\$rcmail_config['db_table_contactgroups'] = 'contactgroups';";
+		$f[]="\$rcmail_config['db_table_contactgroupmembers'] = 'contactgroupmembers';";
+		$f[]="\$rcmail_config['db_table_session'] = 'session';";
+		$f[]="\$rcmail_config['db_table_cache'] = 'cache';";
+		$f[]="\$rcmail_config['db_table_cache_index'] = 'cache_index';";
+		$f[]="\$rcmail_config['db_table_cache_thread'] = 'cache_thread';";
+		$f[]="\$rcmail_config['db_table_cache_messages'] = 'cache_messages';";
+		$f[]="\$rcmail_config['db_table_dictionary'] = 'dictionary';";
+		$f[]="\$rcmail_config['db_table_searches'] = 'searches';";
+		$f[]="\$rcmail_config['db_table_system'] = 'system';";
+		$f[]="";
+		$f[]="// you can define specific sequence names used in PostgreSQL";
+		$f[]="\$rcmail_config['db_sequence_users'] = 'user_ids';";
+		$f[]="\$rcmail_config['db_sequence_identities'] = 'identity_ids';";
+		$f[]="\$rcmail_config['db_sequence_contacts'] = 'contact_ids';";
+		$f[]="\$rcmail_config['db_sequence_contactgroups'] = 'contactgroups_ids';";
+		$f[]="\$rcmail_config['db_sequence_searches'] = 'search_ids';";
+		$f[]="";
+		$f[]="";
+		$f[]="// end db config file";
+		$f[]="?>";
+		
+		if($return){return @implode("\n", $f);}
+		@mkdir(dirname($filepath),0755,true);
+		@file_put_contents($filepath, @implode("\n", $f));
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: RoundCube Web `$filepath`\n";}
+		
+		if(is_file("$this->root_path/plugins/sieverules/sieverules.php")){
+			$users=new usersMenus();
+			$sieverules_port=4190;
+			if(is_numeric($users->SIEVE_PORT)){if($users->SIEVE_PORT>0){$sieverules_port=$users->SIEVE_PORT;}}
+			echo "Starting......: Roundcube (php) sieverules_port ($sieverules_port)\n";
+			$conf[]="\$rcmail_config['plugins'][] = 'sieverules';";
+			$sieve[]="<?php";
+			$sieve[]="\$rcmail_config[\"sieverules_host\"] = \"127.0.0.1\";";
+			$sieve[]="\$rcmail_config[\"sieverules_port\"] = $sieverules_port;";
+			$sieve[]="\$rcmail_config[\"sieverules_usetls\"] = FALSE;";
+			$sieve[]="\$rcmail_config[\"sieverules_folder_delimiter\"] = null;";
+			$sieve[]="\$rcmail_config[\"sieverules_folder_encoding\"] = null;";
+			$sieve[]="\$rcmail_config[\"sieverules_include_imap_root\"] = null;";
+			$sieve[]="\$rcmail_config[\"sieverules_ruleset_name\"] = \"roundcube\";";
+			$sieve[]="\$rcmail_config[\"sieverules_multiple_actions\"] = TRUE;";
+			$sieve[]="\$rcmail_config[\"sieverules_allowed_actions\"] = array(\"fileinto\" => TRUE,\"vacation\" => TRUE,\"reject\" => TRUE,\"redirect\" => TRUE,\"keep\" => TRUE,\"discard\" => TRUE,\"imapflags\" => TRUE,\"notify\" => TRUE,\"stop\" => TRUE);";
+			$sieve[]="\$rcmail_config[\"sieverules_other_headers\"] = array(\"Reply-To\", \"List-Id\", \"MailingList\", \"Mailing-List\",\"X-ML-Name\", \"X-List\", \"X-List-Name\", \"X-Mailing-List\",\"Resent-From\",";
+			$sieve[]="	\"Resent-To\", \"X-Mailer\", \"X-MailingList\",\"X-Spam-Status\", \"X-Priority\", \"Importance\", \"X-MSMail-Priority\",\"Precedence\", \"Return-Path\", \"Received\", \"Auto-Submitted\",\"X-Spam-Flag\", \"X-Spam-Tests\");";
+			$sieve[]="\$rcmail_config[\"sieverules_predefined_rules\"] = array();";
+			$sieve[]="\$rcmail_config[\"sieverules_adveditor\"] = 0;";
+			$sieve[]="\$rcmail_config[\"sieverules_multiplerules\"] = FALSE;";
+			$sieve[]="\$rcmail_config[\"sieverules_default_file\"] = \"/etc/dovecot/sieve/default\";";
+			$sieve[]="\$rcmail_config[\"sieverules_auto_load_default\"] = FALSE;";
+			$sieve[]="\$rcmail_config[\"sieverules_example_file\"] = \"/etc/dovecot/sieve/example\";";
+			$sieve[]="\$rcmail_config[\"sieverules_force_vacto\"] = TRUE;";
+			$sieve[]="\$rcmail_config[\"sieverules_use_elsif\"] = TRUE;";
+			$sieve[]="?>";
+			@file_put_contents("$this->root_path/plugins/sieverules/config.inc.php",@implode("\n",$sieve));
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: RoundCube Web `plugins/sieverules/config.inc.php`\n";}
+			@chmod("$this->root_path/plugins/sieverules/config.inc.php",0755);
+		}		
 		
 		
 		

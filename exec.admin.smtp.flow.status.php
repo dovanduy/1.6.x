@@ -97,7 +97,12 @@ function daemons_status(){
 	$sock=new sockets();
 	$datas=trim(@file_get_contents("/etc/artica-postfix/apt.upgrade.cache"));
 	if(preg_match('#nb:([0-9]+)\s+#is',$datas,$re)){
-		$services=Paragraphe('i64.png',"{upgrade_your_system}","{$re[1]}&nbsp;{packages_to_upgrade}","javascript:Loadjs('artica.repositories.php?show=update')",null,300,76);
+		$sock=new sockets();
+		$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
+		if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
+		if($EnableSystemUpdates==1){
+			$services=Paragraphe('i64.png',"{upgrade_your_system}","{$re[1]}&nbsp;{packages_to_upgrade}","javascript:Loadjs('artica.repositories.php?show=update')",null,300,76);
+		}
 		
 	}
 	

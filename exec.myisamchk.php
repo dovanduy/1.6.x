@@ -20,7 +20,7 @@ function start($database,$table){
 	$unix=new unix();
 	if($database==null){WriteIsamLogs("Requested myismamchk database:$database, table: $table -> database is null");return;}
 	if($table==null){WriteIsamLogs("Requested myismamchk database:$database, table: $table -> table is null");return;}	
-	$pidfile="/etc/artica-postfix/".basename(__FILE__).".".md5("$database$table").".pid";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".md5("$database$table").".pid";
 	$oldpid=@file_get_contents("$database$table");
 	if($unix->process_exists($oldpid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
@@ -33,15 +33,15 @@ function start($database,$table){
 	$myisamchk=$unix->find_program("myisamchk");
 	$touch=$unix->find_program("touch");
 	
-	exec("$pgrep -l -f \"$myisamchk.*?$table\" 2>&1",$results);
+	$myisamchk=$unix->find_program("myisamchk");
+	$pgrep=$unix->find_program("pgrep");
+	exec("$pgrep -l -f \"$myisamchk\"",$results);
 	while (list ($index, $line) = each ($results) ){
 		if(preg_match("#pgrep#", $line)){continue;}
-		if(preg_match("#([0-9]+)\s+#", $line,$re)){
-			$timepid=$unix->PROCCESS_TIME_MIN($re[1]);
-			WriteIsamLogs("Already PID $line running since {$timepid}mn, aborting");
+		if(preg_match("#^[0-9]+\s+#", $line)){
+			writelogs("$line already executed",@implode("\r\n", $results),__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}
-		
 	}
 	
 	$MYSQL_DATADIR=$unix->MYSQL_DATADIR();

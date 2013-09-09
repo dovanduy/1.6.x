@@ -57,6 +57,7 @@ function setfacl_squid($without_reload=false){
 				
 				if(!$without_reload){
 					squid_watchdog_events("Reconfiguring Proxy parameters...");;
+					squid_admin_mysql(1, "Reloading Squid-cache for disk ACL");
 					shell_exec("$squidbin -k reconfigure >/dev/null 2>&1");}
 				return;
 			}else{
@@ -98,7 +99,7 @@ function DirsPrivileges(){
 				@mkdir("$dir/winbindd_privileged",0750,true);
 				echo "Starting......: WINBIND DirsPrivileges:: 0750 in $dir/winbindd_privileged\n";
 				shell_exec("$chmod 0750 $dir/winbindd_privileged");
-				chgrp("$dir/winbindd_privileged", "winbindd_priv");
+				@chgrp("$dir/winbindd_privileged", "winbindd_priv");
 			}
 		}
 		
@@ -110,7 +111,7 @@ function DirsPrivileges(){
 		if(is_dir("$dir/winbindd_privileged")){
 			echo "Starting......: WINBIND DirsPrivileges:: 0750 in $dir/winbindd_privileged\n";
 			shell_exec("$chmod 0750 $dir/winbindd_privileged");}
-			chgrp("$dir/winbindd_privileged", "winbindd_priv");
+			@chgrp("$dir/winbindd_privileged", "winbindd_priv");
 	}	
 	
 	

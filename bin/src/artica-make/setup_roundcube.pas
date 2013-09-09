@@ -28,7 +28,6 @@ private
    roundcube:troundcube;
    lighttpd:Tlighttpd;
    procedure fullinstall(Path:string);
-   procedure ConfigDB();
    procedure main_inc_php();
 
 
@@ -190,18 +189,12 @@ begin
   install.INSTALL_PROGRESS(CODE_NAME,'{installed}');
   install.INSTALL_STATUS(CODE_NAME,100);
   fpsystem('/bin/rm /etc/artica-postfix/versions.cache');
-
-  fpsystem('/etc/init.d/artica-postfix restart roundcube');
+  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --roundcube');
+  fpsystem('/etc/init.d/roundcube restart');
   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.www.install.php');
 
 end;
 //#########################################################################################
-procedure install_roundcube.ConfigDB();
-begin
-roundcube.DEBIAN_CONFIG();
-end;
-//#########################################################################################
-
 procedure install_roundcube.fullinstall(Path:string);
 var
    filenname:string;
@@ -225,10 +218,6 @@ begin
  fpsystem('/bin/chmod -R 0755 /usr/share/roundcube/logs');
  fpsystem('/bin/chown -R '+lighttpd.LIGHTTPD_GET_USER()+' /usr/share/roundcube');
  writeln('');
- roundcube.DEBIAN_CONFIG();
-
-
-
  writeln('');
  writeln('-------- Creating Databases and Tables in Mysql --------');
  filenname:='/usr/share/roundcube/SQL/mysql.initial.sql';

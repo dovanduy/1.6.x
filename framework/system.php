@@ -43,6 +43,15 @@ if(isset($_GET["routes-show"])){routes_show();exit;}
 if(isset($_GET["virtip-build"])){virtip_build();exit;}
 if(isset($_GET["virtip-delete"])){virtip_delete();exit;}
 if(isset($_GET["ifconfig-show"])){ifconfig_show();exit;}
+if(isset($_GET["ifconfig-initd"])){ifconfig_initd();exit;}
+if(isset($_GET["bridge-delete"])){bridge_delete();exit;}
+if(isset($_GET["ifconfig-initdcontent"])){ifconfig_initdcontent();exit;}
+if(isset($_GET["network-initdcontent"])){ifconfig_save_initdcontent();exit;}
+if(isset($_GET["artica-ifup"])){artica_ifup();exit;}
+if(isset($_GET["etchosts-default"])){etchosts_default();exit;}
+if(isset($_GET["etchosts-build"])){etchosts_build();exit;}
+if(isset($_GET["rsync-debian-status"])){rsync_debian_status();exit;}
+
 
 
 
@@ -274,12 +283,7 @@ function archiverlogs(){
 	}
 	
 	if($search<>null){
-		$search=str_replace(".","\.",$search);
-		$search=str_replace("*",".*?",$search);
-		$search=str_replace("(","\(",$search);
-		$search=str_replace(")","\)",$search);
-		$search=str_replace("[","\[",$search);
-		$search=str_replace("]","\]",$search);
+		$search=$unix->StringToGrep($search);
 		$cmd="$grep -i -E '$search' $filelog| $tail -n $max 2>&1";
 	}else{
 		$cmd="$tail -n $max $filelog 2>&1";
@@ -307,12 +311,7 @@ function logrotate_query(){
 	}
 	
 	if($search<>null){
-		$search=str_replace(".","\.",$search);
-		$search=str_replace("*",".*?",$search);
-		$search=str_replace("(","\(",$search);
-		$search=str_replace(")","\)",$search);
-		$search=str_replace("[","\[",$search);
-		$search=str_replace("]","\]",$search);
+		$search=$unix->StringToGrep($search);
 		$cmd="$grep -i -E '$search' $filelog| $tail -n $max 2>&1";
 	}else{
 		$cmd="$tail -n $max $filelog 2>&1";
@@ -343,12 +342,7 @@ function syslogdb_query(){
 	}
 	
 	if($search<>null){
-		$search=str_replace(".","\.",$search);
-		$search=str_replace("*",".*?",$search);
-		$search=str_replace("(","\(",$search);
-		$search=str_replace(")","\)",$search);
-		$search=str_replace("[","\[",$search);
-		$search=str_replace("]","\]",$search);
+		$search=$unix->StringToGrep($search);
 		$cmd="$grep -i -E '$search' $filelog| $tail -n $max 2>&1";
 	}else{
 		$cmd="$tail -n $max $filelog 2>&1";
@@ -377,12 +371,7 @@ function squiddb_query(){
 	}
 	
 	if($search<>null){
-		$search=str_replace(".","\.",$search);
-		$search=str_replace("*",".*?",$search);
-		$search=str_replace("(","\(",$search);
-		$search=str_replace(")","\)",$search);
-		$search=str_replace("[","\[",$search);
-		$search=str_replace("]","\]",$search);
+		$search=$unix->StringToGrep($search);
 		$cmd="$grep -i -E '$search' $filelog| $tail -n $max 2>&1";
 	}else{
 		$cmd="$tail -n $max $filelog 2>&1";
@@ -433,6 +422,16 @@ function ucarp_status(){
 	
 	
 }
+
+function rsync_debian_status(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php5 /usr/share/artica-postfix/exec.status.php --rsync-debian-mirror --nowachdog";
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";	
+	
+}
+
 function ucarp_start(){
 	$unix=new unix();
 	if(!is_file("/etc/init.d/artica-failover")){
@@ -462,9 +461,18 @@ function syslogdb_restart(){
 	$cmd="$php /usr/share/artica-postfix/exec.logs-db.php --init";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
-	$cmd=trim("$nohup /etc/init.d/syslog-db restart >/dev/null 2>&1 &");
+	if(is_file("/etc/init.d/syslog-db")){
+		$cmd=trim("$nohup /etc/init.d/syslog-db restart >/dev/null 2>&1 &");
+		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+		shell_exec($cmd);	
+		$unix->THREAD_COMMAND_SET("$php /usr/share/artica-postfix/exec.logs-db.php --restart");
+		return;
+	}
+	$cmd="$nohup $php /usr/share/artica-postfix/exec.logs-db.php --restart >/dev/null 2>&1 &";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
-	shell_exec($cmd);	
+	shell_exec($cmd);
+	
+	
 }
 
 function BuildCSR(){
@@ -602,4 +610,55 @@ function ifconfig_show(){
 	$results[]="\n\t***************\n";	
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 	
+}
+function ifconfig_initd(){
+	$unix=new unix();
+	$results=explode("\n",@file_get_contents("/etc/init.d/artica-ifup"));
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+	
+}
+function ifconfig_initdcontent(){
+	$unix=new unix();
+	$results=explode("\n",@file_get_contents("/etc/init.d/artica-ifup-content.sh"));
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+
+}
+function ifconfig_save_initdcontent(){
+	$data=base64_decode($_GET["network-initdcontent"]);
+	@file_put_contents("/etc/init.d/artica-ifup-content.sh", $data."\n");
+	@chmod("/etc/init.d/artica-ifup-content.sh",0755);
+}
+
+function bridge_delete(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --bridge-delete {$_GET["bridge-delete"]} >/dev/null 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function artica_ifup(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup /etc/init.d/artica-ifup start >/dev/null 2>&1 &");
+}
+
+function etchosts_default(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --hosts-defaults >/dev/null 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function etchosts_build(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --hosts >/dev/null 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+
 }

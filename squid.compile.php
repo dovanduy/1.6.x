@@ -21,6 +21,7 @@ js();
 
 
 function js(){
+	header("content-type: application/x-javascript");
 	$sock=new sockets();
 	$users=new usersMenus();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
@@ -40,7 +41,7 @@ function js(){
 	
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$title=$tpl->_ENGINE_parse_body("{building_parameters}");
+	$title=$tpl->javascript_parse_text("{building_parameters}");
 	$html="YahooSetupControlModalFixed('700','$page?popup=yes','$title')";
 	echo $html;
 	

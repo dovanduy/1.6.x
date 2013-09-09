@@ -96,7 +96,8 @@ function member_id(){
 	var connection_id='$id';
 	var results=obj.responseText;
 	if(results.length>3){alert(results);document.getElementById('$t').innerHTML='';return;}
-	document.getElementById('$t').innerHTML='';
+	if(document.getElementById('$t')){document.getElementById('$t').innerHTML='';}
+	if(document.getElementById('anim-$t')){document.getElementById('anim-$t').innerHTML='';}
 	if(connection_id.length==0){YahooWin2Hide();}
 	$('#$t').flexReload();
 }

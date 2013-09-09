@@ -683,6 +683,8 @@ function logon(){
 			$_SESSION["uid"]='-100';
 			$_SESSION["groupid"]='-100';
 			$_SESSION["passwd"]=$_GLOBAL["ldap_password"];
+			$_SESSION["MINIADM"]=false;
+			setcookie("MINIADM", "No", time()+1000);
 			$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
 			setcookie("artica-language", $_POST["lang"], time()+172800);
 			$_SESSION["detected_lang"]=$_POST["lang"];
@@ -733,6 +735,8 @@ function logon(){
 				artica_mysql_events("Success to logon on the Artica Web console from {$_SERVER["REMOTE_HOST"]} as User",@implode("\n",$notice),"security","security");
 				writelogs("[{$_POST["artica_username"]}]: This is not an user =>admin.index.php",__FUNCTION__,__FILE__);
 				$sock->getFrameWork("squid.php?clean-catz-cache=yes");
+				$_SESSION["MINIADM"]=false;
+				setcookie("MINIADM", "No", time()+1000);
 				echo("location:admin.index.php");
 				return null;
 			}
@@ -1125,11 +1129,25 @@ function buildPage(){
 		if(!isset($WizardSavedSettings["company_name"])){$WizardSavedSettings["company_name"]=null;}
 		$company_name=$WizardSavedSettings["company_name"];		
 		if($company_name<>null){$company_name="<center style='margin:5px;font-size:14px;padding:5px;border-top:1px solid white;border-bottom:1px solid white'>-&nbsp;$company_name&nbsp;-</center>";}
+		$WEBSEVERV=null;
 		
-		$ARTICAVER=@file_get_contents("VERSION").$PHPVERSION.$FPM;
+		if(isset($_SERVER["SERVER_SOFTWARE"])){
+			if(preg_match("#Apache\/([0-9\.]+)#", $_SERVER["SERVER_SOFTWARE"],$re)){
+				$WEBSEVERV="&nbsp;|&nbsp;Apache v{$re[1]}";
+			}
+			
+			if(preg_match("#lighttpd\/([0-9\.]+)#", $_SERVER["SERVER_SOFTWARE"],$re)){
+				$WEBSEVERV="&nbsp;|&nbsp;LigHttpd v{$re[1]}";
+			}			
+			
+		}
 		
-		$tpl=str_replace("{COPYRIGHT}","{$company_name}Copyright 2006 - ". date('Y').$lang2Link.$miniadm,$tpl);
-		$tpl=str_replace("{copy-right}","{$company_name}Copyright 2006 - ". date('Y').$lang2Link.$miniadm,$tpl);
+		
+		
+		$ARTICAVER=@file_get_contents("VERSION").$WEBSEVERV.$PHPVERSION.$FPM;
+		
+		$tpl=str_replace("{COPYRIGHT}","{$company_name}Copyright 2003 - ". date('Y').$lang2Link.$miniadm,$tpl);
+		$tpl=str_replace("{copy-right}","{$company_name}Copyright 2003 - ". date('Y').$lang2Link.$miniadm,$tpl);
 		$tpl=str_replace("{TEMPLATE_HEAD}","<!-- HEAD TITLE: $TITLE_RESSOURCE -->\n$favicon\n$jquery\n$jsArtica\n". @implode("\n", $js)."\n$jslogon\n".@implode("\n", $css)."\n".@implode("\n", $log), $tpl);
 		$tpl=str_replace("{ARTICA_VERSION}",$ARTICAVER,$tpl);
 		$tpl=str_replace("{SQUID_VERSION}",$users->SQUID_VERSION,$tpl);

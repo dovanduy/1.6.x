@@ -9,20 +9,20 @@ include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
-include_once(dirname(__FILE__)."/ressources/class.calendar.inc");
+include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 if(!$_SESSION["AsWebStatisticsAdministrator"]){header("location:miniadm.index.php");die();}
 
 if(isset($_GET["content"])){content();exit;}
 if(isset($_GET["messaging-right"])){messaging_right();exit;}
 if(isset($_GET["webstats-left"])){webstats_left();exit;}
-if(isset($_GET["webstats-stats"])){exit;}
-if(isset($_GET["navcalendar"])){build_calendar();exit;}
-if(isset($_GET["build-calendar"])){build_calendar();exit;}
-if(isset($_GET["buildiconsof"])){buildiconsof();exit;}
-if(isset($_GET["buildiconsof-week"])){buildiconsof_week();exit;}
-if(isset($_GET["graph1"])){graph1();exit;}
-if(isset($_GET["graph2"])){graph2();exit;}
-if(isset($_GET["search-www"])){search_websites();exit;}
+if(isset($_GET["settings-retention"])){settings_retention();exit;}
+if(isset($_POST["ArticaProxyStatisticsBackupFolder"])){settings_retention_save();exit;}
+if(isset($_GET["tabs"])){tabs();exit;}
+if(isset($_GET["tabs2"])){tabs2();exit;}
+if(isset($_GET["tools"])){tools();exit;}
+if(isset($_GET["test-nas-js"])){test_nas_js();exit;}
+if(isset($_GET["test-nas-popup"])){test_nas_popup();exit;}
+
 main_page();
 
 function main_page(){
@@ -35,13 +35,173 @@ function main_page(){
 	echo $content;	
 }
 
+function tabs(){
+	$sock=new sockets();
+	$ProxyUseArticaDB=$sock->GET_INFO("ProxyUseArticaDB");
+	if(is_numeric($ProxyUseArticaDB)){$ProxyUseArticaDB=0;}
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	$boot=new boostrap_form();
+	if($ProxyUseArticaDB==1){
+		$array["{mysql_statistics_engine}"]="miniadm.proxy.mysql.database.php?tabs=yes&title=yes";
+	}
+	$array["{database_maintenance}"]="$page?tabs2=yes";
+	$array["{APP_ARTICADB}"]="miniadm.proxy.category.database.php?tabs=yes&title=yes";	
+	$array["{tools}"]="$page?tools=yes";
+	$array["{source_logs}"]="miniadm.webstats.logrotate.php";
+	echo $boot->build_tab($array);
+}
+
+function tabs2(){
+	$page=CurrentPageName();
+	$boot=new boostrap_form();
+	$array["{retention_time}"]="$page?settings-retention=yes";
+	$boot=new boostrap_form();
+	echo $boot->build_tab($array);	
+	
+	
+}
+function settings_retention(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$users=new usersMenus();
+	if($users->CORP_LICENSE){$LICENSE=1;}else{$LICENSE=0;}
+	$ArticaProxyStatisticsBackupFolder=$sock->GET_INFO("ArticaProxyStatisticsBackupFolder");
+	$ArticaProxyStatisticsBackupDays=$sock->GET_INFO("ArticaProxyStatisticsBackupDays");
+	if($ArticaProxyStatisticsBackupFolder==null){$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics";}
+	$q=new mysql_squid_builder();
+	if(!is_numeric($ArticaProxyStatisticsBackupDays)){$ArticaProxyStatisticsBackupDays=90;}
+	if(!$users->CORP_LICENSE){
+		$error="<p class=text-error>{this_feature_is_disabled_corp_license}</p>";
+		$ArticaProxyStatisticsBackupDays=5;}
+		$t=time();
+		$new_schedule=$tpl->javascript_parse_text("{new_schedule}");
+		$EnableSquidRemoteMySQL=$sock->GET_INFO("EnableSquidRemoteMySQL");
+		if(!is_numeric($EnableSquidRemoteMySQL)){$EnableSquidRemoteMySQL=0;}
+
+		if($EnableSquidRemoteMySQL==1){
+			$EnableSquidRemoteMySQL_text="{EnableSquidRemoteMySQL_text}";
+		}
+
+		$lock=false;
+		$boot=new boostrap_form();
+
+		$boot->set_formdescription($EnableSquidRemoteMySQL_text."<br>{purge_statistics_database_explain2}");
+		$boot->set_field("ArticaProxyStatisticsBackupFolder", "{backup_folder}", $ArticaProxyStatisticsBackupFolder,array("BROWSE"=>true));
+		$boot->set_field("ArticaProxyStatisticsBackupDays", "{max_days}", $ArticaProxyStatisticsBackupDays);
+		
+		$BackupSquidStatsUseNas=$sock->GET_INFO("BackupSquidStatsUseNas");
+		$BackupSquidStatsNASIpaddr=$sock->GET_INFO("BackupSquidStatsNASIpaddr");
+		$BackupSquidStatsNASFolder=$sock->GET_INFO("BackupSquidStatsNASFolder");
+		$BackupSquidStatsNASUser=$sock->GET_INFO("BackupSquidStatsNASUser");
+		$BackupSquidStatsNASPassword=$sock->GET_INFO("BackupSquidStatsNASPassword");
+		$BackupSquidStatsNASRetry=$sock->GET_INFO("BackupSquidStatsNASRetry");
+		if(!is_numeric($BackupSquidStatsUseNas)){$BackupSquidStatsUseNas=0;}
+		if(!is_numeric($BackupSquidStatsNASRetry)){$BackupSquidStatsNASRetry=0;}
+		
+		$boot->set_spacertitle("{NAS_storage}");
+		$boot->set_checkbox("BackupSquidStatsUseNas", "{use_remote_nas}", $BackupSquidStatsUseNas,
+				array("TOOLTIP"=>"{BackupSquidStatsUseNas_explain}",
+						"LINK"=>"BackupSquidStatsNASIpaddr,BackupSquidStatsNASFolder,BackupSquidStatsNASUser,BackupSquidStatsNASPassword"
+			
+				));
+		$boot->set_field("BackupSquidStatsNASIpaddr", "{hostname}", $BackupSquidStatsNASIpaddr);
+		$boot->set_field("BackupSquidStatsNASFolder", "{shared_folder}", $BackupSquidStatsNASFolder,array("ENCODE"=>true));
+		$boot->set_field("BackupSquidStatsNASUser","{username}", $BackupSquidStatsNASUser,array("ENCODE"=>true));
+		$boot->set_fieldpassword("BackupSquidStatsNASPassword","{password}", $BackupSquidStatsNASPassword,array("ENCODE"=>true));
+		$boot->set_checkbox("BackupSquidStatsNASRetry", "{retry}", $BackupSquidStatsNASRetry,array("TOOLTIP"=>"{BackupSquidLogsNASRetry_explain}"));
+		
+		$boot->set_button("{apply}");
+		$boot->set_formtitle("{purge_statistics_database}");
+		if(!$users->CORP_LICENSE){$boot->set_form_locked();$lock=true;}
+		if($EnableSquidRemoteMySQL==1){$boot->set_form_locked();$lock=true;}
+		$new_schedule=$tpl->javascript_parse_text("{new_schedule}");
+		if(!$lock){
+			$boot->set_Newbutton("{new_schedule}", "YahooWin3('650','squid.databases.schedules.php?AddNewSchedule-popup=yes&ID=0&t=$t&ForceType=47&YahooWin=3&jsback=ReloadSchedules$t','$new_schedule')");
+			$ReloadSchedules="ReloadSchedules$t()";
+		}
+
+		$boot->set_Newbutton("{test_connection}", "Loadjs('$page?test-nas-js=yes')");
+		$form=$boot->Compile();
+
+		$html="
+
+		<div id='title-$t'></div>
+		$error
+		$form
+		<div id='schedules-$t'></div>
+
+		<script>
+		function ReloadSchedules$t(){
+		LoadAjax('schedules-$t','squid.artica.statistics.purge.php?schedules=yes');
+}
+
+function RefreshTableTitle$t(){
+LoadAjaxTiny('title-$t','squid.artica.statistics.purge.php?title=yes&t=$t');
+}
+RefreshTableTitle$t();
+$ReloadSchedules;
+</script>
+
+";
+
+echo $tpl->_ENGINE_parse_body($html);
+}
+
+function test_nas_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{test_connection}");
+	echo "YahooWin2('650','$page?test-nas-popup=yes','$title');";
+}
+
+function test_nas_popup(){
+	$sock=new sockets();
+	$datas=unserialize(base64_decode($sock->getFrameWork("services.php?squidstats-test-nas=yes")));
+	echo "<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:99%;height:446px;border:5px solid #8E8E8E;
+	overflow:auto;font-size:11px' id='textToParseCats-$t'>".@implode("\n", $datas)."</textarea>";
+}
+
+function settings_retention_save(){
+	$sock=new sockets();
+	$users=new usersMenus();
+	$tpl=new templates();
+	
+	
+	
+	if($users->CORP_LICENSE){
+		$sock->SET_INFO("ArticaProxyStatisticsBackupDays", $_POST["ArticaProxyStatisticsBackupDays"]);
+		if(isset($_POST["BackupSquidStatsNASFolder"])){$_POST["BackupSquidStatsNASFolder"]=url_decode_special_tool($_POST["BackupSquidStatsNASFolder"]);}
+		if(isset($_POST["BackupSquidStatsNASUser"])){$_POST["BackupSquidStatsNASUser"]=url_decode_special_tool($_POST["BackupSquidStatsNASUser"]);}
+		if(isset($_POST["BackupSquidStatsNASPassword"])){$_POST["BackupSquidStatsNASPassword"]=url_decode_special_tool($_POST["BackupSquidStatsNASPassword"]);}
+		
+		$sock->SET_INFO("BackupSquidStatsUseNas", $_POST["BackupSquidStatsUseNas"]);
+		$sock->SET_INFO("BackupSquidStatsNASIpaddr", $_POST["BackupSquidStatsNASIpaddr"]);
+		$sock->SET_INFO("BackupSquidStatsNASFolder", $_POST["BackupSquidStatsNASFolder"]);
+		$sock->SET_INFO("BackupSquidStatsNASUser", $_POST["BackupSquidStatsNASUser"]);
+		$sock->SET_INFO("BackupSquidStatsNASPassword", $_POST["BackupSquidStatsNASPassword"]);
+		$sock->SET_INFO("BackupSquidStatsNASRetry", $_POST["BackupSquidStatsNASRetry"]);
+		
+		
+		
+	}else{
+		echo $tpl->javascript_parse_text("{no_license_backup_max5}",1);
+		$sock->SET_INFO("ArticaProxyStatisticsBackupDays",5);
+
+	}
+	$sock->SET_INFO("ArticaProxyStatisticsBackupFolder", $_POST["ArticaProxyStatisticsBackupFolder"]);
+
+}
 
 function content(){
-	if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
+	//if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
-	$jsadd="LoadAjax('statistics-$t','$page?webstats-stats=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&week={$_GET["week"]}');";
+	
 	
 	$html="
 	<div class=BodyContent>
@@ -54,13 +214,12 @@ function content(){
 	<div id='webstats-left'></div>
 	
 	<script>
-		LoadAjax('webstats-left','$page?webstats-left=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&week={$_GET["week"]}');
-		$jsadd
+		LoadAjax('webstats-left','$page?tabs=yes');
 	</script>
 	";
 		
 	$html=$tpl->_ENGINE_parse_body($html);
-	$_SESSION[__FILE__][__FUNCTION__]=$html;
+	
 	echo $html;
 }
 
@@ -73,25 +232,20 @@ function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $d
 	return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));
 }
 
-function webstats_left(){
+function tools(){
 	//if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
 	$tpl=new templates();
 	$q=new mysql_squid_builder();
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	
-	$squiddb=Paragraphe32('mysql_statistics_engine','mysql_statistics_engine_params'
-			,"blur()","database-connect-settings-32-grey.png");	
 	
 
-	$tr[]=Paragraphe32('purge_statistics_database','purge_statistics_database_explain'
-			,"Loadjs('squid.artica.statistics.purge.php')","table-delete-32.png");
-	
 	
 	$tr[]=table_heures_enretard();
 	
 	
-	$tr[]=$squiddb;
+	
 	
 	$tr[]=Paragraphe32('remote_mysql_server','remote_mysqlsquidserver_text'
 			,"Loadjs('squid.remote-mysql.php')","artica-meta-32.png");
@@ -104,9 +258,7 @@ function webstats_left(){
 			,"Loadjs('squid.artica.statistics.restore.php')","32-import.png");
 	
 	
-	
-	$tr[]=Paragraphe32('source_logs','source_logs_squid_text'
-			,"Loadjs('squid.logrotate.php')","32-logs.png");
+
 	
 	
 	

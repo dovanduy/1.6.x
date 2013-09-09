@@ -41,7 +41,7 @@ function popup(){
 	if($EnableFreeWeb==0){$error[]="FreeWebs not enabled";}
 	
 	if(count($error)>0){
-		$html="<table style='width:80%' class=form><tbody><tr><td width=1%><img src='img/error-64.png'><td width=99%>< div style='font-size:16px;color:#9D0000'>{missing_module}!:<br>".@implode("<br>", $error)."</div></td></tr></tbody></table>";
+		$html="<table style='width:80%' class=form><tbody><tr><td width=1%><img src='img/error-64.png'><td width=99%><div style='font-size:16px;color:#9D0000'>{missing_module}!:<br>".@implode("<br>", $error)."</div></td></tr></tbody></table>";
 		echo $tpl->_ENGINE_parse_body($html);
 		return;
 	}

@@ -92,83 +92,72 @@ function tabs(){
 	$users=new usersMenus();
 	$tpl=new templates();	
 	$array["panel"]='{panel}';
-	
+	$sock=new sockets();
 	if(!$users->PROXYTINY_APPLIANCE){
-		$array["status"]='{status}';
+		if(!$sock->SQUID_LOCAL_STATS_DISABLED()){$array["status"]='{status}';}
 		//$array["panel-week"]='{this_week}';
 		$array["events-squidaccess"]='{realtime_requests}';
-		$array["days"]='{days}';
-		$array["users"]='{members}';
-		
-		$array["not_categorized"]='{not_categorized}';
+	
+		$font="style='font-size:14px'";
+		if(!$sock->SQUID_LOCAL_STATS_DISABLED()){$array["not_categorized"]='{not_categorized}';}
 	}
 	
 while (list ($num, $ligne) = each ($array) ){
 	
 		if($num=="panel-week"){
-			$html[]= "<li><a href=\"squid.traffic.panel.php?$num\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $font><a href=\"squid.traffic.panel.php?$num\"><span>$ligne</span></a></li>\n";
 			continue;
 		}	
 		
 		if($num=="events-squidaccess"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.accesslogs.php?table-size=942&url-row=488\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li $font><a href=\"squid.accesslogs.php?table-size=942&url-row=555\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 		if($num=="status"){
-			$html[]= "<li><a href=\"squid.traffic.statistics.php?status=yes\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $font><a href=\"squid.traffic.statistics.php?status=yes\"><span>$ligne</span></a></li>\n";
 			continue;
 		}	
 
 		if($num=="days"){
-			$html[]= "<li><a href=\"squid.traffic.statistics.days.php?day-consumption=yes\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $font><a href=\"squid.traffic.statistics.days.php?day-consumption=yes\"><span>$ligne</span></a></li>\n";
 			continue;
 		}		
 	
 		if($num=="users"){
-			$html[]= "<li><a href=\"squid.members.statistics.php\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $font><a href=\"squid.members.statistics.php\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 		if($num=="week-consumption"){
-			$html[]= "<li><a href=\"squid.traffic.statistics.week.php?$num\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $font><a href=\"squid.traffic.statistics.week.php?$num\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 		if($num=="month-consumption"){
-			$html[]= "<li><a href=\"squid.traffic.statistics.month.php?$num\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $font><a href=\"squid.traffic.statistics.month.php?$num\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 
 		if($num=="find"){
-			$html[]= "<li><a href=\"squid.search.statistics.php?$num\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $font><a href=\"squid.search.statistics.php?$num\"><span>$ligne</span></a></li>\n";
 			continue;
 		}		
 		
 		if($num=="not_categorized"){
-			$html[]= "<li><a href=\"squid.not-categorized.statistics.php\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $font><a href=\"squid.not-categorized.statistics.php\"><span>$ligne</span></a></li>\n";
 			continue;
 		}	
 
 		if($num=="events"){
-			$html[]= "<li><a href=\"squid.stats.events.php\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $font><a href=\"squid.stats.events.php\"><span>$ligne</span></a></li>\n";
 			continue;
 		}		
 	
 	
-		$html[]= "<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n";
+		$html[]= "<li $font><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n";
 	}
 	
 	
-	echo $tpl->_ENGINE_parse_body( "
-	<div id=squid_stats_central style='width:950px;font-size:14px'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#squid_stats_central').tabs();
-			
-			
-			});
-		</script>");		
+	echo build_artica_tabs($html, "squid_stats_central");
 	
 }
 
@@ -181,17 +170,9 @@ function page(){
 	$html="<table style='width:100%'>
 	<tr>
 		<td valign='top' width=240px>
-			<div id='info-gene-$t' style='width:240px' class=form></div>
-			
-			<table style='width:97%;margin-top:10px' class=form>
-			<tr>
-				<td class=legend>{member}:</td>
-				<td>". Field_text("Search-Memb-$t","focus:$search","font-size:12px",null,null,null,false,"SearchMember$t(event)")."</td>
-				</tr>
-			</table>
-			</td>
-		<td valign='top'><div id='info-central-$t'></div></td>
-	</tr>
+			<div id='info-gene-$t' style='width:240px' class=form></div></td>
+			<td valign='top'><div id='info-central-$t'></div></td>
+			</tr>
 	</table>
 	
 	<script>
@@ -259,6 +240,7 @@ function central_information(){
 		 "link-32.png");
 	
 	
+	
 	if(!$users->PROXYTINY_APPLIANCE){
 		
 		
@@ -270,8 +252,15 @@ function central_information(){
 
 	
 	if($DisableArticaProxyStatistics==0){
+		
+		
+		
+		$tr[]=Paragraphe32('remote_statistics_server',
+				'remote_statistics_server_text',"javascript:Loadjs('squid.remotestats.php')",'syslog-32-client.png');
+		
+		
 		$tr[]=Paragraphe32('purge_statistics_database','purge_statistics_database_explain'
-				,"Loadjs('squid.artica.statistics.purge.php')","table-delete-32.png");	
+				,"Loadjs('squid.artica.statistics.purge.php')",'table-delete-32.png');	
 		
 		
 		$tr[]=table_heures_enretard();
@@ -323,18 +312,29 @@ function central_information(){
 	
 	$table=CompileTr2($tr,true);	
 	
+	$garphs="<div id='graph1-$t' style='height:250px'><center style='margin:50px'><img src='img/wait-clock.gif'></center></div>
+	<div style='text-align:right'>". imgtootltip("refresh-24.png","{refresh}","Loadjs('$page?graphique_heure=yes&container=graph1-$t');")."</div>";
+	
+	$garphsjs="Loadjs('$page?graphique_heure=yes&container=graph1-$t');";
+	
+	if($sock->SQUID_LOCAL_STATS_DISABLED()){
+		$garphs=null;
+		$garphsjs=null;
+		
+	}
+	
 	$html="
 	<div style='font-size:18px'>{SQUID_STATS}</div>
+	$garphs
 	$TRPTEXT
 	$more_features
-	<div id='graph1-$t' style='height:250px'><center style='margin:50px'><img src='img/wait-clock.gif'></center></div>
-	<div style='text-align:right'>". imgtootltip("refresh-24.png","{refresh}","Loadjs('$page?graphique_heure=yes&container=graph1-$t');")."</div>
+	
 	<center>
 	<div style='margin-top:15px;width:80%'>$table</div>
 	</center>
 	<script>
 		LoadAjax('info-gene-$t','squid.traffic.statistics.php?squid-status-stats=yes');
-		Loadjs('$page?graphique_heure=yes&container=graph1-$t');
+		$garphsjs
 	</script>
 	";
 	
@@ -390,23 +390,34 @@ function table_heures_enretard(){
 
 function graphique_heure(){
 	$users=new usersMenus();
-	if($users->PROXYTINY_APPLIANCE){return;}
+	if($users->PROXYTINY_APPLIANCE){
+		
+		OutputDebugVerbose("PROXYTINY_APPLIANCE -> abort");
+		return;}
 	$t=time();
+	$highcharts=new highcharts();
 	
-	
+	$highcharts->container=$_GET["container"];
 	
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$currenttime=date("YmdH");
 	$table="squidhour_$currenttime";
 	$q=new mysql_squid_builder();
-	if(!$q->TABLE_EXISTS($table)){return null;}
+	OutputDebugVerbose("PROXYTINY_APPLIANCE -> abort");
+	if(!$q->TABLE_EXISTS($table)){
+		$highcharts->NoreturnedValue(array());
+		return;
+	}
 	$sql="SELECT SUM(QuerySize) as tsize,DATE_FORMAT(zDate,'%i') as tdate FROM $table 
 	group by tdate HAVING tsize>0
 	ORDER BY tdate ";
 	
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){echo "$q->mysql_error";return;}
+	
+	
+	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		
 		$size=round(($ligne["tsize"]/1024),2);;
@@ -417,8 +428,7 @@ function graphique_heure(){
 	}
 	
 	
-	$highcharts=new highcharts();
-	$highcharts->container=$_GET["container"];
+
 	$highcharts->xAxis=$xdata;
 	$highcharts->Title="{downloaded_flow_this_hour}";
 	$highcharts->yAxisTtitle="{bandwith} KB";

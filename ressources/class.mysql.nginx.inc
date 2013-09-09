@@ -44,6 +44,9 @@ class nginx_stats{
 		if(!is_numeric($this->MySQLSyslogType)){$this->MySQLSyslogType=1;}
 		if($this->MySQLSyslogType==0){$this->MySQLSyslogType=1;}
 		
+		unset($GLOBALS["MYSQL_PARAMETERS"]);
+		unset($_SESSION["MYSQL_PARAMETERS"]);
+		
 		$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLNginxParams")));
 		$this->MYSQLTypeText=$this->MySQLLogsTypeTextAR[$this->MySQLSyslogType];
 		if($this->MySQLSyslogType==1){
@@ -111,6 +114,22 @@ class nginx_stats{
 		$this->mysql_error=$this->ClassSQL->mysql_error;
 		writelogs("Fatal connection failed [".$this->ClassSQL->mysql_error."]",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 	
+	}
+	
+	public function DATABASE_LIST_SIMPLE(){
+		$sql="SHOW DATABASES";
+		$this->BD_CONNECT();
+		$results=@mysql_query($sql,$this->mysql_connection);
+		$errnum=@mysql_error($this->mysql_connection);
+		$des=@mysql_error($this->mysql_connection);
+		$this->mysql_error=$des;
+	
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$Database=$ligne["Database"];
+			$array[$Database]=true;
+		}
+		return $array;
 	}
 
 	public function COUNT_ROWS($table,$database=null){
@@ -222,6 +241,68 @@ class nginx_stats{
 		
 	}
 	
+	public function DayTable($tablename){
+	
+		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+	
+		`zmd5` varchar(90) NOT NULL ,
+		`zDate` date,
+		`zhour` smallint(2) NOT NULL,
+		`ipaddr` varchar(90) NOT NULL,
+		`hostname` varchar(128) NOT NULL,
+		`useragent` varchar(128) NOT NULL,
+		`country` varchar(90) NOT NULL,
+		`uri` varchar(255) NOT NULL,
+		`size` BIGINT(100) NOT NULL,
+		`hits` BIGINT(100) NOT NULL,
+		`proto` varchar(50) NOT NULL,
+		`httpcode` smallint(3) NOT NULL,
+		PRIMARY KEY (`zmd5`),
+		KEY `zDate` (`zDate`),
+		KEY `zhour` (`zhour`),
+		KEY `ipaddr` (`ipaddr`),
+		KEY `hostname` (`hostname`),
+		KEY `useragent` (`useragent`),
+		KEY `country` (`country`),
+		KEY `uri` (`uri`),
+		KEY `size` (`size`),
+		KEY `hits` (`hits`),
+		KEY `httpcode` (`httpcode`)
+		)";
+	
+		$this->QUERY_SQL($sql,$this->database);
+		if(!$this->ok){return false;}
+		return true;
+	
+	
+	}	
+	
+	public function MonthTable($tablename){
+	
+		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+		`zmd5` varchar(90) NOT NULL ,
+		`zDay` smallint(2) NOT NULL,
+		`ipaddr` varchar(90) NOT NULL,
+		`hostname` varchar(128) NOT NULL,
+		`country` varchar(90) NOT NULL,
+		`size` BIGINT(100) NOT NULL,
+		`hits` BIGINT(100) NOT NULL,
+		PRIMARY KEY (`zmd5`),
+		KEY `zDay` (`zDay`),
+		KEY `ipaddr` (`ipaddr`),
+		KEY `hostname` (`hostname`),
+		KEY `country` (`country`),
+		KEY `size` (`size`),
+		KEY `hits` (`hits`)
+		)";
+	
+		$this->QUERY_SQL($sql,$this->database);
+		if(!$this->ok){return false;}
+		return true;
+	
+	
+		}	
+	
 	public function LIST_TABLES_HOURS_TEMP(){
 		if(isset($GLOBALS["{$this->database}LIST_TABLES_HOURS_TEMP"])){return $GLOBALS["{$this->database}LIST_TABLES_HOURS_TEMP"];}
 		$array=array();
@@ -239,7 +320,23 @@ class nginx_stats{
 		}
 		return $array;
 	}	
+	public function LIST_TABLES_DAY(){
+		if(isset($GLOBALS["{$this->database}LIST_TABLES_DAY"])){return $GLOBALS["{$this->database}LIST_TABLES_DAY"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$this->database'
+		AND table_name LIKE 'day_%'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
 	
+				while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+				if(preg_match("#day_[0-9]+$#", $ligne["c"])){
+				$GLOBALS["{$this->database}LIST_TABLES_DAY"][$ligne["c"]]=$ligne["c"];
+				$array[$ligne["c"]]=$ligne["c"];
+				}
+				}
+				return $array;
+	}	
 	
 	public function events($text){
 		$pid=@getmypid();

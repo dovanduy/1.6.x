@@ -5,9 +5,11 @@ include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.ccurl.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
+include_once(dirname(__FILE__).'/ressources/class.mysql.squid.builder.php');
 include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__) . '/framework/class.settings.inc');
+
 
 $GLOBALS["SINGLE_DEBUG"]=false;
 $GLOBALS["FORCE"]=false;
@@ -236,6 +238,10 @@ function SERVICE_STOP($aspid=false){
 	
 	
 	$q=new mysql();
+	$q2=new mysql_squid_builder();
+	$q2->MEMORY_TABLES_DUMP();
+	
+	
 	if(is_file($mysqladmin)){
 		if(is_file($socket)){
 			$cmds[]="nohup";
@@ -243,12 +249,7 @@ function SERVICE_STOP($aspid=false){
 			$cmds[]="--user=$q->mysql_admin";
 			if($q->mysql_password<>null){
 				$password=$q->mysql_password;
-				$password=str_replace('&','\&',$password);
-				$password=str_replace('<','\<',$password);
-	      		$password=str_replace('$','\$',$password);
-	     		$password=str_replace('>','\>',$password);
-	       		$password=str_replace('$','\$',$password);
-	       		$password=str_replace('!','\!',$password);
+				$password=$unix->shellEscapeChars($password);
 	      		$cmds[]="--password=$password";
 			}
 			$cmds[]="--socket=$socket";
@@ -459,8 +460,8 @@ if($EnableMysqlFeatures==0){
    if(is_file($MySQLLOgErrorPath)){@unlink($MySQLLOgErrorPath);}
 	$cmds[]=$mysqlbin;
 	$cmds[]="--pid-file=/var/run/mysqld/mysqld.pid";
-	$cmds[]=$logpathstring;
-	$cmds[]=$MySqlTmpDirCMD;
+	$cmds[]=trim($logpathstring);
+	$cmds[]=trim($MySqlTmpDirCMD);
 	$cmds[]="--socket=$socket";
 	$cmds[]="--datadir=\"$datadir\"";
 	if($innodb_force_recovery>0){
@@ -500,9 +501,15 @@ if($EnableMysqlFeatures==0){
    	echo "Starting......: MySQL failed\n";
    	echo "Starting......: $cmd\n";
    	system_admin_events("Failed to start MySQL server", __FUNCTION__, __FILE__, __LINE__, "services");
+   	$php5=$unix->LOCATE_PHP5_BIN();
+   	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.mysql.build.php >/dev/null 2>&1 &");
+   	
+   	
    }else{
    		system_admin_events("Success to start MySQL server pid $pid", __FUNCTION__, __FILE__, __LINE__, "services");
    		echo "Starting......: MySQL success pid $pid\n";
+   		$q=new mysql_squid_builder();
+   		$q->MEMORY_TABLES_RESTORE();
    	
    }
 

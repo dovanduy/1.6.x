@@ -141,10 +141,16 @@ function js(){
 	$t=time();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{restart_all_services}");
+	@unlink(dirname(__FILE__)."/ressources/logs/web/squid.status.html");
 	$compile_squid_ask=$tpl->javascript_parse_text("{compile_squid_ask}");
 	if($_GET["ask"]=="yes"){
 		$warn="if(!confirm('$compile_squid_ask')){return;}";
 	}
+	
+	if($_GET["reconfigure"]=="yes"){
+		$reconfigure="&ApplyConfToo=yes";
+	}	
+	
 	if(isset($_GET["onlySquid"])){
 		$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{restart_service}");
 		$onlySquid="&onlySquid=yes";
@@ -178,13 +184,15 @@ function js(){
 	
 	function squid_restart_proxy_load$t(){
 			$warn
-			YahooWin3('998','$page?popup=yes$onlySquid&t=$t&setTimeout={$_GET["setTimeout"]}$ApplyConfToo','$title');
+			YahooWin3('998','$page?popup=yes$onlySquid&t=$t&setTimeout={$_GET["setTimeout"]}$ApplyConfToo$reconfigure','$title');
 		
 		}
 		
 	function GetLogs$t(){
 		Loadjs('$page?logs=yes&t=$t&setTimeout={$_GET["setTimeout"]}');
-		
+		if(document.getElementById('IMAGE_STATUS_INFO')){
+			Loadjs('admin.tabs.php?refresh-status-js=yes&nocache=yes');
+		}
 	}
 		
 	squid_restart_proxy_load$t();";

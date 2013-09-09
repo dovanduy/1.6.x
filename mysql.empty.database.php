@@ -100,7 +100,7 @@ function perform(){
 		<script>
 			function Refresh$tt(){	
 				if(YahooWinBrowseOpen()){
-					RefreshTab('squid_categories_zoom');
+					RefreshAllTabs();	
 					LoadAjax('main-$t','$page?perform=yes&t=$t&db={$_GET["db"]}');
 				}
 			}			

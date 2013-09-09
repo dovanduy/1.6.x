@@ -423,7 +423,7 @@ function group_edit_save(){
 function group_edit_save_minimal(){
 	$ID=$_POST["ID"];
 	$q=new mysql_squid_builder();
-	$_POST["description"]=mysql_escape_string($_POST["description"]);
+	$_POST["description"]=mysql_escape_string2($_POST["description"]);
 	$sql_edit="UPDATE webfilter_group SET description='{$_POST["description"]}' 
 	,enabled='{$_POST["enabled"]}' WHERE ID=$ID";
 	$q->QUERY_SQL($sql_edit);

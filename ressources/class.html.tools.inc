@@ -1,6 +1,9 @@
 <?php
 function DAEMON_STATUS_ROUND($key,$bsini,$textoadd=null,$noenable=0,$newInterface=0){
 	$ADD_ID_DIV=false;
+	$idIMG=null;
+	$processes=null;
+	$cmdline=null;
 	if(preg_match("#^ID:(.+)#",$key, $re)){$ADD_ID_DIV=true;$key=$re[1];}
 	$version=null;$license_error=null;$icap=null;$pattern=null;$textoadd2=null;$disabled=null;
 	if(!isset($bsini->_params[$key]["service_name"])){if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::FAILED::service_name for $key<br>\n".print_r($bsini->_params[$key])."<br>\n";}return null;}
@@ -453,6 +456,7 @@ return $html;}
 
 
 function url_decode_special_tool($path){
+	$path=str_replace("%20"," ",$path);
 	$path=str_replace("%0A","\n",$path);
 	$path=str_replace("%C2£","£",$path);
 	$path=str_replace("%C2§","§",$path);
@@ -521,6 +525,39 @@ function url_decode_special_tool($path){
 	$path=str_replace("%2B","+",$path);
 	$path=str_replace("%40","@",$path);
 	$path=str_replace("%09","\t",$path);
+	$path=str_replace("%u0430","а",$path);
+	$path=str_replace("%u0431","б",$path);
+	$path=str_replace("%u0432","в",$path);
+	$path=str_replace("%u0433","г",$path);
+	$path=str_replace("%u0434","д",$path);
+	$path=str_replace("%u0435","е",$path);
+	$path=str_replace("%u0451","ё",$path);
+	$path=str_replace("%u0436","ж",$path);
+	$path=str_replace("%u0437","з",$path);
+	$path=str_replace("%u0438","и",$path);
+	$path=str_replace("%u0439","й",$path);
+	$path=str_replace("%u043A","к",$path);
+	$path=str_replace("%u043B","л",$path);
+	$path=str_replace("%u043C","м",$path);
+	$path=str_replace("%u043D","н",$path);
+	$path=str_replace("%u043E","о",$path);
+	$path=str_replace("%u043F","п",$path);
+	$path=str_replace("%u0440","р",$path);
+	$path=str_replace("%u0441","с",$path);
+	$path=str_replace("%u0442","т",$path);
+	$path=str_replace("%u0443","у",$path);
+	$path=str_replace("%u0444","ф",$path);
+	$path=str_replace("%u0445","х",$path);
+	$path=str_replace("%u0446","ц",$path);
+	$path=str_replace("%u0447","ч",$path);
+	$path=str_replace("%u0448","ш",$path);
+	$path=str_replace("%u0449","щ",$path);
+	$path=str_replace("%u044A","ъ",$path);
+	$path=str_replace("%u044B","ы",$path);
+	$path=str_replace("%u044C","ь",$path);
+	$path=str_replace("%u044D","э",$path);
+	$path=str_replace("%u044E","ю",$path);
+	$path=str_replace("%u044F","я",$path);	
 	return $path;
 }
 

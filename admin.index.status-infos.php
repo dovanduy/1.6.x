@@ -449,6 +449,12 @@ if($GLOBALS["AS_ROOT"]){
 			$haProxy=$tpl->_ENGINE_parse_body(left_menus_format("APP_HAPROXY","load-balance-32.png","Loadjs('haproxy.php')"));
 		}
 		
+		if($users->roundcube_installed){
+			$roundcube=left_menus_format("RoundCube","roundcube-32.png","only:Loadjs('roundcube.index.php?script=yes&in-front-ajax=yes&newinterface=yes');");
+			
+			
+		}
+		
 	}
 	if($users->POSTFIX_INSTALLED){
 	if($users->AsPostfixAdministrator){
@@ -580,6 +586,7 @@ if($GLOBALS["AS_ROOT"]){
 		$logrotate
 		$vmware
 		$updateutility
+		$roundcube
 		</tbody>
 		</table>
 		$script

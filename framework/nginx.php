@@ -9,6 +9,7 @@ if(isset($_GET["delete-cache"])){delete_cache();exit;}
 if(isset($_GET["sync-freewebs"])){sync_freewebs();exit;}
 if(isset($_GET["www-events"])){www_events();exit;}
 if(isset($_GET["mysqldb-restart"])){mysqldb_restart();exit;}
+if(isset($_GET["restart"])){restart();exit;}
 
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
@@ -34,6 +35,15 @@ function sync_freewebs(){
 	$php=$unix->LOCATE_PHP5_BIN();
 	shell_exec("$php /usr/share/artica-postfix/exec.freeweb.php --sync-squid");
 	
+}
+
+function restart(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup /etc/init.d/nginx restart >/dev/null 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 }
 
 function delete_cache(){

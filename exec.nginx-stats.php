@@ -83,6 +83,8 @@ function parse_logs(){
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$nohup $php ".__FILE__." --hosts >/dev/null 2>&1 &");
+	shell_exec("$nohup $php ".dirname(__FILE__)."/exec.nginx-stats-day.php >/dev/null 2>&1 &");
+	
 	
 }
 
@@ -114,7 +116,7 @@ function ParseFile($servername,$fullpath){
 			continue;
 		}
 		
-		while (list ($a, $b) = each ($re)){$re[$a]=mysql_escape_string($b);}
+		while (list ($a, $b) = each ($re)){$re[$a]=mysql_escape_string2($b);}
 		$c++;
 		$md5=md5($re[0]);
 		$ipaddr=$re[1];
@@ -124,8 +126,8 @@ function ParseFile($servername,$fullpath){
 		$code=$re[7];
 		$size=$re[8];
 		$UserAgent=$re[10];
-		$Country=mysql_escape_string(GeoLoc($ipaddr));
-		$currDate=date("Y-m-d H:i:s");
+		$Country=mysql_escape_string2(GeoLoc($ipaddr));
+		$currDate=date("Y-m-d H:i:s",$time);
 		$linesql="('$md5','$currDate','$ipaddr','$proto','$uri','$code','$size','$UserAgent','$Country')";
 		$table="hour_".date("YmdH",$time);
 		$WORKARRAY[$table][]=$linesql;

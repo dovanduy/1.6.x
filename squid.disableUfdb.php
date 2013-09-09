@@ -58,6 +58,8 @@ function js(){
 function Disable(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableUfdbGuard", 0);
+	$sock->SET_INFO("EnableUfdbGuard2", 0);
+	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
 	
 }
 

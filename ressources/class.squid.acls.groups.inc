@@ -34,7 +34,6 @@ class squid_acls_groups{
 		if($squid->LDAP_AUTH==1){$this->AUTH=1;}
 		if($squid->LDAP_EXTERNAL_AUTH==1){$this->AUTH=1;}
 		if($squid->EnableKerbAuth==1){$this->AUTH=1;}
-		if($this->hasProxyTransparent==1){$this->AUTH=0;$this->EnableKerbAuth=0;$this->UseDynamicGroupsAcls=0;}	
 		$this->ARRAY_NO_ITEM["proxy_auth_ads"]=true;
 		$this->ARRAY_NO_ITEM["NudityScan"]=true;
 		$this->ARRAY_NO_ITEM["all"]=true;
@@ -85,6 +84,8 @@ class squid_acls_groups{
 		AND webfilters_sqacls.aclport=$aclport
 		AND webfilters_sqacls.aclgpid=$aclgpid
 		ORDER BY webfilters_sqacls.xORDER";
+		
+		$this->debugOutput("$sql", __FUNCTION__, __LINE__);
 
 		$results = $q->QUERY_SQL($sql);
 		if($this->ASROOT){echo "Starting......: [ACLS]: buildacls_order(`$aclport`,`$aclgpid`) ". mysql_num_rows($results). "... (Line ".__LINE__.")\n";}
@@ -103,8 +104,12 @@ class squid_acls_groups{
 		
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$aclid=$ligne["ID"];
+			
+			$this->debugOutput("******* {$ligne["aclname"]} ******* ", __FUNCTION__, __LINE__);
+			
 			$this->debugOutput("buildacls_order($aclport,$aclid): SELECT httpaccess,httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$aclid'");
-			$ligneWhat=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess,httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$aclid'"));
+			$ligneWhat=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess,httpaccess_value,httpaccess_data 
+					FROM webfilters_sqaclaccess WHERE aclid='$aclid'"));
 			if(!$q->ok){echo "*** FATAL **** $q->mysql_error in line: ".__LINE__."\n";}
 			
 			$httpaccess_data=$ligneWhat["httpaccess_data"];
@@ -326,7 +331,6 @@ class squid_acls_groups{
 			
 			
 			if($GroupType=="proxy_auth_ads"){
-				if($this->hasProxyTransparent==1){continue;}
 				if($this->EnableKerbAuth==0){
 					$this->debugOutput("$aclid: proxy_auth_ads by EnableKerbAuth is disabled, SKIP", __FUNCTION__, __LINE__);
 					continue;
@@ -345,7 +349,6 @@ class squid_acls_groups{
 			
 
 			if(isset($ARRAY_AUTH[$GroupType])){
-				if($this->hasProxyTransparent==1){continue;}
 				if($ligne["negation"]==1){$neg="!";}
 				$this->debugOutput("$aclid: Is an Auth [$GroupType] -> {$neg}{$prefix}Group{$ligne["ID"]}", __FUNCTION__, __LINE__);
 				$acls_name[]="{$neg}{$prefix}Group{$ligne["ID"]}";
@@ -376,7 +379,6 @@ class squid_acls_groups{
 			}			
 			
 			if($GroupType=="proxy_auth"){
-				if($this->hasProxyTransparent==1){continue;}
 				if($this->AUTH==0){continue;}
 			}
 			
@@ -456,8 +458,14 @@ class squid_acls_groups{
 		
 	}
 	
-	function ACL_MULTIPLE_EXPLAIN($aclid,$ACCESSEnabled,$aclgroup=0){
+	function ACL_MULTIPLE_EXPLAIN($aclid,$ACCESSEnabled,$aclgroup=0,$miniadm=false){
 		$q=new mysql_squid_builder();
+		
+		$Mainjs="Loadjs('squid.acls-rules.php?Addacl-js=yes&ID=$aclid&t={$_GET["t"]}')";
+		if($miniadm){
+			$prefix="<a href=\"javascript:blur();\" OnClick=\"javascript:$Mainjs\">";
+		}
+		
 		if($aclgroup==1){
 			$explains=array();
 			$sql="SELECT ID,enabled FROM webfilters_sqacls WHERE aclgpid=$aclid";
@@ -574,23 +582,23 @@ class squid_acls_groups{
 		$reverse_text=false;
 		if(!is_numeric($cache_deny)){$cache_deny=0;}		
 		if($access_deny==1){$url_rewrite_access_deny=0;$adaptation_access_deny=0;$cache_deny=0;$access_allow=0;}
-		if($access_deny==1){$explain[]="<strong style=\"color:$explain_deny_color\">{deny_access}</strong>";}
-		if($http_reply_access_deny==1){$explain[]="<strong style=\"color:$explain_deny_color\">{deny_reply_access}</strong>";}
+		if($access_deny==1){$explain[]="<strong style=\"color:$explain_deny_color\">$prefix{deny_access}</a></strong>";}
+		if($http_reply_access_deny==1){$explain[]="<strong style=\"color:$explain_deny_color\">$prefix{deny_reply_access}</a></strong>";}
 		
 				
-		if($http_reply_access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">{allow_reply_access}</strong>";}
-		if($access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">{allow}</strong>";}
-		if($snmp_access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">{allow_snmp_access}</strong>";}
-		if($log_access==1){$explain[]="<strong style=\"color:$explain_allow_color\">{log_to_csv} <a href=\"squid.acls-rules.php?csv=$aclid\" style='text-decoration:underline'>&laquo;download&raquo;</a></strong>";}
+		if($http_reply_access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">$prefix{allow_reply_access}</a></strong>";}
+		if($access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">$prefix{allow}</a></strong>";}
+		if($snmp_access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">{allow_snmp_access}</a></strong>";}
+		if($log_access==1){$explain[]="<strong style=\"color:$explain_allow_color\">$prefix{log_to_csv}</a> <a href=\"squid.acls-rules.php?csv=$aclid\" style='text-decoration:underline'>&laquo;download&raquo;</a></strong>";}
 		if($deny_access_except==1){$explain[]="{deny_access_except}";$reverse_text=true;}
-		if($request_header_add==1){$explain[]="<strong style=\"color:$explain_allow_color\">{add_http_header}:</strong> &laquo;<strong>$request_header_add_name</strong>: $request_header_add_value&raquo;";}
-		if($deny_log==1){$explain[]="<strong style=\"color:$explain_allow_color\">{deny_logging}</strong>";}
+		if($request_header_add==1){$explain[]="<strong style=\"color:$explain_allow_color\">$prefix{add_http_header}</a>:</strong> &laquo;<strong>$request_header_add_name</strong>: $request_header_add_value&raquo;";}
+		if($deny_log==1){$explain[]="<strong style=\"color:$explain_allow_color\">$prefix{deny_logging}</a></strong>";}
 		if($deny_quota_rule==1){
 			$objects=$this->getobjectsNameFromAclrule($aclid,$linkcolor);
 			if(count($objects)==0){
 				$error=$error.$errorNoObjects;
 			}
-			$explain[]="<strong style=\"color:$explain_deny_color\">{affect_quota_rule} &laquo;$js_quota$deny_quota_rule_value</a>&raquo;</strong>";}
+			$explain[]="<strong style=\"color:$explain_deny_color\">$prefix{affect_quota_rule}</a> &laquo;$js_quota$deny_quota_rule_value</a>&raquo;</strong>";}
 		
 		
 		
@@ -601,18 +609,19 @@ class squid_acls_groups{
 			$delay_access_id_text=$ligne["rulename"];
 			$delay_access_id_textjs="Loadjs('squid.bandwith.php?bandwith-rule-js=yes&ID=$delay_access_id&t={$_GET["t"]}&by-acls=yes')";
 			$url_rewrite_access_deny=0;$adaptation_access_deny=0;$cache_deny=0;$access_allow=0;$access_deny=0;
-			$explain[]="<strong style=\"color:$explain_deny_color\">{limit_bandwidth}&nbsp;&laquo;<a href=\"javascript:blur();\" OnClick=\"javascript:$delay_access_id_textjs\" style='text-decoration:underline'>$delay_access_id_text</a>&raquo;</strong>";
+			$explain[]="<strong style=\"color:$explain_deny_color\">$prefix{limit_bandwidth}</a>&nbsp;&laquo;<a href=\"javascript:blur();\" OnClick=\"javascript:$delay_access_id_textjs\" style='text-decoration:underline'>$delay_access_id_text</a>&raquo;</strong>";
 		}
 		
-		if($url_rewrite_access_deny==1){$explain[]="{pass_trough_thewebfilter_engine}";}
-		if($adaptation_access_deny==1){$explain[]="{pass_trough_antivirus_engine}";}
-		if($tcp_outgoing_tos==1){$explain[]="{set_specific_dcsp} $tcp_outgoing_tos_value";}
-		if($tcp_outgoing_address==1){$explain[]="{acl_tcp_outgoing_address} $tcp_outgoing_address_value";}
+		if($url_rewrite_access_deny==1){$explain[]="$prefix{pass_trough_thewebfilter_engine}</a>";}
+		if($adaptation_access_deny==1){$explain[]="$prefix{pass_trough_antivirus_engine}</a>";}
+		if($tcp_outgoing_tos==1){$explain[]="$prefix{set_specific_dcsp}</a> $tcp_outgoing_tos_value";}
+		if($tcp_outgoing_address==1){$explain[]="$prefix{acl_tcp_outgoing_address}</a> $tcp_outgoing_address_value";}
 		
+
 		
-		if($cache_deny==1){$explain[]="{do_not_cache}";}
+		if($cache_deny==1){$explain[]="$prefix{do_not_cache}</a>";}
 		if(count($explain)==0){
-			$final_explain="<strong style='color:$explain_deny_color'>{disable_this_rule_no_access_set}</strong>";
+			$final_explain="$prefix<strong style='color:$explain_deny_color'>{disable_this_rule_no_access_set}</strong></a>";
 		}else{
 			$final_explain=@implode(" {and} ", $explain);
 		}

@@ -126,10 +126,11 @@ class clladp{
 	
 	function clladp(){
 		$this->ldapFailed=false;
+		if(function_exists("getLocalTimezone")){@date_default_timezone_set(getLocalTimezone());}
 		if(!isset($GLOBALS["VERBOSE++"])){$GLOBALS["VERBOSE++"]=false;}
 		if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
 		
-		if($GLOBALS["VERBOSE"]){echo __CLASS__."/".__LINE__."::class.active.directory.inc...()<br>\n";}
+		if($GLOBALS["VERBOSE++"]){echo __CLASS__."/".__LINE__."::class.active.directory.inc...()<br>\n";}
 		include_once(dirname(__FILE__) . '/class.active.directory.inc');
 		if(isset($_GET["debug-page"])){$GLOBALS["VERBOSE"]=true;}
 		if(!isset($GLOBALS["AS_ROOT"])){$GLOBALS["AS_ROOT"]=false;if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
@@ -217,7 +218,10 @@ class clladp{
 							$sock=new sockets();
 							if(!isset($GLOBALS["ASLDAPRESTARTED"])){
 								if(!isset($_SESSION[date('YmdHi')."ASLDAPRESTARTED"])){
-									$sock->getFrameWork("cmd.php?ldap-restart=yes");
+									if(!isset($GLOBALS["cmd.php?ldap-restart=yes"])){
+										$sock->getFrameWork("cmd.php?ldap-restart=yes");
+										$GLOBALS["cmd.php?ldap-restart=yes"]=true;
+									}
 									$GLOBALS["ASLDAPRESTARTED"]=true;
 									$_SESSION[date('YmdHi')."ASLDAPRESTARTED"]=true;
 								}
@@ -1424,8 +1428,9 @@ function Hash_GetALLUsers(){
 		if ($sr) {
 			$hash=ldap_get_entries($this->ldap_connection,$sr);			
 			for($i=0;$i<$hash["count"];$i++){
+				$mail=null;
 				$userid=$hash[$i]["uid"][0];
-				$mail=$hash[$i]["mail"][0];
+				if(isset($hash[$i]["mail"][0])){$mail=$hash[$i]["mail"][0];}
 				$res[$userid]=$mail;
 				}
 			}else{

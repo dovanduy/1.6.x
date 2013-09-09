@@ -202,8 +202,8 @@ function krb5conf(){
 	$domainUp=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
 	$domaindow=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 	$kinitpassword=$array["WINDOWS_SERVER_PASS"];
-	$kinitpassword=str_replace("'","",escapeshellarg($kinitpassword));
-	$kinitpassword=str_replace('$', '\$', $kinitpassword);	
+	$kinitpassword=$unix->shellEscapeChars($kinitpassword);
+	
 	$workgroup=$array["ADNETBIOSDOMAIN"];
 
 	
@@ -385,11 +385,7 @@ function resolve_kdc(){
 
 	$newip=gethostbyname($hostname);
 	echo "Starting......: $function, KDC $hostname [$ipaddr] resolved to: $newip\n";
-	if($newip<>$ipaddr){
-		echo "Starting......: $function, KDC $hostname add $ipaddr into the /etc/hosts file\n";
-		$unix->del_EtcHostsByName($hostname);
-		$unix->add_EtcHosts($hostname, $ipaddr);
-	}
+	
 	
 	
 }
@@ -399,11 +395,26 @@ function resolve_kdc(){
 function run_msktutils(){
 	$unix=new unix();
 	$sock=new sockets();
+	
+	if(is_file("/usr/sbin/msktutil")){@chmod("/usr/sbin/msktutil",0755);}
 	$msktutil=$unix->find_program("msktutil");
 	$function=__FUNCTION__;
-	if(!is_file($msktutil)){return;}
+	
+	
+	if(!is_file($msktutil)){
+		if(is_file("/home/artica/mskutils.tar.gz.old")){
+			echo "Starting......: $function, uncompress /home/artica/mskutils.tar.gz.old\n";
+			shell_exec("tar xf /home/artica/mskutils.tar.gz.old -C /");
+		}
+	}
+	
+	$msktutil=$unix->find_program("msktutil");
+	if(!is_file($msktutil)){	
+		echo "Starting......: $function, msktutil not installed, you should use it..\n";
+		return;
+	}
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
-	if(isset($array["COMPUTER_BRANCH"])){$array["COMPUTER_BRANCH"]="CN=Computers";}
+	if(!isset($array["COMPUTER_BRANCH"])){$array["COMPUTER_BRANCH"]="CN=Computers";}
 	$myFullHostname=$unix->hostname_g();
 	$myNetBiosName=$unix->hostname_simple();
 	$ipaddr=trim($array["ADNETIPADDR"]);
@@ -532,10 +543,16 @@ function build(){
 	$domainUp=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
 	$domaindow=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 	$kinitpassword=$array["WINDOWS_SERVER_PASS"];
-	$kinitpassword=str_replace("'","",escapeshellarg($kinitpassword));
-	$kinitpassword=str_replace('$', '\$', $kinitpassword);
-	$kinitpassword=str_replace('!', '\!', $kinitpassword);
+	$kinitpassword=$unix->shellEscapeChars($kinitpassword);
 	$ipaddr=trim($array["ADNETIPADDR"]);
+	
+	if($ipaddr<>null){
+		$ipaddrZ=explode(".",$ipaddr);
+		while (list ($num, $a) = each ($ipaddrZ) ){
+			$ipaddrZ[$num]=intval($a);
+		}
+		$ipaddr=@implode(".", $ipaddrZ);
+	}
 	
 	sync_time();
 	krb5conf();
@@ -629,10 +646,7 @@ function JOIN_ACTIVEDIRECTORY(){
 	$domainUp=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
 	$domain_lower=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 	$adminpassword=$array["WINDOWS_SERVER_PASS"];
-	$adminpassword=escapeshellarg($adminpassword);
-	$adminpassword=str_replace("'", "", $adminpassword);
-	$adminpassword=str_replace('$', '\$', $adminpassword);
-	$adminpassword=str_replace('!', '\!', $adminpassword);
+	$adminpassword=$unix->shellEscapeChars($adminpassword);
 	$adminname=$array["WINDOWS_SERVER_ADMIN"];
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];
 	$workgroup=$array["ADNETBIOSDOMAIN"];
@@ -933,8 +947,8 @@ function SAMBA_PROXY(){
 	$domainUp=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
 	$domain_lower=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 	$adminpassword=$array["WINDOWS_SERVER_PASS"];
-	$adminpassword=escapeshellarg($adminpassword);
-	$adminpassword=str_replace("'", "", $adminpassword);
+	$adminpassword=$unix->shellEscapeChars($adminpassword);
+	
 	$adminname=$array["WINDOWS_SERVER_ADMIN"];
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];
 	$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
@@ -1001,6 +1015,7 @@ function SAMBA_PROXY(){
 
 function ping_klist(){
 	$sock=new sockets();
+	$unix=new unix();
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	if($EnableKerbAuth==0){return;}
@@ -1008,8 +1023,7 @@ function ping_klist(){
 	$domainUp=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
 	$domain_lower=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 	$adminpassword=$array["WINDOWS_SERVER_PASS"];
-	$adminpassword=escapeshellarg($adminpassword);
-	$adminpassword=str_replace("'", "", $adminpassword);
+	$adminpassword=$unix->shellEscapeChars($adminpassword);
 	$adminname=$array["WINDOWS_SERVER_ADMIN"];
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];	
 	RunKinit($array["WINDOWS_SERVER_ADMIN"],$array["WINDOWS_SERVER_PASS"]);
@@ -1032,10 +1046,7 @@ function RunKinit($username,$password){
 	if(strpos($line,"No credentials cache found")>0){
 		unset($res);
 		echo2($line." -> initialize..");
-		$password=escapeshellarg($password);
-		$password=str_replace("'", "", $password);
-		$password=str_replace("$", "\$", $password);
-		$password=str_replace("!", "\!", $password);
+		$password=$unix->shellEscapeChars($password);
 		$cmd="$echo \"$password\"|$kinit {$username} 2>&1";
 		if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 		echo "Starting......: $function, kinit `$username`\n";
@@ -1104,7 +1115,7 @@ function ping_kdc(){
 	$domain_lower=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 	$ad_server=strtolower($array["WINDOWS_SERVER_NETBIOSNAME"]);
 	$kinitpassword=$array["WINDOWS_SERVER_PASS"];
-	$kinitpassword=escapeshellarg($kinitpassword);
+	$kinitpassword=$unix->shellEscapeChars($kinitpassword);
 	$php5=$unix->LOCATE_PHP5_BIN();
 	
 	$clock_explain="The clock on you system (Linux/UNIX) is too far off from the correct time.\nYour machine needs to be within 5 minutes of the Kerberos servers in order to get any tickets.\nYou will need to run ntp, or a similar service to keep your clock within the five minute window";
@@ -1370,7 +1381,8 @@ function winbind_priv_perform($withpid=false){
 		$nohup=$unix->find_program("nohup");
 		if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
 		if(is_file($squidbin)){
-			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("starting......: Reloading $squidbin");}
+			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("starting......: Reloading $squidbin",basename(__FILE__),false);}
+			squid_admin_mysql(2, "Winbindd: Reconfiguring squid-cache","Process executed for connection to Active Directory");
 			shell_exec("$squidbin -k reconfigure >/dev/null 2>&1 &");
 		}
 	}
@@ -1589,7 +1601,7 @@ function disconnect(){
 	$domainUp=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
 	$domain_lower=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 	$adminpassword=$array["WINDOWS_SERVER_PASS"];
-	$adminpassword=escapeshellarg($adminpassword);
+	$adminpassword=$unix->shellEscapeChars($adminpassword);
 	$adminpassword=str_replace("'", "", $adminpassword);
 	$adminname=$array["WINDOWS_SERVER_ADMIN"];
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];	

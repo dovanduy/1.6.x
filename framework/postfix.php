@@ -291,12 +291,7 @@ function query_maillog(){
 	if(isset($_GET["rp"])){$max=$_GET["rp"];}
 	
 	if($search<>null){
-			$search=str_replace(".","\.",$search);
-			$search=str_replace("*",".*?",$search);
-			$search=str_replace("(","\(",$search);
-			$search=str_replace(")","\)",$search);
-			$search=str_replace("[","\[",$search);
-			$search=str_replace("]","\]",$search);	
+			$search=$unix->StringToGrep($search);
 			if($searchEmails<>null){
 				$cmd="$prefix$grep -i -E '$searchEmails' $maillog|$grep -E '$search'|$tail -n $max 2>&1";
 			}else{

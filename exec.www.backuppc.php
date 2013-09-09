@@ -102,13 +102,9 @@ function vhosts_users_ou($array){
 	$conf[]="\tServerAdmin webmaster@$apacheservername";
 	$conf[]="\tDocumentRoot $root";	
 	$conf[]=@implode("\n",$ssl);
-	$conf[]="\tBrowserMatch \"Microsoft Data Access Internet Publishing Provider\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"MS FrontPage\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"^WebDrive\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"^WebDAVFS/1.[0123]\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"^gnome-vfs/1.0\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"^XML Spy\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"^Dreamweaver-WebDAV-SCM1\" redirect-carefully";	
+	include_once(dirname(__FILE__)."/ressources/class.freeweb.inc");
+	$freeweb=new freeweb();
+	$conf[]=$freeweb->WebDavBrowserMatches();
 	$conf[]="\tAlias /backuppc $root";
 	$conf[]="\t<Directory \"$root\">";
 	$conf[]="\tAllowOverride None";

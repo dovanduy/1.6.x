@@ -1,4 +1,8 @@
 <?php
+header("Pragma: no-cache");
+header("Expires: 0");
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+header("Cache-Control: no-cache, must-revalidate");
 $GLOBALS["AS_ROOT"]=false;
 if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
@@ -633,7 +637,7 @@ $html="
 function section_myhost_config(){
 	$page=CurrentPageName();
 	if(CACHE_SESSION_GET( __FUNCTION__,__FILE__,120)){return;}
-	$frontend_settings=Paragraphe("64-settings.png",'{index_page_settings}','{index_page_settings_text}',"javascript:Loadjs('artica.performances.php?cron-js=yes');","{internal_hard_drives_text}");
+	//$frontend_settings=Paragraphe("64-settings.png",'{index_page_settings}','{index_page_settings_text}',"javascript:Loadjs('artica.performances.php?cron-js=yes');","{internal_hard_drives_text}");
 	$artica_settings=Paragraphe('folder-interface-64.png',"{advanced_options}","{advanced_artica_options_text}","javascript:Loadjs('artica.settings.php?js=yes&ByPopup=yes');","{advanced_artica_options_text}");
 	$proxy=Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}",
 	"javascript:Loadjs('artica.settings.php?js=yes&func-ProxyInterface=yes');");
@@ -757,7 +761,7 @@ function section_computers_infos(){
 	
 	
 	
-
+	$t=time();
 	$html="
 		<div id='main_computer_infos_quicklinks' style='background-color:white;margin-top:10px'>
 		<ul>
@@ -765,11 +769,12 @@ function section_computers_infos(){
 		</ul>
 	</div>
 		<script>
-				$(document).ready(function(){
-					$('#main_computer_infos_quicklinks').tabs();
+				
+			function tab$t(){	
+				$('#main_computer_infos_quicklinks').tabs();
+			}
 			
-
-			});
+			setTimeout('tab$t()',800);
 		</script>
 	
 	";	
@@ -808,27 +813,9 @@ function section_computers_infos_OS(){
 		$tab[]="<li><a href=\"$page?function=$num\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			
 		}
-	
-	
-	
 
-	$html="
-		<div id='main_computer_infos_quicklinks2' style='background-color:white;margin-top:-10px;margin-left:-10px'>
-		<ul>
-		". implode("\n",$tab). "
-		</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_computer_infos_quicklinks2').tabs();
-			
-
-			});
-		</script>
 	
-	";	
-	
-	echo $tpl->_ENGINE_parse_body($html);	
+	echo build_artica_tabs($tab,"main_computer_infos_quicklinks2");
 	
 	
 }
@@ -1357,6 +1344,12 @@ function certificate(){
 
 }
 function apt(){
+	$sock=new sockets();
+	$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
+	if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
+	if($EnableSystemUpdates==0){return;}
+	
+	
 	$GLOBALS["ICON_FAMILY"]="UPDATE";
 	$js="Loadjs('artica.repositories.php')";
 	$img="DEBIAN_mirror-64.png";	

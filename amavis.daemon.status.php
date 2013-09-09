@@ -80,7 +80,6 @@ function status_table(){
 	</div>
 <script>
 FreeWebIDMEM='';
-$(document).ready(function(){
 $('#jabberd-table-$t').flexigrid({
 	url: '$page?processes-list=yes&t=$t',
 	dataType: 'json',
@@ -108,7 +107,7 @@ $('#jabberd-table-$t').flexigrid({
 	singleSelect: true
 	
 	});   
-});
+
 
 function processes_form(){
 	YahooWin3('550','$page?processes-popup=yes','$processes');

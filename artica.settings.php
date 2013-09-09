@@ -303,24 +303,7 @@ function js_web_interface(){
 	}
 	
 	
-	echo "
-	<div id=main_config_jsweb style='width:100%;height:550px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_jsweb').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_jsweb");
 	
 }
 
@@ -2965,8 +2948,10 @@ function LDAP_SAVE(){
 	if(isset($_GET["LockLdapConfig"])){$sock->SET_INFO("LockLdapConfig",$_GET["LockLdapConfig"]);}
 	
 	
-	
-	$sock->getFrameWork("cmd.php?ldap-restart=yes");
+	if(!isset($GLOBALS["cmd.php?ldap-restart=yes"])){
+		$sock->getFrameWork("cmd.php?ldap-restart=yes");
+		$GLOBALS["cmd.php?ldap-restart=yes"]=true;
+	}
 	
 }
 
@@ -3276,7 +3261,10 @@ function LDAP_CONFIG_NET_ADD(){
 	$SavedNets=explode("\n",$sock->GET_INFO('LdapListenIPAddr'));
 	$SavedNets[]=$_GET["LdapListenIPAddr"];
 	$sock->SaveConfigFile(@implode("\n",$SavedNets),"LdapListenIPAddr");
-	$sock->getFrameWork("cmd.php?ldap-restart=yes");
+	if(!isset($GLOBALS["cmd.php?ldap-restart=yes"])){
+		$sock->getFrameWork("cmd.php?ldap-restart=yes");
+		$GLOBALS["cmd.php?ldap-restart=yes"]=true;
+	}
 }
 function LDAP_CONFIG_NET_ADD_OTHER(){
 	if(trim($_GET["ldap_other_network_card"])==null){return;}
@@ -3284,7 +3272,10 @@ function LDAP_CONFIG_NET_ADD_OTHER(){
 	$SavedNets=explode("\n",$sock->GET_INFO('LdapListenIPAddr'));
 	$SavedNets[]=$_GET["ldap_other_network_card"];
 	$sock->SaveConfigFile(@implode("\n",$SavedNets),"LdapListenIPAddr");
-	$sock->getFrameWork("cmd.php?ldap-restart=yes");	
+	if(!isset($GLOBALS["cmd.php?ldap-restart=yes"])){
+		$sock->getFrameWork("cmd.php?ldap-restart=yes");
+		$GLOBALS["cmd.php?ldap-restart=yes"]=true;
+	}	
 }
 
 function LDAP_CONFIG_NET_DEL(){
@@ -3292,7 +3283,10 @@ function LDAP_CONFIG_NET_DEL(){
 	$SavedNets=explode("\n",$sock->GET_INFO('LdapListenIPAddr'));
 	unset($SavedNets[$_GET["ldapDelNet"]]);
 	$sock->SaveConfigFile(@implode("\n",$SavedNets),"LdapListenIPAddr");
-	$sock->getFrameWork("cmd.php?ldap-restart=yes");	
+	if(!isset($GLOBALS["cmd.php?ldap-restart=yes"])){
+		$sock->getFrameWork("cmd.php?ldap-restart=yes");
+		$GLOBALS["cmd.php?ldap-restart=yes"]=true;
+	}
 }
 
 
@@ -3840,7 +3834,10 @@ function LDAP_SYNCPROV_SAVE(){
 		$u=new user($_GET["sync_user"]);
 		$sock->SET_INFO("SyncProvUserDN",$u->dn);
 	}
-	$sock->getFrameWork("cmd.php?ldap-restart=yes");
+	if(!isset($GLOBALS["cmd.php?ldap-restart=yes"])){
+		$sock->getFrameWork("cmd.php?ldap-restart=yes");
+		$GLOBALS["cmd.php?ldap-restart=yes"]=true;
+	}
 }
 
 function LighttpdArticaDisabled(){
@@ -3859,31 +3856,19 @@ function js_LighttpdArticaDisableSSLv2_save(){
 function js_web_miniadm(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$sock=new sockets();
-	$DenyMiniWebFromStandardPort=$sock->GET_INFO("DenyMiniWebFromStandardPort");
+	$t=time();
 	
-	$html="<table class=form style='width:99%'>
-	<tr>
-		<td class=legend>{deny_access_from_the_standard_port}:</td>
-		<td>". Field_checkbox("DenyMiniWebFromStandardPort", 1,$DenyMiniWebFromStandardPort,"DenyMiniWebFromStandardPortCheck()")."</td>
-	</tr>
-	</table>
+	$html="<div id='$t'></div>
+	
 	
 	<script>
-		var x_DenyMiniWebFromStandardPortSave= function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue)};
-			
-		}
-				
-		function DenyMiniWebFromStandardPortCheck(){
-			var XHR = new XHRConnection();
-			if(document.getElementById('DenyMiniWebFromStandardPort').checked){XHR.appendData('DenyMiniWebFromStandardPort',1);}else{XHR.appendData('DenyMiniWebFromStandardPort',0);}
-			XHR.sendAndLoad('$page', 'POST',x_DenyMiniWebFromStandardPortSave);	
-		}	
+		LoadAjax('$t','artica.performances.php?cron-start=yes');
+	</script>
+	";
 	
-	</script>";
-	echo $tpl->_ENGINE_parse_body($html);
+	echo $html;
+	
+	
 }
 
 function js_web_miniadm_save(){

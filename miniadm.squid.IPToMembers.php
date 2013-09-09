@@ -1,0 +1,264 @@
+<?php
+session_start();$_SESSION["MINIADM"]=true;
+ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
+ini_set('error_append_string',null);
+if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
+include_once(dirname(__FILE__)."/ressources/class.templates.inc");
+include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
+include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
+include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+include_once(dirname(__FILE__)."/ressources/class.user.inc");
+include_once(dirname(__FILE__)."/ressources/class.squid.inc");
+include_once(dirname(__FILE__)."/ressources/class.calendar.inc");
+if(!$_SESSION["AsWebStatisticsAdministrator"]){die();}
+if(isset($_GET["search-records"])){search_records();exit;}
+if(isset($_GET["NewipaddrLink-js"])){NewipaddrLink_js();exit;}
+if(isset($_GET["NewipaddrLink-popup"])){NewipaddrLink_popup();exit;}
+if(isset($_POST["save-ipaddr"])){NewipaddrLink_save();exit;}
+if(isset($_GET["delete-ipaddr-js"])){delete_js();exit;}
+if(isset($_POST["delete-ipaddr"])){delete_mac();exit;}
+if(isset($_POST["apply-changes"])){apply_changes();exit;}
+
+content();
+
+function content(){
+	$sock=new sockets();
+	$boot=new boostrap_form();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$t=time();
+	$button=button("{link_ip_to_uid}","NewipaddrLink$t()",16);
+	$button2=button("{apply_changes}","Apply$t()",16);
+	$SearchQuery=$boot->SearchFormGen("ipaddr,uid,hostname","search-records");
+	$apply_changes_mactouid_explain=$tpl->javascript_parse_text("{apply_changes_mactouid_explain}");
+	$html="
+	<div class=explain>{ipaddrtouid_explain}</div>
+	<table style='width:100%'>
+	<tr>
+	<td>$button $button2</td>
+	<td></td>
+	</tr>
+	</table>
+	$SearchQuery
+	<script>
+	ExecuteByClassName('SearchFunction');
+	
+	function NewipaddrLink$t(){
+		Loadjs('$page?NewipaddrLink-js=yes')
+	
+	}
+	var x_Apply$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+	}		
+	
+	function Apply$t(){
+		if(!confirm('$apply_changes_mactouid_explain')){return;}
+		var XHR = new XHRConnection();
+		XHR.appendData('apply-changes','yes');
+		XHR.sendAndLoad('$page', 'POST',x_Apply$t);			
+		
+	}
+	
+	</script>
+	";
+		
+	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function apply_changes(){
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?MacToUid=yes");
+	$sock->getFrameWork("squid.php?MacToUidStats=yes");
+	
+}
+
+function NewipaddrLink_js(){
+	$tpl=new templates();
+	$page=CurrentPageName();	
+	$_GET["ipaddr"]=trim($_GET["ipaddr"]);
+	header("content-type: application/x-javascript");
+	$title=$tpl->javascript_parse_text("{link_ip_to_uid}");
+	if($_GET["ipaddr"]<>null){
+		$title=$tpl->javascript_parse_text("{link_ip_to_uid}::{$_GET["ipaddr"]}");
+	}
+	
+	echo "YahooWin2('700','$page?NewipaddrLink-popup=yes&ipaddr={$_GET["ipaddr"]}','$title')";
+	
+	
+}
+function delete_js(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$_GET["delete-ipaddr-js"]=trim($_GET["delete-ipaddr-js"]);
+	$id=$_GET["id"];
+	header("content-type: application/x-javascript");
+	$title=$tpl->javascript_parse_text("{delete}: {$_GET["delete-ipaddr-js"]} ?");
+	$t=time();
+	echo "
+		var x_delete$t= function (obj) {
+			var results=obj.responseText;
+			if(results.length>3){alert(results);return;}
+			$('#$id').remove();
+		}				
+	
+	
+		function delete$t(){
+			if(!confirm('$title')){return;}
+			var XHR = new XHRConnection();
+			XHR.appendData('delete-ipaddr','{$_GET["delete-ipaddr-js"]}');
+			XHR.sendAndLoad('$page', 'POST',x_delete$t);			
+			
+		
+		}
+	delete$t()";
+
+
+}
+function delete_mac(){
+	$sql="DELETE FROM webfilters_ipaddr WHERE ipaddr='{$_POST["delete-ipaddr"]}'";
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;}
+}
+
+
+
+function NewipaddrLink_popup(){
+	$tpl=new templates();
+	$_GET["ipaddr"]=trim($_GET["ipaddr"]);
+	$q=new mysql_squid_builder();
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_ipaddr WHERE ipaddr='{$_GET["ipaddr"]}'"));
+	$boot=new boostrap_form();
+	if($_GET["ipaddr"]==null){
+			$boot->set_field("ipaddr", "{ipaddr}", null,array("MANDATORY"=>true,"IPV4"=>true));
+	}else{
+		$boot->set_formtitle("{ipaddr}:{$_GET["ipaddr"]}");
+		$boot->set_hidden("ipaddr", $_GET["ipaddr"]);
+		
+		$ips=array();
+		
+		$linkstats="<div style='width:100%'>
+				<a href=\"javascript:blur();\" 
+				OnClick=\"javascript:miniadm.squid.ipaddrbrowser.php?visits-day-js={$_GET["ipaddr"]}');>{statistics}</a></div>";
+			
+		
+	}
+	$linkstats=null;
+	$boot->set_hidden("save-ipaddr", 'yes');
+	$boot->set_field("uid", "{member}", $ligne["uid"],array("MANDATORY"=>true));
+	$boot->set_field("hostname", "{hostname}", $ligne["hostname"]);
+	$boot->set_button("{add}");
+	$boot->set_RefreshSearchs();
+	echo $boot->Compile();
+}
+function NewipaddrLink_save(){
+	
+	$ADDR=explode(".",$_POST["ipaddr"]);
+	while (list ($a, $b) = each ($ADDR) ){$ADDR[$a]=intval($b);}
+	$_POST["ipaddr"]=@implode(".", $ADDR);
+	$_POST["hostname"]=strtolower($_POST["hostname"]);
+	
+	
+	
+	$q=new mysql_squid_builder();
+	
+	if(!$q->TABLE_EXISTS('webfilters_ipaddr')){
+		$sql="CREATE TABLE `squidlogs`.`webfilters_ipaddr` (
+			`ipaddr` VARCHAR( 90 ) NOT NULL PRIMARY KEY ,
+			`uid` VARCHAR( 128 ) NOT NULL ,
+			`hostname` VARCHAR( 128 ) NOT NULL,
+			 INDEX ( `uid`,`hostname`)
+			)  ENGINE = MYISAM;";
+	
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo $q->mysql_error;}
+	}	
+	
+	
+	$q->CheckTables();
+	$_POST["uid"]=$q->StripBadChars_hostname($_POST["uid"]);
+	$_POST["hostname"]=$q->StripBadChars_hostname($_POST["hostname"]);
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ipaddr FROM webfilters_ipaddr WHERE ipaddr='{$_POST["ipaddr"]}'"));
+	if($ligne["ipaddr"]<>null){
+		$sql="UPDATE webfilters_ipaddr SET uid='{$_POST["uid"]}',hostname='{$_POST["hostname"]}' WHERE ipaddr='{$_POST["ipaddr"]}'";
+	}else{
+		
+		$sql="INSERT IGNORE INTO webfilters_ipaddr (ipaddr,hostname,uid) VALUES ('{$_POST["ipaddr"]}','{$_POST["hostname"]}','{$_POST["uid"]}');";
+		
+	}
+	
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;}
+	
+}
+
+
+
+function search_records(){
+	
+	
+	//SELECT MacAddress, uid FROM hostsusers
+	$search='%';
+	$q=new mysql_squid_builder();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q2=new mysql();
+	$limitSql="LIMIT 0,150";
+	$t=time();
+
+	$searchstring=string_to_flexquery("search-records");
+
+	$sql="SELECT *  FROM webfilters_ipaddr WHERE 1 $searchstring  ORDER BY uid $limitSql";
+	
+	$results = $q->QUERY_SQL($sql);
+	$sock=new sockets();
+	$boot=new boostrap_form();
+	
+	if(!$q->ok){
+		echo "<p class=text-error>$q->mysql_error<hr><code>$sql</code></p>";
+	}
+
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$id=md5(serialize($ligne));
+		$explainthis=null;
+		$articasrv=null;
+		$aliases_text=null;
+		$explainMac=null;
+		$OS=null;
+		$macencoded=urlencode($ligne["ipaddr"]);
+		$delete=imgsimple("delete-24.png",null,"Loadjs('$page?delete-ipaddr-js=$macencoded&id=$id')");
+		$jshost="NewPDNSEntry$t($id);";
+		
+
+		
+		$linkipaddr=$boot->trswitch("Loadjs('$page?NewipaddrLink-js=yes&ipaddr=$macencoded')");
+		
+		
+		
+		$tr[]="
+		<tr id='$id'>
+		<td $linkipaddr width=1% nowrap><i class='icon-user'></i> {$ligne["ipaddr"]}</a></td>
+		<td nowrap $linkipaddr><i class='icon-user'></i> {$ligne["hostname"]}</a></td>
+		<td nowrap $linkipaddr width=1% nowrap><i class='icon-user'></i> {$ligne["uid"]}</td>
+		<td style='text-align:center' width=1% nowrap>$delete</td>
+		</tr>";
+
+
+	}
+	echo $tpl->_ENGINE_parse_body("
+		<table class='table table-bordered table-hover'>
+			<thead>
+				<tr>
+					<th>{ipaddr}</th>
+					<th>{hostname}</th>
+					<th>{uid}</th>
+					<th>&nbsp;</th>
+				</tr>
+			</thead>
+			 <tbody>
+			").@implode("\n", $tr)." </tbody>
+			</table>
+			";
+}

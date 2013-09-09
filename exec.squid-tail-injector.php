@@ -135,31 +135,37 @@ if($argv[1]=="--clean-squid-queues"){CleanSquidQueues();die();}
 	
 	$RepairHourtime=$unix->file_time_min($RepairHourtimeFile);
 	if($RepairHourtime>60){
-		$cmd="$nohup $nice $php /usr/share/artica-postfix/exec.squid.stats.php --repair-hours --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
-		events("$cmd");
-		shell_exec($cmd);
-		@unlink($RepairHourtimeFile);
-		@file_put_contents($RepairHourtimeFile, time());
+		if(!system_is_overloaded()){
+			$cmd="$nohup $nice $php /usr/share/artica-postfix/exec.squid.stats.php --repair-hours --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
+			events("$cmd");
+			shell_exec($cmd);
+			@unlink($RepairHourtimeFile);
+			@file_put_contents($RepairHourtimeFile, time());
+		}
 	}
 	
 	$RepairHourYoutubetime=$unix->file_time_min($RepairHourYoutubetimeFile);
 	if($RepairHourtime>60){
-		$cmd="$nohup $nice $php /usr/share/artica-postfix/exec.squid.stats.youtube.days.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
-		events("$cmd");
-		shell_exec($cmd);
-		@unlink($RepairHourYoutubetimeFile);
-		@file_put_contents($RepairHourYoutubetimeFile, time());
+		if(!system_is_overloaded()){
+			$cmd="$nohup $nice $php /usr/share/artica-postfix/exec.squid.stats.youtube.days.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
+			events("$cmd");
+			shell_exec($cmd);
+			@unlink($RepairHourYoutubetimeFile);
+			@file_put_contents($RepairHourYoutubetimeFile, time());
+		}
 	}	
 	
 	
 	
 	$RTTSizeTime=$unix->file_time_min($RTTSizeTimeFile);
 	if($RTTSizeTime>5){
-		$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid-users-rttsize.php --now schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
-		events("$cmd");
-		shell_exec($cmd);
-		@unlink($RTTSizeTimeFile);
-		@file_put_contents($RTTSizeTimeFile, time());		
+		if(!system_is_overloaded()){
+			$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid-users-rttsize.php --now schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
+			events("$cmd");
+			shell_exec($cmd);
+			@unlink($RTTSizeTimeFile);
+			@file_put_contents($RTTSizeTimeFile, time());	
+		}	
 	}
 	
 	$UpdateCategoriesArticaTime=$unix->file_time_min($UpdateCategoriesArticaTimeFile);
@@ -242,6 +248,8 @@ function ParseUsersSize(){
 				if($hostname==null){$hostname=GetComputerName($ipaddr);}
 				if(!is_numeric($account)){$account=0;}
 				if($MAC<>null){if($uid==null){$uid=$q->UID_FROM_MAC($MAC);}}
+				if($ipaddr<>null){if($uid==null){$uid=$q->UID_FROM_IP($ipaddr);}}
+				
 				if(strlen($UserAgent)<3){$UserAgent=null;}
 				if(strlen($uid)<3){$uid=null;}
 				if($GLOBALS["VERBOSE"]){echo "('$md5','$uid','$zdate','$ipaddr','$hostname','$account','$MAC','$UserAgent','$size')\n";}
@@ -391,6 +399,7 @@ function WordScanners(){
 				if(!isset($GLOBALS["familysite"][$sitename])){$GLOBALS["familysite"][$sitename]=$q->GetFamilySites($sitename);}
 				$familysite=$GLOBALS["familysite"][$sitename];
 				if($mac<>null){if($uid==null){$uid=$q->UID_FROM_MAC($mac);}}
+				if($ipaddr<>null){if($uid==null){$uid=$q->UID_FROM_IP($ipaddr);}}
 				$FF[date("Ymdh",$Time)][]="('$zmd5','$sitename','$date','$ipaddr','$hostname','$uid','$mac','0','$familysite','$words')";
 				@unlink($targetFile);
 		}
@@ -647,7 +656,7 @@ function ParseSquidLogMain_sql_toarray($filename){
 	while (list ($num, $val) = each ($array) ){
 		$val=str_replace("'", "`", $val);
 		$val=stripslashes($val);
-		$val=mysql_escape_string($val);
+		$val=mysql_escape_string2($val);
 		$array[$num]=$val;
 	}
 	reset($array);
@@ -678,6 +687,7 @@ function ParseSquidLogMain_sql_toarray($filename){
 	if($username=="-"){$username=null;}
 	if($mac<>null){if($username==null){$username=$q->UID_FROM_MAC($mac);}}
 	if($hostname==null){$hostname=$GLOBALS["CLASS_SQUID_TAIL"]->GetComputerName($CLIENT);}
+	if($CLIENT<>null){if($username==null){$username=$q->UID_FROM_IP($CLIENT);}}
 	
 	if($username<>null){
 		$GLOBALS["USERSCACHE"][$CLIENT]=$username;
@@ -1579,7 +1589,7 @@ function ArrayToMysql($FINAL_ARRAY,$time=0){
 	while (list ($key, $val) = each ($FINAL_ARRAY) ){
 		$val=str_replace("'", "`", $val);
 		$val=stripslashes($val);
-		$FINAL_ARRAY[$key]=mysql_escape_string($val);
+		$FINAL_ARRAY[$key]=mysql_escape_string2($val);
 	}
 	
 	
@@ -1604,8 +1614,12 @@ function ArrayToMysql($FINAL_ARRAY,$time=0){
 	if($username=="-"){$username=null;}
 	
 	if($mac<>null){if($username==null){$username=$GLOBALS["Q"]->UID_FROM_MAC($mac);}}
+	if($CLIENT<>null){if($username==null){$username=$GLOBALS["Q"]->UID_FROM_IP($CLIENT);}}
 	if($hostname==null){$hostname=$GLOBALS["CLASS_SQUID_TAIL"]->GetComputerName($CLIENT);}
 	if(strlen($username)<3){$username=null;}
+	if($CLIENT<>null){if($username==null){$username=$GLOBALS["Q"]->UID_FROM_IP($CLIENT);}}
+	
+	
 	if(strlen($hostname)<3){
 		events("Fatal: bad hostname `$hostname` client=`$CLIENT`");
 		$hostname=null;
@@ -1697,7 +1711,7 @@ function youtube_array_to_sql($array){
 	$q=new mysql_squid_builder();
 	while (list ($key, $val) = each ($array) ){
 		$val=str_replace("'", "`", $val);
-		$val=mysql_escape_string($val);
+		$val=mysql_escape_string2($val);
 		$array[$key]=addslashes($val);
 	}
 	
@@ -1721,6 +1735,9 @@ function youtube_array_to_sql($array){
 	$timeKey=date('YmdH',$timeint);
 	$account=0;
 	if($mac<>null){if($username==null){$username=$q->UID_FROM_MAC($mac);}}
+	if($clientip<>null){if($username==null){$username=$q->UID_FROM_IP($clientip);}}
+	
+	
 	youtube_events("$timeKey => ('$time','$clientip','$hostname','$username','$mac','$account','$VIDEOID')", __LINE__);
 	return array($timeKey,"('$time','$clientip','$hostname','$username','$mac','$account','$VIDEOID')");
 		

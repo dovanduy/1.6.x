@@ -20,6 +20,8 @@ if(!is_file($binary)){return;}
 $php5=$unix->LOCATE_PHP5_BIN();
 $localgen="$php5 /usr/share/artica-postfix/exec.locale.gen.php --force";
 
+
+
 if(is_file("/etc/zarafa/searchscripts/attachments_parser")){@chmod("/etc/zarafa/searchscripts/attachments_parser", 0755);}
 
 $f[]="#! /bin/sh";
@@ -1111,6 +1113,17 @@ function zarafa_server_redhat(){
 function zarafa_server_all(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
+	
+	$zbdb=null;
+	$sock=new sockets();
+	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
+	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
+	
+	if($ZarafaDedicateMySQLServer==1){
+		shell_exec("$php /usr/share/artica-postfix/exec.zarafa-db.php --init");
+		$zbdb="$php /usr/share/artica-postfix/exec.zarafa-db.php --start";
+	}	
+	
 	$f=array();
 	$f[]="#!/bin/sh";
 	$f[]="### BEGIN INIT INFO";
@@ -1127,6 +1140,7 @@ function zarafa_server_all(){
 	$f[]="### END INIT INFO";
 	$f[]="case \"\$1\" in";
 	$f[]=" start)";
+	$f[]="    $zbdb";
 	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-server.php --start --byinitd \$2 \$3";
 	$f[]="    ;;";
 	$f[]="";

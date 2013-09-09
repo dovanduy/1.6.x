@@ -5,7 +5,7 @@ include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
-
+include_once(dirname(__FILE__)."/ressources/class.ufdbguard-tools.inc");
 
 if(isset($_GET["verbose"])){$GLOBALS["DEBUG_PRIVS"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(!isset($_SESSION["uid"])){writelogs("Redirecto to miniadm.logon.php...","NULL",__FILE__,__LINE__);header("location:miniadm.logon.php");}
@@ -33,9 +33,15 @@ if(isset($_GET["section-ufdb"])){section_ufdb();exit;}
 if(isset($_GET["ufdb-logs"])){table_ufdb();exit;}
 
 
+if(isset($_GET["section-blocked-tabs"])){section_blocked_tabs();exit;}
+if(isset($_GET["section-blocked-realtime"])){section_blocked_realtime();exit;}
+if(isset($_GET["section-blocked-realtime-search"])){section_blocked_realtime_search();exit;}
+
+
 
 if(isset($_GET["section-blocked"])){section_blocked();exit;}
 if(isset($_GET["query-blocked"])){table_blocked();exit;}
+
 if(isset($_GET["section-blocked-js"])){section_blocked_js();exit;}
 if(isset($_GET["section-blocked-popup"])){section_blocked_form();exit;}
 if(isset($_POST["QUERY_BLOCKED_DATE"])){section_blocked_save();exit;}
@@ -78,13 +84,25 @@ function tabs(){
 	}
 	
 	if($users->APP_UFDBGUARD_INSTALLED){
-		$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+		$EnableUfdbGuard=$sock->EnableUfdbGuard();
 		if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 		if($EnableUfdbGuard==1){
-			$array["{webfiltering}"]="$page?section-ufdb=yes";
-			$array["{blocked_requests}"]="$page?section-blocked=yes";
+			$array["{webfiltering}"]="$page?section-blocked-tabs=yes";
+			
 		}
 	}
+	echo $boot->build_tab($array);
+	
+}
+
+function section_blocked_tabs(){
+	$boot=new boostrap_form();
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$array["{blocked_requests}"]="$page?section-blocked-realtime=yes";
+	$array["{service_events}"]="$page?section-ufdb=yes";
+	$array["{history}"]="$page?section-blocked=yes";
 	echo $boot->build_tab($array);
 	
 }
@@ -96,6 +114,15 @@ function section_realtime(){
 	$SearchQuery=$boot->SearchFormGen(null,"query-logs");
 	echo $SearchQuery;
 }
+
+function section_blocked_realtime(){
+	$boot=new boostrap_form();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$SearchQuery=$boot->SearchFormGen(null,"section-blocked-realtime-search");
+	echo $SearchQuery;	
+}
+
 function section_ufdb(){
 	$boot=new boostrap_form();
 	$page=CurrentPageName();
@@ -234,6 +261,152 @@ function table_ufdb(){
 			</thead>
 			<tbody>
 			").@implode("\n", $tr)." </tbody></table>";	
+}
+
+function section_blocked_realtime_search(){
+	$_GET["section-blocked-realtime-search"]=url_decode_special_tool($_GET["section-blocked-realtime-search"]);
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	if(!isset($_GET["rp"])){$_GET["rp"]=350;}
+	
+	
+	
+	if($_GET["section-blocked-realtime-search"]<>null){
+		$search=base64_encode($_GET["section-blocked-realtime-search"]);
+		$datas=unserialize(base64_decode($sock->getFrameWork("squid.php?ufdbguard-logs=$search&rp={$_GET["rp"]}")));
+		if(count($datas)==0){senderror("no data");}
+		$total=count($datas);
+	
+	}else{
+		$datas=unserialize(base64_decode($sock->getFrameWork("squid.php?ufdbguard-logs=&rp={$_GET["rp"]}")));
+		if(count($datas)==0){senderror("no data");}
+		$total=count($datas);
+	}	
+	
+	
+	
+	
+	$boot=new boostrap_form();
+	$q2=new mysql();
+	$t=time();
+	
+	
+	while (list ($ID, $line) = each ($datas) ){
+		
+		
+		if(!preg_match('#(.+?)\s+\[(.+?)\]\s+(.+)#', $line,$re)){continue;}
+		$color="black";
+		$date=$re[1];
+		$pid=$re[2];
+		$event=$re[3];
+	
+
+		if(!preg_match("#^BLOCK\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+(.*?)\s+[A-Z]+#", $event,$re)){continue;}
+		
+		
+		$account=$re[1];
+		$group=$re[2];
+		$category=$re[4];
+		$rule=$re[3];
+		$uri=$re[5];
+		$sitename=null;
+		$js=null;
+		$unblock=null;
+		
+		
+		
+		if(preg_match("#^art(.+)#", $category,$re)){
+			$category=CategoryCodeToCatName($category);
+			$CATEGORY_PLUS_TXT="Artica Database";
+		}
+		
+		if(preg_match("#^tls(.+)#", $category,$re)){
+			$category=CategoryCodeToCatName($category);
+			$CATEGORY_PLUS_TXT="Toulouse University Database";
+		}		
+		$URLAR=parse_url($uri);
+		if(isset($URLAR["host"])){$sitename=$URLAR["host"];}
+		
+		if(preg_match("#^(.*?):[0-9]+$#", $sitename,$re)){$sitename=$re[1];}
+		if(preg_match("#^www\.(.*?)$#", $sitename,$re)){$sitename=$re[1];}
+		
+		if($sitename<>null){
+			$js="Loadjs('squid.categories.php?category=$category&website=$sitename')";
+			$link=$boot->trswitch($js);
+			$unblock=imgsimple("whitelist-24.png",null,"UnBlockWebSite$t('$sitename')");
+			$ligne3=mysql_fetch_array($q2->QUERY_SQL("SELECT items FROM urlrewriteaccessdeny WHERE items='$sitename'","artica_backup"));
+		}
+		
+		if(!$q2->ok){
+			$unblock="<img src='img/icon_err.gif'><br>$q2->mysql_error";
+		}else{
+			if($ligne3["items"]<>null){
+				$unblock=imgsimple("20-check.png",null,null);
+			}
+		}
+		
+		$strlen=strlen($uri);
+		$uriT = wordwrap($uri, 100, "\n", true);
+		$uriT = htmlentities($uriT);
+		$uriT = nl2br($uriT);
+		$uriT=str_replace($sitename, "<a href=\"javascript:blur()\"
+				OnClick=\"javascript:Loadjs('miniadm.webstats.familysite.all.php?familysite=$sitename');\"
+				style='text-decoration:underline;color:$color'>$sitename</a>", $uriT);		
+	
+	
+		$tr[]=
+		"<tr>
+		<td nowrap style='font-size:14px' width=1% nowrap>$date</td>
+		<td style='font-size:14px' width=1% nowrap>$pid</td>
+		<td style='font-size:14px' width=1% nowrap>$category<div style='font-size:11px'>$CATEGORY_PLUS_TXT</div></td>
+		<td style='font-size:14px' width=1% nowrap>$account/$group</td>
+		<td style='font-size:14px' width=1% nowrap>$rule</td>
+		<td style='font-size:14px'>$uriT</td>
+		<td style='font-size:14px' width=1% nowrap>$unblock</td>
+		</tr>
+		";
+	
+	
+	
+	}
+	
+	
+	$tpl=new templates();
+	$UnBlockWebSiteExplain=$tpl->javascript_parse_text("{UnBlockWebSiteExplain}");
+	echo $tpl->_ENGINE_parse_body("<table class='table table-bordered'>
+	
+			<thead>
+			<tr>
+			<th>{date}</th>
+			<th>PID</th>
+			<th>{category}</th>
+			<th>{member}</th>
+			<th nowrap>{rulename}</th>
+			<th>{url}</th>
+			<th>&nbsp;</th>
+			</tr>
+			</thead>
+			<tbody>
+			").@implode("\n", $tr)." </tbody></table>		<script>
+	var x_UnBlockWebSite$t=function(obj){
+	      var tempvalue=obj.responseText;
+	      if(tempvalue.length>3){alert(tempvalue);}
+	      
+	}	
+
+function UnBlockWebSite$t(domain){
+	if(confirm('$UnBlockWebSiteExplain:'+domain+' ?')){
+		var XHR = new XHRConnection();
+		XHR.appendData('unlock',domain);
+		XHR.sendAndLoad('squid.blocked.events.php', 'POST',x_UnBlockWebSite$t);
+	}
+
+}
+</script>";
+
+
+	
 }
 
 

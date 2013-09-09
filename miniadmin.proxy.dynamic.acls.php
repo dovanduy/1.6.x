@@ -38,6 +38,12 @@ function main_js(){
 	$gpid=$_GET["ByJs"];
 	$q=new mysql_squid_builder();
 	header("content-type: application/x-javascript");
+	
+	if(!$_SESSION["MINIADM"]){
+		echo "alert('Should be viewed trough End-Users Web interface');";
+	
+	}
+	
 	$tpl=new templates();
 	$dynamic_acls_newbee=$tpl->javascript_parse_text("{dynamic_acls_newbee}");
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupName FROM webfilters_sqgroups WHERE ID=$gpid"));
@@ -196,7 +202,7 @@ function ruleid_save(){
 		}
 	}
 	$q=new mysql_squid_builder();
-	$uid=mysql_escape_string($_SESSION["uid"]);
+	$uid=mysql_escape_string2($_SESSION["uid"]);
 	$_POST["value"]=url_decode_special_tool($_POST["value"]);
 	if($ruleid>0){$logtype="{update2}";}else{$logtype="{add}";}
 	
@@ -232,10 +238,10 @@ function ruleid_enable(){
 	if($_POST["enabled"]==1){$action="{enable}";}
 	if($_POST["enabled"]==0){$action="{disable}";}
 	
-	$uid=mysql_escape_string($_SESSION["uid"]);
+	$uid=mysql_escape_string2($_SESSION["uid"]);
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilter_aclsdynamic WHERE ID='{$_POST["enable_id"]}'"));
 	$gpid=$ligne["gpid"];
-	$logtype=mysql_escape_string("$action {$q->acl_GroupTypeDynamic[$ligne["type"]]} {$ligne["value"]} {$ligne["description"]}");
+	$logtype=mysql_escape_string2("$action {$q->acl_GroupTypeDynamic[$ligne["type"]]} {$ligne["value"]} {$ligne["description"]}");
 	$zdate=date("Y-m-d H:i:s");
 	$sqllogs="INSERT IGNORE INTO webfilter_aclsdynlogs(`gpid`,`zDate` ,`events` ,`who`)
 	VALUES('$gpid','$zdate','$logtype','$uid');";
@@ -253,11 +259,11 @@ function ruleid_delete(){
 	$id=$_POST["delete-id"];
 	$q=new mysql_squid_builder();
 	
-	$uid=mysql_escape_string($_SESSION["uid"]);
+	$uid=mysql_escape_string2($_SESSION["uid"]);
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilter_aclsdynamic WHERE ID='$id'"));
 	
 	$gpid=$ligne["gpid"];
-	$logtype=mysql_escape_string("{delete} {$q->acl_GroupTypeDynamic[$ligne["type"]]} {$ligne["value"]} {$ligne["description"]}");
+	$logtype=mysql_escape_string2("{delete} {$q->acl_GroupTypeDynamic[$ligne["type"]]} {$ligne["value"]} {$ligne["description"]}");
 	$zdate=date("Y-m-d H:i:s");
 	$sqllogs="INSERT IGNORE INTO webfilter_aclsdynlogs(`gpid`,`zDate` ,`events` ,`who`)
 	VALUES('$gpid','$zdate','$logtype','$uid');";
@@ -303,7 +309,7 @@ function content(){
 		<div style='font-size:14px'><a href=\"miniadm.index.php\">{myaccount}</a>
 		&nbsp;|&nbsp;<a href=\"$page\" ><strong>{dynamic_acls_newbee}</strong></a>";
 	if($users->AsSquidAdministrator){
-		$html=$html."&nbsp;|&nbsp;<a href=\"miniadmin.proxy.php\"><strong>{APP_PROXY}</strong></a>
+		$html=$html."&nbsp;|&nbsp;<a href=\"miniadmin.proxy.index.php\"><strong>{APP_PROXY}</strong></a>
 		";
 	}
 	$html=$html."
@@ -350,7 +356,9 @@ function rule_page(){
 	$tpl=new templates();
 	$users=new usersMenus();	
 	$boot=new boostrap_form();
-	if(!isset($_SESSION["SQUID_DYNAMIC_ACLS"][$_GET["tab-gpid"]])){die();}
+	if(!$users->AsSquidAdministrator){
+		if(!isset($_SESSION["SQUID_DYNAMIC_ACLS"][$_GET["tab-gpid"]])){die();}
+	}
 	$tab_gpid="{$_GET["tab-gpid"]}";
 	$new_rule=$tpl->_ENGINE_parse_body("{new_rule}");
 	$q=new mysql_squid_builder();

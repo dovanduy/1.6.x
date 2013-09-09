@@ -56,6 +56,7 @@ function BlockedSites2(){
 	$divstart="<div style='margin:-10px;margin-left:-15px;margin-right:-15px'>";
 	$divend="</div>";
 	if(isset($_GET["noreduce"])){$divstart=null;$divend=null;}
+	$hostname=$tpl->javascript_parse_text("{hostname}");
 	$days=$tpl->javascript_parse_text("{days}");
 	$t=time();
 	
@@ -73,7 +74,7 @@ function BlockedSites2(){
 	$divend
 	
 <script>
-$(document).ready(function(){
+function flexigridStart$t(){
 $('#flexRT$t').flexigrid({
 	url: '$page?events=yes&t=$t',
 	dataType: 'json',
@@ -88,7 +89,9 @@ $('#flexRT$t').flexigrid({
 		],
 		$buttons
 	searchitems : [
-		{display: '$member', name : 'client'},
+		{display: '$member', name : 'uid'},
+		{display: '$ipaddr', name : 'client'},
+		{display: '$hostname', name : 'hostname'},
 		{display: '$webservers', name : 'website'},
 		{display: '$category', name : 'category'},
 		{display: '$rule', name : 'rulename'},
@@ -107,7 +110,7 @@ $('#flexRT$t').flexigrid({
 	rpOptions: [10, 20, 30, 50,100,200,500,1000,1500]
 	
 	});   
-});
+}
 
 	var x_UnBlockWebSite$t=function(obj){
 	      var tempvalue=obj.responseText;
@@ -145,7 +148,7 @@ function ChooseDays$t(){
 function NotifsParams$t(){
 	Loadjs('ufdbguard.smtp.notif.php?js=yes');
 }
-
+setTimeout('flexigridStart$t()',800);
 </script>
 	
 	
@@ -174,13 +177,11 @@ function popup_list(){
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	$q2=new mysql();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	
+	$searchstring=string_to_flexquery();
+	
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
 		$total = $ligne["TCOUNT"];
@@ -201,14 +202,19 @@ function popup_list(){
 	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,'artica_events');
+	if(!$q->ok){json_error_show($q->mysql_error,2);}
 	
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
 	$today=date('Y-m-d');
-	if(!$q->ok){json_error_show($q->mysql_error);}	
-
+	if(!$q->ok){json_error_show($q->mysql_error,2);}	
+	
+	if(mysql_num_rows($results)==0){
+		json_error_show($sql,2);}
+	
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 	$ligne["zDate"]=str_replace($today,"{today}",$ligne["zDate"]);
 	if(preg_match("#plus-(.+?)-artica#",$ligne["category"],$re)){$ligne["category"]=$re[1];}

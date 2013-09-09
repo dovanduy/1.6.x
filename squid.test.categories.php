@@ -369,14 +369,8 @@ function websitelist(){
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".trim($_POST["query"])."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
 		$sql="SELECT * FROM $table WHERE 1 $searchstring";
 		$results=$q->QUERY_SQL($sql);
 		$total = mysql_num_rows($results);
@@ -435,12 +429,15 @@ function websitelist(){
 			
 			$country=$ligne["Country"];
 			if($country<>null){$country="<div>$country</div>";}
+			$encodesite=urlencode($ligne['sitename']);
+			$google="<a href=\"http://www.google.com/search?q=$encodesite&ie=utf-8&oe=utf-8&\" target='_blank'><img src='img/Google-18.png' style='float:right'></a>"; 
 			
 			$data['rows'][] = array(
 			'id' => md5($ligne['sitename']),
 			'cell' => array(
 				"<a href=\"javascript:blur();\" OnClick=\"$jscat\" style='font-size:11px;font-weight:bold;text-decoration:underline'>{$ligne['zDate']}</span>",
-				 "<a href=\"javascript:blur();\" OnClick=\"$jscat\" style='font-size:11px;font-weight:bold;text-decoration:underline'>{$ligne['sitename']}</a></span>$country",
+				 "$google<a href=\"javascript:blur();\" OnClick=\"$jscat\" style='font-size:11px;font-weight:bold;text-decoration:underline'>{$ligne['sitename']}</a></span>
+				 $country ",
 				"<span style='font-size:11px;font-weight:bold'>{$ligne["category"]}</span>",$button,$delte)
 			);
 	}

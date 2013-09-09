@@ -42,6 +42,10 @@ function popup(){
 	$page=CurrentPageName();
 	$EnableZarafaSearch=$sock->GET_INFO("EnableZarafaSearch");
 	$EnableZarafaSearchAttach=$sock->GET_INFO("EnableZarafaSearchAttach");
+	
+	$ZarafaIndexPath=$sock->GET_INFO("ZarafaIndexPath");
+	if($ZarafaIndexPath==null){$ZarafaIndexPath="/var/lib/zarafa/index";}
+	
 	$t=time();
 
 	$html="
@@ -56,7 +60,10 @@ function popup(){
 				<td class=legend style='font-size:16px'>{index_in_attachments}:</td>
 				<td style='font-size:16px'>". Field_checkbox("EnableZarafaSearchAttach-$t", 1)."</td>
 			</tr>				
-			
+			<tr>	
+				<td class=legend style='font-size:16px'>{directory}:</td>
+				<td style='font-size:16px'>". Field_text("ZarafaIndexPath", "$ZarafaIndexPath","font-size:16px;width:220px")."</td>
+			</tr>				
 			<tr>
 				<td align='right' colspan=2><hr>". button("{apply}","Zarafa$t()","18px")."</td>
 			</tr>		
@@ -78,6 +85,7 @@ function popup(){
 		if(document.getElementById('EnableZarafaSearchAttach-$t').checked){EnableZarafaSearchAttach=1;}
 		XHR.appendData('EnableZarafaSearch',EnableZarafaSearch);
 		XHR.appendData('EnableZarafaSearchAttach',EnableZarafaSearchAttach);
+		XHR.appendData('ZarafaIndexPath',document.getElementById('ZarafaIndexPath').value);
 		AnimateDiv('div-$t');
 		XHR.sendAndLoad('$page', 'POST',x_Zarafa$t);
 		}
@@ -103,6 +111,7 @@ function ZarafaSave(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableZarafaSearch", $_POST["EnableZarafaSearch"]);
 	$sock->SET_INFO("EnableZarafaSearchAttach", $_POST["EnableZarafaSearchAttach"]);
+	$sock->SET_INFO("ZarafaIndexPath", $_POST["ZarafaIndexPath"]);
 	$sock->getFrameWork("zarafa.php?restart-search=yes");
 }
 

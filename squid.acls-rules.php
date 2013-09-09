@@ -393,8 +393,9 @@ function acl_rule_settings(){
 	$html="
 	<div id='FormToParse$t'>
 	<div id='divid$t' ></div> 
+	
 	<div style='width:95%' class=form>
-	<table style='width:100%'>
+	<table style='width:100%' class=TableRemove>
 	<tr>
 		<td class=legend style='font-size:14px'>{rule_name}:</td>
 		<td>". Field_text("aclrulename",$aclname,"font-size:14px;width:220px")."</td>
@@ -406,8 +407,8 @@ function acl_rule_settings(){
 				
 	
 	</table>
-	</div>
-	<div style='width:95%' class=form>
+	
+	
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{allow}:</td>
@@ -457,22 +458,25 @@ function acl_rule_settings(){
 		<td>". Field_checkbox("deny_log",1,$deny_log,"deny_log_check()")."</td>
 	</tr>				
 	</table>
-	</div>
-	<table style='width:99%' class=form>
-	<tr>
-		<td class=legend style='font-size:14px'>{limit_bandwidth}:</td>
-		<td>". Field_checkbox("delay_access",1,$delay_access,"limit_bandwidth_check()")."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{bandwidth}:</td>
-		<td>
-			<span id='delay_access_id_text' style='font-size:14px;font-weight:bold'>$delay_access_id_text</span>
-			<input type='hidden' id='delay_access_id' value='$delay_access_id'>
-		</td>
-		<td width=1%>". button('{browse}...',"Loadjs('squid.bandwith.php?browser-acl-js=yes&aclruleid=$ID')")."</td>
-	</tr>			
-	</table>
-	<div style='width:95%' class=form>			
+
+	
+		<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:14px'>{limit_bandwidth}:</td>
+			<td>". Field_checkbox("delay_access",1,$delay_access,"limit_bandwidth_check()")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{bandwidth}:</td>
+			<td>
+				<span id='delay_access_id_text' style='font-size:14px;font-weight:bold'>$delay_access_id_text</span>
+				<input type='hidden' id='delay_access_id' value='$delay_access_id'>
+			</td>
+			<td width=1%>". button('{browse}...',"Loadjs('squid.bandwith.php?browser-acl-js=yes&aclruleid=$ID')")."</td>
+		</tr>			
+		</table>
+	
+				
+			
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{affect_quota_rule}:</td>
@@ -487,8 +491,9 @@ function acl_rule_settings(){
 		<td width=1%>". button('{browse}...',"Loadjs('squid.ext_time_quota_acl.php?browser-quota-js=yes&checkbowid=deny_quota_rule&textid=deny_quota_rule_id_text&idnum=deny_quota_rule_id')")."</td>
 	</tr>			
 	</table>				
-	</div>
-	<div style='width:95%' class=form>
+	
+				
+	
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{request_header_add}:</td>
@@ -505,18 +510,19 @@ function acl_rule_settings(){
 	</table>
 	<div><i style='font-size:11px'>$explain_no33squid</i></div>			
 	
-	<table style='width:99%' class=form>
-	<tr>
-		<td class=legend style='font-size:14px'>{tcp_outgoing_tos}:</td>
-		<td>". Field_checkbox("tcp_outgoing_tos",1,$tcp_outgoing_tos,"tcp_outgoing_tosCheck()")."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{tcp_outgoing_tos_value}:</td>
-		<td>". Field_text("tcp_outgoing_tos_value",$tcp_outgoing_tos_value,'font-size:14px;width:90px')."</td>
-	</tr>	
+	<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:14px'>{tcp_outgoing_tos}:</td>
+			<td>". Field_checkbox("tcp_outgoing_tos",1,$tcp_outgoing_tos,"tcp_outgoing_tosCheck()")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{tcp_outgoing_tos_value}:</td>
+			<td>". Field_text("tcp_outgoing_tos_value",$tcp_outgoing_tos_value,'font-size:14px;width:90px')."</td>
+		</tr>	
 	</table>
-	</div>
-	<div style='width:95%' class=form>
+
+				
+	
 	<table style='width:100%'>	
 	<tr>
 		<td class=legend style='font-size:14px'>{acl_tcp_outgoing_address}:</td>
@@ -527,15 +533,14 @@ function acl_rule_settings(){
 		<td>". Field_array_Hash($ipss,"tcp_outgoing_address_value",$tcp_outgoing_address_value,null,null,0,"font-size:14px")."</td>
 	</tr>	
 	</table>	
-	</div>
 	
-	<div style='width:95%' class=form>
+	
+	
 	<table style='width:100%'>
 	<tr>
 		<td colspan=2 align='right'><hr>". button("{apply}", "SaveAclRule$ID()",16)."</td>
 	</tr>
 	</table>
-	</div>
 	</div>
 	
 	<script>
@@ -1086,7 +1091,7 @@ function page(){
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
 var DeleteSquidAclGroupTemp=0;
-$(document).ready(function(){
+function flexigridStart$t(){
 $('#table-$t').flexigrid({
 	url: '$page?acls-list=yes&t=$t&toexplainorg=table-$t&t=$t&aclgroup-id={$_GET["aclgroup-id"]}',
 	dataType: 'json',
@@ -1125,7 +1130,7 @@ buttons : [
 	singleSelect: true
 	
 	});   
-});
+}
 function AddAcl() {
 	Loadjs('$page?Addacl-js=yes&ID=-1&t=$t$GROUPE_RULE_ID_NEW_RULE');
 	
@@ -1232,7 +1237,7 @@ function SquidTemplatesErrors$t(){
 		XHR.appendData('EnableSquidPortsRestrictions', 'yes');
 	    XHR.sendAndLoad('$page', 'POST',x_EnableDisableAclRule$t);  
 	}
-
+	setTimeout('flexigridStart$t()',800);
 	
 </script>
 	

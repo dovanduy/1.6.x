@@ -194,6 +194,11 @@ function rebuildcaches(){
 	shell_exec("$php5 /usr/share/artica-postfix/exec.squid.watchdog.php --stop");
 	
 	while (list ($cache_dir, $ligne) = each ($array) ){
+		if(preg_match("#MemBooster#", $cache_dir)){
+			ouputz("Removing $cache_dir content...",__LINE__);
+			shell_exec("$rm -rf $cache_dir/*");
+			continue;
+		}
 		$cachesRename[]="$cache_dir-delete-$t";
 		ouputz("Moving $cache_dir to $cache_dir-delete-$t...",__LINE__);
 		exec("$mv $cache_dir $cache_dir-delete-$t 2>&1",$results);
@@ -226,12 +231,16 @@ function rebuildcaches(){
 	for($i=0;$i<60;$i++){
 		$array=$unix->squid_get_cache_infos();
 		if(count($array)>0){break;}
-		ouputz("Waiting {$i}s/60 to squid be ready...",__LINE__);
+		ouputz("Waiting {$i}s/60 to Squid-cache be ready...",__LINE__);
 		sleep(1);
 	}
+	
+	ouputz("Done... Squid-cache seems to be ready...",__LINE__);
 	ouputz("Reloading $squidbin cache",__LINE__);
 	$results=array();
 	squid_watchdog_events("Reconfiguring Proxy parameters...");
+	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$file=basename($trace[1]["file"]);$function=$trace[1]["function"];$line=$trace[1]["line"];$called="Called by $function() from line $line";}}
+	squid_admin_mysql(2, "Rebuild caches: Reconfiguring squid-cache","$called");
 	exec("$squidbin -k reconfigure 2>&1",$results);
 	while (list ($num, $ligne) = each ($results) ){ouputz("$ligne",__LINE__);}
 	
@@ -284,7 +293,7 @@ function ouputz($text,$line){
 	$date=@date("H:i:s");
 
 	$logFile="/usr/share/artica-postfix/ressources/logs/web/rebuild-cache.txt";
-	if($GLOBALS["VERBOSE"]){echo "$logFile\n";}
+	if($GLOBALS["VERBOSE"]){echo "$text\n";}
 	if(is_file($logFile)){
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}

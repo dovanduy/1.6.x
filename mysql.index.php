@@ -526,7 +526,7 @@ function Database_Status(){
 
 function repair_database(){
 	$sock=new sockets();
-	$datas=$sock->getfile('MysqlRepairDatabase');
+	$datas=$sock->getfile('services.php?mysql-repair-dabatase=yes');
 	$tb=explode("\n",$datas);
 	
 while (list ($num, $ligne) = each ($tb) ){

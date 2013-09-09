@@ -1,9 +1,9 @@
-<accept_time>Accept time</accept_time>
+<accept_time>Tempo aceite</accept_time>
 <access_list>Lista de regras</access_list>
-<access_rule>Access rule</access_rule>
-<access_rules>Access rules</access_rules>
+<access_rule>Regra de acesso</access_rule>
+<access_rules>Regras de Acesso</access_rules>
 <access_rules_back>Repor regras padr&atilde;o</access_rules_back>
-<access_rules_back_text>This will rebuild to default access rules, [b]all your rules settings will be deleted[/b] and rebuild</access_rules_back_text>
+<access_rules_back_text>Isto ir&aacute; repor as regras de acesso padr&atilde;o, [b] todas as suas configura&ccedil;&otilde;es de regras ser&atilde;o eliminadas[/b] e repostas</access_rules_back_text>
 <access_rules_text>Allowing or Denying access based on defined access lists[br]
 "Access Control list" are linked to a rule statement that tells Squid whether or not to deny or allow traffic that matches the ACL.[br]
 Squid matches each Web access request it receives by checking the rule list from top to bottom.[br]
@@ -12,10 +12,9 @@ You have to be careful not to place a deny statement in the list that blocks a s
 </access_rules_text>
 <acl>Acl</acl>
 <acls>Acesso h&aacute; Lista de Controlo</acls>
-<acls_text>Access control settings are among the most important features of Squid.[br]
-You can configure Squid to set filters for various entities and at different granularities (e.g. filters for specific protocols,
-filters for certain types of commands, filters for specific routers, filters for specified domains, etc).[br]
-</acls_text>
+<acls_text>As Configura&ccedil;&otilde;es de controle de acesso est&atilde;o entre as caracter&iacute;sticas mais importantes do Squid. [Br]
+podemos configurar o Squid para definir filtros para diversas entidades e em diferentes granularidades (por exemplo, filtros de protocolos espec&iacute;ficos,
+filtros para determinados tipos de comandos, filtros para routers espec&iacute;ficos, filtros para dom&iacute;nios espec&iacute;ficos, etc.) [br]</acls_text>
 <acl_arp>Endere&ccedil;o Ethernet(s&oacute; em Unix)</acl_arp>
 <acl_arp_text>This option only works for clients on the same local subnet, and only for certain platforms.[br]
 Linux, Solaris, and some BSD variants are the supported operating systems for this type of ACL.[br]
@@ -29,7 +28,7 @@ ACLARP refers MACADDRESS of the ethernet 11:12:13:14:15:16[br]
 cannot find out its MAC address.[/i]
 </acl_arp_text>
 <acl_arp_title>Endere&ccedil;o Ethernet(MAC) correspondente</acl_arp_title>
-<acl_browser>Browser matching</acl_browser>
+<acl_browser>Browser correspondente</acl_browser>
 <acl_browser_text>This is A regular expression that matches the clients browser type based on the user agent header[br]
 This allows for ACL's to operate based on the browser type in use, for example, using this ACL type, one could create an ACL for
 Netscape users and another for Internet Explorer users.[br]
@@ -37,14 +36,13 @@ Example:[br]
 [b]MOZILLA[/b]
 This refers to the requests, which are coming from the browsers who have "MOZILLA" keyword in the user-agent header.
 </acl_browser_text>
-<acl_browser_title>Browser Name matching</acl_browser_title>
+<acl_browser_title>Nome do Browser coincide</acl_browser_title>
 <acl_dst>Endere&ccedil;o Servidor Web</acl_dst>
 <acl_dstdomain>Nome do host do Servidor Web</acl_dstdomain>
-<acl_dstdomain_text>When matching to be done based on the destination servers domain, you can use this acl type.[br]
-[i]Note: Here "." is more important.[/i][br]
-[b]Example:[/b]
-[br][blk] .kovaiteam.com[/blk][br]This looks for *.kovaiteam.com from URL
-</acl_dstdomain_text>
+<acl_dstdomain_text>Quando a correspond&ecirc;ncia &eacute; baseia nos servidores de dom&iacute;nio de destino, voc&ecirc; pode usar este tipo de ACL.[br]
+[i] Nota: aqui &quot;.&quot; &eacute; muito importante.[i][/br]
+[b] Exemplo[/b]
+[br][blk].kovaiteam.com[/blk][br] Isto procura pela URL *.kovaiteam.com</acl_dstdomain_text>
 <acl_dstdomain_title>Isto refere-se ao Dom&iacute;nio de destino i.e. o dom&iacute;nio de origem onde o servidor de origem se encontra localizado.</acl_dstdomain_title>
 <acl_dstdom_regex>Servidor Web Regexp</acl_dstdom_regex>
 <acl_dstdom_regex_text>Matching done on destination domain based on regular expression[br]
@@ -64,10 +62,10 @@ cache_peer_access mycache.mydomain.net allow asexample[br]
 cache_peer_access mycache_mydomain.net deny all[/b]
 </acl_dst_as_text>
 <acl_dst_as_title>Destination Autonomous System Number  &eacute; o n&uacute;mero AS do servidor a ser consultado.</acl_dst_as_title>
-<acl_dst_text>[ul]
-[li]172.16.1.0/24 - refers to the whole Network with address 172.16.1.0[/li]
-[li]172.16.1.25/32 - refers to a single source[/li]
-[li]172.16.1.25-172.16.1.35/32 - refers range of IP Addresses from 172.16.1.25-172.16.1.35[/li]
+<acl_dst_text>ul]
+[li] 172.16.1.0/24 - refere-se a toda a rede com o endere&ccedil;o 172.16.1.0 [/li]
+[li] 172.16.1.25/32 - refere-se a um endere&ccedil;o especifico [/li]
+[li] 172.16.1.25-172.16.1.35/32 - refere-se intervalo de endere&ccedil;os IP de 172.16.1.25-172.16.1.35 [/ li]
 [/ul]</acl_dst_text>
 <acl_dst_title>Mesmo como &quot;Endere&ccedil;o Cliente&quot;, mas olha para o endere&ccedil;o IP de destino</acl_dst_title>
 <acl_external>Programa externo</acl_external>
@@ -143,7 +141,7 @@ The same user can log to a maximum of 2 times from two different machines and wh
 [/UL]
 
 </acl_method_text>
-<acl_method_title>This ACL type matches the HTTP method in the request headers. This includes the methods GET,PUT, etc</acl_method_title>
+<acl_method_title>Este tipo de ACL corresponde ao m&eacute;todo HTTP nos cabe&ccedil;alhos da requisi&ccedil;&atilde;o. Isso inclui os m&eacute;todos GET, PUT, etc</acl_method_title>
 <acl_myip>Endere&ccedil;o IP do Proxy</acl_myip>
 <acl_myip_text>Using this acl type, we can specify the local IP address on which the clients connections exists.[br]
 This allows ACLs to be constructed that only match one physical network, if multiple interfaces are present on the proxy, among other things
@@ -162,7 +160,7 @@ This allows ACLs to be constructed that only match one physical network, if mult
 <acl_name>D&aacute; nome a esta Regra</acl_name>
 <acl_port>Porta remota</acl_port>
 <acl_port_text>Matching done on the destination port like 80, 8080, 9000...</acl_port_text>
-<acl_port_title>This ACL matches on the destination port for the request</acl_port_title>
+<acl_port_title>Esta ACL corresponde &agrave; porta de destino para o pedido.</acl_port_title>
 <acl_proto>Protocolo Remoto</acl_proto>
 <acl_proto_text>values was [ul]
 [li]http[/li]
@@ -223,8 +221,8 @@ This acl looks for the pattern "text" in request mime header.[br]
 <acl_req_mime_type_title>Match against the mime type of the request generated by the client</acl_req_mime_type_title>
 <acl_rule_allow>[b]Allow[/b] when match rule click to Deny it</acl_rule_allow>
 <acl_rule_deny>[b]Deny[/b] and exit when match rule click to allow it</acl_rule_deny>
-<acl_src>Client Address</acl_src>
-<acl_srcdomain>Client Hostname</acl_srcdomain>
+<acl_src>Endere&ccedil;o do Cliente</acl_src>
+<acl_srcdomain>Hostname do Cliente</acl_srcdomain>
 <acl_srcdomain_text>Matching can be either a single domain name, or a list or domain names, or the path to a file that contains a list of domain names.[br]
 If a path to a file, it must be surrounded by parentheses. This ACL type can increase the latency, and decrease throughput significantly on a loaded cache, as it must perform an address-to-name lookup for each request, so it is usually preferable to use the Client IP Address
 type.[br]
@@ -237,7 +235,7 @@ If a path to a file is specified, it must be surrounded parentheses[br]
 [b]Example:[/b] kovai - This looks for the word kovai from the client domain name.
 </acl_srcdom_regex_text>
 <acl_srcdom_regex_title>Matches against the client domain name</acl_srcdom_regex_title>
-<acl_src_as>Source AS Number</acl_src_as>
+<acl_src_as>Origem do n&uacute;mero AS</acl_src_as>
 <acl_src_as_text>The autonomous system number ACL types are generally only used in Cache Peer, or ICP, access restrictions.[br]
 Autonomous system numbers are used in organizations that have multiple internet links and routers operating under a single administrative authority using
 the same gateway protocol.[br]
@@ -252,8 +250,8 @@ Routing decisions are then based on knowledge of the AS in addition to other pos
 [li]172.16.1.25-172.16.1.35/32 - refers range of IP Addresses from 172.16.1.25-172.16.1.35[/li]
 [/ul]
 </acl_src_text>
-<acl_src_title>The IP address of the requesting client, or the clients IP Address</acl_src_title>
-<acl_time>Date and Time</acl_time>
+<acl_src_title>O endere&ccedil;o IP do cliente solicitante, ou os Endere&ccedil;os IP dos Clientes.</acl_src_title>
+<acl_time>Data e Hora</acl_time>
 <acl_time_text>Provides timed filter settings.[br]
 This feature is often used to block some types of content or some sections of the internet during business or class hours.
 [br]Many companies block pornography, entertainment, sports, and other clearly non-work related sites during business hours, but then unblock them after hours.
@@ -262,7 +260,7 @@ This ACL type allows you to enter days of the week and a time range, or select a
 [br][b]S=Sunday; M=Monday; T=Tuesday; W=Wednesday; H=Thursday; F=Friday; A=Saturday.[/b]
 [br][b]Example:[/b] M 9:00-17:00 - Refers day of Monday and time from 9:00 to 17:00.
 </acl_time_text>
-<acl_time_title>This type is just what it sounds like, providing a means to create ACLs that are active during certain times of the day or certain days of the week.</acl_time_title>
+<acl_time_title>Este tipo &eacute; exatamente o que parece, fornece um meio para criar ACLs que est&atilde;o ativas durante certos per&iacute;odos do dia ou certos dias da semana.</acl_time_title>
 <acl_urlpath_regex>URL Path regex</acl_urlpath_regex>
 <acl_urlpath_regex_text>This acl type expects for the particular pattern alone from the given URLs. If found the words, it will match it[br]
 [b]Example:[/b]

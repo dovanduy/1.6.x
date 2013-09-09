@@ -1,14 +1,19 @@
 <?php
+if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
+if(!$GLOBALS["AS_ROOT"]){session_start();unset($_SESSION["MINIADM"]);unset($_COOKIE["MINIADM"]);}
+header("Pragma: no-cache");
+header("Expires: 0");
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+header("Cache-Control: no-cache, must-revalidate");
 $GLOBALS["AS_ROOT"]=false;
 $GLOBALS["VERBOSE"]=false;
-if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
+if(isset($_GET["verbose"])){ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"");ini_set('error_append_string',"<br>\n");$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_PROCESS"]=true;$GLOBALS["VERBOSE_SYSLOG"]=true;include_once("ressources/logs.inc");}
 if(isset($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}}
 $GLOBALS["ICON_FAMILY"]="SYSTEM";
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if($GLOBALS["VERBOSE"]){echo "Memory:(".__LINE__.") " .round(memory_get_usage(true)/1024)."Ko<br>\n";}
 include_once('ressources/class.templates.inc');
 if($GLOBALS["VERBOSE"]){echo "Memory:(".__LINE__.") " .round(memory_get_usage(true)/1024)."Ko<br>\n";}
-if(!$GLOBALS["AS_ROOT"]){session_start();unset($_SESSION["MINIADM"]);unset($_COOKIE["MINIADM"]);}
 include_once('ressources/class.html.pages.inc');
 include_once('ressources/class.cyrus.inc');
 include_once('ressources/class.main_cf.inc');
@@ -424,10 +429,12 @@ function main_admin_tabs(){
 		$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 		if($SQUIDEnable==1){
-			$array["t:HTTP_FILTER_STATS"]="{MONITOR}";
+			
 			if(!$users->PROXYTINY_APPLIANCE){
 				if(!$users->SQUID_REVERSE_APPLIANCE){
-					$array["t:HTTP_BLOCKED_STATS"]="{blocked_websites}";
+					if($users->APP_UFDBGUARD_INSTALLED){
+						$array["t:HTTP_BLOCKED_STATS"]="{blocked_websites}";
+					}
 				}
 			}
 		}
@@ -440,10 +447,12 @@ if($users->KASPERSKY_SMTP_APPLIANCE){
 	$array["t:system"]="{webinterface}";
 }	
 
-if(count($array)<6){
+if(count($array)<8){
 	$array["t:cnx"]="{connections}";
 }
-
+if(count($array)<8){
+	$array["t:members"]="Admins";
+}
 $count=count($array);
 //if($count<7){$array["add-tab"]="{add}&nbsp;&raquo;";}
 
@@ -471,6 +480,11 @@ if(count($array)>7){$style="style=font-size:11px";}
 				continue;
 			}
 			
+			if($re[1]=="members"){
+				$html[]= "<li ><a href=\"freeradius.users.php?t=0$newfrontend\"><span $style>$ligne</span></a></li>\n";
+				continue;
+			}			
+			
 			if($re[1]=="multiple_instances"){
 				$html[]= "<li ><a href=\"postfix.multiple.instances.infos.php?iniline=yes$newfrontend\"><span $style>$ligne</span></a></li>\n";
 				continue;
@@ -497,25 +511,10 @@ if(count($array)>7){$style="style=font-size:11px";}
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"admin.tabs.php?tab=$num$newfrontend\"><span $style>$ligne</span></a></li>\n");
 		}
 	
-	
-$html= "
-	<div id='mainlevel' style='width:$width;height:auto;'>
-		<div id=admin_perso_tabs style='width:$width;height:auto;'>
-			<ul>". implode("\n",$html)."</ul>
-		</div>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#admin_perso_tabs\").tabs();});
-		</script>";	
+$t=time();	
 
-	if($GLOBALS["AS_ROOT"]){
-		@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/admin.index.tabs.html", $html);
-		return;
-	}
+return build_artica_tabs($html, "admin_perso_tabs");
 
-SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
-return $html;	
 		
 }
 
@@ -692,11 +691,14 @@ function status_computer(){
 	echo $html;
 }
 
+
+
 function status_mysql(){
 	$tpl=new templates();
 	$q=new mysql();
 	$sock=new sockets();
 	$page=CurrentPageName();
+	include_once(dirname(__FILE__)."/ressources/class.mysql.syslogs.inc");
 	
 	$MySqlMemoryCheck=$sock->GET_INFO("MySqlMemoryCheck");
 	if(!is_numeric($MySqlMemoryCheck)){$MySqlMemoryCheck=0;}
@@ -704,6 +706,21 @@ function status_mysql(){
 		$status_computer_mysql_memory_check=status_computer_mysql_memory_check();
 		if($status_computer_mysql_memory_check<>null){$status_computer_mysql_memory_check=$status_computer_mysql_memory_check."<br>";}
 	}
+	
+	OutputDebugVerbose("Init");
+	$syslog=new mysql_storelogs();
+	OutputDebugVerbose("mysql_storelogs() initlized");
+	if($syslog->EnableSyslogDB==1){
+		OutputDebugVerbose("EnableSyslogDB is OK testing the connection... syslog->THIS_BD_CONNECT()");
+		if(!$syslog->THIS_BD_CONNECT()){
+			OutputDebugVerbose("syslog->THIS_BD_CONNECT() DONE");
+			
+			echo "<center>".$tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"Syslog:{mysql_error}",$q->mysql_error))."</center>";
+		}
+		
+	}
+	
+	
 
 	
 	if(is_file("ressources/logs/zarafa.notify.MySQLIssue")){
@@ -721,6 +738,8 @@ function status_mysql(){
 	}	
 	
 	$sql="SELECT count(*) FROM admin_cnx";
+	OutputDebugVerbose($sql);
+	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_events");
 	if(!$q->ok){
 		if(preg_match("#Access denied for user#",$q->mysql_error)){
@@ -784,20 +803,15 @@ function status_right_image(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$tpl=new templates();
-	if(!$GLOBALS["VERBOSE"]){
-		if(!$GLOBALS["AS_ROOT"]){	
-			if(!isset($_GET["status_right_image"])){if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,false,2)){return null;}}
-			include_once(dirname(__FILE__)."/ressources/class.browser.detection.inc");
-		}
-	}
 	$users=new usersMenus();
-	$tpl=new templates();
+	
 	$newfrontend=false;
 	$sock=new sockets();
 	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
 	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
 	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}
-	
+	$NOCACHE=false;
+	if(isset($_GET["nocache"])){$NOCACHE=true;}
 	$script="
 	<script>
 		LoadAjax('mem_status_computer','$page?memcomputer=yes');
@@ -837,7 +851,6 @@ function status_right_image(){
 	if($users->LOAD_BALANCE_APPLIANCE){
 		$status=new status();
 		$html=$tpl->_ENGINE_parse_body($status->xr_status()).$script;
-		SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
 		echo $html;
 		return;
 	}	
@@ -850,7 +863,6 @@ function status_right_image(){
 	if($users->POSTFIX_INSTALLED){
 			if($GLOBALS["VERBOSE"]){echo "$page -> status_postfix() LINE:".__LINE__."\n";}
 			$html= status_postfix().$script;
-			SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
 			echo $html;	
 			return null;
 		}
@@ -863,8 +875,7 @@ function status_right_image(){
 		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 		if($SQUIDEnable==0){
 			if($users->KASPERSKY_WEB_APPLIANCE){
-				$html=status_kav4proxy().$script;
-				SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
+				$html=status_kav4proxy($NOCACHE).$script;
 				echo $html;	
 				return null;
 			}
@@ -873,14 +884,13 @@ function status_right_image(){
 		
 		if($users->KASPERSKY_WEB_APPLIANCE){
 			if($GLOBALS["VERBOSE"]){echo "<strong>status->status_squid_kav()</strong><br>\n";}
-			echo status_squid_kav().$script;return;}
-		$html=status_squid();
-		SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
+			echo status_squid_kav($NOCACHE).$script;return;}
+			$html=status_squid($NOCACHE);
 		echo $html;				
 		return null;
 	}else{
 		if($users->KASPERSKY_WEB_APPLIANCE){
-			$html=status_kav4proxy().$script;
+			$html=status_kav4proxy($NOCACHE).$script;
 			SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
 			echo $html;	
 			return;}
@@ -934,14 +944,22 @@ function status_right(){
 	
 	echo "
 	<div id='mem_status_computer' style='text-align:center;width:100%;margin:10px'></div>
-	\n
 	<div id='right-status-infos'></div>
+	<div id='IMAGE_STATUS_INFO' style='width:100%;min-height:295px' class=form></div>	
 	<script>
-		LoadAjax('mem_status_computer','$page?memcomputer=yes$ajaxadd');
+	LoadAjax('mem_status_computer','$page?memcomputer=yes$ajaxadd');
+	
+	function IMAGE_STATUS_INFO_$t(){
+		LoadAjax('IMAGE_STATUS_INFO','admin.index.php?status_right_image=yes&t=$t');
+	}
+	
+	setTimeout('IMAGE_STATUS_INFO_$t()',1500);
 	</script>
-	<div id='IMAGE_STATUS_INFO' style='width:100%;min-height:295px' class=form>";
-		status_right_image();
-	echo "</div>";
+	
+	";
+	
+	
+	
 }
 	
 	
@@ -979,13 +997,13 @@ function status_kav4proxy(){
 	return $tpl->_ENGINE_parse_body($html);		
 }
 
-function status_squid(){
+function status_squid($NOCACHE=false){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
+	if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>$page LINE:".__LINE__."</strong><br>\n";}
 	$status=new status();
 	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-	$html=$status->Squid_status();
+	$html=$status->Squid_status($NOCACHE);
 	return $tpl->_ENGINE_parse_body($html);	
 }
 

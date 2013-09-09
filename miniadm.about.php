@@ -34,6 +34,8 @@ if(isset($_GET["performances"])){performances();exit;}
 if(isset($_GET["graph1"])){graph1();exit;}
 if(isset($_GET["graph2"])){graph2();exit;}
 if(isset($_GET["disk-usage"])){disk_usage();exit;}
+if(isset($_GET["isAdmin"])){is_admin(true);exit;}
+
 main_page();
 exit;
 
@@ -44,15 +46,11 @@ if(isset($_POST["miniconfig-POST-lang"])){choose_language_save();exit();}
 
 function main_page(){
 	$page=CurrentPageName();
-	
 	$tplfile="ressources/templates/endusers/index.html";
 	if(!is_file($tplfile)){echo "$tplfile no such file";die();}
 	$content=@file_get_contents($tplfile);
-	
 	$content=str_replace("{SCRIPT}", "<script>LoadAjax('globalContainer','$page?content=yes')</script>", $content);
 	echo $content;
-	
-	
 }
 
 function content_start(){
@@ -61,13 +59,15 @@ function content_start(){
 	$ct=new user($_SESSION["uid"]);
 	$t=time();
 	$base="ressources/profiles/icons";
-	
+	$license_mode="Entreprise Edition";
 	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){$license_mode="Community edition";}
 	
 	$html="
 	<div class='hero-unit'>
 		<h1 style='text-transform:capitalize'>{about2}</h1>
 		<h2>Artica v$users->ARTICA_VERSION</h2>
+		<div style='font-size:16px;text-align:right'>$license_mode</div>
 		
 	</div>
 	
@@ -85,9 +85,16 @@ function content_start(){
 
 
 
-function is_admin(){
-	
+function is_admin($dump=false){
 	$users=new usersMenus();
+	if($dump){
+		if(!$users->AsProxyMonitor){echo "<H1>AsProxyMonitor = FALSE</H1>";}
+		if(!$users->AsAnAdministratorGeneric){echo "<H1>AsAnAdministratorGeneric = FALSE</H1>";}
+		if(!$users->AsDansGuardianAdministrator){echo "<H1>AsDansGuardianAdministrator = FALSE</H1>";}
+		if(!$users->AsWebStatisticsAdministrator){echo "<H1>AsWebStatisticsAdministrator = FALSE</H1>";}
+		
+	}
+	
 	if($users->AsProxyMonitor){return true;}
 	if($users->AsAnAdministratorGeneric){return true;}
 	if($users->AsDansGuardianAdministrator){return true;}

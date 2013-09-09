@@ -200,6 +200,8 @@ function search(){
 		
 		if(trim($ligne["uid"])=="-"){$ligne["uid"]=null;}
 		if(trim($ligne["uid"])==null){$ligne["uid"]=$q->UID_FROM_MAC($ligne["MAC"]);}
+		if(trim($ligne["uid"])==null){$ligne["uid"]=$q->UID_FROM_IP($ligne["CLIENT"]);}
+		
 		
 		$categorize="<a href=\"javascript:blur()\" 
 		OnClick=\"javascript:$categorize\" 

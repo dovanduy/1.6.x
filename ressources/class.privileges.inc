@@ -174,7 +174,9 @@ $spec",1);
 	}
 	
 	private function privileges_groups_AD(){
-		if(isset($GLOBALS["privileges_groups_AD$this->uid"])){return;}
+		if(isset($GLOBALS["privileges_groups_AD$this->uid"])){
+			if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."]  privileges_groups_AD$this->uid is alreay set<br>\n";}
+			return;}
 		include_once(dirname(__FILE__))."/class.external.ad.inc";
 		$gp=new external_ad_search();
 		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] ->LoadMember($this->uid)<br>\n";}
@@ -195,13 +197,29 @@ $spec",1);
 		
 		while (list ($dnGroup, $GroupName) = each ($Groups) ){
 			$hash=$gp->LoadGroupDataByDN($dnGroup);
-			if(strlen($hash["ArticaGroupPrivileges"])>0){
+			if(strlen($hash["ArticaGroupPrivileges"])>10){
 				if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] ArticaGroupPrivileges:". strlen($hash["ArticaGroupPrivileges"])." bytes for $GroupName -> `$dnGroup`<br>\n";}
 				$this->ParsePrivileges($hash["ArticaGroupPrivileges"]);
+			}else{
+				if(preg_match("#CN=Domain Admins,CN=Users,#i",$dnGroup)){$this->ParsePrivileges($this->default_all_rights());}
+				if(preg_match("#CN=Enterprise Admins,CN=Users,#i",$dnGroup)){$this->ParsePrivileges($this->default_all_rights());}
+				if(preg_match("#CN=Administrators,CN=Builtin#i",$dnGroup)){$this->ParsePrivileges($this->default_all_rights());}
+				
 			}
 		}
 		$GLOBALS["privileges_groups_AD$this->uid"]=true;
 		return true;
+	}
+	
+	
+	private function default_all_rights(){
+		$f[]="[AsArticaAdministrator]=\"yes\"";
+		$f[]="[AsSystemAdministrator]=\"yes\"";
+		$f[]="[AsPostfixAdministrator]=\"yes\"";
+		$f[]="[AsSquidAdministrator]=\"yes\"";
+		$f[]="[AsDansGuardianAdministrator]=\"yes\"";
+		$f[]="[AsSystemWebMaster]=\"yes\"";
+		return @implode("\n", $f)."\n";
 	}
 	
 	

@@ -1,6 +1,7 @@
 <?php
 define("alse", "alse");
 $GLOBALS["AS_ROOT"]=false;
+if(!isset($GLOBALS["KAV4PROXY_NOSESSION"])){$GLOBALS["KAV4PROXY_NOSESSION"]=false;}
 if(!isset($GLOBALS["DEBUG_MEM"])){$GLOBALS["DEBUG_MEM"]=false;}
 if(function_exists("debug_mem")){debug_mem();}
 include_once(dirname(__FILE__) .'/logs.inc');
@@ -10,7 +11,7 @@ if(function_exists("posix_getuid")){
 	if(posix_getuid()<>0){
 		if(function_exists("DefineSessions")){DefineSessions();}
 		if(function_exists("CheckSessions")){CheckSessions();}
-		if(!$GLOBALS["KAV4PROXY_NOSESSION"]){session_start();}
+		if(!$GLOBALS["KAV4PROXY_NOSESSION"]){if(strlen($GLOBALS["SESSION_ID"])<2){$GLOBALS["SESSION_ID"]=session_id();session_start();}}
 	}else{
 		$GLOBALS["AS_ROOT"]=true;
 	}
@@ -106,6 +107,7 @@ class usersMenus {
 	public $MEMCACHED_INSTALLED=false;
 	public $APP_ATOPENMAIL_INSTALLED=false;
 	public $HAARP_INSTALLED=false;
+	public $CNTLM_INSTALLED=false;
 	public $CLAMD_DATABASE_PATH="";
 	public $APP_ATOPENMAIL_VERSION="";
 	public $COLLECTD_RRD=array();
@@ -569,6 +571,7 @@ class usersMenus {
 	public $APP_FTP_PROXY=false;
 	public $UCARP_INSTALLED=false;
 	public $SQUID_REVERSE_APPLIANCE=false;
+	public $ISCSID_INSTALLED=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -595,8 +598,20 @@ class usersMenus {
 			$_GLOBAL=array();
 			if($GLOBALS["VERBOSE"]){
 					$trace=debug_backtrace();
+					
+					if(isset($trace[1]["file"])){
+						$filename=basename($trace[1]["file"]);
+					}
+					if(isset($trace[1]["function"])){
+						$function=" - function {$trace[1]["function"]}()";
+					}
+					if(isset($trace[1]["line"])){
+						$function=$function." line {$trace[1]["line"]}";
+					}
+					
+					
 					if(isset($trace[1])){
-						$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";			
+						$called=" called by $filename $function";			
 						//echo "Instanciate userMenus() $called\n";
 					}
 				}		
@@ -743,6 +758,9 @@ class usersMenus {
 			if(isset($_GLOBAL["APP_FTP_PROXY"])){$this->APP_FTP_PROXY=$_GLOBAL["APP_FTP_PROXY"];}
 			if(isset($_GLOBAL["PHPFPM_INSTALLED"])){$this->PHPFPM_INSTALLED=$_GLOBAL["PHPFPM_INSTALLED"];}
 			if(isset($_GLOBAL["SQUID_REVERSE_APPLIANCE"])){$this->SQUID_REVERSE_APPLIANCE=$_GLOBAL["SQUID_REVERSE_APPLIANCE"];}
+			if(isset($_GLOBAL["CNTLM_INSTALLED"])){$this->CNTLM_INSTALLED=$_GLOBAL["CNTLM_INSTALLED"];}
+			if(isset($_GLOBAL["ISCSID_INSTALLED"])){$this->ISCSID_INSTALLED=$_GLOBAL["ISCSID_INSTALLED"];}
+			
 			
 			
 			

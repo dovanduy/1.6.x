@@ -1,15 +1,30 @@
 <?php
-	include_once('ressources/class.templates.inc');
-	include_once('ressources/class.ldap.inc');
-	include_once('ressources/class.users.menus.inc');
-	include_once('ressources/class.artica.inc');
-	include_once('ressources/class.rtmm.tools.inc');
-	include_once('ressources/class.squid.inc');
-	include_once('ressources/class.dansguardian.inc');
+
+	if(isset($_GET["verbose"])){
+		$GLOBALS["VERBOSE"]=true;
+		$GLOBALS["DEBUG_MEM"]=true;
+		ini_set('display_errors', 1);
+		ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string',null);
+		ini_set('error_append_string',null);
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo "<H1>DEBUG</H1>";}
+
+    include_once(dirname(__FILE__).'/ressources/class.templates.inc');
+	include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
+	include_once(dirname(__FILE__).'/ressources/class.users.menus.inc');
+	include_once(dirname(__FILE__).'/ressources/class.artica.inc');
+	include_once(dirname(__FILE__).'/ressources/class.rtmm.tools.inc');
+	include_once(dirname(__FILE__).'/ressources/class.squid.inc');
+	include_once(dirname(__FILE__).'/ressources/class.dansguardian.inc');
 	header("Pragma: no-cache");	
 	header("Expires: 0");
-	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+	//header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");	
+	
+	
+	
 	$user=new usersMenus();
 	if(!$user->AsWebStatisticsAdministrator){
 		$tpl=new templates();
@@ -61,8 +76,49 @@
 	
 	
 js();
+function js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	header("content-type: application/x-javascript");
+
+	if(!$users->APP_UFDBGUARD_INSTALLED){
+		echo "alert('".$tpl->javascript_parse_text("{APP_UFDBGUARD_NOT_INSTALLED}")."')";
+		return;
+
+	}
+
+	$category=$_GET["category"];
+	$title=$tpl->_ENGINE_parse_body("{visited_websites}");
+	$t=$_GET["t"];
+	$categorize_this_query=$tpl->_ENGINE_parse_body("{categorize_this_query}");
+	if(isset($_GET["onlyNot"])){$onlyNot="&onlyNot=yes";}
+	if(isset($_GET["day"])){
+		if($_GET["day"]<>null){
+			$titledate=$_GET["day"];
+		}
+	}
+	$start="YahooWin3('890','$page?popup=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}$onlyNot','$title $titledate');";
+	if(isset($_GET["add-www"])){
+		if($category<>null){$category_text="&raquo;&raquo;{category}&raquo;&raquo;$category";}
+		$title=$tpl->_ENGINE_parse_body("{add_websites}$category_text");
+		$start="YahooWin3('650','$page?free-cat-tabs=yes&websitetoadd={$_GET["websitetoadd"]}&category=$category&t=$t','$title');";
+	}
+
+	$html="
+	$start
+
+	function CategorizeAll(query){
+	YahooWin4(580,'$page?CategorizeAll='+escape(query)+'&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}','$categorize_this_query');
+
+}
+";
+echo $html;
+
+}
 
 function CategorizeAll_js(){
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{visited_websites}");
@@ -80,7 +136,6 @@ function CategorizeAll_js(){
 	echo $html;	
 	
 }
-
 function recategorize_day_perform(){
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?recategorize-day={$_POST["recategorize-day-perform"]}");
@@ -88,7 +143,6 @@ function recategorize_day_perform(){
 	$text=$tpl->javascript_parse_text("{success}"); 
 	echo $text;
 }
-
 function rescan_week_perform(){
 	$sock=new sockets();
 	if(!is_numeric($_POST["year"])){$_POST["year"]=date("Y");}
@@ -98,8 +152,6 @@ function rescan_week_perform(){
 	$text=$tpl->javascript_parse_text("{success}")."\n****\n$tablename\n****\n";
 	echo $text;
 }
-
-
 function recategorize_day_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -126,7 +178,6 @@ function recategorize_day_js(){
 	echo $html;	
 	
 }
-
 function rescan_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -141,43 +192,9 @@ function rescan_js(){
 	";
 	echo $html;
 }
-
 function rescan_perform(){
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?visited-sites=yes");
-	
-}
-
-
-function js(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$category=$_GET["category"];
-	$title=$tpl->_ENGINE_parse_body("{visited_websites}");
-	$t=$_GET["t"];
-	$categorize_this_query=$tpl->_ENGINE_parse_body("{categorize_this_query}");
-	if(isset($_GET["onlyNot"])){$onlyNot="&onlyNot=yes";}
-	if(isset($_GET["day"])){
-		if($_GET["day"]<>null){
-			$titledate=$_GET["day"];
-		}
-	}
-	$start="YahooWin3('890','$page?popup=yes&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}$onlyNot','$title $titledate');";
-	if(isset($_GET["add-www"])){
-		if($category<>null){$category_text="&raquo;&raquo;{category}&raquo;&raquo;$category";}
-		$title=$tpl->_ENGINE_parse_body("{add_websites}$category_text");
-		$start="YahooWin3('650','$page?free-cat-tabs=yes&websitetoadd={$_GET["websitetoadd"]}&category=$category&t=$t','$title');";
-	}
-	
-	$html="
-	$start
-	
-	function CategorizeAll(query){
-			YahooWin4(580,'$page?CategorizeAll='+escape(query)+'&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}','$categorize_this_query');
-		
-		}	
-		";
-	echo $html;
 	
 }
 
@@ -234,19 +251,9 @@ function free_catgorized_tabs(){
 	}
 	
 	
-	echo "
-	<div id=main_config_visitedwebs$t style='width:100%;height:100%'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_visitedwebs$t').tabs();
+	echo build_artica_tabs($html, "main_config_visitedwebs$t");
 			
-			
-			});
-		</script>";			
 }
-
 function popup(){
 	$tpl=new templates();
 	$page=CurrentPageName();
@@ -277,20 +284,9 @@ function popup(){
 	}
 	
 	
-	echo "
-	<div id=main_config_visitedwebs style='width:100%'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_visitedwebs').tabs();
-			
-			
-			});
-		</script>";			
+	echo build_artica_tabs($html, "main_config_visitedwebs");
+		
 }
-
-
 function visited(){
 $page=CurrentPageName();	
 $html="
@@ -599,177 +595,32 @@ function QuickCategorize(){
 	
 }
 
-function free_catgorized_save(){
-	include_once(dirname(__FILE__)."/ressources/class.html2text.inc");
-	$sock=new sockets();
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
-	
-	
-	$h2t =new html2text($_POST["textToParseCats"]);
-	$h2t->get_text();
-	
-	while (list ($num, $ligne) = each (	$h2t->_link_array)){
-		if(trim($ligne)==null){continue;}
-		$ligne=strtolower($ligne);
-		$ligne=str_replace("(whois)", "", $ligne);
-		$ligne=str_replace("||", "", $ligne);
-		$ligne=str_replace("^", "", $ligne);
-		$ligne=trim($ligne);
-		if(preg_match("#[0-9]+\.[0-9]+.[0-9]+.[0-9]+:[0-9]+#", $ligne)){continue;}
-		if(strpos(" $ligne", "http")==0){$ligne="http://$ligne";}
-		$hostname=parse_url($ligne,PHP_URL_HOST);
-		
-		
-		
-		if(preg_match("#^www\.(.+)#", $hostname,$re)){$hostname=$re[1];}
-		if(preg_match("#^\.(.+)#", $hostname,$re)){$hostname=$re[1];}
-		if(preg_match("#^\*\.(.+)#", $hostname,$re)){$hostname=$re[1];}
-		writelogs("$ligne = $hostname",__FUNCTION__,__FILE__,__LINE__);
-		$websitesToscan[]=$ligne;
-	}	
-	
-	
-	
-	$_POST["textToParseCats"]=str_replace("<", "\n<", $_POST["textToParseCats"]);
-	$_POST["textToParseCats"]=str_replace(' rel="nofollow"', "", $_POST["textToParseCats"]);
-	$_POST["textToParseCats"]=str_replace("\r", "\n", $_POST["textToParseCats"]);
-	$_POST["textToParseCats"]=str_replace("https:", "http:", $_POST["textToParseCats"]);
-	$f=explode("\n",$_POST["textToParseCats"] );
-	$ForceCat=$_POST["ForceCat"];
-	$ForceExt=$_POST["ForceExt"];
-	
-	if(!is_numeric($ForceExt)){$ForceExt=0;}
-	if(!is_numeric($ForceCat)){$ForceCat=0;}
-	while (list ($num, $www) = each ($f) ){
-		writelogs("Scanning $www",__FUNCTION__,__FILE__,__LINE__);
-		$www=str_replace("(whois)", "", $www);
-		$www=str_replace("\r", "", $www);
-		$www=str_replace("||", "", $www);
-		$www=str_replace("^", "", $www);		
-		$www=trim($www);		
-		$www=trim(strtolower($www));
-		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){
-			$websitesToscan[]=$www;
-			continue;
+function ExtractAllUris($content){
+	$matches=array();
+	if(!preg_match_all("/a[\s]+[^>]*?href[\s]?=[\s\"\']+(.*?)[\"\']+.*?>"."([^<]+|.*?)?<\/a>/",$content, $matches)){return array();}
+	$matches = $matches[1];
+	foreach($matches as $var){
+		$array=parse_url($var);
+		if(isset($array["host"])){
+			if(preg_match("#^www\.(.+)#", $array["host"],$re)){$array["host"]=$re[1];}
+			$array[$array["host"]]=$array["host"];
 		}
-		if($www==null){continue;}
-		$www=stripslashes($www);
-		if(preg_match("#href=\"(.+?)\">#", $www,$re)){$www=$re[1];}
-		if(preg_match('#<a rel=.+?href="(.+?)"#', $www,$re)){$www=$re[1];}
-		if(preg_match("#<a href.*?http://(.+?)([\/\"'>]#i",$www,$re)){$www=$re[1];}
-		if(preg_match("#<span>www\.(.+?)\.([a-z]+)</span>#i",$www,$re)){$www=$re[1].".".$re[2];}
-		$www=str_replace("http://", "", $www);
-		if(preg_match("#\/\/.+?@(.+)#",$www,$re)){$websitesToscan[]=$re[1];}
-		if(preg_match("#http.*?:\/\/(.+?)[\/\s]+#",$www,$re)){$websitesToscan[]=$re[1];continue;}
-		if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}
-		$www=str_replace("<a href=", "", $www);
-		$www=str_replace("<img src=", "", $www);
-		$www=str_replace("title=", "", $www);
-		if(preg_match("#^(.*?)\/#", $www,$re)){$www=$re[1];}
-		if(preg_match("#\.php$#", $www,$re)){echo "$www php script...\n";continue;}
-		$www=str_replace("/", "", $www);
-		$www=trim($www);
-		if($ForceExt==0){
-			if(!preg_match("#\.([a-z0-9]+)$#",$www,$re)){echo "$www No extension !!?? \n";continue;}
-			if(strlen($re[1])<2){
-				if(!is_numeric($re[1])){
-					echo "$www bad extension `.{$re[1]}` [$ForceExt]\n";
-					continue;
-				}
-			}
-		}
-		
-		$www=str_replace('"', "", $www);
-		writelogs("Success pass $www",__FUNCTION__,__FILE__,__LINE__);
-		$websitesToscan[]=$www;
+
 	}
-	
-	while (list ($num, $www) = each ($websitesToscan) ){$cleaned[$www]=$www;}
-	$websitesToscan=array();
-	while (list ($num, $www) = each ($cleaned) ){$websitesToscan[]=$www;}	
-	
-	
-	while (list ($num, $www) = each ($websitesToscan) ){
-		writelogs("Scanning $www",__FUNCTION__,__FILE__,__LINE__);
-		$www=strtolower($www);
-		$www=replace_accents($www);
-		if($www=="www"){continue;}
-		if($www=="ssl"){continue;}
-		$www=str_replace("http://", "", $www);
-		$www=str_replace("https://", "", $www);
-		$www=str_replace("ftp://", "", $www);
-		$www=str_replace("ftps://", "", $www);
-		if(preg_match("#.+?@(.+)#",$www,$ri)){$www=$ri[1];}
-		if(preg_match("#^www\.(.+?)$#i",$www,$ri)){$www=$ri[1];}
-		if($ForceCat==0){
-			if(already_Cats($www)){continue;}
-		}
-			
-		if(strpos($www, '"')>0){$www=substr($www, 0,strpos($www, '"'));}
-		if(strpos($www, "'")>0){$www=substr($www, 0,strpos($www, "'"));}
-		if(strpos($www, ">")>0){$www=substr($www, 0,strpos($www, ">"));}
-		if(strpos($www, "?")>0){$www=substr($www, 0,strpos($www, "?"));}
-		if(strpos($www, "\\")>0){$www=substr($www, 0,strpos($www, "\\"));}
-		if(strpos($www, "/")>0){$www=substr($www, 0,strpos($www, "/")-1);}
-		if(preg_match("#^\.(.+)#", $www,$re)){$www=$re[1];}
-		if(preg_match("#^\*\.(.+)#", $www,$re)){$www=$re[1];}		
-		if(preg_match("#\.html$#i",$www,$re)){continue;}
-		if(preg_match("#\.htm$#i",$www,$re)){continue;}
-		if(preg_match("#\.gif$#i",$www,$re)){continue;}
-		if(preg_match("#\.png$#i",$www,$re)){continue;}
-		if(preg_match("#\.jpeg$#i",$www,$re)){continue;}
-		if(preg_match("#\.jpg$#i",$www,$re)){continue;}
-		if(preg_match("#\.php$#i",$www,$re)){continue;}
-		if(preg_match("#\.js$#i",$www,$re)){continue;}
-		if($ForceExt==0){
-			if(!preg_match("#\.[a-z0-9]+$#",$www,$re)){;
-				echo "$www bad extension `$www` \n";
-				continue;
-			}
-		}
-		if(strpos(" ", trim($www))>0){continue;}
-		$sites[$www]=$www;
-		}
-		
+
+	return $array;
+
+
+}
+
+function free_catgorized_save(){
 	
 	$q=new mysql_squid_builder();
-	$q->CheckTable_dansguardian();
+	$q->free_categorizeSave($_POST["textToParseCats"],$_POST["category"],$_POST["ForceCat"],$_POST["ForceExt"]);
 	
-	if(count($sites)==0){echo "NO websites\n";return;}
-	$category=$_POST["category"];
-	echo "\n----------------\nanalyze ".count($sites)." websites into $category\n";
-	while (list ($num, $www) = each ($sites) ){
-		$www=trim($www);
-		if($www==null){continue;}
-		if(preg_match("#^www\.(.+?)$#", $www,$re)){$www=$re[1];}
-		writelogs("Analyze $www",__FUNCTION__,__FILE__,__LINE__);
-		$md5=md5($category.$www);
-		if($ForceCat==0){
-			$cats=$q->GET_CATEGORIES($www,true,true,true);
-			if($cats<>null){echo "FALSE: $www already categorized ($cats)\n";continue;}	
-		}	
-		
-		$category_table="category_".$q->category_transform_name($category);
-		if(!$q->TABLE_EXISTS($category_table)){
-			$q->CreateCategoryTable($_POST["category"]);
-			if(!$q->ok){echo "create table  $category_table failed $q->mysql_error line ". __LINE__ ." in file ".__FILE__."\n";continue;}
-		
-		}
-		
-		$q->QUERY_SQL("INSERT IGNORE INTO $category_table (zmd5,zDate,category,pattern,uuid) VALUES('$md5',NOW(),'$category','$www','$uuid')");
-		if(!$q->ok){echo "categorize $www failed $q->mysql_error line ". __LINE__ ." in file ".__FILE__."\n";continue;}
-		echo "TRUE: $www Added\n";
-		$q->QUERY_SQL("INSERT IGNORE INTO categorize (zmd5,zDate,category,pattern,uuid) VALUES('$md5',NOW(),'$category','$www','$uuid')");
-		if(!$q->ok){echo $q->mysql_error."\n";echo $sql;}
-	}		
-			
-		$sock=new sockets();
-		$sock->getFrameWork("cmd.php?export-community-categories=yes");
 	
 	
 }
-
-
 
 function not_categorized(){
 $page=CurrentPageName();
@@ -1116,7 +967,6 @@ $html="
 echo $tpl->_ENGINE_parse_body($html);		
 	
 }
-
 function visited_list(){
 	
 	$_COOKIE["SQUID_NOT_CAT_SEARCH"]=trim($_COOKIE["SQUID_NOT_CAT_SEARCH"]);
@@ -1184,8 +1034,6 @@ function visited_list(){
 	echo $tpl->_ENGINE_parse_body($html);
 	
 }
-
-	
 
 function categorized_list(){
 	$_COOKIE["SQUID_NOT_CAT_SEARCH"]=trim($_COOKIE["SQUID_NOT_CAT_SEARCH"]);
@@ -1475,4 +1323,4 @@ function progressDefaultRescanVisited(){
 	
 	echo $html;
 }
-
+?>

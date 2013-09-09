@@ -1,9 +1,10 @@
 <?php
 
 include_once(dirname(__FILE__)."/frame.class.inc");
-
+if(isset($_GET["remove-path"])){@unlink("/etc/artica-postfix/settings/Daemons/{$_GET["remove-path"]}");exit;}
 if(isset($_GET["cluster-key"])){CLUSTER_KEY();exit;}
 if(!isset($_GET["key"])){die();}
+
 session_start();
 unset($_SESSION[$_GET["key"]]);
 

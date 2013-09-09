@@ -117,7 +117,7 @@ function ParseSubDir($dir){
 		if($GLOBALS["VERBOSE"]){echo "$targetFile\n";}
 		
 		while (list ($index, $array) = each ($arrayFile) ){
-			$words=mysql_escape_string(trim($array["WORDS"]));
+			$words=mysql_escape_string2(trim($array["WORDS"]));
 			if($words==null){continue;}
 			$sitename=$array["SITENAME"];
 			$familysite=$q->GetFamilySites($sitename);
@@ -127,9 +127,9 @@ function ParseSubDir($dir){
 			
 			$ipaddr=$array["ipaddr"];
 			$zDate=$array["date"];
-			$uid=mysql_escape_string($array["uid"]);
-			$MAC=mysql_escape_string($array["mac"]);
-			$hostname=mysql_escape_string($array["hostname"]);
+			$uid=mysql_escape_string2($array["uid"]);
+			$MAC=mysql_escape_string2($array["mac"]);
+			$hostname=mysql_escape_string2($array["hostname"]);
 			$time=strtotime($zDate);
 			$prefix=date("YmdH",$time);
 			$zmd5=md5(serialize($array));

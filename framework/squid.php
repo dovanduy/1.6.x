@@ -20,6 +20,16 @@ if(isset($_GET["import-acls"])){import_acls();exit;}
 if(isset($_GET["import-webfiltering-rules"])){import_webfiltering();exit;}
 if(isset($_GET["reverse-proxy-apply"])){reverse_proxy_apply();exit;}
 if(isset($_GET["reload_unlock"])){reload_unlock();exit;}
+if(isset($_GET["test-sarg"])){test_sarg();exit;}
+if(isset($_GET["sarg-conf"])){sarg_conf();exit;}
+if(isset($_GET["sarg-log"])){sarg_logs();exit;}
+if(isset($_GET["sarg-restore"])){sarg_restore();exit;}
+if(isset($_GET["dump-peers"])){dump_peers();exit;}
+if(isset($_GET["reconstruct-caches"])){reconstruct_caches();exit;}
+if(isset($_GET["restart-cache-tail"])){restart_cache_tail();exit;}
+if(isset($_GET["downgrade"])){downgrade();exit;}
+if(isset($_GET["current-version"])){current_version();exit;}
+
 
 
 
@@ -50,6 +60,7 @@ if(isset($_GET["build-smooth"])){build_smooth();exit;}
 if(isset($_GET["rethumbnail"])){rethumbnail();exit;}
 if(isset($_GET["access-logs"])){access_logs();exit;}
 if(isset($_GET["accesslogs"])){accesslogs();exit;}
+if(isset($_GET["ufdbguard-logs"])){ufdbguard_logs();exit;}
 if(isset($_GET["reprocess-database"])){community_reprocess_category();exit();}
 if(isset($_GET["kav4proxy-update-now"])){kav4proxy_update();exit();}
 if(isset($_GET["categorize-tests"])){categorize_test();exit;}
@@ -130,6 +141,9 @@ if(isset($_GET["UpdateUtility-webevents"])){UpdateUtility_webevents();exit;}
 if(isset($_GET["ufdbguard-events"])){ufdbguard_events();exit;}
 if(isset($_GET["ufdbguard-compile-smooth-tenir"])){ufdbguard_compile_smooth_tenir();exit;}
 if(isset($_GET["ufdbguard-restart-tenir"])){ufdbguard_restart_tenir();exit;}
+
+
+if(isset($_GET["cntlm-restart"])){cntlm_restart();exit;}
 
 
 
@@ -469,7 +483,9 @@ function squid_k_reconfigure(){
 	$force=null;
 	if(isset($_GET["force"])){$force=" --force";}
 	squid_watchdog_events("Reconfiguring Proxy parameters...");
+	
 	shell_exec("$squid -k reconfigure >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1");
+	squid_admin_mysql(2, "Framework executed to reconfigure squid-cache", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/restart.squid"));
 	sleep(2);
 	$tail=$unix->find_program("tail");
 	shell_exec("$tail -n 100 /var/log/squid/cache.log >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1");
@@ -737,7 +753,7 @@ function caches_type(){
 	if(strlen($squidbin)<5){$squidbin=$unix->find_program("squid");}
 	exec("$squidbin -v 2>&1",$results);
 	writelogs_framework("$squidbin -v = ".count($results)." lines",__FUNCTION__,__FILE__,__LINE__);	
-	$caches["ufs"]="ufs";
+	$caches["aufs"]="aufs";
 	while (list ($num, $ligne) = each ($results) ){	
 		if(!preg_match("#--enable-storeio=(.+?)'#", $ligne,$re)){
 			writelogs_framework("$num) $ligne no match",__FUNCTION__,__FILE__,__LINE__);
@@ -748,6 +764,7 @@ function caches_type(){
 		while (list ($a, $b) = each ($list) ){
 			$b=trim($b);
 			if($b==null){continue;}
+			if($b=="ufs"){$b="aufs";}
 			$caches[$b]="{squid_$b}";}
 	}
 	echo "<articadatascgi>". base64_encode(serialize($caches))."</articadatascgi>";
@@ -770,12 +787,8 @@ function cachelogs(){
 		return;
 	}
 	
-	$search=str_replace(".","\.",$search);
-	$search=str_replace("*",".*?",$search);
-	$search=str_replace("(","\(",$search);
-	$search=str_replace(")","\)",$search);
-	$search=str_replace("[","\[",$search);
-	$search=str_replace("]","\]",$search);
+	$search=$unix->StringToGrep($search);
+	
 	
 	$cmd="$grep -i -E '$search' /var/log/squid/cache.log 2>&1|$tail -n $rp 2>&1";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
@@ -801,12 +814,7 @@ function watchdoglogs(){
 		return;
 	}
 
-	$search=str_replace(".","\.",$search);
-	$search=str_replace("*",".*?",$search);
-	$search=str_replace("(","\(",$search);
-	$search=str_replace(")","\)",$search);
-	$search=str_replace("[","\[",$search);
-	$search=str_replace("]","\]",$search);
+	$search=$unix->StringToGrep($search);
 
 	$cmd="$grep -E '$search' /var/log/squid.watchdog.log  2>&1|$tail -n $rp 2>&1";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
@@ -815,6 +823,35 @@ function watchdoglogs(){
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 
 }
+
+function sarg_logs(){
+	$search=trim(base64_decode($_GET["watchdog-log"]));
+	$unix=new unix();
+	$tail=$unix->find_program("tail");
+	$grep=$unix->find_program("grep");
+	$rp=500;
+	if(is_numeric($_GET["rp"])){$rp=$_GET["rp"];}
+	
+	if($search==null){
+	
+		$cmd="$tail -n $rp /var/log/sarg-exec.log  2>&1";
+		writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+		exec("$tail -n $rp /var/log/sarg-exec.log  2>&1",$results);
+		echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+		return;
+	}
+	
+	$search=$unix->StringToGrep($search);
+	
+	$cmd="$grep -E '$search' /var/log/sarg-exec.log  2>&1|$tail -n $rp 2>&1";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	exec("$cmd",$results);
+	
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
+	
+}
+
+
 function cache_smp_logs(){
 	$search=trim(base64_decode($_GET["cachelogs"]));
 	$unix=new unix();
@@ -832,12 +869,7 @@ function cache_smp_logs(){
 		return;
 	}
 	
-	$search=str_replace(".","\.",$search);
-	$search=str_replace("*",".*?",$search);
-	$search=str_replace("(","\(",$search);
-	$search=str_replace(")","\)",$search);
-	$search=str_replace("[","\[",$search);
-	$search=str_replace("]","\]",$search);
+	$search=$unix->StringToGrep($search);
 	
 	$cmd="$grep -i -E '$search' /var/log/squid/artica-caches32.log 2>&1|$tail -n $rp 2>&1";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
@@ -846,6 +878,22 @@ function cache_smp_logs(){
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
 	
 }
+function ufdbguard_logs(){
+	$unix=new unix();
+	$search=trim(base64_decode($_GET["ufdbguard-logs"]));
+	$tail=$unix->find_program("tail");
+	$grep=$unix->find_program("grep");	
+	$rp=300;
+	if(is_numeric($_GET["rp"])){$rp=$_GET["rp"];}	
+	$results=array();
+	$filetemp=$unix->FILE_TEMP();
+	$search=$unix->StringToGrep($search);
+	$results=$unix->tail_php("/var/log/squid/ufdbguardd.log",$rp,"\] BLOCK\s+.*?$search");
+	writelogs_framework(" SEARCH -> ". count($results)." rows",__FUNCTION__,__FILE__,__LINE__);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+
+
 function accesslogs(){
 	$search=trim(base64_decode($_GET["accesslogs"]));
 	$OnlyIpAddr=$_GET["OnlyIpAddr"];
@@ -862,21 +910,16 @@ function accesslogs(){
 	
 	if($search==null){
 		
-		$cmd="$tail -n 6000 /var/log/auth.log|$grep -i -E 'squid.*?$OnlyIpAddr'|$tail -n $rp 2>&1";
+		$cmd="$tail -n 3000 /var/log/auth.log|$grep -i -E 'squid.*?$OnlyIpAddr'|$tail -n $rp 2>&1";
 		writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
 		exec("$cmd",$results);
 		echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 		return;
 	}
 	
-	$search=str_replace(".","\.",$search);
-	$search=str_replace("*",".*?",$search);
-	$search=str_replace("(","\(",$search);
-	$search=str_replace(")","\)",$search);
-	$search=str_replace("[","\[",$search);
-	$search=str_replace("]","\]",$search);
+	$search=$unix->StringToGrep($search);
 	
-	$cmd="$tail -n 6000 /var/log/auth.log|$grep -i -E 'squid([\[|\-])' 2>&1|$grep -E '$search' 2>&1|$tail -n $rp 2>&1";
+	$cmd="$tail -n 3000 /var/log/auth.log|$grep -i -E 'squid([\[|\-])' 2>&1|$grep -E '$search' 2>&1|$tail -n $rp 2>&1";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);	
 	exec("$cmd",$results);
 	
@@ -1181,6 +1224,8 @@ function support_step1(){
 	$files[]="/usr/share/artica-postfix/ressources/settings.inc";
 	$files[]="/usr/share/artica-postfix/ressources/logs/global.status.ini";						     
 	$files[]="/usr/share/artica-postfix/ressources/logs/global.versions.conf";
+	$files[]="/var/log/lighttpd/squidguard-lighttpd-error.log";
+	$files[]="/var/log/lighttpd/squidguard-lighttpd.start";
 	
 	if(is_dir("/usr/share/artica-postfix/ressources/support")){
 		shell_exec("/bin/rm -rf /usr/share/artica-postfix/ressources/support");
@@ -1195,6 +1240,10 @@ function support_step1(){
 	
 	shell_exec("$ps aux >/usr/share/artica-postfix/ressources/support/ps.txt 2>&1");
 	shell_exec("$df -h >/usr/share/artica-postfix/ressources/support/dfh.txt 2>&1");
+	
+	$report=$unix->NETWORK_REPORT();
+	@file_put_contents("/usr/share/artica-postfix/ressources/support/NETWORK_REPORT.txt", $report);
+	
 	writelogs_framework("DONE...",__FUNCTION__,__FILE__,__LINE__);
 }
 function support_step2(){
@@ -1270,6 +1319,7 @@ function support_step2(){
 		exec("$squidbin -v 2>&1",$results);
 		squid_watchdog_events("Reconfiguring Proxy parameters...");
 		exec("$squidbin -k reconfigure 2>&1",$results);
+		squid_admin_mysql(2, "Framework executed to reconfigure squid-cache", @implode("\n", $results));
 	}else{
 		$results[]="squid no such binary....";
 	}	
@@ -1280,6 +1330,7 @@ function support_step2(){
 		exec("$squidbin -v 2>&1",$results);
 		squid_watchdog_events("Reconfiguring Proxy parameters...");
 		exec("$squidbin -k reconfigure 2>&1",$results);
+		squid_admin_mysql(2, "Framework executed to reconfigure squid-cache", @implode("\n", $results));
 	}else{
 		$results[]="squid3 no such binary....";
 	}
@@ -1471,17 +1522,7 @@ function update_blacklist(){
 
 function squidclient_infos(){
 	$unix=new unix();
-try {
-		$builded=$unix->squidclient_builduri();
-	} catch (Exception $e) {
-		writelogs_framework("Fatal: ".$e->getMessage(),__FUNCTION__,__LINE__);
-		echo "<articadatascgi>".base64_decode(serialize(array()))."</articadatascgi>";
-		return;
-	}
-	
-	$cmd="$builded:info 2>&1";
-	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
-	exec($cmd,$results);	
+	$results=explode("\n",$unix->squidclient("info"));
 	$start=false;
 	while (list($num,$val)=each($results)){
 		if(preg_match("#Current Time#", $val)){$start=true;continue;}
@@ -1495,16 +1536,15 @@ try {
 function squidclient_sessions(){
 	writelogs_framework("OK START",__FUNCTION__,__LINE__);
 	$unix=new unix();
-	try {
-		$builded=$unix->squidclient_builduri();
-	} catch (Exception $e) {
-		writelogs_framework("Fatal: ".$e->getMessage(),__FUNCTION__,__LINE__);
-		echo "<articadatascgi>".base64_decode(serialize(array()))."</articadatascgi>";
-		return;
+	$results=array();
+	
+	if(is_file("/var/log/squid/monitor.sessions.cache")){
+		$results=unserialize(@file_get_contents("/var/log/squid/monitor.sessions.cache"));
 	}
 	
-	$cmd="$builded:active_requests";
-	exec($cmd,$results);
+	if(count($results)<2){
+		$results=explode("\n",$unix->squidclient("active_requests"));
+	}
 	
 	while (list($num,$val)=each($results)){
 		if(preg_match("#Connection:\s+(.+)#i", $val,$re)){$conexion=trim($re[1]);continue;}
@@ -1663,7 +1703,7 @@ function ufdbguard_restart_tenir(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$php5 /usr/share/artica-postfix/exec.squidguard.php --reload-ufdb");
-	shell_exec("$nohup /etc/init.d/artica-postfix restart ufdb-tail >/dev/null 2>&1");
+	shell_exec("$nohup /etc/init.d/ufdb-tail restart >/dev/null 2>&1");
 	
 }
 function articadb_next_check(){
@@ -1707,10 +1747,9 @@ function watchdog_auth(){
 
 function StorageCapacity(){
 	$unix=new unix();
-	$uri=$unix->squidclient_builduri();
-	$cmd="$uri:storedir 2>&1";
-	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
-	exec($cmd,$results);
+	
+	$results=explode("\n",$unix->squidclient("storedir"));
+	
 	while (list($num,$val)=each($results)){
 	
 	if(preg_match("#Current Capacity\s+:.*?([0-9\.]+)% used, ([0-9\.]+)% free#", $val,$re)){
@@ -1726,10 +1765,7 @@ function StorageCapacity(){
 
 function ActiveRequestsNumber(){
 	$unix=new unix();
-	$uri=$unix->squidclient_builduri();
-	$cmd="$uri:active_requests 2>&1";
-	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
-	exec($cmd,$results);
+	$results=explode("\n",$unix->squidclient("active_requests"));
 	while (list($num,$val)=each($results)){
 	
 	if(preg_match("#nrequests:\s+([0-9\.]+)#", $val,$re)){
@@ -1745,11 +1781,8 @@ function ActiveRequestsNumber(){
 
 function CounterInfos(){
 	$unix=new unix();
-	$uri=$unix->squidclient_builduri();
-	$cmd="$uri:info 2>&1";	
+	$results=explode("\n",$unix->squidclient("info"));
 	
-	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
-	exec($cmd,$results);
 	while (list($num,$val)=each($results)){
 	
 		if(preg_match("#Total accounted.*?([0-9\.]+)%#", $val,$re)){
@@ -1772,10 +1805,8 @@ function CounterInfos(){
 
 function fivemncounter(){
 	$unix=new unix();
-	$uri=$unix->squidclient_builduri();
-	$cmd="$uri:5min 2>&1";
-	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
-	exec($cmd,$results);
+	$results=explode("\n",$unix->squidclient("5min"));
+	
 	while (list($num,$val)=each($results)){
 		if(preg_match("#^([a-z\.\_]+).*?=\s+(.+)#",$val,$re)){
 			if(preg_match("#(.*?)\/#",$re[2],$ri)){$re[2]=$ri[1];}
@@ -1802,11 +1833,13 @@ function isufdbguard_squidconf(){
 	$f=file("/etc/squid3/squid.conf");
 	while (list($num,$val)=each($f)){
 		if(preg_match("#ufdbgclient#i", $val)){
+			writelogs_framework("$val -> OK",__FUNCTION__,__FILE__,__LINE__);
 			echo "<articadatascgi>OK</articadatascgi>";
 			return;
 		}
 		
 	}
+	writelogs_framework("/etc/squid3/squid.conf -> BAD",__FUNCTION__,__FILE__,__LINE__);
 	echo "<articadatascgi></articadatascgi>";
 	
 }
@@ -2026,6 +2059,7 @@ function saveSquidContent(){
 	@file_put_contents("/etc/squid3/squid.conf", $datas);
 	writelogs_framework("$squidbin -f $SQUID_CONFIG_PATH -k reconfigure 2>&1",__FUNCTION__,__FILE__,__LINE__);
 	squid_watchdog_events("Reconfiguring Proxy parameters...");
+	squid_admin_mysql(2, "Framework executed to reconfigure squid-cache", "");
 	shell_exec("$squidbin -f $SQUID_CONFIG_PATH -k reconfigure 2>&1");
 	
 }
@@ -2107,11 +2141,8 @@ function squid_get_storage_info(){
 	
 	if(!is_array($dats)){$dats=array();}
 	if(count($dats)<1){
-		
-		$uri=$unix->squidclient_builduri();
-		$cmd="$uri:storedir 2>&1";
-		exec($cmd,$results);
-		writelogs_framework("$StoreDirCache not an array $cmd = ".count($results)." items...",__FUNCTION__,__FILE__,__LINE__);
+		$results=explode("\n",$unix->squidclient("storedir"));
+		writelogs_framework("$StoreDirCache not an array  = ".count($results)." items...",__FUNCTION__,__FILE__,__LINE__);
 		$dirs=0;
 		while (list($num,$ligne)=each($results)){
 			if(preg_match("#Current Capacity.*?:\s+([0-9\.]+)%\s+used#",$ligne,$re)){$CURCAP=trim($re[1]);continue;}
@@ -2185,6 +2216,90 @@ function  reload_unlock(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 	
+}
+function test_sarg(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --test-sarg >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function sarg_conf(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.sarg.php --conf >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+
+}
+function sarg_restore(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$restoreid=$_GET["sarg-restore"];
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.sarg.php --restore-id $restoreid >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+function cntlm_restart(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.initslapd.php --cntlm >/dev/null");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	$cmd=trim("$nohup /etc/init.d/cntlm restart >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	$cmd=trim("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+
+function reconstruct_caches(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/rebuild-cache.txt");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.rebuild.caches.php >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	
+}
+function restart_cache_tail(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup /etc/init.d/cache-tail >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+
+}
+
+
+function dump_peers(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.watchdog.php --peer-status --dump 2>&1");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);	
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+function current_version(){
+	$unix=new unix();
+	echo "<articadatascgi>". base64_encode($unix->squid_version())."</articadatascgi>";
+	
+}
+function downgrade(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.downgrade.php \"{$_GET["downgrade"]}\" >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 }
 
 ?>

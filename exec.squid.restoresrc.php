@@ -27,7 +27,7 @@ function restore($filename,$storeid){
 	@mkdir("/var/log/artica-postfix/squid-brut",0777,true);
 	@mkdir("/var/log/artica-postfix/squid-reverse",0777,true);
 	
-	
+
 	
 	$GLOBALS["filename"]=$filename;
 	$sock=new sockets();
@@ -48,6 +48,7 @@ function restore($filename,$storeid){
 	if($EnableSyslogDB==1){
 		$q=new mysql_storelogs();
 		$sql="SELECT filecontent INTO DUMPFILE '$TempDir/$filename' FROM files_store WHERE ID = '$storeid'";
+		$q->QUERY_SQL($sql);
 	}else{
 		$q=new mysql_syslog();
 		$sql="SELECT filedata INTO DUMPFILE '$TempDir/$filename' FROM store WHERE filename = '$filename'";

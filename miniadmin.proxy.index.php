@@ -83,6 +83,10 @@ function tabs(){
 	if($users->APP_FTP_PROXY){
 		$array["{proxy_ftp_main_settings}"]="miniadmin.ftp.proxy.php?content=yes";
 	}
+	
+	if($users->RSYNC_INSTALLED){
+		$array["{system_mirrors}"]="miniadmin.proxy.debian.mirrors.php";
+	}
 		
 	$page=CurrentPageName();
 	$mini=new boostrap_form();

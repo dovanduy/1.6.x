@@ -52,13 +52,19 @@ function addDNSGOOGLE(){
 	$ipaddr=gethostbyname("nosslsearch.google.com");
 	$ip=new IP();
 	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
 	$OK=true;
 	if(!$ip->isIPv4($ipaddr)){$OK=false;}
 	if(!$OK){
 		if($ip->isIPv6($ipaddr)){$OK=true;}
 	}
 	if(!$OK){echo "Starting......: Squid : failed, nosslsearch.google.com `$ipaddr` not an IP address...!!!\n";return;}	
-	$entry=$unix->get_EtcHostsByName("www.google.com");
+	$q=new mysql();
+	
+	$ligne=@mysql_fetch_array($this->QUERY_SQL("SELECT ipaddr FROM net_hosts WHERE `hostname` = 'www.google.com'","artica_backup"));
+	
+	
+	$entry=$ligne["ipaddr"];
 	if($entry==$ipaddr){
 		echo "Starting......: Squid : nosslsearch.google.com no changes...\n";
 		reload_pdns();
@@ -69,12 +75,17 @@ function addDNSGOOGLE(){
 	}
 	$array=GetWebsitesList();
 	
+	
+	
 	while (list ($table, $fff) = each ($array) ){
-		$unix->add_EtcHosts($fff,$ipaddr);
-		$c++;
+		$md5=md5("$ipaddr$fff");
+		$f[]="('$md5','$ipaddr','$fff')";
+		
 	}
-	if($c>0){
-		echo "Starting......: Squid : adding $c google servers [$ipaddr] from /etc/hosts\n";
+	if(count($f)>0){
+		$q->QUERY_SQL("INSERT IGNORE INTO net_hosts (`zmd5`,`ipaddr`,`hostname`) VALUES ".@implode("\n", $f));
+		echo "Starting......: Squid : adding ".count($f)." google servers [$ipaddr] from /etc/hosts\n";
+		shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --hosts");
 		reload_pdns();
 	}		
 }

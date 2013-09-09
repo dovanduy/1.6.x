@@ -33,7 +33,6 @@ class squid_catz_publicite{
 		if(preg_match("#\.linter\.fr$#", $www)){return "publicite";}
 		if(preg_match("#^affiliates\..*#", $www)){return "publicite";}
 		if(preg_match("#\.googlesyndication\.com$#", $www)){return "publicite";}
-		if(preg_match("#\.conduit-services\.com$#", $www)){return "publicite";}
 		if(preg_match("#\.googleadservices.com$#", $www)){return "publicite";}	
 		if(preg_match("#^banner\..+?$#", $www)){return "publicite";}	
 		if(preg_match("#^banners\..+?$#", $www)){return "publicite";}

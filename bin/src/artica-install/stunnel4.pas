@@ -224,137 +224,13 @@ begin
 end;
 //##############################################################################
 procedure tstunnel.STUNNEL_START();
-var
-   pid:string;
-   count:integer;
 begin
-    if not FileExists(DAEMON_BIN_PATH()) then begin
-       logs.Debuglogs('Starting......: stunnel4 is not installed');
-       exit;
-    end;
-
-
-
-    pid:=STUNNEL_PID();
-
-
-
-    logs.Debuglogs('Starting......: stunnel4 enabled:'+IntToStr(sTunnel4enabled)+' pid:'+pid+' daemon:'+DAEMON_BIN_PATH());
-    if SYS.PROCESS_EXIST(pid) then begin
-       logs.Debuglogs('Starting......: stunnel4 already running  PID '+pid);
-       if sTunnel4enabled=0 then begin
-          logs.Syslogs('Stopping sTunnel4 because it was disabled by artica "0"');
-          STUNNEL_STOP();
-          exit;
-       end;
-       
-       
-       exit;
-    end;
-
-
-    SYS.AddUserToGroup('stunnel4','stunnel4','','');
-    ForceDirectories('/var/lib/stunnel4');
-    ForceDirectories('/var/run/stunnel');
-
-    logs.OutputCmd('/bin/chown -R stunnel4:stunnel4 /var/lib/stunnel4');
-    logs.OutputCmd('/bin/chown -R stunnel4:stunnel4 /var/run/stunnel');
-    forceDirectories('/etc/stunnel');
-    if FileExists('/etc/artica-postfix/settings/Daemons/stunnelconf') then begin
-       logs.OutputCmd('/bin/cp /etc/artica-postfix/settings/Daemons/stunnelconf /etc/stunnel/stunnel.conf');
-    end;
-
-    pid:=trim(SYS.AllPidsByPatternInPath(DAEMON_BIN_PATH()+' /etc/stunnel/stunnel.conf'));
-    logs.Debuglogs('Starting......: Stunnel4 pids '+pid);
-    if length(pid)>0 then begin
-          if sTunnel4enabled=0 then STUNNEL_STOP();
-          exit;
-    end;
-
-
-    if sTunnel4enabled=0 then begin
-       logs.Debuglogs('Starting......: Stunnel4 is disabled by artica');
-       exit;
-    end;
-
-    logs.Debuglogs('Starting......: Stunnel4');
-    ETC_DEFAULT();
-    SAVE_CERTIFICATE();
-    fpsystem(DAEMON_BIN_PATH()+' /etc/stunnel/stunnel.conf');
-    pid:=STUNNEL_PID();
-    count:=0;
-
-
-  while not SYS.PROCESS_EXIST(pid) do begin
-
-        sleep(500);
-        count:=count+1;
-        write('.');
-        if count>50 then begin
-            writeln('');
-            logs.DebugLogs('Starting......: stunnel daemon timeout...');
-            break;
-        end;
-        pid:=STUNNEL_PID();
-  end;
-
-
-    PID:=STUNNEL_PID();
-    if not SYS.PROCESS_EXIST(PID) then begin
-        logs.Debuglogs('Starting......: Failed to start stunnel4');
-        exit;
-    end else begin
-                logs.Debuglogs('Starting......: sTunnel4 success with new PID '+PID);
-    end;
+    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.stunnel.php --start');
 end;
 //##############################################################################
 procedure tstunnel.STUNNEL_STOP();
-var
-
-   PID:string;
 begin
-    if not FileExists(DAEMON_BIN_PATH()) then begin
-     writeln('Stopping stunnel4 daemon......: not installed');
-     exit;
-    end;
-
-    if not SYS.PROCESS_EXIST(STUNNEL_PID()) then begin
-           writeln('Stopping stunnel4 daemon......: Already stopped');
-    end;
-
-    PID:=SYS.AllPidsByPatternInPath(DAEMON_BIN_PATH());
-    if length(PID)>0 then begin
-      writeln('Stopping stunnel4............: ' + PID + ' PIDs');
-      fpsystem('/bin/kill ' + PID);
-    end else begin
-       exit;
-    end;
-    
-
-
-    PID:=STUNNEL_PID();
-    if not SYS.PROCESS_EXIST(PID) then begin
-      writeln('Stopping stunnel4............: stopped');
-      exit;
-    end;
-
-
-    writeln('Stopping stunnel4............: ' + STUNNEL_PID() + ' PID');
-    if length(trim(PID))>0 then fpsystem('/bin/kill ' + PID);
-
-
-    
-    
-    PID:=SYS.AllPidsByPatternInPath(DAEMON_BIN_PATH()+' /etc/stunnel/stunnel.conf');
-       if length(PID)>0 then begin
-         writeln('Stopping stunnel4............: ' + PID + ' PIDs');
-         fpsystem('/bin/kill -9 ' + PID);
-       end;
-
-    if SYS.PROCESS_EXIST(STUNNEL_PID()) then begin
-       writeln('Stopping stunnel4  daemon ' + STUNNEL_PID() + ' PID (failed to stop)');
-    end;
-
+    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.stunnel.php --stop');
 
 end;
 //##############################################################################

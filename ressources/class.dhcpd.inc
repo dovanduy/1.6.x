@@ -538,7 +538,7 @@ private function DomainNameServers(){
 		$eth_gateway=$mip["GATEWAY"];
 		$eth_IP=$mip["IPADDR"];
 		if(!is_numeric($this->pxe_enable)){$this->pxe_enable=0;}
-		$conf=$conf."include \"/var/lib/dhcp3/dhcpd.other\";\n";
+		
 		
 		if($this->broadcast==null){
 			if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: DHCP Server broadcast =>  eth_IP = $eth_IP\n";}
@@ -752,6 +752,7 @@ private function DomainNameServers(){
 		
 		
 		if($GLOBALS["VERBOSE"]){echo "DEBUG: ->END ->". strlen($conf)." bytes Line ".__LINE__."\n";}
+		$conf=$conf .@file_get_contents("/var/lib/dhcp3/dhcpd.other")."\n";
 		return $conf;
 		
 	}

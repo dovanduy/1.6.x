@@ -8,7 +8,7 @@ class freeradius{
 	
 	public function GroupSave($groupname,$id=0){
 		$q=new mysql();
-		$groupname=mysql_escape_string($groupname);
+		$groupname=$this->mysql_escape_string2($groupname);
 		if($id>0){
 			$sql="UPDATE radgroupcheck SET groupname='$groupname' WHERE id=$id";
 			$q->QUERY_SQL($sql,"artica_backup");
@@ -41,6 +41,19 @@ class freeradius{
 		
 	}
 	
+	private function mysql_escape_string2($line){
+		
+		$search=array("\\","\0","\n","\r","\x1a","'",'"');
+		$replace=array("\\\\","\\0","\\n","\\r","\Z","\'",'\"');
+		return str_replace($search,$replace,$line);
+		
+	if(function_exists("mysql_real_escape_string")){
+		return mysql_real_escape_string($line);
+	}
+	return mysql_escape_string($line);
+
+}
+	
 	
 	public function GroupDelete($gpid=0){
 		$q=new mysql();
@@ -56,7 +69,7 @@ class freeradius{
 		$q=new mysql();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT username FROM radcheck WHERE id={$userid}","artica_backup"));
 		$UserName=$ligne["UserName"];
-		$UserName=mysql_escape_string($UserName);
+		$UserName=$this->mysql_escape_string2($UserName);
 		$q->QUERY_SQL("DELETE FROM radcheck WHERE id={$userid}","artica_backup");
 		if(!$q->ok){echo $q->mysql_error;return;}
 		$q->QUERY_SQL("DELETE FROM radusergroup WHERE username='$UserName'","artica_backup");
@@ -65,8 +78,8 @@ class freeradius{
 	
 	
 	public function MemberSave($UserName,$Password=null,$id=0,$gpid=0){
-		$Password=mysql_escape_string($Password);
-		$UserName=mysql_escape_string($UserName);
+		$Password=$this->mysql_escape_string2($Password);
+		$UserName=$this->mysql_escape_string2($UserName);
 		$sql="INSERT IGNORE INTO radcheck (`username`, `attribute`, `value`) VALUES ('$UserName', 'Cleartext-Password', '$Password');";
 		if($id>0){
 			$sql="UPDATE radcheck SET `username`='$UserName',
@@ -81,7 +94,7 @@ class freeradius{
 		if(!$q->ok){echo $q->mysql_error;return;}
 		if($gpid>0){
 			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT groupname FROM radgroupcheck WHERE id={$gpid}","artica_backup"));
-			$ligne["groupname"]=mysql_escape_string($ligne["groupname"]);
+			$ligne["groupname"]=$this->mysql_escape_string2($ligne["groupname"]);
 			$sql="insert into radusergroup (username, groupname, priority,gpid)
 			VALUES ('$UserName', '{$ligne["groupname"]}', 1,$gpid);";
 			$q->QUERY_SQL($sql,"artica_backup");

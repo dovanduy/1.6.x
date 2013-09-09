@@ -47,6 +47,7 @@ if(isset($_GET["users-count"])){zarafa_admin_userscount();exit;}
 if(isset($_GET["reload"])){zarafa_reload();exit;}
 if(isset($_GET["zarafa-stats-system"])){zarafa_stats_system();exit;}
 if(isset($_GET["zarafadb-restart"])){zarafadb_restart();exit;}
+if(isset($_GET["zpush-version"])){zpush_version();exit;}
 
 
 
@@ -441,12 +442,7 @@ function audit_log(){
 	if(isset($_GET["rp"])){$max=$_GET["rp"];}
 	
 	if($search<>null){
-		$search=str_replace(".","\.",$search);
-		$search=str_replace("*",".*?",$search);
-		$search=str_replace("(","\(",$search);
-		$search=str_replace(")","\)",$search);
-		$search=str_replace("[","\[",$search);
-		$search=str_replace("]","\]",$search);
+		$search=$unix->StringToGrep($search);
 		$cmd="$prefix$grep -i -E '$search' |$tail -n $max 2>&1";
 	
 	}else{
@@ -588,4 +584,24 @@ function zarafadb_restart(){
 	$cmd="$nohup /usr/share/artica-postfix/exec.zarafa-db.php --restart >/dev/null 2>&1 &";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
+}
+function zpush_version(){
+	$tr=explode("\n",@file_get_contents("/usr/share/z-push/version.php"));
+	while (list ($num, $ligne) = each ($tr) ){
+		if(preg_match("#ZPUSH_VERSION.*?([0-9\.\-]+)#", $ligne,$re)){
+			echo  "<articadatascgi>". base64_encode($re[1])."</articadatascgi>";
+			return;
+		}
+	}
+	echo  "<articadatascgi>". base64_encode("0.00")."</articadatascgi>";
+}
+
+
+function zarafa_hash(){
+	if(isset($_GET["rebuild"])){@unlink("/etc/artica-postfix/zarafa-export.db");}
+	if(!is_file("/etc/artica-postfix/zarafa-export.db")){
+		$cmd=LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.zarafa.build.stores.php --export-hash";
+		shell_exec($cmd);
+	}
+	echo "<articadatascgi>". @file_get_contents("/etc/artica-postfix/zarafa-export.db")."</articadatascgi>";
 }

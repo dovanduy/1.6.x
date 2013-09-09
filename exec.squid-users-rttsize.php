@@ -22,6 +22,9 @@ include_once(dirname(__FILE__).'/ressources/class.squid.tail.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 
+$sock=new sockets();
+$sock->SQUID_DISABLE_STATS_DIE();
+
 if($argv[1]=="--main-table"){main_table();exit;}
 if($argv[1]=="--now"){UsersSizeByHour();ParseQueue();}
 

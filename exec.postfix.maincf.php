@@ -11,6 +11,7 @@ include_once(dirname(__FILE__).'/ressources/class.policyd-weight.inc');
 include_once(dirname(__FILE__).'/ressources/class.main.hashtables.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
+
 $GLOBALS["RELOAD"]=false;
 $GLOBALS["URGENCY"]=false;
 $_GET["LOGFILE"]="/usr/share/artica-postfix/ressources/logs/web/interface-postfix.log";
@@ -28,6 +29,9 @@ $pid=getmypid();
 echo "Starting......: Postfix configurator running $pid\n";
 file_put_contents($pidfile,$pid);
 if($argv[1]=='--wlscreen'){wlscreen();die();}
+
+
+
 
 
 $users=new usersMenus();
@@ -98,24 +102,60 @@ if($argv[1]=='--milters'){smtpd_milters();RestartPostix();die();}
 
 
 
-
+function SEND_PROGRESS($POURC,$text,$error=null){
+	$cache="/usr/share/artica-postfix/ressources/logs/web/POSTFIX_COMPILES";
+	if($error<>null){echo "FATAL !!!! $error\n";}
+	echo "{$POURC}% $text\n";
+	
+	$array=unserialize(@file_get_contents($cache));
+	$array["POURC"]=$POURC;
+	$array["TEXT"]=$text;
+	if($error<>null){$array["ERROR"][]=$error;}
+	@mkdir(dirname($cache),0755,true);
+	@file_put_contents($cache, serialize($array));
+	@chmod($cache, 0777);
+	
+}
 
 
 
 if($argv[1]=='--reconfigure'){
+	
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/postfix.reconfigure2.pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: reconfigure2: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
+		die();
+	}
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".reconfigure.pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
+		die();
+	}
+	@file_put_contents($pidfile, getmypid());	
+	
+	
 	if($GLOBALS["EnablePostfixMultiInstance"]==1){
 		shell_exec(LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.postfix-multi.php --from-main-reconfigure");
 	}
+	
 	$t1=time();
 	$main=new main_cf();
+	SEND_PROGRESS(2,"Writing mainc.cf...");
 	$main->save_conf_to_server(1);
+	SEND_PROGRESS(4,"Writing mainc.cf done...");
 	if(!is_file("/etc/postfix/hash_files/header_checks.cf")){@file_put_contents("/etc/postfix/hash_files/header_checks.cf","#");}
-	file_put_contents('/etc/postfix/main.cf',$main->main_cf_datas);
-	echo "Starting......: Postfix Building main.cf ". strlen($main->main_cf_datas). " bytes done line ". __LINE__."\n";
+	
+	SEND_PROGRESS(5,"Building all settings...");
 	_DefaultSettings();
-	$unix=new unix();
-	$unix->send_email_events("Postfix: postfix compilation done. Took :".$unix->distanceOfTimeInWords($t1,time()), "No content yet...\nShould be an added feature :=)", "postfix");
 	HashTables();
+	$unix->send_email_events("Postfix: postfix compilation done. Took :".$unix->distanceOfTimeInWords($t1,time()), "No content yet...\nShould be an added feature :=)", "postfix");
+	SEND_PROGRESS(100,"Configuration done");
 	die();
 }
 
@@ -167,54 +207,57 @@ function smtpd_data_restrictions(){
 	}
 }
 
-function HashTables(){
+function HashTables($start=0){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");	
-	$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.postfix.hashtables.php");
+	shell_exec("$php5 /usr/share/artica-postfix/exec.postfix.hashtables.php --pourc=$start");
 }
 
 function _DefaultSettings(){
 if($GLOBALS["EnablePostfixMultiInstance"]==1){shell_exec(LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.postfix-multi.php --from-main-null");return;}
-
-	cleanMultiplesInstances();
-	SetSALS();
-	SetTLS();
-	inet_interfaces();
-	imap_sockets();
-	MailBoxTransport();
-	mynetworks();	
-	headers_check(1);
-	MasterCFBuilder();
-	mime_header_checks();
-	smtp_sasl_auth_enable();
-	smtpd_recipient_restrictions();
-	smtpd_client_restrictions_clean();
-	smtpd_client_restrictions();
-	smtpd_sasl_exceptions_networks();
-	sender_bcc_maps();
-	CleanMyHostname();
-	OthersValues();
-	luser_relay();
-	smtpd_sender_restrictions();
-	smtpd_end_of_data_restrictions();
-	perso_settings();
-	remove_virtual_mailbox_base();
-	postscreen();
-	smtp_sasl_security_options();
-	BodyChecks();
-	postfix_templates();
-	debug_peer_list();
-	haproxy_compliance();
-	smtpd_milters();
-	ReloadPostfix();	
+	$start=5;
+	$functions=array(
+		"cleanMultiplesInstances","SetTLS","inet_interfaces","imap_sockets","MailBoxTransport","mynetworks",
+		"headers_check","mime_header_checks","smtpd_recipient_restrictions","smtpd_client_restrictions_clean",
+		"smtpd_client_restrictions","smtpd_sasl_exceptions_networks","sender_bcc_maps","CleanMyHostname","OthersValues","luser_relay",
+		"smtpd_sender_restrictions"	,"smtpd_end_of_data_restrictions","perso_settings","remove_virtual_mailbox_base","postscreen",
+		"smtp_sasl_security_options","smtp_sasl_auth_enable","SetSALS","BodyChecks","postfix_templates","debug_peer_list","haproxy_compliance","smtpd_milters",
+		"MasterCFBuilder","ReloadPostfix"
+			
+			
+	);
+	
+	$tot=count($functions);
+	$i=0;
+	while (list ($num, $func) = each ($functions) ){
+		$i++;
+		$start++;
+		if(!function_exists($func)){
+			SEND_PROGRESS($start,$func,"Error $func no such function...");
+			continue;
+		}
+			
+			
+		try {
+			SEND_PROGRESS($start,"Action 1, {$start}% Please wait, executing $func() $i/$tot..");
+			call_user_func($func);
+		} catch (Exception $e) {
+			SEND_PROGRESS($start,$func,"Error on $func ($e)");
+		}			
+	}
+	
+	
+	
+	
+	
 	if($GLOBALS["URGENCY"]){
 		$unix=new unix();
 		$php5=$unix->LOCATE_PHP5_BIN();
 		$nohup=$unix->find_program("nohup");
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.postfix.hashtables.php >/dev/null 2>&1 &");
 	}else{
-		HashTables();
+		HashTables($start);
 	}
 	
 }
@@ -355,26 +398,44 @@ function smtp_sasl_security_options(){
 
 function SetTLS(){
 	
+	$main=new maincf_multi("master","master");
+	
 	if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	$smtpd_tls_security_level=trim($sock->GET_INFO('smtpd_tls_security_level'));
 	if($smtpd_tls_security_level<>null){
 		shell_exec("{$GLOBALS["postconf"]} -e \"smtpd_tls_security_level = $smtpd_tls_security_level\" >/dev/null 2>&1");
 	}
 	
-if($sock->GET_INFO('smtp_sender_dependent_authentication')==1){
-	postconf("smtp_sender_dependent_authentication","yes");
-	postconf("smtp_sasl_auth_enable","yes");
+	if($sock->GET_INFO('smtp_sender_dependent_authentication')==1){
+		postconf("smtp_sender_dependent_authentication","yes");
+		postconf("smtp_sasl_auth_enable","yes");
 	
 	}
 	
-	$main=new main_cf();
-		postconf("broken_sasl_auth_clients","$main->broken_sasl_auth_clients");
-		postconf("smtpd_sasl_local_domain","$main->smtpd_sasl_local_domain");
-		postconf("smtpd_sasl_authenticated_header","$main->smtpd_sasl_authenticated_header");
-		postconf("smtpd_tls_security_level","$main->smtpd_tls_security_level");
-		postconf("smtpd_tls_auth_only","$main->smtpd_tls_auth_only");
-		postconf("smtpd_tls_received_header","$main->smtpd_tls_received_header");
-	}
+	$broken_sasl_auth_clients=$main->GET("broken_sasl_auth_clients");
+	$smtpd_tls_auth_only=$main->GET("smtpd_tls_auth_only");
+	$smtpd_sasl_authenticated_header=$main->GET("smtpd_sasl_authenticated_header");
+	$smtpd_tls_received_header=$main->GET("smtpd_tls_received_header");
+	$smtpd_tls_security_level=$main->GET("smtpd_tls_security_level");
+	$smtpd_sasl_security_options=$main->GET("smtpd_sasl_security_options");
+	
+	if(!is_numeric($broken_sasl_auth_clients)){$broken_sasl_auth_clients=1;}
+	if(!is_numeric($smtpd_sasl_authenticated_header)){$smtpd_sasl_authenticated_header=1;}
+	if(!is_numeric($smtpd_tls_auth_only)){$smtpd_tls_auth_only=0;}
+	if(!is_numeric($smtpd_tls_received_header)){$smtpd_tls_received_header=1;}
+	if($smtpd_tls_security_level==null){$smtpd_tls_security_level="may";}
+	if($smtpd_sasl_security_options==null){$smtpd_sasl_security_options="noanonymous";}
+	
+	
+	
+	postconf("broken_sasl_auth_clients",$main->YesNo($broken_sasl_auth_clients));
+	postconf("smtpd_sasl_local_domain",$main->GET("smtpd_sasl_local_domain"));
+	postconf("smtpd_sasl_authenticated_header",$main->YesNo($smtpd_sasl_authenticated_header));
+	postconf("smtpd_tls_security_level",$smtpd_tls_security_level);
+	postconf("smtpd_tls_auth_only",$main->YesNo($smtpd_tls_auth_only));
+	postconf("smtpd_tls_received_header",$main->YesNo($smtpd_tls_received_header));
+	postconf("smtpd_sasl_security_options",$smtpd_sasl_security_options);
+}
 
 function mynetworks(){
 	
@@ -1391,9 +1452,9 @@ function OthersValues(){
 	$disable_dns_lookups=$mainmulti->GET("disable_dns_lookups");
 	$smtpd_banner=$mainmulti->GET('smtpd_banner');
 	
-	$detect_8bit_encoding_header=$main->GET("detect_8bit_encoding_header");
-	$disable_mime_input_processing=$main->GET("disable_mime_input_processing");
-	$disable_mime_output_conversion=$main->GET("disable_mime_output_conversion");
+	$detect_8bit_encoding_header=$mainmulti->GET("detect_8bit_encoding_header");
+	$disable_mime_input_processing=$mainmulti->GET("disable_mime_input_processing");
+	$disable_mime_output_conversion=$mainmulti->GET("disable_mime_output_conversion");
 	
 	
 	if(!is_numeric($detect_8bit_encoding_header)){$detect_8bit_encoding_header=1;}
@@ -1409,8 +1470,7 @@ function OthersValues(){
 		
 	
 
-	if($ignore_mx_lookup_error==0){$ignore_mx_lookup_error="no";}else{$ignore_mx_lookup_error="yes";}
-	if($disable_dns_lookups==0){$disable_dns_lookups="no";}else{$disable_dns_lookups="yes";}
+
 	
 	
 	if(!is_numeric($smtp_connection_cache_on_demand)){$smtp_connection_cache_on_demand=1;}
@@ -1466,8 +1526,13 @@ function OthersValues(){
 	$detect_8bit_encoding_header=$mainmulti->YesNo($detect_8bit_encoding_header);
 	$disable_mime_input_processing=$mainmulti->YesNo($disable_mime_input_processing);
 	$disable_mime_output_conversion=$mainmulti->YesNo($disable_mime_output_conversion);
+	$smtpd_reject_unlisted_sender=$mainmulti->YesNo($smtpd_reject_unlisted_sender);
+	$smtpd_reject_unlisted_recipient=$mainmulti->YesNo($smtpd_reject_unlisted_recipient);
+	$ignore_mx_lookup_error=$mainmulti->YesNo($ignore_mx_lookup_error);
+	$disable_dns_lookups=$mainmulti->YesNo($disable_dns_lookups);
 	
-
+	
+	
 	
 	$mime_nesting_limit=$mainmulti->GET("mime_nesting_limit");
 	if(!is_numeric($mime_nesting_limit)){
@@ -1525,6 +1590,8 @@ function OthersValues(){
 		}
 	}
 
+	
+	$address_verify_negative_cache=$mainmulti->YesNo($address_verify_negative_cache);
 
 	postconf("smtpd_reject_unlisted_sender","$smtpd_reject_unlisted_sender");
 	postconf("smtpd_reject_unlisted_recipient","$smtpd_reject_unlisted_recipient");
@@ -2142,6 +2209,7 @@ function MasterCF_DOMAINS_THROTTLE(){
 	$array=unserialize(base64_decode($main->GET_BIGDATA("domain_throttle_daemons_list")));	
 	
 	$f=explode("\n",@file_get_contents("/etc/postfix/main.cf"));
+	if(!is_array($f)){$f=array();}
 	while (list ($index, $line) = each ($f) ){
 		if(preg_match("#^[0-9]+_destination#",$line)){continue;}
 		if(preg_match("#^[0-9]+_delivery_#",$line)){continue;}
@@ -2335,6 +2403,19 @@ function MasterCFBuilder($restart_service=false){
 	$pre_cleanup_addons=null;
 	$master=new master_cf(1,"master");
 	
+	$ver210=false;
+	$users=new usersMenus();
+	echo "Starting......: Postfix master version: $users->POSTFIX_VERSION\n";
+	if(preg_match("#^([0-9]+)\.([0-9]+)#", $users->POSTFIX_VERSION,$re)){
+		$major=intval($re[1]);
+		$minor=intval($re[2]);
+		$binver=intval("{$major}{$minor}");
+		if($binver >= 210){
+			echo "Starting......: Postfix master version: 2.10 [$binver] OK\n";
+			$ver210=true;}
+	}	
+	
+	
 	$MASTER_CF_DEFINED=$master->GetArray();
 	
 	if($EnablePostScreen==null){$EnablePostScreen=0;}	
@@ -2421,6 +2502,9 @@ function MasterCFBuilder($restart_service=false){
 		$amavis[]=" -o smtpd_hard_error_limit=1000";
 		$amavis[]=" -o receive_override_options=no_header_body_checks";	
 		$amavis[]="	-o smtpd_sasl_auth_enable=no"; 
+		if($ver210){
+		$amavis[]="	-o smtpd_upstream_proxy_protocol=";
+		}
 		$amavis[]="	-o smtpd_use_tls=no";
 		$master_amavis=@implode("\n",$amavis);
 
@@ -2621,7 +2705,10 @@ $conf[]="    -o smtp_generic_maps=";
 $conf[]="    -o sender_canonical_maps=";
 $conf[]="    -o smtpd_milters=";
 $conf[]="    -o smtpd_sasl_auth_enable=no";
-$conf[]="    -o smtpd_use_tls=no";	
+$conf[]="    -o smtpd_use_tls=no";
+if($ver210){
+$conf[]="	 -o smtpd_upstream_proxy_protocol=";
+}	
 $conf[]="";	
 $conf[]="";
 @file_put_contents("/etc/postfix/master.cf",@implode("\n",$conf));

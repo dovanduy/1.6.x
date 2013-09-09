@@ -442,6 +442,18 @@ function Parseline($buffer){
 		return;
 	}
 	
+	if(preg_match("#haarp.*?munmap_chunk.*?invalid pointer#",$buffer)){
+		$file="/etc/artica-postfix/croned.1/haarp.invalid.pointer";
+		events("invalid pointer haarp:".__LINE__);
+		if(IfFileTime($file,3)){
+			squid_admin_mysql(0,"Haarp issues","Proxy service have issues with haarp,\n$buffer\n the service will be restarted");
+			squid_admin_notifs("Warning, Haarp issues.\nProxy service have issues with haarp,\n$buffer\n the service will be restarted");
+			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/haarp restart >/dev/null 2>&1 &");
+		}
+		return;
+		
+	}
+	
 	
 	if(preg_match("#monit\[.+?system statistic error.+?cannot get real memory buffers amount#", $buffer)){
 		$file="/etc/artica-postfix/croned.1/squid.Failed.to.make.swap.directory";

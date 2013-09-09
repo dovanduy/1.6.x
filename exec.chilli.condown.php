@@ -28,7 +28,7 @@ $sqlCR="CREATE TABLE IF NOT EXISTS `hotspot_ident` (
 				  KEY `zDate` (`zDate`)
 				)  ENGINE = MYISAM;";
 
-$USER_NAME=mysql_escape_string($_ENV["USER_NAME"]);
+$USER_NAME=mysql_escape_string2($_ENV["USER_NAME"]);
 $FRAMED_IP_ADDRESS=$_ENV["FRAMED_IP_ADDRESS"];
 $MAC=$_ENV["CALLING_STATION_ID"];
 $MAC=strtolower($MAC);

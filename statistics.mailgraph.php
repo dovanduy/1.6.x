@@ -47,26 +47,8 @@ function popup(){
 	}
 	
 	
-	echo "
-	<div id=main_stats_yorels_index style='width:100%;height:800px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_stats_yorels_index').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";
-
-
+	echo build_artica_tabs($html, "main_stats_yorels_index");
+	
 	
 	
 }

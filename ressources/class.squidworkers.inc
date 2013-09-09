@@ -14,6 +14,7 @@ class squidworkers{
 	private $SquidBoosterMem=0;
 	private $DisableSquidSNMPMode=1;
 	private $SquidCachesMount=array();
+	public $CPU_FINAL=0;
 	
 	function squidworkers(){
 		if(posix_getuid()==0){$this->ASROOT=true;}
@@ -97,6 +98,7 @@ class squidworkers{
 	
 	public function Workers($maincachedir=null){
 		if(!$this->IS_32){return;}
+		if(!isset($GLOBALS["NO_KILL_MYSQL"])){$GLOBALS["NO_KILL_MYSQL"]=false;}
 		$sock=new sockets();
 		
 		$this->SquidBoosterOnly=$this->zcheck_squidbooster_value();
@@ -104,12 +106,14 @@ class squidworkers{
 		echo "Starting......: [SMP] Disable SMP:$this->DisableSquidSNMPMode\n";
 		
 		
-	
+		if(!function_exists("mysql_connect")){return;}
+		
 		$q=new mysql_squid_builder();
 		if(!$q->BD_CONNECT(true)){
 			if($this->ASROOT){
 				echo "Starting......: [SMP] MySQL database engine not ready, die()...\n";
-				die();
+				if(!$GLOBALS["NO_KILL_MYSQL"]){die();}
+				return;
 			}
 		}
 		echo "Starting......: [SMP] Query MySQL Engine...for $this->uuid\n";
@@ -156,6 +160,7 @@ class squidworkers{
 		$f[]="workers $CPUS";
 		for($i=1;$i<$CPUS+1;$i++){
 			$f[]="if \${process_number} = $i";
+				$this->CPU_FINAL++;
 				$boost_cache=$boost->cache_booster_SMP($i);
 				if($boost_cache<>null){$f[]=$boost_cache;}
 				if($this->SquidBoosterOnly==0){$f[]="cache_dir aufs $cachesDirectory-$i $globalCachesize 128 512 $this->store_dir_minsize";}
@@ -245,6 +250,7 @@ class squidworkers{
 			echo "Starting......: [SMP] CPU[$i] = CPU[$i] Caches = `$CountDeCaches`\n";
 			if($CountDeCaches==0){continue;}
 			$f[]="if \${process_number} = $i";
+			$this->CPU_FINAL++;
 			
 			$CacheMount=$this->BuildSquidCachesMount($i);
 			echo "Starting......: [SMP] CPU[$i] = Cache mounted `$CacheMount`\n";
@@ -292,7 +298,8 @@ class squidworkers{
 					
 						if(!is_numeric($cache_dir_level1)){$cache_dir_level1=16;}
 						if(!is_numeric($cache_dir_level2)){$cache_dir_level2=256;}
-				
+						
+						if($cache_type=="ufs"){$cache_type="aufs";}
 						$f[]="cache_dir $cache_type $cache_directory $cache_size $cache_dir_level1 $cache_dir_level2 $cache_maxsizeT";
 						$WORKCOUNT++;
 					}
@@ -362,8 +369,8 @@ class squidworkers{
 		
 		$MemDIFF=$mountedram-10;
 		if($this->ASROOT){echo "Starting......: [SMP] CPU[$Index] : Return a cache of {$MemDIFF}M\n";}
-		$GLOBALS["BuildSquidCachesMount"][$Index]="cache_dir diskd $Dir $MemDIFF 16 256";
-		return "cache_dir diskd $Dir $MemDIFF 16 256";		
+		$GLOBALS["BuildSquidCachesMount"][$Index]="cache_dir aufs $Dir $MemDIFF 16 256";
+		return "cache_dir aufs $Dir $MemDIFF 16 256";		
 		
 	}
 	

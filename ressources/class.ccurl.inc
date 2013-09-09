@@ -1,5 +1,5 @@
 <?php
-define ('CURLOPTTYPE_OBJECTPOINT ',  10000);
+define ('CURLOPTTYPE_OBJECTPOINT',  10000);
 define ('CURLOPT_NOPROXY',CURLOPTTYPE_OBJECTPOINT + 177);
 class ccurl{
 	var $uri;
@@ -30,6 +30,7 @@ class ccurl{
 	var $CURLOPT_NOPROXY="localhost,127.0.0.1";
 	var $CURLOPT_HEADER=true;
 	var $CURLINFO_HTTP_CODE=0;
+	var $CURL_ALL_INFOS=array();
 	private $called=null;
 	private $headers=null;
 	
@@ -150,15 +151,45 @@ class ccurl{
 		if(!$GLOBALS["AS_ROOT"]){return false;}
 		$unix=new unix();
 		$pear=$unix->find_program("pear");
-		if(!is_file($pear)){return;}
+		if(!is_file($pear)){if($GLOBALS["VERBOSE"]){echo "pear_install_HTTP_Request2() `pear` no such binary\n";}return;}
 		$hohup=$unix->find_program("nohup");
 		shell_exec("$hohup $pear install HTTP_Request2 >/dev/null 2>&1 &");
 	}
+	private function  pear_install_Net_URL2(){
+		if(!$GLOBALS["AS_ROOT"]){return false;}
+		$unix=new unix();
+		$pear=$unix->find_program("pear");
+		if(!is_file($pear)){if($GLOBALS["VERBOSE"]){echo "pear_install_Net_URL2() `pear` no such binary\n";}return;}
+		$hohup=$unix->find_program("nohup");
+		shell_exec("$hohup $pear install Net_URL2 >/dev/null 2>&1 &");
+		
+	}
+	
 	
 	
 	private function getdirect(){
-		include_once('HTTP/Request2.php');
-		if(!class_exists("Http_Request2")){$this->pear_install_HTTP_Request2();}
+		
+		if($GLOBALS["VERBOSE"]){echo "getdirect() -> HTTP/Request2.php\n";}
+		include_once(dirname(__FILE__).'/HTTP/Request2.php');
+		
+		
+		
+		
+		if($GLOBALS["VERBOSE"]){echo "getdirect() -> Tests classes\n";}
+		if(!class_exists("Http_Request2")){
+			if($GLOBALS["VERBOSE"]){echo " Class Http_Request2 did not existes -> pear_install_HTTP_Request2\n";}
+			$this->pear_install_HTTP_Request2();
+		}else{
+			if($GLOBALS["VERBOSE"]){echo " Class Http_Request2 OK\n";}
+		}
+			
+		if(!class_exists("Net_URL2")){
+			if($GLOBALS["VERBOSE"]){echo " Class Net_URL2 did not existes -> pear_install_Net_URL2\n";}
+			$this->pear_install_Net_URL2();
+		}else{
+			if($GLOBALS["VERBOSE"]){echo " Class Net_URL2 OK\n";}
+		}
+			
 		if(class_exists("Http_Request2")){return $this->getdirect_HTTP_Request2();}
 		//$auth = base64_encode('user:password');
 		//$header = array("Authorization: Basic $auth");
@@ -274,7 +305,9 @@ class ccurl{
 	
 	function get(){
 		if (!extension_loaded('curl')) {return $this->wget();}
-		if($this->UseDirect){return $this->getdirect();}
+		if($this->UseDirect){
+			if($GLOBALS["VERBOSE"]){echo __CLASS__."/".__FUNCTION__.":: ".__LINE__.":: ->getdirect()\n";}
+			return $this->getdirect();}
 		
 		
 		$curlPost=null;
@@ -348,6 +381,7 @@ class ccurl{
 			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
 			$this->data=curl_exec($ch);
 			$this->CURLINFO_HTTP_CODE=curl_getinfo($ch,CURLINFO_HTTP_CODE);
+			$this->CURL_ALL_INFOS=curl_getinfo($ch);
 			if($GLOBALS["VERBOSE"]){echo curl_getinfo($ch, CURLINFO_HEADER_OUT);}
 			if($GLOBALS["VERBOSE"]){echo "***** $this->CURLINFO_HTTP_CODE *****\n";}
 			

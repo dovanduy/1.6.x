@@ -19,6 +19,7 @@ nightly();
 
 
 function nightly(){
+	@mkdir("/var/log/artica-postfix",0755,true);
 	$MasterIndexFile="/usr/share/artica-postfix/ressources/index.ini";
 	$unix=new unix();
 	$sock=new sockets();
@@ -90,6 +91,8 @@ if($MyCurrentVersion>$MyNextVersion){
 	return;
 }
 echo "Starting......: nightly builds Downloading new version $Lastest, please wait\n";
+events("Downloading new version $Lastest");
+
 $uri="http://www.artica.fr/nightbuilds/artica-$Lastest.tgz";
 $ArticaFileTemp="/tmp/$Lastest/$Lastest.tgz";    
 @mkdir("/tmp/$Lastest",0755,true);
@@ -99,13 +102,17 @@ $curl->WriteProgress=true;
 $curl->ProgressFunction="nightly_progress";
 $t=time();
 if(!$curl->GetFile($ArticaFileTemp)){
+	events("Unable to download latest nightly build with error $curl->error");
 	system_admin_events("Unable to download latest nightly build with error $curl->error", __FUNCTION__, __FILE__, __LINE__, "artica-update");
 	@unlink($ArticaFileTemp);
 	return;
 }
 $took=$unix->distanceOfTimeInWords($t,time(),true);
+
 system_admin_events("artica-$Lastest.tgz download, took $took", __FUNCTION__, __FILE__, __LINE__, "artica-update");
+events("artica-$Lastest.tgz download, took $took");
 echo "Starting......: nightly builds took $took, now stopping Artica...\n";
+
 shell_exec("/etc/init.d/artica-postfix stop >/dev/null 2>&1");
 shell_exec("/etc/init.d/artica-postfix stop >/dev/null 2>&1");
 echo "Starting......: nightly builds Extracting package $ArticaFileTemp, please wait... \n";
@@ -115,11 +122,13 @@ shell_exec("$tarbin xf $ArticaFileTemp -C /usr/share/");
 if(is_file("$killall")){
 	shell_exec("$killall artica-install >/dev/null 2>&1");
 }
+events("New Artica update v.$Lastest");
 system_admin_events("New Artica update v.$Lastest", __FUNCTION__, __FILE__, __LINE__, "artica-update");
 @unlink($ArticaFileTemp);
 
 
 if($RebootAfterArticaUpgrade==1){
+	events("Reboot the server...");
 	system_admin_events("Reboot the server...", __FUNCTION__, __FILE__, __LINE__, "artica-update");
 	$reboot=$unix->find_program("reboot");
 	shell_exec("$reboot");
@@ -127,18 +136,24 @@ if($RebootAfterArticaUpgrade==1){
 } 
 $nohup=$unix->find_program("nohup");
 $php=$unix->LOCATE_PHP5_BIN();
+events("Starting artica");
 echo "Starting......: nightly builds starting artica...\n";
-shell_exec("/etc/init.d/artica-postfix start");
+system("/etc/init.d/artica-postfix start");
 echo "Starting......: nightly builds building init scripts\n";
-shell_exec("$php /usr/share/artica-postfix/exec.initslapd.php --force >/dev/null 2>&1");
+system("$php /usr/share/artica-postfix/exec.initslapd.php --force >/dev/null 2>&1");
+echo "Starting......: nightly builds updating network\n";
+system("$php /usr/share/artica-postfix/exec.virtuals-ip.php >/dev/null 2>&1");
 echo "Starting......: nightly builds purge and clean....\n";
 shell_exec("$nohup /etc/init.d/slapd start >/dev/null 2>&1 &");
 shell_exec("$nohup /etc/init.d/artica-webconsole start >/dev/null 2>&1 &");
+if(is_file("/etc/init.d/nginx")){
+	shell_exec("$nohup /etc/init.d/nginx restart >/dev/null 2>&1 &");	
+}
 shell_exec("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
-shell_exec("$nohup /etc/init.d/artica-postfix restart auth-logger >/dev/null 2>&1 &");
+shell_exec("$nohup /etc/init.d/auth-tail restart >/dev/null 2>&1 &");
 shell_exec("$nohup /usr/share/artica-postfix/bin/process1 -perm >/dev/null 2>&1 &");
 shell_exec("$nohup /usr/share/artica-postfix/bin/artica-make --empty-cache >/dev/null 2>&1 &");
-
+events("done");
 echo "Starting......: nightly builds done....\n";	
 }
 
@@ -164,4 +179,17 @@ function GetCurrentVersion(){
    $tmpstr=str_replace(".", "", $tmpstr);
    $result=intval($tmpstr);
   return $result;
+}
+
+function events($text=null){
+	$dd=date("Y-m-d-H");
+	$da=date("Y-m-d H:i:s");
+	$file="/var/log/artica-postfix/artica-update-$dd.debug";
+	@mkdir(dirname($file));
+	$logFile=$file;
+	if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
+	$pid=getmypid();
+	$f = @fopen($logFile, 'a');
+	@fwrite($f, "$da $pid Nightly Build: $text\n");
+	@fclose($f);
 }

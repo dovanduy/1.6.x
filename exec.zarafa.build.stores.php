@@ -707,7 +707,8 @@ function relinkto($from,$to){
 
 function user_status_table(){
 	$unix=new unix();
-	$timefile="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
+	$sock=new sockets();
+	$timefile="/usr/share/artica-postfix/ressources/databases/ZARAFA_DB_STATUS.db";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	
 
@@ -719,8 +720,7 @@ function user_status_table(){
 			return;
 		}
 		if($mns<180){return;}
-		@unlink($timefile);
-		@file_put_contents($timefile, time());
+		
 		
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
@@ -739,7 +739,39 @@ function user_status_table(){
 	
 	@file_put_contents($pidfile, getmypid());
 	
+	@unlink($timefile);
+	$ZarafaIndexPath=$sock->GET_INFO("ZarafaIndexPath");
+	$ZarafaStoreOutsidePath=$sock->GET_INFO("ZarafaStoreOutsidePath");
+	$ZarafaMySQLServiceType=$sock->GET_INFO("ZarafaMySQLServiceType");
+	if(!is_numeric($ZarafaMySQLServiceType)){$ZarafaMySQLServiceType=1;}
+	// $ZarafaMySQLServiceType =1 ou 2 /var/lib/mysql
+	// $ZarafaMySQLServiceType =3 --> dedicated instance  
 	
+	
+	if($ZarafaIndexPath==null){$ZarafaIndexPath="/var/lib/zarafa/index";}
+	if($ZarafaStoreOutsidePath==null){$ZarafaStoreOutsidePath="/var/lib/zarafa";}
+	
+	
+	
+	
+	$ARRAY["ZARAFA_INDEX"]=$unix->DIRSIZE_BYTES($ZarafaIndexPath);
+	if ( ($ZarafaMySQLServiceType==1) OR ($ZarafaMySQLServiceType==2) ){
+		$ARRAY["ZARAFA_DB"]=$unix->DIRSIZE_BYTES("/var/lib/mysql");
+	}
+	
+	
+	if ( $ZarafaMySQLServiceType==3) {
+		$WORKDIR=$sock->GET_INFO("ZarafaDedicateMySQLWorkDir");
+		if($WORKDIR==null){$WORKDIR="/home/zarafa-db";}
+		$ARRAY["ZARAFA_DB"]=$unix->DIRSIZE_BYTES($WORKDIR);
+	}
+	
+	$ARRAY["ATTACHS"]=$unix->DIRSIZE_BYTES($ZarafaStoreOutsidePath);
+	
+	
+	@file_put_contents($timefile, serialize($ARRAY));
+	@chmod($timefile,0750);
+	unset($ARRAY);
 	$zarafaadmin=$unix->find_program("zarafa-admin");	
 	exec("$zarafaadmin -l 2>&1",$results);
 	while (list ($num, $line) = each ($results) ){

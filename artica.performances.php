@@ -116,44 +116,7 @@ var x_SaveArticaProcessesSchedule= function (obj) {
 	
 	}		
 	
-function SaveArticaIndexPage(){
-	var XHR = new XHRConnection();
-	if(document.getElementById('DisableWarnNotif').checked){XHR.appendData('DisableWarnNotif',1);}else{XHR.appendData('DisableWarnNotif',0);}
-	if(document.getElementById('DisableJGrowl').checked){XHR.appendData('DisableJGrowl',1);}else{XHR.appendData('DisableJGrowl',0);}
-	if(document.getElementById('DisableFrontEndArticaEvents').checked){XHR.appendData('DisableFrontEndArticaEvents',1);}else{XHR.appendData('DisableFrontEndArticaEvents',0);}
-	if(document.getElementById('AllowShutDownByInterface').checked){XHR.appendData('AllowShutDownByInterface',1);}else{XHR.appendData('AllowShutDownByInterface',0);}	
-	if(document.getElementById('DisableNoOrganization').checked){XHR.appendData('DisableNoOrganization',1);}else{XHR.appendData('DisableNoOrganization',0);}
-	if(document.getElementById('DisableAPTNews').checked){XHR.appendData('DisableAPTNews',1);}else{XHR.appendData('DisableAPTNews',0);}
-	if(document.getElementById('DisableWarningCalculation').checked){XHR.appendData('DisableWarningCalculation',1);}else{XHR.appendData('DisableWarningCalculation',0);}
-	if(document.getElementById('DisableFrontBrowseComputers').checked){XHR.appendData('DisableFrontBrowseComputers',1);}else{XHR.appendData('DisableFrontBrowseComputers',0);}
-	if(document.getElementById('DisableFrontArticaMeta').checked){XHR.appendData('DisableFrontArticaMeta',1);}else{XHR.appendData('DisableFrontArticaMeta',0);}
-	if(document.getElementById('DisableJqueryDropDown').checked){XHR.appendData('DisableJqueryDropDown',1);}else{XHR.appendData('DisableJqueryDropDown',0);}
-	if(document.getElementById('DisableTimeCapsuleToolBox').checked){XHR.appendData('DisableTimeCapsuleToolBox',1);}else{XHR.appendData('DisableTimeCapsuleToolBox',0);}
-	if(document.getElementById('DisableFreeWebToolBox').checked){XHR.appendData('DisableFreeWebToolBox',1);}else{XHR.appendData('DisableFreeWebToolBox',0);}
-	
 
-	
-
-	
-	if(document.getElementById('jgrowl_no_kas_update')){
-		if(document.getElementById('jgrowl_no_kas_update').checked){
-			XHR.appendData('jgrowl_no_kas_update',1);}else{
-			XHR.appendData('jgrowl_no_kas_update',0);
-		}
-	}
-	
-	if(document.getElementById('jgrowl_no_clamav_update')){	
-			if(document.getElementById('jgrowl_no_clamav_update').checked){
-			XHR.appendData('jgrowl_no_clamav_update',1);}
-			else{XHR.appendData('jgrowl_no_clamav_update',0);
-			}
-	}
-	XHR.appendData('jGrowlMaxEvents',document.getElementById('jGrowlMaxEvents').value)
-	
-	
-	XHR.sendAndLoad('$page', 'GET',x_SaveArticaProcessesSchedule);
-	
-}
 			
 {$idmd}StartPage()";
 	
@@ -179,7 +142,8 @@ function save_index_page(){
 	$sock->SET_INFO("DisableFreeWebToolBox", $_GET["DisableFreeWebToolBox"]);
 	$sock->SET_INFO("DisableTimeCapsuleToolBox", $_GET["DisableTimeCapsuleToolBox"]);		
 		
-	
+	$sock->SET_INFO("DisableSpecialCharacters", $_GET["DisableSpecialCharacters"]);
+	$sock->SET_INFO("DenyMiniWebFromStandardPort", $_GET["DenyMiniWebFromStandardPort"]);
 	
 	unset($_SESSION["DisableJqueryDropDown"]);
 	
@@ -245,15 +209,18 @@ function cron_index(){
 	$DisableJqueryDropDown=Field_checkbox("DisableJqueryDropDown", 1,$DisableJqueryDropDown);
 	$DisableFreeWebToolBox=Field_checkbox("DisableFreeWebToolBox", 1,$DisableFreeWebToolBox);
 	$DisableTimeCapsuleToolBox=Field_checkbox("DisableTimeCapsuleToolBox", 1,$DisableTimeCapsuleToolBox);
+	$DenyMiniWebFromStandardPort=$sock->GET_INFO("DenyMiniWebFromStandardPort");
+	$DisableSpecialCharacters=$sock->GET_INFO("DisableSpecialCharacters");
 	
 	
-
+	if(!is_numeric($DenyMiniWebFromStandardPort)){$DenyMiniWebFromStandardPort=0;}
+	if(!is_numeric($DisableSpecialCharacters)){$DisableSpecialCharacters=0;}
 	
 	
 	if($jGrowlMaxEvents==null){$jGrowlMaxEvents=50;}
 
 	$jgrowl_no_kas_update="	<tr>
-		<td class=legend>{jgrowl_no_kas_update}:</td>
+		<td class=legend style='font-size:14px'>{jgrowl_no_kas_update}:</td>
 		<td valign='top'>$jgrowl_no_kas_update</tD>
 	</tr>
 	<tr><td colspan=2 style='border-top:1px solid #005447'>&nbsp;</td></tr>";
@@ -264,7 +231,7 @@ function cron_index(){
 	
 	
 	$noclamav="	<tr>
-		<td class=legend>{jgrowl_no_clamav_update}:</td>
+		<td class=legend style='font-size:14px'>{jgrowl_no_clamav_update}:</td>
 		<td>$jgrowl_no_clamav_update</tD>
 	</tr>
 	<tr><td colspan=2 style='border-top:1px solid #005447'>&nbsp;</td></tr>";
@@ -275,12 +242,12 @@ function cron_index(){
 	}
 	$t=time();
 	$html="
-	<div class=explain>{frontend_disables_options_explain}</div>
+	<div class=explain style='font-size:14px'>{frontend_disables_options_explain}</div>
 	<div id='articaschedulesdiv'></div>
 	<div id='$t'></div>
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend>font:</td>
+		<td class=legend style='font-size:14px'>font:</td>
 		<td valign='top'>".Field_text("InterfaceFonts",$InterfaceFonts,"font-size:13px;width:99%")."</tD>
 	</tr>
 	<tr>			
@@ -295,45 +262,53 @@ function cron_index(){
 	
 <table style='width:99%' class=form>
 	<tr>
-		<td class=legend>{disable}:{smtp_notification_not_saved}:</td>
+		<td class=legend style='font-size:14px'>{disable}:{smtp_notification_not_saved}:</td>
 		<td valign='top'>$DisableWarnNotif</tD>
 	</tr>
 	<tr>
-		<td class=legend>{disable}:{icon_artica_events_front_end}:</td>
+		<td class=legend style='font-size:14px'>{disable}:{icon_artica_events_front_end}:</td>
 		<td valign='top'>$DisableFrontEndArticaEvents</tD>
 	</tr>
 	<tr>
-		<td class=legend>{disable_jgrowl}:</td>
+		<td class=legend style='font-size:14px'>{disable_jgrowl}:</td>
 		<td valign='top'>$DisableJGrowl</tD>
 	</tr>
 	<tr>
-		<td class=legend>{DisableJqueryDropDown}:</td>
+		<td class=legend style='font-size:14px'>{DisableJqueryDropDown}:</td>
 		<td valign='top'>$DisableJqueryDropDown</tD>
 			
 	<tr>
-		<td class=legend>{disable}:{no_organization}:</td>
+		<td class=legend style='font-size:14px'>{disable}:{no_organization}:</td>
 		<td valign='top'>$DisableNoOrganization</tD>
 	</tr>	
 	<tr>
-		<td class=legend>{DisableAPTNews}:</td>
+		<td class=legend style='font-size:14px'>{DisableAPTNews}:</td>
 		<td valign='top'>$DisableAPTNews</tD>
 	</tr>
 	<tr>
-		<td class=legend>{DisableWarningCalculation}:</td>
+		<td class=legend style='font-size:14px'>{DisableWarningCalculation}:</td>
 		<td valign='top'>$DisableWarningCalculation</tD>
 	</tr>	
 	<tr>
-		<td class=legend>{disable}:{browse_computers}:</td>
+		<td class=legend style='font-size:14px'>{disable}:{browse_computers}:</td>
 		<td valign='top'>$DisableFrontBrowseComputers</tD>
-	</tr>		
+	</tr>
 	<tr>
-		<td class=legend>{disable}:{meta-console}:</td>
+		<td class=legend style='font-size:14px'>{DisableSpecialCharacters}:</td>
+		<td valign='top'>". Field_checkbox("DisableSpecialCharacters", 1,$DisableSpecialCharacters)."</td>
+	</tr>
+	
+	<tr>
+		<td class=legend style='font-size:14px'>{disable}:{meta-console}:</td>
 		<td valign='top'>$DisableFrontArticaMeta</tD>
 	</tr>		
-		
+	<tr>
+		<td class=legend style='font-size:14px'>{deny_access_from_the_standard_port}:</td>
+		<td>". Field_checkbox("DenyMiniWebFromStandardPort", 1,$DenyMiniWebFromStandardPort,"DenyMiniWebFromStandardPortCheck()")."</td>
+	</tr>		
 		 
 	<tr>
-		<td class=legend>{jGrowlMaxEvents}:</td>
+		<td class=legend style='font-size:14px'>{jGrowlMaxEvents}:</td>
 		<td valign='top'>". Field_text("jGrowlMaxEvents",$jGrowlMaxEvents,"width:30px")."</tD>
 	</tr>	
 	
@@ -341,29 +316,29 @@ $noclamav
 $jgrowl_no_kas_update	
 	
 	<tr>
-		<td class=legend>{enable_shutdown_interface}:</td>
+		<td class=legend style='font-size:14px'>{enable_shutdown_interface}:</td>
 		<td valign='top'>$AllowShutDownByInterface</tD>
 	</tr>
 	<tr>
-		<td class=legend>{disable_tooltips}:</td>
+		<td class=legend style='font-size:14px'>{disable_tooltips}:</td>
 		<td valign='top'>".Field_checkbox("DisableToolTips",1,$DisableToolTips,"DisableToolTipsSave()")."</tD>
 	</tr>
 	<tr>
-		<td class=legend>{disable_help_tooltips}:</td>
+		<td class=legend style='font-size:14px'>{disable_help_tooltips}:</td>
 		<td valign='top'>".Field_checkbox("DisableHelpToolTips",1,$DisableHelpToolTips,"DisableToolTipsSave()")."</tD>
 	</tr>	
 	<tr>
-		<td class=legend>{disable_freewebs_toolbox}:</td>
+		<td class=legend style='font-size:14px'>{disable_freewebs_toolbox}:</td>
 		<td valign='top'>$DisableFreeWebToolBox</tD>
 	</tr>		
 	<tr>
-		<td class=legend>{disable_TimeCapsule_toolbox}:</td>
+		<td class=legend style='font-size:14px'>{disable_TimeCapsule_toolbox}:</td>
 		<td valign='top'>$DisableTimeCapsuleToolBox</tD>
 	</tr>	
 	
 	<tr>			
 	<td colspan=2 align='right'>
-			<hr>". button("{apply}","SaveArticaIndexPage()",16)."
+			<hr>". button("{apply}","SaveArticaIndexPage$t()",16)."
 				
 		</td>
 	</tr>
@@ -388,7 +363,15 @@ $jgrowl_no_kas_update
 		if(results.length>0){alert(results);}
 		document.getElementById('$t').innerHTML='';
 		reloadStylesheets();
-	}		
+	}	
+
+	
+	var xSaveArticaIndexPage$t=function (obj) {
+		var results=obj.responseText;
+		document.getElementById('$t').innerHTML='';
+		if(results.length>0){alert(results);}
+		CacheOff();
+	}	
 	
 	 
 	function SaveArticaIndexPage2(){
@@ -397,7 +380,48 @@ $jgrowl_no_kas_update
 		AnimateDiv('$t');
 		XHR.sendAndLoad('$page', 'POST',x_SaveArticaIndexPage2);
 		
-	}	
+	}
+
+function SaveArticaIndexPage$t(){
+	var XHR = new XHRConnection();
+	if(document.getElementById('DisableWarnNotif').checked){XHR.appendData('DisableWarnNotif',1);}else{XHR.appendData('DisableWarnNotif',0);}
+	if(document.getElementById('DisableJGrowl').checked){XHR.appendData('DisableJGrowl',1);}else{XHR.appendData('DisableJGrowl',0);}
+	if(document.getElementById('DisableFrontEndArticaEvents').checked){XHR.appendData('DisableFrontEndArticaEvents',1);}else{XHR.appendData('DisableFrontEndArticaEvents',0);}
+	if(document.getElementById('AllowShutDownByInterface').checked){XHR.appendData('AllowShutDownByInterface',1);}else{XHR.appendData('AllowShutDownByInterface',0);}	
+	if(document.getElementById('DisableNoOrganization').checked){XHR.appendData('DisableNoOrganization',1);}else{XHR.appendData('DisableNoOrganization',0);}
+	if(document.getElementById('DisableAPTNews').checked){XHR.appendData('DisableAPTNews',1);}else{XHR.appendData('DisableAPTNews',0);}
+	if(document.getElementById('DisableWarningCalculation').checked){XHR.appendData('DisableWarningCalculation',1);}else{XHR.appendData('DisableWarningCalculation',0);}
+	if(document.getElementById('DisableFrontBrowseComputers').checked){XHR.appendData('DisableFrontBrowseComputers',1);}else{XHR.appendData('DisableFrontBrowseComputers',0);}
+	if(document.getElementById('DisableFrontArticaMeta').checked){XHR.appendData('DisableFrontArticaMeta',1);}else{XHR.appendData('DisableFrontArticaMeta',0);}
+	if(document.getElementById('DisableJqueryDropDown').checked){XHR.appendData('DisableJqueryDropDown',1);}else{XHR.appendData('DisableJqueryDropDown',0);}
+	if(document.getElementById('DisableTimeCapsuleToolBox').checked){XHR.appendData('DisableTimeCapsuleToolBox',1);}else{XHR.appendData('DisableTimeCapsuleToolBox',0);}
+	if(document.getElementById('DisableFreeWebToolBox').checked){XHR.appendData('DisableFreeWebToolBox',1);}else{XHR.appendData('DisableFreeWebToolBox',0);}
+	
+	if(document.getElementById('DisableSpecialCharacters').checked){XHR.appendData('DisableSpecialCharacters',1);}else{XHR.appendData('DisableSpecialCharacters',0);}
+	if(document.getElementById('DenyMiniWebFromStandardPort').checked){XHR.appendData('DenyMiniWebFromStandardPort',1);}else{XHR.appendData('DenyMiniWebFromStandardPort',0);}
+	
+	AnimateDiv('$t');
+
+	
+
+	
+	if(document.getElementById('jgrowl_no_kas_update')){
+		if(document.getElementById('jgrowl_no_kas_update').checked){
+			XHR.appendData('jgrowl_no_kas_update',1);}else{
+			XHR.appendData('jgrowl_no_kas_update',0);
+		}
+	}
+	
+	if(document.getElementById('jgrowl_no_clamav_update')){	
+			if(document.getElementById('jgrowl_no_clamav_update').checked){
+			XHR.appendData('jgrowl_no_clamav_update',1);}
+			else{XHR.appendData('jgrowl_no_clamav_update',0);
+			}
+	}
+	XHR.appendData('jGrowlMaxEvents',document.getElementById('jGrowlMaxEvents').value)
+	XHR.sendAndLoad('$page', 'GET',xSaveArticaIndexPage$t);
+	
+}
 	
 </script>
 
@@ -421,21 +445,10 @@ function cron_start(){
 	$tpl=new templates();
 	while (list ($num, $ligne) = each ($array) ){
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
 		}
 	
-	
-echo "
-	<div id=admin_index_settings style='width:99%;height:auto;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#admin_index_settings').tabs();
-			
-			
-			});
-		</script>";		
+echo build_artica_tabs($html, "admin_index_settings");
 	
 }
 
@@ -464,25 +477,25 @@ function cron_popup(){
 	<tr>
 	<td valign='top' width=1%><img src='img/cron-128.png'></td>
 	<td valign='top'>
-	<p class=caption>{ARTICA_PROCESS_SCHEDULE_EXPLAIN}</p>
-	<div id='articaschedulesdiv'>
-<table style='width:100%'>
-	<tr>
-		<td class=legend>{ADMIN_COVER_PAGE_STATUS}:</td>
-		<td>$PoolCoverPageSchedule&nbsp;mn</tD>
-	</tr>
-	<tr>
-		<td class=legend>{RTMMail}:</td>
-		<td>$RTMMailSchedule&nbsp;mn</tD>
-	</tr>
-	<tr>
-		<td colspan=2 align='right'>
-			<hr>". button("{edit}","SaveArticaProcessesSchedule()")."
-				
-		</td>
-	</tr>
-</table>
-</div>	   
+	<div class=explain style='font-size:14px'>{ARTICA_PROCESS_SCHEDULE_EXPLAIN}</div>
+	<div id='articaschedulesdiv' style='width:95%' class=form>
+			<table style='width:100%'>
+				<tr>
+					<td class=legend style='font-size:16px'>{ADMIN_COVER_PAGE_STATUS}:</td>
+					<td>$PoolCoverPageSchedule&nbsp;mn</tD>
+				</tr>
+				<tr>
+					<td class=legend style='font-size:16px'>{RTMMail}:</td>
+					<td>$RTMMailSchedule&nbsp;mn</tD>
+				</tr>
+				<tr>
+					<td colspan=2 align='right'>
+						<hr>". button("{edit}","SaveArticaProcessesSchedule()",16)."
+							
+					</td>
+				</tr>
+			</table>
+		</div>	   
 </td>
 </tr>
 </table>
@@ -1348,35 +1361,35 @@ function mysql_test_perfs(){
 	<H2>{others_benchmarks}</H2>
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend>Dual core 3Ghz / 4 Go Mem</td>
+		<td class=legend style='font-size:14px'>Dual core 3Ghz / 4 Go Mem</td>
 		<td><strong style='font-size:12px'>1.36 seconds</strong></td>
 	</tr>
 	<tr>
-		<td class=legend>AMD 64 3200+</td>
+		<td class=legend style='font-size:14px'>AMD 64 3200+</td>
 		<td><strong style='font-size:12px'>4.92 seconds</strong></td>
 	</tr>
 	<tr>
-		<td class=legend>Intel Pentium 4 Dual Core (3.20 GHz)</td>
+		<td class=legend style='font-size:14px'>Intel Pentium 4 Dual Core (3.20 GHz)</td>
 		<td><strong style='font-size:12px'>3.76 seconds</strong></td>
 	</tr>	
 	<tr>
-		<td class=legend>Intel Xeon x2 (3.00 GHz)</td>
+		<td class=legend style='font-size:14px'>Intel Xeon x2 (3.00 GHz)</td>
 		<td><strong style='font-size:12px'>3.43 seconds</strong></td>
 	</tr>			
 	<tr>
-	<td class=legend>AMD Athlon(tm) 64 X2 Dual Core Processor 4200+</td>
+	<td class=legend style='font-size:14px'>AMD Athlon(tm) 64 X2 Dual Core Processor 4200+</td>
 	<td><strong style='font-size:12px'>2.94 seconds</strong></td>
 	</tr>
 	<tR>
-	<td class=legend>Intel(R) Core(TM)2 Duo CPU E7200 @ 2.53GHz</td>
+	<td class=legend style='font-size:14px'>Intel(R) Core(TM)2 Duo CPU E7200 @ 2.53GHz</td>
 	<td><strong style='font-size:12px'>2.49 seconds</strong></td>
 	</tr>
 	<tR>
-	<td class=legend>Bi xeon 2.66 4 Go Mem</td>
+	<td class=legend style='font-size:14px'>Bi xeon 2.66 4 Go Mem</td>
 	<td><strong style='font-size:12px'>1.59 seconds</strong></td>
 	</tr>
 	<tR>
-	<td class=legend>Intel C2D T7200 @2GHz, 3Go Mem 64bits</td>
+	<td class=legend style='font-size:14px'>Intel C2D T7200 @2GHz, 3Go Mem 64bits</td>
 	<td><strong style='font-size:12px'>1.96 seconds</strong></td>
 	</tr>
 	</table>
@@ -1410,7 +1423,7 @@ function cron_apc(){
 		
 		$html=$html."
 		<tr>
-			<td class=legend>{{$num}}:</td>
+			<td class=legend style='font-size:14px'>{{$num}}:</td>
 			<td><strong>$val</strong></td>
 		</tr>
 		
@@ -1419,7 +1432,7 @@ function cron_apc(){
 	
 	$html=$html."
 		<tr>
-			<td class=legend>{cached_files_number}:</td>
+			<td class=legend style='font-size:14px'>{cached_files_number}:</td>
 			<td><strong>". count($apc_cache_info["cache_list"])."</strong></td>
 		</tr>
 	";
@@ -1458,24 +1471,24 @@ function cron_logon(){
 	
 	
 	$html="
-	<div id='cron-logon-div'>
+	<div id='cron-logon-div' style='width:95%' class=form>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:13px'>{remove_language_selector}</td>
+		<td class=legend style='font-size:14px'>{remove_language_selector}</td>
 		<td>". Field_checkbox("LANGUAGE_SELECTOR_REMOVE",1,
 		$logon_parameters["LANGUAGE_SELECTOR_REMOVE"],"CronLogonApplySelector()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:13px'>{default_language}</td>
-		<td>". Field_array_Hash($lang,"DEFAULT_LANGUAGE",$logon_parameters["DEFAULT_LANGUAGE"],null,null,0,"font-size:13px;padding:3px")."</td>
+		<td class=legend style='font-size:14px'>{default_language}</td>
+		<td>". Field_array_Hash($lang,"DEFAULT_LANGUAGE",$logon_parameters["DEFAULT_LANGUAGE"],null,null,0,"font-size:14px;padding:3px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:13px'>{title_pages}:</td>
-		<td>". Field_text("HTMLTitle",$HTMLTitle,"font-size:13px;padding:3px;width:180px")."</td>
+		<td class=legend style='font-size:14px'>{title_pages}:</td>
+		<td>". Field_text("HTMLTitle",$HTMLTitle,"font-size:14px;padding:3px;width:180px")."</td>
 	</tr>	
 	
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","CronLogonApply()")."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}","CronLogonApply()",16)."</td>
 	</tr>
 	</table>
 	</div>

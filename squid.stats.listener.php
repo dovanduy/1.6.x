@@ -14,6 +14,7 @@
 	if(isset($_POST["CHANGE_CONFIG"])){CHANGE_CONFIG();exit;}
 	if(isset($_POST["SQUID_TABLES_INDEX"])){export_tables();exit;}
 	if(isset($_POST["squid_nodes_settings"])){squid_nodes_settings();exit;}
+	if(isset($_GET["webtests"])){webtests();exit;}
 	
 
 
@@ -170,6 +171,15 @@ function export_tables(){
 	$q=new squid_stats_appliance();
 	echo $q->GET_INDEX();
 	
+}
+
+function webtests(){
+	
+	$q=new mysql_squid_builder();
+	$results=$q->QUERY_SQL("SELECT sitename FROM webtests");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		echo $ligne["sitename"]."\n";
+	}
 }
 
 

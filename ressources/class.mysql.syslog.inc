@@ -19,6 +19,8 @@ class mysql_syslog{
 	
 	function mysql_syslog(){
 		$sock=new sockets();
+		unset($GLOBALS["MYSQL_PARAMETERS"]);
+		unset($_SESSION["MYSQL_PARAMETERS"]);
 		$this->ClassSQL=new mysql();
 		$this->UseMysql=$this->ClassSQL->UseMysql;
 		$this->mysql_admin=$this->ClassSQL->mysql_admin;
@@ -117,12 +119,12 @@ class mysql_syslog{
 		$f1[]="  /etc/init.d/artica-postfix restart sysloger > /dev/null";
 		$f1[]="  /etc/init.d/artica-postfix restart postfix-logger > /dev/null";
 		$f1[]="  %POSTFIX% reload > /dev/null";
-		$defaultrestart=mysql_escape_string(@implode("\n", $f1));
+		$defaultrestart=mysql_escape_string2(@implode("\n", $f1));
 		$f2[]="  chmod 0755 /etc/init.d/syslog > /dev/null";
 		$f2[]="  /etc/init.d/syslog restart > /dev/null";
 		$f2[]="  /etc/init.d/artica-postfix restart fetchmail-logger > /dev/null";
 		$f2[]="  /etc/init.d/artica-postfix restart fetchmail > /dev/null";		
-		$defaultFtechmailrestart=mysql_escape_string(@implode("\n", $f2));
+		$defaultFtechmailrestart=mysql_escape_string2(@implode("\n", $f2));
 		$f[]="('/var/log/fetchmail.log',1,'daily','100',5,'$defaultFtechmailrestart','{APP_FETCHMAIL}',1)";
 		$f[]="('/var/log/squid/*.log',1,'daily','100',5,'%SQUIDBIN% -k rotate\n/etc/init.d/ufdb rotatelog\n/etc/init.d/artica-postfix restart ufdb-tail','{APP_SQUID}',1)";
 		$f[]="('/var/log/php.log',1,'daily','50',5,'','{APP_PHP5}',1)";

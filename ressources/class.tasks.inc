@@ -153,7 +153,7 @@ class system_tasks{
 			$this->tasks_array[65]="{purge_mysql_logrotate}";
 			$this->tasks_array[66]="{restart_artica_web_services}";
 			$this->tasks_array[67]="{drop_caches}";
-			
+			$this->tasks_array[68]="{update_debian_repository}";
 			
 			$this->tasks_explain_array[1]="{reboot_system_explain}";
 			$this->tasks_explain_array[2]="{check_system_updates_explain}";
@@ -224,7 +224,7 @@ class system_tasks{
 			$this->tasks_explain_array[65]="{purge_mysql_logrotate_explain}";
 			$this->tasks_explain_array[66]="{restart_artica_web_services_explain}";
 			$this->tasks_explain_array[67]="{drop_caches_explain}";
-			
+			$this->tasks_explain_array[68]="{update_debian_repository_explain}";
 			
 			
 
@@ -299,6 +299,7 @@ class system_tasks{
 			$this->tasks_processes[65]="exec.logrotate.php --clean";
 			$this->tasks_processes[66]="exec.initslapd.php --restart-www";
 			$this->tasks_processes[67]="exec.drop-caches.php";
+			$this->tasks_processes[68]="exec.debian.mirror.php --schedule";
 			
 			
 			
@@ -380,6 +381,10 @@ private function DisableTasks(){
 	
 	if(!$users->MILTERGREYLIST_INSTALLED){
 		$this->task_disabled[64]=true;
+	}
+	
+	if(!$users->RSYNC_INSTALLED){
+		$this->task_disabled[68]=true;
 	}
 	
 	

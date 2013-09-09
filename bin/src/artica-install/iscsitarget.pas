@@ -23,7 +23,7 @@ private
      SYS:Tsystem;
      function initd_path():string;
      function PID_PATH():string;
-     procedure ETC_DEFAULT();
+
 public
     procedure   Free;
     constructor Create(const zSYS:Tsystem);
@@ -137,7 +137,7 @@ begin
          logs.DebugLogs('Starting......: ietd already running PID '+pid);
      end;
 
-     ETC_DEFAULT();
+
 
       if EnableISCSI=0 then begin
          logs.DebugLogs('Starting......: ietd is disabled, aborting');
@@ -149,7 +149,7 @@ begin
         logs.Debuglogs('Starting......: ietd init.d no such file');
         exit;
      end;
-
+     fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --iscsi');
      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.iscsi.php --build');
 
      fpsystem(init+' start');
@@ -180,25 +180,6 @@ begin
      if FileExists('/etc/init.d/iscsitarget') then exit('/etc/init.d/iscsitarget');
 end;
 //##############################################################################
-procedure tiscsitarget.ETC_DEFAULT();
-var
-   l:Tstringlist;
-begin
-     l:=Tstringlist.Create;
-
-   if EnableISCSI=0 then begin
-      l.Add('ISCSITARGET_ENABLE=false');
-   end else begin
-       l.Add('ISCSITARGET_ENABLE=true');
-   end;
-
-logs.WriteToFile(l.Text,'/etc/default/iscsitarget');
-l.free;
-
-end;
-
-
-
 procedure tiscsitarget.STOP();
 var bin_path,pid,init:string;
 count:integer;

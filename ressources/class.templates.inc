@@ -1,15 +1,25 @@
 <?php
+if(!isset($GLOBALS["SESSION_ID"])){$GLOBALS["SESSION_ID"]=session_id();}
+if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
+@header("Pragma: no-cache");
+@header("Expires: 0");
+@header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+@header("Cache-Control: no-cache, must-revalidate");
+
 if(!isset($GLOBALS["EXECUTED_AS_ROOT"])){if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();if($GLOBALS["posix_getuid"]==0){$GLOBALS["EXECUTED_AS_ROOT"]=true;}else{$GLOBALS["EXECUTED_AS_ROOT"]=false;}}}
 if(!isset($GLOBALS["DEBUG_MEM"])){$GLOBALS["DEBUG_MEM"]=false;}
-if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
+
 if(!isset($GLOBALS["DEBUG_LANG"])){$GLOBALS["DEBUG_LANG"]=false;}
 define("BECALL",base64_decode("T05MWV9DT1JQX0hUTUw="));
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 debug_mem();
 if(isset($_GET["debug-page"])){	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(!$GLOBALS["EXECUTED_AS_ROOT"]){if(isset($GLOBALS["KAV4PROXY_NOSESSION"])){if(!$GLOBALS["KAV4PROXY_NOSESSION"]){session_start();}}}
 debug_mem();
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 include_once(dirname(__FILE__) . "/class.sockets.inc");
 debug_mem();
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 date_default_timezone_set(getLocalTimezone());
 debug_mem();
 include_once(dirname(__FILE__) . '/class.ldap.inc');
@@ -26,12 +36,17 @@ if(is_file(dirname(__FILE__) . '/class.html.tools.inc')){include_once(dirname(__
 debug_mem();
 include_once(dirname(__FILE__).  '/class.ini.inc');
 debug_mem();
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 include_once(dirname(__FILE__).  '/class.mysql.inc');
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 include_once(dirname(__FILE__)."/class.browser.detection.inc");
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 debug_mem();
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 CheckSessions();
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 debug_mem();
-
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 
 
 $GLOBALS['_DLANG']='en';
@@ -98,7 +113,7 @@ class templates{
 	var $AutomaticConfig=false;
 	var $pattern_array;
 	function templates($title=null,$body=null,$js_add=null,$do_nothing=0,$arrayConfig=array()){
-		
+		if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		if($GLOBALS["VERBOSE"]){
 			$trace=debug_backtrace();
 			$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";			
@@ -127,6 +142,7 @@ class templates{
 			$this->js_add=$js_add;
 			if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>LANGUAGE $this->language</strong><br>\n";}
 			if($this->language==null){
+				if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 				$this->language=$this->_detect_lang();
 				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." _detect_lang() return `$this->language` in " . basename(__FILE__). " line ".__LINE__);}
 			} 
@@ -136,7 +152,7 @@ class templates{
 			$this->Body($body);
 			$this->web_page="$this->head $this->body</html>";
 			$this->_parse_body();
-			
+			if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			}
 	
 	function search_menus(){
@@ -280,10 +296,17 @@ class templates{
 		
 		$_SESSION["detected_lang"]=$this->language;
 		if(!isset($_SESSION["translation"])){$_SESSION["translation"]=array();}
+		if(count($_SESSION["translation"])<100){
+			if(count($GLOBALS["translation"])>100){
+				$_SESSION["translation"]=$GLOBALS["translation"];
+			}
+		}
 		
 		if(count($_SESSION["translation"])<100){
-			writelogs("Dumping $this->language",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			writelogs("Dumping $this->language translation=".count($_SESSION["translation"])." items..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$_SESSION["translation"]=$sock->LANGUAGE_DUMP($this->language);
+			$GLOBALS["translation"]=$_SESSION["translation"];
+			writelogs("Dumping $this->language DONE: translation=".count($_SESSION["translation"])." items..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." Load ". count($_SESSION["translation"])." rows into $this->language session language" . basename(__FILE__). " line ".__LINE__);} 
 			
 		}
@@ -337,6 +360,16 @@ class templates{
 		if(!isset($content)){return;}
 		if(empty($content)){return;}
 		if(trim($content)==null){return;}
+		$key=md5($content);
+		if(strlen($content)<400){
+			
+			if(isset($GLOBALS["_ENGINE_parse_body"][$key])){return $GLOBALS["_ENGINE_parse_body"][$key];}
+		}
+		
+		$content=str_replace("valign='top'", "valign='top' style='vertical-align:top'", $content);
+		$content=str_replace("valign=\"top\"", "valign=\"top\" style=\"vertical-align:top\"", $content);
+		
+		
 		if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 		if(!isset($GLOBALS["FIXED_LANGUAGE"])){$GLOBALS["FIXED_LANGUAGE"]=$sock->GET_INFO("FixedLanguage");}
 		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=1000;if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();}}
@@ -406,6 +439,11 @@ class templates{
 							
 							$text=str_ireplace('[blk]','<blockquote>',$text);	
 							$text=str_ireplace('[/blk]','</blockquote>',$text);	
+							
+							$text=str_ireplace('<b>','<strong>',$text);
+							$text=str_ireplace('</b>','</strong>',$text);
+							
+							
 							if(preg_match_all('#\[a\s+(.+?)\]#',$text,$r)){
 								while (list ($a, $b) = each ($r[1]) ){
 								$text=str_replace($r[0][$a],"<a href=\"$b\">",$text);}
@@ -420,8 +458,12 @@ class templates{
 					}}
 		
 		$content=str_replace("<input type='button'","<input type='button' class='button'",$content);
-		//$content=str_replace("Loadjs(",'$.getScript(',$content);
+		$content=str_replace("web sites","websites",$content);
 		
+		//$content=str_replace("Loadjs(",'$.getScript(',$content);
+		if(strlen($content)<400){
+			$GLOBALS["_ENGINE_parse_body"][$key]=$content;
+		}
 		
 		
 		return $content;
@@ -575,6 +617,12 @@ function _get_env_var($Var){
 	}
 
 function _detect_lang(){
+		if(!isset($_COOKIE["artica-language"])){$_COOKIE["artica-language"]=null;}
+	
+		if(!isset($_SESSION["MINIADM"])){
+				$_SESSION["MINIADM"]=false;
+				setcookie("MINIADM", "NO", time()+1000);
+		}
 		if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 		if($GLOBALS["EXECUTED_AS_ROOT"]){
 			if($GLOBALS["VERBOSE"]){echo "[DEBUG: ".__LINE__."] return EXECUTED_AS_ROOT=TRUE (". basename(__FILE__).")\n" ;}
@@ -598,13 +646,12 @@ function _detect_lang(){
 			if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::return _SESSION[detected_lang] {$_SESSION["detected_lang"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 			return $_SESSION["detected_lang"];
 		}
-		if(isset($_COOKIE["artica-language"])){
-			if($_COOKIE["artica-language"]<>null){
-			  	if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::return _COOKIE[artica-language] {$_COOKIE["artica-language"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
-				$this->language=$_COOKIE["artica-language"];
-				return $_COOKIE["artica-language"];
-			}
+		if($_COOKIE["artica-language"]<>null){
+		  	if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::return _COOKIE[artica-language] {$_COOKIE["artica-language"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+			$this->language=$_COOKIE["artica-language"];
+			return $_COOKIE["artica-language"];
 		}
+		
 	
 		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>language $this->language</strong><br>\n";}
 	 if($this->language==null){
@@ -816,7 +863,7 @@ title: \"<div style='font-size:12px'>$text</div>\",
 function help_icon($help,$no_float=false,$additional_langfile=null){
 	$DisableHelpToolTips=$_COOKIE["DisableHelpToolTips"];
 	if($DisableHelpToolTips==1){return null;}
-	if(isset($_SESSION["MINIADM"])){return miniadm_BuildFieldToolTip($help);}
+	if($_SESSION["MINIADM"]==true){return miniadm_BuildFieldToolTip($help);}
 	
 	
 $tpl=new templates();
@@ -902,7 +949,7 @@ function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=
 	
 	
 	$FocusCss="onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" style='$style' $class";
-	if(isset($_SESSION["MINIADM"])){
+	if($_SESSION["MINIADM"]==true){
 		$FocusCss=null;
 	}
 	
@@ -1318,7 +1365,7 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	}
 	
 	$FocusCss="onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" style='$style' $class";
-	if(isset($_SESSION["MINIADM"])){
+	if($_SESSION["MINIADM"]==true){
 		$FocusCss=null;
 	}
 	
@@ -1404,7 +1451,7 @@ function string_to_regex($pattern){
 	if(trim($pattern)==null){return null;}
 	$pattern=str_replace("/", "\/", $pattern);
 	$pattern=str_replace(".", "\.", $pattern);
-	$pattern=str_replace("-", "\-", $pattern);
+	//$pattern=str_replace("-", "\-", $pattern);
 	$pattern=str_replace("[", "\[", $pattern);
 	$pattern=str_replace("]", "\]", $pattern);
 	$pattern=str_replace("(", "\(", $pattern);
@@ -1416,7 +1463,9 @@ function string_to_regex($pattern){
 	$pattern=str_replace("}", "\}", $pattern);
 	$pattern=str_replace("^", "\^", $pattern);
 	$pattern=str_replace("!", "\!", $pattern);
+	$pattern=str_replace("+", "\+", $pattern);
 	$pattern=str_replace("*", ".*?", $pattern);
+	$pattern=str_replace("|", "\|", $pattern);
 	return $pattern;
 	
 }
@@ -1592,8 +1641,10 @@ function imgtootltip($img,$tooltip=null,$js=null,$align=null,$imgid=null){
 		
 	}
 	if($DisableToolTips==1){$jsTool=null;}
-	if(isset($_SESSION["MINIADM"])){$jsTool=null;}
-	if($_COOKIE["MINIADM"]=="YES"){$jsTool=null;}
+	if($_SESSION["MINIADM"]==true){$jsTool=null;}
+	if(isset($_COOKIE["MINIADM"])){
+		if($_COOKIE["MINIADM"]=="YES"){$jsTool=null;}
+	}
 	
 	$IMAGE="
 	<input type='hidden' id='Text_$id' 
@@ -2866,7 +2917,7 @@ function Paragraphe_switch_img_32($title,$text,$field_name=null,$value=null,$tip
 	
 function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=null,$width="220"){
 	$MINIADM=false;
-	if(isset($_SESSION["MINIADM"])){$MINIADM=true;}
+	if($_SESSION["MINIADM"]==true){$MINIADM=true;}
 	if(isset($_COOKIE["MINIADM"])){$MINIADM=true;}
 	$id=md5('Paragraphe_switch_img'.$field_name.$text.$title);
 	$hrf="<a href='$link' class='nostylea'>";
@@ -3019,7 +3070,7 @@ function Buildicon64($ICON_KEY,$width=210,$height=null,$param=null){
 
 function Paragraphe32($title,$text,$js,$img,$size=220){
 	$MINIADM=false;
-	if(isset($_SESSION["MINIADM"])){$MINIADM=true;}
+	if($_SESSION["MINIADM"]==true){$MINIADM=true;}
 	if($_COOKIE["MINIADM"]=="YES"){$MINIADM=true;}
 	
 	$fontsizeDef=12;
@@ -3486,7 +3537,7 @@ function Paragraphe_tips($img,$title,$text,$link=null,$width=210){
 	
 function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="210",$height=null,$nowrap=0,$float=false,$nojs=false){
 	$MINIADM=false;
-	if(isset($_SESSION["MINIADM"])){$MINIADM=true;}
+	if($_SESSION["MINIADM"]==true){$MINIADM=true;}
 	if($_COOKIE["MINIADM"]=="YES"){$MINIADM=true;}	
 	$styleFloat='';
 	if(preg_match("#(.+?):(.+)#", $img,$re)){$img=$re[1];$next_image=$re[2];}
@@ -4113,6 +4164,9 @@ function CheckSessions(){
 					return true;
 				}
 		}}	
+		
+		
+		$noback["TestsClasses.php"]=true;
 		$noback["cron.obm.synchro.php"]=true;
 		$noback["logon.php"]=true;
 		$noback["404.php"]=true;
@@ -4149,6 +4203,8 @@ function CheckSessions(){
 		$noback["fonts.css.php"]=true;
 		$noback["mailattach.php"]=true;
 		$noback["splashproxy.php"]=true;
+		$noback["authenticator.php"]=true;
+		$noback["nginx.error.php"]=true;
 		$noback["admin.help.php"]=true;
 		$noback["jabberauth.php"]=true;
 		$noback["public.squid.error.php"]=true;
@@ -4156,12 +4212,19 @@ function CheckSessions(){
 		$noback["external_acl_dynamic.php"]=true;
 		$noback["external_acl_squid.php"]=true;
 		$noback["execdomainlist.php"]=true;
+		$noback["external_acl_squid_quota.php"]=true;
+		$noback["exec.logfile_daemon.php"]=true;
+		$noback["external_acl_squid.php"]=true;
+		
+		
 		if(preg_match('#^exec\..+\.php$#',$page)){$noback[$page]=true;}
 		if(preg_match('#listener\.php$#',$page)){$noback[$page]= true;}		
 		if(preg_match("#^prxy\..*?\.php$#", $page)){$noback[$page]=true;}
+		$CUR_PAGE=CurrentPageName();
 		
-		
-		if($noback[CurrentPageName()]){return true;}
+		if(isset($noback[$CUR_PAGE])){
+			if($noback[$CUR_PAGE]){return true;}
+		}
 		
 		
 		
@@ -4357,10 +4420,14 @@ function DAEMON_STATUS_TEXT($key,$bsini){
 	return DAEMON_STATUS_ROUND($key,$bsini,null,0,1);
 }
 
+
+
 function DAEMON_STATUS_LINE($key,$bsini,$textoadd=null,$noenable=0,$width=null,$nostartandstop=false,$newInterface=0,$jsReplace=null){
 if($bsini->_params["$key"]["service_name"]==null){return null;}
 if($bsini->_params["$key"]["service_disabled"]==null){$bsini->_params["$key"]["service_disabled"]=-1;}
-if($noenable==1){if($bsini->_params["$key"]["service_disabled"]==0){return null;}}
+if($noenable==1){if($bsini->_params["$key"]["service_disabled"]==0){
+	if($GLOBALS["VERBOSE"]){echo "<li>".__FUNCTION__."::".__LINE__."::$key -> Disabled</li>\n";}
+	return null;}}
 $service_cmd=$bsini->_params["$key"]["service_cmd"];
 $monit=$bsini->_params["$key"]["monit"];
 $app=$bsini->_params["$key"]["service_name"];
@@ -4407,7 +4474,7 @@ if($bsini->_params[$key]["running"]==0){
 	}else{
 		$js_service="Loadjs('StartStopServices.php?APP={$bsini->_params["$key"]["service_name"]}&cmd=$service_cmd&action=stop')";
 		$img="ok16.png";
-		$status="running";
+		$status="{running}";
 		$status_color="#318B2F";
 		
 	}	
@@ -4416,6 +4483,12 @@ if($jsReplace<>null) {$js_service=$jsReplace;}
 $title="{{$bsini->_params["$key"]["service_name"]}}";
 if($textoadd=="noaccoloade"){$title=$bsini->_params["$key"]["service_name"];$textoadd=null;}
 if(preg_match("#replacetitle:(.+)#", $textoadd,$re)){$title=$re[1];}
+
+if($bsini->_params["$key"]["service_disabled"]==0){
+	$img="warning16.png";
+	$status="{disabled}";
+	$status_color="#918F8F";
+}
 
 
 return "<table style='width:$width;margin:0px;' " .CellRollOver($js_service).">
@@ -4750,6 +4823,8 @@ function MEMBER_JS($uid,$noclik=0,$nojavascript=0,$dn=null,$t=null){
 	$uid_text=str_replace("$","",$uid);
 	$uid=trim($uid);
 	$uid=urlencode($uid);
+	if($t==null){if(isset($_GET["t"])){$t=$_GET["t"];}}
+	
 	if($dn<>null){$dn=urlencode(base64_encode($dn));}
 	$java="javascript:";
 	if($nojavascript==1){$java=null;}
@@ -5229,20 +5304,20 @@ function button($text,$js,$fontsize=12.5){
 	if(is_numeric($fontsize)){if($fontsize>0){$fontsize="{$fontsize}px";}}
 	if($fontsize==null){$fontsize="12px";}
 	
-	if(isset($_SESSION["MINIADM"])){
+	if($_SESSION["MINIADM"]==true){
 		$tpl=new templates();
 		$Loading=$tpl->javascript_parse_text("{loading}");
 		
 		$btid=md5("$text$js$fontsize".time());
 		$script="<script> $('#$btid').on('click', function (e) { $js }) </script>";
 		if(preg_match("#^([0-9]+)#", $fontsize,$re)){$fontsize=$re[1];}
+		
+		$text=$tpl->_ENGINE_parse_body($text);
 		if($fontsizeSrc<12.5){
 			return "<button class=\"btn\" type=\"button\" id='$btid'
 			style='font-size:{$fontsize}px' data-loading-text=\"$Loading...\">$text</button>$script";
 		}
-		if($fontsize<12.5){
-			$fontsize=16;
-		}
+		if($fontsize<12.5){$fontsize=16;}
 		return "<button class=\"btn-large btn-primary\" type=\"button\" id='$btid' 
 		style='font-size:{$fontsize}px' data-loading-text=\"$Loading...\">$text</button>$script";
 	
@@ -5282,7 +5357,7 @@ function pourcentage($pourc,$submargin=0){
 		<table style=\"border:0px;background-color:transparent;$marginTop\">
 			<tbody>
 			<tr style=\"border:0px;background-color:transparent;\">
-				<td style=\"border:0px;background-color:transparent;\"><img style=\"background:white url(img/percentImage_back4.png) no-repeat scroll 1px 0;margin:5px 0 0;padding:0;background-position:{$int}px 0pt;\" src=\"img/percentImage.png\"></td>
+				<td style=\"border:0px;background-color:transparent;padding:3px\"><img style=\"background:white url(img/percentImage_back4.png) no-repeat scroll 1px 0;margin:5px 0 0;padding:0;background-position:{$int}px 0pt;\" src=\"img/percentImage.png\"></td>
 				<td width=1% nowrap style=\"font-size:12px !important;border:0px;background-color: transparent;\">$orginal_pourc%</td>
 			</tr>
 		</tbody>
@@ -5353,7 +5428,7 @@ function GET_CACHED($file,$function,$token=null,$return=false,$maxmin=0){
 }
 
 function SET_CACHED($file,$function,$token,$datas){
-	if(strlen($datas)==0){return;}
+	if(strlen($datas)<20){return;}
 	$browser=md5($_SERVER['HTTP_USER_AGENT']);
 	if(trim($token)==null){$token=$function;}
 	$file=basename($file);
@@ -5367,6 +5442,7 @@ function SET_CACHED($file,$function,$token,$datas){
 	
 		}
 	
+if($GLOBALS["MEMCACHE_ENABLED"]==1){	
 	if(class_exists("Memcache")){
 		$memcache = new Memcache();
 		$memcache->connect('unix:///var/run/memcached.sock', 0);
@@ -5376,7 +5452,7 @@ function SET_CACHED($file,$function,$token,$datas){
 		$memcache->set('ARTICACACHEARRAY', serialize($ARRAY), 0, 300); 
 		return;
 	}
-	
+}
 	
 	
 	
@@ -5458,7 +5534,9 @@ function finduser_format($array,$faltomde=false){
 	}
 	
 	if($faltomde){
-		$html="<table style='width:95%' class=form>
+		$html="
+		<div style='width:95%' class=form>		
+		<table style='width:100%'>
 		<tr>
 			<td valign='top' width=1%><a href=\"javascript:Blurz();\" OnClick=\"javascript:s_PopUp('edit.thumbnail.php?$keyimg',550,250);\"><img src='{$array["img"]}'></a></td>
 			<td valign='top'>
@@ -5477,7 +5555,7 @@ function finduser_format($array,$faltomde=false){
 			</td>
 		</tr>
 		</table>
-		
+		</div>
 		";
 		return $html;
 		
@@ -5765,12 +5843,16 @@ function getLocalTimezone(){
 	if(function_exists("debug_mem")){debug_mem();}
 	$page=CurrentPageName();
 	if($page=="exec.artica-filter.php"){return;}
+	if(isset($GLOBALS["GET_TIME_ZONE"])){
+		if($GLOBALS["GET_TIME_ZONE"]<>null){return $GLOBALS["GET_TIME_ZONE"];}
+	}
 	if(isset($_SESSION["GET_TIME_ZONE"])){
 		if($_SESSION["GET_TIME_ZONE"]<>null){return $_SESSION["GET_TIME_ZONE"];}
 	}
 	$sock=new sockets();
 	$timezones=$sock->GET_INFO('timezones');
 	if($timezones<>null){
+		$GLOBALS["GET_TIME_ZONE"]=$timezones;
 		$_SESSION["GET_TIME_ZONE"]=$timezones;
 		if(function_exists("debug_mem")){debug_mem();}
 		return $timezones;
@@ -5823,6 +5905,7 @@ function getLocalTimezone(){
     );
     $index = array_keys($zonelist, $offset);
     if(sizeof($index)!=1){return;}
+    $GLOBALS["GET_TIME_ZONE"]=$index[0];
     $_SESSION["GET_TIME_ZONE"]=$index[0];
     $sock->SET_INFO('timezones',$index[0]);
 	if(function_exists("debug_mem")){debug_mem();}
@@ -6087,8 +6170,10 @@ function table_error_showZoom($error,$underline=1){
 }
 
 function json_error_show($error,$indexColumn=0,$full=false){
+	$error=str_replace("no data", "{this_request_contains_no_data}", $error);
+	$tpl=new templates();
 	$id=md5($error);
-	
+	$error=$tpl->javascript_parse_text($error);
 	if(strlen($error)>10){
 		$full=urlencode(base64_encode($error));
 		if(!$full){$error="<a href=\"javascript:Blurz();\" Onclick=\"javascript:Loadjs('admin.index.php?json-error-js=$full');\" style=\"font-size:14px;color:#AC0909;text-decoration:underline\">".
@@ -6262,6 +6347,10 @@ function SIMPLE_PARAGRAPHE_BLUE_ARROWTR($title,$text,$js,$img="arrow-blue-left-2
 }
 function events_debug($text=null,$function=null,$line=0){echo "$function::$line $text<br>\n";}
 function debug_mem($text=null){
+	if(!function_exists("writelogs")){include_once(dirname(__FILE__) . '/logs.inc');}
+	
+	
+	
 	$calledscript=null;$functioncript=null;$linescript=null;
 	if(!isset($GLOBALS["DEBUG_MEM"])){return;}
 	if(!$GLOBALS["DEBUG_MEM"]){return;}
@@ -6275,6 +6364,12 @@ function debug_mem($text=null){
 	if(isset($trace[1]["line"])){$linescript=basename($trace[1]["line"]);}
 	if(isset($trace[1]["function"])){$functioncript=basename($trace[1]["function"]);}
 	unset($trace);
+	
+	if(isset($GLOBALS["DEBUG_INCLUDES"])){
+		writelogs("Memory: {$ko}Ko line:$line of $file (called by $calledscript in $linescript func: $functioncript())\n",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+	}
+	
+	
 	echo "Memory: {$ko}Ko line:$line of $file (called by $calledscript in $linescript func: $functioncript())\n<br>"; 
 	
 	
@@ -6317,6 +6412,44 @@ function sendserrors($text){
 		$tpl=new templates();
 		echo $tpl->_ENGINE_parse_body("<p class=text-error style='margin:20px'>$text</p>");exit();
 	}
-
-
+function build_artica_tabs($tabsArray,$id,$width=0){
+	$t=rand(0,time());
+	$width_text="100%";
+	if($width>0){$width_text="{$width}px";}
+	$md=md5(serialize($tabsArray).",$id,$t");
+	$html="
+		<div id='$id' style='margin-left:0px;width:$width_text !important'>
+			<ul>
+			". implode("\n",$tabsArray). "
+			</ul>
+		</div>
+<script>
+	function tab$md(){
+		$('#$id').tabs();
+	}
+		
+	setTimeout('tab$md()',800);
+</script>
+";
+	if(!isset($GLOBALS["TPL"])){$GLOBALS["TPL"]=new templates();}
+	return $GLOBALS["TPL"]->_ENGINE_parse_body($html);	
+	
+}
+function OutputDebugVerbose($text){
+	if(!$GLOBALS["VERBOSE_SYSLOG"]){return;}
+	if(function_exists("debug_backtrace")){
+		$trace=@debug_backtrace();
+		if(isset($trace[1])){
+			$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+		}
+	}
+	$filename=basename($trace[1]["file"]);
+	$function=$trace[1]["function"];
+	$line=$trace[1]["line"];
+	echo "$filename::".__CLASS__."/$function $text in line $line<br>\n";
+}
+if(isset($GLOBALS["DEBUG_PROCESS"])){
+	if(!function_exists("writelogs")){include_once(dirname(__FILE__) . '/logs.inc');}
+	writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+}
 ?>

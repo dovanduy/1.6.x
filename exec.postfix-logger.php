@@ -844,22 +844,23 @@ function PostfixFullProcess($file){
 		
 		$mailfrom=str_replace(">, orig_to=","",$mailfrom);
 		events_cnx("EDIT:[$sqlid] from=<$mailfrom> to=<$mailto> bounce_error=\"$bounce_error\"");
-		if($mailfrom<>null){$mailfrom=" ,sender_user='$mailfrom'";}
-		if($delivery_success<>null){$delivery_success=" ,delivery_success='$delivery_success'";}
-		if($domain_from<>null){$domain_from=" ,sender_domain='$domain_from'";}
-		if($domain_to<>null){$domain_to=" ,delivery_domain='$domain_to'";}
-		if($bounce_error<>null){$bounce_error=" ,bounce_error='$bounce_error'";}
-		if($time_connect<>null){$time_connect=" ,time_connect='$time_connect'";}
-		if($time_end<>null){$time_end=" ,time_sended='$time_end'";}
-		if($message_id<>null){$message_id=" ,msg_id_text='$message_id'";}
-		if($smtp_sender<>null){$smtp_sender=" ,smtp_sender='$smtp_sender'";}
-		if($size<>null){$size=" ,bytes='$size'";}
+		if($mailfrom<>null){$FIELDS[]="sender_user='$mailfrom'";}
+		if($delivery_success<>null){$FIELDS[]="delivery_success='$delivery_success'";}
+		if($domain_from<>null){$FIELDS[]="sender_domain='$domain_from'";}
+		if($domain_to<>null){$FIELDS[]="delivery_domain='$domain_to'";}
+		if($bounce_error<>null){$FIELDS[]="bounce_error='$bounce_error'";}
+		if($time_connect<>null){$FIELDS[]="time_connect='$time_connect'";}
+		if($time_end<>null){$FIELDS[]="time_sended='$time_end'";}
+		if($message_id<>null){$FIELDS[]="msg_id_text='$message_id'";}
+		if($smtp_sender<>null){$FIELDS[]="smtp_sender='$smtp_sender'";}
+		if($size<>null){$FIELDS[]="bytes='$size'";}
 		
-		
+		if(count($FIELDS)>0){
+			$Settadd=",".@implode(",", $FIELDS);
+		}
 									
 		
-		$sql="UPDATE smtp_logs SET delivery_id_text='$postfix_id'$mailfrom$delivery_success$domain_from$domain_to$bounce_error$time_connect$time_end$message_id$size
-		WHERE id=$sqlid";
+		$sql="UPDATE smtp_logs SET delivery_id_text='$postfix_id'$Settadd WHERE id=$sqlid";
 		$q->QUERY_SQL($sql,"artica_events");
 		
 		if($q->ok){

@@ -674,11 +674,6 @@ $users=new usersMenus();
 }
 
 /*
-auth_param basic program /opt/artica/libexec/digest_auth/ldap/digest_ldap_auth  -b "dc=my-domain,dc=com" -D "cn=admin,dc=my-domain,dc=com" -w 180872 -F "(&(objectClass=userAccount)(uid=%s))" -A "userPassword" -v 3 127.0.0.1
-auth_param basic children 5
-auth_param basic realm Squid proxy-caching web server
-auth_param basic credentialsttl 2 hours
-authenticate_ttl 1 hour
 SQUID 3 http://www1.at.squid-cache.org/Versions/v3/3.0/cfgman/auth_param.html
 */
 //

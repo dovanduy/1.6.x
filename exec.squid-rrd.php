@@ -16,6 +16,13 @@ if($argv[1]=="--stats-appliance"){die();SendToStatisticsAppliance();die();}
 
 squidrrd();
 function squidrrd(){
+	if(is_file("/usr/share/artica-postfix/bin/install/rrd/squid-rrdex.pl")){
+		@unlink("/usr/share/artica-postfix/bin/install/rrd/squid-rrdex.pl");
+	}
+	
+	if(is_file("/usr/share/artica-postfix/bin/install/rrd/squid-rrd.pl")){
+		@unlink("/usr/share/artica-postfix/bin/install/rrd/squid-rrd.pl");
+	}
 	die();
 	if(!$GLOBALS["FORCE"]){
 		if(system_is_overloaded(basename(__FILE__))){

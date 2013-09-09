@@ -29,8 +29,8 @@ include_once(dirname(__FILE__)."/ressources/class.compile.ufdbguard.inc");
 include_once(dirname(__FILE__)."/ressources/class.compile.dansguardian.inc");
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
-
-
+include_once(dirname(__FILE__).'/ressources/class.ufdbguard-tools.inc');
+include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
@@ -188,7 +188,8 @@ function build_ufdbguard_HUP(){
 	}
 	echo "Starting......: UfdbGuard reloading service no pid is found, Starting service...\n";
 	ufdbguard_start();
-	shell_exec("/etc/init.d/artica-postfix restart ufdb-tail");
+	echo "Starting......: UfdbGuard restarting ufdb-tail process\n";
+	shell_exec("/etc/init.d/ufdb-tail restart");
 
 }
 
@@ -240,6 +241,8 @@ function ufdbguard_start(){
 	}else{
 		echo "Starting......: Starting UfdGuard master success pid $master_pid...\n";
 	}
+	
+	echo "Starting......: Starting UfdGuard master ufdbguard_start() function done\n";
 	
 }
 
@@ -548,7 +551,7 @@ function ufdbguard_watchdog(){
 	if(!is_file("/etc/init.d/ufdb")){ufdbguard_watchdog_remove();return;}
 	$sock=new sockets();
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 	if($SQUIDEnable==0){$EnableUfdbGuard=0;}
@@ -1341,40 +1344,57 @@ function parseTemplate_SinglePassWord(){
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
-function parseTemplate_categoryname($category){
+function parseTemplate_categoryname($category,$license=0){
+		$sock=new sockets();
+		$SquidGuardApacheShowGroupNameTXT=null;
+		if($license==1){
+			$SquidGuardApacheShowGroupName=$sock->GET_INFO("SquidGuardApacheShowGroupName");
+			if(!is_numeric($SquidGuardApacheShowGroupName)){$SquidGuardApacheShowGroupName=0;}
+			if($SquidGuardApacheShowGroupName==1){
+				$SquidGuardApacheShowGroupNameTXT=$sock->GET_INFO("SquidGuardApacheShowGroupNameTXT");
+				if($SquidGuardApacheShowGroupNameTXT==null){
+					$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+					
+					if($LicenseInfos["COMPANY"]==null){
+						$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+						$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
+					}
+					$SquidGuardApacheShowGroupNameTXT=$LicenseInfos["COMPANY"];
+				
+			}
+		}
+		
+	
 		$category=strtolower(trim($category));
 		parseTemplateLogs("Parsing: `$category`",__FUNCTION__,__FILE__,__LINE__);
+		include_once(dirname(__FILE__)."/ressources/class.ufdbguard-tools.inc");
+		
+		
 		if(preg_match("#^art(.+)#", $category,$re)){
 			parseTemplateLogs("Parsing: `$category`=`{$re[1]}`",__FUNCTION__,__FILE__,__LINE__);
-			$category=$re[1];
-			$CATEGORY_PLUS_TXT=" (Artica Database)";
+			$category=CategoryCodeToCatName($category);
+			$CATEGORY_PLUS_TXT="Artica Database";
 		}
 		
 		if(preg_match("#^tls(.+)#", $category,$re)){
 			parseTemplateLogs("Parsing: `$category`=`{$re[1]}`",__FUNCTION__,__FILE__,__LINE__);
-			$category=$re[1];
-			$CATEGORY_PLUS_TXT=" (Toulouse University Database)";			
+			$category=CategoryCodeToCatName($category);
+			$CATEGORY_PLUS_TXT="Toulouse University Database";			
 		}
+		if($SquidGuardApacheShowGroupNameTXT<>null){$CATEGORY_PLUS_TXT=$SquidGuardApacheShowGroupNameTXT;}
 		
-			
-			if($category=="lingerie"){$category="sex/lingerie";}
-			if($category=="dangerousmaterial"){$category="dangerous_material";}
-			if($category=="mixedadult"){$category="mixed_adult";}
-			if($category=="listebu"){$category="liste_bu";}
-			if($category=="adult"){$category="porn";}
-			if($category=="audiovideo"){$category="audio-video";}  
-				
-		
-		return $category.$CATEGORY_PLUS_TXT;
+		return $category." (".$CATEGORY_PLUS_TXT.")";
 	}
 
 
 function parseTemplate(){
 	session_start();
+	
 	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;}
 	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
 	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
 	$sock=new sockets();
+	$users=new usersMenus();
 	$UfdbGuardRedirectCategories=unserialize(base64_decode($sock->GET_INFO("UfdbGuardRedirectCategories")));
 	$SquidGuardWebFollowExtensions=$sock->GET_INFO("SquidGuardWebFollowExtensions");
 	$SquidGuardWebAllowUnblock=$sock->GET_INFO("SquidGuardWebAllowUnblock");
@@ -1382,9 +1402,13 @@ function parseTemplate(){
 	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
 	$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");
 	$SquidGuardWebUseLocalDatabase=$sock->GET_INFO("SquidGuardWebUseLocalDatabase");
+	
 	if(!is_numeric($SquidGuardWebAllowUnblock)){$SquidGuardWebAllowUnblock=0;}
 	if(!is_numeric($SquidGuardWebFollowExtensions)){$SquidGuardWebFollowExtensions=1;}
 	if(!is_numeric($SquidGuardWebUseLocalDatabase)){$SquidGuardWebUseLocalDatabase=0;}
+	
+	
+	
 	$proto="http";
 
 	if (isset($_SERVER['HTTPS'])){if (strtolower($_SERVER['HTTPS']) == 'on'){$proto="https";}}
@@ -1427,37 +1451,43 @@ function parseTemplate(){
 		$ADD_JS_PACK=true;
 	}
 	
+	if($users->CORP_LICENSE){$LICENSE=1;}
+	if(!$users->CORP_LICENSE){$LICENSE=0;}
+	parseTemplateLogs("{$_GET["clientaddr"]}: Category=`{$_GET["category"]}` targetgroup=`{$_GET["targetgroup"]}` LICENSE:$LICENSE",__FUNCTION__,__FILE__,__LINE__);
+	$_GET["targetgroup"]=parseTemplate_categoryname($_GET["targetgroup"],$LICENSE);
 	
-	parseTemplateLogs("{$_GET["clientaddr"]}: Category=`{$_GET["category"]}` targetgroup=`{$_GET["targetgroup"]}`",__FUNCTION__,__FILE__,__LINE__);
-	$_GET["targetgroup"]=parseTemplate_categoryname($_GET["targetgroup"]);;
+
 	
-	if(isset($_GET["category"])){
-		$_GET["category"]=parseTemplate_categoryname($_GET["category"]);
-		$RedirectCategory=$UfdbGuardRedirectCategories[$_GET["category"]];
-		
-		if($RedirectCategory["enable"]==1){
-			if($RedirectCategory["blank_page"]==1){
-				parseTemplateLogs("blank_page : For {$_GET["url"]}",__FUNCTION__,__FILE__,__LINE__);
-				header("HTTP/1.0 404 Not Found");
-				return;
-			}
-			if(trim($RedirectCategory["template_data"])<>null){
-				header('Content-Type: text/html; charset=iso-8859-1');
-				$TemplateErrorFinal=$RedirectCategory["template_data"];
-				$TemplateErrorFinal=str_replace("-URL-",$_GET["url"],$TemplateErrorFinal);
-				$TemplateErrorFinal=str_replace("-IP-",$_GET["clientaddr"],$TemplateErrorFinal);
-				$TemplateErrorFinal=str_replace("-REASONGIVEN-","REASON:".$_GET["targetgroup"],$TemplateErrorFinal);
-				$TemplateErrorFinal=str_replace("-CATEGORIES-","<strong>Category:{$_GET["category"]}$CATEGORY_PLUS_TXT:</strong><div>Rule:{$_GET["targetgroup"]}</div>",$TemplateErrorFinal);
-				$TemplateErrorFinal=str_replace("-REASONLOGGED-","<strong>Rule:&nbsp;</strong>{$_GET["clientgroup"]}",$TemplateErrorFinal);
-				$TemplateErrorFinal=str_replace("-BYPASS-","$defaultjs",$TemplateErrorFinal);				
-				return;
+	
+	if($LICENSE==1){
+		if(isset($_GET["category"])){
+			$_GET["category"]=parseTemplate_categoryname($_GET["category"],$LICENSE);
+			$RedirectCategory=$UfdbGuardRedirectCategories[$_GET["category"]];
+			
+			if($RedirectCategory["enable"]==1){
+				if($RedirectCategory["blank_page"]==1){
+					parseTemplateLogs("blank_page : For {$_GET["url"]}",__FUNCTION__,__FILE__,__LINE__);
+					header("HTTP/1.0 404 Not Found");
+					return;
+				}
+				if(trim($RedirectCategory["template_data"])<>null){
+					header('Content-Type: text/html; charset=iso-8859-1');
+					$TemplateErrorFinal=$RedirectCategory["template_data"];
+					$TemplateErrorFinal=str_replace("-URL-",$_GET["url"],$TemplateErrorFinal);
+					$TemplateErrorFinal=str_replace("-IP-",$_GET["clientaddr"],$TemplateErrorFinal);
+					$TemplateErrorFinal=str_replace("-REASONGIVEN-","REASON:".$_GET["targetgroup"],$TemplateErrorFinal);
+					$TemplateErrorFinal=str_replace("-CATEGORIES-","<strong>Category:{$_GET["category"]}$CATEGORY_PLUS_TXT:</strong><div>Rule:{$_GET["targetgroup"]}</div>",$TemplateErrorFinal);
+					$TemplateErrorFinal=str_replace("-REASONLOGGED-","<strong>Rule:&nbsp;</strong>{$_GET["clientgroup"]}",$TemplateErrorFinal);
+					$TemplateErrorFinal=str_replace("-BYPASS-","$defaultjs",$TemplateErrorFinal);				
+					return;
+				}
 			}
 		}
 	}
 		
-	$TemplateError=$sock->GET_INFO("DansGuardianHTMLTemplate");
+	if($LICENSE==1){$TemplateError=$sock->GET_INFO("DansGuardianHTMLTemplate");}
 	$EnableSquidFilterWhiteListing=$sock->GET_INFO("EnableSquidFilterWhiteListing");
-	if(strlen($TemplateError)<50){$TemplateError=$sock->getFrameWork("cmd.php?dansguardian-get-template=yes");}
+	if(strlen($TemplateError)<50){$TemplateError=@file_get_contents("/usr/share/artica-postfix/bin/install/dansguardian/template.html");}
 	if(preg_match("#<body>(.+?)</body>#is",$TemplateError,$re)){$TemplateError=$re[1];}
 	
 	
@@ -1465,22 +1495,24 @@ function parseTemplate(){
 	parseTemplateLogs("ID: $ID",__FUNCTION__,__FILE__,__LINE__);
 	if(isset($_GET["fatalerror"])){$ID=0;}
 	if(isset($_GET["loading-database"])){$ID=0;}
+
+	if($LICENSE==1){
+		if(is_numeric($ID)){
+			if($ID==0){
+				$ligne["groupname"]="Default";
+				parseTemplateLogs("TemplateError: -> DansGuardianDefaultMainRule",__FUNCTION__,__FILE__,__LINE__);
+				$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
+			}else{
+				$sql="SELECT groupname,TemplateError FROM webfilter_rules WHERE ID=$ID";
+				$q=new mysql_squid_builder();
+				$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+			}	
+			$TemplateError=trim($ligne["TemplateError"]);
+			$ruleName=$ligne["groupname"];
 			
-	if(is_numeric($ID)){
-		if($ID==0){
-			$ligne["groupname"]="Default";
-			parseTemplateLogs("TemplateError: -> DansGuardianDefaultMainRule",__FUNCTION__,__FILE__,__LINE__);
-			$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
 		}else{
-			$sql="SELECT groupname,TemplateError FROM webfilter_rules WHERE ID=$ID";
-			$q=new mysql_squid_builder();
-			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		}	
-		$TemplateError=trim($ligne["TemplateError"]);
-		$ruleName=$ligne["groupname"];
-		
-	}else{
-		writelogs("ID: not a numeric",__FUNCTION__,__FILE__,__LINE__);
+			writelogs("ID: not a numeric",__FUNCTION__,__FILE__,__LINE__);
+		}
 	}
 
 	parseTemplateLogs("TemplateError: ".strlen($TemplateError)." bytes",__FUNCTION__,__FILE__,__LINE__);
@@ -1526,21 +1558,15 @@ function parseTemplate(){
 		
 	}
 	
-	
-	
-	
 	if(!isset($_SESSION["IPRES"][$_GET["clientaddr"]])){$_SESSION["IPRES"][$_GET["clientaddr"]]=gethostbyaddr($_GET["clientaddr"]);}
-	
-	//url=http://www.eicar.org/download/eicarcom2.zip&source=192.168.1.212/-&user=-&virus=stream:+Eicar-Test-Signature+FOUND
-	
 	if(isset($_GET["source"])){$_GET["clientaddr"]=$_GET["source"];}
 	if(isset($_GET["user"])){$_GET["clientname"]=$_GET["user"];}
 	if(isset($_GET["virus"])){$_GET["targetgroup"]=$_GET["virus"];$ruleName=null;}
 	if($_GET["clientuser"]<>null){$_GET["clientname"]=$_GET["clientuser"];}
 	$TemplateErrorFinal=str_replace("-USER-",$_GET["clientname"],$TemplateErrorFinal);
 	$TemplateErrorFinal=str_replace("-HOST-",$_SESSION["IPRES"][$_GET["clientaddr"]],$TemplateErrorFinal);
-	$_GET["clientgroup"]=parseTemplate_categoryname($_GET["clientgroup"]);
-	$ruleName=parseTemplate_categoryname($ruleName);
+	$_GET["clientgroup"]=parseTemplate_categoryname($_GET["clientgroup"],$LICENSE);
+	$ruleName=parseTemplate_categoryname($ruleName,$LICENSE);
 	
 	
 	if($ruleName<>null){
@@ -1585,6 +1611,10 @@ function parseTemplate(){
 	
 	}
 	
+	if($SquidGuardWebAllowUnblock==0){
+		if($LICENSE==1){$TemplateErrorFinal=str_replace("Bypass this Website", "", $TemplateErrorFinal);}
+		if($LICENSE==0){$TemplateErrorFinal=str_replace("Bypass this Website","Artica Proxy Appliance (community Edition)", $TemplateErrorFinal);}
+	}
 	
 
 	echo "$TemplateErrorFinal";
@@ -2180,7 +2210,27 @@ function UFDBGUARD_STATUS(){
 }
 
 
-function DisksStatus(){
+function DisksStatus($aspid=false){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
+	
+	if(!$aspid){
+		$pid=@file_get_contents("$pidfile");
+		if($unix->process_exists($pid,basename(__FILE__))){return;}
+		$pidTime=$unix->file_time_min($pidTime);
+		if($pidTime<5){return;}
+	}
+	
+	@unlink($pidTime);
+	@file_put_contents($pidTime, getmypid());
+	@file_put_contents($pidfile, getmypid());
+	if(system_is_overloaded()){
+		$php5=$unix->LOCATE_PHP5_BIN();
+		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --disks");
+		return;}	
+	
+	
 	$q=new mysql_squid_builder();
 	
 	

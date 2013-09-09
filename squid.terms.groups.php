@@ -157,7 +157,7 @@ function expression_popup(){
 function expression_save(){
 	$_POST["term"]=url_decode_special_tool($_POST["term"]);
 	$_POST["term"]=trim(str_replace("\n", "", $_POST["term"]));
-	$f=mysql_escape_string($_POST["term"]);
+	$f=mysql_escape_string2($_POST["term"]);
 	if($_POST["ID"]==0){
 		$sql="INSERT INTO webfilter_terms (term,enabled,xregex) VALUES('$f',{$_POST["enabled"]},{$_POST["xregex"]});";
 	}else{

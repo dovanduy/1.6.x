@@ -112,6 +112,10 @@ var
 
 begin
 
+     if FileExists('/etc/artica-postfix/PROXYTINY_APPLIANCE') then begin
+        writeln('This program cannot be executed in Tiny Proxy mode...');
+        halt(0);
+     end;
 
   SetCurrentDir('/root');
   zinstall:=tinstall.Create;
@@ -772,6 +776,19 @@ begin
 
 
    if ParamStr(1)='APP_SQUID' then begin
+
+            squid:=tsetup_squid.Create;
+         if length(ParamStr(2))>0 then begin
+            if SYS.COMMANDLINE_PARAMETERS('--configure') then begin
+                 writeln('Artica will compile squid with these directives:');
+                 writeln('');
+                 squid.command_line_squid();
+                 writeln('');
+                 halt(0);
+            end;
+         end;
+
+
          if FileExists('/etc/artica-postfix/SQUID_APPLIANCE') then begin
             writeln('Only squid 3.2x is supported...');
             squid:=tsetup_squid.Create;
@@ -789,16 +806,7 @@ begin
          end;
 
 
-         squid:=tsetup_squid.Create;
-         if length(ParamStr(2))>0 then begin
-            if SYS.COMMANDLINE_PARAMETERS('--configure') then begin
-                 writeln('Artica will compile squid with these directives:');
-                 writeln('');
-                 squid.command_line_squid();
-                 writeln('');
-                 halt(0);
-            end;
-         end;
+
 
          fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-squid');
          squid.xinstall();
@@ -1197,7 +1205,6 @@ begin
    end;
 
   if ParamStr(1)='APP_ROUNDCUBE3' then begin
-         fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          roundcube:=install_roundcube.Create();
          roundcube.xinstall();
          zinstall.EMPTY_CACHE();
@@ -1205,7 +1212,6 @@ begin
    end;
 
   if ParamStr(1)='APP_ROUNDCUBE' then begin
-         fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          roundcube:=install_roundcube.Create();
          roundcube.xinstall();
          zinstall.EMPTY_CACHE();
@@ -1213,8 +1219,6 @@ begin
    end;
 
   if ParamStr(1)='APP_ROUNDCUBE3_SIEVE_RULE' then begin
-         fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
-
          roundcube:=install_roundcube.Create();
          roundcube.SieveRules();
          zinstall.EMPTY_CACHE();
@@ -2086,6 +2090,7 @@ begin
 
     if ParamStr(1)='APP_OFFLINEIMAP' then begin
           if sys.FILE_TIME_BETWEEN_MIN('/etc/artica-postfix/APP_OFFLINEIMAP_EXEC')<10 then halt(0);
+          fpsystem('/bin/rm -f /etc/artica-postfix/APP_OFFLINEIMAP_EXEC >/dev/null 2>&1');
           fpsystem('/bin/touch /etc/artica-postfix/APP_OFFLINEIMAP_EXEC');
           imaps:=imapsync.Create();
           imaps.offlineimap();

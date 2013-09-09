@@ -723,6 +723,7 @@ function zlistnics_builder(){
 		$NIC_UP=false;
 		
 		if(trim($val)==null){continue;}
+		if($GLOBALS["VERBOSE"]){echo "<strong>tcp->ifconfig($val)</strong><br>\n";}
 		$tcp->ifconfig(trim($val));
 		
 		
@@ -814,12 +815,20 @@ function zlistnics_builder(){
 
 function listnicinfos($nicname,$js=null){
 	$sock=new sockets();
+	if($GLOBALS["VERBOSE"]){echo "<strong>cmd.php?nicstatus=$nicname</strong><br>\n";}
 	$nicinfos=$sock->getFrameWork("cmd.php?nicstatus=$nicname");
 	$EnableipV6=$sock->GET_INFO("EnableipV6");
 	if(!is_numeric($EnableipV6)){$EnableipV6=0;}	
 	
 	$IPBANS=unserialize(base64_decode($sock->GET_INFO("ArticaIpListBanned")));	
 	$tbl=explode(";",$nicinfos);
+	
+	if($GLOBALS["VERBOSE"]){
+		while (list ($num, $ligne) = each ($tbl) ){
+			echo "<strong>$ligne<br>\n";
+		}
+	}
+	
 	$tpl=new templates();
 	if($EnableipV6==1){
 		$ip6s=unserialize(base64_decode($sock->getFrameWork("network.php?ifconfig6=$nicname")));
@@ -1750,7 +1759,7 @@ function virtuals_add(){
 function BuildNetConf(){
 	$sock=new sockets();
 	writelogs("-> cmd.php?virtuals-ip-reconfigure=yes&stay=no",__FUNCTION__,__FILE__,__LINE__);
-	$sock->getFrameWork("cmd.php?virtuals-ip-reconfigure=yes&stay=no");
+	$sock->getFrameWork("system.php?artica-ifup=yes");
 	$tpl=new templates();
 	echo $tpl->javascript_parse_text("{network_sended_require_reboot}",1);
 }

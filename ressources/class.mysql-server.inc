@@ -141,8 +141,57 @@ class mysqlserver{
 		if($this->main_array["read_rnd_buffer_size"]==null){$this->main_array["read_rnd_buffer_size"]='4';}
 		if($this->main_array["myisam_sort_buffer_size"]==null){$this->main_array["myisam_sort_buffer_size"]='64';}
 		if($this->main_array["query_cache_size"]==null){$this->main_array["query_cache_size"]='16';}
-		if(count($this->MYSQL_BIN_PARAMS<3)){$this->LoadMysqlParameters();}		
+		if(count($this->MYSQL_BIN_PARAMS<3)){$this->LoadMysqlParameters();}	
+		$this->FixNumericValues();	
 	}
+	
+	private function FixNumericValues(){
+		$numeric_fields["tmp_table_size"]=true;
+		$numeric_fields["join_buffer_size"]=true;
+		$numeric_fields["sort_buffer_size"]=true;
+		$numeric_fields["innodb_log_file_size"]=true;
+		$numeric_fields["thread_cache_size"]=true;
+		$numeric_fields["query_cache_limit"]=true;
+		$numeric_fields["query_cache_size"]=true;
+		$numeric_fields["key_buffer"]=true;
+		$numeric_fields["innodb_log_file_size"]=true;
+		$numeric_fields["max_allowed_packet"]=true;
+		$numeric_fields["max_heap_table_size"]=true;
+		$numeric_fields["myisam_sort_buffer_size"]=true;
+		$numeric_fields["read_rnd_buffer_size"]=true;
+		$numeric_fields["read_buffer_size"]=true;
+		$numeric_fields["table_open_cache"]=true;
+		$numeric_fields["key_buffer_size"]=true;
+		$numeric_fields["table_cache"]=true;
+		$numeric_fields["tmp_table_size"]=true;
+		$numeric_fields["innodb_buffer_pool_size"]=true;
+		$numeric_fields["innodb_additional_mem_pool_size"]=true;
+		$numeric_fields["innodb_log_buffer_size"]=true;
+		$numeric_fields["thread_stack"]=true;
+		$numeric_fields["sort_buffer_size"]=true;
+		$numeric_fields["read_rnd_buffer_size"]=true;
+		
+		
+		while (list ($field, $DGRULE) = each ($numeric_fields)){
+			$value=trim($this->main_array[$field]);
+			if($value==null){continue;}
+			if(preg_match("#.*?(,|;)#", $value)){
+					$value=str_replace(",", ".", $value);
+					$value=str_replace(";", ".", $value);
+			}
+			if(preg_match("#^\..*?#", $value)){$value="0".$value;}
+			$this->main_array[$field]=$value;
+		}
+		
+		$integer_values["max_connections"]=true;
+		while (list ($field, $DGRULE) = each ($numeric_fields)){
+			$value=trim($this->main_array[$field]);
+			if($value==null){continue;}
+			if(preg_match("#.*?(,|\.|;)#", $value)){$value=null;}
+			if(!is_numeric($value)){$this->main_array[$field]=10;}
+		}
+	}
+	
 	
 	public function save(){
 		$ini=new Bs_IniHandler();
@@ -181,7 +230,7 @@ class mysqlserver{
 	}
 	
 	function Mysql_verlow_config(){
-		
+		if(count($this->MYSQL_BIN_PARAMS)<3){$this->LoadMysqlParameters();}
 		$this->main_array["max_allowed_packet"]=1;
 		$this->main_array["key_buffer"]=16;
 		$this->main_array["table_cache"]=1;
@@ -236,9 +285,15 @@ class mysqlserver{
 		$conf=$conf ."basedir=/usr\n";
 		$conf=$conf ."datadir=$this->MYSQL_DATA_DIR\n";
 		$conf=$conf ."tmpdir=/tmp\n";
-		$conf=$conf. "skip-locking\n";
-		$conf=$conf. "skip-bdb\n";
-		$conf=$conf. "skip-innodb\n";		
+		if(isset($this->MYSQL_BIN_PARAMS["skip-locking"])){
+			$conf=$conf. "skip-locking\n";
+		}
+		if(isset($this->MYSQL_BIN_PARAMS["skip-bdb"])){
+			$conf=$conf. "skip-bdb\n";
+		}
+		if(isset($this->MYSQL_BIN_PARAMS["skip-innodb"])){
+			$conf=$conf. "skip-innodb\n";		
+		};		
 		$conf=$conf. "key_buffer = 12K\n";
 		$conf=$conf. "max_allowed_packet = {$this->main_array["max_allowed_packet"]}M\n";
 		$conf=$conf. "table_cache = {$this->main_array["table_cache"]}\n";
@@ -276,6 +331,7 @@ class mysqlserver{
 	
 	
 	function Mysql_low_config(){
+		if(count($this->MYSQL_BIN_PARAMS)<3){$this->LoadMysqlParameters();}
 		$this->main_array["max_allowed_packet"]=1;
 		$this->main_array["key_buffer"]=16;
 		$this->main_array["table_cache"]=1;
@@ -324,9 +380,19 @@ class mysqlserver{
 		$conf=$conf ."datadir=$this->MYSQL_DATA_DIR\n";
 		$conf=$conf ."log-error\n";
 		$conf=$conf ."tmpdir=/tmp\n";
-		$conf=$conf. "skip-locking\n";
-		$conf=$conf. "skip-bdb\n";
-		$conf=$conf. "skip-innodb\n";		
+		if(isset($this->MYSQL_BIN_PARAMS["skip-locking"])){
+			$conf=$conf. "skip-locking\n";
+		}
+		if(isset($this->MYSQL_BIN_PARAMS["skip-bdb"])){
+			$conf=$conf. "skip-bdb\n";
+		}
+		
+		if($this->main_array["max_allowed_packet"]<2){$this->main_array["max_allowed_packet"]=5;}
+		if($GLOBALS["AS_ROOT"]){echo "Starting......: MySQL max_allowed_packet = {$this->main_array["max_allowed_packet"]}M\n";}
+		
+		if(isset($this->MYSQL_BIN_PARAMS["skip-innodb"])){
+			$conf=$conf. "skip-innodb\n";		
+		}
 		$conf=$conf. "key_buffer = 16K\n";
 		$conf=$conf. "max_allowed_packet = {$this->main_array["max_allowed_packet"]}M\n";
 		$conf=$conf. "table_cache = {$this->main_array["table_cache"]}\n";
@@ -343,7 +409,7 @@ class mysqlserver{
 		$conf=$conf ."query_cache_size = 1048576\n";
 		$conf=$conf ."query_cache_type = 1\n";	
 		$conf=$conf ."default-storage-engine=MyISAM\n";	
-		if($this->innodb_file_per_table==1){if($GLOBALS["AS_ROOT"]){echo "Starting......: Mysql innodb_file_per_table added...\n";}$conf=$conf ."innodb_file_per_table\n";}	
+		if($this->innodb_file_per_table==1){if($GLOBALS["AS_ROOT"]){echo "Starting......: MySQL innodb_file_per_table added...\n";}$conf=$conf ."innodb_file_per_table\n";}	
 		$conf=$conf ."\n";
 		$conf=$conf ."[mysqldump]\n";	
 		$conf=$conf ."quick\n";	

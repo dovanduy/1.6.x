@@ -1,6 +1,6 @@
 <?php
 session_start();
-
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;}
 ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"<p class=text-error>");
 ini_set('error_append_string',"</p>");
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
@@ -21,7 +21,8 @@ if(isset($_POST["QUERY_SYSLOG_DATE"])){search_database_popup_save();exit;}
 if(isset($_GET["search-database"])){search_database();exit;}
 if(isset($_GET["parameters"])){parameters();exit;}
 if(isset($_POST["BackupMaxDays"])){parameters_Save();exit;}
-
+if(isset($_GET["mysql-syslogs-status"])){mysql_syslogs_status();exit;}
+if(isset($_GET["mysql-service-status"])){mysql_syslogs_service_status();exit;}
 tabs();
 
 
@@ -37,6 +38,14 @@ function tabs(){
 	echo $boot->build_tab($array);	
 	
 	
+}
+function mysql_syslogs_service_status(){
+$tpl=new templates();
+$sock=new sockets();
+$ini=new Bs_IniHandler();
+$ini->loadString(base64_decode($sock->getFrameWork('system.php?syslogdb-status=yes')));
+$APP_SQUID_DB=DAEMON_STATUS_ROUND("APP_SYSLOG_DB",$ini,null,1);
+echo $tpl->_ENGINE_parse_body($APP_SQUID_DB);
 }
 
 function parameters(){
@@ -92,7 +101,85 @@ function parameters(){
 		$boot->set_form_locked();
 	}
 	
-	echo $boot->Compile();
+	$t=time();
+	$page=CurrentPageName();
+	echo $boot->Compile()."<hr>
+	<div id='$t'></div>
+	<script>
+		LoadAjax('$t','$page?mysql-syslogs-status=yes');
+	</script>		
+	";
+			
+			
+			
+}
+
+
+function mysql_syslogs_status(){
+	$sock=new sockets();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$f[]="<H3>{database_status}</H3>";
+	$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
+	$MySQLSyslogWorkDir=$sock->GET_INFO("MySQLSyslogWorkDir");
+	if($MySQLSyslogWorkDir==null){$MySQLSyslogWorkDir="/home/syslogsdb";}
+	
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
+	if($MySQLSyslogType==1){
+		$array=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog-db.size.db"));
+		$SIZE=FormatBytes($array["SIZE"]);
+		$USED=FormatBytes($array["USED"]);
+		$DBSIZE=FormatBytes($array["DBSIZE"]);
+		$AIVA=$array["AIVA"];
+		$POURC=$array["POURC"];
+		if(!is_numeric($POURC)){$POURC=0;}
+		$MOUNTED=$array["MOUNTED"];		
+		$t=time();
+		$f[]="<table style='width:100%'>";
+		$f[]="<tr>";
+		$f[]="<td style='vertical-align:top;width:430px' width=430px><div id='sys$t'></div></td>";
+		$f[]="<td style='vertical-align:top;'>";
+		$f[]="<table style='width:100%'>";
+			$f[]="<tr>";
+			$f[]="<td class=legend style='font-size:18px'>{connection}:</td>";
+			$f[]="<td style='font-size:18px;font-weight:bold'>/var/run/syslogdb.sock</td>";
+			$f[]="</tr>";
+			$f[]="<tr>";
+			$f[]="<td class=legend style='font-size:18px'>{directory}:</td>";
+			$f[]="<td style='font-size:18px;font-weight:bold'>$MySQLSyslogWorkDir</td>";
+			$f[]="</tr>";
+			$f[]="<tr>";
+			$f[]="<td class=legend style='font-size:18px'>{size}:</td>";
+			$f[]="<td style='font-size:18px;font-weight:bold'>$DBSIZE/$SIZE ({$POURC}%)</td>";
+			$f[]="</tr>";	
+		$f[]="</table>";
+		$f[]="</td>";
+		$f[]="</tr>";
+		$f[]="</table>";
+		$f[]="<script>LoadAjax('sys$t','$page?mysql-service-status=yes');</script>";
+	}
+	if($MySQLSyslogType==2){
+		$username=$TuningParameters["username"];
+		
+		$mysqlserver=$TuningParameters["mysqlserver"];
+		$RemotePort=$TuningParameters["RemotePort"];
+		$f[]="<table style='width:100%'>";
+		$f[]="<tr>";
+		$f[]="<td class=legend style='font-size:18px'>{connection}:</td>";
+		$f[]="<td class=legend style='font-size:18px;font-weight:bold'>$mysqlserver:$RemotePort</td>";
+		$f[]="</tr>";
+		$f[]="<tr>";
+		$f[]="<td class=legend style='font-size:18px'>{username}:</td>";
+		$f[]="<td class=legend style='font-size:18px;font-weight:bold'>$username</td>";
+		$f[]="</tr>";
+		$f[]="</table>";		
+		
+		
+	}
+	
+	echo $tpl->_ENGINE_parse_body(@implode("\n", $f));
+	
 }
 
 function parameters_Save(){
@@ -233,7 +320,7 @@ function search_database(){
 	$filters[]=SearchToSql("filename",$_SESSION["QUERY_SYSLOG_FILE"]);
 	$filters[]=SearchToSql("hostname",$_SESSION["QUERY_SYSLOG_HOST"]);
 
-	$table="(SELECT `filename`,`taskid`,`filesize`,`filetime`,`hostname` FROM $table
+	$table="(SELECT `filename`,`taskid`,`storeid`,`filesize`,`filetime`,`hostname` FROM $table
 			WHERE $WHERE1 (`filename` LIKE 'auth.log%') OR (filename LIKE 'squid-access%')) as t";
 
 
@@ -256,6 +343,10 @@ function search_database(){
 		if(preg_match("#auth\.log-.*?#", $ligne["filename"])){
 			$action=imgsimple("32-import.png",null,"Loadjs('squid.restoreSource.php?filename={$ligne["filename"]}&storeid=$storeid')");
 
+		}
+		
+		if(preg_match("#squid-access-(.*?)\.log\.#",$ligne["filename"])){
+			$action=imgsimple("32-import.png",null,"Loadjs('squid.restoreSource.php?filename={$ligne["filename"]}&storeid=$storeid')");
 		}
 
 		$download="<a href=\"$MyPage?download=$storeid&filename={$ligne["filename"]}&storeid=$storeid\"><img src='img/arrow-down-32.png'></a>";

@@ -30,6 +30,7 @@ private
      function StatisticsAppliance():string;
      function GetIPInterface(eth:string):string;
      procedure WebConsoleSetup();
+     procedure ChangeDNSMenu();
 public
     procedure   Free;
     constructor Create();
@@ -124,6 +125,8 @@ htop_bin:=SYS.LOCATE_GENERIC_BIN('htop');
     iptcp:=ttcpip.Create;
     CURRENTIP:=GetIPInterface(eth);
     if CURRENTIP='0.0.0.0' then CURRENTIP:=GetIPInterface('eth1');
+    if CURRENTIP='0.0.0.0' then CURRENTIP:=GetIPInterface('br0');
+    if CURRENTIP='0.0.0.0' then CURRENTIP:=GetIPInterface('br1');
     logs.Debuglogs('Initialize menu done....');
     fpsystem('clear');
 
@@ -160,7 +163,6 @@ if not  ArticaAgent then  begin
        logs.Debuglogs('display menu....');
 
        writeln('Artica "'+ARTICA_VERSION+'" WebAccess');
-       writeln('**********************************************');
        writeln('Uri(s) you can use with your web browser:');
        writeln(uris);
 end else begin
@@ -199,6 +201,7 @@ if FileExists(htop_bin) then writeln('[H]..... Tasks Manager');
 writeln('[L]..... Configure languages');
 writeln('[M]..... Modify DNS');
 writeln('[N]..... Modify eth0 interface');
+writeln('[O]..... Install Broadcom driver (if it required)');
 writeln('[P]..... Modify root password');
 
 writeln('[R]..... Reboot');
@@ -282,7 +285,7 @@ if a='L' then begin
 end;
 
 if a='M' then begin
-   Writeln('This operation will change your DNS parameters, type [ENTER] key to continue..');
+   Writeln('This operation will change DNS parameters, type [ENTER] key to continue..');
    readln();
    ChangeDNS();
    Menu();
@@ -371,6 +374,13 @@ if a='L' then begin
    Menu();
    exit;
 end;
+
+if a='O' then begin
+   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.bnx2.enable.php');
+   Menu();
+   exit;
+end;
+
 
 if a='C' then begin
    fpsystem('/usr/share/artica-postfix/bin/process1 --force');
@@ -498,6 +508,8 @@ var
   a    :string;
   LastestBuild:Integer;
   LighttpdMinimalLibraries:integer;
+  EnableArticaFrontEndToNGninx:integer;
+  EnableArticaFrontEndToApache:integer;
   MyCurrentVersionTXT:string;
   MasterIndexFile:string;
   answer:string;
@@ -510,15 +522,28 @@ begin
    writeln('Restart Artica Web console service........: [R]');
 
    if not TryStrToInt(SYS.GET_INFO('LighttpdMinimalLibraries'),LighttpdMinimalLibraries) then LighttpdMinimalLibraries:=0;
-   if LighttpdMinimalLibraries=0 then writeln('Turn ON loading minimal PHP libraires..: [M]');
-   if LighttpdMinimalLibraries=0 then writeln('Turn OFF loading minimal PHP libraires.: [M]');
+   if not TryStrToInt(SYS.GET_INFO('EnableArticaFrontEndToNGninx'),EnableArticaFrontEndToNGninx) then EnableArticaFrontEndToNGninx:=0;
+   if not TryStrToInt(SYS.GET_INFO('EnableArticaFrontEndToApache'),EnableArticaFrontEndToApache) then EnableArticaFrontEndToApache:=0;
+if LighttpdMinimalLibraries=0 then begin
+   writeln('Turn ON loading minimal PHP libraires.....: [M]');
+end;
+if LighttpdMinimalLibraries=1 then begin
+   writeln('Turn OFF loading minimal PHP libraires....: [M]');
+end;
 
+if FileExists(SYS.LOCATE_GENERIC_BIN('nginx')) then begin
+   writeln('Use NGINX as Web engine...................: [N]');
+end;
+   writeln('Use Apache as Web engine..................: [A]');
+   writeln('Use LIGHTTPD as Web engine................: [B]');
    writeln('Change the Artica Web console listen port.: [L]');
    writeln('Create an Artica Web console with FreeWebs: [F]');
    writeln('Restart the framework service.............: [G]');
    writeln('Generate the Main configuration file......: [H]');
+
+
+
    writeln('Press Q and [Enter]  key to Exit');
-   readln();
    readln(a);
    a:=UpperCase(a);
 
@@ -533,6 +558,56 @@ begin
       WebConsoleSetup();
       exit;
    end;
+
+ if a='N' then begin
+ writeln('Activate NGNIX as web engine...');
+ writeln('Stopping Artica Web Interface...');
+ fpsystem('/etc/init.d/artica-webconsole stop');
+ writeln('Stopping NGNIX service...');
+ fpsystem('/etc/init.d/nginx stop');
+ SYS.set_INFOS('EnableArticaFrontEndToNGninx','1');
+ SYS.set_INFOS('EnableArticaFrontEndToApache','0');
+ writeln('Restarting NGNIX service...');
+ fpsystem('/etc/init.d/nginx restart');
+ writeln('Restarting NGNIX service done...');
+ fpsystem('/etc/init.d/artica-status restart');
+ WebConsoleSetup();
+ exit;
+ end;
+
+ if a='B' then begin
+    writeln('Activate LIGHTTPD as web engine...');
+   writeln('Stopping Artica Web Interface...');
+   fpsystem('/etc/init.d/artica-webconsole stop');
+   writeln('Stopping NGNIX service...');
+   fpsystem('/etc/init.d/nginx stop');
+   SYS.set_INFOS('EnableArticaFrontEndToNGninx','0');
+   SYS.set_INFOS('EnableArticaFrontEndToApache','0');
+   writeln('Restarting NGNIX service...');
+   fpsystem('/etc/init.d/nginx restart');
+   writeln('Starting Artica Web console service...');
+   fpsystem('/etc/init.d/artica-webconsole start');
+   fpsystem('/etc/init.d/artica-status restart');
+   WebConsoleSetup();
+   exit;
+ end;
+
+ if a='A' then begin
+    writeln('Activate Apache as web engine...');
+   writeln('Stopping Artica Web Interface...');
+   fpsystem('/etc/init.d/artica-webconsole stop');
+   writeln('Stopping NGNIX service...');
+   fpsystem('/etc/init.d/nginx stop');
+   SYS.set_INFOS('EnableArticaFrontEndToNGninx','0');
+   SYS.set_INFOS('EnableArticaFrontEndToApache','1');
+   writeln('Restarting NGNIX service...');
+   fpsystem('/etc/init.d/nginx restart');
+   writeln('Starting Artica Web console service...');
+   fpsystem('/etc/init.d/artica-webconsole start');
+   fpsystem('/etc/init.d/artica-status restart');
+   WebConsoleSetup();
+   exit;
+ end;
 
    if a='L' then begin
       ChangeArticaPort();
@@ -569,6 +644,10 @@ begin
       exit;
    end;
 
+   writeln('Unable to understand command: "',a,'"');
+   writeln('Press [Enter] key to Exit');
+   readln();
+   exit;
 end;
 
 procedure tlogon.NightlyBuild();
@@ -758,6 +837,41 @@ begin
 
 end;
 //################################################################################
+procedure tlogon.ChangeDNSMenu();
+var
+   EnablePDNS:integer;
+   DNS,answer:string;
+begin
+
+if not FileExists(SYS.LOCATE_GENERIC_BIN('pdns_server')) then  begin
+   ChangeDNS();
+   exit;
+end;
+if not TryStrToInt(SYS.GET_INFO('EnablePDNS'),EnablePDNS) then EnablePDNS:=0;
+
+if EnablePDNS=0 then writeln('[E]..... Activate PowerDNS service');
+writeln('[S]..... Change System DNS addresses');
+writeln('[Q]..... Exit menu');
+readln(answer);
+answer:=trim(answer);
+answer:=UpperCase(answer);
+
+// forward-zones=.=a,b
+
+if answer ='E' then begin
+   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.pdns.php --wizard-on');
+   exit;
+end;
+if answer ='S' then begin
+   ChangeDNS();
+   exit;
+end;
+if answer ='Q' then begin
+   exit;
+end;
+
+end;
+//################################################################################
 procedure tlogon.ChangeDNS();
 var
 l:Tstringlist;
@@ -807,185 +921,9 @@ end;
 end;
 //################################################################################
 procedure tlogon.ChangeIP();
-var
-   IP:string;
-   Gateway:string;
-   DNS,answer:string;
-   NETMASK:string;
-   iptcp:ttcpip;
-   Gayteway:string;
-   perform:string;
-   l,s:Tstringlist;
-   RegExpr:TRegExpr;
-   AutorizePerform:boolean;
-   eth:string;
 begin
-    eth:=SYS.GET_INFO('ArticaLogonEth');
-    if length(eth)=0 then eth:='eth0';
-    AutorizePerform:=false;
-    iptcp:=ttcpip.Create;
-    IP:=iptcp.IP_ADDRESS_INTERFACE(eth);
-    NETMASK:=iptcp.IP_MASK_INTERFACE(eth);
-    Gayteway:=iptcp.IP_LOCAL_GATEWAY(eth);
 
-    perform:='o';
-
-    if(IP='0.0.0.0') then IP:='172.16.14.135';
-    if(Gayteway='0.0.0.0') then Gayteway:='172.16.14.2';
-    if length(NETMASK)=0 then NETMASK:='255.255.255.0';
-    if length(Gayteway)=0 then Gayteway:='172.16.14.2';
-
-    fpsystem('clear');
-    writeln('Network configurator v1.2');
-    writeln('By default, the Artica server is set on DHCP Mode');
-    writeln('You will change ',eth,' network settings using static mode');
-    writeln('Remember that you can change IP setting trough the web interface');
-    writeln('Do you wan to change your network settings ?:[y/n]');
-
-    readln(answer);
-    if length(trim(answer))>0 then perform:=UpperCase(answer) else perform:='N';
-    if perform='O' then perform:='Y';
-
-    if perform<>'Y' then begin
-        writeln('Operation aborted...[Enter] key to Exit');
-        readln(answer);
-        exit;
-    end;
-
-
-
-    writeln('Which Network interface you want to use ?:[',eth,']');
-    readln(answer);
-    if length(trim(answer))>3 then begin
-          eth:=answer;
-          IP:=iptcp.IP_ADDRESS_INTERFACE(eth);
-          NETMASK:=iptcp.IP_MASK_INTERFACE(eth);
-          Gayteway:=iptcp.IP_LOCAL_GATEWAY(eth);
-    end;
-
-
-
-
-    writeln('Give the "',eth,'" network address IP of this computer: ['+IP+']');
-    readln(answer);
-    if length(trim(answer))>3 then begin
-       IP:=answer;
-
-    end else begin
-       if length(IP)=0 then begin
-        ChangeIP();
-        exit;
-        end;
-    end;
-
-
-    writeln('Give the netmask of this computer:['+NETMASK+']');
-    readln(answer);
-    if length(trim(answer))>0 then NETMASK:=answer else answer:=NETMASK;
-
-
-    writeln('Give the gateway ip address for this computer:['+Gayteway+']');
-    readln(answer);
-    if length(trim(answer))>0 then Gayteway:=answer;
-
-    DNS:=ParseResolvConf();
-    writeln('Give the First DNS ip address for this computer:['+DNS+']');
-    readln(answer);
-    if length(trim(answer))>0 then DNS:=answer else DNS:=DNS;
-
-    RegExpr:=TRegExpr.Create;
-    AutorizePerform:=true;
-    RegExpr.Expression:='^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+';
-    if not RegExpr.Exec(IP) then begin
-       writeln('IP -> FALSE:',IP);
-       AutorizePerform:=false;
-    end;
-    if not RegExpr.Exec(Gayteway) then begin
-       writeln('Gayteway -> FALSE:',Gayteway);
-       AutorizePerform:=false;
-    end;
-    if not RegExpr.Exec(NETMASK) then begin
-       writeln('NETMASK -> FALSE:',NETMASK);
-       AutorizePerform:=false;
-    end;
-
-    if not AutorizePerform then begin
-        writeln('[Enter] key to Exit');
-        readln(answer);
-        exit;
-    end;
-
-    writeln('Perform this operation ?(Y/N)');
-    readln(answer);
-
-    if length(trim(answer))>0 then perform:=UpperCase(trim(answer)) else perform:='Y';
-    if perform='o' then perform:='Y';
-    if perform='y' then perform:='Y';
-
-    if perform<>'Y' then begin
-        writeln('Choose "'+perform+'"');
-        writeln('Operation aborted...[Enter] key to Exit');
-        readln(answer);
-        exit;
-    end;
-
-    s:=Tstringlist.Create;
-    if length(DNS)>0 then  s.Add('nameserver '+DNS);
-    s.Add('nameserver 156.154.70.1');
-    s.Add('nameserver 8.8.4.4');
-    try
-       s.SaveToFile('/etc/resolv.conf');
-    finally
-    end;
-
-
-    forceDirectories('/etc/resolvconf/resolv.conf.d');
-    try
-       s.SaveToFile('/etc/resolvconf/resolv.conf.d/base ');
-    finally
-    end;
-    s.free;
-
-
-l:=Tstringlist.Create;
-l.add('auto lo');
-l.add('iface lo inet loopback');
-l.add('auto '+eth);
-l.add('iface '+eth+' inet static');
-l.add(chr(9)+'address '+IP);
-l.add(chr(9)+'gateway '+Gayteway);
-l.add(chr(9)+'netmask '+netmask);
-if length(DNS)>0 then l.add(chr(9)+'dns-nameservers '+DNS);
-writeln('Saving /etc/network/interfaces');
-l.SaveToFile('/etc/network/interfaces');
-writeln('Shutdown ',eth,'...');
-fpsystem('ifdown '+eth);
-writeln('Starting ',eth,' with new parameters...');
-fpsystem('ifconfig '+eth+' down');
-fpsystem('ifconfig '+eth+' '+IP+' netmask '+NETMASK +' up');
-fpsystem('ip route add default via '+Gayteway+' dev '+eth+'  proto static');
-IP:=iptcp.IP_ADDRESS_INTERFACE(eth);
-NETMASK:=iptcp.IP_MASK_INTERFACE(eth);
-Gayteway:=iptcp.IP_LOCAL_GATEWAY(eth);
-writeln('New configuration done '+IP+'/'+NETMASK +' Gateway:'+Gayteway);
-
-l:=Tstringlist.Create;
-l.Add(IP+';'+Gayteway+';'+netmask+';'+DNS+';'+eth);
-writeln('Updating new configuration, please wait....');
-l.SaveToFile('/etc/artica-postfix/network.first.settings');
-fpsystem('/etc/init.d/artica-postfix start mysql');
-fpsystem('/bin/rm -f /etc/artica-postfix/MEM_INTERFACES >/dev/null 2>&1');
-fpsystem('/bin/rm -f /etc/init.d/network-urgency.sh >/dev/null 2>&1');
-fpsystem('/usr/share/artica-postfix/exec.virtuals-ip.php --articalogon');
-writeln('Restarting Artica Web SSL Interface Console, please wait....');
-fpsystem('/etc/init.d/artica-postfix stop apache');
-fpsystem('clear');
-fpsystem('/etc/init.d/artica-postfix start apache');
-writeln('[Enter] key to Exit');
-readln(answer);
-exit;
-
-
+     fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.user.ask.network.php');
 end;
 function tlogon.StatisticsAppliance():string;
 var

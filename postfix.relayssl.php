@@ -270,9 +270,12 @@ $tpl=new templates();
 $stunnel=new stunnel4();
 $relay_host=$stunnel->main_array["postfix_relayhost"]["connect"];
 $localport=$stunnel->main_array["postfix_relayhost"]["accept"];
+$relay_port=$stunnel->main_array["postfix_relayhost"]["port"];
 if(!is_numeric($localport)){$localport=0;}
-preg_match('#(.+?):([0-9]+)#',$relay_host,$h);
-if($h[2]==null){$h[2]=465;}	
+if(preg_match('#(.+?):([0-9]+)#',$relay_host,$h)){
+	$relay_port=$h[2];
+}
+if(!is_numeric($relay_port)){$relay_port="465";}	
 $sasl=new smtp_sasl_password_maps();
 //print_r($sasl->smtp_sasl_password_hash);
 preg_match('#(.+?):(.+)#',$sasl->smtp_sasl_password_hash["[127.0.0.1]:$localport"],$ath);	
@@ -288,7 +291,7 @@ preg_match('#(.+?):(.+)#',$sasl->smtp_sasl_password_hash["[127.0.0.1]:$localport
 			</tr>
 			<tr>
 				<td align='right' nowrap style='font-size:14px'><strong>{yport}:&nbsp;</strong></td>
-				<td><input type='text' id='ssl_relay_port' value='{$h[2]}' style='font-size:14px;width:30%'></td>
+				<td><input type='text' id='ssl_relay_port' value='$relay_port' style='font-size:14px;width:30%'></td>
 			</tr>	
 				<tr>
 					<td align='left' nowrap style='font-size:16px' colspan=2>&nbsp;</td>
@@ -353,6 +356,7 @@ function relayhost_save(){
 	$localport=$stunnel->main_array["postfix_relayhost"]["accept"];
 	
 	$stunnel->main_array["postfix_relayhost"]["connect"]=$_GET["server"];
+	$stunnel->main_array["postfix_relayhost"]["port"]=$_GET["port"];
 	$stunnel->SaveConf();
 	$stunnel->SaveToserver();
 	writelogs("Saving [127.0.0.1]:$localport -> {$_GET["username"]}",__FUNCTION__,__FILE__,__LINE__);

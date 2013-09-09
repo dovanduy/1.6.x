@@ -22,6 +22,9 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 $GLOBALS["AS_ROOT"]=true;
 
+$sock=new sockets();
+$sock->SQUID_DISABLE_STATS_DIE();
+
 if($argv[1]=="--tables-day"){repair_table_days();die();}
 if($argv[1]=="--tables-dayh"){repair_table_days_hours();die();}
 if($argv[1]=="--tables-visited-sites"){repair_visited_sites();die();}
@@ -164,7 +167,7 @@ function repair_table_hour_perfom($tabledata,$nexttable,$xtime){
 		}
 
 		$familysite=$GLOBALS["Q"]->GetFamilySites($sitename);
-		$ligne["Country"]=mysql_escape_string($ligne["Country"]);
+		$ligne["Country"]=mysql_escape_string2($ligne["Country"]);
 		$SQLSITESVS[]="('$sitename','$category','{$ligne["Country"]}','$familysite')";
 
 

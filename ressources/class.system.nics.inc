@@ -29,7 +29,12 @@ class system_nic{
 	var $ucarp_vid=3;
 	var $ucarp_vip='';
 	var $ucarp_advskew=1;
-	var $ucarp_advbase=1;	
+	var $ucarp_advbase=1;
+	var $Bridged=0;	
+	var $BridgedTo=null;
+	var $defaultroute=0;
+	var $DNS_1=null; 
+	var $DNS_2=null;
 	function system_nic($eth=null){
 		
 		$sock=new sockets();
@@ -116,6 +121,12 @@ class system_nic{
 			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-master` INT( 1 ) NULL DEFAULT '0'",'artica_backup');
 		}
 		
+		if(!$q->FIELD_EXISTS("nics","defaultroute","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `defaultroute` smallint(1 ) ,ADD INDEX ( `defaultroute` )",'artica_backup');
+		}		
+		
+		
+		
 	}
 	
 	private function loadEthConfig(){
@@ -130,6 +141,7 @@ class system_nic{
 			writelogs("$q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		}
 		$this->dhcp=0;
+		writelogs("$this->eth: {$ligne["Interface"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		if($ligne["Interface"]==null){
 			$ip=new networking();
 			$ligne=$ip->GetNicInfos($this->eth);
@@ -151,6 +163,7 @@ class system_nic{
 		if(!isset($ligne["ipv6addr"])){$ligne["ipv6addr"]=null;}
 		if(!isset($ligne["ipv6gw"])){$ligne["ipv6gw"]=null;}
 		
+		
 		$this->ipv6=$ligne["ipv6"];
 		$this->NETMASK=$ligne["NETMASK"];
 		$this->GATEWAY=$ligne["GATEWAY"];
@@ -170,6 +183,9 @@ class system_nic{
 		$this->ucarp_vip=$ligne["ucarp-vip"];
 		$this->ucarp_advskew=$ligne["ucarp-advskew"];
 		$this->ucarp_advbase=$ligne["ucarp-advbase"];
+		$this->Bridged=$ligne["Bridged"];
+		$this->BridgedTo=$ligne["BridgedTo"];
+		$this->defaultroute=$ligne["defaultroute"];
 		if(!is_numeric($this->ucarp_enabled)){$this->ucarp_enabled=0;}
 		if(!is_numeric($this->ucarp_vid)){$this->ucarp_vid=0;}
 		if(!is_numeric($this->ucarp_advbase)){$this->ucarp_advbase=0;}
@@ -203,11 +219,17 @@ class system_nic{
 				$this->ipv6mask=0;
 				$this->ipv6gw=null;			
 		}
+		
+		if($this->BROADCAST=="0.0.0.255"){
+			$t=explode(".", $this->IPADDR);
+			$this->BROADCAST="{$t[0]}.{$t[1]}.{$t[2]}.255";
+		}
 
 	}
 	
 	private function CheckUnconfigured(){
 		$q=new mysql();
+		if(!$q->FIELD_EXISTS("nics","enabled","artica_backup")){$sql="ALTER TABLE `nics` ADD `enabled` INT( 1 ) NOT NULL DEFAULT '0'";$q->QUERY_SQL($sql,'artica_backup');}
 		$sql="SELECT COUNT(Interface) as tcount FROM `nics` WHERE enabled=1";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if($ligne["tcount"]>0){$this->unconfigured=false;}
@@ -217,6 +239,11 @@ class system_nic{
 		$q=new mysql();
 		$hash=array();
 		$f=array();
+		
+		if(!$q->FIELD_EXISTS("nics","metric","artica_backup")){$sql="ALTER TABLE `nics` ADD `metric` INT( 5 ) ,ADD INDEX ( `metric` )";$q->QUERY_SQL($sql,'artica_backup');}
+		if(!$q->FIELD_EXISTS("nics","enabled","artica_backup")){$sql="ALTER TABLE `nics` ADD `enabled` INT( 1 ) NOT NULL DEFAULT '0'";$q->QUERY_SQL($sql,'artica_backup');}		
+		
+		
 		$sql="SELECT metric as tcount FROM `nics` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));		
 		$hash[$ligne["metric"]]=$ligne["metric"];
@@ -243,15 +270,40 @@ class system_nic{
 	}
 	
 	
+	public function CleanIPAddr($addr){
+		$addr=str_replace("___.___.___.___", "", $addr);
+		if($addr==null){return null;}
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $addr)){
+			$pr=explode(".",$addr);
+			while (list ($index, $number) = each ($pr) ){$pr[$index]=intval($number);}
+			$addr=@implode(".", $pr);
+		}		
+		return $addr;
+		
+	}
+	
+	
 	public function SaveNic(){
+		$q=new mysql();
 		$routes=addslashes(serialize($this->ROUTES));
+		
+		if($this->defaultroute==1){
+			$q->QUERY_SQL("UPDATE `nics` SET defaultroute=0","artica_backup");
+		}
+		
+		$this->eth=trim($this->eth);
+		$this->eth=str_replace("\r\n", "", $this->eth);
+		$this->eth=str_replace("\r", "", $this->eth);
+		$this->eth=str_replace("\n", "", $this->eth);		
+		
 		$this->CheckMySQLFields();
 		$sql_add="
 		INSERT INTO `nics` (`Interface`,`IPADDR`,`NETMASK`,`GATEWAY`,`BROADCAST`,`DNS1`,`DNS2`,
-		`dhcp`,`ROUTES`,`NETWORK`,`enabled`,`ipv6`,`ipv6mask`,`ipv6gw`,`ipv6addr`,`metric`)
+		`dhcp`,`ROUTES`,`NETWORK`,`enabled`,`ipv6`,`ipv6mask`,`ipv6gw`,`ipv6addr`,`metric`,`Bridged`,
+		`BridgedTo`,`defaultroute`)
 		VALUES('$this->eth','$this->IPADDR','$this->NETMASK','$this->GATEWAY','$this->BROADCAST','$this->DNS_1',
 		'$this->DNS_2','$this->dhcp','$routes','$this->NETWORK',1,'$this->ipv6','$this->ipv6mask',
-		'$this->ipv6gw','$this->ipv6addr','$this->metric');
+		'$this->ipv6gw','$this->ipv6addr','$this->metric','$this->Bridged','$this->BridgedTo','$this->defaultroute');
 		";
 		if($this->ucarp_vid==0){$this->ucarp_vid=3;}
 		if($this->ucarp_advbase==0){$this->ucarp_advbase=2;}
@@ -260,6 +312,21 @@ class system_nic{
 		if(!is_numeric($this->ucarp_enabled)){$this->ucarp_enabled=0;}
 		$this->eth=trim($this->eth);
 		if(preg_match("#(.+?)\s+#", $this->eth,$re)){$this->eth=$re[1];}
+		
+		$this->IPADDR=$this->CleanIPAddr($this->IPADDR);
+		$this->NETMASK=$this->CleanIPAddr($this->NETMASK);
+		$this->GATEWAY=$this->CleanIPAddr($this->GATEWAY);
+		$this->BROADCAST=$this->CleanIPAddr($this->BROADCAST);
+		$this->NETWORK=$this->CleanIPAddr($this->NETWORK);
+		$this->DNS1=$this->CleanIPAddr($this->DNS1);
+		$this->DNS2=$this->CleanIPAddr($this->DNS2);
+		$this->ucarp_vip=$this->CleanIPAddr($this->ucarp_vip);
+		
+		$ip=new IP();
+		if(!$ip->isIPAddress($this->IPADDR)){
+			echo __CLASS__."/".__FUNCTION__."/".__LINE__.": $this->IPADDR no a valid IP address\n";
+			return;
+		}
 		
 		$sql_upd="UPDATE `nics` SET 
 		`IPADDR`='$this->IPADDR',
@@ -283,13 +350,17 @@ class system_nic{
 		`ucarp-vip`='$this->ucarp_vip',
 		`ucarp-advskew`='$this->ucarp_advskew',
 		`ucarp-advbase`='$this->ucarp_advbase',
+		`Bridged`='$this->Bridged',
+		`BridgedTo`='$this->BridgedTo',
+		`defaultroute`='$this->defaultroute',
 		`ROUTES`='$routes'
 		 WHERE `Interface`='$this->eth'";
 
 		
+		
 		writelogs("save nic infos : NIC:ipv6=$this->ipv6; `$this->eth`;$this->IPADDR;$this->NETMASK;$this->GATEWAY;$this->dhcp;$this->BROADCAST",__CLASS__."/".__FUNCTION__,__FILE__);
 		
-		$q=new mysql();
+		
 		$q->check_networks_tables();
 		
 		if(!$q->FIELD_EXISTS("nics","ipv6","artica_backup")){
@@ -389,6 +460,7 @@ class system_nic{
 	
 	
 	public function root_build_redhat_config(){
+		$this->LoadTools();
 		$sock=new sockets();
 		$NetWorkBroadCastAsIpAddr=$sock->GET_INFO("NetWorkBroadCastAsIpAddr");
 		
@@ -414,8 +486,11 @@ class system_nic{
 			$dns=array();
 			$array=array();
 			if(trim($ligne["GATEWAY"])==null){$ligne["GATEWAY"]="0.0.0.0";}
+			
+						
+			
 					
-			if($ligne["Bridged"]==1){
+			if($this->IsBridged($eth)){
 				if($GLOBALS["VERBOSE"]){echo "Starting......: $eth bridged to {$ligne["BridgedTo"]}\n";}	
 				$array[]="DEVICE=$eth";
 				$array[]="STARTMODE='auto'";
@@ -423,6 +498,18 @@ class system_nic{
 				$array[]="BRIDGE={$ligne["BridgedTo"]}";
 				$array[]="NM_CONTROLLED=no";
 				$array[]="IPV6INIT=no";
+				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
+				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth 0.0.0.0 promisc up";
+				$GLOBALS["SAVED_INTERFACES"][]=$eth;
+				$GLOBALS["MEM_INTERFACES"][$eth]="0.0.0.0";
+				echo "Starting......: $eth \" ** is bridged to {$ligne["BridgedTo"]} **\n";
+				$f[]="iface $eth inet manual";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** \"$eth\" IS BRIDGED ****";
+				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
+				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth 0.0.0.0 promisc up";
+				$GLOBALS["SCRIPTS_DOWN"][]="{$GLOBALS["ifconfig"]} $eth down";
+				$GLOBALS["SAVED_INTERFACES"][]=$eth;
+				$GLOBALS["MEM_INTERFACES"][$eth]="0.0.0.0";				
 				$this->root_build_redhat_ifcfg($eth,@implode("\n",$array));
 				continue;		
 			}	
@@ -432,13 +519,18 @@ class system_nic{
 			$array[]="IPADDR={$ligne["IPADDR"]}";
 			$array[]="NETMASK={$ligne["NETMASK"]}";
 			if($NetWorkBroadCastAsIpAddr==1){$ligne["BROADCAST"]=$ligne["IPADDR"];}
-			if($ligne["BROADCAST"]<>"0.0.0.0"){
-				$array[]="BROADCAST={$ligne["BROADCAST"]}";
-			}
+			if($ligne["BROADCAST"]<>"0.0.0.0"){$array[]="BROADCAST={$ligne["BROADCAST"]}";}
+			if($ligne["GATEWAY"]<>"0.0.0.0"){$array[]="GATEWAY={$ligne["GATEWAY"]}";}	
 			
-			if($ligne["GATEWAY"]<>"0.0.0.0"){
-				$array[]="GATEWAY={$ligne["GATEWAY"]}";
-			}	
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS for \"$eth\" ****";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
+			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]}";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} up";			
+			
 
 			
 			
@@ -518,7 +610,9 @@ class system_nic{
 		
 		
 		
-		
+		$this->BuildBridges();
+		$this->BuildVirtIps();
+		$this->BuildVlans();
 		$GLOBALS["NoGatewayForVirtualNetWork"]=$sock->GET_INFO("NoGatewayForVirtualNetWork");	
 		if(!is_numeric($GLOBALS["NoGatewayForVirtualNetWork"])){$GLOBALS["NoGatewayForVirtualNetWork"]=0;}
 		$sql="SELECT * FROM nics_virtuals ORDER BY ID DESC";
@@ -695,6 +789,72 @@ class system_nic{
 		shell_exec("$servicebin -f $eth-up defaults >/dev/null 2>&1");
 		return @implode("\n", $f);
 	}
+	
+	
+	public function NicToOther($nic){
+		if($this->IsBridged($nic)){
+			$sql="SELECT Bridged,BridgedTo FROM `nics` WHERE Interface='$nic'";
+			$q=new mysql();
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+			return $ligne["BridgedTo"];
+		}
+		return $nic;
+	}
+	
+	
+	public function IsBridged($eth){
+		$key=__CLASS__.__FUNCTION__.$eth;
+		if(isset($GLOBALS[$key])){return $GLOBALS[$key];}
+		$this->LoadTools();
+		if(!is_file($GLOBALS["brctlbin"])){
+			echo "Starting......: $eth brctl no such binary\n";
+			$GLOBALS[$key]=false;
+			return false;
+		}
+		$eth=trim($eth);
+		if(preg_match("#^br[0-9]+#", $eth)){$GLOBALS[$key]=false;return false;}
+		$sql="SELECT Bridged,BridgedTo FROM `nics` WHERE Interface='$eth'";
+		$q=new mysql();
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		if(!is_numeric($ligne["Bridged"])){
+			echo "Starting......: $eth Not enabled [NULL] ({$ligne["Bridged"]} to bridge\n";
+			$GLOBALS[$key]=false;return false;}
+		if($ligne["Bridged"]==0){
+			echo "Starting......: $eth Not enabled [0] to bridge\n";
+			$GLOBALS[$key]=false;return FALSE;}
+		if($ligne["BridgedTo"]==null){
+			echo "Starting......: $eth Not bridged to any interface\n";
+			$GLOBALS[$key]=false;return false;}
+		if(!preg_match("#^br([0-9]+)#", $ligne["BridgedTo"],$re)){
+			echo "Starting......: $eth -> {$ligne["BridgedTo"]} incorrect\n";
+			$GLOBALS[$key]=false;return false;}
+		$BridgeID=$re[1];
+		
+		echo "Starting......: $eth Bridged To {$ligne["BridgedTo"]}\n";
+		$sql="SELECT ipaddr FROM `nics_bridge` WHERE ID='$BridgeID'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		if($ligne["ipaddr"]==null){$GLOBALS[$key]=false;return false;}
+		$ip=new IP();
+		if(!$ip->isValid($ligne["ipaddr"])){$GLOBALS[$key]=false;return false;}
+		$GLOBALS[$key]=true;
+		return true;
+	}
+	
+	
+	public function LoadTools(){
+		
+		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}	
+		if(!isset($GLOBALS["sysctl"])){$GLOBALS["sysctl"]=$GLOBALS["CLASS_UNIX"]->find_program("sysctl");}
+		if(!isset($GLOBALS["ifconfig"])){$GLOBALS["ifconfig"]=$GLOBALS["CLASS_UNIX"]->find_program("ifconfig");}
+		if(!isset($GLOBALS["routebin"])){$GLOBALS["routebin"]=$GLOBALS["CLASS_UNIX"]->find_program("route");}
+		if(!isset($GLOBALS["ipbin"])){$GLOBALS["ipbin"]=$GLOBALS["CLASS_UNIX"]->find_program("ip");}
+		if(!isset($GLOBALS["vconfigbin"])){$GLOBALS["vconfigbin"]=$GLOBALS["CLASS_UNIX"]->find_program("vconfig");}
+		if(!isset($GLOBALS["moprobebin"])){$GLOBALS["moprobebin"]=$GLOBALS["CLASS_UNIX"]->find_program("modprobe");}
+		if(!isset($GLOBALS["brctlbin"])){$GLOBALS["brctlbin"]=$GLOBALS["CLASS_UNIX"]->find_program("brctl");}
+		if(!isset($GLOBALS["dhclientbin"])){$GLOBALS["dhclientbin"]=$GLOBALS["CLASS_UNIX"]->find_program("dhclient");}
+		if(!isset($GLOBALS["tunctlbin"])){$GLOBALS["tunctlbin"]=$GLOBALS["CLASS_UNIX"]->find_program("tunctl");}
+		
+	}
 
 	
 	public function root_build_debian_config(){
@@ -717,12 +877,8 @@ class system_nic{
 		$REMOVE_GATEWAY=false;
 		if($OVHNetConfig==1){$NetWorkBroadCastAsIpAddr;}
 		if($GLOBALS["AS_ROOT"]){
+			$this->LoadTools();
 			$unix=new unix();
-			$GLOBALS["ifconfig"]=$unix->find_program("ifconfig");
-			$GLOBALS["routebin"]=$unix->find_program("route");
-			$GLOBALS["ipbin"]=$unix->find_program("ip");
-			$GLOBALS["vconfigbin"]=$unix->find_program("vconfig");
-			$GLOBALS["moprobebin"]=$unix->find_program("modprobe");
 			echo "Starting......: route bin.....: {$GLOBALS["routebin"]}\n";
 			echo "Starting......: vconfig bin...: {$GLOBALS["vconfigbin"]}\n";
 			echo "Starting......: modprobe bin..: {$GLOBALS["moprobebin"]}\n";
@@ -736,41 +892,67 @@ class system_nic{
 		$count=mysql_num_rows($results);
 		if($count==0){echo "Starting......: Network Unconfigured\n";return;}
 		
+		$GLOBALS["SCRIPTS"][]="# **** MAIN INTERFACES  ****";
+		
 		$f[]="auto lo";
 		$f[]="iface lo inet loopback";
 		$f[]="";
 		$ISREAL=0;
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 			$eth=trim($ligne["Interface"]);
+			$eth=str_replace("\n", "", $eth);
+			$eth=str_replace("\r", "", $eth);			
 			if(trim($eth)==null){echo "Starting......: no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
 			if(isset($eth_SKIP[$eth])){
 				echo "Starting......: $eth skipping\n";
 				continue;
 			}
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS for \"$eth\" ****";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+			if($this->IsBridged($eth)){
+				echo "Starting......: $eth \" ** is bridged to {$ligne["BridgedTo"]} **\n";
+				$f[]="iface $eth inet manual";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** \"$eth\" IS BRIDGED ****";
+				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
+				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth 0.0.0.0 promisc up";
+				$GLOBALS["SCRIPTS_DOWN"][]="{$GLOBALS["ifconfig"]} $eth down";
+				$GLOBALS["SAVED_INTERFACES"][]=$eth;
+				$GLOBALS["MEM_INTERFACES"][$eth]="0.0.0.0";
+				continue;
+			}else{
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Not bridged";
+				echo "Starting......: $eth is not bridged\n";
+			}
+			
 			$ipv6=$ligne["ipv6"];
 			$scripts=array();
 			if($EnableipV6==0){$ipv6=0;}
 			
-			if(isset($ASALREADY[$eth])){continue;}
+			if(isset($ASALREADY[$eth])){
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] $eth already set aborting";
+				continue;}
 			$ASALREADY[$eth]=true;
 			
 			$GLOBALS["SAVED_INTERFACES"][]=$eth;
 			$GLOBALS["MEM_INTERFACES"][$eth]=$ligne["IPADDR"];
-
-			if($count==0){echo "Starting......: $eth \"{$ligne["IPADDR"]}\"\n";return;}
 			$dns=array();
 			$f[]="";
 			
-			
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** \"$eth\" {$ligne["IPADDR"]} ****";
 			echo "Starting......: \"$eth\" \"{$ligne["IPADDR"]}\"\n";
 			$f[]="auto $eth ".$this->auto_eth_virts($eth);	
 			$ISREAL++;
 			
-			$eth=trim($eth);
-			$eth=str_replace("\n", "", $eth);
-			$eth=str_replace("\r", "", $eth);
-			if($ligne["Bridged"]==1){$f[]="iface $eth inet manual\n";continue;}	
-			if($ligne["dhcp"]==1){$f[]="iface $eth inet dhcp";continue;}
+
+			
+			if($ligne["dhcp"]==1){
+				$f[]="iface $eth inet dhcp";
+				$GLOBALS["SCRIPTS"][]="{$GLOBALS["dhclientbin"]} $eth";
+				continue;
+			}
 			$f[]="iface $eth inet static";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth up";
@@ -778,10 +960,10 @@ class system_nic{
 			if($eth=="eth0"){
 				if($OVHNetConfig==1){
 					$REMOVE_GATEWAY=true;
-					$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} del {$ligne["GATEWAY"]} dev eth0";
-					$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} del default gw {$ligne["GATEWAY"]}";
-					$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} add {$ligne["GATEWAY"]} dev eth0";
-					$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} add default gw {$ligne["GATEWAY"]}";					
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} del {$ligne["GATEWAY"]} dev eth0";
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} del default gw {$ligne["GATEWAY"]}";
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add {$ligne["GATEWAY"]} dev eth0";
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add default gw {$ligne["GATEWAY"]}";					
 					$scripts[]="\tpost-up {$GLOBALS["routebin"]} add {$ligne["GATEWAY"]} dev eth0 metric 10{$ligne["metric"]}";
 					$scripts[]="\tpost-up {$GLOBALS["routebin"]} add default gw {$ligne["GATEWAY"]}";
 					$scripts[]="\tpost-down {$GLOBALS["routebin"]} del {$ligne["GATEWAY"]} dev eth0 metric 10{$ligne["metric"]}";
@@ -790,6 +972,7 @@ class system_nic{
 			}
 			
 			if($REMOVE_GATEWAY==true){$ligne["GATEWAY"]="0.0.0.0";}
+			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]}";
 			$ifconfig="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]}";
 			$GLOBALS["SCRIPTS"][]="$ifconfig";
 			
@@ -812,8 +995,8 @@ class system_nic{
 						if(preg_match("#^([0-9\.]+)\.[0-9]+$#", $ligne["IPADDR"],$re)){
 							if(!isset($ALREADYNETSROUTE["{$re[1]}.0"])){
 								$ALREADYNETSROUTE["{$re[1]}.0"]=true;
-								$mainroute="{$GLOBALS["routebin"]} add -net {$re[1]}.0 netmask {$ligne["NETMASK"]} gw {$ligne["GATEWAY"]} dev $eth";
-								$GLOBALS["SCRIPTS"][]=$mainroute;
+								$mainroute="{$GLOBALS["routebin"]} add -net {$re[1]}.0 netmask {$ligne["NETMASK"]} gw {$ligne["GATEWAY"]} dev ".$this->NicToOther($eth);
+								//$GLOBALS["SCRIPTS_ROUTES"][]=$mainroute;
 							}
 						}
 					}
@@ -866,29 +1049,29 @@ class system_nic{
 	         			
 	         			
 		         		if($ip=="default"){
-		         			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev $eth  metric 10{$ligne["metric"]}";
-							$scripts[]="\tup {$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev $eth  metric 10{$ligne["metric"]}";
-							
-							$scripts[]="\tdown {$GLOBALS["ipbin"]} route del default via {$ligne["GATEWAY"]} dev $eth  metric 10{$ligne["metric"]}";
+		         			$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] Added in default route for the interface $eth\n";
+		         			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
+							$scripts[]="\tup {$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
+							$scripts[]="\tdown {$GLOBALS["ipbin"]} route del default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 		         			continue;
 		         		}
 		         			
 		         		if($ip_array["GATEWAY"]==null){
 		         			if($ip_array["DEV"]<>null){
-		         				$GLOBALS["SCRIPTS"][]="route add -net $ip netmask {$ip_array["NETMASK"]} dev {$ip_array["DEV"]}";
-		         				$scripts[]="\tup {$GLOBALS["routebin"]} add -net $ip netmask {$ip_array["NETMASK"]} dev {$ip_array["DEV"]}";
-		         				$scripts[]="\tdown {$GLOBALS["routebin"]} del -net $ip netmask {$ip_array["NETMASK"]} dev {$ip_array["DEV"]}";
+		         				$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] Added in default route for the interface $eth\n";
+		         				$this->scriptaddroute($ip,$ip_array["NETMASK"],$ip_array["GATEWAY"],0,$ip_array["DEV"]);
+		         				$scripts[]="\tup {$GLOBALS["routebin"]} add -net $ip netmask {$ip_array["NETMASK"]} dev ". $this->NicToOther($ip_array["DEV"]);
+		         				$scripts[]="\tdown {$GLOBALS["routebin"]} del -net $ip netmask {$ip_array["NETMASK"]} dev ".$this->NicToOther($ip_array["DEV"]);
 		         				continue;
 		         			}
 		         		}
-		         		$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev $eth  metric 10{$ligne["metric"]}";
-		         		$scripts[]="\tup {$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev $eth  metric 10{$ligne["metric"]}";
+		         		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
+		         		$scripts[]="\tup {$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 		         		
-		         		$scripts[]="\tdown {$GLOBALS["ipbin"]} route del default via {$ligne["GATEWAY"]} dev $eth  metric 10{$ligne["metric"]}";
-		         		
-		         		$GLOBALS["SCRIPTS"][]="route add -net $ip netmask {$ip_array["NETMASK"]} gw {$ip_array["GATEWAY"]} metric 10{$ligne["metric"]}";
-	   					$scripts[]="\tup {$GLOBALS["routebin"]} add -net $ip netmask {$ip_array["NETMASK"]} gw {$ip_array["GATEWAY"]} metric 10{$ligne["metric"]}";
-	   					
+		         		$scripts[]="\tdown {$GLOBALS["ipbin"]} route del default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
+		         		$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] Added in default route for the interface $eth\n";
+		         		$this->scriptaddroute($ip,$ip_array["NETMASK"],$ip_array["GATEWAY"],$ligne["metric"]);
+						$scripts[]="\tup {$GLOBALS["routebin"]} add -net $ip netmask {$ip_array["NETMASK"]} gw {$ip_array["GATEWAY"]} metric 10{$ligne["metric"]}";
 	   					$scripts[]="\tdown {$GLOBALS["routebin"]} del -net $ip netmask {$ip_array["NETMASK"]} gw {$ip_array["GATEWAY"]} metric 10{$ligne["metric"]}";
 	   				}	
 	        	}
@@ -899,10 +1082,9 @@ class system_nic{
 		if($ligne["GATEWAY"]<>null){
 				
 				if($ligne["metric"]==null){if($eth=="eth0"){$ligne["metric"]=1;}else{$ligne["metric"]=$this->lastmetric();}}
-				
-				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev $eth  metric 10{$ligne["metric"]}";
-				$f[]="\tup {$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev $eth  metric 10{$ligne["metric"]}";
-				$f[]="\tdown {$GLOBALS["ipbin"]} route del default via {$ligne["GATEWAY"]} dev $eth  metric 10{$ligne["metric"]}";
+				//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
+				$f[]="\tup {$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
+				$f[]="\tdown {$GLOBALS["ipbin"]} route del default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 			}		
 
 		}
@@ -939,11 +1121,152 @@ class system_nic{
 		if(!is_numeric($GLOBALS["NoGatewayForVirtualNetWork"])){$GLOBALS["NoGatewayForVirtualNetWork"]=0;}	
 		if($REMOVE_GATEWAY){$GLOBALS["NoGatewayForVirtualNetWork"]=1;}
 		
+		
+		$f[]=$this->BuildBridges();
 		$f[]=$this->BuildVirtIps();
 		$f[]=$this->BuildVlans();
 		if($ISREAL==0){return null;}
 		return @implode("\n",$f);
 	
+	}
+	
+	public function scriptaddroute($ip,$netmask,$gateway,$metric=0,$eth=null,$default=false){
+		if($metric>0){$metric=" metric 10{$metric}";}
+		if($eth<>null){$eth=" dev $eth";}
+		$defm=null;$defT=null;
+		if($default){$defm="default";}
+		$md5net=md5("$ip$netmask$gateway$defm");
+
+		
+		if(function_exists("debug_backtrace")){
+			$trace=debug_backtrace();
+			if(isset($trace[1])){
+				$sourcefile=basename($trace[1]["file"]);
+				$sourcefunction=$trace[1]["function"];
+				$sourceline=$trace[1]["line"];
+			}
+				
+		}
+		if(isset($GLOBALS["MD5NET"][$md5net])){
+			$GLOBALS["SCRIPTS_ROUTES"][]="# skiped Route $ip/$netmask of $eth - $sourcefile $sourcefunction() line:$sourceline";
+			return;}
+			$GLOBALS["MD5NET"][$md5net]=true;
+		
+		$GLOBALS["SCRIPTS_ROUTES"][]="# Route $ip/$netmask added by main configuration of $eth - $sourcefile $sourcefunction() line:$sourceline";
+		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net $ip netmask $netmask gw $gateway$metric$eth";
+		
+		
+	}
+	
+	public function BuildBridges_getlinked($bridge){
+		$q=new mysql();
+		$f=array();
+		$sql="SELECT Interface FROM `nics` WHERE Bridged=1 AND BridgedTo='$bridge'";
+		$results = $q->QUERY_SQL($sql,"artica_backup");
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$f[]=$ligne["Interface"];
+		}
+		
+		return $f;
+		
+		
+	}
+	
+	private function BuildBridges(){
+		
+		$q=new mysql();
+		$this->LoadTools();
+		if(!is_file($GLOBALS["brctlbin"])){return false;}
+		$sql="SELECT * FROM nics_bridge";
+		$results = $q->QUERY_SQL($sql,"artica_backup");
+		
+		if(mysql_num_rows($results)==0){return;}
+		
+		$ip=new IP();
+		
+		$GW=false;
+		$GLOBALS["SCRIPTS"][]="# **** Bridge configuration...";
+		$GLOBALS["SCRIPTS"][]="{$GLOBALS["sysctl"]} -w net.ipv4.ip_forward=1";
+		$GLOBALS["SCRIPTS"][]="# Table nics_bridge ". mysql_num_rows($results)." element(s)";
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$ID=$ligne["ID"];
+			$eth="br{$ligne["ID"]}";
+			$Linked=$this->BuildBridges_getlinked($eth);
+			$GLOBALS["SCRIPTS"][]="# br{$ligne["ID"]} Linked to ".count($Linked)." interface(s)";
+			
+			if(count($Linked)==0){continue;}
+			$netup=null;
+			$netmask=$ligne["netmask"];
+			$gateway=$ligne["gateway"];
+			$ipaddr=$ligne["ipaddr"];
+			$broadcast=$ligne["broadcast"];
+			if(!$ip->isValid($ipaddr)){continue;}
+			if($gateway=="0.0.0.0"){$gateway=null;}
+			if($netmask=="0.0.0.0"){$netmask=null;}
+			if($broadcast=="0.0.0.0"){$broadcast=null;}
+			
+			$f[]="iface $eth inet static";
+			$f[]="\tbridge_ports ";@implode(" ", $Linked);
+			$f[]="\taddress $ipaddr";
+			
+			if($netmask<>null){
+				$f[]="\tnetmask $netmask";
+				$netup=" netmask $netmask ";
+			}
+			
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["brctlbin"]} addbr $eth";
+			while (list ($a, $b) = each ($Linked) ){
+				if(trim($b)==null){continue;}
+				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $b down";
+				$GLOBALS["SCRIPTS"][]="{$GLOBALS["brctlbin"]} addif $eth $b";
+				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $b 0.0.0.0 promisc up";
+				$GLOBALS["SCRIPTS_DOWN"][]="{$GLOBALS["brctlbin"]} delif $eth $b";
+				$GLOBALS["SCRIPTS_DOWN"][]="{$GLOBALS["ifconfig"]} $b down";
+			}
+			
+			
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth $ipaddr$netup up";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["brctlbin"]} setfd $eth 0";
+			
+			$GLOBALS["SCRIPTS_DOWN"][]="{$GLOBALS["ifconfig"]} $eth down";
+			$GLOBALS["SCRIPTS_DOWN"][]="{$GLOBALS["brctlbin"]} delbr $eth";
+			
+			$GLOBALS["SAVED_INTERFACES"][]=$eth;
+			$GLOBALS["MEM_INTERFACES"][$eth]="$ipaddr";
+			if($broadcast<>null){
+				$f[]="\tbroadcast $broadcast";
+			}			
+			
+			if($gateway<>null){
+				if($ip->isValid($gateway)){
+					$f[]="\tgateway $gateway";
+					if(!$GW){
+						$GLOBALS["SCRIPTS_ROUTES"][]="#Default gateway to $eth\n";
+						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add default gw $gateway dev $eth";
+						$GLOBALS["SCRIPTS_DOWN"][]="{$GLOBALS["routebin"]} del default gw $gateway dev $eth";
+						$GW=true;
+					}
+				}
+			}
+		$f[]="";}
+		
+		$GLOBALS["SCRIPTS"][]="# **** Bridge configuration END ****";
+		return @implode("\n",$f);
+		
+		
+	}
+	
+	public function GetCDIRNetwork($ipaddr,$network){
+		exec("/usr/share/artica-postfix/bin/ipcalc $ipaddr/$network 2>&1",$results);
+		while (list ($index, $line) = each ($results) ){
+			if(preg_match("#Network:\s+([0-9\.]+)\/([0-9]+)#i", $line,$re)){
+				if($GLOBALS["VERBOSE"]){echo "$ipaddr/$network  = `{$re[1]}/{$re[2]}`\n";}
+				return "{$re[1]}/{$re[2]}";}
+		}
+		
+		$re=explode(".",$ipaddr);
+		return "{$re[0]}.{$re[1]}.{$re[2]}.0/$network";
+			
 	}
 	
 	
@@ -973,6 +1296,7 @@ class system_nic{
 		if($count>0){
 			$f[]="";
 			$f[]="#Virtual interfaces...\n";
+			
 		}
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			if($ligne["ipv6"]==1){continue;}
@@ -982,6 +1306,19 @@ class system_nic{
 			$ligne["nic"]=trim($ligne["nic"]);
 			$eth=str_replace("\n", "", $ligne["nic"]);
 			$eth=str_replace("\r", "", $ligne["nic"]);
+			
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS for VIRTAL INTERFACE \"{$ligne["nic"]}:{$ligne["ID"]}\" ****";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+			
+			
+			if($this->IsBridged($ligne["nic"])){
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] {$ligne["nic"]} is Bridged, skip it";
+				echo "Starting......: Virtual {$ligne["nic"]}:{$ligne["ID"]}  {$ligne["nic"]} is bridged, aborting\n";
+				continue;
+			}
 			$eth="{$ligne["nic"]}:{$ligne["ID"]}";
 			if($NetWorkBroadCastAsIpAddr==1){$brd=$ligne["ipaddr"];}
 			if($ligne["gateway"]==null){$ligne["gateway"]="0.0.0.0";}
@@ -996,19 +1333,27 @@ class system_nic{
 				
 				
 			echo "Starting......: Virtual $eth net:{$ligne["cdir"]} {$ligne["ipaddr"]}/{$ligne["netmask"]} gateway {$ligne["gateway"]} ({$ligne["org"]})\n";
-				
-			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
+			
+			
+			$GLOBALS["SCRIPTS_TOP"][]="# Stopping Interface $eth";
+			$GLOBALS["SCRIPTS_TOP"][]="{$GLOBALS["ifconfig"]} $eth down";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** $eth {$ligne["ipaddr"]} ****";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["ipaddr"]} netmask {$ligne["netmask"]} up";
 				
 			$scripts=array();
 			if($GLOBALS["NoGatewayForVirtualNetWork"]==0){
 			if($ligne["gateway"]<>"0.0.0.0"){
 				if($ligne["ForceGateway"]==1){
-					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} rule add from {$ligne["ipaddr"]} table {$ligne["ID"]}0";
+					$GLOBALS["SCRIPTS_ROUTES"][]="# Added from line ".__LINE__;
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} rule add from {$ligne["ipaddr"]} table {$ligne["ID"]}0";
 					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} rule add from {$ligne["ipaddr"]} table {$ligne["ID"]}0";
-					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["gateway"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
+					
+					$GLOBALS["SCRIPTS_ROUTES"][]="# Added from line ".__LINE__;
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["gateway"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
 					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route add default via {$ligne["gateway"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
-					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route flush cache";
+					
+					$GLOBALS["SCRIPTS_ROUTES"][]="# Added from line ".__LINE__;
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route flush cache";
 					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route flush cache";
 					$scripts[]="\tpost-down {$GLOBALS["ipbin"]} route del default via {$ligne["gateway"]} table {$ligne["ID"]}0";
 					$scripts[]="\tpost-down {$GLOBALS["ipbin"]} rule del from {$ligne["ipaddr"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
@@ -1021,9 +1366,12 @@ class system_nic{
 				if($ligne["cdir"]<>null){
 					$mainroute="{$ligne["cdir"]} via {$ligne["gateway"]} src {$ligne["ipaddr"]} metric 20{$ligne["metric"]}";
 					//$mainroute="-net {$re[1]}.0 netmask {$ligne["netmask"]} gw {$ligne["gateway"]} dev $eth metric 20{$ligne["metric"]}";
-					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route add $mainroute";
+					$GLOBALS["SCRIPTS_ROUTES"][]="# Added from line ".__LINE__;
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add $mainroute";
 					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route add $mainroute";
-					$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route flush cache";
+					
+					$GLOBALS["SCRIPTS_ROUTES"][]="# Added from line ".__LINE__;
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route flush cache";
 					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route flush cache";
 					$scripts[]="\tpost-down {$GLOBALS["ipbin"]} route del route $mainroute";
 					$scripts[]="\tpost-down {$GLOBALS["ipbin"]} route flush cache";
@@ -1067,8 +1415,12 @@ class system_nic{
 		$count=mysql_num_rows($results);
 		if($count>0){
 			$this->module_8021q();
-			$f[]="";
-			$f[]="#VLANs interfaces...\n";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS for VLANs ****";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["sysctl"]} -w net.ipv4.ip_forward=1";
 		}
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["moprobebin"]} 8021q >/dev/null 2>&1";
@@ -1122,7 +1474,7 @@ class system_nic{
 	
 	
 	
-	private function checkcdir($cdir,$ip,$netmask){
+	private function checkcdir($cdir,$ip=null,$netmask=null){
 		if(!preg_match("#(.+?)\/([0-9]+)#", $cdir,$re)){return null;}
 		$bit=$re[2];
 		$ip=$re[1];
@@ -1225,7 +1577,21 @@ class system_nic{
 		return @implode(" ",$f);
 	}
 	
+	function IfBridgeExists($br){
+		$this->LoadTools();
+		if(isset($GLOBALS["CLASS_SOCKETS"])){$sock=$GLOBALS["CLASS_SOCKETS"];}else{$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}
+		exec("{$GLOBALS["brctlbin"]} showstp $br 2>&1",$results);
+		if($GLOBALS["VERBOSE"]){echo count($results)." lines for {$GLOBALS["brctlbin"]} showstp $br\n";}
 	
+		while (list ($index, $line) = each ($results) ){
+			if(preg_match("#^([a-zA-Z0-9]+)#",$line,$re)){
+				if($GLOBALS["VERBOSE"]){echo "Found Bridge {$re[1]}\n";}
+				if($re[1]=="$br"){return true;}
+			}
+		}
+	
+		return false;
+	}	
 	
 	
 	function ConstructVirtsIP(){

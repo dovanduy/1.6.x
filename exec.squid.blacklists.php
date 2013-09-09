@@ -24,10 +24,12 @@ if(preg_match("#--checktime#",implode(" ",$argv))){$GLOBALS["CHECKTIME"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--nologs#",implode(" ",$argv))){$GLOBALS["NOLOGS"]=true;}
 
+
 if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;$GLOBALS["CHECKTIME"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 
 if($argv[1]=="--support"){RegisterSupport();exit;}
+if($argv[1]=="--tests-pub"){tests_pub($argv[2]);exit;}
 
 
 
@@ -45,6 +47,7 @@ WriteMyLogs("Executed: {$GLOBALS["CMDLINE"]} task:{$GLOBALS["SCHEDULE_ID"]}",__F
 		die();
 	}
 
+	if(is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){die();}
 	
 	if(system_is_overloaded(basename(__FILE__))){
 		$ldao=getSystemLoad();
@@ -71,6 +74,7 @@ if($argv[1]=="--ufdb-first"){ufdbFirst();die();}
 if($argv[1]=="--scan-db"){scan_artica_databases();die();}
 if($argv[1]=="--repair"){updatev2_checktables_repair();die();}
 if($argv[1]=="--get-version"){updatev2_checkversion();die();}
+if($argv[1]=="--adblock"){updatev2_adblock();die();}
 
 
 
@@ -117,6 +121,7 @@ function ufdbtables($nopid=false){
 	if(!$curl->GetFile("/tmp/index.txt")){
 		ufdbguard_admin_events("UFDB::Fatal: Unable to download blacklist index file $curl->error",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
 		echo "UFDB: Failed to retreive $URIBASE/index.txt ($curl->error)\n";
+		updatev2_adblock();
 		return;
 	}
 
@@ -171,7 +176,8 @@ function ufdbtables($nopid=false){
 		
 		
 	@chown("$WORKDIR", "squid");
-	@chgrp("$WORKDIR", "squid");	
+	@chgrp("$WORKDIR", "squid");
+	updatev2_adblock();
 	scan_artica_databases();
 	return true;
 	
@@ -329,6 +335,176 @@ function updatev2_progress($num,$text){
 	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.progress", serialize($array));
 }
 
+function tests_pub($pattern){
+	$main_artica_path="/var/lib/ufdbartica";
+	$pubfinal="$main_artica_path/category_publicite/expressions";
+	$f=explode("\n",@file_get_contents($pubfinal));
+	while (list ($category_table, $num) = each ($f) ){
+		if(preg_match("#$num#", $pattern)){
+			echo $num." matches\n";
+			break;
+		}
+		
+	}
+	
+}
+
+function updatev2_adblock(){
+	if(isset($GLOBALS[__FUNCTION__])){return;}
+	$GLOBALS[__FUNCTION__]=true;
+	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$main_artica_path="/var/lib/ufdbartica";
+	$unix=new unix();
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		if($GLOBALS["VERBOSE"]){echo "License error...\n";}
+		return;
+	}
+	
+	if(!$GLOBALS["FORCE"]){
+		$TimeMn=$unix->file_time_min($timeFile);
+		if($TimeMn<60){
+			if($GLOBALS["VERBOSE"]){echo "{$TimeMn}Mn require 60mn minimal (use --force if necessary)\n";}
+			return;
+		}
+	}
+	
+	@unlink($timeFile);
+	@file_put_contents($timeFile, time());
+	
+	updatev2_checkversion();
+	$reload=false;
+	
+	$trackergzip="$main_artica_path/category_tracker/tracker_expressions.gz";
+	$trackerfinal="$main_artica_path/category_tracker/expressions";
+	
+	$malwaregzip="$main_artica_path/category_malware/categoryuris_malware.gz";
+	$malwarecsv="$main_artica_path/category_malware/categoryuris_malware.csv";
+	
+	
+	$pubgzip="$main_artica_path/category_publicite/publicite_expressions.gz";
+	$pubfinal="$main_artica_path/category_publicite/expressions";
+	
+	$phishgzip="$main_artica_path/category_phishing/categoryuris_phishing.gz";
+	$phishcsv="$main_artica_path/category_phishing/categoryuris_phishing.csv";
+	
+	if($GLOBALS["MIRROR"]==null){return;}
+
+	@unlink("$pubgzip");
+	$curl=new ccurl("{$GLOBALS["MIRROR"]}/publicite_expressions.gz");
+	if(!$curl->GetFile($pubgzip)){
+		if($GLOBALS["VERBOSE"]){echo "$pubgzip failed to download $curl->error\n";}
+		ufdbguard_admin_events("UFDB::Fatal: $pubgzip failed to download $curl->error",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+		@unlink("$pubgzip");
+		
+	}
+	
+	@unlink($trackergzip);
+	$curl=new ccurl("{$GLOBALS["MIRROR"]}/tracker_expressions.gz");
+	if(!$curl->GetFile($trackergzip)){
+		if($GLOBALS["VERBOSE"]){echo "$trackergzip failed to download $curl->error\n";}
+		ufdbguard_admin_events("UFDB::Fatal: $trackergzip failed to download $curl->error",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+		@unlink($trackergzip);
+	}
+
+	@unlink($malwaregzip);
+	$curl=new ccurl("{$GLOBALS["MIRROR"]}/categoryuris_malware.gz");
+	if(!$curl->GetFile($malwaregzip)){
+		ufdbguard_admin_events("UFDB::Fatal: $malwaregzip failed to download $curl->error",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+		if($GLOBALS["VERBOSE"]){echo "$malwaregzip failed to download $curl->error\n";}
+		@unlink($malwaregzip);
+	}	
+	
+	@unlink($phishgzip);
+	$curl=new ccurl("{$GLOBALS["MIRROR"]}/categoryuris_phishing.gz");
+	if(!$curl->GetFile($phishgzip)){
+		ufdbguard_admin_events("UFDB::Fatal: $phishgzip failed to download $curl->error",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+		if($GLOBALS["VERBOSE"]){echo "$phishgzip failed to download $curl->error\n";}
+		@unlink($phishgzip);
+	}	
+	
+	
+	
+	
+
+	
+	$mdfile1=md5_file($pubfinal);
+	if($GLOBALS["VERBOSE"]){echo "$pubfinal($mdfile1)\n";}
+	
+	if(is_file($pubgzip)){
+		$unix->uncompress($pubgzip, $pubfinal);
+		$mdfile2=md5_file($pubfinal);
+		if($GLOBALS["VERBOSE"]){echo "$pubfinal($mdfile2)\n";}
+		if($mdfile2<>$mdfile1){$reload=true;}
+	}else{
+		if($GLOBALS["VERBOSE"]){echo "$pubgzip no such file\n";}
+	}
+	
+	$mdfile1=md5_file($trackerfinal);
+	if($GLOBALS["VERBOSE"]){echo "$trackerfinal -1- ($mdfile1)\n";}
+	
+	if(is_file($trackergzip)){
+		$unix->uncompress($trackergzip, $trackerfinal);
+		$mdfile2=md5_file($trackerfinal);
+		if($GLOBALS["VERBOSE"]){echo "$trackerfinal -2- ($mdfile2)\n";}
+		if($mdfile1<>$mdfile2){$reload=true;}
+	}else{
+		if($GLOBALS["VERBOSE"]){echo "$trackergzip no such file\n";}
+	}
+
+	
+	if(is_file($malwaregzip)){
+		$uris=array();
+		$q=new mysql_squid_builder();
+		$unix->uncompress($malwaregzip, $malwarecsv);
+		$handle = @fopen($malwarecsv, "r");
+		$q->CreateCategoryUrisTable("malware");
+		if ($handle) {
+			$line=@fgets($handle);
+			$line=trim($line);
+			if($line==null){continue;}
+			$md5=md5($line);
+			$date=date("Y-m-d H:i:s");
+			$url=mysql_escape_string2($line);
+			$uris[]="('$md5','$date','$url',1)";
+		}
+		
+		if(count($uris)>0){
+			$sql="INSERT IGNORE INTO categoryuris_malware
+			(zmd5,zDate,pattern,enabled) VALUES ".@implode(",", $uris);
+			$q->QUERY_SQL($sql);
+		}
+		
+	}
+	
+	if(is_file($phishgzip)){
+		$uris=array();
+		$q=new mysql_squid_builder();
+		$unix->uncompress($phishgzip, $phishcsv);
+		$handle = @fopen($phishcsv, "r");
+		$q->CreateCategoryUrisTable("phishing");
+		if ($handle) {
+			$line=@fgets($handle);
+			$line=trim($line);
+			if($line==null){continue;}
+			$md5=md5($line);
+			$date=date("Y-m-d H:i:s");
+			$url=mysql_escape_string2($line);
+			$uris[]="('$md5','$date','$url',1)";
+		}
+	
+		if(count($uris)>0){
+			$sql="INSERT IGNORE INTO categoryuris_phishing
+			(zmd5,zDate,pattern,enabled) VALUES ".@implode(",", $uris);
+			$q->QUERY_SQL($sql);
+		}
+	
+	}	
+	
+	if($reload){shell_exec("/etc/init.d/ufdb reconfigure");}
+	
+}
+
 function updatev2(){
 	$sock=new sockets();
 	$unix=new unix();
@@ -352,18 +528,22 @@ function updatev2(){
 	
 	
 	$CHECKTIME=$unix->file_time_min($timeFile);
-	events("{$CHECKTIME}Mn for $timeFile");
-	if($CHECKTIME<2880){
-		events("last update since {$CHECKTIME}Mn, require minimal 2880Mn");
-		updatev2_progress(100,"last update since {$CHECKTIME}Mn, require minimal 2880Mn");
-		ufdbguard_admin_events("Warning: last update since {$CHECKTIME}Mn, require minimal 2880Mn (48H)",
-		__FUNCTION__,__FILE__,__LINE__,"update");
-		return;
-	}
+	$LOCAL_VERSION=@file_get_contents("/opt/articatech/VERSION");
+	if(!is_numeric($LOCAL_VERSION)){$LOCAL_VERSION=0;}
 	
+	events("{$CHECKTIME}Mn for $timeFile");
+	if($LOCAL_VERSION>10){
+		if($CHECKTIME<2880){
+			events("last update since {$CHECKTIME}Mn, require minimal 2880Mn");
+			updatev2_progress(100,"last update since {$CHECKTIME}Mn, require minimal 2880Mn");
+			ufdbguard_admin_events("Warning: last update since {$CHECKTIME}Mn, require minimal 2880Mn (48H)",
+			__FUNCTION__,__FILE__,__LINE__,"update");
+			updatev2_adblock();
+			return;
+		}
+	}
 
 	$pid=@file_get_contents($pidfile);
-	
 	
 	if($unix->process_exists($pid,__FILE__)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
@@ -383,7 +563,7 @@ function updatev2(){
 	@unlink($timeFile);
 	@file_put_contents($timeFile, time());	
 	@file_put_contents($pidfile, getmypid());	
-	$LOCAL_VERSION=@file_get_contents("/opt/articatech/VERSION");
+	
 	updatev2_checkversion();
 	
 	

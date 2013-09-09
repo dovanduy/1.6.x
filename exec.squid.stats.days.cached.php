@@ -22,6 +22,10 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 
+$sock=new sockets();
+$sock->SQUID_DISABLE_STATS_DIE();
+
+
 if($argv[1]=="--restart"){
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("UPDATE tables_day SET cached=0 WHERE cached=1");

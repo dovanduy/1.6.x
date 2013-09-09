@@ -21,9 +21,11 @@ $PRIV=GetPrivs();if(!$PRIV){header("location:miniadm.index.php");die();}
 
 if(isset($_GET["status"])){status();exit;}
 if(isset($_GET["db-stats"])){tables_title();exit;}
-if(isset($_GET["settings"])){settings();exit;}
+if(isset($_GET["settings"])){engine_params();exit;}
 if(isset($_POST["max_connections"])){tune_save();exit;}
 if(isset($_GET["events"])){events();exit;}
+if(isset($_GET["events-rotate"])){events_rotate();exit;}
+
 if(isset($_GET["search-events"])){events_table();exit;}
 if(isset($_GET["members"])){members();exit;}
 if(isset($_GET["search-members"])){members_list();exit;}
@@ -31,6 +33,7 @@ if(isset($_GET["new-member-js"])){member_jsp();exit;}
 if(isset($_GET["member-popup"])){member_popup();exit;}
 if(isset($_POST["username"])){member_save();exit;}
 if(isset($_POST["members-delete"])){member_delete();exit;}
+
 
 if(isset($_POST["LogsRotateDeleteSize"])){settings_save();exit;}
 
@@ -42,7 +45,31 @@ if(isset($_GET["download"])){download();exit;}
 if(isset($_GET["search-dabatase-js"])){search_database_js();exit;}
 if(isset($_GET["search-dabatase-popup"])){search_database_popup();exit;}
 if(isset($_POST["QUERY_SYSLOG_DATE"])){search_database_popup_save();exit;}
+
+if(isset($_GET["test-nas-js"])){test_nas_js();exit;}
+if(isset($_GET["test-nas-popup"])){test_nas_popup();exit;}
+if(isset($_GET["database-parameters"])){settings();exit;}
+if(isset($_GET["database-tabs"])){database_tabs();exit;}
+if(isset($_GET["search-rotate-events"])){events_rotate_table();exit;}
+
 tabs();
+
+
+function test_nas_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{test_connection}");
+	echo "YahooWin2('650','$page?test-nas-popup=yes','$title');";
+}
+
+function test_nas_popup(){
+	$sock=new sockets();
+	$datas=unserialize(base64_decode($sock->getFrameWork("services.php?syslog-test-nas=yes")));
+	echo "<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:99%;height:446px;border:5px solid #8E8E8E;
+	overflow:auto;font-size:11px' id='textToParseCats-$t'>".@implode("\n", $datas)."</textarea>";
+}
 
 
 function tabs(){
@@ -56,23 +83,38 @@ function tabs(){
 	
 	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
 	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}	
-	$array["{database}"]="$page?database=yes";
-	
+	$array["{database}"]="$page?database-tabs=yes";
 	$array["{settings}"]="$page?settings=yes";
-	if($MySQLSyslogType==1){
-		$array["{status}"]="$page?status=yes";
-		$array["{members}"]="$page?members=yes";
-		$array["{events} {mysql}"]="$page?events=yes";
-		
-	}
+	$array["{rotate_events}"]="$page?events-rotate=yes";
 	$array["{events}"]="$page?events-daemon=yes";
 	echo $boot->build_tab($array);
 
 }
+
+function database_tabs(){
+	$page=CurrentPageName();
+	$boot=new boostrap_form();
+	$sock=new sockets();
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	$array["{items}"]="$page?database=yes";
+	if($MySQLSyslogType==1){
+		$array["{parameters}"]="$page?database-parameters=yes";
+		$array["{members}"]="$page?members=yes";
+		$array["{status}"]="$page?status=yes";
+		$array["{events}"]="$page?events=yes";
+	}
+	echo $boot->build_tab($array);
+}
+
+
 function events(){
 	$boot=new boostrap_form();
 	echo $boot->SearchFormGen(null,"search-events");
 
+}
+function events_rotate(){
+	$boot=new boostrap_form();
+	echo $boot->SearchFormGen("subject","search-rotate-events");	
 }
 function events_daemon(){
 	$boot=new boostrap_form();
@@ -290,8 +332,101 @@ function status(){
 	$sock=new sockets();
 	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
 	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}	
-	if($MySQLSyslogType==1){status_server();return;}
+	if($MySQLSyslogType==1){
+		status_server();
+		return;
+	}
+	
+	if($MySQLSyslogType==2){
+		status_client();
+		return;
+	}
+	
+	echo "<p class=text-error>Fatal Cannot understand MySQLSyslogType=$MySQLSyslogType ???</p>";
 }
+
+function status_client(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$sock=new sockets();
+	$ini=new Bs_IniHandler();
+	
+	$sock=new sockets();
+	$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
+	$username=$TuningParameters["username"];
+	$password=$TuningParameters["password"];
+	$mysqlserver=$TuningParameters["mysqlserver"];
+	$ListenPort=$TuningParameters["RemotePort"];
+	
+	echo $tpl->_ENGINE_parse_body("
+			<H3>{mysql_engine}: {client} $username@$mysqlserver:$ListenPort</h3>
+			<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_CLIENT_EXPLAIN}</div>");
+	
+	$t=time();
+	$q=new mysql_storelogs();
+	$sql="SHOW VARIABLES LIKE '%version%';";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		echo "<p class=text-error>$q->mysql_error</p>";
+		writelogs("Fatal Error: $q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		return array();
+	}
+		
+		
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if($ligne["Variable_name"]=="slave_type_conversions"){continue;}
+		$tt[]="	<tr>
+		<td colspan=2><div style='font-size:14px'>{{$ligne["Variable_name"]}}:&nbsp;{$ligne["Value"]}</a></div></td>
+		</tr>";
+	}
+	
+	$STATUS=$q->SHOW_STATUS();
+	$tt[]="
+	<tr>
+	<td colspan=2><div style='font-size:14px'>{Created_tmp_disk_tables}:&nbsp;{$STATUS["Created_tmp_disk_tables"]}</a></div></td>
+	</tr>";
+	$tt[]="
+	<tr>
+	<td colspan=2><div style='font-size:14px'>{Created_tmp_tables}:&nbsp;{$STATUS["Created_tmp_tables"]}</a></div></td>
+	</tr>";
+	$tt[]="
+	<tr>
+	<td colspan=2><div style='font-size:14px'>{Max_used_connections}:&nbsp;{$STATUS["Max_used_connections"]}</a></div></td>
+	</tr>";
+	
+	
+	$html="
+	<div id='title-$t' style='font-size:16px;font-weight:bold'></div>
+	<div style='width:95%' class=form>
+	<table style='width:99%'>
+	<tr>
+	<td valign='top' style='width:100%'>
+	<table style='width:100%'>
+	<tbody>
+	<tr>
+	<td colspan=2><div style='font-size:16px;font-weight:bold;margin-top:10px'>{mysql_engine}:</div></td>
+	</tr>
+	".@implode("", $tt)."
+	</tbody>
+	</table>
+	</td>
+	</tr>
+	</table>
+	</div>
+	<script>
+	function RefreshTableTitle$t(){
+	LoadAjaxTiny('title-$t','$page?db-stats=yes&t=$t');
+	}
+	RefreshTableTitle$t();
+	</script>
+	";
+	echo $tpl->_ENGINE_parse_body($html);	
+	
+	
+}
+
 
 function status_server(){
 	$tpl=new templates();
@@ -386,6 +521,9 @@ function settings(){
 	if($MySQLSyslogType==2){mysqlparams();return;}
 }
 
+
+
+
 function engine_params(){
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -407,7 +545,16 @@ function engine_params(){
 	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
 	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
 	
+	$BackupSquidLogsUseNas=$sock->GET_INFO("BackupSquidLogsUseNas");
+	$BackupSquidLogsNASIpaddr=$sock->GET_INFO("BackupSquidLogsNASIpaddr");
+	$BackupSquidLogsNASFolder=$sock->GET_INFO("BackupSquidLogsNASFolder");
+	$BackupSquidLogsNASUser=$sock->GET_INFO("BackupSquidLogsNASUser");
+	$BackupSquidLogsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");
 	
+	if(!is_numeric($BackupSquidLogsUseNas)){$BackupSquidLogsUseNas=0;}
+	
+	$BackupSquidLogsNASRetry=$sock->GET_INFO("BackupSquidLogsNASRetry");
+	if(!is_numeric($BackupSquidLogsNASRetry)){$BackupSquidLogsNASRetry=0;}	
 	
 	
 	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
@@ -420,13 +567,30 @@ function engine_params(){
 	$boot->set_field("LogsRotateDefaultSizeRotation", "{default_size_for_rotation} (MB)", $LogsRotateDefaultSizeRotation);
 	$boot->set_field("SystemLogsPath", "{system_logs_path}", $SystemLogsPath,array("BROWSE"=>true));
 	$boot->set_checkbox("LogRotateCompress", "{compress_files}", $LogRotateCompress);
+	$boot->set_spacertitle("{storage}");
 	if($MySQLSyslogType==1){
-		$boot->set_field("storage_files_path", "{storage_files_path}", $LogRotatePath,array("BROWSE"=>true));
+		$boot->set_field("storage_files_path", "{storage_files_path}", $LogRotatePath,array("BROWSE"=>true,"TOOLTIP"=>"{LogRotatePath_explain}"));
 		$boot->set_field("BackupMaxDays", "{max_day_in_database}", $BackupMaxDays);
-		$boot->set_field("BackupMaxDaysDir", "{backup_folder}", $BackupMaxDaysDir,array("BROWSE"=>true));
+		$boot->set_field("BackupMaxDaysDir", "{backup_folder}", $BackupMaxDaysDir,array("BROWSE"=>true,"TOOLTIP"=>"{BackupMaxDaysDir_explain}"));
+		$boot->set_spacertitle("{NAS_storage}");
+		$boot->set_checkbox("BackupSquidLogsUseNas", "{use_remote_nas}", $BackupSquidLogsUseNas,
+				array("TOOLTIP"=>"{BackupSquidLogsUseNas_explain}",
+						"LINK"=>"BackupSquidLogsNASIpaddr,BackupSquidLogsNASFolder,BackupSquidLogsNASUser,BackupSquidLogsNASPassword"
+			
+				));
+		$boot->set_checkbox("BackupSquidLogsNASRetry", "{retry}", $BackupSquidLogsNASRetry,array("TOOLTIP"=>"{BackupSquidLogsNASRetry_explain}"));
+		$boot->set_field("BackupSquidLogsNASIpaddr", "{hostname}", $BackupSquidLogsNASIpaddr);
+		$boot->set_field("BackupSquidLogsNASFolder", "{shared_folder}", $BackupSquidLogsNASFolder,array("ENCODE"=>true));
+		$boot->set_field("BackupSquidLogsNASUser","{username}", $BackupSquidLogsNASUser,array("ENCODE"=>true));
+		$boot->set_fieldpassword("BackupSquidLogsNASPassword","{password}", $BackupSquidLogsNASPassword,array("ENCODE"=>true));		
+	}else{
+		$boot->set_spacerexplain("{syslogs_store_use_remote}");
+		
 	}
 	
-	return $boot->Compile()."<hr style='margin-bottom:10px'>";
+	$boot->set_Newbutton("{test_connection}", "Loadjs('$page?test-nas-js=yes')");
+	
+	echo $boot->Compile()."<hr style='margin-bottom:10px'>";
 	
 
 	
@@ -549,13 +713,19 @@ $boot->set_button("{apply}");
 $boot->set_formdescription("{$server_buffers}M + {$total_per_thread_buffers}M = {$max_used_memory}$UNIT");
 $boot->set_formtitle("{mysql_parameters}");
 
-$html=engine_params().$boot->Compile();
+$html=$boot->Compile();
 
 echo $tpl->_ENGINE_parse_body($html);
 }
 
 function settings_save(){
+	
+	
+	
+	
 	$sock=new sockets();
+	if(!isset($_POST["BackupSquidLogsNASPassword"])){$_POST["BackupSquidLogsNASPassword"]=url_decode_special_tool($_POST["BackupSquidLogsNASPassword"]);}
+
 	while (list ($key, $value) = each ($_POST) ){
 		$sock->SET_INFO($key, $value);
 	}
@@ -582,6 +752,46 @@ function mysqlserver_save(){
 	}
 	$newdata=base64_encode(serialize($SquidDBTuningParameters));
 	$sock->SaveConfigFile($newdata, "MySQLSyslogParams");
+}
+
+function events_rotate_table(){
+	$q=new mysql_storelogs();
+	$boot=new boostrap_form();
+	$table="evnts";
+	$rows=$q->COUNT_ROWS($table);
+	if($rows==0){senderror("$table is empty");}
+	$ORDER=$boot->TableOrder(array("zDate"=>"DESC"));
+	
+	
+	$searchstring=string_to_flexquery("search-rotate-events");
+	$sql="SELECT * FROM $table WHERE 1 $searchstring ORDER BY $ORDER LIMIT 0,250";
+	$results = $q->QUERY_SQL($sql,$database);
+	if(!$q->ok){senderrors($q->mysql_error."<br>$sql");}
+	$tpl=new templates();
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		
+		$md=md5(serialize($ligne));
+		$ligne["content"]=$tpl->_ENGINE_parse_body($ligne["content"]);
+		$ligne["content"]=str_replace("\n", "<br>", $ligne["content"]);
+	
+		$tr[]="
+		<tr id='$md'>
+		<td style='font-size:12px' width=1% nowrap>{$ligne["zDate"]}</td>
+		<td style='font-size:12px' width=1% nowrap>{$ligne["hostname"]}</td>
+		<td style='font-size:12px' width=30% nowrap>{$ligne["subject"]}</td>
+		<td style='font-size:12px' width=70% nowrap>{$ligne["content"]}</td>
+		</tr>
+		";
+	
+	}
+	
+			echo $boot->TableCompile(array(
+					"zDate"=>" {zDate} $rows {rows}",
+					"hostname"=>"{hostname}",
+					"subject"=>"{subject}",
+					"content"=>null,
+			),$tr);
 }
 
 function database_search(){

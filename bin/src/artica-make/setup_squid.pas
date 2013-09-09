@@ -119,6 +119,7 @@ remoteBinVersion:int64;
 LocalBinVersion:int64;
 CODE_NAME:string;
 Arch:Integer;
+SUPPORTED:boolean;
 squidbinpath,package_name:string;
 begin
   CODE_NAME:='APP_SQUID2';
@@ -136,6 +137,15 @@ begin
   writeln('RESULT.................: Distribution : ',distri.DISTRINAME,' (DISTRINAME)');
   writeln('RESULT.................: Major version: ',distri.DISTRI_MAJOR,' (DISTRI_MAJOR)');
   writeln('RESULT.................: Artica Code  : ',distri.DISTRINAME_CODE,' (DISTRINAME_CODE)');
+
+ if distri.DISTRINAME_CODE='DEBIAN' then SUPPORTED:=true;
+ if distri.DISTRINAME_CODE='UBUNTU' then SUPPORTED:=true;
+
+ if not SUPPORTED then begin
+    writeln('RESULT.................: ',distri.DISTRINAME_CODE,' not supported distribution');
+    halt(0);
+ end;
+
   if arch=32 then package_name:='squid32-i386';
   if arch=64 then package_name:='squid32-x64';
 
@@ -175,7 +185,9 @@ begin
       install.INSTALL_STATUS(CODE_NAME,90);
       install.INSTALL_PROGRESS(CODE_NAME,'{reconfigure}');
       fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.php --build --force');
-      fpsystem('/etc/init.d/artica-postfix start squid-cache');
+      fpsystem('/bin/rm -f /etc/artica-postfix/SQUID_TEMPLATE_DONE >/dev/null 2>&1');
+      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --force');
+      fpsystem('/etc/init.d/squid restart');
       install.INSTALL_STATUS(CODE_NAME,100);
       install.INSTALL_PROGRESS(CODE_NAME,'{success}');
 
@@ -251,7 +263,12 @@ begin
  install.INSTALL_PROGRESS(CODE_NAME,'{checking}');
  install.INSTALL_PROGRESS(CODE_NAME,'{downloading}');
  install.INSTALL_STATUS(CODE_NAME,30);
- source_folder:=libs.COMPILE_GENERIC_APPS('kavupdater2');
+ if not FileExists('/home/artica/packages/updatev2.tar.gz') then source_folder:=libs.COMPILE_GENERIC_APPS('kavupdater2');
+ if FileExists('/home/artica/packages/updatev2.tar.gz') then begin
+    ForceDirectories('/home/artica/packages/updatev2');
+    fpsystem('/bin/tar -xf /home/artica/packages/updatev2.tar.gz -C /home/artica/packages/updatev2/');
+    source_folder:='/home/artica/packages/updatev2/';
+ end;
  writeln('Exploded in '+source_folder);
 
  if Not FileExists(source_folder+'/UpdateUtility-Console') then begin
@@ -281,6 +298,8 @@ fpsystem(cp+' -r '+source_folder+'/lib/*  /etc/UpdateUtility/lib/');
 Writeln('Done...');
 install.INSTALL_PROGRESS(CODE_NAME,'{success}');
 install.INSTALL_STATUS(CODE_NAME,100);
+if FileExists('/home/artica/packages/updatev2.tar.gz') then fpsystem('/bin/rm -f  /home/artica/packages/updatev2.tar.gz');
+if DirectoryExists('/home/artica/packages/updatev2') then fpsystem('/bin/rm -rf  /home/artica/packages/updatev2');
 end;
 
 
@@ -779,20 +798,36 @@ begin
  install.INSTALL_PROGRESS('APP_KAV4PROXY','{downloading}');
 
  if FileExists('/home/artica/packages/kav4proxy-5.5-62.tar.gz') then begin
+    writeln('Extracting kav4proxy-5.5-62.tar.gz...');
     fpsystem('/bin/tar -xf /home/artica/packages/kav4proxy-5.5-62.tar.gz -C /root/');
     source_folder:='/root/kav4proxy-5.5-62';
  end;
 
  if FileExists('/home/artica/packages/kav4proxy-5.5-80.tar.gz')  then begin
+    writeln('Extracting kav4proxy-5.5-80.tar.gz...');
     fpsystem('/bin/tar -xf /home/artica/packages/kav4proxy-5.5-80.tar.gz -C /root/');
     source_folder:='/root/kav4proxy-5.5-80';
-
  end;
- if DirectoryExists('/root/kav4proxy_5.5-86') then  source_folder:='/root/kav4proxy_5.5-86';
- if length(source_folder)=0 then source_folder:=libs.COMPILE_GENERIC_APPS('kav4proxy');
 
+ if FileExists('/home/artica/packages/kav4proxy-5.5-88.tar.gz')  then begin
+    writeln('Extracting kav4proxy-5.5-88.tar.gz...');
+    fpsystem('/bin/tar -xf /home/artica/packages/kav4proxy-5.5-88.tar.gz -C /root/');
+    source_folder:='/root/kav4proxy-5.5-88';
+ end;
+
+  if FileExists('/home/artica/packages/kav4proxy-5.5-88.tar.gz')  then begin
+    fpsystem('/bin/tar -xf /home/artica/packages/kav4proxy-5.5-88.tar.gz -C /root/');
+    source_folder:='/root/kav4proxy-5.5-88';
+ end;
+
+ if DirectoryExists('/root/kav4proxy_5.5-86') then  source_folder:='/root/kav4proxy_5.5-86';
+ if DirectoryExists('/root/kav4proxy_5.5-88') then  source_folder:='/root/kav4proxy_5.5-88';
+ if DirectoryExists('/root/kav4proxy_5.5-88_i386') then  source_folder:='/root/kav4proxy_5.5-88_i386';
+
+ if length(source_folder)=0 then source_folder:=libs.COMPILE_GENERIC_APPS('kav4proxy');
+ writeln('Source folder: "',source_folder,'"');
 if not DirectoryExists(source_folder) then begin
-     writeln('Install Kav4Proxy failed...');
+     writeln('Install Kav4Proxy failed "',source_folder,'" no such directory...');
      install.INSTALL_STATUS('APP_KAV4PROXY',110);
      install.INSTALL_PROGRESS('APP_KAV4PROXY','{failed}');
      exit;
@@ -845,7 +880,7 @@ autoanswers_conf.free;
 
          zsquid:=Tsquid.Create();
          autoanswers_conf:=TStringList.Create;
-         autoanswers_conf.Add('CONFIGURE_ENTER_KEY_PATH=/usr/share/artica-postfix/bin/install');
+         autoanswers_conf.Add('CONFIGURE_ENTER_KEY_PATH=');
          autoanswers_conf.Add('KAVMS_SETUP_LICENSE_DOMAINS=*');
          autoanswers_conf.Add('CONFIGURE_KEEPUP2DATE_ASKPROXY=no');
          autoanswers_conf.Add('CONFIGURE_RUN_KEEPUP2DATE=no');
@@ -865,7 +900,6 @@ autoanswers_conf.free;
          SetCurrentDir('/opt/kaspersky/kav4proxy/lib/bin/setup');
          fpsystem('./postinstall.pl');
 
-         if not norestart then fpsystem('/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -a /usr/share/artica-postfix/bin/install/KAVPROXY.key');
          if not norestart then begin
             fpSystem('/opt/kaspersky/kav4proxy/bin/kav4proxy-keepup2date -q -d /var/run/kav4proxy/keeup2date.pid &');
              sleep(500);
@@ -877,6 +911,7 @@ autoanswers_conf.free;
  kavupdateutility_install();
  if FileExists('/home/artica/packages/kav4proxy-5.5-62.tar.gz') then fpsystem('/bin/rm -f /home/artica/packages/kav4proxy-5.5-62.tar.gz');
  if FileExists('/home/artica/packages/kav4proxy-5.5-80.tar.gz') then fpsystem('/bin/rm -f /home/artica/packages/kav4proxy-5.5-80.tar.gz');
+ if FileExists('/home/artica/packages/kav4proxy-5.5-88.tar.gz') then fpsystem('/bin/rm -f /home/artica/packages/kav4proxy-5.5-88.tar.gz');
  if not norestart then fpsystem('/etc/init.d/artica-postfix restart squid');
 
 

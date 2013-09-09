@@ -33,7 +33,7 @@ class netagent{
 	
 	private function _register(){
 		if($GLOBALS["OUTPUT"]){echo "Register to $this->master_uri\n";}
-		writelogs("[$this->nodeid]: master_uri `$this->master_uri`",__FUNCTION__,__FILE__,__LINE__);
+		$this->events("[$this->nodeid]: master_uri `$this->master_uri`",__FUNCTION__,__FILE__,__LINE__);
 		$curl=new ccurl($this->master_uri."/nodes.listener.php");
 		if(is_numeric($this->nodeid) && $this->nodeid>0){
 			$curl->parms["nodeid"]=$this->nodeid;
@@ -53,14 +53,14 @@ class netagent{
 		
 		if(!$curl->get()){
 			if($GLOBALS["OUTPUT"]){echo "Unable to register with Fatal error: $curl->error\n";}
-			writelogs("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}
+			$this->events("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}
 		if(preg_match("#<ERROR>(.+?)</ERROR>#is", $curl->data,$re)){
 			echo "FATAL ERROR ".$re[1]."\n";
 			return;
 		}
 		if(preg_match("#<SUCCESS>([0-9]+)</SUCCESS>#is", $curl->data,$re)){
 			if($GLOBALS["OUTPUT"]){echo "SUCCESS NODE ID ".$re[1]."\n";}
-			writelogs("SUCCESS NODE ID ".$re[1],__FUNCTION__,__FILE__,__LINE__);
+			$this->events("SUCCESS NODE ID ".$re[1],__FUNCTION__,__FILE__,__LINE__);
 			$GLOBALS["CLASS_SOCKET"]->SET_INFO("NODE_ID",$re[1]);
 			@file_put_contents("/etc/artica-postfix/settings/Daemons/NODE_ID", $re[1]);
 			$this->ping(true);
@@ -119,7 +119,7 @@ class netagent{
 		$array["LOAD_COLOR"]=$color;
 		$array["MEMORY"]=$mem->memory();
 		$array["REALMEM"]=$mem->realMemory();
-		writelogs("[$this->nodeid]: Load:$pourc color:$color: memory:{$array["MEMORY"]} REALMEM:{$array["REALMEM"]}",__FUNCTION__,__FILE__,__LINE__);
+		$this->events("[$this->nodeid]: Load:$pourc color:$color: memory:{$array["MEMORY"]} REALMEM:{$array["REALMEM"]}",__FUNCTION__,__FILE__,__LINE__);
 		return base64_encode(serialize($array));
 	}	
 	
@@ -194,7 +194,7 @@ class netagent{
 		@file_put_contents(dirname(__FILE__)."/com.txt", base64_encode(serialize($curlparms)));
 		if($GLOBALS["OUTPUT"]){echo "Compressing informations...\n";}
 		$this->compress(dirname(__FILE__)."/com.txt",dirname(__FILE__)."/com.txt.gz");
-		writelogs("[$this->nodeid]: ". count($_GLOBAL)." items Softs:".round(strlen($curlparms["softwares"])/1024) ."Ko",__FUNCTION__,__FILE__,__LINE__);
+		$this->events("[$this->nodeid]: ". count($_GLOBAL)." items Softs:".round(strlen($curlparms["softwares"])/1024) ."Ko",__FUNCTION__,__FILE__,__LINE__);
 		$curl->Timeout=120;
 		
 		if($GLOBALS["OUTPUT"]){
@@ -212,7 +212,7 @@ class netagent{
 		
 		if(!$curl->postFile("SETTINGS_INC",dirname(__FILE__)."/com.txt.gz",array("HOSTNAME"=>$hostname,"nodeid"=>$this->nodeid,"hostid"=>$hostid))){
 			if($GLOBALS["OUTPUT"]){echo "Posting informations Failed $curl->error...\n";}
-			writelogs("[$this->nodeid]: Failed $curl->error",__FUNCTION__,__FILE__,__LINE__);
+			$this->events("[$this->nodeid]: Failed $curl->error",__FUNCTION__,__FILE__,__LINE__);
 			
 		}
 		
@@ -310,7 +310,7 @@ class netagent{
 	private function orders_cache($orderid){
 		$array=unserialize(@file_get_contents("/etc/artica-postfix/NETAGENTORDERS.cache"));
 		if(isset($array[$orderid])){
-			writelogs("Order ID:$orderid already performed",__FUNCTION__,__FILE__,__LINE__);
+			$this->events("Order ID:$orderid already performed",__FUNCTION__,__FILE__,__LINE__);
 			return true;
 		}
 		
@@ -319,8 +319,25 @@ class netagent{
 	private function orders_set_cache($orderid){
 		$array=unserialize(@file_get_contents("/etc/artica-postfix/NETAGENTORDERS.cache"));
 		$array[$orderid]=true;
-		writelogs("Order ID:$orderid stamped to executed",__FUNCTION__,__FILE__,__LINE__);
+		$this->events("Order ID:$orderid stamped to executed",__FUNCTION__,__FILE__,__LINE__);
 		@file_put_contents("/etc/artica-postfix/NETAGENTORDERS.cache", serialize($array));		
+	}
+	
+	private function events($text,$function=null,$file=null,$line=null){
+		$pid=getmypid();
+		$text=date('H:i:s')." [$pid] $text in $file function: $function line:$line";
+		$logFile="/var/log/artica-netagent.log";
+		@mkdir(dirname($logFile));
+		$logFile=$file;
+		if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
+		if (is_file($logFile)) {
+			$size=filesize($logFile);
+			if($size>1000000){unlink($logFile);}
+		}
+		$logFile=str_replace("//","/",$logFile);
+		$f = @fopen($logFile, 'a');
+		@fwrite($f, "$text\n");
+		@fclose($f);
 	}
 	
 	private function OrdersParse($EncodedData){
@@ -335,22 +352,22 @@ class netagent{
 			while (list ($OrderKey, $OrderValue) = each ($orderdata) ){
 				if($GLOBALS["OUTPUT"]){echo "Execute order $OrderKey = $OrderValue ?..\n";}
 				if(!$this->orders_cache($orderid)){
-					writelogs("Accepted order $OrderKey from statistics appliance",__FUNCTION__,__FILE__,__LINE__);
+					$this->events("Accepted order $OrderKey from statistics appliance",__FUNCTION__,__FILE__,__LINE__);
 					if($this->OrderExecute($OrderKey,$OrderValue)){
 						if($GLOBALS["OUTPUT"]){echo "Executed order $orderid done...\n";}
-						writelogs("Ask to remove ID:$orderid/$OrderKey",__FUNCTION__,__FILE__,__LINE__);
+						$this->events("Ask to remove ID:$orderid/$OrderKey",__FUNCTION__,__FILE__,__LINE__);
 						$this->OrderOk($orderid,$OrderKey);
 						$this->orders_set_cache($orderid);
 					}
 				}else{
-					writelogs("Ask to remove ID:$orderid/$OrderKey",__FUNCTION__,__FILE__,__LINE__);
+					$this->events("Ask to remove ID:$orderid/$OrderKey",__FUNCTION__,__FILE__,__LINE__);
 					$this->OrderOk($orderid,$OrderKey);					
 				}
 			}
 		}
 	}
 	
-	private function OrderExecute($ORDER,$ORDER_VALUE){
+	public function OrderExecute($ORDER,$ORDER_VALUE){
 		if(isset($GLOBALS["OrderExecuted$ORDER"])){return true;}
 		$GLOBALS["OrderExecuted$ORDER"]=true;
 		
@@ -409,6 +426,11 @@ class netagent{
 			return true;
 		}
 		
+		if($ORDER=="PING"){
+			writelogs("Receive PING...",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			return true;
+		}		
+		
 		if($ORDER=="ACLSDYN"){
 			$this->webfilter_aclsdynamic();
 			return true;
@@ -423,14 +445,14 @@ class netagent{
 		$curl->parms["hostid"]=$this->hostid();
 		$curl->parms["orderid"]=$orderid;
 		$curl->parms["orderkey"]=$orderkey;
-		writelogs("[$this->nodeid]: $this->master_uri/nodes.listener.php -> $orderid -> remove",__FUNCTION__,__FILE__,__LINE__);
+		$this->events("[$this->nodeid]: $this->master_uri/nodes.listener.php -> $orderid -> remove",__FUNCTION__,__FILE__,__LINE__);
 		if(!$curl->get()){
 			if($GLOBALS["OUTPUT"]){echo "orderid=$orderid: Fatal $curl->error\n";}
-			writelogs("[$this->nodeid]: orderid=$orderid: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);
+			$this->events("[$this->nodeid]: orderid=$orderid: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}
 		
-		writelogs("[$this->nodeid]: $curl->data",__FUNCTION__,__FILE__,__LINE__);
+		$this->events("[$this->nodeid]: $curl->data",__FUNCTION__,__FILE__,__LINE__);
 	}
 	
 
@@ -483,24 +505,24 @@ class netagent{
 		$curl->parms["nodeid"]=$this->nodeid;
 		$curl->parms["SQUIDCONF"]="TRUE";
 		
-		if(!$curl->get()){writelogs("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}
-		writelogs("[$this->nodeid]: save datas to /etc/squid3/squid.conf.gz",__FUNCTION__,__FILE__,__LINE__);
+		if(!$curl->get()){$this->events("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}
+		$this->events("[$this->nodeid]: save datas to /etc/squid3/squid.conf.gz",__FUNCTION__,__FILE__,__LINE__);
 		
 		$curl=new ccurl("$MASTERURI/squid.conf.gz");
-		if(!$curl->GetFile("/etc/squid3/squid.conf.gz")){writelogs("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}		
+		if(!$curl->GetFile("/etc/squid3/squid.conf.gz")){$this->events("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}		
 		@mkdir("/etc/squid3",0755,true);
 		$this->uncompress("/etc/squid3/squid.conf.gz","/etc/squid3/squid.conf");
 		
 		$curl=new ccurl("$MASTERURI/squid.db.gz");
-		if(!$curl->GetFile("/etc/squid3/squid.db.gz")){writelogs("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}		
+		if(!$curl->GetFile("/etc/squid3/squid.db.gz")){$this->events("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}		
 		$this->uncompress("/etc/squid3/squid.db.gz","/etc/squid3/squid.db");
 		
 		$curl=new ccurl("$MASTERURI/squid-block.acl.gz");
-		if(!$curl->GetFile("/etc/squid3/squid-block.acl.gz")){writelogs("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}		
+		if(!$curl->GetFile("/etc/squid3/squid-block.acl.gz")){$this->events("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}		
 		$this->uncompress("/etc/squid3/squid-block.acl.gz","/etc/squid3/squid-block.acl");
 
 		$curl=new ccurl("$MASTERURI/DaemonSettings.conf.gz");
-		if(!$curl->GetFile("/etc/squid3/DaemonSettings.conf.gz")){writelogs("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}		
+		if(!$curl->GetFile("/etc/squid3/DaemonSettings.conf.gz")){$this->events("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}		
 		$this->uncompress("/etc/squid3/DaemonSettings.conf.gz","/etc/squid3/DaemonSettings.conf");		
 		
 		$array=unserialize(base64_decode(@file_get_contents("/etc/squid3/DaemonSettings.conf")));
@@ -510,24 +532,25 @@ class netagent{
 				$GLOBALS["CLASS_SOCKET"]->SET_INFO($key,$value);
 			}
 		}else{
-			writelogs("[$this->nodeid]: /etc/squid3/DaemonSettings.conf not an array",__FUNCTION__,__FILE__,__LINE__);
+			$this->events("[$this->nodeid]: /etc/squid3/DaemonSettings.conf not an array",__FUNCTION__,__FILE__,__LINE__);
 		}
 		
 		
 		$array=unserialize(base64_decode(@file_get_contents("/etc/squid3/squid.db")));
 		while (list ($key, $value) = each ($array) ){
 			$value=base64_decode($value);
-			writelogs("[$this->nodeid]: Set $key = $value",__FUNCTION__,__FILE__,__LINE__);
+			$this->events("[$this->nodeid]: Set $key = $value",__FUNCTION__,__FILE__,__LINE__);
 			$GLOBALS["CLASS_SOCKET"]->SET_INFO($key,$value);
 		}		
 		
 		$chown=$unix->find_program("chown");
 		shell_exec("$chown squid:squid /etc/squid3 >/dev/null 2>&1");
 		if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];$executed="Executed by $sourcefunction() line $sourceline\nusing argv:{$GLOBALS["ARGVS"]}\n";}}
-		squid_admin_notifs("Network Agent: Asking to restart squid\n$executed", __FUNCTION__, __FILE__, __LINE__, "proxy");		
+		squid_admin_notifs("Network Agent: Asking to restart squid\n$executed", __FUNCTION__, __FILE__, __LINE__, "proxy");	
+		squid_admin_mysql(2,"Network Agent: Restarting squid-cache","$executed");
 		$cmd="/etc/init.d/artica-postfix restart squid-cache";
-		writelogs("[$this->nodeid]: reloading squid",__FUNCTION__,__FILE__,__LINE__);
-		writelogs("[$this->nodeid]: $cmd",__FUNCTION__,__FILE__,__LINE__);	
+		$this->events("[$this->nodeid]: reloading squid",__FUNCTION__,__FILE__,__LINE__);
+		$this->events("[$this->nodeid]: $cmd",__FUNCTION__,__FILE__,__LINE__);	
 		$squidbin=$unix->find_program("squid");
 		if(strlen($squidbin)<3){$squidbin=$unix->find_program("squid3");}
 		
@@ -538,7 +561,7 @@ class netagent{
 		@chgrp("/var/log/squid/cache.log", "squid");
 		@chmod("/var/log/squid/cache.log", 0755);		
 		
-		
+		squid_admin_mysql(2, "Network Agent: Reconfiguring squid-cache");
 		if(is_file($squidbin)){shell_exec("$squidbin -k reconfigure");}
 		if(is_file("/usr/share/artica-postfix/exec.squid.transparent.php")){shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.transparent.php");}
 		
@@ -553,7 +576,7 @@ class netagent{
 	}
 
 	private function parse_daemon_settings(){
-		writelogs("[$this->nodeid]: Scanning /etc/artica-postfix/settings/Daemons",__FUNCTION__,__FILE__,__LINE__);
+		$this->events("[$this->nodeid]: Scanning /etc/artica-postfix/settings/Daemons",__FUNCTION__,__FILE__,__LINE__);
 		
 		
 		foreach (glob("/etc/artica-postfix/settings/Daemons/*") as $filename) {
@@ -562,7 +585,7 @@ class netagent{
 			$array[$key]=$datas;
 			
 		}
-		writelogs("[$this->nodeid]: Scanning /etc/artica-postfix/settings/Daemons done...".count($array)." elements...",__FUNCTION__,__FILE__,__LINE__);
+		$this->events("[$this->nodeid]: Scanning /etc/artica-postfix/settings/Daemons done...".count($array)." elements...",__FUNCTION__,__FILE__,__LINE__);
 		return base64_encode(serialize($array));
 		
 	}
@@ -572,7 +595,7 @@ class netagent{
 		$curl=new ccurl($this->master_uri."/nodes.listener.php?squid-table=webfilter_aclsdynamic");
 		$curl->GetFile("/tmp/webfilter_aclsdynamic.gz");
 		if(!$unix->uncompress("/tmp/webfilter_aclsdynamic.gz", "/tmp/webfilter_aclsdynamic.sql")){
-			writelogs("[$this->nodeid]: Scanning failed uncompress /tmp/webfilter_aclsdynamic.gz",__FUNCTION__,__FILE__,__LINE__);
+			$this->events("[$this->nodeid]: Scanning failed uncompress /tmp/webfilter_aclsdynamic.gz",__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}
 		@unlink("/tmp/webfilter_aclsdynamic.gz");
@@ -616,7 +639,7 @@ class netagent{
 			$results1=array();
 			exec(PROCESS1_BIN." --nicstatus $ligne 2>&1",$results1);
 			$tbl=explode(";",$results1[0]);
-			writelogs("Sending status $ligne IP: {$tbl[0]}",__FUNCTION__,__FILE__,__LINE__);
+			$this->events("Sending status $ligne IP: {$tbl[0]}",__FUNCTION__,__FILE__,__LINE__);
 			$array[$ligne]=array(
 				"IPADDR"=>$tbl[0],
 				"MACADDR"=>$tbl[1],

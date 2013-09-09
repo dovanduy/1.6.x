@@ -29,18 +29,18 @@ public
     procedure   Free;
     constructor Create(const zSYS:Tsystem);
     function  FETCHMAIL_VERSION(nocache:boolean=false):string;
-    function  FETCHMAIL_DAEMON_POOL():string;
-    function  FETCHMAIL_START_DAEMON():boolean;
+
+
     function  FETCHMAIL_BIN_PATH():string;
     procedure FETCHMAIL_APPLY_CONF(conf_datas:string);
-    function  FETCHMAIL_DAEMON_STOP(nologger:boolean=false):string;
+
     function  FETCHMAIL_PID():string;
     procedure FETCHMAIL_APPLY_GETLIVE_CONF();
     procedure FETCHMAIL_APPLY_GETLIVE();
-    function  FETCHMAIL_COUNT_SERVER():integer;
+
     function  FETCHMAIL_SERVER_PARAMETERS(param:string):string;
-    function  FETCHMAIL_DAEMON_POSTMASTER():string;
-    function  FETCHMAIL_RELOAD():string;
+
+
     function  STATUS():string;
 
 
@@ -273,109 +273,6 @@ begin
 
 end;
 //#############################################################################
-function tfetchmail.FETCHMAIL_DAEMON_POOL():string;
-begin
-result:=SYS.GET_INFO('FetchmailDaemonPool');
-end;
-//#############################################################################
-function tfetchmail.FETCHMAIL_START_DAEMON():boolean;
-var
- fetchmail_daemon_pool,fetchmailpid,fetchmailpath:string;
- fetchmail_count:integer;
- D:boolean;
- EnableFetchmail:integer;
-begin
-     result:=true;
-     EnableFetchmail:=0;
-     fetchmailpid:=FETCHMAIL_PID();
-
-     if not TryStrToInt(SYS.GET_INFO('EnableFetchmail'),EnableFetchmail) then EnableFetchmail:=0;
-
-
-     if EnableFetchmailScheduler=1 then begin
-         logs.DebugLogs('Starting......: FetchMail is turned to scheduler mode `EnableFetchmailScheduler`, stopping daemon mode...');
-         fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.fetchmail.php');
-         if SYS.PROCESS_EXIST(fetchmailpid) then FETCHMAIL_DAEMON_STOP(true);
-         FETCHMAIL_LOGGER_START();
-         exit;
-     end;
-
-if EnablePostfixMultiInstance=1 then begin
-   logs.DebugLogs('Starting......: multi-postfix instances enabled `EnablePostfixMultiInstance`, switch to artica-cron.');
-   if SYS.PROCESS_EXIST(fetchmailpid) then FETCHMAIL_DAEMON_STOP(true);
-   FETCHMAIL_LOGGER_START();
-   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.fetchmail.php');
-   exit;
-end;
-
-     fetchmailpid:=FETCHMAIL_PID();
-
-
-     if SYS.PROCESS_EXIST(fetchmailpid) then begin
-         if EnableFetchmail=0 then begin
-             logs.DebugLogs('Starting......: fetchmail is disabled by Artica with "EnableFetchmail" parameter');
-             FETCHMAIL_DAEMON_STOP();
-             if FileExists('/etc/fetchmailrc') then logs.DeleteFile('/etc/fetchmailrc');
-             exit;
-         end;
-         logs.DebugLogs('Starting......: fetchmail is already running using PID ' + fetchmailpid + '...');
-         FETCHMAIL_LOGGER_START();
-         exit;
-     end;
-
-     if EnableFetchmail=0 then begin
-          logs.DebugLogs('Starting......: fetchmail is disabled by Artica with "EnableFetchmail" parameter');
-          if FileExists('/etc/fetchmailrc') then logs.DeleteFile('/etc/fetchmailrc');
-          exit;
-     end;
-     logs.DebugLogs('Starting......: fetchmail start fetchmail-logger');
-     FETCHMAIL_LOGGER_START();
-     fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.fetchmail.php');
-     fetchmailpath:=FETCHMAIL_BIN_PATH();
-     fetchmail_daemon_pool:=FETCHMAIL_SERVER_PARAMETERS('daemon');
-     fetchmail_count:=FETCHMAIL_COUNT_SERVER();
-
-
-     LOGS.logs('FETCHMAIL_START_DAEMON:: PID=' +fetchmailpid + ';Path='+fetchmailpath+';Pool='+ fetchmail_daemon_pool+';Servers Count=' + INtTOStr(fetchmail_count));
-
-     if FileExists('/opt/artica/logs/fetchmail.daemon.started') then DeleteFile('/opt/artica/logs/fetchmail.daemon.started');
-     if length(fetchmail_daemon_pool)=0 then logs.Debuglogs('Artica...No config saved /etc/fetchmailrc');
-     if FileExists('/etc/fetchmailrc') then begin
-        logs.OutputCmd('/bin/chown root:root /etc/fetchmailrc');
-        logs.OutputCmd('/bin/chmod 600 /etc/fetchmailrc');
-     end;
-
-
-    if fetchmail_count>0 then begin
-     if length(fetchmailpath)>0 then begin
-        if length(fetchmail_daemon_pool)>0 then begin
-           if not SYS.PROCESS_EXIST(fetchmailpid) then begin
-              logs.DebugLogs('Starting......: fetchmail daemon...: Enable....: '+IntToStr(EnableFetchmail));
-              logs.DebugLogs('Starting......: fetchmail daemon...: Path......: '+fetchmailpath);
-              logs.Debuglogs('SYSTEM_START_ARTICA_DAEMON:: Start FETCHMAIL service server ' + IntToStr(fetchmail_count) + ' server(s)');
-              if FileExists('/opt/artica/logs/fetchmail.daemon.started') then DeleteFile('/opt/artica/logs/fetchmail.daemon.started');
-              logs.Debuglogs(fetchmailpath + ' --daemon ' + fetchmail_daemon_pool + ' --pidfile /var/run/fetchmail.pid --fetchmailrc /etc/fetchmailrc > /opt/artica/logs/fetchmail.daemon.started 2>&1');
-              logs.Syslogs('Starting fecthmail daemon...');
-              fpsystem(fetchmailpath + ' --daemon ' + fetchmail_daemon_pool + ' --pidfile /var/run/fetchmail.pid --fetchmailrc /etc/fetchmailrc > /opt/artica/logs/fetchmail.daemon.started 2>&1');
-           end else begin
-               logs.DebugLogs('Starting......: fetchmail is already running using PID ' + fetchmailpid + '...');
-           end;
-        end;
-     end;
-    end else begin
-        logs.DebugLogs('Starting......: fetchmail no server has been set, aborting');
-    end;
-
-
-end;
-//##############################################################################
-
-
-function tfetchmail.FETCHMAIL_DAEMON_POSTMASTER():string;
-begin
-result:=SYS.GET_INFO('FetchMailDaemonPostmaster');
-end;
-//#############################################################################
 function tfetchmail.FETCHMAIL_BIN_PATH():string;
 var
    path:string;
@@ -416,65 +313,9 @@ begin
    value.free;
    fpsystem('/bin/chown root:root /etc/fetchmailrc');
    fpsystem('/bin/chmod 0710 /etc/fetchmailrc');
-   FETCHMAIL_RELOAD();
+
    FETCHMAIL_APPLY_GETLIVE_CONF();
 
-end;
-//#############################################################################
-function tfetchmail.FETCHMAIL_DAEMON_STOP(nologger:boolean):string;
-var
-   pid:string;
-   binpath:string;
-   count:integer;
-   pidnum:integer;
-begin
-    result:='';
-    binpath:=FETCHMAIL_BIN_PATH();
-    if not FileExists(binpath) then begin
-    writeln('Stopping fetchmail...........: Not installed');
-    exit;
-    end;
-
-    if SYS.PROCESS_EXIST(FETCHMAIL_PID()) then begin
-       writeln('Stopping fetchmail...........: ' + FETCHMAIL_PID() + ' PID..');
-       fpsystem(binpath + ' -q');
-    end;
-
-  pid:=SYS.PIDOF(binpath);
-  while SYS.PROCESS_EXIST(pid) do begin
-        sleep(100);
-        inc(count);
-        if TryStrToInt(pid,pidnum) then begin
-           if pidnum >1 then fpsystem('/bin/kill '+pid);
-        end;
-
-        if count>50 then begin
-           writeln('Stopping fetchmail...........:' + pid + ' PID (timeout) kill it');
-           logs.OutputCmd('/bin/kill -9 ' + pid);
-           break;
-        end;
-        pid:=SYS.PIDOF(binpath);
-  end;
-
-    if not nologger then FETCHMAIL_LOGGER_STOP();
-
-
-end;
-//#############################################################################
-function tfetchmail.FETCHMAIL_RELOAD():string;
-var pid:string;
-begin
-    result:='';
-    if not FileExists(FETCHMAIL_BIN_PATH()) then begin
-    exit;
-    end;
-    pid:=FETCHMAIL_PID();
-    if not SYS.PROCESS_EXIST(pid) then begin
-          FETCHMAIL_START_DAEMON();
-          exit;
-    end;
-    logs.Syslogs('Reloading fetchmail');
-    logs.OutputCmd('/bin/kill -HUP ' + pid);
 end;
 //#############################################################################
 procedure tfetchmail.FETCHMAIL_APPLY_GETLIVE_CONF();
@@ -638,29 +479,7 @@ begin
    filedatas.free;
 end;
 //##############################################################################
-function tfetchmail.FETCHMAIL_COUNT_SERVER():integer;
-var
-   RegExpr:TRegExpr;
-   filedatas:TStringList;
-   i:integer;
-begin
-  result:=0;
-  if not FileExists('/etc/fetchmailrc') then exit;
-  filedatas:=TStringList.Create;
-  RegExpr:=TRegExpr.Create;
-  RegExpr.Expression:='^poll\s+(.+)';
-  filedatas.LoadFromFile('/etc/fetchmailrc');
-   for i:=0 to filedatas.Count -1 do begin
-      if RegExpr.Exec(filedatas.Strings[i]) then begin
-         inc(result);
-         break;
-      end;
-   end;
 
-   RegExpr.Free;
-   filedatas.free;
-end;
-//##############################################################################
 function tfetchmail.STATUS();
 var
 pidpath:string;

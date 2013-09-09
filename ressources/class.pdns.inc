@@ -336,7 +336,7 @@ class pdns{
 		
 		if($id>0){
 			$obssql=null;
-			if($obs<>null){$obssql=",`explainthis`='".mysql_escape_string($obs)."'";}
+			if($obs<>null){$obssql=",`explainthis`='".mysql_escape_string2($obs)."'";}
 			$sql="UPDATE records SET content='$IP',`change_date`='$zdate',
 					`ttl`='$this->ttl',
 					`prio`='$this->prio'$obssql WHERE id='$id'";
@@ -357,7 +357,7 @@ class pdns{
 		}
 		
 		
-		if($obs<>null){$obF=",`explainthis`";$obD=",'".mysql_escape_string($obs)."'";}		
+		if($obs<>null){$obF=",`explainthis`";$obD=",'".mysql_escape_string2($obs)."'";}		
 			
 		$idU=$this->GetHostnameFromIPAddr($IP,$fqdn);
 		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]::`$fqdn`::$IP => $idU \n";}
@@ -391,7 +391,7 @@ class pdns{
 		if(!is_numeric($this->prio)){$this->prio=0;}
 		if($this->ttl<500){$this->ttl=86400;}
 		$change_date=date("YmdH");
-		if($obs<>null){$obF=",`explainthis`";$obD=",'".mysql_escape_string($obs)."'";}
+		if($obs<>null){$obF=",`explainthis`";$obD=",'".mysql_escape_string2($obs)."'";}
 		$sql="INSERT IGNORE INTO records (domain_id, name, type, content, ttl, prio, change_date$obF)
 		VALUES ($domain_id,'$alias','CNAME','$hostname_src','{$this->ttl}','{$this->prio}','$change_date'$obD)";
 		$q->QUERY_SQL($sql,"powerdns");

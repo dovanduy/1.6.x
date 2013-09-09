@@ -15,9 +15,11 @@ js();
 
 function js(){
 	$uid=$_GET["uid"];
-	
+	$t=$_GET["t"];
+	if(!is_numeric($t)){$t=time();}
+	$tt=time();
 $html="	
-var x_DeleteComputer= function (obj) {
+var x_DeleteComputer$tt= function (obj) {
 	var results=obj.responseText;
 	if (results.length>0){alert(results);}
 	YahooUserHide();
@@ -26,23 +28,25 @@ var x_DeleteComputer= function (obj) {
 	if(document.getElementById('DnsZoneName')){BindComputers(document.getElementById('DnsZoneName').value)}	
 	if(document.getElementById('bind9_hosts_list')){BindRefresh();}
 	if(document.getElementById('main-content')){Loadjs('start.php');}
-	if(document.getElementById('main_config_dhcpd')){RefreshTab('main_config_dhcpd');}	
+	if(document.getElementById('main_config_dhcpd')){RefreshTab('main_config_dhcpd');}
+	if(document.getElementById('COMPUTER_BROWSE_TABLE')){ $('#COMPUTER_BROWSE_TABLE').flexReload();}
 	
 	
 }
 	
-function DeleteComputer(uid){
+function DeleteComputer$tt(uid){
 	var XHR = new XHRConnection();
 	XHR.appendData('DeleteComputer',uid);
 	XHR.appendData('echo','yes');
-	XHR.sendAndLoad('domains.edit.user.php', 'GET',x_DeleteComputer);
+	XHR.sendAndLoad('domains.edit.user.php', 'GET',x_DeleteComputer$tt);
 	}	
 	
 
-DeleteComputer('$uid');
+DeleteComputer$tt('$uid');
 ";
 
 echo $html;
+
 
 }
 function IsRight(){

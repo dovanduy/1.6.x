@@ -39,8 +39,9 @@ if(isset($_GET["generic-categories-graphs"])){generic_categories_graphs();exit;}
 if(isset($_GET["generic-categories-table"])){generic_categories_table();exit;}
 if(isset($_GET["generic-categories-table-search"])){generic_categories_table_search();exit;}
 
-
-
+if(isset($_GET["cached-graphs-js"])){cached_graph_js();exit;}
+if(isset($_GET["cached-graphs-popup"])){cached_graph_popup();exit;}
+if(isset($_GET["tabs-translate"])){tabs_translate();exit;}
 main_page();
 
 function main_page(){
@@ -57,6 +58,7 @@ function main_page(){
 function content(){
 	$sock=new sockets();
 	$page=CurrentPageName();
+	$users=new usersMenus();
 	$tpl=new templates();
 	$t=time();
 	$jsadd="LoadAjax('statistics-$t','$page?webstats-stats=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&week={$_GET["week"]}');";
@@ -72,7 +74,13 @@ function content(){
 				</center>
 				");
 		$mainjs=null;
-	}	
+	}
+
+	if($users->PROXYTINY_APPLIANCE){
+		$jsadd="LoadAjax('statistics-$t','miniadm.webstats.sarg.php?tabs=yes');";
+		$mainjs=null;
+		$error=null;
+	}
 	
 	$html="
 	<div class=BodyContent>
@@ -106,27 +114,60 @@ function generic_values_tabs(){
 	
 }
 
+function cached_graph_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{statistics}");
+	echo "YahooWin2(1200,'$page?cached-graphs-popup=yes','$title')";
+	
+}
+
+function tabs_translate(){
+	$sock=new sockets();
+	$EnableMacAddressFilter=$sock->GET_INFO("EnableMacAddressFilter");
+	if(!is_numeric($EnableMacAddressFilter)){$EnableMacAddressFilter=1;}
+	$boot=new boostrap_form();
+	
+	if($EnableMacAddressFilter==1){
+		$array["{MACtoMembers}"]="miniadm.squid.MacToMembers.php";
+	}	
+	
+	$array["{IPtoMembers}"]="miniadm.squid.IPToMembers.php";
+	echo $boot->build_tab($array);
+	
+}
+
 function tabs(){
 	$sock=new sockets();
 	$EnableMacAddressFilter=$sock->GET_INFO("EnableMacAddressFilter");
 	if(!is_numeric($EnableMacAddressFilter)){$EnableMacAddressFilter=1;}
+	$SQUID_LOCAL_STATS_DISABLED=$sock->SQUID_LOCAL_STATS_DISABLED();
+	
+	if($SQUID_LOCAL_STATS_DISABLED){
+		$tpl=new templates();
+		echo $tpl->_ENGINE_parse_body("<p class=text-error>{SQUID_LOCAL_STATS_DISABLED}</p>");
+		
+	}
+	
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
 	$boot=new boostrap_form();
 	$q=new mysql_squid_builder();
-	$array["{statistics}"]="$page?webstats-left=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&week={$_GET["week"]}";
-	$array["{general_settings}"]="$page?settings=yes";
-	if($EnableMacAddressFilter==1){
-		$array["{MACtoMembers}"]="miniadm.squid.MacToMembers.php";
+	if(!$SQUID_LOCAL_STATS_DISABLED){
+		$array["{statistics}"]="$page?webstats-left=yes&t=$t&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}&week={$_GET["week"]}";
+		$array["{general_settings}"]="$page?settings=yes";
 	}
+	$array["{users_translation}"]="$page?tabs-translate=yes";
 	
 	$YoutubeCount=$q->COUNT_ROWS("youtube_objects");
 	if($YoutubeCount>0){
 		$array["$YoutubeCount {youtube_videos}"]="miniadm.webstats.youtube.php?master-content=yes=yes&title=yes";
 	}
 	
-	$array["{source_logs}"]="miniadm.webstats.logrotate.php";
+	$array["{APP_SARG}"]="miniadm.webstats.sarg.php?tabs=yes";
+	
 	
 	echo $boot->build_tab($array);	
 	
@@ -137,18 +178,6 @@ function tabs(){
 function settings(){
 	$page=CurrentPageName();
 	$array["{parameters}: {statistics}"]="$page?settings-stats=yes";
-	$sock=new sockets();
-	$ProxyUseArticaDB=$sock->GET_INFO("ProxyUseArticaDB");
-	if(is_numeric($ProxyUseArticaDB)){$ProxyUseArticaDB=0;}
-	$users=new usersMenus();
-	
-
-	if($ProxyUseArticaDB==1){
-		$array["{mysql_statistics_engine}"]="miniadm.proxy.mysql.database.php?tabs=yes&title=yes";
-	}
-	$array["{database_maintenance}"]="$page?settings-db=yes";	
-	$array["{APP_ARTICADB}"]="miniadm.proxy.category.database.php?tabs=yes&title=yes";
-	
 	$boot=new boostrap_form();
 	echo $boot->build_tab($array);
 }
@@ -233,79 +262,123 @@ function webstats_left(){
 	$q=new mysql_squid_builder();
 	$page=CurrentPageName();
 	
+	$cached=unserialize(@file_get_contents(dirname(__FILE__)."/ressources/logs/web/SQUID_STATS_GLOBALS_VALUES"));
+	
 	$NotCategorizedTests=$q->COUNT_ROWS("webtests");
 	
+	$timefile=dirname(__FILE__)."/ressources/logs/web/SQUID_STATS_GLOBALS_VALUES";
+	
+	
+	$NotCategorized=$q->COUNT_ROWS("notcategorized");
 
-	if($NotCategorizedTests>0){
-		$NotCategorizedTests=numberFormat($NotCategorizedTests,0,""," ");
-		$tR[]=Paragraphe("spider-database-64.png", "&laquo;$NotCategorizedTests&raquo; {not_categorized}",
-		"{display_not_categorized_tests}","miniadm.webstats.not.categorized.php");
+	if($NotCategorized>0){
+		$tR[]=stats_paragraphe($NotCategorized,"{not_categorized}", "{not_categorized_explain_why}",
+				"document.location.href='miniadm.webstats.notcategorized.php'","spider-warn-database-64.png");
+		
 	}		
 	
-$tR[]=Paragraphe32("statistics_by_date", "statistics_by_date_text", 
-		"document.location.href='miniadm.webstats.Bydays.php'", "statistics2-32.png",320);
 
-$tR[]=Paragraphe32("member_wwwtrack", "member_wwwtrack_text",
-	"document.location.href='miniadm.MembersTrack.php'","unknown-user-48.png",320);
+	$q=new mysql_squid_builder();
+	$DAYSNumbers=$q->COUNT_ROWS("tables_day");
+	
 
-if($q->COUNT_ROWS("members_uid")>0){
-		$tR[]=Paragraphe32("members", "member_www_stats_text",
-		"document.location.href='miniadm.webstats.members2.php'","member-32.png",320);	
+	
+$tR[]=stats_paragraphe($DAYSNumbers,"{daysOfStatistics}", "{statistics_by_date}<br>{statistics_by_date_text}", 
+		"document.location.href='miniadm.webstats.Bydays.php'","calendar-64.png");
+
+
+
+
+
+
+$tR[]=stats_paragraphe($cached["CountDeMembers"],"{members}", "{member_www_stats_text}",
+		"document.location.href='miniadm.webstats.members2.php'","canonical-64.png");
+
+
+$CountDeWebsites=$q->COUNT_ROWS("visited_sites_tot"); 
+$tR[]=stats_paragraphe($CountDeWebsites,"{websites}", "{visited_sites_days_text}",
+		"document.location.href='miniadm.webstats.bywebsites.php'","domain-main-64.png");
+
+
+//$tR[]=Paragraphe32("member_wwwtrack", "member_wwwtrack_text",	"document.location.href='miniadm.MembersTrack.php'","unknown-user-48.png",320);
+
+
+$sock=new sockets();
+$users=new usersMenus();
+$boot=new boostrap_form();
+$ArticaProxyStatisticsBackupDays=$sock->GET_INFO("ArticaProxyStatisticsBackupDays");
+if(!is_numeric($ArticaProxyStatisticsBackupDays)){$ArticaProxyStatisticsBackupDays=90;}
+if(!$users->CORP_LICENSE){$ArticaProxyStatisticsBackupDays=5;}
+
+
+$tR[]=stats_paragraphe($cached["AVG_CACHED"],"{cached_data_avg}", "{cached_data_graph_text}",
+		"Loadjs('$page?cached-graphs-js=yes')","64-hd-stats.png");
+
+
+$FAMS=$boot->SQUID_CATEGORIES_FAM;
+
+
+$tR[]=stats_paragraphe($ArticaProxyStatisticsBackupDays,"{days} {retention_time}", "
+		{database_size}: (".$cached["DATABASE_INFOS"].")<br>
+		{database_maintenance_text}",
+		"document.location.href='miniadm.squiddb.php'","database-check.png");
+
+
+if($cached["CATFAM"][1]>0){
+	$tR[]=stats_paragraphe($cached["CATFAM"][1],"{dangerous_websites} {this_month}", "
+		{dangerous_websites_fam_explain}",
+		"document.location.href='miniadm.webstats.fam.php?catfam=1&xtime=".time()."'",
+		"bug-warning-64.png");
+}
+if($cached["CATFAM"][2]>0){
+	$tR[]=stats_paragraphe($cached["CATFAM"][2],"{websites_network_pollution} {this_month}", "
+		{websites_network_pollution_explain}",
+			"document.location.href='miniadm.webstats.fam.php?catfam=2&xtime=".time()."'",
+			"stop-ads-64.png");
+}
+if($cached["CATFAM"][3]>0){
+	$tR[]=stats_paragraphe($cached["CATFAM"][3],"{websites_human_suspects} {this_month}", "
+		{websites_human_suspects_explain}",
+			"document.location.href='miniadm.webstats.fam.php?catfam=3&xtime=".time()."'",
+			"user-error-64.png");
+}
+if($cached["CATFAM"][4]>0){
+	$tR[]=stats_paragraphe($cached["CATFAM"][4],"{websites_heavy_cat} {this_month}", "
+		{websites_heavy_cat_explain}",
+			"document.location.href='miniadm.webstats.fam.php?catfam=4&xtime=".time()."'",
+			"64-download.png");
+}
+if($cached["CATFAM"][5]>0){
+	$tR[]=stats_paragraphe($cached["CATFAM"][5],"{websites_noprod} {this_month}", "
+		{websites_noprod_explain}",
+			"document.location.href='miniadm.webstats.fam.php?catfam=5&xtime=".time()."'",
+			"domain-whitelist-64.png");
 }
 
-$tR[]=Paragraphe32("database_maintenance", "database_maintenance_text",
-		"document.location.href='miniadm.squiddb.php'","datasource-32.png",320);
-
-
 $ff=time();
-	$content=CompileTr2($tR,"none");
+	$content=CompileTr3($tR,"none");
 	$html="
-	<div class=BodyContent>
-		<table style='width:100%'>
-		<tr>
-			<td valign='top'>
-					<center>$content</center>
-			</td>
-			<td valign='top' style='vertical-align:top';>
-				<table style='width:100%'>
-				<tr>
-					<td><strong>{websites}:</td>
-					<td>". Field_text("Search$ff","focus:{search}","font-size:14px",null,null,null,false,"SearchWebSite$ff(event)",false)."</td>
-				</tr>
-				</tr>
-				<td><strong>{members}:</td>
-				<td>". Field_text("Search-Memb-$ff","focus:{search}","font-size:14px",null,null,null,false,"SearchMember$ff(event)")."</td>
-				
-				</table>
-			</td>
-		</tr>
-		</table>
-		<div id='SearchWebsites-results-$ff'></div>
-		<div id='generic-values-$ff'></div>
+	<div class=BodyContent>$content</div>
+	
+		
 		
 	</div>
 		
-	<script>
-		LoadAjax('generic-values-$ff','$page?generic-values-tabs=yes');
-		
-		function SearchWebSite$ff(e){
-			if(!checkEnter(e)){return;}
-			var pp=encodeURIComponent(document.getElementById('Search$ff').value);
-			LoadAjax('SearchWebsites-results-$ff','$page?search-www=yes&pattern='+pp);
-		}
-		
-		function SearchMember$ff(e){
-			var pp=encodeURIComponent(document.getElementById('Search-Memb-$ff').value);
-			if(!checkEnter(e)){return;}
-			Loadjs('squid.UserAuthDaysGrouped.php?search-js='+pp);
-		}		
 
-	</script>
 	
 	";
 	$html= $tpl->_ENGINE_parse_body($html);
 	$_SESSION[__FILE__][__FUNCTION__]=$html;
 	echo $html;	
+}
+
+function cached_graph_popup(){
+	$ff=time();
+	$page=CurrentPageName();
+	$html="<div id='generic-values-$ff'></div>	<script>
+		LoadAjax('generic-values-$ff','$page?generic-values-tabs=yes');
+	</script>";
+echo $html;	
 }
 
 function generic_section1(){
@@ -658,82 +731,5 @@ GROUP BY familysite ORDER BY size DESC LIMIT 0,10";
 
 }
 
-function settings_retention(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$sock=new sockets();
-	$users=new usersMenus();
-	if($users->CORP_LICENSE){$LICENSE=1;}else{$LICENSE=0;}
-	$ArticaProxyStatisticsBackupFolder=$sock->GET_INFO("ArticaProxyStatisticsBackupFolder");
-	$ArticaProxyStatisticsBackupDays=$sock->GET_INFO("ArticaProxyStatisticsBackupDays");
-	if($ArticaProxyStatisticsBackupFolder==null){$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics";}
-	$q=new mysql_squid_builder();
-	if(!is_numeric($ArticaProxyStatisticsBackupDays)){$ArticaProxyStatisticsBackupDays=90;}
-	if(!$users->CORP_LICENSE){
-		$error="<p class=text-error>{this_feature_is_disabled_corp_license}</p>";
-		$ArticaProxyStatisticsBackupDays=5;}
-	$t=time();
-	$new_schedule=$tpl->javascript_parse_text("{new_schedule}");
-	$EnableSquidRemoteMySQL=$sock->GET_INFO("EnableSquidRemoteMySQL");
-	if(!is_numeric($EnableSquidRemoteMySQL)){$EnableSquidRemoteMySQL=0;}
-	
-	if($EnableSquidRemoteMySQL==1){
-		$EnableSquidRemoteMySQL_text="{EnableSquidRemoteMySQL_text}";
-	}	
 
-	$lock=false;
-	$boot=new boostrap_form();
-	
-	$boot->set_formdescription($EnableSquidRemoteMySQL_text."<br>{purge_statistics_database_explain2}");
-	$boot->set_field("ArticaProxyStatisticsBackupFolder", "{backup_folder}", $ArticaProxyStatisticsBackupFolder,array("BROWSE"=>true));
-	$boot->set_field("ArticaProxyStatisticsBackupDays", "{max_days}", $ArticaProxyStatisticsBackupDays,array("BROWSE"=>true));
-	$boot->set_button("{apply}");
-	$boot->set_formtitle("{purge_statistics_database}");
-	if(!$users->CORP_LICENSE){$boot->set_form_locked();$lock=true;}
-	if($EnableSquidRemoteMySQL==1){$boot->set_form_locked();$lock=true;}
-	$new_schedule=$tpl->javascript_parse_text("{new_schedule}");
-	if(!$lock){
-		$boot->set_Newbutton("{new_schedule}", "YahooWin3('650','squid.databases.schedules.php?AddNewSchedule-popup=yes&ID=0&t=$t&ForceType=47&YahooWin=3&jsback=ReloadSchedules$t','$new_schedule')");
-		$ReloadSchedules="ReloadSchedules$t()";
-	}
-	
-	$form=$boot->Compile();
-	
-	$html="
-		
-		<div id='title-$t'></div>
-		$error
-		$form
-		<div id='schedules-$t'></div>
-	
-	<script>
-	function ReloadSchedules$t(){
-			LoadAjax('schedules-$t','squid.artica.statistics.purge.php?schedules=yes');
-		}
-		
-	function RefreshTableTitle$t(){
-		LoadAjaxTiny('title-$t','squid.artica.statistics.purge.php?title=yes&t=$t');
-	}
-	RefreshTableTitle$t();
-	$ReloadSchedules;
-</script>	
-	
-	";
-	
-	echo $tpl->_ENGINE_parse_body($html);
-}
 
-function settings_retention_save(){
-	$sock=new sockets();
-	$users=new usersMenus();
-	$tpl=new templates();
-	if($users->CORP_LICENSE){
-		$sock->SET_INFO("ArticaProxyStatisticsBackupDays", $_POST["ArticaProxyStatisticsBackupDays"]);
-	}else{
-		echo $tpl->javascript_parse_text("{no_license_backup_max5}",1);
-		$sock->SET_INFO("ArticaProxyStatisticsBackupDays",5);
-	
-	}
-	$sock->SET_INFO("ArticaProxyStatisticsBackupFolder", $_POST["ArticaProxyStatisticsBackupFolder"]);	
-	
-}

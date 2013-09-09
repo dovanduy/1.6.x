@@ -42,10 +42,70 @@ function popup(){
 	if($users->WEBSTATS_APPLIANCE){$ASWEB=true;}
 	
 	if(!$users->CORP_LICENSE){
+
+		if($ASWEB){
+		$PAYPAL_TABLE["1 server 5 users"]="1 server 5 users : &99,00 EUR - annuel";
+		$PAYPAL_TABLE["1 server < 10 users"]="1 server < 10 users : &200,00 EUR - annuel";
+		$PAYPAL_TABLE["1 server 11 < 50 users"]="1 server 11 < 50 users : &600,00 EUR - annuel";
+		$PAYPAL_TABLE["1 server  50 < 100"]="1 server  50 < 100 : &800,00 EUR - annuel";
+		$PAYPAL_TABLE["1 server  100 < 2500 users"]="1 server  100 < 2500 users : &1 800,00 EUR - annuel";
+		
+		
+		$paypalform="		
+			<form action=\"https://www.paypal.com/cgi-bin/webscr\" method=\"post\" target=\"_top\">
+			<input type=\"hidden\" name=\"cmd\" value=\"_s-xclick\">
+			<input type=\"hidden\" name=\"hosted_button_id\" value=\"7VDNE34DF6MUU\">
+			<div class=form style='width:95%'>
+					
+			
+			<table style='width:100%'>
+			<tr>
+			 	<td class=legend>
+					<input type=\"hidden\" name=\"on0\" value=\"Buy a License\" class=legend style='font-size:16px'>{buy_a_license}</td>
+				<td >". Field_array_Hash($PAYPAL_TABLE, "os0","1 server 5 users","font-size:14px")."</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:14px'>
+						
+						
+				<input type=\"hidden\" name=\"on1\" value=\"Reseller\">{reseller_company}</td>
+				<td>". Field_text("os1",null,'font-size:14px')."
+				<input type=\"hidden\" name=\"on5\" value=\"Company Name\">
+				<input type=\"hidden\" name=\"on4\" value=\"email\">
+				
+				<input type=\"hidden\" name=\"on2\" value=\"Computer serial\">
+				<input type=\"hidden\" name=\"on3\" value=\"Unique License\">
+				
+				
+				<input type=\"hidden\" name=\"os2\" value=\"$uuid\">
+				<input type=\"hidden\" name=\"os3\" value=\"{$LicenseInfos["license_number"]}\">
+				<input type=\"hidden\" name=\"os4\" value=\"{$LicenseInfos["EMAIL"]}\">
+				<input type=\"hidden\" name=\"os5\" value=\"{$LicenseInfos["COMPANY"]}\">
+							
+						
+						
+				</td>
+			</tr>
+			<tr>
+			<td colspan=2 align='right'>
+			<hr>
+			<input type=\"hidden\" name=\"currency_code\" value=\"EUR\">
+			<input type=\"image\" style='border:0px' src=\"https://www.paypalobjects.com/en_US/i/btn/btn_subscribeCC_LG_global.gif\" border=\"0\" name=\"submit\" alt=\"PayPal – The safer, easier way to pay online.\">
+			<img alt=\"\" border=\"0\" src=\"https://www.paypalobjects.com/fr_FR/i/scr/pixel.gif\" width=\"1\" height=\"1\">
+			</td>
+			</tr>				
+							
+			</table>				
+			
+			</form>
+			</div>";
+		}
 		
 	if($ASWEB){
 		$explain="<div style='font-size:14px' class=explain>{CORP_LICENSE_EXPLAIN}</div>";
 		$quotation="
+		
+				
 		<div class=explain>
 			<div style='font-size:16px;font-weight:bold'>{price_quote}:</div>
 			<div>
@@ -64,9 +124,11 @@ function popup(){
 		$LicenseInfos["license_status"]="{waiting_registration}";
 		$star="{explain_license_free}";
 		$button_text="{request_a_quote}/{refresh}";
+		$paypal=null;
 	}else{
 		$button_text="{update_the_request}";
 		$star="{explain_license_order}";
+		$paypal=$paypalform;
 	}	
 	
 	if($LicenseInfos["license_status"]=="{license_active}"){
@@ -99,6 +161,7 @@ function popup(){
 	
 	$html="
 	$explain
+	$paypal
 	$quotation
 	<div id='$t'></div>
 	<table style='width:99%' class=form>

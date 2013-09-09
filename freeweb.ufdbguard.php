@@ -308,11 +308,11 @@ function upload_form_perform(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	if($ligne["servername"]<>null){
 		$sql="UPDATE freeweb_slashsquid SET logoname='".basename($thumbnail_path)."',
-		logoimg='".mysql_escape_string($thumbnail_data)."' WHERE servername='$servername'";	
+		logoimg='".mysql_escape_string2($thumbnail_data)."' WHERE servername='$servername'";	
 				
 	}else{
 		$sql="INSERT INTO freeweb_slashsquid (logoname,logoimg,servername) 
-		VALUES ('".basename($thumbnail_path)."','".mysql_escape_string($thumbnail_data)."','$servername')";
+		VALUES ('".basename($thumbnail_path)."','".mysql_escape_string2($thumbnail_data)."','$servername')";
 	}
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){die ("{error: \"". $tpl->javascript_parse_text("$q->mysql_error")."\"}");}

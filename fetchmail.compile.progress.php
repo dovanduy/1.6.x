@@ -110,7 +110,7 @@ function popup(){
 	}
 
 	
-	StartCompileSquid$t();
+	StartCompileFetchmail$t();
 	</script>
 	";
 	
@@ -120,7 +120,7 @@ function Status($pourc){
 $color="#5DD13D";	
 $html="
 	<div style='width:{$pourc}%;text-align:center;color:white;padding-top:3px;padding-bottom:3px;background-color:$color'>
-		<strong style='color:#BCF3D6;font-size:12px;font-weight:bold'>{$pourc}%</strong></center>
+		<strong style='color:#BCF3D6;font-size:14px;font-weight:bold'>{$pourc}%</strong></center>
 	</div>
 ";	
 
@@ -147,7 +147,7 @@ function ApplyFetchmailRules(){
 	";
 	
 	
-	echo $tpl->_ENGINE_parse_body("<div><strong>{APP_FETCHMAIL}:{please_wait_configuring_the_module}:</strong></div>").$script;
+	echo $tpl->_ENGINE_parse_body("<div><strong style='font-size:16px'>{APP_FETCHMAIL}:{please_wait_configuring_the_module}:</strong></div>").$script;
 	
 $sock->getFrameWork("fetchmail.php?reconfigure=yes&MyCURLTIMEOUT=300");
 
@@ -169,7 +169,7 @@ function reload_service(){
 	</script>
 	";	
 	
-	echo $tpl->_ENGINE_parse_body("<div><strong>{APP_FETCHMAIL}:{please_wait_reloading_service}:</strong></div>").$script;
+	echo $tpl->_ENGINE_parse_body("<div><strong style='font-size:16px'>{APP_FETCHMAIL}:{please_wait_reloading_service}:</strong></div>").$script;
 	$sock->getFrameWork("fetchmail.php?reload-fetchmail=yes&tenir=yes&MyCURLTIMEOUT=300");
 
 }

@@ -69,9 +69,16 @@ function MySqlSyslog(){
 
 function injectSquid(){
 	$sock=new sockets();
+	$users=new usersMenus();
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if($SQUIDEnable==0){return;}
+	
+	
+	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+	if($users->PROXYTINY_APPLIANCE){$DisableArticaProxyStatistics=1;}
+	if($DisableArticaProxyStatistics==1){return;}
 	
 	$cacheFile="/usr/share/artica-postfix/ressources/web/cache1/injectSquid.".basename(__FILE__);
 	if($GLOBALS["AS_ROOT"]){
@@ -93,12 +100,11 @@ function injectSquid(){
 	}
 	
 	if($GLOBALS["VERBOSE"]){echo "InjectSquid ->\n<br>";}
-	$users=new usersMenus();
+	
 	$run=false;
-	$sock=new sockets();
+	
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
-	if($users->PROXYTINY_APPLIANCE){return;}
 	if($EnableWebProxyStatsAppliance==1){$users->WEBSTATS_APPLIANCE=true;}
 	if($users->WEBSTATS_APPLIANCE){$run=true;}
 	if($users->SQUID_INSTALLED){$run=true;}
@@ -127,18 +133,19 @@ function injectSquid(){
 	
 	
 	
-	
+
 	$LOCAL_VERSION=$sock->getFrameWork("squid.php?articadb-version=yes");
 	$array=unserialize(base64_decode($sock->getFrameWork("squid.php?articadb-nextversion=yes")));
 	$REMOTE_VERSION=$array["ARTICATECH"]["VERSION"];
 	$REMOTE_MD5=$array["ARTICATECH"]["MD5"];
 	$REMOTE_SIZE=$array["ARTICATECH"]["SIZE"];	
 	$REMOTE_SIZE=FormatBytes($REMOTE_SIZE/1024);
+	
 	if($REMOTE_VERSION>$LOCAL_VERSION){
 		$tpl=new templates();
 		$html="<div style='margin-bottom:15px'>".
 		Paragraphe("64-download.png", "{new_database_available}","{new_database_available_category_text}<hr>{version}:$REMOTE_VERSION ($REMOTE_SIZE)", 
-		"javascript:Loadjs('squid.categories.php')","go_to_section",300,132,1);
+		"javascript:Loadjs('squid.categories.php?onlyDB=yes')","go_to_section",300,132,1);
 		$html=$tpl->_ENGINE_parse_body($html)."</div>";	
 		
 		if($GLOBALS["AS_ROOT"]){
@@ -864,11 +871,15 @@ function PageDeGarde(){
 	$time=time();
 	if($q->COUNT_ROWS("sys_mem", "artica_events")>1){
 		$f1[]="<div style='width:299px;height:230px' id='$time-2'></div>";
-		$f2[]="AnimateDiv('$time-2');Loadjs('$page?graph2=yes&container=$time-2');";
+		$f2[]="function FDeux$time(){	
+				AnimateDiv('$time-2'); 
+				Loadjs('$page?graph2=yes&container=$time-2'); 
+			} 
+		setTimeout(\"FDeux$time()\",1000);";
 	}
 	if($q->COUNT_ROWS("sys_loadvg", "artica_events")>1){
 		$f1[]="<div style='width:299px;height:230px' id='$time-1'></div>$timeT";
-		$f2[]="AnimateDiv('$time-1');Loadjs('$page?graph1=yes&container=$time-1');";
+		$f2[]="function FOne$time(){AnimateDiv('$time-1');Loadjs('$page?graph1=yes&container=$time-1');} setTimeout(\"FOne$time()\",1800);";
 	}	
 	
 	

@@ -2,8 +2,12 @@
 
 session_start();$_SESSION["MINIADM"]=true;
 setcookie("MINIADM", "YES", time()+1000);
+if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
 include_once(dirname(__FILE__)."/class.browser.detection.inc");
 include_once(dirname(__FILE__)."/class.highcharts.inc");
+include_once(dirname(__FILE__)."/class.sockets.inc");
+include_once(dirname(__FILE__)."/class.user.inc");
+
 class miniadm{
 	
 	function miniadm(){
@@ -18,6 +22,105 @@ class miniadm{
 		if($users->PROXYTINY_APPLIANCE){return true;}
 		if($users->SQUID_INSTALLED){return true;}
 		if($users->SQUID_REVERSE_APPLIANCE){return true;}
+	}
+	
+	public function BackupContainerPermissions($nocache=false){
+		if(isset($GLOBALS["VERBOSE"])){$nocache=true;}
+		if(!$nocache){if(isset($_SESSION["BackupContainerPermissions"])){return $_SESSION["BackupContainerPermissions"];}}
+		$_SESSION["BackupContainerPermissions"]=array();
+		
+
+		$ARRAYPERS=$this->GetGroupsArray();
+		if($GLOBALS["VERBOSE"]){
+			while (list ($key, $val) = each ($ARRAYPERS) ){
+				echo "<div style='color:blue'>BackupContainerPermissions:: Is a member of $key</div>\n";
+			}
+			
+			echo "<div style='color:blue'>BackupContainerPermissions::".count($ARRAYPERS)." Groups</div>\n";}
+		
+		
+		$q=new mysql();
+		
+		$sql="SELECT groupid,maxsize  FROM `storage_containers` WHERE enabled=1";
+		$results = $q->QUERY_SQL($sql,'artica_backup');
+		
+		if($GLOBALS["VERBOSE"]){echo "<div style='color:blue'>BackupContainerPermissions::". mysql_num_rows($results)." Permissions...</div>\n";}
+		
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$gpid=strtolower($ligne["groupid"]);
+			
+			if(!isset($ARRAYPERS[$gpid])){
+				if($GLOBALS["VERBOSE"]){echo "<div style='color:blue'>BackupContainerPermissions::$gpid No match current group</div>\n";}
+				continue;}
+			$_SESSION["BackupContainerPermissions"][$gpid]=$ligne["maxsize"];
+		}
+		
+		return $_SESSION["BackupContainerPermissions"];
+		
+	}
+	
+	private function GetGroupsArray(){
+		
+		if(isset($GLOBALS[__CLASS__.__FUNCTION__])){return $GLOBALS[__CLASS__.__FUNCTION__];}
+		$ldap=new clladp();
+		$ARRAYPERS=array();
+		if($ldap->IsKerbAuth()){
+			include_once(dirname(__FILE__)."/class.external.ad.inc");
+			$ad=new external_ad_search();
+			$groups=$ad->GroupsOfMember($_SESSION["uid"]);
+			if(!is_array($groups)){$groups=array();}
+			while (list ($dn, $name) = each ($groups) ){$ARRAYPERS[strtolower($dn)]=true;}
+		
+		}else{
+			$users = new user ( $_SESSION["uid"]);
+			$groups = $users->Groups_list();
+			if(!is_array($groups)){$groups=array();}
+			while (list ($gid, $name) = each ($groups) ){$ARRAYPERS[$gid]=true;}
+		}
+		
+		$GLOBALS[__CLASS__.__FUNCTION__]=$ARRAYPERS;
+		return $ARRAYPERS;
+		
+	}
+	
+	public function ProxyCategoriesPermissions($nocache=false){
+		if(!$nocache){if(isset($_SESSION["ProxyCategoriesPermissions"])){return $_SESSION["ProxyCategoriesPermissions"];}}
+		$_SESSION["ProxyCategoriesPermissions"]=array();
+		if(!$this->IFItsProxy()){return $_SESSION["ProxyCategoriesPermissions"];}
+		
+		
+		$ldap=new clladp();
+
+		$ARRAYPERS=$this->GetGroupsArray();
+		$q=new mysql_squid_builder();
+		$sql="SELECT *  FROM `webfilter_catprivs`";
+		$results = $q->QUERY_SQL($sql);
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$md5=$ligne["zmd5"];
+			$categorykey=$ligne["categorykey"];
+			$groupdata=$ligne["groupdata"];
+			preg_match("#^@(.+?):(.+)#", $groupdata,$re);
+			$GroupName=$re[1];
+			$gpdata=strtolower(trim(base64_decode($re[2])));
+			$allowrecompile=$ligne["allowrecompile"];
+			if(!isset($ARRAYPERS[$gpdata])){continue;}
+			$_SESSION["ProxyCategoriesPermissions"][$categorykey]=$allowrecompile;
+		}
+		
+		return $_SESSION["ProxyCategoriesPermissions"];
+	
+	}
+
+	public function time_to_date($xtime,$time=false){
+		$tpl=new templates();
+		$dateT=date("{l} {F} d",$xtime);
+		if($time){$dateT=date("{l} {F} d H:i:s",$xtime);}
+		if($tpl->language=="fr"){
+			$dateT=date("{l} d {F} ",$xtime);
+			if($time){$dateT=date("{l} d {F} H:i:s",$xtime);}
+		}
+		return $tpl->_ENGINE_parse_body($dateT);
+	
 	}
 	
 	
@@ -101,8 +204,18 @@ class miniadm{
 		$users=new usersMenus();
 		$ct=new user($_SESSION["uid"]);
 		if($ct->DisplayName==null){$ct->DisplayName=$_SESSION["uid"];}
+		$tpl=new templates();
+		$storage=null;
+		$messaging=null;
+		
+		$hide_menu=$tpl->javascript_parse_text("{hide_menu}");
+		$show_menu=$tpl->javascript_parse_text("{show_menu}");
 		if($users->POSTFIX_INSTALLED){
 			$messaging="<li><a href=\"miniadm.messaging.php\">{messaging}</a></li>";
+		}
+		
+		if(count($this->BackupContainerPermissions())>0){
+			$storage="<li><a href=\"miniadm.backup.container.php\">{storage}</a></li>";
 		}
 		
 			$html="
@@ -123,11 +236,35 @@ class miniadm{
             
             <ul class=\"nav\">
               <li class=\"active\"><a href=\"miniadm.index.php\"><i class='icon-home icon-white'></i> {home}</a></li>
-              $messaging
+              $messaging$storage
               <li><a href=\"miniadm.about.php\">{about2}</a></li>
+              <li><a href=\"javascript:blur();\" OnClick=\"javascript:MiniAdmHideMenu()\" id='hide-menu'>$hide_menu</a></li>
              
             </ul>
-          </div>";	
+          </div>
+		<script>
+			function MiniAdmHideMenu(){
+				var content=document.getElementById('left-menu').innerHTML;
+				if(content.length>10){
+					document.getElementById('left-menu').innerHTML='';
+					document.getElementById('hide-menu').innerHTML='$show_menu';
+					document.getElementById('left-menu-bar').style.width ='0px';
+					document.getElementById('left-menu').classList.remove('span3');
+					document.getElementById('left-menu').classList.remove('bs-docs-sidebar');
+			
+				}else{
+					document.getElementById('left-menu-bar').style.width ='350px';
+					LoadAjax('left-menu','miniadm.index.php?left-menu=yes');
+					document.getElementById('hide-menu').innerHTML='$hide_menu';
+					document.getElementById('left-menu').className='span3 bs-docs-sidebar';
+					
+				}
+				
+			}
+		</script>
+		
+			
+			";	
 			
 			$tpl=new templates();
 			return $tpl->_ENGINE_parse_body($html);
@@ -142,12 +279,17 @@ class miniadm{
 		if(!$GLOBALS["VERBOSE"]){
 			if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
 		}
+		if(!isset($_SESSION["SQUID_DYNAMIC_ACLS"])){$_SESSION["SQUID_DYNAMIC_ACLS"]=array();}
 		$MAIL_ARCHIVE=true;
 		$AMAVIS_USERS=true;
 		$AMAVIS_ALL=true;
+		$admorg=array();
 		$users=new usersMenus();
 		$sock=new sockets();
 		$ASRAD=false;
+		$admorgt=null;
+		$prxyt=null;
+		$admt=null;
 		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 		$EnableAmavisDaemon=$sock->GET_INFO("EnableAmavisDaemon");
@@ -185,9 +327,14 @@ class miniadm{
 		if(!isset($_SESSION["NGNIX_PRIVS"])){
 			include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");
 			$q=new mysql_squid_builder();
-			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(*) as tcount FROM reverse_privs WHERE uid='{$_SESSION["uid"]}'"));
-			if(!is_numeric($ligne["tcount"])){$ligne["tcount"]=0;}
-			$_SESSION["NGNIX_PRIVS"]=$ligne["tcount"];
+			if($q->TABLE_EXISTS("reverse_privs")){
+				$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(*) as tcount FROM reverse_privs WHERE uid='{$_SESSION["uid"]}'"));
+				if(!$q->ok){echo "<p class=error>$q->mysql_error</p>";}
+				if(!is_numeric($ligne["tcount"])){$ligne["tcount"]=0;}
+				$_SESSION["NGNIX_PRIVS"]=$ligne["tcount"];
+			}else{
+				$_SESSION["NGNIX_PRIVS"]=0;
+			}
 		}
 		
 		
@@ -203,6 +350,7 @@ class miniadm{
 		
 		$tpl=new templates();
 		$monitorprox=array();
+		$adm=array();
 		$postfix=array();
 		$messt=null;
 		$postfixt=null;
@@ -251,6 +399,10 @@ class miniadm{
 			}
 		}
 		
+		$BackupContainerPermissions=$this->BackupContainerPermissions();
+		if(count($BackupContainerPermissions)>0){
+			$StandardUSR["{storage}"]="miniadm.backup.container.php";
+		}
 		
 		
 		
@@ -261,8 +413,8 @@ class miniadm{
 		
 		if($users->FREERADIUS_INSTALLED){
 			if($Privileges_members_admins){
-				$adm["{users_and_groups}"]="miniadmin.system.members.php";
-						
+				if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php</strong><br>\n";}
+				$adm["{manage_system}"]="miniadm.system.php";
 			}
 		}
 		
@@ -299,8 +451,8 @@ class miniadm{
 		if( ($users->AsSquidAdministrator) OR ($users->AsWebMaster) ){
 			
 			if($users->NGINX_INSTALLED){
-				$adm["{certificates_center}"]="miniadmin.certificates.php";
-			
+				if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php Line:".__LINE__."</strong><br>\n";}
+				$adm["{manage_system}"]="miniadm.system.php";
 			}
 		}
 			
@@ -310,18 +462,29 @@ class miniadm{
 		
 			
 		if($AS_PROXY_SECTION){
-				$adm["{certificates_center}"]="miniadmin.certificates.php";
-				$prxy["{APP_PROXY}"]="miniadmin.proxy.index.php";
+				if($Privileges_members_admins){
+					if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php Line:".__LINE__."</strong><br>\n";}
+					$adm["{manage_system}"]="miniadm.system.php";
+					$prxy["{APP_PROXY}"]="miniadmin.proxy.index.php";
+				}
 			
 			
-			if($users->AsDansGuardianAdministrator){$prxy["{WEB_FILTERING}"]="miniadmin.webfiltering.php";}
-			if($users->AsDansGuardianAdministrator){$adm["{certificates_center}"]="miniadmin.certificates.php";}			
+				if($users->AsDansGuardianAdministrator){
+					$adm["{manage_system}"]="miniadm.system.php";
+					$prxy["{WEB_FILTERING}"]="miniadmin.webfiltering.php";
+				}			
 			
 			$this->squid_load_dynamic_acls();
+			$this->ProxyCategoriesPermissions();
 			if(count($_SESSION["SQUID_DYNAMIC_ACLS"])>0){
 				$dynamic_acls_newbee_explain=str_replace("%s", count($_SESSION["SQUID_DYNAMIC_ACLS"]), $tpl->_ENGINE_parse_body("{dynamic_acls_newbee_explain}"));
 				$prxy["{dynamic_acls_newbee}"]="miniadmin.proxy.dynamic.acls.php";
 					
+			}
+			
+			if(count($_SESSION["ProxyCategoriesPermissions"])>0){
+				$prxy["{categories}"]="miniadmin.proxy.dynamic.categories.php";
+				
 			}
 	
 			if($users->AsProxyMonitor){$prxy["{proxy_monitor}"]="miniadmin.proxy.monitor.php";}
@@ -329,31 +492,33 @@ class miniadm{
 			
 		}			
 			
-			if($Privileges_members_admins){
-				$adm["{users_and_groups}"]="miniadmin.system.members.php";
+		if($Privileges_members_admins){
+			$adm["{manage_system}"]="miniadm.system.php";
 					
-			}			
+		}			
 			
 			
-			if($_SESSION["AsWebStatisticsAdministrator"]){
-				if($EnableRemoteStatisticsAppliance==0){
-					$prxy["{web_statistics}"]="miniadm.webstats-start.php";
-				}
+		if($_SESSION["AsWebStatisticsAdministrator"]){
+			if($EnableRemoteStatisticsAppliance==0){
+				$prxy["{web_statistics}"]="miniadm.webstats-start.php";
 			}
+		}
 		
 
 		if(isNetSessions() ) {
-			$adm["{network_services}"]="miniadm.network.php";
-			
+			if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php Line:".__LINE__."</strong><br>\n";}
+			$adm["{manage_system}"]="miniadm.system.php";
 		}
 		
 		if($users->AsSystemWebMaster){
-			$adm["{certificates_center}"]="miniadmin.certificates.php";
+			if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php Line:".__LINE__."</strong><br>\n";}
+			$adm["{manage_system}"]="miniadm.system.php";
 			$adm["FreeWebs"]="miniadm.freewebs.php";
 		}		
 		
 		if($users->AsSystemAdministrator){
-			$adm["{certificates_center}"]="miniadmin.certificates.php";
+			if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php Line:".__LINE__."</strong><br>\n";}
+			$adm["{manage_system}"]="miniadm.system.php";
 			$adm["{events}"]="miniadm.system.events.php";
 		}
 		
@@ -520,6 +685,7 @@ class boostrap_form{
 	private $buttonname="{apply}";
 	private $CloseYahoo=null;
 	private $ExecuteByClassName='';
+	private $ExecuteByClassNameForced=false;
 	private $title_form='';
 	private $ajax_page='';
 	private $PROTO="";
@@ -531,11 +697,29 @@ class boostrap_form{
 	private $id_animate;
 	private $AjaxFinal=array();
 	private $form_error=null;
+	private $cachedID=array();
+	private $fields_ids=array();
 	private $tpl;
+	public $SQUID_CATEGORIES_FAM=array();
+	public $DisableSpecialCharacters=0;
 	function boostrap_form(){
 		$this->t=time();
 		$this->id_animate="animateJS$this->t";
 		$this->tpl=new templates();;
+		$this->SQUID_CATEGORIES_FAM[1]["TITLE"]="{dangerous_websites}";
+		$this->SQUID_CATEGORIES_FAM[1]["EXPLAIN"]="{dangerous_websites_fam_explain}";
+		$this->SQUID_CATEGORIES_FAM[2]["TITLE"]="{websites_network_pollution}";
+		$this->SQUID_CATEGORIES_FAM[2]["EXPLAIN"]="{websites_network_pollution_explain}";
+		$this->SQUID_CATEGORIES_FAM[3]["TITLE"]="{websites_human_suspects}";
+		$this->SQUID_CATEGORIES_FAM[3]["EXPLAIN"]="{websites_human_suspects_explain}";	
+		$this->SQUID_CATEGORIES_FAM[4]["TITLE"]="{websites_heavy_cat}";
+		$this->SQUID_CATEGORIES_FAM[4]["EXPLAIN"]="{websites_heavy_cat_explain}";
+		$this->SQUID_CATEGORIES_FAM[5]["TITLE"]="{websites_noprod}";
+		$this->SQUID_CATEGORIES_FAM[5]["EXPLAIN"]="{websites_noprod_explain}";
+		
+		$sock=new sockets();
+		$this->DisableSpecialCharacters=$sock->GET_INFO("DisableSpecialCharacters");
+		if(!is_numeric($this->DisableSpecialCharacters)){$this->DisableSpecialCharacters=0;}
 	}
 	
 	public function trswitch($js){
@@ -554,6 +738,10 @@ class boostrap_form{
 		$this->buttonsAdd[$buttonname]=$js;
 	
 	}	
+	
+	public function time_to_date($time,$hoursSeconds=false){
+		return miniadm::time_to_date($time,$hoursSeconds);
+	}
 	
 	public function set_form_locked(){
 		$this->lockedForm=true;
@@ -606,6 +794,11 @@ class boostrap_form{
 		$this->ExecuteByClassName="SearchFunction";
 	}
 	
+	public function set_RefreshSearchsForced(){
+		$this->ExecuteByClassName="SearchFunction";
+		$this->ExecuteByClassNameForced=true;
+	}
+	
 	public function set_AjaxFinal($script){
 		$this->AjaxFinal[]=$script;
 	}
@@ -622,7 +815,7 @@ class boostrap_form{
 				"TYPE"=>"CHECKNUM",
 				"CAPTION"=>$caption,
 				"VALUE"=>$value,
-				"FIELDN"=>"$field_name-$this->t",
+				"FIELDN"=>$this->genId($field_name),
 				"PARAMS"=>$params
 		
 		);
@@ -633,7 +826,7 @@ class boostrap_form{
 				"TYPE"=>"CHECKYN",
 				"CAPTION"=>$caption,
 				"VALUE"=>$value,
-				"FIELDN"=>"$field_name-$this->t",
+				"FIELDN"=>$this->genId($field_name),
 				"PARAMS"=>$params
 	
 		);
@@ -644,7 +837,7 @@ class boostrap_form{
 				"TYPE"=>"CHECKYesNo",
 				"CAPTION"=>$caption,
 				"VALUE"=>$value,
-				"FIELDN"=>"$field_name-$this->t",
+				"FIELDN"=>$this->genId($field_name),
 				"PARAMS"=>$params
 	
 		);
@@ -670,7 +863,13 @@ class boostrap_form{
 				$text=$re[1];
 			}
 			
+			if(preg_match("#(.+?):no#", $key,$re)){
+				$text=$this->tpl->_ENGINE_parse_body($text);
+				$f[]="<th $colspan_text>$text</th>";
+				continue;
+			}
 			
+			if(!isset($Params["order-$key"])){$Params["order-$key"]=0;}
 			if($Params["order-$key"]==1){$Params["order-$key"]=0;}else{$Params["order-$key"]=1;}
 			$tri=$this->trswitch("$tFunc('order-$key','{$Params["order-$key"]}')");
 			$text=$this->tpl->_ENGINE_parse_body($text);
@@ -709,7 +908,7 @@ class boostrap_form{
 		}
 		
 		while (list ($field, $dir) = each ($array) ){	
-			$f[]="$field $dir";
+			$f[]="`$field` $dir";
 			
 		}
 		return @implode(",",$f);
@@ -756,7 +955,7 @@ class boostrap_form{
 				"TYPE"=>"TEXT",
 				"CAPTION"=>$caption,
 				"VALUE"=>$value,
-				"FIELDN"=>"$field_name-$this->t",
+				"FIELDN"=>$this->genId($field_name),
 				"PARAMS"=>$params
 				
 				);
@@ -768,7 +967,7 @@ class boostrap_form{
 				"TYPE"=>"TEXTAREA",
 				"CAPTION"=>$caption,
 				"VALUE"=>$value,
-				"FIELDN"=>"$field_name-$this->t",
+				"FIELDN"=>$this->genId($field_name),
 				"PARAMS"=>$params
 	
 		);
@@ -784,7 +983,7 @@ class boostrap_form{
 				"TYPE"=>"PASSWORD",
 				"CAPTION"=>$caption,
 				"VALUE"=>$value,
-				"FIELDN"=>"$field_name-$this->t",
+				"FIELDN"=>$this->genId($field_name),
 				"PARAMS"=>$params
 	
 		);
@@ -797,7 +996,7 @@ class boostrap_form{
 				"CAPTION"=>$caption,
 				"VALUES"=>$values,
 				"VALUE"=>$default,
-				"FIELDN"=>"$field_name-$this->t",
+				"FIELDN"=>$this->genId($field_name),
 				"PARAMS"=>$params
 		
 		);		
@@ -805,7 +1004,15 @@ class boostrap_form{
 	}
 	
 	
-	
+	private function genId($field_name){
+		
+		$bignum=rand($this->t,$this->t+99999);
+		$id="$field_name-$bignum";
+		if(isset($this->cachedID[$id])){return $this->genId($field_name);}
+		$this->cachedID[$id]=true;
+		$this->fields_ids[$field_name]=$id;
+		return $id;
+	}
 	
 	public function build_tab($array,$id=null){
 		if(!is_array($array)){return null;}
@@ -851,7 +1058,7 @@ class boostrap_form{
 		
 		
 		$(document).ready(function(){
-			setTimeout('LoadTab$md5()',500);
+			setTimeout('LoadTab$md5()',800);
 		});
 		
 		function {$id}HideAll(){
@@ -884,19 +1091,21 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 				$EXPLAINTXTP[]="</div>";
 			}
 			
-			
-			if(count($EXPLAIN["BUTTONS"])>0){
-				$EXPLAINTXTP[]=$tpl->_ENGINE_parse_body("<div style='width:100%'>".@implode(" ", $EXPLAIN["BUTTONS"])."</div>");
+			if(isset($EXPLAIN["BUTTONS"])){
+				if(count($EXPLAIN["BUTTONS"])>0){
+					$EXPLAINTXTP[]=$tpl->_ENGINE_parse_body("<div style='width:100%'>".@implode(" ", $EXPLAIN["BUTTONS"])."</div>");
 				
+				}
 			}
 			
-			if(count($EXPLAIN["LINKS"])>0){
-				while (list ($index, $array) = each ($EXPLAIN["LINKS"]) ){
-					$LABEL=$tpl->_ENGINE_parse_body($array["LABEL"]);
-					$js=$array["JS"];
-					$labels[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\">$LABEL</a>";
+			if(isset($EXPLAIN["LINKS"])){
+				if(count($EXPLAIN["LINKS"])>0){
+					while (list ($index, $array) = each ($EXPLAIN["LINKS"]) ){
+						$LABEL=$tpl->_ENGINE_parse_body($array["LABEL"]);
+						$js=$array["JS"];
+						$labels[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\">$LABEL</a>";
+					}
 				}
-				
 			}
 			
 		}
@@ -911,7 +1120,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
     </div>---
 		 */
 		
-		
+	$labeltxt=null;
 	if(count($EXPLAINTXTP)>0){$EXPLAINTXT="<td>".@implode("\n", $EXPLAINTXTP)."</td>";}
 	if(count($labels)>0){
 		$labeltxt="<div style='margin-top:8px;margin-right:80px'>".@implode("&nbsp;|&nbsp;", $labels)."</div>";
@@ -996,6 +1205,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 		$t=rand(50, time());
 		$page=CurrentPageName();
 		$tpl=new templates();
+		$please_fill=$tpl->javascript_parse_text("{please_fill}");
 		$error_on_this_field=$tpl->javascript_parse_text("{error_on_this_field}");
 		$IsAnIpv4Error=$tpl->javascript_parse_text("{IsAnIpv4Error}");
 		$functionName="Submit$t";
@@ -1019,26 +1229,45 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 		<center id='animate$t'></center>		
 		<div class='form-horizontal' id='formname-$t'>";
 		$c=0;
+		$jsLog=array();
+		$bootFormName="Form".md5(serialize($this->fields_array));
 		while (list ($fieldname, $array) = each ($this->fields_array) ){
 			$disabled=null;
 			$c++;
 			$button=null;
 			$FieldButton=null;
+			$MANDATORY=false;
 			$ClassPrepend=null;
+			$SCHEDULE=false;
 			$classField=null;
+			$FIELD_HEIGHT=0;
 			$TYPE=$array["TYPE"];
 			$jsipv4Validator=false;
 			$DISABLEALL=false;
 			$CAPTION=$tpl->_ENGINE_parse_body($array["CAPTION"]);
+			$char_alert_error=$tpl->javascript_parse_text("{char_alert_error}");
 			$CAPTIONjs=$tpl->javascript_parse_text($array["CAPTION"]);
 			$VALUE=$array["VALUE"];
 			$FIELDN=$array["FIELDN"];
 			$params=$array["PARAMS"];
 			$checked=null;
-			$MANDATORY=$params["MANDATORY"];
+			if(is_array($params)){
+				if(count($params)>0){
+					while (list ($index, $fieldIS) = each ($params) ){$xzf[]=$index;}
+					reset($params);
+					if($FIELDN<>null){$jsLog[]="// $FIELDN: ".@implode(",", $xzf);}
+				}
+			}
+			
+			
+			if(isset($params["HEIGHT"])){$FIELD_HEIGHT=$params["HEIGHT"];}
+			if(isset($params["MANDATORY"])){$MANDATORY=true;$jsLog[]="// $FIELDN -> Mandatory";}
+			if(isset($params["SCHEDULE"])){$SCHEDULE=true;}
 			if(isset($params["DISABLED"])){$disabled="disabled";}
+			if(isset($params["SPECIALSCHARS"])){$SPECIALSCHARS=true;}
 			if(isset($params["DISABLEALL"])){$DISABLEALL=true;}
 			if(isset($params["IPV4"])){$jsipv4Validator=true;}
+			if(isset($params["EXPLAIN"])){$params["TOOLIP"]=$params["EXPLAIN"];}
 			if(isset($params["TOOLIP"])){if(!isset($params["TOOLTIP"])){$params["TOOLTIP"]=$params["TOOLIP"];}}
 			$tooltip=null;
 			
@@ -1046,9 +1275,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 				$this->js[]="\tSet_Cookie('{$params["COOKIE"]}', document.getElementById('$FIELDN').value, '3600', '/', '', '');";
 			}
 					
-			
-
-			
+		
 			if($this->lockedForm){$disabled="disabled";}
 			
 			if($TYPE=="HIDDEN"){$this->js[]="\tXHR.appendData('$fieldname','$VALUE');";continue;}
@@ -1093,7 +1320,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 				$tooltip=str_replace("\n", "<br>", $tooltip);
 				$tooltip=str_replace("\"", "'", $tooltip);
 				$CAPTION="<a href=\"#\" id='$FIELDN-tips' OnMouseOver=\"javascript:$(this).tooltip('show');\" OnMouseOut=\"javascript:$(this).tooltip('hide');\"
-				data-toggle=\"tooltip\" data-html='true' data-title=\"<div style='font-size:12px'>$tooltip</div>\">$CAPTION</a>";
+				data-toggle=\"tooltip\" data-html='true' data-title=\"<div style=font-size:12px>$tooltip</div>\">$CAPTION</a>";
 				//$this->ToolTips[]=""
 			}
 			
@@ -1115,7 +1342,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 					$JSZ=explode(",",$params["LINK"]);
 					
 					while (list ($index, $fieldIS) = each ($JSZ) ){
-						$tre[]="\tif(document.getElementById('$FIELDN').checked){document.getElementById('$fieldIS-$this->t').disabled=false;}else{document.getElementById('$fieldIS-$this->t').disabled=true;}";
+						$tre[]="\tif(document.getElementById('$FIELDN').checked){document.getElementById('{$this->fields_ids[$fieldIS]}').disabled=false;}else{document.getElementById('{$this->fields_ids[$fieldIS]}').disabled=true;}";
 					}
 					
 					$JSFUNCTIONS[$functionjs]="function $functionjs(){\n".@implode("\n", $tre)."\n\t}";
@@ -1135,8 +1362,8 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 				}
 				
 				
-					$jsEnableAllCHK="\n\t\tEnableAll$t();\n";
-					$jsDisableAllInsteadCHK="\n\t\tDisableAllInstead$t('$FIELDN');\n";
+				$jsEnableAllCHK="\n\t\tEnableAll$t();\n";
+				$jsDisableAllInsteadCHK="\n\t\tDisableAllInstead$t('$FIELDN');\n";
 				
 				
 			  	$this->js[]="\tif(document.getElementById('$FIELDN').checked){XHR.appendData('$fieldname',1);}else{XHR.appendData('$fieldname',0);}";
@@ -1144,7 +1371,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			  	
 			  	if($DISABLEALL){
 			  		if(!$this->lockedForm){
-			  		$FIELDNMD5=md5($FIELDN);
+			  			$FIELDNMD5=md5($FIELDN);
 				  		$ICONZ[]="\t\tvar tmp$FIELDNMD5=0;";
 				  		$ICONZ[]="\t\tif(document.getElementById('$FIELDN').checked){ tmp$FIELDNMD5=1;}";
 				  		$ICONZ[]="\t\tif(tmp$FIELDNMD5==1){EnableAll$t();}";
@@ -1211,8 +1438,16 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			$this->js[]="\tdocument.getElementById('help-$t-$c').innerHTML='';";
 			
 			if($MANDATORY){
-				$this->js[]="\tvar field$c=document.getElementById('$FIELDN').value;";
-				$this->js[]="\tif(field$c.length==0){\n\t\tdocument.getElementById('Control-$t-$c').className='control-group error';\n\t\tdocument.getElementById('help-$t-$c').innerHTML='$error_on_this_field';\n\t\treturn;\n\t}";
+				$this->js[]="\tif(!Mandatory$bootFormName('$FIELDN','Control-$t-$c','$CAPTIONjs')){return;}";
+			}
+			
+
+			
+			if($SPECIALSCHARS){
+				if($this->DisableSpecialCharacters==0){
+					$this->js[]="\tvar field$c=document.getElementById('$FIELDN').value;";
+					$this->js[]="\tif( DetectSpecialChars(field$c,'$char_alert_error') ){\n\t\treturn;\n\t}";
+				}
 			}
 			
 			if($TYPE<>"CHECKYN"){
@@ -1254,6 +1489,12 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 					$browse=$tpl->_ENGINE_parse_body("{browse}");
 					$field=$field."<button class='btn' type=\"button\" OnClick=\"Loadjs('SambaBrowse.php?no-shares=yes&field=$FIELDN')\">$browse...</button>";
 				}	
+				if($SCHEDULE){
+					$bttxt=$tpl->_ENGINE_parse_body("{schedule}");
+					$field=$field."<button class='btn' type=\"button\" OnClick=\"Loadjs('cron.php?field=$FIELDN')\">$bttxt...</button>";
+				}				
+				 
+				
 				if($FieldButton<>null){$field=$field.$FieldButton;}			
 			}
 			
@@ -1265,8 +1506,10 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			
 			if($TYPE=="TEXTAREA"){
 				if(isset($params["TOOLTIP"])){$this->ToolTips[]=$this->BuildFieldToolTip($FIELDN,$params["TOOLTIP"]);}
+				$minheight=60;
+				if($FIELD_HEIGHT>0){$minheight=$FIELD_HEIGHT;}
 				$field="<textarea id='$FIELDN' class='$classField' $onKeyPress$disabled
-				style=\"font-size:16px !important;width:99% !important;min-height:60px !important\">". utf8_encode($VALUE)."</textarea>";
+				style=\"font-size:16px !important;width:99% !important;min-height:{$minheight}px !important\">". utf8_encode($VALUE)."</textarea>";
 			}			
 
 			
@@ -1326,17 +1569,22 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 		if(count($this->buttonsAdd)>0){
 			while (list ($xbuttonname, $xbutjs) = each ($this->buttonsAdd) ){
 				$xbuttonname=$this->tpl->_ENGINE_parse_body($xbuttonname);
-				
+				$xtbtJSStand="$functionName()";
 				$xbtlock="btn-primary";
-				if($this->lockedForm){$xbtlock=null;$xbutjs="blur();";}
+				if($this->lockedForm){$xbtlock=null;$xbutjs="blur();";$xtbtJSStand=null;}
 				$f[]="<button class=\"btn-large {$xbtlock}\" style='font-size:16px' type=\"button\"  
-				OnClick=\"$xbutjs\" data-loading-text=\"$Loading...\">$xbuttonname</button>";
+				OnClick=\"$xtbtJSStand;$xbutjs\" data-loading-text=\"$Loading...\">$xbuttonname</button>";
 			}
 		}
 		
 $CDIRJSFin=null;		
 if(isset($CDIRJS)){	if(count($CDIRJS)>0){$CDIRJSFin=@implode("\n", $CDIRJS);}}		
-		
+$AlertReturn="return;";	
+
+if($this->ExecuteByClassNameForced){
+	$AlertReturn=null;
+}
+
 $f[]="
 <!-- $infoLock -->		
 <button class=\"btn-large {$btlock}\" id='MAINBUT-$t' style='font-size:16px' type=\"button\"  data-loading-text=\"$Loading...\">$this->buttonname&nbsp;&raquo;</button>";
@@ -1344,6 +1592,9 @@ $f[]="</div>
 </div>
 <script>		
 $CDIRJSFin
+var mandatory{$c}_fieldid='';
+var mandatory{$c}_controlid='';
+
 var x$functionName= function (obj) {
 \tvar btn$t = $('#MAINBUT-$t');
 \tbtn$t.button('reset');
@@ -1351,7 +1602,7 @@ var x$functionName= function (obj) {
 \tif(document.getElementById('animate$t')){
 \t\tdocument.getElementById('animate$t').innerHTML='';
 \t}
-\tif(results.length>3){alert(results);return;}
+\tif(results.length>3){alert(results);$AlertReturn}
 \t$CloseYahoo;
 \t$final0
 ".@implode("\n", $this->AjaxFinal)."
@@ -1411,9 +1662,12 @@ function $functionName(){
 \tvar fmlock=$btJSLOCK;
 \tif(fmlock==1){return;}
 \tvar btn$t = $('#MAINBUT-$t');
-\tbtn$t.button('loading');
+
 \tvar XHR = new XHRConnection();
+// JS ARRAY() -> ". count($this->js)."\n".@implode("\n", $jsLog)."
+		
 ". @implode("\n", $this->js)."
+\tbtn$t.button('loading');		
 \tAnimateDiv('animate$t');
 \tXHR.sendAndLoad('$page', '$PROTO',x$functionName);  
 	}
@@ -1436,6 +1690,24 @@ function {$functionName}MainButt(){
 		$functionName();
 	 });	
 
+}
+
+
+
+function Mandatory$bootFormName(fieldid,controlid,captionjs){
+	mandatory{$c}_fieldid=fieldid;
+	mandatory{$c}_controlid=controlid;
+	var field$c=document.getElementById('$FIELDN').value;
+	if(field$c.length==0){
+		document.getElementById('Control-$t-$c').className='control-group error';
+		document.getElementById('help-$t-$c').innerHTML='$error_on_this_field';
+		alert('$please_fill :`'+captionjs+'`');
+		document.getElementById('Control-$t-$c').classList.remove('error');
+		
+		return false;
+	}
+	document.getElementById('help-$t-$c').innerHTML='';		
+	return true;
 }
 
 ".@implode("\n", $fjs_b)."\n".@implode("\n", $fjs_a)."\n
@@ -1465,7 +1737,15 @@ $desc_form="<hr>";
 		$text=$tpl->_ENGINE_parse_body($text);
 		$text=str_replace("\n" ,"<br>", $text);
 		$text=str_replace("\"" ,"'", $text);
-		
+		$text=str_replace("'" ,"&#130;", $text);
+		$text=str_replace("`" ,"&#130;", $text);
+		$text=str_replace(array("\"", "'",
+				"\\","/"
+				
+				), array("&quot;", '&#039;','&#91;',"&#47;"
+						
+						
+						), $text);
 		
 			return "$(\"#$fieldid\").on({
 				\"keyup focus\": function() {
@@ -1479,7 +1759,7 @@ $desc_form="<hr>";
 				placement: \"right\",
 				trigger: \"manual\",
 				html:true,
-				title: \"<div style='font-size:12px'>$text</div>\",
+				title:'<div style=font-size:12px>$text</div>',
 				
 			});\n";
 	}
@@ -1490,23 +1770,24 @@ $desc_form="<hr>";
 
 function LineToClass($line){
 	$class=null;
-	if(preg_match("#FATAL#i", $line)){return "warning";}
-	if(preg_match("#failed#i", $line)){return "warning";}
-	if(preg_match("#abnormally#i", $line)){return "error";}
-	if(preg_match("#Cannot allocate memory#i", $line)){return "error";}
-	if(preg_match("#Reconfiguring#i", $line)){return "info";}
-	if(preg_match("#Accepting HTTP#i", $line)){return "info";}
-	if(preg_match("#Ready to serve requests#i", $line)){return "info";}
-	if(preg_match("#aborting task#i", $line)){return "warning";}
-	if(preg_match("#Too much instances#i", $line)){return "warning";}
+	if(preg_match("#FATAL#is", $line)){return "warning";}
+	if(preg_match("#failed#is", $line)){return "warning";}
+	if(preg_match("#abnormally#is", $line)){return "error";}
+	if(preg_match("#Cannot allocate memory#is", $line)){return "error";}
+	if(preg_match("#Reconfiguring#is", $line)){return "info";}
+	if(preg_match("#Accepting HTTP#is", $line)){return "info";}
+	if(preg_match("#Ready to serve requests#is", $line)){return "info";}
+	if(preg_match("#aborting task#is", $line)){return "warning";}
+	if(preg_match("#Too much instances#is", $line)){return "warning";}
 	if(preg_match("#unable to#i", $line)){return "warning";}
-	if(preg_match("#New Artica Database#i", $line)){return "info";}
-	if(preg_match("#is marked as crashed#i", $line)){return "error";}
-	if(preg_match("#error reading communication#i", $line)){return "warning";}
-	if(preg_match("#Can't connect#i", $line)){return "warning";}
-	if(preg_match("#ready for connection#i", $line)){return "info";}
-	if(preg_match("#Disk is full#i", $line)){return "error";}
-	if(preg_match("#(ERROR|WARN|FATAL|UNABLE|Failed|not found|denied|VIRUS DETECTED)#i", $line)){return "error";}
+	if(preg_match("#New Artica Database#is", $line)){return "info";}
+	if(preg_match("#is marked as crashed#is", $line)){return "error";}
+	if(preg_match("#error reading communication#is", $line)){return "warning";}
+	if(preg_match("#Overloaded system#is", $line)){return "error";}
+	if(preg_match("#Can't connect#is", $line)){return "warning";}
+	if(preg_match("#ready for connection#is", $line)){return "info";}
+	if(preg_match("#Disk is full#is", $line)){return "error";}
+	if(preg_match("#(ERROR|WARN|FATAL|UNABLE|Failed|not found|denied|VIRUS DETECTED)#is", $line)){return "error";}
 	return null;
 }
 function time_to_date($xtime,$time=false){
@@ -1521,12 +1802,17 @@ function time_to_date($xtime,$time=false){
 function Privileges_members_admins(){
 		if(isset($_SESSION["Privileges_members_admins"])){return $_SESSION["Privileges_members_admins"];}
 		$users=new usersMenus();
-		if($users->AsHotSpotManager){$_SESSION["Privileges_members_admins"]=true;return true;}
-		if($users->AsSambaAdministrator){$_SESSION["Privileges_members_admins"]=true;return true;}
-		if($users->AsSystemAdministrator){$_SESSION["Privileges_members_admins"]=true;return true;}
-		if($users->AsSquidAdministrator){$_SESSION["Privileges_members_admins"]=true;return true;}
-		if($users->AsPostfixAdministrator){$_SESSION["Privileges_members_admins"]=true;return true;}
-	
+		if($users->AsHotSpotManager){
+			if($GLOBALS["VERBOSE"]){echo "<strong>Privileges_members_admins AsHotSpotManager =TRUE</strong><br>\n";}
+			$_SESSION["Privileges_members_admins"]=true;return true;}
+		if($users->AsSambaAdministrator){if($GLOBALS["VERBOSE"]){echo "<strong>Privileges_members_admins AsSambaAdministrator =TRUE</strong><br>\n";}$_SESSION["Privileges_members_admins"]=true;return true;}
+		if($users->AsSystemAdministrator){if($GLOBALS["VERBOSE"]){echo "<strong>Privileges_members_admins AsSystemAdministrator =TRUE</strong><br>\n";}$_SESSION["Privileges_members_admins"]=true;return true;}
+		if($users->AsSquidAdministrator){if($GLOBALS["VERBOSE"]){echo "<strong>Privileges_members_admins AsSquidAdministrator =TRUE</strong><br>\n";}$_SESSION["Privileges_members_admins"]=true;return true;}
+		if($users->AsPostfixAdministrator){if($GLOBALS["VERBOSE"]){echo "<strong>Privileges_members_admins AsPostfixAdministrator =TRUE</strong><br>\n";}$_SESSION["Privileges_members_admins"]=true;return true;}
+		
+		if($GLOBALS["VERBOSE"]){echo "<strong>Privileges_members_admins FALSE</strong><br>\n";}
+		$_SESSION["Privileges_members_admins"]=false;
+		return false;
 	
 }
 
@@ -1618,6 +1904,220 @@ function SEND_CORP_LICENSE_JAVASCRIPT(){
 	}	
 	
 }
+function dashboard_box($title,$number=0,$text,$footer_text=null){
+	
+	if(!isset($GLOBALS["TPL"])){$GLOBALS["TPL"]=new templates();}
+	$title=$GLOBALS["TPL"]->_ENGINE_parse_body($title);
+	$footer_text=$GLOBALS["TPL"]->_ENGINE_parse_body($footer_text);
+	$text=$GLOBALS["TPL"]->_ENGINE_parse_body($text);
+	
+	// <div id='box-holder'></div>
+	return "<div style=\"
+	background: url('/img/box-bg.png') no-repeat scroll 0 0 #EDEDED;
+    border: 1px solid #DBDBDB;
+    display: block;
+    height: 190px;
+    margin-bottom: 15px;
+    overflow: hidden;
+    position: relative;
+    width: 235px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 5px 5px 5px 5px;
+    margin-left: 0;
+    float: left;
+    outline: 0 none;
+    padding: 0;
+    vertical-align: baseline;
+    font-size:100% !important;
+    margin-right:5px;
+    \">
+	<div style=\"
+		background: -moz-linear-gradient(-90deg, #FFFFFF, #E1E1E1) repeat scroll 0 0 transparent;
+    	border: 1px solid #F7FEF4;
+    	height: 140px;
+   	 	margin: 10px 10px 5px;
+    	padding: 5px;
+    	box-shadow: 0 1px 10px rgba(0, 0, 0, 0.2) inset; \">
+    	
+	<div style=\"display: block;height: 145px;overflow: hidden;position: relative;
+	background: none repeat scroll 0 0 transparent;
+    border: 0 none;
+    font-size: 100%;
+    margin: 0;
+    outline: 0 none;
+    padding: 0;
+    vertical-align: baseline;
+	\">
+		
+	<div style=\"color: #646167;
+    font-size: 5em !important;
+    font-style: normal !important;
+    font-weight: bold !important;
+    margin-top: 10px !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    text-shadow: 0 1px 0 #FFFFFF !important;\">
+	$number
+	</div>
+		
+	<div style=\"color: #454549;
+    font-size: 1.3em !important;
+    font-style: normal !important;
+    font-variant: normal !important;
+    font-weight: normal !important;
+    letter-spacing: -1px !important;
+    margin-top: 5px !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    text-shadow: 0 1px 0 #FFFFFF !important;
+    text-transform: uppercase !important;\">
+	$title
+	</div>
+		
+	<div style=\"bottom: 2px;
+    display: block;
+    font-size:11px !important;
+    left: 5px;
+    overflow: hidden;
+    position: absolute;
+    right: 5px;
+    text-align: center;\">$text</div>
+		
+	</div>
+	</div>
+
+	<div style=\"
+    coolor: #45637A !important;
+    font-size: 0.9em !important;
+    font-weight: bold !important;
+    height: 20px !important;
+    line-height: 20px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    text-align: left !important;
+    vertical-align: middle !important;
+    \">
+	<span style=\"color: #B2AEB0;background: none repeat scroll 0 0 transparent;
+    border: 0 none !important;
+    font-size: 100% !important;
+    margin: 0 !important;
+    outline: 0 none !important;
+    padding: 0 !important;
+    vertical-align: baseline !important;
+    font-weight: bold !important;
+    line-height: 20px !important;
+    text-align: left !important;\">$footer_text</span>
+	</div>
+
+	</div>";
+
+}
+
+function stats_paragraphe($number,$title,$explain,$linkjs,$backgpict){
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body($title);
+	$explain=$tpl->_ENGINE_parse_body($explain);
+	
+	$html="
+	<div style='background: -moz-linear-gradient(-90deg, #FFFFFF, #E1E1E1) repeat scroll 0 0 transparent;
+	border: 1px solid #F7FEF4; 
+	border-radius: 5px 5px 5px 5px;    	
+	min-height: 245px;    	 	
+	margin: 10px 10px 5px;     	
+	padding: 10px;     	
+	box-shadow: 0 1px 10px rgba(0, 0, 0, 0.2) inset;cursor:pointer;'
+	
+	OnMouseOver=\"javascript:this.style.background='-moz-linear-gradient(-90deg, #FFFFFF, #FFF28E)'\"
+	OnMouseOut=\"javascript:this.style.background='-moz-linear-gradient(-90deg, #FFFFFF, #E1E1E1)'\"
+	OnClick=\"javascript:$linkjs\"
+	
+	>
+	<table style='border:0px;padding:5px;maring-top:10px;margin-right:10px;width:100%'>
+	<tr>
+		<td style='vertical-align:top' width=1% nowrap><span style='font-size:42px;font-weight:bold;color:#545454'>$number</span></td>
+		<td style='vertical-align:top;padding-left:10px'>
+			<table style='margin:0;padding:0;border:0;width:100%'>
+			<tr>
+				<td><span style='font-size:18px;border-bottom:1px solid #545454 '>$title</span>
+			</tr>
+			<tr>
+			<td style='padding-left:10px;padding-right:10px'>
+				<p style=\"background-image:url('img/$backgpict');
+					background-repeat:no-repeat;
+					min-height:180px;
+					background-position:bottom right;
+					\">$explain</p>
+			</td>
+			</tr>
+		</table>
+		</td>
+	</tr>
+	</table></div>";
+			
+return $html;
+	
+}
 
 
+
+
+
+function buildCategoriesCache($force=false){
+	include_once(dirname(__FILE__)."/class.dansguardian.inc");
+	if(!$force){
+		if(isset($_SESSION["CategoriesList"])){return $_SESSION["CategoriesList"];}
+	}
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$search='%';
+	$table="webfilters_categories_caches";
+	$page=1;
+	$ORDER="ORDER BY categorykey ASC";
+	$FORCE_FILTER=null;
+	if($q->COUNT_ROWS($table)==0){$ss=new dansguardian_rules();$ss->CategoriesTableCache();}
+	
+	$sql="SELECT * FROM personal_categories ORDER BY category";
+	
+	$results=$q->QUERY_SQL($sql);
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+	
+		$_SESSION["CategoriesList"]["CATEGORIES_PERSO"][$ligne["category"]]=array(
+				"DESC"=>utf8_encode($ligne["category_description"]),
+				"IMG"=>"<img src='img/20-categories-personnal.png'>",
+		);
+	}
+	
+	
+	
+	
+	
+	$sql="SELECT *  FROM `$table` ORDER BY categorykey ASC";
+	$results = $q->QUERY_SQL($sql);
+	
+	
+	
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		if($ligne['categorykey']=="phishtank"){continue;}
+		if(isset($_SESSION["CategoriesList"]["CATEGORIES_PERSO"][$ligne['categorykey']])){continue;}
+		if($ligne["picture"]==null){$ligne["picture"]="20-categories-personnal.png";}
+		$TextInterne=null;
+		$img="img/{$ligne["picture"]}";
+		$val=0;
+		
+		
+		$_SESSION["CategoriesList"]["CATEGORIES_ARTICA"][$ligne['categorykey']]=array(
+				"DESC"=>utf8_encode($ligne['description']),
+				"IMG"=>"<img src='$img'>",
+		);
+
+
+
+	}
+	
+	return $_SESSION["CategoriesList"];
+	
+
+}
 ?>

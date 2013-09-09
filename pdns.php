@@ -295,6 +295,9 @@ $page=CurrentPageName();
 	$PowerSkipCname=$sock->GET_INFO("PowerSkipCname");
 	$PowerDNSRecursorQuerLocalAddr=$sock->GET_INFO("PowerDNSRecursorQuerLocalAddr");
 	
+
+	
+	
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
 	$PowerDNSMySQLEngine=1;
 	if(!is_numeric($PowerActHasMaster)){$PowerActHasMaster=0;}
@@ -362,6 +365,14 @@ $page=CurrentPageName();
 	$PowerDNSRecursorQuerLocalAddr=Field_array_Hash($ips, "PowerDNSRecursorQuerLocalAddr",$PowerDNSRecursorQuerLocalAddr,null,null,0,"font-size:16px");
 	
 	
+	$PowerDNSPerfs=unserialize(base64_encode($sock->GET_INFO("PowerDNSPerfs")));
+	if(!isset($PowerDNSPerfs["cache-ttl"])){$PowerDNSPerfs["cache-ttl"]=3600;}
+	if(!isset($PowerDNSPerfs["negquery-cache-ttl"])){$PowerDNSPerfs["negquery-cache-ttl"]=7200;}
+	if(!isset($PowerDNSPerfs["query-cache-ttl"])){$PowerDNSPerfs["query-cache-ttl"]=300;}
+	if(!isset($PowerDNSPerfs["recursive-cache-ttl"])){$PowerDNSPerfs["recursive-cache-ttl"]=7200;}
+	
+	
+	
 	$PowerDNSLogLevel=Field_array_Hash($loglevels, "PowerDNSLogLevel",$PowerDNSLogLevel,null,null,0,"font-size:16px");
 	
 	$old="				<tr>	
@@ -373,8 +384,24 @@ $page=CurrentPageName();
 	<div id='PowerDNSMAsterConfigDiv'>
 	
 	
-	
-<table style='width:99%' class=form>
+<div style='width:95%' class=form>	
+<table style='width:100%'>
+				<tr>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{cache-ttl}:</td>
+					<td width=1% style='font-size:16px'>". Field_text("cache-ttl",$PowerDNSPerfs["cache-ttl"],"font-size:16px;width:90px")."&nbsp;{seconds}</td>
+				</tr>				
+				<tr>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{negquery-cache-ttl}:</td>
+					<td width=1% style='font-size:16px'>". Field_text("negquery-cache-ttl",$PowerDNSPerfs["negquery-cache-ttl"],"font-size:16px;width:90px")."&nbsp;{seconds}</td>
+				</tr>	
+				<tr>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{query-cache-ttl}:</td>
+					<td width=1% style='font-size:16px'>". Field_text("query-cache-ttl",$PowerDNSPerfs["query-cache-ttl"],"font-size:16px;width:90px")."&nbsp;{seconds}</td>
+				</tr>
+				<tr>
+					<td valign='top' class=legend style='font-size:16px' nowrap>{recursive-cache-ttl}:</td>
+					<td width=1% style='font-size:16px'>". Field_text("recursive-cache-ttl",$PowerDNSPerfs["recursive-cache-ttl"],"font-size:16px;width:90px")."&nbsp;{seconds}</td>
+				</tr>																	
 				<tr>
 					<td valign='top' class=legend style='font-size:16px' nowrap>{DisablePowerDnsManagement}:</td>
 					<td width=1%>". Field_checkbox("DisablePowerDnsManagement",1,$DisablePowerDnsManagement,"EnablePowerDNSMySQLEngineCheck()")."</td>
@@ -462,7 +489,7 @@ $page=CurrentPageName();
 				<tr><td colspan=2 align='right'><hr>". button("{apply}","SavePDNSWatchdog()","18px")."</td></tr>							
 			</table>
 			</div>
-	
+	</div>
 <script>
 
 		
@@ -542,6 +569,13 @@ $page=CurrentPageName();
 			XHR.appendData('PowerDNSMySQLRemoteAdmin',document.getElementById('PowerDNSMySQLRemoteAdmin').value);
 			XHR.appendData('PowerDNSRecursorQuerLocalAddr',document.getElementById('PowerDNSRecursorQuerLocalAddr').value);
 			
+			XHR.appendData('cache-ttl',document.getElementById('cache-ttl').value);
+			XHR.appendData('negquery-cache-ttl',document.getElementById('negquery-cache-ttl').value);
+			XHR.appendData('query-cache-ttl',document.getElementById('query-cache-ttl').value);
+			XHR.appendData('recursive-cache-ttl',document.getElementById('recursive-cache-ttl').value);
+			
+			
+
 			
 			
 			var pp=encodeURIComponent(document.getElementById('PowerDNSMySQLRemotePassw').value);
@@ -673,6 +707,15 @@ function PDNSRestartIfUpToMB(){
 	$sock->SET_INFO("PowerDNSMySQLRemoteAdmin",$_GET["PowerDNSMySQLRemoteAdmin"]);
 	$sock->SET_INFO("PowerDNSMySQLRemotePassw",$_GET["PowerDNSMySQLRemotePassw"]);
 	$sock->SET_INFO("PowerDNSRecursorQuerLocalAddr",$_GET["PowerDNSRecursorQuerLocalAddr"]);
+	
+	
+	$PowerDNSPerfs=unserialize(base64_encode($sock->GET_INFO("PowerDNSPerfs")));
+	$PowerDNSPerfs["cache-ttl"]=$_POST["cache-ttl"];
+	$PowerDNSPerfs["negquery-cache-ttl"]=$_POST["negquery-cache-ttl"];
+	$PowerDNSPerfs["query-cache-ttl"]=$_POST["query-cache-ttl"];
+	$PowerDNSPerfs["recursive-cache-ttl"]=$_POST["recursive-cache-ttl"];
+	
+	$sock->SaveConfigFile(base64_encode(serialize($PowerDNSPerfs)), "PowerDNSPerfs");
 	
 	
 	
@@ -812,7 +855,7 @@ function js(){
 		var mem_dc='';
 		notshow=0;
 		function {$prefix}StartPage(){
-			YahooWin3('850','$page?tabs=yes','$title');
+			YahooWin3('900','$page?tabs=yes','$title');
 		}
 		
 		function {$prefix}StartPage2(){

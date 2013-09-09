@@ -1,5 +1,11 @@
 <?php
-
+if(!isset($GLOBALS["AS_ROOT"])){
+	$GLOBALS["AS_ROOT"]=false;
+	if(function_exists("posix_getuid")){
+		if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}
+	}
+}
+		
 class os_system{
 	var $meta_array=array();
 	
@@ -542,16 +548,21 @@ function html_Memory_usage(){
 	}
 	
 	if(is_file(dirname(__FILE__)."/usb.scan.inc")){include dirname(__FILE__)."/usb.scan.inc";}
-	while (list ($uuid, $array) = each ($_GLOBAL["usb_list"]) ){
-		if($GLOBALS["VERBOSE"]){echo "USB = &raquo; {$array["PATH"]} = &raquo; {$array["ID_USB_DRIVER"]}<br>";}
-		$USBTYPES[$array["PATH"]]=$array["ID_USB_DRIVER"];
-		
+	if(is_array($_GLOBAL["usb_list"])){
+		while (list ($uuid, $array) = each ($_GLOBAL["usb_list"]) ){
+			if($GLOBALS["VERBOSE"]){echo "USB = &raquo; {$array["PATH"]} = &raquo; {$array["ID_USB_DRIVER"]}<br>";}
+			$USBTYPES[$array["PATH"]]=$array["ID_USB_DRIVER"];
+			
+		}
 	}
-	while (list ($dev, $array) = each ($_GLOBAL["disks_list"]) ){
-		if($GLOBALS["VERBOSE"]){echo "USB = &raquo; {$dev} = &raquo; {$array["ID_USB_DRIVER"]}<br>";}
-		$USBTYPES[$dev]=$array["ID_USB_DRIVER"];
-		
-	}	
+	
+	if(is_array($_GLOBAL["disks_list"])){
+		while (list ($dev, $array) = each ($_GLOBAL["disks_list"]) ){
+			if($GLOBALS["VERBOSE"]){echo "USB = &raquo; {$dev} = &raquo; {$array["ID_USB_DRIVER"]}<br>";}
+			$USBTYPES[$dev]=$array["ID_USB_DRIVER"];
+			
+		}	
+	}
 	
 	
 	
@@ -725,33 +736,8 @@ function html_Memory_usage(){
 	if($mem_used_p>70){$color="#F59C44";}
 	if($mem_used_p>79){$color="#D32D2D";}
 	$this->meta_array["MEM"]["COLOR"]=$color;
-					
-	if($users->DSTAT_INSTALLED){
-		$mem_js="Loadjs('dstat.memory.php')";
-		$mem_cpu="Loadjs('dstat.cpu.php')";
-		$sock=new sockets();
-		$lastcpu=trim($sock->getfile('dstatlastcpu'));
-		if(preg_match('#.+?\|\s+([0-9]+)\s+#',$lastcpu,$re)){
-			if($re[1]>90){
-				$cpu_color="#D32D2D";
-			}else{
-				$cpu_color="#5DD13D";
-			}
-			$cpu="<tr ". CellRollOver($mem_cpu).">
-				<td width=1% nowrap class=legend nowrap>{cpu_usage}:</strong></td>
-				<td align='left'>
-					<div style='width:100px;background-color:white;padding-left:0px;border:1px solid $cpu_color'>
-						<div style='width:{$re[1]}px;text-align:center;color:white;padding-top:3px;padding-bottom:3px;background-color:$cpu_color'><strong>{$re[1]}%</strong></div>
-					</div>
-				</td>
-				<td width=1% nowrap><strong style='color:$cpu_color'>{$re[1]}%</strong></td>
-				</tr>";
-		}
-		
-		
-	}else{
-		$mem_js="LoadTaskManager();";
-	}
+	$mem_js="LoadTaskManager();";
+
 	if($DisableSWAPP==0){
 		$swap_js="Loadjs('swap.status.php');";
 		$swapar=$this->swap();
@@ -793,8 +779,12 @@ function html_Memory_usage(){
 		
 	}	
 	
-	$sock=new sockets();
-	$FilesDesc=unserialize(base64_decode($sock->getFrameWork("services.php?files-descriptors=yes")));
+	if(!$GLOBALS['AS_ROOT']){
+		$sock=new sockets();
+		$FilesDesc=unserialize(base64_decode($sock->getFrameWork("services.php?files-descriptors=yes")));
+	}else{
+		$FilesDesc=$this->file_descriptors_get();
+	}
 	if(is_array($FilesDesc)){
 		$MINI=$FilesDesc["MINI"];
 		$MAXI=$FilesDesc["MAXI"];
@@ -885,6 +875,16 @@ function html_Memory_usage(){
 	$tpl=new templates();
 	return $tpl->_ENGINE_parse_body($html);
 	
+}
+private function file_descriptors_get(){
+	$unix=new unix();
+	$sysctl=$unix->find_program("sysctl");
+	$cmd="$sysctl fs.file-nr 2>&1";
+	exec("$cmd",$results);
+	if(preg_match("#=\s+([0-9]+)\s+[0-9]+\s+([0-9]+)#", @implode("", $results),$re)){
+		$array=array("MINI"=>$re[1],"MAXI"=>$re[2]);
+		return ($array);
+	}
 }
 
 function disk_type_array(){

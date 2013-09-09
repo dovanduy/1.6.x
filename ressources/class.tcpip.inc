@@ -297,6 +297,7 @@ public static function ipv4ToIpv6Cdir( $original_ip_str ) {
 	 * @return boolean True if it is valid.
 	 */
 	public static function isValid( $ip ) {
+		if($ip==null){return false;}
 		return ( preg_match( '#^' . RE_IP_ADD . '$#', $ip) || preg_match( '#^' . RE_IPV6_ADD . '$#', $ip) );
 	}
 

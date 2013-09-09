@@ -114,11 +114,30 @@ private function klist(){
 	
 	if(count($arra)==0){
 		echo "Starting......: Kerberos: keytab, create new one\n";
-		$cmd="$net ads keytab create -U $this->administrator%$this->password";
+		$cmd="$net ads keytab create -U $this->administrator%".$this->shellEscapeChars($this->password);
 	}
-	
-	
-	
+}
+private function shellEscapeChars($path){
+	$path=str_replace(" ","\ ",$path);
+	$path=str_replace('$','\$',$path);
+	$path=str_replace("&","\&",$path);
+	$path=str_replace("?","\?",$path);
+	$path=str_replace("#","\#",$path);
+	$path=str_replace("[","\[",$path);
+	$path=str_replace("]","\]",$path);
+	$path=str_replace("{","\{",$path);
+	$path=str_replace("}","\}",$path);
+	$path=str_replace("*","\*",$path);
+	$path=str_replace('"','\\"',$path);
+	$path=str_replace("'","\\'",$path);
+	$path=str_replace("(","\(",$path);
+	$path=str_replace(")","\)",$path);
+	$path=str_replace("<","\<",$path);
+	$path=str_replace(">","\>",$path);
+	$path=str_replace("!","\!",$path);
+	$path=str_replace("+","\+",$path);
+	$path=str_replace(";","\;",$path);
+	return $path;
 }
 
 

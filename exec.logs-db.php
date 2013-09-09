@@ -73,27 +73,27 @@ function start(){
 
 	
 	if($EnableSyslogDB==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME is disabled...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME is disabled...\n";}
 		stop();
 		die(0);		
 		
 	}
 	
 	if($MySQLSyslogType<>1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME is not a server...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME is not a server...\n";}
 		stop();
 		die(0);		
 	}
 		
 	if($GLOBALS["MYSQL_BIN_PATH"]<>null){$mysqld=$GLOBALS["MYSQL_BIN_PATH"];}else{$mysqld=$unix->find_program("mysqld");}
 	if(!is_file($mysqld)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME is not installed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME is not installed (mysqld, no such binary)...\n";}
 		return;
 	}	
 	
 	if($GLOBALS["mysql_install_db"]){
 		if(!is_file($mysql_install_db)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME mysql_install_db no such binary...\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME mysql_install_db no such binary...\n";}
 			return;
 		}	
 	}
@@ -103,14 +103,14 @@ function start(){
 	
 	if($unix->process_exists($pid)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL Database Engine already running pid $pid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME MySQL Database Engine already running pid $pid since {$time}mn\n";}
 		return;
 	}	
 	
 	
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME writing init.d\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME writing init.d\n";}
 	initd();
 	$TMP=$unix->FILE_TEMP();
 	
@@ -134,32 +134,39 @@ function start(){
 	$nohup=$unix->find_program("nohup");
 	if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}	
 
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Starting MySQL daemon ($SERV_NAME)\n";}
-	shell_exec("$nohup $cmdline >$TMP 2>&1 &");
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME Starting MySQL daemon ($SERV_NAME)\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME Starting MySQL daemon Output in $TMP\n";}
+	$ExecutLine="$nohup $cmdline >$TMP 2>&1 &";
+	shell_exec($ExecutLine);
 	sleep(1);
 	for($i=0;$i<10;$i++){
 		$pid=DBPID();
-		if($unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) started pid .$pid..\n";}break;}
+		if($unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME MySQL daemon ($SERV_NAME) started pid .$pid..\n";}break;}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME MySQL daemon wait $i/10\n";}
 		sleep(1);
 	}	
 	sleep(1);
+	
+	
+	
+	
 	$pid=DBPID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) failed to start\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME MySQL daemon ($SERV_NAME) failed to start\n";}
+		if($GLOBALS["OUTPUT"]){echo "$ExecutLine\n";}
 		$f=explode("\n",@file_get_contents($TMP));
-		while (list ($num, $ligne) = each ($TMP) ){
+		while (list ($num, $ligne) = each ($f) ){
 			if(trim($ligne)==null){continue;}
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME $ligne\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME $ligne\n";}
 		}
 	
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) success\n";}
-		$q=new amavisdb();
-		$q->checkTables();
-		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME MySQL daemon ($SERV_NAME) success\n";}
 	}
-	if(!$unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME $cmdline\n";}}
+	
+	$mysqlserv->CheckOutputErrors($TMP);
+	
+	if(!$unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME $cmdline\n";}}
 	$unix->THREAD_COMMAND_SET($unix->LOCATE_PHP5_BIN()." ".__FILE__." --databasesize");
 }
 
@@ -172,7 +179,7 @@ function stop(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 
@@ -345,7 +352,7 @@ function databasesize($force=false){
 	
 	$unix=new unix();
 	$arrayfile="/usr/share/artica-postfix/ressources/logs/web/{$GLOBALS["SERV_NAME"]}.size.db";
-	
+	if($GLOBALS["VERBOSE"]){echo "arrayfile=$arrayfile\n";}
 	
 	
 	if(!$force){
@@ -353,12 +360,15 @@ function databasesize($force=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["VERBOSE"]){echo "$oldpid already exists since {$time}Mn\n";}
 			return;
 		}
 	
 		@file_put_contents($pidfile, getmypid());
 		$time=$unix->file_time_min($arrayfile);
-		if($arrayfile<20){return;}
+		if($time<20){
+			if($GLOBALS["VERBOSE"]){echo "{$time}Mn require 20mn\n";}
+			return;}
 	}
 	
 	$sock=new sockets();
@@ -368,6 +378,7 @@ function databasesize($force=false){
 	if(is_link($dir)){$dir=readlink($dir);}
 	$unix=new unix();
 	$sizbytes=$unix->DIRSIZE_BYTES($dir);
+	if($GLOBALS["VERBOSE"]){echo "sizbytes=$sizbytes\n";}
 	$dir=$unix->shellEscapeChars($dir);
 	$df=$unix->find_program("df");
 	$array["DBSIZE"]=$sizbytes/1024;

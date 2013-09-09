@@ -38,17 +38,8 @@ function tabs(){
 	}
 	
 	
-	echo "
-	<div id=main_config_squid_stats_tasks style='width:100%;height:100%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_squid_stats_tasks').tabs();
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html,"main_config_squid_stats_tasks");
+	
 }	
 
 

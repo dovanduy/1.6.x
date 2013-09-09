@@ -31,7 +31,6 @@ class squid_acls{
 		if($squid->LDAP_AUTH==1){$this->AUTH=1;}
 		if($squid->LDAP_EXTERNAL_AUTH==1){$this->AUTH=1;}
 		if($squid->EnableKerbAuth==1){$this->AUTH=1;}
-		if($this->hasProxyTransparent==1){$this->AUTH=0;$this->EnableKerbAuth=0;$this->UseDynamicGroupsAcls=0;}
 		$this->instancetime=time();
 		if(!isset($GLOBALS["COMPILE_SQUID_TOKENS"])){$this->compilation_params();}
 		if(count($GLOBALS["COMPILE_SQUID_TOKENS"])<3){$this->compilation_params();}
@@ -178,7 +177,6 @@ class squid_acls{
 			}			
 			
 			if($ligne["GroupType"]=="proxy_auth_ads"){
-				if($this->hasProxyTransparent==1){continue;}
 				if($this->EnableKerbAuth==0){echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP EnableKerbAuth = 0\n";continue;}
 				if($this->UseDynamicGroupsAcls==0){echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP UseDynamicGroupsAcls = 0\n";continue;}
 				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:proxy_auth_ads $acls_name is available\n";
@@ -206,7 +204,6 @@ class squid_acls{
 			
 			
 			if(isset($ARRAY_AUTH[$ligne["GroupType"]])){
-				if($this->hasProxyTransparent==1){continue;}
 				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:AUTH: {$ligne["GroupType"]} $acls_name is available\n";
 				if($this->IsObjectAuth()){
 					$this->availableGroups[$ligne["ID"]]=true;
@@ -269,7 +266,6 @@ class squid_acls{
 			}			
 			
 			if($ligne["GroupType"]=="proxy_auth"){
-				if($this->hasProxyTransparent==1){continue;}
 				if($this->AUTH==0){
 					echo "Starting......: [ACLS]: `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP AUTH = 0\n";
 					continue;
@@ -419,7 +415,7 @@ class squid_acls{
 		$c=count($f);
 		if($c>0){
 			if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group$gpid, save $filename\n";}
-			@file_put_contents($filename, @implode("\n", $f));}
+			@file_put_contents($filename, @implode("\n", $f)."\n");}
 		return $c;
 	}
 	
@@ -479,6 +475,43 @@ class squid_acls{
 		return $pattern;
 	}
 	
+	public function dstdomain_parse($website){
+		$website=trim(strtolower($website));
+		if(preg_match("#^http:\/\/\(.*)#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^https:\/\/\(.*)#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^ftp:\/\/\(.*)#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^ftps:\/\/\(.*)#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^www\.(.*)#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^(.+?)\/#", $website,$re)){$website=$re[1];}	
+		$website=str_replace('.*.', '.', $website);
+		$website=str_replace('*', '.', $website);
+		$website=str_replace('$', '', $website);
+		$website=str_replace('(', '', $website);
+		$website=str_replace(')', '', $website);
+		$website=str_replace(';', '.', $website);
+		$website=str_replace(',', '.', $website);
+		$website=str_replace('%', '', $website);
+		$website=str_replace('+', '', $website);
+		$website=str_replace('/', '', $website);
+		$website=str_replace('?', '', $website);
+		$website=str_replace('!', '', $website);
+		$website=str_replace(':', '', $website);
+		$website=str_replace('{', '', $website);
+		$website=str_replace('}', '', $website);
+		$website=str_replace('^', '', $website);
+		$website=str_replace('\\', '', $website);
+		$website=str_replace('\'', '', $website);
+		$website=str_replace('"', '', $website);
+		$website=str_replace('&', '', $website);
+		$website=str_replace('<', '', $website);
+		$website=str_replace('>', '', $website);
+		$website=str_replace('[', '', $website);
+		$website=str_replace(']', '', $website);
+		return $website;
+		
+	}
+		
+	
 	public function GetItems($gpid,$required=null){
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType,enabled FROM webfilters_sqgroups WHERE ID='$gpid'"));
@@ -502,11 +535,13 @@ class squid_acls{
 			
 			if($GroupeType=="dstdomain"){
 				$WEBSITE=$ligne["pattern"];
-				if(substr($WEBSITE, 0,1)=="."){$WEBSITE=substr($WEBSITE,0,strlen($WEBSITE));}
+				$ligne["pattern"]=trim(strtolower($ligne["pattern"]));
 				$MASTERDOMAIN=$q->GetFamilySites($ligne["pattern"]);
-				//if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group{$gpid}, dstdomain Checks domain `$WEBSITE` [$MASTERDOMAIN]\n";}
+				if($ligne["pattern"]==null){continue;}
+				if(substr($WEBSITE, 0,1)=="."){$WEBSITE=substr($WEBSITE,0,strlen($WEBSITE));}
+				$ligne["pattern"]=$this->dstdomain_parse($ligne["pattern"]);
 				if(substr($ligne["pattern"], 0,1)<>"."){$ligne["pattern"]=".{$ligne["pattern"]}";}
-				
+
 				if(isset($MASTERDOMAINAL[$MASTERDOMAIN])){
 					if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group{$gpid}, dstdomain SKIP $MASTERDOMAIN -> $WEBSITE\n";}
 					continue;
@@ -684,6 +719,7 @@ class squid_acls{
 			
 		ORDER BY webfilters_sqtimes_rules.`Allow` DESC";
 		$q=new mysql_squid_builder();
+		if(!$q->TABLE_EXISTS("webfilters_sqtimes_assoc")){$q->CheckTables(null,$force=true);}
 		$results = $q->QUERY_SQL($sql);	
 		
 		if(!$q->ok){if(preg_match("#doesn't exist#", $q->mysql_error)){$q->CheckTables();$results = $q->QUERY_SQL($sql);}}

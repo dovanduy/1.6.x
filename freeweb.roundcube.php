@@ -75,6 +75,10 @@ function page(){
 	$SMTP_SERVER=$free->Params["ROUNDCUBE"]["SMTP_SERVER"];
 	if($SMTP_SERVER==null){$SMTP_SERVER="127.0.0.1";}
 	
+	if(!isset($free->Params["ROUNDCUBE"]["SIEVE_SERVER"])){
+		$free->Params["ROUNDCUBE"]["SIEVE_SERVER"]="127.0.0.1:2000";
+	}
+	
 	
 $html="<div style='width:100%' id='roundcubediv'>$groupware_text
 
@@ -89,12 +93,16 @@ $html="<div style='width:100%' id='roundcubediv'>$groupware_text
 </tr>
 <tr>
 	<td class=legend style='font-size:14px'>{smtp_server}:</td>
-	<td style='font-size:14px'>". Field_text("RDCUBE_SMTP_SERVER-$t",$SMTP_SERVER,"font-size:14px;width:120px")."</td>
+	<td style='font-size:14px'>". Field_text("RDCUBE_SMTP_SERVER-$t",$SMTP_SERVER,"font-size:14px;width:220px")."</td>
 </tr>
 <tr>
 	<td class=legend style='font-size:14px'>{imap_server}:</td>
-	<td style='font-size:14px'>". Field_text("RDCUBE_IMAP_SERVER-$t",$free->Params["ROUNDCUBE"]["IMAP_SERVER"],"font-size:14px;width:120px")."</td>
+	<td style='font-size:14px'>". Field_text("RDCUBE_IMAP_SERVER-$t",$free->Params["ROUNDCUBE"]["IMAP_SERVER"],"font-size:14px;width:220px")."</td>
 </tr>
+<tr>
+	<td class=legend style='font-size:14px'>Sieve:</td>
+	<td style='font-size:14px'>". Field_text("RDCUBE_SIEVE_SERVER-$t",$free->Params["ROUNDCUBE"]["SIEVE_SERVER"],"font-size:14px;width:220px")."</td>
+</tr>			
 <tr>
 	<td class=legend style='font-size:14px'>{login_domain}:</td>
 	<td style='font-size:14px'>". Field_text("username_domain-$t",$free->Params["ROUNDCUBE"]["username_domain"],"font-size:14px;width:220px")."</td>
@@ -198,6 +206,10 @@ $('#table-$t').flexigrid({
 			XHR.appendData('servername','{$_GET["servername"]}');
 			XHR.appendData('SMTP_SERVER',document.getElementById('RDCUBE_SMTP_SERVER-$t').value);
 			XHR.appendData('IMAP_SERVER',document.getElementById('RDCUBE_IMAP_SERVER-$t').value);
+			XHR.appendData('SIEVE_SERVER',document.getElementById('RDCUBE_SIEVE_SERVER-$t').value);
+			
+			
+			
 			XHR.appendData('username_domain',document.getElementById('username_domain-$t').value);
 			XHR.appendData('mail_domain',document.getElementById('mail_domain-$t').value);
 			XHR.appendData('product_name',document.getElementById('product_name-$t').value);
@@ -269,6 +281,7 @@ function SaveRDCUBE(){
 	$free=new freeweb($_POST["servername"]);
 	$free->Params["ROUNDCUBE"]["SMTP_SERVER"]=$_POST["SMTP_SERVER"];
 	$free->Params["ROUNDCUBE"]["IMAP_SERVER"]=$_POST["IMAP_SERVER"];
+	$free->Params["ROUNDCUBE"]["SIEVE_SERVER"]=$_POST["SIEVE_SERVER"];
 	$free->Params["ROUNDCUBE"]["username_domain"]=$_POST["username_domain"];
 	$free->Params["ROUNDCUBE"]["mail_domain"]=$_POST["mail_domain"];
 	$free->Params["ROUNDCUBE"]["product_name"]=$_POST["product_name"];

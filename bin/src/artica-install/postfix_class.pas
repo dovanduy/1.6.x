@@ -40,7 +40,6 @@ public
     procedure   POSTFIX_STOP();
     function    STATUS():string;
     function    MAIN_CONF_PATH():string;
-    function    WRITE_CONF(key:string;value:string):string;
     function    SOCKET_PATH():string;
     procedure   POSTFIX_START();
     function    POSTFIX_PID():string;
@@ -54,7 +53,6 @@ public
     procedure   POSTFIX_INITIALIZE_FOLDERS();
     function    POSTFIX_STATUS():string;
     function    POSTFIX_INT_VERSION(string_version:string):integer;
-    procedure   POSTFIX_INI_TD();
     function    POSTFIX_LDAP_COMPLIANCE():boolean;
     function    POSTFIX_PCRE_COMPLIANCE():boolean;
     procedure   POSFTIX_VERIFY_MAINCF();
@@ -452,43 +450,6 @@ begin
 exit('/var/run/dkim-filter/dkim-filter.sock');
 end;
 //##############################################################################
-function tpostfix.WRITE_CONF(key:string;value:string):string;
-var
-    RegExpr:TRegExpr;
-    FileDatas:TStringList;
-    i:integer;
-    found:boolean;
-    main_path:string;
-begin
-result:='';
- found:=false;
- main_path:=MAIN_CONF_PATH();
- if not FileExists(main_path) then exit;
- FileDatas:=TstringList.Create;
- FileDatas.LoadFromFile(main_path);
- RegExpr:=TRegExpr.Create;
- RegExpr.Expression:='^'+key+'\s+(.+)';
- for i:=0 to FileDatas.Count-1 do begin
-     if RegExpr.Exec(FileDatas.Strings[i]) then begin
-         FileDatas.Strings[i]:=key+chr(9)+value;
-         FileDatas.SaveToFile(main_path);
-         found:=true;
-         break;
-     end;
-
- end;
-
-         if not found then begin
-            FileDatas.Add(key+chr(9)+value);
-            FileDatas.SaveToFile(main_path);
-         end;
-
-
-         FileDatas.Free;
-         RegExpr.Free;
-
-end;
-//##############################################################################
 PROCEDURE tpostfix.SET_LDAP_COMPLIANCE();
 begin
   if not FileExists(POSFTIX_POSTCONF_PATH()) then exit;
@@ -549,9 +510,6 @@ begin
            logs.OutputCmd('/bin/cp /usr/share/artica-postfix/bin/install/postfix/bounce.cf.default /etc/postfix/bounce.template.cf')
         end;
 
-
-        mailbox_transport:=POSTFIX_EXTRACT_MAINCF('mailbox_transport');
-        logs.Debuglogs('Starting......: Postfix mailbox_transport=' + mailbox_transport);
 
 
 
@@ -785,59 +743,22 @@ begin
         forceDirectories('/var/log/artica-postfix/RTM');
         if SYS.COMMANDLINE_PARAMETERS('--verbose') then cmdline_verbose:=' --verbose';
 
-fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.postfix.maincf.php --memory'+cmdline_verbose);
 
 
 
-POSTFIX_INI_TD();
+
 
 POSTFIX_CHECK_LDAP();
-
 SET_LDAP_COMPLIANCE();
-
 POSTFIX_INITIALIZE_FOLDERS();
-
 POSTFIX_CHECK_SASLDB2();
-
 POSFTIX_VERIFY_MAINCF();
-
 VERIFY_BOUNCE_TEMPLATE();
-
 gnarwl_set_config();
-
 GENERATE_CERTIFICATE();
-
 MYSQMAIL_START();
 
-
-
-//unrestricted_senders();
-
-POSTFIX_DISABLE_MGREYLIST();
-
-hash_postfix_allowed_connections();
-
-postmap_standard_db();
-
-
-if(EnablePostfixMultiInstance=1) then begin
-    logs.DebugLogs('Starting......: Postfix, please wait, compiling main.cf for multiple instances...');
-   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.postfix-multi.php'+cmdline_verbose);
-end else begin
-    logs.DebugLogs('Starting......: Postfix, please wait, compiling main.cf...');
-    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.postfix.maincf.php --write-maincf no-restart'+cmdline_verbose);
-    logs.DebugLogs('Starting......: Postfix, please wait, compiling Policyd Daemon settings...');
-    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.policyd-weight.php'+cmdline_verbose);
-    logs.DebugLogs('Starting......: Postfix, please wait, Checking Artica-filter');
-    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.postfix.maincf.php --artica-filter'+cmdline_verbose);
-    logs.DebugLogs('Starting......: Postfix, compiling settings done..');
-    //fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.postfix.hashtables.php');
-end;
-
-
-
-
-     if FileExists('/etc/init.d/sendmail') then begin
+  if FileExists('/etc/init.d/sendmail') then begin
            if not SYS.FileSymbolicExists('/etc/init.d/sendmail') then begin
               logs.Debuglogs('Starting......: stopping sendmail...');
               fpsystem('/etc/init.d/sendmail stop');
@@ -868,7 +789,7 @@ end;
 if fileExists('/usr/sbin/postfix') then begin
    ForceDirectories('/var/spool/postfix/var');
    fpsystem(SYS.LOCATE_GENERIC_BIN('rm')+' -rf /var/spool/postfix/var/run');
-   fpsystem(SYS.LOCATE_GENERIC_BIN('ln')+' -s --force /var/run /var/spool/postfix/var/run');
+   fpsystem(SYS.LOCATE_GENERIC_BIN('ln')+' -sf /var/run /var/spool/postfix/var/run');
    fpsystem('/usr/sbin/postfix start >'+tmpstr+' 2>&1');
    fpsystem('/etc/init.d/artica-postfix start saslauthd  >/dev/null 2>&1 &');
    PARSE_POSTFIX_BINARY_OUTPUT(tmpstr);
@@ -1020,111 +941,9 @@ end;
 //##############################################################################
 procedure tpostfix.SAVE_CERTIFICATE();
 begin
-    D:=false;
-    D:=logs.COMMANDLINE_PARAMETERS('html');
-
-    forcedirectories('/etc/mail');
-    WRITE_CONF('PidFile','/var/run/dkim-filter/dkim-filter.pid');
-    WRITE_CONF('Socket','local:/var/run/dkim-filter/dkim-filter.sock');
-    WRITE_CONF('KeyFile','/etc/mail/mail.filter.private');
-    WRITE_CONF('Domain','/etc/mail/localdomains.txt');
-    WRITE_CONF('Selector','mail');
-    WRITE_CONF('Syslog','yes');
-    WRITE_CONF('AutoRestart','yes');
-    WRITE_CONF('X-Header','yes');
-    WRITE_CONF('SendReports','yes');
-    WRITE_CONF('InternalHosts','/etc/mail/localNetworks.txt');
-
-
-
-    fpsystem(artica_path + '/bin/artica-ldap -localdomains /etc/mail/localdomains.txt');
-    fpsystem(artica_path + '/bin/artica-ldap -pnetworks /etc/mail/localNetworks.txt');
-
-    fpsystem('/bin/chown postfix:postfix /etc/mail/localdomains.txt'+ ' >/dev/null 2>&1');
-    fpsystem('/bin/chown postfix:postfix /etc/mail/localNetworks.txt'+ ' >/dev/null 2>&1');
-
-
-
    GENERATE_CERTIFICATE();
 
 end;
-//##############################################################################
-procedure tpostfix.POSTFIX_INI_TD();
-var
-   myFile : TStringList;
-begin
-  if EnablePostfix=0 then exit();
-
-  IF not sys.COMMANDLINE_PARAMETERS('--force') then begin
-    if FileExists('/etc/init.d/postfix.old') then exit;
-  end;
-
-  myFile:=TstringList.Create;
-  myFile.Add('#!/bin/sh');
-  myFile.Add('#Begin /etc/init.d/postfix');
-
-
-    myFile.Add('### BEGIN INIT INFO');
-    myFile.Add('# Provides:          Postfix SMTP MTA');
-    myFile.Add('# Required-Start:    $local_fs $remote_fs $syslog $named $network $time');
-    myFile.Add('# Required-Stop:     $local_fs $remote_fs $syslog $named $network');
-    myFile.Add('# Should-Start:');
-    myFile.Add('# Should-Stop:');
-    myFile.Add('# Default-Start:     2 3 4 5');
-    myFile.Add('# Default-Stop:      0 1 6');
-    myFile.Add('# Short-Description: Start Postfix daemon');
-    myFile.Add('# chkconfig: 2345 11 89');
-    myFile.Add('# description: Postfix Daemon');
-    myFile.Add('### END INIT INFO');
-    myFile.Add('');
-
-    myFile.Add('case "$1" in');
-    myFile.Add(' start)');
-    myFile.Add('    /usr/share/artica-postfix/bin/artica-install -watchdog postfix-single $2 $3');
-    myFile.Add('    ;;');
-    myFile.Add('');
-    myFile.Add('  stop)');
-    myFile.Add('    /usr/share/artica-postfix/bin/artica-install -shutdown postfix-single $2 $3');
-    myFile.Add('    ;;');
-    myFile.Add('');
-    myFile.Add(' restart)');
-    myFile.Add('     /usr/share/artica-postfix/bin/artica-install -shutdown postfix-single $2 $3');
-    myFile.Add('     sleep 3');
-    myFile.Add('     /usr/share/artica-postfix/bin/artica-install -watchdog postfix-single $2 $3');
-    myFile.Add('    ;;');
-    myFile.Add('');
-    myFile.Add(' reload)');
-    myFile.Add('     /usr/share/artica-postfix/bin/artica-install --postfix-reload $2 $3');
-    myFile.Add('    ;;');
-    myFile.Add('');
-    myFile.Add('  *)');
-    myFile.Add('    echo "Usage: $0 {start|stop|restart|reload} (+ debug or --verbose for more infos)"');
-    myFile.Add('    exit 1');
-    myFile.Add('    ;;');
-    myFile.Add('esac');
-    myFile.Add('exit 0');
-
-    fpsystem('/bin/mv /etc/init.d/postfix /etc/init.d/postfix.old');
-    logs.WriteToFile(myfile.Text,'/etc/init.d/postfix');
-    myFile.free;
-  LOGS.debuglogs('install postfix init.d scripts........:OK');
-  LOGS.debuglogs('install init.d scripts........:Adding startup scripts to the system OK');
-  fpsystem('/bin/chmod +x /etc/init.d/postfix');
-
- if FileExists('/usr/sbin/update-rc.d') then begin
-    fpsystem('/usr/sbin/update-rc.d -f postfix defaults >/dev/null 2>&1');
- end;
-
-  if FileExists('/sbin/chkconfig') then begin
-     fpsystem('/sbin/chkconfig --add postfix >/dev/null 2>&1');
-     fpsystem('/sbin/chkconfig --level 2345 postfix on >/dev/null 2>&1');
-  end;
-
-
-end;
-
-
-//##############################################################################
 procedure tpostfix.GENERATE_CERTIFICATE();
 var
    CertificateIniFile:string;
@@ -1223,7 +1042,7 @@ begin
 
   end;
 
-     fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.postfix.maincf.php --smtp-sasl');
+
 
 
 
@@ -1691,7 +1510,6 @@ if SYS.PROCESS_EXIST(pid) then begin
    writeln('Stopping Postfix.............: ' + pid + ' PID..');
    if fileExists('/usr/sbin/postfix') then begin
       fpsystem('/usr/sbin/postfix stop >/dev/null 2>&1');
-      POSTFIX_INI_TD();
       exit;
    end;
 end;

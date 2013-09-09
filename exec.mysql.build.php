@@ -100,13 +100,13 @@ if($MysqlConfigLevel==0){
 	$unix=new unix();
 	$mem=$unix->TOTAL_MEMORY_MB();
 	echo "\n";
-	echo "Starting......: Mysql my.cnf........: Total memory {$mem}MB\n";
+	echo "Starting......: MySQL my.cnf........: Total memory {$mem}MB\n";
 	
 	if($mem<550){
-		echo "Starting......:MySQL my.cnf........: SWITCH TO LOWER CONFIG.\n";
+		echo "Starting......: MySQL my.cnf........: SWITCH TO LOWER CONFIG.\n";
 		$datas=$q->Mysql_low_config();
 		if($mem<390){
-			echo "Starting......:MySQL my.cnf........: SWITCH TO VERY LOWER CONFIG.\n";
+			echo "Starting......: MySQL my.cnf........: SWITCH TO VERY LOWER CONFIG.\n";
 			$datas=$q->Mysql_verlow_config();
 		}
 	}else{
@@ -115,7 +115,7 @@ if($MysqlConfigLevel==0){
 }
 
 if($MysqlConfigLevel==-1){
-	echo "Starting......: Mysql my.cnf........: SWITCH TO PERSONALIZED CONFIG.\n";
+	echo "Starting......: MySQL my.cnf........: SWITCH TO PERSONALIZED CONFIG.\n";
 	$datas=$q->BuildConf();
 }
 
@@ -292,6 +292,8 @@ function myisamchk(){
 
 
 function database_dump($database,$instanceid){
+	$q=new mysql();
+	
 	$unix=new unix();
 	$mysqldump=$unix->find_program("mysqldump");
 	if(!is_file($mysqldump)){return;}
@@ -965,6 +967,19 @@ function maintenance($force=false){
 	$time1=time();
 	$myisamchk=$unix->find_program("myisamchk");
 	$mysqlcheck=$unix->find_program("mysqlcheck"); 
+	
+	
+	$myisamchk=$unix->find_program("myisamchk");
+	$pgrep=$unix->find_program("pgrep");
+	exec("$pgrep -l -f \"$myisamchk\"",$results);
+	while (list ($index, $line) = each ($results) ){
+		if(preg_match("#pgrep#", $line)){continue;}
+		if(preg_match("#^[0-9]+\s+#", $line)){
+			writelogs("$line already executed",@implode("\r\n", $results),__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
+	}	
+	
 	if(!$force){
 	if(!$GLOBALS["VERBOSE"]){
 		if($time<1440){
@@ -1010,6 +1025,19 @@ function _repair_database($database){
 	$time1=time();
 	$myisamchk=$unix->find_program("myisamchk");
 	$mysqlcheck=$unix->find_program("mysqlcheck"); 	
+	
+	
+	$myisamchk=$unix->find_program("myisamchk");
+	$pgrep=$unix->find_program("pgrep");
+	exec("$pgrep -l -f \"$myisamchk\"",$results);
+	while (list ($index, $line) = each ($results) ){
+		if(preg_match("#pgrep#", $line)){continue;}
+		if(preg_match("#^[0-9]+\s+#", $line)){
+			writelogs("$line already executed",@implode("\r\n", $results),__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
+	}	
+	
 	$mysqlcheck_logs=null;
 	$sql="SHOW TABLES";
 	$results=$q->QUERY_SQL($sql,$database);

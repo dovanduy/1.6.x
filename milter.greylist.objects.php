@@ -289,7 +289,7 @@ function item_enable(){
 }
 
 function item_save(){
-	$_POST["item"]=mysql_escape_string($_POST["item"]);
+	$_POST["item"]=mysql_escape_string2($_POST["item"]);
 	
 	$sql="INSERT INTO miltergreylist_items (`item`,`groupid`,`enabled`) 
 	VALUES ('{$_POST["item"]}','{$_POST["gpid"]}','1')";
@@ -327,7 +327,7 @@ function group_save(){
 	$_POST["objectname"]=trim($_POST["objectname"]);
 	if($_POST["objectname"]==null){$_POST["objectname"]="New " .$_POST["type"];}
 	
-	$_POST["objectname"]=mysql_escape_string($_POST["objectname"]);
+	$_POST["objectname"]=mysql_escape_string2($_POST["objectname"]);
 	
 	$sql="INSERT INTO miltergreylist_objects (`instance`,`type`,`enabled`,`objectname`) 
 	VALUES ('{$_POST["hostname"]}','{$_POST["type"]}','1','{$_POST["objectname"]}')";

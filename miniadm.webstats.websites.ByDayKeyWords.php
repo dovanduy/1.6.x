@@ -161,7 +161,7 @@ function uid_search(){
 	
 	$search=string_to_flexquery("uid-search");
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
-	$category=mysql_escape_string($_GET["category"]);
+	$category=mysql_escape_string2($_GET["category"]);
 	$sql="SELECT SUM(size) as size, sum(hits) as hits,uid,category FROM $table
 	GROUP BY uid,category HAVING `category`='$category' $search $ORDER LIMIT 0,500";
 	
@@ -290,7 +290,7 @@ function graph1(){
 	$ff=time();
 	
 	$tablename="searchwordsD_".date("Ymd",$_GET["xtime"]);
-	$category=mysql_escape_string($_GET["category"]);	
+	$category=mysql_escape_string2($_GET["category"]);	
 	
 	
 	if($_GET["category"]=="unknown"){$_GET["category"]=null;}

@@ -62,6 +62,7 @@
 		public $sslcertificate=null;
 		public $PERL_AUTHNTLM=false;
 		public $enabled=1;
+		private $PrefixOutput;
 		
 		function freeweb($servername=null){
 			$users=new usersMenus();
@@ -74,10 +75,12 @@
 			$this->phpcgi=$users->phpcgi;
 			$this->APACHE_MOD_TOMCAT=$users->APACHE_MOD_TOMCAT;
 			$this->PERL_AUTHNTLM=$users->APP_PYAUTHENNTLM;
+			$this->PrefixOutput="Starting......: [INIT]: Apache \"Engine\"";
 			
 			if($servername<>null){
 				$this->WORKING_DIRECTORY="/var/www/$servername";
 				$this->servername=$servername;
+				$this->PrefixOutput="Starting......: [INIT]: Apache \"$this->servername\"";
 				$this->load();
 			}
 		}
@@ -90,7 +93,7 @@
 			
 
 			if($this->APACHE_RUN_USER==null){
-				if($this->AS_ROOT){writelogs("Starting......: Apache \"$this->servername\" WARNING unable to stat Apache Account !",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+				if($this->AS_ROOT){writelogs("$this->PrefixOutput [CLASS/".__LINE__."] WARNING unable to stat Apache Account !",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			}
 			
 		}
@@ -113,7 +116,7 @@
 		}
 		
 		private function load(){
-			if($this->AS_ROOT){writelogs("Starting......: Apache \"$this->servername\" Load DB..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			if($this->AS_ROOT){writelogs("$this->PrefixOutput [CLASS/".__LINE__."] Load DB..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			$sql="SELECT * from freeweb WHERE servername='$this->servername'";
 			$q=new mysql();
 			$q->TestingConnection();
@@ -125,7 +128,7 @@
 				return;
 			}
 			$this->groupware=$ligne["groupware"];
-			if($this->AS_ROOT){writelogs("Starting......: Apache \"$this->servername\" Groupware `$this->groupware`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			if($this->AS_ROOT){writelogs("$this->PrefixOutput [CLASS/".__LINE__."] Groupware `$this->groupware`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			$this->servername=$ligne["servername"];
 			if(strlen($ligne["Params"])>5){$this->Params=@unserialize(base64_decode($ligne["Params"]));}
 			$this->lvm_size=$ligne["lvm_size"];
@@ -133,7 +136,7 @@
 			$this->UseLoopDisk=$ligne["UseLoopDisk"];
 			$this->LoopMounts=$ligne["LoopMounts"];
 			$this->useMysql=$ligne["useMysql"];
-			if($this->AS_ROOT){writelogs("Starting......: Apache \"$this->servername\" groupware:$this->groupware",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			if($this->AS_ROOT){writelogs("$this->PrefixOutput [CLASS/".__LINE__."] groupware:$this->groupware",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			if($ligne["useSSL"]==1){$this->SSL_enabled=true;}
 			if(isset($this->Params["LimitByIp"]["enabled"])){$this->LimitByIp=$this->Params["LimitByIp"]["enabled"];}
 			$this->mod_rewrite=base64_decode($ligne["mod_rewrite"]);
@@ -375,11 +378,11 @@
 			if(trim($this->servername)==null){
 				echo "Fatal! no servername\n";return;
 			}
-			$this->mysql_password=mysql_escape_string($this->mysql_password);
-			$this->mysql_username=mysql_escape_string($this->mysql_username);
-			$this->ftpuser=mysql_escape_string($this->ftpuser);
-			$this->ftppassword=mysql_escape_string($this->ftppassword);
-			$this->uid=mysql_escape_string($this->uid);			
+			$this->mysql_password=mysql_escape_string2($this->mysql_password);
+			$this->mysql_username=mysql_escape_string2($this->mysql_username);
+			$this->ftpuser=mysql_escape_string2($this->ftpuser);
+			$this->ftppassword=mysql_escape_string2($this->ftppassword);
+			$this->uid=mysql_escape_string2($this->uid);			
 			
 			$sqladd="INSERT INTO freeweb (mysql_password,mysql_username,ftpuser,ftppassword,useSSL,
 			servername,mysql_database,uid,useMysql,
@@ -494,7 +497,7 @@
 		public function mod_pagespeed(){
 			if(!isset($this->Params["PageSpeed"])){return null;}
 			if(count($this->Params["PageSpeed"])==0){return null;}
-			echo "Starting......: Apache \"$this->servername\" mod_pagespeed Enabled\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_pagespeed Enabled\n";
 
 			$f[]="\t<IfModule pagespeed_module>";
   			$f[]="\t\tModPagespeed On";
@@ -532,13 +535,13 @@
 		public function mod_geoip(){
 			if(!isset($this->Params["GEOIP"])){return null;}
 			if(count($this->Params["GEOIP"])==0){return null;}
-			echo "Starting......: Apache \"$this->servername\" GeoIP Enabled\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] GeoIP Enabled\n";
 			$goip=$this->locate_geoip_db();
 			if(!is_file($goip)){
 				echo "Starting......: WARNING Apache \"$this->servername\" GeoIP unable to locate GeoIP.dat !!!\n";
 				return null;
 			}
-			echo "Starting......: Apache \"$this->servername\" GeoIP ". count($this->Params["GEOIP"]). " countries to block\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] GeoIP ". count($this->Params["GEOIP"]). " countries to block\n";
 			$f[]="\t<IfModule mod_geoip.c>";
   			$f[]="\t\tGeoIPEnable On";
   			$f[]="\t\tGeoIPDBFile $goip MemoryCache";
@@ -554,8 +557,8 @@
 		
 		public function mod_bw(){
 			if(!isset($this->Params["ModeBw"])){$this->Params["ModeBw"]=0;}
-			if($this->Params["ModeBw"]==0){if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" mod_bw() ModeBw Not enabled\n";}return;}
-			if(!isset($this->Params["ModBwParams"])){if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" mod_bw() ModBwParams Not filled\n";}return;}
+			if($this->Params["ModeBw"]==0){if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_bw() ModeBw Not enabled\n";}return;}
+			if(!isset($this->Params["ModBwParams"])){if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_bw() ModBwParams Not filled\n";}return;}
 			$users=new usersMenus();
 			if(!$users->APACHE_MOD_BW){return;}
 			$CONF=$this->Params["ModBwParams"];
@@ -563,7 +566,7 @@
 			while (list ($index, $RuleArray) = each ($CONF) ){
 				$BW_SOURCE=trim(strtolower($RuleArray["BW_SOURCE"]));
 				$BW_ENGINE=$RuleArray["BW_ENGINE"];
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" mod_bw() Bandwith source:$BW_SOURCE -> $BW_ENGINE\n";}
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_bw() Bandwith source:$BW_SOURCE -> $BW_ENGINE\n";}
 				if($BW_SOURCE=="all"){continue;}
 				
 				$BW_MAX=$RuleArray["BW_MAX"];
@@ -610,7 +613,7 @@
 		public function QUOS(){
 			if(!$this->AS_ROOT){return;}
 			if(!isset($this->Params["QOS"])){return;}
-			echo "Starting......: Apache \"$this->servername\" QUOS() {$this->Params["QOS"]["EnableQOS"]}\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] QUOS() {$this->Params["QOS"]["EnableQOS"]}\n";
 			if(!isset($this->Params["QOS"])){$this->Params["QOS"]["EnableQOS"]=0;}
 			$EnableQOS=$this->Params["QOS"]["EnableQOS"];
 			if(!is_numeric($EnableQOS)){$EnableQOS=0;}
@@ -623,7 +626,7 @@
 			if(isset($this->Params["QOS"]["QS_LimitRequestBody"])){$QS_LimitRequestBody=$this->Params["QOS"]["QS_LimitRequestBody"];}
 			
 			if($EnableQOS==0){
-				echo "Starting......: Apache \"$this->servername\" QUOS() DISABLED\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] QUOS() DISABLED\n";
 				//$f[]="\t<IfModule mod_qos.c>";
 				//$f[]="\t\tQS_InvalidUrlEncoding off";
 				//$f[]="\t\tQS_ResponseHeaderFilter off";
@@ -703,20 +706,20 @@
 		
 		public function AuthUsers(){
 			if(!isset($this->Params["LDAP"]["members"])){
-				echo "Starting......: Apache \"$this->servername\" AUTH: No members set\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] AUTH: No members set\n";
 				return null;
 			}
 			$users=$this->Hash_ldap_users();
-			echo "Starting......: Apache \"$this->servername\" AUTH: ".count($users)." member(s)\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] AUTH: ".count($users)." member(s)\n";
 			
 			if(count($users)==0){return null;}
 			while (list ($num, $ligne) = each ($users) ){
 				if($num==null){continue;}
 				$f[]=$ligne;	
 			}
-			echo "Starting......: Apache \"$this->servername\" AUTH: ".count($f)." member(s) compiled\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] AUTH: ".count($f)." member(s) compiled\n";
 			if(count($f)==0){
-				echo "Starting......: Apache \"$this->servername\" AUTH: No user defined\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] AUTH: No user defined\n";
 				return null;
 			}
 			
@@ -724,15 +727,15 @@
 				$ldap=new clladp();
 				$GLOBALS["MAANAGER_NAME"]=$ldap->ldap_admin;
 			}
-			echo "Starting......: Apache \"$this->servername\" AUTH:{$GLOBALS["MAANAGER_NAME"]}\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] AUTH:{$GLOBALS["MAANAGER_NAME"]}\n";
 			$f[]="\t\tRequire ldap-user {$GLOBALS["MAANAGER_NAME"]}";
 			return @implode("\n", $f);
 			
 		}
 		public function mod_status(){
 			if($this->groupware=="KLMS"){return null;}
-			if(!$this->APACHE_MOD_INFO){echo "Starting......: Apache \"$this->servername\" mod_info, no such module\n";return;}
-			if(!$this->APACHE_MOD_STATUS){echo "Starting......: Apache \"$this->servername\" mod_status, no such module\n";return;}
+			if(!$this->APACHE_MOD_INFO){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_info, no such module\n";return;}
+			if(!$this->APACHE_MOD_STATUS){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_status, no such module\n";return;}
 			if(isset($GLOBALS["HTTPD_CONF_MOD_STATUS"])){return $GLOBALS["HTTPD_CONF_MOD_STATUS"];}
 			
 			if(!isset($GLOBALS["MYINTERFACESAllowFROM"])){
@@ -771,18 +774,22 @@
 		
 		public function Apache2_AuthenNTLM(){
 			if(!$this->PERL_AUTHNTLM){
-				echo "Starting......: Apache \"$this->servername\" Not NTLM compliance\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] Not NTLM compliance\n";
 				return null;
 			}
 			$Params=$this->Params;
 			if(!isset($Params["NTLM"]["enabled"])){$Params["NTLM"]["enabled"]=0;}
 			if(!is_numeric($Params["NTLM"]["enabled"])){$Params["NTLM"]["enabled"]=0;}
-			echo "Starting......: Apache \"$this->servername\" is NTLM ? = {$Params["NTLM"]["enabled"]}\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] is NTLM ? = {$Params["NTLM"]["enabled"]}\n";
 			if($Params["NTLM"]["enabled"]==0){return null;}
 			$RESULTS=$this->ActiveDirectoryInformations();
 			
 			if(strlen($RESULTS["ADNETIPADDR"])>7){
 				$adname=$RESULTS["ADNETIPADDR"];
+				$ipaddrZ=explode(".",$adname);
+				while (list ($num, $a) = each ($ipaddrZ) ){$ipaddrZ[$num]=intval($a);}
+				$adname=@implode(".", $ipaddrZ);
+				
 			}
 			
 			if($adname==null){
@@ -799,7 +806,7 @@
 			
 
 			$workgroup=$RESULTS["ADNETBIOSDOMAIN"];
-			echo "Starting......: Apache \"$this->servername\" NTLM  = $workgroup@$adname\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] NTLM  = $workgroup@$adname\n";
 			$tabs="\t\t";
 			$conf[]="{$tabs}PythonAuthenHandler pyntlm";
 			$conf[]="{$tabs}AuthType NTLM";
@@ -864,25 +871,33 @@
 			if(!is_numeric($EnableSambaActiveDirectory)){$EnableSambaActiveDirectory=0;}
 			$RESULTS["LDAP_SUFFIX"]=null;
 			if($EnableKerbAuth==1){
-				echo "Starting......: Apache \"$this->servername\" is NTLM ? = Loading KerbAuthInfos\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] is NTLM ? = Loading KerbAuthInfos\n";
 				$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 				$RESULTS["WINDOWS_DNS_SUFFIX"]=$array["WINDOWS_DNS_SUFFIX"];
 				$RESULTS["WINDOWS_SERVER_NETBIOSNAME"]=$array["WINDOWS_SERVER_NETBIOSNAME"];
 				$RESULTS["ADNETBIOSDOMAIN"]=$array["ADNETBIOSDOMAIN"];
 				$RESULTS["ADNETIPADDR"]=$array["ADNETIPADDR"];
+				
+				$ipaddrZ=explode(".",$RESULTS["ADNETIPADDR"]);
+				while (list ($num, $a) = each ($ipaddrZ) ){$ipaddrZ[$num]=intval($a);}
+				$RESULTS["ADNETIPADDR"]=@implode(".", $RESULTS["ADNETIPADDR"]);
+				
 				$RESULTS["WINDOWS_SERVER_ADMIN"]=$array["WINDOWS_SERVER_ADMIN"];
 				$RESULTS["WINDOWS_SERVER_PASS"]=$array["WINDOWS_SERVER_PASS"];
 				$RESULTS["LDAP_SUFFIX"]=$array["LDAP_SUFFIX"];
 			}
 			if($EnableSambaActiveDirectory==1){
 				$array=unserialize(base64_decode($sock->GET_INFO("SambaAdInfos")));
-				echo "Starting......: Apache \"$this->servername\" is NTLM ? = Loading SambaAdInfos\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] is NTLM ? = Loading SambaAdInfos\n";
 				$RESULTS["WINDOWS_SERVER_NETBIOSNAME"]=$array["ADSERVER"];
 				$RESULTS["WINDOWS_DNS_SUFFIX"]=$array["ADDOMAIN"];
 				$RESULTS["ADNETBIOSDOMAIN"]=$array["WORKGROUP"];
 				$RESULTS["WINDOWS_SERVER_ADMIN"]=$array["ADADMIN"];
 				$RESULTS["WINDOWS_SERVER_PASS"]=$array["PASSWORD"];
 				$RESULTS["ADNETIPADDR"]=$array["ADSERVER_IP"];
+				$ipaddrZ=explode(".",$RESULTS["ADNETIPADDR"]);
+				while (list ($num, $a) = each ($ipaddrZ) ){$ipaddrZ[$num]=intval($a);}
+				$RESULTS["ADNETIPADDR"]=@implode(".", $ipaddrZ);
 				
 			}
 			
@@ -914,9 +929,9 @@
 		
 		
 		public function RewriteEngine(){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" is forwarder ? ($this->Forwarder) groupware=$this->groupware\n";}
+			if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] is forwarder ? ($this->Forwarder) groupware=$this->groupware\n";}
 			if($this->Forwarder==1){
-				echo "Starting......: Apache \"$this->servername\" is forwared to $this->ForwardTo\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] is forwared to $this->ForwardTo\n";
 				$conf[]="\tRewriteEngine On";
 				$conf[]="\tRewriteRule (.*) $this->ForwardTo";
 				return @implode("\n", $conf);
@@ -948,21 +963,21 @@
 		
 		
 		public function mpm_itk_module(){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" mpm_itk_module() checks..\n";}
+			if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mpm_itk_module() checks..\n";}
 			$users=new usersMenus();
 			if(!$users->MPM_ITK_MODULE){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" mpm_itk_module() MPM_ITK_MODULE=FALSE\n";}
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mpm_itk_module() MPM_ITK_MODULE=FALSE\n";}
 				return;}
 			if($this->uid==null){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" mpm_itk_module() No uid set\n";}
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mpm_itk_module() No uid set\n";}
 				return;}
 			if(!is_numeric($this->gpid)){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" mpm_itk_module() gpid:`$this->gpid` is not a numeric value\n";}
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mpm_itk_module() gpid:`$this->gpid` is not a numeric value\n";}
 				return;}
 			if($this->gpid==0){return;}	
 			$gp=new groups($this->gpid);
 			
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" mpm_itk_module() Success for $this->uid $gp->groupName\n";}
+			if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mpm_itk_module() Success for $this->uid $gp->groupName\n";}
 			
 			$f[]="\t<IfModule mpm_itk_module>";
 			$f[]="\t\tAssignUserId $this->uid $gp->groupName";
@@ -1006,12 +1021,12 @@
 			if(!is_numeric($Params["DOSBlockingPeriod"])){$Params["DOSBlockingPeriod"]=10.7;}	
 			if(!is_numeric($Params["DOSEnable"])){$Params["DOSEnable"]=0;}	
 			if($Params["DOSEnable"]==0){
-				echo "Starting......: Apache \"$this->servername\" DDOS evasive disabled\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] DDOS evasive disabled\n";
 				return; 
 			}		
 
 			
-			echo "Starting......: Apache \"$this->servername\" DDOS evasive Enabled\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] DDOS evasive Enabled\n";
  
 					
 			
@@ -1147,7 +1162,7 @@
 		
 		public function CheckWorkingDirectory(){
 			if($this->AS_ROOT){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" DEBUG: Working dir ? type=$this->groupware, WebCopy=$this->WebCopyID (L.".__LINE__.")\n";}
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] DEBUG: Working dir ? type=$this->groupware, WebCopy=$this->WebCopyID (L.".__LINE__.")\n";}
 			} 
 			if($this->IsGroupWareFromArtica()){
 				$this->CheckDirectoryRights();
@@ -1179,7 +1194,10 @@
 			}
 			
 			if($this->groupware=="SARG"){
-				$this->WORKING_DIRECTORY="/usr/share/artica-postfix/squid";
+				$sock=new sockets();
+				$SargOutputDir=$sock->GET_INFO("SargOutputDir");
+				if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
+				$this->WORKING_DIRECTORY=$SargOutputDir;
 				$this->CheckDirectoryRights();
 				return;
 			}			
@@ -1230,7 +1248,7 @@
 				return;
 			}
 			if($this->groupware=="ARKEIA"){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" DEBUG: Working dir=/opt/arkeia/wui/htdocs (L.".__LINE__.")\n";} 
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] DEBUG: Working dir=/opt/arkeia/wui/htdocs (L.".__LINE__.")\n";} 
 				$this->WORKING_DIRECTORY="/opt/arkeia/wui/htdocs";
 				$this->CheckDirectoryRights();
 				return;
@@ -1247,7 +1265,7 @@
 			
 			
 			if($this->servername=="_default_"){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" DEBUG: is a default website (L.".__LINE__.")\n";} 
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] DEBUG: is a default website (L.".__LINE__.")\n";} 
 				if(trim($this->www_dir)<>null){$this->WORKING_DIRECTORY=trim($this->www_dir);return;}
 				$this->WORKING_DIRECTORY="/var/www/html";return;
 			}
@@ -1281,7 +1299,7 @@
 		private function CheckWorkingDirectoryLoop(){
 			if($this->UseLoopDisk==0){return false;}
 			if(!is_dir($this->LoopMounts)){
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $this->LoopMounts no such directory\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] $this->LoopMounts no such directory\n";}
 				return false;
 			}
 			
@@ -1297,10 +1315,10 @@
 			if($this->lvm_size==0){return false;}
 			if($this->lvm_vg==null){return false;}
 			if($this->AS_ROOT){
-				echo "Starting......: Apache \"$this->servername\" stored on an LVM group $this->lvm_vg partition ({$this->lvm_size}MB)\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] stored on an LVM group $this->lvm_vg partition ({$this->lvm_size}MB)\n";
 				$lvm=new lvm_root();
 				if(!$lvm->CreateLVS($this->lvm_vg,$this->servername,$this->lvm_size,"$this->lvm_vg-$this->servername")){return false;}
-				echo "Starting......: Apache \"$this->servername\" $this->lvm_vg/$this->lvm_vg-$this->servername success\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] $this->lvm_vg/$this->lvm_vg-$this->servername success\n";
 			}
 			$this->WORKING_DIRECTORY="/automounts/$this->lvm_vg-$this->servername";
 			if($this->AS_ROOT){
@@ -1349,10 +1367,10 @@
 			if(!$this->AS_ROOT){return;}
 			$unix=new unix();
 			$this->WORKING_DIRECTORY=str_replace("//","/",$this->WORKING_DIRECTORY);
-			echo "Starting......: Apache \"$this->servername\" working directory on $this->WORKING_DIRECTORY\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] working directory on $this->WORKING_DIRECTORY\n";
 			if(!is_dir($this->WORKING_DIRECTORY)){@mkdir($this->WORKING_DIRECTORY,0666,true);}
 			if(!is_dir($this->WORKING_DIRECTORY)){
-				echo "Starting......: Apache \"$this->servername\" working directory failed !!!\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] working directory failed !!!\n";
 				return;
 			}
 			
@@ -1365,7 +1383,7 @@
 			
 			
 			if($this->groupware=="ARKEIA"){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" DEBUG: Check dir=/opt/arkeia/wui/tmp/sessions (L.".__LINE__.")\n";} 
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] DEBUG: Check dir=/opt/arkeia/wui/tmp/sessions (L.".__LINE__.")\n";} 
 				$this->WORKING_DIRECTORY="/opt/arkeia/wui/htdocs";
 				@mkdir("/opt/arkeia/wui/tmp/sessions",0755,true);
 				$unix->chown_func($this->APACHE_RUN_USER, $this->APACHE_RUN_GROUP,"/opt/arkeia/wui/tmp/*");
@@ -1399,7 +1417,7 @@
 		if($this->groupware=="cachemgr"){$index_php="<?php echo header('location:cgi-bin/cachemgr.cgi');die();?>";}
 			
 			if(!is_file("$this->WORKING_DIRECTORY/index.php")){
-				echo "Starting......: Apache \"$this->servername\" CheckDefaultPage -> $this->WORKING_DIRECTORY/index.php (L.".__LINE__.")\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] CheckDefaultPage -> $this->WORKING_DIRECTORY/index.php (L.".__LINE__.")\n";
 				@file_put_contents("$this->WORKING_DIRECTORY/index.php",$index_php);
 			}			
 			
@@ -1459,7 +1477,7 @@
 				if($OpenEMMEnable==1){return;}
 			}	
 			
-			if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" Adding tomcat connector\n";}
+			if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] Adding tomcat connector\n";}
 			$f[]="\t<IfModule mod_jk.c>";
 			$f[]="\t\tJkMount / default";
 			$f[]="\t\tJkMount /* default";
@@ -1502,15 +1520,12 @@
 		public function WebdavHeader(){
 				if($this->groupware=="WEBDAVFREE"){$this->Params["WEBDAV"]["ENABLED"]=1;}
 				if(!isset($this->Params["WEBDAV"]["ENABLED"])){$this->Params["WEBDAV"]["ENABLED"]=0;}
+				
+				
 				if($this->Params["WEBDAV"]["ENABLED"]==0){return null;}
+				echo "Starting......: [INIT]: Apache WebDav Engine enabled, DavLock in $this->WORKING_DIRECTORY/DavLock\n";
 				$conf[]="\tDavLockDB \"$this->WORKING_DIRECTORY/DavLock\"";
-				$conf[]="\tBrowserMatch \"Microsoft Data Access Internet Publishing Provider\" redirect-carefully";
-				$conf[]="\tBrowserMatch \"MS FrontPage\" redirect-carefully";
-				$conf[]="\tBrowserMatch \"^WebDrive\" redirect-carefully";
-				$conf[]="\tBrowserMatch \"^WebDAVFS/1.[0123]\" redirect-carefully";
-				$conf[]="\tBrowserMatch \"^gnome-vfs/1.0\" redirect-carefully";
-				$conf[]="\tBrowserMatch \"^XML Spy\" redirect-carefully";
-				$conf[]="\tBrowserMatch \"^Dreamweaver-WebDAV-SCM1\" redirect-carefully";
+				$conf[]=$this->WebDavBrowserMatches();
 				return @implode("\n",$conf);				
 			
 		}
@@ -1523,6 +1538,7 @@
 			
 				$f[]=$this->WORKING_DIRECTORY;
 				$f[]="/var/log/apache2/$this->servername";
+				$f[]="/var/run/mysqld";
 				
 				if($this->AS_ROOT){
 					@chmod("/var/log/apache2/$this->servername", 0777);
@@ -1565,7 +1581,10 @@
 				$f[]="/usr/share/artica-postfix/user-backup/ressources";
 				$f[]="/etc/ssl/certs/mysql-client-download";
 				$f[]="/usr/share/artica-postfix/LocalDatabases";
-				$f[]="/etc/artica-postfix/settings/Daemons";
+				$f[]="/var/run";
+				$f[]="/bin";
+				$f[]="/usr/sbin";
+				$f[]="/etc/artica-postfix/settings";
 			}
 			
 			if(($this->groupware=="ZARAFA") OR ($this->groupware=="ZARAFA_MOBILE") OR ($this->groupware=="Z-PUSH") OR ($this->groupware=="WEBAPP")){
@@ -1628,7 +1647,7 @@
 		
 		public function Aliases(){
 			$f=array();
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" checking aliases..\n";}
+			if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] checking aliases..\n";}
 			$already=array();
 
 			if($this->groupware=="WPAD"){
@@ -1640,11 +1659,11 @@
 				if($this->Params["ZARAFAWEB_PARAMS"]["zPushInside"]==1){
 					$f[]="\tAlias /Microsoft-Server-ActiveSync $this->WORKING_DIRECTORY/mobile/index.php";
 					$f[]="\tAlias /AutoDiscover/AutoDiscover.xml \"$this->WORKING_DIRECTORY/Autodiscover/Autodiscover.php\"";
-					if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" Alias /Microsoft-Server-ActiveSync $this->WORKING_DIRECTORY/mobile/index.php\n";}
+					if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] Alias /Microsoft-Server-ActiveSync $this->WORKING_DIRECTORY/mobile/index.php\n";}
 					$already["/Microsoft-Server-ActiveSync"]=true;
 					$already["/AutoDiscover/AutoDiscover.xml"]=true;
 				}else{
-					if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" zPushInside is FALSE\n";}
+					if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] zPushInside is FALSE\n";}
 				}
 			}
 			
@@ -1660,48 +1679,48 @@
 			$q=new mysql();
 			$results=$q->QUERY_SQL($sql,'artica_backup');
 			if(!$q->ok){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" mysql error failed $q->mysql_error\n";}
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mysql error failed $q->mysql_error\n";}
 			}
 			
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" SQL Query return ". mysql_num_rows($results). "rows\n";}
+			if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] SQL Query return ". mysql_num_rows($results). "rows\n";}
 			
 			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 				$Alias=trim($ligne["alias"]);
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" check Alias:`$Alias` -> \"{$ligne["directory"]}\"\n";}
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] check Alias:`$Alias` -> \"{$ligne["directory"]}\"\n";}
 				$directory=trim($ligne["directory"]);
 				if($Alias==null){continue;}
 				$regex=false;
 				if(preg_match("#^REGEX:(.+)#", $Alias,$re)){
-					if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" Alias:`$Alias` -> REGEX\n";}
+					if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] Alias:`$Alias` -> REGEX\n";}
 					$Alias=$re[1];$regex=true;}
 				
 				if(substr($Alias, 0,1)<>'/'){$Alias="/$Alias";}
 				if(substr($directory, 0,1)<>'/'){$directory="/$directory";}
 				if(isset($already[$Alias])){
-					if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" Alias:`$Alias` -> Already set, skip it\n";}
+					if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] Alias:`$Alias` -> Already set, skip it\n";}
 					continue;
 				}
 				$noprefix=false;
 				if(preg_match("#^\/var\/www\/#", $directory)){$noprefix=true;}
 				if(preg_match("#^\/usr\/share\/#", $directory)){$noprefix=true;}
 				if(!$noprefix){
-					if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" Alias:`$Alias` -> Must be prefixed...\n";}
+					if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] Alias:`$Alias` -> Must be prefixed...\n";}
 					$directory=$this->WORKING_DIRECTORY.$directory;
 				}
 				if(strtolower($Alias)==strtolower("/Microsoft-Server-ActiveSync")){
-					if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" Alias:`$Alias` -> is an ActiveSync...\n";}
+					if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] Alias:`$Alias` -> is an ActiveSync...\n";}
 					if(!preg_match("#\/index\.php$#", $directory)){$directory=$directory."/index.php";}}
 				
 				$already[$Alias]=true;
 				if(!$regex){
 					$f[]="\tAlias $Alias $directory";
-					if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" Alias: result:`Alias $Alias $directory`\n";}
+					if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] Alias: result:`Alias $Alias $directory`\n";}
 					}else{
-						if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" Alias: result:`AliasMatch $Alias $directory`\n";}
+						if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] Alias: result:`AliasMatch $Alias $directory`\n";}
 						$f[]="\tAliasMatch $Alias $directory";
 					}
 			}
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Apache \"$this->servername\" Alias: return ". count($f)." items\n";}
+			if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] Alias: return ". count($f)." items\n";}
 			if(count($f)>0){return @implode("\n",$f);}
 			
 		}
@@ -1731,7 +1750,7 @@
 			if(!is_numeric($this->gpid)){return;}
 			if($this->gpid==0){return;}	
 			$gp=new groups($this->gpid);
-			echo "Starting......: Apache \"$this->servername\" set permissions for {$this->uid}:{$gp->groupName} on \"$directory\"\n"; 			
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] set permissions for {$this->uid}:{$gp->groupName} on \"$directory\"\n"; 			
 			$unix=new unix();
 			$chown=$unix->find_program("chown");
 			shell_exec("$chown  {$this->uid}:{$gp->groupName} \"$directory\"");
@@ -1741,7 +1760,7 @@
 		
 		
 		public function chown($directory){
-			if(!is_dir($directory)){echo "Starting......: Apache \"$this->servername\" chown \"$directory\" no such directory\n";return;}
+			if(!is_dir($directory)){echo "$this->PrefixOutput [CLASS/".__LINE__."] chown \"$directory\" no such directory\n";return;}
 			if($this->chown_itk($directory)){return;}
 			if(!isset($GLOBALS["CHOWNCOMMANDSFREEWBS"])){
 				$apacheusername=$this->APACHE_RUN_USER;
@@ -1766,11 +1785,11 @@
 			}
 
 			if($GLOBALS["CHOWNCOMMANDSFREEWBS"]["USER"]==null){
-				echo "Starting......: Apache \"$this->servername\" chown \"$directory\" no such user\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] chown \"$directory\" no such user\n";
 				return;
 			}
 			
-			echo "Starting......: Apache \"$this->servername\" set permissions for {$GLOBALS["CHOWNCOMMANDSFREEWBS"]["USER"]} on \"$directory\"\n"; 
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] set permissions for {$GLOBALS["CHOWNCOMMANDSFREEWBS"]["USER"]} on \"$directory\"\n"; 
 			shell_exec("{$GLOBALS["CHOWNCOMMANDSFREEWBS"]["CHOWN"]}  {$GLOBALS["CHOWNCOMMANDSFREEWBS"]["USER"]}:{$GLOBALS["CHOWNCOMMANDSFREEWBS"]["GROUP"]} \"$directory\"");
 			shell_exec("{$GLOBALS["CHOWNCOMMANDSFREEWBS"]["CHOWN"]} -R {$GLOBALS["CHOWNCOMMANDSFREEWBS"]["USER"]}:{$GLOBALS["CHOWNCOMMANDSFREEWBS"]["GROUP"]} \"$directory\" &");	
 			
@@ -1918,6 +1937,9 @@
 			$this->Params["PHP_VALUES"]["include_path"]=@implode(":", $includes);
 			$this->Params["PHP_VALUES"]["error_log"]="/var/log/apache2/$this->servername/php.log";
 			$this->Params["PHP_VALUES"]["log_errors"]="On";
+			
+	
+			
 
 			if($php_open_base_dir<>null){$this->Params["PHP_VALUES"]["open_basedir"]=$php_open_base_dir;}
 			
@@ -2079,6 +2101,12 @@
 				
 			}
 			
+		$sql="SELECT *  FROM freeweb_php WHERE servername='$this->servername'";
+		$results=$q->QUERY_SQL($sql,'artica_backup');
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$this->Params["PHP_VALUES"][$ligne["key"]]=$ligne["value"];
+		}
+			
 		if(is_array($this->Params["PHP_VALUES"])){
 			$array=$this->Params["PHP_VALUES"];
 			while (list ($key, $val) = each ($array) ){
@@ -2174,7 +2202,7 @@
 		
 		public function FilesRestrictions(){
 			if(!$this->IsGroupWareFromArtica()){
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" not an artica groupware interface\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] not an artica groupware interface\n";}
 				return null;
 			}
 			if($this->groupware=="ARTICA_ADM"){
@@ -2184,18 +2212,18 @@
 			
 			if($this->groupware=="ARTICA_REGISTER_OU"){
 				$array=$this->ParseArticaDirectory();
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" restrictions on ". count($array). " files\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] restrictions on ". count($array). " files\n";}
 				unset($array["miniadm.register.php"]);
 			}
 			
 			if($this->groupware=="XAPIAN"){
 				$array=$this->ParseArticaDirectory();
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" restrictions on ". count($array). " files\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] restrictions on ". count($array). " files\n";}
 				unset($array["xapian.index.php"]);
 			}
 			if($this->groupware=="ANDROWEB"){
 				$array=$this->ParseArticaDirectory("^android\.");
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" restrictions on ". count($array). " files\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] restrictions on ". count($array). " files\n";}
 			}
 			if($this->groupware=="ARTICA_PRXYLOGS"){
 				$array=$this->ParseArticaDirectory();
@@ -2266,7 +2294,7 @@
 		private function ParseArticaDirectory($FilterExclude=null){
 			$keyMem=md5(__FUNCTION__.$FilterExclude);
 			if(isset($GLOBALS[$keyMem])){return $GLOBALS[$keyMem];}
-			if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" parsing /usr/share/artica-postfix directory\n";}
+			if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] parsing /usr/share/artica-postfix directory\n";}
 			foreach (glob("/usr/share/artica-postfix/*.php") as $filename) {
 				$f=basename($filename);
 				if($FilterExclude<>null){
@@ -2275,7 +2303,7 @@
 				$GLOBALS["ARTICA_FILES_BAN"][$f]=$f;
 			}
 			
-			if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" ". count($GLOBALS["ARTICA_FILES_BAN"]). " files\n";}
+			if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] ". count($GLOBALS["ARTICA_FILES_BAN"]). " files\n";}
 			unset($GLOBALS["ARTICA_FILES_BAN"]["Inotify.php"]);
 			unset($GLOBALS["ARTICA_FILES_BAN"]["admin.top.menus.php"]);
 			unset($GLOBALS["ARTICA_FILES_BAN"]["CacheOff.php"]);
@@ -2405,7 +2433,7 @@
 			if(!$this->AS_ROOT){return;}
 			if(!isset($this->Params["MOD_CACHE"]["Modenabled"])){$this->Params["MOD_CACHE"]["Modenabled"]=0;}
 			if($this->Params["MOD_CACHE"]["Modenabled"]==0){
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" Cache is not enabled\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] Cache is not enabled\n";}
 				return null;
 			}
 			if(!is_numeric($this->Params["MOD_CACHE"]["CacheDefaultExpire"])){$this->Params["MOD_CACHE"]["CacheDefaultExpire"]=3600;}
@@ -2415,7 +2443,7 @@
 			
 
 	
-			echo "Starting......: Apache \"$this->servername\" Cache is enabled\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] Cache is enabled\n";
 			$f[]="\t<IfModule mod_cache.c>";
 			$f[]="\t\t<IfModule mod_disk_cache.c>";
 			$f[]="\t\t\tCacheEnable disk /";
@@ -2427,15 +2455,15 @@
 				$array=$this->Params["MOD_CACHE"]["CacheDisable"];
 				if(is_array($array)){
 					while (list ($num, $ligne) = each ($array) ){
-						echo "Starting......: Apache \"$this->servername\" CacheDisable \"$num\"\n";
+						echo "$this->PrefixOutput [CLASS/".__LINE__."] CacheDisable \"$num\"\n";
 						if($num==null){continue;}
 						$f[]="\t\t\tCacheDisable $num";
 					}
 				}else{
-					echo "Starting......: Apache \"$this->servername\" CacheDisable no row\n";
+					echo "$this->PrefixOutput [CLASS/".__LINE__."] CacheDisable no row\n";
 				}
 			}else{
-				echo "Starting......: Apache \"$this->servername\" CacheDisable not filled\n"; 
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] CacheDisable not filled\n"; 
 				
 			}			
 			
@@ -2476,10 +2504,146 @@
 				@mkdir("/var/cache/apache/$this->servername",0755,true);
 				if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}else{$sock=$GLOBALS["CLASS_SOCKETS"];}
 				$apacheusername=$sock->GET_INFO('APACHE_SRC_ACCOUNT');
-				echo "Starting......: Apache \"$this->servername\" cache enabled with apache user $apacheusername\n";				
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] cache enabled with apache user $apacheusername\n";				
 				shell_exec("/bin/chown $apacheusername:$apacheusername /var/cache/apache/$this->servername");
 			}
 			return @implode("\n", $f);
+		}
+	
+		public function htpassword($username,$clearTextPassword){
+			
+			$password = crypt($clearTextPassword, base64_encode($clearTextPassword));
+			return  "$username:$password";
+		}
+		
+		public function DigestPassword($username,$realm,$password){
+			if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+			$password=$GLOBALS["CLASS_UNIX"]->shellEscapeChars($password);
+			if(!isset($GLOBALS["ECHO_BIN"])){$GLOBALS["ECHO_BIN"]=$GLOBALS["CLASS_UNIX"]->find_program("echo");}
+			if(!isset($GLOBALS["MD5SUM_BIN"])){$GLOBALS["MD5SUM_BIN"]=$GLOBALS["CLASS_UNIX"]->find_program("md5sum");}
+			if(!isset($GLOBALS["CUT_BIN"])){$GLOBALS["CUT_BIN"]=$GLOBALS["CLASS_UNIX"]->find_program("cut");}
+			$cmd="{$GLOBALS["ECHO_BIN"]} -n \"$username:$realm:\" && {$GLOBALS["ECHO_BIN"]} -n \"$username:$realm:$password\" | {$GLOBALS["MD5SUM_BIN"]} - | {$GLOBALS["CUT_BIN"]} -d' ' -f1 2>&1";
+			echo $cmd."\n";
+			return exec($cmd);
+			
+		}
+		
+		public function WebDavBrowserMatches(){
+			$f[]="\tBrowserMatch \"Microsoft Data Access Internet Publishing Provider\" redirect-carefully";
+			$f[]="\tBrowserMatch \"MS FrontPage\" redirect-carefully";
+			$f[]="\tBrowserMatch \"^WebDrive\" redirect-carefully";
+			$f[]="\tBrowserMatch \"^WebDAVFS/1.[0123]\" redirect-carefully";
+			$f[]="\tBrowserMatch \"^gnome-vfs/1.0\" redirect-carefully";
+			$f[]="\tBrowserMatch \"^XML Spy\" redirect-carefully";
+			$f[]="\tBrowserMatch \"^Dreamweaver-WebDAV-SCM1\" redirect-carefully";
+			$f[]="\tBrowserMatch \"Microsoft-WebDAV-MiniRedir\" redirect-carefully";
+			$f[]="\tBrowserMatch \"^cadaver\" redirect-carefully";
+			return @implode("\n", $f);
+			
+		}
+		
+		public function WebDavContainersCount(){
+			if(isset($GLOBALS["WebDavContainersCount"])){return $GLOBALS["WebDavContainersCount"];}
+			$q=new mysql();
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(container_id) as tcount FROM users_containers WHERE created=1 AND onerror=0 AND webdav=1","artica_backup"));
+			$NUM=$ligne["tcount"];
+			if(!is_numeric($NUM)){$NUM=0;}
+			$GLOBALS["WebDavContainersCount"]=$NUM;
+			return $GLOBALS["WebDavContainersCount"];
+		}
+		
+		private function strip_bad_chars($value){
+			$value=str_replace(" ","-",$value);
+			$value=str_replace('$','',$value);
+			$value=str_replace("&","",$value);
+			$value=str_replace("?","",$value);
+			$value=str_replace("#","",$value);
+			$value=str_replace("[","-",$value);
+			$value=str_replace("]","",$value);
+			$value=str_replace("{","-",$value);
+			$value=str_replace("}","",$value);
+			$value=str_replace("*","",$value);
+			$value=str_replace('"','',$value);
+			$value=str_replace("'","",$value);
+			$value=str_replace("(","-",$value);
+			$value=str_replace(")","",$value);
+			$value=str_replace("<","",$value);
+			$value=str_replace(">","",$value);
+			$value=str_replace("!","",$value);
+			$value=str_replace("+","",$value);
+			$value=str_replace(";","-",$value);
+			return $value;
+			
+		}
+		
+		public function WebDavContainers(){
+			if(isset($GLOBALS["WebDavContainers"])){return $GLOBALS["WebDavContainers"];}
+			$sock=new sockets();
+			$ApacheDisableModDavFS=$sock->GET_INFO("ApacheDisableModDavFS");
+			if(!is_numeric($ApacheDisableModDavFS)){$ApacheDisableModDavFS=0;}
+			if($this->WebDavContainersCount()==0){$ApacheDisableModDavFS=1;}
+			if($ApacheDisableModDavFS==1){$GLOBALS["WebDavContainers"]=null;return;}
+			$unix=new unix();
+			$ls=$unix->find_program("ls");
+			$sql="SELECT * FROM users_containers WHERE created=1 AND onerror=0 AND webdav=1";
+			$q=new mysql();
+			$results=$q->QUERY_SQL($sql,"artica_backup");
+			echo "Starting......: [INIT]: Apache ".mysql_num_rows($results)." WebDav items...\n";
+			$apacheusername=$unix->APACHE_SRC_ACCOUNT();
+			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+				$ID=$ligne["container_id"];
+				$webdav_creds=unserialize(base64_decode($ligne["webdav_creds"]));
+				
+				
+				
+				$MountedPath="/media/artica_containers/membersdisks/disk$ID";
+				shell_exec("$ls $MountedPath/*");
+				if(!is_dir("$MountedPath/WebShared")){
+					@mkdir("$MountedPath/WebShared",0755,true);
+				}
+				@chown("$MountedPath/WebShared", $apacheusername);
+				@mkdir("/etc/htpass",0755,true);
+				echo "Starting......: [INIT]: Apache WebDav [disk$ID] `$MountedPath`\n";
+				$f[]="Alias /disk$ID $MountedPath/WebShared";
+				
+				$f[]="<Location /disk$ID>";
+				$f[]="\tDAV On";
+				$f[]="\tphp_flag engine off";
+				$f[]="\tOptions -Includes -ExecCGI";
+				
+				# Uncomment to prevent .htaccess files from overriding above settings
+				# AllowOverride None
+				
+				# Uncomment to turn off any existing rewrite rules
+				# Rewrite engine off
+				$f[]=$this->WebDavBrowserMatches();
+				echo "Starting......: [INIT]: Apache WebDav [disk$ID] Username: `{$webdav_creds["username"]}`\n";
+				
+				
+				if(trim($webdav_creds["username"])<>null){
+					$AuthName=$this->strip_bad_chars($ligne["container_name"]);
+					$digest=$this->DigestPassword($webdav_creds["username"], $AuthName, $webdav_creds["password"]);
+					@file_put_contents("/etc/htpass/disk$ID", $digest);
+					@chown("/etc/htpass/disk$ID", $apacheusername);
+					
+					
+					$f[]="\tAuthType digest";
+					$f[]="\t# {$ligne["container_name"]} - $AuthName";
+					$f[]="\tAuthName \"$AuthName\"";
+					echo "Starting......: [INIT]: Apache WebDav digest: [disk$ID] `$AuthName/{$webdav_creds["password"]}` ($digest)\n";
+					$f[]="\tAuthDigestProvider file";
+					$f[]="\tAuthUserFile /etc/htpass/disk$ID";
+					$f[]="\tRequire valid-user";
+				}
+				$f[]="</Location>";
+				
+				
+				
+			}
+			echo "Starting......: [INIT]: Apache WebDav ". count($f)." lines\n";
+			$GLOBALS["WebDavContainers"]=@implode("\n", $f);
+			return $GLOBALS["WebDavContainers"];
+			
 		}
 		
 		
@@ -2487,7 +2651,7 @@
 			if($this->groupware=="WEBDAVFREE"){return null;}
 			if(!isset($this->Params["WEBDAV"]["ENABLED"])){$this->Params["WEBDAV"]["ENABLED"]=0;}
 			if($this->Params["WEBDAV"]["ENABLED"]==0){
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" WebDAV is not enabled\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] WebDAV is not enabled\n";}
 				return null;
 			}
 			if($GLOBALS["VERBOSE"]){echo "DEBUG::WebDav:: WebDav enabled\n";}
@@ -2498,18 +2662,25 @@
 			}
 			
 			$ldap=new clladp();
-			if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" WebDav is enabled\n";}
+			if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] WebDav is enabled\n";}
          	$f[]="DAV On";
           	$f[]="DAVMinTimeout 600";
            	$f[]="AuthType Basic";
            	$f[]="AuthBasicProvider ldap";
+           	
+           	if($ldap->IsKerbAuth()){
+           		$f[]=$this->WebDav_ActiveDirectory();
+           		if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] WebDav -> Active Directory\n";}
+           		return  @implode("\n",$f);
+           	}
+           	
            	$f[]="AuthName \"$this->servername Users Only\"";
            	$f[]="AuthLDAPURL ldap://$ldap->ldap_host:$ldap->ldap_port/dc=organizations,$ldap->suffix?uid?sub";
            	$f[]="AuthLDAPBindDN cn=$ldap->ldap_admin,$ldap->suffix";
            	$f[]="AuthLDAPBindPassword $ldap->ldap_password";
           	$f[]="AuthLDAPGroupAttribute memberUid";
           	if(!is_array($this->Params["WEBDAV"]["MEMBERS"])){
-          		if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" Authentication for ". count($this->Params["WEBDAV"]["MEMBERS"])." items\n";}
+          		if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] Authentication for ". count($this->Params["WEBDAV"]["MEMBERS"])." items\n";}
           		$c=0;
           		while (list ($member, $asnull) = each ($this->Params["WEBDAV"]["MEMBERS"]) ){
           			if($member==null){continue;}
@@ -2527,6 +2698,22 @@
 			if($c==0){$f[]="Require valid-user";}		
 			return @implode("\n",$f);
 			
+		}
+		
+		public function WebDav_ActiveDirectory(){
+			include_once(dirname(__FILE__)."/class.external.ad.inc");
+			$ad=new external_ad_search();
+
+			$host=$ad->KerbAuthInfos["ADNETIPADDR"];
+			$suffix=$ad->KerbAuthInfos["LDAP_SUFFIX"];
+			$password=$ad->KerbAuthInfos["WINDOWS_SERVER_PASS"];
+			$usrname=$ad->BuildAdUser();
+			$f[]="AuthName \"$this->servername Login\"";
+			$f[]="AuthLDAPURL \"ldap://$host:389/$suffix?sAMAccountName?sub?(objectClass=user)\" NONE";
+			$f[]="AuthLDAPBindDN \"$usrname\"";
+			$f[]="AuthLDAPBindPassword \"$password\"";
+			$f[]="require ldap-attribute objectClass=user";
+			return @implode("\n",$f);
 		}
 		
 		private function DeleteLVM(){
@@ -2552,7 +2739,7 @@
 				$LOCATIONDONE=false;
 				$directory=$ligne["directory"];
 				if(!is_dir($directory)){
-					if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" WebDav $directory no such directory\n";}
+					if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] WebDav $directory no such directory\n";}
 					continue;
 				}
 				$params=unserialize(base64_decode($ligne["params"]));
@@ -2716,7 +2903,12 @@
 
 			$sql="DELETE FROM freewebs_aliases WHERE `servername`='$this->servername'";
 			writelogs("$sql",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-			$q->QUERY_SQL($sql,"artica_backup");	
+			$q->QUERY_SQL($sql,"artica_backup");
+			
+			$sql="DELETE FROM freeweb_php WHERE `servername`='$this->servername'";
+			writelogs("$sql",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			$q->QUERY_SQL($sql,"artica_backup");
+			
 
 			$sql="DELETE FROM freeweb_slashsquid WHERE servername='$this->servername'";
 			writelogs("$sql",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
@@ -2827,7 +3019,7 @@
 			//$f[]="\t\t\tAllow from localhost";
 			//$f[]="\t\t</Proxy>";
 			$f[]="\t</IfModule>";
-			echo "Starting......: Apache \"$this->servername\" ejabberd	-> http://127.0.0.1:5280 Proxy\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] ejabberd	-> http://127.0.0.1:5280 Proxy\n";
 			return @implode("\n", $f);
 		}
 		
@@ -2898,7 +3090,7 @@
 				shell_exec("$cp -rf $DirectorySrc/* $Directory/");
 				
 				
-				echo "Starting......: Apache \"$this->servername\" InstallZarafaZpush():: index path: $indexPath...\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] InstallZarafaZpush():: index path: $indexPath...\n";
 				$f[]="<?php";
 				$f[]="    define('TIMEZONE', '');";
 				$f[]="    define('BASE_PATH', dirname(\$_SERVER['SCRIPT_FILENAME']). '/');";
@@ -2941,7 +3133,7 @@
 				if(isset($this->Params["ZPUSH"]["STORES"])){
 					$params=$this->Params["ZPUSH"]["STORES"];
 					while (list ($ID, $folder) = each ($params) ){
-						echo "Starting......: Apache \"$this->servername\" InstallZarafaZpush():: Public folder:{$folder["U"]}:{$folder["F"]}\n";
+						echo "$this->PrefixOutput [CLASS/".__LINE__."] InstallZarafaZpush():: Public folder:{$folder["U"]}:{$folder["F"]}\n";
 						$f[]="        array(";
 						$f[]="            'store'     => \"{$folder["U"]}\",";
 						$f[]="            'folderid'  => \"$ID\",";
@@ -2966,7 +3158,7 @@
 				@file_put_contents($indexPath, @implode("\n", $f));
 				$unix=new unix();
 				$unix->chown_func($this->APACHE_RUN_USER, $this->APACHE_RUN_GROUP,"$this->WORKING_DIRECTORY/*");
-				echo "Starting......: Apache \"$this->servername\" InstallZarafaZpush():: Check Autodiscover...\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] InstallZarafaZpush():: Check Autodiscover...\n";
 				$this->Autodiscover();
 		}
 		
@@ -3496,6 +3688,7 @@
 			if(!$this->AS_ROOT){return;}
 			if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 			$apache2ctl=$GLOBALS["CLASS_UNIX"]->find_program("apache2ctl");
+			if(!is_file($apache2ctl)){$apache2ctl=$GLOBALS["CLASS_UNIX"]->find_program("apachectl");}
 			$nohup=$GLOBALS["CLASS_UNIX"]->find_program("nohup");
 			if(strlen($apache2ctl)<5){$apache2ctl=$GLOBALS["CLASS_UNIX"]->find_program("apachectl");}
 			$pid_path=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_PID_PATH();
@@ -3515,14 +3708,14 @@
 		
 		
 		private function TestSUGAR(){
-			if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" Testing SugerCRM installation\n";}
+			if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] Testing SugerCRM installation\n";}
 			$sugar=new SugarCRM_install($this->servername);
 			if(!$sugar->isFirstInstalled()){$sugar->CheckInstall();}
 			
 		}
 		private function TestPIWIGO(){
 			include_once(dirname(__FILE__)."/class.piwigo.inc");
-			if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" Testing Piwigo installation\n";}
+			if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] Testing Piwigo installation\n";}
 			$sugar=new piwigo($this->servername);
 			$sugar->verifinstall();
 			
@@ -3540,11 +3733,11 @@
 			
 			$directory="/etc/openssl/certificate_center/$this->sslcertificate";
 			if(!is_file("$directory/server.crt")){
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $directory/server.crt no such file\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] $directory/server.crt no such file\n";}
 				return;
 			}
 			if(!is_file("$directory/myserver.key")){
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $directory/myserver.key no such file\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] $directory/myserver.key no such file\n";}
 				return;
 			}	
 
@@ -3565,21 +3758,21 @@
 			$directory="/etc/openssl/certificate_center/$this->sslcertificate";
 			$CommonName=$this->sslcertificate;
 			if(!is_file("$directory/chain.crt")){
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $directory/chain.crt no such file\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] $directory/chain.crt no such file\n";}
 				$SSLEngine2=$this->SSLEngine2();
 				if($SSLEngine2<>null){return $SSLEngine2;}
 				return @implode("\n", $conf);
 			}
 		
 			if(!is_file("$directory/$CommonName.crt")){
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $directory/$CommonName.crt no such file\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] $directory/$CommonName.crt no such file\n";}
 				$SSLEngine2=$this->SSLEngine2();
 				if($SSLEngine2<>null){return $SSLEngine2;}				
 				return @implode("\n", $conf);
 			}
 			
 			if(!is_file("$directory/cakey.pem")){
-				if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" $directory/cakey.pem no such file\n";}
+				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] $directory/cakey.pem no such file\n";}
 				$SSLEngine2=$this->SSLEngine2();
 				if($SSLEngine2<>null){return $SSLEngine2;}					
 				return @implode("\n", $conf);
@@ -3596,10 +3789,19 @@
 		}
 		
 		
+		private function ROUNDCUBE(){
+			if(!$this->AS_ROOT){return;}
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] Checking RoundCube application\n";
+			include_once(dirname(__FILE__)."/class.roundcube.freewebs.inc");
+			$rond=new roundcube_freewebs($this->servername);
+			$rond->build();
+		}
+		
+		
 		
 		function phpmyadmin(){
 			if($this->WebCopyID>0){return;}
-			if($this->AS_ROOT){echo "Starting......: Apache \"$this->servername\" directory \"$this->WORKING_DIRECTORY\"\n";}
+			if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] directory \"$this->WORKING_DIRECTORY\"\n";}
 			$phpmyadmin_dir="$this->WORKING_DIRECTORY/phpmyadmin";
 			if($this->IsGroupWareFromArtica()){return;}
 			if($this->groupware=="ZARAFA"){return;}
@@ -3608,27 +3810,28 @@
 			if($this->groupware=="SUGAR"){$this->TestSUGAR();return;}
 			if($this->groupware=="PIWIGO"){$this->TestPIWIGO();return;}
 			if($this->groupware=="APP_FILEZ_WEB"){$this->TestFileZ();return;}
+			if($this->groupware=="ROUNDCUBE"){$this->ROUNDCUBE();return;}
 			
 			if(!is_numeric($this->useMysql)){$this->useMysql=0;}
 			
 			
 			
 			if($this->useMysql==0){
-				echo "Starting......: Apache \"$this->servername\" Mysql is not enabled\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] MySQL is not enabled\n";
 				if(is_dir("$phpmyadmin_dir")){
-					echo "Starting......: Apache \"$this->servername\" removing $phpmyadmin_dir\n";
+					echo "$this->PrefixOutput [CLASS/".__LINE__."] removing $phpmyadmin_dir\n";
 					shell_exec("/bin/rm -rf $phpmyadmin_dir");
 				}
 				return;
 				
 			}
 			if(is_file("/usr/share/phpmyadmin/index.php")){
-				echo "Starting......: Apache \"$this->servername\" installing phpmyadmin /usr/share/phpmyadmin/index.php no such file\n";
+				echo "$this->PrefixOutput [CLASS/".__LINE__."] installing phpmyadmin /usr/share/phpmyadmin/index.php no such file\n";
 				return;
 			}
 			
 			
-			echo "Starting......: Apache \"$this->servername\" Mysql is enabled\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] MySQL is enabled\n";
 			echo "Starting......: Apache checks $phpmyadmin_dir\n";
 			
 			

@@ -93,6 +93,16 @@ function remote_save(){
 	$sock=new sockets();
 	$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
 	$_POST["password"]=url_decode_special_tool($_POST["password"]);
+	
+	if(isset($_POST["RemotePort"])){
+		if($_POST["RemotePort"]==389){echo "389 LDAP ?? Are you sure ? Aborting...\n";return;}
+		if($_POST["RemotePort"]==25){echo "25 SMTP ?? Are you sure ? Aborting...\n";return;}
+		if($_POST["RemotePort"]==465){echo "465 SMTP ?? Are you sure ? Aborting...\n";return;}
+		if($_POST["RemotePort"]==80){echo "465 HTTP ?? Are you sure ? Aborting...\n";return;}
+		if($_POST["RemotePort"]==443){echo "443 HTTPS ?? Are you sure ? Aborting...\n";return;}
+		if($_POST["RemotePort"]==9000){echo "9000 HTTPS/Artica ?? Are you sure ? Aborting...\n";return;}
+	}
+	
 	while (list ($num, $ligne) = each ($_POST) ){
 		$TuningParameters[$num]=$ligne;
 		

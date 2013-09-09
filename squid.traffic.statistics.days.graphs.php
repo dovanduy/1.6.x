@@ -710,7 +710,7 @@ function page_de_garde_purge(){
 	$tpl=new templates();
 	
 		$array["purge"]='{database}';
-		$array["stats"]='{statistics_by_day}';
+		
 	
 
 
@@ -735,17 +735,7 @@ function page_de_garde_purge(){
 	}
 
 	$t=time();
-	echo $tpl->_ENGINE_parse_body( "
-			<div id=purge_stats style='width:97%;font-size:14px;margin-left:10px;margin-right:-15px;margin-top:-5px'>
-			<ul>". implode("\n",$html)."</ul>
-			</div>
-			<script>
-			$(document).ready(function(){
-			$('#purge_stats').tabs();
-				
-				
-});
-</script>");
+	echo build_artica_tabs($html, "purge_stats");
 }
 
 

@@ -127,9 +127,9 @@ class mailmancontrol{
 	}
 	
 	public function chpassword($email,$password){
-		$password=escapeshellarg($password);
-		$password=str_replace("'", "", $password);
-		$password=str_replace('$', '\$', $password);
+		
+		$unix=new unix();
+		$password=$unix->shellEscapeChars($password);
 		$sql="SELECT * FROM mailmaninfos WHERE `delete`=0 AND `adminmail`='$email'";
 		$q=new mysql();
 		$results = $q->QUERY_SQL($sql,'artica_backup');

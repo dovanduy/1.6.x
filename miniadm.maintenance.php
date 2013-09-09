@@ -23,7 +23,8 @@ if( isset($_GET['TargetPatchUploaded']) ){upload_patch_perform();exit();}
 if( isset($_GET['TargetSoftUploaded']) ){upload_patch_perform();exit();}
 
 
-
+if(isset($_GET["license"])){license();exit;}
+if(isset($_POST["COMPANY"])){REGISTER();exit;}
 if(isset($_GET["file-uploader-demo1"])){upload_patch_final();exit;}
 if(isset($_GET["file-uploader-demo2"])){upload_soft_final();exit;}
 
@@ -36,6 +37,7 @@ function tabs(){
 	$boot=new boostrap_form();
 	$array["{parameters}"]="$page?parameters=yes";
 	$array["{manual_update}"]="$page?manual-update=yes";
+	$array["{artica_license}"]="$page?license=yes";
 	echo $boot->build_tab($array);
 }
 
@@ -318,4 +320,96 @@ function upload_soft_final(){
 	
 	}
 	echo "</code></div>";
+}
+function license(){
+	$boot=new boostrap_form();
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
+	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}
+	if(!is_numeric($LicenseInfos["EMPLOYEES"])){$LicenseInfos["EMPLOYEES"]=$WizardSavedSettings["employees"];}
+	$t=time();
+	$ASWEB=false;
+	if($users->SQUID_INSTALLED){$ASWEB=true;}
+	if($users->WEBSTATS_APPLIANCE){$ASWEB=true;}
+	$lastupdate="<p><strong>{license_status}:</strong> {$LicenseInfos["license_status"]}</p>
+	<p><strong>{uuid}:</strong> $uuid</p>
+	<p><strong>{license_number}:</strong> {$LicenseInfos["license_number"]}</p>
+	
+	";
+	
+	
+	
+	
+	if(!$users->CORP_LICENSE){
+		$exp1="{CORP_LICENSE_EXPLAIN}
+		<div style='font-size:16px;font-weight:bold'>{price_quote}:</div>
+			<div>
+			<a href=\"javascript:blur();\"
+				OnClick=\"javascript:s_PopUpFull('http://www.proxy-appliance.org/index.php?cID=292','1024','900');\"
+				style=\"font-size:14px;font-weight;bold;text-decoration:underline\">{click_here_price_quote}</a>
+			</div>";
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	$boot->set_formtitle("{artica_license} - {$LicenseInfos["license_status"]}");
+	if($LicenseInfos["license_status"]==null){
+		$exp2="<br>{explain_license_free}$lastupdate";
+		$boot->set_formtitle("{artica_license} ({waiting_registration})");
+		$button_text="{request_a_quote}/{refresh}";
+	}else{
+		$button_text="{update_the_request}";
+		$exp2="<br>{explain_license_order}$lastupdate";
+		
+	}
+	if($users->CORP_LICENSE){$exp2="$lastupdate";}
+	$boot->set_formdescription("$exp1$exp2");
+	
+	
+	
+	if($users->CORP_LICENSE){
+		$boot->set_form_locked();
+	
+	}
+	
+	$boot->set_hidden("REGISTER", 1);
+	$boot->set_field("COMPANY", "{company}", $LicenseInfos["COMPANY"]);
+	$boot->set_field("EMAIL", "{your_email_address}", $LicenseInfos["EMAIL"]);
+	$boot->set_field("EMPLOYEES", "{nb_employees}", $LicenseInfos["EMPLOYEES"]);
+	$boot->set_field("license_number", "{license_number}", $LicenseInfos["license_number"],array("DISABLED"=>true));
+	
+	if($LicenseInfos["license_status"]=="{license_active}"){
+		$users->CORP_LICENSE=true;
+		$boot->set_hidden("UNLOCKLIC", $LicenseInfos["UNLOCKLIC"]);
+	}else{
+		$boot->set_field("UNLOCKLIC", "{unlock_license}", $LicenseInfos["UNLOCKLIC"]);
+	}
+	
+	$boot->set_button($button_text);
+	echo $boot->Compile();
+	
+	
+}
+function REGISTER(){
+	$sock=new sockets();
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	while (list ($num, $ligne) = each ($_POST) ){
+		$LicenseInfos[$num]=$ligne;
+	}
+
+	$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+	$datas=unserialize(base64_decode($sock->getFrameWork("services.php?license-register=yes")));
+
 }

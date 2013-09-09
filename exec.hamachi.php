@@ -561,7 +561,7 @@ function hamachi_etc_hosts(){
 		$f=explode("\n", @file_get_contents("/etc/hosts"));
 		if(count($hostFill)>0){while (list ($num, $ligne) = each ($hostFill) ){$f[]=$ligne;}}
 		
-		@file_put_contents("/etc/hosts", @implode("\n", $f)."\n");
+		
 		
 		$cache["HOSTSMD"]=md5_file("/etc/hosts");
 		@file_put_contents("/etc/artica-postfix/hamachi.cache", serialize($cache));
@@ -595,20 +595,6 @@ function hamachi_etc_hosts(){
 }
 
 function hamachi_etc_hosts_remove(){
-	$fixedDomain="hamachi\.local";
-	$edit=false;
-	$f=explode("\n", @file_get_contents("/etc/hosts"));
-	while (list ($num, $ligne) = each ($f) ){
-		if(preg_match("#\.$fixedDomain#", $ligne)){
-			$edit=true;
-			unset($f[$num]);
-		}
-	}
-	
-	if($edit){
-		@file_put_contents("/etc/hosts", @implode("\n", $f));
-	}
-	
 	
 }
 

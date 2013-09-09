@@ -23,6 +23,7 @@ if($argv[1]=="--allow-recursion"){allow_recursion();exit;}
 if($argv[1]=="--start-recursor"){start_recursor();exit;}
 if($argv[1]=="--stop-recursor"){stop_recursor();exit;}
 if($argv[1]=="--listen-ips"){listen_ips();exit;}
+if($argv[1]=="--wizard-on"){wizard_on();exit;}
 
 
 function poweradmin(){
@@ -612,7 +613,7 @@ function reload_service(){
 	$pdns_server_bin=$unix->find_program("pdns_server");
 	$pdns_recursor_bin=$unix->find_program("pdns_recursor");
 	if($DisablePowerDnsManagement==1){echo "Starting......: PowerDNS [reload]: management by artica is disabled\n";return;}
-	if($EnablePDNS==1){echo "Starting......: PowerDNS [reload]: is disabled\n";return;}
+	if($EnablePDNS==0){echo "Starting......: PowerDNS [reload]: is disabled EnablePDNS=$EnablePDNS\n";return;}
 	if(!is_file($pdns_server_bin)){echo "Starting......: PowerDNS [reload]: reloading pdns_server no such binary\n";return;}
 		
 	if(is_file($pdns_recursor_bin)){
@@ -1187,7 +1188,7 @@ function start_recursor(){
 		$net=new networking();
 		$net->ifconfig("eth0");
 		if($net->tcp_addr<>null){
-			if($net->tcp_addr<>"0.0.0."){
+			if($net->tcp_addr<>"0.0.0.0"){
 				$PowerDNSRecursorQuerLocalAddr=$net->tcp_addr;
 			}
 		}
@@ -1299,6 +1300,71 @@ function listen_ips(){
 	}
 	
 	@file_put_contents("/etc/powerdns/iplist", @implode(",", $f));
+	
+}
+
+function wizard_on(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$q=new mysql();
+	$sql="SELECT * FROM pdns_fwzones";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){
+		echo "MySQL error $q->mysql_error\n";
+	}
+
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		if(!is_numeric($ligne["port"])){$ligne["port"]=53;}
+		if($ligne["port"]==0){$ligne["port"]=53;}
+		$hostname=$ligne["hostname"].":".$ligne["port"];
+		$zone=$ligne["zone"];
+		$ID=$ligne["ID"];
+		echo "Zone $zone -> $hostname\n";
+		
+		
+	}
+	
+	echo "[A]................: Add a new ISP DNS server\n";
+	echo "[B]................: Save and Exit\n";
+	echo "[Q]................: Exit\n";
+	
+	$line = strtoupper(trim(fgets(STDIN)));
+	
+	if($line=="A"){
+		echo "Give the address of your DNS server:\n";
+		$server=trim(fgets(STDIN));
+		if($server<>null){
+			$sql="INSERT IGNORE INTO pdns_fwzones (zone,hostname,port) VALUES ('*','$server',53)";
+			$q->QUERY_SQL($sql,"artica_backup");
+			if(!$q->ok){echo $q->mysql_error."\nEnter key to exit\n";
+				$line = strtoupper(trim(fgets(STDIN)));
+			}
+		}
+		wizard_on();
+		return;
+	}
+	
+	
+	if($line=="B"){
+		$sock=new sockets();
+		echo "Enable the PowerDNS system...\n";
+		$sock->SET_INFO("EnablePDNS", 1);
+		echo "Apply settings...\n";
+		shell_exec("$php5 /usr/share/artica-postfix/exec.initslapd.php --pdns");
+		shell_exec("$php5 /usr/share/artica-postfix/exec.pdns_server.php --restart");
+		shell_exec("/etc/init.d/pdns-recursor restart");
+		die();
+	}
+	
+	if($line=="Q"){die();}
+	
+	wizard_on();
+	return;
+	
+	
+	
+	
 	
 }
 

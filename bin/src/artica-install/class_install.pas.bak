@@ -10,7 +10,7 @@ uses
   BaseUnix,unix,global_conf,zsystem,logs,geoip,debian,spamass,openldap,clamav,cyrus,squid,postfix_class,samba,awstats,process_infos,pureftpd,ntpd,spfmilter,
   mailgraph_daemon, miltergreylist,lighttpd, roundcube,dansguardian,kav4samba,mimedefang,stunnel4,dkimfilter,kav4proxy,bind9,obm,mysql_daemon,p3scan,syslogng,openvpn,cups,
   jcheckmail,dhcp_server,dstat,rsync,smartd,tcpip,policyd_weight,apache_artica,autofs,assp,pdns,gluster,nfsserver,zabbix,hamachi,postfilter, vmwaretools,zarafa_server,monit,wifi,
-  emailrelay,mldonkey,backuppc,kav4fs,ocsi,ocsagent,sshd,auditd,squidguard_page,dkfilter,ufdbguardd,squidguard,framework,dkimmilter,dropbox,articapolicy,virtualbox,tftpd,crossroads,articastatus,articaexecutor,articabackground,pptpd,
+  emailrelay,mldonkey,backuppc,kav4fs,ocsi,ocsagent,sshd,auditd,squidguard_page,dkfilter,squidguard,framework,dkimmilter,dropbox,articapolicy,virtualbox,tftpd,crossroads,articastatus,articaexecutor,articabackground,pptpd,
   apt_mirror,cluebringer,apachesrc,sabnzbdplus,fusermount,vnstat,munin,greyhole,iscsitarget,postfwd2,snort,greensql,amanda,yaffas,netatalk,articadb,
   mailarchiver in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/mailarchiver.pas',ddclient,tomcat,openemm,fuppes,arpd,memcached,updateutilityhttp,ejabberd,haproxy,arkeia,klms,suricata,
   kas3         in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/kas3.pas',
@@ -180,7 +180,7 @@ public
       procedure               CYRUS_IMPAD_INIT();
       procedure               CYRUS_CHECK();
       
-      procedure               FETCHMAIL_AS_DAEMON();
+
 
       procedure               LDAP_CREATE_DATABASE();
       procedure               CONFIGURE_HOTWAYD();
@@ -625,7 +625,6 @@ var
    auditd:tauditd;
    squidguard_page:tsquidguard_page;
    dkfilter:tdkfilter;
-   ufdbguardd:tufdbguardd;
    squidguard:tsquidguard;
    framework:tframework;
    dkimmilter:tdkimmilter;
@@ -699,6 +698,10 @@ begin
     syslogng:=tsyslogng.Create(SYS);
     monit:=tmonit.Create(SYS);
 
+    if FileExists('/etc/nologin') then begin
+       writeln('***** System stopping, aborting task '+ParamStr(2)+' *****');
+       halt(0);
+    end;
    if not SYS.BuildPids() then begin
        logs.Debuglogs('Already instance running');
        halt(0);
@@ -1140,16 +1143,14 @@ begin
               end;
 
              if ParamStr(2)='ufdb' then begin
-                   SYS:=Tsystem.Create;
-                   ufdbguardd:=tufdbguardd.Create(SYS);
-                   ufdbguardd.STOP();
+                   writeln('Use init.d instead...');
+                   fpsystem('/etc/init.d/ufdb stop');
                    exit();
               end;
 
              if ParamStr(2)='ufdb-tail' then begin
-                   SYS:=Tsystem.Create;
-                   ufdbguardd:=tufdbguardd.Create(SYS);
-                   ufdbguardd.TAIL_STOP();
+                   writeln('Use init.d instead...');
+                   fpsystem('/etc/init.d/ufdb-tail stop');
                    exit();
               end;
 
@@ -1575,10 +1576,6 @@ begin
                  zdansguardian.DANSGUARDIAN_STOP();
                  kav4proxy.KAV4PROXY_STOP();
                  zClam.CLAMD_STOP();
-                 ufdbguardd:=tufdbguardd.Create(SYS);
-                 ufdbguardd.STOP();
-                 squidguard:=tsquidguard.Create(SYS);
-                 squidguard.STOP();
                  exit();
               end;
 
@@ -1634,7 +1631,7 @@ begin
 
 
             if ParamStr(2)='roundcube' then begin
-                 zroundcube.ROUNDCUBE_STOP_SERVICE();
+                 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.roundcube.php --stop');
                  exit();
               end;
 
@@ -1723,7 +1720,7 @@ begin
                  writeln('Stopping apache....');
                  obm:=tobm.Create(GLOBAL_INI.SYS);
                  GLOBAL_INI.APACHE_ARTICA_STOP();
-                 zroundcube.ROUNDCUBE_STOP_SERVICE();
+                 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.roundcube.php --stop');
                  obm.SERVICE_STOP();
                  exit();
               end;
@@ -1949,7 +1946,6 @@ var
    auditd:tauditd;
    squidguard_page:tsquidguard_page;
    dkfilter:tdkfilter;
-   ufdbguardd:tufdbguardd;
    squidguard:tsquidguard;
    framework:tframework;
    dkimmilter:tdkimmilter;
@@ -2049,7 +2045,6 @@ begin
               end;
               
               if ParamStr(2)='postfix-single' then begin
-                  if NetWorkAvailable then zpostfix.POSTFIX_START_LIMITED();
                   exit();
               end;
 
@@ -2069,13 +2064,11 @@ begin
                  assp:=Tassp.Create(SYS);
                  assp.START();
                  assp.free;
-                 zpostfix.POSTFIX_START_LIMITED();
                  zpostfix.MYSQMAIL_START();
                  exit();
               end;
 
              if ParamStr(2)='postfix-heavy' then begin
-                     zpostfix.POSTFIX_START();
                      zpostfix.MYSQMAIL_START();
                      exit();
              end;
@@ -2257,16 +2250,14 @@ begin
               end;
 
               if ParamStr(2)='ufdb' then begin
-                   SYS:=Tsystem.Create;
-                   ufdbguardd:=tufdbguardd.Create(SYS);
-                   ufdbguardd.START();
+                  fpsystem('/etc/init.d/ufdb start');
+                  writeln('Use init.d instead');
                    exit();
               end;
 
               if ParamStr(2)='ufdb-tail' then begin
-                   SYS:=Tsystem.Create;
-                   ufdbguardd:=tufdbguardd.Create(SYS);
-                   ufdbguardd.TAIL_START();
+                   fpsystem('/etc/init.d/ufdb-tail start');
+                   writeln('Use init.d instead');
                    exit();
               end;
 
@@ -2808,7 +2799,7 @@ begin
 
              if ParamStr(2)='fetchmail' then begin
                  if not NetWorkAvailable then exit();
-                 fetchmail.FETCHMAIL_START_DAEMON();
+                 fpsystem('/etc/init.d/fetchmail start');
                  exit();
               end;
 
@@ -2848,13 +2839,6 @@ begin
                  kav4proxy.KAV4PROXY_START();
                  zsquid.SQUID_START();
                  zdansguardian.DANSGUARDIAN_START();
-                 ufdbguardd:=tufdbguardd.Create(SYS);
-                 ufdbguardd.START();
-
-                 squidguard:=tsquidguard.Create(SYS);
-                 squidguard.START();
-
-
                  exit();
               end;
 
@@ -2878,7 +2862,7 @@ begin
                  zsquid.TAIL_STOP();
                  exit();
               end;
-              if ParamStr(2)='squidcache-tail ' then begin
+              if ParamStr(2)='squidcache-tail' then begin
                  zsquid.TAIL_CACHE_START();
                  exit();
               end;
@@ -2991,7 +2975,7 @@ begin
 
               if ParamStr(2)='apache' then begin
                  GLOBAL_INI.APACHE_ARTICA_START();
-                 zroundcube.ROUNDCUBE_START_SERVICE();
+                 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.roundcube.php --start');
                  obm:=tobm.Create(GLOBAL_INI.SYS);
                  obm.SERVICE_START();
                  exit();
@@ -3125,7 +3109,7 @@ begin
                  exit();
               end;
               if ParamStr(2)='roundcube' then begin
-                 zroundcube.ROUNDCUBE_START_SERVICE();
+                 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.roundcube.php --start');
 
                  exit();
               end;
@@ -4735,26 +4719,6 @@ begin
       except
       end;
    end;
-
-end;
-//##############################################################################
-procedure Tclass_install.FETCHMAIL_AS_DAEMON();
-var Text,Text2:TstringList;
-
-begin
-ShowScreen('Creating configuration file...');
-text:=TstringList.Create;
-text.Add('export LC_ALL=C');
-text.Add('START_DAEMON=yes');
-text.SaveToFile('/etc/default/fetchmail');
-Text2:=TstringList.Create;
-text2.Add('set daemon 600');
-text2.Add('set postmaster "root"');
-text2.SaveToFile('/etc/fetchmailrc');
-
-ShowScreen('Starting fetchmail as daemon mode...');
-fpsystem('/etc/init.d/fetchmail start');
-
 
 end;
 //##############################################################################

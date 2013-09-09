@@ -513,7 +513,7 @@ function youtube_videos_search(){
 	$search=string_to_flexquery("youtube-videos-search");
 	$q=new mysql_squid_builder();
 	$tpl=new templates();
-	$_GET["uid"]=mysql_escape_string($_GET["member-value"]);
+	$_GET["uid"]=mysql_escape_string2($_GET["member-value"]);
 	$sql="SELECT youtube_objects.category as catz,youtube_objects.youtubeid,
 	youtube_objects.uploaded,youtube_objects.duration,youtube_objects.title 
 	FROM 

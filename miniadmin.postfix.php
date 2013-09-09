@@ -79,7 +79,8 @@ function tabs(){
 	$users=new usersMenus();
 	if(!VerifyRights()){senderrors("no rights");}
 
-
+	
+	$array["{infrastructure}"]="miniadm.messaging.infrastructure.php?tabs=yes";
 	$array["{domains}"]="miniadm.messaging.domains.php?tabs=yes";
 	$array["{archive_module}"]="miniadmin.postfix.archive.php?popup=yes&title=yes";
 	$array["{events}"]="miniadmin.postfix.events.php?section=yes";

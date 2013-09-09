@@ -190,7 +190,7 @@ function compile_ufdb(){
 	$users=new usersMenus();
 	$page=CurrentPageName();
 	$t=$_GET["t"];
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}

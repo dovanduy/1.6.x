@@ -121,7 +121,7 @@ $cmds[]="--enable-icap-client";
 $cmds[]="--enable-cache-digests"; 
 $cmds[]="--enable-poll";
 $cmds[]="--enable-epoll";
-$cmds[]="--enable-async-io";
+$cmds[]="--enable-async-io=128";
 $cmds[]="--enable-delay-pools";
 $cmds[]="--enable-http-violations";
 $cmds[]="--enable-url-maps";
@@ -186,7 +186,7 @@ shell_exec("wget http://www.artica.fr/download/anthony-icons.tar.gz -O /tmp/anth
 @mkdir("/usr/share/squid3/icons",0755,true);
 shell_exec("tar -xf /tmp/anthony-icons.tar.gz -C /usr/share/squid3/icons/");
 shell_exec("/bin/chown -R squid:squid /usr/share/squid3/icons/");
-
+shell_exec("/bin/rm -rf /root/squid-builder");
 mkdir("/root/squid-builder/usr/share/squid3",0755,true);
 mkdir("/root/squid-builder/etc/squid3",0755,true);
 mkdir("/root/squid-builder/lib/squid3",0755,true);
@@ -214,6 +214,7 @@ $f[]="/etc/haarp/haarp.conf.default";
 $f[]="/etc/init.d/haarpclean";
 $f[]="/etc/haarp/haarp.conf";
 $f[]="/etc/haarp/plugins";
+$f[]="/usr/sbin/cntlm";
 
 while (list ($num, $ligne) = each ($f) ){
 	if(is_dir($ligne)){
@@ -912,11 +913,22 @@ cd ngx_openresty-1.2.7.8
 cd ngx_openresty-1.2.8.6/bundle
 git clone git://github.com/yaoweibin/ngx_http_substitutions_filter_module.git
 mv ngx_http_substitutions_filter_module ngx_http_substitutions_filter_module-1.0
+
+git clone https://github.com/kvspb/nginx-auth-ldap.git  
+mv nginx-auth-ldap ngx_http_auth_ldap_module-1.0
+
+wget http://mdounin.ru/hg/ngx_http_auth_request_module/archive/a29d74804ff1.tar.gz
+tar -xf a29d74804ff1.tar.gz
+mv ngx_http_auth_request_module-a29d74804ff1 ngx_http_auth_request_module-1.0
+
  *****
 dans configure
-[http_substitutions_filter_module=>'ngx_http_substitutions_filter_module']
+[http_substitutions_filter_module=>'ngx_http_substitutions_filter_module'],
+[http_auth_ldap_module=>'ngx_http_auth_ldap_module'],
+[http_auth_request_module=>'ngx_http_auth_request_module'],
+
 *****
-*
+* Inutile de rajouter l'option du module dans la ligne de commande.
 
 ./configure --with-luajit --sbin-path=/usr/sbin/nginx --prefix=/usr/share/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-client-body-temp-path=/var/lib/nginx/body --http-fastcgi-temp-path=/var/lib/nginx/fastcgi --http-log-path=/var/log/nginx/access.log --http-proxy-temp-path=/var/lib/nginx/proxy --http-scgi-temp-path=/var/lib/nginx/scgi --http-uwsgi-temp-path=/var/lib/nginx/uwsgi --lock-path=/var/lock/nginx.lock --pid-path=/var/run/nginx.pid --with-pcre-jit --with-debug --with-http_addition_module --with-http_dav_module --with-http_geoip_module --with-http_gzip_static_module --with-http_image_filter_module --with-http_realip_module --with-http_stub_status_module --with-http_ssl_module --with-http_sub_module --with-http_xslt_module --with-ipv6 --with-mail --with-mail_ssl_module  --with-http_realip_module  --with-http_addition_module --with-http_xslt_module --with-http_image_filter_module --with-http_geoip_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_gzip_static_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_stub_status_module
 	 */

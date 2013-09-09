@@ -14,6 +14,7 @@ include_once(dirname(__FILE__) . '/class.pdns.inc');
 
 class computers{
 	var $uid;
+	var $IsExists=false;
 	var $dn;
 	var $local_sid;
 	var $samba_installed=false;
@@ -121,6 +122,7 @@ private function LoadDatas(){
 		}
 		$attrs = ldap_get_attributes($ldap->ldap_connection, $entry_id);
 		$this->dn=$ldap->_Get_dn_userid($this->uid);
+		$this->IsExists=true;
 		//writelogs("DN $this->uid: {$this->dn}",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		for($i=0;$i<$attrs["objectClass"]["count"];$i++){
 			$this->objectClass_array[$attrs["objectClass"][$i]]=$attrs["objectClass"][$i];
@@ -699,10 +701,50 @@ $ldap=new clladp();
 	$this->artica_meta();	
 }
 
-
+private function uidPatternFromComputer($uid){
+	$uid=str_replace("%24", "", $uid);
+	$uid=str_replace(" ", "", $uid);
+	$uid=str_replace("\r ", "", $uid);
+	$uid=str_replace("\n ", "", $uid);
+	$uid=str_replace('\\', "", $uid);
+	$uid=str_replace('/', "", $uid);
+	$uid=str_replace('_', "", $uid);
+	$uid=str_replace('#', "", $uid);
+	$uid=str_replace('"', "", $uid);
+	$uid=str_replace('"', "", $uid);
+	$uid=str_replace('&', "", $uid);
+	$uid=str_replace('(', "", $uid);
+	$uid=str_replace(')', "", $uid);
+	$uid=str_replace('@', "", $uid);
+	$uid=str_replace('[', "", $uid);
+	$uid=str_replace(']', "", $uid);
+	$uid=str_replace('{', "", $uid);
+	$uid=str_replace('}', "", $uid);
+	$uid=str_replace('à', "", $uid);
+	$uid=str_replace('é', "", $uid);
+	$uid=str_replace('^', "", $uid);
+	$uid=str_replace('²', "", $uid);
+	$uid=str_replace('=', "", $uid);
+	$uid=str_replace(";", "", $uid);
+	$uid=str_replace(",", "", $uid);
+	$uid=str_replace("!", "", $uid);
+	$uid=str_replace("§", "", $uid);
+	$uid=str_replace("€", "", $uid);
+	$uid=str_replace("£", "", $uid);
+	$uid=str_replace("*", "", $uid);
+	$uid=str_replace("%", "", $uid);
+	$uid=str_replace("ù", "", $uid);
+	$uid=str_replace("°", "", $uid);
+	$uid=str_replace("|", "", $uid);
+	$uid=str_replace("+", "", $uid);
+	$uid=trim(strtolower($uid));
+	return $uid;
+	
+}
 	
 function Add(){
 	$this->ComputerIP=str_replace("$",'',$this->ComputerIP);
+	$this->ComputerIP=$this->uidPatternFromComputer($this->ComputerIP);
 	if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$this->ComputerIP)){$this->ComputerIP=null;}
 	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$this->uid)){writelogs("$this->uid wrong computername",__CLASS__.'/'.__FUNCTION__,__FILE__);return;}
 	$this->uid=str_replace(" ","",$this->uid);
@@ -727,7 +769,7 @@ function Add(){
 		return $this->Edit();
 	}
 		$group=new  groups(null);
-	
+		$this->uid=$this->uidPatternFromComputer($this->uid);
 		$upd=array();
 		$user=new user(null);
 		$upd["objectClass"][]="top";
@@ -755,11 +797,16 @@ function Add(){
 		$upd["sambaSID"][]=$ldap->LOCAL_SID() .'-' . $user->SambaGetSid();
 		
 		if($this->ComputerIP==null){$this->ComputerIP='0.0.0.0';}
+		
+		$fIP=explode(".",$this->ComputerIP);
+		while (list ($index, $val) = each ($fIP) ){$fIP[$index]=intval($val);}
+		$this->ComputerIP=@implode(".", $fIP);
+		
 		if($this->ComputerMachineType==null){$this->ComputerMachineType='UnKnown';}
 		if($this->ComputerRunning==null){$this->ComputerRunning='UnKnown';}
 		if($this->ComputerOS==null){$this->ComputerOS='UnKnown';}
 		if($this->ComputerRealName==null){$this->ComputerRealName=str_replace("$","",$this->uid);}
-		
+		$this->ComputerRealName=$this->uidPatternFromComputer($this->ComputerRealName);
 		$upd["ComputerIP"][]=$this->ComputerIP;
 		$upd["ComputerOpenPorts"][]="UnKnown";
 		$upd["ComputerOS"][]=$this->ComputerOS;

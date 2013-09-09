@@ -95,15 +95,8 @@ function tabs(){
 	
 	
 	
-	echo "
-	<div id=main_squid_quicklinks_tabs{$_GET["nodeid"]} style='width:99%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_squid_quicklinks_tabs{$_GET["nodeid"]}').tabs();
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_squid_quicklinks_tabs{$_GET["nodeid"]}");
+	
 }
 
 

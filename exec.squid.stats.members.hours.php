@@ -21,6 +21,9 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 
+$sock=new sockets();
+$sock->SQUID_DISABLE_STATS_DIE();
+
 if($argv[1]=="--bytime"){members_hours_perfom_bytime($argv[2]);die();}
 
 members_hours_perfom($argv[1],$argv[2],$nopid=false);

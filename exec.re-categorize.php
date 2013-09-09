@@ -32,7 +32,8 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 	$table_days=$q->LIST_TABLES_DAYS();
 	$table_week=$q->LIST_TABLES_WEEKS();
 	$ALREADY=array();
-		
+	$MAX=mysql_num_rows($results);
+		$D=0;
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			if(isset($ALREADY[$ligne["sitename"]])){$q->QUERY_SQL("DELETE FROM categorize_changes WHERE `zmd5`='{$ligne["zmd5"]}'");continue;}
 			$website=$ligne["sitename"];
@@ -42,6 +43,7 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 			reset($table_days);
 			reset($table_week);
 			$categories=addslashes($categories);
+			$D++;
 			$t=time();
 			$a=0;$b=0;$c=0;
 			while (list ($num, $table) = each ($table_hours) ){
@@ -73,6 +75,7 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 		if(systemMaxOverloaded()){$took=$unix->distanceOfTimeInWords($t,time());ufdbguard_admin_events("Fatal: VERY Overloaded system, aborting task (after:$took TTL)",__FUNCTION__,__FILE__,__LINE__,"categorize");return;}
 			
 			$took=$unix->distanceOfTimeInWords($t,time());
+			cloudlogs("[$D/$MAX]: Delete {$ligne["zmd5"]} $website");
 			$q->QUERY_SQL("DELETE FROM categorize_changes WHERE `zmd5`='{$ligne["zmd5"]}'");
 			ufdbguard_admin_events("$website/$categories has been re-categorized in $c week tables $b days tables and $a hours tables ($took)" , __FUNCTION__, __FILE__,__LINE__,"categorize");
 		}	
@@ -81,7 +84,20 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 	echo "Finish...\n";
 	
 	
-	
+function cloudlogs($text=null){
+		$logFile="/var/log/cleancloud.log";
+		$time=date("Y-m-d H:i:s");
+		$PID=getmypid();
+		if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
+		if (is_file($logFile)) {
+			$size=filesize($logFile);
+			if($size>1000000){unlink($logFile);}
+		}
+		$logFile=str_replace("//","/",$logFile);
+		$f = @fopen($logFile, 'a');
+		@fwrite($f, "$time [$PID]: $text\n");
+		@fclose($f);
+	}	
 
 function events($text){
 		if($GLOBALS["VERBOSE"]){echo $text."\n";}

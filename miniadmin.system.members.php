@@ -65,6 +65,14 @@ function tabs(){
 	$mini=new miniadm();
 	$users=new usersMenus();
 	$ldap=new clladp();
+	$tpl=new templates();
+	
+	if(isset($_GET["title"])){
+		$title=$tpl->_ENGINE_parse_body("<H3>{users_and_groups}</H3><p>{users_and_groups_system_explain}</p>");
+	}
+	
+	
+	
 	if($ldap->IsKerbAuth()){
 		$array["{activedirectory_members}"]="miniadm.members.browse.php?section-search-ad=yes";
 		
@@ -77,5 +85,5 @@ function tabs(){
 		$array["{hostpot_members}"]="miniadmin.hotspot.php?tabs=yes&title=yes";
 	}
 
-	echo $boot->build_tab($array);
+	echo $title.$boot->build_tab($array);
 }

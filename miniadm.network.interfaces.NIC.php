@@ -65,6 +65,7 @@ function nic_config(){
 	$BUTTON=true;
 	
 	if(preg_match("#^tun#", $eth)){$BUTTON=false;}
+	if(preg_match("#([a-z0-9]+)\.[0-9]+#", $eth)){$BUTTON=false;}
 	
 	$nic=new system_nic($eth);
 	$users=new usersMenus();
@@ -78,8 +79,49 @@ function nic_config(){
 	$button="{apply}";
 	if($_GET["button"]=="confirm"){$button="{button_i_confirm_nic}";}
 	
+	$q=new mysql();
+	if(!$q->FIELD_EXISTS("nics", "defaultroute","artica_backup")){$q->QUERY_SQL("ALTER TABLE `nics` ADD `defaultroute` smallint(1) NOT NULL,ADD INDEX (`defaultroute`)","artica_backup");}
+	$results=$q->QUERY_SQL("SELECT ID,name FROM nics_bridge ORDER BY name","artica_backup");
+	
+	
+	
+	$bridges[null]="{select}";
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$bridges["br{$ligne["ID"]}"]=$ligne["name"];
+		
+	}
+	$defaultroute_interface=null;
+	$defaultroute_field=false;
+	
+	$sql="SELECT Interface  FROM `nics` WHERE defaultroute=1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	
+	if(!$q->ok){
+		if(strpos("Unknown column", $q->mysql_error)>1){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `defaultroute` smallint(1) NOT NULL,ADD INDEX (`defaultroute`)","artica_backup");
+			if(!$q->ok){echo "<p class=text-error>Alter: $q->mysql_error</p>";}
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		}
+	}
+	
+	
+	if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+	if($ligne["Interface"]==null){
+		$defaultroute_field=true;
+		
+	}else{
+		if(trim($ligne["Interface"])==$eth){$defaultroute_field=true;}
+		$defaultroute_interface=$ligne["Interface"];
+	}
+	
 	
 	$boot=new boostrap_form();
+	if($defaultroute_interface<>null){
+		$defaultroute_interface_explain=$tpl->_ENGINE_parse_body("{defaultroute_interface_explain}");
+		$defaultroute_interface_explain=str_replace("%s", $defaultroute_interface, $defaultroute_interface_explain);
+		$boot->set_spacerexplain($defaultroute_interface_explain);
+	}
+	
 	$boot->set_hidden("UseSnort", $snortInterfaces[$eth]);
 	$boot->set_hidden("noreboot", $_GET["noreboot"]);
 	$boot->set_hidden("save_nic", $eth);
@@ -91,6 +133,19 @@ function nic_config(){
 	$boot->set_field("DNS_1", "{primary_dns}", $nic->DNS1);
 	$boot->set_field("DNS_2", "{secondary_dns}", $nic->DNS2);
 	$boot->set_field("metric", "{metric}", $nic->metric);
+	
+	if($defaultroute_field){
+		$boot->set_checkbox("defaultroute", "{default_route}", $nic->defaultroute);
+	}else{
+		$boot->set_hidden("defaultroute", 0);
+	}
+	
+	$boot->set_checkbox("Bridged", "{attach_to_bridge}", $nic->Bridged,array("LINK"=>"BridgedTo"));
+	$boot->set_list("BridgedTo", "{network_bridge}", $bridges,$nic->BridgedTo);
+	
+	
+	
+	
 	$boot->setAjaxPage("system.nic.edit.php");
 	$boot->set_RefreshSearchs();
 	

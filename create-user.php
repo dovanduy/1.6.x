@@ -36,7 +36,7 @@ $html="
 var x_serid='';
 
 function OpenAddUser(){
-	YahooWin5('590','$page?form=yes&t=$t','$title');
+	YahooWin5('590','$page?form=yes&t=$t&ByZarafa={$_GET["ByZarafa"]}','$title');
 }
 
 var x_ChangeFormValues= function (obj) {
@@ -89,6 +89,7 @@ var x_SaveAddUser= function (obj) {
 		return false;
 	}
 	YahooWin5Hide();
+	ExecuteByClassName('SearchFunction');
 	if(document.getElementById('flexRT$t')){ $('#flexRT$t').flexReload(); }
 	if(document.getElementById('table-$t')){ $('#table-$t').flexReload(); }
 	
@@ -115,6 +116,7 @@ function SaveAddUser(){
 	  var lastname=encodeURIComponent(document.getElementById('lastname-$t').value);  
 	  var login=document.getElementById('login-$t').value;
 	  var password=encodeURIComponent(document.getElementById('password-$t').value);
+	  
 	  x_serid=login;
 	  if(document.getElementById('groupid-$t')){gpid=document.getElementById('groupid-$t').value;}
 	  if(document.getElementById('internet_domain-$t')){internet_domain=document.getElementById('internet_domain-$t').value;}
@@ -129,7 +131,9 @@ function SaveAddUser(){
      XHR.appendData('lastname',lastname);
      XHR.appendData('login',login);
      XHR.appendData('password',password);
-     XHR.appendData('gpid',gpid);  
+     XHR.appendData('gpid',gpid);
+     XHR.appendData('ByZarafa','{$_GET["ByZarafa"]}');    
+     
      AnimateDiv('ffform-$t');                                    		      	
      XHR.sendAndLoad('$page', 'POST',x_SaveAddUser);		  
 }
@@ -228,7 +232,8 @@ function formulaire(){
 	$form="
 	
 	<input type='hidden' id='EnableVirtualDomainsInMailBoxes-$t' value='$EnableVirtualDomainsInMailBoxes'>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 		<tr>
 			<td class=legend style='font-size:16px'>{organization}:</td>
 			<td>$ou</td>
@@ -261,19 +266,20 @@ function formulaire(){
 		</tr>	
 		<tr><td colspan=2>&nbsp;</td></tr>
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{add}","SaveAddUser()",18)."
+			<td colspan=2 align='right' style='padding:10px'><hr>". button("{add}","SaveAddUser()",18)."
 				
 			</td>
 		</tr>
 		
 		</table>
+	</div>
 	";
 			
 	$html="
 	<table style='width:100%'>
 	<tr>
-		<td valign='top' width=1%><div id='ffform-$t'><img src='img/identity-add-96.png'></div></td>
-		<td valign='top' width=99%><div>$form</div></td>
+		<td valign='top' width=1% style='vertical-align:top'><div id='ffform-$t'><img src='img/identity-add-96.png'></div></td>
+		<td valign='top' width=99% style='vertical-align:top'><div>$form</div></td>
 	</tr>
 	</table>
 	";
@@ -285,7 +291,11 @@ function formulaire(){
 
 
 function save(){
-	$tpl=new templates();     
+	$tpl=new templates();   
+	$usersmenus=new usersMenus();
+	if($usersmenus->ZARAFA_INSTALLED){$_POST["ByZarafa"]="yes";}
+	
+	
      $users=new user($_POST["login"]);
      if($users->password<>null){
      	writelogs("User already exists {$_POST["login"]} ",__FUNCTION__,__FILE__);
@@ -308,6 +318,14 @@ function save(){
      $users->sn=$_POST["lastname"];
      $users->group_id=$_POST["gpid"];
      
+     if($_POST["ByZarafa"]=="yes"){
+     	$ldap=new clladp();
+     	$dn="ou={$_POST["ou"]},dc=organizations,$ldap->suffix";
+     	$upd["objectClass"]="zarafa-company";
+     	$upd["cn"]=$_POST["ou"];
+     	if(!$ldap->Ldap_add_mod("$dn",$upd)){echo $ldap->ldap_last_error;return;}
+     }
+     
      
      
 	if(is_numeric($_POST["gpid"])){
@@ -328,7 +346,13 @@ function save(){
 	}     
      
      
-	if(!$users->add_user()){echo $users->error."\n".$users->ldap_error;}
+	if(!$users->add_user()){echo $users->error."\n".$users->ldap_error;return;}
+	if($_POST["ByZarafa"]=="yes"){
+		$sock=new sockets();
+		$sock->getFrameWork("cmd.php?zarafa-hash=yes&rebuild=yes");
+	}
+	
+	
     
 }
 

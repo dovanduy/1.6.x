@@ -24,6 +24,9 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 include_once(dirname(__FILE__).'/ressources/class.squid.youtube.inc');
 
+$sock=new sockets();
+$sock->SQUID_DISABLE_STATS_DIE();
+
 if($argv[1]=="--reset"){websites_uid_reset();die();}
 if($argv[1]=='--websites-uid'){websites_uid();exit;}
 if($argv[1]=='--websites-uid-reset'){websites_uid_reset();exit;}
@@ -258,8 +261,8 @@ function websites_uid_not_categorised($uid=null,$tablename=null,$aspid=false){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$category=$q->GET_CATEGORIES($ligne["familysite"]);
 		if(strlen($category)>0){
-			$category=mysql_escape_string($category);
-			$ligne["familysite"]=mysql_escape_string($ligne["familysite"]);
+			$category=mysql_escape_string2($category);
+			$ligne["familysite"]=mysql_escape_string2($ligne["familysite"]);
 			$sql="UPDATE `$tablename` SET `category`='$category' WHERE familysite='{$ligne["familysite"]}'";
 			$q->QUERY_SQL($sql);
 			if(!$q->ok){

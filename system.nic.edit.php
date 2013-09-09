@@ -490,6 +490,7 @@ function save_nic(){
 	
 	$tpl=new templates();
 	$nics=new system_nic($nic);
+	$text[]="$nic $IPADDR";
 	$nics->eth=$nic;
 	$nics->IPADDR=$IPADDR;
 	$nics->NETMASK=$NETMASK;
@@ -501,7 +502,18 @@ function save_nic(){
 	$nics->metric=$_GET["metric"];
 	$nics->enabled=$_GET["enabled"];
 
-	 
+	if(isset($_GET["Bridged"])){
+		$nics->Bridged=$_GET["Bridged"];
+		$text[]="Bridged, ";
+	}
+	if(isset($_GET["BridgedTo"])){
+		$nics->BridgedTo=$_GET["BridgedTo"];
+		$text[]="{$_GET["BridgedTo"]}";
+	}	
+
+	if(isset($_GET["defaultroute"])){
+		$nics->defaultroute=$_GET["defaultroute"];
+	}
 	
 	
 	if($_GET["noreboot"]=="noreboot"){
@@ -512,7 +524,7 @@ function save_nic(){
 		}
 	}
 	
-	if($nics->SaveNic()){echo $tpl->javascript_parse_text('{success}\n{success_save_nic_infos}',1);}
+	if($nics->SaveNic()){echo $tpl->javascript_parse_text(@implode(" ",$text).'\n{success}\n{success_save_nic_infos}',1);}
 }
 
 function ipconfig_routes(){

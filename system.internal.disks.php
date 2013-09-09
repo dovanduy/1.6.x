@@ -1783,7 +1783,9 @@ function lvm_lvcreate_save(){
 		$sock->getFrameWork("cmd.php?format-disk-unix=$dev");
 		$datas[]="$dev will be mounted to $mount_point";
 		writelogs("-> fstab",__FUNCTION__,__FILE__,__LINE__);
-		$sock->getFrameWork("cmd.php?fstab-add=yes&dev=$dev&mount=$mount_point");
+		$dev_encode=urlencode($dev);
+		$mount_point_encode=urlencode($mount_point);
+		$sock->getFrameWork("hd.php?fstab-add=yes&dev=$dev_encode&mount=$mount_point_encode");
 		}
 
 	if(!is_array($datas)){return null;}	

@@ -120,6 +120,13 @@ function MacToUid(){
 		$array[$ligne["MAC"]]=$ligne["uid"];
 	}
 	
+	$sql="SELECT * FROM webfilters_ipaddr WHERE LENGTH(uid)>1";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$array[$ligne["ipaddr"]]=$ligne["uid"];
+	}	
+	
+	
 	
 	$q=new mysql();
 	$sql="SELECT MacAddress, uid FROM hostsusers";

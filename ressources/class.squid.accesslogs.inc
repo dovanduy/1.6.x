@@ -20,6 +20,7 @@ class accesslogs{
 		$today=date("Y-m-d");
 		$proxy=null;
 		$trclass=null;
+		if($GLOBALS["VERBOSE"]){echo basename(__FILE__).": Line:".__LINE__."<br>\n";}
 		if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
 		$http_status_codes=$this->http_status_codes();
 		$color="inherit";
@@ -83,7 +84,7 @@ class accesslogs{
 			}
 		}
 	
-	
+		if($GLOBALS["VERBOSE"]){echo basename(__FILE__).": Line:".__LINE__."<br>\n";}
 		$host=$GLOBALS["Q"]->GetFamilySites($this->GetDomainFromURl($uri));
 		if($host=="cache_object"){return null;}
 		
@@ -145,7 +146,11 @@ class accesslogs{
 		
 	
 		return array('id' => md5($line),
-				'cell' => array("$spanON$date$spanOFF", "$spanON$proto$spanOFF","$spanON$uri.$return_code_text$spanOFF","$spanON".@implode("&nbsp;|&nbsp;", $ident)."$spanOFF")
+				'cell' => array("$spanON$date$spanOFF", 
+						"$spanON$proto$spanOFF",
+						"$spanON$uri.$return_code_text$spanOFF",
+						"$spanON".@implode("&nbsp;|&nbsp;", $ident)."$spanOFF"
+						)
 		);
 	
 	

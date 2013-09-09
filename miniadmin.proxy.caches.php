@@ -51,6 +51,7 @@ function tabs(){
 	}
 	$array["{caches_rules}"]="$page?tab-rules=yes";
 	$array["{APP_HAARP}"]="miniadmin.proxy.haarp.php?section=yes";
+	$array["{squid_parents_proxy}"]="miniadmin.proxy.parents.php?section=yes";
 	
 
 	

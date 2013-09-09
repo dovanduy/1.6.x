@@ -211,6 +211,10 @@ function start($aspid=false){
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$lighttpd_bin=$unix->find_program("lighttpd");
+	if(!is_file($lighttpd_bin)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework service lighttpd not found..\n";}
+		return;
+	}
 	
 	@mkdir("/var/run/lighttpd",0755,true);
 	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.web-community-filter.php --register-lic >/dev/null 2>&1 &";
@@ -283,7 +287,7 @@ function buildConfig(){
 	$phpcgi=$unix->LIGHTTPD_PHP5_CGI_BIN_PATH();
 	@mkdir("/usr/share/artica-postfix/framework",0755,true);
 	@mkdir("/usr/share/artica-postfix/ressources/sock",0755,true);
-
+	@mkdir("/var/run/artica-framework",0755,true);
 	$LighttpdRunAsminimal=$sock->GET_INFO("LighttpdRunAsminimal");
 	$LighttpdArticaMaxProcs=$sock->GET_INFO("LighttpdArticaMaxProcs");
 	$LighttpdArticaMaxChildren=$sock->GET_INFO("LighttpdArticaMaxChildren");
@@ -302,8 +306,9 @@ function buildConfig(){
 	if($LighttpdArticaMaxChildren>0){$PHP_FCGI_CHILDREN=$LighttpdArticaMaxChildren;}
 	
 	if(!$unix->ISMemoryHiger1G()){
-		$PHP_FCGI_CHILDREN=2;
-		$max_procs=1;
+		$PHP_FCGI_CHILDREN=3;
+		$max_procs=3;
+		$PHP_FCGI_MAX_REQUESTS=1500;
 	}
 	
 	if($LighttpdRunAsminimal==1){
@@ -317,11 +322,11 @@ function buildConfig(){
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Max cnx/processes....: $PHP_FCGI_MAX_REQUESTS\n";}
 	
 	$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
-	$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
-	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=1;}
+	$EnablePHPFPMFrameWork=$sock->GET_INFO("EnablePHPFPMFrameWork");
+	if(!is_numeric($EnablePHPFPMFrameWork)){$EnablePHPFPMFrameWork=0;}
 	if(!is_file($phpfpm)){$EnablePHPFPM=0;}
 	$PHP_FPM_Params=PHP_FPM_Params();
-	if(!isset($ParseParams["allow-to-run-as-root"])){$EnablePHPFPM=0;}
+	if(!isset($ParseParams["allow-to-run-as-root"])){$EnablePHPFPMFrameWork=0;}
 	
 	if($EnablePHPFPM==1){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Using PHP-FPM........: Yes\n";}
@@ -422,7 +427,7 @@ function buildConfig(){
 	if($EnablePHPFPM==0){
 		$f[]="fastcgi.server = ( \".php\" =>((";
 		$f[]="                \"bin-path\" => \"$phpcgi_path\",";
-		$f[]="                \"socket\" => \"/var/run/artica-framework-fastcgi-\" + PID + \".sock\",";
+		$f[]="                \"socket\" => \"/var/run/artica-framework/fastcgi-\" + PID + \".sock\",";
 		
 	}else{
 		$f[]="fastcgi.server = ( \".php\" =>((";

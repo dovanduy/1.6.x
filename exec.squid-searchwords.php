@@ -22,6 +22,9 @@ include_once(dirname(__FILE__).'/ressources/class.squid.tail.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 
+$sock=new sockets();
+$sock->SQUID_DISABLE_STATS_DIE();
+
 if($argv[1]=="--hour"){searchwords_hour(true);die();}
 
 
@@ -352,7 +355,7 @@ function searchwords_hour($aspid=false){
 		
 		$timeP=$unix->file_time_min($pidtime);
 		if($timeP<30){
-			events("Main::Line: ".__LINE__." 30Mn minimal current: {$timeP}mn-> DIE");
+			events("Main::Line: ".__LINE__." 30Mn minimal current: {$timeP}mn-> DIE - $pidtime");
 			die();
 		}	
 		

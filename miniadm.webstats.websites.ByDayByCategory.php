@@ -170,7 +170,7 @@ function uid_search(){
 	
 	$search=string_to_flexquery("uid-search");
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
-	$category=mysql_escape_string($_GET["category"]);
+	$category=mysql_escape_string2($_GET["category"]);
 	$sql="SELECT SUM(size) as size, sum(hits) as hits,uid,category FROM $table
 	GROUP BY uid,category HAVING `category`='$category' $search $ORDER LIMIT 0,500";
 	
@@ -238,7 +238,7 @@ function table_sites_search(){
 	
 	$search=string_to_flexquery("sitename-search");
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
-	$category=mysql_escape_string($_GET["category"]);
+	$category=mysql_escape_string2($_GET["category"]);
 	$sql="SELECT SUM(size) as size, sum(hits) as hits,sitename,category FROM $table
 	GROUP BY sitename,category HAVING `category`='$category' $search $ORDER LIMIT 0,500";
 	
@@ -291,7 +291,7 @@ function graph1(){
 	$ff=time();
 	
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$category=mysql_escape_string($_GET["category"]);	
+	$category=mysql_escape_string2($_GET["category"]);	
 	
 	
 	if($_GET["category"]=="unknown"){$_GET["category"]=null;}
@@ -334,7 +334,7 @@ function graph1_1(){
 	$ff=time();
 	
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$category=mysql_escape_string($_GET["category"]);
+	$category=mysql_escape_string2($_GET["category"]);
 	
 	
 	if($_GET["category"]=="unknown"){$_GET["category"]=null;}
@@ -381,7 +381,7 @@ function graph2(){
 	$ff=time();
 
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$category=mysql_escape_string($_GET["category"]);	
+	$category=mysql_escape_string2($_GET["category"]);	
 	
 	$sql="SELECT SUM(hits) as thits, category,sitename FROM `$tablename` 
 	GROUP BY category,sitename 
@@ -419,7 +419,7 @@ function graph3(){
 	$ff=time();
 
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$category=mysql_escape_string($_GET["category"]);	
+	$category=mysql_escape_string2($_GET["category"]);	
 
 	$sql="SELECT SUM(size) as thits, category,sitename FROM `$tablename`
 	GROUP BY category,sitename 
@@ -457,7 +457,7 @@ function graph4(){
 	$ff=time();
 
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$category=mysql_escape_string($_GET["category"]);
+	$category=mysql_escape_string2($_GET["category"]);
 	$sql="SELECT SUM(hits) as thits, category,uid FROM `$tablename`
 	GROUP BY category,uid 
 	HAVING category='$category'
@@ -495,7 +495,7 @@ function graph5(){
 	$ff=time();
 
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$category=mysql_escape_string($_GET["category"]);
+	$category=mysql_escape_string2($_GET["category"]);
 	
 	$sql="SELECT SUM(size) as thits, category,uid FROM `$tablename`
 	GROUP BY category,uid 

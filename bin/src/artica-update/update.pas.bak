@@ -957,9 +957,13 @@ begin
               exit;
            end;
 fpsystem('/usr/share/artica-postfix/bin/artica-make --empty-cache &');
+fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --force');
 fpsystem('/usr/share/artica-postfix/bin/artica-make APP_MONIT');
-fpsystem('/etc/init.d/artica-postfix restart artica-status');
+fpsystem('/etc/init.d/artica-status restart');
+fpsystem('/etc/init.d/auth-tail restart');
 fpsystem('/usr/share/artica-postfix/bin/process1 -perm');
+if FileExists('/etc/init.d/nginx') then fpsystem('/etc/init.d/nginx restart');
+
 
  if RebootAfterArticaUpgrade=1 then begin
     logs.Debuglogs('Install_new_version() -> REBOOT !');
@@ -969,7 +973,7 @@ fpsystem('/usr/share/artica-postfix/bin/process1 -perm');
 
 
 logs.OutputCmd('/etc/init.d/artica-postfix restart');
-logs.OutputCmd('/etc/init.d/artica-postfix restart ldap');
+
 end;
 
 //#############################################################################
@@ -1232,10 +1236,15 @@ begin
          logs.Debuglogs('indexini() -> deleting /usr/share/artica-postfix/ressources/index.ini too old and download it');
          logs.DeleteFile('/usr/share/artica-postfix/ressources/index.ini');
          GLOBAL_INI.WGET_DOWNLOAD_FILE(uri+'?datas='+uriplus,localFile);
+         GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.artica.fr/download/old-squid/index.conf','/usr/share/artica-postfix/ressources/old-squid.ini');
+         GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.artica.fr/download/old-samba/index.conf','/usr/share/artica-postfix/ressources/old-samba.ini');
       end;
    end else begin
         GLOBAL_INI.WGET_DOWNLOAD_FILE(uri+'?datas='+uriplus,localFile);
+        GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.artica.fr/download/old-squid/index.conf','/usr/share/artica-postfix/ressources/old-squid.ini');
+                 GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.artica.fr/download/old-samba/index.conf','/usr/share/artica-postfix/ressources/old-samba.ini');
    end;
+
    logs.OutputCmd('/bin/rm -rf /usr/share/artica-postfix/ressources/install/*.ini');
    logs.OutputCmd('chmod 755 /usr/share/artica-postfix/ressources/index.ini');
    if FileExists(localFile) then begin

@@ -27,7 +27,7 @@ if($argv[1]=="--file-export"){file_export();die();}
 if($argv[1]=="--dbtrans"){dansguardian_community_nocat();die();}
 if($argv[1]=="--import-artica-cloud"){import_categories_cloud();die();}
 if($argv[1]=="--analyze"){GetPageInfos($argv[2]);die();}
-if($argv[1]=="--bright"){bright($argv[2]);die();}
+if($argv[1]=="--recat"){bright($argv[2]);die();}
 
 
 	$unix=new unix();
@@ -133,6 +133,17 @@ function bright(){
 		$articacats=null;
 	
 		$ligne["sitename"]=trim(strtolower($ligne["sitename"]));
+		
+		$IPADDR=gethostbyname($ligne["sitename"]);
+		if($IPADDR==$ligne["sitename"]){
+			$q->categorize_reaffected($ligne["sitename"]);
+			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='$www'");
+			continue;
+		}
+		
+		
+		
+		
 		if(preg_match("#^www\.(.+)#", $www,$re)){
 			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='$www'");
 			$www=$re[1];
@@ -155,7 +166,7 @@ function bright(){
 		
 		$f=new external_categorize($ligne["sitename"]);
 		
-		$category=$f->BrightcloudGetCatCode();
+		$category=$f->K9();
 		
 		if($category<>null){
 			echo "{$ligne["sitename"]} -> $category\n";
@@ -240,7 +251,7 @@ function file_import($filename){
 		if($ligne==null){continue;}
 		if(preg_match("#www\.(.+?)#", $ligne,$re)){$ligne=$re[1];}
 		if(!preg_match("#\..+?$#", $ligne)){continue;}
-		$ligne=mysql_escape_string($ligne);
+		$ligne=mysql_escape_string2($ligne);
 		$tt[]="('$ligne')";
 	}
 	

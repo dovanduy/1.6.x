@@ -9,6 +9,8 @@ if(isset($_GET["verbose"])){
 	$GLOBALS["VERBOSE"]=true;
 	ini_set('display_errors', 1);
 	ini_set('error_reporting', E_ALL);	
+	echo "-----------------------------\n<br>";
+	print_r($_SERVER);
 }
 $GLOBALS["CURRENT_PAGE"]=CurrentPageName();
 
@@ -57,10 +59,11 @@ function switch_main(){
 function refresh_status_js(){
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." START<br>\n";}
 	$t=time();
+	if(isset($_GET["nocache"])){$nocache="&nocache=yes";}
 	$page=CurrentPageName();
 	echo "
 		if(document.getElementById('IMAGE_STATUS_INFO')){
-			LoadAjax('IMAGE_STATUS_INFO','admin.index.php?status_right_image=yes&t=$t');
+			LoadAjax('IMAGE_STATUS_INFO','admin.index.php?status_right_image=yes&t=$t$nocache');
 		
 		}
 		
@@ -208,7 +211,7 @@ function admin_system(){
 	$browse=Buildicon64("DEF_ICO_BROWSE_COMP");
 	$disks=Paragraphe("64-hd.png",'{internal_hard_drives}','{internal_hard_drives_text}',"javascript:Loadjs('system.internal.disks.php');","{internal_hard_drives_text}");
 	$net=Paragraphe('network-connection2.png','{net_settings}','{net_settings_text}',"javascript:Loadjs('system.nic.config.php?js=yes')",'net_settings_text');
-	$frontend_settings=Paragraphe("64-settings.png",'{design_and_tweaks}','{designs_and_tweaks_text}',"javascript:Loadjs('artica.performances.php?cron-js=yes');","{internal_hard_drives_text}");
+	//$frontend_settings=Paragraphe("64-settings.png",'{design_and_tweaks}','{designs_and_tweaks_text}',"javascript:Loadjs('artica.performances.php?cron-js=yes');","{internal_hard_drives_text}");
 	$memdump=Paragraphe("stats-64.png",'{processes_memory}','{processes_memory_text}',"javascript:LoadMemDump();","{processes_memory_text}");
 	$artica_events=Paragraphe('events-64.png','{artica_events}','{artica_events_text}',"javascript:Loadjs('artica.events.php');","{artica_events_text}");
 	$phpldapadmin=Paragraphe('phpldap-admin-64.png','{APP_PHPLDAPADMIN}','{APP_PHPLDAPADMIN_TEXT}',"javascript:s_PopUpFull('ldap/index.php',1024,800);","{APP_PHPLDAPADMIN_TEXT}");
@@ -302,7 +305,7 @@ if($t<3){
 
 
 function kaspersky(){
-	$frontend_settings=Paragraphe("64-settings.png",'{design_and_tweaks}','{design_and_tweaks_text}',"javascript:Loadjs('artica.performances.php?cron-js=yes');","{design_and_tweaks_text}");
+	//$frontend_settings=Paragraphe("64-settings.png",'{design_and_tweaks}','{design_and_tweaks_text}',"javascript:Loadjs('artica.performances.php?cron-js=yes');","{design_and_tweaks_text}");
 	$artica_events=Paragraphe('events-64.png','{artica_events}','{artica_events_text}',"javascript:Loadjs('artica.events.php');","{artica_events_text}");
 	$wizard=Paragraphe('kaspersky-wizard-64.png','{wizard_kaspersky_smtp_appliance}','{wizard_kaspersky_smtp_appliance_text_wizard}',"javascript:Loadjs('wizard.kaspersky.appliance.php');","{wizard_kaspersky_smtp_appliance_text_wizard}");
 	$patterns=Paragraphe('64-kaspersky-databases-status.png','{patterns_vers_status}','{kaspersky_av_text}',"javascript:YahooWin(580,'kaspersky.index.php','Kaspersky');","{kaspersky_av_text}");
@@ -604,7 +607,7 @@ $page=CurrentPageName();
 	</tbody>
 	</table>
 	
-	<div style='text-align:right'>". imgtootltip('32-refresh.png',"{refresh}","Loadjs('$page?refresh-status-js=yes')")."</div>
+	<div style='text-align:right'>". imgtootltip('32-refresh.png',"{refresh}","Loadjs('$page?refresh-status-js=yes&nocache=yes')")."</div>
 
 ";
 	$tpl=new templates();

@@ -29,7 +29,7 @@ $hostname=$users->hostname;
 $UsersNumber=@file_get_contents("/etc/artica-postfix/UsersNumber");
 if(!is_numeric($UsersNumber)){$UsersNumber=0;}
 $uriplus="$SYSTEMID;$MEMORY_INSTALLED;$SystemCpuNumber;$LinuxDistributionFullName;$ARTICA_VERSION;$hostname;$UsersNumber;$datas";
-$uriplus=str_replace(" ", "%20", $uriplus);
+$uriplus=urlencode($uriplus);
 $ini=new Bs_IniHandler();
 $ini->loadFile("/etc/artica-postfix/artica-update.conf");
 $uri=$ini->get("AUTOUPDATE","uri");
@@ -39,16 +39,10 @@ $localFile='/usr/share/artica-postfix/ressources/index.ini';
 $curl=new ccurl("$uri?datas=$uriplus");
 
 $tmpfile="/tmp/artica.".basename(__FILE__).'.tmp';
+@unlink("/usr/share/artica-postfix/ressources/logs/INTERNET_FAILED");
+	
+	
 
-	@unlink("/usr/share/artica-postfix/ressources/logs/INTERNET_FAILED");
-	
-	
-if(!$curl->GetFile($tmpfile)){
-	$unix->send_email_events("Check Internet connexion Failed", "System is unable to connect trough internet: $curl->error", "update");
-	@file_put_contents("/usr/share/artica-postfix/ressources/logs/INTERNET_FAILED", $curl->error);
-	shell_exec("$chmod 777 /usr/share/artica-postfix/ressources/logs/INTERNET_FAILED");
-	return;
-}
 
 $ini=new Bs_IniHandler();
 $ini->loadFile("$tmpfile");

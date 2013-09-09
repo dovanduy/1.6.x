@@ -1,5 +1,7 @@
 <?php
-$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+if(preg_match("#--verbose#",implode(" ",$argv))){
+	$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.ldap.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
@@ -111,15 +113,18 @@ function WizardExecute(){
 	$sock->getFrameWork("services.php?folders-security=yes");
 	$sock->getFrameWork("services.php?cache-pages=yes");
 	sleep(1);
-	$sock->getFrameWork("services.php?resolvConf=yes");
-	sleep(1);
+	
 	$ldap=new clladp();
 	$ldap->AddOrganization($savedsettings["organization"]);
 	$ldap->AddDomainEntity($savedsettings["organization"],$savedsettings["smtp_domainname"]);
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?reconfigure-postfix=yes");
-	$sock->getFrameWork("cmd.php?squid-rebuild=yes");
-	$sock->getFrameWork("cyrus.php?service-cmds=restart");
+	
+	shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php >/dev/null 2>&1");
+	shell_exec("/etc/init.d/artica-ifup start");
+	
+	$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.postfix.maincf.php --reconfigure");
+	$unix->THREAD_COMMAND_SET("/usr/share/artica-postfix/bin/artica-install --reconfigure-cyrus");
+
 	$FreeWebAdded=false;
 	sleep(3);
 
@@ -131,6 +136,7 @@ function WizardExecute(){
 				
 		}
 		$squid->SaveToLdap();
+		$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
 	}
 
 	if(isset($savedsettings["EnablePDNS"])){
@@ -179,8 +185,8 @@ function WizardExecute(){
 			if(!$q->ok){$gpid=0;}else{$gpid=$q->last_id;}
 				
 			if($gpid>0){
-				$savedsettings["administrator"]=mysql_escape_string($savedsettings["administrator"]);
-				$administratorpass=mysql_escape_string(url_decode_special_tool($savedsettings["administratorpass"]));
+				$savedsettings["administrator"]=mysql_escape_string2($savedsettings["administrator"]);
+				$administratorpass=mysql_escape_string2(url_decode_special_tool($savedsettings["administratorpass"]));
 				$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT value FROM radcheck WHERE username='{$savedsettings["administrator"]}' LIMIT 0,1","artica_backup"));
 				if(trim($ligne["value"])==null){
 					$sql="INSERT IGNORE INTO radcheck (`username`, `attribute`, `value`) VALUES ('{$savedsettings["administrator"]}', 'Cleartext-Password', '{$savedsettings["administratorpass"]}');";
@@ -212,8 +218,8 @@ function WizardExecute(){
 			if(!$q->ok){$gpid=0;}else{$gpid=$q->last_id;}
 	
 			if($gpid>0){
-				$savedsettings["statsadministrator"]=mysql_escape_string($savedsettings["statsadministrator"]);
-				$administratorpass=mysql_escape_string(url_decode_special_tool($savedsettings["statsadministratorpass"]));
+				$savedsettings["statsadministrator"]=mysql_escape_string2($savedsettings["statsadministrator"]);
+				$administratorpass=mysql_escape_string2(url_decode_special_tool($savedsettings["statsadministratorpass"]));
 				$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT value FROM radcheck WHERE username='{$savedsettings["statsadministrator"]}' LIMIT 0,1","artica_backup"));
 				if(trim($ligne["value"])==null){
 					$sql="INSERT IGNORE INTO radcheck (`username`, `attribute`, `value`) VALUES ('{$savedsettings["statsadministrator"]}', 'Cleartext-Password', '{$savedsettings["statsadministratorpass"]}');";
@@ -244,12 +250,15 @@ function WizardExecute(){
 	}
 	if($savedsettings["EnableYoutubeCache"]==1){
 		@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableHaarp", 1);
+		squid_admin_mysql(0, "Initial installation, Order to restart Haarp","");
 		shell_exec("/etc/init.d/haarp restart");
+		
 		shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1");
 	}
 
 	
 	shell_exec("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/nginx restart >/dev/null 2>&1 &");
 }
 
 

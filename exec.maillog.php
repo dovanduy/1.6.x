@@ -62,6 +62,8 @@ $GLOBALS["PopHackCount"]=$sock->GET_INFO("PopHackCount");
 $GLOBALS["DisableMailBoxesHack"]=$sock->GET_INFO("DisableMailBoxesHack");
 $GLOBALS["EnableArticaSMTPStatistics"]=$sock->GET_INFO("EnableArticaSMTPStatistics");
 $GLOBALS["ActAsASyslogSMTPClient"]=$sock->GET_INFO("ActAsASyslogSMTPClient");
+$GLOBALS["EnableStopPostfix"]=$sock->GET_INFO("EnableStopPostfix");
+if(!is_numeric($GLOBALS["EnableStopPostfix"])){$GLOBALS["EnableStopPostfix"]=0;}
 if(!is_numeric($GLOBALS["EnableArticaSMTPStatistics"])){$GLOBALS["EnableArticaSMTPStatistics"]=1;}
 if(!is_numeric($GLOBALS["ActAsASyslogSMTPClient"])){$GLOBALS["ActAsASyslogSMTPClient"]=0;}
 if(!is_numeric($GLOBALS["DisableMailBoxesHack"])){$GLOBALS["DisableMailBoxesHack"]=0;}
@@ -81,6 +83,9 @@ smtp_hack_reconfigure();
 $GLOBALS["CLASS_UNIX"]=$unix;
 $GLOBALS["postfix_bin_path"]=$unix->find_program("postfix");
 $GLOBALS["CHOWN"]=$unix->find_program("chown");
+$GLOBALS["CHMOD"]=$unix->find_program("chmod");
+$GLOBALS["fuser"]=$unix->find_program("fuser");
+$GLOBALS["kill"]=$unix->find_program("kill");
 $GLOBALS["NOHUP_PATH"]=$unix->find_program("nohup");
 $GLOBALS["NETSTAT_PATH"]=$unix->find_program("netstat");
 $GLOBALS["TOUCH_PATH"]=$unix->find_program("touch");
@@ -108,7 +113,7 @@ fclose($pipe);
 events("Shutdown...");
 die();
 function Parseline($buffer){
-	
+if(is_file("/etc/artica-postfix/DO_NOT_DETECT_POSTFIX")){return;}	
 $buffer=trim($buffer);
 if($buffer==null){return null;}
 
@@ -158,13 +163,17 @@ if(strpos($buffer,") smtp resp to greeting:")>0){return;}
 if(strpos($buffer,") smtp cmd> EHLO")>0){return;}  
 if(strpos($buffer,") smtp resp to EHLO:")>0){return;} 
 if(strpos($buffer,") smtp resp to RCPT (")>0){return;} 
-if(strpos($buffer,"Passed CLEAN {RelayedOutbound}")>0){return;} 
 if(strpos($buffer,"greylist: mi_stop=1")>0){return;} 
 if(strpos($buffer,"smfi_main() returned 0")>0){return;} 
 if(strpos($buffer,"Final database dump")>0){return;}
 if(strpos($buffer,"refreshing the Postfix")>0){return;}
 if(strpos($buffer,"class.auth.tail.inc")>0){return;}
 if(strpos($buffer,"authenticated, bypassing greylisting")>0){return;}
+if(strpos($buffer,"NEW message_id")>0){return;}
+if(strpos($buffer,"Passed CLEAN {")>0){return;}
+if(strpos($buffer,") Blocked SPAM {")>0){return;}
+if(strpos($buffer,") Blocked SPAMMY {")>0){return;}
+if(strpos($buffer,"does not resolve to address")>0){return;}
 
 // ************************ DKIM DUTSBIN
 if(strpos($buffer,"no signing domain match for")>0){return;}
@@ -444,11 +453,7 @@ if(preg_match("#connect to.*?\[(.*?)lmtp\]:\s+Permission denied#", $buffer)){
 }
 
 if(preg_match("#postfix-script\[.+?: the Postfix mail system is not running#", $buffer)){
-	$sock=new sockets();
-	$EnableStopPostfix=$sock->GET_INFO("EnableStopPostfix");
-	$sock=null;
-	if(!is_numeric($EnableStopPostfix)){$EnableStopPostfix=0;}
-	if($EnableStopPostfix==0){
+	if($GLOBALS["EnableStopPostfix"]==0){
 		$file="/etc/artica-postfix/pids/postfix-script.start.time";
 		$timefile=file_time_min($file);
 		if($timefile>1){
@@ -459,6 +464,46 @@ if(preg_match("#postfix-script\[.+?: the Postfix mail system is not running#", $
 		return;
 }
 
+
+
+// ---------------------------------------------------------------------------------------------------------------
+if(preg_match("#master.*?fatal: bind (.+?)\s+port\s+([0-9]+):\s+Address already in use#", $buffer,$re)){
+	
+	$port=$re[2];
+	events("Port conflict on $port");
+	exec("{$GLOBALS["fuser"]} $port/tcp 2>&1",$results);
+	
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#:\s+([0-9]+)#", $ligne,$re)){
+			$tokill=$re[1];
+			events("Killing PID $tokill");
+			shell_exec_maillog("{$GLOBALS["kill"]} -9 $tokill");
+		}
+	}
+	
+	if($GLOBALS["EnableStopPostfix"]==0){
+		$file="/etc/artica-postfix/pids/postfix-script.start.".__LINE__.".time";
+		$timefile=file_time_min($file);
+		if($timefile>1){
+			shell_exec_maillog("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["postfix_bin_path"]} start >/dev/null 2>&1 &");}
+			@unlink($file);
+			@file_put_contents($file, time());
+		} 
+		return;
+}
+// ---------------------------------------------------------------------------------------------------------------
+if(strpos($buffer,"fatal: mail system startup failed")>0){
+	$sock=new sockets();
+	if($GLOBALS["EnableStopPostfix"]==0){
+		$file="/etc/artica-postfix/pids/postfix-script.start.".__LINE__.".time";
+		$timefile=file_time_min($file);
+		if($timefile>1){shell_exec_maillog("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["postfix_bin_path"]} start >/dev/null 2>&1 &");}
+			@unlink($file);
+			@file_put_contents($file, time());
+		}
+	return;	
+}
+// ---------------------------------------------------------------------------------------------------------------
 
 if(strpos($buffer," amavis[")>0){
 	$p=new amavis_maillog_buffer($buffer);
@@ -501,7 +546,28 @@ if(preg_match("#milter-greylist:.+?bind failed: Address already in use#",$buffer
 }
 
 
+if(strpos($buffer,"inet_interfaces: no local interface found")>0){
+	$file="/etc/artica-postfix/croned.1/postfix.error.inet_interfaces";
+	events("inet_interfaces issues $buffer");	
+	$timefile=file_time_min($file);
+	if($timefile>10){
+		email_events("{$re[1]}: misconfiguration on inet_interfaces",
+		"Postfix claim \n$buffer\n\nIf this event is resended\nplease Check Artica Technology support service.","postfix");
+		@file_put_contents($file,"#");
+		$cmd=trim("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.maincf.php --interfaces >/dev/null 2>&1 &");
+		events("$cmd");
+		shell_exec_maillog($cmd);
+		}
+	return;	
+}
 
+if(preg_match("#mail_queue_enter.*?create file maildrop\/.*?Permission denied#", $buffer,$re)){
+	chgrp("/var/spool/postfix/public", "postdrop");
+	chgrp("/var/spool/postfix/maildrop", "maildrop");
+	shell_exec("{$GLOBALS["CHMOD"]} 1730 /var/spool/postfix/maildrop");
+	shell_exec("{$GLOBALS["postfix_bin_path"]} stop && {$GLOBALS["postfix_bin_path"]} start");
+	return;
+}
 	
 if(preg_match("#(.+?)\/smtpd\[.+?fatal:\s+config variable inet_interfaces#", $buffer)){
 	$file="/etc/artica-postfix/croned.1/postfix.error.inet_interfaces";

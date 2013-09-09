@@ -10,9 +10,9 @@
 <database_status>Tables status</database_status>
 <debug_level>System error reporting</debug_level>
 <debug_logger>Enhanced logging for debugging purposes</debug_logger>
-<default_host>The mail host chosen to perform the log-in</default_host>
+<default_host>The IMAP server</default_host>
 <emoticons>Replace emoticons in plain text message body with real icons</emoticons>
-<enable_caching>Enable caching of messages and mailbox data in the local database</enable_caching>
+<enable_caching>Cache mailbox data</enable_caching>
 <example_addressbook>Przyk%u0142adowa ksi%u0105%u017Cka adresowa</example_addressbook>
 <filesystem_attachments>
  This is a core plugin which provides basic, filesystem based attachment temporary file handling.[br]This includes storing
@@ -35,7 +35,7 @@ false causes deleted messages to be permanantly removed if there is no Trash fol
 <new_user_dialog>Present identities settings dialog to new users</new_user_dialog>
 <PHP_FCGI_CHILDREN>The number of php-cgi processes per lightppd processes</PHP_FCGI_CHILDREN>
 <PHP_FCGI_MAX_REQUESTS>Maximal requests before restarting php-cgi process</PHP_FCGI_MAX_REQUESTS>
-<product_name>Use this name to compose page titles</product_name>
+<product_name>Pages title</product_name>
 <rebuild>Rebuild</rebuild>
 <rlogs>RoundCube events</rlogs>
 <RoundCubeHTTPEngineEnabled>Enable Dedicated Web site</RoundCubeHTTPEngineEnabled>

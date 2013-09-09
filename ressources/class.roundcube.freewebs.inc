@@ -1,5 +1,6 @@
 <?php
 include_once(dirname(__FILE__)."/class.cyrus.inc");
+include_once(dirname(__FILE__)."/class.roundcube.inc");
 
 class roundcube_freewebs{
 	var $groupware;
@@ -14,8 +15,14 @@ class roundcube_freewebs{
 	var $mysql_username=null;
 	var $mysql_instance_id=0;
 	var $Params=array();
+	private $PrefixOutput=null;
 	function roundcube_freewebs($servername){
-		if($servername<>null){$this->servername=$servername;}
+		if($servername<>null){
+			
+			$this->servername=$servername;
+			$this->PrefixOutput="Starting......: [INIT]: Apache \"$servername\"";
+		
+		}
 		$this->load();
 	}
 	
@@ -32,9 +39,10 @@ class roundcube_freewebs{
 			$this->mysql_username=$ligne["mysql_username"];			
 			if($this->www_dir==null){$this->www_dir="/var/www/$this->servername";}
 			if(strlen($ligne["Params"])>5){$this->Params=@unserialize(base64_decode($ligne["Params"]));}
-			writelogs("[$this->servername] ROUNDCUBE mysql user=$this->mysql_username",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->OutputEvents("mysql user=$this->mysql_username",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->mysql_instance_id=$ligne["mysql_instance_id"];
-			$this->database="rdcbe".date('mdHi');
+			$roundcube=new roundcube();
+			$this->database=$roundcube->database;
 			if($ligne["mysql_database"]<>null){$this->database=$ligne["mysql_database"];}else{
 				$sql="UPDATE freeweb SET mysql_database='{$this->database}' WHERE servername='$this->servername'";
 				$q->QUERY_SQL($sql,"artica_backup");
@@ -43,10 +51,15 @@ class roundcube_freewebs{
 			
 	}
 	
+	private function OutputEvents($text,$function=null,$file=null,$line=null){
+		echo $this->PrefixOutput." [RCBE/$line] $text\n";
+		writelogs("[Roundcube:$this->servername] $text",$function,$file,$line);
+	}
+	
 	function getTables(){
 		$path="$this->www_dir/SQL/mysql.initial.sql";
 		if(!is_file($path)){
-			writelogs("[$this->servername] ROUNDCUBE $path no such file",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->OutputEvents("$path no such file",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			return array();
 		}
 		$datas=@file_get_contents($path);
@@ -71,42 +84,42 @@ class roundcube_freewebs{
 		$init="$this->www_dir/SQL/mysql.initial.sql";
 		$updatesrc="$this->www_dir/SQL/mysql.update.sql";
 		if(count($tables)==0){return false;}
-		$q=new mysql();
+		$q=new roundcube($this->database);
 		$Update=false;
 		
 		if($q->DATABASE_EXISTS($this->database)){
 			while (list ($table, $line) = each ($tables)){
 				if(!$q->TABLE_EXISTS($table, $this->database)){
-					writelogs("[$this->servername] ROUNDCUBE $this->database/$table no such table",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					$this->OutputEvents("$this->database/$table no such table",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					$Update=true;break;
 				}
 			}
 		}else{
 			$Update=true;
 			$q->CREATE_DATABASE($this->database);
+			$php5=$unix->LOCATE_PHP5_BIN();
+			$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.roundcube.php --force");
 		}
 		
 		
 		if(!$Update){return true;}
 		$mysql=$unix->find_program("mysql");
 		if($q->mysql_password<>null){$password=" --password=$q->mysql_password ";}
-		writelogs("[$this->servername] ROUNDCUBE creating tables...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		$cmd="$mysql --port=$q->mysql_port --skip-column-names --database=$this->database --silent --xml ";
-		$cmd=$cmd." --user=$q->mysql_admin$password <$init";
-		writelogs("[$this->servername] ROUNDCUBE $cmd",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		$this->OutputEvents("creating tables...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		$cmd="$mysql ". $q->MYSQL_CMDLINES." --skip-column-names --database=$this->database --silent --xml <$init";
+		$this->OutputEvents("$cmd",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);		
 		
 		if(is_file($updatesrc)){
-			$cmd="$mysql --port=$q->mysql_port --skip-column-names --database=$this->database --silent --xml ";
-			$cmd=$cmd." --user=$q->mysql_admin$password <$init";
-			writelogs("[$this->servername] ROUNDCUBE $cmd",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$cmd="$mysql ". $q->MYSQL_CMDLINES." --skip-column-names --database=$this->database --silent --xml < $updatesrc";
+			$this->OutputEvents("$cmd",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			shell_exec($cmd);			
 		}
 		
 		reset($tables);
 		while (list ($table, $line) = each ($tables)){
 			if(!$q->TABLE_EXISTS($table, $this->database,true)){
-				writelogs("[$this->servername] ROUNDCUBE $this->database/$table no such table",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$this->OutputEvents("$this->database/$table no such table",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				return false;}
 		}
 		
@@ -119,18 +132,21 @@ class roundcube_freewebs{
 		if(!is_dir($this->www_dir)){@mkdir($this->www_dir,0755,true);}
 		
 		if(!is_dir("/usr/share/roundcube")){
-			writelogs("[$this->servername] /usr/share/roundcube no such directory",__FUNCTION__,__FILE__,__LINE__);
+			$this->OutputEvents("/usr/share/roundcube no such directory",__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}
 		if(!is_file("$this->www_dir/program/localization/fr_FR/messages.inc")){
-			writelogs("[$this->servername] copy sources To `$this->www_dir`...",__FUNCTION__,__FILE__,__LINE__);
+			$this->OutputEvents("copy sources To `$this->www_dir`...",__FUNCTION__,__FILE__,__LINE__);
 			shell_exec("/bin/cp -rfP /usr/share/roundcube/* $this->www_dir/");
 		}		
 		
 		
 		if($this->mysqldb()){
+			$this->OutputEvents("Verify main config file",__FUNCTION__,__FILE__,__LINE__);
 			$this->build_main_inc();
+			$this->OutputEvents("Verify DB config file",__FUNCTION__,__FILE__,__LINE__);
 			$this->build_db_inc();
+			$this->OutputEvents("Verify managesieve",__FUNCTION__,__FILE__,__LINE__);
 			$this->managesieve();
 		}
 		
@@ -162,6 +178,7 @@ class roundcube_freewebs{
 	
 	private function build_main_inc(){
 		$free=new freeweb($this->servername);
+		if(!isset($free->Params["ROUNDCUBE"])){$free->Params["ROUNDCUBE"]=array();}
 		$users=new usersMenus();
 		$SMTP_SERVER=$free->Params["ROUNDCUBE"]["SMTP_SERVER"];
 		if($SMTP_SERVER==null){$SMTP_SERVER="127.0.0.1";}	
@@ -180,6 +197,9 @@ class roundcube_freewebs{
 			}
 		}
 		
+		
+		
+		
 		if(isset($free->Params["ROUNDCUBE"]["IMAP_SERVER"])){
 			$free->Params["ROUNDCUBE"]["IMAP_SERVER"]=trim($free->Params["ROUNDCUBE"]["IMAP_SERVER"]);
 			if($free->Params["ROUNDCUBE"]["IMAP_SERVER"]<>null){
@@ -187,6 +207,10 @@ class roundcube_freewebs{
 				
 			}
 		}
+		
+			
+		
+		
 		if(preg_match("#(.+?):([0-9]+)#", $imapserver,$re)){
 			$imapserver=$re[1];
 			$imapserver_default_port=$re[2];
@@ -202,17 +226,22 @@ class roundcube_freewebs{
 		$WRITE_NAB=$free->Params["ROUNDCUBE"]["WRITE_NAB"];
 		if(!is_numeric($imapserver_default_port)){$imapserver_default_port=143;}
 		
-		echo "Starting......: RoundCube \"$this->servername\" IMAP..........: $imapserver:$imapserver_default_port\n";
-		echo "Starting......: RoundCube \"$this->servername\" SMTP..........: $SMTP_SERVER\n";
-		echo "Starting......: RoundCube \"$this->servername\" LOGIN domain..: $username_domain\n";
-		echo "Starting......: RoundCube \"$this->servername\" Default domain: $mail_domain\n";
-		echo "Starting......: RoundCube \"$this->servername\" product_name..: $product_name\n";
-		echo "Starting......: RoundCube \"$this->servername\" NAB...........: $ENABLE_NAB ( $ENABLE_NAB_OU ) writeable:$WRITE_NAB\n";
+
 		
 		
-	$free->Params["ROUNDCUBE"]["product_name"]=$_POST["product_name"];
-	$free->Params["ROUNDCUBE"]["ENABLE_NAB"]=$_POST["ENABLE_NAB"];
-	$free->Params["ROUNDCUBE"]["NAB-OU"]=$_POST["NAB-OU"];		
+		$this->OutputEvents("IMAP..........: $imapserver:$imapserver_default_port",__FUNCTION__,__FILE__,__LINE__);
+		$this->OutputEvents("SMTP..........: $SMTP_SERVER",__FUNCTION__,__FILE__,__LINE__);
+		
+		$this->OutputEvents("LOGIN domain..: $username_domain",__FUNCTION__,__FILE__,__LINE__);
+		$this->OutputEvents("Default domain: $mail_domain",__FUNCTION__,__FILE__,__LINE__);
+		$this->OutputEvents("product_name..: $product_name",__FUNCTION__,__FILE__,__LINE__);
+		$this->OutputEvents("NAB...........: $ENABLE_NAB ( $ENABLE_NAB_OU ) writeable:$WRITE_NAB",__FUNCTION__,__FILE__,__LINE__);
+		
+		if(isset($_POST["product_name"])){
+			$free->Params["ROUNDCUBE"]["product_name"]=$_POST["product_name"];
+			$free->Params["ROUNDCUBE"]["ENABLE_NAB"]=$_POST["ENABLE_NAB"];
+			$free->Params["ROUNDCUBE"]["NAB-OU"]=$_POST["NAB-OU"];	
+		}	
 		
 		
 		if($mail_domain<>null){$this->fix_identities($mail_domain);}
@@ -574,14 +603,28 @@ class roundcube_freewebs{
 		$conf[]="// ----------------------------------";
 		$conf[]="";
 		
+		$ARRAY_PLUGINS=array();
+		if(!is_array($this->Params["ROUNDCUBE"])){$this->Params["ROUNDCUBE"]=array();}
 		while (list ($key, $value) = each ($this->Params["ROUNDCUBE"])){
 			if(preg_match("#plugin_(.+)#", $key,$re)){
 				if($value==1){
+					$ARRAY_PLUGINS[$re[1]]=true;
 					$plugin[]="'{$re[1]}'";
-					echo "Starting......: RoundCube \"$this->servername\" adding {$re[1]} plugin\n";
-					writelogs("[$this->servername] ROUNDCUBE adding `{$re[1]}` plugin",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					$this->OutputEvents("adding `{$re[1]}` plugin",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				}
 			}
+			
+		}
+		
+		if(!isset($ARRAY_PLUGINS["managesieve"])){
+			$this->OutputEvents("adding defaults plugins managesieve",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			if(is_dir("$this->www_dir/plugins/managesieve")){
+				$this->OutputEvents("adding `managesieve` plugin",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$plugin[]="'managesieve'";
+			}else{
+				$this->OutputEvents("$this->www_dir/plugins/managesieve no such directory",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			}
+			
 			
 		}
 		
@@ -927,90 +970,29 @@ class roundcube_freewebs{
 		$conf[]="";
 		$conf[]="// end of config file";		
 		@file_put_contents($this->www_dir."/config/main.inc.php", @implode("\n", $conf));
-		writelogs("[$this->servername] ROUNDCUBE $this->www_dir/config/main.inc.php done",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		$this->OutputEvents("$this->www_dir/config/main.inc.php done",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 	}
 	
 	
 	private function build_db_inc(){
 			//$instance_id=$this-
-		
-		
-			$q=new mysql();
-			$instance_id=$this->mysql_instance_id;
-			if(!is_numeric($instance_id)){$instance_id=0;}
-			if($instance_id>0){$q=new mysql_multi($instance_id);}
+			$this->OutputEvents("MySQL database is: `$this->database` Server:$round->mysql_server/$round->SocketPath",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$round=new roundcube($this->database);
+			$data=$round->db_inc_php(true);	
 			
-			
-			if($this->mysql_username==null){$this->mysql_username=$q->mysql_admin;}
-			if($this->mysql_password==null){$this->mysql_password=$q->mysql_password;}
-			$auth=$this->mysql_username;
-			if($this->mysql_password<>null){$auth="$this->mysql_username:$this->mysql_password";}
-			
-			
-			$dsn="$auth@$q->mysql_server:$q->mysql_port/$this->database";
-			//see http://pear.php.net/manual/en/package.database.db.intro-dsn.php
-			if($instance_id>0){
-					$dsn="$auth@unix($q->SocketPath)/$this->database";
-			}
-			
-			if($instance_id==0){
-				if(($q->mysql_server=="127.0.0.1") OR ($q->mysql_server=="loalhost")){
-					$dsn="$auth@unix(/var/run/mysqld/mysqld.sock)/$this->database";
-				}
-			}
-			
-		
-			$conf[]="<?php";
-			$conf[]="";
-			$conf[]="/*";
-			$conf[]=" +-----------------------------------------------------------------------+";
-			$conf[]=" | Configuration file for database access                                |";
-			$conf[]=" |                                                                       |";
-			$conf[]=" | This file is part of the Roundcube Webmail client                     |";
-			$conf[]=" | Copyright (C) 2005-2009, The Roundcube Dev Team                       |";
-			$conf[]=" | Licensed under the GNU GPL                                            |";
-			$conf[]=" |                                                                       |";
-			$conf[]=" +-----------------------------------------------------------------------+";
-			$conf[]="";
-			$conf[]="*/";
-			$conf[]="";
-			$conf[]="\$rcmail_config = array();";
-			$conf[]="\$rcmail_config['db_dsnw'] = 'mysql://$dsn';";
-			$conf[]="";
-			$conf[]="// PEAR database DSN for read only operations (if empty write database will be used)";
-			$conf[]="// useful for database replication";
-			$conf[]="\$rcmail_config['db_dsnr'] = '';";
-			$conf[]="// maximum length of a query in bytes";
-			$conf[]="\$rcmail_config['db_max_length'] = 512000;  // 500K";
-			$conf[]="";
-			$conf[]="// use persistent db-connections";
-			$conf[]="// beware this will not \"always\" work as expected";
-			$conf[]="// see: http://www.php.net/manual/en/features.persistent-connections.php";
-			$conf[]="\$rcmail_config['db_persistent'] = FALSE;";
-			$conf[]="";
-			$conf[]="";
-			$conf[]="// you can define specific table names used to store webmail data";
-			$conf[]="\$rcmail_config['db_table_users'] = 'users';";
-			$conf[]="\$rcmail_config['db_table_identities'] = 'identities';";
-			$conf[]="\$rcmail_config['db_table_contacts'] = 'contacts';";
-			$conf[]="\$rcmail_config['db_table_contactgroups'] = 'contactgroups';";
-			$conf[]="\$rcmail_config['db_table_contactgroupmembers'] = 'contactgroupmembers';";
-			$conf[]="\$rcmail_config['db_table_session'] = 'session';";
-			$conf[]="\$rcmail_config['db_table_cache'] = 'cache';";
-			$conf[]="\$rcmail_config['db_table_messages'] = 'messages';";
-			$conf[]="\$rcmail_config['db_sequence_users'] = 'user_ids';";
-			$conf[]="\$rcmail_config['db_sequence_identities'] = 'identity_ids';";
-			$conf[]="\$rcmail_config['db_sequence_contacts'] = 'contact_ids';";
-			$conf[]="\$rcmail_config['db_sequence_contactgroups'] = 'contactgroups_ids';";
-			$conf[]="\$rcmail_config['db_sequence_cache'] = 'cache_ids';";
-			$conf[]="\$rcmail_config['db_sequence_messages'] = 'message_ids';";
-			$conf[]="";		
-			@file_put_contents($this->www_dir."/config/db.inc.php", @implode("\n", $conf));
-			writelogs("[$this->servername] ROUNDCUBE $this->www_dir/config/db.inc.php done",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			@file_put_contents($this->www_dir."/config/db.inc.php",$data);
+			$this->OutputEvents("$this->www_dir/config/db.inc.php done",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 	}
 	
 	private function managesieve(){
-		if(!is_dir("$this->www_dir/plugins/managesieve")){return;}
+
+		
+		if(!is_dir("$this->www_dir/plugins/managesieve")){
+			$this->OutputEvents("$this->www_dir/plugins/managesieve no such directory",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			return;}
+			
+		$free=new freeweb($this->servername);
+		if(!isset($free->Params["ROUNDCUBE"])){$free->Params["ROUNDCUBE"]=array();}	
 		$sock=new sockets();
 		$cyrus=new cyrus_conf();
 		$SieveListenIp="127.0.0.1";
@@ -1023,7 +1005,7 @@ class roundcube_freewebs{
 				
 			}
 		}
-		if(preg_match("#(.+?):([0-9]+)#", $imapserver,$re)){
+		if(preg_match("#(.+?):([0-9]+)#", $SieveListenIp,$re)){
 			$SieveListenIp=$re[1];
 		}		
 		
@@ -1032,7 +1014,7 @@ class roundcube_freewebs{
 			if(trim($SieveListenIp)==null){$SieveListenIp="127.0.0.1";}
 		}
 		
-		$managesieve_port=2000;
+		$managesieve_port=4190;
 		
 		$f=file("/etc/services");
 		while (list ($num, $ligne) = each ($f) ){
@@ -1040,10 +1022,38 @@ class roundcube_freewebs{
 				$managesieve_port=$re[1];
 				break;
 			}
-		}	
+		}
+
+		if(isset($free->Params["ROUNDCUBE"]["SIEVE_SERVER"])){
+			$SIEVE_SERVER=null;
+			$SIEVE_SERVER_PORT=0;
+			if($free->Params["ROUNDCUBE"]["SIEVE_SERVER"]<>null){
+				$this->OutputEvents("SIEVE_SERVER = ".$free->Params["ROUNDCUBE"]["SIEVE_SERVER"],__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$SIEVE_SERVER=$free->Params["ROUNDCUBE"]["SIEVE_SERVER"];
+				if(is_numeric($SIEVE_SERVER)){
+					$SIEVE_SERVER_PORT=$SIEVE_SERVER;
+					$SIEVE_SERVER="127.0.0.1";
+				}
+				
+				if(preg_match("#(.+?):([0-9]+)#", $SIEVE_SERVER,$re)){
+					$SIEVE_SERVER_PORT=$re[2];
+					$SIEVE_SERVER=$re[1];
+				}
+
+			}
+			if($SIEVE_SERVER_PORT>0){
+				$managesieve_port=$SIEVE_SERVER_PORT;
+			}
+			if($SIEVE_SERVER<>null){
+				$SieveListenIp=$SIEVE_SERVER;
+			}
+			
+		}
+		
+		
 			
 		
-		
+			$this->OutputEvents("Sieve: $SieveListenIp:$managesieve_port",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			
 			$conf[]="<?php";
 			$conf[]="";
@@ -1112,6 +1122,7 @@ class roundcube_freewebs{
 			$conf[]="\$rcmail_config['managesieve_filename_exceptions'] = array();";
 			$conf[]="";
 			$conf[]="?>";	
+			$this->OutputEvents("$this->www_dir/plugins/managesieve/config.inc.php done",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			@file_put_contents("$this->www_dir/plugins/managesieve/config.inc.php", @implode("\n", $conf));
 			@chmod("$this->www_dir/plugins/managesieve/config.inc.php",0755);	
 		

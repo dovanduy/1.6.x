@@ -27,7 +27,7 @@ function link_user_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{link_to_an_user}");
-	$html="YahooWin6('520','$page?link-user-popup=yes&MAC={$_GET["MAC"]}','$title');";
+	$html="YahooWin6('520','$page?link-user-popup=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}','$title');";
 	echo $html;
 }
 
@@ -60,26 +60,51 @@ function node_infos_js(){
 }
 
 function link_user_save(){
-	$_POST["uid"]=mysql_escape_string($_POST["uid"]);
-	$sql="UPDATE webfilters_nodes SET uid='{$_POST["uid"]}' WHERE MAC='{$_POST["MAC"]}'";
-	$q=new mysql_squid_builder();
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT MAC FROM webfilters_nodes WHERE MAC='{$_POST["MAC"]}'"));
+	$_POST["uid"]=mysql_escape_string2($_POST["uid"]);
 	
-	if($ligne["MAC"]==null){
-		$sql="INSERT INTO webfilters_nodes (MAC,uid) VALUES ('{$_POST["MAC"]}','{$_POST["uid"]}')";
+	if($_POST["MAC"]<>null){
+		$sql="UPDATE webfilters_nodes SET uid='{$_POST["uid"]}' WHERE MAC='{$_POST["MAC"]}'";
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT MAC FROM webfilters_nodes WHERE MAC='{$_POST["MAC"]}'"));
+	
+		if($ligne["MAC"]==null){
+			$sql="INSERT INTO webfilters_nodes (MAC,uid) VALUES ('{$_POST["MAC"]}','{$_POST["uid"]}')";
+		}
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo $q->mysql_error;}
+		return;
 	}
+	if($_POST["ipaddr"]<>null){
+		$sql="UPDATE webfilters_ipaddr SET uid='{$_POST["uid"]}' WHERE ipaddr='{$_POST["ipaddr"]}'";
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ipaddr FROM webfilters_ipaddr WHERE ipaddr='{$_POST["ipaddr"]}'"));
 	
-	
-	
-	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error;}
+		if($ligne["ipaddr"]==null){
+			$sql="INSERT INTO webfilters_ipaddr (ipaddr,uid) VALUES ('{$_POST["ipaddr"]}','{$_POST["uid"]}')";
+		}
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo $q->mysql_error;}
+		return;
+	}	
 }
 
 function link_user_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$q=new mysql_squid_builder();
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_nodes WHERE MAC='{$_GET["MAC"]}'"));
+	if($_GET["MAC"]<>null){
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_nodes WHERE MAC='{$_GET["MAC"]}'"));
+		$member=$ligne["uid"];
+	}
+	
+	if($_GET["ipaddr"]<>null){
+		if($member==null){
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_ipaddr WHERE ipaddr='{$_GET["ipaddr"]}'"));
+			$member=$ligne["uid"];
+		}
+	}
+	
+	
 	$you_need_to_reconfigure_proxy=$tpl->javascript_parse_text("{you_need_to_reconfigre_proxy}");
 	$t=time();
 	$html="
@@ -87,7 +112,7 @@ function link_user_popup(){
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{username}:</td>
-		<td>". Field_text("$t-uid",$ligne["uid"],"font-size:16px;width:220px",null,null,null,false,"LinkUserStatsDBcHeck(event)")."</td>
+		<td>". Field_text("$t-uid",$member,"font-size:16px;width:220px",null,null,null,false,"LinkUserStatsDBcHeck(event)")."</td>
 		<td>". button("{browse}","Loadjs('MembersBrowse.php?field-user=$t-uid&NOComputers=1&OnlyUsers=1')",12)."</td>
 	</tr>
 	<tr>
@@ -102,7 +127,7 @@ function link_user_popup(){
       if(tempvalue.length>3){alert(tempvalue);}
       YahooWin6Hide();
       if(document.getElementById('main_node_infos_tab')){RefreshTab('main_node_infos_tab');}
-      IsFunctionExists('RefreshNodesSquidTbl'){ RefreshNodesSquidTbl();}
+      if(IsFunctionExists('RefreshNodesSquidTbl')){ RefreshNodesSquidTbl();}
       alert('$you_need_to_reconfigure_proxy');
      }	
 
@@ -112,13 +137,13 @@ function link_user_popup(){
      }
 	
 	function LinkUserStatsDB(){
-			var XHR = new XHRConnection();
-			XHR.appendData('link-user-save','yes');
-			XHR.appendData('uid',document.getElementById('$t-uid').value);
-			XHR.appendData('MAC','{$_GET["MAC"]}');
-			XHR.sendAndLoad('$page', 'POST',x_LinkUserStatsDB);
-			 
-			}	
+		var XHR = new XHRConnection();
+		XHR.appendData('link-user-save','yes');
+		XHR.appendData('uid',document.getElementById('$t-uid').value);
+		XHR.appendData('MAC','{$_GET["MAC"]}');
+		XHR.appendData('ipaddr','{$_GET["ipaddr"]}');
+		XHR.sendAndLoad('$page', 'POST',x_LinkUserStatsDB);
+	}	
 	
 	</script>
 	
@@ -171,18 +196,8 @@ function node_infos_tabs(){
 	}
 	
 	
+	echo build_artica_tabs($html, "main_node_infos_tab");
 	
-	echo "
-	<div id=main_node_infos_tab style='width:100%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_node_infos_tab').tabs();
-			
-			
-			});
-		</script>";		
 	
 		
 }
@@ -213,10 +228,21 @@ function node_infos_status(){
 		style='font-size:14px;font-weight:bolder;text-decoration:underline'>$uid</a>";
 	}
 	
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_nodes WHERE MAC='{$_GET["MAC"]}'"));
-	$member=$ligne["uid"];
-	if($ligne["uid"]==null){
-		$imagedegauche=imgtootltip("folder-useradd-64.png","{link_to_an_user}","Loadjs('$page?link-user-js=yes&MAC={$_GET["MAC"]}')");
+	
+	if($_GET["MAC"]<>null){
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_nodes WHERE MAC='{$_GET["MAC"]}'"));
+		$member=$ligne["uid"];
+	}
+	
+	if($_GET["ipaddr"]<>null){
+		if($member==null){
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_ipaddr WHERE ipaddr='{$_GET["ipaddr"]}'"));
+			$member=$ligne["uid"];
+		}
+	}
+	
+	if($member==null){
+		$imagedegauche=imgtootltip("folder-useradd-64.png","{link_to_an_user}","Loadjs('$page?link-user-js=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}')");
 		$textImage="{link_to_an_user}";
 		$member="{none}";
 	}
@@ -253,7 +279,7 @@ function node_infos_status(){
 	$uidORG=str_replace("$", "", $uidORG);
 	$jsnode="<a href=\"javascript:blur();\" 
 		style='font-size:14px;font-weight:bolder;text-decoration:underline'
-		OnClick=\"javascript:Loadjs('$page?link-user-js=yes&MAC={$_GET["MAC"]}')\">";
+		OnClick=\"javascript:Loadjs('$page?link-user-js=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}')\">";
 	$html="
 	<table style='width:100%;margin:-8px'>
 	<tr>

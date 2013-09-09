@@ -241,36 +241,8 @@ end;
 
 //#############################################################################
 procedure tautofs.ETC_DEFAULT();
-var l:Tstringlist;
-debugmode:string;
 begin
-
-if not DirectoryExists('/etc/default') then begin
-      logs.DebugLogs('Starting......: AutoFS /etc/default no such directory');
-      exit;
-end;
-
-l:=Tstringlist.Create;
-l.add('TIMEOUT=300');
-l.add('DISABLE_DIRECT=0');
-l.add('LDAPURI=ldap://'+zldap.ldap_settings.servername+'');
-l.add('LDAPBASE=ou=mounts,'+zldap.ldap_settings.suffix);
-l.add('AUTOFS_DONT_RESTART_ON_UPGRADES=1');
-L.add('DEFAULT_AUTH_CONF_FILE="/etc/autofs_ldap_auth.conf"');
-if EnableAutoFSDebug=1 then begin
-   logs.DebugLogs('Starting......: AutoFS debug mode enabled');
-   L.add('LOGGING="verbose"');
-end;
-L.add('MASTER_MAP_NAME="ou=auto.master,ou=mounts,'+zldap.ldap_settings.suffix+'"');
-L.add('BROWSE_MODE="yes"');
-L.add('LDAP_URI="ldap://'+zldap.ldap_settings.servername+'"');
-L.add('SEARCH_BASE="ou=mounts,'+zldap.ldap_settings.suffix+'"');
-L.add('USE_MISC_DEVICE="yes"');
-
-
-logs.WriteToFile(l.Text,'/etc/default/autofs');
-logs.DebugLogs('Starting......: AutoFS updating /etc/default/autofs done...');
-l.free;
+fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.AutoFS.php --default');
 end;
 //#############################################################################
 procedure tautofs.ETC_SYSCONFIG_DEFAULT();

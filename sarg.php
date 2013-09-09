@@ -834,6 +834,8 @@ function parameters_save(){
 	}
 	$SargConfig=SargDefault($SargConfig);	
 	$sock->SaveConfigFile(base64_encode(serialize($SargConfig)),"SargConfig");	
+	$sock->getFrameWork("squid.php?test-sarg=yes");
+	$sock->getFrameWork("squid.php?sarg-conf=yes");
 }
 	
 ?>

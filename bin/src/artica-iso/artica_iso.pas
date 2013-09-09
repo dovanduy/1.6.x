@@ -284,8 +284,10 @@ end;
           fpsystem('/bin/rm /etc/postfix/main.cf');
           fpsystem('/bin/rm /etc/postfix/master.cf');
           fpsystem('/bin/cp /etc/postfix/main.cf.default /etc/postfix/main.cf');
-          fpsystem('/bin/cp /usr/share/artica-postfix/bin/install/master.cf.default /etc/postfix/master.cf');
           fpsystem('/bin/touch /etc/postfix/master.cf');
+          fpsystem('/bin/cp /usr/share/artica-postfix/bin/install/master.cf.default /etc/postfix/master.cf');
+          fpsystem('/bin/cp /usr/share/artica-postfix/bin/install/main.cf.default /etc/postfix/main.cf');
+
           fpsystem('/bin/mv -f /home/artica/packages/postfix.tar.gz /home/artica/packages/postfix.tar.gz.old');
           fpsystem('/bin/echo `/bin/hostname -f` >/etc/mailname');
           fpsystem('/usr/sbin/adduser postfix --disabled-password');
@@ -536,6 +538,14 @@ if not FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
           fpsystem('/usr/share/artica-postfix/bin/artica-make APP_KAV4PROXY_ISO >/dev/null 2>&1');
           fpsystem('clear');
     end;
+   if FileExists('/home/artica/packages/kav4proxy-5.5-88.tar.gz') then begin
+          writeln('Artica ISO: PLEASE WAIT.... INSTALLING KAV4PROXY.....');
+          fpsystem('/usr/share/artica-postfix/bin/artica-make APP_KAV4PROXY_ISO >/dev/null 2>&1');
+          fpsystem('clear');
+    end;
+
+    fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.containers.php --patch >/dev/null 2>&1');
+
 
     fpsystem('clear');
     writeln('Artica ISO: PLEASE WAIT... System will reboot....');
@@ -546,7 +556,11 @@ end else begin
           fpsystem('/usr/share/artica-postfix/bin/artica-make APP_KAV4PROXY_ISO >/dev/null 2>&1');
           fpsystem('clear');
     end;
-
+   if FileExists('/home/artica/packages/kav4proxy-5.5-88.tar.gz') then begin
+          writeln('Artica ISO: PLEASE WAIT.... INSTALLING KAV4PROXY.....');
+          fpsystem('/usr/share/artica-postfix/bin/artica-make APP_KAV4PROXY_ISO >/dev/null 2>&1');
+          fpsystem('clear');
+    end;
 
      writeln('Artica ISO: terminated....');
      if FileExists('/etc/init.d/artica-cd') then begin

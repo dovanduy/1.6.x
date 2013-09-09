@@ -25,7 +25,7 @@ if(isset($_POST["delete-cache"])){delete_cache();exit;}
 if(isset($_GET["abort-delete-cache-js"])){delete_cache_abort_js();exit;}
 if(isset($_POST["abort-delete-cache"])){delete_cache_abort();exit;}
 
-
+if(isset($_GET["disable-js"])){disable_js();exit;}
 
 if(isset($_GET["events-js"])){events_js();exit;}
 if(isset($_GET["events-table"])){events_table();exit;}
@@ -50,6 +50,41 @@ function events_js(){
 	
 }
 
+function disable_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$cpunum=$_GET["cpunum"];
+	$uuid=$_GET["uuid"];
+	$t=time();
+	$apply_confirm_text=$tpl->javascript_parse_text("{back_to_single_proc_explain}");
+	$html="
+	var x_Perform$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){
+		alert(results);
+	}
+	
+	Loadjs('squid.restart.php?onlySquid=yes&reconfigure=yes');
+	}
+	
+	
+	function Perform$t(){
+	if(!confirm('$apply_confirm_text')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('back','yes');
+	XHR.sendAndLoad('$page', 'POST',x_Perform$t);
+	}
+	
+	Perform$t();
+	";
+	
+	echo $html;	
+		
+	
+	
+}
+
 	
 function back_js(){
 	header("content-type: application/x-javascript");
@@ -65,7 +100,7 @@ function back_js(){
 	if(results.length>3){
 		alert(results);
 	}
-	
+	Loadjs('squid.restart.php?onlySquid=yes&reconfigure=yes');
 	RefreshTab('squid_main_caches_new');
 	}
 	
@@ -127,6 +162,7 @@ function apply_js(){
 		}
 		
 		RefreshTab('squid_main_caches_new');
+		RefreshTab('squid_main_svc');
 	}
 	
 	

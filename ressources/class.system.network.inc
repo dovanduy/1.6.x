@@ -151,6 +151,8 @@ class networking{
 		exec("/usr/share/artica-postfix/bin/artica-install --local-dns 2>&1",$results);
 		return implode("",$results);
 	}
+	
+	
 		
 	
 	function LoadNameServers(){

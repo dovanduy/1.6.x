@@ -44,13 +44,13 @@ $dirsrc="samba-0.0.0";
 $Architecture=Architecture();
 
 if(!$GLOBALS["NO_COMPILE"]){
-	$v=latests();
+	$v="samba-3.6.18.tar.gz";
 	if(preg_match("#samba-(.+?)#", $v,$re)){$dirsrc=$re[1];}
-	ufdbguard_admin_events("Downloading lastest file $v, working directory $dirsrc ...",__FUNCTION__,__FILE__,__LINE__);
+	ufdbguard_admin_events("Downloading lastest file samba-3.6.18.tar.gz, working directory $dirsrc ...",__FUNCTION__,__FILE__,__LINE__);
 }
 
 if(!$GLOBALS["FORCE"]){
-	if(is_file("/root/$v")){if($GLOBALS["REPOS"]){echo "No updates...\n";die();}}
+	if(is_file("/root/samba-3.6.18.tar.gz")){if($GLOBALS["REPOS"]){echo "No updates...\n";die();}}
 }
 
 if(is_dir("/root/samba-builder")){shell_exec("$rm -rf /root/samba-builder");}
@@ -60,8 +60,8 @@ if(!$GLOBALS["NO_COMPILE"]){
 	@mkdir("/root/$dirsrc");
 	if(!is_file("/root/$v")){
 		echo "Downloading $v ...\n";
-		shell_exec("$wget http://ftp.samba.org/pub/samba/stable/$v");
-		if(!is_file("/root/$v")){echo "Downloading failed...\n";die();}
+		shell_exec("$wget http://ftp.samba.org/pub/samba/stable/samba-3.6.18.tar.gz");
+		if(!is_file("/root/samba-3.6.18.tar.gz")){echo "Downloading failed...\n";die();}
 	}
 	
 	shell_exec("$tar -xf /root/$v -C /root/$dirsrc/");

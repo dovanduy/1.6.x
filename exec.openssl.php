@@ -72,8 +72,8 @@ function buildkey($CommonName){
 	exec($cmd,$results);
 	if($GLOBALS["VERBOSE"]){echo @implode("\n", $results)."\n";}
 	
-	$csr=mysql_escape_string(@file_get_contents("$directory/server.csr"));
-	$privkey=mysql_escape_string(@file_get_contents("$directory/myserver.key"));
+	$csr=mysql_escape_string2(@file_get_contents("$directory/server.csr"));
+	$privkey=mysql_escape_string2(@file_get_contents("$directory/myserver.key"));
 	
 	$sql="UPDATE sslcertificates SET `privkey`='$privkey',`csr`='$csr' WHERE CommonName='$CommonName'";
 	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
@@ -418,8 +418,8 @@ echo "Line:".__LINE__."\n";
 echo "****\n$cmd\n****\n";
 shell_exec($cmd);	
 
-$content=mysql_escape_string(@file_get_contents("$directory/$CommonName.crt"));
-$bundle=mysql_escape_string(@file_get_contents("$directory/chain.crt"));
+$content=mysql_escape_string2(@file_get_contents("$directory/$CommonName.crt"));
+$bundle=mysql_escape_string2(@file_get_contents("$directory/chain.crt"));
 $sql="UPDATE sslcertificates SET `crt`='$content',`bundle`='$bundle' WHERE CommonName='$CommonName'";
 $q->QUERY_SQL($sql,"artica_backup");
 if(!$q->ok){echo $q->mysql_error."\n";}
@@ -487,10 +487,10 @@ function squid_autosigned($CommonName){
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";	}
 	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}	
 		
-	$SquidSrca=mysql_escape_string(@file_get_contents("$directory/RootCA.pem"));
-	$Squidkey=mysql_escape_string(@file_get_contents("$directory/squid-proxy.key"));
-	$SquidCert=mysql_escape_string(@file_get_contents("$directory/squid-proxy.crt"));
-	$SquidDer=mysql_escape_string(@file_get_contents("$directory/RootCA.der"));
+	$SquidSrca=mysql_escape_string2(@file_get_contents("$directory/RootCA.pem"));
+	$Squidkey=mysql_escape_string2(@file_get_contents("$directory/squid-proxy.key"));
+	$SquidCert=mysql_escape_string2(@file_get_contents("$directory/squid-proxy.crt"));
+	$SquidDer=mysql_escape_string2(@file_get_contents("$directory/RootCA.der"));
 	
 	if(!$q->FIELD_EXISTS("sslcertificates","srca","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `srca` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
 	if(!$q->FIELD_EXISTS("sslcertificates","der","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `der` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}

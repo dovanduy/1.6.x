@@ -27,6 +27,8 @@ if(isset($_GET["datas"])){section_datas();exit;}
 if(isset($_GET["data-search"])){section_datas_search();exit;}
 if(isset($_GET["categories"])){section_categories();exit;}
 if(isset($_GET["categories-search"])){section_categories_search();exit;}
+if(isset($_GET["dump-table-search"])){section_dump_table_search();exit;}
+if(isset($_GET["dump-table"])){section_dump_table();exit;}
 
 
 if(isset($_POST["NoCategorizedAnalyze"])){NoCategorizedAnalyze();exit;}
@@ -116,17 +118,13 @@ function content(){
 }
 
 function tabs(){
-	if(!$_SESSION["CORP"]){
-		$tpl=new templates();
-		$onlycorpavailable=$tpl->_ENGINE_parse_body("{onlycorpavailable}");
-		"<p class=text-error>$onlycorpavailable</p>";
-		return;
-	}
+
 	$suffix=suffix();
 	$page=CurrentPageName();
 	$array["{statistics}"]="$page?stats=yes$suffix";
 	$array["{datas} {websites}"]="$page?datas=yes$suffix";
 	$array["{datas} {categories}"]="$page?categories=yes$suffix";
+	$array["{dump_table}"]="$page?dump-table=yes$suffix";
 	$boot=new boostrap_form();
 	echo $boot->build_tab($array);
 }
@@ -186,6 +184,14 @@ function suffix(){
 }
 
 function section_datas(){
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->_ENGINE_parse_body("{onlycorpavailable}");
+		"<p class=text-error>$onlycorpavailable</p>";
+		return;
+	}
+	
 	$suffix=suffix();
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -196,8 +202,32 @@ function section_datas(){
 	
 }
 
+function section_dump_table(){
+	$suffix=suffix();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$boot=new boostrap_form();
+	$q=new mysql_squid_builder();
+	$table=date("Ymd",$_GET["xtime"])."_hour";
+	
+	$TABLE_GET_COLUMNS=$q->TABLE_GET_COLUMNS($table);
+	$TABLE_GET_COLUMNS_P=@implode(",", $TABLE_GET_COLUMNS);
+	$form=$boot->SearchFormGen("$TABLE_GET_COLUMNS_P","dump-table-search",$suffix);
+	echo $form;	
+	
+}
+
 
 function section_categories(){
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->_ENGINE_parse_body("{onlycorpavailable}");
+		"<p class=text-error>$onlycorpavailable</p>";
+		return;
+	}
+	
 	$suffix=suffix();
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -209,6 +239,14 @@ function section_categories(){
 }
 	
 function section_datas_search(){
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->_ENGINE_parse_body("{onlycorpavailable}");
+		"<p class=text-error>$onlycorpavailable</p>";
+		return;
+	}
+	
 	$t=$_GET["t"];
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
@@ -280,7 +318,63 @@ function section_datas_search(){
 			").@implode("", $tr)."</tbody></table>";
 }
 
+function section_dump_table_search(){
+	$t=$_GET["t"];
+	$tpl=new templates();
+	$MyPage=CurrentPageName();
+	$q=new mysql_squid_builder();
+	$users=new usersMenus();
+	$sock=new sockets();
+	$boot=new boostrap_form();
+	$table=date("Ymd",$_GET["xtime"])."_hour";
+	$searchstring=string_to_flexquery("dump-table-search");
+	$ORDER=$boot->TableOrder(array("size"=>"DESC"));
+	$sql="SELECT * FROM $table WHERE 1 $searchstring ORDER BY $ORDER  LIMIT 0,250";
+	$results = $q->QUERY_SQL($sql);
+	$TABLE_GET_COLUMNS=$q->TABLE_GET_COLUMNS($table);
+	if(!$q->ok){senderrors($q->mysql_error."<br>$sql");}
+	
+
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$md=md5(serialize($ligne));
+		$ligne["size"]=FormatBytes($ligne["size"]/1024);
+		$sitenameenc=urlencode($ligne["familysite"]);
+		$js="Loadjs('miniadm.webstats.familysite.all.php?familysite=$sitenameenc')";
+		$link=$boot->trswitch($js);
+		$tr[]="<tr id='$md'>";
+		reset($TABLE_GET_COLUMNS);
+		while (list ($index,$field ) = each ($TABLE_GET_COLUMNS) ){
+			$tr[]="<td style='font-size:11px' width=1% nowrap>{$ligne[$field]}</td>";
+			
+		}
+		$tr[]="</tr>";
+		
+		
+		
+		
+		
+	}
+	
+	reset($TABLE_GET_COLUMNS);
+	while (list ($index,$field ) = each ($TABLE_GET_COLUMNS) ){
+		$array[$field]=$field;
+			
+	}
+	
+	echo $boot->TableCompile($array,$tr);
+	
+}
+
 function section_categories_search(){
+	
+	if(!$_SESSION["CORP"]){
+		$tpl=new templates();
+		$onlycorpavailable=$tpl->_ENGINE_parse_body("{onlycorpavailable}");
+		"<p class=text-error>$onlycorpavailable</p>";
+		return;
+	}
+	
 	$t=$_GET["t"];
 	$tpl=new templates();
 	$MyPage=CurrentPageName();

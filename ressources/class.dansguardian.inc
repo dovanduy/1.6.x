@@ -1145,9 +1145,13 @@ class dansguardian_rules{
 	
 	function CategoriesTableCache(){
 		if($GLOBALS["AS_ROOT"]){return;}
+		$update=false;
 		include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");
 		$q=new mysql_squid_builder();
 		if($q->COUNT_ROWS("webfilters_categories_caches")==0){$update=true;}
+		
+		if($GLOBALS["VERBOSE"]){echo "webfilters_categories_caches: ".$q->COUNT_ROWS("webfilters_categories_caches")."<br>\n";}
+		
 		if(!$update){return;}
 		$tpl=new templates();
 		reset($this->arrayGroups);
@@ -1164,17 +1168,24 @@ class dansguardian_rules{
 			$picture=$this->array_pics[$categoryKey];
 			$description=addslashes($tpl->_ENGINE_parse_body($description));
 			if($master_category==null){$master_category="other";}
+			if($GLOBALS["VERBOSE"]){echo "$categoryKey ($picture)<br>\n";}
 			$f[]="('$categoryKey','$description','$picture','$master_category','$categoryKey')";
 		}
 		
 		$sql="SELECT * FROM personal_categories";
 		$results=$q->QUERY_SQL($sql);
+		if(!$q->ok){
+			if($GLOBALS["VERBOSE"]){echo $q->mysql_error."<br>\n";}
+		}
+		if($GLOBALS["VERBOSE"]){echo "personal_categories: ".mysql_num_rows($results)."<br>\n";}
+		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$master_category=$ligne["master_category"];
 			$categoryKey=$ligne["category"];
 			$description=addslashes($ligne["category_description"]);
 			$picture="20-categories-personnal.png";
 			if($master_category==null){$master_category="other";}
+			if($GLOBALS["VERBOSE"]){echo "$categoryKey ($picture)<br>\n";}
 			$f[]="('$categoryKey','$description','$picture','$master_category','$categoryKey')";
 			
 		}
@@ -1347,16 +1358,19 @@ class dansguardian_rules{
 	}
 	
 	
+
+	
+	
 	public function RestartFilters(){
 		$sock=new sockets();
 		$enable_cicap=$sock->GET_INFO('CicapEnabled');
 		$enable_squidguard=$sock->GET_INFO('squidGuardEnabled');
 		$DansGuardianEnabled=$sock->GET_INFO('DansGuardianEnabled');
-		$EnableUfdbGuard=$sock->GET_INFO('EnableUfdbGuard');
 		
 		$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 		$UfdbEnabledCentral=$sock->GET_INFO("UfdbEnabledCentral");
+
 		$AntivirusEnabledCentral=$sock->GET_INFO("AntivirusEnabledCentral");
 		$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
 		if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}		
@@ -1365,10 +1379,15 @@ class dansguardian_rules{
 		if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 		if(!is_numeric($AntivirusEnabledCentral)){$AntivirusEnabledCentral=1;}
+		$EnableUfdbGuard=$sock->EnableUfdbGuard();
 		if(!is_numeric($UfdbEnabledCentral)){$UfdbEnabledCentral=1;}
-		if($EnableRemoteStatisticsAppliance==1){$enable_cicap=$AntivirusEnabledCentral;$EnableUfdbGuard=$UfdbEnabledCentral;}
+		if($EnableRemoteStatisticsAppliance==1){
+			$enable_cicap=$AntivirusEnabledCentral;
+			$EnableUfdbGuard=$UfdbEnabledCentral;
+			
+		}
 		
-
+	
 		
 		
 		writelogs("EnableWebProxyStatsAppliance=$EnableWebProxyStatsAppliance",__CLASS__.'/'.__FUNCTION__,__FILE__);

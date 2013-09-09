@@ -691,6 +691,7 @@ var
    ZarafaCacheQuotaSize,ZarafaCacheAclSize,ZarafaCacheUserSize,ZarafaCacheUserDetailsSize,ZarafaCacheUserDetailsLifeTime,ZarafaThreadStackSize,ZarafaCacheServerSize,ZarafadAgentJunk:integer;
    ZarafaMySQLServiceType:integer;
    EnableZarafaSearch,EnableZarafaSearchAttach,ZarafaLogLevel,ZarafaEnableSecurityLogging,ZarafaDedicateMySQLServer:integer;
+   ZarafaIndexPath:string;
 begin
 attachment_storage:='database';
 if not TryStrToInt(SYS.GET_INFO('ZarafaUserSafeMode'),ZarafaUserSafeMode) then ZarafaUserSafeMode:=0;
@@ -736,7 +737,8 @@ if not TryStrToInt(SYS.GET_INFO('ZarafaEnableSecurityLogging'),ZarafaEnableSecur
 if not TryStrToInt(SYS.GET_INFO('ZarafaMySQLServiceType'),ZarafaMySQLServiceType) then ZarafaMySQLServiceType:=1;
 if not TryStrToInt(SYS.GET_INFO('ZarafaDedicateMySQLServer'),ZarafaDedicateMySQLServer) then ZarafaDedicateMySQLServer:=0;
 
-
+ZarafaIndexPath:=SYS.GET_INFO('ZarafaIndexPath');
+if length(trim(ZarafaIndexPath))=0 then ZarafaIndexPath:='/var/lib/zarafa/index';
 
 ZarafaDeliverBind:=SYS.GET_INFO('ZarafaDeliverBind');
 if length(ZarafaDeliverBind)=0 then ZarafaDeliverBind:='127.0.0.1';
@@ -1033,9 +1035,9 @@ l.clear;
 l.free;
 
  // /etc/zarafa/indexer.cfg
-if not DirectoryExists('/var/lib/zarafa/index') then ForceDirectories('/var/lib/zarafa/index');
+if not DirectoryExists(ZarafaIndexPath) then ForceDirectories(ZarafaIndexPath);
 l:=Tstringlist.Create;
-l.add('index_path          =   /var/lib/zarafa/index/');
+l.add('index_path          =   '+ZarafaIndexPath+'/');
 l.add('run_as_user         =');
 l.add('run_as_group        =');
 l.add('pid_file            =   /var/run/zarafa-indexer.pid');
@@ -1209,9 +1211,9 @@ l.free;
 
 
 // /etc/zarafa/search.cfg
-ForceDirectories('/var/lib/zarafa/index');
+ForceDirectories(ZarafaIndexPath);
 l:=Tstringlist.Create;
-l.add('index_path          =   /var/lib/zarafa/index/');
+l.add('index_path          =   '+ZarafaIndexPath+'/');
 l.add('run_as_user         =');
 l.add('run_as_group        =');
 l.add('pid_file            =   /var/run/zarafa-search.pid');

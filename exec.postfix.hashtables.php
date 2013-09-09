@@ -11,6 +11,10 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
+if(preg_match("#--pourc=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["POURC_START"]=$re[1];}
+
+
+
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 $sock=new sockets();
 $unix=new unix();
@@ -152,62 +156,83 @@ if($argv[1]=="--smtp-generic-maps"){
 	perso_settings();
 	echo "Starting......: Postfix reloading\n";
 	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
-	die();}		
+	die();
 
-	internal_pid($argv);
-	LoadLDAPDBs();
-	maillings_table();
-	aliases_users();
-	aliases();
-	catch_all();
+}
+
+
+$unix=new unix();
+$pidfile="/etc/artica-postfix/pids/postfix.reconfigure2.pid";
+$oldpid=$unix->get_pid_from_file($pidfile);
+if($unix->process_exists($oldpid,basename(__FILE__))){
+	$time=$unix->PROCCESS_TIME_MIN($oldpid);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
+	die();
+}
+@file_put_contents($pidfile, getmypid());
+
+
+$start=50;
+
+internal_pid($argv);
+
+$functions=array(
+		"LoadLDAPDBs","maillings_table","aliases_users","aliases","catch_all","build_aliases_maps","build_virtual_alias_maps",
+		"relais_domains_search","build_relay_domains","relay_recipient_maps_build","recipient_canonical_maps_build",
+		"recipient_canonical_maps","sender_canonical_maps_build","sender_canonical_maps",
+		"smtp_generic_maps_build_global","smtp_generic_maps","sender_dependent_relayhost_maps","smtp_sasl_password_maps_build",
+		"smtp_sasl_password_maps","recipient_bcc_maps","recipient_bcc_domain_maps","recipient_bcc_maps_build",
+		"sender_bcc_maps","sender_bcc_maps_build","build_local_recipient_maps",
+		"transport_maps_search","build_transport_maps","mailbox_transport_maps","restrict_relay_domains",
+		"relayhost","postmaster","build_cyrus_lmtp_auth","perso_settings"
+		
+);
+	$tot=count($functions);
+	$i=0;
+	while (list ($num, $func) = each ($functions) ){
+		$i++;
+		$start++;
+		if(!function_exists($func)){
+			SEND_PROGRESS($start,$func,"Error $func no such function...");
+			continue;
+		}
+			
+			
+		try {
+			SEND_PROGRESS($start,"Action 2, {$start}% Please wait, executing $func() $i/$tot..");
+			call_user_func($func);
+		} catch (Exception $e) {
+			SEND_PROGRESS($start,$func,"Error on $func ($e)");
+		}			
+	}
+
 	
 	
-	build_aliases_maps();
-	build_virtual_alias_maps();
-	
-	relais_domains_search();
-	build_relay_domains();
-	
-	relay_recipient_maps_build();
-	
-	recipient_canonical_maps_build();
-	recipient_canonical_maps();
-	
-	sender_canonical_maps_build();
-	sender_canonical_maps();
-	
-	smtp_generic_maps_build_global();
-	smtp_generic_maps();
-	
-	
-	sender_dependent_relayhost_maps();
-	smtp_sasl_password_maps_build();
-	smtp_sasl_password_maps();
-	
-	recipient_bcc_maps();
-	recipient_bcc_domain_maps();
-	recipient_bcc_maps_build();
-	
-	sender_bcc_maps();
-	sender_bcc_maps_build();
-	
-	build_local_recipient_maps();
-	
-	
+	$reste=100-$start;
+	$reste++;
+	SEND_PROGRESS($reste,"mydestination");
 	$hashT=new main_hash_table();
 	$hashT->mydestination();
 	
-	transport_maps_search();
-	build_transport_maps();
-	mailbox_transport_maps();
-	restrict_relay_domains();
 	
-	relayhost();
-	postmaster();
-	build_cyrus_lmtp_auth();
-	perso_settings();
+	SEND_PROGRESS(100,"Reload postfix");
+	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
 
-shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
+
+function SEND_PROGRESS($POURC,$text,$error=null){
+	$cache="/usr/share/artica-postfix/ressources/logs/web/POSTFIX_COMPILES";
+	if($error<>null){echo "FATAL !!!! $error\n";}
+	echo "{$POURC}% $text\n";
+
+	$array=unserialize(@file_get_contents($cache));
+	$array["POURC"]=$POURC;
+	$array["TEXT"]=$text;
+	if($error<>null){$array["ERROR"][]=$error;}
+	@mkdir(dirname($cache),0755,true);
+	@file_put_contents($cache, serialize($array));
+	@chmod($cache, 0777);
+
+}
 
 
 function internal_pid($argv){

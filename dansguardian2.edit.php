@@ -259,18 +259,7 @@ function content_filter_tab(){
 	}
 
 	
-	echo "
-	<div id=main_content_rule_edittabs style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_content_rule_edittabs').tabs();
-			
-			
-			});
-		</script>";	
-	
+	echo build_artica_tabs($html, "main_content_rule_edittabs");
 }
 
 
@@ -464,15 +453,7 @@ function blacklist_js(){
 	
 	
 	
-	echo "
-	<div id=$myT style='width:99%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#$myT').tabs();
-			});
-		</script>";
+	echo build_artica_tabs($html, $myT);
 	
 		
 	
@@ -2429,15 +2410,10 @@ function blacklist_list(){
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
+	$searchstring=string_to_flexquery();
 	
-	
-	if($_POST["query"]<>null){
-		$_POST["query"]="*{$_POST["query"]}*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `webfilters_categories_caches` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(!$q->ok){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($q->mysql_error,"", "",""));json_encode($data);return;}
@@ -2514,7 +2490,7 @@ function blacklist_list(){
 		if($OnlyEnabled){if($val==0){continue;}}
 		
 		$disable=Field_checkbox("cats_{$_GET['RULEID']}_{$_GET['modeblk']}_{$ligne['categorykey']}", 1,$val,"EnableDisableCategoryRule('{$ligne['categorykey']}','{$_GET["RULEID"]}','{$_GET["modeblk"]}')");
-		
+		$ligne['description']=utf8_encode($ligne['description']);
 		
 	$data['rows'][] = array(
 		'id' => $ligne['categorykey'],

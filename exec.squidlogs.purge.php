@@ -6,7 +6,8 @@ include_once(dirname(__FILE__)."/ressources/class.mysql.dump.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
 include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
-cpulimit();
+include_once(dirname(__FILE__).'/ressources/class.mount.inc');
+
 $_GET["LOGFILE"]="/var/log/artica-postfix/dansguardian-logger.debug";
 $GLOBALS["MAXDAYS"]=0;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
@@ -14,6 +15,7 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS
 if(preg_match("#maxdays=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["MAXDAYS"]=$re[1];}
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+if($argv[1]=="--test-nas"){tests_nas(true);die();}
 
 purge();
 
@@ -57,6 +59,7 @@ function purge(){
 	$ArticaProxyStatisticsBackupDays=$sock->GET_INFO("ArticaProxyStatisticsBackupDays");
 	if($ArticaProxyStatisticsBackupFolder==null){$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics";}
 	
+	$ArticaProxyStatisticsBackupFolderORG=$ArticaProxyStatisticsBackupFolder;
 	if(!is_numeric($ArticaProxyStatisticsBackupDays)){$ArticaProxyStatisticsBackupDays=90;}
 	if($GLOBALS["MAXDAYS"]>0){$ArticaProxyStatisticsBackupDays=$GLOBALS["MAXDAYS"];}
 	if($LICENSE==0){$ArticaProxyStatisticsBackupDays=5;}
@@ -74,6 +77,43 @@ function purge(){
 	
 	ufdbguard_admin_events("Items: ".mysql_num_rows($results),__FUNCTION__,__FILE__,__LINE__,"backup");
 	if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+	
+	
+	$BackupSquidStatsUseNas=$sock->GET_INFO("BackupSquidStatsUseNas");
+	$BackupSquidStatsNASIpaddr=$sock->GET_INFO("BackupSquidStatsNASIpaddr");
+	$BackupSquidStatsNASFolder=$sock->GET_INFO("BackupSquidStatsNASFolder");
+	$BackupSquidStatsNASUser=$sock->GET_INFO("BackupSquidStatsNASUser");
+	$BackupSquidStatsNASPassword=$sock->GET_INFO("BackupSquidStatsNASPassword");
+	$BackupSquidStatsNASRetry=$sock->GET_INFO("BackupSquidStatsNASRetry");
+	if(!is_numeric($BackupSquidStatsUseNas)){$BackupSquidStatsUseNas=0;}
+	if(!is_numeric($BackupSquidStatsNASRetry)){$BackupSquidStatsNASRetry=0;}
+	
+	$MountedNAS=false;
+	$mount=new mount("/var/log/artica-postfix/logrotate.debug");
+	if($BackupSquidStatsUseNas==1){
+		$mountPoint="/mnt/BackupSquidStatsUseNas";
+		if(!$mount->smb_mount($mountPoint,$BackupSquidStatsNASIpaddr,$BackupSquidStatsNASUser,$BackupSquidStatsNASPassword,$BackupSquidStatsNASFolder)){
+			events("Unable to connect to NAS storage system (1): $BackupSquidStatsNASUser@$BackupSquidStatsNASIpaddr");
+			if($BackupSquidStatsNASRetry==1){
+				sleep(3);
+				$mount=new mount("/var/log/artica-postfix/logrotate.debug");
+				if(!$mount->smb_mount($mountPoint,$BackupSquidStatsNASIpaddr,$BackupSquidStatsNASUser,$BackupSquidStatsNASPassword,$BackupSquidStatsNASFolder)){
+					events("Unable to connect to NAS storage system (2): $BackupSquidStatsNASUser@$BackupSquidStatsNASIpaddr");
+					return;
+				}else{
+					$MountedNAS=true;
+					$ArticaProxyStatisticsBackupFolder="$mountPoint/backup-statistics/".$users->hostname;
+				}
+			}
+			
+		}else{
+			$MountedNAS=true;
+			$ArticaProxyStatisticsBackupFolder="$mountPoint/backup-statistics/".$users->hostname;
+		}
+		
+	}
+	
+	
 	
 	
 	@mkdir("$ArticaProxyStatisticsBackupFolder",0755,true);
@@ -101,6 +141,25 @@ function purge(){
 	$TotalSize=0;
 	
 	
+	if($MountedNAS){
+		$files=$unix->DirFiles($ArticaProxyStatisticsBackupFolderORG);
+		events("Scanning the old storage systems.. ".count($files)." file(s)");
+		while (list ($basename, $none) = each ($files) ){
+			$filepath="$ArticaProxyStatisticsBackupFolderORG/$basename";
+			if($GLOBALS["VERBOSE"]){echo "Checking \"$filepath\"\n";}
+			$size=@filesize($filepath);
+			if($size<20){events("Removing $filepath");@unlink($filepath);continue;}
+			if(!@copy($filepath, "$ArticaProxyStatisticsBackupFolder/$basename")){
+				events("copy Failed $filepath to \"$ArticaProxyStatisticsBackupFolder/$basename\" permission denied...");
+				continue;
+			}
+			events("Move $filepath to $BackupSquidStatsNASIpaddr success...");
+			@unlink($filepath);
+		}
+		
+	}
+	
+	
 	$mysqldump_prefix="$mysqldump $q->MYSQL_CMDLINES --skip-add-locks --insert-ignore --quote-names --skip-add-drop-table --verbose --force $q->database ";
 	
 	
@@ -118,6 +177,7 @@ function purge(){
 		if(!@file_put_contents($container, time())){
 			if($GLOBALS["VERBOSE"]){echo "$container permission denied\n";}
 			ufdbguard_admin_events("Fatal Error: $container permission denied",__FUNCTION__,__FILE__,__LINE__,"backup");
+			if($MountedNAS){$mount->umount($mountPoint);}
 			return;			
 		}
 		
@@ -169,6 +229,7 @@ function purge(){
 					if($GLOBALS["VERBOSE"]){echo "Dump failed $day $b,...\n";}
 					ufdbguard_admin_events("Fatal Error: day: Dump failed $day $b",__FUNCTION__,__FILE__,__LINE__,"backup");
 					@unlink($container);
+					if($MountedNAS){$mount->umount($mountPoint);}
 					return;					
 					
 				}
@@ -179,7 +240,7 @@ function purge(){
 			if(!is_file($container)){
 				if($GLOBALS["VERBOSE"]){echo "Dump failed $day $container, no such file ...\n";}
 				ufdbguard_admin_events("Fatal Error: day: Dump failed $day $container, no such file",__FUNCTION__,__FILE__,__LINE__,"backup");
-				return;
+			if($MountedNAS){$mount->umount($mountPoint);}return;
 									
 			}
 			
@@ -189,7 +250,7 @@ function purge(){
 				if($GLOBALS["VERBOSE"]){echo "Dump failed $day size too low ( $size bytes) ...\n";}
 				ufdbguard_admin_events("Fatal Error: day: Dump failed $day size too low ( $size bytes) ... ",__FUNCTION__,__FILE__,__LINE__,"backup");
 				@unlink($container);
-				return;			
+				if($MountedNAS){$mount->umount($mountPoint);}return;			
 			}
 			chdir($ArticaProxyStatisticsBackupFolder);
 			
@@ -204,6 +265,7 @@ function purge(){
 				ufdbguard_admin_events("Fatal Error: tar $container failed",__FUNCTION__,__FILE__,__LINE__,"backup");
 				@unlink($container);
 				@unlink("$container.tar.gz");
+				if($MountedNAS){$mount->umount($mountPoint);}
 				return;
 			}			
 			
@@ -218,6 +280,7 @@ function purge(){
 				if(!$q->DELETE_TABLE($tablename)){
 					if($GLOBALS["VERBOSE"]){echo "Delete $tablename failed $q->mysql_error ...\n";}
 					ufdbguard_admin_events("Fatal Error: Delete $tablename failed $q->mysql_error ",__FUNCTION__,__FILE__,__LINE__,"backup");
+					if($MountedNAS){$mount->umount($mountPoint);}
 					return;				
 				}
 				
@@ -259,11 +322,23 @@ function purge(){
 		
 	}
 	
-	
+	if($MountedNAS){$mount->umount($mountPoint);}	
 	
 }
 
+function events($text){
 
+	if(function_exists("debug_backtrace")){
+		$trace=@debug_backtrace();
+		if(isset($trace[1])){
+			$file=basename(__FILE__);
+			$function=$trace[1]["function"];
+			$line=$trace[1]["line"];
+		}
+	}
+
+	ufdbguard_admin_events($text,$function,$file,$line);
+}
 
 
 
@@ -322,4 +397,70 @@ function ScanDays(){
 	
 	
 	return true;
+}
+
+function tests_nas(){
+	$sock=new sockets();
+	$BackupSquidStatsUseNas=$sock->GET_INFO("BackupSquidStatsUseNas");
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
+	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
+	if(!is_numeric($BackupSquidStatsUseNas)){$BackupSquidStatsUseNas=0;}
+	$users=new usersMenus();
+
+
+	$mount=new mount("/var/log/artica-postfix/logrotate.debug");
+
+	if($BackupSquidStatsUseNas==0){echo "Backup using NAS is not enabled\n";return;}
+	$BackupSquidStatsNASIpaddr=$sock->GET_INFO("BackupSquidStatsNASIpaddr");
+	$BackupSquidStatsNASFolder=$sock->GET_INFO("BackupSquidStatsNASFolder");
+	$BackupSquidStatsNASUser=$sock->GET_INFO("BackupSquidStatsNASUser");
+	$BackupSquidStatsNASPassword=$sock->GET_INFO("BackupSquidStatsNASPassword");
+	$BackupSquidStatsNASRetry=$sock->GET_INFO("BackupSquidStatsNASRetry");
+	if(!is_numeric($BackupSquidStatsNASRetry)){$BackupSquidStatsNASRetry=0;}
+
+	$failed="***********************\n** FAILED **\n***********************\n";
+	$success="***********************\n******* SUCCESS *******\n***********************\n";
+
+	$mountPoint="/mnt/BackupSquidStatsUseNas";
+	if(!$mount->smb_mount($mountPoint,$BackupSquidStatsNASIpaddr,
+			$BackupSquidStatsNASUser,$BackupSquidStatsNASPassword,$BackupSquidStatsNASFolder)){
+
+		if($BackupSquidStatsNASRetry==1){
+			sleep(3);
+			$mount=new mount("/var/log/artica-postfix/logrotate.debug");
+			if(!$mount->smb_mount($mountPoint,$BackupSquidStatsNASIpaddr,$BackupSquidStatsNASUser,$BackupSquidStatsNASPassword,$BackupSquidStatsNASFolder)){
+				echo "$failed\nUnable to connect to NAS storage system: $BackupSquidStatsNASUser@$BackupSquidStatsNASIpaddr\n";
+				echo @implode("\n", $GLOBALS["MOUNT_EVENTS"]);
+				return;
+			}
+		}else{
+			echo "$failed\nUnable to connect to NAS storage system: $BackupSquidStatsNASUser@$BackupSquidStatsNASIpaddr\n";
+			echo @implode("\n", $GLOBALS["MOUNT_EVENTS"]);
+			return;
+		}
+	}
+		
+
+	$BackupMaxDaysDir="$mountPoint/backup-statistics/$users->hostname";
+
+	@mkdir($BackupMaxDaysDir,0755,true);
+	if(!is_dir($BackupMaxDaysDir)){
+		echo "$failed$BackupSquidStatsNASUser@$BackupSquidStatsNASIpaddr/$BackupSquidStatsNASFolder/backup-statistics/$users->hostname permission denied.\n";
+		$mount->umount($mountPoint);
+		return;
+	}
+
+	$t=time();
+	@file_put_contents("$BackupMaxDaysDir/$t", "#");
+	if(!is_file("$BackupMaxDaysDir/$t")){
+		echo "$failed$BackupSquidStatsNASUser@$BackupSquidStatsNASIpaddr/$BackupSquidStatsNASFolder/backup-statistics/$users->hostname/* permission denied.\n";
+		$mount->umount($mountPoint);
+		return;
+	}
+	@unlink("$BackupMaxDaysDir/$t");
+	$mount->umount($mountPoint);
+	echo "$success";
+
 }

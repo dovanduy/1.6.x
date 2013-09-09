@@ -112,7 +112,7 @@ class mount{
 		
 		if($GLOBALS["VERBOSE"]){
 			$this->events("smb_mount() Username:$username Line::".__LINE__);
-			$this->events("smb_mount() Password:$password Line::".__LINE__);
+			$this->events("smb_mount() Password:****** Line::".__LINE__);
 			$this->events("smb_mount() server..:$server Line::".__LINE__);
 			$this->events("smb_mount() path....:$path Line::".__LINE__);
 		}
@@ -276,33 +276,13 @@ public function MountComputerRemote($computername,$ip,$username,$password){
 	}
 	
 private function events($text){
-		$GLOBALS["MOUNT_EVENTS"][]=$text;
-		if(function_exists("writelogs")){
-			writelogs("$text",__CLASS__,__FILE__,__LINE__);
-			return;
-		}
-	
-		if($this->eventspath<>null){
-			$pid=getmypid();
-			$date=date("H:i:s");
-			$logFile=$this->eventspath;
-			$size=filesize($logFile);
-			if($size>1000000){unlink($logFile);}
-			$f = @fopen($logFile, 'a');
-			$line="$date $text\n";
-			if($_GET["DEBUG"]){echo $line;}
-			@fwrite($f,$line);
-			@fclose($f);
-		}
-
-		if($_GET["logcomputer"]<>null){
-			$f = @fopen($_GET["logcomputer"], 'a');
-			@fwrite($f,$line);
-			@fclose($f);
-		}
-		
-		
-		}	
+	$GLOBALS["MOUNT_EVENTS"][]=$text;
+	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefile=basename($trace[1]["file"]);$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];}}		
+	if($_GET["logcomputer"]<>null){$f = @fopen($_GET["logcomputer"], 'a');@fwrite($f,$text);@fclose($f);}
+	if(!isset($GLOBALS["CLASS_UNIX"])){if(class_exists("unix")){$GLOBALS["CLASS_UNIX"]=new unix();}}
+	if($this->eventspath<>null){if(isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]->events($text,$this->eventspath,false,__CLASS__."/$sourcefunction",$sourceline,$sourcefile);}}
+	if(function_exists("writelogs")){writelogs("$text",__CLASS__."/$sourcefunction",$sourcefile,$sourceline);return;}
+}	
 	
 	
 }

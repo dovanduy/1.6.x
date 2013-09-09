@@ -23,8 +23,7 @@ function service_cmds(){
 	$nohup=$unix->find_program("nohup");
 	$cmds=$_GET["service-cmds"];
 	$results[]="Postition: $cmds";
-	exec("/etc/init.d/artica-postfix $cmds pdns 2>&1",$results);
-
+	exec("$php /usr/share/artica-postfix/exec.pdns_server.php --$cmds  2>&1",$results);
 	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";
 }
 
@@ -38,20 +37,22 @@ function rebuild_database(){
 }
 
 function reload_tenir(){
-	exec("/usr/share/artica-postfix/bin/artica-install --pdns-reload 2>&1",$results);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	exec("$php5 /usr/share/artica-postfix/exec.pdns_server.php --reload 2>&1",$results);
 	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";
 }
 function reload(){
 	$unix=new unix();
-	$nohup=$unix->find_program("nohup");	
-	shell_exec("$nohup /usr/share/artica-postfix/bin/artica-install --pdns-reload >/dev/null 2>&1 &");
-	
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.pdns_server.php --reload >/dev/null 2>&1 &");
 }
 function reconfigure(){
-	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
-	$php5=$unix->LOCATE_PHP5_BIN();	
-	$cmd=trim("$nohup /usr/share/artica-postfix/bin/artica-install --pdns-reconfigure 2>&1 &");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.pdns_server.php --restart >/dev/null 2>&1 &");
 }
 
 function repair_tables(){

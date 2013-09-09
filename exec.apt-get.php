@@ -50,7 +50,6 @@ if($unix->process_exists($oldpid,basename(__FILE__))){
 
 if($argv[1]=='--update'){GetUpdates();die();}
 if($argv[1]=='--upgrade'){UPGRADE();die();}
-
 if($argv[1]=='--clean-upgrade'){clean_upgrade();die();}
 
 
@@ -66,6 +65,11 @@ function clean_upgrade(){
 
 function GetUpdates(){
 	if(system_is_overloaded(basename(__FILE__))){system_admin_events("This system is too many overloaded, die()",__FUNCTION__,__FILE__,__LINE__,"system-update");die();}	
+	$sock=new sockets();
+	$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
+	if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
+	if($EnableSystemUpdates==0){clean_upgrade();return;}
+	
 	@mkdir("/usr/share/artica-postfix/ressources/logs/web",0755,true);
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/debian.update.html");
 
@@ -330,6 +334,11 @@ function INSERT_DEB_PACKAGES(){
 		system_admin_events("This system is too many overloaded, die()",__FUNCTION__,__FILE__,__LINE__,"system-update");
 		die();
 	}	
+	
+	$sock=new sockets();
+	$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
+	if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
+	if($EnableSystemUpdates==0){return;}
 	
 	if(!is_file("/usr/bin/dpkg")){die();}
 	$sql="TRUNCATE TABLE `debian_packages`";

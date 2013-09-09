@@ -192,7 +192,7 @@ function register_lic(){
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
 	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
 	
-
+	$LicenseInfos["COMPANY"]=str_replace("%uFFFD", "é", $LicenseInfos["COMPANY"]);
 	
 	
 	

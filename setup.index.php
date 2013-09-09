@@ -30,6 +30,8 @@ if(isset($_GET["download-logs"])){events_download();exit;}
 
 if(isset($_GET["popup"])){popup();exit;}
 if($_GET["main"]=="softwares-available"){software_available();exit;}
+if($_GET["main"]=="samba-stables"){samba_stables_available();exit;}
+
 if(isset($_GET["software-list-by-family"])){software_available_family();exit;}
 
 if(isset($_GET["software-list"])){software_list_by_family();exit;}
@@ -502,6 +504,15 @@ echo $html;
 
 function popup_main(){
 $page=CurrentPageName();
+$users=new usersMenus();
+if($users->PROXYTINY_APPLIANCE){
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body("<p class=text-error>{disabled_tiny_proxy}</p>");
+	return;
+	
+}
+
+
  $html="<div id='main_start_{$_GET["main-start"]}'></div>
  
  <script>
@@ -993,6 +1004,13 @@ function tabs(){
 	$users=new usersMenus();	
 	$array["index"]='{index}';
 	$array["softwares-available"]='{softwares_database}';
+	$array["samba-stables"]='{samba_stables_versions}';
+	
+	if(!is_file("ressources/old-samba.ini")){
+		$sock=new sockets();
+		$sock->getFrameWork("cmd.php?SetupIndexFile=yes");
+	}
+	
 if(isset($_GET["QuickLinksTop"])){$margin="margin-top:10px";$fontsize="font-size:14px";}
 	while (list ($num, $ligne) = each ($array) ){
 		if($_GET["main"]==$num){$class="id=tab_current";}else{$class=null;}
@@ -1005,20 +1023,7 @@ if(isset($_GET["QuickLinksTop"])){$margin="margin-top:10px";$fontsize="font-size
 			
 		}
 	$tpl=new templates();
-	
-	
-	return "
-	<div id=main_setup_config style='width:100%;background-color:white;$margin'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_setup_config').tabs();
-			
-
-			});
-		</script>";		
-	
+	return build_artica_tabs($html, "main_setup_config");
 	
 }
 
@@ -2089,6 +2094,54 @@ function SynSysPackages(){
 	$tpl=new templates();
 	echo $tpl->javascript_parse_text("{UPDATE_ANTIVIRUS_DATABASE_PERFORMED}");
 	
+}
+
+function samba_stables_available(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$error=false;
+	$ArchStruct=$users->ArchStruct;
+	if($ArchStruct=="32"){$ArchStruct="i386";}
+	if($ArchStruct=="64"){$ArchStruct="amd64";}
+	
+	if($users->LinuxDistriCode<>"DEBIAN"){
+		if($users->LinuxDistriCode<>"UBUNTU"){
+			FATAL_ERROR_SHOW_128("{ERROR_OPERATING_SYSTEM_NOT_SUPPORTED}");
+			$error=true;
+		}
+	}
+	
+	if(!is_file("ressources/old-samba.ini")){$sock->getFrameWork("cmd.php?SetupIndexFile=yes");}
+	
+	$ini=new Bs_IniHandler("ressources/old-samba.ini");
+	$current=base64_decode($sock->getFrameWork("samba.php?current-version=yes"));
+	$html[]="
+	<div style='font-size:18px;margin-bottom:20px;text-align:right'>Samba v.$current</div>
+	<div style='font-size:16px' class=explain>{samba_old_stable_explain}</div>
+	<div style='width:95%;text-align:center' class=form >
+	<table style='width:100%'>
+	";
+	
+	
+	while (list ($versions, $array) = each ($ini->_params) ){
+	$filename=urlencode($array[$ArchStruct]);
+	if($filename==null){continue;}
+	
+	$html[]="<tr style='height:50px'>
+	<td style='font-size:32px' width=33%>$versions</td>
+	<td style='font-size:18px' width=33%>{released_on} {$array["date"]}</td>";
+	
+		if(!$error){$html[]="
+			<td width=33%>". button("{install_this_version}","Loadjs('samba.downgrade.php?file=$filename&ask=yes')",18)."</td>";
+		}
+		$html[]="</tr>";
+	
+		}
+			$html[]="</table></div>";
+			echo $tpl->_ENGINE_parse_body(@implode("\n", $html));
+		
 }
 
 ?>

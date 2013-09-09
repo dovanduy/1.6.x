@@ -20,6 +20,7 @@ if(is_array($argv)){
 
 if($argv[1]=="--count"){Autocount();die();}
 if($argv[1]=="--davfs"){davfs();die();}
+if($argv[1]=="--default"){autofs_default();die();}
 
 
 
@@ -148,7 +149,38 @@ if(!$GLOBALS["NORELOAD"]){
 }
 
 }
-
+function autofs_default(){
+	if(!is_file("/etc/default/autofs")){return;}
+	$ldap=new clladp();
+	$f[]="# Define default options for autofs.";
+	$f[]="#";
+	$f[]="# MASTER_MAP_NAME - default map name for the master map.";
+	$f[]="#";
+	$f[]="MASTER_MAP_NAME=\"/etc/auto.master\"";
+	$f[]="TIMEOUT=300";
+	$f[]="NEGATIVE_TIMEOUT=60";
+	$f[]="#UMOUNT_WAIT=12";
+	$f[]="BROWSE_MODE=\"yes\"";
+	$f[]="#MOUNT_NFS_DEFAULT_PROTOCOL=3";
+	$f[]="#APPEND_OPTIONS=\"yes\"";
+	$f[]="# LOGGING - set default log level none, verbose or debug";
+	$f[]="#";
+	$f[]="#LOGGING=\"debug\"";
+	$f[]="LDAP_URI=\"ldap://$ldap->ldap_host:$ldap->ldap_port\"";
+	$f[]="LDAP_TIMEOUT=-1";
+	$f[]="# LDAP_NETWORK_TIMEOUT - set the network response timeout (default 8).";
+	$f[]="#LDAP_NETWORK_TIMEOUT=8";
+	$f[]="SEARCH_BASE=\"ou=mounts,$ldap->suffix\"";
+	$f[]="LDAPBASE=\"ou=mounts,$ldap->suffix\"";
+	$f[]="DEFAULT_AUTH_CONF_FILE=\"/etc/autofs_ldap_auth.conf\"";
+	$f[]="MASTER_MAP_NAME=\"ou=auto.master,ou=mounts,$ldap->suffix\"";
+	$f[]="USE_MISC_DEVICE=\"yes\"";
+	$f[]="#MAP_HASH_TABLE_SIZE=1024";
+	$f[]="#OPTIONS=\"\"";
+	$f[]="#";
+	$f[]="";	
+	
+}
 
 
 

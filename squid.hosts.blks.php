@@ -441,8 +441,8 @@ function SaveBlks(){
 	}
 	
 	
-	$description=mysql_escape_string($description);
-	$_POST["pattern"]=mysql_escape_string(trim($_POST["pattern"]));
+	$description=mysql_escape_string2($description);
+	$_POST["pattern"]=mysql_escape_string2(trim($_POST["pattern"]));
 	
 	
 	$sql="INSERT IGNORE INTO webfilters_blkwhlts (description,enabled,PatternType,blockType,pattern)
@@ -634,7 +634,7 @@ function popup_list(){
 			$PatternAffiche=$ligne2["GroupName"];
 		}
 		
-		if($ligne["zmd5"]==null){$q->QUERY_SQL("UPDATE webfilters_blkwhlts SET zmd5='$id' WHERE pattern='". mysql_escape_string($ligne["pattern"])."'");$ligne["zmd5"]=$id;}
+		if($ligne["zmd5"]==null){$q->QUERY_SQL("UPDATE webfilters_blkwhlts SET zmd5='$id' WHERE pattern='". mysql_escape_string2($ligne["pattern"])."'");$ligne["zmd5"]=$id;}
 		$md5=$ligne["zmd5"];
 		
 		$delete=imgtootltip("delete-32.png","{delete} {$ligne["pattern"]}","BlksProxyDelete('$md5')");

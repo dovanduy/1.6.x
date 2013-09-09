@@ -113,9 +113,9 @@ function save(){
 		$params1=base64_encode(serialize($params));
 		$sql="UPDATE freeweb_slashsquid 
 		SET backgroundcolor='".$_POST["backgroundcolor"]."',
-		subtitle='".mysql_escape_string($_POST["subtitle"])."',
-		debug_auth='".mysql_escape_string($_POST["debug_auth"])."',
-		params='".mysql_escape_string($params1)."' 
+		subtitle='".mysql_escape_string2($_POST["subtitle"])."',
+		debug_auth='".mysql_escape_string2($_POST["debug_auth"])."',
+		params='".mysql_escape_string2($params1)."' 
 		WHERE servername='$servername'";
 	
 	}else{
@@ -123,9 +123,9 @@ function save(){
 		$params1=base64_encode(serialize($params));
 		$sql="INSERT INTO freeweb_slashsquid (backgroundcolor,subtitle,debug_auth,params,servername)
 		VALUES ('{$_POST["backgroundcolor"]}',
-		'".mysql_escape_string($_POST["subtitle"])."',
-		'".mysql_escape_string($_POST["debug_auth"])."',
-		'".mysql_escape_string($params1)."', '$servername');";
+		'".mysql_escape_string2($_POST["subtitle"])."',
+		'".mysql_escape_string2($_POST["debug_auth"])."',
+		'".mysql_escape_string2($params1)."', '$servername');";
 		
 		
 	}
@@ -302,11 +302,11 @@ function upload_form_perform(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	if($ligne["servername"]<>null){
 		$sql="UPDATE freeweb_slashsquid SET logoname='".basename($thumbnail_path)."',
-		logoimg='".mysql_escape_string($thumbnail_data)."' WHERE servername='$servername'";	
+		logoimg='".mysql_escape_string2($thumbnail_data)."' WHERE servername='$servername'";	
 				
 	}else{
 		$sql="INSERT INTO freeweb_slashsquid (logoname,logoimg,servername) 
-		VALUES ('".basename($thumbnail_path)."','".mysql_escape_string($thumbnail_data)."','$servername')";
+		VALUES ('".basename($thumbnail_path)."','".mysql_escape_string2($thumbnail_data)."','$servername')";
 	}
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){die ("{error: \"". $tpl->javascript_parse_text("$q->mysql_error")."\"}");}

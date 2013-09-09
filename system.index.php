@@ -752,6 +752,10 @@ function main_update(){
 		
 	}
 	
+	$sock=new sockets();
+	$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
+	if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
+	if($EnableSystemUpdates==0){$apt_mirror=null;}
 	
 	$tr[]=$artica;
 	$tr[]=$UpdateUtility;

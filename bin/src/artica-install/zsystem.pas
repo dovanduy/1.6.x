@@ -548,35 +548,7 @@ end;
 
 
 procedure Tsystem.ETC_HOSTS_ADD(servername:string;ip:string);
-var
-   l:Tstringlist;
-   i:integer;
-   RegExpr:TRegExpr;
-   servernamehost:string;
 begin
-
-    if DisableEtcHosts=1 then exit;
-
-
-     servernamehost:=AnsiReplaceText(servername,'.','\.');
-     l:=Tstringlist.Create;
-     RegExpr:=TRegExpr.Create;
-     RegExpr.Expression:=servernamehost;
-     l.LoadFromFile('/etc/hosts');
-     for i:=0 to l.Count -1 do begin
-        if RegExpr.Exec(servernamehost) then begin
-           l.Strings[i]:=servername+chr(9)+ip;
-           l.SaveToFile('/etc/hosts');
-           l.Free;
-           RegExpr.Free;
-           exit;
-        end;
-     end;
-      l.Add(servername+chr(9)+ip);
-      l.SaveToFile('/etc/hosts');
-      l.Free;
-      RegExpr.Free;
-      exit;
 end;
 
 
@@ -1548,6 +1520,7 @@ begin
     l.Add('/usr/local/sbin');
     l.add('/usr/kerberos/bin');
     l.add('/usr/share/artica-postfix/bin');
+    l.add('/usr/libexec');
 
 
     for i:=0 to l.Count-1 do begin
@@ -6775,6 +6748,13 @@ if length(result)>5 then begin
        exit(result);
    end;
 end;
+
+if FileExists('/usr/lib/php5/20100525+lfs/mysql.so') then begin
+       if verbosed then writeln('tSystem.LOCATE_PHP5_EXTENSION_DIR:: Hard coded /usr/lib/php5/20100525+lfs mysql.so OK');
+       result:='/usr/lib/php5/20100525+lfs';
+       exit(result);
+end;
+
 
 
 if not FileExists(LOCATE_PHP5_CONFIG_BIN()) then begin

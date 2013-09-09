@@ -225,7 +225,7 @@ function backuptable(){
 	$tfile="{$PARAMS["PATH"]}/{$PARAMS["DB"]}.{$PARAMS["TABLE"]}.$t.sql";
 	
 	if(!is_numeric($PARAMS["PORT"])){$PARAMS["PORT"]=3306;}
-	$PARAMS["PASS"]=escapeshellarg($PARAMS["PASS"]);
+	$PARAMS["PASS"]=$unix->shellEscapeChars($PARAMS["PASS"]);
 	@mkdir($PARAMS["PATH"],0755,true);
 	$cmd="$mysqldump --user={$PARAMS["ROOT"]} --password={$PARAMS["PASS"]} --port={$PARAMS["PORT"]} --host={$PARAMS["HOST"]} {$PARAMS["DB"]} {$PARAMS["TABLE"]} > $tfile 2>&1";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
@@ -255,6 +255,12 @@ function mysqlreport(){
 	if($instanceid==0){
 		$user=trim(@file_get_contents("/etc/artica-postfix/settings/Mysql/database_admin"));
 		$password=trim(@file_get_contents("/etc/artica-postfix/settings/Mysql/database_password"));
+		$mysql_server=trim(@file_get_contents("/etc/artica-postfix/settings/Mysql/mysql_server"));
+		if($user==null){$user="root";}
+		if($mysql_server==null){$mysql_server="127.0.0.1";}
+		if($mysql_server=="localhost"){$mysql_server="127.0.0.1";}
+		if($mysql_server=="127.0.0.1"){$socket="/var/run/mysqld/mysqld.sock";}
+		
 	}
 	
 	writelogs("password: ".strlen($password),__FUNCTION__,__FILE__,__LINE__);
@@ -273,8 +279,8 @@ function mysqlreport(){
 	
 	if($user<>null){
 		$user=" --user $user";
-		if($passord<>null){
-			$user=" --user $user --password \"$passord\"";
+		if($password<>null){
+			$user=" --user $user --password \"$password\"";
 		}
 	}
 	

@@ -292,7 +292,7 @@ private function ROUNDCUBE_INSTALL(){
 	
 	if(is_file("$this->root/plugins/msglistcols/msglistcols.php")){$conf[]="\$rcmail_config['plugins'][] = 'msglistcols';";}
 	if(is_file("$this->root/plugins/dkimstatus/dkimstatus.php")){$conf[]="\$rcmail_config['plugins'][] = 'dkimstatus';";}
-	if(is_file("$this->root/plugins/fail2ban/fail2ban.php")){$conf[]="\$rcmail_config['plugins'][] = 'fail2ban';";}
+	//if(is_file("$this->root/plugins/fail2ban/fail2ban.php")){$conf[]="\$rcmail_config['plugins'][] = 'fail2ban';";}
 	if($roundcube_class->plugin_password($this->root,$hash["OU"][0])){
 		if(is_file("$this->root/plugins/dkimstatus/dkimstatus.php")){$conf[]="\$rcmail_config['plugins'][] = 'password';";}
 	}

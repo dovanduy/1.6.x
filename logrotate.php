@@ -191,8 +191,8 @@ function rotate_save(){
 	//RotateFiles,RotateType,RotateFreq,MaxSize,RotateCount,postrotate,description,enabled		
 	$ID=$_POST["ID"];
 	$_POST["description"]=utf8_encode($_POST["description"]);
-	$_POST["postrotate"]=mysql_escape_string($_POST["postrotate"]);
-	$_POST["description"]=mysql_escape_string($_POST["description"]);
+	$_POST["postrotate"]=mysql_escape_string2($_POST["postrotate"]);
+	$_POST["description"]=mysql_escape_string2($_POST["description"]);
 	if($ID==0){
 		$sql="INSERT IGNORE INTO logrotate (`RotateFiles`,`RotateType`,`RotateFreq`,`MaxSize`,`RotateCount`,`postrotate`,`description`,`enabled`)
 		VALUES ('{$_POST["RotateFiles"]}','0','{$_POST["RotateFreq"]}',

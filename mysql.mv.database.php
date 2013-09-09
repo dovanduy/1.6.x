@@ -124,7 +124,7 @@ function stats_mv(){
 	<script>
 	function Refresh$tt(){
 	if(YahooWin6Open()){
-	RefreshTab('squid_categories_zoom');
+	RefreshAllTabs();	
 	LoadAjax('$t','$page?stats-mv=yes&db={$_GET["db"]}&t=$t');
 	}
 	}

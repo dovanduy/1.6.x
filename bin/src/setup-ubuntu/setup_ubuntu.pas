@@ -18,6 +18,12 @@ uses
      distri:tdistriDetect;
      libs:tlibs;
 begin
+
+     if FileExists('/etc/artica-postfix/PROXYTINY_APPLIANCE') then begin
+        writeln('This program cannot be executed in Tiny Proxy mode...');
+        halt(0);
+     end;
+
      distri:=tdistriDetect.Create;
      libs:=tlibs.Create;
      try

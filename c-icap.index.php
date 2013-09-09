@@ -519,7 +519,7 @@ function daemons(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$EnableSquidGuardInCiCAP=$sock->GET_INFO("EnableSquidGuardInCiCAP");
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
 	
 	if(!is_numeric($EnableSquidGuardInCiCAP)){$EnableSquidGuardInCiCAP=0;}

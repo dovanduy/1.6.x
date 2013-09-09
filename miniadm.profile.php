@@ -1,6 +1,6 @@
 <?php
 session_start();$_SESSION["MINIADM"]=true;
-include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
+
 include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 
 if(isset($_GET["verbose"])){
@@ -10,7 +10,10 @@ if(isset($_GET["verbose"])){
 	$GLOBALS["DEBUG_LANG"]=true;
 }
 
-if(!isset($_SESSION["uid"])){die("NO SESSION");}
+if(!isset($_SESSION["uid"])){
+	echo "<H1>NO SESSION</H1>";
+	die();
+}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 
@@ -263,6 +266,7 @@ function privileges(){
 	include_once(dirname(__FILE__)."/ressources/class.translate.rights.inc");
 	$cr=new TranslateRights(null, null);
 	$r=$cr->GetPrivsArray();
+	$users=new usersMenus();
 	
 	$ldap=new clladp();
 	$ht=array();
@@ -294,8 +298,8 @@ function privileges(){
 	
 	
 	while (list ($key, $val) = each ($r) ){
-		if(!isset($_SESSION[$key])){$_SESSION[$key]=$val;}
-		if($_SESSION[$key]){
+		if($GLOBALS["VERBOSE"]){echo "<li>$key = \"$val\"</li>\n";}
+		if($users->$key){
 			$ht[]="<tr><td width=1%><img src='img/arrow-right-16.png'></td><td><span style='font-size:14px'>{{$key}}</span></td></tr>";
 		}
 	}

@@ -38,6 +38,8 @@ class mysql_catz{
 			if($this->EnableArticaDB==0){$this->DisableArticaProxyStatistics=1;}
 			if($this->DisableArticaProxyStatistics==1){return;}			
 			
+			unset($GLOBALS["MYSQL_PARAMETERS"]);
+			unset($_SESSION["MYSQL_PARAMETERS"]);
 			
 			$this->ClassSQL=new mysql($this->arrayConfig);
 			$this->UseMysql=$this->ClassSQL->UseMysql;

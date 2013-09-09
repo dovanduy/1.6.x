@@ -425,6 +425,15 @@ if(!$GLOBALS["NO_STANDARD_BACKUP"]){
 	$sql="SELECT * FROM backup_folders WHERE taskid=$ID";
 	$results=$q->QUERY_SQL($sql,"artica_backup");	
 	if(!$q->ok){
+		if(strpos($q->mysql_error, "gone away")){
+			backup_events($ID,"personal","ERROR, mysql $q->mysql_error Restarting MySQL server (Patch p.20130807)",__LINE__);
+			shell_exec("/etc/init.d/mysql restart");
+			$q=new mysql();
+			$results=$q->QUERY_SQL($sql,"artica_backup");
+		}
+	}
+		
+	if(!$q->ok){	
 		backup_events($ID,"personal","ERROR, mysql $q->mysql_error",__LINE__);
 		return;
 	}

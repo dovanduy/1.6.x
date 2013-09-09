@@ -357,7 +357,8 @@ function popup(){
 		$j=Buildicon64('DEF_ICO_MYSQL_CLUSTER');
 		$browse=Buildicon64("DEF_ICO_MYSQL_BROWSE");
 		$changep=Buildicon64("DEF_ICO_MYSQL_USER");
-		$mysqlrepair=Paragraphe('mysql-repair-64.png','{mysql_repair}','{mysql_repair_text}',"javascript:YahooWin(400,'mysql.index.php?repair-databases=yes')",null);
+		$mysqlrepair=Paragraphe('mysql-repair-64.png','{mysql_repair}','{mysql_repair_text}',
+				"javascript:Loadjs('mysql.repair.php')",null);
 		
 		$mysqlcheck=Paragraphe('compile-database-64.png','{mysql_defrag}','{mysql_defrag_text}',"javascript:Loadjs('mysql.optimize.php')",null);
 		$mysqlRoot=Paragraphe('members-priv-64.png','{chgroot_password}','{change_root_password_text}',"javascript:Loadjs('mysql.password.php?root=yes')",null);

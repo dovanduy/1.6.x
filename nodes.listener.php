@@ -18,20 +18,24 @@
 		ini_set('error_append_string',"");
 	}
 	
-	
+	if(isset($_GET["test-connection"])){echo "\n\nCONNECTIONOK\n\n";die();}
 	
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.blackboxes.inc');
 	include_once('ressources/class.mysql.squid.builder.php');		
-	include_once('ressources/class.mysql.dump.inc');	
+	include_once('ressources/class.mysql.dump.inc');
+	include_once('ressources/class.mysql.syslogs.inc');
 	
 	
 	writelogs("Request from " .$_SERVER["REMOTE_ADDR"],__FILE__,__FUNCTION__,__LINE__);
 	while (list ($num, $val) = each ($_REQUEST) ){
 		writelogs("From: {$_SERVER["REMOTE_ADDR"]} $num = $val",__FILE__,__FUNCTION__,__LINE__);
 	}
+	if(isset($_GET["stats-appliance-compatibility"])){stats_appliance_comptability();exit;}
+	if(isset($_GET["stats-appliance-ports"])){stats_appliance_ports();exit;}
+	if(isset($_GET["stats-perform-connection"])){stats_appliance_privs();exit;}
 	
-	
+	if(isset($_POST["OPENSYSLOG"])){OPENSYSLOG();exit;}
 	if(isset($_GET["squid-table"])){export_squid_table();exit;}
 	if(isset($_FILES["SETTINGS_INC"])){SETTINGS_INC();exit;}
 	if(isset($_POST["DNS_LINKER"])){DNS_LINKER();exit;}
@@ -614,6 +618,8 @@ function SETTINGS_INC_2(){
 }
 function PARSE_ORDERS(){
 	$sock=new sockets();
+	writelogs("Request PING-ORDER FROM " .$_SERVER["REMOTE_ADDR"],__FILE__,__FUNCTION__,__LINE__);
+	writelogs("-> services.php?netagent-ping=yes",__FILE__,__FUNCTION__,__LINE__);
 	$sock->getFrameWork("services.php?netagent-ping=yes");
 	echo "<SUCCESS>SUCCESS</SUCCESS>";
 	
@@ -808,4 +814,161 @@ function compress($source,$dest){
     fclose($fp_in);
     gzclose($fp_out);
 	return true;
+}
+
+function OPENSYSLOG(){
+	$sock=new sockets();
+	$sock->SET_INFO("ActAsASyslogServer", "1");
+	$sock->SET_INFO("DisableArticaProxyStatistics", "0");
+	$sock->getFrameWork("cmd.php?syslog-master-mode=yes");
+	$sock->getFrameWork("squid.php?squid-reconfigure=yes");
+	$sock->getFrameWork("squid.php?compile-schedules-reste=yes");
+	echo "\n<RESULTS>OK</RESULTS>\n";
+}
+
+function stats_appliance_comptability(){
+	$f=array();
+	$users=new usersMenus();
+	$sock=new sockets();
+	$APP_SQUID_DB=true;
+	$APP_SYSLOG_DB=true;
+	if(!$users->APP_SQUIDDB_INSTALLED){
+		$f[]="Token APP_SQUIDDB_INSTALLED return false";
+		$APP_SQUID_DB=false;}
+	$ProxyUseArticaDB=$sock->GET_INFO("ProxyUseArticaDB");
+	if(!is_numeric($ProxyUseArticaDB)){$ProxyUseArticaDB=0;}
+	if($ProxyUseArticaDB==0){
+		$f[]="Token ProxyUseArticaDB is set to 0";
+		$APP_SQUID_DB=false;}
+	$array["APP_SQUID_DB"]=$APP_SQUID_DB;
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	
+	$EnableMySQLSyslogWizard=$sock->GET_INFO("EnableMySQLSyslogWizard");
+	if(!is_numeric($EnableMySQLSyslogWizard)){$EnableMySQLSyslogWizard=0;}
+	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
+	
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
+	if($EnableSyslogDB==0){
+		$f[]="Token EnableSyslogDB is set to 0";
+		$APP_SYSLOG_DB=false;}
+	if($EnableMySQLSyslogWizard==0){
+		$f[]="Token EnableMySQLSyslogWizard is set to 0";
+		$APP_SYSLOG_DB=false;}
+	if($MySQLSyslogType<>1){
+		$f[]="Token MySQLSyslogType is not 1";
+		$APP_SYSLOG_DB=false;}
+	$array["APP_SYSLOG_DB"]=$APP_SYSLOG_DB;
+	$array["DETAILS"]=$f;
+	echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+	
+}
+
+function stats_appliance_ports(){
+	$sock=new sockets();
+	$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
+	$f["SyslogListenPort"]=$TuningParameters["ListenPort"];
+	$SquidDBTuningParameters=unserialize(base64_decode($sock->GET_INFO("SquidDBTuningParameters")));
+	$ListenPort=$SquidDBTuningParameters["ListenPort"];
+	if(!is_numeric($ListenPort)){$ListenPort=0;}
+	if($ListenPort==0){
+		$ListenPort=rand(21500, 63000);
+		$SquidDBTuningParameters["ListenPort"]=$ListenPort;
+		$sock->SaveConfigFile(base64_encode(serialize($SquidDBTuningParameters)), "SquidDBTuningParameters");
+		$sock->getFrameWork("squid.php?artica-db-restart=yes");
+	}
+	
+	$f["SquidDBListenPort"]=$ListenPort;
+	echo "\n\n<RESULTS>".base64_encode(serialize($f))."</RESULTS>\n\n";
+}
+
+function stats_appliance_privs(){
+	$q=new mysql_squid_builder();
+	$OrginalPassword=$q->mysql_password;
+	$server=$_SERVER["REMOTE_ADDR"];
+	$username=str_replace(".", "", $server);
+	$password=md5($server);
+	
+	$sql="SELECT User FROM user WHERE Host='$server' AND User='$username'";
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"mysql"));
+	
+	if(trim($ligne["User"])==null){
+		$sql="CREATE USER '$username'@'$server' IDENTIFIED BY '$password';";
+		if(!$q->EXECUTE_SQL($sql)){
+			$q->mysql_admin="root";
+			$q->mysql_password=$OrginalPassword;
+			if(!$q->EXECUTE_SQL($sql)){
+				$q->mysql_admin="root";
+				$q->mysql_password=null;
+				if(!$q->EXECUTE_SQL($sql)){
+					$array["ERROR"]="SquidDB: CREATE USER user:$username\nHost:$server\n\n$q->mysql_error";
+					echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+					return;}
+				}
+			}
+				
+		}
+	
+	$sql="GRANT ALL PRIVILEGES ON * . * TO '$username'@'$server' IDENTIFIED BY '$password' WITH GRANT OPTION MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0";
+		
+	if(!$q->EXECUTE_SQL($sql)){
+		$q->mysql_admin="root";
+		$q->mysql_password=$OrginalPassword;
+		$q->ok=true;
+		if(!$q->EXECUTE_SQL($sql)){
+			$q->mysql_admin="root";
+			$q->mysql_password=null;
+			$q->ok=true;
+			if(!$q->EXECUTE_SQL($sql)){
+				$array["ERROR"]="SquidDB: user GRANT ALL PRIVILEGES user:$username\nHost:$server\n\n$q->mysql_error";
+				echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+				return;
+				}
+			}
+		}
+		
+		
+$q=new mysql_storelogs();
+$sql="SELECT User FROM user WHERE Host='$server' AND User='$username'";
+$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"mysql"));
+if(trim($ligne["User"])==null){
+	$sql="CREATE USER '$username'@'$server' IDENTIFIED BY '$password';";
+	if(!$q->EXECUTE_SQL($sql)){
+		$q->mysql_admin="root";
+		$q->mysql_password=$OrginalPassword;
+		if(!$q->EXECUTE_SQL($sql)){
+			$q->mysql_admin="root";
+			$q->mysql_password=null;
+			if(!$q->EXECUTE_SQL($sql)){
+				$array["ERROR"]="SyslogDB:  CREATE USER user:$username\nHost:$server\n\n$q->mysql_error";
+				echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+				return;}
+		}
+	}
+
+}
+
+$sql="GRANT ALL PRIVILEGES ON * . * TO '$username'@'$server' IDENTIFIED BY '$password' WITH GRANT OPTION MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0";
+
+if(!$q->EXECUTE_SQL($sql)){
+	$q->mysql_admin="root";
+	$q->mysql_password=$OrginalPassword;
+	$q->ok=true;
+	if(!$q->EXECUTE_SQL($sql)){
+		$q->mysql_admin="root";
+		$q->mysql_password=null;
+		$q->ok=true;
+		if(!$q->EXECUTE_SQL($sql)){
+			$array["ERROR"]="SyslogDB: user GRANT ALL PRIVILEGES user:$username\nHost:$server\n\n$q->mysql_error";
+			echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+			return;
+		}
+	}
+}		
+		
+$array["mysql"]["username"]=$username;
+$array["mysql"]["password"]=$username;	
+echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";	
+		
 }

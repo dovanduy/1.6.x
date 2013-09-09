@@ -20,7 +20,7 @@ if(isset($_GET["compile_postfix_server"])){compile_postfix_server();exit;}
 if(isset($_GET["compile_header_check"])){compile_header_check();exit;}
 if(isset($_GET["check_sender_access"])){check_sender_access();exit;}
 if(isset($_GET["compile_miltergreylist"])){compile_miltergreylist();exit;}
-
+if(isset($_GET["postfix-status-progress"])){postfix_status_progress();exit;}
 
 js();
 
@@ -37,7 +37,7 @@ function js(){
 	}
 	
 	$title=$tpl->_ENGINE_parse_body('{apply config}',"postfix.index.php");
-	$html="YahooWin(500,'$page?popup=yes','$title');";
+	$html="YahooUser(500,'$page?popup=yes','$title');";
 	echo $html;
 	}
 	
@@ -53,21 +53,24 @@ function popup(){
 	}
 	$pourc=0;
 	$t=time();
-
+	$please_wait=$tpl->javascript_parse_text("{please_wait}");
+	$wait="<center style=\"color:#BB0A0A;font-size:18px;font-weight:bold\">$please_wait</center>";
+	
 	$color="#5DD13D";
 	$html="
 	<div class=explain>{APPLY_SETTINGS_POSTFIX}</div>
-	<table style='width:100%'>
-	<tr>
-		<td width=1%><div id='wait_image'><img src='img/wait.gif' style='font-size:13px'></div>
-		</td>
-		<td width=99%>
+		<div id='please-wait'></div>
+		<table style='width:100%'>
+		<tr>
+			<td width=1%><div id='wait_image'><img src='img/wait.gif' style='font-size:13px'></div>
+			</td>
+			<td width=99%>
 				<div id='Status$t' style='font-size:13px'></div>
-		</td>
-	</tr>
-	</table>
-	<br>
-	<div id='textlogs' style='width:99%;height:120px;overflow:auto' style='font-size:13px'></div>
+			</td>
+		</tr>
+		</table>
+		<br>
+		<div id='textlogs' style='width:99%;min-height:120px;overflow:auto;font-size:18px;text-align:center;font-weight:bold'></div>
 	
 	<script>
 	function StartCompilePostfix(){
@@ -80,7 +83,7 @@ function popup(){
 		document.getElementById('wait_image').innerHTML='&nbsp;';
 		if(document.getElementById('admin_perso_tabs')){RefreshTab('admin_perso_tabs');}
 		if(document.getElementById('main_config_postfix')){RefreshTab('main_config_postfix');}
-		YahooWinHide();
+		YahooUserHide();
 		
 		
 	}
@@ -92,10 +95,19 @@ function popup(){
 
 		
 	function ChangeStatus(number){
+		document.getElementById('please-wait').innerHTML='$wait';
 		$('#Status$t').progressbar({ value: number });
 	}
-
+	
+	function LoadPostfixBar(){
+		if(!YahooUserOpen()){return;}
+		document.getElementById('please-wait').innerHTML='$wait';
+		LoadAjaxSilent('textlogs','$page?postfix-status-progress=yes');
+	}
+	
+	document.getElementById('please-wait').innerHTML='$wait';
 	$('#Status$t').progressbar({ value: 2 });
+	
 	StartCompilePostfix();
 	</script>
 	";
@@ -104,11 +116,43 @@ function popup(){
 }
 
 
+function postfix_status_progress(){
+	$tpl=new templates();
+	$cache="/usr/share/artica-postfix/ressources/logs/web/POSTFIX_COMPILES";
+	$array=unserialize(@file_get_contents($cache));
+	$text=$tpl->_ENGINE_parse_body("{please_wait}");
+	$POURC=0;
+	if(is_array($array)){
+		$POURC=$array["POURC"];
+		$text=$array["TEXT"];
+		if(count($array["ERROR"])>0){
+			while (list ($a, $b) = each ($array["ERROR"]) ){
+				echo "<div style='color:red;font-size:14px'>$b</div>";
+				
+			}
+		}
+		echo "<div style='color:#BB0A0A;font-size:18px;font-weight:bold'>$text</div>";
+		
+	}
+	
+	$finish="setTimeout('LoadPostfixBar()',2000);";
+	if($POURC==100){$finish="finish()";}
+	
+	echo "<script>
+			document.getElementById('please-wait').innerHTML='';
+			ChangeStatus($POURC);
+			$finish
+		</script>
+			";
+	
+}
+
+
 
 function compile_amavis(){
 	$tpl=new templates();
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?SaveMaincf=yes");
+	
 	
 	$users=new usersMenus();
 	$users->LoadModulesEnabled();
@@ -220,6 +264,7 @@ function compile_postfix_server(){
 	<div id='compile_postfix_server' style='font-size:13px'></div>
 	<script>
 		ChangeStatus(55);
+		document.getElementById('please-wait').innerHTML='';
 		LoadAjaxSilent('compile_postfix_server','$page?compile_header_check=yes');
 	</script>
 	";		
@@ -235,6 +280,7 @@ function compile_header_check(){
 	<div id='compile_header_check' style='font-size:13px'></div>
 	<script>
 		ChangeStatus(70);
+		document.getElementById('please-wait').innerHTML='';
 		LoadAjaxSilent('compile_header_check','$page?check_sender_access=yes');
 	</script>
 	";				
@@ -244,17 +290,19 @@ function compile_header_check(){
 }
 function check_sender_access(){
 	$tpl=new templates();
-
+	$please_wait=$tpl->_ENGINE_parse_body("{please_wait}");
 	$script="
+	<center style='color:#BB0A0A;font-size:18px;font-weight:bold'>$please_wait</center>
 	<script>
-		finish();
+		document.getElementById('please-wait').innerHTML='';
+		LoadPostfixBar();
 	</script>
 	";		
 
 		echo $script;
 	
 	$sock=new sockets();
-	$sock->getFrameWork("services.php?restart-postfix-all=yes");
+	$sock->getFrameWork("services.php?recompile-postfix=yes");
 	
 }
 
@@ -270,6 +318,7 @@ function compile_miltergreylist(){
 	$script="
 	<div id='compile_miltergreylist' style='font-size:13px'></div>
 	<script>
+		document.getElementById('please-wait').innerHTML='';
 		ChangeStatus(45);
 		LoadAjaxSilent('compile_miltergreylist','$page?compile_postfix_save=yes');
 	</script>
@@ -280,7 +329,7 @@ function compile_miltergreylist(){
 		die();	
 	}	
 	
-if($users->MilterGreyListEnabled<>1){
+	if($users->MilterGreyListEnabled<>1){
 		echo $tpl->_ENGINE_parse_body("<strong>{APP_MILTERGREYLIST}:</strong> {error_module_not_enabled})").$script;
 		die();	
 	}

@@ -538,7 +538,7 @@ function popup_options(){
 
 function timezonearray(){
 	
-$timezone[]="Africa/Abidjan";                 //,0x000000 },
+	$timezone[]="Africa/Abidjan";                 //,0x000000 },
 	$timezone[]="Africa/Accra";                   //,0x000055 },
 	$timezone[]="Africa/Addis_Ababa";             //,0x0000FD },
 	$timezone[]="Africa/Algiers";                 //,0x000153 },

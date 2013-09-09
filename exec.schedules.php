@@ -387,17 +387,12 @@ function execute_task_squid($ID){
 		OverloadedCheckBadProcesses();
 		$os=new os_system();
 		$hash_mem=$os->realMemory();
-		writelogs("Task $ID Over memory system {$hash_mem["ram"]["percent"]}%, aborting task",__FUNCTION__,__FILE__,__LINE__);
-		system_admin_events("Over memory system {$hash_mem["ram"]["percent"]}%, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+		writelogs("Task $ID Overloaded with {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} (memory system {$hash_mem["ram"]["percent"]}%), aborting task",__FUNCTION__,__FILE__,__LINE__);
+		system_admin_events("Overloaded with {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} (memory system {$hash_mem["ram"]["percent"]}%), aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
 		return;
 	}
 	
-	if(system_is_overloaded(basename(__FILE__))){
-		ufdbguard_admin_events("Overloaded system after 20x5 secondes ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
-		return;
-	}
 	if(!isset($TASKS_CACHE[$ID])){
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TaskType FROM webfilters_schedules WHERE ID=$ID"));
 		$TaskType=$ligne["TaskType"];

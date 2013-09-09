@@ -20,6 +20,13 @@ if(isset($_GET["postfix-single"])){postfix_single();exit;}
 if(isset($_GET["nsswitch"])){nsswitch();exit;}
 if(isset($_GET["nsswitch-tenir"])){nsswitch_tenir();exit;}
 if(isset($_GET["cache-pages"])){cache_pages();exit;}
+if(isset($_GET["syslog-test-nas"])){syslogdb_tests_nas();exit;}
+if(isset($_GET["squidstats-test-nas"])){squidstats_tests_nas();exit;}
+if(isset($_GET["execute-debian-mirror-rsync"])){debian_mirror_execute_rsync();exit;}
+if(isset($_GET["recompile-postfix"])){recompile_postfix();exit;}
+if(isset($_GET["makedir"])){makedir();exit;}
+
+
 
 if(isset($_GET["changeRootPasswd"])){changeRootPasswd();exit;}
 if(isset($_GET["process1"])){process1();exit;}
@@ -131,6 +138,7 @@ if(isset($_GET["kav4Proxy-reload"])){kav4proxy_reload();exit;}
 if(isset($_GET["kav4proxy-stop"])){kav4proxy_stop();exit;}
 if(isset($_GET["kav4proxy-restart"])){kav4proxy_restart();exit;}
 if(isset($_GET["change-ldap-suffix"])){change_ldap_suffix();exit;}
+if(isset($_GET["mysql-repair-database"])){mysql_repair_database();exit;}
 
 
 if(isset($_GET["clock"])){GETclock();exit;}
@@ -951,6 +959,9 @@ function kav4proxy_restart(){
 	shell_exec($cmd);	
 }
 
+
+
+
 function mysql_events(){
 	$instance_id=$_GET["instance-id"];
 	if(!is_numeric($instance_id)){$instance_id=0;}
@@ -961,17 +972,41 @@ function mysql_events(){
 		$file=$ini->get("mysqld$instance_id","log_error");
 	}
 	
-	if(!is_file($file)){
+	$unix=new unix();
+	$tail=$unix->find_program("tail");
+	$results=array();
+	
+	if($instance_id==0){
+		if(is_file("/var/lib/mysql/mysqld.err")){
+			$cmd="$tail -n 300 /var/lib/mysql/mysqld.err 2>&1";
+			writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+			exec($cmd,$results);
+		}	
+	
+	
+		if(is_file("/var/run/mysqld/mysqld.err")){
+			$cmd="$tail -n 300 /var/run/mysqld/mysqld.err 2>&1";
+			writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+			exec($cmd,$results);
+		}
+	
+	}else{
+		if(is_file($file)){
+			$cmd="$tail -n 300 /var/run/mysqld/mysqld.err 2>&1";
+			writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+			exec($cmd,$results);
+		}
+		
+	}
+
+	
+	
+	if(count($results)==0){
 		$datas=base64_encode(serialize(array("{error_no_datas}")));
 		echo "<articadatascgi>$datas</articadatascgi>";
 		return;
 	}
 	
-	$unix=new unix();
-	$tail=$unix->find_program("tail");
-	$cmd="$tail -n 300 $file 2>&1";
-	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
-	exec($cmd,$results);
 	$datas=base64_encode(serialize($results));
 	echo "<articadatascgi>$datas</articadatascgi>";
 	
@@ -1493,7 +1528,9 @@ function register_license(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
+	
 	$cmd=trim("$php5 /usr/share/artica-postfix/exec.web-community-filter.php --register-lic 2>&1");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	exec($cmd,$results);
 	$cmd="$nohup /usr/share/artica-postfix/bin/process1 --force ".time()." >/dev/null 2>&1 &";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
@@ -1772,6 +1809,58 @@ function cache_pages(){
 	$cmd="$nohup $php /usr/share/artica-postfix/exec.cache.pages.php --force >/dev/null 2>&1 &";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
+}
+
+function syslogdb_tests_nas(){
+	$unix=new unix();
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.logrotate.php --test-nas 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);	
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+function squidstats_tests_nas(){
+	$unix=new unix();
+
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.squidlogs.purge.php --test-nas 2>&1";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+function debian_mirror_execute_rsync(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.debian.mirror.php --start-exec-manu >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+function recompile_postfix(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/POSTFIX_COMPILES");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.postfix.maincf.php --reconfigure >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function makedir(){
+	$path=base64_decode($_GET["makedir"]);
+	@mkdir($path,0755,true);
+	
+}
+
+function mysql_repair_database(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/RepairMysql.log", "\n");
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/RepairMysql.log",0777);
+	shell_exec("$nohup $php /usr/share/artica-postfix/exec.mysql.clean.php --corrupted --verbose >> /usr/share/artica-postfix/ressources/logs/web/RepairMysql.log 2>&1 &");
+	
 }
 
 ?>

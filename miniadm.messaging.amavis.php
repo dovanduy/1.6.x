@@ -127,7 +127,7 @@ function wbl_save(){
 	if(!is_numeric($rcpt_id)){$rcpt_id=0;}
 	if($rcpt_id==0){
 		$user=new user($_SESSION["uid"]);
-		$user->DisplayName=mysql_escape_string($user->DisplayName);
+		$user->DisplayName=mysql_escape_string2($user->DisplayName);
 		$sql="INSERT IGNORE INTO `users` (policy_id,email,uid,fullname,local) VALUES
 		('','$rcpt','{$_SESSION["uid"]}','$user->DisplayName',1);";
 		$q->QUERY_SQL($sql);
@@ -183,7 +183,7 @@ function policy_email(){
 function policy_email_save(){
 	$q=new amavisdb();
 	$user=new user($_SESSION["uid"]);
-	$user->DisplayName=mysql_escape_string($user->DisplayName);
+	$user->DisplayName=mysql_escape_string2($user->DisplayName);
 	$sqladd="INSERT IGNORE INTO `users` (policy_id,email,uid,fullname,local) VALUES
 			('{$_POST["policy_id"]}','{$_POST["policy_email"]}','{$_SESSION["uid"]}','$user->DisplayName',1);";
 	

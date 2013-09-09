@@ -1,5 +1,9 @@
 <?php
-if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
+header("Pragma: no-cache");
+header("Expires: 0");
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+header("Cache-Control: no-cache, must-revalidate");
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -32,7 +36,8 @@ if(isset($_POST["DisableSquidDefaultSchedule"])){DisableSquidDefaultSchedule();e
 if(isset($_GET["compile-settings-js"])){compile_settings_js();exit;}
 if(isset($_GET["compile-settings-popup"])){compile_settings_popup();exit;}
 if(isset($_GET["compile-settings-perform"])){compile_settings_perform();exit;}
-
+if(isset($_POST["Addefaults"])){Addefaults();exit;}
+if(isset($_GET["Addefaults"])){Addefaults();exit;}
 
 page();
 
@@ -77,6 +82,14 @@ $html="
 	SquidTaskRun$t();
 ";	
 echo $html;	
+	
+}
+
+function Addefaults(){
+	$q=new mysql_squid_builder();
+	$q->CheckDefaultSchedules();
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("{add_defaults_added}");
 	
 }
 
@@ -250,7 +263,7 @@ function AddNewSchedule_save(){
 	$defaultdesc=$tpl->javascript_parse_text($task_type[$_POST["TaskType"]]);
 	if($_POST["TimeDescription"]==null){$_POST["TimeDescription"]=$defaultdesc ." : {$_POST["TimeText"]}";}
 	
-	$_POST["TimeDescription"]=mysql_escape_string($_POST["TimeDescription"]);
+	$_POST["TimeDescription"]=mysql_escape_string2($_POST["TimeDescription"]);
 	
 	$sql="INSERT IGNORE INTO webfilters_schedules (TimeDescription,TimeText,TaskType,enabled) 
 	VALUES('{$_POST["TimeDescription"]}','{$_POST["TimeText"]}','{$_POST["TaskType"]}',1)";
@@ -336,6 +349,7 @@ function page(){
 	$run_this_task_now=$tpl->javascript_parse_text("{run_this_task_now} ?");
 	$parameters=$tpl->_ENGINE_parse_body("{parameters}");
 	$compile_settings=$tpl->_ENGINE_parse_body("{compile_settings}");
+	$add_default=$tpl->javascript_parse_text("{add_defaults}");
 	
 	$qS=new mysql_squid_builder();
 	$q=new mysql();
@@ -365,7 +379,7 @@ function page(){
 	</div>
 <script>
 var rowSquidTask='';
-$(document).ready(function(){
+function flexigridStarter$t(){
 $('#$t').flexigrid({
 	url: '$page?search=yes&minisize={$_GET["minisize"]}',
 	dataType: 'json',
@@ -382,6 +396,7 @@ buttons : [
 	{name: '$new_schedule', bclass: 'add', onpress : AddNewSchedule},
 	{name: '$parameters', bclass: 'Settings', onpress : Parmaeters$t},
 	{name: '$compile_settings', bclass: 'Reconf', onpress : CompileSettings$t},
+	{name: '$add_default', bclass: 'Reconf', onpress : Addefaults$t},
 	
 		],	
 	searchitems : [
@@ -399,7 +414,8 @@ buttons : [
 	singleSelect: true
 	
 	});   
-});	
+}
+
 
 	function AddNewSchedule(category){
 			Loadjs('$page?AddNewSchedule-js=yes&ID=0');
@@ -457,6 +473,13 @@ buttons : [
 	
 	}
 	
+	function Addefaults$t(){
+	  	var XHR = new XHRConnection();
+		XHR.appendData('Addefaults','yes');
+	  	XHR.sendAndLoad('$page', 'POST',x_DisableSquidDefaultScheduleCheck);	
+	
+	}
+	
 	
 	var x_SquidTaskDelete=function (obj) {
 		var results=obj.responseText;
@@ -472,7 +495,7 @@ buttons : [
 	  	XHR.sendAndLoad('$page', 'POST',x_SquidTaskDelete);	
 	}
 	
-	
+setTimeout('flexigridStarter$t()',800);		
 	
 </script>";
 	
@@ -498,43 +521,43 @@ function search(){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	
 	$total=0;
-	if($q->COUNT_ROWS($table,"artica_events")==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table,"artica_events")==0){json_error_show("no data");}
+		
+		
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search') ";
+	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
 		$total = $ligne["TCOUNT"];
 		
 	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
-		$total = $ligne["TCOUNT"];
+		$total=$q->COUNT_ROWS($table,"artica_events");
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	
-
+	if(!is_numeric($rp)){$rp=1;}
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
+	if($GLOBALS["VERBOSE"]){$limitSql=null;}
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
+	
+	
+	
 	$results = $q->QUERY_SQL($sql,"artica_events");
 	
 	
 	
-	$data = array();$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();	
-	if(!$q->ok){$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));echo json_encode($data);return;}	
+	$data = array();$data['page'] = $page;$data['total'] = $total;
+	$data['rows'] = array();	
+	if(!$q->ok){json_error_show($q->mysql_error);}	
 	
 //######"
 	//TimeText TimeDescription TaskType enabled
@@ -549,7 +572,7 @@ function search(){
 		$jstaskexplain=$tpl->javascript_parse_text($q->tasks_array[$ligne["TaskType"]]);
 		$ligne["TaskType"]=$tpl->_ENGINE_parse_body($q->tasks_array[$ligne["TaskType"]]);
 		
-		
+		if($GLOBALS["VERBOSE"]){echo "<li style='font-size:16px;'><strong>{$ligne['ID']} {$ligne["TaskType"]} {$ligne["TimeDescription"]} Enabled={$ligne["enabled"]}</strong></li>\n";}
 		$enable=Field_checkbox($md5, 1,$ligne["enabled"],"SquidTaskEnable('$md5',{$ligne['ID']})");
 		$delete=imgtootltip("delete-24.png","{delete} {$ligne['ID']}","SquidTaskDelete('{$ligne['ID']}')");
 		

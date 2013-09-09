@@ -160,6 +160,7 @@ function freeweb_reconfigure(){
 function freeweb_modules(){
 	$unix=new unix();
 	$apache2ctl=$unix->find_program("apache2ctl");
+	if(!is_file($apache2ctl)){$apache2ctl=$unix->find_program("apachectl");}
 	if(!is_file($apache2ctl)){echo "<articadatascgi>".base64_encode(serialize(array("apache2ctl no such file")))."</articadatascgi>";return;}
 	$cmd="$apache2ctl -t -D DUMP_MODULES 2>&1";
 	exec("$cmd",$results);
@@ -190,10 +191,11 @@ function change_init_on(){
 	$unix=new unix();
 	$debianbin=$unix->find_program("update-rc.d");
 	$redhatbin=$unix->find_program("chkconfig");
-	$service="apache2";
-	if(is_file("/etc/init.d/apache2")){$service="apache2";}
+	
+	
 	if(is_file("/etc/init.d/apache")){$service="apache";}
 	if(is_file("/etc/init.d/httpd")){$service="httpd";}
+	if($service==null){return;}
 	if(is_file($debianbin)){shell_exec("$debianbin -f $service remove >/dev/null 2>&1");}
 	if(is_file($redhatbin)){shell_exec("$redhatbin --del $service >/dev/null 2>&1");}
 	
@@ -204,10 +206,11 @@ function change_init_off(){
 	$unix=new unix();
 	$debianbin=$unix->find_program("update-rc.d");
 	$redhatbin=$unix->find_program("chkconfig");
-	$service="apache2";
-	if(is_file("/etc/init.d/apache2")){$service="apache2";}
+	
+	
 	if(is_file("/etc/init.d/apache")){$service="apache";}
 	if(is_file("/etc/init.d/httpd")){$service="httpd";}
+	if($service==null){return;}
 	if(is_file($debianbin)){shell_exec("$debianbin -f $service defaults >/dev/null 2>&1");}
 	if(is_file($redhatbin)){shell_exec("$redhatbin --add $service >/dev/null 2>&1");}	
 	

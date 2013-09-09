@@ -13,6 +13,6 @@ Il v&eacute;rifie p&eacute;riodiquement que l'adresse IP stock&eacute;e par le s
 <infouri_text>[br]si vous avez un compte pour dns dynamique, visitez ce site internet</infouri_text>
 <pool_time>Mise &agrave; jour chaque minutes/heures</pool_time>
 <rules_list>R&egrave;gle de DNS Dynamique</rules_list>
-<running>En fonctionnement</running>
+<running>D&eacute;marr&eacute;</running>
 <select_service>S&eacute;lectionnez un service DNS dynamique</select_service>
 <update_frequency>Fr&eacute;quence des mises &agrave; jour</update_frequency>

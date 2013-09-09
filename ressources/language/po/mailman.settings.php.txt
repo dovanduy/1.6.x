@@ -1,4 +1,4 @@
-<accept>Accept</accept>
+<accept>Aceite</accept>
 <acceptable_aliases>Acceptable aliases</acceptable_aliases>
 <acceptable_aliases_input>Give the pattern</acceptable_aliases_input>
 <acceptable_aliases_text>Alias names (regexps) which qualify as explicit to or cc destination names for this list.[br]

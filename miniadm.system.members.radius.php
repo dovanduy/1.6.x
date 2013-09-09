@@ -194,7 +194,7 @@ function groups_attributes_save(){
 	$op=$_POST["op"];
 	$attribute=$_POST["attribute"];
 	$q=new mysql();
-	$value=mysql_escape_string($value);
+	$value=mysql_escape_string2($value);
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT groupname FROM radgroupcheck WHERE id={$gpid}","artica_backup"));
 	$groupname=$ligne["groupname"];
 	$sql="INSERT IGNORE INTO $table (`gpid`, `groupname`,`attribute`, `value`,`op`) 

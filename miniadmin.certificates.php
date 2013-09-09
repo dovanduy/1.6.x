@@ -363,12 +363,18 @@ function content(){
 }
 
 function tabs(){
-	$page=CurrentPageName();
+	$title=null;
 	$tpl=new templates();
+	if(isset($_GET["title"])){
+		$title=$tpl->_ENGINE_parse_body("<H3>{certificates_center}</H3><p>{ssl_certificates_center_text}</p>");
+	}
+	
+	$page=CurrentPageName();
+	
 	$array["certificates"]="$page?section-certificates=yes";
 	
 	$boot=new boostrap_form();
-	echo $boot->build_tab($array);
+	echo $title.$boot->build_tab($array);
 }
 function certificate_edit_tabs(){
 	$page=CurrentPageName();
@@ -398,7 +404,7 @@ function section_certificates(){
 }
 function wizard_certificate_save(){
 	$password=url_decode_special_tool($_POST["wizard-certificate-password"]);
-	$password=mysql_escape_string($password);
+	$password=mysql_escape_string2($password);
 	$CommonName=$_POST["wizard-certificate-commonname"];
 	$CommonName=strtolower(trim($CommonName));
 	if($CommonName==null){

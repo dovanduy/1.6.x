@@ -122,7 +122,7 @@ function page(){
 	<table class='freewebs-table-$t' style='display: none' id='freewebs-table-$t' style='width:100%;margin:-10px'></table>
 <script>
 FreeWebIDMEM='';
-$(document).ready(function(){
+
 $('#freewebs-table-$t').flexigrid({
 	url: '$page?servers-list=yes&force-groupware={$_GET["force-groupware"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t=$t&tabzarafa={$_GET["tabzarafa"]}',
 	dataType: 'json',
@@ -157,7 +157,7 @@ $('#freewebs-table-$t').flexigrid({
 	singleSelect: true
 	
 	});   
-});
+
 
 	function HelpSection(){
 		LoadHelp('freewebs_explain','',false);

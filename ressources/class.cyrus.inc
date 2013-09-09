@@ -582,7 +582,11 @@ function parse_imapdconf(){
 		}
 		
 	}
-	
+	if(!isset($this->impad_array["maxmessagesize"])){$this->impad_array["maxmessagesize"]=0;}
+	if(!isset($this->impad_array["createonpost"])){$this->impad_array["createonpost"]=1;}
+	if(!isset($this->impad_array["autocreateinboxfolders"])){$this->impad_array["autocreateinboxfolders"]="sent|drafts|spam|templates";}
+	if(!isset($this->impad_array["popminpoll"])){$this->impad_array["popminpoll"]="1";}
+	if(!isset($this->impad_array["quotawarn"])){$this->impad_array["quotawarn"]="90";}	
 	if($this->impad_array["maxmessagesize"]==null){$this->impad_array["maxmessagesize"]=0;}
 	if($this->impad_array["createonpost"]==null){$this->impad_array["createonpost"]=1;}
 	if($this->impad_array["autocreateinboxfolders"]==null){$this->impad_array["autocreateinboxfolders"]="sent|drafts|spam|templates";}
@@ -837,6 +841,22 @@ function BuildConfig(){
 		
 	  function BuildDefault(){
 	  	$this->main_array["CYRUS"]["service_imap_enabed"]=1;
+	  	if(!isset($this->main_array["CYRUS"]["service_imap_listen"])){$this->main_array["CYRUS"]["service_imap_listen"]="imap";}
+	  	if(!isset($this->main_array["CYRUS"]["service_imap_maxchild"])){$this->main_array["CYRUS"]["service_imap_maxchild"]="500";}
+	  	if(!isset($this->main_array["CYRUS"]["service_imapssl_maxchild"])){$this->main_array["CYRUS"]["service_imapssl_maxchild"]="500";}
+	  	if(!isset($this->main_array["CYRUS"]["service_pop3_maxchild"])){$this->main_array["CYRUS"]["service_pop3_maxchild"]="150";}
+	  	if(!isset($this->main_array["CYRUS"]["service_pop3ssl_maxchild"])){$this->main_array["CYRUS"]["service_pop3ssl_maxchild"]="150";}
+		if(!isset($this->main_array["CYRUS"]["service_imapssl_enabed"])){$this->main_array["CYRUS"]["service_imapssl_enabed"]=0;}
+	  	if(!isset($this->main_array["CYRUS"]["service_imapssl_listen"])){$this->main_array["CYRUS"]["service_imapssl_listen"]="imaps";}
+	  	if(!isset($this->main_array["CYRUS"]["service_pop3_enabed"])){$this->main_array["CYRUS"]["service_pop3_enabed"]=1;}
+	  	if(!isset($this->main_array["CYRUS"]["service_pop3_listen"])){$this->main_array["CYRUS"]["service_pop3_listen"]="pop3";}
+	  	if(!isset($this->main_array["CYRUS"]["service_pop3ssl_enabed"])){$this->main_array["CYRUS"]["service_pop3ssl_enabed"]=0;}
+	  	if(!isset($this->main_array["CYRUS"]["service_pop3ssl_listen"])){$this->main_array["CYRUS"]["service_pop3ssl_listen"]="pop3s";}
+	  	if(!isset($this->main_array["CYRUS"]["service_nntpd_enabed"])){$this->main_array["CYRUS"]["service_nntpd_enabed"]=1;}
+	  	if(!isset($this->main_array["CYRUS"]["service_nntpd_listen"])){$this->main_array["CYRUS"]["service_nntpd_listen"]="nntp";}
+	  	if(!isset($this->main_array["CYRUS"]["service_nntpds_enabed"])){$this->main_array["CYRUS"]["service_nntpds_enabed"]=0;}
+	  	if(!isset($this->main_array["CYRUS"]["service_nntpds_listen"])){$this->main_array["CYRUS"]["service_nntpds_listen"]="nntps";}
+
 	  	if($this->main_array["CYRUS"]["service_imap_listen"]==null){$this->main_array["CYRUS"]["service_imap_listen"]="imap";}
 	  	
 	  	if($this->main_array["CYRUS"]["service_imap_maxchild"]==null){$this->main_array["CYRUS"]["service_imap_maxchild"]="500";}

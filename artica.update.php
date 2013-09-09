@@ -87,7 +87,9 @@ var x_SaveArticaUpdateForm= function (obj) {
 		if(document.getElementById('EnablePatchUpdates')){
 			if(document.getElementById('EnablePatchUpdates').checked){XHR.appendData('EnablePatchUpdates','1');}else{XHR.appendData('EnablePatchUpdates','0');}
 		}
-		
+		if(document.getElementById('EnableSystemUpdates')){
+			if(document.getElementById('EnableSystemUpdates').checked){XHR.appendData('EnableSystemUpdates','1');}else{XHR.appendData('EnableSystemUpdates','0');}
+		}		
 		
 		
 		if(document.getElementById('EnableScheduleUpdates')){
@@ -189,12 +191,16 @@ $EnableScheduleUpdates=$sock->GET_INFO("EnableScheduleUpdates");
 $EnablePatchUpdates=$sock->GET_INFO("EnablePatchUpdates");
 $ArticaScheduleUpdates=$sock->GET_INFO("ArticaScheduleUpdates");
 $DisableInstantLDAPBackup=$sock->GET_INFO("DisableInstantLDAPBackup");
+$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
 
 if(!is_numeric($DisableInstantLDAPBackup)){$DisableInstantLDAPBackup=0;}
 if(!is_numeric($EnableNightlyInFrontEnd)){$EnableNightlyInFrontEnd=1;}
 if(!is_numeric($EnableScheduleUpdates)){$EnableScheduleUpdates=0;}
 if(!is_numeric($EnableRebootAfterUpgrade)){$EnableRebootAfterUpgrade=0;}
 if(!is_numeric($EnablePatchUpdates)){$EnablePatchUpdates=0;}
+if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
+
+
 
 writelogs("EnableScheduleUpdates = $EnableScheduleUpdates",__FUNCTION__,__FILE__,__LINE__);
 
@@ -241,7 +247,12 @@ if(trim($AUTOUPDATE["auto_apt"])==null){$AUTOUPDATE["auto_apt"]="no";}
 	<tr>
 		<td width=1% nowrap align='right' class=legend>{EnableNightlyInFrontEnd}:</strong></td>
 		<td align='left'>" . Field_checkbox('EnableNightlyInFrontEnd',1,$EnableNightlyInFrontEnd)."</td>
-	</tr>	
+	</tr>
+	<tr>
+		<td width=1% nowrap align='right' class=legend>{EnableSystemUpdates}:</strong></td>
+		<td align='left'>" . Field_checkbox('EnableSystemUpdates',1,$EnableSystemUpdates)."</td>
+	</tr>
+				
 	<tr>
 		<td width=1% nowrap align='right' class=legend>{front_page_notify}:</strong></td>
 		<td align='left'>" . Field_yesno_checkbox('front_page_notify',$AUTOUPDATE["front_page_notify"])."</td>
@@ -532,10 +543,14 @@ function main_artica_update_switch(){
 
 function main_artica_update_tabs(){
 	
-	if(GET_CACHED(__FILE__,__FUNCTION__)){return;}
 	
+	$sock=new sockets();
+	$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
+	if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
 	$page=CurrentPageName();
-	$array["apt"]='{system}';
+	if($EnableSystemUpdates==1){
+		$array["apt"]='{system}';
+	}
 	$array["config"]='{parameters}';
 	$array["patchs"]='{patchs}';
 	$array["events"]='{events}';
@@ -552,21 +567,8 @@ function main_artica_update_tabs(){
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?main_artica_update=$num\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 	}
 	
+	echo build_artica_tabs($html, "main_config_artica_update");
 	
-	$html= "
-	<div id=main_config_artica_update style='width:100%;height:650px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_artica_update').tabs();
-			
-			
-			});
-		</script>";			
-
-	SET_CACHED(__FILE__,__FUNCTION__,null,$html);
-	echo $html;
 }
 
 function SaveConf(){
@@ -585,6 +587,7 @@ $ini->loadString($configDisk);
 	$sock->SET_INFO("EnableNightlyInFrontEnd",$_GET["EnableNightlyInFrontEnd"]);
 	$sock->SET_INFO("ArticaScheduleUpdates",$_GET["ArticaScheduleUpdates"]);
 	$sock->SET_INFO("RebootAfterArticaUpgrade",$_GET["RebootAfterArticaUpgrade"]);
+	$sock->SET_INFO("EnableSystemUpdates",$_GET["EnableSystemUpdates"]);
 	
 	
 	

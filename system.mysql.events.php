@@ -414,7 +414,9 @@ function page_events(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$time=time();
+	$search=null;
 	$datas=unserialize(base64_decode($sock->getFrameWork("services.php?mysql-events=yes&instance-id=$instance_id")));
+	ini_set('html_errors',1);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
 	$data = array();
 	$data['page'] = 1;
 	$data['total'] = count($datas);

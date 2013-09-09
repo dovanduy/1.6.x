@@ -36,10 +36,13 @@
 	if(isset($_GET["replace-popup"])){REPLACE_POPUP();exit;}
 	if(isset($_POST["RebuidSquidTplDefault"])){RebuidSquidTplDefault();exit;}
 	if(isset($_POST["replace-from"])){REPLACE_PERFORM();exit;}
+	if(isset($_GET["import-default-js"])){IMPORT_DEFAULT_JS();exit;}
+	if(isset($_POST["ImportDefault"])){DefaultTemplatesInMysql();exit;}
 	
 js();
 
 function ZOOM_JS(){
+	header("content-type: application/x-javascript");
 	$zmd5=$_GET["Zoom-js"];
 	$page=CurrentPageName();
 	$title=base64_decode($_GET["subject"]);
@@ -62,6 +65,54 @@ function HEADER_JS(){
 	echo $html;	
 	
 }
+function IMPORT_DEFAULT_JS(){
+	$t=$_GET["t"];
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$html="
+	var xImportDefault$t=function(obj){
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		$('#SquidTemplateErrorsTable').flexReload();
+		
+    }	    
+	
+	 function ImportDefault$t(){
+      	var XHR = new XHRConnection();
+      	XHR.appendData('ImportDefault','yes');
+      	XHR.sendAndLoad('$page', 'POST',xImportDefault$t);          
+      }			
+			
+	ImportDefault$t();";
+	echo $html;
+}
+function DefaultTemplatesInMysql(){
+	$q=new mysql_squid_builder();
+	$defaultdb=dirname(__FILE__)."/ressources/databases/squid.default.templates.db";
+	if(!is_file($defaultdb)){echo "$defaultdb no such file\n";return;}
+	$array=unserialize(@file_get_contents($defaultdb));
+	if(!is_array($array)){echo "$defaultdb no such array\n";return;}
+	$prefix="INSERT IGNORE INTO squidtpls (`zmd5`,`lang`,`template_name`,`template_body`,`template_title`) VALUES ";
+$c=0;
+	while (list ($language, $arrayTPL) = each ($array)){
+		while (list ($templateName, $templateData) = each ($arrayTPL)){
+			$title=$templateData["TITLE"];
+			
+			$body=base64_decode($templateData["BODY"]);
+			$md5=md5($language.$templateName);
+			$body=addslashes($body);
+			$title=addslashes($title);
+			$ss="('$md5','$language','$templateName','$body','$title')";
+			$q->QUERY_SQL($prefix.$ss);
+			$f=array();
+			if(!$q->ok){echo "$templateName ($language) FAILED ($q->mysql_error)\n";continue;}
+			$c++;
+		}
+	}
+	
+	echo "Importing $c templates\n";
+}
+
 
 function REPLACE_JS(){
 	header("content-type: application/x-javascript");
@@ -131,9 +182,9 @@ function REPLACE_PERFORM(){
 		$ligne["template_title"]=str_replace($stringfrom, $stringto, $ligne["template_title"]);
 		$ligne["template_header"]=str_replace($stringfrom, $stringto, $ligne["template_header"]);
 		
-		$ligne["template_header"]=mysql_escape_string($ligne["template_header"]);
-		$ligne["template_title"]=mysql_escape_string($ligne["template_title"]);
-		$ligne["template_body"]=mysql_escape_string($ligne["template_body"]);
+		$ligne["template_header"]=mysql_escape_string2($ligne["template_header"]);
+		$ligne["template_title"]=mysql_escape_string2($ligne["template_title"]);
+		$ligne["template_body"]=mysql_escape_string2($ligne["template_body"]);
 		
 		$q->QUERY_SQL("UPDATE squidtpls 
 					SET template_header='{$ligne["template_header"]}',
@@ -322,6 +373,14 @@ function ZOOM_POPUP(){
 }
 
 function ZOOM_SAVE(){
+	
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$tpl=new templates();
+		echo $tpl->javascript_parse_text("{MOD_TEMPLATE_ERROR_LICENSE}");
+		return;
+	}	
+	
 	$q=new mysql_squid_builder();	
 	$tplbdy=$_POST["template_body"];
 	$tplbdy=stripslashes($tplbdy);
@@ -537,6 +596,12 @@ function TEMPLATE_ADD(){
 
 function TEMPLATE_ADD_SAVE(){
 	
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$tpl=new templates();
+		echo $tpl->javascript_parse_text("{MOD_TEMPLATE_ERROR_LICENSE}");
+		return;
+	}
 	
 	if($_POST["template_uri"]<>null){
 		if(!preg_match("#^http#", $_POST["template_uri"])){
@@ -615,15 +680,12 @@ function TEMPLATE_ADD_SAVE(){
 function select_lang(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$q=new mysql_squid_builder();	
-	$sql="SELECT lang FROM squidtpls GROUP BY lang ORDER BY lang";
-	$results=$q->QUERY_SQL($sql);
+	
 	$t=time();
-	$lang[]="{select}";
-	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$txt=$ligne["lang"];
-		$lang[$ligne["lang"]]=$txt;
-	}		
+	$lang=unserialize('a:45:{i:0;s:8:"{select}";s:2:"af";s:2:"af";s:2:"ar";s:2:"ar";s:2:"az";s:2:"az";s:2:"bg";s:2:"bg";s:2:"ca";s:2:"ca";s:2:"cs";s:2:"cs";s:2:"da";s:2:"da";s:2:"de";s:2:"de";s:2:"el";s:2:"el";s:2:"en";s:2:"en";s:2:"es";s:2:"es";s:2:"et";s:2:"et";s:2:"fa";s:2:"fa";s:2:"fi";s:2:"fi";s:2:"fr";s:2:"fr";s:2:"he";s:2:"he";s:2:"hu";s:2:"hu";s:2:"hy";s:2:"hy";s:2:"id";s:2:"id";s:2:"it";s:2:"it";s:2:"ja";s:2:"ja";s:2:"ko";s:2:"ko";s:2:"lt";s:2:"lt";s:2:"lv";s:2:"lv";s:2:"ms";s:2:"ms";s:2:"nl";s:2:"nl";s:2:"oc";s:2:"oc";s:2:"pl";s:2:"pl";s:2:"pt";s:2:"pt";s:5:"pt-br";s:5:"pt-br";s:2:"ro";s:2:"ro";s:2:"ru";s:2:"ru";s:2:"sk";s:2:"sk";s:5:"sr-cy";s:5:"sr-cy";s:5:"sr-la";s:5:"sr-la";s:2:"sv";s:2:"sv";s:5:"templ";s:5:"templ";s:2:"th";s:2:"th";s:2:"tr";s:2:"tr";s:2:"uk";s:2:"uk";s:2:"uz";s:2:"uz";s:2:"vi";s:2:"vi";s:5:"zh-cn";s:5:"zh-cn";s:5:"zh-tw";s:5:"zh-tw";}');
+	
+
+	
 	
 	$field=Field_array_Hash($lang, "lang1-$t",null,"RefreshSquidLangTemplateErrorsTable$t()",null,0,"font-size:16px");
 	$html="
@@ -654,8 +716,10 @@ function select_lang(){
 
 
 function popup(){
+	$error=null;
 	$page=CurrentPageName();	
 	$tpl=new templates();	
+	$users=new usersMenus();
 	$squid_choose_template=$tpl->_ENGINE_parse_body("{squid_choose_template}");
 	$hits=$tpl->_ENGINE_parse_body("{hits}");
 	$template_name=$tpl->_ENGINE_parse_body("{template_name}");
@@ -668,6 +732,8 @@ function popup(){
 	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
 	$date=$tpl->_ENGINE_parse_body("{zDate}");
 	$replace=$tpl->_ENGINE_parse_body("{replace}");
+	$squid_tpl_import_default=$tpl->javascript_parse_text("{squid_tpl_import_default}");
+	$defaults=$tpl->javascript_parse_text("{add_defaults}");
 	$t=time();
 	$backToDefault=$tpl->_ENGINE_parse_body("{backToDefault}");
 	$ERROR_SQUID_REBUILD_TPLS=$tpl->javascript_parse_text("{ERROR_SQUID_REBUILD_TPLS}");
@@ -681,7 +747,13 @@ function popup(){
 	}
 	
 	
+	if(!$users->CORP_LICENSE){
+		$error="<p class=text-error>".$tpl->_ENGINE_parse_body("{MOD_TEMPLATE_ERROR_LICENSE}")."</p>";
+	}
+	
+	
 	$html="
+	$error
 	<div style='margin-left:-10px'>
 	<table class='SquidTemplateErrorsTable' style='display: none' id='SquidTemplateErrorsTable' style='width:99%'></table>
 	</div>
@@ -707,6 +779,7 @@ $('#SquidTemplateErrorsTable').flexigrid({
 		{name: '$lang', bclass: 'Search', onpress : SearchLanguage},
 		{separator: true},
 		{name: '$replace', bclass: 'Copy', onpress : Replace$t},
+		{name: '$defaults', bclass: 'add', onpress : Defaults$t},
 		
 		{name: '$online_help', bclass: 'Help', onpress : help$t},
 
@@ -739,6 +812,12 @@ function help$t(){
 
 function Replace$t(){
 	Loadjs('$page?replace-js=yes');
+}
+
+function Defaults$t(){
+	if(!confirm('$squid_tpl_import_default')){return;}
+	Loadjs('$page?import-default-js=yes&t=$t');
+
 }
 
 	function SearchLanguage(){
@@ -1017,6 +1096,16 @@ function FormTemplate(){
 }
 
 function TEMPLATE_REMOVE(){
+	
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$tpl=new templates();
+		$sock=new sockets();
+		$sock->getFrameWork("cmd.php?squid-templates=yes");
+		echo $tpl->javascript_parse_text("{MOD_TEMPLATE_ERROR_LICENSE}");
+		return;
+	}
+	
 	$sql="DELETE FROM squidtpls WHERE `zmd5`='{$_POST["tpl-remove"]}'";
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
@@ -1027,6 +1116,14 @@ function TEMPLATE_REMOVE(){
 
 
 function TEMPLATE_HEADER_SAVE(){
+	
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$tpl=new templates();
+		echo $tpl->javascript_parse_text("{MOD_TEMPLATE_ERROR_LICENSE}");
+		return;
+	}
+	
 	$template_header=addslashes($_POST["template_header"]);
 	if(strlen($template_header)==0){echo "template_header: no data\n";return;}
 	$zmd5=$_POST["zmd5"];

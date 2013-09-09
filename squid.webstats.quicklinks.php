@@ -806,10 +806,7 @@ function section_status(){
 		//$html=$html . "<li><a href=\"javascript:LoadAjax('squid_main_config','$page?main=$num&hostname={$_GET["hostname"]}')\" $class>$ligne</a></li>\n";
 			
 		}
-	echo "
-	<div id=squid_main_svc style='width:100%;100%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
+	echo build_artica_tabs($html, "squid_main_svc",950)."
 		<script>
 				$(document).ready(function(){
 					$('#squid_main_svc').tabs();

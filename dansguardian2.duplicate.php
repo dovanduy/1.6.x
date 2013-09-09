@@ -34,11 +34,13 @@ function js(){
 		$ligne=mysql_fetch_array($results);
 		$tmpname=$ligne["groupname"]." (copy)";
 		$tmpname=addslashes($tmpname);
+		$tmpname=replace_accents($tmpname);
 	}
 	
 	if(isset($_GET["default-rule"])){
 		$rulefrom="default";
 		$tmpname=$tpl->javascript_parse_text("{default} (copy)");
+		$tmpname=replace_accents($tmpname);
 	}
 	header("content-type: application/x-javascript");
 	$ask=$tpl->javascript_parse_text("{duplicate_the_ruleid_give_name}");
@@ -55,7 +57,8 @@ function js(){
 			if(!rulename){return;}
 			 var XHR = new XHRConnection();
 		     XHR.appendData('duplicate-from', '$rulefrom');
-		     XHR.appendData('duplicate-name', rulename);
+		     var pp=encodeURIComponent(rulename);
+		     XHR.appendData('duplicate-name', pp);
 		     XHR.sendAndLoad('$page', 'POST',x_Duplicaterule$t2); 
 		
 		}
@@ -66,26 +69,53 @@ function js(){
 }
 
 function duplicate_default_rule(){
+	$_POST["duplicate-name"]=url_decode_special_tool($_POST["duplicate-name"]);
 	$idname=addslashes($_POST["duplicate-name"]);
 	$sock=new sockets();
 	$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
 	$ligne["groupmode"]=1;
 	$ligne["enabled"]=1;
+	$ligne["embeddedurlweight"]=0;
+	if(!is_numeric($ligne["zOrder"])){$ligne["zOrder"]=1;}
+	if(!is_numeric($ligne["AllSystems"])){$ligne["AllSystems"]=0;}
+	if(!is_numeric($ligne["UseSecurity"])){$ligne["UseSecurity"]=0;}
+	if(!is_numeric($ligne["blockdownloads"])){$ligne["blockdownloads"]=0;}
+	if(!is_numeric($ligne["naughtynesslimit"])){$ligne["naughtynesslimit"]=0;}
+	if(!is_numeric($ligne["searchtermlimit"])){$ligne["searchtermlimit"]=0;}
+	if(!is_numeric($ligne["bypass"])){$ligne["bypass"]=0;}
+	if(!is_numeric($ligne["deepurlanalysis"])){$ligne["deepurlanalysis"]=0;}
+	if(!is_numeric($ligne["UseExternalWebPage"])){$ligne["UseExternalWebPage"]=0;}
+	if(!is_numeric($ligne["sslcertcheck"])){$ligne["sslcertcheck"]=0;}
+	if(!is_numeric($ligne["sslmitm"])){$ligne["sslmitm"]=0;}
+	if(!is_numeric($ligne["GoogleSafeSearch"])){$ligne["GoogleSafeSearch"]=1;}
+	
+	
+	
+	
 	$ligne["endofrule"]="any";
 	$f["groupmode"]=true;
+	$f["embeddedurlweight"]=true;
+	$f["bypass"]=true;
 	$f["enabled"]=true;
 	$f["BypassSecretKey"]=true;
 	$f["endofrule"]=true;
 	$f["blockdownloads"]=true;
 	$f["naughtynesslimit"]=true;
 	$f["searchtermlimit"]=true;
+	$f["deepurlanalysis"]=true;
+	$f["sslcertcheck"]=true;
+	
 	$f["bypass"]=true;
 	$f["deepurlanalysis"]=true;
 	$f["UseExternalWebPage"]=true;
+	$f["AllSystems"]=true;
 	$f["ExternalWebPage"]=true;
 	$f["freeweb"]=true;
 	$f["sslcertcheck"]=true;
+	$f["UseSecurity"]=true;
+	$f["blockdownloads"]=true;
 	$f["sslmitm"]=true;
+	$f["zOrder"]=true;
 	$f["GoogleSafeSearch"]=true;
 	$f["TimeSpace"]=true;
 	$f["TemplateError"]=true;
@@ -147,6 +177,7 @@ function duplicate_default_rule(){
 
 
 function duplicate_rule(){
+	$_POST["duplicate-name"]=url_decode_special_tool($_POST["duplicate-name"]);
 	$idfrom=$_POST["duplicate-from"];
 	if($idfrom=="default"){duplicate_default_rule();exit;}
 	$idname=addslashes($_POST["duplicate-name"]);
@@ -156,19 +187,33 @@ function duplicate_rule(){
 	$results=$q->QUERY_SQL($sql);
 	$len = mysql_num_fields($results);
 	$ligne=mysql_fetch_array($results);
+	
+	
 	for ($i = 0; $i < $len; $i++) {
 		$name = mysql_field_name($results, $i);
 		if($name=="ID"){continue;}
+		if($name=="embeddedurlweight"){
+			if(!is_numeric($ligne[$name])){$ligne[$name]=0;}
+		}
+		$FIELDZ[$name]=true;
 		$fields[]="`$name`";
 		if($name=="groupname"){$ligne[$name]=$idname;}
 		$values[]="'".addslashes($ligne[$name])."'";
+	}
+	
+	if(!isset($FIELDZ["embeddedurlweight"])){
+		$fields[]="`embeddedurlweight`";
+		$values[]="'0'";
 	}
 	
 	$sql="INSERT INTO webfilter_rules (".@implode(",", $fields).") 
 	VALUES (".@implode(",", $values).")";
 	
 	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error;return;}
+	if(!$q->ok){
+		echo "MySQL Error\n".__FUNCTION__."\nIn line:".__LINE__."\n".$q->mysql_error;
+		return;
+	}
 	$newruleid=$q->last_id;
 	if($newruleid<1){echo "Failed";return;}
 	

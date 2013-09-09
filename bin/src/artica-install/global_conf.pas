@@ -6504,12 +6504,11 @@ begin
         logs.Debuglogs('############ mailgraph ##################');
         mailgraph.MAILGRAPH_START();
         logs.Debuglogs('############ ROUNDCUBE_START_SERVICE ##################');
-        roundcube.ROUNDCUBE_START_SERVICE();
-        roundcube.START();
+        fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.roundcube.php --start');
         obm.SERVICE_START();
         logs.Debuglogs('############ Fetchmail ##################');
         fetchmail.FETCHMAIL_LOGGER_START();
-        fetchmail.FETCHMAIL_START_DAEMON();
+        fpsystem('/etc/init.d/fetchmail start');
 
     end;
 end;
@@ -6544,9 +6543,7 @@ end;
           dansguardian.C_ICAP_START();
           dansguardian.DANSGUARDIAN_START();
 
-          ufdbguardd:=tufdbguardd.Create(SYS);
-          ufdbguardd.START();
-          ufdbguardd.free();
+
 
           if FileExists(dansguardian.BIN_PATH()) then dansguardian.DANSGUARDIAN_TAIL_START();
           squid.PROXY_PAC_START();
@@ -11531,7 +11528,7 @@ begin
 
 
 writeln('Change roundcube properties if exists');
-roundcube.DEBIAN_CONFIG();
+
 writeln('Change Samba-Audit properties if exists');
 samba.SAMBA_AUDIT();
 writeln('Stopping mysql in grant mode pid ' + pid_grant);

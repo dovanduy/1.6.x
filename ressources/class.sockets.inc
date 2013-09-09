@@ -1,9 +1,12 @@
 <?php
 error_reporting(E_ALL & ~E_NOTICE);
 if(!isset($GLOBALS["DEBUG_INCLUDES"])){$GLOBALS["DEBUG_INCLUDES"]=false;}
+
 if(function_exists("debug_mem")){debug_mem();}
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 include_once(dirname(__FILE__)."/class.semaphores.php");
 if(function_exists("debug_mem")){debug_mem();}
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 include_once(dirname(__FILE__)."/logs.inc");
 if(function_exists("debug_mem")){debug_mem();}
 
@@ -20,11 +23,13 @@ class sockets{
 	var $ArticaMetaEnabled=0;
 	
 	function sockets(){
+		if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		if(!isset($GLOBALS["VERBOSE_MASTER"])){$GLOBALS["VERBOSE_MASTER"]=false;}
 		if(!isset($GLOBALS["DEBUG"])){$GLOBALS["DEBUG"]=false;}
 		if(!isset($GLOBALS["DEBUG_SOCK"])){$GLOBALS["DEBUG_SOCK"]=false;}
 		$this->MEMCACHE_ENABLED();
 		
+		if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		$GLOBALS["posix_getuid"]=1000;
 		if(function_exists("posix_getuid")){
 			$GLOBALS["posix_getuid"]=posix_getuid();
@@ -41,13 +46,14 @@ class sockets{
 		include_once(dirname(__FILE__)."/logs.inc");
 		writelogs("Instanciate sockets() {$GLOBALS["posix_getuid"]}={$name["name"]} $called",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		*/
-		
+		if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		$this->remote_ip=$this->APC_GET("ARTICA_DAEMON_IP");
 		$this->remote_port=$this->APC_GET("ARTICA_DAEMON_PORT");
 		$this->ArticaMetaEnabled=$this->APC_GET("ArticaMetaEnabled");
 		
 		if($this->remote_ip==null){
 		if(!file_exists(dirname(__FILE__) . '/settings.inc')){	
+			if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			if(function_exists("writelogs")){writelogs("ERROR: unable to stat " . dirname(__FILE__) . '/settings.inc',__CLASS__ . "=>" . __FUNCTION__,__FILE__);};return false;}
 			include(dirname(__FILE__) . '/settings.inc');
 			if($_GLOBAL["ARTICA_DAEMON_IP"]=='0.0.0.0'){$this->remote_ip='127.0.0.1';}else{$this->remote_ip=$_GLOBAL["ARTICA_DAEMON_IP"];}
@@ -57,6 +63,8 @@ class sockets{
 			$this->APC_SAVE("ARTICA_DAEMON_IP",$this->remote_ip);
 			$this->APC_SAVE("ARTICA_DAEMON_PORT",$this->remote_port);
 			}
+			
+			if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	}
 		
 
@@ -64,10 +72,86 @@ function file_ext($filename){
         return strtolower(str_replace(".", "", strrchr($filename, ".")));
 }	
 
+public function EnableUfdbGuard(){
+	if(isset($GLOBALS["EnableUfdbGuard"])){return $GLOBALS["EnableUfdbGuard"];}
+	$EnableUfdbGuard=$this->GET_INFO('EnableUfdbGuard');
+	$EnableUfdbGuard2=$this->GET_INFO('EnableUfdbGuard2');
+	if(!is_numeric($EnableUfdbGuard2)){$EnableUfdbGuard2=0;}
+	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
+	if($EnableUfdbGuard==0){
+		if($EnableUfdbGuard2==1){
+			$this->SET_INFO("EnableUfdbGuard", 1);
+			$EnableUfdbGuard=1;
+		}
+	}
+	$GLOBALS["EnableUfdbGuard"]=$EnableUfdbGuard;
+	return $EnableUfdbGuard;
+}
+
 function send_email_events_notroot($subject,$text,$context){
 	$array=array("SUBJECT"=>$subject,"TEXT"=>$text,"CONTEXT"=>$context);
 	$final=base64_encode(serialize($array));
 	$this->getFrameWork("services.php?send-email-events=$final");
+}
+
+public function SQUID_LOCAL_STATS_DISABLED(){
+	
+	
+	
+	$DisableLocalStatisticsTasks=$this->GET_INFO("DisableLocalStatisticsTasks");
+	
+	$EnableRemoteSyslogStatsAppliance=$this->GET_INFO("EnableRemoteSyslogStatsAppliance");
+	$squidEnableRemoteStatistics=$this->GET_INFO("squidEnableRemoteStatistics");
+	$EnableRemoteStatisticsAppliance=$this->GET_INFO("EnableRemoteStatisticsAppliance");
+	
+	if(!is_numeric($DisableLocalStatisticsTasks)){$DisableLocalStatisticsTasks=0;}
+	if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
+	
+	if(!is_numeric($squidEnableRemoteStatistics)){$squidEnableRemoteStatistics=0;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	
+
+	
+	if($GLOBALS["VERBOSE"]){"SQUID_LOCAL_STATS_DISABLED():squidEnableRemoteStatistics....: $squidEnableRemoteStatistics\n";}
+	if($GLOBALS["VERBOSE"]){"SQUID_LOCAL_STATS_DISABLED():EnableRemoteStatisticsAppliance: $EnableRemoteStatisticsAppliance\n";}
+	
+	if($GLOBALS["VERBOSE"]){"SQUID_LOCAL_STATS_DISABLED():EnableRemoteSyslogStatsAppliance: $EnableRemoteSyslogStatsAppliance\n";}
+	if($GLOBALS["VERBOSE"]){"SQUID_LOCAL_STATS_DISABLED():DisableLocalStatisticsTasks.....: $DisableLocalStatisticsTasks\n";}
+	
+	if($squidEnableRemoteStatistics==1){return true;}
+	if($EnableRemoteStatisticsAppliance==1){return true;}
+	
+	if($EnableRemoteSyslogStatsAppliance==1){return true;}
+	if($DisableLocalStatisticsTasks==1){return true;}
+	
+}
+
+public function shellEscapeChars($path){
+	$path=str_replace(" ","\ ",$path);
+	$path=str_replace('$','\$',$path);
+	$path=str_replace("&","\&",$path);
+	$path=str_replace("?","\?",$path);
+	$path=str_replace("#","\#",$path);
+	$path=str_replace("[","\[",$path);
+	$path=str_replace("]","\]",$path);
+	$path=str_replace("{","\{",$path);
+	$path=str_replace("}","\}",$path);
+	$path=str_replace("*","\*",$path);
+	$path=str_replace('"','\\"',$path);
+	$path=str_replace("'","\\'",$path);
+	$path=str_replace("(","\(",$path);
+	$path=str_replace(")","\)",$path);
+	$path=str_replace("<","\<",$path);
+	$path=str_replace(">","\>",$path);
+	$path=str_replace("!","\!",$path);
+	$path=str_replace("+","\+",$path);
+	$path=str_replace(";","\;",$path);
+	return $path;
+}
+
+
+public function SQUID_DISABLE_STATS_DIE(){
+	if($this->SQUID_LOCAL_STATS_DISABLED()){die();}
 }
 		
 function download_attach($folder,$filename){
@@ -126,6 +210,14 @@ function downloadFile($url,$hostname)  {
 
    function SaveConfigFile($datas,$keyConfig){
    	if(!function_exists("writelogs")){include(dirname(__FILE__)."/logs.inc");}
+   	
+   	if($GLOBALS["AS_ROOT"]){
+   		@mkdir("/etc/artica-postfix/settings/Daemons",0755,true);
+   		@file_put_contents("/etc/artica-postfix/settings/Daemons/$keyConfig",$datas);
+   		return;
+   	}
+   	
+   	
    	 $tmp=md5($datas.$keyConfig);
    	 if(!$this->WriteConfigToFile($tmp,$datas)){
    	 	if(function_exists("writelogs")){writelogs("Writing $tmp ". strlen($tmp)." bytes FAILED",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
@@ -214,6 +306,7 @@ function downloadFile($url,$hostname)  {
    			if($GLOBALS["DEBUG_SOCK"]){echo __CLASS__."/".__LINE__.":: -> MEMCACHE_ENABLED 1<br>\n";}
    			$GLOBALS["MEMCACHE_ENABLED"]=$Data;
    		}
+   		if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
    }
    
    
@@ -333,6 +426,10 @@ function downloadFile($url,$hostname)  {
    	
    	
    	    if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=1000;if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();}}
+   		
+   		
+   	    
+   	    //Si root alors écrire en direct
    		if($GLOBALS["posix_getuid"]==0){
    			@file_put_contents("/etc/artica-postfix/settings/Daemons/$key",$value);
    			$this->SET_APC_STORE($key,$value);
@@ -347,14 +444,35 @@ function downloadFile($url,$hostname)  {
    			writelogs("SET $key=".strlen($value)." bytes $called",__CLASS__ . "=>" . __FUNCTION__,__FILE__,__LINE__);
    		}
    	   	
+   		
+   		//Valeur null, on supprime le fichier
+   		if(trim($value)==null){
+   			if($GLOBALS["posix_getuid"]==0){
+   				@unlink("/etc/artica-postfix/settings/Daemons/$key");
+   				return true;
+   			}
+   			$this->getFrameWork("setinfos.php?remove-path=$key");
+   			return true;
+   		}
+   		
+   		
+   		
    	   	$file=md5($value);
    	   	@mkdir(dirname(__FILE__)."/logs",0755,true);
    	   	$targetedFile=dirname(__FILE__)."/logs/$key";
-   	    $alors=@file_put_contents($targetedFile,$value);
+   	    if(is_file($targetedFile)){$alors=@unlink($targetedFile);
+	   	    if(!$alors){
+	   	    	writelogs("Remove $targetedFile Permissions denied",__CLASS__ . "=>" . __FUNCTION__,__FILE__);
+	   	    }
+   	    }
+   	   	
+   	   	$alors=@file_put_contents($targetedFile,$value);
+   	    
    	    if(!$alors){
    	    	$this->getFrameWork("services.php?chown-medir=yes");
+   	    	
    	    	$alors=@file_put_contents($targetedFile,$value);
-   	    	writelogs("SET $key $targetedFile Permissions denied",__CLASS__ . "=>" . __FUNCTION__,__FILE__);
+   	    	writelogs("$targetedFile Permissions denied",__CLASS__ . "=>" . __FUNCTION__,__FILE__);
    	    	if(!$alors){return false;}
    	    }
    	    
@@ -394,11 +512,9 @@ function downloadFile($url,$hostname)  {
    	if(isset($GLOBALS["MYSQL_INFO"])){
    		if($GLOBALS["MYSQL_INFO"][$key]<>null){return $GLOBALS["MYSQL_INFO"][$key];}
    	}
+   	$GLOBALS["MYSQL_INFO"][$key]=$this->GET_MYSQL_ROOT($key);
+   	return $GLOBALS["MYSQL_INFO"][$key];
    	
-   	if(posix_getuid()==0){return $this->GET_MYSQL_ROOT($key);}
-   	$answer=$this->getfile("MSQLINFOS:$key");
-   	$GLOBALS["MYSQL_INFO"][$key]=$answer;
-   	return $answer;
    	}
    
    function DeleteCache(){
@@ -526,7 +642,16 @@ private function fopen_curl($uri){
 }
 		
 		
-	
+private function xfile_time_min($path){
+	if(!is_dir($path)){
+		if(!is_file($path)){return 100000;}
+	}
+	$last_modified = filemtime($path);
+	$data1 = $last_modified;
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	return round($difference/60);
+}	
 	  
    
 function GET_MYSQL_ROOT($key){
@@ -553,6 +678,23 @@ function GET_MYSQL_ROOT($key){
 	function getFrameWork($uri){
 		$line=null;
 		$CACHE_KEY=md5($uri);
+		
+		if($uri=="cmd.php?ldap-restart=yes"){
+			$timeF=dirname(__FILE__)."logs/web/ldap-restart.time";
+			if($this->xfile_time_min($timeF)<3){return;}
+			@unlink($timeF);
+			@file_put_contents($timeF, time());
+			if($GLOBALS["AS_ROOT"]){shell_exec("/etc/init.d/slapd restart &");return;}
+		}
+		
+		
+		if($uri=="cmd.php?uri=artica_version"){
+			if(isset($GLOBALS["artica_version"])){return $GLOBALS["artica_version"];}
+			$GLOBALS["artica_version"]=@file_get_contents("/usr/share/artica-postfix/VERSION");
+			return $GLOBALS["artica_version"];
+		}
+		
+		
 		if($uri=="cmd.php?system-unique-id=yes"){
 			
 			$cachedatas=$this->MEMCACHE_GET($CACHE_KEY);
@@ -653,7 +795,17 @@ function GET_MYSQL_ROOT($key){
 		if(preg_match("#500 - Internal Server Error#is", $line)){
 			if($GLOBALS["AS_ROOT"]){
 				writelogs("Restarting framwork !!! 500 - Internal Server Error");
-				shell_exec("/etc/init.d/artica-postfix restart framework",__FUNCTION__,__FILE__,__LINE__);
+				shell_exec("/etc/init.d/php5-fpm restart >/dev/null 2>&1");
+				shell_exec("/etc/init.d/artica-framework restart");
+				die();
+			}
+		}
+		
+		if(preg_match("#503 - Service Not Available#is", $line)){
+			if($GLOBALS["AS_ROOT"]){
+				writelogs("Restarting framwork !!! 500 - Internal Server Error");
+				shell_exec("/etc/init.d/php5-fpm restart >/dev/null 2>&1");
+				shell_exec("/etc/init.d/artica-framework restart");
 				die();
 			}
 		}
@@ -770,15 +922,18 @@ function GET_MYSQL_ROOT($key){
 	}		
 	
 	function LANGUAGE_CACHE_IMPORT($array_keys,$lang){
+		if(!isset($GLOBALS["MEMCACHE_ENABLED"])){$this->MEMCACHE_ENABLED();}
 		
 		
-		if(class_exists("Memcache")){
-			$memcache = new Memcache();
-			$memcache->connect('unix:///var/run/memcached.sock', 0);
-			$memcache->set("ARTICA_LANG_$lang", serialize($lang), 0, 9999); 
-			$memcache->close(); 
-			return;
-		}		
+		if($GLOBALS["MEMCACHE_ENABLED"]==1){
+			if(class_exists("Memcache")){
+				$memcache = new Memcache();
+				$memcache->connect('unix:///var/run/memcached.sock', 0);
+				$memcache->set("ARTICA_LANG_$lang", serialize($lang), 0, 9999); 
+				$memcache->close(); 
+				return;
+			}		
+		}
 		
 		if($GLOBALS["LOGON-PAGE"]){error_log("LANGUAGE_CACHE_IMPORT() ". basename(__FILE__). " line ". __LINE__);}
 		if(!$this->SYSTEMV5_ENABLED()){return null;}
@@ -901,6 +1056,8 @@ function GET_MYSQL_ROOT($key){
 	
 	function SET_APC_STORE($key,$value){
 		if(!isset($GLOBALS["MEMCACHE_ENABLED"])){$this->MEMCACHE_ENABLED();}
+		
+		
 		if($GLOBALS["MEMCACHE_ENABLED"]==1){
 			if(class_exists("Memcache")){
 				$memcache = new Memcache();

@@ -13,6 +13,7 @@ class mysql_postfix_builder{
 	var $mysql_password;
 	var $mysql_port;
 	var $MysqlFailed=false;
+	var $SocketName=null;
 	var $EnableRemoteStatisticsAppliance=0;
 	
 	
@@ -22,12 +23,49 @@ class mysql_postfix_builder{
 		$this->mysql_admin=$this->ClassSQL->mysql_admin;
 		$this->mysql_password=$this->ClassSQL->mysql_password;
 		$this->mysql_port=$this->ClassSQL->mysql_port;
-		$this->mysql_server=$this->ClassSQL->mysql_server;		
-		
+		$this->mysql_server=$this->ClassSQL->mysql_server;	
+		$this->SocketName=$this->ClassSQL->SocketName;		
 		if(!$this->TestingConnection()){$this->MysqlFailed=true;}
+		if($this->mysql_server=="localhost"){$this->mysql_server="127.0.0.1";}
 		
 				
 		
+	}
+	
+	
+	public function DUMP_TABLE($tablename){
+		$directory="/home/backup/postfix/$this->database";
+		$target_file="$directory/$tablename.sql";
+		@mkdir($directory,0755,true);
+		$unix=new unix();
+		$bzip2=$unix->find_program("bzip2");
+		if(is_file($bzip2)){
+			$bzip2_cmd="| $bzip2 ";
+			$target_file=$target_file.".tar.bz2";
+		}
+		
+		
+		$mysqldump=$unix->find_program("mysqldump");
+		if($this->mysql_server=="127.0.0.1"){
+			$socket=" -S $this->SocketName";
+		}else{
+			$socket=" -P $this->mysql_port -h $this->mysql_server";
+		}
+		if($this->mysql_password<>null){
+			$password=" -p$this->mysql_password";
+		}
+		if(!is_file($mysqldump)){return false;}
+		
+		$cmd="$mysqldump --single-transaction --skip-add-locks --skip-lock-tables -u $this->mysql_admin $password $socket $this->database $tablename $bzip2_cmd > $target_file 2>&1";
+		if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
+		exec($cmd,$results);
+		
+		while (list ($num_line, $evenement) = each ($results)){
+			
+			if(preg_match("#Error\s+([0-9]+)#",$evenement)){return;}
+		}
+		
+		return true;
 	}
 	
 	public function TestingConnection(){

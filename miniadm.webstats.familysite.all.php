@@ -21,6 +21,9 @@ if(isset($_GET["graph3"])){graph3();exit;}
 if(isset($_GET["graph4"])){graph4();exit;}
 if(isset($_GET["www-categories"])){www_categories();exit;}
 if(isset($_GET["www-search"])){www_search();exit;}
+if(isset($_GET["www-behavior"])){www_beahvior();exit;}
+if(isset($_GET["www-behavior-search"])){www_beahvior_search();exit;}
+
 
 js();
 
@@ -58,6 +61,9 @@ function tabs(){
 	$array[$familysite]="miniadm.webstats.website.infos.php?familysite=$familysite";
 	$array["{statistics}"]="$page?www-graĥs=yes$suffix";
 	$array["{values}"]="$page?www-table=yes$suffix";
+	if($_SESSION["AsWebStatisticsAdministrator"]){
+		$array["{behavior}"]="$page?www-behavior=yes$suffix";
+	}
 	
 	
 	echo "<H3>".$familysite."</H3>".$boot->build_tab($array);
@@ -95,6 +101,15 @@ function www_table(){
 	$boot=new boostrap_form();
 	$form=$boot->SearchFormGen("zDate","www-search",suffix());
 	echo $form;
+}
+
+function www_beahvior(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$boot=new boostrap_form();
+	$form=$boot->SearchFormGen("zDate","www-behavior-search",suffix());
+	echo $form;	
 }
 
 function graph1(){
@@ -150,6 +165,62 @@ function graph2(){
 	$highcharts->datas=array("{size}"=>$ydata);
 	echo $highcharts->BuildChart();
 }
+
+function www_beahvior_search(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$boot=new boostrap_form();
+	$familysite=$_GET["familysite"];	
+	
+	$FAMS=$boot->SQUID_CATEGORIES_FAM;
+
+	$current_month=date("Ym");
+	$table="{$current_month}_catfam";
+	$q=new mysql_squid_builder();
+	
+	
+	$searchstring=string_to_flexquery("www-behavior-search");
+	$ORDER=$boot->TableOrder(array("zDate"=>"DESC"));
+	if(!$q->TABLE_EXISTS($table)){senderrors("no such table");}
+	if($q->COUNT_ROWS($table)==0){senderrors("no data");}
+	//zDate      | client        | uid               | hostname                | MAC               | familysite                                 | catfam | hits | size
+	$table="( SELECT familysite,zDate,catfam,SUM(size) as size,SUM(hits) as hits FROM `$table` GROUP BY 
+	zDate,familysite HAVING familysite='$familysite') as t";
+	$sql="SELECT * FROM $table WHERE 1 $searchstring ORDER BY $ORDER LIMIT 0,250";
+	$results = $q->QUERY_SQL($sql);
+	
+	if(!$q->ok){senderrors($q->mysql_error."<br>$sql");}
+	
+	
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$md=md5(serialize($ligne));
+		$ligne["size"]=FormatBytes($ligne["size"]/1024);
+		$sitenameenc=urlencode($ligne["familysite"]);
+		$xtime=strtotime("{$ligne["zDate"]} 00:00:00");
+		
+		$js="Loadjs('miniadm.webstats.fam.ByDay.php?familysite=$sitenameenc&xtime=$xtime&fam={$ligne["catfam"]}')";
+		$link=$boot->trswitch($js);
+		
+		$tr[]="
+		<tr id='$md'>
+		<td style='font-size:16px' width=1% nowrap $link>{$ligne["zDate"]}</td>
+		<td style='font-size:16px' width=1% nowrap $link>{$ligne["hits"]}</td>
+		<td style='font-size:16px' width=1% nowrap $link>{$ligne["size"]}</td>
+		<td style='font-size:16px' width=99% $link>". $tpl->_ENGINE_parse_body($FAMS[$ligne["catfam"]]["TITLE"])."</td>
+		</tr>
+		";
+	}
+	
+	echo $boot->TableCompile(array("zDate"=>"{this_month}",
+		
+			"hits"=>"{hits}",
+			"size"=>"{size}",
+			"catfam"=>"{behavior}",
+	),$tr);
+}
+
+
 function www_search(){
 	$page=CurrentPageName();
 	$tpl=new templates();

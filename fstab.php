@@ -85,20 +85,24 @@ function js(){
 
 function popup(){
 $dev=$_GET["dev"];	
-$html="<H1>$dev</h1>
+$sock=new sockets();
+$uuid=base64_decode($sock->getFrameWork("hd.php?uuid-from-dev=".urlencode($dev)));
+$html="<div style='font-size:22px;margin-bottom:30px'>$dev ( $uuid )</div>
 	<table style='width:100%'>
 		<tr>
 		<td valign='top' width=1%><center><img src='img/database-connect-128.png'></center></td>
 		<td valign='top' width=99%>
-			<div id='fstab'><p class=caption>{CONNECT_HD_TEXT}</p>
-				<table style='width:99%' class=form>
+			<div id='fstab'><div class=explain style='font-size:16px'>{CONNECT_HD_TEXT}</div>
+				<div style='width:95%' class=form>
+				<table>
 				<tr>
-					<td valign='middle' class=legend nowrap>{mount_point}:</td>
-					<td nowrap>". Field_text('mount_point',null,'width:220px')."". button_browse('mount_point')."</td>
-					<td>". button("{add}","fstabAdd()")."</td>
+					<td valign='middle' class=legend nowrap style='font-size:16px'>{mount_point}:</td>
+					<td nowrap>". Field_text('mount_point',null,'width:220px;font-size:16px')."". button_browse('mount_point')."</td>
+					<td>". button("{add}","fstabAdd()",18)."</td>
 				</tr>
 				</table>
-				". RoundedLightWhite("<div id='fslist' style='width:99%;height:220px;overflow:auto'>". listfstab($dev). "</div>")."
+				</div>
+				<div id='fslist' style='width:99%;height:220px;overflow:auto'>". listfstab($dev)."</div>
 			</div>
 		</td>
 		</tr>
@@ -114,15 +118,27 @@ function addfstab(){
 	if(trim($mount_point)==null){return ;}
 	if(trim($dev)==null){return ;}
 	$sock=new sockets();
+	$dev_encode=urlencode($dev);
+	$mount_point_encode=urlencode($mount_point);
 	writelogs("Add in fstab $dev -> $mount_point",__FUNCTION__,__FILE__,__LINE__);
-	$sock->getFrameWork("cmd.php?fstab-add=yes&dev=$dev&mount=$mount_point");
+	$sock->getFrameWork("hd.php?fstab-add=yes&dev=$dev_encode&mount=$mount_point_encode");
 	
 }
 
 function listfstab($dev){
 	$fstab=new fstab();
 	$sock=new sockets();
-	$html="<table style='width:100%'>";
+	
+	
+	
+	$uuid=base64_decode($sock->getFrameWork("hd.php?uuid-from-dev=".urlencode($dev)));
+	if($uuid<>null){
+		$uuidKEY="UUID=$uuid";
+	}
+	
+	$html="
+	<div style='width:95%' class=form>
+	<table style='width:100%'>";
 	if(is_array($fstab->fstab_array[$dev])){
 			while (list ($num, $array) = each ($fstab->fstab_array[$dev])){
 				if(!is_array($array)){continue;}
@@ -136,14 +152,36 @@ function listfstab($dev){
 				
 				
 				$html=$html."<tr ". CellRollOver().">
-				<td width=1%><img src='img/fw_bold.gif'></td>
-				<td><code style='font-size:13px'>$mount_point</td>
-				<td width=1%>$mounted</td>
-				<td width=1%>". imgtootltip('ed_delete.gif','{delete}',"fstabDelete('$num')")."</td>
+				<td><code style='font-size:16px'>$mount_point</td>
+				<td width=1%><code style='font-size:16px'>$mounted</code></td>
+				<td width=1%>". imgtootltip('delete-32.png','{delete}',"fstabDelete('$num')")."</td>
 				</tr>
 				";
 			}
 	}
+	
+	
+	
+	if(is_array($fstab->fstab_array[$uuidKEY])){
+		while (list ($num, $array) = each ($fstab->fstab_array[$uuidKEY])){
+			if(!is_array($array)){continue;}
+	
+			$mount_point=$array["mount"];
+			if(trim($sock->getFrameWork("cmd.php?disk-ismounted=yes&dev=$mount_point"))=="TRUE"){
+				$mounted=imgtootltip('check-32.png','{umount}',"fstabumount('$mount_point')");
+			}else{
+				$mounted=imgtootltip('check-32-grey.png','{mount}',"fstabmount('$mount_point')");
+			}
+	
+	
+			$html=$html."<tr ". CellRollOver().">
+			<td><code style='font-size:16px'>$mount_point</td>
+			<td width=10%><code style='font-size:16px'>$mounted</code></td>
+			<td width=10%>". imgtootltip('delete-32.png','{delete}',"fstabDelete('$num')")."</td>
+			</tr>
+				";
+			}
+		}	
 	
 	$sock=new sockets();
 	$mapper=$sock->getFrameWork("cmd.php?lvs-mapper=$dev");
@@ -154,22 +192,22 @@ if(is_array($fstab->fstab_array[$mapper])){
 				
 				$mount_point=$array["mount"];
 				if(trim($sock->getFrameWork("cmd.php?disk-ismounted=yes&dev=$mount_point"))=="TRUE"){
-					$mounted=imgtootltip('status_ok.gif','{umount}',"fstabumount('$mount_point')");
+					$mounted=imgtootltip('check-32.png','{umount}',"fstabumount('$mount_point')");
 				}else{
-					$mounted=imgtootltip('status_critical.gif','{mount}',"fstabmount('$mount_point')");	
+					$mounted=imgtootltip('check-32-grey.png','{mount}',"fstabmount('$mount_point')");	
 				}
 				
 				$html=$html."<tr ". CellRollOver().">
 				<td width=1%><img src='img/fw_bold.gif'></td>
 				<td><code style='font-size:13px'>$mount_point</td>
-				<td width=1%>$mounted</td>
-				<td width=1%>". imgtootltip('ed_delete.gif','{delete}',"fstabDelete('$num')")."</td>
+				<td width=10%>$mounted</td>
+				<td width=10%>". imgtootltip('delete-32.png','{delete}',"fstabDelete('$num')")."</td>
 				</tr>
 				";
 			}
 	}	
 	
-	$html=$html . "</table>";
+	$html=$html . "</table></div>";
 	$tpl=new templates();
 	return $tpl->_ENGINE_parse_body($html,'system.internal.disks.php');	
 	

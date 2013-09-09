@@ -3420,7 +3420,7 @@ Placer une limite sur les ent&ecirc;tes HTTP peut r&eacute;soudre certains probl
 <rule_number>R&egrave;gle num&eacute;ro</rule_number>
 <run>ex&eacute;cuter</run>
 <runat>Heure d'&eacute;x&eacute;cution</runat>
-<running>fonctionne</running>
+<running>D&eacute;marr&eacute;</running>
 <run_every>Fonctionne toujours</run_every>
 <run_maintenance_now>lancer la maintenance maintenant</run_maintenance_now>
 <run_task>Lancer la t&acirc;che</run_task>

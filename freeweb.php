@@ -659,15 +659,7 @@ function popup(){
 	}
 	
 	
-	echo "
-	<div id=main_config_freeweb style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_freeweb\").tabs();});
-			QuickLinkShow('quicklinks-free_web_servers');
-		</script>";		
+	echo build_artica_tabs($html, "main_config_freeweb");
 	
 }
 
@@ -1237,6 +1229,19 @@ function FreeWebLeftMenuSave(){
 
 function delete(){
 	$tpl=new templates();
+	$servername=$_GET["delete-servername"];
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("DELETE FROM reverse_www WHERE servername='$servername'");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$q->QUERY_SQL("DELETE FROM reverse_privs WHERE servername='$servername'");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$q->QUERY_SQL("DELETE FROM nginx_replace_www WHERE servername='$servername'");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$q->QUERY_SQL("DELETE FROM nginx_aliases WHERE servername='$servername'");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?reverse-proxy-apply=yes");	
+	
 	$free=new freeweb($_GET["delete-servername"]);
 	if($free->groupware=="MAILMAN"){
 		$q=new mysql();
@@ -1474,24 +1479,7 @@ function modules_list(){
 	}
 	
 	
-	echo "
-	<div id=main_config_freewbsphpadv style='width:100%;height:650px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_freewbsphpadv').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_config_freewbsphpadv");
 
 	
 }
@@ -1499,7 +1487,7 @@ function modules_list(){
 function modules_apache(){
 	
 	$page=CurrentPageName();
-	
+	$t=time();
 
 	
 
@@ -1514,7 +1502,7 @@ $('#table-$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'none', width : 31, sortable : false, align: 'center'},
-		{display: 'Modules', name : 'Modules', width :777, sortable : true, align: 'left'},
+		{display: 'Modules', name : 'Modules', width :750, sortable : true, align: 'left'},
 		
 	],
 	
@@ -1531,7 +1519,7 @@ $('#table-$t').flexigrid({
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 852,
+	width: 832,
 	height: 453,
 	singleSelect: true
 	

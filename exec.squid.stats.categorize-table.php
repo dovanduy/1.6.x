@@ -32,9 +32,8 @@ $GLOBALS["Q"]=new mysql_squid_builder();
 if($GLOBALS["VERBOSE"]){"echo Parsing arguments...\n";}
 
 $sock=new sockets();
-$DisableLocalStatisticsTasks=$sock->GET_INFO("DisableLocalStatisticsTasks");
-if(!is_numeric($DisableLocalStatisticsTasks)){$DisableLocalStatisticsTasks=0;}
-if($DisableLocalStatisticsTasks==1){die();}
+$sock->SQUID_DISABLE_STATS_DIE();
+
 
 if($argv[1]=="--table"){_xprocess_table($argv[2]);exit;}
 if($argv[1]=="--all"){process_all_tables();exit;}
@@ -98,6 +97,8 @@ function process_all_tables(){
 		
 	}
 	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 ".dirname(__FILE__)."/exec.squid.stats.not-categorized.php");
 	
 }
 
@@ -132,7 +133,7 @@ function _xprocess_table($tablename,$nopid=false){
 	
 	$q=new mysql_squid_builder();
 	
-	$sql="SELECT COUNT(`sitename`) as tcount FROM $hourtable WHERE LENGTH(`category`)=0";
+	$sql="SELECT COUNT(`sitename`) as tcount FROM $tablename WHERE LENGTH(`category`)=0";
 	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	$max=$ligne["tcount"];
@@ -176,6 +177,42 @@ function _xprocess_table($tablename,$nopid=false){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$sitename=$ligne["sitename"];
 		$sitenameToScan=$sitename;
+		$familysite=$ligne["familysite"];
+		
+		if($sitename==null){
+			if($GLOBALS["VERBOSE"]){echo "Null value for $sitename,$familysite aborting\n";}
+			$q->QUERY_SQL("DELETE FROM $tablename WHERE `sitename`='{$ligne["sitename"]}'");
+			continue;
+		}
+		
+		if($sitename=='.'){if($GLOBALS["VERBOSE"]){echo "'.' value for $sitename,$familysite aborting\n";}
+			$q->QUERY_SQL("DELETE FROM $tablename WHERE `sitename`='{$ligne["sitename"]}'");
+			continue;
+		}
+			
+		if(strpos($sitename, ',')>0){
+			$sitename=str_replace(",", "", $sitename);
+			$sitenameToScan=$sitename;
+			$q->QUERY_SQL("UPDATE $tablename SET `sitename`='$sitename' WHERE `sitename`='{$ligne["sitename"]}'");
+		}
+			
+		if(is_numeric($sitename)){
+			if($GLOBALS["VERBOSE"]){echo "Numeric value for $sitename,$familysite aborting\n";}
+			$q->QUERY_SQL("DELETE FROM $tablename WHERE `sitename`='{$ligne["sitename"]}'");
+			continue;
+		}
+			
+			
+		if(strpos($sitename, ".")==0){
+			if($GLOBALS["VERBOSE"]){echo "Seems to be a local domain for $sitename,$familysite aborting\n";}
+			$q->QUERY_SQL("UPDATE $tablename SET `category`='internal' WHERE `sitename`='{$ligne["sitename"]}'");
+			continue;
+		}
+		
+		
+		
+		
+		
 		
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitenameToScan)){
 			$sitename=gethostbyaddr($sitename);
@@ -188,7 +225,7 @@ function _xprocess_table($tablename,$nopid=false){
 		
 		$c++;
 		if(!isset($GLOBALS[$tablename][$sitename])){
-			$GLOBALS[$tablename][$sitename]=mysql_escape_string($GLOBALS["Q"]->GET_CATEGORIES($sitename));
+			$GLOBALS[$tablename][$sitename]=mysql_escape_string2($GLOBALS["Q"]->GET_CATEGORIES($sitename));
 		}
 		$category=$GLOBALS[$tablename][$sitename];
 		if($GLOBALS["VERBOSE"]){echo "$sitename -> `$category`\n";}
@@ -206,7 +243,7 @@ function _xprocess_table($tablename,$nopid=false){
 		
 		$UPDATED[$sitenameToScan]=true;
 		
-		if($c>1000){
+		if($c>500){
 			WriteStatus($d,$max,$tablename);
 			if(system_is_overloaded(__FILE__)){categorize_tables_events("Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} die() task..",null,$tablename);die();}
 			$c=0;
@@ -221,6 +258,9 @@ function _xprocess_table($tablename,$nopid=false){
 		events_tail("$catz/$d/$max websites categorized for $tablename, took: $took");
 		categorize_tables_events("$catz/$d websites categorized<br>took: $took",null,$tablename,1);
 	}
+	
+	
+	
 	
 }
 function events_tail($text){

@@ -18,7 +18,7 @@ class fstab{
 			}
 		}
 		
-		$datas=$sock->getfile('mountlist');
+		$datas=base64_decode($sock->getFrameWork('hd.php?mountlist=yes'));
 		$tbl=explode("\n",$datas);
 		while (list ($num, $val) = each ($tbl) ){
 			$val=trim($val);

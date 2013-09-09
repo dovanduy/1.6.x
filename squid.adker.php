@@ -26,6 +26,8 @@
 	if(isset($_GET["schedule-params"])){schedule_params();exit;}
 	if(isset($_POST["AdSchBuildProxy"])){schedule_save();exit;}
 	
+	if(isset($_POST["EnableCNTLM"])){EnableCNTLM_save();exit;}
+	
 	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["settings"])){settings();exit;}
@@ -52,7 +54,8 @@
 	if(isset($_GET["diconnect-js"])){diconnect_js();exit;}
 	if(isset($_GET["disconnect-popup"])){diconnect_popup();exit;}
 	if(isset($_GET["disconnect-perform"])){diconnect_perform();exit;}
-	if(isset($_GET["DisableSquidBasicAuth-check"])){DisableSquidBasicAuth_save();exit;}
+	if(isset($_GET["cntlm"])){cntlm();exit;}
+	
 js();
 
 function join_js(){
@@ -212,7 +215,7 @@ function test_popup(){
 	$t=time();
 	if(!isset($_GET["via-samba"])){
 		if($EnableKerbAuth==0){
-			echo $tpl->_ENGINE_parse_body("<H2>{EnableWindowsAuthentication}: {disabled}</H2>");
+			echo $tpl->_ENGINE_parse_body("<p class=text-error>{EnableWindowsAuthentication}: {disabled}</p>");
 			return;
 		}
 		$reconnectJS="SambeReconnectAD();";
@@ -494,6 +497,7 @@ function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$array["popup"]='{service_parameters}';
+	$array["cntlm"]='{APP_CNTLM}';
 	$array["test-popup"]='{analyze}';
 	$array["test-auth"]='{test_auth}';
 	
@@ -507,16 +511,7 @@ function tabs(){
 	
 	
 	
-	echo "
-	<div id=main_adker_tabs style='width:100%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_adker_tabs').tabs();
-			});
-		</script>";		
-	
+	echo build_artica_tabs($html, "main_adker_tabs");
 	
 }
 	
@@ -607,9 +602,15 @@ function settings(){
 	$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
 	$KerbAuthDisableNormalizeName=$sock->GET_INFO("KerbAuthDisableNormalizeName");
 	$KerbAuthMapUntrustedDomain=$sock->GET_INFO("KerbAuthMapUntrustedDomain");
-	$DisableSilentNTLM=$sock->GET_INFO("DisableSilentNTLM");
-	$DisableSquidBasicAuth=$sock->GET_INFO("DisableSquidBasicAuth");
+	$SquidNTLMKeepAlive=$sock->GET_INFO("SquidNTLMKeepAlive");
+	
+	$KerbAuthMethod=$sock->GET_INFO("KerbAuthMethod");
 	$NtpdateAD=$sock->GET_INFO("NtpdateAD");
+	
+	$arrayAuth[0]="{all_methods}";
+	$arrayAuth[1]="{only_ntlm}";
+	$arrayAuth[2]="{only_basic_authentication}";
+	
 	
 	$NTPDATE_INSTALLED=0;
 	if($users->NTPDATE){$NTPDATE_INSTALLED=1;}
@@ -618,17 +619,23 @@ function settings(){
 	
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	$DisableSpecialCharacters=$sock->GET_INFO("DisableSpecialCharacters");
+	if(!is_numeric($DisableSpecialCharacters)){$DisableSpecialCharacters=0;}
+	
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}		
 	
+	if(!is_numeric($KerbAuthMethod)){$KerbAuthMethod=0;}
 	if(!is_numeric($KerbAuthTrusted)){$KerbAuthTrusted=1;}
 	if(!is_numeric($KerbAuthDisableNsswitch)){$KerbAuthDisableNsswitch=0;}
 	if(!is_numeric($KerbAuthDisableGroupListing)){$KerbAuthDisableGroupListing=0;}
 	if(!is_numeric($KerbAuthDisableNormalizeName)){$KerbAuthDisableNormalizeName=1;}
 	if(!is_numeric($KerbAuthMapUntrustedDomain)){$KerbAuthMapUntrustedDomain=1;}
-	if(!is_numeric($DisableSilentNTLM)){$DisableSilentNTLM=0;}
-	if(!is_numeric($DisableSquidBasicAuth)){$DisableSquidBasicAuth=0;}
+	if(!is_numeric($SquidNTLMKeepAlive)){$SquidNTLMKeepAlive=1;}
+	
+	
 	if(!is_numeric($NtpdateAD)){$NtpdateAD=0;}
+	
 	
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
@@ -645,7 +652,7 @@ function settings(){
 	$arrayBCK["rid"]="rid";
 	$arrayBCK["tdb"]="tdb";
 	if($LockKerberosAuthentication==1){$EnableKerberosAuthentication=0;}
-	$DisableSquidBasicAuth_error=$tpl->javascript_parse_text("{DisableSquidBasicAuth_error}");
+	$char_alert_error=$tpl->javascript_parse_text("{char_alert_error}");
 	
 	if($EnableKerbAuth==1){
 		$disconnectTR="
@@ -665,10 +672,6 @@ function settings(){
 		return;
 	}
 	
-	if($DisableSilentNTLM==1){
-		$DisableSilentNTLM_text="<div class=explain style='font-size:14px'>{DisableSilentNTLM_explain}</div>";
-		
-	}
 	
 	$html="
 	<table style='width:100%'>
@@ -709,7 +712,7 @@ function settings(){
 		</table>		
 	</td>
 	</table>
-	$DisableSilentNTLM_text
+	
 	<div style='width:95%' class=form>
 	<table>
 	<tr>
@@ -718,17 +721,11 @@ function settings(){
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{DisableSilentNTLM}:</td>
-		<td>". Field_checkbox("DisableSilentNTLM",1,"$DisableSilentNTLM","DisableSquidBasicAuthCheck()")."</td>
+		<td class=legend style='font-size:14px' nowrap>{authentication_method}:</td>
+		<td>". Field_array_Hash($arrayAuth, "KerbAuthMethod",$KerbAuthMethod,null,null,0,"font-size:14px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
-	<tr>
-		<td class=legend style='font-size:14px' nowrap>{DisableSquidBasicAuth}:<div id='DisableSquidBasicAuth-anim'></div></td>
-		<td>". Field_checkbox("DisableSquidBasicAuth",1,"$DisableSquidBasicAuth","DisableSquidBasicAuthCheck()")."</td>
-		<td></td>
-	</tr>
 
-				
 	<tr>
 		<td class=legend style='font-size:14px'>{KerbAuthDisableNsswitch}:</td>
 		<td>". Field_checkbox("KerbAuthDisableNsswitch",1,"$KerbAuthDisableNsswitch")."</td>
@@ -755,10 +752,15 @@ function settings(){
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
+		<td class=legend style='font-size:14px' nowrap>{keep_alive}:</td>
+		<td>". Field_checkbox("SquidNTLMKeepAlive",1,"SquidNTLMKeepAlive")."</td>
+		<td>". help_icon("{SquidNTLMKeepAlive_explain}")."</td>
+	</tr>
+	<tr>
 		<td class=legend style='font-size:14px' nowrap>{synchronize_time_with_ad}:</td>
 		<td>". Field_checkbox("NtpdateAD",1,"$NtpdateAD")."</td>
 		<td>&nbsp;</td>
-	</tr>									
+	</tr>														
 	<tr>
 		<td class=legend style='font-size:14px'>{authenticate_from_kerberos}:</td>
 		<td>". Field_checkbox("EnableKerberosAuthentication",1,"$EnableKerberosAuthentication","EnableKerbAuthCheck()")."</td>
@@ -838,7 +840,9 @@ function settings(){
 			document.getElementById('KerbAuthDisableNormalizeName').disabled=true;
 			document.getElementById('KerbAuthMapUntrustedDomain').disabled=true;
 			document.getElementById('NtpdateAD').disabled=true;
-			document.getElementById('DisableSilentNTLM').disabled=true;
+			document.getElementById('KerbAuthMethod').disabled=true;
+			document.getElementById('SquidNTLMKeepAlive').disabled=true;
+			
 			
 			
 			
@@ -874,7 +878,10 @@ function settings(){
 					document.getElementById('KerbAuthDisableNormalizeName').disabled=false;
 					document.getElementById('KerbAuthMapUntrustedDomain').disabled=false;
 					document.getElementById('KerbAuthTrusted').disabled=false;
-					document.getElementById('DisableSilentNTLM').disabled=false;
+					document.getElementById('KerbAuthMethod').disabled=false;
+					document.getElementById('SquidNTLMKeepAlive').disabled=false;
+					
+					
 					
 					
 					if(NTPDATE_INSTALLED==1){
@@ -951,9 +958,16 @@ function settings(){
 	}		
 	
 		function SaveKERBProxy(){
-			DisableSquidBasicAuthCheck();
+			var DisableSpecialCharacters=$DisableSpecialCharacters;
 			var EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance;
 			if(EnableRemoteStatisticsAppliance==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}
+			
+			if(DisableSpecialCharacters==0){
+				if(!DetectSpecialChars(document.getElementById('WINDOWS_SERVER_PASS').value,'$char_alert_error')){
+					return;
+				}
+			}
+			
 			var pp=encodeURIComponent(document.getElementById('WINDOWS_SERVER_PASS').value);
 			var XHR = new XHRConnection();
 			if(document.getElementById('EnableKerbAuth').checked){XHR.appendData('EnableKerbAuth',1);}else{XHR.appendData('EnableKerbAuth',0);}
@@ -964,8 +978,11 @@ function settings(){
 			if(document.getElementById('KerbAuthTrusted').checked){XHR.appendData('KerbAuthTrusted',1);}else{XHR.appendData('KerbAuthTrusted',0);}
 			if(document.getElementById('KerbAuthMapUntrustedDomain').checked){XHR.appendData('KerbAuthMapUntrustedDomain',1);}else{XHR.appendData('KerbAuthMapUntrustedDomain',0);}
 			if(document.getElementById('NtpdateAD').checked){XHR.appendData('NtpdateAD',1);}else{XHR.appendData('NtpdateAD',0);}
-			if(document.getElementById('DisableSilentNTLM').checked){XHR.appendData('DisableSilentNTLM',1);}else{XHR.appendData('DisableSilentNTLM',0);}
-			if(document.getElementById('DisableSquidBasicAuth').checked){XHR.appendData('DisableSquidBasicAuth',1);}else{XHR.appendData('DisableSquidBasicAuth',0);}
+			if(document.getElementById('SquidNTLMKeepAlive').checked){XHR.appendData('SquidNTLMKeepAlive',1);}else{XHR.appendData('SquidNTLMKeepAlive',0);}
+			
+			
+			
+			XHR.appendData('KerbAuthMethod',document.getElementById('KerbAuthMethod').value);
 			
 			
 			
@@ -983,24 +1000,7 @@ function settings(){
 		
 		}
 		
-		function DisableSquidBasicAuthCheck(){
-			var DisableSilentNTLM=0;
-			var DisableSquidBasicAuth=0;
-			if(document.getElementById('DisableSquidBasicAuth').checked){DisableSquidBasicAuth=1;}
-			if(document.getElementById('DisableSilentNTLM').checked){DisableSilentNTLM=1;}
-			if(DisableSilentNTLM==1){
-				if(DisableSquidBasicAuth==1){
-					alert('$DisableSquidBasicAuth_error');
-					document.getElementById('DisableSilentNTLM').checked=false;
-					document.getElementById('DisableSquidBasicAuth').checked=false;
-					return;
-				}
-				
-			}
-			
-			LoadAjaxTiny('DisableSquidBasicAuth-anim','$page?DisableSquidBasicAuth-check=yes&value='+DisableSquidBasicAuth);
-				
-		}		
+		
 		
 		
 		EnableKerbAuthCheck();
@@ -1013,25 +1013,22 @@ function settings(){
 	
 }	
 
-function DisableSquidBasicAuth_save(){
-	$sock=new sockets();
-	$sock->SET_INFO("DisableSquidBasicAuth", $_GET["value"]);
-	$tpl=new templates();
-	if($_GET["value"]==1){$enabled="{enabled}";}else{$enabled="{disabled}";}
-	echo $tpl->_ENGINE_parse_body("<strong style='font-size:14px;font-weight:bold'>{success}:$enabled</strong>...");
-}
+
 
 function ldap_params(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$active=new ActiveDirectory();
 	$sock=new sockets();
+	$char_alert_error=$tpl->javascript_parse_text("{char_alert_error}");
 	$UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
 	if(!is_numeric($UseDynamicGroupsAcls)){$UseDynamicGroupsAcls=0;}
 	$DynamicGroupsAclsTTL=$sock->GET_INFO("DynamicGroupsAclsTTL");
 	if(!is_numeric($UseDynamicGroupsAcls)){$UseDynamicGroupsAcls=0;}
 	if(!is_numeric($DynamicGroupsAclsTTL)){$DynamicGroupsAclsTTL=3600;}
 	if($DynamicGroupsAclsTTL<5){$DynamicGroupsAclsTTL=5;}	
+	$DisableSpecialCharacters=$sock->GET_INFO("DisableSpecialCharacters");
+	if(!is_numeric($DisableSpecialCharacters)){$DisableSpecialCharacters=0;}
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));	
 	$t=time();
 	if($array["LDAP_DN"]==null){$array["LDAP_DN"]=$active->ldap_dn_user;}
@@ -1098,6 +1095,13 @@ function ldap_params(){
 	
 		function SaveLDAPADker(){
 			var UseDynamicGroupsAcls=0;
+			var DisableSpecialCharacters=$DisableSpecialCharacters;
+			if(DisableSpecialCharacters==0){
+				if(!DetectSpecialChars(document.getElementById('LDAP_PASSWORD-$t').value,'$char_alert_error')){
+					return;
+				}
+			}
+			
 			var pp=encodeURIComponent(document.getElementById('LDAP_PASSWORD-$t').value);
 			var XHR = new XHRConnection();
 			if(document.getElementById('UseDynamicGroupsAcls').checked){UseDynamicGroupsAcls=1;}
@@ -1230,6 +1234,14 @@ function settingsSave(){
 		return;	
 	}
 	
+	if($_POST["ADNETIPADDR"]<>null){
+		$ipaddrZ=explode(".",$_POST["ADNETIPADDR"]);
+		while (list ($num, $a) = each ($ipaddrZ) ){
+			$ipaddrZ[$num]=intval($a);
+		}
+		$_POST["ADNETIPADDR"]=@implode(".", $ipaddrZ);
+	}
+	
 	
 	
 	$sock->SET_INFO("KerbAuthDisableNormalizeName", $_POST["KerbAuthDisableNormalizeName"]);
@@ -1239,8 +1251,9 @@ function settingsSave(){
 	$sock->SET_INFO("KerbAuthTrusted", $_POST["KerbAuthTrusted"]);
 	$sock->SET_INFO("KerbAuthMapUntrustedDomain", $_POST["KerbAuthMapUntrustedDomain"]);
 	$sock->SET_INFO("NtpdateAD", $_POST["NtpdateAD"]);
-	$sock->SET_INFO("DisableSilentNTLM", $_POST["DisableSilentNTLM"]);
-	$sock->SET_INFO("DisableSquidBasicAuth", $_POST["DisableSquidBasicAuth"]);
+	$sock->SET_INFO("KerbAuthMethod", $_POST["KerbAuthMethod"]);
+	$sock->SET_INFO("SquidNTLMKeepAlive", $_POST["SquidNTLMKeepAlive"]);
+
 	
 	
 	
@@ -1307,7 +1320,8 @@ function test_auth(){
 
 	$html="
 	<div id='test-$t'></div>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table >
 	<tr>
 		<td class=legend style='font-size:16px'>{proxy}:</td>
 		<td style='font-size:16px'>$SquidBinIpaddr:$port</td>
@@ -1325,7 +1339,7 @@ function test_auth(){
 		<td colspan=2 align='right'>". button("{submit}","TestAuthPerform()",18)."</td>
 	</tr>
 	</table>
-	
+	</div>
 	<script>
 	var x_TestAuthPerform= function (obj) {
 			var results=obj.responseText;
@@ -1463,7 +1477,8 @@ function schedule_params(){
 	{ad_kerb_schedule_explain}
 	</div>
 	<div id='test-$t'></div>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table>
 	<tr>
 		<td valign='top' class=legend style='font-size:14px'>{build_proxy_parameters}:</td>
 		<td>". Field_checkbox("AdSchBuildProxy", 1,$AdSchBuildProxy)."</td>
@@ -1480,6 +1495,7 @@ function schedule_params(){
 		<td colspan=2 align='right'><hr>". button("{apply}", "AdSchBuildProxy$t()","16px")."</td>
 	</tr>
 	</table>
+	</div>
 	<script>
 	var x_AdSchBuildProxy$t= function (obj) {
 			var results=obj.responseText;
@@ -1513,5 +1529,73 @@ function schedule_save(){
 	while (list ($num, $ligne) = each ($_POST) ){
 		$sock->SET_INFO("$num",$ligne);
 	}
+}
+
+
+function cntlm(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$users=new usersMenus();
+	if(!$users->CNTLM_INSTALLED){
+		echo "<p class=text-error>".$tpl->_ENGINE_parse_body("{CNTLM_NOT_INSTALLED}")."</p>";
+	}
+	$t=time();
+	
+	$EnableCNTLM=$sock->GET_INFO("EnableCNTLM");
+	$CNTLMPort=$sock->GET_INFO("CnTLMPORT");
+	if(!is_numeric($EnableCNTLM)){$EnableCNTLM=0;}
+	if(!is_numeric($CNTLMPort)){$CNTLMPort=3155;}
+	
+	$html="<div class='explain' style='font-size:14px'>
+	{APP_CNTLM_EXPLAIN}
+	</div>
+	<div id='test-$t'></div>
+	<div style='width:95%' class=form>
+	<table>
+	<tr>
+	<td valign='top' class=legend style='font-size:14px'>{activate_CNTLM_service}:</td>
+	<td>". Field_checkbox("EnableCNTLM", 1,$EnableCNTLM)."</td>
+	<td width=1%>&nbsp;</td>
+	</tr>
+	<tr>
+		<td valign='top' class=legend style='font-size:14px'>{listen_port}:</td>
+		<td>". Field_text("CnTLMPORT", $CNTLMPort,"font-size:14px;width:90px")."</td>
+		<td width=1%>". help_icon("{CnTLMPORT_explain}")."</td>
+	</tr>
+	
+	<tr>
+		<td colspan=2 align='right'><hr>". button("{apply}", "CNTLMSave$t()","16px")."</td>
+	</tr>
+	</table>
+	</div>
+	<script>
+	var xCNTLMSave$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		document.getElementById('test-$t').innerHTML='';
+	}
+	function CNTLMSave$t(){
+		var XHR = new XHRConnection();
+		EnableCNTLM=0;
+		if(document.getElementById('EnableCNTLM').checked){EnableCNTLM=1;}
+		XHR.appendData('EnableCNTLM',EnableCNTLM);
+		XHR.appendData('CnTLMPORT',document.getElementById('CnTLMPORT').value);
+		AnimateDiv('test-$t');
+		XHR.sendAndLoad('$page', 'POST',xCNTLMSave$t);
+	
+	}
+	</script>";
+	echo $tpl->_ENGINE_parse_body($html);	
+	
+	
+}
+
+function EnableCNTLM_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableCNTLM", $_POST["EnableCNTLM"]);
+	$sock->SET_INFO("CnTLMPORT", $_POST["CnTLMPORT"]);
+	$sock->getFrameWork("squid.php?cntlm-restart=yes");
+	
 }
 

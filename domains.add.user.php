@@ -133,10 +133,11 @@ if($_GET["gpid"]>0){$step4="<input type='hidden' id='group_id' value='{$_GET["gp
 	<input type='hidden' id='ou-mem-add-form-user' value='{$_GET["ou"]}'>
 	<input type='hidden' id='ou' value='{$_GET["ou"]}'>
 	<div id='adduser_ajax_newfrm' style='margin-top:5px'>
+	<div style='width:95%' class=form>
 	<table style='width:100%' class=TableRemove>
 	<tr>
-	<td valign='top' style='width:50%'>
-		<table style='width:100%'>
+	<td valign='top' style='width:450px;vertical-align:top'>
+		<table style='width:450px'>
 		<tr>
 			<td valign='top' width=290px>$step1</td>
 		</tr>
@@ -167,6 +168,7 @@ if($_GET["gpid"]>0){$step4="<input type='hidden' id='group_id' value='{$_GET["gp
 	</td>
 	</tr>	
 	</table>
+	</div>
 	</div>
 	<input type='hidden' id='flexRTMEM' value='{$_GET["flexRT"]}'>
 	<script>

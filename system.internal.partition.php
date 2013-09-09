@@ -24,7 +24,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{partition}:{$_GET["dev"]}");
-	$html="YahooWin5('650','$page?tabs=yes&dev={$_GET["dev"]}','$title');";
+	$html="YahooWin5('950','$page?tabs=yes&dev={$_GET["dev"]}','$title');";
 	echo $html;
 	
 }
@@ -50,14 +50,8 @@ function tabs(){
 	}
 	
 	
-	echo "
-	<div id=main_config_partition style='width:100%;height:600px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_partition\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_partition");
+	
 }
 
 function infos(){

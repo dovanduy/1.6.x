@@ -129,7 +129,7 @@ function uid_search(){
 	
 	$search=string_to_flexquery("uid-search");
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
-	$category=mysql_escape_string($_GET["category"]);
+	$category=mysql_escape_string2($_GET["category"]);
 	$sql="SELECT SUM(size) as size, sum(hits) as hits,uid,category FROM $table
 	GROUP BY uid,category HAVING `category`='$category' $search $ORDER LIMIT 0,500";
 	
@@ -197,7 +197,7 @@ function table_sites_search(){
 	
 	$search=string_to_flexquery("category-search");
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
-	$category=mysql_escape_string($_GET["category"]);
+	$category=mysql_escape_string2($_GET["category"]);
 	$sql="SELECT SUM( size ) AS size,SUM(hits) as hits, zDate, category FROM generic_categories GROUP BY category,zDate
 	HAVING category='{$_GET["category"]}' ORDER BY zDate";
 	$results=$q->QUERY_SQL($sql);;
@@ -253,7 +253,7 @@ function graph1(){
 	$ff=time();
 	
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$category=mysql_escape_string($_GET["category"]);	
+	$category=mysql_escape_string2($_GET["category"]);	
 	
 	
 	if($_GET["category"]=="unknown"){$_GET["category"]=null;}
@@ -296,7 +296,7 @@ function graph1_1(){
 	$ff=time();
 	
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$category=mysql_escape_string($_GET["category"]);
+	$category=mysql_escape_string2($_GET["category"]);
 	
 	
 	if($_GET["category"]=="unknown"){$_GET["category"]=null;}

@@ -9,12 +9,13 @@ class mysql_storelogs{
 	private $ClassSQL;
 	private $LogRotatePath=null;
 	private $MySQLSyslogType=1;
+	private $mysql_errornum=0;
 	public $mysql_admin;
 	public $mysql_password;
 	public $mysql_server;
 	public $MYSQL_CMDLINES;
 	public $database="syslogs";
-	private $mysql_connection;
+	private $mysql_connection=false;
 	public $SocketName="";
 	public $ok=false;
 	public $mysql_error;
@@ -28,10 +29,15 @@ class mysql_storelogs{
 	public $EnableSyslogDB=0;
 	
 	function mysql_storelogs(){
+		$this->OutputDebugVerbose("Loading...");
 		$this->PrepareMySQLClass();
 		
+		if($this->EnableSyslogDB==0){return;}
+		$this->OutputDebugVerbose("DATABASE_EXISTS($this->database) ?");
 		if(!$this->DATABASE_EXISTS($this->database)){
+			$this->OutputDebugVerbose("CREATE_DATABASE($this->database) ?");
 			$this->CREATE_DATABASE($this->database);
+			$this->OutputDebugVerbose("CheckTables() ?");
 			$this->CheckTables();
 		}		
 		
@@ -39,6 +45,8 @@ class mysql_storelogs{
 	
 	private function PrepareMySQLClass(){
 		$sock=new sockets();
+		unset($GLOBALS["MYSQL_PARAMETERS"]);
+		unset($_SESSION["MYSQL_PARAMETERS"]);
 		$this->MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
 		$this->EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
 		if(!is_numeric($this->EnableSyslogDB)){$this->EnableSyslogDB=0;}
@@ -48,9 +56,13 @@ class mysql_storelogs{
 		if($this->LogRotatePath==null){$this->LogRotatePath="/home/logrotate";}
 		$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
 		$this->MYSQLTypeText=$this->MySQLLogsTypeTextAR[$this->MySQLSyslogType];
+		
+		$this->OutputDebugVerbose("MySQLSyslogType=$this->MySQLSyslogType");
+	
 		if($this->MySQLSyslogType==1){
 			$ListenPort=$TuningParameters["ListenPort"];
 			$def["SocketPath"]="/var/run/syslogdb.sock";
+			if(!is_file("/var/run/syslogdb.sock")){return;}
 			$this->SocketName=$def["SocketPath"];
 			$def["mysql_admin"]="root";
 			$def["mysql_password"]=null;
@@ -89,44 +101,203 @@ class mysql_storelogs{
 			$this->MYSQL_CMDLINES="--protocol=tcp --user=$username$pwd --host=$mysqlserver --port=$RemotePort";
 			$this->dbidsn="['DBI:mysql:database=$this->database;host=$mysqlserver;port=$RemotePort', '$username', '$password']";
 		}
-		return;
+		return $this->ClassSQL;
 	}
 	
 	private function DATABASE_EXISTS($database){
 		if($database<>$this->database){$database=$this->database;}
+		if(!method_exists($this->ClassSQL, "DATABASE_EXISTS")) { 
+			return $this->THIS_DATABASE_EXISTS($this->database);
+		}
 		return $this->ClassSQL->DATABASE_EXISTS($database);
 	}
 	private FUNCTION CREATE_DATABASE($database){
 		if($database<>$this->database){$database=$this->database;}
+		if(!method_exists($this->ClassSQL, "CREATE_DATABASE")) { 
+			$this->OutputDebugVerbose("this->CREATE_DATABASE($this->database)");
+			return $this->THIS_CREATE_DATABASE($this->database);
+		}
 		return $this->ClassSQL->CREATE_DATABASE($database);
 	}
 	
-	public function BD_CONNECT(){
-		$this->PrepareMySQLClass();
-		$this->ok=true;
-		$results=$this->ClassSQL->BD_CONNECT();
-		if($results){
-			$this->mysql_connection=$this->ClassSQL->mysql_connection;
-			return true;
+	
+	private function THIS_CREATE_DATABASE($database){
+		$this->OutputDebugVerbose("$database");
+		$this->mysql_password=trim($this->mysql_password);
+		
+		
+			if(!$this->BD_CONNECT()){
+				writelogs("CREATE_DATABASE Connection failed",__FUNCTION__."/".__CLASS__,__FILE__,__LINE__);
+				return false;
+			}
+		
+		
+			if($GLOBALS["VERBOSE"]){echo " -> ->DATABASE_EXISTS($database)<br>\n";}
+				if($this->DATABASE_EXISTS($database)){
+					writelogs("CREATE_DATABASE $database Already exists aborting",__FUNCTION__."/".__CLASS__,__FILE__,__LINE__);
+					$this->ok=true;
+					return true;
+			}
+			
+			
+			$results=@mysql_query("CREATE DATABASE `$database`",$this->mysql_connection);
+			if(@mysql_error($this->mysql_connection)){
+				$time=date('h:i:s');
+				$errnum=@mysql_errno($this->mysql_connection);
+				$des=@mysql_error($this->mysql_connectiond);
+				if(preg_match("#database exists#", $des)){$this->ok=true;return true;}
+				$this->mysql_error="CREATE DATABASE $database -> Error Number ($errnum) ($des)";
+				writelogs("($errnum) $des $this->mysql_admin@$this->mysql_server",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				return false;
+			}
+		
+			$this->ok=true;
+			return true;		
+		
+	}
+	
+	
+	private function THIS_DATABASE_EXISTS($database,$nocache=false){
+		$key=__CLASS__.__FUNCTION__;
+		if(!$nocache){
+			if(isset($_SESSION[$key][$database])){
+				if($_SESSION[$key][$database]==true){return true;}
+			}
 		}
-		$this->ok=false;
-		$this->mysql_error=$this->ClassSQL->mysql_error;
-		writelogs("Fatal connection failed [".$this->ClassSQL->mysql_error."]",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+		$sql="SHOW DATABASES";
+		$this->BD_CONNECT();
+		$results=@mysql_query($sql,$this->mysql_connection);
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(strtolower($database)==strtolower($ligne["Database"])){
+				$_SESSION[$key][$database]=true;
+				return true;
+			}
+		}
+	
+		return false;
 	
 	}
+
+	public function THIS_BD_CONNECT($noretry=false,$called=null){
+		if($GLOBALS["VERBOSE"]){echo "THIS_BD_CONNECT()<br>\n";}
+		
+		
+		if($called==null){
+			if(function_exists("debug_backtrace")){
+				$trace=@debug_backtrace();
+				if(isset($trace[1])){
+					$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+				}
+			}
+		}
+		
+		if($GLOBALS["VERBOSE"]){echo "THIS_TestingConnection()<br>\n";}
+		if($this->THIS_TestingConnection(false,$called)){
+			if($GLOBALS["VERBOSE"]){echo "THIS_TestingConnection() -> TRUE<br>\n";}
+			return true;
+		}
+		return false;
+	}
+	
+	private function is_socket($fpath){
+		$results=@stat($fpath);
+		$ts=array(0140000=>'ssocket',0120000=>'llink',0100000=>'-file',0060000=>'bblock',0040000=>'ddir',0020000=>'cchar',0010000=>'pfifo');
+		$t=decoct($results['mode'] & 0170000); // File Encoding Bit
+		if(substr($ts[octdec($t)],1)=="socket"){return true;}
+		return false;
+	}	
+	
+	private function THIS_TestingConnection($noretry=false,$called=null){
+		if($this->mysql_connection){return true;}
+		if($called==null){if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}}
+		if($this->MySQLSyslogType==1){
+			if($GLOBALS["VERBOSE"]){echo "mysql_connect<br>\n";}
+			
+			if(!$this->is_socket("/var/run/syslogdb.sock")){
+				$this->mysql_error="/var/run/syslogdb.sock no such socket";
+				OutputDebugVerbose("/var/run/syslogdb.sock !!! false");
+				return false;
+			}
+			
+			$bd=@mysql_connect(":/var/run/syslogdb.sock","root",null);
+			
+			if($bd){$this->mysql_connection=$bd;return true;}
+			if($GLOBALS["VERBOSE"]){echo "mysql_connect /var/run/syslogdb.sock -> error<br>\n";}
+			$des=@mysql_error(); $errnum=@mysql_errno();
+			$this->writelogs("mysql_connect(\":/var/run/syslogdb.sock\",$this->mysql_admin,$this->mysql_password..failed (N:$errnum) \"$des\" $called ",__FUNCTION__,__LINE__);
+			return false;
+		}
+		
+		if($this->MySQLSyslogType==2){
+			
+			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
+			if($bd){$this->mysql_connection=$bd;return true;}
+			$des=@mysql_error(); $errnum=@mysql_errno();
+			$this->writelogs("mysql_connect(\":/var/run/syslogdb.sock\",$this->mysql_admin,$this->mysql_password..failed (N:$errnum) \"$des\" $called ",__FUNCTION__,__LINE__);
+			return false;
+		}
+			
+	}
+	
+	public function BD_CONNECT(){
+		$q=$this->PrepareMySQLClass();
+		$this->ok=true;
+		if($this->EnableSyslogDB==0){return true;}
+		if(!method_exists($this->ClassSQL, "BD_CONNECT")) {
+			$results=$this->THIS_BD_CONNECT();
+			if($results){return true;}
+		}else{
+			$results=$this->ClassSQL->BD_CONNECT();
+			if($results){$this->mysql_connection=$this->ClassSQL->mysql_connection;return true;}
+			$this->mysql_error=$this->ClassSQL->mysql_error;
+		}
+		
+		$this->ok=false;
+		$this->writelogs("Fatal connection failed [".$this->ClassSQL->mysql_error."]",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+	
+	}
+	
+	private function OutputDebugVerbose($text){
+	if(!$GLOBALS["VERBOSE"]){return;}
+	if(function_exists("debug_backtrace")){
+		$trace=@debug_backtrace();
+		if(isset($trace[1])){
+			$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+		}
+	}
+	$filename=basename($trace[1]["file"]);
+	$function=$trace[1]["function"];
+	$line=$trace[1]["line"];
+	echo "$filename:: $function $text in line $line<br>\n";
+}
+	
+	private function THIS_COUNT_ROWS($table,$database){
+		$table=str_replace("`", "", $table);
+		$table=str_replace("'", "", $table);
+		$table=str_replace("\"", "", $table);
+		if(!function_exists("mysql_connect")){return 0;}
+		$sql="show TABLE STATUS WHERE Name='$table'";
+		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql,$database));
+		if($ligne["Rows"]==null){$ligne["Rows"]=0;}
+		return $ligne["Rows"];
+		}
 
 	public function COUNT_ROWS($table,$database=null){
 		$this->ok=true;
 		if(!isset($this->NOCHDB[$database])){$this->NOCHDB[$database]=false;}
 	
 		if(!$this->NOCHDB[$database]){if($database<>$this->database){$database=$this->database;}}
+		if(!method_exists($this->ClassSQL, "COUNT_ROWS")) {
+			return $this->THIS_COUNT_ROWS($table,$database);
+		}
+		
+		
 		$count=$this->ClassSQL->COUNT_ROWS($table,$database);
 		if(!$this->ClassSQL->ok){
 			$this->ok=false;
 			$this->mysql_error=$this->ClassSQL->mysql_error;
 			if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
-				
-			writelogs($called,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->writelogs($called,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		}
 		return $count;
 	}
@@ -134,10 +305,17 @@ class mysql_storelogs{
 	
 	public function QUERY_SQL($sql,$database=null){
 		if(!$this->BD_CONNECT()){return false;}
+		if($this->EnableSyslogDB==0){return true;}
 		$this->ok=true;
 		if(!isset($this->NOCHDB[$database])){$this->NOCHDB[$database]=false;}
 		if(!$this->NOCHDB[$database]){if($database<>$this->database){$database=$this->database;}}
 		if($database==null){$database=$this->database;}
+		
+		if(!method_exists($this->ClassSQL, "QUERY_SQL")) {
+			return $this->THIS_QUERY_SQL($sql,$database);
+		}
+		
+		
 		$results=$this->ClassSQL->QUERY_SQL($sql,$database);
 		$this->ok=$this->ClassSQL->ok;
 		$this->mysql_error=$this->ClassSQL->mysql_error;
@@ -168,9 +346,20 @@ class mysql_storelogs{
 	}	
 	
 	public function SHOW_STATUS(){
-		if(!$this->BD_CONNECT()){return false;}
-		return $this->ClassSQL->SHOW_STATUS();
-	}	
+		$sql="SHOW STATUS;";
+		$this->BD_CONNECT();
+		$results=@mysql_query($sql,$this->mysql_connection);
+		$errnum=@mysql_error($this->mysql_connection);
+		$des=@mysql_error($this->mysql_connection);
+		$this->mysql_error=$des;
+		
+		
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$Variable_name=$ligne["Variable_name"];
+			$array[$Variable_name]=$ligne["Value"];
+		}
+		return $array;
+	}		
 	
 	public function COUNT_ALL_TABLES(){
 		if(!$this->BD_CONNECT()){return false;}
@@ -271,18 +460,19 @@ class mysql_storelogs{
 		@unlink("$filename.bz2");
 	}	
 	
-	public function ROTATE_TOMYSQL($filename,$sourceDate){
+	public function ROTATE_TOMYSQL($filename,$sourceDate=null){
 		$sock=new sockets();
 		$unix=new unix();
 		$taskid=0;
 		$COMPRESSEDS["gz"]=true;
 		$COMPRESSEDS["bz2"]=true;
+		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($filename));}
 		
 		
 		$extension = pathinfo($filename, PATHINFO_EXTENSION);
 		if($extension=="gz"){
 			system_admin_events("$filename => Converting to bz2",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-			$filename=ConvertGZToBzip($filename);
+			$filename=$this->ConvertGZToBzip($filename);
 			if($filename==null){return;}
 			$extension="bz2";
 		}
@@ -363,13 +553,16 @@ class mysql_storelogs{
 	}	
 	
 	
-	public function InjectFile($filepath,$sourceDate){
+	public function InjectFile($filepath,$sourceDate=null){
+		$FILE_SOURCE_TO_DELETE=$filepath;
 		$unix=new unix();
 		$hostname=$unix->hostname_g();
 		$basename=basename($filepath);
+		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($filepath));}
 		$LogRotatePathWork="$this->LogRotatePath/work";
 		@mkdir("$this->LogRotatePath/work",0755);
-		if(function_exists("rotate_events")){rotate_events("Info: want to backup $filepath ($sourceDate)",__FUNCTION__,__FILE__,__LINE__,"logrotate");}
+		$this->events("Info: want to backup $filepath ($sourceDate)",__FUNCTION__,__LINE__);
+
 		if(!is_dir($LogRotatePathWork)){@mkdir($LogRotatePathWork,0777);}
 		@chmod($LogRotatePathWork, 0777);
 		$basenameFF=null;
@@ -397,17 +590,15 @@ class mysql_storelogs{
 		$filesize=$unix->file_size($filepath);		
 		$fcontent=null;
 		
-		$this->events("Injecting $basenameFF Task:$taskid ($filesize bytes) $sourceDate");
+		$this->events("Injecting $basenameFF Task:$taskid ($filesize bytes) $sourceDate (MySQLSyslogType:$this->MySQLSyslogType)");
 		
 		if($this->MySQLSyslogType==1){
 			$sql = "INSERT INTO `files_store` (`filecontent`) VALUES( LOAD_FILE('$DestinationFile') )";
 			
 		}
 		if($this->MySQLSyslogType==2){
-			$fcontent=mysql_escape_string(file_get_contents($DestinationFile));
+			$fcontent=mysql_escape_string2(file_get_contents($DestinationFile));
 			$sql = "INSERT INTO `files_store` (`filecontent`) VALUES( '$fcontent' )";
-			
-			
 		}
 		
 		$this->QUERY_SQL($sql);
@@ -415,7 +606,6 @@ class mysql_storelogs{
 		
 		if(!$this->ok){
 			@unlink("$DestinationFile");
-			if(function_exists("rotate_events")){rotate_events("Failed $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"logrotate");}
 			$this->events("$q->mysql_error, $sql");
 			@unlink($DestinationFile);
 			return false;
@@ -435,12 +625,14 @@ class mysql_storelogs{
 		
 		$this->QUERY_SQL($sql);
 		if(!$this->ok){
-			if(function_exists("rotate_events")){rotate_events("Failed $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"logrotate");}
+			
 			$this->events("$q->mysql_error, $sql");
 			$this->QUERY_SQL("DELETE FROM files_store WHERE ID=$ID");
 			return false;
 		}
-		if(function_exists("rotate_events")){rotate_events("Success backuping $basenameFF $filesize bytes",__FUNCTION__,__FILE__,__LINE__,"logrotate");}
+		$this->events("Success backuping $basenameFF $filesize bytes",__FUNCTION__,__LINE__,"logrotate");
+		$this->events("removing \"$FILE_SOURCE_TO_DELETE\"");
+		@unlink($FILE_SOURCE_TO_DELETE);
 		return true;
 		
 	}
@@ -457,6 +649,9 @@ class mysql_storelogs{
 			}
 		}		
 		
+		if(function_exists("rotate_events")){rotate_events($text,$function,$file,$line);}
+		if(function_exists("events")){events($text,$function,$file,$line);}
+		
 		$date=@date("H:i:s");
 		$logFile="/var/log/artica-postfix/logrotate.debug";
 		$textF="$date [$pid] $file $text <div><i>function:$function, line:$line</i></div>\n";
@@ -467,5 +662,98 @@ class mysql_storelogs{
 		@fwrite($f, $textF);
 		@fclose($f);	
 		}
-	
+	function writelogs($text=null,$function=null,$line=0){
+			$class=__CLASS__;
+			$file_source="/usr/share/artica-postfix/ressources/logs/web/mysql.debug";
+			@mkdir('/usr/share/artica-postfix/ressources/logs/web');
+			if(!is_numeric($line)){$line=0;}
+			if(function_exists("writelogs")){writelogs("$text (L.$line)","$class/$function",__FILE__,$line);}
+			if(!$GLOBALS["VERBOSE"]){return;}
+			$logFile=$file_source;
+			if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
+			if (is_file($logFile)) {
+				$size=filesize($logFile);
+				if($size>1000000){unlink($logFile);}
+			}
+		
+			$f = @fopen($logFile, 'a');
+			$date=date("Y-m-d H:i:s");
+			@fwrite($f, "$date:[$function()][{$_SERVER['REMOTE_ADDR']}]:: $text (L.$line)\n");
+			@fclose($f);
+				
+		}
+
+		
+	private function THIS_QUERY_SQL($sql,$database=null,$called=null){
+		$database=trim($database);
+		if($called==null){if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}}
+
+		if(!$this->BD_CONNECT(false,$called)){
+				if($GLOBALS["VERBOSE"]){echo "Unable to BD_CONNECT class mysql/QUERY_SQL\n";}
+				if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL error DB:\"$database\" Error, unable to connect to MySQL server, request failed\n$called" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
+				$this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" Error, unable to connect to MySQL server, request failed",__CLASS__.'/'.__FUNCTION__,__LINE__);
+				$this->ok=false;
+				$this->mysql_error=$this->mysql_error ." Error, unable to connect to MySQL server";
+				return false;
+			}
+		
+		if(preg_match("#DROP TABLE\s+(.+)$#i", $sql,$re)){
+			$TableDropped=$re[1];
+			if(function_exists("system_admin_events")){
+				$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+				system_admin_events("MySQL table $database/$TableDropped was deleted $called" , __FUNCTION__, __FILE__, __LINE__, "mysql-delete");
+			}
+		}
+		
+		
+		if($database<>null){
+			$ok=@mysql_select_db($database,$this->mysql_connection);
+				if (!$ok){
+					$errnum=@mysql_errno($this->mysql_connection);
+					$des=@mysql_error($this->mysql_connection);
+					if($GLOBALS["VERBOSE"]){echo "mysql_select_db [FAILED] N.$errnum DESC:$des mysql/QUERY_SQL\n";}
+					$this->mysql_errornum=$errnum;
+					$this->mysql_error=$des;
+					$time=date('h:i:s');
+				    $this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" Error Number ($errnum) ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin ($called)",__CLASS__.'/'.__FUNCTION__,__LINE__);
+				    $this->mysql_error="QUERY_SQL:".__LINE__.": mysql_select_db:: Error $errnum ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin line:".__LINE__;
+				    $this->ok=false;@mysql_close($this->mysql_connection);
+				    return null;
+				}
+			}
+			
+			
+			$results=mysql_query($sql,$this->mysql_connection);
+			if(!$results){
+				$errnum=@mysql_errno($this->mysql_connection);
+				$des=@mysql_error($this->mysql_connection);
+				
+				if(preg_match('#Duplicate entry#',$des)){
+					$this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" Error $errnum $des line:".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					$this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" ". substr($sql,0,255)."...line:".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					$this->writelogs($sql,__CLASS__.'/'.__FUNCTION__,__FILE__);
+				
+					$this->ok=true;
+					@mysql_close($this->mysql_connection);
+					return true;
+				}				
+				
+				
+				if($GLOBALS["VERBOSE"]){echo "mysql_query [FAILED] N.$errnum DESC:$des mysql/QUERY_SQL\n";}
+				@mysql_free_result($this->mysql_connection);
+				
+			}
+		
+		$this->ok=true;
+		$this->last_id=@mysql_insert_id($this->mysql_connection);	
+		$result_return=$results;
+		@mysql_free_result($this->mysql_connection);
+		@mysql_close($this->mysql_connection);
+		$this->mysql_connection=false;
+		return $result_return;
+		
+
+		}
+		
+		
 }

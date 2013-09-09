@@ -51,6 +51,7 @@ if($argv[1]=='--squid'){squidLogs();clean_squid_users_size();die();}
 if($argv[1]=='--artica-logs'){artica_logs();die();}
 if($argv[1]=='--squidLogs'){squidLogs();die();}
 if($argv[1]=='--nginx'){nginx();die();}
+if($argv[1]=='--attachs'){Clean_attachments();die();}
 
 
 
@@ -115,6 +116,7 @@ function CleanCacheStores($aspid=false){
 		if(preg_match("#^squid.*#", $dirname)){
 			if($GLOBALS["VERBOSE"]){echo "Removing dir `$dirname`\n";}
 			system_admin_events("Old squid cache directory $dirname will be deleted", __FUNCTION__, __FILE__, __LINE__, "clean");
+			squid_admin_mysql(2,"Deleting Old squid cache directory $dirname","Old squid cache directory $dirname will be deleted\nRemoving: `$directory`");
 			squid_admin_notifs("Old squid cache directory $dirname will be deleted\nRemoving: `$directory`", __FUNCTION__, __FILE__, __LINE__, "clean");
 			shell_exec("$rm -rf $directory >/dev/null 2>&1");
 		}
@@ -123,30 +125,82 @@ function CleanCacheStores($aspid=false){
 	
 }
 
-function squidLogs(){
+function squidLogs($aspid=false){
 	$unix=new unix();
+	
+	
+	$TimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$Pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	if($GLOBALS["VERBOSE"]){echo "TimeFile: $TimeFile\n";}
+	if($GLOBALS["VERBOSE"]){echo "Pidfile: $Pidfile\n";}
+	
+	if(!$GLOBALS["FORCE"]){
+		$timefile=$unix->file_time_min($TimeFile);
+		if($timefile<60){return;}
+	}
+	if($aspid){
+		$pid=$unix->get_pid_from_file($Pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){return;}
+		@file_put_contents($Pidfile, getmypid());
+	}
+	@unlink($TimeFile);
+	@file_put_contents($TimeFile, getmypid());
+	
+	
+	$php5=$unix->LOCATE_PHP5_BIN();
 	$syslog=new mysql_storelogs();
 	if(!is_dir("/var/log/squid")){return;}
-	foreach (glob("/var/log/squid/*.log") as $filename) {
-
+	
+	$BaseWorkDir="/var/log/squid";
+	
+	if (!$handle = opendir($BaseWorkDir)) {return;}
+	
+	
+	
+	while (false !== ($fileZ = readdir($handle))) {
+		if($fileZ=="."){continue;}
+		if($fileZ==".."){continue;}
+		$filename="$BaseWorkDir/$fileZ";
+		if(is_dir($filename)){continue;}
+		if($fileZ=="cache.log"){continue;}
+		if($fileZ=="external-acl.log"){continue;}
+		if($fileZ=="ufdbguardd.log"){continue;}
+		if($fileZ=="access.log"){continue;}
+		if($fileZ=="netdb.state"){continue;}
+		$time=$unix->file_time_min($filename);
 		$filedate=date('Y-m-d H:i:s',filemtime($filename));
+		
+		$extension = pathinfo($filename, PATHINFO_EXTENSION);
+		if(is_numeric($extension)){
+			$syslog->ROTATE_TOMYSQL($filename, $filedate);
+			continue;
+		}
+		if($extension=="gz"){
+			$syslog->ROTATE_TOMYSQL($filename, $filedate);
+			continue;
+		}
+		
+		if($extension=="state"){continue;}
+		
+		if($extension=="bz2"){
+			$syslog->ROTATE_TOMYSQL($filename, $filedate);
+			continue;
+		}		
+		
 			
 		$time=$unix->file_time_min($filename);
 		echo "$filename {$time}Mn\n";
 		if($time>1440){
+			if(preg_match("#sarg\.#", basename($filename))){
+				shell_exec("$php5 ".dirname(__FILE__)."/exec.sarg.php --rotate ".basename($filename)." >/dev/null 2>&1 &");
+				continue;
+			}
 			$syslog->ROTATE_TOMYSQL($filename, $filedate);
 		}
 	}
-	foreach (glob("/var/log/squid/cache*") as $filename) {
 	
-		$filedate=date('Y-m-d H:i:s',filemtime($filename));
-			
-		$time=$unix->file_time_min($filename);
-		echo "$filename {$time}Mn\n";
-		if($time>1440){
-		$syslog->ROTATE_TOMYSQL($filename, $filedate);
-		}
-	}	
+	
+	
 	
 	
 }
@@ -157,6 +211,7 @@ function CleanSquidStoreLogs(){
 	$sock=new sockets();
 	$SquidMaxStoreLogSize=$sock->GET_INFO("SquidMaxStoreLogSize");
 	if(!is_numeric($SquidMaxStoreLogSize)){$SquidMaxStoreLogSize=500;}
+	if($SquidMaxStoreLogSize<10){$SquidMaxStoreLogSize=500;}
 	$deleted=false;
 	foreach (glob("/var/log/squid/store.*") as $filename) {
 		$size=$unix->file_size($filename);
@@ -283,6 +338,38 @@ function artica_logs(){
 	
 }
 
+
+function CleanAllindDir($DirPath,$maxtime=180){
+	
+	$unix=new unix();
+	if(!is_dir($DirPath)){return;}
+	if ($handle = opendir($DirPath)) {return;}
+	while (false !== ($file = readdir($handle))) {
+		if ($file != "." && $file != "..") {
+			if(is_dir($DirPath)){continue;}
+			$path="$DirPath/$file";
+			$time=$unix->file_time_min($path);
+			if($time<$maxtime){continue;}
+			$size=@filesize($path)/1024;
+			$GLOBALS["DELETED_SIZE"]=$GLOBALS["DELETED_SIZE"]+$size;
+			$GLOBALS["DELETED_FILES"]=$GLOBALS["DELETED_FILES"]+1;
+			if($GLOBALS["VERBOSE"]){echo "$path - > DELETE\n";}
+			@unlink($path);
+			continue;
+				
+		}
+	}
+	
+}
+
+
+function Clean_attachments(){
+	$unix=new unix();
+	
+	CleanAllindDir("/opt/artica/share/www/attachments");
+	CleanAllindDir("/var/virusmail");
+}
+
 function Clean_tmp_path($aspid=false){
 	$unix=new unix();
 	if($aspid){
@@ -304,9 +391,28 @@ function Clean_tmp_path($aspid=false){
 	if($DisableArticaProxyStatistics==1){$EnableRemoteStatisticsAppliance=1;}
 	if($EnableRemoteSyslogStatsAppliance==1){$EnableRemoteSyslogStatsAppliance=1;}
 	if($EnableRemoteSyslogStatsAppliance==1){clean_squid_users_size(true);}
+	Clean_attachments();
 	
 
 	
+/*	if ($handle = opendir("/var/run")){
+		while (false !== ($file = readdir($handle))) {
+			if ($file != "." && $file != "..") {
+				$path="/var/run/$file";
+				if(!preg_match("#artica-framework-fastcgi-[0-9]+#", $file)){continue;}
+				$timef=$unix->file_time_min($path);
+				if($timef>2880){
+					$GLOBALS["DELETED_FILES"]=$GLOBALS["DELETED_FILES"]+1;
+					@unlink($path);
+				}
+			}
+			
+			
+		}
+		
+	}
+	
+*/	
 	
 	
 	if ($handle = opendir("/tmp")) {
@@ -366,6 +472,15 @@ function Clean_tmp_path($aspid=false){
 		if($GLOBALS["VERBOSE"]){echo "/tmp failed...\n";} 
 	}
 	if($GLOBALS["VERBOSE"]){echo "/tmp done..\n";}
+	
+	CleanAllindDir("/etc-artica-postfix/artica-postfix/cron.1",2880);
+	CleanAllindDir("/etc-artica-postfix/artica-postfix/cron.2",2880);
+	CleanAllindDir("/etc-artica-postfix/artica-postfix/croned.1",2880);
+	CleanAllindDir("/etc-artica-postfix/artica-postfix/croned.2",2880);
+	CleanAllindDir("/etc-artica-postfix/artica-postfix/pids",2880);
+	CleanAllindDir("/etc-artica-postfix/artica-postfix/pids.3",2880);
+	CleanAllindDir("/etc-artica-postfix/artica-postfix/loadavg.queue",750);
+	
 	ZarafaLocks();
 	CleanSquidStoreLogs();
 	CleanCacheStores();
@@ -375,7 +490,7 @@ function Clean_tmp_path($aspid=false){
 	clean_artica_workfiles("/var/log/artica-postfix/Postfix-sql-error");
 	clean_squid_users_size(true);
 	artica_logs();
-	squidLogs();
+	squidLogs(true);
 }
 
 function Cleanbin(){
@@ -600,6 +715,7 @@ function CleanRotatedFiles(){
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
 	$ApacheLogRotate=$sock->GET_INFO("ApacheLogRotate");
 	$cpbin=$unix->find_program("cp");
+	$php5=$unix->LOCATE_PHP5_BIN();
 	if(!is_numeric($ApacheLogRotate)){$ApacheLogRotate=1;}
 	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
 	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
@@ -621,8 +737,9 @@ function CleanRotatedFiles(){
 	if($q->EnableSyslogDB==1){$LogRotateMysql=1;}
 	$q2=new mysql_storelogs();
 	
-	while (list ($WorkingDir, $ligne) = each ($DirsToScan) ){	
-	
+	while (list ($WorkingDir, $ligne) = each ($DirsToScan) ){
+	$RotateSquid=false;
+	if($WorkingDir=="/var/log/squid"){$RotateSquid=true;}
 	$table=$unix->DirFiles($WorkingDir,"(\.|-)[0-9]+.*?$");
 	$compressed["gz"]=true;
 	$compressed["bz"]=true;
@@ -631,6 +748,11 @@ function CleanRotatedFiles(){
 	while (list ($filename, $ligne) = each ($table) ){
 		$path="$WorkingDir/$filename";
 		if($unix->file_time_min($path)<1440){continue;}
+		
+		if(preg_match("#sarg\.#", $filename)){
+			shell_exec("$php5 ".dirname(__FILE__)."/exec.sarg.php --rotate ".basename($filename)." >/dev/null 2>&1 &");
+			continue;
+		}
 		
 		
 		$ext=$unix->file_extension($filename);
@@ -763,7 +885,7 @@ function UrgencyChecks(){
 		@chmod("/etc/init.d/syslog",0755);
 		shell_exec("/etc/init.d/syslog restart");
 		shell_exec("/etc/init.d/artica-postfix restart sysloger");
-		shell_exec("/etc/init.d/artica-postfix restart auth-logger");
+		shell_exec("/etc/init.d/auth-tail restart");
 		shell_exec("/etc/init.d/artica-postfix restart postfix-logger");
 	}	
 
@@ -855,7 +977,7 @@ function logrotatelogs($nopid=false){
 	if($restart){
 		shell_exec("/etc/init.d/syslog restart");
 		shell_exec("/etc/init.d/artica-postfix restart sysloger");
-		shell_exec("/etc/init.d/artica-postfix restart auth-logger");
+		shell_exec("/etc/init.d/auth-tail restart");
 		shell_exec("/etc/init.d/artica-postfix restart postfix-logger");
 	}
 	

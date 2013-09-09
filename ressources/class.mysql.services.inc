@@ -10,6 +10,7 @@ class mysql_services{
 	public $INSTALL_DATABASE=true;
 	public $MYSQL_BIN_DAEMON_PATH=null;
 	public $MYSQL_ERRMSG=null;
+	public $OutputBinLog=null;
 	function mysql_services(){
 		$this->topCopyMysql["host.frm"]=true;
 		$this->topCopyMysql["host.MYD"]=true;
@@ -80,7 +81,7 @@ class mysql_services{
 		if(!isset($mysqld_variables_cmdline["--lc-messages-dir"])){$lc_messages_dir=false;}
 		if($lc_messages_dir){$lc_messages_dir_cmd=" --lc-messages-dir=";}
 		$mysql_install_db_cmds="$mysql_install_db --defaults-file=$WORKDIR/my.cnf --user=root --datadir=\"$WORKDIR/data\"$lc_messages_dir_cmd";
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$this->SERV_NAME `$mysql_install_db_cmds`\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME `$mysql_install_db_cmds`\n";}
 		shell_exec($mysql_install_db_cmds);
 		
 		$array=$this->topCopyMysql;
@@ -312,7 +313,11 @@ class mysql_services{
 
 		$f[]="$mysqld";
 		$f[]="--defaults-file=$WORKDIR/my.cnf ";
-		if(!$this->InnoDB){$f[]="--innodb=OFF";}
+		if(!$this->InnoDB){
+			if($GetStartedValues["--innodb-file-per-table"]){
+				$f[]="--innodb=OFF";
+			}
+		}
 
 		$f[]="--user=root";
 		$f[]="--pid-file=$mysql_pid_file";
@@ -325,9 +330,16 @@ class mysql_services{
 		$f[]="--log-error=$WORKDIR/error.log";
 		
 		if($this->InnoDB){
-			$f[]="--innodb-file-per-table";
-			$f[]="--innodb-buffer-pool-size={$innodb_buffer_pool_size}M";
-			$f[]="--innodb-log-buffer-size={$innodb_log_buffer_size}M";
+			if($GetStartedValues["--innodb-file-per-table"]){
+				$f[]="--innodb-file-per-table";
+			}
+			
+			if($GetStartedValues["--innodb-buffer-pool-size"]){
+				$f[]="--innodb-buffer-pool-size={$innodb_buffer_pool_size}M";
+			}
+			if($GetStartedValues["--innodb-log-buffer-size"]){
+				$f[]="--innodb-log-buffer-size={$innodb_log_buffer_size}M";
+			}
 			if($GetStartedValues["--innodb-flush-log-at-trx-commit"]){$f[]="--innodb-flush-log-at-trx-commit=0";}
 		}
 		
@@ -431,9 +443,9 @@ class mysql_services{
 	private function check_errmsgsys(){
 		$Get_errmsgsys=$this->Get_errmsgsys();
 		if(!is_file("$this->WORKDIR/share/mysql/english/errmsg.sys")){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$this->SERV_NAME Creating errmsg.sys\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME Creating errmsg.sys\n";}
 			if(is_file($Get_errmsgsys)){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$this->SERV_NAME copy $Get_errmsgsys -> $this->WORKDIR/share/mysql/english/errmsg.sys\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME copy $Get_errmsgsys -> $this->WORKDIR/share/mysql/english/errmsg.sys\n";}
 				copy($Get_errmsgsys, "$this->WORKDIR/share/mysql/english/errmsg.sys");
 				copy($Get_errmsgsys, "$this->WORKDIR/share/errmsg.sys");
 				
@@ -448,11 +460,48 @@ class mysql_services{
 		
 		if(!is_file("$this->WORKDIR/share/errmsg.sys")){
 			if(is_file($Get_errmsgsys)){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$this->SERV_NAME copy $Get_errmsgsys -> $this->WORKDIR/share/errmsg.sys\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME copy $Get_errmsgsys -> $this->WORKDIR/share/errmsg.sys\n";}
 				copy($Get_errmsgsys, "$this->WORKDIR/share/errmsg.sys");
 				
 			}
 		}
+		
+	}
+	
+	public function CheckOutputErrors($filename){
+		$f=explode("\n",@file_get_contents($filename));
+		if($this->WORKDIR==null){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME fatal no directory set Line:".__LINE__."\n";}
+			return;
+		}
+		
+		$repair=false;
+		
+		while (list ($num, $ligne) = each ($f) ){
+			if(preg_match("#Error message file.*?errmsg\.sys.*?had only [0-9]+ error messages#", $ligne)){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME errmsg.sys issue (should the MySQL as been upgraded ?)\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME unlink $this->WORKDIR/share/mysql/english/errmsg.sys\n";}
+				@unlink("$this->WORKDIR/share/mysql/english/errmsg.sys");
+				$this->check_errmsgsys();
+				continue;
+			}
+			
+			if(strpos($ligne,"libstdc++.so.6: cannot open shared object file")>0){$repair=true;continue;}
+			if(strpos($ligne,"libgcc_s.so.1: cannot open shared object file")>0){$repair=true;continue;}
+		}
+		
+		
+		if($repair){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME libstdc++.so.6 or libgcc_s.so.1 issue, repair it...\n";}
+			if(is_file("/opt/articatech/bin/libstdc++.so.6")){
+				if(!is_file("/usr/lib/libstdc++.so.6")){shell_exec("/bin/ln -s /opt/articatech/bin/libstdc++.so.6 /usr/lib/libstdc++.so.6");}
+			}
+			if(is_file("/opt/articatech/bin/libgcc_s.so.1")){
+				if(!is_file("/usr/lib/libgcc_s.so.1")){shell_exec("/bin/ln -s /opt/articatech/bin/libgcc_s.so.1 /usr/lib/libgcc_s.so.1");}
+			}
+		}
+		
+		
 		
 	}
 	

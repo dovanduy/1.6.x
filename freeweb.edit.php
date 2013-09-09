@@ -261,6 +261,7 @@ function groupwares_save(){
 	}
 	$sock=new sockets();
 	$sock->getFrameWork("drupal.php?perform-orders=yes");	
+	$sock->getFrameWork("nginx.php?restart=yes");
 }
 	
 	
@@ -437,7 +438,7 @@ function popup_tabs(){
 			$array["groupoffice"]='{APP_GROUPOFFICE}';
 		}
 		
-		if($apache->groupware=="ROUNDCUBE"){unset($array["groupwares"]);$array["ROUNDCUBE"]='{APP_ROUNDCUBE}';}
+		if($apache->groupware=="ROUNDCUBE"){unset($array["groupwares"]);$array["ROUNDCUBE"]='RoundCube';}
 		if(  ($apache->groupware=="ZARAFA") OR ($apache->groupware=="WEBAPP")){
 				unset($array["groupwares"]);
 				unset($array["webdav"]);
@@ -521,63 +522,63 @@ function popup_tabs(){
 	
 	
 	
-	if(count($array)<10){$fontsize="style='font-size:14px'";}
+	if(count($array)<15){$fontsize="style='font-size:14px'";}
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="statistics"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.statistics.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li $fontsize><a href=\"freeweb.edit.statistics.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 		if($num=="status"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.status.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne </span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li $fontsize><a href=\"freeweb.edit.status.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne </span></a></li>\n");
 			continue;
 		}
 
 		if($num=="zpush"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.zpush.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li $fontsize><a href=\"freeweb.zpush.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 		if($num=="ModFcgid"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.fcgid.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li $fontsize><a href=\"freeweb.edit.fcgid.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="awstats"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"awstats.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span>$ligne</span $fontsize></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li $fontsize><a href=\"awstats.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span>$ligne</span $fontsize></a></li>\n");
 				continue;
 		}
 		
 		if($num=="webdav"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.webdav.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li $fontsize><a href=\"freeweb.edit.webdav.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 				continue;
 		}
 
 		if($num=="reverse"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.reverse.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li $fontsize><a href=\"freeweb.edit.reverse.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 				continue;
 		}			
 
 		if($num=="qos"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.qos.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li $fontsize><a href=\"freeweb.edit.qos.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 				continue;
 		}		
 		
 		if($num=="mod_cache"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.cache.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li $fontsize><a href=\"freeweb.edit.cache.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 				continue;
 		}
 
 		if($num=="aliases"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.aliases.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li $fontsize><a href=\"freeweb.edit.aliases.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 				continue;
 		}
 		
 
 		if($num=="openbasedir"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.openbasedir.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li $fontsize><a href=\"freeweb.edit.openbasedir.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
 		}		
 
@@ -628,14 +629,8 @@ function popup_tabs(){
 	}
 	
 	
-	echo "
-	<div id=main_config_freewebedit style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_freewebedit\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_freewebedit");
+;		
 	
 }
 

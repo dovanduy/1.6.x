@@ -108,7 +108,7 @@ function dbMaintenance(){
 	$unix=new unix();
 	$users=new usersMenus();
 	$verbose=$GLOBALS["VERBOSE"];
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	if(!$users->SQUIDGUARD_INSTALLED){
 		if(!$users->APP_UFDBGUARD_INSTALLED){
 			if($verbose){echo "SQUIDGUARD_INSTALLED  =  FALSE\n";}
@@ -457,9 +457,19 @@ function start($aspid=false){
 
 	$CicapEnabled=$sock->GET_INFO("CicapEnabled");
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: c-icap service WebStats Appliance..\n";}	
+		$CicapEnabled=1;
+	}
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: c-icap service Proxy service enabled:$SQUIDEnable\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: c-icap service C-ICAP service enabled:$CicapEnabled\n";}
 	if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if($SQUIDEnable==0){$CicapEnabled=0;}
+	
+	
+	
 	if($CicapEnabled==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: c-icap service disabled\n";}
 		return;

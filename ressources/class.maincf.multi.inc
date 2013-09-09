@@ -264,7 +264,7 @@ public function SET_BIGDATA($key,$value){
 				}
 			}
 			
-			$sql="UPDATE postfix_global_whitelist SET allmx='".mysql_escape_string(serialize($TOADD))."' WHERE sender='$SourceSender'";
+			$sql="UPDATE postfix_global_whitelist SET allmx='".mysql_escape_string2(serialize($TOADD))."' WHERE sender='$SourceSender'";
 			$q->QUERY_SQL($sql,"artica_backup");
 			
 			
@@ -2947,6 +2947,7 @@ private function smtp_sasl_password_map(){
 	
 	
 	function body_checks(){
+		$f=array();
 		$pure_bodychecks=$this->pure_bodychecks();
 		
 		$EnableBodyChecks=$this->GET("EnableBodyChecks");

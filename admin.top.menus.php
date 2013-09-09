@@ -121,9 +121,9 @@ function update_white_32_tr(){
 	if(!$notifyScript){
 		$color="black";
 		$notify=unserialize(base64_decode($sock->GET_INFO("TOP_NOTIFY")));
-		
+		if(!is_array($notify)){$notify=array();}
 		if(count($notify)>0){
-			krsort($notify);
+			@krsort($notify);
 			while (list ($index, $array) = each ($notify) ){
 			if(is_numeric($array["TIME"])){
 				$took=distanceOfTimeInWords($array["TIME"],time());

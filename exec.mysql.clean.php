@@ -14,6 +14,7 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.squid.builder.php');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 
 	if($argv[1]=="--squid-stats"){clean_squid_stats_dbs();die();}
+	if($argv[1]=="--corrupted"){repair_corrupted();die();}
 
 
 	$unix=new unix();
@@ -331,6 +332,94 @@ function clean_squid_stats_no_items(){
 	if($count_tables>0){system_admin_events("$count_tables empy tables as been deleted in squid statistics database", __FUNCTION__, __FILE__, __LINE__, "clean");}
 	
 }
+
+
+function repair_corrupted(){
+	$q=new mysql();
+	$unix=new unix();
+	
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".md5(__FUNCTION__).".pid";
+	
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		return;
+	}
+	
+	$myisamchk=$unix->find_program("myisamchk");
+	$pgrep=$unix->find_program("pgrep");
+	exec("$pgrep -l -f \"$myisamchk\"",$results);
+	while (list ($index, $line) = each ($results) ){
+		if(preg_match("#pgrep#", $line)){continue;}
+		if(preg_match("#^[0-9]+\s+#", $line)){
+			writelogs("$line already executed",@implode("\r\n", $results),__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
+	}	
+
+	if(!$GLOBALS["FORCE"]){
+		if(!$GLOBALS['VERBOSE']){
+			$timefile="/etc/artica-postfix/pids/MySQLRepairDBTime.time";
+			$timex=$unix->file_time_min($timefile);
+			if($timex<240){return;}
+			@unlink($timefile);
+			@file_put_contents($timefile, time());
+		}
+	}
+	
+	$databases=$q->DATABASE_LIST_SIMPLE();
+	while (list ($database, $comment) = each ($databases) ){
+		$tables=$q->TABLES_STATUS_CORRUPTED($database);
+		if($GLOBALS["VERBOSE"]){echo "Checking database $database `$comment` Store ".count($tables)." suspicious tables\n";}
+		if(count($tables)>0){
+			while (list ($table, $why) = each ($tables) ){
+				if($GLOBALS["VERBOSE"]){echo "Table `$table` is on status: `$why`\n";}
+				repair_action($database,$table,$why);
+				
+			}
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "Database $database is CLEAN !\n";}
+		}
+	
+	}
+
+	
+}
+
+function repair_action($database,$tablename,$expl){
+	$unix=new unix();
+	$q=new mysql();
+	
+	if(preg_match("#Can.*?t find file#", $expl)){
+		system_admin_events("$tablename is destroyed, remove it..",__FUNCTION__,__FILE__,__LINE__);
+		echo "Removing table $database/$tablename\n";
+		$q->DELETE_TABLE($tablename, $database);
+		return;
+	}
+	
+	
+	if(preg_match("#is marked as crashed#", $expl)){
+		$results=array();
+		$t=time();
+		if(is_file("/var/lib/mysql/$database/$tablename.TMD")){
+			@copy("/var/lib/mysql/$database/$tablename.TMD", "/var/lib/mysql/$database/$tablename.TMD-".time());
+			@unlink("/var/lib/mysql/$database/$tablename.TMD");
+		}
+			
+		$myisamchk=$unix->find_program("myisamchk");
+		$cmd="$myisamchk -r /var/lib/mysql/$database/$tablename.MYI";
+		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+		exec($cmd,$results);
+		$took=$unix->distanceOfTimeInWords($t,time());
+		system_admin_events("$tablename repaired took: $took",@implode("\r\n", $results),__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}	
+	
+	if($GLOBALS["VERBOSE"]){echo "$tablename nothing to do...\n";}
+	
+}
+
+
 
 
 function clean_squid_stats_dbs(){

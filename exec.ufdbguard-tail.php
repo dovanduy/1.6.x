@@ -1,5 +1,6 @@
 <?php
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
+include_once(dirname(__FILE__).'/ressources/class.ufdbguard-tools.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
@@ -22,6 +23,7 @@ $GLOBALS["nohup"]=$GLOBALS["CLASS_UNIX"]->find_program("nohup");
 $GLOBALS["PHP5_BIN"]=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
 $GLOBALS["SBIN_ARP"]=$GLOBALS["CLASS_UNIX"]->find_program("arp");
 $GLOBALS["SBIN_ARPING"]=$GLOBALS["CLASS_UNIX"]->find_program("arping");
+
 
 
 if(!isset($GLOBALS["UfdbguardSMTPNotifs"]["ENABLED"])){$GLOBALS["UfdbguardSMTPNotifs"]["ENABLED"]=0;}
@@ -122,7 +124,16 @@ if(strpos($buffer,'check-proxy-tunnels')>0){return ;}
 if(strpos($buffer,'seconds to allow worker')>0){return ;}
 if(strpos($buffer,'] loading URL category')>0){return ;}
 if(preg_match("#\] REDIR\s+#", $buffer)){return;}
+if(strpos($buffer,'execdomainlist for')>0){return ;}
+if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 
+
+	if(preg_match("#There are no sources and there is no default ACL#i", $buffer)){
+		events("Seems not to be defined -> build compilation.");
+		xsyslog("Reconfigure ufdb service...");
+		shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.squidguard.php --build --force >/dev/null 2>&1 &");
+		return;
+	}
 
 
 	if(preg_match('#FATAL\*\s+table\s+"(.+?)"\s+could not be parsed.+?14#',$buffer,$re)){
@@ -292,13 +303,16 @@ if(preg_match("#\] REDIR\s+#", $buffer)){return;}
 		$array["hostname"]=$Clienthostname;
 		$array["website"]=$www;
 		$array["client"]=$local_ip;
+		$LLOG=array();
+		while (list ($key, $line) = each ($array) ){$LLOG[]="$key = $line";}
+		events(@implode(",", $LLOG)." on line ".__LINE__);
 		$serialize=serialize($array);
 		$md5=md5($serialize);
 
 		
 		if(!is_dir("/var/log/artica-postfix/ufdbguard-blocks")){@mkdir("/var/log/artica-postfix/ufdbguard-blocks");}
 		@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql",$serialize);
-		events("$www ($public_ip) blocked by rule $rulename/$category from $user/$local_ip/$Clienthostname/$MAC ".@filesize("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql")." bytes");
+		
 		if(!is_file("/var/log/artica-postfix/pagepeeker/".md5($www))){@file_put_contents("/var/log/artica-postfix/pagepeeker/".md5($www), $www);}			
 		
 		return;
@@ -340,6 +354,9 @@ if(preg_match("#\] REDIR\s+#", $buffer)){return;}
 		$array["hostname"]=$Clienthostname;
 		$array["website"]=$www;
 		$array["client"]=$local_ip;
+		
+		$LLOG=array();
+		while (list ($key, $line) = each ($array) ){events("array[$key] = `$line`");}
 		$serialize=serialize($array);
 		$md5=md5($serialize);
 		
@@ -365,27 +382,7 @@ function HostnameToIp($hostname){
 
 
 
-function CategoryCodeToCatName($category){
-		if(preg_match("#^art(.+)#", $category,$re)){$category=$re[1];}
-		if(preg_match("#^tls(.+)#", $category,$re)){$category=$re[1];}
-		if($category=="listebu"){$category="liste_bu";}
-		if($category=="adult"){$category="porn";}
-		if($category=="agressivecat"){$category="agressive";}
-		if($category=="automobile_bikes"){$category="automobile/bikes";}
-		if($category=="automobile_boats"){$category="automobile/boats";}
-		if($category=="automobile_planes"){$category="automobile/planes";}
-		if($category=="automobile_cars"){$category="automobile/cars";}
-		if($category=="finance_banking"){$category="finance_banking";}
-		if($category=="finance_banking"){$category="finance/banking";}
-		if($category=="finance_insurance"){$category="finance/insurance";}
-		if($category=="finance_moneylending"){$category="finance/moneylending";}
-		if($category=="finance_realestate"){$category="finance/realestate";}
-		if($category=="hobby_cooking"){$category="hobby/cooking";}
-		if($category=="hobby_arts"){$category="hobby/arts";}
-		if($category=="hobby_pets"){$category="hobby/pets";}		
-		return $category;
-	
-}
+
 
 function IfFileTime($file,$min=10){
 	if(file_time_min($file)>$min){return true;}
@@ -399,6 +396,7 @@ function WriteFileCache($file){
 function events($text){
 		$pid=@getmypid();
 		$date=@date("h:i:s");
+		events_tail($text);
 		$logFile="/var/log/artica-postfix/ufdbguard-tail.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}
@@ -406,6 +404,20 @@ function events($text){
 		@fwrite($f, "$date [$pid]:: ".basename(__FILE__)." $text\n");
 		@fclose($f);	
 		}
+		
+function events_tail($text){
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$pid=@getmypid();
+	$date=@date("h:i:s");
+	$logFile="/var/log/artica-postfix/auth-tail.debug";
+	$size=@filesize($logFile);
+	if($size>1000000){@unlink($logFile);}
+	$f = @fopen($logFile, 'a');
+	$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)." $date $text");
+	@fwrite($f, "$pid ".basename(__FILE__)." $date $text\n");
+	@fclose($f);
+}		
+		
 function events_ufdb_exec($text){
 		events("ufdbguard tail: $text");
 		$pid=@getmypid();

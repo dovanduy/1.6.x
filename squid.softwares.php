@@ -21,7 +21,9 @@
 	}
 	if(isset($_GET["install-status"])){install_status();exit;}
 	if(isset($_GET["is31"])){is31();exit;}
-	page();
+	if(isset($_GET["current"])){page();exit;}
+	if(isset($_GET["stables"])){stables();exit;}
+	tabs();
 	
 	
 function is31(){
@@ -43,6 +45,30 @@ if($MAJOR>=3){
 }
 	
 }	
+
+
+function tabs(){
+	
+	$page=CurrentPageName();
+	$array["current"]='{current_versions}';
+	$array["stables"]='{stable_releases}';
+	if(!is_file("ressources/old-squid.ini")){
+		$sock=new sockets();
+		$sock->getFrameWork("cmd.php?SetupIndexFile=yes");
+	}
+	
+	$tpl=new templates();
+	
+	while (list ($num, $ligne) = each ($array) ){
+		$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:16px'><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
+	}
+	
+	
+	echo build_artica_tabs($html, "tab_squid_soft");
+	
+	
+}
+
 	
 function page(){
 $page=CurrentPageName();
@@ -355,6 +381,7 @@ function BuildVersions(){
 
 function install_status(){
 	$appname=$_GET["APPLI"];
+	$users=new usersMenus();
 	$page=CurrentPageName();
 	$ini=new Bs_IniHandler();
 	$sock=new sockets();
@@ -399,7 +426,9 @@ function install_status(){
 		$squid_version=	ParseAppli($GlobalApplicationsStatus,"APP_SQUID");	
 		if(preg_match("#^([0-9]+)\.([0-9]+)#", $squid_version,$re)){$MAJOR=$re[1];$MINOR=$re[2];}
 		if($MAJOR==3 && $MINOR==1){
-			$button31="<div style='margin-top:8px'>".button("{install_upgrade} 3.1x", "Loadjs('setup.index.progress.php?product=APP_SQUID&start-install=yes')",14)."</div>";
+			if($users->LinuxDistriCode<>"CENTOS"){
+				$button31="<div style='margin-top:8px'>".button("{install_upgrade} 3.1x", "Loadjs('setup.index.progress.php?product=APP_SQUID&start-install=yes')",14)."</div>";
+			}
 		}
 	}		
 		
@@ -407,7 +436,16 @@ function install_status(){
 	
 		
 	if($status==null){$status=0;}
-	if($status==0){echo $tpl->_ENGINE_parse_body("<center style='margin:10px'>".button("{install_upgrade}", "Loadjs('setup.index.progress.php?product=$appname&start-install=yes')",14)."$button31</center>");return;}
+	if($status==0){
+		
+		if($appname<>"APP_SQUID2"){
+			echo $tpl->_ENGINE_parse_body("<center style='margin:10px'>".button("{install_upgrade}", "Loadjs('setup.index.progress.php?product=$appname&start-install=yes')",14)."$button31</center>");
+			return;
+		}else{
+			if($users->LinuxDistriCode<>"CENTOS"){echo $tpl->_ENGINE_parse_body("<center style='margin:10px'>".button("{install_upgrade}", "Loadjs('setup.index.progress.php?product=$appname&start-install=yes')",14)."$button31</center>");}
+			return;
+		}
+	}
 	if($status>100){$color="#D32D2D";$status=100;$text='{failed}';}else{$color="#5DD13D";$text=$status.'%';}
 	if($status==0){$color="transparent";}
 	
@@ -427,4 +465,54 @@ function install_status(){
 	";
 	echo  $tpl->_ENGINE_parse_body($html);
 
+}
+
+
+function stables(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$error=false;
+	$ArchStruct=$users->ArchStruct;
+	if($ArchStruct=="32"){$ArchStruct="i386";}
+	if($ArchStruct=="64"){$ArchStruct="amd64";}
+
+	if($users->LinuxDistriCode<>"DEBIAN"){
+		if($users->LinuxDistriCode<>"UBUNTU"){
+			FATAL_ERROR_SHOW_128("{ERROR_OPERATING_SYSTEM_NOT_SUPPORTED}");
+			$error=true;
+		}
+	}
+	
+	if(!is_file("ressources/old-squid.ini")){
+		
+		$sock->getFrameWork("cmd.php?SetupIndexFile=yes");
+	}
+	
+	$ini=new Bs_IniHandler("ressources/old-squid.ini");
+	$current=base64_decode($sock->getFrameWork("squid.php?current-version=yes"));
+	$html[]="
+	<div style='font-size:18px;margin-bottom:20px;text-align:right'>Squid-Cache v.$current</div>		
+	<div style='font-size:16px' class=explain>{squid_old_stable_explain}</div>
+	<div style='width:95%;text-align:center' class=form >
+	<table style='width:100%'>		
+	";
+	
+	
+	while (list ($versions, $array) = each ($ini->_params) ){
+	$filename=urlencode($array[$ArchStruct]);
+	
+		$html[]="<tr style='height:50px'>
+			<td style='font-size:32px' width=33%>$versions</td>
+			<td style='font-size:18px' width=33%>{released_on} {$array["date"]}</td>";
+		
+		if(!$error){$html[]="
+			<td width=33%>". button("{install_this_version}","Loadjs('squid.downgrade.php?file=$filename&ask=yes')",18)."</td>";
+		}
+		$html[]="</tr>";
+		
+	}
+	$html[]="</table></div>";
+	echo $tpl->_ENGINE_parse_body(@implode("\n", $html));
 }

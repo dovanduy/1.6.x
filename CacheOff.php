@@ -77,21 +77,25 @@ if(function_exists("apc_clear_cache")){
 	
 	$sock->getFrameWork("system.php?process1=yes");
 	
-	if(class_exists("Memcache")){
-		$memcache = new Memcache();
-		$memcache->connect('unix:///var/run/memcached.sock', 0);
-		$ARRAY=unserialize($memcache->get('ARTICACACHEARRAY'));
-		$memcacheBytes=strlen(serialize($ARRAY));
-		$memcache->set('ARTICACACHEARRAY', serialize(array()), 0, 300); 
-		if($memcacheBytes>1024){
-			$memcacheBytes=$memcacheBytes/1024;
-			$memcacheBytes=FormatBytes($memcacheBytes/1024);
-		}else{
-			$memcacheBytes=$memcacheBytes." bytes";
-		}
-
-	}
+	$Memcache=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableMemcached"));
+	if(!is_numeric($Memcache)){$Memcache=0;}
 	
+	if($Memcache==1){
+		if(class_exists("Memcache")){
+			$memcache = new Memcache();
+			$memcache->connect('unix:///var/run/memcached.sock', 0);
+			$ARRAY=unserialize($memcache->get('ARTICACACHEARRAY'));
+			$memcacheBytes=strlen(serialize($ARRAY));
+			$memcache->set('ARTICACACHEARRAY', serialize(array()), 0, 300); 
+			if($memcacheBytes>1024){
+				$memcacheBytes=$memcacheBytes/1024;
+				$memcacheBytes=FormatBytes($memcacheBytes/1024);
+			}else{
+				$memcacheBytes=$memcacheBytes." bytes";
+			}
+	
+		}
+	}
 	
 	
 	while (list ($num, $val) = each ($GLOBALS["langs"]) ){
@@ -155,9 +159,11 @@ if(function_exists("apc_clear_cache")){
 			$ToDelete["admin.index.memory.html"]=true;
 			$ToDelete["admin.index.notify.html"]=true;
 			$ToDelete["admin.index.quicklinks.html"]=true;
+			$ToDelete["admin.index.status.html"]=true;
 			$ToDelete["admin.index.status-infos.php.left_menus_services"]=true;
 			$ToDelete["admin.index.status-infos.php.page"]=true;
 			$ToDelete["admin.index.status-infos.php.left_menus_actions"]=true;
+			@unlink("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");
 			
 			
 			$ToDelete["logon.html"]=true;

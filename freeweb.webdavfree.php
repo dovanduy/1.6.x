@@ -22,6 +22,12 @@
 	if(isset($_GET["new-alias"])){alias_popup();exit;}
 	if(isset($_GET["auth-js"])){auth_js();exit;}
 	if(isset($_GET["auth-popup"])){auth_popup();exit;}
+	
+	if(isset($_GET["settings-js"])){settings_js();exit;}
+	if(isset($_GET["settings-popup"])){settings_popup();exit;}
+	if(isset($_POST["ContainerMAXSize"])){settings_save();exit;}
+	
+	
 	if(isset($_GET["connection-form"])){connection_form();exit;}
 	if(isset($_POST["connectiontype"])){auth_save();exit;}
 	page();	
@@ -50,6 +56,108 @@ function auth_js(){
 	
 }
 
+function settings_js(){
+	$mdkey=$_GET["mdkey"];
+	$t=$_GET["t"];
+	header("content-type: application/x-javascript");
+	$sql="SELECT * from freeweb_webdav WHERE mdkey='$mdkey'";
+	$q=new mysql();
+	$resData=$q->QUERY_SQL($sql,"artica_backup");
+	$ligne=mysql_fetch_array($resData);
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{parameters}:{$ligne["alias"]}");
+	$page=CurrentPageName();
+	$t=time();
+	$html="
+	function popup$t(){
+		YahooWin3('650','$page?settings-popup=yes&t=$t&mdkey=$mdkey&servername={$_GET["servername"]}','$title')
+	}
+	
+	popup$t();";
+	
+	echo $html;	
+}
+
+function settings_popup(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$t=$_GET["t"];
+	$mdkey=$_GET["mdkey"];	
+	$q=new mysql();
+	$ligne=mysql_fetch_array(
+	$q->QUERY_SQL("SELECT * from freeweb_webdav WHERE mdkey='$mdkey'","artica_backup"));
+	$tt=time();
+	$html="
+	<div id='$tt'></div>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:16px' nowrap>{public_mode}:</td>
+		<td>". Field_checkbox("public-$tt", 1,$ligne["public"])."</td>
+		<td>". help_icon("{webdav_public_explain}")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px' nowrap>Active Directory:</td>
+		<td>". Field_checkbox("UseAD-$tt", 1,$ligne["UseAD"])."</td>
+		<td>". help_icon("{webdav_UseAD_explain}")."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:16px' nowrap>{UseContainer}:</td>
+		<td>". Field_checkbox("UseContainer-$tt", 1,$ligne["UseContainer"])."</td>
+		<td>". help_icon("{webdav_UseContainer_explain}")."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:16px' nowrap>{MAX_SIZE} (MB):</td>
+		<td style='font-size:16px'>". Field_text("ContainerMAXSize-$tt", $ligne["UseContainer"],"font-size:16px")."&nbsp;MB</td>
+		<td >". help_icon("{webdav_ContainerMAXSize_explain}")."&nbsp;MB</td>
+	</tr>	
+	<tr>
+		<td colspan=3 align='right'>
+				<hr>". button("{apply}","Save$tt()","16px")."</td>
+	</tr>		
+	</table>
+	</div>
+	<script>
+		var x_Save$tt= function (obj) {
+			var results=obj.responseText;
+			if(results.length>3){alert(results);document.getElementById('$tt').innerHTML='';return;}
+			document.getElementById('$tt').innerHTML='';
+			$('#$t').flexReload();
+		}
+
+
+		function Save$tt(){
+			var XHR = new XHRConnection();
+			XHR.appendData('mdkey', '$mdkey');
+			XHR.appendData('servername', '{$_GET["servername"]}');
+			XHR.appendData('public', document.getElementById('public-$tt').value);
+			XHR.appendData('UseAD', document.getElementById('UseAD-$tt').value);
+			XHR.appendData('UseContainer', document.getElementById('UseContainer-$tt').value);
+			XHR.appendData('ContainerMAXSize', document.getElementById('ContainerMAXSize-$tt').value);
+			AnimateDiv('$tt');
+			XHR.sendAndLoad('$page', 'POST',x_Save$tt);
+		}
+	</script>
+	";
+	
+	echo $tpl->_ENGINE_parse_body($html);	
+	
+}
+function settings_save(){
+	$mdkey=$_POST["mdkey"];
+	$q=new mysql();
+	
+	$sql="UPDATE freeweb_webdav SET `public`='{$_POST["public"]}', `UseAD`='{$_POST["UseAD"]}',
+	`UseContainer`='{$_POST["UseContainer"]}', `ContainerMAXSize`='{$_POST["ContainerMAXSize"]}' WHERE mdkey='$mdkey'";
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$sock=new sockets();
+	$sock->getFrameWork("cmd.php?freeweb-website=yes&servername={$_POST["servername"]}");
+	
+	
+}
+
 
 function auth_popup(){
 	$tpl=new templates();
@@ -70,12 +178,15 @@ function auth_popup(){
 	$connect_type=Field_array_Hash($CONNECTIONS_TYPE, "connectiontype-$t",$ligne["connectiontype"],
 	"ConnectTypeChangeForm$t()",null,0,"font-size:16px");
 	
-	$html="<table style='width:99%' class=form>
+	$html="
+	<div style='width:95%' class=form>		
+	<table style='width:100%'>
 	<tr>
 	<td class=legend style='font-size:16px'>{connection_type}:</td>
 	<td>$connect_type</td>
 	</tr>
 	</table>
+	</div>
 	<div id='cnx-$t'></div>
 				
 	
@@ -106,7 +217,7 @@ function auth_save(){
 		$ligne[$num]=url_decode_special_tool($_POST[$num]);
 	}
 	$ligne2=base64_encode(serialize($ligne));
-	$ligne2=mysql_escape_string($ligne2);
+	$ligne2=mysql_escape_string2($ligne2);
 	$q->QUERY_SQL("UPDATE freeweb_webdav SET `params`='$ligne2' WHERE mdkey='$mdkey'","artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
@@ -347,7 +458,8 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$alias', name : 'alias', width : 341, sortable : false, align: 'left'},	
-		{display: '$directory', name : 'directory', width :427, sortable : false, align: 'left'},
+		{display: '$directory', name : 'directory', width :389, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'opt', width : 31, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'auth', width : 31, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'del', width : 31, sortable : true, align: 'center'},
 		
@@ -372,7 +484,7 @@ $('#flexRT$t').flexigrid({
 	});   
 });
 	function AddNewAlias$t(){
-		YahooWin6('600','$page?new-alias=yes&servername={$_GET["servername"]}&t=$t','$new_alias');
+		YahooWin6('650','$page?new-alias=yes&servername={$_GET["servername"]}&t=$t','$new_alias');
 	}
 	
 		var x_FreeWebAddAlias$t=function (obj) {
@@ -415,11 +527,11 @@ $html="
 	
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend style='font-size:16px'>{share_name}:</td>
+		<td class=legend style='font-size:16px' nowrap>{share_name}:</td>
 		<td>". Field_text("alias_freeweb-$t",null,"font-size:16px;padding:3px;width:220px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{directory}:</td>
+		<td class=legend style='font-size:16px' nowrap>{directory}:</td>
 		<td>". Field_text("alias_dir-$t",null,"font-size:16px;padding:3px;width:320px",null,null,null,false,"FreeWebAddAliasCheck$t(event)").
 		"&nbsp;<input type='button' OnClick=\"javascript:Loadjs('browse-disk.php?field=alias_dir-$t&replace-start-root=1');\" style='font-size:16px' value='{browse}...'></td>
 	</tr>
@@ -550,11 +662,13 @@ function alias_list(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$delete=imgsimple("delete-24.png","{delete}","FreeWebDelAlias$t('{$ligne["mdkey"]}')");
 		$auth=imgsimple("members-priv-32.png",null,"Loadjs('$MyPage?auth-js=yes&mdkey={$ligne["mdkey"]}&servername={$_GET["servername"]}')");
+		$settings=imgsimple("32-settings-black.png",null,"Loadjs('$MyPage?settings-js=yes&mdkey={$ligne["mdkey"]}&servername={$_GET["servername"]}')");
+		$settings="&nbsp;";
 	$data['rows'][] = array(
 		'id' => "{$ligne["mdkey"]}",
 		'cell' => array(
 			"<span style='font-size:16px;'>{$ligne["alias"]}</a></span>",
-			"<span style='font-size:16px;'>{$ligne["directory"]}</a></span>",$auth,$delete
+			"<span style='font-size:16px;'>{$ligne["directory"]}</a></span>",$settings,$auth,$delete
 			)
 		);
 	}

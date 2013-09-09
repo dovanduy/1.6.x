@@ -173,7 +173,7 @@ class mysql_blackbox{
 			  KEY `squidver` (`squidver`),
 			  KEY `BigArtica` (`BigArtica`),
 			  KEY `hostname` (`hostname`)
-			)";
+			) ENGINE=MYISAM;";
 		
 			$this->QUERY_SQL($sql);
 			
@@ -254,12 +254,15 @@ class mysql_blackbox{
 			  `DNS1` varchar(50)  NOT NULL,
 			  `DNS2` varchar(50)  NOT NULL,
 			  `mac` varchar(60)  NOT NULL,
+			  `defaultroute` smallint(1)  NOT NULL,
 			  UNIQUE KEY `mac` (`mac`),
-			  KEY `nodeid` (`nodeid`,`nic`,`ipaddr`,`netmask`,`gateway`,`broadcast`,`hostid`)
+			  KEY `nodeid` (`nodeid`,`nic`,`ipaddr`,`netmask`,`gateway`,`broadcast`,`hostid`),
+			  KEY `defaultroute` (`defaultroute`)
 			) ENGINE=MYISAM;";		
 			$this->QUERY_SQL($sql);
 			if(!$this->ok){echo $q->mysql_error."\n";}
 			if(!$this->FIELD_EXISTS("nics", "hostid")){$this->QUERY_SQL("ALTER TABLE `nics` ADD `hostid` varchar(90) NOT NULL,ADD INDEX (`hostid`)");}
+			if(!$this->FIELD_EXISTS("nics", "defaultroute")){$this->QUERY_SQL("ALTER TABLE `nics` ADD `defaultroute` smallint(1) NOT NULL,ADD INDEX (`defaultroute`)");}
 	
 	
 	

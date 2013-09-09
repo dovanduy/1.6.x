@@ -387,7 +387,7 @@ function EditGroup_params_save(){
 	}
 	
 	$newval=base64_encode(serialize($params));
-	$newval=mysql_escape_string($newval);
+	$newval=mysql_escape_string2($newval);
 	$sql="UPDATE webfilters_sqgroups SET params='$newval' WHERE ID='$gpid'";
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error."\nin line:".__LINE__."\n".basename(__FILE__)."\n\n$sql\n";return;}
@@ -615,6 +615,20 @@ function item_date_save(){
 	$q=new mysql_squid_builder();
 	$q->CheckTables();
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	
+	$H1=$_POST["H1"];
+	$H2=$_POST["H2"];
+	
+	$H1T=strtotime(date("Y-m-d $H1:00"));
+	$H2T=strtotime(date("Y-m-d $H2:00"));
+	
+	if($H2T<$H1T){
+		$tpl=new templates();
+		echo $tpl->javascript_parse_text("{ERROR_SQUID_TIME_ACL}");
+		return;
+	}
+	
+	
 	$pattern=base64_encode(serialize($_POST));
 	if(strlen(trim($ligne["pattern"]))<3){
 		$sql="INSERT INTO webfilters_sqitems (pattern,gpid,enabled,other) VALUES ('$pattern','$ID','1','$pattern');";
@@ -913,9 +927,9 @@ function EditGroup_events(){
 	
 	$html="
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
-	<script>
-	var DeleteGroupItemTemp=0;
-	$(document).ready(function(){
+<script>
+var DeleteGroupItemTemp=0;
+function flexigridStart$t(){
 	$('#table-$t').flexigrid({
 	url: '$page?EditGroup-events-search=yes&ID=$ID&table-org={$_GET["table-org"]}',
 	dataType: 'json',
@@ -944,7 +958,10 @@ function EditGroup_events(){
 	singleSelect: true
 	
 	});
-	});
+}
+	
+	
+setTimeout('flexigridStart$t()',800);
 </script>
 ";
 	echo $html;	

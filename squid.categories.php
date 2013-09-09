@@ -34,17 +34,26 @@
 js();	
 	
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$width=950;
+	$statusfirst=null;
 	$title=$tpl->_ENGINE_parse_body("{categories}");
-	if($_GET["category"]<>null){$title=$title."::{$_GET["category"]}";$width=720;}
+	
+	if(isset($_GET["statusfirst"])){$statusfirst="&statusfirst=yes";}
+	
+	if($_GET["category"]<>null){$title=$title."::{$_GET["category"]}";$width=950;}
 	if($_GET["website"]<>null){
 		if(preg_match("#^www\.(.+)#", $_GET["website"],$re)){$_GET["website"]=$re[1];}
 		$title=$title."::{$_GET["website"]}";
 		$width=860;
 	}
-	$start="YahooWin4('$width','$page?tabs=yes&category={$_GET["category"]}&website={$_GET["website"]}','$title');";
+	
+	$YahooWin="YahooWinS";
+	if($_GET["category"]==null){$YahooWin="YahooWin2";}
+	
+	$start="$YahooWin('$width','$page?tabs=yes&onlyDB={$_GET["onlyDB"]}&category={$_GET["category"]}&website={$_GET["website"]}$statusfirst','$title');";
 	$html="
 	$start
 	";
@@ -69,15 +78,21 @@ function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
+	$users=new usersMenus();
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+	
+	if($DisableArticaProxyStatistics==0){
+		if(isset($_GET["statusfirst"])){$array["status"]='{status}';}
+	}
 	
 	$array["free-cat"]='{add_websites}';
 	$array["test-cat"]='{test_categories}';
 	$array["list"]='{categories}';
 	$array["popup"]='{manage_your_items}';
+	$array["security"]='{permissions}';
 	$array["size"]='{compiled_categories}';
-	if($DisableArticaProxyStatistics==0){$array["status"]='{status}';}
+	if($DisableArticaProxyStatistics==0){if(!isset($_GET["statusfirst"])){$array["status"]='{status}';}}
 	$array["squidlogs"]='{statistics_database}';
 	
 	if($_GET["category"]<>null){
@@ -89,12 +104,27 @@ function tabs(){
 		$catzadd="&middlesize=yes";
 		
 	}
-	https://192.168.1.204:9000/squid.visited.php?add-www=yes&_=1369253307129
-
+	
+	if(!$users->APP_UFDBGUARD_INSTALLED){
+		unset($array["free-cat"]);
+		unset($array["list"]);
+		unset($array["popup"]);
+		unset($array["size"]);
+		
+	}
+	
+	if($_GET["onlyDB"]=="yes"){
+		$array=array();
+		$array["status"]='{status}';
+		$array["squidlogs"]='{statistics_database}';
+		
+	}
+	
+	$catname_enc=urlencode($_GET["category"]);
 while (list ($num, $ligne) = each ($array) ){
 	
 		if($num=="free-cat"){
-			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:13px'><a href=\"squid.visited.php?free-cat=yes&category={$_GET["category"]}&t=$t\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:13px'><a href=\"squid.visited.php?free-cat=yes&category=$catname_enc&t=$t\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
 	
@@ -122,26 +152,23 @@ while (list ($num, $ligne) = each ($array) ){
 			$html[]= "<li style='font-size:13px'><a href=\"squidlogs.php\"
 			><span style='font-size:13px'>$ligne</span></a></li>\n";
 			continue;
-		}		
+		}	
+
+		if($num=="security"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:13px'>
+					<a href=\"squid.categories.security.php?popup=yes&category=$catname_enc&tablesize=893&t=\" 
+					><span>$ligne</span></a></li>\n");
+			continue;
+		}
 	
 	
 		$html[]= "<li style='font-size:13px'>
 		<a href=\"$page?$num=yes&category={$_GET["category"]}$catzadd&website={$_GET["website"]}\">
 			<span style='font-size:13px'>$ligne</span></a></li>\n";
 	}
-	
-	
-	echo $tpl->_ENGINE_parse_body( "
-	<div id=squid_categories_zoom style='width:100%;font-size:13px'>
-		<ul style='font-size:13px'>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#squid_categories_zoom').tabs();
-			
-			
-			});
-		</script>");		
+	$t=time();
+	echo build_artica_tabs($html, "squid_categories_zoom-$t");
+		
 	
 	
 }

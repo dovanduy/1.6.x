@@ -341,10 +341,16 @@ function UpdateUtility(){
 	if($GLOBALS["VERBOSE"]){echo "Line: ".__LINE__.":: UpdateUtility_Console - $UpdateUtility_Console".__FUNCTION__."\n";}
 	@copy($UpdateUtility_Console, "/etc/UpdateUtility/UpdateUtility-Console");
 	$UpdateUtilityAllProducts=$sock->GET_INFO("UpdateUtilityAllProducts");
+	$UpdateUtilityOnlyForKav4Proxy=$sock->GET_INFO("UpdateUtilityOnlyForKav4Proxy");
 	$UpdateUtilityUseLoop=$sock->GET_INFO("UpdateUtilityUseLoop");
 	if(!is_numeric($UpdateUtilityAllProducts)){$UpdateUtilityAllProducts=1;}
 	$UpdateUtilityStorePath=$sock->GET_INFO("UpdateUtilityStorePath");
 	if($UpdateUtilityStorePath==null){$UpdateUtilityStorePath="/home/kaspersky/UpdateUtility";}
+	
+	if(is_file("/opt/kaspersky/kav4proxy/sbin/kav4proxy-kavicapserver")){
+		if(!is_numeric($UpdateUtilityOnlyForKav4Proxy)){$UpdateUtilityOnlyForKav4Proxy=1;}
+	}
+	
 	if($UpdateUtilityUseLoop==1){
 		$UpdateUtilityStorePath="/automounts/UpdateUtility";
 		$dev=$unix->MOUNTED_DIR($UpdateUtilityStorePath);
@@ -373,7 +379,20 @@ function UpdateUtility(){
 		if(!isset($updateutility->MAIN_ARRAY["ComponentSettings"]["KasperskyAdministrationKit_8_0_2048_2090"])){$updateutility->MAIN_ARRAY["ComponentSettings"]["KasperskyAdministrationKit_8_0_2048_2090"]="true";}
 		if(!isset($updateutility->MAIN_ARRAY["ComponentSettings"]["KasperskySecurityCenter_9"])){$updateutility->MAIN_ARRAY["ComponentSettings"]["KasperskySecurityCenter_9"]="true";}		
 	}
+	if($UpdateUtilityOnlyForKav4Proxy==1){
+		system_admin_events("Kav4Proxy as been set...", __FUNCTION__, __FILE__, __LINE__, "update");
+		reset($updateutility->ALL_PKEYS);
+		while (list ($key, $line) = each ($updateutility->ALL_PKEYS) ){$updateutility->MAIN_ARRAY["ComponentSettings"][$key]="false";}
+		$updateutility->MAIN_ARRAY["ComponentSettings"]["KasperskyAntiVirusProxyServer_5_5"]="true";
+		$updateutility->MAIN_ARRAY["ComponentSettings"]["KasperskyAntiVirusProxyServer_5_5_41_51"]="true";
+		$updateutility->MAIN_ARRAY["ComponentSettings"]["KasperskyAntiVirusProxyServer_5_5_62"]="true";
+		$updateutility->MAIN_ARRAY["ComponentSettings"]["KasperskyAntiVirusProxyServer_5_5_62"]="true";
+		$updateutility->MAIN_ARRAY["ComponentSettings"]["DownloadAllDatabases"]="false";
+	}
 	
+	
+	$updateutility->MAIN_ARRAY["ShedulerSettings"]["LastUpdate"]='@Variant(\0\0\0\x10\0\0\0\0\xff\xff\xff\xff\xff)';
+	$updateutility->MAIN_ARRAY["ShedulerSettings"]["Time"]='@Variant(\0\0\0\xf\0\0\0\0)';
 	$t=time();
 	$ini=new Bs_IniHandler();
 	$ini2=new Bs_IniHandler();
@@ -422,13 +441,34 @@ function UpdateUtility(){
 	chdir("/etc/UpdateUtility");
 	@chmod("/etc/UpdateUtility/UpdateUtility-Console", 0755);
 	$cmd="./UpdateUtility-Console -u -o /etc/UpdateUtility/updater.ini -r 2>&1";
-	
+	$Restart1=false;
 	writelogs("Running `$cmd`",__FUNCTION__,__FILE__,__LINE__);
 	exec("$cmd",$results);
 	
 	while (list ($key, $line) = each ($results) ){
+		if(preg_match("#Total downloading:\s+([0-9]+)", $line,$re)){$PERCT=$re[1];}
+		if(preg_match("#Segmentation fault#", $line)){
+			$text=@implode("\n", $results);
+			$Restart1=true;
+			system_admin_events("Segmentation fault at {$PERCT}% on UpdateUtility restart again...\n$text", __FUNCTION__, __FILE__, __LINE__, "update");
+			$results=array();
+			break;
+		}
 		writelogs("$line",__FUNCTION__,__FILE__,__LINE__);
 	}
+	if($Restart1){
+		exec("$cmd",$results);
+		while (list ($key, $line) = each ($results) ){
+			if(preg_match("#Total downloading:\s+([0-9]+)#", $line,$re)){$PERCT=$re[1];}
+			if(preg_match("#Segmentation fault#", $line)){
+				$text=@implode("\n", $results);
+				system_admin_events("Segmentation fault at {$PERCT}%  on UpdateUtility Aborting...\n$text", __FUNCTION__, __FILE__, __LINE__, "update");
+			}
+			writelogs("$line",__FUNCTION__,__FILE__,__LINE__);
+		}
+	}
+	
+	
 	$t2=time();
 	$timehuman=$unix->distanceOfTimeInWords($t,$t2);
 	$text=@implode("\n", $results);
@@ -490,7 +530,7 @@ function ScanUpdateUtilityLogs($force=false){
 		$files=0;
 		$size=0;
 		$rp_finish=false;
-		if($timefile>1440){$rp_finish=true;}
+		if($timefile>720){$rp_finish=true;}
 		
 		
 		while (list ($key, $line) = each ($f) ){
@@ -513,15 +553,17 @@ function ScanUpdateUtilityLogs($force=false){
 				continue;
 			}
 			
+			if(preg_match("#Segmentation fault#", $line)){$isSuccess=0;continue;$rp_finish=true;}	
+			if(preg_match("#Bus error#", $line)){$isSuccess=0;continue;$rp_finish=true;}	
 			if(preg_match("#Report finished at#", $line,$re)){$rp_finish=true;continue;}
-			if(preg_match("#Insufficient disk space#i", $line,$re)){$isSuccess=0;continue;}
+			if(preg_match("#Insufficient disk space#i", $line,$re)){$isSuccess=0;continue;$rp_finish=true;}
 			if(preg_match("#Failed to#i", $line,$re)){$isSuccess=0;continue;}	
-			if(preg_match("#not retranslated#i", $line,$re)){$isSuccess=0;continue;}	
+			if(preg_match("#not retranslated#i", $line,$re)){$isSuccess=0;continue;$rp_finish=true;}	
 			if(preg_match("#Retranslation operation result 'Success'#i", $line,$re)){$isSuccess=1;continue;}
 		}
 	
 		if(!$rp_finish){
-			if($GLOBALS["VERBOSE"]){echo "Not finished $filename\n";}
+			if($GLOBALS["VERBOSE"]){echo "Not finished {$timefile}Mn/720Mn $filename\n";}
 			continue;
 		}
 		
@@ -532,7 +574,7 @@ function ScanUpdateUtilityLogs($force=false){
 		
 		echo "$date $files downloaded $size bytes\n";
 		$q=new mysql();
-		$details=mysql_escape_string($details);
+		$details=mysql_escape_string2($details);
 		$q->QUERY_SQL("INSERT INTO updateutilityev (`zDate`,`filesize`,`filesnum`,`details`,`isSuccess`) 
 				VALUES ('$date','$files','$size','$details','$isSuccess')","artica_events");
 		if(!$q->ok){continue;}
@@ -559,7 +601,7 @@ function UpdateUtilitySize($force=false){
 
 		@file_put_contents($pidfile, getmypid());
 		$time=$unix->file_time_min($arrayfile);
-		if($arrayfile<20){return;}
+		if($time<20){return;}
 	}
 
 	$sock=new sockets();
@@ -610,3 +652,117 @@ function UpdateUtilitySize($force=false){
 
 }
 
+function UpdateUtility_Kav4Proxy(){
+	
+	$f[]="[ConnectionSettings]";
+	$f[]="TimeoutConnection=60";
+	$f[]="UsePassiveFtpMode=true";
+	$f[]="UseProxyServer=false";
+	$f[]="AutomaticallyDetectProxyServerSettings=false";
+	$f[]="UseSpecifiedProxyServerSettings=false";
+	$f[]="AddressProxyServer=";
+	$f[]="PortProxyServer=8080";
+	$f[]="UseAuthenticationProxyServer=false";
+	$f[]="UserNameProxyServer=";
+	$f[]="PasswordProxyServer=";
+	$f[]="ByPassProxyServer=true";
+	$f[]="";
+	$f[]="[AdditionalSettings]";
+	$f[]="CreateCrashDumpFile=true";
+	$f[]="TurnTrace=false";
+	$f[]="AddIconToTray=true";
+	$f[]="MinimizeProgramUponTermination=true";
+	$f[]="AnimateIcon=true";
+	$f[]="LanguagesBox=0";
+	$f[]="ReturnCodeDesc=";
+	$f[]="";
+	$f[]="[ReportSettings]";
+	$f[]="DisplayReportsOnScreen=false";
+	$f[]="SaveReportsToFile=true";
+	$f[]="AppendToPreviousFile=true";
+	$f[]="SizeLogFileValue=1048576";
+	$f[]="ReportFileName=/var/log/artica-postfix/UpdateUtility-report-". time().".log";
+	$f[]="DeleteIfSize=true";
+	$f[]="DeleteIfNumDay=false";
+	$f[]="NoChangeLogFile=false";
+	$f[]="NumDayLifeLOgFileValue=7";
+	$f[]="";
+	$f[]="[DirectoriesSettings]";
+	$f[]="MoveToCurrentFolder=false";
+	$f[]="MoveToCustomFolder=true";
+	$f[]="UpdatesFolder=/home/kaspersky/UpdateUtility/databases";
+	$f[]="TempFolder=/home/kaspersky/UpdateUtility/TempFolder";
+	$f[]="ClearTempFolder=true";
+	$f[]="";
+	$f[]="[UpdatesSourceSettings]";
+	$f[]="SourceCustomPath=";
+	$f[]="SourceCustom=false";
+	$f[]="SourceKlabServer=true";
+	$f[]="";
+	$f[]="[DownloadingSettings]";
+	$f[]="DownloadDataBasesAndModules=true";
+	$f[]="";
+	$f[]="[ComponentSettings]";
+	$f[]="DownloadAllDatabases=false";
+	$f[]="DownloadSelectedComponents=true";
+	$f[]="ApplicationsOs=1";
+	$f[]="KasperskyAntiVirus_8_0_0_357_523=false";
+	$f[]="KasperskyAntiVirus_9_0_0_459=false";
+	$f[]="KasperskyAntiVirus_9_0_0_463=false";
+	$f[]="KasperskyAntiVirus_9_0_0_736=false";
+	$f[]="KasperskyAntiVirus_11_0_0_232=false";
+	$f[]="KasperskyAntiVirus_12_0=false";
+	$f[]="KasperskyInternetSecurrity_8_0_0_357_523=false";
+	$f[]="KasperskyInternetSecurrity_9_0_0_459=false";
+	$f[]="KasperskyInternetSecurrity_9_0_0_463=false";
+	$f[]="KasperskyInternetSecurrity_9_0_0_736=false";
+	$f[]="KasperskyInternetSecurrity_11_0_0_232=false";
+	$f[]="KasperskyInternetSecurrity_12_0=false";
+	$f[]="KasperskyPure_9_0_0_192_199=false";
+	$f[]="KasperskyAntiVirus_8_0_2_460=false";
+	$f[]="KasperskyEndpointSecurityForWinWKS_8=false";
+	$f[]="KasperskyEndpointSecurityForMacOSX_8=false";
+	$f[]="KasperskyEndpointSecurityForLinux_8=false";
+	$f[]="KasperskySmallOfficeSecurityPC_9_1_0_59=false";
+	$f[]="KasperskyAntiVirusWindowsWorkstation_6_0_4_1212=false";
+	$f[]="KasperskyAntiVirusWindowsWorkstation_6_0_4_1424=false";
+	$f[]="KasperskyAntiVirusSOS_6_0_4_1212=false";
+	$f[]="KasperskyAntiVirusSOS_6_0_4_1424=false";
+	$f[]="KasperskyEndpointSecurityForWinFS_8=false";
+	$f[]="KasperskySmallOfficeSecurityFS_9_1_0_59=false";
+	$f[]="KasperskyAntiVirusWindowsServer_6_0_4_1212=false";
+	$f[]="KasperskyAntiVirusWindowsServer_6_0_4_1424=false";
+	$f[]="KasperskyAntiVirusWindowsServerEE_8_0=false";
+	$f[]="KasperskyAntiVirusLinuxFileServerWorkstation_8=false";
+	$f[]="KasperskySecurityMicrosoftExchangeServer_8_0=false";
+	$f[]="KasperskyAntiVirusLotusNotesDomino_8_0=false";
+	$f[]="KasperskyMailGateway_5_6_28_0=false";
+	$f[]="KasperskyAntiSpam_3_0_284_1=false";
+	$f[]="KasperskyAntiVirusMicrosoftIsaServers_8_0_3586=false";
+	$f[]="KasperskyAdministrationKit_8_0_2048_2090=false";
+	$f[]="KasperskySecurityCenter_9=false";
+	$f[]="KasperskyAntiVirusProxyServer_5_5=true";
+	$f[]="KasperskyAntiVirusProxyServer_5_5_41_51=true";
+	$f[]="KasperskyAntiVirusProxyServer_5_5_62=true";
+	$f[]="";
+	$f[]="[ShedulerSettings]";
+	$f[]="LastUpdate=@Variant(�����)";
+	$f[]="ShedulerType=0";
+	$f[]="PeriodValue=1";
+	$f[]="UseTime=true";
+	$f[]="Time=@Variant()";
+	$f[]="Monday=true";
+	$f[]="Tuesday=true";
+	$f[]="Wednesday=true";
+	$f[]="Thursday=true";
+	$f[]="Friday=true";
+	$f[]="Saturday=true";
+	$f[]="Sunday=true";
+	$f[]="";
+	$f[]="[SdkSettings]";
+	$f[]="PrimaryIndexFileName=u0607g.xml";
+	$f[]="PrimaryIndexRelativeUrlPath=index";
+	$f[]="LicensePath=";
+	$f[]="SimpleModeLicensing=true";	
+	
+}

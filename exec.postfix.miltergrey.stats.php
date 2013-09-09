@@ -15,6 +15,9 @@ if(preg_match("#--unlimit#",implode(" ",$argv))){$GLOBALS["ULIMITED"]=true;}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--verb2#",implode(" ",$argv))){$GLOBALS["VERBOSE2"]=true;}
 
+if($argv[1]=="--count"){count_tables_hours();die();}
+
+
 
 
 MiltergreyList_days();
@@ -32,34 +35,48 @@ function MiltergreyList_days(){
 	}
 	
 	@file_put_contents($pidfile, getmypid());
-	
-	if(system_is_overloaded(basename(__FILE__))){
-		system_admin_events("Overloaded system, aborting", __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
-		return;
-	}	
+	if(!$GLOBALS["FORCE"]){
+		if(system_is_overloaded(basename(__FILE__))){
+			system_admin_events("Overloaded system, aborting", __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
+			return;
+		}	
+	}
 	
 	
 	$q=new mysql_postfix_builder();
+	if($GLOBALS["VERBOSE"]){
+		echo "Scanning tables...\n";
+	}
 	$tables=$q->LIST_MILTERGREYLIST_HOUR_TABLES();
 	$currentHour=date("Y-m-d h");
 
 	if(is_array($tables)){
 		while (list ($tablesource, $time) = each ($tables) ){
+			
+			if(date("Y",$time)=="1970"){
+				$q->QUERY_SQL("DROP TABLE $tablesource");
+				continue;
+			}
+			
 			if( date("Y-m-d H",$time)== $currentHour ){
 				if($GLOBALS["VERBOSE"]){echo "Skipping $currentHour\n";}
 				continue;}
 			if($GLOBALS["VERBOSE"]){echo "Processing $tablesource: ".date("Y-m-d H",$time)."\n";}
 			if(MiltergreyList_scan($tablesource,$time)){
-				$q->QUERY_SQL("DROP TABLE $tablesource");
+				if($GLOBALS["VERBOSE"]){echo "DUMP_TABLE $tablesource: ".date("Y-m-d H",$time)."\n";}
+				if($q->DUMP_TABLE($tablesource)){
+					$q->QUERY_SQL("DROP TABLE $tablesource");
+				}
 			}
 			
 		}
 	
 	}
-	
-	if(system_is_overloaded(basename(__FILE__))){
-		system_admin_events("Overloaded system, aborting", __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
-		return;
+	if(!$GLOBALS["FORCE"]){
+		if(system_is_overloaded(basename(__FILE__))){
+			system_admin_events("Overloaded system, aborting", __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
+			return;
+		}
 	}	
 
 	$tables=$q->LIST_MILTERGREYLIST_DAY_TABLES();
@@ -99,19 +116,20 @@ function MiltergreyList_scan($tablesource,$time){
 		$zmd5=md5(serialize($ligne));
 		$zhour=$ligne["zhour"];
 		$hits=$ligne["hits"];
-		$mailfrom=mysql_escape_string($ligne["mailfrom"]);
-		$instancename=mysql_escape_string($ligne["instancename"]);
-		$mailfrom=mysql_escape_string($ligne["mailfrom"]);
-		$mailto=mysql_escape_string($ligne["mailto"]);
+		$mailfrom=mysql_escape_string2($ligne["mailfrom"]);
+		$instancename=mysql_escape_string2($ligne["instancename"]);
+		$mailfrom=mysql_escape_string2($ligne["mailfrom"]);
+		$mailto=mysql_escape_string2($ligne["mailto"]);
 		
-		$domainfrom=mysql_escape_string($ligne["domainfrom"]);
-		$domainto=mysql_escape_string($ligne["domainto"]);
-		$mailto=mysql_escape_string($ligne["mailto"]);
-		$senderhost=mysql_escape_string($ligne["senderhost"]);
+		$domainfrom=mysql_escape_string2($ligne["domainfrom"]);
+		$domainto=mysql_escape_string2($ligne["domainto"]);
+		$mailto=mysql_escape_string2($ligne["mailto"]);
+		$senderhost=mysql_escape_string2($ligne["senderhost"]);
 		$failed=$ligne["failed"];
 		$f[]="('$zmd5','$hits','$zhour','$mailfrom','$instancename','$mailto','$domainfrom','$domainto','$senderhost','$failed')";
 		
 		if(count($f)>500){
+			if($GLOBALS["VERBOSE"]){echo $NextTable." "."500\n";}
 			$q->QUERY_SQL($prefix.@implode(",", $f),$database);
 			if(!$q->ok){return false;}
 			$f=array();
@@ -120,6 +138,7 @@ function MiltergreyList_scan($tablesource,$time){
 	}
 	
 	if(count($f)>0){
+		if($GLOBALS["VERBOSE"]){echo $NextTable." ".count($f)."\n";}
 		$q->QUERY_SQL($prefix.@implode(",", $f),$database);
 		if(!$q->ok){return false;}
 		$f=array();		
@@ -127,6 +146,15 @@ function MiltergreyList_scan($tablesource,$time){
 	}
 	return true;
 }
+
+function count_tables_hours(){
+	$dir="/var/lib/mysql/postfixlog";
+	$unix=new unix();
+	return $unix->COUNT_FILES($dir);
+	
+	
+}
+
 function MiltergreyList_month($tablesource,$time){
 	$q=new mysql_postfix_builder();
 	if(date("Y-m-d")==date("Y-m-d",$time)){return false;}
@@ -149,14 +177,14 @@ function MiltergreyList_month($tablesource,$time){
 		$zday=date("Y-m-d",$time);
 		$zmd5=md5(serialize($ligne).$zday);
 		$hits=$ligne["hits"];
-		$mailfrom=mysql_escape_string($ligne["mailfrom"]);
-		$instancename=mysql_escape_string($ligne["instancename"]);
-		$mailfrom=mysql_escape_string($ligne["mailfrom"]);
-		$mailto=mysql_escape_string($ligne["mailto"]);
-		$domainfrom=mysql_escape_string($ligne["domainfrom"]);
-		$domainto=mysql_escape_string($ligne["domainto"]);
-		$mailto=mysql_escape_string($ligne["mailto"]);
-		$senderhost=mysql_escape_string($ligne["senderhost"]);
+		$mailfrom=mysql_escape_string2($ligne["mailfrom"]);
+		$instancename=mysql_escape_string2($ligne["instancename"]);
+		$mailfrom=mysql_escape_string2($ligne["mailfrom"]);
+		$mailto=mysql_escape_string2($ligne["mailto"]);
+		$domainfrom=mysql_escape_string2($ligne["domainfrom"]);
+		$domainto=mysql_escape_string2($ligne["domainto"]);
+		$mailto=mysql_escape_string2($ligne["mailto"]);
+		$senderhost=mysql_escape_string2($ligne["senderhost"]);
 		$failed=$ligne["failed"];
 		$f[]="('$zmd5','$hits','$zday','$mailfrom','$instancename','$mailto','$domainfrom','$domainto','$senderhost','$failed')";
 

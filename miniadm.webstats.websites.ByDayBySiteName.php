@@ -133,7 +133,7 @@ function uid_search(){
 	
 	$search=string_to_flexquery("uid-search");
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
-	$sitename=mysql_escape_string($_GET["sitename"]);
+	$sitename=mysql_escape_string2($_GET["sitename"]);
 	$sql="SELECT SUM(size) as size, sum(hits) as hits,uid,sitename FROM $table
 	GROUP BY uid,sitename HAVING `sitename`='$sitename' $search $ORDER LIMIT 0,500";
 	
@@ -186,7 +186,7 @@ function graph1(){
 	$ff=time();
 	
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$sitename=mysql_escape_string($_GET["sitename"]);	
+	$sitename=mysql_escape_string2($_GET["sitename"]);	
 	
 	$sql="SELECT SUM(hits) as thits, `hour`,`sitename` FROM $tablename GROUP BY `hour`,`sitename` 
 	HAVING `sitename`='$sitename'
@@ -226,7 +226,7 @@ function graph1_1(){
 	$ff=time();
 	
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$sitename=mysql_escape_string($_GET["sitename"]);
+	$sitename=mysql_escape_string2($_GET["sitename"]);
 	
 	
 	
@@ -274,7 +274,7 @@ function graph2(){
 	$ff=time();
 
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$sitename=mysql_escape_string($_GET["sitename"]);
+	$sitename=mysql_escape_string2($_GET["sitename"]);
 	$sql="SELECT SUM(hits) as thits, sitename,uid FROM `$tablename`
 	GROUP BY familysite,uid 
 	HAVING familysite='$sitename'
@@ -312,7 +312,7 @@ function graph3(){
 	$ff=time();
 
 	$tablename=date("Ymd",$_GET["xtime"])."_hour";
-	$sitename=mysql_escape_string($_GET["sitename"]);
+	$sitename=mysql_escape_string2($_GET["sitename"]);
 	
 	$sql="SELECT SUM(size) as thits, sitename,uid FROM `$tablename`
 	GROUP BY sitename,uid 

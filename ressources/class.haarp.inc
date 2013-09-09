@@ -86,7 +86,7 @@ class haarp{
 			$prefix="INSERT IGNORE INTO haarp_redirpats (`pattern`) VALUES ";
 			
 			while (list ($index, $line) = each ($f) ){
-				$line=mysql_escape_string($line);
+				$line=$this->mysql_escape_string2($line);
 				$N[]="('$line')";
 				
 				
@@ -103,6 +103,17 @@ class haarp{
 		}
 		
 		
+	}
+	
+	private function mysql_escape_string2($line){
+		$search=array("\\","\0","\n","\r","\x1a","'",'"');
+		$replace=array("\\\\","\\0","\\n","\\r","\Z","\'",'\"');
+		return str_replace($search,$replace,$line);
+		if(function_exists("mysql_real_escape_string")){
+			return mysql_real_escape_string($line);
+		}
+		return mysql_escape_string($line);
+	
 	}
 	
 	

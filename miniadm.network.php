@@ -1,6 +1,9 @@
 <?php
 session_start();
-
+header("Pragma: no-cache");
+header("Expires: 0");
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+header("Cache-Control: no-cache, must-revalidate");
 ini_set('display_errors', 1);
 ini_set('error_reporting', E_ALL);
 ini_set('error_prepend_string',"<p class='text-error'>");
@@ -31,7 +34,161 @@ if(isset($_POST["csv"])){save_options_save();exit;}
 if(isset($_GET["csv"])){csv_download();exit;}
 
 
+if(isset($_GET["SaveNet-refresh"])){save_network_js2();exit;}
+if(isset($_POST["SaveNet-refresh"])){save_network_results();exit;}
+if(isset($_GET["save-network"])){save_network_js();exit;}
+if(isset($_GET["save-network-popup"])){save_network_popup();exit;}
+if(isset($_GET["apply-network"])){BuildNetConf();exit;}
 main_page();
+
+
+function save_network_js2(){
+	$t=$_GET["t"];
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$html="
+var XCheck$t = function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){
+		document.getElementById('code$t').innerHTML=results;
+		ExecuteByClassName('SearchFunction');
+		if(document.getElementById('NetFileGeneratedConfig')){ NetFileGeneratedConfigfnt();}
+	}
+	setTimeout('Check$t()',1000);
+}
+
+var NetFileGeneratedConfigfnt$t = function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){
+		document.getElementById('NetFileGeneratedConfig').value=results;
+		
+	}
+	
+}
+function NetFileGeneratedConfigfnt(){
+	NetFileGeneratedConfig
+	var XHR = new XHRConnection();
+	XHR.appendData('initdajax','yes');
+	XHR.sendAndLoad('miniadm.network.interfaces.php', 'GET',NetFileGeneratedConfigfnt$t);	
+
+}
+	
+	
+	function Check$t(){
+		if(!YahooSetupControlOpen()){return;}
+		if(!document.getElementById('code$t')){return;}
+		var XHR = new XHRConnection();
+		XHR.appendData('SaveNet-refresh','yes');
+		XHR.sendAndLoad('$page', 'POST',XCheck$t);		
+	}
+	
+	Check$t();		
+			
+	";
+	echo $html;
+	
+	
+}
+
+
+
+function save_network_js(){
+$sock=new sockets();
+$users=new usersMenus();
+header("content-type: application/x-javascript");
+$sock->getFrameWork("cmd.php?virtuals-ip-reconfigure=yes");
+
+$page=CurrentPageName();
+$tpl=new templates();
+$title=$tpl->javascript_parse_text("{save_network_settings}");
+$html="YahooSetupControlModalFixed('700','$page?save-network-popup=yes','$title')";
+echo $html;
+
+}
+
+function save_network_popup(){
+
+	$f=explode("\n",file_get_contents("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html"));
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$t=time();
+	$title=$tpl->_ENGINE_parse_body("{close}");
+	krsort($f);
+	$html="<div style='width:100%;height:550px;overflow:auto' id='code$t'>
+			<div><code style='font-size:12px;white-space:normal;background-color:transparent;border:0px'>";
+	while (list ($index, $val) = each ($f) ){
+		$html=$html."$val<br>";
+	
+	}
+	
+	echo $html."</code></div></div>
+	<hr>
+	<center style='margin:5px'>".button($title, "YahooSetupControlHide()",16)."</center>
+	<script>
+		function Refresh$t(){
+			Loadjs('$page?SaveNet-refresh=yes&t=$t');
+			
+		}
+		setTimeout('Refresh$t()',1000);
+	</script>
+	
+	";	
+	
+}
+
+function save_network_results(){
+	header("Pragma: no-cache");
+	header("Expires: 0");
+	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+	header("Cache-Control: no-cache, must-revalidate");	
+	
+	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html")){
+		senderrors("exec.virtuals-ip.php.html no such file, lease wait..;");
+	}
+	
+	$f=explode("\n",file_get_contents("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html"));
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$t=time();
+	$title=$tpl->_ENGINE_parse_body("{close}");
+	krsort($f);	
+	$html="
+	<div><code style='font-size:12px;white-space:normal;background-color:transparent;border:0px'>";
+	while (list ($index, $val) = each ($f) ){
+	$html=$html."$val<br>";
+	
+	}
+	
+	echo $html."</code></div>";	
+}
+
+
+function BuildNetConf(){
+	$tpl=new templates();
+	$sock=new sockets();
+	$users=new usersMenus();
+	$apply_network_configuration_warn=$tpl->javascript_parse_text("{apply_network_configuration_warn}");
+	header("content-type: application/x-javascript");
+	$t=time();
+		
+$html="var X_BuildNetConf$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>0){alert(results);}
+		ExecuteByClassName('SearchFunction');
+			
+	}	
+	
+	function BuildNetConf$t(){
+		if(confirm('$apply_network_configuration_warn ?')){
+			var XHR = new XHRConnection();
+			XHR.appendData('BuildNetConf',1);
+			XHR.sendAndLoad('system.nic.config.php', 'GET',X_BuildNetConf$t);
+		}
+	}
+	BuildNetConf$t();";
+echo $html;	
+	
+}
 
 function main_page(){
 	$page=CurrentPageName();
@@ -59,7 +216,9 @@ function content(){
 	$tpl=new templates();
 	$t=$_GET["t"];
 	$ff=time();
-		
+
+	$buuton0=button("{save_network_settings}", "Loadjs('$page?save-network=yes')");
+	$buuton1=button("{compile_network_settings}", "Loadjs('$page?apply-network=yes')");
 		
 	$html="
 	<div class=BodyContent>
@@ -68,6 +227,7 @@ function content(){
 			&nbsp;&raquo;&nbsp;<a href=\"miniadm.network.php\">{network_services}</a>
 		</div>
 		<H1>{network_services}</H1>
+		<div style='text-align:right'>$buuton0&nbsp;$buuton1</div>
 		<p>{network_services_text}</p>
 	</div>	
 	<div id='webstats-middle-$ff' class=BodyContent></div>
@@ -86,6 +246,15 @@ function webstats_middle(){
 	$users=new usersMenus();
 	$t=time();
 	$boot=new boostrap_form();
+	
+	
+	
+	
+	if(isset($_GET["title"])){
+		$buuton0=button("{save_network_settings}", "Loadjs('$page?save-network=yes')");
+		$buuton1=button("{compile_network_settings}", "Loadjs('$page?apply-network=yes')");
+		$title=$tpl->_ENGINE_parse_body("<div style='float:right'>$buuton0&nbsp;$buuton1</div><H3>{network_services}</H3><p>{network_services_text}</p>");
+	}
 	
 	if(isNetSessions()){
 		$array["{edit_networks}"]="miniadm.network.interfaces.php";
@@ -112,9 +281,11 @@ function webstats_middle(){
 	if($_SESSION["AllowChangeDomains"]){
 		$array["{manage_internet_domains}"]="miniadm.smtpdom.php?webstats-middle=yes&title=yes";
 	}
+
+	$array["{etc_hosts}"]="miniadm.network.etchosts.php";
 	$array["{computers}"]="miniadm.computers.browse.php?page=yes";
 	//$array["{events}"]="$page?events=yes";
-	echo $boot->build_tab($array);
+	echo $title.$boot->build_tab($array);
 	return;
 	ini_set('display_errors', 1);
 	ini_set('error_reporting', E_ALL);
@@ -154,7 +325,7 @@ function webstats_middle(){
 	$tr[]=$dhcp;
 	$tr[]=$domains;
 	$tr[]=$pdns;
-	echo $tpl->_ENGINE_parse_body(CompileTr3($tr));
+	echo $title.$tpl->_ENGINE_parse_body(CompileTr3($tr));
 }	
 function CalcCdir(){
 	if(isset($_GET["netmask"])){$netmask=$_GET["netmask"];}

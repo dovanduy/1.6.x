@@ -1,5 +1,5 @@
 <?php
-
+include_once(dirname(__FILE__)."/class.tcpip.inc");
 class resolv_conf{
 	
 	var $MainArray=array();
@@ -18,6 +18,11 @@ class resolv_conf{
 			$this->buildDefault();
 		}
 		
+		if(!isset($this->MainArray["TIMEOUT"])){$this->MainArray["TIMEOUT"]=5;}
+		if(!isset($this->MainArray["ATTEMPTS"])){$this->MainArray["ATTEMPTS"]=5;}
+		if(!isset($this->MainArray["USEROTATION"])){$this->MainArray["USEROTATION"]=0;}
+		if(!isset($this->MainArray["DOMAINS1"])){$this->MainArray["DOMAINS1"]=$this->SearchPrinciPalDomain();}
+		
 		if(!is_numeric($this->MainArray["TIMEOUT"])){$this->MainArray["TIMEOUT"]=5;}
 		if(!is_numeric($this->MainArray["ATTEMPTS"])){$this->MainArray["ATTEMPTS"]=5;}
 		if(!is_numeric($this->MainArray["USEROTATION"])){$this->MainArray["USEROTATION"]=0;}
@@ -31,6 +36,10 @@ class resolv_conf{
 		$this->MainArray["DNS1"]=$this->arrayNameServers[0];
 		$this->MainArray["DNS2"]=$this->arrayNameServers[1];
 		$this->MainArray["DNS3"]=$this->arrayNameServers[2];
+		$ip=new IP();
+		if(!$ip->isValid($this->MainArray["DNS1"])){unset($this->MainArray["DNS1"]);}
+		if(!$ip->isValid($this->MainArray["DNS2"])){unset($this->MainArray["DNS2"]);}
+		if(!$ip->isValid($this->MainArray["DNS3"])){unset($this->MainArray["DNS3"]);}
 		
 		
 	}
@@ -83,6 +92,11 @@ class resolv_conf{
 		if($this->MainArray["DNS2"]<>null){$f[]="nameserver {$this->MainArray["DNS2"]}";}
 		if($this->MainArray["DNS3"]<>null){$f[]="nameserver {$this->MainArray["DNS3"]}";}
 		return @implode("\n", $f)."\n";
+	}
+	
+	private function DNSLIST_AS_ROOT(){
+		exec("/usr/share/artica-postfix/bin/artica-install --local-dns 2>&1",$results);
+		return implode("",$results);
 	}
 	
 	

@@ -23,6 +23,10 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 include_once(dirname(__FILE__).'/ressources/class.squid.youtube.inc');
+
+$sock=new sockets();
+$sock->SQUID_DISABLE_STATS_DIE();
+
 $GLOBALS["Q"]=new mysql_squid_builder();
 
 if($argv[1]=="--table"){process_table($argv[2]);exit;}

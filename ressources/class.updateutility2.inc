@@ -7,6 +7,7 @@ var $families=array();
 var $ALL_PKEYS=array();
 	
 	function updateutilityv2(){
+		if(!isset($GLOBALS["AS_ROOT"])){if(posix_geteuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
 		$sock=new sockets();
 		$DefaultConfig=base64_decode($sock->GET_INFO("UpdateUtilityV2Config"));
 		if($DefaultConfig==null){$DefaultConfig=$this->default_settings_string();}
@@ -135,7 +136,11 @@ var $ALL_PKEYS=array();
 	
 	private function ParseProductList(){
 		$sock=new sockets();
-		$localfile=base64_decode($sock->getFrameWork("services.php?updateutility-local=yes"));
+		if($GLOBALS["AS_ROOT"]){
+			$localfile=@file_get_contents("/etc/UpdateUtility/locale.ini");
+		}else{
+			$localfile=base64_decode($sock->getFrameWork("services.php?updateutility-local=yes"));
+		}
 		$GLOBALS["LOCAL_FILES"]=explode("\n",$localfile);
 		$GLOBALS["UPDATE_LOCAL"]=new Bs_IniHandler();
 		$GLOBALS["UPDATE_LOCAL"]->loadString($localfile);

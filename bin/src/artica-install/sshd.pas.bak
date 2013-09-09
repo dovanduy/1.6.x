@@ -20,8 +20,6 @@ private
      artica_path:string;
      EnableSSHD:integer;
      binpath:string;
-     TAIL_STARTUP:string;
-    function    TAIL_PID():string;
 public
     procedure   Free;
     constructor Create(const zSYS:Tsystem);
@@ -182,162 +180,17 @@ end;
 end;
 //##############################################################################
 procedure tsshd.START_LOGGER();
-var
-   count:integer;
-   cmd:string;
-   su,nohup:string;
-   conf:TiniFile;
-   enabled:integer;
-   RegExpr:TRegExpr;
-   servername:string;
-   tmpfile:string;
-   authlog:string;
 begin
-
-   if not FileExists(binpath) then begin
-         logs.DebugLogs('Starting......: OpenSSH not installed');
-         exit;
-   end;
-
-
-
-if EnableSSHD=0 then begin
-   logs.DebugLogs('Starting......:  OpenSSH is disabled');
-   STOP();
-   exit;
-end;
-
-
-
-
-if SYS.PROCESS_EXIST(TAIL_PID()) then begin
-   logs.DebugLogs('Starting......:  OpenSSH watchdog Already running using PID ' +PID_NUM()+ '...');
-   exit;
-end;
-
-authlog:=SYS.LOCATE_AUTHLOG_PATH();
-if not FileExists(authlog) then if FIleExists('/var/log/auth.log') then authlog:='/var/log/auth.log';
-if not FileExists(authlog) then if FIleExists('/var/log/syslog') then authlog:='/var/log/syslog';
-if not FileExists(authlog) then if FIleExists('/var/log/messages') then authlog:='/var/log/messages';
-
-   if not FileExists(authlog) then begin
-      logs.DebugLogs('Starting......: OpenSSH watchdog server unable to stat auth.log');
-      exit;
-   end;
-   logs.DebugLogs('Starting......: OpenSSH watchdog server watch "'+authlog+'"...');
-   cmd:='/usr/bin/tail -f -n 0 '+authlog+'|'+TAIL_STARTUP+' >>/var/log/artica-postfix/auth-logger-start.log 2>&1 &';
-   logs.DebugLogs('Starting......: OpenSSH watchdog server...');
-
-   fpsystem(cmd);
-   count:=0;
-   while not SYS.PROCESS_EXIST(TAIL_PID()) do begin
-     sleep(300);
-     inc(count);
-     if count>50 then begin
-       logs.DebugLogs('Starting......: OpenSSH watchdog (timeout!!!)');
-       logs.DebugLogs('Starting......: OpenSSH watchdog "'+cmd+'"');
-       break;
-     end;
-   end;
-
-
-
-
-   if not SYS.PROCESS_EXIST(TAIL_PID()) then begin
-       logs.DebugLogs('Starting......: OpenSSH watchdog (failed!!!)');
-   end else begin
-       logs.DebugLogs('Starting......: OpenSSH watchdog started with new PID '+TAIL_PID());
-   end;
-
+fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --auth-tail');
+fpsystem('/etc/init.d/auth-tail start');
 end;
 //##############################################################################
 procedure tsshd.STOP_LOGGER();
-var
-   count:integer;
-   RegExpr:TRegExpr;
-   cmd:string;
-   CountTail:Tstringlist;
-   pidstring,pid:string;
-   fpid,i,pidint:integer;
-   authlog:string;
-   cmdline:string;
-   authlog_regex:string;
 begin
-if not FileExists(binpath) then begin
-   writeln('Stopping OpenSSH watchdog....: Not installed');
-   exit;
+fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --auth-tail');
+fpsystem('/etc/init.d/auth-tail stop');
 end;
-
-if not SYS.PROCESS_EXIST(TAIL_PID()) then begin
-   writeln('Stopping OpenSSH watchdog....: Already Stopped');
-   exit;
-end;
-   pidstring:=TAIL_PID();
-   writeln('Stopping OpenSSH watchdog....: ' + pidstring + ' PID..');
-   cmd:='/bin/kill '+pidstring;
-   fpsystem(cmd);
-
-   count:=0;
-   while SYS.PROCESS_EXIST(pidstring) do begin
-        sleep(200);
-        count:=count+1;
-        if count>50 then begin
-            if length(pidstring)>0 then begin
-               if SYS.PROCESS_EXIST(pidstring) then begin
-                  writeln('Stopping OpenSSH watchdog....: kill pid '+ pidstring+' after timeout');
-                  fpsystem('/bin/kill -9 ' + pidstring);
-               end;
-            end;
-            break;
-        end;
-        pidstring:=TAIL_PID();
-  end;
-
-
-CountTail:=Tstringlist.Create;
-authlog:=SYS.LOCATE_AUTHLOG_PATH();
-if not FileExists(authlog) then if FIleExists('/var/log/auth.log') then authlog:='/var/log/auth.log';
-if not FileExists(authlog) then if FIleExists('/var/log/syslog') then authlog:='/var/log/syslog';
-if not FileExists(authlog) then if FIleExists('/var/log/messages') then authlog:='/var/log/messages';
-
-
-CountTail.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('/usr/bin/tail -f -n 0 '+authlog));
-writeln('Stopping OpenSSH watchdog....: Tail "',authlog,'" processe(s) number '+IntToStr(CountTail.Count));
-     count:=0;
-     for i:=0 to CountTail.Count-1 do begin;
-          pid:=CountTail.Strings[i];
-          if count>100 then break;
-          if not TryStrToInt(pid,pidint) then continue;
-          cmdline:=logs.ReadFromFile('/proc/'+pid+'/cmdline');
-          writeln('Stopping OpenSSH watchdog....: Stop tail pid '+pid,' "',trim(cmdline),'"');
-          if pidint>0 then  fpsystem('/bin/kill '+pid);
-          sleep(100);
-          inc(count);
-      end;
-   RegExpr.free;
-   if not SYS.PROCESS_EXIST(TAIL_PID()) then  writeln('Stopping OpenSSH watchdog....: Stopped');
-end;
-
- //##############################################################################
-
-function tsshd.TAIL_PID():string;
-var
-   pid:string;
-begin
-
-if FileExists('/etc/artica-postfix/exec.auth-tail.php.pid') then begin
-   pid:=SYS.GET_PID_FROM_PATH('/etc/artica-postfix/exec.auth-tail.php.pid');
-   logs.Debuglogs('TAIL_PID /etc/artica-postfix/exec.auth-tail.php.pid='+pid);
-   if SYS.PROCESS_EXIST(pid) then result:=pid;
-   exit;
-end;
-
-
-result:=SYS.PIDOF_PATTERN(TAIL_STARTUP);
-logs.Debuglogs(TAIL_STARTUP+' pid='+pid);
-end;
-//#####################################################################################
-
+//##############################################################################
 function tsshd.STATUS():string;
 var
 pidpath:string;

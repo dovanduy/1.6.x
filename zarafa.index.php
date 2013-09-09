@@ -275,6 +275,33 @@ function services_status(){
 	$tpl=new templates();		
 	$sock=new sockets();
 	$users=new usersMenus();
+	$timefile="/usr/share/artica-postfix/ressources/databases/ZARAFA_DB_STATUS.db";
+	$ARRAY=unserialize(@file_get_contents($timefile));
+	$ttr=array();
+	if(isset($ARRAY["ZARAFA_INDEX"])){
+		if($ARRAY["ZARAFA_INDEX"]>0){
+			$ttr[]="<tr><td style='font-size:14px;height:42px'>{indexes_size}:</td><td style='font-size:14px;font-weight:bold'>". FormatBytes($ARRAY["ZARAFA_INDEX"]/1024)."</td></tr>";
+		}
+		
+	}
+	if(isset($ARRAY["ZARAFA_DB"])){
+		if($ARRAY["ZARAFA_DB"]>0){
+			$ttr[]="<tr><td style='font-size:14px;height:42px'>{database_size}:</td><td style='font-size:14px;font-weight:bold'>". FormatBytes($ARRAY["ZARAFA_DB"]/1024)."</td></tr>";
+		}
+	
+	}	
+	if(isset($ARRAY["ATTACHS"])){
+		if($ARRAY["ATTACHS"]>0){
+			$ttr[]="<tr><td style='font-size:14px;height:48px'>{attachments_path}:</td><td style='font-size:14px;font-weight:bold'>". FormatBytes($ARRAY["ATTACHS"]/1024)."</td></tr>";
+		}
+	
+	}	
+	
+	if(count($ttr)>0){
+		$tr[]=RoundedLightGreen("<table style='width:100%;background-color:#D5EED9;font-size:11px;line-height:auto' 
+				class='TableRemove TableMarged'>".@implode("", $ttr)."</table>");
+		
+	}
 	
 	$array[]="APP_ZARAFA";
 	$array[]="APP_ZARAFA_SERVER2";
@@ -309,6 +336,10 @@ function services_status(){
 		$tr[]=DAEMON_STATUS_ROUND($ligne,$ini,null,1);
 		
 	}
+	
+	
+	
+	
 $tables[]="<div style='width:95%' class=form>";	
 if(isset($_GET["miniadm"])){
 	$tables[]=CompileTr4($tr,true);

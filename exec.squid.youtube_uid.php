@@ -24,6 +24,9 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 include_once(dirname(__FILE__).'/ressources/class.squid.youtube.inc');
 
+$sock=new sockets();
+$sock->SQUID_DISABLE_STATS_DIE();
+
 if($argv[1]=="--reset"){youtube_reset();exit;}
 if($argv[1]=="--all"){youtube_all();exit;}
 
@@ -117,8 +120,8 @@ function youtube_uid_from_hourtable($tablename,$time){
 		$md5=md5("$uid$zdate$youtubeid$category");
 		
 		$UIDS[$uid]=true;
-		$uid=mysql_escape_string($uid);
-		$category=mysql_escape_string($category);
+		$uid=mysql_escape_string2($uid);
+		$category=mysql_escape_string2($category);
 		$f[$uid][]="('$md5','$zdate','$youtubeid','$category','$hits')";
 		if($c>1000){
 			if(!youtube_uid_parse_array($f)){
@@ -286,8 +289,8 @@ function youtube_all_from_hourtable($tablename){
 	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." results...\n";}
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 		$md5=md5(serialize($ligne));
-		$ligne["uid"]=mysql_escape_string($ligne["uid"]);
-		$category=mysql_escape_string($youtube->youtube_category($ligne["youtubeid"]));
+		$ligne["uid"]=mysql_escape_string2($ligne["uid"]);
+		$category=mysql_escape_string2($youtube->youtube_category($ligne["youtubeid"]));
 		$f[]="('$md5','{$ligne["hits"]}','{$ligne["zDate"]}','{$ligne["uid"]}','{$ligne["MAC"]}','{$ligne["youtubeid"]}','$category')";
 		if(count($f)>500){
 			$q->QUERY_SQL($prefix.@implode(",", $f));

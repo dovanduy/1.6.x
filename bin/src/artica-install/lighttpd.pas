@@ -391,7 +391,7 @@ begin
 
           forcedirectories('/var/run/lighttpd');
           if length(logs_path)>0 then forcedirectories(logs_path);
-          logs.Debuglogs('Starting......: lighttpd:  Checking securities on '+user+':'+group);
+          logs.Debuglogs('Starting......: [INIT]: Artica PHP  Checking securities on '+user+':'+group);
           logs.OutputCmd('/bin/chown -R '+user+':'+group+' /var/run/lighttpd');
           logs.OutputCmd('/bin/chown -R '+user+':'+group+' '+ logs_path);
 
@@ -423,18 +423,18 @@ var
    i:integer;
 begin
     if not FileExists('/var/log/lighttpd/error.log') then begin
-       logs.Debuglogs('Starting......: lighttpd: unable to stat /var/log/lighttpd/error.log (line 454)');
+       logs.Debuglogs('Starting......: [INIT]: Artica PHP unable to stat /var/log/lighttpd/error.log (line 454)');
        exit;
     end;
     sleep(1000);
     tmpstr:=logs.FILE_TEMP();
     fpsystem('tail -n 2 /var/log/lighttpd/error.log >'+tmpstr +' 2>&1');
     if not fileExists(tmpstr) then begin
-       logs.Debuglogs('Starting......: lighttpd: unable to stat '+tmpstr+' (line 461)');
+       logs.Debuglogs('Starting......: [INIT]: Artica PHP unable to stat '+tmpstr+' (line 461)');
        exit;
     end;
 
-    logs.Debuglogs('Starting......: lighttpd: testing if cgi is spawned');
+    logs.Debuglogs('Starting......: [INIT]: Artica PHP testing if cgi is spawned');
 
     l:=Tstringlist.Create;
     l.LoadFromFile(tmpstr);
@@ -443,15 +443,15 @@ begin
     RegExpr.Expression:='mod_fastcgi.+?spawning fcgi failed';
     for i:=0 to l.Count-1 do begin
         if RegExpr.Exec(l.Strings[i]) then begin
-            logs.Debuglogs('Starting......: lighttpd: spawning fcgi failed !!');
-            logs.Debuglogs('Starting......: lighttpd: '+l.Strings[i]);
+            logs.Debuglogs('Starting......: [INIT]: Artica PHP spawning fcgi failed !!');
+            logs.Debuglogs('Starting......: [INIT]: Artica PHP '+l.Strings[i]);
             if SYS.PROCESS_EXIST(SYS.PIDOF('artica-make')) then begin
-               logs.Debuglogs('Starting......: lighttpd: stopping artica-make already running');
+               logs.Debuglogs('Starting......: [INIT]: Artica PHP stopping artica-make already running');
                exit;
             end;
             if FIleExists('/usr/share/artica-postfix/ressources/install/APP_PHP.time') then begin
                if SYS.FILE_TIME_BETWEEN_MIN('/usr/share/artica-postfix/ressources/install/APP_PHP.time')<120 then begin
-                    logs.Debuglogs('Starting......: lighttpd: need more than 60mn to restart operation');
+                    logs.Debuglogs('Starting......: [INIT]: Artica PHP need more than 60mn to restart operation');
                     exit;
                end;
             end;
@@ -476,13 +476,13 @@ var
    RegExpr:TRegExpr;
    i:integer;
 begin
-logs.Debuglogs('Starting......: lighttpd: Try to understand why is doesn''t start');
+logs.Debuglogs('Starting......: [INIT]: Artica PHP Try to understand why is doesn''t start');
 tmpstr:=logs.FILE_TEMP();
 cmd:=LIGHTTPD_BIN_PATH()+ ' -f /etc/lighttpd/lighttpd.conf >' +tmpstr +' 2>&1';
 fpsystem(cmd);
 // SSL: Private key does not match the certificate public key
 if not FileExists(tmpstr) then begin
-        logs.Debuglogs('Starting......: lighttpd: could not stat '+ tmpstr);
+        logs.Debuglogs('Starting......: [INIT]: Artica PHP could not stat '+ tmpstr);
         exit;
 end;
 
@@ -494,7 +494,7 @@ for i:=0 to l.Count-1 do begin
     RegExpr.Expression:='SSL.+?Private key does not match the certificate public';
 
     if RegExpr.Exec(l.Strings[i]) then begin
-        logs.Debuglogs('Starting......: lighttpd: detecting SSL key error generate new certificat');
+        logs.Debuglogs('Starting......: [INIT]: Artica PHP detecting SSL key error generate new certificat');
         LIGHTTPD_CERTIFICATE();
         LIGHTTPD_START(true);
         break;
@@ -502,7 +502,7 @@ for i:=0 to l.Count-1 do begin
 
     RegExpr.Expression:='can.+?find username\s+';
     if RegExpr.Exec(l.Strings[i]) then begin
-        logs.Debuglogs('Starting......: lighttpd: detecting username error generate new configuration file');
+        logs.Debuglogs('Starting......: [INIT]: Artica PHP detecting username error generate new configuration file');
         LIGHTTPD_START(true);
         break;
     end;
@@ -511,10 +511,10 @@ for i:=0 to l.Count-1 do begin
     if RegExpr.Exec(l.Strings[i]) then begin
        port:=RegExpr.Match[1];
        tmpstr:=SYS.WHO_LISTEN_PORT(port);
-       logs.Debuglogs('Starting......: lighttpd: Another process already using Port: "' + port+'" ('+tmpstr+')');
+       logs.Debuglogs('Starting......: [INIT]: Artica PHP Another process already using Port: "' + port+'" ('+tmpstr+')');
        RegExpr.Expression:='Pid:([0-9]+);';
        if  RegExpr.Exec(tmpstr) then begin
-           logs.Debuglogs('Starting......: lighttpd: kill process Pid:'+tmpstr);
+           logs.Debuglogs('Starting......: [INIT]: Artica PHP kill process Pid:'+tmpstr);
            fpsystem('/bin/kill -9 '+RegExpr.Match[1]);
             LIGHTTPD_START(true);
             break;
@@ -524,8 +524,8 @@ for i:=0 to l.Count-1 do begin
 
        RegExpr.Expression:='network.+?SSL.+?error';
        if  RegExpr.Exec(l.Strings[i]) then begin
-           logs.Debuglogs('Starting......: lighttpd: FATAL Bug in lighttpd (especially in CentOS 5.4), turn to Apache mode');
-           logs.Debuglogs('Starting......: lighttpd: '+l.Strings[i]);
+           logs.Debuglogs('Starting......: [INIT]: Artica PHP FATAL Bug in lighttpd (especially in CentOS 5.4), turn to Apache mode');
+           logs.Debuglogs('Starting......: [INIT]: Artica PHP '+l.Strings[i]);
            SYS.set_INFO('ApacheArticaEnabled','1');
            halt(0);
            break;
@@ -535,7 +535,7 @@ for i:=0 to l.Count-1 do begin
 
 
 
-    logs.Debuglogs('Starting......: lighttpd: no error found in "'+l.Strings[i]+'"');
+    logs.Debuglogs('Starting......: [INIT]: Artica PHP no error found in "'+l.Strings[i]+'"');
 
 end;
 
@@ -582,7 +582,7 @@ var
 begin
     result:=false;
     if not FileExists(SYS.LOCATE_IPTABLES()) then begin
-         logs.Debuglogs('Starting......: lighttpd: IpTables is not installed');
+         logs.Debuglogs('Starting......: [INIT]: Artica PHP IpTables is not installed');
          exit;
     end;
 tmpstr:=LOGS.FILE_TEMP();
@@ -630,14 +630,14 @@ SYS.OPENSSL_CERTIFCATE_CONFIG();
 
 if Not FileExists('/etc/artica-postfix/ssl.certificate.conf') then begin
    logs.Debuglogs('LIGHTTPD_CERTIFICATE():: unable to stat /etc/artica-postfix/ssl.certificate.conf');
-   logs.Debuglogs('Starting......: lighttpd: unable to stat default certificate infos');
+   logs.Debuglogs('Starting......: [INIT]: Artica PHP unable to stat default certificate infos');
    exit;
 end;
 if length(SYS.OPENSSL_CERTIFCATE_HOSTS())>0 then extensions:=' -extensions HOSTS_ADDONS ';
 
 
 
-logs.Debuglogs('Starting......: lighttpd: Creating certificate using /etc/artica-postfix/ssl.certificate.conf');
+logs.Debuglogs('Starting......: [INIT]: Artica PHP Creating certificate using /etc/artica-postfix/ssl.certificate.conf');
 forcedirectories('/opt/artica/ssl/certs');
 cmd:=openssl_path+' req -new -passin pass:artica -x509 -batch -config /etc/artica-postfix/ssl.certificate.conf '+extensions+'-keyout /opt/artica/ssl/certs/lighttpd.pem -out /opt/artica/ssl/certs/lighttpd.pem -days '+CertificateMaxDays+' -nodes';
 logs.OutputCmd(cmd);
@@ -931,7 +931,7 @@ if not tryStrToint(SYS.GET_INFO('php5UploadMaxFileSize'),php5UploadMaxFileSize) 
    SYS.set_INFO('php5UploadMaxFileSize','256');
 end;
 
-logs.Debuglogs('Starting......: lighttpd: Max upload size set to '+IntToStr(php5UploadMaxFileSize)+'M');
+logs.Debuglogs('Starting......: [INIT]: Artica PHP Max upload size set to '+IntToStr(php5UploadMaxFileSize)+'M');
 
 l.Add('upload_max_filesize = '+IntToStr(php5UploadMaxFileSize)+'M');
 l.Add('allow_url_fopen = On');
@@ -941,8 +941,8 @@ l.Add('default_socket_timeout = 60');
 l.Add('safe_mode = Off');
 if php5FuncOverloadSeven=1 then begin
    if DirectoryExists(roundcube_main_folder()) then begin
-      logs.Debuglogs('Starting......: lighttpd: Warning, mbstring.func_overload is enabled to 7');
-      logs.Debuglogs('Starting......: lighttpd: But RoundCube require 0, switch to 0');
+      logs.Debuglogs('Starting......: [INIT]: Artica PHP Warning, mbstring.func_overload is enabled to 7');
+      logs.Debuglogs('Starting......: [INIT]: Artica PHP But RoundCube require 0, switch to 0');
       l.Add('mbstring.func_overload = 0');
    end else begin
       l.add('mbstring.func_overload = 7');
@@ -994,7 +994,7 @@ if UseSamePHPMysqlCredentials=1 then begin
    PHPDefaultMysqlPass:=SYS.GET_MYSQL('database_password');
 end;
 
-logs.Debuglogs('Starting......: lighttpd: Default mysql settings to "'+PHPDefaultMysqlRoot+'@'+PHPDefaultMysqlserver+':'+intToStr(PHPDefaultMysqlserverPort));
+logs.Debuglogs('Starting......: [INIT]: Artica PHP Default mysql settings to "'+PHPDefaultMysqlRoot+'@'+PHPDefaultMysqlserver+':'+intToStr(PHPDefaultMysqlserverPort));
 
 l.Add('[MySQL]');
 l.Add('mysql.allow_persistent = On');
@@ -1108,12 +1108,12 @@ if DisableEaccelerator=0 then begin
       l.Add('eaccelerator.compress_level="9"');
    end;
 end else begin
-    logs.Debuglogs('Starting......: lighttpd: php.ini key eaccelerator is disabled');
+    logs.Debuglogs('Starting......: [INIT]: Artica PHP php.ini key eaccelerator is disabled');
 end;
 
 if FileExists(SYS.LOCATE_APC_SO()) then begin
    if ApcEnabledInPhp=1 then begin
-      logs.Debuglogs('Starting......: lighttpd: php.ini enable APC client');
+      logs.Debuglogs('Starting......: [INIT]: Artica PHP php.ini enable APC client');
       l.Add('');
       l.Add('extension=apc.so');
       l.Add('[APC]');
@@ -1124,7 +1124,7 @@ if FileExists(SYS.LOCATE_APC_SO()) then begin
       l.add('apc.filters = "-(\.php|\.inc)"');
       l.Add('');
    end else begin
-      logs.Debuglogs('Starting......: lighttpd: php.ini disable APC client');
+      logs.Debuglogs('Starting......: [INIT]: Artica PHP php.ini disable APC client');
    end;
 end;
 
@@ -1133,15 +1133,15 @@ l.Add(PHP5_CHECK_EXTENSIONS());
 zarafa:=tzarafa_server.Create(SYS);
 if FileExists(zarafa.BIN_PATH()) then begin
    if FileExists(SYS.LOCATE_MAPI_SO()) then begin
-     logs.Debuglogs('Starting......: lighttpd: register mapi.so');
+     logs.Debuglogs('Starting......: [INIT]: Artica PHP register mapi.so');
      l.Add('extension=mapi.so');
    end else begin
-      logs.Debuglogs('Starting......: lighttpd: mapi.so no such file !!!');
+      logs.Debuglogs('Starting......: [INIT]: Artica PHP mapi.so no such file !!!');
    end;
 end;
 
 if FileExists('/etc/artica-postfix/php.include.ini') then begin
-      logs.Debuglogs('Starting......: lighttpd: Adding user defined values');
+      logs.Debuglogs('Starting......: [INIT]: Artica PHP Adding user defined values');
       l.Add(logs.ReadFromFile('/etc/artica-postfix/php.include.ini'));
 end;
 
@@ -1158,7 +1158,7 @@ end;
 
   for i:=0 to t.Count-1 do begin
       if FileExists(t.Strings[i]) then begin
-         logs.Debuglogs('Starting......: lighttpd: registers key in '+t.Strings[i]);
+         logs.Debuglogs('Starting......: [INIT]: Artica PHP registers key in '+t.Strings[i]);
          logs.WriteToFile(l.Text,t.Strings[i]);
       end;
   end;
@@ -1172,7 +1172,7 @@ end;
 
 
   fpsystem('/bin/chmod 755 /usr/share/artica-postfix/ressources/profiles');
-  logs.Debuglogs('Starting......: lighttpd: Compile languages');
+  logs.Debuglogs('Starting......: [INIT]: Artica PHP Compile languages');
   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.shm.php --parse-langs');
 
 
@@ -1205,14 +1205,14 @@ begin
 confdir:=SYS.LOCATE_PHP5_EXTCONF_DIR();
 LOCATE_PHP5_EXTENSION_DIR:=sys.LOCATE_PHP5_EXTENSION_DIR();
 if not DirectoryExists(confdir) then begin
-    logs.Debuglogs('Starting......: lighttpd: Unable to stat php5 additional ini files path');
+    logs.Debuglogs('Starting......: [INIT]: Artica PHP Unable to stat php5 additional ini files path');
     exit;
 end;
 
 
 sys.DirFiles(confdir,'*.ini');
 
-logs.Debuglogs('Starting......: lighttpd: Ext dir: '+confdir +'('+ intToSTr(sys.DirListFiles.Count)+' ini files)');
+logs.Debuglogs('Starting......: [INIT]: Artica PHP Ext dir: '+confdir +'('+ intToSTr(sys.DirListFiles.Count)+' ini files)');
 for i:=0 to sys.DirListFiles.Count-1 do begin
     logs.DeleteFile(confdir+'/'+sys.DirListFiles.Strings[i]);
 
@@ -1317,24 +1317,27 @@ if FileExists('/opt/arkeia/wui/httpd/lib/arkphp.so') then begin
        z.add('arkphp.so');
 end;
 
-if LighttpdMinimalLibraries=0 then logs.Debuglogs('Starting......: lighttpd: Loading ALL required libraries');
-if LighttpdMinimalLibraries=1 then logs.Debuglogs('Starting......: lighttpd: Loading minimalist required libraries');
+if LighttpdMinimalLibraries=0 then logs.Debuglogs('Starting......: [INIT]: Artica PHP Loading ALL required libraries');
+if LighttpdMinimalLibraries=1 then logs.Debuglogs('Starting......: [INIT]: Artica PHP Loading minimalist required libraries');
+logs.Debuglogs('Starting......: [INIT]: Artica PHP Libraires stored in "'+LOCATE_PHP5_EXTENSION_DIR+'"');
+
+
 
 //z.add('oauth.so');
 if LighttpdMinimalLibraries=0 then  begin
-   if EnableMemcached=1 then z.add('memcache.so') else logs.Debuglogs('Starting......: lighttpd: memcached is disabled');
+   if EnableMemcached=1 then z.add('memcache.so') else logs.Debuglogs('Starting......: [INIT]: Artica PHP memcached is disabled');
 end;
 
 if NoPHPMcrypt=0 then begin
    z.add('mcrypt.so');
    if LighttpdMinimalLibraries=0 then z.add('ming.so');
 end else begin
-  logs.Debuglogs('Starting......: lighttpd: mcrypt is disabled');
+  logs.Debuglogs('Starting......: [INIT]: Artica PHP mcrypt is disabled');
 end;
 
 
 if DisableEaccelerator=1 then begin
-    logs.Debuglogs('Starting......: lighttpd: eAccelerator is disabled');
+    logs.Debuglogs('Starting......: [INIT]: Artica PHP eAccelerator is disabled');
 end else begin
    if LighttpdMinimalLibraries=0 then  z.add('eaccelerator.so');
 end;
@@ -1347,7 +1350,7 @@ for i:=0 to z.Count-1 do begin
 
      if not FileExists(sofile) then begin
         if FIleExists('/usr/lib/php/modules/'+z.Strings[i]) then begin
-           logs.Debuglogs('Starting......: lighttpd: linking '+z.Strings[i]+' from /usr/lib/php/modules');
+           logs.Debuglogs('Starting......: [INIT]: Artica PHP linking '+z.Strings[i]+' from /usr/lib/php/modules');
            fpsystem('/bin/ln -s /usr/lib/php/modules/'+z.Strings[i] +' '+LOCATE_PHP5_EXTENSION_DIR+'/'+z.Strings[i]);
         end;
      end;

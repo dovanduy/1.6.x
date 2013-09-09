@@ -14,12 +14,13 @@
 	
 	
 	$user=new usersMenus();
-	if($user->AsWebStatisticsAdministrator==false){
-		$tpl=new templates();
-		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
-		die();exit();
-	}	
-	
+	if(!isset($_SESSION["ProxyCategoriesPermissions"][$_GET["category"]])){
+			if($user->AsWebStatisticsAdministrator==false){
+			$tpl=new templates();
+			echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
+			die();exit();
+		}	
+	}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["CheckCompile"])){CheckCompile();exit;}
 	if(isset($_GET["reloadufdb"])){reloadufdb();exit;}

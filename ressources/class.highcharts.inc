@@ -37,7 +37,7 @@ class highcharts{
 			$this->AreaColor="#$borderColor";
 		}
 		
-		if($_SESSION["MINIADM"]){
+		if($_SESSION["MINIADM"]==true){
 			$borderColor="3B5998";
 			$this->AreaColor="#$borderColor";			
 		}
@@ -143,6 +143,10 @@ class highcharts{
 	
 	if($this->ChartType=="areaspline"){
 		if(count($this->datas)==0){return $this->NoreturnedValue($this->datas,__LINE__);}
+		if(count($this->datas[0])==1){
+			return $this->NoreturnedValue($this->datas,__LINE__);
+		}
+			
 		
 		
 		
@@ -237,7 +241,7 @@ class highcharts{
 		
 	}
 	
-	private function NoreturnedValue($array,$line=0){
+	public function NoreturnedValue($array=array(),$line=0){
 		if(function_exists("debug_backtrace")){
 			$trace=@debug_backtrace();
 			if(isset($trace[1])){

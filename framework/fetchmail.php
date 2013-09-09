@@ -9,6 +9,8 @@ if(isset($_GET["debug-rule"])){execute_debug();exit;}
 if(isset($_GET["import"])){import_fetchmail_rules();exit;}
 if(isset($_GET["reload-fetchmail"])){reload();exit;}
 if(isset($_GET["import-compiled"])){import_fetchmail_compiled_rules();exit;}
+if(isset($_GET["fetchmailrc"])){fetchmailrc();exit;}
+if(isset($_GET["SaveFetchmailContent"])){SaveFetchmailContent();exit;}
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 
@@ -24,6 +26,18 @@ function execute_debug(){
 	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.fetchmail.php --single-debug {$_GET["debug-rule"]} >/dev/null 2>&1 &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	
+}
+
+function SaveFetchmailContent(){
+	$data=base64_decode($_GET["SaveFetchmailContent"]);
+	@file_put_contents("/etc/fetchmailrc", $data);
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.fetchmail.php --reload >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 }
 
 function reconfigure(){
@@ -63,6 +77,10 @@ function reload(){
 		$cmd="$php /usr/share/artica-postfix/exec.fetchmail.php --reload >/dev/null 2>&1";
 	}
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	shell_exec($cmd);
+}
+function fetchmailrc(){
+	
+	echo "<articadatascgi>".base64_encode(@file_get_contents("/etc/fetchmailrc"))."</articadatascgi>";
 	
 }
-

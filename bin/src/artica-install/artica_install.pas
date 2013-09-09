@@ -268,10 +268,6 @@ if ParamStr(1)='--change-initd' then  begin
    writeln('Modify init.d [artica]');
    install.install_init_d();
 
-   writeln('Modify init.d [postfix]');
-   zpostfix:=Tpostfix.Create(SYS);
-   zpostfix.POSTFIX_INI_TD();
-
    writeln('Modify init.d [artica-status]');
    zarticastatus:=tarticastatus.Create(SYS);
    zarticastatus.INSTALL_INIT_D();
@@ -2344,9 +2340,7 @@ end;
 
 if ParamStr(1)='--php-include' then
 begin
-writeln('Starting change include path for php...');
 zlighttpd.LIGHTTPD_ADD_INCLUDE_PATH();
-writeln('done..');
 halt(0);
 end;
 

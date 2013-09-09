@@ -1,7 +1,14 @@
 <?php
-
-function WriteToSyslogMail($text,$file,$error=false){
+if(function_exists("date_default_timezone_set") and function_exists("date_default_timezone_get"))
+	@date_default_timezone_set(@date_default_timezone_get());
+function WriteToSyslogMail($text,$file=null,$error=false){
 	if(!function_exists("syslog")){return;}
+	if($file==null){
+		if(function_exists("debug_backtrace")){
+			$trace=debug_backtrace();
+			$file=basename($trace[1]["file"]);
+		}
+	}
 	$file=basename($file);
 	if(!$error){$LOG_SEV=LOG_INFO;}else{$LOG_SEV=LOG_ERR;}
 	openlog($file, LOG_PID , LOG_SYSLOG);
@@ -17,6 +24,7 @@ function writeToFile($text,$filepath){
 }
 function writelogs($text=null,$function=null,$file_source=null,$line=null){
 	$name=null;
+	$ARRAY_NET["listener.php"]=true;
 	$file_source=basename($file_source);
 	$lineToSave="$text in $file_source function $function line $line";
 	if($file_source=="splashproxy.php"){
@@ -24,6 +32,16 @@ function writelogs($text=null,$function=null,$file_source=null,$line=null){
 		$f = @fopen("/var/log/apache2/$servername/$file_source.log", 'a');
 		@fwrite($f, "$lineToSave\n");
 		@fclose($f);
+	}
+	
+	if(isset($ARRAY_NET[$file_source])){
+		$servername=$_SERVER["SERVER_NAME"];
+		$from=$_SERVER["REMOTE_ADDR"];
+		$lineToSave=date('H:i:s')." [$from] $file_source $text function $function line $line";
+		$f = @fopen("/var/log/artica-netagent.log", 'a');
+		@fwrite($f, "$lineToSave\n");
+		@fclose($f);
+		
 	}
 	
 	if(isset($_SERVER["SERVER_SOFTWARE"])){

@@ -36,6 +36,7 @@ function tabs(){
 
 	$mini=new boostrap_form();
 	$array["{behavior_listen_ports}"]="$page?ports-behavior=yes";
+	$array["{authenticate_users}"]="miniadmin.proxy.authentication.php";
 	echo $mini->build_tab($array);
 }
 

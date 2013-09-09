@@ -18,7 +18,7 @@ if($_SESSION["uid"]=="-100"){writelogs("Redirecto to location:admin.index.php...
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["service"])){service();exit;}
 if(isset($_POST["url-lookup-result-during-database-reload"])){service_save();exit;}
-
+if(isset($_GET["ufdbguard-status"])){ufdbguard_status();exit;}
 
 function tabs(){
 	$users=new usersMenus();
@@ -47,6 +47,7 @@ function tabs(){
 }
 function service(){
 	$page=CurrentPageName();
+	$t=time();
 	$tpl=new templates();
 	$sock=new sockets();
 	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
@@ -56,6 +57,7 @@ function service(){
 	$ufdbguardReloadTTL=$sock->GET_INFO("ufdbguardReloadTTL");
 	$EnableGoogleSafeSearch=$sock->GET_INFO("EnableGoogleSafeSearch");
 	$UfdbDatabasesInMemory=$sock->GET_INFO("UfdbDatabasesInMemory");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	
 	if($datas["enforce-https-with-hostname"]==null){$datas["enforce-https-with-hostname"]=0;}
 	if($datas["enforce-https-official-certificate"]==null){$datas["enforce-https-official-certificate"]=0;}
@@ -68,7 +70,7 @@ function service(){
 	if(!is_numeric($datas["refreshdomainlist"])){$datas["refreshdomainlist"]=15;}
 	
 	
-	
+	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 	if(!is_numeric($UfdbDatabasesInMemory)){$UfdbDatabasesInMemory=0;}
 	
 	if(!is_numeric($datas["allow-unknown-protocol-over-https"])){$datas["allow-unknown-protocol-over-https"]=1;}
@@ -101,6 +103,11 @@ function service(){
 	$ips["all"]="{all}";	
 	
 	$boot=new boostrap_form();
+	
+	
+	$boot->set_spacertitle("{feature}");
+	$boot->set_checkbox("EnableUfdbGuard","{EnableUfdbGuard}","$EnableUfdbGuard",array("DISABLEALL"=>true));
+	
 	$boot->set_spacertitle("SSL");
 	
 	$boot->set_checkbox("enforce-https-with-hostname", "{enforce-https-with-hostname}", $datas["enforce-https-with-hostname"],
@@ -164,13 +171,40 @@ function service(){
 	$boot->set_button("{apply}");
 	$users=new usersMenus();
 	if(!$users->AsDansGuardianAdministrator){$boot->set_form_locked();}
-	echo $boot->Compile();
+	$form=$boot->Compile();
 	
+	$html="<table style='width:100%'>
+	<tr>
+		<td style='vertical-align:top;width:400px'>
+			<div id='$t'></div>
+			<div style='text-aling:right'>". imgtootltip("refresh-32.png",null,"LoadAjax('$t','$page?ufdbguard-status=yes');")."</div>
+			</td>
+		<td style='vertical-align:top;padding-left:20px'>$form</td>
+	</tr>
+	</table>
+	<script>
+		LoadAjax('$t','$page?ufdbguard-status=yes');
+	</script>
+			
+	";
+	echo $html;
+	
+	
+}
+
+function ufdbguard_status(){
+	$sock=new sockets();
+	$ini=new Bs_IniHandler();
+	$tpl=new templates();
+	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?ufdb-ini-status=yes')));
+	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_ROUND("APP_SQUIDGUARD_HTTP",$ini,null,1);
+	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("APP_UFDBGUARD",$ini,null,1);
+	echo $tpl->_ENGINE_parse_body($APP_UFDBGUARD."<br>".$APP_SQUIDGUARD_HTTP);
 }
 
 
 function service_save(){
-	
+	$RESTARTSQUID=false;
 	if(isset($_POST["url_rewrite_bypass"])){
 		$squid=new squidbee();
 		$squid->url_rewrite_bypass=$_POST["url_rewrite_bypass"];
@@ -193,6 +227,13 @@ function service_save(){
 		$sock->SET_INFO('UfdbDatabasesInMemory', $_POST["UfdbDatabasesInMemory"]);
 	}
 	
+	if(isset($_POST["EnableUfdbGuard"])){
+		$EnableUfdbGuard=$sock->EnableUfdbGuard();
+		if($EnableUfdbGuard<>$_POST["EnableUfdbGuard"]){$RESTARTSQUID=TRUE;}
+		$sock->SET_INFO('EnableUfdbGuard', $_POST["EnableUfdbGuard"]);
+		
+	}
+	
 	
 	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
 	while (list ($key, $line) = each ($_POST) ){
@@ -201,6 +242,9 @@ function service_save(){
 	
 	}
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ufdbguardConfig");
-	$sock->getFrameWork("cmd.php?reload-squidguard=yes");	
+	$sock->getFrameWork("cmd.php?reload-squidguard=yes");
+	if($RESTARTSQUID){
+		$sock->getFrameWork("cmd.php?squid-rebuild=yes");
+	}	
 	
 }

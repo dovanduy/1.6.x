@@ -60,7 +60,7 @@ function node_infos_js(){
 }
 
 function link_user_save(){
-	$_POST["uid"]=mysql_escape_string($_POST["uid"]);
+	$_POST["uid"]=mysql_escape_string2($_POST["uid"]);
 	$sql="UPDATE webfilters_nodes SET uid='{$_POST["uid"]}' WHERE MAC='{$_POST["MAC"]}'";
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT MAC FROM webfilters_nodes WHERE MAC='{$_POST["MAC"]}'"));

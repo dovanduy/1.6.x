@@ -190,6 +190,18 @@ class mysql_multi{
 			$dbsize += $ligne['Data_length'] + $ligne['Index_length']; 
 			$count=$count+1;}
 		return array($count,ParseBytes($dbsize));
+	}
+
+	private function TABLES_STATUS_CORRUPTED($database){
+		$sql="show TABLE STATUS";
+		$results=$this->QUERY_SQL($sql,$database);
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$Name=$ligne["Name"];
+			$Comment=$ligne["Comment"];
+			$ARRAY[$Name]=$Comment;
+		
+			}
+		return $ARRAY;
 	}	
 
 	function FLUSH_PRIVILEGES(){

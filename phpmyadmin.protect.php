@@ -306,7 +306,7 @@ function item_delete(){
 
 function item_save(){
 	$_POST["pattern"]=url_decode_special_tool($_POST["pattern"]);
-	$_POST["pattern"]=mysql_escape_string($_POST["pattern"]);
+	$_POST["pattern"]=mysql_escape_string2($_POST["pattern"]);
 	$q=new mysql();
 	if($_POST["ID"]==0){
 		$sql="INSERT INTO phpmyadminsecu (`pattern`,`type`,`enabled`)

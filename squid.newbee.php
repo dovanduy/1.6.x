@@ -1487,7 +1487,9 @@ function transparent_HTTP(){
 		if(EnableRemoteStatisticsAppliance==1){Loadjs('$page?error-remote-appliance=yes');return;}
 		var CONFIG_NETFILTER_TPROXY=$CONFIG_NETFILTER_TPROXY;
 		XHR.appendData('squid_transparent',document.getElementById('squid_transparent').value);
-		XHR.appendData('SquidTransparentMixed',document.getElementById('SquidTransparentMixed').value);
+		if(document.getElementById('SquidTransparentMixed')){
+			XHR.appendData('SquidTransparentMixed',document.getElementById('SquidTransparentMixed').value);
+		}
 		
 		
 		

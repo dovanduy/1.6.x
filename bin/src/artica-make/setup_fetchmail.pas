@@ -80,13 +80,9 @@ install.INSTALL_STATUS('APP_FETCHMAIL',10);
     install.INSTALL_PROGRESS('APP_FETCHMAIL','{installing}');
     fpsystem('make install');
 
-    if FileExists('/usr/bin/fetchmail') then begin
+    if FileExists(SYS.LOCATE_GENERIC_BIN('fetchmail')) then begin
          install.INSTALL_STATUS('APP_FETCHMAIL',100);
          install.INSTALL_PROGRESS('APP_FETCHMAIL','{installed}');
-         ftech:=tfetchmail.Create(sys);
-         ftech.FETCHMAIL_DAEMON_STOP();
-         ftech.FETCHMAIL_START_DAEMON();
-         ftech.Free;
          SYS.Free;
     end else begin
          install.INSTALL_PROGRESS('APP_FETCHMAIL','{failed}');

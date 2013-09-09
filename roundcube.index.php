@@ -1,4 +1,9 @@
 <?php
+header("Pragma: no-cache");
+header("Expires: 0");
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+header("Cache-Control: no-cache, must-revalidate");
+if(isset($_GET["verbose"])){$GLOBALS["OUTPUT"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.roundcube.inc');
@@ -14,9 +19,7 @@
 	}
 	if(isset($_GET["form"])){switch_forms();exit;}
 	if(isset($_GET["RoundCubeHTTPEngineEnabled"])){main_settings_edit();exit;}
-	if(isset($_GET["nmap_delete_ip"])){main_delete_network();exit;}
 	if(isset($_GET["main"])){main_switch();exit;}
-	if(isset($_GET["AddNmapNetwork"])){main_add_nework();exit;}
 	if(isset($_GET["debug_level"])){main_save_roundcube_settings();exit;}
 	if(isset($_GET["script"])){ajax_js();exit;}
 	if(isset($_GET["ajax-pop"])){ajax_pop();exit;}
@@ -38,30 +41,33 @@
 	if(isset($_GET["roundcube-rebuild"])){RoundCube_restart();exit;}	
 	if(isset($_GET["httpengines-form"])){httpengines_form();exit;}
 	if(isset($_POST["EnableFreeWeb"])){httpengines_save();exit;}
-	
+	if(isset($_GET["mysql-status"])){mysql_status();exit;}
 	
 	
 	
 function ajax_pop(){
-echo main_tabs();		
+	echo main_tabs();		
 }
 
 function form1_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{webserver_parameters}');
-	echo "YahooWin2(600,'$page?form=form1','$title');";
+	echo "YahooWin2(800,'$page?form=form1','$title');";
 	
 }
 	function form2_js(){
+		header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{roundcube_parameters}');
-	echo "YahooWin2(680,'$page?form=form2','$title');";
+	echo "YahooWin2(800,'$page?form=form2','$title');";
 	
 }
 
 function plugins_sieve_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{plugin_sieve}');
@@ -72,6 +78,7 @@ function plugins_sieve_js(){
 	RoundCubeEnableSievePage();";	
 }
 function plugins_calendar_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{plugin_calendar}');
@@ -83,6 +90,7 @@ function plugins_calendar_js(){
 }
 
 function formplugins_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{APP_ROUNDCUBE3}&nbsp;{plugins}');
@@ -107,7 +115,7 @@ $tpl=new templates();
 	
 	$form="
 	<hr>
-	<div style='text-align:right;width:100%'>". button("{apply}", "SaveRoundCubeWebEngine()",14)."</div>
+	<div style='text-align:right;width:100%'>". button("{apply}", "SaveRoundCubeWebEngine()",18)."</div>
 	
 	<script>
 	
@@ -130,9 +138,9 @@ $tpl=new templates();
 	</script>
 	";
 	
+	$html="<div style='width:95%' class=form>$freeweb<hr>$Roundcube</div>$form";
 	
-	
-	echo $tpl->_ENGINE_parse_body($html.$freeweb."<hr>".$Roundcube.$form);
+	echo $tpl->_ENGINE_parse_body($html);
 	
 }
 
@@ -297,11 +305,12 @@ function main_tabs(){
 	
 	$page=CurrentPageName();
 	$array["index"]='{index}';
-	$array["multiple-roundcube"]='{multiple_webmail}';
+	$array["mysql"]='{mysql}';
 	$array["settings"]='{settings}';
 	$array["conf"]='{conf}';
 	$array["rlogs"]='{rlogs}';
-	$array["mysql"]='{mysql}';
+	
+	$array["multiple-roundcube"]='{multiple_webmail}';
 	$tpl=new templates();
 	
 	if($_GET["newinterface"]<>null){ $style="style='font-size:14px'";$styleG="margin-top:8px;";}
@@ -312,20 +321,9 @@ function main_tabs(){
 	
 	
 	
-	return "
-	<div id=main_config_roundcube style='width:100%;height:770px;overflow:auto;$styleG'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_roundcube').tabs();
-			
-
-			});
-			
-			QuickLinkShow('quicklinks-webmail');
-			
-		</script>";		
+	return build_artica_tabs($html, "main_config_roundcube")."<script>QuickLinkShow('quicklinks-webmail');</script>";
+	
+		
 }
 
 function plugins_sieve_popup(){
@@ -343,7 +341,7 @@ function plugins_sieve_popup(){
 	</tr>
 	</table>
 	</div>
-	<div style='width:100%;text-align:right'>". button("{apply}","RoundCubeEnableSieve()")."</div>
+	<div style='width:100%;text-align:right'>". button("{apply}","RoundCubeEnableSieve()",18)."</div>
 	<script>
 	
 	var x_RoundCubeEnableSieve= function (obj) {
@@ -379,7 +377,7 @@ function plugins_calendar_popup(){
 	</tr>
 	</table>
 	</div>
-	<div style='width:100%;text-align:right'>". button("{apply}","RoundCubeEnableCalendar()")."</div>
+	<div style='width:100%;text-align:right'>". button("{apply}","RoundCubeEnableCalendar()",18)."</div>
 	<script>
 	
 	var x_RoundCubeEnableCalendar= function (obj) {
@@ -437,26 +435,18 @@ function form_tabs(){
 	$form2=Paragraphe("parameters-64.png","{roundcube_parameters}","{roundcube_parameters_text}","javascript:Loadjs('$page?form2=yes')");
 	$Hacks=Paragraphe("Firewall-Secure-64.png","Anti-Hacks","{AntiHacks_roundcube_text}","javascript:Loadjs('roundcube.hacks.php')");
 	
+	$tr[]=$form1;
+	$tr[]=$form2;
+	$tr[]=$globaladdressBook;
+	$tr[]=$plugins;
+	$tr[]=$sieve;
+	$tr[]=$calendar;
+	$tr[]=$Hacks;
 	
-	
-	$html="<table>
-	<tr>
-		<td valign='top'>$form1</td>
-		<td valign='top'>$form2</td>
-		<td valign='top'>$globaladdressBook</td>
-	</tr>
-	<tr>
-		<td valign='top'>$plugins</td>
-		<td valign='top'>$sieve</td>
-		<td valign='top'>$calendar</td>
-	</tr>
-	<tr>
-		<td valign='top'>$Hacks</td>
-		<td>&nbsp;</td>
-	</table>";
-	
+
+	$html=CompileTr3($tr);
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body(RoundedLightWhite($html));
+	echo $tpl->_ENGINE_parse_body($html);
 			
 }
 
@@ -505,41 +495,131 @@ function  main_conf(){
 
 function main_mysql(){
 	$user=new usersMenus();
+	$page=CurrentPageName();
 	$roundcube=new roundcube();
-	
+	$t=time();
 	if(isset($_GET["rebuild"])){
 		$roundcube->RebuildMysql();
 	}
 	
+	
+	
 	$status=$roundcube->ParseMysqlInstall();
 	$html="
-		
-			<table style='width:99%' class=form>
+	<table style='width:100%'>
+	<tr>
+	<td style='vertical-align:top'>
+			<div style='width:95%' class=form id='$t'></div>
+			<div style='text-align:right'>". imgtootltip("refresh-32.png",null,"LoadAjax('$t','$page?mysql-status=yes');")."</div>
+	</td>
+	<td style='vertical-align:top'>
+
+			<div style='width:95%' class=form>
+			<table style='width:100%'>
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{RoundCubePath}:</strong></td>
-				<td valign='top' nowrap align='left'><strong>$user->roundcube_folder</td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px' style='font-size:14px'>{RoundCubePath}:</strong></td>
+				<td valign='top' nowrap align='left'><strong style='font-size:10px'>$user->roundcube_folder</td>
 			</tr>
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{roundcube_mysql_sources}:</strong></td>
-				<td valign='top' nowrap align='left'><strong>$user->roundcube_mysql_sources</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px' style='font-size:14px'>{roundcube_mysql_sources}:</strong></td>
+				<td valign='top' nowrap align='left'><strong style='font-size:10px'>$user->roundcube_mysql_sources</strong></td>
 			</tr>	
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{database}:</strong></td>
-				<td valign='top' nowrap align='left'><strong>roundcubemail</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px' style='font-size:14px'>{database}:</strong></td>
+				<td valign='top' nowrap align='left'><strong style='font-size:14px'>roundcubemail</strong></td>
 			</tr>
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{database_status}:</strong></td>
-				<td valign='top' nowrap align='left'><strong>$status</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px' style='font-size:14px'>{database_status}:</strong></td>
+				<td valign='top' nowrap align='left'><strong style='font-size:14px'>$status</strong></td>
 			</tr>
 			<tr>
 			<td valign='top' nowrap align='right' colspan=2>
-				<hr>".button("{rebuild}","RebuildTables()")."
+				<hr>".button("{rebuild}","RebuildTables()",18)."
 			</td>
 				
 			</tr>													
-		</table>";
+		</table></div>
+	</td>
+</tr>
+</table>
+		
+		<script>LoadAjax('$t','$page?mysql-status=yes');</script>
+						
+	
+						
+						
+						
+		";
 $tpl=new templates();
 echo $tpl->_ENGINE_parse_body($html);	
+}
+
+function mysql_status(){
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$ini=new Bs_IniHandler();
+	$data=base64_decode($sock->getFrameWork('roundcube.php?status=yes'));
+	
+	$ini->loadString($data);
+	$status1=DAEMON_STATUS_ROUND("ROUNDCUBE",$ini,null);
+	$status2=DAEMON_STATUS_ROUND("APP_ROUNDCUBE_DB",$ini,null);
+	
+	$array[0]="{not_installed}";
+	$array[3]="{server}";
+	$array[4]="{client}";
+	
+	$RoundCubeMySQLServiceType=$sock->GET_INFO("RoundCubeMySQLServiceType");
+	if(!is_numeric($RoundCubeMySQLServiceType)){$RoundCubeMySQLServiceType=0;}
+	$RoundCubeMySQLServiceType_status=$array[$RoundCubeMySQLServiceType];
+	
+	
+	if($RoundCubeMySQLServiceType==4){
+	$username=$sock->GET_INFO("RoundCubeRemoteMySQLServerAdmin");
+	$password=$sock->GET_INFO("RoundCubeRemoteMySQLServerPassword");
+	$mysqlserver=$sock->GET_INFO("RoundCubeRemoteMySQLServer");
+	$ListenPort=$sock->GET_INFO("RoundCubeRemoteMySQLServerPort");
+		$exptr="
+		<tr>
+		<td style='font-size:14px' class=legend>{mysql_server}:</td>
+		<td style='font-size:14px;font-weight:bold' class=legend>$mysqlserver:$ListenPort</td>
+		</tr>		
+				
+		";
+	
+	}
+	
+	if($RoundCubeMySQLServiceType==3){
+	$WORKDIR=$sock->GET_INFO("RoundCubeDedicateMySQLWorkDir");
+	if($WORKDIR==null){$WORKDIR="/home/roundcube-db";}
+	
+	
+	$TuningParameters=unserialize(base64_decode($sock->GET_INFO("RoundCubeTuningParameters")));
+	$ListenPort=$TuningParameters["ListenPort"];
+	$exptr="
+	<tr>
+	<td style='font-size:14px' class=legend>{listen_port}:</td>
+	<td style='font-size:14px;font-weight:bold' class=legend>$ListenPort</td>
+	</tr>
+	<tr>
+	<td style='font-size:14px' class=legend>{directory}:</td>
+	<td style='font-size:14px;font-weight:bold' class=legend>$WORKDIR</td>
+	</tr>	
+	";
+	
+	}
+	
+	$html="
+	<table style='width:100%'>
+	<tr>
+		<td style='font-size:14px' class=legend>{APP_ROUNDCUBE_DB}:</td>
+		<td style='font-size:14px;font-weight:bold' class=legend>$RoundCubeMySQLServiceType_status</td>
+	</tr>$exptr
+	</table>
+	
+	<center style='margin:20px'>$status1<br>$status2".button("{run_wizard_install}", "Loadjs('RoundCubeDB.wizard.php')",18)."</center>";
+	echo $tpl->_ENGINE_parse_body($html);
 }
 
 
@@ -563,68 +643,68 @@ function form1(){
 	$user=new usersMenus();
 	$round=new roundcube();
 	$artica=new artica_general();
-	
+	$sock=new sockets();
 	$debug_levela=array(1=>"log",2=>"report",4=>"show",8=>"trace");
 	$debug_level=Field_array_Hash($debug_levela,'debug_level',$round->roundCubeArray["debug_level"]);
 	$tpl=new templates();
 	$lighttp_max_load_per_proc=$tpl->_ENGINE_parse_body('{lighttp_max_load_per_proc}');
 	if(strlen($lighttp_max_load_per_proc)>40){$lighttp_max_load_per_proc=texttooltip(substr($lighttp_max_load_per_proc,0,37)."...",$lighttp_max_load_per_proc);}
-	
-	
+	$RoundCubeHTTPSPort=$sock->GET_INFO("RoundCubeHTTPSPort");
+	if(!is_numeric($RoundCubeHTTPSPort)){$RoundCubeHTTPSPort=449;}
 	
 $html="
 	<form name='FFM1'>
 			<div id='wait'></div>
 			<table style='width:99%' class=form>
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{RoundCubePath}:</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>{RoundCubePath}:</strong></td>
 				<td valign='top' nowrap align='left'><strong style='font-size:14px'>$user->roundcube_folder</td>
 			</tr>
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{roundcube_web_folder}:</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>{roundcube_web_folder}:</strong></td>
 				<td valign='top' nowrap align='left'><strong style='font-size:14px'>$user->roundcube_web_folder</td>
 			</tr>			
 
 					
 			
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{RoundCubeHTTPEngineEnabled}:</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>{RoundCubeHTTPEngineEnabled}:</strong></td>
 				<td valign='top' nowrap align='left'>" . Field_checkbox('RoundCubeHTTPEngineEnabled',1,$round->RoundCubeHTTPEngineEnabled,'{enable_disable}')."</td>
 			</tr>
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{listen_port}:</strong></td>
-				<td valign='top' nowrap align='left'>" . Field_text('https_port',$round->https_port,'width:50px;font-size:14px')."</td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>{listen_port}:</strong></td>
+				<td valign='top' nowrap align='left'>" . Field_text('https_port',$RoundCubeHTTPSPort,'width:50px;font-size:14px')."</td>
 			</tr>
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>HTTPS:</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>HTTPS:</strong></td>
 				<td valign='top' nowrap align='left'>" . Field_checkbox('ssl_enabled',1,$round->roundCubeArray["ssl_enabled"])."</td>
 			</tr>			
 			
 					
 			<tr>
-				<td align='right' class=legend>{lighttp_max_proc}:</strong></td>
+				<td align='right' class=legend style='font-size:14px'>{lighttp_max_proc}:</strong></td>
 				<td>" . Field_text('lighttp_max_proc',trim($round->lighttp_max_proc),'width:50px;font-size:14px')."</td>
 			</tr>
 			<tr>
-				<td align='right' class=legend>{lighttp_min_proc}:</strong></td>
+				<td align='right' class=legend style='font-size:14px'>{lighttp_min_proc}:</strong></td>
 				<td>" . Field_text('lighttp_min_proc',trim($round->lighttp_min_proc),'width:50px;font-size:14px')."</td>
 			</tr>
 			<tr>
-				<td align='right' class=legend>$lighttp_max_load_per_proc:</strong></td>
+				<td align='right' class=legend style='font-size:14px'>$lighttp_max_load_per_proc:</strong></td>
 				<td>" . Field_text('lighttp_max_load_per_proc',trim($round->lighttp_max_load_per_proc),'width:50px;font-size:14px')."</td>
 			</tr>		
 		
 			<tr>
-				<td align='right' class=legend>{PHP_FCGI_CHILDREN}:</strong></td>
+				<td align='right' class=legend style='font-size:14px'>{PHP_FCGI_CHILDREN}:</strong></td>
 				<td>" . Field_text('PHP_FCGI_CHILDREN',trim($round->PHP_FCGI_CHILDREN),'width:50px;font-size:14px')."</td>
 			</tr>	
 			<tr>
-				<td align='right' class=legend>{PHP_FCGI_MAX_REQUESTS}:</strong></td>
+				<td align='right' class=legend style='font-size:14px'>{PHP_FCGI_MAX_REQUESTS}:</strong></td>
 				<td>" . Field_text('PHP_FCGI_MAX_REQUESTS',trim($round->PHP_FCGI_MAX_REQUESTS),'width:50px;font-size:14px')."</td>
 			</tr>				
 			<tr>
 			<td colspan=2 align='right'>
-				".button('{edit}','SaveRoundCubeForm1()')."
+				".button('{edit}','SaveRoundCubeForm1()',18)."
 			</tr>
 			</table>
 			</form>		
@@ -717,7 +797,7 @@ $html="
 			<td width=1% valign='top'><img src='img/24-nodes.png'></td>
 			<td width=98% valign='top' style='font-size:13px'>$line</td>
 			<td width=1% valign='top'>$enable</td>
-			<td width=1% valign='top'>".button("{apply}","RoundCubepluginv3Enable('plugin_$num')")."</td>
+			<td width=1% valign='top'>".button("{apply}","RoundCubepluginv3Enable('plugin_$num')",18)."</td>
 			
 		</tr>";
 	}}
@@ -735,7 +815,7 @@ function form2(){
 	$round=new roundcube();
 	$artica=new artica_general();
 	$debug_levela=array(1=>"log",2=>"report",4=>"show",8=>"trace");
-	$debug_level=Field_array_Hash($debug_levela,'debug_level',$round->roundCubeArray["debug_level"]);
+	$debug_level=Field_array_Hash($debug_levela,'debug_level',$round->roundCubeArray["debug_level"],null,null,0,"font-size:14px");
 	$tpl=new templates();
 	$lighttp_max_load_per_proc=$tpl->_ENGINE_parse_body('{lighttp_max_load_per_proc}');
 	if(strlen($lighttp_max_load_per_proc)>40){$lighttp_max_load_per_proc=texttooltip(substr($lighttp_max_load_per_proc,0,37)."...",$lighttp_max_load_per_proc);}
@@ -748,50 +828,56 @@ function form2(){
 	
 $html="<div id='wait'></div><table style='width:99%' class=form>
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{user_link}:</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>{user_link}:</strong></td>
 				<td valign='top' nowrap align='left'>" . Field_text('user_link',$round->roundCubeArray["user_link"],'width:195px')."</td>
 			</tr>
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{roundcube_ldap_directory}:</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>{roundcube_ldap_directory}:</strong></td>
 				<td valign='top' nowrap align='left'>" . Field_checkbox('ldap_ok',1,$round->roundCubeArray["ldap_ok"])."</td>
 			</tr>							
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{debug_level}:</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>{debug_level}:</strong></td>
 				<td valign='top' nowrap align='left'><strong>$debug_level</td>
 			</tr>
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>$enable_caching:</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>$enable_caching:</strong></td>
 				<td valign='top' nowrap align='left'>" . Field_TRUEFALSE_checkbox('enable_caching',$round->roundCubeArray["enable_caching"])."</td>
 			</tr>
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>{upload_max_filesize}:</strong></td>
-				<td valign='top' nowrap align='left'>" . Field_text('upload_max_filesize',$round->roundCubeArray["upload_max_filesize"],'width:30px')."M</td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>{upload_max_filesize}:</strong></td>
+				<td valign='top' nowrap align='left' style='font-size:14px'>" . Field_text('upload_max_filesize',$round->roundCubeArray["upload_max_filesize"],'width:90px;font-size:14px')."M</td>
 			</tr>
 			
 					
 			<tr>
-				<td valign='top' nowrap align='right' class=legend>$auto_create_user:</strong></td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>$auto_create_user:</strong></td>
 				<td valign='top' nowrap align='left'>" . Field_TRUEFALSE_checkbox('auto_create_user',$round->roundCubeArray["auto_create_user"])."</td>
 			</tr>
 			<tr>
-				<td align='right' class=legend>{default_host}:</strong></td>
-				<td>" . Field_text('default_host',trim($round->roundCubeArray["default_host"]),'width:130px')."</td>
+				<td align='right' class=legend style='font-size:14px'>{default_host}:</strong></td>
+				<td>" . Field_text('default_host',trim($round->roundCubeArray["default_host"]),'width:230px;font-size:14px')."</td>
 			</tr>
+						
 			<tr>
-				<td align='right' class=legend>{locale_string}:</strong></td>
-				<td>" . Field_text('locale_string',trim($round->roundCubeArray["locale_string"]),'width:30px')."</td>
+				<td valign='top' nowrap align='right' class=legend style='font-size:14px'>Sieve:</strong></td>
+				<td valign='top' nowrap align='left' style='font-size:14px'>" . Field_text('sieve_port',$round->SieveListenIp.":".$round->roundCubeArray["sieve_port"],'width:190px;font-size:14px')."</td>
+			</tr>						
+						
+			<tr>
+				<td align='right' class=legend style='font-size:14px'>{locale_string}:</strong></td>
+				<td>" . Field_text('locale_string',trim($round->roundCubeArray["locale_string"]),'width:60px;font-size:14px')."</td>
 			</tr>		
 		
 			<tr>
-				<td align='right' class=legend>{product_name}:</strong></td>
-				<td>" . Field_text('product_name',trim($round->roundCubeArray["product_name"]),'width:180px')."</td>
+				<td align='right' class=legend style='font-size:14px'>{product_name}:</strong></td>
+				<td>" . Field_text('product_name',trim($round->roundCubeArray["product_name"]),'width:180px;font-size:14px')."</td>
 			</tr>	
 			<tr>
-				<td align='right' class=legend>{skip_deleted}:</strong></td>
+				<td align='right' class=legend style='font-size:14px'>{skip_deleted}:</strong></td>
 				<td>" . Field_TRUEFALSE_checkbox('skip_deleted',$round->roundCubeArray["skip_deleted"])."</td>
 			</tr>
 			<tr>
-				<td align='right' class=legend>{flag_for_deletion}:</strong></td>
+				<td align='right' class=legend style='font-size:14px'>{flag_for_deletion}:</strong></td>
 				<td style='padding-left:-3px'>
 				<table style='width:100%;margin-left:-4px;padding:0px'>
 				<tr>
@@ -803,7 +889,7 @@ $html="<div id='wait'></div><table style='width:99%' class=form>
 				</td>
 			</tr>					
 			<tr>
-			<td colspan=2 align='right'>". button("{edit}","SaveRoundCubeForm2();")."
+			<td colspan=2 align='right'>". button("{edit}","SaveRoundCubeForm2();",18)."
 			
 			</td>
 			</tr>
@@ -825,6 +911,8 @@ $html="<div id='wait'></div><table style='width:99%' class=form>
 				XHR.appendData('upload_max_filesize',document.getElementById('upload_max_filesize').value);
 				XHR.appendData('default_host',document.getElementById('default_host').value);
 				XHR.appendData('locale_string',document.getElementById('locale_string').value);
+				XHR.appendData('sieve_port',document.getElementById('sieve_port').value);
+				
 				XHR.appendData('product_name',document.getElementById('product_name').value);
 				XHR.appendData('skip_deleted',document.getElementById('skip_deleted').value);
 				document.getElementById('wait').innerHTML='<center><img src=img/wait_verybig.gif></center>';
@@ -853,13 +941,13 @@ function switch_forms(){
 
 function main_settings(){
 
-	
+
 	$html="
 	<table style='width:100%'>
 	<tr>
 	<td valign='top'>
 		
-		<p class=caption>{about_roundcube_engine}</p>".main_errors()."
+		<div class=explain style='font-size:14px'>{about_roundcube_engine}</div>".main_errors()."
 				".form_tabs()."
 		</td>
 	</tr>
@@ -875,6 +963,15 @@ echo $tpl->_ENGINE_parse_body($html);
 function main_settings_edit(){
 
 	$round=new roundcube();
+	$sock=new sockets();
+	
+	if(preg_match("#(.+?):([0-9])+#", $_POST["sieve_port"],$re)){
+		$_POST["sieve_port"]=$re[2];
+		$sock->SET_INFO("SieveListenIp", $re[1]);
+		
+	}
+	$sock->SET_INFO("RoundCubeHTTPSPort", $_GET["RoundCubeHTTPSPort"]);
+	
 	while (list ($num, $line) = each ($_GET)){
 		$round->$num=$line;
 		
@@ -901,10 +998,15 @@ function  main_status(){
 	$users=new usersMenus();
 	$ini=new Bs_IniHandler();
 	$sock=new sockets();
-	$ini->loadString($sock->getfile('RoundCubeStatus'));	
-	$status=DAEMON_STATUS_ROUND("ROUNDCUBE",$ini,null);
+	$ini->loadString(base64_decode($sock->getFrameWork('roundcube.php?status=yes')));
+	$sock=new sockets();
+	$version=$sock->getFrameWork('roundcube.php?version=yes');
+	
+	
+	$status=DAEMON_STATUS_ROUND("ROUNDCUBE",$ini,null)."<br>".DAEMON_STATUS_ROUND("APP_ROUNDCUBE_DB",$ini,null)."<br>";
 	$tpl=new templates();
-	return $tpl->_ENGINE_parse_body($status)."
+	return 
+	"<div style='font-size:22px;text-align:right'>v.$version</div>".	$tpl->_ENGINE_parse_body($status)."
 	
 	<div id='freeweb-src-status'></div>
 	<script>

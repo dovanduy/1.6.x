@@ -42,7 +42,7 @@ function popup(){
 	$page=CurrentPageName();
 
 	$sock=new sockets();
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}

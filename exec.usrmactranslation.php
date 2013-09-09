@@ -50,6 +50,7 @@ function build(){
 		if(!IsPhysicalAddress($ligne["MAC"])){continue;}
 		if($GLOBALS["VERBOSE"]){echo "{$ligne["MAC"]} = {$ligne["uid"]}\n";}
 		$MACS["MACS"][$ligne["MAC"]]["UID"]=$ligne["uid"];
+		if($ligne["hostname"]<>null){$MACS["MACS"][$ligne["MAC"]]["HOST"]=$ligne["hostname"];}
 	}
 	
 	$q=new mysql();
@@ -65,6 +66,14 @@ function build(){
 		}
 		$MACS["MACS"][$ligne["MacAddress"]]["UID"]=$ligne["uid"];
 		
+	}
+	
+	$q=new mysql_squid_builder();
+	$sql="SELECT * FROM webfilters_ipaddr WHERE LENGTH(uid)>1";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$MACS["MACS"][$ligne["ipaddr"]]["UID"]=$ligne["uid"];
+		if($ligne["hostname"]<>null){$MACS["MACS"][$ligne["ipaddr"]]["HOST"]=$ligne["hostname"];}
 	}
 	
 	
@@ -107,7 +116,7 @@ function download_mydb(){
 		ufdbguard_admin_events("Failed to download ufdbGuard.conf aborting `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"global-compile");
 		return;			
 	}
-	
+	squid_admin_mysql(1, "Reloading Squid-cache","After downloading usersMacs database");
 	$cmd="$squidbin -k reconfigure >/dev/null 2>&1";
 	shell_exec($cmd);	
 		

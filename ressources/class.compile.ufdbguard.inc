@@ -6,6 +6,7 @@ include_once(dirname(__FILE__)."/class.ActiveDirectory.inc");
 
 class compile_ufdbguard{
 	var $SquidGuardIPWeb;
+	var $SquidGuardIPWebSSL;
 	var $EnableRemoteStatisticsAppliance=0;
 	var $EnableWebProxyStatsAppliance=0;
 	var $SquidGuardWebFollowExtensions=1;
@@ -19,11 +20,13 @@ class compile_ufdbguard{
 	var $SquidDatabasesArticaEnable=0;
 	var $SquidGuardWebUseExternalUri=0;
 	var $SquidGuardWebExternalUri=null;
+	var $SquidGuardWebExternalUriSSL=null;
 	var $UseDynamicGroupsAcls=0;
 	var $KerbAuthDisableNsswitch=0;
 	var $licensed=0;
 	var $Ufdbguard_Version=null;
 	var $Notrefreshdomainlist=0;
+	var $NoMalwareUris=1;
 	var $Is31=false;
 	
 	function compile_ufdbguard(){
@@ -38,6 +41,7 @@ class compile_ufdbguard{
 		$this->SquidDatabasesArticaEnable=$sock->GET_INFO("SquidDatabasesArticaEnable");
 		$this->SquidGuardWebUseExternalUri=$sock->GET_INFO("SquidGuardWebUseExternalUri");
 		$this->SquidGuardWebExternalUri=$sock->GET_INFO("SquidGuardWebExternalUri");
+		$this->SquidGuardWebExternalUriSSL=$sock->GET_INFO("SquidGuardWebExternalUriSSL");
 		$this->KerbAuthDisableNsswitch=$sock->GET_INFO("KerbAuthDisableNsswitch");
 
 		$this->SquidGuardWebFollowExtensions=$sock->GET_INFO("SquidGuardWebFollowExtensions");
@@ -58,12 +62,27 @@ class compile_ufdbguard{
 		if(!is_numeric($this->SquidGuardWebFollowExtensions)){$this->SquidGuardWebFollowExtensions=1;}
 		if(!is_numeric($this->SquidDatabasesArticaEnable)){$this->SquidDatabasesArticaEnable=1;}
 		if(!is_numeric($this->KerbAuthDisableNsswitch)){$this->KerbAuthDisableNsswitch=1;}
-		if($this->SquidGuardWebUseExternalUri==1){if(strlen($this->SquidGuardWebExternalUri)>3){$this->SquidGuardIPWeb=$this->SquidGuardWebExternalUri;}}
+		if($this->SquidGuardWebUseExternalUri==1){
+				if(strlen($this->SquidGuardWebExternalUri)>3){
+						$this->SquidGuardIPWeb=$this->SquidGuardWebExternalUri;
+				}
+				if(strlen($this->SquidGuardWebExternalUriSSL)>3){
+					$this->SquidGuardIPWebSSL=$this->SquidGuardWebExternalUriSSL;
+				}				
+				
+		}
 		if(@file_get_contents("/usr/local/share/artica/.lic")=="TRUE"){$this->licensed=1;}else{$this->SquidDatabasesArticaEnable=0;}
 		echo "Starting......: ufdbGuard SquidGuardIPWeb = `$this->SquidGuardIPWeb`\n";
 		if($this->SquidGuardWebUseExternalUri==0){
-			if($this->SquidGuardIPWeb==null){$this->SquidGuardIPWeb="http://$usrs->hostname:9020/exec.squidguard.php";}
+			if($this->SquidGuardIPWeb==null){
+					$this->SquidGuardIPWeb="http://$usrs->hostname:9020/exec.squidguard.php";
+			}
+			if($this->SquidGuardIPWebSSL==null){
+				$this->SquidGuardIPWebSSL="https://$usrs->hostname:9025/exec.squidguard.php";
+			}			
+			
 			$this->SquidGuardIPWeb=str_replace('.(none)',"",$this->SquidGuardIPWeb);
+			$this->SquidGuardIPWebSSL=str_replace('.(none)',"",$this->SquidGuardIPWebSSL);
 		}
 		
 		$this->Ufdbguard_Version=$this->ufdbguardVersion();
@@ -144,7 +163,19 @@ class compile_ufdbguard{
 		
 		if($this->SquidGuardWebUseExternalUri==0){
 			if(!preg_match("#squidguard\.php#",$this->SquidGuardIPWeb)){$this->SquidGuardIPWeb=$this->SquidGuardIPWeb."/exec.squidguard.php?";}
+			if(!preg_match("#squidguard\.php#",$this->SquidGuardIPWebSSL)){$this->SquidGuardIPWebSSL=$this->SquidGuardIPWebSSL."/exec.squidguard.php?";}
 		}
+		
+		if($this->SquidGuardWebUseExternalUri==1){
+			if(strlen($this->SquidGuardWebExternalUri)>3){
+				$this->SquidGuardIPWeb=$this->SquidGuardWebExternalUri;
+			}
+			if(strlen($this->SquidGuardWebExternalUriSSL)>3){
+				$this->SquidGuardIPWebSSL=$this->SquidGuardWebExternalUriSSL;
+			}
+		
+		}
+		
 		$conf[]="# Artica builder on " .date('Y-m-d H:i:s');
 		$conf[]="dbhome /var/lib/squidguard";
 		$conf[]="logdir /var/log/squid";
@@ -173,7 +204,9 @@ class compile_ufdbguard{
 		if(!is_numeric($ufdbguardConfig["refreshdomainlist"])){$ufdbguardConfig["refreshdomainlist"]=15;}
 		if(!is_numeric($ufdbguardConfig["Notrefreshdomainlist"])){$ufdbguardConfig["Notrefreshdomainlist"]=0;}
 		if(!is_numeric($ufdbguardConfig["DebugAll"])){$ufdbguardConfig["DebugAll"]=0;}
+		if(!is_numeric($ufdbguardConfig["NoMalwareUris"])){$ufdbguardConfig["NoMalwareUris"]=1;}
 		
+		$this->NoMalwareUris=$ufdbguardConfig["NoMalwareUris"];
 		
 		if(!is_file("/var/lib/ufdbartica/category_socialnet/domains.ufdb")){
 			$php5=$unix->LOCATE_PHP5_BIN();
@@ -211,10 +244,16 @@ class compile_ufdbguard{
 		if($ufdbguardConfig["url-lookup-result-during-database-reload"]==1){
 			$conf[]="url-lookup-result-during-database-reload deny";
 			$conf[]="redirect-loading-database \"$this->SquidGuardIPWeb?loading-database=yes\"";
+		}else{
+			$conf[]="url-lookup-result-during-database-reload allow";
+			$conf[]="redirect-loading-database \"$this->SquidGuardIPWeb?loading-database=yes\"";
 		}
 		
 		if($ufdbguardConfig["url-lookup-result-when-fatal-error"]==1){
 			$conf[]="url-lookup-result-when-fatal-error deny";
+			$conf[]="redirect-fatal-error \"$this->SquidGuardIPWeb?fatalerror=yes\"";
+		}else{
+			$conf[]="url-lookup-result-when-fatal-error allow";
 			$conf[]="redirect-fatal-error \"$this->SquidGuardIPWeb?fatalerror=yes\"";
 		}
 		
@@ -222,6 +261,9 @@ class compile_ufdbguard{
 			$conf[]="check-proxy-tunnels queue-checks";
 		}
 		
+		if($this->Is31){
+			$conf[]="redirect-https \"$this->SquidGuardIPWebSSL\"";
+		}
 		if($EnableYoutubeForSchools==1){
 			
 			echo "Starting......: ufdbguardd: Youtube For Schools enabled with ID:$YoutubeForSchoolsID\n";
@@ -255,6 +297,7 @@ class compile_ufdbguard{
 		$conf[]="max-logfile-size  20000000";
 		$conf[]="analyse-uncategorised-urls off";
 		$conf[]="ufdb-show-url-details on";
+		$conf[]="ufdb-expression-optimisation off";
 		$conf[]="refreshuserlist {$ufdbguardConfig["refreshuserlist"]}";
 		
 		if($this->Is31){
@@ -807,9 +850,59 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 		}
 		
+	public function build_categories_uris($category,$destinationfile){
+		$unix=new unix();
+		
+		if($category=="malware"){
+			if($this->NoMalwareUris==1){
+				echo "Starting......: ".__LINE__."[URI] $category: is denied\n";
+				$GLOBALS["build_categories_uris"][$category]=null;
+				return $GLOBALS["build_categories_uris"][$category];
+			}
+		}
+		
+		if(isset($GLOBALS["build_categories_uris"][$category])){return $GLOBALS["build_categories_uris"][$category];}
+		$urls_table="categoryuris_".$this->TransFormCategoryName($category);
+		$q=new mysql_squid_builder();
+		if(!$q->TABLE_EXISTS($urls_table)){
+			echo "Starting......: ".__LINE__."[URI] $category: `$urls_table` no such table...\n";
+			$GLOBALS["build_categories_uris"][$category]=null;
+			return $GLOBALS["build_categories_uris"][$category];
+		}
+		
+		if($q->COUNT_ROWS($urls_table)==0){
+			echo "Starting......: ".__LINE__."[URI] $category: `$urls_table` now row...\n";
+			$GLOBALS["build_categories_uris"][$category]=null;
+			return $GLOBALS["build_categories_uris"][$category];
+		}
+		
+		$tmpfile=$unix->FILE_TEMP();
+		$chmod=$unix->find_program("chmod");
+		shell_exec("$chmod 0777 /tmp");
+		@unlink($tmpfile);
+		$sql="SELECT pattern FROM $urls_table WHERE enabled=1 INTO OUTFILE '$tmpfile' LINES TERMINATED BY '\n';";
+		$q=new mysql_squid_builder();
+		$q->QUERY_SQL($sql);
+		
+		if(!$q->ok){
+			@unlink("$tmpfile");
+			echo "Starting......: ".__LINE__."[URI] $category: `$urls_table` $q->mysql_error\n";
+			$GLOBALS["build_categories_uris"][$category]=null;
+			return null;
+		}
+		
+		if(!is_dir(dirname($destinationfile))){@mkdir(dirname($destinationfile),0755,true);}
+		@copy("$tmpfile", $destinationfile);
+		@unlink("$tmpfile");
+		echo "Starting......: ".__LINE__."[URI] $category: `$destinationfile` OK...\n";
+		$GLOBALS["build_categories_uris"][$category]=$destinationfile;
+		return $destinationfile;
+	}
+		
 		
 	private function build_categories_paragraph($category){
 		$OrginalCategoryNamed=$category;
+		$RedirectUriSSL=null;
 		if($this->licensed==0){
 			$this->SquidDatabasesArticaEnable=0;
 		}
@@ -842,12 +935,21 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 		if($this->SquidGuardWebUseExternalUri==0){
 			if(!preg_match("#^http.*?\/\/#",$this->SquidGuardIPWeb)){
-				$this->SquidGuardIPWeb="https://$this->SquidGuardIPWeb";
-				if(!preg_match("#squidguard\.php#",$this->SquidGuardIPWeb)){$this->SquidGuardIPWeb=$this->SquidGuardIPWeb."/exec.squidguard.php?$redirect_pattern";}
+				$this->SquidGuardIPWeb="http://$this->SquidGuardIPWeb";
+				if(!preg_match("#squidguard\.php#",$this->SquidGuardIPWeb)){$this->SquidGuardIPWeb=$this->SquidGuardIPWeb."/exec.squidguard.php";}
+			}
+
+			if(!preg_match("#^http.*?\/\/#",$this->SquidGuardIPWebSSL)){
+				$this->SquidGuardIPWebSSL="https://$this->SquidGuardIPWebSSL";
+				if(!preg_match("#squidguard\.php#",$this->SquidGuardIPWebSSL)){$this->SquidGuardIPWebSSL=$this->SquidGuardIPWebSSL."/exec.squidguard.php";}
 			}			
+			
 		}	
 		
 		$RedirectUri="\tredirect $this->SquidGuardIPWeb?category=". urlencode($category)."&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
+		
+		
+		
 		$RedirectArray=$this->UfdbGuardRedirectCategories[$category];
 		if(!isset($RedirectArray["external_uri"])){$RedirectArray["external_uri"]=0;}
 		if(!isset($RedirectArray["redirect_url"])){$RedirectArray["redirect_url"]=null;}
@@ -876,6 +978,10 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$categorynamePersoBAse="$main_path/$categorynamePerso";
 		$categorynamePersoPathBase="$categorynamePersoBAse/domains.ufdb";
 		$categorynamePersoPathUrls="$categorynamePersoBAse/urls";
+		
+		
+		
+		
 			
 		if(!preg_match("#^category_(.+)#", $table,$re)){continue;}
 		$categoryname=$re[1];
@@ -891,15 +997,22 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 						if(!is_file("$BASEArt/expressions")){@file_put_contents("$BASEArt/expressions", "\n");}
 						if(!isset($GLOBALS["UFDBART"][$categoryname])){
 							$GLOBALS["UFDBART"][$categoryname]=$categoryNameArt;
-							echo "Starting......: [ART] `$categoryname` $categoryNameArt Added\n";
+							echo "Starting......: ".__LINE__."[ART] `$categoryname` $categoryNameArt Added\n";
+							echo "Starting......: ".__LINE__."[ART] `$categoryname` $BASEArt\n";
 							$array[]="category \"$categoryNameArt\" {";
 							if($RedirectUri<>null){$array[]=$RedirectUri;}
 							$categorypathArtica=str_replace(".ufdb", "", $categorypathArtica);
 							$IS_CAT_ADDED=true;
 							$array[]="\tdomainlist\t\"$categorypathArtica\"";
-							if($categoryNameArt=="phishtank"){
-								$array[]="\texpressionlist \"phishtank/expressions\"";
-								
+							
+							
+							
+							if(is_file("$BASEArt/expressions")){
+								$isize=@filesize("$BASEArt/expressions");
+								echo "Starting......: ".__LINE__."[ART] `$categoryname` $BASEArt/expressions ( $isize bytes) \n";
+								if($isize>10){
+									$array[]="\texpressionlist \"$BASEArt/expressions\"";
+								}
 							}
 							
 							$array[]="}\n";	
@@ -963,7 +1076,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 					}
 				}
 		
-				$PeroZ=$this->BuildPersoCategories($categorynamePersoPathBase,$categorynamePersoBAse,$categoryname,$categorynamePerso,$RedirectUri,$OrginalCategoryNamed);
+				$PeroZ=$this->BuildPersoCategories($categorynamePersoPathBase,$categorynamePersoBAse,$categoryname,$categorynamePerso,$RedirectUri,$OrginalCategoryNamed,$RedirectUriSSL);
 				if($PeroZ<>null){
 					$IS_CAT_ADDED=true;
 					$array[]=$PeroZ;
@@ -975,7 +1088,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 	}
 	
-	private function BuildPersoCategories($supposed_path,$categorynamePersoBAse,$categoryname,$categorynamePerso,$RedirectUri,$OrginalCategoryNamed){
+	private function BuildPersoCategories($supposed_path,$categorynamePersoBAse,$categoryname,$categorynamePerso,$RedirectUri,$OrginalCategoryNamed,$RedirectUriSSL){
 		$q=new mysql_squid_builder();
 		if(!$this->Is31){$extLOG=" (version <1.31)";$this->Notrefreshdomainlist=1;}
 		
@@ -1022,6 +1135,8 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 		$array[]="category \"$categoryname\" {";
 		if($RedirectUri<>null){$array[]=$RedirectUri;}
+		
+		
 		$categorynamePersoPathBaseDOM=str_replace(".ufdb", "", $supposed_path);
 		if($this->Notrefreshdomainlist==0){
 			$array[]="\texecdomainlist\t\"/usr/share/artica-postfix/execdomainlist.php $OrginalCategoryNamed $categorynamePersoPathBaseDOM\"";
@@ -1149,16 +1264,31 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 	
 	private function build_acls_uriFromRuleID($ID){
 		$RedirectUriDEF="$this->SquidGuardIPWeb";
+		$RedirectUriDEFSSL=$this->SquidGuardIPWebSSL;
 		$redirect_pattern="?rule-id=$ID&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
-		if($this->DansGuardianDefaultMainRule["UseExternalWebPage"]==1){
-			if(preg_match("#^http.*?:#", $this->DansGuardianDefaultMainRule["ExternalWebPage"])){
-				$RedirectUriDEF=$this->DansGuardianDefaultMainRule["ExternalWebPage"];
-			}
-		}
 		
-		if($this->DansGuardianDefaultMainRule["freeweb"]<>null){
-			$RedirectUriDEF="http://{$this->DansGuardianDefaultMainRule["freeweb"]}";
-		}		
+		if($ID==0){
+			if($this->DansGuardianDefaultMainRule["UseExternalWebPage"]==1){
+				if(preg_match("#^http.*?:#", $this->DansGuardianDefaultMainRule["ExternalWebPage"])){
+					$RedirectUriDEF=$this->DansGuardianDefaultMainRule["ExternalWebPage"];
+				}
+				if(preg_match("#^https.*?:#", $this->DansGuardianDefaultMainRule["ExternalWebPage"])){
+					$RedirectUriDEFSSL=$this->DansGuardianDefaultMainRule["ExternalWebPage"];
+				}
+
+				return array("$RedirectUriDEF","$RedirectUriDEFSSL");
+					
+			}
+			
+			
+			if($this->DansGuardianDefaultMainRule["freeweb"]<>null){
+				$RedirectUriDEF="http://{$this->DansGuardianDefaultMainRule["freeweb"]}$redirect_pattern";
+				$RedirectUriDEFSSL="https://{$this->DansGuardianDefaultMainRule["freeweb"]}$redirect_pattern";
+				return array("$RedirectUriDEF","$RedirectUriDEFSSL");
+			}	
+
+		
+		}
 		
 		$q=new mysql_squid_builder();
 		
@@ -1168,18 +1298,33 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		
 		echo "Starting......: [ACL]: [$ID] UseExternalWebPage: {$ligne["UseExternalWebPage"]}\n";
+		echo "Starting......: [ACL]: [$ID] freeweb: {$ligne["freeweb"]}\n";
+		
+		if($ligne["UseExternalWebPage"]==0){
+			if($ligne["freeweb"]==null){
+				echo "Starting......: [ACL]: [$ID]:SquidGuardIPWeb: $this->SquidGuardIPWeb\n";
+				echo "Starting......: [ACL]: [$ID] $RedirectUriDEF$redirect_pattern\n";
+				return array("$RedirectUriDEF$redirect_pattern","$RedirectUriDEFSSL$redirect_pattern");
+			}
+		}
 		
 		
 		if($ligne["UseExternalWebPage"]==0){
-			if($ligne["freeweb"]<>null){return "http://{$ligne["freeweb"]}$redirect_pattern";}
-			return $RedirectUriDEF.$redirect_pattern;
+			if($ligne["freeweb"]<>null){
+					return array("http://{$ligne["freeweb"]}$redirect_pattern","https://{$ligne["freeweb"]}$redirect_pattern");
+			}
+			return array($RedirectUriDEF.$redirect_pattern,$RedirectUriDEFSSL.$redirect_pattern);
 		}
 		if(trim($ligne["ExternalWebPage"])==null){
-			if($ligne["freeweb"]<>null){return "http://{$ligne["freeweb"]}$redirect_pattern";}
-			return $RedirectUriDEF.$redirect_pattern;
+			if($ligne["freeweb"]<>null){
+					return array("http://{$ligne["freeweb"]}$redirect_pattern","https://{$ligne["freeweb"]}$redirect_pattern");
+			}
+			return array("$RedirectUriDEF$redirect_pattern","$RedirectUriDEFSSL$redirect_pattern");
 		}
-		if(!preg_match("#^http.*?:#",$ligne["ExternalWebPage"])){return $RedirectUriDEF;}
-		return $ligne["ExternalWebPage"];
+		
+		
+		if(!preg_match("#^http.*?:#",$ligne["ExternalWebPage"])){return array($RedirectUriDEF,$RedirectUriDEFSSL);}
+		return array($ligne["ExternalWebPage"],$RedirectUriDEFSSL);
 	}
 	
 	
@@ -1216,16 +1361,26 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		}
 		
 		$RedirectUriDEF="$this->SquidGuardIPWeb";
+		$RedirectUriDEFSSL=$this->SquidGuardIPWebSSL;
+		
+		
 		if($this->DansGuardianDefaultMainRule["UseExternalWebPage"]==1){
 			if(preg_match("#^http.*?:#", $this->DansGuardianDefaultMainRule["ExternalWebPage"])){
 				$RedirectUriDEF=$this->DansGuardianDefaultMainRule["ExternalWebPage"];
 			}
+			
+			if(preg_match("#^https.*?:#", $this->DansGuardianDefaultMainRule["ExternalWebPage"])){
+				$RedirectUriDEFSSL=$this->DansGuardianDefaultMainRule["ExternalWebPage"];
+			}			
+			
 		}
 
 		if($this->DansGuardianDefaultMainRule["freeweb"]<>null){
 			$RedirectUriDEF="http://{$this->DansGuardianDefaultMainRule["freeweb"]}";
+			$RedirectUriDEFSSL="https://{$this->DansGuardianDefaultMainRule["freeweb"]}";
 		}
 		echo "Starting......: [DEFAULT]: ufdbGuard redirect banned to \"$RedirectUriDEF\"\n";
+		echo "Starting......: [DEFAULT]: ufdbGuard redirect banned to SSL \"$RedirectUriDEFSSL\"\n";
 		
 		$array[]="acl{";
 		$sql="SELECT category,modeblk FROM webfilter_blks WHERE webfilter_id=0";
@@ -1385,8 +1540,13 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				echo "Starting......: ufdbGuard rule `$groupname`\n";
 				
 				$redirect_pattern="?rule-id=$RULE_ID&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
-				$RedirectUri=$this->build_acls_uriFromRuleID($RULE_ID);
+				$RedirectUriArray=$this->build_acls_uriFromRuleID($RULE_ID);
+				$RedirectUri=$RedirectUriArray[0];
+				$RedirectUriSSL=$RedirectUriArray[1];
+				
+				
 				if($RedirectUri<>$this->SquidGuardIPWeb){$redirect_pattern=null;}
+				if($RedirectUriSSL<>$this->SquidGuardIPWebSSL){$redirect_pattern=null;}
 				
 				if($GLOBALS["TIMESRULES"][$RULE_ID]["MATCH"]<>null){
 						$time=" {$GLOBALS["TIMESRULES"][$RULE_ID]["MATCH"]} timeR{$RULE_ID} ";
@@ -1752,8 +1912,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 			return;
 		}
 
-		if($category=="phishing"){$this->phishing_uris();}
-		if($category=="malware"){$this->malwares_uris();}
+
 		
 		if($this->EnableRemoteStatisticsAppliance==1){ufdbguard_admin_events("Category $category must be compiled by the statistics appliance (aborting)",__FUNCTION__,__FILE__,__LINE__,"compile");return;}
 		$q=new mysql_squid_builder();

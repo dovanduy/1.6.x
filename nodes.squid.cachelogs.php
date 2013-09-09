@@ -24,10 +24,10 @@ function table(){
 	$description=$tpl->_ENGINE_parse_body("{description}");
 	$zDate=$tpl->_ENGINE_parse_body("{zDate}");
 	$TB_HEIGHT=450;
-	$TABLE_WIDTH=807;
+	$TABLE_WIDTH=860;
 	$TB2_WIDTH=400;
 	$ROW1_WIDTH=157;
-	$ROW2_WIDTH=607;
+	$ROW2_WIDTH=657;
 	
 	
 	$t=time();

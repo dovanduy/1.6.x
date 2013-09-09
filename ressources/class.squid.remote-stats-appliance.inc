@@ -228,6 +228,7 @@ class squid_stats_appliance{
 		$array["SquidAutoblock"]=true;	
 		$array["SquidDisableAllFilters"]=true;	
 		$array["UseDynamicGroupsAcls"]=true;
+		$array["SquidNTLMKeepAlive"]=true;
 		$array["DynamicGroupsAclsTTL"]=true;
 		$array["KerbAuthInfos"]=true;
 		$array["EnableKerbAuth"]=true;
@@ -261,11 +262,12 @@ class squid_stats_appliance{
 		$array["EnableSquidPortsRestrictions"]=true;
 		$array["SquidStandardLDAPAuth"]=true;
 		$array["SquidLdapAuthEnableGroups"]=true;
+		$array["SquidLdapAuthBanner"]=true;
 		$array["NtpdateAD"]=true;
-		$array["DisableSquidBasicAuth"]=true;
-		$array["DisableSilentNTLM"]=true;
-		$array["ForceWindowsUpdateCaching"]=true;
 		
+		
+		$array["ForceWindowsUpdateCaching"]=true;
+		$array["KerbAuthMethod"]=true;
 		$array["UpdateUtilityRedirectEnable"]=true;
 		$array["UpdateUtilityHTTPSRV"]=true;
 		$array["UpdateUtilityExternWbsrvAddr"]=true;

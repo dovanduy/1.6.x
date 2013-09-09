@@ -1896,7 +1896,7 @@ function Tracker($www){
 				if(preg_match("#\.qoof\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.quadrantone\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.quantcast\.com$#", $www)){return "tracker";}
-				if(preg_match("#\.quantserve\.com$#", $www)){return "tracker";}
+				
 				
 				if(preg_match("#\.quicknoodles\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.quinstreet\.com$#", $www)){return "tracker";}

@@ -487,15 +487,15 @@ class squidnodes{
 		$conf[]="# --------- Objects limits";
 		if($this->EnableChangeRequestSize==1){
 			$conf[]="request_body_max_size $request_body_max_size KB";
-			$conf[]="reply_body_max_size $reply_body_max_size KB";
-			$conf[]="request_header_max_size $request_header_max_size KB";
-			$conf[]="reply_header_max_size $reply_header_max_size KB";
-			$conf[]="client_request_buffer_max_size $client_request_buffer_max_size KB";
+			if($reply_body_max_size>0){$conf[]="reply_body_max_size $reply_body_max_size KB";}
+			if($request_header_max_size>0){$conf[]="request_header_max_size $request_header_max_size KB";}
+			if($reply_header_max_size>0){$conf[]="reply_header_max_size $reply_header_max_size KB";}
+			if($client_request_buffer_max_size>0){$conf[]="client_request_buffer_max_size $client_request_buffer_max_size KB";}
 		}
 		
-		$conf[]="maximum_object_size $maximum_object_size $maximum_object_size_unit";
-		$conf[]="minimum_object_size $minimum_object_size $minimum_object_size_unit";
-		$conf[]="maximum_object_size_in_memory $maximum_object_size_in_memory $maximum_object_size_in_memory_unit";
+		if($maximum_object_size>0){$conf[]="maximum_object_size $maximum_object_size $maximum_object_size_unit";}
+		if($minimum_object_size>0){$conf[]="minimum_object_size $minimum_object_size $minimum_object_size_unit";}
+		if($maximum_object_size_in_memory>0){$conf[]="maximum_object_size_in_memory $maximum_object_size_in_memory $maximum_object_size_in_memory_unit";}
 	
 	}
 	

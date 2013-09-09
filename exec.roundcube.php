@@ -1,6 +1,5 @@
 <?php
-if(!is_file(dirname(__FILE__) .  '/ressources/settings.inc')){die("Unable to stat ".dirname(__FILE__) . '/ressources/settings.inc');}
-include_once(dirname(__FILE__) . '/ressources/settings.inc');
+if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . '/ressources/class.mysql.inc');
 include_once(dirname(__FILE__) . '/ressources/class.roundcube.inc');
@@ -8,11 +7,13 @@ include_once(dirname(__FILE__) . '/ressources/class.apache.inc');
 include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
-if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 $bd="roundcubemail";
+$GLOBALS["OUTPUT"]=false;
+$GLOBALS["FORCE"]=false;
 $GLOBALS["MYSQL_DB"]=$bd;	
-
+$GLOBALS["SERVICE_NAME"]="RoundCube Web";
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 if($argv[1]=="--sieverules"){plugin_sieverules();die();}
 if($argv[1]=="--calendar"){plugin_calendar();die();}
@@ -23,82 +24,309 @@ if($argv[1]=="--addressbook"){plugin_globaladdressbook();die();}
 if($argv[1]=="--verifyTables"){verifyTables();die();}
 if($argv[1]=="--hacks"){RoundCubeHacks();die();}
 if($argv[1]=="--tableslist"){RoundCubeMysqlTablesList();die();}
+if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
+if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
+if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 
 
+popuplate();
 
 
+function popuplate(){
+	
+	$unix=new unix();
+	
+	if(!is_dir($unix->LOCATE_ROUNDCUBE_WEBFOLDER())){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Not installed\n";}
+		die();
+	}
 
-if(!$_GLOBAL["roundcube_installed"]){die("Roundcube is not installed, aborting");}
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	$unix=new unix();
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already pid running $pid\n";}
+		die();
+	}
+	
+	$timExc=$unix->file_time_min($pidTime);
+	if(!$GLOBALS["FORCE"]){
+		if($timExc<120){return;}
+		@unlink($pidTime);
+		@file_put_contents($pidTime, time());
+	}
+	
+	$pid=getmypid();
+	@file_put_contents($pidfile,$pid);
 
-$pid=getmypid();
-$pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
-
-$unix=new unix();
-if($unix->process_exists($pid)){die();}
-@file_put_contents($pidfile,$pid);
-
-$mailhost=$_GLOBAL["fqdn_hostname"];
-echo "Get user list....\n";
-
-$ldap=new clladp();
-$users=$ldap->Hash_GetALLUsers();
-
-echo count($users)." user(s) to scan\n";
-
-
-if(!is_array($users)){
-	writelogs("No users stored in local database, aborting ","MAIN",__FILE__,__LINE__);
-	die();
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Get user list....\n";}
+	
+	
+	$ldap=new clladp();
+	$GLOBALS["LDAP_USERS"]=$ldap->Hash_GetALLUsers();
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: ". count($GLOBALS["LDAP_USERS"])." user(s) to scan\n";}
+	
+	
+	if(!is_array($GLOBALS["LDAP_USERS"])){
+		writelogs("No users stored in local database, aborting ","MAIN",__FILE__,__LINE__);
+		die();
+	}	
+	popuplate_db();
+	
+	$q=new mysql();
+	$sql="SELECT mysql_database FROM freeweb WHERE groupware='ROUNDCUBE'";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		popuplate_db($ligne["mysql_database"]);
+	}
+	
+	
 }
 
-$q=new mysql();
+function popuplate_db($database=null){
+	$q=new roundcube();
+	if($database==null){$database=$q->database;}
+	if(isset($GLOBALS["Populated$database"])){return;}
+	$GLOBALS["Populated$database"]=true;
+	$users=$GLOBALS["LDAP_USERS"];
+	$unix=new unix();
+	$mailhost=$unix->hostname_g();
+	
+
+
+
+
+$count=0;
 while (list ($num, $val) = each ($users) ){
 		usleep(400000);
-		$user_id=GetidFromUser($bd,$num);
-		echo " user \"$num\" $val user_id=$user_id\n";
+		$user_id=GetidFromUser($database,$num);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: user \"$num\" $val user_id=$user_id\n";}
 		$sql="UPDATE identities SET `email`='$val', `reply-to`='$val' WHERE name='$num';";
 		echo $sql."\n";
-		$q->QUERY_SQL($sql,$bd);	
+		$q->QUERY_SQL($sql);	
 		if(!$q->ok){echo "$sql \n$q->mysql_error\n";}	
 		
 		if($user_id==0){
-			CreateRoundCubeUser($bd,$num,$val,'127.0.0.1');
-			$user_id=GetidFromUser($bd,$num);
+			CreateRoundCubeUser($database,$num,$val,'127.0.0.1');
+			$user_id=GetidFromUser($database,$num);
 		}
 		
 		if($user_id==0){continue;}
-		$identity_id=GetidentityFromuser_id($bd,$user_id);
+		$identity_id=GetidentityFromuser_id($database,$user_id);
 		if($identity_id==0){
-			CreateRoundCubeIdentity($bd,$user_id,$num,$val);
-			$identity_id=GetidentityFromuser_id($bd,$user_id);
+			CreateRoundCubeIdentity($database,$user_id,$num,$val);
+			$identity_id=GetidentityFromuser_id($database,$user_id);
 			}
 		
 		if($identity_id==0){continue;}
 		
 		$count=$count+1;
-		UpdateRoundCubeIdentity($bd,$identity_id,$val);
-		
-		
-		
-		
+		UpdateRoundCubeIdentity($database,$identity_id,$val);
 }
 
 echo "\n\nsuccess ".$count." user(s) updated\n";
+}
+
 
 function GetidFromUser($bd,$uid){
 	$sql="SELECT user_id FROM users where username='$uid'";
-	$q=new mysql();
+	$q=new roundcube($bd);
+	$userid=array();
 	$results=$q->QUERY_SQL($sql,$bd);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-				$userid[]=$ligne["user_id"];
+		$userid[]=$ligne["user_id"];
 	}
 	
-	if(!is_array($userid)){return 0;}else{return $userid[0];}
+	if(count($userid)==0){return 0;}else{return $userid[0];}
 			
 	
 	
 }
 
+
+
+function restart($nopid=false){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	if(!$nopid){
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+	}
+	@file_put_contents($pidfile, getmypid());
+	stop(true);
+	$LIGHTTPD_CONF_PATH=LIGHTTPD_CONF_PATH();
+	@mkdir("/var/run/lighttpd",0755,true);
+	$roundcube=new roundcube();
+	@file_put_contents($LIGHTTPD_CONF_PATH, $roundcube->Build_lighthttp());	
+	$roundcube->db_inc_php();	
+	@file_put_contents("$roundcube->root_path/config/main.inc.php", $roundcube->RoundCubeConfig());   
+	verifyTables();
+	start(true);
+}
+
+function stop($aspid=false){
+	$unix=new unix();
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+
+	$pid=LIGHTTPD_PID();
+
+
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} already stopped...\n";}
+		return;
+	}
+	$pid=LIGHTTPD_PID();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$lighttpd_bin=$unix->find_program("lighttpd");
+	$kill=$unix->find_program("kill");
+
+
+
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Shutdown pid $pid...\n";}
+	shell_exec("$kill $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=LIGHTTPD_PID();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+
+	$pid=LIGHTTPD_PID();
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
+		return;
+	}
+
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} shutdown - force - pid $pid...\n";}
+	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=LIGHTTPD_PID();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
+		return;
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
+	}
+}
+
+function start($aspid=false){
+	$unix=new unix();
+	$sock=new sockets();
+	
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	
+	$ROUNDCUBE_MAIN_FOLDER=ROUNDCUBE_MAIN_FOLDER();
+	if(!is_dir(ROUNDCUBE_MAIN_FOLDER())){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} not installed\n";}
+		return;
+	}
+	$RoundCubeHTTPEngineEnabled=$sock->GET_INFO("RoundCubeHTTPEngineEnabled");
+	if(!is_numeric($RoundCubeHTTPEngineEnabled)){$RoundCubeHTTPEngineEnabled=0;}
+	
+	$pid=LIGHTTPD_PID();
+	if($RoundCubeHTTPEngineEnabled==1){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} disabled (RoundCubeHTTPEngineEnabled)..\n";}
+		if($unix->process_exists($pid)){stop(true);}
+		return;
+	}
+	
+	
+	
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} {$GLOBALS["SERVICE_NAME"]} already started $pid since {$timepid}Mn...\n";}
+		return;
+	}
+	
+	
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$lighttpd_bin=$unix->find_program("lighttpd");
+	$LIGHTTPD_CONF_PATH=LIGHTTPD_CONF_PATH();
+	
+	@mkdir("/var/run/lighttpd",0755,true);
+	
+
+	$cmd="$lighttpd_bin -f $LIGHTTPD_CONF_PATH";
+	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+	shell_exec($cmd);
+	
+	for($i=0;$i<6;$i++){
+		$pid=LIGHTTPD_PID();
+		if($unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting $i/6...\n";}
+		sleep(1);
+	}
+	
+	$pid=LIGHTTPD_PID();
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Success service started pid:$pid...\n";}
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmd\n";}
+	}
+	
+	
+	
+}
+
+function ROUNDCUBE_MAIN_FOLDER(){
+	
+	$f[]="/usr/share/roundcubemail/index.php";
+	$f[]="/usr/share/roundcube/index.php";
+	$f[]="/var/lib/roundcube/index.php";
+	while (list ($num, $filename) = each ($f) ){
+		if(is_file($filename)){return dirname($filename);}
+		
+	}	
+
+}
+
+
+function LIGHTTPD_CONF_PATH(){
+	return "/etc/artica-postfix/lighttpd-roundcube.conf";
+}
+
+function LIGHTTPD_PID(){
+	$unix=new unix();
+	$pid=$unix->get_pid_from_file('/var/run/lighttpd/lighttpd-roundcube.pid');
+	if($unix->process_exists($pid)){return $pid;}
+	$lighttpd_bin=$unix->find_program("lighttpd");
+	$LIGHTTPD_CONF_PATH=LIGHTTPD_CONF_PATH();
+	return $unix->PIDOF_PATTERN($lighttpd_bin." -f $LIGHTTPD_CONF_PATH");
+}
 function build(){
 	$unix=new unix();
 	$rm=$unix->find_program("rm");
@@ -127,7 +355,7 @@ function CreateRoundCubeUser($bd,$user_id,$email,$mailhost){
 	$sql="INSERT INTO `users` (`username`, `mail_host`, `language`,`created`) VALUES 
 	('$user_id','127.0.0.1','en_US','$date');
 	";
-	$q=new mysql();
+	$q=new roundcube($bd);
 	$q->QUERY_SQL($sql,$bd);
 	if(!$q->ok){
 		echo $q->mysql_error."\n";
@@ -137,26 +365,27 @@ function CreateRoundCubeUser($bd,$user_id,$email,$mailhost){
 
 function CreateRoundCubeIdentity($bd,$user_id,$num,$val){
 	$sql="INSERT INTO `identities` (`user_id`, `del`, `standard`, `name`, `organization`, `email`, `reply-to`) VALUES ('$user_id','0','1','$num','','$val','$val');";
-	$q=new mysql();
+	$q=new roundcube($bd);
 	$q->QUERY_SQL($sql,$bd);
 }
 
 
 function GetidentityFromuser_id($bd,$user_id){
+	$id=array();
 	$sql="SELECT identity_id FROM identities where user_id='$user_id'";
-	$q=new mysql();
+	$q=new roundcube($bd);
 	$results=$q->QUERY_SQL($sql,$bd);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 				$id[]=$ligne["identity_id"];
 	}
 	
-	if(!is_array($id)){return 0;}else{return $id[0];}
+	if(count($id)==0){return 0;}else{return $id[0];}
 }
 
 function UpdateRoundCubeIdentity($bd,$identity_id,$val){
 	echo "Update $identity_id to $val\n";
 	$sql="UPDATE identities SET email='$val', `reply-to`='$val' WHERE identity_id='$identity_id'";
-	$q=new mysql();
+	$q=new roundcube($bd);
 	$q->QUERY_SQL($sql,$bd);
 	
 }
@@ -315,38 +544,37 @@ function check_databases($bd){
 
 function verifyTables(){
 	$mysqlfile="/usr/share/roundcube/SQL/mysql.initial.sql";
-	if(!is_file($mysqlfile)){return null;}
+	$mysqlupdatefile="/usr/share/roundcube/SQL/mysql.update.sql";
+	if(!is_file($mysqlfile)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} [$roundcube->database] $mysqlfile no such file !!\n";}
+		return null;
+	}
 	$q=new mysql();
 	$users=new usersMenus();
 	$f=RoundCubeMysqlTablesList();
 	
 	$unix=new unix();
 	$mysqlbin=$unix->find_program("mysql");
-	$token[]="--host=$users->mysql_server";
-	if($users->mysql_admin<>null){$token[]="--user=$users->mysql_admin";}
-	if($users->mysql_password<>null){$token[]="--password=$users->mysql_password";}
+	$roundcube=new roundcube();
 	
-	$token[]="--database={$GLOBALS["MYSQL_DB"]}";
-	$token[]="--silent";
-	
-	$cmdline="$mysqlbin ". @implode(" ",$token);
+	$cmdline="$mysqlbin ". $roundcube->MYSQL_CMDLINES;
 	
 	
 	$verif=true;
 	while (list ($num, $table) = each ($f) ){
-		if(!$q->TABLE_EXISTS($table,$GLOBALS["MYSQL_DB"])){
-			echo "\"$table\" no such table in {$GLOBALS["MYSQL_DB"]}\n";
+		if(!$roundcube->TABLE_EXISTS($table,$GLOBALS["MYSQL_DB"])){
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} [$roundcube->database] \"$table\" no such table\n";}
 			$verif=false;
 		}
 	}
 	
 if(!$verif){
-	$initial=$cmdline." < ". $users->roundcube_folder."/SQL/mysql.initial.sql";
+	$initial=$cmdline." $roundcube->database < ". $mysqlfile;
 	shell_exec($initial);
-	if($GLOBALS["VERBOSE"]){echo "$initial\n";}
-	$update=$cmdline." < ". $users->roundcube_folder."/SQL/mysql.update.sql";
-	shell_exec($update);
-	if($GLOBALS["VERBOSE"]){echo "$update\n";}
+	if(is_file($mysqlupdatefile)){
+		$update=$cmdline." $roundcube->database < $mysqlupdatefile";
+		shell_exec($update);
+	}
 	return;
 }	
 
@@ -354,21 +582,22 @@ if(!$verif){
 	$f[]="contactgroupmembers";
 	$f[]="contactgroups";
 	$verif=true;
+	$roundcube=new roundcube();
 	while (list ($num, $table) = each ($f) ){
-		if(!$q->TABLE_EXISTS($table,$GLOBALS["MYSQL_DB"])){
-			echo "\"$table\" no such table in {$GLOBALS["MYSQL_DB"]}\n";
+		if(!$roundcube->TABLE_EXISTS($table)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} [$roundcube->database] \"$table\" no such table\n";}
 			$verif=false;
 		}
 	}	
 	
 if(!$verif){
-	$update=$cmdline." < ". $users->roundcube_folder."/SQL/mysql.update.sql";
-	$q->QUERY_SQL($update,$GLOBALS["MYSQL_DB"]);
+	$update=$cmdline." $roundcube->database < $mysqlupdatefile";
+	$roundcube->QUERY_SQL($update,$GLOBALS["MYSQL_DB"]);
 	shell_exec($update);
 	if($GLOBALS["VERBOSE"]){echo "$update\n";}
 	return;
 }	
-	echo "All are ok, nothing to do...\n";
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} DB: [$roundcube->database]: All are ok, nothing to do...\n";}
 	
 }
 

@@ -47,13 +47,12 @@ public
     function    main_folder():string;
     procedure   SetPermissions();
     function    MYSQL_SOURCE_PATH():string;
-    procedure   ROUNDCUBE_START_SERVICE();
-    procedure   ROUNDCUBE_STOP_SERVICE();
+
     function    ROUNDCUBE_PID():string;
     function    web_folder():string;
     function    STATUS:string;
     function    VERSION():string;
-    procedure   DEBIAN_CONFIG();
+
     function    INTVERSION(version_str:string):integer;
     function    PluginsList():string;
 
@@ -103,7 +102,7 @@ begin
    
    
    if D then writeln('DEBIAN_CONFIG();');
-   DEBIAN_CONFIG();
+
 
    
    if not FileExists(MYSQL_SOURCE_PATH()) then begin
@@ -392,7 +391,7 @@ var
 begin
 
 sieve_port:=SYS.ETC_SERVICES_PORT('sieve');
-if sieve_port:=0 then sieve_port:=2000;
+if sieve_port=0 then sieve_port:=2000;
 l:=Tstringlist.Create;
 folder:=web_folder();
 l.Add('<?php');
@@ -478,88 +477,7 @@ end;
 //##############################################################################
 
 
-procedure troundcube.ROUNDCUBE_START_SERVICE();
-var
-   conf_path:string;
-   lighttpd:Tlighttpd;
-   pid:string;
-   user:string;
-begin
-     lighttpd:=Tlighttpd.Create(SYS);
-     conf_path:='/etc/artica-postfix/lighttpd-roundcube.conf';
 
-     if Not DirectoryExists(main_folder())then begin
-        logs.Debuglogs('Starting......: RoundCube is not installed');
-        exit;
-     end;
-
-
-     lighttpd:=Tlighttpd.Create(SYS);
-     if not FileExists(lighttpd.LIGHTTPD_BIN_PATH()) then begin
-        logs.Debuglogs('Starting......: lighttpd is not installed');
-        exit;
-     end;                                                        
-     
-     SYS.THREAD_COMMAND_SET(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.roundcube.php --verifyTables');
-
-
-     if SYS.GET_INFO('RoundCubeHTTPEngineEnabled')<>'1' then begin
-         logs.Debuglogs('Starting......: Roundcube Configuration file "/etc/artica-postfix/lighttpd-roundcube.conf"');
-         logs.Debuglogs('Starting......: lighttpd For RoundCube is disabled');
-         logs.Debuglogs('Starting......: Create symbolic link from '+web_folder+' to '+ artica_path + '/webmail');
-         logs.OutputCmd('/bin/ln -s --force ' + web_folder + ' ' +artica_path + '/webmail');
-         APPLY_CONFIGURATIONS();
-         SetPermissions();
-         pid:=ROUNDCUBE_PID();
-         if SYS.PROCESS_EXIST(pid) then ROUNDCUBE_STOP_SERVICE();
-         exit;
-     end;
-
-     pid:=ROUNDCUBE_PID();
-     if SYS.PROCESS_EXIST(pid) then begin
-        logs.Debuglogs('Starting......: lighttpd for RoundCube already running with pid '+pid);
-        exit;
-     end;
-
-
-     if FileExists('/etc/artica-postfix/settings/Daemons/RoundCubeLightHTTPD') then begin
-          logs.OutputCmd('/bin/cp /etc/artica-postfix/settings/Daemons/RoundCubeLightHTTPD /etc/artica-postfix/lighttpd-roundcube.conf');
-     end;
-
-
-
-     user:=lighttpd.LIGHTTPD_GET_USER();
-     logs.Debuglogs('Starting......: Roundcube user '+user);
-     APPLY_CONFIGURATIONS();
-     SetPermissions();
-
-
-     if not FileExists(conf_path) then begin
-          logs.Debuglogs('ROUNDCUBE_START_SERVICE():: Unable to stat /etc/artica-postfix/lighttpd-roundcube.conf');
-          exit;
-     end;
-     
-
-     if not SYS.PROCESS_EXIST(pid) then begin
-         logs.Debuglogs('Starting......: Roundcube Configuration file "'+roundcube_db_inc_php()+'"');
-         logs.OutputCmd('/bin/cp /etc/artica-postfix/settings/Daemons/RoundCubeConfigurationFile '+roundcube_db_inc_php);
-         DEBIAN_CONFIG();
-         logs.OutputCmd(lighttpd.LIGHTTPD_BIN_PATH() + ' -f ' + '/etc/artica-postfix/lighttpd-roundcube.conf');
-
-     
-     pid:=ROUNDCUBE_PID();
-      if not SYS.PROCESS_EXIST(pid) then begin
-        logs.Debuglogs('Starting......: lighttpd for RoundCube Failed to start http engine');
-        logs.Debuglogs('Starting......: "'+lighttpd.LIGHTTPD_BIN_PATH() + ' -f ' + '/etc/artica-postfix/lighttpd-roundcube.conf"');
-        exit;
-      end  else begin
-        logs.Debuglogs('Starting......: lighttpd for RoundCube Success starting lighttpd pid number ' + pid);
-     end;
-     end else begin
-         logs.Debuglogs('Starting......: lighttpd for RoundCube already started with PID ' + pid);
-         exit;
-     end;
-end;
 //##############################################################################
 function troundcube.lighttpd_server_key(key:string):string;
 var
@@ -618,100 +536,6 @@ logs.WriteToFile(l.Text,sourcefile);
 l.free;
 RegExpr.free;
 end;
-//##############################################################################
-procedure troundcube.ROUNDCUBE_STOP_SERVICE();
-var
-   conf_path:string;
-   lighttpd:Tlighttpd;
-   pid:string;
-begin
-  conf_path:='/etc/artica-postfix/lighttpd-roundcube.conf';
-
-     if not FileExists(conf_path) then begin
-          logs.Debuglogs('ROUNDCUBE_START_SERVICE():: Unable to stat /etc/artica-postfix/lighttpd-roundcube.conf');
-          exit;
-     end;
-
-     if Not DirectoryExists(main_folder())then begin
-        logs.Debuglogs('ROUNDCUBE_START_SERVICE():: RoundCube is not installed');
-        exit;
-     end;
-     lighttpd:=Tlighttpd.Create(SYS);
-     if not FileExists(lighttpd.LIGHTTPD_BIN_PATH()) then begin
-        logs.Debuglogs('ROUNDCUBE_START_SERVICE():: lighttpd is not installed');
-        exit;
-     end;
-     
-pid:=ROUNDCUBE_PID();
-     if not SYS.PROCESS_EXIST(pid) then begin
-        writeln('Stopping RoundCube service...: Already stopped');
-        exit;
-     end;
-
-     writeln('Stopping RoundCube service...: ' + pid + ' PID');
-     fpsystem('/bin/kill ' +pid);
-     exit;
-end;
-//##############################################################################
-
-procedure troundcube.DEBIAN_CONFIG();
-var
-   l:TstringList;
-begin
-
-     if not FileExists('/etc/roundcube/debian-db.php') then begin
-        ForceDirectories('/etc/roundcube');
-        logs.Debuglogs('DEBIAN_CONFIG():: unable to stat /etc/roundcube/debian-db.php force create it....');
-     end;
-     l:=TstringList.Create;
-l.Add('<?php');
-l.Add('##');
-l.Add('## database access settings in php format');
-l.Add('## automatically generated from /etc/dbconfig-common/roundcube.conf');
-l.Add('## by /usr/sbin/dbconfig-generate-include');
-l.Add('## Thu, 29 May 2008 11:22:21 +0200');
-l.Add('##');
-l.Add('## by default this file is managed via ucf, so you shouldn"t have to');
-l.Add('## worry about manual changes being silently discarded.  *however*,');
-l.Add('## you"ll probably also want to edit the configuration file mentioned');
-l.Add('## above too.');
-l.Add('##');
-l.Add('$dbuser="'+ SYS.MYSQL_INFOS('database_admin') + '";');
-l.Add('$dbpass="' + SYS.MYSQL_INFOS('database_password') + '";');
-l.Add('$basepath="";');
-l.Add('$dbname="roundcubemail";');
-l.Add('$dbserver="' + SYS.MYSQL_INFOS('mysql_server') + '";');
-l.Add('$dbport="' + SYS.MYSQL_INFOS('port') + '";');
-l.Add('$dbtype="mysql";');
-logs.WriteToFile(l.Text,'/etc/roundcube/debian-db.php');
-logs.Debuglogs('saving /etc/roundcube/debian-db.php');
-
-l.CLear;
-l.Add('<?php');
-l.Add('$rcmail_config = array();');
-l.Add('$rcmail_config["db_dsnw"] = "mysql://'+SYS.MYSQL_INFOS('database_admin')+':' + SYS.MYSQL_INFOS('database_password') + '@'+ SYS.MYSQL_INFOS('mysql_server') +'/roundcubemail";');
-l.Add('$rcmail_config["db_dsnr"] = "";');
-l.Add('$rcmail_config["db_max_length"] = 512000;  // 500K');
-l.Add('$rcmail_config["db_persistent"] = FALSE;');
-l.Add('$rcmail_config["db_table_users"] = "users";');
-l.Add('$rcmail_config["db_table_identities"] = "identities";');
-l.Add('$rcmail_config["db_table_contacts"] = "contacts";');
-l.Add('$rcmail_config["db_table_session"] = "session";');
-l.Add('$rcmail_config["db_table_cache"] = "cache";');
-l.Add('$rcmail_config["db_table_messages"] = "messages";');
-l.Add('$rcmail_config["db_sequence_users"] = "user_ids";');
-l.Add('$rcmail_config["db_sequence_identities"] = "identity_ids";');
-l.Add('$rcmail_config["db_sequence_contacts"] = "contact_ids";');
-l.Add('$rcmail_config["db_sequence_cache"] = "cache_ids";');
-l.Add('$rcmail_config["db_sequence_messages"] = "message_ids";');
-l.Add('$rcmail_config["db_sequence_contacts"] = "contact_ids";');
-l.Add('$rcmail_config["db_sequence_contactgroups"] = "contactgroups_ids";');
-l.Add('?>');
-logs.Debuglogs('saving /usr/share/roundcube/config/db.inc.php');
-logs.WriteToFile(l.Text,'/usr/share/roundcube/config/db.inc.php');
-l.free;
-end;
-
 //##############################################################################
 function troundcube.MYSQL_SOURCE_PATH():string;
 begin

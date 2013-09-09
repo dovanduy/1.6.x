@@ -193,7 +193,7 @@ class phpMyDumper {
 						$data .= "0x".$record[$field_name];
 					}
 					else {
-						$data .= '\''.@str_replace('\"','"',@mysql_escape_string($record[$field_name])).'\'';
+						$data .= '\''.@str_replace('\"','"',@phpMyDumper::mysql_escape_string2($record[$field_name])).'\'';
 					}
 				}
 				$data .= ',';
@@ -203,6 +203,17 @@ class phpMyDumper {
 			$this->saveToFile($this->file,$data);
 			$data = '';
 		}
+	}
+	
+	public function mysql_escape_string2($line){
+		$search=array("\\","\0","\n","\r","\x1a","'",'"');
+		$replace=array("\\\\","\\0","\\n","\\r","\Z","\'",'\"');
+		return str_replace($search,$replace,$line);
+		if(function_exists("mysql_real_escape_string")){
+			return mysql_real_escape_string($line);
+		}
+		return mysql_escape_string($line);
+	
 	}
 
  	/**

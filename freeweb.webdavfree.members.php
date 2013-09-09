@@ -59,7 +59,7 @@ function add(){
 	$servername=$ligne["servername"];
 	$Array=unserialize(base64_decode($ligne["params"]));
 	$Array["MEMBERS"][$dn]=$uid;
-	$NewArray=mysql_escape_string(base64_encode(serialize($Array)));
+	$NewArray=mysql_escape_string2(base64_encode(serialize($Array)));
 	$q->QUERY_SQL("UPDATE freeweb_webdav SET `params`='$NewArray' WHERE mdkey='$mdkey'","artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
@@ -74,7 +74,7 @@ function delete(){
 	$servername=$ligne["servername"];
 	$Array=unserialize(base64_decode($ligne["params"]));
 	unset($Array["MEMBERS"][$dn]);
-	$NewArray=mysql_escape_string(base64_encode(serialize($Array)));
+	$NewArray=mysql_escape_string2(base64_encode(serialize($Array)));
 	$q->QUERY_SQL("UPDATE freeweb_webdav SET `params`='$NewArray' WHERE mdkey='$mdkey'","artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();

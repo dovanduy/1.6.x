@@ -1467,6 +1467,7 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 		}
 	}
 	$roundcube_class=new roundcube();
+	$roundcube_class->root_path=$root;
 	
 	if(!is_file("$root/plugins/msglistcols/msglistcols.php")){$roundcube_class->plugin_install($root,"msglistcols");}
 	if(!is_file("$root/plugins/sticky_notes/sticky_notes.php")){$roundcube_class->plugin_install($root,"sticky_notes");}
@@ -1477,7 +1478,7 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 	
 	if(is_file("$root/plugins/msglistcols/msglistcols.php")){$conf[]="\$rcmail_config['plugins'][] = 'msglistcols';";}
 	if(is_file("$root/plugins/dkimstatus/dkimstatus.php")){$conf[]="\$rcmail_config['plugins'][] = 'dkimstatus';";}
-	if(is_file("$root/plugins/fail2ban/fail2ban.php")){$conf[]="\$rcmail_config['plugins'][] = 'fail2ban';";}
+	//if(is_file("$root/plugins/fail2ban/fail2ban.php")){$conf[]="\$rcmail_config['plugins'][] = 'fail2ban';";}
 	if($roundcube_class->plugin_password($root,$hash["OU"][0])){
 		if(is_file("$root/plugins/dkimstatus/dkimstatus.php")){$conf[]="\$rcmail_config['plugins'][] = 'password';";}
 	}
@@ -1489,37 +1490,8 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 	
 	}
 	
-	
-	if(is_file("$root/plugins/sieverules/sieverules.php")){
-		$users=new usersMenus();
-		$sieverules_port=4190;
-		if(is_numeric($users->SIEVE_PORT)){if($users->SIEVE_PORT>0){$sieverules_port=$users->SIEVE_PORT;}}
-		echo "Starting......: Roundcube (php) sieverules_port ($sieverules_port)\n";		
-		$conf[]="\$rcmail_config['plugins'][] = 'sieverules';";
-		$sieve[]="<?php";
-		$sieve[]="\$rcmail_config[\"sieverules_host\"] = \"127.0.0.1\";";
-		$sieve[]="\$rcmail_config[\"sieverules_port\"] = $sieverules_port;";
-		$sieve[]="\$rcmail_config[\"sieverules_usetls\"] = FALSE;";
-		$sieve[]="\$rcmail_config[\"sieverules_folder_delimiter\"] = null;";
-		$sieve[]="\$rcmail_config[\"sieverules_folder_encoding\"] = null;";
-		$sieve[]="\$rcmail_config[\"sieverules_include_imap_root\"] = null;";
-		$sieve[]="\$rcmail_config[\"sieverules_ruleset_name\"] = \"roundcube\";";
-		$sieve[]="\$rcmail_config[\"sieverules_multiple_actions\"] = TRUE;";
-		$sieve[]="\$rcmail_config[\"sieverules_allowed_actions\"] = array(\"fileinto\" => TRUE,\"vacation\" => TRUE,\"reject\" => TRUE,\"redirect\" => TRUE,\"keep\" => TRUE,\"discard\" => TRUE,\"imapflags\" => TRUE,\"notify\" => TRUE,\"stop\" => TRUE);";
-		$sieve[]="\$rcmail_config[\"sieverules_other_headers\"] = array(\"Reply-To\", \"List-Id\", \"MailingList\", \"Mailing-List\",\"X-ML-Name\", \"X-List\", \"X-List-Name\", \"X-Mailing-List\",\"Resent-From\",";
-		$sieve[]="	\"Resent-To\", \"X-Mailer\", \"X-MailingList\",\"X-Spam-Status\", \"X-Priority\", \"Importance\", \"X-MSMail-Priority\",\"Precedence\", \"Return-Path\", \"Received\", \"Auto-Submitted\",\"X-Spam-Flag\", \"X-Spam-Tests\");";
-		$sieve[]="\$rcmail_config[\"sieverules_predefined_rules\"] = array();";
-		$sieve[]="\$rcmail_config[\"sieverules_adveditor\"] = 0;";
-		$sieve[]="\$rcmail_config[\"sieverules_multiplerules\"] = FALSE;";
-		$sieve[]="\$rcmail_config[\"sieverules_default_file\"] = \"/etc/dovecot/sieve/default\";";
-		$sieve[]="\$rcmail_config[\"sieverules_auto_load_default\"] = FALSE;";
-		$sieve[]="\$rcmail_config[\"sieverules_example_file\"] = \"/etc/dovecot/sieve/example\";";
-		$sieve[]="\$rcmail_config[\"sieverules_force_vacto\"] = TRUE;";
-		$sieve[]="\$rcmail_config[\"sieverules_use_elsif\"] = TRUE;";
-		$sieve[]="?>";		
-		@file_put_contents("$root/plugins/sieverules/config.inc.php",@implode("\n",$sieve));
-		
-	}
+	$roundcube_class->db_inc_php();
+
 	
 	$conf[]="";
 	$conf[]="";

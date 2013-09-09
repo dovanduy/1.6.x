@@ -866,6 +866,10 @@ function certificate(){
 
 }
 function apt(){
+	$sock=new sockets();
+	$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
+	if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
+	if($EnableSystemUpdates==0){return;}
 	$GLOBALS["ICON_FAMILY"]="UPDATE";
 	$js="Loadjs('artica.repositories.php')";
 	$img="DEBIAN_mirror-64.png";	

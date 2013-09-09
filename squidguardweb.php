@@ -28,7 +28,7 @@ function js(){
 	$title=$tpl->_ENGINE_parse_body("{banned_page_webservice}");
 	header("content-type: application/x-javascript");
 	$html="
-		YahooWin5('650','$page?tabs=yes','$title');
+		YahooWin5('700','$page?tabs=yes','$title');
 	";
 	echo $html;
 		
@@ -38,6 +38,10 @@ function js(){
 function per_category_main(){
 	$tpl=new templates();
 	$dans=new dansguardian_rules();
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$error="<p class=text-error>{MOD_TEMPLATE_ERROR_LICENSE}</p>";
+	}
 	$cats=$dans->LoadBlackListes();
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -45,6 +49,7 @@ function per_category_main(){
 	$t=time();
 	$newcat[null]="{select}";
 	$html="
+	$error
 	<div style='font-size:14px' class=explain>{ufdbguard_banned_perso_text}</div>
 		<table style='width:99%' class=form>
 	<tr>
@@ -89,9 +94,17 @@ function per_category_settings(){
 	$hash=unserialize(base64_decode($sock->GET_INFO("UfdbGuardRedirectCategories")));
 	$datas=$hash[$category];
 	$tpl=new templates();
+	$block=0;
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$block=1;
+		$MOD_TEMPLATE_ERROR_LICENSE=$tpl->javascript_parse_text("{MOD_TEMPLATE_ERROR_LICENSE}");
+	}
+	
 	$t=time();
 	$html="<div class=explain style='font-size:14px'>$explain</div>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table>
 	<tr>
 		<td class=legend style='font-size:14px'>{enable}:</td>
 		<td>". Field_checkbox("enable-$t",1,$datas["enable"],"enable_uri_check()")."</td>
@@ -117,11 +130,11 @@ function per_category_settings(){
 			<textarea style='width:100%;height:120px;overflow:auto;font-size:12px' id='template_data'>{$datas["template_data"]}</textarea></td>
 	</tr>	
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}", "SavePerCatForm()",14)."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}", "SavePerCatForm()",18)."</td>
 	</tr>
 	</tbody>
 	</table>	
-	
+	</div>
 	<script>
 		var x_SavePerCatForm= function (obj) {
 			var tempvalue=obj.responseText;
@@ -131,6 +144,11 @@ function per_category_settings(){
 	
 	
 		function SavePerCatForm(){
+			var block=$block;
+			if(block==1){
+				alert('$MOD_TEMPLATE_ERROR_LICENSE');
+				return;
+			}
 	      	var XHR = new XHRConnection();
 	     	if(document.getElementById('external_uri').checked){XHR.appendData('external_uri',1);}else{XHR.appendData('external_uri',0);}
 	    	if(document.getElementById('blank_page').checked){XHR.appendData('blank_page',1);}else{XHR.appendData('blank_page',0);}
@@ -219,17 +237,7 @@ function tabs(){
 	
 	
 	
-	echo "
-	<div id=main_squidguardweb_error_pages style='width:100%;height:100%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_squidguardweb_error_pages').tabs();
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_squidguardweb_error_pages");
 	
 	
 }
@@ -238,12 +246,22 @@ function tabs(){
 function popup(){
 	$page=CurrentPageName();
 	$sock=new sockets();
+	$users=new usersMenus();
+	$LICENSE=0;
+	if($users->CORP_LICENSE){$LICENSE=1;}
 	$EnableSquidGuardHTTPService=$sock->GET_INFO("EnableSquidGuardHTTPService");
 	if(strlen(trim($EnableSquidGuardHTTPService))==0){$EnableSquidGuardHTTPService=1;}
 	$SquidGuardWebUseExternalUri=$sock->GET_INFO("SquidGuardWebUseExternalUri");
 	$SquidGuardWebExternalUri=$sock->GET_INFO("SquidGuardWebExternalUri");
-	
+	$SquidGuardWebExternalUriSSL=$sock->GET_INFO("SquidGuardWebExternalUriSSL");
+	$SquidGuardApacheSSLPort=$sock->GET_INFO("SquidGuardApacheSSLPort");
 	$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");
+	
+	$SquidGuardApacheShowGroupName=$sock->GET_INFO("SquidGuardApacheShowGroupName");
+	$SquidGuardApacheShowGroupNameTXT=$sock->GET_INFO("SquidGuardApacheShowGroupNameTXT");
+	
+	if(!is_numeric($SquidGuardApacheShowGroupName)){$SquidGuardApacheShowGroupName=0;}
+	if(!is_numeric($SquidGuardApacheSSLPort)){$SquidGuardApacheSSLPort=9025;}
 	if($SquidGuardApachePort==null){$SquidGuardApachePort=9020;}
 	
 	$SquidGuardIPWeb=$sock->GET_INFO("SquidGuardIPWeb");
@@ -255,9 +273,13 @@ function popup(){
 	if(!is_numeric($SquidGuardWebUseExternalUri)){$SquidGuardWebUseExternalUri=0;}
 	
 	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
+	
+	
 	if($SquidGuardIPWeb==null){
 			$SquidGuardIPWeb="http://".$_SERVER['SERVER_ADDR'].':'.$SquidGuardApachePort."/exec.squidguard.php";
+			$SquidGuardIPWebSSL="https://".$_SERVER['SERVER_ADDR'].':'.$SquidGuardApacheSSLPort."/exec.squidguard.php";
 			$fulluri="http://".$_SERVER['SERVER_ADDR'].':'.$SquidGuardApachePort."/exec.squidguard.php";
+			$fulluriSSL="https://".$_SERVER['SERVER_ADDR'].':'.$SquidGuardApacheSSLPort."/exec.squidguard.php";
 	}	
 	$SquidGuardIPWeb=str_replace("http://",null,$SquidGuardIPWeb);
 	$SquidGuardIPWeb=str_replace("https://",null,$SquidGuardIPWeb);
@@ -289,10 +311,26 @@ function popup(){
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
+		<td class=legend style='font-size:14px'>{listen_port} (SSL):</td>
+		<td>". Field_text("listen_port_squidguard_ssl",$SquidGuardApacheSSLPort,"font-size:14px;padding:3px;width:60px",null,null,null,false,"")."</td>
+		<td>&nbsp;</td>
+	</tr>				
+	<tr>
 		<td class=legend style='font-size:14px'>{FollowExtensions}:</td>
 		<td>". Field_checkbox("SquidGuardWebFollowExtensions",1,$SquidGuardWebFollowExtensions)."</td>
 		<td>". help_icon("{SquidGuardWebFollowExtensions_explain}")."</td>
 	</tr>	
+	<tr>
+		<td class=legend style='font-size:14px'>{SquidGuardApacheShowGroupName}:</td>
+		<td>". Field_checkbox("SquidGuardApacheShowGroupName",1,$SquidGuardApacheShowGroupName)."</td>
+		<td>". help_icon("{SquidGuardApacheShowGroupName_explain}")."</td>
+	</tr>				
+	<tr>
+		<td class=legend style='font-size:14px'>{ou}:</td>
+		<td>". Field_text("SquidGuardApacheShowGroupNameTXT",$SquidGuardApacheShowGroupNameTXT,"font-size:14px;padding:3px;width:260px",null,null,null,false,"")."</td>
+		<td>&nbsp;</td>
+	</tr>				
+				
 	<tr>
 		<td class=legend style='font-size:14px'>{allow_unblock}:</td>
 		<td>". Field_checkbox("SquidGuardWebAllowUnblock",1,$SquidGuardWebAllowUnblock)."</td>
@@ -309,6 +347,11 @@ function popup(){
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
+		<td class=legend style='font-size:14px'>{fulluri} (ssl):</td>
+		<td style='font-size:14px'>". Field_text("fulluriSSL","$fulluriSSL","font-size:14px;padding:3px;width:290px",null,null,null,false,"")."</td>
+		<td>&nbsp;</td>
+	</tr>				
+	<tr>
 		<td colspan=2><hr></td>
 	</tr>
 	<tr>
@@ -321,7 +364,11 @@ function popup(){
 		<td style='font-size:14px'>". Field_text("SquidGuardWebExternalUri","$SquidGuardWebExternalUri","font-size:14px;padding:3px;width:290px",null,null,null,false,"")."</td>
 		<td>&nbsp;</td>
 	</tr>	
-
+	<tr>
+		<td class=legend style='font-size:14px'>{fulluri}:</td>
+		<td style='font-size:14px'>". Field_text("SquidGuardWebExternalUriSSL","$SquidGuardWebExternalUriSSL","font-size:14px;padding:3px;width:290px",null,null,null,false,"")."</td>
+		<td>&nbsp;</td>
+	</tr>
 	
 	
 	<tr>
@@ -331,12 +378,24 @@ function popup(){
 	</div>
 	<script>
 		function EnableSquidGuardHTTPService(){
+			 var LICENSE=$LICENSE;
 			 document.getElementById('listen_port_squidguard').disabled=true;
+			 document.getElementById('listen_port_squidguard_ssl').disabled=true;
+			 
 			 document.getElementById('servername_squidguard').disabled=true;
+			 
 			 document.getElementById('fulluri').disabled=true;
+			 document.getElementById('fulluriSSL').disabled=true;
+			 
 			 document.getElementById('SquidGuardWebFollowExtensions').disabled=true;
 			 document.getElementById('SquidGuardWebAllowUnblock').disabled=true;
+			 
 			 document.getElementById('SquidGuardWebExternalUri').disabled=true;
+			 document.getElementById('SquidGuardWebExternalUriSSL').disabled=true;
+			 document.getElementById('SquidGuardApacheShowGroupName').disabled=true;
+			 document.getElementById('SquidGuardApacheShowGroupNameTXT').disabled=true;
+			 
+			 
 			 
 			 
 			 if(!document.getElementById('SquidGuardWebUseExternalUri').checked){
@@ -344,16 +403,29 @@ function popup(){
 			 
 				 if(document.getElementById('EnableSquidGuardHTTPService').checked){
 				 	document.getElementById('listen_port_squidguard').disabled=false;
+				 	document.getElementById('listen_port_squidguard_ssl').disabled=false;
+				 	
 				 	document.getElementById('servername_squidguard').disabled=false;
 				 	document.getElementById('SquidGuardWebAllowUnblock').disabled=false;
 				 	document.getElementById('SquidGuardWebFollowExtensions').disabled=false;
+				 	if(LICENSE==1){
+				 		document.getElementById('SquidGuardApacheShowGroupName').disabled=false;
+				 		document.getElementById('SquidGuardApacheShowGroupNameTXT').disabled=false;
+				 		}
 				 }else{
 				 	document.getElementById('fulluri').disabled=false;
+				 	document.getElementById('fulluriSSL').disabled=false;
 				 }
 			 
 			 }else{
+			 	document.getElementById('SquidGuardWebExternalUriSSL').disabled=false;
 			 	document.getElementById('SquidGuardWebExternalUri').disabled=false;
 			 	document.getElementById('listen_port_squidguard').disabled=true;
+			 	document.getElementById('listen_port_squidguard_ssl').disabled=true;
+			 	document.getElementById('SquidGuardApacheShowGroupName').disabled=true;
+			 	document.getElementById('SquidGuardApacheShowGroupNameTXT').disabled=true;
+			 	
+			 	
 			 
 			 }
 		
@@ -370,10 +442,23 @@ var x_SaveSquidGuardHTTPService=function(obj){
      if(document.getElementById('SquidGuardWebFollowExtensions').checked){XHR.appendData('SquidGuardWebFollowExtensions',1);}else{XHR.appendData('SquidGuardWebFollowExtensions',0);}
      if(document.getElementById('SquidGuardWebAllowUnblock').checked){XHR.appendData('SquidGuardWebAllowUnblock',1);}else{XHR.appendData('SquidGuardWebAllowUnblock',0);}
      if(document.getElementById('SquidGuardWebUseExternalUri').checked){XHR.appendData('SquidGuardWebUseExternalUri',1);}else{XHR.appendData('SquidGuardWebUseExternalUri',0);}
+     if(document.getElementById('SquidGuardApacheShowGroupName').checked){XHR.appendData('SquidGuardApacheShowGroupName',1);}else{XHR.appendData('SquidGuardApacheShowGroupName',0);}
+
+     
+     
 	 XHR.appendData('listen_port_squidguard',document.getElementById('listen_port_squidguard').value);
+	 XHR.appendData('listen_port_squidguard_ssl',document.getElementById('listen_port_squidguard_ssl').value);
+	 XHR.appendData('SquidGuardApacheShowGroupNameTXT',document.getElementById('SquidGuardApacheShowGroupNameTXT').value);
+	 
+	 
+	 
      XHR.appendData('servername_squidguard',document.getElementById('servername_squidguard').value);
+     
      XHR.appendData('SquidGuardWebExternalUri',document.getElementById('SquidGuardWebExternalUri').value);
+     XHR.appendData('SquidGuardWebExternalUriSSL',document.getElementById('SquidGuardWebExternalUriSSL').value);
+     
      XHR.appendData('fulluri',document.getElementById('fulluri').value);
+     XHR.appendData('fulluriSSL',document.getElementById('fulluriSSL').value);
      AnimateDiv('EnableSquidGuardHTTPServiceDiv'); 
      XHR.sendAndLoad('$page', 'GET',x_SaveSquidGuardHTTPService);     	
 	
@@ -388,12 +473,14 @@ var x_SaveSquidGuardHTTPService=function(obj){
 }
 
 function save(){
-	
+	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 	$sock=new sockets();
 	if($_GET["EnableSquidGuardHTTPService"]==0){
 		$SquidGuardIPWeb=$_GET["fulluri"];
+		$SquidGuardIPWebSSL=$_GET["fulluriSSL"];
 	}else{
 		$SquidGuardIPWeb="http://".$_GET["servername_squidguard"].":".$_GET["listen_port_squidguard"]."/exec.squidguard.php";
+		$SquidGuardIPWebSSL="https://".$_GET["servername_squidguard"].":".$_GET["listen_port_squidguard_ssl"]."/exec.squidguard.php";
 	}
 	
 	
@@ -401,12 +488,18 @@ function save(){
 	
 	$sock->SET_INFO("SquidGuardWebUseExternalUri",$_GET["SquidGuardWebUseExternalUri"]);
 	$sock->SET_INFO("SquidGuardWebExternalUri",$_GET["SquidGuardWebExternalUri"]);
+	$sock->SET_INFO("SquidGuardWebExternalUriSSL",$_GET["SquidGuardWebExternalUriSSL"]);
 	
+	
+	$sock->SET_INFO("SquidGuardApacheShowGroupNameTXT", $_GET["SquidGuardApacheShowGroupNameTXT"]);
+	$sock->SET_INFO("SquidGuardApacheShowGroupName", $_GET["SquidGuardApacheShowGroupName"]);
 	$sock->SET_INFO("SquidGuardWebFollowExtensions",$_GET["SquidGuardWebFollowExtensions"]);
 	$sock->SET_INFO("SquidGuardApachePort",$_GET["listen_port_squidguard"]);
+	$sock->SET_INFO("SquidGuardApacheSSLPort",$_GET["listen_port_squidguard_ssl"]);
 	$sock->SET_INFO("EnableSquidGuardHTTPService",$_GET["EnableSquidGuardHTTPService"]);
 	$sock->SET_INFO("SquidGuardWebAllowUnblock",$_GET["SquidGuardWebAllowUnblock"]);
 	$sock->SET_INFO("SquidGuardIPWeb",$SquidGuardIPWeb);
+	$sock->SET_INFO("SquidGuardIPWebSSL",$SquidGuardIPWebSSL);
 	$sock->getFrameWork("cmd.php?squid-wrapzap=yes");
 	$sock->getFrameWork("cmd.php?reload-squidguardWEB=yes");
 	$dans=new dansguardian_rules();

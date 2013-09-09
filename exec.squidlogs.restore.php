@@ -168,8 +168,8 @@ function restore($sourcefile,$nopid=false){
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
 	$results[]="Took:$took ";
 	$q=new mysql();
-	$fres=mysql_escape_string(@implode("\n", $results));
-	$sourcefile=mysql_escape_string($sourcefile);
+	$fres=mysql_escape_string2(@implode("\n", $results));
+	$sourcefile=mysql_escape_string2($sourcefile);
 	$q->QUERY_SQL("INSERT IGNORE INTO squidlogs_restores (fullpath,zDate,`results`) VALUES ('$sourcefile',NOW(),'$fres');","artica_events");
 	if(!$q->ok){
 		ufdbguard_admin_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"backup");

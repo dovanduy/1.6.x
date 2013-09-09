@@ -243,19 +243,9 @@ function fetch_popup(){
 			
 		}	
 	
-	$tab="<div id=main_config_fetchmail style='width:100%;height:$height;overflow:auto;$styleG'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_fetchmail').tabs();
-			
-			
-			});
-		</script>";		
+		
+	return build_artica_tabs($html, "main_config_fetchmail");	
 	
-	$tpl=new templates();
-	return $tpl->_ENGINE_parse_body($tab);	
 	
 	
 }
@@ -278,8 +268,12 @@ $daemon_settings=Paragraphe('folder-tools2-64.png','{daemon_settings}','{daemon_
 //$rules=Paragraphe('fetchmail-rule-64.png','{fetchmail_rules}','{fetchmail_rules_text}',"javascript:YahooWin('600','fetchmail.daemon.rules.php?ajax=yes','$fetchmail_rules_text')");
 //$logs=Paragraphe('64-logs.png','{events}','{events_text}',"javascript:s_PopUpScroll('fetchmail.index.php?events=true',800,600);");
 $update=Paragraphe('64-recycle.png','{update_now}','{update_fetchmail_now}',"javascript:ReloadFetchMail();");
-$help=Paragraphe("help-64.png","{help}","{online_help}","javascript:s_PopUpFull('http://www.mail-appliance.org/index.php?cID=126','1024','900');");
 
+$apply=Paragraphe('user-config-download-64.png','{apply_parameters}','{compile_rules}',"javascript:Loadjs('fetchmail.compile.progress.php');");
+
+
+$help=Paragraphe("help-64.png","{help}","{online_help}","javascript:s_PopUpFull('http://www.mail-appliance.org/index.php?cID=126','1024','900');");
+$fetchmailrc=Paragraphe('script-view-64.png','{configuration_file}','{display_generated_configuration_file}',"javascript:Loadjs('fetchmailrc.php')");
 
 
 $html="
@@ -301,13 +295,20 @@ $html="
 	</tr>
 	<tr>
 		
+		<td valign='top'>$apply</td>
+		<td valign='top'>$fetchmailrc</td>	
+		
+	</tr>
+	<tr>
+		
 		<td valign='top'>$help</td>
 		<td valign='top'>&nbsp;</td>	
 		
-	</tr>
+	</tr>	
+	
 	
 	<tr>
-		<td colspan=2><div class=explain style='text-align:left;font-size:11px'>{fetchmail_about}</div></td>
+		<td colspan=2><div class=explain style='text-align:left;font-size:14px'>{fetchmail_about}</div></td>
 	</tr>
 	</table>
 	

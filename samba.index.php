@@ -9,7 +9,7 @@
 	include_once('ressources/class.kav4samba.inc');
 	
 	if(isset($_GET["debug-page"])){ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);$GLOBALS["VERBOSE"]=true;}
-
+	
 	
 	if(!CheckSambaRights()){
 		$tpl=new templates();
@@ -602,8 +602,8 @@ function main_smb_config(){
 	
 	$form1="
 	<input type='hidden' name='SaveGeneralSettings' id='SaveGeneralSettings' value='yes'>
-	
-	<table style='width:98%' class=form>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 <tr>
 	<td align='right' nowrap valign='top' class=legend class=legend style='$styleTD'>SID:</td>
 	<td valign='top'><strong style='$styleTD'>".$ldap->LOCAL_SID()."</strong></td>
@@ -662,7 +662,7 @@ function main_smb_config(){
 	."</td>
 	</tr>
 </table>
-
+</div>
 ";
 	
 	
@@ -679,7 +679,8 @@ function main_smb_config(){
 	
 
 $form2="
-	<table style='width:98%' class=form>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 <tr>	
 	<td align='right' nowrap valign='top' class=legend style='$styleTD'>{winbindd_installed}:</td>
 	<td valign='top' style='$styleTD'><img src='img/$winbindd'></td>
@@ -725,7 +726,7 @@ $domain_master
 	."</td>
 	</tr>
 
-	</table>
+	</table></div>
 	";
 $sock=new sockets();
 $ArticaSambaAutomAskCreation=$sock->GET_INFO("ArticaSambaAutomAskCreation");
@@ -737,7 +738,8 @@ if(!is_numeric($SharedFoldersDefaultMask)){$SharedFoldersDefaultMask="0755";}
 
 
 $formArtica="
-	<table style='width:98%' class=form>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 <tr>	
 	<td align='right' nowrap valign='top' class=legend style='$styleTD'>{enable_automask_creation}:</td>
 	<td valign='top' style='$styleTD'>" . Field_checkbox('ArticaSambaAutomAskCreation','1',$ArticaSambaAutomAskCreation)."</td>
@@ -759,7 +761,7 @@ $formArtica="
 	". button("{apply}","SaveArticaSambaMainConfiguration()","16px")
 	."</td>
 	</tr>
-</table>";
+</table></div>";
 
 	
 	
@@ -1671,7 +1673,8 @@ function folder_properties(){
 	<td valign='top' width=99%>
 		<input type='hidden' name='SaveFolderProp' id='SaveFolderProp' value='$folder'><br>
 		<div id='FodPropertiesFrom'>
-		<table class=form style='width:99%'>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>		
 		<tr>	
 			<td align='right' nowrap valign='top' class=legend>{share_name}:</td>
 			<td valign='top'><a href=\"javascript:blur()\" OnClick=\"javascript:ChangeShareName('$folder');\" style='font-size:13px;text-decoration:underline'>$folder</a></td>
@@ -1725,7 +1728,9 @@ function folder_properties(){
 
 	<tr>
 	</table>
-	<table class=form style='width:99%'>
+	</div>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<td colspan=3 style='font-size:15px;padding-top:5px'>{acls}</td>		
 	<tr>			
 		<td class=legend style='font-size:12px'>{dos_filemode}</td>
@@ -1772,10 +1777,11 @@ function folder_properties(){
 				</td>
 			</tr>
 		</table>
-		</div>
+		</div></div>
 
 <br>
-<table class=form>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 <tr>
  	<td $style valign='top' class=legend'>{comment}:</td>
  	<td $style valign='top' class=legend'>" . Field_text('comment',$smb->main_array[$folder]["comment"])."</td>
@@ -1785,7 +1791,8 @@ function folder_properties(){
 			<hr>". button("{apply}","SambaSaveFolderProperties()",14)."
 		</td>
 	</tr>
-</table>	
+</table>
+</div>	
 </form>
 	</td>
 </tr>
@@ -1855,6 +1862,7 @@ var x_ChangeShareName=function (obj) {
 	
 	function ChangeShareName(share){
 		newshare=prompt('$give_new_sharename',share);
+		if(newshare.length==0){return;}
 		if(newshare==share){return;}
 		var XHR = new XHRConnection();
 		XHR.appendData('ChangeShareNameOrg','$folder');
@@ -2074,7 +2082,8 @@ function folder_UserSecurityInfos(){
 	</script>
 	<input type='hidden' name='SaveFolderProp' id='SaveFolderProp' value='$folder'>
 	<div style='font-size:16px;font-weight:bold;padding:4px'>$DisplayName:</div>
-	<table style='width:99%' class=form>
+		<div style='width:95%' class=form>
+	<table style='width:100%'>
 		<tr>
 			<td align='center'>&nbsp;</th>
 			<td align='center' style='font-size:14px;font-weight:bold'>{valid}</th>
@@ -2092,7 +2101,7 @@ function folder_UserSecurityInfos(){
 		<td $style colspan=4 align='right' valign='top' style='padding-top:10px'>". 
 			button("{apply}","javascript:Loadjs('$page?js-security-infos=yes&folder=$folder_enc&uidpriv=$SaveUseridPrivilegesEncoded');",14)."</td>
 		</tr>
-	</table>";
+	</table></div>";
 		
 		$tpl=new templates();
 		return  $tpl->_ENGINE_parse_body($html);
@@ -2179,24 +2188,7 @@ function folder_properties_tab(){
 	}
 	
 	
-	echo "
-	<div id=main_config_folder_properties style='width:100%;height:625px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_folder_properties').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-		
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_config_folder_properties");
 	
 	
 	
@@ -2430,7 +2422,8 @@ if($users->SAMBA_MYSQL_AUDIT){
 	<br>
 	<H5>{options}</H5>
 	<input type='hidden' id='vfs_object' name='vfs_object' value='{$_GET["prop"]}'>
-	<table class=form>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 	$recycle_vfs
 	$mysql_vfs
 	$kav_vfs
@@ -2441,6 +2434,7 @@ if($users->SAMBA_MYSQL_AUDIT){
 	</td>
 	</tr>
 	</table>
+	</div>
 	</FORM>
 	
 <script>
@@ -2706,7 +2700,7 @@ $html="<table cellspacing='0' cellpadding='0' border='0' class='tableView' style
 		}
 		
 	}
-	
+	$classtr=null;
 	if(is_array($usr)){
 		while (list ($num, $ligne) = each ($usr) ){
 			
@@ -2773,7 +2767,10 @@ function folder_security_adduser(){
 		}
 		
 	}
-	$list=explode(",",$samba->main_array[$_POST["prop"]]["write list"]);
+	$list=array();
+	if(isset($samba->main_array[$_POST["prop"]]["write list"])){
+		$list=explode(",",$samba->main_array[$_POST["prop"]]["write list"]);
+	}
 	writelogs("Add [{$_POST["AddUserToFolder"]}] (spacepos=$spacepos) into {$_POST["prop"]}",__FUNCTION__,__FILE__,__LINE__);
 	$list[]=$_POST["AddUserToFolder"];
 	while (list ($num, $ligne) = each ($list) ){
@@ -3134,7 +3131,8 @@ function main_kav4samba_Objects_action(){
 	$html="$tabs<br><H5>{APP_KAV4SAMBA}</H5>".main_kav4samba_tabs()."
 	<FORM NAME=FFM1>
 	<input type='hidden' name='kav_actions' id='kav_actions' value='yes'>
-	<table class=form>
+		<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tr>
 	<td align='right' nowrap class=legend>{OnInfected}:</td>
 	<td align='left'>".Field_array_Hash($arr,"OnInfected",$kav->main_array["samba.actions"]["OnInfected"])."</td>
@@ -3166,6 +3164,7 @@ function main_kav4samba_Objects_action(){
 	</tr>			
 	<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1','$page',true)\" value='{edit}&nbsp;&raquo;'><hr></td></tr>
 	</table>
+	</div>
 	</form>
 	";
 	
@@ -3199,7 +3198,8 @@ function main_kav4samba(){
 	<p class=caption>{kav4samba_about}</p>
 	
 	<FORM NAME=FFM1>
-	<table class=form>
+		<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tr><td colspan=2><strong style='font-size:13px;font-weight:bold'>{how_to_scan}<hr></td></tr>
 	<tr>
 	<td align='right' nowrap class=legend>{UseAVbasesSet}:</td>
@@ -3251,7 +3251,7 @@ function main_kav4samba(){
 	
 	
 	
-	</table>
+	</table></div>
 	</form>";
 	
 $tpl=new templates();
@@ -3307,7 +3307,8 @@ function DomainAdmin_index(){
 	
 	<strong style='font-size:14px'>&laquo;{$samba->main_array["global"]["workgroup"]}\administrator&raquo; {password}</strong>
 	<div id='DomainAdminSave'>
-	<table style='width:99%' class=form>
+		<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td class=legend>{password}:</td>
 		<td>" . Field_password('password1',$password,"font-size:13px;padding:3px;width:120px",null,null,null,false,"DomainAdminSaveKey(event)")."</td>
@@ -3324,7 +3325,7 @@ function DomainAdmin_index(){
 	</tr>
 	</table>
 	</div>
-	
+	</div>
 	";
 		
 	$tpl=new templates();

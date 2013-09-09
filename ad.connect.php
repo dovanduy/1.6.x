@@ -11,7 +11,7 @@
 	}	
 	
 	if(isset($_GET["popup"])){popup();exit;}
-	if(isset($_GET["ADSERVER"])){save();exit;}
+	if(isset($_POST["ADSERVER"])){save();exit;}
 	if(isset($_GET["net-ads-infos"])){ads_infos();exit;}
 	if(isset($_GET["winbindd"])){winbindd();exit;}
 	if(isset($_GET["addldap"])){ad_ldap();exit;}
@@ -370,13 +370,6 @@ function winbindd(){
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{winbind_user_password}:</td>
-		<td>". Field_password("WINBINDPASSWORD",$config["WINBINDPASSWORD"],"width:100px;font-size:14px;padding:3px;width:165px")."</td>
-		<td>". help_icon("{howto_WINBINDPASSWORD}")."</td>
-	</tr>	
-	
-	
-	<tr>
 		<td colspan=3 align='right'><hr>". button("{apply}","SaveAdSettings()",16)."</td>
 	</tr>
 	</table>
@@ -428,14 +421,10 @@ function winbindd(){
 			XHR.appendData('ADADMIN',document.getElementById('ADADMIN').value);
 			XHR.appendData('PASSWORD',pp);
 			XHR.appendData('ADSERVER_IP',document.getElementById('ADSERVER_IP').value);
-			XHR.appendData('WINBINDPASSWORD',document.getElementById('WINBINDPASSWORD').value);
 			XHR.appendData('WINDOWS_SERVER_TYPE',document.getElementById('WINDOWS_SERVER_TYPE').value);
 			XHR.appendData('ADNETBIOSDOMAIN',document.getElementById('ADNETBIOSDOMAIN').value);
-			
-			
-			
 			document.getElementById('sambadimg').src='img/wait_verybig.gif';
-			XHR.sendAndLoad('$page', 'GET',X_SaveAdSettings);	
+			XHR.sendAndLoad('$page', 'POST',X_SaveAdSettings);	
 		}	
 		
 		function NetAdsLeave(){
@@ -467,29 +456,33 @@ function save(){
 	
 	
 	$_POST["PASSWORD"]=url_decode_special_tool($_POST["PASSWORD"]);
-	if(preg_match("#([0-9]+)\.([0-9]+)\.([0-9]+).([0-9]+)#",$_GET["ADSERVER"])){
+	if(preg_match("#([0-9]+)\.([0-9]+)\.([0-9]+).([0-9]+)#",$_POST["ADSERVER"])){
 		echo $tpl->javascript_parse_text("{SAMBAD_NOT_IP_IN_SRVNAME}");
 		return;
 	}	
 	
-	if($_GET["ADDOMAIN"]==null){
+	if($_POST["ADDOMAIN"]==null){
 		echo $tpl->javascript_parse_text("{DOMAIN_CANNOT_BE_NULL}");
 		return;
 	}
 	
-	
-	$server_ip=$_GET["ADSERVER_IP"];
-	$hostname=$_GET["ADSERVER"];
+	if(preg_match("#([0-9]+)\.([0-9]+)\.([0-9]+).([0-9]+)#",$_POST["ADSERVER_IP"])){
+		$tr=explode(".", $_POST["ADSERVER_IP"]);
+		while (list ($num, $ligne) = each ($tr) ){$tr[$num]=intval($ligne);}
+		$_POST["ADSERVER_IP"]=@implode(".", $tr);
+	}
+	$server_ip=$_POST["ADSERVER_IP"];
+	$hostname=$_POST["ADSERVER"];
 	if(preg_match("#^(.+?)\.#",$hostname,$re)){
 		writelogs("Strip $hostname to {$re[1]}",__FUNCTION__,__FILE__,__LINE__);
 		$hostname=$re[1];
-		$_GET["ADSERVER"]=$re[1];
+		$_POST["ADSERVER"]=$re[1];
 	}
 	
 	
-	if(preg_match("#(.+?)\.(.+)#",trim($_GET["ADDOMAIN"]),$re)){$_GET["WORKGROUP"]=$re[1];}else{$_GET["WORKGROUP"]=$_GET["ADDOMAIN"];}
-	$servername="{$_GET["ADSERVER"]}.{$_GET["ADDOMAIN"]}";
-	writelogs("$server_ip/$servername/{$_GET["WORKGROUP"]}",__FUNCTION__,__FILE__,__LINE__);
+	if(preg_match("#(.+?)\.(.+)#",trim($_POST["ADDOMAIN"]),$re)){$_POST["WORKGROUP"]=$re[1];}else{$_POST["WORKGROUP"]=$_POST["ADDOMAIN"];}
+	$servername="{$_POST["ADSERVER"]}.{$_POST["ADDOMAIN"]}";
+	writelogs("$server_ip/$servername/{$_POST["WORKGROUP"]}",__FUNCTION__,__FILE__,__LINE__);
 	
 	
 	$ETCHOSTS=false;
@@ -531,18 +524,18 @@ function save(){
 	}
 	
 		
-		$arrayCyrus["domain"]=$_GET["ADDOMAIN"];
-		$arrayCyrus["servername"]=$_GET["ADSERVER"];
-		$arrayCyrus["admin"]=$_GET["ADADMIN"];
-		$arrayCyrus["password"]=$_GET["PASSWORD"];	
-		$arrayCyrus["WINBINDPASSWORD"]=$_GET["WINBINDPASSWORD"];
-		$arrayCyrus["WINDOWS_SERVER_TYPE"]=$_GET["WINDOWS_SERVER_TYPE"];
+		$arrayCyrus["domain"]=$_POST["ADDOMAIN"];
+		$arrayCyrus["servername"]=$_POST["ADSERVER"];
+		$arrayCyrus["admin"]=$_POST["ADADMIN"];
+		$arrayCyrus["password"]=$_POST["PASSWORD"];	
+		$arrayCyrus["WINBINDPASSWORD"]=$_POST["WINBINDPASSWORD"];
+		$arrayCyrus["WINDOWS_SERVER_TYPE"]=$_POST["WINDOWS_SERVER_TYPE"];
 		
 	
 	
 	$sock->SET_INFO("EnableSambaActiveDirectory",1);
 	//$sock->SET_INFO("EnableManageUsersTroughActiveDirectory",$_GET["EnableManageUsersTroughActiveDirectory"]);
-	$array=base64_encode(serialize($_GET));
+	$array=base64_encode(serialize($_POST));
 	$sock->SaveConfigFile($array,"SambaAdInfos");
 	$sock->SaveConfigFile(serialize($arrayCyrus),"CyrusToADConfig");
 	$sock->getFrameWork("cmd.php?samba-save-config=yes");
@@ -648,6 +641,20 @@ function avoptions_form(){
 	$SambaMapUntrustedDomain=$sock->GET_INFO("SambaMapUntrustedDomain");
 	if(!is_numeric($SambaMapUntrustedDomain)){$SambaMapUntrustedDomain=1;}
 	
+	$SambaClientUseSPNEGO=$sock->GET_INFO("SambaClientUseSPNEGO");
+	if(!is_numeric($SambaClientUseSPNEGO)){$SambaClientUseSPNEGO=1;}
+	
+	$SambaClientUseSPNEGOPR=$sock->GET_INFO("SambaClientUseSPNEGOPR");
+	if(!is_numeric($SambaClientUseSPNEGOPR)){$SambaClientUseSPNEGOPR=1;}
+	
+	$SambaSendSPNEGOPR=$sock->GET_INFO("SambaSendSPNEGOPR");
+	if(!is_numeric($SambaSendSPNEGOPR)){$SambaSendSPNEGOPR=1;}	
+	
+	$conf[]="\tclient use spnego	= Yes";
+	$conf[]="\tclient use spnego principal	= Yes";
+	$conf[]="\tsend spnego principal = Yes";
+	
+	
 	$version=$users->SAMBA_VERSION;
 	$upTo36=0;
 	if(preg_match("#^([0-9]+)\.([0-9]+)#", $version,$re)){
@@ -657,8 +664,8 @@ function avoptions_form(){
 	}
 
 	$html="<div class=explain>{winbind_advoptions_text}</div>
-	<div id='winbind_advoptions'>
-	<table style='width:99%' class=form>
+	<div id='winbind_advoptions' class=form style='width:95%'>
+	<table style='width:100%'>
 	<tbody>
 	<tr>
 		<td class=legend>{SambaUseBackendAD}:</td>
@@ -685,11 +692,32 @@ function avoptions_form(){
 		<td>". Field_checkbox("SambaMapUntrustedDomain", 1,$SambaMapUntrustedDomain)."</td>
 		<td width=1%>". help_icon("{map_untrusted_to_domain_explain}")."</td>
 	</tr>				
-			<tr>
-				<td valign='middle' class=legend>{SambaWinBindCacheTime}:</td>
-				<td style='font-size:13px'>". Field_text("SambaWinBindCacheTime",$SambaWinBindCacheTime,"width:60px;padding:3px;font-size:13px")."&nbsp;{seconds}</td>
-				<td width=1%>". help_icon("{SambaWinBindCacheTime_explain}")."</td>
-			</tr>				
+	<tr>
+		<td valign='middle' class=legend>{SambaWinBindCacheTime}:</td>
+		<td style='font-size:13px'>". Field_text("SambaWinBindCacheTime",$SambaWinBindCacheTime,"width:60px;padding:3px;font-size:13px")."&nbsp;{seconds}</td>
+		<td width=1%>". help_icon("{SambaWinBindCacheTime_explain}")."</td>
+	</tr>
+	<tr>
+		<td colspan=3><div style='font-size:22px'>SPNEGO</div>
+				<div class=explain style='font-size:14px'>{SPNEGO_explain}</div>
+		</td>
+	<tr>
+		<td class=legend>Client Use SPNEGO:</td>
+		<td>". Field_checkbox("SambaClientUseSPNEGO", 1,$SambaClientUseSPNEGO)."</td>
+		<td width=1%>". help_icon("{client_use_spnego_explain}")."</td>
+	</tr>
+	<tr>
+		<td class=legend>Client Use SPNEGO Principal:</td>
+		<td>". Field_checkbox("SambaClientUseSPNEGOPR", 1,$SambaClientUseSPNEGOPR)."</td>
+		<td width=1%>".help_icon("{client_use_spnego_principal_explain}")."</td>
+	</tr>
+	<tr>
+		<td class=legend>Send SPNEGO Principal:</td>
+		<td>". Field_checkbox("SambaSendSPNEGOPR", 1,$SambaSendSPNEGOPR)."</td>
+		<td width=1%></td>
+	</tr>				
+	
+				
 	<tr>
 		<td colspan=3 align='right'><hr>". button("{apply}","SaveWinbinddAdv()")."</td>
 	</tr>
@@ -716,6 +744,10 @@ function avoptions_form(){
 			if(document.getElementById('SambaWinbindUseDefaultDomain').checked){XHR.appendData('SambaWinbindUseDefaultDomain',1);}else{XHR.appendData('SambaWinbindUseDefaultDomain',0);}
 			if(document.getElementById('SambaMapUntrustedDomain').checked){XHR.appendData('SambaMapUntrustedDomain',1);}else{XHR.appendData('SambaMapUntrustedDomain',0);}
 			
+			if(document.getElementById('SambaClientUseSPNEGO').checked){XHR.appendData('SambaClientUseSPNEGO',1);}else{XHR.appendData('SambaClientUseSPNEGO',0);}
+			if(document.getElementById('SambaClientUseSPNEGOPR').checked){XHR.appendData('SambaClientUseSPNEGOPR',1);}else{XHR.appendData('SambaClientUseSPNEGOPR',0);}
+			if(document.getElementById('SambaSendSPNEGOPR').checked){XHR.appendData('SambaSendSPNEGOPR',1);}else{XHR.appendData('SambaSendSPNEGOPR',0);}
+			
 			
 			XHR.appendData('SambaWinBindCacheTime',document.getElementById('SambaWinBindCacheTime').value);
 			
@@ -737,6 +769,12 @@ function avoptions_save(){
 	$sock->SET_INFO("SambaWinbindUseDefaultDomain", $_POST["SambaWinbindUseDefaultDomain"]);
 	$sock->SET_INFO("SambaWinBindCacheTime", $_POST["SambaWinBindCacheTime"]);
 	$sock->SET_INFO("SambaMapUntrustedDomain",  $_POST["SambaMapUntrustedDomain"]);
+	
+	$sock->SET_INFO("SambaClientUseSPNEGO",  $_POST["SambaClientUseSPNEGO"]);
+	$sock->SET_INFO("SambaClientUseSPNEGOPR",  $_POST["SambaClientUseSPNEGOPR"]);
+	$sock->SET_INFO("SambaSendSPNEGOPR",  $_POST["SambaSendSPNEGOPR"]);
+	
+
 	$sock->getFrameWork("cmd.php?samba-save-config=yes");
 }
 

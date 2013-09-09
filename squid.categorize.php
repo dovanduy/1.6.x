@@ -104,78 +104,8 @@ function save_category(){
 	$www=trim(strtolower(base64_decode($_GET["website"])));
 	if(preg_match("#^www\.(.+?)$#i",$www,$re)){$www=$re[1];}
 	$category=$_GET["category"];
-	$md5=md5($category.$www);
-	$sock=new sockets();
 	$q=new mysql_squid_builder();
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
-	$enabled=$_GET["enabled"];
-	
-	$q->CreateCategoryTable($category);
-	$category_table=$q->category_transform_name($category);
-	$sql="SELECT zmd5 FROM category_$category_table WHERE pattern='$www'";
-	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
-	
-	$sql_add="INSERT IGNORE INTO categorize (zmd5,zDate,category,pattern,uuid) VALUES('$md5',NOW(),'$category','$www','$uuid')";
-	$sql_add2="INSERT IGNORE INTO category_$category_table (zmd5,zDate,category,pattern,uuid) VALUES('$md5',NOW(),'$category','$www','$uuid')";
-	$sql_edit="DELETE FROM category_$category_table WHERE zmd5='{$ligne["zmd5"]}'";
-	
-
-	
-	
-	writelogs("$www/$category = {$ligne["zmd5"]}",__FUNCTION__,__FILE__,__LINE__);
-	
-	if($ligne["zmd5"]==null){
-		$q->QUERY_SQL($sql_add2);
-		$q->QUERY_SQL($sql_add);
-	}
-	else{
-		writelogs("$sql_edit",__FUNCTION__,__FILE__,__LINE__);
-		$q->QUERY_SQL($sql_edit);
-	
-	}
-	if(!$q->ok){echo $q->mysql_error;return;}
-	
-	
-	$q->QUERY_SQL("UPDATE visited_sites SET category='' WHERE sitename='$www'");
-	if(!$q->ok){echo $q->mysql_error."\n";echo $sql."\n";}
-
-	$cats=addslashes($q->GET_CATEGORIES($www,true,true,true));
-	
-	$q->QUERY_SQL("UPDATE visited_sites SET category='$cats' WHERE sitename='$www'");
-	if(!$q->ok){echo $q->mysql_error."\n";echo $sql."\n";}
-	
-	
-	$newmd5=md5("$cats$www");
-	$q->QUERY_SQL("INSERT IGNORE INTO categorize_changes (zmd5,sitename,category) VALUES('$newmd5','$www','$cats')");
-	if(!$q->ok){echo $q->mysql_error."\n";echo $sql."\n";}
-	if($enabled==1){
-		$q->QUERY_SQL("DELETE FROM categorize_delete WHERE zmd5='$md5'");
-	}else{
-		$q->QUERY_SQL("INSERT IGNORE INTO categorize_delete(zmd5,sitename,category) VALUES('$md5','$www','$category')");
-	}
-	
-	if($_GET["week"]<>null){$_GET["day"]=$_GET["week"];}
-	$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='$www'");	
-	
-	
-		//
-	//
-	
-	if($_GET["day"]<>null){
-		$time=strtotime($_GET["day"]." 00:00:00");
-		$tableSrc=date('Ymd')."_hour";
-		if(!$q->TABLE_EXISTS($tableSrc)){$q->CreateHourTable($tableSrc);}
-		$q->QUERY_SQL("UPDATE $tableSrc SET category='$cats' WHERE sitename='$www'");
-		if(!$q->ok){echo $q->mysql_error;}
-		$tableWeek=date("YW",$time)."_week";
-		$q->QUERY_SQL("UPDATE $tableWeek SET category='$cats' WHERE sitename='$www'");
-	}		
-	
-	
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?export-community-categories=yes");
-	$sock->getFrameWork("squid.php?re-categorize=yes");
-	
+	$q->categorize($www, $category);
 }
 
 

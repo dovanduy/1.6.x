@@ -34,7 +34,7 @@ if($_GET["script"]=="multidomains"){echo multidomains_script();exit;}
 if($_GET["script"]=="orangefr"){echo orangefr_script();exit;}
 if(isset($_GET["isp_address"])){SaveISPAddress();exit;}
 if(isset($_GET["mailbox-section"])){echo mailbox_section();exit;}
-
+if(isset($_GET["active_directory_link"])){active_directory_link_redirect();exit;}
 
 
 
@@ -78,6 +78,13 @@ if(isset($_GET["popup-isp"])){isp_popup();exit;}
 //http://wiki.centos.org/HowTos/postfix_restrictions
 
 js();
+
+function active_directory_link_redirect(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	echo "alert('".$tpl->javascript_parse_text("{active_directory_linkmail_redirect}")."');";
+	
+}
 
 
 function isp_js(){
@@ -436,17 +443,7 @@ function main_tabs(){
 	}
 	
 	
-	return "
-	<div id=main_config_postfix style='width:930px;$fontsize'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_postfix\").tabs();});
-			
-			QuickLinkShow('quicklinks-APP_POSTFIX');
-			
-		</script>";		
+	return build_artica_tabs($html, "main_config_postfix",950)."<script> QuickLinkShow('quicklinks-APP_POSTFIX'); </script>";		
 }
 
 
@@ -595,7 +592,7 @@ function sasl_script(){
 	}
 	
 	function SasladvOptions(){
-		YahooWin3(550,'$page?popup-auth-adv=yes','$sasl_title'); 
+		YahooWin3(750,'$page?popup-auth-adv=yes','$sasl_title'); 
 		
 	}	
 	
@@ -1051,13 +1048,22 @@ function sasl_satus(){
 }
 
 function sasl_adv(){
+	
+	if(!isset($_GET["hostname"])){$_GET["hostname"]="master";}
+	if(!isset($_GET["ou"])){$_GET["ou"]="master";}
+	if($_GET["hostname"]==null){$_GET["hostname"]="master";}
+	if($_GET["ou"]==null){$_GET["ou"]="master";}
+	
+	
 	$page=CurrentPageName();
-	$main=new main_cf();
+	$main=new maincf_multi($_GET["hostname"],$_GET["ou"]);
+	
 	$smtpd_sasl_security_options_ARR=array(
 		"noplaintext"=>"noplaintext",
 		"noactive"=>"noactive",
 		"nodictionary"=>"nodictionary",
-		"mutual_auth"=>"mutual_auth"
+		"mutual_auth"=>"mutual_auth",
+		"noanonymous"=>"noanonymous"
 
 	);
 	
@@ -1079,50 +1085,69 @@ function sasl_adv(){
 	
 	if(strlen($smtpd_tls_received_header)>25){
 		$smtpd_tls_received_header=texttooltip(substr($smtpd_tls_received_header,0,25)."...",$smtpd_tls_received_header);
-	}		
+	}
+
+	$broken_sasl_auth_clients=$main->GET("broken_sasl_auth_clients");
+	if(!is_numeric($broken_sasl_auth_clients)){$broken_sasl_auth_clients=1;}
+	
+	$smtpd_sasl_authenticated_headerV=$main->GET("smtpd_sasl_authenticated_header");
+	if(!is_numeric($smtpd_sasl_authenticated_headerV)){$smtpd_sasl_authenticated_headerV=1;}
+	
+	$smtpd_tls_received_headerV=$main->GET("smtpd_tls_received_header");
+	if(!is_numeric($smtpd_tls_received_headerV)){$smtpd_tls_received_headerV=1;}	
+	
+	
+	$smtpd_tls_security_level=$main->GET("smtpd_tls_security_level");
+	if($smtpd_tls_security_level==null){$smtpd_tls_security_level="may";}
+	
+	$smtpd_sasl_security_options=$main->GET("smtpd_sasl_security_options");
+	if($smtpd_sasl_security_options==null){$smtpd_sasl_security_options="noanonymous";}
 	
 	$html="
-	<div id='sasl_adv_options'>
-	<table class=form style='width:99%'>
+			
+	<div id='sasl_adv_options' class=form style='width:95%'>
+	<table style='width:100%'>
 	<tr>
-		<td valign='top' class=legend nowrap>{broken_sasl_auth_clients}:</td>
-		<td valign='top'>".Field_yesno_checkbox("broken_sasl_auth_clients",$main->broken_sasl_auth_clients)."</td>
+		<td valign='top' class=legend nowrap style='font-size:16px'>{broken_sasl_auth_clients}:</td>
+		<td valign='top'>".Field_checkbox("broken_sasl_auth_clients",1,$main->GET("broken_sasl_auth_clients"))."</td>
 		<td valign='top'>". help_icon('{broken_sasl_auth_clients_text}')."</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend>$smtpd_tls_auth_only</td>
-		<td valign='top'>".Field_yesno_checkbox("smtpd_tls_auth_only",$main->smtpd_tls_auth_only)."</td>
+		<td valign='top' class=legend style='font-size:16px'>$smtpd_tls_auth_only</td>
+		<td valign='top'>".Field_checkbox("smtpd_tls_auth_only",1,$main->GET("smtpd_tls_auth_only"))."</td>
 		<td valign='top'>". help_icon('{smtpd_tls_auth_only_text}')."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend>{smtpd_sasl_local_domain}:</td>
-		<td valign='top'>".Field_text("smtpd_sasl_local_domain",$main->smtpd_sasl_local_domain)."</td>
+		<td valign='top' class=legend style='font-size:16px'>{smtpd_sasl_local_domain}:</td>
+		<td valign='top'>".Field_text("smtpd_sasl_local_domain",$main->GET("smtpd_sasl_local_domain"),"font-size:16px")."</td>
 		<td valign='top'>". help_icon('{smtpd_sasl_local_domain_text}')."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend nowrap>$smtpd_sasl_authenticated_header</td>
-		<td valign='top'>".Field_yesno_checkbox("smtpd_sasl_authenticated_header",$main->smtpd_sasl_authenticated_header)."</td>
+		<td valign='top' class=legend nowrap style='font-size:16px'>$smtpd_sasl_authenticated_header</td>
+		<td valign='top'>".Field_checkbox("smtpd_sasl_authenticated_header",1,$smtpd_sasl_authenticated_headerV)."</td>
 		<td valign='top'>&nbsp;</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend nowrap>$smtpd_tls_received_header</td>
-		<td valign='top'>".Field_yesno_checkbox("smtpd_tls_received_header",$main->smtpd_tls_received_header)."</td>
+		<td valign='top' class=legend nowrap style='font-size:16px'>$smtpd_tls_received_header</td>
+		<td valign='top'>".Field_checkbox("smtpd_tls_received_header",1,$smtpd_tls_received_headerV)."</td>
 		<td valign='top'>". help_icon('{smtpd_tls_received_header_text}')."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend>{smtpd_tls_security_level}:</td>
-		<td valign='top'>".Field_array_Hash($smtpd_tls_security_level_ARR,"smtpd_tls_security_level",$main->smtpd_tls_security_level)."</td>
+		<td valign='top' class=legend style='font-size:16px'>{smtpd_tls_security_level}:</td>
+		<td valign='top'>".Field_array_Hash($smtpd_tls_security_level_ARR,"smtpd_tls_security_level",
+				$smtpd_tls_security_level,null,null,0,'font-size:16px')."</td>
 		<td valign='top'>". help_icon('{smtpd_tls_security_level_text}')."</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend>{smtpd_sasl_security_options}:</td>
-		<td valign='top'>".Field_array_Hash($smtpd_sasl_security_options_ARR,"smtpd_sasl_security_options",$main->smtpd_sasl_security_options)."</td>
+		<td valign='top' class=legend style='font-size:16px'>{smtpd_sasl_security_options}:</td>
+		<td valign='top'>".Field_array_Hash($smtpd_sasl_security_options_ARR,"smtpd_sasl_security_options",
+				$main->smtpd_sasl_security_options,null,null,0,'font-size:16px')."</td>
 		<td valign='top'>". help_icon('{smtpd_sasl_security_options_text}')."</td>
 	</tr>		
 	
 	
 	<tr>
-		<td colspan=3 align='right'>". button("{edit}","SaveSaslAdvOptions()")."</td>
+		<td colspan=3 align='right'><hr>". button("{apply}","SaveSaslAdvOptions()",18)."</td>
 	</tr>
 	</table>
 	</div>
@@ -1135,14 +1160,28 @@ function sasl_adv(){
 	
 	function SaveSaslAdvOptions(){
 		var XHR = new XHRConnection();
-		XHR.appendData('broken_sasl_auth_clients',document.getElementById('broken_sasl_auth_clients').value);
-		XHR.appendData('smtpd_tls_auth_only',document.getElementById('smtpd_tls_auth_only').value);
+		
+		var broken_sasl_auth_clients=0;
+		var smtpd_tls_auth_only=0;
+		var smtpd_sasl_authenticated_header=0;
+		var smtpd_tls_received_header=0;
+		if(document.getElementById('broken_sasl_auth_clients').checked){broken_sasl_auth_clients=1;}
+		if(document.getElementById('smtpd_tls_auth_only').checked){smtpd_tls_auth_only=1;}
+		if(document.getElementById('smtpd_sasl_authenticated_header').checked){smtpd_sasl_authenticated_header=1;}
+		if(document.getElementById('smtpd_tls_received_header').checked){smtpd_tls_received_header=1;}
+		
+		XHR.appendData('hostname','{$_GET["hostname"]}');
+		XHR.appendData('ou','{$_GET["ou"]}');
+		
+		XHR.appendData('broken_sasl_auth_clients',broken_sasl_auth_clients);
+		XHR.appendData('smtpd_tls_auth_only',smtpd_tls_auth_only);
+		XHR.appendData('smtpd_sasl_authenticated_header',smtpd_sasl_authenticated_header);
+		XHR.appendData('smtpd_tls_received_header',smtpd_tls_received_header);						
+		
 		XHR.appendData('smtpd_sasl_local_domain',document.getElementById('smtpd_sasl_local_domain').value);
-		XHR.appendData('smtpd_sasl_authenticated_header',document.getElementById('smtpd_sasl_authenticated_header').value);
-		XHR.appendData('smtpd_tls_received_header',document.getElementById('smtpd_tls_received_header').value);
 		XHR.appendData('smtpd_tls_security_level',document.getElementById('smtpd_tls_security_level').value);
 		XHR.appendData('smtpd_sasl_security_options',document.getElementById('smtpd_sasl_security_options').value);
-		document.getElementById('sasl_adv_options').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
+		AnimateDiv('sasl_adv_options');
 		XHR.sendAndLoad('$page', 'GET',X_SaveSaslAdvOptions);	
 	
 	}	
@@ -1156,11 +1195,15 @@ echo $tpl->_ENGINE_parse_body($html);
 
 function  sasl_adv_save(){
 	$sock=new sockets();
+	$main=new maincf_multi($_GET["hostname"],$_GET["ou"]);
 	while (list ($num, $ligne) = each ($_GET) ){
 		$sock->SET_INFO($num,$ligne);
+		$main->SET_VALUE($num, $ligne);
 	}
 	
-	$sock->getFrameWork("cmd.php?reconfigure-postfix=yes");
+	
+	
+	$sock->getFrameWork("cmd.php?postfix-smtp-sasl=yes");
 }
 
 
@@ -2135,6 +2178,11 @@ function tweaks(){
 	$UnknownUsers=Paragraphe('unknown-user-64.png','{unknown_users}','{postfix_unknown_users_tinytext}',"javascript:Loadjs('postfix.luser_relay.php')",90);
 	
 	
+	$ActiveDirectory=Paragraphe('wink-64.png','{active_directory_link}','{active_directory_linkmail_text}',
+			"javascript:Loadjs('$page?active_directory_link=yes')",90);
+	
+	
+	
 	//$massmailing=ParagrapheTEXT_disabled('mass-mailing-postfix-48.png','{emailings}','{ENABLE_MASSMAILING_TEXT}',null,90);
 	if($users->EMAILRELAY_INSTALLED){
 		$massmailing=Paragraphe('mass-mailing-postfix-64.png','{emailings}','{ENABLE_MASSMAILING_TEXT}',"javascript:Loadjs('postfix.massmailing.php')",90);
@@ -2173,7 +2221,8 @@ function tweaks(){
 		$tr[]=$postfixStop;
 		$tr[]=$massmailing;
 		$tr[]=$pommo;
-		$tr[]=$artica_stats;
+		
+		
 		
 		$tr[]=$postmaster;
 		$tr[]=$postmaster_identity;

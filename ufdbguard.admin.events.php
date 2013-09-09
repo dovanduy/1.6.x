@@ -47,15 +47,8 @@ function tabs(){
 	
 	
 	
-	echo "
-	<div id=main_ufdbguards_events_tab style='width:101%;overflow:auto;margin:-10px'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_ufdbguards_events_tab').tabs();
-			});
-		</script>";	
+	echo build_artica_tabs($html,"main_ufdbguards_events_tab");
+
 }
 
 
@@ -99,7 +92,7 @@ function page(){
 <table class='$t' style='display: none' id='$t' style='width:100%'></table>
 <script>
 var xsite='';
-$(document).ready(function(){
+function flexigridStart$t(){
 $('#$t').flexigrid({
 	url: '$page?ufdbguard-list-search=yes&category={$_GET["category"]}',
 	dataType: 'json',
@@ -124,12 +117,12 @@ $('#$t').flexigrid({
 	rpOptions: [10, 20, 30, 50,100,200]
 	
 	});   
-});
+}
 
 function ChangeCategory$t(){
 	YahooWin5('450','$page?ufdbguard-list-catz=yes&t=$t','$category');
 }
-
+setTimeout('flexigridStart$t()',800);
 	</script>";
 	echo $html;
 	

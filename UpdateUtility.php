@@ -130,26 +130,11 @@ function products_tabs(){
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
-		$tab[]="<li><a href=\"$page?product-section=yes&product-key=$num\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$tab[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?product-section=yes&product-key=$num\"><span style='font-size:13px'>$ligne</span></a></li>\n");
 			
 	}
+echo build_artica_tabs($tab, "main_upateutility_pkey");
 
-	$html="
-		<div id='main_upateutility_pkey' style='background-color:white'>
-		<ul>
-		". implode("\n",$tab). "
-		</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_upateutility_pkey').tabs();
-				});
-		</script>
-	
-	";
-		
-	
-	echo $tpl->_ENGINE_parse_body($html);	
 	
 	
 	
@@ -207,6 +192,7 @@ function settings(){
 	$UpdateUtilityHTTPPort=$sock->GET_INFO("UpdateUtilityHTTPPort");
 	$UpdateUtilityHTTPIP=$sock->GET_INFO("UpdateUtilityHTTPIP");
 	$UpdateUtilityAllProducts=$sock->GET_INFO("UpdateUtilityAllProducts");
+	$UpdateUtilityOnlyForKav4Proxy=$sock->GET_INFO("UpdateUtilityOnlyForKav4Proxy");
 	$UpdateUtilityRedirectEnable=$sock->GET_INFO("UpdateUtilityRedirectEnable");
 	$UpdateUtilityStorePath=$sock->GET_INFO("UpdateUtilityStorePath");
 	$UpdateUtilityUseLoop=$sock->GET_INFO("UpdateUtilityUseLoop");
@@ -216,12 +202,23 @@ function settings(){
 		$APP_UFDBGUARD_INSTALLED=1;
 	}
 	
+	if($users->KAV4PROXY_INSTALLED){
+		if(!is_numeric($UpdateUtilityAllProducts)){
+			$UpdateUtilityAllProducts=0;
+		}
+		if(!is_numeric($UpdateUtilityOnlyForKav4Proxy)){$UpdateUtilityOnlyForKav4Proxy=1;}
+	}else{
+		if(!is_numeric($UpdateUtilityOnlyForKav4Proxy)){$UpdateUtilityOnlyForKav4Proxy=0;}
+	}
+	
 	if(!is_numeric($UpdateUtilityRedirectEnable)){$UpdateUtilityRedirectEnable=0;}
 	if(!is_numeric($UpdateUtilityEnableHTTP)){$UpdateUtilityEnableHTTP=0;}
 	if(!is_numeric($UpdateUtilityAllProducts)){$UpdateUtilityAllProducts=1;}
+	if(!is_numeric($UpdateUtilityOnlyForKav4Proxy)){$UpdateUtilityOnlyForKav4Proxy=1;}
 	if(!is_numeric($UpdateUtilityHTTPPort)){$UpdateUtilityHTTPPort=9222;}
 	if($UpdateUtilityStorePath==null){$UpdateUtilityStorePath="/home/kaspersky/UpdateUtility";}
 	if(!is_numeric($UpdateUtilityUseLoop)){$UpdateUtilityUseLoop=0;}
+	if($UpdateUtilityOnlyForKav4Proxy==1){$UpdateUtilityAllProducts=0;}
 	
 	$containerjs="Loadjs('UpdateUtility.container-wizard.php');";
 	if($UpdateUtilityUseLoop==1){$containerjs="Loadjs('system.disks.loop.php?js=yes');";}
@@ -244,7 +241,11 @@ function settings(){
 		<tr>
 			<td class=legend style='font-size:14px' colspan=2>{update_for_all_products}:</td>
 			<td>". Field_checkbox("UpdateUtilityAllProducts", 1,$UpdateUtilityAllProducts)."</td>
-		</tr>	
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px' colspan=2>{UpdateUtilityOnlyForKav4Proxy}:</td>
+			<td>". Field_checkbox("UpdateUtilityOnlyForKav4Proxy", 1,$UpdateUtilityOnlyForKav4Proxy)."</td>
+		</tr>							
 		<tr>
 			<td class=legend style='font-size:14px'>{directory}:</td>
 			<td>". Field_text("UpdateUtilityStorePath", $UpdateUtilityStorePath,"font-size:14px;width:250px")."</td>
@@ -326,6 +327,8 @@ function settings(){
 	function SaveUpdateUtilityConf(){
 			var XHR = new XHRConnection();
 			if(document.getElementById('UpdateUtilityAllProducts').checked){XHR.appendData('UpdateUtilityAllProducts','1');}else{XHR.appendData('UpdateUtilityAllProducts','0');}
+			if(document.getElementById('UpdateUtilityOnlyForKav4Proxy').checked){XHR.appendData('UpdateUtilityOnlyForKav4Proxy','1');}else{XHR.appendData('UpdateUtilityOnlyForKav4Proxy','0');}
+			
 			XHR.appendData('UpdateUtilityStorePath',document.getElementById('UpdateUtilityStorePath').value);
 			XHR.sendAndLoad('$page', 'POST',x_SaveUpdateUtilityConf);	
 		}		
@@ -359,8 +362,14 @@ function UpdateUtilitySave(){
 	$sock=new sockets();
 	$UpdateUtilityUseLoop=$sock->GET_INFO("UpdateUtilityUseLoop");
 	if(!is_numeric($UpdateUtilityUseLoop)){$UpdateUtilityUseLoop=0;}
+	
+	if($_POST["UpdateUtilityOnlyForKav4Proxy"]==1){
+		$_POST["UpdateUtilityAllProducts"]=0;
+	}
+	
 	$sock->SET_INFO("UpdateUtilityAllProducts", $_POST["UpdateUtilityAllProducts"]);
 	$sock->SET_INFO("UpdateUtilityRedirectEnable", $_POST["UpdateUtilityRedirectEnable"]);
+	$sock->SET_INFO("UpdateUtilityOnlyForKav4Proxy", $_POST["UpdateUtilityOnlyForKav4Proxy"]);
 	if($UpdateUtilityUseLoop==0){
 		$sock->SET_INFO("UpdateUtilityStorePath", $_POST["UpdateUtilityStorePath"]);
 	}

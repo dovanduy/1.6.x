@@ -116,10 +116,10 @@ function category_save(){
 	if($_POST["CatzByGroupA"]<>null){$_POST["group"]=$_POST["CatzByGroupA"];}
 	
 	
-	$_POST["CatzByGroupL"]=mysql_escape_string($_POST["CatzByGroupL"]);
-	$_POST["category_text"]=mysql_escape_string($_POST["category_text"]);
+	$_POST["CatzByGroupL"]=mysql_escape_string2($_POST["CatzByGroupL"]);
+	$_POST["category_text"]=mysql_escape_string2($_POST["category_text"]);
 	$q=new mysql_squid_builder();
-	$sql="SELECT category FROM personal_categories WHERE category='".mysql_escape_string($_POST["category-to-add"])."'";
+	$sql="SELECT category FROM personal_categories WHERE category='".mysql_escape_string2($_POST["category-to-add"])."'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	if($ligne["category"]<>null){
 		$sql="UPDATE personal_categories
@@ -436,7 +436,7 @@ echo $html;
 
 function category_items_delete(){
 	$category=$_POST["category"];
-	$item=mysql_escape_string($_POST["category-items-delete"]);
+	$item=mysql_escape_string2($_POST["category-items-delete"]);
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("DELETE FROM category_{$category} WHERE `pattern`='$item'");
 	if(!$q->ok){echo $q->mysql_error;}
@@ -449,14 +449,14 @@ function category_delete(){
 		$q->QUERY_SQL("DROP TABLE category_{$category}");
 		if(!$q->ok){echo $q->mysql_error;return;}
 	}
-	$category=mysql_escape_string($category);
+	$category=mysql_escape_string2($category);
 	$q->QUERY_SQL("DELETE FROM personal_categories WHERE `category`='$category'");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	
 }
 function category_urls_delete(){
 	$category=$_POST["category"];
-	$item=mysql_escape_string($_POST["category-items-delete"]);
+	$item=mysql_escape_string2($_POST["category-items-delete"]);
 	$q=new mysql_squid_builder();
 	$table="categoryuris_".$q->category_transform_name($category);
 	$q->QUERY_SQL("DELETE FROM $table WHERE `pattern`='$item'");

@@ -28,10 +28,13 @@
 	
 	
 function js(){
+	$sock=new sockets();
+	$sock->SET_INFO("SquidAsSeenCache",1);
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$title=$tpl->_ENGINE_parse_body("{cache}::{cache_control}");
-	$html="YahooWin5('700','$page?caches-control=yes&byjs=yes','$title');";
+	$html="YahooWin5('860','$page?caches-control=yes&byjs=yes','$title');";
 	echo $html;
 	
 }
@@ -45,6 +48,7 @@ function cache_control(){
 
 	
 function AddCachedSitelist_js(){
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$add_new_cached_web_site=$tpl->_ENGINE_parse_body('{add_new_cached_web_site}');
 	
@@ -75,6 +79,7 @@ function AddCachedSitelist_js_delete(){
 	$page=CurrentPageName();
 	$t=$_GET["t"];
 	$IDROW=$_GET["IDROW"];
+	header("content-type: application/x-javascript");
 	$html="	
 		var x_AddCachedSitelist_js_delete= function (obj) {
 			var results=obj.responseText;
@@ -132,7 +137,7 @@ function AddCachedSitelist_save(){
 	$pattern=$_GET["refresh_pattern_site"];
 	$pattern=str_replace(".","\.",$pattern);
 	$pattern=str_replace("*",".*?",$pattern);
-	$pattern=mysql_escape_string($pattern);
+	$pattern=mysql_escape_string2($pattern);
 	$id=$_POST["id"];
 	
 	if($_POST["refresh_pattern_min"]<5){$_POST["refresh_pattern_min"]=5;}
@@ -791,12 +796,63 @@ $refresh_pattern[]="-i \.(rar|jar|gz|tgz|bz2|iso|m1v|m2(v|p)|mo(d|v)|arj|lha|lzh
 $refresh_pattern[]="-i \.(jp(e?g|e|2)|gif|pn[pg]|bm?|tiff?|ico|swf|dat|ad|txt|dll)         43200 99% 43200 ignore-no-cache ignore-no-store ignore-must-revalidate override-expire override-lastmod reload-into-ims store-stale";
 $refresh_pattern[]="-i \.(avi|ac4|mp(e?g|a|e|1|2|3|4)|mk(a|v)|ms(i|u|p)|og(x|v|a|g)|rm|r(a|p)m|snd|vob) 43200 99% 43200 ignore-no-cache ignore-no-store ignore-must-revalidate override-expire override-lastmod reload-into-ims store-stale";
 $refresh_pattern[]="-i \.(pp(t?x)|s|t)|pdf|rtf|wax|wm(a|v)|wmx|wpl|cb(r|z|t)|xl(s?x)|do(c?x)|flv|x-flv) 43200 99% 43200 ignore-no-cache ignore-no-store ignore-must-revalidate override-expire override-lastmod reload-into-ims store-stale";
+$refresh_pattern[]="-i \.(htm|html|asp|xml|class|css|js|swf|ico|cur|ani|jpg|jpeg|bmp|png|cdr|txt|gif|dll)       43200 99% 43200 ignore-no-cache ignore-no-store  override-expire override-lastmod reload-into-ims store-stale";
+$refresh_pattern[]="-i \.(rar|jar|gz|tgz|bz2|exe|msi|iso|m1v|m2(v|p)|mo(d|v)|arj|lha|lzh|zip|tar|deb|rpm|bin)  43200 99% 43200 ignore-no-cache ignore-no-store  override-expire override-lastmod reload-into-ims store-stale";
+$refresh_pattern[]="-i \.(jp(e?g|e|2)|gif|pn[pg]|bm?|tiff?) 	129600 999999% 129600 ignore-no-cache ignore-no-store ignore-private override-expire override-lastmod reload-into-ims store-stale";
+$refresh_pattern[]="-i \.(3gp|7z|ace|asx|divx|dvr-ms|ram|inc|cab|qt)       43200 99% 43200 ignore-no-cache ignore-no-store  override-expire override-lastmod reload-into-ims store-stale";
+$refresh_pattern[]="-i \.(avi|ac4|mp(e?g|a|e|1|2|3|4)|mk(a|v)|ms(i|u|p)|og(x|v|a|g)|rm|r(a|p)m|snd|vob) 43200 99% 43200 ignore-no-cache ignore-no-store  override-expire override-lastmod reload-into-ims store-stale";
+$refresh_pattern[]="-i \.(mp(e?g|a|e|1|2|3|4)|mk(a|v)|ms(i|u|p)|og(x|v|a|g)|rar|rm|r(a|p)m|snd|vob|wav) 129600 999999% 129600 ignore-no-cache ignore-private override-expire override-lastmod reload-into-ims store-stale";
+$refresh_pattern[]="-i \.(pp(t?x)|s|t)|pdf|rtf|wax|wm(a|v)|wmx|wpl|cb(r|z|t)|xl(s?x)|do(c?x)|flv|x-flv) 43200 99% 43200 ignore-no-cache ignore-no-store  override-expire override-lastmod reload-into-ims store-stale";
+$refresh_pattern[]="imeem.*\.flv  0 0% 0 	override-lastmod override-expire store-stale";
+$refresh_pattern[]="\.rapidshare.*\/[0-9]*\/.*\/[^\/]*   161280	90%	161280 ignore-reload  store-stale";
+$refresh_pattern[]="(get_video\?|videoplayback\?|videodownload\?|\.flv?)    129600 999999% 129600 ignore-no-cache ignore-no-store ignore-private override-expire override-lastmod reload-into-ims store-stale";
+$refresh_pattern[]="(get_video\?|videoplayback\?id|videoplayback.*id|videodownload\?|\.flv?)    129600 999999% 129600 ignore-no-cache ignore-no-store ignore-private override-expire override-lastmod reload-into-ims store-stale";
+$refresh_pattern[]="\.(ico|video-stats) 129600 999999% 129600	override-expire ignore-reload ignore-no-cache ignore-no-store ignore-private ignore-auth override-lastmod negative-ttl=10080 store-stale";
+$refresh_pattern[]="\.etology\?	   				129600 999999% 129600	override-expire ignore-reload ignore-no-cache store-stale";
+$refresh_pattern[]="galleries\.video(\?|sz)   			129600 999999% 129600	override-expire ignore-reload ignore-no-cache store-stale   ";
+$refresh_pattern[]="brazzers\?	   				129600 999999% 129600	override-expire ignore-reload ignore-no-cache store-stale";
+$refresh_pattern[]="\.adtology\?  					129600 999999% 129600	override-expire ignore-reload ignore-no-cache store-stale   ";
+$refresh_pattern[]="^.*safebrowsing.*google  129600 999999% 129600 override-expire ignore-reload ignore-no-cache ignore-private ignore-auth negative-ttl=10080 store-stale";
+$refresh_pattern[]="^http://((cbk|mt|khm|mlt)[0-9]?)\.google\.co(m|\.uk) 129600 999999% 129600 override-expire ignore-reload   ignore-private store-stale negative-ttl=10080";
+$refresh_pattern[]="ytimg\.com.*\.jpg   				129600 999999% 129600	override-expire ignore-reload   store-stale   ";
+$refresh_pattern[]="images\.friendster\.com.*\.(png|gif|jpg|bmp|gif|ico|cur|ani) 	  	129600 999999% 129600	override-expire ignore-reload   store-stale  ";
+$refresh_pattern[]="garena\.com                           		129600 999999% 129600 	override-expire reload-into-ims store-stale   ";
+$refresh_pattern[]="photobucket.*\.(jp(e?g|e|2)|tiff?|bmp|gif|png)  129600 999999% 129600 	override-expire ignore-reload   store-stale  ";
+$refresh_pattern[]="vid\.akm\.dailymotion\.com.*\.on2\?   		129600 999999% 129600 ignore-no-cache override-expire override-lastmod store-stale";
+$refresh_pattern[]="mediafire.com\/images.*\.(jp(e?g|e|2)|tiff?|bmp|gif|png)    129600 999999% 129600 reload-into-ims override-expire ignore-private    store-stale";
+$refresh_pattern[]="^http:\/\/images|pics|thumbs[0-9]\.      129600 999999% 129600 reload-into-ims ignore-no-cache ignore-no-store ignore-reload override-expire store-stale";
+$refresh_pattern[]="^http:\/\/www.onemanga.com.*\/           129600 999999% 129600 reload-into-ims ignore-no-cache ignore-no-store ignore-reload override-expire store-stale";
+$refresh_pattern[]="^http:\/\/www.porntube.com.*\/           129600 999999% 129600 reload-into-ims ignore-no-cache ignore-no-store ignore-reload override-expire store-stale";
+$refresh_pattern[]="guru.avg.com/.*\.(bin) 				 	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="(avgate|avira).*(idx|gz)$                       	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="kaspersky.*\.avc$                               	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="kaspersky                                       	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="update.nai.com/.*\.(gem|zip|mcs)                	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="^http:\/\/liveupdate.symantecliveupdate.com.*\(zip) 	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="windowsupdate.com/.*\.(cab|exe) 			43200  999999%  129600 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="update.microsoft.com/.*\.(cab|exe) 			43200  999999%  129600 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="download.microsoft.com/.*\.(cab|exe) 			43200  999999%  129600 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="((facebook.com)|(85.131.151.39)).*\.(jpg|png|gif)  	129600 999999% 129600 ignore-reload  override-expire ignore-no-cache ignore-no-store store-stale";
+$refresh_pattern[]="-i \.fbcdn.net.*\.(jpg|gif|png|swf|mp3)              	129600 999999% 129600 ignore-reload  override-expire ignore-no-cache ignore-no-store store-stale";
+$refresh_pattern[]=" static\.ak\.fbcdn\.net*\.(jpg|gif|png)              	129600 999999% 129600 ignore-reload  override-expire ignore-no-cache ignore-no-store store-stale";
+$refresh_pattern[]="^http:\/\/profile\.ak\.fbcdn.net*\.(jpg|gif|png)  	129600 999999% 129600 ignore-reload  override-expire ignore-no-cache ignore-no-store store-stale";
+$refresh_pattern[]="^http:\/\/openx.*\.(jp(e?g|e|2)|gif|pn[pg]|swf|ico|css|tiff?) 129600 99999% 129600 reload-into-ims  ignore-reload override-expire ignore-no-cache ignore-no-store  store-stale";
+$refresh_pattern[]="^http:\/\/ads(1|2|3).kompas.com.*\/   		43200 99999% 129600 reload-into-ims  ignore-reload override-expire ignore-no-cache ignore-no-store  store-stale";
+$refresh_pattern[]="^http:\/\/img.ads.kompas.com.*\/   		43200 99999% 129600 reload-into-ims  ignore-reload override-expire ignore-no-cache ignore-no-store  store-stale";
+$refresh_pattern[]=".kompasimages.com.*\.(jpg|gif|png|swf)   	43200 99999% 129600 reload-into-ims  ignore-reload override-expire ignore-no-cache ignore-no-store  store-stale";
+$refresh_pattern[]="^http:\/\/openx.kompas.com.*\/   		43200 99999% 129600 reload-into-ims  ignore-reload override-expire ignore-no-cache ignore-no-store  store-stale";
+$refresh_pattern[]="kaskus.\us.*\.(jp(e?g|e|2)|gif|png|swf)    	43200 99999% 129600 reload-into-ims  ignore-reload override-expire ignore-no-cache ignore-no-store  store-stale";
+$refresh_pattern[]="^http:\/\/img.kaskus.us.*\.(jpg|gif|png|swf)   	43200 99999% 129600 reload-into-ims  ignore-reload override-expire ignore-no-cache ignore-no-store  store-stale";
+
+
+
 
 while (list ($num, $val) = each ($refresh_pattern)){
 	if(!preg_match("#(.+?)\s+([0-9]+)\s+([0-9]+)%\s+([0-9]+)\s+(.*)#",$val,$re)){ continue;}
-	
+	if(isset($already[$re[1]])){continue;}
 	$t[]="INSERT IGNORE INTO squid_speed (domain,refresh_pattern_min,refresh_pattern_perc,refresh_pattern_max,refresh_pattern_options)
 	VALUES('{$re[1]}','{$re[2]}',{$re[3]},{$re[4]},'{$re[5]}');";
+	$already[$re[1]]=true;
 }
 
 $t[]="INSERT IGNORE INTO squid_speed (domain,refresh_pattern_min,refresh_pattern_perc,refresh_pattern_max,refresh_pattern_options)

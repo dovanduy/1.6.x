@@ -365,14 +365,15 @@ function SendStatus(){
 	
 	if($EnableSargGenerator==1){
 	$push_sarg=false;
-	if(is_file("/usr/share/artica-postfix/squid/index.html")){
+	$sock=new sockets();$SargOutputDir=$sock->GET_INFO("SargOutputDir");if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
+	if(is_file("$SargOutputDir/index.html")){
 		if(!is_file("/etc/artica-postfix/sarg.tgz")){
-			shell_exec("cd /usr/share/artica-postfix/squid && tar -cjf /etc/artica-postfix/sarg.tgz ./*");
+			shell_exec("cd $SargOutputDir && tar -cjf /etc/artica-postfix/sarg.tgz ./*");
 			$push_sarg=true;
 		}else{
-			if($ArrayFileCache["SQUID_SARG"]<>filemtime("/usr/share/artica-postfix/squid/index.html")){
+			if($ArrayFileCache["SQUID_SARG"]<>filemtime("$SargOutputDir/index.html")){
 				@unlink("/etc/artica-postfix/sarg.tgz");
-				shell_exec("cd /usr/share/artica-postfix/squid && tar -cjf /etc/artica-postfix/sarg.tgz ./*");
+				shell_exec("cd $SargOutputDir && tar -cjf /etc/artica-postfix/sarg.tgz ./*");
 				$push_sarg=true;
 			}
 		}

@@ -128,7 +128,7 @@ function service_status(){
 	$tpl=new templates();	
 	$ini=new Bs_IniHandler();
 	$sock=new sockets();
-	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?squid-ini-status=yes')));
+	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?ufdb-ini-status=yes')));
 	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_ROUND("APP_SQUIDGUARD_HTTP",$ini,null,1);
 	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("APP_UFDBGUARD",$ini,null,1);
 	

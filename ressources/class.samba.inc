@@ -32,11 +32,13 @@ class samba{
 	var $SECOND_PART_CONF="";
 	var $WORKGROUP="";
 	var $EnableSambaVirtualsServers=0;
+	var $EnableSambaVirtualsServer=0;
 	var $EnableKerbAuth=0;
 	var $PHP5_BIN;
 	var $EnableSMB2=0;
 	var $client_ntlmv2_auth=0;
 	var $SambaSecurityLevel="user";
+	
 	
 	function samba(){
 		$this->ldap=new clladp();
@@ -45,6 +47,7 @@ class samba{
 		$sock=new sockets();
 		$this->SAMBA_VERSION=$this->usersMenus->SAMBA_VERSION;
 		$this->EnableSambaVirtualsServers=$sock->GET_INFO("EnableSambaVirtualsServers");
+		$this->EnableSambaVirtualsServer=$this->EnableSambaVirtualsServers;
 		$this->TypeOfSamba=$sock->GET_INFO("TypeOfSamba");
 		$this->EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 		$this->SambaEnableEditPosixExtension=$sock->GET_INFO("SambaEnableEditPosixExtension");
@@ -133,6 +136,27 @@ function BuildDefaults(){
 	
 	$sock=new sockets();
 	if(!isset($this->main_array["global"]["acl group control"])){$this->main_array["global"]["acl group control"]=null;}
+	if(!isset($this->main_array["global"]["workgroup"])){$this->main_array["global"]["workgroup"]="MSHOME";}
+	if(!isset($this->main_array["global"]["server string"])){$this->main_array["global"]["server string"]="%h server";}
+	if(!isset($this->main_array["global"]["disable netbios"])){$this->main_array["global"]["disable netbios"]="no";}
+	if(!isset($this->main_array["global"]["domain logons"])){$this->main_array["global"]["domain logons"]="no";}
+	if(!isset($this->main_array["global"]["domain master"])){$this->main_array["global"]["domain master"]="no";}
+	if(!isset($this->main_array["global"]["preferred master"])){$this->main_array["global"]["preferred master"]="no";}
+	if(!isset($this->main_array["global"]["local master"])){$this->main_array["global"]["local master"]="yes";}
+	if(!isset($this->main_array["global"]["os level"])){$this->main_array["global"]["os level"]="40";}
+	if(!isset($this->main_array["global"]["netbios name"])){$this->main_array["global"]["netbios name"]=$users->hostname;}
+	if(!isset($this->main_array["global"]["dns proxy"])){$this->main_array["global"]["dns proxy"]="no";}
+	if(!isset($this->main_array["global"]["name resolve order"])){$this->main_array["global"]["name resolve order"]="host lmhosts wins bcast";}
+	
+	if(!isset($this->main_array["global"]["nt acl support"])){$this->main_array["global"]["nt acl support"]="yes";}
+	if(!isset($this->main_array["global"]["map acl inherit"])){$this->main_array["global"]["map acl inherit"]="yes";}
+	if(!isset($this->main_array["global"]["acl check permissions"])){$this->main_array["global"]["acl check permissions"]="yes";}
+	if(!isset($this->main_array["global"]["acl group control"])){$this->main_array["global"]["acl group control"]="yes";}
+	if(!isset($this->main_array["global"]["inherit permissions"])){$this->main_array["global"]["inherit permissions"]="no";}
+	if(!isset($this->main_array["global"]["inherit acls"])){$this->main_array["global"]["inherit acls"]="no";}
+	if(!isset($this->main_array["global"]["dns proxy"])){$this->main_array["global"]["dns proxy"]="no";}	
+	
+	
 	if($this->main_array["global"]["workgroup"]==null){$this->main_array["global"]["workgroup"]="MSHOME";}
 	if($this->main_array["global"]["server string"]==null){$this->main_array["global"]["server string"]="%h server";}
 	if($this->main_array["global"]["disable netbios"]==null){$this->main_array["global"]["disable netbios"]="no";}
@@ -154,6 +178,14 @@ function BuildDefaults(){
 	if($this->main_array["global"]["dns proxy"]==null){$this->main_array["global"]["dns proxy"]="no";}		
 	
 	
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	if($EnableKerbAuth==1){
+		$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
+		if(!isset($array["USE_AUTORID"])){$array["USE_AUTORID"]=1;}
+		if(!is_numeric($array["USE_AUTORID"])){$array["USE_AUTORID"]=1;}
+		$this->main_array["global"]["workgroup"]=$array["ADNETBIOSDOMAIN"];
+	}
 	
 	
 	
@@ -232,7 +264,7 @@ function SaveUsbInfos($uuid,$share_name,$array){
 
 function LoadSettings(){
 		
-		
+		$this->main_array["global"]=array();
 		$sock=new sockets();
 		$this->global_conf=$sock->GET_INFO("SambaSMBConf")."\n".$sock->GET_INFO("SambaSecondPartConf");
 		if(strlen($this->global_conf)<50){$this->global_conf=base64_decode($sock->getFrameWork("cmd.php?samba-original-conf=yes"));}
@@ -265,6 +297,7 @@ function ParseUSB(){
 
 private function veto_files($path){
 	$md5=md5(trim($path));
+	$f=array();
 	$sql="SELECT `files` FROM samba_veto_files WHERE md5path='$md5'";
 	$q=new mysql();
 	$results = $q->QUERY_SQL($sql,"artica_backup");
@@ -592,13 +625,13 @@ function CreateAdministrator($admin_name,$password){
 
 
 function createRootID($requested_password=null){
+	if(isset($_REQUEST["AddTreeFolders"])){return;}
+	if(isset($_REQUEST["prop"])){return;}
 	$users=new usersMenus();
 	$group=new groups();
 	$ldap=new clladp();
 	$sock=new sockets();
-	if($requested_password==null){
-		if(!$GLOBALS["AS_ROOT"]){echo "No password set for root";}return false;
-	}
+	if($requested_password==null){return false;}
 	$dn="ou=users,dc=samba,dc=organizations,{$ldap->suffix}";
 	if(!$ldap->ExistsDN($dn)){
 		$this->verifyBranch();
@@ -726,8 +759,9 @@ private function SAMBA_VERSION_UNIX(){
 }
 
 private function WINBINDD_PARAMS(){
-	
+	if($this->posix_getuid==0){$unix=new unix();}
 	$sock=new sockets();
+	$users=new usersMenus();
 	if(!$this->WINBINDD_INSTALLED){
 		if($this->posix_getuid==0){echo "Starting......: WINBINDD NOT INSTALLED\n";}
 		return "\n#WINBINDD NOT INSTALLED\n";
@@ -832,17 +866,40 @@ private function WINBINDD_PARAMS(){
 		}
 		
 		if($upTo36==1){
+			if($this->posix_getuid==0){
+				$hostname=$unix->hostname_simple();
+			}else{
+				$hostname=$users->hostname;
+			}
+			if(strpos($hostname, ".")>0){$THOST=explode(".", $hostname);$hostname=$THOST[0];}
+			$hostname=strtoupper($hostname);
+			
+			$SambaClientUseSPNEGO=$sock->GET_INFO("SambaClientUseSPNEGO");
+			if(!is_numeric($SambaClientUseSPNEGO)){$SambaClientUseSPNEGO=1;}
+			if($SambaClientUseSPNEGO==1){$SambaClientUseSPNEGO="Yes";}else{$SambaClientUseSPNEGO="No";}
+			
+			$SambaClientUseSPNEGOPR=$sock->GET_INFO("SambaClientUseSPNEGOPR");
+			if(!is_numeric($SambaClientUseSPNEGOPR)){$SambaClientUseSPNEGOPR=1;}
+			if($SambaClientUseSPNEGOPR==1){$SambaClientUseSPNEGOPR="Yes";}else{$SambaClientUseSPNEGOPR="No";}	
+
+			$SambaSendSPNEGOPR=$sock->GET_INFO("SambaSendSPNEGOPR");
+			if(!is_numeric($SambaSendSPNEGOPR)){$SambaSendSPNEGOPR=1;}
+			if($SambaSendSPNEGOPR==1){$SambaSendSPNEGOPR="Yes";}else{$SambaSendSPNEGOPR="No";}			
+			
 			$conf[]="\tidmap config BUILTIN:backend		= tdb";
 			$conf[]="\tidmap config BUILTIN:base_rid	= 800";
 			$conf[]="\tidmap config BUILTIN:range		= 800-5000";			
 			$conf[]="\tidmap config * : backend	 = tdb";
 			$conf[]="\tidmap config * : range	 =  70000 - 99999";
 			$conf[]="\tidmap config * : base_rid = 0";
+			$conf[]="\tidmap config $hostname : backend = tdb";
+			$conf[]="\tidmap config $hostname : range = 5001 - 20000";
 			$conf[]="\tidmap config $WORKGROUP : range = 20000 - 20000000";
 			$conf[]="\tidmap config $WORKGROUP : default = yes";
 			$conf[]="\tidmap config $WORKGROUP : backend = tbd";  				
-			$conf[]="\tclient use spnego	= No";
-        	$conf[]="\tclient use spnego principal	= No";
+			$conf[]="\tclient use spnego	= $SambaClientUseSPNEGO";
+        	$conf[]="\tclient use spnego principal	= $SambaClientUseSPNEGOPR";
+        	$conf[]="\tsend spnego principal = $SambaSendSPNEGOPR";
         	$conf[]="\tmap untrusted to domain = Yes";
 			if($this->client_ntlmv2_auth==1){$conf[]="\tclient ntlmv2 auth = Yes";$conf[]="\tclient lanman auth = No";}
 			if($this->client_ntlmv2_auth==0){$conf[]="\tclient ntlmv2 auth = No";$conf[]="\tclient lanman auth = Yes";}        	
@@ -1261,16 +1318,22 @@ private function SECOND_PART(){
 						if($this->posix_getuid==0){echo "[$netbiosname]: Starting......: Samba shared folder \"$FOLDER\"\n";} 					
 						$conf[]="\n[$FOLDER]";
 						if($GLOBALS["VERBOSE"]){writelogs("Folder............: $FOLDER",__CLASS__,__FUNCTION__,__FILE__);}
-						$vfs_modules=explode(" ",$ligne["vfs object"]);
+						$vfs_modules=array();
+						$vfs=array();
+						if(isset($ligne["vfs object"])){
+							$vfs_modules=explode(" ",$ligne["vfs object"]);
+						}
 						while (list ($none, $vfs_modules_line) = each ($vfs_modules) ){$vfs_modules_line=trim($vfs_modules_line);if($vfs_modules_line==null){continue;}$vfs[$vfs_modules_line]=true;}
 						unset($vfs["greyhole"]);
 						unset($vfs["recycle:repository"]);
 						unset($vfs["recycle:keeptree"]);
 						unset($ligne["dfree command"]);
-						if(is_numeric($GREYHOLE[$FOLDER])){
-							if($this->posix_getuid==0){echo "Starting......: [$netbiosname]: Samba greyhole on folder $FOLDER\n";} 
-							$vfs["greyhole"]=true;
-							$ligne["dfree command"]="/usr/bin/greyhole-dfree";
+						if(isset($GREYHOLE[$FOLDER])){
+							if(is_numeric($GREYHOLE[$FOLDER])){
+								if($this->posix_getuid==0){echo "Starting......: [$netbiosname]: Samba greyhole on folder $FOLDER\n";} 
+								$vfs["greyhole"]=true;
+								$ligne["dfree command"]="/usr/bin/greyhole-dfree";
+							}
 						}
 						
 						unset($ligne["recycle:keeptree"]);	
@@ -1279,22 +1342,22 @@ private function SECOND_PART(){
 						unset($ligne["recycle:exclude"]);		
 						unset($ligne["recycle:exclude_dir"]);		
 						unset($ligne["recycle:maxsize"]);	
-						unset($ligne["recycle:noversions"]);						
-						if($RECYCLES[$FOLDER]){
-							if($this->posix_getuid==0){echo "Starting......: [$netbiosname]: Samba recycle bin enabled on folder $FOLDER\n";} 
-							$ligne["recycle:repository"]=".RecycleBin$/%U";
-							$ligne["recycle:keeptree"]="yes";	
-							$ligne["recycle:versions"]="yes";
-							$ligne["recycle:touch"]="no";
-							$ligne["recycle:exclude"]="*.tmp|*.temp|*.obj|~\$*";	
-							$ligne["recycle:exclude_dir"]="/tmp|/temp|/cache";		
-							$ligne["recycle:maxsize"]="1073741824";
-							$ligne["recycle:noversions"]="*.mdb";	
-							$vfs["recycle:repository"]=true;	
-							$vfs["recycle:keeptree"]=true;					
-							
+						unset($ligne["recycle:noversions"]);
+						if(isset($RECYCLES[$FOLDER])){						
+							if($RECYCLES[$FOLDER]){
+								if($this->posix_getuid==0){echo "Starting......: [$netbiosname]: Samba recycle bin enabled on folder $FOLDER\n";} 
+								$ligne["recycle:repository"]=".RecycleBin$/%U";
+								$ligne["recycle:keeptree"]="yes";	
+								$ligne["recycle:versions"]="yes";
+								$ligne["recycle:touch"]="no";
+								$ligne["recycle:exclude"]="*.tmp|*.temp|*.obj|~\$*";	
+								$ligne["recycle:exclude_dir"]="/tmp|/temp|/cache";		
+								$ligne["recycle:maxsize"]="1073741824";
+								$ligne["recycle:noversions"]="*.mdb";	
+								$vfs["recycle:repository"]=true;	
+								$vfs["recycle:keeptree"]=true;					
+							}
 						}
-						
 						if(is_array($vfs)){
 							while (list ($a, $b) = each ($vfs) ){$newvfs[]=$a;}
 							$ligne["vfs object"]=@implode(" ",$newvfs);
@@ -1344,7 +1407,9 @@ private function SECOND_PART(){
 			
 
 				
-				
+			if(!isset($this->main_array["global"])){
+				$this->LoadSettings();
+			}
 			
 			$domain_logon=$this->main_array["global"]["domain logons"];
 			if($SambaRoamingEnabled==1){

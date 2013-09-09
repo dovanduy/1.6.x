@@ -75,7 +75,7 @@ class YoutubeStats{
 		if($ligne["youtubeid"]<>null){
 			if(trim($ligne["category"])==null){
 				if($category<>null){
-					$category=mysql_escape_string($category);
+					$category=mysql_escape_string2($category);
 					$q->QUERY_SQL("UPDATE youtube_objects SET category='$category' WHERE youtubeid='{$ligne["youtubeid"]}'");
 					if(!$q->ok){$this->youtube_events("$q->mysql_error",__LINE__);}
 				}
@@ -107,13 +107,13 @@ class YoutubeStats{
 	
 		$date=strtotime($uploaded);
 		$zDate=date("Y-m-d H:i:s");
-		$infox_enc=mysql_escape_string(base64_encode($infox));
-		$title=mysql_escape_string($title);
-		$category=mysql_escape_string($category);
+		$infox_enc=mysql_escape_string2(base64_encode($infox));
+		$title=mysql_escape_string2($title);
+		$category=mysql_escape_string2($category);
 		$duration=$infos->data->duration;
 	
 	
-		$thumbnail=mysql_escape_string(@file_get_contents("/tmp/thumbnail"));
+		$thumbnail=mysql_escape_string2(@file_get_contents("/tmp/thumbnail"));
 		$sql="INSERT INTO youtube_objects (youtubeid,category,title,content,uploaded,duration,thumbnail)
 		VALUES('$VIDEOID','$category','$title','$infox_enc','$zDate','$duration','$thumbnail')";
 		$q->QUERY_SQL($sql);

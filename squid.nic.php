@@ -42,6 +42,7 @@ function js(){
 
 function save(){
 	$sock=new sockets();
+	if($_POST["SquidBinIpaddr"]==null){$_POST["SquidBinIpaddr"]="0.0.0.0";}
 	$sock->SET_INFO("SquidBinIpaddr", $_POST["SquidBinIpaddr"]);
 	$squid=new squidbee();
 	$squid->global_conf_array["tcp_outgoing_address"]=$_POST["tcp_outgoing_address"];
@@ -57,12 +58,12 @@ function popup(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$SquidBinIpaddr=$sock->GET_INFO("SquidBinIpaddr");
-	if($SquidBinIpaddr=="0.0.0.0"){$SquidBinIpaddr=null;}
+	
 	$squid=new squidbee();
 	$tcp_outgoing_address=$squid->global_conf_array["tcp_outgoing_address"];
 	$ip=new networking();
 	$ips=$ip->ALL_IPS_GET_ARRAY();
-	$ips[null]="{all}";
+	$ips["0.0.0.0"]="{all}";
 	$t=time();
 	$pfws=$ip->ALL_IPS_GET_ARRAY();
 	$pfws[null]="{none}";

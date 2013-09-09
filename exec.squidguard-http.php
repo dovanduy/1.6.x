@@ -77,7 +77,7 @@ function start($aspid=false){
 		return;
 	}
 	$EnableSquidGuardHTTPService=$sock->GET_INFO("EnableSquidGuardHTTPService");
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 	if(!is_numeric($EnableSquidGuardHTTPService)){$EnableSquidGuardHTTPService=1;}
@@ -105,12 +105,12 @@ function start($aspid=false){
 
 	
 	
-	$TMPFILE=$unix->FILE_TEMP();
+	$TMPFILE="/var/log/lighttpd/squidguard-lighttpd.start";
 	
 	$CMDS[]="$nohup";
 	$CMDS[]=$unix->find_program("lighttpd");
 	$CMDS[]="-f /etc/artica-postfix/squidguard-lighttpd.conf";
-	$CMDS[]=">$TMPFILE 2>&1 &";
+	$CMDS[]="> $TMPFILE 2>&1 &";
 	$cmd=@implode(" ", $CMDS);
 	shell_exec($cmd);
 
@@ -126,7 +126,6 @@ function start($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Running as $username\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
 		$f=explode("\n",@file_get_contents($TMPFILE));
 		while (list ($index, $line) = each ($f) ){if($GLOBALS["OUTPUT"]){echo "Starting......: [DEBUG]:1] $line\n";}}
@@ -224,7 +223,17 @@ function build(){
 	$php=$unix->LOCATE_PHP5_BIN();
 	$PHP_STANDARD_MODE=true;	
 	$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");
+	$SquidGuardApacheSSLPort=$sock->GET_INFO("SquidGuardApacheSSLPort");
 	if(!is_numeric($SquidGuardApachePort)){$SquidGuardApachePort="9020";}
+	if(!is_numeric($SquidGuardApacheSSLPort)){$SquidGuardApacheSSLPort=9025;}
+	
+	if($username==null){
+		$username="www-data";
+		$unix->CreateUnixUser($username,$username,"lighttpd username");
+	}
+	
+	if(preg_match("#^(.+?):(.+)#", $username,$re)){$username=$re[1];$username=$re[1];}
+	
 	$SquidGuardStorageDir=$sock->GET_INFO("SquidGuardStorageDir");
 	
 	@unlink("/var/log/lighttpd/squidguard-lighttpd-error.log");
@@ -270,8 +279,8 @@ function build(){
 	$PHP_STANDARD_MODE=true;
 	$phpcgi_path=$unix->LIGHTTPD_PHP5_CGI_BIN_PATH();
 
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Run as: $username\n";}
 	
-	if(preg_match("#^(.+?):(.+)#", $LIGHTTPD_GET_USER,$re)){$LIGHTTPD_USER=$re[1];$LIGHTTPD_GROUP=$re[1];}
 	
 	$PHP_FCGI_CHILDREN=1;
 	$max_procs=2;
@@ -372,6 +381,19 @@ $f[]="server.network-backend      = \"write\"";
 $f[]="server.follow-symlink = \"enable\"";
 $f[]="";
 $f[]='';
+$f[]="\$SERVER[\"socket\"]== \":$SquidGuardApacheSSLPort\" {";
+$f[]="\tssl.engine                 = \"enable\"";
+$f[]="\tssl.pemfile                = \"/opt/artica/ssl/certs/lighttpd.pem\"";
+$f[]="}";	
+if(!is_file("/opt/artica/ssl/certs/lighttpd.pem")){
+	shell_exec("/usr/share/artica-postfix/bin/artica-install -lighttpd-cert");
+	
+}
+// 
+
+if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Listen on: $SquidGuardApachePort\n";}
+if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Listen on: $SquidGuardApacheSSLPort SSL\n";}
+
 $phpfpm=$unix->find_program('php5-fpm')  ;
 if(!is_file($phpfpm)){$phpfpm=$unix->find_program('php-fpm');}
 

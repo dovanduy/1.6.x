@@ -454,10 +454,12 @@ var
    distri:tdistriDetect;
    MinorVersion:Integer;
    MAJOR:integer;
+   MINOR:Integer;
 begin
 f:='';
 distri:=tdistriDetect.Create();
 MAJOR:=distri.DISTRI_MAJOR;
+MINOR:=distri.DISTRI_MINOR;
 l:=TstringList.Create;
 
 
@@ -504,8 +506,6 @@ l.add('nfs-utils-lib');
 l.add('nfswatch');
 l.add('gfs2-utils');
 
-//wifi
-if IsRPMForgeSelected then l.add('hostapd');
 
 //DRDB
 //l.Add('drbd83');
@@ -653,12 +653,11 @@ if not FileExists('/etc/artica-postfix/NO_DATABASES_ENGINES') then l.add('openld
 l.add('byacc');
 l.add('flex');
 l.add('gcc-c++');
-if not without_clamav then l.add('clamav-devel');//for c-icap
 l.add('gdbm-devel');
 l.add('cyrus-sasl-devel');
 l.add('db4-devel');
 l.add('krb5-devel');
-l.add('ettercap');
+
 
 l.add('imake');  //makedepend
 l.add('unixODBC-devel');
@@ -684,7 +683,21 @@ l.add('keyutils-libs-devel');
 l.add('krb5-devel');
 l.add('libgcc');
 l.add('libidn-devel');
-l.add('libjpeg-devel');
+
+if MAJOR<6 then l.add('libjpeg-devel');
+if MAJOR>5 then begin
+      if MINOR<4 then begin
+           l.add('libjpeg-devel');
+      end;
+
+      if MINOR>3 then begin
+           l.add('libjpeg-turbo-devel');
+           l.add('php-fpm');
+      end;
+end;
+
+
+
 l.add('libpng-devel');
 l.add('libselinux-devel');
 l.add('libsepol-devel');
@@ -1078,10 +1091,12 @@ var
    f:string;
    i:integer;
    MAJOR:integer;
+   MINOR:integer;
 begin
 f:='';
 distri:=tdistriDetect.Create();
 MAJOR:=distri.DISTRI_MAJOR;
+MINOR:=distri.DISTRI_MINOR;
 fpsystem('touch /etc/artica-postfix/samba.check.time');
 l:=TstringList.Create;
 
@@ -1106,7 +1121,19 @@ l.add('cups-devel');
 
 l.add('gtk2-devel');
 l.add('libtiff-devel');
-l.add('libjpeg-devel');
+if MAJOR<6 then l.add('libjpeg-devel');
+if MAJOR>5 then begin
+      if MINOR<4 then begin
+           l.add('libjpeg-devel');
+      end;
+
+      if MINOR>3 then begin
+           l.add('libjpeg-turbo-devel');
+      end;
+end;
+
+
+
 l.add('e2fsprogs-devel');
 l.add('pam-devel');
 L.add('acl');
@@ -1181,6 +1208,7 @@ f:='';
 l:=TstringList.Create;
 l.Add('libcap-devel');
 L.add('libxml2-devel');
+L.add('squid');
 l.Add('awstats');
 
 

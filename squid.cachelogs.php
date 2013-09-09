@@ -34,7 +34,7 @@ function page(){
 	</div>
 	
 <script>
-$(document).ready(function(){
+function flexRTStart$t(){
 $('#flexRT$t').flexigrid({
 	url: '$page?cachelogs-events-list=yes',
 	dataType: 'json',
@@ -58,8 +58,10 @@ $('#flexRT$t').flexigrid({
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
-	});   
-});
+	});  
+	$('table-1-selected').remove();
+	$('flex1').remove();	 
+}
 
 function SelectGrid2(com, grid) {
 	var items = $('.trSelected',grid);
@@ -70,8 +72,7 @@ function SelectGrid2(com, grid) {
 		}
 	}
 	 
-	$('table-1-selected').remove();
-	$('flex1').remove();		 
+setTimeout('flexRTStart$t()',800);		 
 
 </script>
 	

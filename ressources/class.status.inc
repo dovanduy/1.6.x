@@ -1057,18 +1057,25 @@ function xr_status(){
 	
 }
 	
-function Squid_status(){
+function Squid_status($NOCACHE=false){
 	if($GLOBALS["VERBOSE"]){echo "<strong>function:".__FUNCTION__." Line:".__LINE__."</strong><br>\n";}
 	if(!function_exists("mysql_connect")){
 		return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";
 	}
+	if($NOCACHE){$NOCACHE_FRAME="&nocache=yes";}
 	$q=new mysql();
 	$ini=new Bs_IniHandler();
 	$sock=new sockets();
 	$users=new usersMenus();
-	$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?squid-ini-status=yes")));
-	$master_version=$ini->_params["SQUID"]["master_version"];
+	
+	
+	$content=base64_decode($sock->getFrameWork("cmd.php?squid-ini-status=yes"));
+	
+	if($GLOBALS["VERBOSE"]){echo "<p style='color:red'>".__FUNCTION__.":: cmd.php?squid-ini-status=yes [".strlen($content)."bytes]</p>\n";}
+	
+	$ini->loadString($content);
 	$master_pid=$ini->_params["SQUID"]["master_pid"];
+	$master_version=$ini->_params["SQUID"]["master_version"];
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	
@@ -1081,7 +1088,7 @@ if($ini->_params["SQUID"]["running"]==0){
 		$img="status_postfix_bg_failed.png";
 		$status="{stopped}";
 		if($SQUIDEnable==1){
-			$start="<hr><div style='text-align:right'>".button("{start}","Loadjs('StartStopServices.php?APP=APP_SQUID&cmd=".urlencode("/etc/init.d/squid")."&action=start&CacheOff=yes')")."</div>";
+			$start="<hr><div style='text-align:right'>".button("{restart}","Loadjs('squid.restart.php?ApplyConfToo=yes')")."</div>";
 		}
 	}else{
 			if(preg_match("#2\.3.*#",$master_version)){$img='status_postfix_bg_ok23.png';}
@@ -1152,13 +1159,17 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 
 	//function DAEMON_STATUS_LINE($key,$bsini,$textoadd=null,$noenable=0,$width=null,$nostartandstop=false,$newInterface=0,$js=null){
 	$status_dansguardian=DAEMON_STATUS_LINE("DANSGUARDIAN",$ini,null,1,"220px");
-	$status_kav4proxy=DAEMON_STATUS_LINE("KAV4PROXY",$ini,null,1,"220px",true,1,"QuickLinkSystems('section_kav4proxy')");
+	
 	$cicap=DAEMON_STATUS_LINE("C-ICAP",$ini,null,1,"220px");
 	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_LINE("APP_SQUIDGUARD_HTTP",$ini,null,1,"220px",true,1,"Loadjs('squidguardweb.php')");
 	$APP_UFDBGUARD=DAEMON_STATUS_LINE("APP_UFDBGUARD",$ini,null,1,"220px",true,1,"Loadjs('dansguardian2.php?js-ufdbguard=yes')");
 	$APP_NGINX=DAEMON_STATUS_LINE("APP_NGINX",$ini,null,1,"220px",true,1,"blur()");
 	
-	
+	if($users->KASPERSKY_WEB_APPLIANCE){
+		$status_kav4proxy=DAEMON_STATUS_LINE("KAV4PROXY",$ini,null,0,"220px",true,1,"QuickLinkSystems('section_kav4proxy')");
+	}else{
+		$status_kav4proxy=DAEMON_STATUS_LINE("KAV4PROXY",$ini,null,1,"220px",true,1,"QuickLinkSystems('section_kav4proxy')");
+	}
 	
 	if(!$users->PROXYTINY_APPLIANCE){
 		if($EnableRemoteStatisticsAppliance==0){
@@ -1186,11 +1197,29 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 		<i><strong style='text-decoration:underline'>{connected_to}:{$RemoteStatisticsApplianceSettings["SERVER"]}:{$RemoteStatisticsApplianceSettings["PORT"]}</strong></i></div> ";
 	}
 
+	$hoursize=0;
+	$quotahour_table="quotahours_".date('YmdH');
+	$quotaday_table="quotaday_".date("Ymd");
 	
 	
-	
-	
-	
+	$q=new mysql_squid_builder();
+	if($q->TABLE_EXISTS($quotahour_table)){
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(size) as size FROM $quotahour_table"));
+		$size=FormatBytes($ligne["size"]/1024);
+		$hoursize=$size;
+		$quota_hour_text="<div style='font-size:12px;text-align:right;width:220px'>
+				<i><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.users-size-hour.php');\" 
+				style='font-weight:bold;text-decoration:underline'><i>{downloaded} {this_hour}: $size</a></div>";
+	}
+	if($q->TABLE_EXISTS($quotaday_table)){
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(size) as size FROM $quotaday_table"));
+		
+		if($hoursize>0){$ligne["size"]=$ligne["size"]+$hoursize;}
+		$size=FormatBytes($ligne["size"]/1024);
+		$quota_day_text="<div style='font-size:12px;text-align:right;width:220px'>
+		<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.users-size-day.php');\" 
+				style='font-weight:bold;text-decoration:underline'><i>{downloaded} {this_day}: $size</a></i></div>";
+	}	
 	//$RemoteStatisticsApplianceSettings["SERVER"]
 	
 	
@@ -1263,7 +1292,7 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 						$itemcount=$ligne["tiems"];
 						if($itemcount>0){
 							$itemscaches="<div style='font-size:12px;text-align:right;width:220px' 
-							$pointers OnClick=\"javascript:Loadjs('squid.categories.php')\">
+							$pointers OnClick=\"javascript:Loadjs('squid.categories.php?statusfirst=yes')\">
 							<i><strong style='text-decoration:underline'>$itemcount {cached_items} ($size)</strong></i></div>";
 						}
 					}
@@ -1274,6 +1303,7 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 				$stats_paragraphe="
 				<!-- requests_text -->
 				$requests_text
+
 				$squid_get_current_users
 				<!-- cachePerfText -->
 				$cachePerfText
@@ -1323,6 +1353,8 @@ if($ini->_params["SQUID"]["icap_enabled"]<>'1'){
 			<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>$text</i>$start$icap
 			$status_dansguardian$status_kav4proxy$cicap$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD$APP_ARTICADB$APP_SQUID_DB$APP_NGINX</span>
 			$stats_paragraphe
+			$quota_hour_text
+			$quota_day_text
 			$connectedApps
 			<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:s_PopUp('squid.accesslogs.php?external=yes',1024,768);\"><i><strong style='text-decoration:underline'>{access_events}</strong></i></div> 
 		</div>

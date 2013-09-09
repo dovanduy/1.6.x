@@ -97,6 +97,7 @@ function EnableArpDaemonSave(){
 }
 
 function scan_net_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	echo "var x_ScanNetwork = function (obj) {var tempvalue=obj.responseText;if(tempvalue.length>3){alert(tempvalue);}}
 
@@ -112,12 +113,13 @@ function scan_net_js(){
 }
 
 function computer_delete_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
 	$delete_this_computer=$tpl->javascript_parse_text("{delete_this_computer}");
 	$html="
-		var x_Delete$$t = function (obj) {
+		var x_Delete$t = function (obj) {
 			var tempvalue=obj.responseText;
 			if(tempvalue.length>3){alert(tempvalue);return;}
 			$('#row{$_GET["id"]}').remove();
@@ -125,17 +127,14 @@ function computer_delete_js(){
 		}
 	
 	
-		function Delete$$t(){
-			if(confirm('$delete_this_computer:{$_GET["uid"]} ?)){
-				var XHR = new XHRConnection();
-				XHR.appendData('DeleteComputer','{$_GET["uid"]}');
-        		XHR.sendAndLoad('domains.edit.user.php', 'GET',x_Delete$$t);   			
-			
-			}
-		
+		function Delete$t(){
+			if(!confirm('$delete_this_computer:{$_GET["uid"]} ?')){return;}
+			var XHR = new XHRConnection();
+			XHR.appendData('DeleteComputer','{$_GET["uid"]}');
+        	XHR.sendAndLoad('domains.edit.user.php', 'GET',x_Delete$t);   			
 		}
 	
-		
+		Delete$t();
 	
 	";
 	echo $html;
@@ -378,7 +377,7 @@ for($i=0;$i<$hash["count"];$i++){
 
 
 function js($nostartReturn=false){
-	
+	if(!$nostartReturn){header("content-type: application/x-javascript");}
 	$users=new usersMenus();
 	if(!GetRights()){die("alert('no privileges')");}
 	$page=CurrentPageName();
@@ -402,6 +401,7 @@ function js($nostartReturn=false){
 	var {$prefix}reste=0;	
 	
 	function browse_computers_start(){
+		YahooLogWatcherHide();
 		YahooLogWatcher(750,'$page?tabs=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&OnlyOCS={$_GET["OnlyOCS"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}','$title');
 		{$prefix}demarre();
 	
@@ -442,12 +442,14 @@ var x_{$prefix}ChargeLogs  = function (obj) {
 
 	
 	function ViewNetwork(){
+		YahooWin2Hide();
 		YahooWin2(550,'$page?browse-networks=yes','$networks');
 	}
 	
 
 	
 	function ViewComputerScanLogs(){
+		YahooWin3Hide();
 		YahooWin3(550,'$page?view-scan-logs=yes','$networks');
 	}
 	
@@ -526,20 +528,13 @@ var x_NetWorksDisable= function (obj) {
 		 	document.getElementById('networks').innerHTML='<div style=\"width:100%\"><center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center></div>';
 			XHR.sendAndLoad('$page', 'GET',x_NetWorksDisable); 
 	} 	
-	
-
-	
-	
-  	
-		
-	
-	
 	function DeleteImportComputers(ip){
 				var XHR = new XHRConnection();
 				XHR.appendData('artica-import-delete',ip);
 				XHR.sendAndLoad('$page', 'GET',x_SaveImportComputers); 
 	}
-$start
+
+	$start
 	";
 	
 	if($nostartReturn){return $html;}
@@ -810,7 +805,7 @@ for($i=0;$i<$hash["count"];$i++){
 	
 	
 	$c++;
-			$delete=imgsimple("delete-24.png","Loadjs('$MyPage?computer-delete-js=yes&uid=$realuid&id=$md5S");
+			$delete=imgsimple("delete-24.png",null,"Loadjs('$MyPage?computer-delete-js=yes&uid=$realuid&id=$md5S')");
 			$data['rows'][] = array(
 				'id' => $md5S,
 				'cell' => array(
@@ -843,7 +838,7 @@ for($i=0;$i<$hash["count"];$i++){
 			if(strlen($ip)>20){$ip=texttooltip(substr($ip,0,17).'...',$ip,null,null,1);}
 			$js=str_replace("javascript:",'',$js);
 			$md5S=md5(serialize($hash2[$i]));
-			$delete=imgsimple("delete-24.png","Loadjs('$MyPage?computer-delete-js=yes&uid=$realuid&id=$md5S");
+			$delete=imgsimple("delete-24.png",null,"Loadjs('$MyPage?computer-delete-js=yes&uid=$realuid&id=$md5S');");
 			$c++;
 	
 			$data['rows'][] = array(

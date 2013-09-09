@@ -78,7 +78,6 @@ $html="
 <tbody class='tbody'>";	
 	
 while (list ($num, $ligne) = each ($datas) ){
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 	 	if($ligne==null){continue;}
 	 	$proto=null;
 	 	$date=null;
@@ -107,7 +106,7 @@ while (list ($num, $ligne) = each ($datas) ){
 				if($len>70){$uri=substr($uri, 0,67)."...";}
 		
 		$html=$html."
-		<tr class=$classtr>
+		<tr>
 		<td style='font-size:13px'>$date</td>
 		<td style='font-size:13px'>$from</td>
 		<td style='font-size:13px'>$proto</td>

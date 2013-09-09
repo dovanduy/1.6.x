@@ -66,20 +66,19 @@ if(strpos($buffer,"init domainlist")>0){return ;}
 if(preg_match("#\]\s+(.+?):\s+Cannot allocate memory#",$buffer,$re)){
 	  	events("ERROR ON {$re[1]} : Cannot allocate memory -> create it");
 	  	@file_put_contents($re[1],"www.". md5(time()).".bv");
-		shell_exec("squid -k reconfigure");
+	  	squid_admin_mysql(1, "Web filtering: Cannot allocate memory","$buffer");
 		return null;
 		}			
 		
 if(preg_match("#\]\s+(.+?):\s+No such file or directory#",$buffer,$re)){
 	  	events("ERROR ON {$re[1]} : No such file or directory -> create it");
 	  	@file_put_contents($re[1],"www.nodomain.bv");
-	  	squid_watchdog_events("Reconfiguring Proxy parameters...");
-		shell_exec("squid -k reconfigure");
 		return null;
 		}		
 
 	if(strpos($buffer,"ERROR: Going into emergency mode")>0){
 		events("ERROR: Going into emergency mode");
+		squid_admin_mysql(1, "Web filtering: turn to emergency mode","$buffer\nPlease contact your support to fix this problem\ncurrently, no filtering urls will be enabled");
 		send_email_events("squidguard: squidguard turn to emergency mode","SquidGuard claim\n$buffer\nPlease contact your support to fix this problem\ncurrently, no filtering urls will be enabled","proxy");
 		return ;
 	}

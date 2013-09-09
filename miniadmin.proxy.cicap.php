@@ -352,7 +352,7 @@ function exclude_mime_search(){
 			$PatternAffiche=$ligne2["GroupName"];
 		}
 		
-		if($ligne["zmd5"]==null){$q->QUERY_SQL("UPDATE webfilters_blkwhlts SET zmd5='$id' WHERE pattern='". mysql_escape_string($ligne["pattern"])."'");$ligne["zmd5"]=$id;}
+		if($ligne["zmd5"]==null){$q->QUERY_SQL("UPDATE webfilters_blkwhlts SET zmd5='$id' WHERE pattern='". mysql_escape_string2($ligne["pattern"])."'");$ligne["zmd5"]=$id;}
 		$md5=$ligne["zmd5"];
 		
 		$delete=imgtootltip("delete-32.png","{delete} {$ligne["pattern"]}","BlksProxyDelete('$md5')");

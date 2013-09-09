@@ -35,8 +35,8 @@ class samba_kerb{
 		$domainUp=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
 		$domain_lower=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 		$adminpassword=$array["WINDOWS_SERVER_PASS"];
-		$adminpassword=escapeshellarg($adminpassword);
-		$adminpassword=str_replace("'", "", $adminpassword);
+		$adminpassword=$unix->shellEscapeChars($adminpassword);
+		
 		$adminname=$array["WINDOWS_SERVER_ADMIN"];
 		$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];
 		$KerbAuthDisableGroupListing=$sock->GET_INFO("KerbAuthDisableGroupListing");
@@ -59,7 +59,12 @@ class samba_kerb{
 		if(strpos($password_server, ".")>0){$aa=explode(".", $password_server);$password_server=$aa[0];}
 		$SAMBA_VERSION=$this->SAMBA_VERSION();
 		$ipaddr=trim($array["ADNETIPADDR"]);
-		if($ipaddr<>null){$password_server=$ipaddr;}
+		if($ipaddr<>null){
+			$ipaddrZ=explode(".",$ipaddr);
+			while (list ($num, $a) = each ($ipaddrZ) ){$ipaddrZ[$num]=intval($a);}
+			$ipaddr=@implode(".", $ipaddrZ);
+			$password_server=$ipaddr;
+		}
 		
 		$AS36=false;
 		if(preg_match("#^3\.6\.#", $SAMBA_VERSION)){$AS36=true;}
@@ -72,8 +77,15 @@ class samba_kerb{
 		
 		}
 		
+		$unix=new unix();
+		$myhostname=$unix->hostname_g();
+		if(strpos($myhostname, ".")>0){
+			$tt=explode(".",$myhostname);
+			$myhostname=$tt[0];
+		}
+		$myhostname=strtoupper($myhostname);
 		
-	
+		$f[]="\tnetbios name = $myhostname";
 		$f[]="\tworkgroup = $workgroup";
 		$f[]="\tkerberos method = dedicated keytab";
 		$f[]="\tdedicated keytab file = /etc/krb5.keytab";

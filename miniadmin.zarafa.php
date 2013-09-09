@@ -75,6 +75,7 @@ function tabs(){
 	$array["{statistics}"]="$page?statistics=yes";
 	$array["{events}"]="$page?events=yes";
 	$array["{mailboxes}"]="$page?mailboxes=yes";
+	$array["{smartphones}"]="miniadmin.zpush.php";
 	
 	
 	echo $boot->build_tab($array);	
@@ -101,7 +102,9 @@ function events(){
 
 function mailboxes(){
 	$boot=new boostrap_form();
-	$SearchQuery=$boot->SearchFormGen("uid,mail,ou,NONACTIVETYPE","search-mailboxes");
+	$button=button("{new_member}","Loadjs('create-user.php?ByZarafa=yes');",16);
+	$EXPLAIN["BUTTONS"][]=$button;
+	$SearchQuery=$boot->SearchFormGen("uid,mail,ou,NONACTIVETYPE","search-mailboxes",null,$EXPLAIN);
 	echo $SearchQuery;
 }
 
@@ -151,6 +154,7 @@ function mailboxes_search(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		
 		$uid=$ligne["uid"];
+		if(strtolower($uid)=="no"){continue;}
 		$md5=$ligne["zmd5"];
 		$color="black";
 		$imglicense="22-key.png";
@@ -179,7 +183,7 @@ function mailboxes_search(){
 					<th>$member</th>
 					<th>$email</th>
 					<th>$ou</th>
-					<th>{license}</th>
+					<th>{license2}</th>
 					<th>&nbsp;</th>
 					<th>$mailbox_size</th>
 				</tr>

@@ -169,13 +169,7 @@ $sock=new sockets();
 	
 	$squid=new squidbee();
 	$LDAP_AUTH=$squid->LDAP_AUTH;
-	
-	if($hasProxyTransparent==1){
-		$IP_SET=true;
-	}else{
-		if($LDAP_AUTH==0){$IP_SET=true;}
-		if($LDAP_AUTH==1){$IP_SET=FALSE;}
-	}
+
 	
 	if($IP_SET){
 		WriteConfigFile("/etc/dansguardian/dansguardian.conf","authplugin","/etc/dansguardian/authplugins/ip.conf");

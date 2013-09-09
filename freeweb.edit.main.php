@@ -61,6 +61,8 @@ function tabs(){
 		$array["ZARAFA"]='{APP_ZARAFA}';
 	}	
 	
+	$array["php_values"]='{php_values}';
+	
 	
 	if(count($array)<10){$fontsize="style='font-size:14px'";}
 	
@@ -71,6 +73,11 @@ function tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.zarafa.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="php_values"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.php-values.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+		}		
 				
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&force-groupware={$_GET["force-groupware"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 		
@@ -78,14 +85,8 @@ function tabs(){
 	}
 	
 	
-	echo "
-	<div id=main_config_freewebMains style='width:99%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_freewebMains\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html,"main_config_freewebMains");
+
 		
 	
 	

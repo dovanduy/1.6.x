@@ -1,4 +1,4 @@
-<accelerate3d>hardware 3D acceleration</accelerate3d>
+<accelerate3d>Acelera&ccedil;&atilde;o de hardware 3D</accelerate3d>
 <acpi>Advanced Programmable Interrupt Controllers</acpi>
 <ACTIVATE_ARTICA_ASPXE>Enable Artica has PXE</ACTIVATE_ARTICA_ASPXE>
 <ACTIVATE_ARTICA_ASPXE_TEXT>Set this server has a DHCP server and server that serves ThinClient Operating system trough PXE protocol</ACTIVATE_ARTICA_ASPXE_TEXT>

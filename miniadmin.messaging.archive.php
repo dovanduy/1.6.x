@@ -191,8 +191,8 @@ function save(){
 		$ou=$_POST["ou"];
 		$ouUpd=",ou='$ou'";
 	}
-	$params=mysql_escape_string(base64_encode(serialize($_POST)));
-	$ou=mysql_escape_string($ou);
+	$params=mysql_escape_string2(base64_encode(serialize($_POST)));
+	$ou=mysql_escape_string2($ou);
 	
 	if($md5==null){
 		$md5=md5("$email$next$direction");

@@ -103,6 +103,7 @@ function start($nopid=false){
 	}	
 	$mysqld=$unix->find_program("mysqld");
 	if(!is_file($mysqld)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: mysqld no such binary\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME is not installed...\n";}
 		return;
 	}	
@@ -376,7 +377,7 @@ function databasesize($force=false){
 	
 		@file_put_contents($pidfile, getmypid());
 		$time=$unix->file_time_min($arrayfile);
-		if($arrayfile<20){return;}
+		if($time<20){return;}
 	}
 	
 	

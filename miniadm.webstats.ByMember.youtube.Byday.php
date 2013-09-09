@@ -121,7 +121,7 @@ function graph2(){
 	$unknown=$tpl->_ENGINE_parse_body("{unknown}");
 	$q=new mysql_squid_builder();
 	$tpl=new templates();
-	$_GET["uid"]=mysql_escape_string($_GET["uid"]);
+	$_GET["uid"]=mysql_escape_string2($_GET["uid"]);
 	$sql="SELECT SUM(hits) as hits,category,zDate,uid FROM `youtube_all` GROUP BY
 	category,zDate,uid HAVING zDate='".date("Y-m-d",$_GET["xtime"])."' AND uid='{$_GET["uid"]}' ORDER BY hits DESC LIMIT 0,15";
 	$results=$q->QUERY_SQL($sql);
@@ -181,7 +181,7 @@ function www_requests_search(){
 	$search=string_to_flexquery("requests-search");
 	$q=new mysql_squid_builder();
 	$tpl=new templates();
-	$_GET["uid"]=mysql_escape_string($_GET["uid"]);
+	$_GET["uid"]=mysql_escape_string2($_GET["uid"]);
 	$sql="SELECT t.*,youtube_objects.uploaded,youtube_objects.duration,youtube_objects.title FROM (SELECT SUM(hits) as hits,youtubeid,zDate,uid,category FROM `youtube_all` GROUP BY
 	youtubeid,zDate,uid,category HAVING zDate='".date("Y-m-d",$_GET["xtime"])."' 
 	AND uid='{$_GET["uid"]}' ORDER BY hits) as t,youtube_objects 

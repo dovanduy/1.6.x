@@ -497,6 +497,7 @@ class settings_inc {
 	public $APP_PYAUTHENNTLM=false;
 	public $APP_SQUIDDB_INSTALLED=false;
 	public $APP_CHILLI_INSTALLED=false;
+	public $ISCSID_INSTALLED=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -697,6 +698,7 @@ class settings_inc {
 			if(isset($_GLOBAL["ZARAFA_INDEXER_INSTALLED"])){$this->ZARAFA_INDEXER_INSTALLED=$_GLOBAL["ZARAFA_INDEXER_INSTALLED"];;}
 			if(isset($_GLOBAL["FREERADIUS_INSTALLED"])){$this->FREERADIUS_INSTALLED=$_GLOBAL["FREERADIUS_INSTALLED"];;}
 			if(isset($_GLOBAL["SQUID_REVERSE_APPLIANCE"])){$this->SQUID_REVERSE_APPLIANCE=$_GLOBAL["SQUID_REVERSE_APPLIANCE"];;}
+			if(isset($_GLOBAL["ISCSID_INSTALLED"])){$this->ISCSID_INSTALLED=$_GLOBAL["ISCSID_INSTALLED"];;}
 			
 			
 			

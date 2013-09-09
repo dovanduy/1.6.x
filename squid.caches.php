@@ -115,14 +115,8 @@ function tabs(){
 		
 			
 		}
-	echo "
-	<div id=squid_main_caches_new style='width:99%'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#squid_main_caches_new\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html, "squid_main_caches_new");
+	
 	
 }
 
@@ -148,12 +142,29 @@ function parameters_main(){
 	unset($caches_types["rock"]);
 	$cache_type=Field_array_Hash($caches_types,'master_cache_type',$squid->CACHE_TYPE,"style:font-size:14px");
 	$squidCacheSize=FormatBytes($squid->CACHE_SIZE*1000);
+	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
+	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
+	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
+	
+	
+	$tr[]="<td width=1% nowrap>". button("{reconstruct_caches}","Loadjs('squid.rebuildcahes.php')",14)."</td>";
+	
+	if($squid->IS_32){
+		if($DisableSquidSNMPMode==0){
+			$tr[]="<td width=1% nowrap>". button("{disable_smp}","Loadjs('squid.caches.smp.php?disable-js=yes')",14)."</td>";
+		}
+		
+	}
+	
+	
 	
 	$changeCacheJS="Loadjs('squid.caches32.php?add-new-disk-js=yes&chdef=yes')";
 	
 $cache_settings="
-<div id='cachesettingsinfo'>
-<table style='width:99%' class=form>
+<div id='cachesettingsinfo' style='width:99%' class=form>
+<center style='margin:10px'><table style='width:10%'>". @implode("\n", $tr)."</table></center>
+<table style='width:100%'>
 		<tr>
 			<td align='right' class=legend nowrap nowrap style='font-size:14px'>{main_cache_size}:</strong></td>
 			<td style='font-size:14px'><a href=\"javascript:blur();\" OnClick=\"javascript:$changeCacheJS\" style='font-size:14px;text-decoration:underline'>{$squid->CACHE_SIZE}</a>" . Field_hidden('cache_size',$squid->CACHE_SIZE)."&nbsp;Mbytes&nbsp;<span style='font-size:12px'>$squidCacheSize</span></td>

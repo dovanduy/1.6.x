@@ -33,7 +33,6 @@ if($argv[1]=="--loadavg"){loadavg();die();}
 if($argv[1]=="--mem"){loadmem();die();}
 if($argv[1]=="--cpu"){loadcpu();die();}
 if($argv[1]=="--queues"){ParseLoadQeues();die();}
-if($argv[1]=="--zombies"){zombies();die();}
 if($argv[1]=="--loadavg-notif"){loadavg_notif();die();}
 
 
@@ -174,9 +173,9 @@ function ParseLoadQeues(){
 				$time=date("Y-m-d H:i:s",$re[1]);
 				$load="{$re[2]},{$re[3]}";
 				$q=new mysql();
-				$datas=mysql_escape_string($datas);
-				$lsofTEXT=mysql_escape_string($lsofTEXT);
-				$IoText=mysql_escape_string($IoText);
+				$datas=mysql_escape_string2($datas);
+				$lsofTEXT=mysql_escape_string2($lsofTEXT);
+				$IoText=mysql_escape_string2($IoText);
 				$sql="INSERT IGNORE INTO avgreports (`zDate`,`loadavg`,`psreport`,`lsofreport`,`iotopreport`) VALUES ('$time','$load','$datas','$lsofTEXT','$IoText')";
 				$q->QUERY_SQL($sql,"artica_events");
 				if($GLOBALS["VERBOSE"]){echo "$time: $load\n";}
@@ -247,7 +246,7 @@ function loadavg_notif(){
 		}
 		
 		if($mysql->mysql_password<>null){
-			$password=" --password=".escapeshellarg($mysql->mysql_password);
+			$password=" --password=".$unix->shellEscapeChars($mysql->mysql_password);
 		}
 		
 		exec("$mysqladmin$serv --user=$mysql->mysql_admin$password processlist 2>&1",$mysqladmin_results);
@@ -277,6 +276,8 @@ function loadavg_notif(){
 	
 	
 }
+
+
 
 
 function ParseLsof($filename){

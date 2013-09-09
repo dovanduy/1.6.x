@@ -760,7 +760,7 @@ function rules_link_delete(){
 }
 
 function rules_edit(){
-	$_POST["rule-edit"]=mysql_escape_string($_POST["rule-edit"]);
+	$_POST["rule-edit"]=mysql_escape_string2($_POST["rule-edit"]);
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("UPDATE webfilter_ufdbexpr SET rulename='{$_POST["rule-edit"]}' WHERE ID={$_POST["ID"]}");
 	if(!$q->ok){echo $q->mysql_error;return;}

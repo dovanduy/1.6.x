@@ -23,8 +23,13 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 include_once(dirname(__FILE__).'/ressources/class.squid.youtube.inc');
-$GLOBALS["Q"]=new mysql_squid_builder();
 
+$sock=new sockets();
+$sock->SQUID_DISABLE_STATS_DIE();
+
+$GLOBALS["Q"]=new mysql_squid_builder();
+if($argv[1]=="--interface"){donnees_interface();exit;}
+if($argv[1]=="--repair"){TOTALS_REPAIR();exit;}
 
 
 if($argv[1]=="--xtime"){start($argv[2]);exit;}
@@ -50,6 +55,9 @@ function start($xtime=0){
 			@file_put_contents($pidfile,$mypid);
 		}	
 	}
+	
+	@unlink($timefile);
+	@file_put_contents($timefile, time());
 	
 	$nohup=$unix->find_program("nohup");
 	$php=$unix->LOCATE_PHP5_BIN();
@@ -77,7 +85,9 @@ function start($xtime=0){
 	if(!$q->FIELD_EXISTS("tables_day", "totalKeyWords")){
 		$q->QUERY_SQL("ALTER TABLE `tables_day` ADD `totalKeyWords` BIGINT( 255 ) NOT NULL NOT NULL,ADD INDEX ( `totalKeyWords`)");
 	}
-
+	if(!$q->FIELD_EXISTS("tables_day", "DangerousCatz")){
+		$q->QUERY_SQL("ALTER TABLE `tables_day` ADD `DangerousCatz` smallint( 1 ) NOT NULL NOT NULL,ADD INDEX ( `DangerousCatz`)");
+	}
 
 	
 	if(!$q->ok){echo "$q->mysql_error.<hr>$sql</hr>";}
@@ -163,7 +173,7 @@ function start($xtime=0){
 	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /exec.squid.stats.youtube.days.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
 	shell_exec($cmdline);
 	shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.stats.global.categories.php >/dev/null 2>&1 &");
-	
+	shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.stats.dangerous.php  >/dev/null 2>&1 &");
 	
 }
 function CalculateElements($tablename,$groupby){
@@ -220,4 +230,97 @@ function which_filter($tablename,$return_fields=false){
 				return $count;}
 
 }
+
+function donnees_interface(){
+	
+	if($GLOBALS["VERBOSE"]){"echo Loading done...\n";}
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$timefile=dirname(__FILE__)."/ressources/logs/web/SQUID_STATS_GLOBALS_VALUES";
+	@mkdir(dirname($timefile),0755,true);
+	$oldpid=@file_get_contents($pidfile);
+	if(!$GLOBALS["FORCE"]){
+		if($oldpid<100){$oldpid=null;}
+		$unix=new unix();
+		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		$timeexec=$unix->file_time_min($timefile);
+		if($timeexec<30){return;}
+		$mypid=getmypid();
+		@file_put_contents($pidfile,$mypid);
+	}	
+	@unlink($timefile);
+	@file_put_contents($timefile, time());
+	
+	$q=new mysql_squid_builder();
+	
+	$sql="SELECT uid FROM members_uid GROUP BY uid";
+	$results=$q->QUERY_SQL($sql);
+	$CountDeMembers=mysql_num_rows($results);
+	$ARRAY["CountDeMembers"]=$CountDeMembers;
+	
+	
+	$sql="SELECT AVG(size) as avg FROM `cached_total` WHERE cached=1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$ligne["avg"]=$ligne["avg"]/1024;
+	$UNIT="KB";
+	if($ligne["avg"]>1024){$ligne["avg"]=$ligne["avg"]/1024;$UNIT="MB";}
+	$ligne["avg"]=round($ligne["avg"]);
+	$ARRAY["AVG_CACHED"]=$ligne["avg"].$UNIT;	
+
+	$current_month=date("Ym");
+	$catFamMonth="{$current_month}_catfam";
+	if($q->TABLE_EXISTS($catFamMonth)){
+		$sql="SELECT COUNT(familysite) as tcount, catfam FROM `$catFamMonth` GROUP BY catfam";
+		$results=$q->QUERY_SQL($sql);
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$ARRAY["CATFAM"][$ligne["catfam"]]=$ligne["tcount"];
+		}
+		
+	}
+	
+	
+	$ARRAY["DATABASE_INFOS"]=$q->DATABASE_INFOS();
+	$ARRAY["TIME"]=time();
+	@unlink($timefile);
+	@file_put_contents($timefile, serialize($ARRAY));
+	@chmod($timefile,0777);
+	
+}
+
+function TOTALS_REPAIR(){
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if($GLOBALS["VERBOSE"]){echo "time: $timefile\n";}
+	$oldpid=@file_get_contents($pidfile);
+	if(!$GLOBALS["FORCE"]){
+		if($oldpid<100){$oldpid=null;}
+		$unix=new unix();
+		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		$timeexec=$unix->file_time_min($timefile);
+		if($timeexec<1440){return;}
+		$mypid=getmypid();
+		@file_put_contents($pidfile,$mypid);
+	}
+	
+	@unlink($timefile);
+	@file_put_contents($timefile, time());
+	$q=new mysql_squid_builder();
+	$results=$q->QUERY_SQL("SELECT DATE_FORMAT(zDate,'%Y%m%d') as tprefix,totalsize,tablename FROM tables_day WHERE totalsize<100");
+
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$quota_day="quotaday_{$ligne["tprefix"]}";
+		
+		if($q->TABLE_EXISTS($quota_day)){
+			$sql="SELECT SUM(size) as tsize FROM `$quota_day`";
+			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+			$SumSize=$ligne2["tsize"];
+			if($GLOBALS["VERBOSE"]){echo "{$ligne["tablename"]} = {$ligne["totalsize"]} $quota_day = $SumSize\n";}
+			$q->QUERY_SQL("UPDATE tables_day SET `totalsize`='$SumSize' WHERE tablename='{$ligne["tablename"]}'");
+			
+		}
+	}
+	
+}
+
+
 //totalBlocked,MembersCount,requests,totalsize,not_categorized,YouTubeHits FROM tables_day

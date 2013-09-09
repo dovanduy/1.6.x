@@ -316,12 +316,16 @@ function PaseUdfdbGuardnew(){
 			continue;
 		}
 		
+		
 		while (list ($key, $line) = each ($array) ){
 			$line=trim($line);
-			if(is_numeric($line)){continue;}
-			$line=mysql_escape_string($line);
+			if(is_numeric($line)){
+				events_tail("$filename: $line = `numeric`");
+				continue;}
+			$line=mysql_escape_string2($line);
 			$line=str_replace("'", "`", $line);
 			$array[$key]=$line;
+			events_tail("$filename: array[$key] = `$line`");
 		}
 		
 		$uid=$array["uid"];
@@ -337,7 +341,11 @@ function PaseUdfdbGuardnew(){
 		$www=$array["website"];
 		$local_ip=$array["client"];		
 		$table=date('Ymd',$time)."_blocked";
-		
+		if($www==null){
+			events_tail("$www is null");
+			@unlink($targetFile);
+			continue;
+		}
 		
 		$textBody="\r\n***************************************\r\n";
 		if($www<>null){$textBody=$textBody."Blocked on: ".date("Y-m-d H:i:s",$time)."\r\n";}
@@ -352,7 +360,9 @@ function PaseUdfdbGuardnew(){
 		$zDate=date("Y-m-d H:i:s",$time);
 		
 		$zmd5=md5("$zDate$local_ip$uri$category$rulename$public_ip");
-		$sql="('$zmd5','$local_ip','$www','$category','$rulename','$public_ip','$why','$blocktype','$Clienthostname','$uid','$MAC','$uri','$zDate')";	
+		$sql="('$zmd5','$local_ip','$www','$category','$rulename','$public_ip','$why','$blocktype','$Clienthostname','$uid','$MAC','$uri','$zDate')";
+		events_tail($sql);
+		
 		if(!isset($checked[$table])){
 			if(!$q->CheckTablesBlocked_day(0,$table)){
 				events_tail("PaseUdfdbGuard:: Fatal CheckTablesBlocked_day($table)...");

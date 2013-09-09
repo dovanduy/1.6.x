@@ -19,7 +19,8 @@
 function js(){
 	if($_GET["replace-start-root"]=="yes"){$_GET["replace-start-root"]=1;}
 	if($_GET["with-samba"]=="yes"){$_GET["with-samba"]=1;}
-	
+	if(!isset($_GET["start-root"])){$_GET["start-root"]="/";}
+	if($_GET["start-root"]==null){$_GET["start-root"]="/";}
 	$widthsize=650;
 	if($_GET["philesight"]<>null){$widthsize=550;}
 	

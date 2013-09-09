@@ -29,6 +29,10 @@ include_once(dirname(__FILE__).'/ressources/class.squid.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
+
+$sock=new sockets();
+$sock->SQUID_DISABLE_STATS_DIE();
+
 execute();
 
 function execute(){
@@ -97,7 +101,8 @@ function execute(){
 	
 	}	
 	
-	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 ".dirname(__FILE__)."/exec.squid.stats.not-categorized.php");
 	
 }
 
@@ -108,7 +113,7 @@ function perform($table_source,$zDate){
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){ufdbguard_admin_events("Fatal {$q->mysql_error}", __FUNCTION__, __FILE__, __LINE__, "stats");die();}
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$category=mysql_escape_string($ligne["category"]);
+		$category=mysql_escape_string2($ligne["category"]);
 		$f[]="('$zDate','$category','{$ligne["size"]}','{$ligne["hits"]}')";
 		
 	}

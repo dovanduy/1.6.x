@@ -13,7 +13,7 @@ function left_infos_1(){
 	$sock=new sockets();
 	$tpl=new templates();
 	$ldap=new clladp();
-	if(!$users->AsArticaAdministrator){die("<H2 style='color:red'>permission denied</H2>");}
+	if(!$users->AsArticaAdministrator){die("<H2 style='color:red'>Privileges error; Permission denied<br>Please logoff</H2>");}
 	$page=CurrentPageName();	
 	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
 	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}	

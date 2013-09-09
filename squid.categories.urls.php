@@ -76,7 +76,7 @@ function SaveItems(){
 		if(trim($www)==null){continue;}
 		$md5=md5("$category$www");
 		echo "Saving $www\n";
-		$www=mysql_escape_string($www);
+		$www=mysql_escape_string2($www);
 		$f[]="('$md5','$zDate','$www',1)";
 	}
 	

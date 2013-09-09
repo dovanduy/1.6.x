@@ -1,5 +1,6 @@
 #!/usr/bin/php -q
 <?php
+include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
   //ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
   error_reporting(0);
   $GLOBALS["SplashScreenURI"]=null;
@@ -9,6 +10,8 @@
   $GLOBALS["uriToHost"]=array();
   $GLOBALS["SESSION_TIME"]=array();
   $GLOBALS["DEBUG_LEVEL"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/SplashDebug");
+  $GLOBALS["Q"]=new mysql_squid_builder();
+  
   if(!is_numeric( $GLOBALS["DEBUG_LEVEL"])){ $GLOBALS["DEBUG_LEVEL"]=0;}
   if($GLOBALS["DEBUG_LEVEL"]>0){$GLOBALS["SPLASH_DEBUG"]=true;}
   $GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');
@@ -20,7 +23,7 @@
   $GLOBALS["SESSIONS"]=unserialize(@file_get_contents("/etc/squid3/session.cache"));
   
   
-  WLOG("starting... max_execution_time:$max_execution_time argv[1]={$argv[1]} session-time={$GLOBALS["SESSION_TIME"]}");
+  WLOG("Starting... Log level:{$GLOBALS["DEBUG_LEVEL"]}; max_execution_time:$max_execution_time argv[1]={$argv[1]} session-time={$GLOBALS["SESSION_TIME"]}");
   if($argv[1]=="--mactouid"){$GLOBALS["MACTUIDONLY"]=true;}
   if($argv[1]=="--splash"){
   	$GLOBALS["SPLASH"]=true;
@@ -80,7 +83,18 @@ while (!feof(STDIN)) {
  	if($GLOBALS["MACTUIDONLY"]){
  		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("ASK: {$array["MAC"]} = ?");}
  		$uid=GetMacToUid($array["MAC"]);
- 		if($uid<>null){fwrite(STDOUT, "OK user=$uid\n");continue;}
+ 		if($uid<>null){
+ 				fwrite(STDOUT, "OK user=$uid\n");
+ 				continue;
+ 		}
+ 		
+ 		$uid=trim(GetMacToUid($array["IPADDR"]));
+ 		
+ 		if($uid<>null){
+ 			fwrite(STDOUT, "OK user=$uid\n");
+ 			continue;
+ 		}
+ 		
  		fwrite(STDOUT, "OK\n");
  		continue;
  	} 	
@@ -270,6 +284,14 @@ function parseURL($url){
 
 function GetMacToUid($mac){
 	if($mac==null){return;}
+	
+	$uid=$GLOBALS["Q"]->MacToUid($mac);
+	if($uid<>null){return $uid;}
+	
+	$uid=$GLOBALS["Q"]->IpToUid($mac);
+	if($uid<>null){return $uid;}
+	
+	
 	if(isset($GLOBALS["GetMacToUidMD5"])){
 			$md5file=md5_file("/etc/squid3/MacToUid.ini");
 			if($md5file<>$GLOBALS["GetMacToUidMD5"]){

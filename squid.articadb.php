@@ -242,7 +242,7 @@ function popup(){
 		<td colspan=2><div style='font-size:18px'>{server}:</td>
 	</tr>	
 	<tr>
-		<td valign='top' style='font-size:16px;' class=legend valign='middle'>{listen_port}:</td>
+		<td class=legend style='font-size:16px'>{listen_port}:</td>
 		<td valign='top'>". Field_text("$t-ListenPort",$ListenPort,"font-size:16px;width:90px")."</td>
 	</tr>	
 	<tr>

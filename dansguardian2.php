@@ -33,8 +33,8 @@ if(isset($_GET["ufdbguard-options"])){ufdbguard_service_options();exit;}
 if(isset($_GET["js-ufdbguard"])){ufdbguard_service_js();exit;}
 if(isset($_POST["DisableAllFilters"])){DisableAllFilters();exit;}
 if(isset($_POST["EnableMalWarePatrol"])){EnableMalWarePatrol();exit;}
-
-
+if(isset($_GET["disable-haarp-js"])){Disable_haarp_js();exit;}
+if(isset($_POST["disable-haarp"])){Disable_haarp_perform();exit;}
 tabs();
 
 
@@ -47,6 +47,40 @@ function EnableMalWarePatrol(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableMalwarePatrol", $_POST["value"]);
 	$sock->getFrameWork("cmd.php?squid-reload=yes");
+}
+
+function Disable_haarp_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$confirm=$tpl->javascript_parse_text("{confirm_disable_haarp}");
+	$t=time();
+	$page=CurrentPageName();
+	$html="
+			
+	var xaction$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>5){alert(results);}
+		CacheOff();
+		Loadjs('squid.restart.php?ApplyConfToo=yes&ask=yes');
+	}
+	
+	function action$t(){
+		if(!confirm('$confirm')){return;}
+		var XHR = new XHRConnection();
+		XHR.appendData('disable-haarp','yes');
+		XHR.sendAndLoad('$page', 'POST',xaction$t);	
+	}
+	action$t();
+	";
+	echo $html;
+	
+}
+
+function Disable_haarp_perform(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableHaarp",0);
+	$sock->getFrameWork("haarp.php?restart=yes");
+	
 }
 
 
@@ -119,6 +153,12 @@ function tabs(){
 	
 	if(isset($_GET["without-acl"])){unset($array["acls"]);}
 	
+	if(!$users->APP_UFDBGUARD_INSTALLED){
+		unset($array["ufdbguard"]);
+		unset($array["databases"]);
+	}
+	
+	
 	if($UfdbGuardHide==1){
 
 		unset($array["rules"]);
@@ -164,16 +204,7 @@ function tabs(){
 
 
 
-	$html="
-	<div id=main_dansguardian_tabs style='width:105%'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_dansguardian_tabs').tabs();
-			});
-		</script>";	
-	
+	$html=build_artica_tabs($html,'main_dansguardian_tabs',950);
 	SET_CACHED(__FILE__, __FUNCTION__, null, $html);
 	echo $html;
 
@@ -187,12 +218,14 @@ function status_left(){
 function groups(){
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$users=new usersMenus();
 	$array["groups-filters"]='{groups_for_rules}';
-	$array["groups-macs"]='{mac_users_linker}';
 	$array["section_basic_filters-groups"]='{proxy_objects}';
 	$time=time();
 
-
+	if(!$users->APP_UFDBGUARD_INSTALLED){
+		unset($array["groups-filters"]);
+	}
 
 
 	while (list ($num, $ligne) = each ($array) ){
@@ -216,15 +249,8 @@ function groups(){
 
 
 
-	echo "
-	<div id=main_dansguardiangroups_tabs style='width:99%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_dansguardiangroups_tabs').tabs();
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_dansguardiangroups_tabs");
+	
 
 }
 
@@ -487,8 +513,8 @@ function dansguardian_status(){
 	$SquidDisableAllFilters=$sock->GET_INFO("SquidDisableAllFilters");
 	$SquideCapAVEnabled=$sock->GET_INFO("SquideCapAVEnabled");
 	$kavicapserverEnabled=$sock->GET_INFO("kavicapserverEnabled");
-	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$EnableSquidRemoteMySQL=$sock->GET_INFO("EnableSquidRemoteMySQL");
+	if(!is_numeric($EnableSquidRemoteMySQL)){$EnableSquidRemoteMySQL=0;}
 	$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
 	$PdnsHotSpot=$sock->GET_INFO("EnableSplashScreen");
 	$EnableMalwarePatrol=$sock->GET_INFO("EnableMalwarePatrol");
@@ -498,12 +524,14 @@ function dansguardian_status(){
 	$UfdbEnabledCentral=$sock->GET_INFO('UfdbEnabledCentral');
 	$AntivirusEnabledCentral=$sock->GET_INFO('AntivirusEnabledCentral');
 	$EnableKerbAuthCentral=$sock->GET_INFO('EnableKerbAuthCentral');
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	$DnsFilterCentral=$sock->GET_INFO('DnsFilterCentral');
 	$SquidBubbleMode=$sock->GET_INFO('SquidBubbleMode');
 	$EnableITChart=$sock->GET_INFO('EnableITChart');
+	$EnableCNTLM=$sock->GET_INFO("EnableCNTLM");
 	
 	$EnableFTPProxy=$sock->GET_INFO('EnableFTPProxy');
+	
 	
 	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
 	$Watchdog=$MonitConfig["watchdog"];
@@ -532,7 +560,7 @@ function dansguardian_status(){
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 	if(!is_numeric($kavicapserverEnabled)){$kavicapserverEnabled=0;}
 	if(!is_numeric($SquidBubbleMode)){$SquidBubbleMode=0;}
-	
+	if(!is_numeric($EnableCNTLM)){$EnableCNTLM=0;}
 
 	if(!is_numeric($Watchdog)){$Watchdog=1;}
 	$t=1;
@@ -589,6 +617,7 @@ function dansguardian_status(){
 	
 	$EnableHaarpText="<span style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</span>";
 	$picHaarp="status_ok-grey.gif";
+	$picCNTLM="status_ok-grey.gif";
 	
 	if(!$users->APP_FTP_PROXY){
 		$EnableFTPProxyText="-";
@@ -606,9 +635,27 @@ function dansguardian_status(){
 	}else{
 		if($EnableHaarp==1){
 			$picHaarp="status_ok.gif";
-			$EnableHaarpText="<span style='font-size:12px;font-weight:bold;'>{enabled}</span>";
+			$EnableHaarpText="<a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('$page?disable-haarp-js=yes');\"
+			style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";
 		}
-	}	
+	}
+
+	if(!$users->CNTLM_INSTALLED){
+		$EnableCNTLMText="-";
+		}else{
+			$EnableCNTLMText="<a href=\"javascript:blur();\"
+				OnClick=\"javascript:Loadjs('squid.adker.php');\"
+				style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
+			
+			if($EnableCNTLM==1){
+				$picCNTLM="status_ok.gif";
+				$EnableCNTLMText="<a href=\"javascript:blur();\"
+				OnClick=\"javascript:Loadjs('squid.adker.php');\" 
+				style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";
+			}
+		}		
+	
 	
 	
 	$EnableActiveDirectoryText="<a href=\"javascript:blur();\"
@@ -688,6 +735,13 @@ function dansguardian_status(){
 	<td class=legend style='font-size:12px'>{APP_HAARP}:</td>
 	<td><div style='font-size:12px' nowrap>$EnableHaarpText</td>
 	</tr>";	
+	
+	$EnableCNTLMTextTR="<tr>
+	<td width=1%><span id='AdSquidStatusLeft'><img src='img/$picCNTLM'></span></td>
+	<td class=legend style='font-size:12px'>{APP_CNTLM}:</td>
+	<td><div style='font-size:12px' nowrap>$EnableCNTLMText</td>
+	</tr>";	
+
 
 	
 	if($AsSquidLoadBalancer==1){
@@ -705,7 +759,7 @@ function dansguardian_status(){
 	// ----------------------------------------------------------------------------------------------------------------	
 	$EnableRemoteStatisticsAppliancePic="status_ok-grey.gif";
 	$EnableRemoteStatisticsApplianceText="{disabled}";
-	if($EnableRemoteStatisticsAppliance==1){
+	if($EnableSquidRemoteMySQL==1){
 		$EnableRemoteStatisticsAppliancePic="status_ok.gif";
 		$EnableRemoteStatisticsApplianceText="{enabled}";
 	}
@@ -956,6 +1010,7 @@ function dansguardian_status(){
 	if($users->C_ICAP_INSTALLED){
 		$CicapEnabled=$sock->GET_INFO("CicapEnabled");
 		if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
+		if($users->WEBSTATS_APPLIANCE){$CicapEnabled=1;}
 		$pic="status_ok-grey.gif";
 		$CicapEnabledText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:EnableCiCap(1);\" 
@@ -1116,6 +1171,7 @@ function dansguardian_status(){
 		<table style='width:250px' class='TableRemove TableMarged'><tbody>
 		$EnableWatchdogTextTR
 		$EnableActiveDirectoryTextTR
+		$EnableCNTLMTextTR
 		$SquidBubbleModeTR
 		$EnableRemoteStatisticsApplianceTextTR
 		$AsSquidLoadBalancerText
@@ -1283,11 +1339,11 @@ function ufdbguard_service_section(){
 	$sock=new sockets();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
-	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$EnableSquidRemoteMySQL=$sock->GET_INFO("EnableSquidRemoteMySQL");
+	if(!is_numeric($EnableSquidRemoteMySQL)){$EnableSquidRemoteMySQL=0;}
 	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
 	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
-	
+	$EnableRemoteStatisticsAppliance=0;
 	
 	$array["ufdbguard-options"]='{service_parameters}';
 	
@@ -1322,15 +1378,8 @@ function ufdbguard_service_section(){
 
 
 
-	echo "
-	<div id=main_ufdbguards_tabs style='width:99%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_ufdbguards_tabs').tabs();
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_ufdbguards_tabs");
+	
 
 }
 function ufdbguard_service_options(){
@@ -1504,7 +1553,7 @@ function dansguardian_service_status_nofilters(){
 	$okFilter=false;
 	$squid=new squidbee();
 	$kavicapserverEnabled=$sock->GET_INFO("kavicapserverEnabled");
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 	$KAV4PROXY_INSTALLED=0;
 	$APP_UFDBGUARD_INSTALLED=0;

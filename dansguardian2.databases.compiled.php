@@ -343,15 +343,8 @@ function tabs(){
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t&maximize=yes\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 	}
 
-	echo "
-	<div id=main_databasesCAT_quicklinks_tabs style='width:99%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_databasesCAT_quicklinks_tabs').tabs();
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_databasesCAT_quicklinks_tabs");
+	
 
 }
 
@@ -494,8 +487,7 @@ buttons : [
 		var X_PurgeCategoriesDatabase= function (obj) {
 			var results=obj.responseText;
 			if(results.length>2){alert(results);}
-			if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
-			if(document.getElementById('squid_categories_zoom')){RefreshTab('squid_categories_zoom');}			
+			RefreshAllTabs();			
 		}		
 		
 		function PurgeCategoriesDatabase(){
@@ -1314,13 +1306,13 @@ function PurgeCategoryTable(){
 		
 	echo "{$_POST["PurgeCategoryTable"]} -> $categoryname\n";
 	
-	$sql="SELECT category FROM personal_categories WHERE category='".mysql_escape_string($categoryname)."'";
+	$sql="SELECT category FROM personal_categories WHERE category='".mysql_escape_string2($categoryname)."'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	$norestore=false;
 	if($ligne["category"]<>null){
 		$norestore=true;
 		echo "$categoryname -> delete...\n";
-		$q->QUERY_SQL("DELETE FROM personal_categories WHERE `category`='".mysql_escape_string($categoryname)."'");
+		$q->QUERY_SQL("DELETE FROM personal_categories WHERE `category`='".mysql_escape_string2($categoryname)."'");
 		if(!$q->ok){echo $q->mysql_error;}
 	}
 	

@@ -374,7 +374,7 @@ class user{
 	}
 	
 	private function LoadFromActiveDirectory($uid,$ByNewClass=false){
-		
+		$attrs=array();
 		if(function_exists("debug_backtrace")){
 			$trace=debug_backtrace();
 			if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["class"]}/{$trace[1]["function"]}() line {$trace[1]["line"]}";}
@@ -411,9 +411,13 @@ class user{
 			$this->objectClass_array[$class]=$class;
 		}
 		
+		
+		
 		if(isset($attrs["gidNumber"]["count"])){
 			for($i=0;$i<$attrs["gidNumber"]["count"];$i++){$this->gidNumber_array[$i]=$attrs["gidNumber"][$i];}
-		}		
+		}	
+
+		if(!is_array($attrs)){$attrs=array();}
 		while (list ($num, $ligne) = each ($attrs)){if(!is_numeric($num)){$this->attributs_array[$num]=$num;}}
 		$this->DisplayName=$attrs["displayName"][0];
 		if($this->mail<>null){$this->mail=$attrs["mail"][0];$this->HASH_ALL_MAILS[]=$this->mail;}
@@ -1579,11 +1583,13 @@ class user{
 			$suffix="ou=$ou,dc=organizations,$ldap->suffix";
 		}
 		
+		$pattern="(&(objectClass=posixGroup)(|(cn=$users)(displayName=$users)))";
+		if($GLOBALS["VERBOSE"]){echo "<strong>find_ldap_items_groups:: Max:$MaxItems $pattern in suffix $suffix</strong><br>\n";}
 		
-		$sr =@ldap_search($ldap->ldap_connection,$suffix,"(&(objectClass=posixGroup)(|(cn=$users)(displayName=$users)))",
-				array("displayname","cn","gidNumber"),null,$MaxItems);
+		$sr =@ldap_search($ldap->ldap_connection,$suffix,$pattern,array("displayname","cn","gidNumber"),null,$MaxItems);
 		if($sr){
 			$result = ldap_get_entries($ldap->ldap_connection, $sr);
+			if($GLOBALS["VERBOSE"]){echo "<strong>find_ldap_items_groups:: {$result["count"]} items</strong><br>\n";}
 			for($i=0;$i<$result["count"];$i++){
 				$displayname=$result[$i]["displayname"][0];
 				$gidNumber=$result[$i]["gidnumber"][0];
@@ -1593,8 +1599,10 @@ class user{
 			}
 		
 		}else{
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>find_ldap_items_groups:: Error for posixGrou</strong><br>\n";}
 			writelogs("find_ldap_items_groups:: Error for posixGroup",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		}
+		return $res;
 	}
 	
 	
@@ -3075,6 +3083,7 @@ function FTPSettingsEdit(){
 					
 					
 				if($resultAdd){
+					$this->CreateHome();
 					writelogs("adding $this->dn...success, linking user $this->uid to group $this->group_id now",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					$group=new groups($this->group_id);
 					$group->user_add_to_group($this->uid);
@@ -3182,6 +3191,7 @@ function FTPSettingsEdit(){
 			$upd["mobile"][0]=$this->mobile;
 			$upd["telephoneNumber"][0]=$this->telephoneNumber;
 			$upd["domainName"][0]=$this->domainname;
+			$this->homeDirectory="/home/$this->uid";
 			$upd["homeDirectory"][0]="/home/$this->uid";			
 			$upd["userPassword"][0]=$this->password;
 			if($this->mail<>null){$upd["mail"][0]=$this->mail;}	
@@ -3190,7 +3200,7 @@ function FTPSettingsEdit(){
 				writelogs("adding $this->dn...failed",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				return false;
 			}
-			
+			$this->CreateHome();
 			return true;
 		
 	}
@@ -3202,6 +3212,14 @@ function FTPSettingsEdit(){
 		$sock->getfile("SASLDB2:$this->uid;$this->password");
 		
 	}
+	
+	private function CreateHome(){
+		$sock=new sockets();
+		$sock->getFrameWork("services.php?makedir=".urlencode(base64_encode($this->homeDirectory)));
+		
+	}
+	
+	
 	
 	function SaveUserPhoto($content){
 		$ldap=new clladp();
@@ -3968,8 +3986,9 @@ function UsersInterfaceDatasDelete(){
 		}
 			
 		function Groups_list(){
-			
-			if($this->AsActiveDirectoryMember){
+			$ldap=new clladp();
+			$res=array();
+			if($ldap->IsKerbAuth()){
 				include_once(dirname(__FILE__)."/class.external.ad.inc");
 				$p=new external_ad_search();
 				return $p->GroupsOfMember($this->dn);
@@ -4010,7 +4029,7 @@ function UsersInterfaceDatasDelete(){
 			}
 			
 			
-			$ldap=$this->ldapClass;
+			$ldap=new clladp();
 			$attrs=array('gidNumber','displayName','cn');
 			$sr =@ldap_search($ldap->ldap_connection,$ldap->suffix,"(&(objectClass=posixGroup)(memberUid=$this->uid))",$attrs);	
 				if($sr){

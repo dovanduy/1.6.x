@@ -5,9 +5,15 @@ include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
+ini_set('display_errors', 1);
+ini_set('error_prepend_string',"<p class=text-error>");
+ini_set('error_append_string',"</p>");
 
-
-if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(isset($_GET["verbose"])){
+		$GLOBALS["VERBOSE"]=true;ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string',"<p class=text-error style='color:red'>");
+		ini_set('error_append_string',"</p>");
+}
 if(!isset($_SESSION["uid"])){
 	writelogs("Redirecto to miniadm.logon.php...","NULL",__FILE__,__LINE__);
 	header("location:miniadm.logon.php");}
@@ -32,7 +38,7 @@ if(isset($_GET["right-top-menus"])){right();exit;}
 if(isset($_POST["GetMyTitle"])){GetMyTitle();exit;}
 if(isset($_GET["left-content-id"])){left();exit;}
 if(isset($_GET["aero"])){aero();exit;}
-
+if(isset($_GET["dashboard"])){dashboard();exit;}
 main_page();
 exit;
 
@@ -197,19 +203,29 @@ function content_start(){
 	$uid=$_SESSION["uid"];
 	$ct=new user($_SESSION["uid"]);
 	$t=time();
+	$error=null;
+	$OUTEXT=$_SESSION["ou"];
 	$base="ressources/profiles/icons";
 	if($ct->DisplayName==null){$ct->DisplayName=$_SESSION["uid"];}	
+	if($OUTEXT==null){
+		$sock=new sockets();
+		$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+		$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+		if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
+		$OUTEXT=$LicenseInfos["COMPANY"];
+		
+	}
 	$browser=browser_detection();
 	if($browser=="ie"){
 		$error="<p class=text-error>{ie_not_really_compatible}</p>";
 	}
 	$html="$error
 	<div class='hero-unit' id='herounit'>
-		<h1 style='text-transform:capitalize'>{$_SESSION["ou"]}</h1>
+		<h1 style='text-transform:capitalize'>$OUTEXT</h1>
 		<h2>{about_this_section}.</h2>
 		<p>{enduser_explain_section}</p>
 	</div>
-	
+	<div id='dashboard' style='min-height:220px'></div>	
 	<div class=\"row-fluid\" id='$t'></div>
 	
 	
@@ -219,125 +235,17 @@ function content_start(){
 		
 		}
 	
-		LoadAjax('$t','$page?right-top-menus=yes');
+		LoadAjax('$t','$page?right-top-menus=yes&t=$t');
 		setTimeout('Aero$t()',800);
 	</script>";
 	
 	$tpl=new templates();
 	$html=$tpl->_ENGINE_parse_body($html);
-	$OU=$_SESSION["ou"];
-	if(trim($OU)==null){
-		$sock=new sockets();
-		$savedsettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
-		$OU=$savedsettings["organization"];
-	}
-	
-	$html=str_replace("%ORGA", $OU, $html);
+	$html=str_replace("%ORGA", $OUTEXT, $html);
 	echo $html;	
 }
 
 
-function content_start_old(){
-	$page=CurrentPageName();
-	$uid=$_SESSION["uid"];
-	$ct=new user($_SESSION["uid"]);
-	$base="ressources/profiles/icons";
-	if($ct->DisplayName==null){$ct->DisplayName=$_SESSION["uid"];}
-	$pictureBG="/img/fbkenduser-bg.jpg";
-	$picture="/img/defaultFbProfileUser.jpg";
-	if(preg_match("#\/thumbnail-96-(.+?)$#", $ct->ThumbnailPath,$re)){
-		if(is_file("$base/thumbnail-160-{$re[1]}")){
-			$picture="$base/thumbnail-160-{$re[1]}";
-		}
-	}
-	
-	if(is_file("$base/background-{$uid}.loc")){
-		$pictureBGPath=@file_get_contents("$base/background-{$uid}.loc");
-		if(is_file($pictureBGPath)){
-			$pictureBG=$pictureBGPath;
-		}else{
-			writelogs("$pictureBGPath no such file...",__FUNCTION__,__FILE__,__LINE__);
-		}
-	}else{
-		writelogs("$base/background-{$uid}.loc no such file...",__FUNCTION__,__FILE__,__LINE__);
-	}
-	
-	if($_SESSION["ou"]==null){BuildSession($_SESSION["uid"]);}
-	
-	
-	
-	$html="
-	<div id=\"contentArea\">
-	<div>
-		<div>
-			<div class=\"TopSectionBase\">
-				<div class=\"MainTopHeader ytred TopSection\" style='padding-bottom:10px'>
-					<div class=\"drop_elem AccountCoverLarge\" id=\"AccountCover\">
-						<div data-collapse=\"148\" style=\"margin-top: 0px;\" class=\"cover\">
-							<div>
-								<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$page?upload-pic-js=yes');\" class=\"coverWrap\">
-								<img style=\"top:0px;width:100%;\" src=\"$pictureBG\" class=\"coverPhotoImg photo img\">
-								<div class=\"coverBorder\"></div>
-									<div class=\"AccountIMGNotch\">
-										<div class=\"notchInner\">
-									</div>
-								</div>
-								</a>
-							</div>
-						</div>
-	<div class=\"clearfix\" id=\"TitleBarr\">
-		<div class=\"actions\"></div>
-		<div class=\"name\">
-		<div class=\"photoContainer\">
-		<div class=\"drop_elem\">
-			<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('miniadm.profile.php?upload-pic-js=yes');\" 
-			class=\"AccountIMGThumb AccountIMGThumbLarge\">
-			<div class=\"uiScaledImageContainer AccountIMG\">
-				<img width=\"160\" height=\"240\" 
-				src=\"$picture\" 
-				class=\"scaledImageFitWidth img\">
-			</div>
-			</a>
-		<div class=\"uiSelector AccountPictureSelection uiSelectorNormal\">
-		<div class=\"wrap\"></div>
-		</div>
-		</div>
-			
-		</div>
-			<h2><a href=\"miniadm.profile.php\">{$_SESSION["ou"]}::$ct->DisplayName</a></h2>
-		</div>
-	</div>
-</div>
-</div>
-
-</div>
-</div>
-</div>
-</div>
-<table style='width:851px !important;'>
-<tr>
-	<td width=60% valign='top'>
-		<div class=\"BodyContent\">
-		<H1>{about_this_section}</H1>
-		<p>{enduser_explain_section}</p>
-		</div>
-		<div id='left-content-id'></div>
-	</td>
-	<td width=50% valign='top'>
-		
-		<div id='right-top-menus' class=\"BodyContent\"></div>
-	</td>
-</tr>
-</table>
-	
-
-";
-	//$user=new user($_SESSION["uid"]);
-	$tpl=new templates();
-	$html=$tpl->_ENGINE_parse_body($html);
-	$html=str_replace("%ORGA ", $_SESSION["ou"], $html);
-	echo $html;
-}
 
 
 
@@ -399,18 +307,141 @@ function choose_language_save(){
 	$tpl=new templates();	
 }
 
-function right(){
+function is_admin_proxy($dump=false){
+	$users=new usersMenus();
+	$sock=new sockets();
+	$isproxy=false;
+	if($users->SQUID_INSTALLED){$isproxy=true;}
+	if($users->WEBSTATS_APPLIANCE){$isproxy=true;}
+	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	if($SQUIDEnable==0){$isproxy=false;}
+	
+	if(!$isproxy){return false;}
+	
+	if($users->AsProxyMonitor){return true;}
+	if($users->AsAnAdministratorGeneric){return true;}
+	if($users->AsDansGuardianAdministrator){return true;}
+	if($users->AsWebStatisticsAdministrator){return true;}
+
+}
+
+function dashboard_proxy(){
+	if(!function_exists("dashboard_box")){return;}
+	$tpl=new templates();
+	$users=new usersMenus();
+	$cpunum=intval($users->CPU_NUMBER);
+	$array_load=sys_getloadavg();
+	$org_load=$array_load[2];
+	$load=intval($org_load);
+	$max_vert_fonce=$cpunum;
+	$max_vert_tfonce=$cpunum+1;
+	$max_orange=$cpunum*0.75;
+	$max_over=$cpunum*2;
+	$purc1=$load/$cpunum;
+	$sock=new sockets();
+	$systemMaxOverloaded=$sock->GET_INFO("systemMaxOverloaded");
+	if(!is_numeric($systemMaxOverloaded)){$systemMaxOverloaded=17;}
+	$array_load=sys_getloadavg();
+	$internal_load=$array_load[0];
+	
+	$text=$tpl->_ENGINE_parse_body("{max_load_explain}");
+	$text=str_replace("%maxloadavg", $max_vert_tfonce, $text);
+	$text=str_replace("%maxloadalert", $systemMaxOverloaded, $text);
 	
 	
+	$a[]=dashboard_box("{computer_load}",$internal_load,null,"$internal_load / $max_vert_fonce max:$systemMaxOverloaded");
 	
-	if(!$GLOBALS["VERBOSE"]){
-		if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
+	exec("/usr/bin/free -m" ,$results);
+	
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#Mem:\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)#",$ligne,$re)){
+			$MEM_TOTAL=$re[1];
+			$MEM_USED=$re[2];
+			$MEM_FREE=$re[3];
+			$MEM_TOTAL_UNIT="MB";
+			$MEM_USED_UNIT="MB";
+			$MEM_FREE_UNIT="MB";
+			$POURC=$MEM_USED/$MEM_TOTAL;
+			$POURC=$POURC*100;
+			
+			if($MEM_TOTAL>1000){$MEM_TOTAL=$MEM_TOTAL/1000;$MEM_TOTAL_UNIT="GB";}
+			if($MEM_USED>1000){$MEM_USED=$MEM_USED/1000;$MEM_USED_UNIT="GB";}
+			if($MEM_FREE>1000){$MEM_FREE=$MEM_FREE/1000;$MEM_FREE_UNIT="GB";}
+			
+			
+			if($POURC>0){
+				$POURC=round($POURC,1);
+				$MEM_TOTAL=round($MEM_TOTAL,1);
+				$MEM_USED=round($MEM_USED,1);
+				$a[]=dashboard_box("{memory_used}","{$POURC}%",null,"{$MEM_USED}{$MEM_USED_UNIT} / {$MEM_TOTAL}{$MEM_TOTAL_UNIT}    {free} {$MEM_FREE}{$MEM_FREE_UNIT} ");
+			}
+		}
 	}
+
+	$last=null;
+	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/squid.counters.db";
+	if(is_file($cacheFile)){
+		$ARRAY=unserialize(@file_get_contents($cacheFile));
+		if(is_array($ARRAY)){
+			if(isset($ARRAY["SAVETIME"])){
+				$time=$ARRAY["SAVETIME"];
+				$last=distanceOfTimeInWords($time,time(),true);
+			}
+			if(isset($ARRAY["client_http.requests"])){
+				if(preg_match("#([0-9\.]+)#", $ARRAY["client_http.requests"],$re)){$ARRAY["client_http.requests"]=$re[1];}
+				$client_http_requests=round($ARRAY["client_http.requests"],1);
+				$a[]=dashboard_box("{requests_second}","$client_http_requests",null,$last);
+		}
+		
+		if(isset($ARRAY["client_http.requests"])){
+			if(preg_match("#([0-9\.]+)#", $ARRAY["server.all.kbytes_in"],$re)){$ARRAY["server.all.kbytes_in"]=$re[1];}
+			$kbytes_in=FormatBytes($ARRAY["server.all.kbytes_in"]);
+			$kbytes_in_text=$kbytes_in;
+			if(preg_match("#([0-9\.,]+)#", $kbytes_in,$re)){$kbytes_in_text=$re[1];}
+			$a[]=dashboard_box("{bandwidth}",$kbytes_in_text,null,"$kbytes_in / {second} - $last");
+		}
+		if(isset($ARRAY["active_requests"])){
+			if(preg_match("#([0-9\.]+)#", $ARRAY["active_requests"],$re)){$ARRAY["active_requests"]=$re[1];}
+		
+			$a[]=dashboard_box("{sessions}",$ARRAY["active_requests"],"{simultaneous_sessions}","$last");
+		}
+		
+		
+	}
+	
+	
+	}
+	$page=CurrentPageName();
+	$t=time();
+	echo "
+		<div id='box-holder' style='display: block;overflow: hidden;position: relative; width:1220px !important'>
+				".@implode("\n", $a)."
+		</div>
+		<script>
+			function upd$t(){
+				LoadAjaxTiny('dashboard','$page?dashboard=yes');
+				
+			}
+			
+			setTimeout('upd$t()',12000);
+		</script>
+			
+	";
+}
+function dashboard(){
+	if(is_admin_proxy()){
+		dashboard_proxy();
+		return;
+	}	
+}
+
+function right(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$tpl=new templates();
 	$u=new user($_SESSION["uid"]);
-	
+	$t=$_GET["t"];
 	$mydn=base64_encode($u->dn);
 	
 	$p1=Paragraphe32("myaccount", "myaccount_text", "MyHref('miniadm.profile.php')", "identity-32.png");
@@ -429,86 +460,23 @@ function right(){
 			
 			
 		
-	
+	$t=time();
 	
 	$html="
+	
+		
 	<H1>{what_to_do}</H1>
 	<table style='width:100%'>
 	".@implode("", $tt)."
 	</table>
-	<script>LoadAjax('left-content-id','$page?left-content-id=yes');</script>
+	<script>
+		
+		LoadAjaxTiny('dashboard','$page?dashboard=yes');
+	</script>
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
-	return;
 	
-	
-	$info_right[]="	
-	<table style='width:98%' class=form>
-	<tr>
-		<td valign='top' width=1%><img src='img/webservices-128.png'></td>
-		<td valign='top'><H3 style='font-weight:bold'>{myWebServices}</H3>
-			<ul>
-			<li><a href=\"javascript:blur()\" 
-				OnClick=\"javascript:Loadjs('miniadm.www.services.php');\" 
-				style='font-size:13px;font-weight:normal'>{myWebServices_text}</a>
-			</li>
-			</ul>	
-			
-		
-		</td>
-	</tr>
-	</table>";
-	
-	$info_left[]="	<table style='width:98%' class=form>
-	<tr>
-		<td valign='top' width=1%><img src='img/identity-128.png'></td>
-		<td valign='top'><H3 style='font-weight:bold'>{myaccount}</H3>
-			<ul>
-			<li><a href=\"javascript:blur()\" 
-				OnClick=\"javascript:LoadAjax('BodyContent','domains.edit.user.php?userid={$_SESSION["uid"]}&ajaxmode=yes&dn=$mydn');\" 
-				style='font-size:13px;font-weight:normal'>{myaccount_text}</a>
-			</li>
-			</ul>	
-			
-		
-		</td>
-	</tr>
-	</table>";	
-	
-	if($users->AllowAddUsers){
-		$info_left[]=info_organization();
-	}
-	if($users->AllowChangeDomains){
-		$info_right[]=info_messaging();
-	}
-	
-	if(($users->AsDansGuardianAdministrator) OR ($users->AsWebFilterRepository)){
-		$info_left[]=info_Dansguardian();
-		
-	}
-	
-	
-	
-	
-	//www-128.png
-	
-	$html="
-	<table style='width:100%'>
-	<tr>
-		<td valign='top' width=50%>".@implode("<br>",$info_left)."</td>
-		<td valign='top' width=50%>".@implode("<br>",$info_right)."</td>
-	</tr>
-	</table>
-	<script>
-	LoadAjax('tool-map','miniadm.toolbox.php?script=center-panel');
-	
-	</script>
-	
-	";
-	$html=$tpl->_ENGINE_parse_body($html);
-	$_SESSION[__FILE__][__FUNCTION__]=$html;
-	echo $html;
 }
 
 function info_messaging(){

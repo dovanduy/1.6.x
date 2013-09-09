@@ -67,8 +67,8 @@ function page(){
 	$delete_file=$tpl->javascript_parse_text("{delete_file}");
 	$rotate_logs=$tpl->javascript_parse_text("{rotate_logs}");
 	$table_size=855;
-	$url_row=400;
-	$member_row=233;
+	$url_row=555;
+	$member_row=276;
 	$table_height=420;
 	$distance_width=230;
 	$tableprc="100%";
@@ -79,8 +79,8 @@ function page(){
 		
 	if(isset($_GET["bypopup"])){
 		$table_size=1019;
-		$url_row=509;
-		$member_row=290;
+		$url_row=576;
+		$member_row=333;
 		$distance_width=352;
 		$margin=0;
 		$margin_left="-5";
@@ -100,6 +100,10 @@ function page(){
 		$title_table_storage="$logs_container $countContainers $files (".FormatBytes($ligne["tsize"]/1024).")";
 	}
 	
+	
+	$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
+	$error=$tpl->javascript_parse_text("{error}");
+	$sitename=$tpl->javascript_parse_text("{sitename}");
 	$button3="{name: '<strong id=container-log-$t>$rotate_logs</stong>', bclass: 'Reload', onpress : SquidRotate$t},";
 
 	$html="
@@ -112,16 +116,12 @@ var mem$t='';
 function StartLogsSquidTable$t(){
 	document.getElementById('$t-main-form').innerHTML='';
 	document.getElementById('$t-main-form').innerHTML='<table class=\"flexRT$\" style=\"display: none\" id=\"flexRT$t\" style=\"width:$tableprc\"></table>';
-	
 
-
-	$(document).ready(function(){
 	$('#flexRT$t').flexigrid({
 		url: '$page?events-list=yes',
 		dataType: 'json',
 		colModel : [
-			{display: '$zdate', name : 'zDate', width :120, sortable : true, align: 'left'},
-			{display: '$proto', name : 'proto', width :33, sortable : false, align: 'left'},
+			{display: '$zdate', name : 'zDate', width :52, sortable : true, align: 'left'},
 			{display: '$uri', name : 'events', width : $url_row, sortable : false, align: 'left'},
 			{display: '$member', name : 'mmeber', width : $member_row, sortable : false, align: 'left'},
 			],
@@ -132,7 +132,11 @@ function StartLogsSquidTable$t(){
 			
 		
 		searchitems : [
-			{display: '$events', name : 'events'}
+			{display: '$sitename', name : 'sitename'},
+			{display: '$uri', name : 'uri'},
+			{display: '$member', name : 'uid'},
+			{display: '$error', name : 'TYPE'},
+			{display: '$ipaddr', name : 'CLIENT'},
 			],
 		sortname: 'zDate',
 		sortorder: 'desc',
@@ -147,7 +151,7 @@ function StartLogsSquidTable$t(){
 		rpOptions: [10, 20, 30, 50,100,200]
 		
 		});   
-	});
+
 }
 
 function StartLogsContainer$t(){
@@ -173,10 +177,13 @@ function StartLogsContainer$t(){
 			
 		
 		searchitems : [
-			{display: '$filename', name : 'filename'},
-			{display: '$ext', name : 'fileext'},
+			{display: '$sitename', name : 'sitename'},
+			{display: '$uri', name : 'uri'},
+			{display: '$member', name : 'uid'},
+			{display: '$error', name : 'TYPE'},
+			{display: '$ipaddr', name : 'CLIENT'},
 			],
-		sortname: 'filetime',
+		sortname: 'zDate',
 		sortorder: 'desc',
 		usepager: true,
 		title: '$title_table_storage',
@@ -271,8 +278,7 @@ function LogsCsvDelte$t(ID,md5){
 		XHR.sendAndLoad('$page', 'POST',x_LogsCsvDelte$t);	
 	}
 }
-
-StartLogsSquidTable$t();
+setTimeout('StartLogsSquidTable$t()',800);	
 $Start;
 	
 </script>
@@ -294,171 +300,118 @@ $tpl=new templates();
 $sock=new sockets();
 $q=new mysql_squid_builder();
 $GLOBALS["Q"]=$q;
-	
+$table="squidhour_".date("YmdH");	
 	
 		
 	if(isset($_POST['page'])) {$page = $_POST['page'];}	
 	if(isset($_POST['rp'])) {$rp = $_POST['rp'];}
-
-	if($_POST["query"]<>null){
-		$search=base64_encode($_POST["query"]);
-		$datas=unserialize(base64_decode($sock->getFrameWork("squid.php?accesslogs=$search&rp={$_POST["rp"]}")));
-		$total=count($datas);
-		
+	
+	
+	
+	$searchstring=string_to_flexquery();
+	
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$total = $ligne["TCOUNT"];
+	
 	}else{
-		$datas=unserialize(base64_decode($sock->getFrameWork("squid.php?accesslogs=&rp={$_POST["rp"]}")));
-		$total=count($datas);
+		
+		$total = $q->COUNT_ROWS($table);
 	}
 	
-		
+	if(!is_numeric($rp)){$rp=50;}
 	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
 	
-	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){
-		if($_POST["sortname"]=="zDate"){
-			if($_POST["sortorder"]=="asc"){
-				krsort($datas);
-			}
-		}
-	$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
+	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";
+	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){json_error_show($q->mysql_error);}
 	
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
 	$today=date("Y-m-d");
+	$tcp=new IP();
 	
-	$squidacc=new accesslogs();
-	
+	$cachedT=$tpl->_ENGINE_parse_body("{cached}");
 	$c=0;
-	while (list ($key, $line) = each ($datas) ){
+	while ($ligne = mysql_fetch_assoc($results)) {	
 		$color="black";
 		$return_code_text=null;
 		$ff=array();
-			$color="black";
-			if(preg_match('#(.+?)\s+(.+?)\s+squid\[.+?:\s+MAC:(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+\[(.+?)\]\s+\"([A-Z]+)\s+(.+?)\s+.*?"\s+([0-9]+)\s+([0-9]+)#i',$line,$re)){
-				$re[6]=trim($re[6]);
-				if($re[5]=="-"){
-					if( ($re[6]<>"-") && !is_null($re[6])){
-						$re[5]=$re[6];
-						$re[6]="-";
-					}	
-				}
-				
-			
-				//$ff[]="F=1";
-				//while (list ($a, $b) = each ($re) ){$ff[]="$a=$b";}
-				//$array["RE"]=@implode("<br>", $ff);
-				$uri=$re[9];
-				
-				$date=date("Y-m-d H:i:s",strtotime($re[7]));
-				$mac=$re[3];
-				$ip=$re[4];
-				$user=$re[5];
-				$dom=$re[6];
-				$proto=$re[8];
-				$return_code=$re[10];
-				$size=$re[11];
-				
-				$array["IP"]=$ip;
-				$array["URI"]=$uri;
-				$array["DATE"]=$date;
-				$array["MAC"]=$mac;
-				$array["USER"]=$user;
-				$array["USER"]=$user;
-				$array["PROTO"]=$proto;
-				$array["CODE"]=$return_code;
-				$array["SIZE"]=$size;
-				$array["LINE"]=$line;
-				$mline=$squidacc->Buildline($array);
-				if(is_array($mline)){$data['rows'][] =$mline;$c++;}
-				continue;
-						
+		$color="black";
+		$uri=$ligne["uri"];
+		$date=$ligne["zDate"];
+		$mac=$ligne["MAC"];
+		$ip=$ligne["CLIENT"];
+		$user=$ligne["uid"];
+		$dom=$ligne["sitename"];
+		$cached=$ligne["cached"];
+		$return_code=$ligne["TYPE"];
+		$size=$ligne["QuerySize"];
+		$ident=array();
+		$md=md5(serialize($ligne));
+		$today=date("Y-m-d");
+		$date=str_replace($today, "", $date);
+		$ident[]="<a href=\"javascript:blur()\"
+		OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$ip');\"
+		style='text-decoration:underline;color:$color'>$ip</a>";
+		$spanON="<span style='color:$color'>";
+		$spanOFF="</span>";
+		$cached_text=null;
+		if($cached==1){$cached_text=" - $cachedT";}
+		$size=FormatBytes($size/1024);
+		if($return_code=="Service Unavailable"){$color="#BA0000";}
+		if($return_code=="Bad Gateway"){$color="#BA0000";}
+		$return_code_text="<div style='color:$color;font-size:11px'><i>&laquo;$return_code&raquo;$cached_text - $size</i></div>";
+		
+		if($user<>null){
+			$GLOBALS["IPUSERS"][$ip]=$user;
+		}else{
+			if(isset($GLOBALS["IPUSERS"][$ip])){
+		
+				$ident[]="<i>{$GLOBALS["IPUSERS"][$ip]}</i>";
 			}
-			
-			
-			if(preg_match('#(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+.*?\s+MAC:(.+?)\s+(.+?)\s+(.+?)\s+(.+?)\s+\[(.+?)\]\s+\"([A-Z]+)\s+(.+?)\s+.*?"\s+([0-9]+)\s+([0-9]+)#',$line,$re)){
-				$time=$re[3];
-				$prox=$re[4];
-				$mac=$re[5];
-				$date=date("Y-m-d H:i:s",strtotime($re[9]));
-				$ip=$re[6];
-				$user=$re[8];
-				
-				$proto=$re[10];
-				$return_code=$re[12];
-				$size=$re[13];	
-				$uri=$re[11];
-				//$ff[]="F=2";
-				//while (list ($a, $b) = each ($re) ){$ff[]="$a=$b";}
-				//$array["RE"]=@implode("<br>", $ff);
-				$array["PROXY"]=$prox;
-				$array["IP"]=$ip;
-				$array["URI"]=$uri;
-				$array["DATE"]=$date;
-				$array["MAC"]=$mac;
-				$array["USER"]=$user;
-				$array["USER"]=$user;
-				$array["PROTO"]=$proto;
-				$array["CODE"]=$return_code;
-				$array["SIZE"]=$size;
-				$array["LINE"]=$line;
-				
-				$mline=$squidacc->Buildline($array);
-				if(is_array($mline)){$data['rows'][] =$mline;$c++;}
-				continue;
-				
+		}
+		
+		if($user<>null){
+			if($tcp->isValid($user)){
+				$ident[]="<a href=\"javascript:blur()\"
+				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$user');\"
+				style='text-decoration:underline;color:$color'>$user</a>";
+			}else{
+				$ident[]="<a href=\"javascript:blur()\"
+				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&uid=$user');\"
+				style='text-decoration:underline;color:$color'>$user</a>";
 			}
+		}
+		
+		if($mac<>null){
+			$ident[]="<a href=\"javascript:blur()\"
+			OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&MAC=$mac');\"
+			style='text-decoration:underline;color:$color'>$mac</a>";
+		
+		}		
+		
+		$identities=@implode("&nbsp;|&nbsp;", $ident);
+				
+		$data['rows'][] = array(
+			'id' => $md,
+			'cell' => array(
+				"$spanON$date$spanOFF",
+				"$spanON$uri.$return_code_text$spanOFF",
+				"$spanON$identities$spanOFF"
+				)
+			);
+				
+		
 			
-
-			
-			if(preg_match('#(.*?)\s+([0-9]+)\s+([0-9:]+).*?\]:\s+(.*?)\s+(.+)\s+(.+)\s+.+?"([A-Z]+)\s+(.+?)\s+.*?"\s+([0-9]+)\s+([0-9]+)#',$line,$re)){
-	
-			if(preg_match("#(TCP_DENIED|ERR_CONNECT_FAIL)#", $line)){
-					$color="#BA0000";
-				}			
-				    $dates="{$re[1]} {$re[2]} ".date('Y'). " {$re[3]}";
-					$ip=$re[4];
-					$user=$re[5];
-					
-					$re[6]=trim($re[6]);
-					if($re[5]=="-"){
-						if( ($re[6]<>"-") && !is_null($re[6])){
-							$re[5]=$re[6];
-							$re[6]="-";
-						}	
-					}
-
-					//$ff[]="F=3";
-					//while (list ($a, $b) = each ($re) ){$ff[]="$a=$b";}
-					//$array["RE"]=@implode("<br>", $ff);
-					
-					$date=date("Y-m-d H:i:s",strtotime($dates));
-					$uri=$re[8];
-					$proto=$re[7];
-					$return_code=$re[8];
-					$size=$re[9];
-					
-					$array["IP"]=$ip;
-					$array["URI"]=$uri;
-					$array["DATE"]=$date;
-					$array["MAC"]=$mac;
-					$array["USER"]=$user;
-					$array["USER"]=$user;
-					$array["PROTO"]=$proto;
-					$array["CODE"]=$return_code;
-					$array["SIZE"]=$size;
-					$array["LINE"]=$line;					
-					$mline=$squidacc->Buildline($array);
-					if(is_array($mline)){$data['rows'][] =$mline;$c++;}				
-					
-					continue;
-						
-			}				
-
-		writelogs("Not Filtered: $line",__FUNCTION__,__FILE__,__LINE__);
 
 	}
-	$data['total'] = $c;
+	
 	echo json_encode($data);	
 }
 

@@ -620,12 +620,13 @@ function AJAX_COMPUTER_RESSOURCES() {
 		$html = "<br>
 		<table style='width:100%'>
 		<tr>
-		<td valign='top' width=1%>$deploy<hr>$shareaccess</td>
-		<td valign='top'>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top' width=1%>$deploy<hr>$shareaccess</td>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 		<span style='font-size:16px'>$computer->ComputerRealName:: {netressources}</span>
 		<br>
 		<div style='width:100%;height:250px;overflow:auto'>
-		<table style='width:99%' class=form>";
+		<div style='width:95%' class=form>
+		<table >";
 		while ( list ( $num, $ligne ) = each ( $tbl ) ) {
 			
 			if ($ligne == null) {
@@ -668,7 +669,7 @@ function AJAX_COMPUTER_RESSOURCES() {
 	}
 	
 	$html = $html . "
-			</table>
+			</table></div>
 		</div>
 	</td>
 	
@@ -699,7 +700,7 @@ function AJAX_COMPUTER_OPENPORTS() {
 	$html = "
 	<table style='width:100%'>
 	<tr>
-		<td valign='top'>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 	<div  id='nmap' style='height:250px;width:100%;overflow:auto'>
 	<center>
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
@@ -724,7 +725,7 @@ function AJAX_COMPUTER_OPENPORTS() {
 	</table>
 	</div>
 	</td>
-	<td valign='top' width=1%>$button</td>
+	<td valign='top' style='vertical-align:top' style='vertical-align:top' width=1%>$button</td>
 	</tr>
 	</table>";
 	$html = "<div style='padding:20px;padding-top:0px;'>$html</div>";
@@ -747,11 +748,11 @@ function AJAX_COMPTER_ALIASES() {
 	<br><H3>$_userid: {alias}</H3>
 		<table style='width:100%'>
 	<tr>
-	<td width=1% valign='top'><img src='img/96-computer-alias.png' style='margin-top:15px'></td>
-	<td valign='top' width=99%>
+	<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/96-computer-alias.png' style='margin-top:15px'></td>
+	<td valign='top' style='vertical-align:top' style='vertical-align:top' width=99%>
 		<div id='computer_aliases'>" . AJAX_COMPTER_ALIASES_LIST () . "</div>
 	</td>
-	<td width=1% valign='top'>$add</td>
+	<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'>$add</td>
 	</tr>
 	</table>
 	";
@@ -797,7 +798,7 @@ function AJAX_COMPUTER_DNS_FORM($uid) {
 		if(isset($_GET["zone-name"])){
 			$computer->DnsZoneName = $_GET["zone-name"];
 		}
-	}
+	} 
 	$ldap = new clladp ( );
 	$domains = $ldap->hash_get_all_domains ();
 	$DnsZoneName = Field_array_Hash ( $domains, "DnsZoneName", $computer->DnsZoneName, "style:font-size:14px", null, 0, null, $disabled );
@@ -876,8 +877,8 @@ function AJAX_COMPUTER_MATERIAL_OS() {
 {ComputerOS}:$computerOS&nbsp;|&nbsp;$computer->ComputerMachineType&nbsp;|&nbsp;$computer->ComputerCPU</div>
 <table style='width:100%'>
 	<tr>
-	<td colspan=2 valign='top'><img src='img/linux_cluster_install-128.png'></td>
-	<td valign='top'>
+	<td colspan=2 valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/linux_cluster_install-128.png'></td>
+	<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 			<table>
 			
 				<tr>
@@ -960,6 +961,7 @@ function AJAX_COMPUTER() {
 	$page = CurrentPageName ();
 	$tpl = new templates ( );
 	$modify_js_text=$tpl->javascript_parse_text("{change}");
+	$TF=time();
 	
 	$EnableDHCPServer = $sock->GET_INFO ( 'EnableDHCPServer' );
 	
@@ -982,7 +984,7 @@ function AJAX_COMPUTER() {
 	}
 	
 	$uidenc=urlencode($_GET["userid"]);
-	$delete = Paragraphe ( 'delete-64.png', '{delete_this_computer}', "{delete_this_computer}","javascript:Loadjs('computer.delete.php?uid=$uidenc')" );
+	$delete = Paragraphe ( 'delete-64.png', '{delete_this_computer}', "{delete_this_computer}","javascript:Loadjs('computer.delete.php?uid=$uidenc&t={$_GET["t"]}')" );
 	$bind9 = new bind9 ( );
 	$t=time();
 	if ($EnableDHCPServer == 1) {
@@ -1031,6 +1033,8 @@ function AJAX_COMPUTER() {
 			</tr>	";
 	}
 	
+	
+	
 	$MacField = Field_text ('ComputerMacAddress', 
 	$computer->ComputerMacAddress, 'width:95%;font-size:14px;padding:3px;font-weight:bold',null,null,null,false,
 	"ComputerFindByMac()" );
@@ -1054,7 +1058,6 @@ function AJAX_COMPUTER() {
 		$computer_infos_services=null;
 		$add_computer=1;
 	}
-	
 
 	
 	$html = "
@@ -1067,7 +1070,7 @@ function AJAX_COMPUTER() {
 	
 	
 	<table style='width:100%'>
-	<td width=1% valign='top'>
+	<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'>
 		<div id='computer_refresh_div'>$computer_icon</div>
 		$password
 		$computer_infos_services
@@ -1075,7 +1078,7 @@ function AJAX_COMPUTER() {
 		$wakeonlan
 		$delete
 		</td>
-	<td valign='top' width=99% style='vertical-align:top !important'>
+	<td valign='top' style='vertical-align:top' style='vertical-align:top' width=99% style='vertical-align:top !important'>
 		   <div style='width:95%' class=form>
 			<table style='width:100%'>
 				<tr>
@@ -1126,10 +1129,10 @@ function AJAX_COMPUTER() {
 				
 				<tr>
 					<td colspan=3 align='right' style='padding:10px'>
-						<hr>" . button ( $button_title, "SaveComputerForm('FFM34567-{$_GET["userid"]}');",16 ) . "
+						<hr>" . button ( $button_title, "SaveComputerForm$TF();",16 ) . "
 					</td>
 				</tr>
-				$computer_infos
+				
 				
 				</table>
 				</div>
@@ -1171,12 +1174,42 @@ function ComputerRefresh(){
 	if(document.getElementById('container-computer-tabs')){RefreshTab('container-computer-tabs');}
 	if(document.getElementById('main_dansguardiangroups_tabs')){RefreshTab('main_dansguardiangroups_tabs');}	
 }
+
+function SaveComputerForm$TF(){
+	var XHR = new XHRConnection();
+	if(document.getElementById('ComputerMacAddress')){
+		 XHR.appendData('ComputerMacAddress',document.getElementById('ComputerMacAddress').value);	
+	}
+    XHR.appendData('userid','{$_GET["userid"]}');
+	XHR.appendData('SaveComputerInfo','yes');
+	XHR.appendData('add_computer_form','$add_computer');
+	XHR.appendData('gpid','{$_GET["gpid"]}');
+	XHR.appendData('Yahoowin','{$_GET["Yahoowin"]}');
 	
-function SaveComputerForm(form_name){
-	m_userid=document.getElementById('uid').value;
-	//Form_name,pageToSend,return_box,noHidden,ReturnValues,idRefresh,uriRefresh,function_callback
-	ParseForm(form_name,'domains.edit.user.php',false,false,false,'computer_refresh_div',null,x_SaveComputerForm);
+	
+	
+	if(document.getElementById('uid')){
+		 XHR.appendData('uid',document.getElementById('uid').value);	
+	}
+	if(document.getElementById('ComputerIP')){
+		 XHR.appendData('ComputerIP',document.getElementById('ComputerIP').value);	
+	}	
+	if(document.getElementById('DnsZoneName')){
+		 XHR.appendData('DnsZoneName',document.getElementById('DnsZoneName').value);	
+	}	
+	if(document.getElementById('DnsType')){
+		 XHR.appendData('DnsType',document.getElementById('DnsType').value);	
+	}	
+	if(document.getElementById('DnsMXLength')){
+		 XHR.appendData('DnsMXLength',document.getElementById('DnsMXLength').value);	
+	}	  
+	
+	
+	AnimateDiv('computer_refresh_div');
+	XHR.sendAndLoad('$page', 'GET',x_SaveComputerForm);
+
 }
+
 	
 var x_ComputerFindByMac= function (obj) {
 	var results=obj.responseText;
@@ -1250,7 +1283,7 @@ function AJAX_USER_WARNING(){
 			if(!$mapi->Connect($userid,$user->password)){
 				$f[]="
 					<tr>
-						<td width=1% valign='top'><img src='img/warning-panneau-24.png'></td>
+						<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/warning-panneau-24.png'></td>
 						<td style='font-size:13px;color:#D45D17'>
 							<strong>{mailbox_error}</strong><br>
 							<i style='font-size:9px;color:#D45D17'>$mapi->error</i>
@@ -1263,7 +1296,7 @@ function AJAX_USER_WARNING(){
 					$size=FormatBytes($storesize/1024);
 					$f[]="
 					<tr>
-					<td width=1% valign='top'><img src='img/info-24.png'></td>
+					<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/info-24.png'></td>
 					<td style='font-size:13px;color:#D45D17'>
 						<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('domains.edit.user.zarafa.store.size.php?uid=$userid')\"
 						style='text-decoration:underline;font-weight:bold'>{mailbox_size}:&nbsp;$size</a>
@@ -1299,7 +1332,7 @@ function AJAX_USER_WARNING(){
 				
 				$f[]="
 				<tr>
-					<td width=1% valign='top'><img src='img/warning-panneau-24.png'></td>
+					<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/warning-panneau-24.png'></td>
 					<td style='font-size:13px;color:#D45D17'>
 						<strong>{duplicate_uidNumber}</strong><br>
 						<i style='font-size:9px;color:#D45D17'>".@implode("\n", $uiderr)."</i>
@@ -1327,7 +1360,7 @@ function AJAX_USER_WARNING(){
 			if ($user->NotASambaUser) {
 				$f[]="
 				<tr>
-					<td width=1% valign='top'><img src='img/warning-panneau-24.png'></td>
+					<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/warning-panneau-24.png'></td>
 					<td style='font-size:13px;color:#D45D17'>
 						<strong>{this_not_a_samba_user}</strong><br>
 						<i style='font-size:9px;color:#D45D17'>{this_not_a_samba_user_explain}</i>
@@ -1346,7 +1379,7 @@ function AJAX_USER_WARNING(){
 			if(preg_match("#No such user#", $datas)){
 				$f[]="
 				<tr>
-					<td width=1% valign='top'><img src='img/warning-panneau-24.png'></td>
+					<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/warning-panneau-24.png'></td>
 					<td style='font-size:13px;color:#D45D17'>
 						<strong>{id_no_such_user}</strong><br>
 						<i style='font-size:10px;color:#D45D17'>{id_no_such_user_explain}</i>
@@ -1358,7 +1391,7 @@ function AJAX_USER_WARNING(){
 				$len=strlen($datas);
 				if($len>3){
 					$f[]="<tr>
-						<td width=1% valign='top'><img src='img/24-green.png'></td>
+						<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/24-green.png'></td>
 						<td style='font-size:13px;color:black'>
 						<div><strong style='font-size:13px'>{operating_system_user_has}</strong><br></div>
 						<i style='font-size:9px;color:#black'>$datas</i>
@@ -1374,7 +1407,7 @@ function AJAX_USER_WARNING(){
 		if($ZarafaUserSafeMode==1){
 			$f[]="
 			<tr>
-				<td width=1% valign='top'><img src='img/error-24.png'></td>
+				<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/error-24.png'></td>
 				<td style='font-size:13px;color:#D45D17'>
 					<strong>{this_not_a_samba_user}</strong><br>
 					<i style='font-size:10px;color:#D45D17'>{ZARAFA_SAFEMODE_EXPLAIN}</i>
@@ -1386,7 +1419,7 @@ function AJAX_USER_WARNING(){
 	
 	if(count($f)>0){
 		$tpl = new templates ( );
-		$html="<table style='width:99%' class=form><tbody>".@implode("\n", $f)."</tbody></table>";
+		$html="<div style='width:95%' class=form><table style='width:100%'><tbody>".@implode("\n", $f)."</tbody></table></form>";
 		echo  $tpl->_ENGINE_parse_body ( $html );
 	}	
 }
@@ -1621,7 +1654,7 @@ function USER_ALIASES_FORM_ADD() {
     					<td nowrap colspan=2><strong style='font-size:12.5px;'>{add_new_alias}:&laquo;{in_the_same_organization}&raquo;</strong></td>
     				</tr>
     				<tr>
-    					<td valign='top'>
+    					<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 	    					<table>
 	    						<tr>
 	    							<td>" . Field_text ( 'aliases', null, 'width:150px;font-size:14px;padding:3px',null,null,null,false,"AddNewAliasesCheckEnter(event)" ) . "</td>
@@ -1638,7 +1671,7 @@ function USER_ALIASES_FORM_ADD() {
     				<td nowrap colspan=2><strong style='font-size:12.5px;'>{add_new_alias}:&laquo;{out_of_organization}&raquo;</strong></td>
     			</tr>
     			<tr>
-    				<td valign='top'>
+    				<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 	    					<table>
 	    						<tr>
 	    							<td>" . Field_text ( 'fullaliase', null, 'width:250px;font-size:14px;padding:3px',null,null,null,false,"AddNewAliasesCheckEnter(event)"  ) . "</td>
@@ -1723,10 +1756,10 @@ function USER_ALIASES($userid) {
 	$title = "
     	<table style='width:100%'>
     		<tr>
-    		<td valign='top' width=80%>
+    		<td valign='top' style='vertical-align:top' style='vertical-align:top' width=80%>
     			<h1>{aliases}:&nbsp;&laquo;$user->uid&raquo;</h1>
     		</td>
-    			<td valign='top'>$boutton</td>
+    			<td valign='top' style='vertical-align:top' style='vertical-align:top'>$boutton</td>
     		</tr>
     	</table>";
 	
@@ -1749,8 +1782,8 @@ function USER_ALIASES($userid) {
     	<div class=explain>{aliases_text}:&nbsp;&laquo;<b>$user->mail&raquo;</b></div>
     	<table style='width:100%'>
     	<tr>
-    		<td valign='top' width=1%><br><img src='img/96-bg_addresses.png' style='margin-right:30px'></td>
-    		<td valign='top' width=98%><div id='aliases_list'>$aliases_list</div></td>
+    		<td valign='top' style='vertical-align:top' style='vertical-align:top' width=1%><br><img src='img/96-bg_addresses.png' style='margin-right:30px'></td>
+    		<td valign='top' style='vertical-align:top' style='vertical-align:top' width=98%><div id='aliases_list'>$aliases_list</div></td>
     		
     	</tr>
     	</table>";
@@ -1784,31 +1817,31 @@ function USER_FORM() {
 	$userid = $_GET["userid"];
 	$html = "
 	<table style='width:100%'>
-	<td valign='top'>
+	<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 		<table style='width:100%;border-right:1px solid #CCCCCC' >
 			<tr>
-				<td valign='top'> " . Paragraphe ( 'folder-org-64.jpg', '{organization}', '{back_to} ' . $ou, "domains.manage.org.index.php?ou=$ou" ) . "</td>
+				<td valign='top' style='vertical-align:top' style='vertical-align:top'> " . Paragraphe ( 'folder-org-64.jpg', '{organization}', '{back_to} ' . $ou, "domains.manage.org.index.php?ou=$ou" ) . "</td>
 			</tr>
 		
 		
 			<tr>
-				<td valign='top'> " . Paragraphe ( 'folder-user-64.jpg', '{account}', '{manage_account_text}', "javascript:LoadUsersTab(\"$userid\",\"0\")" ) . "</td>
+				<td valign='top' style='vertical-align:top' style='vertical-align:top'> " . Paragraphe ( 'folder-user-64.jpg', '{account}', '{manage_account_text}', "javascript:LoadUsersTab(\"$userid\",\"0\")" ) . "</td>
 			</tr>
 			<tr>
-			<td valign='top'> " . Paragraphe ( 'folder-usermailbox-64.jpg', '{mailbox}', '{manage_mailbox_text}', "javascript:LoadUsersTab(\"$userid\",\"1\")" ) . "</td>		
+			<td valign='top' style='vertical-align:top' style='vertical-align:top'> " . Paragraphe ( 'folder-usermailbox-64.jpg', '{mailbox}', '{manage_mailbox_text}', "javascript:LoadUsersTab(\"$userid\",\"1\")" ) . "</td>		
 			</tr>
 			<tr>
-			<td valign='top'> " . Paragraphe ( 'folder-useraliases-64.jpg', '{aliases}', '{manage_aliases_text}', "javascript:LoadUsersTab(\"$userid\",\"2\")" ) . "</td>		
+			<td valign='top' style='vertical-align:top' style='vertical-align:top'> " . Paragraphe ( 'folder-useraliases-64.jpg', '{aliases}', '{manage_aliases_text}', "javascript:LoadUsersTab(\"$userid\",\"2\")" ) . "</td>		
 			</tr>
 			<tr>
-			<td valign='top'> " . Paragraphe ( 'folder-address-64.jpg', '{address}', '{address_text}', "javascript:LoadUsersTab(\"$userid\",\"4\")" ) . "</td>		
+			<td valign='top' style='vertical-align:top' style='vertical-align:top'> " . Paragraphe ( 'folder-address-64.jpg', '{address}', '{address_text}', "javascript:LoadUsersTab(\"$userid\",\"4\")" ) . "</td>		
 			</tr>
 			<tr>
-			<td valign='top'> " . Paragraphe ( 'folder-usermove-64.jpg', '{move_member}', '{move_member_text}', "javascript:LoadUsersTab(\"$userid\",\"3\")" ) . "</td>		
+			<td valign='top' style='vertical-align:top' style='vertical-align:top'> " . Paragraphe ( 'folder-usermove-64.jpg', '{move_member}', '{move_member_text}', "javascript:LoadUsersTab(\"$userid\",\"3\")" ) . "</td>		
 			</tr>
 			</table>	
 		</td>
-		<td valign='top'><div id='userdatas'>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'><div id='userdatas'>
 		" . DatasTab ($_GET["userid"] ) . "</div>
 	
 	
@@ -1920,8 +1953,8 @@ function USER_ADDRESS($userid) {
 	$html = "
 		<table style='width:100%'>
 			<tr>
-				<td valign='top' align='center'><br><img src='img/96-bg_mailbox.png'></td>
-				<td valign='top'>
+				<td valign='top' style='vertical-align:top' style='vertical-align:top' align='center'><br><img src='img/96-bg_mailbox.png'></td>
+				<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 				$title
 				<div id='useraddr'>
 				$form
@@ -2029,7 +2062,8 @@ function USER_SAMBA_PRIVILEGES_PAGE() {
 	$html = "
 	<div class=explain>{SAMBA_GROUP_PRIVILEGES_WIZARD}</div>
 	<div id='USER_SAMBA_PRIVILEGES_PAGE'>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table>
 		<tr>
 			<td class=legend>{SAMBA_GROUP_PRIVILEGES}</td>
 			<td>$field</td>
@@ -2039,12 +2073,13 @@ function USER_SAMBA_PRIVILEGES_PAGE() {
 			<hr>
 			" . button ( "{edit}", "SetSambaPrimaryGroupGID()" ) . "
 		</tr>
-	</table>
+	</table></div>
 	<br>
 	$error
 	<form name='FFMPRIVS_$userid'>
 	<input type='hidden' name='userid' value='$userid'>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table>
 	$privileges
 	<tr>
 		<td colspan=2 align='right'>
@@ -2053,7 +2088,7 @@ function USER_SAMBA_PRIVILEGES_PAGE() {
 	
 	</tr>
 	</table>
-	</div>
+	</div></div>
 	
 	
 	";
@@ -2092,13 +2127,13 @@ function USER_SAMBA($userid) {
 	$html = "<div id='samba_div'>
 		<table style='width:100%'>
 		<tr>
-			<td valign='top' width=200px>
+			<td valign='top' style='vertical-align:top' style='vertical-align:top' width=200px>
 				" . Paragraphe ( '64-Folder-privileges.png', '{SAMBA_GROUP_PRIVILEGES}', '{SAMBA_GROUP_PRIVILEGES_TEXT}', "javascript:Loadjs('$page?SAMBA_PRIVILEGES=$userid')", '{SAMBA_GROUP_PRIVILEGES}', "" ) . "
 				$error
 				$WHATHESEE
 				$LOGON_SCRIPT
 				</td>
-			<td valign='top' ><div style='font-size:18px;margin-bottom:10px'>$userid&nbsp;&raquo;&nbsp;{file_share}</div>
+			<td valign='top' style='vertical-align:top' style='vertical-align:top' ><div style='font-size:18px;margin-bottom:10px'>$userid&nbsp;&raquo;&nbsp;{file_share}</div>
 			<div id='USER_SAMBA_FORM'>
 					$insert
 			</div>
@@ -2235,10 +2270,10 @@ function USER_NOT_SAMBA($userid) {
 	$page = CurrentPageName ();
 	$html = "<table style='width:100%'>
 	<tr>
-		<td valign='top'>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 			<div id='shareAccessEnablePicture'><img src='img/not-samba-128.png'></div>
 		</td>
-		<td valign='top'><div style='font-size:16px;font-weight:bold;color:#DD2222'>{this_not_a_samba_user}</div>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'><div style='font-size:16px;font-weight:bold;color:#DD2222'>{this_not_a_samba_user}</div>
 		<hr>
 		<div style='font-size:13px'>{this_not_a_samba_user_explain}</div>
 		
@@ -2346,7 +2381,8 @@ function USER_SAMBA_FORM($userid) {
 	$html = "
 	<form name='userLdapform'>
 	<input type='hidden' name='SambaUid' value='$userid'>
-		<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+		<table>
 			<tr>
 				<td align='right'nowrap class=legend>dn:</strong>
 				<td>$dn</td>
@@ -2367,10 +2403,11 @@ function USER_SAMBA_FORM($userid) {
 				<td align='right' class=legend nowrap>User SID:</strong>
 				<td>$user->sambaSID&nbsp;</td>
 			</tr>						
-		</table>
+		</table></div>
 		</form>
 		<div id='sambdirs'>
-<table style='width:99%' class=form>
+		<div style='width:95%' class=form>
+<table>
 			<tr>
 				<td align='right' nowrap class=legend>{SambaAdminServerDefined}:</strong>
 				<td>" . Field_text ( "SambaAdminServerDefined", $user->SambaAdminServerDefined, "width:120px" ) . "</td>
@@ -2392,7 +2429,7 @@ function USER_SAMBA_FORM($userid) {
 			" . button ( "{buildSambaSettings}", "RebuildSambaFields('$userid')",14 ) . "
 			
 		</div>	
-	</div>
+	</div></div>
 
 
 		
@@ -2767,12 +2804,13 @@ function USER_NOTEXISTS($uid,$error=null) {
 	$clean = Paragraphe ( "clean-user-64.png", '{CLEAN_USER_DATAS}', '{CLEAN_USER_EXPLAIN}', "javascript:Loadjs('$page?USER_CLEAN_JS=$uid')" );
 	
 	$html = "
-	<table style='width:99%' class=form>
+			<div style='width:95%' class=form>
+	<table >
 	<tr>
-		<td valign='top'>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 			<img src='img/user-warn.png'>
 		</td>
-		<td valign='top'>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 			<H2 style='color:red'>{USER_DOES_NOT_EXISTS}</H2>
 			<div><code style='font-size:16px'>$error</code></div>
 			<p style='font-size:12px;font-weight:bold'>{USER_DOES_NOT_EXISTS_EXPLAIN}</p>
@@ -2782,7 +2820,7 @@ function USER_NOTEXISTS($uid,$error=null) {
 			
 		</td>
 	</tr>
-	</table>	
+	</table></div>	
 	";
 	
 	$tpl = new templates ( );
@@ -2903,7 +2941,7 @@ function USER_MESSAGING($userid) {
 	$tr [] = $antispam_leraning;
 	$tr [] = $AmavisSettings;
 	
-	$tables [] = "<center><table style='width:90%' class=form><tr>";
+	$tables [] = "<center><div style='width:95%' class=form><table><tr>";
 	$t = 0;
 	while ( list ( $key, $line ) = each ( $tr ) ) {
 		$line = trim ( $line );
@@ -2911,7 +2949,7 @@ function USER_MESSAGING($userid) {
 			continue;
 		}
 		$t = $t + 1;
-		$tables [] = "<td valign='top'>$line</td>";
+		$tables [] = "<td valign='top' style='vertical-align:top' style='vertical-align:top'>$line</td>";
 		if ($t == 3) {
 			$t = 0;
 			$tables [] = "</tr><tr>";
@@ -2920,11 +2958,11 @@ function USER_MESSAGING($userid) {
 	}
 	if ($t < 3) {
 		for($i = 0; $i <= $t; $i ++) {
-			$tables [] = "<td valign='top'>&nbsp;</td>";
+			$tables [] = "<td valign='top' style='vertical-align:top' style='vertical-align:top'>&nbsp;</td>";
 		}
 	}
 	
-	$tables [] = "</table></center>";
+	$tables [] = "</table></div></center>";
 	return $tpl->_ENGINE_parse_body ( implode ( "\n", $tables ) );
 
 }
@@ -3236,7 +3274,7 @@ function USER_ACCOUNT_POPUP($userid) {
 			continue;
 		}
 		$t = $t + 1;
-		$tables [] = "<td valign='top'>$line</td>";
+		$tables [] = "<td valign='top' style='vertical-align:top' style='vertical-align:top'>$line</td>";
 		if ($t == 3) {
 			$t = 0;
 			$tables [] = "</tr><tr>";
@@ -3245,7 +3283,7 @@ function USER_ACCOUNT_POPUP($userid) {
 	}
 	if ($t < 3) {
 		for($i = 0; $i <= $t; $i ++) {
-			$tables [] = "<td valign='top'>&nbsp;</td>";
+			$tables [] = "<td valign='top' style='vertical-align:top' style='vertical-align:top'>&nbsp;</td>";
 		}
 	}
 	
@@ -3280,8 +3318,8 @@ function USER_ACCOUNT_POPUP($userid) {
 		<input type='hidden' name='uid' id='uid' value='{$us->uid}'>
 		<table style='width:100%'>
 			<tr>
-			<td valign='top'>$useridentity</td>
-			<td valign='top'><div id='userid-warning'></div></td>
+			<td valign='top' style='vertical-align:top' style='vertical-align:top'>$useridentity</td>
+			<td valign='top' style='vertical-align:top' style='vertical-align:top'><div id='userid-warning'></div></td>
 			</tr>
 		</table>
 		<center>
@@ -3339,10 +3377,11 @@ function USER_MAILBOX_WIZARD_JS() {
 function USER_MAILBOX_WIZARD_STEP1() {
 	
 	$html = "
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table>
 	<tr>
-		<td valign='top'><img src='img/mail-wizard-128.png'></td>
-		<td valign='top'>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/mail-wizard-128.png'></td>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 	<div style='font-size:14px' class=explain>{USER_MAILBOX_WIZARD_STEP1}</div>
 	<div style='font-size:18px'>{mailbox quota}:</div>
 	<div>" . Field_text ( "MailBoxMaxSize", 0, "font-size:18px;padding:5px;width:210px" ) . "
@@ -3360,7 +3399,7 @@ function USER_MAILBOX_WIZARD_STEP1() {
 
 	</td>
 	</tr>
-	</table>
+	</table></div>
 	<hr>
 	<table style='width:100%'>
 	<tr>
@@ -3491,9 +3530,10 @@ function ZARAFA_MAILBOX($uid) {
 	
 	$html = "<table style='width:100%'>
 	<tr>
-		<td width=1% valign='top'><center><img src='img/mailbox-zarafa-128.png' id='zfmbximg'></center><p>&nbsp;</p>$mailboxinfos</td>
-		<td valign='top'><span style='font-size:20px;font-weight:bold'>{$u->DisplayName}&nbsp;&raquo;&nbsp;{mailbox}</span>
-				<table style='width:99%' class=form>
+		<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'><center><img src='img/mailbox-zarafa-128.png' id='zfmbximg'></center><p>&nbsp;</p>$mailboxinfos</td>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'><span style='font-size:20px;font-weight:bold'>{$u->DisplayName}&nbsp;&raquo;&nbsp;{mailbox}</span>
+				<div style='width:95%' class=form>
+				<table>
 					<tr>
 						<td class=legend style='font-size:13px'>{mailbox_size}:</td>
 						<td style='font-size:13px'><strong>$mailboxsize</strong></td>
@@ -3554,7 +3594,7 @@ function ZARAFA_MAILBOX($uid) {
 							" . button ( "{apply}", "Loadjs('$page?zarafa-mailbox-edit=" . base64_encode ( $uid ) . "')" ,"18px") . "</td>
 				</tR>														
 																		
-				</table>
+				</table></div>
 		</td>
 	</tr>
 	</table>
@@ -3681,7 +3721,8 @@ function USER_MAILBOX($uid) {
 	$repair = 
 
 	"<br>
-    <table style='width:99%;' class=form>
+	<div style='width:95%' class=form>
+    <table>
     <tr>
     	<td coslpan=2><H3 style='color:#005447'>{tools}</H3></td>
     </tr>
@@ -3710,7 +3751,7 @@ function USER_MAILBOX($uid) {
     			<td width=99% class=legend nowrap>" . texttooltip ( '{delete_this_mailbox}', '{delete_this_mailbox_text}', "javascript:Loadjs('$page?script=delete_mailbox&uid=$uid');" ) . "</td>
 				<td width=1%>" . imgtootltip ( "ed_delete.gif", '{delete_this_mailbox}', "Loadjs('$page?script=delete_mailbox&uid=$uid');" ) . "</td>    			
     	</tr> 	
-    </table>";
+    </table></div>";
 	
 	$img_left_mbx = imgtootltip ( 'folder-mailbox-96.png', "{debug}", "Loadjs('$page?debug-mailbox-js=$uid')" );
 	
@@ -3758,7 +3799,7 @@ function USER_MAILBOX($uid) {
 	<div id='usermailboxformdiv'>
       	<table style='width:100%'>
       	<tr>
-      		<td width=1% valign='top'>$img_left_mbx</td>
+      		<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'>$img_left_mbx</td>
       	<td>
 		 
 		    <form name='FFUserMailBox'>
@@ -3770,7 +3811,7 @@ function USER_MAILBOX($uid) {
 		      			<hr style='border-color:#005447'>
 		      		</td>
 		      	</tr>
-		      		<td valign='top'>
+		      		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 		      		$no_mailbox
 		      			<table style='width:100%'>
 		      		      	<tr>
@@ -3782,7 +3823,7 @@ function USER_MAILBOX($uid) {
 			      				<td><strong style='font-size:13px;font-weight:normal'>$uid</strong></td>
 		      				</tr>      	
 		      				<tr>
-			      				<td  align='right' nowrap class=legend valign='top'>{mailbox quota}:</td>
+			      				<td  align='right' nowrap class=legend valign='top' style='vertical-align:top' style='vertical-align:top'>{mailbox quota}:</td>
 			      				<td>
 			      					<table style='width:100%'>
 			      						<tr>
@@ -3800,7 +3841,8 @@ function USER_MAILBOX($uid) {
 		      				</tr>
 		      				<tr>
 		      					<td colspan=2 align='left'>
-		      						<table style='width:60%' class=form>
+		      						<div style='width:95%' class=form>
+		      						<table style='width:60%'>
 			      						<tr>
 					      					<td class=legend>{mplt}:</td> 
 					      					<td>" . Field_checkbox ( 'mp_l', 1, $ini->_params["mailbox"] ["l"], null, '{mpl}' ) . "</td>
@@ -3837,7 +3879,7 @@ function USER_MAILBOX($uid) {
 								      			<td class=legend nowrap><strong>{mpat}</strong>:</td>
 								      			<td>" . Field_checkbox ( 'mp_a', 1, $ini->_params["mailbox"] ["a"], null, '{mpa}' ) . "</td>
 							      			</tr>		      				      					      					      				      				      					      					      			
-			      					</table>
+			      					</table></div>
 		      					</td>
 		      			</tr>
 		      	
@@ -3845,7 +3887,7 @@ function USER_MAILBOX($uid) {
 		 			$button
 		      	</table>
 		      	</td>
-		      	<td valign='top' style='padding:5px'>
+		      	<td valign='top' style='vertical-align:top' style='vertical-align:top' style='padding:5px'>
 						$main_graph
       					$mailboxInfos
       					$repair
@@ -4387,7 +4429,8 @@ function USER_FTP() {
 	$form = "<div id='$time'>
 	 	
       	<input type='hidden' id='UserFTPEdit' name='UserFTPEdit' value='{$_GET["userid"]}'>
-      	<table style='width:99%;' class=form>
+      	<div style='width:95%' class=form>
+      	<table>
       	
       	<tr>
 	      	
@@ -4428,7 +4471,7 @@ function USER_FTP() {
 	      		<table>
 	      		<tr>
 	      			<td  style='font-size:13px'>" . Field_text ( 'homeDirectoryFTP', $user->homeDirectory, 'width:190px;font-size:14px;paddong:3px', null, null ) . "&nbsp;</td>
-	      			<td valign='top'>
+	      			<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 	      			$browse
 	      			
 	      			</td>
@@ -4438,7 +4481,7 @@ function USER_FTP() {
       	<tr>
       		<td colspan=2 align='right'><hr>$button</td>
       	</tr>      	
-      	</table>
+      	</table></div>
       	<script>
       	
 	function x_SaveFTPUserSettings(obj) {
@@ -4516,8 +4559,8 @@ function USER_FTP_APPLY() {
 	$apply = "
 	<table style='width:100%'>
 	<tr>
-		<td valign='top'>" . imgtootltip ( 'system-64.png', '{apply_pureftpd}', "javascript:ParseForm('FFTP','$page',true);LoadAjax('applypureftpd','$page?applypureftpd=yes');" ) . "</td>
-		<td valign='top'><H5>{apply_pureftpd}</H5></td>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'>" . imgtootltip ( 'system-64.png', '{apply_pureftpd}', "javascript:ParseForm('FFTP','$page',true);LoadAjax('applypureftpd','$page?applypureftpd=yes');" ) . "</td>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'><H5>{apply_pureftpd}</H5></td>
 		</tr>
 		<tr>
 		<td colspan=2>{apply_pureftpd_text}</td>
@@ -4633,7 +4676,13 @@ function COMPUTER_SAVE_INFOS() {
 		}
 	}
 	
+	$_GET["uid"]=str_replace("%24", "$", $_GET["uid"]);
+	$_GET["uid"]=str_replace("$$", "$", $_GET["uid"]);
 	$computer = new computers ($_GET["userid"]);
+	
+	$fIP=explode(".",$_GET["ComputerIP"]);
+	while (list ($index, $val) = each ($fIP) ){$fIP[$index]=intval($val);}
+	$_GET["ComputerIP"]=@implode(".", $fIP);
 	
 	$computer->uid = $_GET["uid"] . '$';
 	$computer->ComputerMacAddress = $_GET["ComputerMacAddress"];
@@ -4749,8 +4798,8 @@ function USER_FETCHMAIL($uid) {
 	
 	<table style='width:100%'>
 	<tr>
-	<td valign='top'><br><div id='fdm_list' style='width:450px'>" . USER_FETCHMAIL_LIST ( $uid ) . "</div></td>
-	<td valign='top' width=1%>
+	<td valign='top' style='vertical-align:top' style='vertical-align:top'><br><div id='fdm_list' style='width:450px'>" . USER_FETCHMAIL_LIST ( $uid ) . "</div></td>
+	<td valign='top' style='vertical-align:top' style='vertical-align:top' width=1%>
 	
 	<table style='width:100%'><tr>
 	<td>" . imgtootltip ( 'add-fetchmail-48.png', '{add_rule}', "fdm_addrule('$uid')" ) . "</td>
@@ -4868,11 +4917,12 @@ function USER_CANONICAL_POPUP() {
 <H1>{sender_canonical}</H1>
 <table style='width:100%'>
 <tr>
-	<td valign='top'><img src='img/128-email-out.png'></td>
-<td valign='top'>
+	<td valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/128-email-out.png'></td>
+<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 <p class=caption>{sender_canonical_text}</p>
 <div id='canonical_div'>
-<table style='width:99%' class=form>		
+<div style='width:95%' class=form>
+<table >		
 		<tr>
 			<td align='right' nowrap class=legend $styleTDRight nowrap>{sender_canonical}:</strong>
 			<td $styleTDLeft>" . Field_text ( 'SaveSenderCanonical', $canonical, 'width:70%' ) . "&nbsp;" . imgtootltip ( 'ed_delete.gif', '{delete}', "USER_CANONICAL_DELETE()" ) . "</td>
@@ -4884,7 +4934,7 @@ function USER_CANONICAL_POPUP() {
 </div>
 </td>
 </tr>
-</table>";
+</table></div>";
 	
 	$tpl = new templates ( );
 	echo $tpl->_ENGINE_parse_body ( $html );
@@ -5001,17 +5051,18 @@ function USER_TRANSPORT_SALS_POPUP() {
 	<strong style='font-size:13px;font-weight:normal'>{$_GET["smtp-sasl-popup"]}::{AUTH_SETTINGS}</strong><br>
 	<table style='width:100%'>
 	<tr>
-		<td valign='top'><img src='img/inboux-out-128.png'></td>
-		<td valign='top'>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/inboux-out-128.png'></td>
+		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 		<div id='sasl_div'>
-			<table style='width:99%' class=form>
+			<div style='width:95%' class=form>
+			<table>
 				<tr>
-					<td valign='top' class=legend nowrap>{username}:</td>
-					<td valign='top'>" . Field_text ( 'sasl_username', $username ) . "</td>
+					<td valign='top' style='vertical-align:top' style='vertical-align:top' class=legend nowrap>{username}:</td>
+					<td valign='top' style='vertical-align:top' style='vertical-align:top'>" . Field_text ( 'sasl_username', $username ) . "</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend nowrap>{password}:</td>
-					<td valign='top'>" . Field_password ( 'sasl_password', '******' ) . "</td>
+					<td valign='top' style='vertical-align:top' style='vertical-align:top' class=legend nowrap>{password}:</td>
+					<td valign='top' style='vertical-align:top' style='vertical-align:top'>" . Field_password ( 'sasl_password', '******' ) . "</td>
 				</tr>		
 				<tr>
 					<td colspan=2 ALIGN='RIGHT'>
@@ -5019,7 +5070,7 @@ function USER_TRANSPORT_SALS_POPUP() {
 					<input type='button' OnClick=\"javascript:USER_TRANSPORT_SASL_SAVE();\" value='{edit}&nbsp;&raquo;'>
 					</td>
 				</tr>
-			</table>
+			</table></div>
 			</div>
 		</td>
 	</tr>
@@ -5046,7 +5097,8 @@ function USER_CHANGE_UID() {
 	$html = "
 	<div class=explain>{change_uid_explain}</div>
 	<div id='chuiseriddiv'>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table>
 	<tr>
 		<td class=legend style='font-size:13px'>{original}:</td>
 		<td><strong style='font-size:13px;font-weight:normal'>$uid</td>
@@ -5060,7 +5112,7 @@ function USER_CHANGE_UID() {
 		<hr>". button("{apply}","ChangeUniqueIdentifier('$uid')")."
 		</td>
 	</tr>
-	</table>
+	</table></div>
 	
 	";
 	$priv = new usersMenus ( );
@@ -5572,9 +5624,9 @@ function AJAX_COMPUTER_OCS() {
 	$html = "
 	<table style='width:100%'>
 	<tr>
-		<td valign='top' width=1%>$install
+		<td valign='top' style='vertical-align:top' width=1%>$install
 		</td>
-		<td valign='top' width=99%><div style='width:99%;height:350px;overflow:auto'>$ocsinfos</div></td>
+		<td valign='top' style='vertical-align:top' width=99%><div style='width:99%;height:350px;overflow:auto'>$ocsinfos</div></td>
 	</tr>
 	</table>
                        	
@@ -5656,7 +5708,8 @@ function USER_PRIVILEGES() {
 	
 	
 	$group_allow = "<H3>{groups_allow}</H3><br>
-		<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+		<table >
 		
 			<tr>
 				<td align='right'><strong style='font-size:13px;font-weight:normal'>{AllowAddUsers}:</td><td width=1%><img src='img/$AllowAddUsers'></td>
@@ -5664,11 +5717,12 @@ function USER_PRIVILEGES() {
 			<tr>
 				<td align='right'><strong style='font-size:13px;font-weight:normal'>{AsDansGuardianGroupRule}:</td><td width=1%><img src='img/$AsDansGuardianGroupRule'></td>
 			</tr>			
-		</table>
+		</table></div>
 ";
 	
 	$org_allow = "<H3>{organization_allow}</H3><br>
-<table style='width:99%' class=form>	
+	<div style='width:95%' class=form>
+<table >	
 	<tr><td align='right' nowrap><strong style='font-size:13px;font-weight:normal'>{AllowEditOuSecurity}:</td><td width=1%><img src='img/$AllowEditOuSecurity'></td></tr>
 	<tr><td align='right' nowrap><strong style='font-size:13px;font-weight:normal'>{AsInventoryAdmin}:</td><td width=1%><img src='img/$AsInventoryAdmin'></td></tr>	
 	<tr>
@@ -5708,13 +5762,14 @@ function USER_PRIVILEGES() {
 		<td align='right' nowrap><strong style='font-size:13px;font-weight:normal'>{AsOrgAdmin}:</td>
 		<td width=1%><img src='img/$AsOrgAdmin'></td>
 	</tr>	
-</table>";
+</table></div>";
 	
 
 	
 	
 	$user_allow = "<H3>{users_allow}</H3><br>
-					<table style='width:99%' class=form>
+					<div style='width:95%' class=form>
+					<table>
 																	
 						<tr>
 							<td align='right' nowrap><strong style='font-size:13px;font-weight:normal'>{AllowChangeAntiSpamSettings}:</td>
@@ -5766,7 +5821,7 @@ function USER_PRIVILEGES() {
 							<td align='right' nowrap><strong style='font-size:13px;font-weight:normal'>{AllowEditAsWbl}:</td>
 							<td width=1%><img src='img/$AllowEditAsWbl'></td>
 						</tr>									
-					</table>";
+					</table></div>";
 	
 	$tpl = new templates ( );
 	return $tpl->_ENGINE_parse_body ( "$user_allow$group_allow$org_allow" );

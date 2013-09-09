@@ -21,7 +21,8 @@ if($argv[1]=='--bind'){compile_bind();die();}
 	if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 	if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
-
+	if($argv[1]=="--reload-if-run"){$GLOBALS["OUTPUT"]=true;reload_if_run();die();}
+	
 
 
 
@@ -176,6 +177,14 @@ function restart(){
 	start(true);
 
 }
+
+function reload_if_run(){
+	$pid=PID_NUM();
+	$unix=new unix();
+	if(!$unix->process_exists($pid)){die();}
+	reload();
+}
+
 function reload(){
 	$unix=new unix();
 	$LOGBIN="DHCP Server";
@@ -194,7 +203,7 @@ function reload(){
 	$kill=$unix->find_program("kill");
 	BuildDHCP(true);
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN reloading PID $pid since {$time}mn\n";}	
-	shell_exec("$kill -HUP $pid");
+	stop(true);
 	start(true);
 
 }

@@ -54,7 +54,7 @@ function ismounted(){
 	$unix=new unix();
 	$datas=explode("\n",@file_get_contents("/proc/mounts"));
 	while (list ($num, $val) = each ($datas)){
-		if(preg_match("#^shm\s+\/dev\/shm\s+tmpfs#", $val,$re)){
+		if(preg_match("#^shm\s+.*?\/shm\s+tmpfs#", $val,$re)){
 			echo "Starting......: [SMP] shm is mounted\n";
 			return;
 		}
@@ -294,12 +294,18 @@ function caches_squid_z(){
 		return;
 	}
 	$pidffile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidTfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$oldpid=$unix->get_pid_from_file($pidffile);
 	if($unix->process_exists($oldpid)){
 		events_squid_caches( "Starting......: [SMP] Aready running pid $oldpid",__FUNCTION__,__LINE__);
 		return;
 	}
 	@file_put_contents($pidffile, getmypid());
+	if($unix->file_time_min($pidTfile)<5){return;}
+	@unlink($pidTfile);
+	@file_put_contents($pidTfile, time());
+	
+	
 	
 	$stopstart=false;
 	$GetLocalCaches=$unix->SQUID_CACHE_FROM_SQUIDCONF_FULL();
@@ -307,7 +313,7 @@ function caches_squid_z(){
 	$f[]="cache_effective_user squid";
 	$f[]="pid_filename	/var/run/squid-temp.pid";
 	$f[]="http_port 127.0.0.1:65478";
-	print_r($GetLocalCaches);
+	
 	while (list ($cache_dir, $line) = each ($GetLocalCaches)){
 		if(!is_dir($cache_dir)){
 			events_squid_caches("Starting......: [SMP] creating $cache_dir",__FUNCTION__,__LINE__);

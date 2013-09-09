@@ -20,7 +20,9 @@ include_once(dirname(__FILE__).'/framework/class.settings.inc');
 	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 	if($argv[1]=="--status"){$GLOBALS["OUTPUT"]=true;status();die();}
 	if($argv[1]=="--pars"){print_r(ParseParams());die();}
+	if($argv[1]=="--build"){buildConfig(true);reload();die();}
 		
+	
 		
 
 
@@ -39,6 +41,30 @@ function restart(){
 	
 	
 }	
+
+function reload(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+		return;
+	}	
+	$pid=FPM_PID();
+	
+	
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: PHP-FPM: Service Stopped...\n";}
+		start(true);
+		return;
+	}	
+	
+	$kill=$unix->find_program("kill");
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: PHP-FPM: Reloading PID $pid...\n";}
+	shell_exec("kill -HUP $pid >/dev/null 2>&1");
+	
+}
 	
 function stop($aspid=false){
 	$unix=new unix();
@@ -308,8 +334,21 @@ function FPM_PID(){
 	return $unix->PIDOF($bin);
 }
 
-function buildConfig(){
+function buildConfig($aspid=false){
 	$unix=new unix();
+	
+	if($aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	
 	$sock=new sockets();
 	$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
 	if(!is_file($phpfpm)){return;}
@@ -367,6 +406,7 @@ function buildConfig(){
 	$f[]=";listen.allowed_clients = 127.0.0.1";
 	if($process_priority){$f[]="process.priority = $ProcessNice";}
 	$f[]="pm = dynamic";
+	//$f[]="log_level = debug";
 	$f[]="pm.max_children = 20";
 	$f[]="pm.start_servers = 2";
 	$f[]="pm.min_spare_servers = 1";
@@ -442,7 +482,7 @@ function buildConfig(){
 	$f[]="error_log = /var/log/php5-fpm.log";
 	if($syslog_facility){$f[]="syslog.facility = daemon";}
 	if($syslog_facility){$f[]="syslog.ident = php-fpm";}
-	$f[]="log_level = error";
+	$f[]="log_level = ERROR";
 	$f[]=";emergency_restart_threshold = 0";
 	$f[]=";emergency_restart_interval = 0";
 	$f[]=";process_control_timeout = 0";

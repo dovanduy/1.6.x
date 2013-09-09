@@ -245,6 +245,11 @@ if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLAS
 	
 	$DisableAPTNews=$sock->GET_INFO('DisableAPTNews');
 	if(!is_numeric($DisableAPTNews)){$DisableAPTNews=0;}
+	$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
+	if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
+	if($EnableSystemUpdates==0){$DisableAPTNews=1;}
+	
+	
 	if($DisableAPTNews==0){
 		$datas=trim(@file_get_contents("/etc/artica-postfix/apt.upgrade.cache"));
 		if(preg_match('#nb:([0-9]+)\s+#is',$datas,$re)){
@@ -386,7 +391,7 @@ if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLAS
 		return;
 	}	
 	$filtered=false;
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	$squidGuardEnabled=$sock->GET_INFO("squidGuardEnabled");
 	$DansGuardianEnabled=$sock->GET_INFO("DansGuardianEnabled");
 	if($EnableUfdbGuard==1){$filtered=true;}

@@ -24,6 +24,11 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 include_once(dirname(__FILE__).'/ressources/class.squid.youtube.inc');
 
+$sock=new sockets();
+$EnableRemoteSyslogStatsAppliance=$sock->GET_INFO("EnableRemoteSyslogStatsAppliance");
+if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
+if($EnableRemoteSyslogStatsAppliance==1){die();}
+
 if($argv[1]=="--reset"){members_uid_reset();die();}
 
 members_uid();

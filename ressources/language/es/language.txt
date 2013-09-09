@@ -3688,7 +3688,7 @@ Once backup task selected, you will choose the backup date in order to browse yo
 <rule_number>Rule number</rule_number>
 <run>run</run>
 <runat>Time to execute</runat>
-<running>running</running>
+<running>Running</running>
 <run_every>Run every</run_every>
 <run_maintenance_now>Run maintenance now</run_maintenance_now>
 <run_task>Run task</run_task>
@@ -4050,8 +4050,7 @@ the Postfix SMTP server delays all responses by "error sleep time" seconds.</smt
 <smtp_connection_cache_destinations>Postfix Connection Cache</smtp_connection_cache_destinations>
 <smtp_connection_cache_destinations_field>Per-destination connection caching</smtp_connection_cache_destinations_field>
 <smtp_connection_cache_destinations_minitext>Permanently enable SMTP connection caching for the specified destinations. With SMTP connection caching, a connection is not closed immediately after completion of a mail transaction. </smtp_connection_cache_destinations_minitext>
-<smtp_connection_cache_destinations_text>
-With SMTP connection caching, Postfix can deliver multiple messages over the same SMTP connection[br]
+<smtp_connection_cache_destinations_text>With SMTP connection caching, Postfix can deliver multiple messages over the same SMTP connection[br]
 SMTP Connection caching is a performance feature.[br]
 Whether or not it actually improves performance depends on the conditions
 [ul]

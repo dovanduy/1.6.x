@@ -1,7 +1,11 @@
 <?php
+header("Pragma: no-cache");
+header("Expires: 0");
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+header("Cache-Control: no-cache, must-revalidate");
 
-	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
-	include_once('ressources/class.templates.inc');
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.squid.inc');
@@ -184,6 +188,15 @@ function tabs(){
 	$array["categories"]="{categories}";
 
 	$array["ufdbguard-status"]="{service_status}";
+	
+	
+	if(!$users->APP_UFDBGUARD_INSTALLED){
+		unset($array["section_basic_filters-terms"]);
+		unset($array["categories"]);
+		unset($array["ufdbguard-status"]);
+		unset($array["rewrite-rules"]);
+	}
+	
 	$fontsize=14;
 	if(count($array)>6){$fontsize=11.5;}
 	$t=time();
@@ -238,17 +251,7 @@ function tabs(){
 	
 	
 	
-	$html= "
-	<center><div id='rules-toolbox'></div></center>
-	<div id=main_dansguardian_mainrules style='width:101%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_dansguardian_mainrules').tabs();
-			});
-		</script>";	
-	
+	$html= build_artica_tabs($html,'main_dansguardian_mainrules');
 	SET_CACHED(__FILE__, __FUNCTION__, null, $html);
 	echo $html;
 
@@ -338,8 +341,8 @@ function rules_toolbox_left(){
 	
 	$Computers=numberFormat($Computers,0,""," ");
 	$sock=new sockets();
-	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
-	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	
 
 	$UsersRequests=$q->COUNT_ROWS("webfilters_usersasks");
 
@@ -390,7 +393,7 @@ function rules_toolbox_left(){
 			<tr>
 				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='middle' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('squid.disableUfdb.php')\" nowrap><b>$disable_service</td>
+				OnClick=\"javascript:Loadjs('squid.disableUfdb.php')\" nowrap><b><span style='font-size:13px'>$disable_service</td>
 			</tr>
 			</table>
 		</td>
@@ -411,7 +414,7 @@ function rules_toolbox_left(){
 			<tr>
 				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='middle' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('squid.nodes.php')\" nowrap><b>$Computers</b> {computers}</td>
+				OnClick=\"javascript:Loadjs('squid.nodes.php')\" nowrap><b><span style='font-size:13px'>$Computers</span></b><span style='font-size:13px'> {computers}</td>
 			</tr>
 			</table>
 		</td>
@@ -424,7 +427,7 @@ function rules_toolbox_left(){
 			<tr>
 				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('squidguardweb.unblock.console.php')\" nowrap><b>$UsersRequests</b> {unblocks}</td>
+				OnClick=\"javascript:Loadjs('squidguardweb.unblock.console.php')\" nowrap><b><span style='font-size:13px'>$UsersRequests</span></b><span style='font-size:13px'> {unblocks}</td>
 			</tr>
 			</table>
 		</td>
@@ -436,7 +439,7 @@ function rules_toolbox_left(){
 			<tr>
 				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('squid.blocked.events.php?js=yes')\" nowrap><b>$CountDeBlocked</b> {blocked_requests}</td>
+				OnClick=\"javascript:Loadjs('squid.blocked.events.php?js=yes')\" nowrap><b><span style='font-size:13px'>$CountDeBlocked</span></b><span style='font-size:13px'> {blocked_requests}</td>
 			</tr>
 			</table>
 		</td>
@@ -451,7 +454,7 @@ function rules_toolbox_left(){
 			<tr>
 				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('ufdbguard.php?force-reload-js=yes')\" nowrap>{reload_service}</td>
+				OnClick=\"javascript:Loadjs('ufdbguard.php?force-reload-js=yes')\" nowrap><span style='font-size:13px'>{reload_service}</td>
 			</tr>
 			</table>
 		</td>
@@ -463,7 +466,7 @@ function rules_toolbox_left(){
 			<tr>
 				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('ufdbguard.sevents.php?js=yes')\" nowrap>{service_events}</td>
+				OnClick=\"javascript:Loadjs('ufdbguard.sevents.php?js=yes')\" nowrap><span style='font-size:13px'>{service_events}</td>
 			</tr>
 			</table>
 		</td>
@@ -475,11 +478,25 @@ function rules_toolbox_left(){
 			<tr>
 				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline;text-transform:capitalize' 
-				OnClick=\"javascript:Loadjs('ufdbguard.debug.php')\" nowrap>{debug} [$ufdbgverb_txt]</td>
+				OnClick=\"javascript:Loadjs('ufdbguard.debug.php')\" nowrap><span style='font-size:13px'>{debug} [$ufdbgverb_txt]</td>
 			</tr>
 			</table>
 		</td>
-	</tr>		
+	</tr>
+
+	<tr>
+		<td valign='middle' width=1%><img src='img/stop-32.png'></td>
+		<td valign='middle' width=99%>
+			<table style='width:100%'>
+			<tr>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
+				OnClick=\"javascript:Loadjs('squidguardweb.php')\" nowrap><span style='font-size:13px'>{banned_page_webservice}</td>
+			</tr>
+			</table>
+		</td>
+	</tr>	
+	
 	<tr>
 		<td valign='middle' width=1%><img src='img/32-categories.png'></td>
 		<td valign='middle' width=99%>
@@ -487,7 +504,7 @@ function rules_toolbox_left(){
 			<tr>
 				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('squid.categories.php')\" nowrap><strong>$CountDeCategories&nbsp;{categories}</td>
+				OnClick=\"javascript:Loadjs('squid.categories.php')\" nowrap><strong style='font-size:13px'>$CountDeCategories&nbsp;{categories}</strong></td>
 			</tr>
 			</table>
 		</td>
@@ -500,7 +517,7 @@ function rules_toolbox_left(){
 			<tr>
 				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('ufdbguard.databases.php?scripts=config-file');\" nowrap>{config_file_tiny}</td>
+				OnClick=\"javascript:Loadjs('ufdbguard.databases.php?scripts=config-file');\" nowrap><span style='font-size:13px'>{config_file_tiny}</td>
 			</tr>
 			</table>
 		</td>
@@ -513,7 +530,7 @@ function rules_toolbox_left(){
 			<tr>
 				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('ufdbguard.hide.php');\" nowrap>{hide}</td>
+				OnClick=\"javascript:Loadjs('ufdbguard.hide.php');\" nowrap><span style='font-size:13px'>{hide}</td>
 			</tr>
 			</table>
 		</td>
@@ -711,13 +728,13 @@ if($tpl->language=="fr"){$TBSIZE=175;$TBWIDTH=636;}
 	//{display: '&nbsp;', name : 'dup', width :31, sortable : false, align: 'center'}, 
 	
 $html="
-<div>
+<center id='rules-toolbox' style='margin-bottom:5px'></center>
 $error_ldap
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 </div>
 <script>
 var rowid=0;
-$(document).ready(function(){
+function flexRTStart$t(){
 $('#flexRT$t').flexigrid({
 	url: '$page?rules-table-list=yes&t=$t',
 	dataType: 'json',
@@ -747,7 +764,19 @@ $('#flexRT$t').flexigrid({
 	rpOptions: [10, 20, 30, 50,100,200]
 	
 	});   
-});
+	setTimeout('ToolBox$t()',800);	
+	
+}
+
+function LeftToolBox$t(){
+	LoadAjaxTiny('rules-toolbox-left','$page?rules-toolbox-left=yes');
+}
+function ToolBox$t(){
+	RulesToolBox();
+	setTimeout('LeftToolBox$t()',800);
+}
+	
+
 
 	function DansGuardianNewRule(){
 		DansGuardianEditRule(-1)
@@ -807,8 +836,8 @@ $('#flexRT$t').flexigrid({
 			LoadAjaxTiny('rules-toolbox','$page?rules-toolbox=yes');
 		}
 	
-	RulesToolBox();	
-	LoadAjaxTiny('rules-toolbox-left','$page?rules-toolbox-left=yes');
+
+	setTimeout('flexRTStart$t()',800);	
 	
 </script>
 
@@ -1154,6 +1183,7 @@ function rules_toolbox(){
 function EnableUFDB2(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableUfdbGuard",1);
+	$sock->SET_INFO("EnableUfdbGuard2",1);
 	$sock->getFrameWork("cmd.php?reload-dansguardian=yes");
 	$sock->getFrameWork("cmd.php?squidnewbee=yes");	
 }

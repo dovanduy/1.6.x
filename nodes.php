@@ -526,6 +526,8 @@ function tabs(){
 	$array["system"]="{system}";
 	
 	
+	
+	
 	if($blk->settings_inc["SQUID_INSTALLED"]){
 		$array["squid"]="{APP_SQUID}";
 	}
@@ -568,15 +570,7 @@ function tabs(){
 	
 	
 	
-	echo "
-	<div id=node_tabs_{$_GET["nodeid"]} style='width:99.5%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#node_tabs_{$_GET["nodeid"]}').tabs();
-			});
-		</script>";	
+	echo build_artica_tabs($html, "node_tabs_{$_GET["nodeid"]}");	
 
 }
 

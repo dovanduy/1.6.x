@@ -15,7 +15,14 @@ include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 if(isset($_GET["interfaces"])){interfaces();exit;}
 if(isset($_GET["search-interfaces"])){interfaces_search();exit;}
 if(isset($_GET["ifconfig"])){ifconfig();exit;}
+if(isset($_GET["current"])){tab_current();exit;}
+if(isset($_GET["initd"])){initd();exit;}
+if(isset($_GET["initdajax"])){initdajax();exit;}
+
+if(isset($_POST["initdcontent"])){initdcontent();exit;}
 tabs();
+
+
 
 
 function tabs(){
@@ -27,9 +34,9 @@ function tabs(){
 	$array["{main_interfaces}"]="$page?interfaces=yes";
 	if($users->VLAN_INSTALLED){$array["VLAN"]='miniadm.network.vlans.php';}
 	$array["{virtual_ips}"]='miniadm.network.virtips.php';
-	$array["{display_current_config}"]="$page?ifconfig=yes";
-	
-	$array["{failover}:{events}"]="miniadm.ucarp.events.php";
+	$array["{network_bridges}"]="miniadm.network.bridges.php";
+	$array["{status}"]="$page?current=yes";
+	$array["{failover}"]="miniadm.ucarp.php";
 	echo $boot->build_tab($array);	
 }
 
@@ -40,6 +47,78 @@ function interfaces(){
 	
 	
 }
+
+function tab_current(){
+	$boot=new boostrap_form();
+	$page=CurrentPageName();
+	$array["{display_current_config}"]="$page?ifconfig=yes";
+	$array["{init_script}"]="$page?initd=yes";
+	echo $boot->build_tab($array);
+}
+
+function initdajax(){
+	$tpl=new templates();
+	$sock=new sockets();
+	$datas=@implode("\n",unserialize(base64_decode($sock->getFrameWork("system.php?ifconfig-initd=yes"))));
+	echo $datas;
+}
+
+function initd(){
+	$sock=new sockets();
+	$tpl=new templates();
+	$t=time();
+	$explain=$tpl->_ENGINE_parse_body("{init_script_net_explain}");
+	$page=CurrentPageName();
+	$datas=unserialize(base64_decode($sock->getFrameWork("system.php?ifconfig-initd=yes")));
+	
+	while (list ($key, $value) = each ($datas) ){
+		if(preg_match("#^echo#", $value)){continue;}
+		$value=str_replace(">>/var/log/net-start.log 2>&1 || true","",$value);
+		$tt[]=str_replace(">>/var/log/net-start.log 2>&1","",$value);
+		
+	}
+	$datasTXT=@implode("\n", $tt);
+	$datas2=@implode("\n",unserialize(base64_decode($sock->getFrameWork("system.php?ifconfig-initdcontent=yes"))));
+	if(trim($datas2)==null){$datas2="#!/bin/sh -e\n#Content here\nexit 0\n";}
+	$html= "
+	<div class=explain>$explain</div>		
+	<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:95%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:12px !important'
+	id='NetFileGeneratedConfig'>$datasTXT</textarea>
+
+	<H3>Personal commands</H3>
+	<div id='$t'></div>
+	<center>". button("{apply}","Save$t()")."</center>
+	<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:95%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:12px !important'
+	id='textarea2$t'>$datas2</textarea>		
+	<center>". button("{apply}","Save$t()")."</center>	
+	<script>
+	var xSave$t = function (obj) {
+			var results=obj.responseText;
+			document.getElementById('$t').innerHTML='';
+			if(results.length>3){alert(results);return;}
+		}
+	
+	function Save$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('initdcontent', encodeURIComponent(document.getElementById('textarea2$t').value));
+		AnimateDiv('$t');
+		XHR.sendAndLoad('$page', 'POST',xSave$t);
+	}
+</script>
+	";	
+	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function initdcontent(){
+	$_POST["initdcontent"]=url_decode_special_tool($_POST["initdcontent"]);
+	$content=urlencode(base64_encode($_POST["initdcontent"]));
+	$sock=new sockets();
+	$datas=base64_decode($sock->getFrameWork("system.php?network-initdcontent=$content"));
+	echo $datas;
+}
+
 
 function interfaces_search(){
 	$sock=new sockets();
@@ -148,6 +227,9 @@ function NicBuildTR($NicRequested){
 	if(preg_match("#^vlan[0-9]+#",$val)){return;}
 	if(preg_match("#^lxc[0-9]+#",$val)){return;}
 	
+	
+	
+	
 	$sock=new sockets();
 	$snortInterfaces=array();
 	$LXCEthLocked=$sock->GET_INFO("LXCEthLocked");
@@ -194,6 +276,13 @@ function NicBuildTR($NicRequested){
 		$tcp->ifconfig(trim($val));
 		$array_ipcfg=listnicinfos(trim($val));
 		$ipddr=$array_ipcfg["tcp_address"];
+		
+		
+		$defaultroute_text=null;
+		
+		if($nic->defaultroute==1){
+			$defaultroute_text="<div><i style='color:#C40000;font-size:11px'>{default_route}</i></div>";
+		}
 		
 
 /*		return array(
@@ -266,7 +355,7 @@ function NicBuildTR($NicRequested){
 			<td style='color:{$array_ipcfg["textColor"]}'>$NicRequested</td>
 			<td style='color:{$array_ipcfg["textColor"]}'><i class='icon-signal'></i>&nbsp;$ipddr<div style='color:{$array_ipcfg["textColor"]};font-size:12px'><i>{failover}:$failover_text</i><br>{$array_ipcfg["IPV6"]}</td>
 			<td style='color:{$array_ipcfg["textColor"]}'><i class='icon-signal'></i>&nbsp;{$array_ipcfg["mac_addr"]}$oldMac</td>
-			<td style='color:{$array_ipcfg["textColor"]}'>{$array_ipcfg["gateway"]}</td>
+			<td style='color:{$array_ipcfg["textColor"]}'>{$array_ipcfg["gateway"]}$defaultroute_text</td>
 			<td style='color:{$array_ipcfg["textColor"]}'>{$array_ipcfg["NETMASK"]}</td>
 		</tr>");
 		

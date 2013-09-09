@@ -36,6 +36,7 @@ if(isset($_POST["DisableSquidDefaultSchedule"])){DisableSquidDefaultSchedule();e
 page();
 
 function AddNewSchedule_js(){
+	header("content-type: application/x-javascript");
 	$ID=$_GET["ID"];
 	$tpl=new templates();
 	$page=CurrentPageName();
@@ -339,7 +340,7 @@ function AddNewSchedule_save(){
 	$defaultdesc=replace_accents($info);
 	if($_POST["TimeDescription"]==null){$_POST["TimeDescription"]=$defaultdesc ." : {$_POST["TimeText"]}";}
 	
-	$_POST["TimeDescription"]=mysql_escape_string($_POST["TimeDescription"]);
+	$_POST["TimeDescription"]=mysql_escape_string2($_POST["TimeDescription"]);
 	
 	$sql="INSERT IGNORE INTO system_schedules (TimeDescription,TimeText,TaskType,enabled) 
 	VALUES('{$_POST["TimeDescription"]}','{$_POST["TimeText"]}','{$_POST["TaskType"]}',1)";
@@ -368,6 +369,13 @@ function AddNewSchedule_delete(){
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}	
+	
+	$tablename="Taskev{$_POST["ID"]}";
+	if($q->TABLE_EXISTS($tablename, "artica_events")){
+		$q->QUERY_SQL("DROP TABLE $tablename", "artica_events");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}	
+	
 	$sock=new sockets();
 	$sock->getFrameWork("services.php?build-schedules=yes");	
 	

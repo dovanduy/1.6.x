@@ -1,12 +1,41 @@
 <?php
-if(count($_GET)==0){echo "AjaxTopMenu('update-white-32-tr','admin.top.menus.php?update-white-32-tr=yes');AjaxTopMenuTiny('div-high-menus','Inotify.php?switch-high=yes');";die();}
+
+if(posix_getuid()==0){$_GET["verbose"]=true;}
 
 if(count($_GET)>0){
-	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
-	include_once('ressources/class.templates.inc');
+	if(isset($_GET["verbose"])){
+			$GLOBALS["VERBOSE"]=true;
+			$GLOBALS["DEBUG_PROCESS"]=true;
+			include_once("ressources/logs.inc");
+			ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+			if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			include_once('ressources/class.templates.inc');
+			if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	if(isset($_GET["switch-high"])){high_menus();die();}
+	if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	if(isset($_GET["refresh-service-status"])){refresh_service_status();die();}
+	if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 }
+
+
+
+$t=time();	
+header("content-type: application/x-javascript");
+echo "
+AjaxTopMenu('update-white-32-tr','admin.top.menus.php?update-white-32-tr=yes');
+AjaxTopMenuTiny('div-high-menus','Inotify.php?switch-high=yes');
+
+if(document.getElementById('IMAGE_STATUS_INFO')){
+	var value=document.getElementById('IMAGE_STATUS_INFO').innerHTML;
+	if(value.length<20){
+		LoadAjax('IMAGE_STATUS_INFO','admin.index.php?status_right_image=yes&t=$t');
+	}
+}
+";
+if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+die();
+
+
 
 
 function refresh_service_status(){

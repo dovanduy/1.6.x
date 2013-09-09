@@ -124,8 +124,8 @@ function cache_popup_save(){
 
 	while (list ($key, $value) = each ($_POST) ){
 		$fields[]="`$key`";
-		$values[]="'".mysql_escape_string($value)."'";
-		$edit[]="`$key`='".mysql_escape_string($value)."'";
+		$values[]="'".mysql_escape_string2($value)."'";
+		$edit[]="`$key`='".mysql_escape_string2($value)."'";
 	
 	}
 

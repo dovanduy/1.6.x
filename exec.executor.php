@@ -1,18 +1,34 @@
 <?php
+if(preg_match("#--verbose#",implode(" ",$argv))){
+	$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;
+	ini_set('html_errors',0);ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	print "Starting......: artica-executor debug mode\n";
+}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate classes\n";}
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
+if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate class frame.class.inc\n";}
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
+if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate class class.os.system.inc\n";}
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
+if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate class class.system.network.inc\n";}
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
+if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate class framework/class.settings.inc\n";}
 include_once(dirname(__FILE__)."/framework/class.settings.inc");
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;}
+if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate instantiate classes done...\n";}
 $GLOBALS["EXEC_PID_FILE"]="/etc/artica-postfix/".basename(__FILE__).".daemon.pid";
-$unix=new unix();
 
+if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor pid file:{$GLOBALS["EXEC_PID_FILE"]}\n";}
+$unix=new unix();
+if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor checking {$GLOBALS["EXEC_PID_FILE"]}\n";}
 if($unix->process_exists(@file_get_contents($GLOBALS["EXEC_PID_FILE"]))){
 	print "Starting......: artica-executor Already executed pid ". @file_get_contents($GLOBALS["EXEC_PID_FILE"])."...\n";
 	die();
 }
+
+
+print "Starting......: artica-executor filling memory\n";
 FillMemory();
 if($argv[1]=='--mails-archives'){mailarchives();die();}
 if($argv[1]=='--stats-console'){stats_console();die();}
@@ -675,6 +691,7 @@ if(($GLOBALS["TIME"]["GROUP30s"]==0)){$GLOBALS["TIME"]["GROUP30s"]=time();return
 
 //5H
 function group5h(){
+	$array=array();
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
 	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
@@ -683,7 +700,7 @@ function group5h(){
 	@file_put_contents($filetime, time());
 
 	
-	$array[]="exec.awstats.php";
+	
 	
 	if($GLOBALS["POSTFIX_INSTALLED"]){$array[]="exec.postfix.iptables.php --parse-sql";}
 	

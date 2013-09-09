@@ -630,6 +630,8 @@ function start($skipGrant=false){
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: MySQL daemon ($SERV_NAME) success\n";}
 		if($CREATEDB){$q=new mysql_squid_builder();$q->CheckTables();}
+		$q=new mysql_squid_builder();
+		$q->MEMORY_TABLES_RESTORE();		
 		
 	}
 	if(!$unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmdline\n";}}
@@ -656,6 +658,9 @@ function stop(){
 		return;
 	}	
 	
+	
+	$q=new mysql_squid_builder();
+	$q->MEMORY_TABLES_DUMP();
 	
 	$time=$unix->PROCCESS_TIME_MIN($pid);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Stopping MySQL Daemon ($SERV_NAME) with a ttl of {$time}mn\n";}
@@ -819,7 +824,7 @@ function databasesize($force=false){
 	
 		@file_put_contents($pidfile, getmypid());
 		$time=$unix->file_time_min($arrayfile);
-		if($arrayfile<20){return;}
+		if($time<20){return;}
 	}
 	
 	

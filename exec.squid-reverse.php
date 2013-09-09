@@ -70,9 +70,7 @@ function build(){
 		if(!is_numeric($EnableNginx)){$EnableNginx=1;}
 		if($EnableNginx==1){
 			echo "Starting......: Building reverse websites with nginx...\n";
-			$php5=$unix->LOCATE_PHP5_BIN();
 			@file_put_contents("/etc/squid3/reverse.conf","\n");
-			shell_exec("$php5 ".dirname(__FILE__)."/exec.nginx.php --build");
 			return;
 		}
 	

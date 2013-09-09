@@ -1,5 +1,5 @@
 <?php
-
+include_once(dirname(__FILE__).'/class.nginx-sources.inc');
 
 class squid_reverse{
 	private $hostname=null;
@@ -13,6 +13,7 @@ class squid_reverse{
 	private $miss_access_allow=array();
 	private $cache_peer_defs=array();
 	private $http_access_allow=array();
+	public $errors_page=array(400,401,403,404,500,501,502,503,504,505,507,509,510);
 	
 	public function squid_reverse($hostname=null){
 		if($hostname<>null){
@@ -73,9 +74,10 @@ class squid_reverse{
 			  KEY `enabled` (`enabled`)
 			)  ENGINE = MYISAM;";
 			$q->QUERY_SQL($sql,$this->database);
+			if(!$q->ok){return;}
 		}
 		
-		if(!$q->TABLE_EXISTS("reverse_dirs")){
+		
 			$sql="CREATE TABLE IF NOT EXISTS `reverse_dirs` (
 			  `folderid` INT NOT NULL AUTO_INCREMENT,
 			  `replaceid` INT(10)  NOT NULL DEFAULT '0',
@@ -98,7 +100,8 @@ class squid_reverse{
 			  KEY `enabled` (`enabled`)
 			)  ENGINE = MYISAM;";
 			$q->QUERY_SQL($sql,$this->database);
-		}	
+			if(!$q->ok){return;}
+		
 
 		if(!$q->FIELD_EXISTS("reverse_dirs", "localdirectory")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_dirs` ADD `localdirectory` CHAR(255)");
@@ -129,6 +132,7 @@ class squid_reverse{
 			  UNIQUE KEY `keys_zone` (`keys_zone`)
 			)  ENGINE = MYISAM;";
 		$q->QUERY_SQL($sql,$this->database);
+		if(!$q->ok){return;}
 		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_aliases` (
@@ -140,6 +144,7 @@ class squid_reverse{
 			  UNIQUE KEY `alias` (`alias`)
 			)  ENGINE = MYISAM;";
 		$q->QUERY_SQL($sql,$this->database);		
+		if(!$q->ok){return;}
 		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_replace_www` (
@@ -169,6 +174,7 @@ class squid_reverse{
 			  KEY `stringtosearch` (`stringtosearch`)
 			)  ENGINE = MYISAM;";
 		$q->QUERY_SQL($sql,$this->database);
+		if(!$q->ok){return;}
 		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_replace_group` (
@@ -177,9 +183,23 @@ class squid_reverse{
 			  PRIMARY KEY (`ID`),
 			  KEY `groupname` (`groupname`)
 			)  ENGINE = MYISAM;";
-		$q->QUERY_SQL($sql,$this->database);		
+		$q->QUERY_SQL($sql,$this->database);	
+		if(!$q->ok){return;}	
 		
-		
+		$sql="CREATE TABLE IF NOT EXISTS `nginx_error_pages` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `pagename` CHAR(255)  NOT NULL,
+			  `title` CHAR(255)  NOT NULL,
+			  `error_code` INT(10) NOT NULL DEFAULT '404',
+			  `headers` TEXT,
+			  `body` TEXT,
+			  PRIMARY KEY (`ID`),
+			  KEY `pagename` (`pagename`),
+			  KEY `error_code` (`error_code`),
+			  KEY `title` (`title`)
+			)  ENGINE = MYISAM;";
+		$q->QUERY_SQL($sql,$this->database);
+		if(!$q->ok){return;}		
 
 		
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_pools` (
@@ -191,6 +211,7 @@ class squid_reverse{
 			  KEY `poolname` (`poolname`)
 			)  ENGINE = MYISAM;";
 		$q->QUERY_SQL($sql,$this->database);
+		if(!$q->ok){return;}
 
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_pools_list` (
 			  `ID` INT NOT NULL AUTO_INCREMENT,
@@ -206,31 +227,98 @@ class squid_reverse{
 			  KEY `sourceid` (`sourceid`)
 			)  ENGINE = MYISAM;";
 		$q->QUERY_SQL($sql,$this->database);		
+		if(!$q->ok){return;}
 		
-		
-		if(!$q->TABLE_EXISTS("reverse_sources")){
-			$sql="CREATE TABLE IF NOT EXISTS `reverse_sources` (
+
+
+		if(!$q->TABLE_EXISTS("authenticator_rules")){
+			$sql="CREATE TABLE IF NOT EXISTS `authenticator_rules` (
 			  `ID` INT NOT NULL AUTO_INCREMENT,
-			  `servername` CHAR(255)  NOT NULL,
-			  `ipaddr` CHAR(60)  NOT NULL,
-			  `port` smallint(3)  NOT NULL,
-			  `ssl` smallint(1)  NOT NULL,
-			  `sslport` smallint(3)  NOT NULL DEFAULT '443',
+			  `rulename` CHAR(255)  NOT NULL,
+			  `explain` TEXT,
 			  `enabled` smallint(1)  NOT NULL DEFAULT '1',
-			  `ForceRedirect` smallint(1)  NOT NULL DEFAULT '1',
-			  `ssl_commname` CHAR(128) NULL,
-			  `forceddomain` CHAR(255) NULL,
+			  `cachetime` INT NOT NULL DEFAULT '15',
 			  PRIMARY KEY (`ID`),
-			  KEY `ipaddr` (`ipaddr`),
-			  KEY `port` (`port`),
-			  KEY `ssl` (`ssl`),
-			  KEY `sslport` (`sslport`),
+			  KEY `rulename` (`rulename`),
+			  KEY `cachetime` (`cachetime`),
 			  KEY `enabled` (`enabled`)
 			)  ENGINE = MYISAM;";
 			$q->QUERY_SQL($sql,$this->database);
-		}	
-
+		}		
+		if(!$q->TABLE_EXISTS("authenticator_sourceslnk")){
+			$sql="CREATE TABLE IF NOT EXISTS `authenticator_sourceslnk` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `groupid` INT NOT NULL,
+			  `ruleid` INT NOT NULL,
+			  `zorder` smallint(2) NOT NULL,
+			  `zmd5` VARCHAR(90)  NOT NULL,
+			  PRIMARY KEY (`ID`),
+			  KEY `groupid` (`groupid`),
+			  KEY `ruleid` (`ruleid`),
+			  KEY `zorder` (`zorder`),
+			  UNIQUE KEY `zmd5` (`zmd5`)
+			)  ENGINE = MYISAM;";
+			$q->QUERY_SQL($sql,$this->database);
+			if(!$q->ok){return;}
+		}
 		
+		if(!$q->TABLE_EXISTS("authenticator_authlnk")){
+			$sql="CREATE TABLE IF NOT EXISTS `authenticator_authlnk` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `groupid` INT NOT NULL,
+			  `ruleid` INT NOT NULL,
+			  `zorder` smallint(2) NOT NULL,
+			  `zmd5` VARCHAR(90)  NOT NULL,
+			  PRIMARY KEY (`ID`),
+			  KEY `groupid` (`groupid`),
+			  KEY `ruleid` (`ruleid`),
+			  KEY `zorder` (`zorder`),
+			  UNIQUE KEY `zmd5` (`zmd5`)
+			)  ENGINE = MYISAM;";
+			$q->QUERY_SQL($sql,$this->database);
+			if(!$q->ok){return;}
+		}		
+		
+			$sql="CREATE TABLE IF NOT EXISTS `authenticator_groups` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `group_type` INT NOT NULL,
+			  `enabled` smallint(1) NOT NULL,
+			  `groupname` VARCHAR(128)  NOT NULL,
+			  PRIMARY KEY (`ID`),
+			  KEY `group_type` (`group_type`),
+			  KEY `enabled` (`enabled`),
+			  KEY `groupname` (`groupname`)
+			)  ENGINE = MYISAM;";
+			$q->QUERY_SQL($sql,$this->database);
+			if(!$q->ok){return;}
+			
+			
+			$sql="CREATE TABLE IF NOT EXISTS `authenticator_auth` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `group_type` INT NOT NULL,
+			  `enabled` smallint(1) NOT NULL,
+			  `groupname` VARCHAR(128)  NOT NULL,
+			  `params` TEXT  NOT NULL,
+			  PRIMARY KEY (`ID`),
+			  KEY `group_type` (`group_type`),
+			  KEY `enabled` (`enabled`),
+			  KEY `groupname` (`groupname`)
+			)  ENGINE = MYISAM;";
+			$q->QUERY_SQL($sql,$this->database);
+			if(!$q->ok){return;}			
+			
+			
+			$sql="CREATE TABLE IF NOT EXISTS `authenticator_items` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `pattern` VARCHAR(255) NOT NULL,
+			  `groupid` INT  NOT NULL,
+			  PRIMARY KEY (`ID`),
+			  KEY `groupid` (`groupid`),
+			  KEY `pattern` (`pattern`)
+			)  ENGINE = MYISAM;";
+			$q->QUERY_SQL($sql,$this->database);
+			if(!$q->ok){return;}			
+				
 		
 		$sql="CREATE TABLE IF NOT EXISTS `reverse_privs` (
 			 `ID` INT NOT NULL AUTO_INCREMENT,
@@ -243,6 +331,12 @@ class squid_reverse{
 			 KEY `uid` (`uid`)
 			)  ENGINE = MYISAM;";
 			$q->QUERY_SQL($sql,$this->database);
+			if(!$q->ok){return;}
+			
+			
+			$nginx_sources=new nginx_sources(0);
+			$nginx_sources->PatchTables();
+			
 		
 		if(!$q->FIELD_EXISTS("reverse_privs", "sourceid")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_privs` ADD `sourceid` INT NOT NULL, ADD INDEX ( `sourceid`)");
@@ -263,6 +357,16 @@ class squid_reverse{
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `cacheid` INT( 10 ) NOT NULL DEFAULT '0', ADD INDEX ( `cacheid` )");
 			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
 		}
+		
+		$errors=$this->errors_page;
+		while (list ($key, $value) = each ($errors) ){
+			if(!$q->FIELD_EXISTS("reverse_www", "$value")){
+				$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `$value` INT( 10 ) NOT NULL DEFAULT '0', ADD INDEX ( `$value` )");
+				if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			}
+		}
+		
+		
 		if(!$q->FIELD_EXISTS("reverse_www", "replaceid")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `replaceid` INT( 10 ) NOT NULL DEFAULT '0', ADD INDEX ( `replaceid` )");
 			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
@@ -302,23 +406,14 @@ class squid_reverse{
 		if(!$q->FIELD_EXISTS("reverse_www", "certificate")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `certificate` VARCHAR( 255 )");
 			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
-		}			
-			
-		if(!$q->FIELD_EXISTS("reverse_sources", "sslport")){
-				$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `sslport` smallint(3) NOT NULL DEFAULT '443', ADD INDEX ( `sslport`)");
-				if(!$q->ok){echo "<p class=text-error>$q->mysql_error\nALTER TABLE `reverse_sources` ADD `sslport` smallint(3) NOT NULL, ADD INDEX ( `sslport` )</p>";}
 		}
-		if(!$q->FIELD_EXISTS("reverse_sources", "sslport")){
-			$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `sslport` smallint(3) NOT NULL DEFAULT '443', ADD INDEX ( `sslport`)");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error\nALTER TABLE `reverse_sources` ADD `sslport` smallint(3) NOT NULL, ADD INDEX ( `sslport` )</p>";}
-		}		
-		if(!$q->FIELD_EXISTS("reverse_sources", "ForceRedirect")){
-			$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `ForceRedirect` smallint(1) NOT NULL DEFAULT '1' , ADD INDEX ( `ForceRedirect`)");
+
+		if(!$q->FIELD_EXISTS("reverse_www", "debug")){
+			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `debug` smallint(1) NOT NULL DEFAULT 0");
 			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
-		}	
-		if(!$q->FIELD_EXISTS("reverse_sources", "ssl_commname")){
-			$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `ssl_commname` CHAR(128) NULL");
 		}		
+			
+			
 		
 	}
 	

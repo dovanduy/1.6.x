@@ -10,6 +10,8 @@ include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
+include_once(dirname(__FILE__).'/ressources/class.squid.inc');
+
 
 
 if(isset($_GET["verbose"])){$GLOBALS["DEBUG_PRIVS"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
@@ -39,6 +41,10 @@ if(isset($_POST["watchdog"])){watchdog_save();exit;}
 if(isset($_GET["watchdog-events"])){watchdog_events();exit;}
 if(isset($_GET["watchdog-events-search"])){watchdog_events_search();exit;}
 if(isset($_GET["cache-perfs"])){cache_perfs();exit;}
+if(isset($_GET["all-services-status"])){all_services_status();exit;}
+if(isset($_GET["features"])){features();exit;}
+
+
 main_page();
 exit;
 
@@ -101,7 +107,8 @@ function tabs(){
 	$boot=new boostrap_form();
 	$mini=new miniadm();
 	$users=new usersMenus();
-	$array["{service_status}"]="$page?tabs-service=yes";
+	$array["{features}"]="$page?features=yes";
+	$array["{all_services_status}"]="$page?tabs-service=yes";
 	$array["{watchdog}"]="$page?watchdog=yes";
 	$array["{realtime_requests}"]="miniadmin.proxy.access.php?tabs=yes";
 	$array["{sessions}"]="miniadmin.proxy.monitor.sessions.php?section=yes";
@@ -132,8 +139,8 @@ function monitor_section(){
 	$t=time();
 	$boot=new boostrap_form();
 	$mini=new miniadm();	
-	$array["{status}"]="squid.main.quicklinks.php?status=yes";
-	$array["{performances}"]="prxy.monitor.php?proxy-service=yes&size=1600";
+	$array["{status}"]="$page?all-services-status=yes";
+	$array["{performances}"]="miniadm.prxy.monitor.php?proxy-service=yes&size=1600";
 	$array["{cache_performance}"]="$page?cache-perfs=yes";
 	$array["{service_events}"]="miniadmin.proxy.events.php?tabs=yes";
 	echo $boot->build_tab($array);
@@ -149,28 +156,87 @@ function watchdog_params(){
 	$ALL_IPS_GET_ARRAY[null]="{none}";
 	//echo base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig"));
 	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
-	//print_r($MonitConfig);
+	
+	
+	if(!isset($MonitConfig["MAX_RESTART"])){$MonitConfig["MAX_RESTART"]=2;}
+	if(!isset($MonitConfig["MaxLoad"])){$MonitConfig["MaxLoad"]=30;}
+	if(!isset($MonitConfig["MaxLoadReboot"])){$MonitConfig["MaxLoadReboot"]=0;}
+	if(!isset($MonitConfig["MaxLoadFailOver"])){$MonitConfig["MaxLoadFailOver"]=0;}
+	if(!isset($MonitConfig["MinTimeFailOverSwitch"])){$MonitConfig["MinTimeFailOverSwitch"]=15;}
+	if(!isset($MonitConfig["REBOOT_INTERVAL"])){$MonitConfig["REBOOT_INTERVAL"]=30;}
+	if(!isset($MonitConfig["RestartWhenCrashes"])){$MonitConfig["RestartWhenCrashes"]=1;}
+	
+	if(!isset($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
+	if(!isset($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
+	if(!isset($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
+	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=10;}
+	if(!isset($MonitConfig["ExternalPageToCheck"])){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}
+	
+	if(!is_numeric($MonitConfig["MinTimeFailOverSwitch"])){$MonitConfig["MinTimeFailOverSwitch"]=15;}
 	if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
 	if(!is_numeric($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
 	if(!is_numeric($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
-	
-	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=10;}
+	if(!is_numeric($MonitConfig["REBOOT_INTERVAL"])){$MonitConfig["REBOOT_INTERVAL"]=30;}
+		
 	if(!is_numeric($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=10;}
 	if($MonitConfig["MgrInfosMaxTimeOut"]<5){$MonitConfig["MgrInfosMaxTimeOut"]=5;}
-	$MgrInfosMaxTimeOut=$MonitConfig["MgrInfosMaxTimeOut"];
 	
-	if(!isset($MonitConfig["ExternalPageToCheck"])){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}
 	if($MonitConfig["ExternalPageToCheck"]==null){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}
-	$ExternalPageToCheck=$MonitConfig["ExternalPageToCheck"];
 	
-	if(!isset($MonitConfig["MAX_RESTART"])){$MonitConfig["MAX_RESTART"]=2;}
 	if(!is_numeric($MonitConfig["MAX_RESTART"])){$MonitConfig["MAX_RESTART"]=2;}
 	if(!is_numeric($MonitConfig["TestExternalWebPage"])){$MonitConfig["TestExternalWebPage"]=1;}
-	$EnableFailover=$sock->GET_INFO("EnableFailover");
-	if(!is_numeric($EnableFailover)){$EnableFailover=1;}
+	
+
 	if(!is_numeric($MonitConfig["NotifyDNSIssues"])){$MonitConfig["NotifyDNSIssues"]=0;}
 	if(!is_numeric($MonitConfig["DNSIssuesMAX"])){$MonitConfig["DNSIssuesMAX"]=1;}
 	if($MonitConfig["DNSIssuesMAX"]==0){$MonitConfig["DNSIssuesMAX"]=1;}
+	if(!is_numeric($MonitConfig["MaxSwapPourc"])){$MonitConfig["MaxSwapPourc"]=10;}
+	if(!is_numeric($MonitConfig["MaxLoad"])){$MonitConfig["MaxLoad"]=30;}
+	if(!is_numeric($MonitConfig["MaxLoadReboot"])){$MonitConfig["MaxLoadReboot"]=0;}
+	if(!is_numeric($MonitConfig["MaxLoadFailOver"])){$MonitConfig["MaxLoadFailOver"]=0;}
+	if(!is_numeric($MonitConfig["RestartWhenCrashes"])){$MonitConfig["RestartWhenCrashes"]=1;}
+
+	
+	
+	
+	
+	
+	if(!isset($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=1;}
+	if(!isset($MonitConfig["MAX_PING_GATEWAY"])){$MonitConfig["MAX_PING_GATEWAY"]=10;}
+	if(!isset($MonitConfig["PING_FAILED_REPORT"])){$MonitConfig["PING_FAILED_REPORT"]=1;}
+	if(!isset($MonitConfig["PING_FAILED_REBOOT"])){$MonitConfig["PING_FAILED_REBOOT"]=0;}
+	if(!isset($MonitConfig["PING_FAILED_RELOAD_NET"])){$MonitConfig["PING_FAILED_RELOAD_NET"]=1;}
+	
+	
+	
+	if(!is_numeric($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=1;}
+	if(!is_numeric($MonitConfig["MAX_PING_GATEWAY"])){$MonitConfig["MAX_PING_GATEWAY"]=10;}
+	if(!is_numeric($MonitConfig["PING_FAILED_REPORT"])){$MonitConfig["PING_FAILED_REPORT"]=1;}
+	if(!is_numeric($MonitConfig["PING_FAILED_REBOOT"])){$MonitConfig["PING_FAILED_REBOOT"]=0;}
+	if(!is_numeric($MonitConfig["PING_FAILED_FAILOVER"])){$MonitConfig["PING_FAILED_FAILOVER"]=0;}
+	if(!is_numeric($MonitConfig["PING_FAILED_RELOAD_NET"])){$MonitConfig["PING_FAILED_RELOAD_NET"]=0;}
+	
+	
+	$ExternalPageToCheck=$MonitConfig["ExternalPageToCheck"];
+	$MgrInfosMaxTimeOut=$MonitConfig["MgrInfosMaxTimeOut"];
+	$EnableFailover=$sock->GET_INFO("EnableFailover");
+	if(!is_numeric($EnableFailover)){$EnableFailover=1;}
+	if($MonitConfig["REBOOT_INTERVAL"]<10){$MonitConfig["REBOOT_INTERVAL"]=10;}
+	if($MonitConfig["MinTimeFailOverSwitch"]<5){$MonitConfig["MinTimeFailOverSwitch"]=5;}
+	
+	if($MonitConfig["PING_GATEWAY"]==null){
+		$PING_GATEWAY=null;
+		$TCP_NICS_STATUS_ARRAY=unserialize(base64_decode($sock->getFrameWork("cmd.php?TCP_NICS_STATUS_ARRAY=yes")));
+		if(isset($TCP_NICS_STATUS_ARRAY["eth0"])){
+			$PING_GATEWAY=$TCP_NICS_STATUS_ARRAY["eth0"]["GATEWAY"];
+		}
+		if($PING_GATEWAY==null){
+			if(isset($TCP_NICS_STATUS_ARRAY["eth1"])){
+				$PING_GATEWAY=$TCP_NICS_STATUS_ARRAY["eth1"]["GATEWAY"];
+			}	
+		}	
+		$MonitConfig["PING_GATEWAY"]=$PING_GATEWAY;
+	}
 	
 	
 	//FATAL: kid3 registration timed out
@@ -207,27 +273,51 @@ function watchdog_params(){
 	$boot=new boostrap_form();
 	$boot->set_checkbox("watchdog","{enable}",$MonitConfig["watchdog"],array("DISABLEALL"=>true));
 	$boot->set_checkbox("EnableFailover","{enable} {failover}",$EnableFailover,array("TOOLTIP"=>"{EnableFailover_explain}"));
+	$boot->set_field("MinTimeFailOverSwitch", "{failover_ttl} ({minutes})", $MonitConfig["MinTimeFailOverSwitch"],array("TOOLTIP"=>"{failover_ttl_explain}"));
+	
 	$boot->set_checkbox("ALLOW_RETURN_1CPU","{ALLOW_RETURN_1CPU}",$UfdbguardSMTPNotifs["ALLOW_RETURN_1CPU"],array("TOOLTIP"=>"{ALLOW_RETURN_1CPU_EXPLAIN}"));
 	
 	
-	$boot->set_field("watchdogCPU", "{notify_when_cpu_exceed} %", $MonitConfig["watchdogCPU"]);
-	$boot->set_field("watchdogMEM", "{notify_when_memory_exceed} (MB)", $MonitConfig["watchdogMEM"]);
+
 	$boot->set_field("SquidCacheReloadTTL", "{minimum_reload_interval} ({minutes})", $SquidCacheReloadTTL,array("TOOLTIP"=>"{SquidCacheReloadTTL_explain}"));
-	
-	if(!is_numeric($MonitConfig["MaxSwapPourc"])){$MonitConfig["MaxSwapPourc"]=10;}
+	$boot->set_field("REBOOT_INTERVAL", "{minimum_reboot_interval} ({minutes})", $MonitConfig["REBOOT_INTERVAL"],array("TOOLTIP"=>"{minimum_reboot_interval_explain}"));
 	
 	
 	
 	$boot->set_field("MAX_RESTART", "{SQUID_MAX_RESTART}", $MonitConfig["MAX_RESTART"],array("TOOLTIP"=>"{SQUID_MAX_RESTART_EXPLAIN}"));
-	$boot->set_checkbox("TestExternalWebPage","{TestExternalWebPage}",$MonitConfig["TestExternalWebPage"],array("TOOLTIP"=>"{squid_TestExternalWebPage_explain}"));
 	$boot->set_field("MgrInfosMaxTimeOut", "{tests_timeout}  ({seconds})", $MonitConfig["MgrInfosMaxTimeOut"]);
+	
+	$boot->set_spacertitle("{performance}");
+	$boot->set_field("watchdogCPU", "{notify_when_cpu_exceed} %", $MonitConfig["watchdogCPU"]);
+	$boot->set_field("watchdogMEM", "{notify_when_memory_exceed} (MB)", $MonitConfig["watchdogMEM"]);
 	$boot->set_field("MaxSwapPourc", "{MaxSwapPourc}  (%)", $MonitConfig["MaxSwapPourc"],array("TOOLTIP"=>"{MaxSwapPourc_explain}"));
+	$boot->set_field("MaxLoad", "{max_system_load}", $MonitConfig["MaxLoad"],array("TOOLTIP"=>"{max_system_load_squid_explain}"));
+	$boot->set_checkbox("MaxLoadFailOver", "{max_system_load_failover}", $MonitConfig["MaxLoadFailOver"],array("TOOLTIP"=>"{max_system_load_failover_explain}"));
+	$boot->set_checkbox("MaxLoadReboot", "{max_system_load_reboot}", $MonitConfig["MaxLoadReboot"],array("TOOLTIP"=>"{max_system_load_reboot_explain}"));
+	$boot->set_checkbox("RestartWhenCrashes", "{RestartWhenCrashes}", $MonitConfig["RestartWhenCrashes"],array("TOOLTIP"=>"{RestartWhenCrashes_explain}"));
 	
 	
+	
+	$boot->set_spacertitle("PING");
+	$boot->set_checkbox("ENABLE_PING_GATEWAY","{enable}",$MonitConfig["ENABLE_PING_GATEWAY"],array("TOOLTIP"=>"{ENABLE_PING_GATEWAY_EXPLAIN}"));
+	$boot->set_field("MAX_PING_GATEWAY", "{MAX_PING_GATEWAY}", $MonitConfig["MAX_PING_GATEWAY"],array("TOOLTIP"=>"{MAX_PING_GATEWAY_EXPLAIN}"));
+	$boot->set_field("PING_GATEWAY", "{ipaddr}", $MonitConfig["PING_GATEWAY"],array("IPV4"=>true));
+	$boot->set_checkbox("PING_FAILED_RELOAD_NET","{reload_network}",$MonitConfig["PING_FAILED_RELOAD_NET"],array("TOOLTIP"=>"{PING_FAILED_RELOAD_NET_EXPLAIN}"));
+	
+	
+	$boot->set_checkbox("PING_FAILED_REPORT","{send_report}",$MonitConfig["PING_FAILED_REPORT"],array("TOOLTIP"=>"{PING_FAILED_REPORT_EXPLAIN}"));
+	$boot->set_checkbox("PING_FAILED_FAILOVER","{switch_to_failover}",$MonitConfig["PING_FAILED_FAILOVER"],array("TOOLTIP"=>"{PING_FAILED_FAILOVER_EXPLAIN}"));
+	$boot->set_checkbox("PING_FAILED_REBOOT","{reboot_system}",$MonitConfig["PING_FAILED_REBOOT"],array("TOOLTIP"=>"{reboot_system_explain}"));
+	
+	
+	
+	
+	$boot->set_spacertitle("DNS");
 	$boot->set_checkbox("NotifyDNSIssues","{NotifyDNSIssues}",$MonitConfig["NotifyDNSIssues"],array("TOOLTIP"=>"{NotifyDNSIssues_explain}"));
 	$boot->set_field("DNSIssuesMAX", "{DNSIssuesMAX}", $MonitConfig["DNSIssuesMAX"]);
 
-	
+	$boot->set_spacertitle("{external_page}");
+	$boot->set_checkbox("TestExternalWebPage","{TestExternalWebPage}",$MonitConfig["TestExternalWebPage"],array("TOOLTIP"=>"{squid_TestExternalWebPage_explain}"));
 	$boot->set_field("ExternalPageToCheck", "{page_to_check}", $MonitConfig["ExternalPageToCheck"],array("TOOLTIP"=>"{ExternalPageToCheck_explain}"));
 	$boot->set_field("ExternalPageUsername", "{username}", $MonitConfig["ExternalPageUsername"],array("TOOLTIP"=>"{ExternalPageUsername_EXPLAIN}"));
 	$boot->set_fieldpassword("ExternalPagePassword", "{password}", $MonitConfig["ExternalPagePassword"],array("TOOLTIP"=>"{ExternalPageUsername_EXPLAIN}","ENCODE"=>TRUE));
@@ -262,6 +352,35 @@ function watchdog_save(){
 	$MonitConfig["ExternalPageToCheck"]=$_POST["ExternalPageToCheck"];
 	$MonitConfig["MAX_RESTART"]=$_POST["MAX_RESTART"];
 	$MonitConfig["TestExternalWebPage"]=$_POST["TestExternalWebPage"];
+	$MonitConfig["REBOOT_INTERVAL"]=$_POST["REBOOT_INTERVAL"];
+	$MonitConfig["MinTimeFailOverSwitch"]=$_POST["MinTimeFailOverSwitch"];
+	
+	
+	
+	$MonitConfig["MaxLoad"]=$_POST["MaxLoad"];
+	$MonitConfig["MaxLoadReboot"]=$_POST["MaxLoadReboot"];
+	$MonitConfig["MaxLoadFailOver"]=$_POST["MaxLoadFailOver"];
+	
+
+	
+	$MonitConfig["NotifyDNSIssues"]=$_POST["NotifyDNSIssues"];
+	$MonitConfig["DNSIssuesMAX"]=$_POST["DNSIssuesMAX"];
+	
+	
+	$trMAX_PING_GATEWAY=explode(".",$_POST["MAX_PING_GATEWAY"]);
+	while (list ($num, $ligne) = each ($trMAX_PING_GATEWAY) ){$trMAX_PING_GATEWAY[$num]=intval($ligne);}
+	$_POST["MAX_PING_GATEWAY"]=@implode(".", $trMAX_PING_GATEWAY);
+	
+	$MonitConfig["ENABLE_PING_GATEWAY"]=$_POST["ENABLE_PING_GATEWAY"];
+	$MonitConfig["MAX_PING_GATEWAY"]=$_POST["MAX_PING_GATEWAY"];
+	$MonitConfig["PING_GATEWAY"]=$_POST["PING_GATEWAY"];
+	$MonitConfig["PING_FAILED_REPORT"]=$_POST["PING_FAILED_REPORT"];
+	$MonitConfig["PING_FAILED_REBOOT"]=$_POST["PING_FAILED_REBOOT"];
+	$MonitConfig["PING_FAILED_FAILOVER"]=$_POST["PING_FAILED_FAILOVER"];
+	$MonitConfig["PING_FAILED_RELOAD_NET"]=$_POST["PING_FAILED_RELOAD_NET"];
+	
+	
+	
 	$sock->SET_INFO("SquidCacheReloadTTL",$_POST["SquidCacheReloadTTL"]);
 	$sock->SaveConfigFile(base64_encode(serialize($MonitConfig)), "SquidWatchdogMonitConfig");
 	
@@ -279,6 +398,7 @@ function watchdog_save(){
 	$UfdbguardSMTPNotifs["smtp_auth_passwd"]=$_POST["smtp_auth_passwd"];
 	$UfdbguardSMTPNotifs["tls_enabled"]=$_POST["tls_enabled"];
 	$sock->SaveConfigFile(base64_encode(serialize($UfdbguardSMTPNotifs)), "UfdbguardSMTPNotifs");
+	$sock->getFrameWork("squid.php?restart-cache-tail=yes");
 }
 
 function watchdog_events(){
@@ -293,8 +413,8 @@ function watchdog_events_search(){
 	$rp=$_GET["rp"];
 	if(!is_numeric($rp)){$rp=250;}
 	
-	
-	$content=unserialize(base64_decode($sock->getFrameWork("squid.php?watchdog-logs=yes&rp=$rp")));
+	$search=urlencode($_GET["watchdog-events-search"]);
+	$content=unserialize(base64_decode($sock->getFrameWork("squid.php?watchdog-logs=yes&rp=$rp&search=$search")));
 	$boot=new boostrap_form();
 	$c=0;
 	krsort($content);
@@ -362,6 +482,183 @@ function cache_perfs(){
 	
 	
 }
+
+function all_services_status(){
+	$t=time();
+	$page=CurrentPageName();
+	$html="
+	<div style='width:100%;text-align:right;float:right;'>". imgtootltip("refresh-48.png",null,"LoadAjax('$t','squid.main.quicklinks.php?squid-services=yes&miniadmin=yes')")."</div>
+	<div id='$t' style='width:100%'></div>		
+			
+	<script>
+		LoadAjax('$t','squid.main.quicklinks.php?squid-services=yes&miniadmin=yes');
+	</script>
+
+	";
+	
+	
+	echo $html;
+}
+function all_services_status_build(){
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$ini=new Bs_IniHandler();
+
+	$tpl=new templates();
+	$users=new usersMenus();
+	$squid=new squidbee();
+	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?squid-ini-status=yes')));
+	if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
+	
+	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
+	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
+	$SquidBoosterMem=$sock->GET_INFO("SquidBoosterMem");
+	
+	
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	if(!is_numeric($SquidBoosterMem)){$SquidBoosterMem=0;}
+	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
+	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}	
+	if(!is_numeric($AsSquidLoadBalancer)){$AsSquidLoadBalancer=0;}
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
+	
+	$squid_status=DAEMON_STATUS_ROUND("SQUID",$ini,null,1);
+	$dansguardian_status=DAEMON_STATUS_ROUND("DANSGUARDIAN",$ini,null,1);
+	$kav=DAEMON_STATUS_ROUND("KAV4PROXY",$ini,null,1);
+	$cicap=DAEMON_STATUS_ROUND("C-ICAP",$ini,null,1);
+	$APP_PROXY_PAC=DAEMON_STATUS_ROUND("APP_PROXY_PAC",$ini,null,1);
+	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_ROUND("APP_SQUIDGUARD_HTTP",$ini,null,1);
+	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("APP_UFDBGUARD",$ini,null,1);
+	$APP_FRESHCLAM=DAEMON_STATUS_ROUND("APP_FRESHCLAM",$ini,null,1);
+	$APP_ARTICADB=DAEMON_STATUS_ROUND("APP_ARTICADB",$ini,null,1);
+	$APP_SQUID_DB=DAEMON_STATUS_ROUND("APP_SQUID_DB",$ini,null,1);
+	$APP_HAARP=DAEMON_STATUS_ROUND("APP_HAARP",$ini,null,1);
+	if($users->PROXYTINY_APPLIANCE){$APP_ARTICADB=null;}
+	if($EnableRemoteStatisticsAppliance==1){$APP_ARTICADB=null;}
+	$APP_FTP_PROXY=DAEMON_STATUS_ROUND("APP_FTP_PROXY",$ini,null,1);
+	$squid=new squidbee();
+	
+	
+	if($EnableKerbAuth==1){
+		$APP_SAMBA_WINBIND=DAEMON_STATUS_ROUND("SAMBA_WINBIND",$ini,null,1);
+	}	
+	$tr[]="<div id='squid-mem-status'></div><script>LoadAjaxTiny('squid-mem-status','$page?squid-mem-status=yes');</script>";
+	$tr[]="<div id='squid-stores-status'></div><script>LoadAjaxTiny('squid-stores-status','$page?squid-stores-status=yes');</script>";
+	
+	
+
+	
+	
+	$md=md5(date('Ymhis'));
+	if(!$users->WEBSTATS_APPLIANCE){
+		$swappiness=intval($sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("vm.swappiness")));
+		$sock=new sockets();
+		$swappiness_saved=unserialize(base64_decode($sock->GET_INFO("kernel_values")));
+		if(!is_numeric($swappiness_saved["swappiness"])){
+			if($swappiness>30){
+				$tr[]=DAEMON_STATUS_ROUND_TEXT("warning-panneau-42.png","{high_swap_value}",
+				"{high_swap_value_text}","Loadjs('squid.perfs.php')");
+			}
+			
+		}
+		
+		if($AsSquidLoadBalancer==1){$SquidAsSeenDNS=1;}
+		if(!$users->IsSquidReverse()){
+			$SquidAsSeenDNS=$sock->GET_INFO("SquidAsSeenDNS");
+			if(!is_numeric($SquidAsSeenDNS)){$SquidAsSeenDNS=0;}
+			if( count($squid->dns_array)==0){
+				if($SquidAsSeenDNS==0){
+					$tr[]=DAEMON_STATUS_ROUND_TEXT("warning-panneau-42.png","{add_dns_in_config}",
+					"{add_dns_in_config_perf_explain}","Loadjs('squid.popups.php?script=dns')");
+				}
+			}
+			
+		}
+	}
+	
+	
+	$CicapEnabled=0;
+	if($users->C_ICAP_INSTALLED){
+		$CicapEnabled=$sock->GET_INFO("CicapEnabled");
+		if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::DisableSquidSNMPMode -> $DisableSquidSNMPMode<br>\n";}
+	
+	if($DisableSquidSNMPMode==0){
+		$squid_status=null;
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::DisableSquidSNMPMode -> squid.php?smp-status=yes<br>\n";}
+		$ini=new Bs_IniHandler();
+		$ini->loadString(base64_decode($sock->getFrameWork('squid.php?smp-status=yes')));
+		
+		while (list ($index, $line) = each ($ini->_params) ){
+			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::$index -> DAEMON_STATUS_ROUND<br>\n";}
+			$tr[]=DAEMON_STATUS_ROUND($index,$ini,null,1);
+			
+		}
+		
+	}
+	
+
+	
+	if($SquidBoosterMem>0){
+		if($DisableSquidSNMPMode==0){
+			if($DisableAnyCache==0){
+				$tr[]=squid_booster_smp();
+			}
+		}
+	}
+	
+	
+	$tr[]=$squid_status;
+	$tr[]=$APP_HAARP;
+	$tr[]=$APP_SAMBA_WINBIND;
+	$tr[]=$dansguardian_status;
+	$tr[]=$kav;
+	$tr[]=$cicap;
+	$tr[]=$APP_PROXY_PAC;
+	$tr[]=$APP_SQUIDGUARD_HTTP;
+	$tr[]=$APP_UFDBGUARD;
+	$tr[]=$APP_FRESHCLAM;
+	$tr[]=$APP_ARTICADB;
+	$tr[]=$APP_SQUID_DB;
+	$tr[]=$APP_FTP_PROXY;
+	
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
+	if(!$users->APP_UFDBGUARD_INSTALLED){$EnableUfdbGuard=0;}
+	
+	echo CompileTr3($tr,true);
+	
+	
+}
+function squid_booster_smp(){
+	$sock=new sockets();
+	$array=unserialize(base64_decode($sock->getFrameWork("squid.php?smp-booster-status=yes")));
+	if(count($array)==0){return;}
+	$html[]="
+			<div style='min-height:115px'>
+			<table>
+			<tr><td colspan=2 style='font-size:14px;font-weight:bold'>Cache(s) Booster</td></tr>
+			";
+	while (list ($proc, $pourc) = each ($array)){
+		$html[]="<tr>
+		<td width=1% nowrap style='font-size:13px;font-weight:bold'>Proc #$proc</td><td width=1% nowrap>". pourcentage($pourc)."</td></tr>";
+	}
+	$html[]="</table></div>";
+
+	return RoundedLightGreen(@implode("\n", $html));
+}
+
 function graph0(){
 		$q=new mysql_squid_builder();
 		$sql="SELECT size AS size,cached, zDate FROM `cached_total` ORDER BY zDate";
@@ -391,7 +688,195 @@ function graph0(){
 		$highcharts->xAxisTtitle="{days}";
 		$highcharts->datas=array("%"=>$ydata);
 		echo $highcharts->BuildChart();
+}
+
+function features(){
+	$sock=new sockets();
+	$users=new usersMenus();
+	$check="42-green.png";
+	$uncheck="42-red.png";
+	$squid=new squidbee();
+	$INTEGER[0]=$uncheck;
+	$INTEGER[1]=$check;
+	$INTEGER[-1]="42-green-grey.png";
+	$tpl=new templates();
+	
+	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
+	$hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
+	if(!is_numeric($hasProxyTransparent)){$hasProxyTransparent=0;}
+	
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	
+	$SquidGuardIPWeb=trim($sock->GET_INFO("SquidGuardIPWeb"));
+	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
+	$SquidDisableAllFilters=$sock->GET_INFO("SquidDisableAllFilters");
+	$SquideCapAVEnabled=$sock->GET_INFO("SquideCapAVEnabled");
+	$kavicapserverEnabled=$sock->GET_INFO("kavicapserverEnabled");
+	$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
+	$PdnsHotSpot=$sock->GET_INFO("EnableSplashScreen");
+	$EnableMalwarePatrol=$sock->GET_INFO("EnableMalwarePatrol");
+	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
+	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
+	if($squid->isNGnx()){$SquidActHasReverse=0;}
+	$UfdbEnabledCentral=$sock->GET_INFO('UfdbEnabledCentral');
+	$AntivirusEnabledCentral=$sock->GET_INFO('AntivirusEnabledCentral');
+	$EnableKerbAuthCentral=$sock->GET_INFO('EnableKerbAuthCentral');
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$DnsFilterCentral=$sock->GET_INFO('DnsFilterCentral');
+	$SquidBubbleMode=$sock->GET_INFO('SquidBubbleMode');
+	$EnableITChart=$sock->GET_INFO('EnableITChart');
+	$CicapEnabled=$sock->GET_INFO("CicapEnabled");
+
+		
+	
+		
+	
+	$EnableFTPProxy=$sock->GET_INFO('EnableFTPProxy');
+	
+	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
+	$Watchdog=$MonitConfig["watchdog"];
+	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}
+	
+	$EnableHaarp=$sock->GET_INFO("EnableHaarp");
+	if(!is_numeric($EnableHaarp)){$EnableHaarp=0;}
+	
+	// APP_HAARP $EnableHaarp
 	
 	
 	
+	if(!is_numeric($EnableFTPProxy)){$EnableFTPProxy=0;}
+	$PDSNInUfdb=$sock->GET_INFO("PDSNInUfdb");
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	$EnableCNTLM=$sock->GET_INFO("EnableCNTLM");
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	
+	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
+	if(!is_numeric($SquideCapAVEnabled)){$SquideCapAVEnabled=0;}
+	if(!is_numeric($EnableMalwarePatrol)){$EnableMalwarePatrol=0;}
+	if(!is_numeric($SquidDisableAllFilters)){$SquidDisableAllFilters=0;}
+	if(!is_numeric($EnableSplashScreen)){$EnableSplashScreen=0;}
+	if(!is_numeric($PdnsHotSpot)){$PdnsHotSpot=0;}
+	if(!is_numeric($AsSquidLoadBalancer)){$AsSquidLoadBalancer=0;}
+	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
+	if(!is_numeric($kavicapserverEnabled)){$kavicapserverEnabled=0;}
+	if(!is_numeric($SquidBubbleMode)){$SquidBubbleMode=0;}
+	if(!is_numeric($EnableITChart)){$EnableITChart=0;}
+	if(!is_numeric($EnableHaarp)){$EnableHaarp=0;}	
+	if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
+	if(!is_numeric($EnableCNTLM)){$EnableCNTLM=0;}
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	if($EnableKerbAuth==0){$EnableCNTLM=0;}
+	
+	
+	
+	$isNGnx=0;
+	if(!$users->CNTLM_INSTALLED){$EnableCNTLM=-1;}
+	if(!$users->APP_FTP_PROXY){$EnableFTPProxy=-1;}
+	if(!$users->SAMBA_INSTALLED){$EnableKerbAuth=-1;}
+	if(!$users->APP_UFDBGUARD_INSTALLED){$EnableUfdbGuard=-1;}
+	if(!$users->KAV4PROXY_INSTALLED){$kavicapserverEnabled=-1;}
+	if(!$users->HAARP_INSTALLED){$EnableHaarp=-1;}
+	if($squid->isNGnx()){$isNGnx=1;}
+	if(!$users->NGINX_INSTALLED){$isNGnx=-1;}
+	if($users->C_ICAP_INSTALLED){$CicapEnabled=-1;}
+	
+	$LICENSE=0;
+	if($users->CORP_LICENSE){$LICENSE=1;}
+	
+	$ARRAY["CORP_LICENSE"]["TITLE"]="{artica_license}";
+	$ARRAY["CORP_LICENSE"]["EXPL"]="{license_proxy_benefits}";
+	$ARRAY["CORP_LICENSE"]["ICON"]=$INTEGER[$LICENSE];	
+	
+	
+	
+	$ARRAY["transparent"]["TITLE"]="Active Directory";
+	$ARRAY["transparent"]["EXPL"]="{squid_ad_benefits}";
+	$ARRAY["transparent"]["ICON"]=$INTEGER[$EnableKerbAuth];	
+	
+	$ARRAY["EnableCNTLM"]["TITLE"]="{APP_CNTLM}";
+	$ARRAY["EnableCNTLM"]["EXPL"]="{APP_CNTLM_EXPLAIN}";
+	$ARRAY["EnableCNTLM"]["ICON"]=$INTEGER[$EnableCNTLM];
+	
+	$ARRAY["DisableAnyCache"]["TITLE"]="{caches} {disk}";
+	$ARRAY["DisableAnyCache"]["EXPL"]="{DisableAnyCache_explain2}";
+	$ARRAY["DisableAnyCache"]["ICON"]=$INTEGER[$DisableAnyCache];
+	
+	$ARRAY["SquidBubbleMode"]["TITLE"]="Bubble";
+	$ARRAY["SquidBubbleMode"]["EXPL"]="{bubble_mode_explain}";	
+	$ARRAY["SquidBubbleMode"]["ICON"]=$INTEGER[$SquidBubbleMode];
+	
+	$ARRAY["EnableHaarp"]["TITLE"]="{APP_HAARP}";
+	$ARRAY["EnableHaarp"]["EXPL"]="{APP_HAARP_EXPLAIN}";
+	$ARRAY["EnableHaarp"]["ICON"]=$INTEGER[$EnableHaarp];	
+
+	$ARRAY["SquidBubbleMode"]["TITLE"]="{IT_charter}";
+	$ARRAY["SquidBubbleMode"]["EXPL"]="{IT_charter_explain}";
+	$ARRAY["SquidBubbleMode"]["ICON"]=$INTEGER[$EnableITChart];	
+	
+	$ARRAY["isNGnx"]["TITLE"]="{squid_reverse_proxy}";
+	$ARRAY["isNGnx"]["EXPL"]="{nginx_benefits}";
+	$ARRAY["isNGnx"]["ICON"]=$INTEGER[$isNGnx];	
+	
+
+	
+	$ARRAY["EnableRemoteStatisticsAppliance"]["TITLE"]="{use_stats_appliance}";
+	$ARRAY["EnableRemoteStatisticsAppliance"]["EXPL"]="{STATISTICS_APPLIANCE_EXPLAIN}";
+	$ARRAY["EnableRemoteStatisticsAppliance"]["ICON"]=$INTEGER[$EnableRemoteStatisticsAppliance];
+
+	
+	$ARRAY["EnableFTPProxy"]["TITLE"]="FTP Proxy";
+	$ARRAY["EnableFTPProxy"]["EXPL"]="{FTP_PROXY_EXPLAIN}";
+	$ARRAY["EnableFTPProxy"]["ICON"]=$INTEGER[$EnableFTPProxy];	
+	
+	$ARRAY["EnableFTPProxy"]["TITLE"]="FTP Proxy";
+	$ARRAY["EnableFTPProxy"]["EXPL"]="{FTP_PROXY_EXPLAIN}";
+	$ARRAY["EnableFTPProxy"]["ICON"]=$INTEGER[$EnableFTPProxy];	
+	
+	$ARRAY["EnableUfdbGuard"]["TITLE"]="{webfilter_engine}";
+	$ARRAY["EnableUfdbGuard"]["EXPL"]="{webfilter_engine_benefits}";
+	$ARRAY["EnableUfdbGuard"]["ICON"]=$INTEGER[$EnableUfdbGuard];	
+	
+	$ARRAY["kavicapserverEnabled"]["TITLE"]="Kaspersky For Proxy server";
+	$ARRAY["kavicapserverEnabled"]["EXPL"]="{kav4proxy_about}";
+	$ARRAY["kavicapserverEnabled"]["ICON"]=$INTEGER[$kavicapserverEnabled];	
+	
+	$ARRAY["CicapEnabled"]["TITLE"]="{cicap_title}";
+	$ARRAY["CicapEnabled"]["EXPL"]="{enable_c_icap_text}";
+	$ARRAY["CicapEnabled"]["ICON"]=$INTEGER[$CicapEnabled];	
+	
+
+	while (list ($day, $array) = each ($ARRAY) ){
+		$title=$tpl->_ENGINE_parse_body($array["TITLE"]);
+		$explain=$tpl->_ENGINE_parse_body($array["EXPL"]);
+		$tr[]="
+		<tr id='$id'>
+		<td $link nowrap style='font-size:16px;font-weight:bolder'><i class='icon-info-sign'></i> $title</a></td>
+		<td $link>$explain</td>
+		<td $link><img src='img/{$array["ICON"]}'></td>
+		</tr>";	
+		
 	}
+	
+	
+
+	echo $tpl->_ENGINE_parse_body("
+	
+		<table class='table table-bordered'>
+	
+			<thead>
+				<tr>
+					<th>{feature}</th>
+					<th>{explain}</th>
+					<th>{status}</th>
+				</tr>
+			</thead>
+			 <tbody>
+			").@implode("", $tr)."</tbody></table>";	
+	
+	
+	
+}

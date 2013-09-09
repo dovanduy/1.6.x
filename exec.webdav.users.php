@@ -90,6 +90,12 @@ function buildUsers(){
 		$FreeWebListen="127.0.0.1";
 	}
 	
+	if($unix->isNGnx()){
+		$FreeWebListenPort=82;
+		$FreeWebListenPort=447;
+		$FreeWebListen="127.0.0.1";
+	}	
+	
 	$port=$FreeWebListen;	
 	
 	
@@ -155,13 +161,9 @@ function buildUsers(){
 		$f[]="\t</IfModule>";
 		$f[]="#WEBDAV";
 		$f[]="\tDavLockDB \"$usr->homeDirectory/.dav/DavLock\"";
-		$f[]="\tBrowserMatch \"Microsoft Data Access Internet Publishing Provider\" redirect-carefully";
-		$f[]="\tBrowserMatch \"MS FrontPage\" redirect-carefully";
-		$f[]="\tBrowserMatch \"^WebDrive\" redirect-carefully";
-		$f[]="\tBrowserMatch \"^WebDAVFS/1.[0123]\" redirect-carefully";
-		$f[]="\tBrowserMatch \"^gnome-vfs/1.0\" redirect-carefully";
-		$f[]="\tBrowserMatch \"^XML Spy\" redirect-carefully";
-		$f[]="\tBrowserMatch \"^Dreamweaver-WebDAV-SCM1\" redirect-carefully";
+		include_once(dirname(__FILE__)."/ressources/class.freeweb.inc");
+		$freeweb=new freeweb();
+		$conf[]=$freeweb->WebDavBrowserMatches();
 		
 		
 		$f[]="\t<Directory $usr->homeDirectory>";

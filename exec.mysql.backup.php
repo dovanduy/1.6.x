@@ -136,8 +136,7 @@ function perform_db_restore($InstanceID,$database,$sourcefile){
 	
 	$q=new mysql();
 	if($q->mysql_password<>null){
-		$q->mysql_password=escapeshellarg($q->mysql_password);
-		$q->mysql_password=str_replace("'", "", $q->mysql_password);
+		$q->mysql_password=$unix->shellEscapeChars($q->mysql_password);
 		$password=" -p$q->mysql_password ";
 	}
 		
@@ -150,8 +149,7 @@ function perform_db_restore($InstanceID,$database,$sourcefile){
 	if($InstanceID>0){
 		$q=new mysql_multi($InstanceID);
 		if($q->mysql_password<>null){
-			$q->mysql_password=escapeshellarg($q->mysql_password);
-			$q->mysql_password=str_replace("'", "", $q->mysql_password);
+			$q->mysql_password=$unix->shellEscapeChars($q->mysql_password);
 			$password=" -p$q->mysql_password ";}
 			$servcmd=" -u $q->mysql_admin$password --socket=$q->SocketPath";
 	}
@@ -207,8 +205,7 @@ function perform_db_backup($InstanceID,$database,$targetDir,$compress){
 	
 	$q=new mysql();
 	if($q->mysql_password<>null){
-		$q->mysql_password=escapeshellarg($q->mysql_password);
-		$q->mysql_password=str_replace("'", "", $q->mysql_password);
+		$q->mysql_password=$unix->shellEscapeChars($q->mysql_password);
 		$password=" -p$q->mysql_password ";
 	}
 		
@@ -224,8 +221,7 @@ function perform_db_backup($InstanceID,$database,$targetDir,$compress){
 	if($InstanceID>0){
 		$q=new mysql_multi($InstanceID);
 		if($q->mysql_password<>null){
-			$q->mysql_password=escapeshellarg($q->mysql_password);
-			$q->mysql_password=str_replace("'", "", $q->mysql_password);
+			$q->mysql_password=$unix->shellEscapeChars($q->mysql_password);
 			$password=" -p$q->mysql_password ";}
 			$cmdline="$mysqldump -u $q->mysql_admin$password --socket=$q->SocketPath $options $database$piped \"$targetFilename\" 2>&1";
 			$cmdlineTXT=str_replace($q->mysql_password, "****", $cmdline);

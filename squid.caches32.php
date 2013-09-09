@@ -1,5 +1,11 @@
 <?php
-if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+	if(isset($_GET["verbose"])){
+			echo "<H1>VERBOSED</H1>\n";
+			$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);
+			ini_set('error_reporting', E_ALL);
+			ini_set('error_prepend_string',null);
+			ini_set('error_append_string',null);
+	}
 	header("Pragma: no-cache");	
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
@@ -369,7 +375,9 @@ function smp_js(){
 	}
 	
 	
-	echo "YahooWin3('892','squid.caches.php?byQuicklinks=yes&uuid=$uuid','SMP (multiple-processors)')";
+	echo "
+	YahooWin3Hide();
+	YahooWin3('892','squid.caches.php?byQuicklinks=yes&uuid=$uuid&smp=yes','SMP (multiple-processors)')";
 	
 }
 
@@ -590,7 +598,7 @@ function squid_cache_status(){
 		
 		$sql="SELECT * FROM cachestatus WHERE uuid='{$_GET["uuid"]}'";
 		$results=$q->QUERY_SQL($sql);
-		if(!$q->ok){echo "<H3>Error: $this->mysql_error</H3>";return;}
+		if(!$q->ok){senderror($q->mysql_error."<br>$sql");}
 		
 		
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	

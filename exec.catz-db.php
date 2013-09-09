@@ -47,6 +47,7 @@ function start(){
 	$SERV_NAME=$GLOBALS["SERV_NAME"];
 	$mysql_pid_file=$GLOBALS["MYSQL_PID"];
 	$MYSQL_SOCKET=$GLOBALS["MYSQL_SOCKET"];
+	$OutputBinLog=$unix->FILE_TEMP();
 	$mysqlserv=new mysql_services();
 	$mysqlserv->WORKDIR=$GLOBALS["WORKDIR"];
 	$mysqlserv->MYSQL_PID_FILE=$mysql_pid_file;
@@ -57,6 +58,7 @@ function start(){
 	$mysqlserv->MYSQL_BIN_DAEMON_PATH=$GLOBALS["MYSQL_BIN_PATH"];
 	$mysqlserv->MYSQL_ERRMSG=$GLOBALS["MYSQL_ERRMSG"];
 	$mysqlserv->InnoDB=false;
+	$mysqlserv->OutputBinLog=$OutputBinLog;
 	
 	
 	$oldpid=$unix->get_pid_from_file($pidfile);
@@ -100,7 +102,11 @@ function start(){
 		
 	}
 		
-	if($GLOBALS["MYSQL_BIN_PATH"]<>null){$mysqld=$GLOBALS["MYSQL_BIN_PATH"];}else{$mysqld=$unix->find_program("mysqld");}
+	if($GLOBALS["MYSQL_BIN_PATH"]<>null){
+		$mysqld=$GLOBALS["MYSQL_BIN_PATH"];}
+	else{
+		$mysqld=$unix->find_program("mysqld");
+	}
 	if(!is_file($mysqld)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME is not installed...\n";}
 		return;
@@ -122,7 +128,9 @@ function start(){
 		return;
 	}	
 	
-	
+	if(!is_file("/opt/articatech/VERSION")){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME Corrupted database, launch updates...\n";}
+	}
 	
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME writing init.d\n";}
@@ -131,15 +139,17 @@ function start(){
 	$cmdline=$mysqlserv->BuildParams();
 	
 	$nohup=$unix->find_program("nohup");
-	if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}	
+	if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}
+
+	
 
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Starting MySQL daemon ($SERV_NAME)\n";}
 	shell_exec("$nohup $cmdline >$TMP 2>&1 &");
 	sleep(1);
-	for($i=0;$i<10;$i++){
+	for($i=0;$i<5;$i++){
 		$pid=DBPID();
 		if($unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) started pid .$pid..\n";}break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME MySQL daemon wait $i/10\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME MySQL daemon wait $i/5\n";}
 		sleep(1);
 	}	
 	sleep(1);
@@ -147,16 +157,18 @@ function start(){
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) failed to start\n";}
 		$f=explode("\n",@file_get_contents($TMP));
-		while (list ($num, $ligne) = each ($TMP) ){
+		$repair=false;
+		while (list ($num, $ligne) = each ($f) ){
 			if(trim($ligne)==null){continue;}
 			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME $ligne\n";}
+			
 		}
+		
+		$mysqlserv->CheckOutputErrors($TMP);
 	
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) success\n";}
-		$q=new amavisdb();
-		$q->checkTables();
-		
+	
 	}
 	if(!$unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME $cmdline\n";}}
 	$unix->THREAD_COMMAND_SET($unix->LOCATE_PHP5_BIN()." ".__FILE__." --databasesize");
@@ -179,11 +191,6 @@ function stop(){
 	
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: MySQL daemon ($SERV_NAME) already stopped...\n";}
-
-		
-		
-		
-		
 		return;
 	}	
 	
@@ -241,6 +248,8 @@ function DBPID(){
 	}
 	
 }
+
+
 
 
 function changemysqldir($dir){
@@ -362,7 +371,7 @@ function databasesize($force=false){
 	
 		@file_put_contents($pidfile, getmypid());
 		$time=$unix->file_time_min($arrayfile);
-		if($arrayfile<20){return;}
+		if($time<20){return;}
 	}
 	
 	

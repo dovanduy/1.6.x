@@ -1,4 +1,8 @@
 <?php
+header("Pragma: no-cache");
+header("Expires: 0");
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+header("Cache-Control: no-cache, must-revalidate");
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -15,7 +19,7 @@
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["parameters"])){parameters_main();exit;}
 	if(isset($_GET["popup-settings"])){parameters_main();exit;}
-	if(isset($_GET["EnableSSLBump"])){parameters_enable_save();exit;}
+	if(isset($_POST["EnableSSLBump"])){parameters_enable_save();exit;}
 	if(isset($_GET["whitelist"])){whitelist_popup();exit;}
 	if(isset($_GET["whitelist-list"])){whitelist_list();exit;}
 	if(isset($_GET["website_ssl_wl"])){whitelist_add();exit;}
@@ -29,7 +33,7 @@
 	
 	
 function js() {
-
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{squid_sslbump}");
 	$page=CurrentPageName();
@@ -52,7 +56,7 @@ function js() {
 	echo $html;	
 	
 }
-
+$culr=new ccurl();
 function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -71,24 +75,7 @@ function popup(){
 	}
 	
 	
-	echo "
-	<div id=main_config_sslbump style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_sslbump').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_config_sslbump");
 }
 
 
@@ -150,7 +137,7 @@ if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsApplian
 		XHR.appendData('EnableSSLBump',document.getElementById('EnableSSLBump-$t').value);
 		if(document.getElementById('SSL_BUMP_WHITE_LIST-$t').checked){XHR.appendData('SSL_BUMP_WHITE_LIST',1);}else{XHR.appendData('SSL_BUMP_WHITE_LIST',0);}
 		AnimateDiv('sslbumpdiv$t');
-		XHR.sendAndLoad('$page', 'GET',x_SaveEnableSSLDump);		
+		XHR.sendAndLoad('$page', 'POST',x_SaveEnableSSLDump);		
 	
 	}
 	</script>
@@ -165,15 +152,15 @@ function parameters_enable_save(){
 	$tpl=new templates();
 
 	
-	$squid->SSL_BUMP=$_GET["EnableSSLBump"];
-	if($_GET["EnableSSLBump"]==1){
+	$squid->SSL_BUMP=$_POST["EnableSSLBump"];
+	if($_POST["EnableSSLBump"]==1){
 		if(!is_numeric($squid->ssl_port)){$squid->ssl_port=$squid->listen_port+10;}
 		if($squid->ssl_port==443){$squid->ssl_port=$squid->listen_port+10;}	
 	
 	}
 	
 	
-	$squid->SSL_BUMP_WHITE_LIST=$_GET["SSL_BUMP_WHITE_LIST"];
+	$squid->SSL_BUMP_WHITE_LIST=$_POST["SSL_BUMP_WHITE_LIST"];
 	$squid->SaveToLdap(true);
 
 	

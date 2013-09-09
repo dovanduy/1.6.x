@@ -3,6 +3,7 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
 $GLOBALS["SWAPSTATE"]=false;
+$GLOBALS["SERVICE_NAME"]="Artica Web service";
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
@@ -22,27 +23,105 @@ include_once(dirname(__FILE__).'/framework/class.settings.inc');
 	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 	if($argv[1]=="--status"){$GLOBALS["OUTPUT"]=true;status();die();}
 	if($argv[1]=="--phpmyadmin"){$GLOBALS["OUTPUT"]=true;PHP_MYADMIN();die();}
+	if($argv[1]=="--error500"){$GLOBALS["OUTPUT"]=true;islighttpd_error_500();die();}
 	
 	
 
 
-function restart(){
+function restart($nopid=false){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
-		return;
+	if(!$nopid){
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
 	}
 	@file_put_contents($pidfile, getmypid());
 	stop(true);
 	start(true);	
 }	
 
+function apache_stop(){
+	$GLOBALS["SERVICE_NAME"]="Artica Apache service";
+	$unix=new unix();
+	$pid=apache_pid();
+	$sock=new sockets();
+	$ArticaHttpsPort=$sock->GET_INFO("ArticaHttpsPort");
+	if(!is_numeric($ArticaHttpsPort)){$ArticaHttpsPort="9000";}
+
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} testing $ArticaHttpsPort port...\n";}
+		fuser_port($ArticaHttpsPort);
+		return;
+	}
+	
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$lighttpd_bin=$unix->find_program("lighttpd");
+	$kill=$unix->find_program("kill");
+	$apache2ctl=$unix->LOCATE_APACHE_CTL();
+
 
 	
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Shutdown pid $pid...\n";}
+	shell_exec("$apache2ctl -f /etc/artica-postfix/httpd.conf -k stop");
+	for($i=0;$i<5;$i++){
+		$pid=apache_pid();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+
+	$pid=apache_pid();
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
+		return;
+	}
+
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} shutdown - force - pid $pid...\n";}
+	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=apache_pid();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+	
+
+	
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} testing $ArticaHttpsPort port...\n";}
+	fuser_port($ArticaHttpsPort);
+
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
+		return;
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
+	}
+}
+
+function fuser_port($port){
+	$unix=new unix();
+	$kill=$unix->find_program("kill");
+	$PIDS=$unix->PIDOF_BY_PORT($port);
+	if(count($PIDS)==0){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} 0 PID listens $port...\n";}
+		
+		return;}
+	while (list ($pid, $b) = each ($PIDS) ){
+		if($unix->process_exists($pid)){
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} killing PID $pid that listens $port\n";}
+			shell_exec("$kill -9 $pid");
+		}
+	}
+}
+	
 function stop($aspid=false){
+	
 	$unix=new unix();
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -55,11 +134,20 @@ function stop($aspid=false){
 		@file_put_contents($pidfile, getmypid());
 	}
 	
+	$sock=new sockets();
+	$EnableArticaFrontEndToNGninx=$sock->GET_INFO("EnableArticaFrontEndToNGninx");
+	$EnableArticaFrontEndToApache=$sock->GET_INFO("EnableArticaFrontEndToApache");
+	if(!is_numeric($EnableArticaFrontEndToNGninx)){$EnableArticaFrontEndToNGninx=0;}
+	if(!is_numeric($EnableArticaFrontEndToApache)){$EnableArticaFrontEndToApache=0;}	
+	
+	
+	if($EnableArticaFrontEndToApache==1){apache_stop();}
+	$GLOBALS["SERVICE_NAME"]="Artica lighttpd service";
 	$pid=LIGHTTPD_PID();
 	
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Artica Web service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} already stopped...\n";}
 		return;
 	}	
 	$pid=LIGHTTPD_PID();
@@ -70,37 +158,37 @@ function stop($aspid=false){
 	
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Artica Web service Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=LIGHTTPD_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}	
 	
 	$pid=LIGHTTPD_PID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Artica Web service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
 		killallphpcgi();
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Artica Web service shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=LIGHTTPD_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}	
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Artica Web service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
 		killallphpcgi();
 		return;
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Artica Web service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
 	}	
 }
 
@@ -115,7 +203,7 @@ function killallphpcgi(){
 	if(preg_match("#^(.+?):#", $userp,$re)){$user=strtolower(trim($re[1]));}
 	
 	if(count($array)==0){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Artica Web service No ghost processes...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} No ghost processes...\n";}
 		return;
 	}
 	$c=0;
@@ -124,12 +212,12 @@ function killallphpcgi(){
 		if($username==null){continue;}
 		if($username<>$user){continue;}
 		$c++;
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Artica Web service Stopping ghots processes $pid\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Stopping ghots processes $pid\n";}
 		shell_exec("$kill -9 $pid 2>&1");
 	}
 	
 	if($c==0){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Artica Web service No ghost processes...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} No ghost processes...\n";}
 	}
 	
 }
@@ -143,7 +231,7 @@ function status(){
 	$nohup=$unix->find_program("nohup");
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	
@@ -159,9 +247,9 @@ function status(){
 	$unix=new unix();
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service running $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} running $pid since {$timepid}Mn...\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} stopped...\n";}
 		start();
 		return;
 	}
@@ -170,7 +258,7 @@ function status(){
 	$kill=$unix->find_program("kill");
 	$array=$unix->PIDOF_PATTERN_ALL($phpcgi);
 	if(count($array)==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service no php-cgi processes...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} no php-cgi processes...\n";}
 		shell_exec("$nohup /etc/init.d/php5-fpm restart >/dev/null 2>&1 &");
 		return;
 	}
@@ -189,7 +277,7 @@ function status(){
 		}
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service ".count($arrayPIDS)." php-cgi processes...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} ".count($arrayPIDS)." php-cgi processes...\n";}
 	
 }
 
@@ -204,27 +292,39 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
 	}	
 	
 	$EnableArticaFrontEndToNGninx=$sock->GET_INFO("EnableArticaFrontEndToNGninx");
+	$EnableArticaFrontEndToApache=$sock->GET_INFO("EnableArticaFrontEndToApache");
 	if(!is_numeric($EnableArticaFrontEndToNGninx)){$EnableArticaFrontEndToNGninx=0;}
+	if(!is_numeric($EnableArticaFrontEndToApache)){$EnableArticaFrontEndToApache=0;}
+	
+	
 	$pid=LIGHTTPD_PID();
 	if($EnableArticaFrontEndToNGninx==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service transfered to nginx..\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} transfered to Nginx..\n";}
 		if($unix->process_exists($pid)){stop(true);}
 		shell_exec("/etc/init.d/nginx start");
 		return;
 	}
 	
+	if($EnableArticaFrontEndToApache==1){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} transfered to Apache..\n";}
+		if($unix->process_exists($pid)){stop(true);}
+		$apachebin=$unix->LOCATE_APACHE_BIN_PATH();
+		if(is_file($apachebin)){stop(true);apache_start();}
+		return;
+	}	
 	
 	
+	$GLOBALS["SERVICE_NAME"]="Artica lighttpd service";
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Artica Web service already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} {$GLOBALS["SERVICE_NAME"]} already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
 		
@@ -250,13 +350,13 @@ function start($aspid=false){
 	for($i=0;$i<6;$i++){
 		$pid=LIGHTTPD_PID();
 		if($unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service waiting $i/6...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting $i/6...\n";}
 		sleep(1);
 	}
 	
 	$pid=LIGHTTPD_PID();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Success service started pid:$pid...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Success service started pid:$pid...\n";}
 		shell_exec("$php5 /usr/share/artica-postfix/exec.apc.compile.php");
 		if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("$nohup /usr/share/artica-postfix/bin/process1 --web-settings >/dev/null 2>&1 &");}
 		if(!is_file('/etc/init.d/artica-memcache')){shell_exec("$php5 /usr/share/artica-postfix/exec.initslapd.php --memcache");}
@@ -265,7 +365,7 @@ function start($aspid=false){
 		
 		
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmd\n";}
 	}
 
@@ -333,7 +433,7 @@ function LOAD_MODULES(){
 	exec("$lighttpd -V 2>&1",$results);
 	while (list ($pid, $line) = each ($results) ){
 		if(preg_match('#\+\s+(.+?)\s+support#',$line,$re)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Available module.....: \"{$re[1]}\"\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Available module.....: \"{$re[1]}\"\n";}
 			$re[1]=trim(strtolower($re[1]));
 			$GLOBALS["LIGHTTPDMODS"][$re[1]]=true;
 			continue;
@@ -369,6 +469,378 @@ function LIGHTTPD_GET_USER(){
 }
 //##############################################################################
 
+function apache_pid(){
+	$unix=new unix();
+	$pid=$unix->get_pid_from_file('/var/run/artica-apache/apache.pid');
+	if($unix->process_exists($pid)){return $pid;}
+	$apache2ctl=$unix->LOCATE_APACHE_CTL();
+	return $unix->PIDOF_PATTERN($apache2ctl." -f /etc/artica-postfix/httpd.conf");
+}
+
+
+function apache_start(){
+	$unix=new unix();
+	$GLOBALS["SERVICE_NAME"]="Artica Apache service";
+	$apachebin=$unix->LOCATE_APACHE_BIN_PATH();
+	
+	
+	
+	$pid=apache_pid();
+	
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} already started $pid since {$timepid}Mn...\n";}
+		return;
+	}
+	
+	
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$apache2ctl=$unix->LOCATE_APACHE_CTL();
+	apache_config();
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.web-community-filter.php --register-lic >/dev/null 2>&1 &";
+	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+	shell_exec($cmd);
+	
+	$cmd="$apache2ctl -f /etc/artica-postfix/httpd.conf -k start";
+	shell_exec($cmd);
+	
+	
+	
+	
+	for($i=0;$i<6;$i++){
+		$pid=apache_pid();
+		if($unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting $i/6...\n";}
+		sleep(1);
+	}
+	
+	
+	$pid=apache_pid();
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Success service started pid:$pid...\n";}
+		shell_exec("$php5 /usr/share/artica-postfix/exec.apc.compile.php");
+		if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("$nohup /usr/share/artica-postfix/bin/process1 --web-settings >/dev/null 2>&1 &");}
+		if(!is_file('/etc/init.d/artica-memcache')){shell_exec("$php5 /usr/share/artica-postfix/exec.initslapd.php --memcache");}
+		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.initslapd.php --phppfm-restart-back >/dev/null 2>&1 &");
+		shell_exec("$nohup /etc/init.d/artica-memcached start >/dev/null 2>&1 &");
+	
+	
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmd\n";}
+	}		
+	
+	
+}
+
+function apache_LOCATE_MIME_TYPES(){
+	if(is_file("/etc/mime.types")){return "/etc/mime.types";}
+	if(is_file("/etc/apache2/mime.types")){return "/etc/apache2/mime.types";}
+	if(is_file("/etc/httpd/mime.types")){return "/etc/httpd/mime.types";}
+}
+
+
+function apache_config(){
+	$sock=new sockets();
+	$unix=new unix();
+	$EnablePHPFPM=0;
+	@mkdir("/var/run/apache2",0755,true);
+	@mkdir("/var/run/artica-apache",0755,true);
+	
+	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
+	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
+	$APACHE_MODULES_PATH=$unix->APACHE_MODULES_PATH();
+	
+	$ArticaHttpsPort=9000;
+	$NoLDAPInLighttpdd=0;
+	$ArticaHttpUseSSL=1;
+	
+	$ArticaHttpsPort=$sock->GET_INFO("ArticaHttpsPort");
+	$ArticaHttpUseSSL=$sock->GET_INFO("ArticaHttpUseSSL");
+	if(!is_numeric($ArticaHttpUseSSL)){$ArticaHttpUseSSL=1;}
+	if(!is_numeric($ArticaHttpsPort)){$ArticaHttpsPort="9000";}
+	
+	$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
+	if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
+	if(!is_file($phpfpm)){$EnableArticaApachePHPFPM=0;}	
+	
+	$unix->chown_func($APACHE_SRC_ACCOUNT, $APACHE_SRC_GROUP,"/var/run/artica-apache");
+	$apache_LOCATE_MIME_TYPES=apache_LOCATE_MIME_TYPES();
+	
+	if($EnableArticaApachePHPFPM==1){
+		if(!is_file("$APACHE_MODULES_PATH/mod_fastcgi.so")){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} mod_fastcgi.so is required to use PHP5-FPM\n";}
+			$EnableArticaApachePHPFPM=0;
+		}
+	}
+	
+	if($APACHE_SRC_ACCOUNT==null){
+		$APACHE_SRC_ACCOUNT="www-data";
+		$APACHE_SRC_GROUP="www-data";
+		$unix->CreateUnixUser($APACHE_SRC_ACCOUNT,$APACHE_SRC_GROUP,"Apache username");
+	}
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Run as $APACHE_SRC_ACCOUNT:$APACHE_SRC_GROUP\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} PHP-FPM: $EnablePHPFPM\n";}
+	$f[]="LockFile /var/run/apache2/artica-accept.lock";
+	$f[]="PidFile /var/run/artica-apache/apache.pid";
+	$f[]="DocumentRoot /usr/share/artica-postfix";
+	
+	$f[]="Listen $ArticaHttpsPort";
+	//$f[]="php_value include_path \".:/usr/share/php:/usr/share/artica-postfix:/usr/share/php5:/usr/local/share/php:/usr/share/php5/PEAR:/usr/share/pear:/tmp\"";
+	//$f[]="php_value log_errors \"On\"";
+		
+	$f[]="<IfModule mpm_prefork_module>";
+	$f[]="</IfModule>";
+	$f[]="<IfModule mpm_worker_module>";
+	$f[]="\tMinSpareThreads      25";
+	$f[]="\tMaxSpareThreads      75 ";
+	$f[]="\tThreadLimit          64";
+	$f[]="\tThreadsPerChild      25";
+	$f[]="</IfModule>";
+	$f[]="<IfModule mpm_event_module>";
+	$f[]="\tMinSpareThreads      25";
+	$f[]="\tMaxSpareThreads      75 ";
+	$f[]="\tThreadLimit          64";
+	$f[]="\tThreadsPerChild      25";
+	$f[]="</IfModule>";
+	$f[]="AccessFileName .htaccess";
+	$f[]="<Files ~ \"^\.ht\">";
+	$f[]="\tOrder allow,deny";
+	$f[]="\tDeny from all";
+	$f[]="\tSatisfy all";
+	$f[]="</Files>";
+	$f[]="DefaultType text/plain";
+	$f[]="HostnameLookups Off";
+	$f[]="User				   $APACHE_SRC_ACCOUNT";
+	$f[]="Group				   $APACHE_SRC_GROUP";
+	$f[]="Timeout              300";
+	$f[]="KeepAlive            Off";
+	$f[]="KeepAliveTimeout     15";
+	$f[]="StartServers         1";
+	$f[]="MaxClients           50";
+	$f[]="MinSpareServers      3";
+	$f[]="MaxSpareServers      5";
+	$f[]="MaxRequestsPerChild  10000";
+	$f[]="MaxKeepAliveRequests 100";
+	$f[]="ServerName ".$unix->hostname_g();
+	
+	if($ArticaHttpUseSSL==1){
+		$f[]="<IfModule mod_ssl.c>";
+		$f[]="\tListen $ArticaHttpsPort";
+		$f[]="\tSSLRandomSeed connect builtin";
+		$f[]="\tSSLRandomSeed connect file:/dev/urandom 512";
+		$f[]="\tAddType application/x-x509-ca-cert .crt";
+		$f[]="\tAddType application/x-pkcs7-crl    .crl";
+		$f[]="\tSSLPassPhraseDialog  builtin";
+		$f[]="\tSSLSessionCache        shmcb:/var/run/apache2/ssl_scache-artica(512000)";
+		$f[]="\tSSLSessionCacheTimeout  300";
+		$f[]="\tSSLSessionCacheTimeout  300";
+		$f[]="\tSSLMutex  sem";
+		$f[]="\tSSLCipherSuite HIGH:MEDIUM:!ADH";
+		$f[]="\tSSLProtocol all -SSLv2";
+		$f[]="</IfModule>";		
+		$f[]="";
+		$f[]="<IfModule mod_gnutls.c>";
+		$f[]="\tListen $ArticaHttpsPort";
+		$f[]="</IfModule>";
+	}
+	
+	if(!is_file("/etc/ssl/certs/apache/server.crt")){shell_exec("/usr/share/artica-postfix/bin/artica-install --apache-ssl-cert");}
+	
+	if($ArticaHttpUseSSL==1){
+		$f[]="SSLEngine on";
+		$f[]="SSLCertificateFile \"/etc/ssl/certs/apache/server.crt\"";
+		$f[]="SSLCertificateKeyFile \"/etc/ssl/certs/apache/server.key\"";
+		$f[]="SSLVerifyClient none";
+		$f[]="ServerSignature Off";	
+	}	
+	
+
+	
+	
+	$f[]="<IfModule mod_fcgid.c>";
+	$f[]="	PHP_Fix_Pathinfo_Enable 1";
+	$f[]="</IfModule>";
+
+	$f[]="<IfModule mod_mime.c>";
+	$f[]="\tTypesConfig /etc/mime.types";
+	$f[]="\tAddType application/x-compress .Z";
+	$f[]="\tAddType application/x-gzip .gz .tgz";
+	$f[]="\tAddType application/x-bzip2 .bz2";
+	$f[]="\tAddType application/x-httpd-php .php .phtml";
+	$f[]="\tAddType application/x-httpd-php-source .phps";
+	$f[]="\tAddLanguage ca .ca";
+	$f[]="\tAddLanguage cs .cz .cs";
+	$f[]="\tAddLanguage da .dk";
+	$f[]="\tAddLanguage de .de";
+	$f[]="\tAddLanguage el .el";
+	$f[]="\tAddLanguage en .en";
+	$f[]="\tAddLanguage eo .eo";
+	$f[]="\tRemoveType  es";
+	$f[]="\tAddLanguage es .es";
+	$f[]="\tAddLanguage et .et";
+	$f[]="\tAddLanguage fr .fr";
+	$f[]="\tAddLanguage he .he";
+	$f[]="\tAddLanguage hr .hr";
+	$f[]="\tAddLanguage it .it";
+	$f[]="\tAddLanguage ja .ja";
+	$f[]="\tAddLanguage ko .ko";
+	$f[]="\tAddLanguage ltz .ltz";
+	$f[]="\tAddLanguage nl .nl";
+	$f[]="\tAddLanguage nn .nn";
+	$f[]="\tAddLanguage no .no";
+	$f[]="\tAddLanguage pl .po";
+	$f[]="\tAddLanguage pt .pt";
+	$f[]="\tAddLanguage pt-BR .pt-br";
+	$f[]="\tAddLanguage ru .ru";
+	$f[]="\tAddLanguage sv .sv";
+	$f[]="\tRemoveType  tr";
+	$f[]="\tAddLanguage tr .tr";
+	$f[]="\tAddLanguage zh-CN .zh-cn";
+	$f[]="\tAddLanguage zh-TW .zh-tw";
+	$f[]="\tAddCharset us-ascii    .ascii .us-ascii";
+	$f[]="\tAddCharset ISO-8859-1  .iso8859-1  .latin1";
+	$f[]="\tAddCharset ISO-8859-2  .iso8859-2  .latin2 .cen";
+	$f[]="\tAddCharset ISO-8859-3  .iso8859-3  .latin3";
+	$f[]="\tAddCharset ISO-8859-4  .iso8859-4  .latin4";
+	$f[]="\tAddCharset ISO-8859-5  .iso8859-5  .cyr .iso-ru";
+	$f[]="\tAddCharset ISO-8859-6  .iso8859-6  .arb .arabic";
+	$f[]="\tAddCharset ISO-8859-7  .iso8859-7  .grk .greek";
+	$f[]="\tAddCharset ISO-8859-8  .iso8859-8  .heb .hebrew";
+	$f[]="\tAddCharset ISO-8859-9  .iso8859-9  .latin5 .trk";
+	$f[]="\tAddCharset ISO-8859-10  .iso8859-10  .latin6";
+	$f[]="\tAddCharset ISO-8859-13  .iso8859-13";
+	$f[]="\tAddCharset ISO-8859-14  .iso8859-14  .latin8";
+	$f[]="\tAddCharset ISO-8859-15  .iso8859-15  .latin9";
+	$f[]="\tAddCharset ISO-8859-16  .iso8859-16  .latin10";
+	$f[]="\tAddCharset ISO-2022-JP .iso2022-jp .jis";
+	$f[]="\tAddCharset ISO-2022-KR .iso2022-kr .kis";
+	$f[]="\tAddCharset ISO-2022-CN .iso2022-cn .cis";
+	$f[]="\tAddCharset Big5        .Big5       .big5 .b5";
+	$f[]="\tAddCharset cn-Big5     .cn-big5";
+	$f[]="\t# For russian, more than one charset is used (depends on client, mostly):";
+	$f[]="\tAddCharset WINDOWS-1251 .cp-1251   .win-1251";
+	$f[]="\tAddCharset CP866       .cp866";
+	$f[]="\tAddCharset KOI8      .koi8";
+	$f[]="\tAddCharset KOI8-E      .koi8-e";
+	$f[]="\tAddCharset KOI8-r      .koi8-r .koi8-ru";
+	$f[]="\tAddCharset KOI8-U      .koi8-u";
+	$f[]="\tAddCharset KOI8-ru     .koi8-uk .ua";
+	$f[]="\tAddCharset ISO-10646-UCS-2 .ucs2";
+	$f[]="\tAddCharset ISO-10646-UCS-4 .ucs4";
+	$f[]="\tAddCharset UTF-7       .utf7";
+	$f[]="\tAddCharset UTF-8       .utf8";
+	$f[]="\tAddCharset UTF-16      .utf16";
+	$f[]="\tAddCharset UTF-16BE    .utf16be";
+	$f[]="\tAddCharset UTF-16LE    .utf16le";
+	$f[]="\tAddCharset UTF-32      .utf32";
+	$f[]="\tAddCharset UTF-32BE    .utf32be";
+	$f[]="\tAddCharset UTF-32LE    .utf32le";
+	$f[]="\tAddCharset euc-cn      .euc-cn";
+	$f[]="\tAddCharset euc-gb      .euc-gb";
+	$f[]="\tAddCharset euc-jp      .euc-jp";
+	$f[]="\tAddCharset euc-kr      .euc-kr";
+	$f[]="\tAddCharset EUC-TW      .euc-tw";
+	$f[]="\tAddCharset gb2312      .gb2312 .gb";
+	$f[]="\tAddCharset iso-10646-ucs-2 .ucs-2 .iso-10646-ucs-2";
+	$f[]="\tAddCharset iso-10646-ucs-4 .ucs-4 .iso-10646-ucs-4";
+	$f[]="\tAddCharset shift_jis   .shift_jis .sjis";
+	$f[]="\tAddType text/html .shtml";
+	$f[]="\tAddOutputFilter INCLUDES .shtml";
+	$f[]="</IfModule>";
+
+	
+	
+	$f[]="<Directory \"/usr/share/artica-postfix\">";
+	$f[]="\tDirectoryIndex logon.php";
+	$f[]="\tSSLOptions +StdEnvVars";
+	$f[]="\tOptions Indexes FollowSymLinks";
+	$f[]="\tAllowOverride None";
+	$f[]="\tOrder allow,deny";
+	$f[]="\tAllow from all";
+	$f[]="</Directory>";	
+	
+	if($EnableArticaApachePHPFPM==1){	
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Activate PHP5-FPM\n";}
+		shell_exec("$php /usr/share/artica-postfix/exec.initslapd.php --phppfm");
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Restarting PHP5-FPM\n";}
+		shell_exec("/etc/init.d/php5-fpm restart");
+		$f[]="\tAlias /php5.fastcgi /var/run/artica-apache/php5.fastcgi";
+		$f[]="\tAddHandler php-script .php";
+		$f[]="\tFastCGIExternalServer /var/run/artica-apache/php5.fastcgi -socket /var/run/php-fpm.sock -idle-timeout 610";
+		$f[]="\tAction php-script /php5.fastcgi virtual";
+		$f[]="\t<Directory /var/run/artica-apache>";
+		$f[]="\t\t<Files php5.fastcgi>";
+		$f[]="\t\tOrder deny,allow";
+		$f[]="\t\tAllow from all";
+		$f[]="\t\t</Files>";
+		$f[]="\t</Directory>";
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} PHP5-FPM is disabled\n";}
+	}	
+	
+	
+	$f[]="Loglevel info";
+	$f[]="ErrorLog /var/log/lighttpd/apache-error.log";
+	$f[]="LogFormat \"%h %l %u %t \\\"%r\\\" %<s %b\" common";
+	$f[]="CustomLog /var/log/lighttpd/apache-access.log common";
+	
+	if($EnableArticaApachePHPFPM==0){$array["php5_module"]="libphp5.so";}
+	
+	
+	$array["actions_module"]="mod_actions.so";
+	$array["expires_module"]="mod_expires.so";
+	$array["rewrite_module"]="mod_rewrite.so";
+	$array["dir_module"]="mod_dir.so";
+	$array["mime_module"]="mod_mime.so";
+	$array["alias_module"]="mod_alias.so";
+	$array["auth_basic_module"]="mod_auth_basic.so";
+	$array["authz_host_module"]="mod_authz_host.so";
+	$array["autoindex_module"]="mod_autoindex.so";
+	$array["negotiation_module"]="mod_negotiation.so";
+	$array["ssl_module"]="mod_ssl.so";
+	$array["headers_module"]="mod_headers.so";
+	$array["ldap_module"]="mod_ldap.so";
+	
+	if($EnableArticaApachePHPFPM==1){$array["fastcgi_module"]="mod_fastcgi.so";}
+	
+	if(is_dir("/etc/apache2")){
+		if(!is_file("/etc/apache2/mime.types")){
+			if($apache_LOCATE_MIME_TYPES<>"/etc/apache2/mime.types"){
+				@copy($apache_LOCATE_MIME_TYPES, "/etc/apache2/mime.types");
+			}
+		}
+		
+	}
+	
+	
+	
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Mime types path.......: $apache_LOCATE_MIME_TYPES\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Modules path..........: $APACHE_MODULES_PATH\n";}
+	
+	while (list ($module, $lib) = each ($array) ){
+		
+		if(is_file("$APACHE_MODULES_PATH/$lib")){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} include module \"$module\"\n";}
+			$f[]="LoadModule $module $APACHE_MODULES_PATH/$lib";
+		}else{
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} skip module \"$module\"\n";}
+		}
+	
+	}
+	
+	
+	@file_put_contents("/etc/artica-postfix/httpd.conf", @implode("\n", $f));
+	
+	
+}
+
+
 function buildConfig(){
 	$unix=new unix();
 	$sock=new sockets();
@@ -399,28 +871,28 @@ function buildConfig(){
 	
 	if(!is_file("/opt/artica/ssl/certs/lighttpd.pem")){
 		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service creating SSL certificate..\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} creating SSL certificate..\n";}
 		exec("/usr/share/artica-postfix/bin/artica-install -lighttpd-cert 2>&1",$results);
 		while (list ($pid, $line) = each ($results) ){
 			$line=trim($line);
 			if($line==null){continue;}
 			if(preg_match("#Starting.*?lighttpd(.+)#", $line,$re)){$line=$re[1];}
 			$line=str_replace(": ", "", $line);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [ARTI]: Artica Web service $line\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [ARTI]: {$GLOBALS["SERVICE_NAME"]} $line\n";}
 		}
 		
 	}
 	$results=array();
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service creating PHP configuration..\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} creating PHP configuration..\n";}
 	exec("/usr/share/artica-postfix/bin/artica-install --php-ini 2>&1",$results);
 	while (list ($pid, $line) = each ($results) ){
 				$line=trim($line);
 			if($line==null){continue;}
 			if(preg_match("#Starting.*?lighttpd(.+)#", $line,$re)){$line=$re[1];}
 			$line=str_replace(": ", "", $line);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [ARTI]: Artica Web service $line\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [ARTI]: {$GLOBALS["SERVICE_NAME"]} $line\n";}
 	}	
 	PHP_MYADMIN();
 	
@@ -451,9 +923,9 @@ function buildConfig(){
 	if(!is_file($phpfpm)){$EnablePHPFPM=0;}
 	
 	if($EnablePHPFPM==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Using PHP-FPM........: Yes\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Using PHP-FPM........: Yes\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Using PHP-FPM........: No\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Using PHP-FPM........: No\n";}
 	}
 	
 	$ArticaHttpsPort=9000;
@@ -499,7 +971,7 @@ function buildConfig(){
 	
 	$EnablePHPFPM=$sock->GET_INFO('EnablePHPFPM');
 	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=1;}
-	$EnablePHPFPM=1;
+	
 	$PHP_STANDARD_MODE=true;
 	$LighttpdArticaListenIP=$sock->GET_INFO('LighttpdArticaListenIP');	
 	$phpcgi_path=$unix->LIGHTTPD_PHP5_CGI_BIN_PATH();
@@ -525,33 +997,33 @@ function buildConfig(){
 	$mod_auth=isModule('mod_auth');  
 	
 	if(is_file('/proc/user_beancounters')){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service VPS mode enabled, swith to socket mode for PHP\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} VPS mode enabled, swith to socket mode for PHP\n";}
 		$LighttpdUseUnixSocket=1;
 	}
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service MAX Procs............: $max_procs\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Php5 processes.......: $PHP_FCGI_CHILDREN\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Max cnx/processes....: $PHP_FCGI_MAX_REQUESTS\n";}	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service php-cgi path.........: $phpcgi_path\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service chown path...........: $chown\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service php path.............: $php\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service php FPM Path.........: $phpfpm\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Perl Path............: $perlbin\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Conf Path............: $LIGHTTPD_CONF_PATH\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Pid Path.............: /var/run/lighttpd/lighttpd.pid\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} MAX Procs............: $max_procs\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Php5 processes.......: $PHP_FCGI_CHILDREN\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Max cnx/processes....: $PHP_FCGI_MAX_REQUESTS\n";}	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} php-cgi path.........: $phpcgi_path\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} chown path...........: $chown\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} php path.............: $php\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} php FPM Path.........: $phpfpm\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Perl Path............: $perlbin\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Conf Path............: $LIGHTTPD_CONF_PATH\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Pid Path.............: /var/run/lighttpd/lighttpd.pid\n";}
 	
 	
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service SSL enabled..........: $ArticaHttpUseSSL\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Disable SSLv2........: $LighttpdArticaDisableSSLv2\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Listen Port..........: $ArticaHttpsPort\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Run as...............: $LIGHTTPD_USER / $LIGHTTPD_GROUP\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service No LDAP in Lighttpd..: $NoLDAPInLighttpdd\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Mod auth installed...: $mod_auth\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Use Unix socket......: $LighttpdUseUnixSocket\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Sessions in Memory...: {$SessionPathInMemory}MB\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} SSL enabled..........: $ArticaHttpUseSSL\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Disable SSLv2........: $LighttpdArticaDisableSSLv2\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Listen Port..........: $ArticaHttpsPort\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Run as...............: $LIGHTTPD_USER / $LIGHTTPD_GROUP\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} No LDAP in Lighttpd..: $NoLDAPInLighttpdd\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Mod auth installed...: $mod_auth\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Use Unix socket......: $LighttpdUseUnixSocket\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Sessions in Memory...: {$SessionPathInMemory}MB\n";}
 	
 	
 	
@@ -566,8 +1038,12 @@ function buildConfig(){
 
 	
 	while (list ($pid, $dir) = each ($MakeDirs) ){
+		if(!is_dir($dir)){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} creating $dir\n";}
+		}
 		@mkdir($dir,0755,true);
-		shell_exec("$chown -R $LIGHTTPD_GET_USER $dir");
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} permissions on $dir\n";}
+		shell_exec("$chown $LIGHTTPD_GET_USER $dir");
 		
 	}
 	
@@ -582,10 +1058,10 @@ function buildConfig(){
 	$f[]='        "mod_cgi",';
 	$f[]='	       "mod_status",';
 	if($NoLDAPInLighttpdd==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service LDAP Mode is disabled\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} LDAP Mode is disabled\n";}
 	}
 	if($mod_auth){$f[]='	       "mod_auth"';}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service mod_auth module does not exists (should be a security issue !!!)\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} mod_auth module does not exists (should be a security issue !!!)\n";}
 		
 	}
 	$f[]=')';
@@ -673,9 +1149,9 @@ function buildConfig(){
 	
 	$f[]='';
 	if(is_file($phpfpm)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service PHP-FPM is installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} PHP-FPM is installed\n";}
 		if($EnablePHPFPM==1){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service PHP-FPM is enabled\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} PHP-FPM is enabled\n";}
 			$PHP_STANDARD_MODE=false;
 			$f[]='fastcgi.server = ( ".php" =>((';
 			$f[]='         "socket" => "/var/run/php-fpm.sock",';
@@ -688,10 +1164,10 @@ function buildConfig(){
 		$f[]='fastcgi.server = ( ".php" =>((';
 		$f[]='         "bin-path" => "/usr/bin/php-cgi",';
 		if($LighttpdUseUnixSocket==1){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Fast-cgi server unix socket mode\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Fast-cgi server unix socket mode\n";}
 			$f[]='         "socket" => "/var/run/lighttpd/php.socket" + var.PID,';
 		}else{
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Fast-cgi server socket 127.0.0.1:$lighttpdPhpPort\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Fast-cgi server socket 127.0.0.1:$lighttpdPhpPort\n";}
 			$f[]='         "host" => "127.0.0.1","port" =>'.$lighttpdPhpPort.',';
 		}
 	}
@@ -716,7 +1192,7 @@ function buildConfig(){
 	}
 	
 	if($LighttpdArticaDisableSSLv2==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Disable SSLv2 and weak ssl cipher\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Disable SSLv2 and weak ssl cipher\n";}
 		$f[]='ssl.use-sslv2              = "disable"';
 		$f[]='ssl.cipher-list            = "TLSv1+HIGH !SSLv2 RC4+MEDIUM !aNULL !eNULL !3DES @STRENGTH"';
 	}else{
@@ -724,7 +1200,7 @@ function buildConfig(){
 		$f[]='ssl.cipher-list            = "TLSv1+HIGH RC4+MEDIUM !SSLv2 !3DES !aNULL @STRENGTH"';
 	}
 	
-	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} No LDAP In lighttpd: $NoLDAPInLighttpdd\n";}
 	if($NoLDAPInLighttpdd==0){
 		if($mod_auth){
 			$f[]='status.status-url          = "/server-status"';
@@ -734,28 +1210,28 @@ function buildConfig(){
 	
 	$f[]='server.upload-dirs         = ( "/var/lighttpd/upload" )';
 	
-	if(is_file('/etc/artica-postfix/lighttpd.phpmyadmin')){
-		$f[]='';
-		$f[]=@file_get_contents('/etc/artica-postfix/lighttpd.phpmyadmin');
-	}
-	
 	$f[]='	server.follow-symlink = "enable"';
 	$f[]='alias.url +=("/monitorix"  => "/var/www/monitorix/")';
 	$f[]='alias.url += ("/blocked_attachments"=> "/var/spool/artica-filter/bightml")';
 	$f[]='alias.url += ("/squid-rrd"=> "/opt/artica/share/www/squid/rrd")';
 	$f[]='alias.url += ("/artica-agent"=> "/usr/share/artica-postfix/ressources/artica-agent")';
 	
+	
+	
 	if($DenyMiniWebFromStandardPort==1){
 		$f[]='$HTTP["url"] =~ "^/miniadm.*|/computers|/user-backup" { url.access-deny = ( "" )}';
 	}
 	
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} checking AWSTATS...\n";}
 	$AWSTATS_www_root=AWSTATS_www_root();
 	
 	$f[]='$HTTP["url"] =~ "^/prxy.*\.php" { url.access-deny = ( "" )}';
 	if( is_dir( $AWSTATS_www_root ) ){ $f[]='alias.url += ( "/awstats" => "'.$AWSTATS_www_root.'" )';}
 	if(is_file('/usr/share/poweradmin/index.php')){
 		$f[]='alias.url += ( "/powerdns" => "/usr/share/poweradmin" )';
-		shell_exec("$php  /usr/share/artica-postfix/exec.pdns.php --poweradmin");
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Checking PowerAdmin\n";}
+		shell_exec("$nohup $php /usr/share/artica-postfix/exec.pdns.php --poweradmin >/dev/null 2>&1 &");
 	}
 
 	//$perlbin
@@ -848,10 +1324,10 @@ function buildConfig(){
 		$f[]='';
 	}	
 	
-	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} writing $LIGHTTPD_CONF_PATH..\n";}
 	@file_put_contents($LIGHTTPD_CONF_PATH, @implode("\n", $f));
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service $LIGHTTPD_CONF_PATH done\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service Check sessions...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} $LIGHTTPD_CONF_PATH done\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Check sessions...\n";}
 	
 	shell_exec("$nohup $php /usr/share/artica-postfix/exec.shm.php --SessionMem >/dev/null 2>&1 &");
 	shell_exec("$nohup $php /usr/share/artica-postfix/exec.shm.php --service-up >/dev/null 2>&1 &");
@@ -863,7 +1339,7 @@ function PHP_MYADMIN(){
 	$phpmyadminAllowNoPassword=$sock->GET_INFO("phpmyadminAllowNoPassword");
 	if(!is_numeric($phpmyadminAllowNoPassword)){$phpmyadminAllowNoPassword=0;}
 	if(!is_file('/usr/share/phpmyadmin/index.php')){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service PhpMyAdmin: /usr/share/phpmyadmin/index.php no such file\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} PhpMyAdmin: /usr/share/phpmyadmin/index.php no such file\n";}
 		return;
 	}
 	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
@@ -875,7 +1351,7 @@ function PHP_MYADMIN(){
 	$database_password=@file_get_contents("/etc/artica-postfix/settings/Mysql/database_password");
 	if(database_password=='!nil'){$database_password=null;}
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service PhpMyAdmin: AllowNoPassword=$phpmyadminAllowNoPassword\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} PhpMyAdmin: AllowNoPassword=$phpmyadminAllowNoPassword\n";}
 	//$phpmyadminAllowNoPassword
 	
 	$q=new mysql();
@@ -931,8 +1407,122 @@ function PHP_MYADMIN(){
 	$f[]='?>';
 	@file_put_contents('/usr/share/phpmyadmin/config.inc.php',@implode("\n", $f));
 
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service PhpMyAdmin: Success writing phpmyadmin configuration\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} PhpMyAdmin: Success writing phpmyadmin configuration\n";}
 	IF(is_dir('/usr/share/phpmyadmin/setup')){shell_exec('/bin/rm -rf /usr/share/phpmyadmin/setup');}
 	IF(is_dir('/usr/share/phpmyadmin/config')){shell_exec('/bin/rm -rf /usr/share/phpmyadmin/config');}
 	
 }
+function islighttpd_error_500(){
+	$sock=new sockets();
+	$unix=new unix();
+	
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+		return;
+	}
+
+	@file_put_contents($pidfile, getmypid());	
+	
+	$curl=$unix->find_program("curl");
+	if(!is_file($curl)){return;}
+	$LighttpdArticaListenIP=$sock->GET_INFO('LighttpdArticaListenIP');
+	$ArticaHttpsPort=9000;
+	$ArticaHttpUseSSL=1;
+	$ArticaHttpsPort=$sock->GET_INFO("ArticaHttpsPort");
+	$ArticaHttpUseSSL=$sock->GET_INFO("ArticaHttpUseSSL");
+	if(!is_numeric($ArticaHttpUseSSL)){$ArticaHttpUseSSL=1;}
+	if(!is_numeric($ArticaHttpsPort)){$ArticaHttpsPort="9000";}
+	$EnableArticaFrontEndToNGninx=$sock->GET_INFO("EnableArticaFrontEndToNGninx");
+	if(!is_numeric($EnableArticaFrontEndToNGninx)){$EnableArticaFrontEndToNGninx=0;}
+	$proto="http";
+	if($ArticaHttpUseSSL==1){$proto="https";}
+	if(strlen($LighttpdArticaListenIP)>3){
+		$ips[$LighttpdArticaListenIP]=true;
+		$uri="$proto://$LighttpdArticaListenIP:$ArticaHttpsPort/logon.php";
+	}else{
+		$ips=$unix->NETWORK_ALL_INTERFACES(true);
+		unset($ips["127.0.0.1"]);
+	}
+	
+	while (list ($ipaddr, $line) = each ($ips) ){
+		$f=array();
+		$results=array();
+		$uri="$proto://$ipaddr:$ArticaHttpsPort/logon.php";
+		$f[]="$curl -I --connect-timeout 5";
+		$f[]="--insecure";
+		$f[]="--interface $ipaddr";
+		$f[]="--url $uri 2>&1";
+		$cmdline=@implode(" ", $f);
+		if($GLOBALS['VERBOSE']){echo "$cmdline\n";}
+		exec(@implode(" ", $f),$results);
+		if($GLOBALS['VERBOSE']){echo count($results)." rows\n";}
+		
+		if(DetectError($results,"Artica Web Interface")){if($EnableArticaFrontEndToNGninx==1){shell_exec("/etc/init.d/nginx restart");}else{restart(true);}}
+		
+		
+	}
+	
+	$results=array();
+	$f=array();
+	$f[]="$curl -I --connect-timeout 5";
+	$f[]="--insecure";
+	$f[]="--interface $ipaddr";
+	$f[]="--url $uri 2>&1";
+	$uri="http://127.0.0.1:47980/services.php?GetMyHostId=yes";
+	
+	exec(@implode(" ", $f),$results);
+	if($GLOBALS['VERBOSE']){echo count($results)." rows\n";}
+	
+	if(DetectError($results,"Artica Framework")){
+		shell_exec("/etc/init.d/artica-framework restart");
+	}	
+	
+	
+	
+	if($GLOBALS['VERBOSE']){echo "done\n";}
+	
+}
+
+function DetectError($results,$type){
+	while (list ($a, $b) = each ($results) ){
+		if($GLOBALS["VERBOSE"]){echo "$a \"$b\"\n";}
+		if(preg_match("#HTTP.+?200 OK#", $b)){
+			if($GLOBALS['VERBOSE']){echo "$type: 200 OK Nothing to do...\n";}
+			return false;
+		}
+	
+		IF(preg_match("#HTTP.*?502 Bad Gateway#", $b)){
+			if($GLOBALS['VERBOSE']){echo "$b detected\n";}
+			system_admin_events("$type: $b detected ",__FUNCTION__,__FILE__,__LINE__);
+			return true;
+		}
+			
+		IF(preg_match("#HTTP.*?500.*?Error#", $b)){
+			if($GLOBALS['VERBOSE']){echo "$b detected\n";}
+			system_admin_events("$type: $b detected",__FUNCTION__,__FILE__,__LINE__);
+			return true;
+		}
+		
+		IF(preg_match("#HTTP.*?500.*?Internal#", $b)){
+			if($GLOBALS['VERBOSE']){echo "$b detected\n";}
+			system_admin_events("$type: $b detected",__FUNCTION__,__FILE__,__LINE__);
+			return true;
+		}
+		
+		IF(preg_match("#HTTP.*?503.*?Service Not Available#i", $b)){
+			if($GLOBALS['VERBOSE']){echo "$b detected\n";}
+			system_admin_events("$type: $b detected",__FUNCTION__,__FILE__,__LINE__);
+			return true;		
+		}		
+		
+			
+	}	
+	
+	
+}
+
+

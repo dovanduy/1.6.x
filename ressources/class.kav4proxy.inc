@@ -207,6 +207,22 @@ function Build_defaults(){
 		$this->main_array["MaxEnginesPerChild"]=$this->GET("icapserver.process","MaxEnginesPerChild");	
 		$this->main_array["PreviewSize"]=$this->GET("icapserver.protocol","PreviewSize");
 		$this->main_array["ListenAddress"]=$this->GET("icapserver.network","ListenAddress");
+		
+		
+		$Rev88Opts["MaxNestingLevel"]=8;
+		$Rev88Opts["DetectVirware"]=1;
+		$Rev88Opts["DetectTrojware"]=1;
+		$Rev88Opts["DetectMalware"]=1;
+		$Rev88Opts["DetectAdware"]=1;
+		$Rev88Opts["DetectPornware"]=1;
+		$Rev88Opts["DetectRiskware"]=1;
+		$Rev88Opts["DetectXfiles"]=0;
+		$Rev88Opts["DetectSoftware"]=0;
+		
+		while (list ($fieldname, $default) = each ($Rev88Opts) ){
+			$this->main_array["$fieldname"]=$this->GET("icapserver.engine.options",$fieldname);
+			if($this->main_array["$fieldname"]==null){$this->main_array["$fieldname"]=$default;}
+		}
 					
 		if(!isset($this->main_array["Timeout"])){$this->main_array["Timeout"]=null;}
 		if(!isset($this->main_array["AnswerMode"])){$this->main_array["AnswerMode"]=null;}
@@ -260,7 +276,9 @@ function Build_defaults(){
 		if($this->main_array["ListenAddress"]==null){$this->main_array["ListenAddress"]="127.0.0.1:1344";}
 		if($this->main_array["MaxReqLengthAction"]==null){$this->main_array["MaxReqLengthAction"]="skip";}
 		if($this->main_array["PartialResponseAction"]==null){$this->main_array["PartialResponseAction"]="check";}
-		if($this->main_array["PartialRequestAction"]==null){$this->main_array["PartialRequestAction"]="check";}    
+		if($this->main_array["PartialRequestAction"]==null){$this->main_array["PartialRequestAction"]="check";} 
+
+		
 		
 
 		
@@ -410,7 +428,22 @@ function Build_defaults(){
 				if($rev>=79){
 					$conf[]="ScanSFXArchives=yes";
 				}
+				if($rev>=87){
+					$Rev88Opts["MaxNestingLevel"]=8;
+					$Rev88Opts["DetectVirware"]=1;
+					$Rev88Opts["DetectTrojware"]=1;
+					$Rev88Opts["DetectMalware"]=1;
+					$Rev88Opts["DetectAdware"]=1;
+					$Rev88Opts["DetectPornware"]=1;
+					$Rev88Opts["DetectRiskware"]=1;
+					$Rev88Opts["DetectXfiles"]=0;
+					$Rev88Opts["DetectSoftware"]=0;
+					while (list ($fieldname, $default) = each ($Rev88Opts) ){
+						if($this->main_array["$fieldname"]==null){$this->main_array["$fieldname"]=$default;}
+						$conf[]="$fieldname=".$this->main_array["$fieldname"];
+					}
 				
+				}
 				
 				$conf[]="MaxScanTime={$this->main_array["MaxScanTime"]}";
 				$conf[]="";
@@ -748,11 +781,11 @@ function Build_defaults(){
 				$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT `template`,`content` FROM kav4proxy_templates WHERE `template`='$templateName'","artica_backup"));
 				if(strlen($ligne["content"])<5){
 					if($ligne["template"]==null){
-						$d=mysql_escape_string($objetcs[$templateName]);
+						$d=mysql_escape_string2($objetcs[$templateName]);
 						$q->QUERY_SQL("INSERT IGNORE INTO kav4proxy_templates (`template`,`content`) VALUES ('$templateName','$d')","artica_backup");
 						if(!$q->ok){echo $q->mysql_error;}
 					}else{
-						$d=mysql_escape_string($objetcs[$templateName]);
+						$d=mysql_escape_string2($objetcs[$templateName]);
 						$q->QUERY_SQL("UPDATE kav4proxy_templates SET `content`='$d' WHERE `template`='$templateName'","artica_backup");
 						if(!$q->ok){echo $q->mysql_error;}
 					}
@@ -768,7 +801,7 @@ function Build_defaults(){
 	}
 	
 	function set_template($tpl,$data){
-		$data=mysql_escape_string($data);
+		$data=mysql_escape_string2($data);
 		$q=new mysql();
 		$q->QUERY_SQL("UPDATE kav4proxy_templates SET `content`='$data' WHERE `template`='$tpl'","artica_backup");
 		if(!$q->ok){echo $q->mysql_error;return false;}		

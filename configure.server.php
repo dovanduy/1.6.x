@@ -633,7 +633,12 @@ function icon_update_spamassassin_blacklist(){
 function statkaspersky(){return LocalParagraphe("Kaspersky","kaspersky_av_text","YahooWin(580,'kaspersky.index.php','Kaspersky');","bigkav-48.png");}
 function sysinfos(){return LocalParagraphe("sysinfos","sysinfos_text","s_PopUp('phpsysinfo/index.php',1000,600,1);","scan-48.png");}
 function certificate(){return LocalParagraphe("ssl_certificate","ssl_certificate_text","Loadjs('postfix.tls.php?js-certificate=yes')","folder-lock-48.png");}
-function apt(){$users=new usersMenus();if(!$users->AsDebianSystem){return null;}return LocalParagraphe("repository_manager","repository_manager_text","Loadjs('artica.repositories.php')","folder-lock-48.png");}
+function apt(){
+	$sock=new sockets();
+	$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
+	if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
+	if($EnableSystemUpdates==0){return;}
+	$users=new usersMenus();if(!$users->AsDebianSystem){return null;}return LocalParagraphe("repository_manager","repository_manager_text","Loadjs('artica.repositories.php')","folder-lock-48.png");}
 function incremental_backup(){$js="Loadjs('wizard.backup-all.php')";return LocalParagraphe("manage_backups","manage_backups_text",$js,"48-dar-index.png");}
 function atica_perf(){$js="Loadjs('artica.performances.php')";return LocalParagraphe("artica_performances","artica_performances_text",$js,"48-perf.png");}
 function applis(){return LocalParagraphe("install_applis","install_applis_text","Loadjs('setup.index.php?js=yes')","bg-applis.png");}

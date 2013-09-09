@@ -61,6 +61,7 @@ function vhosts_users_ou($array){
 	$unix=new unix();
 	$ldap=new clladp();
 	$sock=new sockets();
+	
 	$ApacheGroupware=$sock->GET_INFO("ApacheGroupware");
 	if($ApacheGroupware==null){$ApacheGroupware=1;}
 	$ApacheGroupwareListenIP=$sock->GET_INFO("ApacheGroupwareListenIP");
@@ -112,7 +113,7 @@ if($ApacheGroupwareListenIP==null){$ApacheGroupwareListenIP="*";}
 			
 	}	
 	
-	
+	$freeweb=new freeweb();
 	echo "Starting Apache..............: WebDav \"$apacheservername:$ApacheGroupWarePort_WRITE\"\n";
 	if(!is_dir($root)){
 		echo "Starting Apache..............: WebDav creating directory $root\n";
@@ -127,13 +128,10 @@ if($ApacheGroupwareListenIP==null){$ApacheGroupwareListenIP="*";}
 	$conf[]="\tDocumentRoot /home";	
 	$conf[]=@implode("\n",$ssl);
 	$conf[]="\tDavLockDB \"$root/DavLock\"";
-	$conf[]="\tBrowserMatch \"Microsoft Data Access Internet Publishing Provider\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"MS FrontPage\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"^WebDrive\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"^WebDAVFS/1.[0123]\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"^gnome-vfs/1.0\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"^XML Spy\" redirect-carefully";
-	$conf[]="\tBrowserMatch \"^Dreamweaver-WebDAV-SCM1\" redirect-carefully";	
+	include_once(dirname(__FILE__)."/ressources/class.freeweb.inc");
+	$freeweb=new freeweb();
+	$conf[]=$freeweb->WebDavBrowserMatches();
+	
 	
 		
 	

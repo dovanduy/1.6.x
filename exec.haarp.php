@@ -11,6 +11,7 @@ if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDU
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--reconfigure#",implode(" ",$argv),$re)){$GLOBALS["RECONFIGURE"]=true;}
 $GLOBALS["AS_ROOT"]=true;
+$GLOBALS["RGVS"]=@implode(" ", $argv);
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
@@ -42,10 +43,13 @@ function restart() {
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
-		
+	squid_admin_mysql(1, "HAARP: Restart operation ordered","{$GLOBALS["RGVS"]}");
 	stop(true);
 	sleep(1);
 	start(true);
+	$squidbin=$unix->LOCATE_SQUID_BIN();
+	squid_admin_mysql(2, "HAARP: Reconfiguring squid-cache", "Operation occurs after restarting HAARP service");
+	shell_exec("$squidbin -k reconfigure >/dev/null 2>&1");
 	
 }
 
@@ -151,10 +155,7 @@ function stop($aspid=false){
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
-		$pid=PID_NUM();
-		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
-		sleep(1);
+		Killing();
 	}
 
 	$pid=PID_NUM();
@@ -165,13 +166,9 @@ function stop($aspid=false){
 
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
-	for($i=0;$i<5;$i++){
-		$pid=PID_NUM();
-		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
-		sleep(1);
-	}
-
+	
+	
+	
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
 		return;
@@ -183,12 +180,42 @@ function stop($aspid=false){
 
 }
 
+function Killing(){
+	$unix=new unix();
+	$pid=PID_NUM();
+	$kill=$unix->find_program("kill");
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		return;
+	}	
+	shell_exec("$kill $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=PID_NUM();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+
+	$pid=PID_NUM();
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		return;
+	}
+	
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	
+}
+
 function PID_NUM(){
 	$filename=PID_PATH();
 	$pid=trim(@file_get_contents($filename));
 	$unix=new unix();
 	if($unix->process_exists($pid)){return $pid;}
 	return $unix->PIDOF($unix->find_program("haarp"));
+	
+	
+	
 }
 
 function PID_PATH(){

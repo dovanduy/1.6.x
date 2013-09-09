@@ -158,7 +158,7 @@ function edit_port_save(){
 	$port=$_POST["aclport"];
 	if(!is_numeric($port)){return;}
 	$q=new mysql_squid_builder();
-	$_POST["portname"]=mysql_escape_string(url_decode_special_tool($_POST["portname"]));
+	$_POST["portname"]=mysql_escape_string2(url_decode_special_tool($_POST["portname"]));
 	$sql="UPDATE webfilters_sqaclsports SET 
 		portname='{$_POST["portname"]}',
 		interface='{$_POST["interface"]}',
@@ -198,7 +198,7 @@ function new_port(){
 function save_new_port(){
 	$q=new mysql_squid_builder();
 	
-	$_POST["portname"]=mysql_escape_string(url_decode_special_tool($_POST["portname"]));
+	$_POST["portname"]=mysql_escape_string2(url_decode_special_tool($_POST["portname"]));
 	$sql="INSERT IGNORE INTO webfilters_sqaclsports (portname,aclport,interface,enabled) 
 	VALUES ('{$_POST["portname"]}','{$_POST["aclport"]}','{$_POST["interface"]}',1)";
 	$q->QUERY_SQL($sql);
@@ -346,7 +346,7 @@ function acl_list(){
 		$delete=imgsimple("delete-24.png",null,"DeleteSquidAclRule('{$ligne['ID']}')");
 		if($ligne["enabled"]==0){$color="#9C9C9C";$gliff=null;}
 		
-		$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID'],$ligne["enabled"],$ligne["aclgroup"]));
+		$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID'],$ligne["enabled"],$ligne["aclgroup"],true));
 		
 		$up=imgsimple("arrow-up-16.png","","");
 		$down=imgsimple("arrow-down-18.png","","");
@@ -356,7 +356,7 @@ function acl_list(){
 		$tr[]="
 		<tr id='acl{$ligne['ID']}'>
 		<td $link nowrap>$gliff <span style='color:$color'>{$ligne['aclname']}</span></td>
-		<td $link><i class='icon-info-sign'></i> <span style='color:$color'> $explain</td>
+		<td ><i class='icon-info-sign'></i> <span style='color:$color'> $explain</td>
 		<td width=1% ". $boot->trswitch("AclUpDown('{$ligne['ID']}',1)").">$up</td>
 		<td width=1% ". $boot->trswitch("AclUpDown('{$ligne['ID']}',0)").">$down</td>
 		<td width=1% align='center' style='text-align:center'>$disable</td>
