@@ -48,10 +48,11 @@ class highcharts{
 		$ChartString="Chart".md5($this->container.rand(0, time()));
 		//$f[]="var chart;";
 		$f[]="// Chart type = $this->ChartType";
-		$f[]="$(document).ready(function(){";
+		
 		//$f[]="\tvar \$container$t = $('#$this->container');";
-		
-		
+		$FunctioName="F".md5(time()+rand(0,time()));
+		$f[]="function $FunctioName(){";
+		$f[]="if(!document.getElementById('$this->container')){return;}";
 		$f[]="if($ChartString){ $ChartString.destroy(); }";
 		$f[]="\tvar $ChartString = new Highcharts.Chart({";
 		$f[]="\t\tchart: {";
@@ -182,7 +183,9 @@ class highcharts{
 	
 	$f[]="]";
 	$f[]="});";
-	$f[]="});";
+	$f[]="}";
+	$f[]="$FunctioName();";
+
 	header("content-type: application/x-javascript");
 	return @implode("\n", $f);
 	

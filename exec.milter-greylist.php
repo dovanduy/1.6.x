@@ -15,18 +15,30 @@ include_once(dirname(__FILE__)."/ressources/class.fetchmail.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__)."/ressources/class.maincf.multi.inc");
 
-
+$GLOBALS["deflog_start"]="Starting......: [INIT]: Milter Greylist Daemon";
+$GLOBALS["deflog_sstop"]="Stopping......: [INIT]: Milter Greylist Daemon";
 $GLOBALS["ROOT"]=true;
 $GLOBALS["FORCE"]=false;
 if(preg_match("#--verbose#",@implode(" ", $argv))){$GLOBALS["FORCE"]=true;}
 $GLOBALS["WHOPROCESS"]="daemon";
 
-parsecmdlines($argv);
 $unix=new unix();
-$sock=new sockets();
 $_GLOBAL["miltergreylist_bin"]=$unix->find_program("milter-greylist");
 if(!is_file($_GLOBAL["miltergreylist_bin"])){if($GLOBALS["VERBOSE"]){echo "Not installed !!\n";}die();}
+$sock=new sockets();
 $EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=0;}
+
+if($EnablePostfixMultiInstance==0){
+	if($argv[1]=="--start-single"){$GLOBALS["OUTPUT"]=true;SingleInstance_start();die();}
+	if($argv[1]=="--stop-single"){$GLOBALS["OUTPUT"]=true;SingleInstance_stop();die();}
+	if($argv[1]=="--restart-single"){$GLOBALS["OUTPUT"]=true;SingleInstance_restart();die();}
+	if($argv[1]=="--reload-single"){$GLOBALS["OUTPUT"]=true;SingleInstance_reload();die();}
+	
+}
+
+parsecmdlines($argv);
+
 
 if($argv[1]=="--startall"){if($EnablePostfixMultiInstance==1){$GLOBALS["START_ONLY"]==1;MultiplesInstancesFound(true,true);die();}}
 
@@ -56,7 +68,7 @@ function parsecmdlines($argv){
 	$GLOBALS["COMMANDLINE"]=implode(" ",$argv);
 	if($GLOBALS["postconf"]==null){$unix=new unix();$GLOBALS["postconf"]=$unix->find_program("postconf");}
 	if($GLOBALS["postmulti"]==null){$unix=new unix();$GLOBALS["postmulti"]=$unix->find_program("postmulti");}	
-	//echo "Starting......: Milter-greylist multiple instance `". @implode(";", $argv)."\n";
+	//echo "{$GLOBALS["deflog_start"]} Milter-greylist multiple instance `". @implode(";", $argv)."\n";
 	if(strpos($GLOBALS["COMMANDLINE"],"--verbose")>0){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["DEBUG"]=true;}
 	if(preg_match("#--who=([A-Za-z]+)#", $GLOBALS["COMMANDLINE"],$re)){$GLOBALS["WHOPROCESS"]=$re[1];}
 	
@@ -105,7 +117,7 @@ if($GLOBALS["DEBUG"]){echo "parsecmdlines ou={$GLOBALS["ou"]} hostname={$GLOBALS
 
 
 function TestConfigFile($path){
-	echo "Starting......: Testing $path\n";
+	echo "{$GLOBALS["deflog_start"]} Testing $path\n";
 	$unix=new unix();
 	$bin=$unix->find_program("milter-greylist");
 	copy($path, "$path.bak");
@@ -114,10 +126,10 @@ function TestConfigFile($path){
 		if(preg_match("#config error at line\s+([0-9]+)#", $ligne,$re)){
 			$tt=file($path);
 			$line=$re[1];
-			echo "Starting......:  error line {$line}: `{$tt[$line]}`\n";
+			echo "{$GLOBALS["deflog_start"]}  error line {$line}: `{$tt[$line]}`\n";
 		}
 		
-		echo "Starting......: $ligne\n";
+		echo "{$GLOBALS["deflog_start"]} $ligne\n";
 		
 	}
 	
@@ -125,28 +137,209 @@ function TestConfigFile($path){
 	
 }
 
+function SingleInstance_restart(){
+	SingleInstance_stop(true);
+	SingleInstance();
+	SingleInstance_start(true);
+	
+}
+function SingleInstance_reload(){
+	$unix=new unix();
+	SingleInstance();
+	$pid=SingleInstance_pid();
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} reloading executed $pid since {$timepid}Mn...\n";}
+		$kill=$unix->find_program("kill");
+		shell_exec("$kill -HUP $pid");
+		return;
+	}
+	
+	SingleInstance_start(true);
+	
+
+}
+function SingleInstance_start($nopid=false){
+	
+	$sock=new sockets();
+	$unix=new unix();
+	
+	
+	if(!$nopid){
+		$unix=new unix();
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__."pid";
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid)){
+			echo "{$GLOBALS["deflog_start"]} already Artica Starting process exists $pid\n";
+			return;
+		}
+		
+		@file_put_contents($pidfile,getmypid());		
+		
+	}
+	
+	$miltergreybin=$unix->find_program("milter-greylist");
+	$MilterGreyListEnabled=$sock->GET_INFO("MilterGreyListEnabled");
+	if(!is_numeric($MilterGreyListEnabled)){$MilterGreyListEnabled=0;}
+	
+
+	$pid=SingleInstance_pid();
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} service already started $pid since {$timepid}Mn...\n";}
+		return;
+	}
+	if($MilterGreyListEnabled==0){echo "{$GLOBALS["deflog_start"]} is not enabled ( see MilterGreyListEnabled)\n";return;}
+	
+	$dirs[]="/var/run/milter-greylist";
+	$dirs[]="/var/spool/postfix/var/run/milter-greylist";
+	$dirs[]="/var/milter-greylist";
+	$dirs[]="/var/lib/milter-greylist";
+	$dirs[]="/usr/local/var/milter-greylist/";
+	
+	while (list ($num, $directory) = each ($dirs)){
+		@mkdir($directory,0755,true);
+		@chown($directory, "postfix");
+		@chgrp($directory, "postfix");
+		@chmod($directory,0755);
+	}
+	
+	$FullSocketPath="/var/run/milter-greylist/milter-greylist.sock";
+	$pidpath="/var/run/milter-greylist/milter-greylist.pid";
+	$dbpath="/var/milter-greylist/greylist.db";
+	$confpath=SingleInstanceConfPath();
+	
+	
+	$files[]="/var/milter-greylist/greylist.db";
+	$files[]="/usr/local/var/milter-greylist/greylist.db";
+	
+	while (list ($num, $filename) = each ($files)){
+		if(!is_file($filename)){@touch($filename);}
+		@chown($filename, "postfix");
+		@chgrp($filename, "postfix");
+	}
+	
+	$MilterGreyListUseTCPPort=$sock->GET_INFO("MilterGreyListUseTCPPort");
+	$MilterGeryListTCPPort=$sock->GET_INFO("MilterGeryListTCPPort");
+	if(!is_numeric($MilterGeryListTCPPort)){$MilterGeryListTCPPort=0;}
+	if(!is_numeric($MilterGreyListUseTCPPort)){$MilterGreyListUseTCPPort=0;}
+	if($MilterGeryListTCPPort==0){$MilterGreyListUseTCPPort=0;}
+	
+	if(!is_file($confpath)){SingleInstance();}
+	if(!is_file($dbpath)){@touch($dbpath);}
+	@chown($dbpath, "postfix");
+	@chgrp($dbpath, "postfix");
+	if($MilterGreyListUseTCPPort==1){
+		$FullSocketPath="inet:{$MilterGeryListTCPPort}";
+	}
+	$nohup=$unix->find_program("nohup");
+	if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} running daemon $miltergreybin\n";}
+	$cmd="$nohup $miltergreybin -u postfix -P $pidpath -p $FullSocketPath -f $confpath -d $dbpath >/dev/null 2>&1 &";
+	if($GLOBALS["VERBOSE"]){echo "**** \n $cmd \n ************\n";}
+	shell_exec($cmd);
+	
+	if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} waiting 5s\n";}
+	for($i=1;$i<6;$i++){
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} waiting $i/5\n";}
+		sleep(1);
+		$pid=SingleInstance_pid();
+		if($unix->process_exists($pid)){break;}
+	}
+	
+	$pid=SingleInstance_pid();
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} Success PID $pid\n";}
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "$cmd\n";}
+		
+	}
+	
+	
+}
+
+function SingleInstance_stop($aspid=false){
+	$unix=new unix();
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+
+	$pid=SingleInstance_pid();
+
+
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} service already stopped...\n";}
+		return;
+	}
+	$pid=SingleInstance_pid();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$kill=$unix->find_program("kill");
+
+
+
+
+	if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} service Shutdown pid $pid...\n";}
+	shell_exec("$kill $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=SingleInstance_pid();
+		if(!$unix->process_exists($pid)){
+			if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} stopped...\n";}
+			break;
+		}
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} service wait $i/5...\n";}
+	}
+
+	$pid=SingleInstance_pid();
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} service success...\n";}
+		return;
+	}
+
+	if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} service shutdown - force - pid $pid...\n";}
+	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+
+
+
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} service failed...\n";}
+		return;
+	}
+}
+
 
 function SingleInstance(){
 	$sock=new sockets();
 	$unix=new unix();
+	
+	
+	
+	$php5=$unix->LOCATE_PHP5_BIN();
 	$miltergreybin=$unix->find_program("milter-greylist");
 	$MilterGreyListEnabled=$sock->GET_INFO("MilterGreyListEnabled");
 	if(!is_numeric($MilterGreyListEnabled)){$MilterGreyListEnabled=0;}
-	if($MilterGreyListEnabled==0){
-		echo "Starting......: Milter-greylist is not enabled\n";
-		return;
-	}
+	if($MilterGreyListEnabled==0){echo "{$GLOBALS["deflog_start"]} Milter-greylist is not enabled\n";return;}
+	
+	echo "{$GLOBALS["deflog_start"]} single instance execute exec.white-black-central.php\n";
+	shell_exec("$php5 /usr/share/artica-postfix/exec.white-black-central.php");
 	
 	$mg=new milter_greylist(false,"master","master");
 	$datas=$mg->BuildConfig();
 	if($datas<>null){
 		$conf_path=SingleInstanceConfPath();
 		@mkdir(dirname($conf_path),0666,true);
-		echo "Starting......: single instance $conf_path\n";
+		echo "{$GLOBALS["deflog_start"]} single instance $conf_path\n";
 		
 		
 		$tbl=explode("\n",$datas);
-		echo "Starting......: cleaning $conf_path with ". count($tbl)." lines\n";
+		echo "{$GLOBALS["deflog_start"]} cleaning $conf_path with ". count($tbl)." lines\n";
 		while (list ($num, $ligne) = each ($tbl) ){
 			$ligne=trim($ligne);
 			if($ligne==null){continue;}
@@ -154,29 +347,25 @@ function SingleInstance(){
 		}
 		$newf[]="";
 		
-		echo "Starting......: writing $conf_path (". count($newf)." lines)\n";
+		echo "{$GLOBALS["deflog_start"]} writing $conf_path (". count($newf)." lines)\n";
 		@file_put_contents($conf_path,@implode("\n",$newf));
 	}
 	
 	TestConfigFile($conf_path);
-	
-	@mkdir("/var/spool/postfix/var/run/milter-greylist",0755,true);
-	@chown("/var/spool/postfix/var/run/milter-greylist", "postfix");
-	@chgrp("/var/spool/postfix/var/run/milter-greylist", "postfix");
-	@chmod("/var/spool/postfix/var/run/milter-greylist",0755);	
-	
-	
+	echo "{$GLOBALS["deflog_start"]} notify administrator\n";
 	$unix->send_email_events("Milter-greylist has been reconfigured", "By {$GLOBALS["WHOPROCESS"]}\nSettings:\n".@implode("\n",$newf), "postfix");
-	
-	if(!$GLOBALS["NORESTART"]){
-		echo "Starting......: restarting milter-greylist\n";
-		if($GLOBALS["VERBOSE"]){$mgreyverbose=" --verbose";$GLOBALS["DEBUG"]=true;}
-		shell_exec("/etc/init.d/artica-postfix restart mgreylist --noconfig $mgreyverbose >/tmp/start.miltergreylist.tmp 2>&1");
-		if($GLOBALS["DEBUG"]){echo "\n".@file_get_contents("/tmp/start.miltergreylist.tmp")."\n";}
-		@unlink("/tmp/start.miltergreylist.tmp");
-	}
-	
+	echo "{$GLOBALS["deflog_start"]} done.\n";
 }
+
+function SingleInstance_pid(){
+	$unix=new unix();
+	$pidpath="/var/run/milter-greylist/milter-greylist.pid";
+	$pid=$unix->get_pid_from_file($pidpath);
+	if($unix->process_exists($pid)){return $pid;}
+	return $unix->PIDOF($unix->find_program("milter-greylist"));
+}
+
+
 
 function SingleInstanceConfPath(){
 if(is_file('/etc/milter-greylist/greylist.conf')){return '/etc/milter-greylist/greylist.conf';}
@@ -211,7 +400,7 @@ function parse_multi_databases(){
 }
 
 function MultiplesInstances($hostname=null,$ou=null){
-	echo "Starting......: milter-greylist: MultiplesInstances() `$hostname` and ou `$ou`\n";
+	echo "{$GLOBALS["deflog_start"]} milter-greylist: MultiplesInstances() `$hostname` and ou `$ou`\n";
 	if(($ou==null) && ($hostname==null)){MultiplesInstancesFound();return;}
 	
 	if($hostname==null){echo __FUNCTION__." unable to get hostname name\n";return;}	
@@ -227,11 +416,11 @@ function MultiplesInstances($hostname=null,$ou=null){
 			$newf[]=$ligne;
 		}
 		$newf[]="";
-		echo "Starting......: milter-greylist $hostname: writing /etc/milter-greylist/$hostname/greylist.conf\n";
+		echo "{$GLOBALS["deflog_start"]} milter-greylist $hostname: writing /etc/milter-greylist/$hostname/greylist.conf\n";
 		$datas=@implode("\n",$newf);	
 	
 	@file_put_contents("/etc/milter-greylist/$hostname/greylist.conf",$datas);
-	echo "Starting......: milter-greylist $hostname: or=$ou START_ONLY={$GLOBALS["START_ONLY"]},STOP_ONLY={$GLOBALS["STOP_ONLY"]}\n";
+	echo "{$GLOBALS["deflog_start"]} milter-greylist $hostname: or=$ou START_ONLY={$GLOBALS["START_ONLY"]},STOP_ONLY={$GLOBALS["STOP_ONLY"]}\n";
 	if($GLOBALS["STOP_ONLY"]==1){MultiplesInstances_stop($hostname,$ou);}
 	if($GLOBALS["START_ONLY"]==1){MultiplesInstances_start($hostname,$ou);}
 
@@ -311,23 +500,23 @@ function MultiplesInstancesFound($pid=false,$onlystart=false){
 function MultiplesInstances_start($hostname,$ou){
 	$hostname=trim($hostname);
 	if($hostname==null){
-		if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist (".__FUNCTION__.") return -> hostname is null\n";}
+		if($GLOBALS["VERBOSE"]){echo "{$GLOBALS["deflog_start"]} milter-greylist (".__FUNCTION__.") return -> hostname is null\n";}
 		return;
 	}
 	
 	
 	$unix=new unix();
-	echo "Starting......: milter-greylist hostname:$hostname OU:($ou) line: ".__LINE__."\n";
+	echo "{$GLOBALS["deflog_start"]} milter-greylist hostname:$hostname OU:($ou) line: ".__LINE__."\n";
 	$main=new maincf_multi($hostname,$ou);
 	
 	$array_filters=unserialize(base64_decode($main->GET_BIGDATA("PluginsEnabled")));
 	if($array_filters["APP_MILTERGREYLIST"]==0){$enabled=false;}	
 	
 	$pid=MultiplesInstancesPID($hostname);
-	if($unix->process_exists($pid)){echo "Starting......: milter-greylist $hostname already running PID $pid\n";
+	if($unix->process_exists($pid)){echo "{$GLOBALS["deflog_start"]} milter-greylist $hostname already running PID $pid\n";
 		return;
 	}
-	echo "Starting......: milter-greylist hostname \"$hostname\" line: ".__LINE__."\n";
+	echo "{$GLOBALS["deflog_start"]} milter-greylist hostname \"$hostname\" line: ".__LINE__."\n";
 	$bin_path=$unix->find_program("milter-greylist");
 	
 	@mkdir("/var/spool/postfix/var/run/milter-greylist/$hostname",0755,true);
@@ -337,7 +526,7 @@ function MultiplesInstances_start($hostname,$ou){
 	
 	
 	if(!is_file("/etc/milter-greylist/$hostname/greylist.conf")){
-		echo "Starting......: milter-greylist $hostname /etc/milter-greylist/$hostname/greylist.conf does not exists\n";
+		echo "{$GLOBALS["deflog_start"]} milter-greylist $hostname /etc/milter-greylist/$hostname/greylist.conf does not exists\n";
 		MultiplesInstances($hostname,$ou);return ;
 	}
 
@@ -347,14 +536,14 @@ function MultiplesInstances_start($hostname,$ou){
 	$cmdline=$cmdline." -d /var/milter-greylist/$hostname/greylist.db";
 	$cmdline=$cmdline." -f /etc/milter-greylist/$hostname/greylist.conf";
 	
-	if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist $cmdline\n";}
+	if($GLOBALS["VERBOSE"]){echo "{$GLOBALS["deflog_start"]} milter-greylist $cmdline\n";}
 	
 	system($cmdline);
 	
 	for($i=0;$i<20;$i++){
 		$pid=MultiplesInstancesPID($hostname);
 		if($unix->process_exists($pid)){
-			echo "Starting......: milter-greylist $hostname started PID $pid\n";
+			echo "{$GLOBALS["deflog_start"]} milter-greylist $hostname started PID $pid\n";
 			break;
 		}
 		sleep(1);	
@@ -367,7 +556,7 @@ function MultiplesInstances_start($hostname,$ou){
 		
 	for($i=0;$i<10;$i++){
 		if(is_file("/var/spool/postfix/var/run/milter-greylist/$hostname/greylist.sock")){break;}
-		echo "Starting......: milter-greylist waiting greylist.sock ($i/10)\n";
+		echo "{$GLOBALS["deflog_start"]} milter-greylist waiting greylist.sock ($i/10)\n";
 		sleep(1);
 	}	
 	
@@ -387,24 +576,24 @@ function MultiplesInstances_stop($hostname){
 	$pid=MultiplesInstancesPID($hostname);
 	
 	if(!$unix->process_exists($pid)){
-		echo "Stopping milter-greylist.....: $hostname already stopped\n";
+		echo "{$GLOBALS["deflog_sstop"]} $hostname already stopped\n";
 		return;
 	}
 	
-	echo "Stopping milter-greylist.....: $hostname stopping pid $pid\n";
+	echo "{$GLOBALS["deflog_sstop"]} $hostname stopping pid $pid\n";
 	system("/bin/kill $pid");
 
 	for($i=0;$i<20;$i++){
 		$pid=MultiplesInstancesPID($hostname);
 		if(!$unix->process_exists($pid)){
-			echo "Stopping milter-greylist.....: $hostname stopped\n";
+			echo "{$GLOBALS["deflog_sstop"]} $hostname stopped\n";
 			break;
 		}
-		echo "Stopping milter-greylist.....: $hostname waiting pid $pid\n";
+		echo "{$GLOBALS["deflog_sstop"]} $hostname waiting pid $pid\n";
 		if($unix->process_exists($pid)){
 			exec("/bin/kill $pid 2>&1",$results);
 			if(preg_match("#No such process#",@implode(" ",$results))){
-				echo "Stopping milter-greylist.....: $hostname stopped\n";
+				echo "{$GLOBALS["deflog_sstop"]} $hostname stopped\n";
 				break;
 			}
 			}
@@ -506,7 +695,7 @@ function parse_database($filename,$hostname){
 
 			$sql[]="('$md5','$ip','$from','$to','$time','$hostname',$whitelisted)";
 			if(count($sql)>500){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist Finally save ".count($sql)." events\n";}
+				if($GLOBALS["VERBOSE"]){echo "{$GLOBALS["deflog_start"]} milter-greylist Finally save ".count($sql)." events\n";}
 				$newsql=$prefix." ".@implode(",", $sql);
 				$q->QUERY_SQL($newsql,"artica_events");
 				if(!$q->ok){echo $q->mysql_error."\n";return ;}
@@ -515,12 +704,12 @@ function parse_database($filename,$hostname){
 			
 			continue;
 		}else{
-			if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist no match $buffer\n";}
+			if($GLOBALS["VERBOSE"]){echo "{$GLOBALS["deflog_start"]} milter-greylist no match $buffer\n";}
 		}
 	}
 		
 if(count($sql)>0){
-	if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist Finally save ".count($sql)." events\n";}
+	if($GLOBALS["VERBOSE"]){echo "{$GLOBALS["deflog_start"]} milter-greylist Finally save ".count($sql)." events\n";}
 	$newsql=$prefix." ".@implode(",", $sql);$q->QUERY_SQL($newsql,"artica_events");$sql=array();}
 	if(!$q->ok){echo $q->mysql_error."\n";return ;}	
 	$unix=new unix();
@@ -538,7 +727,7 @@ if(count($sql)>0){
 				@file_put_contents("/usr/share/artica-postfix/ressources/logs/greylist-count-$hostname.tot", serialize($array));
 				shell_exec("$chmod 755 /usr/share/artica-postfix/ressources/logs/greylist-count-$hostname.tot");
 			}else{
-				if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist no match $ligne\n";}
+				if($GLOBALS["VERBOSE"]){echo "{$GLOBALS["deflog_start"]} milter-greylist no match $ligne\n";}
 			}
 	}
 			

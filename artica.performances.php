@@ -27,7 +27,7 @@
 	if(isset($_GET["MX_REQUESTS"])){save_mimedefang();exit;}
 	if(isset($_GET["main_config_mysql"])){echo main_config_mysql();exit;}
 	
-	if(isset($_GET["DisableWarnNotif"])){save_index_page();exit;}
+	if(isset($_GET["DisableJGrowl"])){save_index_page();exit;}
 	if(isset($_GET["cron-js"])){echo cron_js();exit;}
 	if(isset($_GET["cron-popup"])){echo cron_popup();exit;}
 	if(isset($_GET["cron-start"])){echo cron_start();exit;}
@@ -126,6 +126,7 @@ echo $html;
 
 function save_index_page(){
 	$sock=new sockets();
+	unset($_SESSION["EnableWebPageDebugging"]);
 	$sock->SET_INFO("DisableWarnNotif",$_GET["DisableWarnNotif"]);
 	$sock->SET_INFO("DisableJGrowl",$_GET["DisableJGrowl"]);
 	$sock->SET_INFO("jgrowl_no_clamav_update",$_GET["jgrowl_no_clamav_update"]);
@@ -140,10 +141,15 @@ function save_index_page(){
 	$sock->SET_INFO("ArticaMetaRemoveIndex", $_GET["DisableFrontArticaMeta"]);
 	$sock->SET_INFO("DisableJqueryDropDown", $_GET["DisableJqueryDropDown"]);
 	$sock->SET_INFO("DisableFreeWebToolBox", $_GET["DisableFreeWebToolBox"]);
-	$sock->SET_INFO("DisableTimeCapsuleToolBox", $_GET["DisableTimeCapsuleToolBox"]);		
-		
+	$sock->SET_INFO("DisableTimeCapsuleToolBox", $_GET["DisableTimeCapsuleToolBox"]);
+	$sock->SET_INFO("EnableWebPageDebugging", $_GET["EnableWebPageDebugging"]);
+	$sock->SET_INFO("ArticaTabsTimeout", $_GET["ArticaTabsTimeout"]);
 	$sock->SET_INFO("DisableSpecialCharacters", $_GET["DisableSpecialCharacters"]);
 	$sock->SET_INFO("DenyMiniWebFromStandardPort", $_GET["DenyMiniWebFromStandardPort"]);
+	
+	if(is_numeric($_GET["ArticaTabsTimeout"])){
+		unset($_SESSION["build_artica_tabs_timeout"]);
+		$_SESSION["build_artica_tabs_timeout"]=$_GET["ArticaTabsTimeout"];}
 	
 	unset($_SESSION["DisableJqueryDropDown"]);
 	
@@ -179,8 +185,9 @@ function cron_index(){
 	$DisableJqueryDropDown=$sock->GET_INFO('DisableJqueryDropDown');
 	$DisableFreeWebToolBox=$sock->GET_INFO('DisableFreeWebToolBox');
 	$DisableTimeCapsuleToolBox=$sock->GET_INFO('DisableTimeCapsuleToolBox');
-	
-	
+	$EnableWebPageDebugging=$sock->GET_INFO("EnableWebPageDebugging");
+	$ArticaTabsTimeout=$sock->GET_INFO("ArticaTabsTimeout");
+	if(!is_numeric($ArticaTabsTimeout)){$ArticaTabsTimeout=800;}
 	
 	//no_organization
 	
@@ -211,7 +218,7 @@ function cron_index(){
 	$DisableTimeCapsuleToolBox=Field_checkbox("DisableTimeCapsuleToolBox", 1,$DisableTimeCapsuleToolBox);
 	$DenyMiniWebFromStandardPort=$sock->GET_INFO("DenyMiniWebFromStandardPort");
 	$DisableSpecialCharacters=$sock->GET_INFO("DisableSpecialCharacters");
-	
+	if(!is_numeric($EnableWebPageDebugging)){$EnableWebPageDebugging=0;}
 	
 	if(!is_numeric($DenyMiniWebFromStandardPort)){$DenyMiniWebFromStandardPort=0;}
 	if(!is_numeric($DisableSpecialCharacters)){$DisableSpecialCharacters=0;}
@@ -245,7 +252,8 @@ function cron_index(){
 	<div class=explain style='font-size:14px'>{frontend_disables_options_explain}</div>
 	<div id='articaschedulesdiv'></div>
 	<div id='$t'></div>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>	
+	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>font:</td>
 		<td valign='top'>".Field_text("InterfaceFonts",$InterfaceFonts,"font-size:13px;width:99%")."</tD>
@@ -257,13 +265,13 @@ function cron_index(){
 		</td>
 	</tr>	
 	</table>
+	</div>
 	
-	
-	
-<table style='width:99%' class=form>
-	<tr>
-		<td class=legend style='font-size:14px'>{disable}:{smtp_notification_not_saved}:</td>
-		<td valign='top'>$DisableWarnNotif</tD>
+<div style='width:95%' class=form>	
+<table style='width:100%'>
+<tr>
+		<td class=legend style='font-size:14px'>{EnableWebPageDebugging}:</td>
+		<td valign='top'>". Field_checkbox("EnableWebPageDebugging", 1,$EnableWebPageDebugging)."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{disable}:{icon_artica_events_front_end}:</td>
@@ -308,6 +316,10 @@ function cron_index(){
 	</tr>		
 		 
 	<tr>
+		<td class=legend style='font-size:14px'>{ArticaTabsTimeout}:</td>
+		<td valign='top' style='font-size:14px'>". Field_text("ArticaTabsTimeout",$ArticaTabsTimeout,"width:60px")."&nbsp;Ms</tD>
+	</tr>				
+	<tr>
 		<td class=legend style='font-size:14px'>{jGrowlMaxEvents}:</td>
 		<td valign='top'>". Field_text("jGrowlMaxEvents",$jGrowlMaxEvents,"width:30px")."</tD>
 	</tr>	
@@ -343,7 +355,7 @@ $jgrowl_no_kas_update
 		</td>
 	</tr>
 </table>
-
+</div>
 
 
 <script>
@@ -384,7 +396,10 @@ $jgrowl_no_kas_update
 
 function SaveArticaIndexPage$t(){
 	var XHR = new XHRConnection();
-	if(document.getElementById('DisableWarnNotif').checked){XHR.appendData('DisableWarnNotif',1);}else{XHR.appendData('DisableWarnNotif',0);}
+	
+	if(document.getElementById('DisableWarnNotif')){
+		if(document.getElementById('DisableWarnNotif').checked){XHR.appendData('DisableWarnNotif',1);}else{XHR.appendData('DisableWarnNotif',0);}
+	}
 	if(document.getElementById('DisableJGrowl').checked){XHR.appendData('DisableJGrowl',1);}else{XHR.appendData('DisableJGrowl',0);}
 	if(document.getElementById('DisableFrontEndArticaEvents').checked){XHR.appendData('DisableFrontEndArticaEvents',1);}else{XHR.appendData('DisableFrontEndArticaEvents',0);}
 	if(document.getElementById('AllowShutDownByInterface').checked){XHR.appendData('AllowShutDownByInterface',1);}else{XHR.appendData('AllowShutDownByInterface',0);}	
@@ -396,7 +411,7 @@ function SaveArticaIndexPage$t(){
 	if(document.getElementById('DisableJqueryDropDown').checked){XHR.appendData('DisableJqueryDropDown',1);}else{XHR.appendData('DisableJqueryDropDown',0);}
 	if(document.getElementById('DisableTimeCapsuleToolBox').checked){XHR.appendData('DisableTimeCapsuleToolBox',1);}else{XHR.appendData('DisableTimeCapsuleToolBox',0);}
 	if(document.getElementById('DisableFreeWebToolBox').checked){XHR.appendData('DisableFreeWebToolBox',1);}else{XHR.appendData('DisableFreeWebToolBox',0);}
-	
+	if(document.getElementById('EnableWebPageDebugging').checked){XHR.appendData('EnableWebPageDebugging',1);}else{XHR.appendData('EnableWebPageDebugging',0);}
 	if(document.getElementById('DisableSpecialCharacters').checked){XHR.appendData('DisableSpecialCharacters',1);}else{XHR.appendData('DisableSpecialCharacters',0);}
 	if(document.getElementById('DenyMiniWebFromStandardPort').checked){XHR.appendData('DenyMiniWebFromStandardPort',1);}else{XHR.appendData('DenyMiniWebFromStandardPort',0);}
 	
@@ -418,7 +433,9 @@ function SaveArticaIndexPage$t(){
 			else{XHR.appendData('jgrowl_no_clamav_update',0);
 			}
 	}
-	XHR.appendData('jGrowlMaxEvents',document.getElementById('jGrowlMaxEvents').value)
+	
+	XHR.appendData('ArticaTabsTimeout',document.getElementById('ArticaTabsTimeout').value);
+	XHR.appendData('jGrowlMaxEvents',document.getElementById('jGrowlMaxEvents').value);
 	XHR.sendAndLoad('$page', 'GET',xSaveArticaIndexPage$t);
 	
 }
@@ -633,17 +650,7 @@ function main_tabs(){
 		}
 	
 	
-	return "
-	<div id=main_config_articaproc style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_articaproc').tabs();
-			
-
-			});
-		</script>";		
+	return build_artica_tabs($html, "main_config_articaproc");
 }
 
 

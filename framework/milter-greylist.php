@@ -64,7 +64,7 @@ function database_empty(){
 	}
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	shell_exec("$nohup /etc/init.d/artica-postfix restart mgreylist >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/milter-greylist restart >/dev/null 2>&1 &");
 }
 
 ?>

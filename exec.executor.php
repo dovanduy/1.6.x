@@ -1,10 +1,14 @@
 <?php
+if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-executor Waiting Artica-CD to finish\n";die();}}
 if(preg_match("#--verbose#",implode(" ",$argv))){
 	$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;
 	ini_set('html_errors',0);ini_set('display_errors', 1);
 	ini_set('error_reporting', E_ALL);
 	print "Starting......: artica-executor debug mode\n";
 }
+
+
+
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate classes\n";}
 include_once(dirname(__FILE__).'/framework/class.unix.inc');

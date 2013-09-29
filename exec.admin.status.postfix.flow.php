@@ -259,14 +259,7 @@ if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLAS
 	
 	$DisableNoOrganization=$sock->GET_INFO('DisableNoOrganization');
 	if(!is_numeric($DisableNoOrganization)){$DisableNoOrganization=0;}
-	if($DisableNoOrganization==0){
-		$ldap=new clladp();
-		$hash=$ldap->hash_get_ou();
-		$ldap->ldap_close();
-		if(count($hash)<1){
-		$no_orgs=NotifyAdmin('warning-panneau-32.png',"{no_organization}","{no_organization_text_jgrowl}","javascript:TreeAddNewOrganisation()",null,300,76);
-		}
-	}
+	
 	
 	
 	if(!$users->KASPERSKY_WEB_APPLIANCE){

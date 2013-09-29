@@ -45,17 +45,30 @@ if DirectoryExists('/usr/lib/openssl') then  fpsystem('/bin/chmod 755 /usr/lib/o
 fpsystem('/bin/chmod 644 /etc/ssh');
 fpsystem('/bin/chmod 600 /etc/ssh/*');
 ForceDirectories('/opt/artica/var/rrd/yorel');
+if FileExists('/etc/php5/cli/conf.d/ming.ini') then fpsystem('/bin/rm /etc/php5/cli/conf.d/ming.ini');
 
 if FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
        if not FileExists('/etc/artica-postfix/artica-iso-setup-launched') then begin
+          fpsystem('/bin/rm -f /etc/php5/fpm/pool.d/* >/dev/null 2>&1');
           fpsystem('/bin/touch /etc/artica-postfix/artica-iso-setup-launched');
+          fpsystem('clear');
+          writeln('artica-cd... Please wait, do nothing...  Creating first settings...');
+          fpsystem('/usr/share/artica-postfix/bin/process1 --force --verbose >> /etc/artica-postfix/artica-iso-setup-launched 2>&1');
+          writeln('artica-cd... Please wait, do nothing... Set default root password');
           fpsystem('/bin/echo "root:artica" | /usr/sbin/chpasswd >/etc/artica-postfix/artica-iso-setup-launched 2>&1');
-          fpsystem('/etc/artica-postfix/bin/artica-install --php-ini');
+          fpsystem('/etc/artica-postfix/bin/artica-install --php-ini >/dev/null 2>&1');
+          writeln('artica-cd... Please wait, do nothing... Starting SSH Daemon');
+          fpsystem('/etc/init.d/ssh start');
           fpsystem('/usr/share/artica-postfix/bin/process1 --web-settings');
+          writeln('artica-cd... Please wait, do nothing... Stopping Apache');
+          fpsystem('killall apache2 >/dev/null 2>&1');
+          fpsystem('/etc/init.d/apache2 stop');
+
        end;
 end;
 
-    if FileExists('/etc/php5/cli/conf.d/ming.ini') then fpsystem('/bin/rm /etc/php5/cli/conf.d/ming.ini');
+
+
 
     writeln('');
     writeln('');
@@ -120,6 +133,7 @@ end;
           fpsystem('/bin/rm /home/artica/packages/ZARAFA/zarafa.tar.gz');
        end;
 
+
        if FileExists('/home/artica/packages/ZARAFA/zarafa-web-app.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING ZARAFA WEBAPP.....');
           fpsystem('/bin/tar -xf /home/artica/packages/ZARAFA/zarafa-web-app.tar.gz -C / >/dev/null 2>&1');
@@ -133,13 +147,13 @@ end;
           fpsystem('/bin/mv /home/artica/packages/ZARAFA/webapp.tar.gz /home/artica/webapp.tar.gz.old');
        end;
 
-
        if FileExists('/home/artica/packages/ZARAFA/webappplugins.tar.gz') then begin
            writeln('Artica ISO: PLEASE WAIT.... INSTALLING ZARAFA WEBAPP plugins.....');
           ForceDirectories('/usr/share/zarafa-webapp/plugins');
           fpsystem('/bin/tar -xf /home/artica/packages/ZARAFA/webappplugins.tar.gz -C /usr/share/zarafa-webapp/plugins/ >/dev/null 2>&1');
           fpsystem('/bin/mv /home/artica/packages/ZARAFA/webappplugins.tar.gz /home/artica/webappplugins.tar.gz.old');
        end;
+
 
        if FileExists('/home/artica/packages/chilli.tar.gz') then begin
            writeln('Artica ISO: PLEASE WAIT.... INSTALLING Chilli-Hotspot software.....');
@@ -188,7 +202,6 @@ end;
           fpsystem('clear');
        end;
 
-
        if FileExists('/home/artica/packages/pdns.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING PowerDNS.....');
           fpsystem('/bin/tar -xf /home/artica/packages/pdns.tar.gz -C / >/dev/null 2>&1');
@@ -198,12 +211,15 @@ end;
 
        end;
 
+
+
        if FileExists('/home/artica/packages/roundcube.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING Roundcube.....');
           ForceDirectories('/usr/share/roundcube');
           fpsystem('/bin/tar -xf /home/artica/packages/roundcube.tar.gz -C /usr/share/roundcube/ >/dev/null 2>&1');
           fpsystem('/bin/mv /home/artica/packages/roundcube.tar.gz /home/artica/roundcube.tar.gz.old');
        end;
+
 
         if FileExists('/home/artica/packages/articasql.tar.gz') then begin
             writeln('Artica ISO: PLEASE WAIT.... INSTALLING Artica MySQL Categories Statistics.....');
@@ -246,6 +262,7 @@ end;
           fpsystem('/bin/mv /home/artica/packages/klmsui.deb /home/artica/packages/klmsui.deb.old');
           fpsystem('clear');
        end;
+
 
       if FileExists('/home/artica/packages/updatev2.tar.gz') then begin
          writeln('Artica ISO: PLEASE WAIT.... INSTALLING Kaspersky Update Utility.....');
@@ -326,14 +343,14 @@ end;
 
        if FileExists('/home/artica/packages/squid32.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING SQUID 3.2x.....');
+          fpsystem('killall apache2');
           fpsystem('/bin/tar -xvf /home/artica/packages/squid32.tar.gz -C / >/dev/null 2>&1');
           fpsystem('/bin/mv -f /home/artica/packages/squid32.tar.gz /home/artica/squid32.tar.gz.old');
           fpsystem('/bin/rm -f /etc/squid3/squid.conf >/dev/null 2>&1');
           forceDirectories('/var/run/squid');
           fpsystem('/bin/chmod 0777 /var/run/squid');
           fpsystem('clear');
-
-    end;
+       end;
 
 
        if FileExists('/home/artica/packages/metascanner.tar.gz') then begin
@@ -343,7 +360,7 @@ end;
           if FileExists('/opt/kaspersky/khse/libexec/libframework.so') then fpsystem('/bin/cp /opt/kaspersky/khse/libexec/libframework.so /lib/libframework.so');
           if FileExists('/opt/kaspersky/khse/libexec/libyaml-cpp.so.0.2') then fpsystem('/bin/cp /opt/kaspersky/khse/libexec/libyaml-cpp.so.0.2 /lib/libyaml-cpp.so.0.2');
           fpsystem('clear');
-    end;
+       end;
 
        if FileExists('/home/artica/packages/c-icap.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING C-ICAP.....');
@@ -359,6 +376,7 @@ end;
           fpsystem('/bin/mv -f /home/artica/packages/ftpunivtlse1fr.tar.gz /home/artica/ftpunivtlse1fr.tar.gz.old');
           fpsystem('clear');
     end;
+
 
 
        if FileExists('/home/artica/packages/mskutils.tar.gz') then begin
@@ -400,13 +418,12 @@ end;
        end;
 
 
-
        if FileExists('/home/artica/packages/netatalk.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING NETATALK.....');
           fpsystem('/bin/tar -xvf /home/artica/packages/netatalk.tar.gz -C /');
           fpsystem('/bin/mv -f /home/artica/packages/netatalk.tar.gz /home/artica/netatalk.tar.gz.old');
           fpsystem('clear');
-    end;
+       end;
 
 
 
@@ -416,7 +433,7 @@ end;
           fpsystem('/bin/mv /home/artica/packages/ufdbguard.tar.gz /home/artica/ufdbguard.tar.gz.old');
           writeln('Artica ISO: PLEASE WAIT.... CREATING CONFIGURATION.....');
           fpsystem('clear');
-    end;;
+       end;;
 
     if FileExists('/home/artica/packages/kav4proxy-5.5-62.tar.gz') then begin
        writeln('Artica ISO: PLEASE WAIT.... INSTALLING KAV4PROXY.....');
@@ -444,6 +461,7 @@ end;
             if FIleExists('/opt/artica-agent/bin/artica-logon') then fpsystem('/bin/chmod 777 /opt/artica-agent/bin/artica-logon');
             fpsystem('clear');
         end;
+        fpsystem('/etc/init.d/php5-fpm stop >/dev/null 2>&1');
 
         if FIleExists('/opt/artica-agent/usr/share/artica-agent/starter.php') then fpsystem('/opt/artica-agent/usr/share/artica-agent/starter.php');
 
@@ -462,8 +480,8 @@ if not FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
     writeln('Artica ISO: PLEASE WAIT... Creating startup scripts...');
     fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.initslapd.php');
     fpsystem('/bin/rm -f /etc/squid3/squid.conf >/dev/null 2>&1');
-    fpsystem('/etc/artica-postfix/bin/artica-install -lighttpd-cert');
-
+    fpsystem('/etc/artica-postfix/bin/artica-install -lighttpd-cert >/dev/null 2>&1');
+    fpsystem('/etc/init.d/php5-fpm restart >/dev/null 2>&1');
 
 
     fpsystem('clear');
@@ -472,6 +490,7 @@ if not FileExists('/etc/artica-postfix/artica-iso-first-reboot') then begin
        writeln('Artica ISO: PLEASE WAIT... Configuring php5 PFM for the first time...');
        fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.initslapd.php --phppfm >/dev/null 2>&1');
        fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.php-fpm.php --restart');
+       fpsystem('/etc/init.d/php5-fpm stop >/dev/null 2>&1');
        fpsystem('clear');
     end;
 

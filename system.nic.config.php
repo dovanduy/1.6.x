@@ -20,7 +20,7 @@ if(isset($_GET["nic-builder"])){zlistnics_builder();exit;}
 if(isset($_GET["js-virtual-add"])){virtual_js_add();exit;}
 if(isset($_POST["RebuildMyNic"])){RebuildMyNic();exit;}
 if(isset($_POST["OVHNetConfig"])){OVHNetConfig();exit;}
-
+if(isset($_GET["default-route-status"])){DefaultRouteStatus();exit;}
 
 
 if(isset($_GET["BuildNetConf"])){BuildNetConf();exit;}
@@ -125,7 +125,9 @@ function tabs(){
 	$array["listnics"]='{main_interfaces}';
 	$array["DNSServers"]='{dns_nameservers}';
 	$array["virtuals"]='{virtual_interfaces}';
+	if($users->VDESWITCH_INSTALLED){$array["vde"]='{Ethernet_switch}';}
 	if($users->VLAN_INSTALLED){$array["vlan"]='VLAN';}
+	
 	$array["bridges"]='{bridges}';
 	$array["routes"]='{routes}';
 	$array["hard"]='{hardware}';
@@ -136,7 +138,7 @@ function tabs(){
 	}
 	
 	
-	$tabwith="750px";
+	$tabwith="980";
 	if(isset($_GET["newinterface"])){$fontsize="font-size:14px";$linkadd2="?newinterface=yes";$linkadd="&newinterface=yes";$tabwith="100%";}	
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -155,6 +157,11 @@ function tabs(){
 			$html[]= "<li><a href=\"system.nic.vlan.php$linkadd2\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
 			continue;
 		}
+		
+		if($num=="vde"){
+			$html[]= "<li><a href=\"system.nic.vde.php\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
+			continue;
+		}		
 
 		if($num=="snort"){
 			$html[]= "<li><a href=\"system.nic.snort.php$linkadd2\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
@@ -166,17 +173,7 @@ function tabs(){
 	
 
 	
-	echo "
-	
-	<div id='main_config_nics' style='width:$tabwith;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-
-	<script>
-		$(document).ready(function() {
-			$(\"#main_config_nics\").tabs();});
-			
-	</script>";		
+	echo build_artica_tabs($html, "main_config_nics",980);
 	
 	
 	
@@ -338,6 +335,7 @@ var x_ChangeHostName= function (obj) {
 	if(results.length>0){alert(results);}
 	if(document.getElementById('MasterNetworkSection')){LoadAjax('MasterNetworkSection','$page?popup2=yes$linkadd');}
 	if(document.getElementById('squidcklinks-host-infos')){LoadAjaxTiny('squidcklinks-host-infos','quicklinks.php?squidcklinks-host-infos=yes');}
+	if(document.getElementById('main_adker_tabs')){RefreshTab('main_adker_tabs');}
 	ChangeHTMLTitle();
 		
 }
@@ -463,25 +461,42 @@ function zlistnics_tabs(){
 	}
 	
 	$tab=time();
-	echo "
-	<div id='tabs_listnics2'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-
-	<script>
-		$(document).ready(function() {
-			$(\"#tabs_listnics2\").tabs();});
-			
-	</script>";		
 	
+	echo build_artica_tabs($html, "tabs_listnics2");
 }
 
-
+function DefaultRouteStatus(){
+	$q=new mysql();
+	$tpl=new templates();
+	$sql="SELECT * FROM  `nics` WHERE defaultroute=1 ORDER BY Interface";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$defaultEthRoute=trim($ligne["Interface"]);
+	
+	if($defaultEthRoute==null){
+		echo $tpl->_ENGINE_parse_body("<p class=text-error>{error_no_default_route_explain}</p>");
+	
+	}else{
+		echo $tpl->_ENGINE_parse_body("<p style='color: #3a87ad;	margin:5px;
+	padding:3px;
+	border:1px solid #3a87ad;
+	border-radius:5px 5px 5px 5px;
+	 -moz-border-radius:5px;
+	-webkit-border-radius:5px;
+    background-color: white;
+ 	font-weight:bold;
+    font-size: 14px;
+    margin-bottom: 20px;
+    padding: 8px 35px 8px 14px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);'>{default_gateway}: {interface}:$defaultEthRoute</p>");
+	}
+	
+}
 
 function zlistnics(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$users=new usersMenus();
+	$t=time();
 	$snortInterfaces=array();
 	$LXCEthLocked=$sock->GET_INFO("LXCEthLocked");
 	$EnableipV6=$sock->GET_INFO("EnableipV6");
@@ -563,6 +578,7 @@ function zlistnics(){
 		if(preg_match("#^ip6tnl[0-9]+#",$val)){continue;}
 		if(preg_match("#^sit[0-9]+#",$val)){continue;}
 		if(preg_match("#^vlan[0-9]+#",$val)){continue;}
+		if(preg_match("#^virt[0-9]+#",$val)){continue;}
 		
 		
 		$nic=new system_nic();
@@ -609,8 +625,25 @@ if($t<2){
 
 	$html=@implode("\n", $tables);
 	$ovh_specific_config=$tpl->_ENGINE_parse_body("{ovh_specific_config}");	
+
+	
 	echo "
-	<center style='margin-bottom:10px'>". button("$apply_network_configuration","BuildNetConf()",16)."</center>
+	<div id='defroute-$t'></div>
+	<center style='margin-bottom:10px'>
+			<table style='width:100%'>
+			<tr>
+				<td width=50% style='text-align:center'>". button($tpl->_ENGINE_parse_body("{network_status}"),"Loadjs('network.status.php')",16)."</td>
+				<td width=50% style='text-align:center'>". button("$apply_network_configuration","Loadjs('network.restart.php')",16)."</td>
+				
+			</tr>
+		</table>
+	</center>
+	<script>
+		LoadAjaxTiny('defroute-$t','$page?default-route-status=yes');
+	</script>	
+	
+	
+	
 	<div id='NetworkManager-status'></div>
 	$html
 	
@@ -649,15 +682,7 @@ if($t<2){
 		}		
 		
 
-		function BuildNetConf(){
-			var DisableNetworksManagement=$DisableNetworksManagement;
-			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}	
-			if(confirm('$apply_network_configuration_warn ?')){	
-				var XHR = new XHRConnection();
-				XHR.appendData('BuildNetConf',1);
-				XHR.sendAndLoad('$page', 'GET',X_BuildNetConf);
-			}
-		}
+
 		
 		
 		". @implode("\n", $jsnics)."
@@ -829,6 +854,10 @@ function listnicinfos($nicname,$js=null){
 		}
 	}
 	
+	$TCP_NIC_STATUS=$sock->getFrameWork("cmd.php?nicstatus=$nicname");
+	
+	
+	
 	$tpl=new templates();
 	if($EnableipV6==1){
 		$ip6s=unserialize(base64_decode($sock->getFrameWork("network.php?ifconfig6=$nicname")));
@@ -851,14 +880,34 @@ function listnicinfos($nicname,$js=null){
 		}
 	}
 	
+	$gateway=trim($tbl[4]);
+	
 	if($IPBANS[$tbl[0]]){$hidde_interface=true;}
+	$nicz=new system_nic($nicname);
+	if($gateway==null){
+		$gateway=$nicz->GATEWAY;
+	}
+	
+	$defaults_infos_array=base64_encode(serialize(array("IP"=>$tbl[0],"NETMASK"=>$tbl[2],"GW"=>$gateway,"NIC"=>$nicname)));
+	
+	
+	if($nicz->defaultroute==1){
+		$defaultroute_text="<div><i style='color:#C40000;font-size:11px;font-weight:normal;text-decoration:none'>{default_route}</i></div>";
+	}
+	
+	if($nicz->enabled==0){$hidde_interface="#8E8E8E";}
+	
+	if($hidde_interface){$href=null;$textColor="#ACAAAA";}
+	
 	$GLOBALS[$nicname]["IP"]=$tbl[0];
-	$defaults_infos_array=base64_encode(serialize(array("IP"=>$tbl[0],"NETMASK"=>$tbl[2],"GW"=>$tbl[4],"NIC"=>$nicname)));
-	if($js<>null){$href="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-weight:bold;font-size:13px;text-decoration:underline'>";}
+	
+	if($js<>null){$href="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-weight:bold;font-size:13px;text-decoration:underline;color:$textColor'>";}
 	
 	$textColor="black";
 	
-	if($hidde_interface){$href=null;$textColor="#ACAAAA";}
+	
+	
+	if($tbl[0]==null){$tbl[0]="<span style='color:#BA0000'>{waiting_network_reload}</span>";}
 	
 	
 	$html="
@@ -882,7 +931,7 @@ function listnicinfos($nicname,$js=null){
 	</tr>	
 	<tr>
 		<td class=legend nowrap style='color:$textColor'>{gateway}:</td>
-		<td style='font-weight:bold;font-size:13px;color:$textColor'>$href{$tbl[4]}</a></td>
+		<td style='font-weight:bold;font-size:13px;color:$textColor'>$href{$gateway}</a>$defaultroute_text</td>
 	</tr>		
 	<tr>
 		<td class=legend nowrap style='color:$textColor'>{mac_addr}:</td>
@@ -2284,7 +2333,14 @@ $t=time();
 			XHR.sendAndLoad('$page', 'POST',x_SaveResolvConf);
 				
 		}	
-	
+		
+		function LockServs(){
+			var lock1=$resolv->lockServ1;
+			if(lock1==1){
+				document.getElementById('DNS1').disabled=true;
+			}
+		}
+	LockServs();
 	</script>";
 	
 	

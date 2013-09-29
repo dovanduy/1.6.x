@@ -104,6 +104,7 @@ function popup(){
 		if(document.getElementById('squid_hotspot')){RefreshTab('squid_hotspot');;}
 		if(document.getElementById('squid_main_svc')){RefreshTab('squid_main_svc');}
 		if(document.getElementById('main_dansguardian_mainrules')){RefreshTab('main_dansguardian_mainrules');}
+		if(document.getElementById('main_adker_tabs')){RefreshTab('main_adker_tabs');}
 		RTMMailHide();
 	}
 	

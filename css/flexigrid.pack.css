@@ -162,6 +162,9 @@ div.pGroup input, select, textarea {
 .flexigrid div.fbutton .Warn {
   background: url("/img/status_warning.gif") no-repeat scroll left center transparent;
 }
+.flexigrid div.fbutton .Err {
+  background: url("/img/icon_err.gif") no-repeat scroll left center transparent;
+}
 .flexigrid div.fbutton .Statok {
   background: url("/img/ok16.png") no-repeat scroll left center transparent;
 }

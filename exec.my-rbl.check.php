@@ -12,6 +12,7 @@ include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . '/ressources/class.maincf.multi.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ccurl.inc');
+include_once(dirname(__FILE__) . '/ressources/class.os.system.inc');
 
 
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
@@ -33,7 +34,7 @@ function CheckCMDLine(){
 	if($unix->process_exists($oldpid)){return;}
 	@file_put_contents($PID_FILE, getmypid());
 	
-	
+	if(system_is_overloaded()){die();}
 	$sock=new sockets();
 	$ips=unserialize(base64_decode($sock->GET_INFO("RBLCheckIPList")));
 	
@@ -271,7 +272,7 @@ function ChecksDNSBL($iptocheck=null,$output=false,$increment=false){
 			}	
 		}
 		@unlink($timefile);
-		@file_put_contents($timefile,"#");
+		@file_put_contents($timefile,time());
 	}
 	include_once('Net/DNSBL.php');
 	$dnsbl = new Net_DNSBL();
@@ -392,7 +393,7 @@ function ChecksDNSBL($iptocheck=null,$output=false,$increment=false){
 		$blacklist=$dnsbl->getListingBl($myip);
 		$detail = $dnsbl->getDetails($myip); 
 		$final="$blacklist;{$detail["txt"][0]}";
-		@file_put_contents($timefile,$final);
+		@file_put_contents($timefile,time());
 		echo $final;
 		}
 	

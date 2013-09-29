@@ -69,8 +69,8 @@ function popup(){
 	$SquidGuardWebAllowUnblockSinglePassContent=$sock->GET_INFO("SquidGuardWebAllowUnblockSinglePassContent");
 	$SquidGuardWebUseLocalDatabase=$sock->GET_INFO("SquidGuardWebUseLocalDatabase");
 	$html="
-	
-<table style='width:99%' class=form>
+<div style='width:95%' class=form>
+<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{UseAglobalPassword}:</td>
 		<td>". Field_checkbox("SquidGuardWebAllowUnblockSinglePass",1,$SquidGuardWebAllowUnblockSinglePass,"EnableSquidGuardWebAllowUnblockSinglePass()")."</td>
@@ -90,6 +90,7 @@ function popup(){
 		<td colspan=3 align='right'><hr>". button("{apply}","SaveSquidGuardPassService()",16)."</td>
 	</tr>	
 	</table>
+</div>
 	<script>
 		function EnableSquidGuardWebAllowUnblockSinglePass(){
 			 document.getElementById('SquidGuardWebAllowUnblockSinglePassContent').disabled=true;
@@ -139,6 +140,7 @@ function popup(){
 }
 function SaveBlockSettings(){
 	$sock=new sockets();
+	$_POST["SquidGuardWebAllowUnblockSinglePassContent"]=url_decode_special_tool($_POST["SquidGuardWebAllowUnblockSinglePassContent"]);
 	$sock->SET_INFO("SquidGuardWebAllowUnblockSinglePass",$_POST["SquidGuardWebAllowUnblockSinglePass"]);
 	$sock->SET_INFO("SquidGuardWebAllowUnblockSinglePassContent",$_POST["SquidGuardWebAllowUnblockSinglePassContent"]);	
 	$sock->SET_INFO("SquidGuardWebUseLocalDatabase",$_POST["SquidGuardWebUseLocalDatabase"]);

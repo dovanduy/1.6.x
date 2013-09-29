@@ -2,7 +2,8 @@
 session_start();
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
-
+include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
+$GLOBALS["DEBUG"]=true;
 $GLOBALS["ruleid"]=$_GET["ruleid"];
 $SERVER_NAME=$_SERVER["SERVER_NAME"];
 $HTTP_HOST=$_SERVER["HTTP_HOST"];
@@ -12,11 +13,11 @@ if(!isset($_GET["cachetime"])){$_GET["cachetime"]=15;}
 if(!is_numeric($_GET["cachetime"])){$_GET["cachetime"]=15;}
 
 
-
-
+Debuglogs("receive connection...",__FUNCTION__,__LINE__);
+if(isset($_GET["results-page"])){send_result_page();exit;}
 if(isset($_GET["error-page"])){send_error_page();exit;}
 
-$GLOBALS["DEBUG"]=true;
+
 $sesskey=$_GET["sesskey"];
 $time=sessiontime();
 if($time<$_GET["cachetime"]+1){
@@ -31,6 +32,33 @@ while (list ($index, $alias) = each ($_GET) ){
 	
 }
 
+$gps=unserialize(base64_decode($_GET["gps"]));
+while (list ($index, $type) = each ($gps) ){
+	Debuglogs("GROUP: GroupID: $index, type:$type",__FUNCTION__,__LINE__);
+}
+$des=unserialize(base64_decode($_GET["des"]));
+
+$MUST_AUTH=false;
+
+while (list ($index, $type) = each ($des) ){
+	Debuglogs("NEXT: GroupID: $index, type:$type",__FUNCTION__,__LINE__);
+	if($type==0){$MUST_AUTH=true;}
+	if($type==1){$MUST_AUTH=true;}
+	if($type==2){$MUST_AUTH=true;}
+	if($type==3){
+		TraceZ("$HTTP_X_REAL_IP  uri:{$_GET['uri']}",$_GET["servername"]);
+		while (list ($index, $key) = each ($_COOKIE) ){TraceZ("$HTTP_X_REAL_IP  Cookie $index \"$key\"",$_GET["servername"]);}
+		while (list ($index, $key) = each ($_SERVER) ){TraceZ("$HTTP_X_REAL_IP  _SERVER $index \"$key\"",$_GET["servername"]);}
+	}
+	if($type==4){
+		Debuglogs("NEXT: GroupID: $index, type:$type -> redirect_rule($index)",__FUNCTION__,__LINE__);
+		if(redirect_rule($gps,$index)){die();}
+	}
+	
+}
+
+
+
 
 Debuglogs("$HTTP_X_REAL_IP: Auth: \"{$_SERVER['PHP_AUTH_USER']}\", uri:{$_GET['uri']}, rule:{$_GET["ruleid"]}",
 __FUNCTION__,__LINE__);
@@ -39,9 +67,15 @@ Debuglogs("$HTTP_X_REAL_IP: -> INIT",__FUNCTION__,__LINE__);
 $GLOBALS["Q"]=new mysql_squid_builder();
 
 
-if(!isset($_SERVER['PHP_AUTH_USER']) OR ($_SERVER['PHP_AUTH_USER']==null)){
-	header('WWW-Authenticate: Basic realm="'.$banner.'"');
-	header('HTTP/1.0 401 Unauthorized');
+
+if($MUST_AUTH){
+	if(!isset($_SERVER['PHP_AUTH_USER']) OR ($_SERVER['PHP_AUTH_USER']==null)){
+		header('WWW-Authenticate: Basic realm="'.$banner.'"');
+		header('HTTP/1.0 401 Unauthorized');
+		die();
+	}
+}else{
+	header("HTTP/1.0 200 OK");
 	die();
 }
 
@@ -197,6 +231,60 @@ function isMustAuth($ruleid){
 	
 }
 
+function redirect_rule($gps,$destinationid){
+	
+	Debuglogs("Destination: $destinationid",__FUNCTION__,__LINE__);
+	if(!isset($_SESSION["AUTHENTICATOR_AUTH"]["$destinationid"])){
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT params FROM authenticator_auth WHERE ID=$destinationid"));
+		$_SESSION["AUTHENTICATOR_AUTH"]["$destinationid"]=$ligne["params"];
+	}
+	
+	$params=unserialize(base64_decode($_SESSION["AUTHENTICATOR_AUTH"]["$destinationid"]));
+	$url=$params["URI"];
+	if($url==null){return false;}
+	
+	
+	
+	reset($gps);
+	$DETECTED=false;
+	while (list ($gpid, $type) = each ($gps) ){
+		
+		Debuglogs("Check Group ID $gpid for type=$type (".$GLOBALS["SOURCE_TYPE"][$type].")",__FUNCTION__,__LINE__);
+		if(!isset($_SESSION["AUTHENTICATOR_ITEMS"][$gpid])){
+			$q=new mysql_squid_builder();
+			$sql="SELECT pattern FROM authenticator_items WHERE groupid=$gpid";
+			$results = $q->QUERY_SQL($sql);
+			while ($ligne = mysql_fetch_assoc($results)) {$_SESSION["AUTHENTICATOR_ITEMS"][$gpid][]=$ligne["pattern"];}
+			
+		}
+		
+		reset($_SESSION["AUTHENTICATOR_ITEMS"][$gpid]);
+		while (list ($none, $KEY_COOKIE) = each ($_SESSION["AUTHENTICATOR_ITEMS"][$gpid]) ){
+			Debuglogs("If there a cookie `$KEY_COOKIE` ?",__FUNCTION__,__LINE__);
+			if(!isset($_COOKIE[$KEY_COOKIE])){
+				Debuglogs("`$KEY_COOKIE` is not present, break and perform action..",__FUNCTION__,__LINE__);
+				$DETECTED=true;break;
+			}
+		}
+		
+		if($DETECTED){break;}
+		
+	}
+	
+	if($DETECTED){
+		$url=format_uri($url);
+		$_SESSION["AUTHENTICATOR_RESULTS"][$GLOBALS["ruleid"]]="redirect:$url";
+		Debuglogs("Destination: $url",__FUNCTION__,__LINE__);
+		header('HTTP/1.0 403 Forbidden');
+		
+		return true;
+	}
+	
+	
+}
+
+
 
 function ErrorLogs($text=null,$function=null,$line=null){
 	if($text==null){return;}
@@ -254,6 +342,23 @@ function Debuglogs($text=null,$function=null,$line=null){
 		closelog();
 		
 	}
+}
+
+function send_result_page(){
+	
+	Debuglogs("_SESSION = \"{$_SESSION["AUTHENTICATOR_RESULTS"][$GLOBALS["ruleid"]]}\"",__FUNCTION__,__LINE__);
+	
+	if(!isset($_SESSION["AUTHENTICATOR_RESULTS"][$GLOBALS["ruleid"]])){
+		echo "<H1>No results from last action</H1>";
+		die();
+	}
+	
+	if(preg_match("#^redirect:(.+)#", $_SESSION["AUTHENTICATOR_RESULTS"][$GLOBALS["ruleid"]],$re)){
+		Debuglogs("Must a redirec to {$re[1]}",__FUNCTION__,__LINE__);
+		echo "<html><head><meta http-equiv='refresh' content='0;url={$re[1]}'></head><body></body>";
+		die();
+	}
+	
 }
 
 function send_error_page(){
@@ -399,11 +504,11 @@ function send_error_page(){
 	}
 	
 	$newheader=str_replace("{TITLE}", $title, $header);
-	$newheader=str_replace("{ARTICA_VERSION}", $ARTICAV, $header);
-	$newheader=str_replace("{uid}", $uid, $header);
-	$newheader=str_replace("{error_code}", $_GET["error-page"], $header);
-	$newheader=str_replace("{error_desc}", $error[$_GET["error-page"]]["EXPLAIN"], $header);
-	$newheader=str_replace("{uri}", $REQUESTED_URI, $header);
+	$newheader=str_replace("{ARTICA_VERSION}", $ARTICAV, $newheader);
+	$newheader=str_replace("{uid}", $uid, $newheader);
+	$newheader=str_replace("{error_code}", $_GET["error-page"], $newheader);
+	$newheader=str_replace("{error_desc}", $error[$_GET["error-page"]]["EXPLAIN"], $newheader);
+	$newheader=str_replace("{uri}", $REQUESTED_URI, $newheader);
 	
 	$content=str_replace("{ARTICA_VERSION}", $content, $content);
 	$content=str_replace("{uid}", $uid, $content);
@@ -422,4 +527,61 @@ function send_error_page(){
 	echo $templateDatas;
 	
 	
+}
+
+function format_uri($url){
+	$keys["LANG"]=true;
+	$keys["SHLVL"]=true;
+	$keys["LANGUAGE"]=true;
+	$keys["QUERY_STRING"]=true;
+	$keys["REQUEST_METHOD"]=true;
+	$keys["CONTENT_TYPE"]=true;
+	$keys["CONTENT_LENGTH"]=true;
+	$keys["SCRIPT_FILENAME"]=true;
+	$keys["SCRIPT_NAME"]=true;
+	$keys["PATH_INFO"]=true;
+	$keys["REQUEST_URI"]=true;
+	$keys["DOCUMENT_URI"]=true;
+	$keys["SERVER_PROTOCOL"]=true;
+	$keys["GATEWAY_INTERFACE"]=true;
+	$keys["HTTP_HOST"]=true;
+	$keys["HTTP_X_FORWARDED_FOR"]=true;
+	$keys["HTTP_X_REAL_IP"]=true;
+	$keys["HTTP_USER_AGENT"]=true;
+	$keys["HTTP_ACCEPT"]=true;
+	$keys["HTTP_ACCEPT_LANGUAGE"]=true;
+	$keys["HTTP_ACCEPT_ENCODING"]=true;
+	
+	while (list ($index, $alias) = each ($keys) ){
+		$url=str_replace("%$index%", $_SERVER[$index], $url);
+		
+	}
+	
+	if(preg_match_all("#%_GET_(.+?)%#", $url, $re)){
+		while (list ($index, $geykey) = each ($re[1]) ){
+			$url=str_replace("%_GET_$geykey%", $_GET[$geykey], $url);
+		}
+	}
+	if(preg_match_all("#%_COOKIE_(.+?)%#", $url, $re)){
+		while (list ($index, $geykey) = each ($re[1]) ){
+			$url=str_replace("%_COOKIE_$geykey%", $_COOKIE[$geykey], $url);
+		}
+	}	
+	
+	return $url;
+}
+
+
+function TraceZ($text,$servername){
+    $logFile="/var/log/apache2/$servername/authenticator.access.log";
+	if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
+   	if (is_file($logFile)) { 
+   			$size=filesize($logFile);
+		   	if($size>1000000){unlink($logFile);}
+   		}
+	$logFile=str_replace("//","/",$logFile);
+	$f = @fopen($logFile, 'a');
+	$text=date("Y-m-d H:i:s")." $text";
+	@fwrite($f, "$text\n");
+	@fclose($f);
 }

@@ -91,6 +91,7 @@ function WizardExecute(){
 	$nics->dhcp=0;
 	$nics->metric=$savedsettings["metric"];
 	$nics->enabled=1;
+	$nics->defaultroute=1;
 	$nics->SaveNic();
 
 	$resolv=new resolv_conf();

@@ -1093,6 +1093,8 @@ class external_ad_search{
 				
 		
 	}
+	
+	
 
 	public function searchGroup($pattern,$array,$maxitems=0){
 		if(!$this->connect()){
@@ -1231,6 +1233,10 @@ class external_ad_search{
 		
 
 		$Username=$this->BuildAdUser();
+		if(trim($Username)==null){
+			$this->error="connect:: Failed to connect to DC without any username set".__CLASS__."/".__FUNCTION__." line:".__LINE__;
+			return false;
+		}
 		$this->UserConnected=$Username;
 		$bind=ldap_bind($this->ldap_connection, $Username, $this->KerbAuthInfos["WINDOWS_SERVER_PASS"]);
 		

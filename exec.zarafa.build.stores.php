@@ -345,9 +345,9 @@ $f[]="define(\"DIALOG_URL\", \"index.php?load=dialog&\");";
 $f[]="define(\"DND_FILEUPLOAD_URL\", \"index.php?load=upload_attachment&\");";
 $f[]="define(\"PATH_PLUGIN_DIR\", \"plugins\");";
 if($ZarafaEnablePlugins==1){
-$f[]="define(\"ENABLE_PLUGINS\", false);";
+	$f[]="define(\"ENABLE_PLUGINS\", true);";
 }else{
-$f[]="define(\"ENABLE_PLUGINS\", true);";	
+	$f[]="define(\"ENABLE_PLUGINS\", false);";	
 }
 $f[]="define(\"DISABLED_PLUGINS_LIST\", \"\");";
 $f[]="define(\"DISABLE_FULL_GAB\", false);";

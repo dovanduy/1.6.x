@@ -4,6 +4,7 @@ class resolv_conf{
 	
 	var $MainArray=array();
 	var $arrayNameServers=array();
+	var $lockServ1=0;
 	
 	function resolv_conf(){
 		
@@ -17,7 +18,8 @@ class resolv_conf{
 		if(!is_array($this->MainArray)){
 			$this->buildDefault();
 		}
-		
+		$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+		if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 		if(!isset($this->MainArray["TIMEOUT"])){$this->MainArray["TIMEOUT"]=5;}
 		if(!isset($this->MainArray["ATTEMPTS"])){$this->MainArray["ATTEMPTS"]=5;}
 		if(!isset($this->MainArray["USEROTATION"])){$this->MainArray["USEROTATION"]=0;}
@@ -29,6 +31,20 @@ class resolv_conf{
 		if($this->MainArray["DOMAINS1"]==null){$this->MainArray["DOMAINS1"]=$this->SearchPrinciPalDomain();}
 		if(!$this->isValidDomain($this->MainArray["DOMAINS1"])){$this->MainArray["DOMAINS1"]=null;}
 		$this->MainArray["DOMAINS1"]=trim(strtolower($this->MainArray["DOMAINS1"]));
+		if($EnableKerbAuth==1){
+			$UseADAsNameServer=$sock->GET_INFO("UseADAsNameServer");
+			if(!is_numeric($UseADAsNameServer)){$UseADAsNameServer=0;}
+			if($UseADAsNameServer==1){
+				$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
+				if(preg_match("#[0-9\.]+#", $array["ADNETIPADDR"])){
+					$this->MainArray["DNS1"]=$array["ADNETIPADDR"];
+					$this->lockServ1=1;
+				}
+				
+			}
+		}
+		
+		
 	}
 	
 	private function buildDefault(){
@@ -88,6 +104,9 @@ class resolv_conf{
 		if($this->MainArray["USEROTATION"]==1){$rotation=" rotate";}
 		$f[]="options attempts:{$this->MainArray["ATTEMPTS"]} timeout:{$this->MainArray["TIMEOUT"]}$rotation";
 		
+		if($this->MainArray["DNS3"]=="___.___.___.___"){$this->MainArray["DNS3"]=null;}
+		
+		
 		if($this->MainArray["DNS1"]<>null){$f[]="nameserver {$this->MainArray["DNS1"]}";}
 		if($this->MainArray["DNS2"]<>null){$f[]="nameserver {$this->MainArray["DNS2"]}";}
 		if($this->MainArray["DNS3"]<>null){$f[]="nameserver {$this->MainArray["DNS3"]}";}
@@ -126,7 +145,7 @@ class resolv_conf{
 		    if(is_array($arr)){
 				while (list ($num, $val) = each ($arr) ){
 					if($ip->isValid($val)){
-					$this->arrayNameServers[]=$val;
+						$this->arrayNameServers[]=$val;
 					}
 				}
 		   	}

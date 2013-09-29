@@ -26,6 +26,7 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 if(isset($_GET["instant-update-daily"])){instant_update_daily();exit;}
 if(isset($_GET["instant-update-weekly"])){instant_update_weekly();exit;}
 if(isset($_POST["enable-clamav-global"])){enable_clamav_global();exit;}
+if(isset($_POST["CategoriesDatabasesByCron"])){CategoriesDatabasesByCron();exit;}
 if(isset($_GET["categories"])){categories();exit;}
 if(isset($_GET["category-search"])){categories_search();exit;}
 
@@ -129,6 +130,14 @@ function delete_category(){
 	$sock->getFrameWork("webfilter.php?compile-rules=yes");
 }
 
+function CategoriesDatabasesByCron(){
+	$sock=new sockets();
+	$sock->SET_INFO("CategoriesDatabasesByCron", $_POST["CategoriesDatabasesByCron"]);
+	$sock->SET_INFO("CategoriesDatabasesShowIndex", $_POST["CategoriesDatabasesShowIndex"]);
+
+}
+
+
 
 function statusDB(){
 	$tpl=new templates();
@@ -165,6 +174,20 @@ function statusDB(){
 	$sql="SHOW VARIABLES LIKE '%version%';";
 	$results=$q->QUERY_SQL($sql);
 	
+	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabaseByCron");
+	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
+	$CategoriesDatabasesShowIndex=$sock->GET_INFO("CategoriesDatabasesShowIndex");
+	if(!is_numeric($CategoriesDatabasesShowIndex)){$CategoriesDatabasesShowIndex=1;}	
+	
+	$tt0[]="<tr>
+			<td width=1%>". Field_checkbox("CategoriesDatabasesByCron", 1,$CategoriesDatabasesByCron,"CategoriesDatabasesByCron()")."</td>
+			<td nowrap style='font-size:14px;'>:{update_only_by_schedule}</a></td>
+		</tr>";	
+	
+	$tt0[]="<tr>
+			<td width=1%>". Field_checkbox("CategoriesDatabasesShowIndex", 1,$CategoriesDatabasesShowIndex,"CategoriesDatabasesByCron()")."</td>
+			<td nowrap style='font-size:14px;'>:{display_update_info_index}</a></td>
+		</tr>";
 	
 	
 	if(!$q->ok){
@@ -216,10 +239,14 @@ function statusDB(){
 	$dbsize=$sock->getFrameWork("squid.php?articadbsize=yes");
 	$items=numberFormat($q->COUNT_CATEGORIES(),0,""," ");
 	$html="$error
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<div class=explain style='font-size:14px'>{APP_ARTICADB_EXPLAIN}</div>
+	<table style='width:100%'>
 	<tr>
 	<td valign='top'>$APP_ARTICADB$APP_SQUID_DB</td>
 	<td valign='top'>
+	<table style='width:100%'>".@implode("\n", $tt0)."</table>
+	<hr>
 	<table style='width:100%'>
 	<tbody>
 	<tr>
@@ -243,7 +270,21 @@ function statusDB(){
 	</tr>
 	</table>
 	$updaebutton
-	";
+	
+<script>
+var xCategoriesDatabasesByCron= function (obj) {
+	var results=obj.responseText;
+	if(results.length>1){alert(results);}
+}
+	
+function CategoriesDatabasesByCron(){
+	var XHR = new XHRConnection();
+	if(document.getElementById('CategoriesDatabasesByCron').checked){XHR.appendData('CategoriesDatabasesByCron','1');}else{XHR.appendData('CategoriesDatabasesByCron','0');}
+	if(document.getElementById('CategoriesDatabasesShowIndex').checked){XHR.appendData('CategoriesDatabasesShowIndex','1');}else{XHR.appendData('CategoriesDatabasesShowIndex','0');}
+	XHR.sendAndLoad('$page', 'POST',xCategoriesDatabasesByCron);
+}
+	
+</script>";
 	echo $tpl->_ENGINE_parse_body($html);
 	
 }
@@ -333,7 +374,7 @@ function tabs(){
 	$array["categories"]='{categories}';
 	
 	//$array["events-status"]='{update_status}';
-	$array["stats"]='{statistics}';	
+	//$array["stats"]='{statistics}';	
 	$array["events"]='{events}';
 	$array["backup"]='{backup_stats}';	
 	
@@ -372,6 +413,7 @@ function tabs(){
 	
 
 }
+
 
 
 function CheckStatsAppliance(){
@@ -588,9 +630,19 @@ function categories_search($forceArtica=false){
 	if($_POST["sortname"]=="table_name"){$_POST["sortname"]="categorykey";}
 	if(!$q->TestingConnection()){json_error_show("Testing connection to MySQL server failed...",1);}
 	
-	if(!$q->TABLE_EXISTS("webfilters_categories_caches")){$q->CheckTables();}
-	$dans=new dansguardian_rules();
-	$dans->LoadBlackListes();	
+	if(!$q->TABLE_EXISTS("webfilters_categories_caches")){
+		$q->create_webfilters_categories_caches();
+	}
+		
+		$dans=new dansguardian_rules();
+		
+	if($q->COUNT_ROWS("webfilters_categories_caches")==0){
+		$dans->CategoriesTableCache();
+	}		
+		
+		
+		$dans->LoadBlackListes();
+	
 	
 	
 	$prefix="INSERT IGNORE INTO webfilters_categories_caches (`categorykey`,`description`,`picture`,`master_category`,`categoryname`) VALUES ";
@@ -638,9 +690,7 @@ function categories_search($forceArtica=false){
 	if(!$q->ok){if($q->mysql_error<>null){json_error_show(date("H:i:s")."<br>SORT:{$_POST["sortname"]}:<br>Mysql Error [L.".__LINE__."]: $q->mysql_error<br>$sql",1);}}
 	
 	
-	if(mysql_num_rows($results)==0){
-		json_error_show("Not found...",1);
-	}
+	if(mysql_num_rows($results)==0){json_error_show("Not found...",1);}
 	
 	
 	$data = array();
@@ -1366,6 +1416,7 @@ function global_status(){
 	$q=new mysql_squid_builder();	
 	$t=time();
 $html="
+<div class=explain style='font-size:14px'>{webfilter_status_text}</div>
 <table style='width:100%'>
 <tbody>
 <tr>
@@ -1378,7 +1429,7 @@ $html="
 </tr>
 </tbody>
 </table>
-<div class=explain style='font-size:16px'>{webfilter_status_text}</div>
+
 <script>
 	function RefreshArticaDBStatus(){
 		LoadAjax('artica-status-databases-$t','$page?global-artica-status-databases=yes&t=$t');

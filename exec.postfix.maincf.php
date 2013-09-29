@@ -11,9 +11,9 @@ include_once(dirname(__FILE__).'/ressources/class.policyd-weight.inc');
 include_once(dirname(__FILE__).'/ressources/class.main.hashtables.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
-
 $GLOBALS["RELOAD"]=false;
 $GLOBALS["URGENCY"]=false;
+$GLOBALS["AS_ROOT"]=true;
 $_GET["LOGFILE"]="/usr/share/artica-postfix/ressources/logs/web/interface-postfix.log";
 if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
@@ -2909,11 +2909,15 @@ function postconf_strip_key(){
 }
 
 function smtpd_milters(){
-	if($GLOBALS["EnablePostfixMultiInstance"]==1){shell_exec(LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.postfix-multi.php --from-main-reconfigure");return;}	
+	if($GLOBALS["EnablePostfixMultiInstance"]==1){
+		echo "Starting......: Postfix EnablePostfixMultiInstance is enabled...\n";
+		shell_exec(LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.postfix-multi.php --from-main-reconfigure");return;}	
 	
 	$main=new main_cf();
+	echo "Starting......: Postfix building milters...\n";
 	$milter_array=$main->BuildMilters(true);
 	while (list ($key, $value) = each ($milter_array) ){
+		echo "Starting......: Postfix setting key `$key`...\n";
 		postconf($key,$value);
 	}
 }

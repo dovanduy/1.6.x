@@ -166,6 +166,7 @@ class clladp{
 		}
 		
 		if(!isset($GLOBALS["SETTINGS_INC"])){
+			if(!is_file(dirname(__FILE__) . '/settings.inc')){return;}
 			@include(dirname(__FILE__) . "/settings.inc");
 			$GLOBALS["SETTINGS_INC"]=$_GLOBAL;
 		}

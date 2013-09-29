@@ -40,7 +40,7 @@ function popup(){
 	$ASWEB=false;
 	if($users->SQUID_INSTALLED){$ASWEB=true;}
 	if($users->WEBSTATS_APPLIANCE){$ASWEB=true;}
-	
+	$titleprice="<div style='font-size:18px;color:#D91515'>{start_99_euros}</div>";
 	if(!$users->CORP_LICENSE){
 
 		if($ASWEB){
@@ -133,10 +133,11 @@ function popup(){
 	
 	if($LicenseInfos["license_status"]=="{license_active}"){
 		$users->CORP_LICENSE=true;
+		$titleprice=null;
 		$unlocklick="<td style='font-size:16px;font-weight:bold'><input type='hidden' id='UNLOCKLIC-$t' value='{$LicenseInfos["UNLOCKLIC"]}'>{$LicenseInfos["UNLOCKLIC"]}</td>";
 	}	
 	
-	if($users->CORP_LICENSE){$star=null;}
+	if($users->CORP_LICENSE){$star=null;$titleprice=null;}
 	
 	if(is_numeric($LicenseInfos["TIME"])){
 		$tt=distanceOfTimeInWords($LicenseInfos["TIME"],time());
@@ -160,6 +161,7 @@ function popup(){
 	
 	
 	$html="
+	$titleprice
 	$explain
 	$paypal
 	$quotation

@@ -59,6 +59,8 @@
 	if($_GET["content"]=="listen_port"){echo listen_port_popup();exit;}
 	if($_GET["content"]=="visible_hostname"){echo visible_hostname_popup();exit;}
 	
+	if($_GET["content"]=="listen_port_tab"){echo listen_port_popup_tabs();exit;}
+	
 	if($_GET["content"]=="ldap_auth"){echo ldap_auth_index();exit;}
 	if($_GET["content"]=="ldap_local"){echo ldap_auth_popup();exit;}
 	if($_GET["content"]=="ldap_remote"){echo ldap_auth_remote();exit;}
@@ -1737,31 +1739,9 @@ function listen_port_js(){
 	$t=time();
 	header("content-type: application/x-javascript");
 		echo "
-		LoadWinORG(450,'$page?content=listen_port&t=$t','$title');
+		LoadWinORG(750,'$page?content=listen_port_tab&t=$t','$title');
 		
-		var x_listenport= function (obj) {
-			var results=obj.responseText;
-			if(results.length>3){alert(results);}
-			WinORGHide();
-			if(document.getElementById('main_squid_quicklinks_tabs')){RefreshTab('main_squid_quicklinks_tabs');}
-			if(document.getElementById('main_config_sslbump')){RefreshTab('main_config_sslbump');}
-			
-		}
-		
-		function listenport(){
-			var XHR = new XHRConnection();
-			XHR.appendData('listenport',document.getElementById('listen_port').value);
-			XHR.appendData('second_listen_port',document.getElementById('second_listen_port').value);
-			XHR.appendData('icp_port',document.getElementById('icp_port').value);
-			XHR.appendData('htcp_port',document.getElementById('htcp_port').value);
-			XHR.appendData('CNTLMPort',document.getElementById('CNTLMPort').value);
-			
-			
-			
-			XHR.appendData('ssl_port',document.getElementById('ssl_port-$t').value);
-			XHR.appendData('certificate_center',document.getElementById('certificate-$t').value);		
-			XHR.sendAndLoad('$page', 'GET',x_listenport);	
-		}		
+	
 		";	
 }
 
@@ -1826,6 +1806,31 @@ $squid=new squidbee();
 	
 }
 
+function listen_port_popup_tabs(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	
+	$array["listen_port"]="{listen_ports}";
+	$array["ssl"]="{squid_sslbump}";
+	$t=time();
+	
+	while (list ($num, $ligne) = each ($array) ){
+	
+		if($num=="ssl"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.sslbump.php?popup=yes&t=$t\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			continue;
+				
+		}
+	
+		
+	
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?content=listen_port\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+	}
+	echo build_artica_tabs($html, "listen_port_popup_tabs");
+	
+}
+
+
 function listen_port_popup(){
 	$q=new mysql();
 	$squid=new squidbee();
@@ -1841,6 +1846,8 @@ function listen_port_popup(){
 	$sock=new sockets();
 	$EnableCNTLM=$sock->GET_INFO("EnableCNTLM");
 	$CNTLMPort=$sock->GET_INFO("CnTLMPORT");
+	$DisableSSLStandardPort=$sock->GET_INFO("DisableSSLStandardPort");
+	if(!is_numeric($DisableSSLStandardPort)){$DisableSSLStandardPort=0;}
 	if(!is_numeric($EnableCNTLM)){$EnableCNTLM=0;}
 	if(!is_numeric($CNTLMPort)){$CNTLMPort=3155;}
 	
@@ -1863,52 +1870,72 @@ function listen_port_popup(){
 			}
 	}
 	
+	$page=CurrentPageName();
+	$t=time();
 	
-	$t=$_GET["t"];
 	
-$form="
-		
-		<table style='width:99%' class=form>
+$form="<center id='animate-$t'></center>
+		<div style='width:95%' class=form>
+		<table style='width:100%' >
 			<tr>
 				<td class=legend nowrap style='font-size:16px;'>{listen_port}:</td>
-				<td>" . Field_text('listen_port',$squid->listen_port,'width:95px;font-size:16px;padding:5px')."</td>
+				<td>" . Field_text("listen_port-$t",$squid->listen_port,'width:95px;font-size:16px;padding:5px')."</td>
 				<td width=1% nowrap style='font-weight:bold;color:#C81717;font-size:14px !important'>$transparent</td>
+				<td>&nbsp;</td>
 			</tr>
 			<tr>
 				<td class=legend nowrap style='font-size:16px;'>{second_port}:</td>
-				<td>" . Field_text('second_listen_port',$squid->second_listen_port,'width:95px;font-size:16px;padding:5px')."</td>
+				<td>" . Field_text("second_listen_port-$t",$squid->second_listen_port,'width:95px;font-size:16px;padding:5px')."</td>
+				<td>&nbsp;</td>
 				<td width=1%>". help_icon("{squid_second_port_explain}")."</td>
 			</tr>	
 			<tr>
+				<td class=legend nowrap style='font-size:16px;'>{smartphones_port}:</td>
+				<td>" . Field_text("smartphones_port-$t",$squid->smartphones_port,'width:95px;font-size:16px;padding:5px')."</td>
+				<td>&nbsp;</td>
+				<td width=1%>". help_icon("{smartphones_port_explain}")."</td>
+			</tr>						
+			<tr>
 				<td class=legend nowrap style='font-size:16px;'>{cntlm_port}:</td>
-				<td>" . Field_text('CNTLMPort',$CNTLMPort,'width:95px;font-size:16px;padding:5px')."</td>
+				<td>" . Field_text("CNTLMPort-$t",$CNTLMPort,'width:95px;font-size:16px;padding:5px')."</td>
+				<td>&nbsp;</td>
 				<td width=1%>". help_icon("{CnTLMPORT_explain}")."</td>
 			</tr>								
 			<tr>
 				<td class=legend nowrap style='font-size:16px;'>{icp_port}:</td>
-				<td>" . Field_text('icp_port',$squid->ICP_PORT,'width:95px;font-size:16px;padding:5px')."</td>
+				<td>" . Field_text("icp_port-$t",$squid->ICP_PORT,'width:95px;font-size:16px;padding:5px')."</td>
+				<td>&nbsp;</td>
 				<td width=1%>". help_icon("{icp_port_explain}")."</td>
 			</tr>	
 			<tr>
 				<td class=legend nowrap style='font-size:16px;'>{htcp_port}:</td>
-				<td>" . Field_text('htcp_port',$squid->HTCP_PORT,'width:95px;font-size:16px;padding:5px')."</td>
+				<td>" . Field_text("htcp_port-$t",$squid->HTCP_PORT,'width:95px;font-size:16px;padding:5px')."</td>
+				<td>&nbsp;</td>
 				<td width=1%>". help_icon("{htcp_port_explain}")."</td>
 			</tr>									
 			<tr>
 				<td class=legend nowrap style='font-size:16px;'>{ssl_port}:</td>
 				<td>" . Field_text("ssl_port-$t",$squid->ssl_port,'width:95px;font-size:16px;padding:5px')."</td>
+				<td width=1% nowrap style='font-weight:bold;color:#C81717;font-size:14px !important'>$transparent</td>
 				<td width=1%>". help_icon("{squid_ssl_port_explain}")."</td>
 			</tr>
 			<tr>
 				<td class=legend nowrap style='font-size:16px;'>{certificate}:</td>
-				<td colspan=2>". Field_array_Hash($sslcertificates, "certificate-$t",$squid->certificate_center,null,null,0,"font-size:16px")."</td>
+				<td colspan=3>". Field_array_Hash($sslcertificates, "certificate-$t",$squid->certificate_center,null,null,0,"font-size:16px")."</td>
 			</tr>	
-			
 			<tr>
-			<td colspan=3 align='right'><hr>". button("{edit}","listenport()",16)."</td>
+				<td class=legend nowrap style='font-size:16px;'>{DisableSSLStandardPort}:</td>
+				<td >". Field_checkbox("DisableSSLStandardPort-$t", $DisableSSLStandardPort,1)."</td>
+				<td>&nbsp;</td>
+				<td width=1%>". help_icon("{DisableSSLStandardPort_explain}")."</td>						
+			</tr>			
+						
+						
+			<tr>
+			<td colspan=4 align='right'><hr>". button("{edit}","listenport$t()",16)."</td>
 			</tr>
 		</table>
-
+		</div>
 		<script>
 			function CheckSSLPort$t(){
 				var SSL='$SSL';
@@ -1921,11 +1948,44 @@ $form="
 			}
 			
 			function lock(){
-				document.getElementById('listen_port').disabled=true;
+				document.getElementById('listen_port-$t').disabled=true;
 				document.getElementById('ssl_port-$t').disabled=true;
 			}
 			
 			$lock
+			
+		var x_listenport$t= function (obj) {
+			var results=obj.responseText;
+			if(results.length>3){alert(results);}
+			document.getElementById('animate-$t').innerHTML='';
+			Loadjs('squid.restart.php?ApplyConfToo=yes&ask=yes');
+			
+		}
+		
+		function listenport$t(){
+			var XHR = new XHRConnection();
+			XHR.appendData('listenport',document.getElementById('listen_port-$t').value);
+			XHR.appendData('second_listen_port',document.getElementById('second_listen_port-$t').value);
+			XHR.appendData('icp_port',document.getElementById('icp_port-$t').value);
+			XHR.appendData('htcp_port',document.getElementById('htcp_port-$t').value);
+			XHR.appendData('CNTLMPort',document.getElementById('CNTLMPort-$t').value);
+			XHR.appendData('smartphones_port',document.getElementById('smartphones_port-$t').value);
+			
+			
+			
+			if( document.getElementById('DisableSSLStandardPort-$t').checked){
+				XHR.appendData('DisableSSLStandardPort',1);
+			}else{
+				XHR.appendData('DisableSSLStandardPort',0);
+			}
+			
+			
+			XHR.appendData('ssl_port',document.getElementById('ssl_port-$t').value);
+			XHR.appendData('certificate_center',document.getElementById('certificate-$t').value);	
+			AnimateDiv('animate-$t');	
+			XHR.sendAndLoad('$page', 'GET',x_listenport$t);	
+		}				
+			
 		</script>
 		";
 
@@ -2060,6 +2120,9 @@ function listen_port_save(){
 		$sock->SET_INFO("SquidOldSSLPort",$squid->ssl_port);
 		$sock->SET_INFO("SquidOldHTTPPort2",$squid->second_listen_port);
 		$sock->SET_INFO("CNTLMPort", $_GET["CNTLMPort"]);
+		$sock->SET_INFO("DisableSSLStandardPort", $_GET["DisableSSLStandardPort"]);
+		$sock->SET_INFO("smartphones_port", $_GET["smartphones_port"]);
+		
 		
 		if(!$squid->SaveToLdap()){
 			echo $squid->ldap_error;
@@ -2067,9 +2130,14 @@ function listen_port_save(){
 		}else{
 			$tpl=new templates();
 			echo $tpl->javascript_parse_text("{listen_port}:{$_GET["listenport"]}\n",1);
+			echo $tpl->javascript_parse_text("{second_port}:{$_GET["second_listen_port"]}\n",1);
 			echo $tpl->javascript_parse_text("{ssl_port}:{$_GET["ssl_port"]}\n",1);
 			echo $tpl->javascript_parse_text("{icp_port}:{$_GET["icp_port"]}\n",1);
 			echo $tpl->javascript_parse_text("{htcp_port}:{$_GET["htcp_port"]}\n",1);
+			echo $tpl->javascript_parse_text("{cntlm_port}:{$_GET["cntlm_port"]}\n",1);
+			echo $tpl->javascript_parse_text("{smartphones_port}:{$_GET["smartphones_port"]}\n",1);
+			
+			
 			if($EnableWebProxyStatsAppliance==1){
 				echo $tpl->javascript_parse_text("{proxy_clients_was_notified}\n",1);
 			}
@@ -2078,7 +2146,7 @@ function listen_port_save(){
 		}
 
 		
-		$sock->getFrameWork("squid.php.php?restart-squid=yes");
+		
 		$sock->getFrameWork("cmd.php?restart-apache-src=yes");		
 		$sock->getFrameWork("squid.php?cntlm-restart=yes");
 		

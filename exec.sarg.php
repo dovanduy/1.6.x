@@ -180,7 +180,7 @@ if(!is_file("/usr/share/artica-postfix/squid/pattern.png")){
 
 $unix=new unix();
 $lighttpd_user=$unix->APACHE_SRC_ACCOUNT();
-
+$squidbin=$unix->LOCATE_SQUID_BIN();
 echo "Starting......: Apache user: $lighttpd_user\n";
 @chown("/usr/share/artica-postfix/squid/sarg.css",$lighttpd_user);
 echo "Starting......: Sarg, css done\n";
@@ -258,8 +258,11 @@ $f[]="";
 $f[]="export LC_ALL=C";
 $f[]="$nice$sarg_bin -f /etc/squid3/sarg.conf -l /var/log/squid/sarg.log -o \"$SargOutputDir/monthly\" -d \$WEEKSAGO-\$YESTERDAY > /dev/null 2>&1";
 $f[]="";
-$f[]="/usr/sbin/squid -k rotate";
+$f[]="$squidbin -k rotate";
+$f[]="/etc/init.d/auth-tail restart >/dev/null 2>&1";
+$f[]="/etc/init.d/cache-tail restart >/dev/null 2>&1";
 $f[]="$nohup $nice $php5 ".__FILE__." --backup >/dev/null 2>&1 &";
+
 $f[]="";
 $f[]="#don't move next line to upper, reason is that sed change the cnt assignment of the first 7 lines";
 $f[]="cnt=1";
@@ -471,6 +474,8 @@ function sargToFile($filePath){
 		if(is_file($squidbin)){
 			progress("Ask squid to rotate",10);
 			shell_exec("$squidbin -k rotate");
+			shell_exec("/etc/init.d/auth-tail restart >/dev/null 2>&1");
+			shell_exec("/etc/init.d/cache-tail restart >/dev/null 2>&1");
 		}
 	}
 	
@@ -631,6 +636,8 @@ function execute(){
 	if(is_file($squidbin)){
 		progress("Ask squid to rotate",10);
 		shell_exec("$squidbin -k rotate");
+		shell_exec("/etc/init.d/auth-tail restart >/dev/null 2>&1");
+		shell_exec("/etc/init.d/cache-tail restart >/dev/null 2>&1");
 	}
 	
 	while (list ($index, $line) = each ($results) ){
@@ -647,7 +654,9 @@ function execute(){
 			\n".@implode("\n",$results),"proxy");
 			shell_exec(LOCATE_PHP5_BIN2()." ". dirname(__FILE__)."/exec.squid.php --reconfigure");
 			shell_exec($unix->LOCATE_SQUID_BIN() ." -k rotate");
-			shell_exec("/etc/init.d/artica-postfix restart squid-tail");
+			shell_exec("/etc/init.d/auth-tail restart >/dev/null 2>&1");
+			shell_exec("/etc/init.d/cache-tail restart >/dev/null 2>&1");
+			
 			return;
 			}
 		
@@ -660,7 +669,8 @@ function execute(){
 			\n".@implode("\n",$results),"proxy");
 			shell_exec(LOCATE_PHP5_BIN2()." ". dirname(__FILE__)."/exec.squid.php --reconfigure");
 			shell_exec($unix->LOCATE_SQUID_BIN() ." -k rotate");
-			shell_exec("/etc/init.d/artica-postfix restart squid-tail");
+			shell_exec("/etc/init.d/auth-tail restart >/dev/null 2>&1");
+			shell_exec("/etc/init.d/cache-tail restart >/dev/null 2>&1");
 			return;
 			}
 			
@@ -673,7 +683,8 @@ function execute(){
 			\n".@implode("\n",$results),"proxy");
 			shell_exec(LOCATE_PHP5_BIN2()." ". dirname(__FILE__)."/exec.squid.php --reconfigure");
 			shell_exec($unix->LOCATE_SQUID_BIN() ." -k rotate");
-			shell_exec("/etc/init.d/artica-postfix restart squid-tail");
+			shell_exec("/etc/init.d/auth-tail restart >/dev/null 2>&1");
+			shell_exec("/etc/init.d/cache-tail restart >/dev/null 2>&1");
 			return;
 			}
 	}

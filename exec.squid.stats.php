@@ -397,6 +397,11 @@ function recategorize_singleday($day,$nopid=false,$tablename=null){
 		return;
 	}
 	
+	if(system_is_overloaded()){
+		writelogs_squid("Overloaded system, aborting task",__FUNCTION__,__FILE__,__LINE__,"categorize");
+		return ;
+	}
+	
 	$daySource=$day;
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
@@ -1539,6 +1544,9 @@ function not_categorized_day_scan(){
 
 
 function _not_categorized_day_scan(){
+	
+	if(system_is_overloaded()){ufdbguard_admin_events("Overloaded system, aborting task",__FUNCTION__,__FILE__,__LINE__,"statistics");return;}
+	
 	$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') as `suffix`, `tablename` FROM tables_day ORDER BY zDate DESC";
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	if(!$GLOBALS["Q"]->ok){echo "{$GLOBALS["Q"]->mysql_error}\n";return;}

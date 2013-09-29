@@ -1,6 +1,7 @@
 <?php
-if(function_exists("date_default_timezone_set") and function_exists("date_default_timezone_get"))
-	@date_default_timezone_set(@date_default_timezone_get());
+if(function_exists("date_default_timezone_set") and function_exists("date_default_timezone_get")){@date_default_timezone_set(@date_default_timezone_get());}
+
+
 function WriteToSyslogMail($text,$file=null,$error=false){
 	if(!function_exists("syslog")){return;}
 	if($file==null){
@@ -23,6 +24,20 @@ function writeToFile($text,$filepath){
 	@fclose($f);
 }
 function writelogs($text=null,$function=null,$file_source=null,$line=null){
+	
+	if(isset($_SESSION["EnableWebPageDebugging"])){$GLOBALS["EnableWebPageDebugging"]=$_SESSION["EnableWebPageDebugging"];}
+	
+	if(!isset($GLOBALS["EnableWebPageDebugging"])){
+		if(class_exists("sockets")){
+			$sock=new sockets();
+			$EnableWebPageDebugging=$sock->GET_INFO("EnableWebPageDebugging");
+			if(!is_numeric($EnableWebPageDebugging)){$EnableWebPageDebugging=0;}
+			$GLOBALS["EnableWebPageDebugging"]=$EnableWebPageDebugging;
+			$_SESSION["EnableWebPageDebugging"]=$EnableWebPageDebugging;
+		}
+	}
+	$EnableWebPageDebugging=$GLOBALS["EnableWebPageDebugging"];
+	
 	$name=null;
 	$ARRAY_NET["listener.php"]=true;
 	$file_source=basename($file_source);
@@ -50,6 +65,8 @@ function writelogs($text=null,$function=null,$file_source=null,$line=null){
 			return;
 		}
 	}
+	
+
 	
 
 	
@@ -84,6 +101,14 @@ function writelogs($text=null,$function=null,$file_source=null,$line=null){
 	if(!isset($name)){$name=null;}
 	$text2=date('H:i:s')." $file_source [$IP]::$name $function:: $text line: $line source file:$SCRIPT_FILENAME";
 	$text=date('H:i:s')." [$pid] $prefix::$name:$function:: $text in $file_source$line";
+	
+	if($EnableWebPageDebugging==1){
+		if(function_exists("CurrentPageName")){
+			$page=CurrentPageName();
+			writeOtherlogs(dirname(__FILE__)."/logs/web/$page.log",$text2);
+		}
+	}
+	
 	writeOtherlogs(dirname(__FILE__)."/logs/web/interface.debug",$text2);
 	if(isset($GLOBALS["ADDLOG"])){writeOtherlogs($GLOBALS["ADDLOG"],$text2);}
 	if(isset($GLOBALS["AS_NET_AGENT"])){writeOtherlogs("/var/log/artica-netagent.log",$text2);}

@@ -81,25 +81,33 @@ class squid_auto_tasks{
 			$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.kerbauth.php --winbinddpriv >/dev/null 2>&1 &"));
 		}
 		
-		$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.quotaday.php.start.time");
-		if($time>60){
-			$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid.stats.quotaday.php >/dev/null 2>&1 &"));
-			$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid.ad.ous.php >/dev/null 2>&1 &"));
+		if($DisableStats==0){
+			$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.quotaday.php.start.time");
+			if($time>60){
+				$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid.stats.quotaday.php >/dev/null 2>&1 &"));
+				$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid.ad.ous.php >/dev/null 2>&1 &"));
+			}
 		}
 		
-		$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid-searchwords.php.searchwords_hour.time");
-		if($time>30){
-			$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid-searchwords.php --hour >/dev/null 2>&1 &"));
+		if($DisableStats==0){
+			$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid-searchwords.php.searchwords_hour.time");
+			if($time>30){
+				$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid-searchwords.php --hour >/dev/null 2>&1 &"));
+			}
 		}
 		
-		$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.hours.php.tables_hours.time");
-		if($time>60){
-			$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid.stats.hours.php >/dev/null 2>&1 &"));
+		if($DisableStats==0){
+			$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.hours.php.tables_hours.time");
+			if($time>60){
+				$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid.stats.hours.php >/dev/null 2>&1 &"));
+			}
 		}
 		
-		$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.totals.php.TOTALS_REPAIR.time");
-		if($time>1440){
-			$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid.stats.totals.php --repair >/dev/null 2>&1 &"));
+		if($DisableStats==0){
+			$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.totals.php.TOTALS_REPAIR.time");
+			if($time>1440){
+				$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid.stats.totals.php --repair >/dev/null 2>&1 &"));
+			}
 		}
 		
 		$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.clean.logs.php.squidLogs.time");
@@ -117,7 +125,13 @@ class squid_auto_tasks{
 		
 		if(!is_file("/etc/artica-postfix/SQUID_TEMPLATE_DONE")){
 			$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid.php --tpl-save >/dev/null 2>&1 &"));
-		}		
+		}
+
+		$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.mysar.php.build.time");
+		if($time>60){
+			$this->shell_exec2(trim($prefixcmd."/usr/share/artica-postfix/exec.mysar.php >/dev/null 2>&1 &"));
+		}
+		
 	}
 	
 	private function shell_exec2($cmdline){
@@ -140,8 +154,7 @@ class squid_auto_tasks{
 
 	private function events($text,$function=null,$line=0){
 		$filename=basename(__FILE__);
-		$GLOBALS["CLASS_UNIX"]->events("$filename $function:: $text (L.$line)","/usr/share/artica-postfix/ressources/logs/launch.status.task");
-		$GLOBALS["CLASS_UNIX"]->events("$filename $function:: $text (L.$line)","/var/log/artica-status.log");
+		$GLOBALS["CLASS_UNIX"]->events("$filename $function:: $text (L.$line)","/var/log/artica-stats-executor.log");
 	}	
 	
 }

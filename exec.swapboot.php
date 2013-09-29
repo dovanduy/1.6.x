@@ -33,12 +33,12 @@ function SwapWatchdog(){
 	$GLOBALS["CLASS_UNIX"]=new unix();
 	$ps=$unix->find_program("ps");
 	$SwapOffOn=unserialize(base64_decode($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SwapOffOn")));
+	$filecache="/etc/artica-postfix/cron.1/SwapOffOn.time";
 	if(!is_numeric($SwapOffOn["SwapEnabled"])){$SwapOffOn["SwapEnabled"]=1;}
 	if(!is_numeric($SwapOffOn["SwapMaxPourc"])){$SwapOffOn["SwapMaxPourc"]=20;}
 	if(!is_numeric($SwapOffOn["SwapMaxMB"])){$SwapOffOn["SwapMaxMB"]=0;}
-	if($SwapOffOn["SwapEnabled"]==0){
-		system_admin_events("SwapEnabled is disabled, operation aborted", __FUNCTION__, __FILE__, __LINE__, "system");
-		return;}
+	if(!is_numeric($SwapOffOn["SwapTimeOut"])){$SwapOffOn["SwapTimeOut"]=60;}
+	if($SwapOffOn["SwapEnabled"]==0){system_admin_events("SwapEnabled is disabled, operation aborted", __FUNCTION__, __FILE__, __LINE__, "system");return;}
 	
 	
 	$sys=new systeminfos();

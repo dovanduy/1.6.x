@@ -679,7 +679,7 @@ $squid=new squidbee();
 	$transparent_mode=Paragraphe('relayhost.png','{transparent_mode}','{transparent_mode_text}',"javascript:Loadjs('squid.newbee.php?squid-transparent-js=yes')");
 	$your_network=Paragraphe('folder-realyrules-64.png','{your_network}','{your_network_text}',"javascript:Loadjs('squid.popups.php?script=network')");
     $stat_appliance=Paragraphe("64-dansguardian-stats.png","{STATISTICS_APPLIANCE}","{STATISTICS_APPLIANCE_TEXT}","javascript:Loadjs('squid.stats-appliance.php')");
-	$sslbump=Paragraphe('web-ssl-64.png','{squid_sslbump}','{squid_sslbump_text}',"javascript:Loadjs('squid.sslbump.php')");
+	//$sslbump=Paragraphe('web-ssl-64.png','{squid_sslbump}','{squid_sslbump_text}',"javascript:Loadjs('squid.sslbump.php')");
 	$watchdog=Paragraphe('service-check-64-grey.png','{squid_watchdog}','{squid_watchdog_text}',"");
 	
 	$syslogRemote=Paragraphe('syslog-64-client.png','{remote_statistics_server}','{remote_statistics_server_text}',"javascript:Loadjs('squid.remotestats.php')");
@@ -834,8 +834,19 @@ function status_squid_left(){
 	if(!$q->TestingConnection()){
 		$img="status_postfix_bg_failed.png";
 		$title="{MYSQL_ERROR}";
-		$text_error_sql="<div><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.mysql.php');\" 
-		style='font-size:12px;color:#D70707;text-decoration:underline'>$title:$q->mysql_error</a></div>";
+		$text_error_sql="<div style='width:93%' class=form>
+		<table style='width:100%'>
+		<tr>
+			<td width=1% nowrap style='vertical-align:top'><img src='img/database-error-48.png'></td>
+			<td style='color:#D70707;font-size:14px;font-weight:bold'>{APP_SQUID_DB}:<br>
+					<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.mysql.php');\" 
+					style='font-size:14px;color:#D70707;text-decoration:underline'>$title</a><hr>
+					$q->mysql_error
+			</td>
+		</tr>
+		</table>
+		
+		</div>";
 	}	
 	
 	$q=new mysql_squid_builder();
@@ -976,8 +987,25 @@ function status_squid_left(){
 		$cache_mem2=($cache_mem*1024);
 		$cache_mem2=FormatBytes($cache_mem2);
 	}
+	$EnableCNTLM=$sock->GET_INFO("EnableCNTLM");
+	$CNTLMPort=$sock->GET_INFO("CnTLMPORT");
 	
 	
+	if(!is_numeric($EnableCNTLM)){$EnableCNTLM=0;}
+	if(!is_numeric($CNTLMPort)){$CNTLMPort=3155;}
+	
+	$PP[]=$squid->listen_port;
+	
+	if(!is_numeric($squid->second_listen_port)){$squid->second_listen_port=0;}
+	if($squid->second_listen_port>0){
+		$PP[]=$squid->second_listen_port;
+	}
+	
+	if($EnableCNTLM==0){
+		if($CNTLMPort>0){
+			$PP[]=$CNTLMPort;
+		}
+	}
 	
 	$transparent_mode="
 		<tr>
@@ -1017,7 +1045,7 @@ function status_squid_left(){
 			<td class=legend nowrap style='font-size:12px'>{listen_port}:</td>
 			<td style='font-size:14px'><a href=\"javascript:blur();\" 
 			OnClick=\"javascript:Loadjs('squid.popups.php?script=listen_port');\" 
-			style='$styleText;text-decoration:underline'>$squid->listen_port</a></td>
+			style='$styleText;text-decoration:underline'>".@implode("/", $PP)."</a></td>
 		</tr>
 		<tr>
 			<td width=1%><img src='img/20-check.png'></td>
@@ -1388,7 +1416,7 @@ function section_status(){
 		
 	$t=time();
 	
-	echo build_artica_tabs($html, "squid_main_svc",950);
+	echo build_artica_tabs($html, "squid_main_svc",1020);
 	
 
 	
@@ -1946,222 +1974,18 @@ function squid_stores_status(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$reboot=false;	
-	$StoreDirs=unserialize(base64_decode($sock->getFrameWork("squid.php?squid-get-storage-info=yes")));
-	
-
-	if(!is_array($StoreDirs)){$reboot=true;}
-	
-	
-	if($reboot){
-		$functt=time();
-		echo "
-		<script>
-		function Restart$functt(){
-		LoadAjax('squid-stores-status','$page?squid-stores-status=yes');
-	}
-	
-	setTimeout('Restart$functt()',2500);
-	</script>
-	";
-	return;
-	
-	}	
-	
-
-	
-	
-	while (list($directory,$arrayStore)=each($StoreDirs)){
-		if($directory=="MEM"){continue;}
-		if($directory=="CURCAP"){
-		$TTR[]="<tr>
-		<td style='font-weight:bold;font-size:12px' align='right'>{capacity}:</td>
-		<td style='font-weight:bold;font-size:12px'>&nbsp;</td>
-				</tr>
-				<tr>
-					<td>&nbsp;</td>
-					<td>". pourcentage($arrayStore,10)."</td>
-				</tr>";			
-			
-			
-			
-			continue;}
-		
-		$directory=basename($directory);
-		$TTR[]="<tr>
-		<td style='font-weight:bold;font-size:12px' align='right'>$directory:</td>
-		<td style='font-weight:bold;font-size:12px'>". FormatBytes($arrayStore["SIZE"])."</td>
-				</tr>
-				<tr>
-					<td>&nbsp;</td>
-					<td>". pourcentage($arrayStore["PERC"],10)."</td>
-				</tr>";
-	
-	}
-	
-	if(count($TTR)>0){
-
-		//Inotify.php?switch-high=yes
-		
-		echo $tpl->_ENGINE_parse_body(RoundedLightGreen("<div style='min-height:147px'>
-		<table style='width:100%'>".@implode($TTR, "\n")."</table></div>")."<br>");
-	}
-	
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/squid_stores_status.html";
+	if(!is_file($cachefile)){return;}
+	echo $tpl->_ENGINE_parse_body(@file_get_contents($cachefile));
 }
 
 function squid_mem_status(){
 	$sock=new sockets();
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$reboot=false;
-	$users=new usersMenus();
-	if($users->WEBSTATS_APPLIANCE){return null;}
-	$datas=unserialize(base64_decode($sock->getFrameWork("squid.php?squid-get-system-info=yes")));
-	$StoreDirs=unserialize(base64_decode($sock->getFrameWork("squid.php?squid-get-storage-info=yes")));
-	
-	if(!is_array($datas)){$reboot=true;}
-	
-	
-	if($reboot){
-		if(!isset($_GET["count-status"])){$_GET["count-status"]=0;}
-		$_GET["count-status"]=$_GET["count-status"]+1;
-		if($_GET["count-status"]>5){return;}
-		$functt=time();
-		echo "
-			<script>
-				function Restart$functt(){
-					LoadAjax('squid-mem-status','$page?squid-mem-status=yes&count-status={$_GET["count-status"]}');
-				}
-				
-				setTimeout('Restart$functt()',2500);
-			</script>
-			";
-		return;
-		
-	}
-	
-	$MEMSEC=$datas["Memory usage for squid via mallinfo()"];
-	$Total_space_in_arena=trim($MEMSEC["Total space in arena"]);
-	$Total_in_use=trim($MEMSEC["Total in use"]);
-	
-	$InternalDataStructures=$datas["Internal Data Structures"];
-	$StoreEntriesWithMemObjects=$InternalDataStructures["StoreEntries with MemObjects"];
-	$HotObjectCacheItems=$InternalDataStructures["Hot Object Cache Items"];
-	
-	
-	
-	$ConnectionInformationForSquid=$datas["Connection information for squid"];
-	
-	$NumberOfHTTPRequestsReceived=$ConnectionInformationForSquid["Number of HTTP requests received"];
-	$AverageHTTPRequestsPerMinuteSinceStart=round($ConnectionInformationForSquid["Average HTTP requests per minute since start"]);
-	
-	
-	$StorageMemSize=$datas["Cache information for squid"]["Storage Mem size"];
-	$StorageMemCapacity=$datas["Cache information for squid"]["Storage Mem capacity"];
-	
-	
-	preg_match("#^([0-9]+)\s+([A-Z]+)#", trim($StorageMemSize),$re);
-	$StorageMemSize=round($re[1]/1024,2);
-	
-	preg_match("#([0-9\.]+)% used#", trim($StorageMemCapacity),$re);
-	$StorageMemCapacityPourc=$re[1];
-	
-	
-	preg_match("#^([0-9]+)\s+([A-Z]+)#", trim($MEMSEC["Total space in arena"]),$re);
-	
-	
-	
-	if($re[2]=="KB"){
-		$Total_space_in_arena=round(($Total_space_in_arena/1024),2);
-	}
-	
-	if($re[2]=="GB"){
-		$Total_space_in_arena=round(($Total_space_in_arena*1024),2);
-	}
-	
-	preg_match("#^([0-9]+)\s+([A-Z]+).*?([0-9\.]+)%#", $Total_in_use,$re);
-	$USED_VALUE=$re[1];
-	$USED_UNIT=$re[2];
-	$USED_PRC=$re[3];
-	if($USED_UNIT=="KB"){
-		$USED_VALUE=round(($USED_VALUE/1024),2);
-	}
-	
-	if($USED_UNIT=="GB"){
-		$USED_VALUE=round(($USED_VALUE*1024),2);
-	}	
-	
-	$NumberOfHTTPRequestsReceived=FormatNumber($NumberOfHTTPRequestsReceived);
-	$HotObjectCacheItems=FormatNumber($HotObjectCacheItems);
-	$StoreEntriesWithMemObjects=FormatNumber($StoreEntriesWithMemObjects);
-	if(isset($StoreDirs["MEM"])){
-		$BigMem=$StoreDirs["MEM"]["SIZE"];
-		$Items=$StoreDirs["MEM"]["ENTRIES"];
-			if($BigMem>0){
-				$MemDir="	<tr>
-				<td style='font-weight:bold;font-size:12px' align='right' nowrap>{memory_cache}:</td>
-				<td style='font-weight:bold;font-size:12px'>". FormatBytes($BigMem)." ($Items {items})</td>		
-			</tr>	
-			<tr>
-			<td>&nbsp;</td>
-			<td>". pourcentage($StoreDirs["MEM"]["PERC"])."</td>
-			</tr>	";
-				
-			}
-		
-	}
-	$usersC=0;
-	$ipzs=0;
-	$size=0;
-	$q=new mysql_squid_builder();
-	$current_table="quotahours_".date('YmdH',time());
-	if($q->COUNT_ROWS($current_table)>0){
-		$results=$q->QUERY_SQL("SELECT COUNT(uid) as tcount FROM $current_table GROUP BY uid");
-		$usersC=mysql_num_rows($results);
-		$results=$q->QUERY_SQL("SELECT COUNT(ipaddr) as tcount FROM $current_table GROUP BY ipaddr");
-		$ipzs=mysql_num_rows($results);
-		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(size) as size FROM $current_table"));
-		if($ligne["size"]>0){$size=FormatBytes($ligne["size"]/1024);}
-	}
-	
-	
-	$html="
-	<div style='min-height:147px'>		
-	<table style='width:100%'>
-$MemDir
-	<tr>
-		<td style='font-weight:bold;font-size:12px' align='right'>{memory}:</td>
-		<td style='font-weight:bold;font-size:12px'>$StorageMemSize&nbsp;MB</td>		
-	</tr>
-	<tr>
-	<td>&nbsp;</td>
-	<td>". pourcentage($StorageMemCapacityPourc)."</td>
-	</tr>
-	<tr>
-		<td style='font-weight:bold;font-size:12px' align='right'>{objects}:</td>
-		<td style='font-weight:bold;font-size:12px'>$StoreEntriesWithMemObjects</td>		
-	</tr>
-	<tr>
-		<td style='font-weight:bold;font-size:12px' align='right'>{hot_objects}:</td>
-		<td style='font-weight:bold;font-size:12px'>$HotObjectCacheItems</td>		
-	</tr>	
-	<tr>
-		<td style='font-weight:bold;font-size:12px' align='right'>{requests}:</td>
-		<td style='font-weight:bold;font-size:12px'>$NumberOfHTTPRequestsReceived ({$AverageHTTPRequestsPerMinuteSinceStart} {requests}/{minute})</td>		
-	</tr>	
-	<tr>
-		<td style='font-weight:bold;font-size:12px' align='right'>{members}:</td>
-		<td style='font-weight:bold;font-size:12px'>$usersC</td>		
-	</tr>	
-	<tr>
-		<td style='font-weight:bold;font-size:12px' align='right'>{clients}:</td>
-		<td style='font-weight:bold;font-size:12px'>$ipzs ($size)</td>		
-	</tr>				
-	
-</table></div>
-	";
-	
-	
-	echo RoundedLightGreen($tpl->_ENGINE_parse_body($html));
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/squid_mem_status.html";
+	if(!is_file($cachefile)){return;}
+	echo $tpl->_ENGINE_parse_body(@file_get_contents($cachefile));
 	
 }
 

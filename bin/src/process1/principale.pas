@@ -510,7 +510,7 @@ begin
    if FileExists('/etc/artica-postfix/INNODB_FILE_PER_TABLE_INSTALL') then list.Add('$_GLOBAL["INNODB_FILE_PER_TABLE_INSTALL"]=True;') else list.Add('$_GLOBAL["INNODB_FILE_PER_TABLE_INSTALL"]=false;');
    if FIleExists('/opt/kaspersky/klmsui/libexec/mod_klwi3.so') then list.Add('$_GLOBAL["KLMS_WEB_INSTALLED"]=True;') else list.Add('$_GLOBAL["KLMS_WEB_INSTALLED"]=false;');
    if FIleExists('/opt/kaspersky/klms/libexec/klms-milter') then list.Add('$_GLOBAL["KLMS_INSTALLED"]=True;') else list.Add('$_GLOBAL["KLMS_INSTALLED"]=false;');
-   if FIleExists('/usr/local/share/artica/owncloud_src/index.php') then list.Add('$_GLOBAL["OWNCLOUD_INSTALLED"]=True;') else list.Add('$_GLOBAL["OWNCLOUD_INSTALLED"]=false;');
+   if FIleExists('/usr/share/owncloud/index.php') then list.Add('$_GLOBAL["OWNCLOUD_INSTALLED"]=True;') else list.Add('$_GLOBAL["OWNCLOUD_INSTALLED"]=false;');
 
    if FIleExists('/etc/artica-postfix/WEBSTATS_APPLIANCE') then begin
       list.Add('$_GLOBAL["WEBSTATS_APPLIANCE"]=True;');
@@ -539,6 +539,7 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('haarp')) then list.Add('$_GLOBAL["HAARP_INSTALLED"]=True;') else list.Add('$_GLOBAL["HAARP_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('cntlm')) then list.Add('$_GLOBAL["CNTLM_INSTALLED"]=True;') else list.Add('$_GLOBAL["CNTLM_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('iscsid')) then list.Add('$_GLOBAL["ISCSID_INSTALLED"]=True;') else list.Add('$_GLOBAL["ISCSID_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('vde_switch')) then list.Add('$_GLOBAL["VDESWITCH_INSTALLED"]=True;') else list.Add('$_GLOBAL["VDESWITCH_INSTALLED"]=False;');
 
 
 
@@ -710,7 +711,7 @@ begin
       if FileExists('/usr/share/artica-postfix/exec.vnstat.php') then SYS.THREAD_COMMAND_SET(SYS.LOCATE_PHP5_BIN()+ ' /usr/share/artica-postfix/exec.vnstat.php --stats');
    end else begin
       list.Add('$_GLOBAL["APP_VNSTAT_INSTALLED"]=False;');
-      if not FileExists('/etc/artica-postfix/vmstat.ordered.cache') then SYS.THREAD_COMMAND_SET('/usr/share/artica-postfix/bin/artica-make APP_VNSTAT');
+
    end;
 
    if verbosed then writeln('web_settings:: 15%');
@@ -1345,7 +1346,7 @@ if POSTFIX_INSTALLED then begin
          list.Add('$_GLOBAL["CURL_PATH"]="'+SYS.LOCATE_CURL()+'";');
         if FileExists(miltergreylist.MILTER_GREYLIST_BIN_PATH()) then begin
            list.Add('$_GLOBAL["MILTERGREYLIST_INSTALLED"]=True;');
-           list.Add('$_GLOBAL["MILTERGREYLIST_SOCKET"]="'+miltergreylist.CheckSocket+'";');
+
         end else begin
             list.Add('$_GLOBAL["MILTERGREYLIST_INSTALLED"]=False;');
         end;

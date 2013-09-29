@@ -46,6 +46,8 @@ $logrotate=$unix->find_program("logrotate");if(!is_file($logrotate)){echo "logro
 
 
 
+
+
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $timefile="/etc/artica-postfix/pids/logrotate.time";
 
@@ -63,6 +65,13 @@ if($unix->process_exists($pid,basename(__FILE__))){
 	}else{
 		die();
 	}
+}
+
+$logrotate_pid=$unix->PIDOF($logrotate);
+if($unix->process_exists($logrotate_pid)){
+	$time=$unix->PROCCESS_TIME_MIN($logrotate_pid);
+	system_admin_events("Warning, a logrotate task PID $logrotate_pid still running since {$time}Mn, Aborted task",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+	die();
 }
 
 
@@ -1005,7 +1014,12 @@ function check_all_squid(){
 		if(preg_match("#sarg\.#", $filename)){
 			shell_exec("$php5 ".dirname(__FILE__)."/exec.sarg.php --rotate $basename >/dev/null 2>&1 &");
 			continue;
-		}		
+		}
+		if(preg_match("#access\.log\.[0-9]+$#", $filename)){
+			@mkdir("/home/squid/access_logs",0755,true);
+			if(@copy($filename, "/home/squid/access_logs/".basename($filename).".".filemtime($filename))){@unlink($filename);}
+			continue;
+		}	
 		
 		
 		if($LogRotateCompress==1){

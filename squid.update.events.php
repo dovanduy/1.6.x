@@ -34,14 +34,14 @@ function js(){
 	if(!is_numeric($_GET["taskid"])){$_GET["taskid"]=0;}
 	if($_GET["table"]==null){
 		$all_events=$tpl->_ENGINE_parse_body("{all_events}");
-		$title=$all_events.$title2;
+		$title=$all_events;
 	}else{
 		$title=$tpl->_ENGINE_parse_body("{events}")."::{$_GET["category"]}";
 	}
 	
 	
 	if($_GET["taskid"]>0){
-		if($_GET["table"]==null){
+		if(($_GET["table"]==null) OR (preg_match("#TaskSq[0-9]+#", $_GET["table"]) )) {
 			$q=new mysql_squid_builder();
 			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT TaskType,TimeDescription FROM webfilters_schedules WHERE ID={$_GET["taskid"]}","artica_events"));	
 			
@@ -312,12 +312,18 @@ function search(){
 	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
+		
 		$description=$ligne["description"];
+		$description=$tpl->_ENGINE_parse_body($description);
 		$description=str_replace("\n", "<br>", $description);
 		$description=wordwrap($description,75,"<br>");
 		$description=str_replace("<br><br>","<br>",$description);
 		$ttim=strtotime($ligne['zDate']);
 		$dateD=date('Y-m-d',$ttim);
+		$color="black";
+		if(preg_match("#(error|fatal|overloaded|aborting)#i", $description)){
+			$color="#BA0000";
+		}
 		
 		$function="<div style='margin-top:-4px;margin-left:-5px'><i style='font-size:11px'>{$ligne["filename"]}:{$ligne["function"]}() $line {$ligne["line"]}</i></div>";
 		if(preg_match("#(.+?)\s+thumbnail#", $description,$re)){
@@ -330,8 +336,8 @@ function search(){
 	$data['rows'][] = array(
 		'id' => $ligne['zDate'],
 		'cell' => array(
-		"<strong style='font-size:13px'>{$ligne["zDate"]}</strong>",
-		"<div style='font-size:13px;font-weight:normal'>$description$function</div>",
+		"<strong style='font-size:13px;color:$color'>{$ligne["zDate"]}</strong>",
+		"<div style='font-size:13px;font-weight:normal;color:$color'>$description$function</div>",
 		)
 		);
 	}

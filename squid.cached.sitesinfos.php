@@ -763,6 +763,15 @@ $refresh_pattern[]="^http:\/\/liveupdate.symantecliveupdate.com.*\(zip)     1440
 $refresh_pattern[]="windowsupdate.com/.*\.(cab|exe)                 10080  9999%  43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
 $refresh_pattern[]="update.microsoft.com/.*\.(cab|exe)              10080  9999%  43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
 $refresh_pattern[]="download.microsoft.com/.*\.(cab|exe)            10080  9999%  43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="http://office\.microsoft\.com/ 			0 	80% 	20160";
+$refresh_pattern[]="http://w?xpsp[0-9]\.microsoft\.com/ 	0 80% 20160";
+$refresh_pattern[]="http://w2ksp[0-9]\.microsoft\.com/ 		0 80% 20160";
+$refresh_pattern[]="au.download.windowsupdate.com/.*\.(cab|exe|dll|msi) 	4320 	100% 	43200";
+$refresh_pattern[]="http://download\.macromedia\.com/ 		0 80% 20160";
+$refresh_pattern[]="ftp://ftp\.nai\.com/ 	0 	80% 	20160";
+$refresh_pattern[]="http://ftp\.software\.ibm\.com/ 	0 	80% 	20160";
+
+
 
 //#images facebook";
 $refresh_pattern[]="-i \.facebook.com.*\.(jpg|png|gif)                      129600 9999% 129600 ignore-reload override-expire ignore-no-cache ignore-no-store store-stale";

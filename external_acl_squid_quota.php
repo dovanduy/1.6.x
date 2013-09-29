@@ -14,7 +14,7 @@
   $GLOBALS["uriToHost"]=array();
   $GLOBALS["SESSION_TIME"]=array();
   $GLOBALS["DEBUG_LEVEL"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidQuotaDebug");
-  $GLOBALS["DEBUG_LEVEL"]=3;
+  
   if(!is_numeric( $GLOBALS["DEBUG_LEVEL"])){ $GLOBALS["DEBUG_LEVEL"]=0;}
   $GLOBALS["F"] = @fopen($GLOBALS["LOGFILE"], 'a');
   $max_execution_time=ini_get('max_execution_time'); 

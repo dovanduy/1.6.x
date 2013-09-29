@@ -1088,7 +1088,7 @@ function storage_view_extract(){
 			return;
 		}
 	
-		$sql="SELECT filedata INTO DUMPFILE '$mydir/ressources/logs/$newtFile' FROM store WHERE filename = '$newtFile'";
+		$sql="SELECT filedata INTO DUMPFILE '$mydir/ressources/logs/$newtFile' FROM access_store WHERE ID = '$newtFile'";
 		writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
 		$q->QUERY_SQL($sql);
 	
@@ -1132,6 +1132,4 @@ function storage_view_extract(){
 	
 }
 
-function file_extension($filename){
-	return pathinfo($filename, PATHINFO_EXTENSION);
-}
+function file_extension($filename){return pathinfo($filename, PATHINFO_EXTENSION);}

@@ -1,5 +1,19 @@
 <?php
 include_once(dirname(__FILE__).'/class.nginx-sources.inc');
+$GLOBALS["TYPES"][0]="{local_ldap}";
+$GLOBALS["TYPES"][1]="{ldap}";
+$GLOBALS["TYPES"][2]="{ActiveDirectory}";
+$GLOBALS["TYPES"][3]="{trace_connexions}";
+$GLOBALS["TYPES"][4]="{redirect_uri}";
+
+$GLOBALS["SOURCE_TYPE"][0]="{all_cases}";
+$GLOBALS["SOURCE_TYPE"][1]="{network_text}";
+$GLOBALS["SOURCE_TYPE"][2]="{country}";
+$GLOBALS["SOURCE_TYPE"][3]="{cookie}";
+
+$GLOBALS["DEST_TYPES"][0]="{local_ldap}";
+$GLOBALS["DEST_TYPES"][1]="{ldap}";
+$GLOBALS["DEST_TYPES"][2]="{ActiveDirectory}";
 
 class squid_reverse{
 	private $hostname=null;
@@ -160,6 +174,24 @@ class squid_reverse{
 			)  ENGINE = MYISAM;";
 		$q->QUERY_SQL($sql,$this->database);		
 		if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>\n";}
+		
+		$sql="CREATE TABLE IF NOT EXISTS `nginx_replace_folder` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `rulename` CHAR(255)  NOT NULL,
+			  `folderid` INT(10)  NOT NULL,
+			  `zorder` INT(10)  NOT NULL,
+			  `stringtosearch` TEXT  NOT NULL,
+			  `servername` CHAR(255)  NOT NULL,
+			  `tokens` CHAR(20)  NOT NULL,
+			  `replaceby` TEXT,
+			  PRIMARY KEY (`ID`),
+			  KEY `folderid` (`folderid`),
+			  KEY `zorder` (`zorder`),
+			  KEY `rulename` (`rulename`),
+			  KEY `servername` (`servername`)
+			)  ENGINE = MYISAM;";
+		$q->QUERY_SQL($sql,$this->database);
+		if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>\n";}		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_replace` (
 			  `ID` INT NOT NULL AUTO_INCREMENT,

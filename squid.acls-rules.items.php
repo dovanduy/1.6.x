@@ -71,7 +71,7 @@ function items_js(){
 	<table class='table-items-$t' style='display: none' id='table-items-$t' style='width:99%'></table>
 <script>
 var DeleteAclKey=0;
-$(document).ready(function(){
+function LoadTable$t(){
 $('#table-items-$t').flexigrid({
 	url: '$page?items-list=yes&ID=$ID&t=$t&aclid={$_GET["aclid"]}',
 	dataType: 'json',
@@ -101,7 +101,7 @@ buttons : [
 	singleSelect: true
 	
 	});   
-});
+}
 function LinkAclItem() {
 	Loadjs('squid.BrowseAclGroups.php?callback=LinkAclRuleGpid{$_GET["aclid"]}');
 	
@@ -150,6 +150,8 @@ function LinkAclRuleGpid{$_GET["aclid"]}(gpid){
 		$('#table-$t').flexReload();
 		ExecuteByClassName('SearchFunction');
 	}	
+	
+LoadTable$t();
 </script>
 	
 	";

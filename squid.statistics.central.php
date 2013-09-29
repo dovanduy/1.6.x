@@ -97,6 +97,7 @@ function tabs(){
 		if(!$sock->SQUID_LOCAL_STATS_DISABLED()){$array["status"]='{status}';}
 		//$array["panel-week"]='{this_week}';
 		$array["events-squidaccess"]='{realtime_requests}';
+		$array["events-mysar"]='{summary}';
 	
 		$font="style='font-size:14px'";
 		if(!$sock->SQUID_LOCAL_STATS_DISABLED()){$array["not_categorized"]='{not_categorized}';}
@@ -111,6 +112,11 @@ while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="events-squidaccess"){
 			$html[]= $tpl->_ENGINE_parse_body("<li $font><a href=\"squid.accesslogs.php?table-size=942&url-row=555\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}	
+
+		if($num=="events-mysar"){
+			$html[]= $tpl->_ENGINE_parse_body("<li $font><a href=\"squid.mysar.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
@@ -157,7 +163,7 @@ while (list ($num, $ligne) = each ($array) ){
 	}
 	
 	
-	echo build_artica_tabs($html, "squid_stats_central");
+	echo build_artica_tabs($html, "squid_stats_central",945);
 	
 }
 
@@ -167,12 +173,29 @@ function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$search=$tpl->javascript_parse_text("{search}");
-	$html="<table style='width:100%'>
+	
+	$p1=Paragraphe32("new_statistics_interface", "new_statistics_interface_text",
+			"s_PopUpFull('http://proxy-appliance.org/index.php?cID=326',1024,768,'Statistics');",
+		 "help-32.png");
+	$p2=Paragraphe32("proxy_statistics_interface", "proxy_statistics_interface_text",
+			"document.location.href='logoff.php?goto=miniadm.logon.php';",
+			"link-32.png");
+	
+	$html="
+			
+	<table style='width:100%'>
 	<tr>
 		<td valign='top' width=240px>
-			<div id='info-gene-$t' style='width:240px' class=form></div></td>
-			<td valign='top'><div id='info-central-$t'></div></td>
-			</tr>
+			<div id='info-gene-$t' style='width:240px' class=form></div>
+			<center>
+				<hr>
+				$p1<br>$p2
+			</center>	
+		</td>
+			<td valign='top'><div id='info-central-$t'></div>
+		
+		</td>
+	</tr>
 	</table>
 	
 	<script>
@@ -232,23 +255,22 @@ function central_information(){
 	
 	if(!$users->PROXYTINY_APPLIANCE){
 	//$tr[]=Paragraphe32("old_statistics_interface", "old_statistics_interface_text", "SquidQuickLinksStatistics();", "status_statistics-22.png");
-	$tr[]=Paragraphe32("new_statistics_interface", "new_statistics_interface_text",
-			 "s_PopUpFull('http://proxy-appliance.org/index.php?cID=326',1024,768,'Statistics');",
-	 "help-32.png");
-	$tr[]=Paragraphe32("proxy_statistics_interface", "proxy_statistics_interface_text", 
-		"document.location.href='logoff.php?goto=miniadm.logon.php';",
-		 "link-32.png");
+
 	
 	
 	
 	if(!$users->PROXYTINY_APPLIANCE){
 		
+		$tr[]=Paragraphe32("STATISTICS_APPLIANCE","STATISTICS_APPLIANCE_TEXT",
+				"javascript:Loadjs('squid.stats-appliance.php')","32-dansguardian-stats.png");
 		
 		if($users->APP_SQUIDDB_INSTALLED){
 			$squiddb=Paragraphe32('mysql_statistics_engine','mysql_statistics_engine_params'
 					,"Loadjs('squid.articadb.php')","database-connect-settings-32.png");
 				
 		}
+		
+		
 
 	
 	if($DisableArticaProxyStatistics==0){
@@ -291,9 +313,14 @@ function central_information(){
 		
 	}
 	
-	if(!$users->CORP_LICENSE){
-		$more_features="<div class=explain style='font-size:14px;'>{squid_stats_nolicence_explain}</div>";
+	if(!$users->CORP_LICENSE){$more_features="<div class=explain style='font-size:16px;'>{squid_stats_nolicence_explain}</div>";}
+	
+	
+	if($DisableArticaProxyStatistics==1){
+		$more_features="<div class=explain style='font-size:16px;'>{squid_stats_disabled_explain}</div>";
+		
 	}
+	
 	
 	
 	}
@@ -324,7 +351,7 @@ function central_information(){
 	}
 	
 	$html="
-	<div style='font-size:18px'>{SQUID_STATS}</div>
+	<div style='font-size:22px;margin-bottom:15px'>{SQUID_STATS}</div>
 	$garphs
 	$TRPTEXT
 	$more_features
@@ -390,51 +417,29 @@ function table_heures_enretard(){
 
 function graphique_heure(){
 	$users=new usersMenus();
-	if($users->PROXYTINY_APPLIANCE){
-		
-		OutputDebugVerbose("PROXYTINY_APPLIANCE -> abort");
-		return;}
-	$t=time();
 	$highcharts=new highcharts();
-	
 	$highcharts->container=$_GET["container"];
 	
+	
+	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/squid.stats.size.hour.db";
+	if(!is_file($cacheFile)){
+		echo $highcharts->NoreturnedValue(array());
+		return;
+	}
+	$t=time();
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$currenttime=date("YmdH");
 	$table="squidhour_$currenttime";
 	$q=new mysql_squid_builder();
-	OutputDebugVerbose("PROXYTINY_APPLIANCE -> abort");
-	if(!$q->TABLE_EXISTS($table)){
-		$highcharts->NoreturnedValue(array());
-		return;
-	}
-	$sql="SELECT SUM(QuerySize) as tsize,DATE_FORMAT(zDate,'%i') as tdate FROM $table 
-	group by tdate HAVING tsize>0
-	ORDER BY tdate ";
 	
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "$q->mysql_error";return;}
-	
-	
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		
-		$size=round(($ligne["tsize"]/1024),2);;
-		if($GLOBALS["VERBOSE"]){echo "<strong>{$ligne["tdate"]} = $size</strong><br>\n";}
-		if(strlen($ligne["tdate"])==1){$ligne["tdate"]="0".$ligne["tdate"];}
-		$xdata[]="\"{$ligne["tdate"]}mn\"";
-		$ydata[]=$size;
-	}
-	
-	
-
-	$highcharts->xAxis=$xdata;
+	$array=unserialize(@file_get_contents($cacheFile));
+	if(!is_array($array)){echo $highcharts->NoreturnedValue(array());return;}
+	$highcharts->xAxis=$array[0];
 	$highcharts->Title="{downloaded_flow_this_hour}";
 	$highcharts->yAxisTtitle="{bandwith} KB";
 	$highcharts->xAxisTtitle="{minutes}";
-	$highcharts->datas=array("{bandwith}"=>$ydata);
-
+	$highcharts->datas=array("{bandwith}"=>$array[1]);
 	echo $highcharts->BuildChart();
 	
 }

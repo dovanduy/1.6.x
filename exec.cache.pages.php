@@ -47,32 +47,42 @@ function start(){
 	$unix->chmod_func(0777, $status_path);
 	$unix->chmod_func(0777, "$workdir/admin.index.tabs.html");
 	$unix->chmod_func(0777, "$workdir/admin.index.memory.html");
+	if($GLOBALS["VERBOSE"]){echo __LINE__." /admin.top.menus.php update-white-32-t >$notify_path\n";}
 	shell_exec("$php5 /usr/share/artica-postfix/admin.top.menus.php update-white-32-tr >$notify_path 2>&1");
 	$unix->chmod_func(0777, $notify_path);
-	shell_exec(" $php5 /usr/share/artica-postfix/admin.index.loadvg.php >/dev/null 2>&1");
+	if($GLOBALS["VERBOSE"]){echo __LINE__." /$php5 /usr/share/artica-postfix/admin.index.loadvg.php >/dev/null 2>&1\n";}
+	shell_exec("$php5 /usr/share/artica-postfix/admin.index.loadvg.php >/dev/null 2>&1");
 	shell_exec("$php5 /usr/share/artica-postfix/admin.index.status-infos.php >/dev/null 2>&1");
 	
 	$AsSquid=false;
 	if($users->SQUID_INSTALLED){$AsSquid=true;}
 	if($users->WEBSTATS_APPLIANCE){$AsSquid=true;}	
+	
+	if($GLOBALS["VERBOSE"]){echo "GET_INFO('EnableRemoteStatisticsAppliance')\n";}
+	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if($GLOBALS["VERBOSE"]){echo "EnableRemoteStatisticsAppliance= $EnableRemoteStatisticsAppliance\n";}
+	if($GLOBALS["VERBOSE"]){echo "GET_INFO('EnableWebProxyStatsAppliance')\n";}
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if($GLOBALS["VERBOSE"]){echo "EnableWebProxyStatsAppliance= $EnableWebProxyStatsAppliance\n";}
 	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
 	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
 	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	if($EnableRemoteStatisticsAppliance==1){$AsSquid=false;}
 	if($EnableWebProxyStatsAppliance==1){$AsSquid=true;}
 	
+	if($GLOBALS["VERBOSE"]){echo __LINE__." squidlogs_status()\n";}
 	squidlogs_status(true);
-	
+	if($GLOBALS["VERBOSE"]){echo __LINE__." squidlogs_status() -> DONE\n";}
 	if($AsSquid){
-		
 		$cachefile="/usr/share/artica-postfix/ressources/logs/web/traffic.statistics.html";
+		if($GLOBALS["VERBOSE"]){echo __LINE__." $php5 /usr/share/artica-postfix/squid.traffic.statistics.php squid-status-stats >$cachefile\n";}
 		shell_exec("$php5 /usr/share/artica-postfix/squid.traffic.statistics.php squid-status-stats >$cachefile 2>&1");
 		$unix->chmod_func(0777, $cachefile);
 	}
+	if($GLOBALS["VERBOSE"]){echo __LINE__." ".__FUNCTION__." finish OK\n";}
 }
 
 function squidlogs_status($nopid=false){
@@ -108,7 +118,8 @@ function squidlogs_status($nopid=false){
 			$realFolder=readlink("$MYSQL_DATA_DIR/squidlogs");
 		}
 	
-	
+		$cmdline="$df -h $realFolder 2>&1";
+		if($GLOBALS["VERBOSE"]){echo __LINE__." $cmdline\n";}
 		exec("$df -h $realFolder 2>&1",$results);
 		$foldersize=$unix->DIRSIZE_BYTES($realFolder);
 		while (list ($num, $line) = each ($results)){
@@ -149,7 +160,9 @@ function squidlogs_status($nopid=false){
 	}	
 	
 	@unlink($cachefile);
+	
 	@file_put_contents($cachefile, serialize($array));
-	$unix->chmod_func(0777, $cachefile);	
+	$unix->chmod_func(0777, $cachefile);
+	if($GLOBALS["VERBOSE"]){echo __LINE__." ".__FUNCTION__." finish OK\n";}	
 	
 }

@@ -1,5 +1,6 @@
 <?php
 if(!isset($GLOBALS["VERBOSE++"])){$GLOBALS["VERBOSE++"]=false;}
+if(!isset($GLOBALS["FULL_DEBUG"])){$GLOBALS["FULL_DEBUG"]=false;}
 if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
 include_once(dirname(__FILE__)."/class.highcharts.inc");
 $squidBuilder=dirname(__FILE__)."/class.mysql.squid.builder.php";
@@ -30,6 +31,12 @@ class mysql{
 	
 	function mysql($DefSettings=null){
 		if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
+		if($GLOBALS["FULL_DEBUG"]){
+			$GLOBALS["DEBUG_PROCESS"]=true;
+			$GLOBALS["VERBOSE++"]=true;
+		}
+		
+		
 		$phpPage=basename($_SERVER["SCRIPT_FILENAME"]);
 	  	$this->CurrentPageName=$phpPage;
 	  	if(is_array($DefSettings)){
@@ -41,11 +48,10 @@ class mysql{
 	  	}
 	  
 		if(!$this->TestIngConnectionPerformed){$this->TestingConnection();}
+			
+	}
 		
-		}
-		
-		
-		
+
 	
 	private function FillSettings(){
 		if(!isset($GLOBALS["posix_getuid"])){
@@ -150,6 +156,7 @@ class mysql{
 		
 		if(!function_exists('mysql_connect')){
 			$this->writelogs("Error, mysql_connect function does not exists...",__FUNCTION__,__LINE__);
+			$this->mysql_error="Error, mysql_connect function does not exists, please reboot";
 			return false;
 		}
 		
@@ -166,13 +173,16 @@ class mysql{
 			$SockPath=null;
 			if(!is_numeric($this->mysql_port)){$this->mysql_port=3306;}
 			if($this->mysql_port<5){$this->mysql_port=3306;}
+			if($GLOBALS["FULL_DEBUG"]){echo __CLASS__.'/'.__FUNCTION__." ".__LINE__." @mysql_connect(\"$this->mysql_server:$this->mysql_port\",$this->mysql_admin,$this->mysql_password)<br>\n";}
 			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
+			if($GLOBALS["FULL_DEBUG"]){echo __CLASS__.'/'.__FUNCTION__." ".__LINE__." @mysql_connect DONE<br>\n";}
 			if($bd){
 				$this->mysql_connection=$bd;
 				return true;}
 			$des=@mysql_error(); 
 			$errnum=@mysql_errno();
 			$this->writelogs("mysql_connect($this->mysql_server:$this->mysql_port,$this->mysql_password..failed (N:$errnum) \"$des\" $called ",__FUNCTION__,__LINE__);
+			$this->mysql_error="$this->mysql_server:$this->mysql_port failed (N:$errnum) \"$des\" $called";
 			if($errnum==1045){$this->DebugCredentials(__LINE__);}
 		}
 		
@@ -198,6 +208,7 @@ class mysql{
 			}
 			$des=@mysql_error(); $errnum=@mysql_errno();
 			if($errnum==1045){$this->DebugCredentials();}
+			$this->mysql_error="$SockPath failed (N:$errnum) \"$des\" $called";
 			$this->writelogs("mysql_connect(\":$SockPath\",$this->mysql_admin,$this->mysql_password..failed (N:$errnum) \"$des\" $called ",__FUNCTION__,__LINE__);
 		}
 
@@ -433,7 +444,7 @@ function writelogs($text=null,$function=null,$line=0){
 				}
 			}
 		}		
-		
+		if($GLOBALS["FULL_DEBUG"]){echo __CLASS__.'/'.__FUNCTION__." ".__LINE__." TestingConnection()<br>\n";}
 		if($this->TestingConnection(false,$called)){return true;}
 		return false;
 	}
@@ -468,7 +479,7 @@ function writelogs($text=null,$function=null,$line=0){
 		}
 		
 		if(!$this->BD_CONNECT(false,$called)){
-			if($GLOBALS["VERBOSE"]){echo "Unable to BD_CONNECT class mysql/QUERY_SQL\n";}
+			if($GLOBALS["VERBOSE"]){echo "Unable to BD_CONNECT class mysql/QUERY_SQL $this->mysql_admin@$this->mysql_server:$this->mysql_port\n";}
 			if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL error DB:\"$database\" Error, unable to connect to MySQL server, request failed\n$called" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
 			$this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" Error, unable to connect to MySQL server, request failed",__CLASS__.'/'.__FUNCTION__,__LINE__);
 			$this->ok=false;
@@ -518,8 +529,12 @@ function writelogs($text=null,$function=null,$line=0){
 	    		return null;
     		}
 		}	
+		
+		
+		if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("mysql_query($sql)",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		$results=mysql_query($sql,$this->mysql_connection);
 		
+		if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("mysql_query() DONE...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		//if(preg_match("#Got error 134 from storage engine#i", $q->mysql_error)){
 		if(!$results){
 			$errnum=@mysql_errno($this->mysql_connection);
@@ -650,7 +665,7 @@ function writelogs($text=null,$function=null,$line=0){
 				if(preg_match("#Table '(.+?)' is marked as crashed and should be repaired#",$des,$re)){
 					$this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" Error table {$re[1]} is crashed $errnum -> i will try to repair it ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					$this->ok=false;
-					$this->mysql_error="Error $errnum $des\n$sql";
+					$this->mysql_error="Error $errnum $des $sql Line:".__LINE__;
 					@mysql_close($this->mysql_connection);
 					return false;
 				}
@@ -1129,6 +1144,14 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	
 	function TABLE_EXISTS($table,$database,$nocache=false){
 		$keyCache=__FUNCTION__;
+		
+		if(function_exists("debug_backtrace")){
+			try {
+				$trace=@debug_backtrace();
+				if(isset($trace[1])){$called="\ncalled by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+			} catch (Exception $e) {$this->writeLogs("TABLE_EXISTS:".__LINE__.": Fatal: ".$e->getMessage(),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		}
+		
 		$table=str_replace("`", "", $table);
 		$table=str_replace("'", "", $table);
 		$table=str_replace("\"", "", $table);
@@ -1147,7 +1170,7 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		}
 		
 		$sql="SHOW TABLES";
-		$results=$this->QUERY_SQL($sql,$database);
+		$results=$this->QUERY_SQL($sql,$database,$called);
 		$result=false;
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$GLOBALS[$keyCache][$database][$ligne["Tables_in_$database"]]=true;

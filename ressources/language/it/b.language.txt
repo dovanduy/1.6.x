@@ -9,6 +9,7 @@
 <accepteds>accepted</accepteds>
 <accesstime_to_internet_expired>Access time to Internet expired</accesstime_to_internet_expired>
 <access_attr>Access attribute</access_attr>
+<access_logs>Transactions logs files</access_logs>
 <access_to_internet_disabled>Your access to internet is disabled</access_to_internet_disabled>
 <access_to_parameters>Access to parameters</access_to_parameters>
 <account_verification>Account verification</account_verification>
@@ -27,6 +28,7 @@ If you would rather do these things later, you can do so by following the links 
 <acls_add_dstdomaindst>Give the web server name eg: domain.tld or 10.10.10.1</acls_add_dstdomaindst>
 <acls_modules>ACLS modules</acls_modules>
 <acls_parameters>ACLs parameters</acls_parameters>
+<acl_reply_body_max_size>Limit a downloaded file to</acl_reply_body_max_size>
 <acl_squid_browser_explain>Regular expression matching on the request user-agent header[br]
 Example: Mozilla/ ^Keyvelop$ ^ClamWin/ Symbian iP(hone|od)[br]
 or Mozilla \(compatible; MSIE\) [br]
@@ -224,6 +226,10 @@ By default, the router is allowed to put mails on each instance during 10mn.[br]
 <AllowNoPassword>Allow no password</AllowNoPassword>
 <AllowPublicDownload>Allow public download</AllowPublicDownload>
 <AllowSenderCanonical>Can modify sent email address</AllowSenderCanonical>
+<AllowSmartphonesRuleExplain>This rule allow any Smartphones[br]
+(Android,BlackBerry,PalmOS,SymbianOS,IE Mobile,iPhone,iPad,iPod)[br]to only bypass the NTLM authentication method.[br]
+</AllowSmartphonesRuleExplain>
+<AllowSmartphonesRuleText>Allow Smartphones to bypass authentication</AllowSmartphonesRuleText>
 <AllowUserMaillog>Can display real-time SMTP mail events</AllowUserMaillog>
 <allow_members>Allow members</allow_members>
 <allow_public_register>Allow public registration</allow_public_register>
@@ -325,6 +331,10 @@ Use the setup control center in order to install the application.
 <APP_ARKEIA_TXT>The Arkeia Software Application is a fast, flexible and reliable backup and recovery software solution</APP_ARKEIA_TXT>
 <APP_ARKWSD>Arkeia web service</APP_ARKWSD>
 <APP_ARTICADB>Web Categories Daemon</APP_ARTICADB>
+<APP_ARTICADB_EXPLAIN>Web categories databases are databases used for statistics purpose.[br]
+When parsing statistics Artica needs to which category is associated for a web site.[br]
+In this case, Artica can display statistics by categories.[br]
+[b]Note, this is not databases used by the Web filtering engine but it should reflect the same content.[/b]</APP_ARTICADB_EXPLAIN>
 <APP_ARTICA_AGENT>Artica agent</APP_ARTICA_AGENT>
 <APP_ARTICA_AGENT_TEXT>Artica agent is a service that link your remote node to this server, it is able to receive order from this server and execute it localy.</APP_ARTICA_AGENT_TEXT>
 <APP_ARTICA_PRXYLOGS>Proxy Monitor Front-end</APP_ARTICA_PRXYLOGS>
@@ -484,6 +494,7 @@ With this plugin you can use Backup On The Fly feature trough Amavis and if you 
 If you want to have statistics, you need to update this database service</ARTICADB_NOT_INSTALLED_EXPLAIN>
 <articaitems>Artica items</articaitems>
 <ARTICASTATISTICS_DISABLED>Artica Statistics feature is disabled in your configuration</ARTICASTATISTICS_DISABLED>
+<ArticaTabsTimeout>Tabs pause time</ArticaTabsTimeout>
 <ARTICA_ADMPRXY>End-User Web Proxy Interface</ARTICA_ADMPRXY>
 <ARTICA_ADMPRXY_TXT>End-User Web Proxy Interface allows you to provide a Web interface for users in order to manage their proxy settings</ARTICA_ADMPRXY_TXT>
 <artica_install_watchdog>Artica daemon watchdog</artica_install_watchdog>
@@ -500,6 +511,7 @@ If you want to have statistics, you need to update this database service</ARTICA
 <ASDCHPAdmin>Can manage DHCP service</ASDCHPAdmin>
 <AseMailCampaignsAdmin>Can Manage Mass mailing feature</AseMailCampaignsAdmin>
 <AsHotSpotManager>As HotSpot Manager</AsHotSpotManager>
+<ask_change_hostname>Do you want to change your server hostname now ?</ask_change_hostname>
 <ask_change_suffix>This operation will reconfigure all services and disconnect from the Web console.
 Proceed to change the master branch to:</ask_change_suffix>
 <ask_compile_postfix>You need to reconfigure the SMTP service.
@@ -543,6 +555,9 @@ File:</ask_squid_restore_log_from_source>
 Each resquest will be sent to the authenticator process so you need to cache positive request to increase performance[br]
 By default, set to 15mn 
 </authenticator_cache_time_explain>
+<authenticator_explain_cookie_text>Detect if a cookie key is send by the browser.[br]
+If not, then action can be a redirect to a defined web page.
+</authenticator_explain_cookie_text>
 <authenticator_explain_network_text>Define here network items (separated by a carriage return).[br]
 Items can be[br]
 An hostname : xhost123.domain.tld[br]
@@ -1010,6 +1025,7 @@ Do you want to perform this operation ?
 <convertto_innodb_file_per_table_text>Change the MySQL behavior from innodb single file to a file for each table</convertto_innodb_file_per_table_text>
 <convert_background_warn>The conversion task has been ordered to be executed in background mode.
 during this time, some service will be not available...</convert_background_warn>
+<cookie>Cookie</cookie>
 <coova_CoovaUFDBEnabled_explain>If enabled, authenticated members will be filtered trough the Web filtering rules</coova_CoovaUFDBEnabled_explain>
 <COOVA_ERROR_NO_2_INTERFACES>Error, your server need at least 2 network interfaces in order to run the HotSpot service.[br]
 This section cannot be displayed</COOVA_ERROR_NO_2_INTERFACES>
@@ -1045,6 +1061,9 @@ It contains information that will be included in your certificate such as your o
  common name (domain name), locality, and country.
 </csr_ssl_explain>
 <CURLE_52_ERROR>Error 52 Nothing was returned from the server</CURLE_52_ERROR>
+<CURLE_CURLE_PARTIAL_FILE>A file transfer was shorter or larger than expected.[br]
+This happens when the server first reports an expected transfer size,[br]and then delivers data that doesn't match the previously given size. 
+</CURLE_CURLE_PARTIAL_FILE>
 <CURLE_OPERATION_TIMEDOUT>Operation timeout. The specified time-out period was reached according to the conditions.</CURLE_OPERATION_TIMEDOUT>
 <current_domains>Current Domains</current_domains>
 <current_rules>Current rules</current_rules>
@@ -1084,6 +1103,7 @@ This feature will create a Debian repository - about 10Gb/architecture.
 <default_certificate>Default certificate</default_certificate>
 <default_domain>Default domain</default_domain>
 <default_file_lifetime>Default file lifetime</default_file_lifetime>
+<default_gateway>default gateway</default_gateway>
 <default_route>Default route</default_route>
 <default_rules>Default rules</default_rules>
 <default_size_for_rotation>Default size for rotation</default_size_for_rotation>
@@ -1121,6 +1141,7 @@ the process will drop the database but if it is an Artica Database, the Database
 Do you want to carry out this operation ?
 </delete_freeweb_nginx_text>
 <delete_if_file_exceed>Remove file is it's size exceed</delete_if_file_exceed>
+<delete_ipaddr_ask>Delete this IP address ?</delete_ipaddr_ask>
 <delete_item>Delete item</delete_item>
 <delete_nic_bridge>Delete the network bridge will restart the network, during this time the server should not available.
 Perform this operation</delete_nic_bridge>
@@ -1209,6 +1230,10 @@ Enable this option ban Artica to create index.php file.</DisableIndexPHPPage_exp
 <DisableSquidBasicAuth>Disable Basic Authentification</DisableSquidBasicAuth>
 <DisableSquidBasicAuth_error>There is no sense to disable all authentication method.[br]Please choose only one method to disable</DisableSquidBasicAuth_error>
 <DisableSquidSNMPMode>Disable SMP compliance</DisableSquidSNMPMode>
+<DisableSSLStandardPort>Disable SSL Interception on Standard port</DisableSSLStandardPort>
+<DisableSSLStandardPort_explain>If you using both transparent and standard port and activate MAN-IN-THE-MIDDLE for SSL connection, all methods (standard and transparent) will be set in MAN-IN-THE-MIDDLE.[br]
+Enable this checkbox will disable the SSL interception for browsers that are connected directly to the proxy port (standard mode).</DisableSSLStandardPort_explain>
+<DisableSSLStandardPort_warn>Disable SSL Interception on Standard port option is enabled.[br]This means only transparent mode will intercepted SSL connection and turn the proxy to MAN-IN-THE-MIDDLE method</DisableSSLStandardPort_warn>
 <DisableSWAPP>Disable System SWAP</DisableSWAPP>
 <disable_administration_tasks>Disable administration features</disable_administration_tasks>
 <disable_all>Disable all</disable_all>
@@ -1262,6 +1287,7 @@ Mime output conversion is needed when the destination does not advertise 8BITMIM
 <display_not_categorized_websites>Display unknown sites</display_not_categorized_websites>
 <display_performance_status>Display performances status</display_performance_status>
 <display_routes>Display current routes</display_routes>
+<display_update_info_index>Display update info in index page</display_update_info_index>
 <display_visited_websites>Display visited sites</display_visited_websites>
 <display_youtube_for_this_day>Display downloaded videos downloaded on this day</display_youtube_for_this_day>
 <dnsbl_service>DNSBL service</dnsbl_service>
@@ -1378,6 +1404,7 @@ Purge operation must be enabled on the remote Artica server that store your MySQ
 <EnableWatchCPUsage>Enable watchdog on CPU</EnableWatchCPUsage>
 <EnableWatchdog>Enable Watchdog service</EnableWatchdog>
 <EnableWatchMemoryUsage>Enable watchdog on Memory</EnableWatchMemoryUsage>
+<EnableWebPageDebugging>Debug all administration pages</EnableWebPageDebugging>
 <EnableYoutubeForSchools>Activate Youtube For schools restriction</EnableYoutubeForSchools>
 <EnableYoutubeForSchoolsExplain>YouTube for Schools lets schools access free educational YouTube videos while limiting access to other YouTube content.[br]
 Students can learn from more than 400,000 educational videos, from well-known organizations like Stanford, PBS and TED, and from up-and-coming 
@@ -1504,7 +1531,9 @@ This End-Users WebAccess use Apache engine and should not encounter this issue[/
 <error_missing_tables_click_to_repair>Error, there is some missing tables on the database.[br]
 Click on the "repair" button in order to create these tables</error_missing_tables_click_to_repair>
 <error_nginx_substitutions_filter>Error, the substitution filter is not installed</error_nginx_substitutions_filter>
+<error_no_default_route_explain>Error, you did not have defined the default Network Interface route.[br]Click on one Network interface as your primary Interface and enable the default route</error_no_default_route_explain>
 <ERROR_NO_ITCHART_CREATED>[b]Notice:[/b][br]Not IT Charter has been created, members will be not redirect to any IT Charter</ERROR_NO_ITCHART_CREATED>
+<error_no_item_posted>Error no item is posted from the form</error_no_item_posted>
 <ERROR_NO_LICENSE>Error, this server run without any Entreprise license</ERROR_NO_LICENSE>
 <error_no_member_set>Error, no member defined</error_no_member_set>
 <ERROR_NO_ORGANISATION_SELECTED>Error, no selected organization</ERROR_NO_ORGANISATION_SELECTED>
@@ -1532,6 +1561,7 @@ If you need to use it, you need first to remove the FreeWeb entry.
 <ERROR_XAPIAN_NOEXTSION>Error, the xapian extension is not correctly loaded or installed in the PHP configuration of this server</ERROR_XAPIAN_NOEXTSION>
 <error_you_need_to_choose_network_addr_config>Error, you need to select the network Ip adress in the main configuration</error_you_need_to_choose_network_addr_config>
 <ERROR_ZARAAF_MULTIPLE_INSTANCES_FREEWEB>Multiple Zarafa WebMail instances feature is only available if FreeWebs feature is enabled</ERROR_ZARAAF_MULTIPLE_INSTANCES_FREEWEB>
+<Ethernet_switch>Ethernet switch</Ethernet_switch>
 <ettercap_howto_ipaddr>Set a range of TCP/IP addresses with the hyphen eg 10.1.1.1-245
 Set a sing ip by set it's ip address eg : 10.1.1.2
 </ettercap_howto_ipaddr>
@@ -2125,6 +2155,7 @@ In this section, you can see the memory used and the process number used by the 
 <LOGRATE_EXPLAIN_SYSTORE>You need to use the End-Users WebAccess management console with Linux system privileges in order to to display this section.</LOGRATE_EXPLAIN_SYSTORE>
 <LogRotatePath_explain>This is a temporary working directory used to extract and compress logs before backup them.</LogRotatePath_explain>
 <logs_container>Logs container</logs_container>
+<logs_database>Logs database</logs_database>
 <logs_retention>Logs retention</logs_retention>
 <logs_storage>Logs storage</logs_storage>
 <log_to_csv>Log to a CSV file</log_to_csv>
@@ -2485,6 +2516,8 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <network_parameters>Network settings</network_parameters>
 <network_services_text>Manage this server network services such as DHCP/DNS/Network Interfaces...</network_services_text>
 <network_settings_will_be_applied_after_reboot>Network settings will be applied after reboot the server</network_settings_will_be_applied_after_reboot>
+<network_status>Network status</network_status>
+<network_text>A network</network_text>
 <net_read_timeout>Net read Timeout</net_read_timeout>
 <new_account>New account</new_account>
 <new_address>New address</new_address>
@@ -2790,6 +2823,7 @@ If Ping is success then it send a success report by eMail</PING_FAILED_RELOAD_NE
 <please_wait_check_caches>Please wait, checking caches...</please_wait_check_caches>
 <please_wait_compiling_database>Please wait, compiling database</please_wait_compiling_database>
 <please_wait_compiling_items>Please wait, compiling items...</please_wait_compiling_items>
+<PLEASE_WAIT_COMPILING_NETWORK_SCRIPT>Please wait compiling network script</PLEASE_WAIT_COMPILING_NETWORK_SCRIPT>
 <please_wait_compiling_rules>Please wait, compiling rules...</please_wait_compiling_rules>
 <please_wait_configuring_the_module>Please wait... configuring the module...</please_wait_configuring_the_module>
 <please_wait_empty_console_cache>Please wait, empty the cache console</please_wait_empty_console_cache>
@@ -2801,6 +2835,7 @@ If Ping is success then it send a success report by eMail</PING_FAILED_RELOAD_NE
 <please_wait_refresh_web_pages>Please wait, refresh current pages</please_wait_refresh_web_pages>
 <please_wait_reloading_service>Please wait... reloading the service</please_wait_reloading_service>
 <please_wait_restarting_filter>Please wait, restarting filter service</please_wait_restarting_filter>
+<please_wait_restarting_network>Please wait, restarting network</please_wait_restarting_network>
 <please_wait_search_transaction_history>Please wait, searching transactions history</please_wait_search_transaction_history>
 <please_wait_while_calculate_informations>Please wait, calculating requested information...</please_wait_while_calculate_informations>
 <pluginsw>Plugins</pluginsw>
@@ -2874,6 +2909,7 @@ Allow only a single IP: &quot;192.168.1.5&quot;
 <protect_phpmyadmin_text>Enforce security and defines rules that restrict access to the mysql folder that handle phpmyadmin</protect_phpmyadmin_text>
 <protocol_error>Protocol error</protocol_error>
 <protocol_version>Protocol version</protocol_version>
+<proxy_access_events>Proxy requests</proxy_access_events>
 <proxy_behavior>Proxy behavior</proxy_behavior>
 <proxy_behavior_explain>You can define here the behavior of your proxy service.[br]
 You have 3 ways to define how your proxy can serve Internet.[br]
@@ -3021,6 +3057,18 @@ Have fun.
 <redirect_communications_to>Redirecto communications to</redirect_communications_to>
 <redirect_queries_to>Redirect queries to</redirect_queries_to>
 <redirect_to_suffix>redirect to suffix</redirect_to_suffix>
+<redirect_uri>Redirect</redirect_uri>
+<redirect_uri_explain>Add in this form the desired redirected URL, the can be a path ( /some/where ) or a full url like
+http://my.new-redirection.com/authenticate.php<br>
+Artica is able to replace some tokens in your uri.[br]
+available tokens should be %LANG%, %SHLVL%, %LANGUAGE%, %QUERY_STRING%, %REQUEST_METHOD%, %CONTENT_TYPE%, %CONTENT_LENGTH%, %SCRIPT_FILENAME%, %SCRIPT_NAME%, %PATH_INFO%, %REQUEST_URI%, %DOCUMENT_URI%, %SERVER_PROTOCOL%, %GATEWAY_INTERFACE%, %HTTP_HOST%, %HTTP_X_FORWARDED_FOR%, %HTTP_X_REAL_IP%, %HTTP_USER_AGENT%, %HTTP_ACCEPT%, %HTTP_ACCEPT_LANGUAGE%, %HTTP_ACCEPT_ENCODING%
+[br]
+You can add a dynamic token that corespond to a GET method or COOKIE token.[br]
+You need to use %_GET_KEY% as KEY is the request sent by the browser.[br]
+The same with cookies by using %_COOKIE_KEY%.[br]
+For example.[br]
+http://some/logon.php?query=%QUERY_STRING%&lang=%LANGUAGE%&result=%_GET_session%&session-id=%_COOKIE_JSESSIONID%
+</redirect_uri_explain>
 <redirect_url>Redirect URL</redirect_url>
 <referer_regex>Referer URL expression</referer_regex>
 <refreshdomainlist>Domains lists cache time</refreshdomainlist>
@@ -3090,6 +3138,7 @@ Check events in order to see results</replic_executed_in_background_mode>
 <replic_roudcubes_freewebs>Replicate RoundCubes WebMails databases</replic_roudcubes_freewebs>
 <replic_roudcubes_freewebs_explain>This task will replicate roundcubes databases from original mail server if it is set in configuration</replic_roudcubes_freewebs_explain>
 <reply>Reply</reply>
+<reply_body_max_size_acl>Max downloaded file</reply_body_max_size_acl>
 <report>report</report>
 <report_name>report name</report_name>
 <reprocess_this_file>Reprocess this file</reprocess_this_file>
@@ -3191,6 +3240,7 @@ You can select a single backup or schedule an automatic restore task.
 </restore_statistics_database_explain2>
 <retention_time>Retention time</retention_time>
 <retreival_mailrules_text>Create/edit rules that will fetch your messages from other mailboxes that are stored outside your local account</retreival_mailrules_text>
+<retreive_informations>Retreive informations</retreive_informations>
 <retry>Retry</retry>
 <reverse>reverse</reverse>
 <reverse_proxy_server>Reverse Proxy server</reverse_proxy_server>
@@ -3345,6 +3395,7 @@ Enjoy !!!
 <share_level_security_explain>With share-level security, the server accepts only a password without an explicit username from the client.[br]
 The server expects a password for each share, independent of the username.[br]
 There have been recent reports that Microsoft Windows clients have compatibility issues with share-level security servers.</share_level_security_explain>
+<should_change_ad_dns>You should change your DNS servers or use your Active Directory as DNS server</should_change_ad_dns>
 <show_menu>Show menu</show_menu>
 <shutdown_lifetime>Shutdown life time</shutdown_lifetime>
 <shutdown_lifetime_text>This is the time Squid allows for existing connections to continue after it has received a shutdown signal</shutdown_lifetime_text>
@@ -3352,6 +3403,8 @@ There have been recent reports that Microsoft Windows clients have compatibility
 <single_password>Single password</single_password>
 <size_during_this_week>Size during this week</size_during_this_week>
 <smartphones>Smartphones</smartphones>
+<smartphones_port>Smartphones port</smartphones_port>
+<smartphones_port_explain>This port if not 0 should be used for Smartphones/tablets nodes.[br]This dedicated port allow these nodes to bypass authentication method and should allow dedicated features based on these nodes.</smartphones_port_explain>
 <smtpadv_authenticate_explain>This feature allows you to use SMTP authentication trough the defined domain.</smtpadv_authenticate_explain>
 <smtpchk_EHLO>EHLO Domain</smtpchk_EHLO>
 <smtp_adv_debug_explain>Instances create events logs in /var/log/artica-"domain"[br]
@@ -3465,6 +3518,12 @@ As result of the analysis it returns a score value that reflects the probability
 <squidqota_ipaddr>Define quota per IP address.[br]Set * for all IP addresses or an IP address part such as 192.168.1.* or 192.*</squidqota_ipaddr>
 <squidqota_MAC>Quota per MAC address.[br]Set * for all MAC address or define a mac address such as 00:0c:29:4d:89:ad</squidqota_MAC>
 <squidqota_uid>Quota For an LDAP/Active directory member such as "user1". Set * for all members</squidqota_uid>
+<squidqota_uidAD>This rule can be used if your proxy is linked to a Microsoft Active Directory server.[br]
+Click on the Browse Button in order to choose the Active Directory group.[br]
+Each user stored by the selected group will be matched to this rule.[br]
+[b]Note: the rule defined matches each member, not the entire Active Directory Group.[/b][br]For example,
+If you define 5Mb for the Group "Allowed_Internet", each member will get a quota of 5Mb.
+</squidqota_uidAD>
 <squidquota>Web access quota</squidquota>
 <squidstats_gen_categorize_table>Update categories on websites not categorized on the selected table</squidstats_gen_categorize_table>
 <squidstats_gen_members_table>build or update the statistics members table</squidstats_gen_members_table>
@@ -3560,6 +3619,10 @@ This second port is a standard port and will be not turned to transparent mode (
 <squid_snmp_explain>Monitor the Proxy cache using SNMP</squid_snmp_explain>
 <squid_splash_logon_explain>To access to internet, set your username and password here.</squid_splash_logon_explain>
 <squid_ssl_port_explain>The socket port where proxy will listen for client requests made over TLS or SSL connections. Commonly referred to as HTTPS.</squid_ssl_port_explain>
+<squid_stats_disabled_explain>Currently the Artica Statistics feature is disabled.[br]
+If you want to activate this feature, you should ensure that your server have enough performance to accept statistics tasks.[br]
+We strongly suggest to use a second Artica Proxy server that will be in charge of storing and managing statistics tasks.
+</squid_stats_disabled_explain>
 <squid_stats_nolicence_explain>[b]Obtain more statistics features with the corporate license[b][br]Currently your using the Community Edition that just allows to display a part of available statistics.[br]
 By turn this server to a corporate license, you will be able to use a dedicated web service that display all statistics features. 
 </squid_stats_nolicence_explain>
@@ -3613,8 +3676,10 @@ Enable ssl option on this rule...
 <ssl_port>SSL port</ssl_port>
 <stable_releases>Stable releases</stable_releases>
 <standard_anonymous>Anonymous mode</standard_anonymous>
+<standard_method>standard method</standard_method>
 <start>start</start>
 <starting_service>starting service</starting_service>
+<start_99_euros>High performance at low price ! Tariffs start at 99Euros/year !</start_99_euros>
 <statistics_administrator>Statistics Administrator</statistics_administrator>
 <STATISTICS_APPLIANCEV2_EXPLAIN_1>This operation will link this proxy to a second Artica Proxy.[br]
 This second proxy will be in charge of storing events and statistics.[br]
@@ -3679,6 +3744,8 @@ Do you want to perform this operation ?
 It seems that Dynamic ACLs groups are not enabled.[br]
 Dynamic ACLs groups feature allows you to define an object from a member's group stored into your Active Directory/LDAP server.[br]
 </sugesst_dynamic_acl_groups>
+<summary>Summary</summary>
+<switch_port>Switch port</switch_port>
 <switch_to_failover>Switch to failover</switch_to_failover>
 <synchronize_mailboxes>Synchronize Mailboxes</synchronize_mailboxes>
 <synchronize_mailboxes_explain>This task run mailboxes synchronization rules for all organizations</synchronize_mailboxes_explain>
@@ -3745,6 +3812,7 @@ Check events in order to see if it was successfully executed.
 <telephoneNumber>Telephone number</telephoneNumber>
 <terms_groups>Expressions groups</terms_groups>
 <TestExternalWebPage>Test external Web page</TestExternalWebPage>
+<testing_connections>Testing connections</testing_connections>
 <tests_speed>Internet bandwidth calculation</tests_speed>
 <tests_speed_explain>This task checks your Internet bandwith status and insert results into the MySQL database</tests_speed_explain>
 <tests_timeout>Tests timeout</tests_timeout>
@@ -3756,6 +3824,7 @@ Check events in order to see if it was successfully executed.
 <TEST_SMTP_CONNECTION_TEXT>Send a message to a destination and see if this server is able to send correcly messages.</TEST_SMTP_CONNECTION_TEXT>
 <text_mode>Text mode</text_mode>
 <thewebproxy_appliance>The Web Proxy statistics Appliance</thewebproxy_appliance>
+<the_transarent_mode_is_disabled_acl>this acl will be not used, the transparent mode is currently disabled</the_transarent_mode_is_disabled_acl>
 <thishour>This hour</thishour>
 <this_computer_already_exists>This computer already exists</this_computer_already_exists>
 <this_feature_is_disabled_corp_license>This feature is only available when using a coporate license</this_feature_is_disabled_corp_license>
@@ -3802,10 +3871,12 @@ This task will parse this queue in order to build thumbnails for stattistics pur
 <top_words_by_hits>TOP words by Hits</top_words_by_hits>
 <total_per_thread_buffers>Total per thread buffers</total_per_thread_buffers>
 <to_time>To time</to_time>
+<trace_connexions>Trace connections</trace_connexions>
 <transaction>transaction</transaction>
 <transactions>transaction</transactions>
 <transitive>transitive</transitive>
 <transparent>Transparent</transparent>
+<transparent_method>transparent method</transparent_method>
 <transparent_srcport>Transparent source port</transparent_srcport>
 <transport_email_explain>Use these format for the email address:
 [b]user@domain[/b][br]
@@ -3918,6 +3989,8 @@ order to build a local repository</update_debian_repository_explain>
 <update_for_all_products>Update all products</update_for_all_products>
 <update_kaspersky_databases>Update Kaspersky Database</update_kaspersky_databases>
 <update_kaspersky_databases_explain>Launch the Kaspersky updater in order to retreive latest antivirus databases</update_kaspersky_databases_explain>
+<update_only_by_schedule>Update only by schedule</update_only_by_schedule>
+<update_parameters>Update settings</update_parameters>
 <update_precompiled_ufdb>Update precompiled databases</update_precompiled_ufdb>
 <update_precompiled_ufdb_explain>This task will download precompiled update databases for Web Filtering engine.[br]
 Precompiled databases are the production bases for filter your users.</update_precompiled_ufdb_explain>
@@ -3946,6 +4019,7 @@ Do you want to carry out this operation ?
 Webfilter service if all processes are busy.  If this is disabled and the webfilter service queue grows too large, proxy will exit
 with a FATAL error and ask you to increase the number of processes.[br]
 You should only enable this if the webfiltering process is not critical to your caching system.</url_rewrite_bypass_explain>
+<UseADAsNameServer>Use AD as Primary DNS server</UseADAsNameServer>
 <UseAglobalPassword>Use a global password</UseAglobalPassword>
 <UseALink>Use a link</UseALink>
 <UseBanner>Use banner</UseBanner>
@@ -3980,6 +4054,7 @@ The client maintains multiple authentication contexts by using a unique UID for 
 </user_level_security_explain>
 <user_quotaz>User quota</user_quotaz>
 <UseSMTPProto>Use SMTP protocol</UseSMTPProto>
+<useTCPPort>Use TCP Port</useTCPPort>
 <UseVirtualHosts>Use multiple virtual host</UseVirtualHosts>
 <use_active_directory>use Active Directory</use_active_directory>
 <use_dedicated_database>Use dedicated database</use_dedicated_database>
@@ -3993,6 +4068,11 @@ The client maintains multiple authentication contexts by using a unique UID for 
 <use_ldap_database>Use LDAP database</use_ldap_database>
 <use_local_service>Use local service</use_local_service>
 <use_memory>Use memory</use_memory>
+<use_milter_remote_service>Use a remote milter service</use_milter_remote_service>
+<use_milter_remote_service_explain>Define in this field the address of the remote milter service.[br]
+This must be inet:IP:PORT like inet:127.0.0.1:1052 or inet:myhostname:1052.[br]
+Set it to null if you did not want to activate et remote milter service.
+</use_milter_remote_service_explain>
 <use_radius>Use RADIUS</use_radius>
 <use_remote_dhcp_server>Use a remote DHCP server</use_remote_dhcp_server>
 <use_remote_dhcp_server_chilli>The HotSpot must act as a DHCP server, if set, DHCP requests will be relayed to the specified server</use_remote_dhcp_server_chilli>
@@ -4011,6 +4091,10 @@ Click here for more informations.
 <use_tproxy_mode>Use Tproxy mode</use_tproxy_mode>
 <us_v2>Use version 2</us_v2>
 <values>values</values>
+<vde_switch_explain>
+A Virtual Switch have the same behavior as a physical switch.[br]It can include several virtual interfaces that use the same "real interface" behavior.[br]
+Each Virtual Switch is plugged to a real interface in order to communicate with the real network.
+</vde_switch_explain>
 <verbose_mode>Verbose mode</verbose_mode>
 <verify>Verify</verify>
 <verify_caches>Verify caches</verify_caches>
@@ -4109,6 +4193,7 @@ Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pre
 It designed to ensure that Virtual machines are UP and running and correcly set.
 </vps_server_watchdog_explain>
 <waiting_approval>Waiting For Approval</waiting_approval>
+<waiting_network_reload>Waiting reload network task</waiting_network_reload>
 <waiting_registration>Waiting registration</waiting_registration>
 <wait_xs_per_message>Wait X seconds per sended message</wait_xs_per_message>
 <wait_xs_per_message_explain>This parameter (if higher than 0) define if the process must wait X seconds before send a new mail in the same SMTP connection.[br]
@@ -4136,6 +4221,7 @@ Please return back and set a correct eMail address.</warn_email_invalid_wizard>
 <warn_gen_x509>This will erase your current certificates data, do you want to carry out this operation ?
 Note: After the certificate generation, you need to restart all linked services.
 </warn_gen_x509>
+<warn_no_performance_minimal><b>Server performance issue</warn_no_performance_minimal>
 <WARN_OPE_RESTART_SQUID_ASK>This operation will restart the proxy service and will stop all current connections.
 Do you want to perform this operation ?</WARN_OPE_RESTART_SQUID_ASK>
 <warn_restore_articadb>Restore this backup container into the Zarafa dedicated MySQL engine ?
@@ -4180,6 +4266,7 @@ To link the Web filter engine, you need to rebuild the proxy service.[br]
 </warn_ufdbguard_not_squidconf>
 <warn_ufdbguard_no_license>The coporate license is not activated.[br]Artica Database that contains more than 29M web sites is disabled.[br]
 Your free license allows you to use only the French Toulouse university Web filtering database.</warn_ufdbguard_no_license>
+<warn_ufdbguard_remote_error>Unable to connect to remote Web filtering service</warn_ufdbguard_remote_error>
 <WARN_USB_SCAN_MISSING>The Hard drive index file is missing.[br]This error means that Artica is currently indexing your hard drives or unable to scan your hard drives.[br]
 If this issue still occurs in several minutes, try to run the tool [b]artica-install --usb-scan-write[/b] or contact our support team.
 </WARN_USB_SCAN_MISSING>
@@ -4214,6 +4301,7 @@ example:[br]
 cnn.com/video[br]
 edition.cnn.com/video[br]
 </webfiltering_add_uris_explain>
+<webfiltering_databases>Web filter databases</webfiltering_databases>
 <webfiltering_parameters_was_saved>Web filtering parameters was applied to the server</webfiltering_parameters_was_saved>
 <webfiltering_service>Web Filtering service</webfiltering_service>
 <webfiltering_service_events>Web filtering service events</webfiltering_service_events>
@@ -4263,6 +4351,7 @@ Click next to proceed.
 </WELCOME_WIZARD_ARC1>
 <what>what</what>
 <what_to_do>What to do ?</what_to_do>
+<when_connecting_to_method>When connected with method</when_connecting_to_method>
 <where>where</where>
 <whitelisted_senders>Whitelisted senders</whitelisted_senders>
 <whitelist_all_domains>Whitelist all domains</whitelist_all_domains>

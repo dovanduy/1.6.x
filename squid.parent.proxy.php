@@ -539,8 +539,13 @@ function parent_options_popup(){
 	$options[base64_encode("no-netdb-exchange")]="no-netdb-exchange";
 	$options[base64_encode("no-delay")]="no-delay";
 	$options[base64_encode("login=user:password")]="login=user:password";
+	$options[base64_encode("login=PASSTHRU")]="login=PASSTHRU";
+	$options[base64_encode("login=PASS")]="login=PASS";
 	$options[base64_encode("connect-timeout=nn")]="connect-timeout=nn";
 	$options[base64_encode("digest-url=url")]="digest-url=url";
+
+	
+	
 	//$options[base64_encode("ssl")]="ssl";
 	
 	$html="
@@ -605,14 +610,18 @@ function parent_options_explain(){
 	$options[base64_encode("no-netdb-exchange")]="{parent_options_proxy_no_netdb_exchange}";
 	$options[base64_encode("no-delay")]="{parent_options_proxy_no_delay}";
 	$options[base64_encode("login=user:password")]="{parent_options_proxy_login}";
+	$options[base64_encode("login=PASSTHRU")]="{parent_options_login_passthru}";
+	$options[base64_encode("login=PASS")]="{parent_options_login_pass}";
 	$options[base64_encode("connect-timeout=nn")]="{parent_options_proxy_connect_timeout}";
-	$options[base64_encode("digest-url=url")]="{parent_options_proxy_digest_url}";	
+	$options[base64_encode("digest-url=url")]="{parent_options_proxy_digest_url}";
+
 	
 	$options_forms[base64_encode("digest-url=url")]=true;
 	$options_forms[base64_encode("connect-timeout=nn")]=true;
 	$options_forms[base64_encode("ttl=n")]=true;
 	$options_forms[base64_encode("Weight=n")]=true;
 	$options_forms[base64_encode("login=user:password")]=true;
+	
 	
 	if($options_forms[$_GET["edit-proxy-parent-options-explain"]]){
 		$form="
@@ -681,11 +690,24 @@ function construct_options(){
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
 	$based=unserialize(base64_decode($ligne["options"]));
 	$key=base64_decode($_POST["key"]);
-	
+	$nopreg=false;
 	writelogs("$ID]decoded key:\"$key\"",__FUNCTION__,__FILE__,__LINE__);
-	if(preg_match("#(.+?)=#",$key,$re)){
-		$key=$re[1];
+	
+	if($key=="login=PASSTHRU"){
+	 	$nopreg=true;
 	}
+	
+	if($key=="login=PASS"){
+		$nopreg=true;
+	}	
+	
+	if(!$nopreg){
+		if(preg_match("#(.+?)=#",$key,$re)){
+			$key=$re[1];
+		}
+	}
+	
+
 	
 	
 	if(!is_array($based)){

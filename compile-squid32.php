@@ -212,6 +212,7 @@ shell_exec("$cp -rf /usr/share/squid-langpack/* /root/squid-builder/usr/share/sq
 shell_exec("$cp -rf /usr/sbin/squid /root/squid-builder/usr/sbin/squid");
 shell_exec("$cp -rf /usr/bin/purge /root/squid-builder/usr/bin/purge");
 shell_exec("$cp -rf /usr/bin/squidclient /root/squid-builder/usr/bin/squidclient");
+shell_exec("$cp -rf /usr/bin/mysar /root/squid-builder/usr/bin/mysar");
 echo "Compile SARG....\n";
 compile_sarg();
 

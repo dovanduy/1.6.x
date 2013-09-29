@@ -608,6 +608,20 @@ function ifconfig_show(){
 	$results[]="\n\t***************\n";	
 	exec("$ip route 2>&1",$results);
 	$results[]="\n\t***************\n";	
+	
+	$f=explode("\n",@file_get_contents("/etc/iproute2/rt_tables"));
+	while (list ($a, $line) = each ($f) ){
+		if(!preg_match("#^([0-9]+)\s+(.+)#", $line,$re)){continue;}
+		$table_num=$re[1];
+		$tablename=$re[2];
+		if($table_num==0){continue;}
+		if($table_num>252){continue;}
+		$results[]="\n\t***** Table route $table_num named $tablename *****\n";
+		exec("$ip route show table $table_num 2>&1",$results);
+		$results[]="\n\t***************\n";
+	}
+	
+	
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 	
 }

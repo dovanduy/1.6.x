@@ -26,7 +26,7 @@
 	if(isset($_GET["greylist-config"])){popup_settings_tab_params();exit;}
 	if(isset($_GET["main"])){main_switch();exit;}
 	if(isset($_GET["index"])){popup();exit;}
-	if(isset($_GET["SaveGeneralSettings"])){SaveConf();exit;}
+	if(isset($_POST["SaveGeneralSettings"])){SaveConf();exit;}
 	if(isset($_GET["add_acl"])){main_acladd();exit;}
 	if(isset($_GET["explainThisacl"])){explainThisacl();exit;}
 	if(isset($_GET["SaveAclID"])){SaveAclID();exit;}
@@ -41,7 +41,7 @@
 	if(isset($_GET["status"])){echo main_status();exit;}
 	
 	if(isset($_GET["acl-table-list"])){main_acl_table();exit;}
-
+	if(isset($_POST["RemoteMilterService"])){popup_remote_save();exit;}
 	
 	
 	if(isset($_GET["js"])){js();exit;}
@@ -54,12 +54,104 @@
 	if(isset($_GET["popup-logs"])){popup_logs();exit;}
 	if(isset($_GET["popup-dumpdb"])){popup_db();exit;}
 	if(isset($_GET["browse-mgrey-list"])){popup_db_list();exit;}
+	if(isset($_GET["popup-settings-js"])){popup_settings_js();exit;}
+	
+	if(isset($_GET["remote-js"])){popup_remote_js();exit;}
+	if(isset($_GET["popup-remote"])){popup_remote();exit;}
+	
+	
+	
+	
+function popup_settings_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$main_settings=$tpl->javascript_parse_text('{main_settings}');
+	echo "YahooWin2(\"700\",\"$page?popup-settings=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\",\"$title $main_settings\");";	
+	
+}	
+
+function popup_remote_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("RemoteMilterService", $_POST["RemoteMilterService"]);
+	$sock->getFrameWork("postfix.php?milters=yes");
+	
+}
+
+function popup_remote_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$main_settings=$tpl->javascript_parse_text('{use_milter_remote_service}');
+	echo "YahooWin2(\"700\",\"$page?popup-remote=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\",\"$title $main_settings\");";
+		
+}
+function popup_remote(){
+	$style="font-size:16px;vertical-align:top";
+	$users=new usersMenus();
+	if($_GET["hostname"]==null){
+		$hostname="master";
+		$_GET["hostname"]=$hostname;
+	}
+			
+	$tpl=new templates();
+	$pure=new milter_greylist();
+	$page=CurrentPageName();
+	$t=time();
+	$sock=new sockets();
+	$RemoteMilterService=$sock->GET_INFO("RemoteMilterService");
+		
+		$html="
+		<div id='animate-$t' style='font-size:18px;margin:15px'>{server}:$hostname</div>
+		<div class=explain style='font-size:16px'>{use_milter_remote_service_explain}</div>
+		<div class=form style='width:95%'>
+		<table style='width:100%'>
+	
+		<tr>
+		<td $style align='right' nowrap  class=legend style='font-size:16px'>{value}:</strong></td>
+		<td $style >" . Field_text('RemoteMilterService',$RemoteMilterService,'width:350px;font-size:22px;padding:10px',null,null)."
+		</td>
+		
+		<tr>
+		<td $style colspan=2 align='right' >
+				<hr>
+				". button("{apply}","MilterGreyListPrincipalSave$t()",16)."
+	
+				</tr>
+				</table>
+		</div>
+		</div>
+<script>
+var x_MilterGreyListPrincipalSave$t= function (obj) {
+	document.getElementById('animate-$t').innerHTML='';
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue)};
+	
+}
+	
+function MilterGreyListPrincipalSave$t(){
+	var XHR = new XHRConnection();
+	
+	
+	XHR.appendData('RemoteMilterService',document.getElementById('RemoteMilterService').value);
+	XHR.appendData('hostname','$hostname');
+	XHR.appendData('ou','{$_GET["ou"]}');
+	AnimateDiv('animate-$t');
+	XHR.sendAndLoad('$page', 'POST',x_MilterGreyListPrincipalSave$t);
+}
+</script>
+				
+			";
+echo $tpl->_ENGINE_parse_body("$tabs$html");	
+	
+}
 	
 function js(){
+	header("content-type: application/x-javascript");
 	$content=file_get_contents("js/sqlgrey.js");
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{APP_MILTERGREYLIST}');
-	$main_settings=$tpl->_ENGINE_parse_body('{main_settings}');
+
 	$acl=$tpl->_ENGINE_parse_body('{acl}');
 	$page=CurrentPageName();
 	$start="StartMilterGreylistPage();";
@@ -77,7 +169,8 @@ function js(){
 		}
 		
 	function main_settings_greylist(){
-		YahooWin2(\"500\",\"$page?popup-settings=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\",\"$title $main_settings\")
+		Loadjs('$page?popup-settings-js=yes&&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}');
+		
 	
 	}
 	
@@ -87,7 +180,7 @@ function js(){
 	}	
 	
 	function main_events_greylist(){
-		YahooWin2(\"600\",\"$page?popup-logs=yes\",\"$title\")
+		Loadjs('postfix.events.new.php?js-mgreylist=yes');
 	}
 	
 	
@@ -100,34 +193,7 @@ function js(){
 	
 	}	
 	
-	var x_MilterGreyListPrincipalSave= function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue)};
-			RefreshTab('main_config_mgreylistMConfig');
-			miltergreylist_status();
-	}	
-	
-	function MilterGreyListPrincipalSave(){
-		 var XHR = new XHRConnection();
-		 XHR.appendData('SaveGeneralSettings','yes');
-		 if(document.getElementById('MilterGreyListEnabled').checked){XHR.appendData('MilterGreyListEnabled',1);}else{XHR.appendData('MilterGreyListEnabled',0);}
-		 if(document.getElementById('MiltergreyListAddDefaultNets').checked){XHR.appendData('MiltergreyListAddDefaultNets',1);}else{XHR.appendData('MiltergreyListAddDefaultNets',0);}
-		 if(document.getElementById('lazyaw').checked){XHR.appendData('lazyaw',1);}else{XHR.appendData('lazyaw',0);}		
-		
-		 
-		
-		 
-		 XHR.appendData('timeout',document.getElementById('timeout').value);
-		 XHR.appendData('timeout_TIME',document.getElementById('timeout_TIME').value);
-		 XHR.appendData('greylist',document.getElementById('greylist').value);
-		 XHR.appendData('greylist_TIME',document.getElementById('greylist_TIME').value);
-		 XHR.appendData('autowhite',document.getElementById('autowhite').value);
-		 XHR.appendData('autowhite_TIME',document.getElementById('autowhite_TIME').value);
-		 XHR.appendData('hostname','{$_GET["hostname"]}');
-		 XHR.appendData('ou','{$_GET["ou"]}');
-		 AnimateDiv('MilterGreyListConfigGeneSaveID0');
-		 XHR.sendAndLoad('$page', 'GET',x_MilterGreyListPrincipalSave);
-	}
+
 
 	
 	$start
@@ -161,9 +227,8 @@ function dumpfile_js(){
 
 function popup_logs(){
 	$sock=new sockets();
-	$datas=$sock->getfile("miltergreylistlogs");
-	$tpl=explode("\n",$datas);
-	
+	$tpl=unserialize(base64_decode($sock->getFrameWork("cmd.php?postfix-tail=yes&filter=milter-greylist")));
+		
 	if(!is_array($tpl)){die("!!Err");}
 	$tpl=array_reverse($tpl);
 		while (list ($num, $ligne) = each ($tpl) ){
@@ -261,7 +326,7 @@ function popup(){
 	$mg2=Paragraphe('folder-logs-643.png','{events}','{events_text}',"javascript:main_events_greylist()",null,210,100,0,true);
 	//$mg3=Buildicon64("DEF_ICO_EVENTS_MGREYLITS_DUMP");
 	
-	
+	$m3=Paragraphe('add-64-on-right.png','{remote_server}','{use_milter_remote_service}',"javascript:Loadjs('$page?remote-js=yes')",null,210,100,0,true);
 	
 	if(is_file("ressources/logs/greylist-count-master.tot")){
 	$datas=unserialize(@file_get_contents("ressources/logs/greylist-count-master.tot"));
@@ -287,9 +352,11 @@ function popup(){
 	$content="
 	<table style='width:99%' class=form>
 	<tr>
-		<td valign='top'>$mg</td>
-		<td valign='top'>$mg2</td>
+		<td style='vertical-align:top'>$mg</td>
+		<td style='vertical-align:top'>$mg2</td>
 	</tr>
+		<td style='vertical-align:top'>$m3</td>
+		<td style='vertical-align:top'></td>
 	</table>
 	";
 	
@@ -297,12 +364,12 @@ function popup(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-		<td valign='top'>
+		<td style='vertical-align:top'>
 			$img
 			<br>
 			<div id='mgreylist-status'></div>
 		</td>
-		<td valign='top'>
+		<td style='vertical-align:top'>
 			$content<br><center>$imgG</center>
 		</td>
 	</tr>
@@ -380,45 +447,59 @@ function greylist_config_tab(){
 	$users=new usersMenus();
 	$array["greylist-config"]='{parameters}';
 	$array["multiples-mx"]='{multiples_mx}';
-	
+	$font="style='font-size:14px'";
 	
 	$master=urlencode(base64_encode("master"));
-	
+	$suffix="&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}";
 	while (list ($num, $ligne) = each ($array) ){
 			if($num=="multiples-mx"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"domains.postfix.multi.milter-greylist.mxs.php?hostname=master&ou=$master\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li $font><a href=\"domains.postfix.multi.milter-greylist.mxs.php?hostname=master&ou=$master\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li $font><a href=\"$page?$num=yes&hostname=master&ou=$master\"><span>$ligne</span></a></li>\n");
 
 		
 	}
 	
 	
-	echo "
-	<div id=main_config_mgreylistMConfig style='width:100%;height:550x;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_mgreylistMConfig\").tabs();});
-		</script>";	
+	return build_artica_tabs($html, "main_config_mgreylistMConfig");
 	
 }
 
 
 function greylist_config($noecho=0){
-	$style="font-size:14px";
+	$style="font-size:16px;vertical-align:top";
 	$users=new usersMenus();
-	if($_GET["hostname"]==null){$hostname=$users->hostname;$_GET["hostname"]=$hostname;}else{$hostname=$_GET["hostname"];}
+	if($_GET["hostname"]==null){
+			$hostname=$users->hostname;
+			$_GET["hostname"]=$hostname;}
+			
+	$hostname=$_GET["hostname"];
 	$pure=new milter_greylist();
 	$page=CurrentPageName();
-	
+	$t=time();
 	$arraytime=array(
 		"m"=>"{minutes}","h"=>"{hour}","d"=>"{day}"
 	);
+	
+	
+	if($hostname=="master"){
+		$portF="
+				<tr>
+					<td $style align='right' nowrap  class=legend style='font-size:16px'>{useTCPPort}:</strong></td>
+					<td $style >" . Field_checkbox('MilterGreyListUseTCPPort',1,$pure->MilterGreyListUseTCPPort,"CheckTCPPOrt$t()")."</td>
+					<td $style ></td>
+				</tr>
+				<tr>
+					<td $style align='right' nowrap  class=legend style='font-size:16px'>{listen_port}:</strong></td>
+					<td $style >" . Field_text('MilterGeryListTCPPort',$pure->MilterGeryListTCPPort,'width:90px;font-size:14px')."</td>
+					<td $style ></td>
+				</tr>";
+		
+	}
 
 	$html="
+	<div id='animate-$t' style='font-size:18px;margin:15px'>{server}:$hostname</div>
 	<div id='MilterGreyListConfigGeneSaveID0'>
 	
 	<input type='hidden' name='hostname' value='$hostname'>
@@ -426,50 +507,128 @@ function greylist_config($noecho=0){
 	<table style='width:99%' class=form>
 	
 <tr>
-	<td $style align='right' nowrap valign='top' class=legend>{enable_milter}:</strong></td>
-	<td $style valign='top'>" . Field_checkbox('MilterGreyListEnabled',1,$pure->MilterGreyListEnabled)."</td>
-	<td $style valign='top'>". help_icon("{enable_milter_text}")."</td>
-</tr>
+	<td $style align='right' nowrap  class=legend style='font-size:16px'>{enable_milter}:</strong></td>
+	<td $style >" . Field_checkbox('MilterGreyListEnabled',1,$pure->MilterGreyListEnabled,"CheckAll$t()")."</td>
+	<td $style >". help_icon("{enable_milter_text}")."</td>
+</tr>$portF
 <tr>
-	<td $style align='right' nowrap valign='top' class=legend>{add_default_nets}:</strong></td>
-	<td $style valign='top'>" . Field_checkbox('MiltergreyListAddDefaultNets',1,$pure->MiltergreyListAddDefaultNets)."</td>
-	<td $style valign='top'>". help_icon("{milter_greylist_add_default_net_explain}")."</td>
+	<td $style align='right' nowrap  class=legend style='font-size:16px'>{add_default_nets}:</strong></td>
+	<td $style >" . Field_checkbox('MiltergreyListAddDefaultNets',1,$pure->MiltergreyListAddDefaultNets)."</td>
+	<td $style >". help_icon("{milter_greylist_add_default_net_explain}")."</td>
 </tr>		
 <tr>
-	<td $style align='right' nowrap valign='top' class=legend>{remove_tuple}:</strong></td>
-	<td $style valign='top'>" . Field_checkbox('lazyaw',1,$pure->main_array["lazyaw"])."</td>
-	<td $style valign='top'>". help_icon("{remove_tuple_text}")."</td>
+	<td $style align='right' nowrap  class=legend style='font-size:16px'>{remove_tuple}:</strong></td>
+	<td $style >" . Field_checkbox('lazyaw',1,$pure->main_array["lazyaw"])."</td>
+	<td $style >". help_icon("{remove_tuple_text}")."</td>
 </tr>	
 	<tr>
-	<td $style align='right' nowrap valign='top' class=legend>{timeout}:</strong></td>
-	<td $style valign='top' colspan=2>" . Field_text('timeout',$pure->main_array["timeout"],'width:30px;font-size:14px',null,null,'{mgreylisttimeout_text}')."&nbsp;".
+	<td $style align='right' nowrap  class=legend style='font-size:16px'>{timeout}:</strong></td>
+	<td $style  colspan=2>" . Field_text('timeout',$pure->main_array["timeout"],'width:90px;font-size:16px',null,null,'{mgreylisttimeout_text}')."&nbsp;".
 		Field_array_Hash($arraytime,'timeout_TIME',$pure->main_array["timeout_TIME"],"style:font-size:14px")."</td>
 	</tr>
 
 	<tr>
-	<td $style align='right' nowrap valign='top' class=legend>{greylist}:</strong></td>
-	<td $style valign='top' colspan=2>
+	<td $style align='right' nowrap  class=legend style='font-size:16px'>{greylist}:</strong></td>
+	<td $style  colspan=2>
 	
-	" . Field_text('greylist',$pure->main_array["greylist"],'width:30px;font-size:14px',null,null,'{greylist_text}')."&nbsp;".
-		Field_array_Hash($arraytime,'greylist_TIME',$pure->main_array["greylist_TIME"],"style:font-size:14px")."
+	" . Field_text('greylist',$pure->main_array["greylist"],'width:90px;font-size:16px',null,null,'{greylist_text}')."&nbsp;".
+		Field_array_Hash($arraytime,'greylist_TIME',$pure->main_array["greylist_TIME"],"style:font-size:16px")."
 	
 	</td>
 	</tr>
 	
 	<tr>
-	<td $style align='right' nowrap valign='top' class=legend>{autowhite}:</strong></td>
-	<td $style valign='top' colspan=2>" . Field_text('autowhite',$pure->main_array["autowhite"],'width:30px;font-size:14px',null,null,'{autowhite_text}')."&nbsp;".
-		Field_array_Hash($arraytime,'autowhite_TIME',$pure->main_array["autowhite_TIME"],"style:font-size:14px")."</td>
+	<td $style align='right' nowrap  class=legend style='font-size:16px'>{autowhite}:</strong></td>
+	<td $style  colspan=2>" . Field_text('autowhite',$pure->main_array["autowhite"],'width:90px;font-size:16px',null,null,'{autowhite_text}')."&nbsp;".
+		Field_array_Hash($arraytime,'autowhite_TIME',$pure->main_array["autowhite_TIME"],"style:font-size:16px")."</td>
 	</tr>
 			
 
 	<tr>
-	<td $style colspan=3 align='right' valign='top'>
+	<td $style colspan=3 align='right' >
 	<hr>
-	". button("{apply}","MilterGreyListPrincipalSave()",16)."
+	". button("{apply}","MilterGreyListPrincipalSave$t()",16)."
 	
 	</tr>
-	</table></div>";
+	</table></div>
+	<script>
+	var x_MilterGreyListPrincipalSave$t= function (obj) {
+			document.getElementById('animate-$t').innerHTML='';
+			var tempvalue=obj.responseText;
+			if(tempvalue.length>3){alert(tempvalue)};
+			RefreshTab('main_config_mgreylistMConfig');
+			miltergreylist_status();
+	}	
+	
+	function MilterGreyListPrincipalSave$t(){
+		 var XHR = new XHRConnection();
+		 XHR.appendData('SaveGeneralSettings','yes');
+		 if(document.getElementById('MilterGreyListEnabled').checked){XHR.appendData('MilterGreyListEnabled',1);}else{XHR.appendData('MilterGreyListEnabled',0);}
+		 if(document.getElementById('MiltergreyListAddDefaultNets').checked){XHR.appendData('MiltergreyListAddDefaultNets',1);}else{XHR.appendData('MiltergreyListAddDefaultNets',0);}
+		 if(document.getElementById('lazyaw').checked){XHR.appendData('lazyaw',1);}else{XHR.appendData('lazyaw',0);}		
+		 XHR.appendData('timeout',document.getElementById('timeout').value);
+		 XHR.appendData('timeout_TIME',document.getElementById('timeout_TIME').value);
+		 XHR.appendData('greylist',document.getElementById('greylist').value);
+		 XHR.appendData('greylist_TIME',document.getElementById('greylist_TIME').value);
+		 XHR.appendData('autowhite',document.getElementById('autowhite').value);
+		 XHR.appendData('autowhite_TIME',document.getElementById('autowhite_TIME').value);
+		 
+		 if(document.getElementById('MilterGreyListUseTCPPort')){
+		 	if(document.getElementById('MilterGreyListUseTCPPort').checked){
+		 		 XHR.appendData('MilterGreyListUseTCPPort',1);
+		 	}else{
+		 		 XHR.appendData('MilterGreyListUseTCPPort',0);
+		 		 
+		 	}
+		 	XHR.appendData('MilterGeryListTCPPort',document.getElementById('MilterGeryListTCPPort').value);
+		 }
+		 
+		 XHR.appendData('hostname','$hostname');
+		 XHR.appendData('ou','{$_GET["ou"]}');
+		 AnimateDiv('animate-$t');
+		 XHR.sendAndLoad('$page', 'POST',x_MilterGreyListPrincipalSave$t);
+	}
+	
+	function CheckTCPPOrt$t(){
+		 if(!document.getElementById('MilterGreyListUseTCPPort')){return;}
+		 document.getElementById('MilterGeryListTCPPort').disabled=true;
+		 if(document.getElementById('MilterGreyListUseTCPPort').checked){
+		 	document.getElementById('MilterGeryListTCPPort').disabled=false;
+		}
+	}
+	
+	function CheckAll$t(){
+		if(document.getElementById('MilterGreyListEnabled').checked){
+			document.getElementById('MiltergreyListAddDefaultNets').disabled=false;
+			document.getElementById('lazyaw').disabled=false;
+			document.getElementById('timeout').disabled=false;
+			document.getElementById('timeout_TIME').disabled=false;
+			document.getElementById('greylist').disabled=false;
+			document.getElementById('greylist_TIME').disabled=false;
+			document.getElementById('autowhite').disabled=false;
+			document.getElementById('autowhite_TIME').disabled=false;
+			document.getElementById('MilterGreyListUseTCPPort').disabled=false;
+		}else{
+			document.getElementById('MiltergreyListAddDefaultNets').disabled=true;
+			document.getElementById('lazyaw').disabled=true;
+			document.getElementById('timeout').disabled=true;
+			document.getElementById('timeout_TIME').disabled=true;
+			document.getElementById('greylist').disabled=true;
+			document.getElementById('greylist_TIME').disabled=true;
+			document.getElementById('autowhite').disabled=true;
+			document.getElementById('autowhite_TIME').disabled=true;
+			document.getElementById('MilterGreyListUseTCPPort').disabled=true;		
+		}
+	
+
+	}
+	
+	
+	CheckAll$t();
+	CheckTCPPOrt$t();
+</script>						
+			
+	";
 	if(isset($_GET["notab"])){$tabs=null;}
 	$tpl=new templates();
 	if($noecho==1){return $tpl->_ENGINE_parse_body($html);}
@@ -480,12 +639,23 @@ function greylist_config($noecho=0){
 function SaveConf(){
 	$mil=new milter_greylist();
 	$sock=new sockets();
-	$sock->SET_INFO("MilterGreyListEnabled",$_GET["MilterGreyListEnabled"]);
+	$sock->SET_INFO("MilterGreyListEnabled",$_POST["MilterGreyListEnabled"]);
 	unset($_GET["MilterGreyListEnabled"]);
-	$mil->MiltergreyListAddDefaultNets=$_GET["MiltergreyListAddDefaultNets"];
+	$mil->MiltergreyListAddDefaultNets=$_POST["MiltergreyListAddDefaultNets"];
 	unset($_GET["MiltergreyListAddDefaultNets"]);
 	
-	while (list ($num, $val) = each ($_GET) ){
+	if(isset($_POST["MilterGreyListUseTCPPort"])){
+		$sock->SET_INFO("MilterGreyListUseTCPPort",$_POST["MilterGreyListUseTCPPort"]);
+		$sock->SET_INFO("MilterGeryListTCPPort",$_POST["MilterGeryListTCPPort"]);
+		unset($_GET["MilterGreyListUseTCPPort"]);
+		unset($_GET["MilterGeryListTCPPort"]);
+	}
+	
+	
+	
+	
+	
+	while (list ($num, $val) = each ($_POST) ){
 		$mil->main_array[$num]=$val;
 	}	
 
@@ -907,7 +1077,7 @@ $line=$pure->ParseAcl($ArrayACL["full"]);
 		default:$form="
 			<table style='width:99%' class=form>
 			<tr>
-				<td align='right' width=1% nowrap valign='top'><strong style='font-size:14px'> {pattern}:</strong></td>
+				<td align='right' width=1% nowrap ><strong style='font-size:14px'> {pattern}:</strong></td>
 				<td><textarea name='pattern' id='pattern' rows=2 style='width:100%;font-size:14px;font-weight:bold'>{$line[3]}</textarea>
 			</tr>
 		</table>";
@@ -1068,9 +1238,9 @@ if(!is_array($table)){return $html. "</table>";}
 			$link="YahooWin(450,'$page?edit_dnsrbl=$num&subline=0','{edit_dnsrbl} $num');";
 			$html=$html . "
 			<tr " . CellRollOver().">
-				<td width=1% valign='top'><img src='img/fw_bold.gif'></td>
-				<td width=1% nowrap valign='top'><a href=\"javascript:$link\"><strong>$num</strong></a></td>
-				<td width=1% nowrap valign='top'>
+				<td width=1% ><img src='img/fw_bold.gif'></td>
+				<td width=1% nowrap ><a href=\"javascript:$link\"><strong>$num</strong></a></td>
+				<td width=1% nowrap >
 					<table style='width:100%'>";
 
 					$explain=substr($cell[2],0,40)."...";
@@ -1085,11 +1255,11 @@ if(!is_array($table)){return $html. "</table>";}
 					$explain=texttooltip($explain,$cell[2],$link);
 					$html=$html . 
 					"<tr>
-						<td width=1% valign='top'><img src='img/fw_bold.gif'></td>
-						<td width=120px nowrap valign='top'><a href=\"javascript:$link\"><strong>{$cell[0]}</strong></a></td>
-						<td width=1% nowrap valign='top'><a href=\"javascript:$link\"><strong>{$cell[1]}</strong></a></td>
-						<td valign='top'>$explain</td>
-						<td width=1% valign='top'>". imgtootltip('x.gif','{delete}',"LoadAjax('acllist','$page?DeleteDnsbl=$num&class=$num');")."</td>
+						<td width=1% ><img src='img/fw_bold.gif'></td>
+						<td width=120px nowrap ><a href=\"javascript:$link\"><strong>{$cell[0]}</strong></a></td>
+						<td width=1% nowrap ><a href=\"javascript:$link\"><strong>{$cell[1]}</strong></a></td>
+						<td >$explain</td>
+						<td width=1% >". imgtootltip('x.gif','{delete}',"LoadAjax('acllist','$page?DeleteDnsbl=$num&class=$num');")."</td>
 					</tr>
 					";
 				
@@ -1234,10 +1404,10 @@ function dumpfile_popup(){
 		$grey=$grey."
 		
 			<tr>
-				<td valign='top'><img src='img/fw_bold.gif'></td>
-				<td valign='top'>{$line[0]}</td>
-				<td valign='top'>{$line[1]}</td>
-				<td valign='top'>{$line[2]}</td>
+				<td ><img src='img/fw_bold.gif'></td>
+				<td >{$line[0]}</td>
+				<td >{$line[1]}</td>
+				<td >{$line[2]}</td>
 			</tr>
 		
 		";
@@ -1265,10 +1435,10 @@ function dumpfile_popup(){
 		$white=$white."
 		
 			<tr>
-				<td valign='top' width=1%><img src='img/fw_bold.gif'></td>
-				<td valign='top' width=1% nowrap>{$line[0]}</td>
-				<td valign='top'>{$line[1]}</td>
-				<td valign='top'>{$line[2]}</td>
+				<td  width=1%><img src='img/fw_bold.gif'></td>
+				<td  width=1% nowrap>{$line[0]}</td>
+				<td >{$line[1]}</td>
+				<td >{$line[2]}</td>
 			</tr>
 		
 		";

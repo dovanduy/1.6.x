@@ -29,6 +29,7 @@ if(isset($_GET["LaunchRemoteInstall"])){LaunchRemoteInstall();exit;}
 if(isset($_GET["restart-web-server"])){RestartWebServer();exit;}
 if(isset($_GET["restart-artica-status"])){RestartArticaStatus();exit;}
 if(isset($_GET["RestartVnStat"])){RestartVnStat();exit;}
+if(isset($_GET["restart-ufdb"])){restart_ufdbguard();exit;}
 
 
 if(isset($_GET["wake-on-lan"])){WakeOnLan();exit;}
@@ -2416,11 +2417,14 @@ function reload_dansguardian(){
 	
 function reload_ufdbguard(){
 	$unix=new unix();
-	
-	
 	NOHUP_EXEC(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.initslapd.php --ufdbguard --force");
 	NOHUP_EXEC(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.squidguard.php --build");
-}	
+}
+
+function restart_ufdbguard(){
+	shell_exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.initslapd.php --ufdbguard --force");
+	NOHUP_EXEC("/etc/init.d/ufdb restart");
+}
 	
 function delete_mailbox(){
 	$unix=new unix();
@@ -3504,9 +3508,11 @@ function squid_rebuild(){
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
 
-	$cmd="/etc/init.d/artica-memcache restart >/dev/null 2>&1";
-	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
-	shell_exec($cmd);
+	if(is_file("/etc/init.d/artica-memcache")){
+		$cmd="/etc/init.d/artica-memcache restart >/dev/null 2>&1";
+		writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+		shell_exec($cmd);
+	}
 	
 	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
@@ -5716,15 +5722,22 @@ function samba_delete_logs(){
 }
 
 function milter_greylist_reconfigure(){
-	if(isset($_GET["hostname"])){
-		if($_GET["hostname"]<>"master"){
-			$cmdp=" --hostname={$_GET["hostname"]} --ou=\"{$_GET["ou"]}\"";
-		}
-	}
+	
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
-	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.milter-greylist.php$cmdp --who=WebInterface >/dev/null 2>&1 &";
+	
+	if(isset($_GET["hostname"])){
+		if($_GET["hostname"]<>"master"){
+			$cmdp=" --hostname={$_GET["hostname"]} --ou=\"{$_GET["ou"]}\"";
+			$cmd="$nohup $php5 /usr/share/artica-postfix/exec.milter-greylist.php$cmdp --who=WebInterface >/dev/null 2>&1 &";
+			writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+			shell_exec($cmd);
+			return;
+		}
+	}
+	$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.initslapd.php --milter-greylist");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.milter-greylist.php --reload-single >/dev/null 2>&1 &";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 }
@@ -6559,9 +6572,11 @@ function SQUID_RESTART_ONLY(){
 	shell_exec("/bin/chmod 777 /usr/share/artica-postfix/ressources/logs/web/restart.squid");
 	if(isset($_GET["force"])){$force=" --force";}
 	if(isset($_GET["ApplyConfToo"])){
-		$cmd="/etc/init.d/artica-memcache >/dev/null 2>&1";
-		writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
-		shell_exec($cmd);
+		if(is_file("/etc/init.d/artica-memcache")){
+			$cmd="/etc/init.d/artica-memcache >/dev/null 2>&1";
+			writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+			shell_exec($cmd);
+		}
 		
 		
 		$cmd=LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.squid.php --build{$force} >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1";

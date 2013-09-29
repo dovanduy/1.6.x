@@ -1076,7 +1076,7 @@ function build_smooth_tenir(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --smooth-build --force");
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);		
 	
@@ -1702,6 +1702,7 @@ function ufdbguard_restart_tenir(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
+	squid_admin_mysql(2, "Framework ask to reload the Web filtering service","");
 	shell_exec("$php5 /usr/share/artica-postfix/exec.squidguard.php --reload-ufdb");
 	shell_exec("$nohup /etc/init.d/ufdb-tail restart >/dev/null 2>&1");
 	

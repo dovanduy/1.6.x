@@ -4,7 +4,7 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
-
+include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;}
 
@@ -17,12 +17,19 @@ if($argv[1]=="--start"){build_email_relays_start();exit;}
 if($argv[1]=="--stop"){emailing_emailrelay_stop_all();exit;}
 
 
+
+$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.time";
+$pidFile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
+$unix=new unix();
+$oldpid=$unix->get_pid_from_file($pidFile);
+if($unix->process_exists($oldpid)){return;}
+
+if(system_is_overloaded()){die();}
+
+
 @unlink("/etc/artica-postfix/emailrelay.cmd");
 $path="/etc/artica-postfix/smtpnotif.conf";
-	if(!file_exists($path)){
-		echo "Starting......: SMTP notifier unable to stat $path\n";
-		return null;
-	}
+if(!file_exists($path)){echo "Starting......: SMTP notifier unable to stat $path\n";return null;}
 	
 	
 $ini=new Bs_IniHandler($path);

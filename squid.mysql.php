@@ -40,7 +40,7 @@ function js(){
 	$tpl=new templates();
 	
 	$title=$tpl->_ENGINE_parse_body("{ARTICA_DATABASE_MAINTENANCE}");
-	$html="YahooWin2('650','$page?popup=yes','$title');";
+	$html="YahooWin2('700','$page?popup=yes','$title');";
 	
 	echo $html;
 	
@@ -54,29 +54,12 @@ function popup(){
 	$page=CurrentPageName();
 	$array["maintenance"]="{maintenance}";
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
 	}
 	
 	$id=time();
+	echo build_artica_tabs($html, "artica_squid_db_tabs");
 	
-	echo "
-	<div id='artica_squid_db_tabs' style='width:100%;height:650px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#artica_squid_db_tabs').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";		
 	
 	
 }	
@@ -133,7 +116,13 @@ function maintenance_settings(){
 	<table style='width:100%'>
 	<tr>
 		<td valign='top' width=1%><div id='squid-mysql-status'></div>
-		<td valign='top'><div class=explain>{ARTICA_DATABASE_SQUID_MAINTENANCE_WHY}</div></td>
+		<center>". button("{wizard}","Loadjs('squid.stats-appliance.php')",14)."</center>
+		
+		</td>
+		<td valign='top'>
+			<div class=explain style='font-size:14px'>{ARTICA_DATABASE_SQUID_MAINTENANCE_WHY}</div>
+			
+		</td>
 	</tr>
 	</table>
 	<div id='maxdayeventsdiv'>

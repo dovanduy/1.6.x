@@ -73,7 +73,9 @@ function injectSquid(){
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if($SQUIDEnable==0){return;}
-	
+	$CategoriesDatabasesShowIndex=$sock->GET_INFO("CategoriesDatabasesShowIndex");
+	if(!is_numeric($CategoriesDatabasesShowIndex)){$CategoriesDatabasesShowIndex=1;}
+	if($CategoriesDatabasesShowIndex==0){return;}
 	
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
@@ -849,48 +851,30 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 function PageDeGarde(){
 	if($GLOBALS['VERBOSE']){echo date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 	$cacheFile=dirname(__FILE__)."/ressources/logs/web/".basename(__FILE__).".".__FUNCTION__;
-	if(!$GLOBALS["AS_ROOT"]){
-		if(is_file($cacheFile)){
-			$data=@file_get_contents($cacheFile);
-			if(strlen($data)>45){
-				$users=new usersMenus();
-				$tpl=new templates();
-				if($GLOBALS["VERBOSE"]){echo "$cacheFile -> LOADING....\n";}
-				echo $tpl->_ENGINE_parse_body($data);
-				return;
-			}
-		}else{
-			if($GLOBALS["VERBOSE"]){echo "$cacheFile No such file\n";}
-		}
-	}
-		
-	if($GLOBALS["AS_ROOT"]){$timeT="<div style='font-size:10px;text-aglin:right'>".date("H:i:s")."</div>";}
+	if($GLOBALS["AS_ROOT"]){return;}
 	
 	$page=CurrentPageName();
-	$q=new mysql();
+	
 	$time=time();
-	if($q->COUNT_ROWS("sys_mem", "artica_events")>1){
+	if(is_file("ressources/logs/web/INTERFACE_LOAD_AVG.db")){
 		$f1[]="<div style='width:299px;height:230px' id='$time-2'></div>";
 		$f2[]="function FDeux$time(){	
 				AnimateDiv('$time-2'); 
 				Loadjs('$page?graph2=yes&container=$time-2'); 
 			} 
-		setTimeout(\"FDeux$time()\",1000);";
+		setTimeout(\"FDeux$time()\",500);";
 	}
-	if($q->COUNT_ROWS("sys_loadvg", "artica_events")>1){
+	
+	
+	
+	if(is_file("ressources/logs/web/INTERFACE_LOAD_AVG2.db")){
 		$f1[]="<div style='width:299px;height:230px' id='$time-1'></div>$timeT";
-		$f2[]="function FOne$time(){AnimateDiv('$time-1');Loadjs('$page?graph1=yes&container=$time-1');} setTimeout(\"FOne$time()\",1800);";
+		$f2[]="function FOne$time(){AnimateDiv('$time-1');Loadjs('$page?graph1=yes&container=$time-1');} setTimeout(\"FOne$time()\",500);";
 	}	
 	
 	
 	if($GLOBALS['VERBOSE']){echo date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 	$html=@implode("\n", $f1)."<script>".@implode("\n", $f2)."</script>";
-	if($GLOBALS["AS_ROOT"]){
-		@mkdir(dirname($cacheFile),0777,true);
-		@file_put_contents($cacheFile, $html);
-		@chmod($cacheFile, 0777);
-		return;
-	}
 	echo $html;
 
 }
@@ -916,37 +900,12 @@ function graph1(){
 		$title="{server_load_this_hour}";
 		$timetext="{minutes}";
 		
+	$filecache="ressources/logs/web/INTERFACE_LOAD_AVG.db";
+	if(!is_file($filecache)){return;}	
+	$ARRAY=unserialize(@file_get_contents($filecache));
+	$xdata=$ARRAY[0];
+	$ydata=$ARRAY[1];
 	
-		
-		
-	$filecache="ressources/logs/web/".basename(__FILE__).".".__FUNCTION__.".cache";	
-	if(file_time_min_Web($filecache)>30){@unlink($filecache);}
-	
-	if(!is_file($filecache)){
-		$q=new mysql();
-		$results = $q->QUERY_SQL($sql,"artica_events");
-		if(!$q->ok){$tpl->javascript_senderror("",$_GET["container"]);}
-		
-		if(mysql_num_rows($results)<2){
-			$tpl->javascript_senderror("",$_GET["container"]);
-		}
-		
-		
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			$xdata[]=$ligne["time"];
-			$ydata[]=round($ligne["value"],2);
-		}
-		if(count($xdata)>1){
-			$ARRAY=array($xdata,$ydata);
-			@file_put_contents($filecache, serialize($ARRAY));
-		}
-	
-	}else{
-		
-		$ARRAY=unserialize(@file_get_contents($filecache));
-		$xdata=$ARRAY[0];
-		$ydata=$ARRAY[1];
-	}
 	$title="{server_load_this_hour}";
 	$timetext="{minutes}";
 	$highcharts=new highcharts();
@@ -976,36 +935,17 @@ function graph2(){
 		$timetext="{minutes}";
 
 	
-	$q=new mysql();
-	$results = $q->QUERY_SQL($sql,"artica_events");
-	if(!$q->ok){$tpl->javascript_senderror($q->mysql_error,$_GET["container"]);}
-
-	if(mysql_num_rows($results)<2){
-	$tpl->javascript_senderror("",$_GET["container"]);
-	}
-
-	$filecache="ressources/logs/web/".basename(__FILE__).".".__FUNCTION__.".cache";
-	if(file_time_min_Web($filecache)>30){@unlink($filecache);}
 	
+	$filecache="ressources/logs/web/INTERFACE_LOAD_AVG2.db";
 	if(!is_file($filecache)){
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			$xdata[]=$ligne["time"];
-			$ligne["value"]=$ligne["value"]/1024;
-			$ydata[]=round($ligne["value"],2);
-		}
-		if(count($xdata)>1){
-			$ARRAY=array($xdata,$ydata);
-			@file_put_contents($filecache, serialize($ARRAY));
-		}
+		if($GLOBALS["VERBOSE"]){echo "ressources/logs/web/INTERFACE_LOAD_AVG2.db no such file\n<br>";}
+		return;}
+	$ARRAY=unserialize(@file_get_contents($filecache));
+	$xdata=$ARRAY[0];
+	$ydata=$ARRAY[1];
 		
-	}else{
-		
-			$ARRAY=unserialize(@file_get_contents($filecache));
-			$xdata=$ARRAY[0];
-			$ydata=$ARRAY[1];
-		}
-		$title="{memory_consumption_this_hour}";
-		$timetext="{minutes}";
+	$title="{memory_consumption_this_hour}";
+	$timetext="{minutes}";
 	$highcharts=new highcharts();
 	$highcharts->container=$_GET["container"];
 	$highcharts->xAxis=$xdata;

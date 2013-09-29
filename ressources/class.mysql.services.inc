@@ -20,6 +20,10 @@ class mysql_services{
 		$this->topCopyMysql["user.MYD"]=true;
 		$this->topCopyMysql["user.frm"]=true;
 		
+		$this->topCopyMysql["servers.frm"]=true;
+		$this->topCopyMysql["servers.MYD"]=true;
+		$this->topCopyMysql["servers.MYI"]=true;
+		
 		$this->topCopyMysql["plugin.MYI"]=true;
 		$this->topCopyMysql["plugin.MYD"]=true;
 		$this->topCopyMysql["plugin.frm"]=true;
@@ -152,6 +156,8 @@ class mysql_services{
 		$max_tmp_table_size=$TuningParameters["max_tmp_table_size"];		
 		$innodb_buffer_pool_size=$TuningParameters["innodb_buffer_pool_size"];	
 		$innodb_log_buffer_size=$TuningParameters["innodb_log_buffer_size"];
+		$skip_innodb_stats_on_metadata=$SquidDBTuningParameters["skip_innodb_stats_on_metadata"];
+		
 		if(!is_numeric($ListenPort)){$ListenPort=0;}
 		$tmpdir=$TuningParameters["tmpdir"];
 		
@@ -250,7 +256,8 @@ class mysql_services{
 		
 		if(!is_numeric($innodb_buffer_pool_size)){$innodb_buffer_pool_size=$innodb_buffer_pool_sized;}
 		if(!is_numeric($innodb_log_buffer_size)){$innodb_log_buffer_size=$innodb_log_buffer_sized;}
-;		if(!is_numeric($net_read_timeout)){$net_read_timeout=120;}
+		if(!is_numeric($net_read_timeout)){$net_read_timeout=120;}
+		if(!is_numeric($skip_innodb_stats_on_metadata)){$skip_innodb_stats_on_metadata=1;}
 		
 		
 		
@@ -277,6 +284,7 @@ class mysql_services{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME TMP Table size...........: {$tmp_table_size}M\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Read RND Buffer Size.....: {$read_rnd_buffer_size}M\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Net Read Timeout.........: {$net_read_timeout} seconds\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Skip innodb stats (metada: {$skip_innodb_stats_on_metadata}\n";}
 		
 
 		
@@ -420,6 +428,12 @@ class mysql_services{
 		if($net_read_timeout>0){
 			if($GetStartedValues["--net_read_timeout"]){
 				$f[]="--net_read_timeout={$net_read_timeout}";
+			}
+		}
+		
+		if($GetStartedValues["--skip-innodb-stats-on-metadata"]){
+			if($skip_innodb_stats_on_metadata==1){
+				$f[]="--skip-innodb-stats-on-metadata";
 			}
 		}
 		

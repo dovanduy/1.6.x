@@ -48,18 +48,35 @@ $f=new filesClasses();
 $hash=$f->DirListTable($path);
 if(!is_array($hash)){return null;}	
 events(count($hash) . " reboot file(s) notifications...");
+$unix=new unix();
+
 
 $mysql=new mysql();
-
+$TIME1=0;
 	while (list ($num, $file) = each ($hash)){
+		
+		if(!is_numeric($file)){@unlink($path.'/'.$file);continue;}
 		$date=date("Y-m-d H:i:s",$file);
+		
+		
+		if($TIME1>0){
+			$difference = ($TIME1 - $file);
+			$min=round($difference/60);
+			if($min<5){
+				@unlink($path.'/'.$file);
+				continue;
+			}
+		}
+		
+		
+		
 		$array=unserialize(@file_get_contents($path.'/'.$file));
 		$buffer=$array["buffer"];
 		if(isset($ALREADY[md5($buffer)])){@unlink($path.'/'.$file);continue;}
 		$ALREADY[md5($buffer)]=true;
 		
 		$dmsg=@implode("\n",$array["dmsg"]);			
-		$text="Why artica has rebooted ?Detected\n$buffer\n\nDmsg:$dmsg";
+		$text="Why artica has rebooted ?\nDetected\n$buffer\n\nDmsg:$dmsg";
 		$subject="Reboot report";
         $subject=addslashes($subject);
         $text=addslashes($text);
@@ -79,7 +96,7 @@ $mysql=new mysql();
 			continue;
 			
 		}
-		
+		$TIME1=$file;
 		@unlink($path.'/'.$file);
 	}
 }

@@ -50,21 +50,19 @@ class sockets{
 		$this->remote_ip=$this->APC_GET("ARTICA_DAEMON_IP");
 		$this->remote_port=$this->APC_GET("ARTICA_DAEMON_PORT");
 		$this->ArticaMetaEnabled=$this->APC_GET("ArticaMetaEnabled");
+		if(file_exists(dirname(__FILE__) . '/settings.inc')){include(dirname(__FILE__) . '/settings.inc');}
 		
 		if($this->remote_ip==null){
-		if(!file_exists(dirname(__FILE__) . '/settings.inc')){	
-			if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			if(function_exists("writelogs")){writelogs("ERROR: unable to stat " . dirname(__FILE__) . '/settings.inc',__CLASS__ . "=>" . __FUNCTION__,__FILE__);};return false;}
-			include(dirname(__FILE__) . '/settings.inc');
-			if($_GLOBAL["ARTICA_DAEMON_IP"]=='0.0.0.0'){$this->remote_ip='127.0.0.1';}else{$this->remote_ip=$_GLOBAL["ARTICA_DAEMON_IP"];}
-			$this->remote_port=$_GLOBAL["ARTICA_DAEMON_PORT"];
-			if($_GLOBAL["ARTICA_SECOND_PORT"]>0){$this->remote_port=$_GLOBAL["ARTICA_SECOND_PORT"];}
-			if($this->remote_ip==null){$this->remote_ip="127.0.0.1";}
-			$this->APC_SAVE("ARTICA_DAEMON_IP",$this->remote_ip);
-			$this->APC_SAVE("ARTICA_DAEMON_PORT",$this->remote_port);
+				if($_GLOBAL["ARTICA_DAEMON_IP"]=='0.0.0.0'){$this->remote_ip='127.0.0.1';}else{$this->remote_ip=$_GLOBAL["ARTICA_DAEMON_IP"];}
+				$this->remote_port=$_GLOBAL["ARTICA_DAEMON_PORT"];
+				if($_GLOBAL["ARTICA_SECOND_PORT"]>0){$this->remote_port=$_GLOBAL["ARTICA_SECOND_PORT"];}
+				if($this->remote_ip==null){$this->remote_ip="127.0.0.1";}
+				$this->APC_SAVE("ARTICA_DAEMON_IP",$this->remote_ip);
+				$this->APC_SAVE("ARTICA_DAEMON_PORT",$this->remote_port);
 			}
+		
 			
-			if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			
 	}
 		
 

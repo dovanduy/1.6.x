@@ -463,9 +463,18 @@ class system_nic{
 		$this->LoadTools();
 		$sock=new sockets();
 		$NetWorkBroadCastAsIpAddr=$sock->GET_INFO("NetWorkBroadCastAsIpAddr");
-		
+		$q=new mysql();
 		$unix=new unix();
 		$ifconfig=$unix->find_program("ifconfig");
+		
+		$sql="SELECT * FROM `nics`";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$eth=$ligne["Interface"];
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
+		}
+		
+		
 		$sql="SELECT * FROM `nics` WHERE enabled=1";
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
@@ -529,8 +538,12 @@ class system_nic{
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
 			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]}";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} down";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["sleepbin"]} 1";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} up";			
-			
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} down";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["sleepbin"]} 1";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} up";			
 
 			
 			
@@ -853,6 +866,8 @@ class system_nic{
 		if(!isset($GLOBALS["brctlbin"])){$GLOBALS["brctlbin"]=$GLOBALS["CLASS_UNIX"]->find_program("brctl");}
 		if(!isset($GLOBALS["dhclientbin"])){$GLOBALS["dhclientbin"]=$GLOBALS["CLASS_UNIX"]->find_program("dhclient");}
 		if(!isset($GLOBALS["tunctlbin"])){$GLOBALS["tunctlbin"]=$GLOBALS["CLASS_UNIX"]->find_program("tunctl");}
+		if(!isset($GLOBALS["sleepbin"])){$GLOBALS["sleepbin"]=$GLOBALS["CLASS_UNIX"]->find_program("sleep");}
+		if(!isset($GLOBALS["echobin"])){$GLOBALS["echobin"]=$GLOBALS["CLASS_UNIX"]->find_program("echo");}
 		
 	}
 
@@ -912,6 +927,10 @@ class system_nic{
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS for \"$eth\" ****";
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Reload Interface $eth";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth up";
+			
 			if($this->IsBridged($eth)){
 				echo "Starting......: $eth \" ** is bridged to {$ligne["BridgedTo"]} **\n";
 				$f[]="iface $eth inet manual";
@@ -954,8 +973,7 @@ class system_nic{
 				continue;
 			}
 			$f[]="iface $eth inet static";
-			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
-			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth up";
+
 			
 			if($eth=="eth0"){
 				if($OVHNetConfig==1){
@@ -973,7 +991,7 @@ class system_nic{
 			
 			if($REMOVE_GATEWAY==true){$ligne["GATEWAY"]="0.0.0.0";}
 			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]}";
-			$ifconfig="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]}";
+			$ifconfig="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} up";
 			$GLOBALS["SCRIPTS"][]="$ifconfig";
 			
 			$f[]="\taddress {$ligne["IPADDR"]}";
@@ -1012,8 +1030,7 @@ class system_nic{
 			if($ligne["DNS1"]<>null){$dns[]=$ligne["DNS1"];}
 			if($ligne["DNS2"]<>null){$dns[]=$ligne["DNS2"];}
 			$unix=new unix();
-			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
-			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth up";
+
 				
 
 			//$GLOBALS["SCRIPTS"][]=$mainroute;
@@ -1050,7 +1067,6 @@ class system_nic{
 	         			
 		         		if($ip=="default"){
 		         			$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] Added in default route for the interface $eth\n";
-		         			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 							$scripts[]="\tup {$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 							$scripts[]="\tdown {$GLOBALS["ipbin"]} route del default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 		         			continue;
@@ -1058,18 +1074,18 @@ class system_nic{
 		         			
 		         		if($ip_array["GATEWAY"]==null){
 		         			if($ip_array["DEV"]<>null){
-		         				$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] Added in default route for the interface $eth\n";
+		         				//$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] Added in default route for the interface $eth\n";
 		         				$this->scriptaddroute($ip,$ip_array["NETMASK"],$ip_array["GATEWAY"],0,$ip_array["DEV"]);
 		         				$scripts[]="\tup {$GLOBALS["routebin"]} add -net $ip netmask {$ip_array["NETMASK"]} dev ". $this->NicToOther($ip_array["DEV"]);
 		         				$scripts[]="\tdown {$GLOBALS["routebin"]} del -net $ip netmask {$ip_array["NETMASK"]} dev ".$this->NicToOther($ip_array["DEV"]);
 		         				continue;
 		         			}
 		         		}
-		         		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
+		         		
 		         		$scripts[]="\tup {$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 		         		
 		         		$scripts[]="\tdown {$GLOBALS["ipbin"]} route del default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
-		         		$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] Added in default route for the interface $eth\n";
+		         		//$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] Added in default route for the interface $eth\n";
 		         		$this->scriptaddroute($ip,$ip_array["NETMASK"],$ip_array["GATEWAY"],$ligne["metric"]);
 						$scripts[]="\tup {$GLOBALS["routebin"]} add -net $ip netmask {$ip_array["NETMASK"]} gw {$ip_array["GATEWAY"]} metric 10{$ligne["metric"]}";
 	   					$scripts[]="\tdown {$GLOBALS["routebin"]} del -net $ip netmask {$ip_array["NETMASK"]} gw {$ip_array["GATEWAY"]} metric 10{$ligne["metric"]}";
@@ -1082,7 +1098,6 @@ class system_nic{
 		if($ligne["GATEWAY"]<>null){
 				
 				if($ligne["metric"]==null){if($eth=="eth0"){$ligne["metric"]=1;}else{$ligne["metric"]=$this->lastmetric();}}
-				//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 				$f[]="\tup {$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 				$f[]="\tdown {$GLOBALS["ipbin"]} route del default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 			}		
@@ -1131,6 +1146,7 @@ class system_nic{
 	}
 	
 	public function scriptaddroute($ip,$netmask,$gateway,$metric=0,$eth=null,$default=false){
+		return;
 		if($metric>0){$metric=" metric 10{$metric}";}
 		if($eth<>null){$eth=" dev $eth";}
 		$defm=null;$defT=null;
@@ -1338,6 +1354,7 @@ class system_nic{
 			$GLOBALS["SCRIPTS_TOP"][]="# Stopping Interface $eth";
 			$GLOBALS["SCRIPTS_TOP"][]="{$GLOBALS["ifconfig"]} $eth down";
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** $eth {$ligne["ipaddr"]} ****";
+			$GLOBALS["SCRIPTS"][]="OUTPUT Linking $eth {$ligne["ipaddr"]}";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["ipaddr"]} netmask {$ligne["netmask"]} up";
 				
 			$scripts=array();
@@ -1347,12 +1364,9 @@ class system_nic{
 					$GLOBALS["SCRIPTS_ROUTES"][]="# Added from line ".__LINE__;
 					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} rule add from {$ligne["ipaddr"]} table {$ligne["ID"]}0";
 					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} rule add from {$ligne["ipaddr"]} table {$ligne["ID"]}0";
-					
-					$GLOBALS["SCRIPTS_ROUTES"][]="# Added from line ".__LINE__;
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["gateway"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
 					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route add default via {$ligne["gateway"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
 					
-					$GLOBALS["SCRIPTS_ROUTES"][]="# Added from line ".__LINE__;
+					
 					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route flush cache";
 					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route flush cache";
 					$scripts[]="\tpost-down {$GLOBALS["ipbin"]} route del default via {$ligne["gateway"]} table {$ligne["ID"]}0";
@@ -1365,9 +1379,7 @@ class system_nic{
 			if($ligne["gateway"]<>"0.0.0.0"){
 				if($ligne["cdir"]<>null){
 					$mainroute="{$ligne["cdir"]} via {$ligne["gateway"]} src {$ligne["ipaddr"]} metric 20{$ligne["metric"]}";
-					//$mainroute="-net {$re[1]}.0 netmask {$ligne["netmask"]} gw {$ligne["gateway"]} dev $eth metric 20{$ligne["metric"]}";
-					$GLOBALS["SCRIPTS_ROUTES"][]="# Added from line ".__LINE__;
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add $mainroute";
+					
 					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route add $mainroute";
 					
 					$GLOBALS["SCRIPTS_ROUTES"][]="# Added from line ".__LINE__;
@@ -1484,6 +1496,9 @@ class system_nic{
 		return "$ip/$bit";
 		
 	}
+	
+
+	
 	
 	private function vlanTable($table_routename,$table_routeid){
 		$f=explode("\n", @file_get_contents("/etc/iproute2/rt_tables"));

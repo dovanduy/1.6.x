@@ -495,6 +495,9 @@ function proposal($www){
 	if(preg_match("#\.icplatform.com$#", $www)){$f["reaffected"]=true;}
 	if(preg_match("#mailing#", $www)){$f["mailing"]=true;}
 	if(preg_match("#porn#", $www)){$f["porn"]=true;}
+	if(preg_match("#sport#", $www)){$f["recreation/sports"]=true;}
+	if(preg_match("#news#", $www)){$f["news"]=true;}
+	if(preg_match("#amicale#", $www)){$f["associations"]=true;}
 	
 	if(preg_match("#video#", $www)){
 			$f["movies"]=true;

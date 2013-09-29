@@ -101,7 +101,7 @@ if(strpos($buffer,"URL verifications")>0){return ;}
 if(strpos($buffer,"must be part of the security")>0){return ;}
 if(strpos($buffer,"}")>0){return ;}
 if(strpos($buffer,"finished retrieving")>0){return ;}
-if(strpos($buffer,"] statistics:")>0){return ;}
+
 if(strpos($buffer,"loading URL table from")>0){return ;}
 if(strpos($buffer,"]    option")>0){return ;}
 if(strpos($buffer,"{")>0){return ;}
@@ -255,6 +255,7 @@ if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 		@file_put_contents($re[1], "\n");
 		events("ufdbguard tail: Service will be reloaded");
 		$GLOBALS["CLASS_UNIX"]->send_email_events(basename(__FILE__).":Service ufdb will be reloaded ",  "Cause:$buffer", "ufdbguard-service");
+		squid_admin_mysql(2, "Ask to reload the Web filtering service","Cause:$buffer");
 		ufdbguard_admin_events("ufdbguard tail: Service will be reloaded",__FUNCTION__,__FILE__,__LINE__,"watchdog");
 		shell_exec("{$GLOBALS["RELOADCMD"]} --function==".__FUNCTION__ ." --line=".__LINE__." ". "--filename=".basename(__FILE__)." >/dev/null 2>&1 &");
 		return;
@@ -268,8 +269,19 @@ if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 
 
 	if(preg_match("#the new configuration and database are loaded for ufdbguardd ([0-9\.]+)#",$buffer,$re)){
+		squid_admin_mysql(2, "Web Filtering engine service v{$re[1]} has reloaded new configuration and databases","");
 		ufdbguard_admin_events("UfdbGuard v{$re[1]} has reloaded new configuration and databases",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		$GLOBALS["CLASS_UNIX"]->send_email_events("UfdbGuard v{$re[1]} has reloaded new configuration and databases",null,"ufdbguard-service");
+		return;
+	}
+	
+	if(preg_match("#statistics:(.+)#",$buffer,$re)){
+		if(preg_match("#blocked ([0-9]+) times#", $re[1],$ri)){
+			if($ri[1]>0){
+				//squid_admin_mysql(2, "{$re[1]}","");
+			}
+		}
+		
 		return;
 	}
 	

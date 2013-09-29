@@ -1142,12 +1142,14 @@ function buildPage(){
 			
 		}
 		
-		
+		if($users->SQUID_INSTALLED){
+			$userslogs="<span style='color:white'>&nbsp;|&nbsp;</span><a href='squid.access-sql.php' style='color:white'>Proxy requests</a>&nbsp;";
+		}	
 		
 		$ARTICAVER=@file_get_contents("VERSION").$WEBSEVERV.$PHPVERSION.$FPM;
 		
-		$tpl=str_replace("{COPYRIGHT}","{$company_name}Copyright 2003 - ". date('Y').$lang2Link.$miniadm,$tpl);
-		$tpl=str_replace("{copy-right}","{$company_name}Copyright 2003 - ". date('Y').$lang2Link.$miniadm,$tpl);
+		$tpl=str_replace("{COPYRIGHT}","{$company_name}Copyright 2003 - ". date('Y').$lang2Link.$miniadm.$userslogs,$tpl);
+		$tpl=str_replace("{copy-right}","{$company_name}Copyright 2003 - ". date('Y').$lang2Link.$miniadm.$userslogs,$tpl);
 		$tpl=str_replace("{TEMPLATE_HEAD}","<!-- HEAD TITLE: $TITLE_RESSOURCE -->\n$favicon\n$jquery\n$jsArtica\n". @implode("\n", $js)."\n$jslogon\n".@implode("\n", $css)."\n".@implode("\n", $log), $tpl);
 		$tpl=str_replace("{ARTICA_VERSION}",$ARTICAVER,$tpl);
 		$tpl=str_replace("{SQUID_VERSION}",$users->SQUID_VERSION,$tpl);
@@ -1156,7 +1158,7 @@ function buildPage(){
 		$tpl=str_replace("{CROSSROADS_VERSION}",$users->CROSSROADS_VERSION,$tpl);
 		$tpl=str_replace("{APACHE_VERSION}",$users->APACHE_VERSION,$tpl);
 		
-		
+
 		
 		
 		

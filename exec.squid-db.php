@@ -116,6 +116,14 @@ function ToCopy($WORKDIR){
 	$f[]="host.frm";
 	$f[]="host.MYD";
 	$f[]="host.MYI";
+	
+	
+	$f[]="servers.frm";
+	$f[]="servers.MYD";
+	$f[]="servers.MYI";
+	
+	
+	
 	while (list ($key, $filename) = each ($results) ){
 		if(!is_file("$WORKDIR/mysql/$filename")){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: copy /var/lib/mysql/mysql/$filename $WORKDIR/mysql/$filename\n";}
@@ -284,17 +292,22 @@ function start($skipGrant=false){
 	$max_tmp_table_size=$SquidDBTuningParameters["max_tmp_table_size"];
 	$tmpdir=$SquidDBTuningParameters["tmpdir"];
 	
-	
+	$skip_innodb_stats_on_metadata=$SquidDBTuningParameters["skip_innodb_stats_on_metadata"];
+	if(!is_numeric($skip_innodb_stats_on_metadata)){$skip_innodb_stats_on_metadata=1;}
 	
 	
 	if(!is_numeric($ListenPort)){$ListenPort=0;}
 	if(!is_numeric($net_read_timeout)){$net_read_timeout=120;}
-	
+	if($ListenPort==0){
+		$ListenPort=rand(8900, 45890);
+		$SquidDBTuningParameters["ListenPort"]=$ListenPort;
+		$sock->SET_INFO("SquidDBTuningParameters", base64_encode(serialize($SquidDBTuningParameters)));
+	}
 	
 	if($tmpdir==null){$tmpdir="/tmp";}
 	
 	
-	$net="--skip-networking";
+	
 	
 	if($ListenPort>0){
 		$net="--port=$ListenPort --skip-name-resolve";
@@ -373,6 +386,7 @@ function start($skipGrant=false){
 	$lnbin=$unix->find_program("ln");
 	$KERNEL_ARCH=$unix->KERNEL_ARCH();
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Architecture.............: $KERNEL_ARCH bits\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Listen Port..............: $ListenPort\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memory...................: {$memory}M\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Max allowed packet.......: {$max_allowed_packet}M\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Max connections..........: {$max_connections} cnxs\n";}
@@ -405,6 +419,12 @@ function start($skipGrant=false){
 	$topCopyMysql["host.frm"]=true;
 	$topCopyMysql["host.MYD"]=true;
 	$topCopyMysql["host.MYI"]=true;
+	
+	$topCopyMysql["servers.frm"]=true;
+	$topCopyMysql["servers.MYD"]=true;
+	$topCopyMysql["servers.MYI"]=true;
+	
+	
 	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
 	
 	$topCopyMysqlForce["tables_priv.frm"]=true;
@@ -586,6 +606,14 @@ function start($skipGrant=false){
 	if($GetStartedValues["--default-tmp-storage-engine"]){
 		$f[]="--default-tmp-storage-engine=myisam";
 	}
+	
+	if($GetStartedValues["--skip-innodb-stats-on-metadata"]){
+		if($skip_innodb_stats_on_metadata==1){
+			$f[]="--skip-innodb-stats-on-metadata";
+		}
+	}
+	
+	
 	$f[]=$net;
 	
 	$TMP=$unix->FILE_TEMP();

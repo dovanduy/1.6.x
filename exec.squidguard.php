@@ -3,6 +3,7 @@ if(isset($_GET["verbose"])){ini_set('display_errors', 1);	ini_set('html_errors',
 $GLOBALS["KAV4PROXY_NOSESSION"]=true;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RELOAD"]=false;
+$GLOBALS["TITLENAME"]="URLfilterDB daemon";
 $_GET["LOGFILE"]="/var/log/artica-postfix/dansguardian.compile.log";
 if(posix_getuid()<>0){
 	if(isset($_GET["SquidGuardWebAllowUnblockSinglePass"])){parseTemplate_SinglePassWord();die();}
@@ -15,7 +16,7 @@ if(posix_getuid()<>0){
 
 if(preg_match("#--schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 $GLOBALS["GETPARAMS"]=@implode(" Params:",$argv);
-
+$GLOBALS["CMDLINEXEC"]=@implode("\nParams:",$argv);
 
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.groups.inc");
@@ -36,6 +37,7 @@ include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(count($argv)>0){
 	$imploded=implode(" ",$argv);
+	
 	if(preg_match("#--verbose#",$imploded)){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["OUPUT"]=true;ini_set_verbosed(); }
 	if(preg_match("#--reload#",$imploded)){$GLOBALS["RELOAD"]=true;}
 	if(preg_match("#--force#",$imploded)){$GLOBALS["FORCE"]=true;}
@@ -45,12 +47,14 @@ if(count($argv)>0){
 	if($argv[1]=="--version"){checksVersion();exit;}
 	if($argv[1]=="--dump-adrules"){dump_adrules($argv[2]);exit;}
 	if($argv[1]=="--dbmem"){ufdbdatabases_in_mem();exit;}
+	if($argv[1]=="--notify-start"){ufdguard_start_notify();exit;}
 	
 	
 	$argvs=$argv;
 	unset($argvs[0]);
 	
-	
+	if($argv[1]=="--stop"){stop_ufdbguard();exit;}
+	if($argv[1]=="--reload"){build_ufdbguard_HUP();exit;}
 	if($argv[1]=="--reload-ufdb"){build_ufdbguard_HUP();exit;}
 	if($argv[1]=="--dansguardian"){buildDans();exit;}
 	if($argv[1]=="--databases-status"){databases_status();exit;}
@@ -62,7 +66,7 @@ if(count($argv)>0){
 	if($argv[1]=="--phraselists"){echo CompileCategoryWords();exit;}
 	if($argv[1]=="--fix1"){echo FIX_1_CATEGORY_CHECKED();exit;}
 	if($argv[1]=="--bads"){echo remove_bad_files();exit;}
-	if($argv[1]=="--reload131"){echo reload_131();exit;}
+	if($argv[1]=="--reload131"){exit;}
 	
 	
 	
@@ -152,16 +156,30 @@ function build_ufdbguard_smooth(){
 
 
 function build_ufdbguard_HUP(){
+	if(isset($GLOBALS["build_ufdbguard_HUP_EXECUTED"])){return;}
+	$GLOBALS["build_ufdbguard_HUP_EXECUTED"]=true;
 	$unix=new unix();
 	$sock=new sockets();$forceTXT=null;
-	$GLOBALS["FORCE"]=true;
 	$ufdbguardReloadTTL=$sock->GET_INFO("ufdbguardReloadTTL");
 	if(!is_numeric($ufdbguardReloadTTL)){$ufdbguardReloadTTL=10;}
+	
+	if(function_exists("debug_backtrace")){
+		$trace=@debug_backtrace();
+		if(isset($trace[1])){
+			$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+		}
+	}
+	$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+	
 	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$TIMEZ=$unix->file_time_min($timeFile);
+	
+	
+	
 	if(!$GLOBALS["FORCE"]){
 		if($TIMEZ<$ufdbguardReloadTTL){
-			ufdbguard_admin_events("Asking to reload ufdbguard but TTL not reached ({$ufdbguardReloadTTL}mn) current {$TIMEZ}mn",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+			//squid_admin_mysql(1, "Asking to reload ufdbguard but TTL not reached ({$ufdbguardReloadTTL}mn) current {$TIMEZ}mn","$called\n{$GLOBALS["CMDLINEXEC"]}");
+			ufdbguard_admin_events("Asking to reload ufdbguard but TTL not reached ({$ufdbguardReloadTTL}mn) current {$TIMEZ}mn $called {$GLOBALS["CMDLINEXEC"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 			echo "Starting......: ufdbGuard reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn\n";
 			return;
 		}
@@ -169,33 +187,56 @@ function build_ufdbguard_HUP(){
 		$forceTXT=" with option FORCE enabled";
 	}
 	
-	@unlink($timeFile);
-	@file_put_contents($timeFile, time());
+	
+	
+	
+	
 	$squidbin=$unix->find_program("squid");
 	if(!is_file($squidbin)){$unix->find_program("squid3");}
 	$ufdbguardd=$unix->find_program("ufdbguardd");
 	if(strlen($ufdbguardd)<5){WriteToSyslogMail("ufdbguardd no such binary", basename(__FILE__));return;}
 	$kill=$unix->find_program("kill");
-	$pid=$unix->PIDOF($ufdbguardd);
+	$pid=ufdbguard_pid();
 	if($unix->process_exists($pid)){
+		$TimeProcess=$unix->PROCCESS_TIME_MIN($pid);
+		if(!$GLOBALS["FORCE"]){
+			if($TIMEZ<$TimeProcess){ufdbguard_admin_events("Asking to reload ufdbguard but TTL not reached ({$ufdbguardReloadTTL}mn) current {$TimeProcess}mn $called {$GLOBALS["CMDLINEXEC"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");return;}
+		}
 		
-		echo "Starting......: ufdbGuard reloading service PID:$pid\n";
+		@unlink($timeFile);
+		@file_put_contents($timeFile, time());
+		
+		echo "Starting......: ufdbGuard reloading service PID:$pid {$TIMEZ}mn\n";
+		squid_admin_mysql(2, "Reloading Web Filtering service PID: $pid TTL {$TimeProcess}Mn Last reload since {$TIMEZ}mn","$forceTXT\n$called\n{$GLOBALS["CMDLINEXEC"]}");
 		WriteToSyslogMail("Asking to reload ufdbguard PID:$pid",basename(__FILE__));
-		$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 		ufdbguard_admin_events("Asking to reload ufdbguard$forceTXT - $called - cmdline:{$GLOBALS["EXECUTEDCMDLINE"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
-		shell_exec("/etc/init.d/ufdb reconfig");
+		shell_exec("$kill -HUP $pid");
 		return;
 	}
 	echo "Starting......: UfdbGuard reloading service no pid is found, Starting service...\n";
+	@unlink($timeFile);
+	@file_put_contents($timeFile, time());
 	ufdbguard_start();
 	echo "Starting......: UfdbGuard restarting ufdb-tail process\n";
 	shell_exec("/etc/init.d/ufdb-tail restart");
 
 }
 
+function ufdbguard_pid(){
+	$unix=new unix();
+	$pid=$unix->get_pid_from_file("/var/tmp/ufdbguardd.pid");
+	if($unix->process_exists($pid)){return $pid;}
+	$ufdbguardd=$unix->find_program("ufdbguardd");
+	return $unix->PIDOF($ufdbguardd);
+}
+
+function ufdguard_start_notify(){
+	squid_admin_mysql(2, "Starting Web Filtering engine service by init.d script","");
+}
+
 function ufdbguard_start(){
 	$unix=new unix();
-	
+	$sock=new sockets();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
@@ -221,7 +262,18 @@ function ufdbguard_start(){
 			return;
 		}
 	}
-	ufdbguard_admin_events("Asking to start ufdbguard",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");	
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+	$UseRemoteUfdbguardService=$sock->GET_INFO('UseRemoteUfdbguardService');
+	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
+	
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	if($UseRemoteUfdbguardService==1){$EnableUfdbGuard=0;}
+	if($SQUIDEnable==0){$EnableUfdbGuard=0;}
+	if($EnableUfdbGuard==0){echo "Starting......: Starting UfdGuard master service Aborting, service is disabled\n";return;}
+	$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
+	squid_admin_mysql(2, "Starting Web Filtering engine service","$trace\n{$GLOBALS["CMDLINEXEC"]}");
+	ufdbguard_admin_events("Asking to start ufdbguard $trace",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");	
 	echo "Starting......: Starting UfdGuard master service...\n";
 	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting UfdGuard master service...", basename(__FILE__));}
 	@mkdir("/var/log/ufdbguard",0755,true);
@@ -230,13 +282,14 @@ function ufdbguard_start(){
 	@chgrp("/var/log/ufdbguard/ufdbguardd.log", "squid");	
 	
 	
-	system("/etc/init.d/ufdb start");
+	exec("/etc/init.d/ufdb start 2>&1",$results);
 	sleep(5);
 	
 	echo "Starting......: Starting UfdGuard master init.d ufdb done...\n";
 	$master_pid=trim(@file_get_contents($pid_path));
 	if(!$unix->process_exists($master_pid)){
 		echo "Starting......: Starting UfdGuard master service failed...\n";
+		squid_admin_mysql(0, "Starting Web Filtering engine service failed","$trace\n{$GLOBALS["CMDLINEXEC"]}\n".@implode("\n", $results));
 		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting UfdGuard master service failed...", basename(__FILE__));}
 	}else{
 		echo "Starting......: Starting UfdGuard master success pid $master_pid...\n";
@@ -1120,6 +1173,7 @@ function parseTemplate_LocalDB_receive(){
 }
 
 function parseTemplate_SinglePassWord_receive(){
+	ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
 	session_start();
 	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
 	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
@@ -1127,8 +1181,10 @@ function parseTemplate_SinglePassWord_receive(){
 	include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");		
 	$sock=new sockets();
-	$SquidGuardWebAllowUnblockSinglePassContent=md5(trim($sock->GET_INFO("SquidGuardWebAllowUnblockSinglePassContent")));	
-	if($_POST["password"]<>$SquidGuardWebAllowUnblockSinglePassContent){
+	$_POST["password"]=trim($_POST["password"]);
+	$SquidGuardWebAllowUnblockSinglePassContent=trim($sock->GET_INFO("SquidGuardWebAllowUnblockSinglePassContent"));
+	$SquidGuardWebAllowUnblockSinglePassContentMD=md5($SquidGuardWebAllowUnblockSinglePassContent);	
+	if($_POST["password"]<>$SquidGuardWebAllowUnblockSinglePassContentMD){
 		$tpl=new templates();
 		echo $tpl->javascript_parse_text("{failed}: {wrong_password}");
 		die();
@@ -1281,51 +1337,103 @@ function parseTemplate_SinglePassWord(){
 	$yahoo=$pp->YahooBody();
 	
 	$t=time();	
-	$html="
-	<html>
-	<head>
-		<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />
-		<title>$ask_password</title>
-		<meta http-equiv=\"X-UA-Compatible\" content=\"IE=EmulateIE7\" />
-		<link href='/css/styles_main.css'    rel=\"styleSheet\"  type='text/css' />
-		<link href='/css/styles_header.css'  rel=\"styleSheet\"  type='text/css' />
-		<link href='/css/styles_middle.css'  rel=\"styleSheet\"  type='text/css' />
-		<link href='/css/styles_tables.css'  rel=\"styleSheet\"  type='text/css' />
-		<link href=\"/css/styles_rounded.css\" rel=\"stylesheet\"  type=\"text/css\" />	
-		<link rel=\"stylesheet\" type=\"text/css\" href=\"/fonts.css.php\" />	
-		$head
-	</head>
-	<body style='background: url(\"/css/images/pattern.png\") repeat scroll 0pt 0pt rgb(38, 56, 73); padding: 0px; margin: 0px; border: 0px solid black; width: 100%; cursor: default; -moz-user-select: inherit;'>
-	$yahoo
-	<div id='div-$t'></div>
-	<table style='width:99%' class=form>
-	<tr>
-		<td class=legend style='font-size:16px'>{client}:</td>
-		<td style='font-size:16px'><strong>$clientaddr</strong></td>
-	</tr>	
-	<tr>
-		<td class=legend style='font-size:16px'>{website}:</td>
-		<td style='font-size:16px'><strong>$Whitehost</strong></td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:16px'>{password}:</td>
-		<td style='font-size:16px'>". Field_password("#nolock:PASS-$t",null,"font-size:16px",null,null,null,false,"SendPassCheck(event)")."</td>
-	</tr>	
-	<tr>
-		<td colspan=2 align='right'><hr>". button("{submit}","SendPass$t()",18)."</td>
-	</tr>
-	</table>
+	$unlock=$tpl->_ENGINE_parse_body("{unlock}");
+	$title="$unlock &laquo;$Whitehost&raquo;";
 	
-	<script>
-	var X_SendPass= function (obj) {
+	$html="<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">
+<html lang=\"en\">
+  <head>
+    <meta charset=\"utf-8\">
+    <title>$ask_password</title>
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <meta name=\"description\" content=\"\">
+    <meta name=\"author\" content=\"\">
+    <link rel=\"stylesheet\" type=\"text/css\" href=\"/bootstrap/css/bootstrap.css\">
+    <link rel=\"stylesheet\" type=\"text/css\" href=\"/bootstrap/css/bootstrap-responsive.css\">
+
+	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/mouse.js\"></script>
+	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/js/md5.js\"></script>
+	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/XHRConnection.js\"></script>
+	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/js/float-barr.js\"></script>
+	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/TimersLogs.js\"></script>
+	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/js/artica_confapply.js\"></script>
+	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/js/edit.user.js\"></script>
+	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/js/cookies.js\"></script>
+	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/default.js\"></script>    
+  	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/endusers/js/jquery-1.8.0.min.js\"></script>
+  	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/endusers/js/jquery-ui-1.8.23.custom.min.js\"></script>    
+   <style type=\"text/css\">
+     body {
+        padding-top: 40px;
+        padding-bottom: 40px;
+        background-color: #f5f5f5;
+      }
+
+      .form-signin {
+        max-width: 300px;
+        padding: 19px 29px 29px;
+        margin: 0 auto 20px;
+        background-color: #fff;
+        border: 1px solid #e5e5e5;
+        -webkit-border-radius: 5px;
+           -moz-border-radius: 5px;
+                border-radius: 5px;
+        -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+           -moz-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+                box-shadow: 0 1px 2px rgba(0,0,0,.05);
+      }
+      .form-signin .form-signin-heading,
+      .form-signin .checkbox {
+        margin-bottom: 10px;
+      }
+      .form-signin input[type=\"text\"],
+      .form-signin input[type=\"password\"] {
+        font-size: 16px;
+        height: auto;
+        margin-bottom: 15px;
+        padding: 7px 9px;
+      }
+    </style>    
+    <!--[if IE]>
+		<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/bootstrap/css/ie-only.css\" />
+	<![endif]-->    
+</head>
+<body>
+<input type='hidden' id='LoadAjaxPicture' name=\"LoadAjaxPicture\" value=\"{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/endusers/ajax-loader-eu.gif\">
+    
+
+      <div class=\"form-signin\">
+       <div id='div-$t'></div>
+        <h2 class=\"form-signin-heading\">$title</h2>
+        <input type=\"password\" class=\"input-block-level\" placeholder=\"Password\" id=\"PASS-$t\">
+        <button class=\"btn btn-large btn-primary\" type=\"button\" id=\"signin\">$unlock</button>
+      </div>
+
+    
+ 
+ <script type=\"text/javascript\">
+ 
+ $('#signin').on('click', function (e) {
+	 //if(!checkEnter(e)){return;}
+		SendPass$t();
+
+});
+ 
+ 
+ $('.input-block-level').keypress(function (e) {
+	
+	 if (e.which == 13) {
+		 SendPass$t();
+	 }
+
+});
+
+
+	var xSendPass$t= function (obj) {
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue);}
 		document.getElementById('div-$t').innerHTML='';
 		}
-
-	function SendPassCheck(e){
-		if(checkEnter(e)){SendPass$t();}
-	}
 		
 	function SendPass$t(){
 		var password=MD5(document.getElementById('PASS-$t').value);
@@ -1334,19 +1442,26 @@ function parseTemplate_SinglePassWord(){
 		XHR.appendData('CLIENT','$clientaddr');
 		XHR.appendData('Whitehost','$Whitehost');
 		AnimateDiv('div-$t');
-		XHR.sendAndLoad('$page', 'POST',X_SendPass);     		
-	}		
-	MessagesTophideAllMessages();
-	</script>
-	</body>
-	</html>";
-	
-	echo $tpl->_ENGINE_parse_body($html);
+		XHR.sendAndLoad('{$GLOBALS["JS_HEAD_PREPREND"]}/$page', 'POST',xSendPass$t);     		
+	}	
+
+ 
+ </script>
+
+</body>
+</html>";
+	echo $html;return;
+
 }
 
-function parseTemplate_categoryname($category,$license=0){
+function parseTemplate_categoryname($category,$license=0,$nosuffix=0){
+		$CATEGORY_PLUS_TXT=null;
+		parseTemplateLogs("parseTemplate_categoryname($category,$license)",__FUNCTION__,__FILE__,__LINE__);
 		$sock=new sockets();
 		$SquidGuardApacheShowGroupNameTXT=null;
+		
+		
+		
 		if($license==1){
 			$SquidGuardApacheShowGroupName=$sock->GET_INFO("SquidGuardApacheShowGroupName");
 			if(!is_numeric($SquidGuardApacheShowGroupName)){$SquidGuardApacheShowGroupName=0;}
@@ -1366,7 +1481,7 @@ function parseTemplate_categoryname($category,$license=0){
 		
 	
 		$category=strtolower(trim($category));
-		parseTemplateLogs("Parsing: `$category`",__FUNCTION__,__FILE__,__LINE__);
+		
 		include_once(dirname(__FILE__)."/ressources/class.ufdbguard-tools.inc");
 		
 		
@@ -1381,9 +1496,14 @@ function parseTemplate_categoryname($category,$license=0){
 			$category=CategoryCodeToCatName($category);
 			$CATEGORY_PLUS_TXT="Toulouse University Database";			
 		}
-		if($SquidGuardApacheShowGroupNameTXT<>null){$CATEGORY_PLUS_TXT=$SquidGuardApacheShowGroupNameTXT;}
+		parseTemplateLogs("Parsing: `$category` - $CATEGORY_PLUS_TXT nosuffix=$nosuffix",__FUNCTION__,__FILE__,__LINE__);
+		if($nosuffix==1){return $category;}
 		
-		return $category." (".$CATEGORY_PLUS_TXT.")";
+		if($SquidGuardApacheShowGroupNameTXT<>null){$CATEGORY_PLUS_TXT=$SquidGuardApacheShowGroupNameTXT;}
+		if($CATEGORY_PLUS_TXT<>null){
+			return $category." (".$CATEGORY_PLUS_TXT.")";
+		}
+		return $category;
 	}
 
 
@@ -1406,15 +1526,15 @@ function parseTemplate(){
 	if(!is_numeric($SquidGuardWebAllowUnblock)){$SquidGuardWebAllowUnblock=0;}
 	if(!is_numeric($SquidGuardWebFollowExtensions)){$SquidGuardWebFollowExtensions=1;}
 	if(!is_numeric($SquidGuardWebUseLocalDatabase)){$SquidGuardWebUseLocalDatabase=0;}
-	
-	
+	$CATEGORY_SOURCE=$_GET["category"];
+	$TARGET_GROUP_SOURCE=$_GET["targetgroup"];
 	
 	$proto="http";
 
 	if (isset($_SERVER['HTTPS'])){if (strtolower($_SERVER['HTTPS']) == 'on'){$proto="https";}}
 	
 	while (list ($num, $ligne) = each ($_GET) ){
-		parseTemplateLogs("$num=`$ligne`",__FUNCTION__,__FILE__,__LINE__);
+		parseTemplateLogs("GET[$num]=`$ligne`",__FUNCTION__,__FILE__,__LINE__);
 	}
 	
 	$GLOBALS["JS_NO_CACHE"]=true;
@@ -1440,34 +1560,46 @@ function parseTemplate(){
 	if($SquidGuardWebAllowUnblock==1){
 		if($SquidGuardWebAllowUnblockSinglePass==1){
 			$clientaddr=base64_encode($_GET["clientaddr"]);
-			$defaultjs="s_PopUp('{$GLOBALS["JS_HEAD_PREPREND"]}/". basename(__FILE__)."?SquidGuardWebAllowUnblockSinglePass=1&url=".base64_encode("{$_GET["url"]}")."&clientaddr=$clientaddr',450,250)";
+			$defaultjs="s_PopUp('{$GLOBALS["JS_HEAD_PREPREND"]}/". basename(__FILE__)."?SquidGuardWebAllowUnblockSinglePass=1&url=".base64_encode("{$_GET["url"]}")."&clientaddr=$clientaddr',640,350)";
 			$ADD_JS_PACK=true;
 		}
 	}
 	
 	if($SquidGuardWebUseLocalDatabase==1){
 		$clientaddr=base64_encode($_GET["clientaddr"]);
-		$defaultjs="s_PopUp('{$GLOBALS["JS_HEAD_PREPREND"]}/". basename(__FILE__)."?SquidGuardWebUseLocalDatabase=1&url=".base64_encode("{$_GET["url"]}")."&clientaddr=$clientaddr',500,250)";
+		$defaultjs="s_PopUp('{$GLOBALS["JS_HEAD_PREPREND"]}/". basename(__FILE__)."?SquidGuardWebUseLocalDatabase=1&url=".base64_encode("{$_GET["url"]}")."&clientaddr=$clientaddr',640,350)";
 		$ADD_JS_PACK=true;
 	}
 	
 	if($users->CORP_LICENSE){$LICENSE=1;}
 	if(!$users->CORP_LICENSE){$LICENSE=0;}
-	parseTemplateLogs("{$_GET["clientaddr"]}: Category=`{$_GET["category"]}` targetgroup=`{$_GET["targetgroup"]}` LICENSE:$LICENSE",__FUNCTION__,__FILE__,__LINE__);
+	parseTemplateLogs("{$_GET["clientaddr"]}: Category=`$CATEGORY_SOURCE` targetgroup=`{$_GET["targetgroup"]}` LICENSE:$LICENSE",__FUNCTION__,__FILE__,__LINE__);
+	$CATEGORY_KEY=null;
 	$_GET["targetgroup"]=parseTemplate_categoryname($_GET["targetgroup"],$LICENSE);
-	
+	$_GET["clientgroup"]=parseTemplate_categoryname($_GET["clientgroup"],$LICENSE);
+	$_GET["category"]=parseTemplate_categoryname($CATEGORY_SOURCE,$LICENSE);
+	$CATEGORY_KEY=parseTemplate_categoryname($CATEGORY_SOURCE,$LICENSE,1);
+	if($CATEGORY_KEY==null){
+		$CATEGORY_KEY=parseTemplate_categoryname($TARGET_GROUP_SOURCE,$LICENSE,1);
+	}
 
+	$_CATEGORIES_K=$_GET["category"];
+	$_RULE_K=$_GET["clientgroup"];
+	if($_CATEGORIES_K==null){$_CATEGORIES_K=$_GET["targetgroup"];}
+	if($_RULE_K==null){$_RULE_K="Web filtering";}
+	$REASONGIVEN="Web filtering $_CATEGORIES_K";
 	
+	parseTemplateLogs("{$REASONGIVEN}: _CATEGORIES_K=`$_CATEGORIES_K` _RULE_K=$_RULE_K` LICENSE:$LICENSE",__FUNCTION__,__FILE__,__LINE__);
 	
 	if($LICENSE==1){
-		if(isset($_GET["category"])){
-			$_GET["category"]=parseTemplate_categoryname($_GET["category"],$LICENSE);
-			$RedirectCategory=$UfdbGuardRedirectCategories[$_GET["category"]];
+		if($CATEGORY_KEY<>null){
+			$RedirectCategory=$UfdbGuardRedirectCategories[$CATEGORY_KEY];
 			
 			if($RedirectCategory["enable"]==1){
 				if($RedirectCategory["blank_page"]==1){
-					parseTemplateLogs("blank_page : For {$_GET["url"]}",__FUNCTION__,__FILE__,__LINE__);
-					header("HTTP/1.0 404 Not Found");
+					parseTemplateLogs("[$CATEGORY_KEY]: blank_page : For {$_GET["url"]}",__FUNCTION__,__FILE__,__LINE__);
+					header("HTTP/1.1 200 OK");
+					die();
 					return;
 				}
 				if(trim($RedirectCategory["template_data"])<>null){
@@ -1475,9 +1607,9 @@ function parseTemplate(){
 					$TemplateErrorFinal=$RedirectCategory["template_data"];
 					$TemplateErrorFinal=str_replace("-URL-",$_GET["url"],$TemplateErrorFinal);
 					$TemplateErrorFinal=str_replace("-IP-",$_GET["clientaddr"],$TemplateErrorFinal);
-					$TemplateErrorFinal=str_replace("-REASONGIVEN-","REASON:".$_GET["targetgroup"],$TemplateErrorFinal);
-					$TemplateErrorFinal=str_replace("-CATEGORIES-","<strong>Category:{$_GET["category"]}$CATEGORY_PLUS_TXT:</strong><div>Rule:{$_GET["targetgroup"]}</div>",$TemplateErrorFinal);
-					$TemplateErrorFinal=str_replace("-REASONLOGGED-","<strong>Rule:&nbsp;</strong>{$_GET["clientgroup"]}",$TemplateErrorFinal);
+					$TemplateErrorFinal=str_replace("-REASONGIVEN-","REASON:$REASONGIVEN",$TemplateErrorFinal);
+					$TemplateErrorFinal=str_replace("-CATEGORIES-","<strong>Category:$_CATEGORIES_K:</strong><div>Rule:{$_GET["targetgroup"]}</div>",$TemplateErrorFinal);
+					$TemplateErrorFinal=str_replace("-REASONLOGGED-","<strong>Rule:&nbsp;</strong>$_RULE_K",$TemplateErrorFinal);
 					$TemplateErrorFinal=str_replace("-BYPASS-","$defaultjs",$TemplateErrorFinal);				
 					return;
 				}
@@ -1487,7 +1619,12 @@ function parseTemplate(){
 		
 	if($LICENSE==1){$TemplateError=$sock->GET_INFO("DansGuardianHTMLTemplate");}
 	$EnableSquidFilterWhiteListing=$sock->GET_INFO("EnableSquidFilterWhiteListing");
-	if(strlen($TemplateError)<50){$TemplateError=@file_get_contents("/usr/share/artica-postfix/bin/install/dansguardian/template.html");}
+	if(strlen($TemplateError)<50){
+		$template_default_file=dirname(__FILE__)."/ressources/databases/dansguard-template.html";
+		$TemplateError=@file_get_contents($template_default_file);
+		parseTemplateLogs("TemplateError: -> `$template_default_file` ".strlen($TemplateError)." bytes",__FUNCTION__,__FILE__,__LINE__);
+	}	
+	
 	if(preg_match("#<body>(.+?)</body>#is",$TemplateError,$re)){$TemplateError=$re[1];}
 	
 	
@@ -1541,19 +1678,23 @@ function parseTemplate(){
 	
 	$TemplateErrorFinal="$TemplateErrorHeader$TemplateError\n</body>\n</html>";	
 	
+
+	
 	if(isset($_GET["fatalerror"])){
 		$_GET["clientaddr"]=$_SERVER["REMOTE_ADDR"];
 		$_GET["clientname"]=$_SERVER["REMOTE_HOST"];
-		$_GET["targetgroup"]="System Webfiltering error";
-		$_GET["clientgroup"]="Service Error";
+		$REASONGIVEN="Webfiltering issue";
+		$_CATEGORIES_K="System Webfiltering error";
+		$_RULE_K="Service Error";
 		$_GET["url"]=$_SERVER['HTTP_REFERER'];
 	}
 	
 	if(isset($_GET["loading-database"])){
 		$_GET["clientaddr"]=$_SERVER["REMOTE_ADDR"];
 		$_GET["clientname"]=$_SERVER["REMOTE_HOST"];
-		$_GET["targetgroup"]="Please wait, reloading databases";
-		$_GET["clientgroup"]="Waiting service....";
+		$REASONGIVEN="Webfiltering maintenance";
+		$_CATEGORIES_K="Please wait, reloading databases";
+		$_RULE_K="Waiting service....";
 		$_GET["url"]=$_SERVER['HTTP_REFERER'];		
 		
 	}
@@ -1565,7 +1706,6 @@ function parseTemplate(){
 	if($_GET["clientuser"]<>null){$_GET["clientname"]=$_GET["clientuser"];}
 	$TemplateErrorFinal=str_replace("-USER-",$_GET["clientname"],$TemplateErrorFinal);
 	$TemplateErrorFinal=str_replace("-HOST-",$_SESSION["IPRES"][$_GET["clientaddr"]],$TemplateErrorFinal);
-	$_GET["clientgroup"]=parseTemplate_categoryname($_GET["clientgroup"],$LICENSE);
 	$ruleName=parseTemplate_categoryname($ruleName,$LICENSE);
 	
 	
@@ -1574,13 +1714,13 @@ function parseTemplate(){
 		$ruleNameText="<strong>$ruleName:</strong>";
 	}
 	
-	
+
 	
 	$TemplateErrorFinal=str_replace("-URL-",$_GET["url"],$TemplateErrorFinal);
 	$TemplateErrorFinal=str_replace("-IP-",$_GET["clientaddr"],$TemplateErrorFinal);
 	$TemplateErrorFinal=str_replace("-REASONGIVEN-",$_GET["targetgroup"],$TemplateErrorFinal);
-	$TemplateErrorFinal=str_replace("-CATEGORIES-","$ruleNameText<div style='font-size:12px'>Category:&nbsp;{$_GET["targetgroup"]}$CATEGORY_PLUS_TXT</div>",$TemplateErrorFinal);
-	$TemplateErrorFinal=str_replace("-REASONLOGGED-","<strong>Rule:&nbsp;</strong>{$_GET["clientgroup"]}",$TemplateErrorFinal);
+	$TemplateErrorFinal=str_replace("-CATEGORIES-","$ruleNameText<div style='font-size:12px'>Category:&nbsp;$_CATEGORIES_K</div>",$TemplateErrorFinal);
+	$TemplateErrorFinal=str_replace("-REASONLOGGED-","<strong>Rule:&nbsp;</strong>$_RULE_K",$TemplateErrorFinal);
 	$TemplateErrorFinal=str_replace("-BYPASS-","javascript:$defaultjs",$TemplateErrorFinal);
 	if(strpos($TemplateErrorFinal,"-JSPACK-")>0){
 		include_once(dirname(__FILE__)."/ressources/class.page.builder.inc");
@@ -2647,11 +2787,7 @@ function UFDBGUARD_DOWNLOAD_ALL_CATEGORIES(){
 		if(!is_file("$directoryPath/domains.ufdb")){UFDBGUARD_COMPILE_SINGLE_DB("$directoryPath/domains");}
 	}
 	
-	if(is_file("/etc/init.d/ufdb")){
-		events_ufdb_tail("/etc/init.d/ufdb reconfig");
-		ufdbguard_admin_events("Service was sucessfully rebuiled and restarted",__FUNCTION__,__FILE__,__LINE__,"config");
-		build_ufdbguard_HUP();
-	}
+	build_ufdbguard_HUP();
 	
 
 }
@@ -3036,12 +3172,65 @@ function ufdbdatabases_in_mem(){
 	
 }
 
-function reload_131(){
+
+
+function stop_ufdbguard($aspid=false){
+	$unix=new unix();
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
 	
-	$cp=new compile_ufdbguard();
-	if(!$cp->Is31){return;}
-	shell_exec("/etc/init.d/ufdb reload");
+	$pid=ufdbguard_pid();
 	
+	
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
+		return;
+	}
+	$pid=ufdbguard_pid();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$kill=$unix->find_program("kill");
+	squid_admin_mysql(2, "Stopping Web Filtering engine service","");
+	
+	
+	
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
+	shell_exec("$kill $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=ufdbguard_pid();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+	
+	$pid=ufdbguard_pid();
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		return;
+	}
+	
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=ufdbguard_pid();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+	
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		return;
+	}
+
 }
 
 

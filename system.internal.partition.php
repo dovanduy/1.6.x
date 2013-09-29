@@ -468,7 +468,7 @@ function autofs_connect(){
 	
 
 	if($_GET["fs"]=="ext4"){
-		$prefix_pattern="-fstype=ext4,check=none,noatime,nodiratime,data=journal,user";
+		$prefix_pattern="-fstype=ext4,check=none,noatime,commit=60,nodiratime,data=journal,user";
 	}		
 	if($_GET["fs"]=="vfat"){
 		$prefix_pattern="-fstype=vfat,uid=1000,gid=1010";

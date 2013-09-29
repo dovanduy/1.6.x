@@ -116,7 +116,7 @@ function start($aspid=false){
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
-		shell_exec("$nohup /etc/init.d/ufdb reconfig >/dev/null 2>&1 &");
+		
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}

@@ -10,12 +10,18 @@ include_once(dirname(__FILE__) . '/ressources/class.mysql.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ccurl.inc');
 
+/*
+ * Haarp ./configure --prefix=/usr CXX=g++-4.4
+ * 
+ * 
+ */
+
 $unix=new unix();
 $GLOBALS["SHOW_COMPILE_ONLY"]=false;
 $GLOBALS["NO_COMPILE"]=false;
 $GLOBALS["REPOS"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
-if($argv[1]=='--compile'){$GLOBALS["SHOW_COMPILE_ONLY"]=true;}
+if($argv[1]=='--compile'){$GLOBALS["SHOW_COMPILE_ONLY"]=true;$GLOBALS["NO_COMPILE"]=true;}
 if(preg_match("#--no-compile#", @implode(" ", $argv))){$GLOBALS["NO_COMPILE"]=true;}
 if(preg_match("#--verbose#", @implode(" ", $argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--repos#", @implode(" ", $argv))){$GLOBALS["REPOS"]=true;}
@@ -207,7 +213,8 @@ shell_exec("$cp -rf /usr/share/squid-langpack/* /root/squid-builder/usr/share/sq
 shell_exec("$cp -rf /usr/sbin/squid /root/squid-builder/usr/sbin/squid");
 shell_exec("$cp -rf /usr/bin/purge /root/squid-builder/usr/bin/purge");
 shell_exec("$cp -rf /usr/bin/squidclient /root/squid-builder/usr/bin/squidclient");
-
+shell_exec("$cp -rf /usr/bin/mysar /root/squid-builder/usr/bin/mysar");
+shell_exec("$cp -rf /usr/sbin/vnstatd /root/squid-builder/usr/sbin/vnstatd");
 
 $f[]="/usr/sbin/haarp";
 $f[]="/etc/haarp/haarp.conf.default";
@@ -215,6 +222,8 @@ $f[]="/etc/init.d/haarpclean";
 $f[]="/etc/haarp/haarp.conf";
 $f[]="/etc/haarp/plugins";
 $f[]="/usr/sbin/cntlm";
+$f[]="/usr/lib/libmysqlclient.so.18";
+$f[]="/usr/lib/libmysqlclient.so.18.0.0";
 
 while (list ($num, $ligne) = each ($f) ){
 	if(is_dir($ligne)){

@@ -46,8 +46,8 @@ function page(){
 	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
 	$apply_network_configuration_warn=$tpl->javascript_parse_text("{apply_network_configuration_warn}");
 	$virtual_interfaces=$tpl->_ENGINE_parse_body("{virtual_interfaces}");
-
-
+	$reboot_network=$tpl->javascript_parse_text("{reboot_network}");
+	$users=new usersMenus();
 
 	$tablewidth=874;
 	$servername_size=412;
@@ -63,6 +63,7 @@ function page(){
 	buttons : [
 	{name: '<b>$new_virtual_ip$v4</b>', bclass: 'add', onpress : VirtualIPAdd$t},$new_virtual_ipv6
 	{name: '<b>$apply_network_configuration</b>', bclass: 'Reconf', onpress : BuildNetConf$t},
+
 	],";
 	$html="
 	<table class='table-$t' style='display: none' id='table-$t' style='width:100%;margin:-10px'></table>
@@ -115,6 +116,7 @@ $('#table-$t').flexigrid({
 			YahooWin2(windows_size,'system.nic.config.php?virtual-popup-add=yes&default-datas={$_GET["default-datas"]}&t=$t&function-after={$_GET["function-after"]}','$virtual_interfaces');
 		
 		}
+
 		
 		function VirtualIPAddv6$t(){
 			YahooWin2(windows_size,'system.nic.config.php?virtual-popup-addv6=yes&default-datas={$_GET["default-datas"]}&t=$t&function-after={$_GET["function-after"]}','$virtual_interfaces ipV6');
@@ -161,14 +163,9 @@ $('#table-$t').flexigrid({
 		}		
 
 		function BuildNetConf$t(){
-			var DisableNetworksManagement=$DisableNetworksManagement;
-			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}	
-			if(confirm('$apply_network_configuration_warn')){	
-				var XHR = new XHRConnection();
-				XHR.appendData('BuildNetConf',1);
-				if(document.getElementById('NetworkManager-status')){AnimateDiv('NetworkManager-status');}
-				XHR.sendAndLoad('system.nic.config.php', 'GET',X_BuildNetConf$t);
-			}
+			
+			Loadjs('network.restart.php?t=$t');	
+		
 		}
 		
 		var X_NetWorkBroadCastAsIpAddrSave= function (obj) {

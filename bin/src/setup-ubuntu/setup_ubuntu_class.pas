@@ -1000,7 +1000,7 @@ l.add('php5-dev'); // To compile PHP5
 l.add('librrd-dev');
 l.add('ucarp');
 l.add('iputils-arping');
-
+l.add('vde2');
 l.add('libmodule-build-perl');
 l.Add('librrds-perl');
 

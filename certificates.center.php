@@ -37,7 +37,7 @@
 	if(isset($_POST["save-crt"])){save_crt();exit;}
 	if(isset($_POST["save-Squidkey"])){save_Squidkey();exit;}
 	if(isset($_POST["save-SquidCert"])){save_SquidCert();exit;}
-	
+	if(isset($_POST["delete-certificate"])){certificate_delete();exit;}
 	
 	
 	if(isset($_POST["save-bundle"])){save_bundle();exit;}
@@ -91,7 +91,7 @@ function popup(){
 	$emailAddress=$tpl->javascript_parse_text("{emailAddress}");
 	$new_certificate=$tpl->javascript_parse_text("{new_certificate}");
 	$title=$tpl->_ENGINE_parse_body("{certificates_center}");
-	
+	$delete_certificate_ask=$tpl->javascript_parse_text("{delete_certificate_ask}");
 	$buttons="
 	buttons : [
 	{name: '$new_certificate', bclass: 'Add', onpress : new_certificate$t},
@@ -102,8 +102,8 @@ $html="
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 </div>
 <script>
-var rowid=0;
-$(document).ready(function(){
+var rowid$t='';
+function LoadTable$t(){
 $('#flexRT$t').flexigrid({
 	url: '$page?items=yes&t=$t',
 	dataType: 'json',
@@ -135,7 +135,7 @@ $('#flexRT$t').flexigrid({
 	rpOptions: [10, 20, 30, 50,100,200]
 	
 	});   
-});
+}
 
 function new_certificate$t(){
 	YahooWin3('700','$page?certificate-tabs=yes&t=$t&CommonName=&YahooWin=YahooWin3','$new_certificate');
@@ -143,6 +143,24 @@ function new_certificate$t(){
 function certificate$t(CommonName){
 	YahooWin3('895','$page?certificate-tabs=yes&t=$t&CommonName='+CommonName+'&YahooWin=YahooWin3',CommonName);
 }
+
+var xDeletSSlCertificate$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);return;};
+		$('#row'+rowid$t).remove();
+		
+	
+	}
+		
+function DeletSSlCertificate$t(CommonName,md5){
+		if(!confirm('$delete_certificate_ask')){return;}
+		var XHR = new XHRConnection();
+		rowid$t=md5;
+		XHR.appendData('delete-certificate',CommonName);
+		XHR.sendAndLoad('$page', 'POST',xDeletSSlCertificate$t);				
+	}
+	
+LoadTable$t();
 </script>
 ";
 
@@ -202,14 +220,14 @@ function items(){
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 	$zmd5=md5($ligne["filename"]);
-	$delete=imgsimple("delete-24.png","","DeleteFileNameHosting$t('{$ligne["filename"]}','$zmd5')");
+	$delete=imgsimple("delete-24.png","","DeletSSlCertificate$t('{$ligne["CommonName"]}','$zmd5')");
 	
 	
 	$urljs="<a href=\"javascript:blur();\" OnClick=\"javascript:certificate$t('{$ligne["CommonName"]}');\"
 	style='font-size:16px;color:$color;text-decoration:underline'>";
 	
 	$data['rows'][] = array(
-		'id' => "D$zmd5",
+		'id' => "$zmd5",
 		'cell' => array(
 			"<span style='font-size:16px;color:$color'>$urljs{$ligne["CommonName"]}</a></span>",
 			"<span style='font-size:16px;color:$color'>$urljs{$ligne["OrganizationName"]}</a></span>",
@@ -287,17 +305,7 @@ function certificate_tabs(){
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&CommonName=$CommonName&YahooWin={$_GET["YahooWin"]}&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 	}
 
-	echo "
-	<div id=main_config_certificate style='width:100%'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_certificate').tabs();
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_certificate");
 
 	
 }
@@ -349,7 +357,8 @@ function certificate_infos(){
 	if($ligne["CommonName"]==null){$ligne["CommonName"]=$users->hostname;}
 	$html="
 	<div id='$tt-adddis'></div>
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tbody>
 		<tr>
 			<td class=legend style='font-size:14px'>{commonName}:</strong></td>
@@ -397,6 +406,7 @@ function certificate_infos(){
 		</tr>
 		</tbody>
 	</table>
+	</div>
 	
 	<script>
 		var x_SaveSSLCert$tt=function (obj) {
@@ -443,6 +453,15 @@ function certificate_infos(){
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);
 }
+
+function certificate_delete(){
+	$q=new mysql();
+	$q->QUERY_SQL("DELETE FROM sslcertificates WHERE `CommonName`='{$_POST["delete-certificate"]}'","artica_backup");
+	if(!$q->ok){echo $q->mysql_error;}
+	
+	
+}
+
 function certificate_save(){
 	$q=new mysql();
 	$q->BuildTables();

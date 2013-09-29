@@ -719,12 +719,7 @@ writeln(milter_greylist.VERSION());
 halt(0);
 end;
 
-if ParamStr(2)='milter-greylist-pid' then
-begin
-milter_greylist:=tmilter_greylist.Create(SYS);
-writeln(milter_greylist.MILTER_GREYLIST_PID_PATH());
-halt(0);
-end;
+
 
 if ParamStr(2)='lighttpd' then
 begin

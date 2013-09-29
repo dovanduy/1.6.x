@@ -66,7 +66,7 @@ function ParseSizeBuffer($buffer){
 	if(preg_match("#GET cache_object#",$buffer)){return true;}
 	if(strpos($buffer, "TCP_DENIED:")>0){return;}
 	$hostname=null;
-	
+	if($GLOBALS["VERBOSE"]){events("\"$buffer\"");;}
 	if(!preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[(.+?)\]\s+"([a-z]+:|'.$PROTOS.')\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
 		events("Not filtered \"$buffer\"");
 		return;

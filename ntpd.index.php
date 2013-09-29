@@ -539,7 +539,7 @@ function ntpdservermove(){
 	}
 function ntpdserverdelete(){
 	$ntp=new ntpd();
-	$ntp->DeleteServer($_GET["ntpdservermove"]);
+	$ntp->DeleteServer($_GET["ntpdserverdelete"]);
 	}
 function NTPDEnabled(){
 	$sock=new sockets();

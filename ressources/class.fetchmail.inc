@@ -16,7 +16,7 @@ class fetchmail{
 		$ldap=new clladp();
 		$this->ISPS();
 		if(is_file(dirname(__FILE__) . '/settings.inc')){include(dirname(__FILE__) . '/settings.inc');
-		$this->GLOBAL_CONFIG=$_GLOBAL;}else{echo "unable to stat " . dirname(__FILE__) . "/settings.inc";}	
+		$this->GLOBAL_CONFIG=$_GLOBAL;}
 		$this->CreateDefaults();
 		
 	}

@@ -4,6 +4,7 @@ include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
 if(isset($_GET["restart-winbind-tenir"])){restart_winbind_tenir();exit;}
+if(isset($_GET["restart-network"])){restart_network();exit;}
 if(isset($_GET["CPU-NUMBER"])){CPU_NUMBER();exit;}
 if(isset($_GET["activedirectory-update"])){activedirectory_update();exit;}
 if(isset($_GET["realMemory"])){realMemory();exit;}
@@ -1860,6 +1861,17 @@ function mysql_repair_database(){
 	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/RepairMysql.log", "\n");
 	@chmod("/usr/share/artica-postfix/ressources/logs/web/RepairMysql.log",0777);
 	shell_exec("$nohup $php /usr/share/artica-postfix/exec.mysql.clean.php --corrupted --verbose >> /usr/share/artica-postfix/ressources/logs/web/RepairMysql.log 2>&1 &");
+	
+}
+
+function restart_network(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html", "\n");
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html",0777);
+	shell_exec("$nohup /etc/init.d/artica-ifup start >> /usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html 2>&1 &");
+		
 	
 }
 

@@ -380,6 +380,14 @@ class nginx{
 		return @implode("\n", $f)."\n";
 	}
 	
+	private function strip_slashes($directory){
+		if(preg_match("#^\/(.+?)\/$#",$directory,$re)){return $re[1];}
+		if(preg_match("#^\/(.+?)$#",$directory,$re)){return $re[1];}
+		if(preg_match("#^(.+?)\/$#",$directory,$re)){return $re[1];}
+		return $directory;
+		
+	}
+	
 	private function proxy_pass($cache_peer_id=null,$asregex=false,$folderid=0,$directory=null){
 		$q=new mysql_squid_builder();
 		$suffix=null;
@@ -394,10 +402,10 @@ class nginx{
 				if($GLOBALS["OUTPUT"]){echo "hostweb = `$hostweb`\n";}
 				if($ligne["local"]==0){
 					if(substr($hostweb, 0,1)=="/"){$suffix=$hostweb;}
-						if(strpos(" $hostweb", "http")>0){
-								$f[]="\t\tproxy_pass $hostweb;";
-								if($ligne["ForceRedirect"]==1){$f[]="\t\tproxy_redirect  $hostweb/   /;";}
-						}
+					if(strpos(" $hostweb", "http")>0){
+						$f[]="\t\tproxy_pass $hostweb;";	
+						if($ligne["ForceRedirect"]==1){$f[]="\t\tproxy_redirect  $hostweb/   /;";}
+					}
 				}
 				
 				return @implode("\n", $f);
@@ -435,7 +443,15 @@ class nginx{
 		
 		if($ipaddr==null){return null;}
 		$slash="/";
+		$directoryStriped=null;
+		
+		if($directory<>null){
+			$directoryStriped=$this->strip_slashes($directory)."/";
+			if($GLOBALS["OUTPUT"]){echo "$logprefix $directory = \"$directoryStriped\"\n";}
+		}
 		if($asregex){$slash=null;}
+		
+		
 		
 		if($GLOBALS["OUTPUT"]){echo "$logprefix Pass to = `{$http_prefix}://$ipaddr$port_suffix$suffix`\n";}
 		
@@ -455,7 +471,7 @@ class nginx{
 		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: [$cache_peer_id]: ForceRedirect = {$ligne["ForceRedirect"]}\n";}
 		if($ligne["ForceRedirect"]==1){
-			$f[]="\t\tproxy_redirect   {$http_prefix}://$ipaddr$port_suffix$suffix/   /;";
+			$f[]="\t\tproxy_redirect   {$http_prefix}://$ipaddr$port_suffix$suffix/   /$directoryStriped;";
 		}
 		return @implode("\n", $f);
 		
@@ -500,6 +516,30 @@ class nginx{
 		return false;
 	}
 	
+	
+	private function AUTHENTICATOR_DIRECTORY($authenticator_id,$directoryname){
+		if(!is_numeric($authenticator_id)){return;}
+		if($authenticator_id==0){return;}
+		$q=new mysql_squid_builder();
+		$directoryname=$this->strip_slashes($directoryname);
+		$sock=new sockets();
+		$NginxAuthPort=$sock->GET_INFO("NginxAuthPort");
+		if($NginxAuthPort==null){$NginxAuthPort="unix:/var/run/nginx-authenticator.sock";}
+		
+		if(preg_match("#^unix#", $NginxAuthPort)){
+			$array["REMOTE_FRAMEWORK"]="http://$NginxAuthPort:/authenticator.php";
+		}else{
+			$array["REMOTE_FRAMEWORK"]="http://$NginxAuthPort/authenticator.php";
+		}
+		
+		$groupes=$this->AUTHENTICATOR_GROUPS($authenticator_id);
+		$f[]="\n\t\tlocation = /$directoryname/ARTICAAUTHENTICATOR$authenticator_id {";
+		$f[]="\t\t\tproxy_pass {$array["REMOTE_FRAMEWORK"]}?uri=\$request_uri$groupes&servername=\$server_name;";
+		$f[]="\t\t}\n";
+		return @implode("\n", $f);
+	}
+	
+	
 	private function AUTHENTICATOR_PROXY(){
 		$q=new mysql_squid_builder();
 		$sock=new sockets();
@@ -538,19 +578,70 @@ class nginx{
 		
 		$array["LDAP_BANNER"]=urlencode(base64_encode($array["LDAP_BANNER"]));
 		
-		
-		$sql="SELECT cachetime FROM authenticator_rules WHERE ID='{$array["AUTHENTICATOR_RULEID"]}'";
-		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
-		$cachetime=$ligne["cachetime"];
-		$sesskey=time();
-		
+		$groupes=$this->AUTHENTICATOR_GROUPS($array["AUTHENTICATOR_RULEID"]);
+
 		$f[]="\tlocation = /ARTICAAUTHENTICATOR {";
-		$f[]="\t\tproxy_pass {$array["REMOTE_FRAMEWORK"]}?uri=\$request_uri&sesskey=$sesskey&ruleid={$array["AUTHENTICATOR_RULEID"]}&cachetime=$cachetime&servername=\$server_name&banner={$array["LDAP_BANNER"]};";
+		$f[]="\t\tproxy_pass {$array["REMOTE_FRAMEWORK"]}?uri=\$request_uri$groupes&servername=\$server_name&banner={$array["LDAP_BANNER"]};";
 		$f[]="\t}";
 		return @implode("\n", $f);
 				
 		
 	}
+	
+	
+	private function AUTHENTICATOR_GROUPS($ruleid){
+		$q=new mysql_squid_builder();
+		
+		$sql="SELECT cachetime FROM authenticator_rules WHERE ID='$ruleid'";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
+		$cachetime=$ligne["cachetime"];
+		$sesskey=time();
+		
+		$sql="SELECT
+		authenticator_sourceslnk.ID,
+		authenticator_sourceslnk.zorder,
+		authenticator_sourceslnk.groupid,
+		authenticator_groups.groupname,
+		authenticator_groups.group_type,
+		authenticator_groups.enabled
+		FROM authenticator_sourceslnk,authenticator_groups
+		WHERE authenticator_sourceslnk.ruleid='$ruleid'
+		AND authenticator_sourceslnk.groupid=authenticator_groups.ID
+		AND authenticator_groups.enabled=1
+		ORDER BY zorder";
+		
+		$results=$q->QUERY_SQL($sql);
+		if(!$q->ok){
+			echo "\n   ***** \nStarting......: [INIT]: nginx, $this->servername FATAL $q->mysql_error\n   ***** \n";
+		}
+		
+		echo "Starting......: [INIT]: nginx, Authenticator rule $ruleid ". mysql_num_rows($results)." groups\n";
+		
+		while ($ligne = mysql_fetch_assoc($results)) {
+			echo "Starting......: [INIT]: nginx, Authenticator {$ligne["groupid"]} = {$ligne["group_type"]}\n";
+			$GPS[$ligne["ID"]]=$ligne["group_type"];
+		}
+		
+		$sql="SELECT
+		authenticator_authlnk.ID,
+		authenticator_authlnk.zorder,
+		authenticator_auth.groupname,
+		authenticator_auth.group_type,
+		authenticator_authlnk.groupid
+		FROM authenticator_authlnk,authenticator_auth
+		WHERE authenticator_authlnk.ruleid='$ruleid' 
+		AND authenticator_authlnk.groupid=authenticator_auth.ID";
+		
+		$results=$q->QUERY_SQL($sql);
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$DES[$ligne["ID"]]=$ligne["group_type"];
+		}
+		
+		$gps_encoded=base64_encode(serialize($GPS));
+		$des_encoded=base64_encode(serialize($DES));
+		return "&ruleid=$ruleid&sesskey=$sesskey&gps=$gps_encoded&des=$des_encoded&cachetime=$cachetime";
+	}
+	
 	
 	private function AUTHENTICATOR_BASE(){
 		$q=new mysql_squid_builder();
@@ -736,23 +827,30 @@ class nginx{
 		
 		$proxy_cache=$this->keys_zone($ligne["storeid"]);
 		
-		if($GLOBALS["OUTPUT"]){echo "$logprefix storeid=[{$ligne["storeid"]}]\n";}
-		if($GLOBALS["OUTPUT"]){echo "$logprefix cache_peer_id=[{$ligne["cache_peer_id"]}]\n";}
+		if($GLOBALS["OUTPUT"]){echo "$logprefix storeid=[{$ligne["storeid"]}] [".__LINE__."]\n";}
+		if($GLOBALS["OUTPUT"]){echo "$logprefix cache_peer_id=[{$ligne["cache_peer_id"]}] [".__LINE__."]\n";}
+		if($GLOBALS["OUTPUT"]){echo "$logprefix folderid=[{$ligne["folderid"]}] [".__LINE__."]\n";}
+		if($GLOBALS["OUTPUT"]){echo "$logprefix authenticator=[{$ligne["authenticator"]}] [".__LINE__."]\n";}
+		
 		
 		
 		$proxy_pass=$this->proxy_pass($ligne["cache_peer_id"],$asregex,$ligne["folderid"],$ligne["directory"]);
 		
 		$forcedomain=$this->forcedomain($ligne["cache_peer_id"]);
 		if($forcedomain<>null){$HostHeader=$forcedomain;}
-		$dirpat=$directory;
-		if(preg_match("#\/(.+?)\/#", $directory,$re)){$dirpat=$re[1];}
+		$dirpat=$this->strip_slashes($directory);
+		
 			
 		
 		$f[]="location $directory {";
 		//$f[]="\t\tproxy_redirect off;";
 		if(!$asregex){
-			$f[]="\t\trewrite ^$directory(.*)$ /$1 break;";
+			$f[]="\t\trewrite ^$directory(.*) /$1 break;";
 		}
+		if($ligne["folderid"]>0){
+			$f[]=$this->replace_folder_rules($ligne["folderid"]);
+		}
+		$AUTHENTICATOR_DIRECTORY=$this->AUTHENTICATOR_DIRECTORY($ligne["authenticator"],$ligne["directory"]);
 		
 		
 		$replace_rules=$this->replace_rules_build($ligne["replaceid"]);
@@ -765,6 +863,17 @@ class nginx{
 		$f[]="\t\tproxy_hide_header \"Vary\";";
 		$f[]="\t\tadd_header \"Vary\" \"Accept-Encoding\";";
 		$f[]="\t\tproxy_set_header X-Forwarded-Ssl on;";
+		if($AUTHENTICATOR_DIRECTORY<>null){
+		$f[]="\t\tproxy_intercept_errors on;";
+		$f[]="\t\terror_page 403 /nginx.error.php?results-page=yes&ruleid={$ligne["authenticator"]}&uri=\$request_uri;";
+		$f[]="\t\tauth_request /$dirpat/ARTICAAUTHENTICATOR{$ligne["authenticator"]};";
+		$f[]="\t\tauth_request_set \$username \$upstream_http_x_username;";
+		}
+		
+		
+		
+		
+			
 		
 		
 		
@@ -776,6 +885,10 @@ class nginx{
 		$f[]=$this->proxy_parameters($ligne["cache_peer_id"]);
 		if($proxy_cache<>null){$f[]=$proxy_cache;}
 		if($proxy_pass<>null){$f[]=$proxy_pass;}
+		if($AUTHENTICATOR_DIRECTORY<>null){
+			$f[]=$AUTHENTICATOR_DIRECTORY;
+		}
+		
 		$f[]="}";
 		$f[]="";		
 		return @implode("\n", $f);
@@ -1076,7 +1189,7 @@ class nginx{
 		if(!$this->IsSubstitutions()){return null;}
 		$q=new mysql_squid_builder();
 		$f=array();
-		$sql="SELECT * FROM nginx_replace_www WHERE servername='$this->servername'";
+		$sql="SELECT * FROM nginx_replace_www WHERE servername='$this->servername' ORDER BY zorder";
 		$results=$q->QUERY_SQL($sql);
 		if(mysql_num_rows($results)==0){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: no main replace rule\n";}
@@ -1141,11 +1254,33 @@ class nginx{
 			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: Replace Group id:$id no rule\n";}
 			return null;}
 		return @implode("\n", $t);		
+	}
+	
+	private function replace_folder_rules($folderid){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: Folder ID:$folderid [".__LINE__."]\n";}
+		if(!is_numeric($folderid)){return;}
+		if($folderid==0){return;}
+		$q=new mysql_squid_builder();
+		$results=$q->QUERY_SQL("SELECT * FROM nginx_replace_folder WHERE folderid='$folderid' ORDER BY zorder");
+		$t=array();
+		if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, *** FATAL *** $q->mysql_error\n";}}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: Replace Folder id:$folderid ". mysql_num_rows($results)." rules\n";}
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$ligne["stringtosearch"]=stripslashes($ligne["stringtosearch"]);
+			$ligne["stringtosearch"]=str_replace("\"", '\"', $ligne["stringtosearch"]);
+			$ligne["replaceby"]=stripslashes($ligne["replaceby"]);
+			$ligne["replaceby"]=str_replace("\"", '\"', $ligne["replaceby"]);
+			if($GLOBALS["VERBOSE"]){echo "\"{$ligne["stringtosearch"]}\"\n";}
+			$f[]="\t\tsubs_filter {$ligne["stringtosearch"]}  {$ligne["replaceby"]} {$ligne["tokens"]};";
+		}
 		
 		
-		
+		return @implode("\n",$f);
 		
 	}
+	
+	
+	
 	private function ChekPool($ReverseProxyPattern){
 		$q=new mysql_squid_builder();
 		$http="http";

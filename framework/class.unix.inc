@@ -4,6 +4,7 @@ if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate insta
 include_once(dirname(__FILE__).'/class.ini-frame.inc');
 include_once("/usr/share/artica-postfix/ressources/class.sockets.inc");
 include_once("/usr/share/artica-postfix/ressources/class.ini.inc");
+include_once("/usr/share/artica-postfix/ressources/class.os.system.inc");
 include_once(dirname(__FILE__)."/class.hd.inc");
 if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate instantiate classes done...\n";}
 $GLOBALS["SSLKEY_PATH"]="/etc/ssl/certs/apache";
@@ -28,7 +29,8 @@ class unix {
 	var $proc_status;
 	
 	function unix(){
-		@date_default_timezone_set($this->getLocalTimezone());
+		$getLocalTimezone=$this->getLocalTimezone();
+		@date_default_timezone_set($getLocalTimezone);
 	}
 	
 
@@ -42,6 +44,15 @@ class unix {
 	
 	
 	private function getLocalTimezone(){
+		
+		if(is_file("/etc/artica-postfix/FROM_ISO")){
+			if(!is_file("/etc/artica-postfix/artica-iso-setup-launched")){
+				$GLOBALS["GET_TIME_ZONE"]="Europe/Dublin";
+				return $GLOBALS["GET_TIME_ZONE"];
+			}
+		}
+		
+		
 		if(isset($GLOBALS["GET_TIME_ZONE"])){if($GLOBALS["GET_TIME_ZONE"]<>null){return $GLOBALS["GET_TIME_ZONE"];}}
 		if(function_exists("debug_mem")){debug_mem();}else{if($GLOBALS["VERBOSE"]){print "Starting......: debug_mem no such function...\n";}}
 		$page=$this->CurrentPageName();
@@ -63,6 +74,7 @@ class unix {
 		$index = array_keys($zonelist, $offset);
 		if(sizeof($index)!=1){return;}
 		$GLOBALS["GET_TIME_ZONE"]=$index[0];
+		writelogs_framework("Define timezones -> {$GLOBALS["GET_TIME_ZONE"]}",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		@file_put_contents('/etc/artica-postfix/settings/Daemons/timezones', $index[0]);
 		$GLOBALS["GET_TIME_ZONE"]= $index[0];
 		return $GLOBALS["GET_TIME_ZONE"];
@@ -4979,6 +4991,30 @@ return $this->LOCATE_STUNNEL();
 		
 	}
 	
+	public function load_rt_table(){
+		$f=explode("\n", @file_get_contents("/etc/iproute2/rt_tables"));
+		while (list ($index, $line) = each ($f) ){
+			if(!preg_match("#([0-9]+)\s+(.+)#", $line,$re)){continue;}
+			$array[$re[2]]=$re[1];
+	
+		}
+			
+	
+	}
+	
+	public function last_rt_table_number(){
+		$c=0;
+		$f=explode("\n", @file_get_contents("/etc/iproute2/rt_tables"));
+		while (list ($index, $line) = each ($f) ){
+			if(!preg_match("#([0-9]+)\s+(.+)#", $line,$re)){continue;}
+			if($re[1]>253){continue;}
+			if($re[1]>$c){$c=$re[1];}
+		}
+	
+		return $c;
+	
+	}	
+	
 	public function LOCATE_mysqld_bin(){
 		if(isset($GLOBALS[__FUNCTION__])){return $GLOBALS[__FUNCTION__];}
 		$bin=$this->find_program('mysqld');
@@ -5307,7 +5343,8 @@ return $this->LOCATE_STUNNEL();
 	
 	
 	public function COUNT_FILES($directory){
-		if (!$handle = opendir($directory)) {return 0;}
+		if(!is_dir($directory)){return 0;}
+		if (!$handle = @opendir($directory)) {return 0;}
 		$c=0;
 		while (false !== ($filename = readdir($handle))) {
 			if($filename=="."){continue;}
@@ -5328,7 +5365,7 @@ public	function getDirectories($directory){
 		return;
 	}
 	$array_items = array();
-	if ($handle = opendir($directory)) {
+	if ($handle = @opendir($directory)) {
 		while (false !== ($file = readdir($handle))) {
 			if ($file != "." && $file != "..") {
 				if (is_dir($directory. "/" . $file)) {
@@ -6494,6 +6531,9 @@ function rotate_events($text=null,$function=null,$file=null,$line=null,$category
 }
 
 function squid_admin_mysql($severity,$subject,$text,$file=null,$line=0){
+	
+	// 0 -> RED, 1 -> WARN, 2 -> INFO
+	
 	if(function_exists("debug_backtrace")){
 		$trace=debug_backtrace();
 		if(isset($trace[1])){

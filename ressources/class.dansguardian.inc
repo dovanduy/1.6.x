@@ -1148,9 +1148,10 @@ class dansguardian_rules{
 		$update=false;
 		include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");
 		$q=new mysql_squid_builder();
+		
 		if($q->COUNT_ROWS("webfilters_categories_caches")==0){$update=true;}
 		
-		if($GLOBALS["VERBOSE"]){echo "webfilters_categories_caches: ".$q->COUNT_ROWS("webfilters_categories_caches")."<br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<H2>class.dansguardian.inc/".__FUNCTION__." webfilters_categories_caches: ".$q->COUNT_ROWS("webfilters_categories_caches")."</H2><br>\n";}
 		
 		if(!$update){return;}
 		$tpl=new templates();
@@ -1175,9 +1176,9 @@ class dansguardian_rules{
 		$sql="SELECT * FROM personal_categories";
 		$results=$q->QUERY_SQL($sql);
 		if(!$q->ok){
-			if($GLOBALS["VERBOSE"]){echo $q->mysql_error."<br>\n";}
+				if($GLOBALS["VERBOSE"]){echo "<H2>class.dansguardian.inc/".__FUNCTION__." $q->mysql_error<br></H2>\n";}
 		}
-		if($GLOBALS["VERBOSE"]){echo "personal_categories: ".mysql_num_rows($results)."<br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<H2>class.dansguardian.inc/".__FUNCTION__." personal_categories: ".mysql_num_rows($results)."<br>\n";}
 		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$master_category=$ligne["master_category"];
@@ -1190,8 +1191,16 @@ class dansguardian_rules{
 			
 		}
 		
+		$final=$prefix.@implode(",", $f);
 		
-		$q->QUERY_SQL($prefix.@implode(",", $f));
+		
+		$q->QUERY_SQL($final);
+		if(!$q->ok){
+			if(strpos($q->mysql_error, "doesn't exist")>0){
+				$q->create_webfilters_categories_caches(true);
+			}
+		}
+		
 		reset($this->arrayGroups);
 		reset($this->array_blacksites);
 	}

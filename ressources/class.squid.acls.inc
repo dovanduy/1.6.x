@@ -353,7 +353,7 @@ class squid_acls{
 		$sql="SELECT template_name,lang,template_link,template_uri FROM squidtpls WHERE `zmd5`='$acltpl'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$tplname=$ligne["template_name"];
-		if(!preg_match("#ERR_.+#", $ligne["template_name"])){$ligne["template_name"]="ERR_".$ligne["template_name"];}
+		if(!preg_match("#^ERR_.+#", $ligne["template_name"])){$ligne["template_name"]="ERR_".$ligne["template_name"];}
 		$template_path="/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}";
 		if($ligne["template_link"]==1){
 			$freeWebsLink="?a=%a&e=%e&ee=%E&www=%H&url=%R&x=%x&T=$acltpl&M=%M";

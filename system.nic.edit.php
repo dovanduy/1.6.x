@@ -19,6 +19,9 @@
 	if(isset($_GET["ipconfig-v6"])){ipconfig_nic6();exit;}
 	if(isset($_GET["ipconfig-routes"])){ipconfig_routes();exit;}
 	if(isset($_GET["ifconfig-route-list"])){ipconfig_routes_list();exit;}
+	if(isset($_GET["ifconfig-route-add-js"])){ipconfig_routes_add_js();exit;}
+	if(isset($_GET["ifconfig-route-add-popup"])){ipconfig_routes_add_popup();exit;}
+	
 	if(isset($_POST["add-routes"])){ipconfig_routes_add();exit;}
 	if(isset($_GET["del-routes"])){ipconfig_routes_del();exit;}	
 	if(isset($_POST["ipv6-enable"])){UseIpv6();exit;}
@@ -240,6 +243,9 @@ function ipconfig_nic(){
 		<td class=legend style='font-size:14px'>{enable_ids}:</td>
 		<td width=1%>" . Field_checkbox('UseSnort',1,$snortInterfaces[$eth],'SwitchSnort()')."</td>
 	</tr>
+				
+				
+				
 	</tr>
 	</table>
 	
@@ -259,6 +265,10 @@ function ipconfig_nic(){
 		<tr>
 			<td class=legend style='font-size:14px'>{gateway}:</td>
 			<td>" . field_ipv4("GATEWAY",$nic->GATEWAY,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{default_gateway}:</td>
+			<td>" . Field_checkbox("defaultroute-$t",1,$nic->defaultroute)."</td>
 		</tr>
 		<tr>
 			<td class=legend style='font-size:14px'>{metric}:</td>
@@ -313,6 +323,7 @@ function ipconfig_nic(){
 			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}
 			if(document.getElementById('dhcp').checked){XHR.appendData('dhcp','1');}else{XHR.appendData('dhcp','0');}
 			if(document.getElementById('enabled').checked){XHR.appendData('enabled','1');}else{XHR.appendData('enabled','0');}
+			if(document.getElementById('defaultroute-$t').checked){XHR.appendData('defaultroute','1');}else{XHR.appendData('defaultroute','0');}
 			XHR.appendData('IPADDR',document.getElementById('IPADDR').value);
 			XHR.appendData('NETMASK',document.getElementById('NETMASK').value);
 			XHR.appendData('GATEWAY',document.getElementById('GATEWAY').value);
@@ -501,6 +512,9 @@ function save_nic(){
 	$nics->dhcp=$_GET["dhcp"];
 	$nics->metric=$_GET["metric"];
 	$nics->enabled=$_GET["enabled"];
+	if(isset($_GET["defaultroute"])){
+		$nics->defaultroute=$_GET["defaultroute"];
+	}
 
 	if(isset($_GET["Bridged"])){
 		$nics->Bridged=$_GET["Bridged"];
@@ -528,9 +542,107 @@ function save_nic(){
 }
 
 function ipconfig_routes(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$webfilter=new webfilter_rules();
+	$t=time();
+	$new_route=$tpl->_ENGINE_parse_body("{new_route}");
+	$rule_text=$tpl->_ENGINE_parse_body("{rule}");
+	$TimeSpace=$webfilter->TimeToText(unserialize(base64_decode($ligne["TimeSpace"])));
+	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	$groups=$tpl->_ENGINE_parse_body("{groups}");
+	$gateway=$tpl->_ENGINE_parse_body("{gateway}");
+	$whitelists=$tpl->_ENGINE_parse_body("{whitelists}");
+	$delete=$tpl->_ENGINE_parse_body("{delete}");
+	$action_delete_rule=$tpl->javascript_parse_text("{action_delete_rule}");
+	$from_ip_address=$tpl->_ENGINE_parse_body("{from_ip_address}");
+	$service_events=$tpl->_ENGINE_parse_body("{service_events}");
+	$global_parameters=$tpl->_ENGINE_parse_body("{global_parameters}");
+	$ldap_parameters=$tpl->_ENGINE_parse_body("{ldap_parameters2}");
+	$config_file=$tpl->_ENGINE_parse_body("{config_file}");
+	$categories_group=$tpl->_ENGINE_parse_body("{categories_groups}");
+	
+	$error_ldap=null;
+	$buttons="
+	buttons : [
+	{name: '<strong style=font-size:12px;>$new_route</strong>', bclass: 'add', onpress : NewRoute$t},
+	
+	
+	],";
+	
+	
+	
+	$html="
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+	</div>
+	<script>
+var rowid$t=0;
+function flexRTStart$t(){
+	$('#flexRT$t').flexigrid({
+		url: '$page?ifconfig-route-list=yes&t=$t&nic={$_GET["nic"]}',
+		dataType: 'json',
+		colModel : [
+		{display: '$from_ip_address', name : 'from_ip_address', width : 221, sortable : false, align: 'left'},
+		{display: '$gateway', name : 'gateway', width :115, sortable : false, align: 'left'},
+		{display: '$delete', name : 'delete', width : 31, sortable : false, align: 'center'},
+		],
+		$buttons
+		searchitems : [
+		{display: '$from_ip_address', name : 'from_ip_address'},
+		],
+		sortname: 'zOrder',
+		sortorder: 'asc',
+		usepager: true,
+		title: '',
+		useRp: true,
+		rp: 50,
+		showTableToggleBtn: false,
+		width: 430,
+		height: 300,
+		singleSelect: true,
+		rpOptions: [10, 20, 30, 50,100,200]
+		});
+}
+	
+	
+	function NewRoute$t(){
+		Loadjs('$page?ifconfig-route-add-js=yes&t=$t&nic={$_GET["nic"]}');
+	}
+	
+
+var xDeleteRoute$t= function (obj) {
+		var res=obj.responseText;
+		if (res.length>3){alert(res);}
+		$('#row'+rowid$t).remove();
+	}
+	
+function DeleteRoute$t(ip,id){
+	rowid$t=id;
+	if(confirm('$delete '+ip)){
+		var XHR = new XHRConnection();		
+		XHR.appendData('del-routes','yes');
+		XHR.appendData('nic','{$_GET["nic"]}');
+		XHR.appendData('IP',ip);
+		XHR.sendAndLoad('$page', 'GET',xDeleteRoute$t);	
+	}
+}
+	
+setTimeout('flexRTStart$t()',800);
+</script>
+	
+	";
+	
+	echo $html;
+	
+	}
+
+function ipconfig_routes_add_popup(){
 	$ip=new networking();
 	$eth=$_GET["nic"];
 	$nic=$_GET["nic"];
+	$t=$_GET["t"];
 	$page=CurrentPageName();
 	$arrayNic=$ip->GetNicInfos($eth);
 	$page=CurrentPageName();
@@ -540,50 +652,49 @@ function ipconfig_routes(){
 	if($users->AsSystemAdministrator){$AsNetworksAdministrator=1;}else{$AsNetworksAdministrator=0;}
 
 	$html="
-	<center>
-	<table style='width:100px' class=form id='routes-$eth'>
+	<center style='margin:20px'>
+	<div id='id='routes-$eth'></div>
+	<div style='width:95%' class=form>
+	<table style='width:100%' >
 		<tr>
-			<td class=legend width=1% nowrap>{from_ip_address}:</td>
-			<td width=1% nowrap>" . field_ipv4("route-network", null,"font-size:16px")."</td>
+			<td class=legend width=1% nowrap style='font-size:16px'>{from_ip_address}:</td>
+			<td width=1% nowrap>" . field_ipv4("route-network-$t", null,"font-size:16px")."</td>
 		 </tr>
 		 <tr>
-			<td class=legend>{netmask}:</td>
-			<td width=1% nowrap>" . field_ipv4("route-mask", null,"font-size:16px")."</td>
+			<td class=legend style='font-size:16px'>{netmask}:</td>
+			<td width=1% nowrap>" . field_ipv4("route-mask-$t", null,"font-size:16px")."</td>
 		 </tr>
 		<tr>
-			<td class=legend width=1% nowrap>{gateway}:</td>
-			<td width=1% nowrap>" . field_ipv4("route-gateway", null,"font-size:16px")."</td>	 
+			<td class=legend width=1% nowrap style='font-size:16px'>{gateway}:</td>
+			<td width=1% nowrap>" . field_ipv4("route-gateway-$t", null,"font-size:16px")."</td>	 
 		</tr>	
-			<td colspan=8 align='right' ><hr>". button("{add}","AddRouteIpNic{$_GET["nic"]}()")."</td>
+			<td colspan=8 align='right' ><hr>". button("{add}","AddRouteIpNic$t()",18)."</td>
 		</tr>		 				
 	</table>	
+	</div>
 	</center>
-	
-	<div id='routes-list-{$_GET["nic"]}' style='height:200px;width:100%;overflow:auto'></div>
-	
-	<script>
-		var x_AddRouteIpNic{$_GET["nic"]}= function (obj) {
-			var results=obj.responseText;
-			if(results.length>0){alert(results);return;}
-			RefreshTab('main_config_$nic');
-			
-			
-			}		
+<script>
+var x_AddRouteIpNic$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);return;}
+	YahooWin6Hide();
+	$('#flexRT$t').flexReload();
+}		
 	
 	
-		function AddRouteIpNic{$_GET["nic"]}(){
-			var AsNetworksAdministrator='$AsNetworksAdministrator';
-			if(AsNetworksAdministrator!=='1'){alert('$ERROR_NO_PRIVS');return;}				
-			var XHR=XHRParseElements('routes-{$_GET["nic"]}');
-			XHR.appendData('add-routes','yes');
-			XHR.appendData('eth','{$_GET["nic"]}');
-			XHR.appendData('nic','{$_GET["nic"]}');
-			XHR.sendAndLoad('$page', 'POST',x_AddRouteIpNic{$_GET["nic"]});		
-		
-		}
-	
-	LoadAjax('routes-list-{$_GET["nic"]}','$page?ifconfig-route-list=yes&nic={$_GET["nic"]}');
-	</script>";
+function AddRouteIpNic$t(){
+	var AsNetworksAdministrator='$AsNetworksAdministrator';
+	if(AsNetworksAdministrator!=='1'){alert('$ERROR_NO_PRIVS');return;}	
+	var XHR = new XHRConnection();				
+	XHR.appendData('add-routes','yes');
+	XHR.appendData('eth','{$_GET["nic"]}');
+	XHR.appendData('nic','{$_GET["nic"]}');
+	XHR.appendData('route-network',document.getElementById('route-network-$t').value);
+	XHR.appendData('route-mask',document.getElementById('route-mask-$t').value);
+	XHR.appendData('route-gateway',document.getElementById('route-gateway-$t').value);
+	XHR.sendAndLoad('$page', 'POST',x_AddRouteIpNic$t);		
+}
+</script>";
 	echo $tpl->_ENGINE_parse_body($html);	
 	
 }
@@ -602,63 +713,53 @@ function ipconfig_routes_list(){
 	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");	
  	if(!is_array($routes)){return null;}
  	$page=CurrentPageName();
+ 	$t=$_GET["t"];
+ 	$c=0;
  	
- 	$html="
- 	<br>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-	<th nowrap>{from_ip_address}</th>
-	<th nowrap>{gateway}</th>
-	<th nowrap>&nbsp;</th>
-	
-	</tr>
-</thead>
-<tbody class='tbody'>" ;
- $classtr=null;	
+ 	$data = array();
+ 	$data['page'] = 1;
+ 	$data['total'] = $c;
+ 	$data['rows'] = array();
+ 	$searchstring=null;
+ 	if($_POST["query"]<>null){
+ 		$searchstring=str_replace(".", "\.", $_POST["query"]);
+ 		$searchstring=str_replace("*", ".*?", $_POST["query"]);
+ 		$searchstring=str_replace("/", "\/", $_POST["query"]);
+ 	}
  	
- 	
-	   	 while (list ($ip, $ip_array) = each ($routes) ){
-	   	 if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}	
-	   	 $delete=imgtootltip("delete-24.png","{delete}","Delete{$_GET["nic"]}Route('$ip')");
-	   	 if(isset($ip_array["DEV"])){$ip_array["GATEWAY"]=$ip_array["DEV"];}
-		$html=$html."
-			<tr class=$classtr>
-			<tr>
-				<td style='font-size:14px;font-weight:bold' width=75% nowrap>$ip/{$ip_array["NETMASK"]}</a></td>
-				<td style='font-size:14px;font-weight:bold' width=35% nowrap>{$ip_array["GATEWAY"]}</td>
-				<td style='font-size:12px' width=1%>$delete</td>
-			</tr>";
+ 	while (list ($ip, $ip_array) = each ($routes) ){	
+ 		$id=md5($ip);
+ 		$color="black";
+ 		$delete=imgtootltip("delete-24.png","{delete}","DeleteRoute$t('$ip','$id')");
+ 		if(isset($ip_array["DEV"])){$ip_array["GATEWAY"]=$ip_array["DEV"];}
+ 		
+ 		if($searchstring<>null){
+ 			if(!preg_match("#$searchstring#", "$ip/{$ip_array["NETMASK"]}")){continue;}
+ 		}
+ 		
+ 		$data['rows'][] = array(
+ 			'id' => $id,
+ 			'cell' => array(
+ 					"<span style='font-size:14px;color:$color;'>$ip/{$ip_array["NETMASK"]}</span>",
+ 					"<span style='font-size:14px;color:$color;'>{$ip_array["GATEWAY"]}</a></span>",
+ 					$delete )
+ 			);
+ 		$c++;
+ 	} 	
+ 	$data['total'] = $c;
+ 	echo json_encode($data); 	
+}
 
-	   	}
-	   	
-	$html=$html."</table>
-	
-	<script>
-		
-		var x_Delete{$_GET["nic"]}Route= function (obj) {
-			var results=obj.responseText;
-			if(results.length>0){alert(results);return;}
-			RefreshTab('main_config_$nic');
-		}		
-	
-	
-		function Delete{$_GET["nic"]}Route(ip){
-			var AsNetworksAdministrator='$AsNetworksAdministrator';
-			if(AsNetworksAdministrator!=='1'){alert('$ERROR_NO_PRIVS');return;}		
-			var XHR = new XHRConnection();		
-			XHR.appendData('del-routes','yes');
-			XHR.appendData('nic','{$_GET["nic"]}');
-			XHR.appendData('IP',ip);
-			XHR.sendAndLoad('$page', 'GET',x_Delete{$_GET["nic"]}Route);		
-		
-		}		
-	</script>
-	";   	
-	
-	echo $tpl->_ENGINE_parse_body($html);	
+function ipconfig_routes_add_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{new_route}");
+	$html="YahooWin6('500','$page?ifconfig-route-add-popup=yes&t={$_GET["t"]}&nic={$_GET["nic"]}','$title');";
+	echo $html;	
 	
 }
+
 function ipconfig_routes_add(){
 	$user=new usersMenus();
 	$tpl=new templates();

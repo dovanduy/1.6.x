@@ -562,6 +562,9 @@ function group_list(){
 			case "src":
 				$FORCE_FILTER="AND GroupType='src'";
 				break;
+			case "dstdomain":
+				$FORCE_FILTER="AND GroupType='dstdomain'";
+				break;				
 			case "MAC":
 				$FORCE_FILTER="AND GroupType='arp'";
 				break;

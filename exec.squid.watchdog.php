@@ -26,6 +26,7 @@ include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/framework/class.settings.inc');
+include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 
 
 	$GLOBALS["ARGVS"]=implode(" ",$argv);
@@ -184,6 +185,8 @@ function start_watchdog(){
 	ntlmauthenticator();
 	CheckOldCachesLog();
 	DeletedCaches();
+	squid_stores_status();
+	squid_mem_status();
 	
 	if($MonitConfig["watchdog"]==0){
 		if($GLOBALS["VERBOSE"]){echo "Watchdog is disabled...\n";}
@@ -518,9 +521,19 @@ function PING_GATEWAY(){
 
 
 function SwapCache($MonitConfig){
+	
+	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
 	if($MonitConfig["MaxSwapPourc"]==0){return;}
 	if($MonitConfig["MaxSwapPourc"]>99){return;}
+	
 	$unix=new unix();
+	if($unix->file_time_min($pidtime)<59){return;}
+	@unlink($pidtime);
+	@file_put_contents($pidtime, time());
+	
+	
+	
 	$free=$unix->find_program("free");
 	$echo=$unix->find_program("echo");
 	$sync=$unix->find_program("sync");
@@ -553,6 +566,7 @@ function SwapCache($MonitConfig){
 	Events("Swap: $used/$total {$perc}% Rule {$MonitConfig["MaxSwapPourc"]}%");
 	
 	if($perc>$MonitConfig["MaxSwapPourc"]){
+		$t=time();
 		Events("Swap exceed rule: {$perc}% flush the swap...");
 		shell_exec("$echo \"3\" > /proc/sys/vm/drop_caches");
 		sleep(5);
@@ -561,9 +575,10 @@ function SwapCache($MonitConfig){
 		shell_exec("$swapoff -a");
 		shell_exec("$swapon -a");
 		$usedTXT=FormatBytes($used);
+		$distance=$unix->distanceOfTimeInWords($t,time(),true);
 		Events("Flush the swap done...");
-		squid_admin_mysql(1,"System swap exceed rule: {$perc}%","$usedTXT\nArtica have flush the Swap cache.");
-		squid_admin_notifs("Swap exceed rule: {$perc}% $usedTXT\nArtica have flush the Swap cache.", __FUNCTION__, __FILE__, __LINE__, "proxy");
+		squid_admin_mysql(1,"System swap exceed rule: {$perc}%","$usedTXT\nSystem cache was flushed took $distance\nThis means you did have enough memory for this computer.");
+		squid_admin_notifs("Swap exceed rule: {$perc}% $usedTXT\nSystem cache was flushed.", __FUNCTION__, __FILE__, __LINE__, "proxy");
 	}
 	        
 }
@@ -808,13 +823,13 @@ function MemBoosters(){
 	$CACHE=array();
 	exec("$df -h  /var/cache/MemBooster* 2>&1",$results);
 	while (list ($num, $ligne) = each ($results) ){
-		if(preg_match("#tmpfs\s+([0-9A-Z]+)\s+([0-9A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9\.]+)%\s+.*?MemBooster([0-9]+)#", $ligne,$re)){
+		if(preg_match("#tmpfs\s+([0-9\.A-Z]+)\s+([0-9\.A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9\.]+)%\s+.*?MemBooster([0-9]+)#", $ligne,$re)){
 			$CACHE[$re[5]]["SIZE"]=$re[1];
 			$CACHE[$re[5]]["USED"]=$re[2];
 			$CACHE[$re[5]]["POURC"]=$re[4];
 			continue;
 			
-		}	else{
+		}else{
 			if($GLOBALS["VERBOSE"]){echo "Unknwon line \"$ligne\"\n";}
 		}
 	}
@@ -2154,6 +2169,246 @@ function peer_dead($parent){
 	SendLogs("Stamp parent $parent to disabled in database..");
 	$sql="UPDATE squid_parents SET enabled=0 WHERE servername='$parent'";
 	$q->QUERY_SQL($sql,"artica_backup");
+}
+function squid_get_storage_info(){
+	if(isset($GLOBALS["squid_get_storage_info"])){return $GLOBALS["squid_get_storage_info"];}
+	$unix=new unix();
+	$dats=null;
+	$StoreDirCache="/etc/squid3/squid_storedir_info.db";
+	if($unix->file_time_min($StoreDirCache)<10){
+		$dats=unserialize(@file_get_contents($StoreDirCache));
+	}
+
+
+	if(!is_array($dats)){$dats=array();}
+	if(count($dats)<1){
+		$results=explode("\n",$unix->squidclient("storedir"));
+		writelogs_framework("$StoreDirCache not an array  = ".count($results)." items...",__FUNCTION__,__FILE__,__LINE__);
+		$dirs=0;
+		while (list($num,$ligne)=each($results)){
+			if(preg_match("#Current Capacity.*?:\s+([0-9\.]+)%\s+used#",$ligne,$re)){$CURCAP=trim($re[1]);continue;}
+			if(preg_match("#Store Directory.*?:\s+(.+)#", $ligne,$re)){$StoreDir=trim($re[1]);$dirs++;continue;}
+			if(preg_match("#Percent Used:\s+([0-9\.]+)%#", $ligne,$re)){$dats[$StoreDir]["PERC"]=$re[1];continue;}
+			if(preg_match("#Maximum Size:\s+([0-9\.]+)#", $ligne,$re)){$dats[$StoreDir]["SIZE"]=$re[1];continue;}
+			if(preg_match("#Shared Memory Cache#", $ligne)){$StoreDir="MEM";continue;}
+				
+			if(preg_match("#Current entries:\s+([0-9\.]+)\s+([0-9\.]+)%#",$ligne,$re)){
+				$dats[$StoreDir]["ENTRIES"]=$re[1];
+				$dats[$StoreDir]["PERC"]=$re[2];
+			}
+
+
+		}
+
+		if($dirs==0){
+			if($CURCAP<>null){
+				$dats["CURCAP"]=$CURCAP;
+			}
+		}
+
+		@unlink($StoreDirCache);
+		if(is_array($dats)){
+			writelogs_framework("Saving new array in $StoreDirCache",__FUNCTION__,__FILE__,__LINE__);
+			file_put_contents($StoreDirCache, serialize($dats));
+		}
+	}
+	$GLOBALS["squid_get_storage_info"]=base64_encode(serialize($dats));
+	return $GLOBALS["squid_get_storage_info"];
+}
+
+function squid_stores_status(){
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/squid_stores_status.html";
+	$StoreDirs=unserialize(base64_decode(squid_get_storage_info()));
+
+	@unlink($cachefile);
+	while (list($directory,$arrayStore)=each($StoreDirs)){
+		if($directory=="MEM"){continue;}
+		if($directory=="CURCAP"){
+			$TTR[]="<tr>
+		<td style='font-weight:bold;font-size:12px' align='right'>{capacity}:</td>
+		<td style='font-weight:bold;font-size:12px'>&nbsp;</td>
+				</tr>
+				<tr>
+					<td>&nbsp;</td>
+					<td>". pourcentage($arrayStore,10)."</td>
+				</tr>";
+				
+				
+				
+			continue;}
+
+			$directory=basename($directory);
+			$TTR[]="<tr>
+			<td style='font-weight:bold;font-size:12px' align='right'>$directory:</td>
+			<td style='font-weight:bold;font-size:12px'>". FormatBytes($arrayStore["SIZE"])."</td>
+				</tr>
+				<tr>
+					<td>&nbsp;</td>
+					<td>". pourcentage($arrayStore["PERC"],10)."</td>
+				</tr>";
+
+	}
+
+	if(count($TTR)>0){
+		$datas=RoundedLightGreen("<div style='min-height:147px'>
+		<table style='width:100%'>".@implode($TTR, "\n")."</table></div>")."<br>";
+		@mkdir(dirname($cachefile),0755);
+		@file_put_contents($cachefile ,$datas);
+		@chmod($datas,0755);
+		
+	}
+
+}
+function squid_get_system_info(){
+	$unix=new unix();
+
+	$fileCache="/etc/squid3/squid_get_system_info.db";
+	if($unix->file_time_min($fileCache)<10){
+		$dats=unserialize(@file_get_contents($fileCache));
+	}
+	if(!is_array($dats)){$dats=array();}
+	if(count($dats)<2){
+		@unlink($fileCache);
+		$dats=$unix->squid_get_system_info();
+		@file_put_contents($fileCache,serialize($dats));
+	}
+
+	return base64_encode(serialize($dats));
+}
+function squid_mem_status(){
+	$sock=new sockets();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$reboot=false;
+	$users=new usersMenus();
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/squid_mem_status.html";
+	@unlink($cachefile);
+	if($users->WEBSTATS_APPLIANCE){return null;}
+	$datas=unserialize(base64_decode(squid_get_system_info()));
+	$StoreDirs=unserialize(base64_decode(squid_get_storage_info()));
+
+	$MEMSEC=$datas["Memory usage for squid via mallinfo()"];
+	$Total_space_in_arena=trim($MEMSEC["Total space in arena"]);
+	$Total_in_use=trim($MEMSEC["Total in use"]);
+
+	$InternalDataStructures=$datas["Internal Data Structures"];
+	$StoreEntriesWithMemObjects=$InternalDataStructures["StoreEntries with MemObjects"];
+	$HotObjectCacheItems=$InternalDataStructures["Hot Object Cache Items"];
+
+
+
+	$ConnectionInformationForSquid=$datas["Connection information for squid"];
+
+	$NumberOfHTTPRequestsReceived=$ConnectionInformationForSquid["Number of HTTP requests received"];
+	$AverageHTTPRequestsPerMinuteSinceStart=round($ConnectionInformationForSquid["Average HTTP requests per minute since start"]);
+
+
+	$StorageMemSize=$datas["Cache information for squid"]["Storage Mem size"];
+	$StorageMemCapacity=$datas["Cache information for squid"]["Storage Mem capacity"];
+
+
+	preg_match("#^([0-9]+)\s+([A-Z]+)#", trim($StorageMemSize),$re);
+	$StorageMemSize=round($re[1]/1024,2);
+
+	preg_match("#([0-9\.]+)% used#", trim($StorageMemCapacity),$re);
+	$StorageMemCapacityPourc=$re[1];
+
+
+	preg_match("#^([0-9]+)\s+([A-Z]+)#", trim($MEMSEC["Total space in arena"]),$re);
+
+
+
+	if($re[2]=="KB"){$Total_space_in_arena=round(($Total_space_in_arena/1024),2);}
+	if($re[2]=="GB"){$Total_space_in_arena=round(($Total_space_in_arena*1024),2);}
+
+	preg_match("#^([0-9]+)\s+([A-Z]+).*?([0-9\.]+)%#", $Total_in_use,$re);
+		$USED_VALUE=$re[1];
+		$USED_UNIT=$re[2];
+		$USED_PRC=$re[3];
+		if($USED_UNIT=="KB"){
+		$USED_VALUE=round(($USED_VALUE/1024),2);
+	}
+
+	if($USED_UNIT=="GB"){$USED_VALUE=round(($USED_VALUE*1024),2);}
+
+	$NumberOfHTTPRequestsReceived=FormatNumber($NumberOfHTTPRequestsReceived);
+	$HotObjectCacheItems=FormatNumber($HotObjectCacheItems);
+	$StoreEntriesWithMemObjects=FormatNumber($StoreEntriesWithMemObjects);
+	if(isset($StoreDirs["MEM"])){
+		$BigMem=$StoreDirs["MEM"]["SIZE"];
+		$Items=$StoreDirs["MEM"]["ENTRIES"];
+		if($BigMem>0){
+			$MemDir="	<tr>
+				<td style='font-weight:bold;font-size:12px' align='right' nowrap>{memory_cache}:</td>
+				<td style='font-weight:bold;font-size:12px'>". FormatBytes($BigMem)." ($Items {items})</td>
+			</tr>
+			<tr>
+				<td>&nbsp;</td>
+				<td>". pourcentage($StoreDirs["MEM"]["PERC"])."</td>
+			</tr>	";
+		}
+	}
+
+	$usersC=0;
+	$ipzs=0;
+	$size=0;
+	$q=new mysql_squid_builder();
+	$current_table="quotahours_".date('YmdH',time());
+	if($q->COUNT_ROWS($current_table)>0){
+		$results=$q->QUERY_SQL("SELECT COUNT(uid) as tcount FROM $current_table GROUP BY uid");
+		$usersC=mysql_num_rows($results);
+		$results=$q->QUERY_SQL("SELECT COUNT(ipaddr) as tcount FROM $current_table GROUP BY ipaddr");
+		$ipzs=mysql_num_rows($results);
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(size) as size FROM $current_table"));
+		if($ligne["size"]>0){$size=FormatBytes($ligne["size"]/1024);}
+	}
+
+
+	$html="
+	<div style='min-height:147px'>
+		<table style='width:100%'>
+			$MemDir
+			<tr>
+				<td style='font-weight:bold;font-size:12px' align='right'>{memory}:</td>
+				<td style='font-weight:bold;font-size:12px'>$StorageMemSize&nbsp;MB</td>
+			</tr>
+			<tr>
+				<td>&nbsp;</td>
+				<td>". pourcentage($StorageMemCapacityPourc)."</td>
+			</tr>
+			<tr>
+				<td style='font-weight:bold;font-size:12px' align='right'>{objects}:</td>
+				<td style='font-weight:bold;font-size:12px'>$StoreEntriesWithMemObjects</td>
+			</tr>
+			<tr>
+				<td style='font-weight:bold;font-size:12px' align='right'>{hot_objects}:</td>
+				<td style='font-weight:bold;font-size:12px'>$HotObjectCacheItems</td>
+			</tr>
+			<tr>
+				<td style='font-weight:bold;font-size:12px' align='right'>{requests}:</td>
+				<td style='font-weight:bold;font-size:12px'>$NumberOfHTTPRequestsReceived ({$AverageHTTPRequestsPerMinuteSinceStart} {requests}/{minute})</td>
+			</tr>
+			<tr>
+				<td style='font-weight:bold;font-size:12px' align='right'>{members}:</td>
+				<td style='font-weight:bold;font-size:12px'>$usersC</td>
+			</tr>
+			<tr>
+				<td style='font-weight:bold;font-size:12px' align='right'>{clients}:</td>
+				<td style='font-weight:bold;font-size:12px'>$ipzs ($size)</td>
+			</tr>
+
+			</table>
+		</div>
+	";
+	@file_put_contents($cachefile, RoundedLightGreen($html));
+	@chmod($cachefile,0755);
+}
+
+function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){
+$tmp1 = round((float) $number, $decimals);
+while (($tmp2 = preg_replace('/(\d+)(\d\d\d)/', '\1 \2', $tmp1)) != $tmp1)
+$tmp1 = $tmp2;
+return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));
 }
 
 ?>

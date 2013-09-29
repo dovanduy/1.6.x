@@ -1,21 +1,7 @@
 <?php
 session_start();
-
-$GLOBALS["SOURCE_TYPE"][0]="{all_cases}";
-$GLOBALS["SOURCE_TYPE"][1]="{network_text}";
-$GLOBALS["SOURCE_TYPE"][2]="{country}";
-
-$GLOBALS["DEST_TYPES"][0]="{local_ldap}";
-$GLOBALS["DEST_TYPES"][1]="{ldap}";
-$GLOBALS["DEST_TYPES"][2]="{ActiveDirectory}";
-
-ini_set('display_errors', 1);
-ini_set('error_reporting', E_ALL);
-ini_set('error_prepend_string',"<p class='text-error'>");
-ini_set('error_append_string',"</p>");
+ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"<p class='text-error'>");ini_set('error_append_string',"</p>");
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
-
-
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
@@ -47,6 +33,7 @@ if(isset($_GET["rules-sources-group-items-section"])){rules_sources_group_items_
 if(isset($_GET["rules-sources-group-items-search"])){rules_sources_group_items_search();exit;}
 if(isset($_GET["rules-sources-group-item-js"])){rules_sources_group_items_js();exit;}
 if(isset($_GET["rules-sources-group-item-popup"])){rules_sources_group_items_popup();exit;}
+if(isset($_POST["rules-sources-group-items-add"])){rules_sources_group_items_add();exit;}
 
 if(isset($_GET["rules-sources-link-js"])){rules_sources_group_link_js();exit;}
 if(isset($_GET["rules-sources-group-link-section"])){rules_sources_group_link_section();exit;}
@@ -62,7 +49,7 @@ if(isset($_POST["NginxAuthPort"])){parameters_save();exit;}
 
 
 
-if(isset($_POST["rules-sources-group-items-add"])){rules_sources_group_items_add();exit;}
+
 
 tabs();
 function AdminPrivs(){
@@ -300,19 +287,20 @@ function rules_sources_group_items_popup(){
 	$groupid=$_GET["groupid"];
 	$title_button="{add}";
 	$title="{new_item}";
-	$sql="SELECT * FROM authenticator_groups WHERE ID='$groupid'";
-	$q=new mysql();
-	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$q=new mysql_squid_builder();
+	$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT * FROM authenticator_groups WHERE ID='$groupid'"));
 	
 	
 	
 	
 	$explain[1]="{authenticator_explain_network_text}";
+	$explain[3]="{authenticator_explain_cookie_text}";
 	
 	
-	$title=$title."::".$ligne["groupname"]."::".$GLOBALS["SOURCE_TYPE"][$ligne["group_type"]];
+	$title=$title."::".$ligne["groupname"];
 	
 	$boot->set_formtitle($title);
+	$boot->set_spacerexplain("<i>{group2} ID:$groupid {group2} {type}:{$ligne["group_type"]} ({$GLOBALS["SOURCE_TYPE"][$ligne["group_type"]]})</i>");
 	$boot->set_formdescription($explain[$ligne["group_type"]]);
 	$boot->set_hidden("rules-sources-group-items-add", "yes");
 	$boot->set_hidden("groupid", $groupid);
@@ -323,7 +311,7 @@ function rules_sources_group_items_popup(){
 	$AdminPrivs=AdminPrivs();
 	if(!$AdminPrivs){$boot->set_form_locked();}
 	if($ligne["group_type"]==0){$boot->set_form_locked();}
-	$boot->set_CloseYahoo("YahooWin4");
+	$boot->set_CloseYahoo("YahooWin3");
 	$boot->set_RefreshSearchs();
 	echo $boot->Compile();	
 	
@@ -519,13 +507,37 @@ function rules_sources_group_items_section(){
 	$compile_rules=null;
 	$EXPLAIN["BUTTONS"][]=button("{new_item}","Loadjs('$page?rules-sources-group-item-js=yes&groupid={$_GET["groupid"]}');",16);
 	echo $boot->SearchFormGen("pattern","rules-sources-group-items-search","&groupid={$_GET["groupid"]}",$EXPLAIN);	
+}
+
+function rules_sources_group_items_add(){
+	$tpl=new templates();
+	$table="authenticator_items";
+	$items=explode("\n", url_decode_special_tool($_POST["items"]));
+	$groupid=$_POST["groupid"];
+	$t=array();
+	while (list ($key, $value) = each ($items) ){
+		if(trim($value)==null){continue;}
+		$value=mysql_escape_string2($value);
+		$t[]="('$groupid','$value')";
+	}
+	
+	if(count($t)==0){
+		echo $tpl->javascript_parse_text("{error_no_item_posted}");
+		return;
+		
+	}	
+	
+	$sql="INSERT IGNORE INTO $table (`groupid`,`pattern`) VALUES ".@implode(",", $t);;
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}
+		
 	
 }
 
+
 function rules_sources_group_items_search(){
-	
 	$table="authenticator_items";
-	
 	$boot=new boostrap_form();
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -548,7 +560,7 @@ function rules_sources_group_items_search(){
 	
 		$tr[]="
 		<tr id='$md'>
-		<td style='font-size:18px' width=1% nowrap >{$ligne["pattern"]}</td>
+		<td style='font-size:18px' width=99% nowrap >{$ligne["pattern"]}</td>
 		<td style='font-size:18px' width=1% nowrap>$delete</td>
 		</tr>
 		";

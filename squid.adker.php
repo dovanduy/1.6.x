@@ -184,7 +184,8 @@ function status_kerb(){
 	
 	if(trim($text)<>null){$text=": $text";}
 	$html="
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tbody>
 	<tr>
 		<td width=1% valign='top'><img src='$img'></td>
@@ -445,7 +446,12 @@ function test_wbinfomoinsa(){
 	$cmdline=base64_encode(serialize($AR));
 		$html="<hr>";
 	$datas=unserialize(base64_decode($sock->getFrameWork("samba.php?wbinfomoinsa=yes&auth=$cmdline$viaSmamba")));
-	$html=$html.test_results($datas);
+	$html=$html.test_results($datas)."
+	<script>
+		LoadAjaxTiny('squid-adker-status','squid.adker.php?status=yes&t=squid-adker-status');
+	</script>
+			
+			";
 
 	echo $tpl->_ENGINE_parse_body($html);	
 	
@@ -453,11 +459,17 @@ function test_wbinfomoinsa(){
 
 
 function test_results($array){
+	$tpl=new templates();
 	while (list ($num, $ligne) = each ($array) ){
 		$ligne=trim($ligne);
 		if($ligne==null){continue;}
 		$color="black";
 		
+		if(preg_match("#No logon#", $ligne)){$color="#D30F0F;font-weight:bold";
+		$ligne=$ligne.$tpl->_ENGINE_parse_body("<br> {should_change_ad_dns}");
+		
+		
+		}
 		if(preg_match("#is OK#", $ligne)){$color="#009809;font-weight:bold";}
 		if(preg_match("#online#", $ligne)){$color="#009809";}
 		if(preg_match("#Could not authenticate user\s+.+?\%(.+?)\s+with plaintext#i",$ligne,$re)){$ligne=str_replace($re[1], "*****", $ligne);}
@@ -603,6 +615,7 @@ function settings(){
 	$KerbAuthDisableNormalizeName=$sock->GET_INFO("KerbAuthDisableNormalizeName");
 	$KerbAuthMapUntrustedDomain=$sock->GET_INFO("KerbAuthMapUntrustedDomain");
 	$SquidNTLMKeepAlive=$sock->GET_INFO("SquidNTLMKeepAlive");
+	$UseADAsNameServer=$sock->GET_INFO("UseADAsNameServer");
 	
 	$KerbAuthMethod=$sock->GET_INFO("KerbAuthMethod");
 	$NtpdateAD=$sock->GET_INFO("NtpdateAD");
@@ -632,6 +645,8 @@ function settings(){
 	if(!is_numeric($KerbAuthDisableNormalizeName)){$KerbAuthDisableNormalizeName=1;}
 	if(!is_numeric($KerbAuthMapUntrustedDomain)){$KerbAuthMapUntrustedDomain=1;}
 	if(!is_numeric($SquidNTLMKeepAlive)){$SquidNTLMKeepAlive=1;}
+	if(!is_numeric($UseADAsNameServer)){$UseADAsNameServer=0;}
+	
 	
 	
 	if(!is_numeric($NtpdateAD)){$NtpdateAD=0;}
@@ -672,6 +687,11 @@ function settings(){
 		return;
 	}
 	
+	$Myhostname=strtolower($sock->getFrameWork("cmd.php?full-hostname=yes"));	
+	$error_dom1=$tpl->javascript_parse_text("{error}: {WINDOWS_DNS_SUFFIX}");
+	$error_dom2=$tpl->javascript_parse_text("{is_not_a_part_of}");
+	$error_dom3=$tpl->javascript_parse_text("{ask_change_hostname}");
+	$t_tmp=time();
 	
 	$html="
 	<table style='width:100%'>
@@ -760,7 +780,13 @@ function settings(){
 		<td class=legend style='font-size:14px' nowrap>{synchronize_time_with_ad}:</td>
 		<td>". Field_checkbox("NtpdateAD",1,"$NtpdateAD")."</td>
 		<td>&nbsp;</td>
-	</tr>														
+	</tr>		
+	<tr>
+		<td class=legend style='font-size:14px' nowrap>{UseADAsNameServer}:</td>
+		<td>". Field_checkbox("UseADAsNameServer",1,"$UseADAsNameServer")."</td>
+		<td>&nbsp;</td>
+	</tr>
+				
 	<tr>
 		<td class=legend style='font-size:14px'>{authenticate_from_kerberos}:</td>
 		<td>". Field_checkbox("EnableKerberosAuthentication",1,"$EnableKerberosAuthentication","EnableKerbAuthCheck()")."</td>
@@ -819,7 +845,28 @@ function settings(){
 	</table>
 	</div>
 	<script>
+		function CheckHostname$t_tmp(){
+		var domainz=trim(document.getElementById('WINDOWS_DNS_SUFFIX').value);
+		thewhole='$Myhostname';
+		var regexp = /([^.]+)\.(.*?)$/;
+		var match = regexp.exec(thewhole);
+		var domain = match[1];
+		var ext = match[2];
+		domainz=domainz.toLowerCase();
+		domain=ext.toLowerCase();
+		if(domain!==domainz){
+			if(confirm('$error_dom1 '+domainz+' $error_dom2 ('+domain+')\\n$error_dom3')){
+				Loadjs('system.nic.config.php?change-hostname-js=yes');
+			}
+			return false;
+		}
+		return true;
+		}
+	
+	
+	
 		function EnableKerbAuthCheck(){
+			
 			var EnableKerbAuth=0;
 			var EnableKerberosAuthentication=$EnableKerberosAuthentication;
 			var LockKerberosAuthentication=$LockKerberosAuthentication;
@@ -842,7 +889,7 @@ function settings(){
 			document.getElementById('NtpdateAD').disabled=true;
 			document.getElementById('KerbAuthMethod').disabled=true;
 			document.getElementById('SquidNTLMKeepAlive').disabled=true;
-			
+			document.getElementById('UseADAsNameServer').disabled=true;
 			
 			
 			
@@ -880,6 +927,7 @@ function settings(){
 					document.getElementById('KerbAuthTrusted').disabled=false;
 					document.getElementById('KerbAuthMethod').disabled=false;
 					document.getElementById('SquidNTLMKeepAlive').disabled=false;
+					document.getElementById('UseADAsNameServer').disabled=false;
 					
 					
 					
@@ -958,6 +1006,7 @@ function settings(){
 	}		
 	
 		function SaveKERBProxy(){
+			if(!CheckHostname$t_tmp()){return;}
 			var DisableSpecialCharacters=$DisableSpecialCharacters;
 			var EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance;
 			if(EnableRemoteStatisticsAppliance==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}
@@ -979,6 +1028,7 @@ function settings(){
 			if(document.getElementById('KerbAuthMapUntrustedDomain').checked){XHR.appendData('KerbAuthMapUntrustedDomain',1);}else{XHR.appendData('KerbAuthMapUntrustedDomain',0);}
 			if(document.getElementById('NtpdateAD').checked){XHR.appendData('NtpdateAD',1);}else{XHR.appendData('NtpdateAD',0);}
 			if(document.getElementById('SquidNTLMKeepAlive').checked){XHR.appendData('SquidNTLMKeepAlive',1);}else{XHR.appendData('SquidNTLMKeepAlive',0);}
+			if(document.getElementById('UseADAsNameServer').checked){XHR.appendData('UseADAsNameServer',1);}else{XHR.appendData('UseADAsNameServer',0);}
 			
 			
 			
@@ -1230,7 +1280,7 @@ function settingsSave(){
 		if($EnableWebProxyStatsAppliance==0){$sock->SET_INFO("EnableKerbAuth", 0);}
 		$sock->SET_INFO("EnableKerberosAuthentication", 0);
 		$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
-		echo $tpl->javascript_parse_text("{error}: {unable_to_resolve} $adhost",1);
+		echo $tpl->javascript_parse_text("{error}: {unable_to_resolve} Active Directory: $adhost",1);
 		return;	
 	}
 	
@@ -1253,6 +1303,7 @@ function settingsSave(){
 	$sock->SET_INFO("NtpdateAD", $_POST["NtpdateAD"]);
 	$sock->SET_INFO("KerbAuthMethod", $_POST["KerbAuthMethod"]);
 	$sock->SET_INFO("SquidNTLMKeepAlive", $_POST["SquidNTLMKeepAlive"]);
+	$sock->SET_INFO("UseADAsNameServer", $_POST["UseADAsNameServer"]);
 
 	
 	
@@ -1574,6 +1625,7 @@ function cntlm(){
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
 		document.getElementById('test-$t').innerHTML='';
+		RefreshTab('squid_main_svc');
 	}
 	function CNTLMSave$t(){
 		var XHR = new XHRConnection();

@@ -34,6 +34,8 @@
 	if(isset($_POST["ApplySquid"])){squid_compile();exit;}
 	if(isset($_GET["csv"])){output_scv();exit;}
 	if(isset($_POST["EnableSquidPortsRestrictions"])){EnableSquidPortsRestrictions();exit;}
+	if(isset($_POST["SquidAllowSmartPhones"])){SquidAllowSmartPhones();exit;}
+	
 	page();
 
 	
@@ -175,17 +177,8 @@ function acl_rule_tab(){
 	}
 
 	
-	echo "
-	<div id=main_acl_rule_zoom_$ID>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_acl_rule_zoom_$ID').tabs();
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_acl_rule_zoom_$ID");
+	
 }
 
 function acl_group_settings(){
@@ -253,17 +246,25 @@ function acl_rule_settings(){
 		
 	}
 	
-	
+	if(!$q->FIELD_EXISTS("webfilters_sqacls", "PortDirection")){$q->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `PortDirection` smallint(1) NOT NULL DEFAULT '0',ADD INDEX(`PortDirection`)");}
 	
 	
 	$please_choose_a_bandwith_rule=$tpl->javascript_parse_text("{please_choose_a_bandwith_rule}");
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT aclname,acltpl,aclgpid FROM webfilters_sqacls WHERE ID='$ID'"));
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT aclname,acltpl,aclgpid,PortDirection FROM webfilters_sqacls WHERE ID='$ID'"));
 	
 	if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";return;}
 	
 	$aclname=utf8_encode($ligne["aclname"]);
 	$acltpl=$ligne["acltpl"];
 	$aclgpid=$ligne["aclgpid"];
+	$PortDirection=$ligne["PortDirection"];
+	if(!is_numeric($PortDirection)){$PortDirection=0;}
+	$PortDirectionS[0]="{all_methods}";
+	$PortDirectionS[1]="{standard_method}";
+	$PortDirectionS[2]="{transparent_method}";
+	$PortDirectionS[3]="{smartphones_port}";
+	
+	
 	$squid=new squidbee();
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='url_rewrite_access_deny'"));
@@ -313,7 +314,14 @@ function acl_rule_settings(){
 	$tcp_outgoing_tos=$ligne["httpaccess_value"];
 	$tcp_outgoing_tos_value=$ligne["httpaccess_data"];
 	if(!is_numeric($tcp_outgoing_tos)){$tcp_outgoing_tos=0;}	
-	if($tcp_outgoing_tos_value==null){$tcp_outgoing_tos_value="0x20";}	
+	if($tcp_outgoing_tos_value==null){$tcp_outgoing_tos_value="0x20";}
+
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='reply_body_max_size'"));
+	$reply_body_max_size=$ligne["httpaccess_value"];
+	$reply_body_max_size_value=$ligne["httpaccess_data"];
+	if(!is_numeric($reply_body_max_size)){$reply_body_max_size=0;}
+	if(!is_numeric($reply_body_max_size_value)){$reply_body_max_size_value="0";}	
+	
 	
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='delay_access'"));
@@ -400,6 +408,10 @@ function acl_rule_settings(){
 		<td class=legend style='font-size:14px'>{rule_name}:</td>
 		<td>". Field_text("aclrulename",$aclname,"font-size:14px;width:220px")."</td>
 	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{method}:</td>
+		<td>". Field_array_Hash($PortDirectionS,"PortDirection-$t",$PortDirection,null,null,0,"font-size:14px")."</td>
+	</tr>				
 	<tr>
 		<td class=legend style='font-size:14px'>{rule_group}:</td>
 		<td>". Field_array_Hash($ACLSGROUPS,"aclgpid-$t",$aclgpid,null,null,0,"font-size:14px")."</td>
@@ -508,7 +520,21 @@ function acl_rule_settings(){
 		<td>". Field_text("request_header_add_value",$request_header_add_value,'font-size:14px;width:210px')."</td>
 	</tr>					
 	</table>
-	<div><i style='font-size:11px'>$explain_no33squid</i></div>			
+	<div><i style='font-size:11px'>$explain_no33squid</i></div>	
+
+	
+	
+	<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:14px'>{reply_body_max_size_acl}:</td>
+			<td>". Field_checkbox("reply_body_max_size",1,$reply_body_max_size,"reply_body_max_sizeCheck()")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{max_size}:</td>
+			<td style='font-size:14px'>". Field_text("reply_body_max_size_value",$reply_body_max_size_value,'font-size:14px;width:90px')."&nbsp;MB</td>
+		</tr>	
+	</table>
+	
 	
 	<table style='width:100%'>
 		<tr>
@@ -521,7 +547,8 @@ function acl_rule_settings(){
 		</tr>	
 	</table>
 
-				
+
+	
 	
 	<table style='width:100%'>	
 	<tr>
@@ -558,6 +585,7 @@ function acl_rule_settings(){
 			var XHR = new XHRConnection();
 			XHR.appendData('aclrulename', document.getElementById('aclrulename').value);
 			XHR.appendData('aclgpid', document.getElementById('aclgpid-$t').value);
+			XHR.appendData('PortDirection', document.getElementById('PortDirection-$t').value);
 			
 			
 			XHR.appendData('tcp_outgoing_tos_value', document.getElementById('tcp_outgoing_tos_value').value);
@@ -590,8 +618,8 @@ function acl_rule_settings(){
 			if(document.getElementById('http_reply_access_allow').checked){XHR.appendData('http_reply_access_allow', '1');}else{XHR.appendData('http_reply_access_allow', '0');}
 			if(document.getElementById('http_reply_access_deny').checked){XHR.appendData('http_reply_access_deny', '1');}else{XHR.appendData('http_reply_access_deny', '0');}
 			
-			
-			
+			if(document.getElementById('reply_body_max_size').checked){XHR.appendData('reply_body_max_size', '1');}else{XHR.appendData('reply_body_max_size', '0');}
+			XHR.appendData('reply_body_max_size_value', document.getElementById('reply_body_max_size_value').value);
 			
 			XHR.appendData('deny_quota_rule_id', document.getElementById('deny_quota_rule_id').value);
 			XHR.appendData('request_header_add_name', document.getElementById('request_header_add_name').value);
@@ -752,6 +780,19 @@ function acl_rule_settings(){
 		
 	}
 	
+	
+	function reply_body_max_sizeCheck(){
+		if(document.getElementById('reply_body_max_size').checked){
+			DisableAllInstead('reply_body_max_size');
+			document.getElementById('reply_body_max_size').disabled=false;
+			document.getElementById('reply_body_max_size_value').disabled=false;
+		}else{
+			document.getElementById('reply_body_max_size').disabled=true;
+			document.getElementById('reply_body_max_size_value').disabled=true;	
+			CheckAll();	
+		}
+	
+	}
 	function features33_check(){
 		var is33=$is33;
 		document.getElementById('request_header_add').disabled=true;
@@ -804,7 +845,10 @@ function acl_main_rule_edit(){
 		$acl=new squid_acls_groups();
 		$ID=$_POST["ID"];
 		$aclname=$_POST["aclrulename"];
-		$sql="UPDATE webfilters_sqacls SET aclname='$aclname',`aclgpid`='{$_POST["aclgpid"]}' WHERE ID='$ID'";
+		
+		if(isset($_POST["PortDirection"])){$PortDirection=",`PortDirection`='{$_POST["PortDirection"]}'";}
+		
+		$sql="UPDATE webfilters_sqacls SET aclname='$aclname',`aclgpid`='{$_POST["aclgpid"]}'$PortDirection WHERE ID='$ID'";
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){echo $q->mysql_error;return;}
 		if(!$acl->aclrule_edittype($ID,"access_allow",$_POST["access_allow"])){return;}
@@ -814,6 +858,9 @@ function acl_main_rule_edit(){
 		if(!$acl->aclrule_edittype($ID,"cache_deny",$_POST["cache_deny"])){return;}
 		if(!$acl->aclrule_edittype($ID,"deny_access_except",$_POST["deny_access_except"])){return;}
 		if(!$acl->aclrule_edittype($ID,"tcp_outgoing_tos",$_POST["tcp_outgoing_tos"],$_POST["tcp_outgoing_tos_value"])){return;}
+		if(!$acl->aclrule_edittype($ID,"reply_body_max_size",$_POST["reply_body_max_size"],$_POST["reply_body_max_size_value"])){return;}
+		
+		
 		if(!$acl->aclrule_edittype($ID,"tcp_outgoing_address",$_POST["tcp_outgoing_address"],$_POST["tcp_outgoing_address_value"])){return;}
 		if(!$acl->aclrule_edittype($ID,"delay_access",$_POST["delay_access"],$_POST["delay_access_id"])){return;}
 		if(!$acl->aclrule_edittype($ID,"snmp_access_allow",$_POST["snmp_access_allow"],$_POST["snmp_access_allow"])){return;}
@@ -822,6 +869,7 @@ function acl_main_rule_edit(){
 		if(!$acl->aclrule_edittype($ID,"deny_quota_rule",$_POST["deny_quota_rule"],$_POST["deny_quota_rule_id"])){return;}
 		if(!$acl->aclrule_edittype($ID,"http_reply_access_deny",$_POST["http_reply_access_deny"])){return;}
 		if(!$acl->aclrule_edittype($ID,"http_reply_access_allow",$_POST["http_reply_access_allow"])){return;}
+		
 		
 		
 		
@@ -864,6 +912,10 @@ function EnableSquidPortsRestrictions(){
 	if($EnableSquidPortsRestrictions==1){$sock->SET_INFO("EnableSquidPortsRestrictions",0);}
 	
 }
+function SquidAllowSmartPhones(){
+	$sock=new sockets();
+	$sock->SET_INFO("SquidAllowSmartPhones", $_POST["SquidAllowSmartPhones"]);
+}
 
 function acl_rule_group_save(){
 	$ID=$_POST["ID"];
@@ -894,6 +946,10 @@ function acl_rule_save(){
 		$q->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `aclport` smallint(5) NOT NULL,
 		ADD INDEX(`aclport`)");
 	}
+	
+	if(!$q->FIELD_EXISTS("webfilters_sqacls", "PortDirection")){
+		$q->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `PortDirection` smallint(1) NOT NULL DEFAULT '0',ADD INDEX(`PortDirection`)");
+	}	
 	
 	if($ID<0){
 		$q->CheckTables();
@@ -1004,7 +1060,7 @@ function acl_rule_move(){
 	$sql="UPDATE webfilters_sqacls SET xORDER=$xORDER WHERE `ID`='{$_POST["acl-rule-move"]}'";
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;;return;}
-	echo $sql."\n";
+	//echo $sql."\n";
 	
 	if($_POST["acl-rule-dir"]==1){
 		$xORDER2=$xORDER+1;
@@ -1237,6 +1293,14 @@ function SquidTemplatesErrors$t(){
 		XHR.appendData('EnableSquidPortsRestrictions', 'yes');
 	    XHR.sendAndLoad('$page', 'POST',x_EnableDisableAclRule$t);  
 	}
+	function SquidAllowSmartPhones(){
+		var XHR = new XHRConnection();
+		if(document.getElementById('SquidAllowSmartPhones').checked){XHR.appendData('SquidAllowSmartPhones', '1');}else{XHR.appendData('SquidAllowSmartPhones', '0');}
+	    XHR.sendAndLoad('$page', 'POST',x_EnableDisableAclRule$t);  
+	}	
+	
+	
+	
 	setTimeout('flexigridStart$t()',800);
 	
 </script>
@@ -1253,6 +1317,8 @@ function acl_list(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
+	$sock=new sockets();
+	
 	$RULEID=$_GET["RULEID"];
 	$GROUPE_RULE_ID=$_GET["aclgroup-id"];
 	if(!is_numeric($GROUPE_RULE_ID)){$GROUPE_RULE_ID=0;}
@@ -1280,11 +1346,10 @@ function acl_list(){
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
+	$searchstring=string_to_flexquery();
+	
 
-	if($_POST["query"]<>null){
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
@@ -1308,7 +1373,30 @@ function acl_list(){
 				",
 				"<span style='font-size:12px;color:black'>$explain</span>",
 				"&nbsp;","&nbsp;","&nbsp;","&nbsp;","&nbsp;")
-		);	
+		);
+
+		$color="black";
+		$colored="#0AAB3D";
+		$SquidAllowSmartPhones=$sock->GET_INFO("SquidAllowSmartPhones");
+		$smartphones_port=$sock->GET_INFO("smartphones_port");
+		if(!is_numeric($SquidAllowSmartPhones)){$SquidAllowSmartPhones=0;}
+		
+		if($SquidAllowSmartPhones==0){$color="#9C9C9C";$colored=$color;}
+		$AllowSmartphonesRuleText=$tpl->javascript_parse_text("{AllowSmartphonesRuleText}");
+		$AllowSmartphonesRuleExplain=$tpl->_ENGINE_parse_body("{AllowSmartphonesRuleExplain}");
+		
+		$EnableSMartphone=Field_checkbox("SquidAllowSmartPhones", 1,$SquidAllowSmartPhones,"SquidAllowSmartPhones()");
+		if($smartphones_port==0){
+			$data['rows'][] = array(
+					'id' => "aclNone3",
+					'cell' => array("<span
+							style='font-size:16px;text-decoration:underline;color:$color'>$AllowSmartphonesRuleText</span></A>
+							",
+							"<span style='font-size:12px;color:$colored;font-weight:bold'>$AllowSmartphonesRuleExplain</span>",
+							"&nbsp;","&nbsp;","$EnableSMartphone","&nbsp;","&nbsp;")
+			);		
+		}
+		
 
 		$ports=unserialize(base64_decode($sock->GET_INFO("SquidSafePortsSSLList")));
 		if(is_array($ports)){while (list ($port, $explain) = each ($ports) ){$bbcSSL[]=$port;}}

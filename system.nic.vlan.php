@@ -419,9 +419,7 @@ $('#flexRT$t').flexigrid({
 	}	
 	
 	function BuildVLANs$t(){
-		var XHR = new XHRConnection();
-		XHR.appendData('BuildVLANs','$t');
-		XHR.sendAndLoad('$page', 'POST',x_BuildVLANs$t);	
+		Loadjs('network.restart.php?t=$t');
 	
 	}
 

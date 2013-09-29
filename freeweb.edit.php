@@ -241,7 +241,7 @@ function js(){
 	
 	
 	$title=$tpl->_ENGINE_parse_body("{free_web_servers}::{$ligne["ou"]}&nbsp;&raquo;&nbsp;{$_GET["hostname"]}$gpwr");
-	echo "YahooWin5('1005','$page?popup-tabs=yes&servername={$_GET["hostname"]}&force-groupware={$_GET["force-groupware"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}','$title');";
+	echo "YahooWin5('1070','$page?popup-tabs=yes&servername={$_GET["hostname"]}&force-groupware={$_GET["force-groupware"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}','$title');";
 	}
 	
 function groupwares_save(){

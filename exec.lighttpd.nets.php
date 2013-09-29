@@ -59,7 +59,7 @@ function phpmyadmin_secu(){
 
 function restart_lighttpd(){
 	$t=time();
-	exec("/etc/init.d/artica-postfix restart apache 2>&1",$results);
+	exec("/etc/init.d/artica-webinterface restart 2>&1",$results);
 	$unix=new unix();
 	$took=$unix->distanceOfTimeInWords($t,time());
 	system_admin_events("Restart Web interface service done took:$took\n".@implode("\n", $results), __FUNCTION__, __FILE__, __LINE__, "system");

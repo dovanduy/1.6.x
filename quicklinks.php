@@ -93,9 +93,7 @@ if(!$users->dnsmasq_installed){$dnsmasq=null;}
 if($users->dnsmasq_installed){$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}if($EnableDNSMASQ<>1){$dnsmasq=null;}}
 $cyrus=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-mailbox.png", "mailboxes",null, "QuickLinkCyrus()"));
 if($EnableRemoteStatisticsAppliance==0){
-	if($DisableArticaProxyStatistics==0){	
-		$squidStats=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "QuickLinkSystems('section_squid_stats')"));
-	}
+	$squidStats=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("statistics-48.png", "SQUID_STATS","proxyquicktext", "QuickLinkSystems('section_squid_stats')"));
 }
 
 if($ASSQUID){

@@ -104,7 +104,7 @@ function INDEX_CREATE(){
 	</table>";
 	
 	$step3="
-	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(3)\">
+	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(4)\">
 	<tr>
 	<td valign='top' width=1%><img src='img/chiffre3_32.png'></td>
 	<td valign='top'>
@@ -116,7 +116,7 @@ function INDEX_CREATE(){
 	";
 	
 	$step4="
-	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(4)\">
+	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(3)\">
 	<tr>
 	<td valign='top' width=1%><img src='img/chiffre4_32.png'></td>
 	<td valign='top'>

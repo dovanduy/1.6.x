@@ -1,4 +1,5 @@
 <?php
+if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-". basename(__FILE__)." Waiting Artica-CD to finish\n";die();}}
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["DEBUG"]=false;;
 $GLOBALS["FORCE"]=false;
@@ -1092,6 +1093,7 @@ function system_admin_events_checks($nopid=false){
 	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
 	
 	$q=new mysql();	
+	if(!$q->BD_CONNECT(true,"called by ".basename(__FILE__)." (".__FUNCTION__.") line: ".__LINE__)){return;}
 	
 	$prefix="INSERT IGNORE INTO system_admin_events (`zDate`,`function`,`filename`,`line`,`description`,`category`,`TASKID`) VALUES ";
 	while (false !== ($filename = readdir($handle))) {

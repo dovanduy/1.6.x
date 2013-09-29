@@ -12,6 +12,7 @@ include_once(dirname(__FILE__).'/ressources/class.squidguard.inc');
 $GLOBALS["working_directory"]="/opt/artica/proxy";
 $GLOBALS["MAILLOG"]=array();
 $GLOBALS["CHECKTIME"]=false;
+$GLOBALS["BYCRON"]=false;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["BYCRON"]=false;
 $GLOBALS["NOCHECKTIME"]=false;
@@ -101,6 +102,15 @@ function ufdbtables($nopid=false){
 		}
 		return;
 	}
+	
+	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabaseByCron");
+	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
+	
+	if($CategoriesDatabasesByCron==1){
+		if(!$GLOBALS["BYCRON"]){return;}
+	}
+	
+	
 	if(!$nopid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$nohup=$unix->find_program("nohup");
@@ -155,6 +165,7 @@ function ufdbtables($nopid=false){
 			@chown("$WORKDIR/$tablename", "squid");
 			@chgrp("$WORKDIR/$tablename", "squid");	
 			$LOCAL_CACHE[$tablename]=$OriginalSize;	
+			squid_admin_mysql(2, "Artica Web filtering Database Success updating category `$tablename` with $size Ko","");
 			ufdbguard_admin_memory("UFDB::Success update $tablename category $size Ko",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");			
 		}
 		
@@ -163,7 +174,7 @@ function ufdbtables($nopid=false){
 	@file_put_contents($CACHE_FILE, base64_encode(serialize($LOCAL_CACHE)));
 	$ufdbguard_admin_memory=@implode("\n", $GLOBALS["ufdbguard_admin_memory"]);	
 	if($c>0){
-		
+		squid_admin_mysql(2, "Artica Web filtering Database Success update $c categories $BigSize extracted","$ufdbguard_admin_memory");
 		ufdbguard_admin_events("UFDB::Success update $c categories $BigSize extracted\n$ufdbguard_admin_memory",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
 		$sock->TOP_NOTIFY("Success update $c blacklists categories $BigSize Ko extracted","info");
 		
@@ -501,7 +512,10 @@ function updatev2_adblock(){
 	
 	}	
 	
-	if($reload){shell_exec("/etc/init.d/ufdb reconfigure");}
+	if($reload){
+		
+		squid_admin_mysql(2, "Ask to reload the Web filtering service","");
+		shell_exec("/etc/init.d/ufdb reload");}
 	
 }
 
@@ -512,15 +526,37 @@ function updatev2(){
 	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	
+	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabaseByCron");
+	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
+	
+	if($CategoriesDatabasesByCron==1){
+		if(!$GLOBALS["BYCRON"]){
+			updatev2_progress(100,"Only downloaded by schedule...");
+			return;
+		}
+	}
+	
+	if(system_is_overloaded()){
+		ufdbguard_admin_events("Overloaded system, aborting",__FUNCTION__,__FILE__,__LINE__,"update");
+		updatev2_progress(100,"Overloaded system, aborting");
+		return;
+	}
+	
+	if(is_file("/etc/artica-postfix/FROM_ISO")){
+		$CHECKTIME=$unix->file_time_min("/etc/artica-postfix/FROM_ISO");
+		if($CHECKTIME<2880){
+			updatev2_progress(100,"FROM_ISO last update since {$CHECKTIME}Mn, require minimal 2880Mn");
+			updatev2_adblock();
+			return;
+		}
+	}
 	
 	$t=time();
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] starting...\n";}
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	if($DisableArticaProxyStatistics==1){
-		updatev2_progress(100,"{finish}");
-		ufdbguard_admin_events("Warning: DisableArticaProxyStatistics is enabled, aborting",__FUNCTION__,__FILE__,__LINE__,"update");
-		die();
+		updatev2_progress(100,"{finish} statistics are disabled");die();
 	}
 	
 	if($GLOBALS["FORCE"]){events("Force enabled");}
@@ -534,10 +570,7 @@ function updatev2(){
 	events("{$CHECKTIME}Mn for $timeFile");
 	if($LOCAL_VERSION>10){
 		if($CHECKTIME<2880){
-			events("last update since {$CHECKTIME}Mn, require minimal 2880Mn");
 			updatev2_progress(100,"last update since {$CHECKTIME}Mn, require minimal 2880Mn");
-			ufdbguard_admin_events("Warning: last update since {$CHECKTIME}Mn, require minimal 2880Mn (48H)",
-			__FUNCTION__,__FILE__,__LINE__,"update");
 			updatev2_adblock();
 			return;
 		}
@@ -656,7 +689,7 @@ function updatev2(){
 	updatev2_progress(99,"{finish}");
 	$took=$unix->distanceOfTimeInWords($t,time());
 	$REMOTE_SIZE=FormatBytes($REMOTE_SIZE/1024);
-	
+	squid_admin_mysql(2, "New Artica Database statistics $REMOTE_VERSION ($REMOTE_SIZE) updated took:$took","");
 	ufdbguard_admin_events("New Artica Database statistics $REMOTE_VERSION ($REMOTE_SIZE) updated took:$took.",__FUNCTION__,__FILE__,__LINE__,"update");
 	updatev2_progress(100,"{done}");
 	

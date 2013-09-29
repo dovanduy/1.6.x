@@ -151,6 +151,7 @@ if(function_exists("apc_clear_cache")){
 			unset($_SESSION["SETTINGS_FILES"]);
 			unset($_SESSION["CATZ"]);
 			unset($_SESSION[md5("statusPostfix_satus")]);
+			unset($_SESSION["EnableWebPageDebugging"]);
 			@unlink("ressources/logs/postfix.status.html");
 			
 
@@ -172,7 +173,8 @@ if(function_exists("apc_clear_cache")){
 
 			include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 			$q=new mysql_squid_builder();
-			$q->QUERY_SQL("TRUNCATE TABLE webfilters_categories_caches");
+			$q->QUERY_SQL("DROP TABLE webfilters_categories_caches");
+			$q->create_webfilters_categories_caches();
 			$q=new mysql();
 			$q->QUERY_SQL("UPDATE setup_center SET CODE_NAME_STRING='',CODE_NAME_ABOUT=''",'artica_backup');
 

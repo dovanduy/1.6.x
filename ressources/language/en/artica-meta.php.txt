@@ -208,11 +208,11 @@ When then server will connect to the global Management console it make the chang
 <artica_meta_hard_drive_become_full>servers with hard drives that exceed more than 80% of their capacity</artica_meta_hard_drive_become_full>
 <artica_meta_hard_drive_ok>no server have hard drives in capacity limit</artica_meta_hard_drive_ok>
 <automatic_swap_cleaning>Automatic Swap cleaning</automatic_swap_cleaning>
-<automatic_swap_cleaning_explain>Automatic Swap cleaning force the system to empty the Swap memory when exceed a pourcentage or a Max memory in MB.[br]
+<automatic_swap_cleaning_explain>Automatic Swap cleaning force the system to empty the Swap memory when exceed a percentage or a Max memory in MB.[br]
 Some applications and for some system tasks, the swap memory is used but never cleaned.[br]This cause the system using more and more disk usage that should load the server and increase system I/O.[br]
 This feature will check the Swap system each 30Mn and clean it according limits sets.
-[br][strong]0 in the Max size field means that only pourcentage is used to calculate the limit.
-[br]If you set a value in this field, the robot will use the Max size in MB has the main limit instead the pourcentage.[/strong]
+[br][strong]0 in the Max size field means that only percentage is used to calculate the limit.
+[br]If you set a value in this field, the robot will use the Max size in MB has the main limit instead the percentage.[/strong]
 </automatic_swap_cleaning_explain>
 <rebuild_all_scripts>Rebuild all scripts</rebuild_all_scripts>
 <proxy_address>Proxy address</proxy_address>

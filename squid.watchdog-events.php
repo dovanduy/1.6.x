@@ -63,12 +63,17 @@ function popup(){
 	$TB_HEIGHT=450;
 	$TB_WIDTH=927;
 	$TB2_WIDTH=551;
-	
+	$all=$tpl->_ENGINE_parse_body("{all}");
 	$t=time();
 
 	$buttons="
 	buttons : [
 	{name: '$empty', bclass: 'Delz', onpress : EmptyEvents},
+	{name: 'Warn', bclass: 'Warn', onpress :  Warn$t},
+	{name: 'Info', bclass: 'Help', onpress :  info$t},
+	{name: 'Crit.', bclass: 'Err', onpress :  Err$t},
+	{name: '$all', bclass: 'Statok', onpress :  All$t},
+	
 
 	],	";
 	$html="
@@ -118,6 +123,18 @@ var x_EmptyEvents= function (obj) {
 
 }
 
+function Warn$t(){
+	$('#events-table-$t').flexOptions({url: '$page?events-table=yes&critical=1'}).flexReload(); 
+}
+function info$t(){
+	$('#events-table-$t').flexOptions({url: '$page?events-table=yes&critical=2'}).flexReload(); 
+}
+function Err$t(){
+	$('#events-table-$t').flexOptions({url: '$page?events-table=yes&critical=0'}).flexReload(); 
+}
+function All$t(){
+	$('#events-table-$t').flexOptions({url: '$page?events-table=yes'}).flexReload(); 
+}
 function EmptyEvents(){
 	if(!confirm('$empty_events_text_ask')){return;}
 	var XHR = new XHRConnection();
@@ -136,11 +153,14 @@ function events_table(){
 	$MyPage=CurrentPageName();
 	$q=new mysql();
 
-
+	$FORCE=1;
 	$search='%';
 	$table="squid_admin_mysql";
 	$page=1;
 	$ORDER="ORDER BY zDate DESC";
+	if(is_numeric($_GET["critical"])){
+		$FORCE="severity={$_GET["critical"]}";
+	}
 
 	$total=0;
 	if($q->COUNT_ROWS($table,"artica_events")==0){json_error_show("no data",1);}
@@ -157,12 +177,18 @@ function events_table(){
 	if($searchstring<>null){
 		
 		
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
 		$total = $ligne["TCOUNT"];
 
 	}else{
-		$total = $q->COUNT_ROWS($table, "artica_events");
+		if(strlen($FORCE)>2){
+			$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE";
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+			$total = $ligne["TCOUNT"];
+		}else{
+			$total = $q->COUNT_ROWS($table, "artica_events");
+		}
 	}
 
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
@@ -172,7 +198,7 @@ function events_table(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";
+	$sql="SELECT *  FROM `$table` WHERE $FORCE $searchstring $ORDER $limitSql";
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,"artica_events");
 	if(!$q->ok){json_error_show($q->mysql_error,1);}

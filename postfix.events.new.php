@@ -18,6 +18,7 @@
 	
 	if(isset($_GET["table-list"])){events_list();exit;}
 	if(isset($_GET["js-zarafa"])){js_zarafa();exit;}
+	if(isset($_GET["js-mgreylist"])){js_mgreylist();exit;}
 	if(isset($_GET["ZoomEvents"])){ZoomEvents();exit;}
 	
 page();
@@ -37,7 +38,17 @@ function js_zarafa(){
 	echo $html;
 	
 }
-	
+function js_mgreylist(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{APP_MILTERGREYLIST}:{events}");
+	$html="YahooWinBrowse('942','$page?miltergrey-filter=yes','$title')";
+	echo $html;
+
+}
+
+
+
 function page(){
 	$t=time();
 	$page=CurrentPageName();
@@ -86,7 +97,7 @@ $form
 var memid='';
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?table-list=yes&hostname=$hostname&t=$t&zarafa-filter={$_GET["zarafa-filter"]}&mimedefang-filter={$_GET["mimedefang-filter"]}',
+	url: '$page?table-list=yes&hostname=$hostname&t=$t&zarafa-filter={$_GET["zarafa-filter"]}&miltergrey-filter={$_GET["miltergrey-filter"]}&mimedefang-filter={$_GET["mimedefang-filter"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '$zDate', name : 'zDate', width : 58, sortable : true, align: 'left'},
@@ -134,7 +145,7 @@ function events_list(){
 	$users=new usersMenus();
 	$maillog_path=$users->maillog_path;
 	$query=base64_encode($_POST["query"]);
-	$array=unserialize(base64_decode($sock->getFrameWork("postfix.php?query-maillog=yes&filter=$query&maillog=$maillog_path&rp={$_POST["rp"]}&zarafa-filter={$_GET["zarafa-filter"]}&mimedefang-filter={$_GET["mimedefang-filter"]}")));
+	$array=unserialize(base64_decode($sock->getFrameWork("postfix.php?query-maillog=yes&filter=$query&maillog=$maillog_path&rp={$_POST["rp"]}&miltergrey-filter={$_GET["miltergrey-filter"]}&zarafa-filter={$_GET["zarafa-filter"]}&mimedefang-filter={$_GET["mimedefang-filter"]}")));
 	if($_POST["sortorder"]=="desc"){krsort($array);}else{ksort($array);}
 	
 	while (list ($index, $line) = each ($array) ){
@@ -146,6 +157,16 @@ function events_list(){
 			$pid=$re[4];
 			$line=$re[5];
 			
+			
+		}
+		
+		if($date==null){
+			if(preg_match("#([A-Za-z]+)\s+([0-9]+)\s+([0-9:]+)\s+(.+?)\s+(.+?):(.+)#", $line,$re)){
+				$date="{$re[1]} {$re[2]} {$re[3]}";
+				$host=$re[4];
+				$service=$re[5];
+				$line=$re[6];
+			}
 			
 		}
 		

@@ -348,6 +348,10 @@ function NicBuildTR($NicRequested){
 		}
 		if(!$users->UCARP_INSTALLED){$failover_text="{not_installed}";}
 		
+		if($array_ipcfg["gateway"]==null){
+			$nicz=new system_nic($NicRequested);
+			$array_ipcfg["gateway"]=$nicz->GATEWAY;
+		}
 		
 		return $tpl->_ENGINE_parse_body("
 		<tr style='font-size:18px' $link>

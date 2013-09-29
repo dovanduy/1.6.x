@@ -10,6 +10,7 @@
 	include_once('ressources/class.ini.inc');
 	include_once('ressources/class.system.network.inc');
 	include_once('ressources/class.squid.inc');
+	include_once('ressources/class.ccurl.inc');
 	
 	$user=new usersMenus();
 	if($user->AsDansGuardianAdministrator==false){
@@ -18,6 +19,7 @@
 		die();exit();
 	}	
 	
+	if(isset($_GET["client-js"])){client_js();exit;}
 	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["ufdbperf"])){ufdbperf();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
@@ -29,7 +31,7 @@
 	if(isset($_GET["force-reload-js"])){force_reload_js();exit;}
 	if(isset($_POST["force-reload-perform"])){force_reload_perform();exit;}
 	if(isset($_GET["import-export"])){import_export();exit;}
-	
+	if(isset($_GET["TestsSocket"])){TestsSocket();exit;}
 	js();
 
 	
@@ -61,20 +63,53 @@ function force_reload_perform(){
 }
 
 
-
+function client_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{client_parameters}");
+	$html="YahooWin3('730','$page?ufdbclient=yes','$title');";
+	echo $html;
+	
+	
+}
 	
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{APP_UFDBGUARD}");
-	$html="YahooWin3('700','$page?tabs=yes','$title');";
+	$html="YahooWin3('730','$page?tabs=yes','$title');";
 	echo $html;
 	}
+	
+function TestsSocket(){
+	$errorSock=null;
+	$sock=new sockets();
+	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=$_GET["t"];
+	$UseRemoteUfdbguardService=$datas["UseRemoteUfdbguardService"];
+	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
+	if(!is_numeric($datas["remote_port"])){$datas["remote_port"]=3977;}	
+	if($UseRemoteUfdbguardService==1){
+		if(!@fsockopen($datas["remote_server"], $datas["remote_port"], $errno, $errstr, 1)){
+			$html="<div style='font-size:14px;color:#CC0A0A;width:95%' class=form><strong style='font-size:14px'>{warn_ufdbguard_remote_error}</strong>
+			<p style='font-size:14px'>{server}:&laquo;{$datas["remote_server"]}&raquo;:{$datas["remote_port"]} {error} $errno $errstr</p>
+			<div style='text-align:right'>". imgtootltip("refresh-24.png",null,"LoadAjaxTiny('$t-sock','$page?TestsSocket=yes&t=$t');")."</div>
+			</div>";
+			echo $tpl->_ENGINE_parse_body($html);	
+		}
+	}
+	
+}
 	
 function ufdbclient_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
+	$t=time();
 	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));	
 	$lock=0;
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
@@ -89,14 +124,16 @@ function ufdbclient_popup(){
 		$datas["remote_server"]=$RemoteStatisticsApplianceSettings["SERVER"];
 		$lock=1;
 	}
-	
+
 	
 	
 	$t=time();
 	$html="
 	<div class=explain style='font-size:13px'>{ufdbclient_parms_explain}</div>
-	<div id='$t'>
-		<table style='width:99%' class=form>
+	
+	<div id='$t-sock'></div>
+	<div style='width:95%' class=form>
+		<table >
 		<tr>
 			<td class=legend style='font-size:14px'>{UseRemoteUfdbguardService}:</td>
 			<td>". Field_checkbox("UseRemoteUfdbguardService",1,$datas["UseRemoteUfdbguardService"],"RemoteUfdbCheck()")."</td>
@@ -114,10 +151,13 @@ function ufdbclient_popup(){
 			<td colspan=2 align='right'><hr>". button("{apply}","SaveufdbGuardClient()",16)."</td>
 		</tr>	
 		</table>
-	</div>
+		</div>
+	
 	<script>
 	var x_SaveufdbGuardClient=function (obj) {
 		RefreshTab('main_ufdbguard_config');
+		RefreshTab('main_dansguardian_mainrules');
+		document.getElementById('$t').innerHTML='';
 		Loadjs('squid.compile.progress.php?ask=yes');
 	}	
 
@@ -134,7 +174,9 @@ function ufdbclient_popup(){
 		if(document.getElementById('UseRemoteUfdbguardService').checked){
 			document.getElementById('remote_server').disabled=false;
 			document.getElementById('remote_port').disabled=false;
+			LoadAjaxTiny('$t-sock','$page?TestsSocket=yes&t=$t');
 		}
+		
 	}
 	
 	function SaveufdbGuardClient(){
@@ -154,6 +196,7 @@ function ufdbclient_popup(){
     		XHR.sendAndLoad('$page', 'POST',x_SaveufdbGuardClient);
 	}	
 	RemoteUfdbCheck();
+	
 	</script>
 	
 	";
@@ -581,7 +624,27 @@ function url_rewrite_bypass_save(){
 
 function save_ssl(){
 	$sock=new sockets();
-	if(isset($_POST["UseRemoteUfdbguardService"])){$sock->SET_INFO('UseRemoteUfdbguardService', $_POST["UseRemoteUfdbguardService"]);}
+	if(isset($_POST["UseRemoteUfdbguardService"])){
+		$sock->SET_INFO('UseRemoteUfdbguardService', $_POST["UseRemoteUfdbguardService"]);
+		if($_POST["UseRemoteUfdbguardService"]==1){
+			$remote_server=$_POST["remote_server"];
+			$remote_port=$_POST["remote_port"];
+			if(!is_numeric($remote_port)){$remote_port=3977;$_POST["remote_port"]=3977;}
+			if(@fsockopen($remote_server, 9000, $errno, $errstr, 1)){
+				$uri="https://$remote_server:9000/nodes.listener.php?ufdbguardport=$remote_port";
+				$curl=new ccurl($uri);
+				$curl->NoHTTP_POST=true;
+				if(!$curl->get()){}
+			}
+			
+			
+			if(!@fsockopen($remote_server, $remote_port, $errno, $errstr, 1)){
+				echo "$remote_server:$remote_port\nError: $errno $errstr\n";
+				
+			}
+			
+		}
+	}
 	
 	if(isset($_POST["ufdbguardReloadTTL"])){
 		writelogs("SET_INFO ufdbguardReloadTTL= {$_POST["ufdbguardReloadTTL"]}",__FUNCTION__,__FILE__,__LINE__);

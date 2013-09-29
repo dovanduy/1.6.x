@@ -122,7 +122,7 @@ class autofs{
 			}
 			
 			if($type=="ext4"){
-				$pattern="-fstype=ext4,noatime,grpid UUID=\"$this->uuid\"";
+				$pattern="-fstype=ext4,noatime,commit=60,grpid UUID=\"$this->uuid\"";
 			}
 
 			if($type=="ext3"){

@@ -61,7 +61,7 @@ public
     function    POSTFIX_READ_QUEUE_MESSAGE(MessageID:string):string;
     function    POSTFIX_EXTRACT_MAINCF(key:string):string;
     procedure   POSTFIX_MOVE_CORRUPTED_QUEUE();
-    procedure   POSTFIX_DISABLE_MGREYLIST();
+
     function    master_path():string;
     function    Is_CYRUS_enabled_in_master_cf():boolean;
     function    postfix_path():string;
@@ -856,26 +856,6 @@ end;
 
 writeln('Storage area store ',SYS.DirectoryCountFiles(queue),' emails after operation');
 
-end;
-//#####################################################################################
-procedure tpostfix.POSTFIX_DISABLE_MGREYLIST();
-var
-   POSFTIX_POSTCONF:string;
-   milter:tmilter_greylist;
-   line,str:string;
-   smtpd_milters:string;
-begin
-
-if MilterGreyListEnabled=1 then exit;
-milter:=tmilter_greylist.Create(SYS);
-line:='unix:'+milter.CheckSocket();
-milter.free;
-POSFTIX_POSTCONF:=POSFTIX_POSTCONF_PATH();
-str:=logs.FILE_TEMP();
-fpsystem(POSFTIX_POSTCONF+' -h smtpd_milters >'+str+' 2>&1');
-smtpd_milters:=trim(logs.ReadFromFile(str));
-smtpd_milters:=AnsiReplaceText(smtpd_milters,line,'');
-logs.OutputCmd(POSFTIX_POSTCONF +' -e "smtpd_milters = '+smtpd_milters+'"');
 end;
 //#####################################################################################
 function tpostfix.POSTFIX_LDAP_COMPLIANCE():boolean;

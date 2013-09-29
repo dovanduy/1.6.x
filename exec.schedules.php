@@ -377,7 +377,7 @@ function execute_task_squid($ID){
 	writelogs("Task $ID Load:$internal_load cmdline `{$GLOBALS["CMDLINES"]}`",__FUNCTION__,__FILE__,__LINE__);
 	$GLOBALS["SCHEDULE_ID"]=$ID;
 	if(isMaxInstances()){
-		ufdbguard_admin_events("Too much instances loaded, aborting task...", __FUNCTION__, __FILE__, __LINE__, "scheduler",$ID);
+		ufdbguard_admin_events("Warning, Too much instances loaded, schedule this task for few minutes later", __FUNCTION__, __FILE__, __LINE__, "scheduler",$ID);
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
 		return;
 	}

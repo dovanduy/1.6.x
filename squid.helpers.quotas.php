@@ -14,15 +14,25 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "alert('$alert');";
 	die();	
 }
+
+if(isset($_GET["button-ad"])){button_ad();exit;}
+if(isset($_POST["acl-rule-link"])){quota_destination_link();exit;}
+if(isset($_POST["acl-rule-link-delete"])){quota_destination_unlink();exit;}
+
 if(isset($_GET["list-items"])){list_items();exit;}
 if(isset($_GET["new-quota-rule"])){new_quota_rule_js();exit;}
 if(isset($_GET["get-quota-rule"])){quota_rule_js();exit;}
+if(isset($_GET["service-cmds"])){service_cmds_js();exit;}
+if(isset($_GET["service-cmds-popup"])){service_cmds_popup();exit;}
+if(isset($_GET["service-cmds-perform"])){service_cmds_perform();exit;}
+	
+if(isset($_POST["EnableDisable"])){EnableDisable();exit;}
 
-	if(isset($_GET["service-cmds"])){service_cmds_js();exit;}
-	if(isset($_GET["service-cmds-popup"])){service_cmds_popup();exit;}
-	if(isset($_GET["service-cmds-perform"])){service_cmds_perform();exit;}
-	
-	
+if(isset($_GET["ID-TAB"])){quota_tab();exit;}
+if(isset($_GET["quota-params-members"])){quota_rule();exit;}
+if(isset($_GET["quota-destination-list"])){quota_destination_list();exit;}
+if(isset($_GET["quota-params-destination"])){quota_destination();exit;}
+
 
 if(isset($_GET["ID"])){quota_rule();exit;}
 if(isset($_GET["explain-ident"])){explain_ident();exit;}
@@ -40,6 +50,31 @@ function quota_params_js(){
 	echo "YahooWin2('650','$page?quota-params-popup=yes&t={$_GET["t"]}','$title')";	
 }
 
+function EnableDisable(){
+	$ID=$_POST["EnableDisable"];
+	$q=new mysql_squid_builder();
+	$sql="SELECT enabled FROM webfilters_quotas WHERE `ID`='$ID'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if($ligne["enabled"]==0){
+		$q->QUERY_SQL("UPDATE webfilters_quotas SET `enabled`=1 WHERE ID=$ID");
+	}else{
+		$q->QUERY_SQL("UPDATE webfilters_quotas SET `enabled`=0 WHERE ID=$ID");
+	}
+}
+
+function quota_rule_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	if($_GET["ID"]>0){
+		$sql="SELECT xtype,value,maxquota FROM webfilters_quotas WHERE `ID`='{$_GET["ID"]}'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$title=$tpl->javascript_parse_text("{squidquota}::{$ligne["xtype"]} ({$ligne["value"]}) max:{$ligne["maxquota"]}M");
+		echo "YahooWin2('650','$page?ID-TAB=yes&ID={$_GET["ID"]}&t={$_GET["t"]}','$title')";
+		return;
+	}
+	echo "YahooWin2('650','$page?ID={$_GET["ID"]}&t={$_GET["t"]}','$title')";
+}
 
 function service_cmds_js(){
 	$page=CurrentPageName();
@@ -102,6 +137,8 @@ function page(){
 	$parameters=$tpl->_ENGINE_parse_body("{parameters}");
 	$apply_parameters=$tpl->_ENGINE_parse_body("{apply_parameters}");
 	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
+	$destination=$tpl->_ENGINE_parse_body("{destination}");
+	$enabled=$tpl->_ENGINE_parse_body("{enabled}");
 	$TB_WIDTH=550;
 	$t=time();
 	
@@ -116,18 +153,22 @@ function page(){
 		],";		
 	
 	$html="
+	<center id='anim-$t'><img src='img/wait_verybig_old.gif'></center>
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
 <script>
 var mem$t='';
-$(document).ready(function(){
+function StartTable$t(){
+document.getElementById('anim-$t').innerHTML='';
+
 $('#$t').flexigrid({
 	url: '$page?list-items=yes&t=$t',
 	dataType: 'json',
 	colModel : [
 		{display: '$member', name : 'value', width : 184, sortable : true, align: 'left'},
-		{display: '$type', name : 'xtype', width : 238, sortable : true, align: 'left'},
+		{display: '$destination', name : 'xdes', width : 211, sortable : false, align: 'left'},
 		{display: '$duration', name : 'duration', width : 161, sortable : true, align: 'left'},
 		{display: '$maxquota', name : 'maxquota', width : 124, sortable : false, true: 'left'},
+		{display: '$enabled', name : 'enabled', width : 31, sortable : false, true: 'center'},
 		{display: '&nbsp;', name : 'del', width : 31, sortable : false, true: 'center'},
 		
 		
@@ -148,7 +189,7 @@ $('#$t').flexigrid({
 	singleSelect: true
 	
 	});
-});
+}
 
 function RefreshNodesSquidTbl(){
 	$('#$t').flexReload();
@@ -162,7 +203,7 @@ function GetRule$t(ID){
 }
 
 function Reconf$t(){
-	Loadjs('$page?service-cmds=yes&t=$t');
+	Loadjs('squid.compile.php');
 }
 
 function Params$t(){
@@ -183,9 +224,26 @@ function DeleteQuota$t(ID){
 	XHR.sendAndLoad('$page', 'POST',x_DeleteQuota$t);	
 	
 }
-function help$t(){
-	s_PopUpFull('http://www.proxy-appliance.org/index.php?cID=296','1024','900');
+	var x_Enable$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>2){alert(results);return;}
+		$('#$t').flexReload();
+		
+	}
+
+function EnableQuota$t(ID){
+	mem$t=ID;
+	var XHR = new XHRConnection();
+	XHR.appendData('EnableDisable',ID);
+	XHR.sendAndLoad('$page', 'POST',x_Enable$t);	
 }
+
+function help$t(){
+	s_PopUpFull('http://www.youtube.com/watch?v=wYXGwKB9SPk&feature=c4-overview&list=UUYbS4gGDNP62LsEuDWOMN1Q','1024','900');
+}
+
+setTimeout('StartTable$t()',500);
+
 </script>";
 	
 	echo $html;
@@ -197,6 +255,29 @@ function quota_delete(){
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("DELETE FROM webfilters_quotas WHERE ID={$_POST["delete"]}");
 	if(!$q->ok){echo $q->mysql_error;}
+	$q->QUERY_SQL("DELETE FROM webfilters_quotas_grp WHERE ruleid={$_POST["delete"]}");
+	if(!$q->ok){echo $q->mysql_error;}
+}
+
+function quota_tab(){
+	$t=$_GET["t"];
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$array["quota-params-members"]="{source}";
+	$array["quota-params-destination"]="{destination}";
+	$ID=$_GET["ID"];
+	$fontsize=14;
+	if(count($array)>6){$fontsize=11.5;}
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t&t=$t&ID=$ID\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+	}
+	
+	
+	
+	$html= build_artica_tabs($html,'main_squid_quota_table');
+	echo $html;
+	
 }
 
 function quota_params_popup(){
@@ -205,13 +286,13 @@ function quota_params_popup(){
 	$array=unserialize(base64_decode($sock->GET_INFO("SquidQuotasParams")));
 	$page=CurrentPageName();
 	$tpl=new templates();	
-	if(!is_numeric($array["CACHE_TIME"])){$array["CACHE_TIME"]=120;}
+	if(!is_numeric($array["CACHE_TIME"])){$array["CACHE_TIME"]=360;}
 	if(!is_numeric($array["DISABLE_MODULE"])){$array["DISABLE_MODULE"]=0;}
 	if($array["TEMPLATE"]==null){$array["TEMPLATE"]="ERR_ACCESS_DENIED";}
 	$html="
 	<span id='explain-div-$t'></span>
-	
-	<table style='width:99%' class=form>
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{disable}:</td>
 		<td style='font-size:16px'>". Field_checkbox("DISABLE_MODULE-$t", 1,$array["DISABLE_MODULE"],"DISABLE_MODULE_CHECK$t()")."</td>
@@ -232,7 +313,7 @@ function quota_params_popup(){
 		<td colspan=3 align='right'><hr>".button("{apply}", "SaveFormRule$t()","18px")."</tr>
 	</tr>
 	</table>
-	
+	</div>
 	<script>
 		function ExplainIndet$t(){
 			var exp=document.getElementById('identification-$t').value;
@@ -287,15 +368,7 @@ function new_quota_rule_js(){
 	echo "YahooWin2('650','$page?ID=0&t={$_GET["t"]}','$title')";
 	
 }
-function quota_rule_js(){
-	$page=CurrentPageName();
-	$tpl=new templates();	
-	$q=new mysql_squid_builder();
-	$sql="SELECT xtype,value,maxquota FROM webfilters_quotas WHERE `ID`='{$_GET["ID"]}'";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	$title=$tpl->javascript_parse_text("{squidquota}::{$ligne["xtype"]} ({$ligne["value"]}) max:{$ligne["maxquota"]}M");
-	echo "YahooWin2('650','$page?ID={$_GET["ID"]}&t={$_GET["t"]}','$title')";
-}
+
 
 
 function list_items(){
@@ -328,7 +401,7 @@ function list_items(){
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
 	$searchstring=string_to_flexquery();
-		
+		$disabled_text=$tpl->_ENGINE_parse_body("{disabled}");
 	if($searchstring<>null){	
 		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
@@ -367,21 +440,30 @@ function list_items(){
 	$identifications["uid"]="{member}";
 	$identifications["uidAD"]="{active_directory_member}";
 	$identifications["MAC"]="{MAC}";
-	$identifications["hostname"]="{hostname}";		
+		
+	
+	$disabled_t=null;
 	$color=";color:black;";
 	if($array["DISABLE_MODULE"]==1){$color=";color:#969696;";}
 	
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
+		$color=";color:black;";
 		$delete=imgsimple("delete-32.png","","DeleteQuota$t({$ligne["ID"]})");
+		$enabled=Field_checkbox("disabled{$ligne["ID"]}", 1,$ligne["enabled"],"EnableQuota$t({$ligne["ID"]})");
+		if($ligne["enabled"]==0){$color=";color:#969696;";}
+		if($array["DISABLE_MODULE"]==1){$color=";color:#969696;";}
 		$uri="<a href=\"javascript:blur();\" Onclick=\"javascript:GetRule$t({$ligne["ID"]});\" 
 		style=\"font-size:14px;text-decoration:underline$color\">";
 	$data['rows'][] = array(
 		'id' => $ligne["ID"],
 		'cell' => array(
-			"<span style='font-size:14px$color'>$uri{$ligne["value"]}</a></span>",
-			"<span style='font-size:14px$color'>$uri". $tpl->_ENGINE_parse_body("{$identifications[$ligne["xtype"]]}")."</a></span>",
+			"<span style='font-size:14px$color'>$uri".$tpl->_ENGINE_parse_body("{$identifications[$ligne["xtype"]]}&nbsp;{$ligne["value"]}")."</a></span>",
+			"<span style='font-size:14px$color'>$uri". $tpl->_ENGINE_parse_body(ExplainRule($ligne["ID"]))."</a></span>",
 			"<span style='font-size:14px$color'>$uri". $tpl->_ENGINE_parse_body("{$durations[$ligne["duration"]]}")."</a></span>",
-			"<span style='font-size:14px$color'>{$ligne["maxquota"]} MB</span>",$delete
+			"<span style='font-size:14px$color'>{$ligne["maxquota"]} MB</span>",
+			$enabled,
+			$delete
 	
 	 	 	
 			)
@@ -390,6 +472,41 @@ function list_items(){
 	
 	
 echo json_encode($data);		
+}
+
+function ExplainRule($ID){
+	
+	$acl=new squid_acls_groups();
+	$q=new mysql_squid_builder();
+	
+	$sql="SELECT webfilters_quotas_grp.gpid,
+	webfilters_quotas_grp.zmd5, webfilters_quotas_grp.ID as LINKID, 
+	webfilters_sqgroups.* FROM webfilters_quotas_grp, webfilters_sqgroups 
+	WHERE webfilters_quotas_grp.gpid=webfilters_sqgroups.ID AND webfilters_quotas_grp.ruleid=$ID";
+	
+	
+	$results = $q->QUERY_SQL($sql);
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$arrayF=$acl->FlexArray($ligne['gpid']);
+		
+		$t[]="{$arrayF["ROW"]}";
+		
+	}
+	
+	if(count($t)==0){return null;}
+	return @implode("<br>", $t);
+	
+	
+	
+}
+
+function button_ad(){
+	$tpl=new templates();
+	$t=$_GET["t"];
+	$js="Loadjs('MembersBrowse.php?OnlyGroups=1&callback=FillButtonAD$t&OnlyAD=1&prepend-guid=0&prepend=0&OnlyGUID=0&OnlyName=1');";
+	echo $tpl->_ENGINE_parse_body(button("{browse}...", $js,16));
+	
 }
 
 function quota_rule(){
@@ -413,12 +530,14 @@ function quota_rule(){
 	
 	$identifications["ipaddr"]="{ipaddr}";
 	$identifications["uid"]="{member}";
-	//$identifications["uidAD"]="{active_directory_member}";
+	$identifications["uidAD"]="{active_directory_member}";
 	$identifications["MAC"]="{MAC}";
-	$identifications["hostname"]="{hostname}";		
+			
 	
 	$durations[1]="{per_day}";
 	$durations[2]="{per_hour}";
+	
+	//
 	
 	$html="
 	<span id='explain-div-$t'></span>
@@ -431,7 +550,8 @@ function quota_rule(){
 	<tr>
 		<td class=legend style='font-size:16px'>{pattern}:</td>
 		<td>". Field_text("value-$t",$value,"font-size:16px")."</td>
-	</tr>	
+	</tr>
+	<tr><td colspan=2 style='text-align:right'><span id='button-$t'></span></td></tr>	
 	<tr>
 		<td class=legend style='font-size:16px'>{duration}:</td>
 		<td>". Field_array_Hash($durations, "duration-$t",$duration,null,null,0,"font-size:16px")."</td>
@@ -448,10 +568,25 @@ function quota_rule(){
 	
 	<script>
 		function ExplainIndet$t(){
+			document.getElementById('button-$t').innerHTML='';
 			var exp=document.getElementById('identification-$t').value;
+			document.getElementById('value-$t').disabled=false;
 			LoadAjax('explain-div-$t','$page?explain-ident='+exp);
+			if(exp=='uidAD'){
+				document.getElementById('value-$t').disabled=true;
+				LoadAjaxTiny('button-$t','$page?button-ad=true&field=value-$t&t=$t');
+			}
 		
 		}
+		
+	function CheckFied$t(){
+		var exp=document.getElementById('identification-$t').value;
+		document.getElementById('value-$t').disabled=false;
+		if(exp=='uidAD'){
+				document.getElementById('value-$t').disabled=true;
+				LoadAjaxTiny('button-$t','$page?button-ad=true&field=value-$t&t=$t');
+			}
+	}
 		
 	var x_SaveFormRule$t= function (obj) {
 		var results=obj.responseText;
@@ -461,7 +596,11 @@ function quota_rule(){
 		if($ID==0){
 			YahooWin2Hide();
 		}
-	}		
+	}	
+
+	function FillButtonAD$t(num,prepend,gid){
+		document.getElementById('value-$t').value=gid;
+	}
 		
 	function SaveFormRule$t(){	
 		var XHR = new XHRConnection();
@@ -473,6 +612,10 @@ function quota_rule(){
 		AnimateDiv('explain-div-$t');
 		XHR.sendAndLoad('$page', 'POST',x_SaveFormRule$t);		
 		}	
+		
+		setTimeout('CheckFied$t()',500);
+		
+		
 	</script>
 	
 	";
@@ -510,3 +653,202 @@ function explain_ident(){
 	
 }
 
+function quota_destination(){
+	$ID=$_GET["ID"];
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$objects=$tpl->_ENGINE_parse_body("{objects}");
+	$items=$tpl->_ENGINE_parse_body("{items}");
+	$new_item=$tpl->_ENGINE_parse_body("{link_object}");
+	$new_group=$tpl->_ENGINE_parse_body("{new_proxy_object}");
+	$t=$_GET["t"];
+	$tt=time();
+	$html="
+<table class='table-items-$tt' style='display: none' id='table-items-$tt' style='width:99%'></table>
+<script>
+	var DeleteAclKey$tt='';
+function LoadTable$tt(){
+		$('#table-items-$tt').flexigrid({
+		url: '$page?quota-destination-list=yes&ID=$ID&t=$tt&aclid={$_GET["ID"]}',
+		dataType: 'json',
+		colModel : [
+		{display: '$objects', name : 'gpid', width : 415, sortable : true, align: 'left'},
+		{display: '$items', name : 'items', width : 69, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'del', width : 31, sortable : false, align: 'center'},
+	
+		],
+		buttons : [
+		{name: '$new_item', bclass: 'add', onpress : LinkAclItem$tt},
+		],
+		searchitems : [
+		{display: '$items', name : 'GroupName'},
+		],
+		sortname: 'GroupName',
+		sortorder: 'asc',
+		usepager: true,
+		title: '',
+		useRp: true,
+		rp: 15,
+		showTableToggleBtn: false,
+		width: 605,
+		height: 350,
+		singleSelect: true
+	});
+}
+
+function LinkAclItem$tt() { Loadjs('squid.BrowseAclGroups.php?callback=LinkAclRuleGpid$tt&FilterType=dstdomain'); }
+function LinkAddAclItem$tt(){ Loadjs('squid.acls.groups.php?AddGroup-js=-1&link-acl={$_GET["aclid"]}&table-acls-t=$tt'); }
+	
+var x_LinkAclRuleGpid$t= function (obj) {
+		var res=obj.responseText;
+		if(res.length>3){alert(res);return;}
+		$('#$t').flexReload();
+		$('#table-items-$tt').flexReload();
+		ExecuteByClassName('SearchFunction');
+	}
+	
+function LinkAclRuleGpid$tt(gpid){
+	var XHR = new XHRConnection();
+	XHR.appendData('acl-rule-link', '{$_GET["ID"]}');
+	XHR.appendData('gpid', gpid);
+	XHR.sendAndLoad('$page', 'POST',x_LinkAclRuleGpid$t);
+}
+var x_DeleteObjectLinks$tt= function (obj) {
+	var res=obj.responseText;
+	if(res.length>3){alert(res);return;}
+	$('#row'+DeleteAclKey$tt).remove();
+	$('#$t').flexReload();
+	ExecuteByClassName('SearchFunction');
+}
+
+
+function DeleteObjectLinks$tt(mkey){
+	DeleteAclKey$tt=mkey;
+	var XHR = new XHRConnection();
+	XHR.appendData('acl-rule-link-delete', mkey);
+	XHR.sendAndLoad('$page', 'POST',x_DeleteObjectLinks$tt);
+}
+	
+
+	
+LoadTable$tt();
+</script>
+";
+echo $html;	
+	
+}
+
+
+function quota_destination_unlink(){
+	//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+	$q=new mysql_squid_builder();
+	$ruleid=$_POST["acl-rule-link-delete"];
+	$sql="DELETE FROM `webfilters_quotas_grp` WHERE `zmd5`='$ruleid'";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;}	
+	
+	
+}
+function quota_destination_link(){
+	$ruleid=$_POST["acl-rule-link"];
+	if($ruleid==0){echo "NO ID !!\n";return;}
+	$gpid=$_POST["gpid"];
+	
+	$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`webfilters_quotas_grp` (
+			`ID` INT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			`zmd5` VARCHAR(90) NOT NULL,
+			`ruleid` INT( 100 ) NOT NULL,
+			`gpid` INT( 100 ) NOT NULL,
+		    UNIQUE KEY `zmd5` (`zmd5`),
+			KEY `ruleid` (`ruleid`),
+			KEY `gpid` (`gpid`)
+			)  ENGINE = MYISAM;";
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;}
+	$zmd5=md5("$gpid$ruleid");
+	$sql="INSERT IGNORE INTO `webfilters_quotas_grp` (zmd5,gpid,ruleid) VALUES ('$zmd5','$gpid','$ruleid')";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;}
+	
+}
+
+function quota_destination_list(){
+//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+$tpl=new templates();
+$MyPage=CurrentPageName();
+$q=new mysql_squid_builder();
+$ID=$_GET["ID"];
+$acl=new squid_acls();
+$t0=$_GET["t"];
+$search='%';
+$table="(SELECT webfilters_quotas_grp.gpid,webfilters_quotas_grp.zmd5, webfilters_quotas_grp.ID as LINKID, webfilters_sqgroups.* FROM webfilters_quotas_grp, webfilters_sqgroups WHERE webfilters_quotas_grp.gpid=webfilters_sqgroups.ID AND webfilters_quotas_grp.ruleid=$ID) as t";
+	
+		$page=1;
+		if(!$q->TABLE_EXISTS("webfilters_quotas_grp")){$q->CheckTables(null,true);}
+		if($q->COUNT_ROWS("webfilters_quotas_grp")==0){json_error_show("No datas");}
+	
+		if(isset($_POST["sortname"])){
+			if($_POST["sortname"]<>null){
+				$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";
+			}
+		}
+	
+		if (isset($_POST['page'])) {$page = $_POST['page'];}
+	
+		
+		$searchstring=string_to_flexquery();
+	
+		if($searchstring<>null){
+			$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+			$total = $ligne["TCOUNT"];
+	
+		}else{
+			$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER";
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+			$total = $ligne["TCOUNT"];
+		}
+	
+		if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	
+	
+	
+		$pageStart = ($page-1)*$rp;
+		$limitSql = "LIMIT $pageStart, $rp";
+		
+		$sql="SELECT *  FROM $table WHERE 1 $searchstring $ORDER $limitSql";
+	
+		$results = $q->QUERY_SQL($sql);
+		if(!$q->ok){json_error_show($q->mysql_error."\n$sql");}
+	
+	
+		$data = array();
+		$data['page'] = $page;
+		$data['total'] = $total;
+		$data['rows'] = array();
+		if(mysql_num_rows($results)==0){json_error_show("No item");}
+		$rules=$tpl->_ENGINE_parse_body("{rules}");
+		$acl=new squid_acls_groups();
+	
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$val=0;
+			$ID=$ligne["ID"];
+			$md5=$ligne["zmd5"];
+			$arrayF=$acl->FlexArray($ligne['gpid']);
+			$delete=imgsimple("delete-24.png",null,"DeleteObjectLinks$t0('$md5')");
+			
+			
+	
+			$data['rows'][] = array(
+					'id' => "$md5",
+					'cell' => array($arrayF["ROW"],
+							"<span style='font-size:14px;font-weight:bold'>{$arrayF["ITEMS"]}</span>",
+							$delete)
+			);
+		}
+	
+	
+		echo json_encode($data);
+	}

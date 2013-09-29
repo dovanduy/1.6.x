@@ -10,6 +10,7 @@
 	include_once('ressources/class.ini.inc');
 	include_once('ressources/class.ccurl.inc');
 	include_once('ressources/class.system.network.inc');
+	include_once('ressources/class.mysql.syslogs.inc');
 
 	$user=new usersMenus();
 	if($user->AsSquidAdministrator==false){
@@ -28,6 +29,7 @@
 	if(isset($_GET["wizard8"])){wizard8();exit;}
 	if(isset($_GET["wizard9"])){wizard9();exit;}
 	if(isset($_GET["wizard10"])){wizard10();exit;}
+	if(isset($_GET["wizard11"])){wizard11();exit;}
 	
 	if(isset($_POST["EnableRemoteStatisticsAppliance"])){Save();exit;}
 	if(isset($_POST["SERVER"])){wizard_save();exit;}
@@ -284,12 +286,22 @@ function wizard7(){
 	
 	
 	if(isset($array["ERROR"])){
-		echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{error}<hr>{$array["ERROR"]}<hr>$deb".wizard_restart());return;
+		echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{error}<hr>{$array["ERROR"]}<hr>$deb".wizard_restart());
+		return;
 		
 	}
 	
-	$WizardStatsAppliance["username"]=$array["username"];
-	$WizardStatsAppliance["password"]=$array["password"];
+	if(!isset($array["mysql"]["username"])){
+		echo FATAL_WARNING_SHOW_128("<hr>{error}<hr>username not retreived<hr>$deb".wizard_restart());return;
+	
+	}
+	if(!isset($array["mysql"]["password"])){
+		echo FATAL_WARNING_SHOW_128("<hr>{error}<hr>Password not retreived<hr>$deb".wizard_restart());return;
+	
+	}	
+	
+	$WizardStatsAppliance["username"]=$array["mysql"]["username"];
+	$WizardStatsAppliance["password"]=$array["mysql"]["password"];
 	$sock->SaveConfigFile(base64_encode(serialize($WizardStatsAppliance)), "WizardStatsAppliance");
 	
 	echo $tpl->_ENGINE_parse_body("
@@ -322,7 +334,18 @@ function wizard8(){
 	$sock->SET_INFO("squidRemostatisticsPort",$WizardStatsAppliance["SquidDBListenPort"]);
 	$sock->SET_INFO("squidRemostatisticsUser",$WizardStatsAppliance["username"]);
 	$sock->SET_INFO("squidRemostatisticsPassword",$WizardStatsAppliance["password"]);
+	$sock->SET_INFO("UseRemoteUfdbguardService",1);
+	
+	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+	$datas["UseRemoteUfdbguardService"]=1;
+	$datas["remote_server"]=$WizardStatsAppliance["SERVER"];
+	$datas["remote_port"]=3977;
+	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ufdbguardConfig");
+	
+	$sock->getFrameWork("cmd.php?reload-squidguard=yes");
 	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
+	$sock->getFrameWork("squidstats.php?migrate-local=yes");
+	
 	
 	echo $tpl->_ENGINE_parse_body("
 			<center style='font-size:18px'>{APP_SQUID_DB}:{$WizardStatsAppliance["username"]}@{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["SquidDBListenPort"]}</center>
@@ -360,25 +383,62 @@ function wizard9(){
 	
 	echo $tpl->_ENGINE_parse_body("
 			<center style='font-size:18px'>{APP_SYSLOG_DB}:{$WizardStatsAppliance["username"]}@{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["SyslogListenPort"]}</center>
-			<center style='font-size:18px'>{success}</center>
+			<center style='font-size:18px'>{testing_connections}</center>
 			<div id='$tt'></div>
 			<script>
-			LoadAjax('$t','$page?wizard10=yes&t=$t');
+			LoadAjax('$tt','$page?wizard10=yes&t=$t');
 			</script>
 			");	
 	
 }
 
+
+
+
 function wizard10(){
 	
+	$q=new mysql_squid_builder();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$t=$_GET["t"];
+	$tt=time()+rand(0,time());
+	if(!$q->BD_CONNECT()){
+		echo FATAL_WARNING_SHOW_128("<hr>{error}<hr>{statistics_database}<hr>$q->mysql_error".wizard_restart());return;
+	}
+	
+	$q=new mysql_storelogs();
+	if(!$q->BD_CONNECT()){
+		echo FATAL_WARNING_SHOW_128("<hr>{error}<hr>{logs_database}<hr>$q->mysql_error".wizard_restart());return;
+	}
+	
+	echo $tpl->_ENGINE_parse_body("<center style='font-size:18px'>{statistics_database}:OK</center>
+			<center style='font-size:18px'>{logs_database}:OK</center>")."
+			<div id='$tt'></div>
+			<script>
+			LoadAjax('$t','$page?wizard11=yes&t=$t');
+			</script>
+	";
+	
+}
+
+
+function wizard11(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableMySQLSyslogWizard",1);
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
 	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
 	$t=$_GET["t"];
 	$tt=time()+rand(0,time());
-	echo $tpl->_ENGINE_parse_body("<center style='font-size:18px' class=explain>{STATISTICS_APPLIANCEV2_EXPLAIN_3}</center>");	
-	
+	echo $tpl->_ENGINE_parse_body("<center style='font-size:18px' class=explain>{STATISTICS_APPLIANCEV2_EXPLAIN_3}</center>")."
+
+	<script>
+		Loadjs('squid.compile.progress.php');
+	</script>
+	";
+
 }
 
 function wizard_save(){

@@ -4588,3 +4588,95 @@ You can close this wizard...
 <use_remote_server_stats_explain>Install a second server for statistics purpose in order to increase this server performances.[br]
 Click here for more informations.
 </use_remote_server_stats_explain>
+<start_99_euros>High performance at low price ! Tariffs start at 99Euros/year !</start_99_euros>
+<trace_connexions>Trace connections</trace_connexions>
+<useTCPPort>Use TCP Port</useTCPPort>
+<use_milter_remote_service>Use a remote milter service</use_milter_remote_service>
+<use_milter_remote_service_explain>Define in this field the address of the remote milter service.[br]
+This must be inet:IP:PORT like inet:127.0.0.1:1052 or inet:myhostname:1052.[br]
+Set it to null if you did not want to activate et remote milter service.
+</use_milter_remote_service_explain>
+<EnableWebPageDebugging>Debug all administration pages</EnableWebPageDebugging>
+<DisableSSLStandardPort>Disable SSL Interception on Standard port</DisableSSLStandardPort>
+<DisableSSLStandardPort_explain>If you using both transparent and standard port and activate MAN-IN-THE-MIDDLE for SSL connection, all methods (standard and transparent) will be set in MAN-IN-THE-MIDDLE.[br]
+Enable this checkbox will disable the SSL interception for browsers that are connected directly to the proxy port (standard mode).</DisableSSLStandardPort_explain>
+<DisableSSLStandardPort_warn>Disable SSL Interception on Standard port option is enabled.[br]This means only transparent mode will intercepted SSL connection and turn the proxy to MAN-IN-THE-MIDDLE method</DisableSSLStandardPort_warn>
+<PLEASE_WAIT_COMPILING_NETWORK_SCRIPT>Please wait compiling network script</PLEASE_WAIT_COMPILING_NETWORK_SCRIPT>
+<please_wait_restarting_network>Please wait, restarting network</please_wait_restarting_network>
+<Ethernet_switch>Ethernet switch</Ethernet_switch>
+<delete_ipaddr_ask>Delete this IP address ?</delete_ipaddr_ask>
+<vde_switch_explain>
+A Virtual Switch have the same behavior as a physical switch.[br]
+It can include several virtual interfaces that use the same "real interface" behavior.[br]
+Each Virtual Switch is plugged to a real interface in order to communicate with the real network.
+</vde_switch_explain>
+<switch_port>Switch port</switch_port>
+<network_text>A network</network_text>
+<cookie>Cookie</cookie>
+<authenticator_explain_cookie_text>Detect if a cookie key is send by the browser.[br]
+If not, then action can be a redirect to a defined web page.
+</authenticator_explain_cookie_text>
+<error_no_item_posted>Error no item is posted from the form</error_no_item_posted>
+<redirect_uri>Redirect</redirect_uri>
+<redirect_uri_explain>Add in this form the desired redirected URL, it can be a path ( /some/where ) or a full url like
+http://my.new-redirection.com/authenticate.php[br]
+Artica is able to replace some tokens in your uri.[br]
+available tokens should be %LANG%, %SHLVL%, %LANGUAGE%, %QUERY_STRING%, %REQUEST_METHOD%, %CONTENT_TYPE%, %CONTENT_LENGTH%, %SCRIPT_FILENAME%, %SCRIPT_NAME%, %PATH_INFO%, %REQUEST_URI%, %DOCUMENT_URI%, %SERVER_PROTOCOL%, %GATEWAY_INTERFACE%, %HTTP_HOST%, %HTTP_X_FORWARDED_FOR%, %HTTP_X_REAL_IP%, %HTTP_USER_AGENT%, %HTTP_ACCEPT%, %HTTP_ACCEPT_LANGUAGE%, %HTTP_ACCEPT_ENCODING%
+[br]
+You can add a dynamic token that matches to a GET method or COOKIE token.[br]
+You need to use %_GET_KEY% as KEY is the request sent by the browser.[br]
+The same with cookies by using %_COOKIE_KEY%.[br]
+For example.[br]
+http://some/logon.php?query=%QUERY_STRING%&lang=%LANGUAGE%&result=%_GET_session%&session-id=%_COOKIE_JSESSIONID%
+</redirect_uri_explain>
+<the_transarent_mode_is_disabled_acl>this rule will be not used, the transparent mode is currently disabled</the_transarent_mode_is_disabled_acl>
+<standard_method>standard method</standard_method>
+<transparent_method>transparent method</transparent_method>
+<when_connecting_to_method>When connected with method</when_connecting_to_method>
+<network_status>Network status</network_status>
+<default_gateway>default gateway</default_gateway>
+<summary>Summary</summary>
+<squid_stats_disabled_explain>Currently the Artica Statistics feature is disabled.[br]
+If you want to activate this feature, you should ensure that your server have enough performance to accept statistics tasks.[br]
+We strongly suggest to use a second Artica Proxy server that will be in charge of storing and managing statistics tasks.
+</squid_stats_disabled_explain>
+<retreive_informations>Retreive informations</retreive_informations>
+<testing_connections>Testing connections</testing_connections>
+<statistics_database>Statistics database</statistics_database>
+<logs_database>Logs database</logs_database>
+<ask_change_hostname>Do you want to change your server hostname now ?</ask_change_hostname>
+<should_change_ad_dns>You should change your DNS servers or use your Active Directory as DNS server</should_change_ad_dns> 
+<UseADAsNameServer>Use AD as Primary DNS server</UseADAsNameServer>
+<AllowSmartphonesRuleText>Allow Smartphones to bypass authentication</AllowSmartphonesRuleText>
+<AllowSmartphonesRuleExplain>This rule allow any Smartphones[br]
+(Android,BlackBerry,PalmOS,SymbianOS,IE Mobile,iPhone,iPad,iPod)[br]to only bypass the main authentication method.[br]
+</AllowSmartphonesRuleExplain>
+<smartphones_port_explain>This port if not 0 should be used for Smartphones/tablets nodes.[br]This dedicated port allow these nodes to bypass authentication method and should allow dedicated features based on these nodes.</smartphones_port_explain>
+<smartphones_port>Smartphones port</smartphones_port>
+<access_logs>Transactions logs files</access_logs>
+<proxy_access_events>Proxy requests</proxy_access_events>
+<update_parameters>Update settings</update_parameters>
+<APP_ARTICADB_EXPLAIN>Web categories databases are databases used for statistics purpose.[br]
+When parsing statistics Artica needs to which category is associated for a web site.[br]
+In this case, Artica can display statistics by categories.[br]
+[b]Note, this is not databases used by the Web filtering engine but it should reflect the same content.[/b]</APP_ARTICADB_EXPLAIN>
+<update_only_by_schedule>Update only by schedule</update_only_by_schedule>
+<display_update_info_index>Display update info in index page</display_update_info_index>
+<CURLE_CURLE_PARTIAL_FILE>A file transfer was shorter or larger than expected.[br]
+This happens when the server first reports an expected transfer size,[br]and then delivers data that doesn't match the previously given size. 
+</CURLE_CURLE_PARTIAL_FILE>
+<webfiltering_databases>Web filter databases</webfiltering_database>
+<reply_body_max_size_acl>Max downloaded file</reply_body_max_size_acl>
+<acl_reply_body_max_size>Limit a downloaded file to</acl_reply_body_max_size>
+<ArticaTabsTimeout>Tabs pause time</ArticaTabsTimeout>
+<warn_no_performance_minimal>[b]Server performance issue[/b][br]
+Your server performance is under recommandations, you need at least 2 CPUs and 2Gb memory</warn_no_performance_minimal>
+<squidqota_uidAD>This rule can be used if your proxy is linked to a Microsoft Active Directory server.[br]
+Click on the Browse Button in order to choose the Active Directory group.[br]
+Each user stored by the selected group will be matched to this rule.[br]
+[b]Note: the rule defined matches each member, not the entire Active Directory Group.[/b][br]For example,
+If you define 5Mb for the Group "Allowed_Internet", each member will get a quota of 5Mb.
+</squidqota_uidAD>
+<warn_ufdbguard_remote_error>Unable to connect to remote Web filtering service</warn_ufdbguard_remote_error>
+<waiting_network_reload>Waiting reload network task</waiting_network_reload>
+<error_no_default_route_explain>Error, you did not have defined the default Network Interface route.[br]Click on one Network interface as your primary Interface and enable the default route</error_no_default_route_explain> 

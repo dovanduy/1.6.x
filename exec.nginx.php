@@ -29,6 +29,7 @@ include_once(dirname(__FILE__).'/framework/class.settings.inc');
 	if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 	if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
+	if($argv[1]=="--force-restart"){$GLOBALS["OUTPUT"]=true;force_restart();die();}
 	if($argv[1]=="--build"){$GLOBALS["OUTPUT"]=true;$GLOBALS["RECONFIGURE"]=true;build();die();}
 	if($argv[1]=="--artica-web"){articaweb();exit;}
 	if($argv[1]=="--install-nginx"){install_nginx();exit;}
@@ -731,6 +732,22 @@ function reload($aspid=false){
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx starting daemon\n";}
 	start(true);
+	
+}
+
+function force_restart(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	stop(true);
+	start(true);
+		
 	
 }
 

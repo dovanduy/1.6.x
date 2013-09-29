@@ -132,9 +132,9 @@ function AddNewSchedule_js(){
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_schedules WHERE ID=$ID"));
 		$title="{schedule}::$ID::{$ligne["TaskType"]}";
 	}
-	
+	if(is_numeric($_GET["TaskType"])){$ForceType="&ForceType={$_GET["TaskType"]}";}
 	$title=$tpl->_ENGINE_parse_body($title);
-	echo "YahooWin{$YahooWin}('550','$page?AddNewSchedule-popup=yes&ID=$ID','$title')";
+	echo "YahooWin{$YahooWin}('550','$page?AddNewSchedule-popup=yes&ID=$ID$ForceType','$title')";
 	
 }
 
@@ -356,22 +356,29 @@ function page(){
 	if($q->COUNT_ROWS("ufdbguard_admin_events", "artica_events")>0){$q->QUERY_SQL("TRUNCATE TABLE ufdbguard_admin_events","artica_events");}
 	if($q->COUNT_ROWS("system_admin_events", "artica_events")>0){$q->QUERY_SQL("TRUNCATE TABLE system_admin_events","artica_events");}		
 	$tasks=$tpl->_ENGINE_parse_body("{tasks}");
-	$CountTasks=$qS->COUNT_ROWS("webfilters_schedules", "artica_backup");
+	
 
-	$LIST_TABLES_EVENTS_SYSTEM=$q->LIST_TABLES_EVENTS_SQUID();
-	$CountEvents=0;
-	while (list ($tablename, $rows) = each ($LIST_TABLES_EVENTS_SYSTEM) ){
-		$CountEvents=$CountEvents +$q->COUNT_ROWS($tablename, "artica_events");
+	
+	if(!is_numeric($_GET["TaskType"])){
+		$CountTasks=$qS->COUNT_ROWS("webfilters_schedules", "artica_backup");
+		$LIST_TABLES_EVENTS_SYSTEM=$q->LIST_TABLES_EVENTS_SQUID();
+		$CountEvents=0;
+		while (list ($tablename, $rows) = each ($LIST_TABLES_EVENTS_SYSTEM) ){
+			$CountEvents=$CountEvents +$q->COUNT_ROWS($tablename, "artica_events");
+		}
+	
+		$CountEvents=numberFormat($CountEvents, 0 , '.' , ' ');	
+		$events=$tpl->_ENGINE_parse_body("{events}");
+		$title="$CountTasks $tasks $CountEvents $events";
+		$explain_div="<div class=explain style='font-size:13px'>$explain</div>";
+		$add_def_button="{name: '$add_default', bclass: 'Reconf', onpress : Addefaults$t},";
+	}else{
+		$title=$tpl->_ENGINE_parse_body($qS->tasks_array[$_GET["TaskType"]]);
 	}
-	
-	$CountEvents=numberFormat($CountEvents, 0 , '.' , ' ');	
-	
-	
-	$events=$tpl->_ENGINE_parse_body("{events}");	
 	
 	$t=time();
 	$html="
-	<div class=explain>$explain</div>
+	$explain_div
 
 
 	<div style='margin-left:-15px'>
@@ -381,7 +388,7 @@ function page(){
 var rowSquidTask='';
 function flexigridStarter$t(){
 $('#$t').flexigrid({
-	url: '$page?search=yes&minisize={$_GET["minisize"]}',
+	url: '$page?search=yes&minisize={$_GET["minisize"]}&TaskType={$_GET["TaskType"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'ID', width : 32, sortable : true, align: 'center'},
@@ -396,7 +403,7 @@ buttons : [
 	{name: '$new_schedule', bclass: 'add', onpress : AddNewSchedule},
 	{name: '$parameters', bclass: 'Settings', onpress : Parmaeters$t},
 	{name: '$compile_settings', bclass: 'Reconf', onpress : CompileSettings$t},
-	{name: '$add_default', bclass: 'Reconf', onpress : Addefaults$t},
+	$add_def_button
 	
 		],	
 	searchitems : [
@@ -405,7 +412,7 @@ buttons : [
 	sortname: 'ID',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$CountTasks $tasks $CountEvents $events',
+	title: '$title',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
@@ -418,7 +425,7 @@ buttons : [
 
 
 	function AddNewSchedule(category){
-			Loadjs('$page?AddNewSchedule-js=yes&ID=0');
+			Loadjs('$page?AddNewSchedule-js=yes&ID=0&TaskType={$_GET["TaskType"]}');
 	}
 	
 	function CompileSettings$t(){
@@ -512,6 +519,9 @@ function search(){
 	$search='%';
 	$table="webfilters_schedules";
 	$page=1;
+	$FORCE=1;
+	
+	if(is_numeric($_GET["TaskType"])){$FORCE="TaskType={$_GET["TaskType"]}";}
 	$ORDER="ORDER BY ID DESC";
 	$sock=new sockets();
 	$DisableSquidDefaultSchedule=$sock->GET_INFO("DisableSquidDefaultSchedule");
@@ -530,12 +540,18 @@ function search(){
 	$searchstring=string_to_flexquery();
 
 	if($searchstring<>null){
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
 		$total = $ligne["TCOUNT"];
 		
 	}else{
-		$total=$q->COUNT_ROWS($table,"artica_events");
+		if($FORCE==1){
+			$total=$q->COUNT_ROWS($table,"artica_events");
+		}else{
+			$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE";
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+			$total = $ligne["TCOUNT"];
+		}
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
@@ -546,7 +562,7 @@ function search(){
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	if($GLOBALS["VERBOSE"]){$limitSql=null;}
-	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
+	$sql="SELECT *  FROM `$table` WHERE $FORCE $searchstring $ORDER $limitSql";	
 	
 	
 	

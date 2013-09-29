@@ -14,6 +14,8 @@ class milter_greylist{
 	var $dnsrbl_array;
 	var $dnsrbl_class;
 	var $MilterGreyListEnabled;
+	var $MilterGreyListUseTCPPort;
+	var $MilterGeryListTCPPort=0;
 	var $__noparse;
 	var $mynetworks=array();
 	var $MultipleInstance=false;
@@ -73,11 +75,24 @@ function LoadConfig(){
 	$ldap=new clladp();
 	if(!$ldap->ldapFailed){$this->mynetworks=$ldap->load_mynetworks();}else{WriteLogs("LDAP failed !!!",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	WriteLogs("Loading GreyListConf ->GET_INFO('GreyListConf')",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-	$this->global_conf=base64_decode($sock->GET_INFO("GreyListConf"));
+	
+	if($GLOBALS["AS_ROOT"]){
+		$this->global_conf=base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/GreyListConf"));
+	}else{
+		$this->global_conf=base64_decode($sock->GET_INFO("GreyListConf"));
+	}
 	$this->MilterGreyListEnabled=$sock->GET_INFO('MilterGreyListEnabled');
 	$main=new maincf_multi("master","master");
 	$this->MiltergreyListAddDefaultNets=$main->GET("MiltergreyListAddDefaultNets");
+	$this->MilterGreyListUseTCPPort=$sock->GET_INFO("MilterGreyListUseTCPPort");
+	$this->MilterGeryListTCPPort=$sock->GET_INFO("MilterGeryListTCPPort");
 	if(!is_numeric($this->MiltergreyListAddDefaultNets)){$this->MiltergreyListAddDefaultNets=1;}
+	if(!is_numeric($this->MilterGreyListUseTCPPort)){$this->MilterGreyListUseTCPPort=0;}
+	if(!is_numeric($this->MilterGeryListTCPPort)){$this->MilterGeryListTCPPort=0;}
+	if($this->MilterGeryListTCPPort==0){
+		$this->MilterGeryListTCPPort=rand(11000,50000);
+		$sock->SET_INFO("MilterGeryListTCPPort", $this->MilterGeryListTCPPort);
+	}
 		
 }
 

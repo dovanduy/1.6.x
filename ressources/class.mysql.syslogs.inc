@@ -27,6 +27,7 @@ class mysql_storelogs{
 	private $MySQLLogsTypeTextAR=array("{not_set}","{server}","{client}");
 	public $MYSQLTypeText;
 	public $EnableSyslogDB=0;
+	private $filename=null;
 	
 	function mysql_storelogs(){
 		$this->OutputDebugVerbose("Loading...");
@@ -78,6 +79,7 @@ class mysql_storelogs{
 			$this->dbidsn="['DBI:mysql:database=$this->database;mysql_socket=$this->SocketName', '$this->mysql_admin', '$this->mysql_password']";
 		}
 		
+		
 		if($this->MySQLSyslogType==2){
 			$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
 			$username=$TuningParameters["username"];
@@ -118,6 +120,39 @@ class mysql_storelogs{
 			return $this->THIS_CREATE_DATABASE($this->database);
 		}
 		return $this->ClassSQL->CREATE_DATABASE($database);
+	}
+	
+
+	FUNCTION TABLE_SIZE($table){
+		if(!function_exists("mysql_connect")){return 0;}
+		$sql="show TABLE STATUS WHERE Name='$table'";
+		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql,$database));
+		if($ligne["Data_length"]==null){$ligne["Data_length"]=0;}
+		if($ligne["Index_length"]==null){$ligne["Index_length"]=0;}
+		return $ligne["Index_length"]+$ligne["Data_length"];
+	
+	}
+	
+	
+	public function GRANT_PRIVS($hostname,$username,$password){
+		$sql="SELECT User FROM user WHERE Host='$hostname' AND User='$username'";
+		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql,"mysql"));
+		if(trim($ligne["User"])==null){
+			if(!$this->EXECUTE_SQL("CREATE USER '$username'@'$hostname' IDENTIFIED BY '$password';")){
+				return false;
+			}
+				
+				
+			if(!$this->EXECUTE_SQL("GRANT ALL PRIVILEGES ON * . * TO '$username'@'$hostname' IDENTIFIED BY '$password' WITH GRANT OPTION MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0")){
+				return false;
+			}
+			$this->EXECUTE_SQL("FLUSH PRIVILEGES;");
+			return true;
+		}
+	
+		if(!$this->EXECUTE_SQL("GRANT ALL PRIVILEGES ON * . * TO '$username'@'$hostname' IDENTIFIED BY '$password' WITH GRANT OPTION MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0")){return false;}
+		$this->EXECUTE_SQL("FLUSH PRIVILEGES;");
+		return true;
 	}
 	
 	
@@ -208,20 +243,26 @@ class mysql_storelogs{
 	}	
 	
 	private function THIS_TestingConnection($noretry=false,$called=null){
+		
 		if($this->mysql_connection){return true;}
 		if($called==null){if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}}
 		if($this->MySQLSyslogType==1){
-			if($GLOBALS["VERBOSE"]){echo "mysql_connect<br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "mysql_connect -> /var/run/syslogdb.sock<br>\n";}
 			
 			if(!$this->is_socket("/var/run/syslogdb.sock")){
 				$this->mysql_error="/var/run/syslogdb.sock no such socket";
 				OutputDebugVerbose("/var/run/syslogdb.sock !!! false");
+				$GLOBALS["THIS_TestingConnection"]=false;
 				return false;
 			}
 			
 			$bd=@mysql_connect(":/var/run/syslogdb.sock","root",null);
 			
-			if($bd){$this->mysql_connection=$bd;return true;}
+			if($bd){
+					$this->mysql_connection=$bd;
+					$GLOBALS["THIS_TestingConnection"]=true;
+					return true;
+			}
 			if($GLOBALS["VERBOSE"]){echo "mysql_connect /var/run/syslogdb.sock -> error<br>\n";}
 			$des=@mysql_error(); $errnum=@mysql_errno();
 			$this->writelogs("mysql_connect(\":/var/run/syslogdb.sock\",$this->mysql_admin,$this->mysql_password..failed (N:$errnum) \"$des\" $called ",__FUNCTION__,__LINE__);
@@ -325,14 +366,14 @@ class mysql_storelogs{
 	
 	public function EXECUTE_SQL($sql){
 		if(!$this->BD_CONNECT()){return false;}
-		if(isset($GLOBALS[__CLASS__]["FAILED"])){return;}
+	
 		@mysql_query($sql,$this->mysql_connection);
 		if(mysql_error($this->mysql_connection)){
 			$time=date('h:i:s');
 			$errnum=mysql_errno($this->mysql_connection);
 			$des=mysql_error($this->mysql_connection);
 			$this->mysql_error="Error Number ($errnum) ($des)";
-			writelogs("$this->SocketPath:$this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			writelogs("$this->SocketPath:$this->mysql_error<hr>$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			return false;
 		}
 	
@@ -373,10 +414,20 @@ class mysql_storelogs{
 		$sql="CREATE TABLE IF NOT EXISTS files_store (
   			ID  int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   		   `filecontent` longblob NOT NULL
-			);";
+			) ENGINE=MYISAM;";
 		
 		$this->QUERY_SQL($sql);
 		if(!$this->ok){$this->start_error=$this->mysql_error;}
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS access_store (
+  			ID  int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  		   `filecontent` longblob NOT NULL
+			) ENGINE=MYISAM;";	
+
+		$this->QUERY_SQL($sql);
+		if(!$this->ok){$this->start_error=$this->start_error."<br>".$this->mysql_error;}
+		
 		
 		$sql="CREATE TABLE IF NOT EXISTS files_info (
 				`zmd5` VARCHAR( 90 ) NOT NULL PRIMARY KEY,
@@ -390,9 +441,29 @@ class mysql_storelogs{
 				 KEY `hostname` (`hostname`),
 				 KEY `taskid` (`taskid`,`filesize`),
 				 KEY `filetime` (`filetime`)
-				);";
+				) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql);
 		if(!$this->ok){$this->start_error=$this->start_error."<br>".$this->mysql_error;}
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS accesslogs (
+				`zmd5` VARCHAR( 90 ) NOT NULL PRIMARY KEY,
+				`filename` varchar(128) NOT NULL,
+				`hostname` varchar(128) NOT NULL,
+				`storeid` int unsigned NOT NULL,
+				`taskid` int(10) NOT NULL,
+				`filesize` bigint(100) NOT NULL,
+				`filetime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				 KEY `filename` (`filename`),
+				 KEY `hostname` (`hostname`),
+				 KEY `taskid` (`taskid`,`filesize`),
+				 KEY `filetime` (`filetime`)
+				) ENGINE=MYISAM;";
+		
+		
+		$this->QUERY_SQL($sql);
+		if(!$this->ok){$this->start_error=$this->start_error."<br>".$this->mysql_error;}		
+		
 		
 		
 		$sql="CREATE TABLE IF NOT EXISTS evnts (
@@ -404,16 +475,26 @@ class mysql_storelogs{
 				 KEY `zDate` (`zDate`),
 				 KEY `hostname` (`hostname`)
 				
-				);";
+				) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql);
 		if(!$this->ok){$this->start_error=$this->start_error."<br>".$this->mysql_error;}
 		}		
 	
 	public function TABLE_EXISTS($table,$database=null){
 		$this->BD_CONNECT();
-		if($database==null){$database=$this->database;}
-		if($database<>$this->database){$database=$this->database;}
-		return $this->ClassSQL->TABLE_EXISTS($table,$database);
+		$table=str_replace("`", "", $table);
+		$table=str_replace("'", "", $table);
+		$table=str_replace("\"", "", $table);
+		$sql="SHOW TABLES";
+		$results=$this->QUERY_SQL("SHOW TABLES");
+		if(!$this->ok){
+			if($GLOBALS["VERBOSE"]){echo "SHOW TABLES -> $q->mysql_error\n";}
+		}
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(strtolower($table)==strtolower($ligne["Tables_in_$this->database"])){return true;}
+		}
+		
+		return false;
 	}
 
 	public function DelteItem($ID){
@@ -460,34 +541,70 @@ class mysql_storelogs{
 		@unlink("$filename.bz2");
 	}	
 	
+	
+	public function ROTATE_ACCESS_TOMYSQL($filename,$sourceDate=null){
+		$sock=new sockets();
+		$unix=new unix();
+		$this->filename=$filename;
+		$taskid=0;
+		$COMPRESSEDS["gz"]=true;
+		$COMPRESSEDS["bz2"]=true;
+		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($this->filename));}
+		if(!$this->TestCompressed()){return false;}
+		if($this->EnableSyslogDB==0){return false;}
+		if(!$this->InjectFile_accesslog($this->filename, $sourceDate)){return false;}
+		@unlink($this->filename);
+		return true;
+		
+			
+		
+		
+	}
+	
+	private function TestCompressed(){
+		$COMPRESSEDS["gz"]=true;
+		$COMPRESSEDS["bz2"]=true;
+		
+		$extension = pathinfo($this->filename, PATHINFO_EXTENSION);
+		if($extension=="gz"){
+			system_admin_events("$this->filename => Converting to bz2",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			$filename=$this->ConvertGZToBzip($this->filename);
+			if($this->filename==null){return false;}
+		}
+		if(!isset($COMPRESSEDS[$extension])){
+			if(!$this->COMPRESS_FILE($this->filename)){return false;}
+			$this->filename=$this->filename.".bz2";
+		}
+		
+		return true;
+		
+	}
+	
+	
+	
 	public function ROTATE_TOMYSQL($filename,$sourceDate=null){
 		$sock=new sockets();
 		$unix=new unix();
 		$taskid=0;
+		$this->filename=$filename;
 		$COMPRESSEDS["gz"]=true;
 		$COMPRESSEDS["bz2"]=true;
-		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($filename));}
+		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($this->filename));}
 		
 		
-		$extension = pathinfo($filename, PATHINFO_EXTENSION);
-		if($extension=="gz"){
-			system_admin_events("$filename => Converting to bz2",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-			$filename=$this->ConvertGZToBzip($filename);
-			if($filename==null){return;}
-			$extension="bz2";
-		}
-		if(!isset($COMPRESSEDS[$extension])){
-			if(!$this->COMPRESS_FILE($filename)){return;}
-			$filename=$filename.".bz2";
-		}
+		if(!$this->TestCompressed()){return false;}
 		
 		
 		if($this->EnableSyslogDB==1){
-			if($this->InjectFile($filename, $sourceDate)){
-				@unlink($filename);return true;}else{return false;}
+			if(!$this->InjectFile($this->filename, $sourceDate)){return false;}
+			@unlink($this->filename);
+			return true;
 		}
+		
+		
+		
 	
-		$basename=basename($filename);
+		$basename=basename($this->filename);
 		$LogRotatePath=$sock->GET_INFO("LogRotatePath");
 		$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
 		if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
@@ -510,19 +627,19 @@ class mysql_storelogs{
 		}
 	
 		@mkdir(dirname($DestinationFile),0755,true);
-		if(!@copy($filename, $DestinationFile)){
+		if(!@copy($this->filename, $DestinationFile)){
 			@unlink($DestinationFile);
-			rotate_events("Failed to copy $filename => $DestinationFile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			rotate_events("Failed to copy $this->filename => $DestinationFile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			return false;
 		}
 	
 		if(preg_match("#-TASK-([0-9]+)#",$basename,$re)){$taskid=$re[1];}
 	
-		$ext = pathinfo($filename, PATHINFO_EXTENSION);
+		$ext = pathinfo($this->filename, PATHINFO_EXTENSION);
 		$basenameFF=$basename;
 		$basenameFF=str_replace(".$ext", "", $basenameFF);
 		$basenameFF=$basenameFF.".".time().".$ext";
-		$filesize=$unix->file_size($filename);
+		$filesize=$unix->file_size($this->filename);
 		$ToMySQL=false;
 	
 		if($LogRotateMysql==1){
@@ -548,21 +665,18 @@ class mysql_storelogs{
 			return false;
 		}
 		if($LogRotateMysql==1){@unlink($DestinationFile);}
-		@unlink($filename);
+		@unlink($this->filename);
 		return true;
-	}	
+	}
+
 	
-	
-	public function InjectFile($filepath,$sourceDate=null){
-		$FILE_SOURCE_TO_DELETE=$filepath;
+	private function TransformName($filepath){
 		$unix=new unix();
 		$hostname=$unix->hostname_g();
 		$basename=basename($filepath);
-		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($filepath));}
-		$LogRotatePathWork="$this->LogRotatePath/work";
+		$sourceDate=date('Y-m-d H:i:s',filemtime($filepath));
+		$LogRotatePathWork="$this->LogRotatePath/work";	
 		@mkdir("$this->LogRotatePath/work",0755);
-		$this->events("Info: want to backup $filepath ($sourceDate)",__FUNCTION__,__LINE__);
-
 		if(!is_dir($LogRotatePathWork)){@mkdir($LogRotatePathWork,0777);}
 		@chmod($LogRotatePathWork, 0777);
 		$basenameFF=null;
@@ -574,7 +688,24 @@ class mysql_storelogs{
 			$basenameFF=str_replace(".$ext", "", $basenameFF);
 			$basenameFF=$basenameFF.".".time().".$ext";
 			$DestinationFile=str_replace(basename($DestinationFile), $basenameFF, $DestinationFile);
-		}	
+		}
+		
+		return $DestinationFile;
+	}
+	
+	
+	public function InjectFile($filepath,$sourceDate=null){
+		$FILE_SOURCE_TO_DELETE=$filepath;
+		$taskid=0;
+		$unix=new unix();
+		$hostname=$unix->hostname_g();
+		$basename=basename($filepath);
+		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($filepath));}
+		
+
+		$this->events("Info: want to backup $filepath ($sourceDate)",__FUNCTION__,__LINE__);
+		$DestinationFile=$this->TransformName($filepath);
+		
 
 
 		if(!@copy($filepath, $DestinationFile)){
@@ -605,9 +736,8 @@ class mysql_storelogs{
 		$fcontent=null;
 		
 		if(!$this->ok){
-			@unlink("$DestinationFile");
-			$this->events("$q->mysql_error, $sql");
 			@unlink($DestinationFile);
+			$this->events("$q->mysql_error, $sql");
 			return false;
 		}	
 
@@ -636,6 +766,82 @@ class mysql_storelogs{
 		return true;
 		
 	}
+	
+	public function InjectFile_accesslog($filepath,$sourceDate=null){
+		$FILE_SOURCE_TO_DELETE=$filepath;
+		$taskid=0;
+		$unix=new unix();
+		$hostname=$unix->hostname_g();
+		$basename=basename($filepath);
+		$basenameFF=null;
+		
+		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($filepath));}
+		$this->events("Info: want to backup $filepath ($sourceDate)",__FUNCTION__,__LINE__);
+	
+		if(!$this->TABLE_EXISTS("access_store")){$this->checkTables();}
+	
+		$DestinationFile=$this->TransformName($filepath);
+		
+		if(!@copy($filepath, $DestinationFile)){
+			@unlink($DestinationFile);
+			$this->events("Failed to copy $filepath => $DestinationFile");
+			return false;
+		}
+	
+		$ext = pathinfo($filepath, PATHINFO_EXTENSION);
+		$basenameFF=$basename;
+		$basenameFF=str_replace(".$ext", "", $basenameFF);
+		$basenameFF=$basenameFF.".".time().".$ext";
+		$filesize=$unix->file_size($filepath);
+		$fcontent=null;
+	
+		$this->events("Injecting $basenameFF Task:$taskid ($filesize bytes) $sourceDate (MySQLSyslogType:$this->MySQLSyslogType)");
+	
+		if($this->MySQLSyslogType==1){
+			
+			$sql = "INSERT INTO `access_store` (`filecontent`) VALUES( LOAD_FILE('$DestinationFile') )";
+				
+		}
+		if($this->MySQLSyslogType==2){
+			$fcontent=mysql_escape_string2(file_get_contents($DestinationFile));
+			$sql = "INSERT INTO `access_store` (`filecontent`) VALUES( '$fcontent' )";
+		}
+	
+		$this->QUERY_SQL($sql);
+		$fcontent=null;
+	
+		if(!$this->ok){
+			@unlink("$DestinationFile");
+			$this->events("$q->mysql_error, $sql");
+			@unlink($DestinationFile);
+			return false;
+		}
+	
+		$ID=$this->last_id;
+		if(!is_numeric($ID)){$ID=0;}
+		if($ID==0){
+			$this->events("$basenameFF: BAD ID = $ID");
+			return false;
+		}
+		$this->events("$basenameFF: New ID = $ID");
+		@unlink($DestinationFile);
+		$zmd5=md5("$hostname$basenameFF$taskid$filesize$sourceDate");
+		$sql="INSERT INTO accesslogs (zmd5,filename,hostname,storeid,taskid,filesize,filetime)
+		VALUES ('$zmd5','$basenameFF','$hostname','$ID','$taskid','$filesize','$sourceDate')";
+	
+		$this->QUERY_SQL($sql);
+		if(!$this->ok){
+				
+			$this->events("$q->mysql_error, $sql");
+			$this->QUERY_SQL("DELETE FROM access_store WHERE ID=$ID");
+			return false;
+		}
+		$this->events("Success backuping $basenameFF $filesize bytes",__FUNCTION__,__LINE__,"logrotate");
+		$this->events("removing \"$FILE_SOURCE_TO_DELETE\"");
+		@unlink($FILE_SOURCE_TO_DELETE);
+		return true;
+	
+	}	
 	
 	public function events($text,$function=null,$line=0){
 		$pid=@getmypid();

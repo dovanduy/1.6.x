@@ -39,6 +39,7 @@ function SaveSwapAuto(){
 	if(!is_numeric($SwapOffOn["SwapEnabled"])){$SwapOffOn["SwapEnabled"]=1;}
 	if(!is_numeric($SwapOffOn["SwapMaxPourc"])){$SwapOffOn["SwapMaxPourc"]=20;}
 	if(!is_numeric($SwapOffOn["SwapMaxMB"])){$SwapOffOn["SwapMaxMB"]=0;}	
+	if(!is_numeric($SwapOffOn["SwapTimeOut"])){$SwapOffOn["SwapTimeOut"]=60;}
 	$sock->SaveConfigFile(base64_encode(serialize($SwapOffOn)),"SwapOffOn");
 	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
 	$sock->getFrameWork("system.php?swap-init=yes");
@@ -57,12 +58,12 @@ function popup(){
 	if(!is_numeric($SwapOffOn["SwapMaxPourc"])){$SwapOffOn["SwapMaxPourc"]=20;}
 	if(!is_numeric($SwapOffOn["SwapMaxMB"])){$SwapOffOn["SwapMaxMB"]=0;}
 	if(!is_numeric($DisableSWAPP)){$DisableSWAPP=0;}
-
+	if(!is_numeric($SwapOffOn["SwapTimeOut"])){$SwapOffOn["SwapTimeOut"]=60;}
 	$table_swap="
 	
 	
-	<div style='font-size:16px'>{automatic_swap_cleaning}</div>
-	<div class=explain>{automatic_swap_cleaning_explain}</div>
+	<div style='font-size:24px'>{automatic_swap_cleaning}</div>
+	<div class=explain style='font-size:14px'>{automatic_swap_cleaning_explain}</div>
 	<div id='AutoSwapDiv'>
 	<table style='width:99%' class=form>
 	<tr>
@@ -73,6 +74,10 @@ function popup(){
 		<td class=legend>{enable}:</td>
 		<td>". Field_checkbox("SwapEnabled",1,$SwapOffOn["SwapEnabled"],"CheckSwap()")."</td>
 	</tr>
+	<tr>
+		<td class=legend>{xtimeout}:</td>
+		<td style='font-size:13px;'>". Field_text("SwapTimeOut",$SwapOffOn["SwapTimeOut"],"font-size:13px;padding:3px;width:30px")."&nbsp;Mn</td>
+	</tr>				
 	<tr>
 		<td class=legend>{MaxDiskUsage}:</td>
 		<td>". Field_text("SwapMaxPourc",$SwapOffOn["SwapMaxPourc"],"font-size:13px;padding:3px;width:30px")."</td>
@@ -114,6 +119,7 @@ function popup(){
 		var XHR = new XHRConnection();
 		XHR.appendData('SwapMaxPourc',document.getElementById('SwapMaxPourc').value);
 		XHR.appendData('SwapMaxMB',document.getElementById('SwapMaxMB').value);
+		XHR.appendData('SwapTimeOut',document.getElementById('SwapTimeOut').value);
 		XHR.appendData('SwapEnabled',SwapEnabled);
 		XHR.appendData('DisableSWAPP',DisableSWAPP);
 		AnimateDiv('AutoSwapDiv');
@@ -125,11 +131,14 @@ function popup(){
 		document.getElementById('SwapEnabled').disabled=true;
 		document.getElementById('SwapMaxPourc').disabled=true;
 		document.getElementById('SwapMaxMB').disabled=true;
+		document.getElementById('SwapTimeOut').disabled=true;
+		
 		
 		if(document.getElementById('DisableSWAPP').checked){return;}
 		document.getElementById('SwapEnabled').disabled=false;
 		if(!document.getElementById('SwapEnabled').checked){return;}
 		document.getElementById('SwapMaxPourc').disabled=false;
+		document.getElementById('SwapTimeOut').disabled=false;
 		document.getElementById('SwapMaxMB').disabled=false;		
 	
 	}

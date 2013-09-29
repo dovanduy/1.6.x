@@ -1,7 +1,10 @@
 <?php
 	$GLOBALS["AS_ROOT"]=false;
 	$dirname=dirname(__FILE__);
-	if(count($argv)>0){if(preg_match("#--verbose#", @implode(" ", $argv))){$_GET["verbose"]=1;}}
+	if(count($argv)>0){if(preg_match("#--verbose#", @implode(" ", $argv))){
+			$_GET["verbose"]=1;$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE++"]=true;$GLOBALS["FULL_DEBUG"]=true;
+			ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+		}}
 	if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
 	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once("$dirname/ressources/class.templates.inc");
@@ -9,6 +12,7 @@
 	include_once("$dirname/ressources/class.squid.inc");
 	include_once("$dirname/ressources/class.status.inc");
 	include_once("$dirname/ressources/class.artica.graphs.inc");
+	include_once("$dirname/ressources/class.mysql.syslogs.inc");
 	
 	if(!$GLOBALS["AS_ROOT"]){
 		$users=new usersMenus();
@@ -421,7 +425,7 @@ function squid_status_stats(){
 	
 	if(CACHE_SESSION_GET(__FUNCTION__, __FILE__)){return;}
 	
-	
+	if($GLOBALS["VERBOSE"]){echo __LINE__." Loading classes<br>\n";}
 	$sock=new sockets();
 	$users=new usersMenus();
 	
@@ -430,21 +434,34 @@ function squid_status_stats(){
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}	
 	if($EnableRemoteStatisticsAppliance==1){return;}
-	$users=new usersMenus();
-	$sock=new sockets();
+	
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}	
 	$MalwarePatrolDatabasesCount=$sock->getFrameWork("cmd.php?MalwarePatrolDatabasesCount=yes");
 	$mouse="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\"";
-	$sock=new sockets();
+	
 	$EnableMacAddressFilter=$sock->GET_INFO("EnableMacAddressFilter");
 	if(!is_numeric($EnableMacAddressFilter)){$EnableMacAddressFilter=1;}
+	
+	if($GLOBALS["VERBOSE"]){echo __LINE__." Loading mysql_storelogs()<br>\n";}
+	$syslogs=new mysql_storelogs();
+	
+	if($GLOBALS["VERBOSE"]){echo __LINE__." Count accesslogs<br>\n";}
+	$SyslogsFiles=$syslogs->COUNT_ROWS("accesslogs");
+	
+	
+	$TR_ACCESSLOG="
+	<tr>
+	<td width=1%><img src='img/arrow-right-16.png'></td>
+	<td valign='top' $mouse style='font-size:12px;text-decoration:underline' 
+		OnClick=\"javascript:Loadjs('squid.accesses.rotate.php')\"><b><span style='font-size:12px'>$SyslogsFiles</span></b><span style='font-size:12px'> {access_logs}</td>
+	</tr>";
 	
 	
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$q=new mysql_squid_builder();
-	$users=new usersMenus();
+	
 	
 	if($users->PROXYTINY_APPLIANCE){$DisableArticaProxyStatistics=1;}
 	
@@ -462,25 +479,36 @@ function squid_status_stats(){
 	$categories=$catz->COUNT_CATEGORIES();
 	$categories=numberFormat($categories,0,""," ");
 	
+	if($GLOBALS["VERBOSE"]){echo __LINE__." categories= $categories<br>\n";}
+	
+	
+	
+	
 	$YourItems=$q->COUNT_CATEGORIES();
 	$YourItems=numberFormat($YourItems,0,""," ");
 	
-	
+	if($GLOBALS["VERBOSE"]){echo __LINE__." LIST_TABLES_CATEGORIES()<br>\n";}
 	$tablescat=$q->LIST_TABLES_CATEGORIES();
+	
+	if($GLOBALS["VERBOSE"]){echo __LINE__." tablescat=$tablescat<br>\n";}
 	$tablescatNUM=numberFormat(count($tablescat),0,""," ");
 
-	$q=new mysql_squid_builder();
+	
 	
 	if($DisableArticaProxyStatistics==0){
+		if($GLOBALS["VERBOSE"]){echo __LINE__." EVENTS_SUM()<br>\n";}
 		$requests=$q->EVENTS_SUM();
 		$requests=numberFormat($requests,0,""," ");	
+		if($GLOBALS["VERBOSE"]){echo __LINE__." requests = $requests<br>\n";}
 	}
 	
+	
+	if($GLOBALS["VERBOSE"]){echo __LINE__." no_license -> translate<br>\n";}
 	$nolicense=$tpl->_ENGINE_parse_body("{no_license}");
 	$PhishingURIS=$q->COUNT_ROWS("categoryuris_phishing");
 	$PhishingURIS=numberFormat($PhishingURIS,0,""," ");	
 	
-	
+	if($GLOBALS["VERBOSE"]){echo __LINE__." >COUNT_ROWS('categoryuris_malware')<br>\n";}
 	$MalwaresURIS=$q->COUNT_ROWS("categoryuris_malware");
 	$MalwaresURIS=numberFormat($MalwaresURIS,0,""," ");	
 
@@ -520,6 +548,8 @@ function squid_status_stats(){
 	
 		if(!$q->TABLE_EXISTS("tables_day")){$q->CheckTables();}
 		$DAYSNumbers=$q->COUNT_ROWS("tables_day");
+		if($GLOBALS["VERBOSE"]){echo __LINE__." DAYSNumbers = $DAYSNumbers<br>\n";}
+		//$GLOBALS["FULL_DEBUG"]
 		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(totalsize) as tsize FROM tables_day"));
 		$totalsize=FormatBytes($ligne["tsize"]/1024);
@@ -530,12 +560,16 @@ function squid_status_stats(){
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(sitename) as tcount FROM visited_sites WHERE LENGTH(category)=0"));
 		$websitesnumsNot=numberFormat($ligne["tcount"],0,""," ");
 	
-		
+		if($GLOBALS["VERBOSE"]){echo __LINE__." SELECT count(youtubeid),youtubeid FROM `youtube_dayz` GROUP BY youtubeid<br>\n";}
 		$results=$q->QUERY_SQL("SELECT count(youtubeid),youtubeid FROM `youtube_dayz` GROUP BY youtubeid");
 		$youtube_objects=mysql_num_rows($results);
 		$youtube_objects=numberFormat($youtube_objects,0,""," ");
 		
 		$CachePermformance=$q->CachePerfHour();
+		
+		
+		if($GLOBALS["VERBOSE"]){echo __LINE__." CachePermformance = $CachePermformance<br>\n";}
+		
 		if($CachePermformance>-1){
 			$color="#E01313";
 			if($CachePermformance>20){$color="#6DBB6A";}
@@ -609,6 +643,7 @@ function squid_status_stats(){
 	
 	
 	$main_table="
+		
 		$TR_CATZ
 		$TR_YOUTUBE	
 	<tr>
@@ -676,16 +711,17 @@ function squid_status_stats(){
 $html="
 <table style='width:100%'>
 	<tbody>
+	$TR_ACCESSLOG
 	$main_table	
 	$submenu
 	$addwebsites
 	</tbody>
 	</table>
 ";
-
+if($GLOBALS["VERBOSE"]){echo __LINE__." tpl->_ENGINE_parse_body<br>\n";}
 $html=$tpl->_ENGINE_parse_body($html);
 if(!$GLOBALS["AS_ROOT"]){
-	CACHE_SESSION_SET(__FUNCTION__, __FILE__,$tpl->_ENGINE_parse_body($html));
+	CACHE_SESSION_SET(__FUNCTION__, __FILE__,$html);
 }
 
 	

@@ -5544,6 +5544,24 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 			$this->QUERY_SQL($sql,'artica_backup');
 			}
 			
+			if(!$this->TABLE_EXISTS('nics_vde','artica_backup')){
+				$sql="CREATE TABLE IF NOT EXISTS `nics_vde` (
+				`ID` int(11) NOT NULL AUTO_INCREMENT,  
+				`nic` varchar(20) NOT NULL,
+				 `ipaddr` varchar(128) NOT NULL,
+				  `netmask` varchar(25) NOT NULL,
+				  `cdir` varchar(30) NOT NULL,
+				  `gateway` varchar(30) NOT NULL,
+				  `metric` INT( 5 ) NOT NULL,
+				  PRIMARY KEY (`ID`),
+				  KEY `nic` (`nic`),
+				  KEY `ipaddr` (`ipaddr`),
+				  KEY `metric` (`metric`),
+				  KEY `cdir` (`cdir`)
+				) ENGINE=MYISAM;";
+				$this->QUERY_SQL($sql,'artica_backup');
+			}			
+			
 			$this->FIELD_CHECKS("nics_virtuals", "ipaddr", "artica_backup", "varchar", 128);
 			
 			if(!$this->FIELD_EXISTS("nics_virtuals","gateway","artica_backup")){

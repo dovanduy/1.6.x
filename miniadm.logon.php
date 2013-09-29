@@ -43,10 +43,11 @@ echo $content;
 
 function js(){
 	header("content-type: application/x-javascript");
+	$location="miniadm.index.php";
 	$page=CurrentPageName();
 	if($GLOBALS["VERBOSE"]){echo __LINE__."::clladp() ??...()<br>\n";}
 	$ldap=new clladp();
-	
+	if(isset($_GET["location"])){$location=$_GET["location"];}
 	$password="var password=MD5(document.getElementById('artica_password').value);";
 	if($GLOBALS["VERBOSE"]){echo __LINE__."::IsKerbAuth ??...()<br>\n";}
 	if($ldap->IsKerbAuth()){
@@ -60,7 +61,7 @@ function js(){
 var x_SendLogonButton$t = function (obj) {
 	var response=obj.responseText;
 	if(response.length>3){alert(response);return;}
-	document.location.href='miniadm.index.php';
+	document.location.href='$location';
 }
 
 function SendLogonButton$t(){

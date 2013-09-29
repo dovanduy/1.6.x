@@ -361,7 +361,7 @@ function loadcpu(){
 	$timefile="/etc/artica-postfix/croned.1/".basename(__FILE__).__FUNCTION__;
 	if(file_time_min($timefile)<15){return null;}
 	@unlink($timefile);
-	@file_put_contents($timefile,"#");	
+	@file_put_contents($timefile,time());	
 	$datas=loadavg_table();
 	if($GLOBALS["VERBOSE"]){echo strlen($datas)." bytes body text\n";}
 	$unix->send_email_events("System CPU exceed rule",$datas,"system");
@@ -379,7 +379,7 @@ function loadmem(){
 	$timefile="/etc/artica-postfix/croned.1/".basename(__FILE__).__FUNCTION__;
 	if(file_time_min($timefile)<15){return null;}
 	@unlink($timefile);
-	@file_put_contents($timefile,"#");	
+	@file_put_contents($timefile,time());	
 	$sys=new os_system();
 	$mem=$sys->realMemory();
 	
@@ -429,7 +429,7 @@ function loadavg(){
 		}
 	}
 	@unlink($timefile);
-	@file_put_contents($timefile,"#");	
+	@file_put_contents($timefile,time());	
 	
 	
 	
@@ -466,7 +466,7 @@ function loadavg_old(){
 	$timefile="/etc/artica-postfix/croned.1/".basename(__FILE__).__FUNCTION__;
 	if(file_time_min($timefile)<15){return null;}
 	@unlink($timefile);
-	@file_put_contents($timefile,"#");
+	@file_put_contents($timefile,time());
 	
 	
 	$array_load=sys_getloadavg();

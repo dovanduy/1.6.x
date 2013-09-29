@@ -143,7 +143,7 @@ function save_network_results(){
 	header("Cache-Control: no-cache, must-revalidate");	
 	
 	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html")){
-		senderrors("exec.virtuals-ip.php.html no such file, lease wait..;");
+		senderrors("exec.virtuals-ip.php.html no such file, please wait..;");
 	}
 	
 	$f=explode("\n",file_get_contents("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html"));
@@ -170,23 +170,9 @@ function BuildNetConf(){
 	$apply_network_configuration_warn=$tpl->javascript_parse_text("{apply_network_configuration_warn}");
 	header("content-type: application/x-javascript");
 	$t=time();
-		
-$html="var X_BuildNetConf$t= function (obj) {
-		var results=obj.responseText;
-		if(results.length>0){alert(results);}
-		ExecuteByClassName('SearchFunction');
-			
-	}	
-	
-	function BuildNetConf$t(){
-		if(confirm('$apply_network_configuration_warn ?')){
-			var XHR = new XHRConnection();
-			XHR.appendData('BuildNetConf',1);
-			XHR.sendAndLoad('system.nic.config.php', 'GET',X_BuildNetConf$t);
-		}
-	}
-	BuildNetConf$t();";
-echo $html;	
+	echo "Loadjs('network.restart.php');";	
+
+
 	
 }
 

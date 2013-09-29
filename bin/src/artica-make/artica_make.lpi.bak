@@ -61,14 +61,14 @@
         <UnitName Value="global_conf"/>
         <CursorPos X="8" Y="20"/>
         <TopLine Value="1"/>
-        <UsageCount Value="82"/>
+        <UsageCount Value="81"/>
       </Unit3>
       <Unit4>
         <Filename Value="../artica-install/zsystem.pas"/>
         <UnitName Value="zsystem"/>
         <CursorPos X="126" Y="5119"/>
         <TopLine Value="5139"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="10"/>
       </Unit4>
       <Unit5>
         <Filename Value="install_generic.pas"/>
@@ -93,14 +93,14 @@
         <UnitName Value="distriDetect"/>
         <CursorPos X="32" Y="169"/>
         <TopLine Value="129"/>
-        <UsageCount Value="52"/>
+        <UsageCount Value="51"/>
       </Unit7>
       <Unit8>
         <Filename Value="setup_collectd.pas"/>
         <UnitName Value="setup_collectd"/>
         <CursorPos X="1" Y="190"/>
         <TopLine Value="115"/>
-        <UsageCount Value="3"/>
+        <UsageCount Value="2"/>
       </Unit8>
       <Unit9>
         <Filename Value="setup_clamav.pas"/>
@@ -206,7 +206,7 @@
         <UnitName Value="logs"/>
         <CursorPos X="1" Y="1472"/>
         <TopLine Value="1438"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="11"/>
       </Unit21>
       <Unit22>
         <Filename Value="setup_jcheckmail.pas"/>
@@ -239,8 +239,8 @@
         <Filename Value="setup_squid.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="setup_squid"/>
-        <CursorPos X="21" Y="268"/>
-        <TopLine Value="241"/>
+        <CursorPos X="45" Y="287"/>
+        <TopLine Value="255"/>
         <EditorIndex Value="5"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
@@ -250,7 +250,7 @@
         <UnitName Value="squid"/>
         <CursorPos X="174" Y="1549"/>
         <TopLine Value="511"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="19"/>
       </Unit26>
       <Unit27>
         <Filename Value="setup_kavsamba.pas"/>
@@ -416,7 +416,7 @@
         <Filename Value="../../../../../../../usr/share/fpcsrc/2.2.2/rtl/objpas/sysutils/sysstrh.inc"/>
         <CursorPos X="59" Y="170"/>
         <TopLine Value="106"/>
-        <UsageCount Value="3"/>
+        <UsageCount Value="2"/>
       </Unit46>
       <Unit47>
         <Filename Value="setup_opengoo.pas"/>
@@ -707,7 +707,7 @@
         <UnitName Value="setup_awstats"/>
         <CursorPos X="69" Y="80"/>
         <TopLine Value="58"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit81>
       <Unit82>
         <Filename Value="setup_sabnzbdplus.pas"/>
@@ -802,7 +802,7 @@
         <UnitName Value="mysql_daemon"/>
         <CursorPos X="1" Y="124"/>
         <TopLine Value="103"/>
-        <UsageCount Value="55"/>
+        <UsageCount Value="54"/>
       </Unit93>
       <Unit94>
         <Filename Value="setup_phprrd.pas"/>
@@ -816,7 +816,7 @@
         <Filename Value="../../../../../../../usr/share/fpcsrc/2.4.0/rtl/objpas/sysutils/finah.inc"/>
         <CursorPos X="10" Y="35"/>
         <TopLine Value="1"/>
-        <UsageCount Value="3"/>
+        <UsageCount Value="2"/>
       </Unit95>
       <Unit96>
         <Filename Value="setup_haproxy.pas"/>
@@ -825,7 +825,7 @@
         <CursorPos X="1" Y="63"/>
         <TopLine Value="51"/>
         <EditorIndex Value="16"/>
-        <UsageCount Value="183"/>
+        <UsageCount Value="190"/>
         <Loaded Value="True"/>
       </Unit96>
       <Unit97>
@@ -833,26 +833,26 @@
         <UnitName Value="Unix"/>
         <CursorPos X="11" Y="162"/>
         <TopLine Value="127"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="11"/>
       </Unit97>
       <Unit98>
         <Filename Value="../../../../../../../usr/share/fpcsrc/2.4.0/rtl/unix/baseunix.pp"/>
         <UnitName Value="BaseUnix"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="11"/>
       </Unit98>
       <Unit99>
         <Filename Value="../../../../../../../usr/share/fpcsrc/2.4.0/rtl/linux/i386/syscallh.inc"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
-        <UsageCount Value="2"/>
+        <UsageCount Value="1"/>
       </Unit99>
       <Unit100>
         <Filename Value="../../../../../../../usr/share/fpcsrc/2.4.0/rtl/linux/ostypes.inc"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="11"/>
       </Unit100>
       <Unit101>
         <Filename Value="cwstring_fix.pas"/>
@@ -860,7 +860,7 @@
         <UnitName Value="cwstring_fix"/>
         <CursorPos X="66" Y="5"/>
         <TopLine Value="1"/>
-        <UsageCount Value="115"/>
+        <UsageCount Value="122"/>
       </Unit101>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">

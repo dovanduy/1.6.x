@@ -9,6 +9,7 @@
 <accepteds>Accept&eacute;es</accepteds>
 <accesstime_to_internet_expired>Temps d'acc&egrave;s &agrave; Internet expir&eacute;</accesstime_to_internet_expired>
 <access_attr>Attribut d'acc&egrave;s</access_attr>
+<access_logs>Fichiers de transactions</access_logs>
 <access_to_internet_disabled>Votre acc&egrave;s &agrave; Internet est d&eacute;sactiv&eacute;</access_to_internet_disabled>
 <access_to_parameters>Acc&eacute;der au param&egrave;tres</access_to_parameters>
 <account_verification>V&eacute;rification du compte</account_verification>
@@ -23,6 +24,7 @@ Une fois cette requ&ecirc;te ex&eacute;cut&eacute;e sur le serveur Web, vous ser
 <acls_add_dstdomaindst>Indiquez le nom du site Web comme: domain.tld ou 10.10.10.1</acls_add_dstdomaindst>
 <acls_modules>Modules d'ACLs</acls_modules>
 <acls_parameters>Param&egrave;tres des ACLs</acls_parameters>
+<acl_reply_body_max_size>Limiter le t&eacute;l&eacute;chargement d'un fichier &agrave;</acl_reply_body_max_size>
 <acl_squid_browser_explain>Expression r&eacute;guli&egrave;re qui correspond &agrave; un User-Agent dans l'ent&ecirc;te des requ&ecirc;tes Web.[br]
 Exemple:: Mozilla/ ^Keyvelop$ ^ClamWin/ Symbian iP(hone|od).[br]
 Ou Mozilla \(compatible; MSIE\) [br]
@@ -192,6 +194,8 @@ Utilisez ce lien Youtube afin de visualiser la proc&eacute;dure de cr&eacute;ati
 <AllowNoPassword>Autoriser sans mot de passe</AllowNoPassword>
 <AllowPublicDownload>Autoriser le t&eacute;l&eacute;chargement publique</AllowPublicDownload>
 <AllowSenderCanonical>Can modify sent email address</AllowSenderCanonical>
+<AllowSmartphonesRuleExplain>Cette r&egrave;gles autorise tous les ordiphones.[br]Android,BlackBerry,PalmOS,SymbianOS,IE Mobile,iPhone,iPad,iPod)[br]A seulement passer &agrave; travers le syst&egrave;me d'authentification principal.</AllowSmartphonesRuleExplain>
+<AllowSmartphonesRuleText>Autoriser les ordiphones &agrave; passer l'authentification</AllowSmartphonesRuleText>
 <AllowUserMaillog>Peut rechercher/visualiser leurs &eacute;v&egrave;nements SMTP</AllowUserMaillog>
 <allow_members>Autoriser les membres</allow_members>
 <allow_public_register>Autoriser l'enregistrement publique</allow_public_register>
@@ -274,6 +278,10 @@ Utilisez le centre d'installation afin de l'installer.</APP_ARKEIA_NOT_INSTALLED
 <APP_ARKEIA_TXT>Le logiciel applicatif Arkeia est une application de sauvegarde et de restauration rapide, facile  et flexible</APP_ARKEIA_TXT>
 <APP_ARKWSD>Service Web Arkeia</APP_ARKWSD>
 <APP_ARTICADB>Service cat&eacute;gories Web</APP_ARTICADB>
+<APP_ARTICADB_EXPLAIN>La base de cat&eacute;gories de statistiques est utilis&eacute;e pour les statistiques &quot;cosm&eacute;tiques&quot;.[br]
+Elle permet &agrave; Artica d'effectuer la corr&eacute;lation entre les sites Web et la cat&eacute;gorie associ&eacute;e.[br]
+Ainsi vous disposez de statistiques de navigation par cat&eacute;gorie.[br]
+[b]Il est &agrave; noter que ce n'est pas la base utilis&eacute;e par le moteur de filtrage Web mais elle devrait refl&eacute;ter le m&ecirc;me contenu.[/b]</APP_ARTICADB_EXPLAIN>
 <APP_ARTICA_AGENT>Agent Artica</APP_ARTICA_AGENT>
 <APP_ARTICA_AGENT_TEXT>L'agent Artica est un service qui effectue la liaison entre les n%u0153uds distants et ce serveur.[br]Il re&ccedil;oit les ordres depuis ce serveur afin des les ex&eacute;cuter &agrave; distance.</APP_ARTICA_AGENT_TEXT>
 <APP_ARTICA_PRXYLOGS>Interface de monitoring Proxy</APP_ARTICA_PRXYLOGS>
@@ -406,6 +414,7 @@ Si vous utilisez kaspersky Anti-Spam 3.x, il offrira aussi les capacit&eacute;s 
 Si vous d&eacute;sirez disposer des statistiques, vous devez mettre &agrave; jour ce module.</ARTICADB_NOT_INSTALLED_EXPLAIN>
 <articaitems>&Eacute;l&eacute;ments Artica</articaitems>
 <ARTICASTATISTICS_DISABLED>Les statistiques Artica sont d&eacute;sactiv&eacute;es dans votre configuration.</ARTICASTATISTICS_DISABLED>
+<ArticaTabsTimeout>Pause de l'affichage des onglets</ArticaTabsTimeout>
 <ARTICA_ADMPRXY>Interface Web Proxy utilisateur</ARTICA_ADMPRXY>
 <ARTICA_ADMPRXY_TXT>L'interface Web Proxy Utilisateur vous permet de fournir une interface Web aux utilisateurs afin d'administrer leurs param&egrave;tres</ARTICA_ADMPRXY_TXT>
 <artica_install_watchdog>Surveillance des d&eacute;mons Artica</artica_install_watchdog>
@@ -422,6 +431,7 @@ Si vous d&eacute;sirez disposer des statistiques, vous devez mettre &agrave; jou
 <ASDCHPAdmin>Peut administrer le service DHCP</ASDCHPAdmin>
 <AseMailCampaignsAdmin>G&egrave;re les fonctions d'envoi de courriels en masse</AseMailCampaignsAdmin>
 <AsHotSpotManager>G&egrave;re le HotSpot</AsHotSpotManager>
+<ask_change_hostname>Voulez-vous modifier le nom du serveur maintenant ?</ask_change_hostname>
 <ask_change_suffix>Cette op&eacute;ration va reconfigurer tous les services et vous d&eacute;connecter de la console.
 Proc&eacute;der au changement de la branche principale :</ask_change_suffix>
 <ask_compile_postfix>Vous devez reconstruire les param&egrave;tres du service SMTP.
@@ -460,9 +470,11 @@ Fichier:</ask_squid_restore_log_from_source>
 <authentication_modules>Modules d'authentification</authentication_modules>
 <authentication_sources>Sources d'authentification</authentication_sources>
 <authenticator_cache_time_explain>Combien de temps le serveur Authenticator va conserver une authentification positive en cache.[br]
-Cahque requ&ecirc;te va &ecirc;tre envoy&eacute;e au service Authenticator.[br]
+Chaque requ&ecirc;te va &ecirc;tre envoy&eacute;e au service Authenticator.[br]
 Pour des raisons de performances, celui-ci va consid&eacute;rer que pendant un certain temps, la session sera conserv&eacute;e sans avoir &agrave; consulter les bases utilisateurs.[br]
 Par d&eacute;faut, mis &agrave; 15 minutes</authenticator_cache_time_explain>
+<authenticator_explain_cookie_text>D&eacute;tecte si une clef de Cookie est correctement envoy&eacute;e par le navigateur.[br]
+Si la clef n'est pas envoy&eacute;e, une action de redirection peut &ecirc;tre effectu&eacute;e vers une page Web sp&eacute;cifique</authenticator_explain_cookie_text>
 <authenticator_explain_network_text>Indiquez ici les &eacute;l&eacute;ments r&eacute;seaux ( s&eacute;par&eacute;s par un retour chariot).[br]
 Les &eacute;l&eacute;ments peuvent &ecirc;tre:[br]
 Un nom d'h&ocirc;te: xhost123.domain.tld[br]
@@ -871,6 +883,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</convertto_innodb_file_per_tablea
 <convertto_innodb_file_per_table_text>Mofiier le comportement du moteur MySQL vers un fichier innodb par table.</convertto_innodb_file_per_table_text>
 <convert_background_warn>La t&acirc;che de conversion &agrave; &eacute;t&eacute; envoy&eacute;e au framework en t&acirc;che de fond.
 Pendant ce temps, des services seront indisponibles...</convert_background_warn>
+<cookie>Cookie</cookie>
 <coova_CoovaUFDBEnabled_explain>Si Activ&eacute;, les utilisateurs du HotSpot subiront les r&egrave;gles de filtrage Web ajout&eacute;es dans le service Proxy.</coova_CoovaUFDBEnabled_explain>
 <COOVA_ERROR_NO_2_INTERFACES>Erreur, votre serveur doit h&eacute;berge au moins 2 cartes r&eacute;seaux afin de faire fonctionner le HotSpot.[br]Cette section en peut &ecirc;tre affich&eacute;e.</COOVA_ERROR_NO_2_INTERFACES>
 <coova_proxy_port>Par d&eacute;faut, le service HotSpot redirige les sessions au service de proxy local en utilisant ce port.[br]
@@ -899,6 +912,8 @@ Si vous d&eacute;sirez ne pas utiliser le service Proxy SSL, indiquez 0 comme va
 <CSR_MULTIPLE_EXPLAIN>Si vous avez besoin d'un certificat multiple comprenant les sous-domaines, indiquez *.domaine.fr</CSR_MULTIPLE_EXPLAIN>
 <csr_ssl_explain>La demande de signature de certificat (CSR) est un bloc de texte chiffr&eacute; g&eacute;n&eacute;r&eacute; sur le serveur.[br]Il contient les informations ins&eacute;r&eacute;es dans le certificat telles que le nom commun,nom d'organisation,Nom de l'unit&eacute; d`organisation...[br]Ce certificat permet de g&eacute;n&eacute;rer la demande de construction d'une clef publique.</csr_ssl_explain>
 <CURLE_52_ERROR>Erreur 52, rien n'a &eacute;t&eacute; retourn&eacute; par le serveur</CURLE_52_ERROR>
+<CURLE_CURLE_PARTIAL_FILE>Le transfert du fichier &agrave; &eacute;t&eacute; plus court ou plus long que la taille requise.[br]
+Ceci intervient bien souvent lorsque le serveur [br]distant indique une taille de fichier et qu'il d&eacute;livre une taille diff&eacute;rente apr&egrave;s.</CURLE_CURLE_PARTIAL_FILE>
 <CURLE_OPERATION_TIMEDOUT>Temps imparti. La temps de la requ&ecirc;te &agrave; d&eacute;pass&eacute; le temps d'ex&eacute;cution programm&eacute;</CURLE_OPERATION_TIMEDOUT>
 <current_domains>Domaines actuels</current_domains>
 <current_rules>R&egrave;gles actuelles</current_rules>
@@ -935,6 +950,7 @@ Il peut &ecirc;tre utilis&eacute; afin de sauvegarder votre bande passant car to
 <default_certificate>Certificat par d&eacute;faut</default_certificate>
 <default_domain>Domaine par d&eacute;faut</default_domain>
 <default_file_lifetime>Temps de vie par d&eacute;faut d'un fichier</default_file_lifetime>
+<default_gateway>Passerelle par d&eacute;faut</default_gateway>
 <default_route>Route par d&eacute;faut</default_route>
 <default_rules>R&egrave;gles par d&eacute;faut</default_rules>
 <default_size_for_rotation>Taille par d&eacute;faut pour la rotation</default_size_for_rotation>
@@ -967,6 +983,7 @@ Toutefois si la base est une base de donn&eacute;es utilis&eacute;e par Artica e
 <delete_freeweb_nginx_text>Cette op&eacute;ration va supprimer le service reverse Proxy et le site web FreeWebs associ&eacute;.
 D&eacute;sirez-vous effectuer cette op&eacute;ration ?</delete_freeweb_nginx_text>
 <delete_if_file_exceed>Supprimer si la taille exc&egrave;de</delete_if_file_exceed>
+<delete_ipaddr_ask>Supprimer cette adresse TCP/IP ?</delete_ipaddr_ask>
 <delete_item>Supprimer l'&eacute;l&eacute;ment</delete_item>
 <delete_nic_bridge>Supprimer le pont r&eacute;seau va red&eacute;marrer le r&eacute;seau.
 Pendant ce temps, le serveur peut ne pas &ecirc;tre disponible
@@ -1052,6 +1069,10 @@ Cela veut dire que vos utilisateurs devront s'identifier manuellement &agrave; t
 <DisableSquidBasicAuth>D&eacute;sactiver l'authentification Basique</DisableSquidBasicAuth>
 <DisableSquidBasicAuth_error>Il n'y a pas de sens &agrave; d&eacute;sactiver toutes les m&eacute;thode d'authentification.[br]Veuillez choisir une des m&eacute;thodes list&eacute;es.</DisableSquidBasicAuth_error>
 <DisableSquidSNMPMode>D&eacute;sactiver le mode SMP</DisableSquidSNMPMode>
+<DisableSSLStandardPort>D&eacute;sactiver l'interception SSL sur le port standard</DisableSSLStandardPort>
+<DisableSSLStandardPort_explain>Si vous utilisez &agrave; la fois un port standard et le mode transparent et que le mode AMN-IN-THE-MIDDLE SSL est activ&eacute; alors les deux m&eacute;thodes vont forcer le proxy &agrave; utiliser son propre certificat.[br]Activer cette fonction permet d&eacute;sactiver le MAN-IN-THE-MIDDLE sur le port standard. Seuls les navigateurs qui passent &agrave; travers le mode transparent seront affect&eacute;s par l'interception SSL.</DisableSSLStandardPort_explain>
+<DisableSSLStandardPort_warn>La fonction &quot;D&eacute;sactiver l'interception SSL sur le port standard&quot; est activ&eacute;e.[br]
+Cela veut dire que seul le mode transparent va intercepter les sessions SSL en mode MAN-IN-THE-MIDDLE</DisableSSLStandardPort_warn>
 <DisableSWAPP>D&eacute;sactiver le SWAP syst&egrave;me</DisableSWAPP>
 <disable_administration_tasks>D&eacute;sactiver les fonctions d'administration</disable_administration_tasks>
 <disable_all>Tout d&eacute;sactiver</disable_all>
@@ -1100,6 +1121,7 @@ La conversion en sortie est requise lorsque le serveur destinataire n'indique pa
 <display_not_categorized_websites>Afficher les sites inconnus</display_not_categorized_websites>
 <display_performance_status>Affichage de l'&eacute;tat des performances</display_performance_status>
 <display_routes>Afficher les routes actuelles</display_routes>
+<display_update_info_index>Afficher l'&eacute;tat sur la page de garde</display_update_info_index>
 <display_visited_websites>Afficher les sites visit&eacute;s</display_visited_websites>
 <display_youtube_for_this_day>Visualisation des vid&eacute;os t&eacute;l&eacute;charg&eacute;es ce jour</display_youtube_for_this_day>
 <dnsbl_service>Service DNSBL</dnsbl_service>
@@ -1206,6 +1228,7 @@ Les op&eacute;rations de purge doivent &ecirc;tre activ&eacute;es sur le serveur
 <EnableWatchCPUsage>Activer la surveillance du CPU</EnableWatchCPUsage>
 <EnableWatchdog>Activer le service de surveillance</EnableWatchdog>
 <EnableWatchMemoryUsage>Activer la surveillance de la m&eacute;moire</EnableWatchMemoryUsage>
+<EnableWebPageDebugging>Pages d'administration en mode verbeux</EnableWebPageDebugging>
 <EnableYoutubeForSchools>Activer la restriction Youtube For schools</EnableYoutubeForSchools>
 <EnableYoutubeForSchoolsExplain>Youtube For Schools permet aux &eacute;coles de l'imiter l'acc&egrave;s uniquement aux vid&eacute;os Youtube &agrave; caract&egrave;re scolaire.[br]
 Les &eacute;coliers/&Eacute;tudiants peuvent visualiser plus de 400.000 vid&eacute;os d&eacute;di&eacute;es au contexte scolaire.[br]
@@ -1312,7 +1335,10 @@ Cette interface utilise le moteur Apache et pourrait quand &agrave; elle charger
 <error_missing_tables_click_to_repair>Erreur, Il y a des tables manquantes dans la base de donn&eacute;es.[br]
 Cliquez sur le bouton &quot;R&eacute;parer&quot; afin d'ordonner la reconstruction de la structure de la base.</error_missing_tables_click_to_repair>
 <error_nginx_substitutions_filter>Erreur, le module de remplacement n'es pas install&eacute;.</error_nginx_substitutions_filter>
+<error_no_default_route_explain>Erreur, vous n'avez pas encore indiqu&eacute; quelle est l'interface r&eacute;seau qui utilisera la route par d&eacute;faut.[br]
+Cliquez sur une interface et cochez la case route par d&eacute;faut.</error_no_default_route_explain>
 <ERROR_NO_ITCHART_CREATED>[b]Info[/b][br]Aucune charte informatique n'a &eacute;t&eacute; cr&eacute;e, les membres ne seront pas redirig&eacute;s vers une charte informatique.</ERROR_NO_ITCHART_CREATED>
+<error_no_item_posted>Erreur, aucun &eacute;l&eacute;ment a &eacute;t&eacute; ajout&eacute; dans le formulaire</error_no_item_posted>
 <ERROR_NO_LICENSE>Ce serveur est activ&eacute; en mode communautaire et ne dispose de licence entreprise valide.</ERROR_NO_LICENSE>
 <error_no_member_set>Erreur, pas de membre indiqu&eacute;</error_no_member_set>
 <ERROR_NO_ORGANISATION_SELECTED>Erreur, pas d'organisation s&eacute;lectionn&eacute;e.</ERROR_NO_ORGANISATION_SELECTED>
@@ -1338,6 +1364,7 @@ Si vous d&eacute;sirez l'utiliser, supprimez d'abord le site FreeWebs.</error_th
 <ERROR_XAPIAN_NOEXTSION>Erreur, l'extension Xapian n'est pas correctement charg&eacute;e ou install&eacute; dans la configuration PHP de ce serveur.</ERROR_XAPIAN_NOEXTSION>
 <error_you_need_to_choose_network_addr_config>Erreur, vous devez choisir une adresse r&eacute;seau dans la configuration principale.</error_you_need_to_choose_network_addr_config>
 <ERROR_ZARAAF_MULTIPLE_INSTANCES_FREEWEB>La fonctionnalit&eacute; des multiples WebMail pour Zarafa n'est disponible que si et seulement si les moteur FreeWebs est activ&eacute;.</ERROR_ZARAAF_MULTIPLE_INSTANCES_FREEWEB>
+<Ethernet_switch>Switch Ethernet</Ethernet_switch>
 <ettercap_howto_ipaddr>Vous pouvez d&eacute;finir une tranche d'adresse avec le tiret exemple: 10.1.1.1-245
 ou d&eacute;finir une adresse IP unique comme 10.1.1.2</ettercap_howto_ipaddr>
 <exclude>Exclure</exclude>
@@ -1857,6 +1884,7 @@ Cette section vous permet de visualiser le nombre de d&eacute;mons utilis&eacute
 <LOGRATE_EXPLAIN_SYSTORE>Vous devez utiliser l'interface Utilisateur Finale WebAccess avec comme privil&egrave;ges Administrateur Linux afin d'afficher cette option.</LOGRATE_EXPLAIN_SYSTORE>
 <LogRotatePath_explain>C'est un r&eacute;pertoire temporaire de travail utilis&eacute; principalement pour compresser les donn&eacute;es avant l'op&eacute;ration de sauvegarde</LogRotatePath_explain>
 <logs_container>Conteneur de logs</logs_container>
+<logs_database>Base des logs</logs_database>
 <logs_retention>R&eacute;tention des &eacute;v&egrave;nements</logs_retention>
 <logs_storage>Stockage des &eacute;v&egrave;nements</logs_storage>
 <log_to_csv>&Eacute;v&egrave;nements d'Acc&egrave;s CSV</log_to_csv>
@@ -2154,6 +2182,8 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 <network_parameters>Param&egrave;tres r&eacute;seaux</network_parameters>
 <network_services_text>Administrer les services r&eacute;seaux de ce serveur tels que le DHCP/DNS/Interfaces r&eacute;seaux</network_services_text>
 <network_settings_will_be_applied_after_reboot>Les param&egrave;tres r&eacute;seau seront appliqu&eacute;s apr&egrave;s le prochain red&eacute;marrage.</network_settings_will_be_applied_after_reboot>
+<network_status>&Eacute;tat r&eacute;seau</network_status>
+<network_text>Un r&eacute;seau</network_text>
 <net_read_timeout>D&eacute;lai MAX lecture r&eacute;seau</net_read_timeout>
 <new_account>Nouveau compte</new_account>
 <new_address>Nouvelle adresse</new_address>
@@ -2231,7 +2261,7 @@ Si vous d&eacute;sirez acc&eacute;der &agrave; ce conteneur &agrave; travers le 
 <NginxAuthPort_explain>Par d&eacute;faut, Authenticator &eacute;coute une addresse unix ( indiqu&eacute; par unix:path/to/socket).[br]
 Si vous indiquez un port, d'autres serveurs Artica seraient en mesure de contacter ce service afin de v&eacute;rifier les demandes de session d'authentification.</NginxAuthPort_explain>
 <nginx_authenticator_explain>Le FrameWork Authenticator vous permet de cr&eacute;er des sources d'authentification multiples en fonction des requ&ecirc;tes sur le serveur ou en fonction des dossiers virtuels.[br]
-Veuillez vous r&eacute;f&eacute;rer &agrave; la section Authentircator afin de d&eacute;finir les r&egrave;gles d'identification.</nginx_authenticator_explain>
+Veuillez vous r&eacute;f&eacute;rer &agrave; la section Authenticator afin de d&eacute;finir les r&egrave;gles d'identification.</nginx_authenticator_explain>
 <nginx_benefits>Cette fonctionnalit&eacute; permet &agrave; ce serveur de se faire passer pour vos sites Internet (mode Proxy invers&eacute;).[br]Ceci afin de les prot&eacute;ger et aussi d'offrir plus de fonctionnalit&eacute;s Internet que vos serveurs Web ne peuvent offrir.</nginx_benefits>
 <nginx_destination>O&ugrave; les requ&ecirc;tes doivent &ecirc;tre transf&eacute;r&eacute;es ?.[br]Vous pouvez d&eacute;finir une adresse IP (172.16.2.3);[br]
 ou un nom d'h&ocirc;te: www.mydomain.com[br]
@@ -2434,6 +2464,7 @@ Si le ping est un succ&egrave;s apr&egrave;s la reconfiguration du r&eacute;seau
 <please_wait_check_caches>Veuillez patienter... V&eacute;rification des caches</please_wait_check_caches>
 <please_wait_compiling_database>Veuillez patienter, compilation de la base de donn&eacute;es</please_wait_compiling_database>
 <please_wait_compiling_items>Veuillez patienter, compilation des &eacute;l&eacute;ments...</please_wait_compiling_items>
+<PLEASE_WAIT_COMPILING_NETWORK_SCRIPT>Veuillez patienter, configuration du script r&eacute;seau</PLEASE_WAIT_COMPILING_NETWORK_SCRIPT>
 <please_wait_compiling_rules>Veuillez patienter, compilation des r&egrave;gles...</please_wait_compiling_rules>
 <please_wait_configuring_the_module>Patientez... configuration du module.</please_wait_configuring_the_module>
 <please_wait_empty_console_cache>Patientez... Vidage du cache console.</please_wait_empty_console_cache>
@@ -2445,6 +2476,7 @@ Si le ping est un succ&egrave;s apr&egrave;s la reconfiguration du r&eacute;seau
 <please_wait_refresh_web_pages>Patientez... rafra&icirc;chissement des pages actuelles</please_wait_refresh_web_pages>
 <please_wait_reloading_service>Patientez... Rechargement du service</please_wait_reloading_service>
 <please_wait_restarting_filter>Veuillez patienter, rechargement du service de filtrage...</please_wait_restarting_filter>
+<please_wait_restarting_network>Veuillez patienter, red&eacute;marrage du r&eacute;seau</please_wait_restarting_network>
 <please_wait_search_transaction_history>Veuillez attendre, recherche de l'historique des transactions.</please_wait_search_transaction_history>
 <please_wait_while_calculate_informations>Veuillez patienter, calcul des informations demand&eacute;es...</please_wait_while_calculate_informations>
 <pluginsw>Plugins</pluginsw>
@@ -2510,6 +2542,7 @@ Autoriser une seule adresse: &quot;192.168.1.5&quot;</protect_phpmyadmin_item_te
 <protect_phpmyadmin_text>Renforce la s&eacute;curit&eacute; d'acc&egrave;s &agrave; l'application PhpMyAdmin.</protect_phpmyadmin_text>
 <protocol_error>Erreur de protocole</protocol_error>
 <protocol_version>Version de protocole</protocol_version>
+<proxy_access_events>Requ&ecirc;tes Proxy</proxy_access_events>
 <proxy_behavior>Comportement du proxy</proxy_behavior>
 <proxy_behavior_explain>Vous pouvez d&eacute;finir le comportement du service Proxy.[br]
 Vous avez 3 solutions afin de d&eacute;finir le comportement de votre proxy avec Internet.[br]
@@ -2643,6 +2676,13 @@ Cordialement.</recovery_password_message_text>
 <redirect_communications_to>Rediriger les communications vers</redirect_communications_to>
 <redirect_queries_to>Rediriger les requ&ecirc;tes vers</redirect_queries_to>
 <redirect_to_suffix>Redirig&eacute; vers le suffixe</redirect_to_suffix>
+<redirect_uri>Redirige</redirect_uri>
+<redirect_uri_explain>Ajoutez dans ce formulaire l'URL d&eacute;sir&eacute;e en redirection. Ce peut &ecirc;tre un chemin ( /some/where ) ou une URL compl&egrave;te comme http://my.new-redirection.com/authenticate.php.[br]
+Des clefs peuvent &ecirc;tre utilis&eacute;es et remplac&eacute;es par le moteur:%LANG%, %SHLVL%, %LANGUAGE%, %QUERY_STRING%, %REQUEST_METHOD%, %CONTENT_TYPE%, %CONTENT_LENGTH%, %SCRIPT_FILENAME%, %SCRIPT_NAME%, %PATH_INFO%, %REQUEST_URI%, %DOCUMENT_URI%, %SERVER_PROTOCOL%, %GATEWAY_INTERFACE%, %HTTP_HOST%, %HTTP_X_FORWARDED_FOR%, %HTTP_X_REAL_IP%, %HTTP_USER_AGENT%, %HTTP_ACCEPT%, %HTTP_ACCEPT_LANGUAGE%, %HTTP_ACCEPT_ENCODING%
+[br]
+Vous pouvez ajouter une clef dynamique qui correspond &agrave; une m&eacute;thode GET ou COOKIE.[br]Vous devez indiquer  %_GET_KEY%  et KEY est la clef url &eacute;mise par le navigateur.[br]
+La m&ecirc;me chose avec les cookies comme %_COOKIE_KEY%.[br]
+Par exemple,[br] http://some/logon.php?query=%QUERY_STRING%&amp;lang=%LANGUAGE%&amp;result=%_GET_session%&amp;session-id=%_COOKIE_JSESSIONID%</redirect_uri_explain>
 <redirect_url>URL de redirection</redirect_url>
 <referer_regex>Lien Web r&eacute;f&eacute;rant</referer_regex>
 <refreshdomainlist>Temps de cache des domaines</refreshdomainlist>
@@ -2712,6 +2752,7 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de valider son bon fonctionnem
 <replic_roudcubes_freewebs>R&eacute;plique les bases des WebMails Roundcube</replic_roudcubes_freewebs>
 <replic_roudcubes_freewebs_explain>Cette t&acirc;che r&eacute;plique les bases RoundCubes depuis le serveur originel si la r&eacute;plication est activ&eacute; dans la configuration.</replic_roudcubes_freewebs_explain>
 <reply>R&eacute;ponse</reply>
+<reply_body_max_size_acl>T&eacute;l&eacute;chargement MAX d'un fichier</reply_body_max_size_acl>
 <report>rapport</report>
 <report_name>Nom du rapport</report_name>
 <reprocess_this_file>Retraiter ce fichier</reprocess_this_file>
@@ -2800,6 +2841,7 @@ Contactez notre support ou regardez la console syst&egrave;me du serveur si votr
 <restore_statistics_database_explain2>Cette section vous permet de programmer la t&acirc;che de restauration des statistiques sauvegard&eacute;es.[br]Indiquez le chemin qui h&eacute;berge les jeux de sauvegarde.[br]Vous pouvez s&eacute;lectionner un fichier unique dans la section suivante afin de restaurer qu'un seul jeu de sauvegarde ou voir m&ecirc;me de programmer la restauration automatique &agrave; fr&eacute;quence r&eacute;guli&egrave;re du dossier.</restore_statistics_database_explain2>
 <retention_time>Dur&eacute;e de r&eacute;tention</retention_time>
 <retreival_mailrules_text>Cr&eacute;ation et &eacute;dition des r&egrave;gles permettant de r&eacute;cup&eacute;rer des messages stock&eacute;es dans des boites aux lettres non g&eacute;r&eacute;es par votre compte local.</retreival_mailrules_text>
+<retreive_informations>R&eacute;cup&eacute;ration des informations.</retreive_informations>
 <retry>Recommencer</retry>
 <reverse>Inverse</reverse>
 <reverse_proxy_server>Serveur Proxy invers&eacute;</reverse_proxy_server>
@@ -2932,6 +2974,7 @@ Faites-vous plaisir !!</settings_final_show>
 <shared_public_stores>Banque d'informations publiques</shared_public_stores>
 <share_level_security>S&eacute;curit&eacute; au niveau du partage</share_level_security>
 <share_level_security_explain>Dans la cas de la s&eacute;curit&eacute; au niveau du partage, le serveur accepte seulement un mot de passe sans demander un nom d'utilisateur explicite de la part du client.[br]Le serveur attend la saisie d'un mot de passe pour chaque partage, ind&eacute;pendamment du nom d'utilisateur.[br] Un certain nombre de rapports indiquent que les clients Microsoft Windows rencontrent des probl&egrave;mes de compatibilit&eacute; avec les serveurs impl&eacute;mentant la s&eacute;curit&eacute; au niveau du partage.</share_level_security_explain>
+<should_change_ad_dns>Vous devriez changer vos serveurs DNS ou utiliser l'Acitve Directory comme serveur DNS.</should_change_ad_dns>
 <show_menu>Afficher le menu</show_menu>
 <shutdown_lifetime>Temps de vie lors d'un arr&ecirc;t</shutdown_lifetime>
 <shutdown_lifetime_text>C'est le temps de vie d'une connexion qu'autorise  le service proxy apr&egrave;s avoir re&ccedil;u un ordre d'arr&ecirc;t</shutdown_lifetime_text>
@@ -2939,6 +2982,8 @@ Faites-vous plaisir !!</settings_final_show>
 <single_password>Mot de passe unique</single_password>
 <size_during_this_week>Taille r&eacute;cup&eacute;r&eacute;e cette semaine</size_during_this_week>
 <smartphones>Smartphones</smartphones>
+<smartphones_port>Port pour les ordiphones</smartphones_port>
+<smartphones_port_explain>Si le num&eacute;ro de port est sup&eacute;rieur &agrave; 0 alors ce port d'&eacute;coute peut &ecirc;tre utilis&eacute; pour les ordiphones et tablettes.[br]Il permet de passer outre l'authentification et d'activer des fonctionnalit&eacute;s d&eacute;di&eacute;es.</smartphones_port_explain>
 <smtpadv_authenticate_explain>Cette fonction vous autorise &agrave; utiliser une authentification SMTP pour le domaine d&eacute;fini</smtpadv_authenticate_explain>
 <smtpchk_EHLO>Domaine HELO</smtpchk_EHLO>
 <smtp_adv_debug_explain>Les instances cr&eacute;es des &eacute;v&egrave;nements dans le fichier /var/log/artica-&quot;domain&quot;[br]
@@ -3025,6 +3070,10 @@ Apr&egrave;s cette analyse, il ressort un taux de probabilit&eacute; que l'image
 <squidqota_ipaddr>Indique un quota par adresses TCP/IP.[br]Indiquez * pour toutes les adresses ou une adresse avec une &eacute;toile 192.168.1.* voir m&ecirc;me 192.*</squidqota_ipaddr>
 <squidqota_MAC>Quota par adresses MAC.[br]indiquez * pour toutes les adresses MAC ou indiquez une adresse MAC comme 00:0c:29:4d:89:ad</squidqota_MAC>
 <squidqota_uid>Quota pour un membre LDAP/Active Directory comme &quot;user1&quot;.[br]Indiquez * pour tous les membres.</squidqota_uid>
+<squidqota_uidAD>Cette r&egrave;gle peut &ecirc;tre utilis&eacute;e si votre proxy est li&eacute; &agrave; un serveur Active Directory.[br]
+Cliquez sur le bouton parcourir afin de choisir le groupe d'utilisateurs.[br]
+Chaque utilisateur stock&eacute; dans ce groupe sera assujetti &agrave; la r&egrave;gle.[br]
+[b]Note: La r&egrave;gle est comprise par utilisateur pas pour le groupe entier.[/b] Par exemple, si vous indiquez 5Mb pour le groupe &quot;Allowed_Internet&quot;, chaque utilisateur de ce groupe disposera d'un quota de 5Mb.</squidqota_uidAD>
 <squidquota>Quota des acc&egrave;s Internet</squidquota>
 <squidstats_gen_categorize_table>Mettre &agrave; jour les sites web non-cat&eacute;goris&eacute;s sur la table s&eacute;lectionn&eacute;e.</squidstats_gen_categorize_table>
 <squidstats_gen_members_table>Construit ou met &agrave; jour la table des statistiques par membre</squidstats_gen_members_table>
@@ -3108,6 +3157,8 @@ Ce second port est un port standard qui n'utilisera pas le mode transparent si l
 <squid_splash_logon_explain>Afin d'acc&egrave;der &agrave; Internet, indiquez votre compte et mot de passe.</squid_splash_logon_explain>
 <squid_ssl_port_explain>Le port d'&eacute;coute que le proxy va utiliser pour les clients qui vont effectuer des requ&ecirc;tes TLS ou SSL.
 Commun&eacute;ment en r&eacute;f&eacute;rence au HTTPS</squid_ssl_port_explain>
+<squid_stats_disabled_explain>Actuellement les statistiques Artica sont d&eacute;sactiv&eacute;es.[br]Si vous d&eacute;sirez les activ&eacute;es, assurez-vous que votre dispose de suffisamment de performances pour ex&eacute;cuter les t&acirc;ches de statistiques.[br]
+Nous vous sugg&eacute;rons fortement d'utiliser un deuxi&egrave;me serveur Artica Proxy qui sera en charge de stocker et d'administrer les statistiques.</squid_stats_disabled_explain>
 <squid_stats_nolicence_explain>[b]Afficher de plus de statistiques[/b] avec la licence entreprise.[br]Vous utilisez actuellement la version communaut&eacute; qui n'affiche qu'une partie des statistiques disponibles.[br]
 En transformant votre licence en mode entreprise, vous serez en mesure de d&eacute;dier un service Web &agrave; travers FreeWebs qui vous permettra de visualiser toutes les statistiques disponibles.</squid_stats_nolicence_explain>
 <squid_syslog_text>Envoyer les requ&ecirc;tes Proxy vers un serveur Syslog</squid_syslog_text>
@@ -3147,11 +3198,13 @@ Avec une licence Entreprise contract&eacute;e, vous serez en mesure de transform
 <ssl_port>Port SSL</ssl_port>
 <stable_releases>Versions stabilis&eacute;es</stable_releases>
 <standard_anonymous>Mode anonyme</standard_anonymous>
+<standard_method>m&eacute;thode standard</standard_method>
 <start>D&eacute;marrer</start>
 <starting_service>D&eacute;marrage du service</starting_service>
+<start_99_euros>Haute performance et prix bas ! Les tarifs d&eacute;marrent &agrave; partir de 99Euros par an !</start_99_euros>
 <statistics_administrator>Administrateur statistiques</statistics_administrator>
 <STATISTICS_APPLIANCEV2_EXPLAIN_1>Cette op&eacute;ration va lier ce proxy &agrave; un serveur Artica Proxy secondaire.[br]
-Ce second proxy sera charg&eacute; de stocker les &eacute;v&egrave;nements et les statistics.[br]
+Ce second proxy sera charg&eacute; de stocker les &eacute;v&egrave;nements et les statistiques.[br]
 Il centralisera le filtrage Web.[br]
 Dans ce cas, ce serveur va augmenter ses performances du fait que les calculs de statistiques et t&acirc;ches ergonomiques ne s'ex&eacute;cuteront pas.[br]Dans le formulaire ci-dessous, indiquez l'adresse du serveur Artica distant ainsi que le port d'&eacute;coute de la console Web Artica.</STATISTICS_APPLIANCEV2_EXPLAIN_1>
 <STATISTICS_APPLIANCEV2_EXPLAIN_2>Votre serveur est pr&ecirc;t &agrave; &ecirc;tre li&eacute; au serveur Artica distant.[br]V&eacute;rifiez les donn&eacute;es et cliquez sur le bouton suivant afin de finir la proc&eacute;dure de liaison.</STATISTICS_APPLIANCEV2_EXPLAIN_2>
@@ -3200,6 +3253,8 @@ D&eacute;sirez-vous quand m&ecirc;me effectuer cette op&eacute;ration ?</stats_r
 <sugesst_dynamic_acl_groups>Votre Proxy est connect&eacute; &agrave; avec un serveur Active Directory/LDAP.[br]
 Il semble que les Groups d'ACLs dynamiques ne sont pas activ&eacute;s.[br]
 Les Groups d'ACLs dynamiques permettent de pouvoir cr&eacute;er des objets qui utilisent les groupes d'utilisateurs stock&eacute;s dans votre Active Directory.[br]La mise &agrave; jour des utilisateurs s'effectuant de fa&ccedil;on dynamique par requ&ecirc;tes directes sur votre base AD/LDAP</sugesst_dynamic_acl_groups>
+<summary>R&eacute;sum&eacute;</summary>
+<switch_port>Port du Switch</switch_port>
 <switch_to_failover>Basculer vers le secours</switch_to_failover>
 <synchronize_mailboxes>Synchroniser les bo&icirc;tes aux lettres</synchronize_mailboxes>
 <synchronize_mailboxes_explain>Cette t&acirc;che va lancer la synchronisation des bo&icirc;tes aux lettres pour toutes les r&egrave;gles de toutes les organisations.</synchronize_mailboxes_explain>
@@ -3263,6 +3318,7 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de savoir si elle &agrave; &ea
 <telephoneNumber>Telephone number</telephoneNumber>
 <terms_groups>Groupes d'expressions</terms_groups>
 <TestExternalWebPage>Test d'un lien externe</TestExternalWebPage>
+<testing_connections>Tests des connexions</testing_connections>
 <tests_speed>Calcul de la bande passante</tests_speed>
 <tests_speed_explain>Cette t&acirc;che v&eacute;rifie la bande passante Internet et enregistre les r&eacute;sultats dans la base de donn&eacute;es MySQL.</tests_speed_explain>
 <tests_timeout>Temps MAX des tests</tests_timeout>
@@ -3274,6 +3330,7 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de savoir si elle &agrave; &ea
 <TEST_SMTP_CONNECTION_TEXT>Envoyer un message &agrave; une destination et v&eacute;rifiez si le serveur est capable de l'&eacute;mettre.</TEST_SMTP_CONNECTION_TEXT>
 <text_mode>Mode texte</text_mode>
 <thewebproxy_appliance>L'appliance de Statistiques Proxy</thewebproxy_appliance>
+<the_transarent_mode_is_disabled_acl>Cette r&egrave;gle ne sera pas utilis&eacute;e, le mode transparent est actuellement d&eacute;sactiv&eacute;</the_transarent_mode_is_disabled_acl>
 <thishour>cette heure</thishour>
 <this_computer_already_exists>Cet ordinateur existe d&eacute;j&agrave;</this_computer_already_exists>
 <this_feature_is_disabled_corp_license>Cette fonctionnalit&eacute; est uniquement disponible via l'utilisation de la licence entreprise.</this_feature_is_disabled_corp_license>
@@ -3319,10 +3376,12 @@ Le service est actuellement g&eacute;r&eacute; par l'appliance de statistiques.<
 <top_words_by_hits>TOP des mots clefs</top_words_by_hits>
 <total_per_thread_buffers>Total des tampons par thread</total_per_thread_buffers>
 <to_time>A l'heure</to_time>
+<trace_connexions>Tracer les connexions</trace_connexions>
 <transaction>Transaction</transaction>
 <transactions>transactions</transactions>
 <transitive>transitif</transitive>
 <transparent>Transparent</transparent>
+<transparent_method>m&eacute;thode transparente</transparent_method>
 <transparent_srcport>Port source du mode transparent</transparent_srcport>
 <transport_email_explain>Utiliser le formats suivants:
 [b]user extension@domain[/b][br]
@@ -3420,6 +3479,8 @@ Indiquez ici le chemin vers le conteneur.</updateutility_setup1>
 <update_for_all_products>Mise &agrave; jour de tous les produits</update_for_all_products>
 <update_kaspersky_databases>Mise &agrave; jour de la base Kaspersky</update_kaspersky_databases>
 <update_kaspersky_databases_explain>Lance l'outil de mise &agrave; jour de Kaspersky afin de r&eacute;cup&eacute;rer les derni&egrave;res bases antivirus.</update_kaspersky_databases_explain>
+<update_only_by_schedule>Mise &agrave; jour uniquement via programmation</update_only_by_schedule>
+<update_parameters>Mise &agrave; jour</update_parameters>
 <update_precompiled_ufdb>Mettre &agrave; jour les bases pr&eacute;-compil&eacute;es</update_precompiled_ufdb>
 <update_precompiled_ufdb_explain>Cette t&acirc;che va t&eacute;l&eacute;charger les bases pr&eacute;-compil&eacute;es pour le moteur de filtrage Web.[br]
 Les bases pr&eacute;-compil&eacute;es sont les bases de production afin de filtrer vos utilisateurs.</update_precompiled_ufdb_explain>
@@ -3445,6 +3506,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</upgrade_squid_ask>
 <url_rewrite_bypass_explain>Si activ&eacute; alors le proxy effectuera son processus de transmission m&ecirc;me si le filtrage d'URL est d&eacute;bord&eacute; ou inactif.[br]
 Dans le cas contraire, une erreur FATALE sera g&eacute;n&eacute;r&eacute;e et vous pr&eacute;cisera qu'il faudra peut &ecirc;tre &ecirc;tre augmenter le nombre de processus du filtrage Web.[br]
 Vous devriez uniquement activer cette option que si le filtrage Web n'est pas critique dans votre entit&eacute;.</url_rewrite_bypass_explain>
+<UseADAsNameServer>Utiliser l'AD comme DNS primaire</UseADAsNameServer>
 <UseAglobalPassword>Utiliser un mot de passe g&eacute;n&eacute;rique</UseAglobalPassword>
 <UseALink>Utiliser un lien</UseALink>
 <UseBanner>Utiliser une banni&egrave;re</UseBanner>
@@ -3473,6 +3535,7 @@ auth@ pour authuser@[ftpuser@host:port]</UserAuthMagic_explain>
 <user_level_security_explain>La s&eacute;curit&eacute; au niveau de l'utilisateur est le choix par d&eacute;faut pour Samba.[br]. Si le serveur accepte le nom d'utilisateur/mot de passe du client, ce dernier peut alors monter des partages multiples sans devoir saisir un mot de passe &agrave; chaque fois.[br]Samba peut aussi accepter des requ&ecirc;tes nom d'utilisateur/mot de passe bas&eacute;es sur les sessions.[br] Le client maintient des contextes d'authentification multiples gr&acirc;ce &agrave; l'utilisation d'un identifiant utilisateur unique (ou UID) pour chaque connexion.</user_level_security_explain>
 <user_quotaz>Quota utilisateur</user_quotaz>
 <UseSMTPProto>Utiliser le protocole SMTP</UseSMTPProto>
+<useTCPPort>Utiliser un port TCP</useTCPPort>
 <UseVirtualHosts>Utiliser de multiple h&ocirc;tes virtuels</UseVirtualHosts>
 <use_active_directory>Utiliser Active Directory</use_active_directory>
 <use_dedicated_database>Utiliser la base d&eacute;di&eacute;</use_dedicated_database>
@@ -3486,6 +3549,10 @@ auth@ pour authuser@[ftpuser@host:port]</UserAuthMagic_explain>
 <use_ldap_database>Utiliser la base LDAP</use_ldap_database>
 <use_local_service>Utilise le service local</use_local_service>
 <use_memory>utiliser la m&eacute;moire</use_memory>
+<use_milter_remote_service>Utiliser un service milter distant</use_milter_remote_service>
+<use_milter_remote_service_explain>Indiquez dans ce champs l'adresse du service milter distant.[br]
+Ceci doit &ecirc;tre sous la forme  inet:IP:PORT comme net:127.0.0.1:1052  ou inet:myhostname:1052.[br]
+Indiquez le champs vide pour ne pas utiliser de service milter distant.</use_milter_remote_service_explain>
 <use_radius>Utiliser RADIUS</use_radius>
 <use_remote_dhcp_server>Utiliser un serveur DHCP distant</use_remote_dhcp_server>
 <use_remote_dhcp_server_chilli>Le HotSpot doit &ecirc;tre le serveur DHCP, si cette option est activ&eacute;e, les requ&ecirc;tes DHCP seront transf&eacute;r&eacute;es au serveur DHCP sp&eacute;cifi&eacute;.</use_remote_dhcp_server_chilli>
@@ -3502,6 +3569,8 @@ auth@ pour authuser@[ftpuser@host:port]</UserAuthMagic_explain>
 <use_tproxy_mode>Utiliser le mode TProxy</use_tproxy_mode>
 <us_v2>Utiliser la version 2</us_v2>
 <values>valeurs</values>
+<vde_switch_explain>Un switch virtuel dispose des m&ecirc;me capacit&eacute;s qu'un Switch r&eacute;seau physique.[br]Il peut inclure plusieurs cartes r&eacute;seaux virtuelles qui disposent des m&ecirc;mes capacit&eacute;s que des cartes r&eacute;seau physiques.[br]
+Chaque carte r&eacute;seau virtuelle est connect&eacute;e &agrave; la carte physique afin de pouvoir communiquer avec les r&eacute;seaux r&eacute;els.</vde_switch_explain>
 <verbose_mode>Mode verbeux</verbose_mode>
 <verify>V&eacute;rifier</verify>
 <verify_caches>V&eacute;rifier les caches</verify_caches>
@@ -3595,6 +3664,7 @@ Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pre
 <vps_server_watchdog_explain>Cette t&acirc;che doit &ecirc;tre utilis&eacute;e seulement si vous avez transform&eacute; votre serveur Artica en un virtualisateur de machines via LXC.[br]
 Elle est con&ccedil;ue pour s'assurer que les machines virtuelles sont en activit&eacute; et correctement configur&eacute;es.</vps_server_watchdog_explain>
 <waiting_approval>En attente de confirmation</waiting_approval>
+<waiting_network_reload>En attente du rechargement r&eacute;seau</waiting_network_reload>
 <waiting_registration>En attente d'inscription</waiting_registration>
 <wait_xs_per_message>Attendre X secondes par message envoy&eacute;</wait_xs_per_message>
 <wait_xs_per_message_explain>Ce param&egrave;tre, si il est plus grand que 0 indique au processus SMTP d'attendre X secondes avant d'envoyer un autre message dans la m&ecirc;me session SMTP.[br]
@@ -3617,6 +3687,8 @@ Voulez-vous effectuer cette op&eacute;ration.</warn_disable_squid_cany_cache>
 <warn_gen_x509>Cette op&eacute;ration va &eacute;craser les donn&eacute;es des certificats.
 Voulez-vous effectuer cette op&eacute;ration ?
 Notez qu'apr&egrave;s cette op&eacute;ration, vous devrez red&eacute;marrer les services li&eacute;s &agrave; ce certificat.</warn_gen_x509>
+<warn_no_performance_minimal>[b]Probl&egrave;me de performance serveur[/b][br]
+La performance de votre serveur est en dessous des recommandations.[br]Il n&eacute;cessaire de disposer au moins d'un serveur disposant de 2 CPUs et de 2GB de m&eacute;moire vive..</warn_no_performance_minimal>
 <WARN_OPE_RESTART_SQUID_ASK>Cette op&eacute;ration va faire red&eacute;marrer le service proxy et stopper toutes les connections actuelles.
 Voulez-vous effectuer cette op&eacute;ration ?</WARN_OPE_RESTART_SQUID_ASK>
 <warn_restore_articadb>Restaurer cette sauvegarde vers l'instance Zarafa d&eacute;di&eacute;e ?
@@ -3650,6 +3722,7 @@ Si vous avez besoin de plus amples informations, nous vous invitons &agrave; con
 Afin de le lier, vous devriez reconstruire la configuration du service du proxy.</warn_ufdbguard_not_squidconf>
 <warn_ufdbguard_no_license>La licence entreprise n'est pas activ&eacute;e.[br]La base Artica contenant plus de 29 millions de sites cat&eacute;goris&eacute;s est d&eacute;sactiv&eacute;e.[br]
 Votre licence gratuite vous permet d'utiliser la base de donn&eacute;es de filtrage Web de l'Universit&eacute; de Toulouse.</warn_ufdbguard_no_license>
+<warn_ufdbguard_remote_error>Impossible de se connecter au service distant de filtrage Web</warn_ufdbguard_remote_error>
 <WARN_USB_SCAN_MISSING>Le fichier d'analyse des disques durs est manquant.[br]Cette erreur indique que Artica est actuellement en cours d'indexation de vos disques durs ou n'est pas capable de r&eacute;cup&eacute;rer la liste des disques durs.[br]Si, au bout de quelques minutes cette erreur est encore affich&eacute;e, essayez d'ex&eacute;cuter [b]artica-install --usb-scan-write[/b] ou contactez notre support technique.</WARN_USB_SCAN_MISSING>
 <watchdog>Moniteur de services</watchdog>
 <watchdog_amavis_text>S'assure que le service Amavis est en fonctionnement et qu'il ne d&eacute;passe pas les limites d&eacute;finies en mati&egrave;re de charge processeur et m&eacute;moire.</watchdog_amavis_text>
@@ -3680,6 +3753,7 @@ Ajoutez les liens appropri&eacute;s et supprimez toujours le d&eacute;but [b]www
 Ainsi:[br]
 cnn.com/video[br]
 edition.cnn.com/video[br]</webfiltering_add_uris_explain>
+<webfiltering_databases>Bases de filtrage Web</webfiltering_databases>
 <webfiltering_parameters_was_saved>Les param&egrave;tres du moteur de filtrage web ont &eacute;t&eacute;s appliqu&eacute;s sur le serveur.</webfiltering_parameters_was_saved>
 <webfiltering_service>Service de filtrage Internet</webfiltering_service>
 <webfiltering_service_events>&Eacute;v&eacute;nements du moteur de filtrage Web</webfiltering_service_events>
@@ -3724,6 +3798,7 @@ Cliquez sur le bouton ci-dessous afin d'activer le service.</web_engine_not_acti
 <WELCOME_WIZARD_ARC1>Cet assistant va vous guider afin de param&eacute;trer les options principales de votre serveur.[br]Cliquez sur suivant afin de continuer</WELCOME_WIZARD_ARC1>
 <what>Quoi</what>
 <what_to_do>Quelle op&eacute;ration mener ?</what_to_do>
+<when_connecting_to_method>Lors de la connexion avec la m&eacute;thode</when_connecting_to_method>
 <where>o&ugrave;</where>
 <whitelisted_senders>&Eacute;metteurs autoris&eacute;s</whitelisted_senders>
 <whitelist_all_domains>Mettre tous les sites en liste blanche</whitelist_all_domains>

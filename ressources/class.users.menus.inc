@@ -572,6 +572,7 @@ class usersMenus {
 	public $UCARP_INSTALLED=false;
 	public $SQUID_REVERSE_APPLIANCE=false;
 	public $ISCSID_INSTALLED=false;
+	public $VDESWITCH_INSTALLED=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -760,13 +761,7 @@ class usersMenus {
 			if(isset($_GLOBAL["SQUID_REVERSE_APPLIANCE"])){$this->SQUID_REVERSE_APPLIANCE=$_GLOBAL["SQUID_REVERSE_APPLIANCE"];}
 			if(isset($_GLOBAL["CNTLM_INSTALLED"])){$this->CNTLM_INSTALLED=$_GLOBAL["CNTLM_INSTALLED"];}
 			if(isset($_GLOBAL["ISCSID_INSTALLED"])){$this->ISCSID_INSTALLED=$_GLOBAL["ISCSID_INSTALLED"];}
-			
-			
-			
-			
-			
-			
-			
+			if(isset($_GLOBAL["VDESWITCH_INSTALLED"])){$this->VDESWITCH_INSTALLED=$_GLOBAL["VDESWITCH_INSTALLED"];}
 			
 			//Are you sure to do that !!!, breaking the license turn you to a pirate...
 			if(isset($_GLOBAL["CORP_LICENSE"])){$this->CORP_LICENSE=$_GLOBAL["CORP_LICENSE"];}

@@ -56,7 +56,7 @@ function js() {
 	echo $html;	
 	
 }
-$culr=new ccurl();
+
 function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -64,30 +64,36 @@ function popup(){
 	$array["whitelist"]='{whitelist}';
 	$array["http-safe-ports-ssl"]=$tpl->_ENGINE_parse_body('{http_safe_ports} (SSL)');
 	//$array["popup-bandwith"]='{bandwith}';
-	
+	$t=$_GET["t"];
+	if(!is_numeric($t)){$t=time();}
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="http-safe-ports-ssl"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.advParameters.php?http-safe-ports-ssl=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.advParameters.php?http-safe-ports-ssl=yes&t=$t\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 			continue;
 		}
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo build_artica_tabs($html, "main_config_sslbump");
+	echo build_artica_tabs($html, "main_config_sslbump$t");
 }
 
 
 function parameters_main(){
-$sock=new sockets();
-$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	$sock=new sockets();
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	$squid=new squidbee();
 	$page=CurrentPageName();
 	$sslbumb=false;
 	$users=new usersMenus();
-	$t=time();
+	$t=$_GET["t"];
+	$DisableSSLStandardPort=$sock->GET_INFO("DisableSSLStandardPort");
+	if(!is_numeric($DisableSSLStandardPort)){$DisableSSLStandardPort=0;}
+	$DisableSSLStandardPort_warn=null;
+	if($DisableSSLStandardPort==1){$DisableSSLStandardPort_warn="<div class=explain style='font-size:16px;color:#BD0000'>{DisableSSLStandardPort_warn}</div>";}
+	
 	if(preg_match("#^([0-9]+)\.([0-9]+)#",$users->SQUID_VERSION,$re)){
 		
 	    	if($re[1]>=3){if($re[2]>=1){$sslbumb=true;}}}
@@ -102,7 +108,9 @@ if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsApplian
 	}
 	$html="
 	<div style='font-size:14px' id='sslbumpdiv$t'></div>
-	<table style='width:99%' class=form>
+	$DisableSSLStandardPort_warn
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td colspan=2>$enableSSLBump</td>
 	</tr>
@@ -121,14 +129,14 @@ if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsApplian
 	</table>
 	<hr>
 	<div style='text-align:right'>". button("{apply}","SaveEnableSSLDump()",16)."</div>
-	
+	</div>
 	<script>
 		var x_SaveEnableSSLDump=function(obj){
      	 var tempvalue=obj.responseText;
       	if(tempvalue.length>3){alert(tempvalue);}
      	document.getElementById('sslbumpdiv$t').innerHTML='';
      	Loadjs('squid.restart.php?onlySquid=yes&ask=yes');
-     	RefreshTab('main_config_sslbump');
+     	RefreshTab('main_config_sslbump$t');
 	 }	
 
 	function SaveEnableSSLDump(){
@@ -180,7 +188,7 @@ function whitelist_popup(){
 	
 	$squid=new squidbee();
 	if($squid->hasProxyTransparent==1){
-		$explain="<div style='font-weight:bold;color:#BD0000'>{sslbum_wl_not_supported_transp}</div>";
+		$explain=$tpl->_ENGINE_parse_body("<div style='font-weight:bold;color:#BD0000'>{sslbum_wl_not_supported_transp}</div>");
 	}
 	
 	//$q=new mysql_squid_builder();

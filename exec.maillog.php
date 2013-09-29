@@ -537,7 +537,7 @@ if(preg_match("#milter-greylist:.+?bind failed: Address already in use#",$buffer
 		email_events("milter-greylist: double service issue",
 		"milter-greylist\n$buffer\nArtica will restart milter-greylist service","smtp");
 		@file_put_contents($file,"#");
-		$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/artica-postfix restart mgreylist >/dev/null 2>&1 &";
+		$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/milter-greylist restart >/dev/null 2>&1 &";
 		events("$cmd");
 		shell_exec_maillog($cmd);
 		
@@ -3620,7 +3620,7 @@ function miltergreylist_error($buffer,$socket){
 	$file="/etc/artica-postfix/cron.1/".__FUNCTION__;
 	if(file_time_min($file)<15){return null;}	
 	email_events("Milter Greylist error: $socket","System claim \"$buffer\", Artica will restart milter-greylist",'postfix');
-	$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart mgreylist');
+	$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/milter-greylist restart');
 	@unlink($file);
 	@file_put_contents($file,"#");
 }

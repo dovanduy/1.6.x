@@ -1,4 +1,5 @@
 <?php
+if(is_file("/etc/artica-postfix/FROM_ISO")){$GLOBALS["PHP5_BIN_PATH"]="/usr/bin/php5";}
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["FORCE"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
@@ -45,6 +46,8 @@ if($argv[1]=="--pdns"){pdns();exit;}
 if($argv[1]=="--snmpd"){snmpd();exit;}
 if($argv[1]=="--stunnel"){stunnel();exit;}
 if($argv[1]=="--iscsi"){iscsitarget();exit;}
+if($argv[1]=="--milter-greylist"){milter_greylist();exit;}
+if($argv[1]=="--vde-switch"){vde_switch();exit;}
 
 
 
@@ -99,7 +102,6 @@ if($argv[1]=="--iscsi"){iscsitarget();exit;}
 	artica_categories();
 	cntlm();
 	postfix();
-	ufdbguard();
 	ufdb_tail();
 	auth_tail();
 	roundcube_http();
@@ -109,6 +111,7 @@ if($argv[1]=="--iscsi"){iscsitarget();exit;}
 	snmpd();
 	stunnel();
 	iscsitarget();
+	vde_switch();
 	
 function artica_categories(){
 	if(!is_file("/opt/articatech/VERSION")){return;}
@@ -449,6 +452,7 @@ function postfix(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$daemonbin=$unix->find_program("postconf");
+	
 	if(!is_file($daemonbin)){return;}
 	$f[]="#!/bin/sh";
 	$f[]="### BEGIN INIT INFO";
@@ -465,6 +469,7 @@ function postfix(){
 	$f[]="### END INIT INFO";
 	$f[]="case \"\$1\" in";
 	$f[]=" start)";
+	$f[]="   $php ".dirname(__FILE__)."/exec.status.php --xmail";
 	$f[]="   $php ".dirname(__FILE__)."/exec.postfix.php --start \$2 \$3";
 	$f[]="	 exit 0";
 	$f[]="    ;;";
@@ -474,6 +479,7 @@ function postfix(){
 	$f[]="    ;;";
 	$f[]="";
 	$f[]=" restart)";
+	$f[]="   $php ".dirname(__FILE__)."/exec.status.php --xmail";
 	$f[]="   $php ".dirname(__FILE__)."/exec.postfix.php --restart \$2 \$3";
 	$f[]="	 exit 0";
 	$f[]="    ;;";
@@ -509,6 +515,8 @@ function postfix(){
 
 function ufdb_tail(){
 	
+	if(isset($GLOBALS["ufdb_tail_executed"])){return;}
+	$GLOBALS["ufdb_tail_executed"]=true;
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$f[]="#!/bin/sh";
@@ -1454,6 +1462,12 @@ function apache(){
 		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
 		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
 	}
+	
+	if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){
+		print "Starting......: artica-apache Waiting Artica-CD to finish\n";
+		shell_exec("$php /usr/share/artica-postfix/$php5script --stop");
+		}
+	}
 
 
 }
@@ -1681,18 +1695,24 @@ function artica_webconsole(){
 
 
 function phppfm(){
+	
+	if(is_file("/etc/artica-postfix/FROM_ISO")){if(!is_file("/etc/artica-postfix/artica-iso-setup-launched")){die();}}
+	
 	$unix=new unix();
-	$php=$unix->LOCATE_PHP5_BIN();
+	if(is_file("/etc/artica-postfix/FROM_ISO")){
+		$daemon_path="/usr/sbin/php5-fpm";
+		$php=$GLOBALS["PHP5_BIN_PATH"];
+	}else{
+		$php=$unix->LOCATE_PHP5_BIN();
+		$daemon_path=$unix->APACHE_LOCATE_PHP_FPM();
+	}
+	
+	
 	$INITD_PATH="/etc/init.d/php5-fpm";
 	$php5script="exec.php-fpm.php";
 	$daemonbinLog="PHP5 FastCGI Process Manager Daemon";
-	$daemon_path=$unix->APACHE_LOCATE_PHP_FPM();
 	
-	$restart=false;
-	if(is_file($daemon_path)){
-		if(!is_file("/etc/artica-postfix/php-fpm.first.restart")){$restart=true;}
-	}
-
+	
 	$f[]="#!/bin/sh";
 	$f[]="### BEGIN INIT INFO";
 	$f[]="# Provides:         php5-fpm";
@@ -1743,16 +1763,7 @@ function phppfm(){
 		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
 	}
 	
-	if($restart){
-		if(is_file("/etc/init.d/artica-webconsole")){
-			@file_put_contents("/etc/artica-postfix/php-fpm.first.restart", time());
-			shell_exec("/etc/init.d/php5-fpm start");
-			$nohup=$unix->find_program("nohup");
-			shell_exec("$nohup /etc/init.d/artica-framework restart >/dev/null 2>&1 &");
-			shell_exec("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
-			shell_exec("$nohup /etc/init.d/artica-webconsole restart >/dev/null 2>&1 &");
-		}
-	}
+	
 }
 function nginx(){
 	$unix=new unix();
@@ -1792,7 +1803,7 @@ function nginx(){
 	$f[]="    ;;";
 	$f[]="";
 	$f[]=" reload)";
-	$f[]="    $php /usr/share/artica-postfix/$php5script --reload \$2 \$3";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --force-restart \$2 \$3";
 	$f[]="    ;;";
 	$f[]="";	
 	$f[]=" reconfigure)";
@@ -1800,7 +1811,7 @@ function nginx(){
 	$f[]="    ;;";
 	$f[]="";	
 	$f[]="  *)";
-	$f[]="    echo \"Usage: \$0 {start|stop|restart|reconfigure} (+ '--verbose' for more infos)\"";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart|reconfigure|reload} (+ '--verbose' for more infos)\"";
 	$f[]="    exit 1";
 	$f[]="    ;;";
 	$f[]="esac";
@@ -2219,6 +2230,90 @@ function artica_status(){
 	
 }
 
+
+function milter_greylist(){
+	$daemonbinLog="Milter Greylist Daemon";
+	
+	$unix=new unix();
+	$milter_greylist=$unix->find_program("milter-greylist");
+	if(!is_file($milter_greylist)){return;}
+	$php=$unix->LOCATE_PHP5_BIN();
+	$sock=new sockets();
+	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+	if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=0;}
+	
+	$INITD_PATH="/etc/init.d/milter-greylist";
+	
+	$cmdline_start="$php /usr/share/artica-postfix/exec.milter-greylist.php --start-single";
+	$cmdline_stop="$php /usr/share/artica-postfix/exec.milter-greylist.php --stop-single";
+	$cmdline_restart="$php /usr/share/artica-postfix/exec.milter-greylist.php --restart-single";
+	$cmdline_reload="$php /usr/share/artica-postfix/exec.milter-greylist.php --reload-single";
+	if($EnablePostfixMultiInstance==1){
+		$cmdline_start="$php /usr/share/artica-postfix/exec.milter-greylist.php --start";
+		$cmdline_stop="$php /usr/share/artica-postfix/exec.milter-greylist.php --stop";
+	}
+	
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          milter-greylist";
+	$f[]="# Required-Start:    \$local_fs";
+	$f[]="# Required-Stop:     \$local_fs";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: $daemonbinLog";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: $daemonbinLog";
+	$f[]="### END INIT INFO";
+	$f[]="";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    $cmdline_start \$2";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    $cmdline_stop \$2";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	if($EnablePostfixMultiInstance==1){
+		$f[]="     $cmdline_stop \$2";
+		$f[]="     sleep 3";
+		$f[]="     $cmdline_start \$2";
+	}else{
+		$f[]="    $cmdline_restart \$2";
+	}
+	$f[]="    ;;";
+	$f[]="  reload)";
+	if($EnablePostfixMultiInstance==0){	
+		$f[]="    $cmdline_reload \$2";
+	}
+	$f[]="    ;;";	
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart|reload}\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0";
+	$f[]="";
+	
+	echo "$daemonbinLog: [INFO] Writing $INITD_PATH with new config\n";
+	@unlink($INITD_PATH);
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+	@chmod($INITD_PATH,0755);
+	
+	if(is_file('/usr/sbin/update-rc.d')){
+	shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+	
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+}
+
 function CleanUbuntu(){
 	$unix=new unix();
 	if(is_file("/etc/default/whoopsie")){
@@ -2435,7 +2530,63 @@ if(is_file('/sbin/chkconfig')){
 	}
 
 }
+function vde_switch(){
+	$unix=new unix();
+	$Masterbin=$unix->find_program("vde_pcapplug");
+	if(!is_file($Masterbin)){return;}
+	$php=$unix->LOCATE_PHP5_BIN();
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          vde-switch";
+	$f[]="# Required-Start:    \$all";
+	$f[]="# Required-Stop:     \$local_fs";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: vde-switch";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: vde-switch";
+	$f[]="### END INIT INFO";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    $php /usr/share/artica-postfix/exec.vde.php --start \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    $php /usr/share/artica-postfix/exec.vde.php --stop \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	$f[]="    $php /usr/share/artica-postfix/exec.vde.php --restart \$2 \$3";
+	$f[]="    ;;";
+	$f[]=" reconfigure)";
+	$f[]="    $php /usr/share/artica-postfix/exec.vde.php --reconfigure \$2 \$3";
+	$f[]="    ;;";	
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart|reconfigure} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
 
+	$INITD_PATH="/etc/init.d/vde_switch";
+	echo "mailarchive-perl: [INFO] Writing $INITD_PATH with new config\n";
+	@unlink($INITD_PATH);@file_put_contents($INITD_PATH, @implode("\n", $f));
+
+	@chmod($INITD_PATH,0755);
+
+	if(is_file('/usr/sbin/update-rc.d')){
+	shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+}
+
+	if(is_file('/sbin/chkconfig')){
+	shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+	shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+}
+
+}
 
 
 
@@ -3481,22 +3632,31 @@ function ufdbguard(){
 	$php=$unix->LOCATE_PHP5_BIN();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	$UseRemoteUfdbguardService=$sock->GET_INFO('UseRemoteUfdbguardService');
 	$EnableUfdbGuard=$sock->GET_INFO('EnableUfdbGuard');
 	$EnableUfdbGuard2=$sock->GET_INFO('EnableUfdbGuard2');
+	$datas=unserialize(@file_get_contents("/etc/artica-postfix/settings/Daemons/ufdbguardConfig"));
+	if(!isset($datas["UseRemoteUfdbguardService"])){$datas["UseRemoteUfdbguardService"]=0;}
 	
 	
 	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
+	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
+	
 	
 	if($EnableRemoteStatisticsAppliance==1){$EnableUfdbGuard=0;}
 	if($EnableWebProxyStatsAppliance==1){$EnableUfdbGuard=1;}
+	if($datas["UseRemoteUfdbguardService"]==1){$EnableUfdbGuard=0;}
+	if($UseRemoteUfdbguardService==1){$EnableUfdbGuard=0;}
 	
 	echo "ufdb: [INFO] EnableWebProxyStatsAppliance=$EnableWebProxyStatsAppliance\n";
 	echo "ufdb: [INFO] EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance\n";
 	echo "ufdb: [INFO] EnableUfdbGuard=$EnableUfdbGuard\n";
 	echo "ufdb: [INFO] EnableUfdbGuard2=$EnableUfdbGuard2\n";
+	echo "ufdb: [INFO] UseRemoteUfdbguardService Array={$datas["UseRemoteUfdbguardService"]}\n";
+	echo "ufdb: [INFO] UseRemoteUfdbguardService Sock=$UseRemoteUfdbguardService\n";
 		
 	
 	
@@ -3628,6 +3788,7 @@ function ufdbguard(){
 	$f[]="	     fi";
 	$f[]="";
 	$f[]="	    $php /usr/share/artica-postfix/exec.squidguard.php --dbmem";
+	$f[]="	    $php /usr/share/artica-postfix/exec.squidguard.php --notify-start";
 	$f[]="	    $php ".__FILE__." --ufdbguard";
 	$f[]="	    /etc/init.d/ufdb-tail start";
 	$f[]="		\$BINDIR/ufdbguardd \$UFDB_OPTIONS \$UFDB_RUNAS_PARAM -c \$CONFIGDIR/ufdbGuard.conf";
@@ -3637,6 +3798,7 @@ function ufdbguard(){
 	$f[]="	stop)";
 	$f[]="		msg=\"Shutting down URLfilterDB daemons\"";
 	$f[]="	    $php ".__FILE__." --ufdbguard";
+	$f[]="	    $php /usr/share/artica-postfix/exec.squidguard.php --stop";
 	$f[]="";
 	$f[]="		if [ -x \$BINDIR/ufdbsignal ]";
 	$f[]="		then";
@@ -3701,7 +3863,7 @@ function ufdbguard(){
 	$f[]="";
 	$f[]="	kill)";
 	$f[]="		msg=\"Killing URLfilterDB daemons\"";
-	$f[]="";
+	$f[]="	    $php /usr/share/artica-postfix/exec.squidguard.php --stop";
 	$f[]="		if [ -x \$BINDIR/ufdbsignal ]";
 	$f[]="		then";
 	$f[]="		   \$BINDIR/ufdbsignal -C \"sigkill ufdbguardd\"";
@@ -3764,33 +3926,7 @@ function ufdbguard(){
 	$f[]="";
 	$f[]="	reconfig|reload)";
 	$f[]="	    $php /usr/share/artica-postfix/exec.squidguard.php --dbmem";
-	$f[]="		if [ -x \$BINDIR/ufdbsignal  -a  -f /var/tmp/ufdbguardd.pid ]";
-	$f[]="		then";
-	$f[]="		   \$BINDIR/ufdbsignal -C \"sighup ufdbguardd\"";
-	$f[]="		   exitcode=\$?";
-	$f[]="	        else";
-	$f[]="		   PIDS=\"\"";
-	$f[]="		   if [ -f /var/tmp/ufdbguardd.pid ]";
-	$f[]="		   then";
-	$f[]="		      PIDS=`cat /var/tmp/ufdbguardd.pid`";
-	$f[]="		      CHECK=`ps -p \"\$PIDS\" 2>/dev/null | grep ufdbguardd`";
-	$f[]="		      if [ \"\$CHECK\" = \"\" ]";
-	$f[]="		      then ";
-	$f[]="			 PIDS=\"\"";
-	$f[]="		      fi";
-	$f[]="		   fi";
-	$f[]="		   if [ \"\$PIDS\" = \"\" ]";
-	$f[]="		   then";
-	$f[]="		      PIDS=`ps \$PSALL | grep ufdbguardd | grep -v grep | awk '{ print \$2 }' `";
-	$f[]="		   fi";
-	$f[]="";
-	$f[]="		   if [ \"\$PIDS\" != \"\" ]";
-	$f[]="		   then";
-	$f[]="		      echo \"Sending HUP signal to URLfilterDB daemons to reconfigure\"";
-	$f[]="		      kill -HUP \$PIDS";
-	$f[]="		   fi";
-	$f[]="		   exitcode=0";
-	$f[]="	        fi";
+	$f[]="	    $php /usr/share/artica-postfix/exec.squidguard.php --reload";
 	$f[]="		;;";
 	$f[]="";
 	$f[]="	rotatelog)";
@@ -3870,6 +4006,7 @@ function ufdbguard(){
 	$f[]="";
 	$f[]="	condrestart|try-restart|restart)";
 	$f[]="		\$0 stop";
+	$f[]="		$php /usr/share/artica-postfix/exec.squidguard.php --build --force";
 	$f[]="		sleep 2";
 	$f[]="		\$0 start";
 	$f[]="		exitcode=\$?";
@@ -3923,7 +4060,9 @@ function ufdbguard(){
 	if(is_file('/sbin/chkconfig')){
 		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
 		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
-	}	
+	}
+
+	if(!is_file("/etc/init.d/ufdb-tail")){ufdb_tail();}
 		
 }
 

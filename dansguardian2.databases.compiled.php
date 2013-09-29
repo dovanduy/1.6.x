@@ -308,7 +308,7 @@ function tabs(){
 	$array["categories"]='{categories}';
 	
 	//$array["events-status"]='{update_status}';
-	$array["stats"]='{statistics}';	
+	//$array["stats"]='{statistics}';	
 	$array["events"]='{events}';
 	$array["backup"]='{backup_stats}';	
 	
@@ -1102,7 +1102,7 @@ function add_category_save(){
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$q->CreateCategoryTable($_POST["personal_database"]);
-	$sql="TRUNCATE TABLE webfilters_categories_caches";
+	
 	$dans->CategoriesTableCache();
 	$dans->CleanCategoryCaches();
 	$sock=new sockets();

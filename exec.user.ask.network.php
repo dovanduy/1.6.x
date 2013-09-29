@@ -117,7 +117,6 @@ echo "30%] Please Wait, Changing IP address to $NIC....\n";
 $ifconfig=$unix->find_program("ifconfig");
 shell_exec2("$ifconfig $NIC down");
 shell_exec2("$ifconfig $NIC $ETH_IP netmask $NETMASK up");
-shell_exec2("/bin/ip route flush all");
 shell_exec2("/bin/ip route add 127.0.0.1 dev lo");
 shell_exec2("/sbin/route add $GATEWAY dev $NIC");
 $tr=explode(".",$ETH_IP);

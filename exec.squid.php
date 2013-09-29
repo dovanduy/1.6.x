@@ -1,4 +1,5 @@
 <?php
+if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-". basename(__FILE__)." Waiting Artica-CD to finish\n";die();}}
 $GLOBALS["DEBUG_INCLUDES"]=false;
 $GLOBALS["ARGVS"]=implode(" ",$argv);
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
@@ -33,8 +34,8 @@ $GLOBALS["NORELOAD"]=false;
 
 
 
-
-WriteMyLogs("commands= ".implode(" ",$argv),"MAIN",__FILE__,__LINE__);
+$GLOBALS["MYCOMMANDS"]=implode(" ",$argv);
+WriteMyLogs("commands= {$GLOBALS["MYCOMMANDS"]}","MAIN",__FILE__,__LINE__);
 if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["NORELOAD"]=true;}
@@ -64,6 +65,7 @@ if($argv[1]=="--import-webfilter"){import_webfilter($argv[2]);return;}
 
 
 
+if($argv[1]=="--checks"){CheckConfig($argv[2]);return;}
 if($argv[1]=="--notify-clients-proxy"){notify_remote_proxys();return;}
 if($argv[1]=="--ping-clients-proxy"){notify_remote_proxys("PING");return;}
 if($argv[1]=="--export-tables"){StatsApplianceExportTables();return;}	
@@ -251,6 +253,10 @@ if($argv[1]=="--build"){
 		$squid=new squidbee();
 		$squidbin=$unix->find_program("squid3");
 		echo "Starting......: checking squid binaries..\n";
+		echo "Starting......: Setting permissions\n";
+		$unix->chmod_func(0755, "/etc/artica-postfix/settings/Daemons");
+		$unix->chmod_func(0755, "/etc/artica-postfix/settings/Daemons/*");
+		echo "Starting......: Setting permissions done..\n";
 		if(!is_file($squidbin)){$squidbin=$unix->find_program("squid");}
 		echo "Starting......: Binary: $squidbin\n";
 		echo "Starting......: Config: $SQUID_CONFIG_PATH\n";
@@ -655,7 +661,7 @@ function Reload_Squid(){
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-	
+	$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
@@ -741,8 +747,9 @@ function Reload_Squid(){
 	echo "Starting......: [RELOAD]: Reloading {$GLOBALS["SQUIDBIN"]} PID $pid\n";
 	squid_watchdog_events("Reconfiguring Proxy parameters...");
 	
-	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$file=basename($trace[1]["file"]);$function=$trace[1]["function"];$line=$trace[1]["line"];$called="Called by $function() from line $line";}}
-	squid_admin_mysql(2, "Reconfiguring squid-cache","$called");
+	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$file=basename($trace[1]["file"]);
+	$function=$trace[1]["function"];$line=$trace[1]["line"];$called="Called by $function() from line $line";}}
+	
 	
 	
 	
@@ -765,7 +772,7 @@ function Reload_Squid(){
 	}
 	
 	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];$executed="Executed by $sourcefunction() line $sourceline\nusing argv:{$GLOBALS["ARGVS"]}\n";}}
-	
+	squid_admin_mysql(2, "Reconfiguring squid-cache","$called\n{$GLOBALS["MYCOMMANDS"]}");
 	
 	if($EnableWebProxyStatsAppliance==1){
 		if(is_file("/etc/init.d/syslog")){
@@ -1186,6 +1193,15 @@ function ApplyConfig($smooth=false){
 			$conf=str_replace("\n\n", "\n", $conf);
 			@file_put_contents("/tmp/squid.conf", $conf);
 			echo "Starting......: [SYS]: Squid Check validity of the configuration file with /tmp/squid.conf...\n";
+			$GLOBALS["SQUID_PATTERN_ERROR"]=array();
+			CheckConfig("/tmp/squid.conf");
+			if(count($GLOBALS["SQUID_PATTERN_ERROR"])>0){
+				echo "Starting......: [SYS]: Some errors are detected and cleaned\n";
+				squid_admin_mysql(1, "Some errors has been detected in settings", "Please check theses values:\n".@implode("\n", $GLOBALS["SQUID_PATTERN_ERROR"]));
+				$conf=@file_get_contents("/tmp/squid.conf");
+			}
+			
+			
 			exec("$squidbin -f /tmp/squid.conf -k parse 2>&1",$results);
 			while (list ($index, $ligne) = each ($results) ){
 				if(strpos($ligne,"| WARNING:")>0){continue;}
@@ -1267,6 +1283,52 @@ function ApplyConfig($smooth=false){
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.syslog-engine.php --rsylogd >/dev/null 2>&1 &");
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.watchdog.php --init >/dev/null 2>&1 &");
 	if(!$smooth){CheckFilesAndSecurity();}
+	
+}
+
+function CheckConfig($path){
+	$unix=new unix();
+	$squidbin=$unix->find_program("squid");
+	$SQUID_CONFIG_PATH=$unix->SQUID_CONFIG_PATH();
+	if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
+	exec("$squidbin -f $path -k parse 2>&1",$results);
+	
+	$f=explode("\n",@file_get_contents($path));
+	echo "Starting......: [SYS]: With ". count($f)." lines\n";
+	$Save=false;
+	while (list ($index, $ligne) = each ($results) ){
+		if(preg_match("#FATAL: refresh_pattern#", $ligne)){
+			if(preg_match("#FATAL: Bungled .*?line ([0-9]+)#",$results[$index+1],$re)){
+				$line=$re[1];
+				$myLine=$line-1;
+				echo "Starting......: [SYS]: Squid error on `refresh_pattern` on line $myLine remove it\n";
+				$GLOBALS["SQUID_PATTERN_ERROR"][]=$f[$myLine];
+				$Save=true;
+				unset($f[$myLine]);
+				continue;
+			}
+			
+		}
+		
+		if(preg_match("#FATAL: Bungled .*? line ([0-9]+):\s+refresh_pattern#",$ligne,$re)){
+			$line=$re[1];
+			$myLine=$line-1;
+			echo "Starting......: [SYS]: Squid error on `refresh_pattern` on line $myLine remove it\n";
+			$GLOBALS["SQUID_PATTERN_ERROR"][]=$f[$myLine];
+			$Save=true;
+			unset($f[$myLine]);
+			continue;
+		}
+		
+	}
+	
+	
+	
+	if($Save){
+		echo "Starting......: [SYS]: Saving new file $path With ". count($f)." lines\n";
+		@file_put_contents($path, @implode("\n", $f));
+		CheckConfig($path);
+	}
 	
 }
 
@@ -2493,6 +2555,8 @@ function rotate_logs(){
 	
 	$unix=new unix();
 	$GLOBALS["SQUIDBIN"]=$unix->LOCATE_SQUID_BIN();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
 	$q=new mysql_squid_builder();
 	
 	if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] Checking table squid_storelogs...\n";}
@@ -2504,26 +2568,43 @@ function rotate_logs(){
 	
 	if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] Restart watchdog, please wait...\n";}
 	shell_exec("/etc/init.d/auth-tail restart >/dev/null 2>&1");
+	shell_exec("/etc/init.d/cache-tail restart >/dev/null 2>&1");
 	$t=time();
 	$c=0;
 	$globalSize=0;
 	if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] Scanning log path...\n";}
+	$RUN_MYSAR=false;
 	foreach (glob("/var/log/squid/*") as $filename) {
 		$SourceFileName=$filename;;
 		$ext = $unix->file_extension($filename);
-		
 		$basename=basename($filename);
+		if(!is_numeric($ext)){if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] skipping $basename\n";}continue;}
+		
+		
 		$tt=explode(".", $basename);
 		$fileprefix="{$tt[0]}-";
 		if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] Found: $basename Prefix:$fileprefix ext:$ext\n";}
+		$filetime=filemtime($filename);
+		
+	
+		if(preg_match("#access\.log\.[0-9]+$#", $filename)){
+			@mkdir("/home/squid/access_logs");
+			if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] Archiving $basename for statistics tasks...\n";}
+			$RUN_MYSAR=TRUE;
+			if(@copy($filename, "/home/squid/access_logs/".basename($filename).".$filetime")){@unlink($filename);}
+			continue;
+		}
+		
+		if(preg_match("#sarg\.log\.[0-9]+$#", $filename)){
+			@mkdir("/home/squid/sarg_logs");
+			if(@copy($filename, "/home/squid/sarg_logs/".basename($filename).".$filetime")){@unlink($filename);}
+			continue;
+		}		
 		
 		
-		if(!is_numeric($ext)){
-			if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] skipping $basename\n";}
-			continue;}
 		$basename=str_replace(".$ext", "", $basename);
 		$ext = $unix->file_extension($basename);
-		$filetime=filemtime($filename);
+		
 		$filedate=date('Y-m-d H:i:s',$filetime);
 		$filesize_src=$unix->file_size($filename);
 		if($filesize_src==0){
@@ -2569,6 +2650,9 @@ function rotate_logs(){
 	}
 	$sock=new sockets();
 	if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] Done, $addedtext {took} $took\n";}
+	if($RUN_MYSAR){
+		shell_exec("$nohup $php /usr/share/artica-postfix/exec.mysar.php >/dev/null 2>&1 &");
+	}
 	
 	$sock->TOP_NOTIFY("{proxy_logrotate_done}$addedtext {took} $took","info");
 }

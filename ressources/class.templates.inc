@@ -3119,12 +3119,11 @@ function Paragraphe32($title,$text,$js,$img,$size=220){
 		
 		
 	return "
-	<table style='width:{$size}px;' 
-		class=form 
+	<div style='width:93%;min-height:110px' class=form 		
 		OnMouseOver=\"javascript:this.className='formOver';this.style.cursor='pointer';\" 
 		OnMouseOut=\"javascript:this.className='form';this.style.cursor='auto';\" 
-		OnClick=\"javascript:SeTimeOutIMG32('$img_id');$js\"
-		>
+		OnClick=\"javascript:SeTimeOutIMG32('$img_id');$js\">
+	<table style='width:{$size}px;'>
 	<tr>
 	<td width=1% valign='top' style='vertical-align:top';>
 	<input type='hidden' name='{$img_id}_org' id='{$img_id}_org' value='img/$img'>
@@ -3136,7 +3135,7 @@ function Paragraphe32($title,$text,$js,$img,$size=220){
 	</div>
 		</td>
 	</tr>
-	</table>";
+	</table></div>";
 	
 
 return "<div style=\"width:{$size}px;margin:2px\" 
@@ -4182,6 +4181,7 @@ function CheckSessions(){
 		$noback["squid.logon.php"]=true;
 		$noback["miniadm.php"]=true;
 		$noback["miniadm.logon.php"]=true;
+		$noback["squid.access-sql.php"]=true;
 		$noback["miniadm.register.php"]=true;
 		$noback["miniadm.logoff.php"]=true;
 		$noback["exec.shm.php"]=true;
@@ -4191,6 +4191,7 @@ function CheckSessions(){
 		$noback["squid.stats.listener.php"]=true;
 		$noback["squid.blocks.listener.php"]=true;
 		$noback["import.users.listener.php"]=true;
+		$noback["external_acl_quota.php"]=true;
 		$noback["nodes.listener.php"]=true;
 		$noback["streamget.php"]=true;
 		$noback["squid.users.logon.php"]=true;
@@ -6171,6 +6172,7 @@ function table_error_showZoom($error,$underline=1){
 
 function json_error_show($error,$indexColumn=0,$full=false){
 	$error=str_replace("no data", "{this_request_contains_no_data}", $error);
+	$error=str_replace("Not found...", "{this_request_contains_no_data}", $error);
 	$tpl=new templates();
 	$id=md5($error);
 	$error=$tpl->javascript_parse_text($error);
@@ -6414,6 +6416,11 @@ function sendserrors($text){
 	}
 function build_artica_tabs($tabsArray,$id,$width=0){
 	$t=rand(0,time());
+	if(!isset($_SESSION["build_artica_tabs_timeout"])){
+		$sock=new sockets();
+		$_SESSION["build_artica_tabs_timeout"]=$sock->GET_INFO("ArticaTabsTimeout");
+		if(!is_numeric($_SESSION["build_artica_tabs_timeout"])){$_SESSION["build_artica_tabs_timeout"]=800;}
+	}
 	$width_text="100%";
 	if($width>0){$width_text="{$width}px";}
 	$md=md5(serialize($tabsArray).",$id,$t");
@@ -6428,7 +6435,7 @@ function build_artica_tabs($tabsArray,$id,$width=0){
 		$('#$id').tabs();
 	}
 		
-	setTimeout('tab$md()',800);
+	setTimeout('tab$md()',{$_SESSION["build_artica_tabs_timeout"]});
 </script>
 ";
 	if(!isset($GLOBALS["TPL"])){$GLOBALS["TPL"]=new templates();}

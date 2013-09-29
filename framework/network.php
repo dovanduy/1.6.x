@@ -22,6 +22,8 @@ if(isset($_GET["arp-delete"])){arptable_delete();exit;}
 if(isset($_GET["arp-edit"])){arptable_edit();exit;}
 if(isset($_GET["ifconfig"])){ifconfig();exit;}
 if(isset($_GET["ifconfig6"])){ifconfig6();exit;}
+if(isset($_GET["vde-restart"])){vde_restart();exit;}
+if(isset($_GET["vde-status"])){vde_status();exit;}
 
 
 if(isset($_GET["dhcpd-leases"])){dhcpd_leases_force();exit;}
@@ -202,6 +204,7 @@ function reconstruct_all_interfaces(){
 }
 
 function arptable_edit(){
+	$unix=new unix();
 	$datas=unserialize(base64_decode($_GET["arp-edit"]));
 	if(!is_array($datas)){
 		writelogs_framework("Not an array",__FUNCTION__,__FILE__,__LINE__);
@@ -240,4 +243,35 @@ function arptable_delete(){
 	shell_exec($cmd);		
 }
 
+function vde_restart(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/vde.status.html";
+	$cmd=trim("$php /usr/share/artica-postfix/exec.initslapd.php --vde-switch >/dev/null 2>&1");
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	@unlink($cachefile);
+	@touch($cachefile);
+	@chmod(0755,$cachefile);
+	$cmd="$nohup /etc/init.d/vde_switch restart >$cachefile 2>&1";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function vde_status(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	
+	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.initslapd.php --vde-switch >/dev/null 2>&1 &");
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	
+	
+	$cmd=trim("$php /usr/share/artica-postfix/exec.vde.php --status >/dev/null 2>&1");
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+
+}
 

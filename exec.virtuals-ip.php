@@ -674,7 +674,7 @@ function build(){
 	if($GLOBALS["VERBOSE"]){echo "Line:".__LINE__." dev_shm()\n";}
 	dev_shm();
 	$ip=$unix->find_program("ip");
-	
+	$echobin=$unix->find_program("echo");
 	$IPROUTEFOUND=false;
 	exec("$ip route",$results);
 	events("IP route -> ".count($results)." lines",__FUNCTION__,__LINE__);
@@ -841,8 +841,9 @@ function build(){
 	bridges_build();
 	ucarp_build(true);
 	
-	$sh[]="echo \"\" > /var/log/net-start.log";
-	$sh[]="echo \"  **** Apply Network configuration, please wait... ****\"";
+	
+	$sh[]="$echobin \"\" > /var/log/net-start.log";
+	$sh[]="$echobin \"  **** Apply Network configuration, please wait... ****\"";
 	
 	while (list ($index, $line) = each ($GLOBALS["SCRIPTS_TOP"]) ){
 		$line=trim($line);
@@ -861,7 +862,12 @@ function build(){
 			continue;
 		}
 		
-		$sh[]="echo \"$line\" >>/var/log/net-start.log 2>&1";
+		if(preg_match("#ifconfig\s+(.+?)\s+(.+?)netmask(.+?)\s+#", $line,$re)){
+			$sh[]="$echobin \"adding {$re[2]}/{$re[3]} in {$re[1]} interface\"";
+				
+		}
+		
+		$sh[]="$echobin \"$line\" >>/var/log/net-start.log 2>&1";
 		$sh[]="$line >>/var/log/net-start.log 2>&1 || true";	
 		
 	}
@@ -872,6 +878,15 @@ function build(){
 			$line=trim($line);
 			if($line==null){continue;}
 			if(substr($line, 0,1)=="#"){$sh[]=ScriptInfo($line);continue;}
+			
+			if(preg_match("#^OUTPUT\s+(.+)#",$line,$re)){
+				$line=str_replace('"' ,"'", $line);
+				$sh[]="$echobin \"{$re[1]}\"";
+				continue;
+			}
+				
+			
+			
 			$md=md5($line);
 			if(isset($AL[$md])){
 				echo "Starting......: SKIPING `$line`\n";
@@ -886,37 +901,59 @@ function build(){
 			}			
 		
 		
+		if(preg_match("#ifconfig\s+(.+?)\s+(.+?)netmask(.+?)\s+#", $line,$re)){
+			$sh[]="$echobin \"adding {$re[2]}/{$re[3]} in {$re[1]} interface\"";
+			
+		}	
+			
 		if(strpos('echo "', $line)==0){
-			$sh[]="echo \"$line\" >>/var/log/net-start.log 2>&1";
+			$sh[]="$echobin \"$line\" >>/var/log/net-start.log 2>&1";
 		}
 		$sh[]="$line >>/var/log/net-start.log 2>&1 || true"; 
 	}
 	
+	if(count($GLOBALS["SCRIPTS_ROUTES"])>0){
+		$sh[]="";
+		$sh[]="# [".__LINE__."]";
+		$sh[]="# [".__LINE__."] *******************************";
+		$sh[]="# [".__LINE__."] ****     NETWORK ROUTES    ****";
+		$sh[]="# [".__LINE__."] *******************************";
+		$sh[]="# [".__LINE__."]";
+		while (list ($index, $line) = each ($GLOBALS["SCRIPTS_ROUTES"]) ){
+		
+			$line=trim($line);
+			if($line==null){continue;}
+			if(substr($line, 0,1)=="#"){$sh[]=ScriptInfo($line);continue;}
+			$md=md5($line);
+			
+			
+			if(isset($AL[$md])){
+				if(!preg_match("#^force", $line)){
+					echo "Starting......: SKIPING `$line`\n";
+					continue;
+				}
+			}
+			
+			if(preg_match("#^force:(.+)#", $line,$re)){$line=$re[1];$md=md5($line);}
+			
+			$AL[$md]=true;
+			
+			
+			if(preg_match("#ip route add (.+?)\s+.*?src\s+(.+)#",$line,$re)){
+				$sh[]="$echobin \"Create route for network {$re[1]} for local address {$re[2]}\"";
+			}
+			
+			if(preg_match("#ip route add (.+?)\s+via(.+?)\s+src\s+([0-9\.]+)#",$line,$re)){
+				$sh[]="$echobin \"Create route for network {$re[1]} using gateway {$re[2]} for local address {$re[3]}\"";
+			}
 	
-	$sh[]="";
-	$sh[]="# [".__LINE__."]";
-	$sh[]="# [".__LINE__."] *******************************";
-	$sh[]="# [".__LINE__."] ****     NETWORK ROUTES    ****";
-	$sh[]="# [".__LINE__."] *******************************";
-	$sh[]="# [".__LINE__."]";
-	$sh[]="# Flushing route tables...";
-	$sh[]="echo \"{$GLOBALS["ipbin"]} route flush all\" >>/var/log/net-start.log 2>&1";
-	$sh[]="{$GLOBALS["ipbin"]} route flush all >>/var/log/net-start.log 2>&1 || true";
-	while (list ($index, $line) = each ($GLOBALS["SCRIPTS_ROUTES"]) ){
+			$sh[]="$echobin \"$line\" >>/var/log/net-start.log 2>&1";
+			if(preg_match("#\/echo\s+#", $line)){$sh[]=$line;continue;}
+			$sh[]="$line >>/var/log/net-start.log 2>&1 || true";
+			
+		}	
 	
-		$line=trim($line);
-		if($line==null){continue;}
-		if(substr($line, 0,1)=="#"){$sh[]=ScriptInfo($line);continue;}
-		$md=md5($line);
-		if(isset($AL[$md])){
-			echo "Starting......: SKIPING `$line`\n";
-			continue;
-		}
-		$AL[$md]=true;
-
-		$sh[]="echo \"$line\" >>/var/log/net-start.log 2>&1";
-		$sh[]="$line >>/var/log/net-start.log 2>&1 || true";
-	}	
+	}
 	
 	
 	
@@ -925,6 +962,9 @@ function build(){
 	$sh[]="if [ -x /etc/init.d/artica-ifup-content.sh ] ; then";
 	$sh[]="	/etc/init.d/artica-ifup-content.sh";
 	$sh[]="fi";
+	
+	$sh[]=nics_vde_build();
+	
 	
 	
 	$unix=new unix();
@@ -936,17 +976,17 @@ function build(){
 	}
 	
 	$sh[]="#Reloading sshd (if exists)";
-	$sh[]="echo \"reloading sshd ( if exists )\"";
+	$sh[]="echo \"Reloading sshd ( if exists )\"";
 	$sh[]="$php5 /usr/share/artica-postfix/exec.sshd.php --reload 2>&1 || true";
 	
 	$sh[]="#Reloading pdns (if exists)";
-	$sh[]="echo \"reloading PowerDNS ( if exists )\"";
+	$sh[]="echo \"Reloading PowerDNS ( if exists )\"";
 	$sh[]="$php5 /usr/share/artica-postfix/exec.pdns.php --reload 2>&1 || true";
 	
 	$sh[]="#Reloading DHCPD (if exists)";
-	$sh[]="echo \"reloading DHCP server ( if exists )\"";
+	$sh[]="echo \"Reloading DHCP server ( if exists )\"";
 	$sh[]="$php5 /usr/share/artica-postfix/exec.dhcpd.compile.php --reload-if-run 2>&1 || true";	
-	
+	$sh[]="echo \"  ****      Apply Network configuration, done      ****\"";
 	$sh[]=";;";
 	$sh[]="  stop)";
 	if(is_array($GLOBALS["SCRIPTS_DOWN"])){
@@ -1028,6 +1068,37 @@ function ifconfig_tests(){
 	}
 	print_r($array);
 	
+}
+
+function nics_vde_build(){
+	if(isset($GLOBALS["nics_vde_build"])){return;}
+	$GLOBALS["nics_vde_build"]=true;
+	$unix=new unix();
+	$ifconfig=$unix->find_program("ifconfig");
+	$vde_tunctl=$unix->find_program("vde_tunctl");
+	if(!is_file($vde_tunctl)){return;}
+	$php5=$unix->LOCATE_PHP5_BIN();
+	
+	
+	$f[]="";
+	$f[]="# [".__LINE__."]";
+	$f[]="# [".__LINE__."] *******************************";
+	$f[]="# [".__LINE__."] ****   Virtual switches    ****";
+	$f[]="# [".__LINE__."] *******************************";
+	$f[]="# [".__LINE__."]";
+	
+	$sql="SELECT nic FROM nics_vde GROUP BY nic";
+	
+	
+	
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	$f[]="# [".__LINE__."]:". mysql_num_rows($results). " switche(s)";
+	if(!$q->ok){return null;}
+	
+	shell_exec("$php5 ". dirname(__FILE__)."/exec.vde.php --reconfigure");	
+	$f[]="$php5 ". dirname(__FILE__)."/exec.vde.php --start >>/var/log/net-start.log 2>&1 || true";
+	return @implode("\n", $f);
 }
 
 
@@ -1214,12 +1285,10 @@ function routes_main_build(){
 	$ip=$unix->find_program("ip");
 
 	
-	if(count($GLOBALS["SCRIPTS"])==0){
-		echo "No route to build\n";
-		return;}
+	if(count($GLOBALS["SCRIPTS"])==0){echo "No route to build\n";return;}
 	
-	echo "Starting......: `$ip route flush all`\n";
-	shell_exec("$ip route flush all");
+	
+	
 		
 	while (list ($index, $line) = each ($GLOBALS["SCRIPTS"]) ){
 		$line=trim($line);
@@ -1235,6 +1304,7 @@ function routes_main_build(){
 	
 		
 }
+
 
 function routes_main(){
 	
@@ -1269,9 +1339,6 @@ function routes_main(){
 	$endcmdsline=array();
 	$q=new mysql();
 	$NetBuilder=new system_nic();
-	
-
-
 	$NetBuilder->LoadTools();
 	
 	$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."]";
@@ -1285,26 +1352,55 @@ function routes_main(){
 	
 	
 	
-	$sql="SELECT * FROM  `nics` WHERE defaultroute=1";
+	$sql="SELECT * FROM  `nics` WHERE defaultroute=1 ORDER BY Interface";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	$eth=trim($ligne["Interface"]);
+	$eth=str_replace("\r\n", "", $eth);
+	$eth=str_replace("\r", "", $eth);
+	$eth=str_replace("\n", "", $eth);
+	
 	if(isset($eth_SKIP[$eth])){$eth=null;}
 	if($ligne["GATEWAY"]==null){$eth=null;}
 	if($ligne["GATEWAY"]=="0.0.0.0"){$eth=null;}
 	if($ligne["NETMASK"]=="0.0.0.0"){$eth=null;}
-	$CDIR=$NetBuilder->GetCDIRNetwork($ligne["IPADDR"],$ligne["NETMASK"]);
-	if($eth==null){
-		$GLOBALS["SCRIPTS_ROUTES"][]="# no default route set, apply the first one";
-	}else{
-		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] is set as default route.";
-		$GLOBALS["DEFAULT_ROUTE_SET"]=true;
-		$endcmdsline[]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
+	$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["echobin"]} \"\" > /etc/iproute2/rt_tables";
+	$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["echobin"]} \"255	local\" >> /etc/iproute2/rt_tables";
+	$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["echobin"]} \"254	main\" >> /etc/iproute2/rt_tables";
+	$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["echobin"]} \"253	default\" >> /etc/iproute2/rt_tables";
+	$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["echobin"]} \"0	unspec\" >> /etc/iproute2/rt_tables";
+	
+	
+	if($eth<>null){
+		if(!isset($GLOBALS["DEFAULT_ROUTE_SET"])){
+			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] is set as default route.";
+			$GLOBALS["DEFAULT_ROUTE_SET"]=$eth;
+			$NETMASK=$ligne["NETMASK"];
+			$CDIR=$NetBuilder->GetCDIRNetwork($ligne["IPADDR"],$ligne["NETMASK"]);
+			$md5net=md5($CDIR);
+			$GLOBALS["MD5NET"][$md5net]=true;
+			
+			$endcmdsline[]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." down";
+			$endcmdsline[]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." up";
+			$endcmdsline[]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
+		}
 	}
 	
 	
-	
+	if(!isset($GLOBALS["DEFAULT_ROUTE_SET"])){
+		$GLOBALS["SCRIPTS_ROUTES"][]="# [eth0] is set as default route.";
+		$nic=new system_nic("eth0");
+		if($nic->GATEWAY<>null){
+			$GLOBALS["DEFAULT_ROUTE_SET"]="eth0";
+			$CDIR=$NetBuilder->GetCDIRNetwork($nic->IPADDR,$nic->NETMASK);
+			$md5net=md5($CDIR);
+			$GLOBALS["MD5NET"][$md5net]=true;
+			$endcmdsline[]="force:{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther("eth0")." down";
+			$endcmdsline[]="force:{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther("eth0")." up";
+			$endcmdsline[]="{$GLOBALS["ipbin"]} route add default via $nic->GATEWAY dev ".$NetBuilder->NicToOther("eth0");
+		}
+	}
 
-	
+	$GLOBALS["rt_tables_number"]=0;
 	$sql="SELECT * FROM `nics` WHERE enabled=1 ORDER BY Interface";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
@@ -1314,48 +1410,44 @@ function routes_main(){
 		$eth=str_replace("\r\n", "", $eth);
 		$eth=str_replace("\r", "", $eth);
 		$eth=str_replace("\n", "", $eth);
+		$ROUTES_ARRAY=unserialize($ligne["routes"]);
 		
-		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] Main route $eth gateway {$ligne["GATEWAY"]} netmask {$ligne["NETMASK"]} ipaddr: {$ligne["IPADDR"]}";
+		if(isset($GLOBALS["DEFAULT_ROUTE_SET"])){if($GLOBALS["DEFAULT_ROUTE_SET"]==$eth){continue;}}
 		
-		if(isset($eth_SKIP[$eth])){
-			echo "Starting......: $eth skipping\n";
-			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] skipped";
-			continue;}
+		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] Main route $eth gateway {$ligne["GATEWAY"]} netmask {$ligne["NETMASK"]} ipaddr: {$ligne["IPADDR"]}";
+		
+		if(isset($eth_SKIP[$eth])){echo "Starting......: $eth skipping\n";$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] skipped";continue;}
 		
 		
 		
 				
-		if($ligne["GATEWAY"]==null){
-			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] GATEWAY = null skipped";
-			continue;}
-		if($ligne["GATEWAY"]=="0.0.0.0"){
-			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] GATEWAY = 0.0.0.0 skipped";
-			continue;}
+		if($ligne["GATEWAY"]==null){$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] GATEWAY = null skipped";continue;}
+		if($ligne["GATEWAY"]=="0.0.0.0"){$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] GATEWAY = 0.0.0.0 skipped";continue;}
+		if($ligne["NETMASK"]=="0.0.0.0"){$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] NETMASK = 0.0.0.0 skipped";continue;}	
+		if(trim($ligne["NETMASK"])==null){$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] NETMASK = null skipped";continue;}
+		
+		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] GATEWAY = {$ligne["GATEWAY"]} add in table (default route {$ligne["defaultroute"]})";
+		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." down";
+		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." up";
+		
+		if($ligne["defaultroute"]==0){
 			
-		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] GATEWAY = {$ligne["GATEWAY"]} add in table";
-		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
-		//$GLOBALS["SCRIPTS"][]="{$GLOBALS["routebin"]} add default gw {$ligne["GATEWAY"]}";	
-		
-		if($ligne["NETMASK"]=="0.0.0.0"){
-			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] NETMASK = 0.0.0.0 skipped";
-			continue;
-		}
-		if(trim($ligne["NETMASK"])==null){
-			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] NETMASK = null skipped";
-			continue;
-		}
-		
+			$GLOBALS["rt_tables_number"]++;
+			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] Table {$GLOBALS["RT_TABLES"][$eth]} named $eth";
+			$GLOBALS["RT_TABLES"][$eth]=$GLOBALS["rt_tables_number"];
+			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["echobin"]} \"{$GLOBALS["rt_tables_number"]}\t$eth\" >> /etc/iproute2/rt_tables";
+			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] Table {$GLOBALS["RT_TABLES"][$eth]} named $eth";
+			
+			
+			if(!isset($GLOBALS["GATEWAYADDED"][$ligne["GATEWAY"]])){
+				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth) ." table $eth";
+				$GLOBALS["GATEWAYADDED"][$ligne["GATEWAY"]]=true;
+			}
+		}	
 		
 		$CDIR=trim($NetBuilder->GetCDIRNetwork($ligne["IPADDR"],$ligne["NETMASK"]));
-		
-		if($CDIR==null){
-			$GLOBALS["SCRIPTS_ROUTES"][]="# GetCDIRNetwork ({$ligne["IPADDR"]},{$ligne["NETMASK"]} ) return null";
-		}
-		
-		if(isset($ALREADYNETS[$CDIR])){
-			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] $CDIR already added skip it";
-			continue;
-		}
+		if($CDIR==null){$GLOBALS["SCRIPTS_ROUTES"][]="# GetCDIRNetwork ({$ligne["IPADDR"]},{$ligne["NETMASK"]} ) return null";}
+		if(isset($ALREADYNETS[$CDIR])){$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] $CDIR already added skip it";continue;}
 		
 		$ALREADYNETS[$CDIR]=true;
 		$eth=$NetBuilder->NicToOther($eth);
@@ -1364,22 +1456,62 @@ function routes_main(){
 			$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] [$eth] MD5NET already added skip it";
 			continue;
 		}
-		$GLOBALS["MD5NET"][$md5net]=true;
-		$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] [$eth]: Added by nic table for {$ligne["Interface"]} {$ligne["IPADDR"]}/{$ligne["NETMASK"]} -> $CDIR";
-		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add $CDIR dev $eth src {$ligne["IPADDR"]}";
-
-		if(!isset($GLOBALS["DEFAULT_ROUTE_SET"])){
-			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev $eth";
-			$GLOBALS["DEFAULT_ROUTE_SET"]=true;
-		}
+		
+		
+		if($ligne["defaultroute"]==0){
+			if(!isset($GLOBALS["RT_TABLES"][$eth])){
+				$GLOBALS["rt_tables_number"]++;
+				$GLOBALS["RT_TABLES"][$eth]=$GLOBALS["rt_tables_number"];
+				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["echobin"]} \"{$GLOBALS["rt_tables_number"]}\t$eth\" >> /etc/iproute2/rt_tables";
+				$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] Table {$GLOBALS["RT_TABLES"][$eth]} named $eth";
+			}
 			
+			if(is_array($ROUTES_ARRAY)){
+				$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] ".count($ROUTES_ARRAY)." Additionnal route(s)";
+				if(count($ROUTES_ARRAY)>0){
+					while (list ($ip, $ip_array) = each ($ROUTES_ARRAY) ){
+						$NETMASK=$ip_array["NETMASK"];
+						$GATEWAY=$ip_array["GATEWAY"];
+						$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] $ip/$NETMASK -> $GATEWAY Table {$GLOBALS["RT_TABLES"][$eth]}/$eth";
+						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add $GATEWAY dev $eth table $eth";
+						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add $ip/$NETMASK via $GATEWAY src {$ligne["IPADDR"]} dev $eth table $eth";
+					}
+				}
+			}
+			
+			
+			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add $CDIR dev $eth src {$ligne["IPADDR"]} table $eth";
+			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} src {$ligne["IPADDR"]} dev $eth table $eth";
 		
 		
+		}else{
+			
+			
+			if(is_array($ROUTES_ARRAY)){
+				if(count($ROUTES_ARRAY)>0){
+					while (list ($ip, $ip_array) = each ($ROUTES_ARRAY) ){
+						$NETMASK=$ip_array["NETMASK"];
+						$GATEWAY=$ip_array["GATEWAY"];
+						$CDIR=$NetBuilder->GetCDIRNetwork($ip,$NETMASK);
+						if(isset($ALREADYNETS[$CDIR])){$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] $CDIR already added skip it";continue;}
+						$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] $ip/$NETMASK -> $GATEWAY main route";
+						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route $GATEWAY dev $eth";
+						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add $ip/$NETMASK via $GATEWAY src {$ligne["IPADDR"]} dev $eth ";
+						$ALREADYNETS[$CDIR]=true;
+					}
+				}
+			}
+			
+			
+		}
+		
+		$GLOBALS["MD5NET"][$md5net]=true;
+		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."]: Added by nic table for {$ligne["Interface"]} {$ligne["IPADDR"]}/{$ligne["NETMASK"]} -> $CDIR";
 	}
 	
 	
 	
-
+	
 	$sql="SELECT * FROM nic_routes ORDER BY `nic`";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	
@@ -1390,28 +1522,42 @@ function routes_main(){
 		$ttype="-net";
 		$dev=null;
 		
-		$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] [{$ligne["nic"]}] nic_routes table type:{$ligne["type"]},gw:{$ligne["gateway"]}"; 
+		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] [{$ligne["nic"]}] nic_routes table type:{$ligne["type"]},gw:{$ligne["gateway"]}"; 
 		
 		if($ligne["nic"]<>null){$dev=" dev ".$NetBuilder->NicToOther($ligne["nic"]);}
 		
+		if($GLOBALS["DEFAULT_ROUTE_SET"]<>$ligne["nic"]){
+			if(!isset($GLOBALS["RT_TABLES"][$eth])){
+				$GLOBALS["rt_tables_number"]++;
+				$GLOBALS["RT_TABLES"][$eth]=$GLOBALS["rt_tables_number"];
+				$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] ({$ligne["nic"]}) Table {$GLOBALS["RT_TABLES"][$eth]} named $eth";
+				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["echobin"]} \"{$GLOBALS["rt_tables_number"]}\t$eth\" >> /etc/iproute2/rt_tables";
+			}
+		}
+		
 		if($type==1){
 			$ttype="-net";
-			$CMDS="$ip route add {$ligne["gateway"]} $dev";
+			$ROUTE_TABLE=$GLOBALS["RT_TABLES"][$eth];
+			$CMDS="$ip route add {$ligne["gateway"]} $dev table $ROUTE_TABLE";
 			$GLOBALS["SCRIPTS"][]=$CMDS;
-				
+			continue;
 		}
 	
 	
-		if($type==2){$ttype="-host";}
+		if($type==2){
+			
+			$ttype="-host";
 		
-		$md5net=md5("{$ligne["pattern"]}{$ligne["gateway"]}");
-		if(isset($GLOBALS["MD5NET"][$md5net])){continue;}
-		$GLOBALS["MD5NET"][$md5net]=true;
-		
-		$cmd="$route add $ttype {$ligne["pattern"]} gw {$ligne["gateway"]}$dev";
-		if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-		$GLOBALS["SCRIPTS_ROUTES"][]="#Added by nic_routes table";
-		$GLOBALS["SCRIPTS_ROUTES"][]=$CMDS;
+			$ROUTE_TABLE=$GLOBALS["RT_TABLES"][$eth];
+			$md5net=md5("{$ligne["pattern"]}{$ligne["gateway"]}");
+			if(isset($GLOBALS["MD5NET"][$md5net])){continue;}
+			$GLOBALS["MD5NET"][$md5net]=true;
+			$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add {$ligne["gateway"]} dev $dev table $ROUTE_TABLE";
+			$cmd="$ip route add {$ligne["pattern"]} via {$ligne["gateway"]} dev $dev table $ROUTE_TABLE";
+			if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
+			$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__LINE__."] Added by nic_routes table";
+			$GLOBALS["SCRIPTS_ROUTES"][]=$CMDS;
+		}
 	
 	}
 	

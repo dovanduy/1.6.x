@@ -90,7 +90,7 @@ function AddGroup_js(){
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_sqgroups WHERE ID='$ID'"));
 		$ligne["GroupName"]=utf8_encode($ligne["GroupName"]);
-		$title="{group}:$ID&nbsp;&raquo;&nbsp;{$ligne["GroupName"]}&nbsp;&raquo;&nbsp;{$GLOBALS["GroupType"][$ligne["GroupType"]]}";
+		$title="{group}:$ID&nbsp;&raquo;&nbsp;{$ligne["GroupName"]}&nbsp;&raquo;&nbsp;{$q->acl_GroupType[$ligne["GroupType"]]}";
 	}else{
 		
 		$title="{new_item}";
@@ -191,7 +191,12 @@ function EditGroup_popup(){
 				$ScriptAdd="TypeAddButton$tt()";
 				break;
 				
-				
+			case "dstdomain":
+				$GroupeTypeField="<input type='hidden' name='GroupType-$tt' id='GroupType-$tt' value='dstdomain'>
+				{$GroupType["dstdomain"]}";
+				$ScriptAdd="TypeAddButton$tt()";
+				break;
+									
 			default:$GroupeTypeField=null;break;
 		}
 	}
@@ -1353,7 +1358,7 @@ function item_form(){
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType FROM webfilters_sqgroups WHERE ID='$ID'"));
 	$GroupType=$ligne["GroupType"];
-	$GroupTypeText=$GLOBALS["GroupType"][$GroupType];
+	$GroupTypeText=$q->acl_GroupType[$GroupType];
 	$sock=new sockets();
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}		

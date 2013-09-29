@@ -8,7 +8,7 @@
 	ini_set('error_prepend_string',$_SERVER["SERVER_ADDR"].":");
 	ini_set('error_append_string',"");	
 	*/
-	if(isset($_REQUEST["VERBOSE"])){
+	if(  isset($_REQUEST["VERBOSE"])  OR (isset($_REQUEST["verbose"]))   ){
 		echo "STATISTICS APPLIANCE -> VERBOSE MODE\n";
 		$GLOBALS["VERBOSE"]=true;
 		ini_set('html_errors',0);
@@ -34,6 +34,7 @@
 	if(isset($_GET["stats-appliance-compatibility"])){stats_appliance_comptability();exit;}
 	if(isset($_GET["stats-appliance-ports"])){stats_appliance_ports();exit;}
 	if(isset($_GET["stats-perform-connection"])){stats_appliance_privs();exit;}
+	if(isset($_GET["ufdbguardport"])){stats_appliance_remote_port();exit;}
 	
 	if(isset($_POST["OPENSYSLOG"])){OPENSYSLOG();exit;}
 	if(isset($_GET["squid-table"])){export_squid_table();exit;}
@@ -834,15 +835,20 @@ function stats_appliance_comptability(){
 	$APP_SYSLOG_DB=true;
 	if(!$users->APP_SQUIDDB_INSTALLED){
 		$f[]="Token APP_SQUIDDB_INSTALLED return false";
-		$APP_SQUID_DB=false;}
+		$APP_SQUID_DB=false;
+	}
+	
+	
 	$ProxyUseArticaDB=$sock->GET_INFO("ProxyUseArticaDB");
 	if(!is_numeric($ProxyUseArticaDB)){$ProxyUseArticaDB=0;}
 	if($ProxyUseArticaDB==0){
-		$f[]="Token ProxyUseArticaDB is set to 0";
-		$APP_SQUID_DB=false;}
+		$sock->SET_INFO("ProxyUseArticaDB",1);
+		$APP_SQUID_DB=true;
+	
+	}
+	$sock->SET_INFO("DisableArticaProxyStatistics", 0);
 	$array["APP_SQUID_DB"]=$APP_SQUID_DB;
 	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
-	
 	$EnableMySQLSyslogWizard=$sock->GET_INFO("EnableMySQLSyslogWizard");
 	if(!is_numeric($EnableMySQLSyslogWizard)){$EnableMySQLSyslogWizard=0;}
 	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
@@ -851,14 +857,29 @@ function stats_appliance_comptability(){
 	
 	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
 	if($EnableSyslogDB==0){
-		$f[]="Token EnableSyslogDB is set to 0";
-		$APP_SYSLOG_DB=false;}
-	if($EnableMySQLSyslogWizard==0){
-		$f[]="Token EnableMySQLSyslogWizard is set to 0";
-		$APP_SYSLOG_DB=false;}
-	if($MySQLSyslogType<>1){
-		$f[]="Token MySQLSyslogType is not 1";
-		$APP_SYSLOG_DB=false;}
+		$MySQLSyslogWorkDir=$sock->GET_INFO("MySQLSyslogWorkDir");
+		if($MySQLSyslogWorkDir==null){$MySQLSyslogWorkDir="/home/syslogsdb";}
+		$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
+		
+		if(!is_numeric($TuningParameters["ListenPort"])){$TuningParameters["ListenPort"]=0;}
+		if($TuningParameters["ListenPort"]==0){$TuningParameters["ListenPort"]=rand(12500, 36500);}
+		$sock->SET_INFO("EnableMySQLSyslogWizard", 1);
+		$sock->SET_INFO("EnableSyslogDB", 1);
+		$sock->SET_INFO("MySQLSyslogType",1);
+		$sock->SaveConfigFile(base64_encode(serialize($TuningParameters)), "MySQLSyslogParams");
+		$sock->getFrameWork("system.php?syslogdb-restart=yes");
+		$sock->getFrameWork("cmd.php?restart-artica-status=yes");
+		$APP_SYSLOG_DB=true;
+	}
+	
+	
+	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+	$datas["tcpsockets"]=1;
+	$datas["listen_port"]=3977;
+	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ufdbguardConfig");
+	$sock->getFrameWork("cmd.php?reload-squidguard=yes");
+	
+	
 	$array["APP_SYSLOG_DB"]=$APP_SYSLOG_DB;
 	$array["DETAILS"]=$f;
 	echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
@@ -868,7 +889,17 @@ function stats_appliance_comptability(){
 function stats_appliance_ports(){
 	$sock=new sockets();
 	$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
-	$f["SyslogListenPort"]=$TuningParameters["ListenPort"];
+	$ListenPort=$TuningParameters["ListenPort"];
+	if(!is_numeric($ListenPort)){$ListenPort=0;}
+	if($ListenPort==0){
+		$ListenPort=rand(21500, 63000);
+		$TuningParameters["ListenPort"]=$ListenPort;
+		$sock->SaveConfigFile(base64_encode(serialize($TuningParameters)), "MySQLSyslogParams");
+		$sock->getFrameWork("system.php?syslogdb-restart=yes");
+	}
+	$f["SyslogListenPort"]=$ListenPort;
+	
+	
 	$SquidDBTuningParameters=unserialize(base64_decode($sock->GET_INFO("SquidDBTuningParameters")));
 	$ListenPort=$SquidDBTuningParameters["ListenPort"];
 	if(!is_numeric($ListenPort)){$ListenPort=0;}
@@ -883,92 +914,71 @@ function stats_appliance_ports(){
 	echo "\n\n<RESULTS>".base64_encode(serialize($f))."</RESULTS>\n\n";
 }
 
+function stats_appliance_remote_port(){
+	$sock=new sockets();
+	$UFDB=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+	$UFDB["tcpsockets"]=1;
+	$UFDB["listen_port"]=$_GET["ufdbguardport"];
+	$UFDB["listen_addr"]="all";
+	$UFDB["UseRemoteUfdbguardService"]="0";
+	$sock->SET_INFO("EnableUfdbGuard",1);
+	$sock->SET_INFO("EnableUfdbGuard2",1);
+	$sock->SET_INFO("UseRemoteUfdbguardService",0);
+	$sock->SaveConfigFile(base64_encode(serialize($UFDB)),"ufdbguardConfig");	
+	$sock->getFrameWork("cmd.php?restart-ufdb=yes");
+	
+}
+
 function stats_appliance_privs(){
+	if($GLOBALS["VERBOSE"]){echo "stats_appliance_privs():: {$_SERVER["REMOTE_ADDR"]}<br> \n";}
 	$q=new mysql_squid_builder();
+	$sock=new sockets();
 	$OrginalPassword=$q->mysql_password;
 	$server=$_SERVER["REMOTE_ADDR"];
 	$username=str_replace(".", "", $server);
 	$password=md5($server);
+	if($GLOBALS["VERBOSE"]){echo "USER:$username@$server and password: $password Line:".__LINE__."<br> \n";}
+	writelogs("USER:$username@$server and password: $password",__FUNCTION__,__FILE__,__LINE__);
 	
-	$sql="SELECT User FROM user WHERE Host='$server' AND User='$username'";
-	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"mysql"));
 	
-	if(trim($ligne["User"])==null){
-		$sql="CREATE USER '$username'@'$server' IDENTIFIED BY '$password';";
-		if(!$q->EXECUTE_SQL($sql)){
-			$q->mysql_admin="root";
-			$q->mysql_password=$OrginalPassword;
-			if(!$q->EXECUTE_SQL($sql)){
-				$q->mysql_admin="root";
-				$q->mysql_password=null;
-				if(!$q->EXECUTE_SQL($sql)){
-					$array["ERROR"]="SquidDB: CREATE USER user:$username\nHost:$server\n\n$q->mysql_error";
-					echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
-					return;}
-				}
-			}
-				
-		}
+	// Enable Ufdbguard...
+	$UFDB=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+	$UFDB["tcpsockets"]=1;
+	$UFDB["listen_port"]=3977;
+	$UFDB["listen_addr"]="all";
+	$UFDB["UseRemoteUfdbguardService"]="0";
+	$sock->SET_INFO("EnableUfdbGuard",1);
+	$sock->SET_INFO("EnableUfdbGuard2",1);
+	$sock->SET_INFO("UseRemoteUfdbguardService",0);
 	
-	$sql="GRANT ALL PRIVILEGES ON * . * TO '$username'@'$server' IDENTIFIED BY '$password' WITH GRANT OPTION MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0";
-		
-	if(!$q->EXECUTE_SQL($sql)){
-		$q->mysql_admin="root";
-		$q->mysql_password=$OrginalPassword;
-		$q->ok=true;
-		if(!$q->EXECUTE_SQL($sql)){
-			$q->mysql_admin="root";
-			$q->mysql_password=null;
-			$q->ok=true;
-			if(!$q->EXECUTE_SQL($sql)){
-				$array["ERROR"]="SquidDB: user GRANT ALL PRIVILEGES user:$username\nHost:$server\n\n$q->mysql_error";
-				echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
-				return;
-				}
-			}
-		}
-		
-		
-$q=new mysql_storelogs();
-$sql="SELECT User FROM user WHERE Host='$server' AND User='$username'";
-$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"mysql"));
-if(trim($ligne["User"])==null){
-	$sql="CREATE USER '$username'@'$server' IDENTIFIED BY '$password';";
-	if(!$q->EXECUTE_SQL($sql)){
-		$q->mysql_admin="root";
-		$q->mysql_password=$OrginalPassword;
-		if(!$q->EXECUTE_SQL($sql)){
-			$q->mysql_admin="root";
-			$q->mysql_password=null;
-			if(!$q->EXECUTE_SQL($sql)){
-				$array["ERROR"]="SyslogDB:  CREATE USER user:$username\nHost:$server\n\n$q->mysql_error";
-				echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
-				return;}
-		}
+	
+	
+	$sock->SaveConfigFile(base64_encode(serialize($UFDB)),"ufdbguardConfig");
+	//
+	
+	
+	if(!$q->GRANT_PRIVS($server,$username,$password)){
+		$array["ERROR"]=$q->mysql_error;
+		if($GLOBALS["VERBOSE"]){echo "stats_appliance_privs():: MySQL Error line: ".__LINE__." $q->mysql_error<br> \n";}
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;
 	}
 
-}
-
-$sql="GRANT ALL PRIVILEGES ON * . * TO '$username'@'$server' IDENTIFIED BY '$password' WITH GRANT OPTION MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0";
-
-if(!$q->EXECUTE_SQL($sql)){
-	$q->mysql_admin="root";
-	$q->mysql_password=$OrginalPassword;
-	$q->ok=true;
-	if(!$q->EXECUTE_SQL($sql)){
-		$q->mysql_admin="root";
-		$q->mysql_password=null;
-		$q->ok=true;
-		if(!$q->EXECUTE_SQL($sql)){
-			$array["ERROR"]="SyslogDB: user GRANT ALL PRIVILEGES user:$username\nHost:$server\n\n$q->mysql_error";
+	
+		
+$q=new mysql_storelogs();
+	if(!$q->GRANT_PRIVS($server,$username,$password)){
+			$array["ERROR"]=$q->mysql_error;
 			echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
 			return;
 		}
-	}
-}		
 		
+writelogs("Send Correctly USER:{$array["mysql"]["username"]} and password: {$array["mysql"]["password"]}",__FUNCTION__,__FILE__,__LINE__);		
 $array["mysql"]["username"]=$username;
-$array["mysql"]["password"]=$username;	
+$array["mysql"]["password"]=$password;
+if($GLOBALS["VERBOSE"]){print_r($array);}
+$sock->getFrameWork("cmd.php?restart-ufdb=yes");
+$sock->getFrameWork("cmd.php?squidnewbee=yes");
 echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";	
 		
 }

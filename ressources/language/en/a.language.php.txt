@@ -876,7 +876,7 @@ You can use this feature if you need to provide Round Robbin feature or load-bal
 <connections_for>Connections For</connections_for>
 <switch_mode>Switch mode</switch_mode>
 <destination>Destination</destination>
-<hits_pourcentage>Hits Pourcentage</hits_pourcentage>
+<hits_pourcentage>Hits Percentage</hits_pourcentage>
 <random>Random</random>
 <disk_watchdog>Disk watchdog</disk_watchdog>
 <disks_watchdog>Disks watchdog</disks_watchdog>

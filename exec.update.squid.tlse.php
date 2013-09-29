@@ -1,4 +1,5 @@
 <?php
+if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-". basename(__FILE__)." Waiting Artica-CD to finish\n";die();}}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 $GLOBALS["FORCE"]=false;
@@ -107,11 +108,20 @@ function Execute(){
 		if($ARRAYSUM_LOCALE[$filename]<>$md5){update_remote_file($BASE_URI,$filename,$md5);}
 	}
 	
+	if(count($GLOBALS["squid_admin_mysql"])){
+		squid_admin_mysql(2,count($GLOBALS["squid_admin_mysql"])." Webfiltering Toulouse Databases updated",@implode("\n", $GLOBALS["squid_admin_mysql"]));
+		unset($GLOBALS["squid_admin_mysql"]);
+	}
+	
 	
 	CoherenceOffiels();
 	CoherenceRepertoiresUfdb();
 	BuildDatabaseStatus();
 	remove_bad_files();
+	
+	
+	
+	
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$ufdbConvertDB=$unix->find_program("ufdbConvertDB");
 	if(is_file($ufdbConvertDB)){
@@ -269,6 +279,9 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
 	$q->QUERY_SQL("INSERT INTO ftpunivtlse1fr (`filename`,`zmd5`,`websitesnum`) VALUES ('$filename','$md5','$CountDeSitesFile')");
 	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
+	
+	
+	$GLOBALS["squid_admin_mysql"][]="Success updating category `$categoryname` with $CountDeSitesFile websites";
 	ufdbguard_admin_events("Success updating category `$categoryname` with $CountDeSitesFile websites",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 	if($GLOBALS["VERBOSE"]){echo "ufdbGenTable=$ufdbGenTable\n";}
 	
@@ -397,6 +410,11 @@ function CoherenceOffiels(){
 			if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":: Checking $targetdir no such directory make symbolic to $sourcedir\n";}
 			shell_exec("ln -sf $sourcedir $targetdir");
 		}
+	}
+	
+	if(count($GLOBALS["squid_admin_mysql"])){
+		squid_admin_mysql(2,count($GLOBALS["squid_admin_mysql"])." Toulouse Databases updated",@implode("\n", $GLOBALS["squid_admin_mysql"]));
+		unset($GLOBALS["squid_admin_mysql"]);
 	}
 	
 	

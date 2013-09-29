@@ -2340,9 +2340,7 @@ end;
 
 if ParamStr(1)='--php-include' then
 begin
-writeln('Starting change include path for php...');
 zlighttpd.LIGHTTPD_ADD_INCLUDE_PATH();
-writeln('done..');
 halt(0);
 end;
 

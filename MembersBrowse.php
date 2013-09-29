@@ -36,12 +36,13 @@ function js(){
 	if(!isset($_GET["OnlyName"])){$_GET["OnlyName"]=0;}
 	if(!isset($_GET["OnlyCheckAD"])){$_GET["OnlyCheckAD"]=0;}
 	if(!isset($_GET["OnlyLDAP"])){$_GET["OnlyLDAP"]=0;}
+	if(!isset($_GET["UseDN"])){$_GET["UseDN"]=0;}
 	
 	$title="{members}";
 	if($_GET["OnlyGroups"]==1){$title="{groups2}";}
 	
 	$title=$tpl->_ENGINE_parse_body("{browse}::$title::");
-	echo "YahooUser('534','$page?popup=yes&field-user={$_GET["field-user"]}&OnlyCheckAD={$_GET["OnlyCheckAD"]}&OnlyName={$_GET["OnlyName"]}&NOComputers={$_GET["NOComputers"]}&prepend={$_GET["prepend"]}&prepend-guid={$_GET["prepend-guid"]}&OnlyUsers={$_GET["OnlyUsers"]}&organization={$_GET["organization"]}&OnlyGroups={$_GET["OnlyGroups"]}&OnlyGUID={$_GET["OnlyGUID"]}&callback={$_GET["callback"]}&Zarafa={$_GET["Zarafa"]}&OnlyAD={$_GET["OnlyAD"]}&security={$_GET["security"]}','$title');";	
+	echo "YahooUser('534','$page?popup=yes&field-user={$_GET["field-user"]}&UseDN={$_GET["UseDN"]}&OnlyCheckAD={$_GET["OnlyCheckAD"]}&OnlyName={$_GET["OnlyName"]}&NOComputers={$_GET["NOComputers"]}&prepend={$_GET["prepend"]}&prepend-guid={$_GET["prepend-guid"]}&OnlyUsers={$_GET["OnlyUsers"]}&organization={$_GET["organization"]}&OnlyGroups={$_GET["OnlyGroups"]}&OnlyGUID={$_GET["OnlyGUID"]}&callback={$_GET["callback"]}&Zarafa={$_GET["Zarafa"]}&OnlyAD={$_GET["OnlyAD"]}&security={$_GET["security"]}','$title');";	
 	
 	
 	
@@ -59,11 +60,13 @@ function popup(){
 	$OnlyName=$_GET["OnlyName"];
 	$OnlyCheckAD=$_GET["OnlyCheckAD"];
 	$OnlyLDAP=$_GET["OnlyLDAP"];
+	$UseDN=$_GET["UseDN"];
 	if(!is_numeric($OnlyName)){$OnlyName=0;}
 	if(!is_numeric($OnlyGUID)){$OnlyGUID=0;}
 	if(!is_numeric($OnlyAD)){$OnlyAD=0;}
 	if(!is_numeric($OnlyCheckAD)){$OnlyCheckAD=0;}
 	if(!is_numeric($OnlyLDAP)){$OnlyLDAP=0;}
+	if(!is_numeric($UseDN)){$UseDN=0;}
 	
 	if($_GET["callback"]<>null){$callback="{$_GET["callback"]}(id,prependText,guid);YahooUserHide();return;";}	
 	
@@ -84,7 +87,7 @@ function popup(){
 	$filter=$tpl->_ENGINE_parse_body("{filter}");
 	$groups=$tpl->_ENGINE_parse_body("{groups2}");
 	
-	$SUFFIX[]="&prepend={$_GET["prepend"]}&field-user={$_GET["field-user"]}&prepend-guid={$_GET["prepend-guid"]}";
+	$SUFFIX[]="&UseDN=$UseDN&prepend={$_GET["prepend"]}&field-user={$_GET["field-user"]}&prepend-guid={$_GET["prepend-guid"]}";
 	$SUFFIX[]="&OnlyUsers={$_GET["OnlyUsers"]}&OnlyGUID={$_GET["OnlyGUID"]}&organization={$_GET["organization"]}";
 	$SUFFIX[]="&OnlyGroups={$_GET["OnlyGroups"]}&callback={$_GET["callback"]}&NOComputers={$_GET["NOComputers"]}";
 	$SUFFIX[]="&Zarafa={$_GET["Zarafa"]}&OnlyAD=$OnlyAD&t=$t&security={$_GET["security"]}&OnlyName=$OnlyName&OnlyCheckAD=$OnlyCheckAD&OnlyLDAP=$OnlyLDAP";
@@ -265,6 +268,7 @@ function query_group(){
 	$OnlyGUID=$_GET["OnlyGUID"];
 	$OnlyName=$_GET["OnlyName"];
 	$OnlyCheckAD=$_GET["OnlyCheckAD"];
+	$UseDN=$_GET["UseDN"];
 	$Zarafa=$_GET["Zarafa"];
 	if(!is_numeric($_POST["rp"])){$_POST["rp"]=250;}
 	$ObjectZarafa=false;
@@ -294,6 +298,7 @@ function query_group(){
 	if($ldap->IsKerbAuth()){
 		$adKerb=new external_ad_search();
 		$hash=$adKerb->searchGroup($query,array(),$_POST["rp"]);
+		
 		if($adKerb->IsError){
 			json_error_show($adKerb->error,1);
 		}

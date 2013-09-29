@@ -27,6 +27,7 @@ include_once(dirname(__FILE__).'/framework/class.settings.inc');
 
 
 function restart(){
+	if($GLOBALS["VERBOSE"]){echo "restart -> start...\n";}
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=$unix->get_pid_from_file($pidfile);
@@ -37,6 +38,11 @@ function restart(){
 	}
 	@file_put_contents($pidfile, getmypid());
 	stop(true);
+	if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){
+		buildConfig(true);
+		print "Starting......: artica-PHPFPM Waiting Artica-CD to finish\n";
+		die();}
+	}
 	start(true);	
 	
 	
@@ -242,7 +248,18 @@ function GetVersion(){
 
 
 function start($aspid=false){
+	
+	if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){
+		buildConfig(true);
+		print "Starting......: artica-PHPFPM Waiting Artica-CD to finish\n";
+		die();}
+	}
+	
+	
 	$unix=new unix();
+	
+	
+	
 	$daemon_path=$unix->APACHE_LOCATE_PHP_FPM();
 	if(!is_file($daemon_path)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: not installed\n";}

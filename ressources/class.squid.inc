@@ -32,6 +32,7 @@ class squidbee{
 	public $ldap_error;
 	public $listen_port;
 	public $second_listen_port=0;
+	public $smartphones_port=0;
 	public $visible_hostname;
 	public $enable_kavproxy;
 	public $enable_cicap;
@@ -119,6 +120,7 @@ class squidbee{
 	public $snmp_access_ip=null;
 	public $SquidLdapAuthEnableGroups=0;
 	public $EnableRemoteStatisticsAppliance=0;
+	private $TRANSPARENT_PORTS_LIST=array();
 	public $forwarded_for="transparent";
 	private $AntivirusEnabledCentral=1;
 	private $UfdbEnabledCentral=1;	
@@ -134,6 +136,9 @@ class squidbee{
 	private $MGR_LISTEN_PORT=0;
 	private $ChilliEnabled=false;
 	private $DisableAnyCache=0;
+	private $DisableSSLStandardPort=0;
+	private $SquidBinIpaddr=null;
+	private $SquidAllowSmartPhones=0;
 	
 	public $peer_connect_timeout=30;
 	public $connect_timeout=120;
@@ -147,6 +152,10 @@ class squidbee{
 	public $incoming_rate=30;	
 	private $SQUID_REVERSE_APPLIANCE;
 	private $SquidExternalAclQuota=0;
+	private $CnTLMPORT=0;
+	private $EnableCNTLM=0;
+	private $second_port_transparent=null;
+	private $transparent=null;
 	
 	public $nodes_names=array();
 	
@@ -198,10 +207,14 @@ class squidbee{
 		$this->ForceWindowsUpdateCaching=$sock->GET_INFO("ForceWindowsUpdateCaching");
 		$this->SquidReverseDefaultWebSite=$sock->GET_INFO("SquidReverseDefaultWebSite");
 		$this->SquidExternalAclQuota=$sock->GET_INFO("SquidExternalAclQuota");
+		$this->DisableSSLStandardPort=$sock->GET_INFO("DisableSSLStandardPort");
+		$this->SquidAllowSmartPhones=$sock->GET_INFO("SquidAllowSmartPhones");
+		$this->smartphones_port=$sock->GET_INFO("smartphones_port");
 		if($this->SquidReverseDefaultWebSite==null){$this->SquidReverseDefaultWebSite=$this->visible_hostnameF();}
 		
 		if($this->KavICAPRemoteAddr==null){$this->EnableKavICAPRemote=0;}
 		if(!is_numeric($this->SquidExternalAclQuota)){$this->SquidExternalAclQuota=0;}
+		if(!is_numeric($this->DisableSSLStandardPort)){$this->DisableSSLStandardPort=0;}
 		if(!is_numeric($this->KavICAPRemotePort)){$this->EnableKavICAPRemote=0;}
 		if(!is_numeric($this->AsSquidLoadBalancer)){$this->AsSquidLoadBalancer=0;}
 		if(!is_numeric($this->SquidActHasReverse)){$this->SquidActHasReverse=0;}
@@ -219,6 +232,11 @@ class squidbee{
 		if(!is_numeric($this->Kav4ProxyEnabledCentral)){$this->Kav4ProxyEnabledCentral=0;}
 		if(!is_numeric($this->EnableMacAddressFilter)){$this->EnableMacAddressFilter=1;}
 		if(!is_numeric($this->EnableMacAddressFilterCentral)){$this->EnableMacAddressFilterCentral=1;}
+		if(!is_numeric($this->SquidAllowSmartPhones)){$this->SquidAllowSmartPhones=0;}
+		if(!is_numeric($this->smartphones_port)){$this->smartphones_port=0;}
+		
+		
+		if($this->smartphones_port>0){$this->SquidAllowSmartPhones=0;}
 		if($this->EnableKerberosAuthentication==1){$this->EnableKerbAuth=0;}
 		if(!is_numeric($this->DisableSquidSNMPMode)){$this->DisableSquidSNMPMode=1;}
 		
@@ -1266,40 +1284,7 @@ class squidbee{
 		return @implode("\n", $f);
 	}
 	
-	private function external_acl_helper_quota(){
-		if(!$this->ASROOT){return;}
-		if($this->SquidExternalAclQuota==0){return;}
-		$external_acl_children=$this->SquidClientParams["external_acl_children"];
-		$external_acl_startup=$this->SquidClientParams["external_acl_startup"];
-		$external_acl_idle=$this->SquidClientParams["external_acl_idle"];
-		if($this->is_auth()){
-			$L[]="%LOGIN";
-		}else{
-			$L[]="%IDENT";
-		}
-		$L[]="%SRC";
-		
-		if($this->ACL_ARP_ENABLED){
-			$L[]="%SRCEUI48";
-		}else{
-			$L[]="00:00:00:00:00:00";
-		}
-		
-		$L[]="%>{X-Forwarded-For}";
-		$L[]="%DST";
-		$L[]="%<{Content-Length}";
-		$L[]="%<{Content-Type}";
-		if($this->IS_32){$ipv4=" ipv4";}
-		
-		$helper="/usr/share/artica-postfix/external_acl_squid_quota.php";
-		@chmod(0755,$helper);
-		$external_acl_childrens=$this->external_acl_childrens();
-		$f[]="external_acl_type ExtrnQuota $external_acl_childrens ".@implode(" ", $L)." /usr/share/artica-postfix/external_acl_squid_quota.php";
-		$f[]="acl ExtrnQuota_acl external ExtrnQuota\n";
-		$GLOBALS["HTTP_ACCESS"]["ExtrnQuota"]="http_reply_access deny $this->MyStandPort!ExtrnQuota_acl";
-		return @implode("\n", $f)."\n";
-		
-	}
+	
 	
 	private function external_acl_childrens($MacProc=0,$NoNegCache=false,$ForceConf=array()){
 		$array["CACHE_TIME"]=360;
@@ -1558,7 +1543,7 @@ class squidbee{
 			$SplashScreenURI="http://$SplashScreenURI";
 		}
 		
-
+		
 		$external_acl_children=$this->SquidClientParams["external_acl_children"];
 		$external_acl_startup=$this->SquidClientParams["external_acl_startup"];
 		$external_acl_idle=$this->SquidClientParams["external_acl_idle"];		
@@ -1660,20 +1645,22 @@ class squidbee{
 		return @implode("\n", $f)."\n";
 	}	
 	
-
 	
-	private function external_acl_helper(){
+	
+	private function external_acl_helper_quota(){
 		$q=new mysql_squid_builder();
 		if($q->COUNT_ROWS("webfilters_quotas")==0){return;}
 		$sock=new sockets();
+		$acls=new squid_acls_groups();
+		$acls->external_acl_helper_quota_builder();
 		$array=unserialize(base64_decode($sock->GET_INFO("SquidQuotasParams")));
 		if(!is_numeric($array["CACHE_TIME"])){$array["CACHE_TIME"]=120;}
 		if(!is_numeric($array["DISABLE_MODULE"])){$array["DISABLE_MODULE"]=0;}
 		if($array["DISABLE_MODULE"]==1){return;}
 		if($array["TEMPLATE"]==null){$array["TEMPLATE"]="ERR_ACCESS_DENIED";}		
-		if($this->is_auth()){$L[]="%LOGIN";}
+		if($this->is_auth()){$L[]="%LOGIN";}else{$L[]="%%";}
 		$L[]="%SRC";
-		if($this->ACL_ARP_ENABLED){$L[]="%SRCEUI48";}
+		if($this->ACL_ARP_ENABLED){$L[]="%SRCEUI48";}else{$L[]="%SRCEUI48";}
 		$L[]="%>{X-Forwarded-For}";
 		if($this->IS_32){$ipv4=" ipv4";}
 		
@@ -1682,14 +1669,21 @@ class squidbee{
 		$external_acl_startup=$this->SquidClientParams["external_acl_startup"];
 		$external_acl_idle=$this->SquidClientParams["external_acl_idle"];
 				
+		if(preg_match("#^ERR_(.+)#", $array["TEMPLATE"],$re)){
+			$array["TEMPLATE"]=$re[1];
+		}
+		
 		$array["children-startup"]=5;
 		$array["children-idle"]=5;
+		$L[]="%DST";
 		$external_acl_childrens=$this->external_acl_childrens(0,false,$array);
-		$f[]="external_acl_type quotas $external_acl_childrens ".@implode(" ", $L)." /usr/share/artica-postfix/external_acl_squid.php";
+		$f[]="external_acl_type quotas $external_acl_childrens ".@implode(" ", $L)." /usr/share/artica-postfix/external_acl_quota.php";
 		$f[]="acl quotas_acl external quotas\n";
 		$f[]="deny_info ERR_{$array["TEMPLATE"]} quotas_acl\n";
-		$GLOBALS["HTTP_ACCESS"]["QUOTAS"]="http_access deny $this->MyStandPort!quotas_acl";
+		$GLOBALS["HTTP_ACCESS"]["QUOTAS"]="http_access deny $this->MyStandPort!quotas_acl all";
+		@chmod("/usr/share/artica-postfix/external_acl_quota.php", 0755);
 		return @implode("\n", $f);
+		
 	}
 	
 	private function request_header_access(){
@@ -2558,14 +2552,14 @@ function SaveToLdap($norestart=false){
 		}
 		
     private function transparent_token(){
-    	$transparent=" transparent";
-    	if($this->IS_30){$transparent=" transparent";}
-    	if($this->IS_31){$transparent=" intercept";}
-    	if($this->IS_32){$transparent=" intercept";}
-    	if($this->IS_33){$transparent=" intercept";}
-    	if($this->IS_34){$transparent=" intercept";}
-    	if($this->UseTProxyMode==1){$transparent=" tproxy";}   	
-    	return $transparent;
+    	$_transparent=" transparent";
+    	if($this->IS_30){$_transparent=" transparent";}
+    	if($this->IS_31){$_transparent=" intercept";}
+    	if($this->IS_32){$_transparent=" intercept";}
+    	if($this->IS_33){$_transparent=" intercept";}
+    	if($this->IS_34){$_transparent=" intercept";}
+    	if($this->UseTProxyMode==1){$_transparent=" tproxy";}   	
+    	return $_transparent;
     }		
 
     private function CoovaChilliAcls(){
@@ -2630,9 +2624,8 @@ function SaveToLdap($norestart=false){
 		$transparent_token=null;
 		$ListenIPTXT=null;
 		
-		if($http_port>0){
+		if($http_port>0){		
 			$this->MyPortsArray[$http_port]=true;
-			
 			$http_port_line[]="http_port $ListenIPTXT$http_port $transparent_token";
 			echo "Starting......: [HOT]: HTTP: $ListenIPTXT$http_port $transparent_token\n";
 		}
@@ -2650,6 +2643,7 @@ function SaveToLdap($norestart=false){
 			
 			$ssltoken=$this->ssl_bump_token();
 			$ssltoken=null;
+			$this->TRANSPARENT_PORTS_LIST[]=$https_port;
 			$http_port_line[]=trim("https_port $ListenIPTXT$https_port $transparent_token $ssltoken $certificates");
 			echo "Starting......: [HOT]: SSL: $ListenIPTXT$https_port $transparent_token $ssltoken $certificates\n";
 			
@@ -3749,7 +3743,9 @@ function SaveToLdap($norestart=false){
 		if(count($array)==0){return null;}
 		$login=null;$parmType=null;
 		while (list($num,$val)=each($array)){
+			
 			if($num=="loginPASSTHRU"){$login="login=PASSTHRU";unset($array[$num]);continue;}
+			
 			if($num=="login"){
 				if(!preg_match("#(.+?):(.+)#", $val)){unset($array[$num]);continue;}
 				$login="login=$val";
@@ -3856,6 +3852,7 @@ function SaveToLdap($norestart=false){
 			}
 			$login=null;$parmType=null;
 			while (list($num,$val)=each($array)){
+				echo "\n\n***** \n $num $val *****\n\n";
 				if($num=="loginPASSTHRU"){$login="login=PASSTHRU";unset($array[$num]);continue;}
 				if($num=="login"){
 					if(!preg_match("#(.+?):(.+)#", $val)){unset($array[$num]);continue;}
@@ -4079,6 +4076,81 @@ private function access_logs(){
 		
 }
 
+private function build_http_ports(){
+	
+	$http_port_sslbump=$this->ssl_bump_port();
+	$http_port_sslbump_2=$http_port_sslbump;
+	$CooVaHTTPPort=$this->CoovaTransparent();
+	$conf[]="#";
+	$conf[]="#";
+	$conf[]="# --------- http/https ports Second:$this->second_listen_port, SmartPhones:$this->smartphones_port [".__LINE__."]";
+	if($CooVaHTTPPort<>null){
+		$conf[]="# --------- http port for hotspot\n";
+		$conf[]=$CooVaHTTPPort;
+	}
+	if($this->DisableSSLStandardPort==1){$http_port_sslbump_2=null;}
+	$conf[]="http_port $this->SquidBinIpaddr$this->listen_port$this->transparent$http_port_sslbump\n";
+	if($this->second_port_transparent<>null){$conf[]="$this->second_port_transparent$http_port_sslbump_2\n";}
+	
+	
+	
+	if($this->second_listen_port>0){
+		$conf[]="# Second listen port [".__LINE__."]";
+		$this->MyPortsArray[$this->second_listen_port]=$this->second_listen_port;
+		$conf[]="http_port $this->SquidBinIpaddr$this->second_listen_port$http_port_sslbump_2\n";
+	}
+	
+	if($this->SquidBubbleMode==1){
+		$q=new mysql_squid_builder();
+		$sql="SELECT * FROM webfilters_sqaclsports WHERE enabled=1 ORDER BY aclport";
+		$results = $q->QUERY_SQL($sql);
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$aclport=$ligne["aclport"];
+			$Interface=$ligne["interface"];
+			if($Interface==null){$Interface="0.0.0.0";}
+			$conf[]="http_port {$Interface}:$aclport\n";
+		}
+	
+	}
+	
+	if($this->smartphones_port>0){
+		$conf[]="# Smartphones listen port [".__LINE__."]";
+		$conf[]="http_port $this->SquidBinIpaddr$this->smartphones_port$http_port_sslbump_2";
+	}
+	
+	
+	$ssl_port_text=$this->https_port();
+	
+	if($GLOBALS["VERBOSE"]){
+		echo "\n\n ********************* SSL PORT (1) ********************\n";
+		echo "$ssl_port_text\n";
+		echo "************************************************************\n\n";
+	}
+	
+	if($ssl_port_text<>null){
+		$conf[]="\n";
+		$conf[]="# --------- SSL Listen Port [".__LINE__."]";
+		$conf[]="$ssl_port_text";
+	}
+	
+	
+	if($this->ICP_PORT>10){
+		if($this->HTCP_PORT>10){
+			if($this->ICP_PORT==$this->HTCP_PORT){$this->ICP_PORT=$this->ICP_PORT+1;}
+			}
+			$conf[]="icp_port $this->ICP_PORT";
+		}
+		if($this->HTCP_PORT>10){
+		
+		$conf[]="htcp_port $this->HTCP_PORT"; // should 4827
+		}	
+		
+	$conf[]="#";
+	$conf[]="#";
+	return @implode("\n",$conf)."\n";
+	
+}
+
 		
 function BuildSquidConf(){
 		$sock=new sockets();
@@ -4086,26 +4158,45 @@ function BuildSquidConf(){
 		$users=$GLOBALS["CLASS_USERS"];
 		$conf=null;
 		$acl_access_time=null;
-		$transparent=null;
-		$second_port_transparent=null;
+		$this->transparent=null;
+		$this->second_port_transparent=null;
 		$http_access_time=null;
 		$prefixacls=null;
 		$acl_groups=array();
 		$ws=new squidworkers();
-		$SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));
+		$this->SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));
 		$EnableSplashScreenAsObject=$sock->GET_INFO("EnableSplashScreenAsObject");
-		if($SquidBinIpaddr==null){$SquidBinIpaddr="0.0.0.0";}
-		if($SquidBinIpaddr<>null){$SquidBinIpaddr="$SquidBinIpaddr:";}
+		if($this->SquidBinIpaddr==null){$this->SquidBinIpaddr="0.0.0.0";}
+		if($this->SquidBinIpaddr<>null){$this->SquidBinIpaddr="$this->SquidBinIpaddr:";}
 		$SquidBoosterMem=$sock->GET_INFO("SquidBoosterMem");
 		$SquidBoosterMemK=$sock->GET_INFO("SquidBoosterMemK");
 		$SquidBoosterOnly=$ws->zcheck_squidbooster_value();
 		$this->DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+		$this->EnableCNTLM=$sock->GET_INFO("EnableCNTLM");
+		$this->CnTLMPORT=$sock->GET_INFO("CnTLMPORT");
 		if(!is_numeric($this->DisableAnyCache)){$this->DisableAnyCache=0;}
 		if(!is_numeric($SquidBoosterMem)){$SquidBoosterMem=0;}
 		if(!is_numeric($SquidBoosterMemK)){$SquidBoosterMemK=50;}
 		if(!is_numeric($this->max_filedesc)){$this->max_filedesc=8192;}
+		if(!is_numeric($this->EnableCNTLM)){$this->EnableCNTLM=0;}
 		if(!is_numeric($EnableSplashScreenAsObject)){$EnableSplashScreenAsObject=0;}
 		if($this->isNGnx()){$this->SquidActHasReverse=0;}
+		if(!is_numeric($this->CnTLMPORT)){$this->CnTLMPORT=0;}
+		if($this->CnTLMPORT==0){$this->CnTLMPORT=rand(35000, 64000);$sock->SET_INFO("CnTLMPORT", $this->CnTLMPORT);}
+		$this->listen_port=intval(trim($this->listen_port));
+		if($this->enable_dansguardian==1){$this->listen_port=$this->alt_listen_port;}
+		
+		if($this->hasProxyTransparent==1){
+			$this->transparent=$this->transparent_token();
+			$this->second_listen_portForTransparent=$this->listen_port+1;
+			if($this->second_listen_portForTransparent==$this->ssl_port){$this->second_port_transparent=$this->ssl_port+1;}
+			$this->second_port_transparent="http_port $this->SquidBinIpaddr$this->second_listen_portForTransparent";
+			$this->MyPortsArray[$this->second_listen_portForTransparent]=$this->second_listen_portForTransparent;
+			if($this->ASROOT){echo "Starting......: Squid : Transparent: Adding a second port $this->second_listen_portForTransparent,transparent mode:$transparent\n";}
+			$this->TRANSPARENT_PORTS_LIST[]=$this->listen_port;
+		}
+		
+		
 		$this->haarp_config();
 		
 		$compilation_params=$this->compilation_params();
@@ -4151,8 +4242,6 @@ function BuildSquidConf(){
 			$conf=$conf . "# Squid version $this->SQUID_BIN_VERSION\n";
 			$conf=$conf . "# Builded by Artica v.$articaver\n";
 			$conf=$conf . "# Date: ".date("Y-m-d H:i:s")."\n";
-			
-			
 			if($this->IS_30){if($GLOBALS["VERBOSE"]){echo "Starting......: Squid : is 3.x OK\n";}}
 			if(!$this->IS_32){if($GLOBALS["VERBOSE"]){echo "Starting......: Squid : is NOT 3.2.x OK\n";}}
 			if($this->IS_32){if($GLOBALS["VERBOSE"]){echo "Starting......: Squid : is 3.2.x OK\n";}}
@@ -4161,10 +4250,7 @@ function BuildSquidConf(){
 		
 		if($this->IS_30){$conf=$conf . "# IS 3.0 YES\n";}
 		if($this->IS_32){$conf=$conf . "# IS 3.2 YES\n";}
-		if($this->IS_31){
-			$conf=$conf . "# IS 3.1 YES\n";
-			$this->store_dir_minsize=null;
-		}  
+		if($this->IS_31){$conf=$conf . "# IS 3.1 YES\n";$this->store_dir_minsize=null;}  
 		
 		if($this->SquidActHasReverse<>1){
 			if($this->SquidDisableAllFilters==0){
@@ -4183,30 +4269,14 @@ function BuildSquidConf(){
 			if($this->enable_cicap==1){$this->ICAP_SERVICES_COUNT=$this->ICAP_SERVICES_COUNT+1;}
 		}
 		
-		
-		if($this->hasProxyTransparent==1){
-			$transparent=$this->transparent_token();
-			$this->second_listen_portForTransparent=$this->listen_port+1;
-			if($this->second_listen_portForTransparent==$this->ssl_port){$second_port_transparent=$this->ssl_port+1;}
-			$second_port_transparent="http_port $SquidBinIpaddr$this->second_listen_portForTransparent";
-			$this->MyPortsArray[$this->second_listen_portForTransparent]=$this->second_listen_portForTransparent;
-			if($this->ASROOT){echo "Starting......: Squid : Transparent: Adding a second port $this->second_listen_portForTransparent,transparent mode:$transparent\n";}
-				
-		}		
-		
-		
-		$listen_port=intval(trim($this->listen_port));
-		if($this->enable_dansguardian==1){$listen_port=$this->alt_listen_port;}
-		
-		
-		if($this->SquidActHasReverse==1){
+	if($this->SquidActHasReverse==1){
 			$conf=$conf."\n# -> Reverse Proxy is enabled <-\n";
 			$conf=$conf."include /etc/squid3/reverse.conf\n";
 			if(!is_file("/etc/squid3/reverse.conf")){@file_put_contents("/etc/squid3/reverse.conf", "#\n");}
 			if($this->SquidReverseDefaultWebSite<>null){$defaultWWW=" defaultsite=$this->SquidReverseDefaultWebSite ";}
-			$transparent=" accel vhost vport $defaultWWW";
-			$listen_port=intval(trim($sock->GET_INFO("SquidActHasReverseListenPort")));
-			if($listen_port<3){$listen_port=80;}
+			$this->transparent=" accel vhost vport $defaultWWW";
+			$this->listen_port=intval(trim($sock->GET_INFO("SquidActHasReverseListenPort")));
+			if($this->listen_port<3){$this->listen_port=80;}
 			
 			
 			if($this->ASROOT){
@@ -4218,7 +4288,7 @@ function BuildSquidConf(){
 					if(!is_numeric($DisableNginxProxy)){$DisableNginxProxy=0;}
 					if($DisableNginxProxy==0){
 						echo "Starting......: [REVERSE]: Nginx is installed and enabled...\n";
-						if($listen_port==80){$listen_port=8080;}
+						if($this->listen_port==80){$this->listen_port=8080;}
 						if($this->ssl_port==443){$this->ssl_port=4443;}
 					}
 				}
@@ -4228,27 +4298,39 @@ function BuildSquidConf(){
 			$conf=$conf.$this->squid_reverse_websites();
 		}		
 		
-		$CooVaHTTPPort=$this->CoovaTransparent();
-		$this->MyPortsArray[$listen_port]=$listen_port;
-		$this->MyPortsArray[$this->get_ssl_port()]=true;
-		//myportname
+		
+		$conf=$conf.$this->build_http_ports();
+		
+		
+		// Local port ( without transparent mode )
+		
+		
+		if($this->hasProxyTransparent==0){
+			$this->MyPortsArray[$this->listen_port]=$this->listen_port;
+			$this->MyPortsArray[$this->get_ssl_port()]=true;
+		}
+		
+		$this->MyStandPort=null;
+		$d=array();
+		$token=$this->myport_token();
+		while (list ($port, $ligne) = each ($this->MyPortsArray) ){if(!is_numeric($port)){continue;}$d[]=$port;}
+		$StandardPorts=@implode(" ", $d);
 	
 		
 		$CoovaChilliAcls=$this->CoovaChilliAcls();
-		if($CoovaChilliAcls<>null){
-			$conf=$conf. "$CoovaChilliAcls\n";
-		}
+		if($CoovaChilliAcls<>null){$conf=$conf. "$CoovaChilliAcls\n";}
 		$kav_acl="acl acl_kav_GET method GET\n";
 		$conf=$conf. "acl FTP proto FTP\n";
-		if($this->IS_27){
-			$conf=$conf."acl all src 0.0.0.0/0\n";
-		}
+		if($this->IS_27){$conf=$conf."acl all src 0.0.0.0/0\n";}
 		$conf=$conf."acl localhost src 127.0.0.1/32\n";
 		$conf=$conf."acl to_localhost dst 127.0.0.0/8 0.0.0.0/32\n";
-		
-		if($GLOBALS["HAARP_ACL"]<>null){
-			$conf=$conf."{$GLOBALS["HAARP_ACL"]}\n";
+		$conf=$conf."acl NormalPorts $token $StandardPorts\n";
+		$conf=$conf."acl MobilePhones browser -i (Android|BlackBerry|PalmSource|SymbianOS|IEMobile|Opera Mobi|Apple-iPhone|Apple-iPad|Apple-iPod)\n";
+		if($this->smartphones_port>0){
+			$conf=$conf . "acl MyMobilesPort $token $this->smartphones_port\n";
 		}
+		
+		if($GLOBALS["HAARP_ACL"]<>null){$conf=$conf."{$GLOBALS["HAARP_ACL"]}\n";}
 		$isp_networks=$this->isp_networks();
 		if($isp_networks<>null){$conf=$conf."$isp_networks\n";}
 		
@@ -4263,7 +4345,7 @@ function BuildSquidConf(){
 		
 		$squid_sessions_builder=$this->squid_sessions_builder();
 	
-		$conf=$conf . "#--------- Authentication methods (v 2013 - Jul 30)\n";
+		$conf=$conf . "#--------- Authentication methods (v 2013 - Sept 16)\n";
 		if($GLOBALS["VERBOSE"]){echo "Starting......: [AUTH] Building NTLM Settings\n";}
 		
 
@@ -4283,22 +4365,24 @@ function BuildSquidConf(){
 			$conf=$conf.$GLOBALS["ACL_AUTHENTICATED"]."\n";
 		}
 		
+		
+		
 		$conf=$conf . $this->external_acl_helper_MacToUid();
 		$conf=$conf.  $this->external_acl_helper_splash_screen();
 		$conf=$conf.  $this->external_acl_helper_nudity_scanner();
 		$conf=$conf.  $this->external_acl_dynamic_helper();
 		$conf=$conf.  $this->external_acl_helper_time_quota_acl();
 		$conf=$conf.  $this->external_acl_helper_ITChart();
-		$conf=$conf . $this->external_acl_helper();
-		$conf=$conf.  $this->external_acl_helper_quota();
+		$conf=$conf . $this->external_acl_helper_quota();
+		
 		$conf=$conf . "#--------- Bubble Mode ($this->SquidBubbleMode)\n";
-		$this->MyStandPort=null;
+		
+
+		
+		
 		if($this->SquidBubbleMode==1){
-			$token=$this->myport_token();
-			while (list ($port, $ligne) = each ($this->MyPortsArray) ){if(!is_numeric($port)){continue;}$d[]=$port;}
-			$conf=$conf . "acl MyStandPort $token ".@implode(" ", $d)."\n";
+			$conf=$conf . "acl MyStandPort $token $StandardPorts\n";
 			$this->MyStandPort="MyStandPort ";
-			
 			$q=new mysql_squid_builder();
 			$sql="SELECT * FROM webfilters_sqaclsports WHERE enabled=1 ORDER BY aclport";
 			$results = $q->QUERY_SQL($sql);
@@ -4344,18 +4428,18 @@ function BuildSquidConf(){
 		}
 		
 		$conf=$conf . "#--------- External Caches...\n";
-		if(isset($GLOBALS["HAARP_CACHE_PEER"])){
-			$conf=$conf . "{$GLOBALS["HAARP_CACHE_PEER"]}\n";
-			
-		}else{
-			$conf=$conf . "# HAARP_CACHE_PEER not set\n";
-		}
+		if(isset($GLOBALS["HAARP_CACHE_PEER"])){$conf=$conf . "{$GLOBALS["HAARP_CACHE_PEER"]}\n";}else{$conf=$conf . "# HAARP_CACHE_PEER not set\n";}
 		
 		$conf=$conf . $this->cache_peer();
 		$conf=$conf  ."\n#--------- acls\n";
 		$conf=$conf  .$acl_blocked_sites;
 		$conf=$conf. "acl CONNECT method CONNECT\n";
 		$conf=$conf. "acl purge method PURGE\n";
+		
+		
+		
+		$http_port_transparent_acl=$this->http_port_transparent_acl();
+		if($http_port_transparent_acl<>null){$conf=$conf.$http_port_transparent_acl."\n";}
 		
 		$ACLS_USERS_ASKS=$this->ACLS_USERS_ASKS();
 		if($ACLS_USERS_ASKS<>null){$conf=$conf. $ACLS_USERS_ASKS."\n";}
@@ -4415,23 +4499,28 @@ function BuildSquidConf(){
 
 		$conf=$conf."\n\n#--------- MAIN RULES...\n";
 
-			
-		
+		$conf=$conf."\n\n#--------- First, Authentication rules...\n";
+		$NormalPorts="NormalPorts ";
+		if($this->MyStandPort<>null){$NormalPorts=$this->MyStandPort;}
+		$MobilePhones=null;
+		$MyMobilesPort=null;
+		if($this->SquidAllowSmartPhones==1){$MobilePhones="!MobilePhones ";}
+		if($this->smartphones_port>0){$MobilePhones="!MyMobilesPort ";}
 		
 		if($this->LDAP_AUTH==1){
 				$acl_access_time=$http_access_time;
 				if($this->EnableKerbAuth==0){
 					if($this->SquidLdapAuthEnableGroups==1){
-						$GLOBALS["HTTP_ACCESS"]["LDAP_GROUP"]="http_access deny {$this->MyStandPort}!group_password all";
+						$GLOBALS["HTTP_ACCESS"]["LDAP_GROUP"]="http_access deny $NormalPorts$MobilePhones!group_password all";
 					}
 				}
 				
-				$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"]="http_access deny {$this->MyStandPort}!ldapauth all\n";
+				$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"]="http_access deny $NormalPorts$MobilePhones!ldapauth all\n";
 		}
 		
 		if($this->NTLM_AUTH==1){
 				$acl_access_time=$http_access_time;
-				$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"]="http_access deny {$this->MyStandPort}!ntlm_users all\n";
+				$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"]="http_access deny $NormalPorts$MobilePhones!ntlm_users all\n";
 				@mkdir("/var/cache/samba/winbindd_privileged",0750,true);
 				$office_network=null;
 		}
@@ -4440,13 +4529,13 @@ function BuildSquidConf(){
 
 		if($this->EnableKerbAuth==1){
 				$acl_access_time=$http_access_time;
-				$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"]="http_access deny {$this->MyStandPort}!AUTHENTICATED all\n";
+				$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"]="http_access deny $NormalPorts$MobilePhones!AUTHENTICATED all\n";
 				$office_network=null;
 		}
 
 		if($this->EnableKerberosAuthentication==1){
 				$acl_access_time=$http_access_time;
-				$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"]="http_access deny {$this->MyStandPort}!AUTHENTICATED all\n";
+				$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"]="http_access deny $NormalPorts$MobilePhones!AUTHENTICATED all\n";
 				$office_network=null;			
 		}
 		
@@ -4463,7 +4552,7 @@ function BuildSquidConf(){
 		
 	
 		
-		$conf=$conf."# --------- SAFE ports\n";
+		$conf=$conf."\n# --------- SAFE ports\n";
 		$conf=$conf.$this->SAFE_PORTS();
 		
 
@@ -4705,70 +4794,7 @@ function BuildSquidConf(){
 		
 
 		
-		$http_port_sslbump=$this->ssl_bump_port();
 		
-		
-		$conf=$conf."#http/https ports\n";
-		if($CooVaHTTPPort<>null){
-			$conf=$conf."#http port for hotspot\n";
-			$conf=$conf.$CooVaHTTPPort."\n";
-		}
-		$conf=$conf."http_port $SquidBinIpaddr$listen_port$transparent$http_port_sslbump\n";
-		if($second_port_transparent<>null){$conf=$conf."$second_port_transparent$http_port_sslbump\n";}
-		
-		
-		
-		if($this->second_listen_port>0){
-			$conf=$conf."http_port $SquidBinIpaddr$this->second_listen_port$http_port_sslbump\n";
-		}
-		
-		if($this->SquidBubbleMode==1){
-			$q=new mysql_squid_builder();
-			$sql="SELECT * FROM webfilters_sqaclsports WHERE enabled=1 ORDER BY aclport";
-			$results = $q->QUERY_SQL($sql);
-			while ($ligne = mysql_fetch_assoc($results)) {
-				$aclport=$ligne["aclport"];
-				$Interface=$ligne["interface"];
-				if($Interface==null){$Interface="0.0.0.0";}
-				$conf=$conf."http_port {$Interface}:$aclport\n";
-			}	
-
-		}
-		
-		
-	
-		$ssl_port_text=$this->ssl_bump_tranparent($listen_port);
-		
-		
-		
-		if($ssl_port_text==null){
-			$ssl_port_text=$this->https_port();
-		}
-		
-		if($GLOBALS["VERBOSE"]){
-			echo "\n\n ********************* SSL PORT (1) ********************\n";
-			echo "$ssl_port_text\n";
-			echo "************************************************************\n\n";
-		}
-		
-		if($ssl_port_text<>null){
-		$conf=$conf."\n";
-		$conf=$conf ."# --------- SSL Listen Port\n";
-			$conf=$conf ."$ssl_port_text\n";
-						
-		}	
-		
-		
-		if($this->ICP_PORT>10){
-			if($this->HTCP_PORT>10){
-				if($this->ICP_PORT==$this->HTCP_PORT){$this->ICP_PORT=$this->ICP_PORT+1;}
-			}
-			$conf=$conf."icp_port $this->ICP_PORT\n";
-		}
-		if($this->HTCP_PORT>10){
-			// should 4827
-			$conf=$conf."htcp_port $this->HTCP_PORT\n";
-		}		
 		
 
 		
@@ -5403,7 +5429,21 @@ function BuildSquidConf(){
 				echo "Starting......: [ACLS]: ACL Engine tcp_outgoing_tos No rules..\n";
 			}	
 			
+			
+			$reply_body_max_size=$acls->buildacls_bytype("reply_body_max_size");
+			if(count($reply_body_max_size)>0){
+				echo "Starting......: [ACLS]: reply_body_max_size ".count($reply_body_max_size)." rules..\n";
+				while (list ($index, $line) = each ($reply_body_max_size) ){$conf[]="reply_body_max_size $line";}
+			}else{
+				echo "Starting......: [ACLS]: ACL Engine reply_body_max_size No rules..\n";
+			}			
+			
 			$tcp_outgoing_address=$acls->buildacls_bytype("tcp_outgoing_address");
+			$conf[]="# tcp_outgoing_address ".count($tcp_outgoing_address)." rule(s) [".__LINE__."]";
+			if(isset($GLOBALS["tcp_outgoing_address_errors"])){
+				if(count($GLOBALS["tcp_outgoing_address_errors"])>0){while (list ($index, $line) = each ($GLOBALS["tcp_outgoing_address_errors"]) ){$conf[]="# $line";}}
+			}
+			
 			if(count($tcp_outgoing_address)>0){
 				echo "Starting......: [ACLS]: Engine tcp_outgoing_address ".count($tcp_outgoing_address)." rules..\n";
 				while (list ($index, $line) = each ($tcp_outgoing_address) ){$conf[]="tcp_outgoing_address $line";}
@@ -5454,9 +5494,7 @@ function BuildSquidConf(){
 			}	
 
 			
-			if($this->IS_27){
-				
-			}
+	
 
 
 			$conf[]="http_access allow localhost";
@@ -5501,6 +5539,25 @@ function BuildSquidConf(){
 				$conf[]="#--------- HotSpot allowed accesses";
 				$conf[]=$GLOBALS["HTTP_ACCESS_SPLASH_SCREEN"];
 			}
+			
+			$conf[]="#--------- Is Transparent ? ". count($this->TRANSPARENT_PORTS_LIST)." items";
+			if(count($this->TRANSPARENT_PORTS_LIST)>0){
+				if(isset($GLOBALS["HTTP_ACCESS"]["OFFICE_NETWORK"])){
+					$conf[]="http_access allow office_network MyTransparentPort";
+				}else{
+					$conf[]="http_access allow MyTransparentPort";
+				}
+				
+			}
+			
+			if($this->smartphones_port>0){
+				$conf[]="#--------- Dedicated rule that allow Mobile phones (SSL is allowed for all)";
+				$conf[]="http_access allow MyMobilesPort SSL_ports all";
+				$conf[]="http_access deny MyMobilesPort !MobilePhones";
+				
+			}
+			
+			
 			
 			$conf[]="#--------- Is must be authenticated ?";
 			if(isset($GLOBALS["HTTP_ACCESS"]["EXTERNAL_ARTICA_HELPER"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["EXTERNAL_ARTICA_HELPER"];}
@@ -5696,8 +5753,9 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 			
 			$params=$this->compilation_params();
 			if(!isset($params["enable-ssl"])){
+				
 				echo "Starting......: [SSL]: FATAL: Not compiled...\n";
-				return null;
+				return "# enable-ssl not compiled... SSL port disabled\n";
 			}
 			// require --enable-ssl in compilation mode... // sslpassword_program
 			
@@ -5708,12 +5766,13 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 			$http_port_sslbump=null;
 			if($this->ssl_port==0){
 				echo "Starting......: [SSL]: ssl_port = 0...\n";
-				return;
+				return "# ssl_port = 0 SSL port disabled\n";
 			}
 			
 			if($this->hasProxyTransparent==1){
 				$this->SSL_BUMP=1;
-				echo "Starting......: [SSL]: As transparent...\n";
+				echo "Starting......: [SSL]: Transparent Mode [".__LINE__."]...\n";
+				return "# ssl_port = As transparent...\n".$this->ssl_bump_tranparent();
 				return null;
 			}
 			$SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));
@@ -5737,7 +5796,23 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 			
 		}
 		
-		
+		private function http_port_transparent_acl(){
+			$f[]="# TRANSPARENT_PORTS_LIST = ".@implode(",", $this->TRANSPARENT_PORTS_LIST);
+			if(count($this->TRANSPARENT_PORTS_LIST)==0){return;}
+			$tt=array();
+			$token=$this->myport_token();
+			
+				while (list ($index, $port) = each ($this->TRANSPARENT_PORTS_LIST) ){if($port>0){$tt[$port]=$port;}}
+				if(count($tt)>0){
+					$d=array();
+					while (list ($port, $ligne) = each ($tt) ){if(!is_numeric($port)){continue;}$d[]=$port;}
+				}
+					
+			if(count($d)==0){return;}
+			$f[]="acl MyTransparentPort $token ". @implode(" ", $d); 
+			return @implode("\n",$f);
+			
+		}
 		
 		
 		private function https_certificates_token(){
@@ -5838,10 +5913,10 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 		public function get_ssl_port(){
 			
 			if($this->ssl_port>0){
-				if($this->isNGnx()){
-					if($this->ssl_port==443){$this->ssl_port=10443;}
-				}
-				return $this->ssl_port;}
+				if($this->isNGnx()){if($this->ssl_port==443){$this->ssl_port=10443;}}
+				return $this->ssl_port;
+			}
+			
 			if($this->second_listen_portForTransparent>0){ 
 				$this->ssl_port=$this->second_listen_portForTransparent+1;
 				$this->SaveToLdap();
@@ -5854,7 +5929,7 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 			}
 		}
 		
-		private function ssl_bump_tranparent($listen_port){
+		private function ssl_bump_tranparent($listen_port=null){
 			$listen_port=0;
 			if($this->SSL_BUMP==null){return null;}
 			if($this->SSL_BUMP==0){return null;}
@@ -5868,6 +5943,7 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 			
 			
 			$listen_port=$this->get_ssl_port();
+			
 			if($this->ASROOT){echo "Starting......: SSLBUMP:: SSL Port: $listen_port\n";}
 			$sock=new sockets();
 			$SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));
@@ -5882,6 +5958,9 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 			if($this->certificate_center<>null){
 				$certificates=$this->SaveCertificate($this->certificate_center);
 			}				
+			
+			if($GLOBALS["VERBOSE"]){echo "Starting......: [SSL]: this->TRANSPARENT_PORTS_LIST[]=$listen_port\n";}
+			$this->TRANSPARENT_PORTS_LIST[]=$listen_port;
 			
 			if($this->intvalVersion>=320){
 				return "https_port $SquidBinIpaddr$listen_port intercept ssl-bump $certificates\n";

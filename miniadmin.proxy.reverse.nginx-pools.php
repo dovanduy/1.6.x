@@ -445,8 +445,6 @@ function pools_delete(){
 	if(!$q->ok){echo $q->mysql_error;return;}
 
 	
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?reverse-proxy-apply=yes");	
 }
 
 
@@ -460,8 +458,12 @@ function websites_directories_delete(){
 	$sql="DELETE FROM reverse_dirs  WHERE folderid=$folderid";
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?reverse-proxy-apply=yes");	
+	
+	
+	$sql="DELETE FROM nginx_replace_folder WHERE folderid=$folderid";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}
+	
 	
 }
 

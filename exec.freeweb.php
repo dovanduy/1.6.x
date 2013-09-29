@@ -1,4 +1,5 @@
 <?php
+if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-". basename(__FILE__)." Waiting Artica-CD to finish\n";die();}}
 $GLOBALS["VERBOSE"]=false;
 if(is_array($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;echo "Starting verbose mode\n";}}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
@@ -2353,7 +2354,7 @@ function FDpermissions($servername=null){
 		
 		
 		@unlink($timefile);
-		@file_put_contents($timefile,"#");
+		@file_put_contents($timefile,time());
 		$freeweb=new freeweb($servername);
 		$basePath=$freeweb->WORKING_DIRECTORY;
 		if($GLOBALS["VERBOSE"]){echo "$servername::WORKING_DIRECTORY -> $basePath\n";}

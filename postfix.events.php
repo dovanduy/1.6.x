@@ -127,9 +127,10 @@ function getPopupLogs(){
 }
 
 function PostfixLogsPop(){
-	
+	$filterjs=null;
 	$page=CurrentPageName();
-	
+	$filter=$_GET["filter"];
+	if($filter<>null){$filterjs="filter={$_GET["filter"]};";}
 	$html="
 <script language=\"JavaScript\">  // une premiere fonction pour manipuler les valeurs \"dynamiques\"       
 function mettre(){                            
@@ -168,7 +169,7 @@ var x_postlogs=function(obj){
 
 function postlogs(){
 	    var filter=document.getElementById('filter').value;
-
+		$filterjs
 		document.getElementById('showstatus').innerHTML='<img src=img/wait.gif>';
 	 	var XHR = new XHRConnection();
 	    if(filter.length>0){

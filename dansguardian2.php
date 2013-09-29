@@ -128,14 +128,15 @@ function tabs(){
 		$array["acls"]='{acls}';
 	
 	}
-	$array["ufdbguard"]='{service_parameters}';
+	$array["quotas"]='{quotas}';
+	
 	
 	
 
 	if($EnableRemoteStatisticsAppliance==0){
 		
 		$array["groups"]='{groups2}';
-		$array["databases"]='{webfilter_databases}';
+		
 		if($enable_streamcache==1){$array["streamcache"]='{streamcache_status}';}
 	}
 
@@ -190,9 +191,10 @@ function tabs(){
 				
 		}
 
-		if($num=="databases"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+		if($num=="quotas"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.helpers.quotas.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
+		
 		}
 
 		if($num=="streamcache"){
@@ -204,7 +206,7 @@ function tabs(){
 
 
 
-	$html=build_artica_tabs($html,'main_dansguardian_tabs',950);
+	$html=build_artica_tabs($html,'main_dansguardian_tabs',975);
 	SET_CACHED(__FILE__, __FUNCTION__, null, $html);
 	echo $html;
 
@@ -1194,12 +1196,10 @@ function dansguardian_status(){
 
 	}
 
+	
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$MEM_HIGER_1G=1;
-
-	if(!$users->MEM_HIGER_1G){
-		$MEM_HIGER_1G=0;
-
-	}
+	if(!$users->MEM_HIGER_1G){$MEM_HIGER_1G=0;}
 	$t=time();
 	$html="
 	$table
@@ -1359,7 +1359,10 @@ function ufdbguard_service_section(){
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 
-
+		if($num=="databases"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.php\" style='font-size:14px;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		}
 
 		if($num=="ufdbguard-events"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.admin.events.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");

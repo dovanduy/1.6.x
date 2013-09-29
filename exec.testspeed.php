@@ -72,8 +72,21 @@ function runProc($norestart=false){
 	$speedYNum=0;
 	$IP=null;
 	$ISP=null;
-	exec("$python /usr/share/artica-postfix/bin/tespeed.py 2>&1",$results);
+	if(!is_file("/usr/local/lib/python2.6/site-packages/socks.py")){
+		@mkdir("/usr/local/lib/python2.5/site-packages",0755,true);
+		@mkdir("/usr/local/lib/python2.6/site-packages",0755,true);
+		@mkdir("/usr/local/lib/python2.7/site-packages",0755,true);
+		@mkdir("/usr/local/lib/python2.8/site-packages",0755,true);
+		@copy("/usr/share/artica-postfix/bin/socks.py", "/usr/local/lib/python2.5/site-packages/socks.py");
+		@copy("/usr/share/artica-postfix/bin/socks.py", "/usr/local/lib/python2.7/site-packages/socks.py");
+		@copy("/usr/share/artica-postfix/bin/socks.py", "/usr/local/lib/python2.6/site-packages/socks.py");
+		@copy("/usr/share/artica-postfix/bin/socks.py", "/usr/local/lib/python2.8/site-packages/socks.py");
+		
+	}
 	
+	@chdir("/usr/share/artica-postfix/bin");
+	exec("$python /usr/share/artica-postfix/bin/tespeed.py 2>&1",$results);
+	@chdir("/root");
 	while (list ($index, $line) = each ($results) ){
 		if($GLOBALS["VERBOSE"]){echo "$line\n";}
 		if(preg_match("#IP:\s+(.+?);.*?ISP:\s+(.+?)$#", $line,$re)){
@@ -86,6 +99,17 @@ function runProc($norestart=false){
 			if(!$norestart){install_lxml();}
 			return;
 		}
+		
+		
+		if(preg_match("#No module named argparse#", $line)){
+			system_admin_events("Error,$line", __FUNCTION__, __FILE__, __LINE__, "testspeed");
+			if(!$norestart){install_argparse();}
+			return;
+		}
+		
+		
+		
+		
 		if(preg_match("#Download speed:\s+([0-9\.]+)\s+MiB#", $line,$re)){
 			$speedDNum=$re[1];
 			$speedDNum=$speedDNum*1024;
@@ -101,6 +125,9 @@ function runProc($norestart=false){
 	if($GLOBALS["VERBOSE"]){
 		echo "ISP:$ISP , IP:$IP Download: $speedDNum Kbi/s upload $speedYNum Kbi/s\n";
 	}
+	if($speedDNum==0){return;}
+	if($speedYNum==0){return;}
+	
 	system_admin_events("ISP:$ISP , IP:$IP Download: $speedDNum Kbi/s upload $speedYNum Kbi/s took $took", __FUNCTION__, __FILE__, __LINE__, "testspeed");
 	$array["ISP"]=$ISP;
 	$array["PUBLIC_IP"]=$IP;
@@ -143,6 +170,28 @@ function install_lxml(){
 	if($run){runProc(true);}
 	
 }
+
+
+function install_argparse(){
+	$unix=new unix();
+	$run=false;
+	$aptget=$unix->find_program("apt-get");
+	if(is_file($aptget)){
+		if($GLOBALS["VERBOSE"]){echo "Installing python-argparse\n";}
+		exec("DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get -o Dpkg::Options::=\"--force-confnew\" --force-yes -fuy install python-argparse 2>&1",$results);
+		system_admin_events("python-lxml (apt): ".@implode("\n", $results), __FUNCTION__, __FILE__, __LINE__, "testspeed");
+		$run=true;
+	
+	}
+	$yum=$unix->find_program("yum");
+	if(is_file($yum)){
+		$run=false;
+	}
+	if($run){runProc(true);}	
+	
+}
+
+ 
 
 function GetInstances(){
 	$unix=new unix();

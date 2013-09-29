@@ -64,6 +64,7 @@ if(isset($_GET["popup-webserver-directories"])){websites_directories_section();e
 if(isset($_GET["directories-search"])){websites_directories_search();exit;}
 if(isset($_GET["website-directory-js"])){websites_directories_js();exit;}
 if(isset($_GET["website-directory-popup"])){websites_directories_popup();exit;}
+if(isset($_GET["website-directory-tabs"])){websites_directories_tabs();exit;}
 if(isset($_POST["delete-folder-id-perform"])){websites_directories_delete();exit;}
 
 
@@ -163,7 +164,7 @@ function websites_directories_js(){
 	}
 	
 	$title=$tpl->javascript_parse_text($title);
-	echo "YahooWin2(890,'$page?website-directory-popup=yes&folderid=$folderid&servername=$servername','$title')";	
+	echo "YahooWin2(890,'$page?website-directory-tabs=yes&folderid=$folderid&servername=$servername','$title')";	
 }
 
 function websites_js(){
@@ -209,6 +210,19 @@ function Delete$t(){
 			
 	Delete$t();";
 	echo $html;
+}
+
+function websites_directories_tabs(){
+	$page=CurrentPageName();
+	$boot=new boostrap_form();
+	$folderid=$_GET["folderid"];
+	$servername=$_GET["servername"];
+	$array["{parameters}"]="$page?website-directory-popup=yes&folderid=$folderid&servername=$servername";
+	$array["{replace_rules}"]="miniadmin.proxy.reverse.directory.replace.php?popup=yes&folderid=$folderid&servername=$servername";
+	echo $boot->build_tab($array);
+	
+	
+	
 }
 
 function websites_popup_tabs(){
@@ -305,9 +319,18 @@ function websites_directories_popup(){
 	
 	}	
 	
+	
+	$authrules[0]="{none}";
+	$sql=" SELECT * FROM authenticator_rules WHERE enabled=1 ORDER BY rulename";
+	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){senderrors($q->mysql_error."<br>$sql");}
+	while ($ligne21 = mysql_fetch_assoc($results)) {$authrules[$ligne21["ID"]]=$ligne21["rulename"];}
+	
+	
+	
 	if($ligne["servername"]<>null){$_GET["servername"]=$ligne["servername"];}
 	$directory=trim(stripslashes($ligne["directory"]));
-	$boot->set_formtitle($title);
+	$boot->set_formtitle($title." - $folderid -");
 	$boot->set_hidden("servername",$_GET["servername"]);
 	$boot->set_hidden("folderid-save", $folderid);
 	$boot->set_field("directory", "{path}", $directory);
@@ -316,6 +339,7 @@ function websites_directories_popup(){
 	
 	
 	$boot->set_field("hostweb", "{website}", $ligne["hostweb"],array("TOOLTIP"=>"{nginx_website_dir_explain}"));
+	$boot->set_list("authenticator", "authenticator", $authrules,$ligne["authenticator"]);
 	$boot->set_list("replaceid", "{replace_rule}", $nginx_replaces,$ligne["replaceid"]);
 	$boot->set_list("cacheid", "{cache}", $nginx_caches,$ligne["cacheid"]);
 	$boot->set_list("cache_peer_id", "{source}", $array,$ligne["cache_peer_id"]);
@@ -689,6 +713,9 @@ function websites_delete(){
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$q->QUERY_SQL("DELETE FROM nginx_aliases WHERE servername='$servername'");
 	if(!$q->ok){echo $q->mysql_error;return;}	
+	$q->QUERY_SQL("DELETE FROM nginx_replace_folder WHERE servername='$servername'");
+	if(!$q->ok){echo $q->mysql_error;return;}	
+	
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?reverse-proxy-apply=yes");	
 }
@@ -739,6 +766,12 @@ function websites_directories_delete(){
 	$sql="DELETE FROM reverse_dirs  WHERE folderid=$folderid";
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
+	
+	$sql="DELETE FROM nginx_replace_folder WHERE folderid=$folderid";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}	
+	
+	
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?reverse-proxy-apply=yes");	
 	
@@ -748,6 +781,13 @@ function websites_directories_save(){
 	unset($_POST["folderid-save"]);
 	$revers=new squid_reverse();
 	$_POST["local"]=url_decode_special_tool($_POST["local"]);
+	$q=new mysql_squid_builder();
+	if(!$q->FIELD_EXISTS("reverse_dirs","authenticator")){
+		$q->QUERY_SQL("ALTER TABLE `reverse_dirs` ADD `authenticator` INT(10) NOT NULL, ADD INDEX ( `authenticator`)");
+	}
+	
+	
+	
 	
 	while (list ($key, $value) = each ($_POST) ){
 		$fields[]="`$key`";
@@ -1734,7 +1774,10 @@ function websites_popup_webserver_replace_section(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$servername=$_GET["servername"];
-	
+	$q=new mysql_squid_builder();
+	if(!$q->FIELD_EXISTS("nginx_replace_www", "zorder")){
+		$q->QUERY_SQL("ALTER TABLE nginx_replace_www ADD `zorder` INT( 10 ) NOT NULL DEFAULT '0', ADD INDEX ( `zorder`)");
+	}
 	
 	$sock=new sockets();
 	$ARRAY=unserialize(base64_decode($sock->getFrameWork("nginx.php?status-infos=yes")));
@@ -1837,6 +1880,8 @@ function websites_popup_webserver_replace_popup(){
 	$boot->set_hidden("servername", $servername);
 	$boot->set_formtitle($title);
 	$boot->set_field("rulename", "{name}", $ligne["rulename"]);
+	$boot->set_field("zorder", "{order}", $ligne["zorder"]);
+	
 	$boot->set_textarea("stringtosearch", "{search}", $ligne["stringtosearch"],array("MANDATORY"=>true,"ENCODE"=>true));
 	$boot->set_textarea("replaceby", "{replace}", $ligne["replaceby"],array("MANDATORY"=>true,"ENCODE"=>true));
 	$boot->set_field("tokens", "{flags}", $ligne["tokens"],array("MANDATORY"=>true));
@@ -1882,7 +1927,10 @@ function websites_popup_webserver_replace_search(){
 	$q=new mysql_squid_builder();
 	
 	$servername=$_GET["servername"];
-	$sql="SELECT * FROM nginx_replace_www WHERE servername='$servername' $searchstring ORDER BY rulename LIMIT 0,250";
+	
+
+	
+	$sql="SELECT * FROM nginx_replace_www WHERE servername='$servername' $searchstring ORDER BY zorder LIMIT 0,250";
 	$results=$q->QUERY_SQL($sql);
 	
 	if(!$q->ok){if(strpos($q->mysql_error, "doesn't exist")>0){$f=new squid_reverse();$results=$q->QUERY_SQL($sql);}}

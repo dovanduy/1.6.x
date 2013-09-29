@@ -2233,7 +2233,7 @@ L.add('php-mdb2-driver-mysql');
 
  if distri.DISTRI_MAJOR<7 then begin
     l.add('libpqclient-dev');
-     l.add('php5-mhash');
+    l.add('php5-mhash');
  end;
 end;
 

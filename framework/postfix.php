@@ -260,16 +260,30 @@ function query_maillog(){
 	$search=trim(base64_decode($_GET["filter"]));
 	
 	$emails=unserialize(base64_decode($_GET["emails"]));
-	
+	$zz=array();
 	if(count($emails)>0){
-		$searchEmails="(".@implode("|", $emails).")";
-		$searchEmails=str_replace(".", "\.", $searchEmails);
-		$searchEmails=".*?$searchEmails";
+		while (list ($num, $line) = each ($emails)){
+			if(trim($line)==null){continue;}
+			$zz[]=$line;
+		}
+		
+		if(count($zz)>0){
+			$searchEmails="(".@implode("|", $zz).")";
+			writelogs_framework("searchEmails = \"$searchEmails\"",__FUNCTION__,__FILE__,__LINE__);
+			$searchEmails=str_replace(".", "\.", $searchEmails);
+			$searchEmails=".*?$searchEmails";
+		}
 	}
 	
 	if(isset($_GET["zarafa-filter"])){
 		if($_GET["zarafa-filter"]=="yes"){
 			$_GET["prefix"]="\s+zarafa\-(spooler|server|gateway|dagent|license)$searchEmails";
+		}
+	}
+	
+	if(isset($_GET["miltergrey-filter"])){
+		if($_GET["miltergrey-filter"]=="yes"){
+			$_GET["prefix"]="\s+milter-greylist$searchEmails";
 		}
 	}
 	
@@ -280,7 +294,7 @@ function query_maillog(){
 	}	
 	
 	if(isset($_GET["prefix"])){
-		$prefix="$grep -i -E '{$_GET["prefix"]}\[$searchEmails' $maillog|";
+		$prefix="$grep -i -E '{$_GET["prefix"]}(\[|:)$searchEmails' $maillog|";
 		$maillogSecond=null;
 	}
 	
@@ -366,7 +380,7 @@ function EnableStopPostfix(){
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);	
 
-		$cmd=trim("$nohup /etc/init.d/artica-postfix stop mgreylist >/dev/null &");
+		$cmd=trim("$nohup /etc/init.d/milter-greylist stop >/dev/null &");
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);		
 		
@@ -379,7 +393,7 @@ function EnableStopPostfix(){
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);
 
-		$cmd=trim("$nohup /etc/init.d/artica-postfix start mgreylist >/dev/null &");
+		$cmd=trim("$nohup /etc/init.d/milter-greylist start >/dev/null &");
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);			
 		

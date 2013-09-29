@@ -38,6 +38,8 @@ if($argv[1]=='--samba-ver'){SAMBA_VERSION_DEBUG();die();}
 if($argv[1]=='--refresh-ticket'){refresh_ticket();die();}
 if($argv[1]=='--disconnect'){disconnect();exit;}
 if($argv[1]=='--ntpdate'){sync_time(true);exit;}
+if($argv[1]=='--resolv'){PatchResolvConf($argv[2]);exit;}
+
 
 
 unset($argv[0]);
@@ -137,6 +139,7 @@ function build_kerberos(){
 function sync_time($aspid=false){
 	if(isset($GLOBALS[__FUNCTION__])){return;}
 	$unix=new unix();
+	
 	$sock=new sockets();	
 	$function=__FUNCTION__;
 	if($aspid){
@@ -160,12 +163,20 @@ function sync_time($aspid=false){
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
 	$ipaddr=trim($array["ADNETIPADDR"]);	
 	$ntpdate=$unix->find_program("ntpdate");
+	$hwclock=$unix->find_program("hwclock");
+	
+	
 	if(!is_file($ntpdate)){echo "Starting......: $function, ntpdate no such binary Line:".__LINE__."\n";return;}
 	echo "Starting......: $function, sync the time with the Active Directory $hostname [$ipaddr]...\n";
 	if($ipaddr<>null){$cmd="$ntpdate -u $ipaddr";}else{$cmd="$ntpdate -u $hostname";}
 	if($GLOBALS["VERBOSE"]){echo "$cmd line:".__LINE__."\n";}
 	exec($cmd." 2>&1",$results);
 	while (list ($num, $a) = each ($results) ){echo "Starting......: $function, $a Line:".__LINE__."\n";}
+	if(is_file($hwclock)){
+		echo "Starting......: $function, sync the Hardware time with $hwclock\n";
+		shell_exec("$hwclock --systohc");
+	}
+
 	$GLOBALS[__FUNCTION__]=true;
 }
 
@@ -546,6 +557,16 @@ function build(){
 	$kinitpassword=$unix->shellEscapeChars($kinitpassword);
 	$ipaddr=trim($array["ADNETIPADDR"]);
 	
+	$UseADAsNameServer=$sock->GET_INFO("UseADAsNameServer");
+	if(!is_numeric($UseADAsNameServer)){$UseADAsNameServer=0;}
+	if($UseADAsNameServer==1){
+		if(preg_match("#[0-9\.]+#", $ipaddr)){
+			PatchResolvConf($ipaddr);
+		}
+	
+	}
+	
+	
 	if($ipaddr<>null){
 		$ipaddrZ=explode(".",$ipaddr);
 		while (list ($num, $a) = each ($ipaddrZ) ){
@@ -603,6 +624,24 @@ function winbindd_version(){
 	if(preg_match("#Version\s+([0-9\.]+)#", @implode("", $results),$re)){
 		return $re[1];
 	}
+}
+
+function PatchResolvConf($ipaddr){
+	$function=__FUNCTION__;
+	$f=explode("\n",@file_get_contents("/etc/resolv.conf"));
+	while (list ($index, $line) = each ($f) ){
+		if(preg_match("#^nameserver\s+([0-9\.]+)#i", $line,$re)){
+			if($re[1]==$ipaddr){
+				echo "Starting......: [$function::".__LINE__."], DNS $ipaddr already set\n";
+				return;
+			}
+		}
+		
+	}
+	echo "Starting......: [$function::".__LINE__."], SET DNS $ipaddr as primary DNS server\n";
+	$newdata="nameserver $ipaddr\n".@implode("\n", $f);
+	@file_put_contents("/etc/resolv.conf", $newdata);
+	
 }
 
 

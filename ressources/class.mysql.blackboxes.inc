@@ -246,9 +246,9 @@ class mysql_blackbox{
 	$sql="CREATE TABLE IF NOT EXISTS `nics` (
 		  `nodeid` int(10) NOT NULL,
 		  `nic` varchar(20)  NOT NULL,
-			  `hostid` varchar(90)  NOT NULL,
-			  `ipaddr` varchar(50)  NOT NULL,
-			  `netmask` varchar(50)  NOT NULL,
+	 	   `hostid` varchar(90)  NOT NULL,
+		   `ipaddr` varchar(50)  NOT NULL,
+			`netmask` varchar(50)  NOT NULL,
 			  `gateway` varchar(50)  NOT NULL,
 			  `broadcast` varchar(50)  NOT NULL,
 			  `DNS1` varchar(50)  NOT NULL,

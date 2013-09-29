@@ -1,9 +1,7 @@
 <?php
 session_start();
 
-$GLOBALS["TYPES"][0]="{local_ldap}";
-$GLOBALS["TYPES"][1]="{ldap}";
-$GLOBALS["TYPES"][2]="{ActiveDirectory}";
+
 
 ini_set('display_errors', 1);
 ini_set('error_reporting', E_ALL);
@@ -25,6 +23,8 @@ function AdminPrivs(){
 	if($users->AsSquidAdministrator){return true;}
 
 }
+
+//miniadmin.nginx.authenticator.php?rules-sources-group-item-popup=yes&groupid=2
 
 if(isset($_POST["PARAMS_SAVE"])){PARAMS_SAVE();exit;}
 if(isset($_GET["sources-search"])){sources_search();exit;}
@@ -112,6 +112,9 @@ function sources_group_auth(){
 		case 2:$form=sources_group_auth_activedirectory($groupid,$params);
 			break;
 		
+		case 4:$form=sources_group_auth_url($groupid,$params);
+		break;
+		
 	}
 	$tpl=new templates();
 	$html=$tpl->_ENGINE_parse_body("<H3>$rulename - $group_type_text ({$ligne["group_type"]})</H3>").$form;
@@ -132,7 +135,6 @@ function PARAMS_SAVE(){
 	
 	$newparams=base64_encode(serialize($params));
 	$sql="UPDATE authenticator_auth SET `params`='".mysql_escape_string2($newparams)."' WHERE ID='$groupid'";
-	echo $sql;
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;}
 }
@@ -164,6 +166,26 @@ function sources_group_auth_activedirectory($groupid,$params){
 	$boot->set_RefreshSearchs();
 	return $boot->Compile();
 		
+}
+
+function sources_group_auth_url($groupid,$params){
+	$boot=new boostrap_form();
+	$sock=new sockets();
+	$users=new usersMenus();
+	$ldap=new clladp();
+	
+	$ID=$_GET["groupid"];
+	$title_button="{apply}";
+	$boot->set_formdescription("{redirect_uri_explain}");
+	$boot->set_hidden("PARAMS_SAVE", "yes");
+	$boot->set_hidden("groupid", $groupid);
+	$boot->set_field("URI","{url}",$params["URI"],array("ENCODE"=>true));
+	$boot->set_button($title_button);
+	$AdminPrivs=AdminPrivs();
+	if(!$AdminPrivs){$boot->set_form_locked();}
+	$boot->set_RefreshSearchs();
+	return $boot->Compile();	
+	
 }
 
 function sources_group_auth_LOCALLDAP(){

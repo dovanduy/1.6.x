@@ -705,7 +705,7 @@ function select_lang(){
 			function RefreshSquidLangTemplateErrorsTable$t(){
 				var lang=document.getElementById('lang1-$t').value;
 				if(lang.length==0){alert('Please select a language..');return;}
-				$('#SquidTemplateErrorsTable').flexOptions({ url: '$page?view-table=yes&choose-acl={$_GET["choose-acl"]}&lang='+lang+'&xlang='+lang }).flexReload();
+				$('#SquidTemplateErrorsTable').flexOptions({ url: '$page?view-table=yes&choose-acl={$_GET["choose-acl"]}&choose-generic={$_GET["choose-generic"]}&lang='+lang+'&xlang='+lang }).flexReload();
 				YahooWin5Hide();
 			}
 		</script>
@@ -821,7 +821,7 @@ function Defaults$t(){
 }
 
 	function SearchLanguage(){
-		YahooWin5(350,'$page?Select-lang=yes&choose-acl={$_GET["choose-acl"]}','$lang');
+		YahooWin5(350,'$page?Select-lang=yes&choose-acl={$_GET["choose-acl"]}&choose-generic={$_GET["choose-generic"]}','$lang');
 	}
 	
 	function NewTemplateNew(){

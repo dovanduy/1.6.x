@@ -118,6 +118,7 @@ function choose_group(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$q=new mysql_squid_builder();	
+	$q->create_webfilters_categories_caches();
 	$t=$_GET["t"];
 	$new_category=$tpl->_ENGINE_parse_body("{new_category}");
 	$sql="SELECT master_category FROM webfilters_categories_caches GROUP BY master_category";
@@ -171,7 +172,7 @@ function popup(){
 function popup_start(){
 	$tpl=new templates();
 	$TB_WIDTH=628;
-	$TD_DESC=401;
+	$TD_DESC=396;
 	$page=CurrentPageName();
 	
 	if(trim($_GET["www"])==null){
@@ -269,9 +270,16 @@ function popup_categories_sql(){
 	$table="webfilters_categories_caches";
 	$page=1;
 	$ORDER="ORDER BY categorykey ASC";
+	if(!$q->TABLE_EXISTS($table)){
+		if($GLOBALS["VERBOSE"]){echo "<H2>Create create_webfilters_categories_caches()</H2>\n";}
+		$q->create_webfilters_categories_caches();
+	}
+	
 	$FORCE_FILTER=null;
 	if(trim($_GET["group"])<>null){$FORCE_FILTER=" AND master_category='{$_GET["group"]}'";}
-	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__.":: q->COUNT_ROWS($table)\n<br>";}
+	if($GLOBALS["VERBOSE"]){echo "<h2>".__FUNCTION__."::".__LINE__.":: q->COUNT_ROWS($table)</h2>\n<br>";}
+	
+	
 	if($q->COUNT_ROWS($table)==0){
 		$ss=new dansguardian_rules();
 		$ss->CategoriesTableCache();

@@ -1269,6 +1269,7 @@ public	function BuildMilters($asarray=false){
 		$EnableASSP=$sock->GET_INFO("EnableASSP");
 		$EnablePostfixKLMS=$sock->GET_INFO("EnablePostfixKLMS");
 		$EnableKlms=$sock->GET_INFO("EnableKlms");
+		$RemoteMilterService=trim(strtolower($sock->GET_INFO("RemoteMilterService")));
 		$MimeDefangEnabled=trim($sock->GET_INFO("MimeDefangEnabled",true));	
 		$nosmtpd_milters=array();
 		$smtpd_milters=array();
@@ -1304,6 +1305,12 @@ public	function BuildMilters($asarray=false){
 		
 		if(preg_match('#([0-9]+)\.([0-9]+)#',$postfix_version,$re)){
 			$postfix_version=$re[1].$re[2];
+		}
+		
+		if(preg_match("#^inet:#", $RemoteMilterService)){
+			if($GLOBALS["AS_ROOT"]){echo "Starting......: Postfix remote milter service as `$RemoteMilterService`\n";}
+			$smtpd_milters[]=$RemoteMilterService;
+			
 		}
 		
 		if($user->MILTER_SPY_INSTALLED){
@@ -1363,7 +1370,15 @@ public	function BuildMilters($asarray=false){
 				$MilterGreyListEnabled=$sock->GET_INFO('MilterGreyListEnabled');
 				
 				if($MilterGreyListEnabled==1){
-					if(trim($user->MILTERGREYLIST_SOCKET)<>null){$smtpd_milters[]="unix:$user->MILTERGREYLIST_SOCKET";}
+					$MilterGreyListUseTCPPort=$sock->GET_INFO("MilterGreyListUseTCPPort");
+					$MilterGeryListTCPPort=$sock->GET_INFO("MilterGeryListTCPPort");
+					if(!is_numeric($MilterGeryListTCPPort)){$MilterGeryListTCPPort=0;}
+					if(!is_numeric($MilterGreyListUseTCPPort)){$MilterGreyListUseTCPPort=0;}
+					if($MilterGeryListTCPPort==0){$MilterGreyListUseTCPPort=0;}
+					
+					
+					if($MilterGreyListUseTCPPort==0){$smtpd_milters[]="unix:/var/run/milter-greylist/milter-greylist.sock";}
+					if($MilterGreyListUseTCPPort==1){$smtpd_milters[]="inet:127.0.0.1:$MilterGeryListTCPPort";}
 					}else{
 						writepostfixlogs("[$user->MilterGreyListEnabled] milter-greylist is not enabled",__CLASS__.'/'.__FUNCTION__,__FILE__);
 					}
