@@ -1,0 +1,302 @@
+<?php
+$GLOBALS["DEBUG_INCLUDES"]=false;
+$GLOBALS["NOSQUIDOUTPUT"]=true;
+$GLOBALS["ARGVS"]=implode(" ",$argv);
+if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+if(preg_match("#--includes#",implode(" ",$argv))){$GLOBALS["DEBUG_INCLUDES"]=true;}
+if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::class.templates.inc\n";}
+include_once(dirname(__FILE__).'/ressources/class.templates.inc');
+include_once(dirname(__FILE__).'/ressources/class.squid.remote-stats-appliance.inc');
+if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::class.ini.inc\n";}
+include_once(dirname(__FILE__).'/ressources/class.ini.inc');
+if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::class.squid.inc\n";}
+include_once(dirname(__FILE__).'/ressources/class.squid.inc');
+if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::framework/class.unix.inc\n";}
+include_once(dirname(__FILE__).'/framework/class.unix.inc');
+if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::frame.class.inc\n";}
+include_once(dirname(__FILE__).'/framework/frame.class.inc');
+include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
+include_once(dirname(__FILE__).'/ressources/class.squid.acls.inc');
+$GLOBALS["MYCOMMANDS"]=implode(" ",$argv);
+
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
+if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["NORELOAD"]=true;}
+if(preg_match("#--noreload#",implode(" ",$argv))){$GLOBALS["NORELOAD"]=true;}
+if(preg_match("#--rebuild#",implode(" ",$argv))){$GLOBALS["REBUILD"]=true;}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
+if(preg_match("#--withoutloading#",implode(" ",$argv))){$GLOBALS["NO_USE_BIN"]=true;$GLOBALS["NORELOAD"]=true;}
+if(preg_match("#--nocaches#",implode(" ",$argv))){$GLOBALS["NOCACHES"]=true;}
+if(preg_match("#--noapply#",implode(" ",$argv))){$GLOBALS["NOCACHES"]=true;$GLOBALS["NOAPPLY"]=true;$GLOBALS["FORCE"]=true;}
+if($GLOBALS["VERBOSE"]){ini_set('display_-ERR-s', 1);	ini_set('html_-ERR-s',0);ini_set('display_-ERR-s', 1);ini_set('-ERR-_reporting', E_ALL);}
+
+
+
+if($argv[1]=="--import"){import($argv[2]);die();}
+
+
+function import($filepath){
+	if(!is_file($filepath)){echo "$filepath no such file\n";}
+	$GLOBALS["FILEPATH"]=$filepath;
+	clean($filepath);
+	echo "$filepath cleaned...\n";
+	$f=explode("\n",@file_get_contents($filepath));
+	while (list ($index, $line) = each ($f)){
+		if(!preg_match("#^acl\s+#", $line)){continue;}
+		import_acl($line);
+	}
+	
+	reset($f);
+	$c=0;
+	while (list ($index, $line) = each ($f)){
+		$line=trim($line);
+		if(trim($line)=="http_access deny all"){continue;}
+		if(!preg_match("#^(http_access|http_reply_access)\s+#", $line)){continue;}
+		$c++;
+		import_http_access($line,$c);
+	}	
+	
+	
+}
+
+function clean($filepath){
+	
+	$f=explode("\n",@file_get_contents($filepath));
+	while (list ($index, $line) = each ($f)){
+		if(trim($line)==null){continue;}
+		if(preg_match("#^\##", $line)){continue;}
+		$t[]=$line;	
+		
+		
+	}
+	@file_put_contents($filepath, @implode("\n", $t));
+	
+}
+
+function external_acl_find($aclname){
+	$filepath=$GLOBALS["FILEPATH"];
+	$f=explode("\n",@file_get_contents($filepath));
+	while (list ($index, $line) = each ($f)){
+		if(!preg_match("#^acl\s+$aclname\s+external\s+.*?\s+(.+)#", $line,$re)){continue;}
+		return trim($re[1]);
+	}
+	
+	
+	
+}
+
+function import_acl($line){
+	if(!preg_match("#^acl\s+(.+?)\s+(.+?)\s(.+)#", $line,$re)){echo "FAILED: `$line`\n";return;}
+	$items=array();
+	$objectname=trim($re[1]);
+	$objectType=trim(strtolower($re[2]));
+	$objectvalues=trim($re[3]);
+	
+	if(strtolower($objectname)=="all"){return;}
+	
+	if(preg_match("#acl\s+(.+?)\s+external\s+(.+?)\s+(.+)#", $line,$re)){
+		$objectname=$re[1];
+		$objectType="external";
+		$items[0]=$re[2];
+		$items[1]=$re[3];
+	}
+	
+	
+	$external_index_ad["nt_group"]=true;
+	$external_index_ad["proxy_auth_ads"]=true;
+	
+	if(count($items)==0){
+		$arrayVals=explode(" ",$objectvalues);
+		while (list ($index, $val) = each ($arrayVals)){
+			$val=trim($val);
+			if($val==null){continue;}
+			if(substr($val, 0,1)=="."){$val=substr($val, 1,strlen($val));}
+			$items[$val]=$val;
+			
+		}
+	}
+	
+	
+	$LogSupp=null;
+	$asAD=false;
+	if($objectType=="external"){
+		if(isset($external_index_ad[$items[0]])){
+			$objectType="proxy_auth_ads";
+			$LogSupp=" - {$items[1]}";
+			$objectname=$items[1];
+			unset($items);
+			
+		}
+		
+	}
+	
+	echo "Checking Proxy object name \"$objectname\" with \"$objectType\" type and ". count($items) ." item(s)$LogSupp ";
+	import_acl_sql($objectname,$objectType,$items,$asAD);
+	
+}
+
+
+function import_acl_sql($GroupName,$GroupType,$items,$AsAd=false){
+	
+	if($GroupType=="proxy_auth_ads"){
+		$items=array();
+	}
+	
+	$q=new mysql_squid_builder();
+	
+	if($GroupName==null) {
+		echo "-ERR- unable to understand '$GroupType' with a null GroupName\n";
+		return;
+		
+	}
+	
+	if(!isset($q->acl_GroupType[$GroupType])){
+		echo "-ERR- unable to understand `$GroupName` Type:`$GroupType` /{$items[0]}/{$items[1]}/ please contact Artica support\n";
+		return;
+	}
+	
+	$sql="SELECT ID FROM webfilters_sqgroups WHERE GroupName='$GroupName' AND GroupType='$GroupType'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if($ligne["ID"]>0){
+		echo " Already Imported as ID {$ligne["ID"]}\n";
+		import_acl_sql_items($ligne["ID"],$items);
+		return $ligne["ID"];
+	}
+	
+	
+	$sql="SELECT ID,GroupName,GroupType,params FROM webfilters_sqgroups WHERE enabled=1";
+	$sql="INSERT IGNORE INTO webfilters_sqgroups (GroupName,GroupType,enabled) VALUES ('$GroupName','$GroupType','1')";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo " -ERR- !!\n$q->mysql_error\n";return;}
+	echo "Imported as ID $q->last_id\n";
+	import_acl_sql_items($q->last_id,$items);
+	
+}
+
+function import_acl_sql_items($gpid,$items){
+	if(count($items)==0){return;}
+	$q=new mysql_squid_builder();
+	$c=0;
+	while (list ($index, $val) = each ($items)){
+		$pattern=mysql_escape_string2($val);
+		$sql="SELECT pattern FROM webfilters_sqitems WHERE gpid=$gpid AND pattern='$pattern'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(trim($ligne["pattern"])<>null){continue;}
+		$sql="INSERT IGNORE INTO webfilters_sqitems (pattern,gpid,enabled) VALUES ('$pattern','$gpid','1')";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo " $pattern -> -ERR- $gpid !!\n$q->mysql_error\n";continue;}
+		$c++;
+		
+	}
+	if($c>0){echo "Group ID $gpid, $c imported items\n";}
+}
+
+function import_http_access($line,$xORDER){
+	if(!preg_match("#(http_access|http_reply_access)\s+(allow|deny)\s+(.+)#", $line,$re)){
+		echo "`$line` -ERR- unable to understand this rule\n";
+		return;
+	}
+	
+	$PortDirectionS["proxy_auth_ads"]=1;
+	
+	$q=new mysql_squid_builder();
+	$PortDirection=0;
+	$re[2]=trim($re[2]);
+	$re[3]=trim($re[3]);
+	$GroupsX=explode(" ",$re[3]);
+	$GPS=array();
+	while (list ($index, $gptmp) = each ($GroupsX)){
+		$gptmp=trim($gptmp);
+		$gpName=null;
+		$negation=false;
+		$Alternate=null;
+		if($gptmp==null){continue;}
+		if(substr($gptmp,0,1)=="!"){$gptmp=substr($gptmp, 1,strlen($gptmp));$negation=true;}
+		if($gptmp=="all"){continue;}
+		
+		$sql="SELECT ID,GroupType FROM webfilters_sqgroups WHERE GroupName='$gptmp'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if($ligne["ID"]==0){
+			$Alternate=external_acl_find($gptmp);
+			if($Alternate<>null){
+				$gptmp=$Alternate;
+				$sql="SELECT ID,GroupType FROM webfilters_sqgroups WHERE GroupName='$Alternate'";
+				$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+			}
+		}
+		if($ligne["ID"]==0){
+			echo " -ERR- Unable to find group id from `$gptmp`\n";
+			continue;
+		}
+		if(isset($PortDirectionS[$ligne["GroupType"]])){
+			$PortDirection=$PortDirectionS[$ligne["GroupType"]];
+		}
+		
+		$GroupLogs[]=" $gptmp id:{$ligne["ID"]}";
+		$Groups[$ligne["ID"]]=$negation;
+		if($negation){$gpName="not ";}
+		$gpName=$gpName.$gptmp;
+		$GPS[]=$gpName;
+	}
+	
+	
+	if(count($GPS)==0){
+		echo "`$line` -ERR- no associated groups\n";
+		return;
+	}
+	$DenyAllow=$re[2];
+	$aclType=trim($re[1]);
+	$aclname2=trim(@implode(" ", $GPS));
+	$aclname="$DenyAllow $aclname2";
+	
+	$TRANS["http_access"]["deny"]="access_deny";
+	$TRANS["http_access"]["allow"]="access_allow";
+	$TRANS["http_reply_access"]["deny"]="http_reply_access_deny";
+	$TRANS["http_reply_access"]["allow"]="http_reply_access_allow";
+	
+	$acl_type=$TRANS[$aclType][$DenyAllow];
+	if($acl_type==null){
+		echo " $aclname -> -ERR- Unable to understand $aclType/$DenyAllow\n";
+		return;
+	}
+	
+	
+	echo "Acl Name `$aclname`";
+	$sql="SELECT ID FROM webfilters_sqacls WHERE aclname='$aclname'";
+	//if(isset($_POST["PortDirection"])){$PortDirection=",`PortDirection`='{$_POST["PortDirection"]}'";}
+	
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if($ligne["ID"]>0){
+			$aclid=$ligne["ID"];
+			$q->QUERY_SQL("UPDATE webfilters_sqacls SET xORDER='$xORDER',PortDirection=$PortDirection WHERE ID='$aclid'");
+			echo " $aclid (edited) [".@implode(" ", $GroupLogs)."]";
+	}else{
+		$sql="INSERT INTO webfilters_sqacls (aclname,enabled,acltpl,xORDER,aclport,aclgroup,aclgpid,PortDirection) VALUES ('$aclname',1,'','$xORDER','0','0','0','$PortDirection')";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo " $aclname -> -ERR- !!\n$q->mysql_error\n";return;}
+		$aclid=$q->last_id;
+		echo " ID:$aclid (added) [".@implode(" ", $GroupLogs)."]";
+	}
+	$acl=new squid_acls_groups();
+	if(!$acl->aclrule_edittype($aclid,$acl_type,1)){
+		echo " $aclname -> aclrule_edittype -> -ERR- !!\n$q->mysql_error\n";
+		return;
+	}
+	
+	
+	$c=0;
+	while (list ($gpid, $negation) = each ($Groups)){
+		$xnegation=0;
+		$md5=md5($aclid.$gpid);
+		if($negation){$xnegation=1;}
+		$sql="INSERT IGNORE INTO webfilters_sqacllinks (zmd5,aclid,gpid,negation) VALUES('$md5','$aclid','$gpid','$xnegation')";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo " -ERR- Group:$gpid on rule $aclid Line:".__LINE__." $q->mysql_error\n";continue;}
+		$c++;
+	}
+	
+	
+	echo " Linked to $c Group(s) Done..\n";
+	
+}
